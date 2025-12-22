@@ -482,9 +482,17 @@
     include_once("wt-cpt.php");
     require_once(get_stylesheet_directory() . '/wt-cpt/accordion.php');
 	require_once(get_stylesheet_directory() . '/wt-cpt/testimonials.php');
+	require_once(get_stylesheet_directory() . '/wt-cpt/games.php');
+	require_once(get_stylesheet_directory() . '/wt-cpt/certificates.php');
 
     // load theme options
     require_once(get_stylesheet_directory() . '/theme-options.php');
+    
+    // load REST API
+    require_once(get_stylesheet_directory() . '/includes/rest-api.php');
+    
+    // load certificate generator
+    require_once(get_stylesheet_directory() . '/includes/certificate-generator.php');
 
     // Initialize dynamic files on theme activation
     function initialize_dynamic_files() {
