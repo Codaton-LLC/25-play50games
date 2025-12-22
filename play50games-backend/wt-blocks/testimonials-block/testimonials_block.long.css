@@ -1,0 +1,45 @@
+section.testimonials-section{
+
+}
+
+
+section.testimonials-section .testimonial-card {
+    position: relative;
+    background-image: url('/wp-content/themes/play50games/assets/img/background-card.png');
+    background-position: center center;
+    background-repeat: no-repeat;
+    background-size: cover;
+    overflow: hidden;
+    z-index: 0;
+    height: 380px;
+    color: white;
+    border-radius: 15px;
+    padding: 30px;
+}
+
+
+section.testimonials-section .testimonial-card::after {
+    content: "";
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background-color: rgba(0, 0, 0, 1);
+    z-index: 1;
+    opacity: 0.85;
+}
+
+
+section.testimonials-section .testimonial-card > * {
+    position: relative;
+    z-index: 2;
+}
+
+section.testimonials-section .testimonial-card .testimonial-content {
+    height: 100%;
+}
+
+
+section.testimonials-section .testimonial-image img{
+    width: 50px;
+    height: 50px;
+    border-radius: 100%;
+}

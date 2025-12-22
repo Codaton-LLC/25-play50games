@@ -1,0 +1,64 @@
+section.headline-block {
+    display: flex;
+    align-items: center;
+    position: relative;
+    overflow-x: hidden;
+}
+
+section.headline-block.bg-color-yellow p,
+section.headline-block.bg-color-gray p,
+section.headline-block.bg-color-black p,
+section.headline-block.bg-color-blue p,
+section.headline-block.bg-color-turquoise p,
+section.headline-block.bg-color-light-blue p,
+section.headline-block.bg-color-orange p,
+section.headline-block.bg-color-primary p
+{
+    margin-top: 10px;
+    margin-bottom: 0;
+}
+
+section.headline-block p.wp-block-wt-headline-block {
+    margin-top: 10px;
+}
+
+.headline-block .background-text {
+    top: -80px;
+    position: absolute;
+    font-size: 400px;
+    width: 100%;
+    font-weight: 700;
+    opacity: .02;
+    z-index: 2;
+    user-select: none;
+    margin-left: -30px;
+    line-height: 1;
+    height: 400px;
+}
+
+@media (max-width: 991px) {
+
+    section.headline-block{
+        overflow-y: hidden;
+    }
+
+    .headline-block .background-text {
+        top: -60px;
+        font-size: 300px;
+        margin-left: -25px;
+    }
+
+}
+
+@media (max-width: 767px) {
+
+}
+
+
+
+@media (max-width: 575px) {
+    section.headline-block {
+        padding: 0 20px;
+    }
+
+}

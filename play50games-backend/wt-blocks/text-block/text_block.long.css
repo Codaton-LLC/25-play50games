@@ -1,0 +1,130 @@
+section.text-block {
+    display: flex;
+    align-items: center;
+    position: relative;
+    overflow-x: hidden;
+
+}
+
+section.text-block.bg-color-yellow p,
+section.text-block.bg-color-gray p,
+section.text-block.bg-color-black p,
+section.text-block.bg-color-blue p,
+section.text-block.bg-color-turquoise p,
+section.text-block.bg-color-light-blue p,
+section.text-block.bg-color-orange p,
+section.text-block.bg-color-primary p
+{
+    margin-top: 10px;
+    margin-bottom: 0;
+}
+
+section.text-block p.wp-block-wt-text-block {
+    margin-top: 10px;
+}
+
+section.text-block .content-two-columns p.wp-block-wt-text-block {
+    margin-top: 0px;
+}
+
+section.text-block .text-block-text  p strong {
+   font-weight: 600;
+    font-size: 18px;
+}
+
+section.text-block .text-block-text  strong a{
+    font-size: 16px;
+}
+
+
+section.text-block .text-block-headline.style-2{
+    color: var(--play50games-primary);
+}
+
+
+
+section.text-block .text-block-headline.left,
+section.text-block div.text-block-text  p.left {
+    text-align: left;
+}
+
+section.text-block .text-block-headline.right,
+section.text-block div.text-block-text  p.right {
+    text-align: right;
+}
+
+section.text-block .text-block-text  .center {
+    width: 80%;
+    display: block;
+    margin: 0 auto;
+}
+
+section.text-block .text-block-headline.center,
+section.text-block div.text-block-text  p.center {
+    text-align: center;
+}
+
+section.text-block .text-block-headline.justify,
+section.text-block div.text-block-text  p.justify {
+    text-align: justify;
+}
+
+.text-block .content-two-columns{
+    width: 100%;
+    -webkit-column-count: 2;
+    -moz-column-count: 2;
+    column-count: 2;
+    -webkit-column-gap: 50px;
+    -moz-column-gap: 50px;
+    column-gap: 50px;
+}
+
+.text-block .text-block-html p{
+    margin-bottom: 1rem;
+}
+
+.text-block .background-text {
+    top: -320px;
+    position: absolute;
+    font-size: 420px;
+    width: 100%;
+    font-weight: 700;
+    opacity: .02;
+    overflow: hidden;
+    z-index: 2;
+    user-select: none;
+    margin-left: -30px;
+}
+
+@media (max-width: 991px) {
+    .text-block .content-two-columns{
+        -webkit-column-count: 1;
+        -moz-column-count: 1;
+        column-count: 1;
+    }
+    .text-block .background-text {
+        top: -210px;
+        font-size: 300px;
+        margin-left: -25px;
+    }
+
+    .text-block .text-block-html {
+        margin-top: 40px;
+    }
+}
+
+@media (max-width: 767px) {
+
+}
+
+
+
+@media (max-width: 575px) {
+    section.text-block .text-block-text  .center {
+        width: 100%;
+    }
+    section.text-block {
+       padding: 0 20px;
+    }
+
+}
