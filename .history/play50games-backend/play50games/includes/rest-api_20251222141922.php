@@ -63,16 +63,8 @@ add_action('init', function() {
         $allowed_origin = defined('PLAY50_CORS_ORIGIN') ? PLAY50_CORS_ORIGIN : '*';
         $request_origin = isset($_SERVER['HTTP_ORIGIN']) ? $_SERVER['HTTP_ORIGIN'] : '';
         
-        // Always allow localhost origins for development (even in production WordPress)
-        if (!empty($request_origin) && (
-            strpos($request_origin, 'http://localhost') === 0 || 
-            strpos($request_origin, 'http://127.0.0.1') === 0 ||
-            strpos($request_origin, 'http://192.168.') === 0
-        )) {
-            $allowed_origin = $request_origin;
-        }
         // If multiple origins defined (comma-separated), check request origin
-        elseif (strpos($allowed_origin, ',') !== false) {
+        if (strpos($allowed_origin, ',') !== false) {
             $origins = array_map('trim', explode(',', $allowed_origin));
             if (in_array($request_origin, $origins)) {
                 $allowed_origin = $request_origin;

@@ -22,78 +22,67 @@ function show_games_custom_fields() {
         <div style="background: #f0f0f1; padding: 15px; margin-bottom: 20px; border-left: 4px solid #2271b1;">
             <h3 style="margin-top: 0;">⚡ Quick Fill Templates</h3>
             <p style="margin-bottom: 10px;">Select a game template to auto-fill all fields:</p>
-            <div style="margin-bottom: 10px;">
-                <label for="filter_category" style="font-weight: bold; margin-right: 10px;">Filter by Category:</label>
-                <select id="filter_category" style="padding: 5px;">
-                    <option value="all">All Games</option>
-                    <option value="logic">Logic Games (1-15)</option>
-                    <option value="memory">Memory Games (16-25)</option>
-                    <option value="speed">Speed Games (26-35)</option>
-                    <option value="skill">Skill Games (36-45)</option>
-                    <option value="final">Final Games (46-50)</option>
-                </select>
-            </div>
             <select id="game_template" style="width: 100%; max-width: 400px; padding: 8px;">
                 <option value="">-- Select Game Template --</option>
-                <optgroup label="Logic Games (1-15)" data-category="logic">
-                    <option value="match-shapes" data-category="logic">1. Match the Shapes</option>
-                    <option value="color-sequence" data-category="logic">2. Color Sequence</option>
-                    <option value="number-order" data-category="logic">3. Number Order</option>
-                    <option value="find-odd-one" data-category="logic">4. Find the Odd One</option>
-                    <option value="tile-slider" data-category="logic">5. Tile Slider</option>
-                    <option value="balance-scale" data-category="logic">6. Balance the Scale</option>
-                    <option value="light-switch" data-category="logic">7. Light Switch Puzzle</option>
-                    <option value="maze-escape" data-category="logic">8. Maze Escape</option>
-                    <option value="pattern-completion" data-category="logic">9. Pattern Completion</option>
-                    <option value="sudoku-4x4" data-category="logic">10. Sudoku 4x4</option>
-                    <option value="rotate-to-fit" data-category="logic">11. Rotate to Fit</option>
-                    <option value="mirror-match" data-category="logic">12. Mirror Match</option>
-                    <option value="logic-gates" data-category="logic">13. Logic Gates</option>
-                    <option value="sequence-arrows" data-category="logic">14. Sequence Arrows</option>
-                    <option value="block-fill" data-category="logic">15. Block Fill</option>
+                <optgroup label="Logic Games (1-15)">
+                    <option value="match-shapes">1. Match the Shapes</option>
+                    <option value="color-sequence">2. Color Sequence</option>
+                    <option value="number-order">3. Number Order</option>
+                    <option value="find-odd-one">4. Find the Odd One</option>
+                    <option value="tile-slider">5. Tile Slider</option>
+                    <option value="balance-scale">6. Balance the Scale</option>
+                    <option value="light-switch">7. Light Switch Puzzle</option>
+                    <option value="maze-escape">8. Maze Escape</option>
+                    <option value="pattern-completion">9. Pattern Completion</option>
+                    <option value="sudoku-4x4">10. Sudoku 4x4</option>
+                    <option value="rotate-to-fit">11. Rotate to Fit</option>
+                    <option value="mirror-match">12. Mirror Match</option>
+                    <option value="logic-gates">13. Logic Gates</option>
+                    <option value="sequence-arrows">14. Sequence Arrows</option>
+                    <option value="block-fill">15. Block Fill</option>
                 </optgroup>
-                <optgroup label="Memory Games (16-25)" data-category="memory">
-                    <option value="card-flip" data-category="memory">16. Card Flip Memory</option>
-                    <option value="sound-memory" data-category="memory">17. Sound Memory</option>
-                    <option value="emoji-memory" data-category="memory">18. Emoji Memory</option>
-                    <option value="number-recall" data-category="memory">19. Number Recall</option>
-                    <option value="image-recall" data-category="memory">20. Image Recall</option>
-                    <option value="path-memory" data-category="memory">21. Path Memory</option>
-                    <option value="word-memory" data-category="memory">22. Word Memory</option>
-                    <option value="face-memory" data-category="memory">23. Face Memory</option>
-                    <option value="color-grid-memory" data-category="memory">24. Color Grid Memory</option>
-                    <option value="symbol-stack" data-category="memory">25. Symbol Stack</option>
+                <optgroup label="Memory Games (16-25)">
+                    <option value="card-flip">16. Card Flip Memory</option>
+                    <option value="sound-memory">17. Sound Memory</option>
+                    <option value="emoji-memory">18. Emoji Memory</option>
+                    <option value="number-recall">19. Number Recall</option>
+                    <option value="image-recall">20. Image Recall</option>
+                    <option value="path-memory">21. Path Memory</option>
+                    <option value="word-memory">22. Word Memory</option>
+                    <option value="face-memory">23. Face Memory</option>
+                    <option value="color-grid-memory">24. Color Grid Memory</option>
+                    <option value="symbol-stack">25. Symbol Stack</option>
                 </optgroup>
-                <optgroup label="Speed Games (26-35)" data-category="speed">
-                    <option value="click-green" data-category="speed">26. Click the Green</option>
-                    <option value="avoid-red" data-category="speed">27. Avoid the Red</option>
-                    <option value="reaction-test" data-category="speed">28. Reaction Test</option>
-                    <option value="fast-math" data-category="speed">29. Fast Math</option>
-                    <option value="whack-shape" data-category="speed">30. Whack-a-Shape</option>
-                    <option value="typing-sprint" data-category="speed">31. Typing Sprint</option>
-                    <option value="quick-compare" data-category="speed">32. Quick Compare</option>
-                    <option value="falling-objects" data-category="speed">33. Falling Objects</option>
-                    <option value="tap-counter" data-category="speed">34. Tap Counter</option>
-                    <option value="reflex-arrows" data-category="speed">35. Reflex Arrows</option>
+                <optgroup label="Speed Games (26-35)">
+                    <option value="click-green">26. Click the Green</option>
+                    <option value="avoid-red">27. Avoid the Red</option>
+                    <option value="reaction-test">28. Reaction Test</option>
+                    <option value="fast-math">29. Fast Math</option>
+                    <option value="whack-shape">30. Whack-a-Shape</option>
+                    <option value="typing-sprint">31. Typing Sprint</option>
+                    <option value="quick-compare">32. Quick Compare</option>
+                    <option value="falling-objects">33. Falling Objects</option>
+                    <option value="tap-counter">34. Tap Counter</option>
+                    <option value="reflex-arrows">35. Reflex Arrows</option>
                 </optgroup>
-                <optgroup label="Skill Games (36-45)" data-category="skill">
-                    <option value="ball-balance" data-category="skill">36. Ball Balance</option>
-                    <option value="target-aim" data-category="skill">37. Target Aim</option>
-                    <option value="line-tracer" data-category="skill">38. Line Tracer</option>
-                    <option value="timing-bar" data-category="skill">39. Timing Bar</option>
-                    <option value="stack-blocks" data-category="skill">40. Stack Blocks</option>
-                    <option value="precision-drop" data-category="skill">41. Precision Drop</option>
-                    <option value="drag-sort" data-category="skill">42. Drag & Drop Sort</option>
-                    <option value="speed-drawing" data-category="skill">43. Speed Drawing</option>
-                    <option value="one-hand" data-category="skill">44. One-Hand Mode</option>
-                    <option value="cursor-maze" data-category="skill">45. Cursor Maze</option>
+                <optgroup label="Skill Games (36-45)">
+                    <option value="ball-balance">36. Ball Balance</option>
+                    <option value="target-aim">37. Target Aim</option>
+                    <option value="line-tracer">38. Line Tracer</option>
+                    <option value="timing-bar">39. Timing Bar</option>
+                    <option value="stack-blocks">40. Stack Blocks</option>
+                    <option value="precision-drop">41. Precision Drop</option>
+                    <option value="drag-sort">42. Drag & Drop Sort</option>
+                    <option value="speed-drawing">43. Speed Drawing</option>
+                    <option value="one-hand">44. One-Hand Mode</option>
+                    <option value="cursor-maze">45. Cursor Maze</option>
                 </optgroup>
-                <optgroup label="Final Games (46-50)" data-category="final">
-                    <option value="mixed-quiz" data-category="final">46. Mixed Quiz</option>
-                    <option value="survival-mode" data-category="final">47. Survival Mode</option>
-                    <option value="boss-puzzle" data-category="final">48. Boss Puzzle</option>
-                    <option value="time-challenge" data-category="final">49. Time Challenge</option>
-                    <option value="final-test" data-category="final">50. Final Certification Test</option>
+                <optgroup label="Final Games (46-50)">
+                    <option value="mixed-quiz">46. Mixed Quiz</option>
+                    <option value="survival-mode">47. Survival Mode</option>
+                    <option value="boss-puzzle">48. Boss Puzzle</option>
+                    <option value="time-challenge">49. Time Challenge</option>
+                    <option value="final-test">50. Final Certification Test</option>
                 </optgroup>
             </select>
             <button type="button" id="fill_template" class="button button-secondary" style="margin-top: 10px;">Fill Template</button>
@@ -141,41 +130,7 @@ function show_games_custom_fields() {
                 <th><label for="unlock_requirement"><?php _e('Unlock Requirement (Game ID)', 'play50games'); ?></label></th>
                 <td>
                     <input type="number" name="game_fields[unlock_requirement]" id="unlock_requirement" value="<?php echo esc_attr($unlock_requirement); ?>" class="regular-text" placeholder="<?php _e('Leave empty for Game 1', 'play50games'); ?>">
-                    <button type="button" id="suggest_unlock" class="button button-small" style="margin-left: 10px;">Suggest Previous Game</button>
                     <p class="description"><?php _e('Game ID that must be completed first. Leave empty for the first game.', 'play50games'); ?></p>
-                    <div id="unlock_suggestions" style="margin-top: 10px; padding: 10px; background: #f9f9f9; border: 1px solid #ddd; display: none;">
-                        <strong>Available Games:</strong>
-                        <ul id="unlock_list" style="margin: 5px 0; padding-left: 20px;">
-                            <?php
-                            // Get all published games
-                            $existing_games = get_posts(array(
-                                'post_type' => 'play50_game',
-                                'post_status' => 'publish',
-                                'posts_per_page' => -1,
-                                'meta_key' => 'game_fields',
-                                'orderby' => 'meta_value_num',
-                                'meta_query' => array(
-                                    array(
-                                        'key' => 'game_fields',
-                                        'compare' => 'EXISTS',
-                                    ),
-                                ),
-                            ));
-                            
-                            foreach ($existing_games as $game) {
-                                $game_meta = get_post_meta($game->ID, 'game_fields', true);
-                                $game_order = isset($game_meta['game_order']) ? $game_meta['game_order'] : 'N/A';
-                                $game_type = isset($game_meta['game_type']) ? $game_meta['game_type'] : 'unknown';
-                                if ($game->ID != $post->ID) {
-                                    echo '<li><a href="#" class="select-unlock" data-id="' . esc_attr($game->ID) . '">ID: ' . esc_html($game->ID) . ' - ' . esc_html($game->post_title) . ' (Order: ' . esc_html($game_order) . ', Type: ' . esc_html($game_type) . ')</a></li>';
-                                }
-                            }
-                            if (empty($existing_games) || (count($existing_games) == 1 && $existing_games[0]->ID == $post->ID)) {
-                                echo '<li style="color: #999;">No other games found. This will be the first game.</li>';
-                            }
-                            ?>
-                        </ul>
-                    </div>
                 </td>
             </tr>
             <tr>
@@ -198,46 +153,6 @@ function show_games_custom_fields() {
     
     <script type="text/javascript">
     jQuery(document).ready(function($) {
-        // Filter templates by category
-        function filterTemplatesByCategory(category) {
-            const $template = $('#game_template');
-            const $options = $template.find('option, optgroup');
-            
-            if (category === 'all') {
-                $options.show();
-            } else {
-                $options.hide();
-                $template.find('option[value=""]').show(); // Always show the default option
-                $template.find('optgroup[data-category="' + category + '"]').show();
-                $template.find('option[data-category="' + category + '"]').show();
-            }
-            
-            // Reset selection when filtering
-            $template.val('');
-        }
-        
-        // Filter when category changes
-        $('#filter_category').on('change', function() {
-            const category = $(this).val();
-            filterTemplatesByCategory(category);
-        });
-        
-        // Auto-filter when game type changes
-        $('#game_type').on('change', function() {
-            const gameType = $(this).val();
-            if (gameType) {
-                $('#filter_category').val(gameType);
-                filterTemplatesByCategory(gameType);
-            }
-        });
-        
-        // Initial filter based on current game type
-        const currentGameType = $('#game_type').val();
-        if (currentGameType) {
-            $('#filter_category').val(currentGameType);
-            filterTemplatesByCategory(currentGameType);
-        }
-        
         // Game templates with all field values
         const gameTemplates = {
             'match-shapes': {
@@ -886,39 +801,6 @@ function show_games_custom_fields() {
                 $('#json_status').html('<span style="color: green;">✓ Formatted</span>');
             } catch (e) {
                 // Invalid JSON, don't format
-            }
-        });
-        
-        // Show/hide unlock suggestions
-        $('#suggest_unlock').on('click', function() {
-            $('#unlock_suggestions').toggle();
-        });
-        
-        // Select unlock requirement from list
-        $(document).on('click', '.select-unlock', function(e) {
-            e.preventDefault();
-            const gameId = $(this).data('id');
-            $('#unlock_requirement').val(gameId);
-            $('#unlock_suggestions').hide();
-            alert('Unlock requirement set to Game ID: ' + gameId);
-        });
-        
-        // Auto-suggest unlock based on game order
-        $('#game_order').on('blur', function() {
-            const currentOrder = parseInt($(this).val());
-            if (currentOrder > 1) {
-                // Try to find game with order = currentOrder - 1
-                $('.select-unlock').each(function() {
-                    const text = $(this).text();
-                    const match = text.match(/Order: (\d+)/);
-                    if (match && parseInt(match[1]) === currentOrder - 1) {
-                        const gameId = $(this).data('id');
-                        if (confirm('Auto-set unlock requirement to previous game (Order ' + (currentOrder - 1) + ', ID: ' + gameId + ')?')) {
-                            $('#unlock_requirement').val(gameId);
-                        }
-                        return false;
-                    }
-                });
             }
         });
     });

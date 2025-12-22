@@ -3,9 +3,9 @@
  * Play50Games REST API Endpoints
  */
 
-// Ensure REST API allows unauthenticated requests
-// Note: rest_enabled and rest_jsonp_enabled are deprecated since WordPress 4.7.0
-// REST API can no longer be completely disabled, we just need to allow access
+// Ensure REST API is enabled
+add_filter('rest_enabled', '__return_true');
+add_filter('rest_jsonp_enabled', '__return_true');
 add_filter('rest_authentication_errors', function($result) {
     // Allow unauthenticated requests to our endpoints
     if (!empty($result)) {
@@ -20,37 +20,21 @@ add_action('rest_api_init', function() {
     add_filter('rest_pre_serve_request', function($value) {
         // Get allowed origin from wp-config.php or use default
         $allowed_origin = defined('PLAY50_CORS_ORIGIN') ? PLAY50_CORS_ORIGIN : '*';
-        $request_origin = isset($_SERVER['HTTP_ORIGIN']) ? $_SERVER['HTTP_ORIGIN'] : '';
         
-        // Always allow localhost origins for development (even in production WordPress)
-        if (!empty($request_origin) && (
-            strpos($request_origin, 'http://localhost') === 0 || 
-            strpos($request_origin, 'http://127.0.0.1') === 0 ||
-            strpos($request_origin, 'http://192.168.') === 0
-        )) {
-            $allowed_origin = $request_origin;
-        }
-        // If multiple origins defined (comma-separated), check request origin
-        elseif (strpos($allowed_origin, ',') !== false) {
+        // If multiple origins defined, check request origin
+        if (strpos($allowed_origin, ',') !== false) {
             $origins = array_map('trim', explode(',', $allowed_origin));
+            $request_origin = isset($_SERVER['HTTP_ORIGIN']) ? $_SERVER['HTTP_ORIGIN'] : '';
             if (in_array($request_origin, $origins)) {
                 $allowed_origin = $request_origin;
             } else {
                 $allowed_origin = $origins[0]; // Default to first
             }
-        } elseif ($allowed_origin !== '*' && !empty($request_origin)) {
-            // Single origin specified - check if request matches
-            if ($request_origin === $allowed_origin) {
-                $allowed_origin = $request_origin;
-            }
         }
         
         header('Access-Control-Allow-Origin: ' . $allowed_origin);
         header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
-        // Only set credentials if not using wildcard
-        if ($allowed_origin !== '*') {
-            header('Access-Control-Allow-Credentials: true');
-        }
+        header('Access-Control-Allow-Credentials: true');
         header('Access-Control-Allow-Headers: Authorization, Content-Type, X-WP-Nonce');
         return $value;
     });
@@ -61,45 +45,28 @@ add_action('init', function() {
     if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS' && strpos($_SERVER['REQUEST_URI'], '/wp-json/') !== false) {
         // Get allowed origin from wp-config.php or use default
         $allowed_origin = defined('PLAY50_CORS_ORIGIN') ? PLAY50_CORS_ORIGIN : '*';
-        $request_origin = isset($_SERVER['HTTP_ORIGIN']) ? $_SERVER['HTTP_ORIGIN'] : '';
         
-        // Always allow localhost origins for development (even in production WordPress)
-        if (!empty($request_origin) && (
-            strpos($request_origin, 'http://localhost') === 0 || 
-            strpos($request_origin, 'http://127.0.0.1') === 0 ||
-            strpos($request_origin, 'http://192.168.') === 0
-        )) {
-            $allowed_origin = $request_origin;
-        }
-        // If multiple origins defined (comma-separated), check request origin
-        elseif (strpos($allowed_origin, ',') !== false) {
+        // If multiple origins defined, check request origin
+        if (strpos($allowed_origin, ',') !== false) {
             $origins = array_map('trim', explode(',', $allowed_origin));
+            $request_origin = isset($_SERVER['HTTP_ORIGIN']) ? $_SERVER['HTTP_ORIGIN'] : '';
             if (in_array($request_origin, $origins)) {
                 $allowed_origin = $request_origin;
             } else {
                 $allowed_origin = $origins[0]; // Default to first
-            }
-        } elseif ($allowed_origin !== '*' && !empty($request_origin)) {
-            // Single origin specified - check if request matches
-            if ($request_origin === $allowed_origin) {
-                $allowed_origin = $request_origin;
             }
         }
         
         header('Access-Control-Allow-Origin: ' . $allowed_origin);
         header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
         header('Access-Control-Allow-Headers: Authorization, Content-Type, X-WP-Nonce');
-        // Only set credentials if not using wildcard
-        if ($allowed_origin !== '*') {
-            header('Access-Control-Allow-Credentials: true');
-        }
         header('Access-Control-Max-Age: 86400');
         status_header(200);
         exit(0);
     }
 }, 1);
 
-// Register REST API routes - use early priority to ensure registration
+// Register REST API routes
 add_action('rest_api_init', function() {
     
     // Test endpoint to verify REST API is working
@@ -110,24 +77,6 @@ add_action('rest_api_init', function() {
                 'success' => true,
                 'message' => 'Play50Games REST API is working!',
                 'timestamp' => current_time('mysql'),
-                'wordpress_version' => get_bloginfo('version'),
-                'rest_api_url' => rest_url('play50/v1/'),
-            ), 200);
-        },
-        'permission_callback' => '__return_true',
-    ));
-    
-    // Diagnostic endpoint to check REST API status
-    register_rest_route('play50/v1', '/diagnostics', array(
-        'methods' => 'GET',
-        'callback' => function() {
-            return new WP_REST_Response(array(
-                'rest_api_enabled' => true,
-                'theme_active' => get_stylesheet() === 'play50games',
-                'rest_url' => rest_url(),
-                'site_url' => site_url(),
-                'home_url' => home_url(),
-                'permalinks_structure' => get_option('permalink_structure'),
             ), 200);
         },
         'permission_callback' => '__return_true',
@@ -189,12 +138,11 @@ function play50_get_games($request) {
     $user_id = get_current_user_id();
     $guest_id = $request->get_param('guest_id'); // For guest users
     
-    // Get all games - we'll sort manually since game_order is inside the game_fields array
     $args = array(
         'post_type' => 'play50_game',
         'posts_per_page' => -1,
-        'post_status' => 'publish', // Only get published games
-        'orderby' => 'date',
+        'orderby' => 'meta_value_num',
+        'meta_key' => 'game_fields_game_order',
         'order' => 'ASC',
     );
     
@@ -204,13 +152,7 @@ function play50_get_games($request) {
     if ($games_query->have_posts()) {
         foreach ($games_query->posts as $game) {
             $meta = get_post_meta($game->ID, 'game_fields', true);
-            
-            // Skip if game_fields meta doesn't exist or is empty
-            if (empty($meta) || !is_array($meta)) {
-                continue;
-            }
-            
-            $game_order = isset($meta['game_order']) ? intval($meta['game_order']) : 999; // Default to high number if not set
+            $game_order = isset($meta['game_order']) ? intval($meta['game_order']) : 0;
             
             // Check if game is unlocked
             $is_unlocked = play50_is_game_unlocked($game->ID, $user_id, $guest_id);
@@ -229,11 +171,6 @@ function play50_get_games($request) {
                 'is_unlocked' => $is_unlocked,
             );
         }
-        
-        // Sort games by game_order
-        usort($games, function($a, $b) {
-            return $a['game_order'] - $b['game_order'];
-        });
     }
     
     return new WP_REST_Response($games, 200);
@@ -354,36 +291,18 @@ function play50_get_unlock_status($request) {
     $args = array(
         'post_type' => 'play50_game',
         'posts_per_page' => -1,
-        'post_status' => 'publish',
-        'orderby' => 'date',
+        'orderby' => 'meta_value_num',
+        'meta_key' => 'game_fields_game_order',
         'order' => 'ASC',
     );
     
     $games_query = new WP_Query($args);
     $unlock_status = array();
-    $games_with_order = array();
     
     if ($games_query->have_posts()) {
         foreach ($games_query->posts as $game) {
-            $meta = get_post_meta($game->ID, 'game_fields', true);
-            $game_order = isset($meta['game_order']) ? intval($meta['game_order']) : 999;
             $is_unlocked = play50_is_game_unlocked($game->ID, $user_id, $guest_id);
-            
-            $games_with_order[] = array(
-                'id' => $game->ID,
-                'order' => $game_order,
-                'unlocked' => $is_unlocked
-            );
-        }
-        
-        // Sort by game_order
-        usort($games_with_order, function($a, $b) {
-            return $a['order'] - $b['order'];
-        });
-        
-        // Build final array
-        foreach ($games_with_order as $game) {
-            $unlock_status[$game['id']] = $game['unlocked'];
+            $unlock_status[$game->ID] = $is_unlocked;
         }
     }
     

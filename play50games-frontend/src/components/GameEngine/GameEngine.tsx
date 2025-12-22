@@ -7,6 +7,7 @@ import LogicGames from './game-types/LogicGames';
 import MemoryGames from './game-types/MemoryGames';
 import SpeedGames from './game-types/SpeedGames';
 import SkillGames from './game-types/SkillGames';
+import FinalGames from './game-types/FinalGames';
 
 interface GameEngineProps {
   game: Game;
@@ -36,19 +37,27 @@ export default function GameEngine({ game, onComplete, onExit }: GameEngineProps
     return () => clearInterval(timer);
   }, [isPlaying, isCompleted]);
 
-  const handleGameEnd = useCallback(async () => {
+  const handleGameEnd = useCallback(async (finalScore?: number) => {
     if (isCompleted) return;
     
     setIsCompleted(true);
     setIsPlaying(false);
     
-    const completed = score >= game.passing_score;
+    // Use provided finalScore or fall back to current score state
+    const actualScore = finalScore !== undefined ? finalScore : score;
+    
+    const completed = actualScore >= game.passing_score;
+    
+    // Update score state if finalScore was provided
+    if (finalScore !== undefined) {
+      setScore(finalScore);
+    }
     
     // Save progress
-    await saveProgress(game.id, score, completed);
+    await saveProgress(game.id, actualScore, completed);
     
     // Call completion callback
-    onComplete(score);
+    onComplete(actualScore);
   }, [score, game, isCompleted, onComplete]);
 
   const startGame = () => {
@@ -96,6 +105,15 @@ export default function GameEngine({ game, onComplete, onExit }: GameEngineProps
       case 'skill':
         return (
           <SkillGames
+            config={gameConfig}
+            onScoreUpdate={updateScore}
+            onComplete={handleGameEnd}
+            isPlaying={isPlaying}
+          />
+        );
+      case 'final':
+        return (
+          <FinalGames
             config={gameConfig}
             onScoreUpdate={updateScore}
             onComplete={handleGameEnd}

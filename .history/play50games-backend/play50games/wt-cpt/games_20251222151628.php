@@ -198,46 +198,6 @@ function show_games_custom_fields() {
     
     <script type="text/javascript">
     jQuery(document).ready(function($) {
-        // Filter templates by category
-        function filterTemplatesByCategory(category) {
-            const $template = $('#game_template');
-            const $options = $template.find('option, optgroup');
-            
-            if (category === 'all') {
-                $options.show();
-            } else {
-                $options.hide();
-                $template.find('option[value=""]').show(); // Always show the default option
-                $template.find('optgroup[data-category="' + category + '"]').show();
-                $template.find('option[data-category="' + category + '"]').show();
-            }
-            
-            // Reset selection when filtering
-            $template.val('');
-        }
-        
-        // Filter when category changes
-        $('#filter_category').on('change', function() {
-            const category = $(this).val();
-            filterTemplatesByCategory(category);
-        });
-        
-        // Auto-filter when game type changes
-        $('#game_type').on('change', function() {
-            const gameType = $(this).val();
-            if (gameType) {
-                $('#filter_category').val(gameType);
-                filterTemplatesByCategory(gameType);
-            }
-        });
-        
-        // Initial filter based on current game type
-        const currentGameType = $('#game_type').val();
-        if (currentGameType) {
-            $('#filter_category').val(currentGameType);
-            filterTemplatesByCategory(currentGameType);
-        }
-        
         // Game templates with all field values
         const gameTemplates = {
             'match-shapes': {

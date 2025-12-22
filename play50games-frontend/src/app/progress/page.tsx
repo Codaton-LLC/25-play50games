@@ -35,11 +35,13 @@ export default function ProgressPage() {
 
   const completedGames = games.filter(game => {
     const gameProgress = progress[game.id];
-    return gameProgress && gameProgress.completed;
+    return gameProgress && gameProgress.completed === true;
   });
 
   const totalScore = Object.values(progress).reduce((sum, p) => sum + (p.best_score || 0), 0);
-  const completionPercentage = Math.round((completedGames.length / games.length) * 100);
+  const completionPercentage = games.length > 0 
+    ? Math.round((completedGames.length / games.length) * 100) 
+    : 0;
 
   if (loading) {
     return <div className="loading">Loading progress...</div>;

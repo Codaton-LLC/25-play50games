@@ -93,7 +93,7 @@ if (strpos($host, 'localhost') !== false || strpos($host, '127.0.0.1') !== false
 } else {
     // Production environment - specify your frontend domain
     define('WP_ENVIRONMENT_TYPE', 'production');
-    define('PLAY50_CORS_ORIGIN', 'https://play50.games');
+    define('PLAY50_CORS_ORIGIN', 'https://play50.games,http://localhost:3000,http://127.0.0.1:3000');
     // Nëse ke multiple domains, përdor:
     // define('PLAY50_CORS_ORIGIN', 'https://play50.games,https://www.play50.games');
 }
@@ -103,7 +103,7 @@ if (strpos($host, 'localhost') !== false || strpos($host, '127.0.0.1') !== false
 
 /** Absolute path to the WordPress directory. */
 if ( !defined('ABSPATH') )
-	define('ABSPATH', dirname(__FILE__) . '/');
+    define('ABSPATH', dirname(__FILE__) . '/');
 
 /** Sets up WordPress vars and included files. */
 require_once(ABSPATH . 'wp-settings.php');

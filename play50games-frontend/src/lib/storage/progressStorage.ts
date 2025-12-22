@@ -94,7 +94,13 @@ export function getAllProgress(): Record<number, GameProgress> {
   if (!stored) return {};
   
   try {
-    return JSON.parse(stored);
+    const parsed = JSON.parse(stored);
+    // Convert string keys to numbers (JSON.parse makes object keys strings)
+    const result: Record<number, GameProgress> = {};
+    for (const [key, value] of Object.entries(parsed)) {
+      result[parseInt(key, 10)] = value as GameProgress;
+    }
+    return result;
   } catch (error) {
     console.error('Failed to parse progress from localStorage:', error);
     return {};

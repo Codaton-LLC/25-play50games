@@ -485,7 +485,7 @@ function FallingObjects({ config, onScoreUpdate, onComplete, isPlaying }: { conf
     if (!isPlaying) return;
     
     const timer = setInterval(() => {
-      setTimeLeft((prev: number) => {
+      setTimeLeft(prev => {
         if (prev <= 1) {
           const finalScore = Math.max(0, 100 - missed * 5);
           onScoreUpdate(finalScore);
@@ -561,7 +561,7 @@ function TapCounter({ config, onScoreUpdate, onComplete, isPlaying }: { config: 
     if (!isPlaying) return;
     
     const timer = setInterval(() => {
-      setTimeLeft((prev: number) => {
+      setTimeLeft(prev => {
         if (prev <= 1) {
           const finalScore = Math.min(100, taps * 2);
           onScoreUpdate(finalScore);
