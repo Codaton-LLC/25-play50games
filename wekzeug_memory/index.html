@@ -1,0 +1,507 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Werkzeug-Memory (Mini-Game)</title>
+  <style>
+    :root{
+      --bg:#0b1020;
+      --card:rgba(255,255,255,.06);
+      --text:rgba(255,255,255,.92);
+      --muted:rgba(255,255,255,.72);
+      --stroke:rgba(255,255,255,.12);
+      --ok:#86efac;
+      --warn:#fca5a5;
+      --accent:#7dd3fc;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0; min-height:100vh; display:grid; place-items:center;
+      font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+      background: radial-gradient(1000px 600px at 20% 10%, rgba(125, 211, 252, .20), transparent 60%),
+                  radial-gradient(900px 550px at 80% 30%, rgba(134, 239, 172, .16), transparent 60%),
+                  radial-gradient(900px 650px at 60% 90%, rgba(252, 165, 165, .14), transparent 60%),
+                  var(--bg);
+      color:var(--text);
+      padding:18px;
+    }
+    .app{width:min(980px,100%); display:grid; grid-template-columns:1fr .9fr; gap:14px}
+    @media (max-width: 900px){.app{grid-template-columns:1fr}}
+
+    .card{
+      background:var(--card); border:1px solid var(--stroke);
+      border-radius:18px; box-shadow:0 10px 30px rgba(0,0,0,.28); overflow:hidden;
+    }
+    header{
+      padding:14px 16px; border-bottom:1px solid var(--stroke);
+      display:flex; align-items:center; justify-content:space-between;
+      gap:12px; flex-wrap:wrap;
+    }
+    .title{display:flex; flex-direction:column; gap:2px}
+    .title h1{font-size:16px; margin:0; letter-spacing:.2px}
+    .title p{margin:0; font-size:12px; color:var(--muted); line-height:1.3}
+
+    .controls{display:flex; gap:10px; align-items:center; flex-wrap:wrap}
+    button, select{
+      border:1px solid var(--stroke);
+      background:rgba(255,255,255,.08);
+      color:var(--text);
+      padding:9px 12px; border-radius:12px;
+      font-weight:650; font-size:13px;
+    }
+    button{cursor:pointer; user-select:none; transition:transform .08s ease, background .18s ease}
+    button:hover{background:rgba(255,255,255,.12)}
+    button:active{transform:translateY(1px)}
+    button.primary{border-color:rgba(125,211,252,.35); background:rgba(125,211,252,.14)}
+    button:disabled{opacity:.55; cursor:not-allowed}
+
+    .pill{
+      display:inline-flex; align-items:center; gap:8px;
+      padding:8px 10px; border-radius:999px;
+      border:1px solid var(--stroke);
+      background:rgba(255,255,255,.06);
+      font-size:12px; color:var(--muted);
+    }
+    .pill strong{color:var(--text); font-weight:750}
+
+    .board{padding:14px}
+    .grid{
+      display:grid;
+      grid-template-columns:repeat(4, 1fr);
+      gap:10px;
+    }
+    @media (max-width: 520px){
+      .grid{grid-template-columns:repeat(3, 1fr)}
+    }
+
+    .tile{
+      position:relative;
+      aspect-ratio: 1 / 1;
+      border-radius:16px;
+      border:1px solid var(--stroke);
+      background:rgba(255,255,255,.04);
+      cursor:pointer;
+      overflow:hidden;
+      user-select:none;
+      perspective: 1000px; /* perspective must be on the parent */
+    }
+    .tile[aria-disabled="true"]{cursor:default; opacity:.95}
+
+    .tileInner{
+      position:absolute;
+      inset:0;
+      border-radius:16px;
+      transform-style:preserve-3d;
+      transition:transform .25s ease;
+    }
+    .tile.flip .tileInner{transform:rotateY(180deg)}
+
+    .face{
+      position:absolute;
+      inset:0;
+      display:grid;
+      place-items:center;
+      padding:10px;
+      backface-visibility:hidden;
+      -webkit-backface-visibility:hidden;
+    }
+    .front{
+      background:linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.02));
+    }
+    .front .q{
+      font-size:30px;
+      color:rgba(255,255,255,.75);
+      font-weight:900;
+    }
+
+    .back{
+      transform:rotateY(180deg);
+      background:linear-gradient(180deg, rgba(125,211,252,.12), rgba(255,255,255,.02));
+      border-top:1px solid rgba(255,255,255,.08);
+      text-align:center;
+      display:grid;
+      place-items:center;
+      gap:8px;
+    }
+
+    .icon{
+      font-size:34px;
+      line-height:1;
+      font-family: "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",system-ui,sans-serif;
+      color: rgba(255,255,255,.92);
+    }
+    .term{font-weight:800; font-size:13px}
+    .sub{font-size:11px; color:rgba(255,255,255,.78)}
+
+    .tile.matched{
+      border-color:rgba(134,239,172,.40);
+      background:rgba(134,239,172,.08);
+    }
+
+    .side{display:grid; grid-template-rows:auto 1fr auto}
+    .panel{padding:14px 16px; display:grid; gap:10px}
+    .box{
+      border:1px solid var(--stroke);
+      background:rgba(255,255,255,.04);
+      border-radius:14px;
+      padding:12px;
+      display:grid;
+      gap:8px;
+    }
+    .box h2{margin:0; font-size:13px}
+    .box p{margin:0; color:var(--muted); font-size:12px; line-height:1.4}
+
+    .small{font-size:12px; color:var(--muted); line-height:1.45}
+
+    .toast{
+      position:fixed; left:50%; bottom:18px; transform:translateX(-50%);
+      background:rgba(0,0,0,.55);
+      border:1px solid rgba(255,255,255,.12);
+      color:rgba(255,255,255,.92);
+      padding:10px 12px;
+      border-radius:12px;
+      font-size:13px;
+      box-shadow:0 10px 30px rgba(0,0,0,.35);
+      display:none;
+      max-width:min(720px, calc(100% - 24px));
+    }
+    .toast.show{display:block}
+
+    .kbd{font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; font-size:11px; padding:2px 6px; border:1px solid var(--stroke); border-radius:8px; background:rgba(255,255,255,.06)}
+  </style>
+</head>
+<body>
+  <main class="app">
+    <section class="card">
+      <header>
+        <div class="title">
+          <h1>Werkzeug-Memory</h1>
+          <p>Finde die passenden Paare. Ideal für Begriffe + Bilder (mehrsprachig).</p>
+        </div>
+        <div class="controls">
+          <span class="pill">⏱️ Zeit: <strong id="time">0</strong>s</span>
+          <span class="pill">🧠 Züge: <strong id="moves">0</strong></span>
+          <button class="primary" id="startBtn">Start</button>
+          <button id="restartBtn">Neu mischen</button>
+        </div>
+      </header>
+
+      <div class="board">
+        <div class="grid" id="grid" aria-label="Memory Spielfeld"></div>
+      </div>
+    </section>
+
+    <aside class="card side">
+      <header>
+        <div class="title">
+          <h1>Einstellungen</h1>
+          <p>Wähle Inhalt und Sprache (z.B. Glossar-Verknüpfung).</p>
+        </div>
+        <div class="controls">
+          <select id="setSelect" title="Inhalt">
+            <option value="tools">Werkzeuge (Begriff ↔ Bild)</option>
+            <option value="safety">Sicherheitszeichen</option>
+            <option value="machine">Maschinenbauteile (Teil ↔ Funktion)</option>
+          </select>
+          <select id="langSelect" title="Sprache">
+            <option value="de">Deutsch</option>
+            <option value="en">Englisch</option>
+            <option value="both">DE + EN</option>
+          </select>
+        </div>
+      </header>
+
+      <div class="panel">
+        <div class="box">
+          <h2>Spielziel</h2>
+          <p>Ein Paar besteht aus 2 Karten mit gleicher <strong>pairId</strong> (z.B. Werkzeug + Begriff).</p>
+          <p class="small">Tipp: Für Glossar-Import kannst du unten die <span class="kbd">GLOSSARY</span>-Daten ersetzen.</p>
+        </div>
+
+        <div class="box">
+          <h2>Fortschritt</h2>
+          <p>✅ Paare: <strong id="pairs">0</strong>/<span id="pairsTotal">0</span></p>
+          <p class="small" id="status">Klick auf <strong>Start</strong>, dann Karten drehen.</p>
+        </div>
+
+        <div class="box">
+          <h2>Varianten</h2>
+          <p>• Sicherheitszeichen: Symbol ↔ Bedeutung</p>
+          <p>• Maschinenbauteile: Teil ↔ Funktion</p>
+        </div>
+      </div>
+
+      <div style="padding:14px 16px; border-top:1px solid var(--stroke)" class="small">
+        Bedienung: Klick / Tap. Optional: <span class="kbd">Enter</span> auf fokussierter Karte.
+      </div>
+    </aside>
+  </main>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script>
+    // --- Glossar / Karten-Definitionen ---
+    // Jede Karte gehört zu einem pairId. Pro pairId gibt es genau 2 Karten.
+    // Du kannst diese Daten 1:1 aus eurem Glossar generieren (JSON).
+
+    const CARD_SETS = {
+      tools: {
+        label: 'Werkzeuge',
+        pairs: [
+          // Karte A: Icon, Karte B: Begriff (oder umgekehrt)
+          { pairId: 'hammer', a: { icon: '🔨', de: 'Hammer', en: 'Hammer' }, b: { icon: '📝', de: 'Schlägt Nägel ein', en: 'Drives nails' } },
+          { pairId: 'wrench', a: { icon: '🔧', de: 'Schraubenschlüssel', en: 'Wrench' }, b: { icon: '📝', de: 'Dreht Muttern', en: 'Tightens nuts' } },
+          { pairId: 'screwdriver', a: { icon: '🪛', de: 'Schraubendreher', en: 'Screwdriver' }, b: { icon: '📝', de: 'Dreht Schrauben', en: 'Turns screws' } },
+          { pairId: 'saw', a: { icon: '🪚', de: 'Säge', en: 'Saw' }, b: { icon: '📝', de: 'Schneidet Holz', en: 'Cuts wood' } },
+          { pairId: 'helmet', a: { icon: '⛑️', de: 'Schutzhelm', en: 'Hard hat' }, b: { icon: '📝', de: 'Schützt den Kopf', en: 'Protects head' } },
+          { pairId: 'gloves', a: { icon: '🧤', de: 'Schutzhandschuhe', en: 'Gloves' }, b: { icon: '📝', de: 'Schützen Hände', en: 'Protect hands' } },
+        ]
+      },
+      safety: {
+        label: 'Sicherheitszeichen',
+        pairs: [
+          { pairId: 'noEntry', a: { icon: '⛔', de: 'Zutritt verboten', en: 'No entry' }, b: { icon: '📝', de: 'Nicht betreten', en: 'Do not enter' } },
+          { pairId: 'helmet', a: { icon: '⛑️', de: 'Helm tragen', en: 'Wear helmet' }, b: { icon: '📝', de: 'Kopfschutz Pflicht', en: 'Head protection required' } },
+          { pairId: 'gloves', a: { icon: '🧤', de: 'Handschuhe tragen', en: 'Wear gloves' }, b: { icon: '📝', de: 'Handschutz Pflicht', en: 'Hand protection required' } },
+          { pairId: 'electric', a: { icon: '⚡', de: 'Achtung Strom', en: 'Electrical hazard' }, b: { icon: '📝', de: 'Stromschlaggefahr', en: 'Risk of electric shock' } },
+          { pairId: 'forklift', a: { icon: '🚜', de: 'Flurförderzeuge', en: 'Forklifts' }, b: { icon: '📝', de: 'Achtung Fahrzeuge', en: 'Watch for vehicles' } },
+          { pairId: 'fire', a: { icon: '🔥', de: 'Brandgefahr', en: 'Fire hazard' }, b: { icon: '📝', de: 'Entzündlich', en: 'Flammable' } },
+        ]
+      },
+      machine: {
+        label: 'Maschinenbauteile – Funktion',
+        pairs: [
+          { pairId: 'bearing', a: { icon: '⚙️', de: 'Lager', en: 'Bearing' }, b: { icon: '📝', de: 'Reduziert Reibung', en: 'Reduces friction' } },
+          { pairId: 'gear', a: { icon: '🦷', de: 'Zahnrad', en: 'Gear' }, b: { icon: '📝', de: 'Überträgt Drehmoment', en: 'Transmits torque' } },
+          { pairId: 'bolt', a: { icon: '🔩', de: 'Schraube/Bolzen', en: 'Bolt' }, b: { icon: '📝', de: 'Verbindet Bauteile', en: 'Connects parts' } },
+          { pairId: 'belt', a: { icon: '🧷', de: 'Riemen', en: 'Belt' }, b: { icon: '📝', de: 'Überträgt Bewegung', en: 'Transfers motion' } },
+          { pairId: 'motor', a: { icon: '🧲', de: 'Motor', en: 'Motor' }, b: { icon: '📝', de: 'Erzeugt Antrieb', en: 'Generates drive' } },
+          { pairId: 'sensor', a: { icon: '📡', de: 'Sensor', en: 'Sensor' }, b: { icon: '📝', de: 'Misst/erkennt Werte', en: 'Measures/detects values' } },
+        ]
+      }
+    };
+
+    // --- State ---
+    const grid = document.getElementById('grid');
+    const startBtn = document.getElementById('startBtn');
+    const restartBtn = document.getElementById('restartBtn');
+    const setSelect = document.getElementById('setSelect');
+    const langSelect = document.getElementById('langSelect');
+
+    const elTime = document.getElementById('time');
+    const elMoves = document.getElementById('moves');
+    const elPairs = document.getElementById('pairs');
+    const elPairsTotal = document.getElementById('pairsTotal');
+    const elStatus = document.getElementById('status');
+    const toast = document.getElementById('toast');
+
+    let running = false;
+    let seconds = 0;
+    let timer = null;
+
+    let first = null;
+    let second = null;
+    let lock = false;
+    let moves = 0;
+    let matchedPairs = 0;
+
+    function showToast(msg){
+      toast.textContent = msg;
+      toast.classList.add('show');
+      clearTimeout(showToast._t);
+      showToast._t = setTimeout(()=>toast.classList.remove('show'), 1500);
+    }
+
+    function shuffle(arr){
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      return arr;
+    }
+
+    function labelFor(card, lang){
+      if (lang === 'de') return card.de;
+      if (lang === 'en') return card.en;
+      return `${card.de} / ${card.en}`;
+    }
+
+    function buildDeck(){
+      const setKey = setSelect.value;
+      const lang = langSelect.value;
+      const pairs = CARD_SETS[setKey].pairs;
+
+      // Build 2 IDENTICAL cards per pairId (same icon)
+      const deck = [];
+      for (const p of pairs){
+        const labelA = labelFor(p.a, lang);
+        const labelB = labelFor(p.b, lang);
+        deck.push({ pairId: p.pairId, icon: p.a.icon, text: labelA });
+        deck.push({ pairId: p.pairId, icon: p.a.icon, text: labelB });
+      }
+      return shuffle(deck);
+    }
+
+    function resetGame(){
+      if (timer) clearInterval(timer);
+      timer = null;
+      running = false;
+      seconds = 0;
+      elTime.textContent = '0';
+
+      first = null;
+      second = null;
+      lock = false;
+      moves = 0;
+      matchedPairs = 0;
+
+      elMoves.textContent = '0';
+      const setKey = setSelect.value;
+      elPairs.textContent = '0';
+      elPairsTotal.textContent = String(CARD_SETS[setKey].pairs.length);
+
+      startBtn.disabled = false;
+      startBtn.textContent = 'Start';
+
+      elStatus.textContent = 'Klick auf Start, dann Karten drehen.';
+
+      renderGrid();
+      showToast('Neu gemischt.');
+    }
+
+    function startGame(){
+      if (running) return;
+      running = true;
+      startBtn.disabled = true;
+      startBtn.textContent = 'Läuft…';
+      elStatus.textContent = 'Finde passende Paare!';
+      timer = setInterval(()=>{
+        seconds += 1;
+        elTime.textContent = String(seconds);
+      }, 1000);
+      showToast('Los geht’s!');
+    }
+
+    function renderGrid(){
+      const deck = buildDeck();
+      grid.innerHTML = '';
+
+      deck.forEach((c, idx)=>{
+        const tile = document.createElement('div');
+        tile.className = 'tile';
+        tile.tabIndex = 0;
+        tile.setAttribute('role', 'button');
+        tile.setAttribute('aria-label', 'Memory Karte');
+        tile.dataset.pairId = c.pairId;
+        tile.dataset.index = String(idx);
+
+        tile.innerHTML = `
+          <div class="tileInner">
+            <div class="face front"><div class="q">?</div></div>
+            <div class="face back">
+              <div class="icon">${c.icon}</div>
+              <div class="term">${escapeHtml(c.text)}</div>
+              <div class="sub">${escapeHtml(CARD_SETS[setSelect.value].label)}</div>
+            </div>
+          </div>
+        `;
+
+        tile.addEventListener('click', ()=>flip(tile));
+        tile.addEventListener('keydown', (e)=>{
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            flip(tile);
+          }
+        });
+
+        grid.appendChild(tile);
+      });
+    }
+
+    function escapeHtml(str){
+      return String(str)
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#039;');
+    }
+
+    function flip(tile){
+      if (!running) {
+        showToast('Klick zuerst auf „Start“.');
+        return;
+      }
+      if (lock) return;
+      if (tile.classList.contains('matched')) return;
+      if (tile === first) return;
+
+      tile.classList.add('flip');
+
+      if (!first){
+        first = tile;
+        return;
+      }
+
+      second = tile;
+      moves += 1;
+      elMoves.textContent = String(moves);
+
+      const match = first.dataset.pairId === second.dataset.pairId;
+
+      if (match){
+        first.classList.add('matched');
+        second.classList.add('matched');
+        first.setAttribute('aria-disabled','true');
+        second.setAttribute('aria-disabled','true');
+
+        matchedPairs += 1;
+        elPairs.textContent = String(matchedPairs);
+
+        showToast('✅ Paar!');
+        cleanupTurn();
+
+        const totalPairs = CARD_SETS[setSelect.value].pairs.length;
+        if (matchedPairs === totalPairs){
+          win();
+        }
+      } else {
+        lock = true;
+        showToast('❌ Kein Paar');
+        setTimeout(()=>{
+          first?.classList.remove('flip');
+          second?.classList.remove('flip');
+          cleanupTurn();
+        }, 650);
+      }
+    }
+
+    function cleanupTurn(){
+      first = null;
+      second = null;
+      lock = false;
+    }
+
+    function win(){
+      if (timer) clearInterval(timer);
+      timer = null;
+      running = false;
+      startBtn.disabled = false;
+      startBtn.textContent = 'Start';
+
+      elStatus.textContent = `🎉 Fertig! Zeit: ${seconds}s • Züge: ${moves}`;
+      showToast('🎉 Alle Paare gefunden!');
+    }
+
+    // --- UI wiring ---
+    startBtn.addEventListener('click', startGame);
+    restartBtn.addEventListener('click', resetGame);
+    setSelect.addEventListener('change', resetGame);
+    langSelect.addEventListener('change', resetGame);
+
+    // init
+    resetGame();
+  </script>
+</body>
+</html>

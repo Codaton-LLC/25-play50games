@@ -1,0 +1,250 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Montage‑Simulator – Drag & Drop</title>
+  <style>
+    :root{
+      --bg:#0b1020;
+      --card:rgba(255,255,255,.06);
+      --text:rgba(255,255,255,.92);
+      --muted:rgba(255,255,255,.70);
+      --stroke:rgba(255,255,255,.12);
+      --ok:#86efac;
+      --warn:#fca5a5;
+      --accent:#7dd3fc;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0; min-height:100vh; display:grid; place-items:center;
+      font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+      background: radial-gradient(1000px 600px at 20% 10%, rgba(125,211,252,.20), transparent 60%),
+                  radial-gradient(900px 550px at 80% 30%, rgba(134,239,172,.16), transparent 60%),
+                  var(--bg);
+      color:var(--text);
+      padding:18px;
+    }
+    .app{width:min(1100px,100%); display:grid; grid-template-columns:1fr 1fr; gap:16px}
+    @media (max-width:900px){.app{grid-template-columns:1fr}}
+
+    .card{
+      background:var(--card);
+      border:1px solid var(--stroke);
+      border-radius:18px;
+      box-shadow:0 10px 30px rgba(0,0,0,.28);
+      overflow:hidden;
+    }
+    header{
+      padding:14px 16px;
+      border-bottom:1px solid var(--stroke);
+      display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;
+    }
+    h1{font-size:16px; margin:0}
+    p{margin:0; font-size:12px; color:var(--muted)}
+
+    .controls{display:flex; gap:10px; align-items:center}
+    button, select{
+      border:1px solid var(--stroke);
+      background:rgba(255,255,255,.08);
+      color:var(--text);
+      padding:9px 12px; border-radius:12px;
+      font-weight:650; font-size:13px;
+      cursor:pointer;
+    }
+    button.primary{background:rgba(125,211,252,.14); border-color:rgba(125,211,252,.35)}
+
+    .board{padding:16px}
+
+    .steps{
+      display:grid;
+      grid-template-columns:repeat(auto-fit, minmax(140px,1fr));
+      gap:12px;
+    }
+
+    .step{
+      border:2px dashed var(--stroke);
+      border-radius:14px;
+      padding:12px;
+      min-height:90px;
+      display:grid;
+      place-items:center;
+      text-align:center;
+      font-size:13px;
+      color:var(--muted);
+    }
+    .step.correct{
+      border-color:var(--ok);
+      background:rgba(134,239,172,.12);
+      color:var(--text);
+      font-weight:700;
+    }
+
+    .parts{
+      display:grid;
+      grid-template-columns:repeat(auto-fit, minmax(120px,1fr));
+      gap:12px;
+    }
+
+    .part{
+      border:1px solid var(--stroke);
+      border-radius:14px;
+      padding:12px;
+      background:rgba(255,255,255,.05);
+      cursor:grab;
+      text-align:center;
+      user-select:none;
+    }
+    .part:active{cursor:grabbing}
+
+    .icon{font-size:32px}
+    .label{font-size:13px; font-weight:700}
+
+    .status{
+      padding:12px 16px;
+      border-top:1px solid var(--stroke);
+      font-size:13px;
+      color:var(--muted);
+    }
+    .status.success{color:var(--ok); font-weight:700}
+  </style>
+</head>
+<body>
+
+<main class="app">
+
+  <!-- LEFT: TARGET / PROCESS -->
+  <section class="card">
+    <header>
+      <div>
+        <h1>Montage‑Simulator</h1>
+        <p>Ziehe die Teile in die richtige Reihenfolge</p>
+      </div>
+      <div class="controls">
+        <select id="scenario">
+          <option value="ppe">PSA korrekt anlegen</option>
+          <option value="machine">Maschine einrichten</option>
+        </select>
+        <button class="primary" id="resetBtn">Reset</button>
+      </div>
+    </header>
+
+    <div class="board">
+      <div class="steps" id="steps"></div>
+    </div>
+  </section>
+
+  <!-- RIGHT: PARTS -->
+  <section class="card">
+    <header>
+      <div>
+        <h1>Bauteile / Schritte</h1>
+        <p>Drag & Drop in die passenden Felder</p>
+      </div>
+    </header>
+
+    <div class="board">
+      <div class="parts" id="parts"></div>
+    </div>
+
+    <div class="status" id="status">Noch nicht abgeschlossen</div>
+  </section>
+
+</main>
+
+<script>
+  const SCENARIOS = {
+    ppe: {
+      name: 'PSA korrekt anlegen',
+      steps: [
+        { id: 'helmet', label: 'Schutzhelm', icon: '⛑️' },
+        { id: 'gloves', label: 'Handschuhe', icon: '🧤' },
+        { id: 'vest', label: 'Warnweste', icon: '🦺' },
+        { id: 'shoes', label: 'Sicherheitsschuhe', icon: '🥾' }
+      ]
+    },
+    machine: {
+      name: 'Maschine einrichten',
+      steps: [
+        { id: 'power', label: 'Strom anschließen', icon: '🔌' },
+        { id: 'check', label: 'Sicherheitsprüfung', icon: '✅' },
+        { id: 'calibrate', label: 'Kalibrieren', icon: '⚙️' },
+        { id: 'start', label: 'Maschine starten', icon: '▶️' }
+      ]
+    }
+  };
+
+  const stepsEl = document.getElementById('steps');
+  const partsEl = document.getElementById('parts');
+  const scenarioSelect = document.getElementById('scenario');
+  const statusEl = document.getElementById('status');
+  const resetBtn = document.getElementById('resetBtn');
+
+  let currentScenario;
+
+  function shuffle(arr){
+    return arr.sort(()=>Math.random()-0.5);
+  }
+
+  function render(){
+    currentScenario = SCENARIOS[scenarioSelect.value];
+    stepsEl.innerHTML = '';
+    partsEl.innerHTML = '';
+    statusEl.textContent = 'Noch nicht abgeschlossen';
+    statusEl.className = 'status';
+
+    // target steps
+    currentScenario.steps.forEach((s, i)=>{
+      const step = document.createElement('div');
+      step.className = 'step';
+      step.dataset.accept = s.id;
+      step.textContent = `Schritt ${i+1}`;
+
+      step.addEventListener('dragover', e=>e.preventDefault());
+      step.addEventListener('drop', e=>onDrop(e, step));
+
+      stepsEl.appendChild(step);
+    });
+
+    // draggable parts
+    shuffle([...currentScenario.steps]).forEach(s=>{
+      const part = document.createElement('div');
+      part.className = 'part';
+      part.draggable = true;
+      part.dataset.id = s.id;
+      part.innerHTML = `<div class="icon">${s.icon}</div><div class="label">${s.label}</div>`;
+
+      part.addEventListener('dragstart', e=>{
+        e.dataTransfer.setData('text/plain', s.id);
+      });
+
+      partsEl.appendChild(part);
+    });
+  }
+
+  function onDrop(e, step){
+    const id = e.dataTransfer.getData('text/plain');
+    if (step.dataset.accept === id && !step.classList.contains('correct')){
+      const part = [...partsEl.children].find(p=>p.dataset.id === id);
+      step.classList.add('correct');
+      step.innerHTML = part.innerHTML;
+      part.remove();
+      checkComplete();
+    }
+  }
+
+  function checkComplete(){
+    const done = [...stepsEl.children].every(s=>s.classList.contains('correct'));
+    if (done){
+      statusEl.textContent = '✅ Prozess korrekt abgeschlossen';
+      statusEl.classList.add('success');
+    }
+  }
+
+  scenarioSelect.addEventListener('change', render);
+  resetBtn.addEventListener('click', render);
+
+  render();
+</script>
+</body>
+</html>

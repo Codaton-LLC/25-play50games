@@ -1,0 +1,575 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Safety Spotter (Mini-Game)</title>
+  <style>
+    :root {
+      --bg: #0b1020;
+      --card: rgba(255,255,255,.06);
+      --text: rgba(255,255,255,.92);
+      --muted: rgba(255,255,255,.70);
+      --accent: #7dd3fc;
+      --danger: #fca5a5;
+      --ok: #86efac;
+      --stroke: rgba(255,255,255,.12);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background: radial-gradient(1000px 600px at 20% 10%, rgba(125, 211, 252, .20), transparent 60%),
+                  radial-gradient(900px 550px at 80% 30%, rgba(134, 239, 172, .16), transparent 60%),
+                  radial-gradient(900px 650px at 60% 90%, rgba(252, 165, 165, .14), transparent 60%),
+                  var(--bg);
+      color: var(--text);
+      padding: 18px;
+    }
+    .app {
+      width: min(980px, 100%);
+      display: grid;
+      grid-template-columns: 1.2fr .8fr;
+      gap: 14px;
+    }
+    @media (max-width: 900px) {
+      .app { grid-template-columns: 1fr; }
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--stroke);
+      border-radius: 18px;
+      box-shadow: 0 10px 30px rgba(0,0,0,.28);
+      overflow: hidden;
+    }
+
+    header {
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--stroke);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .title {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .title h1 {
+      font-size: 16px;
+      margin: 0;
+      letter-spacing: .2px;
+    }
+    .title p {
+      margin: 0;
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.3;
+    }
+
+    .controls {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    button {
+      cursor: pointer;
+      border: 1px solid var(--stroke);
+      background: rgba(255,255,255,.08);
+      color: var(--text);
+      padding: 9px 12px;
+      border-radius: 12px;
+      font-weight: 650;
+      font-size: 13px;
+      transition: transform .08s ease, background .18s ease;
+      user-select: none;
+    }
+    button:active { transform: translateY(1px); }
+    button:hover { background: rgba(255,255,255,.12); }
+    button.primary {
+      border-color: rgba(125,211,252,.35);
+      background: rgba(125,211,252,.14);
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--stroke);
+      background: rgba(255,255,255,.06);
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .pill strong { color: var(--text); font-weight: 750; }
+
+    .boardWrap { padding: 14px; }
+
+    /* Board is an SVG so we can place clickable hazards precisely */
+    #board {
+      width: 100%;
+      height: auto;
+      display: block;
+      border-radius: 14px;
+      border: 1px solid var(--stroke);
+      background: linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
+    }
+
+    .hazard {
+      fill: rgba(252, 165, 165, .0);
+      stroke: rgba(252, 165, 165, .0);
+      stroke-width: 2;
+      cursor: crosshair;
+    }
+    .hazard:hover {
+      fill: rgba(125, 211, 252, .08);
+      stroke: rgba(125, 211, 252, .35);
+    }
+    .hazard.found {
+      fill: rgba(134, 239, 172, .14);
+      stroke: rgba(134, 239, 172, .55);
+      cursor: default;
+    }
+
+    .marker {
+      font-size: 11px;
+      fill: rgba(255,255,255,.92);
+      paint-order: stroke;
+      stroke: rgba(0,0,0,.55);
+      stroke-width: 2px;
+      pointer-events: none;
+    }
+
+    .side {
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+    }
+
+    .list {
+      padding: 14px 16px;
+      display: grid;
+      gap: 10px;
+    }
+
+    .row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 10px;
+      padding: 10px 12px;
+      border-radius: 14px;
+      border: 1px solid var(--stroke);
+      background: rgba(255,255,255,.04);
+    }
+
+    .row .name { font-weight: 750; font-size: 13px; }
+    .row .status { font-size: 12px; color: var(--muted); }
+
+    .row.found { border-color: rgba(134,239,172,.35); background: rgba(134,239,172,.08); }
+    .row.found .status { color: rgba(134,239,172,.95); }
+
+    .foot {
+      padding: 14px 16px;
+      border-top: 1px solid var(--stroke);
+      display: grid;
+      gap: 8px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: 18px;
+      transform: translateX(-50%);
+      background: rgba(0,0,0,.55);
+      border: 1px solid rgba(255,255,255,.12);
+      color: rgba(255,255,255,.92);
+      padding: 10px 12px;
+      border-radius: 12px;
+      font-size: 13px;
+      box-shadow: 0 10px 30px rgba(0,0,0,.35);
+      display: none;
+      max-width: min(720px, calc(100% - 24px));
+    }
+    .toast.show { display: block; }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <section class="card">
+      <header>
+        <div class="title">
+          <h1>Safety Spotter</h1>
+          <p>Finde alle Gefahren im Baustellenbild. Klick auf die Bereiche, die gefährlich sind.</p>
+        </div>
+
+        <div class="controls">
+          <span class="pill">⏱️ Zeit: <strong id="time">60</strong>s</span>
+          <span class="pill">✅ Gefunden: <strong id="score">0</strong>/<span id="total">0</span></span>
+          <button class="primary" id="startBtn">Start</button>
+          <button id="resetBtn" title="Neues Spiel">Reset</button>
+        </div>
+      </header>
+
+      <div class="boardWrap">
+        <!-- Simple "construction scene" drawn in SVG so it works offline. Clickable hazards are transparent rectangles. -->
+        <svg id="board" viewBox="0 0 900 520" role="img" aria-label="Baustellenbild mit versteckten Gefahren">
+          <!-- sky / background -->
+          <defs>
+            <linearGradient id="gSky" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="rgba(125, 211, 252, .14)" />
+              <stop offset="1" stop-color="rgba(255,255,255,.03)" />
+            </linearGradient>
+            <linearGradient id="gGround" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="rgba(255,255,255,.06)" />
+              <stop offset="1" stop-color="rgba(255,255,255,.02)" />
+            </linearGradient>
+          </defs>
+
+          <rect x="0" y="0" width="900" height="300" fill="url(#gSky)" />
+          <rect x="0" y="300" width="900" height="220" fill="url(#gGround)" />
+
+          <!-- building frame -->
+          <rect x="90" y="120" width="320" height="220" rx="10" fill="rgba(255,255,255,.04)" stroke="rgba(255,255,255,.18)" />
+          <line x1="90" y1="190" x2="410" y2="190" stroke="rgba(255,255,255,.12)" />
+          <line x1="90" y1="260" x2="410" y2="260" stroke="rgba(255,255,255,.12)" />
+          <line x1="180" y1="120" x2="180" y2="340" stroke="rgba(255,255,255,.12)" />
+          <line x1="290" y1="120" x2="290" y2="340" stroke="rgba(255,255,255,.12)" />
+
+          <!-- crane -->
+          <rect x="610" y="90" width="18" height="290" fill="rgba(255,255,255,.08)" stroke="rgba(255,255,255,.14)" />
+          <rect x="560" y="90" width="210" height="14" fill="rgba(255,255,255,.08)" stroke="rgba(255,255,255,.14)" />
+          <line x1="740" y1="104" x2="740" y2="245" stroke="rgba(255,255,255,.16)" stroke-width="3" />
+          <rect x="716" y="245" width="48" height="26" rx="6" fill="rgba(255,255,255,.06)" stroke="rgba(255,255,255,.14)" />
+
+          <!-- worker silhouettes -->
+          <circle cx="240" cy="330" r="12" fill="rgba(255,255,255,.14)" />
+          <rect x="230" y="342" width="20" height="38" rx="8" fill="rgba(255,255,255,.10)" />
+
+          <circle cx="540" cy="350" r="12" fill="rgba(255,255,255,.14)" />
+          <rect x="530" y="362" width="20" height="38" rx="8" fill="rgba(255,255,255,.10)" />
+
+          <!-- scattered objects -->
+          <rect x="130" y="392" width="120" height="18" rx="6" fill="rgba(255,255,255,.06)" stroke="rgba(255,255,255,.12)" />
+          <rect x="265" y="404" width="74" height="14" rx="6" fill="rgba(255,255,255,.05)" stroke="rgba(255,255,255,.12)" />
+          <rect x="350" y="380" width="55" height="55" rx="10" fill="rgba(255,255,255,.04)" stroke="rgba(255,255,255,.12)" />
+          <path d="M 420 410 C 450 380, 510 380, 540 410" fill="none" stroke="rgba(255,255,255,.16)" stroke-width="6" />
+
+          <!-- ladder -->
+          <rect x="120" y="160" width="16" height="170" rx="6" fill="rgba(255,255,255,.08)" />
+          <rect x="155" y="160" width="16" height="170" rx="6" fill="rgba(255,255,255,.08)" />
+          <g stroke="rgba(255,255,255,.14)" stroke-width="6">
+            <line x1="130" y1="180" x2="165" y2="180" />
+            <line x1="130" y1="210" x2="165" y2="210" />
+            <line x1="130" y1="240" x2="165" y2="240" />
+            <line x1="130" y1="270" x2="165" y2="270" />
+            <line x1="130" y1="300" x2="165" y2="300" />
+          </g>
+
+          <!-- --- CLICKABLE HAZARDS (transparent until found) --- -->
+          <g id="hazardsLayer"></g>
+        </svg>
+      </div>
+    </section>
+
+    <aside class="card side">
+      <header>
+        <div class="title">
+          <h1>Gefahren-Liste</h1>
+          <p>Finde alle Punkte. Perfekt als 30–60 Sekunden Spotting-Spiel.</p>
+        </div>
+        <div class="controls">
+          <span class="pill" title="Modus">
+            🎚️ Modus: <strong id="mode">Einsteiger</strong>
+          </span>
+          <button id="modeBtn">Profi-Runde</button>
+        </div>
+      </header>
+
+      <div class="list" id="list"></div>
+
+      <div class="foot">
+        <div><strong>Tipp:</strong> Klick auf gefährliche Stellen (z.B. Kabel, Stolperfallen, fehlende Absperrung).</div>
+        <div>Wenn die Zeit abläuft, bekommst du die Lösung angezeigt.</div>
+      </div>
+    </aside>
+  </main>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script>
+    /**
+     * Safety Spotter – mini game
+     * - Click hazards in the SVG within the time limit.
+     * - Two modes:
+     *   - Einsteiger: 6 obvious hazards, 60s
+     *   - Profi-Runde: 9 hazards, 45s
+     */
+
+    const elTime = document.getElementById('time');
+    const elScore = document.getElementById('score');
+    const elTotal = document.getElementById('total');
+    const elList = document.getElementById('list');
+    const hazardsLayer = document.getElementById('hazardsLayer');
+    const startBtn = document.getElementById('startBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const modeBtn = document.getElementById('modeBtn');
+    const modeLabel = document.getElementById('mode');
+    const toast = document.getElementById('toast');
+
+    let timer = null;
+    let timeLeft = 60;
+    let running = false;
+    let currentMode = 'easy'; // 'easy' | 'pro'
+
+    /** Hazards positions: x,y,w,h in SVG coordinates */
+    const HAZARDS = {
+      easy: {
+        seconds: 60,
+        label: 'Einsteiger',
+        items: [
+          { id: 'cable', name: 'Kabel als Stolperfalle', hint: 'Auf dem Boden liegt ein Kabel.', rect: { x: 405, y: 392, w: 150, h: 40 } },
+          { id: 'ladder', name: 'Leiter nicht gesichert', hint: 'Leiter steht ohne Sicherung.', rect: { x: 108, y: 150, w: 76, h: 200 } },
+          { id: 'spill', name: 'Öl-/Flüssigkeit auf dem Boden', hint: 'Rutschgefahr am Boden.', rect: { x: 320, y: 420, w: 110, h: 50 } },
+          { id: 'nohelmet', name: 'Kein Helm', hint: 'Ein Arbeiter trägt keinen Helm.', rect: { x: 226, y: 318, w: 30, h: 25 } },
+          { id: 'openedge', name: 'Offene Kante ohne Geländer', hint: 'Obere Ebene ohne Absturzsicherung.', rect: { x: 92, y: 120, w: 316, h: 44 } },
+          { id: 'hangingload', name: 'Hängende Last über Personen', hint: 'Kranhaken/Last in der Nähe.', rect: { x: 705, y: 236, w: 80, h: 70 } },
+        ]
+      },
+      pro: {
+        seconds: 45,
+        label: 'Profi-Runde',
+        items: [
+          { id: 'cable', name: 'Kabel als Stolperfalle', hint: 'Auf dem Boden liegt ein Kabel.', rect: { x: 405, y: 392, w: 150, h: 40 } },
+          { id: 'ladder', name: 'Leiter nicht gesichert', hint: 'Leiter steht ohne Sicherung.', rect: { x: 108, y: 150, w: 76, h: 200 } },
+          { id: 'spill', name: 'Öl-/Flüssigkeit auf dem Boden', hint: 'Rutschgefahr am Boden.', rect: { x: 320, y: 420, w: 110, h: 50 } },
+          { id: 'nohelmet', name: 'Kein Helm', hint: 'Ein Arbeiter trägt keinen Helm.', rect: { x: 226, y: 318, w: 30, h: 25 } },
+          { id: 'openedge', name: 'Offene Kante ohne Geländer', hint: 'Obere Ebene ohne Absturzsicherung.', rect: { x: 92, y: 120, w: 316, h: 44 } },
+          { id: 'hangingload', name: 'Hängende Last über Personen', hint: 'Kranhaken/Last in der Nähe.', rect: { x: 705, y: 236, w: 80, h: 70 } },
+          { id: 'toolbox', name: 'Werkzeug im Laufweg', hint: 'Stolpern durch Gegenstand.', rect: { x: 342, y: 372, w: 75, h: 75 } },
+          { id: 'overreach', name: 'Arbeiten mit Überstrecken', hint: 'Ungünstige Körperhaltung.', rect: { x: 525, y: 332, w: 42, h: 70 } },
+          { id: 'suspension', name: 'Kranseil ohne Absperrung', hint: 'Bereich um das Seil ist nicht gesichert.', rect: { x: 730, y: 104, w: 22, h: 145 } },
+        ]
+      }
+    };
+
+    const state = {
+      found: new Set(),
+      revealed: false,
+    };
+
+    function showToast(msg) {
+      toast.textContent = msg;
+      toast.classList.add('show');
+      window.clearTimeout(showToast._t);
+      showToast._t = window.setTimeout(() => toast.classList.remove('show'), 1600);
+    }
+
+    function setMode(mode) {
+      currentMode = mode;
+      const cfg = HAZARDS[currentMode];
+      modeLabel.textContent = cfg.label;
+      modeBtn.textContent = currentMode === 'easy' ? 'Profi-Runde' : 'Einsteiger';
+      resetGame();
+    }
+
+    function buildList() {
+      elList.innerHTML = '';
+      const items = HAZARDS[currentMode].items;
+      items.forEach((h, idx) => {
+        const row = document.createElement('div');
+        row.className = 'row';
+        row.id = `row-${h.id}`;
+        row.innerHTML = `
+          <div>
+            <div class="name">${idx + 1}. ${h.name}</div>
+            <div class="status" id="status-${h.id}">nicht gefunden</div>
+          </div>
+          <div class="status" aria-hidden="true">🎯</div>
+        `;
+        elList.appendChild(row);
+      });
+    }
+
+    function buildHazards() {
+      hazardsLayer.innerHTML = '';
+      const items = HAZARDS[currentMode].items;
+
+      items.forEach((h, idx) => {
+        const r = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        r.setAttribute('x', h.rect.x);
+        r.setAttribute('y', h.rect.y);
+        r.setAttribute('width', h.rect.w);
+        r.setAttribute('height', h.rect.h);
+        r.setAttribute('rx', 10);
+        r.classList.add('hazard');
+        r.dataset.id = h.id;
+        r.setAttribute('tabindex', '0');
+        r.setAttribute('role', 'button');
+        r.setAttribute('aria-label', `Gefahr markieren: ${h.name}`);
+
+        r.addEventListener('click', () => markFound(h.id));
+        r.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            markFound(h.id);
+          }
+        });
+
+        hazardsLayer.appendChild(r);
+
+        // Optional subtle label when revealed or found
+        const t = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        t.setAttribute('x', h.rect.x + 8);
+        t.setAttribute('y', h.rect.y + 16);
+        t.classList.add('marker');
+        t.textContent = '';
+        t.dataset.labelFor = h.id;
+        hazardsLayer.appendChild(t);
+      });
+
+      elTotal.textContent = String(items.length);
+    }
+
+    function updateScore() {
+      elScore.textContent = String(state.found.size);
+
+      // list rows
+      HAZARDS[currentMode].items.forEach((h) => {
+        const row = document.getElementById(`row-${h.id}`);
+        const status = document.getElementById(`status-${h.id}`);
+        const found = state.found.has(h.id);
+        row?.classList.toggle('found', found);
+        if (status) status.textContent = found ? 'gefunden' : 'nicht gefunden';
+      });
+
+      if (state.found.size === HAZARDS[currentMode].items.length) {
+        endGame(true);
+      }
+    }
+
+    function markFound(id) {
+      if (!running) {
+        showToast('Klick zuerst auf „Start“.');
+        return;
+      }
+      if (state.revealed) return;
+      if (state.found.has(id)) return;
+
+      state.found.add(id);
+
+      // Highlight the rect
+      const rect = hazardsLayer.querySelector(`rect.hazard[data-id="${id}"]`);
+      rect?.classList.add('found');
+
+      // Put a small number label
+      const idx = HAZARDS[currentMode].items.findIndex(h => h.id === id);
+      const label = hazardsLayer.querySelector(`text.marker[data-label-for="${id}"]`);
+      if (label && idx >= 0) label.textContent = `✓ ${idx + 1}`;
+
+      updateScore();
+      showToast('Gefahr gefunden!');
+    }
+
+    function tick() {
+      timeLeft -= 1;
+      elTime.textContent = String(timeLeft);
+      if (timeLeft <= 0) {
+        endGame(false);
+      }
+    }
+
+    function startGame() {
+      if (running) return;
+      running = true;
+      state.revealed = false;
+      startBtn.textContent = 'Läuft…';
+      startBtn.disabled = true;
+
+      // Ensure timer is correct for mode
+      const cfg = HAZARDS[currentMode];
+      if (timeLeft !== cfg.seconds) {
+        timeLeft = cfg.seconds;
+        elTime.textContent = String(timeLeft);
+      }
+
+      timer = window.setInterval(tick, 1000);
+      showToast('Los geht’s!');
+    }
+
+    function revealSolutions() {
+      state.revealed = true;
+
+      HAZARDS[currentMode].items.forEach((h, i) => {
+        const rect = hazardsLayer.querySelector(`rect.hazard[data-id="${h.id}"]`);
+        rect?.classList.add('found');
+
+        const label = hazardsLayer.querySelector(`text.marker[data-label-for="${h.id}"]`);
+        if (label) label.textContent = state.found.has(h.id) ? `✓ ${i + 1}` : `• ${i + 1}`;
+      });
+    }
+
+    function endGame(won) {
+      if (!running) return;
+      running = false;
+      if (timer) window.clearInterval(timer);
+      timer = null;
+
+      revealSolutions();
+
+      startBtn.disabled = false;
+      startBtn.textContent = 'Start';
+
+      const total = HAZARDS[currentMode].items.length;
+      const found = state.found.size;
+
+      if (won) {
+        showToast(`🎉 Super! Du hast alle ${total} Gefahren gefunden.`);
+      } else {
+        showToast(`⏰ Zeit vorbei: ${found}/${total} gefunden. Lösungen angezeigt.`);
+      }
+    }
+
+    function resetGame() {
+      if (timer) window.clearInterval(timer);
+      timer = null;
+      running = false;
+      state.revealed = false;
+      state.found.clear();
+
+      const cfg = HAZARDS[currentMode];
+      timeLeft = cfg.seconds;
+      elTime.textContent = String(timeLeft);
+
+      buildHazards();
+      buildList();
+      updateScore();
+
+      startBtn.disabled = false;
+      startBtn.textContent = 'Start';
+
+      showToast('Reset: Neues Spiel bereit.');
+    }
+
+    // Wire up UI
+    startBtn.addEventListener('click', startGame);
+    resetBtn.addEventListener('click', resetGame);
+    modeBtn.addEventListener('click', () => setMode(currentMode === 'easy' ? 'pro' : 'easy'));
+
+    // Initial render
+    setMode('easy');
+  </script>
+</body>
+</html>
