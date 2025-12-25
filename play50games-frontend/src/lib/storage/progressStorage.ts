@@ -44,19 +44,46 @@ export async function saveProgress(
     // Save to localStorage
     const guestId = getGuestId();
     const allProgress = getAllProgress();
+    const existingProgress = allProgress[gameId];
+    
+    // If game was already completed, keep it completed even if new score is lower
+    // Only set completed to false if it was never completed before
+    const wasCompleted = existingProgress?.completed || false;
+    const isNowCompleted = completed || wasCompleted;
+    
+    // Preserve completed_at if game was already completed, otherwise set it if now completed
+    let completedAt: string | null = null;
+    if (isNowCompleted) {
+      if (wasCompleted && existingProgress?.completed_at) {
+        // Keep the original completion date
+        completedAt = existingProgress.completed_at;
+      } else if (completed) {
+        // Set new completion date
+        completedAt = new Date().toISOString();
+      }
+    }
     
     const progress: GameProgress = {
       game_id: gameId,
       score,
-      completed,
-      completed_at: completed ? new Date().toISOString() : null,
-      attempts: (allProgress[gameId]?.attempts || 0) + 1,
-      best_score: Math.max(allProgress[gameId]?.best_score || 0, score),
+      completed: isNowCompleted,
+      completed_at: completedAt,
+      attempts: (existingProgress?.attempts || 0) + 1,
+      best_score: Math.max(existingProgress?.best_score || 0, score),
       last_played: new Date().toISOString(),
     };
     
+    console.log('Saving progress:', { gameId, score, completed, isNowCompleted, wasCompleted, completedAt });
+    
     allProgress[gameId] = progress;
     localStorage.setItem(STORAGE_KEY, JSON.stringify(allProgress));
+    
+    // Dispatch custom event to notify other components about progress update
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('play50games_progress_updated', {
+        detail: { gameId, progress }
+      }));
+    }
     
     // Also try to save to API (for sync if user logs in later)
     try {

@@ -14,9 +14,9 @@
         <array />
       </option>
       <option name="outputFromStdout" value="false" />
-      <option name="program" value="$USER_HOME$/AppData/Local/JetBrains/PhpStorm2025.1/plugins/yuicompressor/yuicompressor-2.4.8.jar" />
+      <option name="program" value="$USER_HOME$/AppData/Local/JetBrains/PhpStorm2024.3/plugins/yuicompressor/yuicompressor-2.4.8.jar" />
       <option name="runOnExternalChanges" value="false" />
-      <option name="scopeName" value="css" />
+      <option name="scopeName" value="All Places" />
       <option name="trackOnlyRoot" value="true" />
       <option name="workingDir" value="$FileDir$" />
       <envs />
@@ -34,9 +34,9 @@
         <array />
       </option>
       <option name="outputFromStdout" value="false" />
-      <option name="program" value="$USER_HOME$/AppData/Local/JetBrains/PhpStorm2025.1/plugins/closure-compiler/closure-compiler-v20190325.jar" />
+      <option name="program" value="$USER_HOME$/AppData/Local/JetBrains/PhpStorm2024.3/plugins/closure-compiler/closure-compiler-v20190325.jar" />
       <option name="runOnExternalChanges" value="false" />
-      <option name="scopeName" value="js" />
+      <option name="scopeName" value="All Places" />
       <option name="trackOnlyRoot" value="true" />
       <option name="workingDir" value="$FileDir$" />
       <envs />

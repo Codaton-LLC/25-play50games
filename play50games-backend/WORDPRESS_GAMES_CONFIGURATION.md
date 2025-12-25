@@ -52,12 +52,12 @@ Difficulty: 1
 Time Limit: 60
 Passing Score: 70
 Unlock Requirement: (leave empty)
-Description: Drag shapes into correct outlines
+Description: Match the target shape with the correct option
 Game Config:
 {
   "gameType": "match-shapes",
   "shapes": ["circle", "square", "triangle", "star"],
-  "rounds": 5
+  "rounds": 20
 }
 ```
 

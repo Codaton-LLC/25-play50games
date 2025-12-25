@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { ArrowLeftIcon, ArrowRightIcon } from '@heroicons/react/24/outline';
 
 interface SkillGamesProps {
   config: Record<string, any>;
@@ -100,7 +101,9 @@ function BallBalance({ config, onScoreUpdate, onComplete, isPlaying }: { config:
       tabIndex={0}
     >
       <h3>Ball Balance</h3>
-      <p>Use ← → arrow keys to balance the ball in the center</p>
+      <p style={{ display: 'flex', alignItems: 'center', gap: '6px', justifyContent: 'center' }}>
+        Use <ArrowLeftIcon style={{ width: 16, height: 16, display: 'inline' }} /> <ArrowRightIcon style={{ width: 16, height: 16, display: 'inline' }} /> arrow keys to balance the ball in the center
+      </p>
       <div className="game-stats">
         <span>Time in Center: {timeInCenter}/100</span>
         <span>Score: {score}</span>
@@ -436,7 +439,9 @@ function PrecisionDrop({ config, onScoreUpdate, onComplete, isPlaying }: { confi
         <div className="target-zone" style={{ left: `${targetPos.x - 5}%`, top: `${targetPos.y}%` }}></div>
         <div className="falling-object" style={{ left: `${objectPos.x}%`, top: `${objectPos.y}%` }}>●</div>
       </div>
-      <p>Use ← → to guide the object to the target</p>
+      <p style={{ display: 'flex', alignItems: 'center', gap: '6px', justifyContent: 'center' }}>
+        Use <ArrowLeftIcon style={{ width: 16, height: 16, display: 'inline' }} /> <ArrowRightIcon style={{ width: 16, height: 16, display: 'inline' }} /> to guide the object to the target
+      </p>
     </div>
   );
 }

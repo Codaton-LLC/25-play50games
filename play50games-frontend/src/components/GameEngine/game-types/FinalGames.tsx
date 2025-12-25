@@ -5,6 +5,7 @@ import LogicGames from './LogicGames';
 import MemoryGames from './MemoryGames';
 import SpeedGames from './SpeedGames';
 import SkillGames from './SkillGames';
+import { CheckCircleIcon } from '@heroicons/react/24/outline';
 
 interface FinalGamesProps {
   config: Record<string, any>;
@@ -201,7 +202,10 @@ function BossPuzzle({ config, onScoreUpdate, onComplete, isPlaying }: FinalGames
               isPlaying={isPlaying}
             />
           ) : (
-            <div className="completed">✓ Completed</div>
+            <div className="completed" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <CheckCircleIcon style={{ width: 18, height: 18 }} />
+              Completed
+            </div>
           )}
         </div>
         <div className="puzzle-challenge">
@@ -214,7 +218,10 @@ function BossPuzzle({ config, onScoreUpdate, onComplete, isPlaying }: FinalGames
               isPlaying={isPlaying}
             />
           ) : (
-            <div className="completed">✓ Completed</div>
+            <div className="completed" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <CheckCircleIcon style={{ width: 18, height: 18 }} />
+              Completed
+            </div>
           )}
         </div>
         <div className="puzzle-challenge">
@@ -227,7 +234,10 @@ function BossPuzzle({ config, onScoreUpdate, onComplete, isPlaying }: FinalGames
               isPlaying={isPlaying}
             />
           ) : (
-            <div className="completed">✓ Completed</div>
+            <div className="completed" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <CheckCircleIcon style={{ width: 18, height: 18 }} />
+              Completed
+            </div>
           )}
         </div>
         <div className="puzzle-challenge">
@@ -240,7 +250,10 @@ function BossPuzzle({ config, onScoreUpdate, onComplete, isPlaying }: FinalGames
               isPlaying={isPlaying}
             />
           ) : (
-            <div className="completed">✓ Completed</div>
+            <div className="completed" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <CheckCircleIcon style={{ width: 18, height: 18 }} />
+              Completed
+            </div>
           )}
         </div>
       </div>

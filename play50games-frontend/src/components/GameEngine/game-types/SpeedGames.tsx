@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { CheckCircleIcon, XCircleIcon, ArrowLeftIcon, ArrowRightIcon } from '@heroicons/react/24/outline';
 
 interface SpeedGamesProps {
   config: Record<string, any>;
@@ -106,7 +107,7 @@ function ClickGreen({ config, onScoreUpdate, onComplete, isPlaying }: { config: 
             onClick={() => handleItemClick(item.id)}
             disabled={item.clicked}
           >
-            {item.clicked ? '✓' : ''}
+            {item.clicked ? <CheckCircleIcon style={{ width: 20, height: 20 }} /> : ''}
           </button>
         ))}
       </div>
@@ -542,11 +543,13 @@ function FallingObjects({ config, onScoreUpdate, onComplete, isPlaying }: { conf
             className={`falling-object ${obj.type}`}
             style={{ top: `${obj.y}%`, left: `${Math.random() * 80 + 10}%` }}
           >
-            {obj.type === 'good' ? '✓' : '✗'}
+            {obj.type === 'good' ? <CheckCircleIcon style={{ width: 20, height: 20 }} /> : <XCircleIcon style={{ width: 20, height: 20 }} />}
           </button>
         ))}
       </div>
-      <p>Catch good items (✓), avoid bad ones (✗)</p>
+      <p style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center' }}>
+        Catch good items (<CheckCircleIcon style={{ width: 16, height: 16, display: 'inline' }} />), avoid bad ones (<XCircleIcon style={{ width: 16, height: 16, display: 'inline' }} />)
+      </p>
     </div>
   );
 }

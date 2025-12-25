@@ -6,8 +6,14 @@ Për të lidhur frontend me WordPress backend, krijo një file `.env.local` në 
 
 ```bash
 # .env.local
-NEXT_PUBLIC_WORDPRESS_API_URL=https://cms.play50.games/wp-json/play50/v1
+# Për cms.play50.game (pa 's'):
+NEXT_PUBLIC_WORDPRESS_API_URL=https://cms.play50.game/wp-json/play50/v1
+
+# Ose për cms.play50.games (me 's'):
+# NEXT_PUBLIC_WORDPRESS_API_URL=https://cms.play50.games/wp-json/play50/v1
 ```
+
+**Shënim:** Nëse nuk krijon `.env.local`, aplikacioni do të përpiqet të detektojë automatikisht URL-në bazuar në domain-in ku po ekzekutohet. Por është më mirë ta konfigurosh manualisht.
 
 ### Për lokal development:
 ```bash
@@ -23,8 +29,13 @@ NEXT_PUBLIC_WORDPRESS_API_URL=http://localhost/wp-json/play50/v1
    ```
 
 2. **Kontrollo që WordPress API është aktiv:**
-   - Shko te: `https://cms.play50.games/wp-json/play50/v1/games`
+   - Shko te: `https://cms.play50.game/wp-json/play50/v1/games` (ose `https://cms.play50.games/wp-json/play50/v1/games`)
    - Duhet të shohësh një array (mund të jetë bosh nëse nuk ke krijuar lojëra akoma)
+
+3. **Nëse lojërat nuk shfaqen:**
+   - Shko te faqja `/diagnostics` për të testuar lidhjen me API
+   - Kontrollo browser console për mesazhe gabimi
+   - Verifiko që URL-ja në `.env.local` është e saktë
 
 ## Troubleshooting
 

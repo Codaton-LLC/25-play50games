@@ -22,36 +22,57 @@ add_action('rest_api_init', function() {
         $allowed_origin = defined('PLAY50_CORS_ORIGIN') ? PLAY50_CORS_ORIGIN : '*';
         $request_origin = isset($_SERVER['HTTP_ORIGIN']) ? $_SERVER['HTTP_ORIGIN'] : '';
         
-        // Always allow localhost origins for development (even in production WordPress)
-        if (!empty($request_origin) && (
-            strpos($request_origin, 'http://localhost') === 0 || 
-            strpos($request_origin, 'http://127.0.0.1') === 0 ||
-            strpos($request_origin, 'http://192.168.') === 0
-        )) {
-            $allowed_origin = $request_origin;
-        }
-        // If multiple origins defined (comma-separated), check request origin
-        elseif (strpos($allowed_origin, ',') !== false) {
-            $origins = array_map('trim', explode(',', $allowed_origin));
-            if (in_array($request_origin, $origins)) {
-                $allowed_origin = $request_origin;
-            } else {
-                $allowed_origin = $origins[0]; // Default to first
+        // Determine the correct origin to return
+        $final_origin = '*';
+        
+        if (!empty($request_origin)) {
+            // Always allow localhost origins for development (even in production WordPress)
+            if (
+                strpos($request_origin, 'http://localhost') === 0 || 
+                strpos($request_origin, 'http://127.0.0.1') === 0 ||
+                strpos($request_origin, 'http://192.168.') === 0
+            ) {
+                $final_origin = $request_origin;
             }
-        } elseif ($allowed_origin !== '*' && !empty($request_origin)) {
+            // If multiple origins defined (comma-separated), check request origin
+            elseif (strpos($allowed_origin, ',') !== false) {
+                $origins = array_map('trim', explode(',', $allowed_origin));
+                if (in_array($request_origin, $origins)) {
+                    $final_origin = $request_origin;
+                } elseif ($allowed_origin === '*') {
+                    $final_origin = '*';
+                } else {
+                    // If not in list, use first allowed origin (or wildcard if first is not set)
+                    $final_origin = !empty($origins[0]) ? $origins[0] : '*';
+                }
+            } 
+            // If wildcard is allowed
+            elseif ($allowed_origin === '*') {
+                $final_origin = '*';
+            }
             // Single origin specified - check if request matches
-            if ($request_origin === $allowed_origin) {
-                $allowed_origin = $request_origin;
+            elseif ($request_origin === $allowed_origin) {
+                $final_origin = $request_origin;
+            }
+        } elseif ($allowed_origin !== '*') {
+            // No origin in request, but we have a specific origin configured
+            // Use the configured origin (or first if multiple)
+            if (strpos($allowed_origin, ',') !== false) {
+                $origins = array_map('trim', explode(',', $allowed_origin));
+                $final_origin = !empty($origins[0]) ? $origins[0] : '*';
+            } else {
+                $final_origin = $allowed_origin;
             }
         }
         
-        header('Access-Control-Allow-Origin: ' . $allowed_origin);
-        header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
+        header('Access-Control-Allow-Origin: ' . $final_origin);
+        header('Access-Control-Allow-Methods: GET, POST, OPTIONS, PUT, DELETE');
+        header('Access-Control-Allow-Headers: Authorization, Content-Type, X-WP-Nonce, X-Requested-With');
+        header('Access-Control-Expose-Headers: X-WP-Total, X-WP-TotalPages');
         // Only set credentials if not using wildcard
-        if ($allowed_origin !== '*') {
+        if ($final_origin !== '*') {
             header('Access-Control-Allow-Credentials: true');
         }
-        header('Access-Control-Allow-Headers: Authorization, Content-Type, X-WP-Nonce');
         return $value;
     });
 }, 15);
@@ -63,34 +84,55 @@ add_action('init', function() {
         $allowed_origin = defined('PLAY50_CORS_ORIGIN') ? PLAY50_CORS_ORIGIN : '*';
         $request_origin = isset($_SERVER['HTTP_ORIGIN']) ? $_SERVER['HTTP_ORIGIN'] : '';
         
-        // Always allow localhost origins for development (even in production WordPress)
-        if (!empty($request_origin) && (
-            strpos($request_origin, 'http://localhost') === 0 || 
-            strpos($request_origin, 'http://127.0.0.1') === 0 ||
-            strpos($request_origin, 'http://192.168.') === 0
-        )) {
-            $allowed_origin = $request_origin;
-        }
-        // If multiple origins defined (comma-separated), check request origin
-        elseif (strpos($allowed_origin, ',') !== false) {
-            $origins = array_map('trim', explode(',', $allowed_origin));
-            if (in_array($request_origin, $origins)) {
-                $allowed_origin = $request_origin;
-            } else {
-                $allowed_origin = $origins[0]; // Default to first
+        // Determine the correct origin to return
+        $final_origin = '*';
+        
+        if (!empty($request_origin)) {
+            // Always allow localhost origins for development (even in production WordPress)
+            if (
+                strpos($request_origin, 'http://localhost') === 0 || 
+                strpos($request_origin, 'http://127.0.0.1') === 0 ||
+                strpos($request_origin, 'http://192.168.') === 0
+            ) {
+                $final_origin = $request_origin;
             }
-        } elseif ($allowed_origin !== '*' && !empty($request_origin)) {
+            // If multiple origins defined (comma-separated), check request origin
+            elseif (strpos($allowed_origin, ',') !== false) {
+                $origins = array_map('trim', explode(',', $allowed_origin));
+                if (in_array($request_origin, $origins)) {
+                    $final_origin = $request_origin;
+                } elseif ($allowed_origin === '*') {
+                    $final_origin = '*';
+                } else {
+                    // If not in list, use first allowed origin (or wildcard if first is not set)
+                    $final_origin = !empty($origins[0]) ? $origins[0] : '*';
+                }
+            } 
+            // If wildcard is allowed
+            elseif ($allowed_origin === '*') {
+                $final_origin = '*';
+            }
             // Single origin specified - check if request matches
-            if ($request_origin === $allowed_origin) {
-                $allowed_origin = $request_origin;
+            elseif ($request_origin === $allowed_origin) {
+                $final_origin = $request_origin;
+            }
+        } elseif ($allowed_origin !== '*') {
+            // No origin in request, but we have a specific origin configured
+            // Use the configured origin (or first if multiple)
+            if (strpos($allowed_origin, ',') !== false) {
+                $origins = array_map('trim', explode(',', $allowed_origin));
+                $final_origin = !empty($origins[0]) ? $origins[0] : '*';
+            } else {
+                $final_origin = $allowed_origin;
             }
         }
         
-        header('Access-Control-Allow-Origin: ' . $allowed_origin);
-        header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
-        header('Access-Control-Allow-Headers: Authorization, Content-Type, X-WP-Nonce');
+        header('Access-Control-Allow-Origin: ' . $final_origin);
+        header('Access-Control-Allow-Methods: GET, POST, OPTIONS, PUT, DELETE');
+        header('Access-Control-Allow-Headers: Authorization, Content-Type, X-WP-Nonce, X-Requested-With');
+        header('Access-Control-Expose-Headers: X-WP-Total, X-WP-TotalPages');
         // Only set credentials if not using wildcard
-        if ($allowed_origin !== '*') {
+        if ($final_origin !== '*') {
             header('Access-Control-Allow-Credentials: true');
         }
         header('Access-Control-Max-Age: 86400');

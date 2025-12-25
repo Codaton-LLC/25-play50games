@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { CheckCircleIcon } from '@heroicons/react/24/outline';
 
 interface MemoryGamesProps {
   config: Record<string, any>;
@@ -734,7 +735,7 @@ function ColorGridMemory({ config, onScoreUpdate, onComplete }: { config: Record
             className={`color-cell ${highlighted.has(i) && showing ? 'highlighted' : ''} ${selected.has(i) ? 'selected' : ''}`}
             disabled={showing}
           >
-            {selected.has(i) && '✓'}
+            {selected.has(i) && <CheckCircleIcon style={{ width: 20, height: 20 }} />}
           </button>
         ))}
       </div>

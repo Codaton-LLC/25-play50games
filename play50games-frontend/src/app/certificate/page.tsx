@@ -7,6 +7,7 @@ import { generateCertificate, getCertificate } from '@/lib/api/certificate';
 import { getAllProgress } from '@/lib/storage/progressStorage';
 import { getAllGames } from '@/lib/api/games';
 import { getGuestId } from '@/lib/storage/progressStorage';
+import { ArrowLeftIcon } from '@heroicons/react/24/outline';
 
 export default function CertificatePage() {
   const [certificate, setCertificate] = useState<Certificate | null>(null);
@@ -98,7 +99,10 @@ export default function CertificatePage() {
     <div className="certificate-page">
       <header>
         <h1>Certificate</h1>
-        <Link href="/">← Back to Games</Link>
+        <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <ArrowLeftIcon style={{ width: 16, height: 16 }} />
+          Back to Games
+        </Link>
       </header>
 
       {!certificate ? (

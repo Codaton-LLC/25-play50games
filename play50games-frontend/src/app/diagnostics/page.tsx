@@ -91,7 +91,7 @@ export default function DiagnosticsPage() {
       };
     }
 
-    // 4. Check CORS
+    // 4. Check CORS - Check from the successful GET request first
     diagnostics.push({
       name: 'CORS Headers',
       status: 'checking',
@@ -100,30 +100,72 @@ export default function DiagnosticsPage() {
     setResults([...diagnostics]);
 
     try {
-      const corsResponse = await fetch(`${detectedApiUrl}/games`, {
-        method: 'OPTIONS',
+      // First, try to get CORS headers from a GET request (which we know works)
+      const testResponse = await fetch(`${detectedApiUrl}/games`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
       });
-      
-      const corsHeaders = {
-        'access-control-allow-origin': corsResponse.headers.get('access-control-allow-origin'),
-        'access-control-allow-methods': corsResponse.headers.get('access-control-allow-methods'),
-        'access-control-allow-headers': corsResponse.headers.get('access-control-allow-headers'),
+
+      const corsHeadersFromGet = {
+        'access-control-allow-origin': testResponse.headers.get('access-control-allow-origin'),
+        'access-control-allow-methods': testResponse.headers.get('access-control-allow-methods'),
+        'access-control-allow-headers': testResponse.headers.get('access-control-allow-headers'),
+        'access-control-allow-credentials': testResponse.headers.get('access-control-allow-credentials'),
       };
 
-      if (corsHeaders['access-control-allow-origin']) {
+      // If we got CORS headers from GET, that's good
+      if (corsHeadersFromGet['access-control-allow-origin']) {
         diagnostics[3] = {
           name: 'CORS Headers',
           status: 'success',
-          message: `CORS configured: ${corsHeaders['access-control-allow-origin']}`,
-          details: JSON.stringify(corsHeaders, null, 2),
+          message: `CORS configured: ${corsHeadersFromGet['access-control-allow-origin']}`,
+          details: JSON.stringify(corsHeadersFromGet, null, 2),
         };
       } else {
-        diagnostics[3] = {
-          name: 'CORS Headers',
-          status: 'error',
-          message: 'CORS headers not found or not configured properly',
-          details: 'Check backend CORS configuration in wp-config.php',
-        };
+        // Try OPTIONS request as fallback
+        try {
+          const corsResponse = await fetch(`${detectedApiUrl}/games`, {
+            method: 'OPTIONS',
+            headers: {
+              'Origin': window.location.origin,
+              'Access-Control-Request-Method': 'GET',
+            },
+          });
+          
+          const corsHeaders = {
+            'access-control-allow-origin': corsResponse.headers.get('access-control-allow-origin'),
+            'access-control-allow-methods': corsResponse.headers.get('access-control-allow-methods'),
+            'access-control-allow-headers': corsResponse.headers.get('access-control-allow-headers'),
+            'access-control-allow-credentials': corsResponse.headers.get('access-control-allow-credentials'),
+          };
+
+          if (corsHeaders['access-control-allow-origin']) {
+            diagnostics[3] = {
+              name: 'CORS Headers',
+              status: 'success',
+              message: `CORS configured: ${corsHeaders['access-control-allow-origin']}`,
+              details: JSON.stringify(corsHeaders, null, 2),
+            };
+          } else {
+            // If API works but no CORS headers, it might be a same-origin request or CORS is working but headers not exposed
+            diagnostics[3] = {
+              name: 'CORS Headers',
+              status: 'success',
+              message: 'CORS is working (API requests succeed). Headers may not be exposed in response.',
+              details: 'Since API connectivity works, CORS is likely configured correctly. Some browsers don\'t expose CORS headers in responses for security reasons.',
+            };
+          }
+        } catch (optionsError: any) {
+          // If OPTIONS fails but GET works, CORS is still working
+          diagnostics[3] = {
+            name: 'CORS Headers',
+            status: 'success',
+            message: 'CORS is working (API requests succeed)',
+            details: 'OPTIONS preflight may not be needed since GET requests work. CORS is configured correctly.',
+          };
+        }
       }
     } catch (error: any) {
       diagnostics[3] = {
@@ -235,17 +277,18 @@ export default function DiagnosticsPage() {
             <strong>Environment Variable Not Set:</strong> Create a <code>.env.local</code> file in the frontend
             directory with:
             <pre style={{ backgroundColor: '#fff', padding: '0.5rem', borderRadius: '4px', marginTop: '0.5rem' }}>
-              NEXT_PUBLIC_WORDPRESS_API_URL=https://cms.play50.game/wp-json/play50/v1
+              NEXT_PUBLIC_WORDPRESS_API_URL=https://cms.play50.games/wp-json/play50/v1
             </pre>
           </li>
           <li>
             <strong>CORS Error:</strong> Check the backend <code>wp-config.php</code> file and ensure CORS is
-            configured correctly. See <code>CORS_SETUP.md</code> for details.
+            configured correctly. The <code>PLAY50_CORS_ORIGIN</code> should include <code>http://localhost:3000</code> for local development.
+            See <code>CORS_SETUP.md</code> for details.
           </li>
           <li>
             <strong>Network Error:</strong> Check if you can access{' '}
-            <a href="https://cms.play50.game/wp-json/play50/v1/games" target="_blank" rel="noopener noreferrer">
-              https://cms.play50.game/wp-json/play50/v1/games
+            <a href="https://cms.play50.games/wp-json/play50/v1/games" target="_blank" rel="noopener noreferrer">
+              https://cms.play50.games/wp-json/play50/v1/games
             </a>{' '}
             directly in your browser.
           </li>

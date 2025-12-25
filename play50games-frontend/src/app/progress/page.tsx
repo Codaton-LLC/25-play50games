@@ -7,6 +7,7 @@ import { getAllProgress } from '@/lib/storage/progressStorage';
 import { getAllGames } from '@/lib/api/games';
 import { Game } from '@/types/game';
 import { getGuestId } from '@/lib/storage/progressStorage';
+import { ArrowLeftIcon, CheckCircleIcon, CircleStackIcon } from '@heroicons/react/24/outline';
 
 export default function ProgressPage() {
   const [progress, setProgress] = useState<Record<number, GameProgress>>({});
@@ -51,7 +52,10 @@ export default function ProgressPage() {
     <div className="progress-page">
       <header>
         <h1>Your Progress</h1>
-        <Link href="/">← Back to Games</Link>
+        <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <ArrowLeftIcon style={{ width: 16, height: 16 }} />
+          Back to Games
+        </Link>
       </header>
 
       <div className="progress-stats">
@@ -89,8 +93,18 @@ export default function ProgressPage() {
                     <div className="progress-stats">
                       <span>Best Score: {gameProgress.best_score}</span>
                       <span>Attempts: {gameProgress.attempts}</span>
-                      <span className={gameProgress.completed ? 'completed' : 'incomplete'}>
-                        {gameProgress.completed ? '✓ Completed' : '○ In Progress'}
+                      <span className={gameProgress.completed ? 'completed' : 'incomplete'} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        {gameProgress.completed ? (
+                          <>
+                            <CheckCircleIcon style={{ width: 16, height: 16 }} />
+                            <span>Completed</span>
+                          </>
+                        ) : (
+                          <>
+                            <CircleStackIcon style={{ width: 16, height: 16 }} />
+                            <span>In Progress</span>
+                          </>
+                        )}
                       </span>
                     </div>
                   </>

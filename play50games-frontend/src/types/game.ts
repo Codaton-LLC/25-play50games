@@ -2,7 +2,7 @@ export interface Game {
   id: number;
   title: string;
   description: string;
-  game_type: 'logic' | 'memory' | 'speed' | 'skill';
+  game_type: 'logic' | 'memory' | 'speed' | 'skill' | 'final';
   game_order: number;
   difficulty: number;
   time_limit: number;
