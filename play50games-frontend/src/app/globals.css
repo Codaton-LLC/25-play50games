@@ -2902,6 +2902,287 @@ button:disabled {
   position: relative;
 }
 
+/* Pattern Completion Game */
+.pattern-completion-game {
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 32px;
+}
+
+.pattern-completion-game .game-header {
+  width: 100%;
+  max-width: 600px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px;
+  background: linear-gradient(135deg, rgba(125, 211, 252, 0.1) 0%, rgba(125, 211, 252, 0.05) 100%);
+  border: 2px solid var(--stroke);
+  border-radius: 20px;
+  backdrop-filter: blur(10px);
+}
+
+.pattern-completion-game .header-stats {
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.pattern-completion-game .stat-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.pattern-completion-game .stat-icon {
+  width: 20px;
+  height: 20px;
+  color: var(--accent);
+}
+
+.pattern-completion-game .progress-bar-container {
+  width: 100%;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  overflow: hidden;
+  position: relative;
+}
+
+.pattern-display {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  justify-content: center;
+  padding: 32px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.02) 100%);
+  border: 2px solid var(--stroke);
+  border-radius: 24px;
+  backdrop-filter: blur(10px);
+  flex-wrap: wrap;
+  overflow: hidden;
+  min-width: 0;
+  max-width: 100%;
+  width: 100%;
+}
+
+.pattern-display.compact {
+  gap: 8px;
+  padding: 20px;
+  justify-content: center;
+}
+
+.pattern-shape {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100px;
+  height: 100px;
+  min-width: 100px;
+  flex-shrink: 0;
+  background: var(--card);
+  border: 2px solid var(--stroke);
+  border-radius: 16px;
+  transition: all 0.3s;
+  position: relative;
+}
+
+.pattern-shape.small {
+  width: 60px;
+  height: 60px;
+  min-width: 60px;
+  border-radius: 12px;
+}
+
+.pattern-shape.small .missing-shape .question-mark {
+  font-size: 2rem;
+}
+
+.pattern-shape:not(.missing):hover {
+  transform: scale(1.05);
+  box-shadow: 0 8px 24px rgba(125, 211, 252, 0.3);
+  border-color: var(--accent);
+}
+
+.pattern-shape.missing {
+  background: linear-gradient(135deg, rgba(125, 211, 252, 0.2) 0%, rgba(125, 211, 252, 0.1) 100%);
+  border: 2px dashed var(--accent);
+  animation: pulse 2s ease-in-out infinite;
+}
+
+.missing-shape {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
+
+.missing-shape .pattern-icon {
+  color: var(--accent);
+  opacity: 0.5;
+}
+
+.missing-shape .question-mark {
+  position: absolute;
+  font-size: 3rem;
+  font-weight: 700;
+  color: var(--accent);
+  animation: pulse 2s ease-in-out infinite;
+}
+
+.pattern-icon {
+  color: var(--accent);
+  transition: all 0.3s;
+}
+
+.pattern-options {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+}
+
+.pattern-options .option-btn {
+  position: relative;
+  width: 100px;
+  height: 100px;
+  background: linear-gradient(135deg, rgba(125, 211, 252, 0.2) 0%, rgba(125, 211, 252, 0.1) 100%);
+  border: 2px solid var(--stroke);
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.pattern-options .option-btn:hover:not(:disabled) {
+  transform: translateY(-4px) scale(1.05);
+  box-shadow: 0 8px 24px rgba(125, 211, 252, 0.4);
+  border-color: var(--accent);
+  background: linear-gradient(135deg, rgba(125, 211, 252, 0.3) 0%, rgba(125, 211, 252, 0.2) 100%);
+}
+
+.pattern-options .option-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.pattern-options .option-btn.correct {
+  background: linear-gradient(135deg, rgba(134, 239, 172, 0.3) 0%, rgba(134, 239, 172, 0.2) 100%);
+  border-color: var(--ok);
+  box-shadow: 0 0 20px rgba(134, 239, 172, 0.5);
+  animation: pulse 0.5s ease-in-out;
+}
+
+.pattern-options .option-btn.incorrect {
+  background: linear-gradient(135deg, rgba(252, 165, 165, 0.3) 0%, rgba(252, 165, 165, 0.2) 100%);
+  border-color: var(--warn);
+  box-shadow: 0 0 20px rgba(252, 165, 165, 0.5);
+  animation: shake 0.5s ease-in-out;
+}
+
+.pattern-options .option-number {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: rgba(125, 211, 252, 0.2);
+  border: 1px solid var(--accent);
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.pattern-completion-game .game-feedback {
+  padding: 16px 24px;
+  border-radius: 16px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  animation: slideUp 0.3s ease;
+  backdrop-filter: blur(10px);
+}
+
+.pattern-completion-game .game-feedback.correct {
+  background: linear-gradient(135deg, rgba(134, 239, 172, 0.2) 0%, rgba(134, 239, 172, 0.1) 100%);
+  border: 2px solid #86efac;
+  color: #86efac;
+  box-shadow: 0 6px 24px rgba(134, 239, 172, 0.4);
+}
+
+.pattern-completion-game .game-feedback.wrong {
+  background: linear-gradient(135deg, rgba(252, 165, 165, 0.2) 0%, rgba(252, 165, 165, 0.1) 100%);
+  border: 2px solid var(--warn);
+  color: var(--warn);
+  box-shadow: 0 6px 24px rgba(252, 165, 165, 0.4);
+}
+
+.pattern-completion-game .feedback-icon {
+  width: 24px;
+  height: 24px;
+}
+
+@media (max-width: 768px) {
+  .pattern-completion-game {
+    padding: 16px;
+    gap: 24px;
+  }
+
+  .pattern-display {
+    gap: 12px;
+    padding: 16px;
+  }
+
+  .pattern-shape {
+    width: 60px;
+    height: 60px;
+    min-width: 60px;
+  }
+
+  .pattern-shape.small {
+    width: 50px;
+    height: 50px;
+    min-width: 50px;
+  }
+
+  .pattern-shape.small {
+    width: 50px;
+    height: 50px;
+    min-width: 50px;
+  }
+
+  .pattern-options .option-btn {
+    width: 80px;
+    height: 80px;
+  }
+
+  .pattern-options {
+    gap: 16px;
+  }
+}
+
 .maze-escape-game .game-feedback {
   padding: 16px 24px;
   border-radius: 16px;

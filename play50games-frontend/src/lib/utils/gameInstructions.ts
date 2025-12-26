@@ -133,8 +133,17 @@ export const gameInstructions: Record<string, {
   },
   'pattern-completion': {
     description: 'Complete the missing pattern element',
-    instructions: 'Look at the pattern sequence. One element is missing (shown as ?). Choose the correct shape to complete the pattern.',
-    tips: 'Identify the pattern rule - it could be repeating, alternating, or following a sequence.'
+    instructions: 'Look at the pattern sequence. One element is missing (shown as ?). Choose the correct shape to complete the pattern. Pattern length increases with rounds: 4 shapes (rounds 1-5), 8 shapes (rounds 6-10), 12 shapes (rounds 11+). You have 20 rounds to complete as many patterns as possible. Each correct answer gives you 5 points (max 100 points).',
+    tips: 'Identify the pattern rule - it could be repeating, alternating, or following a sequence. Look for the missing element that fits the pattern. For longer patterns, look for repeating sequences or common elements.',
+    mouseControls: [
+      { action: 'Click', label: 'Click on the shape that completes the pattern' },
+    ],
+    keyboardControls: [
+      { keys: ['1'], label: 'Select option 1' },
+      { keys: ['2'], label: 'Select option 2' },
+      { keys: ['3'], label: 'Select option 3' },
+      { keys: ['4'], label: 'Select option 4' },
+    ],
   },
   'sudoku-4x4': {
     description: 'Fill the 4x4 grid with numbers 1-4',

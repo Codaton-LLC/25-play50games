@@ -19,6 +19,9 @@ import {
    InformationCircleIcon,
    ArrowRightIcon,
    CircleStackIcon,
+   HomeIcon,
+   StarIcon,
+   HeartIcon,
 } from "@heroicons/react/24/outline";
 import LogicGames from "./game-types/LogicGames";
 import MemoryGames from "./game-types/MemoryGames";
@@ -97,7 +100,23 @@ export default function GameEngine({
    };
 
    const renderGame = () => {
-      const gameConfig = game.game_config || {};
+      // Ensure game_config is parsed correctly (it should already be an object from API)
+      let gameConfig = game.game_config || {};
+      
+      // If game_config is a string, parse it
+      if (typeof gameConfig === 'string') {
+         try {
+            gameConfig = JSON.parse(gameConfig);
+         } catch (e) {
+            console.error('[GameEngine] Failed to parse game_config:', e);
+            gameConfig = {};
+         }
+      }
+      
+      // Debug log for Pattern Completion
+      if (gameConfig?.gameType === 'pattern-completion') {
+         console.log('[GameEngine] Pattern Completion config:', gameConfig);
+      }
 
       switch (game.game_type) {
          case "logic":
@@ -166,6 +185,319 @@ export default function GameEngine({
             <div className="game-instructions-section">
                <h3>How to Play</h3>
                <p className="instructions-text">{instructions.instructions}</p>
+
+               {/* Interactive Example for Pattern Completion */}
+               {gameType === "pattern-completion" && (
+                  <div className="solution-preview">
+                     <h4
+                        style={{
+                           display: "flex",
+                           alignItems: "center",
+                           gap: "8px",
+                           marginBottom: "12px",
+                        }}
+                     >
+                        <InformationCircleIcon
+                           style={{
+                              width: 20,
+                              height: 20,
+                              color: "var(--accent)",
+                           }}
+                        />
+                        How It Works
+                     </h4>
+                     
+                     {/* Example: Pattern Completion */}
+                     <div style={{ marginBottom: "20px" }}>
+                        <p
+                           style={{
+                              fontSize: "0.9rem",
+                              color: "var(--muted)",
+                              marginBottom: "12px",
+                              fontWeight: 600,
+                           }}
+                        >
+                           Look at the pattern and find the missing shape
+                        </p>
+                        
+                        {/* Example Pattern */}
+                        <div
+                           style={{
+                              display: "flex",
+                              gap: "12px",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              padding: "16px",
+                              background: "rgba(255, 255, 255, 0.02)",
+                              borderRadius: "12px",
+                              border: "2px solid var(--stroke)",
+                              marginBottom: "16px",
+                              flexWrap: "nowrap",
+                              overflowX: "auto",
+                           }}
+                        >
+                           {/* Pattern: Home, Star, Home, ?, Star */}
+                           <div
+                              style={{
+                                 width: "60px",
+                                 height: "60px",
+                                 minWidth: "60px",
+                                 display: "flex",
+                                 alignItems: "center",
+                                 justifyContent: "center",
+                                 background: "var(--card)",
+                                 border: "2px solid var(--stroke)",
+                                 borderRadius: "12px",
+                              }}
+                           >
+                              <HomeIcon
+                                 style={{
+                                    width: 40,
+                                    height: 40,
+                                    color: "var(--accent)",
+                                 }}
+                              />
+                           </div>
+                           <div
+                              style={{
+                                 width: "60px",
+                                 height: "60px",
+                                 minWidth: "60px",
+                                 display: "flex",
+                                 alignItems: "center",
+                                 justifyContent: "center",
+                                 background: "var(--card)",
+                                 border: "2px solid var(--stroke)",
+                                 borderRadius: "12px",
+                              }}
+                           >
+                              <StarIcon
+                                 style={{
+                                    width: 40,
+                                    height: 40,
+                                    color: "var(--accent)",
+                                 }}
+                              />
+                           </div>
+                           <div
+                              style={{
+                                 width: "60px",
+                                 height: "60px",
+                                 minWidth: "60px",
+                                 display: "flex",
+                                 alignItems: "center",
+                                 justifyContent: "center",
+                                 background: "var(--card)",
+                                 border: "2px solid var(--stroke)",
+                                 borderRadius: "12px",
+                              }}
+                           >
+                              <HomeIcon
+                                 style={{
+                                    width: 40,
+                                    height: 40,
+                                    color: "var(--accent)",
+                                 }}
+                              />
+                           </div>
+                           <div
+                              style={{
+                                 width: "60px",
+                                 height: "60px",
+                                 minWidth: "60px",
+                                 display: "flex",
+                                 alignItems: "center",
+                                 justifyContent: "center",
+                                 background: "linear-gradient(135deg, rgba(125, 211, 252, 0.2) 0%, rgba(125, 211, 252, 0.1) 100%)",
+                                 border: "2px dashed var(--accent)",
+                                 borderRadius: "12px",
+                                 position: "relative",
+                              }}
+                           >
+                              <span
+                                 style={{
+                                    fontSize: "1.5rem",
+                                    fontWeight: 700,
+                                    color: "var(--accent)",
+                                 }}
+                              >
+                                 ?
+                              </span>
+                           </div>
+                           <div
+                              style={{
+                                 width: "60px",
+                                 height: "60px",
+                                 minWidth: "60px",
+                                 display: "flex",
+                                 alignItems: "center",
+                                 justifyContent: "center",
+                                 background: "var(--card)",
+                                 border: "2px solid var(--stroke)",
+                                 borderRadius: "12px",
+                              }}
+                           >
+                              <StarIcon
+                                 style={{
+                                    width: 40,
+                                    height: 40,
+                                    color: "var(--accent)",
+                                 }}
+                              />
+                           </div>
+                        </div>
+
+                        {/* Options */}
+                        <p
+                           style={{
+                              fontSize: "0.85rem",
+                              color: "var(--muted)",
+                              marginBottom: "8px",
+                              fontWeight: 600,
+                           }}
+                        >
+                           Choose the correct shape:
+                        </p>
+                        <div
+                           style={{
+                              display: "flex",
+                              gap: "12px",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              marginBottom: "12px",
+                           }}
+                        >
+                           <div
+                              style={{
+                                 width: "60px",
+                                 height: "60px",
+                                 display: "flex",
+                                 alignItems: "center",
+                                 justifyContent: "center",
+                                 background: "linear-gradient(135deg, rgba(134, 239, 172, 0.2) 0%, rgba(134, 239, 172, 0.1) 100%)",
+                                 border: "2px solid #86efac",
+                                 borderRadius: "12px",
+                                 position: "relative",
+                              }}
+                           >
+                              <HomeIcon
+                                 style={{
+                                    width: 40,
+                                    height: 40,
+                                    color: "#86efac",
+                                 }}
+                              />
+                              <CheckCircleIcon
+                                 style={{
+                                    position: "absolute",
+                                    top: "-4px",
+                                    right: "-4px",
+                                    width: 20,
+                                    height: 20,
+                                    color: "#86efac",
+                                    background: "var(--bg)",
+                                    borderRadius: "50%",
+                                 }}
+                              />
+                           </div>
+                           <div
+                              style={{
+                                 width: "60px",
+                                 height: "60px",
+                                 display: "flex",
+                                 alignItems: "center",
+                                 justifyContent: "center",
+                                 background: "var(--card)",
+                                 border: "2px solid var(--stroke)",
+                                 borderRadius: "12px",
+                                 opacity: 0.5,
+                              }}
+                           >
+                              <StarIcon
+                                 style={{
+                                    width: 40,
+                                    height: 40,
+                                    color: "var(--muted)",
+                                 }}
+                              />
+                           </div>
+                           <div
+                              style={{
+                                 width: "60px",
+                                 height: "60px",
+                                 display: "flex",
+                                 alignItems: "center",
+                                 justifyContent: "center",
+                                 background: "var(--card)",
+                                 border: "2px solid var(--stroke)",
+                                 borderRadius: "12px",
+                                 opacity: 0.5,
+                              }}
+                           >
+                              <HeartIcon
+                                 style={{
+                                    width: 40,
+                                    height: 40,
+                                    color: "var(--muted)",
+                                 }}
+                              />
+                           </div>
+                           <div
+                              style={{
+                                 width: "60px",
+                                 height: "60px",
+                                 display: "flex",
+                                 alignItems: "center",
+                                 justifyContent: "center",
+                                 background: "var(--card)",
+                                 border: "2px solid var(--stroke)",
+                                 borderRadius: "12px",
+                                 opacity: 0.5,
+                              }}
+                           >
+                              <CircleStackIcon
+                                 style={{
+                                    width: 40,
+                                    height: 40,
+                                    color: "var(--muted)",
+                                 }}
+                              />
+                           </div>
+                        </div>
+
+                        {/* Explanation */}
+                        <div
+                           style={{
+                              marginTop: "16px",
+                              padding: "12px",
+                              background: "rgba(134, 239, 172, 0.1)",
+                              borderRadius: "12px",
+                              border: "2px solid rgba(134, 239, 172, 0.3)",
+                           }}
+                        >
+                           <p
+                              style={{
+                                 fontSize: "0.85rem",
+                                 color: "#86efac",
+                                 margin: 0,
+                                 fontWeight: 600,
+                              }}
+                           >
+                              Pattern: Home → Star → Home → ? → Star
+                           </p>
+                           <p
+                              style={{
+                                 fontSize: "0.8rem",
+                                 color: "var(--muted)",
+                                 margin: "4px 0 0 0",
+                              }}
+                           >
+                              The pattern repeats: Home, Star, Home, Star... So the missing shape is <strong style={{ color: "#86efac" }}>Home</strong> ✓
+                           </p>
+                        </div>
+                     </div>
+                  </div>
+               )}
 
                {/* Interactive Example for Circuit Path */}
                {(gameType === "light-switch" ||

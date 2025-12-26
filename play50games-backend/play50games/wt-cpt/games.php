@@ -337,7 +337,7 @@ function show_games_custom_fields() {
                 passingScore: 75,
                 unlockRequirement: '',
                 description: 'Complete the missing pattern element',
-                gameConfig: '{"gameType": "pattern-completion", "rounds": 5}'
+                gameConfig: '{"gameType": "pattern-completion", "totalRounds": 20, "shapes": ["Home", "Star", "Heart", "Circle"], "patternRules": [{"rounds": 5, "patternLength": 6, "repeatSize": 3}, {"rounds": 7, "patternLength": 9, "repeatSize": 3}, {"rounds": 8, "patternLength": 13, "repeatSize": 4}]}'
             },
             'sudoku-4x4': {
                 title: 'Sudoku 4x4',

@@ -321,6 +321,124 @@ The WordPress admin includes a **Quick Fill Templates** dropdown that automatica
 -  Hints automatically execute 2-3 optimal moves (or complete solution if unlimited)
 -  Keyboard: Tab to select tiles, Arrow keys to move selected tile
 
+#### Pattern Completion
+
+```json
+{
+   "gameType": "pattern-completion",
+   "totalRounds": 20,
+   "shapes": ["Home", "Star", "Heart", "Circle"],
+   "patternRules": [
+      { "rounds": 5, "patternLength": 6, "repeatSize": 3 },
+      { "rounds": 7, "patternLength": 9, "repeatSize": 3 },
+      { "rounds": 8, "patternLength": 13, "repeatSize": 4 }
+   ]
+}
+```
+
+**Configuration:**
+
+-  `gameType` (required): Must be `"pattern-completion"`
+-  `totalRounds` (optional): Number of rounds - Default: **20** (recommended for 100 points max)
+   -  Also accepts `rounds` for backward compatibility
+-  `shapes` (optional): Array of Heroicon shape names to use - Default: `["Home", "Star", "Heart", "Circle"]`
+   -  Available shapes: `"Home"`, `"Star"`, `"Heart"`, `"Circle"`, `"Square"`, `"Triangle"`, `"Eye"`, `"Camera"`, `"Cube"`, `"Bell"`, `"Plus"`, `"Gift"`, `"Moon"`, `"Fingerprint"`, `"Key"`
+-  `patternRules` (optional): Array of objects to configure pattern rules per round range:
+   -  Each object has:
+      -  `rounds` (max round for this rule)
+      -  `patternLength` (total number of shapes in pattern, including the missing one)
+      -  `repeatSize` (number of shapes that repeat: 3 = ABC ABC ABC, 4 = ABCD ABCD ABCD, 5 = ABCDE ABCDE ABCDE)
+   -  Default if not specified:
+      -  **Rounds 1-5**: `patternLength: 6`, `repeatSize: 3`
+      -  **Rounds 6-10**: `patternLength: 9`, `repeatSize: 3`
+      -  **Rounds 11+**: `patternLength: 13`, `repeatSize: 4`
+
+**Scoring:**
+
+-  5 points per correct round
+-  Maximum 100 points for 20 rounds
+
+**Controls:**
+
+-  **Keyboard**: 1-4 to select options directly
+-  **Mouse**: Click on the shape that completes the pattern
+
+**Goal:**
+
+-  Look at the pattern sequence and identify the missing element (shown as ?)
+-  Choose the correct shape to complete the pattern
+-  Patterns follow a repeating sequence structure:
+   -  **Pattern length ≤ 9**: 3 elements repeat (ABC ABC ABC)
+   -  **Pattern length 10-13**: 4 elements repeat (ABCD ABCD ABCD)
+   -  **Pattern length > 13**: 5 elements repeat (ABCDE ABCDE ABCDE)
+-  Pattern length and repeat size increase with rounds for added difficulty
+
+**Features:**
+
+-  Uses Heroicons for visual consistency
+-  Dynamic pattern length and repeat size based on rounds (configurable via `patternRules`)
+-  Structured pattern generation with repeating sequences (ABC, ABCD, or ABCDE)
+-  Visual feedback for correct/incorrect selections
+-  Horizontal layout for all patterns (no grid wrapping)
+
+**Recommended Settings:**
+
+-  **Time Limit**: 120 seconds (for 20 rounds)
+-  **Passing Score**: 80 (80% of max score)
+-  **Difficulty**: 2 (medium)
+
+**Backend Configuration Example:**
+
+In WordPress admin, when creating/editing a game:
+
+1. **Title**: "Pattern Completion"
+2. **Game Type**: Logic
+3. **Game Order**: 9 (or your desired order)
+4. **Difficulty**: 2
+5. **Time Limit**: 120
+6. **Passing Score**: 80
+7. **Description**: "Complete the missing pattern element"
+8. **Game Config** (JSON):
+
+   ```json
+   {
+      "gameType": "pattern-completion",
+      "totalRounds": 20,
+      "shapes": ["Home", "Star", "Heart", "Circle"],
+      "patternRules": [
+         { "rounds": 5, "patternLength": 6, "repeatSize": 3 },
+         { "rounds": 7, "patternLength": 9, "repeatSize": 3 },
+         { "rounds": 8, "patternLength": 13, "repeatSize": 4 }
+      ]
+   }
+   ```
+
+   Or with default pattern rules (no `patternRules` needed):
+
+   ```json
+   {
+      "gameType": "pattern-completion",
+      "totalRounds": 20,
+      "shapes": ["Home", "Star", "Heart", "Circle"]
+   }
+   ```
+
+   Custom pattern rules example:
+
+   ```json
+   {
+      "gameType": "pattern-completion",
+      "totalRounds": 20,
+      "shapes": ["Home", "Star", "Heart", "Circle", "Eye", "Camera"],
+      "patternRules": [
+         { "rounds": 3, "patternLength": 4, "repeatSize": 2 },
+         { "rounds": 7, "patternLength": 7, "repeatSize": 3 },
+         { "rounds": 15, "patternLength": 11, "repeatSize": 4 },
+         { "rounds": 20, "patternLength": 16, "repeatSize": 5 }
+      ]
+   }
+   ```
+
 #### Card Flip Memory
 
 ```json
