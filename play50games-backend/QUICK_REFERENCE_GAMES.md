@@ -77,8 +77,10 @@ _Default: 20 rounds (max 100 points). Keyboard: 1-9 to select numbers._
 ### 5. Tile Slider
 
 ```json
-{ "gameType": "tile-slider", "gridSize": 3 }
+{ "gameType": "tile-slider", "gridSize": 3, "showHints": true, "maxHints": 5 }
 ```
+
+_Default: gridSize 3 (3x3), hints enabled (max 3). Keyboard: Tab to select, Arrow keys to move._
 
 ### 6. Balance the Scale
 

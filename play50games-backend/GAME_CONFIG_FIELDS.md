@@ -100,11 +100,33 @@ Këto lojëra funksionojnë me vetëm `gameType` dhe përdorin default values p�
 ```json
 {
    "gameType": "tile-slider",
-   "gridSize": 3
+   "gridSize": 3,
+   "showHints": true,
+   "maxHints": 5
 }
 ```
 
--  `gridSize` (opsionale): Madhësia e grid (3x3 = 8 tiles) - default: 3
+-  `gridSize` (opsionale): Madhësia e grid (3x3 = 8 tiles, 4x4 = 15 tiles) - default: **3**
+-  `showHints` (opsionale): Aktivizo butonin e hint - default: **true**
+-  `maxHints` (opsionale): Numri maksimal i hints të lejuara - default: **5**. Vendos `0` ose `>= 1000` për unlimited hints
+-  **Hint System**:
+-  **Share për Unlimited Hints**: Kliko "Share for Unlimited Hints" për të ndarë lojën
+-  Sharing përdor Web Share API (mobile/desktop) ose kopjon link automatikisht në clipboard
+-  Kur përdoruesi ndan, merr unlimited hints menjëherë (ruhet në localStorage)
+-  Kur dikush klikon link të ndarë (me `?shared=ID` parameter), merr edhe ai unlimited hints
+-  Kliko "Show Hint" për të ekzekutuar automatikisht 2-3 lëvizje optimale për zgjidhjen e puzzle
+-  **Unlimited Hints**: Vendos `maxHints: 0` ose `maxHints: 1000` për unlimited hints by default
+-  Me unlimited hints, butoni ndryshon në "Solve Puzzle" dhe përdor BFS për zgjidhje të plotë
+-  Të gjitha tiles në sekuencë shfaqen me highlight (yellow outline)
+-  Tile-i aktual që po lëviz ka highlight më të fortë (pulsing yellow me scale effect)
+-  Përdor Manhattan distance heuristic dhe sequence optimization për hints të pjesshme
+-  Përdor BFS (Breadth-First Search) për zgjidhje të plotë kur unlimited
+-  Algoritmi siguron që puzzle përmirësohet gjithmonë (nuk ngec në zgjidhje)
+-  Shfaqet counter "Hints: X / 5" (ose "Hints: Unlimited" nëse unlimited)
+-  Hints zgjidhin automatikisht puzzle hap pas hapi me lëvizje të shumta për hint
+-  Pas arritjes së limitit (nëse limited), butoni bllokohet
+-  **Keyboard Controls**: Tab për selektim, Arrow keys për lëvizje
+-  **Scoring**: 100 pikë për zgjidhje, minus 1 pikë për lëvizje (minimum 0)
 
 ### 5. **Balance the Scale**
 

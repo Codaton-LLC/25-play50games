@@ -102,6 +102,7 @@ export default function GameEngine({
                   onScoreUpdate={updateScore}
                   onComplete={handleGameEnd}
                   isPlaying={isPlaying}
+                  passingScore={game.passing_score}
                />
             );
          case "memory":

@@ -1896,6 +1896,465 @@ button:disabled {
   color: var(--warn);
 }
 
+/* Modern Tile Slider Game */
+.tile-slider-game {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+  padding: 24px;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.tile-slider-container {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  padding: 24px;
+  background: linear-gradient(135deg, rgba(125, 211, 252, 0.1), rgba(134, 239, 172, 0.1));
+  border-radius: 20px;
+  border: 2px solid var(--stroke);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+}
+
+.slider-grid {
+  display: grid;
+  gap: 8px;
+  width: 100%;
+  max-width: 400px;
+  aspect-ratio: 1;
+  padding: 8px;
+  background: var(--bg);
+  border-radius: 16px;
+}
+
+.slider-cell {
+  position: relative;
+  aspect-ratio: 1;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.slider-tile {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, var(--accent), var(--secondary));
+  border: 2px solid var(--accent);
+  border-radius: 12px;
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--bg);
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(125, 211, 252, 0.3);
+  position: relative;
+}
+
+.slider-tile:hover:not(:disabled) {
+  transform: translateY(-4px) scale(1.05);
+  box-shadow: 0 8px 24px rgba(125, 211, 252, 0.5);
+  z-index: 10;
+}
+
+.slider-tile:active:not(:disabled) {
+  transform: translateY(-2px) scale(1.02);
+}
+
+.slider-tile:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  background: linear-gradient(135deg, rgba(125, 211, 252, 0.3), rgba(134, 239, 172, 0.3));
+  border-color: var(--stroke);
+}
+
+.slider-tile.correct:disabled {
+  /* Correct tiles that can't move should still show green but dimmed */
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.4), rgba(34, 197, 94, 0.3));
+  border-color: rgba(34, 197, 94, 0.5);
+}
+
+.slider-tile.movable {
+  border-color: var(--success);
+  box-shadow: 0 4px 16px rgba(34, 197, 94, 0.4);
+  animation: pulse 2s infinite;
+}
+
+.slider-tile.movable:hover:not(:disabled) {
+  border-color: var(--success);
+  box-shadow: 0 8px 24px rgba(34, 197, 94, 0.6);
+}
+
+.slider-tile.correct {
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.9), rgba(34, 197, 94, 0.7));
+  border-color: var(--success);
+  position: relative;
+}
+
+.slider-tile.correct.movable {
+  /* When correct tile is also movable, show both indicators */
+  border-color: var(--success);
+  box-shadow: 0 4px 16px rgba(34, 197, 94, 0.6);
+}
+
+.correct-badge {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  background: rgba(34, 197, 94, 0.9);
+  color: white;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  z-index: 2;
+}
+
+.slider-tile.selected {
+  outline: 3px solid var(--accent);
+  outline-offset: -3px;
+  box-shadow: 0 0 0 3px rgba(125, 211, 252, 0.5), 0 4px 16px rgba(125, 211, 252, 0.6);
+  animation: selectedPulse 1.5s infinite;
+}
+
+.slider-tile.selected.movable {
+  /* Selected and movable - show both indicators */
+  outline: 3px solid var(--accent);
+  border-color: var(--success);
+  box-shadow: 0 0 0 3px rgba(125, 211, 252, 0.5), 0 4px 16px rgba(34, 197, 94, 0.6);
+}
+
+.selected-badge {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  background: var(--accent);
+  color: var(--bg);
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 700;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  z-index: 2;
+}
+
+@keyframes selectedPulse {
+  0%, 100% {
+    outline-color: var(--accent);
+    outline-width: 3px;
+  }
+  50% {
+    outline-color: var(--secondary);
+    outline-width: 4px;
+  }
+}
+
+/* Hint Section */
+.hint-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.hint-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.hint-counter {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text);
+  padding: 6px 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--stroke);
+  border-radius: 8px;
+}
+
+.hint-button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 24px;
+  background: linear-gradient(135deg, rgba(251, 191, 36, 0.2), rgba(251, 191, 36, 0.1));
+  border: 2px solid rgba(251, 191, 36, 0.5);
+  border-radius: 12px;
+  color: var(--text);
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.hint-button:hover:not(:disabled) {
+  background: linear-gradient(135deg, rgba(251, 191, 36, 0.3), rgba(251, 191, 36, 0.2));
+  border-color: rgba(251, 191, 36, 0.8);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(251, 191, 36, 0.3);
+}
+
+.hint-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.hint-icon {
+  width: 20px;
+  height: 20px;
+  color: rgba(251, 191, 36, 0.9);
+}
+
+/* Share Section */
+.hint-share-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.share-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: center;
+}
+
+.share-button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 24px;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1));
+  border: 2px solid rgba(59, 130, 246, 0.6);
+  border-radius: 12px;
+  color: var(--text);
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.share-button:hover {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.3), rgba(59, 130, 246, 0.2));
+  border-color: rgba(59, 130, 246, 0.8);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.share-icon {
+  width: 20px;
+  height: 20px;
+  color: rgba(59, 130, 246, 0.9);
+}
+
+.share-success {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.2), rgba(34, 197, 94, 0.1));
+  border: 2px solid rgba(34, 197, 94, 0.6);
+  border-radius: 8px;
+  color: var(--text);
+  font-size: 0.9rem;
+  font-weight: 500;
+  animation: slideIn 0.3s ease;
+}
+
+.share-success .success-icon {
+  width: 18px;
+  height: 18px;
+  color: rgba(34, 197, 94, 0.9);
+}
+
+.slider-tile.hinted {
+  outline: 3px solid rgba(251, 191, 36, 0.6);
+  outline-offset: -3px;
+  box-shadow: 0 0 0 2px rgba(251, 191, 36, 0.3), 0 2px 8px rgba(251, 191, 36, 0.4);
+  background: linear-gradient(135deg, rgba(251, 191, 36, 0.15), rgba(251, 191, 36, 0.05));
+}
+
+.slider-tile.hint-current {
+  outline: 4px solid rgba(251, 191, 36, 1);
+  outline-offset: -4px;
+  box-shadow: 0 0 0 4px rgba(251, 191, 36, 0.6), 0 6px 20px rgba(251, 191, 36, 0.7);
+  background: linear-gradient(135deg, rgba(251, 191, 36, 0.25), rgba(251, 191, 36, 0.15));
+  animation: hintPulse 0.8s infinite;
+  z-index: 10;
+  transform: scale(1.05);
+}
+
+@keyframes hintPulse {
+  0%, 100% {
+    outline-color: rgba(251, 191, 36, 0.8);
+    outline-width: 3px;
+    box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.4), 0 4px 16px rgba(251, 191, 36, 0.5);
+  }
+  50% {
+    outline-color: rgba(251, 191, 36, 1);
+    outline-width: 4px;
+    box-shadow: 0 0 0 4px rgba(251, 191, 36, 0.6), 0 6px 20px rgba(251, 191, 36, 0.7);
+  }
+}
+
+.hint-badge {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  background: rgba(251, 191, 36, 0.9);
+  color: var(--bg);
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  z-index: 3;
+  animation: hintBadgePulse 1s infinite;
+}
+
+@keyframes hintBadgePulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+}
+
+.tile-number {
+  position: relative;
+  z-index: 1;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.empty-cell {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, rgba(125, 211, 252, 0.1), rgba(134, 239, 172, 0.1));
+  border: 2px dashed var(--stroke);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.6;
+}
+
+.empty-icon {
+  width: 40px;
+  height: 40px;
+  color: var(--muted);
+  opacity: 0.5;
+}
+
+/* Tile Slider Instructions */
+.tile-slider-game .game-instructions {
+  background: linear-gradient(135deg, rgba(125, 211, 252, 0.1), rgba(134, 239, 172, 0.1));
+  border: 2px solid var(--stroke);
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 16px;
+  width: 100%;
+  max-width: 600px;
+}
+
+.tile-slider-game .instructions-content {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.tile-slider-game .instructions-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0;
+}
+
+.tile-slider-game .info-icon {
+  width: 24px;
+  height: 24px;
+  color: var(--accent);
+}
+
+.tile-slider-game .instructions-steps {
+  margin: 0;
+  padding-left: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.tile-slider-game .instructions-steps li {
+  color: var(--text);
+  line-height: 1.6;
+  font-size: 0.95rem;
+}
+
+.tile-slider-game .instructions-steps li strong {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+/* Responsive adjustments for Tile Slider */
+@media (max-width: 768px) {
+  .tile-slider-game {
+    padding: 16px;
+    gap: 16px;
+  }
+
+  .tile-slider-container {
+    padding: 16px;
+  }
+
+  .slider-grid {
+    gap: 6px;
+    padding: 6px;
+  }
+
+  .slider-tile {
+    font-size: 1.5rem;
+  }
+
+  .empty-icon {
+    width: 30px;
+    height: 30px;
+  }
+
+  .tile-slider-game .game-instructions {
+    padding: 16px;
+  }
+
+  .tile-slider-game .instructions-steps {
+    padding-left: 20px;
+    gap: 10px;
+  }
+
+  .tile-slider-game .instructions-steps li {
+    font-size: 0.9rem;
+  }
+}
+
 @keyframes slideIn {
   from {
     opacity: 0;

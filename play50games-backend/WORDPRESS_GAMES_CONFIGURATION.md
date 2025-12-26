@@ -203,9 +203,45 @@ Description: Rearrange tiles into correct order
 Game Config:
 {
   "gameType": "tile-slider",
-  "gridSize": 3
+  "gridSize": 3,
+  "showHints": true,
+  "maxHints": 5
 }
 ```
+
+**Configuration Details:**
+
+-  `gridSize` (optional): Grid size (3 = 3x3, 4 = 4x4) - default: **3**
+-  `showHints` (optional): Enable hint button - default: **true**
+-  `maxHints` (optional): Maximum number of hints allowed - default: **5**. Set to `0` or `>= 1000` for unlimited hints
+
+**How it works:**
+
+-  Player must arrange numbers 1-8 in order from left to right, top to bottom
+-  Click tiles adjacent to the empty space (sparkle icon) to move them
+-  **Scoring**: 100 points for solving, minus 1 point per move (minimum 0)
+-  **Hint System**: 
+  -  Click "Show Hint" button to automatically execute 2-3 optimal moves to solve the puzzle
+  -  **Share to Unlock Unlimited Hints**: Click "Share for Unlimited Hints" button to share the game
+  -  Sharing uses Web Share API (mobile/desktop) or copies link to clipboard automatically
+  -  When user shares, they get unlimited hints immediately (stored in localStorage)
+  -  When someone clicks a shared link (with `?shared=ID` parameter), they also get unlimited hints
+  -  **Unlimited Hints**: Set `maxHints` to `0` or `>= 1000` to enable unlimited hints by default
+  -  With unlimited hints, button changes to "Solve Puzzle" and uses BFS algorithm to solve completely
+  -  All tiles in the solution sequence are highlighted (yellow outline)
+  -  Current tile being moved has stronger highlight (pulsing yellow with scale effect)
+  -  Uses Manhattan distance heuristic and sequence optimization for partial hints
+  -  Uses BFS (Breadth-First Search) for complete solution when unlimited
+  -  Algorithm ensures puzzle always improves (never gets stuck)
+  -  Hints counter shows "Hints: X / 5" (or "Hints: Unlimited" if unlimited)
+  -  Hints automatically solve the puzzle step by step with multiple moves per hint
+  -  Once max hints are reached (if limited), hint button is disabled
+-  **Keyboard Controls**:
+  -  **Tab**: Select next tile (cycle through tiles)
+  -  **Arrow Keys** (↑↓←→) or **WASD**: Move selected tile (if adjacent to empty space)
+  -  Without selection: Arrow keys move tiles adjacent to empty space
+-  Visual feedback: Green glow for movable tiles, green background for tiles in correct position
+-  Selected tiles show blue outline and badge "⌂"
 
 #### Game 6: Balance the Scale
 

@@ -166,6 +166,19 @@ _Note: Default is 20 rounds (max 100 points). 5 points per correct round. Keyboa
 
 _Note: Generates a new random puzzle each game start. Real-time validation with visual feedback. Keyboard: Arrow keys to navigate, 1-4 to input numbers, Backspace/Delete to clear. Includes NumberKeypad component._
 
+**Tile Slider:**
+
+```json
+{
+   "gameType": "tile-slider",
+   "gridSize": 3,
+   "showHints": true,
+   "maxHints": 5
+}
+```
+
+_Note: `gridSize` (optional): Grid size (3 = 3x3, 4 = 4x4) - default: 3. `showHints` (optional): Enable hint button - default: true. `maxHints` (optional): Maximum number of hints allowed - default: 5. Set to 0 or >= 1000 for unlimited hints (solves puzzle completely). **Share to Unlock**: Users can share the game to get unlimited hints automatically. Sharing uses Web Share API (mobile/desktop) or copies link to clipboard. When someone clicks a shared link (with `?shared=ID` parameter), they also get unlimited hints. Hints automatically execute 2-3 optimal moves (or complete solution if unlimited). Uses BFS for complete solution, Manhattan distance heuristic for partial hints. Keyboard: Tab to select tiles, Arrow keys to move selected tile._
+
 **Ball Balance:**
 
 ```json

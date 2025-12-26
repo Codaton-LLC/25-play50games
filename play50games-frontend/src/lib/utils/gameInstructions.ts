@@ -61,8 +61,18 @@ export const gameInstructions: Record<string, {
   },
   'tile-slider': {
     description: 'Rearrange tiles into correct order',
-    instructions: 'Click tiles adjacent to the empty space to slide them. Arrange numbers 1-8 in order from left to right, top to bottom.',
-    tips: 'Work on getting the first row correct, then the second row. Plan your moves ahead!'
+    instructions: 'Your goal: Arrange numbers 1-8 in order from left to right, top to bottom. The empty space (sparkle icon) is where tiles can move. Click on any tile that is next to the empty space (above, below, left, or right) to slide it into the empty spot. The fewer moves you use, the higher your score!',
+    tips: 'Look for tiles with a green glow - these can be moved! Work on getting the first row (1, 2, 3) correct first, then the second row (4, 5, 6), and finally the last row (7, 8). Plan your moves ahead - think about which tile you want to move next!',
+    mouseControls: [
+      { action: 'Click', label: 'Click on tiles that are next to the empty space (they will have a green glow) to move them' },
+    ],
+    keyboardControls: [
+      { keys: ['Tab'], label: 'Select next tile (cycle through tiles)' },
+      { keys: ['ArrowUp', 'W'], label: 'Move selected tile up (or move tile below empty space if no selection)' },
+      { keys: ['ArrowDown', 'S'], label: 'Move selected tile down (or move tile above empty space if no selection)' },
+      { keys: ['ArrowLeft', 'A'], label: 'Move selected tile left (or move tile right of empty space if no selection)' },
+      { keys: ['ArrowRight', 'D'], label: 'Move selected tile right (or move tile left of empty space if no selection)' },
+    ],
   },
   'balance-scale': {
     description: 'Determine which side of the scale is heavier',
