@@ -43,15 +43,18 @@ src/
 
 ## Features
 
-- **5 Games** (MVP): Match Shapes, Color Sequence, Card Memory, Click Green, Ball Balance
+- **Modern Games**: Match Shapes, Color Sequence, Number Order, Find the Odd One, Balance the Scale, Sudoku 4x4, and more
 - **Progress Tracking**: localStorage for guests, WordPress API for logged-in users
 - **Unlock System**: Sequential game unlocking based on completion
 - **Certificate Generation**: PDF certificate after completing all games
-- **Responsive Design**: Works on desktop and mobile
+- **Responsive Design**: Works on desktop, tablet, and mobile
+- **Heroicons Integration**: Consistent iconography across all games
+- **Keyboard Controls**: Full keyboard support for all games
+- **Modern UI**: Gradient backgrounds, animations, and visual feedback
 
 ## Game Types
 
-- **Logic Games**: Match Shapes, Color Sequence
+- **Logic Games**: Match Shapes, Color Sequence, Number Order, Find the Odd One, Balance the Scale, Sudoku 4x4
 - **Memory Games**: Card Flip Memory
 - **Speed Games**: Click the Green
 - **Skill Games**: Ball Balance

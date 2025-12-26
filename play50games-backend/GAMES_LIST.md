@@ -70,12 +70,12 @@
 ### Logic Games
 
 ```json
-{"gameType": "match-shapes", "shapes": ["circle", "square", "triangle"], "rounds": 5}
+{"gameType": "match-shapes", "shapes": ["Home", "Fingerprint", "Key", "Star", "Eye", "Heart", "Camera", "Cube", "Bell", "Plus", "Gift", "Moon"], "rounds": 20}
 {"gameType": "color-sequence", "rounds": 20, "colors": ["red", "blue", "green", "yellow"]}
 {"gameType": "number-order", "numbers": 5, "rounds": 20}
-{"gameType": "find-odd-one", "gridSize": 3, "rounds": 5}
+{"gameType": "find-odd-one", "rounds": 20, "icons": ["Home", "Fingerprint", "Key", "Star", "Eye", "Heart", "Camera", "Cube", "Bell", "Plus", "Gift", "Moon"]}
 {"gameType": "tile-slider", "gridSize": 3}
-{"gameType": "balance-scale", "rounds": 5}
+{"gameType": "balance-scale", "rounds": 20}
 {"gameType": "light-switch", "gridSize": 3}
 {"gameType": "maze-escape", "size": 5}
 {"gameType": "pattern-completion", "rounds": 5}

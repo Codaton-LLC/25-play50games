@@ -52,9 +52,12 @@ export const gameInstructions: Record<string, {
     ],
   },
   'find-odd-one': {
-    description: 'Identify the object that\'s different',
-    instructions: 'Look at the grid of shapes. One shape is different from all the others. Click on the odd one out!',
-    tips: 'Most shapes will be the same - look for the one that doesn\'t match the pattern.'
+    description: 'Identify the icon that\'s different',
+    instructions: 'Look at the grid of icons. One icon is different from all the others. Click on the odd one out! Rounds 1-5: 10 icons, Rounds 6-10: 30 icons, Rounds 11-20: 50 icons.',
+    tips: 'Most icons will be the same - look for the one that doesn\'t match the pattern. Take your time to scan through all icons.',
+    mouseControls: [
+      { action: 'Click', label: 'Click on the icon that is different from the others' },
+    ],
   },
   'tile-slider': {
     description: 'Rearrange tiles into correct order',

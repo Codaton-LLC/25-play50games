@@ -59,10 +59,25 @@ All endpoints are under `/wp-json/play50/v1/`:
 ```json
 {
    "gameType": "match-shapes",
-   "shapes": ["circle", "square", "triangle"],
-   "rounds": 5
+   "shapes": [
+      "Home",
+      "Fingerprint",
+      "Key",
+      "Star",
+      "Eye",
+      "Heart",
+      "Camera",
+      "Cube",
+      "Bell",
+      "Plus",
+      "Gift",
+      "Moon"
+   ],
+   "rounds": 20
 }
 ```
+
+_Note: Default is 20 rounds (max 100 points). Uses Heroicons for visual consistency. Keyboard: 1-12 to select shapes directly (1-9, 0, -, = for 10-12)._
 
 **Color Sequence:**
 
@@ -87,6 +102,31 @@ _Note: Default is 20 rounds (max 100 points). Sequence length increases: rounds 
 
 _Note: Default is 20 rounds (max 100 points). Number count increases dynamically: rounds 1-5 = 3 numbers, rounds 6-10 = 5 numbers, rounds 11-20 = 10 numbers. Keyboard: 1-9 to select by position in grid, 0 for 10th position, Backspace/Delete to undo._
 
+**Find the Odd One:**
+
+```json
+{
+   "gameType": "find-odd-one",
+   "rounds": 20,
+   "icons": [
+      "Home",
+      "Fingerprint",
+      "Key",
+      "Star",
+      "Eye",
+      "Heart",
+      "Camera",
+      "Cube",
+      "Bell",
+      "Plus",
+      "Gift",
+      "Moon"
+   ]
+}
+```
+
+_Note: Default is 20 rounds (max 100 points). Item count increases dynamically: rounds 1-5 = 10 icons, rounds 6-10 = 30 icons, rounds 11-20 = 50 icons. Uses Heroicons for visual consistency._
+
 **Card Flip Memory:**
 
 ```json
@@ -104,6 +144,27 @@ _Note: Default is 20 rounds (max 100 points). Number count increases dynamically
    "gameType": "click-green"
 }
 ```
+
+**Balance the Scale:**
+
+```json
+{
+   "gameType": "balance-scale",
+   "rounds": 20
+}
+```
+
+_Note: Default is 20 rounds (max 100 points). 5 points per correct round. Keyboard: ArrowLeft/A (left heavier), ArrowRight/D (right heavier), Enter/Space/E (equal)._
+
+**Sudoku 4x4:**
+
+```json
+{
+   "gameType": "sudoku-4x4"
+}
+```
+
+_Note: Generates a new random puzzle each game start. Real-time validation with visual feedback. Keyboard: Arrow keys to navigate, 1-4 to input numbers, Backspace/Delete to clear. Includes NumberKeypad component._
 
 **Ball Balance:**
 

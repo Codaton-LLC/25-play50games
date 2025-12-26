@@ -248,8 +248,8 @@ function show_games_custom_fields() {
                 timeLimit: 60,
                 passingScore: 70,
                 unlockRequirement: '',
-                description: 'Drag shapes into correct outlines',
-                gameConfig: '{"gameType": "match-shapes", "shapes": ["circle", "square", "triangle", "star"], "rounds": 5}'
+                description: 'Match the target shape with the correct option',
+                gameConfig: '{"gameType": "match-shapes", "shapes": ["Home", "Fingerprint", "Key", "Star", "Eye", "Heart", "Camera", "Cube", "Bell", "Plus", "Gift", "Moon"], "rounds": 20}'
             },
             'color-sequence': {
                 title: 'Color Sequence',
@@ -278,11 +278,11 @@ function show_games_custom_fields() {
                 gameType: 'logic',
                 gameOrder: 4,
                 difficulty: 2,
-                timeLimit: 45,
-                passingScore: 75,
+                timeLimit: 90,
+                passingScore: 70,
                 unlockRequirement: '',
-                description: 'Identify the object that\'s different',
-                gameConfig: '{"gameType": "find-odd-one", "gridSize": 3, "rounds": 5}'
+                description: 'Identify the icon that\'s different',
+                gameConfig: '{"gameType": "find-odd-one", "rounds": 20, "icons": ["Home", "Fingerprint", "Key", "Star", "Eye", "Heart", "Camera", "Cube", "Bell", "Plus", "Gift", "Moon"]}'
             },
             'tile-slider': {
                 title: 'Tile Slider Puzzle',
@@ -304,7 +304,7 @@ function show_games_custom_fields() {
                 passingScore: 75,
                 unlockRequirement: '',
                 description: 'Determine which side is heavier',
-                gameConfig: '{"gameType": "balance-scale", "rounds": 5}'
+                gameConfig: '{"gameType": "balance-scale", "rounds": 20}'
             },
             'light-switch': {
                 title: 'Light Switch Puzzle',

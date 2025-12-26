@@ -11,10 +11,25 @@ Copy and paste these configurations directly into WordPress Admin.
 ```json
 {
    "gameType": "match-shapes",
-   "shapes": ["circle", "square", "triangle", "star"],
-   "rounds": 5
+   "shapes": [
+      "Home",
+      "Fingerprint",
+      "Key",
+      "Star",
+      "Eye",
+      "Heart",
+      "Camera",
+      "Cube",
+      "Bell",
+      "Plus",
+      "Gift",
+      "Moon"
+   ],
+   "rounds": 20
 }
 ```
+
+_Default: 20 rounds (max 100 points). Uses Heroicons. Keyboard: 1-12 to select shapes (1-9, 0, -, =)._
 
 ### 2. Color Sequence
 
@@ -39,7 +54,24 @@ _Default: 20 rounds (max 100 points). Keyboard: 1-9 to select numbers._
 ### 4. Find the Odd One
 
 ```json
-{ "gameType": "find-odd-one", "gridSize": 3, "rounds": 5 }
+{
+   "gameType": "find-odd-one",
+   "rounds": 20,
+   "icons": [
+      "Home",
+      "Fingerprint",
+      "Key",
+      "Star",
+      "Eye",
+      "Heart",
+      "Camera",
+      "Cube",
+      "Bell",
+      "Plus",
+      "Gift",
+      "Moon"
+   ]
+}
 ```
 
 ### 5. Tile Slider
@@ -51,8 +83,10 @@ _Default: 20 rounds (max 100 points). Keyboard: 1-9 to select numbers._
 ### 6. Balance the Scale
 
 ```json
-{ "gameType": "balance-scale", "rounds": 5 }
+{ "gameType": "balance-scale", "rounds": 20 }
 ```
+
+_Default: 20 rounds (max 100 points). Keyboard: ArrowLeft/A (left), ArrowRight/D (right), Enter/Space/E (equal)._
 
 ### 7. Light Switch Puzzle
 
@@ -77,6 +111,8 @@ _Default: 20 rounds (max 100 points). Keyboard: 1-9 to select numbers._
 ```json
 { "gameType": "sudoku-4x4" }
 ```
+
+_Generates new random puzzle each game. Keyboard: Arrow keys (navigate), 1-4 (input), Backspace/Delete (clear). Real-time validation._
 
 ### 11. Rotate to Fit
 

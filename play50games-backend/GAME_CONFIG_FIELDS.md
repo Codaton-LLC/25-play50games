@@ -28,13 +28,28 @@ Këto lojëra funksionojnë me vetëm `gameType` dhe përdorin default values p�
 ```json
 {
    "gameType": "match-shapes",
-   "shapes": ["circle", "square", "triangle", "star"],
-   "rounds": 5
+   "shapes": [
+      "Home",
+      "Fingerprint",
+      "Key",
+      "Star",
+      "Eye",
+      "Heart",
+      "Camera",
+      "Cube",
+      "Bell",
+      "Plus",
+      "Gift",
+      "Moon"
+   ],
+   "rounds": 20
 }
 ```
 
--  `shapes` (opsionale): Array i formave - default: `["circle", "square", "triangle"]`
--  `rounds` (opsionale): Numri i raundeve - default: 5
+-  `shapes` (opsionale): Array i emrave të Heroicons - default: 12 icons të zakonshme
+-  `rounds` (opsionale): Numri i raundeve - default: **20** (rekomanduar për 100 pikë max)
+-  **Keyboard Controls**: 1-12 për zgjedhje direkte (1-9, 0, -, = për 10-12)
+-  **Note**: Përdor Heroicons në vend të CSS shapes për konsistencë vizuale
 
 ### 2. **Number Order**
 
@@ -54,13 +69,31 @@ Këto lojëra funksionojnë me vetëm `gameType` dhe përdorin default values p�
 ```json
 {
    "gameType": "find-odd-one",
-   "gridSize": 3,
-   "rounds": 5
+   "rounds": 20,
+   "icons": [
+      "Home",
+      "Fingerprint",
+      "Key",
+      "Star",
+      "Eye",
+      "Heart",
+      "Camera",
+      "Cube",
+      "Bell",
+      "Plus",
+      "Gift",
+      "Moon"
+   ]
 }
 ```
 
--  `gridSize` (opsionale): Madhësia e grid (3x3, 4x4) - default: 3
--  `rounds` (opsionale): Numri i raundeve - default: 5
+-  `rounds` (opsionale): Numri i raundeve - default: **20** (rekomanduar për 100 pikë max)
+-  `icons` (opsionale): Array i emrave të Heroicons - default: 12 icons të zakonshme
+-  Numri i objekteve rritet automatikisht bazuar në rounds:
+-  Rounds 1-5: **10 icons** (5x2 grid)
+-  Rounds 6-10: **30 icons** (6x5 grid)
+-  Rounds 11-20: **50 icons** (10x5 grid)
+-  **Note**: `gridSize` nuk përdoret më - grid rregullohet automatikisht bazuar në numrin e objekteve
 
 ### 4. **Tile Slider**
 
@@ -82,7 +115,10 @@ Këto lojëra funksionojnë me vetëm `gameType` dhe përdorin default values p�
 }
 ```
 
--  `rounds` (opsionale): Numri i raundeve - default: 20 (për 100 pikë max)
+-  `rounds` (opsionale): Numri i raundeve - default: **20** (për 100 pikë max)
+-  **Scoring**: 5 pikë për raund të saktë (max 100 pikë për 20 raunde)
+-  **Keyboard Controls**: ArrowLeft/A (majtas më e rëndë), ArrowRight/D (djathtas më e rëndë), Enter/Space/E (barabartë)
+-  **Note**: Animacione të shpejta (0.5s) për të lejuar 20 raunde brenda kufirit kohor
 
 ### 6. **Light Switch Puzzle**
 

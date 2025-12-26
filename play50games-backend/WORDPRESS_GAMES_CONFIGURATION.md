@@ -59,10 +59,28 @@ Description: Match the target shape with the correct option
 Game Config:
 {
   "gameType": "match-shapes",
-  "shapes": ["circle", "square", "triangle", "star"],
+  "shapes": ["Home", "Fingerprint", "Key", "Star", "Eye", "Heart", "Camera", "Cube", "Bell", "Plus", "Gift", "Moon"],
   "rounds": 20
 }
 ```
+
+**Configuration Details:**
+
+-  `shapes` (optional): Array of Heroicon names - default: 12 common icons
+-  `rounds` (optional): Number of rounds - default: **20** (recommended for 100 points max)
+
+**How it works:**
+
+-  Player must match the target shape with one of the options
+-  **Scoring**: 5 points per correct round (max 100 points for 20 rounds)
+-  **Keyboard Controls**: Press **1-12** to select shapes directly:
+-  **1-9**: Select shapes 1-9
+-  **0**: Select shape 10
+-  **-**: Select shape 11
+-  **=**: Select shape 12
+-  Visual keyboard shortcuts displayed on each button
+-  Uses Heroicons for consistent visual design
+-  All icons are the same size (80px for options, 120px for target)
 
 #### Game 2: Color Sequence
 
@@ -142,17 +160,34 @@ Title: Find the Odd One
 Game Order: 4
 Game Type: logic
 Difficulty: 2
-Time Limit: 45
-Passing Score: 75
+Time Limit: 90
+Passing Score: 70
 Unlock Requirement: [ID of Game 3]
-Description: Identify the object that's different
+Description: Identify the icon that's different
 Game Config:
 {
   "gameType": "find-odd-one",
-  "gridSize": 3,
-  "rounds": 5
+  "rounds": 20,
+  "icons": ["Home", "Fingerprint", "Key", "Star", "Eye", "Heart", "Camera", "Cube", "Bell", "Plus", "Gift", "Moon"]
 }
 ```
+
+**Configuration Details:**
+
+-  `rounds` (optional): Number of rounds - default: **20** (recommended for 100 points max)
+-  `icons` (optional): Array of Heroicon names to use - default: 12 common icons
+-  Item count is **dynamic** based on rounds:
+-  Rounds 1-5: **10 icons** (5x2 grid)
+-  Rounds 6-10: **30 icons** (6x5 grid)
+-  Rounds 11-20: **50 icons** (10x5 grid)
+
+**How it works:**
+
+-  Icons are displayed in a grid, with one icon being different
+-  Player must click on the odd icon
+-  **Scoring**: 5 points per correct round (max 100 points for 20 rounds)
+-  Icon size and grid layout adjust automatically based on item count
+-  Visual feedback shows correct (green) and incorrect (red) selections
 
 #### Game 5: Tile Slider (3×3)
 
@@ -186,9 +221,24 @@ Description: Determine which side is heavier
 Game Config:
 {
   "gameType": "balance-scale",
-  "rounds": 5
+  "rounds": 20
 }
 ```
+
+**Configuration Details:**
+
+-  `rounds` (optional): Number of rounds - default: **20** (recommended for 100 points max)
+
+**How it works:**
+
+-  Player must determine which side of the scale is heavier, or if they are equal
+-  **Scoring**: 5 points per correct round (max 100 points for 20 rounds)
+-  **Keyboard Controls**:
+-  **ArrowLeft** or **A**: Left is heavier
+-  **ArrowRight** or **D**: Right is heavier
+-  **Enter**, **Space**, or **E**: Equal weight
+-  Modern UI with gradient backgrounds, animations, and visual feedback
+-  Faster animations (0.5s) to allow 20 rounds within time limit
 
 #### Game 7: Light Switch Puzzle
 
@@ -261,6 +311,23 @@ Game Config:
   "gameType": "sudoku-4x4"
 }
 ```
+
+**Configuration Details:**
+
+-  No additional fields required - `gameType` is sufficient
+
+**How it works:**
+
+-  Generates a **new random puzzle** each time the game starts
+-  Real-time validation: highlights errors immediately (red cells, shake animation)
+-  Initial clues are uneditable (gray background)
+-  **Keyboard Controls**:
+-  **Arrow Keys**: Navigate between cells
+-  **1-4**: Direct number input
+-  **Backspace/Delete**: Clear selected cell
+-  **NumberKeypad Component**: Visual number pad for mouse input
+-  Tooltips show cell status (error, initial clue, normal)
+-  Visual feedback for correct/incorrect entries
 
 #### Game 11: Rotate to Fit
 
