@@ -42,7 +42,7 @@ function show_games_custom_fields() {
                     <option value="find-odd-one" data-category="logic">4. Find the Odd One</option>
                     <option value="tile-slider" data-category="logic">5. Tile Slider</option>
                     <option value="balance-scale" data-category="logic">6. Balance the Scale</option>
-                    <option value="light-switch" data-category="logic">7. Light Switch Puzzle</option>
+                    <option value="circuit-path" data-category="logic">7. Circuit Path</option>
                     <option value="maze-escape" data-category="logic">8. Maze Escape</option>
                     <option value="pattern-completion" data-category="logic">9. Pattern Completion</option>
                     <option value="sudoku-4x4" data-category="logic">10. Sudoku 4x4</option>
@@ -306,16 +306,16 @@ function show_games_custom_fields() {
                 description: 'Determine which side is heavier',
                 gameConfig: '{"gameType": "balance-scale", "rounds": 20}'
             },
-            'light-switch': {
-                title: 'Light Switch Puzzle',
+            'circuit-path': {
+                title: 'Circuit Path',
                 gameType: 'logic',
                 gameOrder: 7,
                 difficulty: 3,
                 timeLimit: 90,
                 passingScore: 80,
                 unlockRequirement: '',
-                description: 'Turn all lights off with limited moves',
-                gameConfig: '{"gameType": "light-switch", "gridSize": 3, "maxMoves": 10}'
+                description: 'Connect nodes to complete the circuit path',
+                gameConfig: '{"gameType": "circuit-path", "gridSize": 3, "rounds": 20}'
             },
             'maze-escape': {
                 title: 'Maze Escape',

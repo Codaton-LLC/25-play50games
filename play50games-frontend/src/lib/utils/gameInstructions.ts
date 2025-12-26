@@ -88,9 +88,34 @@ export const gameInstructions: Record<string, {
     ],
   },
   'light-switch': {
-    description: 'Turn all lights off with limited moves',
-    instructions: 'Click on a light to toggle it and adjacent lights. Your goal is to turn all lights off using as few moves as possible.',
-    tips: 'Think about which lights affect others. Sometimes you need to turn a light on to turn others off.'
+    description: 'Connect nodes to complete the circuit path',
+    instructions: 'Click nodes to create a path from the Start node (green) to the End node (red). You must click adjacent nodes (up, down, left, right) to form a continuous path. Each round is independent with a new random puzzle!',
+    tips: 'Start from the green Start node and click adjacent nodes to build your path. You can backtrack by clicking a node that\'s already in your path. Plan your route to reach the red End node!',
+    mouseControls: [
+      { action: 'Click', label: 'Click on nodes to build a path from Start (green) to End (red). Nodes must be adjacent (up, down, left, right).' },
+    ],
+    keyboardControls: [
+      { keys: ['ArrowUp', 'W'], label: 'Move selection up' },
+      { keys: ['ArrowDown', 'S'], label: 'Move selection down' },
+      { keys: ['ArrowLeft', 'A'], label: 'Move selection left' },
+      { keys: ['ArrowRight', 'D'], label: 'Move selection right' },
+      { keys: ['Enter', 'Space', 'E'], label: 'Add selected node to path (or remove if already in path)' },
+    ],
+  },
+  'circuit-path': {
+    description: 'Connect nodes to complete the circuit path',
+    instructions: 'Click nodes to create a path from the Start node (green) to the End node (red). You must click adjacent nodes (up, down, left, right) to form a continuous path. Each round is independent with a new random puzzle!',
+    tips: 'Start from the green Start node and click adjacent nodes to build your path. You can backtrack by clicking a node that\'s already in your path. Plan your route to reach the red End node!',
+    mouseControls: [
+      { action: 'Click', label: 'Click on nodes to build a path from Start (green) to End (red). Nodes must be adjacent (up, down, left, right).' },
+    ],
+    keyboardControls: [
+      { keys: ['ArrowUp', 'W'], label: 'Move selection up' },
+      { keys: ['ArrowDown', 'S'], label: 'Move selection down' },
+      { keys: ['ArrowLeft', 'A'], label: 'Move selection left' },
+      { keys: ['ArrowRight', 'D'], label: 'Move selection right' },
+      { keys: ['Enter', 'Space', 'E'], label: 'Add selected node to path (or remove if already in path)' },
+    ],
   },
   'maze-escape': {
     description: 'Navigate from start to exit',

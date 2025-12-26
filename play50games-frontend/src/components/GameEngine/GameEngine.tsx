@@ -13,6 +13,12 @@ import {
    LightBulbIcon,
    PlayIcon,
    ArrowLeftIcon,
+   MoonIcon,
+   BoltIcon,
+   ArrowDownIcon,
+   InformationCircleIcon,
+   ArrowRightIcon,
+   CircleStackIcon,
 } from "@heroicons/react/24/outline";
 import LogicGames from "./game-types/LogicGames";
 import MemoryGames from "./game-types/MemoryGames";
@@ -150,6 +156,7 @@ export default function GameEngine({
       const gameType = game.game_config?.gameType || "";
       const instructions = getGameInstructions(gameType, game.title);
       const displayDescription = game.description || instructions.description;
+      const gridSize = game.game_config?.gridSize || 3;
 
       return (
          <div className="game-start-screen">
@@ -159,6 +166,183 @@ export default function GameEngine({
             <div className="game-instructions-section">
                <h3>How to Play</h3>
                <p className="instructions-text">{instructions.instructions}</p>
+
+               {/* Interactive Example for Circuit Path */}
+               {(gameType === "light-switch" ||
+                  gameType === "circuit-path") && (
+                  <div className="solution-preview">
+                     <h4
+                        style={{
+                           display: "flex",
+                           alignItems: "center",
+                           gap: "8px",
+                           marginBottom: "12px",
+                        }}
+                     >
+                        <InformationCircleIcon
+                           style={{
+                              width: 20,
+                              height: 20,
+                              color: "var(--accent)",
+                           }}
+                        />
+                        How It Works
+                     </h4>
+                     
+                     {/* Example: Circuit Path */}
+                     <div style={{ marginBottom: "20px" }}>
+                        <p
+                           style={{
+                              fontSize: "0.9rem",
+                              color: "var(--muted)",
+                              marginBottom: "8px",
+                              fontWeight: 600,
+                           }}
+                        >
+                           Click nodes to create a path from Start (green) to End (red)
+                        </p>
+                        <div
+                           className="light-grid-preview"
+                           style={{
+                              gridTemplateColumns: `repeat(${gridSize}, 1fr)`,
+                              display: "grid",
+                              gap: "8px",
+                              padding: "12px",
+                              background: "rgba(255, 255, 255, 0.02)",
+                              borderRadius: "12px",
+                              border: "2px solid var(--stroke)",
+                              maxWidth: "300px",
+                              margin: "0 auto",
+                           }}
+                        >
+                           {Array(gridSize * gridSize)
+                              .fill(null)
+                              .map((_, i) => {
+                                 const row = Math.floor(i / gridSize);
+                                 const col = i % gridSize;
+                                 const isStart = row === 0 && col === 0;
+                                 const isEnd =
+                                    row === gridSize - 1 &&
+                                    col === gridSize - 1;
+                                 const inPath =
+                                    (row === 0 && col === 1) ||
+                                    (row === 1 && col === 1) ||
+                                    (row === 1 && col === 2) ||
+                                    (row === 2 && col === 2);
+
+                                 return (
+                                    <div
+                                       key={i}
+                                       className={`light-cell-preview ${
+                                          isStart ? "start" : ""
+                                       } ${isEnd ? "end" : ""} ${
+                                          inPath ? "in-path" : ""
+                                       }`}
+                                       style={{
+                                          aspectRatio: "1",
+                                          minWidth: "60px",
+                                          minHeight: "60px",
+                                          display: "flex",
+                                          flexDirection: "column",
+                                          alignItems: "center",
+                                          justifyContent: "center",
+                                          border: `2px solid ${
+                                             isStart
+                                                ? "rgba(34, 197, 94, 0.6)"
+                                                : isEnd
+                                                ? "rgba(239, 68, 68, 0.6)"
+                                                : inPath
+                                                ? "var(--accent)"
+                                                : "var(--stroke)"
+                                          }`,
+                                          borderRadius: "12px",
+                                          background: isStart
+                                             ? "linear-gradient(135deg, rgba(34, 197, 94, 0.3) 0%, rgba(34, 197, 94, 0.15) 100%)"
+                                             : isEnd
+                                             ? "linear-gradient(135deg, rgba(239, 68, 68, 0.3) 0%, rgba(239, 68, 68, 0.15) 100%)"
+                                             : inPath
+                                             ? "linear-gradient(135deg, rgba(125, 211, 252, 0.3) 0%, rgba(125, 211, 252, 0.15) 100%)"
+                                             : "linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.02) 100%)",
+                                       }}
+                                    >
+                                       {isStart ? (
+                                          <span
+                                             style={{
+                                                fontSize: "0.6rem",
+                                                color: "#22c55e",
+                                                fontWeight: 600,
+                                             }}
+                                          >
+                                             Start
+                                          </span>
+                                       ) : isEnd ? (
+                                          <>
+                                             <TrophyIcon
+                                                style={{
+                                                   width: 24,
+                                                   height: 24,
+                                                   color: "#ef4444",
+                                                }}
+                                             />
+                                             <span
+                                                style={{
+                                                   fontSize: "0.6rem",
+                                                   color: "#ef4444",
+                                                   marginTop: "2px",
+                                                   fontWeight: 600,
+                                                }}
+                                             >
+                                                End
+                                             </span>
+                                          </>
+                                       ) : inPath ? (
+                                          <CircleStackIcon
+                                             style={{
+                                                width: 24,
+                                                height: 24,
+                                                color: "var(--accent)",
+                                             }}
+                                          />
+                                       ) : (
+                                          <CircleStackIcon
+                                             style={{
+                                                width: 24,
+                                                height: 24,
+                                                color: "var(--muted)",
+                                                opacity: 0.3,
+                                             }}
+                                          />
+                                       )}
+                                    </div>
+                                 );
+                              })}
+                        </div>
+                     </div>
+
+                     {/* Goal */}
+                     <div
+                        style={{
+                           marginTop: "20px",
+                           padding: "12px",
+                           background: "rgba(134, 239, 172, 0.1)",
+                           borderRadius: "12px",
+                           border: "2px solid rgba(134, 239, 172, 0.3)",
+                        }}
+                     >
+                        <p
+                           style={{
+                              fontSize: "0.9rem",
+                              color: "var(--ok)",
+                              textAlign: "center",
+                              fontWeight: 600,
+                              margin: 0,
+                           }}
+                        >
+                            Goal: Create a continuous path from Start (green) to End (red) by clicking adjacent nodes!
+                        </p>
+                     </div>
+                  </div>
+               )}
 
                {instructions.tips && (
                   <div className="game-tips">
