@@ -160,9 +160,20 @@ export const gameInstructions: Record<string, {
     ],
   },
   'rotate-to-fit': {
-    description: 'Rotate shapes to fit perfectly',
-    instructions: 'Click the "Rotate 90°" button to rotate the shape until it fits perfectly into the target outline.',
-    tips: 'Count your rotations - you may need to rotate 1, 2, 3, or 4 times to get the right orientation.'
+    description: 'Rotate multiple objects to match their target orientations',
+    instructions: 'Each round presents multiple objects (3-5 depending on round). Each object has a target rotation. Rotate each object using its individual buttons to match the target orientation. Round completes when all objects match their target rotations. You have 20 rounds. Each correct round gives you 5 points (max 100 points).',
+    tips: 'Select an object first (Tab or number keys 1-5), then use arrow keys or WASD to rotate it. Objects that are already correct cannot be rotated further.',
+    mouseControls: [
+      { action: 'Click', label: 'Click rotation buttons (Left 90°, Right 90°, Left 180°, Right 180°) for each object' },
+    ],
+    keyboardControls: [
+      { keys: ['Tab'], label: 'Cycle through objects to select' },
+      { keys: ['1', '2', '3', '4', '5'], label: 'Select object directly by number' },
+      { keys: ['←', 'A'], label: 'Rotate selected object Left 90°' },
+      { keys: ['→', 'D'], label: 'Rotate selected object Right 90°' },
+      { keys: ['↑', 'W'], label: 'Rotate selected object Left 180°' },
+      { keys: ['↓', 'S'], label: 'Rotate selected object Right 180°' },
+    ],
   },
   'mirror-match': {
     description: 'Identify if images are mirrored or different',
@@ -386,9 +397,15 @@ export function getGameInstructions(gameType: string, gameTitle?: string): {
   if (gameTitle) {
     const titleLower = gameTitle.toLowerCase();
     for (const [key, value] of Object.entries(gameInstructions)) {
-      if (titleLower.includes(key.replace('-', ' ')) || titleLower.includes(key)) {
+      // Check if title includes the key or key without dashes
+      const keyWithoutDashes = key.replace(/-/g, ' ');
+      if (titleLower.includes(keyWithoutDashes) || titleLower.includes(key.replace('-', ' ')) || titleLower.includes(key)) {
         return value;
       }
+    }
+    // Special case for "Rotate to Fit"
+    if (titleLower.includes('rotate') && titleLower.includes('fit')) {
+      return gameInstructions['rotate-to-fit'];
     }
   }
   

@@ -355,11 +355,11 @@ function show_games_custom_fields() {
                 gameType: 'logic',
                 gameOrder: 11,
                 difficulty: 2,
-                timeLimit: 90,
-                passingScore: 75,
+                timeLimit: 120,
+                passingScore: 80,
                 unlockRequirement: '',
-                description: 'Rotate shapes to fit perfectly',
-                gameConfig: '{"gameType": "rotate-to-fit", "rounds": 3}'
+                description: 'Rotate multiple objects to match their target orientations',
+                gameConfig: '{"gameType": "rotate-to-fit", "rounds": 20, "shapes": ["HandThumbUp", "PuzzlePiece", "GlobeAmericas", "LightBulb", "Funnel", "Cake", "LockClosed", "ChevronDoubleRight", "ArrowUturnLeft", "BuildingOffice2"], "objectCountRules": [{"rounds": 5, "count": 3}, {"rounds": 10, "count": 4}, {"rounds": 15, "count": 5}, {"rounds": 20, "count": 5}]}'
             },
             'mirror-match': {
                 title: 'Mirror Match',

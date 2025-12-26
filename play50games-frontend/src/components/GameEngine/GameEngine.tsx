@@ -113,10 +113,13 @@ export default function GameEngine({
          }
       }
       
-      // Debug log for Pattern Completion
-      if (gameConfig?.gameType === 'pattern-completion') {
-         console.log('[GameEngine] Pattern Completion config:', gameConfig);
+      // If game_config is null or undefined, set to empty object
+      if (!gameConfig || (typeof gameConfig === 'object' && Object.keys(gameConfig).length === 0 && gameConfig.constructor === Object)) {
+         console.warn('[GameEngine] game_config is empty or null for game:', game.title, game.id);
+         gameConfig = {};
       }
+      
+      // Debug logging removed to reduce console noise.
 
       switch (game.game_type) {
          case "logic":

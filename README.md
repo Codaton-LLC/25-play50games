@@ -439,6 +439,129 @@ In WordPress admin, when creating/editing a game:
    }
    ```
 
+#### Rotate to Fit
+
+```json
+{
+   "gameType": "rotate-to-fit",
+   "rounds": 20,
+   "shapes": [
+      "HandThumbUp",
+      "PuzzlePiece",
+      "GlobeAmericas",
+      "LightBulb",
+      "Funnel",
+      "Cake",
+      "LockClosed",
+      "ChevronDoubleRight",
+      "ArrowUturnLeft",
+      "BuildingOffice2"
+   ],
+   "objectCountRules": [
+      { "rounds": 5, "count": 3 },
+      { "rounds": 10, "count": 4 },
+      { "rounds": 15, "count": 5 },
+      { "rounds": 20, "count": 5 }
+   ]
+}
+```
+
+**Configuration:**
+
+-  `gameType` (required): Must be `"rotate-to-fit"`
+-  `rounds` (optional): Number of rounds - Default: **20** (recommended for 100 points max)
+-  `shapes` (optional): Array of shape icon names from Heroicons - Default: **10 different Heroicons**
+   -  Available icons: `HandThumbUp`, `PuzzlePiece`, `GlobeAmericas`, `LightBulb`, `Funnel`, `Cake`, `LockClosed`, `ChevronDoubleRight`, `ArrowUturnLeft`, `BuildingOffice2`
+   -  All icons are from `@heroicons/react/24/outline`
+   -  You can use any Heroicon by specifying its name (e.g., `"HandThumbUp"`, `"PuzzlePiece"`)
+-  `objectCountRules` (optional): Array of rules defining how many objects to rotate per round range - Default: **3 objects (rounds 1-5), 4 objects (rounds 6-10), 5 objects (rounds 11-15), 5 objects (rounds 16+)**
+   -  Each rule has `rounds` (max round number) and `count` (number of objects)
+   -  Rules should be sorted by `rounds` in ascending order
+   -  Example: `[{"rounds": 5, "count": 3}, {"rounds": 10, "count": 4}, {"rounds": 15, "count": 5}]`
+
+**Scoring:**
+
+-  5 points per correct round (when all objects match their target rotations)
+-  Maximum 100 points for 20 rounds
+
+**Controls:**
+
+-  **Mouse**: Each object has 4 rotation buttons:
+   -  **Left 90°**: Rotate object counter-clockwise by 90°
+   -  **Right 90°**: Rotate object clockwise by 90°
+   -  **Left 180°**: Rotate object counter-clockwise by 180°
+   -  **Right 180°**: Rotate object clockwise by 180°
+
+**Goal:**
+
+-  Each round presents multiple objects (3-5 depending on round)
+-  Each object has a target rotation (0°, 90°, 180°, or 270°)
+-  Rotate each object using its individual buttons to match the target orientation
+-  Round completes when **all objects** match their target rotations
+-  Each round uses random shapes from the configured shapes list
+
+**Features:**
+
+-  Multiple objects per round (3-5 based on round number)
+-  Individual rotation controls for each object
+-  Uses react-icons for diverse shape library (30+ shapes by default)
+-  Random shape and target rotation selection each round
+-  Visual feedback for correct/wrong rotations (green border when object is correct)
+-  Modern UI with progress tracking
+
+**Recommended Settings:**
+
+-  **Time Limit**: 120 seconds (for 20 rounds)
+-  **Passing Score**: 80 (80% of max score)
+-  **Difficulty**: 2 (medium)
+
+**Backend Configuration Example:**
+
+In WordPress admin, when creating/editing a game:
+
+1. **Title**: "Rotate to Fit"
+2. **Game Type**: Logic
+3. **Game Order**: 11 (or your desired order)
+4. **Difficulty**: 2
+5. **Time Limit**: 120
+6. **Passing Score**: 80
+7. **Description**: "Rotate multiple objects to match their target orientations"
+8. **Game Config** (JSON):
+
+   ```json
+   {
+      "gameType": "rotate-to-fit",
+      "rounds": 20,
+      "shapes": [
+         "HandThumbUp",
+         "PuzzlePiece",
+         "GlobeAmericas",
+         "LightBulb",
+         "Funnel",
+         "Cake",
+         "LockClosed",
+         "ChevronDoubleRight",
+         "ArrowUturnLeft",
+         "BuildingOffice2"
+      ],
+      "objectCountRules": [
+         { "rounds": 5, "count": 3 },
+         { "rounds": 10, "count": 4 },
+         { "rounds": 15, "count": 5 },
+         { "rounds": 20, "count": 5 }
+      ]
+   }
+   ```
+
+   Or use default settings (no `shapes` or `objectCountRules` needed):
+
+   ```json
+   {
+      "gameType": "rotate-to-fit",
+      "rounds": 20
+   }
+   ```
+
 #### Card Flip Memory
 
 ```json
