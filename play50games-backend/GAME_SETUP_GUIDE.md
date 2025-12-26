@@ -22,12 +22,13 @@
 
 9. **Description:** `Drag shapes into correct outlines`
 
-10. **Game Config (JSON):** Vendos këtë:
+10.   **Game Config (JSON):** Vendos këtë:
+
 ```json
 {
-  "gameType": "match-shapes",
-  "shapes": ["circle", "square", "triangle"],
-  "rounds": 5
+   "gameType": "match-shapes",
+   "shapes": ["circle", "square", "triangle"],
+   "rounds": 5
 }
 ```
 
@@ -44,14 +45,30 @@
 5. **Time Limit:** `90`
 6. **Passing Score:** `70`
 7. **Unlock Requirement:** `(ID e lojës së parë)` - vendos ID-në e lojës "Match the Shapes"
-8. **Description:** `Repeat an increasing color pattern`
+8. **Description:** `Watch and repeat color sequences. The sequence gets longer as rounds progress.`
 9. **Game Config:**
+
 ```json
 {
-  "gameType": "color-sequence",
-  "rounds": 5
+   "gameType": "color-sequence",
+   "rounds": 20,
+   "colors": ["red", "blue", "green", "yellow"]
 }
 ```
+
+**Konfigurim:**
+
+-  `rounds` (opsionale): Default **20** rounds (rekomanduar për 100 pikë max)
+-  `colors` (opsionale): Default `["red", "blue", "green", "yellow"]`
+
+**Si funksionon:**
+
+-  Rounds 1-5: 2 ngjyra për sekuencë
+-  Rounds 6-10: 3 ngjyra për sekuencë
+-  Rounds 11-15: 4 ngjyra për sekuencë
+-  Rounds 16-20: 5 ngjyra për sekuencë
+-  **Pikët**: 5 pikë për round të saktë (max 100 pikë)
+-  **Keyboard**: Shtyp 1-4 për të zgjedhur ngjyrat (1=Red, 2=Blue, 3=Green, 4=Yellow)
 
 ---
 
@@ -66,11 +83,12 @@
 7. **Unlock Requirement:** `(ID e lojës së dytë)`
 8. **Description:** `Classic matching pairs`
 9. **Game Config:**
+
 ```json
 {
-  "gameType": "card-flip",
-  "gridSize": 4,
-  "pairs": 8
+   "gameType": "card-flip",
+   "gridSize": 4,
+   "pairs": 8
 }
 ```
 
@@ -87,9 +105,10 @@
 7. **Unlock Requirement:** `(ID e lojës së tretë)`
 8. **Description:** `Click only green items`
 9. **Game Config:**
+
 ```json
 {
-  "gameType": "click-green"
+   "gameType": "click-green"
 }
 ```
 
@@ -106,9 +125,10 @@
 7. **Unlock Requirement:** `(ID e lojës së katërt)`
 8. **Description:** `Keep ball centered`
 9. **Game Config:**
+
 ```json
 {
-  "gameType": "ball-balance"
+   "gameType": "ball-balance"
 }
 ```
 
@@ -116,8 +136,7 @@
 
 ## Shënime të Rëndësishme:
 
-- **Unlock Requirement:** Për lojën e parë, lëre bosh. Për lojërat e tjera, vendos **ID-në** e lojës që duhet të përfundojë më parë.
-- Për të gjetur ID-në e një loje, shiko në listën e lojërave në WordPress admin - ID-ja shfaqet në URL kur e editon lojën.
-- **Game Config** duhet të jetë JSON i vlefshëm - kontrollo që të mos ketë gabime sintakse.
-- Pas krijimit të lojës, ajo do të shfaqet automatikisht në frontend nëse është unlocked.
-
+-  **Unlock Requirement:** Për lojën e parë, lëre bosh. Për lojërat e tjera, vendos **ID-në** e lojës që duhet të përfundojë më parë.
+-  Për të gjetur ID-në e një loje, shiko në listën e lojërave në WordPress admin - ID-ja shfaqet në URL kur e editon lojën.
+-  **Game Config** duhet të jetë JSON i vlefshëm - kontrollo që të mos ketë gabime sintakse.
+-  Pas krijimit të lojës, ajo do të shfaqet automatikisht në frontend nëse është unlocked.

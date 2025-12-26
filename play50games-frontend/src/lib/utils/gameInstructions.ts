@@ -1,4 +1,4 @@
-import { KeyboardControl } from "@/components/GameEngine/KeyboardControls";
+import { KeyboardControl, MouseControl } from "@/components/GameEngine/KeyboardControls";
 
 // Game instructions and descriptions for each game type
 export const gameInstructions: Record<string, {
@@ -6,12 +6,16 @@ export const gameInstructions: Record<string, {
   instructions: string;
   tips?: string;
   keyboardControls?: KeyboardControl[];
+  mouseControls?: MouseControl[];
 }> = {
   // Logic Games
   'match-shapes': {
     description: 'Match shapes to their correct outlines',
     instructions: 'Look at the target shape at the top and click the matching shape from the options below.',
     tips: 'Pay attention to the shape details - circles, squares, and triangles can look similar!',
+    mouseControls: [
+      { action: 'Click', label: 'Click on the matching shape from the options below' },
+    ],
     keyboardControls: [
       { keys: ['1', '2', '3', '4', '5', '6', '7', '8', '9'], label: 'Select shape 1-9' },
       { keys: ['0'], label: 'Select shape 10' },
@@ -22,12 +26,30 @@ export const gameInstructions: Record<string, {
   'color-sequence': {
     description: 'Repeat an increasing color pattern',
     instructions: 'Watch the color sequence carefully, then repeat it by clicking the colors in the same order. The sequence gets longer each round!',
-    tips: 'Focus on the order, not just the colors. Start from the first color and work your way through.'
+    tips: 'Focus on the order, not just the colors. Start from the first color and work your way through.',
+    mouseControls: [
+      { action: 'Click', label: 'Click colors in the same order as shown' },
+    ],
+    keyboardControls: [
+      { keys: ['1'], label: 'Select color 1 (Red)' },
+      { keys: ['2'], label: 'Select color 2 (Blue)' },
+      { keys: ['3'], label: 'Select color 3 (Green)' },
+      { keys: ['4'], label: 'Select color 4 (Yellow)' },
+    ],
   },
   'number-order': {
     description: 'Sort numbers from smallest to largest',
-    instructions: 'Click the numbers in order from smallest to largest. Start with 1, then 2, then 3, and so on.',
-    tips: 'Take your time to find the smallest number first, then work your way up.'
+    instructions: 'Click the numbers in order from smallest to largest. Start with 1, then 2, then 3, and so on. Rounds 1-5: 3 numbers, Rounds 6-10: 5 numbers, Rounds 11-20: 10 numbers.',
+    tips: 'Take your time to find the smallest number first, then work your way up.',
+    mouseControls: [
+      { action: 'Click', label: 'Click numbers in order from smallest to largest' },
+      { action: 'Click', label: 'Click "Undo" button to remove last selected number' },
+    ],
+    keyboardControls: [
+      { keys: ['1', '2', '3', '4', '5', '6', '7', '8', '9'], label: 'Select by position (1-9). Press "1" for first number in grid, "2" for second number in grid.' },
+      { keys: ['0'], label: 'Select 10th position (if 10 numbers)' },
+      { keys: ['Backspace', 'Delete'], label: 'Remove last selected number (undo)' },
+    ],
   },
   'find-odd-one': {
     description: 'Identify the object that\'s different',
@@ -43,6 +65,9 @@ export const gameInstructions: Record<string, {
     description: 'Determine which side of the scale is heavier',
     instructions: 'Look at the weights on both sides of the scale. Choose if the left side is heavier, right side is heavier, or if they are equal.',
     tips: 'Compare the numbers on each side. The larger number means that side is heavier.',
+    mouseControls: [
+      { action: 'Click', label: 'Click buttons to select: Left is Heavier, Right is Heavier, or Equal' },
+    ],
     keyboardControls: [
       { keys: ['ArrowLeft', 'A'], label: 'Left is Heavier' },
       { keys: ['ArrowRight', 'D'], label: 'Right is Heavier' },
@@ -68,6 +93,10 @@ export const gameInstructions: Record<string, {
     description: 'Fill the 4x4 grid with numbers 1-4',
     instructions: 'Click an empty cell, then select a number (1-4). Each row, column, and 2x2 box must contain numbers 1-4 without repetition.',
     tips: 'Start with cells that have only one possible number. Use the given numbers as clues.',
+    mouseControls: [
+      { action: 'Click', label: 'Click empty cells to select them' },
+      { action: 'Click', label: 'Click number pad (1-4) to enter number' },
+    ],
     keyboardControls: [
       { keys: ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'], label: 'Navigate between cells' },
       { keys: ['1', '2', '3', '4'], label: 'Enter number directly' },
@@ -290,6 +319,7 @@ export function getGameInstructions(gameType: string, gameTitle?: string): {
   instructions: string;
   tips?: string;
   keyboardControls?: KeyboardControl[];
+  mouseControls?: MouseControl[];
 } {
   // Try to find by gameType first
   if (gameInstructions[gameType]) {

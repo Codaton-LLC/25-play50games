@@ -19,7 +19,7 @@ import MemoryGames from "./game-types/MemoryGames";
 import SpeedGames from "./game-types/SpeedGames";
 import SkillGames from "./game-types/SkillGames";
 import FinalGames from "./game-types/FinalGames";
-import KeyboardControls from "./KeyboardControls";
+import KeyboardControls, { MouseControls } from "./KeyboardControls";
 
 interface GameEngineProps {
    game: Game;
@@ -178,6 +178,11 @@ export default function GameEngine({
                         Tips
                      </h4>
                      <p className="tips-text">{instructions.tips}</p>
+
+                     {/* Mouse Controls - General Component */}
+                     {instructions.mouseControls && (
+                        <MouseControls controls={instructions.mouseControls} />
+                     )}
 
                      {/* Keyboard Controls - General Component */}
                      {instructions.keyboardControls && (

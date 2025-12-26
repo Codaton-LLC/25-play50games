@@ -1,6 +1,7 @@
 # Complete WordPress Games Configuration Guide
 
 ## 📋 Table of Contents
+
 1. [Accessing WordPress Admin](#accessing-wordpress-admin)
 2. [Understanding Game Fields](#understanding-game-fields)
 3. [All 50 Games Configuration](#all-50-games-configuration)
@@ -20,22 +21,23 @@
 
 ### Required Fields in WordPress Admin:
 
-| Field | Description | Example |
-|-------|-------------|---------|
-| **Title** | Game name (displayed to users) | `Match the Shapes` |
-| **Game Order** | Sequence number (1-50) | `1` |
-| **Game Type** | Category: `logic`, `memory`, `speed`, `skill`, or `final` | `logic` |
-| **Difficulty** | 1-5 (1=easiest, 5=hardest) | `1` |
-| **Time Limit** | Seconds allowed to play | `60` |
-| **Passing Score** | Minimum score to pass (0-100) | `70` |
-| **Unlock Requirement** | Game ID that must be completed first (leave empty for Game 1) | `1` |
-| **Description** | Brief game description | `Drag shapes into correct outlines` |
-| **Game Config** | JSON configuration (see examples below) | `{"gameType": "match-shapes", "rounds": 5}` |
+| Field                  | Description                                                   | Example                                     |
+| ---------------------- | ------------------------------------------------------------- | ------------------------------------------- |
+| **Title**              | Game name (displayed to users)                                | `Match the Shapes`                          |
+| **Game Order**         | Sequence number (1-50)                                        | `1`                                         |
+| **Game Type**          | Category: `logic`, `memory`, `speed`, `skill`, or `final`     | `logic`                                     |
+| **Difficulty**         | 1-5 (1=easiest, 5=hardest)                                    | `1`                                         |
+| **Time Limit**         | Seconds allowed to play                                       | `60`                                        |
+| **Passing Score**      | Minimum score to pass (0-100)                                 | `70`                                        |
+| **Unlock Requirement** | Game ID that must be completed first (leave empty for Game 1) | `1`                                         |
+| **Description**        | Brief game description                                        | `Drag shapes into correct outlines`         |
+| **Game Config**        | JSON configuration (see examples below)                       | `{"gameType": "match-shapes", "rounds": 5}` |
 
 ### Finding Game IDs:
-- Go to **Games** → **All Games**
-- Hover over a game title
-- The ID is in the URL: `post.php?post=123&action=edit` (123 is the ID)
+
+-  Go to **Games** → **All Games**
+-  Hover over a game title
+-  The ID is in the URL: `post.php?post=123&action=edit` (123 is the ID)
 
 ---
 
@@ -44,6 +46,7 @@
 ### 🧠 LOGIC & PUZZLE GAMES (1-15)
 
 #### Game 1: Match the Shapes
+
 ```
 Title: Match the Shapes
 Game Order: 1
@@ -62,6 +65,7 @@ Game Config:
 ```
 
 #### Game 2: Color Sequence
+
 ```
 Title: Color Sequence
 Game Order: 2
@@ -70,33 +74,69 @@ Difficulty: 1
 Time Limit: 90
 Passing Score: 70
 Unlock Requirement: [ID of Game 1]
-Description: Repeat an increasing color pattern
+Description: Watch and repeat color sequences. The sequence gets longer as rounds progress.
 Game Config:
 {
   "gameType": "color-sequence",
-  "rounds": 5
+  "rounds": 20,
+  "colors": ["red", "blue", "green", "yellow"]
 }
 ```
 
+**Configuration Details:**
+
+-  `rounds` (optional): Number of rounds - default: **20** (recommended for 100 points max)
+-  `colors` (optional): Array of colors to use - default: `["red", "blue", "green", "yellow"]`
+
+**How it works:**
+
+-  Rounds 1-5: 2 colors per sequence
+-  Rounds 6-10: 3 colors per sequence
+-  Rounds 11-15: 4 colors per sequence
+-  Rounds 16-20: 5 colors per sequence
+-  **Scoring**: 5 points per correct round (max 100 points for 20 rounds)
+-  **Keyboard Controls**: Press 1-4 to select colors (1=Red, 2=Blue, 3=Green, 4=Yellow)
+
 #### Game 3: Number Order
+
 ```
 Title: Number Order
 Game Order: 3
 Game Type: logic
 Difficulty: 1
-Time Limit: 60
+Time Limit: 90
 Passing Score: 70
 Unlock Requirement: [ID of Game 2]
-Description: Sort numbers from smallest to largest
+Description: Click numbers from smallest to largest in the correct order
 Game Config:
 {
   "gameType": "number-order",
-  "numbers": 5,
-  "rounds": 3
+  "rounds": 20
 }
 ```
 
+**Configuration Details:**
+
+-  `rounds` (optional): Number of rounds - default: **20** (recommended for 100 points max)
+-  Number count is **dynamic** based on rounds:
+-  Rounds 1-5: **3 numbers** (1, 2, 3)
+-  Rounds 6-10: **5 numbers** (1, 2, 3, 4, 5)
+-  Rounds 11-20: **10 numbers** (1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
+
+**How it works:**
+
+-  Numbers are shuffled randomly each round
+-  Player must click numbers in ascending order: 1, 2, 3, 4, 5...
+-  **Scoring**: 5 points per correct round (max 100 points for 20 rounds)
+-  **Keyboard Controls**:
+-  Press **1-9** to select by position in grid (press "1" for first number in grid, "2" for second number in grid)
+-  Press **0** to select 10th position (if 10 numbers are present)
+-  Press **Backspace/Delete** to undo last selection
+-  Visual feedback shows correct (green) and incorrect (red) selections
+-  Undo button available to remove last selected number
+
 #### Game 4: Find the Odd One
+
 ```
 Title: Find the Odd One
 Game Order: 4
@@ -115,6 +155,7 @@ Game Config:
 ```
 
 #### Game 5: Tile Slider (3×3)
+
 ```
 Title: Tile Slider Puzzle
 Game Order: 5
@@ -132,6 +173,7 @@ Game Config:
 ```
 
 #### Game 6: Balance the Scale
+
 ```
 Title: Balance the Scale
 Game Order: 6
@@ -149,6 +191,7 @@ Game Config:
 ```
 
 #### Game 7: Light Switch Puzzle
+
 ```
 Title: Light Switch Puzzle
 Game Order: 7
@@ -167,6 +210,7 @@ Game Config:
 ```
 
 #### Game 8: Maze Escape
+
 ```
 Title: Maze Escape
 Game Order: 8
@@ -184,6 +228,7 @@ Game Config:
 ```
 
 #### Game 9: Pattern Completion
+
 ```
 Title: Pattern Completion
 Game Order: 9
@@ -201,6 +246,7 @@ Game Config:
 ```
 
 #### Game 10: Simple Sudoku (4×4)
+
 ```
 Title: Sudoku 4x4
 Game Order: 10
@@ -217,6 +263,7 @@ Game Config:
 ```
 
 #### Game 11: Rotate to Fit
+
 ```
 Title: Rotate to Fit
 Game Order: 11
@@ -234,6 +281,7 @@ Game Config:
 ```
 
 #### Game 12: Mirror Match
+
 ```
 Title: Mirror Match
 Game Order: 12
@@ -251,6 +299,7 @@ Game Config:
 ```
 
 #### Game 13: Logic Gates Lite
+
 ```
 Title: Logic Gates
 Game Order: 13
@@ -268,6 +317,7 @@ Game Config:
 ```
 
 #### Game 14: Sequence Arrows
+
 ```
 Title: Sequence Arrows
 Game Order: 14
@@ -285,6 +335,7 @@ Game Config:
 ```
 
 #### Game 15: Block Fill
+
 ```
 Title: Block Fill
 Game Order: 15
@@ -306,6 +357,7 @@ Game Config:
 ### 🧠 MEMORY GAMES (16-25)
 
 #### Game 16: Card Flip Memory
+
 ```
 Title: Card Flip Memory
 Game Order: 16
@@ -324,6 +376,7 @@ Game Config:
 ```
 
 #### Game 17: Sound Memory
+
 ```
 Title: Sound Memory
 Game Order: 17
@@ -341,6 +394,7 @@ Game Config:
 ```
 
 #### Game 18: Emoji Memory
+
 ```
 Title: Emoji Memory
 Game Order: 18
@@ -359,6 +413,7 @@ Game Config:
 ```
 
 #### Game 19: Number Recall
+
 ```
 Title: Number Recall
 Game Order: 19
@@ -377,6 +432,7 @@ Game Config:
 ```
 
 #### Game 20: Image Recall
+
 ```
 Title: Image Recall
 Game Order: 20
@@ -394,6 +450,7 @@ Game Config:
 ```
 
 #### Game 21: Path Memory
+
 ```
 Title: Path Memory
 Game Order: 21
@@ -411,6 +468,7 @@ Game Config:
 ```
 
 #### Game 22: Word Memory
+
 ```
 Title: Word Memory
 Game Order: 22
@@ -428,6 +486,7 @@ Game Config:
 ```
 
 #### Game 23: Face Memory
+
 ```
 Title: Face Memory
 Game Order: 23
@@ -445,6 +504,7 @@ Game Config:
 ```
 
 #### Game 24: Color Grid Memory
+
 ```
 Title: Color Grid Memory
 Game Order: 24
@@ -463,6 +523,7 @@ Game Config:
 ```
 
 #### Game 25: Symbol Stack
+
 ```
 Title: Symbol Stack
 Game Order: 25
@@ -484,6 +545,7 @@ Game Config:
 ### ⚡ SPEED & REACTION GAMES (26-35)
 
 #### Game 26: Click the Green
+
 ```
 Title: Click the Green
 Game Order: 26
@@ -500,6 +562,7 @@ Game Config:
 ```
 
 #### Game 27: Avoid the Red
+
 ```
 Title: Avoid the Red
 Game Order: 27
@@ -517,6 +580,7 @@ Game Config:
 ```
 
 #### Game 28: Reaction Test
+
 ```
 Title: Reaction Test
 Game Order: 28
@@ -534,6 +598,7 @@ Game Config:
 ```
 
 #### Game 29: Fast Math
+
 ```
 Title: Fast Math
 Game Order: 29
@@ -551,6 +616,7 @@ Game Config:
 ```
 
 #### Game 30: Whack-a-Shape
+
 ```
 Title: Whack-a-Shape
 Game Order: 30
@@ -568,6 +634,7 @@ Game Config:
 ```
 
 #### Game 31: Typing Sprint
+
 ```
 Title: Typing Sprint
 Game Order: 31
@@ -585,6 +652,7 @@ Game Config:
 ```
 
 #### Game 32: Quick Compare
+
 ```
 Title: Quick Compare
 Game Order: 32
@@ -602,6 +670,7 @@ Game Config:
 ```
 
 #### Game 33: Falling Objects
+
 ```
 Title: Falling Objects
 Game Order: 33
@@ -619,6 +688,7 @@ Game Config:
 ```
 
 #### Game 34: Tap Counter
+
 ```
 Title: Tap Counter
 Game Order: 34
@@ -636,6 +706,7 @@ Game Config:
 ```
 
 #### Game 35: Reflex Arrows
+
 ```
 Title: Reflex Arrows
 Game Order: 35
@@ -657,6 +728,7 @@ Game Config:
 ### 🎯 SKILL & COORDINATION GAMES (36-45)
 
 #### Game 36: Ball Balance
+
 ```
 Title: Ball Balance
 Game Order: 36
@@ -673,6 +745,7 @@ Game Config:
 ```
 
 #### Game 37: Target Aim
+
 ```
 Title: Target Aim
 Game Order: 37
@@ -690,6 +763,7 @@ Game Config:
 ```
 
 #### Game 38: Line Tracer
+
 ```
 Title: Line Tracer
 Game Order: 38
@@ -706,6 +780,7 @@ Game Config:
 ```
 
 #### Game 39: Timing Bar
+
 ```
 Title: Timing Bar
 Game Order: 39
@@ -723,6 +798,7 @@ Game Config:
 ```
 
 #### Game 40: Stack Blocks
+
 ```
 Title: Stack Blocks
 Game Order: 40
@@ -740,6 +816,7 @@ Game Config:
 ```
 
 #### Game 41: Precision Drop
+
 ```
 Title: Precision Drop
 Game Order: 41
@@ -757,6 +834,7 @@ Game Config:
 ```
 
 #### Game 42: Drag & Drop Sort
+
 ```
 Title: Drag & Drop Sort
 Game Order: 42
@@ -774,6 +852,7 @@ Game Config:
 ```
 
 #### Game 43: Speed Drawing
+
 ```
 Title: Speed Drawing
 Game Order: 43
@@ -791,6 +870,7 @@ Game Config:
 ```
 
 #### Game 44: One-Hand Mode
+
 ```
 Title: One-Hand Mode
 Game Order: 44
@@ -808,6 +888,7 @@ Game Config:
 ```
 
 #### Game 45: Cursor Maze
+
 ```
 Title: Cursor Maze
 Game Order: 45
@@ -830,6 +911,7 @@ Game Config:
 **Note:** For Final Games, you need to add `final` as a Game Type option. If it's not available, use `skill` and the games will still work.
 
 #### Game 46: Mixed Quiz
+
 ```
 Title: Mixed Quiz
 Game Order: 46
@@ -847,6 +929,7 @@ Game Config:
 ```
 
 #### Game 47: Survival Mode
+
 ```
 Title: Survival Mode
 Game Order: 47
@@ -864,6 +947,7 @@ Game Config:
 ```
 
 #### Game 48: Boss Puzzle
+
 ```
 Title: Boss Puzzle
 Game Order: 48
@@ -880,6 +964,7 @@ Game Config:
 ```
 
 #### Game 49: Time Challenge
+
 ```
 Title: Time Challenge
 Game Order: 49
@@ -897,6 +982,7 @@ Game Config:
 ```
 
 #### Game 50: Final Certification Test
+
 ```
 Title: Final Certification Test
 Game Order: 50
@@ -918,30 +1004,34 @@ Game Config:
 ## Quick Reference
 
 ### Game Type Options:
-- `logic` - Logic & Puzzle Games (1-15)
-- `memory` - Memory Games (16-25)
-- `speed` - Speed & Reaction Games (26-35)
-- `skill` - Skill & Coordination Games (36-45)
-- `final` - Final Games (46-50) - *May need to add this option to WordPress admin*
+
+-  `logic` - Logic & Puzzle Games (1-15)
+-  `memory` - Memory Games (16-25)
+-  `speed` - Speed & Reaction Games (26-35)
+-  `skill` - Skill & Coordination Games (36-45)
+-  `final` - Final Games (46-50) - _May need to add this option to WordPress admin_
 
 ### Difficulty Guidelines:
-- **1** - Beginner (Easy)
-- **2** - Intermediate
-- **3** - Advanced
-- **4** - Expert
-- **5** - Master
+
+-  **1** - Beginner (Easy)
+-  **2** - Intermediate
+-  **3** - Advanced
+-  **4** - Expert
+-  **5** - Master
 
 ### Time Limit Guidelines:
-- **Quick Games** (1-2 min): 30-60 seconds
-- **Standard Games** (2-3 min): 60-120 seconds
-- **Complex Games** (3-5 min): 120-180 seconds
-- **Final Games** (5-10 min): 300-600 seconds
+
+-  **Quick Games** (1-2 min): 30-60 seconds
+-  **Standard Games** (2-3 min): 60-120 seconds
+-  **Complex Games** (3-5 min): 120-180 seconds
+-  **Final Games** (5-10 min): 300-600 seconds
 
 ### Passing Score Guidelines:
-- **Easy Games**: 70
-- **Medium Games**: 75-80
-- **Hard Games**: 80-85
-- **Final Games**: 85-90
+
+-  **Easy Games**: 70
+-  **Medium Games**: 75-80
+-  **Hard Games**: 80-85
+-  **Final Games**: 85-90
 
 ---
 
@@ -949,9 +1039,9 @@ Game Config:
 
 1. **Publishing**: Games must be **Published** (not Draft) to appear in the API
 2. **Game Order**: Must be unique (1-50) and sequential
-3. **Unlock Requirement**: 
-   - Game 1: Leave empty
-   - Game 2-50: Enter the **ID** (not order) of the previous game
+3. **Unlock Requirement**:
+   -  Game 1: Leave empty
+   -  Game 2-50: Enter the **ID** (not order) of the previous game
 4. **Game Config JSON**: Must be valid JSON. Use a JSON validator if needed.
 5. **Finding IDs**: Hover over game title in "All Games" list to see ID in URL
 
@@ -960,6 +1050,7 @@ Game Config:
 ## Testing
 
 After creating games:
+
 1. Visit: `https://cms.play50.games/wp-json/play50/v1/games`
 2. You should see a JSON array with all your games
 3. Check your frontend to see games displayed
@@ -969,26 +1060,29 @@ After creating games:
 ## Troubleshooting
 
 ### Games not showing?
-- ✅ Check game status is **Published**
-- ✅ Verify Game Order is set (1-50)
-- ✅ Check Game Config JSON is valid
-- ✅ Clear WordPress cache if using caching plugins
+
+-  ✅ Check game status is **Published**
+-  ✅ Verify Game Order is set (1-50)
+-  ✅ Check Game Config JSON is valid
+-  ✅ Clear WordPress cache if using caching plugins
 
 ### API returns empty array?
-- This is normal if no games are created yet
-- Create at least one game following the guide above
+
+-  This is normal if no games are created yet
+-  Create at least one game following the guide above
 
 ### Game not working?
-- ✅ Verify `gameType` in Game Config matches the game name
-- ✅ Check all required fields are filled
-- ✅ Ensure JSON is valid (no trailing commas, proper quotes)
+
+-  ✅ Verify `gameType` in Game Config matches the game name
+-  ✅ Check all required fields are filled
+-  ✅ Ensure JSON is valid (no trailing commas, proper quotes)
 
 ---
 
 ## Need Help?
 
 Refer to:
-- `GAMES_LIST.md` - Complete list of all games
-- `QUICK_START_GAMES.md` - Quick start guide
-- WordPress Admin → Games → Help (if available)
 
+-  `GAMES_LIST.md` - Complete list of all games
+-  `QUICK_START_GAMES.md` - Quick start guide
+-  WordPress Admin → Games → Help (if available)

@@ -11,12 +11,12 @@
 7. **Light Switch Puzzle** - `gameType: "light-switch"`
 8. **Maze Escape** - `gameType: "maze-escape"`
 9. **Pattern Completion** - `gameType: "pattern-completion"`
-10. **Simple Sudoku (4×4)** - `gameType: "sudoku-4x4"`
-11. **Rotate to Fit** - `gameType: "rotate-to-fit"`
-12. **Mirror Match** - `gameType: "mirror-match"`
-13. **Logic Gates Lite** - `gameType: "logic-gates"`
-14. **Sequence Arrows** - `gameType: "sequence-arrows"`
-15. **Block Fill** - `gameType: "block-fill"`
+10.   **Simple Sudoku (4×4)** - `gameType: "sudoku-4x4"`
+11.   **Rotate to Fit** - `gameType: "rotate-to-fit"`
+12.   **Mirror Match** - `gameType: "mirror-match"`
+13.   **Logic Gates Lite** - `gameType: "logic-gates"`
+14.   **Sequence Arrows** - `gameType: "sequence-arrows"`
+15.   **Block Fill** - `gameType: "block-fill"`
 
 ## 🧠 MEMORY GAMES (16–25)
 
@@ -68,10 +68,11 @@
 ## Game Config Examples
 
 ### Logic Games
+
 ```json
 {"gameType": "match-shapes", "shapes": ["circle", "square", "triangle"], "rounds": 5}
-{"gameType": "color-sequence", "rounds": 5}
-{"gameType": "number-order", "numbers": 5, "rounds": 3}
+{"gameType": "color-sequence", "rounds": 20, "colors": ["red", "blue", "green", "yellow"]}
+{"gameType": "number-order", "numbers": 5, "rounds": 20}
 {"gameType": "find-odd-one", "gridSize": 3, "rounds": 5}
 {"gameType": "tile-slider", "gridSize": 3}
 {"gameType": "balance-scale", "rounds": 5}
@@ -87,6 +88,7 @@
 ```
 
 ### Memory Games
+
 ```json
 {"gameType": "card-flip", "gridSize": 4, "pairs": 8}
 {"gameType": "sound-memory", "rounds": 5}
@@ -101,6 +103,7 @@
 ```
 
 ### Speed Games
+
 ```json
 {"gameType": "click-green"}
 {"gameType": "avoid-red", "duration": 30}
@@ -115,6 +118,7 @@
 ```
 
 ### Skill Games
+
 ```json
 {"gameType": "ball-balance"}
 {"gameType": "target-aim", "targets": 10}
@@ -129,6 +133,7 @@
 ```
 
 ### Final Games
+
 ```json
 {"gameType": "mixed-quiz", "rounds": 5}
 {"gameType": "survival-mode", "games": 5}
@@ -136,4 +141,3 @@
 {"gameType": "time-challenge", "duration": 60}
 {"gameType": "final-test", "rounds": 10}
 ```
-
