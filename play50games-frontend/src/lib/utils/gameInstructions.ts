@@ -176,9 +176,15 @@ export const gameInstructions: Record<string, {
     ],
   },
   'mirror-match': {
-    description: 'Identify if images are mirrored or different',
-    instructions: 'Look at the pair of shapes. Determine if they are mirror images (identical) or if they are different shapes.',
-    tips: 'Imagine flipping one shape - if it matches the other, they are mirrors.'
+    description: 'Find the correct mirror image of the main shape',
+    instructions: 'Each round shows a main shape and a mirror type (horizontal, vertical, or diagonal). Find the correct mirrored version among the options. Click on the option that matches the mirror transformation. You have 20 rounds. Each correct answer gives you 5 points (max 100 points).',
+    tips: 'Horizontal mirror flips left-right. Vertical mirror flips top-bottom. Diagonal mirror flips both. Pay attention to the mirror type shown above the main shape.',
+    mouseControls: [
+      { action: 'Click', label: 'Click on the option that shows the correct mirror image' },
+    ],
+    keyboardControls: [
+      { keys: ['1', '2', '3'], label: 'Select option directly by number' },
+    ],
   },
   'logic-gates': {
     description: 'Determine output of AND/OR gates',

@@ -369,8 +369,8 @@ function show_games_custom_fields() {
                 timeLimit: 60,
                 passingScore: 75,
                 unlockRequirement: '',
-                description: 'Identify if images are mirrored or different',
-                gameConfig: '{"gameType": "mirror-match", "rounds": 5}'
+                description: 'Identify the correct mirror image among several options',
+                gameConfig: '{"gameType": "mirror-match", "rounds": 20, "mirrorTypes": ["horizontal", "vertical", "diagonal"], "shapes": ["WrenchWithJaw", "LightningBolt", "CameraOffCenter", "FlagOnPole", "SpiralCurl", "GearAsymmetric", "CircuitBranch", "KeyAsymmetric", "ShieldOffCenter", "BirdAsymmetric", "AnchorOffset", "PaperclipUneven", "RocketOneFin", "PuzzleMissingTab"], "optionsCount": 3}'
             },
             'logic-gates': {
                 title: 'Logic Gates',

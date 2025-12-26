@@ -22,6 +22,8 @@ import {
    HomeIcon,
    StarIcon,
    HeartIcon,
+   ScaleIcon,
+   ArrowPathIcon,
 } from "@heroicons/react/24/outline";
 import LogicGames from "./game-types/LogicGames";
 import MemoryGames from "./game-types/MemoryGames";
@@ -188,6 +190,303 @@ export default function GameEngine({
             <div className="game-instructions-section">
                <h3>How to Play</h3>
                <p className="instructions-text">{instructions.instructions}</p>
+
+               {/* Enhanced Start Screen for Mirror Match */}
+               {gameType === "mirror-match" && (
+                  <div style={{
+                     background: "linear-gradient(135deg, rgba(125, 211, 252, 0.1) 0%, rgba(54, 211, 153, 0.1) 100%)",
+                     border: "2px solid var(--stroke)",
+                     borderRadius: "20px",
+                     padding: "32px",
+                     marginTop: "24px",
+                     boxShadow: "0 8px 24px rgba(0, 0, 0, 0.2)"
+                  }}>
+                     <div style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: "12px",
+                        marginBottom: "24px"
+                     }}>
+                        <ScaleIcon style={{ width: 28, height: 28, color: "var(--accent)" }} />
+                        <h3 style={{
+                           fontSize: "24px",
+                           fontWeight: 700,
+                           margin: 0,
+                           background: "linear-gradient(135deg, var(--accent) 0%, var(--ok) 100%)",
+                           WebkitBackgroundClip: "text",
+                           WebkitTextFillColor: "transparent",
+                           backgroundClip: "text"
+                        }}>
+                           Mirror Types Explained
+                        </h3>
+                     </div>
+
+                     <div style={{ 
+                        display: "grid", 
+                        gridTemplateColumns: "repeat(3, 1fr)", 
+                        gap: "20px",
+                        marginBottom: "24px"
+                     }}>
+                        {/* Horizontal Mirror */}
+                        <div style={{
+                           background: "var(--card)",
+                           border: "2px solid var(--stroke)",
+                           borderRadius: "16px",
+                           padding: "24px",
+                           textAlign: "center",
+                           transition: "all 0.3s ease",
+                           boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)"
+                        }}>
+                           <div style={{ 
+                              fontSize: "16px", 
+                              fontWeight: 700, 
+                              color: "var(--accent)",
+                              marginBottom: "16px",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              gap: "8px"
+                           }}>
+                              <ArrowPathIcon style={{ width: 18, height: 18 }} />
+                              Horizontal
+                           </div>
+                           <div style={{
+                              display: "flex",
+                              flexDirection: "column",
+                              alignItems: "center",
+                              gap: "12px",
+                              minHeight: "180px"
+                           }}>
+                              <div style={{
+                                 background: "rgba(125, 211, 252, 0.1)",
+                                 borderRadius: "12px",
+                                 padding: "16px",
+                                 border: "1px solid var(--stroke)"
+                              }}>
+                                 <svg viewBox="0 0 100 100" width="80" height="80" style={{ stroke: "rgba(232, 238, 252, 0.92)", strokeWidth: "10", fill: "none", strokeLinecap: "round", strokeLinejoin: "round" }}>
+                                    <path d="M20 60 L52 28" />
+                                    <path d="M52 28 L66 42" />
+                                    <path d="M66 42 L60 48" />
+                                    <circle cx="22" cy="62" r="4" fill="rgba(232, 238, 252, 0.92)" />
+                                 </svg>
+                              </div>
+                              <div style={{ 
+                                 fontSize: "20px", 
+                                 color: "var(--accent)",
+                                 fontWeight: 600
+                              }}>→</div>
+                              <div style={{
+                                 background: "rgba(125, 211, 252, 0.1)",
+                                 borderRadius: "12px",
+                                 padding: "16px",
+                                 border: "1px solid var(--stroke)",
+                                 transform: "scaleX(-1)"
+                              }}>
+                                 <svg viewBox="0 0 100 100" width="80" height="80" style={{ stroke: "rgba(232, 238, 252, 0.92)", strokeWidth: "10", fill: "none", strokeLinecap: "round", strokeLinejoin: "round" }}>
+                                    <path d="M20 60 L52 28" />
+                                    <path d="M52 28 L66 42" />
+                                    <path d="M66 42 L60 48" />
+                                    <circle cx="22" cy="62" r="4" fill="rgba(232, 238, 252, 0.92)" />
+                                 </svg>
+                              </div>
+                              <div style={{ 
+                                 fontSize: "13px", 
+                                 color: "var(--muted)", 
+                                 marginTop: "8px",
+                                 fontWeight: 600
+                              }}>
+                                 Flips left ↔ right
+                              </div>
+                           </div>
+                        </div>
+
+                        {/* Vertical Mirror */}
+                        <div style={{
+                           background: "var(--card)",
+                           border: "2px solid var(--stroke)",
+                           borderRadius: "16px",
+                           padding: "24px",
+                           textAlign: "center",
+                           transition: "all 0.3s ease",
+                           boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)"
+                        }}>
+                           <div style={{ 
+                              fontSize: "16px", 
+                              fontWeight: 700, 
+                              color: "var(--accent)",
+                              marginBottom: "16px",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              gap: "8px"
+                           }}>
+                              <ArrowPathIcon style={{ width: 18, height: 18, transform: "rotate(90deg)" }} />
+                              Vertical
+                           </div>
+                           <div style={{
+                              display: "flex",
+                              flexDirection: "column",
+                              alignItems: "center",
+                              gap: "12px",
+                              minHeight: "180px"
+                           }}>
+                              <div style={{
+                                 background: "rgba(54, 211, 153, 0.1)",
+                                 borderRadius: "12px",
+                                 padding: "16px",
+                                 border: "1px solid var(--stroke)"
+                              }}>
+                                 <svg viewBox="0 0 100 100" width="80" height="80" style={{ stroke: "rgba(232, 238, 252, 0.92)", strokeWidth: "10", fill: "none", strokeLinecap: "round", strokeLinejoin: "round" }}>
+                                    <path d="M20 60 L52 28" />
+                                    <path d="M52 28 L66 42" />
+                                    <path d="M66 42 L60 48" />
+                                    <circle cx="22" cy="62" r="4" fill="rgba(232, 238, 252, 0.92)" />
+                                 </svg>
+                              </div>
+                              <div style={{ 
+                                 fontSize: "20px", 
+                                 color: "var(--ok)",
+                                 fontWeight: 600
+                              }}>↓</div>
+                              <div style={{
+                                 background: "rgba(54, 211, 153, 0.1)",
+                                 borderRadius: "12px",
+                                 padding: "16px",
+                                 border: "1px solid var(--stroke)",
+                                 transform: "scaleY(-1)"
+                              }}>
+                                 <svg viewBox="0 0 100 100" width="80" height="80" style={{ stroke: "rgba(232, 238, 252, 0.92)", strokeWidth: "10", fill: "none", strokeLinecap: "round", strokeLinejoin: "round" }}>
+                                    <path d="M20 60 L52 28" />
+                                    <path d="M52 28 L66 42" />
+                                    <path d="M66 42 L60 48" />
+                                    <circle cx="22" cy="62" r="4" fill="rgba(232, 238, 252, 0.92)" />
+                                 </svg>
+                              </div>
+                              <div style={{ 
+                                 fontSize: "13px", 
+                                 color: "var(--muted)", 
+                                 marginTop: "8px",
+                                 fontWeight: 600
+                              }}>
+                                 Flips top ↔ bottom
+                              </div>
+                           </div>
+                        </div>
+
+                        {/* Diagonal Mirror */}
+                        <div style={{
+                           background: "var(--card)",
+                           border: "2px solid var(--stroke)",
+                           borderRadius: "16px",
+                           padding: "24px",
+                           textAlign: "center",
+                           transition: "all 0.3s ease",
+                           boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)"
+                        }}>
+                           <div style={{ 
+                              fontSize: "16px", 
+                              fontWeight: 700, 
+                              color: "var(--accent)",
+                              marginBottom: "16px",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              gap: "8px"
+                           }}>
+                              <ArrowPathIcon style={{ width: 18, height: 18, transform: "rotate(45deg)" }} />
+                              Diagonal
+                           </div>
+                           <div style={{
+                              display: "flex",
+                              flexDirection: "column",
+                              alignItems: "center",
+                              gap: "12px",
+                              minHeight: "180px"
+                           }}>
+                              <div style={{
+                                 background: "rgba(168, 85, 247, 0.1)",
+                                 borderRadius: "12px",
+                                 padding: "16px",
+                                 border: "1px solid var(--stroke)"
+                              }}>
+                                 <svg viewBox="0 0 100 100" width="80" height="80" style={{ stroke: "rgba(232, 238, 252, 0.92)", strokeWidth: "10", fill: "none", strokeLinecap: "round", strokeLinejoin: "round" }}>
+                                    <path d="M20 60 L52 28" />
+                                    <path d="M52 28 L66 42" />
+                                    <path d="M66 42 L60 48" />
+                                    <circle cx="22" cy="62" r="4" fill="rgba(232, 238, 252, 0.92)" />
+                                 </svg>
+                              </div>
+                              <div style={{ 
+                                 fontSize: "20px", 
+                                 color: "#a855f7",
+                                 fontWeight: 600
+                              }}>↻</div>
+                              <div style={{
+                                 background: "rgba(168, 85, 247, 0.1)",
+                                 borderRadius: "12px",
+                                 padding: "16px",
+                                 border: "1px solid var(--stroke)",
+                                 transform: "scale(-1, -1)"
+                              }}>
+                                 <svg viewBox="0 0 100 100" width="80" height="80" style={{ stroke: "rgba(232, 238, 252, 0.92)", strokeWidth: "10", fill: "none", strokeLinecap: "round", strokeLinejoin: "round" }}>
+                                    <path d="M20 60 L52 28" />
+                                    <path d="M52 28 L66 42" />
+                                    <path d="M66 42 L60 48" />
+                                    <circle cx="22" cy="62" r="4" fill="rgba(232, 238, 252, 0.92)" />
+                                 </svg>
+                              </div>
+                              <div style={{ 
+                                 fontSize: "13px", 
+                                 color: "var(--muted)", 
+                                 marginTop: "8px",
+                                 fontWeight: 600
+                              }}>
+                                 Flips both ways
+                              </div>
+                           </div>
+                        </div>
+                     </div>
+
+                     <div style={{
+                        background: "rgba(11, 22, 48, 0.4)",
+                        border: "1px solid var(--stroke)",
+                        borderRadius: "12px",
+                        padding: "20px",
+                        marginTop: "24px"
+                     }}>
+                        <div style={{
+                           display: "flex",
+                           alignItems: "center",
+                           gap: "12px",
+                           marginBottom: "12px"
+                        }}>
+                           <LightBulbIcon style={{ width: 20, height: 20, color: "var(--accent)" }} />
+                           <h4 style={{
+                              fontSize: "16px",
+                              fontWeight: 600,
+                              margin: 0,
+                              color: "var(--text)"
+                           }}>
+                              How to Play
+                           </h4>
+                        </div>
+                        <ul style={{
+                           margin: 0,
+                           paddingLeft: "24px",
+                           color: "var(--muted)",
+                           fontSize: "14px",
+                           lineHeight: "1.8"
+                        }}>
+                           <li>Look at the main shape at the top</li>
+                           <li>Read the mirror type (Horizontal, Vertical, or Diagonal)</li>
+                           <li>Select the option that shows the correct mirror transformation</li>
+                           <li>You have 3 options - only one is correct!</li>
+                           <li>Use number keys <strong style={{ color: "var(--accent)" }}>1, 2, 3</strong> for quick selection</li>
+                        </ul>
+                     </div>
+                  </div>
+               )}
 
                {/* Interactive Example for Pattern Completion */}
                {gameType === "pattern-completion" && (
