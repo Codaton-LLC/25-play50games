@@ -118,9 +118,18 @@ export const gameInstructions: Record<string, {
     ],
   },
   'maze-escape': {
-    description: 'Navigate from start to exit',
-    instructions: 'Use arrow keys (↑↓←→) to move your character (P) through the maze to reach the exit (E). Avoid walls!',
-    tips: 'Plan your path before moving. Look for the shortest route to the exit.'
+    description: 'Navigate from start to exit through a maze',
+    instructions: 'Use arrow keys or WASD to move your character through the maze to reach the exit. You can also click on adjacent cells to move. Avoid walls (black tiles). Each round has a new randomly generated maze. Grid size can be configured in game config, or increases dynamically with rounds: 10x10 (rounds 1-5), 20x20 (rounds 6-15), 45x45 (rounds 16-20).',
+    tips: 'Plan your path before moving. Look for the shortest route to the exit. Fewer moves = higher score! Click on adjacent cells to move with mouse.',
+    mouseControls: [
+      { action: 'Click', label: 'Click on adjacent cells to move your character' },
+    ],
+    keyboardControls: [
+      { keys: ['ArrowUp', 'W'], label: 'Move up' },
+      { keys: ['ArrowDown', 'S'], label: 'Move down' },
+      { keys: ['ArrowLeft', 'A'], label: 'Move left' },
+      { keys: ['ArrowRight', 'D'], label: 'Move right' },
+    ],
   },
   'pattern-completion': {
     description: 'Complete the missing pattern element',

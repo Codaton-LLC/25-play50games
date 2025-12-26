@@ -339,6 +339,109 @@ The WordPress admin includes a **Quick Fill Templates** dropdown that automatica
 }
 ```
 
+#### Maze Escape
+
+```json
+{
+   "gameType": "maze-escape",
+   "rounds": 20
+}
+```
+
+**Configuration:**
+
+-  `gameType` (required): Must be `"maze-escape"`
+-  `rounds` (optional): Number of rounds - Default: **20** (recommended for 2000 points max)
+-  `size` (optional): Fixed grid size (overrides dynamic sizing) - Default: **dynamic based on rounds**
+
+**Grid Size Configuration:**
+
+-  `size` (optional): Fixed grid size - if not specified, uses dynamic progression:
+   -  **Rounds 1-5**: 10x10 grid
+   -  **Rounds 6-15**: 20x20 grid
+   -  **Rounds 16-20**: 45x45 grid
+-  `gridSizes` (optional): Array of objects to configure grid sizes per round range:
+   ```json
+   {
+      "gameType": "maze-escape",
+      "rounds": 20,
+      "gridSizes": [
+         { "rounds": 5, "size": 10 },
+         { "rounds": 10, "size": 15 },
+         { "rounds": 20, "size": 20 }
+      ]
+   }
+   ```
+   -  Each object has `rounds` (max round for this size) and `size` (grid size)
+   -  Example above: 10x10 for rounds 1-5, 15x15 for rounds 6-10, 20x20 for rounds 11-20
+-  Example: `{"gameType": "maze-escape", "rounds": 20, "size": 15}` for fixed 15x15 grid
+
+**Scoring:**
+
+-  100 points per round minus 1 point per move (min 0)
+-  Maximum 2000 points for 20 rounds (100 points per round)
+
+**Controls:**
+
+-  **Keyboard**: Arrow keys or WASD to move through the maze
+-  **Mouse**: Click on adjacent cells to move your character
+
+**Goal:**
+
+-  Navigate from start (top-left, marked with Play icon) to exit (bottom-right, marked with Trophy icon)
+-  Avoid walls (black tiles)
+-  Trail shows your path (blue dots)
+-  Fewer moves = higher score
+
+**Features:**
+
+-  Uses Recursive Backtracker algorithm for maze generation
+-  Trail visualization shows your path
+-  Start position marked with Play icon (Heroicons)
+-  Exit position marked with Trophy icon (Heroicons)
+-  Rounded design matching other games
+-  Modern UI with gradients and animations
+
+**Recommended Settings:**
+
+-  **Time Limit**: 300 seconds (for 20 rounds with larger grids)
+-  **Passing Score**: 1600 (80% of max score)
+-  **Difficulty**: 3-4 (medium to hard)
+
+**Backend Configuration Example:**
+
+In WordPress admin, when creating/editing a game:
+
+1. **Title**: "Maze Escape"
+2. **Game Type**: Logic
+3. **Game Order**: 8 (or your desired order)
+4. **Difficulty**: 3
+5. **Time Limit**: 300
+6. **Passing Score**: 1600
+7. **Description**: "Navigate from start to exit through a maze"
+8. **Game Config** (JSON):
+
+   ```json
+   {
+      "gameType": "maze-escape",
+      "rounds": 20
+   }
+   ```
+
+   Or with fixed grid size:
+
+   ```json
+   {
+      "gameType": "maze-escape",
+      "rounds": 20,
+      "size": 15
+   }
+   ```
+
+**Quick Fill Template:**
+
+In WordPress admin, you can use the "Quick Fill Templates" dropdown and select "8. Maze Escape" to auto-fill all fields with recommended settings.
+
 #### Ball Balance
 
 ```json

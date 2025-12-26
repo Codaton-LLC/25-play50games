@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import NumberKeypad from "../NumberKeypad";
 import {
    CheckCircleIcon,
@@ -9,7 +9,6 @@ import {
    ClockIcon,
    SparklesIcon,
    ArrowPathIcon,
-   PlayIcon,
    ScaleIcon,
    ArrowLeftIcon,
    ArrowRightIcon,
@@ -85,15 +84,17 @@ export default function LogicGames({
    const [round, setRound] = useState(0);
 
    // Determine max rounds based on game type
-   // Balance the Scale and Match Shapes should have 20 rounds by default
+   // Balance the Scale, Match Shapes, and Maze Escape should have 20 rounds by default
    const getMaxRounds = () => {
       if (config.rounds) return config.rounds;
       const gameType = config.gameType || currentGame;
       if (
          gameType === "balance-scale" ||
          gameType === "match-shapes" ||
+         gameType === "maze-escape" ||
          gameTitle?.toLowerCase().includes("balance") ||
-         gameTitle?.toLowerCase().includes("match")
+         gameTitle?.toLowerCase().includes("match") ||
+         gameTitle?.toLowerCase().includes("maze")
       ) {
          return 20;
       }
@@ -131,9 +132,12 @@ export default function LogicGames({
          const isBalanceScale =
             currentGame === "balance-scale" ||
             gameTitle?.toLowerCase().includes("balance");
+         const isMazeEscape = currentGame === "maze-escape";
          const finalScore =
             isBalanceScale && maxRounds === 20
                ? score // Already 0-100 (5 points per round * 20 rounds = 100 max)
+               : isMazeEscape && maxRounds === 20
+               ? Math.round((score / (maxRounds * 100)) * 100) // Maze Escape: score is 0-2000, convert to 0-100
                : Math.round((score / maxRounds) * 100);
 
          console.log("[LogicGames] Final score calculation:", {
@@ -243,10 +247,13 @@ export default function LogicGames({
             maxRounds={maxRounds}
             currentScore={score}
             onScoreUpdate={(s) => {
-               // CircuitPath manages its own rounds and score internally
+               // CircuitPath reports the running total score
                setScore(s);
             }}
             onComplete={onComplete}
+            onRoundComplete={() => {
+               setRound((prev) => prev + 1);
+            }}
          />
       ),
       "circuit-path": (
@@ -256,20 +263,50 @@ export default function LogicGames({
             maxRounds={maxRounds}
             currentScore={score}
             onScoreUpdate={(s) => {
-               // CircuitPath manages its own rounds and score internally
+               // CircuitPath reports the running total score
                setScore(s);
             }}
             onComplete={onComplete}
+            onRoundComplete={() => {
+               setRound((prev) => prev + 1);
+            }}
          />
       ),
       "maze-escape": (
          <MazeEscape
             config={config}
+            currentRound={round + 1}
+            maxRounds={maxRounds}
+            currentScore={score}
             onScoreUpdate={(s) => {
-               setScore(score + s);
-               setRound(round + 1);
+               // Add score only - round will be updated by onRoundComplete
+               const newScore = score + s;
+               setScore(newScore);
+               console.log("[MazeEscape] Score update:", {
+                  currentRound: round + 1,
+                  score: newScore,
+                  pointsAdded: s,
+                  maxRounds,
+               });
             }}
             onComplete={onComplete}
+            onRoundComplete={() => {
+               // Move to next round
+               console.log(
+                  "[MazeEscape] onRoundComplete called in LogicGames, current round:",
+                  round
+               );
+               setRound((prev) => {
+                  const nextRound = prev + 1;
+                  console.log(
+                     "[MazeEscape] Updating round from",
+                     prev,
+                     "to",
+                     nextRound
+                  );
+                  return nextRound;
+               });
+            }}
          />
       ),
       "pattern-completion": (
@@ -2532,67 +2569,79 @@ function TileSlider({
    const completionCalledRef = useRef(false);
    const onScoreUpdateRef = useRef(onScoreUpdate);
    const onCompleteRef = useRef(onComplete);
-   
+
    // Update refs when callbacks change
    useEffect(() => {
       onScoreUpdateRef.current = onScoreUpdate;
       onCompleteRef.current = onComplete;
    }, [onScoreUpdate, onComplete]);
-   
+
    // Check if user has shared or came from shared link
    useEffect(() => {
       // Check if came from shared link (has tracking parameter)
       const urlParams = new URLSearchParams(window.location.search);
-      const sharedBy = urlParams.get('shared');
+      const sharedBy = urlParams.get("shared");
       if (sharedBy) {
          // User came from shared link - grant unlimited hints
          setHasShared(true);
-         localStorage.setItem('play50games_shared', 'true');
+         localStorage.setItem("play50games_shared", "true");
          // Remove tracking parameter from URL (clean URL)
-         const newUrl = window.location.pathname + window.location.search.replace(/[?&]shared=[^&]*/, '').replace(/^\?/, '');
-         window.history.replaceState({}, '', newUrl || window.location.pathname);
+         const newUrl =
+            window.location.pathname +
+            window.location.search
+               .replace(/[?&]shared=[^&]*/, "")
+               .replace(/^\?/, "");
+         window.history.replaceState(
+            {},
+            "",
+            newUrl || window.location.pathname
+         );
       } else {
          // Check if user has shared before
-         const shared = localStorage.getItem('play50games_shared');
-         if (shared === 'true') {
+         const shared = localStorage.getItem("play50games_shared");
+         if (shared === "true") {
             setHasShared(true);
          }
       }
    }, []);
-   
+
    // Get maxHints from config, handle both number and string, default to 5 if not specified
-   const maxHintsConfig = config.maxHints !== undefined && config.maxHints !== null 
-      ? (typeof config.maxHints === 'string' ? parseInt(config.maxHints, 10) : config.maxHints)
-      : 5;
+   const maxHintsConfig =
+      config.maxHints !== undefined && config.maxHints !== null
+         ? typeof config.maxHints === "string"
+            ? parseInt(config.maxHints, 10)
+            : config.maxHints
+         : 5;
    const maxHints = hasShared ? 0 : maxHintsConfig; // Unlimited if shared, otherwise use config or default: 5 hints
-   
+
    // Generate shareable link with tracking
    const getShareableLink = (): string => {
-      const currentUrl = window.location.href.split('?')[0]; // Remove existing params
-      const shareId = Date.now().toString(36) + Math.random().toString(36).substr(2, 5); // Unique share ID
+      const currentUrl = window.location.href.split("?")[0]; // Remove existing params
+      const shareId =
+         Date.now().toString(36) + Math.random().toString(36).substr(2, 5); // Unique share ID
       return `${currentUrl}?shared=${shareId}`;
    };
-   
+
    // Handle share via Web Share API or fallback
    const handleShare = async () => {
       const shareableLink = getShareableLink();
-      
+
       // Try Web Share API first (mobile/desktop)
       if (navigator.share) {
          try {
             await navigator.share({
-               title: 'Tile Slider Puzzle Game',
-               text: 'Check out this awesome Tile Slider puzzle game!',
+               title: "Tile Slider Puzzle Game",
+               text: "Check out this awesome Tile Slider puzzle game!",
                url: shareableLink,
             });
             // Success - grant unlimited hints
             setHasShared(true);
             setShareSuccess(true);
-            localStorage.setItem('play50games_shared', 'true');
+            localStorage.setItem("play50games_shared", "true");
             setTimeout(() => setShareSuccess(false), 3000);
          } catch (error: any) {
             // User cancelled or error - try copy to clipboard
-            if (error.name !== 'AbortError') {
+            if (error.name !== "AbortError") {
                handleCopyLink();
             }
          }
@@ -2601,7 +2650,7 @@ function TileSlider({
          handleCopyLink();
       }
    };
-   
+
    // Handle copy link to clipboard
    const handleCopyLink = async () => {
       const shareableLink = getShareableLink();
@@ -2610,24 +2659,24 @@ function TileSlider({
          // Success - grant unlimited hints
          setHasShared(true);
          setShareSuccess(true);
-         localStorage.setItem('play50games_shared', 'true');
+         localStorage.setItem("play50games_shared", "true");
          setTimeout(() => setShareSuccess(false), 3000);
       } catch (error) {
          // Fallback for older browsers
-         const textArea = document.createElement('textarea');
+         const textArea = document.createElement("textarea");
          textArea.value = shareableLink;
-         textArea.style.position = 'fixed';
-         textArea.style.opacity = '0';
+         textArea.style.position = "fixed";
+         textArea.style.opacity = "0";
          document.body.appendChild(textArea);
          textArea.select();
          try {
-            document.execCommand('copy');
+            document.execCommand("copy");
             setHasShared(true);
             setShareSuccess(true);
-            localStorage.setItem('play50games_shared', 'true');
+            localStorage.setItem("play50games_shared", "true");
             setTimeout(() => setShareSuccess(false), 3000);
          } catch (err) {
-            console.error('Failed to copy link:', err);
+            console.error("Failed to copy link:", err);
          }
          document.body.removeChild(textArea);
       }
@@ -2663,21 +2712,21 @@ function TileSlider({
 
       if (isSolved && moves > 0 && !completionCalledRef.current) {
          completionCalledRef.current = true;
-         
+
          // Calculate score: 100 points for solving, minus 1 point per move
          // Minimum score: passingScore points for completing (even with many moves)
          // This ensures puzzle completion always gives enough points to pass
          const minScore = Math.max(passingScore, 20); // At least passing score, but minimum 20
          const baseScore = Math.max(minScore, 100 - moves);
          const score = Math.min(100, baseScore); // Cap at 100
-         
+
          // Show feedback immediately
          setFeedback("correct");
-         
+
          // Update score immediately (this will trigger progress save)
          // Use a small delay to ensure state is updated before onComplete
          onScoreUpdateRef.current(score);
-         
+
          // Call onComplete after delay to show feedback and trigger completion modal
          // Pass score explicitly to ensure it's received correctly
          setTimeout(() => {
@@ -2686,7 +2735,7 @@ function TileSlider({
          }, 2000); // Increased delay to ensure feedback is visible
       }
    }, [tiles, moves, total]);
-   
+
    // Reset completion flag when puzzle is reset
    useEffect(() => {
       completionCalledRef.current = false;
@@ -2899,7 +2948,10 @@ function TileSlider({
    };
 
    // Calculate puzzle score (lower is better, 0 = solved)
-   const calculatePuzzleScore = (currentTiles: (number | null)[], currentEmpty: number) => {
+   const calculatePuzzleScore = (
+      currentTiles: (number | null)[],
+      currentEmpty: number
+   ) => {
       let score = 0;
       for (let i = 0; i < total; i++) {
          if (i === currentEmpty) continue;
@@ -2912,7 +2964,9 @@ function TileSlider({
             const correctRow = Math.floor(correctPos / gridSize);
             const correctCol = correctPos % gridSize;
             // Manhattan distance
-            score += Math.abs(currentRow - correctRow) + Math.abs(currentCol - correctCol);
+            score +=
+               Math.abs(currentRow - correctRow) +
+               Math.abs(currentCol - correctCol);
          }
       }
       return score;
@@ -2926,7 +2980,7 @@ function TileSlider({
    ): { tiles: (number | null)[]; emptyIndex: number } | null => {
       if (tileIndex === currentEmpty) return null;
       if (currentTiles[tileIndex] === null) return null; // Can't move empty space
-      
+
       const row = Math.floor(tileIndex / gridSize);
       const col = tileIndex % gridSize;
       const emptyRow = Math.floor(currentEmpty / gridSize);
@@ -2941,12 +2995,15 @@ function TileSlider({
       const tileValue = newTiles[tileIndex];
       newTiles[tileIndex] = null;
       newTiles[currentEmpty] = tileValue;
-      
+
       return { tiles: newTiles, emptyIndex: tileIndex };
    };
 
    // Check if puzzle is solved
-   const isPuzzleSolved = (currentTiles: (number | null)[], currentEmpty: number): boolean => {
+   const isPuzzleSolved = (
+      currentTiles: (number | null)[],
+      currentEmpty: number
+   ): boolean => {
       if (currentEmpty !== total - 1) return false;
       for (let i = 0; i < total - 1; i++) {
          if (currentTiles[i] !== i + 1) return false;
@@ -2955,23 +3012,32 @@ function TileSlider({
    };
 
    // Convert state to string for comparison
-   const stateToString = (currentTiles: (number | null)[], currentEmpty: number): string => {
+   const stateToString = (
+      currentTiles: (number | null)[],
+      currentEmpty: number
+   ): string => {
       return JSON.stringify({ tiles: currentTiles, empty: currentEmpty });
    };
 
    // Optimized state string (faster than JSON.stringify)
-   const stateToStringFast = (currentTiles: (number | null)[], currentEmpty: number): string => {
+   const stateToStringFast = (
+      currentTiles: (number | null)[],
+      currentEmpty: number
+   ): string => {
       // Create a compact string representation
       let str = `${currentEmpty}:`;
       for (let i = 0; i < total; i++) {
-         str += currentTiles[i] === null ? 'x' : currentTiles[i];
-         if (i < total - 1) str += ',';
+         str += currentTiles[i] === null ? "x" : currentTiles[i];
+         if (i < total - 1) str += ",";
       }
       return str;
    };
 
    // Calculate heuristic (Manhattan distance) for A* algorithm
-   const calculateHeuristic = (currentTiles: (number | null)[], currentEmpty: number): number => {
+   const calculateHeuristic = (
+      currentTiles: (number | null)[],
+      currentEmpty: number
+   ): number => {
       let h = 0;
       for (let i = 0; i < total; i++) {
          if (i === currentEmpty) continue;
@@ -2984,7 +3050,9 @@ function TileSlider({
             const correctRow = Math.floor(correctPos / gridSize);
             const correctCol = correctPos % gridSize;
             // Manhattan distance
-            h += Math.abs(currentRow - correctRow) + Math.abs(currentCol - correctCol);
+            h +=
+               Math.abs(currentRow - correctRow) +
+               Math.abs(currentCol - correctCol);
          }
       }
       return h;
@@ -2994,7 +3062,7 @@ function TileSlider({
    const findCompleteSolution = (): number[] => {
       if (tiles.length !== total) return [];
       if (isPuzzleSolved(tiles, emptyIndex)) return [];
-      
+
       const visited = new Set<string>();
       // Priority queue: [f_score, g_score, tiles, emptyIndex, moves]
       const openSet: Array<{
@@ -3005,7 +3073,7 @@ function TileSlider({
          emptyIndex: number;
          moves: number[];
       }> = [];
-      
+
       const initialH = calculateHeuristic(tiles, emptyIndex);
       openSet.push({
          f: initialH,
@@ -3016,7 +3084,7 @@ function TileSlider({
          moves: [],
       });
       visited.add(stateToStringFast(tiles, emptyIndex));
-      
+
       // Use A* with optimized priority queue
       while (openSet.length > 0) {
          // Find node with lowest f-score (most promising path)
@@ -3029,17 +3097,17 @@ function TileSlider({
             }
          }
          const current = openSet.splice(bestIndex, 1)[0];
-         
+
          // Check if solved
          if (isPuzzleSolved(current.tiles, current.emptyIndex)) {
             return current.moves;
          }
-         
+
          // Try all possible moves
          const possibleMoves: number[] = [];
          for (let i = 0; i < total; i++) {
             if (i === current.emptyIndex || current.tiles[i] === null) continue;
-            
+
             const row = Math.floor(i / gridSize);
             const col = i % gridSize;
             const emptyRow = Math.floor(current.emptyIndex / gridSize);
@@ -3047,26 +3115,36 @@ function TileSlider({
             const canMoveTile =
                (row === emptyRow && Math.abs(col - emptyCol) === 1) ||
                (col === emptyCol && Math.abs(row - emptyRow) === 1);
-            
+
             if (canMoveTile) {
                possibleMoves.push(i);
             }
          }
-         
+
          // Process moves in order (prioritize moves that improve heuristic)
          for (const moveIndex of possibleMoves) {
-            const newState = simulateMove(current.tiles, current.emptyIndex, moveIndex);
+            const newState = simulateMove(
+               current.tiles,
+               current.emptyIndex,
+               moveIndex
+            );
             if (!newState) continue;
-            
-            const stateKey = stateToStringFast(newState.tiles, newState.emptyIndex);
+
+            const stateKey = stateToStringFast(
+               newState.tiles,
+               newState.emptyIndex
+            );
             if (visited.has(stateKey)) continue;
-            
+
             visited.add(stateKey);
-            
+
             const newG = current.g + 1;
-            const newH = calculateHeuristic(newState.tiles, newState.emptyIndex);
+            const newH = calculateHeuristic(
+               newState.tiles,
+               newState.emptyIndex
+            );
             const newF = newG + newH;
-            
+
             openSet.push({
                f: newF,
                g: newG,
@@ -3076,39 +3154,46 @@ function TileSlider({
                moves: [...current.moves, moveIndex],
             });
          }
-         
+
          // Limit search depth for very large puzzles (safety check)
          if (current.g > 200) {
-            console.warn('Solution depth exceeded 200 moves, returning partial solution');
+            console.warn(
+               "Solution depth exceeded 200 moves, returning partial solution"
+            );
             return current.moves;
          }
       }
-      
+
       return []; // No solution found (shouldn't happen for solvable puzzles)
    };
 
    // Enhanced heuristic: prioritize tiles that are far from correct position
-   const calculateEnhancedScore = (currentTiles: (number | null)[], currentEmpty: number) => {
+   const calculateEnhancedScore = (
+      currentTiles: (number | null)[],
+      currentEmpty: number
+   ) => {
       let score = 0;
       let misplacedCount = 0;
-      
+
       for (let i = 0; i < total; i++) {
          if (i === currentEmpty) continue;
          const tileValue = currentTiles[i];
          if (tileValue === null) continue;
          const correctPos = tileValue - 1;
-         
+
          if (i !== correctPos) {
             misplacedCount++;
             const currentRow = Math.floor(i / gridSize);
             const currentCol = i % gridSize;
             const correctRow = Math.floor(correctPos / gridSize);
             const correctCol = correctPos % gridSize;
-            
+
             // Manhattan distance (weighted)
-            const distance = Math.abs(currentRow - correctRow) + Math.abs(currentCol - correctCol);
+            const distance =
+               Math.abs(currentRow - correctRow) +
+               Math.abs(currentCol - correctCol);
             score += distance * 2; // Weight distance more
-            
+
             // Bonus penalty if tile is blocking correct position
             const correctTileAtPos = currentTiles[correctPos];
             if (correctTileAtPos !== null && correctTileAtPos !== tileValue) {
@@ -3116,26 +3201,26 @@ function TileSlider({
             }
          }
       }
-      
+
       // Add penalty for misplaced count
       score += misplacedCount * 1.5;
-      
+
       return score;
    };
 
    // Get hint: Find a sequence of 4-5 moves that significantly improves the puzzle
    const getHintSequence = (): number[] => {
       if (tiles.length !== total) return [];
-      
+
       const currentScore = calculateEnhancedScore(tiles, emptyIndex);
       if (currentScore === 0) return []; // Already solved
-      
+
       let bestSequence: number[] = [];
       let bestImprovement = -Infinity;
-      
+
       // Try sequences of 4-5 moves for better hints
       const maxMoves = 5;
-      
+
       // Get all possible first moves
       const possibleFirstMoves: number[] = [];
       for (let i = 0; i < total; i++) {
@@ -3143,15 +3228,18 @@ function TileSlider({
             possibleFirstMoves.push(i);
          }
       }
-      
+
       // Try each first move
       for (const firstMove of possibleFirstMoves) {
          const firstState = simulateMove(tiles, emptyIndex, firstMove);
          if (!firstState) continue;
-         
-         const firstScore = calculateEnhancedScore(firstState.tiles, firstState.emptyIndex);
+
+         const firstScore = calculateEnhancedScore(
+            firstState.tiles,
+            firstState.emptyIndex
+         );
          const firstImprovement = currentScore - firstScore;
-         
+
          // Try second move
          const possibleSecondMoves: number[] = [];
          for (let i = 0; i < total; i++) {
@@ -3168,21 +3256,33 @@ function TileSlider({
                }
             }
          }
-         
+
          for (const secondMove of possibleSecondMoves) {
-            const secondState = simulateMove(firstState.tiles, firstState.emptyIndex, secondMove);
+            const secondState = simulateMove(
+               firstState.tiles,
+               firstState.emptyIndex,
+               secondMove
+            );
             if (!secondState) continue;
-            
-            const secondScore = calculateEnhancedScore(secondState.tiles, secondState.emptyIndex);
+
+            const secondScore = calculateEnhancedScore(
+               secondState.tiles,
+               secondState.emptyIndex
+            );
             const secondImprovement = currentScore - secondScore;
-            
+
             // Try third move
             const possibleThirdMoves: number[] = [];
             for (let i = 0; i < total; i++) {
-               if (i !== secondState.emptyIndex && secondState.tiles[i] !== null) {
+               if (
+                  i !== secondState.emptyIndex &&
+                  secondState.tiles[i] !== null
+               ) {
                   const row = Math.floor(i / gridSize);
                   const col = i % gridSize;
-                  const emptyRow = Math.floor(secondState.emptyIndex / gridSize);
+                  const emptyRow = Math.floor(
+                     secondState.emptyIndex / gridSize
+                  );
                   const emptyCol = secondState.emptyIndex % gridSize;
                   const canMoveTile =
                      (row === emptyRow && Math.abs(col - emptyCol) === 1) ||
@@ -3192,28 +3292,40 @@ function TileSlider({
                   }
                }
             }
-            
+
             // Check 2-move sequence
             if (secondImprovement > bestImprovement) {
                bestImprovement = secondImprovement;
                bestSequence = [firstMove, secondMove];
             }
-            
+
             // Check 3-move sequence
             for (const thirdMove of possibleThirdMoves) {
-               const thirdState = simulateMove(secondState.tiles, secondState.emptyIndex, thirdMove);
+               const thirdState = simulateMove(
+                  secondState.tiles,
+                  secondState.emptyIndex,
+                  thirdMove
+               );
                if (!thirdState) continue;
-               
-               const thirdScore = calculateEnhancedScore(thirdState.tiles, thirdState.emptyIndex);
+
+               const thirdScore = calculateEnhancedScore(
+                  thirdState.tiles,
+                  thirdState.emptyIndex
+               );
                const thirdImprovement = currentScore - thirdScore;
-               
+
                // Try fourth move
                const possibleFourthMoves: number[] = [];
                for (let i = 0; i < total; i++) {
-                  if (i !== thirdState.emptyIndex && thirdState.tiles[i] !== null) {
+                  if (
+                     i !== thirdState.emptyIndex &&
+                     thirdState.tiles[i] !== null
+                  ) {
                      const row = Math.floor(i / gridSize);
                      const col = i % gridSize;
-                     const emptyRow = Math.floor(thirdState.emptyIndex / gridSize);
+                     const emptyRow = Math.floor(
+                        thirdState.emptyIndex / gridSize
+                     );
                      const emptyCol = thirdState.emptyIndex % gridSize;
                      const canMoveTile =
                         (row === emptyRow && Math.abs(col - emptyCol) === 1) ||
@@ -3223,96 +3335,138 @@ function TileSlider({
                      }
                   }
                }
-               
+
                // Check 3-move sequence
                if (thirdImprovement > bestImprovement) {
                   bestImprovement = thirdImprovement;
                   bestSequence = [firstMove, secondMove, thirdMove];
                }
-               
+
                // Check 4-move sequence
                for (const fourthMove of possibleFourthMoves) {
-                  const fourthState = simulateMove(thirdState.tiles, thirdState.emptyIndex, fourthMove);
+                  const fourthState = simulateMove(
+                     thirdState.tiles,
+                     thirdState.emptyIndex,
+                     fourthMove
+                  );
                   if (!fourthState) continue;
-                  
-                  const fourthScore = calculateEnhancedScore(fourthState.tiles, fourthState.emptyIndex);
+
+                  const fourthScore = calculateEnhancedScore(
+                     fourthState.tiles,
+                     fourthState.emptyIndex
+                  );
                   const fourthImprovement = currentScore - fourthScore;
-                  
+
                   // Try fifth move
                   const possibleFifthMoves: number[] = [];
                   for (let i = 0; i < total; i++) {
-                     if (i !== fourthState.emptyIndex && fourthState.tiles[i] !== null) {
+                     if (
+                        i !== fourthState.emptyIndex &&
+                        fourthState.tiles[i] !== null
+                     ) {
                         const row = Math.floor(i / gridSize);
                         const col = i % gridSize;
-                        const emptyRow = Math.floor(fourthState.emptyIndex / gridSize);
+                        const emptyRow = Math.floor(
+                           fourthState.emptyIndex / gridSize
+                        );
                         const emptyCol = fourthState.emptyIndex % gridSize;
                         const canMoveTile =
-                           (row === emptyRow && Math.abs(col - emptyCol) === 1) ||
+                           (row === emptyRow &&
+                              Math.abs(col - emptyCol) === 1) ||
                            (col === emptyCol && Math.abs(row - emptyRow) === 1);
                         if (canMoveTile) {
                            possibleFifthMoves.push(i);
                         }
                      }
                   }
-                  
+
                   // Check 4-move sequence
                   if (fourthImprovement > bestImprovement) {
                      bestImprovement = fourthImprovement;
-                     bestSequence = [firstMove, secondMove, thirdMove, fourthMove];
+                     bestSequence = [
+                        firstMove,
+                        secondMove,
+                        thirdMove,
+                        fourthMove,
+                     ];
                   }
-                  
+
                   // Check 5-move sequence
                   for (const fifthMove of possibleFifthMoves) {
-                     const fifthState = simulateMove(fourthState.tiles, fourthState.emptyIndex, fifthMove);
+                     const fifthState = simulateMove(
+                        fourthState.tiles,
+                        fourthState.emptyIndex,
+                        fifthMove
+                     );
                      if (!fifthState) continue;
-                     
-                     const fifthScore = calculateEnhancedScore(fifthState.tiles, fifthState.emptyIndex);
+
+                     const fifthScore = calculateEnhancedScore(
+                        fifthState.tiles,
+                        fifthState.emptyIndex
+                     );
                      const fifthImprovement = currentScore - fifthScore;
-                     
+
                      if (fifthImprovement > bestImprovement) {
                         bestImprovement = fifthImprovement;
-                        bestSequence = [firstMove, secondMove, thirdMove, fourthMove, fifthMove];
+                        bestSequence = [
+                           firstMove,
+                           secondMove,
+                           thirdMove,
+                           fourthMove,
+                           fifthMove,
+                        ];
                      }
                   }
                }
             }
          }
-         
+
          // Also check single move
          if (firstImprovement > bestImprovement) {
             bestImprovement = firstImprovement;
             bestSequence = [firstMove];
          }
       }
-      
+
       // Return best sequence (prefer 2-3 moves, but ensure it improves the puzzle)
       if (bestSequence.length === 0 && possibleFirstMoves.length > 0) {
          // Fallback: return first available move only if it improves
          const fallbackMove = possibleFirstMoves[0];
          const fallbackState = simulateMove(tiles, emptyIndex, fallbackMove);
          if (fallbackState) {
-            const fallbackScore = calculateEnhancedScore(fallbackState.tiles, fallbackState.emptyIndex);
+            const fallbackScore = calculateEnhancedScore(
+               fallbackState.tiles,
+               fallbackState.emptyIndex
+            );
             if (fallbackScore < currentScore) {
                return [fallbackMove];
             }
          }
       }
-      
+
       // Ensure sequence improves the puzzle (prevents getting stuck)
       if (bestImprovement <= 0 && bestSequence.length > 0) {
          // If no improvement found, try to find at least one move that doesn't worsen
          for (const firstMove of possibleFirstMoves) {
             const firstState = simulateMove(tiles, emptyIndex, firstMove);
             if (!firstState) continue;
-            const firstScore = calculateEnhancedScore(firstState.tiles, firstState.emptyIndex);
+            const firstScore = calculateEnhancedScore(
+               firstState.tiles,
+               firstState.emptyIndex
+            );
             if (firstScore <= currentScore) {
                // Try to extend to 2 moves
                const possibleSecondMoves: number[] = [];
                for (let i = 0; i < total; i++) {
-                  if (i !== firstState.emptyIndex && firstState.tiles[i] !== null) {
+                  if (
+                     i !== firstState.emptyIndex &&
+                     firstState.tiles[i] !== null
+                  ) {
                      const row = Math.floor(i / gridSize);
                      const col = i % gridSize;
-                     const emptyRow = Math.floor(firstState.emptyIndex / gridSize);
+                     const emptyRow = Math.floor(
+                        firstState.emptyIndex / gridSize
+                     );
                      const emptyCol = firstState.emptyIndex % gridSize;
                      const canMoveTile =
                         (row === emptyRow && Math.abs(col - emptyCol) === 1) ||
@@ -3322,16 +3476,23 @@ function TileSlider({
                      }
                   }
                }
-               
+
                for (const secondMove of possibleSecondMoves) {
-                  const secondState = simulateMove(firstState.tiles, firstState.emptyIndex, secondMove);
+                  const secondState = simulateMove(
+                     firstState.tiles,
+                     firstState.emptyIndex,
+                     secondMove
+                  );
                   if (!secondState) continue;
-                  const secondScore = calculateEnhancedScore(secondState.tiles, secondState.emptyIndex);
+                  const secondScore = calculateEnhancedScore(
+                     secondState.tiles,
+                     secondState.emptyIndex
+                  );
                   if (secondScore < currentScore) {
                      return [firstMove, secondMove];
                   }
                }
-               
+
                // If single move doesn't worsen, return it
                if (firstScore < currentScore) {
                   return [firstMove];
@@ -3339,28 +3500,30 @@ function TileSlider({
             }
          }
       }
-      
+
       // Return best sequence (prefer 4-5 moves for better hints, ensure improvement)
       if (bestImprovement > 0) {
          // Prefer longer sequences (4-5 moves) for more helpful hints
-         return bestSequence.length >= 4 ? bestSequence.slice(0, 5) : 
-                bestSequence.length >= 2 ? bestSequence.slice(0, 4) : 
-                bestSequence;
+         return bestSequence.length >= 4
+            ? bestSequence.slice(0, 5)
+            : bestSequence.length >= 2
+            ? bestSequence.slice(0, 4)
+            : bestSequence;
       }
-      
+
       return []; // No good sequence found
    };
 
    const handleShowHint = () => {
       if (!showHints || isAnimating || feedback) return;
-      
+
       // Check if unlimited hints (maxHints <= 0 or very large number)
       const isUnlimited = maxHints <= 0 || maxHints >= 1000;
-      
+
       if (!isUnlimited && hintsUsed >= maxHints) return;
-      
+
       let sequence: number[] = [];
-      
+
       // If unlimited hints, find complete solution
       if (isUnlimited) {
          sequence = findCompleteSolution();
@@ -3368,27 +3531,27 @@ function TileSlider({
          // Otherwise, use normal hint sequence (2-3 moves)
          sequence = getHintSequence();
       }
-      
+
       if (sequence.length === 0) return;
-      
+
       if (!isUnlimited) {
          setHintsUsed((prev) => prev + 1);
       }
-      
+
       // Set all tiles in sequence for highlighting
       setHintSequence(sequence);
       setShowHint(true);
-      
+
       // Execute moves sequentially with delays
       sequence.forEach((tileIndex, moveIndex) => {
          setTimeout(() => {
             // Highlight current tile
             setHintTileIndex(tileIndex);
-            
+
             // Move tile after brief delay
             setTimeout(() => {
                handleTileClick(tileIndex);
-               
+
                // Remove current tile from sequence highlight
                if (moveIndex === sequence.length - 1) {
                   // Last move - clear all highlights
@@ -3417,12 +3580,6 @@ function TileSlider({
                   <TrophyIcon className="stat-icon" />
                   <span>Score: {Math.max(0, 100 - moves)} / 100</span>
                </div>
-            </div>
-            <div className="progress-bar-container">
-               <div
-                  className="progress-bar"
-                  style={{ width: `${getProgress()}%` }}
-               ></div>
             </div>
          </div>
 
@@ -3475,7 +3632,7 @@ function TileSlider({
                   )}
                </div>
             )}
-            
+
             {/* Hint Button */}
             {showHints && (
                <div className="hint-section">
@@ -3492,10 +3649,12 @@ function TileSlider({
                      disabled={
                         showHint ||
                         feedback !== null ||
-                        ((maxHints > 0 && maxHints < 1000) && hintsUsed >= maxHints)
+                        (maxHints > 0 &&
+                           maxHints < 1000 &&
+                           hintsUsed >= maxHints)
                      }
                      title={
-                        (maxHints > 0 && maxHints < 1000) && hintsUsed >= maxHints
+                        maxHints > 0 && maxHints < 1000 && hintsUsed >= maxHints
                            ? "Maximum hints reached"
                            : maxHints <= 0 || maxHints >= 1000
                            ? "Solve puzzle automatically (unlimited hints)"
@@ -3504,7 +3663,9 @@ function TileSlider({
                   >
                      <LightBulbIcon className="hint-icon" />
                      <span>
-                        {(maxHints > 0 && maxHints < 1000) && hintsUsed >= maxHints
+                        {maxHints > 0 &&
+                        maxHints < 1000 &&
+                        hintsUsed >= maxHints
                            ? "No Hints Left"
                            : maxHints <= 0 || maxHints >= 1000
                            ? "Solve Puzzle"
@@ -3527,7 +3688,9 @@ function TileSlider({
                   const isCorrect = tileValue !== null && tileValue === i + 1;
                   const isEmpty = tileValue === null;
                   const isSelected = selectedIndex === i;
-                  const isHinted = showHint && (hintSequence.includes(i) || hintTileIndex === i);
+                  const isHinted =
+                     showHint &&
+                     (hintSequence.includes(i) || hintTileIndex === i);
                   const isCurrentHint = showHint && hintTileIndex === i;
 
                   return (
@@ -3580,7 +3743,10 @@ function TileSlider({
                                  </span>
                               )}
                               {isHinted && (
-                                 <span className="hint-badge" title="Hint: Move this tile!">
+                                 <span
+                                    className="hint-badge"
+                                    title="Hint: Move this tile!"
+                                 >
                                     💡
                                  </span>
                               )}
@@ -4223,6 +4389,7 @@ function CircuitPath({
    currentScore = 0,
    onScoreUpdate,
    onComplete,
+   onRoundComplete,
 }: {
    config: Record<string, any>;
    currentRound?: number;
@@ -4230,23 +4397,29 @@ function CircuitPath({
    currentScore?: number;
    onScoreUpdate: (score: number) => void;
    onComplete: (finalScore?: number) => void;
+   onRoundComplete?: () => void;
 }) {
    // Dynamic grid size based on round
    const getGridSize = (roundNum: number) => {
-      if (roundNum <= 5) return 3;  // Rounds 1-5: 3x3
+      if (roundNum <= 5) return 3; // Rounds 1-5: 3x3
       if (roundNum <= 10) return 5; // Rounds 6-10: 5x5
       return 10; // Rounds 11+: 10x10
    };
-   
+
    const [gridSize, setGridSize] = useState(getGridSize(1));
    const rounds = config.rounds || maxRounds;
-   
-   const [startNode, setStartNode] = useState<{ row: number; col: number } | null>(null);
-   const [endNode, setEndNode] = useState<{ row: number; col: number } | null>(null);
+
+   const [startNode, setStartNode] = useState<{
+      row: number;
+      col: number;
+   } | null>(null);
+   const [endNode, setEndNode] = useState<{ row: number; col: number } | null>(
+      null
+   );
    const [obstacles, setObstacles] = useState<Set<string>>(new Set());
    const [path, setPath] = useState<Array<{ row: number; col: number }>>([]);
-   const [round, setRound] = useState(1);
-   const [score, setScore] = useState(0);
+   const round = currentRound;
+   const score = currentScore;
    const [selectedRow, setSelectedRow] = useState<number | null>(null);
    const [selectedCol, setSelectedCol] = useState<number | null>(null);
    const [feedback, setFeedback] = useState<"correct" | "wrong" | null>(null);
@@ -4254,42 +4427,51 @@ function CircuitPath({
    const completionCalledRef = useRef(false);
    const onScoreUpdateRef = useRef(onScoreUpdate);
    const onCompleteRef = useRef(onComplete);
-   
+   const onRoundCompleteRef = useRef(onRoundComplete);
+
    // Update refs when callbacks change
    useEffect(() => {
       onScoreUpdateRef.current = onScoreUpdate;
       onCompleteRef.current = onComplete;
-   }, [onScoreUpdate, onComplete]);
-   
+      onRoundCompleteRef.current = onRoundComplete;
+   }, [onScoreUpdate, onComplete, onRoundComplete]);
+
    // Initialize new round with random start and end nodes
-   const startNewRound = useCallback(() => {
-      const currentGridSize = getGridSize(round);
+   const startNewRound = useCallback((roundNum: number) => {
+      const currentGridSize = getGridSize(roundNum);
       setGridSize(currentGridSize);
-      
+
       const total = currentGridSize * currentGridSize;
-      
+
       // Helper function to get adjacent positions
       const getAdjacentPositions = (row: number, col: number): number[] => {
          const positions: number[] = [];
          if (row > 0) positions.push((row - 1) * currentGridSize + col);
-         if (row < currentGridSize - 1) positions.push((row + 1) * currentGridSize + col);
+         if (row < currentGridSize - 1)
+            positions.push((row + 1) * currentGridSize + col);
          if (col > 0) positions.push(row * currentGridSize + (col - 1));
-         if (col < currentGridSize - 1) positions.push(row * currentGridSize + (col + 1));
+         if (col < currentGridSize - 1)
+            positions.push(row * currentGridSize + (col + 1));
          return positions;
       };
-      
+
       // Helper function to check if position is too close to another
-      const isTooClose = (row1: number, col1: number, row2: number, col2: number): boolean => {
+      const isTooClose = (
+         row1: number,
+         col1: number,
+         row2: number,
+         col2: number
+      ): boolean => {
          const rowDiff = Math.abs(row1 - row2);
          const colDiff = Math.abs(col1 - col2);
          return rowDiff <= 1 && colDiff <= 1; // Within 1 cell distance
       };
-      
+
       // Generate random start position
       let startIndex = Math.floor(Math.random() * total);
       let startRow = Math.floor(startIndex / currentGridSize);
       let startCol = startIndex % currentGridSize;
-      
+
       // Generate end position that is not too close to start (at least 2 cells away)
       let endIndex: number;
       let endRow: number;
@@ -4302,55 +4484,71 @@ function CircuitPath({
          endAttempts++;
          // Prevent infinite loop
          if (endAttempts > 100) break;
-      } while (endIndex === startIndex || isTooClose(startRow, startCol, endRow, endCol));
-      
+      } while (
+         endIndex === startIndex ||
+         isTooClose(startRow, startCol, endRow, endCol)
+      );
+
       setStartNode({ row: startRow, col: startCol });
       setEndNode({ row: endRow, col: endCol });
-      
+
       // Get positions that must be free (adjacent to start - at least 2 free)
       const startAdjacent = getAdjacentPositions(startRow, startCol);
       const endAdjacent = getAdjacentPositions(endRow, endCol);
-      const protectedPositions = new Set<number>([startIndex, endIndex, ...startAdjacent, ...endAdjacent]);
-      
+      const protectedPositions = new Set<number>([
+         startIndex,
+         endIndex,
+         ...startAdjacent,
+         ...endAdjacent,
+      ]);
+
       // Generate obstacles (more for larger grids)
       // 3x3: 10-15%, 5x5: 15-25%, 10x10: 20-30%
       let obstaclePercentage = 0.1;
-      if (currentGridSize >= 10) obstaclePercentage = 0.2 + (round - 1) * 0.01;
-      else if (currentGridSize >= 5) obstaclePercentage = 0.15 + (round - 1) * 0.01;
-      else obstaclePercentage = 0.1 + (round - 1) * 0.005;
-      
+      if (currentGridSize >= 10)
+         obstaclePercentage = 0.2 + (roundNum - 1) * 0.01;
+      else if (currentGridSize >= 5)
+         obstaclePercentage = 0.15 + (roundNum - 1) * 0.01;
+      else obstaclePercentage = 0.1 + (roundNum - 1) * 0.005;
+
       const obstacleCount = Math.max(1, Math.floor(total * obstaclePercentage));
-      
+
       // Helper function to check if path exists using BFS
       const pathExists = (obstaclesSet: Set<string>): boolean => {
          const visited = new Set<string>();
-         const queue: Array<{ row: number; col: number }> = [{ row: startRow, col: startCol }];
+         const queue: Array<{ row: number; col: number }> = [
+            { row: startRow, col: startCol },
+         ];
          visited.add(`${startRow},${startCol}`);
-         
+
          while (queue.length > 0) {
             const current = queue.shift()!;
-            
+
             // Check if we reached the end
             if (current.row === endRow && current.col === endCol) {
                return true;
             }
-            
+
             // Check all adjacent cells
             const directions = [
                { row: -1, col: 0 }, // up
-               { row: 1, col: 0 },  // down
+               { row: 1, col: 0 }, // down
                { row: 0, col: -1 }, // left
-               { row: 0, col: 1 },  // right
+               { row: 0, col: 1 }, // right
             ];
-            
+
             for (const dir of directions) {
                const newRow = current.row + dir.row;
                const newCol = current.col + dir.col;
-               
-               if (newRow >= 0 && newRow < currentGridSize && 
-                   newCol >= 0 && newCol < currentGridSize) {
+
+               if (
+                  newRow >= 0 &&
+                  newRow < currentGridSize &&
+                  newCol >= 0 &&
+                  newCol < currentGridSize
+               ) {
                   const key = `${newRow},${newCol}`;
-                  
+
                   if (!visited.has(key) && !obstaclesSet.has(key)) {
                      visited.add(key);
                      queue.push({ row: newRow, col: newCol });
@@ -4358,96 +4556,114 @@ function CircuitPath({
                }
             }
          }
-         
+
          return false;
       };
-      
+
       // Generate obstacles with path validation
       let newObstacles = new Set<string>();
       const availablePositions = new Set<number>();
-      
+
       // Create set of available positions (excluding protected positions)
       for (let i = 0; i < total; i++) {
          if (!protectedPositions.has(i)) {
             availablePositions.add(i);
          }
       }
-      
+
       // Try multiple times to generate valid obstacles
       let attempts = 0;
       const maxAttempts = 50;
-      
+
       while (attempts < maxAttempts) {
          newObstacles = new Set<string>();
          const positionsArray = Array.from(availablePositions);
-         
+
          // Randomly select obstacle positions
-         for (let i = 0; i < Math.min(obstacleCount, positionsArray.length); i++) {
-            const randomIndex = Math.floor(Math.random() * positionsArray.length);
+         for (
+            let i = 0;
+            i < Math.min(obstacleCount, positionsArray.length);
+            i++
+         ) {
+            const randomIndex = Math.floor(
+               Math.random() * positionsArray.length
+            );
             const pos = positionsArray[randomIndex];
             positionsArray.splice(randomIndex, 1);
-            
+
             const row = Math.floor(pos / currentGridSize);
             const col = pos % currentGridSize;
             newObstacles.add(`${row},${col}`);
          }
-         
+
          // Check if path exists with these obstacles
          if (pathExists(newObstacles)) {
             break; // Valid configuration found
          }
-         
+
          attempts++;
       }
-      
+
       // If still no valid path after max attempts, reduce obstacles
       if (attempts >= maxAttempts) {
          // Try with fewer obstacles
-         for (let reducedCount = obstacleCount - 1; reducedCount >= 1; reducedCount--) {
+         for (
+            let reducedCount = obstacleCount - 1;
+            reducedCount >= 1;
+            reducedCount--
+         ) {
             newObstacles = new Set<string>();
             const positionsArray = Array.from(availablePositions);
-            
-            for (let i = 0; i < Math.min(reducedCount, positionsArray.length); i++) {
-               const randomIndex = Math.floor(Math.random() * positionsArray.length);
+
+            for (
+               let i = 0;
+               i < Math.min(reducedCount, positionsArray.length);
+               i++
+            ) {
+               const randomIndex = Math.floor(
+                  Math.random() * positionsArray.length
+               );
                const pos = positionsArray[randomIndex];
                positionsArray.splice(randomIndex, 1);
-               
+
                const row = Math.floor(pos / currentGridSize);
                const col = pos % currentGridSize;
                newObstacles.add(`${row},${col}`);
             }
-            
+
             if (pathExists(newObstacles)) {
                break;
             }
          }
       }
-      
+
       setObstacles(newObstacles);
       setPath([]);
       setSelectedRow(null);
       setSelectedCol(null);
       setFeedback(null);
       completionCalledRef.current = false;
-   }, [round]);
-   
+   }, []);
+
    // Initialize first round
    useEffect(() => {
-      startNewRound();
-   }, [startNewRound]);
-   
+      startNewRound(currentRound);
+   }, [startNewRound, currentRound]);
+
    // Check if path is complete (connects start to end)
    useEffect(() => {
       if (!startNode || !endNode || path.length === 0) return;
       if (completionCalledRef.current) return;
-      
+
       const firstNode = path[0];
       const lastNode = path[path.length - 1];
-      
+
       // Check if path starts at start node and ends at end node
-      const startsCorrectly = firstNode.row === startNode.row && firstNode.col === startNode.col;
-      const endsCorrectly = lastNode.row === endNode.row && lastNode.col === endNode.col;
-      
+      const startsCorrectly =
+         firstNode.row === startNode.row && firstNode.col === startNode.col;
+      const endsCorrectly =
+         lastNode.row === endNode.row && lastNode.col === endNode.col;
+
       // Check if path is continuous (each node is adjacent to previous)
       let isContinuous = true;
       for (let i = 1; i < path.length; i++) {
@@ -4455,29 +4671,34 @@ function CircuitPath({
          const curr = path[i];
          const rowDiff = Math.abs(curr.row - prev.row);
          const colDiff = Math.abs(curr.col - prev.col);
-         if (!((rowDiff === 1 && colDiff === 0) || (rowDiff === 0 && colDiff === 1))) {
+         if (
+            !(
+               (rowDiff === 1 && colDiff === 0) ||
+               (rowDiff === 0 && colDiff === 1)
+            )
+         ) {
             isContinuous = false;
             break;
          }
       }
-      
+
       if (startsCorrectly && endsCorrectly && isContinuous && path.length > 1) {
          completionCalledRef.current = true;
-         
+
          // Calculate round score: 5 points per round (max 100 for 20 rounds)
          const roundScore = 5;
          const newScore = score + roundScore;
-         setScore(newScore);
          setFeedback("correct");
-         
+
          // Update parent score
          onScoreUpdateRef.current(newScore);
-         
+
          // Move to next round or complete
          if (round < rounds) {
             setTimeout(() => {
-               setRound(round + 1);
-               startNewRound();
+               if (onRoundCompleteRef.current) {
+                  onRoundCompleteRef.current();
+               }
             }, 1500);
          } else {
             // All rounds completed
@@ -4492,116 +4713,121 @@ function CircuitPath({
             setPath([]);
          }, 1000);
       }
-   }, [path, startNode, endNode, round, rounds, score, startNewRound]);
-   
+   }, [path, startNode, endNode, round, rounds, score]);
+
    // Reset completion flag when round changes
    useEffect(() => {
       completionCalledRef.current = false;
    }, [round]);
-   
-   const handleNodeClick = useCallback((row: number, col: number) => {
-      if (isAnimating || completionCalledRef.current) return;
-      
-      // Check if node is an obstacle
-      if (obstacles.has(`${row},${col}`)) {
-         setFeedback("wrong");
-         setTimeout(() => {
-            setFeedback(null);
-         }, 1000);
-         return;
-      }
-      
-      setIsAnimating(true);
-      
-      // If path is empty, must start from start node
-      if (path.length === 0) {
-         if (row === startNode?.row && col === startNode?.col) {
-            setPath([{ row, col }]);
-            setFeedback(null);
-         } else {
+
+   const handleNodeClick = useCallback(
+      (row: number, col: number) => {
+         if (isAnimating || completionCalledRef.current) return;
+
+         // Check if node is an obstacle
+         if (obstacles.has(`${row},${col}`)) {
             setFeedback("wrong");
             setTimeout(() => {
                setFeedback(null);
             }, 1000);
+            return;
          }
-      } else {
-         const lastNode = path[path.length - 1];
-         const rowDiff = Math.abs(row - lastNode.row);
-         const colDiff = Math.abs(col - lastNode.col);
-         
-         // Check if clicked node is adjacent to last node in path
-         if ((rowDiff === 1 && colDiff === 0) || (rowDiff === 0 && colDiff === 1)) {
-            // Check if node is already in path (allow backtracking by removing from path)
-            const nodeIndex = path.findIndex(n => n.row === row && n.col === col);
-            if (nodeIndex >= 0) {
-               // Remove from this point onwards (backtracking)
-               setPath(path.slice(0, nodeIndex + 1));
+
+         setIsAnimating(true);
+
+         // If path is empty, must start from start node
+         if (path.length === 0) {
+            if (row === startNode?.row && col === startNode?.col) {
+               setPath([{ row, col }]);
+               setFeedback(null);
             } else {
-               // Add to path
-               setPath([...path, { row, col }]);
+               setFeedback("wrong");
+               setTimeout(() => {
+                  setFeedback(null);
+               }, 1000);
             }
-            setFeedback(null);
          } else {
-            setFeedback("wrong");
-            setTimeout(() => {
+            const lastNode = path[path.length - 1];
+            const rowDiff = Math.abs(row - lastNode.row);
+            const colDiff = Math.abs(col - lastNode.col);
+
+            // Check if clicked node is adjacent to last node in path
+            if (
+               (rowDiff === 1 && colDiff === 0) ||
+               (rowDiff === 0 && colDiff === 1)
+            ) {
+               // Check if node is already in path (allow backtracking by removing from path)
+               const nodeIndex = path.findIndex(
+                  (n) => n.row === row && n.col === col
+               );
+               if (nodeIndex >= 0) {
+                  // Remove from this point onwards (backtracking)
+                  setPath(path.slice(0, nodeIndex + 1));
+               } else {
+                  // Add to path
+                  setPath([...path, { row, col }]);
+               }
                setFeedback(null);
-            }, 1000);
+            } else {
+               setFeedback("wrong");
+               setTimeout(() => {
+                  setFeedback(null);
+               }, 1000);
+            }
          }
-      }
-      
-      setTimeout(() => {
-         setIsAnimating(false);
-      }, 200);
-   }, [path, startNode, obstacles, isAnimating]);
-   
-   // Calculate progress (path length vs minimum required)
-   const getProgress = () => {
-      if (!startNode || !endNode || path.length === 0) return 0;
-      
-      // Calculate minimum distance (Manhattan distance)
-      const minDistance = Math.abs(endNode.row - startNode.row) + Math.abs(endNode.col - startNode.col);
-      const currentDistance = path.length - 1;
-      
-      // Progress is based on how close we are to the end
-      if (path.length > 0) {
-         const lastNode = path[path.length - 1];
-         const remainingDistance = Math.abs(endNode.row - lastNode.row) + Math.abs(endNode.col - lastNode.col);
-         const progress = ((minDistance - remainingDistance) / minDistance) * 100;
-         return Math.max(0, Math.min(100, progress));
-      }
-      return 0;
-   };
-   
+
+         setTimeout(() => {
+            setIsAnimating(false);
+         }, 200);
+      },
+      [path, startNode, obstacles, isAnimating]
+   );
+
+   // Calculate progress based on rounds (like other games)
+   // Use useMemo to recalculate when round changes
+   const progress = useMemo(() => {
+      // Progress based on rounds completed, same as Match Shapes and Balance Scale
+      // round starts at 1, so for round 1, progress should be 1/20 = 5%
+      return rounds > 0
+         ? Math.min(100, Math.max(0, (round / rounds) * 100))
+         : 0;
+   }, [round, rounds]);
+
    // Check if node is in path
    const isInPath = (row: number, col: number) => {
-      return path.some(node => node.row === row && node.col === col);
+      return path.some((node) => node.row === row && node.col === col);
    };
-   
+
    // Get path index for visual ordering
    const getPathIndex = (row: number, col: number) => {
-      return path.findIndex(node => node.row === row && node.col === col);
+      return path.findIndex((node) => node.row === row && node.col === col);
    };
-   
+
    // Keyboard controls
    useEffect(() => {
       if (!startNode || !endNode) return;
-      
+
       const handleKeyPress = (e: KeyboardEvent) => {
          if (isAnimating || completionCalledRef.current) return;
-         
+
          // Arrow keys for navigation
          if (selectedRow === null || selectedCol === null) {
             // Initialize selection at start node
-            if (e.key === "ArrowUp" || e.key === "ArrowDown" || e.key === "ArrowLeft" || e.key === "ArrowRight") {
+            if (
+               e.key === "ArrowUp" ||
+               e.key === "ArrowDown" ||
+               e.key === "ArrowLeft" ||
+               e.key === "ArrowRight"
+            ) {
                setSelectedRow(startNode.row);
                setSelectedCol(startNode.col);
                return;
             }
          }
-         
+
          let newRow = selectedRow ?? startNode.row;
          let newCol = selectedCol ?? startNode.col;
-         
+
          switch (e.key) {
             case "ArrowUp":
             case "w":
@@ -4615,7 +4841,10 @@ function CircuitPath({
             case "s":
             case "S":
                e.preventDefault();
-               newRow = Math.min(gridSize - 1, (selectedRow ?? startNode.row) + 1);
+               newRow = Math.min(
+                  gridSize - 1,
+                  (selectedRow ?? startNode.row) + 1
+               );
                setSelectedRow(newRow);
                setSelectedCol(selectedCol ?? startNode.col);
                break;
@@ -4631,7 +4860,10 @@ function CircuitPath({
             case "d":
             case "D":
                e.preventDefault();
-               newCol = Math.min(gridSize - 1, (selectedCol ?? startNode.col) + 1);
+               newCol = Math.min(
+                  gridSize - 1,
+                  (selectedCol ?? startNode.col) + 1
+               );
                setSelectedRow(selectedRow ?? startNode.row);
                setSelectedCol(newCol);
                break;
@@ -4646,11 +4878,19 @@ function CircuitPath({
                break;
          }
       };
-      
+
       window.addEventListener("keydown", handleKeyPress);
       return () => window.removeEventListener("keydown", handleKeyPress);
-   }, [startNode, endNode, isAnimating, selectedRow, selectedCol, gridSize, handleNodeClick]);
-   
+   }, [
+      startNode,
+      endNode,
+      isAnimating,
+      selectedRow,
+      selectedCol,
+      gridSize,
+      handleNodeClick,
+   ]);
+
    return (
       <div className="circuit-path-game">
          {/* Header */}
@@ -4658,11 +4898,15 @@ function CircuitPath({
             <div className="header-stats">
                <div className="stat-item">
                   <ArrowPathIcon className="stat-icon" />
-                  <span>Round {round} / {rounds}</span>
+                  <span>
+                     Round {round} / {rounds}
+                  </span>
                </div>
                <div className="stat-item">
                   <TrophyIcon className="stat-icon" />
-                  <span>Score: {score} / {rounds * 5}</span>
+                  <span>
+                     Score: {score} / {rounds * 5}
+                  </span>
                </div>
                <div className="stat-item">
                   <BoltIcon className="stat-icon" />
@@ -4671,12 +4915,19 @@ function CircuitPath({
             </div>
             <div className="progress-bar-container">
                <div
-                  className="progress-bar"
-                  style={{ width: `${getProgress()}%` }}
+                  style={{
+                     width: `${progress}%`,
+                     height: "100%",
+                     background:
+                        "linear-gradient(90deg, var(--accent) 0%, var(--ok) 100%)",
+                     borderRadius: "4px",
+                     transition: "width 0.3s",
+                     boxShadow: "rgba(125, 211, 252, 0.5) 0px 0px 10px",
+                  }}
                ></div>
             </div>
          </div>
-         
+
          {/* Game Grid */}
          <div className="circuit-path-container">
             <div
@@ -4689,26 +4940,34 @@ function CircuitPath({
                      Array(gridSize)
                         .fill(null)
                         .map((_, ci) => {
-                           const isStart = startNode?.row === ri && startNode?.col === ci;
-                           const isEnd = endNode?.row === ri && endNode?.col === ci;
+                           const isStart =
+                              startNode?.row === ri && startNode?.col === ci;
+                           const isEnd =
+                              endNode?.row === ri && endNode?.col === ci;
                            const isObstacle = obstacles.has(`${ri},${ci}`);
-                           const isSelected = selectedRow === ri && selectedCol === ci;
+                           const isSelected =
+                              selectedRow === ri && selectedCol === ci;
                            const inPath = isInPath(ri, ci);
                            const pathIndex = getPathIndex(ri, ci);
-                           
+
                            // Determine arrow direction for path nodes
-                           let arrowDirection: "up" | "down" | "left" | "right" | null = null;
+                           let arrowDirection:
+                              | "up"
+                              | "down"
+                              | "left"
+                              | "right"
+                              | null = null;
                            if (inPath && pathIndex > 0) {
                               const prevNode = path[pathIndex - 1];
                               const rowDiff = ri - prevNode.row;
                               const colDiff = ci - prevNode.col;
-                              
+
                               if (rowDiff < 0) arrowDirection = "up";
                               else if (rowDiff > 0) arrowDirection = "down";
                               else if (colDiff < 0) arrowDirection = "left";
                               else if (colDiff > 0) arrowDirection = "right";
                            }
-                           
+
                            return (
                               <button
                                  key={`${ri}-${ci}`}
@@ -4721,16 +4980,14 @@ function CircuitPath({
                                  }}
                                  className={`circuit-node ${
                                     isStart ? "start" : ""
-                                 } ${
-                                    isEnd ? "end" : ""
-                                 } ${
+                                 } ${isEnd ? "end" : ""} ${
                                     isObstacle ? "obstacle" : ""
-                                 } ${
-                                    inPath ? "in-path" : ""
-                                 } ${
+                                 } ${inPath ? "in-path" : ""} ${
                                     isSelected ? "selected" : ""
                                  } ${
-                                    arrowDirection ? `path-${arrowDirection}` : ""
+                                    arrowDirection
+                                       ? `path-${arrowDirection}`
+                                       : ""
                                  }`}
                                  disabled={isAnimating || isObstacle}
                                  title={
@@ -4755,18 +5012,34 @@ function CircuitPath({
                                        <span className="node-label">End</span>
                                     </>
                                  )}
-                                 {!isStart && !isEnd && inPath && arrowDirection && (
-                                    <>
-                                       {arrowDirection === "up" && <ArrowUpIcon className="circuit-icon path-arrow" />}
-                                       {arrowDirection === "down" && <ArrowDownIcon className="circuit-icon path-arrow" />}
-                                       {arrowDirection === "left" && <ArrowLeftIcon className="circuit-icon path-arrow" />}
-                                       {arrowDirection === "right" && <ArrowRightIcon className="circuit-icon path-arrow" />}
-                                       <span className="path-number">{pathIndex + 1}</span>
-                                    </>
-                                 )}
-                                 {!isStart && !isEnd && !inPath && !isObstacle && (
-                                    <CircleStackIcon className="circuit-icon node-icon" />
-                                 )}
+                                 {!isStart &&
+                                    !isEnd &&
+                                    inPath &&
+                                    arrowDirection && (
+                                       <>
+                                          {arrowDirection === "up" && (
+                                             <ArrowUpIcon className="circuit-icon path-arrow" />
+                                          )}
+                                          {arrowDirection === "down" && (
+                                             <ArrowDownIcon className="circuit-icon path-arrow" />
+                                          )}
+                                          {arrowDirection === "left" && (
+                                             <ArrowLeftIcon className="circuit-icon path-arrow" />
+                                          )}
+                                          {arrowDirection === "right" && (
+                                             <ArrowRightIcon className="circuit-icon path-arrow" />
+                                          )}
+                                          <span className="path-number">
+                                             {pathIndex + 1}
+                                          </span>
+                                       </>
+                                    )}
+                                 {!isStart &&
+                                    !isEnd &&
+                                    !inPath &&
+                                    !isObstacle && (
+                                       <CircleStackIcon className="circuit-icon node-icon" />
+                                    )}
                                  {isObstacle && (
                                     <XMarkIcon className="circuit-icon obstacle-icon" />
                                  )}
@@ -4779,9 +5052,9 @@ function CircuitPath({
                   )}
             </div>
          </div>
-         
+
          {/* Path Lines - rendered inline with nodes */}
-         
+
          {/* Feedback */}
          {feedback === "correct" && (
             <div className="game-feedback correct">
@@ -4789,7 +5062,7 @@ function CircuitPath({
                <span>Circuit complete! Great job!</span>
             </div>
          )}
-         
+
          {feedback === "wrong" && (
             <div className="game-feedback wrong">
                <XCircleIcon className="feedback-icon" />
@@ -4800,81 +5073,553 @@ function CircuitPath({
    );
 }
 
-// Maze Escape (8)
+// Maze Escape (8) - Modernized
 function MazeEscape({
    config,
+   currentRound = 1,
+   maxRounds = 20,
+   currentScore = 0,
    onScoreUpdate,
    onComplete,
+   onRoundComplete,
 }: {
    config: Record<string, any>;
+   currentRound?: number;
+   maxRounds?: number;
+   currentScore?: number;
    onScoreUpdate: (score: number) => void;
    onComplete: (finalScore?: number) => void;
+   onRoundComplete?: () => void;
 }) {
-   const size = config.size || 5;
-   const [playerPos, setPlayerPos] = useState({ x: 0, y: 0 });
-   const [exitPos] = useState({ x: size - 1, y: size - 1 });
-   const [walls, setWalls] = useState<Set<string>>(new Set());
+   // Dynamic grid size based on rounds (fallback if not in config)
+   const getGridSize = () => {
+      // Check if grid sizes are configured in config
+      if (config.gridSizes && Array.isArray(config.gridSizes)) {
+         // Sort by rounds to ensure correct order (ascending)
+         const sortedGridSizes = [...config.gridSizes].sort(
+            (a, b) => a.rounds - b.rounds
+         );
 
-   useEffect(() => {
-      const newWalls = new Set<string>();
-      for (let i = 0; i < size * size * 0.3; i++) {
-         const x = Math.floor(Math.random() * size);
-         const y = Math.floor(Math.random() * size);
-         if (!(x === 0 && y === 0) && !(x === size - 1 && y === size - 1)) {
-            newWalls.add(`${x},${y}`);
+         // Find the appropriate size based on current round
+         // Find the first entry where currentRound <= rounds
+         for (let i = 0; i < sortedGridSizes.length; i++) {
+            const { rounds, size } = sortedGridSizes[i];
+            if (currentRound <= rounds) {
+               console.log(
+                  "[MazeEscape] Grid size for round",
+                  currentRound,
+                  ":",
+                  size,
+                  "x",
+                  size,
+                  "(from config)"
+               );
+               return size;
+            }
          }
+         // If no match (currentRound > all configured rounds), use the last configured size
+         const lastSize = sortedGridSizes[sortedGridSizes.length - 1].size;
+         console.log(
+            "[MazeEscape] Grid size for round",
+            currentRound,
+            ":",
+            lastSize,
+            "x",
+            lastSize,
+            "(last config, round > all)"
+         );
+         return lastSize;
       }
-      setWalls(newWalls);
-      setPlayerPos({ x: 0, y: 0 });
-   }, []);
 
-   useEffect(() => {
-      if (playerPos.x === exitPos.x && playerPos.y === exitPos.y) {
-         onScoreUpdate(100);
-         setTimeout(() => onComplete(100), 1000);
+      // Fallback to default progression
+      let size;
+      if (currentRound <= 5) {
+         size = 10; // 10x10 for rounds 1-5
+      } else if (currentRound <= 15) {
+         size = 20; // 20x20 for rounds 6-15
+      } else {
+         size = 45; // 45x45 for rounds 16-20
       }
-   }, [playerPos, exitPos, onScoreUpdate, onComplete]);
-
-   const handleKeyPress = (e: React.KeyboardEvent) => {
-      let newPos = { ...playerPos };
-      if (e.key === "ArrowUp" && playerPos.y > 0) newPos.y--;
-      if (e.key === "ArrowDown" && playerPos.y < size - 1) newPos.y++;
-      if (e.key === "ArrowLeft" && playerPos.x > 0) newPos.x--;
-      if (e.key === "ArrowRight" && playerPos.x < size - 1) newPos.x++;
-
-      if (!walls.has(`${newPos.x},${newPos.y}`)) {
-         setPlayerPos(newPos);
-      }
+      console.log(
+         "[MazeEscape] Grid size for round",
+         currentRound,
+         ":",
+         size,
+         "x",
+         size,
+         "(default)"
+      );
+      return size;
    };
 
-   return (
-      <div className="maze-escape-game" onKeyDown={handleKeyPress} tabIndex={0}>
-         <h3>Maze Escape</h3>
-         <p>Use arrow keys to reach the exit (E)</p>
-         <div
-            className="maze-grid"
-            style={{ gridTemplateColumns: `repeat(${size}, 1fr)` }}
-         >
-            {Array.from({ length: size * size }).map((_, i) => {
-               const x = i % size;
-               const y = Math.floor(i / size);
-               const isWall = walls.has(`${x},${y}`);
-               const isPlayer = playerPos.x === x && playerPos.y === y;
-               const isExit = exitPos.x === x && exitPos.y === y;
+   // Grid size from config or dynamic based on rounds - recalculate when currentRound changes
+   const gridSize = useMemo(() => {
+      if (config.size) {
+         // Fixed size from config
+         return config.size;
+      }
+      // Dynamic size based on current round
+      return getGridSize();
+   }, [config.size, currentRound, config.gridSizes]);
+   const [maze, setMaze] = useState<number[][]>([]);
+   const [playerPos, setPlayerPos] = useState({ x: 0, y: 0 });
+   const [exitPos, setExitPos] = useState({ x: 0, y: 0 });
+   const [moves, setMoves] = useState(0);
+   const [trail, setTrail] = useState<Set<string>>(new Set());
+   const [isCompleted, setIsCompleted] = useState(false);
+   const [showSuccess, setShowSuccess] = useState(false);
+   const [roundScore, setRoundScore] = useState(0);
+   const completionCalledRef = useRef(false);
+   const onScoreUpdateRef = useRef(onScoreUpdate);
+   const onCompleteRef = useRef(onComplete);
+   const onRoundCompleteRef = useRef(onRoundComplete);
+   const roundTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-               return (
-                  <div
-                     key={i}
-                     className={`maze-cell ${isWall ? "wall" : ""} ${
-                        isPlayer ? "player" : ""
-                     } ${isExit ? "exit" : ""}`}
-                  >
-                     {isPlayer && "P"}
-                     {isExit && !isPlayer && "E"}
-                  </div>
+   // Keep refs updated
+   useEffect(() => {
+      onScoreUpdateRef.current = onScoreUpdate;
+      onCompleteRef.current = onComplete;
+      onRoundCompleteRef.current = onRoundComplete;
+   }, [onScoreUpdate, onComplete, onRoundComplete]);
+
+   // Generate maze using Recursive Backtracker algorithm
+   const generateMaze = useCallback((size: number): number[][] => {
+      // Initialize maze: 0 = wall, 1 = path
+      const maze: number[][] = Array(size)
+         .fill(null)
+         .map(() => Array(size).fill(0));
+
+      // Start from top-left
+      const start = { x: 0, y: 0 };
+      const stack: { x: number; y: number }[] = [start];
+      maze[start.y][start.x] = 1;
+
+      const directions = [
+         { dx: 0, dy: -1 }, // up
+         { dx: 1, dy: 0 }, // right
+         { dx: 0, dy: 1 }, // down
+         { dx: -1, dy: 0 }, // left
+      ];
+
+      while (stack.length > 0) {
+         const current = stack[stack.length - 1];
+         const neighbors: {
+            x: number;
+            y: number;
+            dir: { dx: number; dy: number };
+         }[] = [];
+
+         for (const dir of directions) {
+            const nx = current.x + dir.dx * 2;
+            const ny = current.y + dir.dy * 2;
+
+            if (
+               nx >= 0 &&
+               nx < size &&
+               ny >= 0 &&
+               ny < size &&
+               maze[ny][nx] === 0
+            ) {
+               neighbors.push({ x: nx, y: ny, dir });
+            }
+         }
+
+         if (neighbors.length > 0) {
+            const next =
+               neighbors[Math.floor(Math.random() * neighbors.length)];
+            const wallX = current.x + next.dir.dx;
+            const wallY = current.y + next.dir.dy;
+
+            maze[wallY][wallX] = 1; // Carve wall
+            maze[next.y][next.x] = 1; // Carve cell
+            stack.push({ x: next.x, y: next.y });
+         } else {
+            stack.pop();
+         }
+      }
+
+      // Ensure exit is reachable (bottom-right or far corner)
+      const exitCandidates = [
+         { x: size - 1, y: size - 1 },
+         { x: size - 1, y: size - 2 },
+         { x: size - 2, y: size - 1 },
+      ];
+
+      for (const exit of exitCandidates) {
+         if (maze[exit.y] && maze[exit.y][exit.x] === 1) {
+            return maze;
+         }
+      }
+
+      // If exit not reachable, create path to bottom-right
+      maze[size - 1][size - 1] = 1;
+      if (size > 1) {
+         maze[size - 2][size - 1] = 1;
+         maze[size - 1][size - 2] = 1;
+      }
+
+      return maze;
+   }, []);
+
+   // Initialize maze for new round - only when round changes
+   useEffect(() => {
+      // Reset everything for new round
+      console.log(
+         "[MazeEscape] Initializing new round:",
+         currentRound,
+         "gridSize:",
+         gridSize
+      );
+      const newMaze = generateMaze(gridSize);
+      setMaze(newMaze);
+      setPlayerPos({ x: 0, y: 0 });
+      setExitPos({ x: gridSize - 1, y: gridSize - 1 });
+      setMoves(0);
+      setTrail(new Set(["0,0"])); // Start position is always in trail
+      setIsCompleted(false);
+      setShowSuccess(false);
+      setRoundScore(0);
+      completionCalledRef.current = false;
+      // Clear any pending timeout when starting new round
+      if (roundTimeoutRef.current) {
+         clearTimeout(roundTimeoutRef.current);
+         roundTimeoutRef.current = null;
+      }
+      console.log(
+         "[MazeEscape] Round",
+         currentRound,
+         "initialized successfully"
+      );
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+   }, [currentRound, gridSize]); // Depend on currentRound and gridSize
+
+   // Check win condition
+   useEffect(() => {
+      // Only check if maze is initialized and player reached exit
+      if (
+         maze.length === 0 ||
+         !maze[playerPos.y] ||
+         !maze[playerPos.y][playerPos.x]
+      ) {
+         return; // Maze not ready
+      }
+
+      if (
+         !isCompleted &&
+         playerPos.x === exitPos.x &&
+         playerPos.y === exitPos.y &&
+         !completionCalledRef.current
+      ) {
+         setIsCompleted(true);
+         completionCalledRef.current = true;
+
+         // Calculate score: 100 points minus 1 point per move (min 0)
+         const baseScore = 100;
+         const movePenalty = Math.min(moves, 100);
+         const calculatedRoundScore = Math.max(0, baseScore - movePenalty);
+
+         setRoundScore(calculatedRoundScore);
+         setShowSuccess(true);
+         onScoreUpdateRef.current(calculatedRoundScore);
+
+         // Move to next round after delay
+         // Clear any existing timeout first
+         if (roundTimeoutRef.current) {
+            clearTimeout(roundTimeoutRef.current);
+         }
+
+         roundTimeoutRef.current = setTimeout(() => {
+            setShowSuccess(false);
+            if (currentRound >= maxRounds) {
+               const finalScore = currentScore + calculatedRoundScore;
+               onCompleteRef.current(finalScore);
+            } else {
+               // Trigger next round only once
+               console.log(
+                  "[MazeEscape] Triggering next round, currentRound:",
+                  currentRound,
+                  "maxRounds:",
+                  maxRounds
                );
-            })}
+               if (onRoundCompleteRef.current) {
+                  console.log("[MazeEscape] Calling onRoundComplete callback");
+                  try {
+                     onRoundCompleteRef.current();
+                     console.log(
+                        "[MazeEscape] onRoundComplete callback called successfully"
+                     );
+                  } catch (error) {
+                     console.error(
+                        "[MazeEscape] Error calling onRoundComplete:",
+                        error
+                     );
+                  }
+               } else {
+                  console.warn(
+                     "[MazeEscape] onRoundCompleteRef.current is null!"
+                  );
+               }
+            }
+            roundTimeoutRef.current = null;
+         }, 2000);
+      }
+   }, [
+      playerPos,
+      exitPos,
+      isCompleted,
+      moves,
+      currentRound,
+      maxRounds,
+      currentScore,
+      maze,
+   ]); // Removed callbacks from dependencies - using refs instead
+
+   const handleKeyPress = useCallback(
+      (e: KeyboardEvent) => {
+         if (isCompleted) return;
+
+         let newPos = { ...playerPos };
+         let moved = false;
+
+         if (e.key === "ArrowUp" || e.key === "w" || e.key === "W") {
+            if (playerPos.y > 0) {
+               newPos.y--;
+               moved = true;
+            }
+         } else if (e.key === "ArrowDown" || e.key === "s" || e.key === "S") {
+            if (playerPos.y < gridSize - 1) {
+               newPos.y++;
+               moved = true;
+            }
+         } else if (e.key === "ArrowLeft" || e.key === "a" || e.key === "A") {
+            if (playerPos.x > 0) {
+               newPos.x--;
+               moved = true;
+            }
+         } else if (e.key === "ArrowRight" || e.key === "d" || e.key === "D") {
+            if (playerPos.x < gridSize - 1) {
+               newPos.x++;
+               moved = true;
+            }
+         }
+
+         if (moved) {
+            // Check if new position is valid (not a wall)
+            if (
+               newPos.x >= 0 &&
+               newPos.x < gridSize &&
+               newPos.y >= 0 &&
+               newPos.y < gridSize &&
+               maze[newPos.y] &&
+               maze[newPos.y][newPos.x] === 1
+            ) {
+               setPlayerPos(newPos);
+               setMoves((prev) => prev + 1);
+               // Add to trail
+               setTrail((prev) => {
+                  const newTrail = new Set(prev);
+                  newTrail.add(`${newPos.x},${newPos.y}`);
+                  return newTrail;
+               });
+            }
+         }
+      },
+      [playerPos, gridSize, maze, isCompleted]
+   );
+
+   // Handle mouse click on maze cell
+   const handleCellClick = useCallback(
+      (x: number, y: number) => {
+         if (isCompleted) return;
+
+         // Check if clicked cell is adjacent to player (up, down, left, right)
+         const dx = Math.abs(x - playerPos.x);
+         const dy = Math.abs(y - playerPos.y);
+         const isAdjacent = (dx === 1 && dy === 0) || (dx === 0 && dy === 1);
+
+         if (!isAdjacent) return; // Only allow adjacent cells
+
+         // Check if clicked cell is valid (not a wall)
+         if (
+            x >= 0 &&
+            x < gridSize &&
+            y >= 0 &&
+            y < gridSize &&
+            maze[y] &&
+            maze[y][x] === 1
+         ) {
+            setPlayerPos({ x, y });
+            setMoves((prev) => prev + 1);
+            // Add to trail
+            setTrail((prev) => {
+               const newTrail = new Set(prev);
+               newTrail.add(`${x},${y}`);
+               return newTrail;
+            });
+         }
+      },
+      [playerPos, gridSize, maze, isCompleted]
+   );
+
+   // Handle mouse hover on maze cell - auto-move to valid adjacent cells
+   const handleCellHover = useCallback(
+      (x: number, y: number) => {
+         if (isCompleted) return;
+
+         // Check if hovered cell is adjacent to player (up, down, left, right)
+         const dx = Math.abs(x - playerPos.x);
+         const dy = Math.abs(y - playerPos.y);
+         const isAdjacent = (dx === 1 && dy === 0) || (dx === 0 && dy === 1);
+
+         if (!isAdjacent) return; // Only allow adjacent cells
+
+         // Check if hovered cell is valid (not a wall) and not already in trail
+         if (
+            x >= 0 &&
+            x < gridSize &&
+            y >= 0 &&
+            y < gridSize &&
+            maze[y] &&
+            maze[y][x] === 1 &&
+            !trail.has(`${x},${y}`) // Don't move to cells already visited
+         ) {
+            setPlayerPos({ x, y });
+            setMoves((prev) => prev + 1);
+            // Add to trail
+            setTrail((prev) => {
+               const newTrail = new Set(prev);
+               newTrail.add(`${x},${y}`);
+               return newTrail;
+            });
+         }
+      },
+      [playerPos, gridSize, maze, isCompleted, trail]
+   );
+
+   useEffect(() => {
+      window.addEventListener("keydown", handleKeyPress);
+      return () => window.removeEventListener("keydown", handleKeyPress);
+   }, [handleKeyPress]);
+
+   // Calculate progress based on rounds (like other games - Balance Scale uses currentRound / maxRounds)
+   // Calculate progress based on rounds - use useMemo to update when currentRound changes
+   const progress = useMemo(() => {
+      return maxRounds > 0
+         ? Math.min(100, Math.max(0, (currentRound / maxRounds) * 100))
+         : 0;
+   }, [currentRound, maxRounds]);
+   const maxScore = maxRounds * 100;
+   const displayScore = currentScore;
+
+   return (
+      <div className="maze-escape-game">
+         {/* Header */}
+         <div className="game-header">
+            <div className="header-stats">
+               <div className="stat-item">
+                  <ArrowPathIcon className="stat-icon" />
+                  <span>
+                     Round {currentRound} / {maxRounds}
+                  </span>
+               </div>
+               <div className="stat-item">
+                  <TrophyIcon className="stat-icon" />
+                  <span>
+                     Score: {displayScore} / {maxScore}
+                  </span>
+               </div>
+               <div className="stat-item">
+                  <BoltIcon className="stat-icon" />
+                  <span>Path: {trail.size}</span>
+               </div>
+            </div>
+            <div className="progress-bar-container">
+               <div
+                  style={{
+                     width: `${progress}%`,
+                     height: "100%",
+                     background:
+                        "linear-gradient(90deg, var(--accent) 0%, var(--ok) 100%)",
+                     borderRadius: "4px",
+                     transition: "width 0.3s",
+                     boxShadow: "rgba(125, 211, 252, 0.5) 0px 0px 10px",
+                  }}
+               />
+            </div>
          </div>
+
+         {/* Maze Grid */}
+         <div className="maze-container">
+            <div
+               className="maze-grid"
+               style={{
+                  gridTemplateColumns: `repeat(${gridSize}, 1fr)`,
+                  gridTemplateRows: `repeat(${gridSize}, 1fr)`,
+               }}
+            >
+               {Array.from({ length: gridSize * gridSize }).map((_, i) => {
+                  const x = i % gridSize;
+                  const y = Math.floor(i / gridSize);
+                  const isWall = !maze[y] || maze[y][x] === 0;
+                  const isPlayer = playerPos.x === x && playerPos.y === y;
+                  const isExit =
+                     exitPos.x === x && exitPos.y === y && !isPlayer;
+                  const isStart = x === 0 && y === 0 && !isPlayer && !isExit;
+                  const isTrail =
+                     trail.has(`${x},${y}`) && !isPlayer && !isExit && !isStart;
+                  const isPath =
+                     !isWall && !isPlayer && !isExit && !isTrail && !isStart;
+
+                  // Check if cell is adjacent to player (for mouse click)
+                  const dx = Math.abs(x - playerPos.x);
+                  const dy = Math.abs(y - playerPos.y);
+                  const isAdjacent =
+                     !isWall &&
+                     !isPlayer &&
+                     ((dx === 1 && dy === 0) || (dx === 0 && dy === 1));
+                  const isClickable = isAdjacent && !isCompleted;
+
+                  return (
+                     <div
+                        key={i}
+                        className={`maze-cell ${isWall ? "wall" : ""} ${
+                           isPlayer ? "player" : ""
+                        } ${isExit ? "exit" : ""} ${isStart ? "start" : ""} ${
+                           isTrail ? "trail" : ""
+                        } ${isPath ? "path" : ""} ${
+                           isClickable ? "clickable" : ""
+                        }`}
+                        onClick={() => handleCellClick(x, y)}
+                        onMouseEnter={() => handleCellHover(x, y)}
+                        style={{ cursor: isClickable ? "pointer" : "default" }}
+                     >
+                        {isPlayer && (
+                           <div className="player-marker">
+                              <BoltIcon className="player-icon" />
+                           </div>
+                        )}
+                        {isExit && (
+                           <div className="exit-marker">
+                              <TrophyIcon className="exit-icon" />
+                           </div>
+                        )}
+                        {isStart && <div className="start-marker" />}
+                        {isTrail && <div className="trail-dot" />}
+                     </div>
+                  );
+               })}
+            </div>
+         </div>
+
+         {/* Success Message - positioned below the maze like Circuit Path */}
+         {showSuccess && (
+            <div className="game-feedback correct">
+               <CheckCircleIcon className="feedback-icon" />
+               <span>
+                  Round {currentRound} Complete! Score: {roundScore} points
+               </span>
+            </div>
+         )}
       </div>
    );
 }
@@ -5819,4 +6564,3 @@ function BlockFill({
       </div>
    );
 }
-
