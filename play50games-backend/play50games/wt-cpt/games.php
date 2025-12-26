@@ -381,18 +381,18 @@ function show_games_custom_fields() {
                 passingScore: 80,
                 unlockRequirement: '',
                 description: 'Determine output of AND/OR gates',
-                gameConfig: '{"gameType": "logic-gates", "rounds": 5}'
+                gameConfig: '{"gameType": "logic-gates", "rounds": 20, "gates": ["AND", "OR", "NOT"], "inputs": [0, 1], "difficulty": "medium"}'
             },
             'sequence-arrows': {
                 title: 'Sequence Arrows',
                 gameType: 'logic',
                 gameOrder: 14,
                 difficulty: 2,
-                timeLimit: 60,
+                timeLimit: 90,
                 passingScore: 75,
                 unlockRequirement: '',
                 description: 'Predict the next arrow in sequence',
-                gameConfig: '{"gameType": "sequence-arrows", "rounds": 5}'
+                gameConfig: '{"gameType": "sequence-arrows", "rounds": 20, "sequenceLength": null}'
             },
             'block-fill': {
                 title: 'Block Fill',

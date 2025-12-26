@@ -13,6 +13,7 @@ import {
    LightBulbIcon,
    PlayIcon,
    ArrowLeftIcon,
+   ArrowUpIcon,
    MoonIcon,
    BoltIcon,
    ArrowDownIcon,
@@ -483,6 +484,456 @@ export default function GameEngine({
                            <li>Select the option that shows the correct mirror transformation</li>
                            <li>You have 3 options - only one is correct!</li>
                            <li>Use number keys <strong style={{ color: "var(--accent)" }}>1, 2, 3</strong> for quick selection</li>
+                        </ul>
+                     </div>
+                  </div>
+               )}
+
+               {/* Sequence Arrows Start Screen Preview */}
+               {gameType === "sequence-arrows" && (
+                  <div className="solution-preview">
+                     <h4
+                        style={{
+                           display: "flex",
+                           alignItems: "center",
+                           gap: "8px",
+                           marginBottom: "12px",
+                        }}
+                     >
+                        <InformationCircleIcon
+                           style={{
+                              width: 20,
+                              height: 20,
+                              color: "var(--accent)",
+                           }}
+                        />
+                        How Sequence Arrows Works
+                     </h4>
+                     <div style={{ marginBottom: "20px" }}>
+                        <p style={{ fontSize: "0.9rem", color: "var(--muted)", marginBottom: "16px" }}>
+                           You will see a sequence of arrows (↑ ↓ ← →) with one missing arrow shown as <strong style={{ color: "var(--accent)" }}>?</strong>. 
+                           Your task is to predict which arrow should come next in the sequence.
+                        </p>
+                        <div style={{
+                           background: "var(--card)",
+                           border: "2px solid var(--stroke)",
+                           borderRadius: "16px",
+                           padding: "24px",
+                           marginBottom: "16px"
+                        }}>
+                           <div style={{ 
+                              fontSize: "16px", 
+                              fontWeight: 700, 
+                              color: "var(--accent)",
+                              marginBottom: "16px",
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "8px"
+                           }}>
+                              <ArrowPathIcon style={{ width: 18, height: 18 }} />
+                              Example Sequence
+                           </div>
+                           <div style={{
+                              display: "flex",
+                              gap: "16px",
+                              justifyContent: "center",
+                              alignItems: "center",
+                              marginBottom: "16px",
+                              flexWrap: "wrap"
+                           }}>
+                              <div style={{
+                                 display: "flex",
+                                 alignItems: "center",
+                                 justifyContent: "center",
+                                 width: "64px",
+                                 height: "64px",
+                                 background: "rgba(255, 255, 255, 0.05)",
+                                 border: "2px solid var(--stroke)",
+                                 borderRadius: "12px"
+                              }}>
+                                 <ArrowUpIcon style={{ width: 40, height: 40, color: "var(--accent)" }} />
+                              </div>
+                              <div style={{
+                                 display: "flex",
+                                 alignItems: "center",
+                                 justifyContent: "center",
+                                 width: "64px",
+                                 height: "64px",
+                                 background: "rgba(255, 255, 255, 0.05)",
+                                 border: "2px solid var(--stroke)",
+                                 borderRadius: "12px"
+                              }}>
+                                 <ArrowRightIcon style={{ width: 40, height: 40, color: "var(--accent)" }} />
+                              </div>
+                              <div style={{
+                                 display: "flex",
+                                 alignItems: "center",
+                                 justifyContent: "center",
+                                 width: "64px",
+                                 height: "64px",
+                                 background: "rgba(255, 255, 255, 0.05)",
+                                 border: "2px solid var(--stroke)",
+                                 borderRadius: "12px"
+                              }}>
+                                 <ArrowDownIcon style={{ width: 40, height: 40, color: "var(--accent)" }} />
+                              </div>
+                              <div style={{
+                                 display: "flex",
+                                 alignItems: "center",
+                                 justifyContent: "center",
+                                 width: "64px",
+                                 height: "64px",
+                                 background: "rgba(125, 211, 252, 0.2)",
+                                 border: "2px solid var(--accent)",
+                                 borderRadius: "12px",
+                                 fontSize: "1.5rem",
+                                 fontWeight: 700,
+                                 color: "var(--accent)"
+                              }}>
+                                 ?
+                              </div>
+                              <div style={{
+                                 fontSize: "24px",
+                                 color: "var(--muted)",
+                                 fontWeight: 600,
+                                 margin: "0 8px"
+                              }}>
+                                 →
+                              </div>
+                              <div style={{
+                                 display: "flex",
+                                 alignItems: "center",
+                                 justifyContent: "center",
+                                 width: "64px",
+                                 height: "64px",
+                                 background: "rgba(134, 239, 172, 0.2)",
+                                 border: "2px solid var(--ok)",
+                                 borderRadius: "12px",
+                                 position: "relative"
+                              }}>
+                                 <ArrowLeftIcon style={{ width: 40, height: 40, color: "var(--ok)" }} />
+                                 <CheckCircleIcon style={{
+                                    position: "absolute",
+                                    top: "-8px",
+                                    right: "-8px",
+                                    width: "20px",
+                                    height: "20px",
+                                    color: "var(--ok)",
+                                    background: "var(--card)",
+                                    borderRadius: "50%"
+                                 }} />
+                              </div>
+                           </div>
+                           <div style={{
+                              display: "flex",
+                              flexDirection: "column",
+                              gap: "8px",
+                              marginTop: "12px"
+                           }}>
+                              <p style={{ fontSize: "0.85rem", color: "var(--muted)", textAlign: "center", fontStyle: "italic" }}>
+                                 Pattern: Clockwise rotation (↑ → ↓ ←)
+                              </p>
+                              <p style={{ 
+                                 fontSize: "0.9rem", 
+                                 color: "var(--ok)", 
+                                 textAlign: "center", 
+                                 fontWeight: 600,
+                                 display: "flex",
+                                 alignItems: "center",
+                                 justifyContent: "center",
+                                 gap: "6px"
+                              }}>
+                                 <CheckCircleIcon style={{ width: 16, height: 16 }} />
+                                 Answer: ← (Left Arrow)
+                              </p>
+                           </div>
+                        </div>
+                        <div style={{
+                           background: "rgba(125, 211, 252, 0.1)",
+                           border: "1px solid var(--stroke)",
+                           borderRadius: "12px",
+                           padding: "16px",
+                           fontSize: "0.9rem",
+                           color: "var(--text)",
+                           marginBottom: "16px"
+                        }}>
+                           <strong style={{ color: "var(--accent)" }}>Tip:</strong> The sequence length increases as you progress. 
+                           Pay attention to the pattern direction and repetition!
+                        </div>
+                        
+                        {/* Patterns to Look For */}
+                        <div style={{
+                           background: "var(--card)",
+                           border: "2px solid var(--stroke)",
+                           borderRadius: "16px",
+                           padding: "24px",
+                           marginTop: "16px"
+                        }}>
+                           <div style={{ 
+                              fontSize: "16px", 
+                              fontWeight: 700, 
+                              color: "var(--accent)",
+                              marginBottom: "16px",
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "8px"
+                           }}>
+                              <LightBulbIcon style={{ width: 18, height: 18 }} />
+                              What Patterns to Look For
+                           </div>
+                           <div style={{
+                              display: "flex",
+                              flexDirection: "column",
+                              gap: "12px",
+                              fontSize: "0.9rem"
+                           }}>
+                              <div style={{
+                                 padding: "12px",
+                                 background: "rgba(125, 211, 252, 0.1)",
+                                 borderRadius: "8px",
+                                 border: "1px solid var(--stroke)"
+                              }}>
+                                 <strong style={{ color: "var(--accent)" }}>Clockwise rotation:</strong> 
+                                 <span style={{ color: "var(--text)", marginLeft: "8px" }}>↑ → ↓ ← (then repeats)</span>
+                              </div>
+                              <div style={{
+                                 padding: "12px",
+                                 background: "rgba(125, 211, 252, 0.1)",
+                                 borderRadius: "8px",
+                                 border: "1px solid var(--stroke)"
+                              }}>
+                                 <strong style={{ color: "var(--accent)" }}>Counter-clockwise rotation:</strong> 
+                                 <span style={{ color: "var(--text)", marginLeft: "8px" }}>↑ ← ↓ → (then repeats)</span>
+                              </div>
+                              <div style={{
+                                 padding: "12px",
+                                 background: "rgba(125, 211, 252, 0.1)",
+                                 borderRadius: "8px",
+                                 border: "1px solid var(--stroke)"
+                              }}>
+                                 <strong style={{ color: "var(--accent)" }}>Repeating loops:</strong> 
+                                 <span style={{ color: "var(--text)", marginLeft: "8px" }}>e.g., ↑ ↑ → → ↓ ↓ ← ←</span>
+                              </div>
+                              <div style={{
+                                 padding: "12px",
+                                 background: "rgba(125, 211, 252, 0.1)",
+                                 borderRadius: "8px",
+                                 border: "1px solid var(--stroke)"
+                              }}>
+                                 <strong style={{ color: "var(--accent)" }}>Alternating directions:</strong> 
+                                 <span style={{ color: "var(--text)", marginLeft: "8px" }}>e.g., ↑ → ↑ → …</span>
+                              </div>
+                              <div style={{
+                                 padding: "12px",
+                                 background: "rgba(125, 211, 252, 0.1)",
+                                 borderRadius: "8px",
+                                 border: "1px solid var(--stroke)"
+                              }}>
+                                 <strong style={{ color: "var(--accent)" }}>Step jumps:</strong> 
+                                 <span style={{ color: "var(--text)", marginLeft: "8px" }}>skipping one direction each time</span>
+                              </div>
+                           </div>
+                        </div>
+                     </div>
+                  </div>
+               )}
+
+               {/* Interactive Example for Logic Gates */}
+               {gameType === "logic-gates" && (
+                  <div className="solution-preview">
+                     <h4
+                        style={{
+                           display: "flex",
+                           alignItems: "center",
+                           gap: "8px",
+                           marginBottom: "12px",
+                        }}
+                     >
+                        <InformationCircleIcon
+                           style={{
+                              width: 20,
+                              height: 20,
+                              color: "var(--accent)",
+                           }}
+                        />
+                        Logic Gates Explained
+                     </h4>
+                     
+                     <div style={{ 
+                        display: "grid", 
+                        gridTemplateColumns: "repeat(3, 1fr)", 
+                        gap: "20px",
+                        marginBottom: "20px"
+                     }}>
+                        {/* AND Gate */}
+                        <div style={{
+                           background: "var(--card)",
+                           border: "2px solid var(--stroke)",
+                           borderRadius: "16px",
+                           padding: "24px",
+                           textAlign: "center"
+                        }}>
+                           <div style={{ 
+                              fontSize: "16px", 
+                              fontWeight: 700, 
+                              color: "var(--accent)",
+                              marginBottom: "16px"
+                           }}>
+                              AND Gate
+                           </div>
+                           <div style={{
+                              display: "flex",
+                              flexDirection: "column",
+                              gap: "12px",
+                              fontSize: "14px",
+                              color: "var(--muted)"
+                           }}>
+                              <div style={{ fontWeight: 600, color: "var(--text)" }}>Truth Table:</div>
+                              <table style={{ width: "100%", fontSize: "12px" }}>
+                                 <thead>
+                                    <tr>
+                                       <th style={{ padding: "4px" }}>A</th>
+                                       <th style={{ padding: "4px" }}>B</th>
+                                       <th style={{ padding: "4px" }}>Output</th>
+                                    </tr>
+                                 </thead>
+                                 <tbody>
+                                    <tr><td>0</td><td>0</td><td>0</td></tr>
+                                    <tr><td>0</td><td>1</td><td>0</td></tr>
+                                    <tr><td>1</td><td>0</td><td>0</td></tr>
+                                    <tr><td style={{ color: "var(--ok)", fontWeight: 700 }}>1</td><td style={{ color: "var(--ok)", fontWeight: 700 }}>1</td><td style={{ color: "var(--ok)", fontWeight: 700 }}>1</td></tr>
+                                 </tbody>
+                              </table>
+                              <div style={{ fontSize: "12px", marginTop: "8px", fontStyle: "italic" }}>
+                                 Output is 1 only when both inputs are 1
+                              </div>
+                           </div>
+                        </div>
+
+                        {/* OR Gate */}
+                        <div style={{
+                           background: "var(--card)",
+                           border: "2px solid var(--stroke)",
+                           borderRadius: "16px",
+                           padding: "24px",
+                           textAlign: "center"
+                        }}>
+                           <div style={{ 
+                              fontSize: "16px", 
+                              fontWeight: 700, 
+                              color: "var(--accent)",
+                              marginBottom: "16px"
+                           }}>
+                              OR Gate
+                           </div>
+                           <div style={{
+                              display: "flex",
+                              flexDirection: "column",
+                              gap: "12px",
+                              fontSize: "14px",
+                              color: "var(--muted)"
+                           }}>
+                              <div style={{ fontWeight: 600, color: "var(--text)" }}>Truth Table:</div>
+                              <table style={{ width: "100%", fontSize: "12px" }}>
+                                 <thead>
+                                    <tr>
+                                       <th style={{ padding: "4px" }}>A</th>
+                                       <th style={{ padding: "4px" }}>B</th>
+                                       <th style={{ padding: "4px" }}>Output</th>
+                                    </tr>
+                                 </thead>
+                                 <tbody>
+                                    <tr><td>0</td><td>0</td><td>0</td></tr>
+                                    <tr><td style={{ color: "var(--ok)", fontWeight: 700 }}>0</td><td style={{ color: "var(--ok)", fontWeight: 700 }}>1</td><td style={{ color: "var(--ok)", fontWeight: 700 }}>1</td></tr>
+                                    <tr><td style={{ color: "var(--ok)", fontWeight: 700 }}>1</td><td>0</td><td style={{ color: "var(--ok)", fontWeight: 700 }}>1</td></tr>
+                                    <tr><td style={{ color: "var(--ok)", fontWeight: 700 }}>1</td><td style={{ color: "var(--ok)", fontWeight: 700 }}>1</td><td style={{ color: "var(--ok)", fontWeight: 700 }}>1</td></tr>
+                                 </tbody>
+                              </table>
+                              <div style={{ fontSize: "12px", marginTop: "8px", fontStyle: "italic" }}>
+                                 Output is 1 if at least one input is 1
+                              </div>
+                           </div>
+                        </div>
+
+                        {/* NOT Gate */}
+                        <div style={{
+                           background: "var(--card)",
+                           border: "2px solid var(--stroke)",
+                           borderRadius: "16px",
+                           padding: "24px",
+                           textAlign: "center"
+                        }}>
+                           <div style={{ 
+                              fontSize: "16px", 
+                              fontWeight: 700, 
+                              color: "var(--accent)",
+                              marginBottom: "16px"
+                           }}>
+                              NOT Gate
+                           </div>
+                           <div style={{
+                              display: "flex",
+                              flexDirection: "column",
+                              gap: "12px",
+                              fontSize: "14px",
+                              color: "var(--muted)"
+                           }}>
+                              <div style={{ fontWeight: 600, color: "var(--text)" }}>Truth Table:</div>
+                              <table style={{ width: "100%", fontSize: "12px" }}>
+                                 <thead>
+                                    <tr>
+                                       <th style={{ padding: "4px" }}>A</th>
+                                       <th style={{ padding: "4px" }}>Output</th>
+                                    </tr>
+                                 </thead>
+                                 <tbody>
+                                    <tr><td>0</td><td style={{ color: "var(--ok)", fontWeight: 700 }}>1</td></tr>
+                                    <tr><td>1</td><td>0</td></tr>
+                                 </tbody>
+                              </table>
+                              <div style={{ fontSize: "12px", marginTop: "8px", fontStyle: "italic" }}>
+                                 Output is the opposite of input
+                              </div>
+                           </div>
+                        </div>
+                     </div>
+
+                     <div style={{
+                        background: "rgba(11, 22, 48, 0.4)",
+                        border: "1px solid var(--stroke)",
+                        borderRadius: "12px",
+                        padding: "20px",
+                        marginTop: "24px"
+                     }}>
+                        <div style={{
+                           display: "flex",
+                           alignItems: "center",
+                           gap: "12px",
+                           marginBottom: "12px"
+                        }}>
+                           <LightBulbIcon style={{ width: 20, height: 20, color: "var(--accent)" }} />
+                           <h4 style={{
+                              fontSize: "16px",
+                              fontWeight: 600,
+                              margin: 0,
+                              color: "var(--text)"
+                           }}>
+                              How to Play
+                           </h4>
+                        </div>
+                        <ul style={{
+                           margin: 0,
+                           paddingLeft: "24px",
+                           color: "var(--muted)",
+                           fontSize: "14px",
+                           lineHeight: "1.8"
+                        }}>
+                           <li>Look at the inputs (A and B) - they are either 0 or 1</li>
+                           <li>Check the gate type (AND, OR, or NOT)</li>
+                           <li>Calculate the output based on the gate's logic</li>
+                           <li>Select the correct output (0 or 1)</li>
+                           <li>When output is 1, the lamp lights up! 💡</li>
+                           <li>Use number keys <strong style={{ color: "var(--accent)" }}>0</strong> or <strong style={{ color: "var(--accent)" }}>1</strong> for quick selection</li>
                         </ul>
                      </div>
                   </div>

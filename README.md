@@ -683,6 +683,182 @@ In WordPress admin, when creating/editing a game:
 
 In WordPress admin, you can use the "Quick Fill Templates" dropdown and select "8. Maze Escape" to auto-fill all fields with recommended settings.
 
+#### Mirror Match
+
+```json
+{
+   "gameType": "mirror-match",
+   "rounds": 20,
+   "mirrorTypes": ["horizontal", "vertical", "diagonal"],
+   "shapes": [
+      "WrenchWithJaw",
+      "LightningBolt",
+      "CameraOffCenter",
+      "FlagOnPole",
+      "SpiralCurl",
+      "GearAsymmetric",
+      "CircuitBranch",
+      "KeyAsymmetric",
+      "ShieldOffCenter",
+      "BirdAsymmetric",
+      "AnchorOffset",
+      "PaperclipUneven",
+      "RocketOneFin",
+      "PuzzleMissingTab"
+   ],
+   "optionsCount": 3
+}
+```
+
+**Configuration:**
+
+-  `gameType` (required): Must be `"mirror-match"`
+-  `rounds` (optional): Number of rounds - Default: **20** (recommended for 100 points max)
+-  `mirrorTypes` (optional): Array of mirror types to use - Default: `["horizontal", "vertical", "diagonal"]`
+   -  Available types: `"horizontal"` (flips left ↔ right), `"vertical"` (flips top ↔ bottom), `"diagonal"` (flips both ways)
+-  `shapes` (optional): Array of custom SVG shape names - Default: **14 asymmetric shapes** designed for clear mirror transformations
+-  `optionsCount` (optional): Number of options to display - Default: **3** (always shows horizontal, vertical, and diagonal mirrors)
+
+**Scoring:**
+
+-  5 points per correct round
+-  Maximum 100 points for 20 rounds
+
+**Controls:**
+
+-  **Mouse**: Click on the option (1-3) that shows the correct mirror image
+-  **Keyboard**: 1-3 to select option directly by number
+
+**Goal:**
+
+-  Each round shows a main shape and a mirror type (horizontal, vertical, or diagonal)
+-  Find the correct mirrored version among the 3 options
+-  Options always include all three mirror types (horizontal, vertical, diagonal) of the same shape
+
+**Features:**
+
+-  Custom SVG shapes with asymmetric details for clear mirror transformations
+-  Interactive start screen preview explaining mirror types
+-  Visual feedback with check/x icons
+-  Modern UI matching other games
+
+**Recommended Settings:**
+
+-  **Time Limit**: 60 seconds (overall game time, not per round)
+-  **Passing Score**: 75 (75% of max score)
+-  **Difficulty**: 2 (medium)
+
+#### Logic Gates
+
+```json
+{
+   "gameType": "logic-gates",
+   "rounds": 20,
+   "gates": ["AND", "OR", "NOT"],
+   "inputs": [0, 1],
+   "difficulty": "medium"
+}
+```
+
+**Configuration:**
+
+-  `gameType` (required): Must be `"logic-gates"`
+-  `rounds` (optional): Number of rounds - Default: **20** (recommended for 100 points max)
+-  `gates` (optional): Array of gate types to use - Default: `["AND", "OR", "NOT"]`
+   -  Available gates: `"AND"`, `"OR"`, `"NOT"`
+-  `inputs` (optional): Array of possible input values - Default: `[0, 1]`
+-  `difficulty` (optional): Difficulty level - Default: `"medium"`
+
+**Scoring:**
+
+-  5 points per correct round
+-  Maximum 100 points for 20 rounds
+
+**Controls:**
+
+-  **Mouse**: Click on 0 or 1 to select the output
+-  **Keyboard**: 0 or 1 to select output directly
+
+**Goal:**
+
+-  Each round presents a logic gate (AND, OR, or NOT) and its input(s)
+-  Determine the correct output (0 or 1) based on the gate type
+-  AND gate: Output is 1 only when ALL inputs are 1
+-  OR gate: Output is 1 if at least ONE input is 1
+-  NOT gate: Output is the inverse of the single input
+
+**Features:**
+
+-  Lamp visualization that turns on (glows) when output is 1, off when 0
+-  Interactive start screen with truth tables and examples
+-  Visual feedback with check/x icons
+-  Modern UI matching other games
+
+**Recommended Settings:**
+
+-  **Time Limit**: 90 seconds (overall game time)
+-  **Passing Score**: 80 (80% of max score)
+-  **Difficulty**: 3 (medium-hard)
+
+#### Sequence Arrows
+
+```json
+{
+   "gameType": "sequence-arrows",
+   "rounds": 20,
+   "sequenceLength": null
+}
+```
+
+**Configuration:**
+
+-  `gameType` (required): Must be `"sequence-arrows"`
+-  `rounds` (optional): Number of rounds - Default: **20** (recommended for 100 points max)
+-  `sequenceLength` (optional): Fixed sequence length - Default: **null** (progressive difficulty)
+   -  If `null`, sequence length increases: rounds 1-5 = 3, 6-10 = 4, 11-15 = 5, 16-20 = 6
+   -  If specified, uses that length for all rounds
+
+**Scoring:**
+
+-  5 points per correct round
+-  Maximum 100 points for 20 rounds
+
+**Controls:**
+
+-  **Mouse**: Click on the arrow option (1-4) that completes the sequence
+-  **Keyboard**:
+   -  1-4 to select option directly by number
+   -  W/A/S/D or Arrow keys to select arrow by direction (W=↑, S=↓, A=←, D=→)
+
+**Goal:**
+
+-  Each round shows a sequence of arrows (↑ ↓ ← →) with one missing arrow shown as "?"
+-  Predict which arrow should come next based on the pattern
+-  Patterns can be: clockwise rotation, counter-clockwise rotation, repeating loops, alternating directions, or step jumps
+-  Use the "Show Hint" button to see the detected pattern type
+
+**Pattern Types:**
+
+-  **Clockwise rotation**: ↑ → ↓ ← (then repeats)
+-  **Counter-clockwise rotation**: ↑ ← ↓ → (then repeats)
+-  **Repeating loops**: e.g., ↑ ↑ → → ↓ ↓ ← ←
+-  **Alternating directions**: e.g., ↑ → ↑ → …
+-  **Step jumps**: skipping one direction each time
+
+**Features:**
+
+-  Progressive difficulty with increasing sequence length
+-  Pattern detection and hint system
+-  Interactive start screen explaining all pattern types
+-  Visual feedback with check/x icons
+-  Modern UI matching other games
+
+**Recommended Settings:**
+
+-  **Time Limit**: 90 seconds (overall game time)
+-  **Passing Score**: 75 (75% of max score)
+-  **Difficulty**: 2 (medium)
+
 #### Ball Balance
 
 ```json
@@ -886,6 +1062,12 @@ src/
 -  Sudoku 4x4
 -  Tile Slider
 -  Circuit Path
+-  Maze Escape
+-  Pattern Completion
+-  Rotate to Fit
+-  Mirror Match
+-  Logic Gates
+-  Sequence Arrows
 
 ### Memory Games
 

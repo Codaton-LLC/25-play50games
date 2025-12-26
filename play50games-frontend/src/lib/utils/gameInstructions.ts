@@ -187,14 +187,29 @@ export const gameInstructions: Record<string, {
     ],
   },
   'logic-gates': {
-    description: 'Determine output of AND/OR gates',
-    instructions: 'Look at the two inputs (0 or 1) and the gate type (AND or OR). Choose the correct output: 0 or 1.',
-    tips: 'AND gate: output is 1 only if both inputs are 1. OR gate: output is 1 if at least one input is 1.'
+    description: 'Determine output of logic gates (AND, OR, NOT)',
+    instructions: 'Look at the inputs (0 or 1) and the gate type (AND, OR, or NOT). Calculate the correct output and select it. When output is 1, the lamp lights up!',
+    tips: 'AND gate: output is 1 only if both inputs are 1. OR gate: output is 1 if at least one input is 1. NOT gate: output is the opposite of the input (0 becomes 1, 1 becomes 0).',
+    mouseControls: [
+      { action: 'Click', label: 'Click on 0 or 1 to select the output' },
+    ],
+    keyboardControls: [
+      { keys: ['0'], label: 'Select output 0' },
+      { keys: ['1'], label: 'Select output 1' },
+    ],
   },
   'sequence-arrows': {
-    description: 'Predict the next arrow in sequence',
-    instructions: 'Look at the sequence of arrows (↑↓←→). One arrow is missing (shown as ?). Choose the arrow that completes the pattern.',
-    tips: 'Look for repeating patterns or sequences. The pattern might be directional or rotational.'
+    description: 'Predict the next arrow in a sequence',
+    instructions: 'You will see a sequence of arrows (↑ ↓ ← →) with one missing arrow shown as "?". Your task is to predict which arrow should come next. Look for patterns like clockwise rotation, repeating sequences, or directional logic. Click on the correct arrow from the 4 options, or use keyboard keys. Each correct answer gives you 5 points. The game has 20 rounds, and the sequence length increases as you progress.',
+    tips: 'Look for repeating patterns or sequences. The pattern might be directional (clockwise/counterclockwise), rotational, or follow a specific logic. Pay attention to the sequence length - it increases with each round!',
+    mouseControls: [
+      { action: 'Click', label: 'Click on the arrow option (1-4) that completes the sequence' },
+    ],
+    keyboardControls: [
+      { keys: ['1', '2', '3', '4'], label: 'Select arrow option directly by number' },
+      { keys: ['W', 'A', 'S', 'D'], label: 'Select arrow by direction: W=↑, S=↓, A=←, D=→' },
+      { keys: ['Arrow Up', 'Arrow Down', 'Arrow Left', 'Arrow Right'], label: 'Select arrow by direction: ↑ ↓ ← →' },
+    ],
   },
   'block-fill': {
     description: 'Fill the grid with all blocks',
