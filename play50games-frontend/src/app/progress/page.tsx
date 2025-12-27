@@ -7,7 +7,8 @@ import { getAllProgress } from '@/lib/storage/progressStorage';
 import { getAllGames } from '@/lib/api/games';
 import { Game } from '@/types/game';
 import { getGuestId } from '@/lib/storage/progressStorage';
-import { ArrowLeftIcon, CheckCircleIcon, CircleStackIcon } from '@heroicons/react/24/outline';
+import { ArrowLeftIcon, CheckCircleIcon, CircleStackIcon, TrophyIcon } from '@heroicons/react/24/outline';
+import { TrophyIcon as TrophyIconSolid } from '@heroicons/react/24/solid';
 
 export default function ProgressPage() {
   const [progress, setProgress] = useState<Record<number, GameProgress>>({});
@@ -85,6 +86,20 @@ export default function ProgressPage() {
             const gameProgress = progress[game.id];
             const isCompleted = gameProgress?.completed === true;
             const bestScore = gameProgress?.best_score || 0;
+            
+            // Determine trophy type based on score
+            let trophyType: 'gold' | 'silver' | 'bronze' | null = null;
+            let trophyColor = '';
+            if (isCompleted || bestScore >= 90) {
+              trophyType = 'gold';
+              trophyColor = '#FFD700'; // Gold
+            } else if (bestScore >= 70) {
+              trophyType = 'silver';
+              trophyColor = '#C0C0C0'; // Silver
+            } else if (bestScore >= 50) {
+              trophyType = 'bronze';
+              trophyColor = '#CD7F32'; // Bronze
+            }
             
             return (
               <Link 
@@ -203,6 +218,42 @@ export default function ProgressPage() {
                   <div className="progress-details" style={{ flex: "0 0 auto", marginTop: "auto" }}>
                     {gameProgress ? (
                       <>
+                        {/* Trophy Display */}
+                        {trophyType && (
+                          <div
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              marginBottom: "12px",
+                              padding: "8px",
+                              background: `rgba(${trophyType === 'gold' ? '255, 215, 0' : trophyType === 'silver' ? '192, 192, 192' : '205, 127, 50'}, 0.15)`,
+                              borderRadius: "12px",
+                              border: `2px solid ${trophyColor}40`
+                            }}
+                          >
+                            <TrophyIconSolid
+                              style={{
+                                width: 32,
+                                height: 32,
+                                color: trophyColor,
+                                filter: `drop-shadow(0 2px 4px ${trophyColor}60)`
+                              }}
+                            />
+                            <span
+                              style={{
+                                marginLeft: "8px",
+                                fontSize: "0.875rem",
+                                fontWeight: 700,
+                                color: trophyColor,
+                                textTransform: "capitalize"
+                              }}
+                            >
+                              {trophyType === 'gold' ? 'Gold' : trophyType === 'silver' ? 'Silver' : 'Bronze'}
+                            </span>
+                          </div>
+                        )}
+                        
                         <div 
                           style={{
                             width: "100%",
@@ -218,12 +269,24 @@ export default function ProgressPage() {
                             style={{ 
                               width: `${Math.min(100, bestScore)}%`,
                               height: "100%",
-                              background: isCompleted
+                              background: trophyType === 'gold'
+                                ? "linear-gradient(90deg, #FFD700 0%, rgba(255, 215, 0, 0.8) 100%)"
+                                : trophyType === 'silver'
+                                ? "linear-gradient(90deg, #C0C0C0 0%, rgba(192, 192, 192, 0.8) 100%)"
+                                : trophyType === 'bronze'
+                                ? "linear-gradient(90deg, #CD7F32 0%, rgba(205, 127, 50, 0.8) 100%)"
+                                : isCompleted
                                 ? "linear-gradient(90deg, var(--ok) 0%, rgba(134, 239, 172, 0.8) 100%)"
                                 : "linear-gradient(90deg, var(--accent) 0%, rgba(125, 211, 252, 0.8) 100%)",
                               borderRadius: "4px",
                               transition: "width 0.3s ease",
-                              boxShadow: isCompleted
+                              boxShadow: trophyType === 'gold'
+                                ? "0 0 10px rgba(255, 215, 0, 0.5)"
+                                : trophyType === 'silver'
+                                ? "0 0 10px rgba(192, 192, 192, 0.5)"
+                                : trophyType === 'bronze'
+                                ? "0 0 10px rgba(205, 127, 50, 0.5)"
+                                : isCompleted
                                 ? "0 0 10px rgba(134, 239, 172, 0.5)"
                                 : "0 0 10px rgba(125, 211, 252, 0.5)"
                             }}
@@ -238,8 +301,20 @@ export default function ProgressPage() {
                           }}
                         >
                           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "12px" }}>
-                            <span style={{ color: "var(--muted)" }}>Score:</span>
-                            <span style={{ fontWeight: 600, color: "var(--text)" }}>{bestScore} / 100</span>
+                            <span style={{ color: "var(--muted)", display: "flex", alignItems: "center", gap: "6px" }}>
+                              {trophyType && (
+                                <TrophyIcon
+                                  style={{
+                                    width: 16,
+                                    height: 16,
+                                    color: trophyColor,
+                                    opacity: 0.7
+                                  }}
+                                />
+                              )}
+                              Score:
+                            </span>
+                            <span style={{ fontWeight: 600, color: trophyType ? trophyColor : "var(--text)" }}>{bestScore} / 100</span>
                           </div>
                           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "12px" }}>
                             <span style={{ color: "var(--muted)" }}>Attempts:</span>
