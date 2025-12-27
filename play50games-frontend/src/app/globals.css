@@ -869,7 +869,7 @@ button:disabled {
 
 /* Progress Page */
 .progress-page {
-  max-width: 1000px;
+  max-width: 1400px;
   margin: 0 auto;
   padding: 18px;
 }
@@ -988,6 +988,19 @@ button:disabled {
   border-radius: 18px;
   margin-bottom: 20px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.28);
+}
+
+/* Responsive grid for progress page - 3 columns default */
+@media (max-width: 1000px) {
+  .progress-list > div[style*="grid-template-columns"] {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
+
+@media (max-width: 600px) {
+  .progress-list > div[style*="grid-template-columns"] {
+    grid-template-columns: 1fr !important;
+  }
 }
 
 .progress-bar {
