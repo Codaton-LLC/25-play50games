@@ -339,7 +339,6 @@ function CardFlipMemory({
       // Note: Tracking is done in GameEngine.tsx immediately on page load
       const urlParams = new URLSearchParams(window.location.search);
       const sharedBy = urlParams.get("shared");
-      console.log("[Card Flip] Checking for shared parameter:", sharedBy);
       if (sharedBy) {
          // Grant unlimited hints to the person who opened the link (with expiry)
          const expiryTime = Date.now() + EXPIRY_TIME;
@@ -431,7 +430,6 @@ function CardFlipMemory({
                }
             }
          } catch (error) {
-            console.error("Error checking share status:", error);
          }
       };
 
@@ -645,7 +643,6 @@ function CardFlipMemory({
          setCurrentShareId(shareId);
          // Note: hasShared remains false until someone clicks the link
       } catch (error) {
-         console.error("Failed to register share:", error);
       }
    };
 
@@ -707,7 +704,6 @@ function CardFlipMemory({
             setShareSuccess(true);
             setTimeout(() => setShareSuccess(false), 15000); // 15 seconds
          } catch (err) {
-            console.error("Failed to copy link:", err);
          }
          document.body.removeChild(textArea);
       }
@@ -1282,7 +1278,6 @@ function SoundMemory({
 
    const playSound = (tone: number) => {
       // Visual feedback for sound
-      console.log(`Playing tone ${tone}`);
    };
 
    useEffect(() => {

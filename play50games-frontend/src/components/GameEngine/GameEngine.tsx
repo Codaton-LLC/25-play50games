@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { Game } from "@/types/game";
 import { saveProgress } from "@/lib/storage/progressStorage";
 import { getGameInstructions } from "@/lib/utils/gameInstructions";
+import { useAuth } from "@/contexts/AuthContext";
 import {
    XMarkIcon,
    CheckCircleIcon,
@@ -46,6 +47,7 @@ export default function GameEngine({
    onComplete,
    onExit,
 }: GameEngineProps) {
+   const { isAuthenticated } = useAuth();
    const [score, setScore] = useState(0);
    const [timeLeft, setTimeLeft] = useState(game.time_limit);
    const [isPlaying, setIsPlaying] = useState(false);
@@ -56,15 +58,10 @@ export default function GameEngine({
       const urlParams = new URLSearchParams(window.location.search);
       const sharedBy = urlParams.get("shared");
       if (sharedBy) {
-         console.log("[GameEngine] Shared link detected, tracking click for:", sharedBy);
          // Track click immediately when page loads
-         trackShareClick(sharedBy)
-            .then((result) => {
-               console.log("[GameEngine] Click tracked successfully:", result);
-            })
-            .catch((err) => {
-               console.error("[GameEngine] Failed to track share click:", err);
-            });
+         trackShareClick(sharedBy).catch(() => {
+            // Failed to track share click
+         });
       }
    }, []); // Run once on mount
 
@@ -102,12 +99,16 @@ export default function GameEngine({
          }
 
          // Save progress
-         await saveProgress(game.id, actualScore, completed);
+         try {
+            await saveProgress(game.id, actualScore, completed, isAuthenticated);
+         } catch (error) {
+            // Don't block game completion if save fails
+         }
 
          // Call completion callback
          onComplete(actualScore);
       },
-      [score, game, isCompleted, onComplete]
+      [score, game, isCompleted, onComplete, isAuthenticated]
    );
 
    const startGame = () => {
@@ -130,14 +131,12 @@ export default function GameEngine({
          try {
             gameConfig = JSON.parse(gameConfig);
          } catch (e) {
-            console.error('[GameEngine] Failed to parse game_config:', e);
             gameConfig = {};
          }
       }
       
       // If game_config is null or undefined, set to empty object
       if (!gameConfig || (typeof gameConfig === 'object' && Object.keys(gameConfig).length === 0 && gameConfig.constructor === Object)) {
-         console.warn('[GameEngine] game_config is empty or null for game:', game.title, game.id);
          gameConfig = {};
       }
       

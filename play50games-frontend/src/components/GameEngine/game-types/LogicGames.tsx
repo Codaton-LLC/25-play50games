@@ -172,16 +172,6 @@ export default function LogicGames({
                ? Math.round((score / (maxRounds * 100)) * 100) // Maze Escape: score is 0-2000, convert to 0-100
                : Math.round((score / maxRounds) * 100);
 
-         console.log("[LogicGames] Final score calculation:", {
-            round,
-            maxRounds,
-            score,
-            finalScore,
-            currentGame,
-            isBalanceScale,
-            gameTitle,
-         });
-
          onScoreUpdate(finalScore);
          // Pass the final score directly to onComplete
          onComplete(finalScore);
@@ -263,12 +253,6 @@ export default function LogicGames({
                const newRound = round + 1;
                setScore(newScore);
                setRound(newRound);
-               console.log("[BalanceScale] Round update:", {
-                  round: newRound,
-                  score: newScore,
-                  pointsAdded: s,
-                  maxRounds,
-               });
             }}
          />
       ),
@@ -314,28 +298,15 @@ export default function LogicGames({
                // Add score only - round will be updated by onRoundComplete
                const newScore = score + s;
                setScore(newScore);
-               console.log("[MazeEscape] Score update:", {
-                  currentRound: round + 1,
-                  score: newScore,
-                  pointsAdded: s,
-                  maxRounds,
-               });
+               // Score update
             }}
             onComplete={onComplete}
             onRoundComplete={() => {
                // Move to next round
-               console.log(
-                  "[MazeEscape] onRoundComplete called in LogicGames, current round:",
-                  round
-               );
+               // onRoundComplete called
                setRound((prev) => {
                   const nextRound = prev + 1;
-                  console.log(
-                     "[MazeEscape] Updating round from",
-                     prev,
-                     "to",
-                     nextRound
-                  );
+                  // Updating round
                   return nextRound;
                });
             }}
@@ -2691,7 +2662,6 @@ function TileSlider({
       // Note: Tracking is done in GameEngine.tsx immediately on page load
       const urlParams = new URLSearchParams(window.location.search);
       const sharedBy = urlParams.get("shared");
-      console.log("[Tile Slider] Checking for shared parameter:", sharedBy);
       if (sharedBy) {
          // Grant unlimited hints to the person who opened the link (with expiry)
          const expiryTime = Date.now() + EXPIRY_TIME;
@@ -2783,9 +2753,7 @@ function TileSlider({
                   shareCheckIntervalRef.current = null;
                }
             }
-         } catch (error) {
-            console.error("Error checking share status:", error);
-         }
+         } catch (error) {}
       };
 
       // Check immediately, then every 10 seconds (heartbeat)
@@ -2858,9 +2826,7 @@ function TileSlider({
          localStorage.setItem(gameKey, JSON.stringify({ share_id: shareId }));
          setCurrentShareId(shareId);
          // Note: hasShared remains false until someone clicks the link
-      } catch (error) {
-         console.error("Failed to register share:", error);
-      }
+      } catch (error) {}
    };
 
    // Handle share via Web Share API or fallback
@@ -2920,9 +2886,7 @@ function TileSlider({
             // Success - show message (hints will activate when someone clicks the link)
             setShareSuccess(true);
             setTimeout(() => setShareSuccess(false), 15000); // 15 seconds
-         } catch (err) {
-            console.error("Failed to copy link:", err);
-         }
+         } catch (err) {}
          document.body.removeChild(textArea);
       }
    };
@@ -3466,9 +3430,6 @@ function TileSlider({
 
          // Limit search depth for very large puzzles (safety check)
          if (current.g > 200) {
-            console.warn(
-               "Solution depth exceeded 200 moves, returning partial solution"
-            );
             return current.moves;
          }
       }
@@ -5449,29 +5410,11 @@ function MazeEscape({
          for (let i = 0; i < sortedGridSizes.length; i++) {
             const { rounds, size } = sortedGridSizes[i];
             if (currentRound <= rounds) {
-               console.log(
-                  "[MazeEscape] Grid size for round",
-                  currentRound,
-                  ":",
-                  size,
-                  "x",
-                  size,
-                  "(from config)"
-               );
                return size;
             }
          }
          // If no match (currentRound > all configured rounds), use the last configured size
          const lastSize = sortedGridSizes[sortedGridSizes.length - 1].size;
-         console.log(
-            "[MazeEscape] Grid size for round",
-            currentRound,
-            ":",
-            lastSize,
-            "x",
-            lastSize,
-            "(last config, round > all)"
-         );
          return lastSize;
       }
 
@@ -5484,15 +5427,6 @@ function MazeEscape({
       } else {
          size = 45; // 45x45 for rounds 16-20
       }
-      console.log(
-         "[MazeEscape] Grid size for round",
-         currentRound,
-         ":",
-         size,
-         "x",
-         size,
-         "(default)"
-      );
       return size;
    };
 
@@ -5608,12 +5542,6 @@ function MazeEscape({
    // Initialize maze for new round - only when round changes
    useEffect(() => {
       // Reset everything for new round
-      console.log(
-         "[MazeEscape] Initializing new round:",
-         currentRound,
-         "gridSize:",
-         gridSize
-      );
       const newMaze = generateMaze(gridSize);
       setMaze(newMaze);
       setPlayerPos({ x: 0, y: 0 });
@@ -5629,11 +5557,6 @@ function MazeEscape({
          clearTimeout(roundTimeoutRef.current);
          roundTimeoutRef.current = null;
       }
-      console.log(
-         "[MazeEscape] Round",
-         currentRound,
-         "initialized successfully"
-      );
       // eslint-disable-next-line react-hooks/exhaustive-deps
    }, [currentRound, gridSize]); // Depend on currentRound and gridSize
 
@@ -5679,29 +5602,12 @@ function MazeEscape({
                onCompleteRef.current(finalScore);
             } else {
                // Trigger next round only once
-               console.log(
-                  "[MazeEscape] Triggering next round, currentRound:",
-                  currentRound,
-                  "maxRounds:",
-                  maxRounds
-               );
                if (onRoundCompleteRef.current) {
-                  console.log("[MazeEscape] Calling onRoundComplete callback");
                   try {
                      onRoundCompleteRef.current();
-                     console.log(
-                        "[MazeEscape] onRoundComplete callback called successfully"
-                     );
                   } catch (error) {
-                     console.error(
-                        "[MazeEscape] Error calling onRoundComplete:",
-                        error
-                     );
+                     // Error calling onRoundComplete
                   }
-               } else {
-                  console.warn(
-                     "[MazeEscape] onRoundCompleteRef.current is null!"
-                  );
                }
             }
             roundTimeoutRef.current = null;
@@ -5987,19 +5893,7 @@ function PatternCompletion({
    onRoundComplete?: () => void;
 }) {
    // Debug: Log config to see what we're receiving
-   useEffect(() => {
-      console.log("[PatternCompletion] Config received:", config);
-      console.log("[PatternCompletion] Config.rounds:", config?.rounds);
-      console.log(
-         "[PatternCompletion] Config.totalRounds:",
-         config?.totalRounds
-      );
-      console.log("[PatternCompletion] Config.shapes:", config?.shapes);
-      console.log(
-         "[PatternCompletion] Config.patternRules:",
-         config?.patternRules
-      );
-   }, [config]);
+   useEffect(() => {}, [config]);
 
    const rounds = config?.totalRounds || config?.rounds || maxRounds;
    const [pattern, setPattern] = useState<string[]>([]);
@@ -6074,37 +5968,19 @@ function PatternCompletion({
                   repeatSize,
                } = sorted[i];
                if (roundNum <= maxRounds) {
-                  console.log(
-                     "[PatternCompletion] Round",
-                     roundNum,
-                     "matches patternLength",
-                     patternLength,
-                     "repeatSize",
-                     repeatSize,
-                     "for rounds up to",
-                     maxRounds
-                  );
                   return { patternLength, repeatSize };
                }
             }
             // Default to last configured rules if round exceeds all
             const lastRule = sorted[sorted.length - 1];
-            console.log(
-               "[PatternCompletion] Round",
-               roundNum,
-               "exceeds all configured rounds, using last rule:",
-               lastRule
-            );
+
             return {
                patternLength: lastRule.patternLength,
                repeatSize: lastRule.repeatSize,
             };
          }
          // Default pattern rules based on rounds
-         console.log(
-            "[PatternCompletion] Using default pattern rules for round",
-            roundNum
-         );
+
          if (roundNum <= 5) {
             return { patternLength: 6, repeatSize: 3 }; // Rounds 1-5: 6 shapes, 3 repeat
          }
@@ -6121,16 +5997,6 @@ function PatternCompletion({
       // Use Heroicons instead of CSS shapes
       const shapes = config?.shapes || ["Home", "Star", "Heart", "Circle"];
       const { patternLength, repeatSize } = getPatternRules(round);
-      console.log(
-         "[PatternCompletion] Starting round",
-         round,
-         "with patternLength",
-         patternLength,
-         "repeatSize",
-         repeatSize,
-         "and shapes",
-         shapes
-      );
 
       const repeatLength = repeatSize;
 
@@ -6156,7 +6022,7 @@ function PatternCompletion({
          }
       }
 
-      console.log("[PatternCompletion] Repeating sequence:", repeatingSequence);
+      // "[PatternCompletion] Repeating sequence:", repeatingSequence);
 
       // Generate full pattern by repeating the sequence
       // First, generate the complete pattern with all shapes
@@ -6165,32 +6031,15 @@ function PatternCompletion({
          fullPattern.push(repeatingSequence[i % repeatLength]);
       }
 
-      console.log(
-         "[PatternCompletion] Full pattern before missing:",
-         fullPattern
-      );
-
       // Determine which position should be the missing one (random position)
       const missingPosition = Math.floor(Math.random() * patternLength);
-      console.log(
-         "[PatternCompletion] Missing position:",
-         missingPosition,
-         "out of",
-         patternLength
-      );
 
       // Calculate what the missing shape should be based on the repeating pattern
       const missingShape = repeatingSequence[missingPosition % repeatLength];
-      console.log("[PatternCompletion] Missing shape should be:", missingShape);
 
       // Create pattern with "?" at the missing position
       const patternWithMissing: string[] = [...fullPattern];
       patternWithMissing[missingPosition] = "?";
-
-      console.log(
-         "[PatternCompletion] Final pattern with missing:",
-         patternWithMissing
-      );
 
       const allOptions = [...shapes].sort(() => Math.random() - 0.5);
 
@@ -10660,11 +10509,6 @@ function BlockFill({
    // Initialize game
    useEffect(() => {
       // Reset completion flag for new round
-      console.log(
-         "[BlockFill] Initializing round",
-         currentRound,
-         "completionCalledRef reset to false"
-      );
       isResettingRef.current = true;
       completionCalledRef.current = false;
       placementSeqRef.current = 1;
@@ -10827,7 +10671,7 @@ function BlockFill({
       // Don't check if already completed or grid not initialized
       if (isResettingRef.current) return;
       if (completionCalledRef.current) {
-         console.log("[BlockFill] Round already completed, skipping check");
+         // "[BlockFill] Round already completed, skipping check");
          return;
       }
       if (grid.length === 0) return;
@@ -10835,20 +10679,7 @@ function BlockFill({
       const allFilled = grid.every((v) => v !== 0);
       const allUsed = pieces.length === 0;
 
-      console.log("[BlockFill] Win check:", {
-         round: currentRound,
-         allFilled,
-         allUsed,
-         gridLength: grid.length,
-         piecesCount: pieces.length,
-      });
-
       if (allFilled && allUsed) {
-         console.log(
-            "[BlockFill] Round",
-            currentRound,
-            "completed! Moving to next round..."
-         );
          // Mark as completed to prevent multiple calls
          completionCalledRef.current = true;
 
@@ -10863,15 +10694,11 @@ function BlockFill({
             setFeedback(null);
             if (currentRound >= maxRounds) {
                // Game complete
-               console.log("[BlockFill] All rounds completed!");
+               // "[BlockFill] All rounds completed!");
                const finalScore = Math.min(100, currentScore + 5);
                onCompleteRef.current?.(finalScore);
             } else {
                // Next round - this will trigger useEffect to reset completionCalledRef
-               console.log(
-                  "[BlockFill] Moving to next round:",
-                  currentRound + 1
-               );
                onRoundCompleteRef.current?.();
             }
          }, 2000); // 2 seconds delay to show completion

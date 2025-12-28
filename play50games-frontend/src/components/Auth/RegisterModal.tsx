@@ -6,13 +6,14 @@ import { XMarkIcon } from '@heroicons/react/24/outline';
 interface RegisterModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onRegister: (firstName: string, lastName: string, email: string, password: string) => Promise<void>;
+  onRegister: (firstName: string, lastName: string, username: string, email: string, password: string) => Promise<void>;
   onSwitchToLogin: () => void;
 }
 
 export default function RegisterModal({ isOpen, onClose, onRegister, onSwitchToLogin }: RegisterModalProps) {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
+  const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -26,6 +27,16 @@ export default function RegisterModal({ isOpen, onClose, onRegister, onSwitchToL
     setError('');
 
     // Validation
+    if (!firstName.trim() || !lastName.trim() || !username.trim() || !email.trim() || !password) {
+      setError('All fields are required');
+      return;
+    }
+
+    if (username.length < 3) {
+      setError('Username must be at least 3 characters long');
+      return;
+    }
+
     if (password !== confirmPassword) {
       setError('Passwords do not match');
       return;
@@ -39,9 +50,10 @@ export default function RegisterModal({ isOpen, onClose, onRegister, onSwitchToL
     setLoading(true);
 
     try {
-      await onRegister(firstName, lastName, email, password);
+      await onRegister(firstName, lastName, username, email, password);
       setFirstName('');
       setLastName('');
+      setUsername('');
       setEmail('');
       setPassword('');
       setConfirmPassword('');
@@ -65,11 +77,12 @@ export default function RegisterModal({ isOpen, onClose, onRegister, onSwitchToL
         {error && (
           <div className="error-message" style={{
             padding: '0.75rem',
-            backgroundColor: '#fee',
-            border: '1px solid #fcc',
-            borderRadius: '4px',
-            color: '#c33',
-            marginBottom: '1rem'
+            backgroundColor: 'rgba(252, 165, 165, 0.15)',
+            border: '1px solid rgba(252, 165, 165, 0.4)',
+            borderRadius: '12px',
+            color: 'var(--warn)',
+            marginBottom: '1rem',
+            fontSize: '14px'
           }}>
             {error}
           </div>
@@ -101,6 +114,22 @@ export default function RegisterModal({ isOpen, onClose, onRegister, onSwitchToL
           </div>
 
           <div className="form-group">
+            <label htmlFor="register-username">Username</label>
+            <input
+              id="register-username"
+              type="text"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              required
+              placeholder="johndoe"
+              minLength={3}
+            />
+            <small style={{ color: 'var(--muted)', fontSize: '0.875rem' }}>
+              Must be at least 3 characters
+            </small>
+          </div>
+
+          <div className="form-group">
             <label htmlFor="register-email">Email</label>
             <input
               id="register-email"
@@ -123,7 +152,7 @@ export default function RegisterModal({ isOpen, onClose, onRegister, onSwitchToL
               placeholder="••••••••"
               minLength={6}
             />
-            <small style={{ color: '#666', fontSize: '0.875rem' }}>
+            <small style={{ color: 'var(--muted)', fontSize: '0.875rem' }}>
               Must be at least 6 characters
             </small>
           </div>
@@ -146,7 +175,7 @@ export default function RegisterModal({ isOpen, onClose, onRegister, onSwitchToL
         </form>
 
         <div style={{ marginTop: '1rem', textAlign: 'center' }}>
-          <p style={{ margin: 0, color: '#666' }}>
+          <p style={{ margin: 0, color: 'var(--muted)', fontSize: '14px' }}>
             Already have an account?{' '}
             <button
               type="button"
@@ -154,9 +183,11 @@ export default function RegisterModal({ isOpen, onClose, onRegister, onSwitchToL
               style={{
                 background: 'none',
                 border: 'none',
-                color: '#007bff',
+                color: 'var(--accent)',
                 cursor: 'pointer',
-                textDecoration: 'underline'
+                textDecoration: 'underline',
+                fontSize: '14px',
+                fontWeight: '600'
               }}
             >
               Login here

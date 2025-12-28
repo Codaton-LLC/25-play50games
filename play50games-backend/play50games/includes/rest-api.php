@@ -3,6 +3,95 @@
  * Play50Games REST API Endpoints
  */
 
+/**
+ * Get JWT token from Authorization header
+ */
+function play50_get_jwt_from_header() {
+    $auth_header = isset($_SERVER['HTTP_AUTHORIZATION']) ? $_SERVER['HTTP_AUTHORIZATION'] : '';
+    if (empty($auth_header) && function_exists('getallheaders')) {
+        $headers = getallheaders();
+        $auth_header = isset($headers['Authorization']) ? $headers['Authorization'] : '';
+    }
+    
+    if (!empty($auth_header) && preg_match('/Bearer\s+(.*)$/i', $auth_header, $matches)) {
+        return $matches[1];
+    }
+    
+    return null;
+}
+
+/**
+ * Get user ID from JWT token (custom validation only)
+ */
+function play50_get_user_id_from_jwt($token) {
+    if (empty($token) || !defined('JWT_AUTH_SECRET_KEY')) {
+        return 0;
+    }
+    
+    $parts = explode('.', $token);
+    if (count($parts) !== 3) {
+        return 0;
+    }
+    
+    list($header, $payload, $signature) = $parts;
+    
+    // Verify signature
+    $expected_signature_raw = hash_hmac('sha256', $header . '.' . $payload, JWT_AUTH_SECRET_KEY, true);
+    $expected_signature = str_replace(['+', '/', '='], ['-', '_', ''], base64_encode($expected_signature_raw));
+    
+    if (!hash_equals($signature, $expected_signature)) {
+        return 0;
+    }
+    
+    // Decode payload
+    $payload_decoded = str_replace(['-', '_'], ['+', '/'], $payload);
+    $padding = (4 - strlen($payload_decoded) % 4) % 4;
+    if ($padding > 0) {
+        $payload_decoded .= str_repeat('=', $padding);
+    }
+    $decoded_payload = base64_decode($payload_decoded, true);
+    
+    if ($decoded_payload === false) {
+        return 0;
+    }
+    
+    $payload_data = json_decode($decoded_payload, true);
+    if (!is_array($payload_data) || !isset($payload_data['user_id'])) {
+        return 0;
+    }
+    
+    // Check expiration
+    if (isset($payload_data['exp']) && intval($payload_data['exp']) < time()) {
+        return 0;
+    }
+    
+    $user_id = intval($payload_data['user_id']);
+    return $user_id > 0 ? $user_id : 0;
+}
+
+/**
+ * Generate JWT token (custom implementation)
+ */
+function play50_generate_jwt_token($user_id) {
+    if (!defined('JWT_AUTH_SECRET_KEY')) {
+        return null;
+    }
+    
+    $header_data = array('typ' => 'JWT', 'alg' => 'HS256');
+    $payload_data = array(
+        'user_id' => intval($user_id),
+        'iat' => time(),
+        'exp' => time() + (7 * 24 * 60 * 60), // 7 days
+    );
+    
+    $header = str_replace(['+', '/', '='], ['-', '_', ''], base64_encode(json_encode($header_data)));
+    $payload = str_replace(['+', '/', '='], ['-', '_', ''], base64_encode(json_encode($payload_data)));
+    $signature_raw = hash_hmac('sha256', $header . '.' . $payload, JWT_AUTH_SECRET_KEY, true);
+    $signature = str_replace(['+', '/', '='], ['-', '_', ''], base64_encode($signature_raw));
+    
+    return $header . '.' . $payload . '.' . $signature;
+}
+
 // Ensure REST API allows unauthenticated requests
 // Note: rest_enabled and rest_jsonp_enabled are deprecated since WordPress 4.7.0
 // REST API can no longer be completely disabled, we just need to allow access
@@ -13,6 +102,71 @@ add_filter('rest_authentication_errors', function($result) {
     }
     return true;
 }, 20);
+
+// Ensure WordPress loads user from JWT token or cookies for REST API requests
+add_action('rest_api_init', function() {
+    if (!function_exists('wp_validate_auth_cookie')) {
+        require_once(ABSPATH . 'wp-includes/pluggable.php');
+    }
+    
+    // Try JWT token first
+    $jwt_token = play50_get_jwt_from_header();
+    if ($jwt_token) {
+        $user_id = play50_get_user_id_from_jwt($jwt_token);
+        if ($user_id > 0) {
+            wp_set_current_user($user_id);
+            wp_set_auth_cookie($user_id);
+            return;
+        }
+    }
+    
+    // Fallback to cookies
+    $user_id = wp_validate_auth_cookie('', 'logged_in');
+    if ($user_id) {
+        wp_set_current_user($user_id);
+    }
+}, 5);
+
+// Add CORS headers early for all REST API requests (including redirects)
+// Use 'init' hook with high priority to run before redirects
+add_action('init', function() {
+    $request_uri = isset($_SERVER['REQUEST_URI']) ? $_SERVER['REQUEST_URI'] : '';
+    if (strpos($request_uri, '/wp-json/play50/v1/') !== false) {
+        $allowed_origin = defined('PLAY50_CORS_ORIGIN') ? PLAY50_CORS_ORIGIN : '*';
+        $request_origin = isset($_SERVER['HTTP_ORIGIN']) ? $_SERVER['HTTP_ORIGIN'] : '';
+        
+        $final_origin = '*';
+        if (!empty($request_origin)) {
+            // Always allow localhost
+            if (strpos($request_origin, 'http://localhost') === 0 || 
+                strpos($request_origin, 'http://127.0.0.1') === 0) {
+                $final_origin = $request_origin;
+            } elseif (strpos($allowed_origin, ',') !== false) {
+                $origins = array_map('trim', explode(',', $allowed_origin));
+                if (in_array($request_origin, $origins)) {
+                    $final_origin = $request_origin;
+                } elseif (strpos($request_origin, 'http://localhost') === 0) {
+                    // Check if any origin contains localhost
+                    foreach ($origins as $origin) {
+                        if (strpos($origin, 'http://localhost') === 0) {
+                            $final_origin = $request_origin;
+                            break;
+                        }
+                    }
+                }
+            } elseif ($allowed_origin === '*') {
+                $final_origin = '*';
+            } elseif ($request_origin === $allowed_origin) {
+                $final_origin = $request_origin;
+            }
+        }
+        
+        header('Access-Control-Allow-Origin: ' . $final_origin);
+        header('Access-Control-Allow-Methods: GET, POST, OPTIONS, PUT, DELETE');
+        header('Access-Control-Allow-Headers: Authorization, Content-Type, X-WP-Nonce, X-Requested-With, X-API-Key, X-Play50-API-Key');
+        header('Access-Control-Allow-Credentials: true');
+    }
+}, 1);
 
 // Enable CORS for REST API
 add_action('rest_api_init', function() {
@@ -37,9 +191,20 @@ add_action('rest_api_init', function() {
             // If multiple origins defined (comma-separated), check request origin
             elseif (strpos($allowed_origin, ',') !== false) {
                 $origins = array_map('trim', explode(',', $allowed_origin));
+                // Check exact match first
                 if (in_array($request_origin, $origins)) {
                     $final_origin = $request_origin;
-                } elseif ($allowed_origin === '*') {
+                } 
+                // Also check if request is localhost and any origin contains localhost
+                elseif (strpos($request_origin, 'http://localhost') === 0) {
+                    foreach ($origins as $origin) {
+                        if (strpos($origin, 'http://localhost') === 0) {
+                            $final_origin = $request_origin;
+                            break;
+                        }
+                    }
+                }
+                elseif ($allowed_origin === '*') {
                     $final_origin = '*';
                 } else {
                     // If not in list, use first allowed origin (or wildcard if first is not set)
@@ -67,7 +232,7 @@ add_action('rest_api_init', function() {
         
         header('Access-Control-Allow-Origin: ' . $final_origin);
         header('Access-Control-Allow-Methods: GET, POST, OPTIONS, PUT, DELETE');
-        header('Access-Control-Allow-Headers: Authorization, Content-Type, X-WP-Nonce, X-Requested-With');
+        header('Access-Control-Allow-Headers: Authorization, Content-Type, X-WP-Nonce, X-Requested-With, X-API-Key, X-Play50-API-Key');
         header('Access-Control-Expose-Headers: X-WP-Total, X-WP-TotalPages');
         // Only set credentials if not using wildcard
         if ($final_origin !== '*') {
@@ -99,9 +264,20 @@ add_action('init', function() {
             // If multiple origins defined (comma-separated), check request origin
             elseif (strpos($allowed_origin, ',') !== false) {
                 $origins = array_map('trim', explode(',', $allowed_origin));
+                // Check exact match first
                 if (in_array($request_origin, $origins)) {
                     $final_origin = $request_origin;
-                } elseif ($allowed_origin === '*') {
+                } 
+                // Also check if request is localhost and any origin contains localhost
+                elseif (strpos($request_origin, 'http://localhost') === 0) {
+                    foreach ($origins as $origin) {
+                        if (strpos($origin, 'http://localhost') === 0) {
+                            $final_origin = $request_origin;
+                            break;
+                        }
+                    }
+                }
+                elseif ($allowed_origin === '*') {
                     $final_origin = '*';
                 } else {
                     // If not in list, use first allowed origin (or wildcard if first is not set)
@@ -129,7 +305,7 @@ add_action('init', function() {
         
         header('Access-Control-Allow-Origin: ' . $final_origin);
         header('Access-Control-Allow-Methods: GET, POST, OPTIONS, PUT, DELETE');
-        header('Access-Control-Allow-Headers: Authorization, Content-Type, X-WP-Nonce, X-Requested-With');
+        header('Access-Control-Allow-Headers: Authorization, Content-Type, X-WP-Nonce, X-Requested-With, X-API-Key, X-Play50-API-Key');
         header('Access-Control-Expose-Headers: X-WP-Total, X-WP-TotalPages');
         // Only set credentials if not using wildcard
         if ($final_origin !== '*') {
@@ -141,6 +317,54 @@ add_action('init', function() {
     }
 }, 1);
 
+/**
+ * Check API Key permission for REST API endpoints
+ * Requires X-API-Key or X-Play50-API-Key header with value from wp-config.php PLAY50_API_KEY
+ */
+function play50_check_api_key_permission() {
+    // Get API key from wp-config.php
+    $required_api_key = defined('PLAY50_API_KEY') ? PLAY50_API_KEY : '';
+    
+    // If no API key is configured, allow access (backward compatibility)
+    if (empty($required_api_key)) {
+        return true;
+    }
+    
+    // Get API key from headers
+    $api_key = '';
+    if (isset($_SERVER['HTTP_X_API_KEY'])) {
+        $api_key = $_SERVER['HTTP_X_API_KEY'];
+    } elseif (isset($_SERVER['HTTP_X_PLAY50_API_KEY'])) {
+        $api_key = $_SERVER['HTTP_X_PLAY50_API_KEY'];
+    } elseif (function_exists('getallheaders')) {
+        $headers = getallheaders();
+        if (isset($headers['X-API-Key'])) {
+            $api_key = $headers['X-API-Key'];
+        } elseif (isset($headers['X-Play50-API-Key'])) {
+            $api_key = $headers['X-Play50-API-Key'];
+        }
+    }
+    
+    // Compare API keys (use hash_equals for timing attack protection)
+    if (empty($api_key)) {
+        return new WP_Error(
+            'missing_api_key',
+            'API Key is required. Please provide X-API-Key or X-Play50-API-Key header.',
+            array('status' => 401)
+        );
+    }
+    
+    if (!hash_equals($required_api_key, $api_key)) {
+        return new WP_Error(
+            'invalid_api_key',
+            'Invalid API Key provided.',
+            array('status' => 403)
+        );
+    }
+    
+    return true;
+}
+
 // Register REST API routes - use early priority to ensure registration
 add_action('rest_api_init', function() {
     
@@ -148,12 +372,18 @@ add_action('rest_api_init', function() {
     register_rest_route('play50/v1', '/test', array(
         'methods' => 'GET',
         'callback' => function() {
+            // Check if custom post type is registered
+            $cpt_registered = post_type_exists('play50_game_progress');
+            $cpt_posts_count = $cpt_registered ? wp_count_posts('play50_game_progress') : null;
+            
             return new WP_REST_Response(array(
                 'success' => true,
                 'message' => 'Play50Games REST API is working!',
                 'timestamp' => current_time('mysql'),
                 'wordpress_version' => get_bloginfo('version'),
                 'rest_api_url' => rest_url('play50/v1/'),
+                'cpt_registered' => $cpt_registered,
+                'cpt_posts_count' => $cpt_posts_count ? $cpt_posts_count->publish : 0,
             ), 200);
         },
         'permission_callback' => '__return_true',
@@ -179,67 +409,122 @@ add_action('rest_api_init', function() {
     register_rest_route('play50/v1', '/games', array(
         'methods' => 'GET',
         'callback' => 'play50_get_games',
-        'permission_callback' => '__return_true',
+        'permission_callback' => 'play50_check_api_key_permission',
     ));
     
     // Get single game by ID
     register_rest_route('play50/v1', '/games/(?P<id>\d+)', array(
         'methods' => 'GET',
         'callback' => 'play50_get_game',
-        'permission_callback' => '__return_true',
+        'permission_callback' => 'play50_check_api_key_permission',
     ));
     
     // Save/Get user progress
     register_rest_route('play50/v1', '/progress', array(
         'methods' => 'POST',
         'callback' => 'play50_save_progress',
-        'permission_callback' => '__return_true',
+        'permission_callback' => 'play50_check_api_key_permission',
     ));
     
     register_rest_route('play50/v1', '/progress', array(
         'methods' => 'GET',
         'callback' => 'play50_get_progress',
-        'permission_callback' => '__return_true',
+        'permission_callback' => 'play50_check_api_key_permission',
     ));
     
     // Get unlock status for all games
     register_rest_route('play50/v1', '/unlock-status', array(
         'methods' => 'GET',
         'callback' => 'play50_get_unlock_status',
-        'permission_callback' => '__return_true',
+        'permission_callback' => 'play50_check_api_key_permission',
     ));
     
     // Generate certificate
     register_rest_route('play50/v1', '/certificate/generate', array(
         'methods' => 'POST',
         'callback' => 'play50_generate_certificate',
-        'permission_callback' => '__return_true',
+        'permission_callback' => 'play50_check_api_key_permission',
     ));
     
     // Get certificate by ID
     register_rest_route('play50/v1', '/certificate/(?P<id>[a-f0-9\-]+)', array(
         'methods' => 'GET',
         'callback' => 'play50_get_certificate',
-        'permission_callback' => '__return_true',
+        'permission_callback' => 'play50_check_api_key_permission',
     ));
     
     // Share tracking endpoints
     register_rest_route('play50/v1', '/share/register', array(
         'methods' => 'POST',
         'callback' => 'play50_register_share',
-        'permission_callback' => '__return_true',
+        'permission_callback' => 'play50_check_api_key_permission',
     ));
     
     register_rest_route('play50/v1', '/share/click', array(
         'methods' => 'POST',
         'callback' => 'play50_track_share_click',
-        'permission_callback' => '__return_true',
+        'permission_callback' => 'play50_check_api_key_permission',
     ));
     
     register_rest_route('play50/v1', '/share/status/(?P<share_id>[a-zA-Z0-9]+)', array(
         'methods' => 'GET',
         'callback' => 'play50_get_share_status',
-        'permission_callback' => '__return_true',
+        'permission_callback' => 'play50_check_api_key_permission',
+    ));
+    
+    // User registration endpoint
+    register_rest_route('play50/v1', '/auth/register', array(
+        'methods' => 'POST',
+        'callback' => 'play50_register_user',
+        'permission_callback' => 'play50_check_api_key_permission',
+    ));
+    
+    // User login endpoint
+    register_rest_route('play50/v1', '/auth/login', array(
+        'methods' => 'POST',
+        'callback' => 'play50_login_user',
+        'permission_callback' => 'play50_check_api_key_permission',
+    ));
+    
+    // Check authentication status
+    register_rest_route('play50/v1', '/auth/status', array(
+        'methods' => 'GET',
+        'callback' => 'play50_auth_status',
+        'permission_callback' => 'play50_check_api_key_permission',
+    ));
+    
+    // Get current user info (for debugging)
+    register_rest_route('play50/v1', '/auth/user', array(
+        'methods' => 'GET',
+        'callback' => 'play50_get_current_user',
+        'permission_callback' => 'play50_check_api_key_permission',
+    ));
+    
+    // Get all users with progress (admin only)
+    register_rest_route('play50/v1', '/users', array(
+        'methods' => 'GET',
+        'callback' => 'play50_get_all_users',
+        'permission_callback' => function() {
+            // Only allow if user is admin or has manage_options capability
+            return current_user_can('manage_options');
+        },
+    ));
+    
+    // Logout endpoint - allow without API key check for better UX
+    register_rest_route('play50/v1', '/auth/logout', array(
+        'methods' => 'POST',
+        'callback' => 'play50_logout_user',
+        'permission_callback' => function() {
+            // Allow logout even without API key (for better UX)
+            // But still check if API key is provided and valid
+            $api_check = play50_check_api_key_permission();
+            if (is_wp_error($api_check)) {
+                // If API key check fails, still allow logout (user might be logged in)
+                // This is safe because logout only clears session, doesn't expose data
+                return true;
+            }
+            return $api_check;
+        },
     ));
 });
 
@@ -540,7 +825,21 @@ function play50_get_game($request) {
  * Save user progress
  */
 function play50_save_progress($request) {
+    // Get user ID from JWT token or cookies
     $user_id = get_current_user_id();
+    
+    // If user_id is 0, try JWT token
+    if ($user_id === 0) {
+        $jwt_token = play50_get_jwt_from_header();
+        if ($jwt_token) {
+            $user_id = play50_get_user_id_from_jwt($jwt_token);
+            if ($user_id > 0) {
+                wp_set_current_user($user_id);
+                wp_set_auth_cookie($user_id);
+            }
+        }
+    }
+    
     $guest_id = $request->get_param('guest_id');
     $game_id = intval($request->get_param('game_id'));
     $score = intval($request->get_param('score'));
@@ -550,21 +849,59 @@ function play50_save_progress($request) {
         return new WP_Error('invalid_data', 'Invalid game_id or score', array('status' => 400));
     }
     
-    // For logged-in users, save to user meta
+    // For logged-in users, save to user meta AND custom post type
     if ($user_id > 0) {
+        // Verify user exists
+        $user = get_userdata($user_id);
+        if (!$user) {
+            return new WP_Error('invalid_user', 'User does not exist', array('status' => 400));
+        }
         $progress_key = 'play50_game_progress_' . $game_id;
         $existing = get_user_meta($user_id, $progress_key, true);
         
+        // Preserve completed_at if game was already completed
+        $was_completed = isset($existing['completed']) && $existing['completed'];
+        $completed_at = null;
+        if ($completed) {
+            if ($was_completed && isset($existing['completed_at']) && $existing['completed_at']) {
+                // Keep original completion date
+                $completed_at = $existing['completed_at'];
+            } else {
+                // Set new completion date
+                $completed_at = current_time('mysql');
+            }
+        }
+        
+        // Calculate attempts - if syncing from localStorage, don't increment
+        // Only increment if this is a new game session
+        $increment_attempts = true;
+        if (isset($existing['last_played']) && $existing['last_played']) {
+            // If last_played is very recent (within last minute), might be a sync, don't increment
+            $last_played_time = strtotime($existing['last_played']);
+            $current_time = current_time('timestamp');
+            if (($current_time - $last_played_time) < 60) {
+                // Very recent, might be a sync - check if score/best_score changed
+                if (isset($existing['best_score']) && $existing['best_score'] == $score && 
+                    isset($existing['completed']) && $existing['completed'] == $completed) {
+                    $increment_attempts = false; // Likely a sync, don't increment
+                }
+            }
+        }
+        
         $progress_data = array(
+            'user_id' => $user_id,
             'game_id' => $game_id,
             'score' => $score,
-            'completed' => $completed,
-            'completed_at' => $completed ? current_time('mysql') : null,
-            'attempts' => isset($existing['attempts']) ? intval($existing['attempts']) + 1 : 1,
+            'completed' => $completed || $was_completed, // Keep completed if was already completed
+            'completed_at' => $completed_at,
+            'attempts' => $increment_attempts 
+                ? (isset($existing['attempts']) ? intval($existing['attempts']) + 1 : 1)
+                : (isset($existing['attempts']) ? intval($existing['attempts']) : 1),
             'best_score' => isset($existing['best_score']) ? max($existing['best_score'], $score) : $score,
             'last_played' => current_time('mysql'),
         );
         
+        // Save to user meta
         update_user_meta($user_id, $progress_key, $progress_data);
         
         // Also store in a list for easy retrieval
@@ -575,7 +912,10 @@ function play50_save_progress($request) {
         $all_progress[$game_id] = $progress_data;
         update_user_meta($user_id, 'play50_all_progress', $all_progress);
         
-        return new WP_REST_Response(array('success' => true, 'data' => $progress_data), 200);
+        // Save to custom post type for admin viewing
+        $cpt_result = play50_save_progress_to_cpt($user_id, $game_id, $progress_data);
+        
+        return new WP_REST_Response(array('success' => true, 'data' => $progress_data, 'cpt_post_id' => $cpt_result), 200);
     }
     
     // For guest users, return success (they'll use localStorage)
@@ -586,7 +926,20 @@ function play50_save_progress($request) {
  * Get user progress
  */
 function play50_get_progress($request) {
+    // Get user ID from JWT token or cookies
     $user_id = get_current_user_id();
+    
+    // If user_id is 0, try JWT token
+    if ($user_id === 0) {
+        $jwt_token = play50_get_jwt_from_header();
+        if ($jwt_token) {
+            $user_id = play50_get_user_id_from_jwt($jwt_token);
+            if ($user_id > 0) {
+                wp_set_current_user($user_id);
+            }
+        }
+    }
+    
     $guest_id = $request->get_param('guest_id');
     $game_id = $request->get_param('game_id');
     
@@ -595,10 +948,27 @@ function play50_get_progress($request) {
             // Get specific game progress
             $progress_key = 'play50_game_progress_' . intval($game_id);
             $progress = get_user_meta($user_id, $progress_key, true);
-            return new WP_REST_Response($progress ? $progress : array(), 200);
+            if (!$progress || !is_array($progress)) {
+                $progress = array();
+            }
+            return new WP_REST_Response($progress, 200);
         } else {
             // Get all progress
             $all_progress = get_user_meta($user_id, 'play50_all_progress', true);
+            if (!$all_progress || !is_array($all_progress)) {
+                // If no progress in all_progress, try to get from individual keys
+                $all_progress = array();
+                // Get all user meta keys that start with play50_game_progress_
+                $meta_keys = get_user_meta($user_id);
+                foreach ($meta_keys as $key => $value) {
+                    if (strpos($key, 'play50_game_progress_') === 0) {
+                        $game_id_from_key = intval(str_replace('play50_game_progress_', '', $key));
+                        if ($game_id_from_key > 0 && is_array($value) && !empty($value)) {
+                            $all_progress[$game_id_from_key] = $value[0];
+                        }
+                    }
+                }
+            }
             return new WP_REST_Response($all_progress ? $all_progress : array(), 200);
         }
     }
@@ -794,5 +1164,495 @@ function play50_calculate_rank($total_score) {
     } else {
         return 'Beginner';
     }
+}
+
+/**
+ * Register a new user
+ */
+function play50_register_user($request) {
+    $params = $request->get_json_params();
+    
+    $first_name = isset($params['first_name']) ? sanitize_text_field($params['first_name']) : '';
+    $last_name = isset($params['last_name']) ? sanitize_text_field($params['last_name']) : '';
+    $username = isset($params['username']) ? sanitize_user($params['username']) : '';
+    $email = isset($params['email']) ? sanitize_email($params['email']) : '';
+    $password = isset($params['password']) ? $params['password'] : '';
+    
+    // Validation - all fields are required
+    if (empty($first_name) || empty($last_name) || empty($username) || empty($email) || empty($password)) {
+        return new WP_Error('missing_fields', 'All fields are required (first name, last name, username, email, password)', array('status' => 400));
+    }
+    
+    if (strlen($username) < 3) {
+        return new WP_Error('invalid_username', 'Username must be at least 3 characters long', array('status' => 400));
+    }
+    
+    if (!is_email($email)) {
+        return new WP_Error('invalid_email', 'Invalid email address', array('status' => 400));
+    }
+    
+    if (strlen($password) < 6) {
+        return new WP_Error('weak_password', 'Password must be at least 6 characters long', array('status' => 400));
+    }
+    
+    // Check if username already exists
+    if (username_exists($username)) {
+        return new WP_Error('username_exists', 'This username is already taken. Please choose another one.', array('status' => 409));
+    }
+    
+    // Check if email already exists
+    if (email_exists($email)) {
+        return new WP_Error('email_exists', 'An account with this email already exists', array('status' => 409));
+    }
+    
+    // Sanitize username to ensure it's valid
+    $username = sanitize_user($username, true);
+    
+    // Create user
+    $user_id = wp_create_user($username, $password, $email);
+    
+    if (is_wp_error($user_id)) {
+        return new WP_Error('registration_failed', $user_id->get_error_message(), array('status' => 500));
+    }
+    
+    // Set user meta
+    update_user_meta($user_id, 'first_name', $first_name);
+    update_user_meta($user_id, 'last_name', $last_name);
+    
+    // Set user role to 'customer' (WooCommerce role)
+    $user = new WP_User($user_id);
+    $user->set_role('customer');
+    
+    // Auto-login the user
+    wp_set_current_user($user_id);
+    wp_set_auth_cookie($user_id);
+    
+    // Get user data
+    $user = get_userdata($user_id);
+    
+    // Generate JWT token - use our custom function only (most reliable)
+    // Note: We don't use JWT plugin functions because they require WP_REST_Request, not user_id
+    $jwt_token = null;
+    if (defined('JWT_AUTH_SECRET_KEY') && function_exists('play50_generate_jwt_token')) {
+        $jwt_token = play50_generate_jwt_token($user_id);
+    }
+    
+    $response_data = array(
+        'success' => true,
+        'message' => 'Registration successful',
+        'user' => array(
+            'id' => $user_id,
+            'email' => $email,
+            'first_name' => $first_name,
+            'last_name' => $last_name,
+            'display_name' => $first_name . ' ' . $last_name,
+        ),
+        'nonce' => wp_create_nonce('wp_rest'),
+    );
+    
+    // Add JWT token if available
+    if ($jwt_token) {
+        $response_data['token'] = $jwt_token;
+    }
+    
+    return new WP_REST_Response($response_data, 201);
+}
+
+/**
+ * Login user
+ */
+function play50_login_user($request) {
+    $params = $request->get_json_params();
+    
+    // Accept both 'email' (for backward compatibility) and 'email_or_username'
+    $email_or_username = isset($params['email_or_username']) ? sanitize_text_field($params['email_or_username']) : (isset($params['email']) ? sanitize_text_field($params['email']) : '');
+    $password = isset($params['password']) ? $params['password'] : '';
+    
+    if (empty($email_or_username) || empty($password)) {
+        return new WP_Error('missing_fields', 'Email/Username and password are required', array('status' => 400));
+    }
+    
+    // Try to find user by email first
+    $user = null;
+    if (is_email($email_or_username)) {
+        $user = get_user_by('email', $email_or_username);
+    }
+    
+    // If not found by email, try by username
+    if (!$user) {
+        $user = get_user_by('login', $email_or_username);
+    }
+    
+    if (!$user) {
+        return new WP_Error('invalid_credentials', 'Invalid email/username or password', array('status' => 401));
+    }
+    
+    // Verify password
+    if (!wp_check_password($password, $user->user_pass, $user->ID)) {
+        return new WP_Error('invalid_credentials', 'Invalid email or password', array('status' => 401));
+    }
+    
+    // Set authentication cookies (for backward compatibility)
+    wp_set_current_user($user->ID);
+    wp_set_auth_cookie($user->ID);
+    
+    // Get user meta
+    $first_name = get_user_meta($user->ID, 'first_name', true);
+    $last_name = get_user_meta($user->ID, 'last_name', true);
+    
+    // Generate JWT token
+    $jwt_token = null;
+    if (defined('JWT_AUTH_SECRET_KEY') && function_exists('play50_generate_jwt_token')) {
+        $jwt_token = play50_generate_jwt_token($user->ID);
+    }
+    
+    $response_data = array(
+        'success' => true,
+        'message' => 'Login successful',
+        'user' => array(
+            'id' => $user->ID,
+            'email' => $user->user_email,
+            'first_name' => $first_name,
+            'last_name' => $last_name,
+            'display_name' => $first_name && $last_name ? $first_name . ' ' . $last_name : $user->display_name,
+        ),
+        'nonce' => wp_create_nonce('wp_rest'),
+    );
+    
+    // Add JWT token if available
+    if ($jwt_token) {
+        $response_data['token'] = $jwt_token;
+    }
+    
+    return new WP_REST_Response($response_data, 200);
+}
+
+/**
+ * Check authentication status
+ */
+function play50_auth_status($request) {
+    $user_id = get_current_user_id();
+    
+    if ($user_id === 0) {
+        return new WP_REST_Response(array(
+            'authenticated' => false,
+            'user' => null,
+        ), 200);
+    }
+    
+    $user = get_userdata($user_id);
+    $first_name = get_user_meta($user_id, 'first_name', true);
+    $last_name = get_user_meta($user_id, 'last_name', true);
+    
+    return new WP_REST_Response(array(
+        'authenticated' => true,
+        'user' => array(
+            'id' => $user_id,
+            'email' => $user->user_email,
+            'first_name' => $first_name,
+            'last_name' => $last_name,
+            'display_name' => $first_name && $last_name ? $first_name . ' ' . $last_name : $user->display_name,
+        ),
+        'nonce' => wp_create_nonce('wp_rest'),
+    ), 200);
+}
+
+/**
+ * Get current user info (for debugging)
+ */
+function play50_get_current_user($request) {
+    // Try to get user ID from JWT token first, then cookies
+    $user_id = get_current_user_id();
+    $auth_method = 'none';
+    $jwt_token_present = false;
+    $cookie_present = false;
+    
+    // Check JWT token
+    $auth_header = isset($_SERVER['HTTP_AUTHORIZATION']) ? $_SERVER['HTTP_AUTHORIZATION'] : '';
+    if (empty($auth_header) && function_exists('getallheaders')) {
+        $headers = getallheaders();
+        $auth_header = isset($headers['Authorization']) ? $headers['Authorization'] : '';
+    }
+    
+    if (!empty($auth_header) && preg_match('/Bearer\s+(.*)$/i', $auth_header, $matches)) {
+        $jwt_token = $matches[1];
+        $jwt_token_present = true;
+        
+        // Try to validate token
+        if (function_exists('play50_validate_jwt_token')) {
+            $jwt_user_id = play50_validate_jwt_token($jwt_token);
+            if ($jwt_user_id > 0) {
+                $user_id = $jwt_user_id;
+                $auth_method = 'jwt_token';
+                wp_set_current_user($user_id);
+            }
+        }
+    }
+    
+    // Check cookies
+    $logged_in_cookie = defined('LOGGED_IN_COOKIE') ? LOGGED_IN_COOKIE : 'wordpress_logged_in_' . COOKIEHASH;
+    if (isset($_COOKIE[$logged_in_cookie])) {
+        $cookie_present = true;
+        if ($user_id === 0) {
+            $cookie = $_COOKIE[$logged_in_cookie];
+            $cookie_elements = explode('|', $cookie);
+            if (count($cookie_elements) >= 2) {
+                $user_id_from_cookie = intval($cookie_elements[0]);
+                if ($user_id_from_cookie > 0) {
+                    $user = get_userdata($user_id_from_cookie);
+                    if ($user) {
+                        $user_id = $user_id_from_cookie;
+                        $auth_method = 'cookie';
+                        wp_set_current_user($user_id);
+                    }
+                }
+            }
+        }
+    }
+    
+    // Build response
+    $response_data = array(
+        'user_id' => $user_id,
+        'authenticated' => $user_id > 0,
+        'auth_method' => $auth_method,
+        'jwt_token_present' => $jwt_token_present,
+        'cookie_present' => $cookie_present,
+        'get_current_user_id' => get_current_user_id(),
+    );
+    
+    if ($user_id > 0) {
+        $user = get_userdata($user_id);
+        if ($user) {
+            $first_name = get_user_meta($user_id, 'first_name', true);
+            $last_name = get_user_meta($user_id, 'last_name', true);
+            $display_name = $first_name && $last_name ? $first_name . ' ' . $last_name : $user->display_name;
+            
+            $response_data['user'] = array(
+                'id' => $user_id,
+                'email' => $user->user_email,
+                'username' => $user->user_login,
+                'first_name' => $first_name,
+                'last_name' => $last_name,
+                'display_name' => $display_name,
+                'role' => $user->roles ? $user->roles[0] : 'none',
+            );
+            
+            // Get progress count
+            $all_progress = get_user_meta($user_id, 'play50_all_progress', true);
+            $progress_count = is_array($all_progress) ? count($all_progress) : 0;
+            $response_data['progress_count'] = $progress_count;
+            
+            // Get CPT posts count
+            $cpt_count = get_posts(array(
+                'post_type' => 'play50_game_progress',
+                'author' => $user_id,
+                'posts_per_page' => -1,
+                'post_status' => 'any',
+                'fields' => 'ids',
+            ));
+            $response_data['cpt_progress_count'] = count($cpt_count);
+        } else {
+            $response_data['error'] = 'User data not found for ID: ' . $user_id;
+        }
+    } else {
+        $response_data['message'] = 'No user authenticated';
+    }
+    
+    return new WP_REST_Response($response_data, 200);
+}
+
+/**
+ * Logout user
+ */
+function play50_logout_user($request) {
+    // Clear all WordPress cookies
+    wp_logout();
+    
+    // Also clear any custom cookies
+    if (isset($_COOKIE)) {
+        foreach ($_COOKIE as $name => $value) {
+            if (strpos($name, 'wordpress_') === 0 || strpos($name, 'wp_') === 0) {
+                setcookie($name, '', time() - 3600, '/');
+            }
+        }
+    }
+    
+    return new WP_REST_Response(array(
+        'success' => true,
+        'message' => 'Logged out successfully',
+    ), 200);
+}
+
+/**
+ * Get all users with progress (admin only)
+ */
+function play50_get_all_users($request) {
+    // Check if user is admin
+    if (!current_user_can('manage_options')) {
+        return new WP_Error('forbidden', 'Only administrators can access this endpoint', array('status' => 403));
+    }
+    
+    $users = get_users(array(
+        'orderby' => 'registered',
+        'order' => 'DESC',
+    ));
+    
+    $users_data = array();
+    
+    foreach ($users as $user) {
+        $first_name = get_user_meta($user->ID, 'first_name', true);
+        $last_name = get_user_meta($user->ID, 'last_name', true);
+        $display_name = $first_name && $last_name ? $first_name . ' ' . $last_name : $user->display_name;
+        
+        // Get progress count
+        $all_progress = get_user_meta($user->ID, 'play50_all_progress', true);
+        $progress_count = is_array($all_progress) ? count($all_progress) : 0;
+        
+        // Get completed games count
+        $completed_count = 0;
+        if (is_array($all_progress)) {
+            foreach ($all_progress as $progress) {
+                if (isset($progress['completed']) && $progress['completed']) {
+                    $completed_count++;
+                }
+            }
+        }
+        
+        // Get total score
+        $total_score = 0;
+        if (is_array($all_progress)) {
+            foreach ($all_progress as $progress) {
+                if (isset($progress['best_score'])) {
+                    $total_score += intval($progress['best_score']);
+                }
+            }
+        }
+        
+        // Get CPT posts count
+        $cpt_count = get_posts(array(
+            'post_type' => 'play50_game_progress',
+            'author' => $user->ID,
+            'posts_per_page' => -1,
+            'post_status' => 'any',
+            'fields' => 'ids',
+        ));
+        
+        $users_data[] = array(
+            'id' => $user->ID,
+            'email' => $user->user_email,
+            'username' => $user->user_login,
+            'first_name' => $first_name,
+            'last_name' => $last_name,
+            'display_name' => $display_name,
+            'role' => $user->roles ? $user->roles[0] : 'none',
+            'registered' => $user->user_registered,
+            'progress' => array(
+                'games_played' => $progress_count,
+                'games_completed' => $completed_count,
+                'total_score' => $total_score,
+                'cpt_entries' => count($cpt_count),
+            ),
+        );
+    }
+    
+    return new WP_REST_Response(array(
+        'success' => true,
+        'total_users' => count($users_data),
+        'users' => $users_data,
+    ), 200);
+}
+
+/**
+ * Save progress to custom post type
+ */
+function play50_save_progress_to_cpt($user_id, $game_id, $progress_data) {
+    // Check if custom post type is registered
+    if (!post_type_exists('play50_game_progress')) {
+        error_log('Play50Games: Custom post type play50_game_progress is not registered!');
+        return new WP_Error('cpt_not_registered', 'Custom post type not registered');
+    }
+    
+    // Find existing post for this user (one post per user, not per game)
+    $existing_posts = get_posts(array(
+        'post_type' => 'play50_game_progress',
+        'posts_per_page' => 1,
+        'post_status' => 'any',
+        'author' => $user_id, // Filter by author
+        'meta_query' => array(
+            array(
+                'key' => 'user_progress_all',
+                'value' => $user_id,
+                'compare' => '='
+            )
+        )
+    ));
+    
+    // Get all progress for this user from user meta
+    $all_progress = get_user_meta($user_id, 'play50_all_progress', true);
+    if (!is_array($all_progress)) {
+        $all_progress = array();
+    }
+    
+    // Get user info for title
+    $user = get_userdata($user_id);
+    $first_name = get_user_meta($user_id, 'first_name', true);
+    $last_name = get_user_meta($user_id, 'last_name', true);
+    $user_name = ($first_name && $last_name) ? $first_name . ' ' . $last_name : ($user ? $user->display_name : ($user ? $user->user_email : ''));
+    if (!$user_name) {
+        $user_name = 'User #' . $user_id;
+    }
+    
+    // Calculate total games completed
+    $completed_count = 0;
+    foreach ($all_progress as $progress) {
+        if (isset($progress['completed']) && $progress['completed']) {
+            $completed_count++;
+        }
+    }
+    
+    $post_data = array(
+        'post_type' => 'play50_game_progress',
+        'post_status' => 'publish',
+        'post_title' => $user_name . ' - ' . count($all_progress) . ' Games (' . $completed_count . ' Completed)',
+        'post_author' => $user_id,
+    );
+    
+    if (!empty($existing_posts)) {
+        // Update existing post
+        $post_data['ID'] = $existing_posts[0]->ID;
+        $post_id = wp_update_post($post_data, true);
+        error_log('Play50Games: Updating existing CPT post ID: ' . $existing_posts[0]->ID . ' for user ' . $user_id);
+    } else {
+        // Create new post
+        error_log('Play50Games: Creating new CPT post for user ' . $user_id);
+        $post_id = wp_insert_post($post_data, true);
+    }
+    
+    if (is_wp_error($post_id)) {
+        error_log('Play50Games: Failed to save progress to CPT - ' . $post_id->get_error_message());
+        return $post_id;
+    }
+    
+    if ($post_id > 0) {
+        // Save all progress data as meta (all games in one post)
+        $user_progress_data = array(
+            'user_id' => $user_id,
+            'user_name' => $user_name,
+            'user_email' => $user ? $user->user_email : '',
+            'all_progress' => $all_progress, // All games progress
+            'total_games' => count($all_progress),
+            'completed_games' => $completed_count,
+            'last_updated' => current_time('mysql'),
+        );
+        
+        $result = update_post_meta($post_id, 'user_progress_all', $user_id);
+        $result2 = update_post_meta($post_id, 'progress_fields', $user_progress_data);
+        
+        error_log('Play50Games: Saved all progress to CPT - Post ID: ' . $post_id . ', User: ' . $user_id . ' (' . $user_name . '), Total Games: ' . count($all_progress) . ', Completed: ' . $completed_count);
+    } else {
+        error_log('Play50Games: Failed to save progress to CPT - Invalid post ID: ' . $post_id);
+    }
+    
+    return $post_id;
 }
 

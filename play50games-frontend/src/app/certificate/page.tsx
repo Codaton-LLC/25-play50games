@@ -22,7 +22,7 @@ export default function CertificatePage() {
 
   const checkCompletion = async () => {
     try {
-      const progress = getAllProgress();
+      const progress = await getAllProgress(); // Now async - gets from server for logged-in users
       const games = await getAllGames(guestId);
       
       const completedCount = games.filter(game => {
@@ -32,7 +32,7 @@ export default function CertificatePage() {
       
       setCanGenerate(completedCount >= 5);
     } catch (error) {
-      console.error('Failed to check completion:', error);
+      // Failed to check completion
     }
   };
 

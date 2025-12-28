@@ -56,14 +56,10 @@ add_action('init', 'play50_register_game_progress_cpt', 0);
 function play50_game_progress_columns($columns) {
     $new_columns = array();
     $new_columns['cb'] = $columns['cb'];
-    $new_columns['title'] = 'Progress ID';
-    $new_columns['user'] = 'User';
-    $new_columns['game'] = 'Game';
-    $new_columns['score'] = 'Score';
-    $new_columns['best_score'] = 'Best Score';
-    $new_columns['completed'] = 'Completed';
-    $new_columns['attempts'] = 'Attempts';
-    $new_columns['last_played'] = 'Last Played';
+    $new_columns['title'] = 'User';
+    $new_columns['total_games'] = 'Total Games';
+    $new_columns['completed_games'] = 'Completed';
+    $new_columns['last_updated'] = 'Last Updated';
     $new_columns['date'] = 'Created';
     return $new_columns;
 }
@@ -74,16 +70,21 @@ function play50_game_progress_column_content($column, $post_id) {
     $meta = get_post_meta($post_id, 'progress_fields', true);
     
     switch ($column) {
-        case 'user':
-            $user_id = isset($meta['user_id']) ? intval($meta['user_id']) : 0;
+        case 'title':
+            // User card display
+            $user_id = isset($meta['user_id']) ? intval($meta['user_id']) : get_post_field('post_author', $post_id);
             if ($user_id > 0) {
                 $user = get_userdata($user_id);
                 if ($user) {
                     $first_name = get_user_meta($user_id, 'first_name', true);
                     $last_name = get_user_meta($user_id, 'last_name', true);
                     $display_name = $first_name && $last_name ? $first_name . ' ' . $last_name : $user->display_name;
-                    echo '<a href="' . admin_url('user-edit.php?user_id=' . $user_id) . '">' . esc_html($display_name) . '</a><br>';
-                    echo '<small>' . esc_html($user->user_email) . '</small>';
+                    echo '<div style="padding: 10px; background: #f0f0f1; border-radius: 4px; margin: 5px 0;">';
+                    echo '<strong style="font-size: 16px; color: #2271b1;">' . esc_html($display_name) . '</strong><br>';
+                    echo '<small><strong>User ID:</strong> ' . esc_html($user_id) . '</small><br>';
+                    echo '<small>' . esc_html($user->user_email) . '</small><br>';
+                    echo '<small><a href="' . admin_url('user-edit.php?user_id=' . $user_id) . '">Edit User</a></small>';
+                    echo '</div>';
                 } else {
                     echo 'User #' . $user_id . ' (deleted)';
                 }
@@ -92,52 +93,21 @@ function play50_game_progress_column_content($column, $post_id) {
             }
             break;
             
-        case 'game':
-            $game_id = isset($meta['game_id']) ? intval($meta['game_id']) : 0;
-            if ($game_id > 0) {
-                $game = get_post($game_id);
-                if ($game) {
-                    echo '<a href="' . admin_url('post.php?post=' . $game_id . '&action=edit') . '">' . esc_html($game->post_title) . '</a>';
-                    echo '<br><small>ID: ' . $game_id . '</small>';
-                } else {
-                    echo 'Game #' . $game_id . ' (deleted)';
-                }
-            } else {
-                echo 'N/A';
-            }
+        case 'total_games':
+            $total = isset($meta['total_games']) ? intval($meta['total_games']) : 0;
+            echo '<strong style="font-size: 16px;">' . $total . '</strong>';
             break;
             
-        case 'score':
-            $score = isset($meta['score']) ? intval($meta['score']) : 0;
-            echo '<strong>' . $score . '%</strong>';
+        case 'completed_games':
+            $completed = isset($meta['completed_games']) ? intval($meta['completed_games']) : 0;
+            $total = isset($meta['total_games']) ? intval($meta['total_games']) : 0;
+            echo '<strong style="color: #00a32a; font-size: 16px;">' . $completed . ' / ' . $total . '</strong>';
             break;
             
-        case 'best_score':
-            $best_score = isset($meta['best_score']) ? intval($meta['best_score']) : 0;
-            echo '<strong style="color: #2271b1;">' . $best_score . '%</strong>';
-            break;
-            
-        case 'completed':
-            $completed = isset($meta['completed']) ? $meta['completed'] : false;
-            if ($completed) {
-                echo '<span style="color: #00a32a; font-weight: bold;">✓ Yes</span>';
-                if (isset($meta['completed_at']) && $meta['completed_at']) {
-                    echo '<br><small>' . date_i18n('Y-m-d H:i', strtotime($meta['completed_at'])) . '</small>';
-                }
-            } else {
-                echo '<span style="color: #d63638;">✗ No</span>';
-            }
-            break;
-            
-        case 'attempts':
-            $attempts = isset($meta['attempts']) ? intval($meta['attempts']) : 0;
-            echo $attempts;
-            break;
-            
-        case 'last_played':
-            $last_played = isset($meta['last_played']) ? $meta['last_played'] : '';
-            if ($last_played) {
-                echo date_i18n('Y-m-d H:i', strtotime($last_played));
+        case 'last_updated':
+            $last_updated = isset($meta['last_updated']) ? $meta['last_updated'] : '';
+            if ($last_updated) {
+                echo date_i18n('Y-m-d H:i', strtotime($last_updated));
             } else {
                 echo 'N/A';
             }
@@ -148,13 +118,9 @@ add_action('manage_play50_game_progress_posts_custom_column', 'play50_game_progr
 
 // Make columns sortable
 function play50_game_progress_sortable_columns($columns) {
-    $columns['user'] = 'user_id';
-    $columns['game'] = 'game_id';
-    $columns['score'] = 'score';
-    $columns['best_score'] = 'best_score';
-    $columns['completed'] = 'completed';
-    $columns['attempts'] = 'attempts';
-    $columns['last_played'] = 'last_played';
+    $columns['total_games'] = 'total_games';
+    $columns['completed_games'] = 'completed_games';
+    $columns['last_updated'] = 'last_updated';
     return $columns;
 }
 add_filter('manage_edit-play50_game_progress_sortable_columns', 'play50_game_progress_sortable_columns');
@@ -171,19 +137,12 @@ function play50_game_progress_orderby($query) {
     }
     
     switch ($orderby) {
-        case 'user_id':
-        case 'game_id':
-        case 'score':
-        case 'best_score':
-        case 'attempts':
+        case 'total_games':
+        case 'completed_games':
             $query->set('meta_key', 'progress_fields');
             $query->set('orderby', 'meta_value_num');
             break;
-        case 'completed':
-            $query->set('meta_key', 'progress_fields');
-            $query->set('orderby', 'meta_value');
-            break;
-        case 'last_played':
+        case 'last_updated':
             $query->set('meta_key', 'progress_fields');
             $query->set('orderby', 'meta_value');
             break;
@@ -209,29 +168,6 @@ function play50_game_progress_filters() {
         }
         echo '</select>';
         
-        // Game filter
-        $games = get_posts(array(
-            'post_type' => 'play50_game',
-            'posts_per_page' => -1,
-            'orderby' => 'title',
-            'order' => 'ASC'
-        ));
-        echo '<select name="filter_game" id="filter_game">';
-        echo '<option value="">All Games</option>';
-        foreach ($games as $game) {
-            $selected = isset($_GET['filter_game']) && $_GET['filter_game'] == $game->ID ? 'selected' : '';
-            echo '<option value="' . $game->ID . '" ' . $selected . '>' . esc_html($game->post_title) . '</option>';
-        }
-        echo '</select>';
-        
-        // Completed filter
-        echo '<select name="filter_completed" id="filter_completed">';
-        echo '<option value="">All Status</option>';
-        $selected_completed = isset($_GET['filter_completed']) && $_GET['filter_completed'] == '1' ? 'selected' : '';
-        $selected_not_completed = isset($_GET['filter_completed']) && $_GET['filter_completed'] == '0' ? 'selected' : '';
-        echo '<option value="1" ' . $selected_completed . '>Completed</option>';
-        echo '<option value="0" ' . $selected_not_completed . '>Not Completed</option>';
-        echo '</select>';
     }
 }
 add_action('restrict_manage_posts', 'play50_game_progress_filters');
@@ -244,28 +180,9 @@ function play50_game_progress_filter_query($query) {
         $meta_query = array();
         
         if (isset($_GET['filter_user']) && $_GET['filter_user'] != '') {
-            $meta_query[] = array(
-                'key' => 'progress_fields',
-                'value' => '"user_id";i:' . intval($_GET['filter_user']),
-                'compare' => 'LIKE'
-            );
-        }
-        
-        if (isset($_GET['filter_game']) && $_GET['filter_game'] != '') {
-            $meta_query[] = array(
-                'key' => 'progress_fields',
-                'value' => '"game_id";i:' . intval($_GET['filter_game']),
-                'compare' => 'LIKE'
-            );
-        }
-        
-        if (isset($_GET['filter_completed']) && $_GET['filter_completed'] != '') {
-            $completed_value = $_GET['filter_completed'] == '1' ? 'b:1' : 'b:0';
-            $meta_query[] = array(
-                'key' => 'progress_fields',
-                'value' => '"completed";' . $completed_value,
-                'compare' => 'LIKE'
-            );
+            $user_id = intval($_GET['filter_user']);
+            // Filter by user_progress_all meta key or by author
+            $query->set('author', $user_id);
         }
         
         if (!empty($meta_query)) {
@@ -281,93 +198,97 @@ function play50_game_progress_meta_box() {
     
     $meta = get_post_meta($post->ID, 'progress_fields', true);
     
-    $user_id = isset($meta['user_id']) ? intval($meta['user_id']) : 0;
-    $game_id = isset($meta['game_id']) ? intval($meta['game_id']) : 0;
-    $score = isset($meta['score']) ? intval($meta['score']) : 0;
-    $best_score = isset($meta['best_score']) ? intval($meta['best_score']) : 0;
-    $completed = isset($meta['completed']) ? $meta['completed'] : false;
-    $attempts = isset($meta['attempts']) ? intval($meta['attempts']) : 0;
-    $last_played = isset($meta['last_played']) ? $meta['last_played'] : '';
-    $completed_at = isset($meta['completed_at']) ? $meta['completed_at'] : '';
+    $user_id = isset($meta['user_id']) ? intval($meta['user_id']) : get_post_field('post_author', $post->ID);
+    $all_progress = isset($meta['all_progress']) && is_array($meta['all_progress']) ? $meta['all_progress'] : array();
     
     ?>
     <div style="padding: 20px;">
-        <table class="form-table">
-            <tr>
-                <th><label>User</label></th>
-                <td>
+        <!-- User Card -->
+        <div style="background: #f0f0f1; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+            <h2 style="margin-top: 0;">User Information</h2>
+            <?php
+            if ($user_id > 0) {
+                $user = get_userdata($user_id);
+                if ($user) {
+                    $first_name = get_user_meta($user_id, 'first_name', true);
+                    $last_name = get_user_meta($user_id, 'last_name', true);
+                    $display_name = $first_name && $last_name ? $first_name . ' ' . $last_name : $user->display_name;
+                    echo '<p><strong style="font-size: 18px;">' . esc_html($display_name) . '</strong></p>';
+                    echo '<p><strong>User ID:</strong> ' . esc_html($user_id) . '</p>';
+                    echo '<p><strong>Email:</strong> ' . esc_html($user->user_email) . '</p>';
+                    echo '<p><a href="' . admin_url('user-edit.php?user_id=' . $user_id) . '" class="button">Edit User</a></p>';
+                } else {
+                    echo '<p>User #' . $user_id . ' (deleted)</p>';
+                }
+            } else {
+                echo '<p>Guest User</p>';
+            }
+            ?>
+        </div>
+        
+        <!-- Progress Table -->
+        <h2>Game Progress Table</h2>
+        <?php if (empty($all_progress)): ?>
+            <p>No progress recorded yet.</p>
+        <?php else: ?>
+            <table class="wp-list-table widefat fixed striped" style="margin-top: 10px;">
+                <thead>
+                    <tr>
+                        <th>Game ID</th>
+                        <th>Game Name</th>
+                        <th>Score</th>
+                        <th>Best Score</th>
+                        <th>Completed</th>
+                        <th>Attempts</th>
+                        <th>Last Played</th>
+                    </tr>
+                </thead>
+                <tbody>
                     <?php
-                    if ($user_id > 0) {
-                        $user = get_userdata($user_id);
-                        if ($user) {
-                            $first_name = get_user_meta($user_id, 'first_name', true);
-                            $last_name = get_user_meta($user_id, 'last_name', true);
-                            $display_name = $first_name && $last_name ? $first_name . ' ' . $last_name : $user->display_name;
-                            echo '<strong>' . esc_html($display_name) . '</strong><br>';
-                            echo '<small>' . esc_html($user->user_email) . '</small>';
-                        } else {
-                            echo 'User #' . $user_id . ' (deleted)';
-                        }
-                    } else {
-                        echo 'Guest User';
-                    }
-                    ?>
-                </td>
-            </tr>
-            <tr>
-                <th><label>Game</label></th>
-                <td>
-                    <?php
-                    if ($game_id > 0) {
+                    foreach ($all_progress as $game_id => $progress):
                         $game = get_post($game_id);
-                        if ($game) {
-                            echo '<strong>' . esc_html($game->post_title) . '</strong><br>';
-                            echo '<small>Game ID: ' . $game_id . '</small>';
-                        } else {
-                            echo 'Game #' . $game_id . ' (deleted)';
-                        }
-                    } else {
-                        echo 'N/A';
-                    }
+                        $game_name = $game ? $game->post_title : 'Game #' . $game_id;
+                        $score = isset($progress['score']) ? intval($progress['score']) : 0;
+                        $best_score = isset($progress['best_score']) ? intval($progress['best_score']) : 0;
+                        $completed = isset($progress['completed']) ? $progress['completed'] : false;
+                        $attempts = isset($progress['attempts']) ? intval($progress['attempts']) : 0;
+                        $last_played = isset($progress['last_played']) ? $progress['last_played'] : '';
+                        $completed_at = isset($progress['completed_at']) ? $progress['completed_at'] : '';
                     ?>
-                </td>
-            </tr>
-            <tr>
-                <th><label>Current Score</label></th>
-                <td><strong style="font-size: 18px;"><?php echo $score; ?>%</strong></td>
-            </tr>
-            <tr>
-                <th><label>Best Score</label></th>
-                <td><strong style="font-size: 18px; color: #2271b1;"><?php echo $best_score; ?>%</strong></td>
-            </tr>
-            <tr>
-                <th><label>Completed</label></th>
-                <td>
-                    <?php if ($completed): ?>
-                        <span style="color: #00a32a; font-weight: bold; font-size: 16px;">✓ Yes</span>
-                        <?php if ($completed_at): ?>
-                            <br><small>Completed at: <?php echo date_i18n('Y-m-d H:i:s', strtotime($completed_at)); ?></small>
-                        <?php endif; ?>
-                    <?php else: ?>
-                        <span style="color: #d63638;">✗ No</span>
-                    <?php endif; ?>
-                </td>
-            </tr>
-            <tr>
-                <th><label>Attempts</label></th>
-                <td><strong><?php echo $attempts; ?></strong></td>
-            </tr>
-            <tr>
-                <th><label>Last Played</label></th>
-                <td>
-                    <?php if ($last_played): ?>
-                        <?php echo date_i18n('Y-m-d H:i:s', strtotime($last_played)); ?>
-                    <?php else: ?>
-                        N/A
-                    <?php endif; ?>
-                </td>
-            </tr>
-        </table>
+                    <tr>
+                        <td><?php echo $game_id; ?></td>
+                        <td>
+                            <?php if ($game): ?>
+                                <a href="<?php echo admin_url('post.php?post=' . $game_id . '&action=edit'); ?>"><?php echo esc_html($game_name); ?></a>
+                            <?php else: ?>
+                                <?php echo esc_html($game_name); ?>
+                            <?php endif; ?>
+                        </td>
+                        <td><strong><?php echo $score; ?>%</strong></td>
+                        <td><strong style="color: #2271b1;"><?php echo $best_score; ?>%</strong></td>
+                        <td>
+                            <?php if ($completed): ?>
+                                <span style="color: #00a32a; font-weight: bold;">✓ Yes</span>
+                                <?php if ($completed_at): ?>
+                                    <br><small><?php echo date_i18n('Y-m-d H:i', strtotime($completed_at)); ?></small>
+                                <?php endif; ?>
+                            <?php else: ?>
+                                <span style="color: #d63638;">✗ No</span>
+                            <?php endif; ?>
+                        </td>
+                        <td><?php echo $attempts; ?></td>
+                        <td>
+                            <?php if ($last_played): ?>
+                                <?php echo date_i18n('Y-m-d H:i', strtotime($last_played)); ?>
+                            <?php else: ?>
+                                N/A
+                            <?php endif; ?>
+                        </td>
+                    </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        <?php endif; ?>
     </div>
     <?php
 }

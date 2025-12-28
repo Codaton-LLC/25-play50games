@@ -485,9 +485,22 @@
 	require_once(get_stylesheet_directory() . '/wt-cpt/games.php');
 	require_once(get_stylesheet_directory() . '/wt-cpt/certificates.php');
 	require_once(get_stylesheet_directory() . '/wt-cpt/share-tracking.php');
+	require_once(get_stylesheet_directory() . '/wt-cpt/game-progress.php');
 
     // load theme options
     require_once(get_stylesheet_directory() . '/theme-options.php');
+    
+    // ============================================
+    // Play50Games JWT Configuration (Fallback)
+    // ============================================
+    // Nëse JWT_AUTH_SECRET_KEY nuk është i definuar në wp-config.php, defino këtu
+    if (!defined('JWT_AUTH_SECRET_KEY')) {
+        define('JWT_AUTH_SECRET_KEY', 'play50games251228granit78954561fewtr435gad');
+    }
+    if (!defined('JWT_AUTH_CORS_ENABLE')) {
+        define('JWT_AUTH_CORS_ENABLE', true);
+    }
+    // ============================================
     
     // load REST API
     require_once(get_stylesheet_directory() . '/includes/rest-api.php');
@@ -526,5 +539,48 @@
     add_action('update_option_play50_games_theme_options_all', 'generate_files_on_save');
     add_action('update_option_play50_games_theme_options_en', 'generate_files_on_save');
     add_action('update_option_play50_games_theme_options_de', 'generate_files_on_save');
+
+    // ============================================
+    // Add User ID column to Users list in WordPress Admin
+    // ============================================
+    
+    // Add User ID column to users list
+    function play50_add_user_id_column($columns) {
+        // Insert User ID column after checkbox
+        $new_columns = array();
+        $new_columns['cb'] = $columns['cb'];
+        $new_columns['user_id'] = 'User ID';
+        unset($columns['cb']);
+        return array_merge($new_columns, $columns);
+    }
+    add_filter('manage_users_columns', 'play50_add_user_id_column');
+    
+    // Populate User ID column
+    function play50_show_user_id_column_content($value, $column_name, $user_id) {
+        if ($column_name === 'user_id') {
+            return '<strong style="color: #2271b1; font-size: 14px;">' . esc_html($user_id) . '</strong>';
+        }
+        return $value;
+    }
+    add_filter('manage_users_custom_column', 'play50_show_user_id_column_content', 10, 3);
+    
+    // Make User ID column sortable
+    function play50_make_user_id_column_sortable($columns) {
+        $columns['user_id'] = 'ID';
+        return $columns;
+    }
+    add_filter('manage_users_sortable_columns', 'play50_make_user_id_column_sortable');
+    
+    // Handle sorting by User ID
+    function play50_sort_users_by_id($query) {
+        if (!is_admin() || !isset($_GET['orderby']) || $_GET['orderby'] !== 'ID') {
+            return;
+        }
+        
+        $query->set('orderby', 'ID');
+        $order = isset($_GET['order']) ? strtoupper($_GET['order']) : 'ASC';
+        $query->set('order', $order);
+    }
+    add_action('pre_get_users', 'play50_sort_users_by_id');
 
  

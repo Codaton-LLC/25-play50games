@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { GameProgress } from '@/types/game';
-import { getAllProgress } from '@/lib/storage/progressStorage';
+import { getAllProgress, getAllProgressSync } from '@/lib/storage/progressStorage';
 import { getAllGames } from '@/lib/api/games';
 import { Game } from '@/types/game';
 import { getGuestId } from '@/lib/storage/progressStorage';
@@ -18,18 +18,66 @@ export default function ProgressPage() {
 
   useEffect(() => {
     loadData();
+    
+    // Listen for progress updates in real-time
+    const handleProgressUpdate = async () => {
+      const updatedProgress = await getAllProgress();
+      setProgress(updatedProgress);
+    };
+    
+    const handleProgressSynced = (event: CustomEvent) => {
+      if (event.detail?.progress) {
+        setProgress(event.detail.progress);
+      }
+    };
+    
+    const handleProgressLoaded = (event: CustomEvent) => {
+      if (event.detail?.progress) {
+        setProgress(event.detail.progress);
+      }
+    };
+    
+    const handleStorageChange = () => {
+      loadData();
+    };
+    
+    // Listen for custom events
+    window.addEventListener('play50games_progress_updated', handleProgressUpdate as EventListener);
+    window.addEventListener('play50games_progress_synced', handleProgressSynced as EventListener);
+    window.addEventListener('play50games_progress_loaded', handleProgressLoaded as EventListener);
+    window.addEventListener('storage', handleStorageChange);
+    
+    // Also check periodically for updates (only for guests - logged-in users get from server)
+    const progressInterval = setInterval(async () => {
+      const updatedProgress = await getAllProgress();
+      setProgress(prevProgress => {
+        // Only update if there are actual changes
+        if (JSON.stringify(updatedProgress) !== JSON.stringify(prevProgress)) {
+          return updatedProgress;
+        }
+        return prevProgress;
+      });
+    }, 2000); // Check every 2 seconds
+    
+    return () => {
+      window.removeEventListener('play50games_progress_updated', handleProgressUpdate as EventListener);
+      window.removeEventListener('play50games_progress_synced', handleProgressSynced as EventListener);
+      window.removeEventListener('play50games_progress_loaded', handleProgressLoaded as EventListener);
+      window.removeEventListener('storage', handleStorageChange);
+      clearInterval(progressInterval);
+    };
   }, []);
 
   const loadData = async () => {
     try {
       const [progressData, gamesData] = await Promise.all([
-        Promise.resolve(getAllProgress()),
+        getAllProgress(), // Now async - gets from server for logged-in users
         getAllGames(guestId),
       ]);
       setProgress(progressData);
       setGames(gamesData);
     } catch (error) {
-      console.error('Failed to load progress:', error);
+      // Failed to load progress
     } finally {
       setLoading(false);
     }

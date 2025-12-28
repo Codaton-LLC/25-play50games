@@ -24,14 +24,13 @@ export default function GamePage() {
       const gameData = await getGame(gameId, guestId);
       setGame(gameData);
     } catch (error) {
-      console.error('Failed to load game:', error);
+      // Failed to load game
     } finally {
       setLoading(false);
     }
   };
 
   const handleComplete = (score: number) => {
-    console.log('Game completed with score:', score);
     // Progress is already saved by GameEngine
   };
 
