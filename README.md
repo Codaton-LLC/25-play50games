@@ -15,6 +15,7 @@ A complete browser-based gaming platform with 50 games, progress tracking, and c
    -  [Other Games](#other-games)
    -  [User Progress](#user-progress)
    -  [Certificate Generation](#certificate-generation)
+   -  [Share Tracking](#share-tracking)
    -  [CORS Configuration](#cors-configuration)
 4. [Frontend (Next.js)](#frontend-nextjs)
    -  [Setup](#frontend-setup)
@@ -109,6 +110,17 @@ All endpoints are under `/wp-json/play50/v1/`:
    -  Body: `{ player_name, guest_id? }`
 -  `GET /certificate/{id}` - Get certificate by ID
 
+### Share Tracking
+
+-  `POST /share/register` - Register a new share link
+   -  Body: `{ share_id, game_type }`
+   -  Response: `{ success: boolean, share_id: string, clicks: number }`
+-  `POST /share/click` - Track when someone clicks a shared link
+   -  Body: `{ share_id }`
+   -  Response: `{ success: boolean, share_id: string, clicks: number }`
+-  `GET /share/status/{share_id}` - Get share link status
+   -  Response: `{ success: boolean, share_id: string, game_type: string, clicks: number, has_clicks: boolean, created_at: string, last_click_at: string | null }`
+
 ## Creating Games
 
 1. Go to WordPress Admin → **Games** → **Add New**
@@ -122,6 +134,45 @@ All endpoints are under `/wp-json/play50/v1/`:
    -  **Unlock Requirement**: Game ID that must be completed first (leave empty for Game 1)
    -  **Description**: Brief game description
    -  **Game Config**: JSON configuration (see examples below)
+
+## Share Tracking
+
+The platform includes a share tracking system that allows users to share games and receive unlimited hints when someone clicks their shared link.
+
+### How It Works
+
+1. **Sharing**: When a user clicks "Share for Unlimited Hints" in supported games (Card Flip Memory, Tile Slider), a unique share link is generated and copied to clipboard
+2. **Link Tracking**: The share link includes a `shared` URL parameter with a unique ID
+3. **Click Detection**: When someone opens the shared link, the system tracks the click in the backend
+4. **Unlimited Hints**: The original sharer receives unlimited hints for 15 minutes after someone clicks their link
+5. **Heartbeat**: The system checks every 10 seconds (heartbeat) to see if the shared link has been clicked
+6. **Expiry**: Unlimited hints automatically expire after 15 minutes
+
+### Supported Games
+
+- **Card Flip Memory**: Share to unlock unlimited hints (up to 10 hints per round by default)
+- **Tile Slider**: Share to unlock unlimited hints (up to 5 hints by default)
+
+### Admin Interface
+
+WordPress Admin includes a **Share Tracking** page (`/wp-admin/admin.php?page=share-tracking`) where you can:
+
+- View all shared links with their status
+- See click counts and timestamps
+- Filter by game type
+- Delete individual shares or all shares
+- Monitor share activity
+
+### Database
+
+Share tracking data is stored in the `wp_play50_share_tracking` table with the following structure:
+
+- `id`: Auto-increment primary key
+- `share_id`: Unique share identifier (string)
+- `game_type`: Game type (e.g., "card-flip", "tile-slider")
+- `clicks`: Number of times the link was clicked
+- `created_at`: When the share was created
+- `last_click_at`: When the link was last clicked (NULL if never clicked)
 
 ### Finding Game IDs
 
@@ -348,7 +399,12 @@ Notes:
 -  `showHints` (optional): Enable hint button - Default: true
 -  `maxHints` (optional): Maximum number of hints allowed - Default: 5
    -  Set to 0 or >= 1000 for unlimited hints (solves puzzle completely)
--  **Share to Unlock**: Users can share the game to get unlimited hints automatically
+-  **Share Feature**: Users can share the game to unlock unlimited hints
+   -  Click "Share for Unlimited Hints" button to copy a shareable link
+   -  When someone else opens the shared link, the original sharer gets unlimited hints for 15 minutes
+   -  The system uses a heartbeat mechanism (checks every 10 seconds) to detect when the link is clicked
+   -  A success message appears for 10 seconds when unlimited hints are activated
+   -  Hints automatically expire after 15 minutes and return to normal
 -  Hints automatically execute 2-3 optimal moves (or complete solution if unlimited)
 -  Keyboard: Tab to select tiles, Arrow keys to move selected tile
 
@@ -650,6 +706,13 @@ In WordPress admin, when creating/editing a game:
 -  Modern UI matching other games
 -  Full-width grid with 5px spacing between cards
 -  43+ heroicons available for variety
+-  **Share Feature**: Users can share the game to unlock unlimited hints
+   -  Click "Share for Unlimited Hints" button to copy a shareable link
+   -  When someone else opens the shared link, the original sharer gets unlimited hints for 15 minutes
+   -  The system uses a heartbeat mechanism (checks every 10 seconds) to detect when the link is clicked
+   -  A success message appears for 10 seconds when unlimited hints are activated
+   -  Hints automatically expire after 15 minutes and return to normal
+   -  Up to 10 hints per round by default, unlimited when shared link is clicked
 
 **Recommended Settings:**
 
@@ -1212,6 +1275,7 @@ src/
 -  **Modern UI**: Gradient backgrounds, animations, and visual feedback
 -  **Game Instructions**: Detailed instructions and tips displayed before each game
 -  **Diagnostics Page**: API connectivity and CORS diagnostics
+-  **Share Feature**: Share games to unlock unlimited hints (Card Flip Memory, Tile Slider)
 
 ## Game Types
 

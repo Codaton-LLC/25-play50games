@@ -684,7 +684,9 @@ function CardFlipMemory({
 
    // Handle copy link to clipboard
    const handleCopyLink = async (shareId: string) => {
-      const shareableLink = getShareableLink();
+      // Use the provided shareId instead of generating a new one
+      const currentUrl = window.location.href.split("?")[0]; // Remove existing params
+      const shareableLink = `${currentUrl}?shared=${shareId}`;
 
       try {
          await navigator.clipboard.writeText(shareableLink);
