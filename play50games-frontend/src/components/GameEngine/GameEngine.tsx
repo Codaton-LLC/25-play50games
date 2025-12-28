@@ -27,6 +27,8 @@ import {
    ScaleIcon,
    ArrowPathIcon,
    PuzzlePieceIcon,
+   MusicalNoteIcon,
+   KeyIcon,
 } from "@heroicons/react/24/outline";
 import LogicGames from "./game-types/LogicGames";
 import MemoryGames from "./game-types/MemoryGames";
@@ -47,6 +49,20 @@ export default function GameEngine({
    onComplete,
    onExit,
 }: GameEngineProps) {
+   const [isMobile, setIsMobile] = useState(false);
+   const [isTablet, setIsTablet] = useState(false);
+
+   // Check if mobile or tablet device
+   useEffect(() => {
+      const checkDevice = () => {
+         const width = window.innerWidth;
+         setIsMobile(width < 768);
+         setIsTablet(width >= 768 && width < 1024);
+      };
+      checkDevice();
+      window.addEventListener("resize", checkDevice);
+      return () => window.removeEventListener("resize", checkDevice);
+   }, []);
    const { isAuthenticated } = useAuth();
    const [score, setScore] = useState(0);
    const [timeLeft, setTimeLeft] = useState(game.time_limit);
@@ -100,7 +116,12 @@ export default function GameEngine({
 
          // Save progress
          try {
-            await saveProgress(game.id, actualScore, completed, isAuthenticated);
+            await saveProgress(
+               game.id,
+               actualScore,
+               completed,
+               isAuthenticated
+            );
          } catch (error) {
             // Don't block game completion if save fails
          }
@@ -125,21 +146,26 @@ export default function GameEngine({
    const renderGame = () => {
       // Ensure game_config is parsed correctly (it should already be an object from API)
       let gameConfig = game.game_config || {};
-      
+
       // If game_config is a string, parse it
-      if (typeof gameConfig === 'string') {
+      if (typeof gameConfig === "string") {
          try {
             gameConfig = JSON.parse(gameConfig);
          } catch (e) {
             gameConfig = {};
          }
       }
-      
+
       // If game_config is null or undefined, set to empty object
-      if (!gameConfig || (typeof gameConfig === 'object' && Object.keys(gameConfig).length === 0 && gameConfig.constructor === Object)) {
+      if (
+         !gameConfig ||
+         (typeof gameConfig === "object" &&
+            Object.keys(gameConfig).length === 0 &&
+            gameConfig.constructor === Object)
+      ) {
          gameConfig = {};
       }
-      
+
       // Debug logging removed to reduce console noise.
 
       switch (game.game_type) {
@@ -161,6 +187,7 @@ export default function GameEngine({
                   onScoreUpdate={updateScore}
                   onComplete={handleGameEnd}
                   isPlaying={isPlaying}
+                  passingScore={game.passing_score}
                />
             );
          case "speed":
@@ -210,298 +237,762 @@ export default function GameEngine({
                <h3>How to Play</h3>
                <p className="instructions-text">{instructions.instructions}</p>
 
-               {/* Enhanced Start Screen for Mirror Match */}
-               {gameType === "mirror-match" && (
-                  <div style={{
-                     background: "linear-gradient(135deg, rgba(125, 211, 252, 0.1) 0%, rgba(54, 211, 153, 0.1) 100%)",
-                     border: "2px solid var(--stroke)",
-                     borderRadius: "20px",
-                     padding: "32px",
-                     marginTop: "24px",
-                     boxShadow: "0 8px 24px rgba(0, 0, 0, 0.2)"
-                  }}>
-                     <div style={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        gap: "12px",
-                        marginBottom: "24px"
-                     }}>
-                        <ScaleIcon style={{ width: 28, height: 28, color: "var(--accent)" }} />
-                        <h3 style={{
-                           fontSize: "24px",
-                           fontWeight: 700,
-                           margin: 0,
-                           background: "linear-gradient(135deg, var(--accent) 0%, var(--ok) 100%)",
-                           WebkitBackgroundClip: "text",
-                           WebkitTextFillColor: "transparent",
-                           backgroundClip: "text"
-                        }}>
-                           Mirror Types Explained
+               {/* Interactive Example for Sound Memory */}
+               {gameType === "sound-memory" && (
+                  <div
+                     style={{
+                        background:
+                           "linear-gradient(135deg, rgba(125, 211, 252, 0.1) 0%, rgba(54, 211, 153, 0.1) 100%)",
+                        border: "2px solid var(--stroke)",
+                        borderRadius: "20px",
+                        padding: "32px",
+                        marginTop: "24px",
+                        boxShadow: "0 8px 24px rgba(0, 0, 0, 0.2)",
+                     }}
+                  >
+                     <div
+                        style={{
+                           display: "flex",
+                           alignItems: "center",
+                           justifyContent: "center",
+                           gap: "12px",
+                           marginBottom: "24px",
+                        }}
+                     >
+                        <MusicalNoteIcon
+                           style={{
+                              width: 28,
+                              height: 28,
+                              color: "var(--accent)",
+                           }}
+                        />
+                        <h3
+                           style={{
+                              fontSize: "24px",
+                              fontWeight: 700,
+                              margin: 0,
+                              background:
+                                 "linear-gradient(135deg, var(--accent) 0%, var(--ok) 100%)",
+                              WebkitBackgroundClip: "text",
+                              WebkitTextFillColor: "transparent",
+                              backgroundClip: "text",
+                           }}
+                        >
+                           Example Sequence
                         </h3>
                      </div>
 
-                     <div style={{ 
-                        display: "grid", 
-                        gridTemplateColumns: "repeat(3, 1fr)", 
-                        gap: "20px",
-                        marginBottom: "24px"
-                     }}>
-                        {/* Horizontal Mirror */}
-                        <div style={{
+                     <div
+                        style={{
                            background: "var(--card)",
                            border: "2px solid var(--stroke)",
                            borderRadius: "16px",
                            padding: "24px",
+                           marginBottom: "20px",
+                        }}
+                     >
+                        <p
+                           style={{
+                              margin: "0 0 16px",
+                              color: "var(--text)",
+                              fontSize: "16px",
+                              fontWeight: 600,
+                              textAlign: "center",
+                           }}
+                        >
+                           Listen to this example:{" "}
+                           <strong>
+                              <span
+                                 style={{ color: "rgba(54, 211, 153, 0.9)" }}
+                              >
+                                 2
+                              </span>
+                              {" → "}
+                              <span
+                                 style={{ color: "rgba(110, 168, 255, 0.9)" }}
+                              >
+                                 1
+                              </span>
+                              {" → "}
+                              <span
+                                 style={{ color: "rgba(251, 113, 133, 0.9)" }}
+                              >
+                                 3
+                              </span>
+                           </strong>
+                        </p>
+                        <div
+                           style={{
+                              display: "flex",
+                              gap: isMobile ? "8px" : "12px",
+                              justifyContent: "center",
+                              marginBottom: isMobile ? "16px" : "20px",
+                              flexWrap: "wrap",
+                           }}
+                        >
+                           {[2, 1, 3].map((num, i) => {
+                              // Color mapping: 1=Blue, 2=Green, 3=Red/Pink, 4=Yellow
+                              const colors: Record<
+                                 number,
+                                 {
+                                    bg: string;
+                                    border: string;
+                                    shadow: string;
+                                    text: string;
+                                 }
+                              > = {
+                                 1: {
+                                    bg: "linear-gradient(135deg, rgba(110, 168, 255, 0.25), rgba(110, 168, 255, 0.15))",
+                                    border: "rgba(110, 168, 255, 0.6)",
+                                    shadow: "rgba(110, 168, 255, 0.4)",
+                                    text: "rgba(110, 168, 255, 0.9)",
+                                 },
+                                 2: {
+                                    bg: "linear-gradient(135deg, rgba(54, 211, 153, 0.25), rgba(54, 211, 153, 0.15))",
+                                    border: "rgba(54, 211, 153, 0.6)",
+                                    shadow: "rgba(54, 211, 153, 0.4)",
+                                    text: "rgba(54, 211, 153, 0.9)",
+                                 },
+                                 3: {
+                                    bg: "linear-gradient(135deg, rgba(251, 113, 133, 0.25), rgba(251, 113, 133, 0.15))",
+                                    border: "rgba(251, 113, 133, 0.6)",
+                                    shadow: "rgba(251, 113, 133, 0.4)",
+                                    text: "rgba(251, 113, 133, 0.9)",
+                                 },
+                                 4: {
+                                    bg: "linear-gradient(135deg, rgba(251, 191, 36, 0.25), rgba(251, 191, 36, 0.15))",
+                                    border: "rgba(251, 191, 36, 0.6)",
+                                    shadow: "rgba(251, 191, 36, 0.4)",
+                                    text: "rgba(251, 191, 36, 0.9)",
+                                 },
+                              };
+                              const color = colors[num] || colors[1];
+                              return (
+                                 <div
+                                    key={i}
+                                    style={{
+                                       width: isMobile ? "60px" : "80px",
+                                       height: isMobile ? "60px" : "80px",
+                                       borderRadius: isMobile ? "12px" : "16px",
+                                       background: color.bg,
+                                       border: `2px solid ${color.border}`,
+                                       display: "flex",
+                                       alignItems: "center",
+                                       justifyContent: "center",
+                                       fontSize: isMobile ? "1.5rem" : "2rem",
+                                       fontWeight: "bold",
+                                       color: color.text,
+                                       boxShadow: `0 4px 12px ${color.shadow}`,
+                                    }}
+                                 >
+                                    {num}
+                                 </div>
+                              );
+                           })}
+                        </div>
+                        <p
+                           style={{
+                              margin: "0",
+                              color: "var(--muted)",
+                              fontSize: "14px",
+                              textAlign: "center",
+                              lineHeight: "1.6",
+                           }}
+                        >
+                           Click the sound pads in the same order:{" "}
+                           <strong>
+                              <span
+                                 style={{ color: "rgba(54, 211, 153, 0.9)" }}
+                              >
+                                 2
+                              </span>
+                              {", then "}
+                              <span
+                                 style={{ color: "rgba(110, 168, 255, 0.9)" }}
+                              >
+                                 1
+                              </span>
+                              {", then "}
+                              <span
+                                 style={{ color: "rgba(251, 113, 133, 0.9)" }}
+                              >
+                                 3
+                              </span>
+                           </strong>
+                        </p>
+                     </div>
+
+                     <div
+                        style={{
+                           display: "grid",
+                           gridTemplateColumns: "repeat(4, 1fr)",
+                           gap: "12px",
+                           marginTop: "20px",
+                        }}
+                     >
+                        {[1, 2, 3, 4].map((padNum) => (
+                           <div
+                              key={padNum}
+                              style={{
+                                 background: "var(--card)",
+                                 border: "2px solid var(--stroke)",
+                                 borderRadius: "12px",
+                                 padding: "16px",
+                                 textAlign: "center",
+                                 transition: "all 0.2s",
+                              }}
+                           >
+                              <div
+                                 style={{
+                                    fontSize: "1.5rem",
+                                    fontWeight: "bold",
+                                    color: "var(--accent)",
+                                    marginBottom: "8px",
+                                 }}
+                              >
+                                 {padNum}
+                              </div>
+                              <div
+                                 style={{
+                                    fontSize: "0.75rem",
+                                    color: "var(--muted)",
+                                    fontWeight: 600,
+                                 }}
+                              >
+                                 Key {padNum}
+                              </div>
+                           </div>
+                        ))}
+                     </div>
+                     <p
+                        style={{
+                           margin: "16px 0 0",
+                           color: "var(--muted)",
+                           fontSize: "13px",
                            textAlign: "center",
-                           transition: "all 0.3s ease",
-                           boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)"
-                        }}>
-                           <div style={{ 
-                              fontSize: "16px", 
-                              fontWeight: 700, 
-                              color: "var(--accent)",
-                              marginBottom: "16px",
+                           fontStyle: "italic",
+                        }}
+                     >
+                        <span
+                           style={{
                               display: "flex",
                               alignItems: "center",
+                              gap: "6px",
                               justifyContent: "center",
-                              gap: "8px"
-                           }}>
-                              <ArrowPathIcon style={{ width: 18, height: 18 }} />
+                           }}
+                        >
+                           <LightBulbIcon
+                              style={{
+                                 width: 16,
+                                 height: 16,
+                                 color: "var(--accent)",
+                              }}
+                           />
+                           Tip: Use keyboard keys 1-4 for faster gameplay!
+                        </span>
+                     </p>
+                  </div>
+               )}
+
+               {/* Enhanced Start Screen for Mirror Match */}
+               {gameType === "mirror-match" && (
+                  <div
+                     style={{
+                        background:
+                           "linear-gradient(135deg, rgba(125, 211, 252, 0.1) 0%, rgba(54, 211, 153, 0.1) 100%)",
+                        border: "2px solid var(--stroke)",
+                        borderRadius: isMobile ? "16px" : isTablet ? "18px" : "20px",
+                        padding: isMobile ? "20px" : isTablet ? "24px" : "32px",
+                        marginTop: isMobile ? "16px" : "24px",
+                        boxShadow: "0 8px 24px rgba(0, 0, 0, 0.2)",
+                     }}
+                  >
+                     <div
+                        style={{
+                           display: "flex",
+                           alignItems: "center",
+                           justifyContent: "center",
+                           gap: isMobile ? "8px" : "12px",
+                           marginBottom: isMobile ? "16px" : isTablet ? "20px" : "24px",
+                        }}
+                     >
+                        <ScaleIcon
+                           style={{
+                              width: isMobile ? 20 : isTablet ? 24 : 28,
+                              height: isMobile ? 20 : isTablet ? 24 : 28,
+                              color: "var(--accent)",
+                           }}
+                        />
+                        <h3
+                           style={{
+                              fontSize: isMobile ? "18px" : isTablet ? "20px" : "24px",
+                              fontWeight: 700,
+                              margin: 0,
+                              background:
+                                 "linear-gradient(135deg, var(--accent) 0%, var(--ok) 100%)",
+                              WebkitBackgroundClip: "text",
+                              WebkitTextFillColor: "transparent",
+                              backgroundClip: "text",
+                           }}
+                        >
+                           Mirror Types Explained
+                        </h3>
+                     </div>
+
+                     <div
+                        style={{
+                           display: "grid",
+                           gridTemplateColumns: isMobile 
+                              ? "1fr" 
+                              : isTablet 
+                              ? "repeat(2, 1fr)" 
+                              : "repeat(3, 1fr)",
+                           gap: isMobile ? "16px" : isTablet ? "18px" : "20px",
+                           marginBottom: isMobile ? "16px" : isTablet ? "20px" : "24px",
+                        }}
+                     >
+                        {/* Horizontal Mirror */}
+                        <div
+                           style={{
+                              background: "var(--card)",
+                              border: "2px solid var(--stroke)",
+                              borderRadius: isMobile ? "14px" : isTablet ? "15px" : "16px",
+                              padding: isMobile ? "16px" : isTablet ? "20px" : "24px",
+                              textAlign: "center",
+                              transition: "all 0.3s ease",
+                              boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)",
+                           }}
+                        >
+                           <div
+                              style={{
+                                 fontSize: isMobile ? "14px" : isTablet ? "15px" : "16px",
+                                 fontWeight: 700,
+                                 color: "var(--accent)",
+                                 marginBottom: isMobile ? "12px" : isTablet ? "14px" : "16px",
+                                 display: "flex",
+                                 alignItems: "center",
+                                 justifyContent: "center",
+                                 gap: isMobile ? "6px" : "8px",
+                              }}
+                           >
+                              <ArrowPathIcon
+                                 style={{ 
+                                    width: isMobile ? 16 : isTablet ? 17 : 18, 
+                                    height: isMobile ? 16 : isTablet ? 17 : 18 
+                                 }}
+                              />
                               Horizontal
                            </div>
-                           <div style={{
-                              display: "flex",
-                              flexDirection: "column",
-                              alignItems: "center",
-                              gap: "12px",
-                              minHeight: "180px"
-                           }}>
-                              <div style={{
-                                 background: "rgba(125, 211, 252, 0.1)",
-                                 borderRadius: "12px",
-                                 padding: "16px",
-                                 border: "1px solid var(--stroke)"
-                              }}>
-                                 <svg viewBox="0 0 100 100" width="80" height="80" style={{ stroke: "rgba(232, 238, 252, 0.92)", strokeWidth: "10", fill: "none", strokeLinecap: "round", strokeLinejoin: "round" }}>
+                           <div
+                              style={{
+                                 display: "flex",
+                                 flexDirection: "column",
+                                 alignItems: "center",
+                                 gap: isMobile ? "8px" : isTablet ? "10px" : "12px",
+                                 minHeight: isMobile ? "140px" : isTablet ? "160px" : "180px",
+                              }}
+                           >
+                              <div
+                                 style={{
+                                    background: "rgba(125, 211, 252, 0.1)",
+                                    borderRadius: isMobile ? "10px" : "12px",
+                                    padding: isMobile ? "12px" : isTablet ? "14px" : "16px",
+                                    border: "1px solid var(--stroke)",
+                                 }}
+                              >
+                                 <svg
+                                    viewBox="0 0 100 100"
+                                    width={isMobile ? "60" : isTablet ? "70" : "80"}
+                                    height={isMobile ? "60" : isTablet ? "70" : "80"}
+                                    style={{
+                                       stroke: "rgba(232, 238, 252, 0.92)",
+                                       strokeWidth: "10",
+                                       fill: "none",
+                                       strokeLinecap: "round",
+                                       strokeLinejoin: "round",
+                                    }}
+                                 >
                                     <path d="M20 60 L52 28" />
                                     <path d="M52 28 L66 42" />
                                     <path d="M66 42 L60 48" />
-                                    <circle cx="22" cy="62" r="4" fill="rgba(232, 238, 252, 0.92)" />
+                                    <circle
+                                       cx="22"
+                                       cy="62"
+                                       r="4"
+                                       fill="rgba(232, 238, 252, 0.92)"
+                                    />
                                  </svg>
                               </div>
-                              <div style={{ 
-                                 fontSize: "20px", 
-                                 color: "var(--accent)",
-                                 fontWeight: 600
-                              }}>→</div>
-                              <div style={{
-                                 background: "rgba(125, 211, 252, 0.1)",
-                                 borderRadius: "12px",
-                                 padding: "16px",
-                                 border: "1px solid var(--stroke)",
-                                 transform: "scaleX(-1)"
-                              }}>
-                                 <svg viewBox="0 0 100 100" width="80" height="80" style={{ stroke: "rgba(232, 238, 252, 0.92)", strokeWidth: "10", fill: "none", strokeLinecap: "round", strokeLinejoin: "round" }}>
+                              <div
+                                 style={{
+                                    fontSize: isMobile ? "16px" : isTablet ? "18px" : "20px",
+                                    color: "var(--accent)",
+                                    fontWeight: 600,
+                                 }}
+                              >
+                                 →
+                              </div>
+                              <div
+                                 style={{
+                                    background: "rgba(125, 211, 252, 0.1)",
+                                    borderRadius: isMobile ? "10px" : "12px",
+                                    padding: isMobile ? "12px" : isTablet ? "14px" : "16px",
+                                    border: "1px solid var(--stroke)",
+                                    transform: "scaleX(-1)",
+                                 }}
+                              >
+                                 <svg
+                                    viewBox="0 0 100 100"
+                                    width={isMobile ? "60" : isTablet ? "70" : "80"}
+                                    height={isMobile ? "60" : isTablet ? "70" : "80"}
+                                    style={{
+                                       stroke: "rgba(232, 238, 252, 0.92)",
+                                       strokeWidth: "10",
+                                       fill: "none",
+                                       strokeLinecap: "round",
+                                       strokeLinejoin: "round",
+                                    }}
+                                 >
                                     <path d="M20 60 L52 28" />
                                     <path d="M52 28 L66 42" />
                                     <path d="M66 42 L60 48" />
-                                    <circle cx="22" cy="62" r="4" fill="rgba(232, 238, 252, 0.92)" />
+                                    <circle
+                                       cx="22"
+                                       cy="62"
+                                       r="4"
+                                       fill="rgba(232, 238, 252, 0.92)"
+                                    />
                                  </svg>
                               </div>
-                              <div style={{ 
-                                 fontSize: "13px", 
-                                 color: "var(--muted)", 
-                                 marginTop: "8px",
-                                 fontWeight: 600
-                              }}>
+                              <div
+                                 style={{
+                                    fontSize: isMobile ? "11px" : isTablet ? "12px" : "13px",
+                                    color: "var(--muted)",
+                                    marginTop: isMobile ? "4px" : "8px",
+                                    fontWeight: 600,
+                                 }}
+                              >
                                  Flips left ↔ right
                               </div>
                            </div>
                         </div>
 
                         {/* Vertical Mirror */}
-                        <div style={{
-                           background: "var(--card)",
-                           border: "2px solid var(--stroke)",
-                           borderRadius: "16px",
-                           padding: "24px",
-                           textAlign: "center",
-                           transition: "all 0.3s ease",
-                           boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)"
-                        }}>
-                           <div style={{ 
-                              fontSize: "16px", 
-                              fontWeight: 700, 
-                              color: "var(--accent)",
-                              marginBottom: "16px",
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              gap: "8px"
-                           }}>
-                              <ArrowPathIcon style={{ width: 18, height: 18, transform: "rotate(90deg)" }} />
+                        <div
+                           style={{
+                              background: "var(--card)",
+                              border: "2px solid var(--stroke)",
+                              borderRadius: isMobile ? "14px" : isTablet ? "15px" : "16px",
+                              padding: isMobile ? "16px" : isTablet ? "20px" : "24px",
+                              textAlign: "center",
+                              transition: "all 0.3s ease",
+                              boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)",
+                           }}
+                        >
+                           <div
+                              style={{
+                                 fontSize: isMobile ? "14px" : isTablet ? "15px" : "16px",
+                                 fontWeight: 700,
+                                 color: "var(--accent)",
+                                 marginBottom: isMobile ? "12px" : isTablet ? "14px" : "16px",
+                                 display: "flex",
+                                 alignItems: "center",
+                                 justifyContent: "center",
+                                 gap: isMobile ? "6px" : "8px",
+                              }}
+                           >
+                              <ArrowPathIcon
+                                 style={{
+                                    width: isMobile ? 16 : isTablet ? 17 : 18,
+                                    height: isMobile ? 16 : isTablet ? 17 : 18,
+                                    transform: "rotate(90deg)",
+                                 }}
+                              />
                               Vertical
                            </div>
-                           <div style={{
-                              display: "flex",
-                              flexDirection: "column",
-                              alignItems: "center",
-                              gap: "12px",
-                              minHeight: "180px"
-                           }}>
-                              <div style={{
-                                 background: "rgba(54, 211, 153, 0.1)",
-                                 borderRadius: "12px",
-                                 padding: "16px",
-                                 border: "1px solid var(--stroke)"
-                              }}>
-                                 <svg viewBox="0 0 100 100" width="80" height="80" style={{ stroke: "rgba(232, 238, 252, 0.92)", strokeWidth: "10", fill: "none", strokeLinecap: "round", strokeLinejoin: "round" }}>
+                           <div
+                              style={{
+                                 display: "flex",
+                                 flexDirection: "column",
+                                 alignItems: "center",
+                                 gap: isMobile ? "8px" : isTablet ? "10px" : "12px",
+                                 minHeight: isMobile ? "140px" : isTablet ? "160px" : "180px",
+                              }}
+                           >
+                              <div
+                                 style={{
+                                    background: "rgba(54, 211, 153, 0.1)",
+                                    borderRadius: isMobile ? "10px" : "12px",
+                                    padding: isMobile ? "12px" : isTablet ? "14px" : "16px",
+                                    border: "1px solid var(--stroke)",
+                                 }}
+                              >
+                                 <svg
+                                    viewBox="0 0 100 100"
+                                    width={isMobile ? "60" : isTablet ? "70" : "80"}
+                                    height={isMobile ? "60" : isTablet ? "70" : "80"}
+                                    style={{
+                                       stroke: "rgba(232, 238, 252, 0.92)",
+                                       strokeWidth: "10",
+                                       fill: "none",
+                                       strokeLinecap: "round",
+                                       strokeLinejoin: "round",
+                                    }}
+                                 >
                                     <path d="M20 60 L52 28" />
                                     <path d="M52 28 L66 42" />
                                     <path d="M66 42 L60 48" />
-                                    <circle cx="22" cy="62" r="4" fill="rgba(232, 238, 252, 0.92)" />
+                                    <circle
+                                       cx="22"
+                                       cy="62"
+                                       r="4"
+                                       fill="rgba(232, 238, 252, 0.92)"
+                                    />
                                  </svg>
                               </div>
-                              <div style={{ 
-                                 fontSize: "20px", 
-                                 color: "var(--ok)",
-                                 fontWeight: 600
-                              }}>↓</div>
-                              <div style={{
-                                 background: "rgba(54, 211, 153, 0.1)",
-                                 borderRadius: "12px",
-                                 padding: "16px",
-                                 border: "1px solid var(--stroke)",
-                                 transform: "scaleY(-1)"
-                              }}>
-                                 <svg viewBox="0 0 100 100" width="80" height="80" style={{ stroke: "rgba(232, 238, 252, 0.92)", strokeWidth: "10", fill: "none", strokeLinecap: "round", strokeLinejoin: "round" }}>
+                              <div
+                                 style={{
+                                    fontSize: isMobile ? "16px" : isTablet ? "18px" : "20px",
+                                    color: "var(--ok)",
+                                    fontWeight: 600,
+                                 }}
+                              >
+                                 ↓
+                              </div>
+                              <div
+                                 style={{
+                                    background: "rgba(54, 211, 153, 0.1)",
+                                    borderRadius: isMobile ? "10px" : "12px",
+                                    padding: isMobile ? "12px" : isTablet ? "14px" : "16px",
+                                    border: "1px solid var(--stroke)",
+                                    transform: "scaleY(-1)",
+                                 }}
+                              >
+                                 <svg
+                                    viewBox="0 0 100 100"
+                                    width={isMobile ? "60" : isTablet ? "70" : "80"}
+                                    height={isMobile ? "60" : isTablet ? "70" : "80"}
+                                    style={{
+                                       stroke: "rgba(232, 238, 252, 0.92)",
+                                       strokeWidth: "10",
+                                       fill: "none",
+                                       strokeLinecap: "round",
+                                       strokeLinejoin: "round",
+                                    }}
+                                 >
                                     <path d="M20 60 L52 28" />
                                     <path d="M52 28 L66 42" />
                                     <path d="M66 42 L60 48" />
-                                    <circle cx="22" cy="62" r="4" fill="rgba(232, 238, 252, 0.92)" />
+                                    <circle
+                                       cx="22"
+                                       cy="62"
+                                       r="4"
+                                       fill="rgba(232, 238, 252, 0.92)"
+                                    />
                                  </svg>
                               </div>
-                              <div style={{ 
-                                 fontSize: "13px", 
-                                 color: "var(--muted)", 
-                                 marginTop: "8px",
-                                 fontWeight: 600
-                              }}>
+                              <div
+                                 style={{
+                                    fontSize: isMobile ? "11px" : isTablet ? "12px" : "13px",
+                                    color: "var(--muted)",
+                                    marginTop: isMobile ? "4px" : "8px",
+                                    fontWeight: 600,
+                                 }}
+                              >
                                  Flips top ↔ bottom
                               </div>
                            </div>
                         </div>
 
                         {/* Diagonal Mirror */}
-                        <div style={{
-                           background: "var(--card)",
-                           border: "2px solid var(--stroke)",
-                           borderRadius: "16px",
-                           padding: "24px",
-                           textAlign: "center",
-                           transition: "all 0.3s ease",
-                           boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)"
-                        }}>
-                           <div style={{ 
-                              fontSize: "16px", 
-                              fontWeight: 700, 
-                              color: "var(--accent)",
-                              marginBottom: "16px",
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              gap: "8px"
-                           }}>
-                              <ArrowPathIcon style={{ width: 18, height: 18, transform: "rotate(45deg)" }} />
+                        <div
+                           style={{
+                              background: "var(--card)",
+                              border: "2px solid var(--stroke)",
+                              borderRadius: isMobile ? "14px" : isTablet ? "15px" : "16px",
+                              padding: isMobile ? "16px" : isTablet ? "20px" : "24px",
+                              textAlign: "center",
+                              transition: "all 0.3s ease",
+                              boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)",
+                           }}
+                        >
+                           <div
+                              style={{
+                                 fontSize: isMobile ? "14px" : isTablet ? "15px" : "16px",
+                                 fontWeight: 700,
+                                 color: "var(--accent)",
+                                 marginBottom: isMobile ? "12px" : isTablet ? "14px" : "16px",
+                                 display: "flex",
+                                 alignItems: "center",
+                                 justifyContent: "center",
+                                 gap: isMobile ? "6px" : "8px",
+                              }}
+                           >
+                              <ArrowPathIcon
+                                 style={{
+                                    width: isMobile ? 16 : isTablet ? 17 : 18,
+                                    height: isMobile ? 16 : isTablet ? 17 : 18,
+                                    transform: "rotate(45deg)",
+                                 }}
+                              />
                               Diagonal
                            </div>
-                           <div style={{
-                              display: "flex",
-                              flexDirection: "column",
-                              alignItems: "center",
-                              gap: "12px",
-                              minHeight: "180px"
-                           }}>
-                              <div style={{
-                                 background: "rgba(168, 85, 247, 0.1)",
-                                 borderRadius: "12px",
-                                 padding: "16px",
-                                 border: "1px solid var(--stroke)"
-                              }}>
-                                 <svg viewBox="0 0 100 100" width="80" height="80" style={{ stroke: "rgba(232, 238, 252, 0.92)", strokeWidth: "10", fill: "none", strokeLinecap: "round", strokeLinejoin: "round" }}>
+                           <div
+                              style={{
+                                 display: "flex",
+                                 flexDirection: "column",
+                                 alignItems: "center",
+                                 gap: isMobile ? "8px" : isTablet ? "10px" : "12px",
+                                 minHeight: isMobile ? "140px" : isTablet ? "160px" : "180px",
+                              }}
+                           >
+                              <div
+                                 style={{
+                                    background: "rgba(168, 85, 247, 0.1)",
+                                    borderRadius: isMobile ? "10px" : "12px",
+                                    padding: isMobile ? "12px" : isTablet ? "14px" : "16px",
+                                    border: "1px solid var(--stroke)",
+                                 }}
+                              >
+                                 <svg
+                                    viewBox="0 0 100 100"
+                                    width={isMobile ? "60" : isTablet ? "70" : "80"}
+                                    height={isMobile ? "60" : isTablet ? "70" : "80"}
+                                    style={{
+                                       stroke: "rgba(232, 238, 252, 0.92)",
+                                       strokeWidth: "10",
+                                       fill: "none",
+                                       strokeLinecap: "round",
+                                       strokeLinejoin: "round",
+                                    }}
+                                 >
                                     <path d="M20 60 L52 28" />
                                     <path d="M52 28 L66 42" />
                                     <path d="M66 42 L60 48" />
-                                    <circle cx="22" cy="62" r="4" fill="rgba(232, 238, 252, 0.92)" />
+                                    <circle
+                                       cx="22"
+                                       cy="62"
+                                       r="4"
+                                       fill="rgba(232, 238, 252, 0.92)"
+                                    />
                                  </svg>
                               </div>
-                              <div style={{ 
-                                 fontSize: "20px", 
-                                 color: "#a855f7",
-                                 fontWeight: 600
-                              }}>↻</div>
-                              <div style={{
-                                 background: "rgba(168, 85, 247, 0.1)",
-                                 borderRadius: "12px",
-                                 padding: "16px",
-                                 border: "1px solid var(--stroke)",
-                                 transform: "scale(-1, -1)"
-                              }}>
-                                 <svg viewBox="0 0 100 100" width="80" height="80" style={{ stroke: "rgba(232, 238, 252, 0.92)", strokeWidth: "10", fill: "none", strokeLinecap: "round", strokeLinejoin: "round" }}>
+                              <div
+                                 style={{
+                                    fontSize: isMobile ? "16px" : isTablet ? "18px" : "20px",
+                                    color: "#a855f7",
+                                    fontWeight: 600,
+                                 }}
+                              >
+                                 ↻
+                              </div>
+                              <div
+                                 style={{
+                                    background: "rgba(168, 85, 247, 0.1)",
+                                    borderRadius: isMobile ? "10px" : "12px",
+                                    padding: isMobile ? "12px" : isTablet ? "14px" : "16px",
+                                    border: "1px solid var(--stroke)",
+                                    transform: "scale(-1, -1)",
+                                 }}
+                              >
+                                 <svg
+                                    viewBox="0 0 100 100"
+                                    width={isMobile ? "60" : isTablet ? "70" : "80"}
+                                    height={isMobile ? "60" : isTablet ? "70" : "80"}
+                                    style={{
+                                       stroke: "rgba(232, 238, 252, 0.92)",
+                                       strokeWidth: "10",
+                                       fill: "none",
+                                       strokeLinecap: "round",
+                                       strokeLinejoin: "round",
+                                    }}
+                                 >
                                     <path d="M20 60 L52 28" />
                                     <path d="M52 28 L66 42" />
                                     <path d="M66 42 L60 48" />
-                                    <circle cx="22" cy="62" r="4" fill="rgba(232, 238, 252, 0.92)" />
+                                    <circle
+                                       cx="22"
+                                       cy="62"
+                                       r="4"
+                                       fill="rgba(232, 238, 252, 0.92)"
+                                    />
                                  </svg>
                               </div>
-                              <div style={{ 
-                                 fontSize: "13px", 
-                                 color: "var(--muted)", 
-                                 marginTop: "8px",
-                                 fontWeight: 600
-                              }}>
+                              <div
+                                 style={{
+                                    fontSize: isMobile ? "11px" : isTablet ? "12px" : "13px",
+                                    color: "var(--muted)",
+                                    marginTop: isMobile ? "4px" : "8px",
+                                    fontWeight: 600,
+                                 }}
+                              >
                                  Flips both ways
                               </div>
                            </div>
                         </div>
                      </div>
 
-                     <div style={{
-                        background: "rgba(11, 22, 48, 0.4)",
-                        border: "1px solid var(--stroke)",
-                        borderRadius: "12px",
-                        padding: "20px",
-                        marginTop: "24px"
-                     }}>
-                        <div style={{
-                           display: "flex",
-                           alignItems: "center",
-                           gap: "12px",
-                           marginBottom: "12px"
-                        }}>
-                           <LightBulbIcon style={{ width: 20, height: 20, color: "var(--accent)" }} />
-                           <h4 style={{
-                              fontSize: "16px",
-                              fontWeight: 600,
-                              margin: 0,
-                              color: "var(--text)"
-                           }}>
+                     <div
+                        style={{
+                           background: "rgba(11, 22, 48, 0.4)",
+                           border: "1px solid var(--stroke)",
+                           borderRadius: "12px",
+                           padding: "20px",
+                           marginTop: "24px",
+                        }}
+                     >
+                        <div
+                           style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "12px",
+                              marginBottom: "12px",
+                           }}
+                        >
+                           <LightBulbIcon
+                              style={{
+                                 width: 20,
+                                 height: 20,
+                                 color: "var(--accent)",
+                              }}
+                           />
+                           <h4
+                              style={{
+                                 fontSize: "16px",
+                                 fontWeight: 600,
+                                 margin: 0,
+                                 color: "var(--text)",
+                              }}
+                           >
                               How to Play
                            </h4>
                         </div>
-                        <ul style={{
-                           margin: 0,
-                           paddingLeft: "24px",
-                           color: "var(--muted)",
-                           fontSize: "14px",
-                           lineHeight: "1.8"
-                        }}>
+                        <ul
+                           style={{
+                              margin: 0,
+                              paddingLeft: "24px",
+                              color: "var(--muted)",
+                              fontSize: "14px",
+                              lineHeight: "1.8",
+                           }}
+                        >
                            <li>Look at the main shape at the top</li>
-                           <li>Read the mirror type (Horizontal, Vertical, or Diagonal)</li>
-                           <li>Select the option that shows the correct mirror transformation</li>
+                           <li>
+                              Read the mirror type (Horizontal, Vertical, or
+                              Diagonal)
+                           </li>
+                           <li>
+                              Select the option that shows the correct mirror
+                              transformation
+                           </li>
                            <li>You have 3 options - only one is correct!</li>
-                           <li>Use number keys <strong style={{ color: "var(--accent)" }}>1, 2, 3</strong> for quick selection</li>
+                           <li>
+                              Use number keys{" "}
+                              <strong style={{ color: "var(--accent)" }}>
+                                 1, 2, 3
+                              </strong>{" "}
+                              for quick selection
+                           </li>
                         </ul>
                      </div>
                   </div>
@@ -528,227 +1019,363 @@ export default function GameEngine({
                         How Sequence Arrows Works
                      </h4>
                      <div style={{ marginBottom: "20px" }}>
-                        <p style={{ fontSize: "0.9rem", color: "var(--muted)", marginBottom: "16px" }}>
-                           You will see a sequence of arrows (↑ ↓ ← →) with one missing arrow shown as <strong style={{ color: "var(--accent)" }}>?</strong>. 
-                           Your task is to predict which arrow should come next in the sequence.
-                        </p>
-                        <div style={{
-                           background: "var(--card)",
-                           border: "2px solid var(--stroke)",
-                           borderRadius: "16px",
-                           padding: "24px",
-                           marginBottom: "16px"
-                        }}>
-                           <div style={{ 
-                              fontSize: "16px", 
-                              fontWeight: 700, 
-                              color: "var(--accent)",
+                        <p
+                           style={{
+                              fontSize: "0.9rem",
+                              color: "var(--muted)",
                               marginBottom: "16px",
-                              display: "flex",
-                              alignItems: "center",
-                              gap: "8px"
-                           }}>
-                              <ArrowPathIcon style={{ width: 18, height: 18 }} />
+                           }}
+                        >
+                           You will see a sequence of arrows (↑ ↓ ← →) with one
+                           missing arrow shown as{" "}
+                           <strong style={{ color: "var(--accent)" }}>?</strong>
+                           . Your task is to predict which arrow should come
+                           next in the sequence.
+                        </p>
+                        <div
+                           style={{
+                              background: "var(--card)",
+                              border: "2px solid var(--stroke)",
+                              borderRadius: "16px",
+                              padding: "24px",
+                              marginBottom: "16px",
+                           }}
+                        >
+                           <div
+                              style={{
+                                 fontSize: "16px",
+                                 fontWeight: 700,
+                                 color: "var(--accent)",
+                                 marginBottom: "16px",
+                                 display: "flex",
+                                 alignItems: "center",
+                                 gap: "8px",
+                              }}
+                           >
+                              <ArrowPathIcon
+                                 style={{ width: 18, height: 18 }}
+                              />
                               Example Sequence
                            </div>
-                           <div style={{
-                              display: "flex",
-                              gap: "16px",
-                              justifyContent: "center",
-                              alignItems: "center",
-                              marginBottom: "16px",
-                              flexWrap: "wrap"
-                           }}>
-                              <div style={{
+                           <div
+                              style={{
                                  display: "flex",
-                                 alignItems: "center",
+                                 gap: "16px",
                                  justifyContent: "center",
-                                 width: "64px",
-                                 height: "64px",
-                                 background: "rgba(255, 255, 255, 0.05)",
-                                 border: "2px solid var(--stroke)",
-                                 borderRadius: "12px"
-                              }}>
-                                 <ArrowUpIcon style={{ width: 40, height: 40, color: "var(--accent)" }} />
+                                 alignItems: "center",
+                                 marginBottom: "16px",
+                                 flexWrap: "wrap",
+                              }}
+                           >
+                              <div
+                                 style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    width: "64px",
+                                    height: "64px",
+                                    background: "rgba(255, 255, 255, 0.05)",
+                                    border: "2px solid var(--stroke)",
+                                    borderRadius: "12px",
+                                 }}
+                              >
+                                 <ArrowUpIcon
+                                    style={{
+                                       width: 40,
+                                       height: 40,
+                                       color: "var(--accent)",
+                                    }}
+                                 />
                               </div>
-                              <div style={{
-                                 display: "flex",
-                                 alignItems: "center",
-                                 justifyContent: "center",
-                                 width: "64px",
-                                 height: "64px",
-                                 background: "rgba(255, 255, 255, 0.05)",
-                                 border: "2px solid var(--stroke)",
-                                 borderRadius: "12px"
-                              }}>
-                                 <ArrowRightIcon style={{ width: 40, height: 40, color: "var(--accent)" }} />
+                              <div
+                                 style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    width: "64px",
+                                    height: "64px",
+                                    background: "rgba(255, 255, 255, 0.05)",
+                                    border: "2px solid var(--stroke)",
+                                    borderRadius: "12px",
+                                 }}
+                              >
+                                 <ArrowRightIcon
+                                    style={{
+                                       width: 40,
+                                       height: 40,
+                                       color: "var(--accent)",
+                                    }}
+                                 />
                               </div>
-                              <div style={{
-                                 display: "flex",
-                                 alignItems: "center",
-                                 justifyContent: "center",
-                                 width: "64px",
-                                 height: "64px",
-                                 background: "rgba(255, 255, 255, 0.05)",
-                                 border: "2px solid var(--stroke)",
-                                 borderRadius: "12px"
-                              }}>
-                                 <ArrowDownIcon style={{ width: 40, height: 40, color: "var(--accent)" }} />
+                              <div
+                                 style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    width: "64px",
+                                    height: "64px",
+                                    background: "rgba(255, 255, 255, 0.05)",
+                                    border: "2px solid var(--stroke)",
+                                    borderRadius: "12px",
+                                 }}
+                              >
+                                 <ArrowDownIcon
+                                    style={{
+                                       width: 40,
+                                       height: 40,
+                                       color: "var(--accent)",
+                                    }}
+                                 />
                               </div>
-                              <div style={{
-                                 display: "flex",
-                                 alignItems: "center",
-                                 justifyContent: "center",
-                                 width: "64px",
-                                 height: "64px",
-                                 background: "rgba(125, 211, 252, 0.2)",
-                                 border: "2px solid var(--accent)",
-                                 borderRadius: "12px",
-                                 fontSize: "1.5rem",
-                                 fontWeight: 700,
-                                 color: "var(--accent)"
-                              }}>
+                              <div
+                                 style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    width: "64px",
+                                    height: "64px",
+                                    background: "rgba(125, 211, 252, 0.2)",
+                                    border: "2px solid var(--accent)",
+                                    borderRadius: "12px",
+                                    fontSize: "1.5rem",
+                                    fontWeight: 700,
+                                    color: "var(--accent)",
+                                 }}
+                              >
                                  ?
                               </div>
-                              <div style={{
-                                 fontSize: "24px",
-                                 color: "var(--muted)",
-                                 fontWeight: 600,
-                                 margin: "0 8px"
-                              }}>
+                              <div
+                                 style={{
+                                    fontSize: "24px",
+                                    color: "var(--muted)",
+                                    fontWeight: 600,
+                                    margin: "0 8px",
+                                 }}
+                              >
                                  →
                               </div>
-                              <div style={{
-                                 display: "flex",
-                                 alignItems: "center",
-                                 justifyContent: "center",
-                                 width: "64px",
-                                 height: "64px",
-                                 background: "rgba(134, 239, 172, 0.2)",
-                                 border: "2px solid var(--ok)",
-                                 borderRadius: "12px",
-                                 position: "relative"
-                              }}>
-                                 <ArrowLeftIcon style={{ width: 40, height: 40, color: "var(--ok)" }} />
-                                 <CheckCircleIcon style={{
-                                    position: "absolute",
-                                    top: "-8px",
-                                    right: "-8px",
-                                    width: "20px",
-                                    height: "20px",
-                                    color: "var(--ok)",
-                                    background: "var(--card)",
-                                    borderRadius: "50%"
-                                 }} />
+                              <div
+                                 style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    width: "64px",
+                                    height: "64px",
+                                    background: "rgba(134, 239, 172, 0.2)",
+                                    border: "2px solid var(--ok)",
+                                    borderRadius: "12px",
+                                    position: "relative",
+                                 }}
+                              >
+                                 <ArrowLeftIcon
+                                    style={{
+                                       width: 40,
+                                       height: 40,
+                                       color: "var(--ok)",
+                                    }}
+                                 />
+                                 <CheckCircleIcon
+                                    style={{
+                                       position: "absolute",
+                                       top: "-8px",
+                                       right: "-8px",
+                                       width: "20px",
+                                       height: "20px",
+                                       color: "var(--ok)",
+                                       background: "var(--card)",
+                                       borderRadius: "50%",
+                                    }}
+                                 />
                               </div>
                            </div>
-                           <div style={{
-                              display: "flex",
-                              flexDirection: "column",
-                              gap: "8px",
-                              marginTop: "12px"
-                           }}>
-                              <p style={{ fontSize: "0.85rem", color: "var(--muted)", textAlign: "center", fontStyle: "italic" }}>
+                           <div
+                              style={{
+                                 display: "flex",
+                                 flexDirection: "column",
+                                 gap: "8px",
+                                 marginTop: "12px",
+                              }}
+                           >
+                              <p
+                                 style={{
+                                    fontSize: "0.85rem",
+                                    color: "var(--muted)",
+                                    textAlign: "center",
+                                    fontStyle: "italic",
+                                 }}
+                              >
                                  Pattern: Clockwise rotation (↑ → ↓ ←)
                               </p>
-                              <p style={{ 
-                                 fontSize: "0.9rem", 
-                                 color: "var(--ok)", 
-                                 textAlign: "center", 
-                                 fontWeight: 600,
-                                 display: "flex",
-                                 alignItems: "center",
-                                 justifyContent: "center",
-                                 gap: "6px"
-                              }}>
-                                 <CheckCircleIcon style={{ width: 16, height: 16 }} />
+                              <p
+                                 style={{
+                                    fontSize: "0.9rem",
+                                    color: "var(--ok)",
+                                    textAlign: "center",
+                                    fontWeight: 600,
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    gap: "6px",
+                                 }}
+                              >
+                                 <CheckCircleIcon
+                                    style={{ width: 16, height: 16 }}
+                                 />
                                  Answer: ← (Left Arrow)
                               </p>
                            </div>
                         </div>
-                        <div style={{
-                           background: "rgba(125, 211, 252, 0.1)",
-                           border: "1px solid var(--stroke)",
-                           borderRadius: "12px",
-                           padding: "16px",
-                           fontSize: "0.9rem",
-                           color: "var(--text)",
-                           marginBottom: "16px"
-                        }}>
-                           <strong style={{ color: "var(--accent)" }}>Tip:</strong> The sequence length increases as you progress. 
-                           Pay attention to the pattern direction and repetition!
-                        </div>
-                        
-                        {/* Patterns to Look For */}
-                        <div style={{
-                           background: "var(--card)",
-                           border: "2px solid var(--stroke)",
-                           borderRadius: "16px",
-                           padding: "24px",
-                           marginTop: "16px"
-                        }}>
-                           <div style={{ 
-                              fontSize: "16px", 
-                              fontWeight: 700, 
-                              color: "var(--accent)",
+                        <div
+                           style={{
+                              background: "rgba(125, 211, 252, 0.1)",
+                              border: "1px solid var(--stroke)",
+                              borderRadius: "12px",
+                              padding: "16px",
+                              fontSize: "0.9rem",
+                              color: "var(--text)",
                               marginBottom: "16px",
-                              display: "flex",
-                              alignItems: "center",
-                              gap: "8px"
-                           }}>
-                              <LightBulbIcon style={{ width: 18, height: 18 }} />
+                           }}
+                        >
+                           <strong style={{ color: "var(--accent)" }}>
+                              Tip:
+                           </strong>{" "}
+                           The sequence length increases as you progress. Pay
+                           attention to the pattern direction and repetition!
+                        </div>
+
+                        {/* Patterns to Look For */}
+                        <div
+                           style={{
+                              background: "var(--card)",
+                              border: "2px solid var(--stroke)",
+                              borderRadius: "16px",
+                              padding: "24px",
+                              marginTop: "16px",
+                           }}
+                        >
+                           <div
+                              style={{
+                                 fontSize: "16px",
+                                 fontWeight: 700,
+                                 color: "var(--accent)",
+                                 marginBottom: "16px",
+                                 display: "flex",
+                                 alignItems: "center",
+                                 gap: "8px",
+                              }}
+                           >
+                              <LightBulbIcon
+                                 style={{ width: 18, height: 18 }}
+                              />
                               What Patterns to Look For
                            </div>
-                           <div style={{
-                              display: "flex",
-                              flexDirection: "column",
-                              gap: "12px",
-                              fontSize: "0.9rem"
-                           }}>
-                              <div style={{
-                                 padding: "12px",
-                                 background: "rgba(125, 211, 252, 0.1)",
-                                 borderRadius: "8px",
-                                 border: "1px solid var(--stroke)"
-                              }}>
-                                 <strong style={{ color: "var(--accent)" }}>Clockwise rotation:</strong> 
-                                 <span style={{ color: "var(--text)", marginLeft: "8px" }}>↑ → ↓ ← (then repeats)</span>
+                           <div
+                              style={{
+                                 display: "flex",
+                                 flexDirection: "column",
+                                 gap: "12px",
+                                 fontSize: "0.9rem",
+                              }}
+                           >
+                              <div
+                                 style={{
+                                    padding: "12px",
+                                    background: "rgba(125, 211, 252, 0.1)",
+                                    borderRadius: "8px",
+                                    border: "1px solid var(--stroke)",
+                                 }}
+                              >
+                                 <strong style={{ color: "var(--accent)" }}>
+                                    Clockwise rotation:
+                                 </strong>
+                                 <span
+                                    style={{
+                                       color: "var(--text)",
+                                       marginLeft: "8px",
+                                    }}
+                                 >
+                                    ↑ → ↓ ← (then repeats)
+                                 </span>
                               </div>
-                              <div style={{
-                                 padding: "12px",
-                                 background: "rgba(125, 211, 252, 0.1)",
-                                 borderRadius: "8px",
-                                 border: "1px solid var(--stroke)"
-                              }}>
-                                 <strong style={{ color: "var(--accent)" }}>Counter-clockwise rotation:</strong> 
-                                 <span style={{ color: "var(--text)", marginLeft: "8px" }}>↑ ← ↓ → (then repeats)</span>
+                              <div
+                                 style={{
+                                    padding: "12px",
+                                    background: "rgba(125, 211, 252, 0.1)",
+                                    borderRadius: "8px",
+                                    border: "1px solid var(--stroke)",
+                                 }}
+                              >
+                                 <strong style={{ color: "var(--accent)" }}>
+                                    Counter-clockwise rotation:
+                                 </strong>
+                                 <span
+                                    style={{
+                                       color: "var(--text)",
+                                       marginLeft: "8px",
+                                    }}
+                                 >
+                                    ↑ ← ↓ → (then repeats)
+                                 </span>
                               </div>
-                              <div style={{
-                                 padding: "12px",
-                                 background: "rgba(125, 211, 252, 0.1)",
-                                 borderRadius: "8px",
-                                 border: "1px solid var(--stroke)"
-                              }}>
-                                 <strong style={{ color: "var(--accent)" }}>Repeating loops:</strong> 
-                                 <span style={{ color: "var(--text)", marginLeft: "8px" }}>e.g., ↑ ↑ → → ↓ ↓ ← ←</span>
+                              <div
+                                 style={{
+                                    padding: "12px",
+                                    background: "rgba(125, 211, 252, 0.1)",
+                                    borderRadius: "8px",
+                                    border: "1px solid var(--stroke)",
+                                 }}
+                              >
+                                 <strong style={{ color: "var(--accent)" }}>
+                                    Repeating loops:
+                                 </strong>
+                                 <span
+                                    style={{
+                                       color: "var(--text)",
+                                       marginLeft: "8px",
+                                    }}
+                                 >
+                                    e.g., ↑ ↑ → → ↓ ↓ ← ←
+                                 </span>
                               </div>
-                              <div style={{
-                                 padding: "12px",
-                                 background: "rgba(125, 211, 252, 0.1)",
-                                 borderRadius: "8px",
-                                 border: "1px solid var(--stroke)"
-                              }}>
-                                 <strong style={{ color: "var(--accent)" }}>Alternating directions:</strong> 
-                                 <span style={{ color: "var(--text)", marginLeft: "8px" }}>e.g., ↑ → ↑ → …</span>
+                              <div
+                                 style={{
+                                    padding: "12px",
+                                    background: "rgba(125, 211, 252, 0.1)",
+                                    borderRadius: "8px",
+                                    border: "1px solid var(--stroke)",
+                                 }}
+                              >
+                                 <strong style={{ color: "var(--accent)" }}>
+                                    Alternating directions:
+                                 </strong>
+                                 <span
+                                    style={{
+                                       color: "var(--text)",
+                                       marginLeft: "8px",
+                                    }}
+                                 >
+                                    e.g., ↑ → ↑ → …
+                                 </span>
                               </div>
-                              <div style={{
-                                 padding: "12px",
-                                 background: "rgba(125, 211, 252, 0.1)",
-                                 borderRadius: "8px",
-                                 border: "1px solid var(--stroke)"
-                              }}>
-                                 <strong style={{ color: "var(--accent)" }}>Step jumps:</strong> 
-                                 <span style={{ color: "var(--text)", marginLeft: "8px" }}>skipping one direction each time</span>
+                              <div
+                                 style={{
+                                    padding: "12px",
+                                    background: "rgba(125, 211, 252, 0.1)",
+                                    borderRadius: "8px",
+                                    border: "1px solid var(--stroke)",
+                                 }}
+                              >
+                                 <strong style={{ color: "var(--accent)" }}>
+                                    Step jumps:
+                                 </strong>
+                                 <span
+                                    style={{
+                                       color: "var(--text)",
+                                       marginLeft: "8px",
+                                    }}
+                                 >
+                                    skipping one direction each time
+                                 </span>
                               </div>
                            </div>
                         </div>
@@ -758,151 +1385,282 @@ export default function GameEngine({
 
                {/* Block Fill Start Screen Explanation */}
                {gameType === "block-fill" && (
-                  <div style={{
-                     background: "linear-gradient(135deg, rgba(125, 211, 252, 0.1) 0%, rgba(54, 211, 153, 0.1) 100%)",
-                     border: "2px solid var(--stroke)",
-                     borderRadius: "20px",
-                     padding: "32px",
-                     marginTop: "24px",
-                     boxShadow: "0 8px 24px rgba(0, 0, 0, 0.2)"
-                  }}>
-                     <div style={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        gap: "12px",
-                        marginBottom: "24px"
-                     }}>
-                        <PuzzlePieceIcon style={{ width: 28, height: 28, color: "var(--accent)" }} />
-                        <h3 style={{
-                           fontSize: "24px",
-                           fontWeight: 700,
-                           margin: 0,
-                           background: "linear-gradient(135deg, var(--accent) 0%, var(--ok) 100%)",
-                           WebkitBackgroundClip: "text",
-                           WebkitTextFillColor: "transparent",
-                           backgroundClip: "text"
-                        }}>
+                  <div
+                     style={{
+                        background:
+                           "linear-gradient(135deg, rgba(125, 211, 252, 0.1) 0%, rgba(54, 211, 153, 0.1) 100%)",
+                        border: "2px solid var(--stroke)",
+                        borderRadius: "20px",
+                        padding: "32px",
+                        marginTop: "24px",
+                        boxShadow: "0 8px 24px rgba(0, 0, 0, 0.2)",
+                     }}
+                  >
+                     <div
+                        style={{
+                           display: "flex",
+                           alignItems: "center",
+                           justifyContent: "center",
+                           gap: "12px",
+                           marginBottom: "24px",
+                        }}
+                     >
+                        <PuzzlePieceIcon
+                           style={{
+                              width: 28,
+                              height: 28,
+                              color: "var(--accent)",
+                           }}
+                        />
+                        <h3
+                           style={{
+                              fontSize: "24px",
+                              fontWeight: 700,
+                              margin: 0,
+                              background:
+                                 "linear-gradient(135deg, var(--accent) 0%, var(--ok) 100%)",
+                              WebkitBackgroundClip: "text",
+                              WebkitTextFillColor: "transparent",
+                              backgroundClip: "text",
+                           }}
+                        >
                            Block Fill - Polyomino Puzzle
                         </h3>
                      </div>
 
-                     <div style={{
-                        background: "rgba(11, 22, 48, 0.4)",
-                        border: "1px solid var(--stroke)",
-                        borderRadius: "12px",
-                        padding: "20px",
-                        marginBottom: "24px"
-                     }}>
-                        <div style={{
-                           display: "flex",
-                           alignItems: "center",
-                           gap: "12px",
-                           marginBottom: "12px"
-                        }}>
-                           <LightBulbIcon style={{ width: 20, height: 20, color: "var(--accent)" }} />
-                           <h4 style={{
-                              fontSize: "16px",
-                              fontWeight: 600,
-                              margin: 0,
-                              color: "var(--text)"
-                           }}>
+                     <div
+                        style={{
+                           background: "rgba(11, 22, 48, 0.4)",
+                           border: "1px solid var(--stroke)",
+                           borderRadius: "12px",
+                           padding: "20px",
+                           marginBottom: "24px",
+                        }}
+                     >
+                        <div
+                           style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "12px",
+                              marginBottom: "12px",
+                           }}
+                        >
+                           <LightBulbIcon
+                              style={{
+                                 width: 20,
+                                 height: 20,
+                                 color: "var(--accent)",
+                              }}
+                           />
+                           <h4
+                              style={{
+                                 fontSize: "16px",
+                                 fontWeight: 600,
+                                 margin: 0,
+                                 color: "var(--text)",
+                              }}
+                           >
                               How to Play
                            </h4>
                         </div>
-                        <ul style={{
-                           margin: 0,
-                           paddingLeft: "24px",
-                           color: "var(--muted)",
-                           fontSize: "14px",
-                           lineHeight: "1.8"
-                        }}>
-                           <li><strong style={{ color: "var(--accent)" }}>Goal:</strong> Fill the entire grid by placing all available pieces</li>
-                           <li><strong style={{ color: "var(--accent)" }}>Select a piece:</strong> Click on a piece from the right panel to select it</li>
-                           <li><strong style={{ color: "var(--accent)" }}>Rotate:</strong> Press <strong style={{ color: "var(--accent)" }}>R</strong> key or click "Rotate" button to rotate the selected piece</li>
-                           <li><strong style={{ color: "var(--accent)" }}>Place:</strong> Click on an empty cell on the grid to place the selected piece</li>
-                           <li><strong style={{ color: "var(--accent)" }}>Remove:</strong> Click on a filled cell to remove that piece and try again</li>
-                           <li><strong style={{ color: "var(--accent)" }}>Undo:</strong> Press <strong style={{ color: "var(--accent)" }}>U</strong> key or click "Undo" to remove the last placed piece</li>
-                           <li><strong style={{ color: "var(--accent)" }}>Ghost Preview:</strong> Hover over the grid to see where the piece will be placed (blue = valid, red = invalid)</li>
+                        <ul
+                           style={{
+                              margin: 0,
+                              paddingLeft: "24px",
+                              color: "var(--muted)",
+                              fontSize: "14px",
+                              lineHeight: "1.8",
+                           }}
+                        >
+                           <li>
+                              <strong style={{ color: "var(--accent)" }}>
+                                 Goal:
+                              </strong>{" "}
+                              Fill the entire grid by placing all available
+                              pieces
+                           </li>
+                           <li>
+                              <strong style={{ color: "var(--accent)" }}>
+                                 Select a piece:
+                              </strong>{" "}
+                              Click on a piece from the right panel to select it
+                           </li>
+                           <li>
+                              <strong style={{ color: "var(--accent)" }}>
+                                 Rotate:
+                              </strong>{" "}
+                              Press{" "}
+                              <strong style={{ color: "var(--accent)" }}>
+                                 R
+                              </strong>{" "}
+                              key or click "Rotate" button to rotate the
+                              selected piece
+                           </li>
+                           <li>
+                              <strong style={{ color: "var(--accent)" }}>
+                                 Place:
+                              </strong>{" "}
+                              Click on an empty cell on the grid to place the
+                              selected piece
+                           </li>
+                           <li>
+                              <strong style={{ color: "var(--accent)" }}>
+                                 Remove:
+                              </strong>{" "}
+                              Click on a filled cell to remove that piece and
+                              try again
+                           </li>
+                           <li>
+                              <strong style={{ color: "var(--accent)" }}>
+                                 Undo:
+                              </strong>{" "}
+                              Press{" "}
+                              <strong style={{ color: "var(--accent)" }}>
+                                 U
+                              </strong>{" "}
+                              key or click "Undo" to remove the last placed
+                              piece
+                           </li>
+                           <li>
+                              <strong style={{ color: "var(--accent)" }}>
+                                 Ghost Preview:
+                              </strong>{" "}
+                              Hover over the grid to see where the piece will be
+                              placed (blue = valid, red = invalid)
+                           </li>
                         </ul>
                      </div>
 
-                     <div style={{
-                        display: "grid",
-                        gridTemplateColumns: "repeat(2, 1fr)",
-                        gap: "16px",
-                        marginBottom: "24px"
-                     }}>
-                        <div style={{
-                           background: "var(--card)",
-                           border: "1px solid var(--stroke)",
-                           borderRadius: "12px",
-                           padding: "16px"
-                        }}>
-                           <div style={{
-                              fontSize: "14px",
-                              fontWeight: 600,
-                              color: "var(--accent)",
-                              marginBottom: "8px"
-                           }}>
-                              💡 Tips
+                     <div
+                        style={{
+                           display: "grid",
+                           gridTemplateColumns: "repeat(2, 1fr)",
+                           gap: "16px",
+                           marginBottom: "24px",
+                        }}
+                     >
+                        <div
+                           style={{
+                              background: "var(--card)",
+                              border: "1px solid var(--stroke)",
+                              borderRadius: "12px",
+                              padding: "16px",
+                           }}
+                        >
+                           <div
+                              style={{
+                                 fontSize: "14px",
+                                 fontWeight: 600,
+                                 color: "var(--accent)",
+                                 marginBottom: "8px",
+                                 display: "flex",
+                                 alignItems: "center",
+                                 gap: "6px",
+                              }}
+                           >
+                              <LightBulbIcon
+                                 style={{ width: 16, height: 16 }}
+                              />
+                              Tips
                            </div>
-                           <ul style={{
-                              margin: 0,
-                              paddingLeft: "20px",
-                              color: "var(--muted)",
-                              fontSize: "13px",
-                              lineHeight: "1.6"
-                           }}>
-                              <li>Start with <strong>larger pieces</strong> first</li>
-                              <li>Build from <strong>corners and edges</strong></li>
+                           <ul
+                              style={{
+                                 margin: 0,
+                                 paddingLeft: "20px",
+                                 color: "var(--muted)",
+                                 fontSize: "13px",
+                                 lineHeight: "1.6",
+                              }}
+                           >
+                              <li>
+                                 Start with <strong>larger pieces</strong> first
+                              </li>
+                              <li>
+                                 Build from <strong>corners and edges</strong>
+                              </li>
                               <li>Use rotation to fit pieces better</li>
-                              <li>If stuck, remove pieces and try different placements</li>
+                              <li>
+                                 If stuck, remove pieces and try different
+                                 placements
+                              </li>
                            </ul>
                         </div>
-                        <div style={{
-                           background: "var(--card)",
-                           border: "1px solid var(--stroke)",
-                           borderRadius: "12px",
-                           padding: "16px"
-                        }}>
-                           <div style={{
-                              fontSize: "14px",
-                              fontWeight: 600,
-                              color: "var(--accent)",
-                              marginBottom: "8px"
-                           }}>
-                              ⌨️ Keyboard Shortcuts
+                        <div
+                           style={{
+                              background: "var(--card)",
+                              border: "1px solid var(--stroke)",
+                              borderRadius: "12px",
+                              padding: "16px",
+                           }}
+                        >
+                           <div
+                              style={{
+                                 fontSize: "14px",
+                                 fontWeight: 600,
+                                 color: "var(--accent)",
+                                 marginBottom: "8px",
+                                 display: "flex",
+                                 alignItems: "center",
+                                 gap: "6px",
+                              }}
+                           >
+                              <KeyIcon style={{ width: 18, height: 18 }} />
+                              Keyboard Shortcuts
                            </div>
-                           <ul style={{
-                              margin: 0,
-                              paddingLeft: "20px",
-                              color: "var(--muted)",
-                              fontSize: "13px",
-                              lineHeight: "1.6"
-                           }}>
-                              <li><strong style={{ color: "var(--accent)" }}>R</strong> - Rotate selected piece</li>
-                              <li><strong style={{ color: "var(--accent)" }}>U</strong> - Undo last placement</li>
-                              <li><strong style={{ color: "var(--accent)" }}>ESC</strong> - Deselect piece</li>
+                           <ul
+                              style={{
+                                 margin: 0,
+                                 paddingLeft: "20px",
+                                 color: "var(--muted)",
+                                 fontSize: "13px",
+                                 lineHeight: "1.6",
+                              }}
+                           >
+                              <li>
+                                 <strong style={{ color: "var(--accent)" }}>
+                                    R
+                                 </strong>{" "}
+                                 - Rotate selected piece
+                              </li>
+                              <li>
+                                 <strong style={{ color: "var(--accent)" }}>
+                                    U
+                                 </strong>{" "}
+                                 - Undo last placement
+                              </li>
+                              <li>
+                                 <strong style={{ color: "var(--accent)" }}>
+                                    ESC
+                                 </strong>{" "}
+                                 - Deselect piece
+                              </li>
                            </ul>
                         </div>
                      </div>
 
-                     <div style={{
-                        background: "rgba(54, 211, 153, 0.1)",
-                        border: "1px solid rgba(54, 211, 153, 0.3)",
-                        borderRadius: "12px",
-                        padding: "16px",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "12px"
-                     }}>
-                        <CheckCircleIcon style={{ width: 20, height: 20, color: "var(--ok)" }} />
-                        <div style={{
-                           fontSize: "14px",
-                           color: "var(--text)"
-                        }}>
-                           <strong>Complete the puzzle:</strong> Fill all cells using every piece exactly once. Each round is a new puzzle!
+                     <div
+                        style={{
+                           background: "rgba(54, 211, 153, 0.1)",
+                           border: "1px solid rgba(54, 211, 153, 0.3)",
+                           borderRadius: "12px",
+                           padding: "16px",
+                           display: "flex",
+                           alignItems: "center",
+                           gap: "12px",
+                        }}
+                     >
+                        <CheckCircleIcon
+                           style={{ width: 20, height: 20, color: "var(--ok)" }}
+                        />
+                        <div
+                           style={{
+                              fontSize: "14px",
+                              color: "var(--text)",
+                           }}
+                        >
+                           <strong>Complete the puzzle:</strong> Fill all cells
+                           using every piece exactly once. Each round is a new
+                           puzzle!
                         </div>
                      </div>
                   </div>
@@ -910,101 +1668,177 @@ export default function GameEngine({
 
                {/* Interactive Example for Card Flip Memory */}
                {gameType === "card-flip" && (
-                  <div style={{
-                     background: "linear-gradient(135deg, rgba(125, 211, 252, 0.1) 0%, rgba(54, 211, 153, 0.1) 100%)",
-                     border: "2px solid var(--stroke)",
-                     borderRadius: "20px",
-                     padding: "32px",
-                     marginTop: "24px",
-                     boxShadow: "0 8px 24px rgba(0, 0, 0, 0.2)"
-                  }}>
-                     <div style={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        gap: "12px",
-                        marginBottom: "24px"
-                     }}>
-                        <svg style={{ width: 28, height: 28, color: "var(--accent)" }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                  <div
+                     style={{
+                        background:
+                           "linear-gradient(135deg, rgba(125, 211, 252, 0.1) 0%, rgba(54, 211, 153, 0.1) 100%)",
+                        border: "2px solid var(--stroke)",
+                        borderRadius: "20px",
+                        padding: "32px",
+                        marginTop: "24px",
+                        boxShadow: "0 8px 24px rgba(0, 0, 0, 0.2)",
+                     }}
+                  >
+                     <div
+                        style={{
+                           display: "flex",
+                           alignItems: "center",
+                           justifyContent: "center",
+                           gap: "12px",
+                           marginBottom: "24px",
+                        }}
+                     >
+                        <svg
+                           style={{
+                              width: 28,
+                              height: 28,
+                              color: "var(--accent)",
+                           }}
+                           fill="none"
+                           viewBox="0 0 24 24"
+                           stroke="currentColor"
+                        >
+                           <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M4 6h16M4 12h16M4 18h16"
+                           />
                         </svg>
-                        <h3 style={{
-                           fontSize: "24px",
-                           fontWeight: 700,
-                           margin: 0,
-                           background: "linear-gradient(135deg, var(--accent) 0%, var(--ok) 100%)",
-                           WebkitBackgroundClip: "text",
-                           WebkitTextFillColor: "transparent",
-                           backgroundClip: "text"
-                        }}>
+                        <h3
+                           style={{
+                              fontSize: "24px",
+                              fontWeight: 700,
+                              margin: 0,
+                              background:
+                                 "linear-gradient(135deg, var(--accent) 0%, var(--ok) 100%)",
+                              WebkitBackgroundClip: "text",
+                              WebkitTextFillColor: "transparent",
+                              backgroundClip: "text",
+                           }}
+                        >
                            Card Flip Memory - Example
                         </h3>
                      </div>
 
-                     <div style={{
-                        background: "rgba(11, 22, 48, 0.4)",
-                        border: "1px solid var(--stroke)",
-                        borderRadius: "12px",
-                        padding: "20px",
-                        marginBottom: "24px"
-                     }}>
-                        <div style={{
-                           display: "flex",
-                           alignItems: "center",
-                           gap: "12px",
-                           marginBottom: "12px"
-                        }}>
-                           <LightBulbIcon style={{ width: 20, height: 20, color: "var(--accent)" }} />
-                           <h4 style={{
-                              fontSize: "16px",
-                              fontWeight: 600,
-                              margin: 0,
-                              color: "var(--text)"
-                           }}>
+                     <div
+                        style={{
+                           background: "rgba(11, 22, 48, 0.4)",
+                           border: "1px solid var(--stroke)",
+                           borderRadius: "12px",
+                           padding: "20px",
+                           marginBottom: "24px",
+                        }}
+                     >
+                        <div
+                           style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "12px",
+                              marginBottom: "12px",
+                           }}
+                        >
+                           <LightBulbIcon
+                              style={{
+                                 width: 20,
+                                 height: 20,
+                                 color: "var(--accent)",
+                              }}
+                           />
+                           <h4
+                              style={{
+                                 fontSize: "16px",
+                                 fontWeight: 600,
+                                 margin: 0,
+                                 color: "var(--text)",
+                              }}
+                           >
                               How to Play
                            </h4>
                         </div>
-                        <ul style={{
-                           margin: 0,
-                           paddingLeft: "24px",
-                           color: "var(--muted)",
-                           fontSize: "14px",
-                           lineHeight: "1.8"
-                        }}>
-                           <li><strong style={{ color: "var(--accent)" }}>Goal:</strong> Match pairs of cards by remembering their positions</li>
-                           <li><strong style={{ color: "var(--accent)" }}>Click cards:</strong> Click on a card to flip it and reveal its content</li>
-                           <li><strong style={{ color: "var(--accent)" }}>Match pairs:</strong> Click on two cards with the same value to match them</li>
-                           <li><strong style={{ color: "var(--accent)" }}>Remember:</strong> Try to remember where each card is located</li>
-                           <li><strong style={{ color: "var(--accent)" }}>Rounds:</strong> Round 1 = 2x2 (numbers), Rounds 2-5 = larger grids (heroicons)</li>
-                           <li><strong style={{ color: "var(--accent)" }}>Hints:</strong> Use hint button to reveal a matching pair (10 hints max, unlimited if shared)</li>
+                        <ul
+                           style={{
+                              margin: 0,
+                              paddingLeft: "24px",
+                              color: "var(--muted)",
+                              fontSize: "14px",
+                              lineHeight: "1.8",
+                           }}
+                        >
+                           <li>
+                              <strong style={{ color: "var(--accent)" }}>
+                                 Goal:
+                              </strong>{" "}
+                              Match pairs of cards by remembering their
+                              positions
+                           </li>
+                           <li>
+                              <strong style={{ color: "var(--accent)" }}>
+                                 Click cards:
+                              </strong>{" "}
+                              Click on a card to flip it and reveal its content
+                           </li>
+                           <li>
+                              <strong style={{ color: "var(--accent)" }}>
+                                 Match pairs:
+                              </strong>{" "}
+                              Click on two cards with the same value to match
+                              them
+                           </li>
+                           <li>
+                              <strong style={{ color: "var(--accent)" }}>
+                                 Remember:
+                              </strong>{" "}
+                              Try to remember where each card is located
+                           </li>
+                           <li>
+                              <strong style={{ color: "var(--accent)" }}>
+                                 Rounds:
+                              </strong>{" "}
+                              Round 1 = 2x2 (numbers), Rounds 2-5 = larger grids
+                              (heroicons)
+                           </li>
+                           <li>
+                              <strong style={{ color: "var(--accent)" }}>
+                                 Hints:
+                              </strong>{" "}
+                              Use hint button to reveal a matching pair (10
+                              hints max, unlimited if shared)
+                           </li>
                         </ul>
                      </div>
 
-                     <div style={{
-                        display: "flex",
-                        flexDirection: "column",
-                        alignItems: "center",
-                        gap: "16px",
-                        marginBottom: "24px"
-                     }}>
-                        <div style={{
-                           fontSize: "14px",
-                           fontWeight: 600,
-                           color: "var(--accent)",
-                           marginBottom: "8px"
-                        }}>
+                     <div
+                        style={{
+                           display: "flex",
+                           flexDirection: "column",
+                           alignItems: "center",
+                           gap: "16px",
+                           marginBottom: "24px",
+                        }}
+                     >
+                        <div
+                           style={{
+                              fontSize: "14px",
+                              fontWeight: 600,
+                              color: "var(--accent)",
+                              marginBottom: "8px",
+                           }}
+                        >
                            Example: 2x2 Grid (Round 1)
                         </div>
-                        <div style={{
-                           display: "grid",
-                           gridTemplateColumns: "repeat(2, 1fr)",
-                           gap: "8px",
-                           width: "200px",
-                           padding: "16px",
-                           background: "var(--card)",
-                           border: "1px solid var(--stroke)",
-                           borderRadius: "12px"
-                        }}>
+                        <div
+                           style={{
+                              display: "grid",
+                              gridTemplateColumns: "repeat(2, 1fr)",
+                              gap: "8px",
+                              width: "200px",
+                              padding: "16px",
+                              background: "var(--card)",
+                              border: "1px solid var(--stroke)",
+                              borderRadius: "12px",
+                           }}
+                        >
                            {[
                               { id: 0, value: 1, flipped: true },
                               { id: 1, value: 2, flipped: false },
@@ -1036,70 +1870,107 @@ export default function GameEngine({
                               </div>
                            ))}
                         </div>
-                        <div style={{
-                           fontSize: "13px",
-                           color: "var(--muted)",
-                           textAlign: "center",
-                           fontStyle: "italic"
-                        }}>
-                           Cards 0 and 3 both show "1" - they match! ✅
+                        <div
+                           style={{
+                              fontSize: "13px",
+                              color: "var(--muted)",
+                              textAlign: "center",
+                              fontStyle: "italic",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              gap: "6px",
+                           }}
+                        >
+                           Cards 0 and 3 both show "1" - they match!{" "}
+                           <CheckCircleIcon
+                              style={{
+                                 width: 16,
+                                 height: 16,
+                                 color: "var(--ok)",
+                              }}
+                           />
                         </div>
                      </div>
 
-                     <div style={{
-                        display: "grid",
-                        gridTemplateColumns: "repeat(2, 1fr)",
-                        gap: "16px",
-                        marginBottom: "24px"
-                     }}>
-                        <div style={{
-                           background: "var(--card)",
-                           border: "1px solid var(--stroke)",
-                           borderRadius: "12px",
-                           padding: "16px"
-                        }}>
-                           <div style={{
-                              fontSize: "14px",
-                              fontWeight: 600,
-                              color: "var(--accent)",
-                              marginBottom: "8px"
-                           }}>
-                              💡 Tips
+                     <div
+                        style={{
+                           display: "grid",
+                           gridTemplateColumns: "repeat(2, 1fr)",
+                           gap: "16px",
+                           marginBottom: "24px",
+                        }}
+                     >
+                        <div
+                           style={{
+                              background: "var(--card)",
+                              border: "1px solid var(--stroke)",
+                              borderRadius: "12px",
+                              padding: "16px",
+                           }}
+                        >
+                           <div
+                              style={{
+                                 fontSize: "14px",
+                                 fontWeight: 600,
+                                 color: "var(--accent)",
+                                 marginBottom: "8px",
+                                 display: "flex",
+                                 alignItems: "center",
+                                 gap: "6px",
+                              }}
+                           >
+                              <LightBulbIcon
+                                 style={{ width: 16, height: 16 }}
+                              />
+                              Tips
                            </div>
-                           <ul style={{
-                              margin: 0,
-                              paddingLeft: "20px",
-                              color: "var(--muted)",
-                              fontSize: "13px",
-                              lineHeight: "1.6"
-                           }}>
+                           <ul
+                              style={{
+                                 margin: 0,
+                                 paddingLeft: "20px",
+                                 color: "var(--muted)",
+                                 fontSize: "13px",
+                                 lineHeight: "1.6",
+                              }}
+                           >
                               <li>Start with corners and edges</li>
                               <li>Remember positions you've seen</li>
                               <li>Work systematically</li>
                               <li>Use hints when stuck</li>
                            </ul>
                         </div>
-                        <div style={{
-                           background: "var(--card)",
-                           border: "1px solid var(--stroke)",
-                           borderRadius: "12px",
-                           padding: "16px"
-                        }}>
-                           <div style={{
-                              fontSize: "14px",
-                              fontWeight: 600,
-                              color: "var(--accent)",
-                              marginBottom: "8px"
-                           }}>
-                              🎯 Scoring
+                        <div
+                           style={{
+                              background: "var(--card)",
+                              border: "1px solid var(--stroke)",
+                              borderRadius: "12px",
+                              padding: "16px",
+                           }}
+                        >
+                           <div
+                              style={{
+                                 fontSize: "14px",
+                                 fontWeight: 600,
+                                 color: "var(--accent)",
+                                 marginBottom: "8px",
+                                 display: "flex",
+                                 alignItems: "center",
+                                 gap: "6px",
+                              }}
+                           >
+                              <TrophyIcon style={{ width: 18, height: 18 }} />
+                              Scoring
                            </div>
-                           <ul style={{
-                              margin: 0,
-                              paddingLeft: "20px",
-                              color: "var(--muted)",
-                              fontSize: "13px",
-                              lineHeight: "1.6"
-                           }}>
+                           <ul
+                              style={{
+                                 margin: 0,
+                                 paddingLeft: "20px",
+                                 color: "var(--muted)",
+                                 fontSize: "13px",
+                                 lineHeight: "1.6",
+                              }}
+                           >
                               <li>20 points per round</li>
                               <li>5 rounds total</li>
                               <li>Max score: 100</li>
@@ -1108,21 +1979,29 @@ export default function GameEngine({
                         </div>
                      </div>
 
-                     <div style={{
-                        background: "rgba(54, 211, 153, 0.1)",
-                        border: "1px solid rgba(54, 211, 153, 0.3)",
-                        borderRadius: "12px",
-                        padding: "16px",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "12px"
-                     }}>
-                        <CheckCircleIcon style={{ width: 20, height: 20, color: "var(--ok)" }} />
-                        <div style={{
-                           fontSize: "14px",
-                           color: "var(--text)"
-                        }}>
-                           <strong>Complete all rounds:</strong> Match all pairs in each round. Grid size increases each round, making it more challenging!
+                     <div
+                        style={{
+                           background: "rgba(54, 211, 153, 0.1)",
+                           border: "1px solid rgba(54, 211, 153, 0.3)",
+                           borderRadius: "12px",
+                           padding: "16px",
+                           display: "flex",
+                           alignItems: "center",
+                           gap: "12px",
+                        }}
+                     >
+                        <CheckCircleIcon
+                           style={{ width: 20, height: 20, color: "var(--ok)" }}
+                        />
+                        <div
+                           style={{
+                              fontSize: "14px",
+                              color: "var(--text)",
+                           }}
+                        >
+                           <strong>Complete all rounds:</strong> Match all pairs
+                           in each round. Grid size increases each round, making
+                           it more challenging!
                         </div>
                      </div>
                   </div>
@@ -1148,182 +2027,419 @@ export default function GameEngine({
                         />
                         Logic Gates Explained
                      </h4>
-                     
-                     <div style={{ 
-                        display: "grid", 
-                        gridTemplateColumns: "repeat(3, 1fr)", 
-                        gap: "20px",
-                        marginBottom: "20px"
-                     }}>
+
+                     <div
+                        style={{
+                           display: "grid",
+                           gridTemplateColumns: "repeat(3, 1fr)",
+                           gap: "20px",
+                           marginBottom: "20px",
+                        }}
+                     >
                         {/* AND Gate */}
-                        <div style={{
-                           background: "var(--card)",
-                           border: "2px solid var(--stroke)",
-                           borderRadius: "16px",
-                           padding: "24px",
-                           textAlign: "center"
-                        }}>
-                           <div style={{ 
-                              fontSize: "16px", 
-                              fontWeight: 700, 
-                              color: "var(--accent)",
-                              marginBottom: "16px"
-                           }}>
+                        <div
+                           style={{
+                              background: "var(--card)",
+                              border: "2px solid var(--stroke)",
+                              borderRadius: "16px",
+                              padding: "24px",
+                              textAlign: "center",
+                           }}
+                        >
+                           <div
+                              style={{
+                                 fontSize: "16px",
+                                 fontWeight: 700,
+                                 color: "var(--accent)",
+                                 marginBottom: "16px",
+                              }}
+                           >
                               AND Gate
                            </div>
-                           <div style={{
-                              display: "flex",
-                              flexDirection: "column",
-                              gap: "12px",
-                              fontSize: "14px",
-                              color: "var(--muted)"
-                           }}>
-                              <div style={{ fontWeight: 600, color: "var(--text)" }}>Truth Table:</div>
-                              <table style={{ width: "100%", fontSize: "12px" }}>
+                           <div
+                              style={{
+                                 display: "flex",
+                                 flexDirection: "column",
+                                 gap: "12px",
+                                 fontSize: "14px",
+                                 color: "var(--muted)",
+                              }}
+                           >
+                              <div
+                                 style={{
+                                    fontWeight: 600,
+                                    color: "var(--text)",
+                                 }}
+                              >
+                                 Truth Table:
+                              </div>
+                              <table
+                                 style={{ width: "100%", fontSize: "12px" }}
+                              >
                                  <thead>
                                     <tr>
                                        <th style={{ padding: "4px" }}>A</th>
                                        <th style={{ padding: "4px" }}>B</th>
-                                       <th style={{ padding: "4px" }}>Output</th>
+                                       <th style={{ padding: "4px" }}>
+                                          Output
+                                       </th>
                                     </tr>
                                  </thead>
                                  <tbody>
-                                    <tr><td>0</td><td>0</td><td>0</td></tr>
-                                    <tr><td>0</td><td>1</td><td>0</td></tr>
-                                    <tr><td>1</td><td>0</td><td>0</td></tr>
-                                    <tr><td style={{ color: "var(--ok)", fontWeight: 700 }}>1</td><td style={{ color: "var(--ok)", fontWeight: 700 }}>1</td><td style={{ color: "var(--ok)", fontWeight: 700 }}>1</td></tr>
+                                    <tr>
+                                       <td>0</td>
+                                       <td>0</td>
+                                       <td>0</td>
+                                    </tr>
+                                    <tr>
+                                       <td>0</td>
+                                       <td>1</td>
+                                       <td>0</td>
+                                    </tr>
+                                    <tr>
+                                       <td>1</td>
+                                       <td>0</td>
+                                       <td>0</td>
+                                    </tr>
+                                    <tr>
+                                       <td
+                                          style={{
+                                             color: "var(--ok)",
+                                             fontWeight: 700,
+                                          }}
+                                       >
+                                          1
+                                       </td>
+                                       <td
+                                          style={{
+                                             color: "var(--ok)",
+                                             fontWeight: 700,
+                                          }}
+                                       >
+                                          1
+                                       </td>
+                                       <td
+                                          style={{
+                                             color: "var(--ok)",
+                                             fontWeight: 700,
+                                          }}
+                                       >
+                                          1
+                                       </td>
+                                    </tr>
                                  </tbody>
                               </table>
-                              <div style={{ fontSize: "12px", marginTop: "8px", fontStyle: "italic" }}>
+                              <div
+                                 style={{
+                                    fontSize: "12px",
+                                    marginTop: "8px",
+                                    fontStyle: "italic",
+                                 }}
+                              >
                                  Output is 1 only when both inputs are 1
                               </div>
                            </div>
                         </div>
 
                         {/* OR Gate */}
-                        <div style={{
-                           background: "var(--card)",
-                           border: "2px solid var(--stroke)",
-                           borderRadius: "16px",
-                           padding: "24px",
-                           textAlign: "center"
-                        }}>
-                           <div style={{ 
-                              fontSize: "16px", 
-                              fontWeight: 700, 
-                              color: "var(--accent)",
-                              marginBottom: "16px"
-                           }}>
+                        <div
+                           style={{
+                              background: "var(--card)",
+                              border: "2px solid var(--stroke)",
+                              borderRadius: "16px",
+                              padding: "24px",
+                              textAlign: "center",
+                           }}
+                        >
+                           <div
+                              style={{
+                                 fontSize: "16px",
+                                 fontWeight: 700,
+                                 color: "var(--accent)",
+                                 marginBottom: "16px",
+                              }}
+                           >
                               OR Gate
                            </div>
-                           <div style={{
-                              display: "flex",
-                              flexDirection: "column",
-                              gap: "12px",
-                              fontSize: "14px",
-                              color: "var(--muted)"
-                           }}>
-                              <div style={{ fontWeight: 600, color: "var(--text)" }}>Truth Table:</div>
-                              <table style={{ width: "100%", fontSize: "12px" }}>
+                           <div
+                              style={{
+                                 display: "flex",
+                                 flexDirection: "column",
+                                 gap: "12px",
+                                 fontSize: "14px",
+                                 color: "var(--muted)",
+                              }}
+                           >
+                              <div
+                                 style={{
+                                    fontWeight: 600,
+                                    color: "var(--text)",
+                                 }}
+                              >
+                                 Truth Table:
+                              </div>
+                              <table
+                                 style={{ width: "100%", fontSize: "12px" }}
+                              >
                                  <thead>
                                     <tr>
                                        <th style={{ padding: "4px" }}>A</th>
                                        <th style={{ padding: "4px" }}>B</th>
-                                       <th style={{ padding: "4px" }}>Output</th>
+                                       <th style={{ padding: "4px" }}>
+                                          Output
+                                       </th>
                                     </tr>
                                  </thead>
                                  <tbody>
-                                    <tr><td>0</td><td>0</td><td>0</td></tr>
-                                    <tr><td style={{ color: "var(--ok)", fontWeight: 700 }}>0</td><td style={{ color: "var(--ok)", fontWeight: 700 }}>1</td><td style={{ color: "var(--ok)", fontWeight: 700 }}>1</td></tr>
-                                    <tr><td style={{ color: "var(--ok)", fontWeight: 700 }}>1</td><td>0</td><td style={{ color: "var(--ok)", fontWeight: 700 }}>1</td></tr>
-                                    <tr><td style={{ color: "var(--ok)", fontWeight: 700 }}>1</td><td style={{ color: "var(--ok)", fontWeight: 700 }}>1</td><td style={{ color: "var(--ok)", fontWeight: 700 }}>1</td></tr>
+                                    <tr>
+                                       <td>0</td>
+                                       <td>0</td>
+                                       <td>0</td>
+                                    </tr>
+                                    <tr>
+                                       <td
+                                          style={{
+                                             color: "var(--ok)",
+                                             fontWeight: 700,
+                                          }}
+                                       >
+                                          0
+                                       </td>
+                                       <td
+                                          style={{
+                                             color: "var(--ok)",
+                                             fontWeight: 700,
+                                          }}
+                                       >
+                                          1
+                                       </td>
+                                       <td
+                                          style={{
+                                             color: "var(--ok)",
+                                             fontWeight: 700,
+                                          }}
+                                       >
+                                          1
+                                       </td>
+                                    </tr>
+                                    <tr>
+                                       <td
+                                          style={{
+                                             color: "var(--ok)",
+                                             fontWeight: 700,
+                                          }}
+                                       >
+                                          1
+                                       </td>
+                                       <td>0</td>
+                                       <td
+                                          style={{
+                                             color: "var(--ok)",
+                                             fontWeight: 700,
+                                          }}
+                                       >
+                                          1
+                                       </td>
+                                    </tr>
+                                    <tr>
+                                       <td
+                                          style={{
+                                             color: "var(--ok)",
+                                             fontWeight: 700,
+                                          }}
+                                       >
+                                          1
+                                       </td>
+                                       <td
+                                          style={{
+                                             color: "var(--ok)",
+                                             fontWeight: 700,
+                                          }}
+                                       >
+                                          1
+                                       </td>
+                                       <td
+                                          style={{
+                                             color: "var(--ok)",
+                                             fontWeight: 700,
+                                          }}
+                                       >
+                                          1
+                                       </td>
+                                    </tr>
                                  </tbody>
                               </table>
-                              <div style={{ fontSize: "12px", marginTop: "8px", fontStyle: "italic" }}>
+                              <div
+                                 style={{
+                                    fontSize: "12px",
+                                    marginTop: "8px",
+                                    fontStyle: "italic",
+                                 }}
+                              >
                                  Output is 1 if at least one input is 1
                               </div>
                            </div>
                         </div>
 
                         {/* NOT Gate */}
-                        <div style={{
-                           background: "var(--card)",
-                           border: "2px solid var(--stroke)",
-                           borderRadius: "16px",
-                           padding: "24px",
-                           textAlign: "center"
-                        }}>
-                           <div style={{ 
-                              fontSize: "16px", 
-                              fontWeight: 700, 
-                              color: "var(--accent)",
-                              marginBottom: "16px"
-                           }}>
+                        <div
+                           style={{
+                              background: "var(--card)",
+                              border: "2px solid var(--stroke)",
+                              borderRadius: "16px",
+                              padding: "24px",
+                              textAlign: "center",
+                           }}
+                        >
+                           <div
+                              style={{
+                                 fontSize: "16px",
+                                 fontWeight: 700,
+                                 color: "var(--accent)",
+                                 marginBottom: "16px",
+                              }}
+                           >
                               NOT Gate
                            </div>
-                           <div style={{
-                              display: "flex",
-                              flexDirection: "column",
-                              gap: "12px",
-                              fontSize: "14px",
-                              color: "var(--muted)"
-                           }}>
-                              <div style={{ fontWeight: 600, color: "var(--text)" }}>Truth Table:</div>
-                              <table style={{ width: "100%", fontSize: "12px" }}>
+                           <div
+                              style={{
+                                 display: "flex",
+                                 flexDirection: "column",
+                                 gap: "12px",
+                                 fontSize: "14px",
+                                 color: "var(--muted)",
+                              }}
+                           >
+                              <div
+                                 style={{
+                                    fontWeight: 600,
+                                    color: "var(--text)",
+                                 }}
+                              >
+                                 Truth Table:
+                              </div>
+                              <table
+                                 style={{ width: "100%", fontSize: "12px" }}
+                              >
                                  <thead>
                                     <tr>
                                        <th style={{ padding: "4px" }}>A</th>
-                                       <th style={{ padding: "4px" }}>Output</th>
+                                       <th style={{ padding: "4px" }}>
+                                          Output
+                                       </th>
                                     </tr>
                                  </thead>
                                  <tbody>
-                                    <tr><td>0</td><td style={{ color: "var(--ok)", fontWeight: 700 }}>1</td></tr>
-                                    <tr><td>1</td><td>0</td></tr>
+                                    <tr>
+                                       <td>0</td>
+                                       <td
+                                          style={{
+                                             color: "var(--ok)",
+                                             fontWeight: 700,
+                                          }}
+                                       >
+                                          1
+                                       </td>
+                                    </tr>
+                                    <tr>
+                                       <td>1</td>
+                                       <td>0</td>
+                                    </tr>
                                  </tbody>
                               </table>
-                              <div style={{ fontSize: "12px", marginTop: "8px", fontStyle: "italic" }}>
+                              <div
+                                 style={{
+                                    fontSize: "12px",
+                                    marginTop: "8px",
+                                    fontStyle: "italic",
+                                 }}
+                              >
                                  Output is the opposite of input
                               </div>
                            </div>
                         </div>
                      </div>
 
-                     <div style={{
-                        background: "rgba(11, 22, 48, 0.4)",
-                        border: "1px solid var(--stroke)",
-                        borderRadius: "12px",
-                        padding: "20px",
-                        marginTop: "24px"
-                     }}>
-                        <div style={{
-                           display: "flex",
-                           alignItems: "center",
-                           gap: "12px",
-                           marginBottom: "12px"
-                        }}>
-                           <LightBulbIcon style={{ width: 20, height: 20, color: "var(--accent)" }} />
-                           <h4 style={{
-                              fontSize: "16px",
-                              fontWeight: 600,
-                              margin: 0,
-                              color: "var(--text)"
-                           }}>
+                     <div
+                        style={{
+                           background: "rgba(11, 22, 48, 0.4)",
+                           border: "1px solid var(--stroke)",
+                           borderRadius: "12px",
+                           padding: "20px",
+                           marginTop: "24px",
+                        }}
+                     >
+                        <div
+                           style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "12px",
+                              marginBottom: "12px",
+                           }}
+                        >
+                           <LightBulbIcon
+                              style={{
+                                 width: 20,
+                                 height: 20,
+                                 color: "var(--accent)",
+                              }}
+                           />
+                           <h4
+                              style={{
+                                 fontSize: "16px",
+                                 fontWeight: 600,
+                                 margin: 0,
+                                 color: "var(--text)",
+                              }}
+                           >
                               How to Play
                            </h4>
                         </div>
-                        <ul style={{
-                           margin: 0,
-                           paddingLeft: "24px",
-                           color: "var(--muted)",
-                           fontSize: "14px",
-                           lineHeight: "1.8"
-                        }}>
-                           <li>Look at the inputs (A and B) - they are either 0 or 1</li>
+                        <ul
+                           style={{
+                              margin: 0,
+                              paddingLeft: "24px",
+                              color: "var(--muted)",
+                              fontSize: "14px",
+                              lineHeight: "1.8",
+                           }}
+                        >
+                           <li>
+                              Look at the inputs (A and B) - they are either 0
+                              or 1
+                           </li>
                            <li>Check the gate type (AND, OR, or NOT)</li>
-                           <li>Calculate the output based on the gate's logic</li>
+                           <li>
+                              Calculate the output based on the gate's logic
+                           </li>
                            <li>Select the correct output (0 or 1)</li>
-                           <li>When output is 1, the lamp lights up! 💡</li>
-                           <li>Use number keys <strong style={{ color: "var(--accent)" }}>0</strong> or <strong style={{ color: "var(--accent)" }}>1</strong> for quick selection</li>
+                           <li
+                              style={{
+                                 display: "flex",
+                                 alignItems: "center",
+                                 gap: "6px",
+                              }}
+                           >
+                              When output is 1, the lamp lights up!{" "}
+                              <LightBulbIcon
+                                 style={{
+                                    width: 16,
+                                    height: 16,
+                                    color: "var(--warn)",
+                                 }}
+                              />
+                           </li>
+                           <li>
+                              Use number keys{" "}
+                              <strong style={{ color: "var(--accent)" }}>
+                                 0
+                              </strong>{" "}
+                              or{" "}
+                              <strong style={{ color: "var(--accent)" }}>
+                                 1
+                              </strong>{" "}
+                              for quick selection
+                           </li>
                         </ul>
                      </div>
                   </div>
@@ -1349,7 +2465,7 @@ export default function GameEngine({
                         />
                         How It Works
                      </h4>
-                     
+
                      {/* Example: Pattern Completion */}
                      <div style={{ marginBottom: "20px" }}>
                         <p
@@ -1362,7 +2478,7 @@ export default function GameEngine({
                         >
                            Look at the pattern and find the missing shape
                         </p>
-                        
+
                         {/* Example Pattern */}
                         <div
                            style={{
@@ -1451,7 +2567,8 @@ export default function GameEngine({
                                  display: "flex",
                                  alignItems: "center",
                                  justifyContent: "center",
-                                 background: "linear-gradient(135deg, rgba(125, 211, 252, 0.2) 0%, rgba(125, 211, 252, 0.1) 100%)",
+                                 background:
+                                    "linear-gradient(135deg, rgba(125, 211, 252, 0.2) 0%, rgba(125, 211, 252, 0.1) 100%)",
                                  border: "2px dashed var(--accent)",
                                  borderRadius: "12px",
                                  position: "relative",
@@ -1517,7 +2634,8 @@ export default function GameEngine({
                                  display: "flex",
                                  alignItems: "center",
                                  justifyContent: "center",
-                                 background: "linear-gradient(135deg, rgba(134, 239, 172, 0.2) 0%, rgba(134, 239, 172, 0.1) 100%)",
+                                 background:
+                                    "linear-gradient(135deg, rgba(134, 239, 172, 0.2) 0%, rgba(134, 239, 172, 0.1) 100%)",
                                  border: "2px solid #86efac",
                                  borderRadius: "12px",
                                  position: "relative",
@@ -1635,7 +2753,10 @@ export default function GameEngine({
                                  margin: "4px 0 0 0",
                               }}
                            >
-                              The pattern repeats: Home, Star, Home, Star... So the missing shape is <strong style={{ color: "#86efac" }}>Home</strong> ✓
+                              The pattern repeats: Home, Star, Home, Star... So
+                              the missing shape is{" "}
+                              <strong style={{ color: "#86efac" }}>Home</strong>{" "}
+                              ✓
                            </p>
                         </div>
                      </div>
@@ -1663,7 +2784,7 @@ export default function GameEngine({
                         />
                         How It Works
                      </h4>
-                     
+
                      {/* Example: Circuit Path */}
                      <div style={{ marginBottom: "20px" }}>
                         <p
@@ -1674,7 +2795,8 @@ export default function GameEngine({
                               fontWeight: 600,
                            }}
                         >
-                           Click nodes to create a path from Start (green) to End (red)
+                           Click nodes to create a path from Start (green) to
+                           End (red)
                         </p>
                         <div
                            className="light-grid-preview"
@@ -1813,7 +2935,8 @@ export default function GameEngine({
                               margin: 0,
                            }}
                         >
-                            Goal: Create a continuous path from Start (green) to End (red) by clicking adjacent nodes!
+                           Goal: Create a continuous path from Start (green) to
+                           End (red) by clicking adjacent nodes!
                         </p>
                      </div>
                   </div>

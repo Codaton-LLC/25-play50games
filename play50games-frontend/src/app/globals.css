@@ -316,6 +316,12 @@ body {
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.28);
 }
 
+@media (max-width: 768px) {
+  .game-content {
+    padding: 0;
+  }
+}
+
 .game-start-screen {
   max-width: 800px;
   margin: 0 auto;

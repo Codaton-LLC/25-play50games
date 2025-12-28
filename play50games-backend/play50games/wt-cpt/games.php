@@ -425,7 +425,7 @@ function show_games_custom_fields() {
                 passingScore: 75,
                 unlockRequirement: '',
                 description: 'Repeat a sequence of sounds',
-                gameConfig: '{"gameType": "sound-memory", "rounds": 5}'
+                gameConfig: '{"gameType": "sound-memory", "rounds": 10, "roundSequences": [[2], [2, 3], [2, 3, 1], [2, 3, 1, 1], [2, 3, 1, 1, 4], [3, 1, 4, 2, 2], [3, 1, 4, 2, 2, 1], [4, 2, 1, 3, 1, 2, 4], [1, 2, 4, 1, 3, 2, 3, 4], [2, 4, 1, 3, 2, 1, 4, 3, 1]]}'
             },
             'emoji-memory': {
                 title: 'Emoji Memory',

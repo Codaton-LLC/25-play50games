@@ -242,8 +242,20 @@ export const gameInstructions: Record<string, {
   },
   'sound-memory': {
     description: 'Repeat a sequence of sounds',
-    instructions: 'Listen to the sequence of sounds, then repeat it by clicking the sound buttons in the same order.',
-    tips: 'Pay attention to the rhythm and order. Try to remember the pattern, not just individual sounds.'
+    instructions: 'Listen to the sequence of sounds, then repeat it by clicking the sound buttons (or pressing keys 1-4) in the same order. Each round adds one more sound to the sequence. You have 10 rounds. Each round gives 10 points (max 100 points). Use the Replay button to hear the sequence again, and the Hint button (5 uses) to get help with the first sound. Share the game to get unlimited hints!',
+    tips: 'Pay attention to the rhythm and order. Try to remember the pattern, not just individual sounds. Use keyboard keys 1-4 for faster gameplay!',
+    keyboardControls: [
+      { keys: ['1'], label: 'Play sound 1' },
+      { keys: ['2'], label: 'Play sound 2' },
+      { keys: ['3'], label: 'Play sound 3' },
+      { keys: ['4'], label: 'Play sound 4' },
+    ],
+    mouseControls: [
+      { action: 'Click', label: 'Click on a sound pad to play that sound' },
+      { action: 'Click', label: 'Click Replay to hear the sequence again' },
+      { action: 'Click', label: 'Click Hint to get help with the first sound (5 uses)' },
+      { action: 'Click', label: 'Click Share to get unlimited hints when someone opens your link' },
+    ],
   },
   'emoji-memory': {
     description: 'Remember emoji positions',

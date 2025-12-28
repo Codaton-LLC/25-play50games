@@ -36,7 +36,7 @@ Play50Games is a comprehensive gaming platform featuring:
 -  **Progress Tracking** with localStorage and WordPress API integration
 -  **Unlock System** for sequential game progression
 -  **Certificate Generation** after completing all games
--  **Modern UI** with Heroicons, animations, and responsive design
+-  **Modern UI** with Heroicons, animations, and fully responsive design (mobile, tablet, desktop)
 -  **Keyboard Controls** for all games
 -  **REST API** for game data and progress management
 
@@ -141,7 +141,7 @@ The platform includes a share tracking system that allows users to share games a
 
 ### How It Works
 
-1. **Sharing**: When a user clicks "Share for Unlimited Hints" in supported games (Card Flip Memory, Tile Slider), a unique share link is generated and copied to clipboard
+1. **Sharing**: When a user clicks "Share for Unlimited Hints" in supported games (Card Flip Memory, Tile Slider, Sound Memory), a unique share link is generated and copied to clipboard
 2. **Link Tracking**: The share link includes a `shared` URL parameter with a unique ID
 3. **Click Detection**: When someone opens the shared link, the system tracks the click in the backend
 4. **Unlimited Hints**: The original sharer receives unlimited hints for 15 minutes after someone clicks their link
@@ -150,29 +150,30 @@ The platform includes a share tracking system that allows users to share games a
 
 ### Supported Games
 
-- **Card Flip Memory**: Share to unlock unlimited hints (up to 10 hints per round by default)
-- **Tile Slider**: Share to unlock unlimited hints (up to 5 hints by default)
+-  **Card Flip Memory**: Share to unlock unlimited hints (up to 10 hints per round by default)
+-  **Tile Slider**: Share to unlock unlimited hints (up to 5 hints by default)
+-  **Sound Memory**: Share to unlock unlimited hints (5 hints by default)
 
 ### Admin Interface
 
 WordPress Admin includes a **Share Tracking** page (`/wp-admin/admin.php?page=share-tracking`) where you can:
 
-- View all shared links with their status
-- See click counts and timestamps
-- Filter by game type
-- Delete individual shares or all shares
-- Monitor share activity
+-  View all shared links with their status
+-  See click counts and timestamps
+-  Filter by game type
+-  Delete individual shares or all shares
+-  Monitor share activity
 
 ### Database
 
 Share tracking data is stored in the `wp_play50_share_tracking` table with the following structure:
 
-- `id`: Auto-increment primary key
-- `share_id`: Unique share identifier (string)
-- `game_type`: Game type (e.g., "card-flip", "tile-slider")
-- `clicks`: Number of times the link was clicked
-- `created_at`: When the share was created
-- `last_click_at`: When the link was last clicked (NULL if never clicked)
+-  `id`: Auto-increment primary key
+-  `share_id`: Unique share identifier (string)
+-  `game_type`: Game type (e.g., "card-flip", "tile-slider")
+-  `clicks`: Number of times the link was clicked
+-  `created_at`: When the share was created
+-  `last_click_at`: When the link was last clicked (NULL if never clicked)
 
 ### Finding Game IDs
 
@@ -258,8 +259,22 @@ Block Fill supports fixed grids (via `gridSize`) or multi-level layouts (via `le
       { "size": 3, "rows": ["AAB", "ACB", "CCB"] },
       { "size": 4, "rows": ["AAAB", "CABB", "CCDB", "CDDD"] },
       { "size": 5, "rows": ["AABBC", "ADBEC", "ADEEC", "FDDEC", "FFFEC"] },
-      { "size": 6, "rows": ["AAABBC", "DEABFC", "DEEBFC", "DGEHFC", "DGGHHC", "DGGHHC"] },
-      { "size": 7, "rows": ["AAABBCC", "ADDBBCC", "ADDEEFF", "GGDEHFF", "GGGHHII", "JJKHHII", "JJKKKII"] }
+      {
+         "size": 6,
+         "rows": ["AAABBC", "DEABFC", "DEEBFC", "DGEHFC", "DGGHHC", "DGGHHC"]
+      },
+      {
+         "size": 7,
+         "rows": [
+            "AAABBCC",
+            "ADDBBCC",
+            "ADDEEFF",
+            "GGDEHFF",
+            "GGGHHII",
+            "JJKHHII",
+            "JJKKKII"
+         ]
+      }
    ]
 }
 ```
@@ -273,9 +288,10 @@ Block Fill supports fixed grids (via `gridSize`) or multi-level layouts (via `le
    -  `rows`: Array of strings that define the solved layout
 
 Notes:
-- Use uppercase letters for pieces. Each letter is a unique piece.
-- Use `"."` for empty (unused) cells if needed.
-- If `levelLayouts` is provided, it overrides random piece sets for those levels.
+
+-  Use uppercase letters for pieces. Each letter is a unique piece.
+-  Use `"."` for empty (unused) cells if needed.
+-  If `levelLayouts` is provided, it overrides random piece sets for those levels.
 
 #### Match the Shapes
 
@@ -720,6 +736,120 @@ In WordPress admin, when creating/editing a game:
 -  **Passing Score**: 80 (80% of max score)
 -  **Difficulty**: 2 (medium)
 
+#### Sound Memory
+
+```json
+{
+   "gameType": "sound-memory",
+   "rounds": 10
+}
+```
+
+Or with predefined sequences for each round:
+
+```json
+{
+   "gameType": "sound-memory",
+   "rounds": 10,
+   "roundSequences": [
+      [2],
+      [2, 3],
+      [2, 3, 1],
+      [2, 3, 1, 1],
+      [2, 3, 1, 1, 4],
+      [3, 1, 4, 2, 2],
+      [3, 1, 4, 2, 2, 1],
+      [4, 2, 1, 3, 1, 2, 4],
+      [1, 2, 4, 1, 3, 2, 3, 4],
+      [2, 4, 1, 3, 2, 1, 4, 3, 1]
+   ]
+}
+```
+
+**Configuration:**
+
+-  `gameType` (required): Must be `"sound-memory"`
+-  `rounds` (optional): Number of rounds - Default: **10** (recommended for 100 points max)
+-  `roundSequences` (optional): Array of predefined sequences for each round
+   -  Each element is an array of button numbers (1-4) representing the sequence for that round
+   -  `roundSequences[0]` is for round 1, `roundSequences[1]` is for round 2, etc.
+   -  If not provided, sequences are generated randomly
+   -  Example: `[2, 3, 1]` means round 3 will play buttons 2 → 3 → 1 in order
+
+**Scoring:**
+
+-  10 points per correct round
+-  Maximum 100 points for 10 rounds
+-  Each round adds one more sound to the sequence
+
+**Controls:**
+
+-  **Mouse**: Click on sound pads (1-4) to play sounds and repeat the sequence
+-  **Keyboard**:
+   -  Press keys **1, 2, 3, 4** to play sounds during your turn
+   -  Use keyboard for faster gameplay!
+
+**Goal:**
+
+-  Listen to a sequence of sounds played by the game
+-  Repeat the sequence by clicking the sound pads (or pressing keys 1-4) in the same order
+-  Each round adds one more sound to the sequence:
+   -  Round 1: 1 sound
+   -  Round 2: 2 sounds
+   -  Round 3: 3 sounds
+   -  ...
+   -  Round 10: 10 sounds
+-  Get it wrong and the game ends immediately
+
+**Features:**
+
+-  Progressive difficulty with increasing sequence length
+-  4 different sound tones (frequencies: 220Hz, 330Hz, 440Hz, 550Hz) - each button always plays the same sound
+-  Visual feedback with active pad highlighting (thicker border, brighter colors, scale animation)
+-  Distinct color palette for each button (Blue, Green, Red/Pink, Yellow)
+-  **Replay Button**: Listen to the sequence again (5 uses by default)
+-  **Share Feature**: Share the game to unlock unlimited replay
+   -  Click "Share for Unlimited Replay" button to copy a shareable link
+   -  When someone else opens the shared link, the original sharer gets unlimited replay for 15 minutes
+   -  The system uses a heartbeat mechanism (checks every 10 seconds) to detect when the link is clicked
+   -  A success message appears when unlimited replay is activated
+   -  Replay automatically expires after 15 minutes and returns to normal (5 replays)
+-  Modern UI with game state indicators (Listening, Your Turn, Correct, Wrong)
+-  Round and score progress display
+-  Interactive example in game instructions section with colored buttons
+-  Fully responsive design optimized for mobile, tablet, and desktop
+-  Grid layout with 5px gap between sound pads
+-  Sound pads fill full width/height of grid cells with aspect ratio 1:1
+-  Touch-optimized for mobile devices
+
+**Game States:**
+
+-  **Listening**: Game is playing the sequence (pads are disabled)
+-  **Your Turn**: Repeat the sequence you heard
+-  **Correct**: You matched the sequence correctly
+-  **Wrong**: You made a mistake (game ends)
+
+**UI/UX Features:**
+
+-  **Responsive Design**: Optimized layouts for mobile (< 768px), tablet (768-1023px), and desktop (≥ 1024px)
+-  **Mobile Optimizations**:
+   -  Full-width buttons for Replay and Share actions
+   -  Smaller font sizes and spacing
+   -  Touch-friendly button sizes (110-130px)
+   -  Reduced padding and gaps
+-  **Desktop Features**:
+   -  Larger sound pads (140-160px)
+   -  Hover effects on buttons
+   -  Enhanced visual feedback
+-  **Grid Layout**: 2x2 grid on mobile, 4x1 grid on desktop with 5px gap
+-  **Visual Emphasis**: Active pads have thicker borders, brighter gradients, stronger shadows, and scale animation
+
+**Recommended Settings:**
+
+-  **Time Limit**: 90 seconds (overall game time)
+-  **Passing Score**: 75 (75% of max score)
+-  **Difficulty**: 2 (medium)
+
 #### Click the Green
 
 ```json
@@ -889,6 +1019,12 @@ In WordPress admin, you can use the "Quick Fill Templates" dropdown and select "
 -  Interactive start screen preview explaining mirror types
 -  Visual feedback with check/x icons
 -  Modern UI matching other games
+-  Fully responsive design for mobile, tablet, and desktop
+-  **Mirror Types Explained Section**: Responsive grid layout
+   -  Mobile: 1 column (vertical stack)
+   -  Tablet: 2 columns
+   -  Desktop: 3 columns
+   -  Optimized font sizes, padding, and SVG sizes for each breakpoint
 
 **Recommended Settings:**
 
@@ -1275,7 +1411,7 @@ src/
 -  **Modern UI**: Gradient backgrounds, animations, and visual feedback
 -  **Game Instructions**: Detailed instructions and tips displayed before each game
 -  **Diagnostics Page**: API connectivity and CORS diagnostics
--  **Share Feature**: Share games to unlock unlimited hints (Card Flip Memory, Tile Slider)
+-  **Share Feature**: Share games to unlock unlimited hints (Card Flip Memory, Tile Slider, Sound Memory)
 
 ## Game Types
 
@@ -1300,6 +1436,7 @@ src/
 ### Memory Games
 
 -  Card Flip Memory
+-  Sound Memory
 
 ### Speed Games
 

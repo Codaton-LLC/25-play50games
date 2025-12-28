@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+   <head>
+      <meta charset="UTF-8" />
+      <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <title>Sound Memory</title>
+      <style>
+         :root {
+            --bg: #0b1220;
+            --panel: #0f1b33;
+            --text: #e8eefc;
+            --muted: #a6b3d1;
+            --accent: #6ea8ff;
+            --good: #36d399;
+            --bad: #fb7185;
+            --shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
+            --radius: 18px;
+         }
+
+         * {
+            box-sizing: border-box;
+         }
+         body {
+            margin: 0;
+            font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu,
+               Cantarell, Noto Sans, Arial, sans-serif;
+            background: radial-gradient(
+                  1200px 800px at 70% -10%,
+                  rgba(110, 168, 255, 0.28),
+                  transparent 60%
+               ),
+               radial-gradient(
+                  900px 600px at 0% 10%,
+                  rgba(54, 211, 153, 0.18),
+                  transparent 55%
+               ),
+               var(--bg);
+            color: var(--text);
+            min-height: 100svh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+         }
+
+         .app {
+            width: min(900px, 100%);
+            display: grid;
+            grid-template-columns: 1.2fr 0.8fr;
+            gap: 18px;
+         }
+
+         @media (max-width: 900px) {
+            .app {
+               grid-template-columns: 1fr;
+            }
+         }
+
+         .panel {
+            background: linear-gradient(
+               180deg,
+               rgba(255, 255, 255, 0.06),
+               rgba(255, 255, 255, 0.02)
+            );
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            overflow: hidden;
+         }
+
+         header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            padding: 18px 18px 12px;
+            gap: 12px;
+         }
+
+         .title h1 {
+            margin: 0;
+            font-size: 18px;
+         }
+         .title p {
+            margin: 4px 0 0;
+            color: var(--muted);
+            font-size: 13px;
+         }
+
+         button {
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            background: rgba(15, 27, 51, 0.7);
+            color: var(--text);
+            padding: 10px 14px;
+            cursor: pointer;
+            font-weight: 700;
+            transition: 0.15s;
+         }
+         button:hover {
+            border-color: rgba(110, 168, 255, 0.45);
+         }
+         button.primary {
+            background: linear-gradient(
+               180deg,
+               rgba(110, 168, 255, 0.9),
+               rgba(110, 168, 255, 0.55)
+            );
+            color: #081126;
+         }
+
+         .row {
+            display: flex;
+            gap: 12px;
+            padding: 0 18px 14px;
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            background: rgba(11, 22, 48, 0.45);
+            justify-content: space-between;
+            flex-wrap: wrap;
+         }
+
+         .pill {
+            padding: 8px 12px;
+            border-radius: 999px;
+            background: rgba(17, 28, 53, 0.55);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            font-size: 13px;
+         }
+
+         .content {
+            padding: 18px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+         }
+
+         .prompt {
+            padding: 14px;
+            border-radius: 16px;
+            background: rgba(17, 28, 53, 0.45);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+         }
+
+         .badge {
+            padding: 6px 10px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 900;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            background: rgba(15, 27, 51, 0.55);
+         }
+         .badge.good {
+            color: var(--good);
+            border-color: rgba(54, 211, 153, 0.45);
+         }
+         .badge.bad {
+            color: var(--bad);
+            border-color: rgba(251, 113, 133, 0.45);
+         }
+
+         .pads {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 14px;
+         }
+
+         .pad {
+            border-radius: 18px;
+            min-height: 120px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: radial-gradient(
+                  220px 140px at 30% 30%,
+                  rgba(110, 168, 255, 0.12),
+                  transparent 55%
+               ),
+               linear-gradient(
+                  180deg,
+                  rgba(255, 255, 255, 0.05),
+                  rgba(255, 255, 255, 0.02)
+               );
+            box-shadow: 0 10px 18px rgba(0, 0, 0, 0.22);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 900;
+            font-size: 22px;
+            cursor: pointer;
+            transition: 0.15s;
+            user-select: none;
+         }
+
+         .pad.active {
+            background: rgba(110, 168, 255, 0.35);
+            box-shadow: 0 0 30px rgba(110, 168, 255, 0.6);
+         }
+
+         .side {
+            padding: 18px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+         }
+         .box {
+            background: rgba(11, 22, 48, 0.35);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 14px;
+         }
+         .box h2 {
+            margin: 0 0 6px;
+            font-size: 14px;
+         }
+         .box p,
+         .box li {
+            margin: 0;
+            color: var(--muted);
+            font-size: 13px;
+            line-height: 1.35;
+         }
+         ul {
+            margin: 10px 0 0;
+            padding-left: 18px;
+         }
+      </style>
+   </head>
+   <body>
+      <div class="app">
+         <section class="panel">
+            <header>
+               <div class="title">
+                  <h1>Sound Memory</h1>
+                  <p>Listen to the sequence of sounds and repeat it.</p>
+               </div>
+               <button class="primary" id="newBtn">New</button>
+            </header>
+
+            <div class="row">
+               <div class="pill">Round: <b id="round">1</b></div>
+               <div class="pill">Score: <b id="score">0</b></div>
+            </div>
+
+            <div class="content">
+               <div class="prompt">
+                  <div>
+                     <b id="stateText">Listen carefully…</b>
+                     <small style="color: var(--muted)"
+                        >Repeat the sounds in the same order</small
+                     >
+                  </div>
+                  <span class="badge" id="badge">Playing</span>
+               </div>
+
+               <div class="pads" id="pads"></div>
+            </div>
+         </section>
+
+         <aside class="panel">
+            <div class="side">
+               <div class="box">
+                  <h2>How to Play</h2>
+                  <ul>
+                     <li>Listen to the sequence of sounds.</li>
+                     <li>Click the sound buttons in the same order.</li>
+                  </ul>
+               </div>
+               <div class="box">
+                  <h2>Tips</h2>
+                  <ul>
+                     <li>
+                        Pay attention to the <b>rhythm</b> and <b>order</b>.
+                     </li>
+                     <li>
+                        Try to remember the pattern, not individual sounds.
+                     </li>
+                  </ul>
+               </div>
+            </div>
+         </aside>
+      </div>
+
+      <script>
+         const padsEl = document.getElementById("pads");
+         const roundEl = document.getElementById("round");
+         const scoreEl = document.getElementById("score");
+         const badgeEl = document.getElementById("badge");
+         const stateTextEl = document.getElementById("stateText");
+         const newBtn = document.getElementById("newBtn");
+
+         const AudioCtx = window.AudioContext || window.webkitAudioContext;
+         const ctx = new AudioCtx();
+
+         const tones = [220, 330, 440, 550];
+         let sequence = [];
+         let input = [];
+         let round = 1;
+         let score = 0;
+         let accepting = false;
+
+         function playTone(freq, pad) {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.frequency.value = freq;
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start();
+            pad.classList.add("active");
+            setTimeout(() => {
+               osc.stop();
+               pad.classList.remove("active");
+            }, 350);
+         }
+
+         function playSequence() {
+            accepting = false;
+            stateTextEl.textContent = "Listen carefully…";
+            sequence.forEach((idx, i) => {
+               setTimeout(
+                  () => playTone(tones[idx], padsEl.children[idx]),
+                  i * 600
+               );
+            });
+            setTimeout(() => {
+               accepting = true;
+               input = [];
+               stateTextEl.textContent = "Your turn";
+            }, sequence.length * 600 + 200);
+         }
+
+         function nextRound() {
+            roundEl.textContent = round;
+            scoreEl.textContent = score;
+            sequence.push(Math.floor(Math.random() * 4));
+            playSequence();
+         }
+
+         function reset() {
+            sequence = [];
+            input = [];
+            round = 1;
+            score = 0;
+            badgeEl.textContent = "Playing";
+            badgeEl.className = "badge";
+            nextRound();
+         }
+
+         function pressPad(idx) {
+            if (!accepting) return;
+            playTone(tones[idx], padsEl.children[idx]);
+            input.push(idx);
+            const current = input.length - 1;
+            if (input[current] !== sequence[current]) {
+               badgeEl.textContent = "Wrong";
+               badgeEl.className = "badge bad";
+               accepting = false;
+               return;
+            }
+            if (input.length === sequence.length) {
+               badgeEl.textContent = "Correct";
+               badgeEl.className = "badge good";
+               score++;
+               round++;
+               setTimeout(nextRound, 800);
+            }
+         }
+
+         function renderPads() {
+            padsEl.innerHTML = "";
+            tones.forEach((_, i) => {
+               const pad = document.createElement("div");
+               pad.className = "pad";
+               pad.textContent = i + 1;
+               pad.addEventListener("click", () => pressPad(i));
+               padsEl.appendChild(pad);
+            });
+         }
+
+         newBtn.addEventListener("click", reset);
+
+         renderPads();
+         reset();
+      </script>
+   </body>
+</html>
