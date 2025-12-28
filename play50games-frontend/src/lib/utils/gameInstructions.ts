@@ -258,9 +258,12 @@ export const gameInstructions: Record<string, {
     ],
   },
   'emoji-memory': {
-    description: 'Remember emoji positions',
-    instructions: 'Memorize the positions of emojis on the grid. After they disappear, click on the cells where you saw each emoji.',
-    tips: 'Create a mental map of the grid. Associate each emoji with its position.'
+    description: 'Remember emoji positions on a grid',
+    instructions: 'Memorize the positions of emojis on the grid. After they disappear, click on the cells where you saw each emoji in the correct order.',
+    tips: 'Create a mental map of the grid. Associate each emoji with its position. Start with the corners and edges to build your spatial memory.',
+    mouseControls: [
+      { action: 'Click', label: 'Click on cells where you saw emojis to select them' }
+    ]
   },
   'number-recall': {
     description: 'Remember and type a number sequence',

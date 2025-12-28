@@ -29,6 +29,8 @@ import {
    PuzzlePieceIcon,
    MusicalNoteIcon,
    KeyIcon,
+   SparklesIcon,
+   CursorArrowRaysIcon,
 } from "@heroicons/react/24/outline";
 import LogicGames from "./game-types/LogicGames";
 import MemoryGames from "./game-types/MemoryGames";
@@ -236,6 +238,173 @@ export default function GameEngine({
             <div className="game-instructions-section">
                <h3>How to Play</h3>
                <p className="instructions-text">{instructions.instructions}</p>
+
+               {/* Interactive Example for Emoji Memory */}
+               {gameType === "emoji-memory" && (
+                  <div
+                     style={{
+                        background:
+                           "linear-gradient(135deg, rgba(125, 211, 252, 0.1) 0%, rgba(54, 211, 153, 0.1) 100%)",
+                        border: "2px solid var(--stroke)",
+                        borderRadius: "20px",
+                        padding: "32px",
+                        marginTop: "24px",
+                        boxShadow: "0 8px 24px rgba(0, 0, 0, 0.2)",
+                     }}
+                  >
+                     <div
+                        style={{
+                           display: "flex",
+                           alignItems: "center",
+                           justifyContent: "center",
+                           gap: "12px",
+                           marginBottom: "24px",
+                        }}
+                     >
+                        <SparklesIcon
+                           style={{
+                              width: 28,
+                              height: 28,
+                              color: "var(--accent)",
+                           }}
+                        />
+                        <h3
+                           style={{
+                              fontSize: "24px",
+                              fontWeight: 700,
+                              margin: 0,
+                              background:
+                                 "linear-gradient(135deg, var(--accent) 0%, var(--ok) 100%)",
+                              WebkitBackgroundClip: "text",
+                              WebkitTextFillColor: "transparent",
+                              backgroundClip: "text",
+                           }}
+                        >
+                           Example Round
+                        </h3>
+                     </div>
+
+                     <div
+                        style={{
+                           background: "var(--card)",
+                           border: "2px solid var(--stroke)",
+                           borderRadius: "16px",
+                           padding: "24px",
+                           marginBottom: "20px",
+                        }}
+                     >
+                        <p
+                           style={{
+                              margin: "0 0 16px",
+                              color: "var(--text)",
+                              fontSize: "16px",
+                              fontWeight: 600,
+                              textAlign: "center",
+                           }}
+                        >
+                           Memorize the emoji positions, then click them in order:
+                        </p>
+                        <div
+                           style={{
+                              display: "grid",
+                              gridTemplateColumns: "repeat(4, 1fr)",
+                              gap: "12px",
+                              maxWidth: "300px",
+                              margin: "0 auto",
+                           }}
+                        >
+                           {["🍎", "?", "?", "⭐", "?", "🎵", "?", "?", "?", "🏀", "?", "?", "?", "?", "?", "?"].map((emoji, i) => (
+                              <div
+                                 key={i}
+                                 style={{
+                                    aspectRatio: "1",
+                                    borderRadius: "12px",
+                                    border: "2px solid var(--stroke)",
+                                    background: emoji !== "?" ? "linear-gradient(135deg, rgba(125, 211, 252, 0.2), rgba(125, 211, 252, 0.1))" : "var(--card)",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    fontSize: "1.5rem",
+                                    opacity: emoji === "?" ? 0.3 : 1,
+                                 }}
+                              >
+                                 {emoji}
+                              </div>
+                           ))}
+                        </div>
+                        <p
+                           style={{
+                              margin: "16px 0 0",
+                              color: "var(--muted)",
+                              fontSize: "14px",
+                              textAlign: "center",
+                              fontStyle: "italic",
+                           }}
+                        >
+                           Click on cells 0, 3, 4, 5, and 9 (where emojis appeared)
+                        </p>
+                     </div>
+
+                     {isMobile && (
+                        <p
+                           style={{
+                              margin: "16px 0 0",
+                              color: "var(--muted)",
+                              fontSize: "13px",
+                              textAlign: "center",
+                              fontStyle: "italic",
+                           }}
+                        >
+                           <span
+                              style={{
+                                 display: "flex",
+                                 alignItems: "center",
+                                 gap: "6px",
+                                 justifyContent: "center",
+                              }}
+                           >
+                              <CursorArrowRaysIcon
+                                 style={{
+                                    width: 16,
+                                    height: 16,
+                                    color: "var(--accent)",
+                                 }}
+                              />
+                              Tap cells to select them
+                           </span>
+                        </p>
+                     )}
+                     {!isMobile && (
+                        <p
+                           style={{
+                              margin: "16px 0 0",
+                              color: "var(--muted)",
+                              fontSize: "13px",
+                              textAlign: "center",
+                              fontStyle: "italic",
+                           }}
+                        >
+                           <span
+                              style={{
+                                 display: "flex",
+                                 alignItems: "center",
+                                 gap: "6px",
+                                 justifyContent: "center",
+                              }}
+                           >
+                              <CursorArrowRaysIcon
+                                 style={{
+                                    width: 16,
+                                    height: 16,
+                                    color: "var(--accent)",
+                                 }}
+                              />
+                              Click cells to select them
+                           </span>
+                        </p>
+                     )}
+                  </div>
+               )}
 
                {/* Interactive Example for Sound Memory */}
                {gameType === "sound-memory" && (

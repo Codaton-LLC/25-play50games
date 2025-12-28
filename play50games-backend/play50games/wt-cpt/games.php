@@ -435,8 +435,8 @@ function show_games_custom_fields() {
                 timeLimit: 60,
                 passingScore: 75,
                 unlockRequirement: '',
-                description: 'Remember emoji positions',
-                gameConfig: '{"gameType": "emoji-memory", "gridSize": 3, "rounds": 3}'
+                description: 'Remember emoji positions on a grid and click them in order',
+                gameConfig: '{"gameType": "emoji-memory", "rounds": 20, "gridSizes": [[4, 4], [4, 4], [4, 4], [4, 4], [4, 4], [5, 5], [5, 5], [5, 5], [5, 5], [5, 5], [6, 7], [6, 7], [6, 7], [6, 7], [6, 7], [8, 8], [8, 8], [8, 8], [8, 8], [8, 8]]}'
             },
             'number-recall': {
                 title: 'Number Recall',

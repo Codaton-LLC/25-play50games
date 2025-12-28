@@ -141,7 +141,7 @@ The platform includes a share tracking system that allows users to share games a
 
 ### How It Works
 
-1. **Sharing**: When a user clicks "Share for Unlimited Hints" in supported games (Card Flip Memory, Tile Slider, Sound Memory), a unique share link is generated and copied to clipboard
+1. **Sharing**: When a user clicks "Share for Unlimited Hints" in supported games (Card Flip Memory, Tile Slider, Sound Memory, Emoji Memory), a unique share link is generated and copied to clipboard
 2. **Link Tracking**: The share link includes a `shared` URL parameter with a unique ID
 3. **Click Detection**: When someone opens the shared link, the system tracks the click in the backend
 4. **Unlimited Hints**: The original sharer receives unlimited hints for 15 minutes after someone clicks their link
@@ -152,7 +152,8 @@ The platform includes a share tracking system that allows users to share games a
 
 -  **Card Flip Memory**: Share to unlock unlimited hints (up to 10 hints per round by default)
 -  **Tile Slider**: Share to unlock unlimited hints (up to 5 hints by default)
--  **Sound Memory**: Share to unlock unlimited hints (5 hints by default)
+-  **Sound Memory**: Share to unlock unlimited replay (5 replays by default)
+-  **Emoji Memory**: Share to unlock unlimited hints (10 hints by default)
 
 ### Admin Interface
 
@@ -1143,6 +1144,117 @@ In WordPress admin, you can use the "Quick Fill Templates" dropdown and select "
 -  **Passing Score**: 75 (75% of max score)
 -  **Difficulty**: 2 (medium)
 
+#### Emoji Memory
+
+```json
+{
+   "gameType": "emoji-memory",
+   "rounds": 20,
+   "gridSizes": [
+      [4, 4],
+      [4, 4],
+      [4, 4],
+      [4, 4],
+      [4, 4],
+      [5, 5],
+      [5, 5],
+      [5, 5],
+      [5, 5],
+      [5, 5],
+      [6, 7],
+      [6, 7],
+      [6, 7],
+      [6, 7],
+      [6, 7],
+      [8, 8],
+      [8, 8],
+      [8, 8],
+      [8, 8],
+      [8, 8]
+   ]
+}
+```
+
+**Configuration:**
+
+-  `gameType` (required): Must be `"emoji-memory"`
+-  `rounds` (optional): Number of rounds - Default: **20** (recommended for 100 points max)
+-  `gridSizes` (optional): Array of grid sizes for each round - Default: Calculated automatically
+   -  Each element is `[width, height]` representing the grid size for that round
+   -  Rounds 1-5: 4x4 grid
+   -  Rounds 6-10: 5x5 grid
+   -  Rounds 11-15: 6x7 grid
+   -  Rounds 16-20: 8x8 grid
+   -  If not provided, grid sizes are calculated automatically based on round number
+
+**Scoring:**
+
+-  5 points per correct round (when all emoji positions are correctly identified)
+-  Maximum 100 points for 20 rounds
+-  Score is calculated based on successfully completed rounds
+
+**Controls:**
+
+-  **Mouse**:
+   -  Click on cells where you saw emojis to select them
+   -  Cells show visual feedback (green border for correct, red border for wrong)
+-  **Keyboard**: Not available\*\* (mouse-only game)
+
+**Goal:**
+
+-  Memorize the positions of emojis on the grid
+-  After emojis disappear, click on the cells where you saw each emoji in the correct order
+-  Each round shows emojis for 2-4 seconds (increasing with round number)
+-  Grid size increases with each round group for progressive difficulty
+-  If you make a mistake, you can retry the same round (game doesn't end)
+
+**How It Works:**
+
+-  Each round displays a grid with emojis at random positions
+-  Emojis are shown for a brief period (2-4 seconds based on round)
+-  After emojis disappear, you must click on the cells where you saw emojis
+-  The number of emojis increases with rounds (4-8 emojis per round)
+-  Grid size increases: 4x4 → 5x5 → 6x7 → 8x8
+-  Wrong answers show red feedback but allow retry (game continues)
+
+**Features:**
+
+-  Progressive difficulty with increasing grid sizes and emoji counts
+-  Dynamic grid configuration from backend (configurable per round)
+-  Visual feedback with colored borders (green for correct, red for wrong, blue for selected)
+-  Notification messages like Match the Shapes (green for correct, red for wrong)
+-  Modern UI with header showing round, score, and progress bar
+-  Game state display (Memorizing, Your Turn, Correct, Wrong)
+-  **Hint System**: 10 hints by default, unlimited if shared
+   -  Click "Hint" button to reveal 1-2 emoji positions
+   -  Hints show for 2 seconds then disappear
+   -  Share the game to unlock unlimited hints for 15 minutes
+-  **Share Feature**: Share the game to unlock unlimited hints
+   -  Click "Share for Unlimited Hints" button to copy a shareable link
+   -  When someone else opens the shared link, the original sharer gets unlimited hints for 15 minutes
+   -  The system uses a heartbeat mechanism (checks every 10 seconds) to detect when the link is clicked
+   -  A success message appears for 15 seconds when unlimited hints are activated
+   -  Hints automatically expire after 15 minutes and return to normal
+-  Interactive example in game instructions section with visual grid demonstration
+-  Mouse controls displayed in game instructions
+-  Fully responsive design optimized for mobile, tablet, and desktop
+-  Touch-optimized for mobile devices
+-  Game continues on wrong answer (allows retry instead of ending)
+
+**Tips:**
+
+-  Create a mental map of the grid
+-  Associate each emoji with its position
+-  Start with the corners and edges to build your spatial memory
+-  Use hints strategically when stuck
+-  Share the game to get unlimited hints if needed
+
+**Recommended Settings:**
+
+-  **Time Limit**: 60 seconds (overall game time)
+-  **Passing Score**: 75 (75% of max score)
+-  **Difficulty**: 2 (medium)
+
 #### Block Fill
 
 ```json
@@ -1411,7 +1523,7 @@ src/
 -  **Modern UI**: Gradient backgrounds, animations, and visual feedback
 -  **Game Instructions**: Detailed instructions and tips displayed before each game
 -  **Diagnostics Page**: API connectivity and CORS diagnostics
--  **Share Feature**: Share games to unlock unlimited hints (Card Flip Memory, Tile Slider, Sound Memory)
+-  **Share Feature**: Share games to unlock unlimited hints (Card Flip Memory, Tile Slider, Sound Memory, Emoji Memory)
 
 ## Game Types
 
@@ -1437,6 +1549,7 @@ src/
 
 -  Card Flip Memory
 -  Sound Memory
+-  Emoji Memory
 
 ### Speed Games
 
