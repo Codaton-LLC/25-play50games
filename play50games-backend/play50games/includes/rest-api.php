@@ -222,7 +222,228 @@ add_action('rest_api_init', function() {
         'callback' => 'play50_get_certificate',
         'permission_callback' => '__return_true',
     ));
+    
+    // Share tracking endpoints
+    register_rest_route('play50/v1', '/share/register', array(
+        'methods' => 'POST',
+        'callback' => 'play50_register_share',
+        'permission_callback' => '__return_true',
+    ));
+    
+    register_rest_route('play50/v1', '/share/click', array(
+        'methods' => 'POST',
+        'callback' => 'play50_track_share_click',
+        'permission_callback' => '__return_true',
+    ));
+    
+    register_rest_route('play50/v1', '/share/status/(?P<share_id>[a-zA-Z0-9]+)', array(
+        'methods' => 'GET',
+        'callback' => 'play50_get_share_status',
+        'permission_callback' => '__return_true',
+    ));
 });
+
+/**
+ * Create share tracking table on theme activation
+ */
+function play50_create_share_table() {
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'play50_share_tracking';
+    
+    $charset_collate = $wpdb->get_charset_collate();
+    
+    $sql = "CREATE TABLE IF NOT EXISTS $table_name (
+        id bigint(20) NOT NULL AUTO_INCREMENT,
+        share_id varchar(50) NOT NULL,
+        game_type varchar(50) NOT NULL,
+        created_at datetime DEFAULT CURRENT_TIMESTAMP,
+        clicks int(11) DEFAULT 0,
+        last_click_at datetime NULL,
+        PRIMARY KEY (id),
+        UNIQUE KEY share_id (share_id),
+        KEY game_type (game_type)
+    ) $charset_collate;";
+    
+    require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
+    dbDelta($sql);
+}
+// Create table on theme activation
+add_action('after_switch_theme', 'play50_create_share_table');
+// Also create on admin init (in case table doesn't exist)
+add_action('admin_init', function() {
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'play50_share_tracking';
+    if ($wpdb->get_var("SHOW TABLES LIKE '$table_name'") != $table_name) {
+        play50_create_share_table();
+    }
+}, 1);
+
+/**
+ * Register a share link
+ */
+function play50_register_share($request) {
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'play50_share_tracking';
+    
+    $params = $request->get_json_params();
+    $share_id = isset($params['share_id']) ? sanitize_text_field($params['share_id']) : '';
+    $game_type = isset($params['game_type']) ? sanitize_text_field($params['game_type']) : '';
+    
+    if (empty($share_id) || empty($game_type)) {
+        return new WP_Error('missing_params', 'share_id and game_type are required', array('status' => 400));
+    }
+    
+    // Check if share_id already exists
+    $existing = $wpdb->get_var($wpdb->prepare(
+        "SELECT id FROM $table_name WHERE share_id = %s",
+        $share_id
+    ));
+    
+    if ($existing) {
+        // Already exists, return success
+        return new WP_REST_Response(array(
+            'success' => true,
+            'message' => 'Share link already registered',
+            'share_id' => $share_id,
+            'clicks' => intval($wpdb->get_var($wpdb->prepare(
+                "SELECT clicks FROM $table_name WHERE share_id = %s",
+                $share_id
+            )))
+        ), 200);
+    }
+    
+    // Insert new share link
+    $result = $wpdb->insert(
+        $table_name,
+        array(
+            'share_id' => $share_id,
+            'game_type' => $game_type,
+            'clicks' => 0,
+            'created_at' => current_time('mysql')
+        ),
+        array('%s', '%s', '%d', '%s')
+    );
+    
+    if ($result === false) {
+        return new WP_Error('db_error', 'Failed to register share link', array('status' => 500));
+    }
+    
+    return new WP_REST_Response(array(
+        'success' => true,
+        'message' => 'Share link registered',
+        'share_id' => $share_id,
+        'clicks' => 0
+    ), 201);
+}
+
+/**
+ * Track a share click (when someone opens the shared link)
+ */
+function play50_track_share_click($request) {
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'play50_share_tracking';
+    
+    $params = $request->get_json_params();
+    $share_id = isset($params['share_id']) ? sanitize_text_field($params['share_id']) : '';
+    
+    if (empty($share_id)) {
+        return new WP_Error('missing_params', 'share_id is required', array('status' => 400));
+    }
+    
+    // Check if share_id exists
+    $existing = $wpdb->get_var($wpdb->prepare(
+        "SELECT id FROM $table_name WHERE share_id = %s",
+        $share_id
+    ));
+    
+    // If share doesn't exist, try to determine game_type from share_id or create with unknown type
+    // This can happen if someone opens a link before it's registered
+    if (!$existing) {
+        // Try to extract game type from URL or use 'unknown'
+        $game_type = 'unknown';
+        
+        // Try to create the share entry
+        $insert_result = $wpdb->insert(
+            $table_name,
+            array(
+                'share_id' => $share_id,
+                'game_type' => $game_type,
+                'clicks' => 1, // First click
+                'created_at' => current_time('mysql'),
+                'last_click_at' => current_time('mysql')
+            ),
+            array('%s', '%s', '%d', '%s', '%s')
+        );
+        
+        if ($insert_result === false) {
+            return new WP_Error('db_error', 'Failed to create and track click', array('status' => 500));
+        }
+        
+        return new WP_REST_Response(array(
+            'success' => true,
+            'message' => 'Click tracked (share created)',
+            'share_id' => $share_id,
+            'clicks' => 1
+        ), 200);
+    }
+    
+    // Update clicks for existing share
+    $result = $wpdb->query($wpdb->prepare(
+        "UPDATE $table_name SET clicks = clicks + 1, last_click_at = %s WHERE share_id = %s",
+        current_time('mysql'),
+        $share_id
+    ));
+    
+    if ($result === false) {
+        return new WP_Error('db_error', 'Failed to track click', array('status' => 500));
+    }
+    
+    // Get updated clicks count
+    $clicks = intval($wpdb->get_var($wpdb->prepare(
+        "SELECT clicks FROM $table_name WHERE share_id = %s",
+        $share_id
+    )));
+    
+    return new WP_REST_Response(array(
+        'success' => true,
+        'message' => 'Click tracked',
+        'share_id' => $share_id,
+        'clicks' => $clicks
+    ), 200);
+}
+
+/**
+ * Get share status (check if share has clicks)
+ */
+function play50_get_share_status($request) {
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'play50_share_tracking';
+    
+    $share_id = $request->get_param('share_id');
+    
+    if (empty($share_id)) {
+        return new WP_Error('missing_params', 'share_id is required', array('status' => 400));
+    }
+    
+    $result = $wpdb->get_row($wpdb->prepare(
+        "SELECT share_id, game_type, clicks, created_at, last_click_at FROM $table_name WHERE share_id = %s",
+        $share_id
+    ), ARRAY_A);
+    
+    if (!$result) {
+        return new WP_Error('not_found', 'Share link not found', array('status' => 404));
+    }
+    
+    return new WP_REST_Response(array(
+        'success' => true,
+        'share_id' => $result['share_id'],
+        'game_type' => $result['game_type'],
+        'clicks' => intval($result['clicks']),
+        'has_clicks' => intval($result['clicks']) > 0,
+        'created_at' => $result['created_at'],
+        'last_click_at' => $result['last_click_at']
+    ), 200);
+}
 
 /**
  * Get all games with unlock status

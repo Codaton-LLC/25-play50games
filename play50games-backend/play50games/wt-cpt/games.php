@@ -402,8 +402,8 @@ function show_games_custom_fields() {
                 timeLimit: 120,
                 passingScore: 80,
                 unlockRequirement: '',
-                description: 'Fill the grid with all blocks',
-                gameConfig: '{"gameType": "block-fill", "gridSize": 4}'
+                description: 'Fill the grid with all blocks using polyomino pieces',
+                gameConfig: '{"gameType": "block-fill", "levels": [3, 4, 5, 6, 7], "levelLayouts": [{"size": 3, "rows": ["AAB", "ACB", "CCB"]}, {"size": 4, "rows": ["AAAB", "CABB", "CCDB", "CDDD"]}, {"size": 5, "rows": ["AABBC", "ADBEC", "ADEEC", "FDDEC", "FFFEC"]}, {"size": 6, "rows": ["AAABBC", "DEABFC", "DEEBFC", "DGEHFC", "DGGHHC", "DGGHHC"]}, {"size": 7, "rows": ["AAABBCC", "ADDBBCC", "ADDEEFF", "GGDEHFF", "GGGHHII", "JJKHHII", "JJKKKII"]}]}'
             },
             'card-flip': {
                 title: 'Card Flip Memory',
@@ -413,8 +413,8 @@ function show_games_custom_fields() {
                 timeLimit: 120,
                 passingScore: 80,
                 unlockRequirement: '',
-                description: 'Classic card matching pairs',
-                gameConfig: '{"gameType": "card-flip", "gridSize": 4, "pairs": 8}'
+                description: 'Match pairs of cards by remembering their positions',
+                gameConfig: '{"gameType": "card-flip", "rounds": 5, "gridSizes": [[2, 2], [4, 4], [6, 6], [7, 6], [8, 8]]}'
             },
             'sound-memory': {
                 title: 'Sound Memory',

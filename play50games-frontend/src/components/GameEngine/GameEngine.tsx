@@ -25,6 +25,7 @@ import {
    HeartIcon,
    ScaleIcon,
    ArrowPathIcon,
+   PuzzlePieceIcon,
 } from "@heroicons/react/24/outline";
 import LogicGames from "./game-types/LogicGames";
 import MemoryGames from "./game-types/MemoryGames";
@@ -32,6 +33,7 @@ import SpeedGames from "./game-types/SpeedGames";
 import SkillGames from "./game-types/SkillGames";
 import FinalGames from "./game-types/FinalGames";
 import KeyboardControls, { MouseControls } from "./KeyboardControls";
+import { trackShareClick } from "@/lib/api/share";
 
 interface GameEngineProps {
    game: Game;
@@ -48,6 +50,23 @@ export default function GameEngine({
    const [timeLeft, setTimeLeft] = useState(game.time_limit);
    const [isPlaying, setIsPlaying] = useState(false);
    const [isCompleted, setIsCompleted] = useState(false);
+
+   // Track share click immediately when page loads (before game starts)
+   useEffect(() => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const sharedBy = urlParams.get("shared");
+      if (sharedBy) {
+         console.log("[GameEngine] Shared link detected, tracking click for:", sharedBy);
+         // Track click immediately when page loads
+         trackShareClick(sharedBy)
+            .then((result) => {
+               console.log("[GameEngine] Click tracked successfully:", result);
+            })
+            .catch((err) => {
+               console.error("[GameEngine] Failed to track share click:", err);
+            });
+      }
+   }, []); // Run once on mount
 
    useEffect(() => {
       if (!isPlaying || isCompleted) return;
@@ -733,6 +752,378 @@ export default function GameEngine({
                                  <span style={{ color: "var(--text)", marginLeft: "8px" }}>skipping one direction each time</span>
                               </div>
                            </div>
+                        </div>
+                     </div>
+                  </div>
+               )}
+
+               {/* Block Fill Start Screen Explanation */}
+               {gameType === "block-fill" && (
+                  <div style={{
+                     background: "linear-gradient(135deg, rgba(125, 211, 252, 0.1) 0%, rgba(54, 211, 153, 0.1) 100%)",
+                     border: "2px solid var(--stroke)",
+                     borderRadius: "20px",
+                     padding: "32px",
+                     marginTop: "24px",
+                     boxShadow: "0 8px 24px rgba(0, 0, 0, 0.2)"
+                  }}>
+                     <div style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: "12px",
+                        marginBottom: "24px"
+                     }}>
+                        <PuzzlePieceIcon style={{ width: 28, height: 28, color: "var(--accent)" }} />
+                        <h3 style={{
+                           fontSize: "24px",
+                           fontWeight: 700,
+                           margin: 0,
+                           background: "linear-gradient(135deg, var(--accent) 0%, var(--ok) 100%)",
+                           WebkitBackgroundClip: "text",
+                           WebkitTextFillColor: "transparent",
+                           backgroundClip: "text"
+                        }}>
+                           Block Fill - Polyomino Puzzle
+                        </h3>
+                     </div>
+
+                     <div style={{
+                        background: "rgba(11, 22, 48, 0.4)",
+                        border: "1px solid var(--stroke)",
+                        borderRadius: "12px",
+                        padding: "20px",
+                        marginBottom: "24px"
+                     }}>
+                        <div style={{
+                           display: "flex",
+                           alignItems: "center",
+                           gap: "12px",
+                           marginBottom: "12px"
+                        }}>
+                           <LightBulbIcon style={{ width: 20, height: 20, color: "var(--accent)" }} />
+                           <h4 style={{
+                              fontSize: "16px",
+                              fontWeight: 600,
+                              margin: 0,
+                              color: "var(--text)"
+                           }}>
+                              How to Play
+                           </h4>
+                        </div>
+                        <ul style={{
+                           margin: 0,
+                           paddingLeft: "24px",
+                           color: "var(--muted)",
+                           fontSize: "14px",
+                           lineHeight: "1.8"
+                        }}>
+                           <li><strong style={{ color: "var(--accent)" }}>Goal:</strong> Fill the entire grid by placing all available pieces</li>
+                           <li><strong style={{ color: "var(--accent)" }}>Select a piece:</strong> Click on a piece from the right panel to select it</li>
+                           <li><strong style={{ color: "var(--accent)" }}>Rotate:</strong> Press <strong style={{ color: "var(--accent)" }}>R</strong> key or click "Rotate" button to rotate the selected piece</li>
+                           <li><strong style={{ color: "var(--accent)" }}>Place:</strong> Click on an empty cell on the grid to place the selected piece</li>
+                           <li><strong style={{ color: "var(--accent)" }}>Remove:</strong> Click on a filled cell to remove that piece and try again</li>
+                           <li><strong style={{ color: "var(--accent)" }}>Undo:</strong> Press <strong style={{ color: "var(--accent)" }}>U</strong> key or click "Undo" to remove the last placed piece</li>
+                           <li><strong style={{ color: "var(--accent)" }}>Ghost Preview:</strong> Hover over the grid to see where the piece will be placed (blue = valid, red = invalid)</li>
+                        </ul>
+                     </div>
+
+                     <div style={{
+                        display: "grid",
+                        gridTemplateColumns: "repeat(2, 1fr)",
+                        gap: "16px",
+                        marginBottom: "24px"
+                     }}>
+                        <div style={{
+                           background: "var(--card)",
+                           border: "1px solid var(--stroke)",
+                           borderRadius: "12px",
+                           padding: "16px"
+                        }}>
+                           <div style={{
+                              fontSize: "14px",
+                              fontWeight: 600,
+                              color: "var(--accent)",
+                              marginBottom: "8px"
+                           }}>
+                              💡 Tips
+                           </div>
+                           <ul style={{
+                              margin: 0,
+                              paddingLeft: "20px",
+                              color: "var(--muted)",
+                              fontSize: "13px",
+                              lineHeight: "1.6"
+                           }}>
+                              <li>Start with <strong>larger pieces</strong> first</li>
+                              <li>Build from <strong>corners and edges</strong></li>
+                              <li>Use rotation to fit pieces better</li>
+                              <li>If stuck, remove pieces and try different placements</li>
+                           </ul>
+                        </div>
+                        <div style={{
+                           background: "var(--card)",
+                           border: "1px solid var(--stroke)",
+                           borderRadius: "12px",
+                           padding: "16px"
+                        }}>
+                           <div style={{
+                              fontSize: "14px",
+                              fontWeight: 600,
+                              color: "var(--accent)",
+                              marginBottom: "8px"
+                           }}>
+                              ⌨️ Keyboard Shortcuts
+                           </div>
+                           <ul style={{
+                              margin: 0,
+                              paddingLeft: "20px",
+                              color: "var(--muted)",
+                              fontSize: "13px",
+                              lineHeight: "1.6"
+                           }}>
+                              <li><strong style={{ color: "var(--accent)" }}>R</strong> - Rotate selected piece</li>
+                              <li><strong style={{ color: "var(--accent)" }}>U</strong> - Undo last placement</li>
+                              <li><strong style={{ color: "var(--accent)" }}>ESC</strong> - Deselect piece</li>
+                           </ul>
+                        </div>
+                     </div>
+
+                     <div style={{
+                        background: "rgba(54, 211, 153, 0.1)",
+                        border: "1px solid rgba(54, 211, 153, 0.3)",
+                        borderRadius: "12px",
+                        padding: "16px",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "12px"
+                     }}>
+                        <CheckCircleIcon style={{ width: 20, height: 20, color: "var(--ok)" }} />
+                        <div style={{
+                           fontSize: "14px",
+                           color: "var(--text)"
+                        }}>
+                           <strong>Complete the puzzle:</strong> Fill all cells using every piece exactly once. Each round is a new puzzle!
+                        </div>
+                     </div>
+                  </div>
+               )}
+
+               {/* Interactive Example for Card Flip Memory */}
+               {gameType === "card-flip" && (
+                  <div style={{
+                     background: "linear-gradient(135deg, rgba(125, 211, 252, 0.1) 0%, rgba(54, 211, 153, 0.1) 100%)",
+                     border: "2px solid var(--stroke)",
+                     borderRadius: "20px",
+                     padding: "32px",
+                     marginTop: "24px",
+                     boxShadow: "0 8px 24px rgba(0, 0, 0, 0.2)"
+                  }}>
+                     <div style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: "12px",
+                        marginBottom: "24px"
+                     }}>
+                        <svg style={{ width: 28, height: 28, color: "var(--accent)" }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                        </svg>
+                        <h3 style={{
+                           fontSize: "24px",
+                           fontWeight: 700,
+                           margin: 0,
+                           background: "linear-gradient(135deg, var(--accent) 0%, var(--ok) 100%)",
+                           WebkitBackgroundClip: "text",
+                           WebkitTextFillColor: "transparent",
+                           backgroundClip: "text"
+                        }}>
+                           Card Flip Memory - Example
+                        </h3>
+                     </div>
+
+                     <div style={{
+                        background: "rgba(11, 22, 48, 0.4)",
+                        border: "1px solid var(--stroke)",
+                        borderRadius: "12px",
+                        padding: "20px",
+                        marginBottom: "24px"
+                     }}>
+                        <div style={{
+                           display: "flex",
+                           alignItems: "center",
+                           gap: "12px",
+                           marginBottom: "12px"
+                        }}>
+                           <LightBulbIcon style={{ width: 20, height: 20, color: "var(--accent)" }} />
+                           <h4 style={{
+                              fontSize: "16px",
+                              fontWeight: 600,
+                              margin: 0,
+                              color: "var(--text)"
+                           }}>
+                              How to Play
+                           </h4>
+                        </div>
+                        <ul style={{
+                           margin: 0,
+                           paddingLeft: "24px",
+                           color: "var(--muted)",
+                           fontSize: "14px",
+                           lineHeight: "1.8"
+                        }}>
+                           <li><strong style={{ color: "var(--accent)" }}>Goal:</strong> Match pairs of cards by remembering their positions</li>
+                           <li><strong style={{ color: "var(--accent)" }}>Click cards:</strong> Click on a card to flip it and reveal its content</li>
+                           <li><strong style={{ color: "var(--accent)" }}>Match pairs:</strong> Click on two cards with the same value to match them</li>
+                           <li><strong style={{ color: "var(--accent)" }}>Remember:</strong> Try to remember where each card is located</li>
+                           <li><strong style={{ color: "var(--accent)" }}>Rounds:</strong> Round 1 = 2x2 (numbers), Rounds 2-5 = larger grids (heroicons)</li>
+                           <li><strong style={{ color: "var(--accent)" }}>Hints:</strong> Use hint button to reveal a matching pair (10 hints max, unlimited if shared)</li>
+                        </ul>
+                     </div>
+
+                     <div style={{
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                        gap: "16px",
+                        marginBottom: "24px"
+                     }}>
+                        <div style={{
+                           fontSize: "14px",
+                           fontWeight: 600,
+                           color: "var(--accent)",
+                           marginBottom: "8px"
+                        }}>
+                           Example: 2x2 Grid (Round 1)
+                        </div>
+                        <div style={{
+                           display: "grid",
+                           gridTemplateColumns: "repeat(2, 1fr)",
+                           gap: "8px",
+                           width: "200px",
+                           padding: "16px",
+                           background: "var(--card)",
+                           border: "1px solid var(--stroke)",
+                           borderRadius: "12px"
+                        }}>
+                           {[
+                              { id: 0, value: 1, flipped: true },
+                              { id: 1, value: 2, flipped: false },
+                              { id: 2, value: 2, flipped: true },
+                              { id: 3, value: 1, flipped: false },
+                           ].map((card) => (
+                              <div
+                                 key={card.id}
+                                 style={{
+                                    width: "100%",
+                                    aspectRatio: "1",
+                                    borderRadius: "8px",
+                                    border: "2px solid var(--stroke)",
+                                    background: card.flipped
+                                       ? "rgba(125, 211, 252, 0.2)"
+                                       : "rgba(15, 27, 51, 0.6)",
+                                    color: "var(--text)",
+                                    fontSize: "1.5rem",
+                                    fontWeight: 700,
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    boxShadow: card.flipped
+                                       ? "0 0 10px rgba(125, 211, 252, 0.3)"
+                                       : "0 2px 4px rgba(0, 0, 0, 0.2)",
+                                 }}
+                              >
+                                 {card.flipped ? card.value : "?"}
+                              </div>
+                           ))}
+                        </div>
+                        <div style={{
+                           fontSize: "13px",
+                           color: "var(--muted)",
+                           textAlign: "center",
+                           fontStyle: "italic"
+                        }}>
+                           Cards 0 and 3 both show "1" - they match! ✅
+                        </div>
+                     </div>
+
+                     <div style={{
+                        display: "grid",
+                        gridTemplateColumns: "repeat(2, 1fr)",
+                        gap: "16px",
+                        marginBottom: "24px"
+                     }}>
+                        <div style={{
+                           background: "var(--card)",
+                           border: "1px solid var(--stroke)",
+                           borderRadius: "12px",
+                           padding: "16px"
+                        }}>
+                           <div style={{
+                              fontSize: "14px",
+                              fontWeight: 600,
+                              color: "var(--accent)",
+                              marginBottom: "8px"
+                           }}>
+                              💡 Tips
+                           </div>
+                           <ul style={{
+                              margin: 0,
+                              paddingLeft: "20px",
+                              color: "var(--muted)",
+                              fontSize: "13px",
+                              lineHeight: "1.6"
+                           }}>
+                              <li>Start with corners and edges</li>
+                              <li>Remember positions you've seen</li>
+                              <li>Work systematically</li>
+                              <li>Use hints when stuck</li>
+                           </ul>
+                        </div>
+                        <div style={{
+                           background: "var(--card)",
+                           border: "1px solid var(--stroke)",
+                           borderRadius: "12px",
+                           padding: "16px"
+                        }}>
+                           <div style={{
+                              fontSize: "14px",
+                              fontWeight: 600,
+                              color: "var(--accent)",
+                              marginBottom: "8px"
+                           }}>
+                              🎯 Scoring
+                           </div>
+                           <ul style={{
+                              margin: 0,
+                              paddingLeft: "20px",
+                              color: "var(--muted)",
+                              fontSize: "13px",
+                              lineHeight: "1.6"
+                           }}>
+                              <li>20 points per round</li>
+                              <li>5 rounds total</li>
+                              <li>Max score: 100</li>
+                              <li>Passing: 80 points</li>
+                           </ul>
+                        </div>
+                     </div>
+
+                     <div style={{
+                        background: "rgba(54, 211, 153, 0.1)",
+                        border: "1px solid rgba(54, 211, 153, 0.3)",
+                        borderRadius: "12px",
+                        padding: "16px",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "12px"
+                     }}>
+                        <CheckCircleIcon style={{ width: 20, height: 20, color: "var(--ok)" }} />
+                        <div style={{
+                           fontSize: "14px",
+                           color: "var(--text)"
+                        }}>
+                           <strong>Complete all rounds:</strong> Match all pairs in each round. Grid size increases each round, making it more challenging!
                         </div>
                      </div>
                   </div>

@@ -484,6 +484,7 @@
 	require_once(get_stylesheet_directory() . '/wt-cpt/testimonials.php');
 	require_once(get_stylesheet_directory() . '/wt-cpt/games.php');
 	require_once(get_stylesheet_directory() . '/wt-cpt/certificates.php');
+	require_once(get_stylesheet_directory() . '/wt-cpt/share-tracking.php');
 
     // load theme options
     require_once(get_stylesheet_directory() . '/theme-options.php');
