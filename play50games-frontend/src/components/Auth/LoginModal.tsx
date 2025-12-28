@@ -20,18 +20,58 @@ export default function LoginModal({
    const [password, setPassword] = useState("");
    const [error, setError] = useState("");
    const [loading, setLoading] = useState(false);
+   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+   
+   const validateEmailOrUsername = (value: string) => {
+      if (!value.trim()) {
+         return 'Email or username is required';
+      }
+      return '';
+   };
+   
+   const validatePassword = (value: string) => {
+      if (!value) {
+         return 'Password is required';
+      }
+      return '';
+   };
+   
+   const handleEmailChange = (value: string) => {
+      setEmail(value);
+      setFieldErrors(prev => ({ ...prev, email: validateEmailOrUsername(value) }));
+   };
+   
+   const handlePasswordChange = (value: string) => {
+      setPassword(value);
+      setFieldErrors(prev => ({ ...prev, password: validatePassword(value) }));
+   };
 
    if (!isOpen) return null;
 
    const handleSubmit = async (e: React.FormEvent) => {
       e.preventDefault();
       setError("");
+      
+      // Validate fields
+      const errors: Record<string, string> = {
+         email: validateEmailOrUsername(email),
+         password: validatePassword(password),
+      };
+      
+      setFieldErrors(errors);
+      
+      // Check if there are any errors
+      if (Object.values(errors).some(err => err !== '')) {
+         return;
+      }
+      
       setLoading(true);
 
       try {
          await onLogin(email, password);
          setEmail("");
          setPassword("");
+         setFieldErrors({});
          onClose();
       } catch (err: any) {
          setError(err.message || "Login failed. Please try again.");
@@ -73,10 +113,17 @@ export default function LoginModal({
                      id="login-email"
                      type="text"
                      value={email}
-                     onChange={(e) => setEmail(e.target.value)}
+                     onChange={(e) => handleEmailChange(e.target.value)}
+                     onBlur={() => setFieldErrors(prev => ({ ...prev, email: validateEmailOrUsername(email) }))}
                      required
                      placeholder="your@email.com or username"
+                     style={{ borderColor: fieldErrors.email ? 'var(--warn)' : undefined }}
                   />
+                  {fieldErrors.email && (
+                     <small style={{ color: 'var(--warn)', fontSize: '0.875rem', display: 'block', marginTop: '0.25rem' }}>
+                        {fieldErrors.email}
+                     </small>
+                  )}
                </div>
 
                <div className="form-group">
@@ -85,10 +132,17 @@ export default function LoginModal({
                      id="login-password"
                      type="password"
                      value={password}
-                     onChange={(e) => setPassword(e.target.value)}
+                     onChange={(e) => handlePasswordChange(e.target.value)}
+                     onBlur={() => setFieldErrors(prev => ({ ...prev, password: validatePassword(password) }))}
                      required
                      placeholder="••••••••"
+                     style={{ borderColor: fieldErrors.password ? 'var(--warn)' : undefined }}
                   />
+                  {fieldErrors.password && (
+                     <small style={{ color: 'var(--warn)', fontSize: '0.875rem', display: 'block', marginTop: '0.25rem' }}>
+                        {fieldErrors.password}
+                     </small>
+                  )}
                </div>
 
                <button type="submit" disabled={loading} className="btn-primary">

@@ -19,31 +19,121 @@ export default function RegisterModal({ isOpen, onClose, onRegister, onSwitchToL
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  
+  // Field-specific errors
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  
+  // Validation functions
+  const validateFirstName = (value: string) => {
+    if (!value.trim()) {
+      return 'First name is required';
+    }
+    return '';
+  };
+  
+  const validateLastName = (value: string) => {
+    if (!value.trim()) {
+      return 'Last name is required';
+    }
+    return '';
+  };
+  
+  const validateUsername = (value: string) => {
+    if (!value.trim()) {
+      return 'Username is required';
+    }
+    if (value.length < 3) {
+      return 'Username must be at least 3 characters';
+    }
+    return '';
+  };
+  
+  const validateEmail = (value: string) => {
+    if (!value.trim()) {
+      return 'Email is required';
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(value)) {
+      return 'Please enter a valid email address';
+    }
+    return '';
+  };
+  
+  const validatePassword = (value: string) => {
+    if (!value) {
+      return 'Password is required';
+    }
+    if (value.length < 6) {
+      return 'Password must be at least 6 characters';
+    }
+    return '';
+  };
+  
+  const validateConfirmPassword = (value: string, passwordValue: string) => {
+    if (!value) {
+      return 'Please confirm your password';
+    }
+    if (value !== passwordValue) {
+      return 'Passwords do not match';
+    }
+    return '';
+  };
+  
+  // Handle field changes with validation
+  const handleFirstNameChange = (value: string) => {
+    setFirstName(value);
+    setFieldErrors(prev => ({ ...prev, firstName: validateFirstName(value) }));
+  };
+  
+  const handleLastNameChange = (value: string) => {
+    setLastName(value);
+    setFieldErrors(prev => ({ ...prev, lastName: validateLastName(value) }));
+  };
+  
+  const handleUsernameChange = (value: string) => {
+    setUsername(value);
+    setFieldErrors(prev => ({ ...prev, username: validateUsername(value) }));
+  };
+  
+  const handleEmailChange = (value: string) => {
+    setEmail(value);
+    setFieldErrors(prev => ({ ...prev, email: validateEmail(value) }));
+  };
+  
+  const handlePasswordChange = (value: string) => {
+    setPassword(value);
+    setFieldErrors(prev => ({ 
+      ...prev, 
+      password: validatePassword(value),
+      confirmPassword: confirmPassword ? validateConfirmPassword(confirmPassword, value) : ''
+    }));
+  };
+  
+  const handleConfirmPasswordChange = (value: string) => {
+    setConfirmPassword(value);
+    setFieldErrors(prev => ({ ...prev, confirmPassword: validateConfirmPassword(value, password) }));
+  };
 
   if (!isOpen) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-
-    // Validation
-    if (!firstName.trim() || !lastName.trim() || !username.trim() || !email.trim() || !password) {
-      setError('All fields are required');
-      return;
-    }
-
-    if (username.length < 3) {
-      setError('Username must be at least 3 characters long');
-      return;
-    }
-
-    if (password !== confirmPassword) {
-      setError('Passwords do not match');
-      return;
-    }
-
-    if (password.length < 6) {
-      setError('Password must be at least 6 characters long');
+    
+    // Validate all fields
+    const errors: Record<string, string> = {
+      firstName: validateFirstName(firstName),
+      lastName: validateLastName(lastName),
+      username: validateUsername(username),
+      email: validateEmail(email),
+      password: validatePassword(password),
+      confirmPassword: validateConfirmPassword(confirmPassword, password),
+    };
+    
+    setFieldErrors(errors);
+    
+    // Check if there are any errors
+    if (Object.values(errors).some(err => err !== '')) {
       return;
     }
 
@@ -95,10 +185,17 @@ export default function RegisterModal({ isOpen, onClose, onRegister, onSwitchToL
               id="register-firstname"
               type="text"
               value={firstName}
-              onChange={(e) => setFirstName(e.target.value)}
+              onChange={(e) => handleFirstNameChange(e.target.value)}
+              onBlur={() => setFieldErrors(prev => ({ ...prev, firstName: validateFirstName(firstName) }))}
               required
               placeholder="John"
+              style={{ borderColor: fieldErrors.firstName ? 'var(--warn)' : undefined }}
             />
+            {fieldErrors.firstName && (
+              <small style={{ color: 'var(--warn)', fontSize: '0.875rem', display: 'block', marginTop: '0.25rem' }}>
+                {fieldErrors.firstName}
+              </small>
+            )}
           </div>
 
           <div className="form-group">
@@ -107,10 +204,17 @@ export default function RegisterModal({ isOpen, onClose, onRegister, onSwitchToL
               id="register-lastname"
               type="text"
               value={lastName}
-              onChange={(e) => setLastName(e.target.value)}
+              onChange={(e) => handleLastNameChange(e.target.value)}
+              onBlur={() => setFieldErrors(prev => ({ ...prev, lastName: validateLastName(lastName) }))}
               required
               placeholder="Doe"
+              style={{ borderColor: fieldErrors.lastName ? 'var(--warn)' : undefined }}
             />
+            {fieldErrors.lastName && (
+              <small style={{ color: 'var(--warn)', fontSize: '0.875rem', display: 'block', marginTop: '0.25rem' }}>
+                {fieldErrors.lastName}
+              </small>
+            )}
           </div>
 
           <div className="form-group">
@@ -119,14 +223,22 @@ export default function RegisterModal({ isOpen, onClose, onRegister, onSwitchToL
               id="register-username"
               type="text"
               value={username}
-              onChange={(e) => setUsername(e.target.value)}
+              onChange={(e) => handleUsernameChange(e.target.value)}
+              onBlur={() => setFieldErrors(prev => ({ ...prev, username: validateUsername(username) }))}
               required
               placeholder="johndoe"
               minLength={3}
+              style={{ borderColor: fieldErrors.username ? 'var(--warn)' : undefined }}
             />
-            <small style={{ color: 'var(--muted)', fontSize: '0.875rem' }}>
-              Must be at least 3 characters
-            </small>
+            {fieldErrors.username ? (
+              <small style={{ color: 'var(--warn)', fontSize: '0.875rem', display: 'block', marginTop: '0.25rem' }}>
+                {fieldErrors.username}
+              </small>
+            ) : (
+              <small style={{ color: 'var(--muted)', fontSize: '0.875rem' }}>
+                Must be at least 3 characters
+              </small>
+            )}
           </div>
 
           <div className="form-group">
@@ -135,10 +247,17 @@ export default function RegisterModal({ isOpen, onClose, onRegister, onSwitchToL
               id="register-email"
               type="email"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e) => handleEmailChange(e.target.value)}
+              onBlur={() => setFieldErrors(prev => ({ ...prev, email: validateEmail(email) }))}
               required
               placeholder="your@email.com"
+              style={{ borderColor: fieldErrors.email ? 'var(--warn)' : undefined }}
             />
+            {fieldErrors.email && (
+              <small style={{ color: 'var(--warn)', fontSize: '0.875rem', display: 'block', marginTop: '0.25rem' }}>
+                {fieldErrors.email}
+              </small>
+            )}
           </div>
 
           <div className="form-group">
@@ -147,14 +266,22 @@ export default function RegisterModal({ isOpen, onClose, onRegister, onSwitchToL
               id="register-password"
               type="password"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(e) => handlePasswordChange(e.target.value)}
+              onBlur={() => setFieldErrors(prev => ({ ...prev, password: validatePassword(password) }))}
               required
               placeholder="••••••••"
               minLength={6}
+              style={{ borderColor: fieldErrors.password ? 'var(--warn)' : undefined }}
             />
-            <small style={{ color: 'var(--muted)', fontSize: '0.875rem' }}>
-              Must be at least 6 characters
-            </small>
+            {fieldErrors.password ? (
+              <small style={{ color: 'var(--warn)', fontSize: '0.875rem', display: 'block', marginTop: '0.25rem' }}>
+                {fieldErrors.password}
+              </small>
+            ) : (
+              <small style={{ color: 'var(--muted)', fontSize: '0.875rem' }}>
+                Must be at least 6 characters
+              </small>
+            )}
           </div>
 
           <div className="form-group">
@@ -163,10 +290,17 @@ export default function RegisterModal({ isOpen, onClose, onRegister, onSwitchToL
               id="register-confirm-password"
               type="password"
               value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
+              onChange={(e) => handleConfirmPasswordChange(e.target.value)}
+              onBlur={() => setFieldErrors(prev => ({ ...prev, confirmPassword: validateConfirmPassword(confirmPassword, password) }))}
               required
               placeholder="••••••••"
+              style={{ borderColor: fieldErrors.confirmPassword ? 'var(--warn)' : undefined }}
             />
+            {fieldErrors.confirmPassword && (
+              <small style={{ color: 'var(--warn)', fontSize: '0.875rem', display: 'block', marginTop: '0.25rem' }}>
+                {fieldErrors.confirmPassword}
+              </small>
+            )}
           </div>
 
           <button type="submit" disabled={loading} className="btn-primary">

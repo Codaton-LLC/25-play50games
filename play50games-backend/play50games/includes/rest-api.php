@@ -1174,7 +1174,8 @@ function play50_register_user($request) {
     
     $first_name = isset($params['first_name']) ? sanitize_text_field($params['first_name']) : '';
     $last_name = isset($params['last_name']) ? sanitize_text_field($params['last_name']) : '';
-    $username = isset($params['username']) ? sanitize_user($params['username']) : '';
+    // Get username from params - don't sanitize yet, we'll do it after validation
+    $username = isset($params['username']) ? trim($params['username']) : '';
     $email = isset($params['email']) ? sanitize_email($params['email']) : '';
     $password = isset($params['password']) ? $params['password'] : '';
     
@@ -1195,8 +1196,17 @@ function play50_register_user($request) {
         return new WP_Error('weak_password', 'Password must be at least 6 characters long', array('status' => 400));
     }
     
-    // Check if username already exists
-    if (username_exists($username)) {
+    // Sanitize username for WordPress (converts to lowercase, removes invalid chars)
+    // This is necessary because WordPress requires sanitized usernames
+    $sanitized_username = sanitize_user($username, true);
+    
+    // Validate that sanitized username is still valid
+    if (strlen($sanitized_username) < 3) {
+        return new WP_Error('invalid_username', 'Username contains invalid characters or is too short after sanitization', array('status' => 400));
+    }
+    
+    // Check if sanitized username already exists (must check the sanitized version)
+    if (username_exists($sanitized_username)) {
         return new WP_Error('username_exists', 'This username is already taken. Please choose another one.', array('status' => 409));
     }
     
@@ -1205,11 +1215,9 @@ function play50_register_user($request) {
         return new WP_Error('email_exists', 'An account with this email already exists', array('status' => 409));
     }
     
-    // Sanitize username to ensure it's valid
-    $username = sanitize_user($username, true);
-    
-    // Create user
-    $user_id = wp_create_user($username, $password, $email);
+    // Create user with the sanitized username (WordPress requires sanitized usernames)
+    // The username provided by the user will be sanitized and used (NOT from email)
+    $user_id = wp_create_user($sanitized_username, $password, $email);
     
     if (is_wp_error($user_id)) {
         return new WP_Error('registration_failed', $user_id->get_error_message(), array('status' => 500));
