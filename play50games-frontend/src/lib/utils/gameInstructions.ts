@@ -212,16 +212,33 @@ export const gameInstructions: Record<string, {
     ],
   },
   'block-fill': {
-    description: 'Fill the grid with all blocks',
-    instructions: 'Select a block from the available blocks, then click on the grid to place it. Fill the entire grid without overlapping.',
-    tips: 'Start with larger blocks first. Plan where each block will fit before placing it.'
+    description: 'Fill the grid with all blocks using polyomino pieces',
+    instructions: 'Select a piece from the panel, rotate it if needed (R key), and place it on the grid by clicking an empty cell. Click a filled cell to remove that piece. Fill the entire grid using all pieces exactly once. Levels: 3x3, 4x4, 5x5, 6x6, 7x7.',
+    tips: 'Start with larger pieces first. Build from corners and edges. Use rotation to fit pieces better. If stuck, remove pieces and try different placements.',
+    mouseControls: [
+      { action: 'Click', label: 'Click on a piece from the right panel to select it' },
+      { action: 'Click', label: 'Click on an empty grid cell to place the selected piece' },
+      { action: 'Click', label: 'Click on a filled cell to remove that piece' },
+      { action: 'Hover', label: 'Hover over grid to see ghost preview (blue = valid, red = invalid)' },
+      { action: 'Click', label: 'Click "Rotate" button to rotate selected piece' },
+      { action: 'Click', label: 'Click "Undo" button to remove last placed piece' },
+    ],
+    keyboardControls: [
+      { keys: ['R'], label: 'Rotate the selected piece' },
+      { keys: ['U'], label: 'Undo last placement' },
+      { keys: ['ESC'], label: 'Deselect current piece' },
+    ],
   },
   
   // Memory Games
   'card-flip': {
-    description: 'Classic card matching pairs',
-    instructions: 'Click cards to flip them and reveal their symbols. Match pairs of identical symbols. Remember where each symbol is!',
-    tips: 'Try to remember the positions of cards you\'ve already seen. Focus on finding pairs systematically.'
+    description: 'Match pairs of cards by remembering their positions',
+    instructions: 'Click cards to flip them and reveal their numbers. Match pairs of identical numbers. Remember where each card is! Grid size increases each round: Round 1 = 3x3, Round 2 = 4x4, Round 3 = 6x6, Round 4 = 8x8, Round 5 = 10x10. You have 5 rounds. Each round gives 20 points (max 100 points).',
+    tips: 'Try to remember the positions of cards you\'ve already seen. Focus on finding pairs systematically. Start with the corners and edges, then work your way inward. The larger grids require better memory!',
+    mouseControls: [
+      { action: 'Click', label: 'Click on a card to flip it and reveal its number' },
+      { action: 'Click', label: 'Click on two cards to try to match them' },
+    ],
   },
   'sound-memory': {
     description: 'Repeat a sequence of sounds',

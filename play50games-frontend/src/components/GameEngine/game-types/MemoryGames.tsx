@@ -1,826 +1,2080 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { CheckCircleIcon } from '@heroicons/react/24/outline';
+import { useState, useEffect, useMemo, useRef } from "react";
+import {
+   CheckCircleIcon,
+   XCircleIcon,
+   LightBulbIcon,
+   ShareIcon,
+} from "@heroicons/react/24/outline";
+import {
+   registerShare,
+   trackShareClick,
+   getShareStatus,
+} from "@/lib/api/share";
+import {
+   HandThumbUpIcon,
+   PuzzlePieceIcon,
+   GlobeAmericasIcon,
+   FunnelIcon,
+   CakeIcon,
+   LockClosedIcon,
+   ChevronDoubleRightIcon,
+   ArrowUturnLeftIcon,
+   BuildingOffice2Icon,
+   HomeIcon,
+   StarIcon,
+   HeartIcon,
+   CameraIcon,
+   EyeIcon,
+   KeyIcon,
+   FingerPrintIcon,
+   BellIcon,
+   MoonIcon,
+   GiftIcon,
+   PlusIcon,
+   CubeIcon,
+   FireIcon,
+   BoltIcon,
+   SparklesIcon,
+   TrophyIcon,
+   ShieldCheckIcon,
+   FlagIcon,
+   BookmarkIcon,
+   TagIcon,
+   WrenchScrewdriverIcon,
+   ScissorsIcon,
+   PaintBrushIcon,
+   MusicalNoteIcon,
+   MicrophoneIcon,
+   VideoCameraIcon,
+   PhotoIcon,
+   FilmIcon,
+   DocumentIcon,
+   FolderIcon,
+   PaperClipIcon,
+   MagnifyingGlassIcon,
+   AdjustmentsHorizontalIcon,
+   Cog6ToothIcon,
+} from "@heroicons/react/24/outline";
 
 interface MemoryGamesProps {
-  config: Record<string, any>;
-  onScoreUpdate: (score: number) => void;
-  onComplete: (finalScore?: number) => void;
-  isPlaying: boolean;
+   config: Record<string, any>;
+   onScoreUpdate: (score: number) => void;
+   onComplete: (finalScore?: number) => void;
+   isPlaying: boolean;
 }
 
-export default function MemoryGames({ config, onScoreUpdate, onComplete, isPlaying }: MemoryGamesProps) {
-  const [currentGame, setCurrentGame] = useState<string>('');
+export default function MemoryGames({
+   config,
+   onScoreUpdate,
+   onComplete,
+   isPlaying,
+}: MemoryGamesProps) {
+   const [currentGame, setCurrentGame] = useState<string>("");
 
-  useEffect(() => {
-    if (!isPlaying) return;
-    
-    const gameType = config.gameType || 'card-flip';
-    setCurrentGame(gameType);
-  }, [isPlaying, config]);
+   useEffect(() => {
+      if (!isPlaying) return;
 
-  const gameComponents: Record<string, JSX.Element> = {
-    'card-flip': <CardFlipMemory config={config} onScoreUpdate={onScoreUpdate} onComplete={onComplete} />,
-    'sound-memory': <SoundMemory config={config} onScoreUpdate={onScoreUpdate} onComplete={onComplete} />,
-    'emoji-memory': <EmojiMemory config={config} onScoreUpdate={onScoreUpdate} onComplete={onComplete} />,
-    'number-recall': <NumberRecall config={config} onScoreUpdate={onScoreUpdate} onComplete={onComplete} />,
-    'image-recall': <ImageRecall config={config} onScoreUpdate={onScoreUpdate} onComplete={onComplete} />,
-    'path-memory': <PathMemory config={config} onScoreUpdate={onScoreUpdate} onComplete={onComplete} />,
-    'word-memory': <WordMemory config={config} onScoreUpdate={onScoreUpdate} onComplete={onComplete} />,
-    'face-memory': <FaceMemory config={config} onScoreUpdate={onScoreUpdate} onComplete={onComplete} />,
-    'color-grid-memory': <ColorGridMemory config={config} onScoreUpdate={onScoreUpdate} onComplete={onComplete} />,
-    'symbol-stack': <SymbolStack config={config} onScoreUpdate={onScoreUpdate} onComplete={onComplete} />,
-  };
+      const gameType = config.gameType || "card-flip";
+      setCurrentGame(gameType);
+   }, [isPlaying, config]);
 
-  return gameComponents[currentGame] || <div>Memory game "{currentGame}" not found.</div>;
+   const gameComponents: Record<string, JSX.Element> = {
+      "card-flip": (
+         <CardFlipMemory
+            config={config}
+            onScoreUpdate={onScoreUpdate}
+            onComplete={onComplete}
+         />
+      ),
+      "sound-memory": (
+         <SoundMemory
+            config={config}
+            onScoreUpdate={onScoreUpdate}
+            onComplete={onComplete}
+         />
+      ),
+      "emoji-memory": (
+         <EmojiMemory
+            config={config}
+            onScoreUpdate={onScoreUpdate}
+            onComplete={onComplete}
+         />
+      ),
+      "number-recall": (
+         <NumberRecall
+            config={config}
+            onScoreUpdate={onScoreUpdate}
+            onComplete={onComplete}
+         />
+      ),
+      "image-recall": (
+         <ImageRecall
+            config={config}
+            onScoreUpdate={onScoreUpdate}
+            onComplete={onComplete}
+         />
+      ),
+      "path-memory": (
+         <PathMemory
+            config={config}
+            onScoreUpdate={onScoreUpdate}
+            onComplete={onComplete}
+         />
+      ),
+      "word-memory": (
+         <WordMemory
+            config={config}
+            onScoreUpdate={onScoreUpdate}
+            onComplete={onComplete}
+         />
+      ),
+      "face-memory": (
+         <FaceMemory
+            config={config}
+            onScoreUpdate={onScoreUpdate}
+            onComplete={onComplete}
+         />
+      ),
+      "color-grid-memory": (
+         <ColorGridMemory
+            config={config}
+            onScoreUpdate={onScoreUpdate}
+            onComplete={onComplete}
+         />
+      ),
+      "symbol-stack": (
+         <SymbolStack
+            config={config}
+            onScoreUpdate={onScoreUpdate}
+            onComplete={onComplete}
+         />
+      ),
+   };
+
+   return (
+      gameComponents[currentGame] || (
+         <div>Memory game "{currentGame}" not found.</div>
+      )
+   );
 }
 
 // Card Flip Memory Game
-function CardFlipMemory({ config, onScoreUpdate, onComplete }: { config: Record<string, any>; onScoreUpdate: (score: number) => void; onComplete: (finalScore?: number) => void }) {
-  const gridSize = config.gridSize || 4;
-  const pairs = config.pairs || 8;
-  const [cards, setCards] = useState<Array<{ id: number; value: number; flipped: boolean; matched: boolean }>>([]);
-  const [flippedCards, setFlippedCards] = useState<number[]>([]);
-  const [matches, setMatches] = useState(0);
-  const [moves, setMoves] = useState(0);
+function CardFlipMemory({
+   config,
+   onScoreUpdate,
+   onComplete,
+}: {
+   config: Record<string, any>;
+   onScoreUpdate: (score: number) => void;
+   onComplete: (finalScore?: number) => void;
+}) {
+   const maxRounds = config.rounds || 5;
+   // Grid sizes: round 1=2x2, 2=4x4, 3=6x6, 4=7x6, 5=8x8
+   // Format: [width, height] or number (for square grids)
+   const gridSizes = config.gridSizes || [
+      [2, 2], // Round 1: 2x2
+      [4, 4], // Round 2: 4x4
+      [6, 6], // Round 3: 6x6
+      [7, 6], // Round 4: 7x6
+      [8, 8], // Round 5: 8x8
+   ];
 
-  useEffect(() => {
-    initializeCards();
-  }, []);
+   const [currentRound, setCurrentRound] = useState(1);
+   const [currentScore, setCurrentScore] = useState(0);
+   const [gridWidth, setGridWidth] = useState(2);
+   const [gridHeight, setGridHeight] = useState(2);
+   const [cards, setCards] = useState<
+      Array<{
+         id: number;
+         value: number | string;
+         flipped: boolean;
+         matched: boolean;
+         icon?: string;
+      }>
+   >([]);
+   const [flippedCards, setFlippedCards] = useState<number[]>([]);
+   const [matches, setMatches] = useState(0);
+   const [moves, setMoves] = useState(0);
+   const [feedback, setFeedback] = useState<"correct" | "wrong" | null>(null);
+   const [completionCalled, setCompletionCalled] = useState(false);
+   const [hintsUsed, setHintsUsed] = useState(0);
+   const [hasShared, setHasShared] = useState(false);
+   const [shareSuccess, setShareSuccess] = useState(false);
+   const [unlimitedActivated, setUnlimitedActivated] = useState(false);
+   const [showHint, setShowHint] = useState(false);
+   const [hintPair, setHintPair] = useState<[number, number] | null>(null);
 
-  useEffect(() => {
-    if (matches === pairs) {
-      const score = Math.max(0, 100 - (moves - pairs) * 5);
-      onScoreUpdate(score);
-      setTimeout(() => onComplete(score), 1000);
-    }
-  }, [matches, pairs, moves, onScoreUpdate, onComplete]);
+   // Heroicons for rounds 2-5
+   // Round 2: 4x4 = 8 pairs (8 icons), Round 3: 6x6 = 18 pairs (18 icons),
+   // Round 4: 7x6 = 21 pairs (21 icons), Round 5: 8x8 = 32 pairs (32 icons)
+   // Need at least 32 unique icons
+   const heroicons = useMemo(
+      () => [
+         "HandThumbUp",
+         "PuzzlePiece",
+         "GlobeAmericas",
+         "LightBulb",
+         "Funnel",
+         "Cake",
+         "LockClosed",
+         "ChevronDoubleRight",
+         "ArrowUturnLeft",
+         "BuildingOffice2",
+         "Home",
+         "Star",
+         "Heart",
+         "Camera",
+         "Eye",
+         "Key",
+         "Fingerprint",
+         "Bell",
+         "Moon",
+         "Gift",
+         "Plus",
+         "Cube",
+         "Fire",
+         "Bolt",
+         "Sparkles",
+         "Trophy",
+         "ShieldCheck",
+         "Flag",
+         "Bookmark",
+         "Tag",
+         "WrenchScrewdriver",
+         "Scissors",
+         "PaintBrush",
+         "MusicalNote",
+         "Microphone",
+         "VideoCamera",
+         "Photo",
+         "Film",
+         "Document",
+         "Folder",
+         "PaperClip",
+         "MagnifyingGlass",
+         "AdjustmentsHorizontal",
+         "Cog6Tooth",
+      ],
+      []
+   );
 
-  const initializeCards = () => {
-    const cardValues: number[] = [];
-    for (let i = 1; i <= pairs; i++) {
-      cardValues.push(i, i); // Each pair appears twice
-    }
-    
-    // Shuffle
-    for (let i = cardValues.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [cardValues[i], cardValues[j]] = [cardValues[j], cardValues[i]];
-    }
-    
-    const newCards = cardValues.map((value, index) => ({
-      id: index,
-      value,
-      flipped: false,
-      matched: false,
-    }));
-    
-    setCards(newCards);
-    setMatches(0);
-    setMoves(0);
-    setFlippedCards([]);
-  };
-
-  const handleCardClick = (cardId: number) => {
-    const card = cards[cardId];
-    if (card.flipped || card.matched || flippedCards.length >= 2) return;
-
-    const newCards = [...cards];
-    newCards[cardId].flipped = true;
-    setCards(newCards);
-    
-    const newFlipped = [...flippedCards, cardId];
-    setFlippedCards(newFlipped);
-
-    if (newFlipped.length === 2) {
-      setMoves(moves + 1);
-      const [firstId, secondId] = newFlipped;
-      const firstCard = newCards[firstId];
-      const secondCard = newCards[secondId];
-
-      if (firstCard.value === secondCard.value) {
-        // Match!
-        newCards[firstId].matched = true;
-        newCards[secondId].matched = true;
-        setCards(newCards);
-        setMatches(matches + 1);
-        setFlippedCards([]);
-      } else {
-        // No match, flip back
-        setTimeout(() => {
-          const resetCards = [...newCards];
-          resetCards[firstId].flipped = false;
-          resetCards[secondId].flipped = false;
-          setCards(resetCards);
-          setFlippedCards([]);
-        }, 1000);
+   // Get grid size for current round
+   const getGridSizeForRound = (round: number): [number, number] => {
+      const index = Math.min(round - 1, gridSizes.length - 1);
+      const size = gridSizes[index];
+      if (Array.isArray(size)) {
+         return [size[0], size[1]];
       }
-    }
-  };
+      return [size, size]; // Square grid
+   };
 
-  const totalCards = gridSize * gridSize;
-  const cardSize = `${100 / gridSize}%`;
+   // Get icon component by name
+   const getIconComponent = (iconName: string, size: number = 40) => {
+      const iconMap: Record<string, React.ComponentType<any>> = {
+         HandThumbUp: HandThumbUpIcon,
+         PuzzlePiece: PuzzlePieceIcon,
+         GlobeAmericas: GlobeAmericasIcon,
+         LightBulb: LightBulbIcon,
+         Funnel: FunnelIcon,
+         Cake: CakeIcon,
+         LockClosed: LockClosedIcon,
+         ChevronDoubleRight: ChevronDoubleRightIcon,
+         ArrowUturnLeft: ArrowUturnLeftIcon,
+         BuildingOffice2: BuildingOffice2Icon,
+         Home: HomeIcon,
+         Star: StarIcon,
+         Heart: HeartIcon,
+         Camera: CameraIcon,
+         Eye: EyeIcon,
+         Key: KeyIcon,
+         Fingerprint: FingerPrintIcon,
+         Bell: BellIcon,
+         Moon: MoonIcon,
+         Gift: GiftIcon,
+         Plus: PlusIcon,
+         Cube: CubeIcon,
+         Fire: FireIcon,
+         Bolt: BoltIcon,
+         Sparkles: SparklesIcon,
+         Trophy: TrophyIcon,
+         ShieldCheck: ShieldCheckIcon,
+         Flag: FlagIcon,
+         Bookmark: BookmarkIcon,
+         Tag: TagIcon,
+         WrenchScrewdriver: WrenchScrewdriverIcon,
+         Scissors: ScissorsIcon,
+         PaintBrush: PaintBrushIcon,
+         MusicalNote: MusicalNoteIcon,
+         Microphone: MicrophoneIcon,
+         VideoCamera: VideoCameraIcon,
+         Photo: PhotoIcon,
+         Film: FilmIcon,
+         Document: DocumentIcon,
+         Folder: FolderIcon,
+         PaperClip: PaperClipIcon,
+         MagnifyingGlass: MagnifyingGlassIcon,
+         AdjustmentsHorizontal: AdjustmentsHorizontalIcon,
+         Cog6Tooth: Cog6ToothIcon,
+      };
+      const IconComponent = iconMap[iconName];
+      if (!IconComponent) return null;
+      return (
+         <IconComponent
+            style={{ width: size, height: size, color: "var(--accent)" }}
+         />
+      );
+   };
 
-  return (
-    <div className="card-flip-memory-game">
-      <h3>Card Flip Memory</h3>
-      <div className="game-stats">
-        <span>Matches: {matches}/{pairs}</span>
-        <span>Moves: {moves}</span>
+   const [currentShareId, setCurrentShareId] = useState<string | null>(null);
+   const shareCheckIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+   // Check if user has shared or came from shared link (individual per game, 15 min expiry)
+   useEffect(() => {
+      const gameKey = "play50games_shared_card-flip";
+      const EXPIRY_TIME = 15 * 60 * 1000; // 15 minutes in milliseconds
+
+      // Check if came from shared link (has tracking parameter)
+      // Note: Tracking is done in GameEngine.tsx immediately on page load
+      const urlParams = new URLSearchParams(window.location.search);
+      const sharedBy = urlParams.get("shared");
+      console.log("[Card Flip] Checking for shared parameter:", sharedBy);
+      if (sharedBy) {
+         // Grant unlimited hints to the person who opened the link (with expiry)
+         const expiryTime = Date.now() + EXPIRY_TIME;
+         localStorage.setItem(
+            gameKey,
+            JSON.stringify({ shared: true, expiry: expiryTime })
+         );
+         setHasShared(true);
+
+         // Remove tracking parameter from URL (clean URL)
+         const newUrl =
+            window.location.pathname +
+            window.location.search
+               .replace(/[?&]shared=[^&]*/, "")
+               .replace(/^\?/, "");
+         window.history.replaceState(
+            {},
+            "",
+            newUrl || window.location.pathname
+         );
+      } else {
+         // Check if user has shared before (with expiry check)
+         const sharedData = localStorage.getItem(gameKey);
+         if (sharedData) {
+            try {
+               const parsed = JSON.parse(sharedData);
+               if (parsed.expiry && Date.now() < parsed.expiry) {
+                  // Still valid
+                  setHasShared(true);
+                  // Check if we have a share_id to monitor
+                  if (parsed.share_id) {
+                     setCurrentShareId(parsed.share_id);
+                  }
+               } else {
+                  // Expired - remove it
+                  localStorage.removeItem(gameKey);
+                  setHasShared(false);
+                  setCurrentShareId(null);
+               }
+            } catch (e) {
+               // Invalid data - remove it
+               localStorage.removeItem(gameKey);
+               setHasShared(false);
+               setCurrentShareId(null);
+            }
+         }
+      }
+
+      // Cleanup interval on unmount
+      return () => {
+         if (shareCheckIntervalRef.current) {
+            clearInterval(shareCheckIntervalRef.current);
+         }
+      };
+   }, []);
+
+   // Periodically check if share has clicks (every 5 seconds)
+   useEffect(() => {
+      if (!currentShareId) return;
+
+      const checkShareStatus = async () => {
+         try {
+            const status = await getShareStatus(currentShareId);
+            if (status.has_clicks && !hasShared) {
+               // Share has clicks - activate unlimited hints with expiry
+               const gameKey = "play50games_shared_card-flip";
+               const EXPIRY_TIME = 15 * 60 * 1000; // 15 minutes
+               const expiryTime = Date.now() + EXPIRY_TIME;
+               localStorage.setItem(
+                  gameKey,
+                  JSON.stringify({
+                     shared: true,
+                     expiry: expiryTime,
+                     share_id: currentShareId,
+                  })
+               );
+               setHasShared(true);
+
+               // Show success message that unlimited hints are now active
+               setUnlimitedActivated(true);
+               setTimeout(() => {
+                  setUnlimitedActivated(false);
+               }, 10000); // Show for 10 seconds
+
+               // Stop checking once activated
+               if (shareCheckIntervalRef.current) {
+                  clearInterval(shareCheckIntervalRef.current);
+                  shareCheckIntervalRef.current = null;
+               }
+            }
+         } catch (error) {
+            console.error("Error checking share status:", error);
+         }
+      };
+
+      // Check immediately, then every 10 seconds (heartbeat)
+      checkShareStatus();
+      shareCheckIntervalRef.current = setInterval(checkShareStatus, 10000); // 10 seconds heartbeat
+
+      return () => {
+         if (shareCheckIntervalRef.current) {
+            clearInterval(shareCheckIntervalRef.current);
+         }
+      };
+   }, [currentShareId, hasShared]);
+
+   // Periodically check if expiry has passed and reset hints to normal
+   useEffect(() => {
+      const gameKey = "play50games_shared_card-flip";
+      const checkExpiry = () => {
+         const sharedData = localStorage.getItem(gameKey);
+         if (sharedData) {
+            try {
+               const parsed = JSON.parse(sharedData);
+               if (parsed.expiry && Date.now() >= parsed.expiry) {
+                  // Expired - remove it and reset hints to normal
+                  localStorage.removeItem(gameKey);
+                  setHasShared(false);
+                  setCurrentShareId(null);
+               }
+            } catch (e) {
+               // Invalid data - remove it
+               localStorage.removeItem(gameKey);
+               setHasShared(false);
+               setCurrentShareId(null);
+            }
+         }
+      };
+
+      // Check immediately and then every minute
+      checkExpiry();
+      const expiryCheckInterval = setInterval(checkExpiry, 60 * 1000); // Check every minute
+
+      return () => {
+         clearInterval(expiryCheckInterval);
+      };
+   }, [hasShared]);
+
+   // Initialize cards for current round
+   useEffect(() => {
+      const [width, height] = getGridSizeForRound(currentRound);
+      setGridWidth(width);
+      setGridHeight(height);
+      const totalCells = width * height;
+      const pairs = totalCells / 2;
+      initializeCards(width, height, pairs, currentRound);
+      setCompletionCalled(false);
+      setHintsUsed(0);
+      setShowHint(false);
+      setHintPair(null);
+   }, [currentRound, heroicons]);
+
+   const initializeCards = (
+      width: number,
+      height: number,
+      pairs: number,
+      round: number
+   ) => {
+      let cardValues: Array<number | string> = [];
+
+      if (round === 1) {
+         // Round 1: Use numbers
+         for (let i = 1; i <= pairs; i++) {
+            cardValues.push(i, i); // Each pair appears twice
+         }
+      } else {
+         // Rounds 2-5: Use heroicons
+         // Select random heroicons for this round
+         const shuffledIcons = [...heroicons].sort(() => Math.random() - 0.5);
+         const selectedIcons = shuffledIcons.slice(0, pairs);
+
+         // Each icon appears twice
+         for (const icon of selectedIcons) {
+            cardValues.push(icon, icon);
+         }
+      }
+
+      // Shuffle
+      for (let i = cardValues.length - 1; i > 0; i--) {
+         const j = Math.floor(Math.random() * (i + 1));
+         [cardValues[i], cardValues[j]] = [cardValues[j], cardValues[i]];
+      }
+
+      const newCards = cardValues.map((value, index) => ({
+         id: index,
+         value,
+         flipped: false,
+         matched: false,
+         icon: typeof value === "string" ? value : undefined,
+      }));
+
+      setCards(newCards);
+      setMatches(0);
+      setMoves(0);
+      setFlippedCards([]);
+      setFeedback(null);
+   };
+
+   // Check if round is complete
+   useEffect(() => {
+      const totalCells = gridWidth * gridHeight;
+      const pairs = totalCells / 2;
+      if (matches === pairs && pairs > 0 && !completionCalled) {
+         setCompletionCalled(true);
+
+         // Calculate round score: 20 points per round (5 rounds = 100 max)
+         const roundScore = 20;
+         const newScore = currentScore + roundScore;
+         setCurrentScore(newScore);
+         setFeedback("correct");
+
+         onScoreUpdate(newScore);
+
+         setTimeout(() => {
+            setFeedback(null);
+            if (currentRound >= maxRounds) {
+               // Game complete
+               onComplete(newScore);
+            } else {
+               // Next round
+               setCurrentRound(currentRound + 1);
+            }
+         }, 1500);
+      }
+   }, [
+      matches,
+      gridWidth,
+      gridHeight,
+      currentRound,
+      maxRounds,
+      currentScore,
+      completionCalled,
+      onScoreUpdate,
+      onComplete,
+   ]);
+
+   const handleCardClick = (cardId: number) => {
+      const card = cards[cardId];
+      if (
+         card.flipped ||
+         card.matched ||
+         flippedCards.length >= 2 ||
+         completionCalled
+      )
+         return;
+
+      const newCards = [...cards];
+      newCards[cardId].flipped = true;
+      setCards(newCards);
+
+      const newFlipped = [...flippedCards, cardId];
+      setFlippedCards(newFlipped);
+
+      if (newFlipped.length === 2) {
+         setMoves(moves + 1);
+         const [firstId, secondId] = newFlipped;
+         const firstCard = newCards[firstId];
+         const secondCard = newCards[secondId];
+
+         if (firstCard.value === secondCard.value) {
+            // Match!
+            newCards[firstId].matched = true;
+            newCards[secondId].matched = true;
+            setCards(newCards);
+            setMatches(matches + 1);
+            setFlippedCards([]);
+         } else {
+            // No match, flip back (no error message, just close cards)
+            setTimeout(() => {
+               const resetCards = [...newCards];
+               resetCards[firstId].flipped = false;
+               resetCards[secondId].flipped = false;
+               setCards(resetCards);
+               setFlippedCards([]);
+            }, 1000);
+         }
+      }
+   };
+
+   const totalCards = gridWidth * gridHeight;
+   const pairs = totalCards / 2;
+   const progress = (currentRound / maxRounds) * 100;
+
+   // Max hints: 10 for Card Flip Memory, unlimited if shared
+   const maxHints = hasShared ? 0 : 10; // 0 = unlimited
+
+   // Generate shareable link with tracking
+   const getShareableLink = (): string => {
+      const currentUrl = window.location.href.split("?")[0]; // Remove existing params
+      const shareId =
+         Date.now().toString(36) + Math.random().toString(36).substr(2, 5); // Unique share ID
+      return `${currentUrl}?shared=${shareId}`;
+   };
+
+   // Register share link in backend (but don't activate hints yet)
+   const registerShareLink = async (shareId: string) => {
+      try {
+         await registerShare(shareId, "card-flip");
+         // Store share_id to monitor for clicks (but DON'T activate hints yet)
+         const gameKey = "play50games_shared_card-flip";
+         // Only store share_id, don't set hasShared to true yet
+         localStorage.setItem(gameKey, JSON.stringify({ share_id: shareId }));
+         setCurrentShareId(shareId);
+         // Note: hasShared remains false until someone clicks the link
+      } catch (error) {
+         console.error("Failed to register share:", error);
+      }
+   };
+
+   // Handle share via Web Share API or fallback
+   const handleShare = async () => {
+      const shareableLink = getShareableLink();
+      const shareId = new URL(shareableLink).searchParams.get("shared") || "";
+
+      if (!shareId) return;
+
+      // Register share link in backend (but don't activate hints yet)
+      await registerShareLink(shareId);
+
+      // Try Web Share API first (mobile/desktop)
+      if (navigator.share) {
+         try {
+            await navigator.share({
+               title: "Card Flip Memory Game",
+               text: "Check out this awesome Card Flip Memory game!",
+               url: shareableLink,
+            });
+            // Success - show message (hints will activate when someone clicks the link)
+            setShareSuccess(true);
+            setTimeout(() => setShareSuccess(false), 15000); // 15 seconds
+         } catch (error: any) {
+            // User cancelled or error - try copy to clipboard
+            if (error.name !== "AbortError") {
+               handleCopyLink(shareId);
+            }
+         }
+      } else {
+         // Fallback: copy to clipboard
+         handleCopyLink(shareId);
+      }
+   };
+
+   // Handle copy link to clipboard
+   const handleCopyLink = async (shareId: string) => {
+      const shareableLink = getShareableLink();
+
+      try {
+         await navigator.clipboard.writeText(shareableLink);
+         // Success - show message (hints will activate when someone clicks the link)
+         setShareSuccess(true);
+         setTimeout(() => setShareSuccess(false), 15000); // 15 seconds
+      } catch (error) {
+         // Fallback for older browsers
+         const textArea = document.createElement("textarea");
+         textArea.value = shareableLink;
+         textArea.style.position = "fixed";
+         textArea.style.opacity = "0";
+         document.body.appendChild(textArea);
+         textArea.select();
+         try {
+            document.execCommand("copy");
+            // Success - show message (hints will activate when someone clicks the link)
+            setShareSuccess(true);
+            setTimeout(() => setShareSuccess(false), 15000); // 15 seconds
+         } catch (err) {
+            console.error("Failed to copy link:", err);
+         }
+         document.body.removeChild(textArea);
+      }
+   };
+
+   // Handle hint button click
+   const handleHint = () => {
+      if (maxHints > 0 && hintsUsed >= maxHints) return; // No hints left
+
+      // Find an unmatched pair
+      const unmatchedPairs: Array<[number, number]> = [];
+      const valueMap = new Map<number | string, number[]>();
+
+      cards.forEach((card, index) => {
+         if (!card.matched) {
+            if (!valueMap.has(card.value)) {
+               valueMap.set(card.value, []);
+            }
+            valueMap.get(card.value)!.push(index);
+         }
+      });
+
+      // Find pairs
+      valueMap.forEach((indices) => {
+         if (indices.length >= 2) {
+            unmatchedPairs.push([indices[0], indices[1]]);
+         }
+      });
+
+      if (unmatchedPairs.length > 0) {
+         const randomPair =
+            unmatchedPairs[Math.floor(Math.random() * unmatchedPairs.length)];
+         setHintPair(randomPair);
+         setShowHint(true);
+         setHintsUsed(hintsUsed + 1);
+
+         // Hide hint after 2 seconds
+         setTimeout(() => {
+            setShowHint(false);
+            setHintPair(null);
+         }, 2000);
+      }
+   };
+
+   return (
+      <div
+         style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: "32px",
+            padding: "24px",
+            maxWidth: "1200px",
+            margin: "0 auto",
+         }}
+      >
+         {/* Header */}
+         <div
+            style={{
+               width: "100%",
+               background: "var(--card)",
+               border: "1px solid var(--stroke)",
+               borderRadius: "16px",
+               padding: "20px",
+               boxShadow: "0 8px 24px rgba(0, 0, 0, 0.2)",
+            }}
+         >
+            {/* Share Section */}
+            <div
+               style={{
+                  display: "flex",
+                  justifyContent: "flex-end",
+                  gap: "12px",
+                  marginBottom: "16px",
+                  alignItems: "center",
+               }}
+            >
+               {shareSuccess && (
+                  <div
+                     style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "8px",
+                        padding: "8px 16px",
+                        background:
+                           "linear-gradient(135deg, rgba(34, 197, 94, 0.2), rgba(34, 197, 94, 0.1))",
+                        border: "2px solid rgba(34, 197, 94, 0.6)",
+                        borderRadius: "8px",
+                        color: "var(--text)",
+                        fontSize: "0.9rem",
+                        fontWeight: 500,
+                        animation: "slideIn 0.3s ease",
+                     }}
+                  >
+                     <CheckCircleIcon
+                        style={{
+                           width: 18,
+                           height: 18,
+                           color: "rgba(34, 197, 94, 0.9)",
+                        }}
+                     />
+                     <span>
+                        Link copied! Unlimited hints will unlock when someone
+                        opens your link!
+                     </span>
+                  </div>
+               )}
+               {unlimitedActivated && (
+                  <div
+                     style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "8px",
+                        padding: "8px 16px",
+                        background:
+                           "linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1))",
+                        border: "2px solid rgba(59, 130, 246, 0.6)",
+                        borderRadius: "8px",
+                        color: "var(--text)",
+                        fontSize: "0.9rem",
+                        fontWeight: 500,
+                        animation: "slideIn 0.3s ease",
+                     }}
+                  >
+                     <CheckCircleIcon
+                        style={{
+                           width: 18,
+                           height: 18,
+                           color: "rgba(59, 130, 246, 0.9)",
+                        }}
+                     />
+                     <span>
+                        🎉 Someone opened your link! Unlimited hints are now
+                        active for 15 minutes!
+                     </span>
+                  </div>
+               )}
+               <button
+                  onClick={handleShare}
+                  style={{
+                     display: "flex",
+                     alignItems: "center",
+                     gap: "8px",
+                     padding: "10px 20px",
+                     background:
+                        "linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1))",
+                     border: "2px solid rgba(59, 130, 246, 0.6)",
+                     borderRadius: "12px",
+                     color: "var(--text)",
+                     fontSize: "0.95rem",
+                     fontWeight: 600,
+                     cursor: "pointer",
+                     transition: "all 0.3s ease",
+                  }}
+                  onMouseEnter={(e) => {
+                     e.currentTarget.style.background =
+                        "linear-gradient(135deg, rgba(59, 130, 246, 0.3), rgba(59, 130, 246, 0.2))";
+                     e.currentTarget.style.borderColor =
+                        "rgba(59, 130, 246, 0.8)";
+                     e.currentTarget.style.transform = "translateY(-2px)";
+                     e.currentTarget.style.boxShadow =
+                        "0 4px 12px rgba(59, 130, 246, 0.3)";
+                  }}
+                  onMouseLeave={(e) => {
+                     e.currentTarget.style.background =
+                        "linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1))";
+                     e.currentTarget.style.borderColor =
+                        "rgba(59, 130, 246, 0.6)";
+                     e.currentTarget.style.transform = "translateY(0)";
+                     e.currentTarget.style.boxShadow = "none";
+                  }}
+               >
+                  <ShareIcon
+                     style={{
+                        width: 20,
+                        height: 20,
+                        color: "rgba(59, 130, 246, 0.9)",
+                     }}
+                  />
+                  <span>Share for Unlimited Hints</span>
+               </button>
+            </div>
+            <div
+               style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  fontSize: "0.875rem",
+                  color: "var(--muted)",
+                  fontWeight: 500,
+                  marginBottom: "12px",
+                  flexWrap: "wrap",
+                  gap: "12px",
+               }}
+            >
+               <span
+                  style={{ display: "flex", alignItems: "center", gap: "6px" }}
+               >
+                  <svg
+                     style={{ width: 16, height: 16, color: "var(--accent)" }}
+                     fill="none"
+                     viewBox="0 0 24 24"
+                     stroke="currentColor"
+                  >
+                     <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                     />
+                  </svg>
+                  Round {currentRound} / {maxRounds}
+               </span>
+               <span
+                  style={{ display: "flex", alignItems: "center", gap: "6px" }}
+               >
+                  <svg
+                     style={{ width: 16, height: 16, color: "var(--ok)" }}
+                     fill="none"
+                     viewBox="0 0 24 24"
+                     stroke="currentColor"
+                  >
+                     <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"
+                     />
+                  </svg>
+                  Score: {currentScore} / {maxRounds * 20}
+               </span>
+               <span
+                  style={{ display: "flex", alignItems: "center", gap: "6px" }}
+               >
+                  <svg
+                     style={{ width: 16, height: 16, color: "var(--accent)" }}
+                     fill="none"
+                     viewBox="0 0 24 24"
+                     stroke="currentColor"
+                  >
+                     <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M4 6h16M4 12h16M4 18h16"
+                     />
+                  </svg>
+                  Grid: {gridWidth}x{gridHeight} | Matches: {matches}/{pairs} |
+                  Moves: {moves}
+               </span>
+               <span
+                  style={{ display: "flex", alignItems: "center", gap: "6px" }}
+               >
+                  <LightBulbIcon
+                     style={{ width: 16, height: 16, color: "var(--accent)" }}
+                  />
+                  Hints:{" "}
+                  {maxHints === 0 ? "∞" : `${maxHints - hintsUsed}/${maxHints}`}
+               </span>
+            </div>
+            {/* Progress Bar */}
+            <div
+               style={{
+                  width: "100%",
+                  height: "8px",
+                  background: "rgba(255, 255, 255, 0.1)",
+                  borderRadius: "4px",
+                  overflow: "hidden",
+               }}
+            >
+               <div
+                  style={{
+                     width: `${progress}%`,
+                     height: "100%",
+                     background:
+                        "linear-gradient(90deg, var(--accent) 0%, var(--ok) 100%)",
+                     borderRadius: "4px",
+                     transition: "width 0.3s ease",
+                     boxShadow: "0 0 10px rgba(125, 211, 252, 0.5)",
+                  }}
+               />
+            </div>
+         </div>
+
+         {/* Game Board */}
+         <div
+            style={{
+               width: "100%",
+               display: "flex",
+               flexDirection: "column",
+               alignItems: "center",
+               gap: "24px",
+            }}
+         >
+            {/* Hint Button */}
+            <button
+               onClick={handleHint}
+               disabled={maxHints > 0 && hintsUsed >= maxHints}
+               style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  padding: "12px 24px",
+                  background:
+                     maxHints > 0 && hintsUsed >= maxHints
+                        ? "rgba(255, 255, 255, 0.05)"
+                        : "linear-gradient(135deg, rgba(251, 191, 36, 0.2), rgba(251, 191, 36, 0.1))",
+                  border: `2px solid ${
+                     maxHints > 0 && hintsUsed >= maxHints
+                        ? "rgba(255, 255, 255, 0.1)"
+                        : "rgba(251, 191, 36, 0.6)"
+                  }`,
+                  borderRadius: "12px",
+                  color: "var(--text)",
+                  fontSize: "0.95rem",
+                  fontWeight: 600,
+                  cursor:
+                     maxHints > 0 && hintsUsed >= maxHints
+                        ? "not-allowed"
+                        : "pointer",
+                  transition: "all 0.3s ease",
+                  opacity: maxHints > 0 && hintsUsed >= maxHints ? 0.5 : 1,
+               }}
+               onMouseEnter={(e) => {
+                  if (!(maxHints > 0 && hintsUsed >= maxHints)) {
+                     e.currentTarget.style.background =
+                        "linear-gradient(135deg, rgba(251, 191, 36, 0.3), rgba(251, 191, 36, 0.2))";
+                     e.currentTarget.style.borderColor =
+                        "rgba(251, 191, 36, 0.8)";
+                     e.currentTarget.style.transform = "translateY(-2px)";
+                     e.currentTarget.style.boxShadow =
+                        "0 4px 12px rgba(251, 191, 36, 0.3)";
+                  }
+               }}
+               onMouseLeave={(e) => {
+                  if (!(maxHints > 0 && hintsUsed >= maxHints)) {
+                     e.currentTarget.style.background =
+                        "linear-gradient(135deg, rgba(251, 191, 36, 0.2), rgba(251, 191, 36, 0.1))";
+                     e.currentTarget.style.borderColor =
+                        "rgba(251, 191, 36, 0.6)";
+                     e.currentTarget.style.transform = "translateY(0)";
+                     e.currentTarget.style.boxShadow = "none";
+                  }
+               }}
+            >
+               <LightBulbIcon
+                  style={{
+                     width: 20,
+                     height: 20,
+                     color: "rgba(251, 191, 36, 0.9)",
+                  }}
+               />
+               <span>
+                  Hint{" "}
+                  {maxHints === 0
+                     ? "(Unlimited)"
+                     : `(${maxHints - hintsUsed} left)`}
+               </span>
+            </button>
+
+            <div
+               style={{
+                  display: "grid",
+                  gridTemplateColumns: `repeat(${gridWidth}, 1fr)`,
+                  gap: "5px",
+                  width: "100%",
+                  padding: "20px",
+                  background: "var(--card)",
+                  border: "1px solid var(--stroke)",
+                  borderRadius: "20px",
+                  boxShadow: "0 8px 24px rgba(0, 0, 0, 0.2)",
+               }}
+            >
+               {cards.slice(0, totalCards).map((card) => {
+                  const maxSize = Math.max(gridWidth, gridHeight);
+                  const isNumber = typeof card.value === "number";
+                  return (
+                     <button
+                        key={card.id}
+                        onClick={() => handleCardClick(card.id)}
+                        disabled={
+                           card.flipped ||
+                           card.matched ||
+                           flippedCards.length >= 2 ||
+                           completionCalled
+                        }
+                        style={{
+                           width: "100%",
+                           aspectRatio: "1",
+                           borderRadius: "12px",
+                           border:
+                              showHint &&
+                              hintPair &&
+                              (card.id === hintPair[0] ||
+                                 card.id === hintPair[1])
+                                 ? "3px solid rgba(251, 191, 36, 0.8)"
+                                 : "2px solid var(--stroke)",
+                           background: card.matched
+                              ? "rgba(134, 239, 172, 0.3)"
+                              : showHint &&
+                                hintPair &&
+                                (card.id === hintPair[0] ||
+                                   card.id === hintPair[1])
+                              ? "rgba(251, 191, 36, 0.2)"
+                              : card.flipped
+                              ? "rgba(125, 211, 252, 0.2)"
+                              : "rgba(15, 27, 51, 0.6)",
+                           color: "var(--text)",
+                           fontSize: isNumber
+                              ? maxSize <= 4
+                                 ? "2rem"
+                                 : maxSize <= 6
+                                 ? "1.5rem"
+                                 : "1.25rem"
+                              : undefined,
+                           fontWeight: 700,
+                           cursor:
+                              card.flipped ||
+                              card.matched ||
+                              flippedCards.length >= 2 ||
+                              completionCalled
+                                 ? "not-allowed"
+                                 : "pointer",
+                           transition: "all 0.3s ease",
+                           transform:
+                              card.flipped || card.matched
+                                 ? "scale(1)"
+                                 : "scale(1)",
+                           boxShadow:
+                              showHint &&
+                              hintPair &&
+                              (card.id === hintPair[0] ||
+                                 card.id === hintPair[1])
+                                 ? "0 0 20px rgba(251, 191, 36, 0.6)"
+                                 : card.matched
+                                 ? "0 0 20px rgba(134, 239, 172, 0.5)"
+                                 : card.flipped
+                                 ? "0 0 15px rgba(125, 211, 252, 0.3)"
+                                 : "0 4px 8px rgba(0, 0, 0, 0.2)",
+                           position: "relative",
+                           overflow: "hidden",
+                           display: "flex",
+                           alignItems: "center",
+                           justifyContent: "center",
+                        }}
+                     >
+                        {card.flipped || card.matched ? (
+                           isNumber ? (
+                              <span>{card.value}</span>
+                           ) : (
+                              getIconComponent(
+                                 card.value as string,
+                                 maxSize <= 4 ? 50 : maxSize <= 6 ? 40 : 35
+                              )
+                           )
+                        ) : (
+                           <span
+                              style={{
+                                 opacity: 0.6,
+                                 fontSize:
+                                    maxSize <= 4
+                                       ? "2rem"
+                                       : maxSize <= 6
+                                       ? "1.5rem"
+                                       : "1.25rem",
+                              }}
+                           >
+                              ?
+                           </span>
+                        )}
+                        {card.matched && (
+                           <CheckCircleIcon
+                              style={{
+                                 position: "absolute",
+                                 top: "4px",
+                                 right: "4px",
+                                 width: "20px",
+                                 height: "20px",
+                                 color: "var(--ok)",
+                              }}
+                           />
+                        )}
+                     </button>
+                  );
+               })}
+            </div>
+
+            {/* Feedback Message */}
+            {feedback && (
+               <div
+                  style={{
+                     padding: "16px 24px",
+                     borderRadius: "12px",
+                     fontSize: "1.1rem",
+                     fontWeight: 600,
+                     animation: "slideIn 0.3s ease-out",
+                     background:
+                        feedback === "correct"
+                           ? "rgba(134, 239, 172, 0.2)"
+                           : "rgba(252, 165, 165, 0.2)",
+                     border: `1px solid ${
+                        feedback === "correct" ? "var(--ok)" : "var(--warn)"
+                     }`,
+                     color:
+                        feedback === "correct" ? "var(--ok)" : "var(--warn)",
+                     display: "flex",
+                     alignItems: "center",
+                     gap: "10px",
+                     width: "100%",
+                     maxWidth: "600px",
+                     justifyContent: "center",
+                  }}
+               >
+                  {feedback === "correct" ? (
+                     <>
+                        <CheckCircleIcon style={{ width: 24, height: 24 }} />
+                        <span>Correct! Great job!</span>
+                     </>
+                  ) : (
+                     <>
+                        <XCircleIcon style={{ width: 24, height: 24 }} />
+                        <span>Try again! You can do it!</span>
+                     </>
+                  )}
+               </div>
+            )}
+         </div>
       </div>
-      <div className="memory-grid" style={{ gridTemplateColumns: `repeat(${gridSize}, 1fr)` }}>
-        {cards.slice(0, totalCards).map((card) => (
-          <button
-            key={card.id}
-            className={`memory-card ${card.flipped || card.matched ? 'flipped' : ''} ${card.matched ? 'matched' : ''}`}
-            onClick={() => handleCardClick(card.id)}
-            style={{ width: cardSize, paddingBottom: cardSize }}
-          >
-            <div className="card-front">?</div>
-            <div className="card-back">{card.value}</div>
-          </button>
-        ))}
-      </div>
-    </div>
-  );
+   );
 }
 
 // Sound Memory Game (17)
-function SoundMemory({ config, onScoreUpdate, onComplete }: { config: Record<string, any>; onScoreUpdate: (score: number) => void; onComplete: (finalScore?: number) => void }) {
-  const rounds = config.rounds || 5;
-  const [sequence, setSequence] = useState<number[]>([]);
-  const [playerSequence, setPlayerSequence] = useState<number[]>([]);
-  const [showingSequence, setShowingSequence] = useState(true);
-  const [level, setLevel] = useState(1);
-  const [score, setScore] = useState(0);
+function SoundMemory({
+   config,
+   onScoreUpdate,
+   onComplete,
+}: {
+   config: Record<string, any>;
+   onScoreUpdate: (score: number) => void;
+   onComplete: (finalScore?: number) => void;
+}) {
+   const rounds = config.rounds || 5;
+   const [sequence, setSequence] = useState<number[]>([]);
+   const [playerSequence, setPlayerSequence] = useState<number[]>([]);
+   const [showingSequence, setShowingSequence] = useState(true);
+   const [level, setLevel] = useState(1);
+   const [score, setScore] = useState(0);
 
-  useEffect(() => {
-    if (level > rounds) {
-      const finalScore = Math.round((score / rounds) * 100);
-      onScoreUpdate(finalScore);
-      setTimeout(() => onComplete(finalScore), 1000);
-      return;
-    }
-    startNewLevel();
-  }, [level, rounds, score, onScoreUpdate, onComplete]);
-
-  const startNewLevel = () => {
-    const newSequence = Array.from({ length: level }, () => Math.floor(Math.random() * 4) + 1);
-    setSequence(newSequence);
-    setPlayerSequence([]);
-    setShowingSequence(true);
-    
-    setTimeout(() => {
-      setShowingSequence(false);
-    }, level * 1000);
-  };
-
-  const playSound = (tone: number) => {
-    // Visual feedback for sound
-    console.log(`Playing tone ${tone}`);
-  };
-
-  useEffect(() => {
-    if (showingSequence && sequence.length > 0) {
-      sequence.forEach((tone, i) => {
-        setTimeout(() => playSound(tone), i * 1000);
-      });
-    }
-  }, [showingSequence, sequence]);
-
-  const handleToneClick = (tone: number) => {
-    if (showingSequence) return;
-    
-    const newPlayerSequence = [...playerSequence, tone];
-    setPlayerSequence(newPlayerSequence);
-    
-    if (newPlayerSequence.length === sequence.length) {
-      const isCorrect = newPlayerSequence.every((t, i) => t === sequence[i]);
-      if (isCorrect) {
-        setScore(score + 20);
-        setLevel(level + 1);
-      } else {
-        onScoreUpdate(score);
-        setTimeout(() => onComplete(score), 1000);
+   useEffect(() => {
+      if (level > rounds) {
+         const finalScore = Math.round((score / rounds) * 100);
+         onScoreUpdate(finalScore);
+         setTimeout(() => onComplete(finalScore), 1000);
+         return;
       }
-    }
-  };
+      startNewLevel();
+   }, [level, rounds, score, onScoreUpdate, onComplete]);
 
-  return (
-    <div className="sound-memory-game">
-      <h3>Sound Memory - Level {level}</h3>
-      {showingSequence ? (
-        <div>
-          <p>Listen to the sequence...</p>
-          <div className="sound-display">
-            {sequence.map((tone, i) => (
-              <span key={i} className="tone-indicator">♪</span>
-            ))}
-          </div>
-        </div>
-      ) : (
-        <div>
-          <p>Repeat the sequence</p>
-          <div className="tone-buttons">
-            {[1, 2, 3, 4].map(tone => (
-              <button key={tone} onClick={() => handleToneClick(tone)} className="tone-btn">
-                Tone {tone}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
-  );
+   const startNewLevel = () => {
+      const newSequence = Array.from(
+         { length: level },
+         () => Math.floor(Math.random() * 4) + 1
+      );
+      setSequence(newSequence);
+      setPlayerSequence([]);
+      setShowingSequence(true);
+
+      setTimeout(() => {
+         setShowingSequence(false);
+      }, level * 1000);
+   };
+
+   const playSound = (tone: number) => {
+      // Visual feedback for sound
+      console.log(`Playing tone ${tone}`);
+   };
+
+   useEffect(() => {
+      if (showingSequence && sequence.length > 0) {
+         sequence.forEach((tone, i) => {
+            setTimeout(() => playSound(tone), i * 1000);
+         });
+      }
+   }, [showingSequence, sequence]);
+
+   const handleToneClick = (tone: number) => {
+      if (showingSequence) return;
+
+      const newPlayerSequence = [...playerSequence, tone];
+      setPlayerSequence(newPlayerSequence);
+
+      if (newPlayerSequence.length === sequence.length) {
+         const isCorrect = newPlayerSequence.every((t, i) => t === sequence[i]);
+         if (isCorrect) {
+            setScore(score + 20);
+            setLevel(level + 1);
+         } else {
+            onScoreUpdate(score);
+            setTimeout(() => onComplete(score), 1000);
+         }
+      }
+   };
+
+   return (
+      <div className="sound-memory-game">
+         <h3>Sound Memory - Level {level}</h3>
+         {showingSequence ? (
+            <div>
+               <p>Listen to the sequence...</p>
+               <div className="sound-display">
+                  {sequence.map((tone, i) => (
+                     <span key={i} className="tone-indicator">
+                        ♪
+                     </span>
+                  ))}
+               </div>
+            </div>
+         ) : (
+            <div>
+               <p>Repeat the sequence</p>
+               <div className="tone-buttons">
+                  {[1, 2, 3, 4].map((tone) => (
+                     <button
+                        key={tone}
+                        onClick={() => handleToneClick(tone)}
+                        className="tone-btn"
+                     >
+                        Tone {tone}
+                     </button>
+                  ))}
+               </div>
+            </div>
+         )}
+      </div>
+   );
 }
 
 // Emoji Memory Game (18)
-function EmojiMemory({ config, onScoreUpdate, onComplete }: { config: Record<string, any>; onScoreUpdate: (score: number) => void; onComplete: (finalScore?: number) => void }) {
-  const gridSize = config.gridSize || 3;
-  const rounds = config.rounds || 3;
-  const [emojis, setEmojis] = useState<string[]>([]);
-  const [selected, setSelected] = useState<number[]>([]);
-  const [round, setRound] = useState(0);
-  const [score, setScore] = useState(0);
-  const [showing, setShowing] = useState(true);
+function EmojiMemory({
+   config,
+   onScoreUpdate,
+   onComplete,
+}: {
+   config: Record<string, any>;
+   onScoreUpdate: (score: number) => void;
+   onComplete: (finalScore?: number) => void;
+}) {
+   const gridSize = config.gridSize || 3;
+   const rounds = config.rounds || 3;
+   const [emojis, setEmojis] = useState<string[]>([]);
+   const [selected, setSelected] = useState<number[]>([]);
+   const [round, setRound] = useState(0);
+   const [score, setScore] = useState(0);
+   const [showing, setShowing] = useState(true);
 
-  useEffect(() => {
-    if (round >= rounds) {
-      const finalScore = Math.round((score / rounds) * 100);
-      onScoreUpdate(finalScore);
-      setTimeout(() => onComplete(finalScore), 1000);
-      return;
-    }
-    startRound();
-  }, [round, rounds, score, onScoreUpdate, onComplete]);
-
-  const startRound = () => {
-    const emojiList = ['😀', '😃', '😄', '😁', '😆', '😅', '😂', '🤣', '😊'];
-    const selectedEmojis = emojiList.slice(0, gridSize * gridSize).sort(() => Math.random() - 0.5);
-    setEmojis(selectedEmojis);
-    setSelected([]);
-    setShowing(true);
-    
-    setTimeout(() => {
-      setShowing(false);
-    }, 3000);
-  };
-
-  const handleCellClick = (index: number) => {
-    if (showing) return;
-    if (selected.includes(index)) return;
-    
-    const newSelected = [...selected, index];
-    setSelected(newSelected);
-    
-    if (newSelected.length === emojis.length) {
-      const isCorrect = newSelected.every((idx, i) => emojis[idx] === emojis[i]);
-      if (isCorrect) {
-        setScore(score + 33);
+   useEffect(() => {
+      if (round >= rounds) {
+         const finalScore = Math.round((score / rounds) * 100);
+         onScoreUpdate(finalScore);
+         setTimeout(() => onComplete(finalScore), 1000);
+         return;
       }
-      setRound(round + 1);
-    }
-  };
+      startRound();
+   }, [round, rounds, score, onScoreUpdate, onComplete]);
 
-  return (
-    <div className="emoji-memory-game">
-      <h3>Emoji Memory - Round {round + 1}</h3>
-      <div className="emoji-grid" style={{ gridTemplateColumns: `repeat(${gridSize}, 1fr)` }}>
-        {emojis.map((emoji, i) => (
-          <button
-            key={i}
-            onClick={() => handleCellClick(i)}
-            className={`emoji-cell ${selected.includes(i) ? 'selected' : ''}`}
-            disabled={showing || selected.includes(i)}
-          >
-            {showing || selected.includes(i) ? emoji : '?'}
-          </button>
-        ))}
+   const startRound = () => {
+      const emojiList = ["😀", "😃", "😄", "😁", "😆", "😅", "😂", "🤣", "😊"];
+      const selectedEmojis = emojiList
+         .slice(0, gridSize * gridSize)
+         .sort(() => Math.random() - 0.5);
+      setEmojis(selectedEmojis);
+      setSelected([]);
+      setShowing(true);
+
+      setTimeout(() => {
+         setShowing(false);
+      }, 3000);
+   };
+
+   const handleCellClick = (index: number) => {
+      if (showing) return;
+      if (selected.includes(index)) return;
+
+      const newSelected = [...selected, index];
+      setSelected(newSelected);
+
+      if (newSelected.length === emojis.length) {
+         const isCorrect = newSelected.every(
+            (idx, i) => emojis[idx] === emojis[i]
+         );
+         if (isCorrect) {
+            setScore(score + 33);
+         }
+         setRound(round + 1);
+      }
+   };
+
+   return (
+      <div className="emoji-memory-game">
+         <h3>Emoji Memory - Round {round + 1}</h3>
+         <div
+            className="emoji-grid"
+            style={{ gridTemplateColumns: `repeat(${gridSize}, 1fr)` }}
+         >
+            {emojis.map((emoji, i) => (
+               <button
+                  key={i}
+                  onClick={() => handleCellClick(i)}
+                  className={`emoji-cell ${
+                     selected.includes(i) ? "selected" : ""
+                  }`}
+                  disabled={showing || selected.includes(i)}
+               >
+                  {showing || selected.includes(i) ? emoji : "?"}
+               </button>
+            ))}
+         </div>
       </div>
-    </div>
-  );
+   );
 }
 
 // Number Recall Game (19)
-function NumberRecall({ config, onScoreUpdate, onComplete }: { config: Record<string, any>; onScoreUpdate: (score: number) => void; onComplete: (finalScore?: number) => void }) {
-  const digits = config.digits || 4;
-  const rounds = config.rounds || 3;
-  const [sequence, setSequence] = useState<string>('');
-  const [input, setInput] = useState('');
-  const [round, setRound] = useState(0);
-  const [score, setScore] = useState(0);
-  const [showing, setShowing] = useState(true);
+function NumberRecall({
+   config,
+   onScoreUpdate,
+   onComplete,
+}: {
+   config: Record<string, any>;
+   onScoreUpdate: (score: number) => void;
+   onComplete: (finalScore?: number) => void;
+}) {
+   const digits = config.digits || 4;
+   const rounds = config.rounds || 3;
+   const [sequence, setSequence] = useState<string>("");
+   const [input, setInput] = useState("");
+   const [round, setRound] = useState(0);
+   const [score, setScore] = useState(0);
+   const [showing, setShowing] = useState(true);
 
-  useEffect(() => {
-    if (round >= rounds) {
-      const finalScore = Math.round((score / rounds) * 100);
-      onScoreUpdate(finalScore);
-      setTimeout(() => onComplete(finalScore), 1000);
-      return;
-    }
-    startRound();
-  }, [round, rounds, score, onScoreUpdate, onComplete]);
+   useEffect(() => {
+      if (round >= rounds) {
+         const finalScore = Math.round((score / rounds) * 100);
+         onScoreUpdate(finalScore);
+         setTimeout(() => onComplete(finalScore), 1000);
+         return;
+      }
+      startRound();
+   }, [round, rounds, score, onScoreUpdate, onComplete]);
 
-  const startRound = () => {
-    const newSequence = Array.from({ length: digits }, () => Math.floor(Math.random() * 10)).join('');
-    setSequence(newSequence);
-    setInput('');
-    setShowing(true);
-    
-    setTimeout(() => {
-      setShowing(false);
-    }, 3000);
-  };
+   const startRound = () => {
+      const newSequence = Array.from({ length: digits }, () =>
+         Math.floor(Math.random() * 10)
+      ).join("");
+      setSequence(newSequence);
+      setInput("");
+      setShowing(true);
 
-  const handleSubmit = () => {
-    if (input === sequence) {
-      setScore(score + 33);
-    }
-    setRound(round + 1);
-  };
+      setTimeout(() => {
+         setShowing(false);
+      }, 3000);
+   };
 
-  return (
-    <div className="number-recall-game">
-      <h3>Number Recall - Round {round + 1}</h3>
-      {showing ? (
-        <div>
-          <p>Remember this number:</p>
-          <div className="number-display">{sequence}</div>
-        </div>
-      ) : (
-        <div>
-          <p>Type the number you saw:</p>
-          <input
-            type="text"
-            value={input}
-            onChange={(e) => setInput(e.target.value.replace(/\D/g, ''))}
-            maxLength={digits}
-            className="number-input"
-          />
-          <button onClick={handleSubmit}>Submit</button>
-        </div>
-      )}
-    </div>
-  );
+   const handleSubmit = () => {
+      if (input === sequence) {
+         setScore(score + 33);
+      }
+      setRound(round + 1);
+   };
+
+   return (
+      <div className="number-recall-game">
+         <h3>Number Recall - Round {round + 1}</h3>
+         {showing ? (
+            <div>
+               <p>Remember this number:</p>
+               <div className="number-display">{sequence}</div>
+            </div>
+         ) : (
+            <div>
+               <p>Type the number you saw:</p>
+               <input
+                  type="text"
+                  value={input}
+                  onChange={(e) => setInput(e.target.value.replace(/\D/g, ""))}
+                  maxLength={digits}
+                  className="number-input"
+               />
+               <button onClick={handleSubmit}>Submit</button>
+            </div>
+         )}
+      </div>
+   );
 }
 
 // Image Recall Game (20)
-function ImageRecall({ config, onScoreUpdate, onComplete }: { config: Record<string, any>; onScoreUpdate: (score: number) => void; onComplete: (finalScore?: number) => void }) {
-  const images = config.images || 5;
-  const [imageSequence, setImageSequence] = useState<number[]>([]);
-  const [selectedOrder, setSelectedOrder] = useState<number[]>([]);
-  const [showing, setShowing] = useState(true);
-  const [score, setScore] = useState(0);
+function ImageRecall({
+   config,
+   onScoreUpdate,
+   onComplete,
+}: {
+   config: Record<string, any>;
+   onScoreUpdate: (score: number) => void;
+   onComplete: (finalScore?: number) => void;
+}) {
+   const images = config.images || 5;
+   const [imageSequence, setImageSequence] = useState<number[]>([]);
+   const [selectedOrder, setSelectedOrder] = useState<number[]>([]);
+   const [showing, setShowing] = useState(true);
+   const [score, setScore] = useState(0);
 
-  useEffect(() => {
-    const sequence = Array.from({ length: images }, (_, i) => i).sort(() => Math.random() - 0.5);
-    setImageSequence(sequence);
-    setSelectedOrder([]);
-    setShowing(true);
-    
-    setTimeout(() => {
-      setShowing(false);
-    }, 5000);
-  }, []);
+   useEffect(() => {
+      const sequence = Array.from({ length: images }, (_, i) => i).sort(
+         () => Math.random() - 0.5
+      );
+      setImageSequence(sequence);
+      setSelectedOrder([]);
+      setShowing(true);
 
-  useEffect(() => {
-    if (!showing && selectedOrder.length === images) {
-      const isCorrect = selectedOrder.every((img, i) => img === imageSequence[i]);
-      const finalScore = isCorrect ? 100 : 0;
-      setScore(finalScore);
-      onScoreUpdate(finalScore);
-      setTimeout(() => onComplete(finalScore), 1000);
-    }
-  }, [selectedOrder, imageSequence, images, showing, onScoreUpdate, onComplete]);
+      setTimeout(() => {
+         setShowing(false);
+      }, 5000);
+   }, []);
 
-  const handleImageSelect = (imgIndex: number) => {
-    if (showing || selectedOrder.includes(imgIndex)) return;
-    setSelectedOrder([...selectedOrder, imgIndex]);
-  };
+   useEffect(() => {
+      if (!showing && selectedOrder.length === images) {
+         const isCorrect = selectedOrder.every(
+            (img, i) => img === imageSequence[i]
+         );
+         const finalScore = isCorrect ? 100 : 0;
+         setScore(finalScore);
+         onScoreUpdate(finalScore);
+         setTimeout(() => onComplete(finalScore), 1000);
+      }
+   }, [
+      selectedOrder,
+      imageSequence,
+      images,
+      showing,
+      onScoreUpdate,
+      onComplete,
+   ]);
 
-  return (
-    <div className="image-recall-game">
-      <h3>Image Recall</h3>
-      {showing ? (
-        <div>
-          <p>Remember the order of these images:</p>
-          <div className="image-sequence">
-            {imageSequence.map((img, i) => (
-              <div key={i} className="image-item">
-                Image {img + 1}
-              </div>
-            ))}
-          </div>
-        </div>
-      ) : (
-        <div>
-          <p>Click images in the order you saw them:</p>
-          <div className="image-options">
-            {Array.from({ length: images }).map((_, i) => (
-              <button
-                key={i}
-                onClick={() => handleImageSelect(i)}
-                className={`image-btn ${selectedOrder.includes(i) ? 'selected' : ''}`}
-                disabled={selectedOrder.includes(i)}
-              >
-                Image {i + 1}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
-  );
+   const handleImageSelect = (imgIndex: number) => {
+      if (showing || selectedOrder.includes(imgIndex)) return;
+      setSelectedOrder([...selectedOrder, imgIndex]);
+   };
+
+   return (
+      <div className="image-recall-game">
+         <h3>Image Recall</h3>
+         {showing ? (
+            <div>
+               <p>Remember the order of these images:</p>
+               <div className="image-sequence">
+                  {imageSequence.map((img, i) => (
+                     <div key={i} className="image-item">
+                        Image {img + 1}
+                     </div>
+                  ))}
+               </div>
+            </div>
+         ) : (
+            <div>
+               <p>Click images in the order you saw them:</p>
+               <div className="image-options">
+                  {Array.from({ length: images }).map((_, i) => (
+                     <button
+                        key={i}
+                        onClick={() => handleImageSelect(i)}
+                        className={`image-btn ${
+                           selectedOrder.includes(i) ? "selected" : ""
+                        }`}
+                        disabled={selectedOrder.includes(i)}
+                     >
+                        Image {i + 1}
+                     </button>
+                  ))}
+               </div>
+            </div>
+         )}
+      </div>
+   );
 }
 
 // Path Memory Game (21)
-function PathMemory({ config, onScoreUpdate, onComplete }: { config: Record<string, any>; onScoreUpdate: (score: number) => void; onComplete: (finalScore?: number) => void }) {
-  const rounds = config.rounds || 3;
-  const [path, setPath] = useState<number[]>([]);
-  const [playerPath, setPlayerPath] = useState<number[]>([]);
-  const [showing, setShowing] = useState(true);
-  const [round, setRound] = useState(0);
-  const [score, setScore] = useState(0);
-  const gridSize = 3;
+function PathMemory({
+   config,
+   onScoreUpdate,
+   onComplete,
+}: {
+   config: Record<string, any>;
+   onScoreUpdate: (score: number) => void;
+   onComplete: (finalScore?: number) => void;
+}) {
+   const rounds = config.rounds || 3;
+   const [path, setPath] = useState<number[]>([]);
+   const [playerPath, setPlayerPath] = useState<number[]>([]);
+   const [showing, setShowing] = useState(true);
+   const [round, setRound] = useState(0);
+   const [score, setScore] = useState(0);
+   const gridSize = 3;
 
-  useEffect(() => {
-    if (round >= rounds) {
-      const finalScore = Math.round((score / rounds) * 100);
-      onScoreUpdate(finalScore);
-      setTimeout(() => onComplete(finalScore), 1000);
-      return;
-    }
-    startRound();
-  }, [round, rounds, score, onScoreUpdate, onComplete]);
-
-  const startRound = () => {
-    const newPath = Array.from({ length: round + 3 }, () => Math.floor(Math.random() * gridSize * gridSize));
-    setPath(newPath);
-    setPlayerPath([]);
-    setShowing(true);
-    
-    setTimeout(() => {
-      setShowing(false);
-    }, 3000);
-  };
-
-  useEffect(() => {
-    if (!showing && playerPath.length === path.length) {
-      const isCorrect = playerPath.every((cell, i) => cell === path[i]);
-      if (isCorrect) {
-        setScore(score + 33);
+   useEffect(() => {
+      if (round >= rounds) {
+         const finalScore = Math.round((score / rounds) * 100);
+         onScoreUpdate(finalScore);
+         setTimeout(() => onComplete(finalScore), 1000);
+         return;
       }
-      setRound(round + 1);
-    }
-  }, [playerPath, path, showing, round, score]);
+      startRound();
+   }, [round, rounds, score, onScoreUpdate, onComplete]);
 
-  const handleCellClick = (index: number) => {
-    if (showing) return;
-    setPlayerPath([...playerPath, index]);
-  };
+   const startRound = () => {
+      const newPath = Array.from({ length: round + 3 }, () =>
+         Math.floor(Math.random() * gridSize * gridSize)
+      );
+      setPath(newPath);
+      setPlayerPath([]);
+      setShowing(true);
 
-  return (
-    <div className="path-memory-game">
-      <h3>Path Memory - Round {round + 1}</h3>
-      {showing ? (
-        <div>
-          <p>Watch the path:</p>
-          <div className="path-grid" style={{ gridTemplateColumns: `repeat(${gridSize}, 1fr)` }}>
-            {Array.from({ length: gridSize * gridSize }).map((_, i) => (
-              <div
-                key={i}
-                className={`path-cell ${path.includes(i) ? 'highlighted' : ''}`}
-              >
-                {path.includes(i) && '●'}
-              </div>
-            ))}
-          </div>
-        </div>
-      ) : (
-        <div>
-          <p>Recreate the path:</p>
-          <div className="path-grid" style={{ gridTemplateColumns: `repeat(${gridSize}, 1fr)` }}>
-            {Array.from({ length: gridSize * gridSize }).map((_, i) => (
-              <button
-                key={i}
-                onClick={() => handleCellClick(i)}
-                className={`path-cell ${playerPath.includes(i) ? 'selected' : ''}`}
-              >
-                {playerPath.includes(i) && '●'}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
-  );
+      setTimeout(() => {
+         setShowing(false);
+      }, 3000);
+   };
+
+   useEffect(() => {
+      if (!showing && playerPath.length === path.length) {
+         const isCorrect = playerPath.every((cell, i) => cell === path[i]);
+         if (isCorrect) {
+            setScore(score + 33);
+         }
+         setRound(round + 1);
+      }
+   }, [playerPath, path, showing, round, score]);
+
+   const handleCellClick = (index: number) => {
+      if (showing) return;
+      setPlayerPath([...playerPath, index]);
+   };
+
+   return (
+      <div className="path-memory-game">
+         <h3>Path Memory - Round {round + 1}</h3>
+         {showing ? (
+            <div>
+               <p>Watch the path:</p>
+               <div
+                  className="path-grid"
+                  style={{ gridTemplateColumns: `repeat(${gridSize}, 1fr)` }}
+               >
+                  {Array.from({ length: gridSize * gridSize }).map((_, i) => (
+                     <div
+                        key={i}
+                        className={`path-cell ${
+                           path.includes(i) ? "highlighted" : ""
+                        }`}
+                     >
+                        {path.includes(i) && "●"}
+                     </div>
+                  ))}
+               </div>
+            </div>
+         ) : (
+            <div>
+               <p>Recreate the path:</p>
+               <div
+                  className="path-grid"
+                  style={{ gridTemplateColumns: `repeat(${gridSize}, 1fr)` }}
+               >
+                  {Array.from({ length: gridSize * gridSize }).map((_, i) => (
+                     <button
+                        key={i}
+                        onClick={() => handleCellClick(i)}
+                        className={`path-cell ${
+                           playerPath.includes(i) ? "selected" : ""
+                        }`}
+                     >
+                        {playerPath.includes(i) && "●"}
+                     </button>
+                  ))}
+               </div>
+            </div>
+         )}
+      </div>
+   );
 }
 
 // Word Memory Game (22)
-function WordMemory({ config, onScoreUpdate, onComplete }: { config: Record<string, any>; onScoreUpdate: (score: number) => void; onComplete: (finalScore?: number) => void }) {
-  const words = config.words || 5;
-  const [wordList, setWordList] = useState<string[]>([]);
-  const [selectedWords, setSelectedWords] = useState<string[]>([]);
-  const [showing, setShowing] = useState(true);
-  const [score, setScore] = useState(0);
+function WordMemory({
+   config,
+   onScoreUpdate,
+   onComplete,
+}: {
+   config: Record<string, any>;
+   onScoreUpdate: (score: number) => void;
+   onComplete: (finalScore?: number) => void;
+}) {
+   const words = config.words || 5;
+   const [wordList, setWordList] = useState<string[]>([]);
+   const [selectedWords, setSelectedWords] = useState<string[]>([]);
+   const [showing, setShowing] = useState(true);
+   const [score, setScore] = useState(0);
 
-  useEffect(() => {
-    const allWords = ['apple', 'banana', 'cherry', 'date', 'elderberry', 'fig', 'grape', 'honeydew'];
-    const selected = allWords.slice(0, words).sort(() => Math.random() - 0.5);
-    setWordList(selected);
-    setSelectedWords([]);
-    setShowing(true);
-    
-    setTimeout(() => {
-      setShowing(false);
-    }, 5000);
-  }, []);
+   useEffect(() => {
+      const allWords = [
+         "apple",
+         "banana",
+         "cherry",
+         "date",
+         "elderberry",
+         "fig",
+         "grape",
+         "honeydew",
+      ];
+      const selected = allWords.slice(0, words).sort(() => Math.random() - 0.5);
+      setWordList(selected);
+      setSelectedWords([]);
+      setShowing(true);
 
-  useEffect(() => {
-    if (!showing && selectedWords.length === words) {
-      const isCorrect = selectedWords.every(word => wordList.includes(word)) && 
-                       selectedWords.length === wordList.length;
-      const finalScore = isCorrect ? 100 : 0;
-      setScore(finalScore);
-      onScoreUpdate(finalScore);
-      setTimeout(() => onComplete(finalScore), 1000);
-    }
-  }, [selectedWords, wordList, words, showing, onScoreUpdate, onComplete]);
+      setTimeout(() => {
+         setShowing(false);
+      }, 5000);
+   }, []);
 
-  const handleWordClick = (word: string) => {
-    if (showing || selectedWords.includes(word)) return;
-    setSelectedWords([...selectedWords, word]);
-  };
+   useEffect(() => {
+      if (!showing && selectedWords.length === words) {
+         const isCorrect =
+            selectedWords.every((word) => wordList.includes(word)) &&
+            selectedWords.length === wordList.length;
+         const finalScore = isCorrect ? 100 : 0;
+         setScore(finalScore);
+         onScoreUpdate(finalScore);
+         setTimeout(() => onComplete(finalScore), 1000);
+      }
+   }, [selectedWords, wordList, words, showing, onScoreUpdate, onComplete]);
 
-  return (
-    <div className="word-memory-game">
-      <h3>Word Memory</h3>
-      {showing ? (
-        <div>
-          <p>Remember these words:</p>
-          <div className="word-list">
-            {wordList.map((word, i) => (
-              <div key={i} className="word-item">{word}</div>
-            ))}
-          </div>
-        </div>
-      ) : (
-        <div>
-          <p>Select the words you saw:</p>
-          <div className="word-options">
-            {['apple', 'banana', 'cherry', 'date', 'elderberry', 'fig', 'grape', 'honeydew'].map(word => (
-              <button
-                key={word}
-                onClick={() => handleWordClick(word)}
-                className={`word-btn ${selectedWords.includes(word) ? 'selected' : ''}`}
-                disabled={selectedWords.includes(word)}
-              >
-                {word}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
-  );
+   const handleWordClick = (word: string) => {
+      if (showing || selectedWords.includes(word)) return;
+      setSelectedWords([...selectedWords, word]);
+   };
+
+   return (
+      <div className="word-memory-game">
+         <h3>Word Memory</h3>
+         {showing ? (
+            <div>
+               <p>Remember these words:</p>
+               <div className="word-list">
+                  {wordList.map((word, i) => (
+                     <div key={i} className="word-item">
+                        {word}
+                     </div>
+                  ))}
+               </div>
+            </div>
+         ) : (
+            <div>
+               <p>Select the words you saw:</p>
+               <div className="word-options">
+                  {[
+                     "apple",
+                     "banana",
+                     "cherry",
+                     "date",
+                     "elderberry",
+                     "fig",
+                     "grape",
+                     "honeydew",
+                  ].map((word) => (
+                     <button
+                        key={word}
+                        onClick={() => handleWordClick(word)}
+                        className={`word-btn ${
+                           selectedWords.includes(word) ? "selected" : ""
+                        }`}
+                        disabled={selectedWords.includes(word)}
+                     >
+                        {word}
+                     </button>
+                  ))}
+               </div>
+            </div>
+         )}
+      </div>
+   );
 }
 
 // Face Memory Game (23)
-function FaceMemory({ config, onScoreUpdate, onComplete }: { config: Record<string, any>; onScoreUpdate: (score: number) => void; onComplete: (finalScore?: number) => void }) {
-  const faces = config.faces || 4;
-  const [facePairs, setFacePairs] = useState<Array<{ face: string; name: string }>>([]);
-  const [selectedFaces, setSelectedFaces] = useState<string[]>([]);
-  const [showing, setShowing] = useState(true);
-  const [score, setScore] = useState(0);
+function FaceMemory({
+   config,
+   onScoreUpdate,
+   onComplete,
+}: {
+   config: Record<string, any>;
+   onScoreUpdate: (score: number) => void;
+   onComplete: (finalScore?: number) => void;
+}) {
+   const faces = config.faces || 4;
+   const [facePairs, setFacePairs] = useState<
+      Array<{ face: string; name: string }>
+   >([]);
+   const [selectedFaces, setSelectedFaces] = useState<string[]>([]);
+   const [showing, setShowing] = useState(true);
+   const [score, setScore] = useState(0);
 
-  useEffect(() => {
-    const names = ['Alice', 'Bob', 'Charlie', 'Diana', 'Eve', 'Frank'];
-    const faceEmojis = ['😀', '😃', '😄', '😁', '😆', '😅'];
-    const pairs = Array.from({ length: faces }, (_, i) => ({
-      face: faceEmojis[i],
-      name: names[i],
-    }));
-    setFacePairs(pairs);
-    setSelectedFaces([]);
-    setShowing(true);
-    
-    setTimeout(() => {
-      setShowing(false);
-    }, 5000);
-  }, []);
+   useEffect(() => {
+      const names = ["Alice", "Bob", "Charlie", "Diana", "Eve", "Frank"];
+      const faceEmojis = ["😀", "😃", "😄", "😁", "😆", "😅"];
+      const pairs = Array.from({ length: faces }, (_, i) => ({
+         face: faceEmojis[i],
+         name: names[i],
+      }));
+      setFacePairs(pairs);
+      setSelectedFaces([]);
+      setShowing(true);
 
-  useEffect(() => {
-    if (!showing && selectedFaces.length === faces) {
-      const isCorrect = selectedFaces.every((name, i) => name === facePairs[i].name);
-      const finalScore = isCorrect ? 100 : 0;
-      setScore(finalScore);
-      onScoreUpdate(finalScore);
-      setTimeout(() => onComplete(finalScore), 1000);
-    }
-  }, [selectedFaces, facePairs, faces, showing, onScoreUpdate, onComplete]);
+      setTimeout(() => {
+         setShowing(false);
+      }, 5000);
+   }, []);
 
-  const handleNameSelect = (name: string, faceIndex: number) => {
-    if (showing) return;
-    const newSelected = [...selectedFaces];
-    newSelected[faceIndex] = name;
-    setSelectedFaces(newSelected);
-  };
+   useEffect(() => {
+      if (!showing && selectedFaces.length === faces) {
+         const isCorrect = selectedFaces.every(
+            (name, i) => name === facePairs[i].name
+         );
+         const finalScore = isCorrect ? 100 : 0;
+         setScore(finalScore);
+         onScoreUpdate(finalScore);
+         setTimeout(() => onComplete(finalScore), 1000);
+      }
+   }, [selectedFaces, facePairs, faces, showing, onScoreUpdate, onComplete]);
 
-  return (
-    <div className="face-memory-game">
-      <h3>Face Memory</h3>
-      {showing ? (
-        <div>
-          <p>Remember the faces and names:</p>
-          <div className="face-list">
-            {facePairs.map((pair, i) => (
-              <div key={i} className="face-item">
-                <span className="face-emoji">{pair.face}</span>
-                <span className="face-name">{pair.name}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      ) : (
-        <div>
-          <p>Match names to faces:</p>
-          <div className="face-matching">
-            {facePairs.map((pair, i) => (
-              <div key={i} className="face-match-item">
-                <span className="face-emoji">{pair.face}</span>
-                <select
-                  value={selectedFaces[i] || ''}
-                  onChange={(e) => handleNameSelect(e.target.value, i)}
-                >
-                  <option value="">Select name</option>
-                  {facePairs.map((p, idx) => (
-                    <option key={idx} value={p.name}>{p.name}</option>
+   const handleNameSelect = (name: string, faceIndex: number) => {
+      if (showing) return;
+      const newSelected = [...selectedFaces];
+      newSelected[faceIndex] = name;
+      setSelectedFaces(newSelected);
+   };
+
+   return (
+      <div className="face-memory-game">
+         <h3>Face Memory</h3>
+         {showing ? (
+            <div>
+               <p>Remember the faces and names:</p>
+               <div className="face-list">
+                  {facePairs.map((pair, i) => (
+                     <div key={i} className="face-item">
+                        <span className="face-emoji">{pair.face}</span>
+                        <span className="face-name">{pair.name}</span>
+                     </div>
                   ))}
-                </select>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
-  );
+               </div>
+            </div>
+         ) : (
+            <div>
+               <p>Match names to faces:</p>
+               <div className="face-matching">
+                  {facePairs.map((pair, i) => (
+                     <div key={i} className="face-match-item">
+                        <span className="face-emoji">{pair.face}</span>
+                        <select
+                           value={selectedFaces[i] || ""}
+                           onChange={(e) => handleNameSelect(e.target.value, i)}
+                        >
+                           <option value="">Select name</option>
+                           {facePairs.map((p, idx) => (
+                              <option key={idx} value={p.name}>
+                                 {p.name}
+                              </option>
+                           ))}
+                        </select>
+                     </div>
+                  ))}
+               </div>
+            </div>
+         )}
+      </div>
+   );
 }
 
 // Color Grid Memory Game (24)
-function ColorGridMemory({ config, onScoreUpdate, onComplete }: { config: Record<string, any>; onScoreUpdate: (score: number) => void; onComplete: (finalScore?: number) => void }) {
-  const gridSize = config.gridSize || 3;
-  const rounds = config.rounds || 3;
-  const [highlighted, setHighlighted] = useState<Set<number>>(new Set());
-  const [selected, setSelected] = useState<Set<number>>(new Set());
-  const [round, setRound] = useState(0);
-  const [score, setScore] = useState(0);
-  const [showing, setShowing] = useState(true);
+function ColorGridMemory({
+   config,
+   onScoreUpdate,
+   onComplete,
+}: {
+   config: Record<string, any>;
+   onScoreUpdate: (score: number) => void;
+   onComplete: (finalScore?: number) => void;
+}) {
+   const gridSize = config.gridSize || 3;
+   const rounds = config.rounds || 3;
+   const [highlighted, setHighlighted] = useState<Set<number>>(new Set());
+   const [selected, setSelected] = useState<Set<number>>(new Set());
+   const [round, setRound] = useState(0);
+   const [score, setScore] = useState(0);
+   const [showing, setShowing] = useState(true);
 
-  useEffect(() => {
-    if (round >= rounds) {
-      const finalScore = Math.round((score / rounds) * 100);
-      onScoreUpdate(finalScore);
-      setTimeout(() => onComplete(finalScore), 1000);
-      return;
-    }
-    startRound();
-  }, [round, rounds, score, onScoreUpdate, onComplete]);
-
-  const startRound = () => {
-    const total = gridSize * gridSize;
-    const highlightCount = Math.floor(total * 0.4);
-    const newHighlighted = new Set<number>();
-    while (newHighlighted.size < highlightCount) {
-      newHighlighted.add(Math.floor(Math.random() * total));
-    }
-    setHighlighted(newHighlighted);
-    setSelected(new Set());
-    setShowing(true);
-    
-    setTimeout(() => {
-      setShowing(false);
-    }, 3000);
-  };
-
-  useEffect(() => {
-    if (!showing && selected.size === highlighted.size) {
-      const isCorrect = Array.from(selected).every(cell => highlighted.has(cell));
-      if (isCorrect) {
-        setScore(score + 33);
+   useEffect(() => {
+      if (round >= rounds) {
+         const finalScore = Math.round((score / rounds) * 100);
+         onScoreUpdate(finalScore);
+         setTimeout(() => onComplete(finalScore), 1000);
+         return;
       }
-      setRound(round + 1);
-    }
-  }, [selected, highlighted, showing, round, score]);
+      startRound();
+   }, [round, rounds, score, onScoreUpdate, onComplete]);
 
-  const handleCellClick = (index: number) => {
-    if (showing) return;
-    const newSelected = new Set(selected);
-    if (newSelected.has(index)) {
-      newSelected.delete(index);
-    } else {
-      newSelected.add(index);
-    }
-    setSelected(newSelected);
-  };
+   const startRound = () => {
+      const total = gridSize * gridSize;
+      const highlightCount = Math.floor(total * 0.4);
+      const newHighlighted = new Set<number>();
+      while (newHighlighted.size < highlightCount) {
+         newHighlighted.add(Math.floor(Math.random() * total));
+      }
+      setHighlighted(newHighlighted);
+      setSelected(new Set());
+      setShowing(true);
 
-  return (
-    <div className="color-grid-memory-game">
-      <h3>Color Grid Memory - Round {round + 1}</h3>
-      <div className="color-grid" style={{ gridTemplateColumns: `repeat(${gridSize}, 1fr)` }}>
-        {Array.from({ length: gridSize * gridSize }).map((_, i) => (
-          <button
-            key={i}
-            onClick={() => handleCellClick(i)}
-            className={`color-cell ${highlighted.has(i) && showing ? 'highlighted' : ''} ${selected.has(i) ? 'selected' : ''}`}
-            disabled={showing}
-          >
-            {selected.has(i) && <CheckCircleIcon style={{ width: 20, height: 20 }} />}
-          </button>
-        ))}
+      setTimeout(() => {
+         setShowing(false);
+      }, 3000);
+   };
+
+   useEffect(() => {
+      if (!showing && selected.size === highlighted.size) {
+         const isCorrect = Array.from(selected).every((cell) =>
+            highlighted.has(cell)
+         );
+         if (isCorrect) {
+            setScore(score + 33);
+         }
+         setRound(round + 1);
+      }
+   }, [selected, highlighted, showing, round, score]);
+
+   const handleCellClick = (index: number) => {
+      if (showing) return;
+      const newSelected = new Set(selected);
+      if (newSelected.has(index)) {
+         newSelected.delete(index);
+      } else {
+         newSelected.add(index);
+      }
+      setSelected(newSelected);
+   };
+
+   return (
+      <div className="color-grid-memory-game">
+         <h3>Color Grid Memory - Round {round + 1}</h3>
+         <div
+            className="color-grid"
+            style={{ gridTemplateColumns: `repeat(${gridSize}, 1fr)` }}
+         >
+            {Array.from({ length: gridSize * gridSize }).map((_, i) => (
+               <button
+                  key={i}
+                  onClick={() => handleCellClick(i)}
+                  className={`color-cell ${
+                     highlighted.has(i) && showing ? "highlighted" : ""
+                  } ${selected.has(i) ? "selected" : ""}`}
+                  disabled={showing}
+               >
+                  {selected.has(i) && (
+                     <CheckCircleIcon style={{ width: 20, height: 20 }} />
+                  )}
+               </button>
+            ))}
+         </div>
       </div>
-    </div>
-  );
+   );
 }
 
 // Symbol Stack Game (25)
-function SymbolStack({ config, onScoreUpdate, onComplete }: { config: Record<string, any>; onScoreUpdate: (score: number) => void; onComplete: (finalScore?: number) => void }) {
-  const rounds = config.rounds || 3;
-  const [stack, setStack] = useState<string[]>([]);
-  const [playerStack, setPlayerStack] = useState<string[]>([]);
-  const [round, setRound] = useState(0);
-  const [score, setScore] = useState(0);
-  const [showing, setShowing] = useState(true);
-  const symbols = ['★', '◆', '●', '▲', '■'];
+function SymbolStack({
+   config,
+   onScoreUpdate,
+   onComplete,
+}: {
+   config: Record<string, any>;
+   onScoreUpdate: (score: number) => void;
+   onComplete: (finalScore?: number) => void;
+}) {
+   const rounds = config.rounds || 3;
+   const [stack, setStack] = useState<string[]>([]);
+   const [playerStack, setPlayerStack] = useState<string[]>([]);
+   const [round, setRound] = useState(0);
+   const [score, setScore] = useState(0);
+   const [showing, setShowing] = useState(true);
+   const symbols = ["★", "◆", "●", "▲", "■"];
 
-  useEffect(() => {
-    if (round >= rounds) {
-      const finalScore = Math.round((score / rounds) * 100);
-      onScoreUpdate(finalScore);
-      setTimeout(() => onComplete(finalScore), 1000);
-      return;
-    }
-    startRound();
-  }, [round, rounds, score, onScoreUpdate, onComplete]);
-
-  const startRound = () => {
-    const newStack = Array.from({ length: round + 3 }, () => 
-      symbols[Math.floor(Math.random() * symbols.length)]
-    );
-    setStack(newStack);
-    setPlayerStack([]);
-    setShowing(true);
-    
-    setTimeout(() => {
-      setShowing(false);
-    }, 3000);
-  };
-
-  useEffect(() => {
-    if (!showing && playerStack.length === stack.length) {
-      const isCorrect = playerStack.every((sym, i) => sym === stack[i]);
-      if (isCorrect) {
-        setScore(score + 33);
+   useEffect(() => {
+      if (round >= rounds) {
+         const finalScore = Math.round((score / rounds) * 100);
+         onScoreUpdate(finalScore);
+         setTimeout(() => onComplete(finalScore), 1000);
+         return;
       }
-      setRound(round + 1);
-    }
-  }, [playerStack, stack, showing, round, score]);
+      startRound();
+   }, [round, rounds, score, onScoreUpdate, onComplete]);
 
-  const handleSymbolClick = (symbol: string) => {
-    if (showing) return;
-    setPlayerStack([...playerStack, symbol]);
-  };
+   const startRound = () => {
+      const newStack = Array.from(
+         { length: round + 3 },
+         () => symbols[Math.floor(Math.random() * symbols.length)]
+      );
+      setStack(newStack);
+      setPlayerStack([]);
+      setShowing(true);
 
-  return (
-    <div className="symbol-stack-game">
-      <h3>Symbol Stack - Round {round + 1}</h3>
-      {showing ? (
-        <div>
-          <p>Remember the stack order:</p>
-          <div className="stack-display">
-            {stack.map((sym, i) => (
-              <div key={i} className="stack-item">{sym}</div>
-            ))}
-          </div>
-        </div>
-      ) : (
-        <div>
-          <p>Rebuild the stack:</p>
-          <div className="stack-display">
-            {playerStack.map((sym, i) => (
-              <div key={i} className="stack-item">{sym}</div>
-            ))}
-          </div>
-          <div className="symbol-options">
-            {symbols.map(sym => (
-              <button key={sym} onClick={() => handleSymbolClick(sym)} className="symbol-btn">
-                {sym}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
-  );
+      setTimeout(() => {
+         setShowing(false);
+      }, 3000);
+   };
+
+   useEffect(() => {
+      if (!showing && playerStack.length === stack.length) {
+         const isCorrect = playerStack.every((sym, i) => sym === stack[i]);
+         if (isCorrect) {
+            setScore(score + 33);
+         }
+         setRound(round + 1);
+      }
+   }, [playerStack, stack, showing, round, score]);
+
+   const handleSymbolClick = (symbol: string) => {
+      if (showing) return;
+      setPlayerStack([...playerStack, symbol]);
+   };
+
+   return (
+      <div className="symbol-stack-game">
+         <h3>Symbol Stack - Round {round + 1}</h3>
+         {showing ? (
+            <div>
+               <p>Remember the stack order:</p>
+               <div className="stack-display">
+                  {stack.map((sym, i) => (
+                     <div key={i} className="stack-item">
+                        {sym}
+                     </div>
+                  ))}
+               </div>
+            </div>
+         ) : (
+            <div>
+               <p>Rebuild the stack:</p>
+               <div className="stack-display">
+                  {playerStack.map((sym, i) => (
+                     <div key={i} className="stack-item">
+                        {sym}
+                     </div>
+                  ))}
+               </div>
+               <div className="symbol-options">
+                  {symbols.map((sym) => (
+                     <button
+                        key={sym}
+                        onClick={() => handleSymbolClick(sym)}
+                        className="symbol-btn"
+                     >
+                        {sym}
+                     </button>
+                  ))}
+               </div>
+            </div>
+         )}
+      </div>
+   );
 }
-

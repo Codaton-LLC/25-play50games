@@ -195,6 +195,37 @@ The WordPress admin includes a **Quick Fill Templates** dropdown that automatica
 
 ### Other Games
 
+#### Block Fill
+
+Block Fill supports fixed grids (via `gridSize`) or multi-level layouts (via `levelLayouts`). If you provide layouts, the game will build pieces from the letters so the puzzle is guaranteed solvable.
+
+```json
+{
+   "gameType": "block-fill",
+   "levels": [3, 4, 5, 6, 7],
+   "levelLayouts": [
+      { "size": 3, "rows": ["AAB", "ACB", "CCB"] },
+      { "size": 4, "rows": ["AAAB", "CABB", "CCDB", "CDDD"] },
+      { "size": 5, "rows": ["AABBC", "ADBEC", "ADEEC", "FDDEC", "FFFEC"] },
+      { "size": 6, "rows": ["AAABBC", "DEABFC", "DEEBFC", "DGEHFC", "DGGHHC", "DGGHHC"] },
+      { "size": 7, "rows": ["AAABBCC", "ADDBBCC", "ADDEEFF", "GGDEHFF", "GGGHHII", "JJKHHII", "JJKKKII"] }
+   ]
+}
+```
+
+**Fields:**
+
+-  `gameType` (required): Must be `"block-fill"`
+-  `levels` (optional): Ordered list of grid sizes per level
+-  `levelLayouts` (optional): Array of layout objects
+   -  `size`: Grid size for that level
+   -  `rows`: Array of strings that define the solved layout
+
+Notes:
+- Use uppercase letters for pieces. Each letter is a unique piece.
+- Use `"."` for empty (unused) cells if needed.
+- If `levelLayouts` is provided, it overrides random piece sets for those levels.
+
 #### Match the Shapes
 
 ```json
@@ -567,10 +598,64 @@ In WordPress admin, when creating/editing a game:
 ```json
 {
    "gameType": "card-flip",
-   "gridSize": 4,
-   "pairs": 8
+   "rounds": 5,
+   "gridSizes": [
+      [2, 2],
+      [4, 4],
+      [6, 6],
+      [7, 6],
+      [8, 8]
+   ]
 }
 ```
+
+**Configuration:**
+
+-  `gameType` (required): Must be `"card-flip"`
+-  `rounds` (optional): Number of rounds - Default: **5** (recommended for 100 points max)
+-  `gridSizes` (optional): Array of grid sizes - Default: **[[2, 2], [4, 4], [6, 6], [7, 6], [8, 8]]**
+   -  Each element is `[width, height]` or a number (for square grids)
+   -  Round 1: 2x2 grid (uses numbers 1-2)
+   -  Round 2: 4x4 grid (uses heroicons)
+   -  Round 3: 6x6 grid (uses heroicons)
+   -  Round 4: 7x6 grid (uses heroicons, non-square)
+   -  Round 5: 8x8 grid (uses heroicons)
+
+**Scoring:**
+
+-  20 points per correct round (when all pairs are matched)
+-  Maximum 100 points for 5 rounds
+
+**Controls:**
+
+-  **Mouse**:
+   -  Click on a card to flip it and reveal its content
+   -  Click on two cards to try to match them
+   -  Cards automatically flip back if they don't match
+
+**Goal:**
+
+-  Match pairs of cards by remembering their positions
+-  Round 1 uses numbers (1, 2) for easier start
+-  Rounds 2-5 use heroicons (HandThumbUp, PuzzlePiece, etc.) for visual variety
+-  All pairs must be matched to complete the round
+
+**Features:**
+
+-  Progressive difficulty with increasing grid sizes
+-  Round 1 uses numbers for easier start
+-  Rounds 2-5 use heroicons for visual variety
+-  Non-square grids supported (e.g., 7x6 in round 4)
+-  Visual feedback for correct matches
+-  Modern UI matching other games
+-  Full-width grid with 5px spacing between cards
+-  43+ heroicons available for variety
+
+**Recommended Settings:**
+
+-  **Time Limit**: 120 seconds (overall game time)
+-  **Passing Score**: 80 (80% of max score)
+-  **Difficulty**: 2 (medium)
 
 #### Click the Green
 
@@ -859,6 +944,84 @@ In WordPress admin, you can use the "Quick Fill Templates" dropdown and select "
 -  **Passing Score**: 75 (75% of max score)
 -  **Difficulty**: 2 (medium)
 
+#### Block Fill
+
+```json
+{
+   "gameType": "block-fill",
+   "rounds": 20,
+   "gridSize": 6
+}
+```
+
+**Configuration:**
+
+-  `gameType` (required): Must be `"block-fill"`
+-  `rounds` (optional): Number of rounds - Default: **20** (recommended for 100 points max)
+-  `gridSize` (optional): Base size of the grid - Default: **6** (6x6 grid)
+   -  Grid size varies by round: rounds 1-5 = 5x5, rounds 6-10 = 6x6, rounds 11-20 = 7x7
+   -  The game automatically adjusts grid size per round for progressive difficulty
+
+**Scoring:**
+
+-  5 points per correct round (when all pieces are placed and grid is filled)
+-  Maximum 100 points for 20 rounds
+
+**Controls:**
+
+-  **Mouse**:
+   -  Click on a piece in the pieces panel to select it
+   -  Move mouse over grid to see ghost preview (blue = valid placement, red = invalid)
+   -  Click on grid cell to place selected piece
+   -  Click on placed piece to remove it
+-  **Keyboard**:
+   -  **R**: Rotate selected piece (90° clockwise)
+   -  **U**: Undo last placement
+   -  **ESC**: Deselect current piece
+
+**Goal:**
+
+-  Fill the entire grid using all provided polyomino pieces
+-  Pieces cannot overlap
+-  Pieces must fit completely within the grid
+-  All pieces must be used to complete the round
+-  Pieces are selected to exactly match grid area (solvable puzzles)
+
+**How It Works:**
+
+-  Each round presents a grid (5x5, 6x6, or 7x7) and a set of polyomino pieces
+-  Polyomino pieces are shapes made of connected squares (like Tetris pieces)
+-  The total area of all pieces exactly matches the grid area, ensuring the puzzle is solvable
+-  Pieces can be rotated 90° at a time (4 possible rotations)
+-  Ghost preview shows where the selected piece will be placed (blue = valid, red = invalid)
+-  Each placed piece gets a unique color for visual clarity
+
+**Features:**
+
+-  Dynamic grid sizes (5x5, 6x6, 7x7) based on round number
+-  Ghost preview showing valid/invalid placement areas (follows mouse)
+-  Piece rotation (4 rotations: 0°, 90°, 180°, 270°)
+-  Undo functionality to remove last placed piece
+-  Unique colors for each placed piece for visual clarity
+-  Pre-game explanation with instructions and tips
+-  Visual feedback matching other games (correct messages)
+-  Pieces are guaranteed to fit exactly (total area matches grid)
+-  Modern UI with header showing round, score, and progress
+
+**Tips:**
+
+-  Start with larger pieces first
+-  Build from corners and edges
+-  Use rotation to fit pieces better
+-  If stuck, remove pieces and try different placements
+-  Pay attention to the ghost preview to avoid invalid placements
+
+**Recommended Settings:**
+
+-  **Time Limit**: 120 seconds (overall game time)
+-  **Passing Score**: 80 (80% of max score)
+-  **Difficulty**: 3 (medium-hard)
+
 #### Ball Balance
 
 ```json
@@ -1068,6 +1231,7 @@ src/
 -  Mirror Match
 -  Logic Gates
 -  Sequence Arrows
+-  Block Fill
 
 ### Memory Games
 
