@@ -1,4 +1,5 @@
 import { Certificate } from '@/types/game';
+import { getApiHeaders } from './apiUtils';
 
 // Get API base URL
 function getApiBase(): string {
@@ -33,9 +34,7 @@ export async function generateCertificate(
   
   const response = await fetch(`${API_BASE}/certificate/generate`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    headers: getApiHeaders(),
     body: JSON.stringify(body),
   });
   
@@ -48,7 +47,9 @@ export async function generateCertificate(
 }
 
 export async function getCertificate(certificateId: string): Promise<Certificate> {
-  const response = await fetch(`${API_BASE}/certificate/${certificateId}`);
+  const response = await fetch(`${API_BASE}/certificate/${certificateId}`, {
+    headers: getApiHeaders(),
+  });
   
   if (!response.ok) {
     throw new Error('Failed to fetch certificate');

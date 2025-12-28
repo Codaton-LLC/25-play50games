@@ -27,6 +27,12 @@ if (WP_ENVIRONMENT_TYPE === 'local') {
     // define('PLAY50_CORS_ORIGIN', 'https://play50.games,https://www.play50.games');
 }
 
+// API Key for Play50Games REST API
+// Kjo key duhet të përdoret në frontend për të aksesuar API-n
+// Vendos një key të sigurt (përdor një generator të rastësishëm)
+// Për shembull: openssl rand -hex 32
+define('PLAY50_API_KEY', 'play50games251228granit');
+
 // Enable REST API
 define('REST_REQUEST', true);
 

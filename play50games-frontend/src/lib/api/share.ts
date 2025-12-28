@@ -1,4 +1,5 @@
 // Share tracking API client
+import { getApiHeaders } from './apiUtils';
 
 // Get API base URL
 function getApiBase(): string {
@@ -36,9 +37,7 @@ export async function registerShare(shareId: string, gameType: string): Promise<
   try {
     const response = await fetch(`${API_BASE}/share/register`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: getApiHeaders(),
       body: JSON.stringify({
         share_id: shareId,
         game_type: gameType,
@@ -51,7 +50,6 @@ export async function registerShare(shareId: string, gameType: string): Promise<
 
     return response.json();
   } catch (error) {
-    console.error('Error registering share:', error);
     throw error;
   }
 }
@@ -61,32 +59,24 @@ export async function registerShare(shareId: string, gameType: string): Promise<
  */
 export async function trackShareClick(shareId: string): Promise<{ success: boolean; share_id: string; clicks: number }> {
   try {
-    console.log('[Share Tracking] Tracking click for share_id:', shareId);
-    console.log('[Share Tracking] API URL:', `${API_BASE}/share/click`);
     
     const response = await fetch(`${API_BASE}/share/click`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: getApiHeaders(),
       body: JSON.stringify({
         share_id: shareId,
       }),
     });
 
-    console.log('[Share Tracking] Response status:', response.status);
     
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('[Share Tracking] Error response:', errorText);
       throw new Error(`Failed to track click: ${response.status} ${errorText}`);
     }
 
     const result = await response.json();
-    console.log('[Share Tracking] Success:', result);
     return result;
   } catch (error) {
-    console.error('[Share Tracking] Error tracking click:', error);
     throw error;
   }
 }
@@ -98,9 +88,7 @@ export async function getShareStatus(shareId: string): Promise<ShareStatus> {
   try {
     const response = await fetch(`${API_BASE}/share/status/${shareId}`, {
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: getApiHeaders(),
     });
 
     if (!response.ok) {
@@ -109,7 +97,6 @@ export async function getShareStatus(shareId: string): Promise<ShareStatus> {
 
     return response.json();
   } catch (error) {
-    console.error('Error getting share status:', error);
     throw error;
   }
 }

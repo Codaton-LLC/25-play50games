@@ -1,4 +1,5 @@
 import { GameProgress } from '@/types/game';
+import { getApiHeaders } from './apiUtils';
 
 // Get API base URL
 function getApiBase(): string {
@@ -35,19 +36,30 @@ export async function saveProgress(
     body.guest_id = guestId;
   }
   
+  const headers = getApiHeaders();
+  
   const response = await fetch(`${API_BASE}/progress`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    headers: headers,
+    credentials: 'include', // Important for cookies/session
     body: JSON.stringify(body),
   });
   
   if (!response.ok) {
-    throw new Error('Failed to save progress');
+    const errorText = await response.text();
+    throw new Error(`Failed to save progress: ${response.status} ${errorText}`);
   }
   
-  return response.json();
+  const data = await response.json();
+  
+  // Check if server saved to database or just locally
+  if (data && data.success) {
+    if (data.message && data.message.includes('saved locally')) {
+      throw new Error('Server authentication failed - progress not saved to user account');
+    }
+  }
+  
+  return data;
 }
 
 export async function getProgress(gameId?: number, guestId?: string): Promise<GameProgress | Record<number, GameProgress>> {
@@ -60,7 +72,10 @@ export async function getProgress(gameId?: number, guestId?: string): Promise<Ga
   }
   
   const url = `${API_BASE}/progress${params.toString() ? '?' + params.toString() : ''}`;
-  const response = await fetch(url);
+  const response = await fetch(url, {
+    headers: getApiHeaders(),
+    credentials: 'include', // Important for cookies/session
+  });
   
   if (!response.ok) {
     throw new Error('Failed to fetch progress');
@@ -74,7 +89,9 @@ export async function getUnlockStatus(guestId?: string): Promise<Record<number, 
     ? `${API_BASE}/unlock-status?guest_id=${guestId}`
     : `${API_BASE}/unlock-status`;
   
-  const response = await fetch(url);
+  const response = await fetch(url, {
+    headers: getApiHeaders(),
+  });
   
   if (!response.ok) {
     throw new Error('Failed to fetch unlock status');

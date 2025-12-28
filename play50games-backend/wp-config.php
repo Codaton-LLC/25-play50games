@@ -91,13 +91,31 @@ if (strpos($host, 'localhost') !== false || strpos($host, '127.0.0.1') !== false
     define('WP_ENVIRONMENT_TYPE', 'local');
     define('PLAY50_CORS_ORIGIN', '*');
 } else {
-    // Production environment - allow production frontend + localhost for development
+    // Production environment - specify your frontend domain
+    // Include localhost for development testing
     define('WP_ENVIRONMENT_TYPE', 'production');
-    // Allow production frontend, localhost development, and common local IPs
-    define('PLAY50_CORS_ORIGIN', 'https://play50.games,http://localhost:3000,http://localhost:3001,http://127.0.0.1:3000,http://127.0.0.1:3001');
-    // Nëse ke multiple production domains, shto këtu:
-    // define('PLAY50_CORS_ORIGIN', 'https://play50.games,https://www.play50.games,http://localhost:3000,http://127.0.0.1:3000');
+    define('PLAY50_CORS_ORIGIN', 'https://play50.games,http://localhost:3000,http://localhost:3001,http://127.0.0.1:3000');
+    // Nëse ke multiple domains, përdor:
+    // define('PLAY50_CORS_ORIGIN', 'https://play50.games,https://www.play50.games,http://localhost:3000');
 }
+// ============================================
+
+// ============================================
+// Play50Games JWT Configuration
+// ============================================
+// JWT Secret Key për JWT Authentication
+// Duhet të jetë i njëjtë me secret key që përdor plugin-i JWT Authentication for WP REST API
+// IMPORTANT: Duhet të jetë PARA require_once(ABSPATH . 'wp-settings.php');
+define('JWT_AUTH_SECRET_KEY', 'play50games251228granit78954561fewtr435gad');
+define('JWT_AUTH_CORS_ENABLE', true);
+// ============================================
+
+// ============================================
+// Play50Games API Key Configuration
+// ============================================
+// API Key për REST API - duhet të përputhet me NEXT_PUBLIC_PLAY50_API_KEY në frontend
+// Gjenero një key të sigurt: openssl rand -hex 32
+define('PLAY50_API_KEY', 'play50games251228granit');
 // ============================================
 
 /* That's all, stop editing! Happy blogging. */
