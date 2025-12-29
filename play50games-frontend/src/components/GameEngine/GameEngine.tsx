@@ -406,6 +406,206 @@ export default function GameEngine({
                   </div>
                )}
 
+               {/* Interactive Example for Number Recall */}
+               {gameType === "number-recall" && (
+                  <div
+                     style={{
+                        background:
+                           "linear-gradient(135deg, rgba(125, 211, 252, 0.1) 0%, rgba(54, 211, 153, 0.1) 100%)",
+                        border: "2px solid var(--stroke)",
+                        borderRadius: "20px",
+                        padding: "32px",
+                        marginTop: "24px",
+                        boxShadow: "0 8px 24px rgba(0, 0, 0, 0.2)",
+                     }}
+                  >
+                     <div
+                        style={{
+                           display: "flex",
+                           alignItems: "center",
+                           justifyContent: "center",
+                           gap: "12px",
+                           marginBottom: "24px",
+                        }}
+                     >
+                        <SparklesIcon
+                           style={{
+                              width: 28,
+                              height: 28,
+                              color: "var(--accent)",
+                           }}
+                        />
+                        <h3
+                           style={{
+                              fontSize: "24px",
+                              fontWeight: 700,
+                              margin: 0,
+                              background:
+                                 "linear-gradient(135deg, var(--accent) 0%, var(--ok) 100%)",
+                              WebkitBackgroundClip: "text",
+                              WebkitTextFillColor: "transparent",
+                              backgroundClip: "text",
+                           }}
+                        >
+                           Example Round
+                        </h3>
+                     </div>
+
+                     <div
+                        style={{
+                           background: "var(--card)",
+                           border: "2px solid var(--stroke)",
+                           borderRadius: "16px",
+                           padding: "24px",
+                           marginBottom: "20px",
+                        }}
+                     >
+                        <p
+                           style={{
+                              margin: "0 0 16px",
+                              color: "var(--text)",
+                              fontSize: "16px",
+                              fontWeight: 600,
+                              textAlign: "center",
+                           }}
+                        >
+                           Watch the number appear, then type it:
+                        </p>
+                        <div
+                           style={{
+                              height: "140px",
+                              borderRadius: "18px",
+                              border: "1px solid var(--stroke)",
+                              background:
+                                 "radial-gradient(220px 140px at 30% 30%, rgba(125, 211, 252, 0.14), transparent 55%), linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02))",
+                              boxShadow: "0 10px 18px rgba(0, 0, 0, 0.22)",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              fontSize: "42px",
+                              fontWeight: 900,
+                              letterSpacing: "6px",
+                              color: "var(--text)",
+                              marginBottom: "20px",
+                           }}
+                        >
+                           4729
+                        </div>
+                        <div
+                           style={{
+                              display: "flex",
+                              gap: "10px",
+                              alignItems: "center",
+                           }}
+                        >
+                           <input
+                              type="text"
+                              value="4729"
+                              readOnly
+                              style={{
+                                 flex: 1,
+                                 borderRadius: "12px",
+                                 border: "1px solid var(--stroke)",
+                                 background: "rgba(15, 27, 51, 0.7)",
+                                 color: "var(--text)",
+                                 padding: "12px",
+                                 fontSize: "18px",
+                                 letterSpacing: "4px",
+                                 textAlign: "center",
+                                 fontFamily: "monospace",
+                                 fontWeight: 600,
+                              }}
+                           />
+                           <button
+                              style={{
+                                 padding: "12px 24px",
+                                 borderRadius: "12px",
+                                 border: "1px solid var(--stroke)",
+                                 background:
+                                    "linear-gradient(180deg, rgba(110, 168, 255, 0.9), rgba(110, 168, 255, 0.55))",
+                                 color: "#081126",
+                                 fontWeight: 700,
+                                 fontSize: "16px",
+                                 cursor: "default",
+                              }}
+                           >
+                              OK
+                           </button>
+                        </div>
+                        <p
+                           style={{
+                              margin: "16px 0 0",
+                              color: "var(--muted)",
+                              fontSize: "14px",
+                              textAlign: "center",
+                              fontStyle: "italic",
+                           }}
+                        >
+                           Type the sequence: <strong>4729</strong>
+                        </p>
+                     </div>
+
+                     {isMobile && (
+                        <p
+                           style={{
+                              margin: "16px 0 0",
+                              color: "var(--muted)",
+                              fontSize: "13px",
+                              textAlign: "center",
+                              fontStyle: "italic",
+                           }}
+                        >
+                           <span
+                              style={{
+                                 display: "flex",
+                                 alignItems: "center",
+                                 gap: "6px",
+                                 justifyContent: "center",
+                              }}
+                           >
+                              <CursorArrowRaysIcon
+                                 style={{
+                                    width: 16,
+                                    height: 16,
+                                    color: "var(--accent)",
+                                 }}
+                              />
+                              Tap to type numbers
+                           </span>
+                        </p>
+                     )}
+                     {!isMobile && (
+                        <p
+                           style={{
+                              margin: "16px 0 0",
+                              color: "var(--muted)",
+                              fontSize: "13px",
+                              textAlign: "center",
+                              fontStyle: "italic",
+                           }}
+                        >
+                           <span
+                              style={{
+                                 display: "flex",
+                                 alignItems: "center",
+                                 gap: "6px",
+                                 justifyContent: "center",
+                              }}
+                           >
+                              <KeyIcon
+                                 style={{
+                                    width: 16,
+                                    height: 16,
+                                    color: "var(--accent)",
+                                 }}
+                              />
+                              Type numbers or press Enter to submit
+                           </span>
+                        </p>
+                     )}
+                  </div>
+               )}
+
                {/* Interactive Example for Sound Memory */}
                {gameType === "sound-memory" && (
                   <div

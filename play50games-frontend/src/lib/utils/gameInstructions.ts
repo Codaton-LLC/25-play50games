@@ -268,7 +268,15 @@ export const gameInstructions: Record<string, {
   'number-recall': {
     description: 'Remember and type a number sequence',
     instructions: 'Watch the numbers appear on screen. After they disappear, type the sequence you saw in the correct order.',
-    tips: 'Break long sequences into smaller chunks. Remember groups of 2-3 numbers at a time.'
+    tips: 'Break long sequences into smaller chunks. Remember groups of 2-3 numbers at a time.',
+    mouseControls: [
+      { action: 'Type', label: 'Type the number sequence in the input field' },
+      { action: 'Click', label: 'Click "OK" button to submit your answer' }
+    ],
+    keyboardControls: [
+      { keys: ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'], label: 'Type numbers 0-9 to enter the sequence' },
+      { keys: ['Enter'], label: 'Press Enter to submit your answer' }
+    ]
   },
   'image-recall': {
     description: 'Remember image order',

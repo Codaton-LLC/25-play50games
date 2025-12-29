@@ -141,7 +141,7 @@ The platform includes a share tracking system that allows users to share games a
 
 ### How It Works
 
-1. **Sharing**: When a user clicks "Share for Unlimited Hints" in supported games (Card Flip Memory, Tile Slider, Sound Memory, Emoji Memory), a unique share link is generated and copied to clipboard
+1. **Sharing**: When a user clicks "Share for Unlimited Hints" in supported games (Card Flip Memory, Tile Slider, Sound Memory, Emoji Memory, Number Recall), a unique share link is generated and copied to clipboard
 2. **Link Tracking**: The share link includes a `shared` URL parameter with a unique ID
 3. **Click Detection**: When someone opens the shared link, the system tracks the click in the backend
 4. **Unlimited Hints**: The original sharer receives unlimited hints for 15 minutes after someone clicks their link
@@ -154,6 +154,7 @@ The platform includes a share tracking system that allows users to share games a
 -  **Tile Slider**: Share to unlock unlimited hints (up to 5 hints by default)
 -  **Sound Memory**: Share to unlock unlimited replay (5 replays by default)
 -  **Emoji Memory**: Share to unlock unlimited hints (10 hints by default)
+-  **Number Recall**: Share to unlock unlimited hints (10 hints by default, reveals digits one by one)
 
 ### Admin Interface
 
@@ -1255,6 +1256,90 @@ In WordPress admin, you can use the "Quick Fill Templates" dropdown and select "
 -  **Passing Score**: 75 (75% of max score)
 -  **Difficulty**: 2 (medium)
 
+#### Number Recall
+
+```json
+{
+   "gameType": "number-recall",
+   "rounds": 15
+}
+```
+
+**Configuration:**
+
+-  `gameType` (required): Must be `"number-recall"`
+-  `rounds` (optional): Number of rounds - Default: **15** (recommended for 100 points max)
+
+**Scoring:**
+
+-  Score is calculated based on completed rounds: `Math.round((completedRounds / maxRounds) * 100)`
+-  Maximum 100 points for 15 rounds
+-  Score increases progressively with each completed round
+-  Example: Round 1 = 7 points, Round 2 = 13 points, ..., Round 15 = 100 points
+
+**Controls:**
+
+-  **Mouse**:
+   -  Type the number sequence in the input field
+   -  Click "OK" button to submit your answer
+-  **Keyboard**:
+   -  Type numbers **0-9** to enter the sequence
+   -  Press **Enter** to submit your answer
+
+**Goal:**
+
+-  Watch the numbers appear on screen
+-  After they disappear, type the sequence you saw in the correct order
+-  Sequence length increases with each round: 3 + round (minimum 3, maximum 10 digits)
+-  Show time increases with round: 1200ms + round \* 200ms
+-  If you make a mistake, you can retry the same round (game doesn't end)
+
+**How It Works:**
+
+-  Each round displays a sequence of random numbers (0-9)
+-  Numbers are shown for a brief period (1.2-4.2 seconds based on round)
+-  After numbers disappear, you must type the exact sequence
+-  Sequence length increases: Round 1 = 3 digits, Round 2 = 4 digits, ..., Round 7+ = 10 digits (max)
+-  Wrong answers show red feedback but allow retry (game continues)
+
+**Features:**
+
+-  Progressive difficulty with increasing sequence length and display time
+-  Visual feedback with colored number display box (gradient background)
+-  Notification messages like Match the Shapes (green for correct, red for wrong)
+-  Modern UI with header showing round, score, and progress bar
+-  Game state display (Memorizing, Your Turn, Correct, Wrong)
+-  **Hint System**: 10 hints by default, unlimited if shared
+   -  Click "Hint" button to reveal digits one by one
+   -  First hint reveals first digit, second hint reveals second digit, etc.
+   -  Revealed digits stay visible (blue color) until round ends
+   -  Share the game to unlock unlimited hints for 15 minutes
+-  **Share Feature**: Share the game to unlock unlimited hints
+   -  Click "Share for Unlimited Hints" button to copy a shareable link
+   -  When someone else opens the shared link, the original sharer gets unlimited hints for 15 minutes
+   -  The system uses a heartbeat mechanism (checks every 10 seconds) to detect when the link is clicked
+   -  A success message appears for 15 seconds when unlimited hints are activated
+   -  Hints automatically expire after 15 minutes and return to normal
+-  Interactive example in game instructions section with visual number display
+-  Mouse and keyboard controls displayed in game instructions
+-  Fully responsive design optimized for mobile, tablet, and desktop
+-  Touch-optimized for mobile devices
+-  Game continues on wrong answer (allows retry instead of ending)
+-  Monospace font for number input with letter spacing for better readability
+
+**Tips:**
+
+-  Break long sequences into smaller chunks
+-  Remember groups of 2-3 numbers at a time
+-  Use hints strategically when stuck
+-  Share the game to get unlimited hints if needed
+
+**Recommended Settings:**
+
+-  **Time Limit**: 60 seconds (overall game time)
+-  **Passing Score**: 75 (75% of max score)
+-  **Difficulty**: 2 (medium)
+
 #### Block Fill
 
 ```json
@@ -1523,7 +1608,7 @@ src/
 -  **Modern UI**: Gradient backgrounds, animations, and visual feedback
 -  **Game Instructions**: Detailed instructions and tips displayed before each game
 -  **Diagnostics Page**: API connectivity and CORS diagnostics
--  **Share Feature**: Share games to unlock unlimited hints (Card Flip Memory, Tile Slider, Sound Memory, Emoji Memory)
+-  **Share Feature**: Share games to unlock unlimited hints (Card Flip Memory, Tile Slider, Sound Memory, Emoji Memory, Number Recall)
 
 ## Game Types
 
@@ -1550,6 +1635,7 @@ src/
 -  Card Flip Memory
 -  Sound Memory
 -  Emoji Memory
+-  Number Recall
 
 ### Speed Games
 

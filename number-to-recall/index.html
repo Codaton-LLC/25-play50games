@@ -1,0 +1,301 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Number Recall</title>
+  <style>
+    :root{
+      --bg:#0b1220;
+      --panel:#0f1b33;
+      --text:#e8eefc;
+      --muted:#a6b3d1;
+      --accent:#6ea8ff;
+      --good:#36d399;
+      --bad:#fb7185;
+      --shadow: 0 12px 30px rgba(0,0,0,.35);
+      --radius:18px;
+    }
+
+    *{box-sizing:border-box;}
+    body{
+      margin:0;
+      font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,Arial,sans-serif;
+      background: radial-gradient(1200px 800px at 70% -10%, rgba(110,168,255,.28), transparent 60%),
+                  radial-gradient(900px 600px at 0% 10%, rgba(54,211,153,.18), transparent 55%),
+                  var(--bg);
+      color:var(--text);
+      min-height:100svh;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:24px;
+    }
+
+    .app{
+      width:min(900px, 100%);
+      display:grid;
+      grid-template-columns: 1.2fr .8fr;
+      gap:18px;
+    }
+
+    @media (max-width: 900px){
+      .app{grid-template-columns:1fr;}
+    }
+
+    .panel{
+      background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
+      border:1px solid rgba(255,255,255,.10);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow:hidden;
+    }
+
+    header{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      padding:18px 18px 12px;
+      gap:12px;
+    }
+
+    .title h1{margin:0; font-size:18px;}
+    .title p{margin:4px 0 0; color:var(--muted); font-size:13px;}
+
+    button{
+      border-radius:12px;
+      border:1px solid rgba(255,255,255,.12);
+      background: rgba(15,27,51,.7);
+      color:var(--text);
+      padding:10px 14px;
+      cursor:pointer;
+      font-weight:700;
+      transition:.15s;
+    }
+    button.primary{
+      background: linear-gradient(180deg, rgba(110,168,255,.9), rgba(110,168,255,.55));
+      color:#081126;
+    }
+
+    .row{
+      display:flex;
+      gap:12px;
+      padding:0 18px 14px;
+      border-top:1px solid rgba(255,255,255,.08);
+      border-bottom:1px solid rgba(255,255,255,.08);
+      background: rgba(11,22,48,.45);
+      justify-content:space-between;
+      flex-wrap:wrap;
+    }
+
+    .pill{
+      padding:8px 12px;
+      border-radius:999px;
+      background: rgba(17,28,53,.55);
+      border:1px solid rgba(255,255,255,.10);
+      font-size:13px;
+    }
+
+    .content{padding:18px; display:flex; flex-direction:column; gap:16px;}
+
+    .prompt{
+      padding:14px;
+      border-radius:16px;
+      background: rgba(17,28,53,.45);
+      border:1px solid rgba(255,255,255,.10);
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+    }
+
+    .badge{
+      padding:6px 10px;
+      border-radius:999px;
+      font-size:12px;
+      font-weight:900;
+      border:1px solid rgba(255,255,255,.12);
+      background: rgba(15,27,51,.55);
+    }
+    .badge.good{color:var(--good); border-color: rgba(54,211,153,.45);} 
+    .badge.bad{color:var(--bad); border-color: rgba(251,113,133,.45);} 
+
+    .numberBox{
+      height:140px;
+      border-radius:18px;
+      border:1px solid rgba(255,255,255,.10);
+      background: radial-gradient(220px 140px at 30% 30%, rgba(110,168,255,.14), transparent 55%),
+                  linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.02));
+      box-shadow: 0 10px 18px rgba(0,0,0,.22);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size:42px;
+      font-weight:900;
+      letter-spacing:6px;
+    }
+
+    .inputWrap{
+      display:flex;
+      gap:10px;
+      margin-top:10px;
+    }
+
+    input{
+      flex:1;
+      border-radius:12px;
+      border:1px solid rgba(255,255,255,.12);
+      background: rgba(15,27,51,.7);
+      color:var(--text);
+      padding:12px;
+      font-size:18px;
+      letter-spacing:4px;
+      text-align:center;
+      outline:none;
+    }
+
+    .side{padding:18px; display:flex; flex-direction:column; gap:14px;}
+    .box{
+      background: rgba(11,22,48,.35);
+      border:1px solid rgba(255,255,255,.10);
+      border-radius:16px;
+      padding:14px;
+    }
+    .box h2{margin:0 0 6px; font-size:14px;}
+    .box p, .box li{margin:0; color:var(--muted); font-size:13px; line-height:1.35;}
+    ul{ margin:10px 0 0; padding-left:18px; }
+  </style>
+</head>
+<body>
+  <div class="app">
+
+    <section class="panel">
+      <header>
+        <div class="title">
+          <h1>Number Recall</h1>
+          <p>Watch the numbers and type them in the correct order.</p>
+        </div>
+        <button class="primary" id="newBtn">New</button>
+      </header>
+
+      <div class="row">
+        <div class="pill">Round: <b id="round">1</b></div>
+        <div class="pill">Score: <b id="score">0</b></div>
+      </div>
+
+      <div class="content">
+        <div class="prompt">
+          <div>
+            <b id="stateText">Memorize the number…</b>
+            <small style="color:var(--muted)">It will disappear shortly</small>
+          </div>
+          <span class="badge" id="badge">Playing</span>
+        </div>
+
+        <div class="numberBox" id="numberBox"></div>
+
+        <div class="inputWrap">
+          <input type="text" id="answer" placeholder="Type the sequence" disabled />
+          <button id="submitBtn">OK</button>
+        </div>
+      </div>
+    </section>
+
+    <aside class="panel">
+      <div class="side">
+        <div class="box">
+          <h2>How to Play</h2>
+          <ul>
+            <li>Watch the numbers appear on screen.</li>
+            <li>After they disappear, type the sequence.</li>
+            <li>Submit in the same order.</li>
+          </ul>
+        </div>
+        <div class="box">
+          <h2>Tips</h2>
+          <ul>
+            <li>Break long sequences into <b>small chunks</b>.</li>
+            <li>Remember groups of <b>2–3 numbers</b> at a time.</li>
+          </ul>
+        </div>
+      </div>
+    </aside>
+
+  </div>
+
+<script>
+  const numberBox = document.getElementById('numberBox');
+  const answerInput = document.getElementById('answer');
+  const submitBtn = document.getElementById('submitBtn');
+  const roundEl = document.getElementById('round');
+  const scoreEl = document.getElementById('score');
+  const badgeEl = document.getElementById('badge');
+  const stateTextEl = document.getElementById('stateText');
+  const newBtn = document.getElementById('newBtn');
+
+  let round = 1;
+  let score = 0;
+  let sequence = '';
+  let showing = true;
+
+  function randomSequence(len){
+    let s = '';
+    for (let i=0;i<len;i++) s += Math.floor(Math.random()*10);
+    return s;
+  }
+
+  function showSequence(){
+    showing = true;
+    stateTextEl.textContent = 'Memorize the number…';
+    badgeEl.textContent = 'Playing';
+    badgeEl.className = 'badge';
+
+    const length = Math.min(3 + round, 10);
+    sequence = randomSequence(length);
+    numberBox.textContent = sequence;
+    answerInput.value = '';
+    answerInput.disabled = true;
+
+    setTimeout(()=>{
+      numberBox.textContent = '••••••';
+      showing = false;
+      answerInput.disabled = false;
+      answerInput.focus();
+      stateTextEl.textContent = 'Type the sequence';
+    }, 1200 + round * 200);
+  }
+
+  function submit(){
+    if (showing) return;
+    if (answerInput.value === sequence){
+      badgeEl.textContent = 'Correct';
+      badgeEl.className = 'badge good';
+      score++;
+    } else {
+      badgeEl.textContent = 'Wrong';
+      badgeEl.className = 'badge bad';
+    }
+    scoreEl.textContent = score;
+
+    setTimeout(()=>{
+      round++;
+      roundEl.textContent = round;
+      showSequence();
+    }, 800);
+  }
+
+  function reset(){
+    round = 1;
+    score = 0;
+    roundEl.textContent = round;
+    scoreEl.textContent = score;
+    showSequence();
+  }
+
+  submitBtn.addEventListener('click', submit);
+  answerInput.addEventListener('keydown', e=>{ if (e.key === 'Enter') submit(); });
+  newBtn.addEventListener('click', reset);
+
+  reset();
+</script>
+</body>
+</html>

@@ -447,7 +447,7 @@ function show_games_custom_fields() {
                 passingScore: 75,
                 unlockRequirement: '',
                 description: 'Remember and type a number sequence',
-                gameConfig: '{"gameType": "number-recall", "digits": 4, "rounds": 3}'
+                gameConfig: '{"gameType": "number-recall", "rounds": 15}'
             },
             'image-recall': {
                 title: 'Image Recall',
