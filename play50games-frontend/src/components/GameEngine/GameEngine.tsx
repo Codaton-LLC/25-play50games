@@ -1064,6 +1064,207 @@ export default function GameEngine({
                   </div>
                )}
 
+               {/* Interactive Example for Path Memory */}
+               {gameType === "path-memory" && (
+                  <div
+                     style={{
+                        background:
+                           "linear-gradient(135deg, rgba(125, 211, 252, 0.1) 0%, rgba(54, 211, 153, 0.1) 100%)",
+                        border: "2px solid var(--stroke)",
+                        borderRadius: isMobile ? "16px" : isTablet ? "18px" : "20px",
+                        padding: isMobile ? "20px" : isTablet ? "24px" : "32px",
+                        marginTop: isMobile ? "16px" : "24px",
+                        boxShadow: "0 8px 24px rgba(0, 0, 0, 0.2)",
+                     }}
+                  >
+                     <div
+                        style={{
+                           display: "flex",
+                           alignItems: "center",
+                           justifyContent: "center",
+                           gap: isMobile ? "8px" : "12px",
+                           marginBottom: isMobile ? "16px" : isTablet ? "20px" : "24px",
+                        }}
+                     >
+                        <SparklesIcon
+                           style={{
+                              width: isMobile ? 20 : isTablet ? 24 : 28,
+                              height: isMobile ? 20 : isTablet ? 24 : 28,
+                              color: "var(--accent)",
+                           }}
+                        />
+                        <h3
+                           style={{
+                              fontSize: isMobile ? "18px" : isTablet ? "20px" : "24px",
+                              fontWeight: 700,
+                              margin: 0,
+                              background:
+                                 "linear-gradient(135deg, var(--accent) 0%, var(--ok) 100%)",
+                              WebkitBackgroundClip: "text",
+                              WebkitTextFillColor: "transparent",
+                              backgroundClip: "text",
+                           }}
+                        >
+                           Example Path
+                        </h3>
+                     </div>
+
+                     <div
+                        style={{
+                           background: "var(--card)",
+                           border: "2px solid var(--stroke)",
+                           borderRadius: isMobile ? "14px" : isTablet ? "15px" : "16px",
+                           padding: isMobile ? "16px" : isTablet ? "20px" : "24px",
+                           marginBottom: isMobile ? "16px" : isTablet ? "20px" : "24px",
+                        }}
+                     >
+                        <p
+                           style={{
+                              margin: "0 0 16px",
+                              color: "var(--text)",
+                              fontSize: isMobile ? "14px" : isTablet ? "15px" : "16px",
+                              fontWeight: 600,
+                              textAlign: "center",
+                           }}
+                        >
+                           Watch the path flash, then click cells in the same order:
+                        </p>
+                        <div
+                           style={{
+                              display: "grid",
+                              gridTemplateColumns: `repeat(5, ${isMobile ? "36px" : isTablet ? "40px" : "44px"})`,
+                              gap: isMobile ? "6px" : isTablet ? "8px" : "10px",
+                              maxWidth: "fit-content",
+                              margin: "0 auto",
+                           }}
+                        >
+                           {Array.from({ length: 25 }).map((_, i) => {
+                              // Example path: 0 → 1 → 6 → 7 → 12 (top-left to bottom-right diagonal pattern)
+                              const examplePath = [0, 1, 6, 7, 12];
+                              const isInPath = examplePath.includes(i);
+                              const orderInPath = examplePath.indexOf(i);
+                              return (
+                                 <div
+                                    key={i}
+                                    style={{
+                                       width: isMobile ? "36px" : isTablet ? "40px" : "44px",
+                                       height: isMobile ? "36px" : isTablet ? "40px" : "44px",
+                                       borderRadius: "16px",
+                                       border: isInPath
+                                          ? "2px solid rgba(110, 168, 255, 0.75)"
+                                          : "1px solid rgba(255, 255, 255, 0.1)",
+                                       background: isInPath
+                                          ? "rgba(110, 168, 255, 0.18)"
+                                          : "rgba(15, 27, 51, 0.45)",
+                                       boxShadow: isInPath
+                                          ? "0 0 26px rgba(110, 168, 255, 0.55)"
+                                          : "0 10px 18px rgba(0, 0, 0, 0.16)",
+                                       display: "flex",
+                                       alignItems: "center",
+                                       justifyContent: "center",
+                                       position: "relative",
+                                       transition: "all 0.2s ease",
+                                    }}
+                                 >
+                                    {isInPath && (
+                                       <div
+                                          style={{
+                                             position: "absolute",
+                                             inset: "auto 8px 8px auto",
+                                             width: isMobile ? "20px" : isTablet ? "22px" : "24px",
+                                             height: isMobile ? "20px" : isTablet ? "22px" : "24px",
+                                             borderRadius: "999px",
+                                             background: "rgba(15, 27, 51, 0.62)",
+                                             border: "1px solid rgba(255, 255, 255, 0.12)",
+                                             display: "grid",
+                                             placeItems: "center",
+                                             fontWeight: 900,
+                                             fontSize: isMobile ? "10px" : isTablet ? "11px" : "12px",
+                                             color: "rgba(232, 238, 252, 0.95)",
+                                             zIndex: 2,
+                                          }}
+                                       >
+                                          {orderInPath + 1}
+                                       </div>
+                                    )}
+                                 </div>
+                              );
+                           })}
+                        </div>
+                        <p
+                           style={{
+                              margin: "16px 0 0",
+                              color: "var(--muted)",
+                              fontSize: isMobile ? "12px" : isTablet ? "13px" : "14px",
+                              textAlign: "center",
+                              fontStyle: "italic",
+                           }}
+                        >
+                           Path: <strong>1 → 2 → 7 → 8 → 13</strong> (click cells in this order)
+                        </p>
+                     </div>
+
+                     {isMobile && (
+                        <p
+                           style={{
+                              margin: "16px 0 0",
+                              color: "var(--muted)",
+                              fontSize: "13px",
+                              textAlign: "center",
+                              fontStyle: "italic",
+                           }}
+                        >
+                           <span
+                              style={{
+                                 display: "flex",
+                                 alignItems: "center",
+                                 gap: "6px",
+                                 justifyContent: "center",
+                              }}
+                           >
+                              <CursorArrowRaysIcon
+                                 style={{
+                                    width: 16,
+                                    height: 16,
+                                    color: "var(--accent)",
+                                 }}
+                              />
+                              Tap cells to recreate the path
+                           </span>
+                        </p>
+                     )}
+                     {!isMobile && (
+                        <p
+                           style={{
+                              margin: "16px 0 0",
+                              color: "var(--muted)",
+                              fontSize: "13px",
+                              textAlign: "center",
+                              fontStyle: "italic",
+                           }}
+                        >
+                           <span
+                              style={{
+                                 display: "flex",
+                                 alignItems: "center",
+                                 gap: "6px",
+                                 justifyContent: "center",
+                              }}
+                           >
+                              <CursorArrowRaysIcon
+                                 style={{
+                                    width: 16,
+                                    height: 16,
+                                    color: "var(--accent)",
+                                 }}
+                              />
+                              Click cells to recreate the path
+                           </span>
+                        </p>
+                     )}
+                  </div>
+               )}
+
                {/* Enhanced Start Screen for Mirror Match */}
                {gameType === "mirror-match" && (
                   <div

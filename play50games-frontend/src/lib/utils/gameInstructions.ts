@@ -297,8 +297,18 @@ export const gameInstructions: Record<string, {
   },
   'path-memory': {
     description: 'Recreate a path on a grid',
-    instructions: 'Watch the path that lights up on the grid. After it disappears, click on the cells to recreate the same path.',
-    tips: 'Follow the path visually. Remember the starting point and the direction of movement.'
+    instructions: 'Watch the path that lights up on the grid. After it disappears, click on the cells to recreate the same path in the same order. The path length increases with each round!',
+    tips: 'Remember the starting point. Follow the direction of movement step by step. Create a mental map of the path sequence.',
+    mouseControls: [
+      { action: 'Click', label: 'Click cells in the same order as the path that was shown' },
+    ],
+    keyboardControls: [
+      { keys: ['ArrowUp', 'W'], label: 'Move selection Up' },
+      { keys: ['ArrowDown', 'S'], label: 'Move selection Down' },
+      { keys: ['ArrowLeft', 'A'], label: 'Move selection Left' },
+      { keys: ['ArrowRight', 'D'], label: 'Move selection Right' },
+      { keys: ['Enter', 'Space'], label: 'Select highlighted cell' },
+    ],
   },
   'word-memory': {
     description: 'Remember and select words',

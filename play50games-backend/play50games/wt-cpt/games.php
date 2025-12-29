@@ -201,14 +201,21 @@ function show_games_custom_fields() {
         // Filter templates by category
         function filterTemplatesByCategory(category) {
             const $template = $('#game_template');
-            const $options = $template.find('option, optgroup');
             
             if (category === 'all') {
-                $options.show();
+                // Show all optgroups and options
+                $template.find('optgroup').show();
+                $template.find('option').show();
             } else {
-                $options.hide();
-                $template.find('option[value=""]').show(); // Always show the default option
+                // Hide all optgroups first
+                $template.find('optgroup').hide();
+                // Show only the matching optgroup
                 $template.find('optgroup[data-category="' + category + '"]').show();
+                // Show the default option
+                $template.find('option[value=""]').show();
+                // Hide all options that don't match the category
+                $template.find('option[data-category]').hide();
+                // Show options that match the category
                 $template.find('option[data-category="' + category + '"]').show();
             }
             
@@ -465,11 +472,11 @@ function show_games_custom_fields() {
                 gameType: 'memory',
                 gameOrder: 21,
                 difficulty: 2,
-                timeLimit: 60,
+                timeLimit: 90,
                 passingScore: 75,
                 unlockRequirement: '',
-                description: 'Recreate a path on a grid',
-                gameConfig: '{"gameType": "path-memory", "rounds": 3}'
+                description: 'Watch the path that lights up on the grid. After it disappears, click on the cells to recreate the same path in the same order.',
+                gameConfig: '{"gameType": "path-memory", "rounds": 15, "gridSize": 5}'
             },
             'word-memory': {
                 title: 'Word Memory',

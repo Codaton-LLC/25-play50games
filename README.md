@@ -156,6 +156,7 @@ The platform includes a share tracking system that allows users to share games a
 -  **Emoji Memory**: Share to unlock unlimited hints (10 hints by default)
 -  **Number Recall**: Share to unlock unlimited hints (10 hints by default, reveals digits one by one)
 -  **Image Recall**: Share to unlock unlimited hints (10 hints by default, reveals positions one by one)
+-  **Path Memory**: Share to unlock unlimited hints (10 hints by default, reveals path positions one by one)
 
 ### Admin Interface
 
@@ -1435,6 +1436,96 @@ In WordPress admin, you can use the "Quick Fill Templates" dropdown and select "
 -  Create a story or association to remember the order
 -  Visualize the sequence as a story
 -  Focus on order and positions
+-  Use hints strategically when stuck
+-  Share the game to get unlimited hints if needed
+
+**Recommended Settings:**
+
+-  **Time Limit**: 90 seconds (overall game time)
+-  **Passing Score**: 75 (75% of max score)
+-  **Difficulty**: 2 (medium)
+
+#### Path Memory
+
+```json
+{
+   "gameType": "path-memory",
+   "rounds": 15,
+   "gridSize": 5
+}
+```
+
+**Configuration:**
+
+-  `gameType` (required): Must be `"path-memory"`
+-  `rounds` (optional): Number of rounds - Default: **15** (recommended for 100 points max)
+-  `gridSize` (optional): Grid size - Default: **5** (5x5 grid)
+
+**Scoring:**
+
+-  Score is calculated based on completed rounds: `Math.round((completedRounds / maxRounds) * 100)`
+-  Maximum 100 points for 15 rounds
+-  Score increases progressively with each completed round
+-  Example: Round 1 = 7 points, Round 2 = 13 points, ..., Round 15 = 100 points
+
+**Controls:**
+
+-  **Mouse**:
+   -  Click cells in the same order as the path that was shown
+-  **Keyboard**:
+   -  Press **ArrowUp** or **W** to move selection Up
+   -  Press **ArrowDown** or **S** to move selection Down
+   -  Press **ArrowLeft** or **A** to move selection Left
+   -  Press **ArrowRight** or **D** to move selection Right
+   -  Press **Enter** or **Space** to select highlighted cell
+
+**Goal:**
+
+-  Watch the path that lights up on the grid
+-  After it disappears, click on the cells to recreate the same path in the same order
+-  Path length increases with each round: 3 + Math.floor(round / 2) (minimum 3, maximum 9)
+-  If you make a mistake, you can retry the same round (game doesn't end)
+
+**How It Works:**
+
+-  Each round displays a path on a 5x5 grid that flashes one cell at a time
+-  Path is generated using a random walk algorithm (no revisiting cells)
+-  Path length increases with round number: 3-9 cells
+-  Each cell flashes for 320ms with a 480ms delay between flashes
+-  After the path completes, all cells are hidden and you must click them in order
+-  Wrong answers show red feedback but allow retry (game continues)
+
+**Features:**
+
+-  Progressive difficulty with increasing path length
+-  Visual feedback with flash animation for active cells
+-  Notification messages like Match the Shapes (green for correct, red for wrong)
+-  Modern UI with header showing round, score, path length, and progress bar
+-  Game state display (Watch the path…, Your turn: recreate the path, Correct, Wrong)
+-  **Hint System**: 10 hints by default, unlimited if shared
+   -  Click "Hint" button to reveal path positions one by one
+   -  First hint reveals first position, second hint reveals second position, etc.
+   -  Revealed positions stay visible (yellow border with marker) until round ends
+   -  Share the game to unlock unlimited hints for 15 minutes
+-  **Share Feature**: Share the game to unlock unlimited hints
+   -  Click "Share for Unlimited Hints" button to copy a shareable link
+   -  When someone else opens the shared link, the original sharer gets unlimited hints for 15 minutes
+   -  The system uses a heartbeat mechanism (checks every 10 seconds) to detect when the link is clicked
+   -  A success message appears for 15 seconds when unlimited hints are activated
+   -  Hints automatically expire after 15 minutes and return to normal
+-  Interactive example in game instructions section with visual grid
+-  Mouse and keyboard controls displayed in game instructions
+-  Fully responsive design optimized for mobile, tablet, and desktop
+-  Touch-optimized for mobile devices
+-  Game continues on wrong answer (allows retry instead of ending)
+-  Order markers show which position you clicked (1, 2, 3, etc.)
+-  Enhanced visual emphasis for cells during path display and flash animation
+
+**Tips:**
+
+-  Remember the starting point
+-  Follow the direction of movement step by step
+-  Create a mental map of the path sequence
 -  Use hints strategically when stuck
 -  Share the game to get unlimited hints if needed
 
