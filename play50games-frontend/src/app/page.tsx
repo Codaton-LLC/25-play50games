@@ -237,7 +237,17 @@ export default function HomePage() {
    };
 
    if (loading) {
-      return <div className="loading">Loading games...</div>;
+      return (
+         <div style={{ 
+            display: "flex", 
+            justifyContent: "center", 
+            alignItems: "center", 
+            minHeight: "100vh",
+            width: "100%"
+         }}>
+            <span className="loader"></span>
+         </div>
+      );
    }
 
    // if (error) {
