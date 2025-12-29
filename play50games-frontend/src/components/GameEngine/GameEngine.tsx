@@ -863,6 +863,207 @@ export default function GameEngine({
                   </div>
                )}
 
+               {/* Interactive Example for Image Recall */}
+               {gameType === "image-recall" && (
+                  <div
+                     style={{
+                        background:
+                           "linear-gradient(135deg, rgba(125, 211, 252, 0.1) 0%, rgba(54, 211, 153, 0.1) 100%)",
+                        border: "2px solid var(--stroke)",
+                        borderRadius: "20px",
+                        padding: "32px",
+                        marginTop: "24px",
+                        boxShadow: "0 8px 24px rgba(0, 0, 0, 0.2)",
+                     }}
+                  >
+                     <div
+                        style={{
+                           display: "flex",
+                           alignItems: "center",
+                           justifyContent: "center",
+                           gap: "12px",
+                           marginBottom: "24px",
+                        }}
+                     >
+                        <SparklesIcon
+                           style={{
+                              width: 28,
+                              height: 28,
+                              color: "var(--accent)",
+                           }}
+                        />
+                        <h3
+                           style={{
+                              fontSize: "24px",
+                              fontWeight: 700,
+                              margin: 0,
+                              background:
+                                 "linear-gradient(135deg, var(--accent) 0%, var(--ok) 100%)",
+                              WebkitBackgroundClip: "text",
+                              WebkitTextFillColor: "transparent",
+                              backgroundClip: "text",
+                           }}
+                        >
+                           Example Round
+                        </h3>
+                     </div>
+
+                     <div
+                        style={{
+                           background: "var(--card)",
+                           border: "2px solid var(--stroke)",
+                           borderRadius: "16px",
+                           padding: "24px",
+                           marginBottom: "20px",
+                        }}
+                     >
+                        <p
+                           style={{
+                              margin: "0 0 16px",
+                              color: "var(--text)",
+                              fontSize: "16px",
+                              fontWeight: 600,
+                              textAlign: "center",
+                           }}
+                        >
+                           Watch the sequence flash, then click in the same order:
+                        </p>
+                        <div
+                           style={{
+                              display: "grid",
+                              gridTemplateColumns: "repeat(3, 1fr)",
+                              gap: "14px",
+                              maxWidth: "300px",
+                              margin: "0 auto",
+                           }}
+                        >
+                           {["🧩", "🚀", "🌙", "🍎", "🎵", "📦", "⭐", "🐶", "🏀"].map((emoji, i) => {
+                              const isInSequence = [1, 0, 2].includes(i); // Example sequence: 2 → 1 → 3
+                              const orderInSequence = [1, 0, 2].indexOf(i);
+                              return (
+                                 <div
+                                    key={i}
+                                    style={{
+                                       aspectRatio: "1",
+                                       borderRadius: "18px",
+                                       border: isInSequence
+                                          ? "2px solid rgba(110, 168, 255, 0.6)"
+                                          : "2px solid rgba(255, 255, 255, 0.1)",
+                                       background: isInSequence
+                                          ? "linear-gradient(135deg, rgba(110, 168, 255, 0.3), rgba(110, 168, 255, 0.1))"
+                                          : "linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02))",
+                                       boxShadow: isInSequence
+                                          ? "0 10px 24px rgba(110, 168, 255, 0.18)"
+                                          : "0 10px 18px rgba(0, 0, 0, 0.22)",
+                                       display: "flex",
+                                       alignItems: "center",
+                                       justifyContent: "center",
+                                       fontSize: "2.5rem",
+                                       position: "relative",
+                                       opacity: isInSequence ? 1 : 0.3,
+                                    }}
+                                 >
+                                    {isInSequence ? emoji : "?"}
+                                    {isInSequence && (
+                                       <div
+                                          style={{
+                                             position: "absolute",
+                                             right: "10px",
+                                             top: "10px",
+                                             width: "28px",
+                                             height: "28px",
+                                             borderRadius: "999px",
+                                             background: "rgba(15, 27, 51, 0.8)",
+                                             border: "1px solid rgba(255, 255, 255, 0.12)",
+                                             display: "grid",
+                                             placeItems: "center",
+                                             fontWeight: 900,
+                                             fontSize: "12px",
+                                             color: "rgba(232, 238, 252, 0.95)",
+                                             zIndex: 2,
+                                          }}
+                                       >
+                                          {orderInSequence + 1}
+                                       </div>
+                                    )}
+                                 </div>
+                              );
+                           })}
+                        </div>
+                        <p
+                           style={{
+                              margin: "16px 0 0",
+                              color: "var(--muted)",
+                              fontSize: "14px",
+                              textAlign: "center",
+                              fontStyle: "italic",
+                           }}
+                        >
+                           Sequence: <strong>🚀 → 🧩 → 🌙</strong> (positions 2 → 1 → 3)
+                        </p>
+                     </div>
+
+                     {isMobile && (
+                        <p
+                           style={{
+                              margin: "16px 0 0",
+                              color: "var(--muted)",
+                              fontSize: "13px",
+                              textAlign: "center",
+                              fontStyle: "italic",
+                           }}
+                        >
+                           <span
+                              style={{
+                                 display: "flex",
+                                 alignItems: "center",
+                                 gap: "6px",
+                                 justifyContent: "center",
+                              }}
+                           >
+                              <CursorArrowRaysIcon
+                                 style={{
+                                    width: 16,
+                                    height: 16,
+                                    color: "var(--accent)",
+                                 }}
+                              />
+                              Tap images to select them in order
+                           </span>
+                        </p>
+                     )}
+                     {!isMobile && (
+                        <p
+                           style={{
+                              margin: "16px 0 0",
+                              color: "var(--muted)",
+                              fontSize: "13px",
+                              textAlign: "center",
+                              fontStyle: "italic",
+                           }}
+                        >
+                           <span
+                              style={{
+                                 display: "flex",
+                                 alignItems: "center",
+                                 gap: "6px",
+                                 justifyContent: "center",
+                              }}
+                           >
+                              <CursorArrowRaysIcon
+                                 style={{
+                                    width: 16,
+                                    height: 16,
+                                    color: "var(--accent)",
+                                 }}
+                              />
+                              Click images to select them in order
+                           </span>
+                        </p>
+                     )}
+                  </div>
+               )}
+
                {/* Enhanced Start Screen for Mirror Match */}
                {gameType === "mirror-match" && (
                   <div

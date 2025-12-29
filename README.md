@@ -141,7 +141,7 @@ The platform includes a share tracking system that allows users to share games a
 
 ### How It Works
 
-1. **Sharing**: When a user clicks "Share for Unlimited Hints" in supported games (Card Flip Memory, Tile Slider, Sound Memory, Emoji Memory, Number Recall), a unique share link is generated and copied to clipboard
+1. **Sharing**: When a user clicks "Share for Unlimited Hints" in supported games (Card Flip Memory, Tile Slider, Sound Memory, Emoji Memory, Number Recall, Image Recall), a unique share link is generated and copied to clipboard
 2. **Link Tracking**: The share link includes a `shared` URL parameter with a unique ID
 3. **Click Detection**: When someone opens the shared link, the system tracks the click in the backend
 4. **Unlimited Hints**: The original sharer receives unlimited hints for 15 minutes after someone clicks their link
@@ -155,6 +155,7 @@ The platform includes a share tracking system that allows users to share games a
 -  **Sound Memory**: Share to unlock unlimited replay (5 replays by default)
 -  **Emoji Memory**: Share to unlock unlimited hints (10 hints by default)
 -  **Number Recall**: Share to unlock unlimited hints (10 hints by default, reveals digits one by one)
+-  **Image Recall**: Share to unlock unlimited hints (10 hints by default, reveals positions one by one)
 
 ### Admin Interface
 
@@ -1337,6 +1338,109 @@ In WordPress admin, you can use the "Quick Fill Templates" dropdown and select "
 **Recommended Settings:**
 
 -  **Time Limit**: 60 seconds (overall game time)
+-  **Passing Score**: 75 (75% of max score)
+-  **Difficulty**: 2 (medium)
+
+#### Image Recall
+
+```json
+{
+   "gameType": "image-recall",
+   "rounds": 15,
+   "gridSizes": [3, 3, 3, 3, 5, 5, 5, 5, 6, 6, 6, 6, 6, 6, 6]
+}
+```
+
+**Configuration:**
+
+-  `gameType` (required): Must be `"image-recall"`
+-  `rounds` (optional): Number of rounds - Default: **15** (recommended for 100 points max)
+-  `gridSizes` (optional): Array of grid sizes per round - Default: **[3, 3, 3, 3, 5, 5, 5, 5, 6, 6, 6, 6, 6, 6, 6]**
+   -  Each number represents the grid size for that round (3 = 3x3, 5 = 5x5, 6 = 6x6)
+   -  If `gridSizes` array is shorter than `rounds`, remaining rounds use the last grid size from array or fallback to default calculation
+   -  If not provided, defaults to: rounds 1-4 = 3x3, rounds 5-8 = 5x5, rounds 9+ = 6x6
+
+**Scoring:**
+
+-  Score is calculated based on completed rounds: `Math.round((completedRounds / maxRounds) * 100)`
+-  Maximum 100 points for 10 rounds
+-  Score increases progressively with each completed round
+-  Example: Round 1 = 10 points, Round 2 = 20 points, ..., Round 10 = 100 points
+
+**Controls:**
+
+-  **Mouse**:
+   -  Click images in the same order as they flashed
+   -  Images are shown in a grid (3x3, 5x5, or 6x6 depending on round)
+-  **Keyboard**:
+   -  **Number Keys (1-9, 0, -, =)**: Select images by position in grid
+   -  Press **1-9** to select positions 1-9
+   -  Press **0** to select position 10 (if grid has 10+ images)
+   -  Press **-** to select position 11 (if grid has 11+ images)
+   -  Press **=** to select position 12 (if grid has 12+ images)
+   -  **Arrow Keys** or **WASD**: Navigate through grid cells
+   -  **Arrow Up/W**: Move selection up
+   -  **Arrow Down/S**: Move selection down
+   -  **Arrow Left/A**: Move selection left
+   -  **Arrow Right/D**: Move selection right
+   -  **Enter** or **Space**: Select currently highlighted cell
+
+**Goal:**
+
+-  Watch the sequence of images flash on the grid
+-  After they disappear, click on the images in the same order you saw them
+-  Sequence length increases with each round: 2 + Math.floor(round / 2) (minimum 2, maximum 7)
+-  If you make a mistake, you can retry the same round (game doesn't end)
+
+**How It Works:**
+
+-  Each round displays a sequence of images (emojis) that flash one by one
+-  Grid size can be 3x3 (9 images), 5x5 (25 images), or 6x6 (36 images) - configurable per round
+-  Sequence length scales with grid size:
+   -  3x3 grid: 2-4 images
+   -  5x5 grid: 3-6 images
+   -  6x6 grid: 4-8 images
+-  Sequence length also increases with round number
+-  Each image flashes for 650ms with a brief delay between flashes
+-  After the sequence completes, all images are hidden and you must click them in order
+-  Wrong answers show red feedback but allow retry (game continues)
+
+**Features:**
+
+-  Progressive difficulty with increasing sequence length
+-  Visual feedback with flash animation for active images
+-  Notification messages like Match the Shapes (green for correct, red for wrong)
+-  Modern UI with header showing round, score, and progress bar
+-  Game state display (Watch the sequence…, Now click in the same order, Correct, Wrong)
+-  **Hint System**: 10 hints by default, unlimited if shared
+   -  Click "Hint" button to reveal positions one by one
+   -  First hint reveals first position, second hint reveals second position, etc.
+   -  Revealed positions stay visible (blue border) until round ends
+   -  Share the game to unlock unlimited hints for 15 minutes
+-  **Share Feature**: Share the game to unlock unlimited hints
+   -  Click "Share for Unlimited Hints" button to copy a shareable link
+   -  When someone else opens the shared link, the original sharer gets unlimited hints for 15 minutes
+   -  The system uses a heartbeat mechanism (checks every 10 seconds) to detect when the link is clicked
+   -  A success message appears for 15 seconds when unlimited hints are activated
+   -  Hints automatically expire after 15 minutes and return to normal
+-  Interactive example in game instructions section with visual grid
+-  Mouse and keyboard controls displayed in game instructions
+-  Fully responsive design optimized for mobile, tablet, and desktop
+-  Touch-optimized for mobile devices
+-  Game continues on wrong answer (allows retry instead of ending)
+-  Order indicators show which position you clicked (1, 2, 3, etc.)
+
+**Tips:**
+
+-  Create a story or association to remember the order
+-  Visualize the sequence as a story
+-  Focus on order and positions
+-  Use hints strategically when stuck
+-  Share the game to get unlimited hints if needed
+
+**Recommended Settings:**
+
+-  **Time Limit**: 90 seconds (overall game time)
 -  **Passing Score**: 75 (75% of max score)
 -  **Difficulty**: 2 (medium)
 

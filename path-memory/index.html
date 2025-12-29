@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="en">
+   <head>
+      <meta charset="UTF-8" />
+      <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <title>Path Memory</title>
+      <style>
+         :root {
+            --bg: #0b1220;
+            --panel: #0f1b33;
+            --text: #e8eefc;
+            --muted: #a6b3d1;
+            --accent: #6ea8ff;
+            --good: #36d399;
+            --bad: #fb7185;
+            --shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
+            --radius: 18px;
+            --cell: 52px;
+            --gap: 10px;
+         }
+
+         * {
+            box-sizing: border-box;
+         }
+         body {
+            margin: 0;
+            font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu,
+               Cantarell, Noto Sans, Arial, sans-serif;
+            background: radial-gradient(
+                  1200px 800px at 70% -10%,
+                  rgba(110, 168, 255, 0.28),
+                  transparent 60%
+               ),
+               radial-gradient(
+                  900px 600px at 0% 10%,
+                  rgba(54, 211, 153, 0.18),
+                  transparent 55%
+               ),
+               var(--bg);
+            color: var(--text);
+            min-height: 100svh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+         }
+
+         .app {
+            width: min(980px, 100%);
+            display: grid;
+            grid-template-columns: 1.2fr 0.8fr;
+            gap: 18px;
+         }
+
+         @media (max-width: 900px) {
+            .app {
+               grid-template-columns: 1fr;
+            }
+            :root {
+               --cell: 48px;
+               --gap: 9px;
+            }
+         }
+
+         .panel {
+            background: linear-gradient(
+               180deg,
+               rgba(255, 255, 255, 0.06),
+               rgba(255, 255, 255, 0.02)
+            );
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            overflow: hidden;
+         }
+
+         header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            padding: 18px 18px 12px;
+            gap: 12px;
+         }
+
+         .title h1 {
+            margin: 0;
+            font-size: 18px;
+         }
+         .title p {
+            margin: 4px 0 0;
+            color: var(--muted);
+            font-size: 13px;
+         }
+
+         button,
+         select {
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            background: rgba(15, 27, 51, 0.7);
+            color: var(--text);
+            padding: 10px 12px;
+            cursor: pointer;
+            font-weight: 700;
+            transition: 0.15s;
+            font-size: 13px;
+         }
+
+         button.primary {
+            background: linear-gradient(
+               180deg,
+               rgba(110, 168, 255, 0.9),
+               rgba(110, 168, 255, 0.55)
+            );
+            color: #081126;
+         }
+
+         .row {
+            display: flex;
+            gap: 12px;
+            padding: 0 18px 14px;
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            background: rgba(11, 22, 48, 0.45);
+            justify-content: space-between;
+            flex-wrap: wrap;
+         }
+
+         .pill {
+            padding: 8px 12px;
+            border-radius: 999px;
+            background: rgba(17, 28, 53, 0.55);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            font-size: 13px;
+            display: flex;
+            gap: 8px;
+            align-items: center;
+         }
+
+         .content {
+            padding: 18px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+         }
+
+         .prompt {
+            padding: 14px;
+            border-radius: 16px;
+            background: rgba(17, 28, 53, 0.45);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+         }
+
+         .badge {
+            padding: 6px 10px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 900;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            background: rgba(15, 27, 51, 0.55);
+            white-space: nowrap;
+         }
+         .badge.good {
+            color: var(--good);
+            border-color: rgba(54, 211, 153, 0.45);
+         }
+         .badge.bad {
+            color: var(--bad);
+            border-color: rgba(251, 113, 133, 0.45);
+         }
+
+         .board {
+            border-radius: 18px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: radial-gradient(
+                  320px 220px at 30% 30%,
+                  rgba(110, 168, 255, 0.1),
+                  transparent 55%
+               ),
+               linear-gradient(
+                  180deg,
+                  rgba(255, 255, 255, 0.05),
+                  rgba(255, 255, 255, 0.02)
+               );
+            box-shadow: 0 10px 18px rgba(0, 0, 0, 0.22);
+            padding: 16px;
+            width: max-content;
+            margin: 0 auto;
+         }
+
+         .grid {
+            display: grid;
+            grid-template-columns: repeat(5, var(--cell));
+            gap: var(--gap);
+         }
+
+         .cell {
+            width: var(--cell);
+            height: var(--cell);
+            border-radius: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(15, 27, 51, 0.45);
+            box-shadow: 0 10px 18px rgba(0, 0, 0, 0.16);
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            user-select: none;
+            transition: 0.12s;
+         }
+
+         .cell::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(
+               180px 120px at 30% 30%,
+               rgba(255, 255, 255, 0.06),
+               transparent 55%
+            );
+            opacity: 0.75;
+            pointer-events: none;
+         }
+
+         .cell.flash {
+            outline: 2px solid rgba(110, 168, 255, 0.75);
+            box-shadow: 0 0 26px rgba(110, 168, 255, 0.55);
+            background: rgba(110, 168, 255, 0.18);
+            transform: translateY(-1px);
+         }
+
+         .cell.pick {
+            background: rgba(110, 168, 255, 0.1);
+            outline: 1px solid rgba(110, 168, 255, 0.35);
+         }
+
+         .cell.correct {
+            border-color: rgba(54, 211, 153, 0.55);
+            background: rgba(54, 211, 153, 0.1);
+         }
+
+         .cell.wrong {
+            border-color: rgba(251, 113, 133, 0.55);
+            background: rgba(251, 113, 133, 0.1);
+         }
+
+         .marker {
+            position: absolute;
+            inset: auto 10px 10px auto;
+            width: 26px;
+            height: 26px;
+            border-radius: 999px;
+            background: rgba(15, 27, 51, 0.62);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            display: grid;
+            place-items: center;
+            font-weight: 900;
+            font-size: 12px;
+            color: rgba(232, 238, 252, 0.95);
+            z-index: 2;
+         }
+
+         .side {
+            padding: 18px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+         }
+         .box {
+            background: rgba(11, 22, 48, 0.35);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 14px;
+         }
+         .box h2 {
+            margin: 0 0 6px;
+            font-size: 14px;
+         }
+         .box p,
+         .box li {
+            margin: 0;
+            color: var(--muted);
+            font-size: 13px;
+            line-height: 1.35;
+         }
+         ul {
+            margin: 10px 0 0;
+            padding-left: 18px;
+         }
+      </style>
+   </head>
+   <body>
+      <div class="app">
+         <section class="panel">
+            <header>
+               <div class="title">
+                  <h1>Path Memory</h1>
+                  <p>
+                     Watch the path that lights up. Then recreate it by clicking
+                     the same cells in order.
+                  </p>
+               </div>
+               <div
+                  style="
+                     display: flex;
+                     gap: 10px;
+                     align-items: center;
+                     flex-wrap: wrap;
+                     justify-content: flex-end;
+                  "
+               >
+                  <select id="difficulty" aria-label="Difficulty">
+                     <option value="easy">Easy</option>
+                     <option value="normal" selected>Normal</option>
+                     <option value="hard">Hard</option>
+                  </select>
+                  <button class="primary" id="newBtn">New</button>
+               </div>
+            </header>
+
+            <div class="row">
+               <div class="pill">Round: <b id="round">1</b></div>
+               <div class="pill">Score: <b id="score">0</b></div>
+               <div class="pill">Path length: <b id="len">3</b></div>
+            </div>
+
+            <div class="content">
+               <div class="prompt">
+                  <div>
+                     <b id="stateText">Watch the path…</b>
+                     <small style="color: var(--muted)"
+                        >After it disappears, click the cells in the same
+                        order</small
+                     >
+                  </div>
+                  <span class="badge" id="badge">Playing</span>
+               </div>
+
+               <div class="board">
+                  <div class="grid" id="grid"></div>
+               </div>
+            </div>
+         </section>
+
+         <aside class="panel">
+            <div class="side">
+               <div class="box">
+                  <h2>How to Play</h2>
+                  <ul>
+                     <li>Watch the path that lights up on the grid.</li>
+                     <li>
+                        After it disappears, click the cells to recreate the
+                        same path.
+                     </li>
+                  </ul>
+               </div>
+               <div class="box">
+                  <h2>Tips</h2>
+                  <ul>
+                     <li>Remember the <b>starting point</b>.</li>
+                     <li>Follow the direction of movement step by step.</li>
+                  </ul>
+               </div>
+            </div>
+         </aside>
+      </div>
+
+      <script>
+         const gridEl = document.getElementById("grid");
+         const roundEl = document.getElementById("round");
+         const scoreEl = document.getElementById("score");
+         const lenEl = document.getElementById("len");
+         const badgeEl = document.getElementById("badge");
+         const stateTextEl = document.getElementById("stateText");
+         const newBtn = document.getElementById("newBtn");
+         const diffEl = document.getElementById("difficulty");
+
+         const N = 5; // grid size
+         let round = 1;
+         let score = 0;
+         let phase = "show"; // show | input | lock
+         let path = []; // array of cell indices (0..24)
+         let input = [];
+
+         function setBadge(text, type) {
+            badgeEl.textContent = text;
+            badgeEl.className = "badge" + (type ? ` ${type}` : "");
+         }
+
+         function idxToRC(idx) {
+            return { r: Math.floor(idx / N), c: idx % N };
+         }
+
+         function rcToIdx(r, c) {
+            return r * N + c;
+         }
+
+         function neighbors(idx) {
+            const { r, c } = idxToRC(idx);
+            const list = [];
+            const dirs = [
+               [-1, 0],
+               [1, 0],
+               [0, -1],
+               [0, 1],
+            ];
+            for (const [dr, dc] of dirs) {
+               const rr = r + dr,
+                  cc = c + dc;
+               if (rr >= 0 && cc >= 0 && rr < N && cc < N)
+                  list.push(rcToIdx(rr, cc));
+            }
+            return list;
+         }
+
+         function renderGrid() {
+            gridEl.innerHTML = "";
+            for (let i = 0; i < N * N; i++) {
+               const cell = document.createElement("div");
+               cell.className = "cell";
+               cell.dataset.idx = String(i);
+               cell.addEventListener("click", () => onCellClick(cell, i));
+               gridEl.appendChild(cell);
+            }
+         }
+
+         function clearClasses() {
+            [...gridEl.children].forEach((c) => {
+               c.classList.remove("flash", "pick", "correct", "wrong");
+               const m = c.querySelector(".marker");
+               if (m) m.remove();
+            });
+         }
+
+         function flash(idx, ms = 320) {
+            const cell = gridEl.querySelector(`.cell[data-idx="${idx}"]`);
+            if (!cell) return;
+            cell.classList.add("flash");
+            setTimeout(() => cell.classList.remove("flash"), ms);
+         }
+
+         function markPick(idx, order) {
+            const cell = gridEl.querySelector(`.cell[data-idx="${idx}"]`);
+            if (!cell) return;
+            cell.classList.add("pick");
+            const tag = document.createElement("div");
+            tag.className = "marker";
+            tag.textContent = order;
+            cell.appendChild(tag);
+         }
+
+         function randomPath(length) {
+            // Simple random walk without revisiting for clarity
+            const start = Math.floor(Math.random() * N * N);
+            const used = new Set([start]);
+            const out = [start];
+
+            while (out.length < length) {
+               const current = out[out.length - 1];
+               const nextOptions = neighbors(current).filter(
+                  (n) => !used.has(n)
+               );
+
+               if (nextOptions.length === 0) {
+                  // restart if stuck
+                  return randomPath(length);
+               }
+               const next =
+                  nextOptions[Math.floor(Math.random() * nextOptions.length)];
+               out.push(next);
+               used.add(next);
+            }
+
+            return out;
+         }
+
+         function getConfig() {
+            const d = diffEl.value;
+            if (d === "easy") return { base: 3, max: 7, speed: 520 };
+            if (d === "hard") return { base: 4, max: 10, speed: 430 };
+            return { base: 3, max: 9, speed: 480 }; // normal
+         }
+
+         function showPath() {
+            phase = "show";
+            input = [];
+            clearClasses();
+
+            const cfg = getConfig();
+            const length = Math.min(cfg.base + Math.floor(round / 2), cfg.max);
+            lenEl.textContent = String(length);
+
+            path = randomPath(length);
+
+            stateTextEl.textContent = "Watch the path…";
+            setBadge("Playing");
+
+            // flash each step
+            path.forEach((idx, i) => {
+               setTimeout(() => flash(idx), 600 + i * cfg.speed);
+            });
+
+            setTimeout(() => {
+               phase = "input";
+               stateTextEl.textContent = "Your turn: recreate the path";
+            }, 600 + path.length * cfg.speed + 200);
+         }
+
+         function onCellClick(cell, idx) {
+            if (phase !== "input") return;
+
+            const step = input.length;
+            input.push(idx);
+            markPick(idx, step + 1);
+
+            if (idx !== path[step]) {
+               cell.classList.add("wrong");
+               setBadge("Wrong", "bad");
+               phase = "lock";
+
+               // reveal correct path quickly
+               setTimeout(() => {
+                  clearClasses();
+                  path.forEach((pIdx, i) => {
+                     const c = gridEl.querySelector(
+                        `.cell[data-idx="${pIdx}"]`
+                     );
+                     if (c) {
+                        c.classList.add("correct");
+                        const tag = document.createElement("div");
+                        tag.className = "marker";
+                        tag.textContent = i + 1;
+                        c.appendChild(tag);
+                     }
+                  });
+               }, 220);
+
+               setTimeout(() => {
+                  round++;
+                  roundEl.textContent = String(round);
+                  showPath();
+               }, 1300);
+               return;
+            }
+
+            cell.classList.add("correct");
+
+            if (input.length === path.length) {
+               setBadge("Correct", "good");
+               score++;
+               scoreEl.textContent = String(score);
+               phase = "lock";
+               setTimeout(() => {
+                  round++;
+                  roundEl.textContent = String(round);
+                  showPath();
+               }, 900);
+            }
+         }
+
+         function reset() {
+            round = 1;
+            score = 0;
+            roundEl.textContent = "1";
+            scoreEl.textContent = "0";
+            renderGrid();
+            showPath();
+         }
+
+         newBtn.addEventListener("click", reset);
+         diffEl.addEventListener("change", reset);
+
+         // init
+         renderGrid();
+         reset();
+      </script>
+   </body>
+</html>

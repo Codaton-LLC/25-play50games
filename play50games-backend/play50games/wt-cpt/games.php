@@ -453,12 +453,12 @@ function show_games_custom_fields() {
                 title: 'Image Recall',
                 gameType: 'memory',
                 gameOrder: 20,
-                difficulty: 3,
+                difficulty: 2,
                 timeLimit: 90,
-                passingScore: 80,
+                passingScore: 75,
                 unlockRequirement: '',
-                description: 'Remember image order',
-                gameConfig: '{"gameType": "image-recall", "images": 5}'
+                description: 'Watch the sequence of images flash on the grid. After they disappear, click on the images in the same order you saw them.',
+                gameConfig: '{"gameType": "image-recall", "rounds": 15, "gridSizes": [3, 3, 3, 3, 5, 5, 5, 5, 6, 6, 6, 6, 6, 6, 6]}'
             },
             'path-memory': {
                 title: 'Path Memory',

@@ -280,8 +280,20 @@ export const gameInstructions: Record<string, {
   },
   'image-recall': {
     description: 'Remember image order',
-    instructions: 'Watch the sequence of images. After they disappear, click on the images in the order you saw them.',
-    tips: 'Create a story or association to remember the order. Visualize the sequence as a story.'
+    instructions: 'Watch the sequence of images flash on the grid. After they disappear, click on the images in the same order you saw them. The sequence gets longer each round!',
+    tips: 'Create a story or association to remember the order. Visualize the sequence as a story. Focus on order and positions.',
+    mouseControls: [
+      { action: 'Click', label: 'Click images in the same order as shown' },
+    ],
+    keyboardControls: [
+      { keys: ['1', '2', '3', '4', '5', '6', '7', '8', '9'], label: 'Select image by position (1-9). Press "1" for first image in grid, "2" for second image in grid.' },
+      { keys: ['0'], label: 'Select 10th position (if grid has 10+ images)' },
+      { keys: ['-'], label: 'Select 11th position (if grid has 11+ images)' },
+      { keys: ['='], label: 'Select 12th position (if grid has 12+ images)' },
+      { keys: ['Arrow Up', 'Arrow Down', 'Arrow Left', 'Arrow Right'], label: 'Navigate through grid cells' },
+      { keys: ['W', 'A', 'S', 'D'], label: 'Navigate through grid cells (W=Up, S=Down, A=Left, D=Right)' },
+      { keys: ['Enter', 'Space'], label: 'Select currently highlighted cell' },
+    ],
   },
   'path-memory': {
     description: 'Recreate a path on a grid',
