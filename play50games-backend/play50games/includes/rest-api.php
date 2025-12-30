@@ -719,6 +719,21 @@ function play50_get_share_status($request) {
         return new WP_Error('not_found', 'Share link not found', array('status' => 404));
     }
     
+    // Check if share has expired (15 minutes = 900 seconds)
+    $created_timestamp = strtotime($result['created_at']);
+    $current_timestamp = current_time('timestamp');
+    $expiry_seconds = 15 * 60; // 15 minutes
+    
+    if (($current_timestamp - $created_timestamp) > $expiry_seconds) {
+        // Share has expired - delete it and return 404
+        $wpdb->delete(
+            $table_name,
+            array('share_id' => $share_id),
+            array('%s')
+        );
+        return new WP_Error('not_found', 'Share link expired', array('status' => 404));
+    }
+    
     return new WP_REST_Response(array(
         'success' => true,
         'share_id' => $result['share_id'],

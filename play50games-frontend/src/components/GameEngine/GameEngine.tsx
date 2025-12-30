@@ -1265,6 +1265,213 @@ export default function GameEngine({
                   </div>
                )}
 
+               {/* Interactive Example for Word Memory */}
+               {gameType === "word-memory" && (
+                  <div
+                     style={{
+                        background:
+                           "linear-gradient(135deg, rgba(125, 211, 252, 0.1) 0%, rgba(54, 211, 153, 0.1) 100%)",
+                        border: "2px solid var(--stroke)",
+                        borderRadius: isMobile ? "16px" : isTablet ? "18px" : "20px",
+                        padding: isMobile ? "20px" : isTablet ? "24px" : "32px",
+                        marginTop: isMobile ? "16px" : "24px",
+                        boxShadow: "0 8px 24px rgba(0, 0, 0, 0.2)",
+                     }}
+                  >
+                     <div
+                        style={{
+                           display: "flex",
+                           alignItems: "center",
+                           justifyContent: "center",
+                           gap: isMobile ? "8px" : "12px",
+                           marginBottom: isMobile ? "16px" : isTablet ? "20px" : "24px",
+                        }}
+                     >
+                        <SparklesIcon
+                           style={{
+                              width: isMobile ? 20 : isTablet ? 24 : 28,
+                              height: isMobile ? 20 : isTablet ? 24 : 28,
+                              color: "var(--accent)",
+                           }}
+                        />
+                        <h3
+                           style={{
+                              fontSize: isMobile ? "18px" : isTablet ? "20px" : "24px",
+                              fontWeight: 700,
+                              margin: 0,
+                              background:
+                                 "linear-gradient(135deg, var(--accent) 0%, var(--ok) 100%)",
+                              WebkitBackgroundClip: "text",
+                              WebkitTextFillColor: "transparent",
+                              backgroundClip: "text",
+                           }}
+                        >
+                           Example Round
+                        </h3>
+                     </div>
+
+                     <div
+                        style={{
+                           background: "var(--card)",
+                           border: "2px solid var(--stroke)",
+                           borderRadius: isMobile ? "14px" : isTablet ? "15px" : "16px",
+                           padding: isMobile ? "16px" : isTablet ? "20px" : "24px",
+                           marginBottom: isMobile ? "16px" : isTablet ? "20px" : "24px",
+                        }}
+                     >
+                        <p
+                           style={{
+                              margin: "0 0 16px",
+                              color: "var(--text)",
+                              fontSize: isMobile ? "14px" : isTablet ? "15px" : "16px",
+                              fontWeight: 600,
+                              textAlign: "center",
+                           }}
+                        >
+                           Watch the words flash, then click in the same order:
+                        </p>
+                        <div
+                           style={{
+                              display: "grid",
+                              gridTemplateColumns: "repeat(3, 1fr)",
+                              gap: isMobile ? "10px" : isTablet ? "12px" : "14px",
+                              maxWidth: isMobile ? "280px" : isTablet ? "320px" : "360px",
+                              margin: "0 auto",
+                           }}
+                        >
+                           {["Apple", "Beach", "Cloud", "Dance", "Earth", "Flame", "Green", "Happy", "Image"].map((word, i) => {
+                              // Example sequence: 1 → 0 → 2 (Beach → Apple → Cloud)
+                              const exampleSequence = [1, 0, 2];
+                              const isInSequence = exampleSequence.includes(i);
+                              const orderInSequence = exampleSequence.indexOf(i);
+                              return (
+                                 <div
+                                    key={i}
+                                    style={{
+                                       padding: isMobile ? "14px 10px" : isTablet ? "16px 12px" : "18px 14px",
+                                       borderRadius: "12px",
+                                       border: isInSequence
+                                          ? "2px solid rgba(110, 168, 255, 0.8)"
+                                          : "2px solid rgba(255, 255, 255, 0.1)",
+                                       background: isInSequence
+                                          ? "linear-gradient(135deg, rgba(59, 130, 246, 0.3), rgba(59, 130, 246, 0.2))"
+                                          : "rgba(15, 27, 51, 0.5)",
+                                       boxShadow: isInSequence
+                                          ? "0 0 20px rgba(59, 130, 246, 0.5), 0 4px 12px rgba(0, 0, 0, 0.3)"
+                                          : "none",
+                                       display: "flex",
+                                       alignItems: "center",
+                                       justifyContent: "center",
+                                       fontSize: isMobile ? "0.85rem" : isTablet ? "0.9rem" : "1rem",
+                                       fontWeight: 600,
+                                       color: "var(--text)",
+                                       position: "relative",
+                                       textAlign: "center",
+                                       transition: "all 0.2s ease",
+                                       opacity: isInSequence ? 1 : 0.5,
+                                    }}
+                                 >
+                                    {isInSequence ? word : word}
+                                    {isInSequence && (
+                                       <div
+                                          style={{
+                                             position: "absolute",
+                                             top: "4px",
+                                             right: "4px",
+                                             width: isMobile ? "20px" : isTablet ? "22px" : "24px",
+                                             height: isMobile ? "20px" : isTablet ? "22px" : "24px",
+                                             borderRadius: "50%",
+                                             background: "var(--ok)",
+                                             color: "#0b1220",
+                                             display: "flex",
+                                             alignItems: "center",
+                                             justifyContent: "center",
+                                             fontSize: isMobile ? "0.7rem" : isTablet ? "0.75rem" : "0.75rem",
+                                             fontWeight: 700,
+                                             zIndex: 2,
+                                          }}
+                                       >
+                                          {orderInSequence + 1}
+                                       </div>
+                                    )}
+                                 </div>
+                              );
+                           })}
+                        </div>
+                        <p
+                           style={{
+                              margin: "16px 0 0",
+                              color: "var(--muted)",
+                              fontSize: isMobile ? "12px" : isTablet ? "13px" : "14px",
+                              textAlign: "center",
+                              fontStyle: "italic",
+                           }}
+                        >
+                           Sequence: <strong>Beach → Apple → Cloud</strong> (positions 2 → 1 → 3)
+                        </p>
+                     </div>
+
+                     {isMobile && (
+                        <p
+                           style={{
+                              margin: "16px 0 0",
+                              color: "var(--muted)",
+                              fontSize: "13px",
+                              textAlign: "center",
+                              fontStyle: "italic",
+                           }}
+                        >
+                           <span
+                              style={{
+                                 display: "flex",
+                                 alignItems: "center",
+                                 gap: "6px",
+                                 justifyContent: "center",
+                              }}
+                           >
+                              <CursorArrowRaysIcon
+                                 style={{
+                                    width: 16,
+                                    height: 16,
+                                    color: "var(--accent)",
+                                 }}
+                              />
+                              Tap words to select them in order
+                           </span>
+                        </p>
+                     )}
+                     {!isMobile && (
+                        <p
+                           style={{
+                              margin: "16px 0 0",
+                              color: "var(--muted)",
+                              fontSize: "13px",
+                              textAlign: "center",
+                              fontStyle: "italic",
+                           }}
+                        >
+                           <span
+                              style={{
+                                 display: "flex",
+                                 alignItems: "center",
+                                 gap: "6px",
+                                 justifyContent: "center",
+                              }}
+                           >
+                              <CursorArrowRaysIcon
+                                 style={{
+                                    width: 16,
+                                    height: 16,
+                                    color: "var(--accent)",
+                                 }}
+                              />
+                              Click words to select them in order
+                           </span>
+                        </p>
+                     )}
+                  </div>
+               )}
+
                {/* Enhanced Start Screen for Mirror Match */}
                {gameType === "mirror-match" && (
                   <div

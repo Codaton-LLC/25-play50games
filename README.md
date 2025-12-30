@@ -1535,6 +1535,105 @@ In WordPress admin, you can use the "Quick Fill Templates" dropdown and select "
 -  **Passing Score**: 75 (75% of max score)
 -  **Difficulty**: 2 (medium)
 
+#### Word Memory
+
+```json
+{
+   "gameType": "word-memory",
+   "rounds": 15,
+   "gridSizes": [3, 3, 3, 3, 5, 5, 5, 5, 6, 6, 6, 6, 6, 6, 6]
+}
+```
+
+**Configuration:**
+
+-  `gameType` (required): Must be `"word-memory"`
+-  `rounds` (optional): Number of rounds - Default: **15** (recommended for 100 points max)
+-  `gridSizes` (optional): Array of grid sizes per round - Default: **[3, 3, 3, 3, 5, 5, 5, 5, 6, 6, 6, 6, 6, 6, 6]**
+   -  Each number represents the grid size for that round (3 = 3x3, 5 = 5x5, 6 = 6x6)
+   -  If `gridSizes` array is shorter than `rounds`, remaining rounds use the last grid size from array or fallback to default calculation
+   -  If not provided, defaults to: rounds 1-4 = 3x3, rounds 5-8 = 5x5, rounds 9+ = 6x6
+
+**Scoring:**
+
+-  Score is calculated based on completed rounds: `Math.round((completedRounds / maxRounds) * 100)`
+-  Maximum 100 points for 15 rounds
+-  Score increases progressively with each completed round
+-  Example: Round 1 = 7 points, Round 2 = 13 points, ..., Round 15 = 100 points
+
+**Controls:**
+
+-  **Mouse**:
+   -  Click words in the same order as they flashed
+   -  Words are shown in a grid (3x3, 5x5, or 6x6 depending on round)
+-  **Keyboard**:
+   -  **Number Keys (1-9, 0, -, =)**: Select words by position in grid
+   -  Press **1-9** to select positions 1-9
+   -  Press **0** to select position 10 (if grid has 10+ words)
+   -  Press **-** to select position 11 (if grid has 11+ words)
+   -  Press **=** to select position 12 (if grid has 12+ words)
+   -  **Arrow Keys** or **WASD**: Navigate through grid cells
+   -  **Arrow Up/W**: Move selection up
+   -  **Arrow Down/S**: Move selection down
+   -  **Arrow Left/A**: Move selection left
+   -  **Arrow Right/D**: Move selection right
+   -  **Enter** or **Space**: Select currently highlighted word
+
+**Goal:**
+
+-  Watch the sequence of words flash on the grid
+-  After they disappear, click on the words in the same order you saw them
+-  Sequence length increases with each round: 2 + Math.floor(round / 2) (minimum 2, maximum 7)
+-  If you make a mistake, you can retry the same round (game doesn't end)
+
+**How It Works:**
+
+-  Each round displays a sequence of words that flash one by one
+-  Grid size can be 3x3 (9 words), 5x5 (25 words), or 6x6 (36 words) - configurable per round
+-  Words are randomly selected from a pool of 36 words
+-  Each word flashes for 600ms with a 600ms delay between flashes
+-  After all words are shown, you must click them in the same order
+-  Wrong answers show red feedback but allow retry (game continues)
+
+**Features:**
+
+-  Progressive difficulty with increasing sequence length and grid size
+-  Visual feedback with flash animation for active words
+-  Notification messages like Match the Shapes (green for correct, red for wrong)
+-  Modern UI with header showing round, score, and progress bar
+-  Game state display (Watch the words flash…, Your turn: Click words in order, Correct, Wrong)
+-  **Hint System**: 10 hints by default, unlimited if shared
+   -  Click "Hint" button to reveal word positions one by one
+   -  First hint reveals first position, second hint reveals second position, etc.
+   -  Revealed positions stay visible (purple border with lightbulb icon) until round ends
+   -  Share the game to unlock unlimited hints for 15 minutes
+-  **Share Feature**: Share the game to unlock unlimited hints
+   -  Click "Share for Unlimited Hints" button to copy a shareable link
+   -  When someone else opens the shared link, the original sharer gets unlimited hints for 15 minutes
+   -  The system uses a heartbeat mechanism (checks every 10 seconds) to detect when the link is clicked
+   -  A success message appears for 15 seconds when unlimited hints are activated
+   -  Hints automatically expire after 15 minutes and return to normal
+-  Mouse and keyboard controls displayed in game instructions
+-  Fully responsive design optimized for mobile, tablet, and desktop
+-  Touch-optimized for mobile devices
+-  Game continues on wrong answer (allows retry instead of ending)
+-  Order indicators show which position you clicked (1, 2, 3, etc.)
+-  Visual highlighting for keyboard navigation
+
+**Tips:**
+
+-  Remember the starting word
+-  Follow the sequence step by step
+-  Create a mental story or association to remember the order
+-  Use hints strategically when stuck
+-  Share the game to get unlimited hints if needed
+
+**Recommended Settings:**
+
+-  **Time Limit**: 90 seconds (overall game time)
+-  **Passing Score**: 75 (75% of max score)
+-  **Difficulty**: 2 (medium)
+
 #### Block Fill
 
 ```json
@@ -1803,7 +1902,7 @@ src/
 -  **Modern UI**: Gradient backgrounds, animations, and visual feedback
 -  **Game Instructions**: Detailed instructions and tips displayed before each game
 -  **Diagnostics Page**: API connectivity and CORS diagnostics
--  **Share Feature**: Share games to unlock unlimited hints (Card Flip Memory, Tile Slider, Sound Memory, Emoji Memory, Number Recall)
+-  **Share Feature**: Share games to unlock unlimited hints (Card Flip Memory, Tile Slider, Sound Memory, Emoji Memory, Number Recall, Image Recall, Path Memory, Word Memory)
 
 ## Game Types
 

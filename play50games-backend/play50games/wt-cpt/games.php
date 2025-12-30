@@ -486,8 +486,8 @@ function show_games_custom_fields() {
                 timeLimit: 90,
                 passingScore: 75,
                 unlockRequirement: '',
-                description: 'Remember and select words',
-                gameConfig: '{"gameType": "word-memory", "words": 5}'
+                description: 'Watch the words flash on the grid one by one. After they disappear, click on the words in the same order they appeared.',
+                gameConfig: '{"gameType": "word-memory", "rounds": 15, "gridSizes": [3, 3, 3, 3, 5, 5, 5, 5, 6, 6, 6, 6, 6, 6, 6]}'
             },
             'face-memory': {
                 title: 'Face Memory',

@@ -2724,6 +2724,30 @@ function TileSlider({
       if (!currentShareId) return;
 
       const checkShareStatus = async () => {
+         // Check expiry from localStorage before making API call
+         const gameKey = "play50games_shared_tile-slider";
+         const stored = localStorage.getItem(gameKey);
+         if (stored) {
+            try {
+               const data = JSON.parse(stored);
+               // Check if share has expired (15 minutes)
+               if (data.expiry && Date.now() > data.expiry) {
+                  // Share expired - clean up
+                  localStorage.removeItem(gameKey);
+                  if (shareCheckIntervalRef.current) {
+                     clearInterval(shareCheckIntervalRef.current);
+                  }
+                  setCurrentShareId(null);
+                  setHasShared(false);
+                  setUnlimitedActivated(false);
+                  return;
+               }
+            } catch (error) {
+               // Invalid data, clean up
+               localStorage.removeItem(gameKey);
+            }
+         }
+
          try {
             const status = await getShareStatus(currentShareId);
             if (status.has_clicks && !hasShared) {
@@ -2745,7 +2769,9 @@ function TileSlider({
                setUnlimitedActivated(true);
                setTimeout(() => {
                   setUnlimitedActivated(false);
-               }, 10000); // Show for 10 seconds
+                  setHasShared(false);
+                  localStorage.removeItem(gameKey);
+               }, EXPIRY_TIME);
 
                // Stop checking once activated
                if (shareCheckIntervalRef.current) {
@@ -2753,7 +2779,21 @@ function TileSlider({
                   shareCheckIntervalRef.current = null;
                }
             }
-         } catch (error) {}
+         } catch (error) {
+            // Handle 404 as expired share
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            if (errorMessage.includes("404") || errorMessage.includes("not found") || errorMessage.includes("expired")) {
+               // Share expired or not found - clean up
+               const gameKey = "play50games_shared_tile-slider";
+               localStorage.removeItem(gameKey);
+               if (shareCheckIntervalRef.current) {
+                  clearInterval(shareCheckIntervalRef.current);
+               }
+               setCurrentShareId(null);
+               setHasShared(false);
+               setUnlimitedActivated(false);
+            }
+         }
       };
 
       // Check immediately, then every 10 seconds (heartbeat)

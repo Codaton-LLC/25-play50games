@@ -311,9 +311,20 @@ export const gameInstructions: Record<string, {
     ],
   },
   'word-memory': {
-    description: 'Remember and select words',
-    instructions: 'Read the list of words carefully. After they disappear, select the words you saw from the options.',
-    tips: 'Try to remember the first and last words, then work on the middle ones. Create associations.'
+    description: 'Remember and click words in sequence',
+    instructions: 'Watch the words flash on the grid one by one. After they disappear, click on the words in the same order they appeared. The sequence length increases with each round!',
+    tips: 'Remember the starting word. Follow the sequence step by step. Create a mental story or association to remember the order.',
+    mouseControls: [
+      { action: 'Click', label: 'Click words in the same order as they flashed' },
+    ],
+    keyboardControls: [
+      { keys: ['1-9', '0', '-', '='], label: 'Select words by position in grid (1-12)' },
+      { keys: ['ArrowUp', 'W'], label: 'Move selection Up' },
+      { keys: ['ArrowDown', 'S'], label: 'Move selection Down' },
+      { keys: ['ArrowLeft', 'A'], label: 'Move selection Left' },
+      { keys: ['ArrowRight', 'D'], label: 'Move selection Right' },
+      { keys: ['Enter', 'Space'], label: 'Select highlighted word' },
+    ],
   },
   'face-memory': {
     description: 'Match faces with names',

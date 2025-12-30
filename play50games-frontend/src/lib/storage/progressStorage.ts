@@ -212,7 +212,7 @@ export function getProgress(gameId: number, isAuthenticated?: boolean): GameProg
   // For sync access, use localStorage only (for guests or immediate access)
   // For logged-in users, use getAllProgress() async version in components
   const allProgress = getAllProgressSync();
-  return allProgress[gameId] || null;
+    return allProgress[gameId] || null;
 }
 
 /**
