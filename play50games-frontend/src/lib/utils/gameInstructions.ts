@@ -328,8 +328,21 @@ export const gameInstructions: Record<string, {
   },
   'face-memory': {
     description: 'Match faces with names',
-    instructions: 'Study the faces and their names. After they disappear, match each face with its correct name.',
-    tips: 'Look for distinctive features on each face. Associate names with facial characteristics.'
+    instructions: 'Study the faces and their names. After they disappear, match each face with its correct name. The number of faces increases with each round (3-6 faces).',
+    tips: 'Look for distinctive features on each face. Associate names with facial characteristics.',
+    mouseControls: [
+      { action: 'Click', label: 'Click on a face to select it' },
+      { action: 'Click', label: 'Click on a name button to match it with the selected face' },
+      { action: 'Click', label: 'Click Hint button to reveal a face name (10 uses, unlimited if shared)' },
+      { action: 'Click', label: 'Click Share button to get unlimited hints when someone opens your link' },
+    ],
+    keyboardControls: [
+      { keys: ['1', '2', '3', '4', '5', '6'], label: 'Select face by number (1-6)' },
+      { keys: ['ArrowUp', 'W'], label: 'Move selection up' },
+      { keys: ['ArrowDown', 'S'], label: 'Move selection down' },
+      { keys: ['1', '2', '3', '4', '5', '6'], label: 'Select name for current face by number' },
+      { keys: ['Enter', 'Space'], label: 'Cycle through available names for selected face' },
+    ],
   },
   'color-grid-memory': {
     description: 'Remember highlighted grid cells',

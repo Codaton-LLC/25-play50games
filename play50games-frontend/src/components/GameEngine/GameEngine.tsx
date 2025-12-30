@@ -302,7 +302,8 @@ export default function GameEngine({
                               textAlign: "center",
                            }}
                         >
-                           Memorize the emoji positions, then click them in order:
+                           Memorize the emoji positions, then click them in
+                           order:
                         </p>
                         <div
                            style={{
@@ -313,14 +314,34 @@ export default function GameEngine({
                               margin: "0 auto",
                            }}
                         >
-                           {["🍎", "?", "?", "⭐", "?", "🎵", "?", "?", "?", "🏀", "?", "?", "?", "?", "?", "?"].map((emoji, i) => (
+                           {[
+                              "🍎",
+                              "?",
+                              "?",
+                              "⭐",
+                              "?",
+                              "🎵",
+                              "?",
+                              "?",
+                              "?",
+                              "🏀",
+                              "?",
+                              "?",
+                              "?",
+                              "?",
+                              "?",
+                              "?",
+                           ].map((emoji, i) => (
                               <div
                                  key={i}
                                  style={{
                                     aspectRatio: "1",
                                     borderRadius: "12px",
                                     border: "2px solid var(--stroke)",
-                                    background: emoji !== "?" ? "linear-gradient(135deg, rgba(125, 211, 252, 0.2), rgba(125, 211, 252, 0.1))" : "var(--card)",
+                                    background:
+                                       emoji !== "?"
+                                          ? "linear-gradient(135deg, rgba(125, 211, 252, 0.2), rgba(125, 211, 252, 0.1))"
+                                          : "var(--card)",
                                     display: "flex",
                                     alignItems: "center",
                                     justifyContent: "center",
@@ -341,7 +362,8 @@ export default function GameEngine({
                               fontStyle: "italic",
                            }}
                         >
-                           Click on cells 0, 3, 4, 5, and 9 (where emojis appeared)
+                           Click on cells 0, 3, 4, 5, and 9 (where emojis
+                           appeared)
                         </p>
                      </div>
 
@@ -926,7 +948,8 @@ export default function GameEngine({
                               textAlign: "center",
                            }}
                         >
-                           Watch the sequence flash, then click in the same order:
+                           Watch the sequence flash, then click in the same
+                           order:
                         </p>
                         <div
                            style={{
@@ -937,7 +960,17 @@ export default function GameEngine({
                               margin: "0 auto",
                            }}
                         >
-                           {["🧩", "🚀", "🌙", "🍎", "🎵", "📦", "⭐", "🐶", "🏀"].map((emoji, i) => {
+                           {[
+                              "🧩",
+                              "🚀",
+                              "🌙",
+                              "🍎",
+                              "🎵",
+                              "📦",
+                              "⭐",
+                              "🐶",
+                              "🏀",
+                           ].map((emoji, i) => {
                               const isInSequence = [1, 0, 2].includes(i); // Example sequence: 2 → 1 → 3
                               const orderInSequence = [1, 0, 2].indexOf(i);
                               return (
@@ -973,8 +1006,10 @@ export default function GameEngine({
                                              width: "28px",
                                              height: "28px",
                                              borderRadius: "999px",
-                                             background: "rgba(15, 27, 51, 0.8)",
-                                             border: "1px solid rgba(255, 255, 255, 0.12)",
+                                             background:
+                                                "rgba(15, 27, 51, 0.8)",
+                                             border:
+                                                "1px solid rgba(255, 255, 255, 0.12)",
                                              display: "grid",
                                              placeItems: "center",
                                              fontWeight: 900,
@@ -999,7 +1034,8 @@ export default function GameEngine({
                               fontStyle: "italic",
                            }}
                         >
-                           Sequence: <strong>🚀 → 🧩 → 🌙</strong> (positions 2 → 1 → 3)
+                           Sequence: <strong>🚀 → 🧩 → 🌙</strong> (positions 2
+                           → 1 → 3)
                         </p>
                      </div>
 
@@ -1071,7 +1107,11 @@ export default function GameEngine({
                         background:
                            "linear-gradient(135deg, rgba(125, 211, 252, 0.1) 0%, rgba(54, 211, 153, 0.1) 100%)",
                         border: "2px solid var(--stroke)",
-                        borderRadius: isMobile ? "16px" : isTablet ? "18px" : "20px",
+                        borderRadius: isMobile
+                           ? "16px"
+                           : isTablet
+                           ? "18px"
+                           : "20px",
                         padding: isMobile ? "20px" : isTablet ? "24px" : "32px",
                         marginTop: isMobile ? "16px" : "24px",
                         boxShadow: "0 8px 24px rgba(0, 0, 0, 0.2)",
@@ -1083,7 +1123,11 @@ export default function GameEngine({
                            alignItems: "center",
                            justifyContent: "center",
                            gap: isMobile ? "8px" : "12px",
-                           marginBottom: isMobile ? "16px" : isTablet ? "20px" : "24px",
+                           marginBottom: isMobile
+                              ? "16px"
+                              : isTablet
+                              ? "20px"
+                              : "24px",
                         }}
                      >
                         <SparklesIcon
@@ -1095,7 +1139,11 @@ export default function GameEngine({
                         />
                         <h3
                            style={{
-                              fontSize: isMobile ? "18px" : isTablet ? "20px" : "24px",
+                              fontSize: isMobile
+                                 ? "18px"
+                                 : isTablet
+                                 ? "20px"
+                                 : "24px",
                               fontWeight: 700,
                               margin: 0,
                               background:
@@ -1113,26 +1161,45 @@ export default function GameEngine({
                         style={{
                            background: "var(--card)",
                            border: "2px solid var(--stroke)",
-                           borderRadius: isMobile ? "14px" : isTablet ? "15px" : "16px",
-                           padding: isMobile ? "16px" : isTablet ? "20px" : "24px",
-                           marginBottom: isMobile ? "16px" : isTablet ? "20px" : "24px",
+                           borderRadius: isMobile
+                              ? "14px"
+                              : isTablet
+                              ? "15px"
+                              : "16px",
+                           padding: isMobile
+                              ? "16px"
+                              : isTablet
+                              ? "20px"
+                              : "24px",
+                           marginBottom: isMobile
+                              ? "16px"
+                              : isTablet
+                              ? "20px"
+                              : "24px",
                         }}
                      >
                         <p
                            style={{
                               margin: "0 0 16px",
                               color: "var(--text)",
-                              fontSize: isMobile ? "14px" : isTablet ? "15px" : "16px",
+                              fontSize: isMobile
+                                 ? "14px"
+                                 : isTablet
+                                 ? "15px"
+                                 : "16px",
                               fontWeight: 600,
                               textAlign: "center",
                            }}
                         >
-                           Watch the path flash, then click cells in the same order:
+                           Watch the path flash, then click cells in the same
+                           order:
                         </p>
                         <div
                            style={{
                               display: "grid",
-                              gridTemplateColumns: `repeat(5, ${isMobile ? "36px" : isTablet ? "40px" : "44px"})`,
+                              gridTemplateColumns: `repeat(5, ${
+                                 isMobile ? "36px" : isTablet ? "40px" : "44px"
+                              })`,
                               gap: isMobile ? "6px" : isTablet ? "8px" : "10px",
                               maxWidth: "fit-content",
                               margin: "0 auto",
@@ -1147,8 +1214,16 @@ export default function GameEngine({
                                  <div
                                     key={i}
                                     style={{
-                                       width: isMobile ? "36px" : isTablet ? "40px" : "44px",
-                                       height: isMobile ? "36px" : isTablet ? "40px" : "44px",
+                                       width: isMobile
+                                          ? "36px"
+                                          : isTablet
+                                          ? "40px"
+                                          : "44px",
+                                       height: isMobile
+                                          ? "36px"
+                                          : isTablet
+                                          ? "40px"
+                                          : "44px",
                                        borderRadius: "16px",
                                        border: isInPath
                                           ? "2px solid rgba(110, 168, 255, 0.75)"
@@ -1171,15 +1246,29 @@ export default function GameEngine({
                                           style={{
                                              position: "absolute",
                                              inset: "auto 8px 8px auto",
-                                             width: isMobile ? "20px" : isTablet ? "22px" : "24px",
-                                             height: isMobile ? "20px" : isTablet ? "22px" : "24px",
+                                             width: isMobile
+                                                ? "20px"
+                                                : isTablet
+                                                ? "22px"
+                                                : "24px",
+                                             height: isMobile
+                                                ? "20px"
+                                                : isTablet
+                                                ? "22px"
+                                                : "24px",
                                              borderRadius: "999px",
-                                             background: "rgba(15, 27, 51, 0.62)",
-                                             border: "1px solid rgba(255, 255, 255, 0.12)",
+                                             background:
+                                                "rgba(15, 27, 51, 0.62)",
+                                             border:
+                                                "1px solid rgba(255, 255, 255, 0.12)",
                                              display: "grid",
                                              placeItems: "center",
                                              fontWeight: 900,
-                                             fontSize: isMobile ? "10px" : isTablet ? "11px" : "12px",
+                                             fontSize: isMobile
+                                                ? "10px"
+                                                : isTablet
+                                                ? "11px"
+                                                : "12px",
                                              color: "rgba(232, 238, 252, 0.95)",
                                              zIndex: 2,
                                           }}
@@ -1195,12 +1284,17 @@ export default function GameEngine({
                            style={{
                               margin: "16px 0 0",
                               color: "var(--muted)",
-                              fontSize: isMobile ? "12px" : isTablet ? "13px" : "14px",
+                              fontSize: isMobile
+                                 ? "12px"
+                                 : isTablet
+                                 ? "13px"
+                                 : "14px",
                               textAlign: "center",
                               fontStyle: "italic",
                            }}
                         >
-                           Path: <strong>1 → 2 → 7 → 8 → 13</strong> (click cells in this order)
+                           Path: <strong>1 → 2 → 7 → 8 → 13</strong> (click
+                           cells in this order)
                         </p>
                      </div>
 
@@ -1272,7 +1366,11 @@ export default function GameEngine({
                         background:
                            "linear-gradient(135deg, rgba(125, 211, 252, 0.1) 0%, rgba(54, 211, 153, 0.1) 100%)",
                         border: "2px solid var(--stroke)",
-                        borderRadius: isMobile ? "16px" : isTablet ? "18px" : "20px",
+                        borderRadius: isMobile
+                           ? "16px"
+                           : isTablet
+                           ? "18px"
+                           : "20px",
                         padding: isMobile ? "20px" : isTablet ? "24px" : "32px",
                         marginTop: isMobile ? "16px" : "24px",
                         boxShadow: "0 8px 24px rgba(0, 0, 0, 0.2)",
@@ -1284,7 +1382,11 @@ export default function GameEngine({
                            alignItems: "center",
                            justifyContent: "center",
                            gap: isMobile ? "8px" : "12px",
-                           marginBottom: isMobile ? "16px" : isTablet ? "20px" : "24px",
+                           marginBottom: isMobile
+                              ? "16px"
+                              : isTablet
+                              ? "20px"
+                              : "24px",
                         }}
                      >
                         <SparklesIcon
@@ -1296,7 +1398,11 @@ export default function GameEngine({
                         />
                         <h3
                            style={{
-                              fontSize: isMobile ? "18px" : isTablet ? "20px" : "24px",
+                              fontSize: isMobile
+                                 ? "18px"
+                                 : isTablet
+                                 ? "20px"
+                                 : "24px",
                               fontWeight: 700,
                               margin: 0,
                               background:
@@ -1314,16 +1420,32 @@ export default function GameEngine({
                         style={{
                            background: "var(--card)",
                            border: "2px solid var(--stroke)",
-                           borderRadius: isMobile ? "14px" : isTablet ? "15px" : "16px",
-                           padding: isMobile ? "16px" : isTablet ? "20px" : "24px",
-                           marginBottom: isMobile ? "16px" : isTablet ? "20px" : "24px",
+                           borderRadius: isMobile
+                              ? "14px"
+                              : isTablet
+                              ? "15px"
+                              : "16px",
+                           padding: isMobile
+                              ? "16px"
+                              : isTablet
+                              ? "20px"
+                              : "24px",
+                           marginBottom: isMobile
+                              ? "16px"
+                              : isTablet
+                              ? "20px"
+                              : "24px",
                         }}
                      >
                         <p
                            style={{
                               margin: "0 0 16px",
                               color: "var(--text)",
-                              fontSize: isMobile ? "14px" : isTablet ? "15px" : "16px",
+                              fontSize: isMobile
+                                 ? "14px"
+                                 : isTablet
+                                 ? "15px"
+                                 : "16px",
                               fontWeight: 600,
                               textAlign: "center",
                            }}
@@ -1334,21 +1456,44 @@ export default function GameEngine({
                            style={{
                               display: "grid",
                               gridTemplateColumns: "repeat(3, 1fr)",
-                              gap: isMobile ? "10px" : isTablet ? "12px" : "14px",
-                              maxWidth: isMobile ? "280px" : isTablet ? "320px" : "360px",
+                              gap: isMobile
+                                 ? "10px"
+                                 : isTablet
+                                 ? "12px"
+                                 : "14px",
+                              maxWidth: isMobile
+                                 ? "280px"
+                                 : isTablet
+                                 ? "320px"
+                                 : "360px",
                               margin: "0 auto",
                            }}
                         >
-                           {["Apple", "Beach", "Cloud", "Dance", "Earth", "Flame", "Green", "Happy", "Image"].map((word, i) => {
+                           {[
+                              "Apple",
+                              "Beach",
+                              "Cloud",
+                              "Dance",
+                              "Earth",
+                              "Flame",
+                              "Green",
+                              "Happy",
+                              "Image",
+                           ].map((word, i) => {
                               // Example sequence: 1 → 0 → 2 (Beach → Apple → Cloud)
                               const exampleSequence = [1, 0, 2];
                               const isInSequence = exampleSequence.includes(i);
-                              const orderInSequence = exampleSequence.indexOf(i);
+                              const orderInSequence =
+                                 exampleSequence.indexOf(i);
                               return (
                                  <div
                                     key={i}
                                     style={{
-                                       padding: isMobile ? "14px 10px" : isTablet ? "16px 12px" : "18px 14px",
+                                       padding: isMobile
+                                          ? "14px 10px"
+                                          : isTablet
+                                          ? "16px 12px"
+                                          : "18px 14px",
                                        borderRadius: "12px",
                                        border: isInSequence
                                           ? "2px solid rgba(110, 168, 255, 0.8)"
@@ -1362,7 +1507,11 @@ export default function GameEngine({
                                        display: "flex",
                                        alignItems: "center",
                                        justifyContent: "center",
-                                       fontSize: isMobile ? "0.85rem" : isTablet ? "0.9rem" : "1rem",
+                                       fontSize: isMobile
+                                          ? "0.85rem"
+                                          : isTablet
+                                          ? "0.9rem"
+                                          : "1rem",
                                        fontWeight: 600,
                                        color: "var(--text)",
                                        position: "relative",
@@ -1378,15 +1527,27 @@ export default function GameEngine({
                                              position: "absolute",
                                              top: "4px",
                                              right: "4px",
-                                             width: isMobile ? "20px" : isTablet ? "22px" : "24px",
-                                             height: isMobile ? "20px" : isTablet ? "22px" : "24px",
+                                             width: isMobile
+                                                ? "20px"
+                                                : isTablet
+                                                ? "22px"
+                                                : "24px",
+                                             height: isMobile
+                                                ? "20px"
+                                                : isTablet
+                                                ? "22px"
+                                                : "24px",
                                              borderRadius: "50%",
                                              background: "var(--ok)",
                                              color: "#0b1220",
                                              display: "flex",
                                              alignItems: "center",
                                              justifyContent: "center",
-                                             fontSize: isMobile ? "0.7rem" : isTablet ? "0.75rem" : "0.75rem",
+                                             fontSize: isMobile
+                                                ? "0.7rem"
+                                                : isTablet
+                                                ? "0.75rem"
+                                                : "0.75rem",
                                              fontWeight: 700,
                                              zIndex: 2,
                                           }}
@@ -1402,12 +1563,17 @@ export default function GameEngine({
                            style={{
                               margin: "16px 0 0",
                               color: "var(--muted)",
-                              fontSize: isMobile ? "12px" : isTablet ? "13px" : "14px",
+                              fontSize: isMobile
+                                 ? "12px"
+                                 : isTablet
+                                 ? "13px"
+                                 : "14px",
                               textAlign: "center",
                               fontStyle: "italic",
                            }}
                         >
-                           Sequence: <strong>Beach → Apple → Cloud</strong> (positions 2 → 1 → 3)
+                           Sequence: <strong>Beach → Apple → Cloud</strong>{" "}
+                           (positions 2 → 1 → 3)
                         </p>
                      </div>
 
@@ -1472,14 +1638,18 @@ export default function GameEngine({
                   </div>
                )}
 
-               {/* Enhanced Start Screen for Mirror Match */}
-               {gameType === "mirror-match" && (
+               {/* Interactive Example for Face Memory */}
+               {gameType === "face-memory" && (
                   <div
                      style={{
                         background:
                            "linear-gradient(135deg, rgba(125, 211, 252, 0.1) 0%, rgba(54, 211, 153, 0.1) 100%)",
                         border: "2px solid var(--stroke)",
-                        borderRadius: isMobile ? "16px" : isTablet ? "18px" : "20px",
+                        borderRadius: isMobile
+                           ? "16px"
+                           : isTablet
+                           ? "18px"
+                           : "20px",
                         padding: isMobile ? "20px" : isTablet ? "24px" : "32px",
                         marginTop: isMobile ? "16px" : "24px",
                         boxShadow: "0 8px 24px rgba(0, 0, 0, 0.2)",
@@ -1491,7 +1661,352 @@ export default function GameEngine({
                            alignItems: "center",
                            justifyContent: "center",
                            gap: isMobile ? "8px" : "12px",
-                           marginBottom: isMobile ? "16px" : isTablet ? "20px" : "24px",
+                           marginBottom: isMobile
+                              ? "16px"
+                              : isTablet
+                              ? "20px"
+                              : "24px",
+                        }}
+                     >
+                        <SparklesIcon
+                           style={{
+                              width: isMobile ? 20 : isTablet ? 24 : 28,
+                              height: isMobile ? 20 : isTablet ? 24 : 28,
+                              color: "var(--accent)",
+                           }}
+                        />
+                        <h3
+                           style={{
+                              fontSize: isMobile
+                                 ? "18px"
+                                 : isTablet
+                                 ? "20px"
+                                 : "24px",
+                              fontWeight: 700,
+                              margin: 0,
+                              background:
+                                 "linear-gradient(135deg, var(--accent) 0%, var(--ok) 100%)",
+                              WebkitBackgroundClip: "text",
+                              WebkitTextFillColor: "transparent",
+                              backgroundClip: "text",
+                           }}
+                        >
+                           Example Round
+                        </h3>
+                     </div>
+
+                     <div
+                        style={{
+                           background: "var(--card)",
+                           border: "2px solid var(--stroke)",
+                           borderRadius: isMobile
+                              ? "14px"
+                              : isTablet
+                              ? "15px"
+                              : "16px",
+                           padding: isMobile
+                              ? "16px"
+                              : isTablet
+                              ? "20px"
+                              : "24px",
+                           marginBottom: isMobile
+                              ? "16px"
+                              : isTablet
+                              ? "20px"
+                              : "24px",
+                        }}
+                     >
+                        <p
+                           style={{
+                              margin: "0 0 16px",
+                              color: "var(--text)",
+                              fontSize: isMobile
+                                 ? "14px"
+                                 : isTablet
+                                 ? "15px"
+                                 : "16px",
+                              fontWeight: 600,
+                              textAlign: "center",
+                           }}
+                        >
+                           Study the faces and their names, then match them:
+                        </p>
+
+                        {/* Memorizing Phase - Faces with Names */}
+                        <div
+                           style={{
+                              display: "grid",
+                              gridTemplateColumns: "repeat(3, 1fr)",
+                              gap: isMobile
+                                 ? "12px"
+                                 : isTablet
+                                 ? "14px"
+                                 : "16px",
+                              maxWidth: isMobile
+                                 ? "280px"
+                                 : isTablet
+                                 ? "320px"
+                                 : "360px",
+                              margin: "0 auto 20px",
+                           }}
+                        >
+                           {[
+                              { face: "😀", name: "Alex" },
+                              { face: "😎", name: "Sam" },
+                              { face: "🧑‍🦱", name: "Jordan" },
+                           ].map((pair, i) => (
+                              <div
+                                 key={i}
+                                 style={{
+                                    display: "flex",
+                                    flexDirection: "column",
+                                    alignItems: "center",
+                                    gap: isMobile ? "8px" : "10px",
+                                    padding: isMobile
+                                       ? "12px"
+                                       : isTablet
+                                       ? "14px"
+                                       : "16px",
+                                    borderRadius: "12px",
+                                    border:
+                                       "2px solid rgba(110, 168, 255, 0.5)",
+                                    background:
+                                       "linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1))",
+                                    boxShadow:
+                                       "0 4px 12px rgba(59, 130, 246, 0.3)",
+                                 }}
+                              >
+                                 <div
+                                    style={{
+                                       fontSize: isMobile
+                                          ? "32px"
+                                          : isTablet
+                                          ? "36px"
+                                          : "40px",
+                                       lineHeight: 1,
+                                    }}
+                                 >
+                                    {pair.face}
+                                 </div>
+                                 <div
+                                    style={{
+                                       fontSize: isMobile
+                                          ? "0.85rem"
+                                          : isTablet
+                                          ? "0.9rem"
+                                          : "1rem",
+                                       fontWeight: 600,
+                                       color: "var(--text)",
+                                    }}
+                                 >
+                                    {pair.name}
+                                 </div>
+                              </div>
+                           ))}
+                        </div>
+
+                        {/* Input Phase - Faces without Names */}
+                        <div
+                           style={{
+                              borderTop: "2px solid var(--stroke)",
+                              paddingTop: "20px",
+                              marginTop: "20px",
+                           }}
+                        >
+                           <p
+                              style={{
+                                 margin: "0 0 16px",
+                                 color: "var(--text)",
+                                 fontSize: isMobile
+                                    ? "14px"
+                                    : isTablet
+                                    ? "15px"
+                                    : "16px",
+                                 fontWeight: 600,
+                                 textAlign: "center",
+                              }}
+                           >
+                              Now match each face with its name:
+                           </p>
+                           <div
+                              style={{
+                                 display: "grid",
+                                 gridTemplateColumns: "repeat(3, 1fr)",
+                                 gap: isMobile
+                                    ? "12px"
+                                    : isTablet
+                                    ? "14px"
+                                    : "16px",
+                                 maxWidth: isMobile
+                                    ? "280px"
+                                    : isTablet
+                                    ? "320px"
+                                    : "360px",
+                                 margin: "0 auto 16px",
+                              }}
+                           >
+                              {[
+                                 { face: "😀", name: "Alex" },
+                                 { face: "😎", name: "Sam" },
+                                 { face: "🧑‍🦱", name: "Jordan" },
+                              ].map((pair, i) => (
+                                 <div
+                                    key={i}
+                                    style={{
+                                       display: "flex",
+                                       flexDirection: "column",
+                                       alignItems: "center",
+                                       gap: isMobile ? "8px" : "10px",
+                                       padding: isMobile
+                                          ? "12px"
+                                          : isTablet
+                                          ? "14px"
+                                          : "16px",
+                                       borderRadius: "12px",
+                                       border:
+                                          "2px solid rgba(255, 255, 255, 0.2)",
+                                       background: "rgba(15, 27, 51, 0.5)",
+                                       position: "relative",
+                                    }}
+                                 >
+                                    <div
+                                       style={{
+                                          fontSize: isMobile
+                                             ? "32px"
+                                             : isTablet
+                                             ? "36px"
+                                             : "40px",
+                                          lineHeight: 1,
+                                       }}
+                                    >
+                                       {pair.face}
+                                    </div>
+                                    <div
+                                       style={{
+                                          fontSize: isMobile
+                                             ? "0.85rem"
+                                             : isTablet
+                                             ? "0.9rem"
+                                             : "1rem",
+                                          fontWeight: 600,
+                                          color: "var(--ok)",
+                                          padding: "4px 8px",
+                                          borderRadius: "6px",
+                                          background: "rgba(34, 197, 94, 0.2)",
+                                       }}
+                                    >
+                                       {pair.name}
+                                    </div>
+                                 </div>
+                              ))}
+                           </div>
+                           <p
+                              style={{
+                                 margin: "16px 0 0",
+                                 color: "var(--muted)",
+                                 fontSize: isMobile
+                                    ? "12px"
+                                    : isTablet
+                                    ? "13px"
+                                    : "14px",
+                                 textAlign: "center",
+                                 fontStyle: "italic",
+                              }}
+                           >
+                              Click a face, then select its name from the list
+                           </p>
+                        </div>
+                     </div>
+
+                     {isMobile && (
+                        <p
+                           style={{
+                              margin: "16px 0 0",
+                              color: "var(--muted)",
+                              fontSize: "13px",
+                              textAlign: "center",
+                              fontStyle: "italic",
+                           }}
+                        >
+                           <span
+                              style={{
+                                 display: "flex",
+                                 alignItems: "center",
+                                 gap: "6px",
+                                 justifyContent: "center",
+                              }}
+                           >
+                              <CursorArrowRaysIcon
+                                 style={{
+                                    width: 16,
+                                    height: 16,
+                                    color: "var(--accent)",
+                                 }}
+                              />
+                              Tap a face, then tap its name
+                           </span>
+                        </p>
+                     )}
+                     {!isMobile && (
+                        <p
+                           style={{
+                              margin: "16px 0 0",
+                              color: "var(--muted)",
+                              fontSize: "13px",
+                              textAlign: "center",
+                              fontStyle: "italic",
+                           }}
+                        >
+                           <span
+                              style={{
+                                 display: "flex",
+                                 alignItems: "center",
+                                 gap: "6px",
+                                 justifyContent: "center",
+                              }}
+                           >
+                              <CursorArrowRaysIcon
+                                 style={{
+                                    width: 16,
+                                    height: 16,
+                                    color: "var(--accent)",
+                                 }}
+                              />
+                              Click a face, then click its name
+                           </span>
+                        </p>
+                     )}
+                  </div>
+               )}
+
+               {/* Enhanced Start Screen for Mirror Match */}
+               {gameType === "mirror-match" && (
+                  <div
+                     style={{
+                        background:
+                           "linear-gradient(135deg, rgba(125, 211, 252, 0.1) 0%, rgba(54, 211, 153, 0.1) 100%)",
+                        border: "2px solid var(--stroke)",
+                        borderRadius: isMobile
+                           ? "16px"
+                           : isTablet
+                           ? "18px"
+                           : "20px",
+                        padding: isMobile ? "20px" : isTablet ? "24px" : "32px",
+                        marginTop: isMobile ? "16px" : "24px",
+                        boxShadow: "0 8px 24px rgba(0, 0, 0, 0.2)",
+                     }}
+                  >
+                     <div
+                        style={{
+                           display: "flex",
+                           alignItems: "center",
+                           justifyContent: "center",
+                           gap: isMobile ? "8px" : "12px",
+                           marginBottom: isMobile
+                              ? "16px"
+                              : isTablet
+                              ? "20px"
+                              : "24px",
                         }}
                      >
                         <ScaleIcon
@@ -1503,7 +2018,11 @@ export default function GameEngine({
                         />
                         <h3
                            style={{
-                              fontSize: isMobile ? "18px" : isTablet ? "20px" : "24px",
+                              fontSize: isMobile
+                                 ? "18px"
+                                 : isTablet
+                                 ? "20px"
+                                 : "24px",
                               fontWeight: 700,
                               margin: 0,
                               background:
@@ -1520,13 +2039,17 @@ export default function GameEngine({
                      <div
                         style={{
                            display: "grid",
-                           gridTemplateColumns: isMobile 
-                              ? "1fr" 
-                              : isTablet 
-                              ? "repeat(2, 1fr)" 
+                           gridTemplateColumns: isMobile
+                              ? "1fr"
+                              : isTablet
+                              ? "repeat(2, 1fr)"
                               : "repeat(3, 1fr)",
                            gap: isMobile ? "16px" : isTablet ? "18px" : "20px",
-                           marginBottom: isMobile ? "16px" : isTablet ? "20px" : "24px",
+                           marginBottom: isMobile
+                              ? "16px"
+                              : isTablet
+                              ? "20px"
+                              : "24px",
                         }}
                      >
                         {/* Horizontal Mirror */}
@@ -1534,8 +2057,16 @@ export default function GameEngine({
                            style={{
                               background: "var(--card)",
                               border: "2px solid var(--stroke)",
-                              borderRadius: isMobile ? "14px" : isTablet ? "15px" : "16px",
-                              padding: isMobile ? "16px" : isTablet ? "20px" : "24px",
+                              borderRadius: isMobile
+                                 ? "14px"
+                                 : isTablet
+                                 ? "15px"
+                                 : "16px",
+                              padding: isMobile
+                                 ? "16px"
+                                 : isTablet
+                                 ? "20px"
+                                 : "24px",
                               textAlign: "center",
                               transition: "all 0.3s ease",
                               boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)",
@@ -1543,10 +2074,18 @@ export default function GameEngine({
                         >
                            <div
                               style={{
-                                 fontSize: isMobile ? "14px" : isTablet ? "15px" : "16px",
+                                 fontSize: isMobile
+                                    ? "14px"
+                                    : isTablet
+                                    ? "15px"
+                                    : "16px",
                                  fontWeight: 700,
                                  color: "var(--accent)",
-                                 marginBottom: isMobile ? "12px" : isTablet ? "14px" : "16px",
+                                 marginBottom: isMobile
+                                    ? "12px"
+                                    : isTablet
+                                    ? "14px"
+                                    : "16px",
                                  display: "flex",
                                  alignItems: "center",
                                  justifyContent: "center",
@@ -1554,9 +2093,9 @@ export default function GameEngine({
                               }}
                            >
                               <ArrowPathIcon
-                                 style={{ 
-                                    width: isMobile ? 16 : isTablet ? 17 : 18, 
-                                    height: isMobile ? 16 : isTablet ? 17 : 18 
+                                 style={{
+                                    width: isMobile ? 16 : isTablet ? 17 : 18,
+                                    height: isMobile ? 16 : isTablet ? 17 : 18,
                                  }}
                               />
                               Horizontal
@@ -1566,22 +2105,38 @@ export default function GameEngine({
                                  display: "flex",
                                  flexDirection: "column",
                                  alignItems: "center",
-                                 gap: isMobile ? "8px" : isTablet ? "10px" : "12px",
-                                 minHeight: isMobile ? "140px" : isTablet ? "160px" : "180px",
+                                 gap: isMobile
+                                    ? "8px"
+                                    : isTablet
+                                    ? "10px"
+                                    : "12px",
+                                 minHeight: isMobile
+                                    ? "140px"
+                                    : isTablet
+                                    ? "160px"
+                                    : "180px",
                               }}
                            >
                               <div
                                  style={{
                                     background: "rgba(125, 211, 252, 0.1)",
                                     borderRadius: isMobile ? "10px" : "12px",
-                                    padding: isMobile ? "12px" : isTablet ? "14px" : "16px",
+                                    padding: isMobile
+                                       ? "12px"
+                                       : isTablet
+                                       ? "14px"
+                                       : "16px",
                                     border: "1px solid var(--stroke)",
                                  }}
                               >
                                  <svg
                                     viewBox="0 0 100 100"
-                                    width={isMobile ? "60" : isTablet ? "70" : "80"}
-                                    height={isMobile ? "60" : isTablet ? "70" : "80"}
+                                    width={
+                                       isMobile ? "60" : isTablet ? "70" : "80"
+                                    }
+                                    height={
+                                       isMobile ? "60" : isTablet ? "70" : "80"
+                                    }
                                     style={{
                                        stroke: "rgba(232, 238, 252, 0.92)",
                                        strokeWidth: "10",
@@ -1603,7 +2158,11 @@ export default function GameEngine({
                               </div>
                               <div
                                  style={{
-                                    fontSize: isMobile ? "16px" : isTablet ? "18px" : "20px",
+                                    fontSize: isMobile
+                                       ? "16px"
+                                       : isTablet
+                                       ? "18px"
+                                       : "20px",
                                     color: "var(--accent)",
                                     fontWeight: 600,
                                  }}
@@ -1614,15 +2173,23 @@ export default function GameEngine({
                                  style={{
                                     background: "rgba(125, 211, 252, 0.1)",
                                     borderRadius: isMobile ? "10px" : "12px",
-                                    padding: isMobile ? "12px" : isTablet ? "14px" : "16px",
+                                    padding: isMobile
+                                       ? "12px"
+                                       : isTablet
+                                       ? "14px"
+                                       : "16px",
                                     border: "1px solid var(--stroke)",
                                     transform: "scaleX(-1)",
                                  }}
                               >
                                  <svg
                                     viewBox="0 0 100 100"
-                                    width={isMobile ? "60" : isTablet ? "70" : "80"}
-                                    height={isMobile ? "60" : isTablet ? "70" : "80"}
+                                    width={
+                                       isMobile ? "60" : isTablet ? "70" : "80"
+                                    }
+                                    height={
+                                       isMobile ? "60" : isTablet ? "70" : "80"
+                                    }
                                     style={{
                                        stroke: "rgba(232, 238, 252, 0.92)",
                                        strokeWidth: "10",
@@ -1644,7 +2211,11 @@ export default function GameEngine({
                               </div>
                               <div
                                  style={{
-                                    fontSize: isMobile ? "11px" : isTablet ? "12px" : "13px",
+                                    fontSize: isMobile
+                                       ? "11px"
+                                       : isTablet
+                                       ? "12px"
+                                       : "13px",
                                     color: "var(--muted)",
                                     marginTop: isMobile ? "4px" : "8px",
                                     fontWeight: 600,
@@ -1660,8 +2231,16 @@ export default function GameEngine({
                            style={{
                               background: "var(--card)",
                               border: "2px solid var(--stroke)",
-                              borderRadius: isMobile ? "14px" : isTablet ? "15px" : "16px",
-                              padding: isMobile ? "16px" : isTablet ? "20px" : "24px",
+                              borderRadius: isMobile
+                                 ? "14px"
+                                 : isTablet
+                                 ? "15px"
+                                 : "16px",
+                              padding: isMobile
+                                 ? "16px"
+                                 : isTablet
+                                 ? "20px"
+                                 : "24px",
                               textAlign: "center",
                               transition: "all 0.3s ease",
                               boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)",
@@ -1669,10 +2248,18 @@ export default function GameEngine({
                         >
                            <div
                               style={{
-                                 fontSize: isMobile ? "14px" : isTablet ? "15px" : "16px",
+                                 fontSize: isMobile
+                                    ? "14px"
+                                    : isTablet
+                                    ? "15px"
+                                    : "16px",
                                  fontWeight: 700,
                                  color: "var(--accent)",
-                                 marginBottom: isMobile ? "12px" : isTablet ? "14px" : "16px",
+                                 marginBottom: isMobile
+                                    ? "12px"
+                                    : isTablet
+                                    ? "14px"
+                                    : "16px",
                                  display: "flex",
                                  alignItems: "center",
                                  justifyContent: "center",
@@ -1693,22 +2280,38 @@ export default function GameEngine({
                                  display: "flex",
                                  flexDirection: "column",
                                  alignItems: "center",
-                                 gap: isMobile ? "8px" : isTablet ? "10px" : "12px",
-                                 minHeight: isMobile ? "140px" : isTablet ? "160px" : "180px",
+                                 gap: isMobile
+                                    ? "8px"
+                                    : isTablet
+                                    ? "10px"
+                                    : "12px",
+                                 minHeight: isMobile
+                                    ? "140px"
+                                    : isTablet
+                                    ? "160px"
+                                    : "180px",
                               }}
                            >
                               <div
                                  style={{
                                     background: "rgba(54, 211, 153, 0.1)",
                                     borderRadius: isMobile ? "10px" : "12px",
-                                    padding: isMobile ? "12px" : isTablet ? "14px" : "16px",
+                                    padding: isMobile
+                                       ? "12px"
+                                       : isTablet
+                                       ? "14px"
+                                       : "16px",
                                     border: "1px solid var(--stroke)",
                                  }}
                               >
                                  <svg
                                     viewBox="0 0 100 100"
-                                    width={isMobile ? "60" : isTablet ? "70" : "80"}
-                                    height={isMobile ? "60" : isTablet ? "70" : "80"}
+                                    width={
+                                       isMobile ? "60" : isTablet ? "70" : "80"
+                                    }
+                                    height={
+                                       isMobile ? "60" : isTablet ? "70" : "80"
+                                    }
                                     style={{
                                        stroke: "rgba(232, 238, 252, 0.92)",
                                        strokeWidth: "10",
@@ -1730,7 +2333,11 @@ export default function GameEngine({
                               </div>
                               <div
                                  style={{
-                                    fontSize: isMobile ? "16px" : isTablet ? "18px" : "20px",
+                                    fontSize: isMobile
+                                       ? "16px"
+                                       : isTablet
+                                       ? "18px"
+                                       : "20px",
                                     color: "var(--ok)",
                                     fontWeight: 600,
                                  }}
@@ -1741,15 +2348,23 @@ export default function GameEngine({
                                  style={{
                                     background: "rgba(54, 211, 153, 0.1)",
                                     borderRadius: isMobile ? "10px" : "12px",
-                                    padding: isMobile ? "12px" : isTablet ? "14px" : "16px",
+                                    padding: isMobile
+                                       ? "12px"
+                                       : isTablet
+                                       ? "14px"
+                                       : "16px",
                                     border: "1px solid var(--stroke)",
                                     transform: "scaleY(-1)",
                                  }}
                               >
                                  <svg
                                     viewBox="0 0 100 100"
-                                    width={isMobile ? "60" : isTablet ? "70" : "80"}
-                                    height={isMobile ? "60" : isTablet ? "70" : "80"}
+                                    width={
+                                       isMobile ? "60" : isTablet ? "70" : "80"
+                                    }
+                                    height={
+                                       isMobile ? "60" : isTablet ? "70" : "80"
+                                    }
                                     style={{
                                        stroke: "rgba(232, 238, 252, 0.92)",
                                        strokeWidth: "10",
@@ -1771,7 +2386,11 @@ export default function GameEngine({
                               </div>
                               <div
                                  style={{
-                                    fontSize: isMobile ? "11px" : isTablet ? "12px" : "13px",
+                                    fontSize: isMobile
+                                       ? "11px"
+                                       : isTablet
+                                       ? "12px"
+                                       : "13px",
                                     color: "var(--muted)",
                                     marginTop: isMobile ? "4px" : "8px",
                                     fontWeight: 600,
@@ -1787,8 +2406,16 @@ export default function GameEngine({
                            style={{
                               background: "var(--card)",
                               border: "2px solid var(--stroke)",
-                              borderRadius: isMobile ? "14px" : isTablet ? "15px" : "16px",
-                              padding: isMobile ? "16px" : isTablet ? "20px" : "24px",
+                              borderRadius: isMobile
+                                 ? "14px"
+                                 : isTablet
+                                 ? "15px"
+                                 : "16px",
+                              padding: isMobile
+                                 ? "16px"
+                                 : isTablet
+                                 ? "20px"
+                                 : "24px",
                               textAlign: "center",
                               transition: "all 0.3s ease",
                               boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)",
@@ -1796,10 +2423,18 @@ export default function GameEngine({
                         >
                            <div
                               style={{
-                                 fontSize: isMobile ? "14px" : isTablet ? "15px" : "16px",
+                                 fontSize: isMobile
+                                    ? "14px"
+                                    : isTablet
+                                    ? "15px"
+                                    : "16px",
                                  fontWeight: 700,
                                  color: "var(--accent)",
-                                 marginBottom: isMobile ? "12px" : isTablet ? "14px" : "16px",
+                                 marginBottom: isMobile
+                                    ? "12px"
+                                    : isTablet
+                                    ? "14px"
+                                    : "16px",
                                  display: "flex",
                                  alignItems: "center",
                                  justifyContent: "center",
@@ -1820,22 +2455,38 @@ export default function GameEngine({
                                  display: "flex",
                                  flexDirection: "column",
                                  alignItems: "center",
-                                 gap: isMobile ? "8px" : isTablet ? "10px" : "12px",
-                                 minHeight: isMobile ? "140px" : isTablet ? "160px" : "180px",
+                                 gap: isMobile
+                                    ? "8px"
+                                    : isTablet
+                                    ? "10px"
+                                    : "12px",
+                                 minHeight: isMobile
+                                    ? "140px"
+                                    : isTablet
+                                    ? "160px"
+                                    : "180px",
                               }}
                            >
                               <div
                                  style={{
                                     background: "rgba(168, 85, 247, 0.1)",
                                     borderRadius: isMobile ? "10px" : "12px",
-                                    padding: isMobile ? "12px" : isTablet ? "14px" : "16px",
+                                    padding: isMobile
+                                       ? "12px"
+                                       : isTablet
+                                       ? "14px"
+                                       : "16px",
                                     border: "1px solid var(--stroke)",
                                  }}
                               >
                                  <svg
                                     viewBox="0 0 100 100"
-                                    width={isMobile ? "60" : isTablet ? "70" : "80"}
-                                    height={isMobile ? "60" : isTablet ? "70" : "80"}
+                                    width={
+                                       isMobile ? "60" : isTablet ? "70" : "80"
+                                    }
+                                    height={
+                                       isMobile ? "60" : isTablet ? "70" : "80"
+                                    }
                                     style={{
                                        stroke: "rgba(232, 238, 252, 0.92)",
                                        strokeWidth: "10",
@@ -1857,7 +2508,11 @@ export default function GameEngine({
                               </div>
                               <div
                                  style={{
-                                    fontSize: isMobile ? "16px" : isTablet ? "18px" : "20px",
+                                    fontSize: isMobile
+                                       ? "16px"
+                                       : isTablet
+                                       ? "18px"
+                                       : "20px",
                                     color: "#a855f7",
                                     fontWeight: 600,
                                  }}
@@ -1868,15 +2523,23 @@ export default function GameEngine({
                                  style={{
                                     background: "rgba(168, 85, 247, 0.1)",
                                     borderRadius: isMobile ? "10px" : "12px",
-                                    padding: isMobile ? "12px" : isTablet ? "14px" : "16px",
+                                    padding: isMobile
+                                       ? "12px"
+                                       : isTablet
+                                       ? "14px"
+                                       : "16px",
                                     border: "1px solid var(--stroke)",
                                     transform: "scale(-1, -1)",
                                  }}
                               >
                                  <svg
                                     viewBox="0 0 100 100"
-                                    width={isMobile ? "60" : isTablet ? "70" : "80"}
-                                    height={isMobile ? "60" : isTablet ? "70" : "80"}
+                                    width={
+                                       isMobile ? "60" : isTablet ? "70" : "80"
+                                    }
+                                    height={
+                                       isMobile ? "60" : isTablet ? "70" : "80"
+                                    }
                                     style={{
                                        stroke: "rgba(232, 238, 252, 0.92)",
                                        strokeWidth: "10",
@@ -1898,7 +2561,11 @@ export default function GameEngine({
                               </div>
                               <div
                                  style={{
-                                    fontSize: isMobile ? "11px" : isTablet ? "12px" : "13px",
+                                    fontSize: isMobile
+                                       ? "11px"
+                                       : isTablet
+                                       ? "12px"
+                                       : "13px",
                                     color: "var(--muted)",
                                     marginTop: isMobile ? "4px" : "8px",
                                     fontWeight: 600,

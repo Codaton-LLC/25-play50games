@@ -497,8 +497,8 @@ function show_games_custom_fields() {
                 timeLimit: 90,
                 passingScore: 75,
                 unlockRequirement: '',
-                description: 'Match faces with names',
-                gameConfig: '{"gameType": "face-memory", "faces": 4}'
+                description: 'Study the faces and their names. After they disappear, match each face with its correct name.',
+                gameConfig: '{"gameType": "face-memory", "rounds": 15}'
             },
             'color-grid-memory': {
                 title: 'Color Grid Memory',
