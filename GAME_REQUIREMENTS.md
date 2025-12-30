@@ -181,6 +181,14 @@ Nëse loja ka nevojë për share:
 -  **Clipboard Fallback**: Nëse Web Share API nuk disponohet
 -  **Share Status Check**: Kontrollon nëse dikush ka klikuar link-un
 -  **Unlimited Hints**: Aktivizohet kur dikush hap link-un (15 min expiry)
+-  **Share Success Message**: Shfaqet pasi të kopjohet link-u
+-  Mesazh: "Link copied! Unlimited hints will unlock when someone opens your link!"
+-  Styling: background i gjelbër, border i gjelbër, CheckCircleIcon
+-  Kohëzgjatja: 15 sekonda
+-  **Unlimited Hints Activated Message**: Shfaqet kur dikush klikon link-un
+-  Mesazh: "🎉 Someone opened your link! Unlimited hints is now active for 15 minutes!"
+-  Styling: background blu, border blu, CheckCircleIcon
+-  Kohëzgjatja: 15 sekonda (mesazhi), por unlimited hints aktivizohen për 15 minuta
 
 ---
 
@@ -479,6 +487,52 @@ useEffect(() => {
 }, [gameState /* dependencies */]);
 ```
 
+#### Numrat në Cells (për lojëra me grid):
+
+-  Nëse loja ka grid me cells, shto numra të vogla në çdo cell për keyboard controls
+-  Numrat shfaqen në këndin e sipërm majtas (ose djathtas) të çdo cell
+-  Numrat: 1-9 për pozicionet 1-9, "0" për pozicionin 10, "-" për pozicionin 11, "=" për pozicionin 12
+-  Styling: Badge me gradient blu, border dhe shadow për theksim
+-  Shfaqet vetëm në input mode, jo në memorizing mode
+-  Nuk shfaqet nëse cell është e zgjedhur ose ka hint
+
+```typescript
+{
+   gameState === "input" && !isSelected && !isHinted && (
+      <div
+         style={{
+            position: "absolute",
+            top: "4px",
+            left: "4px", // ose "right" për këndin e djathtë
+            width: isMobile ? "18px" : "20px",
+            height: isMobile ? "18px" : "20px",
+            borderRadius: "50%",
+            background:
+               "linear-gradient(135deg, rgba(59, 130, 246, 0.9), rgba(37, 99, 235, 0.9))",
+            border: "2px solid rgba(255, 255, 255, 0.3)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontSize: isMobile ? "0.65rem" : "0.7rem",
+            fontWeight: 700,
+            color: "white",
+            boxShadow: "0 2px 4px rgba(0, 0, 0, 0.2)",
+         }}
+      >
+         {idx < 9
+            ? idx + 1
+            : idx === 9
+            ? "0"
+            : idx === 10
+            ? "-"
+            : idx === 11
+            ? "="
+            : ""}
+      </div>
+   );
+}
+```
+
 #### Dokumentim:
 
 -  Të gjitha keyboard controls duhet të dokumentohen në `gameInstructions.ts` në `keyboardControls` array
@@ -534,9 +588,15 @@ Para se të konsiderohet e kompletuar, një lojë duhet të ketë:
 -  [ ] Share feature (nëse ka nevojë)
 -  [ ] Share button në fund (jo në top)
 -  [ ] Tekst: "Share for Unlimited Hints" (gjithmonë i njëjtë)
+-  [ ] Share success message (15 sekonda) - "Link copied! Unlimited hints will unlock when someone opens your link!"
+-  [ ] Unlimited hints activated message (15 sekonda) - "🎉 Someone opened your link! Unlimited hints is now active for 15 minutes!"
 -  [ ] Keyboard controls (nëse ka nevojë)
 -  [ ] Prevent default për game controls
 -  [ ] Dokumentuar në gameInstructions.ts
+-  [ ] Numrat në cells (për lojëra me grid)
+-  [ ] Shfaqen në input mode
+-  [ ] Styling konsistent (badge blu me gradient)
+-  [ ] Nuk shfaqen nëse cell është e zgjedhur ose ka hint
 -  [ ] Shuffle i elementeve (nëse ka nevojë)
 -  [ ] Shuffle vetëm një herë në fillim të round-it
 -  [ ] Përdor useState, jo useMemo me Math.random()

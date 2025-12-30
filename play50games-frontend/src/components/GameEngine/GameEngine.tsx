@@ -1979,6 +1979,128 @@ export default function GameEngine({
                   </div>
                )}
 
+               {/* Interactive Example for Color Grid Memory */}
+               {gameType === "color-grid-memory" && (
+                  <div
+                     style={{
+                        background: "var(--card)",
+                        border: "2px solid var(--stroke)",
+                        borderRadius: isMobile
+                           ? "14px"
+                           : isTablet
+                           ? "15px"
+                           : "16px",
+                        padding: isMobile ? "16px" : isTablet ? "20px" : "24px",
+                        marginBottom: isMobile
+                           ? "16px"
+                           : isTablet
+                           ? "20px"
+                           : "24px",
+                     }}
+                  >
+                     <p
+                        style={{
+                           margin: "0 0 16px",
+                           color: "var(--text)",
+                           fontSize: isMobile
+                              ? "14px"
+                              : isTablet
+                              ? "15px"
+                              : "16px",
+                           fontWeight: 600,
+                           textAlign: "center",
+                        }}
+                     >
+                        Watch the colored cells flash, then click them in order:
+                     </p>
+
+                     {/* Example Grid */}
+                     <div
+                        style={{
+                           display: "grid",
+                           gridTemplateColumns: "repeat(3, 1fr)",
+                           gap: isMobile ? "8px" : "10px",
+                           maxWidth: isMobile ? "200px" : "240px",
+                           margin: "0 auto",
+                        }}
+                     >
+                        {Array.from({ length: 9 }).map((_, idx) => {
+                           const exampleSequence = [1, 4, 7];
+                           const isInSequence = exampleSequence.includes(idx);
+                           const sequenceIndex = exampleSequence.indexOf(idx);
+                           const colors = [
+                              "rgba(110, 168, 255, 0.9)",
+                              "rgba(54, 211, 153, 0.9)",
+                              "rgba(251, 191, 36, 0.9)",
+                           ];
+
+                           return (
+                              <div
+                                 key={idx}
+                                 style={{
+                                    width: "100%",
+                                    aspectRatio: "1",
+                                    minWidth: isMobile ? "50px" : "60px",
+                                    minHeight: isMobile ? "50px" : "60px",
+                                    borderRadius: "12px",
+                                    border:
+                                       "2px solid rgba(255, 255, 255, 0.1)",
+                                    background:
+                                       isInSequence && sequenceIndex >= 0
+                                          ? colors[sequenceIndex]
+                                          : "linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02))",
+                                    boxShadow: isInSequence
+                                       ? "0 4px 12px rgba(110, 168, 255, 0.3)"
+                                       : "0 2px 8px rgba(0, 0, 0, 0.1)",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    fontSize: isMobile ? "0.7rem" : "0.75rem",
+                                    fontWeight: 600,
+                                    color: "white",
+                                    transition: "all 0.2s ease",
+                                 }}
+                              >
+                                 {isInSequence && sequenceIndex >= 0
+                                    ? sequenceIndex + 1
+                                    : ""}
+                              </div>
+                           );
+                        })}
+                     </div>
+
+                     <p
+                        style={{
+                           margin: "16px 0 0",
+                           color: "var(--muted)",
+                           fontSize: "13px",
+                           textAlign: "center",
+                           fontStyle: "italic",
+                        }}
+                     >
+                        <span
+                           style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "6px",
+                              justifyContent: "center",
+                           }}
+                        >
+                           <CursorArrowRaysIcon
+                              style={{
+                                 width: 16,
+                                 height: 16,
+                                 color: "var(--accent)",
+                              }}
+                           />
+                           {isMobile
+                              ? "Tap cells in the order they appeared"
+                              : "Click cells in the order they appeared"}
+                        </span>
+                     </p>
+                  </div>
+               )}
+
                {/* Enhanced Start Screen for Mirror Match */}
                {gameType === "mirror-match" && (
                   <div

@@ -345,9 +345,22 @@ export const gameInstructions: Record<string, {
     ],
   },
   'color-grid-memory': {
-    description: 'Remember highlighted grid cells',
-    instructions: 'Watch which cells are highlighted on the grid. After they disappear, click on the cells that were highlighted.',
-    tips: 'Remember the pattern, not individual cells. Look for shapes or patterns in the highlighted cells.'
+    description: 'Memorize and reproduce color sequences on a grid',
+    instructions: 'Watch the colored cells flash on the grid one by one. After the sequence finishes, click the cells in the same order they appeared. The grid size and sequence length increase with each round.',
+    tips: 'Focus on the order of cells, not just which cells were highlighted. Try to visualize the pattern as a path. Group cells mentally to remember longer sequences.',
+    mouseControls: [
+      { action: 'Click', label: 'Click on cells in the same order they appeared' },
+      { action: 'Click', label: 'Click Hint button to reveal the next correct cell (10 uses, unlimited if shared)' },
+      { action: 'Click', label: 'Click Share button to get unlimited hints when someone opens your link' },
+    ],
+    keyboardControls: [
+      { keys: ['1-9', '0', '-', '='], label: 'Select cells by position in grid (1-12)' },
+      { keys: ['ArrowUp', 'W'], label: 'Move selection Up' },
+      { keys: ['ArrowDown', 'S'], label: 'Move selection Down' },
+      { keys: ['ArrowLeft', 'A'], label: 'Move selection Left' },
+      { keys: ['ArrowRight', 'D'], label: 'Move selection Right' },
+      { keys: ['Enter', 'Space'], label: 'Select highlighted cell' },
+    ],
   },
   'symbol-stack': {
     description: 'Rebuild a stack of symbols',

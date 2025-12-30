@@ -157,6 +157,9 @@ The platform includes a share tracking system that allows users to share games a
 -  **Number Recall**: Share to unlock unlimited hints (10 hints by default, reveals digits one by one)
 -  **Image Recall**: Share to unlock unlimited hints (10 hints by default, reveals positions one by one)
 -  **Path Memory**: Share to unlock unlimited hints (10 hints by default, reveals path positions one by one)
+-  **Word Memory**: Share to unlock unlimited hints (10 hints by default, reveals word positions one by one)
+-  **Face Memory**: Share to unlock unlimited hints (10 hints by default, reveals face names one by one)
+-  **Color Grid Memory**: Share to unlock unlimited hints (10 hints by default, reveals cell positions one by one)
 
 ### Admin Interface
 
@@ -1634,6 +1637,179 @@ In WordPress admin, you can use the "Quick Fill Templates" dropdown and select "
 -  **Passing Score**: 75 (75% of max score)
 -  **Difficulty**: 2 (medium)
 
+#### Face Memory
+
+```json
+{
+   "gameType": "face-memory",
+   "rounds": 15
+}
+```
+
+**Configuration:**
+
+-  `gameType` (required): Must be `"face-memory"`
+-  `rounds` (optional): Number of rounds - Default: **15** (recommended for 100 points max)
+
+**Scoring:**
+
+-  Score is calculated based on completed rounds: `Math.round((completedRounds / maxRounds) * 100)`
+-  Maximum 100 points for 15 rounds
+-  Score increases progressively with each completed round
+
+**Controls:**
+
+-  **Mouse**:
+   -  Click on a face to select it
+   -  Click on a name button to match it with the selected face
+-  **Keyboard**:
+   -  **Number Keys (1-6)**: Select face by number (1-6) or select name when face is selected
+   -  **Arrow Keys** or **WASD**: Navigate between faces
+   -  **Enter** or **Space**: Cycle through available names for selected face
+
+**Goal:**
+
+-  Study the faces and their names during the memorizing phase
+-  After they disappear, match each face with its correct name
+-  Number of faces increases with rounds: 3-6 faces per round
+-  If you make a mistake, the round repeats (game doesn't end)
+
+**How It Works:**
+
+-  Each round displays faces with their names for memorization (duration increases with round)
+-  Number of faces increases: rounds 1-5 = 3 faces, rounds 6-10 = 4 faces, rounds 11-15 = 5-6 faces
+-  After memorization, faces are shown without names
+-  Names are shuffled and displayed as buttons for selection
+-  Match each face with its correct name
+-  Wrong answers cause the round to repeat (same faces, same names)
+
+**Features:**
+
+-  Progressive difficulty with increasing number of faces
+-  Modern UI with header matching Rotate to Fit design
+-  Notification messages positioned below game board (like Match the Shapes)
+-  **Hint System**: 10 hints by default, unlimited if shared
+   -  Click "Hint" button to reveal a face name
+   -  Hints continue from where they left off (next unmatched face)
+   -  Share the game to unlock unlimited hints for 15 minutes
+-  **Share Feature**: Share the game to unlock unlimited hints
+   -  Click "Share for Unlimited Hints" button to copy a shareable link
+   -  When someone else opens the shared link, the original sharer gets unlimited hints for 15 minutes
+   -  The system uses a heartbeat mechanism (checks every 10 seconds) to detect when the link is clicked
+   -  Hints automatically expire after 15 minutes and return to normal
+-  Names are shuffled once per round (not continuously)
+-  Keyboard controls for navigation and selection
+-  Fully responsive design optimized for mobile, tablet, and desktop
+-  Interactive example in game instructions section
+-  Round repetition on wrong answer (same round restarts)
+
+**Tips:**
+
+-  Look for distinctive features on each face
+-  Associate names with facial characteristics
+-  Use hints strategically when stuck
+-  Share the game to get unlimited hints if needed
+
+**Recommended Settings:**
+
+-  **Time Limit**: 90 seconds (overall game time)
+-  **Passing Score**: 75 (75% of max score)
+-  **Difficulty**: 2 (medium)
+
+#### Color Grid Memory
+
+```json
+{
+   "gameType": "color-grid-memory",
+   "rounds": 20
+}
+```
+
+**Configuration:**
+
+-  `gameType` (required): Must be `"color-grid-memory"`
+-  `rounds` (optional): Number of rounds - Default: **20** (recommended for 100 points max)
+
+**Scoring:**
+
+-  Score is calculated based on completed rounds: `Math.round((completedRounds / maxRounds) * 100)`
+-  Maximum 100 points for 20 rounds
+-  Score increases progressively with each completed round
+
+**Controls:**
+
+-  **Mouse**:
+   -  Click on cells in the same order they appeared
+-  **Keyboard**:
+   -  **Number Keys (1-9, 0, -, =)**: Select cells by position in grid (1-12)
+   -  **Arrow Keys** or **WASD**: Navigate through grid cells
+   -  **Arrow Up/W**: Move selection up
+   -  **Arrow Down/S**: Move selection down
+   -  **Arrow Left/A**: Move selection left
+   -  **Arrow Right/D**: Move selection right
+   -  **Enter** or **Space**: Select currently highlighted cell
+
+**Goal:**
+
+-  Watch the colored cells flash on the grid one by one
+-  After the sequence finishes, click the cells in the same order they appeared
+-  Grid size and sequence length increase with each round
+-  If you make a mistake, you can retry the same round (game doesn't end)
+
+**How It Works:**
+
+-  Each round displays a sequence of colored cells that flash one by one
+-  Grid size increases: rounds 1-5 = 3x3, rounds 6-12 = 4x4, rounds 13+ = 5x5
+-  Sequence length increases: starts at 3 cells, increases by 1 per round (Round 1 = 3, Round 2 = 4, ..., Round 20 = 22)
+-  Each cell flashes with a different color from a palette of 6 colors
+-  After the sequence completes, you must click cells in the same order
+-  Wrong answers show red feedback but allow retry (game continues)
+
+**Features:**
+
+-  Progressive difficulty with increasing grid size and sequence length
+-  Visual feedback with flash animation for active cells
+-  Color palette with 6 distinct colors (blue, green, yellow, pink, purple, rose)
+-  Notification messages like Match the Shapes (green for correct, red for wrong)
+-  Modern UI with header showing round, score, and progress bar
+-  Game state display (Watch the sequence…, Now click in the same order, Correct, Wrong)
+-  **Number Badges on Cells**: Small number badges (1-9, 0, -, =) appear on each cell in input mode to indicate keyboard input options
+   -  Badges are positioned in the top-left corner of each cell
+   -  Styled with blue gradient background and white text
+   -  Hidden if cell is already selected or has a hint
+   -  Helps users identify which number key to press for keyboard input
+-  **Hint System**: 10 hints by default, unlimited if shared
+   -  Click "Hint" button to reveal the next correct cell position
+   -  Hints continue from where they left off (next unrevealed position)
+   -  Revealed positions stay visible (yellow border with number) until round ends
+   -  Share the game to unlock unlimited hints for 15 minutes
+-  **Share Feature**: Share the game to unlock unlimited hints
+   -  Click "Share for Unlimited Hints" button to copy a shareable link
+   -  **Share Success Message**: Shows "Link copied! Unlimited hints will unlock when someone opens your link!" for 15 seconds after sharing
+   -  **Unlimited Hints Activated Message**: Shows "🎉 Someone opened your link! Unlimited hints is now active for 15 minutes!" for 15 seconds when link is clicked
+   -  When someone else opens the shared link, the original sharer gets unlimited hints for 15 minutes
+   -  The system uses a heartbeat mechanism (checks every 10 seconds) to detect when the link is clicked
+   -  Hints automatically expire after 15 minutes and return to normal
+-  Interactive example in game instructions section
+-  Fully responsive design optimized for mobile, tablet, and desktop
+-  Touch-optimized for mobile devices
+-  Game continues on wrong answer (allows retry instead of ending)
+-  Order indicators show which position you clicked (1, 2, 3, etc.)
+
+**Tips:**
+
+-  Focus on the order of cells, not just which cells were highlighted
+-  Try to visualize the pattern as a path
+-  Group cells mentally to remember longer sequences
+-  Use hints strategically when stuck
+-  Share the game to get unlimited hints if needed
+
+**Recommended Settings:**
+
+-  **Time Limit**: 0 (no time limit, focus on memory)
+-  **Passing Score**: 75 (75% of max score)
+-  **Difficulty**: 2 (medium)
+
 #### Block Fill
 
 ```json
@@ -1902,7 +2078,7 @@ src/
 -  **Modern UI**: Gradient backgrounds, animations, and visual feedback
 -  **Game Instructions**: Detailed instructions and tips displayed before each game
 -  **Diagnostics Page**: API connectivity and CORS diagnostics
--  **Share Feature**: Share games to unlock unlimited hints (Card Flip Memory, Tile Slider, Sound Memory, Emoji Memory, Number Recall, Image Recall, Path Memory, Word Memory)
+-  **Share Feature**: Share games to unlock unlimited hints (Card Flip Memory, Tile Slider, Sound Memory, Emoji Memory, Number Recall, Image Recall, Path Memory, Word Memory, Face Memory, Color Grid Memory)
 
 ## Game Types
 
@@ -1930,6 +2106,11 @@ src/
 -  Sound Memory
 -  Emoji Memory
 -  Number Recall
+-  Image Recall
+-  Path Memory
+-  Word Memory
+-  Face Memory
+-  Color Grid Memory
 
 ### Speed Games
 

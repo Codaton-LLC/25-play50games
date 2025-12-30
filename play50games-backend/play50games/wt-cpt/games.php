@@ -504,12 +504,12 @@ function show_games_custom_fields() {
                 title: 'Color Grid Memory',
                 gameType: 'memory',
                 gameOrder: 24,
-                difficulty: 3,
-                timeLimit: 60,
-                passingScore: 80,
+                difficulty: 2,
+                timeLimit: 0,
+                passingScore: 75,
                 unlockRequirement: '',
-                description: 'Remember highlighted grid cells',
-                gameConfig: '{"gameType": "color-grid-memory", "gridSize": 3, "rounds": 3}'
+                description: 'Memorize and reproduce color sequences on a grid',
+                gameConfig: '{"gameType":"color-grid-memory","rounds":20}'
             },
             'symbol-stack': {
                 title: 'Symbol Stack',

@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+   <head>
+      <meta charset="UTF-8" />
+      <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <title>Symbol Stack</title>
+      <style>
+         :root {
+            --bg: #0b1220;
+            --panel: #0f1b33;
+            --text: #e8eefc;
+            --muted: #a6b3d1;
+            --accent: #6ea8ff;
+            --good: #36d399;
+            --bad: #fb7185;
+            --radius: 18px;
+         }
+         * {
+            box-sizing: border-box;
+         }
+         body {
+            margin: 0;
+            font-family: system-ui;
+            background: var(--bg);
+            color: var(--text);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 24px;
+         }
+         .app {
+            width: min(980px, 100%);
+            display: grid;
+            grid-template-columns: 1.2fr 0.8fr;
+            gap: 18px;
+         }
+         @media (max-width: 900px) {
+            .app {
+               grid-template-columns: 1fr;
+            }
+         }
+         .panel {
+            background: var(--panel);
+            border-radius: var(--radius);
+            padding: 18px;
+         }
+         header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+         }
+         button {
+            padding: 10px 14px;
+            border-radius: 12px;
+            border: none;
+            font-weight: 700;
+            cursor: pointer;
+         }
+         .primary {
+            background: var(--accent);
+            color: #081126;
+         }
+
+         .stack {
+            display: flex;
+            flex-direction: column-reverse;
+            align-items: center;
+            gap: 10px;
+            min-height: 260px;
+            margin-top: 20px;
+         }
+         .block {
+            width: 120px;
+            height: 42px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            font-weight: 900;
+            background: #15254a;
+            transition: 0.15s;
+         }
+         .block.show {
+            background: var(--accent);
+         }
+         .block.correct {
+            background: var(--good);
+         }
+         .block.wrong {
+            background: var(--bad);
+         }
+
+         .palette {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            justify-content: center;
+            margin-top: 20px;
+         }
+         .symbol {
+            width: 54px;
+            height: 54px;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 26px;
+            font-weight: 900;
+            background: #15254a;
+            cursor: pointer;
+            transition: 0.15s;
+         }
+         .symbol:hover {
+            background: #1e3160;
+         }
+
+         .side {
+            padding: 18px;
+         }
+      </style>
+   </head>
+   <body>
+      <div class="app">
+         <section class="panel">
+            <header>
+               <h1>Symbol Stack</h1>
+               <button class="primary" id="newBtn">New</button>
+            </header>
+            <p>
+               Watch the symbols stack up. Rebuild the stack from bottom to top.
+            </p>
+            <div class="stack" id="stack"></div>
+            <div class="palette" id="palette"></div>
+         </section>
+         <aside class="panel side">
+            <h3>How to Play</h3>
+            <ul>
+               <li>Symbols appear one by one</li>
+               <li>First symbol is the bottom</li>
+               <li>Click symbols in correct order</li>
+            </ul>
+            <h3>Tips</h3>
+            <ul>
+               <li>Think bottom → top</li>
+               <li>Create a visual story</li>
+            </ul>
+         </aside>
+      </div>
+      <script>
+         const stackEl = document.getElementById("stack");
+         const paletteEl = document.getElementById("palette");
+         const newBtn = document.getElementById("newBtn");
+
+         const SYMBOLS = ["●", "■", "▲"];
+         let sequence = [],
+            input = [];
+
+         function showStack() {
+            stackEl.innerHTML = "";
+            sequence = [];
+            input = [];
+            const count = 3;
+            const shuffled = [...SYMBOLS]
+               .sort(() => 0.5 - Math.random())
+               .slice(0, count);
+            shuffled.forEach((s, i) => {
+               const block = document.createElement("div");
+               block.className = "block";
+               block.textContent = s;
+               stackEl.appendChild(block);
+               setTimeout(() => block.classList.add("show"), 600 * i);
+               sequence.push(s);
+            });
+
+            setTimeout(() => {
+               [...stackEl.children].forEach((b) => b.classList.remove("show"));
+               renderPalette();
+            }, 600 * count + 600);
+         }
+
+         function renderPalette() {
+            paletteEl.innerHTML = "";
+            [...sequence]
+               .sort(() => 0.5 - Math.random())
+               .forEach((sym) => {
+                  const btn = document.createElement("div");
+                  btn.className = "symbol";
+                  btn.textContent = sym;
+                  btn.onclick = () => pickSymbol(btn, sym);
+                  paletteEl.appendChild(btn);
+               });
+         }
+
+         function pickSymbol(btn, sym) {
+            input.push(sym);
+            btn.style.opacity = 0.5;
+            const idx = input.length - 1;
+            const block = stackEl.children[idx];
+            if (sym === sequence[idx]) {
+               block.classList.add("correct");
+            } else {
+               block.classList.add("wrong");
+            }
+         }
+
+         newBtn.onclick = showStack;
+         showStack();
+      </script>
+   </body>
+</html>
