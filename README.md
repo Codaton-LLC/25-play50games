@@ -1810,6 +1810,95 @@ In WordPress admin, you can use the "Quick Fill Templates" dropdown and select "
 -  **Passing Score**: 75 (75% of max score)
 -  **Difficulty**: 2 (medium)
 
+#### Symbol Stack
+
+```json
+{
+   "gameType": "symbol-stack",
+   "rounds": 15
+}
+```
+
+**Configuration:**
+
+-  `gameType` (required): Must be `"symbol-stack"`
+-  `rounds` (optional): Number of rounds - Default: **15** (recommended for 100 points max)
+
+**Scoring:**
+
+-  Score is calculated based on completed rounds: `Math.round((completedRounds / maxRounds) * 100)`
+-  Maximum 100 points for 15 rounds
+-  Score increases progressively with each completed round
+
+**Controls:**
+
+-  **Mouse**:
+   -  Click on symbols in the same order they appeared (bottom to top)
+-  **Keyboard**:
+   -  **Number Keys (1-3)**: Select symbols by position in palette (1-3)
+   -  **Arrow Keys** or **WASD**: Navigate through palette symbols
+   -  **Arrow Up/W**: Move selection up
+   -  **Arrow Down/S**: Move selection down
+   -  **Arrow Left/A**: Move selection left
+   -  **Arrow Right/D**: Move selection right
+   -  **Enter** or **Space**: Select currently highlighted symbol
+
+**Goal:**
+
+-  Watch the symbols appear one by one, stacking from bottom to top
+-  After the sequence finishes, click the symbols in the same order they appeared to rebuild the stack
+-  Sequence length increases with each round
+-  If you make a mistake, you can retry the same round (game doesn't end)
+
+**How It Works:**
+
+-  Each round displays a sequence of symbols (●, ■, ▲) that appear one by one
+-  Symbols stack from bottom to top (first symbol is at the bottom)
+-  Sequence length increases: starts at 3 symbols, increases by 1 per round (Round 1 = 3, Round 2 = 4, ..., Round 15 = 17)
+-  After the sequence completes, you must click symbols in the same order (bottom to top)
+-  Palette shows all symbols from the sequence in shuffled order
+-  Wrong answers show red feedback but allow retry (game continues)
+
+**Features:**
+
+-  Progressive difficulty with increasing sequence length
+-  Visual feedback with flash animation for active symbols
+-  Three distinct symbols (●, ■, ▲) for clear differentiation
+-  Stack display from bottom to top (flex-direction: column-reverse)
+-  Notification messages like Match the Shapes (green for correct, red for wrong)
+-  Modern UI with header showing round, score, and progress bar
+-  Game state display (Watch the symbols stack up..., Rebuild the stack from bottom to top, Correct, Wrong)
+-  **Hint System**: 10 hints by default, unlimited if shared
+   -  Click "Hint" button to reveal the next correct symbol position
+   -  Hints continue from where they left off (next unrevealed position)
+   -  Revealed positions stay visible (yellow border) until round ends
+   -  Share the game to unlock unlimited hints for 15 minutes
+-  **Share Feature**: Share the game to unlock unlimited hints
+   -  Click "Share for Unlimited Hints" button to copy a shareable link
+   -  **Share Success Message**: Shows "Link copied! Unlimited hints will unlock when someone opens your link!" for 15 seconds after sharing
+   -  **Unlimited Hints Activated Message**: Shows "🎉 Someone opened your link! Unlimited hints is now active for 15 minutes!" for 15 seconds when link is clicked
+   -  When someone else opens the shared link, the original sharer gets unlimited hints for 15 minutes
+   -  The system uses a heartbeat mechanism (checks every 10 seconds) to detect when the link is clicked
+   -  Hints automatically expire after 15 minutes and return to normal
+-  Interactive example in game instructions section
+-  Fully responsive design optimized for mobile, tablet, and desktop
+-  Touch-optimized for mobile devices
+-  Game continues on wrong answer (allows retry instead of ending)
+-  Keyboard controls for navigation and selection
+
+**Tips:**
+
+-  Think bottom → top. Create a visual story to remember the order
+-  Focus on the sequence, not just which symbols appeared
+-  Use hints strategically when stuck
+-  Share the game to get unlimited hints if needed
+
+**Recommended Settings:**
+
+-  **Time Limit**: 0 (no time limit, focus on memory)
+-  **Passing Score**: 75 (75% of max score)
+-  **Difficulty**: 2 (medium)
+
 #### Block Fill
 
 ```json
@@ -2078,7 +2167,7 @@ src/
 -  **Modern UI**: Gradient backgrounds, animations, and visual feedback
 -  **Game Instructions**: Detailed instructions and tips displayed before each game
 -  **Diagnostics Page**: API connectivity and CORS diagnostics
--  **Share Feature**: Share games to unlock unlimited hints (Card Flip Memory, Tile Slider, Sound Memory, Emoji Memory, Number Recall, Image Recall, Path Memory, Word Memory, Face Memory, Color Grid Memory)
+-  **Share Feature**: Share games to unlock unlimited hints (Card Flip Memory, Tile Slider, Sound Memory, Emoji Memory, Number Recall, Image Recall, Path Memory, Word Memory, Face Memory, Color Grid Memory, Symbol Stack)
 
 ## Game Types
 
@@ -2111,6 +2200,15 @@ src/
 -  Word Memory
 -  Face Memory
 -  Color Grid Memory
+-  Symbol Stack
+-  Emoji Memory
+-  Number Recall
+-  Image Recall
+-  Path Memory
+-  Word Memory
+-  Face Memory
+-  Color Grid Memory
+-  Symbol Stack
 
 ### Speed Games
 

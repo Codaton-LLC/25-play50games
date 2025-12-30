@@ -208,15 +208,23 @@ function show_games_custom_fields() {
                 $template.find('option').show();
             } else {
                 // Hide all optgroups first
-                $template.find('optgroup').hide();
-                // Show only the matching optgroup
-                $template.find('optgroup[data-category="' + category + '"]').show();
-                // Show the default option
+                $template.find('optgroup').each(function() {
+                    const $optgroup = $(this);
+                    const optgroupCategory = $optgroup.attr('data-category');
+                    
+                    if (optgroupCategory === category) {
+                        // Show matching optgroup and all its options
+                        $optgroup.show();
+                        $optgroup.find('option').show();
+                    } else {
+                        // Hide non-matching optgroup and all its options
+                        $optgroup.hide();
+                        $optgroup.find('option').hide();
+                    }
+                });
+                
+                // Always show the default option
                 $template.find('option[value=""]').show();
-                // Hide all options that don't match the category
-                $template.find('option[data-category]').hide();
-                // Show options that match the category
-                $template.find('option[data-category="' + category + '"]').show();
             }
             
             // Reset selection when filtering
@@ -516,11 +524,11 @@ function show_games_custom_fields() {
                 gameType: 'memory',
                 gameOrder: 25,
                 difficulty: 2,
-                timeLimit: 60,
+                timeLimit: 0,
                 passingScore: 75,
                 unlockRequirement: '',
-                description: 'Rebuild a stack of symbols',
-                gameConfig: '{"gameType": "symbol-stack", "rounds": 3}'
+                description: 'Watch symbols stack up and rebuild the stack from bottom to top',
+                gameConfig: '{"gameType":"symbol-stack","rounds":15}'
             },
             'click-green': {
                 title: 'Click the Green',

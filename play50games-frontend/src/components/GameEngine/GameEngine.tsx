@@ -2101,6 +2101,102 @@ export default function GameEngine({
                   </div>
                )}
 
+               {/* Interactive Example for Symbol Stack */}
+               {gameType === "symbol-stack" && (
+                  <div
+                     style={{
+                        background: "var(--card)",
+                        border: "2px solid var(--stroke)",
+                        borderRadius: isMobile
+                           ? "14px"
+                           : isTablet
+                           ? "15px"
+                           : "16px",
+                        padding: isMobile ? "16px" : isTablet ? "20px" : "24px",
+                        marginBottom: isMobile
+                           ? "16px"
+                           : isTablet
+                           ? "20px"
+                           : "24px",
+                     }}
+                  >
+                     <p
+                        style={{
+                           margin: "0 0 16px",
+                           color: "var(--text)",
+                           fontSize: isMobile
+                              ? "14px"
+                              : isTablet
+                              ? "15px"
+                              : "16px",
+                           fontWeight: 600,
+                           textAlign: "center",
+                        }}
+                     >
+                        Watch the symbols stack up, then rebuild from bottom to
+                        top:
+                     </p>
+
+                     {/* Example Stack */}
+                     <div
+                        style={{
+                           display: "flex",
+                           flexDirection: "column-reverse",
+                           alignItems: "center",
+                           gap: "10px",
+                           minHeight: "180px",
+                           padding: "20px",
+                           background: "var(--panel)",
+                           borderRadius: "12px",
+                           border: "1px solid var(--border)",
+                           marginBottom: "16px",
+                        }}
+                     >
+                        {[
+                           { Icon: StarIcon, name: "Star" },
+                           { Icon: HeartIcon, name: "Heart" },
+                           { Icon: HomeIcon, name: "Home" },
+                        ].map(({ Icon, name }, idx) => (
+                           <div
+                              key={idx}
+                              style={{
+                                 width: "100px",
+                                 height: "38px",
+                                 borderRadius: "10px",
+                                 display: "flex",
+                                 alignItems: "center",
+                                 justifyContent: "center",
+                                 fontSize: "22px",
+                                 fontWeight: 900,
+                                 background: "rgba(59, 130, 246, 0.9)",
+                                 border: "2px solid rgba(59, 130, 246, 0.9)",
+                                 color: "white",
+                                 transition: "all 0.2s ease",
+                              }}
+                           >
+                              <Icon style={{ width: 22, height: 22 }} />
+                           </div>
+                        ))}
+                     </div>
+
+                     <p
+                        style={{
+                           margin: "0",
+                           color: "var(--muted)",
+                           fontSize: isMobile
+                              ? "12px"
+                              : isTablet
+                              ? "13px"
+                              : "14px",
+                           textAlign: "center",
+                        }}
+                     >
+                        Click symbols in the same order (bottom to top) to
+                        rebuild the stack.
+                     </p>
+                  </div>
+               )}
+
                {/* Enhanced Start Screen for Mirror Match */}
                {gameType === "mirror-match" && (
                   <div

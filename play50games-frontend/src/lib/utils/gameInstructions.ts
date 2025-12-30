@@ -363,9 +363,22 @@ export const gameInstructions: Record<string, {
     ],
   },
   'symbol-stack': {
-    description: 'Rebuild a stack of symbols',
-    instructions: 'Watch the symbols stack up one by one. After they disappear, recreate the stack by clicking symbols in the correct order.',
-    tips: 'Remember from bottom to top. The first symbol you see goes at the bottom of the stack.'
+    description: 'Watch symbols stack up one by one and rebuild the stack from bottom to top',
+    instructions: 'Watch the symbols appear one by one, stacking from bottom to top. After the sequence finishes, click the symbols in the same order they appeared to rebuild the stack. The sequence length increases with each round.',
+    tips: 'Think bottom → top. Create a visual story to remember the order. Focus on the sequence, not just which symbols appeared.',
+    mouseControls: [
+      { action: 'Click', label: 'Click on symbols in the same order they appeared (bottom to top)' },
+      { action: 'Click', label: 'Click Hint button to reveal the next correct symbol (10 uses, unlimited if shared)' },
+      { action: 'Click', label: 'Click Share button to get unlimited hints when someone opens your link' },
+    ],
+    keyboardControls: [
+      { keys: ['1-3'], label: 'Select symbols by position in palette (1-3)' },
+      { keys: ['ArrowUp', 'W'], label: 'Move selection Up' },
+      { keys: ['ArrowDown', 'S'], label: 'Move selection Down' },
+      { keys: ['ArrowLeft', 'A'], label: 'Move selection Left' },
+      { keys: ['ArrowRight', 'D'], label: 'Move selection Right' },
+      { keys: ['Enter', 'Space'], label: 'Select highlighted symbol' },
+    ],
   },
   
   // Speed Games
