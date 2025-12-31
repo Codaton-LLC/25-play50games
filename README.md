@@ -984,6 +984,123 @@ Për të kaluar çdo level, duhet të plotësosh **TË DYJA** kushtet:
 -  **Passing Score**: 70 (70% of max score)
 -  **Difficulty**: 1 (easy, but gets harder with each level)
 
+#### Avoid the Red
+
+```json
+{
+   "gameType": "avoid-red",
+   "levels": 10,
+   "levelRequirements": [
+      {"minSurvivalTime": 20, "maxHits": 0},
+      {"minSurvivalTime": 20, "maxHits": 0},
+      {"minSurvivalTime": 20, "maxHits": 0},
+      {"minSurvivalTime": 20, "maxHits": 0},
+      {"minSurvivalTime": 20, "maxHits": 0},
+      {"minSurvivalTime": 20, "maxHits": 0},
+      {"minSurvivalTime": 20, "maxHits": 0},
+      {"minSurvivalTime": 20, "maxHits": 0},
+      {"minSurvivalTime": 20, "maxHits": 0},
+      {"minSurvivalTime": 20, "maxHits": 0}
+   ]
+}
+```
+
+**Configuration:**
+
+-  `gameType` (required): Must be `"avoid-red"`
+-  `levels` (optional): Number of levels - Default: **10**
+-  `levelRequirements` (required): Array of requirements for each level
+   -  Each level must have `minSurvivalTime` (seconds to survive) and `maxHits` (maximum hits allowed)
+   -  Example: `{"minSurvivalTime": 20, "maxHits": 0}` means survive 20 seconds with 0 hits
+
+**Level Requirements:**
+
+-  **minSurvivalTime**: Koha minimale për të mbijetuar (në sekonda)
+   -  Level 1: 20 seconds (default)
+   -  Level 2: 20 seconds (default)
+   -  ... (mund të konfigurohen ndryshe për çdo level)
+   -  Level 10: 20 seconds (default)
+-  **maxHits**: Numri maksimal i hits të lejuara
+   -  Default: **0** (pa hits të lejuara)
+   -  Mund të konfigurohet për të lejuar më shumë hits në nivele më të vështira
+
+**Level Passing Requirements:**
+
+Për të kaluar çdo level, duhet të:
+
+-  **Survive for minSurvivalTime**: Mbijeto për kohën e specifikuar në `minSurvivalTime`
+-  **Max hits**: Mos u prek më shumë se `maxHits` herë (zakonisht 0)
+
+**Nëse nuk plotëson kushtet:**
+
+-  Level-i përsëritet (nuk kalon në level tjetër)
+-  Shfaqet mesazh "Level X Failed! A red obstacle touched you!"
+-  Butoni "Repeat the Round" shfaqet për të rinisur level-in
+
+**Scoring:**
+
+-  Level-based scoring: 10 points për level 1, 20 për level 2, 30 për level 3, etj.
+-  Formula: `score = completedLevels * (100 / maxLevels)`
+-  Maximum score: 100 points (kur të gjitha 10 nivelet përfundojnë)
+-  Score rritet vetëm kur një level kompletohet me sukses (0 hits)
+
+**Controls:**
+
+-  **Mouse**: Move cursor to control the blue player dot
+-  Player follows mouse position in real-time
+-  Keep moving to avoid red obstacles
+
+**Goal:**
+
+-  Move your cursor to control the blue dot
+-  Avoid red obstacles for the duration specified in `minSurvivalTime` (per level)
+-  Keep moving—don't let red obstacles touch you!
+-  Complete all 10 levels by surviving each level within the hit limit
+
+**How It Works:**
+
+-  Red obstacles spawn from 4 edges (top, right, bottom, left) randomly
+-  Obstacles move toward the player with homing behavior
+-  Spawn rate increases with time: starts at 360ms, decreases to 140ms
+-  Sometimes 2 obstacles spawn at once (18% chance)
+-  Each level lasts for the time specified in `minSurvivalTime` for that level
+-  If you survive for `minSurvivalTime` with hits ≤ `maxHits`, the level completes
+-  If a red obstacle touches you and hits exceed `maxHits`, the level fails immediately
+-  After completing a level, you advance to the next level
+-  If you fail, you must repeat the same level
+-  Game ends after completing all 10 levels
+
+**Features:**
+
+-  Progressive difficulty with increasing spawn rate
+-  Edge spawning system (obstacles come from all directions)
+-  Homing behavior (obstacles move toward player)
+-  Real-time collision detection
+-  Visual feedback with blue player dot and red obstacles
+-  Real-time stats showing hits and obstacles count
+-  Level progression system (10 levels)
+-  Time countdown per level
+-  Game state display (Avoid red obstacles!, Level X Complete!, Level X Failed!)
+-  **Share feature**: Share the game to unlock unlimited hits (15 minutes)
+-  Share success and unlimited hits activation messages
+-  Modern UI with header showing level, score, and progress bar
+-  Fully responsive design optimized for mobile, tablet, and desktop
+-  Smooth animations with `requestAnimationFrame`
+
+**Tips:**
+
+-  Keep your cursor moving constantly
+-  Watch for red items coming from all directions
+-  Red obstacles will home in on your position, so constant movement is key
+-  Don't stay in one place for too long
+-  Higher levels are faster - stay calm and keep moving
+
+**Recommended Settings:**
+
+-  **Time Limit**: 0 (no overall time limit, each level has its own timer)
+-  **Passing Score**: 75 (75% of max score)
+-  **Difficulty**: 2 (medium difficulty, gets harder with each level)
+
 #### Maze Escape
 
 ```json
@@ -2332,6 +2449,7 @@ src/
 ### Speed Games
 
 -  Click the Green
+-  Avoid the Red
 
 ### Skill Games
 

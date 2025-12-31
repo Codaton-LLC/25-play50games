@@ -640,9 +640,156 @@ Këto lojëra përmbajnë të gjitha elementet e listuara më sipër dhe shërbe
 
 ### 9.3 Speed Games
 
--  Time-based challenges
--  Quick reactions
--  Time limits
+Speed Games janë lojëra që kërkojnë reagim të shpejtë dhe veprime në kohë reale. Ato kanë karakteristika të veçanta që i dallojnë nga lojërat e tjera.
+
+#### 9.3.1 Karakteristikat Bazë
+
+-  **Time-based challenges**: Lojërat bazohen në kohë dhe reagim të shpejtë
+-  **Quick reactions**: Përdoruesi duhet të reagojë shpejt për të arritur rezultate të mira
+-  **Time limits**: Ka kufizime kohore për çdo round ose level
+-  **Real-time gameplay**: Elementet shfaqen dhe zhduken në kohë reale
+-  **Progressive difficulty**: Vështirësia rritet me kalimin e kohës ose levels
+
+#### 9.3.2 Level-based Structure (për lojëra me levels)
+
+Nëse loja ka levels (si "Click the Green"):
+
+##### Konfigurimi:
+
+```json
+{
+  "gameType": "click-green",
+  "levels": 10,              // Numri total i levels
+  "levelDuration": 20,        // Koha në sekonda për çdo level
+  "levelRequirements": [      // Opsional: kërkesat specifike për çdo level
+    {"minCorrectClicks": 3},  // Level 1: minimum 3 correct clicks
+    {"minCorrectClicks": 4},  // Level 2: minimum 4 correct clicks
+    // ...
+  ]
+}
+```
+
+##### Scoring System:
+
+-  **Score per level**: `Math.round(100 / maxLevels)` pikë për çdo level të kompletuar
+-  **Level 1**: 10 pikë, **Level 2**: 20 pikë, **Level 3**: 30 pikë, etj.
+-  **Final score**: 100 pikë kur të gjitha levels janë kompletuara
+-  **Formula**: `score = completedLevels * (100 / maxLevels)`
+
+##### Level Progression:
+
+-  Levels fillojnë nga 0 (index) por shfaqen si 1, 2, 3, etj.
+-  Kur përfundon një level, loja kalon automatikisht në level tjetër
+-  Nëse level-i dështon, loja përsërit level-in e njëjtë (jo kalon në tjetrin)
+
+##### Level Requirements:
+
+-  **minCorrectClicks**: Numri minimal i klikimeve korrekte për të kaluar level-in
+-  **minScore**: Opsional - score minimal për level (nëse nuk përdoret, kontrollohet vetëm minCorrectClicks)
+-  Nëse kërkesat arrihen para se koha të skadojë, loja ngrihet dhe pret deri sa koha të skadojë
+-  Pas skadimit të kohës, shfaqet mesazhi "Level Complete" me buton "Next Round"
+
+##### Game States për Level-based Games:
+
+-  **`"playing"`**: Loja është aktive, elementet shfaqen dhe përdoruesi mund të klikojë
+-  **`"paused"`**: Kërkesat janë arritur, loja është ngritur dhe pret skadimin e kohës
+-  **`"ready"`**: Level-i është kompletuar, shfaqet mesazhi "Level Complete" me buton "Next Round"
+-  **`"failed"`**: Level-i dështoi, shfaqet mesazhi "Level Failed" me buton "Repeat the Round"
+
+##### Freezing Game Logic:
+
+Kur kërkesat arrihen (p.sh. `minCorrectClicks`):
+
+1.  **Immediately freeze**: Loja duhet të ngrihet menjëherë
+2.  **Stop spawning**: Të gjitha timers për spawning duhen fshirë
+3.  **Clear items**: Të gjitha item-et ekzistuese duhen fshirë për të parandaluar ndërveprime të mëtejshme
+4.  **Disable interactions**: Arena dhe items duhen bërë `pointer-events: none`
+5.  **Set state**: `gameState = "paused"` dhe `requirementsMet = true`
+6.  **Wait for timer**: Loja pret deri sa koha të skadojë
+7.  **Show completion**: Pas skadimit, shfaqet mesazhi "Level Complete" me buton "Next Round"
+
+##### Implementation Example:
+
+```typescript
+// Check if requirements are met
+useEffect(() => {
+   if (gameState !== "playing" || requirementsMet) return;
+
+   const minCorrectClicks = getMinCorrectClicks();
+   const minScore = getMinScore();
+
+   if (correctClicks >= minCorrectClicks && levelScore >= minScore) {
+      // IMMEDIATELY freeze game
+      clearAll(); // Stop spawning, clear items
+      setTimeLeft(0); // Stop timer
+      
+      requirementsMetRef.current = true;
+      setRequirementsMet(true);
+      setGameState("paused");
+      setFeedback(null);
+   }
+}, [correctClicks, levelScore, gameState, requirementsMet]);
+
+// When timer reaches 0 and requirements are met
+useEffect(() => {
+   if (timeLeft === 0 && requirementsMet && gameState === "paused") {
+      setGameState("ready");
+   }
+}, [timeLeft, requirementsMet, gameState]);
+```
+
+##### Level Completion dhe Game Completion:
+
+-  **Level Complete**: Kur një level përfundon me sukses, shfaqet mesazhi "Level X Complete" me buton "Next Round"
+-  **Game Complete**: Kur të gjitha levels përfundojnë, shfaqet mesazhi "Game Complete!" me "All X levels completed!" dhe "Final Score: 100"
+-  **onComplete call**: `onComplete(100)` thirret për të shfaqur modalin dhe për të ruajtur progressin
+-  **Passing Score**: Nëse score-i arrin `passingScore` (p.sh. 70) edhe nëse nuk ka përfunduar të gjitha levels, loja konsiderohet e kompletuar
+
+##### Score Display:
+
+-  **Header**: "Score: X / 100" - kur loja përfundon, duhet të shfaqë 100
+-  **Final Score**: Në mesazhin e përfundimit, duhet të shfaqë 100 kur të gjitha levels janë kompletuara
+-  **Conditional display**: `{currentLevel + 1 >= maxLevels && gameState === "ready" ? 100 : currentScore}`
+
+##### Repeat Round Functionality:
+
+-  Nëse level-i dështon, shfaqet mesazhi "Level X Failed" me "Need: X correct clicks"
+-  Butoni "Repeat the Round" rinis level-in e njëjtë
+-  Funksioni `handleRepeatRound` thërret `startLevel()` për të rinisur level-in
+
+#### 9.3.3 Progressive Difficulty
+
+Për lojëra me progressive difficulty:
+
+-  **Spawn interval**: Rritet me level (p.sh. Level 1: 600ms, Level 10: 250ms)
+-  **Item TTL**: Zvogëlohet me level (p.sh. Level 1: 2000ms, Level 10: 800ms)
+-  **Spawn probability**: Rritet probabiliteti për të spawnuar më shumë items në levels më të larta
+
+#### 9.3.4 Real-time Item Management
+
+Për lojëra me items që shfaqen dhe zhduken:
+
+-  **Spawn timer**: Përdor `setInterval` për të spawnuar items në intervale të rregullta
+-  **Item TTL**: Çdo item ka një timeout që e fshin pas një kohe të caktuar
+-  **Cleanup**: Të gjitha timers duhen fshirë kur loja ngrihet ose përfundon
+-  **Item state**: Items duhen ruajtur në state me informacion për pozicion, color, clicked status, etj.
+
+#### 9.3.5 Game Completion dhe Progress Saving
+
+-  **onComplete call**: Duhet të thirret me `finalScore` eksplicit (p.sh. `onComplete(100)`)
+-  **completionCalledRef**: Përdor `useRef` për të parandaluar thirrjet e shumta të `onComplete`
+-  **Timeout**: Përdor `setTimeout` prej 1 sekonde për të dhënë kohë për feedback para se të thirret `onComplete`
+-  **Progress saving**: `GameEngine` merr kujdesin për ruajtjen e progressit kur `onComplete` thirret
+-  **Modal display**: Modali "Game Complete!" shfaqet automatikisht në `GameEngine` kur `isCompleted` bëhet `true`
+
+#### 9.3.6 Best Practices për Speed Games
+
+1.  **Performance**: Përdor `useRef` për timers dhe state që nuk duhen në dependency arrays
+2.  **Cleanup**: Gjithmonë fshi timers në cleanup functions
+3.  **State management**: Përdor `useRef` për state që duhet të jetë e aksesueshme në callbacks por nuk duhet të shkaktojë re-renders
+4.  **Freezing logic**: Kur loja ngrihet, sigurohu që të gjitha ndërveprimet janë disabled
+5.  **Score calculation**: Llogarit score-in bazuar në levels të kompletuara, jo në score-in aktual
+6.  **Passing score**: Kontrollo në fund nëse score-i >= passingScore, por mos e ndërpre lojën
 
 ### 9.4 Skill Games
 

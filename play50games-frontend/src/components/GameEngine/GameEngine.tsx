@@ -2430,6 +2430,198 @@ export default function GameEngine({
                   </div>
                )}
 
+               {/* Interactive Example for Avoid the Red */}
+               {gameType === "avoid-red" && (
+                  <div
+                     style={{
+                        background: "var(--card)",
+                        border: "2px solid var(--stroke)",
+                        borderRadius: isMobile
+                           ? "14px"
+                           : isTablet
+                           ? "15px"
+                           : "16px",
+                        padding: isMobile ? "16px" : isTablet ? "20px" : "24px",
+                        marginBottom: isMobile
+                           ? "16px"
+                           : isTablet
+                           ? "20px"
+                           : "24px",
+                     }}
+                  >
+                     <p
+                        style={{
+                           margin: "0 0 16px",
+                           color: "var(--text)",
+                           fontSize: isMobile
+                              ? "14px"
+                              : isTablet
+                              ? "15px"
+                              : "16px",
+                           fontWeight: 600,
+                           textAlign: "center",
+                        }}
+                     >
+                        Move your cursor to control the blue dot. Avoid red
+                        obstacles!
+                     </p>
+
+                     {/* Example Arena */}
+                     <div
+                        style={{
+                           position: "relative",
+                           width: "100%",
+                           minHeight: isMobile ? "300px" : "380px",
+                           maxHeight: isMobile ? "300px" : "380px",
+                           borderRadius: "var(--radius)",
+                           border: "1px solid var(--border)",
+                           background:
+                              "radial-gradient(320px 220px at 30% 30%, rgba(59, 130, 246, 0.1), transparent 55%), linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02))",
+                           boxShadow: "0 10px 18px rgba(0, 0, 0, 0.22)",
+                           marginBottom: "16px",
+                           overflow: "hidden",
+                        }}
+                     >
+                        {/* Player Example */}
+                        <div
+                           style={{
+                              position: "absolute",
+                              top: "50%",
+                              left: "50%",
+                              transform: "translate(-50%, -50%)",
+                              width: "14px",
+                              height: "14px",
+                              borderRadius: "999px",
+                              background: "rgba(110, 168, 255, 0.95)",
+                              boxShadow: "0 0 18px rgba(110, 168, 255, 0.45)",
+                              animation: "pulse 2s ease-in-out infinite",
+                           }}
+                        />
+
+                        {/* Red Obstacle Example 1 */}
+                        <div
+                           style={{
+                              position: "absolute",
+                              top: "20%",
+                              left: "20%",
+                              transform: "translate(-50%, -50%)",
+                              width: "24px",
+                              height: "24px",
+                              borderRadius: "12px",
+                              background: "rgba(251, 113, 133, 0.9)",
+                              boxShadow: "0 0 16px rgba(251, 113, 133, 0.35)",
+                              animation: "pulse 2s ease-in-out infinite",
+                           }}
+                        />
+
+                        {/* Red Obstacle Example 2 */}
+                        <div
+                           style={{
+                              position: "absolute",
+                              top: "70%",
+                              right: "25%",
+                              transform: "translate(50%, -50%)",
+                              width: "28px",
+                              height: "28px",
+                              borderRadius: "14px",
+                              background: "rgba(251, 113, 133, 0.9)",
+                              boxShadow: "0 0 16px rgba(251, 113, 133, 0.35)",
+                              animation: "pulse 2s ease-in-out infinite",
+                              animationDelay: "0.5s",
+                           }}
+                        />
+
+                        {/* Red Obstacle Example 3 */}
+                        <div
+                           style={{
+                              position: "absolute",
+                              bottom: "15%",
+                              left: "60%",
+                              transform: "translate(-50%, 50%)",
+                              width: "22px",
+                              height: "22px",
+                              borderRadius: "11px",
+                              background: "rgba(251, 113, 133, 0.9)",
+                              boxShadow: "0 0 16px rgba(251, 113, 133, 0.35)",
+                              animation: "pulse 2s ease-in-out infinite",
+                              animationDelay: "1s",
+                           }}
+                        />
+                     </div>
+
+                     <div
+                        style={{
+                           display: "flex",
+                           gap: "12px",
+                           justifyContent: "center",
+                           marginBottom: "12px",
+                           flexWrap: "wrap",
+                        }}
+                     >
+                        <div
+                           style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "8px",
+                              padding: "8px 12px",
+                              background: "rgba(110, 168, 255, 0.1)",
+                              borderRadius: "8px",
+                              border: "1px solid rgba(110, 168, 255, 0.3)",
+                           }}
+                        >
+                           <div
+                              style={{
+                                 width: "14px",
+                                 height: "14px",
+                                 borderRadius: "999px",
+                                 background: "rgba(110, 168, 255, 0.95)",
+                                 boxShadow: "0 0 18px rgba(110, 168, 255, 0.45)",
+                              }}
+                           />
+                           <span
+                              style={{
+                                 fontSize: isMobile ? "12px" : "13px",
+                                 color: "var(--text)",
+                                 fontWeight: 600,
+                              }}
+                           >
+                              Player (you)
+                           </span>
+                        </div>
+                        <div
+                           style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "8px",
+                              padding: "8px 12px",
+                              background: "rgba(251, 113, 133, 0.1)",
+                              borderRadius: "8px",
+                              border: "1px solid rgba(251, 113, 133, 0.3)",
+                           }}
+                        >
+                           <div
+                              style={{
+                                 width: "20px",
+                                 height: "20px",
+                                 borderRadius: "10px",
+                                 background: "rgba(251, 113, 133, 0.9)",
+                                 boxShadow: "0 0 16px rgba(251, 113, 133, 0.35)",
+                              }}
+                           />
+                           <span
+                              style={{
+                                 fontSize: isMobile ? "12px" : "13px",
+                                 color: "var(--text)",
+                                 fontWeight: 600,
+                              }}
+                           >
+                              Avoid these!
+                           </span>
+                        </div>
+                     </div>
+                  </div>
+               )}
+
                {/* Enhanced Start Screen for Mirror Match */}
                {gameType === "mirror-match" && (
                   <div

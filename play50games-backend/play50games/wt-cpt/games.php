@@ -546,11 +546,11 @@ function show_games_custom_fields() {
                 gameType: 'speed',
                 gameOrder: 27,
                 difficulty: 2,
-                timeLimit: 30,
+                timeLimit: 0,
                 passingScore: 75,
                 unlockRequirement: '',
                 description: 'Avoid red obstacles for set duration',
-                gameConfig: '{"gameType": "avoid-red", "duration": 30}'
+                gameConfig: '{"gameType": "avoid-red", "levels": 10, "levelRequirements": [{"minSurvivalTime": 20, "maxHits": 0}, {"minSurvivalTime": 20, "maxHits": 0}, {"minSurvivalTime": 20, "maxHits": 0}, {"minSurvivalTime": 20, "maxHits": 0}, {"minSurvivalTime": 20, "maxHits": 0}, {"minSurvivalTime": 20, "maxHits": 0}, {"minSurvivalTime": 20, "maxHits": 0}, {"minSurvivalTime": 20, "maxHits": 0}, {"minSurvivalTime": 20, "maxHits": 0}, {"minSurvivalTime": 20, "maxHits": 0}]}'
             },
             'reaction-test': {
                 title: 'Reaction Test',

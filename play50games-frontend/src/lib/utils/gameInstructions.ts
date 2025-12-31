@@ -393,8 +393,11 @@ export const gameInstructions: Record<string, {
   },
   'avoid-red': {
     description: 'Avoid red obstacles for set duration',
-    instructions: 'Move your cursor to avoid red obstacles. Keep moving and don\'t let the red items touch you!',
-    tips: 'Keep your cursor moving. Watch for red items coming from all directions.'
+    instructions: 'Move your cursor to control the blue dot. Avoid red obstacles for the full duration. Keep moving—don\'t let them touch you! Each level has its own survival time requirement. The game gets faster with each level. Share the game to unlock unlimited hits!',
+    tips: 'Keep your cursor moving. Watch for red items coming from all directions. Red obstacles will home in on your position, so constant movement is key! Share the game to unlock unlimited hits and make it easier.',
+    mouseControls: [
+      { action: 'Move', label: 'Move cursor to control player position' },
+    ],
   },
   'reaction-test': {
     description: 'Click as fast as possible after color change',
