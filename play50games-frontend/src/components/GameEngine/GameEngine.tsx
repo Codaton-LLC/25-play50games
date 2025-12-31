@@ -2197,6 +2197,239 @@ export default function GameEngine({
                   </div>
                )}
 
+               {/* Interactive Example for Click the Green */}
+               {gameType === "click-green" && (
+                  <div
+                     style={{
+                        background: "var(--card)",
+                        border: "2px solid var(--stroke)",
+                        borderRadius: isMobile
+                           ? "14px"
+                           : isTablet
+                           ? "15px"
+                           : "16px",
+                        padding: isMobile ? "16px" : isTablet ? "20px" : "24px",
+                        marginBottom: isMobile
+                           ? "16px"
+                           : isTablet
+                           ? "20px"
+                           : "24px",
+                     }}
+                  >
+                     <p
+                        style={{
+                           margin: "0 0 16px",
+                           color: "var(--text)",
+                           fontSize: isMobile
+                              ? "14px"
+                              : isTablet
+                              ? "15px"
+                              : "16px",
+                           fontWeight: 600,
+                           textAlign: "center",
+                        }}
+                     >
+                        Click ONLY on green items (✓). Avoid red items (✕)!
+                     </p>
+
+                     {/* Example Arena */}
+                     <div
+                        style={{
+                           position: "relative",
+                           width: "100%",
+                           minHeight: isMobile ? "300px" : "380px",
+                           maxHeight: isMobile ? "300px" : "380px",
+                           borderRadius: "var(--radius)",
+                           border: "1px solid var(--border)",
+                           background:
+                              "radial-gradient(320px 220px at 30% 30%, rgba(59, 130, 246, 0.1), transparent 55%), linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02))",
+                           boxShadow: "0 10px 18px rgba(0, 0, 0, 0.22)",
+                           marginBottom: "16px",
+                           overflow: "hidden",
+                        }}
+                     >
+                        {/* Green Item Example */}
+                        <div
+                           style={{
+                              position: "absolute",
+                              top: "30%",
+                              left: "25%",
+                              transform: "translate(-50%, -50%)",
+                              width: isMobile ? "48px" : "54px",
+                              height: isMobile ? "48px" : "54px",
+                              borderRadius: "16px",
+                              border: "2px solid rgba(54, 211, 153, 0.55)",
+                              background: "rgba(54, 211, 153, 0.18)",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              color: "white",
+                              fontSize: isMobile ? "20px" : "24px",
+                              fontWeight: 900,
+                              boxShadow: "0 4px 12px rgba(54, 211, 153, 0.3)",
+                              animation: "pulse 2s ease-in-out infinite",
+                           }}
+                        >
+                           ✓
+                        </div>
+
+                        {/* Red Item Example */}
+                        <div
+                           style={{
+                              position: "absolute",
+                              top: "50%",
+                              right: "30%",
+                              transform: "translate(50%, -50%)",
+                              width: isMobile ? "48px" : "54px",
+                              height: isMobile ? "48px" : "54px",
+                              borderRadius: "16px",
+                              border: "2px solid rgba(251, 113, 133, 0.55)",
+                              background: "rgba(251, 113, 133, 0.16)",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              color: "white",
+                              fontSize: isMobile ? "20px" : "24px",
+                              fontWeight: 900,
+                              boxShadow: "0 4px 12px rgba(251, 113, 133, 0.3)",
+                              animation: "pulse 2s ease-in-out infinite",
+                           }}
+                        >
+                           ✕
+                        </div>
+
+                        {/* Another Green Item */}
+                        <div
+                           style={{
+                              position: "absolute",
+                              bottom: "25%",
+                              left: "50%",
+                              transform: "translate(-50%, 50%)",
+                              width: isMobile ? "48px" : "54px",
+                              height: isMobile ? "48px" : "54px",
+                              borderRadius: "16px",
+                              border: "2px solid rgba(54, 211, 153, 0.55)",
+                              background: "rgba(54, 211, 153, 0.18)",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              color: "white",
+                              fontSize: isMobile ? "20px" : "24px",
+                              fontWeight: 900,
+                              boxShadow: "0 4px 12px rgba(54, 211, 153, 0.3)",
+                              animation: "pulse 2s ease-in-out infinite",
+                              animationDelay: "0.5s",
+                           }}
+                        >
+                           ✓
+                        </div>
+                     </div>
+
+                     <div
+                        style={{
+                           display: "flex",
+                           gap: "12px",
+                           justifyContent: "center",
+                           marginBottom: "12px",
+                           flexWrap: "wrap",
+                        }}
+                     >
+                        <div
+                           style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "8px",
+                              padding: "8px 12px",
+                              background: "rgba(54, 211, 153, 0.1)",
+                              borderRadius: "8px",
+                              border: "1px solid rgba(54, 211, 153, 0.3)",
+                           }}
+                        >
+                           <div
+                              style={{
+                                 width: "20px",
+                                 height: "20px",
+                                 borderRadius: "8px",
+                                 background: "rgba(54, 211, 153, 0.18)",
+                                 border: "2px solid rgba(54, 211, 153, 0.55)",
+                                 display: "flex",
+                                 alignItems: "center",
+                                 justifyContent: "center",
+                                 color: "white",
+                                 fontSize: "12px",
+                                 fontWeight: 900,
+                              }}
+                           >
+                              ✓
+                           </div>
+                           <span
+                              style={{
+                                 fontSize: isMobile ? "12px" : "13px",
+                                 color: "var(--text)",
+                                 fontWeight: 600,
+                              }}
+                           >
+                              Click = +10 points
+                           </span>
+                        </div>
+                        <div
+                           style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "8px",
+                              padding: "8px 12px",
+                              background: "rgba(251, 113, 133, 0.1)",
+                              borderRadius: "8px",
+                              border: "1px solid rgba(251, 113, 133, 0.3)",
+                           }}
+                        >
+                           <div
+                              style={{
+                                 width: "20px",
+                                 height: "20px",
+                                 borderRadius: "8px",
+                                 background: "rgba(251, 113, 133, 0.16)",
+                                 border: "2px solid rgba(251, 113, 133, 0.55)",
+                                 display: "flex",
+                                 alignItems: "center",
+                                 justifyContent: "center",
+                                 color: "white",
+                                 fontSize: "12px",
+                                 fontWeight: 900,
+                              }}
+                           >
+                              ✕
+                           </div>
+                           <span
+                              style={{
+                                 fontSize: isMobile ? "12px" : "13px",
+                                 color: "var(--text)",
+                                 fontWeight: 600,
+                              }}
+                           >
+                              Click = -5 points
+                           </span>
+                        </div>
+                     </div>
+
+                     <p
+                        style={{
+                           margin: "0",
+                           color: "var(--muted)",
+                           fontSize: isMobile
+                              ? "12px"
+                              : isTablet
+                              ? "13px"
+                              : "14px",
+                           textAlign: "center",
+                        }}
+                     >
+                        Items appear and disappear quickly. Click green items as
+                        fast as you can to score points!
+                     </p>
+                  </div>
+               )}
+
                {/* Enhanced Start Screen for Mirror Match */}
                {gameType === "mirror-match" && (
                   <div

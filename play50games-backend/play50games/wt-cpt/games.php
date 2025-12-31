@@ -535,11 +535,11 @@ function show_games_custom_fields() {
                 gameType: 'speed',
                 gameOrder: 26,
                 difficulty: 1,
-                timeLimit: 60,
+                timeLimit: 0,
                 passingScore: 70,
                 unlockRequirement: '',
-                description: 'Click only green items quickly',
-                gameConfig: '{"gameType": "click-green"}'
+                description: 'Click only green items quickly. Avoid red items!',
+                gameConfig: '{"gameType":"click-green","levels":10,"levelDuration":20,"levelRequirements":[{"minCorrectClicks":3},{"minCorrectClicks":4},{"minCorrectClicks":5},{"minCorrectClicks":6},{"minCorrectClicks":7},{"minCorrectClicks":8},{"minCorrectClicks":9},{"minCorrectClicks":10},{"minCorrectClicks":11},{"minCorrectClicks":12}]}'
             },
             'avoid-red': {
                 title: 'Avoid the Red',

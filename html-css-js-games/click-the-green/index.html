@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="en">
+   <head>
+      <meta charset="UTF-8" />
+      <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <title>Click the Green</title>
+      <style>
+         :root {
+            --bg: #0b1220;
+            --panel: #0f1b33;
+            --text: #e8eefc;
+            --muted: #a6b3d1;
+            --accent: #6ea8ff;
+            --good: #36d399;
+            --bad: #fb7185;
+            --shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
+            --radius: 18px;
+         }
+
+         * {
+            box-sizing: border-box;
+         }
+         body {
+            margin: 0;
+            font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu,
+               Cantarell, Noto Sans, Arial, sans-serif;
+            background: radial-gradient(
+                  1200px 800px at 70% -10%,
+                  rgba(110, 168, 255, 0.28),
+                  transparent 60%
+               ),
+               radial-gradient(
+                  900px 600px at 0% 10%,
+                  rgba(54, 211, 153, 0.18),
+                  transparent 55%
+               ),
+               var(--bg);
+            color: var(--text);
+            min-height: 100svh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+         }
+
+         .app {
+            width: min(980px, 100%);
+            display: grid;
+            grid-template-columns: 1.2fr 0.8fr;
+            gap: 18px;
+         }
+
+         @media (max-width: 900px) {
+            .app {
+               grid-template-columns: 1fr;
+            }
+         }
+
+         .panel {
+            background: linear-gradient(
+               180deg,
+               rgba(255, 255, 255, 0.06),
+               rgba(255, 255, 255, 0.02)
+            );
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            overflow: hidden;
+         }
+
+         header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            padding: 18px 18px 12px;
+            gap: 12px;
+         }
+
+         .title h1 {
+            margin: 0;
+            font-size: 18px;
+         }
+         .title p {
+            margin: 4px 0 0;
+            color: var(--muted);
+            font-size: 13px;
+         }
+
+         button {
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            background: rgba(15, 27, 51, 0.7);
+            color: var(--text);
+            padding: 10px 14px;
+            cursor: pointer;
+            font-weight: 800;
+            transition: 0.15s;
+            font-size: 13px;
+         }
+         button.primary {
+            background: linear-gradient(
+               180deg,
+               rgba(110, 168, 255, 0.9),
+               rgba(110, 168, 255, 0.55)
+            );
+            color: #081126;
+         }
+
+         .row {
+            display: flex;
+            gap: 12px;
+            padding: 0 18px 14px;
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            background: rgba(11, 22, 48, 0.45);
+            justify-content: space-between;
+            flex-wrap: wrap;
+         }
+
+         .pill {
+            padding: 8px 12px;
+            border-radius: 999px;
+            background: rgba(17, 28, 53, 0.55);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            font-size: 13px;
+         }
+
+         .content {
+            padding: 18px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+         }
+
+         .prompt {
+            padding: 14px;
+            border-radius: 16px;
+            background: rgba(17, 28, 53, 0.45);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+         }
+
+         .badge {
+            padding: 6px 10px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 900;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            background: rgba(15, 27, 51, 0.55);
+            white-space: nowrap;
+         }
+         .badge.good {
+            color: var(--good);
+            border-color: rgba(54, 211, 153, 0.45);
+         }
+         .badge.bad {
+            color: var(--bad);
+            border-color: rgba(251, 113, 133, 0.45);
+         }
+
+         .arena {
+            height: 380px;
+            border-radius: 18px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: radial-gradient(
+                  320px 220px at 30% 30%,
+                  rgba(110, 168, 255, 0.1),
+                  transparent 55%
+               ),
+               linear-gradient(
+                  180deg,
+                  rgba(255, 255, 255, 0.05),
+                  rgba(255, 255, 255, 0.02)
+               );
+            box-shadow: 0 10px 18px rgba(0, 0, 0, 0.22);
+            position: relative;
+            overflow: hidden;
+         }
+
+         .target {
+            width: 54px;
+            height: 54px;
+            border-radius: 16px;
+            position: absolute;
+            display: grid;
+            place-items: center;
+            font-weight: 900;
+            cursor: pointer;
+            user-select: none;
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            background: rgba(15, 27, 51, 0.55);
+            transform: translate(-50%, -50%);
+            transition: transform 0.06s;
+         }
+
+         .target:active {
+            transform: translate(-50%, -50%) scale(0.96);
+         }
+
+         .target.green {
+            background: rgba(54, 211, 153, 0.18);
+            border-color: rgba(54, 211, 153, 0.55);
+         }
+         .target.red {
+            background: rgba(251, 113, 133, 0.16);
+            border-color: rgba(251, 113, 133, 0.55);
+         }
+
+         .toast {
+            position: absolute;
+            left: 50%;
+            top: 18px;
+            transform: translateX(-50%);
+            padding: 8px 12px;
+            border-radius: 999px;
+            background: rgba(15, 27, 51, 0.72);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            font-size: 12px;
+            font-weight: 900;
+            pointer-events: none;
+            opacity: 0;
+            transition: 0.18s;
+         }
+         .toast.show {
+            opacity: 1;
+         }
+
+         .side {
+            padding: 18px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+         }
+         .box {
+            background: rgba(11, 22, 48, 0.35);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 14px;
+         }
+         .box h2 {
+            margin: 0 0 6px;
+            font-size: 14px;
+         }
+         .box p,
+         .box li {
+            margin: 0;
+            color: var(--muted);
+            font-size: 13px;
+            line-height: 1.35;
+         }
+         ul {
+            margin: 10px 0 0;
+            padding-left: 18px;
+         }
+      </style>
+   </head>
+   <body>
+      <div class="app">
+         <section class="panel">
+            <header>
+               <div class="title">
+                  <h1>Click the Green</h1>
+                  <p>
+                     Click ONLY green items as fast as you can. Avoid red items.
+                  </p>
+               </div>
+               <button class="primary" id="startBtn">Start</button>
+            </header>
+
+            <div class="row">
+               <div class="pill">Time: <b id="time">20</b>s</div>
+               <div class="pill">Score: <b id="score">0</b></div>
+               <div class="pill">Mistakes: <b id="mistakes">0</b></div>
+            </div>
+
+            <div class="content">
+               <div class="prompt">
+                  <div>
+                     <b id="stateText">Press Start to begin</b>
+                     <small style="color: var(--muted)"
+                        >Green = +1, Red = -1 and mistake</small
+                     >
+                  </div>
+                  <span class="badge" id="badge">Ready</span>
+               </div>
+
+               <div class="arena" id="arena">
+                  <div class="toast" id="toast"></div>
+               </div>
+            </div>
+         </section>
+
+         <aside class="panel">
+            <div class="side">
+               <div class="box">
+                  <h2>How to Play</h2>
+                  <ul>
+                     <li>Green and red items will appear.</li>
+                     <li>Click ONLY the green items as fast as you can.</li>
+                     <li>Avoid clicking red items!</li>
+                  </ul>
+               </div>
+               <div class="box">
+                  <h2>Tips</h2>
+                  <ul>
+                     <li>Stay focused and react quickly.</li>
+                     <li>
+                        Don’t click too fast or you might hit red by mistake.
+                     </li>
+                  </ul>
+               </div>
+            </div>
+         </aside>
+      </div>
+
+      <script>
+         const arena = document.getElementById("arena");
+         const startBtn = document.getElementById("startBtn");
+         const timeEl = document.getElementById("time");
+         const scoreEl = document.getElementById("score");
+         const mistakesEl = document.getElementById("mistakes");
+         const stateTextEl = document.getElementById("stateText");
+         const badgeEl = document.getElementById("badge");
+         const toastEl = document.getElementById("toast");
+
+         let running = false;
+         let score = 0;
+         let mistakes = 0;
+         let timeLeft = 20;
+         let spawnTimer = null;
+         let countdownTimer = null;
+
+         function setBadge(text, type) {
+            badgeEl.textContent = text;
+            badgeEl.className = "badge" + (type ? ` ${type}` : "");
+         }
+
+         function toast(msg, type) {
+            toastEl.textContent = msg;
+            toastEl.style.borderColor =
+               type === "bad"
+                  ? "rgba(251,113,133,.55)"
+                  : "rgba(54,211,153,.55)";
+            toastEl.classList.add("show");
+            setTimeout(() => toastEl.classList.remove("show"), 450);
+         }
+
+         function rand(min, max) {
+            return Math.random() * (max - min) + min;
+         }
+
+         function clearTargets() {
+            [...arena.querySelectorAll(".target")].forEach((t) => t.remove());
+         }
+
+         function spawn() {
+            if (!running) return;
+
+            // sometimes spawn 2 items to increase difficulty
+            const count = Math.random() < 0.22 ? 2 : 1;
+
+            for (let k = 0; k < count; k++) {
+               const t = document.createElement("div");
+               const isGreen = Math.random() < 0.62; // more green than red
+               t.className = "target " + (isGreen ? "green" : "red");
+               t.textContent = isGreen ? "✓" : "✕";
+
+               const rect = arena.getBoundingClientRect();
+               const x = rand(10, rect.width - 10);
+               const y = rand(60, rect.height - 10);
+               t.style.left = x + "px";
+               t.style.top = y + "px";
+
+               const ttl = Math.max(520, 1300 - (20 - timeLeft) * 28); // faster over time
+
+               let removed = false;
+               const remove = () => {
+                  if (removed) return;
+                  removed = true;
+                  t.remove();
+               };
+
+               t.addEventListener("click", (e) => {
+                  e.stopPropagation();
+                  if (!running) return;
+                  if (isGreen) {
+                     score += 1;
+                     toast("+1", "good");
+                     setBadge("Nice!", "good");
+                  } else {
+                     score = Math.max(0, score - 1);
+                     mistakes += 1;
+                     toast("-1", "bad");
+                     setBadge("Oops!", "bad");
+                  }
+                  scoreEl.textContent = score;
+                  mistakesEl.textContent = mistakes;
+                  remove();
+               });
+
+               arena.appendChild(t);
+               setTimeout(remove, ttl);
+            }
+         }
+
+         function start() {
+            running = true;
+            score = 0;
+            mistakes = 0;
+            timeLeft = 20;
+
+            scoreEl.textContent = score;
+            mistakesEl.textContent = mistakes;
+            timeEl.textContent = timeLeft;
+
+            stateTextEl.textContent = "Go! Click only green items";
+            setBadge("Playing");
+            startBtn.textContent = "Restart";
+
+            clearTargets();
+            if (spawnTimer) clearInterval(spawnTimer);
+            if (countdownTimer) clearInterval(countdownTimer);
+
+            spawnTimer = setInterval(spawn, 420);
+            countdownTimer = setInterval(() => {
+               timeLeft -= 1;
+               timeEl.textContent = timeLeft;
+               if (timeLeft <= 0) {
+                  end();
+               }
+            }, 1000);
+         }
+
+         function end() {
+            running = false;
+            clearInterval(spawnTimer);
+            clearInterval(countdownTimer);
+            spawnTimer = null;
+            countdownTimer = null;
+            clearTargets();
+
+            stateTextEl.textContent = `Finished! Score ${score}, mistakes ${mistakes}`;
+            if (mistakes === 0) setBadge("Perfect", "good");
+            else if (score >= 12) setBadge("Great", "good");
+            else setBadge("Try again", "bad");
+         }
+
+         // If user clicks empty arena, treat as a mistake (optional)
+         arena.addEventListener("click", () => {
+            if (!running) return;
+            mistakes += 1;
+            mistakesEl.textContent = mistakes;
+            setBadge("Miss!", "bad");
+         });
+
+         startBtn.addEventListener("click", start);
+      </script>
+   </body>
+</html>

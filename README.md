@@ -861,9 +861,128 @@ Or with predefined sequences for each round:
 
 ```json
 {
-   "gameType": "click-green"
+   "gameType": "click-green",
+   "levels": 10,
+   "levelDuration": 20,
+   "levelRequirements": [
+      { "minScore": 20, "minCorrectClicks": 3 },
+      { "minScore": 25, "minCorrectClicks": 4 },
+      { "minScore": 30, "minCorrectClicks": 5 },
+      { "minScore": 35, "minCorrectClicks": 6 },
+      { "minScore": 40, "minCorrectClicks": 7 },
+      { "minScore": 45, "minCorrectClicks": 8 },
+      { "minScore": 50, "minCorrectClicks": 9 },
+      { "minScore": 55, "minCorrectClicks": 10 },
+      { "minScore": 60, "minCorrectClicks": 11 },
+      { "minScore": 65, "minCorrectClicks": 12 }
+   ]
 }
 ```
+
+**Configuration:**
+
+-  `gameType` (required): Must be `"click-green"`
+-  `levels` (optional): Number of levels - Default: **10**
+-  `levelDuration` (optional): Duration per level in seconds - Default: **20 seconds**
+-  `levelRequirements` (optional): Array of requirements for each level - Default: **auto-progression**
+   -  Each level can have `minScore` and `minCorrectClicks`
+   -  If not provided, uses default: `minScore = 20 + level * 5`, `minCorrectClicks = 3 + level`
+
+**Level Duration:**
+
+-  **Level 1**: 20 seconds
+-  **Level 2**: 20 seconds
+-  **Level 3**: 20 seconds
+-  ... (all levels have the same duration by default)
+-  **Level 10**: 20 seconds
+-  **Total Time**: 200 seconds (10 levels × 20 seconds) to complete all levels
+
+**Level Passing Requirements:**
+
+Për të kaluar çdo level, duhet të plotësosh **TË DYJA** kushtet:
+
+1. **Minimum Correct Clicks**: Duhet të klikosh të paktën X green items
+
+-  Level 1: 3 correct clicks
+-  Level 2: 4 correct clicks
+-  Level 3: 5 correct clicks
+-  ... (rritet me 1 për çdo level)
+-  Level 10: 12 correct clicks
+
+2. **Minimum Level Score**: Duhet të arrish të paktën X points për level
+
+-  Level 1: 20 points
+-  Level 2: 25 points
+-  Level 3: 30 points
+-  ... (rritet me 5 për çdo level)
+-  Level 10: 65 points
+
+**Nëse nuk plotëson kushtet:**
+
+-  Level-i përsëritet (nuk kalon në level tjetër)
+-  Shfaqet mesazh "Level X Failed! Need: Y correct clicks and Z points"
+-  Loja restarton të njëjtin level pas 2 sekondash
+
+**Scoring:**
+
+-  Each correct click (green item) = +10 points
+-  Each mistake (red item) = -5 points
+-  Score accumulates across all levels
+-  Maximum score: 100 points (capped)
+-  Score is calculated based on performance: `correctClicks * 10 - wrongClicks * 5`
+
+**Controls:**
+
+-  **Mouse**:
+   -  Click on green items (✓) to score points
+   -  Avoid clicking red items (✕) or you'll lose points
+   -  Clicking empty arena counts as a mistake
+
+**Goal:**
+
+-  Click ONLY on green items (✓) as fast as you can
+-  Avoid clicking red items (✕) or you'll lose points
+-  Complete all 10 levels by clicking as many green items as possible
+-  Each level lasts 20 seconds
+-  Game gets faster with each level (spawn rate increases, item TTL decreases)
+
+**How It Works:**
+
+-  Green and red items appear randomly on screen
+-  Items spawn at intervals (600ms at level 1, down to 250ms at level 10)
+-  Items disappear after a short time (2000ms at level 1, down to 800ms at level 10)
+-  Sometimes 2 items spawn at once (more likely at higher levels)
+-  Each level lasts 20 seconds (or until requirements are met)
+-  **Early Completion**: If you reach the minimum score and correct clicks before time runs out, the level completes immediately and you advance to the next level
+-  After completing a level, you advance to the next level automatically
+-  If you don't meet the requirements, the level restarts
+-  Game ends after completing all 10 levels
+
+**Features:**
+
+-  Progressive difficulty with increasing spawn rate and decreasing item TTL
+-  Visual feedback with green (✓) and red (✕) items
+-  Real-time stats showing correct clicks and mistakes
+-  Level progression system (10 levels)
+-  Time countdown per level
+-  Feedback messages for correct clicks and mistakes
+-  Modern UI with header showing level, score, and progress bar
+-  Game state display (Click only green items!, Level X Complete!)
+-  Fully responsive design optimized for mobile, tablet, and desktop
+-  Touch-optimized for mobile devices
+
+**Tips:**
+
+-  Stay focused and react quickly
+-  Don't click too fast or you might hit a red item by mistake
+-  Items disappear after a short time, so be quick but accurate
+-  Higher levels are faster - stay calm and focused
+
+**Recommended Settings:**
+
+-  **Time Limit**: 0 (no overall time limit, each level has its own timer)
+-  **Passing Score**: 70 (70% of max score)
+-  **Difficulty**: 1 (easy, but gets harder with each level)
 
 #### Maze Escape
 

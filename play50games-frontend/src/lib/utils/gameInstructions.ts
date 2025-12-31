@@ -383,9 +383,13 @@ export const gameInstructions: Record<string, {
   
   // Speed Games
   'click-green': {
-    description: 'Click only green items quickly',
-    instructions: 'Green and red items will appear. Click ONLY on the green items as fast as you can. Avoid clicking red items!',
-    tips: 'Stay focused and react quickly. Don\'t click too fast or you might hit a red item by mistake.'
+    description: 'Click only green items quickly. Avoid red items!',
+    instructions: 'Green and red items will appear on screen. Click ONLY on the green items (✓) as fast as you can. Avoid clicking red items (✕) or you\'ll lose points! Each level lasts 20 seconds. The game gets faster with each level.',
+    tips: 'Stay focused and react quickly. Don\'t click too fast or you might hit a red item by mistake. Items disappear after a short time, so be quick but accurate.',
+    mouseControls: [
+      { action: 'Click', label: 'Click on green items (✓) to score points' },
+      { action: 'Avoid', label: 'Avoid clicking red items (✕) or you\'ll lose points' },
+    ],
   },
   'avoid-red': {
     description: 'Avoid red obstacles for set duration',
