@@ -1675,7 +1675,6 @@ function AvoidRed({
                      setGameState("failed");
                      // Stop timers but keep obstacles visible
                      stopTimers();
-                     finalizeFailure();
                      return; // Stop game loop immediately
                   }
                   // If hits <= maxHits, game continues normally
@@ -1785,21 +1784,11 @@ function AvoidRed({
    ]);
 
    // Handle level failure
-   const finalizeFailure = useCallback(() => {
-      if (completionCalledRef.current) return;
-      completionCalledRef.current = true;
-      onScoreUpdate(currentScore);
-      setTimeout(() => {
-         onComplete(currentScore);
-      }, 1000);
-   }, [currentScore, onComplete, onScoreUpdate]);
-
    useEffect(() => {
       if (gameState === "failed") {
          stopTimers();
-         finalizeFailure();
       }
-   }, [gameState, stopTimers, finalizeFailure]);
+   }, [gameState, stopTimers]);
 
    // Handle next round
    const handleNextRound = useCallback(() => {
