@@ -571,11 +571,11 @@ function show_games_custom_fields() {
                 gameType: 'speed',
                 gameOrder: 29,
                 difficulty: 2,
-                timeLimit: 90,
-                passingScore: 80,
+                timeLimit: 0,
+                passingScore: 70,
                 unlockRequirement: '',
-                description: 'Solve math problems quickly',
-                gameConfig: '{"gameType": "fast-math", "rounds": 10}'
+                description: 'Solve math problems quickly across 20 levels. Progressive difficulty with addition, subtraction, multiplication, and division.',
+                gameConfig: '{"gameType": "fast-math", "levels": 20, "levelDuration": 30, "levelRequirements": [{"minCorrectAnswers": 5}, {"minCorrectAnswers": 6}, {"minCorrectAnswers": 7}, {"minCorrectAnswers": 8}, {"minCorrectAnswers": 9}, {"minCorrectAnswers": 10}, {"minCorrectAnswers": 11}, {"minCorrectAnswers": 12}, {"minCorrectAnswers": 13}, {"minCorrectAnswers": 14}, {"minCorrectAnswers": 15}, {"minCorrectAnswers": 16}, {"minCorrectAnswers": 17}, {"minCorrectAnswers": 18}, {"minCorrectAnswers": 19}, {"minCorrectAnswers": 20}, {"minCorrectAnswers": 21}, {"minCorrectAnswers": 22}, {"minCorrectAnswers": 23}, {"minCorrectAnswers": 24}]}'
             },
             'whack-shape': {
                 title: 'Whack-a-Shape',

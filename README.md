@@ -1224,6 +1224,138 @@ Reaction Test përfshin 10 variante unike të mini-lojave:
 -  **Passing Score**: 70 (70% of max score)
 -  **Difficulty**: 2 (medium difficulty)
 
+#### Fast Math
+
+```json
+{
+   "gameType": "fast-math",
+   "levels": 20,
+   "levelDuration": 30,
+   "levelRequirements": [
+      { "minCorrectAnswers": 5 },
+      { "minCorrectAnswers": 6 },
+      { "minCorrectAnswers": 7 },
+      { "minCorrectAnswers": 8 },
+      { "minCorrectAnswers": 9 },
+      { "minCorrectAnswers": 10 },
+      { "minCorrectAnswers": 11 },
+      { "minCorrectAnswers": 12 },
+      { "minCorrectAnswers": 13 },
+      { "minCorrectAnswers": 14 },
+      { "minCorrectAnswers": 15 },
+      { "minCorrectAnswers": 16 },
+      { "minCorrectAnswers": 17 },
+      { "minCorrectAnswers": 18 },
+      { "minCorrectAnswers": 19 },
+      { "minCorrectAnswers": 20 },
+      { "minCorrectAnswers": 21 },
+      { "minCorrectAnswers": 22 },
+      { "minCorrectAnswers": 23 },
+      { "minCorrectAnswers": 24 }
+   ]
+}
+```
+
+**Configuration:**
+
+-  `gameType` (required): Must be `"fast-math"`
+-  `levels` (optional): Number of levels - Default: **20**
+-  `levelDuration` (optional): Duration per level in seconds - Default: **30 seconds**
+-  `levelRequirements` (optional): Array of requirements for each level - Default: **auto-progression**
+   -  Each level can have `minCorrectAnswers` (minimum number of correct answers required)
+   -  If not provided, uses default: `minCorrectAnswers = 5 + level`
+
+**Level Requirements:**
+
+-  Each level requires a minimum number of correct answers within the time limit
+-  Example: `{"minCorrectAnswers": 5}` means you need at least 5 correct answers to pass level 1
+-  If you don't meet the requirement, you can replay the level (5 replays by default, unlimited if shared)
+
+**Level Progression:**
+
+-  **Levels 1-5**: Simple addition/subtraction (numbers 1-20)
+-  **Levels 6-10**: Addition/subtraction (numbers 1-50), introduce multiplication
+-  **Levels 11-15**: All operations (addition, subtraction, multiplication), larger numbers
+-  **Levels 16-20**: All operations including division, complex numbers (up to 200)
+
+**Scoring:**
+
+-  Score is calculated based on completed levels: `Math.round((completedLevels / maxLevels) * 100)`
+-  Maximum 100 points for completing all levels
+-  Score increases progressively with each completed level
+
+**Controls:**
+
+-  **Mouse**:
+   -  Click on the button with the correct answer
+   -  Each button shows a number badge (1-4) in the top-left corner for keyboard shortcuts
+-  **Keyboard**:
+   -  **Number Keys (1-4)**: Select answer option directly
+   -  **1**: Select answer option 1 (top-left)
+   -  **2**: Select answer option 2 (top-right)
+   -  **3**: Select answer option 3 (bottom-left)
+   -  **4**: Select answer option 4 (bottom-right)
+
+**Goal:**
+
+-  Solve math problems as quickly as possible by selecting the correct answer from 4 options
+-  Each level has a time limit and requires a minimum number of correct answers to pass
+-  Answer correctly as many times as possible within the time limit
+-  Complete the minimum required correct answers to pass the level
+-  Progress through all 20 levels to complete the game
+
+**How It Works:**
+
+-  A math problem appears at the top (e.g., "7 × 4 = ?")
+-  Four answer options appear below in buttons with numbered badges (1-4)
+-  Click the button with the correct answer, or press 1, 2, 3, or 4 on your keyboard
+-  Each button shows a blue number badge in the corner matching the keyboard shortcut
+-  New problem appears immediately after answering
+-  Continue until time runs out or you reach the required correct answers
+-  If you meet the requirement, you can proceed to the next level
+-  If you don't meet the requirement, you can replay the level (5 replays by default, unlimited if shared)
+
+**Features:**
+
+-  Progressive difficulty with increasing complexity across 20 levels
+-  Four answer options with numbered badges (1-4) for keyboard shortcuts
+-  Visual feedback with correct/wrong indicators
+-  Level progression system (20 levels)
+-  Game state display (Level X Complete!, Level X Failed!, Game Complete!)
+-  **Replay System**: 5 replays by default, unlimited if shared
+   -  Click "Replay" button to retry the current level
+   -  Replays reset the timer and correct/wrong counters
+   -  Share the game to unlock unlimited replays for 15 minutes
+-  **Share Feature**: Share the game to unlock unlimited replays
+   -  Click "Share for unlimited" button to copy a shareable link
+   -  **Share Success Message**: Shows "Link copied! Unlimited replay will unlock when someone opens your link!" for 15 seconds after sharing
+   -  **Unlimited Activated Message**: Shows "🎉 Someone opened your link! Unlimited replay is now active for 15 minutes!" when link is clicked
+   -  When someone else opens the shared link, the original sharer gets unlimited replays for 15 minutes
+   -  The system uses a heartbeat mechanism (checks every 10 seconds) to detect when the link is clicked
+   -  Replays automatically expire after 15 minutes and return to normal
+-  Modern UI with header showing level, score, time, and progress bar
+-  Stats display showing correct/wrong answers and requirements
+-  Fully responsive design optimized for mobile, tablet, and desktop
+-  Interactive example in game instructions section
+-  Support for negative results in subtraction
+-  Decimal answers for division problems
+
+**Tips:**
+
+-  Use keyboard shortcuts (1-4) for faster answers
+-  Practice mental math to improve speed
+-  For division, answers may have decimals (displayed with 1 decimal place)
+-  Negative results are possible in subtraction (e.g., 5 - 15 = -10)
+-  Focus on accuracy first, then speed
+-  Use replays strategically when you're close to meeting the requirement
+-  Share the game to get unlimited replays if needed
+
+**Recommended Settings:**
+
+-  **Time Limit**: 0 (no overall time limit, each level has its own timer)
+-  **Passing Score**: 70 (70% of max score)
+-  **Difficulty**: 2 (medium difficulty)
+
 #### Maze Escape
 
 ```json
@@ -2573,6 +2705,8 @@ src/
 
 -  Click the Green
 -  Avoid the Red
+-  Reaction Test
+-  Fast Math
 
 ### Skill Games
 

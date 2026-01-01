@@ -21,6 +21,7 @@ import {
    trackShareClick,
    getShareStatus,
 } from "@/lib/api/share";
+import FastMath from "./speedgames-parts/FastMath";
 
 interface SpeedGamesProps {
    config: Record<string, any>;
@@ -80,6 +81,7 @@ export default function SpeedGames({
             onScoreUpdate={onScoreUpdate}
             onComplete={onComplete}
             isPlaying={isPlaying}
+            passingScore={70}
          />
       ),
       "whack-shape": (
@@ -5589,79 +5591,8 @@ function ReactionTest({
    );
 }
 
-// Fast Math Game (29)
-function FastMath({
-   config,
-   onScoreUpdate,
-   onComplete,
-   isPlaying,
-}: {
-   config: Record<string, any>;
-   onScoreUpdate: (score: number) => void;
-   onComplete: (finalScore?: number) => void;
-   isPlaying: boolean;
-}) {
-   const rounds = config.rounds || 10;
-   const [problem, setProblem] = useState<{
-      a: number;
-      b: number;
-      op: string;
-      answer: number;
-   } | null>(null);
-   const [input, setInput] = useState("");
-   const [round, setRound] = useState(0);
-   const [score, setScore] = useState(0);
-
-   useEffect(() => {
-      if (round >= rounds) {
-         const finalScore = Math.round((score / rounds) * 100);
-         onScoreUpdate(finalScore);
-         setTimeout(() => onComplete(finalScore), 1000);
-         return;
-      }
-      generateProblem();
-   }, [round, rounds, score, onScoreUpdate, onComplete]);
-
-   const generateProblem = () => {
-      const a = Math.floor(Math.random() * 20) + 1;
-      const b = Math.floor(Math.random() * 20) + 1;
-      const op = Math.random() > 0.5 ? "+" : "-";
-      const answer = op === "+" ? a + b : a - b;
-      setProblem({ a, b, op, answer });
-      setInput("");
-   };
-
-   const handleSubmit = () => {
-      if (parseInt(input) === problem?.answer) {
-         setScore(score + 10);
-      }
-      setRound(round + 1);
-   };
-
-   return (
-      <div className="fast-math-game">
-         <h3>
-            Fast Math - Round {round + 1}/{rounds}
-         </h3>
-         {problem && (
-            <div>
-               <div className="math-problem">
-                  {problem.a} {problem.op} {problem.b} = ?
-               </div>
-               <input
-                  type="number"
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  onKeyPress={(e) => e.key === "Enter" && handleSubmit()}
-                  className="math-input"
-                  autoFocus
-               />
-               <button onClick={handleSubmit}>Submit</button>
-            </div>
-         )}
-      </div>
-   );
-}
+// Fast Math Game (29) - Now imported from speedgames-parts/FastMath.tsx
+// The implementation has been moved to a separate file for better organization
 
 // Whack-a-Shape Game (30)
 function WhackShape({
