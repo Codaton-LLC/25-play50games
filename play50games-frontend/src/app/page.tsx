@@ -51,6 +51,15 @@ export default function HomePage() {
    const [showLoginModal, setShowLoginModal] = useState(false);
    const [showRegisterModal, setShowRegisterModal] = useState(false);
 
+   const getInstructionsExcerpt = (text: string, maxLength = 256) => {
+      const plainText = text
+         .replace(/<[^>]*>/g, " ")
+         .replace(/\s+/g, " ")
+         .trim();
+      if (plainText.length <= maxLength) return plainText;
+      return `${plainText.slice(0, maxLength - 3).trimEnd()}...`;
+   };
+
   useEffect(() => {
     loadGames();
     loadProgress();
@@ -598,6 +607,10 @@ export default function HomePage() {
                                        const displayDescription =
                                           game.description ||
                                           instructions.description;
+                                       const instructionsExcerpt =
+                                          getInstructionsExcerpt(
+                                             instructions.instructions || ""
+                                          );
                         
                                        const isCompleted =
                                           gameProgress[game.id]?.completed ||
@@ -637,9 +650,7 @@ export default function HomePage() {
                                                    </p>
                                 <div className="game-instructions">
                                                       <p className="instructions-text">
-                                                         {
-                                                            instructions.instructions
-                                                         }
+                                                         {instructionsExcerpt}
                                                       </p>
                                   {instructions.tips && (
                                                          <p
@@ -746,6 +757,9 @@ export default function HomePage() {
                            );
                            const displayDescription =
                               game.description || instructions.description;
+                           const instructionsExcerpt = getInstructionsExcerpt(
+                              instructions.instructions || ""
+                           );
                            const isCompleted =
                               gameProgress[game.id]?.completed || false;
                   
@@ -777,7 +791,7 @@ export default function HomePage() {
                                        </p>
                           <div className="game-instructions">
                                           <p className="instructions-text">
-                                             {instructions.instructions}
+                                             {instructionsExcerpt}
                                           </p>
                             {instructions.tips && (
                                              <p
