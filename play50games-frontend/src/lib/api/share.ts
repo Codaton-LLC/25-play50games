@@ -92,7 +92,15 @@ export async function getShareStatus(shareId: string): Promise<ShareStatus> {
     });
 
     if (!response.ok) {
-      throw new Error('Failed to get share status');
+      // Include status code in error for better error handling
+      const statusCode = response.status;
+      const errorText = await response.text().catch(() => '');
+      const errorMessage = statusCode === 404 
+        ? `Share link not found (404)` 
+        : `Failed to get share status (${statusCode})`;
+      const error = new Error(errorMessage);
+      (error as any).status = statusCode;
+      throw error;
     }
 
     return response.json();

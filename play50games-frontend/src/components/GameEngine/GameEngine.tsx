@@ -168,7 +168,24 @@ export default function GameEngine({
          gameConfig = {};
       }
 
-      // Debug logging removed to reduce console noise.
+      // Fallback: If gameType is missing, try to infer from game_order (for speed games)
+      if (!gameConfig.gameType && game.game_type === "speed") {
+         const gameOrderToType: Record<number, string> = {
+            26: "click-green",
+            27: "avoid-red",
+            28: "reaction-test",
+            29: "fast-math",
+            30: "whack-shape",
+            31: "typing-sprint",
+            32: "quick-compare",
+            33: "falling-objects",
+            34: "tap-counter",
+            35: "reflex-arrows",
+         };
+         if (gameOrderToType[game.game_order]) {
+            gameConfig.gameType = gameOrderToType[game.game_order];
+         }
+      }
 
       switch (game.game_type) {
          case "logic":
@@ -237,7 +254,15 @@ export default function GameEngine({
 
             <div className="game-instructions-section">
                <h3>How to Play</h3>
-               <p className="instructions-text">{instructions.instructions}</p>
+               <div
+                  className="instructions-text"
+                  dangerouslySetInnerHTML={{
+                     __html: instructions.instructions,
+                  }}
+                  style={{
+                     lineHeight: "1.6",
+                  }}
+               />
 
                {/* Interactive Example for Emoji Memory */}
                {gameType === "emoji-memory" && (
@@ -2575,7 +2600,8 @@ export default function GameEngine({
                                  height: "14px",
                                  borderRadius: "999px",
                                  background: "rgba(110, 168, 255, 0.95)",
-                                 boxShadow: "0 0 18px rgba(110, 168, 255, 0.45)",
+                                 boxShadow:
+                                    "0 0 18px rgba(110, 168, 255, 0.45)",
                               }}
                            />
                            <span
@@ -2605,7 +2631,8 @@ export default function GameEngine({
                                  height: "20px",
                                  borderRadius: "10px",
                                  background: "rgba(251, 113, 133, 0.9)",
-                                 boxShadow: "0 0 16px rgba(251, 113, 133, 0.35)",
+                                 boxShadow:
+                                    "0 0 16px rgba(251, 113, 133, 0.35)",
                               }}
                            />
                            <span
@@ -2617,6 +2644,647 @@ export default function GameEngine({
                            >
                               Avoid these!
                            </span>
+                        </div>
+                     </div>
+                  </div>
+               )}
+
+               {/* Interactive Example for Reaction Test */}
+               {gameType === "reaction-test" && (
+                  <div
+                     style={{
+                        background:
+                           "linear-gradient(135deg, rgba(125, 211, 252, 0.1) 0%, rgba(54, 211, 153, 0.1) 100%)",
+                        border: "2px solid var(--stroke)",
+                        borderRadius: isMobile
+                           ? "16px"
+                           : isTablet
+                           ? "18px"
+                           : "20px",
+                        padding: isMobile ? "20px" : isTablet ? "24px" : "32px",
+                        marginTop: isMobile ? "16px" : "24px",
+                        boxShadow: "0 8px 24px rgba(0, 0, 0, 0.2)",
+                     }}
+                  >
+                     <div
+                        style={{
+                           display: "flex",
+                           alignItems: "center",
+                           justifyContent: "center",
+                           gap: isMobile ? "8px" : "12px",
+                           marginBottom: isMobile
+                              ? "16px"
+                              : isTablet
+                              ? "20px"
+                              : "24px",
+                        }}
+                     >
+                        <SparklesIcon
+                           style={{
+                              width: isMobile ? 24 : isTablet ? 26 : 28,
+                              height: isMobile ? 24 : isTablet ? 26 : 28,
+                              color: "var(--accent)",
+                           }}
+                        />
+                        <h3
+                           style={{
+                              fontSize: isMobile
+                                 ? "20px"
+                                 : isTablet
+                                 ? "22px"
+                                 : "24px",
+                              fontWeight: 700,
+                              margin: 0,
+                              background:
+                                 "linear-gradient(135deg, var(--accent) 0%, var(--ok) 100%)",
+                              WebkitBackgroundClip: "text",
+                              WebkitTextFillColor: "transparent",
+                              backgroundClip: "text",
+                           }}
+                        >
+                           Example Round
+                        </h3>
+                     </div>
+
+                     <div
+                        style={{
+                           background: "var(--card)",
+                           border: "2px solid var(--stroke)",
+                           borderRadius: "16px",
+                           padding: isMobile ? "16px" : "24px",
+                           marginBottom: "20px",
+                        }}
+                     >
+                        <div
+                           style={{
+                              margin: "0 0 20px",
+                              color: "var(--text)",
+                              fontSize: isMobile ? "14px" : "16px",
+                              lineHeight: "1.6",
+                           }}
+                        >
+                           <p
+                              style={{
+                                 margin: "0 0 12px",
+                                 fontWeight: 600,
+                                 textAlign: "center",
+                              }}
+                           >
+                              General Example Round:
+                           </p>
+                           <ol
+                              style={{
+                                 margin: "0",
+                                 paddingLeft: "20px",
+                                 listStyle: "decimal",
+                                 color: "var(--text)",
+                              }}
+                           >
+                              <li style={{ marginBottom: "8px" }}>
+                                 Screen shows <strong>"WAIT..."</strong> - Don't
+                                 click yet!
+                              </li>
+                              <li style={{ marginBottom: "8px" }}>
+                                 After a moment, screen turns{" "}
+                                 <strong style={{ color: "var(--ok)" }}>
+                                    GREEN
+                                 </strong>{" "}
+                                 with <strong>"CLICK NOW!"</strong>
+                              </li>
+                              <li style={{ marginBottom: "8px" }}>
+                                 Click immediately to measure your reaction time
+                              </li>
+                              <li>
+                                 Faster clicks = Better score! Each level has
+                                 unique mechanics.
+                              </li>
+                           </ol>
+                        </div>
+
+                        {/* Example Reaction Area */}
+                        <div
+                           style={{
+                              position: "relative",
+                              width: "100%",
+                              aspectRatio: "16/9",
+                              minHeight: isMobile ? "200px" : "300px",
+                              background:
+                                 "radial-gradient(circle at 30% 30%, rgba(59, 130, 246, 0.15), transparent 50%), linear-gradient(180deg, rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.5))",
+                              border: "2px solid var(--stroke)",
+                              borderRadius: "16px",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              marginBottom: "20px",
+                              transition: "all 0.3s ease",
+                              overflow: "hidden",
+                              boxShadow: "inset 0 2px 8px rgba(0, 0, 0, 0.3)",
+                           }}
+                        >
+                           {/* Animated background gradient */}
+                           <div
+                              style={{
+                                 position: "absolute",
+                                 top: "50%",
+                                 left: "50%",
+                                 transform: "translate(-50%, -50%)",
+                                 width: "200%",
+                                 height: "200%",
+                                 background:
+                                    "radial-gradient(circle, rgba(34, 197, 94, 0.2) 0%, transparent 70%)",
+                                 animation: "pulse 3s ease-in-out infinite",
+                                 opacity: 0.5,
+                              }}
+                           />
+
+                           {/* Step 1: WAIT indicator */}
+                           <div
+                              style={{
+                                 position: "absolute",
+                                 top: "16px",
+                                 left: "50%",
+                                 transform: "translateX(-50%)",
+                                 display: "flex",
+                                 alignItems: "center",
+                                 gap: "8px",
+                                 padding: "10px 20px",
+                                 background:
+                                    "linear-gradient(135deg, rgba(15, 27, 51, 0.9), rgba(30, 41, 59, 0.9))",
+                                 border: "1px solid rgba(255, 255, 255, 0.15)",
+                                 borderRadius: "12px",
+                                 backdropFilter: "blur(10px)",
+                                 boxShadow: "0 4px 12px rgba(0, 0, 0, 0.3)",
+                              }}
+                           >
+                              <ClockIcon
+                                 style={{
+                                    width: isMobile ? 16 : 18,
+                                    height: isMobile ? 16 : 18,
+                                    color: "var(--text)",
+                                 }}
+                              />
+                              <span
+                                 style={{
+                                    fontSize: isMobile ? "0.9rem" : "1rem",
+                                    fontWeight: 700,
+                                    color: "var(--text)",
+                                    letterSpacing: "0.5px",
+                                 }}
+                              >
+                                 WAIT...
+                              </span>
+                           </div>
+
+                           {/* Step 2: GREEN indicator with glow */}
+                           <div
+                              style={{
+                                 position: "absolute",
+                                 top: "120px",
+                                 left: "63%",
+                                 transform: "translate(-50%, -50%)",
+                                 width: isMobile ? "100px" : "140px",
+                                 height: isMobile ? "100px" : "140px",
+                                 borderRadius: "50%",
+                                 display: "flex",
+                                 alignItems: "center",
+                                 justifyContent: "center",
+                              }}
+                           >
+                              <div
+                                 style={{
+                                    width: isMobile ? "50px" : "70px",
+                                    height: isMobile ? "50px" : "70px",
+                                    borderRadius: "50%",
+                                    background:
+                                       "linear-gradient(135deg, rgb(34, 197, 94), rgba(22, 163, 74, 0.9))",
+                                    boxShadow:
+                                       "rgba(34, 197, 94, 0.8) 0px 0px 30px, rgba(255, 255, 255, 0.2) 0px 2px 10px inset",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                 }}
+                              >
+                                 <CheckCircleIcon
+                                    style={{
+                                       width: isMobile ? 32 : 40,
+                                       height: isMobile ? 32 : 40,
+                                       color: "white",
+                                    }}
+                                 />
+                              </div>
+                           </div>
+
+                           {/* Step 3: CLICK NOW badge */}
+                           <div
+                              style={{
+                                 position: "absolute",
+                                 bottom: "20px",
+                                 left: "50%",
+                                 transform: "translateX(-50%)",
+                                 display: "flex",
+                                 alignItems: "center",
+                                 gap: "10px",
+                                 padding: isMobile ? "12px 20px" : "14px 28px",
+                                 background:
+                                    "linear-gradient(135deg, rgba(34, 197, 94, 0.25), rgba(22, 163, 74, 0.25))",
+                                 border: "2px solid rgba(34, 197, 94, 0.6)",
+                                 borderRadius: "16px",
+                                 backdropFilter: "blur(10px)",
+                                 boxShadow:
+                                    "0 4px 16px rgba(34, 197, 94, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.2)",
+                                 zIndex: 10,
+                              }}
+                           >
+                              <CursorArrowRaysIcon
+                                 style={{
+                                    width: isMobile ? 18 : 22,
+                                    height: isMobile ? 18 : 22,
+                                    color: "rgba(34, 197, 94, 1)",
+                                 }}
+                              />
+                              <span
+                                 style={{
+                                    fontSize: isMobile ? "1rem" : "1.3rem",
+                                    fontWeight: 700,
+                                    color: "rgba(34, 197, 94, 1)",
+                                    textShadow:
+                                       "0 2px 8px rgba(34, 197, 94, 0.5)",
+                                    letterSpacing: "0.5px",
+                                 }}
+                              >
+                                 CLICK NOW!
+                              </span>
+                           </div>
+                        </div>
+
+                        {/* Instructions Steps */}
+                        <div
+                           style={{
+                              display: "flex",
+                              flexDirection: "column",
+                              gap: "12px",
+                           }}
+                        >
+                           <div
+                              style={{
+                                 display: "flex",
+                                 alignItems: "flex-start",
+                                 gap: "14px",
+                                 padding: "16px",
+                                 background:
+                                    "linear-gradient(135deg, rgba(125, 211, 252, 0.15), rgba(59, 130, 246, 0.1))",
+                                 borderRadius: "12px",
+                                 border: "1px solid rgba(125, 211, 252, 0.3)",
+                                 boxShadow: "0 2px 8px rgba(59, 130, 246, 0.1)",
+                                 transition: "transform 0.2s ease",
+                              }}
+                              onMouseEnter={(e) => {
+                                 e.currentTarget.style.transform =
+                                    "translateX(4px)";
+                              }}
+                              onMouseLeave={(e) => {
+                                 e.currentTarget.style.transform =
+                                    "translateX(0)";
+                              }}
+                           >
+                              <div
+                                 style={{
+                                    minWidth: "32px",
+                                    height: "32px",
+                                    borderRadius: "50%",
+                                    background:
+                                       "linear-gradient(135deg, var(--accent), rgba(59, 130, 246, 0.9))",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    color: "white",
+                                    fontWeight: 700,
+                                    fontSize: "14px",
+                                    boxShadow:
+                                       "0 4px 12px rgba(59, 130, 246, 0.4)",
+                                 }}
+                              >
+                                 1
+                              </div>
+                              <div style={{ flex: 1 }}>
+                                 <div
+                                    style={{
+                                       display: "flex",
+                                       alignItems: "center",
+                                       gap: "8px",
+                                       marginBottom: "6px",
+                                    }}
+                                 >
+                                    <ClockIcon
+                                       style={{
+                                          width: 18,
+                                          height: 18,
+                                          color: "var(--accent)",
+                                       }}
+                                    />
+                                    <div
+                                       style={{
+                                          fontSize: isMobile ? "14px" : "15px",
+                                          fontWeight: 700,
+                                          color: "var(--text)",
+                                       }}
+                                    >
+                                       Wait for the signal
+                                    </div>
+                                 </div>
+                                 <div
+                                    style={{
+                                       fontSize: isMobile ? "12px" : "13px",
+                                       color: "var(--muted)",
+                                       lineHeight: "1.5",
+                                    }}
+                                 >
+                                    The screen will be dark/gray. Stay focused
+                                    and don't click yet!
+                                 </div>
+                              </div>
+                           </div>
+
+                           <div
+                              style={{
+                                 display: "flex",
+                                 alignItems: "flex-start",
+                                 gap: "14px",
+                                 padding: "16px",
+                                 background:
+                                    "linear-gradient(135deg, rgba(34, 197, 94, 0.15), rgba(22, 163, 74, 0.1))",
+                                 borderRadius: "12px",
+                                 border: "1px solid rgba(34, 197, 94, 0.3)",
+                                 boxShadow: "0 2px 8px rgba(34, 197, 94, 0.1)",
+                                 transition: "transform 0.2s ease",
+                              }}
+                              onMouseEnter={(e) => {
+                                 e.currentTarget.style.transform =
+                                    "translateX(4px)";
+                              }}
+                              onMouseLeave={(e) => {
+                                 e.currentTarget.style.transform =
+                                    "translateX(0)";
+                              }}
+                           >
+                              <div
+                                 style={{
+                                    minWidth: "32px",
+                                    height: "32px",
+                                    borderRadius: "50%",
+                                    background:
+                                       "linear-gradient(135deg, var(--ok), rgba(22, 163, 74, 0.9))",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    color: "white",
+                                    fontWeight: 700,
+                                    fontSize: "14px",
+                                    boxShadow:
+                                       "0 4px 12px rgba(34, 197, 94, 0.4)",
+                                 }}
+                              >
+                                 2
+                              </div>
+                              <div style={{ flex: 1 }}>
+                                 <div
+                                    style={{
+                                       display: "flex",
+                                       alignItems: "center",
+                                       gap: "8px",
+                                       marginBottom: "6px",
+                                    }}
+                                 >
+                                    <CheckCircleIcon
+                                       style={{
+                                          width: 18,
+                                          height: 18,
+                                          color: "var(--ok)",
+                                       }}
+                                    />
+                                    <div
+                                       style={{
+                                          fontSize: isMobile ? "14px" : "15px",
+                                          fontWeight: 700,
+                                          color: "var(--text)",
+                                       }}
+                                    >
+                                       Screen turns GREEN
+                                    </div>
+                                 </div>
+                                 <div
+                                    style={{
+                                       fontSize: isMobile ? "12px" : "13px",
+                                       color: "var(--muted)",
+                                       lineHeight: "1.5",
+                                    }}
+                                 >
+                                    The screen will turn bright green. This is
+                                    your signal to click immediately!
+                                 </div>
+                              </div>
+                           </div>
+
+                           <div
+                              style={{
+                                 display: "flex",
+                                 alignItems: "flex-start",
+                                 gap: "14px",
+                                 padding: "16px",
+                                 background:
+                                    "linear-gradient(135deg, rgba(251, 191, 36, 0.15), rgba(217, 119, 6, 0.1))",
+                                 borderRadius: "12px",
+                                 border: "1px solid rgba(251, 191, 36, 0.3)",
+                                 boxShadow: "0 2px 8px rgba(251, 191, 36, 0.1)",
+                                 transition: "transform 0.2s ease",
+                              }}
+                              onMouseEnter={(e) => {
+                                 e.currentTarget.style.transform =
+                                    "translateX(4px)";
+                              }}
+                              onMouseLeave={(e) => {
+                                 e.currentTarget.style.transform =
+                                    "translateX(0)";
+                              }}
+                           >
+                              <div
+                                 style={{
+                                    minWidth: "32px",
+                                    height: "32px",
+                                    borderRadius: "50%",
+                                    background:
+                                       "linear-gradient(135deg, rgba(251, 191, 36, 1), rgba(217, 119, 6, 0.9))",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    color: "white",
+                                    fontWeight: 700,
+                                    fontSize: "14px",
+                                    boxShadow:
+                                       "0 4px 12px rgba(251, 191, 36, 0.4)",
+                                 }}
+                              >
+                                 3
+                              </div>
+                              <div style={{ flex: 1 }}>
+                                 <div
+                                    style={{
+                                       display: "flex",
+                                       alignItems: "center",
+                                       gap: "8px",
+                                       marginBottom: "6px",
+                                    }}
+                                 >
+                                    <BoltIcon
+                                       style={{
+                                          width: 18,
+                                          height: 18,
+                                          color: "rgba(251, 191, 36, 1)",
+                                       }}
+                                    />
+                                    <div
+                                       style={{
+                                          fontSize: isMobile ? "14px" : "15px",
+                                          fontWeight: 700,
+                                          color: "var(--text)",
+                                       }}
+                                    >
+                                       Click immediately!
+                                    </div>
+                                 </div>
+                                 <div
+                                    style={{
+                                       fontSize: isMobile ? "12px" : "13px",
+                                       color: "var(--muted)",
+                                       lineHeight: "1.5",
+                                    }}
+                                 >
+                                    Click as fast as possible! Your reaction
+                                    time is measured in milliseconds (ms). The
+                                    faster you click, the better your score!
+                                 </div>
+                              </div>
+                           </div>
+                        </div>
+
+                        {/* Warning */}
+                        <div
+                           style={{
+                              marginTop: "20px",
+                              padding: "16px",
+                              background:
+                                 "linear-gradient(135deg, rgba(239, 68, 68, 0.15), rgba(220, 38, 38, 0.1))",
+                              border: "2px solid rgba(239, 68, 68, 0.4)",
+                              borderRadius: "12px",
+                              display: "flex",
+                              alignItems: "flex-start",
+                              gap: "12px",
+                              boxShadow: "0 2px 8px rgba(239, 68, 68, 0.15)",
+                           }}
+                        >
+                           <div
+                              style={{
+                                 minWidth: "32px",
+                                 height: "32px",
+                                 borderRadius: "50%",
+                                 background:
+                                    "linear-gradient(135deg, var(--warn), rgba(220, 38, 38, 0.9))",
+                                 display: "flex",
+                                 alignItems: "center",
+                                 justifyContent: "center",
+                                 flexShrink: 0,
+                                 boxShadow: "0 4px 12px rgba(239, 68, 68, 0.3)",
+                              }}
+                           >
+                              <XCircleIcon
+                                 style={{
+                                    width: 20,
+                                    height: 20,
+                                    color: "white",
+                                 }}
+                              />
+                           </div>
+                           <div style={{ flex: 1 }}>
+                              <div
+                                 style={{
+                                    fontSize: isMobile ? "13px" : "14px",
+                                    fontWeight: 700,
+                                    color: "var(--warn)",
+                                    marginBottom: "6px",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: "6px",
+                                 }}
+                              >
+                                 Important: Don't click too early!
+                              </div>
+                              <div
+                                 style={{
+                                    fontSize: isMobile ? "12px" : "13px",
+                                    color: "var(--muted)",
+                                    lineHeight: "1.5",
+                                 }}
+                              >
+                                 Clicking before the screen turns green will
+                                 result in penalties. Stay patient and wait for
+                                 the green signal!
+                              </div>
+                           </div>
+                        </div>
+
+                        {/* Variants Info */}
+                        <div
+                           style={{
+                              marginTop: "20px",
+                              padding: "20px",
+                              background:
+                                 "linear-gradient(135deg, rgba(125, 211, 252, 0.1), rgba(59, 130, 246, 0.05))",
+                              border: "2px solid rgba(125, 211, 252, 0.3)",
+                              borderRadius: "16px",
+                              boxShadow: "0 4px 12px rgba(59, 130, 246, 0.1)",
+                           }}
+                        >
+                           <div
+                              style={{
+                                 display: "flex",
+                                 alignItems: "center",
+                                 justifyContent: "center",
+                                 gap: "10px",
+                                 marginBottom: "12px",
+                              }}
+                           >
+                              <StarIcon
+                                 style={{
+                                    width: 20,
+                                    height: 20,
+                                    color: "var(--accent)",
+                                 }}
+                              />
+                              <div
+                                 style={{
+                                    fontSize: isMobile ? "14px" : "15px",
+                                    fontWeight: 700,
+                                    color: "var(--text)",
+                                    textAlign: "center",
+                                 }}
+                              >
+                                 10 Different Variants
+                              </div>
+                           </div>
+                           <div
+                              style={{
+                                 fontSize: isMobile ? "12px" : "13px",
+                                 color: "var(--muted)",
+                                 textAlign: "center",
+                                 lineHeight: "1.6",
+                              }}
+                           >
+                              Each level is a different variant with unique
+                              mechanics: Random delays, short windows, penalty
+                              systems, best of 3, fatigue tests, distractions,
+                              and more! Complete all 10 to master your reaction
+                              time.
+                           </div>
                         </div>
                      </div>
                   </div>

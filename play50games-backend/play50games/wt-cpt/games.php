@@ -189,6 +189,9 @@ function show_games_custom_fields() {
                 <td>
                     <textarea name="game_fields[game_config]" id="game_config" rows="10" class="large-text code"><?php echo esc_textarea($game_config); ?></textarea>
                     <p class="description"><?php _e('JSON configuration for game-specific settings. Example: {"shapes": ["circle", "square"], "rounds": 5}', 'play50games'); ?></p>
+                    <p class="description" style="margin-top: 5px; color: #2271b1;">
+                        <strong>For Reaction Test:</strong> You must specify <code>maxTime</code> in each level requirement. Formats supported: <code>"700ms"</code>, <code>"1.2s"</code>, <code>"1.5sec"</code>, or <code>2000</code> (milliseconds). Example: <code>{"maxTime": "700ms"}</code>
+                    </p>
                     <button type="button" id="validate_json" class="button button-secondary" style="margin-top: 5px;">Validate JSON</button>
                     <span id="json_status" style="margin-left: 10px;"></span>
                 </td>
@@ -557,11 +560,11 @@ function show_games_custom_fields() {
                 gameType: 'speed',
                 gameOrder: 28,
                 difficulty: 2,
-                timeLimit: 60,
-                passingScore: 75,
+                timeLimit: 0,
+                passingScore: 70,
                 unlockRequirement: '',
-                description: 'Click as fast as possible after color change',
-                gameConfig: '{"gameType": "reaction-test", "rounds": 10}'
+                description: 'Test your reaction time with 10 unique mini-games: Color Flash, Moving Target, Countdown, Shape Match, Speed Reaction, Pattern Reaction, Multi-Target, Timing Reaction, Memory Reaction, and Master Reaction',
+                gameConfig: '{"gameType": "reaction-test", "levels": 10, "levelRequirements": [{"maxTime": "700ms"}, {"maxTime": "900ms"}, {"maxTime": "1.2s"}, {"maxTime": "1.5sec"}, {"maxTime": 2000}, {"maxTime": "1.8s"}, {"maxTime": "1.0s"}, {"maxTime": "2.0s"}, {"maxTime": "1.2s"}, {"maxTime": "2.5s"}]}'
             },
             'fast-math': {
                 title: 'Fast Math',

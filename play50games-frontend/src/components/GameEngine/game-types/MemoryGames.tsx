@@ -85,18 +85,10 @@ export default function MemoryGames({
       // config should already contain gameType from gameConfig that was passed from GameEngine
       const gameType = config.gameType || "";
 
-      // Debug: Log config to see what we're receiving
-      if (!gameType) {
-         console.warn("MemoryGames: No gameType found in config:", config);
-      }
-
       if (gameType) {
          setCurrentGame(gameType);
       } else {
          // If no gameType found, default to card-flip for backward compatibility
-         console.warn(
-            "MemoryGames: Defaulting to card-flip because gameType is missing"
-         );
          setCurrentGame("card-flip");
       }
    }, [isPlaying, config]);
@@ -428,11 +420,11 @@ function CardFlipMemory({
       if (!currentShareId) return;
 
       const checkShareStatus = async () => {
+         const gameKey = "play50games_shared_card-flip";
          try {
             const status = await getShareStatus(currentShareId);
             if (status.has_clicks && !hasShared) {
                // Share has clicks - activate unlimited hints with expiry
-               const gameKey = "play50games_shared_card-flip";
                const EXPIRY_TIME = 15 * 60 * 1000; // 15 minutes
                const expiryTime = Date.now() + EXPIRY_TIME;
                localStorage.setItem(
@@ -457,7 +449,25 @@ function CardFlipMemory({
                   shareCheckIntervalRef.current = null;
                }
             }
-         } catch (error) {}
+         } catch (error) {
+            // Handle 404 as expired share
+            const errorMessage =
+               error instanceof Error ? error.message : String(error);
+            if (
+               errorMessage.includes("404") ||
+               errorMessage.includes("not found") ||
+               errorMessage.includes("expired")
+            ) {
+               // Share expired or not found - clean up
+               localStorage.removeItem(gameKey);
+               if (shareCheckIntervalRef.current) {
+                  clearInterval(shareCheckIntervalRef.current);
+               }
+               setCurrentShareId(null);
+               setHasShared(false);
+               setUnlimitedActivated(false);
+            }
+         }
       };
 
       // Check immediately, then every 10 seconds (heartbeat)
@@ -2708,20 +2718,56 @@ function EmojiMemory({
             }
             if (data.share_id) {
                setCurrentShareId(data.share_id);
-               // If already shared and not expired, activate unlimited hints
-               if (data.shared && data.expiry && Date.now() < data.expiry) {
-                  setHasShared(true);
-                  setUnlimitedActivated(true);
-                  // Set timeout to expire after remaining time
-                  const remainingTime = data.expiry - Date.now();
-                  if (remainingTime > 0) {
-                     setTimeout(() => {
-                        setUnlimitedActivated(false);
-                        setHasShared(false);
+               // Verify with backend before activating unlimited
+               const verifyShare = async () => {
+                  try {
+                     const status = await getShareStatus(data.share_id);
+                     if (status && status.clicks > 0) {
+                        // Share exists in backend and has clicks - activate unlimited
+                        if (
+                           data.shared &&
+                           data.expiry &&
+                           Date.now() < data.expiry
+                        ) {
+                           // Already activated and not expired
+                           setHasShared(true);
+                           setUnlimitedActivated(true);
+                           setTimeout(() => {
+                              setUnlimitedActivated(false);
+                              setHasShared(false);
+                              localStorage.removeItem(gameKey);
+                           }, data.expiry - Date.now());
+                        } else {
+                           // Has clicks but not activated yet - activate now
+                           setHasShared(true);
+                           setUnlimitedActivated(true);
+                           const expiryTime = Date.now() + 15 * 60 * 1000; // 15 minutes
+                           localStorage.setItem(
+                              gameKey,
+                              JSON.stringify({
+                                 share_id: data.share_id,
+                                 expiry: expiryTime,
+                                 shared: true,
+                              })
+                           );
+                           setTimeout(() => {
+                              setUnlimitedActivated(false);
+                              setHasShared(false);
+                              localStorage.removeItem(gameKey);
+                           }, 15 * 60 * 1000);
+                        }
+                     } else {
+                        // Share doesn't exist in backend or has no clicks - clean up
                         localStorage.removeItem(gameKey);
-                     }, remainingTime);
+                        setCurrentShareId(null);
+                     }
+                  } catch (error) {
+                     // Error checking share (404 or other) - clean up
+                     localStorage.removeItem(gameKey);
+                     setCurrentShareId(null);
                   }
-               }
+               };
+               verifyShare();
             }
          } catch (error) {
             // Invalid data, clean up
@@ -3501,6 +3547,7 @@ function NumberRecall({
    // Share functionality
    useEffect(() => {
       if (currentShareId) {
+         const gameKey = "play50games_shared_number-recall";
          shareCheckIntervalRef.current = setInterval(async () => {
             try {
                const status = await getShareStatus(currentShareId);
@@ -3516,7 +3563,23 @@ function NumberRecall({
                   }, 15 * 60 * 1000); // 15 minutes
                }
             } catch (error) {
-               console.error("Error checking share status:", error);
+               // Handle 404 as expired share
+               const errorMessage =
+                  error instanceof Error ? error.message : String(error);
+               if (
+                  errorMessage.includes("404") ||
+                  errorMessage.includes("not found") ||
+                  errorMessage.includes("expired")
+               ) {
+                  // Share expired or not found - clean up
+                  localStorage.removeItem(gameKey);
+                  if (shareCheckIntervalRef.current) {
+                     clearInterval(shareCheckIntervalRef.current);
+                  }
+                  setCurrentShareId(null);
+                  setHasShared(false);
+                  setUnlimitedActivated(false);
+               }
             }
          }, 10000); // Check every 10 seconds
       }
@@ -4489,20 +4552,56 @@ function ImageRecall({
             }
             if (data.share_id) {
                setCurrentShareId(data.share_id);
-               // If already shared and not expired, activate unlimited hints
-               if (data.shared && data.expiry && Date.now() < data.expiry) {
-                  setHasShared(true);
-                  setUnlimitedActivated(true);
-                  // Set timeout to expire after remaining time
-                  const remainingTime = data.expiry - Date.now();
-                  if (remainingTime > 0) {
-                     setTimeout(() => {
-                        setUnlimitedActivated(false);
-                        setHasShared(false);
+               // Verify with backend before activating unlimited
+               const verifyShare = async () => {
+                  try {
+                     const status = await getShareStatus(data.share_id);
+                     if (status && status.clicks > 0) {
+                        // Share exists in backend and has clicks - activate unlimited
+                        if (
+                           data.shared &&
+                           data.expiry &&
+                           Date.now() < data.expiry
+                        ) {
+                           // Already activated and not expired
+                           setHasShared(true);
+                           setUnlimitedActivated(true);
+                           setTimeout(() => {
+                              setUnlimitedActivated(false);
+                              setHasShared(false);
+                              localStorage.removeItem(gameKey);
+                           }, data.expiry - Date.now());
+                        } else {
+                           // Has clicks but not activated yet - activate now
+                           setHasShared(true);
+                           setUnlimitedActivated(true);
+                           const expiryTime = Date.now() + 15 * 60 * 1000; // 15 minutes
+                           localStorage.setItem(
+                              gameKey,
+                              JSON.stringify({
+                                 share_id: data.share_id,
+                                 expiry: expiryTime,
+                                 shared: true,
+                              })
+                           );
+                           setTimeout(() => {
+                              setUnlimitedActivated(false);
+                              setHasShared(false);
+                              localStorage.removeItem(gameKey);
+                           }, 15 * 60 * 1000);
+                        }
+                     } else {
+                        // Share doesn't exist in backend or has no clicks - clean up
                         localStorage.removeItem(gameKey);
-                     }, remainingTime);
+                        setCurrentShareId(null);
+                     }
+                  } catch (error) {
+                     // Error checking share (404 or other) - clean up
+                     localStorage.removeItem(gameKey);
+                     setCurrentShareId(null);
                   }
-               }
+               };
+               verifyShare();
             }
          } catch (error) {
             // Invalid data, clean up
@@ -5140,14 +5239,14 @@ function ImageRecall({
                               ? "2px solid rgba(251, 191, 36, 0.8)"
                               : "2px solid rgba(255, 255, 255, 0.1)"
                         }`,
-                           outline:
-                              selectedCellIndex === idx && !isSelected
-                                 ? "2px solid rgba(251, 191, 36, 0.5)"
-                                 : "none",
-                           outlineOffset:
-                              selectedCellIndex === idx && !isSelected
-                                 ? "2px"
-                                 : "0",
+                        outline:
+                           selectedCellIndex === idx && !isSelected
+                              ? "2px solid rgba(251, 191, 36, 0.5)"
+                              : "none",
+                        outlineOffset:
+                           selectedCellIndex === idx && !isSelected
+                              ? "2px"
+                              : "0",
                         background:
                            gameState === "memorizing" && isInSequence
                               ? "linear-gradient(135deg, rgba(110, 168, 255, 0.4), rgba(110, 168, 255, 0.25))"
@@ -5699,20 +5798,56 @@ function PathMemory({
             }
             if (data.share_id) {
                setCurrentShareId(data.share_id);
-               // If already shared and not expired, activate unlimited hints
-               if (data.shared && data.expiry && Date.now() < data.expiry) {
-                  setHasShared(true);
-                  setUnlimitedActivated(true);
-                  // Set timeout to expire after remaining time
-                  const remainingTime = data.expiry - Date.now();
-                  if (remainingTime > 0) {
-                     setTimeout(() => {
-                        setUnlimitedActivated(false);
-                        setHasShared(false);
+               // Verify with backend before activating unlimited
+               const verifyShare = async () => {
+                  try {
+                     const status = await getShareStatus(data.share_id);
+                     if (status && status.clicks > 0) {
+                        // Share exists in backend and has clicks - activate unlimited
+                        if (
+                           data.shared &&
+                           data.expiry &&
+                           Date.now() < data.expiry
+                        ) {
+                           // Already activated and not expired
+                           setHasShared(true);
+                           setUnlimitedActivated(true);
+                           setTimeout(() => {
+                              setUnlimitedActivated(false);
+                              setHasShared(false);
+                              localStorage.removeItem(gameKey);
+                           }, data.expiry - Date.now());
+                        } else {
+                           // Has clicks but not activated yet - activate now
+                           setHasShared(true);
+                           setUnlimitedActivated(true);
+                           const expiryTime = Date.now() + 15 * 60 * 1000; // 15 minutes
+                           localStorage.setItem(
+                              gameKey,
+                              JSON.stringify({
+                                 share_id: data.share_id,
+                                 expiry: expiryTime,
+                                 shared: true,
+                              })
+                           );
+                           setTimeout(() => {
+                              setUnlimitedActivated(false);
+                              setHasShared(false);
+                              localStorage.removeItem(gameKey);
+                           }, 15 * 60 * 1000);
+                        }
+                     } else {
+                        // Share doesn't exist in backend or has no clicks - clean up
                         localStorage.removeItem(gameKey);
-                     }, remainingTime);
+                        setCurrentShareId(null);
+                     }
+                  } catch (error) {
+                     // Error checking share (404 or other) - clean up
+                     localStorage.removeItem(gameKey);
+                     setCurrentShareId(null);
                   }
-               }
+               };
+               verifyShare();
             }
          } catch (error) {
             // Invalid data, clean up
@@ -6904,20 +7039,56 @@ function WordMemory({
             }
             if (data.share_id) {
                setCurrentShareId(data.share_id);
-               // If already shared and not expired, activate unlimited hints
-               if (data.shared && data.expiry && Date.now() < data.expiry) {
-                  setHasShared(true);
-                  setUnlimitedActivated(true);
-                  // Set timeout to expire after remaining time
-                  const remainingTime = data.expiry - Date.now();
-                  if (remainingTime > 0) {
-                     setTimeout(() => {
-                        setUnlimitedActivated(false);
-                        setHasShared(false);
+               // Verify with backend before activating unlimited
+               const verifyShare = async () => {
+                  try {
+                     const status = await getShareStatus(data.share_id);
+                     if (status && status.clicks > 0) {
+                        // Share exists in backend and has clicks - activate unlimited
+                        if (
+                           data.shared &&
+                           data.expiry &&
+                           Date.now() < data.expiry
+                        ) {
+                           // Already activated and not expired
+                           setHasShared(true);
+                           setUnlimitedActivated(true);
+                           setTimeout(() => {
+                              setUnlimitedActivated(false);
+                              setHasShared(false);
+                              localStorage.removeItem(gameKey);
+                           }, data.expiry - Date.now());
+                        } else {
+                           // Has clicks but not activated yet - activate now
+                           setHasShared(true);
+                           setUnlimitedActivated(true);
+                           const expiryTime = Date.now() + 15 * 60 * 1000; // 15 minutes
+                           localStorage.setItem(
+                              gameKey,
+                              JSON.stringify({
+                                 share_id: data.share_id,
+                                 expiry: expiryTime,
+                                 shared: true,
+                              })
+                           );
+                           setTimeout(() => {
+                              setUnlimitedActivated(false);
+                              setHasShared(false);
+                              localStorage.removeItem(gameKey);
+                           }, 15 * 60 * 1000);
+                        }
+                     } else {
+                        // Share doesn't exist in backend or has no clicks - clean up
                         localStorage.removeItem(gameKey);
-                     }, remainingTime);
+                        setCurrentShareId(null);
+                     }
+                  } catch (error) {
+                     // Error checking share (404 or other) - clean up
+                     localStorage.removeItem(gameKey);
+                     setCurrentShareId(null);
                   }
-               }
+               };
+               verifyShare();
             }
          } catch (error) {
             // Invalid data, clean up
@@ -8091,20 +8262,56 @@ function FaceMemory({
             }
             if (data.share_id) {
                setCurrentShareId(data.share_id);
-               // If already shared and not expired, activate unlimited hints
-               if (data.shared && data.expiry && Date.now() < data.expiry) {
-                  setHasShared(true);
-                  setUnlimitedActivated(true);
-                  // Set timeout to expire after remaining time
-                  const remainingTime = data.expiry - Date.now();
-                  if (remainingTime > 0) {
-                     setTimeout(() => {
-                        setUnlimitedActivated(false);
-                        setHasShared(false);
+               // Verify with backend before activating unlimited
+               const verifyShare = async () => {
+                  try {
+                     const status = await getShareStatus(data.share_id);
+                     if (status && status.clicks > 0) {
+                        // Share exists in backend and has clicks - activate unlimited
+                        if (
+                           data.shared &&
+                           data.expiry &&
+                           Date.now() < data.expiry
+                        ) {
+                           // Already activated and not expired
+                           setHasShared(true);
+                           setUnlimitedActivated(true);
+                           setTimeout(() => {
+                              setUnlimitedActivated(false);
+                              setHasShared(false);
+                              localStorage.removeItem(gameKey);
+                           }, data.expiry - Date.now());
+                        } else {
+                           // Has clicks but not activated yet - activate now
+                           setHasShared(true);
+                           setUnlimitedActivated(true);
+                           const expiryTime = Date.now() + 15 * 60 * 1000; // 15 minutes
+                           localStorage.setItem(
+                              gameKey,
+                              JSON.stringify({
+                                 share_id: data.share_id,
+                                 expiry: expiryTime,
+                                 shared: true,
+                              })
+                           );
+                           setTimeout(() => {
+                              setUnlimitedActivated(false);
+                              setHasShared(false);
+                              localStorage.removeItem(gameKey);
+                           }, 15 * 60 * 1000);
+                        }
+                     } else {
+                        // Share doesn't exist in backend or has no clicks - clean up
                         localStorage.removeItem(gameKey);
-                     }, remainingTime);
+                        setCurrentShareId(null);
+                     }
+                  } catch (error) {
+                     // Error checking share (404 or other) - clean up
+                     localStorage.removeItem(gameKey);
+                     setCurrentShareId(null);
                   }
-               }
+               };
+               verifyShare();
             }
          } catch (error) {
             // Invalid data, clean up
@@ -8285,7 +8492,7 @@ function FaceMemory({
          if (e.key >= "1" && e.key <= "6") {
             const keyNumber = parseInt(e.key);
             const index = keyNumber - 1;
-            
+
             if (selectedFaceIndex !== null) {
                // If a face is already selected, select name from available names
                const filteredNames = shuffledNames.filter(
@@ -8297,7 +8504,10 @@ function FaceMemory({
                   // Use the number to select from available names (1-based)
                   const nameIndex = keyNumber - 1;
                   if (nameIndex < filteredNames.length) {
-                     handleNameSelect(filteredNames[nameIndex], selectedFaceIndex);
+                     handleNameSelect(
+                        filteredNames[nameIndex],
+                        selectedFaceIndex
+                     );
                   }
                }
             } else {
@@ -8736,11 +8946,13 @@ function FaceMemory({
                      {selectedFaceIndex !== null
                         ? `Select name for face ${
                              (selectedFaceIndex ?? 0) + 1
-                          } (or press 1-${shuffledNames.filter(
-                             (name) =>
-                                !selectedFaces.includes(name) ||
-                                selectedFaces[selectedFaceIndex] === name
-                          ).length}):`
+                          } (or press 1-${
+                             shuffledNames.filter(
+                                (name) =>
+                                   !selectedFaces.includes(name) ||
+                                   selectedFaces[selectedFaceIndex] === name
+                             ).length
+                          }):`
                         : "Press 1-6 to select a face, or click a face"}
                   </p>
                   <div
@@ -8818,14 +9030,18 @@ function FaceMemory({
                                        borderRadius: "50%",
                                        background:
                                           "linear-gradient(135deg, rgba(59, 130, 246, 0.9), rgba(37, 99, 235, 0.9))",
-                                       border: "2px solid rgba(255, 255, 255, 0.3)",
+                                       border:
+                                          "2px solid rgba(255, 255, 255, 0.3)",
                                        display: "flex",
                                        alignItems: "center",
                                        justifyContent: "center",
-                                       fontSize: isMobile ? "0.65rem" : "0.7rem",
+                                       fontSize: isMobile
+                                          ? "0.65rem"
+                                          : "0.7rem",
                                        fontWeight: 700,
                                        color: "white",
-                                       boxShadow: "0 2px 4px rgba(0, 0, 0, 0.2)",
+                                       boxShadow:
+                                          "0 2px 4px rgba(0, 0, 0, 0.2)",
                                     }}
                                  >
                                     {idx + 1}
@@ -9019,7 +9235,8 @@ function FaceMemory({
                   ) {
                      e.currentTarget.style.background =
                         "linear-gradient(135deg, rgba(251, 191, 36, 0.3), rgba(251, 191, 36, 0.2))";
-                     e.currentTarget.style.borderColor = "rgba(251, 191, 36, 0.8)";
+                     e.currentTarget.style.borderColor =
+                        "rgba(251, 191, 36, 0.8)";
                      e.currentTarget.style.transform = "translateY(-2px)";
                      e.currentTarget.style.boxShadow =
                         "0 4px 12px rgba(251, 191, 36, 0.3)";
@@ -9032,7 +9249,8 @@ function FaceMemory({
                   ) {
                      e.currentTarget.style.background =
                         "linear-gradient(135deg, rgba(251, 191, 36, 0.2), rgba(251, 191, 36, 0.1))";
-                     e.currentTarget.style.borderColor = "rgba(251, 191, 36, 0.6)";
+                     e.currentTarget.style.borderColor =
+                        "rgba(251, 191, 36, 0.6)";
                      e.currentTarget.style.transform = "translateY(0)";
                      e.currentTarget.style.boxShadow = "none";
                   }
@@ -9303,15 +9521,56 @@ function ColorGridMemory({
             }
             if (data.share_id) {
                setCurrentShareId(data.share_id);
-               if (data.shared && data.expiry && Date.now() < data.expiry) {
-                  setHasShared(true);
-                  setUnlimitedActivated(true);
-                  setTimeout(() => {
-                     setUnlimitedActivated(false);
-                     setHasShared(false);
+               // Verify with backend before activating unlimited
+               const verifyShare = async () => {
+                  try {
+                     const status = await getShareStatus(data.share_id);
+                     if (status && status.clicks > 0) {
+                        // Share exists in backend and has clicks - activate unlimited
+                        if (
+                           data.shared &&
+                           data.expiry &&
+                           Date.now() < data.expiry
+                        ) {
+                           // Already activated and not expired
+                           setHasShared(true);
+                           setUnlimitedActivated(true);
+                           setTimeout(() => {
+                              setUnlimitedActivated(false);
+                              setHasShared(false);
+                              localStorage.removeItem(gameKey);
+                           }, data.expiry - Date.now());
+                        } else {
+                           // Has clicks but not activated yet - activate now
+                           setHasShared(true);
+                           setUnlimitedActivated(true);
+                           const expiryTime = Date.now() + 15 * 60 * 1000; // 15 minutes
+                           localStorage.setItem(
+                              gameKey,
+                              JSON.stringify({
+                                 share_id: data.share_id,
+                                 expiry: expiryTime,
+                                 shared: true,
+                              })
+                           );
+                           setTimeout(() => {
+                              setUnlimitedActivated(false);
+                              setHasShared(false);
+                              localStorage.removeItem(gameKey);
+                           }, 15 * 60 * 1000);
+                        }
+                     } else {
+                        // Share doesn't exist in backend or has no clicks - clean up
+                        localStorage.removeItem(gameKey);
+                        setCurrentShareId(null);
+                     }
+                  } catch (error) {
+                     // Error checking share (404 or other) - clean up
                      localStorage.removeItem(gameKey);
-                  }, data.expiry - Date.now());
-               }
+                     setCurrentShareId(null);
+                  }
+               };
+               verifyShare();
             }
          } catch (error) {
             localStorage.removeItem(gameKey);
@@ -9322,7 +9581,7 @@ function ColorGridMemory({
       const urlParams = new URLSearchParams(window.location.search);
       const sharedId = urlParams.get("shared");
       if (sharedId) {
-         trackShareClick(sharedId, "color-grid-memory");
+         trackShareClick(sharedId);
       }
    }, []);
 
@@ -9591,7 +9850,10 @@ function ColorGridMemory({
          ) {
             if (e.key === "ArrowDown" || e.key === "s" || e.key === "S") {
                // Move down
-               newIndex = Math.min(totalCells - 1, selectedCellIndex + gridSize);
+               newIndex = Math.min(
+                  totalCells - 1,
+                  selectedCellIndex + gridSize
+               );
             } else {
                // Move right
                newIndex = Math.min(totalCells - 1, selectedCellIndex + 1);
@@ -9613,13 +9875,7 @@ function ColorGridMemory({
 
       window.addEventListener("keydown", handleKeyPress);
       return () => window.removeEventListener("keydown", handleKeyPress);
-   }, [
-      gameState,
-      selectedCellIndex,
-      gridSize,
-      userInput,
-      handleCellClick,
-   ]);
+   }, [gameState, selectedCellIndex, gridSize, userInput, handleCellClick]);
 
    // Cleanup on unmount
    useEffect(() => {
@@ -9829,7 +10085,8 @@ function ColorGridMemory({
                   const isWrong = wrongCellIndex === idx;
 
                   // Get color for this cell in sequence
-                  const colorIndex = sequenceIndex >= 0 ? sequenceIndex % colors.length : -1;
+                  const colorIndex =
+                     sequenceIndex >= 0 ? sequenceIndex % colors.length : -1;
                   const cellColor = colorIndex >= 0 ? colors[colorIndex] : null;
 
                   return (
@@ -10230,22 +10487,24 @@ function SymbolStack({
    const [currentScore, setCurrentScore] = useState(0);
    const [sequence, setSequence] = useState<string[]>([]);
    const [userInput, setUserInput] = useState<string[]>([]);
-   const [clickedPaletteIndices, setClickedPaletteIndices] = useState<number[]>([]);
+   const [clickedPaletteIndices, setClickedPaletteIndices] = useState<number[]>(
+      []
+   );
    const [gameState, setGameState] = useState<
       "memorizing" | "input" | "correct" | "wrong"
    >("memorizing");
    const [feedback, setFeedback] = useState<"correct" | "wrong" | null>(null);
    const [isMobile, setIsMobile] = useState(false);
    const [isTablet, setIsTablet] = useState(false);
-   const [flashingSymbolIndex, setFlashingSymbolIndex] = useState<number | null>(
-      null
-   );
+   const [flashingSymbolIndex, setFlashingSymbolIndex] = useState<
+      number | null
+   >(null);
    const [wrongSymbolIndex, setWrongSymbolIndex] = useState<number | null>(
       null
    );
-   const [selectedSymbolIndex, setSelectedSymbolIndex] = useState<number | null>(
-      null
-   );
+   const [selectedSymbolIndex, setSelectedSymbolIndex] = useState<
+      number | null
+   >(null);
    const sequenceTimersRef = useRef<NodeJS.Timeout[]>([]);
 
    // Heroicons for symbols (using a subset for better visibility)
@@ -10323,7 +10582,8 @@ function SymbolStack({
             if (stored) {
                try {
                   const data = JSON.parse(stored);
-                  const shareId = data.share_id || localStorage.getItem("currentShareId");
+                  const shareId =
+                     data.share_id || localStorage.getItem("currentShareId");
                   if (shareId) {
                      // Check if expired
                      if (data.expiry && Date.now() > data.expiry) {
@@ -10339,7 +10599,20 @@ function SymbolStack({
                      }
                   }
                } catch (error) {
-                  // Invalid data
+                  // Handle 404 or invalid data - clean up
+                  const errorMessage =
+                     error instanceof Error ? error.message : String(error);
+                  if (
+                     errorMessage.includes("404") ||
+                     errorMessage.includes("not found") ||
+                     errorMessage.includes("expired")
+                  ) {
+                     // Share not found in backend - clean up
+                     localStorage.removeItem(gameKey);
+                     setCurrentShareId(null);
+                     setHasShared(false);
+                     setUnlimitedActivated(false);
+                  }
                }
             }
          } catch (error) {
@@ -10586,7 +10859,7 @@ function SymbolStack({
          localStorage.setItem(gameKey, JSON.stringify({ share_id: shareId }));
          setCurrentShareId(shareId);
       } catch (error) {
-         console.error("Error registering share:", error);
+         // Error registering share
       }
    }, []);
 
@@ -10594,7 +10867,7 @@ function SymbolStack({
    const handleShare = useCallback(async () => {
       try {
          const { shareUrl, shareId } = generateShareUrl();
-         
+
          // Register share link in backend
          await registerShareLink(shareId);
 
@@ -10617,7 +10890,7 @@ function SymbolStack({
          setShareSuccess(true);
          setTimeout(() => setShareSuccess(false), 15000);
       } catch (error) {
-         console.error("Error sharing:", error);
+         // Error sharing
       }
    }, [generateShareUrl, registerShareLink]);
 
@@ -10663,7 +10936,10 @@ function SymbolStack({
                // Vertical navigation (wrap around)
                setSelectedSymbolIndex(
                   (prev) =>
-                     (prev! + (e.key === "ArrowUp" || e.key === "w" || e.key === "W" ? -1 : 1) +
+                     (prev! +
+                        (e.key === "ArrowUp" || e.key === "w" || e.key === "W"
+                           ? -1
+                           : 1) +
                         shuffledPalette.length) %
                      shuffledPalette.length
                );
@@ -10678,7 +10954,10 @@ function SymbolStack({
                // Horizontal navigation (wrap around)
                setSelectedSymbolIndex(
                   (prev) =>
-                     (prev! + (e.key === "ArrowLeft" || e.key === "a" || e.key === "A" ? -1 : 1) +
+                     (prev! +
+                        (e.key === "ArrowLeft" || e.key === "a" || e.key === "A"
+                           ? -1
+                           : 1) +
                         shuffledPalette.length) %
                      shuffledPalette.length
                );
@@ -10687,7 +10966,10 @@ function SymbolStack({
 
          // Enter or Space to select
          if (e.key === "Enter" || e.key === " ") {
-            if (selectedSymbolIndex !== null && selectedSymbolIndex < shuffledPalette.length) {
+            if (
+               selectedSymbolIndex !== null &&
+               selectedSymbolIndex < shuffledPalette.length
+            ) {
                const symbol = shuffledPalette[selectedSymbolIndex];
                handleSymbolClick(symbol, selectedSymbolIndex);
             }
@@ -10826,7 +11108,8 @@ function SymbolStack({
                   const isSelected = userInput.length > index;
                   const isHinted = hintRevealed.includes(index);
                   const isWrong = wrongSymbolIndex === index;
-                  const isEmpty = gameState === "input" && !isSelected && !isHinted;
+                  const isEmpty =
+                     gameState === "input" && !isSelected && !isHinted;
                   const userSymbol = userInput[index];
 
                   return (
@@ -10861,7 +11144,13 @@ function SymbolStack({
                               : isEmpty
                               ? "2px dashed var(--border)"
                               : "2px solid var(--border)",
-                           color: isWrong || (isSelected && userSymbol === sequence[index]) ? "white" : isEmpty ? "var(--muted)" : "var(--text)",
+                           color:
+                              isWrong ||
+                              (isSelected && userSymbol === sequence[index])
+                                 ? "white"
+                                 : isEmpty
+                                 ? "var(--muted)"
+                                 : "var(--text)",
                            transition: "all 0.2s ease",
                            transform: isFlashing ? "scale(1.05)" : "scale(1)",
                            boxShadow: isFlashing
@@ -10875,19 +11164,48 @@ function SymbolStack({
                         {/* Show icon based on game state */}
                         {(() => {
                            const IconComponent = getIconComponent(symbol);
-                           const UserIconComponent = userSymbol ? getIconComponent(userSymbol) : null;
-                           
+                           const UserIconComponent = userSymbol
+                              ? getIconComponent(userSymbol)
+                              : null;
+
                            if (gameState === "memorizing" && isFlashing) {
                               // Show icon during memorizing phase
                               return IconComponent ? (
-                                 <IconComponent style={{ width: isMobile ? 20 : 24, height: isMobile ? 20 : 24 }} />
+                                 <IconComponent
+                                    style={{
+                                       width: isMobile ? 20 : 24,
+                                       height: isMobile ? 20 : 24,
+                                    }}
+                                 />
                               ) : null;
-                           } else if (gameState === "input" && isSelected && UserIconComponent) {
+                           } else if (
+                              gameState === "input" &&
+                              isSelected &&
+                              UserIconComponent
+                           ) {
                               // Show user's selected icon (always show, whether correct or wrong)
-                              return <UserIconComponent style={{ width: isMobile ? 20 : 24, height: isMobile ? 20 : 24 }} />;
-                           } else if (gameState === "input" && isHinted && IconComponent) {
+                              return (
+                                 <UserIconComponent
+                                    style={{
+                                       width: isMobile ? 20 : 24,
+                                       height: isMobile ? 20 : 24,
+                                    }}
+                                 />
+                              );
+                           } else if (
+                              gameState === "input" &&
+                              isHinted &&
+                              IconComponent
+                           ) {
                               // Show correct icon when hinted
-                              return <IconComponent style={{ width: isMobile ? 20 : 24, height: isMobile ? 20 : 24 }} />;
+                              return (
+                                 <IconComponent
+                                    style={{
+                                       width: isMobile ? 20 : 24,
+                                       height: isMobile ? 20 : 24,
+                                    }}
+                                 />
+                              );
                            } else if (gameState === "input" && isEmpty) {
                               // Show question mark for empty slot
                               return "?";
@@ -10974,7 +11292,12 @@ function SymbolStack({
                            {(() => {
                               const IconComponent = getIconComponent(symbol);
                               return IconComponent ? (
-                                 <IconComponent style={{ width: isMobile ? 22 : 26, height: isMobile ? 22 : 26 }} />
+                                 <IconComponent
+                                    style={{
+                                       width: isMobile ? 22 : 26,
+                                       height: isMobile ? 22 : 26,
+                                    }}
+                                 />
                               ) : null;
                            })()}
                            {/* Number badge for keyboard input */}
@@ -10989,7 +11312,8 @@ function SymbolStack({
                                     borderRadius: "50%",
                                     background:
                                        "linear-gradient(135deg, rgba(59, 130, 246, 0.9), rgba(37, 99, 235, 0.9))",
-                                    border: "2px solid rgba(255, 255, 255, 0.3)",
+                                    border:
+                                       "2px solid rgba(255, 255, 255, 0.3)",
                                     display: "flex",
                                     alignItems: "center",
                                     justifyContent: "center",
@@ -11066,7 +11390,8 @@ function SymbolStack({
                   }}
                >
                   <CheckCircleIcon style={{ width: 18, height: 18 }} />
-                  Link copied! Unlimited hints will unlock when someone opens your link!
+                  Link copied! Unlimited hints will unlock when someone opens
+                  your link!
                </div>
             )}
 
@@ -11087,7 +11412,8 @@ function SymbolStack({
                   }}
                >
                   <CheckCircleIcon style={{ width: 18, height: 18 }} />
-                  🎉 Someone opened your link! Unlimited hints is now active for 15 minutes!
+                  🎉 Someone opened your link! Unlimited hints is now active for
+                  15 minutes!
                </div>
             )}
          </div>

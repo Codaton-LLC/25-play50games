@@ -400,9 +400,14 @@ export const gameInstructions: Record<string, {
     ],
   },
   'reaction-test': {
-    description: 'Click as fast as possible after color change',
-    instructions: 'Watch the screen. When the color changes, click as quickly as possible. Your reaction time is measured!',
-    tips: 'Keep your finger ready. Don\'t click before the color changes, or you\'ll get a penalty.'
+    description: 'Test your reaction time with 10 unique mini-games',
+    instructions: '<p>Test your reaction speed across 10 different challenging mini-games. Each level is completely unique!</p><h4 style="margin-top: 16px; margin-bottom: 8px; font-weight: 600;">HOW TO PLAY:</h4><ol style="margin-left: 20px; margin-bottom: 16px;"><li>Wait for the signal (green color, matching shape, countdown end, etc.)</li><li>Click as fast as possible when you see the signal</li><li>Avoid early clicks - they are penalized</li><li>Complete all 10 levels to finish the game</li></ol><h4 style="margin-top: 16px; margin-bottom: 8px; font-weight: 600;">LEVEL BREAKDOWN:</h4><ol style="margin-left: 20px; margin-bottom: 16px;"><li><strong>Color Flash</strong> - Watch colors change, click when green appears</li><li><strong>Moving Target</strong> - Follow a moving target, click when it turns green</li><li><strong>Countdown</strong> - Wait for "3...2...1...GO!", then click immediately</li><li><strong>Shape Match</strong> - Match the target shape, click when shapes match</li><li><strong>Speed Reaction</strong> - Multiple moving objects, click green ones quickly</li><li><strong>Pattern Reaction</strong> - Watch color pattern sequence, click when green</li><li><strong>Multi-Target</strong> - Multiple targets appear, click only green ones</li><li><strong>Timing Reaction</strong> - Progress bar fills up, click at 100%</li><li><strong>Memory Reaction</strong> - Remember number sequence, click when ready</li><li><strong>Master Reaction</strong> - Ultimate challenge with random delays and short windows</li></ol><h4 style="margin-top: 16px; margin-bottom: 8px; font-weight: 600;">EXAMPLE ROUND (Color Flash Reaction - Level 1):</h4><ol style="margin-left: 20px; margin-bottom: 16px;"><li>Four colored circles appear on screen (red, blue, orange, green)</li><li>Colors flash in random sequence - watch carefully!</li><li>When the <strong style="color: #22c55e;">green circle</strong> lights up - click immediately!</li><li>Your reaction time is measured in milliseconds</li><li>Faster clicks = better score! Early clicks are penalized.</li></ol><p style="margin-top: 8px;"><strong>Tip:</strong> Each mini-game has different mechanics. Pay attention to the variant name at the top of each level!</p>',
+    tips: 'Stay focused and wait for the correct signal. Don\'t click too early or you\'ll get penalties. Each mini-game is unique - read the variant name and watch for visual cues. Practice makes perfect!',
+    mouseControls: [
+      { action: 'Click', label: 'Click when you see the green signal or correct match' },
+      { action: 'Wait', label: 'Wait for the signal - early clicks are penalized' },
+      { action: 'Observe', label: 'Watch the screen carefully - each mini-game has different mechanics' },
+    ],
   },
   'fast-math': {
     description: 'Solve math problems quickly',
