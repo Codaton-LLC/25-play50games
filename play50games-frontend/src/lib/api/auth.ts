@@ -63,7 +63,29 @@ export async function register(
     }),
   });
 
-  const data = await response.json();
+  // Check if response has content before parsing JSON
+  const contentType = response.headers.get('content-type');
+  const text = await response.text();
+  
+  let data: AuthResponse;
+  
+  if (!text || !contentType?.includes('application/json')) {
+    // If response is not JSON, create error response
+    if (!response.ok) {
+      throw new Error('Registration failed: Invalid server response');
+    }
+    throw new Error('Registration failed: Unexpected response format');
+  }
+
+  try {
+    data = JSON.parse(text);
+  } catch (error) {
+    // If JSON parsing fails, throw error
+    if (!response.ok) {
+      throw new Error('Registration failed: Invalid server response');
+    }
+    throw new Error('Registration failed: Could not parse server response');
+  }
 
   if (!response.ok) {
     throw new Error(data.message || 'Registration failed');
@@ -92,7 +114,29 @@ export async function login(emailOrUsername: string, password: string): Promise<
     }),
   });
 
-  const data = await response.json();
+  // Check if response has content before parsing JSON
+  const contentType = response.headers.get('content-type');
+  const text = await response.text();
+  
+  let data: AuthResponse;
+  
+  if (!text || !contentType?.includes('application/json')) {
+    // If response is not JSON, create error response
+    if (!response.ok) {
+      throw new Error('Login failed: Invalid server response');
+    }
+    throw new Error('Login failed: Unexpected response format');
+  }
+
+  try {
+    data = JSON.parse(text);
+  } catch (error) {
+    // If JSON parsing fails, throw error
+    if (!response.ok) {
+      throw new Error('Login failed: Invalid server response');
+    }
+    throw new Error('Login failed: Could not parse server response');
+  }
 
   if (!response.ok) {
     throw new Error(data.message || 'Login failed');
@@ -121,7 +165,19 @@ export async function checkAuthStatus(): Promise<AuthStatusResponse> {
     return { authenticated: false, user: null };
   }
 
-  return response.json();
+  // Check if response has content before parsing JSON
+  const contentType = response.headers.get('content-type');
+  const text = await response.text();
+  
+  if (!text || !contentType?.includes('application/json')) {
+    return { authenticated: false, user: null };
+  }
+
+  try {
+    return JSON.parse(text);
+  } catch (error) {
+    return { authenticated: false, user: null };
+  }
 }
 
 /**
@@ -147,8 +203,20 @@ export async function logout(): Promise<{ success: boolean; message?: string }> 
       return { success: true, message: 'Logged out locally' };
     }
 
-    const data = await response.json();
-    return data;
+    // Check if response has content before parsing JSON
+    const contentType = response.headers.get('content-type');
+    const text = await response.text();
+    
+    if (!text || !contentType?.includes('application/json')) {
+      return { success: true, message: 'Logged out successfully' };
+    }
+
+    try {
+      const data = await JSON.parse(text);
+      return data;
+    } catch (error) {
+      return { success: true, message: 'Logged out successfully' };
+    }
   } catch (error: any) {
     // If fetch fails (network error, CORS, etc.), still return success
     // The important thing is to clear local state
