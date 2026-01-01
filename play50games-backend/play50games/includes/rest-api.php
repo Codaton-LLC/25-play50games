@@ -77,19 +77,41 @@ function play50_generate_jwt_token($user_id) {
         return null;
     }
     
-    $header_data = array('typ' => 'JWT', 'alg' => 'HS256');
-    $payload_data = array(
-        'user_id' => intval($user_id),
-        'iat' => time(),
-        'exp' => time() + (7 * 24 * 60 * 60), // 7 days
-    );
-    
-    $header = str_replace(['+', '/', '='], ['-', '_', ''], base64_encode(json_encode($header_data)));
-    $payload = str_replace(['+', '/', '='], ['-', '_', ''], base64_encode(json_encode($payload_data)));
-    $signature_raw = hash_hmac('sha256', $header . '.' . $payload, JWT_AUTH_SECRET_KEY, true);
-    $signature = str_replace(['+', '/', '='], ['-', '_', ''], base64_encode($signature_raw));
-    
-    return $header . '.' . $payload . '.' . $signature;
+    try {
+        $header_data = array('typ' => 'JWT', 'alg' => 'HS256');
+        $payload_data = array(
+            'user_id' => intval($user_id),
+            'iat' => time(),
+            'exp' => time() + (7 * 24 * 60 * 60), // 7 days
+        );
+        
+        $header_json = json_encode($header_data);
+        $payload_json = json_encode($payload_data);
+        
+        if ($header_json === false || $payload_json === false) {
+            return null;
+        }
+        
+        $header = str_replace(['+', '/', '='], ['-', '_', ''], base64_encode($header_json));
+        $payload = str_replace(['+', '/', '='], ['-', '_', ''], base64_encode($payload_json));
+        
+        if (!function_exists('hash_hmac')) {
+            return null;
+        }
+        
+        $signature_raw = hash_hmac('sha256', $header . '.' . $payload, JWT_AUTH_SECRET_KEY, true);
+        if ($signature_raw === false) {
+            return null;
+        }
+        
+        $signature = str_replace(['+', '/', '='], ['-', '_', ''], base64_encode($signature_raw));
+        
+        return $header . '.' . $payload . '.' . $signature;
+    } catch (Exception $e) {
+        return null;
+    } catch (Error $e) {
+        return null;
+    }
 }
 
 // Ensure REST API allows unauthenticated requests
@@ -104,26 +126,54 @@ add_filter('rest_authentication_errors', function($result) {
 }, 20);
 
 // Ensure WordPress loads user from JWT token or cookies for REST API requests
+// Use a static flag to prevent infinite loops
+// NOTE: This hook is only for reading user, NOT for login endpoints
 add_action('rest_api_init', function() {
+    static $user_loaded = false;
+    
+    // Prevent infinite loops
+    if ($user_loaded) {
+        return;
+    }
+    
+    // Skip for login/register endpoints to prevent loops
+    $request_uri = isset($_SERVER['REQUEST_URI']) ? $_SERVER['REQUEST_URI'] : '';
+    if (strpos($request_uri, '/auth/login') !== false || strpos($request_uri, '/auth/register') !== false) {
+        return;
+    }
+    
+    // Only load user if not already loaded
+    if (get_current_user_id() > 0) {
+        $user_loaded = true;
+        return;
+    }
+    
     if (!function_exists('wp_validate_auth_cookie')) {
         require_once(ABSPATH . 'wp-includes/pluggable.php');
     }
+    
+    $user_loaded = true;
     
     // Try JWT token first
     $jwt_token = play50_get_jwt_from_header();
     if ($jwt_token) {
         $user_id = play50_get_user_id_from_jwt($jwt_token);
         if ($user_id > 0) {
-            wp_set_current_user($user_id);
-            wp_set_auth_cookie($user_id);
+            // Only set if user is not already set - DO NOT set auth cookie here to prevent loops
+            if (get_current_user_id() === 0) {
+                wp_set_current_user($user_id);
+            }
             return;
         }
     }
     
     // Fallback to cookies
     $user_id = wp_validate_auth_cookie('', 'logged_in');
-    if ($user_id) {
-        wp_set_current_user($user_id);
+    if ($user_id && $user_id > 0) {
+        // Only set if user is not already set - DO NOT set auth cookie here to prevent loops
+        if (get_current_user_id() === 0) {
+            wp_set_current_user($user_id);
+        }
     }
 }, 5);
 
@@ -849,8 +899,8 @@ function play50_save_progress($request) {
         if ($jwt_token) {
             $user_id = play50_get_user_id_from_jwt($jwt_token);
             if ($user_id > 0) {
+                // Only set current user, don't set auth cookie to prevent loops
                 wp_set_current_user($user_id);
-                wp_set_auth_cookie($user_id);
             }
         }
     }
@@ -1246,9 +1296,13 @@ function play50_register_user($request) {
     $user = new WP_User($user_id);
     $user->set_role('customer');
     
-    // Auto-login the user
-    wp_set_current_user($user_id);
-    wp_set_auth_cookie($user_id);
+    // Set current user for this request only (DO NOT set auth cookie to prevent loops)
+    // Use a static flag to prevent multiple calls
+    static $register_user_set = false;
+    if (!$register_user_set) {
+        wp_set_current_user($user_id);
+        $register_user_set = true;
+    }
     
     // Get user data
     $user = get_userdata($user_id);
@@ -1285,69 +1339,84 @@ function play50_register_user($request) {
  * Login user
  */
 function play50_login_user($request) {
-    $params = $request->get_json_params();
-    
-    // Accept both 'email' (for backward compatibility) and 'email_or_username'
-    $email_or_username = isset($params['email_or_username']) ? sanitize_text_field($params['email_or_username']) : (isset($params['email']) ? sanitize_text_field($params['email']) : '');
-    $password = isset($params['password']) ? $params['password'] : '';
-    
-    if (empty($email_or_username) || empty($password)) {
-        return new WP_Error('missing_fields', 'Email/Username and password are required', array('status' => 400));
+    try {
+        $params = $request->get_json_params();
+        
+        // Accept both 'email' (for backward compatibility) and 'email_or_username'
+        $email_or_username = isset($params['email_or_username']) ? sanitize_text_field($params['email_or_username']) : (isset($params['email']) ? sanitize_text_field($params['email']) : '');
+        $password = isset($params['password']) ? $params['password'] : '';
+        
+        if (empty($email_or_username) || empty($password)) {
+            return new WP_Error('missing_fields', 'Email/Username and password are required', array('status' => 400));
+        }
+        
+        // Try to find user by email first
+        $user = null;
+        if (is_email($email_or_username)) {
+            $user = get_user_by('email', $email_or_username);
+        }
+        
+        // If not found by email, try by username
+        if (!$user) {
+            $user = get_user_by('login', $email_or_username);
+        }
+        
+        if (!$user) {
+            return new WP_Error('invalid_credentials', 'Invalid email/username or password', array('status' => 401));
+        }
+        
+        // Verify password
+        if (!wp_check_password($password, $user->user_pass, $user->ID)) {
+            return new WP_Error('invalid_credentials', 'Invalid email or password', array('status' => 401));
+        }
+        
+        // Set current user for this request only (DO NOT set auth cookie to prevent loops)
+        // Use a static flag to prevent multiple calls
+        static $login_user_set = false;
+        if (!$login_user_set && get_current_user_id() !== $user->ID) {
+            wp_set_current_user($user->ID);
+            $login_user_set = true;
+        }
+        
+        // Get user meta
+        $first_name = get_user_meta($user->ID, 'first_name', true);
+        $last_name = get_user_meta($user->ID, 'last_name', true);
+        
+        // Generate JWT token (with error handling)
+        $jwt_token = null;
+        if (defined('JWT_AUTH_SECRET_KEY') && function_exists('play50_generate_jwt_token')) {
+            try {
+                $jwt_token = play50_generate_jwt_token($user->ID);
+            } catch (Exception $e) {
+                // JWT generation failed, but continue without token
+                $jwt_token = null;
+            }
+        }
+        
+        $response_data = array(
+            'success' => true,
+            'message' => 'Login successful',
+            'user' => array(
+                'id' => $user->ID,
+                'email' => $user->user_email,
+                'first_name' => $first_name ? $first_name : '',
+                'last_name' => $last_name ? $last_name : '',
+                'display_name' => ($first_name && $last_name) ? $first_name . ' ' . $last_name : $user->display_name,
+            ),
+            'nonce' => wp_create_nonce('wp_rest'),
+        );
+        
+        // Add JWT token if available
+        if ($jwt_token) {
+            $response_data['token'] = $jwt_token;
+        }
+        
+        return new WP_REST_Response($response_data, 200);
+    } catch (Exception $e) {
+        return new WP_Error('login_error', 'An error occurred during login: ' . $e->getMessage(), array('status' => 500));
+    } catch (Error $e) {
+        return new WP_Error('login_error', 'A fatal error occurred during login: ' . $e->getMessage(), array('status' => 500));
     }
-    
-    // Try to find user by email first
-    $user = null;
-    if (is_email($email_or_username)) {
-        $user = get_user_by('email', $email_or_username);
-    }
-    
-    // If not found by email, try by username
-    if (!$user) {
-        $user = get_user_by('login', $email_or_username);
-    }
-    
-    if (!$user) {
-        return new WP_Error('invalid_credentials', 'Invalid email/username or password', array('status' => 401));
-    }
-    
-    // Verify password
-    if (!wp_check_password($password, $user->user_pass, $user->ID)) {
-        return new WP_Error('invalid_credentials', 'Invalid email or password', array('status' => 401));
-    }
-    
-    // Set authentication cookies (for backward compatibility)
-    wp_set_current_user($user->ID);
-    wp_set_auth_cookie($user->ID);
-    
-    // Get user meta
-    $first_name = get_user_meta($user->ID, 'first_name', true);
-    $last_name = get_user_meta($user->ID, 'last_name', true);
-    
-    // Generate JWT token
-    $jwt_token = null;
-    if (defined('JWT_AUTH_SECRET_KEY') && function_exists('play50_generate_jwt_token')) {
-        $jwt_token = play50_generate_jwt_token($user->ID);
-    }
-    
-    $response_data = array(
-        'success' => true,
-        'message' => 'Login successful',
-        'user' => array(
-            'id' => $user->ID,
-            'email' => $user->user_email,
-            'first_name' => $first_name,
-            'last_name' => $last_name,
-            'display_name' => $first_name && $last_name ? $first_name . ' ' . $last_name : $user->display_name,
-        ),
-        'nonce' => wp_create_nonce('wp_rest'),
-    );
-    
-    // Add JWT token if available
-    if ($jwt_token) {
-        $response_data['token'] = $jwt_token;
-    }
-    
-    return new WP_REST_Response($response_data, 200);
 }
 
 /**

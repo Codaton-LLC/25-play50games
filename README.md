@@ -1356,6 +1356,132 @@ Reaction Test përfshin 10 variante unike të mini-lojave:
 -  **Passing Score**: 70 (70% of max score)
 -  **Difficulty**: 2 (medium difficulty)
 
+#### Whack-a-Shape
+
+```json
+{
+   "gameType": "whack-shape",
+   "levels": 10,
+   "levelDuration": 20,
+   "levelRequirements": [
+      { "minCorrectClicks": 3, "duration": 20 },
+      { "minCorrectClicks": 4, "duration": 20 },
+      { "minCorrectClicks": 5, "duration": 20 },
+      { "minCorrectClicks": 6, "duration": 20 },
+      { "minCorrectClicks": 7, "duration": 20 },
+      { "minCorrectClicks": 8, "duration": 20 },
+      { "minCorrectClicks": 9, "duration": 20 },
+      { "minCorrectClicks": 10, "duration": 20 },
+      { "minCorrectClicks": 11, "duration": 20 },
+      { "minCorrectClicks": 12, "duration": 20 }
+   ]
+}
+```
+
+**Configuration:**
+
+-  `gameType` (required): Must be `"whack-shape"`
+-  `levels` (optional): Number of levels - Default: **10**
+-  `levelDuration` (optional): Default duration in seconds per level - Default: **20** (used as fallback if not specified in levelRequirements)
+-  `levelRequirements` (optional): Array of requirements for each level - Default: **auto-progression**
+   -  Each object can have:
+      -  `minCorrectClicks` (required): Minimum number of correct clicks to pass the level
+      -  `duration` (optional): Duration in seconds for this specific level (overrides `levelDuration`)
+
+**Level Requirements:**
+
+-  **Level 1**: Minimum 3 correct clicks, 20 seconds
+-  **Level 2**: Minimum 4 correct clicks, 20 seconds
+-  **Level 3**: Minimum 5 correct clicks, 20 seconds
+-  ... (progressive increase)
+-  **Level 10**: Minimum 12 correct clicks, 20 seconds
+
+**Level Passing Requirements:**
+
+-  Each level has a time limit (configurable per level via `duration`)
+-  You must click the correct shape type (circle, square, or triangle) as many times as required
+-  If you meet the minimum correct clicks requirement before time runs out, the game pauses and waits for the timer to finish
+-  If you don't meet the requirements, the level fails and you can repeat it
+-  Wrong clicks count against you but don't end the level immediately
+
+**Scoring:**
+
+-  Score is calculated based on completed levels: `completedLevels * (100 / maxLevels)`
+-  Level 1 = 10 points, Level 2 = 20 points, Level 3 = 30 points, etc.
+-  Maximum 100 points for 10 levels
+
+**Controls:**
+
+-  **Mouse**: Click on shapes that match the target shape type
+-  **Keyboard**: Not applicable (mouse-only interaction)
+
+**Goal:**
+
+-  Click the correct shape type (circle, square, or triangle) as quickly as possible
+-  Each level shows a target shape at the top that you must match
+-  Shapes spawn and move around the arena
+-  Click shapes that match the target type to score points
+-  Avoid clicking wrong shapes (they count as mistakes)
+-  Complete the minimum required correct clicks within the time limit to pass the level
+
+**How It Works:**
+
+-  A target shape is displayed at the top (circle, square, or triangle)
+-  Shapes spawn randomly in the arena and move around
+-  Click shapes that match the target type to score correct clicks
+-  Clicking wrong shapes counts as mistakes
+-  Shapes disappear after being clicked or after their time-to-live expires
+-  Spawn rate and shape display time increase with level (progressive difficulty)
+-  If you meet the requirement, the game pauses and waits for the timer
+-  If you don't meet the requirement, you can replay the level (5 replays by default, unlimited if shared)
+
+**Features:**
+
+-  Progressive difficulty with faster spawning and shorter display times across 10 levels
+-  Three shape types: circle, square, and triangle
+-  Shapes move around the arena with physics (bouncing off walls)
+-  Visual feedback with correct/wrong indicators (+1 Correct! / -1 Mistake!)
+-  Level progression system (10 levels)
+-  Game state display (Level X Complete!, Level X Failed!, Game Complete!)
+-  **Replay System**: 5 replays by default, unlimited if shared
+   -  Click "Replay" button to retry the current level
+   -  Replays reset the timer and correct/wrong counters
+   -  Share the game to unlock unlimited replays for 15 minutes
+-  **Share Feature**: Share the game to unlock unlimited replays
+   -  Click "Share for unlimited" button to copy a shareable link
+   -  **Share Success Message**: Shows "Link copied! Unlimited replay will unlock when someone opens your link!" for 15 seconds after sharing
+   -  **Unlimited Activated Message**: Shows "🎉 Someone opened your link! Unlimited replay is now active for 15 minutes!" when link is clicked
+   -  When someone else opens the shared link, the original sharer gets unlimited replays for 15 minutes
+   -  The system uses a heartbeat mechanism (checks every 10 seconds) to detect when the link is clicked
+   -  Replays automatically expire after 15 minutes and return to normal
+-  Modern UI with header showing level, score, time, and progress bar
+-  Stats display showing correct/wrong clicks and requirements
+-  Target shape indicator at the top of the game area
+-  Fully responsive design optimized for mobile, tablet, and desktop
+-  Each level can have its own duration (configurable via `duration` in `levelRequirements`)
+
+**Progressive Difficulty:**
+
+-  **Spawn Interval**: Decreases with level (Level 1: 800ms, Level 10: 300ms)
+-  **Shape TTL**: Decreases with level (Level 1: 2500ms, Level 10: 1000ms)
+-  **Shape Velocity**: Increases with level (Level 1: 0.2 px/frame, Level 10: 0.6 px/frame)
+-  **Multiple Spawns**: Higher chance of spawning 2 shapes at once in higher levels
+
+**Tips:**
+
+-  Focus on the target shape type shown at the top
+-  Click quickly but accurately to avoid mistakes
+-  Watch for shapes that match the target type
+-  Use replays strategically when you're close to meeting the requirement
+-  Share the game to get unlimited replays if needed
+-  Higher levels require faster reactions due to increased spawn rate and movement speed
+
+**Recommended Settings:**
+
+-  **Time Limit**: 0 (no overall time limit, each level has its own timer)
+-  **Passing Score**: 70 (70% of max score)
+-  **Difficulty**: 2 (medium difficulty)
+
 #### Maze Escape
 
 ```json
@@ -2623,11 +2749,44 @@ src/
 │   │   ├── KeyboardControls.tsx # Keyboard controls display
 │   │   ├── NumberKeypad.tsx    # Numeric keypad component
 │   │   └── game-types/    # Game type implementations
-│   │       ├── LogicGames.tsx
-│   │       ├── MemoryGames.tsx
-│   │       ├── SpeedGames.tsx
-│   │       ├── SkillGames.tsx
-│   │       └── FinalGames.tsx
+│   │       ├── LogicGames.tsx      # Logic games container
+│   │       ├── MemoryGames.tsx     # Memory games container
+│   │       ├── SpeedGames.tsx      # Speed games container
+│   │       ├── SkillGames.tsx      # Skill games container
+│   │       ├── FinalGames.tsx      # Final games container
+│   │       ├── logicgames-parts/   # Individual logic game components
+│   │       │   ├── MatchShapes.tsx
+│   │       │   ├── ColorSequence.tsx
+│   │       │   ├── NumberOrder.tsx
+│   │       │   ├── FindOddOne.tsx
+│   │       │   ├── BalanceScale.tsx
+│   │       │   ├── Sudoku4x4.tsx
+│   │       │   ├── TileSlider.tsx
+│   │       │   ├── CircuitPath.tsx
+│   │       │   ├── MazeEscape.tsx
+│   │       │   ├── PatternCompletion.tsx
+│   │       │   ├── RotateToFit.tsx
+│   │       │   ├── MirrorMatch.tsx
+│   │       │   ├── LogicGates.tsx
+│   │       │   ├── SequenceArrows.tsx
+│   │       │   └── BlockFill.tsx
+│   │       ├── memorygames-parts/  # Individual memory game components
+│   │       │   ├── CardFlipMemory.tsx
+│   │       │   ├── SoundMemory.tsx
+│   │       │   ├── EmojiMemory.tsx
+│   │       │   ├── NumberRecall.tsx
+│   │       │   ├── ImageRecall.tsx
+│   │       │   ├── PathMemory.tsx
+│   │       │   ├── WordMemory.tsx
+│   │       │   ├── FaceMemory.tsx
+│   │       │   ├── ColorGridMemory.tsx
+│   │       │   └── SymbolStack.tsx
+│   │       └── speedgames-parts/   # Individual speed game components
+│   │           ├── ClickGreen.tsx
+│   │           ├── AvoidRed.tsx
+│   │           ├── ReactionTest.tsx
+│   │           ├── FastMath.tsx
+│   │           └── WhackShape.tsx
 │   └── UnlockSystem/      # Game unlock logic
 ├── lib/
 │   ├── api/              # WordPress REST API clients
@@ -2648,6 +2807,7 @@ src/
 ## Features
 
 -  **Modern Games**: Match Shapes, Color Sequence, Number Order, Find the Odd One, Balance the Scale, Sudoku 4x4, Tile Slider, Circuit Path, and more
+-  **Modular Architecture**: Games organized in separate files within category-specific folders (`logicgames-parts/`, `memorygames-parts/`, `speedgames-parts/`) for better maintainability
 -  **Progress Tracking**: localStorage for guests, WordPress API for logged-in users
 -  **Unlock System**: Sequential game unlocking based on completion
 -  **Certificate Generation**: PDF certificate after completing all games
@@ -2659,6 +2819,7 @@ src/
 -  **Game Instructions**: Detailed instructions and tips displayed before each game
 -  **Diagnostics Page**: API connectivity and CORS diagnostics
 -  **Share Feature**: Share games to unlock unlimited hints (Card Flip Memory, Tile Slider, Sound Memory, Emoji Memory, Number Recall, Image Recall, Path Memory, Word Memory, Face Memory, Color Grid Memory, Symbol Stack)
+-  **Optimized Imports**: Each game component imports only necessary dependencies for better performance
 
 ## Game Types
 
@@ -2692,14 +2853,6 @@ src/
 -  Face Memory
 -  Color Grid Memory
 -  Symbol Stack
--  Emoji Memory
--  Number Recall
--  Image Recall
--  Path Memory
--  Word Memory
--  Face Memory
--  Color Grid Memory
--  Symbol Stack
 
 ### Speed Games
 
@@ -2707,6 +2860,7 @@ src/
 -  Avoid the Red
 -  Reaction Test
 -  Fast Math
+-  Whack-a-Shape
 
 ### Skill Games
 
@@ -2745,11 +2899,55 @@ src/
 
 To add a new game:
 
-1. Add game type to `src/lib/utils/gameTypes.ts`
-2. Implement game component in `src/components/GameEngine/game-types/`
-3. Add game instructions to `src/lib/utils/gameInstructions.ts`
-4. Configure game in WordPress backend
-5. Add game styles to `src/app/globals.css` if needed
+1. **Determine game category**: Logic, Memory, Speed, Skill, or Final
+2. **Create game component**:
+   -  Create a new file in the appropriate `*-parts/` folder (e.g., `logicgames-parts/YourGame.tsx`)
+   -  Export the component as default
+   -  Follow the existing game component structure and props interface
+3. **Import in container**: Add import and entry in the corresponding container file:
+   -  `LogicGames.tsx` for logic games
+   -  `MemoryGames.tsx` for memory games
+   -  `SpeedGames.tsx` for speed games
+   -  `SkillGames.tsx` for skill games
+   -  `FinalGames.tsx` for final games
+4. **Add game instructions**: Add instructions to `src/lib/utils/gameInstructions.ts`
+5. **Configure game**: Add game configuration in WordPress backend (`wt-cpt/games.php`)
+6. **Add styles**: Add game-specific styles to `src/app/globals.css` if needed
+
+#### Game Component Structure
+
+Each game component should:
+
+-  Accept `config`, `onScoreUpdate`, `onComplete`, and other relevant props
+-  Export as default function component
+-  Use optimized imports (only import what's needed)
+-  Follow the same design patterns as existing games
+-  Include keyboard controls where applicable
+-  Support responsive design (mobile, tablet, desktop)
+
+#### Example: Adding a Logic Game
+
+```typescript
+// 1. Create logicgames-parts/YourGame.tsx
+export default function YourGame({ config, onScoreUpdate, onComplete }) {
+   // Game implementation
+}
+
+// 2. Import in LogicGames.tsx
+import YourGame from "./logicgames-parts/YourGame";
+
+// 3. Add to gameComponents object
+const gameComponents = {
+   "your-game": (
+      <YourGame
+         config={config}
+         onScoreUpdate={onScoreUpdate}
+         onComplete={onComplete}
+      />
+   ),
+   // ... other games
+};
+```
 
 ---
 

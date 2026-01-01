@@ -658,14 +658,15 @@ Nëse loja ka levels (si "Click the Green"):
 
 ```json
 {
-  "gameType": "click-green",
-  "levels": 10,              // Numri total i levels
-  "levelDuration": 20,        // Koha në sekonda për çdo level
-  "levelRequirements": [      // Opsional: kërkesat specifike për çdo level
-    {"minCorrectClicks": 3},  // Level 1: minimum 3 correct clicks
-    {"minCorrectClicks": 4},  // Level 2: minimum 4 correct clicks
-    // ...
-  ]
+   "gameType": "click-green",
+   "levels": 10, // Numri total i levels
+   "levelDuration": 20, // Koha në sekonda për çdo level
+   "levelRequirements": [
+      // Opsional: kërkesat specifike për çdo level
+      { "minCorrectClicks": 3 }, // Level 1: minimum 3 correct clicks
+      { "minCorrectClicks": 4 } // Level 2: minimum 4 correct clicks
+      // ...
+   ]
 }
 ```
 
@@ -700,13 +701,13 @@ Nëse loja ka levels (si "Click the Green"):
 
 Kur kërkesat arrihen (p.sh. `minCorrectClicks`):
 
-1.  **Immediately freeze**: Loja duhet të ngrihet menjëherë
-2.  **Stop spawning**: Të gjitha timers për spawning duhen fshirë
-3.  **Clear items**: Të gjitha item-et ekzistuese duhen fshirë për të parandaluar ndërveprime të mëtejshme
-4.  **Disable interactions**: Arena dhe items duhen bërë `pointer-events: none`
-5.  **Set state**: `gameState = "paused"` dhe `requirementsMet = true`
-6.  **Wait for timer**: Loja pret deri sa koha të skadojë
-7.  **Show completion**: Pas skadimit, shfaqet mesazhi "Level Complete" me buton "Next Round"
+1. **Immediately freeze**: Loja duhet të ngrihet menjëherë
+2. **Stop spawning**: Të gjitha timers për spawning duhen fshirë
+3. **Clear items**: Të gjitha item-et ekzistuese duhen fshirë për të parandaluar ndërveprime të mëtejshme
+4. **Disable interactions**: Arena dhe items duhen bërë `pointer-events: none`
+5. **Set state**: `gameState = "paused"` dhe `requirementsMet = true`
+6. **Wait for timer**: Loja pret deri sa koha të skadojë
+7. **Show completion**: Pas skadimit, shfaqet mesazhi "Level Complete" me buton "Next Round"
 
 ##### Implementation Example:
 
@@ -722,7 +723,7 @@ useEffect(() => {
       // IMMEDIATELY freeze game
       clearAll(); // Stop spawning, clear items
       setTimeLeft(0); // Stop timer
-      
+
       requirementsMetRef.current = true;
       setRequirementsMet(true);
       setGameState("paused");
@@ -782,14 +783,246 @@ Për lojëra me items që shfaqen dhe zhduken:
 -  **Progress saving**: `GameEngine` merr kujdesin për ruajtjen e progressit kur `onComplete` thirret
 -  **Modal display**: Modali "Game Complete!" shfaqet automatikisht në `GameEngine` kur `isCompleted` bëhet `true`
 
-#### 9.3.6 Best Practices për Speed Games
+#### 9.3.6 Replay/Repeat Functionality (për lojëra me levels)
 
-1.  **Performance**: Përdor `useRef` për timers dhe state që nuk duhen në dependency arrays
-2.  **Cleanup**: Gjithmonë fshi timers në cleanup functions
-3.  **State management**: Përdor `useRef` për state që duhet të jetë e aksesueshme në callbacks por nuk duhet të shkaktojë re-renders
-4.  **Freezing logic**: Kur loja ngrihet, sigurohu që të gjitha ndërveprimet janë disabled
-5.  **Score calculation**: Llogarit score-in bazuar në levels të kompletuara, jo në score-in aktual
-6.  **Passing score**: Kontrollo në fund nëse score-i >= passingScore, por mos e ndërpre lojën
+Nëse loja ka levels dhe mund të dështojë:
+
+##### Konfigurimi:
+
+-  **Max replays**: 5 replays by default, unlimited nëse loja është shared
+-  **Replay button**: Shfaqet kur level-i dështon ose gjatë lojës
+-  **Replay counter**: Shfaq numrin e replays të mbetura: `Replay (X/5)` ose `Replay (∞)` për unlimited
+
+##### Implementation:
+
+```typescript
+const [replaysUsed, setReplaysUsed] = useState(0);
+const [hasShared, setHasShared] = useState(false);
+const maxReplays = hasShared ? 0 : 5; // 0 = unlimited
+
+const handleReplay = useCallback(() => {
+   if (gameState !== "playing" && gameState !== "failed") return;
+   if (maxReplays > 0 && replaysUsed >= maxReplays) return;
+
+   // Reset level state
+   setRequirementsMet(false);
+   setGameState("playing");
+   setFeedback(null);
+   setCorrectAnswers(0);
+   setWrongAnswers(0);
+   setTimeLeft(levelDuration);
+   clearAll();
+   startLevel();
+   setReplaysUsed((prev) => prev + 1);
+}, [gameState, maxReplays, replaysUsed, startLevel, levelDuration, clearAll]);
+```
+
+##### UI Display:
+
+-  **Button text**: "Replay (X/5)" ose "Replay (∞)" për unlimited
+-  **Disabled state**: Disabled kur nuk ka më replays (nëse nuk është shared)
+-  **Position**: Shfaqet në fund të lojës, bashkë me Share button
+
+#### 9.3.7 Share Feature për Unlimited Replays
+
+Nëse loja ka replay functionality:
+
+##### Konfigurimi:
+
+-  **Share button**: "Share for unlimited" (gjithmonë i njëjtë tekst)
+-  **Share success message**: "Link copied! Unlimited replay will unlock when someone opens your link!" (15 sekonda)
+-  **Unlimited activated message**: "🎉 Someone opened your link! Unlimited replay is now active for 15 minutes!" (15 sekonda)
+-  **Expiry**: 15 minuta pasi dikush klikon link-un
+
+##### Implementation:
+
+```typescript
+const [hasShared, setHasShared] = useState(false);
+const [shareSuccess, setShareSuccess] = useState(false);
+const [unlimitedActivated, setUnlimitedActivated] = useState(false);
+const [currentShareId, setCurrentShareId] = useState<string | null>(null);
+
+// Share functionality
+const handleShare = async () => {
+   const shareableLink = getShareableLink();
+   const shareId = new URL(shareableLink).searchParams.get("shared") || "";
+   await registerShareLink(shareId);
+   // ... copy to clipboard or use Web Share API
+   setShareSuccess(true);
+   setTimeout(() => setShareSuccess(false), 15000);
+};
+
+// Check share status every 10 seconds
+useEffect(() => {
+   if (!currentShareId) return;
+   const checkShareStatus = async () => {
+      const status = await getShareStatus(currentShareId);
+      if (status.has_clicks && !hasShared) {
+         setHasShared(true);
+         setUnlimitedActivated(true);
+         setReplaysUsed(0);
+         // Set expiry for 15 minutes
+      }
+   };
+   checkShareStatus();
+   const interval = setInterval(checkShareStatus, 10000);
+   return () => clearInterval(interval);
+}, [currentShareId, hasShared]);
+```
+
+#### 9.3.8 Keyboard Controls për Answer Selection
+
+Për lojëra me multiple choice answers (si Fast Math):
+
+##### Konfigurimi:
+
+-  **Number keys (1-4)**: Për të zgjedhur direkt përgjigjen
+-  **Number indicators**: Çdo button duhet të ketë një badge me numrin (1-4) në këndin e sipërm majtas
+-  **Prevent default**: Përdor `e.preventDefault()` për të shmangur veprimet e paracaktuara
+
+##### Implementation:
+
+```typescript
+// Keyboard support for 1, 2, 3, 4
+useEffect(() => {
+   if (
+      !isPlaying ||
+      gameState !== "playing" ||
+      requirementsMet ||
+      !problem ||
+      !options.length
+   ) {
+      return;
+   }
+
+   const handleKeyPress = (e: KeyboardEvent) => {
+      // Only handle if not typing in an input field
+      if (
+         e.target instanceof HTMLInputElement ||
+         e.target instanceof HTMLTextAreaElement
+      ) {
+         return;
+      }
+
+      const key = e.key;
+      if (key === "1" || key === "2" || key === "3" || key === "4") {
+         const index = parseInt(key) - 1;
+         if (index >= 0 && index < options.length) {
+            e.preventDefault();
+            handleAnswerClick(options[index]);
+         }
+      }
+   };
+
+   window.addEventListener("keydown", handleKeyPress);
+   return () => {
+      window.removeEventListener("keydown", handleKeyPress);
+   };
+}, [
+   isPlaying,
+   gameState,
+   requirementsMet,
+   problem,
+   options,
+   handleAnswerClick,
+]);
+```
+
+##### Number Indicators në Buttons:
+
+```typescript
+<button>
+   {/* Number indicator badge */}
+   <div
+      style={{
+         position: "absolute",
+         top: "4px",
+         left: "4px",
+         width: "24px",
+         height: "24px",
+         background: "rgba(59, 130, 246, 0.8)",
+         borderRadius: "6px",
+         display: "flex",
+         alignItems: "center",
+         justifyContent: "center",
+         fontSize: "0.8rem",
+         fontWeight: 800,
+         color: "white",
+         boxShadow: "0 2px 6px rgba(59, 130, 246, 0.4)",
+      }}
+   >
+      {index + 1}
+   </div>
+   {/* Answer value */}
+   <span>{option.toString()}</span>
+</button>
+```
+
+#### 9.3.9 Progressive Difficulty për Math Games
+
+Për lojëra me matematikë (si Fast Math):
+
+##### Level-based Difficulty:
+
+-  **Levels 1-5**: Operacione të thjeshta (addition/subtraction me numra të vegjël)
+-  **Levels 6-10**: Operacione më komplekse (introduce multiplication, numra më të mëdhenj)
+-  **Levels 11-15**: Të gjitha operacionet (addition, subtraction, multiplication), numra më të mëdhenj
+-  **Levels 16-20**: Të gjitha operacionet përfshirë division, numra kompleks
+
+##### Implementation:
+
+```typescript
+const generateProblem = useCallback(() => {
+   const level = currentLevel;
+   let a: number, b: number, op: string, answer: number;
+
+   if (level < 5) {
+      // Levels 1-5: Simple addition/subtraction (1-20)
+      a = Math.floor(Math.random() * 20) + 1;
+      b = Math.floor(Math.random() * 20) + 1;
+      op = Math.random() > 0.5 ? "+" : "-";
+   } else if (level < 10) {
+      // Levels 6-10: Addition/subtraction (1-50), introduce multiplication
+      // ...
+   } else if (level < 15) {
+      // Levels 11-15: All operations, larger numbers
+      // ...
+   } else {
+      // Levels 16-20: All operations including division
+      // ...
+   }
+   // ... calculate answer and generate options
+}, [currentLevel]);
+```
+
+##### Negative Numbers Support:
+
+-  Për subtraction, lejo rezultate negative (p.sh. 5 - 15 = -10)
+-  Mos përdor `Math.max(0, a - b)` - lejo rezultate negative
+-  Shfaq negative numbers siç duhet në buttons
+
+##### Decimal Answers për Division:
+
+-  Për division, përdor `option.toFixed(1)` për të shfaqur me 1 decimal place
+-  Për kontrollin e korrektësisë, përdor tolerance: `Math.abs(selectedAnswer - problem.answer) < 0.01`
+
+#### 9.3.10 Best Practices për Speed Games
+
+1. **Performance**: Përdor `useRef` për timers dhe state që nuk duhen në dependency arrays
+2. **Cleanup**: Gjithmonë fshi timers në cleanup functions
+3. **State management**: Përdor `useRef` për state që duhet të jetë e aksesueshme në callbacks por nuk duhet të shkaktojë re-renders
+4. **Freezing logic**: Kur loja ngrihet, sigurohu që të gjitha ndërveprimet janë disabled
+5. **Score calculation**: Llogarit score-in bazuar në levels të kompletuara, jo në score-in aktual
+6. **Passing score**: Kontrollo në fund nëse score-i >= passingScore, por mos e ndërpre lojën
+7. **Config parsing**: Sigurohu që `config.levels` dhe `config.levelDuration` merren siç duhet nga backend
+
+-  Përdor `config?.levels ? Number(config.levels) : 20` për të siguruar që vlera është numër
+-  Kontrollo nëse `config` përmban vlerat e saktë nga `gameConfig`
+
+8. **Keyboard controls**: Përdor `e.preventDefault()` për të shmangur veprimet e paracaktuara
+9. **Number indicators**: Shto badge me numra (1-4) në buttons për keyboard shortcuts
+10.   **Negative numbers**: Lejo rezultate negative për subtraction
+11.   **Decimal answers**: Përdor tolerance për kontrollin e korrektësisë së division answers
 
 ### 9.4 Skill Games
 

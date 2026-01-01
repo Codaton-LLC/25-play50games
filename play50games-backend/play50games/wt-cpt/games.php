@@ -582,11 +582,11 @@ function show_games_custom_fields() {
                 gameType: 'speed',
                 gameOrder: 30,
                 difficulty: 2,
-                timeLimit: 60,
-                passingScore: 75,
+                timeLimit: 0,
+                passingScore: 70,
                 unlockRequirement: '',
-                description: 'Click the correct shape type',
-                gameConfig: '{"gameType": "whack-shape", "rounds": 20}'
+                description: 'Click the correct shape type quickly across 10 levels. Progressive difficulty with faster spawning and shorter display times.',
+                gameConfig: '{"gameType": "whack-shape", "levels": 10, "levelDuration": 20, "levelRequirements": [{"minCorrectClicks": 3, "duration": 20}, {"minCorrectClicks": 4, "duration": 20}, {"minCorrectClicks": 5, "duration": 20}, {"minCorrectClicks": 6, "duration": 20}, {"minCorrectClicks": 7, "duration": 20}, {"minCorrectClicks": 8, "duration": 20}, {"minCorrectClicks": 9, "duration": 20}, {"minCorrectClicks": 10, "duration": 20}, {"minCorrectClicks": 11, "duration": 20}, {"minCorrectClicks": 12, "duration": 20}]}'
             },
             'typing-sprint': {
                 title: 'Typing Sprint',
