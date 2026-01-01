@@ -865,16 +865,16 @@ Or with predefined sequences for each round:
    "levels": 10,
    "levelDuration": 20,
    "levelRequirements": [
-      { "minScore": 20, "minCorrectClicks": 3 },
-      { "minScore": 25, "minCorrectClicks": 4 },
-      { "minScore": 30, "minCorrectClicks": 5 },
-      { "minScore": 35, "minCorrectClicks": 6 },
-      { "minScore": 40, "minCorrectClicks": 7 },
-      { "minScore": 45, "minCorrectClicks": 8 },
-      { "minScore": 50, "minCorrectClicks": 9 },
-      { "minScore": 55, "minCorrectClicks": 10 },
-      { "minScore": 60, "minCorrectClicks": 11 },
-      { "minScore": 65, "minCorrectClicks": 12 }
+      { "minCorrectClicks": 3 },
+      { "minCorrectClicks": 4 },
+      { "minCorrectClicks": 5 },
+      { "minCorrectClicks": 6 },
+      { "minCorrectClicks": 7 },
+      { "minCorrectClicks": 8 },
+      { "minCorrectClicks": 9 },
+      { "minCorrectClicks": 10 },
+      { "minCorrectClicks": 11 },
+      { "minCorrectClicks": 12 }
    ]
 }
 ```
@@ -885,8 +885,8 @@ Or with predefined sequences for each round:
 -  `levels` (optional): Number of levels - Default: **10**
 -  `levelDuration` (optional): Duration per level in seconds - Default: **20 seconds**
 -  `levelRequirements` (optional): Array of requirements for each level - Default: **auto-progression**
-   -  Each level can have `minScore` and `minCorrectClicks`
-   -  If not provided, uses default: `minScore = 20 + level * 5`, `minCorrectClicks = 3 + level`
+   -  Each level can have `minCorrectClicks` (minimum number of correct green clicks required)
+   -  If not provided, uses default: `minCorrectClicks = 3 + level`
 
 **Level Duration:**
 
@@ -899,9 +899,9 @@ Or with predefined sequences for each round:
 
 **Level Passing Requirements:**
 
-Për të kaluar çdo level, duhet të plotësosh **TË DYJA** kushtet:
+Për të kaluar çdo level, duhet të plotësosh kushtin:
 
-1. **Minimum Correct Clicks**: Duhet të klikosh të paktën X green items
+**Minimum Correct Clicks**: Duhet të klikosh të paktën X green items
 
 -  Level 1: 3 correct clicks
 -  Level 2: 4 correct clicks
@@ -909,18 +909,10 @@ Për të kaluar çdo level, duhet të plotësosh **TË DYJA** kushtet:
 -  ... (rritet me 1 për çdo level)
 -  Level 10: 12 correct clicks
 
-2. **Minimum Level Score**: Duhet të arrish të paktën X points për level
-
--  Level 1: 20 points
--  Level 2: 25 points
--  Level 3: 30 points
--  ... (rritet me 5 për çdo level)
--  Level 10: 65 points
-
 **Nëse nuk plotëson kushtet:**
 
 -  Level-i përsëritet (nuk kalon në level tjetër)
--  Shfaqet mesazh "Level X Failed! Need: Y correct clicks and Z points"
+-  Shfaqet mesazh "Level X Failed! Need: Y correct clicks"
 -  Loja restarton të njëjtin level pas 2 sekondash
 
 **Scoring:**
@@ -991,16 +983,16 @@ Për të kaluar çdo level, duhet të plotësosh **TË DYJA** kushtet:
    "gameType": "avoid-red",
    "levels": 10,
    "levelRequirements": [
-      {"minSurvivalTime": 20, "maxHits": 0},
-      {"minSurvivalTime": 20, "maxHits": 0},
-      {"minSurvivalTime": 20, "maxHits": 0},
-      {"minSurvivalTime": 20, "maxHits": 0},
-      {"minSurvivalTime": 20, "maxHits": 0},
-      {"minSurvivalTime": 20, "maxHits": 0},
-      {"minSurvivalTime": 20, "maxHits": 0},
-      {"minSurvivalTime": 20, "maxHits": 0},
-      {"minSurvivalTime": 20, "maxHits": 0},
-      {"minSurvivalTime": 20, "maxHits": 0}
+      { "minSurvivalTime": 20, "maxHits": 0 },
+      { "minSurvivalTime": 20, "maxHits": 0 },
+      { "minSurvivalTime": 20, "maxHits": 0 },
+      { "minSurvivalTime": 20, "maxHits": 0 },
+      { "minSurvivalTime": 20, "maxHits": 0 },
+      { "minSurvivalTime": 20, "maxHits": 0 },
+      { "minSurvivalTime": 20, "maxHits": 0 },
+      { "minSurvivalTime": 20, "maxHits": 0 },
+      { "minSurvivalTime": 20, "maxHits": 0 },
+      { "minSurvivalTime": 20, "maxHits": 0 }
    ]
 }
 ```
@@ -1100,6 +1092,137 @@ Për të kaluar çdo level, duhet të:
 -  **Time Limit**: 0 (no overall time limit, each level has its own timer)
 -  **Passing Score**: 75 (75% of max score)
 -  **Difficulty**: 2 (medium difficulty, gets harder with each level)
+
+#### Reaction Test
+
+```json
+{
+   "gameType": "reaction-test",
+   "levels": 10,
+   "levelRequirements": [
+      { "maxTime": "700ms" },
+      { "maxTime": "900ms" },
+      { "maxTime": "1.2s" },
+      { "maxTime": "1.5sec" },
+      { "maxTime": 2000 },
+      { "maxTime": "1.8s" },
+      { "maxTime": "1.0s" },
+      { "maxTime": "2.0s" },
+      { "maxTime": "1.2s" },
+      { "maxTime": "2.5s" }
+   ]
+}
+```
+
+**Configuration:**
+
+-  `gameType` (required): Must be `"reaction-test"`
+-  `levels` (optional): Number of levels - Default: **10**
+-  `levelRequirements` (required): Array of requirements for each level
+   -  Each level must have `maxTime` (maximum reaction time allowed)
+   -  `maxTime` can be specified in multiple formats:
+      -  String with unit: `"700ms"`, `"1.2s"`, `"1.5sec"`
+      -  Number (milliseconds): `2000` (means 2000ms = 2 seconds)
+
+**Level Requirements:**
+
+-  **maxTime**: Maximum reaction time allowed to pass the level
+   -  Level 1: 700ms
+   -  Level 2: 900ms
+   -  Level 3: 1.2s (1200ms)
+   -  Level 4: 1.5s (1500ms)
+   -  Level 5: 2000ms (2 seconds)
+   -  Level 6: 1.8s (1800ms)
+   -  Level 7: 1.0s (1000ms)
+   -  Level 8: 2.0s (2000ms)
+   -  Level 9: 1.2s (1200ms)
+   -  Level 10: 2.5s (2500ms)
+
+**Level Passing Requirements:**
+
+Për të kaluar çdo level, duhet të:
+
+-  **React within maxTime**: Reagimi duhet të jetë brenda kohës së specifikuar në `maxTime`
+-  Nëse reagimi është brenda `maxTime`, merr 100 points për level
+-  Nëse reagimi është më i ngadaltë se `maxTime`, score zvogëlohet gradualisht
+
+**Nëse nuk plotëson kushtet:**
+
+-  Level-i përsëritet (nuk kalon në level tjetër)
+-  Shfaqet mesazh "Level X Failed! Reaction time too slow"
+-  Butoni "Repeat the Round" shfaqet për të rinisur level-in
+
+**Scoring:**
+
+-  Level-based scoring: 10 points për level (100 points total)
+-  Formula: `score = completedLevels * (100 / maxLevels)`
+-  Maximum score: 100 points (kur të gjitha 10 nivelet përfundojnë)
+-  Score rritet vetëm kur një level kompletohet me sukses (reaction time ≤ maxTime)
+
+**Game Variants:**
+
+Reaction Test përfshin 10 variante unike të mini-lojave:
+
+1. **Color Flash**: Click when the screen turns green
+2. **Moving Target**: Click the green circle as it moves
+3. **Countdown**: Click when countdown reaches "GO"
+4. **Shape Match**: Click the matching shape
+5. **Speed Reaction**: Click green items quickly
+6. **Pattern Reaction**: Follow the pattern sequence
+7. **Multi-Target**: Click all green targets
+8. **Timing Reaction**: Click within the green window
+9. **Memory Reaction**: Remember and click the sequence
+10.   **Master Reaction**: Combined challenge
+
+**Controls:**
+
+-  **Mouse**: Click when prompted based on the variant
+-  Each variant has different interaction requirements
+
+**Goal:**
+
+-  Test your reaction time across 10 different mini-games
+-  React as quickly as possible when the signal appears
+-  Complete all 10 levels by reacting within the time limit
+-  Each level uses a different variant to test various reaction skills
+
+**How It Works:**
+
+-  Each level randomly selects one of 10 variants
+-  Wait for the signal (varies by variant: color change, countdown, shape, etc.)
+-  Click/react as quickly as possible when the signal appears
+-  Reaction time is measured in milliseconds
+-  If reaction time ≤ `maxTime` for that level, you pass
+-  If reaction time > `maxTime`, you fail and must retry
+-  After completing a level, you advance to the next level
+-  Game ends after completing all 10 levels
+
+**Features:**
+
+-  10 unique reaction test variants
+-  Progressive difficulty with varying time limits
+-  Real-time reaction time measurement
+-  Visual feedback with success/failure indicators
+-  Level progression system (10 levels)
+-  Game state display (Ready!, Level X Complete!, Level X Failed!)
+-  **Share feature**: Share the game to unlock unlimited replays (15 minutes)
+-  Share success and unlimited replays activation messages
+-  Modern UI with header showing level, score, and progress bar
+-  Fully responsive design optimized for mobile, tablet, and desktop
+
+**Tips:**
+
+-  Stay focused and ready to react
+-  Don't click too early (false starts count as penalties)
+-  Each variant requires different strategies
+-  Practice improves reaction time
+-  Higher levels have stricter time limits - stay alert
+
+**Recommended Settings:**
+
+-  **Time Limit**: 0 (no overall time limit, each level has its own timer)
+-  **Passing Score**: 70 (70% of max score)
+-  **Difficulty**: 2 (medium difficulty)
 
 #### Maze Escape
 
