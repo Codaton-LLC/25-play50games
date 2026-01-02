@@ -1006,7 +1006,165 @@ const generateProblem = useCallback(() => {
 -  Për division, përdor `option.toFixed(1)` për të shfaqur me 1 decimal place
 -  Për kontrollin e korrektësisë, përdor tolerance: `Math.abs(selectedAnswer - problem.answer) < 0.01`
 
-#### 9.3.10 Best Practices për Speed Games
+#### 9.3.10 Typing Games (si Typing Sprint)
+
+Për lojëra me typing (si Typing Sprint):
+
+##### Konfigurimi:
+
+```json
+{
+   "gameType": "typing-sprint",
+   "levels": 15,
+   "levelRequirements": [
+      {
+         "minCorrectWords": 3,
+         "duration": 30,
+         "words": ["cat", "dog", "sun", "moon", "star"]
+      },
+      {
+         "minCorrectWords": 4,
+         "duration": 30,
+         "words": ["apple", "banana", "orange"]
+      }
+      // ... më shumë levels
+   ]
+}
+```
+
+##### Karakteristikat e Rëndësishme:
+
+1. **Level Requirements Structure**:
+   -  **`minCorrectWords`**: Numri minimal i fjalëve/fjalive të sakta për të kaluar level-in
+   -  **`duration`**: Koha në sekonda për çdo level (duhet të jetë në `levelRequirements`, jo në top level)
+   -  **`words`**: Array i fjalëve/fjalive për level-in (mund të jetë array ose string me presje)
+
+2. **Character Highlighting**:
+   -  **Real-time feedback**: Shfaq karaktere të sakta në të gjelbër dhe të gabuara në të kuq
+   -  **Character-by-character comparison**: Krahaso input-in me tekstin e duhur karakter pas karakteri
+   -  **Visual feedback**: Përdor `var(--ok)` për të gjelbër dhe `var(--warn)` për të kuq
+   -  **Background colors**: Përdor `rgba(134, 239, 172, 0.2)` për të gjelbër dhe `rgba(252, 165, 165, 0.2)` për të kuq
+
+3. **Auto-submit Logic**:
+   -  Kur input-i përputhet plotësisht me tekstin e duhur, auto-submit
+   -  Përdor `useEffect` për të kontrolluar nëse `input === wordToCompare`
+   -  Pas auto-submit, reset input dhe gjenero fjalë të re pas 300ms
+
+4. **Wrong Character Tracking**:
+   -  **Count wrong characters**: Për çdo karakter të gabuar, rrit `wrongWords` me +1
+   -  **Track previous count**: Përdor `useRef` për të mbajtur numrin e karaktereve të gabuara të numëruara
+   -  **Increment only new wrongs**: Rrit `wrongWords` vetëm për karakteret e reja të gabuara, jo për ato që janë numëruar tashmë
+   -  **Reset on word completion**: Reset counter-in kur fjala përfundon saktë ose kur gjenerohet fjalë e re
+
+5. **Input Handling**:
+   -  **Space key**: Lejo hapësira për fjalitë (mos përdor `e.preventDefault()` për space)
+   -  **Enter key**: Reset input nëse është i gabuar dhe rrit `wrongWords` me +1
+   -  **Normal typing**: Të gjitha karakteret e tjera shkruhen normalisht
+
+6. **Special Level Handling**:
+   -  **Reverse typing (Level 9)**: Shfaq tekstin e kthyer, por përdoruesi shkruan normalisht
+   -  **Character highlighting**: Krahaso input-in normal me tekstin e kthyer për highlighting
+   -  **Comparison logic**: Për reverse level, kthe tekstin përsëri për krahasim
+
+7. **Level Duration per Level**:
+   -  **Per-level duration**: Çdo level mund të ketë kohë të ndryshme (përcaktohet në `levelRequirements[level].duration`)
+   -  **Fallback**: Nëse nuk përcaktohet, përdor `defaultLevelDuration` (p.sh. 30 sekonda)
+   -  **Timer reset**: Reset timer-in kur fillon level i ri
+
+8. **Word Generation**:
+   -  **Config words first**: Lexo fjalët nga `levelRequirements[level].words` nëse ekzistojnë
+   -  **Fallback words**: Nëse nuk ka fjalë në config, përdor hardcoded default words
+   -  **Random selection**: Zgjidh një fjalë të rastësishme nga lista për çdo level
+   -  **Support both formats**: Mbështet si array ashtu edhe string me presje për `words`
+
+##### Implementation Example:
+
+```typescript
+// Character highlighting
+const renderHighlightedText = useCallback(() => {
+   if (!currentText) return null;
+   
+   return currentText.split("").map((char, index) => {
+      let status: "correct" | "wrong" | "pending" = "pending";
+      
+      if (input && input.length > 0 && index < input.length) {
+         status = input[index] === currentText[index] ? "correct" : "wrong";
+      }
+      
+      const color = status === "correct" ? "var(--ok)" : 
+                    status === "wrong" ? "var(--warn)" : "var(--text)";
+      const backgroundColor = status === "correct" ? "rgba(134, 239, 172, 0.2)" :
+                              status === "wrong" ? "rgba(252, 165, 165, 0.2)" : "transparent";
+      
+      return (
+         <span key={index} style={{ color, backgroundColor, padding: "2px 1px", borderRadius: "3px" }}>
+            {char === " " ? "\u00A0" : char}
+         </span>
+      );
+   });
+}, [currentText, input]);
+
+// Wrong character tracking
+const prevWrongCountRef = useRef(0);
+
+useEffect(() => {
+   if (gameState !== "playing" || requirementsMet || !currentText) return;
+   
+   let wordToCompare = currentText;
+   if (currentLevel === 8) { // Reverse level
+      wordToCompare = currentText.split("").reverse().join("");
+   }
+   
+   // Count wrong characters
+   if (input.length > 0) {
+      let wrongCount = 0;
+      for (let i = 0; i < input.length && i < wordToCompare.length; i++) {
+         if (input[i] !== wordToCompare[i]) {
+            wrongCount++;
+         }
+      }
+      if (input.length > wordToCompare.length) {
+         wrongCount += input.length - wordToCompare.length;
+      }
+      
+      if (wrongCount > prevWrongCountRef.current) {
+         const newWrongChars = wrongCount - prevWrongCountRef.current;
+         setWrongWords((prev) => prev + newWrongChars);
+         prevWrongCountRef.current = wrongCount;
+      } else if (wrongCount < prevWrongCountRef.current) {
+         prevWrongCountRef.current = wrongCount;
+      }
+   }
+   
+   // Auto-submit on correct
+   if (input === wordToCompare) {
+      setCorrectWords((prev) => prev + 1);
+      setInput("");
+      prevWrongCountRef.current = 0;
+      setTimeout(() => {
+         if (gameStateRef.current === "playing" && !requirementsMetRef.current) {
+            generateNextWord();
+         }
+      }, 300);
+   }
+}, [input, currentText, gameState, requirementsMet, currentLevel, generateNextWord]);
+```
+
+##### Checklist për Typing Games:
+
+-  [ ] Character highlighting me ngjyra të gjelbër/të kuq
+-  [ ] Auto-submit kur fjala është e saktë
+-  [ ] Wrong character tracking (+1 për çdo karakter të gabuar)
+-  [ ] Space key lejohet për fjalitë
+-  [ ] Enter key reset input dhe rrit wrong words
+-  [ ] Level duration konfigurohet për çdo level
+-  [ ] Words/sentences konfigurohen për çdo level
+-  [ ] Fallback words nëse nuk ka në config
+-  [ ] Special level handling (reverse typing, etj.)
+-  [ ] Timer reset kur fillon level i ri
+-  [ ] Wrong count reset kur fjala përfundon ose gjenerohet fjalë e re
+
+#### 9.3.11 Best Practices për Speed Games
 
 1. **Performance**: Përdor `useRef` për timers dhe state që nuk duhen në dependency arrays
 2. **Cleanup**: Gjithmonë fshi timers në cleanup functions
@@ -1021,8 +1179,13 @@ const generateProblem = useCallback(() => {
 
 8. **Keyboard controls**: Përdor `e.preventDefault()` për të shmangur veprimet e paracaktuara
 9. **Number indicators**: Shto badge me numra (1-4) në buttons për keyboard shortcuts
-10.   **Negative numbers**: Lejo rezultate negative për subtraction
-11.   **Decimal answers**: Përdor tolerance për kontrollin e korrektësisë së division answers
+10. **Negative numbers**: Lejo rezultate negative për subtraction
+11. **Decimal answers**: Përdor tolerance për kontrollin e korrektësisë së division answers
+12. **Character highlighting**: Për typing games, shfaq feedback real-time për karaktere të sakta/gabuara
+13. **Wrong character tracking**: Për typing games, rrit wrong words për çdo karakter të gabuar
+14. **Level-specific config**: Përdor `levelRequirements` për konfigurim specifik për çdo level (duration, words, etj.)
+15. **Auto-submit**: Për typing games, auto-submit kur input-i përputhet plotësisht
+16. **Input handling**: Lejo hapësira për fjalitë, përdor Enter për reset nëse është i gabuar
 
 ### 9.4 Skill Games
 

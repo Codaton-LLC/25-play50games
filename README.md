@@ -1302,6 +1302,305 @@ Reaction Test përfshin 10 variante unike të mini-lojave:
 -  Each level has a time limit and requires a minimum number of correct answers to pass
 -  Answer correctly as many times as possible within the time limit
 -  Complete the minimum required correct answers to pass the level
+
+#### Typing Sprint
+
+```json
+{
+   "gameType": "typing-sprint",
+   "levels": 15,
+   "levelRequirements": [
+      {
+         "minCorrectWords": 3,
+         "duration": 30,
+         "words": [
+            "cat",
+            "dog",
+            "sun",
+            "moon",
+            "star",
+            "tree",
+            "bird",
+            "fish",
+            "book",
+            "pen",
+            "cup",
+            "hat",
+            "car",
+            "bus",
+            "key",
+            "door"
+         ]
+      },
+      {
+         "minCorrectWords": 4,
+         "duration": 30,
+         "words": [
+            "apple",
+            "banana",
+            "orange",
+            "purple",
+            "yellow",
+            "green",
+            "computer",
+            "keyboard",
+            "window",
+            "garden",
+            "forest",
+            "ocean",
+            "planet",
+            "camera",
+            "guitar",
+            "pencil"
+         ]
+      },
+      {
+         "minCorrectWords": 5,
+         "duration": 30,
+         "words": [
+            "beautiful",
+            "wonderful",
+            "adventure",
+            "mountain",
+            "elephant",
+            "butterfly",
+            "chocolate",
+            "dinosaur",
+            "hospital",
+            "university",
+            "keyboard",
+            "computer",
+            "internet",
+            "software",
+            "hardware"
+         ]
+      },
+      {
+         "minCorrectWords": 6,
+         "duration": 30,
+         "words": [
+            "don't",
+            "can't",
+            "won't",
+            "it's",
+            "we're",
+            "they're",
+            "you're",
+            "I'm",
+            "he's",
+            "she's",
+            "let's",
+            "that's"
+         ]
+      },
+      {
+         "minCorrectWords": 7,
+         "duration": 30,
+         "words": [
+            "The quick brown fox jumps over the lazy dog",
+            "Practice makes perfect in everything you do",
+            "Learning new skills takes time and dedication",
+            "Success comes to those who never give up"
+         ]
+      },
+      {
+         "minCorrectWords": 8,
+         "duration": 30,
+         "words": [
+            "12345",
+            "67890",
+            "246813579",
+            "9876543210",
+            "314159265",
+            "271828182",
+            "1000000",
+            "9999999"
+         ]
+      },
+      {
+         "minCorrectWords": 9,
+         "duration": 30,
+         "words": [
+            "JavaScript",
+            "TypeScript",
+            "React",
+            "NodeJS",
+            "Python",
+            "Java",
+            "CSharp",
+            "GoLang",
+            "Swift",
+            "Kotlin"
+         ]
+      },
+      {
+         "minCorrectWords": 10,
+         "duration": 30,
+         "words": [
+            "helloworld",
+            "goodmorning",
+            "thankyou",
+            "welcomeback",
+            "seeyoulater",
+            "haveaniceday",
+            "goodluck",
+            "congratulations"
+         ]
+      },
+      {
+         "minCorrectWords": 11,
+         "duration": 30,
+         "words": [
+            "racecar",
+            "level",
+            "radar",
+            "civic",
+            "rotor",
+            "deified",
+            "repaper",
+            "redder"
+         ]
+      },
+      {
+         "minCorrectWords": 12,
+         "duration": 30,
+         "words": [
+            "go",
+            "hi",
+            "ok",
+            "no",
+            "yes",
+            "run",
+            "fly",
+            "jump",
+            "fast",
+            "quick",
+            "rapid",
+            "swift",
+            "speed",
+            "haste"
+         ]
+      },
+      {
+         "minCorrectWords": 13,
+         "duration": 30,
+         "words": [
+            "The early bird catches the worm in the morning",
+            "A picture is worth a thousand words they say",
+            "Actions speak louder than words in real life",
+            "Better late than never is a common saying"
+         ]
+      },
+      {
+         "minCorrectWords": 14,
+         "duration": 30,
+         "words": [
+            "hello@world.com",
+            "user_name",
+            "price$99",
+            "score#1",
+            "item&item",
+            "test+test",
+            "value=100",
+            "key:value"
+         ]
+      },
+      {
+         "minCorrectWords": 15,
+         "duration": 30,
+         "words": [
+            "abc123",
+            "test456",
+            "user789",
+            "code2024",
+            "game50",
+            "level15",
+            "score100",
+            "time60"
+         ]
+      },
+      {
+         "minCorrectWords": 16,
+         "duration": 30,
+         "words": [
+            "The quick brown fox jumps over the lazy dog in the park",
+            "She sells seashells by the seashore every single day",
+            "How much wood would a woodchuck chuck if he could",
+            "Peter Piper picked a peck of pickled peppers today"
+         ]
+      },
+      {
+         "minCorrectWords": 17,
+         "duration": 30,
+         "words": [
+            "Supercalifragilisticexpialidocious",
+            "Pneumonoultramicroscopicsilicovolcanoconiosis",
+            "The quick brown fox jumps over the lazy dog quickly",
+            "JavaScript TypeScript React NodeJS Python Java CSharp"
+         ]
+      }
+   ]
+}
+```
+
+**Configuration:**
+
+-  `gameType` (required): Must be `"typing-sprint"`
+-  `levels` (optional): Number of levels - Default: **15**
+-  `levelRequirements` (required): Array of requirements for each level
+   -  Each level must have:
+      -  `minCorrectWords`: Minimum number of correct words required to pass
+      -  `duration`: Duration per level in seconds
+      -  `words`: Array of words/sentences for that level (or comma-separated string)
+
+**Level Requirements:**
+
+-  Each level requires typing a minimum number of words correctly within the time limit
+-  Example: `{"minCorrectWords": 3, "duration": 30, "words": ["cat", "dog", "sun"]}` means you need at least 3 correct words in 30 seconds to pass level 1
+-  If you don't meet the requirement, you can replay the level (5 replays by default, unlimited if shared)
+
+**Level Progression:**
+
+-  **Levels 1-3**: Simple words (3-8 letters)
+-  **Level 4**: Words with special characters (apostrophes, contractions)
+-  **Level 5**: Full sentences
+-  **Level 6**: Numbers
+-  **Level 7**: Programming languages and technical terms
+-  **Level 8**: Compound words (no spaces)
+-  **Level 9**: Palindromes (reverse typing challenge)
+-  **Level 10**: Short words (2-4 letters, speed challenge)
+-  **Level 11**: Longer sentences
+-  **Level 12**: Special characters (emails, symbols, etc.)
+-  **Level 13**: Alphanumeric combinations
+-  **Level 14**: Complex sentences
+-  **Level 15**: Master challenge (very long words and complex text)
+
+**Features:**
+
+-  **Character Highlighting**: Real-time visual feedback showing correct (green) and incorrect (red) characters as you type
+-  **Auto-submit**: Automatically submits when the word/sentence is typed correctly
+-  **Wrong Character Tracking**: Each incorrect character counts as +1 wrong word
+-  **Progressive Difficulty**: Each level increases in complexity and required words
+
+**Scoring:**
+
+-  Score is calculated based on completed levels: `Math.round((completedLevels / maxLevels) * 100)`
+-  Maximum 100 points for completing all 15 levels
+-  Score increases progressively with each completed level
+
+**Controls:**
+
+-  **Mouse**:
+   -  Click on the input field to focus and start typing
+-  **Keyboard**:
+   -  **Space**: Type spaces normally (for sentences)
+   -  **Enter**: Reset input if wrong (counts as wrong attempt)
+   -  **All other keys**: Normal typing
+
+**Goal:**
+
+-  Complete all 15 levels by typing words and sentences quickly and accurately
+-  Each level has unique challenges: simple words, sentences, numbers, special characters, palindromes, and master challenges
 -  Progress through all 20 levels to complete the game
 
 **How It Works:**
@@ -2786,7 +3085,8 @@ src/
 │   │           ├── AvoidRed.tsx
 │   │           ├── ReactionTest.tsx
 │   │           ├── FastMath.tsx
-│   │           └── WhackShape.tsx
+│   │           ├── WhackShape.tsx
+│   │           └── TypingSprint.tsx
 │   └── UnlockSystem/      # Game unlock logic
 ├── lib/
 │   ├── api/              # WordPress REST API clients
@@ -2861,6 +3161,7 @@ src/
 -  Reaction Test
 -  Fast Math
 -  Whack-a-Shape
+-  Typing Sprint
 
 ### Skill Games
 

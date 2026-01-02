@@ -26,6 +26,7 @@ import WhackShape from "./speedgames-parts/WhackShape";
 import ClickGreen from "./speedgames-parts/ClickGreen";
 import AvoidRed from "./speedgames-parts/AvoidRed";
 import ReactionTest from "./speedgames-parts/ReactionTest";
+import TypingSprint from "./speedgames-parts/TypingSprint";
 
 interface SpeedGamesProps {
    config: Record<string, any>;
@@ -161,71 +162,8 @@ export default function SpeedGames({
 // Whack-a-Shape Game (30) - Now imported from speedgames-parts/WhackShape.tsx
 // The implementation has been moved to a separate file for better organization
 
-// Typing Sprint Game (31)
-function TypingSprint({
-   config,
-   onScoreUpdate,
-   onComplete,
-   isPlaying,
-}: {
-   config: Record<string, any>;
-   onScoreUpdate: (score: number) => void;
-   onComplete: (finalScore?: number) => void;
-   isPlaying: boolean;
-}) {
-   const words = config.words || 10;
-   const [currentWord, setCurrentWord] = useState("");
-   const [input, setInput] = useState("");
-   const [wordIndex, setWordIndex] = useState(0);
-   const [score, setScore] = useState(0);
-   const wordList = [
-      "apple",
-      "banana",
-      "cherry",
-      "date",
-      "elderberry",
-      "fig",
-      "grape",
-      "honeydew",
-      "kiwi",
-      "lemon",
-   ];
-
-   useEffect(() => {
-      if (wordIndex >= words) {
-         const finalScore = Math.round((score / words) * 100);
-         onScoreUpdate(finalScore);
-         setTimeout(() => onComplete(finalScore), 1000);
-         return;
-      }
-      setCurrentWord(wordList[wordIndex % wordList.length]);
-      setInput("");
-   }, [wordIndex, words, score, onScoreUpdate, onComplete]);
-
-   useEffect(() => {
-      if (input === currentWord && currentWord) {
-         setScore(score + 10);
-         setWordIndex(wordIndex + 1);
-      }
-   }, [input, currentWord, wordIndex, score]);
-
-   return (
-      <div className="typing-sprint-game">
-         <h3>
-            Typing Sprint - Word {wordIndex + 1}/{words}
-         </h3>
-         <div className="word-display">{currentWord}</div>
-         <input
-            type="text"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            className="typing-input"
-            autoFocus
-         />
-         <p>Type the word as fast as you can!</p>
-      </div>
-   );
-}
+// Typing Sprint Game (31) - Now imported from speedgames-parts/TypingSprint.tsx
+// The implementation has been moved to a separate file for better organization
 
 // Quick Compare Game (32)
 function QuickCompare({

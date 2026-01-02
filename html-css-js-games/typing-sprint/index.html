@@ -1,0 +1,343 @@
+import React, { useEffect, useMemo, useRef, useState } from "react";
+
+/**
+ * Typing Sprint (React/Next.js TSX)
+ *
+ * Why this fix:
+ * You ran the previous HTML file in an environment that expects TSX (/index.tsx),
+ * which caused: "Unexpected token (1:0)".
+ * This version is a proper React component and will compile in Next.js.
+ *
+ * Expected behavior (please confirm):
+ * - 30s timer.
+ * - A word is shown; user types it and presses Enter.
+ * - Correct: +1 score.
+ * - Wrong: subtract 2 seconds (min 0) and show red feedback.
+ * - New word appears after 300ms.
+ */
+
+type Feedback = "neutral" | "good" | "bad";
+
+const WORDS = [
+  "fast",
+  "memory",
+  "react",
+  "focus",
+  "logic",
+  "brain",
+  "speed",
+  "typing",
+  "math",
+  "pattern",
+  "game",
+  "learn",
+  "train",
+] as const;
+
+function pickRandomWord(prev?: string) {
+  if (WORDS.length === 0) return "";
+  if (WORDS.length === 1) return WORDS[0];
+  let next = WORDS[Math.floor(Math.random() * WORDS.length)];
+  // avoid repeating same word twice in a row
+  if (prev && next === prev) {
+    next = WORDS[(WORDS.indexOf(next as any) + 1) % WORDS.length] as any;
+  }
+  return next;
+}
+
+export default function TypingSprint() {
+  const [score, setScore] = useState(0);
+  const [timeLeft, setTimeLeft] = useState(30);
+  const [running, setRunning] = useState(false);
+  const [currentWord, setCurrentWord] = useState<string>("");
+  const [inputValue, setInputValue] = useState("");
+  const [feedback, setFeedback] = useState<Feedback>("neutral");
+
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  const tickRef = useRef<number | null>(null);
+  const nextWordTimeoutRef = useRef<number | null>(null);
+
+  const ui = useMemo(() => {
+    const css = {
+      bg: "#0b1220",
+      panel: "#0f1b33",
+      text: "#e8eefc",
+      muted: "#a6b3d1",
+      accent: "#6ea8ff",
+      good: "#36d399",
+      bad: "#fb7185",
+      radius: 18,
+      shadow: "0 12px 30px rgba(0,0,0,.35)",
+    };
+    return css;
+  }, []);
+
+  function clearTimers() {
+    if (tickRef.current) {
+      window.clearInterval(tickRef.current);
+      tickRef.current = null;
+    }
+    if (nextWordTimeoutRef.current) {
+      window.clearTimeout(nextWordTimeoutRef.current);
+      nextWordTimeoutRef.current = null;
+    }
+  }
+
+  function startGame() {
+    clearTimers();
+    setScore(0);
+    setTimeLeft(30);
+    setRunning(true);
+    setFeedback("neutral");
+    const first = pickRandomWord();
+    setCurrentWord(first);
+    setInputValue("");
+
+    // focus input on next paint
+    requestAnimationFrame(() => inputRef.current?.focus());
+
+    tickRef.current = window.setInterval(() => {
+      setTimeLeft((t) => {
+        if (t <= 1) {
+          // stop at 0
+          return 0;
+        }
+        return t - 1;
+      });
+    }, 1000);
+  }
+
+  function endGame() {
+    setRunning(false);
+    setFeedback("neutral");
+    setCurrentWord("");
+    setInputValue("");
+    clearTimers();
+  }
+
+  function queueNextWord() {
+    if (nextWordTimeoutRef.current) window.clearTimeout(nextWordTimeoutRef.current);
+    nextWordTimeoutRef.current = window.setTimeout(() => {
+      setFeedback("neutral");
+      setInputValue("");
+      setCurrentWord((prev) => pickRandomWord(prev || undefined));
+      inputRef.current?.focus();
+    }, 300);
+  }
+
+  function submit() {
+    if (!running) return;
+    if (timeLeft <= 0) return;
+    const typed = inputValue;
+
+    if (typed === currentWord) {
+      setScore((s) => s + 1);
+      setFeedback("good");
+      queueNextWord();
+    } else {
+      setFeedback("bad");
+      setTimeLeft((t) => Math.max(0, t - 2));
+      queueNextWord();
+    }
+  }
+
+  useEffect(() => {
+    if (!running) return;
+    if (timeLeft <= 0) {
+      // Game over
+      endGame();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [timeLeft, running]);
+
+  useEffect(() => {
+    return () => {
+      // cleanup on unmount
+      clearTimers();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // --- Minimal self-tests (dev only) ---
+  // These are lightweight checks so you have "test cases" even in a single-file TSX setup.
+  // They do not affect production and won’t crash the UI.
+  useEffect(() => {
+    if (process.env.NODE_ENV === "production") return;
+    try {
+      const w1 = pickRandomWord();
+      const w2 = pickRandomWord(w1);
+      if (!w1) throw new Error("Test failed: pickRandomWord should return a non-empty word");
+      if (WORDS.length > 1 && w1 === w2) {
+        // allowed but we try to avoid; ensure function still returns valid word
+        if (!WORDS.includes(w2 as any)) throw new Error("Test failed: word must be from WORDS");
+      }
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.warn("TypingSprint self-test warning:", e);
+    }
+  }, []);
+
+  const inputBorder =
+    feedback === "good"
+      ? `1px solid rgba(54,211,153,.6)`
+      : feedback === "bad"
+        ? `1px solid rgba(251,113,133,.6)`
+        : `1px solid rgba(255,255,255,.15)`;
+
+  return (
+    <div
+      style={{
+        minHeight: "100svh",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: 24,
+        color: ui.text,
+        background:
+          "radial-gradient(1200px 800px at 70% -10%, rgba(110,168,255,.28), transparent 60%), radial-gradient(900px 600px at 0% 10%, rgba(54,211,153,.18), transparent 55%), #0b1220",
+        fontFamily: "system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Arial, sans-serif",
+      }}
+    >
+      <div
+        style={{
+          width: "min(980px, 100%)",
+          display: "grid",
+          gridTemplateColumns: "1.2fr .8fr",
+          gap: 18,
+        }}
+      >
+        <section
+          style={{
+            borderRadius: ui.radius,
+            border: "1px solid rgba(255,255,255,.10)",
+            boxShadow: ui.shadow,
+            background: "linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02))",
+            overflow: "hidden",
+          }}
+        >
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", padding: 18, gap: 12, flexWrap: "wrap" }}>
+            <div>
+              <h1 style={{ margin: 0, fontSize: 18 }}>Typing Sprint</h1>
+              <p style={{ margin: "4px 0 0", color: ui.muted, fontSize: 13 }}>Type words accurately and fast</p>
+            </div>
+            <button
+              onClick={startGame}
+              style={{
+                borderRadius: 12,
+                border: "1px solid rgba(255,255,255,.12)",
+                padding: "10px 14px",
+                fontWeight: 800,
+                cursor: "pointer",
+                background: "linear-gradient(180deg, rgba(110,168,255,.9), rgba(110,168,255,.55))",
+                color: "#081126",
+              }}
+            >
+              {running ? "Restart" : "Start"}
+            </button>
+          </div>
+
+          <div
+            style={{
+              display: "flex",
+              gap: 12,
+              padding: "14px 18px",
+              borderTop: "1px solid rgba(255,255,255,.08)",
+              borderBottom: "1px solid rgba(255,255,255,.08)",
+              background: "rgba(11,22,48,.45)",
+              flexWrap: "wrap",
+            }}
+          >
+            <div style={{ padding: "8px 12px", borderRadius: 999, background: "rgba(17,28,53,.55)", border: "1px solid rgba(255,255,255,.10)", fontSize: 13 }}>
+              Score: <b>{score}</b>
+            </div>
+            <div style={{ padding: "8px 12px", borderRadius: 999, background: "rgba(17,28,53,.55)", border: "1px solid rgba(255,255,255,.10)", fontSize: 13 }}>
+              Time: <b>{running ? timeLeft : 0}</b>s
+            </div>
+          </div>
+
+          <div style={{ padding: 18, display: "flex", flexDirection: "column", gap: 16 }}>
+            <div
+              style={{
+                height: 360,
+                borderRadius: 18,
+                border: "1px solid rgba(255,255,255,.10)",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 18,
+                textAlign: "center",
+              }}
+            >
+              <div style={{ fontSize: 32, fontWeight: 900, letterSpacing: 1 }}>
+                {running ? currentWord : "Press Start"}
+              </div>
+              <input
+                ref={inputRef}
+                disabled={!running}
+                value={inputValue}
+                placeholder="Type here..."
+                onChange={(e) => {
+                  setInputValue(e.target.value);
+                  if (feedback !== "neutral") setFeedback("neutral");
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") submit();
+                }}
+                style={{
+                  width: 260,
+                  padding: 12,
+                  borderRadius: 12,
+                  border: inputBorder,
+                  outline: "none",
+                  background: "rgba(15,27,51,.55)",
+                  color: ui.text,
+                  fontSize: 16,
+                  textAlign: "center",
+                }}
+                aria-label="Typing input"
+              />
+              <div style={{ color: ui.muted, fontSize: 13 }}>
+                Press <b>Enter</b> to submit. Wrong answer costs <b>2s</b>.
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <aside
+          style={{
+            borderRadius: ui.radius,
+            border: "1px solid rgba(255,255,255,.10)",
+            boxShadow: ui.shadow,
+            background: "linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02))",
+            overflow: "hidden",
+          }}
+        >
+          <div style={{ padding: 18 }}>
+            <h2 style={{ margin: "0 0 8px", fontSize: 14 }}>How to Play</h2>
+            <ul style={{ margin: 0, color: ui.muted, fontSize: 13, lineHeight: 1.35, paddingLeft: 18 }}>
+              <li>Type the word exactly as shown.</li>
+              <li>Press Enter to submit.</li>
+              <li>Answer as many as possible before time ends.</li>
+            </ul>
+
+            <h2 style={{ margin: "14px 0 8px", fontSize: 14 }}>Tips</h2>
+            <ul style={{ margin: 0, color: ui.muted, fontSize: 13, lineHeight: 1.35, paddingLeft: 18 }}>
+              <li>Accuracy is more important than speed.</li>
+              <li>One mistake costs time.</li>
+            </ul>
+          </div>
+        </aside>
+      </div>
+
+      {/* Responsive fallback for narrow screens */}
+      <style jsx>{`
+        @media (max-width: 900px) {
+          div[style*='grid-template-columns'] {
+            grid-template-columns: 1fr !important;
+          }
+        }
+      `}</style>
+    </div>
+  );
+}
