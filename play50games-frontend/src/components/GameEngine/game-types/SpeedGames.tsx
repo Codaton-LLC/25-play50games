@@ -27,6 +27,7 @@ import ClickGreen from "./speedgames-parts/ClickGreen";
 import AvoidRed from "./speedgames-parts/AvoidRed";
 import ReactionTest from "./speedgames-parts/ReactionTest";
 import TypingSprint from "./speedgames-parts/TypingSprint";
+import QuickCompare from "./speedgames-parts/QuickCompare";
 
 interface SpeedGamesProps {
    config: Record<string, any>;
@@ -144,96 +145,6 @@ export default function SpeedGames({
       gameComponents[currentGame] || (
          <div>Speed game "{currentGame}" not found.</div>
       )
-   );
-}
-
-// Click the Green Game (26) - Now imported from speedgames-parts/ClickGreen.tsx
-// The implementation has been moved to a separate file for better organization
-
-// Avoid the Red Game (27) - Now imported from speedgames-parts/AvoidRed.tsx
-// The implementation has been moved to a separate file for better organization
-
-// Reaction Test Game (28) - Now imported from speedgames-parts/ReactionTest.tsx
-// The implementation has been moved to a separate file for better organization
-
-// Fast Math Game (29) - Now imported from speedgames-parts/FastMath.tsx
-// The implementation has been moved to a separate file for better organization
-
-// Whack-a-Shape Game (30) - Now imported from speedgames-parts/WhackShape.tsx
-// The implementation has been moved to a separate file for better organization
-
-// Typing Sprint Game (31) - Now imported from speedgames-parts/TypingSprint.tsx
-// The implementation has been moved to a separate file for better organization
-
-// Quick Compare Game (32)
-function QuickCompare({
-   config,
-   onScoreUpdate,
-   onComplete,
-   isPlaying,
-}: {
-   config: Record<string, any>;
-   onScoreUpdate: (score: number) => void;
-   onComplete: (finalScore?: number) => void;
-   isPlaying: boolean;
-}) {
-   const rounds = config.rounds || 15;
-   const [numbers, setNumbers] = useState<{ a: number; b: number } | null>(
-      null
-   );
-   const [round, setRound] = useState(0);
-   const [score, setScore] = useState(0);
-
-   useEffect(() => {
-      if (round >= rounds) {
-         const finalScore = Math.round((score / rounds) * 100);
-         onScoreUpdate(finalScore);
-         setTimeout(() => onComplete(finalScore), 1000);
-         return;
-      }
-
-      setNumbers({
-         a: Math.floor(Math.random() * 100),
-         b: Math.floor(Math.random() * 100),
-      });
-   }, [round, rounds, score, onScoreUpdate, onComplete]);
-
-   const handleSelect = (choice: "greater" | "less" | "equal") => {
-      if (!numbers) return;
-
-      let isCorrect = false;
-      if (choice === "greater") isCorrect = numbers.a > numbers.b;
-      else if (choice === "less") isCorrect = numbers.a < numbers.b;
-      else isCorrect = numbers.a === numbers.b;
-
-      if (isCorrect) {
-         setScore(score + 6);
-      }
-      setRound(round + 1);
-   };
-
-   return (
-      <div className="quick-compare-game">
-         <h3>
-            Quick Compare - Round {round + 1}/{rounds}
-         </h3>
-         {numbers && (
-            <div>
-               <div className="compare-numbers">
-                  <div className="number">{numbers.a}</div>
-                  <div className="vs">vs</div>
-                  <div className="number">{numbers.b}</div>
-               </div>
-               <div className="compare-options">
-                  <button onClick={() => handleSelect("greater")}>
-                     A &gt; B
-                  </button>
-                  <button onClick={() => handleSelect("equal")}>A = B</button>
-                  <button onClick={() => handleSelect("less")}>A &lt; B</button>
-               </div>
-            </div>
-         )}
-      </div>
    );
 }
 

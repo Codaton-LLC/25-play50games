@@ -1035,38 +1035,45 @@ Për lojëra me typing (si Typing Sprint):
 ##### Karakteristikat e Rëndësishme:
 
 1. **Level Requirements Structure**:
+
    -  **`minCorrectWords`**: Numri minimal i fjalëve/fjalive të sakta për të kaluar level-in
    -  **`duration`**: Koha në sekonda për çdo level (duhet të jetë në `levelRequirements`, jo në top level)
    -  **`words`**: Array i fjalëve/fjalive për level-in (mund të jetë array ose string me presje)
 
 2. **Character Highlighting**:
+
    -  **Real-time feedback**: Shfaq karaktere të sakta në të gjelbër dhe të gabuara në të kuq
    -  **Character-by-character comparison**: Krahaso input-in me tekstin e duhur karakter pas karakteri
    -  **Visual feedback**: Përdor `var(--ok)` për të gjelbër dhe `var(--warn)` për të kuq
    -  **Background colors**: Përdor `rgba(134, 239, 172, 0.2)` për të gjelbër dhe `rgba(252, 165, 165, 0.2)` për të kuq
 
 3. **Auto-submit Logic**:
+
    -  Kur input-i përputhet plotësisht me tekstin e duhur, auto-submit
    -  Përdor `useEffect` për të kontrolluar nëse `input === wordToCompare`
    -  Pas auto-submit, reset input dhe gjenero fjalë të re pas 300ms
 
 4. **Wrong Character Tracking**:
+
    -  **Count wrong characters**: Për çdo karakter të gabuar, rrit `wrongWords` me +1
    -  **Track previous count**: Përdor `useRef` për të mbajtur numrin e karaktereve të gabuara të numëruara
    -  **Increment only new wrongs**: Rrit `wrongWords` vetëm për karakteret e reja të gabuara, jo për ato që janë numëruar tashmë
    -  **Reset on word completion**: Reset counter-in kur fjala përfundon saktë ose kur gjenerohet fjalë e re
 
 5. **Input Handling**:
+
    -  **Space key**: Lejo hapësira për fjalitë (mos përdor `e.preventDefault()` për space)
    -  **Enter key**: Reset input nëse është i gabuar dhe rrit `wrongWords` me +1
    -  **Normal typing**: Të gjitha karakteret e tjera shkruhen normalisht
 
 6. **Special Level Handling**:
+
    -  **Reverse typing (Level 9)**: Shfaq tekstin e kthyer, por përdoruesi shkruan normalisht
    -  **Character highlighting**: Krahaso input-in normal me tekstin e kthyer për highlighting
    -  **Comparison logic**: Për reverse level, kthe tekstin përsëri për krahasim
 
 7. **Level Duration per Level**:
+
    -  **Per-level duration**: Çdo level mund të ketë kohë të ndryshme (përcaktohet në `levelRequirements[level].duration`)
    -  **Fallback**: Nëse nuk përcaktohet, përdor `defaultLevelDuration` (p.sh. 30 sekonda)
    -  **Timer reset**: Reset timer-in kur fillon level i ri
@@ -1083,21 +1090,37 @@ Për lojëra me typing (si Typing Sprint):
 // Character highlighting
 const renderHighlightedText = useCallback(() => {
    if (!currentText) return null;
-   
+
    return currentText.split("").map((char, index) => {
       let status: "correct" | "wrong" | "pending" = "pending";
-      
+
       if (input && input.length > 0 && index < input.length) {
          status = input[index] === currentText[index] ? "correct" : "wrong";
       }
-      
-      const color = status === "correct" ? "var(--ok)" : 
-                    status === "wrong" ? "var(--warn)" : "var(--text)";
-      const backgroundColor = status === "correct" ? "rgba(134, 239, 172, 0.2)" :
-                              status === "wrong" ? "rgba(252, 165, 165, 0.2)" : "transparent";
-      
+
+      const color =
+         status === "correct"
+            ? "var(--ok)"
+            : status === "wrong"
+            ? "var(--warn)"
+            : "var(--text)";
+      const backgroundColor =
+         status === "correct"
+            ? "rgba(134, 239, 172, 0.2)"
+            : status === "wrong"
+            ? "rgba(252, 165, 165, 0.2)"
+            : "transparent";
+
       return (
-         <span key={index} style={{ color, backgroundColor, padding: "2px 1px", borderRadius: "3px" }}>
+         <span
+            key={index}
+            style={{
+               color,
+               backgroundColor,
+               padding: "2px 1px",
+               borderRadius: "3px",
+            }}
+         >
             {char === " " ? "\u00A0" : char}
          </span>
       );
@@ -1109,12 +1132,13 @@ const prevWrongCountRef = useRef(0);
 
 useEffect(() => {
    if (gameState !== "playing" || requirementsMet || !currentText) return;
-   
+
    let wordToCompare = currentText;
-   if (currentLevel === 8) { // Reverse level
+   if (currentLevel === 8) {
+      // Reverse level
       wordToCompare = currentText.split("").reverse().join("");
    }
-   
+
    // Count wrong characters
    if (input.length > 0) {
       let wrongCount = 0;
@@ -1126,7 +1150,7 @@ useEffect(() => {
       if (input.length > wordToCompare.length) {
          wrongCount += input.length - wordToCompare.length;
       }
-      
+
       if (wrongCount > prevWrongCountRef.current) {
          const newWrongChars = wrongCount - prevWrongCountRef.current;
          setWrongWords((prev) => prev + newWrongChars);
@@ -1135,19 +1159,29 @@ useEffect(() => {
          prevWrongCountRef.current = wrongCount;
       }
    }
-   
+
    // Auto-submit on correct
    if (input === wordToCompare) {
       setCorrectWords((prev) => prev + 1);
       setInput("");
       prevWrongCountRef.current = 0;
       setTimeout(() => {
-         if (gameStateRef.current === "playing" && !requirementsMetRef.current) {
+         if (
+            gameStateRef.current === "playing" &&
+            !requirementsMetRef.current
+         ) {
             generateNextWord();
          }
       }, 300);
    }
-}, [input, currentText, gameState, requirementsMet, currentLevel, generateNextWord]);
+}, [
+   input,
+   currentText,
+   gameState,
+   requirementsMet,
+   currentLevel,
+   generateNextWord,
+]);
 ```
 
 ##### Checklist për Typing Games:
@@ -1179,13 +1213,20 @@ useEffect(() => {
 
 8. **Keyboard controls**: Përdor `e.preventDefault()` për të shmangur veprimet e paracaktuara
 9. **Number indicators**: Shto badge me numra (1-4) në buttons për keyboard shortcuts
-10. **Negative numbers**: Lejo rezultate negative për subtraction
-11. **Decimal answers**: Përdor tolerance për kontrollin e korrektësisë së division answers
-12. **Character highlighting**: Për typing games, shfaq feedback real-time për karaktere të sakta/gabuara
-13. **Wrong character tracking**: Për typing games, rrit wrong words për çdo karakter të gabuar
-14. **Level-specific config**: Përdor `levelRequirements` për konfigurim specifik për çdo level (duration, words, etj.)
-15. **Auto-submit**: Për typing games, auto-submit kur input-i përputhet plotësisht
-16. **Input handling**: Lejo hapësira për fjalitë, përdor Enter për reset nëse është i gabuar
+10.   **Negative numbers**: Lejo rezultate negative për subtraction
+11.   **Decimal answers**: Përdor tolerance për kontrollin e korrektësisë së division answers
+12.   **Character highlighting**: Për typing games, shfaq feedback real-time për karaktere të sakta/gabuara
+13.   **Wrong character tracking**: Për typing games, rrit wrong words për çdo karakter të gabuar
+14.   **Level-specific config**: Përdor `levelRequirements` për konfigurim specifik për çdo level (duration, words, etj.)
+15.   **Auto-submit**: Për typing games, auto-submit kur input-i përputhet plotësisht
+16.   **Input handling**: Lejo hapësira për fjalitë, përdor Enter për reset nëse është i gabuar
+17.   **Time management**: Për lojëra me timer, kontrollo kur koha përfundon dhe shfaq "failed" nëse kërkesat nuk janë plotësuar
+18.   **Progress tracking**: Për lojëra me levels, përdor progress bar bazuar në nivelet e përfunduara, jo për secilin correct answer
+19.   **Number comparison**: Për lojëra me krahasim numrash, sigurohu që logjika e krahasimit është e saktë për të gjitha llojet e numrave (integers, decimals, negative)
+20.   **Number formatting**: Për lojëra me numra, përdor `toLocaleString()` për numra të mëdhenj (1000+) dhe `toFixed(precision)` për numra decimal. Përdor `displayLeft`/`displayRight` për formatim të veçantë nga vlerat aktuale
+21.   **Prevent equal values**: Për lojëra me krahasim, sigurohu që vlerat e gjeneruara nuk janë të barabarta (p.sh. `while (left === right) { regenerate }`)
+22.   **Feedback timing**: Për lojëra me feedback, përdor delay (300ms) pas feedback përpara se të gjenerosh element të ri, për të lejuar përdoruesit të shohë rezultatin
+23.   **Level description**: Për lojëra me levels, shfaq përshkrim të level-it aktual që tregon llojin e challenge (p.sh. "Simple Integers (1-50)", "Decimals (0.1-10)")
 
 ### 9.4 Skill Games
 

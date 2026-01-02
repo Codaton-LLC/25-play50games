@@ -603,12 +603,12 @@ function show_games_custom_fields() {
                 title: 'Quick Compare',
                 gameType: 'speed',
                 gameOrder: 32,
-                difficulty: 1,
-                timeLimit: 60,
+                difficulty: 2,
+                timeLimit: 0,
                 passingScore: 70,
                 unlockRequirement: '',
-                description: 'Compare two numbers quickly',
-                gameConfig: '{"gameType": "quick-compare", "rounds": 15}'
+                description: 'Test your number comparison skills across 15 unique levels. Progressive difficulty from simple integers to decimals, negative numbers, and complex comparisons.',
+                gameConfig: '{"gameType": "quick-compare", "levels": 15, "levelRequirements": [{"minCorrectAnswers": 5, "duration": 30}, {"minCorrectAnswers": 6, "duration": 30}, {"minCorrectAnswers": 7, "duration": 30}, {"minCorrectAnswers": 8, "duration": 30}, {"minCorrectAnswers": 9, "duration": 30}, {"minCorrectAnswers": 10, "duration": 30}, {"minCorrectAnswers": 11, "duration": 30}, {"minCorrectAnswers": 12, "duration": 30}, {"minCorrectAnswers": 13, "duration": 30}, {"minCorrectAnswers": 14, "duration": 30}, {"minCorrectAnswers": 15, "duration": 30}, {"minCorrectAnswers": 16, "duration": 30}, {"minCorrectAnswers": 17, "duration": 30}, {"minCorrectAnswers": 18, "duration": 30}, {"minCorrectAnswers": 20, "duration": 30}]}'
             },
             'falling-objects': {
                 title: 'Falling Objects',

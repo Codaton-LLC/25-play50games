@@ -2649,6 +2649,425 @@ export default function GameEngine({
                   </div>
                )}
 
+               {/* Interactive Example for Quick Compare */}
+               {gameType === "quick-compare" && (
+                  <div
+                     style={{
+                        background:
+                           "linear-gradient(135deg, rgba(125, 211, 252, 0.1) 0%, rgba(54, 211, 153, 0.1) 100%)",
+                        border: "2px solid var(--stroke)",
+                        borderRadius: isMobile
+                           ? "16px"
+                           : isTablet
+                           ? "18px"
+                           : "20px",
+                        padding: isMobile ? "20px" : isTablet ? "24px" : "32px",
+                        marginTop: isMobile ? "16px" : "24px",
+                        boxShadow: "0 8px 24px rgba(0, 0, 0, 0.2)",
+                     }}
+                  >
+                     <div
+                        style={{
+                           display: "flex",
+                           alignItems: "center",
+                           justifyContent: "center",
+                           gap: isMobile ? "8px" : "12px",
+                           marginBottom: isMobile
+                              ? "16px"
+                              : isTablet
+                              ? "20px"
+                              : "24px",
+                        }}
+                     >
+                        <SparklesIcon
+                           style={{
+                              width: isMobile ? 24 : isTablet ? 26 : 28,
+                              height: isMobile ? 24 : isTablet ? 26 : 28,
+                              color: "var(--accent)",
+                           }}
+                        />
+                        <h3
+                           style={{
+                              fontSize: isMobile
+                                 ? "20px"
+                                 : isTablet
+                                 ? "22px"
+                                 : "24px",
+                              fontWeight: 700,
+                              margin: 0,
+                              background:
+                                 "linear-gradient(135deg, var(--accent) 0%, var(--ok) 100%)",
+                              WebkitBackgroundClip: "text",
+                              WebkitTextFillColor: "transparent",
+                              backgroundClip: "text",
+                           }}
+                        >
+                           Example Round
+                        </h3>
+                     </div>
+
+                     <div
+                        style={{
+                           background: "var(--card)",
+                           border: "2px solid var(--stroke)",
+                           borderRadius: "16px",
+                           padding: isMobile ? "16px" : "24px",
+                           marginBottom: "20px",
+                        }}
+                     >
+                        <p
+                           style={{
+                              margin: "0 0 20px",
+                              color: "var(--text)",
+                              fontSize: isMobile ? "14px" : "16px",
+                              fontWeight: 600,
+                              textAlign: "center",
+                           }}
+                        >
+                           Compare the two numbers and choose the correct
+                           comparison:
+                        </p>
+
+                        {/* Example Numbers Display */}
+                        <div
+                           style={{
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              gap: isMobile ? "20px" : "32px",
+                              marginBottom: "24px",
+                              fontSize: isMobile ? "2rem" : "3rem",
+                              fontWeight: 900,
+                              color: "var(--text)",
+                           }}
+                        >
+                           <span
+                              style={{
+                                 padding: isMobile ? "16px 24px" : "20px 32px",
+                                 background: "var(--background)",
+                                 border: "2px solid var(--stroke)",
+                                 borderRadius: "16px",
+                                 minWidth: isMobile ? "100px" : "150px",
+                                 textAlign: "center",
+                              }}
+                           >
+                              42
+                           </span>
+                           <span
+                              style={{
+                                 fontSize: isMobile ? "1.5rem" : "2rem",
+                                 color: "var(--muted)",
+                              }}
+                           >
+                              ?
+                           </span>
+                           <span
+                              style={{
+                                 padding: isMobile ? "16px 24px" : "20px 32px",
+                                 background: "var(--background)",
+                                 border: "2px solid var(--stroke)",
+                                 borderRadius: "16px",
+                                 minWidth: isMobile ? "100px" : "150px",
+                                 textAlign: "center",
+                              }}
+                           >
+                              67
+                           </span>
+                        </div>
+
+                        {/* Example Buttons */}
+                        <div
+                           style={{
+                              display: "flex",
+                              gap: isMobile ? "16px" : "24px",
+                              width: "100%",
+                              justifyContent: "center",
+                              marginBottom: "20px",
+                           }}
+                        >
+                           <button
+                              disabled
+                              style={{
+                                 padding: isMobile ? "16px 32px" : "20px 40px",
+                                 fontSize: isMobile ? "1.5rem" : "2rem",
+                                 fontWeight: 800,
+                                 background:
+                                    "linear-gradient(135deg, rgba(134, 239, 172, 0.3), rgba(134, 239, 172, 0.15))",
+                                 border: "2px solid rgba(134, 239, 172, 0.8)",
+                                 borderRadius: "16px",
+                                 color: "var(--text)",
+                                 cursor: "not-allowed",
+                                 opacity: 0.7,
+                              }}
+                           >
+                              &lt;
+                           </button>
+                           <button
+                              disabled
+                              style={{
+                                 padding: isMobile ? "16px 32px" : "20px 40px",
+                                 fontSize: isMobile ? "1.5rem" : "2rem",
+                                 fontWeight: 800,
+                                 background:
+                                    "linear-gradient(135deg, rgba(125, 211, 252, 0.2), rgba(125, 211, 252, 0.1))",
+                                 border: "2px solid rgba(125, 211, 252, 0.6)",
+                                 borderRadius: "16px",
+                                 color: "var(--text)",
+                                 cursor: "not-allowed",
+                                 opacity: 0.5,
+                              }}
+                           >
+                              &gt;
+                           </button>
+                        </div>
+
+                        {/* Correct Answer Feedback */}
+                        <div
+                           style={{
+                              padding: isMobile ? "12px 20px" : "16px 24px",
+                              background: "rgba(134, 239, 172, 0.2)",
+                              border: "2px solid rgba(134, 239, 172, 0.6)",
+                              borderRadius: "12px",
+                              color: "var(--ok)",
+                              fontSize: isMobile ? "0.9rem" : "1rem",
+                              fontWeight: 600,
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "8px",
+                              justifyContent: "center",
+                           }}
+                        >
+                           <CheckCircleIcon style={{ width: 20, height: 20 }} />
+                           <span>
+                              Correct! 42 &lt; 67 (Left is smaller, so choose
+                              &lt;)
+                           </span>
+                        </div>
+                     </div>
+
+                     {/* Instructions */}
+                     <div
+                        style={{
+                           display: "flex",
+                           flexDirection: "column",
+                           gap: "12px",
+                        }}
+                     >
+                        <div
+                           style={{
+                              display: "flex",
+                              alignItems: "flex-start",
+                              gap: "14px",
+                              padding: "16px",
+                              background:
+                                 "linear-gradient(135deg, rgba(125, 211, 252, 0.15), rgba(59, 130, 246, 0.1))",
+                              borderRadius: "12px",
+                              border: "1px solid rgba(125, 211, 252, 0.3)",
+                              boxShadow: "0 2px 8px rgba(59, 130, 246, 0.1)",
+                           }}
+                        >
+                           <div
+                              style={{
+                                 minWidth: "32px",
+                                 height: "32px",
+                                 borderRadius: "50%",
+                                 background:
+                                    "linear-gradient(135deg, var(--accent), rgba(59, 130, 246, 0.9))",
+                                 display: "flex",
+                                 alignItems: "center",
+                                 justifyContent: "center",
+                                 color: "white",
+                                 fontWeight: 700,
+                                 fontSize: "14px",
+                                 boxShadow: "0 4px 12px rgba(59, 130, 246, 0.4)",
+                              }}
+                           >
+                              1
+                           </div>
+                           <div style={{ flex: 1 }}>
+                              <div
+                                 style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: "8px",
+                                    marginBottom: "6px",
+                                 }}
+                              >
+                                 <ScaleIcon
+                                    style={{
+                                       width: 18,
+                                       height: 18,
+                                       color: "var(--accent)",
+                                    }}
+                                 />
+                                 <div
+                                    style={{
+                                       fontSize: isMobile ? "14px" : "15px",
+                                       fontWeight: 700,
+                                       color: "var(--text)",
+                                    }}
+                                 >
+                                    Compare the numbers
+                                 </div>
+                              </div>
+                              <div
+                                 style={{
+                                    fontSize: isMobile ? "12px" : "13px",
+                                    color: "var(--muted)",
+                                    lineHeight: "1.5",
+                                 }}
+                              >
+                                 Look at the left number and right number. Determine
+                                 which one is larger or smaller.
+                              </div>
+                           </div>
+                        </div>
+
+                        <div
+                           style={{
+                              display: "flex",
+                              alignItems: "flex-start",
+                              gap: "14px",
+                              padding: "16px",
+                              background:
+                                 "linear-gradient(135deg, rgba(34, 197, 94, 0.15), rgba(22, 163, 74, 0.1))",
+                              borderRadius: "12px",
+                              border: "1px solid rgba(34, 197, 94, 0.3)",
+                              boxShadow: "0 2px 8px rgba(34, 197, 94, 0.1)",
+                           }}
+                        >
+                           <div
+                              style={{
+                                 minWidth: "32px",
+                                 height: "32px",
+                                 borderRadius: "50%",
+                                 background:
+                                    "linear-gradient(135deg, var(--ok), rgba(22, 163, 74, 0.9))",
+                                 display: "flex",
+                                 alignItems: "center",
+                                 justifyContent: "center",
+                                 color: "white",
+                                 fontWeight: 700,
+                                 fontSize: "14px",
+                                 boxShadow: "0 4px 12px rgba(34, 197, 94, 0.4)",
+                              }}
+                           >
+                              2
+                           </div>
+                           <div style={{ flex: 1 }}>
+                              <div
+                                 style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: "8px",
+                                    marginBottom: "6px",
+                                 }}
+                              >
+                                 <BoltIcon
+                                    style={{
+                                       width: 18,
+                                       height: 18,
+                                       color: "var(--ok)",
+                                    }}
+                                 />
+                                 <div
+                                    style={{
+                                       fontSize: isMobile ? "14px" : "15px",
+                                       fontWeight: 700,
+                                       color: "var(--text)",
+                                    }}
+                                 >
+                                    Click the correct button
+                                 </div>
+                              </div>
+                              <div
+                                 style={{
+                                    fontSize: isMobile ? "12px" : "13px",
+                                    color: "var(--muted)",
+                                    lineHeight: "1.5",
+                                 }}
+                              >
+                                 Click <strong>&lt;</strong> if left is smaller, or{" "}
+                                 <strong>&gt;</strong> if left is larger. You'll get
+                                 immediate feedback!
+                              </div>
+                           </div>
+                        </div>
+
+                        <div
+                           style={{
+                              display: "flex",
+                              alignItems: "flex-start",
+                              gap: "14px",
+                              padding: "16px",
+                              background:
+                                 "linear-gradient(135deg, rgba(251, 191, 36, 0.15), rgba(217, 119, 6, 0.1))",
+                              borderRadius: "12px",
+                              border: "1px solid rgba(251, 191, 36, 0.3)",
+                              boxShadow: "0 2px 8px rgba(251, 191, 36, 0.1)",
+                           }}
+                        >
+                           <div
+                              style={{
+                                 minWidth: "32px",
+                                 height: "32px",
+                                 borderRadius: "50%",
+                                 background:
+                                    "linear-gradient(135deg, rgba(251, 191, 36, 1), rgba(217, 119, 6, 0.9))",
+                                 display: "flex",
+                                 alignItems: "center",
+                                 justifyContent: "center",
+                                 color: "white",
+                                 fontWeight: 700,
+                                 fontSize: "14px",
+                                 boxShadow: "0 4px 12px rgba(251, 191, 36, 0.4)",
+                              }}
+                           >
+                              3
+                           </div>
+                           <div style={{ flex: 1 }}>
+                              <div
+                                 style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: "8px",
+                                    marginBottom: "6px",
+                                 }}
+                              >
+                                 <TrophyIcon
+                                    style={{
+                                       width: 18,
+                                       height: 18,
+                                       color: "rgba(251, 191, 36, 1)",
+                                    }}
+                                 />
+                                 <div
+                                    style={{
+                                       fontSize: isMobile ? "14px" : "15px",
+                                       fontWeight: 700,
+                                       color: "var(--text)",
+                                    }}
+                                 >
+                                    Complete the level
+                                 </div>
+                              </div>
+                              <div
+                                 style={{
+                                    fontSize: isMobile ? "12px" : "13px",
+                                    color: "var(--muted)",
+                                    lineHeight: "1.5",
+                                 }}
+                              >
+                                 Make enough correct comparisons within the time
+                                 limit to pass the level. Each level has different
+                                 number types!
+                              </div>
+                           </div>
+                        </div>
+                     </div>
+                  </div>
+               )}
+
                {/* Interactive Example for Reaction Test */}
                {gameType === "reaction-test" && (
                   <div

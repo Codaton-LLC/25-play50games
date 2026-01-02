@@ -451,9 +451,17 @@ export const gameInstructions: Record<string, {
     ],
   },
   'quick-compare': {
-    description: 'Compare two numbers quickly',
-    instructions: 'Two numbers will appear. Quickly determine which is larger and click the correct button (< or >).',
-    tips: 'Compare the numbers quickly. For larger numbers, look at the first digit first.'
+    description: 'Test your number comparison skills across 15 unique levels',
+    instructions: '<p>Compare two numbers quickly and accurately. Each level has different number types and you must make a minimum number of correct comparisons within the time limit to pass.</p><h4 style="margin-top: 16px; margin-bottom: 8px; font-weight: 600;">HOW TO PLAY:</h4><ol style="margin-left: 20px; margin-bottom: 16px;"><li>Two numbers will appear on screen (left and right)</li><li>Click &lt; if the left number is smaller than the right number</li><li>Click &gt; if the left number is larger than the right number</li><li>You\'ll get immediate feedback (green for correct, red for wrong)</li><li>Complete the minimum required correct comparisons within the time limit to pass the level</li><li>Each level has different number types: integers, decimals, negative numbers, and more</li></ol><h4 style="margin-top: 16px; margin-bottom: 8px; font-weight: 600;">LEVEL PROGRESSION:</h4><ul style="margin-left: 20px; margin-bottom: 16px;"><li><strong>Levels 1-3:</strong> Simple to larger integers (1-200)</li><li><strong>Levels 4-6:</strong> Large to huge integers (100-10000)</li><li><strong>Levels 7-9:</strong> Decimals with varying precision (0.1-1000)</li><li><strong>Levels 10-12:</strong> Negative numbers and mixed positive/negative (-1000 to 1000)</li><li><strong>Levels 13-15:</strong> Very large numbers, decimals, and master challenge with all types</li></ul>',
+    tips: 'For large numbers, compare digit by digit from left to right. For decimals, compare the whole number part first, then the decimal part. For negative numbers, remember that -5 is smaller than -3. Stay focused and react quickly but accurately.',
+    keyboardControls: [
+      { keys: [','], label: 'Click < button (left is smaller)' },
+      { keys: ['.'], label: 'Click > button (left is larger)' },
+    ],
+    mouseControls: [
+      { action: 'Click', label: 'Click < button if left number is smaller' },
+      { action: 'Click', label: 'Click > button if left number is larger' },
+    ],
   },
   'falling-objects': {
     description: 'Catch good items, avoid bad ones',

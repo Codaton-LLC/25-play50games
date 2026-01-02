@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+   <head>
+      <meta charset="UTF-8" />
+      <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <title>Quick Compare</title>
+      <style>
+         :root {
+            --bg: #0b1220;
+            --panel: #0f1b33;
+            --text: #e8eefc;
+            --muted: #a6b3d1;
+            --accent: #6ea8ff;
+            --good: #36d399;
+            --bad: #fb7185;
+            --shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
+            --radius: 18px;
+         }
+         * {
+            box-sizing: border-box;
+         }
+         body {
+            margin: 0;
+            font-family: system-ui;
+            background: radial-gradient(
+                  1200px 800px at 70% -10%,
+                  rgba(110, 168, 255, 0.28),
+                  transparent 60%
+               ),
+               radial-gradient(
+                  900px 600px at 0% 10%,
+                  rgba(54, 211, 153, 0.18),
+                  transparent 55%
+               ),
+               var(--bg);
+            color: var(--text);
+            min-height: 100svh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+         }
+         .app {
+            width: min(980px, 100%);
+            display: grid;
+            grid-template-columns: 1.2fr 0.8fr;
+            gap: 18px;
+         }
+         @media (max-width: 900px) {
+            .app {
+               grid-template-columns: 1fr;
+            }
+         }
+         .panel {
+            background: linear-gradient(
+               180deg,
+               rgba(255, 255, 255, 0.06),
+               rgba(255, 255, 255, 0.02)
+            );
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+         }
+         header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            padding: 18px;
+         }
+         h1 {
+            margin: 0;
+            font-size: 18px;
+         }
+         p {
+            margin: 4px 0 0;
+            color: var(--muted);
+            font-size: 13px;
+         }
+         button {
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            background: rgba(15, 27, 51, 0.7);
+            color: var(--text);
+            padding: 10px 14px;
+            font-weight: 800;
+            cursor: pointer;
+         }
+         button.primary {
+            background: linear-gradient(
+               180deg,
+               rgba(110, 168, 255, 0.9),
+               rgba(110, 168, 255, 0.55)
+            );
+            color: #081126;
+         }
+         .row {
+            display: flex;
+            gap: 12px;
+            padding: 14px 18px;
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            background: rgba(11, 22, 48, 0.45);
+         }
+         .pill {
+            padding: 8px 12px;
+            border-radius: 999px;
+            background: rgba(17, 28, 53, 0.55);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            font-size: 13px;
+         }
+         .content {
+            padding: 18px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+         }
+         .stage {
+            height: 360px;
+            border-radius: 18px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 22px;
+            text-align: center;
+         }
+         .nums {
+            display: flex;
+            gap: 24px;
+            font-size: 36px;
+            font-weight: 900;
+         }
+         .controls {
+            display: flex;
+            gap: 18px;
+         }
+         .ctrl {
+            font-size: 24px;
+            padding: 18px 28px;
+            border-radius: 16px;
+         }
+         .ctrl.good {
+            background: rgba(54, 211, 153, 0.25);
+         }
+         .ctrl.bad {
+            background: rgba(251, 113, 133, 0.25);
+         }
+         .side {
+            padding: 18px;
+         }
+      </style>
+   </head>
+   <body>
+      <div class="app">
+         <section class="panel">
+            <header>
+               <div>
+                  <h1>Quick Compare</h1>
+                  <p>Compare two numbers quickly</p>
+               </div>
+               <button class="primary" id="start">Start</button>
+            </header>
+            <div class="row">
+               <div class="pill">Score: <b id="score">0</b></div>
+               <div class="pill">Time: <b id="time">30</b>s</div>
+            </div>
+            <div class="content">
+               <div class="stage">
+                  <div class="nums">
+                     <span id="a">–</span><span id="b">–</span>
+                  </div>
+                  <div class="controls">
+                     <button class="ctrl" id="less">&lt;</button>
+                     <button class="ctrl" id="greater">&gt;</button>
+                  </div>
+               </div>
+            </div>
+         </section>
+         <aside class="panel">
+            <div class="side">
+               <h2>How to Play</h2>
+               <ul>
+                  <li>Two numbers appear on screen.</li>
+                  <li>
+                     Click &lt; if left is smaller, &gt; if left is larger.
+                  </li>
+               </ul>
+               <h2>Tips</h2>
+               <ul>
+                  <li>Look at the first digit first.</li>
+                  <li>React fast but stay accurate.</li>
+               </ul>
+            </div>
+         </aside>
+      </div>
+      <script>
+         let score = 0;
+         let time = 30;
+         let timer;
+         let left = 0;
+         let right = 0;
+         const aEl = document.getElementById("a");
+         const bEl = document.getElementById("b");
+         const scoreEl = document.getElementById("score");
+         const timeEl = document.getElementById("time");
+
+         function newPair() {
+            left = Math.floor(Math.random() * 900) + 100;
+            right = Math.floor(Math.random() * 900) + 100;
+            if (left === right) right++;
+            aEl.textContent = left;
+            bEl.textContent = right;
+         }
+
+         function choose(type, btn) {
+            const correct = type === "<" ? left < right : left > right;
+            if (correct) {
+               score++;
+               btn.classList.add("good");
+            } else {
+               score = Math.max(0, score - 1);
+               btn.classList.add("bad");
+            }
+            scoreEl.textContent = score;
+            setTimeout(() => {
+               btn.classList.remove("good", "bad");
+               newPair();
+            }, 300);
+         }
+
+         function start() {
+            score = 0;
+            time = 30;
+            scoreEl.textContent = 0;
+            timeEl.textContent = time;
+            newPair();
+            clearInterval(timer);
+            timer = setInterval(() => {
+               time--;
+               timeEl.textContent = time;
+               if (time <= 0) {
+                  clearInterval(timer);
+                  aEl.textContent = "–";
+                  bEl.textContent = "–";
+               }
+            }, 1000);
+         }
+
+         document.getElementById("less").onclick = () =>
+            choose("<", document.getElementById("less"));
+         document.getElementById("greater").onclick = () =>
+            choose(">", document.getElementById("greater"));
+         document.getElementById("start").onclick = start;
+      </script>
+   </body>
+</html>
