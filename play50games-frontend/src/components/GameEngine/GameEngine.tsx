@@ -2816,6 +2816,420 @@ export default function GameEngine({
                   </div>
                )}
 
+               {/* Interactive Example for Reflex Arrow */}
+               {gameType === "reflex-arrow" && (
+                  <div
+                     style={{
+                        background:
+                           "linear-gradient(135deg, rgba(125, 211, 252, 0.1) 0%, rgba(54, 211, 153, 0.1) 100%)",
+                        border: "2px solid var(--stroke)",
+                        borderRadius: isMobile
+                           ? "16px"
+                           : isTablet
+                           ? "18px"
+                           : "20px",
+                        padding: isMobile ? "20px" : isTablet ? "24px" : "32px",
+                        marginTop: isMobile ? "16px" : "24px",
+                        boxShadow: "0 8px 24px rgba(0, 0, 0, 0.2)",
+                     }}
+                  >
+                     <div
+                        style={{
+                           display: "flex",
+                           alignItems: "center",
+                           justifyContent: "center",
+                           gap: isMobile ? "8px" : "12px",
+                           marginBottom: isMobile
+                              ? "16px"
+                              : isTablet
+                              ? "20px"
+                              : "24px",
+                        }}
+                     >
+                        <BoltIcon
+                           style={{
+                              width: isMobile ? 24 : isTablet ? 26 : 28,
+                              height: isMobile ? 24 : isTablet ? 26 : 28,
+                              color: "var(--accent)",
+                           }}
+                        />
+                        <h3
+                           style={{
+                              fontSize: isMobile
+                                 ? "20px"
+                                 : isTablet
+                                 ? "22px"
+                                 : "24px",
+                              fontWeight: 700,
+                              margin: 0,
+                              background:
+                                 "linear-gradient(135deg, var(--accent) 0%, var(--ok) 100%)",
+                              WebkitBackgroundClip: "text",
+                              WebkitTextFillColor: "transparent",
+                              backgroundClip: "text",
+                           }}
+                        >
+                           Example Round
+                        </h3>
+                     </div>
+
+                     <div
+                        style={{
+                           background: "var(--card)",
+                           border: "2px solid var(--stroke)",
+                           borderRadius: "16px",
+                           padding: isMobile ? "16px" : "24px",
+                           marginBottom: "20px",
+                        }}
+                     >
+                        <p
+                           style={{
+                              margin: "0 0 20px",
+                              color: "var(--text)",
+                              fontSize: isMobile ? "14px" : "16px",
+                              fontWeight: 600,
+                              textAlign: "center",
+                           }}
+                        >
+                           An arrow appears. Match it quickly using arrow keys or tap buttons:
+                        </p>
+
+                        {/* Example Arrow Display */}
+                        <div
+                           style={{
+                              display: "flex",
+                              flexDirection: "column",
+                              alignItems: "center",
+                              gap: "20px",
+                              marginBottom: "20px",
+                           }}
+                        >
+                           <div
+                              style={{
+                                 width: isMobile ? "120px" : "160px",
+                                 height: isMobile ? "120px" : "160px",
+                                 borderRadius: "50%",
+                                 border: "4px solid var(--accent)",
+                                 background: "rgba(59, 130, 246, 0.15)",
+                                 display: "flex",
+                                 alignItems: "center",
+                                 justifyContent: "center",
+                                 boxShadow: "0 8px 24px rgba(59, 130, 246, 0.3)",
+                              }}
+                           >
+                              <ArrowUpIcon
+                                 style={{
+                                    width: isMobile ? 64 : 80,
+                                    height: isMobile ? 64 : 80,
+                                    color: "var(--text)",
+                                 }}
+                              />
+                           </div>
+
+                           {/* Example Arrow Buttons (Mobile/Tablet) */}
+                           {(isMobile || isTablet) && (
+                              <div
+                                 style={{
+                                    display: "grid",
+                                    gridTemplateColumns: "repeat(3, 1fr)",
+                                    gridTemplateRows: "repeat(3, 1fr)",
+                                    gap: "12px",
+                                    width: "100%",
+                                    maxWidth: "240px",
+                                    aspectRatio: "1",
+                                 }}
+                              >
+                                 <div></div>
+                                 <button
+                                    disabled
+                                    style={{
+                                       gridColumn: "2",
+                                       gridRow: "1",
+                                       background: "rgba(59, 130, 246, 0.15)",
+                                       border: "2px solid var(--accent)",
+                                       borderRadius: "12px",
+                                       display: "flex",
+                                       alignItems: "center",
+                                       justifyContent: "center",
+                                       cursor: "not-allowed",
+                                       padding: "12px",
+                                    }}
+                                 >
+                                    <ArrowUpIcon
+                                       style={{
+                                          width: isMobile ? 28 : 32,
+                                          height: isMobile ? 28 : 32,
+                                          color: "var(--text)",
+                                       }}
+                                    />
+                                 </button>
+                                 <div></div>
+                                 <button
+                                    disabled
+                                    style={{
+                                       gridColumn: "1",
+                                       gridRow: "2",
+                                       background: "rgba(59, 130, 246, 0.15)",
+                                       border: "2px solid var(--accent)",
+                                       borderRadius: "12px",
+                                       display: "flex",
+                                       alignItems: "center",
+                                       justifyContent: "center",
+                                       cursor: "not-allowed",
+                                       padding: "12px",
+                                    }}
+                                 >
+                                    <ArrowLeftIcon
+                                       style={{
+                                          width: isMobile ? 28 : 32,
+                                          height: isMobile ? 28 : 32,
+                                          color: "var(--text)",
+                                       }}
+                                    />
+                                 </button>
+                                 <div
+                                    style={{
+                                       gridColumn: "2",
+                                       gridRow: "2",
+                                       display: "flex",
+                                       alignItems: "center",
+                                       justifyContent: "center",
+                                       fontSize: isMobile ? "0.7rem" : "0.75rem",
+                                       color: "var(--muted)",
+                                    }}
+                                 >
+                                    Tap
+                                 </div>
+                                 <button
+                                    disabled
+                                    style={{
+                                       gridColumn: "3",
+                                       gridRow: "2",
+                                       background: "rgba(59, 130, 246, 0.15)",
+                                       border: "2px solid var(--accent)",
+                                       borderRadius: "12px",
+                                       display: "flex",
+                                       alignItems: "center",
+                                       justifyContent: "center",
+                                       cursor: "not-allowed",
+                                       padding: "12px",
+                                    }}
+                                 >
+                                    <ArrowRightIcon
+                                       style={{
+                                          width: isMobile ? 28 : 32,
+                                          height: isMobile ? 28 : 32,
+                                          color: "var(--text)",
+                                       }}
+                                    />
+                                 </button>
+                                 <div></div>
+                                 <button
+                                    disabled
+                                    style={{
+                                       gridColumn: "2",
+                                       gridRow: "3",
+                                       background: "rgba(59, 130, 246, 0.15)",
+                                       border: "2px solid var(--accent)",
+                                       borderRadius: "12px",
+                                       display: "flex",
+                                       alignItems: "center",
+                                       justifyContent: "center",
+                                       cursor: "not-allowed",
+                                       padding: "12px",
+                                    }}
+                                 >
+                                    <ArrowDownIcon
+                                       style={{
+                                          width: isMobile ? 28 : 32,
+                                          height: isMobile ? 28 : 32,
+                                          color: "var(--text)",
+                                       }}
+                                    />
+                                 </button>
+                                 <div></div>
+                              </div>
+                           )}
+
+                           <div
+                              style={{
+                                 fontSize: isMobile ? "0.75rem" : "0.875rem",
+                                 fontWeight: 500,
+                                 color: "var(--muted)",
+                                 textAlign: "center",
+                              }}
+                           >
+                              Level 1: Match 8 arrows correctly in 30s
+                              {!isMobile && !isTablet && " (Use Arrow Keys or WASD)"}
+                           </div>
+                        </div>
+                     </div>
+
+                     {/* Step-by-step Instructions */}
+                     <div
+                        style={{
+                           display: "flex",
+                           flexDirection: "column",
+                           gap: "12px",
+                           marginTop: "20px",
+                        }}
+                     >
+                        <div
+                           style={{
+                              display: "flex",
+                              alignItems: "flex-start",
+                              gap: "12px",
+                              padding: "12px",
+                              background: "rgba(59, 130, 246, 0.1)",
+                              borderRadius: "8px",
+                              border: "1px solid rgba(59, 130, 246, 0.3)",
+                           }}
+                        >
+                           <div
+                              style={{
+                                 width: "24px",
+                                 height: "24px",
+                                 borderRadius: "50%",
+                                 background: "rgba(59, 130, 246, 0.8)",
+                                 color: "white",
+                                 display: "flex",
+                                 alignItems: "center",
+                                 justifyContent: "center",
+                                 fontSize: "12px",
+                                 fontWeight: 800,
+                                 flexShrink: 0,
+                              }}
+                           >
+                              1
+                           </div>
+                           <div
+                              style={{
+                                 fontSize: isMobile ? "13px" : "14px",
+                                 color: "var(--text)",
+                                 fontWeight: 500,
+                              }}
+                           >
+                              <strong>Watch for the arrow</strong> that appears in the center
+                              of the screen
+                           </div>
+                        </div>
+
+                        <div
+                           style={{
+                              display: "flex",
+                              alignItems: "flex-start",
+                              gap: "12px",
+                              padding: "12px",
+                              background: "rgba(59, 130, 246, 0.1)",
+                              borderRadius: "8px",
+                              border: "1px solid rgba(59, 130, 246, 0.3)",
+                           }}
+                        >
+                           <div
+                              style={{
+                                 width: "24px",
+                                 height: "24px",
+                                 borderRadius: "50%",
+                                 background: "rgba(59, 130, 246, 0.8)",
+                                 color: "white",
+                                 display: "flex",
+                                 alignItems: "center",
+                                 justifyContent: "center",
+                                 fontSize: "12px",
+                                 fontWeight: 800,
+                                 flexShrink: 0,
+                              }}
+                           >
+                              2
+                           </div>
+                           <div
+                              style={{
+                                 fontSize: isMobile ? "13px" : "14px",
+                                 color: "var(--text)",
+                                 fontWeight: 500,
+                              }}
+                           >
+                              <strong>Press the matching arrow key</strong> (↑ ↓ ← →) or use
+                              WASD keys on desktop
+                           </div>
+                        </div>
+
+                        <div
+                           style={{
+                              display: "flex",
+                              alignItems: "flex-start",
+                              gap: "12px",
+                              padding: "12px",
+                              background: "rgba(59, 130, 246, 0.1)",
+                              borderRadius: "8px",
+                              border: "1px solid rgba(59, 130, 246, 0.3)",
+                           }}
+                        >
+                           <div
+                              style={{
+                                 width: "24px",
+                                 height: "24px",
+                                 borderRadius: "50%",
+                                 background: "rgba(59, 130, 246, 0.8)",
+                                 color: "white",
+                                 display: "flex",
+                                 alignItems: "center",
+                                 justifyContent: "center",
+                                 fontSize: "12px",
+                                 fontWeight: 800,
+                                 flexShrink: 0,
+                              }}
+                           >
+                              3
+                           </div>
+                           <div
+                              style={{
+                                 fontSize: isMobile ? "13px" : "14px",
+                                 color: "var(--text)",
+                                 fontWeight: 500,
+                              }}
+                           >
+                              <strong>On mobile/tablet</strong>, tap the arrow button that
+                              matches the displayed direction
+                           </div>
+                        </div>
+
+                        <div
+                           style={{
+                              display: "flex",
+                              alignItems: "flex-start",
+                              gap: "12px",
+                              padding: "12px",
+                              background: "rgba(134, 239, 172, 0.1)",
+                              borderRadius: "8px",
+                              border: "1px solid rgba(134, 239, 172, 0.3)",
+                           }}
+                        >
+                           <BoltIcon
+                              style={{
+                                 width: 20,
+                                 height: 20,
+                                 color: "var(--ok)",
+                                 flexShrink: 0,
+                                 marginTop: "2px",
+                              }}
+                           />
+                           <div
+                              style={{
+                                 fontSize: isMobile ? "13px" : "14px",
+                                 color: "var(--text)",
+                                 fontWeight: 500,
+                              }}
+                           >
+                              <strong>Tip:</strong> React quickly! The faster you match, the
+                              more correct answers you'll get. Arrows change faster as levels
+                              progress.
+                           </div>
+                        </div>
+                     </div>
+                  </div>
+               )}
+
                {/* Interactive Example for Avoid the Red */}
                {gameType === "avoid-red" && (
                   <div

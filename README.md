@@ -2027,6 +2027,141 @@ Reaction Test përfshin 10 variante unike të mini-lojave:
 -  **Passing Score**: 70 (70% of max score)
 -  **Difficulty**: 1 (easy to medium difficulty)
 
+#### Reflex Arrow
+
+```json
+{
+   "gameType": "reflex-arrow",
+   "levels": 15,
+   "levelRequirements": [
+      { "minCorrect": 8, "duration": 30, "arrowInterval": 2500 },
+      { "minCorrect": 9, "duration": 30, "arrowInterval": 2300 },
+      { "minCorrect": 10, "duration": 30, "arrowInterval": 2100 },
+      { "minCorrect": 11, "duration": 30, "arrowInterval": 1900 },
+      { "minCorrect": 12, "duration": 30, "arrowInterval": 1700 },
+      { "minCorrect": 13, "duration": 30, "arrowInterval": 1500 },
+      { "minCorrect": 14, "duration": 30, "arrowInterval": 1300 },
+      { "minCorrect": 15, "duration": 30, "arrowInterval": 1200 },
+      { "minCorrect": 16, "duration": 30, "arrowInterval": 1100 },
+      { "minCorrect": 17, "duration": 30, "arrowInterval": 1000 },
+      { "minCorrect": 18, "duration": 30, "arrowInterval": 900 },
+      { "minCorrect": 19, "duration": 30, "arrowInterval": 800 },
+      { "minCorrect": 20, "duration": 30, "arrowInterval": 700 },
+      { "minCorrect": 21, "duration": 30, "arrowInterval": 600 },
+      { "minCorrect": 22, "duration": 30, "arrowInterval": 500 }
+   ]
+}
+```
+
+**Configuration:**
+
+-  `gameType` (required): Must be `"reflex-arrow"`
+-  `levels` (optional): Number of levels - Default: **15**
+-  `levelRequirements` (optional): Array of requirements for each level - Default: **auto-progression**
+   -  Each object can have:
+      -  `minCorrect` (required): Minimum number of correct arrow matches required to pass the level
+      -  `duration` (optional): Duration in seconds for this specific level (default: 30)
+      -  `arrowInterval` (optional): Time in milliseconds between arrow changes (default: 2000)
+
+**Level Requirements:**
+
+-  **Level 1**: Minimum 8 correct matches, 30 seconds, arrows change every 2.5 seconds
+-  **Level 2**: Minimum 9 correct matches, 30 seconds, arrows change every 2.3 seconds
+-  **Level 3**: Minimum 10 correct matches, 30 seconds, arrows change every 2.1 seconds
+-  ... (progressive increase in difficulty)
+-  **Level 15**: Minimum 22 correct matches, 30 seconds, arrows change every 0.5 seconds
+
+**Level Passing Requirements:**
+
+-  Each level has a time limit (configurable per level via `duration`)
+-  You must match a minimum number of arrows correctly within the time limit
+-  If time runs out and requirements are not met, the level fails and you can replay it
+-  If you meet the minimum correct matches requirement, you can proceed to the next level
+
+**Scoring:**
+
+-  Score is calculated based on completed levels: `Math.round((completedLevels / maxLevels) * 100)`
+-  Maximum 100 points for 15 levels
+-  Score increases progressively with each completed level
+
+**Controls:**
+
+-  **Desktop Keyboard**:
+   -  **Arrow Keys** (↑ ↓ ← →): Match the displayed arrow direction
+   -  **WASD**: Alternative controls (W=↑, S=↓, A=←, D=→)
+-  **Mobile/Tablet**:
+   -  **Tap Arrow Buttons**: Tap the arrow button that matches the displayed direction
+   -  Arrow buttons are arranged in a cross pattern (up, down, left, right)
+
+**Goal:**
+
+-  Match arrow directions as fast as you can
+-  Reach the target number of correct matches to pass each level
+-  Progress through 15 levels with increasing difficulty (faster arrow changes, more correct matches required)
+
+**How It Works:**
+
+-  An arrow appears in the center of the screen pointing in one of four directions (↑ ↓ ← →)
+-  Quickly press the matching arrow key on your keyboard (or tap the matching arrow button on mobile/tablet)
+-  Correct matches are counted towards your progress
+-  Wrong matches are also tracked
+-  Arrows change automatically at intervals (faster in higher levels)
+-  If you meet the minimum correct matches requirement within the time limit, the level is completed
+-  If time runs out and requirements are not met, the level fails and you can replay it (5 replays by default, unlimited if shared)
+
+**Level Progression:**
+
+-  **Levels 1-3**: 8-10 correct answers, arrows change every 2.1-2.5 seconds (slow, easy)
+-  **Levels 4-6**: 11-13 correct answers, arrows change every 1.5-1.9 seconds (medium speed)
+-  **Levels 7-9**: 14-16 correct answers, arrows change every 1.1-1.3 seconds (fast)
+-  **Levels 10-12**: 17-19 correct answers, arrows change every 0.8-1.0 seconds (very fast)
+-  **Levels 13-15**: 20-22 correct answers, arrows change every 0.5-0.7 seconds (lightning fast)
+
+**Features:**
+
+-  Progressive difficulty with increasing speed and requirements across 15 levels
+-  Real-time feedback on correct/wrong matches (visual indicators)
+-  Level progression system (15 levels)
+-  Game state display (Level X Complete!, Level X Failed!, Game Complete!)
+-  **Mobile/Tablet Support**: On-screen arrow buttons arranged in a cross pattern for easy tapping
+-  **Desktop Support**: Full keyboard controls with Arrow Keys and WASD
+-  **Replay System**: 5 replays by default, unlimited if shared
+   -  Click "Replay" button to retry the current level
+   -  Replays reset the timer and correct/wrong counters
+   -  Share the game to unlock unlimited replays for 15 minutes
+-  **Share Feature**: Share the game to unlock unlimited replays
+   -  Click "Share for unlimited" button to copy a shareable link
+   -  **Share Success Message**: Shows "Link copied! Unlimited replay will unlock when someone opens your link!" for 15 seconds after sharing
+   -  **Unlimited Activated Message**: Shows "🎉 Someone opened your link! Unlimited replay is now active for 15 minutes!" when link is clicked
+   -  When someone else opens the shared link, the original sharer gets unlimited replays for 15 minutes
+   -  The system uses a heartbeat mechanism (checks every 10 seconds) to detect when the link is clicked
+   -  Replays automatically expire after 15 minutes and return to normal
+-  Modern UI with header showing level, score, time, and progress bar
+-  Stats display showing current correct/wrong matches and target
+-  Visual arrow display with feedback (green for correct, red for wrong)
+-  Fully responsive design optimized for mobile, tablet, and desktop
+-  Interactive example in game instructions section with visual demonstration
+-  **Time Management**: When time runs out, the game automatically checks if requirements are met and shows "failed" if not, allowing replay
+-  **Progress Tracking**: Progress bar shows completion based on levels (1, 2, 3...), not individual matches
+-  **Arrow Feedback**: Visual feedback on arrow display (border color changes, scale animation)
+
+**Tips:**
+
+-  Focus on the arrow direction, not the position
+-  Use muscle memory for faster responses
+-  On desktop, use arrow keys for precision
+-  On mobile, use the on-screen arrow buttons for quick tapping
+-  Stay calm and react quickly
+-  Higher levels require faster reactions due to shorter arrow intervals
+-  Use replays strategically when you're close to meeting the requirement
+-  Share the game to get unlimited replays if needed
+
+**Recommended Settings:**
+
+-  **Time Limit**: 0 (duration is per level)
+-  **Passing Score**: 70 (70% of max score)
+-  **Difficulty**: 2 (medium to hard difficulty)
+
 #### Whack-a-Shape
 
 ```json

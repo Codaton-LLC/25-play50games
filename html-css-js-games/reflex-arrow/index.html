@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<!--
+  Reflex Arrows
+  Desktop: press arrow keys (↑↓←→)
+  Mobile: tap on-screen arrow buttons
+
+  Usage: Save as reflex-arrows.html and open in a browser.
+-->
+<html lang="en">
+   <head>
+      <meta charset="UTF-8" />
+      <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <title>Reflex Arrows</title>
+      <style>
+         :root {
+            --bg: #0b1220;
+            --panel: #0f1b33;
+            --text: #e8eefc;
+            --muted: #a6b3d1;
+            --accent: #6ea8ff;
+            --good: #36d399;
+            --bad: #fb7185;
+            --shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
+            --radius: 18px;
+         }
+         * {
+            box-sizing: border-box;
+         }
+         body {
+            margin: 0;
+            font-family: system-ui;
+            background: radial-gradient(
+                  1200px 800px at 70% -10%,
+                  rgba(110, 168, 255, 0.28),
+                  transparent 60%
+               ),
+               radial-gradient(
+                  900px 600px at 0% 10%,
+                  rgba(54, 211, 153, 0.18),
+                  transparent 55%
+               ),
+               var(--bg);
+            color: var(--text);
+            min-height: 100svh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+         }
+
+         .app {
+            width: min(980px, 100%);
+            display: grid;
+            grid-template-columns: 1.2fr 0.8fr;
+            gap: 18px;
+         }
+         @media (max-width: 900px) {
+            .app {
+               grid-template-columns: 1fr;
+            }
+         }
+
+         .panel {
+            background: linear-gradient(
+               180deg,
+               rgba(255, 255, 255, 0.06),
+               rgba(255, 255, 255, 0.02)
+            );
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            overflow: hidden;
+         }
+
+         header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            padding: 18px;
+            gap: 12px;
+            flex-wrap: wrap;
+         }
+         h1 {
+            margin: 0;
+            font-size: 18px;
+         }
+         p {
+            margin: 4px 0 0;
+            color: var(--muted);
+            font-size: 13px;
+         }
+
+         button {
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            background: rgba(15, 27, 51, 0.7);
+            color: var(--text);
+            padding: 10px 14px;
+            font-weight: 900;
+            cursor: pointer;
+         }
+         button.primary {
+            background: linear-gradient(
+               180deg,
+               rgba(110, 168, 255, 0.9),
+               rgba(110, 168, 255, 0.55)
+            );
+            color: #081126;
+         }
+
+         .row {
+            display: flex;
+            gap: 12px;
+            padding: 14px 18px;
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            background: rgba(11, 22, 48, 0.45);
+            flex-wrap: wrap;
+         }
+
+         .pill {
+            padding: 8px 12px;
+            border-radius: 999px;
+            background: rgba(17, 28, 53, 0.55);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            font-size: 13px;
+            white-space: nowrap;
+         }
+
+         .content {
+            padding: 18px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+         }
+
+         .arena {
+            height: 360px;
+            border-radius: 18px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 22px;
+            text-align: center;
+         }
+
+         .arrow {
+            font-size: 96px;
+            font-weight: 900;
+            line-height: 1;
+            transition: transform 0.1s, color 0.1s;
+         }
+         .arrow.good {
+            color: var(--good);
+         }
+         .arrow.bad {
+            color: var(--bad);
+         }
+
+         .mobile-controls {
+            display: none;
+            gap: 10px;
+         }
+         .mobile-controls .mc {
+            width: 64px;
+            height: 64px;
+            border-radius: 16px;
+            font-size: 26px;
+            font-weight: 900;
+            background: rgba(110, 168, 255, 0.2);
+            border: 2px solid rgba(110, 168, 255, 0.5);
+            color: var(--accent);
+            touch-action: manipulation;
+         }
+
+         .hint {
+            font-size: 13px;
+            color: var(--muted);
+         }
+
+         .side {
+            padding: 18px;
+         }
+         .side h2 {
+            margin: 0 0 8px;
+            font-size: 14px;
+         }
+         .side ul {
+            margin: 0;
+            color: var(--muted);
+            font-size: 13px;
+            line-height: 1.35;
+            padding-left: 18px;
+         }
+         .side ul + h2 {
+            margin-top: 14px;
+         }
+      </style>
+   </head>
+   <body>
+      <div class="app">
+         <section class="panel">
+            <header>
+               <div>
+                  <h1>Reflex Arrows</h1>
+                  <p>Press arrow keys quickly</p>
+               </div>
+               <button class="primary" id="startBtn">Start</button>
+            </header>
+
+            <div class="row">
+               <div class="pill">Score: <b id="score">0</b></div>
+               <div class="pill">Time: <b id="time">30</b>s</div>
+               <div class="pill">Misses: <b id="misses">0</b></div>
+            </div>
+
+            <div class="content">
+               <div class="arena">
+                  <div class="arrow" id="arrow">⬆️</div>
+                  <div class="hint" id="hint">Press Start</div>
+
+                  <!-- Mobile Controls -->
+                  <div
+                     class="mobile-controls"
+                     id="mobileControls"
+                     style="gap: 12px; margin-top: 12px"
+                  >
+                     <div
+                        style="
+                           display: flex;
+                           gap: 12px;
+                           justify-content: center;
+                        "
+                     >
+                        <button class="mc" data-key="ArrowUp" aria-label="Up">
+                           ⬆️
+                        </button>
+                     </div>
+                     <div
+                        style="
+                           display: flex;
+                           gap: 12px;
+                           justify-content: center;
+                        "
+                     >
+                        <button
+                           class="mc"
+                           data-key="ArrowLeft"
+                           aria-label="Left"
+                        >
+                           ⬅️
+                        </button>
+                        <button
+                           class="mc"
+                           data-key="ArrowDown"
+                           aria-label="Down"
+                        >
+                           ⬇️
+                        </button>
+                        <button
+                           class="mc"
+                           data-key="ArrowRight"
+                           aria-label="Right"
+                        >
+                           ➡️
+                        </button>
+                     </div>
+                  </div>
+               </div>
+            </div>
+         </section>
+
+         <aside class="panel">
+            <div class="side">
+               <h2>How to Play</h2>
+               <ul>
+                  <li>An arrow appears on screen.</li>
+                  <li>Press the matching arrow key (or tap on mobile).</li>
+                  <li>Each correct input = +1 score.</li>
+               </ul>
+
+               <h2>Tips</h2>
+               <ul>
+                  <li>Keep fingers on arrow keys.</li>
+                  <li>React immediately.</li>
+               </ul>
+            </div>
+         </aside>
+      </div>
+
+      <script>
+         // ===== Reflex Arrows – Vanilla JS =====
+         const ROUND_SECONDS = 30;
+         const ARROWS = [
+            { key: "ArrowUp", symbol: "⬆️" },
+            { key: "ArrowDown", symbol: "⬇️" },
+            { key: "ArrowLeft", symbol: "⬅️" },
+            { key: "ArrowRight", symbol: "➡️" },
+         ];
+
+         let running = false;
+         let score = 0;
+         let misses = 0;
+         let timeLeft = ROUND_SECONDS;
+         let timer = null;
+         let current = null;
+
+         const arrowEl = document.getElementById("arrow");
+         const scoreEl = document.getElementById("score");
+         const timeEl = document.getElementById("time");
+         const missesEl = document.getElementById("misses");
+         const hintEl = document.getElementById("hint");
+         const startBtn = document.getElementById("startBtn");
+         const mobileControls = document.getElementById("mobileControls");
+
+         function updateUI() {
+            scoreEl.textContent = String(score);
+            timeEl.textContent = String(timeLeft);
+            missesEl.textContent = String(misses);
+         }
+
+         function nextArrow() {
+            const idx = Math.floor(Math.random() * ARROWS.length);
+            current = ARROWS[idx];
+            arrowEl.textContent = current.symbol;
+            arrowEl.classList.remove("good", "bad");
+         }
+
+         function endGame() {
+            running = false;
+            clearInterval(timer);
+            timer = null;
+            hintEl.textContent = `Done! Score: ${score}`;
+         }
+
+         function startGame() {
+            running = true;
+            score = 0;
+            misses = 0;
+            timeLeft = ROUND_SECONDS;
+            updateUI();
+            hintEl.textContent = "GO!";
+            nextArrow();
+
+            clearInterval(timer);
+            timer = setInterval(() => {
+               timeLeft--;
+               updateUI();
+               if (timeLeft <= 0) endGame();
+            }, 1000);
+         }
+
+         function handleInput(key) {
+            if (!running || !current) return;
+
+            if (key === current.key) {
+               score++;
+               arrowEl.classList.add("good");
+               nextArrow();
+            } else if (typeof key === "string" && key.indexOf("Arrow") === 0) {
+               misses++;
+               arrowEl.classList.add("bad");
+            }
+            updateUI();
+         }
+
+         // Desktop keyboard
+         window.addEventListener("keydown", (e) => {
+            handleInput(e.key);
+         });
+
+         // Mobile buttons
+         const isTouch =
+            "ontouchstart" in window || navigator.maxTouchPoints > 0;
+         if (isTouch) {
+            mobileControls.style.display = "grid";
+         }
+         mobileControls.querySelectorAll(".mc").forEach((btn) => {
+            btn.addEventListener("click", () => handleInput(btn.dataset.key));
+            btn.addEventListener(
+               "touchstart",
+               (e) => {
+                  e.preventDefault();
+                  handleInput(btn.dataset.key);
+               },
+               { passive: false }
+            );
+         });
+
+         startBtn.addEventListener("click", startGame);
+
+         // ===== Tests (Console) =====
+         (function runTests() {
+            try {
+               console.assert(
+                  ARROWS.length === 4,
+                  "Test: should have 4 arrows"
+               );
+               const keys = ARROWS.map((a) => a.key);
+               console.assert(keys.includes("ArrowUp"), "Test: ArrowUp exists");
+               console.assert(
+                  keys.includes("ArrowDown"),
+                  "Test: ArrowDown exists"
+               );
+               console.assert(
+                  keys.includes("ArrowLeft"),
+                  "Test: ArrowLeft exists"
+               );
+               console.assert(
+                  keys.includes("ArrowRight"),
+                  "Test: ArrowRight exists"
+               );
+               console.assert(ROUND_SECONDS > 0, "Test: ROUND_SECONDS > 0");
+
+               // deterministic logic test
+               running = true;
+               current = { key: "ArrowUp", symbol: "⬆️" };
+               const prevScore = score;
+               handleInput("ArrowUp");
+               console.assert(
+                  score === prevScore + 1,
+                  "Test: correct input increments score"
+               );
+            } catch (err) {
+               console.warn("Reflex Arrows tests failed", err);
+            } finally {
+               // restore safe defaults
+               running = false;
+               score = 0;
+               misses = 0;
+               timeLeft = ROUND_SECONDS;
+               current = null;
+               updateUI();
+               hintEl.textContent = "Press Start";
+               arrowEl.textContent = "⬆️";
+            }
+         })();
+      </script>
+   </body>
+</html>

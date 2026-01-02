@@ -486,10 +486,20 @@ export const gameInstructions: Record<string, {
       { action: 'Rapid Clicking', label: 'Click as fast as possible to maximize taps' },
     ],
   },
-  'reflex-arrows': {
-    description: 'Press arrow keys quickly',
-    instructions: 'Arrow keys (↑↓←→) will appear on screen. Press the corresponding arrow key on your keyboard as quickly as possible.',
-    tips: 'Keep your fingers on the arrow keys. React immediately when you see the direction.'
+  'reflex-arrow': {
+    description: 'Match arrow directions as fast as you can across 15 unique levels',
+    instructions: '<p>An arrow will appear on screen. Quickly match the direction by pressing the corresponding arrow key (or clicking the arrow button on mobile/tablet). Each level requires a certain number of correct matches within the time limit.</p><h4 style="margin-top: 16px; margin-bottom: 8px; font-weight: 600;">HOW TO PLAY:</h4><ol style="margin-left: 20px; margin-bottom: 16px;"><li>An arrow will appear in the center of the screen pointing in one of four directions (↑ ↓ ← →).</li><li>Quickly press the matching arrow key on your keyboard (Arrow Keys or WASD).</li><li>On mobile/tablet, tap the corresponding arrow button.</li><li>Correct answers are counted towards your progress.</li><li>Reach the required number of correct answers within the time limit to pass the level.</li><li>If time runs out and you haven\'t reached the target, the level will fail.</li><li>Difficulty increases with each level: faster arrow changes and more correct answers required.</li></ol><h4 style="margin-top: 16px; margin-bottom: 8px; font-weight: 600;">LEVEL PROGRESSION:</h4><ul style="margin-left: 20px; margin-bottom: 16px;"><li><strong>Levels 1-3:</strong> 8-10 correct answers, arrows change every 2.1-2.5 seconds</li><li><strong>Levels 4-6:</strong> 11-13 correct answers, arrows change every 1.5-1.9 seconds</li><li><strong>Levels 7-9:</strong> 14-16 correct answers, arrows change every 1.1-1.3 seconds</li><li><strong>Levels 10-12:</strong> 17-19 correct answers, arrows change every 0.8-1.0 seconds</li><li><strong>Levels 13-15:</strong> 20-22 correct answers, arrows change every 0.5-0.7 seconds</li></ul>',
+    tips: 'Focus on the arrow direction, not the position. Use muscle memory for faster responses. On desktop, use arrow keys for precision. On mobile, use the on-screen arrow buttons for quick tapping. Stay calm and react quickly.',
+    keyboardControls: [
+      { keys: ['Arrow Up', 'W'], label: 'Match up arrow (↑)' },
+      { keys: ['Arrow Down', 'S'], label: 'Match down arrow (↓)' },
+      { keys: ['Arrow Left', 'A'], label: 'Match left arrow (←)' },
+      { keys: ['Arrow Right', 'D'], label: 'Match right arrow (→)' },
+    ],
+    mouseControls: [
+      { action: 'Click/Tap', label: 'Tap the arrow button matching the displayed direction (mobile/tablet)' },
+      { action: 'Quick Tap', label: 'Tap as fast as possible when arrow appears' },
+    ],
   },
   
   // Skill Games

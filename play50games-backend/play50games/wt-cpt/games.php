@@ -74,7 +74,7 @@ function show_games_custom_fields() {
                     <option value="quick-compare" data-category="speed">32. Quick Compare</option>
                     <option value="falling-objects" data-category="speed">33. Falling Objects</option>
                     <option value="tap-counter" data-category="speed">34. Tap Counter</option>
-                    <option value="reflex-arrows" data-category="speed">35. Reflex Arrows</option>
+                    <option value="reflex-arrow" data-category="speed">35. Reflex Arrow</option>
                 </optgroup>
                 <optgroup label="Skill Games (36-45)" data-category="skill">
                     <option value="ball-balance" data-category="skill">36. Ball Balance</option>
@@ -632,16 +632,16 @@ function show_games_custom_fields() {
                 description: 'Tap as fast as you can across 15 unique levels. Progressive difficulty with increasing tap requirements and speed challenges.',
                 gameConfig: '{"gameType": "tap-counter", "levels": 15, "levelRequirements": [{"minTaps": 20, "duration": 10}, {"minTaps": 25, "duration": 10}, {"minTaps": 30, "duration": 10}, {"minTaps": 35, "duration": 10}, {"minTaps": 40, "duration": 10}, {"minTaps": 45, "duration": 10}, {"minTaps": 50, "duration": 10}, {"minTaps": 55, "duration": 10}, {"minTaps": 60, "duration": 10}, {"minTaps": 65, "duration": 10}, {"minTaps": 70, "duration": 10}, {"minTaps": 75, "duration": 10}, {"minTaps": 80, "duration": 10}, {"minTaps": 85, "duration": 10}, {"minTaps": 90, "duration": 10}]}'
             },
-            'reflex-arrows': {
-                title: 'Reflex Arrows',
+            'reflex-arrow': {
+                title: 'Reflex Arrow',
                 gameType: 'speed',
                 gameOrder: 35,
                 difficulty: 2,
-                timeLimit: 60,
-                passingScore: 75,
+                timeLimit: 0,
+                passingScore: 70,
                 unlockRequirement: '',
-                description: 'Press arrow keys quickly',
-                gameConfig: '{"gameType": "reflex-arrows", "rounds": 15}'
+                description: 'Match arrow directions as fast as you can across 15 unique levels. Progressive difficulty with faster arrow changes and more correct answers required.',
+                gameConfig: '{"gameType": "reflex-arrow", "levels": 15, "levelRequirements": [{"minCorrect": 8, "duration": 30, "arrowInterval": 2500}, {"minCorrect": 9, "duration": 30, "arrowInterval": 2300}, {"minCorrect": 10, "duration": 30, "arrowInterval": 2100}, {"minCorrect": 11, "duration": 30, "arrowInterval": 1900}, {"minCorrect": 12, "duration": 30, "arrowInterval": 1700}, {"minCorrect": 13, "duration": 30, "arrowInterval": 1500}, {"minCorrect": 14, "duration": 30, "arrowInterval": 1300}, {"minCorrect": 15, "duration": 30, "arrowInterval": 1200}, {"minCorrect": 16, "duration": 30, "arrowInterval": 1100}, {"minCorrect": 17, "duration": 30, "arrowInterval": 1000}, {"minCorrect": 18, "duration": 30, "arrowInterval": 900}, {"minCorrect": 19, "duration": 30, "arrowInterval": 800}, {"minCorrect": 20, "duration": 30, "arrowInterval": 700}, {"minCorrect": 21, "duration": 30, "arrowInterval": 600}, {"minCorrect": 22, "duration": 30, "arrowInterval": 500}]}'
             },
             'ball-balance': {
                 title: 'Ball Balance',
