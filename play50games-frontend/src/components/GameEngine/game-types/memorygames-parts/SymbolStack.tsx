@@ -556,8 +556,8 @@ function SymbolStack({
             justifyContent: "center",
             minHeight: "100%",
             width: "100%",
-            padding: isMobile ? "12px" : "20px",
-            gap: isMobile ? "16px" : "24px",
+            padding: isMobile ? "16px" : isTablet ? "20px" : "24px",
+            gap: isMobile ? "16px" : "20px",
          }}
       >
          {/* Header Section */}
@@ -565,13 +565,14 @@ function SymbolStack({
             style={{
                width: "100%",
                maxWidth: "800px",
+               background: "var(--card)",
+               border: "1px solid var(--stroke)",
+               borderRadius: isMobile ? "16px" : "20px",
+               padding: isMobile ? "16px" : "20px",
+               boxShadow: "0 8px 24px rgba(0, 0, 0, 0.2)",
                display: "flex",
                flexDirection: "column",
                gap: isMobile ? "12px" : "16px",
-               padding: isMobile ? "12px" : "16px",
-               background: "var(--panel)",
-               borderRadius: "var(--radius)",
-               border: "1px solid var(--border)",
             }}
          >
             <div
@@ -585,36 +586,48 @@ function SymbolStack({
             >
                <span
                   style={{
+                     fontSize: isMobile ? "0.875rem" : "1rem",
+                     fontWeight: 600,
+                     color: "var(--text)",
                      display: "flex",
                      alignItems: "center",
                      gap: "6px",
-                     fontSize: isMobile ? "0.85rem" : "0.95rem",
-                     color: "var(--text)",
-                     fontWeight: 600,
                   }}
                >
-                  <ArrowPathIcon style={{ width: 16, height: 16 }} />
+                  <ArrowPathIcon
+                     style={{
+                        width: isMobile ? 14 : 16,
+                        height: isMobile ? 14 : 16,
+                     }}
+                  />
                   Round {currentRound + 1} / {maxRounds}
                </span>
                <span
                   style={{
+                     fontSize: isMobile ? "0.875rem" : "1rem",
+                     fontWeight: 600,
+                     color: "var(--text)",
                      display: "flex",
                      alignItems: "center",
                      gap: "6px",
-                     fontSize: isMobile ? "0.85rem" : "0.95rem",
-                     color: "var(--text)",
-                     fontWeight: 600,
                   }}
                >
-                  <TrophyIcon style={{ width: 16, height: 16 }} />
+                  <TrophyIcon
+                     style={{
+                        width: isMobile ? 14 : 16,
+                        height: isMobile ? 14 : 16,
+                        color: "var(--ok)",
+                     }}
+                  />
                   Score: {currentScore} / 100
                </span>
             </div>
+            {/* Progress Bar */}
             <div
                style={{
                   width: "100%",
                   height: isMobile ? "6px" : "8px",
-                  background: "var(--bg)",
+                  background: "rgba(255, 255, 255, 0.1)",
                   borderRadius: "999px",
                   overflow: "hidden",
                }}
@@ -624,9 +637,10 @@ function SymbolStack({
                      width: `${progress}%`,
                      height: "100%",
                      background:
-                        "linear-gradient(90deg, rgba(59, 130, 246, 0.9), rgba(37, 99, 235, 0.9))",
+                        "linear-gradient(90deg, var(--accent) 0%, var(--ok) 100%)",
                      borderRadius: "999px",
                      transition: "width 0.3s ease",
+                     boxShadow: "0 0 10px rgba(125, 211, 252, 0.5)",
                   }}
                />
             </div>
@@ -929,22 +943,21 @@ function SymbolStack({
             )}
 
             {/* Share Success Message */}
-            {shareSuccess && (
+            {shareSuccess && !unlimitedActivated && (
                <div
                   style={{
-                     display: "flex",
-                     alignItems: "center",
-                     gap: "8px",
-                     padding: isMobile ? "10px 16px" : "12px 20px",
-                     background: "var(--ok)",
-                     border: "1px solid var(--ok)",
-                     borderRadius: "var(--radius)",
-                     color: "white",
-                     fontSize: isMobile ? "0.85rem" : "0.95rem",
-                     fontWeight: 500,
+                     width: "100%",
+                     padding: "12px",
+                     background: "rgba(134, 239, 172, 0.2)",
+                     border: "2px solid rgba(134, 239, 172, 0.6)",
+                     borderRadius: "8px",
+                     fontSize: isMobile ? "0.9rem" : "1rem",
+                     fontWeight: 600,
+                     color: "var(--ok)",
+                     textAlign: "center",
+                     marginBottom: "8px",
                   }}
                >
-                  <CheckCircleIcon style={{ width: 18, height: 18 }} />
                   Link copied! Unlimited hints will unlock when someone opens
                   your link!
                </div>
@@ -956,19 +969,34 @@ function SymbolStack({
                   style={{
                      display: "flex",
                      alignItems: "center",
-                     gap: "8px",
-                     padding: isMobile ? "10px 16px" : "12px 20px",
-                     background: "rgba(59, 130, 246, 0.9)",
-                     border: "1px solid rgba(59, 130, 246, 0.9)",
-                     borderRadius: "var(--radius)",
-                     color: "white",
-                     fontSize: isMobile ? "0.85rem" : "0.95rem",
+                     gap: isMobile ? "6px" : "8px",
+                     padding: isMobile ? "10px 14px" : "8px 16px",
+                     background:
+                        "linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1))",
+                     border: "2px solid rgba(59, 130, 246, 0.6)",
+                     borderRadius: isMobile ? "10px" : "8px",
+                     color: "var(--text)",
+                     fontSize: isMobile ? "0.85rem" : "0.9rem",
                      fontWeight: 500,
+                     width: "100%",
+                     justifyContent: "center",
+                     textAlign: "center",
+                     flexWrap: "wrap",
+                     marginBottom: "8px",
                   }}
                >
-                  <CheckCircleIcon style={{ width: 18, height: 18 }} />
-                  🎉 Someone opened your link! Unlimited hints is now active for
-                  15 minutes!
+                  <CheckCircleIcon
+                     style={{
+                        width: isMobile ? 16 : 18,
+                        height: isMobile ? 16 : 18,
+                        color: "rgba(59, 130, 246, 0.9)",
+                        flexShrink: 0,
+                     }}
+                  />
+                  <span>
+                     🎉 Someone opened your link! Unlimited hints is now active
+                     for 15 minutes!
+                  </span>
                </div>
             )}
          </div>

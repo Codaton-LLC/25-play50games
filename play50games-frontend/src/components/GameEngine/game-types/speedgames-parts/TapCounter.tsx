@@ -277,35 +277,77 @@ export default function TapCounter({
    }, [currentLevel, maxLevels]);
 
    // Share functionality
-   const handleShare = useCallback(async () => {
-      try {
-         const shareData = await registerShare();
-         if (shareData && shareData.shareId) {
-            setCurrentShareId(shareData.shareId);
-            setHasShared(true);
-            setUnlimitedActivated(true);
-            setShareSuccess(true);
+   // Share functionality
+   const getShareableLink = (): string => {
+      const currentUrl = window.location.href.split("?")[0];
+      const shareId =
+         Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
+      return `${currentUrl}?shared=${shareId}`;
+   };
 
-            // Start checking for clicks
-            shareCheckIntervalRef.current = setInterval(async () => {
-               try {
-                  const status = await getShareStatus(shareData.shareId);
-                  if (status && status.clicks >= 3) {
-                     setUnlimitedActivated(true);
-                     if (shareCheckIntervalRef.current) {
-                        clearInterval(shareCheckIntervalRef.current);
-                        shareCheckIntervalRef.current = null;
-                     }
-                  }
-               } catch (error) {
-                  console.error("Error checking share status:", error);
-               }
-            }, 5000);
-         }
+   const registerShareLink = async (shareId: string) => {
+      try {
+         await registerShare(shareId, "tap-counter");
+         const gameKey = "play50games_shared_tap-counter";
+         localStorage.setItem(gameKey, JSON.stringify({ share_id: shareId }));
+         setCurrentShareId(shareId);
       } catch (error) {
-         console.error("Error sharing:", error);
+         // Error registering share
       }
-   }, []);
+   };
+
+   const handleShare = async () => {
+      const shareableLink = getShareableLink();
+      const shareId = new URL(shareableLink).searchParams.get("shared") || "";
+
+      if (!shareId) return;
+
+      await registerShareLink(shareId);
+
+      if (navigator.share) {
+         try {
+            await navigator.share({
+               title: "Tap Counter Game",
+               text: "Check out this awesome Tap Counter game!",
+               url: shareableLink,
+            });
+            setShareSuccess(true);
+            setTimeout(() => setShareSuccess(false), 15000);
+         } catch (error: any) {
+            if (error.name !== "AbortError") {
+               handleCopyLink(shareId);
+            }
+         }
+      } else {
+         handleCopyLink(shareId);
+      }
+   };
+
+   const handleCopyLink = async (shareId: string) => {
+      const currentUrl = window.location.href.split("?")[0];
+      const shareableLink = `${currentUrl}?shared=${shareId}`;
+
+      try {
+         await navigator.clipboard.writeText(shareableLink);
+         setShareSuccess(true);
+         setTimeout(() => setShareSuccess(false), 15000);
+      } catch (error) {
+         const textArea = document.createElement("textarea");
+         textArea.value = shareableLink;
+         textArea.style.position = "fixed";
+         textArea.style.opacity = "0";
+         document.body.appendChild(textArea);
+         textArea.select();
+         try {
+            document.execCommand("copy");
+            setShareSuccess(true);
+            setTimeout(() => setShareSuccess(false), 15000);
+         } catch (err) {
+            // Failed to copy
+         }
+         document.body.removeChild(textArea);
+      }
+   };
 
    // Replay functionality
    const handleReplay = useCallback(() => {
@@ -344,6 +386,162 @@ export default function TapCounter({
          });
       }, 1000);
    }, [replaysUsed, maxReplays, unlimitedActivated, currentLevel, getLevelDuration]);
+
+   // Check if share has clicks
+   useEffect(() => {
+      if (!currentShareId) return;
+
+      const checkShareStatus = async () => {
+         const gameKey = "play50games_shared_tap-counter";
+         try {
+            const status = await getShareStatus(currentShareId);
+            const hasClicks = status.has_clicks || status.clicks > 0;
+            if (hasClicks && !hasShared) {
+               // Share has clicks - activate unlimited replays with expiry
+               setHasShared(true);
+               setUnlimitedActivated(true);
+               setReplaysUsed(0); // Reset replay count
+
+               const expiry = Date.now() + 15 * 60 * 1000; // 15 minutes
+               localStorage.setItem(
+                  gameKey,
+                  JSON.stringify({
+                     share_id: currentShareId,
+                     shared: true,
+                     expiry: expiry,
+                  })
+               );
+
+               // Set timeout to expire after 15 minutes
+               setTimeout(() => {
+                  setUnlimitedActivated(false);
+                  setHasShared(false);
+                  localStorage.removeItem(gameKey);
+               }, 15 * 60 * 1000);
+
+               // Stop checking once activated
+               if (shareCheckIntervalRef.current) {
+                  clearInterval(shareCheckIntervalRef.current);
+                  shareCheckIntervalRef.current = null;
+               }
+            }
+         } catch (error) {
+            // Error checking share status - share doesn't exist, deactivate unlimited
+            const errorMessage =
+               error instanceof Error ? error.message : String(error);
+            if (
+               errorMessage.includes("404") ||
+               errorMessage.includes("not found") ||
+               errorMessage.includes("expired")
+            ) {
+               setUnlimitedActivated(false);
+               setHasShared(false);
+               localStorage.removeItem(gameKey);
+               setCurrentShareId(null);
+               if (shareCheckIntervalRef.current) {
+                  clearInterval(shareCheckIntervalRef.current);
+                  shareCheckIntervalRef.current = null;
+               }
+            }
+         }
+      };
+
+      checkShareStatus();
+      shareCheckIntervalRef.current = setInterval(checkShareStatus, 10000);
+
+      return () => {
+         if (shareCheckIntervalRef.current) {
+            clearInterval(shareCheckIntervalRef.current);
+            shareCheckIntervalRef.current = null;
+         }
+      };
+   }, [currentShareId, hasShared]);
+
+   // Check for existing share on mount
+   useEffect(() => {
+      const gameKey = "play50games_shared_tap-counter";
+      const stored = localStorage.getItem(gameKey);
+      if (stored) {
+         try {
+            const data = JSON.parse(stored);
+            // Check if share has expired
+            if (data.expiry && Date.now() > data.expiry) {
+               // Share expired - clean up
+               localStorage.removeItem(gameKey);
+               return;
+            }
+            if (data.share_id) {
+               setCurrentShareId(data.share_id);
+               // Verify with backend before activating unlimited
+               const verifyShare = async () => {
+                  try {
+                     const status = await getShareStatus(data.share_id);
+                     const hasClicks = status.has_clicks || status.clicks > 0;
+                     if (hasClicks) {
+                        // Share exists in backend and has clicks - activate unlimited
+                        if (
+                           data.shared &&
+                           data.expiry &&
+                           Date.now() < data.expiry
+                        ) {
+                           // Already activated and not expired
+                           setHasShared(true);
+                           setUnlimitedActivated(true);
+                           setReplaysUsed(0);
+
+                           // Set timeout to expire after remaining time
+                           const remainingTime = data.expiry - Date.now();
+                           if (remainingTime > 0) {
+                              setTimeout(() => {
+                                 setUnlimitedActivated(false);
+                                 setHasShared(false);
+                                 localStorage.removeItem(gameKey);
+                              }, remainingTime);
+                           }
+                        } else {
+                           // Has clicks but not activated yet - activate now
+                           setHasShared(true);
+                           setUnlimitedActivated(true);
+                           setReplaysUsed(0);
+                           const expiryTime = Date.now() + 15 * 60 * 1000; // 15 minutes
+                           localStorage.setItem(
+                              gameKey,
+                              JSON.stringify({
+                                 share_id: data.share_id,
+                                 expiry: expiryTime,
+                                 shared: true,
+                              })
+                           );
+                           setTimeout(() => {
+                              setUnlimitedActivated(false);
+                              setHasShared(false);
+                              localStorage.removeItem(gameKey);
+                           }, 15 * 60 * 1000);
+                        }
+                     }
+                  } catch (error) {
+                     // Error checking share (404 or other) - clean up
+                     localStorage.removeItem(gameKey);
+                     setCurrentShareId(null);
+                  }
+               };
+               verifyShare();
+            }
+         } catch (error) {
+            // Error parsing stored data - clean up
+            localStorage.removeItem(gameKey);
+         }
+      }
+
+      // Check URL for shared parameter
+      const urlParams = new URLSearchParams(window.location.search);
+      const sharedBy = urlParams.get("shared");
+      if (sharedBy) {
+         // Track the share click when someone opens the link
+         trackShareClick(sharedBy);
+         setCurrentShareId(sharedBy);
+      }
+   }, []);
 
    // Cleanup on unmount
    useEffect(() => {

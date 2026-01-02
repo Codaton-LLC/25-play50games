@@ -504,9 +504,17 @@ export const gameInstructions: Record<string, {
   
   // Skill Games
   'ball-balance': {
-    description: 'Balance a ball on a platform',
-    instructions: 'Use your mouse or touch to tilt the platform and keep the ball balanced in the center zone. Don\'t let it fall!',
-    tips: 'Make small, gentle movements. Overcorrecting will make the ball fall faster.'
+    description: 'Balance a ball on a platform using mouse/touch tilt across 15 challenging levels with special features',
+    instructions: '<p>Tilt the platform using your mouse (move left/right) or touch (drag left/right) to keep the ball balanced in the center zone. Each level requires you to keep the ball in the center zone for a minimum amount of time. Don\'t let the ball fall off the platform!</p><h4 style="margin-top: 16px; margin-bottom: 8px; font-weight: 600;">SPECIAL FEATURES BY LEVEL:</h4><ul style="margin-left: 20px; margin-bottom: 16px;"><li><strong style="color: #3b82f6;">Levels 1-5:</strong> Basic balancing - learn the controls and physics</li><li><strong style="color: #f59e0b;">Levels 6-7:</strong> <strong>Shrinking Platform</strong> - Platform narrows faster and gets smaller</li><li><strong style="color: #ef4444;">Levels 8-9:</strong> <strong>Red Danger Zones</strong> - Avoid red zones on the sides! If the ball stays in a red zone for 1 second, you lose</li><li><strong style="color: #f59e0b;">Level 10:</strong> <strong>Shrinking Platform + Red Zones</strong> - Combined challenge</li><li><strong style="color: #8b5cf6;">Levels 11-12:</strong> <strong>Platform Shake</strong> - Stronger shake bursts that force quick corrections</li><li><strong style="color: #06b6d4;">Level 13:</strong> <strong>Wind Zones</strong> - Random wind pushes left or right</li><li><strong style="color: #8b5cf6;">Level 14:</strong> <strong>Platform Shake + Wind Zones</strong> - Double challenge</li><li><strong style="color: #dc2626;">Level 15:</strong> <strong>Ultimate Challenge</strong> - Shrinking Platform, Red Zones, Platform Shake, and Wind Zones</li></ul><h4 style="margin-top: 16px; margin-bottom: 8px; font-weight: 600;">HOW TO PLAY:</h4><ol style="margin-left: 20px; margin-bottom: 16px;"><li>Move your mouse left/right (or drag on touch devices) to tilt the platform</li><li>Keep the ball in the green center zone for the required time</li><li>Watch out for special features that activate in higher levels</li><li>Each level has increasing difficulty with more challenging physics and features</li><li>Complete all 15 levels to finish the game</li></ol>',
+    tips: 'Make small, gentle movements - overcorrecting will make the ball fall faster. Focus on keeping the ball in the center zone (green dashed area). For shrinking platforms, plan ahead as space becomes limited. Avoid red zones at all costs - they cause instant failure. When platform shakes, stay calm and make quick corrections. In wind zones, compensate by tilting against the wind direction. Practice makes perfect - each level teaches new skills!',
+    mouseControls: [
+      { action: 'Move Mouse', label: 'Move mouse left/right over the arena to tilt the platform' },
+      { action: 'Drag (Touch)', label: 'Drag finger left/right on mobile/tablet to tilt the platform' },
+    ],
+    keyboardControls: [
+      { keys: ['ArrowLeft', 'A'], label: 'Tilt platform left' },
+      { keys: ['ArrowRight', 'D'], label: 'Tilt platform right' },
+    ],
   },
   'target-aim': {
     description: 'Click moving targets with increasing speed',

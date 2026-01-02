@@ -90,7 +90,7 @@ export default function ReflexArrow({
       "playing"
    );
    const requirementsMetRef = useRef(false);
-   const startLevelRef = useRef<() => void>(() => {});
+   const startLevelRef = useRef<(level: number) => void>(() => {});
    const prevLevelRef = useRef<number | null>(null);
    const forceStartLevelRef = useRef<number | null>(null);
    const completionCalledRef = useRef(false);
@@ -244,7 +244,10 @@ export default function ReflexArrow({
             clearInterval(arrowTimerRef.current);
          }
          arrowTimerRef.current = setInterval(() => {
-            if (gameStateRef.current === "playing" && !requirementsMetRef.current) {
+            if (
+               gameStateRef.current === "playing" &&
+               !requirementsMetRef.current
+            ) {
                generateArrow();
             } else {
                if (arrowTimerRef.current) {
@@ -256,8 +259,6 @@ export default function ReflexArrow({
       },
       [generateArrow]
    );
-
-   startLevelRef.current = startLevel;
 
    useEffect(() => {
       startLevelRef.current = startLevel;
@@ -355,7 +356,13 @@ export default function ReflexArrow({
          gameStateRef.current = "failed";
          setTargetArrow(null);
       }
-   }, [timeLeft, gameState, requirementsMet, correctAnswers, getMinCorrectAnswers]);
+   }, [
+      timeLeft,
+      gameState,
+      requirementsMet,
+      correctAnswers,
+      getMinCorrectAnswers,
+   ]);
 
    useEffect(() => {
       requirementsMetRef.current = requirementsMet;
@@ -387,7 +394,10 @@ export default function ReflexArrow({
             setFeedback("correct");
             setTimeout(() => {
                setFeedback(null);
-               if (gameStateRef.current === "playing" && !requirementsMetRef.current) {
+               if (
+                  gameStateRef.current === "playing" &&
+                  !requirementsMetRef.current
+               ) {
                   generateArrow();
                }
             }, 300);
@@ -497,51 +507,231 @@ export default function ReflexArrow({
 
    // Share functionality
    const getShareableLink = (): string => {
-      const baseUrl = window.location.origin;
-      const gameId = config?.id || "reflex-arrow";
-      return `${baseUrl}/games/${gameId}?share=${currentShareId}`;
+      const currentUrl = window.location.href.split("?")[0];
+      const shareId =
+         Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
+      return `${currentUrl}?shared=${shareId}`;
    };
 
-   const handleShare = useCallback(async () => {
+   const registerShareLink = async (shareId: string) => {
       try {
-         const gameId = config?.id || "reflex-arrow";
-         const shareData = await registerShare(gameId);
-         if (shareData && shareData.shareId) {
-            setCurrentShareId(shareData.shareId);
-            setHasShared(true);
-            const link = getShareableLink();
-            await navigator.clipboard.writeText(link);
-            setShareSuccess(true);
-            setTimeout(() => {
-               setShareSuccess(false);
-            }, 15000);
-
-            // Start checking for share activation
-            if (shareCheckIntervalRef.current) {
-               clearInterval(shareCheckIntervalRef.current);
-            }
-            shareCheckIntervalRef.current = setInterval(async () => {
-               try {
-                  const status = await getShareStatus(shareData.shareId);
-                  if (status && status.clicked) {
-                     setUnlimitedActivated(true);
-                     if (shareCheckIntervalRef.current) {
-                        clearInterval(shareCheckIntervalRef.current);
-                        shareCheckIntervalRef.current = null;
-                     }
-                     setTimeout(() => {
-                        setUnlimitedActivated(false);
-                     }, 15 * 60 * 1000); // 15 minutes
-                  }
-               } catch (error) {
-                  console.error("Error checking share status:", error);
-               }
-            }, 10000); // Check every 10 seconds
-         }
+         await registerShare(shareId, "reflex-arrow");
+         const gameKey = "play50games_shared_reflex-arrow";
+         localStorage.setItem(gameKey, JSON.stringify({ share_id: shareId }));
+         setCurrentShareId(shareId);
       } catch (error) {
-         console.error("Error sharing:", error);
+         // Error registering share
       }
-   }, [config, currentShareId]);
+   };
+
+   const handleShare = async () => {
+      const shareableLink = getShareableLink();
+      const shareId = new URL(shareableLink).searchParams.get("shared") || "";
+
+      if (!shareId) return;
+
+      await registerShareLink(shareId);
+
+      if (navigator.share) {
+         try {
+            await navigator.share({
+               title: "Reflex Arrow Game",
+               text: "Check out this awesome Reflex Arrow game!",
+               url: shareableLink,
+            });
+            setShareSuccess(true);
+            setTimeout(() => setShareSuccess(false), 15000);
+         } catch (error: any) {
+            if (error.name !== "AbortError") {
+               handleCopyLink(shareId);
+            }
+         }
+      } else {
+         handleCopyLink(shareId);
+      }
+   };
+
+   const handleCopyLink = async (shareId: string) => {
+      const currentUrl = window.location.href.split("?")[0];
+      const shareableLink = `${currentUrl}?shared=${shareId}`;
+
+      try {
+         await navigator.clipboard.writeText(shareableLink);
+         setShareSuccess(true);
+         setTimeout(() => setShareSuccess(false), 15000);
+      } catch (error) {
+         const textArea = document.createElement("textarea");
+         textArea.value = shareableLink;
+         textArea.style.position = "fixed";
+         textArea.style.opacity = "0";
+         document.body.appendChild(textArea);
+         textArea.select();
+         try {
+            document.execCommand("copy");
+            setShareSuccess(true);
+            setTimeout(() => setShareSuccess(false), 15000);
+         } catch (err) {
+            // Failed to copy
+         }
+         document.body.removeChild(textArea);
+      }
+   };
+
+   // Check if share has clicks
+   useEffect(() => {
+      if (!currentShareId) return;
+
+      const checkShareStatus = async () => {
+         const gameKey = "play50games_shared_reflex-arrow";
+         try {
+            const status = await getShareStatus(currentShareId);
+            const hasClicks = status.has_clicks || status.clicks > 0;
+            if (hasClicks && !hasShared) {
+               // Share has clicks - activate unlimited replays with expiry
+               setHasShared(true);
+               setUnlimitedActivated(true);
+               setReplaysUsed(0); // Reset replay count
+
+               const expiry = Date.now() + 15 * 60 * 1000; // 15 minutes
+               localStorage.setItem(
+                  gameKey,
+                  JSON.stringify({
+                     share_id: currentShareId,
+                     shared: true,
+                     expiry: expiry,
+                  })
+               );
+
+               // Set timeout to expire after 15 minutes
+               setTimeout(() => {
+                  setUnlimitedActivated(false);
+                  setHasShared(false);
+                  localStorage.removeItem(gameKey);
+               }, 15 * 60 * 1000);
+
+               // Stop checking once activated
+               if (shareCheckIntervalRef.current) {
+                  clearInterval(shareCheckIntervalRef.current);
+                  shareCheckIntervalRef.current = null;
+               }
+            }
+         } catch (error) {
+            // Error checking share status - share doesn't exist, deactivate unlimited
+            const errorMessage =
+               error instanceof Error ? error.message : String(error);
+            if (
+               errorMessage.includes("404") ||
+               errorMessage.includes("not found") ||
+               errorMessage.includes("expired")
+            ) {
+               setUnlimitedActivated(false);
+               setHasShared(false);
+               localStorage.removeItem(gameKey);
+               setCurrentShareId(null);
+               if (shareCheckIntervalRef.current) {
+                  clearInterval(shareCheckIntervalRef.current);
+                  shareCheckIntervalRef.current = null;
+               }
+            }
+         }
+      };
+
+      checkShareStatus();
+      shareCheckIntervalRef.current = setInterval(checkShareStatus, 10000);
+
+      return () => {
+         if (shareCheckIntervalRef.current) {
+            clearInterval(shareCheckIntervalRef.current);
+            shareCheckIntervalRef.current = null;
+         }
+      };
+   }, [currentShareId, hasShared]);
+
+   // Check for existing share on mount
+   useEffect(() => {
+      const gameKey = "play50games_shared_reflex-arrow";
+      const stored = localStorage.getItem(gameKey);
+      if (stored) {
+         try {
+            const data = JSON.parse(stored);
+            // Check if share has expired
+            if (data.expiry && Date.now() > data.expiry) {
+               // Share expired - clean up
+               localStorage.removeItem(gameKey);
+               return;
+            }
+            if (data.share_id) {
+               setCurrentShareId(data.share_id);
+               // Verify with backend before activating unlimited
+               const verifyShare = async () => {
+                  try {
+                     const status = await getShareStatus(data.share_id);
+                     const hasClicks = status.has_clicks || status.clicks > 0;
+                     if (hasClicks) {
+                        // Share exists in backend and has clicks - activate unlimited
+                        if (
+                           data.shared &&
+                           data.expiry &&
+                           Date.now() < data.expiry
+                        ) {
+                           // Already activated and not expired
+                           setHasShared(true);
+                           setUnlimitedActivated(true);
+                           setReplaysUsed(0);
+
+                           // Set timeout to expire after remaining time
+                           const remainingTime = data.expiry - Date.now();
+                           if (remainingTime > 0) {
+                              setTimeout(() => {
+                                 setUnlimitedActivated(false);
+                                 setHasShared(false);
+                                 localStorage.removeItem(gameKey);
+                              }, remainingTime);
+                           }
+                        } else {
+                           // Has clicks but not activated yet - activate now
+                           setHasShared(true);
+                           setUnlimitedActivated(true);
+                           setReplaysUsed(0);
+                           const expiryTime = Date.now() + 15 * 60 * 1000; // 15 minutes
+                           localStorage.setItem(
+                              gameKey,
+                              JSON.stringify({
+                                 share_id: data.share_id,
+                                 expiry: expiryTime,
+                                 shared: true,
+                              })
+                           );
+                           setTimeout(() => {
+                              setUnlimitedActivated(false);
+                              setHasShared(false);
+                              localStorage.removeItem(gameKey);
+                           }, 15 * 60 * 1000);
+                        }
+                     }
+                  } catch (error) {
+                     // Error checking share (404 or other) - clean up
+                     localStorage.removeItem(gameKey);
+                     setCurrentShareId(null);
+                  }
+               };
+               verifyShare();
+            }
+         } catch (error) {
+            // Error parsing stored data - clean up
+            localStorage.removeItem(gameKey);
+         }
+      }
+
+      // Check URL for shared parameter
+      const urlParams = new URLSearchParams(window.location.search);
+      const sharedBy = urlParams.get("shared");
+      if (sharedBy) {
+         // Track the share click when someone opens the link
+         trackShareClick(sharedBy);
+         setCurrentShareId(sharedBy);
+      }
+   }, []);
 
    // Cleanup on unmount
    useEffect(() => {
@@ -560,7 +750,9 @@ export default function ReflexArrow({
 
    // Progress calculation
    const progress = useMemo(() => {
-      return maxLevels > 0 ? Math.min(100, (currentLevel / maxLevels) * 100) : 0;
+      return maxLevels > 0
+         ? Math.min(100, (currentLevel / maxLevels) * 100)
+         : 0;
    }, [currentLevel, maxLevels]);
 
    const minCorrect = getMinCorrectAnswers();
@@ -813,11 +1005,12 @@ export default function ReflexArrow({
                            width: isMobile ? "120px" : "160px",
                            height: isMobile ? "120px" : "160px",
                            borderRadius: "50%",
-                           border: feedback === "correct"
-                              ? "4px solid var(--ok)"
-                              : feedback === "wrong"
-                              ? "4px solid var(--warn)"
-                              : "4px solid var(--accent)",
+                           border:
+                              feedback === "correct"
+                                 ? "4px solid var(--ok)"
+                                 : feedback === "wrong"
+                                 ? "4px solid var(--warn)"
+                                 : "4px solid var(--accent)",
                            background:
                               feedback === "correct"
                                  ? "rgba(134, 239, 172, 0.2)"
@@ -858,187 +1051,249 @@ export default function ReflexArrow({
                         gridTemplateRows: "repeat(3, 1fr)",
                         gap: isMobile ? "12px" : isTablet ? "14px" : "16px",
                         width: "100%",
-                        maxWidth: isMobile ? "280px" : isTablet ? "320px" : "360px",
+                        maxWidth: isMobile
+                           ? "280px"
+                           : isTablet
+                           ? "320px"
+                           : "360px",
                         aspectRatio: "1",
                      }}
                   >
-                        {/* Empty top-left */}
-                        <div></div>
-                        {/* Up Arrow */}
-                        <button
-                           onPointerDown={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              handleArrowSelect("up");
-                           }}
-                           disabled={!targetArrow || requirementsMet}
-                           style={{
-                              gridColumn: "2",
-                              gridRow: "1",
-                              background:
-                                 feedback === "correct" && targetArrow === "up"
-                                    ? "rgba(16, 185, 129, 0.3)"
-                                    : feedback === "wrong" && targetArrow !== "up"
-                                    ? "rgba(252, 165, 165, 0.3)"
-                                    : "rgba(16, 185, 129, 0.15)",
-                              border:
-                                 feedback === "correct" && targetArrow === "up"
-                                    ? "2px solid #10b981"
-                                    : feedback === "wrong" && targetArrow !== "up"
-                                    ? "2px solid var(--warn)"
-                                    : "2px solid #10b981",
-                              borderRadius: "12px",
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              cursor: !targetArrow || requirementsMet ? "not-allowed" : "pointer",
-                              transition: "all 0.2s ease",
-                              transform: feedback === "correct" && targetArrow === "up" ? "scale(0.95)" : "scale(1)",
-                              userSelect: "none",
-                              touchAction: "manipulation",
-                              WebkitTapHighlightColor: "transparent",
-                              padding: isMobile ? "8px" : isTablet ? "10px" : "12px",
-                           }}
-                        >
-                           {renderArrowIcon("up", isMobile ? 32 : isTablet ? 36 : 44)}
-                        </button>
-                        {/* Empty top-right */}
-                        <div></div>
-                        {/* Left Arrow */}
-                        <button
-                           onPointerDown={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              handleArrowSelect("left");
-                           }}
-                           disabled={!targetArrow || requirementsMet}
-                           style={{
-                              gridColumn: "1",
-                              gridRow: "2",
-                              background:
-                                 feedback === "correct" && targetArrow === "left"
-                                    ? "rgba(139, 92, 246, 0.3)"
-                                    : feedback === "wrong" && targetArrow !== "left"
-                                    ? "rgba(252, 165, 165, 0.3)"
-                                    : "rgba(139, 92, 246, 0.15)",
-                              border:
-                                 feedback === "correct" && targetArrow === "left"
-                                    ? "2px solid #8b5cf6"
-                                    : feedback === "wrong" && targetArrow !== "left"
-                                    ? "2px solid var(--warn)"
-                                    : "2px solid #8b5cf6",
-                              borderRadius: "12px",
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              cursor: !targetArrow || requirementsMet ? "not-allowed" : "pointer",
-                              transition: "all 0.2s ease",
-                              transform: feedback === "correct" && targetArrow === "left" ? "scale(0.95)" : "scale(1)",
-                              userSelect: "none",
-                              touchAction: "manipulation",
-                              WebkitTapHighlightColor: "transparent",
-                              padding: isMobile ? "8px" : isTablet ? "10px" : "12px",
-                           }}
-                        >
-                           {renderArrowIcon("left", isMobile ? 32 : isTablet ? 36 : 44)}
-                        </button>
-                        {/* Center (empty or can show target) */}
-                        <div
-                           style={{
-                              gridColumn: "2",
-                              gridRow: "2",
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              fontSize: isMobile ? "0.75rem" : "0.875rem",
-                              fontWeight: 600,
-                              color: "var(--muted)",
-                              textAlign: "center",
-                           }}
-                        >
-                           Tap arrow
-                        </div>
-                        {/* Right Arrow */}
-                        <button
-                           onPointerDown={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              handleArrowSelect("right");
-                           }}
-                           disabled={!targetArrow || requirementsMet}
-                           style={{
-                              gridColumn: "3",
-                              gridRow: "2",
-                              background:
-                                 feedback === "correct" && targetArrow === "right"
-                                    ? "rgba(59, 130, 246, 0.3)"
-                                    : feedback === "wrong" && targetArrow !== "right"
-                                    ? "rgba(252, 165, 165, 0.3)"
-                                    : "rgba(59, 130, 246, 0.15)",
-                              border:
-                                 feedback === "correct" && targetArrow === "right"
-                                    ? "2px solid #3b82f6"
-                                    : feedback === "wrong" && targetArrow !== "right"
-                                    ? "2px solid var(--warn)"
-                                    : "2px solid #3b82f6",
-                              borderRadius: "12px",
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              cursor: !targetArrow || requirementsMet ? "not-allowed" : "pointer",
-                              transition: "all 0.2s ease",
-                              transform: feedback === "correct" && targetArrow === "right" ? "scale(0.95)" : "scale(1)",
-                              userSelect: "none",
-                              touchAction: "manipulation",
-                              WebkitTapHighlightColor: "transparent",
-                              padding: isMobile ? "8px" : isTablet ? "10px" : "12px",
-                           }}
-                        >
-                           {renderArrowIcon("right", isMobile ? 32 : isTablet ? 36 : 44)}
-                        </button>
-                        {/* Empty bottom-left */}
-                        <div></div>
-                        {/* Down Arrow */}
-                        <button
-                           onPointerDown={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              handleArrowSelect("down");
-                           }}
-                           disabled={!targetArrow || requirementsMet}
-                           style={{
-                              gridColumn: "2",
-                              gridRow: "3",
-                              background:
-                                 feedback === "correct" && targetArrow === "down"
-                                    ? "rgba(245, 158, 11, 0.3)"
-                                    : feedback === "wrong" && targetArrow !== "down"
-                                    ? "rgba(252, 165, 165, 0.3)"
-                                    : "rgba(245, 158, 11, 0.15)",
-                              border:
-                                 feedback === "correct" && targetArrow === "down"
-                                    ? "2px solid #f59e0b"
-                                    : feedback === "wrong" && targetArrow !== "down"
-                                    ? "2px solid var(--warn)"
-                                    : "2px solid #f59e0b",
-                              borderRadius: "12px",
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              cursor: !targetArrow || requirementsMet ? "not-allowed" : "pointer",
-                              transition: "all 0.2s ease",
-                              transform: feedback === "correct" && targetArrow === "down" ? "scale(0.95)" : "scale(1)",
-                              userSelect: "none",
-                              touchAction: "manipulation",
-                              WebkitTapHighlightColor: "transparent",
-                              padding: isMobile ? "8px" : isTablet ? "10px" : "12px",
-                           }}
-                        >
-                           {renderArrowIcon("down", isMobile ? 32 : isTablet ? 36 : 44)}
-                        </button>
-                        {/* Empty bottom-right */}
-                        <div></div>
+                     {/* Empty top-left */}
+                     <div></div>
+                     {/* Up Arrow */}
+                     <button
+                        onPointerDown={(e) => {
+                           e.preventDefault();
+                           e.stopPropagation();
+                           handleArrowSelect("up");
+                        }}
+                        disabled={!targetArrow || requirementsMet}
+                        style={{
+                           gridColumn: "2",
+                           gridRow: "1",
+                           background:
+                              feedback === "correct" && targetArrow === "up"
+                                 ? "rgba(16, 185, 129, 0.3)"
+                                 : feedback === "wrong" && targetArrow !== "up"
+                                 ? "rgba(252, 165, 165, 0.3)"
+                                 : "rgba(16, 185, 129, 0.15)",
+                           border:
+                              feedback === "correct" && targetArrow === "up"
+                                 ? "2px solid #10b981"
+                                 : feedback === "wrong" && targetArrow !== "up"
+                                 ? "2px solid var(--warn)"
+                                 : "2px solid #10b981",
+                           borderRadius: "12px",
+                           display: "flex",
+                           alignItems: "center",
+                           justifyContent: "center",
+                           cursor:
+                              !targetArrow || requirementsMet
+                                 ? "not-allowed"
+                                 : "pointer",
+                           transition: "all 0.2s ease",
+                           transform:
+                              feedback === "correct" && targetArrow === "up"
+                                 ? "scale(0.95)"
+                                 : "scale(1)",
+                           userSelect: "none",
+                           touchAction: "manipulation",
+                           WebkitTapHighlightColor: "transparent",
+                           padding: isMobile
+                              ? "8px"
+                              : isTablet
+                              ? "10px"
+                              : "12px",
+                        }}
+                     >
+                        {renderArrowIcon(
+                           "up",
+                           isMobile ? 32 : isTablet ? 36 : 44
+                        )}
+                     </button>
+                     {/* Empty top-right */}
+                     <div></div>
+                     {/* Left Arrow */}
+                     <button
+                        onPointerDown={(e) => {
+                           e.preventDefault();
+                           e.stopPropagation();
+                           handleArrowSelect("left");
+                        }}
+                        disabled={!targetArrow || requirementsMet}
+                        style={{
+                           gridColumn: "1",
+                           gridRow: "2",
+                           background:
+                              feedback === "correct" && targetArrow === "left"
+                                 ? "rgba(139, 92, 246, 0.3)"
+                                 : feedback === "wrong" &&
+                                   targetArrow !== "left"
+                                 ? "rgba(252, 165, 165, 0.3)"
+                                 : "rgba(139, 92, 246, 0.15)",
+                           border:
+                              feedback === "correct" && targetArrow === "left"
+                                 ? "2px solid #8b5cf6"
+                                 : feedback === "wrong" &&
+                                   targetArrow !== "left"
+                                 ? "2px solid var(--warn)"
+                                 : "2px solid #8b5cf6",
+                           borderRadius: "12px",
+                           display: "flex",
+                           alignItems: "center",
+                           justifyContent: "center",
+                           cursor:
+                              !targetArrow || requirementsMet
+                                 ? "not-allowed"
+                                 : "pointer",
+                           transition: "all 0.2s ease",
+                           transform:
+                              feedback === "correct" && targetArrow === "left"
+                                 ? "scale(0.95)"
+                                 : "scale(1)",
+                           userSelect: "none",
+                           touchAction: "manipulation",
+                           WebkitTapHighlightColor: "transparent",
+                           padding: isMobile
+                              ? "8px"
+                              : isTablet
+                              ? "10px"
+                              : "12px",
+                        }}
+                     >
+                        {renderArrowIcon(
+                           "left",
+                           isMobile ? 32 : isTablet ? 36 : 44
+                        )}
+                     </button>
+                     {/* Center (empty or can show target) */}
+                     <div
+                        style={{
+                           gridColumn: "2",
+                           gridRow: "2",
+                           display: "flex",
+                           alignItems: "center",
+                           justifyContent: "center",
+                           fontSize: isMobile ? "0.75rem" : "0.875rem",
+                           fontWeight: 600,
+                           color: "var(--muted)",
+                           textAlign: "center",
+                        }}
+                     >
+                        Tap arrow
                      </div>
+                     {/* Right Arrow */}
+                     <button
+                        onPointerDown={(e) => {
+                           e.preventDefault();
+                           e.stopPropagation();
+                           handleArrowSelect("right");
+                        }}
+                        disabled={!targetArrow || requirementsMet}
+                        style={{
+                           gridColumn: "3",
+                           gridRow: "2",
+                           background:
+                              feedback === "correct" && targetArrow === "right"
+                                 ? "rgba(59, 130, 246, 0.3)"
+                                 : feedback === "wrong" &&
+                                   targetArrow !== "right"
+                                 ? "rgba(252, 165, 165, 0.3)"
+                                 : "rgba(59, 130, 246, 0.15)",
+                           border:
+                              feedback === "correct" && targetArrow === "right"
+                                 ? "2px solid #3b82f6"
+                                 : feedback === "wrong" &&
+                                   targetArrow !== "right"
+                                 ? "2px solid var(--warn)"
+                                 : "2px solid #3b82f6",
+                           borderRadius: "12px",
+                           display: "flex",
+                           alignItems: "center",
+                           justifyContent: "center",
+                           cursor:
+                              !targetArrow || requirementsMet
+                                 ? "not-allowed"
+                                 : "pointer",
+                           transition: "all 0.2s ease",
+                           transform:
+                              feedback === "correct" && targetArrow === "right"
+                                 ? "scale(0.95)"
+                                 : "scale(1)",
+                           userSelect: "none",
+                           touchAction: "manipulation",
+                           WebkitTapHighlightColor: "transparent",
+                           padding: isMobile
+                              ? "8px"
+                              : isTablet
+                              ? "10px"
+                              : "12px",
+                        }}
+                     >
+                        {renderArrowIcon(
+                           "right",
+                           isMobile ? 32 : isTablet ? 36 : 44
+                        )}
+                     </button>
+                     {/* Empty bottom-left */}
+                     <div></div>
+                     {/* Down Arrow */}
+                     <button
+                        onPointerDown={(e) => {
+                           e.preventDefault();
+                           e.stopPropagation();
+                           handleArrowSelect("down");
+                        }}
+                        disabled={!targetArrow || requirementsMet}
+                        style={{
+                           gridColumn: "2",
+                           gridRow: "3",
+                           background:
+                              feedback === "correct" && targetArrow === "down"
+                                 ? "rgba(245, 158, 11, 0.3)"
+                                 : feedback === "wrong" &&
+                                   targetArrow !== "down"
+                                 ? "rgba(252, 165, 165, 0.3)"
+                                 : "rgba(245, 158, 11, 0.15)",
+                           border:
+                              feedback === "correct" && targetArrow === "down"
+                                 ? "2px solid #f59e0b"
+                                 : feedback === "wrong" &&
+                                   targetArrow !== "down"
+                                 ? "2px solid var(--warn)"
+                                 : "2px solid #f59e0b",
+                           borderRadius: "12px",
+                           display: "flex",
+                           alignItems: "center",
+                           justifyContent: "center",
+                           cursor:
+                              !targetArrow || requirementsMet
+                                 ? "not-allowed"
+                                 : "pointer",
+                           transition: "all 0.2s ease",
+                           transform:
+                              feedback === "correct" && targetArrow === "down"
+                                 ? "scale(0.95)"
+                                 : "scale(1)",
+                           userSelect: "none",
+                           touchAction: "manipulation",
+                           WebkitTapHighlightColor: "transparent",
+                           padding: isMobile
+                              ? "8px"
+                              : isTablet
+                              ? "10px"
+                              : "12px",
+                        }}
+                     >
+                        {renderArrowIcon(
+                           "down",
+                           isMobile ? 32 : isTablet ? 36 : 44
+                        )}
+                     </button>
+                     {/* Empty bottom-right */}
+                     <div></div>
+                  </div>
 
                   {/* Level Description */}
                   <div
@@ -1049,8 +1304,11 @@ export default function ReflexArrow({
                         textAlign: "center",
                      }}
                   >
-                     Level {currentLevel + 1}: Match {minCorrect} arrows correctly
-                     {!isMobile && !isTablet && " (Use Arrow Keys, WASD, or click buttons)"}
+                     Level {currentLevel + 1}: Match {minCorrect} arrows
+                     correctly
+                     {!isMobile &&
+                        !isTablet &&
+                        " (Use Arrow Keys, WASD, or click buttons)"}
                   </div>
                </div>
             )}
@@ -1250,8 +1508,8 @@ export default function ReflexArrow({
                            marginBottom: "8px",
                         }}
                      >
-                        Link copied! Unlimited replay will unlock when
-                        someone opens your link!
+                        Link copied! Unlimited replay will unlock when someone
+                        opens your link!
                      </div>
                   )}
 
@@ -1286,8 +1544,8 @@ export default function ReflexArrow({
                            }}
                         />
                         <span>
-                           🎉 Someone opened your link! Unlimited replay is
-                           now active for 15 minutes!
+                           🎉 Someone opened your link! Unlimited replay is now
+                           active for 15 minutes!
                         </span>
                      </div>
                   )}
@@ -1367,9 +1625,7 @@ export default function ReflexArrow({
                            height: isMobile ? 18 : 20,
                         }}
                      />
-                     <span>
-                        {isMobile ? "Share" : "Share for unlimited"}
-                     </span>
+                     <span>{isMobile ? "Share" : "Share for unlimited"}</span>
                   </button>
                </div>
             )}

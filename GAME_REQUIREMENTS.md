@@ -170,25 +170,427 @@ Nëse loja ka nevojë për hints:
 -  **Hint Logic**: Tregon informacion që ndihmon përdoruesin
 -  **Disabled State**: Disabled kur nuk ka më hints ose në fazë të gabuar
 
-### 2.5 Share Feature (OPSIONAL)
+### 2.5 Share Feature (OBLIGATIVE)
 
-Nëse loja ka nevojë për share:
+**Share functionality është OBLIGATIVE për të gjitha lojërat.** Çdo lojë duhet të implementojë share functionality për unlimited replays/hints.
 
--  **Share Button**: Me icon `ShareIcon`
+#### 2.5.1 Struktura Bazë
+
+Çdo lojë duhet të ketë:
+
+```typescript
+// State variables
+const [hasShared, setHasShared] = useState(false);
+const [shareSuccess, setShareSuccess] = useState(false);
+const [unlimitedActivated, setUnlimitedActivated] = useState(false);
+const [currentShareId, setCurrentShareId] = useState<string | null>(null);
+const shareCheckIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+// Max replays/hints: unlimited nëse shared
+const maxReplays = hasShared ? 0 : 5; // 0 = unlimited
+// Ose për hints:
+const maxHints = hasShared ? 0 : 10; // 0 = unlimited
+```
+
+#### 2.5.2 Share Functions (OBLIGATIVE)
+
+Çdo lojë duhet të implementojë këto funksione:
+
+```typescript
+// 1. Generate shareable link
+const getShareableLink = (): string => {
+   const currentUrl = window.location.href.split("?")[0];
+   const shareId =
+      Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
+   return `${currentUrl}?shared=${shareId}`;
+};
+
+// 2. Register share link në backend
+const registerShareLink = async (shareId: string) => {
+   try {
+      await registerShare(shareId, "game-id"); // Zëvendëso "game-id" me ID e lojës
+      const gameKey = "play50games_shared_game-id"; // Zëvendëso "game-id"
+      localStorage.setItem(gameKey, JSON.stringify({ share_id: shareId }));
+      setCurrentShareId(shareId);
+   } catch (error) {
+      // Error registering share
+   }
+};
+
+// 3. Handle share (Web Share API ose clipboard)
+const handleShare = async () => {
+   const shareableLink = getShareableLink();
+   const shareId = new URL(shareableLink).searchParams.get("shared") || "";
+
+   if (!shareId) return;
+
+   await registerShareLink(shareId);
+
+   if (navigator.share) {
+      try {
+         await navigator.share({
+            title: "Game Title",
+            text: "Check out this awesome game!",
+            url: shareableLink,
+         });
+         setShareSuccess(true);
+         setTimeout(() => setShareSuccess(false), 15000);
+      } catch (error: any) {
+         if (error.name !== "AbortError") {
+            handleCopyLink(shareId);
+         }
+      }
+   } else {
+      handleCopyLink(shareId);
+   }
+};
+
+// 4. Copy link to clipboard (fallback)
+const handleCopyLink = async (shareId: string) => {
+   const currentUrl = window.location.href.split("?")[0];
+   const shareableLink = `${currentUrl}?shared=${shareId}`;
+
+   try {
+      await navigator.clipboard.writeText(shareableLink);
+      setShareSuccess(true);
+      setTimeout(() => setShareSuccess(false), 15000);
+   } catch (error) {
+      const textArea = document.createElement("textarea");
+      textArea.value = shareableLink;
+      textArea.style.position = "fixed";
+      textArea.style.opacity = "0";
+      document.body.appendChild(textArea);
+      textArea.select();
+      try {
+         document.execCommand("copy");
+         setShareSuccess(true);
+         setTimeout(() => setShareSuccess(false), 15000);
+      } catch (err) {
+         // Failed to copy
+      }
+      document.body.removeChild(textArea);
+   }
+};
+```
+
+#### 2.5.3 Share Status Checking (OBLIGATIVE)
+
+Çdo lojë duhet të kontrollojë share status çdo 10 sekonda:
+
+```typescript
+// Check if share has clicks
+useEffect(() => {
+   if (!currentShareId) return;
+
+   const checkShareStatus = async () => {
+      const gameKey = "play50games_shared_game-id"; // Zëvendëso "game-id"
+      try {
+         const status = await getShareStatus(currentShareId);
+         const hasClicks = status.has_clicks || status.clicks > 0;
+         if (hasClicks && !hasShared) {
+            // Share has clicks - activate unlimited replays/hints with expiry
+            setHasShared(true);
+            setUnlimitedActivated(true);
+            setReplaysUsed(0); // Ose setHintsUsed(0) për hints
+
+            const expiry = Date.now() + 15 * 60 * 1000; // 15 minutes
+            localStorage.setItem(
+               gameKey,
+               JSON.stringify({
+                  share_id: currentShareId,
+                  shared: true,
+                  expiry: expiry,
+               })
+            );
+
+            // Set timeout to expire after 15 minutes
+            setTimeout(() => {
+               setUnlimitedActivated(false);
+               setHasShared(false);
+               localStorage.removeItem(gameKey);
+            }, 15 * 60 * 1000);
+
+            // Stop checking once activated
+            if (shareCheckIntervalRef.current) {
+               clearInterval(shareCheckIntervalRef.current);
+               shareCheckIntervalRef.current = null;
+            }
+         }
+      } catch (error) {
+         // Error checking share status - share doesn't exist, deactivate unlimited
+         const errorMessage =
+            error instanceof Error ? error.message : String(error);
+         if (
+            errorMessage.includes("404") ||
+            errorMessage.includes("not found") ||
+            errorMessage.includes("expired")
+         ) {
+            setUnlimitedActivated(false);
+            setHasShared(false);
+            localStorage.removeItem(gameKey);
+            setCurrentShareId(null);
+            if (shareCheckIntervalRef.current) {
+               clearInterval(shareCheckIntervalRef.current);
+               shareCheckIntervalRef.current = null;
+            }
+         }
+      }
+   };
+
+   checkShareStatus();
+   shareCheckIntervalRef.current = setInterval(checkShareStatus, 10000);
+
+   return () => {
+      if (shareCheckIntervalRef.current) {
+         clearInterval(shareCheckIntervalRef.current);
+         shareCheckIntervalRef.current = null;
+      }
+   };
+}, [currentShareId, hasShared]);
+```
+
+#### 2.5.4 Mount Check për Existing Share (OBLIGATIVE)
+
+Çdo lojë duhet të kontrollojë localStorage dhe URL në mount:
+
+```typescript
+// Check for existing share on mount
+useEffect(() => {
+   const gameKey = "play50games_shared_game-id"; // Zëvendëso "game-id"
+   const stored = localStorage.getItem(gameKey);
+   if (stored) {
+      try {
+         const data = JSON.parse(stored);
+         // Check if share has expired
+         if (data.expiry && Date.now() > data.expiry) {
+            // Share expired - clean up
+            localStorage.removeItem(gameKey);
+            return;
+         }
+         if (data.share_id) {
+            setCurrentShareId(data.share_id);
+            // Verify with backend before activating unlimited
+            const verifyShare = async () => {
+               try {
+                  const status = await getShareStatus(data.share_id);
+                  const hasClicks = status.has_clicks || status.clicks > 0;
+                  if (hasClicks) {
+                     // Share exists in backend and has clicks - activate unlimited
+                     if (
+                        data.shared &&
+                        data.expiry &&
+                        Date.now() < data.expiry
+                     ) {
+                        // Already activated and not expired
+                        setHasShared(true);
+                        setUnlimitedActivated(true);
+                        setReplaysUsed(0); // Ose setHintsUsed(0)
+
+                        // Set timeout to expire after remaining time
+                        const remainingTime = data.expiry - Date.now();
+                        if (remainingTime > 0) {
+                           setTimeout(() => {
+                              setUnlimitedActivated(false);
+                              setHasShared(false);
+                              localStorage.removeItem(gameKey);
+                           }, remainingTime);
+                        }
+                     } else {
+                        // Has clicks but not activated yet - activate now
+                        setHasShared(true);
+                        setUnlimitedActivated(true);
+                        setReplaysUsed(0); // Ose setHintsUsed(0)
+                        const expiryTime = Date.now() + 15 * 60 * 1000; // 15 minutes
+                        localStorage.setItem(
+                           gameKey,
+                           JSON.stringify({
+                              share_id: data.share_id,
+                              expiry: expiryTime,
+                              shared: true,
+                           })
+                        );
+                        setTimeout(() => {
+                           setUnlimitedActivated(false);
+                           setHasShared(false);
+                           localStorage.removeItem(gameKey);
+                        }, 15 * 60 * 1000);
+                     }
+                  }
+               } catch (error) {
+                  // Error checking share (404 or other) - clean up
+                  localStorage.removeItem(gameKey);
+                  setCurrentShareId(null);
+               }
+            };
+            verifyShare();
+         }
+      } catch (error) {
+         // Error parsing stored data - clean up
+         localStorage.removeItem(gameKey);
+      }
+   }
+
+   // Check URL for shared parameter
+   const urlParams = new URLSearchParams(window.location.search);
+   const sharedBy = urlParams.get("shared");
+   if (sharedBy) {
+      // Track the share click when someone opens the link
+      trackShareClick(sharedBy);
+      setCurrentShareId(sharedBy);
+   }
+}, []);
+```
+
+#### 2.5.5 Share Button UI (OBLIGATIVE)
+
+Share button duhet të jetë:
+
 -  **Pozicionim**: Gjithmonë në fund të lojës (pas feedback messages), jo në top
--  **Tekst**: Gjithmonë "Share for Unlimited Hints" (edhe në mobile dhe desktop, jo "Share")
--  **Web Share API**: Përdor nëse disponohet
--  **Clipboard Fallback**: Nëse Web Share API nuk disponohet
--  **Share Status Check**: Kontrollon nëse dikush ka klikuar link-un
--  **Unlimited Hints**: Aktivizohet kur dikush hap link-un (15 min expiry)
--  **Share Success Message**: Shfaqet pasi të kopjohet link-u
--  Mesazh: "Link copied! Unlimited hints will unlock when someone opens your link!"
--  Styling: background i gjelbër, border i gjelbër, CheckCircleIcon
--  Kohëzgjatja: 15 sekonda
--  **Unlimited Hints Activated Message**: Shfaqet kur dikush klikon link-un
--  Mesazh: "🎉 Someone opened your link! Unlimited hints is now active for 15 minutes!"
--  Styling: background blu, border blu, CheckCircleIcon
--  Kohëzgjatja: 15 sekonda (mesazhi), por unlimited hints aktivizohen për 15 minuta
+-  **Tekst**: 
+   -  Për lojëra me replays: "Share for Unlimited Replays"
+   -  Për lojëra me hints: "Share for Unlimited Hints"
+-  **Icon**: `ShareIcon` nga Heroicons
+-  **Styling**: Gradient background, border, padding konsistent me butonat e tjera
+
+```typescript
+<button
+   onClick={handleShare}
+   style={{
+      display: "flex",
+      alignItems: "center",
+      gap: isMobile ? "6px" : "8px",
+      padding: isMobile ? "10px 16px" : "10px 20px",
+      width: isMobile ? "100%" : "auto",
+      background:
+         "linear-gradient(135deg, rgba(59, 130, 246, 0.25), rgba(59, 130, 246, 0.12))",
+      border: "2px solid rgba(59, 130, 246, 0.6)",
+      borderRadius: "12px",
+      color: "var(--text)",
+      fontSize: isMobile ? "0.9rem" : "1rem",
+      fontWeight: 700,
+      cursor: "pointer",
+      transition: "all 0.3s ease",
+   }}
+>
+   <ShareIcon style={{ width: isMobile ? 18 : 20, height: isMobile ? 18 : 20 }} />
+   Share for Unlimited Replays {/* Ose "Share for Unlimited Hints" */}
+</button>
+```
+
+#### 2.5.6 Share Messages (OBLIGATIVE)
+
+Çdo lojë duhet të shfaqë këto mesazhe:
+
+**1. Share Success Message** (kur link-u kopjohet):
+
+```typescript
+{shareSuccess && !unlimitedActivated && (
+   <div
+      style={{
+         width: "100%",
+         padding: "12px",
+         background: "rgba(134, 239, 172, 0.2)",
+         border: "2px solid rgba(134, 239, 172, 0.6)",
+         borderRadius: "8px",
+         fontSize: isMobile ? "0.9rem" : "1rem",
+         fontWeight: 600,
+         color: "var(--ok)",
+         textAlign: "center",
+         marginBottom: "8px",
+      }}
+   >
+      Link copied! Unlimited replay will unlock when someone opens your link!
+      {/* Ose "Unlimited hints will unlock..." për hints */}
+   </div>
+)}
+```
+
+**2. Unlimited Activated Message** (kur dikush klikon link-un):
+
+```typescript
+{unlimitedActivated && (
+   <div
+      style={{
+         display: "flex",
+         alignItems: "center",
+         gap: isMobile ? "6px" : "8px",
+         padding: isMobile ? "10px 14px" : "8px 16px",
+         background:
+            "linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1))",
+         border: "2px solid rgba(59, 130, 246, 0.6)",
+         borderRadius: isMobile ? "10px" : "8px",
+         color: "var(--text)",
+         fontSize: isMobile ? "0.85rem" : "0.9rem",
+         fontWeight: 500,
+         width: "100%",
+         justifyContent: "center",
+         textAlign: "center",
+         flexWrap: "wrap",
+         marginBottom: "8px",
+      }}
+   >
+      <CheckCircleIcon
+         style={{
+            width: isMobile ? 16 : 18,
+            height: isMobile ? 16 : 18,
+            color: "rgba(59, 130, 246, 0.9)",
+            flexShrink: 0,
+         }}
+      />
+      <span>
+         🎉 Someone opened your link! Unlimited replay is now active for 15 minutes!
+         {/* Ose "Unlimited hints is now active..." për hints */}
+      </span>
+   </div>
+)}
+```
+
+#### 2.5.7 Rregulla të Rëndësishme
+
+1. **Game Key**: Përdor format `"play50games_shared_game-id"` ku `game-id` është ID e lojës (p.sh. `"click-green"`, `"ball-balance"`, `"symbol-stack"`)
+2. **Share ID Format**: Përdor format `Date.now().toString(36) + Math.random().toString(36).substr(2, 5)` për shareId
+3. **Expiry Time**: 15 minuta (15 * 60 * 1000 ms) pasi dikush klikon link-un
+4. **Check Interval**: Kontrollo share status çdo 10 sekonda (10000 ms)
+5. **Message Duration**: Share success message shfaqet për 15 sekonda
+6. **Unlimited Duration**: Unlimited replays/hints aktivizohen për 15 minuta
+7. **URL Tracking**: Kur dikush hap link-un me `?shared=shareId`, thirr `trackShareClick(shareId)` dhe vendos `setCurrentShareId(shareId)`
+8. **localStorage Cleanup**: Fshi localStorage kur share skadon ose kur ka error (404, not found, expired)
+9. **Interval Cleanup**: Fshi interval-in kur share aktivizohet ose kur komponenti unmount
+10. **Error Handling**: Handle 404, not found, expired errors dhe clean up state dhe localStorage
+
+#### 2.5.8 Imports (OBLIGATIVE)
+
+Çdo lojë duhet të importojë:
+
+```typescript
+import {
+   registerShare,
+   trackShareClick,
+   getShareStatus,
+} from "@/lib/api/share";
+```
+
+#### 2.5.9 Checklist për Share Feature
+
+-  [ ] State variables të definuara (`hasShared`, `shareSuccess`, `unlimitedActivated`, `currentShareId`, `shareCheckIntervalRef`)
+-  [ ] `getShareableLink()` function
+-  [ ] `registerShareLink()` function me gameKey të saktë
+-  [ ] `handleShare()` function me Web Share API dhe clipboard fallback
+-  [ ] `handleCopyLink()` function me textarea fallback
+-  [ ] useEffect për share status checking (çdo 10 sekonda)
+-  [ ] useEffect për mount check (localStorage + URL)
+-  [ ] Share button me tekst të saktë ("Share for Unlimited Replays" ose "Share for Unlimited Hints")
+-  [ ] Share success message me styling të saktë
+-  [ ] Unlimited activated message me styling të saktë
+-  [ ] Cleanup në useEffect return functions
+-  [ ] Error handling për 404, not found, expired
+-  [ ] localStorage cleanup kur share skadon
+-  [ ] Game key format i saktë (`play50games_shared_game-id`)
+-  [ ] Share ID format i saktë
+-  [ ] Expiry time: 15 minuta
+-  [ ] Check interval: 10 sekonda
+-  [ ] Message duration: 15 sekonda
+-  [ ] URL tracking me `trackShareClick()`
 
 ---
 
@@ -613,11 +1015,21 @@ Para se të konsiderohet e kompletuar, një lojë duhet të ketë:
 ### Features Opsionale:
 
 -  [ ] Hint system (nëse ka nevojë)
--  [ ] Share feature (nëse ka nevojë)
--  [ ] Share button në fund (jo në top)
--  [ ] Tekst: "Share for Unlimited Hints" (gjithmonë i njëjtë)
--  [ ] Share success message (15 sekonda) - "Link copied! Unlimited hints will unlock when someone opens your link!"
--  [ ] Unlimited hints activated message (15 sekonda) - "🎉 Someone opened your link! Unlimited hints is now active for 15 minutes!"
+
+### Share Feature (OBLIGATIVE):
+
+-  [ ] Share functionality e implementuar plotësisht (shiko seksionin 2.5)
+-  [ ] State variables të definuara (`hasShared`, `shareSuccess`, `unlimitedActivated`, `currentShareId`, `shareCheckIntervalRef`)
+-  [ ] `getShareableLink()`, `registerShareLink()`, `handleShare()`, `handleCopyLink()` functions
+-  [ ] useEffect për share status checking (çdo 10 sekonda)
+-  [ ] useEffect për mount check (localStorage + URL)
+-  [ ] Share button në fund (jo në top) me tekst të saktë ("Share for Unlimited Replays" ose "Share for Unlimited Hints")
+-  [ ] Share success message (15 sekonda) - "Link copied! Unlimited replay will unlock when someone opens your link!"
+-  [ ] Unlimited activated message - "🎉 Someone opened your link! Unlimited replay is now active for 15 minutes!"
+-  [ ] Game key format i saktë (`play50games_shared_game-id`)
+-  [ ] Expiry time: 15 minuta
+-  [ ] Check interval: 10 sekonda
+-  [ ] Error handling dhe cleanup
 -  [ ] Keyboard controls (nëse ka nevojë)
 -  [ ] Prevent default për game controls
 -  [ ] Dokumentuar në gameInstructions.ts

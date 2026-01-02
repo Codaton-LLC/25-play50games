@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<!--
+  Ball Balance
+  Balance a ball on a platform using mouse/touch tilt.
+
+  Controls:
+  - Desktop: move mouse left/right over the arena to tilt platform
+  - Mobile: drag finger left/right over the arena
+
+  Goal:
+  - Keep ball inside platform bounds.
+  - Score increases over time; bonus when ball stays in center zone.
+
+  Usage: Save as ball-balance.html and open in a browser.
+-->
+<html lang="en">
+   <head>
+      <meta charset="UTF-8" />
+      <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <title>Ball Balance</title>
+      <style>
+         :root {
+            --bg: #0b1220;
+            --panel: #0f1b33;
+            --text: #e8eefc;
+            --muted: #a6b3d1;
+            --accent: #6ea8ff;
+            --good: #36d399;
+            --bad: #fb7185;
+            --warn: #fbbf24;
+            --shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
+            --radius: 18px;
+         }
+         * {
+            box-sizing: border-box;
+         }
+         body {
+            margin: 0;
+            font-family: system-ui;
+            background: radial-gradient(
+                  1200px 800px at 70% -10%,
+                  rgba(110, 168, 255, 0.28),
+                  transparent 60%
+               ),
+               radial-gradient(
+                  900px 600px at 0% 10%,
+                  rgba(54, 211, 153, 0.18),
+                  transparent 55%
+               ),
+               var(--bg);
+            color: var(--text);
+            min-height: 100svh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+         }
+
+         .app {
+            width: min(980px, 100%);
+            display: grid;
+            grid-template-columns: 1.2fr 0.8fr;
+            gap: 18px;
+         }
+         @media (max-width: 900px) {
+            .app {
+               grid-template-columns: 1fr;
+            }
+         }
+
+         .panel {
+            background: linear-gradient(
+               180deg,
+               rgba(255, 255, 255, 0.06),
+               rgba(255, 255, 255, 0.02)
+            );
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            overflow: hidden;
+         }
+
+         header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            padding: 18px;
+            gap: 12px;
+            flex-wrap: wrap;
+         }
+         h1 {
+            margin: 0;
+            font-size: 18px;
+         }
+         p {
+            margin: 4px 0 0;
+            color: var(--muted);
+            font-size: 13px;
+         }
+
+         button {
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            background: rgba(15, 27, 51, 0.7);
+            color: var(--text);
+            padding: 10px 14px;
+            font-weight: 900;
+            cursor: pointer;
+         }
+         button.primary {
+            background: linear-gradient(
+               180deg,
+               rgba(110, 168, 255, 0.9),
+               rgba(110, 168, 255, 0.55)
+            );
+            color: #081126;
+         }
+
+         .row {
+            display: flex;
+            gap: 12px;
+            padding: 14px 18px;
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            background: rgba(11, 22, 48, 0.45);
+            flex-wrap: wrap;
+         }
+
+         .pill {
+            padding: 8px 12px;
+            border-radius: 999px;
+            background: rgba(17, 28, 53, 0.55);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            font-size: 13px;
+            white-space: nowrap;
+         }
+
+         .content {
+            padding: 18px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+         }
+
+         .arena {
+            height: 380px;
+            border-radius: 18px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: radial-gradient(
+                  280px 220px at 30% 30%,
+                  rgba(110, 168, 255, 0.1),
+                  transparent 60%
+               ),
+               linear-gradient(
+                  180deg,
+                  rgba(255, 255, 255, 0.05),
+                  rgba(255, 255, 255, 0.02)
+               );
+            position: relative;
+            overflow: hidden;
+            user-select: none;
+            touch-action: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+         }
+
+         .center-zone {
+            position: absolute;
+            width: 160px;
+            height: 70px;
+            border-radius: 16px;
+            border: 1px dashed rgba(54, 211, 153, 0.6);
+            background: rgba(54, 211, 153, 0.08);
+            pointer-events: none;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+         }
+
+         .platform {
+            position: absolute;
+            width: 320px;
+            height: 22px;
+            border-radius: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            background: rgba(15, 27, 51, 0.55);
+            box-shadow: 0 12px 26px rgba(0, 0, 0, 0.25);
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(0deg);
+            transform-origin: center center;
+         }
+
+         .ball {
+            position: absolute;
+            width: 28px;
+            height: 28px;
+            border-radius: 999px;
+            background: radial-gradient(
+               circle at 30% 30%,
+               rgba(255, 255, 255, 0.95),
+               rgba(110, 168, 255, 0.55)
+            );
+            border: 1px solid rgba(255, 255, 255, 0.22);
+            box-shadow: 0 14px 24px rgba(0, 0, 0, 0.35);
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+         }
+
+         .overlay {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 22px;
+            color: var(--muted);
+            pointer-events: none;
+         }
+
+         .overlay strong {
+            color: var(--text);
+         }
+
+         .hint {
+            font-size: 13px;
+            color: var(--muted);
+         }
+
+         .side {
+            padding: 18px;
+         }
+         .side h2 {
+            margin: 0 0 8px;
+            font-size: 14px;
+         }
+         .side ul {
+            margin: 0;
+            color: var(--muted);
+            font-size: 13px;
+            line-height: 1.35;
+            padding-left: 18px;
+         }
+         .side ul + h2 {
+            margin-top: 14px;
+         }
+      </style>
+   </head>
+   <body>
+      <div class="app">
+         <section class="panel">
+            <header>
+               <div>
+                  <h1>Ball Balance</h1>
+                  <p>Balance a ball on a platform</p>
+               </div>
+               <button class="primary" id="startBtn">Start</button>
+            </header>
+
+            <div class="row">
+               <div class="pill">Score: <b id="score">0</b></div>
+               <div class="pill">Time: <b id="time">0.0</b>s</div>
+               <div class="pill">Angle: <b id="angle">0</b>°</div>
+            </div>
+
+            <div class="content">
+               <div class="arena" id="arena" aria-label="Ball balance arena">
+                  <div class="center-zone" aria-hidden="true"></div>
+                  <div class="platform" id="platform" aria-hidden="true"></div>
+                  <div class="ball" id="ball" aria-hidden="true"></div>
+                  <div class="overlay" id="overlay">
+                     <div>
+                        <strong>Press Start</strong><br />Move your mouse (or
+                        drag) left/right to tilt.<br /><span class="hint"
+                           >Keep the ball inside the platform and near the
+                           center zone.</span
+                        >
+                     </div>
+                  </div>
+               </div>
+            </div>
+         </section>
+
+         <aside class="panel">
+            <div class="side">
+               <h2>How to Play</h2>
+               <ul>
+                  <li>Tilt the platform using mouse/touch.</li>
+                  <li>Keep the ball balanced on the platform.</li>
+                  <li>
+                     Try to keep the ball in the center zone for bonus score.
+                  </li>
+               </ul>
+
+               <h2>Tips</h2>
+               <ul>
+                  <li>Make small, gentle movements.</li>
+                  <li>Overcorrecting makes the ball fall faster.</li>
+               </ul>
+            </div>
+         </aside>
+      </div>
+
+      <script>
+         // ===== Ball Balance – Vanilla JS (simple physics) =====
+         // Expected behavior: mouse/touch controls platform tilt; ball accelerates with tilt and friction.
+         // Game ends if ball leaves platform bounds.
+
+         const MAX_ANGLE_DEG = 18; // max tilt
+         const ANGLE_LERP = 0.18; // smoothing of tilt
+         const GRAVITY = 1200; // px/s^2 influence factor
+         const FRICTION = 0.94; // velocity damping each frame
+         const CENTER_BONUS_PER_SEC = 4; // extra score per second when in center zone
+         const BASE_SCORE_PER_SEC = 1.2; // base score gain
+
+         let running = false;
+         let score = 0;
+         let elapsed = 0;
+         let targetAngle = 0;
+         let angle = 0;
+         let ballX = 0; // relative to platform center, px
+         let ballV = 0;
+         let rafId = null;
+         let lastTs = 0;
+
+         const arena = document.getElementById("arena");
+         const platform = document.getElementById("platform");
+         const ball = document.getElementById("ball");
+         const overlay = document.getElementById("overlay");
+
+         const scoreEl = document.getElementById("score");
+         const timeEl = document.getElementById("time");
+         const angleEl = document.getElementById("angle");
+         const startBtn = document.getElementById("startBtn");
+
+         function clamp(n, a, b) {
+            return Math.max(a, Math.min(b, n));
+         }
+
+         function updateHUD() {
+            scoreEl.textContent = String(Math.floor(score));
+            timeEl.textContent = elapsed.toFixed(1);
+            angleEl.textContent = String(Math.round(angle));
+         }
+
+         function resetGame() {
+            score = 0;
+            elapsed = 0;
+            targetAngle = 0;
+            angle = 0;
+            ballX = 0;
+            ballV = 0;
+            lastTs = 0;
+            updateHUD();
+            render();
+         }
+
+         function render() {
+            platform.style.transform = `translate(-50%,-50%) rotate(${angle}deg)`;
+
+            // platform is centered, ball is offset on x and slightly above it
+            const platformTopOffset = -22; // visual offset so ball appears resting
+            ball.style.transform = `translate(calc(-50% + ${ballX}px), calc(-50% + ${platformTopOffset}px))`;
+         }
+
+         function isInCenterZone() {
+            // center zone roughly within +/- 60px
+            return Math.abs(ballX) <= 60;
+         }
+
+         function platformHalfWidth() {
+            // match CSS width 320px
+            return 160;
+         }
+
+         function ballRadius() {
+            // match CSS size 28px
+            return 14;
+         }
+
+         function endGame(reason) {
+            running = false;
+            if (rafId) cancelAnimationFrame(rafId);
+            rafId = null;
+
+            overlay.style.display = "flex";
+            overlay.innerHTML = `<div><strong>Game Over</strong><br>${reason}<br><br><strong>Score:</strong> ${Math.floor(
+               score
+            )}<br><span class="hint">Press Start to try again.</span></div>`;
+         }
+
+         function loop(ts) {
+            if (!running) return;
+            if (!lastTs) lastTs = ts;
+            const dt = Math.min(0.032, (ts - lastTs) / 1000);
+            lastTs = ts;
+
+            // smooth angle toward target
+            angle += (targetAngle - angle) * ANGLE_LERP;
+
+            // acceleration along platform from gravity component
+            const a = Math.sin((angle * Math.PI) / 180) * GRAVITY;
+            ballV = ballV + a * dt;
+            ballV *= Math.pow(FRICTION, dt * 60);
+            ballX += ballV * dt;
+
+            // score
+            elapsed += dt;
+            score += BASE_SCORE_PER_SEC * dt;
+            if (isInCenterZone()) score += CENTER_BONUS_PER_SEC * dt;
+
+            // bounds check: if ball leaves platform, lose
+            const half = platformHalfWidth();
+            const r = ballRadius();
+            if (ballX < -(half - r) || ballX > half - r) {
+               endGame("The ball fell off the platform.");
+               return;
+            }
+
+            updateHUD();
+            render();
+            rafId = requestAnimationFrame(loop);
+         }
+
+         function setTiltFromClientX(clientX) {
+            const rect = arena.getBoundingClientRect();
+            const x =
+               (clientX - (rect.left + rect.width / 2)) / (rect.width / 2);
+            // invert? keep natural: move right => tilt right
+            targetAngle = clamp(
+               x * MAX_ANGLE_DEG,
+               -MAX_ANGLE_DEG,
+               MAX_ANGLE_DEG
+            );
+         }
+
+         // Mouse
+         arena.addEventListener("mousemove", (e) => {
+            if (!running) return;
+            setTiltFromClientX(e.clientX);
+         });
+
+         // Touch drag
+         arena.addEventListener(
+            "touchstart",
+            (e) => {
+               if (!running) return;
+               if (e.touches && e.touches[0])
+                  setTiltFromClientX(e.touches[0].clientX);
+            },
+            { passive: true }
+         );
+
+         arena.addEventListener(
+            "touchmove",
+            (e) => {
+               if (!running) return;
+               if (e.touches && e.touches[0])
+                  setTiltFromClientX(e.touches[0].clientX);
+            },
+            { passive: true }
+         );
+
+         function startGame() {
+            resetGame();
+            running = true;
+            overlay.style.display = "none";
+            rafId = requestAnimationFrame(loop);
+         }
+
+         startBtn.addEventListener("click", startGame);
+
+         // ===== Lightweight Tests (Console) =====
+         (function runTests() {
+            try {
+               console.assert(MAX_ANGLE_DEG > 0, "Test: MAX_ANGLE_DEG > 0");
+               console.assert(
+                  platformHalfWidth() === 160,
+                  "Test: platform half width matches CSS"
+               );
+               console.assert(
+                  ballRadius() === 14,
+                  "Test: ball radius matches CSS"
+               );
+               console.assert(
+                  typeof clamp(5, 0, 10) === "number" &&
+                     clamp(20, 0, 10) === 10,
+                  "Test: clamp works"
+               );
+               // center zone test
+               ballX = 0;
+               console.assert(
+                  isInCenterZone() === true,
+                  "Test: center zone true at 0"
+               );
+               ballX = 80;
+               console.assert(
+                  isInCenterZone() === false,
+                  "Test: center zone false at 80"
+               );
+               console.info("Ball Balance tests: OK");
+            } catch (err) {
+               console.warn("Ball Balance tests failed", err);
+            } finally {
+               // restore
+               ballX = 0;
+               ballV = 0;
+               angle = 0;
+               targetAngle = 0;
+            }
+         })();
+      </script>
+   </body>
+</html>
+v

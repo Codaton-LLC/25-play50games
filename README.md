@@ -3404,7 +3404,117 @@ In WordPress admin, you can use the "Quick Fill Templates" dropdown and select "
 
 ```json
 {
-   "gameType": "ball-balance"
+   "gameType": "ball-balance",
+   "levels": 15,
+   "levelRequirements": [
+      { "minTimeInCenter": 3, "duration": 10 },
+      { "minTimeInCenter": 4, "duration": 10 },
+      { "minTimeInCenter": 5, "duration": 12 },
+      { "minTimeInCenter": 6, "duration": 15 },
+      { "minTimeInCenter": 7, "duration": 18 },
+      {
+         "minTimeInCenter": 8,
+         "duration": 18,
+         "shrinkingPlatform": true,
+         "shrinkMinScale": 0.1,
+         "shrinkDelay": 0
+      },
+      {
+         "minTimeInCenter": 9,
+         "duration": 10,
+         "shrinkingPlatform": true,
+         "shrinkMinScale": 0.3,
+         "shrinkDelay": 0
+      },
+      {
+         "minTimeInCenter": 10,
+         "duration": 18,
+         "redZones": [
+            { "start": -100, "end": -60 },
+            { "start": 60, "end": 100 }
+         ]
+      },
+      {
+         "minTimeInCenter": 11,
+         "duration": 18,
+         "redZones": [
+            { "start": -90, "end": -50 },
+            { "start": 50, "end": 90 }
+         ]
+      },
+      {
+         "minTimeInCenter": 12,
+         "duration": 30,
+         "shrinkingPlatform": true,
+         "shrinkMinScale": 0.4,
+         "redZones": [
+            { "start": -85, "end": -45 },
+            { "start": 45, "end": 85 }
+         ]
+      },
+      {
+         "minTimeInCenter": 13,
+         "duration": 30,
+         "platformShake": true,
+         "shakeInterval": 6,
+         "shakeIntensity": 12,
+         "shakeDuration": 1.1,
+         "shakeFrequency": 13,
+         "shakeAngle": 10
+      },
+      {
+         "minTimeInCenter": 14,
+         "duration": 25,
+         "platformShake": true,
+         "shakeInterval": 5,
+         "shakeIntensity": 13,
+         "shakeDuration": 1,
+         "shakeFrequency": 14,
+         "shakeAngle": 15
+      },
+      {
+         "minTimeInCenter": 15,
+         "duration": 50,
+         "windZones": [
+            { "start": -80, "end": -40, "force": -80 },
+            { "start": 40, "end": 80, "force": 80 }
+         ]
+      },
+      {
+         "minTimeInCenter": 16,
+         "duration": 50,
+         "platformShake": true,
+         "shakeInterval": 4,
+         "shakeIntensity": 14,
+         "shakeDuration": 1,
+         "shakeFrequency": 15,
+         "shakeAngle": 16,
+         "windZones": [
+            { "start": -75, "end": -35, "force": -90 },
+            { "start": 35, "end": 75, "force": 90 }
+         ]
+      },
+      {
+         "minTimeInCenter": 20,
+         "duration": 50,
+         "shrinkingPlatform": true,
+         "shrinkMinScale": 0.35,
+         "redZones": [
+            { "start": -70, "end": -30 },
+            { "start": 30, "end": 70 }
+         ],
+         "platformShake": true,
+         "shakeInterval": 3,
+         "shakeIntensity": 16,
+         "shakeDuration": 1.1,
+         "shakeFrequency": 16,
+         "shakeAngle": 18,
+         "windZones": [
+            { "start": -65, "end": -25, "force": -110 },
+            { "start": 25, "end": 65, "force": 110 }
+         ]
+      }
+   ]
 }
 ```
 
