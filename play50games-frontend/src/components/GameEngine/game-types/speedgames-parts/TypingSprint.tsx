@@ -677,7 +677,20 @@ export default function TypingSprint({
       const sharedBy = urlParams.get("shared");
       if (sharedBy) {
          trackShareClick(sharedBy);
-         setCurrentShareId(sharedBy);
+         // Only set currentShareId if this is the share we created (exists in localStorage)
+         // This prevents the person opening the link from activating unlimited for themselves
+         const stored = localStorage.getItem(gameKey);
+         if (stored) {
+            try {
+               const data = JSON.parse(stored);
+               if (data.share_id === sharedBy) {
+                  // This is our share - set it to check for clicks
+                  setCurrentShareId(sharedBy);
+               }
+            } catch (error) {
+               // Error parsing stored data
+            }
+         }
       }
    }, []);
 
