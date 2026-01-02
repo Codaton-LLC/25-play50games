@@ -1712,6 +1712,119 @@ Reaction Test përfshin 10 variante unike të mini-lojave:
 -  Maximum 100 points for 15 levels
 -  **Progress Bar**: Shows progress based on completed levels (not individual correct answers)
 
+#### Falling Objects
+
+```json
+{
+   "gameType": "falling-objects",
+   "levels": 15,
+   "levelRequirements": [
+      { "minCaughtGood": 8, "duration": 30 },
+      { "minCaughtGood": 10, "duration": 30 },
+      { "minCaughtGood": 12, "duration": 30 },
+      { "minCaughtGood": 14, "duration": 30 },
+      { "minCaughtGood": 16, "duration": 30 },
+      { "minCaughtGood": 18, "duration": 30 },
+      { "minCaughtGood": 20, "duration": 30 },
+      { "minCaughtGood": 22, "duration": 30 },
+      { "minCaughtGood": 24, "duration": 30 },
+      { "minCaughtGood": 26, "duration": 30 },
+      { "minCaughtGood": 28, "duration": 30 },
+      { "minCaughtGood": 30, "duration": 30 },
+      { "minCaughtGood": 32, "duration": 30 },
+      { "minCaughtGood": 35, "duration": 30 },
+      { "minCaughtGood": 40, "duration": 30 }
+   ]
+}
+```
+
+**Configuration:**
+
+-  `gameType` (required): Must be `"falling-objects"`
+-  `levels` (optional): Number of levels - Default: **15**
+-  `levelRequirements` (optional): Array of requirements for each level - Default: **auto-progression**
+   -  Each object can have:
+      -  `minCaughtGood` (required): Minimum number of good objects to catch to pass the level
+      -  `duration` (optional): Duration in seconds for this specific level (default: 30)
+
+**Level Requirements:**
+
+-  **Level 1**: Minimum 8 good objects caught, 30 seconds
+-  **Level 2**: Minimum 10 good objects caught, 30 seconds
+-  **Level 3**: Minimum 12 good objects caught, 30 seconds
+-  ... (progressive increase)
+-  **Level 15**: Minimum 40 good objects caught, 30 seconds
+
+**Level Passing Requirements:**
+
+-  Each level has a time limit (configurable per level via `duration`)
+-  You must catch a minimum number of good objects within the time limit
+-  If time runs out and requirements are not met, the level fails and you can replay it
+-  If you meet the minimum good objects requirement, you can proceed to the next level
+
+**Scoring:**
+
+-  Score is calculated based on completed levels: `completedLevels * (100 / maxLevels)`
+-  Level 1 = ~6.67 points, Level 2 = ~13.33 points, Level 3 = ~20 points, etc.
+-  Maximum 100 points for 15 levels
+-  **Progress Bar**: Shows progress based on completed levels (not individual caught objects)
+
+**Controls:**
+
+-  **Mouse**: Click on good objects (star, heart, bolt, checkmark) to catch them. Avoid clicking bad objects (X mark, fire icon)
+
+**Goal:**
+
+-  Catch good falling objects and avoid bad ones
+-  Objects fall from the top of the screen at different speeds
+-  Complete the minimum required good objects caught within the time limit to pass each level
+-  Each level has different speed, object sizes, and good/bad object ratios
+
+**How It Works:**
+
+-  Objects spawn from the top and fall downward
+-  Click on good objects (star, heart, bolt, checkmark) to catch them
+-  Avoid clicking bad objects (X mark, fire icon)
+-  If a good object reaches the bottom without being caught, it counts as missed
+-  You'll get immediate feedback (green for good catch, red for bad catch)
+-  If you meet the requirement, you can proceed to the next level
+-  If time runs out and requirements are not met, the level fails and you can replay it (5 replays by default, unlimited if shared)
+
+**Level Progression:**
+
+-  **Levels 1-3**: Slow falling, large objects, mostly good objects (80-70% good)
+-  **Levels 4-6**: Faster speed, smaller objects, more bad objects (65-55% good)
+-  **Levels 7-9**: Ultra fast, tiny objects, balanced good/bad ratio (50-45% good)
+-  **Levels 10-12**: Extreme speed, rapid spawn, more bad objects (45-40% good)
+-  **Levels 13-15**: Maximum difficulty, fastest speed, smallest objects (35-30% good)
+
+**Features:**
+
+-  Progressive difficulty with increasing speed, smaller objects, and more bad objects across 15 levels
+-  Real-time feedback with good/bad catch indicators
+-  Level progression system (15 levels)
+-  Game state display (Level X Complete!, Level X Failed!, Game Complete!)
+-  **Replay System**: 5 replays by default, unlimited if shared
+   -  Click "Replay" button to retry the current level
+   -  Replays reset the timer and caught/missed counters
+   -  Share the game to unlock unlimited replays for 15 minutes
+-  **Share Feature**: Share the game to unlock unlimited replays
+   -  Click "Share for unlimited" button to copy a shareable link
+   -  **Share Success Message**: Shows "Link copied! Unlimited replay will unlock when someone opens your link!" for 15 seconds after sharing
+   -  **Unlimited Activated Message**: Shows "🎉 Someone opened your link! Unlimited replay is now active for 15 minutes!" when link is clicked
+   -  When someone else opens the shared link, the original sharer gets unlimited replays for 15 minutes
+   -  The system uses a heartbeat mechanism (checks every 10 seconds) to detect when the link is clicked
+   -  Replays automatically expire after 15 minutes and return to normal
+-  Modern UI with header showing level, score, time, and progress bar
+-  Stats display showing caught good/bad objects, missed good objects, and requirements
+-  Level description showing the current level's difficulty characteristics
+-  Fully responsive design optimized for mobile, tablet, and desktop
+-  **Time Management**: When time runs out, the game automatically checks if requirements are met and shows "failed" if not, allowing replay
+-  **Progress Bar**: Shows progress based on completed levels (not individual caught objects)
+-  **Object Types**: Good objects (star, heart, bolt, checkmark) and bad objects (X mark, fire icon)
+-  **Object Animation**: Objects rotate as they fall, with varying sizes and speeds
+-  **Spawn System**: Objects spawn at configurable intervals based on level difficulty
+
 **Controls:**
 
 -  **Mouse**: Click the `<` button if left number is smaller, `>` button if left number is larger
@@ -3216,7 +3329,9 @@ src/
 │   │           ├── ReactionTest.tsx
 │   │           ├── FastMath.tsx
 │   │           ├── WhackShape.tsx
-│   │           └── TypingSprint.tsx
+│   │           ├── TypingSprint.tsx
+│   │           ├── QuickCompare.tsx
+│   │           └── FallingObjects.tsx
 │   └── UnlockSystem/      # Game unlock logic
 ├── lib/
 │   ├── api/              # WordPress REST API clients

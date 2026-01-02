@@ -3068,6 +3068,612 @@ export default function GameEngine({
                   </div>
                )}
 
+               {/* Interactive Example for Falling Objects */}
+               {gameType === "falling-objects" && (
+                  <div
+                     style={{
+                        background:
+                           "linear-gradient(135deg, rgba(125, 211, 252, 0.1) 0%, rgba(54, 211, 153, 0.1) 100%)",
+                        border: "2px solid var(--stroke)",
+                        borderRadius: isMobile
+                           ? "16px"
+                           : isTablet
+                           ? "18px"
+                           : "20px",
+                        padding: isMobile ? "20px" : isTablet ? "24px" : "32px",
+                        marginTop: isMobile ? "16px" : "24px",
+                        boxShadow: "0 8px 24px rgba(0, 0, 0, 0.2)",
+                     }}
+                  >
+                     <div
+                        style={{
+                           display: "flex",
+                           alignItems: "center",
+                           justifyContent: "center",
+                           gap: isMobile ? "8px" : "12px",
+                           marginBottom: isMobile
+                              ? "16px"
+                              : isTablet
+                              ? "20px"
+                              : "24px",
+                        }}
+                     >
+                        <SparklesIcon
+                           style={{
+                              width: isMobile ? 24 : isTablet ? 26 : 28,
+                              height: isMobile ? 24 : isTablet ? 26 : 28,
+                              color: "var(--accent)",
+                           }}
+                        />
+                        <h3
+                           style={{
+                              fontSize: isMobile
+                                 ? "20px"
+                                 : isTablet
+                                 ? "22px"
+                                 : "24px",
+                              fontWeight: 700,
+                              margin: 0,
+                              background:
+                                 "linear-gradient(135deg, var(--accent) 0%, var(--ok) 100%)",
+                              WebkitBackgroundClip: "text",
+                              WebkitTextFillColor: "transparent",
+                              backgroundClip: "text",
+                           }}
+                        >
+                           Example Round
+                        </h3>
+                     </div>
+
+                     <div
+                        style={{
+                           background: "var(--card)",
+                           border: "2px solid var(--stroke)",
+                           borderRadius: "16px",
+                           padding: isMobile ? "16px" : "24px",
+                           marginBottom: "20px",
+                        }}
+                     >
+                        <p
+                           style={{
+                              margin: "0 0 20px",
+                              color: "var(--text)",
+                              fontSize: isMobile ? "14px" : "16px",
+                              fontWeight: 600,
+                              textAlign: "center",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              gap: "4px",
+                              flexWrap: "wrap",
+                           }}
+                        >
+                           Objects will fall from the top. Click on good objects (
+                           <StarIcon style={{ width: 16, height: 16, color: "var(--ok)", flexShrink: 0 }} />,
+                           <HeartIcon style={{ width: 16, height: 16, color: "var(--ok)", flexShrink: 0 }} />,
+                           <BoltIcon style={{ width: 16, height: 16, color: "var(--ok)", flexShrink: 0 }} />,
+                           <CheckCircleIcon style={{ width: 16, height: 16, color: "var(--ok)", flexShrink: 0 }} />) and avoid bad ones (
+                           <XCircleIcon style={{ width: 16, height: 16, color: "var(--warn)", flexShrink: 0 }} />,
+                           <BoltIcon style={{ width: 16, height: 16, color: "var(--warn)", flexShrink: 0 }} />):
+                        </p>
+
+                        {/* Example Falling Area */}
+                        <div
+                           style={{
+                              position: "relative",
+                              width: "100%",
+                              minHeight: isMobile ? "250px" : "300px",
+                              maxHeight: isMobile ? "250px" : "300px",
+                              borderRadius: "12px",
+                              border: "2px solid var(--stroke)",
+                              background:
+                                 "radial-gradient(320px 220px at 30% 30%, rgba(59, 130, 246, 0.1), transparent 55%), linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02))",
+                              boxShadow: "0 10px 18px rgba(0, 0, 0, 0.22)",
+                              overflow: "hidden",
+                              marginBottom: "20px",
+                           }}
+                        >
+                           {/* Good Objects */}
+                           <div
+                              style={{
+                                 position: "absolute",
+                                 left: "20%",
+                                 top: "15%",
+                                 transform: "translate(-50%, -50%)",
+                                 width: isMobile ? "48px" : "56px",
+                                 height: isMobile ? "48px" : "56px",
+                                 borderRadius: "16px",
+                                 border: "2px solid rgba(134, 239, 172, 0.55)",
+                                 background: "rgba(134, 239, 172, 0.18)",
+                                 display: "flex",
+                                 alignItems: "center",
+                                 justifyContent: "center",
+                                 color: "white",
+                                 boxShadow: "0 4px 12px rgba(134, 239, 172, 0.3)",
+                                 zIndex: 10,
+                              }}
+                           >
+                              <StarIcon
+                                 style={{
+                                    width: isMobile ? 20 : 24,
+                                    height: isMobile ? 20 : 24,
+                                 }}
+                              />
+                           </div>
+                           <div
+                              style={{
+                                 position: "absolute",
+                                 left: "50%",
+                                 top: "35%",
+                                 transform: "translate(-50%, -50%)",
+                                 width: isMobile ? "48px" : "56px",
+                                 height: isMobile ? "48px" : "56px",
+                                 borderRadius: "16px",
+                                 border: "2px solid rgba(134, 239, 172, 0.55)",
+                                 background: "rgba(134, 239, 172, 0.18)",
+                                 display: "flex",
+                                 alignItems: "center",
+                                 justifyContent: "center",
+                                 color: "white",
+                                 boxShadow: "0 4px 12px rgba(134, 239, 172, 0.3)",
+                                 zIndex: 10,
+                              }}
+                           >
+                              <HeartIcon
+                                 style={{
+                                    width: isMobile ? 20 : 24,
+                                    height: isMobile ? 20 : 24,
+                                 }}
+                              />
+                           </div>
+                           <div
+                              style={{
+                                 position: "absolute",
+                                 left: "80%",
+                                 top: "55%",
+                                 transform: "translate(-50%, -50%)",
+                                 width: isMobile ? "48px" : "56px",
+                                 height: isMobile ? "48px" : "56px",
+                                 borderRadius: "16px",
+                                 border: "2px solid rgba(134, 239, 172, 0.55)",
+                                 background: "rgba(134, 239, 172, 0.18)",
+                                 display: "flex",
+                                 alignItems: "center",
+                                 justifyContent: "center",
+                                 color: "white",
+                                 boxShadow: "0 4px 12px rgba(134, 239, 172, 0.3)",
+                                 zIndex: 10,
+                              }}
+                           >
+                              <CheckCircleIcon
+                                 style={{
+                                    width: isMobile ? 20 : 24,
+                                    height: isMobile ? 20 : 24,
+                                 }}
+                              />
+                           </div>
+
+                           {/* Bad Objects */}
+                           <div
+                              style={{
+                                 position: "absolute",
+                                 left: "40%",
+                                 top: "25%",
+                                 transform: "translate(-50%, -50%)",
+                                 width: isMobile ? "48px" : "56px",
+                                 height: isMobile ? "48px" : "56px",
+                                 borderRadius: "16px",
+                                 border: "2px solid rgba(252, 165, 165, 0.55)",
+                                 background: "rgba(252, 165, 165, 0.16)",
+                                 display: "flex",
+                                 alignItems: "center",
+                                 justifyContent: "center",
+                                 color: "white",
+                                 boxShadow: "0 4px 12px rgba(252, 165, 165, 0.3)",
+                                 zIndex: 10,
+                              }}
+                           >
+                              <XCircleIcon
+                                 style={{
+                                    width: isMobile ? 20 : 24,
+                                    height: isMobile ? 20 : 24,
+                                 }}
+                              />
+                           </div>
+                           <div
+                              style={{
+                                 position: "absolute",
+                                 left: "70%",
+                                 top: "45%",
+                                 transform: "translate(-50%, -50%)",
+                                 width: isMobile ? "48px" : "56px",
+                                 height: isMobile ? "48px" : "56px",
+                                 borderRadius: "16px",
+                                 border: "2px solid rgba(252, 165, 165, 0.55)",
+                                 background: "rgba(252, 165, 165, 0.16)",
+                                 display: "flex",
+                                 alignItems: "center",
+                                 justifyContent: "center",
+                                 color: "white",
+                                 boxShadow: "0 4px 12px rgba(252, 165, 165, 0.3)",
+                                 zIndex: 10,
+                              }}
+                           >
+                              <BoltIcon
+                                 style={{
+                                    width: isMobile ? 20 : 24,
+                                    height: isMobile ? 20 : 24,
+                                    color: "rgba(252, 165, 165, 1)",
+                                 }}
+                              />
+                           </div>
+
+                           {/* Falling Arrow Indicator */}
+                           <div
+                              style={{
+                                 position: "absolute",
+                                 left: "50%",
+                                 top: "5%",
+                                 transform: "translateX(-50%)",
+                                 display: "flex",
+                                 flexDirection: "column",
+                                 alignItems: "center",
+                                 gap: "4px",
+                                 zIndex: 5,
+                              }}
+                           >
+                              <ArrowDownIcon
+                                 style={{
+                                    width: 24,
+                                    height: 24,
+                                    color: "var(--accent)",
+                                    animation: "bounce 1s infinite",
+                                 }}
+                              />
+                              <span
+                                 style={{
+                                    fontSize: "10px",
+                                    color: "var(--muted)",
+                                    fontWeight: 600,
+                                 }}
+                              >
+                                 Objects fall here
+                              </span>
+                           </div>
+                        </div>
+
+                        {/* Correct Answer Feedback */}
+                        <div
+                           style={{
+                              padding: isMobile ? "12px 20px" : "16px 24px",
+                              background: "rgba(134, 239, 172, 0.2)",
+                              border: "2px solid rgba(134, 239, 172, 0.6)",
+                              borderRadius: "12px",
+                              color: "var(--ok)",
+                              fontSize: isMobile ? "0.9rem" : "1rem",
+                              fontWeight: 600,
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "8px",
+                              justifyContent: "center",
+                              marginBottom: "16px",
+                           }}
+                        >
+                           <CheckCircleIcon style={{ width: 20, height: 20 }} />
+                           <span style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
+                           Click on good objects (
+                           <StarIcon style={{ width: 16, height: 16, color: "var(--ok)" }} /> star,
+                           <HeartIcon style={{ width: 16, height: 16, color: "var(--ok)" }} /> heart,
+                           <BoltIcon style={{ width: 16, height: 16, color: "var(--ok)" }} /> bolt,
+                           <CheckCircleIcon style={{ width: 16, height: 16, color: "var(--ok)" }} /> checkmark) to catch them!
+                           Avoid bad objects (
+                           <XCircleIcon style={{ width: 16, height: 16, color: "var(--warn)" }} /> X mark,
+                           <BoltIcon style={{ width: 16, height: 16, color: "var(--warn)" }} /> fire icon).
+                           </span>
+                        </div>
+                     </div>
+
+                     {/* Instructions */}
+                     <div
+                        style={{
+                           display: "flex",
+                           flexDirection: "column",
+                           gap: "12px",
+                        }}
+                     >
+                        <div
+                           style={{
+                              display: "flex",
+                              alignItems: "flex-start",
+                              gap: "14px",
+                              padding: "16px",
+                              background:
+                                 "linear-gradient(135deg, rgba(125, 211, 252, 0.15), rgba(59, 130, 246, 0.1))",
+                              borderRadius: "12px",
+                              border: "1px solid rgba(125, 211, 252, 0.3)",
+                              boxShadow: "0 2px 8px rgba(59, 130, 246, 0.1)",
+                           }}
+                        >
+                           <div
+                              style={{
+                                 minWidth: "32px",
+                                 height: "32px",
+                                 borderRadius: "50%",
+                                 background:
+                                    "linear-gradient(135deg, var(--accent), rgba(59, 130, 246, 0.9))",
+                                 display: "flex",
+                                 alignItems: "center",
+                                 justifyContent: "center",
+                                 color: "white",
+                                 fontWeight: 700,
+                                 fontSize: "14px",
+                                 boxShadow: "0 4px 12px rgba(59, 130, 246, 0.4)",
+                              }}
+                           >
+                              1
+                           </div>
+                           <div style={{ flex: 1 }}>
+                              <div
+                                 style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: "8px",
+                                    marginBottom: "6px",
+                                 }}
+                              >
+                                 <ArrowDownIcon
+                                    style={{
+                                       width: 18,
+                                       height: 18,
+                                       color: "var(--accent)",
+                                    }}
+                                 />
+                                 <div
+                                    style={{
+                                       fontSize: isMobile ? "14px" : "15px",
+                                       fontWeight: 700,
+                                       color: "var(--text)",
+                                    }}
+                                 >
+                                    Objects fall from the top
+                                 </div>
+                              </div>
+                              <div
+                                 style={{
+                                    fontSize: isMobile ? "12px" : "13px",
+                                    color: "var(--muted)",
+                                    lineHeight: "1.5",
+                                 }}
+                              >
+                                 Objects spawn at the top and fall downward at
+                                 different speeds. Watch them carefully!
+                              </div>
+                           </div>
+                        </div>
+
+                        <div
+                           style={{
+                              display: "flex",
+                              alignItems: "flex-start",
+                              gap: "14px",
+                              padding: "16px",
+                              background:
+                                 "linear-gradient(135deg, rgba(34, 197, 94, 0.15), rgba(22, 163, 74, 0.1))",
+                              borderRadius: "12px",
+                              border: "1px solid rgba(34, 197, 94, 0.3)",
+                              boxShadow: "0 2px 8px rgba(34, 197, 94, 0.1)",
+                           }}
+                        >
+                           <div
+                              style={{
+                                 minWidth: "32px",
+                                 height: "32px",
+                                 borderRadius: "50%",
+                                 background:
+                                    "linear-gradient(135deg, var(--ok), rgba(22, 163, 74, 0.9))",
+                                 display: "flex",
+                                 alignItems: "center",
+                                 justifyContent: "center",
+                                 color: "white",
+                                 fontWeight: 700,
+                                 fontSize: "14px",
+                                 boxShadow: "0 4px 12px rgba(34, 197, 94, 0.4)",
+                              }}
+                           >
+                              2
+                           </div>
+                           <div style={{ flex: 1 }}>
+                              <div
+                                 style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: "8px",
+                                    marginBottom: "6px",
+                                 }}
+                              >
+                                 <CursorArrowRaysIcon
+                                    style={{
+                                       width: 18,
+                                       height: 18,
+                                       color: "var(--ok)",
+                                    }}
+                                 />
+                                 <div
+                                    style={{
+                                       fontSize: isMobile ? "14px" : "15px",
+                                       fontWeight: 700,
+                                       color: "var(--text)",
+                                    }}
+                                 >
+                                    Click on good objects
+                                 </div>
+                              </div>
+                              <div
+                                 style={{
+                                    fontSize: isMobile ? "12px" : "13px",
+                                    color: "var(--muted)",
+                                    lineHeight: "1.5",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: "4px",
+                                    flexWrap: "wrap",
+                                 }}
+                              >
+                                 Click on good objects (
+                                 <StarIcon style={{ width: 14, height: 14, color: "var(--ok)", flexShrink: 0 }} /> star,
+                                 <HeartIcon style={{ width: 14, height: 14, color: "var(--ok)", flexShrink: 0 }} /> heart,
+                                 <BoltIcon style={{ width: 14, height: 14, color: "var(--ok)", flexShrink: 0 }} /> bolt,
+                                 <CheckCircleIcon style={{ width: 14, height: 14, color: "var(--ok)", flexShrink: 0 }} /> checkmark) to catch them. You'll get points
+                                 for each good object caught!
+                              </div>
+                           </div>
+                        </div>
+
+                        <div
+                           style={{
+                              display: "flex",
+                              alignItems: "flex-start",
+                              gap: "14px",
+                              padding: "16px",
+                              background:
+                                 "linear-gradient(135deg, rgba(239, 68, 68, 0.15), rgba(220, 38, 38, 0.1))",
+                              borderRadius: "12px",
+                              border: "1px solid rgba(239, 68, 68, 0.3)",
+                              boxShadow: "0 2px 8px rgba(239, 68, 68, 0.1)",
+                           }}
+                        >
+                           <div
+                              style={{
+                                 minWidth: "32px",
+                                 height: "32px",
+                                 borderRadius: "50%",
+                                 background:
+                                    "linear-gradient(135deg, rgba(239, 68, 68, 1), rgba(220, 38, 38, 0.9))",
+                                 display: "flex",
+                                 alignItems: "center",
+                                 justifyContent: "center",
+                                 color: "white",
+                                 fontWeight: 700,
+                                 fontSize: "14px",
+                                 boxShadow: "0 4px 12px rgba(239, 68, 68, 0.4)",
+                              }}
+                           >
+                              3
+                           </div>
+                           <div style={{ flex: 1 }}>
+                              <div
+                                 style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: "8px",
+                                    marginBottom: "6px",
+                                 }}
+                              >
+                                 <XCircleIcon
+                                    style={{
+                                       width: 18,
+                                       height: 18,
+                                       color: "rgba(239, 68, 68, 1)",
+                                    }}
+                                 />
+                                 <div
+                                    style={{
+                                       fontSize: isMobile ? "14px" : "15px",
+                                       fontWeight: 700,
+                                       color: "var(--text)",
+                                    }}
+                                 >
+                                    Avoid bad objects
+                                 </div>
+                              </div>
+                              <div
+                                 style={{
+                                    fontSize: isMobile ? "12px" : "13px",
+                                    color: "var(--muted)",
+                                    lineHeight: "1.5",
+                                 }}
+                              >
+                                 Do NOT click on bad objects (✗ X mark, 🔥 fire
+                                 icon). They will reduce your score or count
+                                 against you!
+                              </div>
+                           </div>
+                        </div>
+
+                        <div
+                           style={{
+                              display: "flex",
+                              alignItems: "flex-start",
+                              gap: "14px",
+                              padding: "16px",
+                              background:
+                                 "linear-gradient(135deg, rgba(251, 191, 36, 0.15), rgba(217, 119, 6, 0.1))",
+                              borderRadius: "12px",
+                              border: "1px solid rgba(251, 191, 36, 0.3)",
+                              boxShadow: "0 2px 8px rgba(251, 191, 36, 0.1)",
+                           }}
+                        >
+                           <div
+                              style={{
+                                 minWidth: "32px",
+                                 height: "32px",
+                                 borderRadius: "50%",
+                                 background:
+                                    "linear-gradient(135deg, rgba(251, 191, 36, 1), rgba(217, 119, 6, 0.9))",
+                                 display: "flex",
+                                 alignItems: "center",
+                                 justifyContent: "center",
+                                 color: "white",
+                                 fontWeight: 700,
+                                 fontSize: "14px",
+                                 boxShadow: "0 4px 12px rgba(251, 191, 36, 0.4)",
+                              }}
+                           >
+                              4
+                           </div>
+                           <div style={{ flex: 1 }}>
+                              <div
+                                 style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: "8px",
+                                    marginBottom: "6px",
+                                 }}
+                              >
+                                 <TrophyIcon
+                                    style={{
+                                       width: 18,
+                                       height: 18,
+                                       color: "rgba(251, 191, 36, 1)",
+                                    }}
+                                 />
+                                 <div
+                                    style={{
+                                       fontSize: isMobile ? "14px" : "15px",
+                                       fontWeight: 700,
+                                       color: "var(--text)",
+                                    }}
+                                 >
+                                    Complete the level
+                                 </div>
+                              </div>
+                              <div
+                                 style={{
+                                    fontSize: isMobile ? "12px" : "13px",
+                                    color: "var(--muted)",
+                                    lineHeight: "1.5",
+                                 }}
+                              >
+                                 Catch enough good objects within the time limit
+                                 to pass the level. Each level gets faster and
+                                 more challenging!
+                              </div>
+                           </div>
+                        </div>
+                     </div>
+                  </div>
+               )}
+
                {/* Interactive Example for Reaction Test */}
                {gameType === "reaction-test" && (
                   <div

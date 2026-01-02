@@ -549,6 +549,17 @@ useEffect(() => {
 6. **Type Safety**: Përdor TypeScript types për props dhe state
 7. **Error Handling**: Validim dhe fallback për edge cases
 8. **Responsive Design**: Testo në mobile, tablet, dhe desktop
+9. **Heroicons Integration**: Përdor Heroicons për të gjitha ikonat në lojë (në UI, shembuj, feedback, etj.)
+   -  Import ikonat nga `@heroicons/react/24/outline`
+   -  Përdor ikona konsistente për të njëjtat funksione (p.sh. `CheckCircleIcon` për correct, `XCircleIcon` për wrong, `TrophyIcon` për score, etj.)
+   -  Përdor Heroicons edhe në shembujt GUI interaktivë në seksionin "How to Play"
+10.   **Interactive GUI Example**: Shto një shembull GUI interaktiv në seksionin "How to Play" që tregon vizualisht si luhet loja
+
+-  Shembulli duhet të jetë në `GameEngine.tsx` në seksionin `game-instructions-section`
+-  Duhet të përdorë Heroicons për ikona
+-  Duhet të ketë një strukturë të qartë me hapa të numëruar që shpjegojnë si luhet loja
+-  Duhet të jetë responsive (mobile, tablet, desktop)
+-  Duhet të përmbajë një "Example Round" që demonstron vizualisht mekanikën e lojës
 
 ---
 
@@ -565,6 +576,8 @@ Para se të konsiderohet e kompletuar, një lojë duhet të ketë:
 -  [ ] Feedback negativ shfaqet vetëm pas përfundimit
 -  [ ] Visual feedback menjëherë për elemente të zgjedhura gabimisht (të kuqe)
 -  [ ] Responsive design për mobile, tablet, dhe desktop
+-  [ ] **Heroicons Integration**: Të gjitha ikonat përdorin Heroicons nga `@heroicons/react/24/outline`
+-  [ ] **Interactive GUI Example**: Shembull GUI interaktiv në "How to Play" që tregon vizualisht si luhet loja
 
 ### Sistemet:
 
@@ -580,7 +593,7 @@ Para se të konsiderohet e kompletuar, një lojë duhet të ketë:
 -  [ ] Game instructions në `gameInstructions.ts`
 -  [ ] Mouse controls në instructions (nëse ka)
 -  [ ] Keyboard controls në instructions (nëse ka)
--  [ ] Interactive example në GameEngine (opsional por i rekomanduar)
+-  [ ] **Interactive GUI Example në GameEngine**: OBLIGATIVE - Shembull GUI interaktiv që tregon vizualisht si luhet loja me Heroicons
 
 ### Features Opsionale:
 

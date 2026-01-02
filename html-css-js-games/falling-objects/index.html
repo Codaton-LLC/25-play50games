@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<!--
+  Falling Objects
+  Catch good items (+ / green), avoid bad items (- / red)
+
+  Usage: Save as falling-objects.html and open in a browser.
+-->
+<html lang="en">
+   <head>
+      <meta charset="UTF-8" />
+      <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <title>Falling Objects</title>
+      <style>
+         :root {
+            --bg: #0b1220;
+            --panel: #0f1b33;
+            --text: #e8eefc;
+            --muted: #a6b3d1;
+            --accent: #6ea8ff;
+            --good: #36d399;
+            --bad: #fb7185;
+            --warn: #fbbf24;
+            --shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
+            --radius: 18px;
+         }
+         * {
+            box-sizing: border-box;
+         }
+         body {
+            margin: 0;
+            font-family: system-ui;
+            background: radial-gradient(
+                  1200px 800px at 70% -10%,
+                  rgba(110, 168, 255, 0.28),
+                  transparent 60%
+               ),
+               radial-gradient(
+                  900px 600px at 0% 10%,
+                  rgba(54, 211, 153, 0.18),
+                  transparent 55%
+               ),
+               var(--bg);
+            color: var(--text);
+            min-height: 100svh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+         }
+
+         .app {
+            width: min(980px, 100%);
+            display: grid;
+            grid-template-columns: 1.2fr 0.8fr;
+            gap: 18px;
+         }
+         @media (max-width: 900px) {
+            .app {
+               grid-template-columns: 1fr;
+            }
+         }
+
+         .panel {
+            background: linear-gradient(
+               180deg,
+               rgba(255, 255, 255, 0.06),
+               rgba(255, 255, 255, 0.02)
+            );
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            overflow: hidden;
+         }
+
+         header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            padding: 18px;
+            gap: 12px;
+            flex-wrap: wrap;
+         }
+         h1 {
+            margin: 0;
+            font-size: 18px;
+         }
+         p {
+            margin: 4px 0 0;
+            color: var(--muted);
+            font-size: 13px;
+         }
+
+         button {
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            background: rgba(15, 27, 51, 0.7);
+            color: var(--text);
+            padding: 10px 14px;
+            font-weight: 800;
+            cursor: pointer;
+            transition: 0.12s;
+         }
+         button.primary {
+            background: linear-gradient(
+               180deg,
+               rgba(110, 168, 255, 0.9),
+               rgba(110, 168, 255, 0.55)
+            );
+            color: #081126;
+         }
+
+         .row {
+            display: flex;
+            gap: 12px;
+            padding: 14px 18px;
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            background: rgba(11, 22, 48, 0.45);
+            flex-wrap: wrap;
+         }
+
+         .pill {
+            padding: 8px 12px;
+            border-radius: 999px;
+            background: rgba(17, 28, 53, 0.55);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            font-size: 13px;
+            white-space: nowrap;
+            display: flex;
+            gap: 8px;
+            align-items: center;
+         }
+
+         .content {
+            padding: 18px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+         }
+
+         .arena {
+            height: 380px;
+            border-radius: 18px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: radial-gradient(
+                  320px 220px at 30% 30%,
+                  rgba(110, 168, 255, 0.1),
+                  transparent 55%
+               ),
+               linear-gradient(
+                  180deg,
+                  rgba(255, 255, 255, 0.05),
+                  rgba(255, 255, 255, 0.02)
+               );
+            position: relative;
+            overflow: hidden;
+            user-select: none;
+         }
+
+         .centerHint {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            color: var(--muted);
+            font-size: 13px;
+            pointer-events: none;
+         }
+
+         .item {
+            position: absolute;
+            width: 54px;
+            height: 54px;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 950;
+            font-size: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            box-shadow: 0 10px 18px rgba(0, 0, 0, 0.22);
+            cursor: pointer;
+            transform: translateZ(0);
+            transition: transform 0.08s;
+         }
+         .item:active {
+            transform: scale(0.98);
+         }
+
+         .item.good {
+            background: rgba(54, 211, 153, 0.18);
+            border-color: rgba(54, 211, 153, 0.45);
+            color: var(--good);
+         }
+         .item.bad {
+            background: rgba(251, 113, 133, 0.16);
+            border-color: rgba(251, 113, 133, 0.45);
+            color: var(--bad);
+         }
+
+         .float {
+            position: absolute;
+            font-size: 12px;
+            font-weight: 900;
+            pointer-events: none;
+            opacity: 0;
+            transform: translateY(0);
+            transition: opacity 0.15s, transform 0.45s;
+         }
+
+         .side {
+            padding: 18px;
+         }
+         .side h2 {
+            margin: 0 0 8px;
+            font-size: 14px;
+         }
+         .side ul {
+            margin: 0;
+            color: var(--muted);
+            font-size: 13px;
+            line-height: 1.35;
+            padding-left: 18px;
+         }
+         .side ul + h2 {
+            margin-top: 14px;
+         }
+      </style>
+   </head>
+   <body>
+      <div class="app">
+         <section class="panel">
+            <header>
+               <div>
+                  <h1>Falling Objects</h1>
+                  <p>Catch good items, avoid bad ones</p>
+               </div>
+               <button class="primary" id="startBtn">Start</button>
+            </header>
+
+            <div class="row">
+               <div class="pill">Score: <b id="score">0</b></div>
+               <div class="pill">Missed: <b id="missed">0</b></div>
+               <div class="pill">Bad clicks: <b id="badClicks">0</b></div>
+               <div class="pill">Time: <b id="time">30</b>s</div>
+            </div>
+
+            <div class="content">
+               <div class="arena" id="arena" aria-label="Game area">
+                  <div class="centerHint" id="hint">
+                     Press <b>Start</b> then click only the green
+                     <b>+</b> items.
+                  </div>
+               </div>
+            </div>
+         </section>
+
+         <aside class="panel">
+            <div class="side">
+               <h2>How to Play</h2>
+               <ul>
+                  <li>Items fall from the top.</li>
+                  <li>Click <b>good</b> items (green / +) to catch them.</li>
+                  <li>Avoid clicking <b>bad</b> items (red / -).</li>
+               </ul>
+
+               <h2>Tips</h2>
+               <ul>
+                  <li>Watch items carefully.</li>
+                  <li>Focus on the <b>+</b> symbol and green color.</li>
+               </ul>
+            </div>
+         </aside>
+      </div>
+
+      <script>
+         // ===== Falling Objects – Vanilla JS =====
+         const ROUND_SECONDS = 30;
+         const SPAWN_EVERY_MS = 520; // spawn frequency
+         const BAD_PROBABILITY = 0.3; // 30% bad items
+         const FALL_SPEED_MIN = 140; // px/sec
+         const FALL_SPEED_MAX = 260; // px/sec
+         const ITEM_SIZE = 54;
+
+         let running = false;
+         let score = 0;
+         let missed = 0;
+         let badClicks = 0;
+         let timeLeft = ROUND_SECONDS;
+
+         let spawnTimer = null;
+         let tickTimer = null;
+         let rafId = null;
+
+         const arena = document.getElementById("arena");
+         const hint = document.getElementById("hint");
+
+         const scoreEl = document.getElementById("score");
+         const missedEl = document.getElementById("missed");
+         const badClicksEl = document.getElementById("badClicks");
+         const timeEl = document.getElementById("time");
+         const startBtn = document.getElementById("startBtn");
+
+         const items = []; // { el, x, y, vy, good, caught, id }
+
+         function rand(min, max) {
+            return min + Math.random() * (max - min);
+         }
+
+         function setStats() {
+            scoreEl.textContent = String(score);
+            missedEl.textContent = String(missed);
+            badClicksEl.textContent = String(badClicks);
+            timeEl.textContent = String(timeLeft);
+         }
+
+         function clearAll() {
+            // remove items
+            while (items.length) {
+               const it = items.pop();
+               if (it && it.el && it.el.parentNode)
+                  it.el.parentNode.removeChild(it.el);
+            }
+            // remove floating labels
+            const floats = arena.querySelectorAll(".float");
+            floats.forEach((f) => f.remove());
+         }
+
+         function endGame() {
+            running = false;
+            if (spawnTimer) clearInterval(spawnTimer);
+            if (tickTimer) clearInterval(tickTimer);
+            if (rafId) cancelAnimationFrame(rafId);
+            spawnTimer = tickTimer = rafId = null;
+
+            hint.style.display = "block";
+            hint.innerHTML = `Time up!<br><br><b>Score:</b> ${score} &nbsp;•&nbsp; <b>Missed:</b> ${missed} &nbsp;•&nbsp; <b>Bad clicks:</b> ${badClicks}<br><span style="color: var(--muted)">Press Start to play again.</span>`;
+         }
+
+         function floatText(x, y, text, good) {
+            const f = document.createElement("div");
+            f.className = "float";
+            f.textContent = text;
+            f.style.left = x + "px";
+            f.style.top = y + "px";
+            f.style.color = good ? "var(--good)" : "var(--bad)";
+            arena.appendChild(f);
+            requestAnimationFrame(() => {
+               f.style.opacity = "1";
+               f.style.transform = "translateY(-18px)";
+            });
+            setTimeout(() => f.remove(), 650);
+         }
+
+         function spawn() {
+            if (!running) return;
+
+            const good = Math.random() > BAD_PROBABILITY;
+            const el = document.createElement("div");
+            el.className = "item " + (good ? "good" : "bad");
+            el.textContent = good ? "+" : "–";
+
+            const maxX = Math.max(0, arena.clientWidth - ITEM_SIZE);
+            const x = Math.floor(Math.random() * (maxX + 1));
+            const y = -ITEM_SIZE;
+            const vy = rand(FALL_SPEED_MIN, FALL_SPEED_MAX);
+
+            const it = {
+               el,
+               x,
+               y,
+               vy,
+               good,
+               caught: false,
+               id: cryptoRandomId(),
+            };
+            items.push(it);
+
+            el.style.left = x + "px";
+            el.style.top = y + "px";
+
+            el.addEventListener("click", (e) => {
+               e.stopPropagation();
+               if (!running) return;
+               if (it.caught) return;
+
+               it.caught = true;
+
+               if (it.good) {
+                  score += 1;
+                  floatText(it.x + 18, it.y + 12, "+1", true);
+               } else {
+                  badClicks += 1;
+                  score = Math.max(0, score - 1);
+                  floatText(it.x + 18, it.y + 12, "-1", false);
+               }
+
+               setStats();
+               // pop effect + remove
+               it.el.style.transform = "scale(.92)";
+               setTimeout(() => {
+                  if (it.el.parentNode) it.el.parentNode.removeChild(it.el);
+               }, 0);
+            });
+
+            arena.appendChild(el);
+         }
+
+         function cryptoRandomId() {
+            // Safe fallback if crypto is not available
+            try {
+               if (window.crypto && crypto.getRandomValues) {
+                  const arr = new Uint32Array(1);
+                  crypto.getRandomValues(arr);
+                  return String(arr[0]);
+               }
+            } catch (e) {}
+            return String(Math.floor(Math.random() * 1e9));
+         }
+
+         let lastTs = 0;
+         function loop(ts) {
+            if (!running) return;
+            if (!lastTs) lastTs = ts;
+            const dt = (ts - lastTs) / 1000;
+            lastTs = ts;
+
+            for (let i = items.length - 1; i >= 0; i--) {
+               const it = items[i];
+               if (!it || it.caught) {
+                  items.splice(i, 1);
+                  continue;
+               }
+
+               it.y += it.vy * dt;
+               it.el.style.top = it.y + "px";
+
+               if (it.y > arena.clientHeight + ITEM_SIZE) {
+                  // missed
+                  if (it.good) {
+                     missed += 1;
+                     setStats();
+                  }
+                  if (it.el.parentNode) it.el.parentNode.removeChild(it.el);
+                  items.splice(i, 1);
+               }
+            }
+
+            rafId = requestAnimationFrame(loop);
+         }
+
+         function startGame() {
+            // reset
+            running = true;
+            score = 0;
+            missed = 0;
+            badClicks = 0;
+            timeLeft = ROUND_SECONDS;
+            lastTs = 0;
+            clearAll();
+            setStats();
+
+            hint.style.display = "none";
+
+            if (spawnTimer) clearInterval(spawnTimer);
+            if (tickTimer) clearInterval(tickTimer);
+            if (rafId) cancelAnimationFrame(rafId);
+
+            spawnTimer = setInterval(spawn, SPAWN_EVERY_MS);
+            tickTimer = setInterval(() => {
+               timeLeft -= 1;
+               setStats();
+               if (timeLeft <= 0) {
+                  endGame();
+               }
+            }, 1000);
+
+            rafId = requestAnimationFrame(loop);
+         }
+
+         startBtn.addEventListener("click", startGame);
+
+         // ===== Lightweight Tests (Console) =====
+         (function runTests() {
+            try {
+               console.assert(
+                  typeof ROUND_SECONDS === "number" && ROUND_SECONDS > 0,
+                  "Test: ROUND_SECONDS should be positive"
+               );
+               console.assert(
+                  BAD_PROBABILITY >= 0 && BAD_PROBABILITY <= 1,
+                  "Test: BAD_PROBABILITY should be 0..1"
+               );
+               console.assert(
+                  FALL_SPEED_MIN > 0 && FALL_SPEED_MAX >= FALL_SPEED_MIN,
+                  "Test: fall speed bounds should be valid"
+               );
+
+               // spawn position test (simulate calc)
+               const maxX = Math.max(0, 500 - ITEM_SIZE);
+               const x = Math.floor(Math.random() * (maxX + 1));
+               console.assert(
+                  x >= 0 && x <= maxX,
+                  "Test: x position within bounds"
+               );
+
+               console.info("Falling Objects tests: OK");
+            } catch (err) {
+               console.warn("Falling Objects tests: failed", err);
+            }
+         })();
+      </script>
+   </body>
+</html>

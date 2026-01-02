@@ -28,6 +28,7 @@ import AvoidRed from "./speedgames-parts/AvoidRed";
 import ReactionTest from "./speedgames-parts/ReactionTest";
 import TypingSprint from "./speedgames-parts/TypingSprint";
 import QuickCompare from "./speedgames-parts/QuickCompare";
+import FallingObjects from "./speedgames-parts/FallingObjects";
 
 interface SpeedGamesProps {
    config: Record<string, any>;
@@ -145,127 +146,6 @@ export default function SpeedGames({
       gameComponents[currentGame] || (
          <div>Speed game "{currentGame}" not found.</div>
       )
-   );
-}
-
-// Falling Objects Game (33)
-function FallingObjects({
-   config,
-   onScoreUpdate,
-   onComplete,
-   isPlaying,
-}: {
-   config: Record<string, any>;
-   onScoreUpdate: (score: number) => void;
-   onComplete: (finalScore?: number) => void;
-   isPlaying: boolean;
-}) {
-   const duration = config.duration || 30;
-   const [objects, setObjects] = useState<
-      Array<{ id: number; type: "good" | "bad"; y: number }>
-   >([]);
-   const [timeLeft, setTimeLeft] = useState(duration);
-   const [score, setScore] = useState(0);
-   const [missed, setMissed] = useState(0);
-
-   useEffect(() => {
-      if (!isPlaying) return;
-
-      const timer = setInterval(() => {
-         setTimeLeft((prev: number) => {
-            if (prev <= 1) {
-               const finalScore = Math.max(0, 100 - missed * 5);
-               onScoreUpdate(finalScore);
-               setTimeout(() => onComplete(finalScore), 1000);
-               return 0;
-            }
-            return prev - 1;
-         });
-      }, 1000);
-
-      const objectTimer = setInterval(() => {
-         setObjects((prev) => [
-            ...prev,
-            {
-               id: Date.now(),
-               type: Math.random() > 0.5 ? "good" : "bad",
-               y: 0,
-            },
-         ]);
-      }, 1000);
-
-      const fallTimer = setInterval(() => {
-         setObjects((prev) =>
-            prev
-               .map((obj) => ({ ...obj, y: obj.y + 2 }))
-               .filter((obj) => {
-                  if (obj.y > 100) {
-                     if (obj.type === "good") setMissed(missed + 1);
-                     return false;
-                  }
-                  return true;
-               })
-         );
-      }, 50);
-
-      return () => {
-         clearInterval(timer);
-         clearInterval(objectTimer);
-         clearInterval(fallTimer);
-      };
-   }, [isPlaying, duration, missed, onScoreUpdate, onComplete]);
-
-   const handleObjectClick = (id: number, type: "good" | "bad") => {
-      setObjects((prev) => prev.filter((obj) => obj.id !== id));
-      if (type === "good") {
-         setScore(score + 5);
-      } else {
-         setScore(Math.max(0, score - 3));
-      }
-   };
-
-   return (
-      <div className="falling-objects-game">
-         <h3>Falling Objects</h3>
-         <p>
-            Time: {timeLeft}s | Score: {score}
-         </p>
-         <div className="falling-area">
-            {objects.map((obj) => (
-               <button
-                  key={obj.id}
-                  onClick={() => handleObjectClick(obj.id, obj.type)}
-                  className={`falling-object ${obj.type}`}
-                  style={{
-                     top: `${obj.y}%`,
-                     left: `${Math.random() * 80 + 10}%`,
-                  }}
-               >
-                  {obj.type === "good" ? (
-                     <CheckCircleIcon style={{ width: 20, height: 20 }} />
-                  ) : (
-                     <XCircleIcon style={{ width: 20, height: 20 }} />
-                  )}
-               </button>
-            ))}
-         </div>
-         <p
-            style={{
-               display: "flex",
-               alignItems: "center",
-               gap: "8px",
-               justifyContent: "center",
-            }}
-         >
-            Catch good items (
-            <CheckCircleIcon
-               style={{ width: 16, height: 16, display: "inline" }}
-            />
-            ), avoid bad ones (
-            <XCircleIcon style={{ width: 16, height: 16, display: "inline" }} />
-            )
-         </p>
-      </div>
    );
 }
 

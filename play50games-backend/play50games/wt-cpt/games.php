@@ -615,11 +615,11 @@ function show_games_custom_fields() {
                 gameType: 'speed',
                 gameOrder: 33,
                 difficulty: 2,
-                timeLimit: 30,
-                passingScore: 75,
+                timeLimit: 0,
+                passingScore: 70,
                 unlockRequirement: '',
-                description: 'Catch good items, avoid bad ones',
-                gameConfig: '{"gameType": "falling-objects", "duration": 30}'
+                description: 'Catch good falling objects and avoid bad ones across 15 unique levels. Progressive difficulty with increasing speed, smaller objects, and more challenges.',
+                gameConfig: '{"gameType": "falling-objects", "levels": 15, "levelRequirements": [{"minCaughtGood": 8, "duration": 30}, {"minCaughtGood": 10, "duration": 30}, {"minCaughtGood": 12, "duration": 30}, {"minCaughtGood": 14, "duration": 30}, {"minCaughtGood": 16, "duration": 30}, {"minCaughtGood": 18, "duration": 30}, {"minCaughtGood": 20, "duration": 30}, {"minCaughtGood": 22, "duration": 30}, {"minCaughtGood": 24, "duration": 30}, {"minCaughtGood": 26, "duration": 30}, {"minCaughtGood": 28, "duration": 30}, {"minCaughtGood": 30, "duration": 30}, {"minCaughtGood": 32, "duration": 30}, {"minCaughtGood": 35, "duration": 30}, {"minCaughtGood": 40, "duration": 30}]}'
             },
             'tap-counter': {
                 title: 'Tap Counter',
