@@ -561,6 +561,20 @@ useEffect(() => {
 -  Duhet të jetë responsive (mobile, tablet, desktop)
 -  Duhet të përmbajë një "Example Round" që demonstron vizualisht mekanikën e lojës
 
+11.   **Consistent Design**: Të gjitha lojërat duhet të kenë të njëjtin design si lojërat e tjera për konsistencë vizuale
+
+-  **Header Section**: Përdor të njëjtin header design me card, level indicator (me ArrowPathIcon), score (me TrophyIcon), time (me ClockIcon), dhe progress bar me gradient
+-  **Stats Display**: Përdor të njëjtin stil për stats badges (gradient backgrounds, borders, padding, font sizes)
+-  **Level Complete State**: Përdor badge me "Level X Complete" (me CheckCircleIcon) dhe buton "Next Round" me të njëjtin stil gradient
+-  **Level Failed State**: Përdor badge me "Level X Failed" (me XCircleIcon) dhe mesazh me të njëjtin stil
+-  **Replay & Share Buttons**: Përdor të njëjtin design për butonat (gradient backgrounds, borders, padding, gap, responsive widths)
+-  **Share Messages**: Përdor të njëjtat mesazhe për share success ("Link copied! Unlimited replay will unlock when someone opens your link!") dhe unlimited activated ("🎉 Someone opened your link! Unlimited replay is now active for 15 minutes!")
+-  **Game Complete State**: Përdor badge me "Game Complete!" (me TrophyIcon) me të njëjtin stil
+-  **Layout Structure**: Përdor të njëjtën strukturë layout (flexbox, padding, gaps, max-width: 800px, etj.)
+-  **Color Scheme**: Përdor të njëjtat ngjyra CSS variables (var(--card), var(--stroke), var(--accent), var(--ok), var(--warn), var(--muted), etj.)
+-  **Responsive Design**: Përdor të njëjtat breakpoints dhe responsive styles (isMobile: <640px, isTablet: 640-1024px)
+-  **Shiko FallingObjects.tsx si referencë** për design-in standard të Speed Games
+
 ---
 
 ## 7. Checklist
@@ -578,6 +592,7 @@ Para se të konsiderohet e kompletuar, një lojë duhet të ketë:
 -  [ ] Responsive design për mobile, tablet, dhe desktop
 -  [ ] **Heroicons Integration**: Të gjitha ikonat përdorin Heroicons nga `@heroicons/react/24/outline`
 -  [ ] **Interactive GUI Example**: Shembull GUI interaktiv në "How to Play" që tregon vizualisht si luhet loja
+-  [ ] **Consistent Design**: Design-i është i njëjtë si lojërat e tjera (header, stats, level complete/failed states, replay/share buttons, layout, colors, responsive)
 
 ### Sistemet:
 
@@ -1218,6 +1233,37 @@ useEffect(() => {
 3. **State management**: Përdor `useRef` për state që duhet të jetë e aksesueshme në callbacks por nuk duhet të shkaktojë re-renders
 4. **Freezing logic**: Kur loja ngrihet, sigurohu që të gjitha ndërveprimet janë disabled
 5. **Score calculation**: Llogarit score-in bazuar në levels të kompletuara, jo në score-in aktual
+
+   -  **Formula**: `roundScore = Math.round(100 / maxLevels)`
+   -  **Per level**: Për çdo level të kompletuar, shto `roundScore` pikë
+   -  **Total score**: `newScore = Math.min(100, completedLevels * roundScore)`
+   -  **Final score**: Kur kompleton të gjitha levels, `finalScore = 100`
+   -  **Example**: Për 15 levels:
+      -  Level 1 kompletuar: `Math.round(100 / 15) = 7` pikë
+      -  Level 2 kompletuar: `2 * 7 = 14` pikë
+      -  Level 3 kompletuar: `3 * 7 = 21` pikë
+      -  ...
+      -  Level 15 kompletuar: `Math.min(100, 15 * 7) = 100` pikë
+   -  **Implementation**:
+
+      ```typescript
+      // Kur requirements janë plotësuar
+      const roundScore = Math.round(100 / maxLevels);
+      const completedLevels = currentLevel + 1;
+      const newScore = Math.min(100, completedLevels * roundScore);
+      setCurrentScore(newScore);
+      onScoreUpdate(newScore);
+
+      // Kur kompleton të gjitha levels
+      if (completedLevels >= maxLevels) {
+         const finalScore = 100;
+         onComplete(finalScore);
+      }
+      ```
+
+   -  **Mos përdor**: Score bazuar në performancë (p.sh. taps vs minTaps, correct answers vs total, etj.) - kjo mund të shkojë mbi 100
+   -  **Përdor**: Score bazuar vetëm në numrin e leveleve të kompletuara
+
 6. **Passing score**: Kontrollo në fund nëse score-i >= passingScore, por mos e ndërpre lojën
 7. **Config parsing**: Sigurohu që `config.levels` dhe `config.levelDuration` merren siç duhet nga backend
 
@@ -1240,6 +1286,20 @@ useEffect(() => {
 21.   **Prevent equal values**: Për lojëra me krahasim, sigurohu që vlerat e gjeneruara nuk janë të barabarta (p.sh. `while (left === right) { regenerate }`)
 22.   **Feedback timing**: Për lojëra me feedback, përdor delay (300ms) pas feedback përpara se të gjenerosh element të ri, për të lejuar përdoruesit të shohë rezultatin
 23.   **Level description**: Për lojëra me levels, shfaq përshkrim të level-it aktual që tregon llojin e challenge (p.sh. "Simple Integers (1-50)", "Decimals (0.1-10)")
+24.   **Consistent Design**: Të gjitha lojërat duhet të kenë të njëjtin design si lojërat e tjera për konsistencë vizuale
+
+
+    -  **Header Section**: Përdor të njëjtin header design me card, level indicator, score, time, dhe progress bar
+    -  **Stats Display**: Përdor të njëjtin stil për stats (badges me gradient backgrounds dhe borders)
+    -  **Level Complete State**: Përdor badge me "Level X Complete" dhe buton "Next Round" me të njëjtin stil
+    -  **Level Failed State**: Përdor badge me "Level X Failed" dhe mesazh me të njëjtin stil
+    -  **Replay & Share Buttons**: Përdor të njëjtin design për butonat e replay dhe share (gradient backgrounds, borders, padding, etj.)
+    -  **Share Messages**: Përdor të njëjtat mesazhe për share success dhe unlimited activated
+    -  **Game Complete State**: Përdor badge me "Game Complete!" dhe TrophyIcon me të njëjtin stil
+    -  **Layout Structure**: Përdor të njëjtën strukturë layout (flexbox, padding, gaps, max-width, etj.)
+    -  **Color Scheme**: Përdor të njëjtat ngjyra CSS variables (var(--card), var(--stroke), var(--accent), var(--ok), var(--warn), etj.)
+    -  **Responsive Design**: Përdor të njëjtat breakpoints dhe responsive styles (isMobile, isTablet)
+    -  **Shiko FallingObjects.tsx si referencë** për design-in standard të Speed Games
 
 ### 9.4 Skill Games
 

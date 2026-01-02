@@ -1898,6 +1898,135 @@ Reaction Test përfshin 10 variante unike të mini-lojave:
 -  **Passing Score**: 70 (70% of max score)
 -  **Difficulty**: 1 (easy to medium difficulty)
 
+#### Tap Counter
+
+```json
+{
+   "gameType": "tap-counter",
+   "levels": 15,
+   "levelRequirements": [
+      { "minTaps": 20, "duration": 10 },
+      { "minTaps": 25, "duration": 10 },
+      { "minTaps": 30, "duration": 10 },
+      { "minTaps": 35, "duration": 10 },
+      { "minTaps": 40, "duration": 10 },
+      { "minTaps": 45, "duration": 10 },
+      { "minTaps": 50, "duration": 10 },
+      { "minTaps": 55, "duration": 10 },
+      { "minTaps": 60, "duration": 10 },
+      { "minTaps": 65, "duration": 10 },
+      { "minTaps": 70, "duration": 10 },
+      { "minTaps": 75, "duration": 10 },
+      { "minTaps": 80, "duration": 10 },
+      { "minTaps": 85, "duration": 10 },
+      { "minTaps": 90, "duration": 10 }
+   ]
+}
+```
+
+**Configuration:**
+
+-  `gameType` (required): Must be `"tap-counter"`
+-  `levels` (optional): Number of levels - Default: **15**
+-  `levelRequirements` (optional): Array of requirements for each level - Default: **auto-progression**
+   -  Each object can have:
+      -  `minTaps` (required): Minimum number of taps required to pass the level
+      -  `duration` (optional): Duration in seconds for this specific level (default: 10)
+
+**Level Requirements:**
+
+-  **Level 1**: Minimum 20 taps in 10 seconds
+-  **Level 2**: Minimum 25 taps in 10 seconds
+-  **Level 3**: Minimum 30 taps in 10 seconds
+-  ... (progressive increase)
+-  **Level 15**: Minimum 90 taps in 10 seconds
+
+**Level Passing Requirements:**
+
+-  Each level has a time limit (configurable per level via `duration`)
+-  You must tap a minimum number of times within the time limit
+-  If time runs out and requirements are not met, the level fails and you can replay it
+-  If you meet the minimum taps requirement, you can proceed to the next level
+
+**Scoring:**
+
+-  Each level gives a score from 0-100 based on taps vs minimum required
+-  Formula: `Math.min(100, Math.round((taps / minTaps) * 100))`
+-  Final score is the average of all level scores: `Math.round(totalScore / maxLevels)`
+-  Maximum 100 points for completing all 15 levels perfectly
+
+**Controls:**
+
+-  **Mouse**: Click the large circular button to tap
+-  **Keyboard**:
+   -  **Space** or **Enter**: Tap the button (alternative to clicking)
+
+**Goal:**
+
+-  Tap the large circular button as fast as you can
+-  Reach the minimum required taps within the time limit to pass each level
+-  Each level requires progressively more taps
+-  Watch your tap rate (taps per second) displayed at the top
+
+**How It Works:**
+
+-  A large circular tap button appears in the center of the screen
+-  Click or tap the button as fast as you can
+-  Each tap increments your tap counter
+-  You must reach the minimum required taps within the time limit to pass the level
+-  If you meet the requirement, you can proceed to the next level
+-  If time runs out and requirements are not met, the level fails and you can replay it (5 replays by default, unlimited if shared)
+
+**Level Progression:**
+
+-  **Levels 1-3**: Basic tapping (20-30 taps in 10s) - Get comfortable with the rhythm
+-  **Levels 4-6**: Speed up (35-45 taps in 10s) - Increase your tapping speed
+-  **Levels 7-9**: Rapid tapping (50-60 taps in 10s) - Very fast tapping required
+-  **Levels 10-12**: Lightning fast (65-75 taps in 10s) - Extremely fast tapping
+-  **Levels 13-15**: Ultimate speed (80-90 taps in 10s) - Maximum tapping speed
+
+**Features:**
+
+-  Progressive difficulty with increasing tap requirements across 15 levels
+-  Real-time tap rate tracking (taps per second)
+-  Level progression system (15 levels)
+-  Game state display (Level X Complete!, Level X Failed!, Game Complete!)
+-  **Replay System**: 5 replays by default, unlimited if shared
+   -  Click "Replay" button to retry the current level
+   -  Replays reset the timer and tap counter
+   -  Share the game to unlock unlimited replays for 15 minutes
+-  **Share Feature**: Share the game to unlock unlimited replays
+   -  Click "Share for Unlimited Replays" button to copy a shareable link
+   -  **Share Success Message**: Shows "Link copied! Unlimited replay will unlock when someone opens your link!" for 15 seconds after sharing
+   -  **Unlimited Activated Message**: Shows "🎉 Someone opened your link! Unlimited replay is now active for 15 minutes!" when link is clicked
+   -  When someone else opens the shared link, the original sharer gets unlimited replays for 15 minutes
+   -  The system uses a heartbeat mechanism (checks every 10 seconds) to detect when the link is clicked
+   -  Replays automatically expire after 15 minutes and return to normal
+-  Modern UI with header showing level, score, time, and progress bar
+-  Stats display showing current taps, target taps, and tap rate
+-  Progress bar showing tap progress within the current level
+-  Fully responsive design optimized for mobile, tablet, and desktop
+-  Interactive example in game instructions section with visual demonstration
+-  **Time Management**: When time runs out, the game automatically checks if requirements are met and shows "failed" if not, allowing replay
+-  **Progress Tracking**: Progress bar shows completion based on levels (1, 2, 3...), not individual taps
+
+**Tips:**
+
+-  Use multiple fingers or alternate hands for faster tapping
+-  Keep a steady rhythm - consistency is key
+-  Watch your tap rate to track your speed
+-  On mobile, use multiple fingers
+-  On desktop, you can use both mouse clicks and keyboard (Space/Enter)
+-  Practice maintaining speed throughout the entire time limit
+-  Use replays strategically when you're close to meeting the requirement
+-  Share the game to get unlimited replays if needed
+
+**Recommended Settings:**
+
+-  **Time Limit**: 0 (no overall time limit, each level has its own timer)
+-  **Passing Score**: 70 (70% of max score)
+-  **Difficulty**: 1 (easy to medium difficulty)
+
 #### Whack-a-Shape
 
 ```json
@@ -3407,6 +3536,9 @@ src/
 -  Fast Math
 -  Whack-a-Shape
 -  Typing Sprint
+-  Quick Compare
+-  Falling Objects
+-  Tap Counter
 
 ### Skill Games
 

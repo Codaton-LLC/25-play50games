@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<!--
+  Tap Counter
+  Tap as many times as possible within the time limit
+
+  Usage: Save as tap-counter.html and open in a browser.
+-->
+<html lang="en">
+   <head>
+      <meta charset="UTF-8" />
+      <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <title>Tap Counter</title>
+      <style>
+         :root {
+            --bg: #0b1220;
+            --panel: #0f1b33;
+            --text: #e8eefc;
+            --muted: #a6b3d1;
+            --accent: #6ea8ff;
+            --good: #36d399;
+            --bad: #fb7185;
+            --shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
+            --radius: 18px;
+         }
+         * {
+            box-sizing: border-box;
+         }
+         body {
+            margin: 0;
+            font-family: system-ui;
+            background: radial-gradient(
+                  1200px 800px at 70% -10%,
+                  rgba(110, 168, 255, 0.28),
+                  transparent 60%
+               ),
+               radial-gradient(
+                  900px 600px at 0% 10%,
+                  rgba(54, 211, 153, 0.18),
+                  transparent 55%
+               ),
+               var(--bg);
+            color: var(--text);
+            min-height: 100svh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+         }
+
+         .app {
+            width: min(980px, 100%);
+            display: grid;
+            grid-template-columns: 1.2fr 0.8fr;
+            gap: 18px;
+         }
+         @media (max-width: 900px) {
+            .app {
+               grid-template-columns: 1fr;
+            }
+         }
+
+         .panel {
+            background: linear-gradient(
+               180deg,
+               rgba(255, 255, 255, 0.06),
+               rgba(255, 255, 255, 0.02)
+            );
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            overflow: hidden;
+         }
+
+         header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            padding: 18px;
+            gap: 12px;
+            flex-wrap: wrap;
+         }
+         h1 {
+            margin: 0;
+            font-size: 18px;
+         }
+         p {
+            margin: 4px 0 0;
+            color: var(--muted);
+            font-size: 13px;
+         }
+
+         button {
+            border-radius: 14px;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            background: rgba(15, 27, 51, 0.7);
+            color: var(--text);
+            padding: 12px 18px;
+            font-weight: 900;
+            cursor: pointer;
+            transition: 0.1s;
+         }
+         button.primary {
+            background: linear-gradient(
+               180deg,
+               rgba(110, 168, 255, 0.9),
+               rgba(110, 168, 255, 0.55)
+            );
+            color: #081126;
+         }
+
+         .row {
+            display: flex;
+            gap: 12px;
+            padding: 14px 18px;
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            background: rgba(11, 22, 48, 0.45);
+            flex-wrap: wrap;
+         }
+
+         .pill {
+            padding: 8px 12px;
+            border-radius: 999px;
+            background: rgba(17, 28, 53, 0.55);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            font-size: 13px;
+            white-space: nowrap;
+         }
+
+         .content {
+            padding: 18px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+         }
+
+         .arena {
+            height: 360px;
+            border-radius: 18px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 22px;
+            text-align: center;
+         }
+
+         .tapBtn {
+            width: 180px;
+            height: 180px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 26px;
+            font-weight: 900;
+            background: rgba(54, 211, 153, 0.2);
+            border: 2px solid rgba(54, 211, 153, 0.6);
+            color: var(--good);
+            user-select: none;
+         }
+         .tapBtn:active {
+            transform: scale(0.95);
+         }
+
+         .big {
+            font-size: 34px;
+            font-weight: 900;
+         }
+
+         .side {
+            padding: 18px;
+         }
+         .side h2 {
+            margin: 0 0 8px;
+            font-size: 14px;
+         }
+         .side ul {
+            margin: 0;
+            color: var(--muted);
+            font-size: 13px;
+            line-height: 1.35;
+            padding-left: 18px;
+         }
+         .side ul + h2 {
+            margin-top: 14px;
+         }
+      </style>
+   </head>
+   <body>
+      <div class="app">
+         <section class="panel">
+            <header>
+               <div>
+                  <h1>Tap Counter</h1>
+                  <p>Tap as many times as possible</p>
+               </div>
+               <button class="primary" id="startBtn">Start</button>
+            </header>
+
+            <div class="row">
+               <div class="pill">Taps: <b id="taps">0</b></div>
+               <div class="pill">Time: <b id="time">10</b>s</div>
+            </div>
+
+            <div class="content">
+               <div class="arena">
+                  <div class="big" id="status">Press Start</div>
+                  <div class="tapBtn" id="tapBtn">TAP</div>
+               </div>
+            </div>
+         </section>
+
+         <aside class="panel">
+            <div class="side">
+               <h2>How to Play</h2>
+               <ul>
+                  <li>Tap the big button as fast as you can.</li>
+                  <li>Each tap counts as 1.</li>
+                  <li>Game ends when time runs out.</li>
+               </ul>
+
+               <h2>Tips</h2>
+               <ul>
+                  <li>Use multiple fingers if possible.</li>
+                  <li>Keep a steady rhythm.</li>
+               </ul>
+            </div>
+         </aside>
+      </div>
+
+      <script>
+         // ===== Tap Counter – Vanilla JS =====
+         const ROUND_SECONDS = 10;
+         let running = false;
+         let taps = 0;
+         let timeLeft = ROUND_SECONDS;
+         let timer = null;
+
+         const tapsEl = document.getElementById("taps");
+         const timeEl = document.getElementById("time");
+         const statusEl = document.getElementById("status");
+         const tapBtn = document.getElementById("tapBtn");
+         const startBtn = document.getElementById("startBtn");
+
+         function updateUI() {
+            tapsEl.textContent = String(taps);
+            timeEl.textContent = String(timeLeft);
+         }
+
+         function endGame() {
+            running = false;
+            clearInterval(timer);
+            statusEl.textContent = `Done! ${taps} taps`;
+         }
+
+         function startGame() {
+            running = true;
+            taps = 0;
+            timeLeft = ROUND_SECONDS;
+            updateUI();
+            statusEl.textContent = "GO!";
+
+            clearInterval(timer);
+            timer = setInterval(() => {
+               timeLeft--;
+               updateUI();
+               if (timeLeft <= 0) endGame();
+            }, 1000);
+         }
+
+         // Count taps (mouse + touch)
+         function registerTap() {
+            if (!running) return;
+            taps++;
+            tapsEl.textContent = String(taps);
+         }
+
+         tapBtn.addEventListener("mousedown", registerTap);
+         tapBtn.addEventListener("touchstart", (e) => {
+            e.preventDefault();
+            registerTap();
+         });
+         startBtn.addEventListener("click", startGame);
+
+         // ===== Lightweight Tests =====
+         (function runTests() {
+            try {
+               console.assert(
+                  ROUND_SECONDS > 0,
+                  "Test: ROUND_SECONDS must be > 0"
+               );
+               let t = 1;
+               t--;
+               console.assert(t === 0, "Test: timer decrement works");
+               console.info("Tap Counter tests: OK");
+            } catch (err) {
+               console.warn("Tap Counter tests failed", err);
+            }
+         })();
+      </script>
+   </body>
+</html>

@@ -29,6 +29,7 @@ import ReactionTest from "./speedgames-parts/ReactionTest";
 import TypingSprint from "./speedgames-parts/TypingSprint";
 import QuickCompare from "./speedgames-parts/QuickCompare";
 import FallingObjects from "./speedgames-parts/FallingObjects";
+import TapCounter from "./speedgames-parts/TapCounter";
 
 interface SpeedGamesProps {
    config: Record<string, any>;
@@ -146,56 +147,6 @@ export default function SpeedGames({
       gameComponents[currentGame] || (
          <div>Speed game "{currentGame}" not found.</div>
       )
-   );
-}
-
-// Tap Counter Game (34)
-function TapCounter({
-   config,
-   onScoreUpdate,
-   onComplete,
-   isPlaying,
-}: {
-   config: Record<string, any>;
-   onScoreUpdate: (score: number) => void;
-   onComplete: (finalScore?: number) => void;
-   isPlaying: boolean;
-}) {
-   const duration = config.duration || 10;
-   const [taps, setTaps] = useState(0);
-   const [timeLeft, setTimeLeft] = useState(duration);
-
-   useEffect(() => {
-      if (!isPlaying) return;
-
-      const timer = setInterval(() => {
-         setTimeLeft((prev: number) => {
-            if (prev <= 1) {
-               const finalScore = Math.min(100, taps * 2);
-               onScoreUpdate(finalScore);
-               setTimeout(() => onComplete(finalScore), 1000);
-               return 0;
-            }
-            return prev - 1;
-         });
-      }, 1000);
-
-      return () => clearInterval(timer);
-   }, [isPlaying, duration, taps, onScoreUpdate, onComplete]);
-
-   const handleTap = () => {
-      setTaps(taps + 1);
-   };
-
-   return (
-      <div className="tap-counter-game">
-         <h3>Tap Counter</h3>
-         <p>Time: {timeLeft}s</p>
-         <div className="tap-area" onClick={handleTap}>
-            <div className="tap-count">{taps}</div>
-            <p>Tap as fast as you can!</p>
-         </div>
-      </div>
    );
 }
 

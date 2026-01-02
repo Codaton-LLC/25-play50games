@@ -626,11 +626,11 @@ function show_games_custom_fields() {
                 gameType: 'speed',
                 gameOrder: 34,
                 difficulty: 1,
-                timeLimit: 10,
+                timeLimit: 0,
                 passingScore: 70,
                 unlockRequirement: '',
-                description: 'Tap as many times as possible',
-                gameConfig: '{"gameType": "tap-counter", "duration": 10}'
+                description: 'Tap as fast as you can across 15 unique levels. Progressive difficulty with increasing tap requirements and speed challenges.',
+                gameConfig: '{"gameType": "tap-counter", "levels": 15, "levelRequirements": [{"minTaps": 20, "duration": 10}, {"minTaps": 25, "duration": 10}, {"minTaps": 30, "duration": 10}, {"minTaps": 35, "duration": 10}, {"minTaps": 40, "duration": 10}, {"minTaps": 45, "duration": 10}, {"minTaps": 50, "duration": 10}, {"minTaps": 55, "duration": 10}, {"minTaps": 60, "duration": 10}, {"minTaps": 65, "duration": 10}, {"minTaps": 70, "duration": 10}, {"minTaps": 75, "duration": 10}, {"minTaps": 80, "duration": 10}, {"minTaps": 85, "duration": 10}, {"minTaps": 90, "duration": 10}]}'
             },
             'reflex-arrows': {
                 title: 'Reflex Arrows',

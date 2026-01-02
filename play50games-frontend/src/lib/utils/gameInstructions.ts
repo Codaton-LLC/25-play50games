@@ -474,9 +474,17 @@ export const gameInstructions: Record<string, {
     ],
   },
   'tap-counter': {
-    description: 'Tap as many times as possible',
-    instructions: 'Tap the button as many times as you can within the time limit. Speed is key!',
-    tips: 'Use multiple fingers if possible. Keep a steady rhythm for maximum taps.'
+    description: 'Tap as fast as you can across 15 unique levels',
+    instructions: '<p>Tap the large circular button as many times as possible within the time limit. Each level requires a minimum number of taps to pass, and the requirements increase with each level.</p><h4 style="margin-top: 16px; margin-bottom: 8px; font-weight: 600;">HOW TO PLAY:</h4><ol style="margin-left: 20px; margin-bottom: 16px;"><li>A large circular tap button appears in the center of the screen</li><li>Click or tap the button as fast as you can</li><li>Each tap increments your tap counter</li><li>You must reach the minimum required taps within the time limit to pass the level</li><li>Watch your tap rate (taps per second) displayed at the top</li><li>Each level has increasing difficulty with higher tap requirements</li></ol><h4 style="margin-top: 16px; margin-bottom: 8px; font-weight: 600;">LEVEL PROGRESSION:</h4><ul style="margin-left: 20px; margin-bottom: 16px;"><li><strong>Levels 1-3:</strong> Basic tapping (20-30 taps in 10s) - Get comfortable with the rhythm</li><li><strong>Levels 4-6:</strong> Speed up (35-45 taps in 10s) - Increase your tapping speed</li><li><strong>Levels 7-9:</strong> Rapid tapping (50-60 taps in 10s) - Very fast tapping required</li><li><strong>Levels 10-12:</strong> Lightning fast (65-75 taps in 10s) - Extremely fast tapping</li><li><strong>Levels 13-15:</strong> Ultimate speed (80-90 taps in 10s) - Maximum tapping speed</li></ul>',
+    tips: 'Use multiple fingers or alternate hands for faster tapping. Keep a steady rhythm - consistency is key. Watch your tap rate to track your speed. On mobile, use multiple fingers. On desktop, you can use both mouse clicks and keyboard (Space/Enter). Practice maintaining speed throughout the entire time limit.',
+    keyboardControls: [
+      { keys: ['Space'], label: 'Tap the button (alternative to clicking)' },
+      { keys: ['Enter'], label: 'Tap the button (alternative to clicking)' },
+    ],
+    mouseControls: [
+      { action: 'Click', label: 'Click the large circular button to tap' },
+      { action: 'Rapid Clicking', label: 'Click as fast as possible to maximize taps' },
+    ],
   },
   'reflex-arrows': {
     description: 'Press arrow keys quickly',

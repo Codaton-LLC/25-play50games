@@ -31,6 +31,7 @@ import {
    KeyIcon,
    SparklesIcon,
    CursorArrowRaysIcon,
+   HandRaisedIcon,
 } from "@heroicons/react/24/outline";
 import LogicGames from "./game-types/LogicGames";
 import MemoryGames from "./game-types/MemoryGames";
@@ -2452,6 +2453,366 @@ export default function GameEngine({
                         Items appear and disappear quickly. Click green items as
                         fast as you can to score points!
                      </p>
+                  </div>
+               )}
+
+               {/* Interactive Example for Tap Counter */}
+               {gameType === "tap-counter" && (
+                  <div
+                     style={{
+                        background:
+                           "linear-gradient(135deg, rgba(125, 211, 252, 0.1) 0%, rgba(54, 211, 153, 0.1) 100%)",
+                        border: "2px solid var(--stroke)",
+                        borderRadius: isMobile
+                           ? "16px"
+                           : isTablet
+                           ? "18px"
+                           : "20px",
+                        padding: isMobile ? "20px" : isTablet ? "24px" : "32px",
+                        marginTop: isMobile ? "16px" : "24px",
+                        boxShadow: "0 8px 24px rgba(0, 0, 0, 0.2)",
+                     }}
+                  >
+                     <div
+                        style={{
+                           display: "flex",
+                           alignItems: "center",
+                           justifyContent: "center",
+                           gap: isMobile ? "8px" : "12px",
+                           marginBottom: isMobile
+                              ? "16px"
+                              : isTablet
+                              ? "20px"
+                              : "24px",
+                        }}
+                     >
+                        <HandRaisedIcon
+                           style={{
+                              width: isMobile ? 24 : isTablet ? 26 : 28,
+                              height: isMobile ? 24 : isTablet ? 26 : 28,
+                              color: "var(--accent)",
+                           }}
+                        />
+                        <h3
+                           style={{
+                              fontSize: isMobile
+                                 ? "20px"
+                                 : isTablet
+                                 ? "22px"
+                                 : "24px",
+                              fontWeight: 700,
+                              margin: 0,
+                              background:
+                                 "linear-gradient(135deg, var(--accent) 0%, var(--ok) 100%)",
+                              WebkitBackgroundClip: "text",
+                              WebkitTextFillColor: "transparent",
+                              backgroundClip: "text",
+                           }}
+                        >
+                           Example Round
+                        </h3>
+                     </div>
+
+                     <div
+                        style={{
+                           background: "var(--card)",
+                           border: "2px solid var(--stroke)",
+                           borderRadius: "16px",
+                           padding: isMobile ? "16px" : "24px",
+                           marginBottom: "20px",
+                        }}
+                     >
+                        <p
+                           style={{
+                              margin: "0 0 20px",
+                              color: "var(--text)",
+                              fontSize: isMobile ? "14px" : "16px",
+                              fontWeight: 600,
+                              textAlign: "center",
+                           }}
+                        >
+                           Tap the large circular button as fast as you can:
+                        </p>
+
+                        {/* Example Tap Button with Circular Progress */}
+                        <div
+                           style={{
+                              display: "flex",
+                              flexDirection: "column",
+                              alignItems: "center",
+                              gap: "20px",
+                              marginBottom: "20px",
+                           }}
+                        >
+                           <div
+                              style={{
+                                 position: "relative",
+                                 width: isMobile ? "160px" : "200px",
+                                 height: isMobile ? "160px" : "200px",
+                              }}
+                           >
+                              {/* Circular Progress SVG */}
+                              <svg
+                                 width={isMobile ? "160" : "200"}
+                                 height={isMobile ? "160" : "200"}
+                                 style={{
+                                    position: "absolute",
+                                    top: 0,
+                                    left: 0,
+                                    transform: "rotate(-90deg)",
+                                 }}
+                              >
+                                 {/* Background circle */}
+                                 <circle
+                                    cx={isMobile ? "80" : "100"}
+                                    cy={isMobile ? "80" : "100"}
+                                    r={isMobile ? "76" : "94"}
+                                    fill="none"
+                                    stroke="rgba(59, 130, 246, 0.2)"
+                                    strokeWidth={isMobile ? "6" : "8"}
+                                 />
+                                 {/* Progress circle (75% filled) */}
+                                 <circle
+                                    cx={isMobile ? "80" : "100"}
+                                    cy={isMobile ? "80" : "100"}
+                                    r={isMobile ? "76" : "94"}
+                                    fill="none"
+                                    stroke="var(--accent)"
+                                    strokeWidth={isMobile ? "6" : "8"}
+                                    strokeLinecap="round"
+                                    strokeDasharray={
+                                       isMobile
+                                          ? `${2 * Math.PI * 76}`
+                                          : `${2 * Math.PI * 94}`
+                                    }
+                                    strokeDashoffset={
+                                       isMobile
+                                          ? `${2 * Math.PI * 76 * 0.25}`
+                                          : `${2 * Math.PI * 94 * 0.25}`
+                                    }
+                                    style={{
+                                       transition: "stroke-dashoffset 0.3s ease",
+                                    }}
+                                 />
+                              </svg>
+                              {/* Tap Button */}
+                              <button
+                                 disabled
+                                 style={{
+                                    width: "100%",
+                                    height: "100%",
+                                    borderRadius: "50%",
+                                    border: "4px solid transparent",
+                                    background: "rgba(59, 130, 246, 0.15)",
+                                    display: "flex",
+                                    flexDirection: "column",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    gap: "12px",
+                                    cursor: "not-allowed",
+                                    boxShadow: "0 8px 24px rgba(59, 130, 246, 0.3)",
+                                    userSelect: "none",
+                                    position: "relative",
+                                    zIndex: 1,
+                                 }}
+                              >
+                                 <div
+                                    style={{
+                                       fontSize: isMobile ? "3rem" : "4rem",
+                                       fontWeight: 800,
+                                       color: "var(--text)",
+                                       lineHeight: 1,
+                                    }}
+                                 >
+                                    15
+                                 </div>
+                                 <div
+                                    style={{
+                                       fontSize: isMobile ? "0.875rem" : "1rem",
+                                       fontWeight: 600,
+                                       color: "var(--muted)",
+                                       textAlign: "center",
+                                    }}
+                                 >
+                                    Taps
+                                 </div>
+                              </button>
+                           </div>
+
+                           <div
+                              style={{
+                                 fontSize: isMobile ? "0.75rem" : "0.875rem",
+                                 fontWeight: 500,
+                                 color: "var(--muted)",
+                                 textAlign: "center",
+                              }}
+                           >
+                              Target: 20 taps in 10s | 5 more taps needed
+                           </div>
+                        </div>
+
+                        {/* Step-by-step Instructions */}
+                        <div
+                           style={{
+                              display: "flex",
+                              flexDirection: "column",
+                              gap: "12px",
+                              marginTop: "20px",
+                           }}
+                        >
+                           <div
+                              style={{
+                                 display: "flex",
+                                 alignItems: "flex-start",
+                                 gap: "12px",
+                                 padding: "12px",
+                                 background: "rgba(59, 130, 246, 0.1)",
+                                 borderRadius: "8px",
+                                 border: "1px solid rgba(59, 130, 246, 0.3)",
+                              }}
+                           >
+                              <div
+                                 style={{
+                                    width: "24px",
+                                    height: "24px",
+                                    borderRadius: "50%",
+                                    background: "rgba(59, 130, 246, 0.8)",
+                                    color: "white",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    fontSize: "12px",
+                                    fontWeight: 800,
+                                    flexShrink: 0,
+                                 }}
+                              >
+                                 1
+                              </div>
+                              <div
+                                 style={{
+                                    fontSize: isMobile ? "13px" : "14px",
+                                    color: "var(--text)",
+                                    fontWeight: 500,
+                                 }}
+                              >
+                                 <strong>Click or tap</strong> the large circular button
+                                 as fast as you can
+                              </div>
+                           </div>
+
+                           <div
+                              style={{
+                                 display: "flex",
+                                 alignItems: "flex-start",
+                                 gap: "12px",
+                                 padding: "12px",
+                                 background: "rgba(59, 130, 246, 0.1)",
+                                 borderRadius: "8px",
+                                 border: "1px solid rgba(59, 130, 246, 0.3)",
+                              }}
+                           >
+                              <div
+                                 style={{
+                                    width: "24px",
+                                    height: "24px",
+                                    borderRadius: "50%",
+                                    background: "rgba(59, 130, 246, 0.8)",
+                                    color: "white",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    fontSize: "12px",
+                                    fontWeight: 800,
+                                    flexShrink: 0,
+                                 }}
+                              >
+                                 2
+                              </div>
+                              <div
+                                 style={{
+                                    fontSize: isMobile ? "13px" : "14px",
+                                    color: "var(--text)",
+                                    fontWeight: 500,
+                                 }}
+                              >
+                                 <strong>Watch the border</strong> around the circle fill
+                                 up as you tap - it shows your progress!
+                              </div>
+                           </div>
+
+                           <div
+                              style={{
+                                 display: "flex",
+                                 alignItems: "flex-start",
+                                 gap: "12px",
+                                 padding: "12px",
+                                 background: "rgba(59, 130, 246, 0.1)",
+                                 borderRadius: "8px",
+                                 border: "1px solid rgba(59, 130, 246, 0.3)",
+                              }}
+                           >
+                              <div
+                                 style={{
+                                    width: "24px",
+                                    height: "24px",
+                                    borderRadius: "50%",
+                                    background: "rgba(59, 130, 246, 0.8)",
+                                    color: "white",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    fontSize: "12px",
+                                    fontWeight: 800,
+                                    flexShrink: 0,
+                                 }}
+                              >
+                                 3
+                              </div>
+                              <div
+                                 style={{
+                                    fontSize: isMobile ? "13px" : "14px",
+                                    color: "var(--text)",
+                                    fontWeight: 500,
+                                 }}
+                              >
+                                 When the border is <strong>completely filled</strong> (turns green), you've reached the target!
+                              </div>
+                           </div>
+
+                           <div
+                              style={{
+                                 display: "flex",
+                                 alignItems: "flex-start",
+                                 gap: "12px",
+                                 padding: "12px",
+                                 background: "rgba(134, 239, 172, 0.1)",
+                                 borderRadius: "8px",
+                                 border: "1px solid rgba(134, 239, 172, 0.3)",
+                              }}
+                           >
+                              <BoltIcon
+                                 style={{
+                                    width: 20,
+                                    height: 20,
+                                    color: "var(--ok)",
+                                    flexShrink: 0,
+                                    marginTop: "2px",
+                                 }}
+                              />
+                              <div
+                                 style={{
+                                    fontSize: isMobile ? "13px" : "14px",
+                                    color: "var(--text)",
+                                    fontWeight: 500,
+                                 }}
+                              >
+                                 <strong>Tip:</strong> Use multiple fingers or alternate
+                                 hands for faster tapping. Watch your tap rate (taps/sec)
+                                 at the top!
+                              </div>
+                           </div>
+                        </div>
+                     </div>
                   </div>
                )}
 
