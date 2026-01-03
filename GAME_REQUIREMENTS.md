@@ -446,7 +446,7 @@ useEffect(() => {
 Share button duhet të jetë:
 
 -  **Pozicionim**: Gjithmonë në fund të lojës (pas feedback messages), jo në top
--  **Tekst**: 
+-  **Tekst**:
    -  Për lojëra me replays: "Share for Unlimited Replays"
    -  Për lojëra me hints: "Share for Unlimited Hints"
 -  **Icon**: `ShareIcon` nga Heroicons
@@ -472,7 +472,9 @@ Share button duhet të jetë:
       transition: "all 0.3s ease",
    }}
 >
-   <ShareIcon style={{ width: isMobile ? 18 : 20, height: isMobile ? 18 : 20 }} />
+   <ShareIcon
+      style={{ width: isMobile ? 18 : 20, height: isMobile ? 18 : 20 }}
+   />
    Share for Unlimited Replays {/* Ose "Share for Unlimited Hints" */}
 </button>
 ```
@@ -484,79 +486,119 @@ Share button duhet të jetë:
 **1. Share Success Message** (kur link-u kopjohet):
 
 ```typescript
-{shareSuccess && !unlimitedActivated && (
-   <div
-      style={{
-         width: "100%",
-         padding: "12px",
-         background: "rgba(134, 239, 172, 0.2)",
-         border: "2px solid rgba(134, 239, 172, 0.6)",
-         borderRadius: "8px",
-         fontSize: isMobile ? "0.9rem" : "1rem",
-         fontWeight: 600,
-         color: "var(--ok)",
-         textAlign: "center",
-         marginBottom: "8px",
-      }}
-   >
-      Link copied! Unlimited replay will unlock when someone opens your link!
-      {/* Ose "Unlimited hints will unlock..." për hints */}
-   </div>
-)}
+{
+   shareSuccess && !unlimitedActivated && (
+      <div
+         style={{
+            width: "100%",
+            padding: "12px",
+            background: "rgba(134, 239, 172, 0.2)",
+            border: "2px solid rgba(134, 239, 172, 0.6)",
+            borderRadius: "8px",
+            fontSize: isMobile ? "0.9rem" : "1rem",
+            fontWeight: 600,
+            color: "var(--ok)",
+            textAlign: "center",
+            marginBottom: "8px",
+         }}
+      >
+         Link copied! Unlimited replay will unlock when someone opens your link!
+         {/* Ose "Unlimited hints will unlock..." për hints */}
+      </div>
+   );
+}
 ```
 
 **2. Unlimited Activated Message** (kur dikush klikon link-un):
 
 ```typescript
-{unlimitedActivated && (
-   <div
-      style={{
-         display: "flex",
-         alignItems: "center",
-         gap: isMobile ? "6px" : "8px",
-         padding: isMobile ? "10px 14px" : "8px 16px",
-         background:
-            "linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1))",
-         border: "2px solid rgba(59, 130, 246, 0.6)",
-         borderRadius: isMobile ? "10px" : "8px",
-         color: "var(--text)",
-         fontSize: isMobile ? "0.85rem" : "0.9rem",
-         fontWeight: 500,
-         width: "100%",
-         justifyContent: "center",
-         textAlign: "center",
-         flexWrap: "wrap",
-         marginBottom: "8px",
-      }}
-   >
-      <CheckCircleIcon
+{
+   unlimitedActivated && (
+      <div
          style={{
-            width: isMobile ? 16 : 18,
-            height: isMobile ? 16 : 18,
-            color: "rgba(59, 130, 246, 0.9)",
-            flexShrink: 0,
+            display: "flex",
+            alignItems: "center",
+            gap: isMobile ? "6px" : "8px",
+            padding: isMobile ? "10px 14px" : "8px 16px",
+            background:
+               "linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1))",
+            border: "2px solid rgba(59, 130, 246, 0.6)",
+            borderRadius: isMobile ? "10px" : "8px",
+            color: "var(--text)",
+            fontSize: isMobile ? "0.85rem" : "0.9rem",
+            fontWeight: 500,
+            width: "100%",
+            justifyContent: "center",
+            textAlign: "center",
+            flexWrap: "wrap",
+            marginBottom: "8px",
          }}
-      />
-      <span>
-         🎉 Someone opened your link! Unlimited replay is now active for 15 minutes!
-         {/* Ose "Unlimited hints is now active..." për hints */}
-      </span>
-   </div>
-)}
+      >
+         <CheckCircleIcon
+            style={{
+               width: isMobile ? 16 : 18,
+               height: isMobile ? 16 : 18,
+               color: "rgba(59, 130, 246, 0.9)",
+               flexShrink: 0,
+            }}
+         />
+         <span>
+            🎉 Someone opened your link! Unlimited replay is now active for 15
+            minutes!
+            {/* Ose "Unlimited hints is now active..." për hints */}
+         </span>
+      </div>
+   );
+}
 ```
 
 #### 2.5.7 Rregulla të Rëndësishme
 
 1. **Game Key**: Përdor format `"play50games_shared_game-id"` ku `game-id` është ID e lojës (p.sh. `"click-green"`, `"ball-balance"`, `"symbol-stack"`)
 2. **Share ID Format**: Përdor format `Date.now().toString(36) + Math.random().toString(36).substr(2, 5)` për shareId
-3. **Expiry Time**: 15 minuta (15 * 60 * 1000 ms) pasi dikush klikon link-un
+3. **Expiry Time**: 15 minuta (15 _ 60 _ 1000 ms) pasi dikush klikon link-un
 4. **Check Interval**: Kontrollo share status çdo 10 sekonda (10000 ms)
 5. **Message Duration**: Share success message shfaqet për 15 sekonda
 6. **Unlimited Duration**: Unlimited replays/hints aktivizohen për 15 minuta
-7. **URL Tracking**: Kur dikush hap link-un me `?shared=shareId`, thirr `trackShareClick(shareId)` dhe vendos `setCurrentShareId(shareId)`
-8. **localStorage Cleanup**: Fshi localStorage kur share skadon ose kur ka error (404, not found, expired)
-9. **Interval Cleanup**: Fshi interval-in kur share aktivizohet ose kur komponenti unmount
-10. **Error Handling**: Handle 404, not found, expired errors dhe clean up state dhe localStorage
+7. **URL Tracking**: Kur dikush hap link-un me `?shared=shareId`, thirr `trackShareClick(shareId)` për të regjistruar click-in
+8. **Personal Share ID**: Secila person ka shareId të vet personal që ruhet në localStorage. Kur dikush hap link-un, kontrollo nëse `sharedBy` ekziston në localStorage. Nëse ekziston dhe `data.share_id === sharedBy`, atëherë vendos `setCurrentShareId(sharedBy)` për të kontrolluar share status për shareId e vet. Nëse nuk ekziston (d.m.th. është shareId e personit që ka share-uar), mos vendos `setCurrentShareId` - kjo parandalon që personi që hap link-un të aktivizojë unlimited për vete.
+9. **localStorage Cleanup**: Fshi localStorage kur share skadon ose kur ka error (404, not found, expired)
+10.   **Interval Cleanup**: Fshi interval-in kur share aktivizohet ose kur komponenti unmount
+11.   **Error Handling**: Handle 404, not found, expired errors dhe clean up state dhe localStorage
+
+**Rregull i Rëndësishëm për URL Tracking:**
+
+Kur dikush hap link-un me `?shared=shareId`, logjika duhet të jetë:
+
+```typescript
+// Check URL for shared parameter
+const urlParams = new URLSearchParams(window.location.search);
+const sharedBy = urlParams.get("shared");
+if (sharedBy) {
+   // Track the share click when someone opens the link
+   trackShareClick(sharedBy);
+   // Only set currentShareId if this is the share we created (exists in localStorage)
+   // This prevents the person opening the link from activating unlimited for themselves
+   const stored = localStorage.getItem(gameKey);
+   if (stored) {
+      try {
+         const data = JSON.parse(stored);
+         if (data.share_id === sharedBy) {
+            // This is our share - set it to check for clicks
+            setCurrentShareId(sharedBy);
+         }
+      } catch (error) {
+         // Error parsing stored data
+      }
+   }
+}
+```
+
+**Kjo siguron që:**
+
+-  Personi që share-on kontrollon share status për shareId e vet dhe aktivizon unlimited kur dikush klikon link-un
+-  Personi që hap link-un nuk aktivizon unlimited për vete, vetëm regjistron click-in për personin që ka share-uar
+-  Secila person ka shareId të vet personal që ruhet në localStorage të tij
 
 #### 2.5.8 Imports (OBLIGATIVE)
 
@@ -1029,6 +1071,7 @@ Para se të konsiderohet e kompletuar, një lojë duhet të ketë:
 -  [ ] Game key format i saktë (`play50games_shared_game-id`)
 -  [ ] Expiry time: 15 minuta
 -  [ ] Check interval: 10 sekonda
+-  [ ] **Personal Share ID**: Kur dikush hap link-un, kontrollo nëse `sharedBy` ekziston në localStorage. Nëse ekziston dhe `data.share_id === sharedBy`, atëherë vendos `setCurrentShareId(sharedBy)`. Nëse nuk ekziston, mos vendos `setCurrentShareId` - kjo parandalon që personi që hap link-un të aktivizojë unlimited për vete
 -  [ ] Error handling dhe cleanup
 -  [ ] Keyboard controls (nëse ka nevojë)
 -  [ ] Prevent default për game controls

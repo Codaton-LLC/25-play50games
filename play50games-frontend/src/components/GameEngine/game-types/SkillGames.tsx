@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import BallBalance from './skillgames-parts/BallBalance';
+import TargetAim from './skillgames-parts/TargetAim';
 
 interface SkillGamesProps {
   config: Record<string, any>;
@@ -36,64 +37,6 @@ export default function SkillGames({ config, onScoreUpdate, onComplete, isPlayin
   return gameComponents[currentGame] || <div>Skill game "{currentGame}" not found.</div>;
 }
 
-// Target Aim Game (37)
-function TargetAim({ config, onScoreUpdate, onComplete, isPlaying }: { config: Record<string, any>; onScoreUpdate: (score: number) => void; onComplete: (finalScore?: number) => void; isPlaying: boolean }) {
-  const targets = config.targets || 10;
-  const [targetsLeft, setTargetsLeft] = useState(targets);
-  const [currentTarget, setCurrentTarget] = useState<{ x: number; y: number; id: number } | null>(null);
-  const [score, setScore] = useState(0);
-  const [speed, setSpeed] = useState(1);
-
-  useEffect(() => {
-    if (targetsLeft <= 0) {
-      const finalScore = Math.round((score / targets) * 100);
-      onScoreUpdate(finalScore);
-      setTimeout(() => onComplete(finalScore), 1000);
-      return;
-    }
-    
-    const newTarget = {
-      id: Date.now(),
-      x: Math.random() * 80 + 10,
-      y: Math.random() * 80 + 10,
-    };
-    setCurrentTarget(newTarget);
-    
-    const timer = setTimeout(() => {
-      setTargetsLeft(targetsLeft - 1);
-      setSpeed(speed + 0.1);
-    }, 3000 / speed);
-    
-    return () => clearTimeout(timer);
-  }, [targetsLeft, targets, speed, score, onScoreUpdate, onComplete]);
-
-  const handleTargetClick = () => {
-    if (currentTarget) {
-      setScore(score + 10);
-      setTargetsLeft(targetsLeft - 1);
-      setSpeed(speed + 0.1);
-    }
-  };
-
-  return (
-    <div className="target-aim-game">
-      <h3>Target Aim - {targetsLeft} left</h3>
-      <div className="aim-area" onClick={handleTargetClick}>
-        {currentTarget && (
-          <div
-            className="target"
-            style={{
-              left: `${currentTarget.x}%`,
-              top: `${currentTarget.y}%`,
-              animation: `pulse ${3 / speed}s infinite`,
-            }}
-          ></div>
-        )}
-      </div>
-      <p>Click the targets quickly!</p>
-    </div>
-  );
-}
 
 // Line Tracer Game (38)
 function LineTracer({ config, onScoreUpdate, onComplete, isPlaying }: { config: Record<string, any>; onScoreUpdate: (score: number) => void; onComplete: (finalScore?: number) => void; isPlaying: boolean }) {

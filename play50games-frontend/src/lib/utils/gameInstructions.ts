@@ -517,9 +517,17 @@ export const gameInstructions: Record<string, {
     ],
   },
   'target-aim': {
-    description: 'Click moving targets with increasing speed',
-    instructions: 'Targets will appear and move around the screen. Click on them before they disappear. They move faster as you progress!',
-    tips: 'Aim slightly ahead of moving targets. Practice your hand-eye coordination.'
+    description: 'Aim and hit targets with precision across 15 progressively challenging levels. Move the viewport with WASD keys and hit targets with Enter or Space when they are near the center.',
+    instructions: '<p>Move the viewport around the large arena using WASD keys. When a target appears near the center (white dot), press Enter or Space to hit it. Each level requires you to hit a minimum number of targets within the time limit. Targets appear at random positions and you must hit them before they disappear!</p><h4 style="margin-top: 16px; margin-bottom: 8px; font-weight: 600;">SPECIAL FEATURES BY LEVEL:</h4><ul style="margin-left: 20px; margin-bottom: 16px;"><li><strong style="color: #3b82f6;">Levels 1-4:</strong> Basic targets - stationary targets, easy to hit</li><li><strong style="color: #f59e0b;">Levels 5-7:</strong> <strong>Moving Targets</strong> - Targets move around the arena, bouncing off walls</li><li><strong style="color: #ef4444;">Levels 8-9:</strong> <strong>Multiple Targets</strong> - Multiple targets appear simultaneously</li><li><strong style="color: #f59e0b;">Level 10:</strong> <strong>Shrinking Targets</strong> - Targets shrink over time, making them harder to hit</li><li><strong style="color: #ef4444;">Levels 11-12:</strong> <strong>Moving + Shrinking</strong> - Combined challenge with moving and shrinking targets</li><li><strong style="color: #8b5cf6;">Levels 13-15:</strong> <strong>All Features</strong> - Moving, multiple, and shrinking targets all at once!</li></ul><p style="margin-top: 16px;">As you progress, targets become smaller, move faster, and more appear at once. Use WASD to navigate and Enter/Space to hit targets near the center!</p>',
+    tips: 'Use WASD keys smoothly to move the viewport - don\'t rush! Aim slightly ahead of moving targets to account for their velocity. For multiple targets, prioritize the ones that are about to disappear. Shrinking targets require quick reactions - hit them while they\'re still large enough. Practice your hand-eye coordination and stay calm under pressure. Each level teaches new skills!',
+    mouseControls: [
+      { action: 'Click', label: 'Click on targets directly to hit them (alternative to Enter/Space)' },
+    ],
+    keyboardControls: [
+      { keys: ['W', 'A', 'S', 'D'], label: 'Move viewport around the arena (W=up, A=left, S=down, D=right)' },
+      { keys: ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'], label: 'Move viewport with arrow keys (alternative to WASD)' },
+      { keys: ['Enter', 'Space'], label: 'Hit the target nearest to the center (white dot) when it\'s within range' },
+    ],
   },
   'line-tracer': {
     description: 'Trace a path with cursor',

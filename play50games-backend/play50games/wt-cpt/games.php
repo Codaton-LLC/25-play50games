@@ -659,11 +659,11 @@ function show_games_custom_fields() {
                 gameType: 'skill',
                 gameOrder: 37,
                 difficulty: 2,
-                timeLimit: 90,
+                timeLimit: 0,
                 passingScore: 75,
                 unlockRequirement: '',
-                description: 'Click moving targets with increasing speed',
-                gameConfig: '{"gameType": "target-aim", "targets": 10}'
+                description: 'Aim and click targets with precision across 15 progressively challenging levels. Features include moving targets, multiple simultaneous targets, and shrinking targets that test your accuracy and reaction speed.',
+                gameConfig: '{"gameType":"target-aim","levels":15,"levelRequirements":[{"minTargetsHit":5,"duration":20},{"minTargetsHit":7,"duration":20},{"minTargetsHit":9,"duration":20},{"minTargetsHit":11,"duration":20},{"minTargetsHit":13,"duration":20},{"minTargetsHit":15,"duration":20,"movingTargets":true},{"minTargetsHit":17,"duration":20,"movingTargets":true},{"minTargetsHit":19,"duration":20,"multipleTargets":true},{"minTargetsHit":21,"duration":20,"movingTargets":true,"multipleTargets":true},{"minTargetsHit":23,"duration":20,"shrinkingTargets":true},{"minTargetsHit":25,"duration":20,"movingTargets":true,"shrinkingTargets":true},{"minTargetsHit":27,"duration":20,"multipleTargets":true,"shrinkingTargets":true},{"minTargetsHit":29,"duration":20,"movingTargets":true,"multipleTargets":true,"shrinkingTargets":true},{"minTargetsHit":31,"duration":20,"movingTargets":true,"multipleTargets":true,"shrinkingTargets":true},{"minTargetsHit":35,"duration":20,"movingTargets":true,"multipleTargets":true,"shrinkingTargets":true}]}'
             },
             'line-tracer': {
                 title: 'Line Tracer',

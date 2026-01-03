@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<!--
+  Target Aim
+  Click moving targets with increasing speed.
+
+  How to Play:
+  - Press Start
+  - Click targets before they disappear
+  - Speed increases over time
+
+  Usage: Save as target-aim.html and open in a browser.
+-->
+<html lang="en">
+   <head>
+      <meta charset="UTF-8" />
+      <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <title>Target Aim</title>
+      <style>
+         :root {
+            --bg: #0b1220;
+            --panel: #0f1b33;
+            --text: #e8eefc;
+            --muted: #a6b3d1;
+            --accent: #6ea8ff;
+            --good: #36d399;
+            --bad: #fb7185;
+            --warn: #fbbf24;
+            --shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
+            --radius: 18px;
+         }
+         * {
+            box-sizing: border-box;
+         }
+         body {
+            margin: 0;
+            font-family: system-ui;
+            background: radial-gradient(
+                  1200px 800px at 70% -10%,
+                  rgba(110, 168, 255, 0.28),
+                  transparent 60%
+               ),
+               radial-gradient(
+                  900px 600px at 0% 10%,
+                  rgba(54, 211, 153, 0.18),
+                  transparent 55%
+               ),
+               var(--bg);
+            color: var(--text);
+            min-height: 100svh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+         }
+
+         .app {
+            width: min(980px, 100%);
+            display: grid;
+            grid-template-columns: 1.2fr 0.8fr;
+            gap: 18px;
+         }
+         @media (max-width: 900px) {
+            .app {
+               grid-template-columns: 1fr;
+            }
+         }
+
+         .panel {
+            background: linear-gradient(
+               180deg,
+               rgba(255, 255, 255, 0.06),
+               rgba(255, 255, 255, 0.02)
+            );
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            overflow: hidden;
+         }
+
+         header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            padding: 18px;
+            gap: 12px;
+            flex-wrap: wrap;
+         }
+         h1 {
+            margin: 0;
+            font-size: 18px;
+         }
+         p {
+            margin: 4px 0 0;
+            color: var(--muted);
+            font-size: 13px;
+         }
+
+         button {
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            background: rgba(15, 27, 51, 0.7);
+            color: var(--text);
+            padding: 10px 14px;
+            font-weight: 900;
+            cursor: pointer;
+         }
+         button.primary {
+            background: linear-gradient(
+               180deg,
+               rgba(110, 168, 255, 0.9),
+               rgba(110, 168, 255, 0.55)
+            );
+            color: #081126;
+         }
+
+         .row {
+            display: flex;
+            gap: 12px;
+            padding: 14px 18px;
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            background: rgba(11, 22, 48, 0.45);
+            flex-wrap: wrap;
+         }
+
+         .pill {
+            padding: 8px 12px;
+            border-radius: 999px;
+            background: rgba(17, 28, 53, 0.55);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            font-size: 13px;
+            white-space: nowrap;
+         }
+
+         .content {
+            padding: 18px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+         }
+
+         .arena {
+            height: 400px;
+            border-radius: 18px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: radial-gradient(
+                  320px 240px at 30% 30%,
+                  rgba(110, 168, 255, 0.1),
+                  transparent 60%
+               ),
+               linear-gradient(
+                  180deg,
+                  rgba(255, 255, 255, 0.05),
+                  rgba(255, 255, 255, 0.02)
+               );
+            position: relative;
+            overflow: hidden;
+            user-select: none;
+            touch-action: manipulation;
+         }
+
+         .overlay {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 22px;
+            color: var(--muted);
+            pointer-events: none;
+         }
+
+         .overlay strong {
+            color: var(--text);
+         }
+
+         .target {
+            position: absolute;
+            width: 56px;
+            height: 56px;
+            border-radius: 999px;
+            display: grid;
+            place-items: center;
+            cursor: pointer;
+            border: 2px solid rgba(110, 168, 255, 0.85);
+            background: radial-gradient(
+               circle at 30% 30%,
+               rgba(255, 255, 255, 0.95),
+               rgba(110, 168, 255, 0.35)
+            );
+            box-shadow: 0 14px 26px rgba(0, 0, 0, 0.35);
+            transform: translate(-50%, -50%);
+            transition: transform 0.08s;
+         }
+         .target:active {
+            transform: translate(-50%, -50%) scale(0.96);
+         }
+
+         .ring {
+            width: 42px;
+            height: 42px;
+            border-radius: 999px;
+            border: 2px dashed rgba(255, 255, 255, 0.35);
+            display: grid;
+            place-items: center;
+         }
+
+         .pop {
+            position: absolute;
+            font-weight: 900;
+            font-size: 12px;
+            pointer-events: none;
+            opacity: 0;
+            transform: translateY(0);
+            transition: opacity 0.15s, transform 0.5s;
+         }
+
+         .side {
+            padding: 18px;
+         }
+         .side h2 {
+            margin: 0 0 8px;
+            font-size: 14px;
+         }
+         .side ul {
+            margin: 0;
+            color: var(--muted);
+            font-size: 13px;
+            line-height: 1.35;
+            padding-left: 18px;
+         }
+         .side ul + h2 {
+            margin-top: 14px;
+         }
+      </style>
+   </head>
+   <body>
+      <div class="app">
+         <section class="panel">
+            <header>
+               <div>
+                  <h1>Target Aim</h1>
+                  <p>Click moving targets with increasing speed</p>
+               </div>
+               <button class="primary" id="startBtn">Start</button>
+            </header>
+
+            <div class="row">
+               <div class="pill">Score: <b id="score">0</b></div>
+               <div class="pill">Hits: <b id="hits">0</b></div>
+               <div class="pill">Missed: <b id="missed">0</b></div>
+               <div class="pill">Level: <b id="level">1</b></div>
+               <div class="pill">Time: <b id="time">30</b>s</div>
+            </div>
+
+            <div class="content">
+               <div class="arena" id="arena" aria-label="Target arena">
+                  <div class="overlay" id="overlay">
+                     <div>
+                        <strong>Press Start</strong><br />
+                        Click targets before they disappear.<br />
+                        <span style="color: var(--muted)"
+                           >They get faster over time.</span
+                        >
+                     </div>
+                  </div>
+               </div>
+            </div>
+         </section>
+
+         <aside class="panel">
+            <div class="side">
+               <h2>How to Play</h2>
+               <ul>
+                  <li>Targets appear and move around.</li>
+                  <li>Click them before they vanish.</li>
+                  <li>Speed increases as you progress.</li>
+               </ul>
+
+               <h2>Tips</h2>
+               <ul>
+                  <li>Aim slightly ahead of moving targets.</li>
+                  <li>Use steady hand-eye coordination.</li>
+               </ul>
+            </div>
+         </aside>
+      </div>
+
+      <script>
+         // ===== Target Aim – Vanilla JS =====
+         const ROUND_SECONDS = 30;
+         const TARGET_LIFETIME_MS_BASE = 1400; // decreases with level
+         const TARGET_SPAWN_MS_BASE = 900; // decreases with level
+         const SPEED_BASE = 85; // px/s
+         const SPEED_PER_LEVEL = 18; // px/s
+         const MAX_TARGETS = 3;
+
+         let running = false;
+         let score = 0;
+         let hits = 0;
+         let missed = 0;
+         let level = 1;
+         let timeLeft = ROUND_SECONDS;
+
+         let tickTimer = null;
+         let spawnTimer = null;
+         let rafId = null;
+         let lastTs = 0;
+
+         const arena = document.getElementById("arena");
+         const overlay = document.getElementById("overlay");
+
+         const scoreEl = document.getElementById("score");
+         const hitsEl = document.getElementById("hits");
+         const missedEl = document.getElementById("missed");
+         const levelEl = document.getElementById("level");
+         const timeEl = document.getElementById("time");
+         const startBtn = document.getElementById("startBtn");
+
+         // targets: { el, x, y, vx, vy, born, ttl, clicked }
+         const targets = [];
+
+         function clamp(n, a, b) {
+            return Math.max(a, Math.min(b, n));
+         }
+         function rand(min, max) {
+            return min + Math.random() * (max - min);
+         }
+
+         function updateHUD() {
+            scoreEl.textContent = String(score);
+            hitsEl.textContent = String(hits);
+            missedEl.textContent = String(missed);
+            levelEl.textContent = String(level);
+            timeEl.textContent = String(timeLeft);
+         }
+
+         function clearAll() {
+            while (targets.length) {
+               const t = targets.pop();
+               if (t.el && t.el.parentNode) t.el.parentNode.removeChild(t.el);
+            }
+            arena.querySelectorAll(".pop").forEach((n) => n.remove());
+         }
+
+         function showOverlay(html) {
+            overlay.style.display = "flex";
+            overlay.innerHTML = html;
+         }
+
+         function hideOverlay() {
+            overlay.style.display = "none";
+         }
+
+         function popText(x, y, text, good) {
+            const p = document.createElement("div");
+            p.className = "pop";
+            p.textContent = text;
+            p.style.left = x + "px";
+            p.style.top = y + "px";
+            p.style.color = good ? "var(--good)" : "var(--bad)";
+            arena.appendChild(p);
+            requestAnimationFrame(() => {
+               p.style.opacity = "1";
+               p.style.transform = "translateY(-18px)";
+            });
+            setTimeout(() => p.remove(), 650);
+         }
+
+         function currentSpeed() {
+            return SPEED_BASE + (level - 1) * SPEED_PER_LEVEL;
+         }
+
+         function currentTTL() {
+            return clamp(TARGET_LIFETIME_MS_BASE - (level - 1) * 90, 520, 1600);
+         }
+
+         function currentSpawnMs() {
+            return clamp(TARGET_SPAWN_MS_BASE - (level - 1) * 60, 260, 1200);
+         }
+
+         function setSpawnLoop() {
+            if (spawnTimer) clearInterval(spawnTimer);
+            spawnTimer = setInterval(() => {
+               if (!running) return;
+               if (targets.length >= MAX_TARGETS) return;
+               spawnTarget();
+            }, currentSpawnMs());
+         }
+
+         function spawnTarget() {
+            const rect = arena.getBoundingClientRect();
+            const pad = 44;
+            const x = rand(pad, rect.width - pad);
+            const y = rand(pad, rect.height - pad);
+
+            // random direction
+            const s = currentSpeed();
+            const ang = rand(0, Math.PI * 2);
+            const vx = Math.cos(ang) * s;
+            const vy = Math.sin(ang) * s;
+
+            const el = document.createElement("div");
+            el.className = "target";
+            el.innerHTML = '<div class="ring">●</div>';
+
+            const t = {
+               el,
+               x,
+               y,
+               vx,
+               vy,
+               born: performance.now(),
+               ttl: currentTTL(),
+               clicked: false,
+            };
+
+            el.style.left = x + "px";
+            el.style.top = y + "px";
+
+            el.addEventListener("click", (e) => {
+               e.stopPropagation();
+               if (!running || t.clicked) return;
+
+               t.clicked = true;
+               hits++;
+               score += 10 + Math.max(0, (level - 1) * 2);
+               updateHUD();
+
+               popText(t.x, t.y, "+10", true);
+
+               // remove
+               if (t.el.parentNode) t.el.parentNode.removeChild(t.el);
+               const idx = targets.indexOf(t);
+               if (idx >= 0) targets.splice(idx, 1);
+
+               // level up every 8 hits
+               const nextLevel = 1 + Math.floor(hits / 8);
+               if (nextLevel !== level) {
+                  level = nextLevel;
+                  updateHUD();
+                  setSpawnLoop();
+               }
+            });
+
+            arena.appendChild(el);
+            targets.push(t);
+         }
+
+         function endGame() {
+            running = false;
+            if (tickTimer) clearInterval(tickTimer);
+            if (spawnTimer) clearInterval(spawnTimer);
+            if (rafId) cancelAnimationFrame(rafId);
+            tickTimer = spawnTimer = rafId = null;
+
+            showOverlay(`<div><strong>Done!</strong><br><br>
+    <strong>Score:</strong> ${score}<br>
+    <strong>Hits:</strong> ${hits} &nbsp;•&nbsp; <strong>Missed:</strong> ${missed}<br>
+    <strong>Level:</strong> ${level}<br>
+    <span style="color:var(--muted)">Press Start to play again.</span></div>`);
+         }
+
+         function loop(ts) {
+            if (!running) return;
+            if (!lastTs) lastTs = ts;
+            const dt = Math.min(0.032, (ts - lastTs) / 1000);
+            lastTs = ts;
+
+            const rect = arena.getBoundingClientRect();
+            const pad = 28;
+
+            for (let i = targets.length - 1; i >= 0; i--) {
+               const t = targets[i];
+               if (!t || t.clicked) continue;
+
+               // lifetime
+               const age = ts - t.born;
+               if (age >= t.ttl) {
+                  missed++;
+                  updateHUD();
+                  popText(t.x, t.y, "miss", false);
+                  if (t.el.parentNode) t.el.parentNode.removeChild(t.el);
+                  targets.splice(i, 1);
+                  continue;
+               }
+
+               // move + bounce
+               t.x += t.vx * dt;
+               t.y += t.vy * dt;
+
+               if (t.x < pad) {
+                  t.x = pad;
+                  t.vx *= -1;
+               }
+               if (t.x > rect.width - pad) {
+                  t.x = rect.width - pad;
+                  t.vx *= -1;
+               }
+               if (t.y < pad) {
+                  t.y = pad;
+                  t.vy *= -1;
+               }
+               if (t.y > rect.height - pad) {
+                  t.y = rect.height - pad;
+                  t.vy *= -1;
+               }
+
+               t.el.style.left = t.x + "px";
+               t.el.style.top = t.y + "px";
+
+               // fade near end
+               const life = 1 - age / t.ttl;
+               t.el.style.opacity = String(clamp(life * 1.15, 0.25, 1));
+            }
+
+            rafId = requestAnimationFrame(loop);
+         }
+
+         function startGame() {
+            running = true;
+            score = 0;
+            hits = 0;
+            missed = 0;
+            level = 1;
+            timeLeft = ROUND_SECONDS;
+            lastTs = 0;
+
+            clearAll();
+            updateHUD();
+            hideOverlay();
+
+            // initial targets
+            spawnTarget();
+            spawnTarget();
+
+            setSpawnLoop();
+
+            if (tickTimer) clearInterval(tickTimer);
+            tickTimer = setInterval(() => {
+               timeLeft--;
+               updateHUD();
+               if (timeLeft <= 0) endGame();
+            }, 1000);
+
+            if (rafId) cancelAnimationFrame(rafId);
+            rafId = requestAnimationFrame(loop);
+         }
+
+         // Optional: clicking arena counts as miss (training accuracy)
+         arena.addEventListener("click", () => {
+            if (!running) return;
+            // small penalty for random clicking
+            score = Math.max(0, score - 1);
+            updateHUD();
+         });
+
+         startBtn.addEventListener("click", startGame);
+
+         // ===== Tests (Console) =====
+         (function runTests() {
+            try {
+               console.assert(ROUND_SECONDS > 0, "Test: ROUND_SECONDS > 0");
+               console.assert(
+                  currentTTL() >= 520 && currentTTL() <= 1600,
+                  "Test: TTL clamped"
+               );
+               console.assert(
+                  currentSpawnMs() >= 260 && currentSpawnMs() <= 1200,
+                  "Test: spawn ms clamped"
+               );
+               console.assert(currentSpeed() > 0, "Test: speed positive");
+
+               // level formula
+               const l1 = 1 + Math.floor(0 / 8);
+               const l2 = 1 + Math.floor(8 / 8);
+               console.assert(
+                  l1 === 1 && l2 === 2,
+                  "Test: level up every 8 hits"
+               );
+
+               console.info("Target Aim tests: OK");
+            } catch (err) {
+               console.warn("Target Aim tests failed", err);
+            }
+         })();
+      </script>
+   </body>
+</html>
