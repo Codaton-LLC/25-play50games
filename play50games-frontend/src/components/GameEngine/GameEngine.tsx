@@ -3280,6 +3280,231 @@ export default function GameEngine({
                   </div>
                )}
 
+               {gameType === "timing-bar" && (
+                  <div
+                     style={{
+                        background:
+                           "linear-gradient(135deg, rgba(125, 211, 252, 0.1) 0%, rgba(54, 211, 153, 0.1) 100%)",
+                        border: "2px solid var(--stroke)",
+                        borderRadius: isMobile
+                           ? "16px"
+                           : isTablet
+                           ? "18px"
+                           : "20px",
+                        padding: isMobile ? "20px" : isTablet ? "24px" : "32px",
+                        marginTop: isMobile ? "16px" : "24px",
+                        boxShadow: "0 8px 24px rgba(0, 0, 0, 0.2)",
+                     }}
+                  >
+                     <div
+                        style={{
+                           display: "flex",
+                           alignItems: "center",
+                           justifyContent: "center",
+                           gap: isMobile ? "8px" : "12px",
+                           marginBottom: isMobile
+                              ? "16px"
+                              : isTablet
+                              ? "20px"
+                              : "24px",
+                        }}
+                     >
+                        <ClockIcon
+                           style={{
+                              width: isMobile ? 24 : isTablet ? 26 : 28,
+                              height: isMobile ? 24 : isTablet ? 26 : 28,
+                              color: "var(--accent)",
+                           }}
+                        />
+                        <h3
+                           style={{
+                              fontSize: isMobile
+                                 ? "20px"
+                                 : isTablet
+                                 ? "22px"
+                                 : "24px",
+                              fontWeight: 700,
+                              margin: 0,
+                              background:
+                                 "linear-gradient(135deg, var(--accent) 0%, var(--ok) 100%)",
+                              WebkitBackgroundClip: "text",
+                              WebkitTextFillColor: "transparent",
+                              backgroundClip: "text",
+                           }}
+                        >
+                           Example Round
+                        </h3>
+                     </div>
+
+                     <div
+                        style={{
+                           background: "var(--card)",
+                           border: "2px solid var(--stroke)",
+                           borderRadius: "16px",
+                           padding: isMobile ? "16px" : "24px",
+                           marginBottom: "20px",
+                        }}
+                     >
+                        <p
+                           style={{
+                              margin: "0 0 16px",
+                              color: "var(--text)",
+                              fontSize: isMobile ? "14px" : "16px",
+                              fontWeight: 600,
+                              textAlign: "center",
+                           }}
+                        >
+                           Click when the blue bar is inside the green zone:
+                        </p>
+
+                        {/* Example Arena */}
+                        <div
+                           style={{
+                              position: "relative",
+                              width: "100%",
+                              height: isMobile ? "180px" : "220px",
+                              borderRadius: "var(--radius)",
+                              border: "1px solid var(--border)",
+                              background:
+                                 "linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02))",
+                              boxShadow: "0 10px 18px rgba(0, 0, 0, 0.22)",
+                              marginBottom: "16px",
+                              overflow: "hidden",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                           }}
+                        >
+                           {/* Track */}
+                           <div
+                              style={{
+                                 width: "80%",
+                                 height: "16px",
+                                 borderRadius: "999px",
+                                 background: "rgba(255, 255, 255, 0.08)",
+                                 position: "relative",
+                                 overflow: "visible",
+                              }}
+                           >
+                              {/* Target Zone */}
+                              <div
+                                 style={{
+                                    position: "absolute",
+                                    top: 0,
+                                    bottom: 0,
+                                    left: "35%",
+                                    width: "30%",
+                                    background: "rgba(34, 197, 94, 0.45)",
+                                    borderRadius: "999px",
+                                 }}
+                              />
+
+                              {/* Moving Bar (animated) */}
+                              <div
+                                 style={{
+                                    position: "absolute",
+                                    top: "-6px",
+                                    width: "12px",
+                                    height: "28px",
+                                    borderRadius: "6px",
+                                    background:
+                                       "linear-gradient(180deg, rgba(59, 130, 246, 0.9), rgba(59, 130, 246, 0.55))",
+                                    boxShadow: "0 6px 14px rgba(0, 0, 0, 0.35)",
+                                    transform: "translateX(-50%)",
+                                    animation: "timingBarMove 2s ease-in-out infinite",
+                                    left: "50%",
+                                 }}
+                              />
+                           </div>
+                        </div>
+
+                        <style>{`
+                           @keyframes timingBarMove {
+                              0% {
+                                 left: 10% !important;
+                              }
+                              50% {
+                                 left: 90% !important;
+                              }
+                              100% {
+                                 left: 10% !important;
+                              }
+                           }
+                        `}</style>
+
+                        <div
+                           style={{
+                              display: "flex",
+                              gap: "12px",
+                              justifyContent: "center",
+                              marginBottom: "12px",
+                              flexWrap: "wrap",
+                           }}
+                        >
+                           <div
+                              style={{
+                                 display: "flex",
+                                 alignItems: "center",
+                                 gap: "8px",
+                                 padding: "8px 12px",
+                                 background: "rgba(34, 197, 94, 0.1)",
+                                 borderRadius: "8px",
+                                 border: "1px solid rgba(34, 197, 94, 0.3)",
+                              }}
+                           >
+                              <div
+                                 style={{
+                                    width: "16px",
+                                    height: "16px",
+                                    borderRadius: "999px",
+                                    background: "rgba(34, 197, 94, 0.45)",
+                                 }}
+                              />
+                              <span
+                                 style={{
+                                    fontSize: isMobile ? "12px" : "13px",
+                                    color: "var(--text)",
+                                    fontWeight: 600,
+                                 }}
+                              >
+                                 Target Zone
+                              </span>
+                           </div>
+                           <div
+                              style={{
+                                 display: "flex",
+                                 alignItems: "center",
+                                 gap: "8px",
+                                 padding: "8px 12px",
+                                 background: "rgba(59, 130, 246, 0.1)",
+                                 borderRadius: "8px",
+                                 border: "1px solid rgba(59, 130, 246, 0.3)",
+                              }}
+                           >
+                              <div
+                                 style={{
+                                    width: "12px",
+                                    height: "28px",
+                                    borderRadius: "6px",
+                                    background:
+                                       "linear-gradient(180deg, rgba(59, 130, 246, 0.9), rgba(59, 130, 246, 0.55))",
+                                 }}
+                              />
+                              <span
+                                 style={{
+                                    fontSize: isMobile ? "12px" : "13px",
+                                    color: "var(--text)",
+                                    fontWeight: 600,
+                                 }}
+                              >
+                                 Moving Bar
+                              </span>
+                           </div>
+                        </div>
+                     </div>
+                  </div>
+               )}
+
                {gameType === "target-aim" && (
                   <div
                      style={{

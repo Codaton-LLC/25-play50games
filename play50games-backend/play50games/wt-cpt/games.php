@@ -681,11 +681,11 @@ function show_games_custom_fields() {
                 gameType: 'skill',
                 gameOrder: 39,
                 difficulty: 2,
-                timeLimit: 60,
+                timeLimit: 0,
                 passingScore: 75,
                 unlockRequirement: '',
-                description: 'Stop moving bar at highlighted zone',
-                gameConfig: '{"gameType": "timing-bar", "rounds": 5}'
+                description: 'Stop the moving bar at the highlighted green zone. Test your timing and precision across 15 progressively challenging levels with increasing speed and smaller target zones.',
+                gameConfig: '{"gameType":"timing-bar","levels":15,"levelRequirements":[{"minStops":3,"duration":30,"targetZoneWidth":20,"barSpeed":1.2},{"minStops":3,"duration":30,"targetZoneWidth":19,"barSpeed":1.3},{"minStops":4,"duration":30,"targetZoneWidth":18,"barSpeed":1.4},{"minStops":4,"duration":30,"targetZoneWidth":17,"barSpeed":1.5},{"minStops":4,"duration":30,"targetZoneWidth":16,"barSpeed":1.6},{"minStops":5,"duration":30,"targetZoneWidth":15,"barSpeed":1.7},{"minStops":5,"duration":30,"targetZoneWidth":14,"barSpeed":1.8},{"minStops":5,"duration":30,"targetZoneWidth":13,"barSpeed":1.9},{"minStops":6,"duration":30,"targetZoneWidth":12,"barSpeed":2.0},{"minStops":6,"duration":30,"targetZoneWidth":11,"barSpeed":2.1},{"minStops":6,"duration":30,"targetZoneWidth":10,"barSpeed":2.2},{"minStops":7,"duration":30,"targetZoneWidth":9,"barSpeed":2.3},{"minStops":7,"duration":30,"targetZoneWidth":9,"barSpeed":2.4},{"minStops":8,"duration":30,"targetZoneWidth":8,"barSpeed":2.4},{"minStops":8,"duration":30,"targetZoneWidth":8,"barSpeed":2.5}]}'
             },
             'stack-blocks': {
                 title: 'Stack Blocks',

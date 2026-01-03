@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import BallBalance from './skillgames-parts/BallBalance';
 import TargetAim from './skillgames-parts/TargetAim';
 import LineTracer from './skillgames-parts/LineTracer';
+import TimingBar from './skillgames-parts/TimingBar';
 
 interface SkillGamesProps {
   config: Record<string, any>;
@@ -40,60 +41,6 @@ export default function SkillGames({ config, onScoreUpdate, onComplete, isPlayin
 
 
 
-// Timing Bar Game (39)
-function TimingBar({ config, onScoreUpdate, onComplete, isPlaying }: { config: Record<string, any>; onScoreUpdate: (score: number) => void; onComplete: (finalScore?: number) => void; isPlaying: boolean }) {
-  const rounds = config.rounds || 5;
-  const [barPosition, setBarPosition] = useState(0);
-  const [targetZone, setTargetZone] = useState({ start: 40, end: 60 });
-  const [round, setRound] = useState(0);
-  const [score, setScore] = useState(0);
-  const [stopped, setStopped] = useState(false);
-
-  useEffect(() => {
-    if (round >= rounds) {
-      const finalScore = Math.round((score / rounds) * 100);
-      onScoreUpdate(finalScore);
-      setTimeout(() => onComplete(finalScore), 1000);
-      return;
-    }
-    
-    setTargetZone({
-      start: 30 + Math.random() * 20,
-      end: 50 + Math.random() * 20,
-    });
-    setBarPosition(0);
-    setStopped(false);
-    
-    const interval = setInterval(() => {
-      if (!stopped) {
-        setBarPosition(prev => (prev + 2) % 100);
-      }
-    }, 50);
-    
-    return () => clearInterval(interval);
-  }, [round, rounds, stopped, score, onScoreUpdate, onComplete]);
-
-  const handleStop = () => {
-    if (stopped) return;
-    setStopped(true);
-    const inZone = barPosition >= targetZone.start && barPosition <= targetZone.end;
-    if (inZone) {
-      setScore(score + 20);
-    }
-    setTimeout(() => setRound(round + 1), 1000);
-  };
-
-  return (
-    <div className="timing-bar-game">
-      <h3>Timing Bar - Round {round + 1}/{rounds}</h3>
-      <div className="bar-container">
-        <div className="target-zone" style={{ left: `${targetZone.start}%`, width: `${targetZone.end - targetZone.start}%` }}></div>
-        <div className="moving-bar" style={{ left: `${barPosition}%` }}></div>
-      </div>
-      <button onClick={handleStop} disabled={stopped}>Stop</button>
-    </div>
-  );
-}
 
 // Stack Blocks Game (40)
 function StackBlocks({ config, onScoreUpdate, onComplete, isPlaying }: { config: Record<string, any>; onScoreUpdate: (score: number) => void; onComplete: (finalScore?: number) => void; isPlaying: boolean }) {

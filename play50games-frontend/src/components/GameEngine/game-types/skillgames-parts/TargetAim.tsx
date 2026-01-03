@@ -111,6 +111,7 @@ export default function TargetAim({
    const completionCalledRef = useRef(false);
    const lastTimestampRef = useRef<number>(0);
    const lastSpawnTimeRef = useRef<number>(0);
+   const nextRoundClickedRef = useRef(false);
 
    // Responsive design
    useEffect(() => {
@@ -218,6 +219,7 @@ export default function TargetAim({
          setTargetsMissed(0);
          setRequirementsMet(false);
          requirementsMetRef.current = false;
+         nextRoundClickedRef.current = false;
          setTargets([]);
          setTargetIconX(0);
          setTargetIconY(0);
@@ -685,7 +687,10 @@ export default function TargetAim({
 
    // Handle next round button click
    const handleNextRound = useCallback(() => {
+      if (gameState !== "ready") return;
+      if (nextRoundClickedRef.current) return;
       if (currentLevel + 1 < maxLevels) {
+         nextRoundClickedRef.current = true;
          const roundScore = Math.round(100 / maxLevels);
          const completedLevels = currentLevel + 1;
          const newScore = Math.min(100, completedLevels * roundScore);
@@ -710,7 +715,7 @@ export default function TargetAim({
          gameStateRef.current = "ready";
          setGameState("ready");
       }
-   }, [currentLevel, maxLevels, onScoreUpdate, finalizeGame, clearAll]);
+   }, [gameState, currentLevel, maxLevels, onScoreUpdate, finalizeGame, clearAll]);
 
    // Handle replay
    const handleReplay = useCallback(() => {

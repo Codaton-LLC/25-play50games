@@ -137,6 +137,7 @@ export default function LineTracer({
    const arenaRef = useRef<HTMLDivElement>(null);
    const canvasRef = useRef<HTMLCanvasElement>(null);
    const lastPointRef = useRef<PathPoint | null>(null);
+   const nextRoundClickedRef = useRef(false);
    const startedAtStartRef = useRef(false);
 
    // Responsive design
@@ -314,6 +315,7 @@ export default function LineTracer({
          requirementsMetRef.current = false;
          startedAtStartRef.current = false;
          lastPointRef.current = null;
+         nextRoundClickedRef.current = false;
 
          const levelDur = getLevelDuration(level);
          setTimeLeft(levelDur);
@@ -426,7 +428,10 @@ export default function LineTracer({
 
    // Handle next round
    const handleNextRound = useCallback(() => {
+      if (gameState !== "ready") return;
+      if (nextRoundClickedRef.current) return;
       if (currentLevel < maxLevels - 1) {
+         nextRoundClickedRef.current = true;
          const roundScore = Math.round(100 / maxLevels);
          const completedLevels = currentLevel + 1;
          const newScore = Math.min(100, completedLevels * roundScore);
@@ -452,7 +457,7 @@ export default function LineTracer({
          gameStateRef.current = "ready";
          setGameState("ready");
       }
-   }, [currentLevel, maxLevels, onScoreUpdate, clearAll]);
+   }, [gameState, currentLevel, maxLevels, onScoreUpdate, clearAll]);
 
    // Handle replay
    const handleReplay = useCallback(() => {
@@ -1475,6 +1480,7 @@ export default function LineTracer({
                </div>
                <button
                   onClick={handleNextRound}
+                  disabled={nextRoundClickedRef.current}
                   style={{
                      padding: isMobile ? "12px 24px" : "14px 28px",
                      background:
@@ -1484,7 +1490,10 @@ export default function LineTracer({
                      color: "var(--text)",
                      fontSize: isMobile ? "1rem" : "1.05rem",
                      fontWeight: 700,
-                     cursor: "pointer",
+                     cursor: nextRoundClickedRef.current
+                        ? "not-allowed"
+                        : "pointer",
+                     opacity: nextRoundClickedRef.current ? 0.6 : 1,
                      transition: "all 0.3s ease",
                   }}
                >

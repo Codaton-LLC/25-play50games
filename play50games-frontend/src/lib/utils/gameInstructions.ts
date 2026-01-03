@@ -543,9 +543,15 @@ export const gameInstructions: Record<string, {
     ],
   },
   'timing-bar': {
-    description: 'Stop moving bar at highlighted zone',
-    instructions: 'A bar will move back and forth. Click when the bar is in the highlighted zone to stop it.',
-    tips: 'Watch the rhythm of the bar. Time your click to match when the bar enters the zone.'
+    description: 'Stop the moving bar at the highlighted green zone. Test your timing and precision across 15 progressively challenging levels with increasing speed and smaller target zones.',
+    instructions: 'A blue bar moves back and forth along a track. A green zone is highlighted on the track. Click anywhere on the arena when the bar is inside the green zone to stop it. You need to achieve a minimum number of successful stops within the time limit to pass each level. As levels progress, the bar moves faster and the target zone becomes smaller.',
+    tips: 'Watch the rhythm and speed of the bar. Time your click carefully to match when the bar enters the green zone. Practice predicting the bar\'s movement pattern. Higher levels require faster reactions and more precision.',
+    mouseControls: [
+      { action: 'Click', label: 'Click anywhere on the arena to stop the bar when it\'s in the green zone' }
+    ],
+    keyboardControls: [
+      { keys: ['Mouse'], label: 'Use mouse to click and stop the bar (keyboard not applicable for this game)' }
+    ],
   },
   'stack-blocks': {
     description: 'Stack blocks as evenly as possible',
