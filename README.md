@@ -3518,6 +3518,129 @@ In WordPress admin, you can use the "Quick Fill Templates" dropdown and select "
 }
 ```
 
+#### Target Aim
+
+```json
+{
+   "gameType": "target-aim",
+   "levels": 15,
+   "levelRequirements": [
+      { "minTargetsHit": 5, "duration": 20 },
+      { "minTargetsHit": 7, "duration": 20 },
+      { "minTargetsHit": 9, "duration": 20 },
+      { "minTargetsHit": 11, "duration": 20 },
+      { "minTargetsHit": 13, "duration": 20 },
+      { "minTargetsHit": 15, "duration": 20, "movingTargets": true },
+      { "minTargetsHit": 17, "duration": 20, "movingTargets": true },
+      { "minTargetsHit": 19, "duration": 20, "multipleTargets": true },
+      {
+         "minTargetsHit": 21,
+         "duration": 20,
+         "movingTargets": true,
+         "multipleTargets": true
+      },
+      { "minTargetsHit": 23, "duration": 20, "shrinkingTargets": true },
+      {
+         "minTargetsHit": 25,
+         "duration": 20,
+         "movingTargets": true,
+         "shrinkingTargets": true
+      },
+      {
+         "minTargetsHit": 27,
+         "duration": 20,
+         "multipleTargets": true,
+         "shrinkingTargets": true
+      },
+      {
+         "minTargetsHit": 29,
+         "duration": 20,
+         "movingTargets": true,
+         "multipleTargets": true,
+         "shrinkingTargets": true
+      },
+      {
+         "minTargetsHit": 31,
+         "duration": 20,
+         "movingTargets": true,
+         "multipleTargets": true,
+         "shrinkingTargets": true
+      },
+      {
+         "minTargetsHit": 35,
+         "duration": 20,
+         "movingTargets": true,
+         "multipleTargets": true,
+         "shrinkingTargets": true
+      }
+   ]
+}
+```
+
+**Description:**
+
+Aim and hit targets with precision across 15 progressively challenging levels. Move the target icon (crosshair) with keyboard (WASD/Arrow keys) or mouse, and hit targets when they are near the center.
+
+**Scoring:**
+
+-  Score is calculated based on completed levels: `completedLevels * (100 / maxLevels)`
+-  Level 1 = 6.67 points, Level 2 = 13.33 points, Level 3 = 20 points, etc.
+-  Maximum 100 points for 15 levels
+
+**Controls:**
+
+-  **Mouse**: Move mouse to control the target icon (crosshair), click on targets to hit them
+-  **Keyboard**:
+   -  **W, A, S, D** or **Arrow Keys**: Move the target icon (crosshair) around the arena
+   -  **Enter** or **Space**: Hit the target nearest to the target icon when it's within range
+
+**Goal:**
+
+-  Move the target icon (crosshair) to aim at targets
+-  Hit targets by clicking on them or pressing Enter/Space when the target icon is near them
+-  Each level requires you to hit a minimum number of targets within the time limit
+-  Targets appear at random positions and you must hit them before they disappear
+-  Complete all 15 levels to finish the game
+
+**How It Works:**
+
+-  A target icon (crosshair) appears in the center of the arena
+-  Move the target icon using WASD/Arrow keys or mouse movement
+-  Targets spawn randomly in the arena
+-  Click on targets directly or press Enter/Space when the target icon is near a target to hit it
+-  Targets disappear after being hit or after their lifetime expires
+-  Each level has increasing difficulty with more targets required and special features
+
+**Features:**
+
+-  **Progressive Difficulty**: More targets required per level, faster spawning, shorter display times
+-  **Moving Targets** (Levels 6-7, 9, 11-15): Targets move around the arena, bouncing off walls
+-  **Multiple Targets** (Levels 8-9, 11-15): Multiple targets appear simultaneously
+-  **Shrinking Targets** (Levels 10-15): Targets shrink over time, making them harder to hit
+-  **Target Icon (Crosshair)**: Visual indicator that moves with keyboard or mouse
+-  **Dual Control Methods**: Use keyboard (WASD/Arrow keys) or mouse to move the target icon
+-  **Visual Feedback**: Hit/Missed statistics displayed at the top with gradient backgrounds
+-  **Level Progression System**: 15 levels with increasing difficulty
+-  **Game State Display**: Level X Complete!, Level X Failed!, Game Complete!
+-  **Replay System**: 5 replays by default, unlimited if shared
+-  **Share Feature**: Share the game to unlock unlimited replays (15 minutes)
+-  **Modern UI**: Consistent design with other Skill Games (border, background, shadow, radius)
+-  **Fully Responsive**: Optimized for mobile, tablet, and desktop
+
+**Tips:**
+
+-  Use WASD keys smoothly to move the target icon - don't rush!
+-  Aim slightly ahead of moving targets to account for their velocity
+-  For multiple targets, prioritize the ones that are about to disappear
+-  Shrinking targets require quick reactions - hit them while they're still large enough
+-  Practice your hand-eye coordination and stay calm under pressure
+-  Each level teaches new skills!
+
+**Recommended Settings:**
+
+-  **Time Limit**: 0 (no overall time limit, each level has its own duration)
+-  **Passing Score**: 75 (75% of max score)
+
 ## User Progress
 
 Progress is stored in:
@@ -3705,7 +3828,12 @@ src/
 │   │           ├── WhackShape.tsx
 │   │           ├── TypingSprint.tsx
 │   │           ├── QuickCompare.tsx
-│   │           └── FallingObjects.tsx
+│   │           ├── FallingObjects.tsx
+│   │           ├── ReflexArrow.tsx
+│   │           └── TapCounter.tsx
+│   │       ├── skillgames-parts/   # Individual skill game components
+│   │       │   ├── BallBalance.tsx
+│   │       │   └── TargetAim.tsx
 │   └── UnlockSystem/      # Game unlock logic
 ├── lib/
 │   ├── api/              # WordPress REST API clients
@@ -3726,7 +3854,7 @@ src/
 ## Features
 
 -  **Modern Games**: Match Shapes, Color Sequence, Number Order, Find the Odd One, Balance the Scale, Sudoku 4x4, Tile Slider, Circuit Path, and more
--  **Modular Architecture**: Games organized in separate files within category-specific folders (`logicgames-parts/`, `memorygames-parts/`, `speedgames-parts/`) for better maintainability
+-  **Modular Architecture**: Games organized in separate files within category-specific folders (`logicgames-parts/`, `memorygames-parts/`, `speedgames-parts/`, `skillgames-parts/`) for better maintainability
 -  **Progress Tracking**: localStorage for guests, WordPress API for logged-in users
 -  **Unlock System**: Sequential game unlocking based on completion
 -  **Certificate Generation**: PDF certificate after completing all games
@@ -3788,6 +3916,7 @@ src/
 ### Skill Games
 
 -  Ball Balance
+-  Target Aim
 
 ## Environment Variables
 
