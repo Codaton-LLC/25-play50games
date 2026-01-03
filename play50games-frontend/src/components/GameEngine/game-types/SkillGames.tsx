@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import BallBalance from './skillgames-parts/BallBalance';
 import TargetAim from './skillgames-parts/TargetAim';
+import LineTracer from './skillgames-parts/LineTracer';
 
 interface SkillGamesProps {
   config: Record<string, any>;
@@ -38,81 +39,6 @@ export default function SkillGames({ config, onScoreUpdate, onComplete, isPlayin
 }
 
 
-// Line Tracer Game (38)
-function LineTracer({ config, onScoreUpdate, onComplete, isPlaying }: { config: Record<string, any>; onScoreUpdate: (score: number) => void; onComplete: (finalScore?: number) => void; isPlaying: boolean }) {
-  const [path, setPath] = useState<Array<{ x: number; y: number }>>([]);
-  const [playerPath, setPlayerPath] = useState<Array<{ x: number; y: number }>>([]);
-  const [isDrawing, setIsDrawing] = useState(false);
-  const [score, setScore] = useState(0);
-
-  useEffect(() => {
-    const newPath = Array.from({ length: 20 }, (_, i) => ({
-      x: 10 + (i * 4),
-      y: 50 + Math.sin(i * 0.5) * 20,
-    }));
-    setPath(newPath);
-  }, []);
-
-  useEffect(() => {
-    if (playerPath.length >= path.length) {
-      const accuracy = calculateAccuracy();
-      const finalScore = Math.round(accuracy * 100);
-      setScore(finalScore);
-      onScoreUpdate(finalScore);
-      setTimeout(() => onComplete(finalScore), 1000);
-    }
-  }, [playerPath, path, onScoreUpdate, onComplete]);
-
-  const calculateAccuracy = () => {
-    let totalDistance = 0;
-    playerPath.forEach((point, i) => {
-      if (i < path.length) {
-        const dist = Math.sqrt(Math.pow(point.x - path[i].x, 2) + Math.pow(point.y - path[i].y, 2));
-        totalDistance += dist;
-      }
-    });
-    return Math.max(0, 1 - totalDistance / (path.length * 10));
-  };
-
-  const handleMouseMove = (e: React.MouseEvent) => {
-    if (!isDrawing) return;
-    const rect = e.currentTarget.getBoundingClientRect();
-    const x = ((e.clientX - rect.left) / rect.width) * 100;
-    const y = ((e.clientY - rect.top) / rect.height) * 100;
-    setPlayerPath([...playerPath, { x, y }]);
-  };
-
-  return (
-    <div className="line-tracer-game">
-      <h3>Line Tracer</h3>
-      <div
-        className="tracer-area"
-        onMouseDown={() => setIsDrawing(true)}
-        onMouseUp={() => setIsDrawing(false)}
-        onMouseMove={handleMouseMove}
-        onMouseLeave={() => setIsDrawing(false)}
-      >
-        <svg className="tracer-svg">
-          <path
-            d={`M ${path.map(p => `${p.x},${p.y}`).join(' L ')}`}
-            className="target-path"
-            stroke="blue"
-            fill="none"
-          />
-          {playerPath.length > 1 && (
-            <path
-              d={`M ${playerPath.map(p => `${p.x},${p.y}`).join(' L ')}`}
-              className="player-path"
-              stroke="red"
-              fill="none"
-            />
-          )}
-        </svg>
-      </div>
-      <p>Trace the blue line with your cursor</p>
-    </div>
-  );
-}
 
 // Timing Bar Game (39)
 function TimingBar({ config, onScoreUpdate, onComplete, isPlaying }: { config: Record<string, any>; onScoreUpdate: (score: number) => void; onComplete: (finalScore?: number) => void; isPlaying: boolean }) {

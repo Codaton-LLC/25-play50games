@@ -57,12 +57,128 @@ Lojët duhet të kenë state të qartë për fazat e lojës:
 
 Çdo lojë duhet të ketë një header që shfaq:
 
-#### Struktura Standarde:
+#### Struktura Standarde (për Skill Games dhe Speed Games):
 
--  **Title** me icon majtas dhe djathtas (opsional)
--  **Round**: "Round X / Y" me icon `ArrowPathIcon`
--  **Score**: "Score: X / 100" me icon `TrophyIcon`
--  **Progress Bar**: Një progress bar që tregon përparimin nëpër rounds
+**OBLIGATIVE:** Header-i duhet të ketë design të njëjtë për të gjitha lojërat:
+
+```typescript
+<div
+   style={{
+      width: "100%",
+      maxWidth: "800px",
+      background: "var(--card)",
+      border: "1px solid var(--stroke)",
+      borderRadius: isMobile ? "16px" : "20px",
+      padding: isMobile ? "16px" : "20px",
+      boxShadow: "0 8px 24px rgba(0, 0, 0, 0.2)",
+      display: "flex",
+      flexDirection: "column",
+      gap: isMobile ? "12px" : "16px",
+   }}
+>
+   <div
+      style={{
+         display: "flex",
+         alignItems: "center",
+         justifyContent: "space-between",
+         flexWrap: "wrap",
+         gap: isMobile ? "8px" : "12px",
+      }}
+   >
+      <span
+         style={{
+            fontSize: isMobile ? "0.875rem" : "1rem",
+            fontWeight: 600,
+            color: "var(--text)",
+            display: "flex",
+            alignItems: "center",
+            gap: "6px",
+         }}
+      >
+         <ArrowPathIcon
+            style={{
+               width: isMobile ? 14 : 16,
+               height: isMobile ? 14 : 16,
+            }}
+         />
+         Level {currentLevel + 1}/{maxLevels}
+      </span>
+      <span
+         style={{
+            fontSize: isMobile ? "0.875rem" : "1rem",
+            fontWeight: 600,
+            color: "var(--text)",
+            display: "flex",
+            alignItems: "center",
+            gap: "6px",
+         }}
+      >
+         <TrophyIcon
+            style={{
+               width: isMobile ? 14 : 16,
+               height: isMobile ? 14 : 16,
+               color: "var(--ok)",
+            }}
+         />
+         Score: {currentLevel + 1 >= maxLevels && gameState === "ready"
+            ? 100
+            : currentScore} / 100
+      </span>
+      <span
+         style={{
+            fontSize: isMobile ? "0.875rem" : "1rem",
+            fontWeight: 600,
+            color: "var(--text)",
+            display: "flex",
+            alignItems: "center",
+            gap: "6px",
+         }}
+      >
+         <ClockIcon
+            style={{
+               width: isMobile ? 14 : 16,
+               height: isMobile ? 14 : 16,
+               color: "var(--accent)",
+            }}
+         />
+         {timeLeft}s
+      </span>
+   </div>
+   {/* Progress Bar */}
+   <div
+      style={{
+         width: "100%",
+         height: isMobile ? "6px" : "8px",
+         background: "rgba(255, 255, 255, 0.1)",
+         borderRadius: "999px",
+         overflow: "hidden",
+      }}
+   >
+      <div
+         style={{
+            width: `${progress}%`,
+            height: "100%",
+            background:
+               "linear-gradient(90deg, var(--accent) 0%, var(--ok) 100%)",
+            borderRadius: "999px",
+            transition: "width 0.3s ease",
+            boxShadow: "0 0 10px rgba(125, 211, 252, 0.5)",
+         }}
+      />
+   </div>
+</div>
+```
+
+**Rregulla të rëndësishme për Header:**
+
+1. **Container**: Duhet të ketë `background: "var(--card)"`, `border: "1px solid var(--stroke)"`, `borderRadius: isMobile ? "16px" : "20px"`, `padding: isMobile ? "16px" : "20px"`, `boxShadow: "0 8px 24px rgba(0, 0, 0, 0.2)"`
+2. **Icons**: Të gjitha icons duhet të kenë madhësi `isMobile ? 14 : 16` (jo 18, 20, ose më të mëdha)
+3. **Font Size**: Të gjitha tekstet duhet të kenë `fontSize: isMobile ? "0.875rem" : "1rem"` (jo 0.9rem, 1.05rem, ose më të mëdha)
+4. **Gap**: Gap midis elementeve duhet të jetë `gap: "6px"` (jo 8px, 10px, ose më të mëdha)
+5. **Progress Bar**: Duhet të ketë `height: isMobile ? "6px" : "8px"`, `background: "rgba(255, 255, 255, 0.1)"`, `borderRadius: "999px"`, dhe gradient me `boxShadow: "0 0 10px rgba(125, 211, 252, 0.5)"`
+6. **TrophyIcon Color**: Duhet të ketë `color: "var(--ok)"`
+7. **ClockIcon Color**: Duhet të ketë `color: "var(--accent)"`
+8. **Score Display**: Duhet të shfaqë `Score: {currentLevel + 1 >= maxLevels && gameState === "ready" ? 100 : currentScore} / 100`
 
 #### Struktura Alternative (si Rotate to Fit / Face Memory):
 
@@ -443,16 +559,60 @@ useEffect(() => {
 
 #### 2.5.5 Share Button UI (OBLIGATIVE)
 
-Share button duhet të jetë:
+Share button dhe Replay button duhet të kenë design të njëjtë për të gjitha lojërat:
 
--  **Pozicionim**: Gjithmonë në fund të lojës (pas feedback messages), jo në top
--  **Tekst**:
-   -  Për lojëra me replays: "Share for Unlimited Replays"
-   -  Për lojëra me hints: "Share for Unlimited Hints"
--  **Icon**: `ShareIcon` nga Heroicons
--  **Styling**: Gradient background, border, padding konsistent me butonat e tjera
+**OBLIGATIVE:** Të gjitha butonat (Share dhe Replay) duhet të kenë styling të njëjtë:
 
 ```typescript
+{
+   /* Replay Button (vetëm kur gameState === "failed") */
+}
+{
+   gameState === "failed" && (
+      <button
+         onClick={handleReplay}
+         disabled={maxReplays > 0 && replaysUsed >= maxReplays}
+         style={{
+            display: "flex",
+            alignItems: "center",
+            gap: isMobile ? "6px" : "8px",
+            padding: isMobile ? "10px 16px" : "10px 20px",
+            width: isMobile ? "100%" : "auto",
+            background:
+               maxReplays > 0 && replaysUsed >= maxReplays
+                  ? "rgba(100, 100, 100, 0.2)"
+                  : "linear-gradient(135deg, rgba(125, 211, 252, 0.2), rgba(125, 211, 252, 0.1))",
+            border:
+               maxReplays > 0 && replaysUsed >= maxReplays
+                  ? "1px solid rgba(100, 100, 100, 0.4)"
+                  : "1px solid rgba(125, 211, 252, 0.6)",
+            borderRadius: "12px",
+            color: "var(--text)",
+            fontSize: isMobile ? "0.85rem" : "0.95rem",
+            fontWeight: 600,
+            cursor:
+               maxReplays > 0 && replaysUsed >= maxReplays
+                  ? "not-allowed"
+                  : "pointer",
+            opacity: maxReplays > 0 && replaysUsed >= maxReplays ? 0.5 : 1,
+            transition: "all 0.3s ease",
+         }}
+      >
+         <ArrowPathRoundedSquareIcon
+            style={{
+               width: isMobile ? 18 : 20,
+               height: isMobile ? 18 : 20,
+            }}
+         />
+         Replay
+         {maxReplays > 0 && ` (${maxReplays - replaysUsed} left)`}
+      </button>
+   );
+}
+
+{
+   /* Share Button */
+}
 <button
    onClick={handleShare}
    style={{
@@ -462,22 +622,41 @@ Share button duhet të jetë:
       padding: isMobile ? "10px 16px" : "10px 20px",
       width: isMobile ? "100%" : "auto",
       background:
-         "linear-gradient(135deg, rgba(59, 130, 246, 0.25), rgba(59, 130, 246, 0.12))",
-      border: "2px solid rgba(59, 130, 246, 0.6)",
+         "linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1))",
+      border: "1px solid rgba(59, 130, 246, 0.6)",
       borderRadius: "12px",
       color: "var(--text)",
-      fontSize: isMobile ? "0.9rem" : "1rem",
-      fontWeight: 700,
+      fontSize: isMobile ? "0.85rem" : "0.95rem",
+      fontWeight: 600,
       cursor: "pointer",
       transition: "all 0.3s ease",
    }}
 >
    <ShareIcon
-      style={{ width: isMobile ? 18 : 20, height: isMobile ? 18 : 20 }}
+      style={{
+         width: isMobile ? 18 : 20,
+         height: isMobile ? 18 : 20,
+         color: "var(--accent)",
+      }}
    />
-   Share for Unlimited Replays {/* Ose "Share for Unlimited Hints" */}
-</button>
+   <span>Share for unlimited</span>
+</button>;
 ```
+
+**Rregulla të rëndësishme për Butonat:**
+
+1. **Pozicionim**: Gjithmonë në fund të lojës (pas feedback messages), jo në top
+2. **Container**: Butonat duhet të jenë në një `div` me `display: "flex"`, `gap: "12px"`, `flexWrap: "wrap"`, `justifyContent: "center"`, `width: "100%"`, `maxWidth: "800px"`
+3. **Padding**: `padding: isMobile ? "10px 16px" : "10px 20px"` (jo 12px 24px, 14px 28px, ose më të mëdha)
+4. **Font Size**: `fontSize: isMobile ? "0.85rem" : "0.95rem"` (jo 0.9rem, 1rem, 1.05rem, ose më të mëdha)
+5. **Font Weight**: `fontWeight: 600` (jo 700)
+6. **Icons**: Të gjitha icons duhet të kenë madhësi `isMobile ? 18 : 20` (jo 16, 22, ose më të mëdha)
+7. **Gap**: Gap midis icon dhe tekstit duhet të jetë `gap: isMobile ? "6px" : "8px"` (jo 10px ose më të mëdha)
+8. **ShareIcon Color**: Duhet të ketë `color: "var(--accent)"`
+9. **Share Button Text**: Duhet të jetë "Share for unlimited" (jo "Share for Unlimited Replays" ose "Share for Unlimited Hints")
+10.   **Replay Button Background**: Duhet të përdorë `rgba(125, 211, 252, 0.2)` dhe `rgba(125, 211, 252, 0.1)` për gradient (jo `rgba(59, 130, 246, ...)`)
+11.   **Replay Button Border**: Duhet të përdorë `rgba(125, 211, 252, 0.6)` (jo `rgba(59, 130, 246, 0.6)`)
+12.   **Disabled State**: Replay button duhet të ketë `background: "rgba(100, 100, 100, 0.2)"`, `border: "1px solid rgba(100, 100, 100, 0.4)"`, `opacity: 0.5`, dhe `cursor: "not-allowed"` kur është disabled
 
 #### 2.5.6 Share Messages (OBLIGATIVE)
 
@@ -1021,7 +1200,7 @@ useEffect(() => {
 
 ---
 
-## 7. Checklist
+## 8. Checklist
 
 Para se të konsiderohet e kompletuar, një lojë duhet të ketë:
 

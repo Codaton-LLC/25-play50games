@@ -3059,6 +3059,227 @@ export default function GameEngine({
                )}
 
                {/* Interactive Example for Target Aim */}
+               {gameType === "line-tracer" && (
+                  <div
+                     style={{
+                        background:
+                           "linear-gradient(135deg, rgba(125, 211, 252, 0.1) 0%, rgba(54, 211, 153, 0.1) 100%)",
+                        border: "2px solid var(--stroke)",
+                        borderRadius: isMobile
+                           ? "16px"
+                           : isTablet
+                           ? "18px"
+                           : "20px",
+                        padding: isMobile ? "20px" : isTablet ? "24px" : "32px",
+                        marginTop: isMobile ? "16px" : "24px",
+                        boxShadow: "0 8px 24px rgba(0, 0, 0, 0.2)",
+                     }}
+                  >
+                     <div
+                        style={{
+                           display: "flex",
+                           alignItems: "center",
+                           justifyContent: "center",
+                           gap: isMobile ? "8px" : "12px",
+                           marginBottom: isMobile
+                              ? "16px"
+                              : isTablet
+                              ? "20px"
+                              : "24px",
+                        }}
+                     >
+                        <CursorArrowRaysIcon
+                           style={{
+                              width: isMobile ? 24 : isTablet ? 26 : 28,
+                              height: isMobile ? 24 : isTablet ? 26 : 28,
+                              color: "var(--accent)",
+                           }}
+                        />
+                        <h3
+                           style={{
+                              fontSize: isMobile
+                                 ? "20px"
+                                 : isTablet
+                                 ? "22px"
+                                 : "24px",
+                              fontWeight: 700,
+                              margin: 0,
+                              background:
+                                 "linear-gradient(135deg, var(--accent) 0%, var(--ok) 100%)",
+                              WebkitBackgroundClip: "text",
+                              WebkitTextFillColor: "transparent",
+                              backgroundClip: "text",
+                           }}
+                        >
+                           Example Round
+                        </h3>
+                     </div>
+
+                     <div
+                        style={{
+                           background: "var(--card)",
+                           border: "2px solid var(--stroke)",
+                           borderRadius: "16px",
+                           padding: isMobile ? "16px" : "24px",
+                           marginBottom: "20px",
+                        }}
+                     >
+                        <p
+                           style={{
+                              margin: "0 0 16px",
+                              color: "var(--text)",
+                              fontSize: isMobile ? "14px" : "16px",
+                              fontWeight: 600,
+                              textAlign: "center",
+                           }}
+                        >
+                           Trace the blue path with your mouse or touch. Follow
+                           it as closely as possible for higher accuracy:
+                        </p>
+
+                        {/* Example Arena */}
+                        <div
+                           style={{
+                              position: "relative",
+                              width: "100%",
+                              height: isMobile ? "200px" : "250px",
+                              borderRadius: "var(--radius)",
+                              border: "1px solid var(--border)",
+                              background:
+                                 "radial-gradient(320px 220px at 30% 30%, rgba(59, 130, 246, 0.1), transparent 55%), linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02))",
+                              boxShadow: "0 10px 18px rgba(0, 0, 0, 0.22)",
+                              marginBottom: "16px",
+                              overflow: "hidden",
+                           }}
+                        >
+                           {/* Example Target Path */}
+                           <svg
+                              viewBox="0 0 100 100"
+                              style={{
+                                 position: "absolute",
+                                 top: 0,
+                                 left: 0,
+                                 width: "100%",
+                                 height: "100%",
+                              }}
+                           >
+                              {/* Glow effect */}
+                              <path
+                                 d="M 5,50 Q 25,17 50,50 Q 75,83 95,50"
+                                 stroke="rgba(59, 130, 246, 0.2)"
+                                 strokeWidth="10"
+                                 fill="none"
+                                 strokeLinecap="round"
+                                 strokeLinejoin="round"
+                              />
+                              {/* Main path */}
+                              <path
+                                 d="M 5,50 Q 25,17 50,50 Q 75,83 95,50"
+                                 stroke="rgba(59, 130, 246, 0.6)"
+                                 strokeWidth="4"
+                                 fill="none"
+                                 strokeLinecap="round"
+                                 strokeLinejoin="round"
+                              />
+                              {/* Start/End markers */}
+                              <circle cx="5" cy="50" r="4" fill="rgba(34, 197, 94, 0.9)" />
+                              <circle cx="95" cy="50" r="4" fill="rgba(239, 68, 68, 0.9)" />
+                           </svg>
+
+                           {/* Example Player Path (green) */}
+                           <svg
+                              viewBox="0 0 100 100"
+                              style={{
+                                 position: "absolute",
+                                 top: 0,
+                                 left: 0,
+                                 width: "100%",
+                                 height: "100%",
+                              }}
+                           >
+                              <path
+                                 d="M 5,50 Q 25,17 50,50 Q 75,83 95,50"
+                                 stroke="rgba(34, 197, 94, 0.8)"
+                                 strokeWidth="3"
+                                 fill="none"
+                                 strokeLinecap="round"
+                                 strokeLinejoin="round"
+                              />
+                           </svg>
+                        </div>
+
+                        <div
+                           style={{
+                              display: "flex",
+                              gap: "12px",
+                              justifyContent: "center",
+                              marginBottom: "12px",
+                              flexWrap: "wrap",
+                           }}
+                        >
+                           <div
+                              style={{
+                                 display: "flex",
+                                 alignItems: "center",
+                                 gap: "8px",
+                                 padding: "8px 12px",
+                                 background: "rgba(59, 130, 246, 0.1)",
+                                 borderRadius: "8px",
+                                 border: "1px solid rgba(59, 130, 246, 0.3)",
+                              }}
+                           >
+                              <div
+                                 style={{
+                                    width: "16px",
+                                    height: "3px",
+                                    background: "rgba(59, 130, 246, 0.6)",
+                                    borderRadius: "2px",
+                                 }}
+                              />
+                              <span
+                                 style={{
+                                    fontSize: isMobile ? "12px" : "13px",
+                                    color: "var(--text)",
+                                    fontWeight: 600,
+                                 }}
+                              >
+                                 Target Path
+                              </span>
+                           </div>
+                           <div
+                              style={{
+                                 display: "flex",
+                                 alignItems: "center",
+                                 gap: "8px",
+                                 padding: "8px 12px",
+                                 background: "rgba(34, 197, 94, 0.1)",
+                                 borderRadius: "8px",
+                                 border: "1px solid rgba(34, 197, 94, 0.3)",
+                              }}
+                           >
+                              <div
+                                 style={{
+                                    width: "16px",
+                                    height: "3px",
+                                    background: "rgba(34, 197, 94, 0.8)",
+                                    borderRadius: "2px",
+                                 }}
+                              />
+                              <span
+                                 style={{
+                                    fontSize: isMobile ? "12px" : "13px",
+                                    color: "var(--text)",
+                                    fontWeight: 600,
+                                 }}
+                              >
+                                 Your Trace
+                              </span>
+                           </div>
+                        </div>
+                     </div>
+                  </div>
+               )}
+
                {gameType === "target-aim" && (
                   <div
                      style={{

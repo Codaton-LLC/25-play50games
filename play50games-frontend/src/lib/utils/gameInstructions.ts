@@ -530,9 +530,17 @@ export const gameInstructions: Record<string, {
     ],
   },
   'line-tracer': {
-    description: 'Trace a path with cursor',
-    instructions: 'A path will be shown. Trace it exactly with your cursor, staying as close to the line as possible.',
-    tips: 'Move slowly and steadily. Don\'t rush - accuracy is more important than speed.'
+    description: 'Trace paths with precision across 15 progressively challenging levels. Use your mouse or touch to follow the blue line as accurately as possible.',
+    instructions: '<p>Trace the blue path shown on the screen using your mouse (or finger on touch devices). Hold down the mouse button and follow the path as closely as possible. Your accuracy and progress are measured in real-time. Each level requires a minimum accuracy percentage to pass.</p><h4 style="margin-top: 16px; margin-bottom: 8px; font-weight: 600;">SPECIAL FEATURES BY LEVEL:</h4><ul style="margin-left: 20px; margin-bottom: 16px;"><li><strong style="color: #3b82f6;">Levels 1-4:</strong> Simple smooth curves - learn the basics</li><li><strong style="color: #f59e0b;">Levels 5-7:</strong> <strong>Zigzag Patterns</strong> - Sharp turns and angles</li><li><strong style="color: #ef4444;">Levels 8-10:</strong> <strong>Spiral Paths</strong> - Circular and spiral patterns</li><li><strong style="color: #8b5cf6;">Levels 11-12:</strong> <strong>Complex Curves</strong> - Multiple curves and turns</li><li><strong style="color: #06b6d4;">Levels 13-14:</strong> <strong>Mixed Patterns</strong> - Combination of all path types</li><li><strong style="color: #dc2626;">Level 15:</strong> <strong>Master Challenge</strong> - Most complex path with highest accuracy requirement</li></ul><h4 style="margin-top: 16px; margin-bottom: 8px; font-weight: 600;">HOW TO PLAY:</h4><ol style="margin-left: 20px; margin-bottom: 16px;"><li>Click and hold your mouse button (or touch and hold on mobile)</li><li>Follow the blue path as closely as possible</li><li>Your traced path appears in green (good accuracy) or red (needs improvement)</li><li>Reach the required accuracy percentage to pass the level</li><li>Complete all 15 levels to finish the game</li></ol>',
+    tips: 'Move slowly and steadily - accuracy is more important than speed. Keep your cursor close to the blue line. For sharp turns, slow down to maintain accuracy. Practice smooth movements - jerky movements reduce accuracy. Watch your real-time accuracy and progress stats. Each level teaches new skills!',
+    mouseControls: [
+      { action: 'Click & Hold', label: 'Click and hold mouse button to start tracing' },
+      { action: 'Move Mouse', label: 'Move mouse along the blue path to trace it' },
+      { action: 'Release', label: 'Release mouse button when done (or continue until time runs out)' },
+    ],
+    keyboardControls: [
+      { keys: ['Mouse'], label: 'Use mouse to trace the path (keyboard not applicable for this game)' },
+    ],
   },
   'timing-bar': {
     description: 'Stop moving bar at highlighted zone',

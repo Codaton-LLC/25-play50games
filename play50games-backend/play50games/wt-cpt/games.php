@@ -670,11 +670,11 @@ function show_games_custom_fields() {
                 gameType: 'skill',
                 gameOrder: 38,
                 difficulty: 3,
-                timeLimit: 120,
-                passingScore: 80,
+                timeLimit: 0,
+                passingScore: 75,
                 unlockRequirement: '',
-                description: 'Trace a path with cursor',
-                gameConfig: '{"gameType": "line-tracer"}'
+                description: 'Trace paths with precision across 15 progressively challenging levels. Use your mouse or touch to follow the blue line as accurately as possible. Features include different path types (smooth, zigzag, spiral, circle) and increasing accuracy requirements.',
+                gameConfig: '{"gameType":"line-tracer","levels":15,"levelRequirements":[{"minAccuracy":40,"minProgress":80,"duration":60,"pathType":"smooth","complexity":3,"pathLength":12},{"minAccuracy":45,"minProgress":82,"duration":60,"pathType":"smooth","complexity":3,"pathLength":12},{"minAccuracy":50,"minProgress":84,"duration":60,"pathType":"smooth","complexity":4,"pathLength":11},{"minAccuracy":52,"minProgress":85,"duration":62,"pathType":"smooth","complexity":4,"pathLength":11},{"minAccuracy":55,"minProgress":86,"duration":80,"pathType":"zigzag","complexity":5,"pathLength":10},{"minAccuracy":60,"minProgress":87,"duration":100,"pathType":"zigzag","complexity":5,"pathLength":10},{"minAccuracy":62,"minProgress":88,"duration":110,"pathType":"zigzag","complexity":6,"pathLength":9},{"minAccuracy":65,"minProgress":89,"duration":130,"pathType":"spiral","complexity":6,"pathLength":9},{"minAccuracy":65,"minProgress":90,"duration":140,"pathType":"spiral","complexity":7,"pathLength":8},{"minAccuracy":70,"minProgress":91,"duration":130,"pathType":"circle","complexity":7,"pathLength":8},{"minAccuracy":75,"minProgress":92,"duration":140,"pathType":"smooth","complexity":8,"pathLength":8},{"minAccuracy":75,"minProgress":93,"duration":160,"pathType":"zigzag","complexity":8,"pathLength":8},{"minAccuracy":80,"minProgress":94,"duration":180,"pathType":"spiral","complexity":9,"pathLength":7},{"minAccuracy":82,"minProgress":95,"duration":200,"pathType":"circle","complexity":9,"pathLength":7},{"minAccuracy":85,"minProgress":95,"duration":220,"pathType":"smooth","complexity":10,"pathLength":7}]}'
             },
             'timing-bar': {
                 title: 'Timing Bar',
