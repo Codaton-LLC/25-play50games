@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<!--
+  Timing Bar
+  Stop the moving bar inside the highlighted zone.
+
+  How to Play:
+  - Press Start
+  - Watch the bar move left/right
+  - Click (or tap) when the bar is inside the highlighted zone
+
+  Usage: Save as timing-bar.html and open in a browser.
+-->
+<html lang="en">
+   <head>
+      <meta charset="UTF-8" />
+      <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <title>Timing Bar</title>
+      <style>
+         :root {
+            --bg: #0b1220;
+            --panel: #0f1b33;
+            --text: #e8eefc;
+            --muted: #a6b3d1;
+            --accent: #6ea8ff;
+            --good: #36d399;
+            --bad: #fb7185;
+            --warn: #fbbf24;
+            --shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
+            --radius: 18px;
+         }
+         * {
+            box-sizing: border-box;
+         }
+         body {
+            margin: 0;
+            font-family: system-ui;
+            background: radial-gradient(
+                  1200px 800px at 70% -10%,
+                  rgba(110, 168, 255, 0.28),
+                  transparent 60%
+               ),
+               radial-gradient(
+                  900px 600px at 0% 10%,
+                  rgba(54, 211, 153, 0.18),
+                  transparent 55%
+               ),
+               var(--bg);
+            color: var(--text);
+            min-height: 100svh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+         }
+
+         .app {
+            width: min(980px, 100%);
+            display: grid;
+            grid-template-columns: 1.2fr 0.8fr;
+            gap: 18px;
+         }
+         @media (max-width: 900px) {
+            .app {
+               grid-template-columns: 1fr;
+            }
+         }
+
+         .panel {
+            background: linear-gradient(
+               180deg,
+               rgba(255, 255, 255, 0.06),
+               rgba(255, 255, 255, 0.02)
+            );
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            overflow: hidden;
+         }
+
+         header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            padding: 18px;
+            gap: 12px;
+            flex-wrap: wrap;
+         }
+         h1 {
+            margin: 0;
+            font-size: 18px;
+         }
+         p {
+            margin: 4px 0 0;
+            color: var(--muted);
+            font-size: 13px;
+         }
+
+         button {
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            background: rgba(15, 27, 51, 0.7);
+            color: var(--text);
+            padding: 10px 14px;
+            font-weight: 900;
+            cursor: pointer;
+         }
+         button.primary {
+            background: linear-gradient(
+               180deg,
+               rgba(110, 168, 255, 0.9),
+               rgba(110, 168, 255, 0.55)
+            );
+            color: #081126;
+         }
+
+         .row {
+            display: flex;
+            gap: 12px;
+            padding: 14px 18px;
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            background: rgba(11, 22, 48, 0.45);
+            flex-wrap: wrap;
+         }
+
+         .pill {
+            padding: 8px 12px;
+            border-radius: 999px;
+            background: rgba(17, 28, 53, 0.55);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            font-size: 13px;
+            white-space: nowrap;
+         }
+
+         .content {
+            padding: 18px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+         }
+
+         .arena {
+            height: 220px;
+            border-radius: 18px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: linear-gradient(
+               180deg,
+               rgba(255, 255, 255, 0.05),
+               rgba(255, 255, 255, 0.02)
+            );
+            position: relative;
+            overflow: hidden;
+            user-select: none;
+            touch-action: manipulation;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+         }
+
+         .track {
+            width: 80%;
+            height: 16px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.08);
+            position: relative;
+            overflow: hidden;
+         }
+
+         .zone {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            background: rgba(54, 211, 153, 0.45);
+            border-radius: 999px;
+         }
+
+         .bar {
+            position: absolute;
+            top: -6px;
+            width: 12px;
+            height: 28px;
+            border-radius: 6px;
+            background: linear-gradient(
+               180deg,
+               rgba(110, 168, 255, 0.9),
+               rgba(110, 168, 255, 0.55)
+            );
+            box-shadow: 0 6px 14px rgba(0, 0, 0, 0.35);
+         }
+
+         .overlay {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 22px;
+            color: var(--muted);
+            pointer-events: none;
+         }
+         .overlay strong {
+            color: var(--text);
+         }
+
+         .side {
+            padding: 18px;
+         }
+         .side h2 {
+            margin: 0 0 8px;
+            font-size: 14px;
+         }
+         .side ul {
+            margin: 0;
+            color: var(--muted);
+            font-size: 13px;
+            line-height: 1.35;
+            padding-left: 18px;
+         }
+         .side ul + h2 {
+            margin-top: 14px;
+         }
+      </style>
+   </head>
+   <body>
+      <div class="app">
+         <section class="panel">
+            <header>
+               <div>
+                  <h1>Timing Bar</h1>
+                  <p>Stop moving bar at highlighted zone</p>
+               </div>
+               <button class="primary" id="startBtn">Start</button>
+            </header>
+
+            <div class="row">
+               <div class="pill">Score: <b id="score">0</b></div>
+               <div class="pill">Round: <b id="round">1</b>/10</div>
+               <div class="pill">Speed: <b id="speed">1.0</b>x</div>
+            </div>
+
+            <div class="content">
+               <div class="arena" id="arena">
+                  <div class="track" id="track">
+                     <div class="zone" id="zone"></div>
+                     <div class="bar" id="bar"></div>
+                  </div>
+                  <div class="overlay" id="overlay">
+                     <div>
+                        <strong>Press Start</strong><br />
+                        Click when the bar is inside the green zone.
+                     </div>
+                  </div>
+               </div>
+            </div>
+         </section>
+
+         <aside class="panel">
+            <div class="side">
+               <h2>How to Play</h2>
+               <ul>
+                  <li>The bar moves left and right.</li>
+                  <li>Click/tap to stop it.</li>
+                  <li>Hit the green zone to score.</li>
+               </ul>
+
+               <h2>Tips</h2>
+               <ul>
+                  <li>Watch the rhythm of the bar.</li>
+                  <li>Time your click carefully.</li>
+               </ul>
+            </div>
+         </aside>
+      </div>
+
+      <script>
+         // ===== Timing Bar – Vanilla JS =====
+         const TOTAL_ROUNDS = 10;
+         const BASE_SPEED = 1.2; // px per frame multiplier
+         const SPEED_INC = 0.15;
+
+         let running = false;
+         let score = 0;
+         let round = 1;
+         let speed = BASE_SPEED;
+         let dir = 1;
+         let pos = 0; // 0..1
+         let rafId = null;
+
+         const arena = document.getElementById("arena");
+         const track = document.getElementById("track");
+         const zone = document.getElementById("zone");
+         const bar = document.getElementById("bar");
+         const overlay = document.getElementById("overlay");
+
+         const scoreEl = document.getElementById("score");
+         const roundEl = document.getElementById("round");
+         const speedEl = document.getElementById("speed");
+         const startBtn = document.getElementById("startBtn");
+
+         function updateHUD() {
+            scoreEl.textContent = String(score);
+            roundEl.textContent = String(round);
+            speedEl.textContent = speed.toFixed(1);
+         }
+
+         function randomZone() {
+            const w = track.clientWidth;
+            const zoneW = Math.max(
+               36,
+               Math.floor(w * (0.22 - (round - 1) * 0.012))
+            );
+            const left = Math.floor(Math.random() * (w - zoneW));
+            zone.style.left = left + "px";
+            zone.style.width = zoneW + "px";
+         }
+
+         function placeBar() {
+            const w = track.clientWidth;
+            bar.style.left = Math.floor(pos * (w - bar.clientWidth)) + "px";
+         }
+
+         function loop() {
+            if (!running) return;
+            pos += dir * speed * 0.006;
+            if (pos >= 1) {
+               pos = 1;
+               dir = -1;
+            }
+            if (pos <= 0) {
+               pos = 0;
+               dir = 1;
+            }
+            placeBar();
+            rafId = requestAnimationFrame(loop);
+         }
+
+         function stopAndCheck() {
+            if (!running) return;
+            running = false;
+            if (rafId) cancelAnimationFrame(rafId);
+
+            const barLeft = bar.offsetLeft;
+            const barRight = barLeft + bar.clientWidth;
+            const zoneLeft = zone.offsetLeft;
+            const zoneRight = zoneLeft + zone.clientWidth;
+
+            const hit = barLeft >= zoneLeft && barRight <= zoneRight;
+
+            if (hit) {
+               score += Math.max(5, Math.round(10 * (1 + (round - 1) * 0.2)));
+               overlay.innerHTML = "<div><strong>Perfect!</strong></div>";
+            } else {
+               overlay.innerHTML = "<div><strong>Miss</strong></div>";
+            }
+
+            overlay.style.display = "flex";
+
+            setTimeout(nextRound, 700);
+         }
+
+         function nextRound() {
+            overlay.style.display = "none";
+            round++;
+            if (round > TOTAL_ROUNDS) {
+               endGame();
+               return;
+            }
+            speed = BASE_SPEED + (round - 1) * SPEED_INC;
+            dir = Math.random() > 0.5 ? 1 : -1;
+            pos = Math.random();
+            randomZone();
+            updateHUD();
+            running = true;
+            rafId = requestAnimationFrame(loop);
+         }
+
+         function endGame() {
+            overlay.style.display = "flex";
+            overlay.innerHTML = `<div><strong>Done!</strong><br>Score: ${score}<br><span style="color:var(--muted)">Press Start to play again.</span></div>`;
+         }
+
+         function startGame() {
+            score = 0;
+            round = 1;
+            speed = BASE_SPEED;
+            dir = 1;
+            pos = Math.random();
+            randomZone();
+            updateHUD();
+            overlay.style.display = "none";
+            running = true;
+            if (rafId) cancelAnimationFrame(rafId);
+            rafId = requestAnimationFrame(loop);
+         }
+
+         arena.addEventListener("click", stopAndCheck);
+         startBtn.addEventListener("click", startGame);
+
+         // ===== Tests =====
+         (function runTests() {
+            try {
+               console.assert(TOTAL_ROUNDS === 10, "Test: 10 rounds");
+               console.assert(BASE_SPEED > 0, "Test: base speed positive");
+               console.assert(
+                  typeof randomZone === "function",
+                  "Test: randomZone exists"
+               );
+               console.info("Timing Bar tests: OK");
+            } catch (err) {
+               console.warn("Timing Bar tests failed", err);
+            }
+         })();
+      </script>
+   </body>
+</html>

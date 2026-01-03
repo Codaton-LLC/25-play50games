@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<!--
+  Line Tracer
+  Trace a shown path with your cursor/finger. Accuracy > speed.
+
+  How to Play:
+  - Press Start
+  - Hold mouse button (or touch) and trace the glowing path
+  - Stay close to the line to keep accuracy high
+
+  Scoring:
+  - Accuracy is measured as average distance to path while drawing
+  - Progress is measured as how far along the path you traced
+
+  Usage: Save as line-tracer.html and open in a browser.
+-->
+<html lang="en">
+   <head>
+      <meta charset="UTF-8" />
+      <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <title>Line Tracer</title>
+      <style>
+         :root {
+            --bg: #0b1220;
+            --panel: #0f1b33;
+            --text: #e8eefc;
+            --muted: #a6b3d1;
+            --accent: #6ea8ff;
+            --good: #36d399;
+            --bad: #fb7185;
+            --warn: #fbbf24;
+            --shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
+            --radius: 18px;
+         }
+         * {
+            box-sizing: border-box;
+         }
+         body {
+            margin: 0;
+            font-family: system-ui;
+            background: radial-gradient(
+                  1200px 800px at 70% -10%,
+                  rgba(110, 168, 255, 0.28),
+                  transparent 60%
+               ),
+               radial-gradient(
+                  900px 600px at 0% 10%,
+                  rgba(54, 211, 153, 0.18),
+                  transparent 55%
+               ),
+               var(--bg);
+            color: var(--text);
+            min-height: 100svh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+         }
+
+         .app {
+            width: min(980px, 100%);
+            display: grid;
+            grid-template-columns: 1.2fr 0.8fr;
+            gap: 18px;
+         }
+         @media (max-width: 900px) {
+            .app {
+               grid-template-columns: 1fr;
+            }
+         }
+
+         .panel {
+            background: linear-gradient(
+               180deg,
+               rgba(255, 255, 255, 0.06),
+               rgba(255, 255, 255, 0.02)
+            );
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            overflow: hidden;
+         }
+
+         header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            padding: 18px;
+            gap: 12px;
+            flex-wrap: wrap;
+         }
+         h1 {
+            margin: 0;
+            font-size: 18px;
+         }
+         p {
+            margin: 4px 0 0;
+            color: var(--muted);
+            font-size: 13px;
+         }
+
+         button {
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            background: rgba(15, 27, 51, 0.7);
+            color: var(--text);
+            padding: 10px 14px;
+            font-weight: 900;
+            cursor: pointer;
+         }
+         button.primary {
+            background: linear-gradient(
+               180deg,
+               rgba(110, 168, 255, 0.9),
+               rgba(110, 168, 255, 0.55)
+            );
+            color: #081126;
+         }
+
+         .row {
+            display: flex;
+            gap: 12px;
+            padding: 14px 18px;
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            background: rgba(11, 22, 48, 0.45);
+            flex-wrap: wrap;
+         }
+
+         .pill {
+            padding: 8px 12px;
+            border-radius: 999px;
+            background: rgba(17, 28, 53, 0.55);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            font-size: 13px;
+            white-space: nowrap;
+         }
+
+         .content {
+            padding: 18px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+         }
+
+         .arena {
+            height: 420px;
+            border-radius: 18px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: radial-gradient(
+                  320px 240px at 30% 30%,
+                  rgba(110, 168, 255, 0.1),
+                  transparent 60%
+               ),
+               linear-gradient(
+                  180deg,
+                  rgba(255, 255, 255, 0.05),
+                  rgba(255, 255, 255, 0.02)
+               );
+            position: relative;
+            overflow: hidden;
+            user-select: none;
+            touch-action: none;
+            padding: 10px;
+         }
+
+         canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+         }
+
+         .overlay {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 22px;
+            color: var(--muted);
+            pointer-events: none;
+         }
+
+         .overlay strong {
+            color: var(--text);
+         }
+
+         .side {
+            padding: 18px;
+         }
+         .side h2 {
+            margin: 0 0 8px;
+            font-size: 14px;
+         }
+         .side ul {
+            margin: 0;
+            color: var(--muted);
+            font-size: 13px;
+            line-height: 1.35;
+            padding-left: 18px;
+         }
+         .side ul + h2 {
+            margin-top: 14px;
+         }
+      </style>
+   </head>
+   <body>
+      <div class="app">
+         <section class="panel">
+            <header>
+               <div>
+                  <h1>Line Tracer</h1>
+                  <p>Trace a path with cursor</p>
+               </div>
+               <button class="primary" id="startBtn">Start</button>
+            </header>
+
+            <div class="row">
+               <div class="pill">Progress: <b id="progress">0</b>%</div>
+               <div class="pill">Accuracy: <b id="accuracy">100</b>%</div>
+               <div class="pill">Time: <b id="time">0.0</b>s</div>
+               <div class="pill">Score: <b id="score">0</b></div>
+            </div>
+
+            <div class="content">
+               <div class="arena" id="arena">
+                  <canvas id="cv"></canvas>
+                  <div class="overlay" id="overlay">
+                     <div>
+                        <strong>Press Start</strong><br />
+                        Hold and trace the glowing line.<br />
+                        <span style="color: var(--muted)"
+                           >Accuracy is more important than speed.</span
+                        >
+                     </div>
+                  </div>
+               </div>
+            </div>
+         </section>
+
+         <aside class="panel">
+            <div class="side">
+               <h2>How to Play</h2>
+               <ul>
+                  <li>A path is shown on the canvas.</li>
+                  <li>Hold mouse button (or touch) and trace it.</li>
+                  <li>Stay close to the line for higher accuracy.</li>
+               </ul>
+
+               <h2>Tips</h2>
+               <ul>
+                  <li>Move slowly and steadily.</li>
+                  <li>Don't rush — accuracy matters more.</li>
+               </ul>
+            </div>
+         </aside>
+      </div>
+
+      <script>
+         // ===== Line Tracer – Vanilla JS (Canvas) =====
+         // Expected behavior: user holds pointer to draw. We score distance to the target path
+         // and estimate progress along the path.
+
+         const PATH = [
+            // normalized points (0..1) relative to canvas
+            { x: 0.12, y: 0.75 },
+            { x: 0.2, y: 0.55 },
+            { x: 0.32, y: 0.62 },
+            { x: 0.44, y: 0.4 },
+            { x: 0.58, y: 0.48 },
+            { x: 0.68, y: 0.3 },
+            { x: 0.78, y: 0.42 },
+            { x: 0.88, y: 0.22 },
+         ];
+
+         const TRACE_WIDTH = 10;
+         const TARGET_WIDTH = 12;
+         const COMPLETE_PROGRESS = 92; // %
+
+         let running = false;
+         let drawing = false;
+         let startTime = 0;
+         let elapsed = 0;
+
+         // scoring aggregates
+         let samples = 0;
+         let distSum = 0; // px
+         let bestSegIndex = 0; // furthest progress segment index achieved
+
+         const arena = document.getElementById("arena");
+         const cv = document.getElementById("cv");
+         const ctx = cv.getContext("2d");
+         const overlay = document.getElementById("overlay");
+
+         const progressEl = document.getElementById("progress");
+         const accuracyEl = document.getElementById("accuracy");
+         const timeEl = document.getElementById("time");
+         const scoreEl = document.getElementById("score");
+         const startBtn = document.getElementById("startBtn");
+
+         function resize() {
+            // match CSS size
+            const r = arena.getBoundingClientRect();
+            const dpr = Math.max(1, window.devicePixelRatio || 1);
+            cv.width = Math.floor(r.width * dpr);
+            cv.height = Math.floor(r.height * dpr);
+            cv.style.width = r.width + "px";
+            cv.style.height = r.height + "px";
+            ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+            drawScene();
+         }
+
+         function toPx(p) {
+            return { x: p.x * cv.clientWidth, y: p.y * cv.clientHeight };
+         }
+
+         function distPointToSegment(px, a, b) {
+            // returns distance and t on segment (0..1)
+            const vx = b.x - a.x;
+            const vy = b.y - a.y;
+            const wx = px.x - a.x;
+            const wy = px.y - a.y;
+            const c1 = vx * wx + vy * wy;
+            const c2 = vx * vx + vy * vy;
+            const t = c2 === 0 ? 0 : Math.max(0, Math.min(1, c1 / c2));
+            const proj = { x: a.x + t * vx, y: a.y + t * vy };
+            const dx = px.x - proj.x;
+            const dy = px.y - proj.y;
+            return { d: Math.hypot(dx, dy), t };
+         }
+
+         function nearestOnPath(px) {
+            // find nearest segment
+            let best = { d: Infinity, seg: 0, t: 0 };
+            for (let i = 0; i < PATH.length - 1; i++) {
+               const a = toPx(PATH[i]);
+               const b = toPx(PATH[i + 1]);
+               const r = distPointToSegment(px, a, b);
+               if (r.d < best.d) {
+                  best = { d: r.d, seg: i, t: r.t };
+               }
+            }
+            return best;
+         }
+
+         function pathProgressPercent(seg, t) {
+            const totalSegs = PATH.length - 1;
+            const raw = (seg + t) / totalSegs;
+            return Math.max(0, Math.min(1, raw)) * 100;
+         }
+
+         function accuracyFromAvgDist(avgDist) {
+            // 0 dist => 100%. At TARGET_WIDTH*2 => ~0%
+            const maxD = TARGET_WIDTH * 2.2;
+            const a = 1 - avgDist / maxD;
+            return Math.round(Math.max(0, Math.min(1, a)) * 100);
+         }
+
+         function computeScore(progressPct, accuracyPct, seconds) {
+            // balanced score: progress primary, accuracy secondary, speed minor
+            const p = progressPct / 100;
+            const a = accuracyPct / 100;
+            const s = Math.max(0.6, 1.2 - Math.min(1, seconds / 25));
+            return Math.floor((p * 700 + a * 300) * s);
+         }
+
+         function setHUD(progressPct, accuracyPct) {
+            progressEl.textContent = String(Math.floor(progressPct));
+            accuracyEl.textContent = String(accuracyPct);
+            timeEl.textContent = elapsed.toFixed(1);
+            scoreEl.textContent = String(
+               computeScore(progressPct, accuracyPct, elapsed)
+            );
+         }
+
+         function drawPath(glow) {
+            const pts = PATH.map(toPx);
+
+            // glow layer
+            ctx.lineCap = "round";
+            ctx.lineJoin = "round";
+
+            if (glow) {
+               ctx.strokeStyle = "rgba(110,168,255,.25)";
+               ctx.lineWidth = TARGET_WIDTH + 8;
+               ctx.beginPath();
+               ctx.moveTo(pts[0].x, pts[0].y);
+               for (let i = 1; i < pts.length; i++)
+                  ctx.lineTo(pts[i].x, pts[i].y);
+               ctx.stroke();
+            }
+
+            // main line
+            ctx.strokeStyle = "rgba(110,168,255,.85)";
+            ctx.lineWidth = TARGET_WIDTH;
+            ctx.beginPath();
+            ctx.moveTo(pts[0].x, pts[0].y);
+            for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
+            ctx.stroke();
+
+            // start/end markers
+            ctx.fillStyle = "rgba(54,211,153,.9)";
+            ctx.beginPath();
+            ctx.arc(pts[0].x, pts[0].y, 6, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = "rgba(251,113,133,.9)";
+            ctx.beginPath();
+            ctx.arc(
+               pts[pts.length - 1].x,
+               pts[pts.length - 1].y,
+               6,
+               0,
+               Math.PI * 2
+            );
+            ctx.fill();
+         }
+
+         function drawScene() {
+            const w = cv.clientWidth;
+            const h = cv.clientHeight;
+            ctx.clearRect(0, 0, w, h);
+
+            // subtle grid
+            ctx.strokeStyle = "rgba(255,255,255,.04)";
+            ctx.lineWidth = 1;
+            for (let x = 0; x < w; x += 40) {
+               ctx.beginPath();
+               ctx.moveTo(x, 0);
+               ctx.lineTo(x, h);
+               ctx.stroke();
+            }
+            for (let y = 0; y < h; y += 40) {
+               ctx.beginPath();
+               ctx.moveTo(0, y);
+               ctx.lineTo(w, y);
+               ctx.stroke();
+            }
+
+            drawPath(true);
+         }
+
+         function drawTraceSegment(from, to) {
+            ctx.strokeStyle = "rgba(54,211,153,.85)";
+            ctx.lineWidth = TRACE_WIDTH;
+            ctx.lineCap = "round";
+            ctx.beginPath();
+            ctx.moveTo(from.x, from.y);
+            ctx.lineTo(to.x, to.y);
+            ctx.stroke();
+         }
+
+         let lastPt = null;
+
+         function startGame() {
+            running = true;
+            drawing = false;
+            samples = 0;
+            distSum = 0;
+            bestSegIndex = 0;
+            lastPt = null;
+
+            overlay.style.display = "none";
+            startTime = performance.now();
+            elapsed = 0;
+
+            drawScene();
+            setHUD(0, 100);
+         }
+
+         function endGame(message) {
+            running = false;
+            drawing = false;
+
+            // final stats
+            const avgDist = samples ? distSum / samples : TARGET_WIDTH * 2;
+            const acc = accuracyFromAvgDist(avgDist);
+            const prog = (bestSegIndex / (PATH.length - 1)) * 100;
+            const finalScore = computeScore(prog, acc, elapsed);
+
+            overlay.style.display = "flex";
+            overlay.innerHTML = `<div><strong>${message}</strong><br><br>
+    <strong>Progress:</strong> ${Math.floor(prog)}%<br>
+    <strong>Accuracy:</strong> ${acc}%<br>
+    <strong>Score:</strong> ${finalScore}<br>
+    <span style="color:var(--muted)">Press Start to try again.</span></div>`;
+         }
+
+         function updateTime() {
+            if (!running) return;
+            elapsed = (performance.now() - startTime) / 1000;
+            // update HUD even when not drawing
+            const avgDist = samples ? distSum / samples : 0;
+            const acc = samples ? accuracyFromAvgDist(avgDist) : 100;
+            const prog = (bestSegIndex / (PATH.length - 1)) * 100;
+            setHUD(prog, acc);
+            requestAnimationFrame(updateTime);
+         }
+
+         function pointFromEvent(e) {
+            const rect = cv.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            return { x, y };
+         }
+
+         function handleDrawPoint(pt) {
+            const nearest = nearestOnPath(pt);
+            samples++;
+            distSum += nearest.d;
+
+            // progress update
+            const progPct = pathProgressPercent(nearest.seg, nearest.t);
+            // store best progress as segment index approximation
+            const totalSegs = PATH.length - 1;
+            const best = Math.max(bestSegIndex, nearest.seg + nearest.t);
+            bestSegIndex = Math.min(totalSegs, best);
+
+            // draw
+            if (lastPt) {
+               drawTraceSegment(lastPt, pt);
+            }
+            lastPt = pt;
+
+            // completion
+            const avgDist = distSum / samples;
+            const acc = accuracyFromAvgDist(avgDist);
+            const prog = (bestSegIndex / (PATH.length - 1)) * 100;
+            setHUD(prog, acc);
+
+            if (prog >= COMPLETE_PROGRESS && acc >= 60) {
+               endGame("Complete!");
+            }
+         }
+
+         // Mouse
+         cv.addEventListener("mousedown", (e) => {
+            if (!running) return;
+            drawing = true;
+            lastPt = null;
+            handleDrawPoint(pointFromEvent(e));
+         });
+         window.addEventListener("mouseup", () => {
+            drawing = false;
+         });
+         cv.addEventListener("mousemove", (e) => {
+            if (!running || !drawing) return;
+            handleDrawPoint(pointFromEvent(e));
+         });
+
+         // Touch
+         cv.addEventListener(
+            "touchstart",
+            (e) => {
+               if (!running) return;
+               drawing = true;
+               lastPt = null;
+               const t = e.touches[0];
+               if (!t) return;
+               handleDrawPoint(pointFromEvent(t));
+            },
+            { passive: true }
+         );
+
+         cv.addEventListener(
+            "touchmove",
+            (e) => {
+               if (!running || !drawing) return;
+               const t = e.touches[0];
+               if (!t) return;
+               handleDrawPoint(pointFromEvent(t));
+            },
+            { passive: true }
+         );
+
+         cv.addEventListener("touchend", () => {
+            drawing = false;
+         });
+
+         startBtn.addEventListener("click", () => {
+            startGame();
+            requestAnimationFrame(updateTime);
+         });
+
+         window.addEventListener("resize", resize);
+         resize();
+
+         // ===== Tests (Console) =====
+         (function runTests() {
+            try {
+               console.assert(
+                  PATH.length >= 2,
+                  "Test: PATH must have at least 2 points"
+               );
+               console.assert(
+                  typeof distPointToSegment(
+                     { x: 0, y: 0 },
+                     { x: 0, y: 0 },
+                     { x: 10, y: 0 }
+                  ).d === "number",
+                  "Test: distance returns number"
+               );
+
+               // progress boundaries
+               console.assert(
+                  pathProgressPercent(0, 0) === 0,
+                  "Test: progress start 0%"
+               );
+               const end = pathProgressPercent(PATH.length - 2, 1);
+               console.assert(
+                  Math.round(end) === 100,
+                  "Test: progress end ~100%"
+               );
+
+               // accuracy
+               console.assert(
+                  accuracyFromAvgDist(0) === 100,
+                  "Test: accuracy 100% at 0 dist"
+               );
+               console.assert(
+                  accuracyFromAvgDist(TARGET_WIDTH * 10) === 0,
+                  "Test: accuracy 0% far away"
+               );
+
+               console.info("Line Tracer tests: OK");
+            } catch (err) {
+               console.warn("Line Tracer tests failed", err);
+            }
+         })();
+      </script>
+   </body>
+</html>
