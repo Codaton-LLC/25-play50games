@@ -788,8 +788,15 @@ export default function BallBalance({
    useEffect(() => {
       if (timeLeft === 0 && requirementsMet && gameState === "paused") {
          setGameState("ready");
+         if (currentLevel + 1 < maxLevels) {
+            const roundScore = Math.round(100 / maxLevels);
+            const completedLevels = currentLevel + 1;
+            const newScore = Math.min(100, completedLevels * roundScore);
+            setCurrentScore(newScore);
+            onScoreUpdate(newScore);
+         }
       }
-   }, [timeLeft, requirementsMet, gameState]);
+   }, [timeLeft, requirementsMet, gameState, currentLevel, maxLevels, onScoreUpdate]);
 
    const finalizeGame = useCallback(() => {
       if (completionCalledRef.current) return;
@@ -818,15 +825,17 @@ export default function BallBalance({
 
    // Handle next round button click
    const handleNextRound = useCallback(() => {
-      const roundScore = Math.round(100 / maxLevels);
       const completedLevels = currentLevel + 1;
-      const newScore = Math.min(100, completedLevels * roundScore);
 
       if (completedLevels >= maxLevels) {
          finalizeGame();
       } else {
-         setCurrentScore(newScore);
-         onScoreUpdate(newScore);
+         if (!requirementsMetRef.current) {
+            const roundScore = Math.round(100 / maxLevels);
+            const newScore = Math.min(100, completedLevels * roundScore);
+            setCurrentScore(newScore);
+            onScoreUpdate(newScore);
+         }
 
          forceStartLevelRef.current = currentLevel + 1;
          setCurrentLevel((prev) => prev + 1);

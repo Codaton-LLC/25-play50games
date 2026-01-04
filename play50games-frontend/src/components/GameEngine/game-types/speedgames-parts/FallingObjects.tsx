@@ -464,15 +464,17 @@ export default function FallingObjects({
 
    // Handle next round button click
    const handleNextRound = useCallback(() => {
-      const roundScore = Math.round(100 / maxLevels);
       const completedLevels = currentLevel + 1;
-      const newScore = Math.min(100, completedLevels * roundScore);
 
       if (completedLevels >= maxLevels) {
          finalizeGame();
       } else {
-         setCurrentScore(newScore);
-         onScoreUpdate(newScore);
+         if (!requirementsMetRef.current) {
+            const roundScore = Math.round(100 / maxLevels);
+            const newScore = Math.min(100, completedLevels * roundScore);
+            setCurrentScore(newScore);
+            onScoreUpdate(newScore);
+         }
 
          forceStartLevelRef.current = currentLevel + 1;
          setCurrentLevel((prev) => prev + 1);
@@ -807,22 +809,29 @@ export default function FallingObjects({
 
          requirementsMetRef.current = true;
          setRequirementsMet(true);
-         setGameState("ready");
-         setObjects([]);
+        setGameState("ready");
+        setObjects([]);
 
-         if (currentLevel + 1 >= maxLevels) {
-            finalizeGame();
-         }
-      }
-   }, [
-      caughtGood,
-      gameState,
-      requirementsMet,
-      getMinCaughtGood,
-      currentLevel,
-      maxLevels,
-      finalizeGame,
-   ]);
+        if (currentLevel + 1 >= maxLevels) {
+           finalizeGame();
+        } else {
+           const roundScore = Math.round(100 / maxLevels);
+           const completedLevels = currentLevel + 1;
+           const newScore = Math.min(100, completedLevels * roundScore);
+           setCurrentScore(newScore);
+           onScoreUpdate(newScore);
+        }
+     }
+  }, [
+     caughtGood,
+     gameState,
+     requirementsMet,
+     getMinCaughtGood,
+     currentLevel,
+     maxLevels,
+     onScoreUpdate,
+     finalizeGame,
+  ]);
 
    // Check if time runs out and requirements are not met
    useEffect(() => {

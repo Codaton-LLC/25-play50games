@@ -62,21 +62,21 @@ export default function TargetAim({
    const [isMobile, setIsMobile] = useState(false);
    const [isTablet, setIsTablet] = useState(false);
 
+   type Target = {
+      id: number;
+      x: number;
+      y: number;
+      size: number;
+      speed: number;
+      vx: number;
+      vy: number;
+      clicked: boolean;
+      createdAt: number;
+      initialSize: number;
+   };
+
    // Target state
-   const [targets, setTargets] = useState<
-      Array<{
-         id: number;
-         x: number;
-         y: number;
-         size: number;
-         speed: number;
-         vx: number;
-         vy: number;
-         clicked: boolean;
-         createdAt: number;
-         initialSize: number;
-      }>
-   >([]);
+   const [targets, setTargets] = useState<Target[]>([]);
    const [targetsHit, setTargetsHit] = useState(0);
    const [targetsMissed, setTargetsMissed] = useState(0);
 
@@ -105,7 +105,7 @@ export default function TargetAim({
       "playing"
    );
    const requirementsMetRef = useRef(false);
-   const startLevelRef = useRef<() => void>(() => {});
+   const startLevelRef = useRef<((level: number) => void) | null>(null);
    const prevLevelRef = useRef<number | null>(null);
    const forceStartLevelRef = useRef<number | null>(null);
    const completionCalledRef = useRef(false);
@@ -174,11 +174,22 @@ export default function TargetAim({
                minTargetsHit: req.minTargetsHit || 5 + level * 2,
                targetSize: req.targetSize || Math.max(40, 60 - level * 2),
                targetSpeed: req.targetSpeed || 0.5 + level * 0.1,
-               spawnInterval: req.spawnInterval || Math.max(800, 1500 - level * 50),
-               targetLifetime: req.targetLifetime || Math.max(2000, 4000 - level * 150),
-               movingTargets: req.movingTargets !== undefined ? req.movingTargets : level >= 5,
-               multipleTargets: req.multipleTargets !== undefined ? req.multipleTargets : level >= 8,
-               shrinkingTargets: req.shrinkingTargets !== undefined ? req.shrinkingTargets : level >= 10,
+               spawnInterval:
+                  req.spawnInterval || Math.max(800, 1500 - level * 50),
+               targetLifetime:
+                  req.targetLifetime || Math.max(2000, 4000 - level * 150),
+               movingTargets:
+                  req.movingTargets !== undefined
+                     ? req.movingTargets
+                     : level >= 5,
+               multipleTargets:
+                  req.multipleTargets !== undefined
+                     ? req.multipleTargets
+                     : level >= 8,
+               shrinkingTargets:
+                  req.shrinkingTargets !== undefined
+                     ? req.shrinkingTargets
+                     : level >= 10,
             };
          }
          // Default progression
@@ -227,7 +238,7 @@ export default function TargetAim({
 
          const levelDur = getLevelDuration(level);
          setTimeLeft(levelDur);
-         
+
          // Set game state to playing AFTER resetting timeLeft
          gameStateRef.current = "playing";
          setGameState("playing");
@@ -251,7 +262,10 @@ export default function TargetAim({
 
          // Start spawning targets
          const spawnTarget = () => {
-            if (gameStateRef.current !== "playing" || requirementsMetRef.current) {
+            if (
+               gameStateRef.current !== "playing" ||
+               requirementsMetRef.current
+            ) {
                return;
             }
 
@@ -313,10 +327,16 @@ export default function TargetAim({
 
          // Spawn timer
          spawnTimerRef.current = setInterval(() => {
-            if (gameStateRef.current === "playing" && !requirementsMetRef.current) {
+            if (
+               gameStateRef.current === "playing" &&
+               !requirementsMetRef.current
+            ) {
                spawnTarget();
                if (levelConfig.multipleTargets) {
-                  setTimeout(() => spawnTarget(), levelConfig.spawnInterval / 2);
+                  setTimeout(
+                     () => spawnTarget(),
+                     levelConfig.spawnInterval / 2
+                  );
                }
             }
          }, levelConfig.spawnInterval);
@@ -431,17 +451,17 @@ export default function TargetAim({
             const rect = arena.getBoundingClientRect();
             const centerX = rect.width / 2;
             const centerY = rect.height / 2;
-            
+
             // Target icon position (relative to center)
             const targetIconPosX = centerX + targetIconX;
             const targetIconPosY = centerY + targetIconY;
 
             // Find nearest target to target icon position
-            let nearestTarget: typeof targets[0] | null = null;
+            let nearestTarget: Target | null = null;
             let minDistance = Infinity;
 
-            targets.forEach((target) => {
-               if (target.clicked) return;
+            for (const target of targets) {
+               if (target.clicked) continue;
 
                // Calculate target center position
                const targetCenterX = target.x + target.size / 2;
@@ -458,17 +478,26 @@ export default function TargetAim({
                   minDistance = distance;
                   nearestTarget = target;
                }
-            });
+            }
 
             if (nearestTarget) {
-               handleTargetClick(nearestTarget.id);
+               const targetId: number = nearestTarget.id;
+               handleTargetClick(targetId);
             }
          }
       };
 
       window.addEventListener("keydown", handleKeyPress);
       return () => window.removeEventListener("keydown", handleKeyPress);
-   }, [gameState, isPlaying, requirementsMet, targets, targetIconX, targetIconY, handleTargetClick]);
+   }, [
+      gameState,
+      isPlaying,
+      requirementsMet,
+      targets,
+      targetIconX,
+      targetIconY,
+      handleTargetClick,
+   ]);
 
    // Animation loop
    useEffect(() => {
@@ -499,7 +528,7 @@ export default function TargetAim({
             const rect = arena.getBoundingClientRect();
             const centerX = rect.width / 2;
             const centerY = rect.height / 2;
-            
+
             let deltaX = 0;
             let deltaY = 0;
 
@@ -568,8 +597,14 @@ export default function TargetAim({
                   const shrinkRate = 0.3; // Shrink to 30% of original size
                   const shrinkTime = levelConfig.targetLifetime * 0.7; // Start shrinking at 70% of lifetime
                   if (age > shrinkTime) {
-                     const shrinkProgress = Math.min(1, (age - shrinkTime) / (levelConfig.targetLifetime - shrinkTime));
-                     newSize = target.initialSize * (1 - shrinkProgress * (1 - shrinkRate));
+                     const shrinkProgress = Math.min(
+                        1,
+                        (age - shrinkTime) /
+                           (levelConfig.targetLifetime - shrinkTime)
+                     );
+                     newSize =
+                        target.initialSize *
+                        (1 - shrinkProgress * (1 - shrinkRate));
                   }
                }
 
@@ -610,6 +645,8 @@ export default function TargetAim({
       const levelPassed = targetsHit >= minTargetsHit;
 
       if (levelPassed) {
+         requirementsMetRef.current = true;
+         setRequirementsMet(true);
          const roundScore = Math.round(100 / maxLevels);
          const completedLevels = currentLevel + 1;
          const newScore = Math.min(100, completedLevels * roundScore);
@@ -626,7 +663,16 @@ export default function TargetAim({
       } else {
          setGameState("failed");
       }
-   }, [clearAll, targetsHit, getMinTargetsHit, currentLevel, maxLevels, onScoreUpdate, timeLeft, getLevelDuration]);
+   }, [
+      clearAll,
+      targetsHit,
+      getMinTargetsHit,
+      currentLevel,
+      maxLevels,
+      onScoreUpdate,
+      timeLeft,
+      getLevelDuration,
+   ]);
 
    useEffect(() => {
       startLevelRef.current = startLevel;
@@ -653,12 +699,36 @@ export default function TargetAim({
    useEffect(() => {
       if (timeLeft === 0 && requirementsMet && gameState === "paused") {
          setGameState("ready");
-      } else if (timeLeft === 0 && !requirementsMet && gameState === "playing" && gameStateRef.current === "playing" && targetsHit > 0) {
+         if (currentLevel + 1 < maxLevels) {
+            const roundScore = Math.round(100 / maxLevels);
+            const completedLevels = currentLevel + 1;
+            const newScore = Math.min(100, completedLevels * roundScore);
+            setCurrentScore(newScore);
+            setTimeout(() => {
+               onScoreUpdate(newScore);
+            }, 0);
+         }
+      } else if (
+         timeLeft === 0 &&
+         !requirementsMet &&
+         gameState === "playing" &&
+         gameStateRef.current === "playing" &&
+         targetsHit > 0
+      ) {
          // Only end level if we're actually playing, timer ran out, AND we've hit at least one target
          // This prevents "failed" from showing when level just started
          endLevel();
       }
-   }, [timeLeft, requirementsMet, gameState, endLevel, targetsHit]);
+   }, [
+      timeLeft,
+      requirementsMet,
+      gameState,
+      endLevel,
+      targetsHit,
+      currentLevel,
+      maxLevels,
+      onScoreUpdate,
+   ]);
 
    const finalizeGame = useCallback(() => {
       if (completionCalledRef.current) return;
@@ -679,11 +749,12 @@ export default function TargetAim({
       if (
          gameState === "ready" &&
          currentLevel + 1 >= maxLevels &&
+         requirementsMet &&
          !completionCalledRef.current
       ) {
          finalizeGame();
       }
-   }, [gameState, currentLevel, maxLevels, finalizeGame]);
+   }, [gameState, currentLevel, maxLevels, requirementsMet, finalizeGame]);
 
    // Handle next round button click
    const handleNextRound = useCallback(() => {
@@ -691,13 +762,15 @@ export default function TargetAim({
       if (nextRoundClickedRef.current) return;
       if (currentLevel + 1 < maxLevels) {
          nextRoundClickedRef.current = true;
-         const roundScore = Math.round(100 / maxLevels);
-         const completedLevels = currentLevel + 1;
-         const newScore = Math.min(100, completedLevels * roundScore);
-         setCurrentScore(newScore);
-         setTimeout(() => {
-            onScoreUpdate(newScore);
-         }, 0);
+         if (!requirementsMetRef.current) {
+            const roundScore = Math.round(100 / maxLevels);
+            const completedLevels = currentLevel + 1;
+            const newScore = Math.min(100, completedLevels * roundScore);
+            setCurrentScore(newScore);
+            setTimeout(() => {
+               onScoreUpdate(newScore);
+            }, 0);
+         }
 
          // Clear all timers and reset state
          clearAll();
@@ -706,16 +779,23 @@ export default function TargetAim({
          setTargetsMissed(0);
          setRequirementsMet(false);
          requirementsMetRef.current = false;
-         
+
          // Set next level
          forceStartLevelRef.current = currentLevel + 1;
          setCurrentLevel((prev) => prev + 1);
-         
+
          // Reset game state - will be set to "playing" when startLevel is called
          gameStateRef.current = "ready";
          setGameState("ready");
       }
-   }, [gameState, currentLevel, maxLevels, onScoreUpdate, finalizeGame, clearAll]);
+   }, [
+      gameState,
+      currentLevel,
+      maxLevels,
+      onScoreUpdate,
+      finalizeGame,
+      clearAll,
+   ]);
 
    // Handle replay
    const handleReplay = useCallback(() => {
@@ -983,7 +1063,7 @@ export default function TargetAim({
       setTargetsMissed(0);
       setRequirementsMet(false);
       requirementsMetRef.current = false;
-      
+
       // Don't set gameState to "playing" here - let startLevel do it after resetting timeLeft
       // This prevents endLevel from being called with timeLeft = 0
       gameStateRef.current = "ready";
@@ -991,11 +1071,15 @@ export default function TargetAim({
 
       if (currentLevel === 0) {
          startTimeoutRef.current = setTimeout(() => {
-            startLevelRef.current(0);
+            if (startLevelRef.current) {
+               startLevelRef.current(0);
+            }
          }, 0);
       } else {
          startTimeoutRef.current = setTimeout(() => {
-            startLevelRef.current(currentLevel);
+            if (startLevelRef.current) {
+               startLevelRef.current(currentLevel);
+            }
          }, 1200);
       }
 
@@ -1079,7 +1163,7 @@ export default function TargetAim({
                         }}
                      />
                      Score:{" "}
-                     {currentLevel + 1 >= maxLevels && gameState === "ready"
+                     {requirementsMet && currentLevel + 1 >= maxLevels
                         ? 100
                         : currentScore}{" "}
                      / 100
@@ -1257,7 +1341,9 @@ export default function TargetAim({
                               transition: target.clicked
                                  ? "all 0.2s ease"
                                  : "none",
-                              transform: target.clicked ? "scale(0)" : "scale(1)",
+                              transform: target.clicked
+                                 ? "scale(0)"
+                                 : "scale(1)",
                               opacity: target.clicked ? 0 : 1,
                               pointerEvents: target.clicked ? "none" : "auto",
                            }}
@@ -1401,62 +1487,64 @@ export default function TargetAim({
             )}
 
             {/* Game Complete Message */}
-            {gameState === "ready" && currentLevel + 1 >= maxLevels && (
-               <div
-                  style={{
-                     padding: isMobile ? "20px 24px" : "24px 32px",
-                     background: "var(--card)",
-                     borderRadius: "var(--radius)",
-                     color: "var(--text)",
-                     fontSize: isMobile ? "1rem" : "1.1rem",
-                     fontWeight: 700,
-                     textAlign: "center" as const,
-                     boxShadow: "0 10px 24px rgba(0, 0, 0, 0.25)",
-                     border: "1px solid var(--stroke)",
-                     width: "100%",
-                     maxWidth: "800px",
-                  }}
-               >
+            {gameState === "ready" &&
+               currentLevel + 1 >= maxLevels &&
+               requirementsMet && (
                   <div
                      style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: "8px",
-                        padding: "8px 14px",
-                        borderRadius: "999px",
-                        fontWeight: 800,
-                        fontSize: isMobile ? "0.95rem" : "1.05rem",
-                        background:
-                           "linear-gradient(135deg, rgba(134, 239, 172, 0.25), rgba(134, 239, 172, 0.1))",
-                        border: "2px solid rgba(134, 239, 172, 0.6)",
+                        padding: isMobile ? "20px 24px" : "24px 32px",
+                        background: "var(--card)",
+                        borderRadius: "var(--radius)",
                         color: "var(--text)",
-                        marginBottom: "16px",
+                        fontSize: isMobile ? "1rem" : "1.1rem",
+                        fontWeight: 700,
+                        textAlign: "center" as const,
+                        boxShadow: "0 10px 24px rgba(0, 0, 0, 0.25)",
+                        border: "1px solid var(--stroke)",
+                        width: "100%",
+                        maxWidth: "800px",
                      }}
                   >
-                     <TrophyIcon style={{ width: 20, height: 20 }} />
-                     Game Complete!
+                     <div
+                        style={{
+                           display: "inline-flex",
+                           alignItems: "center",
+                           gap: "8px",
+                           padding: "8px 14px",
+                           borderRadius: "999px",
+                           fontWeight: 800,
+                           fontSize: isMobile ? "0.95rem" : "1.05rem",
+                           background:
+                              "linear-gradient(135deg, rgba(134, 239, 172, 0.25), rgba(134, 239, 172, 0.1))",
+                           border: "2px solid rgba(134, 239, 172, 0.6)",
+                           color: "var(--text)",
+                           marginBottom: "16px",
+                        }}
+                     >
+                        <TrophyIcon style={{ width: 20, height: 20 }} />
+                        Game Complete!
+                     </div>
+                     <div
+                        style={{
+                           fontSize: isMobile ? "1.05rem" : "1.1rem",
+                           fontWeight: 600,
+                           marginTop: "16px",
+                           marginBottom: "20px",
+                        }}
+                     >
+                        All {maxLevels} levels completed!
+                     </div>
+                     <div
+                        style={{
+                           fontSize: isMobile ? "1rem" : "1.05rem",
+                           fontWeight: 500,
+                           color: "var(--muted)",
+                        }}
+                     >
+                        Final Score: 100
+                     </div>
                   </div>
-                  <div
-                     style={{
-                        fontSize: isMobile ? "1.05rem" : "1.1rem",
-                        fontWeight: 600,
-                        marginTop: "16px",
-                        marginBottom: "20px",
-                     }}
-                  >
-                     All {maxLevels} levels completed!
-                  </div>
-                  <div
-                     style={{
-                        fontSize: isMobile ? "1rem" : "1.05rem",
-                        fontWeight: 500,
-                        color: "var(--muted)",
-                     }}
-                  >
-                     Final Score: 100
-                  </div>
-               </div>
-            )}
+               )}
 
             {/* Level Failed Message */}
             {gameState === "failed" && (

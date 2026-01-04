@@ -8,6 +8,7 @@ import TimingBar from './skillgames-parts/TimingBar';
 import StackBlocks from './skillgames-parts/StackBlocks';
 import PrecisionDrop from './skillgames-parts/PrecisionDrop';
 import DragAndDropSort from './skillgames-parts/DragAndDropSort';
+import SpeedDrawing from './skillgames-parts/SpeedDrawing';
 
 interface SkillGamesProps {
   config: Record<string, any>;
@@ -48,85 +49,6 @@ export default function SkillGames({ config, onScoreUpdate, onComplete, isPlayin
 
 
 
-// Speed Drawing Game (43)
-function SpeedDrawing({ config, onScoreUpdate, onComplete, isPlaying }: { config: Record<string, any>; onScoreUpdate: (score: number) => void; onComplete: (finalScore?: number) => void; isPlaying: boolean }) {
-  const rounds = config.rounds || 3;
-  const [targetShape, setTargetShape] = useState<string>('');
-  const [playerPath, setPlayerPath] = useState<Array<{ x: number; y: number }>>([]);
-  const [round, setRound] = useState(0);
-  const [score, setScore] = useState(0);
-  const [timeLeft, setTimeLeft] = useState(10);
-  const [isDrawing, setIsDrawing] = useState(false);
-
-  useEffect(() => {
-    if (round >= rounds) {
-      const finalScore = Math.round((score / rounds) * 100);
-      onScoreUpdate(finalScore);
-      setTimeout(() => onComplete(finalScore), 1000);
-      return;
-    }
-    
-    const shapes = ['circle', 'square', 'triangle'];
-    setTargetShape(shapes[Math.floor(Math.random() * shapes.length)]);
-    setPlayerPath([]);
-    setTimeLeft(10);
-  }, [round, rounds, score, onScoreUpdate, onComplete]);
-
-  useEffect(() => {
-    if (!isPlaying || timeLeft <= 0) {
-      if (timeLeft <= 0 && round < rounds) {
-        setRound(round + 1);
-      }
-      return;
-    }
-    
-    const timer = setInterval(() => {
-      setTimeLeft(prev => prev - 1);
-    }, 1000);
-    
-    return () => clearInterval(timer);
-  }, [isPlaying, timeLeft, round, rounds]);
-
-  const handleMouseMove = (e: React.MouseEvent) => {
-    if (!isDrawing) return;
-    const rect = e.currentTarget.getBoundingClientRect();
-    const x = ((e.clientX - rect.left) / rect.width) * 100;
-    const y = ((e.clientY - rect.top) / rect.height) * 100;
-    setPlayerPath([...playerPath, { x, y }]);
-  };
-
-  const handleSubmit = () => {
-    // Simple shape recognition (simplified)
-    const roundScore = playerPath.length > 10 ? 50 : 0;
-    setScore(score + roundScore);
-    setRound(round + 1);
-  };
-
-  return (
-    <div className="speed-drawing-game">
-      <h3>Speed Drawing - Round {round + 1}/{rounds}</h3>
-      <p>Time: {timeLeft}s</p>
-      <p>Draw a {targetShape}</p>
-      <div
-        className="drawing-area"
-        onMouseDown={() => setIsDrawing(true)}
-        onMouseUp={() => setIsDrawing(false)}
-        onMouseMove={handleMouseMove}
-      >
-        <svg className="drawing-svg">
-          {playerPath.length > 1 && (
-            <path
-              d={`M ${playerPath.map(p => `${p.x},${p.y}`).join(' L ')}`}
-              stroke="black"
-              fill="none"
-            />
-          )}
-        </svg>
-      </div>
-      <button onClick={handleSubmit} disabled={timeLeft <= 0}>Submit</button>
-    </div>
-  );
-}
 
 // One-Hand Mode Game (44)
 function OneHand({ config, onScoreUpdate, onComplete, isPlaying }: { config: Record<string, any>; onScoreUpdate: (score: number) => void; onComplete: (finalScore?: number) => void; isPlaying: boolean }) {

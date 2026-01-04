@@ -590,9 +590,17 @@ export const gameInstructions: Record<string, {
     ],
   },
   'speed-drawing': {
-    description: 'Draw displayed shape within time limit',
-    instructions: 'A shape will be shown. Draw it as accurately as possible using your mouse or touch before time runs out.',
-    tips: 'Start with the basic outline, then add details. Practice makes perfect!'
+    description: 'Draw shapes quickly and accurately within the time limit. Test your drawing skills across 15 progressively challenging levels.',
+    instructions: '<p>Draw the target shape shown on screen using your mouse (or finger on touch devices). Click and hold to start drawing, then trace the shape as accurately as possible. The target shape is shown as a faded blue outline. Your drawing appears in blue. Each level requires a minimum accuracy percentage and drawing completion to pass.</p><h4 style="margin-top: 16px; margin-bottom: 8px; font-weight: 600;">SHAPES BY LEVEL:</h4><ul style="margin-left: 20px; margin-bottom: 16px;"><li><strong style="color: #3b82f6;">Levels 1-2:</strong> Circle & Square - Start with basic shapes</li><li><strong style="color: #f59e0b;">Levels 3-4:</strong> Triangle & Star - Geometric patterns</li><li><strong style="color: #ef4444;">Levels 5-6:</strong> Heart & Wave - Curved and flowing shapes</li><li><strong style="color: #8b5cf6;">Levels 7-8:</strong> Curve & Zigzag - Smooth and angular lines</li><li><strong style="color: #06b6d4;">Levels 9-10:</strong> Circle & Square - Revisit basics with higher accuracy</li><li><strong style="color: #dc2626;">Levels 11-12:</strong> Triangle & Star - Advanced geometric patterns</li><li><strong style="color: #10b981;">Levels 13-14:</strong> Heart & Wave - Master curved shapes</li><li><strong style="color: #f97316;">Level 15:</strong> Spiral - Ultimate challenge with complex spiral pattern</li></ul><h4 style="margin-top: 16px; margin-bottom: 8px; font-weight: 600;">HOW TO PLAY:</h4><ol style="margin-left: 20px; margin-bottom: 16px;"><li>Look at the target shape shown (faded blue outline)</li><li>Start drawing from the green START point (shown as a green circle)</li><li>For closed shapes (circle, square, triangle, star, heart, wave, spiral), follow the direction arrow and complete the full shape</li><li>For open shapes (curve, zigzag), draw from START to END point (red circle)</li><li>Click and hold your mouse button (or touch and hold on mobile) to start drawing</li><li>Draw the shape by moving your mouse/finger along the path</li><li>Release to finish your drawing</li><li>Your accuracy and completion progress are calculated in real-time</li><li>Reach both the required accuracy percentage (60-85%) and completion (70%) to pass the level</li><li>Complete all 15 levels to finish the game</li></ol>',
+    tips: 'Draw slowly and carefully - accuracy is more important than speed. Always start from the green START point. Follow the faded blue outline as closely as possible. For closed shapes, make sure to complete the full shape and return close to the start point. For open shapes, ensure you reach the red END point. For shapes with straight lines (square, triangle, zigzag), use steady movements. For curved shapes (circle, heart, wave, curve, spiral), use smooth motions. Watch your accuracy and completion percentage in real-time. Practice makes perfect - each level teaches new drawing skills!',
+    mouseControls: [
+      { action: 'Click & Hold', label: 'Click and hold mouse button to start drawing' },
+      { action: 'Move Mouse', label: 'Move mouse to draw the target shape' },
+      { action: 'Release', label: 'Release mouse button when finished drawing' },
+    ],
+    keyboardControls: [
+      { keys: ['Mouse/Touch'], label: 'Use mouse or touch to draw shapes (keyboard not applicable for this game)' },
+    ],
   },
   'one-hand': {
     description: 'Complete task using only one control',

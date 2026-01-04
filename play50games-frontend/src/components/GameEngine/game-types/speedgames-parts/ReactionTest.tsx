@@ -830,15 +830,17 @@ export default function ReactionTest({
  
     // Handle next round
     const handleNextRound = useCallback(() => {
-       const roundScore = Math.round(100 / maxLevels);
        const completedLevels = currentLevel + 1;
-       const newScore = Math.min(100, completedLevels * roundScore);
- 
+
        if (completedLevels >= maxLevels) {
           finalizeGame();
        } else {
-          setCurrentScore(newScore);
-          onScoreUpdate(newScore);
+          if (!requirementsMetRef.current) {
+             const roundScore = Math.round(100 / maxLevels);
+             const newScore = Math.min(100, completedLevels * roundScore);
+             setCurrentScore(newScore);
+             onScoreUpdate(newScore);
+          }
           setCurrentLevel((prev) => prev + 1);
           currentLevelRef.current = currentLevel + 1;
           setRequirementsMet(false);

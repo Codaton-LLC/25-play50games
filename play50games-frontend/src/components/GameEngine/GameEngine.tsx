@@ -34,6 +34,7 @@ import {
    HandRaisedIcon,
    ArrowsUpDownIcon,
    Squares2X2Icon,
+   PencilIcon,
 } from "@heroicons/react/24/outline";
 import LogicGames from "./game-types/LogicGames";
 import MemoryGames from "./game-types/MemoryGames";
@@ -4243,6 +4244,314 @@ export default function GameEngine({
                               }}
                            >
                               Drag items to their correct categories. Items are automatically sorted within categories.
+                           </span>
+                        </div>
+                     </div>
+                  </div>
+               )}
+
+               {gameType === "speed-drawing" && (
+                  <div
+                     style={{
+                        background:
+                           "linear-gradient(135deg, rgba(125, 211, 252, 0.1) 0%, rgba(54, 211, 153, 0.1) 100%)",
+                        border: "2px solid var(--stroke)",
+                        borderRadius: isMobile
+                           ? "16px"
+                           : isTablet
+                           ? "18px"
+                           : "20px",
+                        padding: isMobile ? "20px" : isTablet ? "24px" : "32px",
+                        marginTop: isMobile ? "16px" : "24px",
+                        boxShadow: "0 8px 24px rgba(0, 0, 0, 0.2)",
+                     }}
+                  >
+                     <div
+                        style={{
+                           display: "flex",
+                           alignItems: "center",
+                           justifyContent: "center",
+                           gap: isMobile ? "8px" : "12px",
+                           marginBottom: isMobile
+                              ? "16px"
+                              : isTablet
+                              ? "20px"
+                              : "24px",
+                        }}
+                     >
+                        <PencilIcon
+                           style={{
+                              width: isMobile ? 24 : isTablet ? 26 : 28,
+                              height: isMobile ? 24 : isTablet ? 26 : 28,
+                              color: "var(--accent)",
+                           }}
+                        />
+                        <h3
+                           style={{
+                              fontSize: isMobile
+                                 ? "20px"
+                                 : isTablet
+                                 ? "22px"
+                                 : "24px",
+                              fontWeight: 700,
+                              margin: 0,
+                              background:
+                                 "linear-gradient(135deg, var(--accent) 0%, var(--ok) 100%)",
+                              WebkitBackgroundClip: "text",
+                              WebkitTextFillColor: "transparent",
+                              backgroundClip: "text",
+                           }}
+                        >
+                           Example Round
+                        </h3>
+                     </div>
+
+                     <div
+                        style={{
+                           background: "var(--card)",
+                           border: "2px solid var(--stroke)",
+                           borderRadius: "16px",
+                           padding: isMobile ? "16px" : "24px",
+                           marginBottom: "20px",
+                        }}
+                     >
+                        <p
+                           style={{
+                              margin: "0 0 16px",
+                              color: "var(--text)",
+                              fontSize: isMobile ? "14px" : "16px",
+                              fontWeight: 600,
+                              textAlign: "center",
+                           }}
+                        >
+                           Draw the target shape shown below as accurately as possible:
+                        </p>
+
+                        {/* Example Target Shape */}
+                        <div
+                           style={{
+                              display: "flex",
+                              flexDirection: "column",
+                              alignItems: "center",
+                              gap: "16px",
+                              marginBottom: "20px",
+                              padding: "20px",
+                              background: "rgba(59, 130, 246, 0.1)",
+                              borderRadius: "12px",
+                           }}
+                        >
+                           <div
+                              style={{
+                                 display: "flex",
+                                 alignItems: "center",
+                                 gap: "8px",
+                                 marginBottom: "8px",
+                              }}
+                           >
+                              <PencilIcon
+                                 style={{
+                                    width: 20,
+                                    height: 20,
+                                    color: "var(--accent)",
+                                 }}
+                              />
+                              <span
+                                 style={{
+                                    fontSize: "0.95rem",
+                                    fontWeight: 700,
+                                    color: "var(--text)",
+                                 }}
+                              >
+                                 Target: Circle
+                              </span>
+                           </div>
+
+                           {/* Example Canvas Area */}
+                           <div
+                              style={{
+                                 width: "100%",
+                                 maxWidth: "300px",
+                                 height: "200px",
+                                 background: "var(--card)",
+                                 border: "2px dashed rgba(59, 130, 246, 0.3)",
+                                 borderRadius: "12px",
+                                 position: "relative",
+                                 display: "flex",
+                                 alignItems: "center",
+                                 justifyContent: "center",
+                              }}
+                           >
+                              {/* Faded target shape outline */}
+                              <svg
+                                 width="100%"
+                                 height="100%"
+                                 style={{
+                                    position: "absolute",
+                                    top: 0,
+                                    left: 0,
+                                 }}
+                              >
+                                 <circle
+                                    cx="50%"
+                                    cy="50%"
+                                    r="60"
+                                    fill="none"
+                                    stroke="rgba(59, 130, 246, 0.3)"
+                                    strokeWidth="4"
+                                    strokeDasharray="8,8"
+                                 />
+                              </svg>
+
+                              {/* Example player drawing */}
+                              <svg
+                                 width="100%"
+                                 height="100%"
+                                 style={{
+                                    position: "absolute",
+                                    top: 0,
+                                    left: 0,
+                                 }}
+                              >
+                                 <circle
+                                    cx="50%"
+                                    cy="50%"
+                                    r="55"
+                                    fill="none"
+                                    stroke="var(--accent)"
+                                    strokeWidth="6"
+                                 />
+                              </svg>
+
+                              <div
+                                 style={{
+                                    position: "absolute",
+                                    bottom: "8px",
+                                    right: "8px",
+                                    padding: "4px 8px",
+                                    background: "rgba(34, 197, 94, 0.2)",
+                                    border: "1px solid rgba(34, 197, 94, 0.4)",
+                                    borderRadius: "6px",
+                                    fontSize: "0.75rem",
+                                    fontWeight: 600,
+                                    color: "var(--ok)",
+                                 }}
+                              >
+                                 Accuracy: 85%
+                              </div>
+                           </div>
+                        </div>
+
+                        {/* Step-by-step instructions */}
+                        <div
+                           style={{
+                              display: "flex",
+                              flexDirection: "column",
+                              gap: "12px",
+                           }}
+                        >
+                           {[
+                              {
+                                 step: 1,
+                                 icon: <PencilIcon style={{ width: 18, height: 18, color: "var(--accent)" }} />,
+                                 text: "Look at the target shape (faded blue outline)",
+                              },
+                              {
+                                 step: 2,
+                                 icon: <HandRaisedIcon style={{ width: 18, height: 18, color: "var(--accent)" }} />,
+                                 text: "Click and hold your mouse (or touch and hold on mobile)",
+                              },
+                              {
+                                 step: 3,
+                                 icon: <CursorArrowRaysIcon style={{ width: 18, height: 18, color: "var(--accent)" }} />,
+                                 text: "Draw the shape by moving your mouse/finger",
+                              },
+                              {
+                                 step: 4,
+                                 icon: <CheckCircleIcon style={{ width: 18, height: 18, color: "var(--ok)" }} />,
+                                 text: "Release when finished - accuracy is calculated automatically",
+                              },
+                           ].map((item) => (
+                              <div
+                                 key={item.step}
+                                 style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: "12px",
+                                    padding: "10px 12px",
+                                    background: "rgba(59, 130, 246, 0.05)",
+                                    borderRadius: "8px",
+                                 }}
+                              >
+                                 <div
+                                    style={{
+                                       display: "flex",
+                                       alignItems: "center",
+                                       justifyContent: "center",
+                                       width: "28px",
+                                       height: "28px",
+                                       background:
+                                          "linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1))",
+                                       border: "2px solid rgba(59, 130, 246, 0.4)",
+                                       borderRadius: "50%",
+                                       fontWeight: 700,
+                                       fontSize: "0.85rem",
+                                       color: "var(--accent)",
+                                       flexShrink: 0,
+                                    }}
+                                 >
+                                    {item.step}
+                                 </div>
+                                 <div
+                                    style={{
+                                       display: "flex",
+                                       alignItems: "center",
+                                       gap: "8px",
+                                       flex: 1,
+                                    }}
+                                 >
+                                    {item.icon}
+                                    <span
+                                       style={{
+                                          fontSize: isMobile ? "13px" : "14px",
+                                          color: "var(--text)",
+                                          fontWeight: 500,
+                                       }}
+                                    >
+                                       {item.text}
+                                    </span>
+                                 </div>
+                              </div>
+                           ))}
+                        </div>
+
+                        <div
+                           style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "8px",
+                              padding: "8px 12px",
+                              background: "rgba(125, 211, 252, 0.1)",
+                              borderRadius: "8px",
+                              marginTop: "16px",
+                              width: "100%",
+                              justifyContent: "center",
+                           }}
+                        >
+                           <ClockIcon
+                              style={{
+                                 width: isMobile ? 16 : 18,
+                                 height: isMobile ? 16 : 18,
+                                 color: "var(--accent)",
+                              }}
+                           />
+                           <span
+                              style={{
+                                 fontSize: isMobile ? "12px" : "13px",
+                                 color: "var(--text)",
+                                 fontWeight: 600,
+                              }}
+                           >
+                              Each level has a time limit. Draw accurately to reach the minimum accuracy requirement!
                            </span>
                         </div>
                      </div>

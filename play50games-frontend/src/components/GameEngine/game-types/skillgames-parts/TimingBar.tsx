@@ -140,6 +140,7 @@ export default function TimingBar({
    const prevLevelRef = useRef<number | null>(null);
    const forceStartLevelRef = useRef<number | null>(null);
    const completionCalledRef = useRef(false);
+   const lastCompletedLevelRef = useRef<number | null>(null);
    const barDirectionRef = useRef<1 | -1>(1);
    const isStoppedRef = useRef(false);
    const arenaRef = useRef<HTMLDivElement>(null);
@@ -198,6 +199,7 @@ export default function TimingBar({
          setIsStopped(false);
          nextRoundClickedRef.current = false;
          setNextRoundLocked(false);
+         lastCompletedLevelRef.current = null;
 
          const levelConfig = getLevelConfig(level);
          const levelDur = levelConfig.duration;
@@ -310,6 +312,7 @@ export default function TimingBar({
                clearAll();
                gameStateRef.current = "ready";
                setGameState("ready");
+               lastCompletedLevelRef.current = currentLevel;
             }
 
             return newCount;
@@ -379,7 +382,10 @@ export default function TimingBar({
          const minStops = levelConfig.minStops;
 
          if (successfulStops >= minStops) {
+            requirementsMetRef.current = true;
+            setRequirementsMet(true);
             setGameState("ready");
+            lastCompletedLevelRef.current = currentLevel;
          } else {
             setGameState("failed");
          }
@@ -389,6 +395,13 @@ export default function TimingBar({
    // Handle level completion
    useEffect(() => {
       if (prevLevelRef.current === null) return;
+
+      if (gameState === "ready" && !requirementsMetRef.current) {
+         return;
+      }
+      if (gameState === "ready" && lastCompletedLevelRef.current !== currentLevel) {
+         return;
+      }
 
       if (gameState === "ready" && currentLevel < maxLevels - 1) {
          const newScore = Math.round(((currentLevel + 1) / maxLevels) * 100);
@@ -705,6 +718,7 @@ export default function TimingBar({
       setIsStopped(false);
       isStoppedRef.current = false;
       nextRoundClickedRef.current = false;
+      lastCompletedLevelRef.current = null;
 
       // Don't set gameState to "playing" here - let startLevel do it after resetting timeLeft
       gameStateRef.current = "ready";
@@ -801,7 +815,9 @@ export default function TimingBar({
                         }}
                      />
                      Score:{" "}
-                     {currentLevel + 1 >= maxLevels && gameState === "ready"
+                     {requirementsMet &&
+                     lastCompletedLevelRef.current === currentLevel &&
+                     currentLevel + 1 >= maxLevels
                         ? 100
                         : currentScore}{" "}
                      / 100
@@ -1084,7 +1100,10 @@ export default function TimingBar({
             )}
 
             {/* Game Complete Message */}
-            {gameState === "ready" && currentLevel === maxLevels - 1 && (
+            {gameState === "ready" &&
+               currentLevel === maxLevels - 1 &&
+               requirementsMet &&
+               lastCompletedLevelRef.current === currentLevel && (
                <div
                   style={{
                      padding: isMobile ? "20px 24px" : "24px 32px",

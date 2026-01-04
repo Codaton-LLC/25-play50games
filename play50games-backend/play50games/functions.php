@@ -449,16 +449,17 @@
         }
 
         // check permissions
-        if ( 'page' === $_POST['post_type'] )
+        $post_type = isset($_POST['post_type']) ? $_POST['post_type'] : '';
+        if ( 'page' === $post_type )
         {
             if ( !current_user_can( 'edit_page', $post_id ) )
             {
                 return $post_id;
             }
-            elseif ( !current_user_can( 'edit_post', $post_id ) )
-            {
-                return $post_id;
-            }
+        }
+        elseif ( !current_user_can( 'edit_post', $post_id ) )
+        {
+            return $post_id;
         }
 
         $old = get_post_meta( $post_id, $fields, true );

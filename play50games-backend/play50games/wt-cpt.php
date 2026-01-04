@@ -217,11 +217,79 @@
 	add_action( 'add_meta_boxes', 'add_games_meta_box' );
 	
 	function save_custom_post_games_metas( $post_id ) {
+		// Check if this is the correct post type
+		if (isset($_POST['post_type']) && $_POST['post_type'] !== 'play50_game') {
+			return $post_id;
+		}
+		
+		// check if POST exist
+		if( !$_POST ) {
+			return $post_id;
+		}
+		
 		$metaNonce    = "gameMetaNonce";
 		$saveFields   = "saveGameFields";
 		$fields       = "game_fields";
 		
-		return save_custom_post_metas($post_id, $metaNonce, $saveFields, $fields);
+		if( !isset( $_POST[$metaNonce] ) ) {
+			return $post_id;
+		}
+		
+		// verify nonce
+		if ( !wp_verify_nonce( $_POST[$metaNonce], $saveFields ) ) {
+			return $post_id;
+		}
+		
+		// check autosave
+		if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) {
+			return $post_id;
+		}
+		
+		// check permissions
+		if ( !current_user_can( 'edit_post', $post_id ) ) {
+			return $post_id;
+		}
+		
+		// Special handling for game_config to ensure JSON is properly saved
+		if (isset($_POST[$fields]) && is_array($_POST[$fields]) && isset($_POST[$fields]['game_config'])) {
+			// Get the raw JSON string - WordPress may have added slashes
+			$game_config = $_POST[$fields]['game_config'];
+			
+			// Remove slashes that WordPress might have added
+			$game_config = stripslashes($game_config);
+			
+			if (!empty($game_config)) {
+				// Try to decode to validate JSON
+				$decoded = json_decode($game_config, true);
+				if (json_last_error() === JSON_ERROR_NONE) {
+					// Valid JSON - re-encode to ensure proper formatting and UTF-8 encoding
+					// Use JSON_UNESCAPED_UNICODE to preserve emojis and special characters
+					$game_config = json_encode($decoded, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+					// Store the processed JSON back
+					$_POST[$fields]['game_config'] = $game_config;
+				} else {
+					// Invalid JSON - log error but still save (user will see validation error)
+					error_log('Invalid JSON in game_config for post ' . $post_id . ': ' . json_last_error_msg());
+					// Still save the original (might be user's mistake, but let them see it)
+					$_POST[$fields]['game_config'] = $game_config;
+				}
+			}
+		}
+		
+		// Get the processed data
+		$old = get_post_meta( $post_id, $fields, true );
+		$new = $_POST[$fields];
+		
+		// Update or delete
+		if ( $new && $new !== $old ) {
+			// Use update_post_meta which will handle slashing automatically
+			// But we've already processed game_config, so it should be fine
+			update_post_meta( $post_id, $fields, $new );
+		} elseif ( empty($new) && !empty($old) ) {
+			delete_post_meta( $post_id, $fields );
+		}
+		
+		return $post_id;
 	}
 	add_action( 'save_post', 'save_custom_post_games_metas' );
 	/* END - Add Custom Post Type - Games */

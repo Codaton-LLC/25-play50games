@@ -728,8 +728,8 @@ function show_games_custom_fields() {
                 timeLimit: 90,
                 passingScore: 80,
                 unlockRequirement: '',
-                description: 'Draw displayed shape within time limit',
-                gameConfig: '{"gameType": "speed-drawing", "rounds": 3}'
+                description: 'Draw shapes quickly and accurately within the time limit. Test your drawing skills across 15 progressively challenging levels.',
+                gameConfig: '{"gameType": "speed-drawing", "levels": 15, "levelDefinitions": [{"duration": 20, "targetShape": "circle", "minAccuracy": 60}, {"duration": 20, "targetShape": "square", "minAccuracy": 62}, {"duration": 18, "targetShape": "triangle", "minAccuracy": 65}, {"duration": 18, "targetShape": "star", "minAccuracy": 67}, {"duration": 16, "targetShape": "heart", "minAccuracy": 70}, {"duration": 16, "targetShape": "wave", "minAccuracy": 72}, {"duration": 15, "targetShape": "curve", "minAccuracy": 75}, {"duration": 15, "targetShape": "zigzag", "minAccuracy": 77}, {"duration": 14, "targetShape": "circle", "minAccuracy": 78}, {"duration": 14, "targetShape": "square", "minAccuracy": 80}, {"duration": 13, "targetShape": "triangle", "minAccuracy": 82}, {"duration": 13, "targetShape": "star", "minAccuracy": 83}, {"duration": 12, "targetShape": "heart", "minAccuracy": 84}, {"duration": 12, "targetShape": "wave", "minAccuracy": 85}, {"duration": 10, "targetShape": "spiral", "minAccuracy": 85}]}'
             },
             'one-hand': {
                 title: 'One-Hand Mode',

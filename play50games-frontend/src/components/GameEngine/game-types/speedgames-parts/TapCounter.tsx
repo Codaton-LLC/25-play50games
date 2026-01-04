@@ -606,9 +606,7 @@ export default function TapCounter({
 
    // Handle next round
    const handleNextRound = useCallback(() => {
-      const roundScore = Math.round(100 / maxLevels);
       const completedLevels = currentLevel + 1;
-      const newScore = Math.min(100, completedLevels * roundScore);
 
       if (completedLevels >= maxLevels) {
          const finalScore = 100;
@@ -617,8 +615,12 @@ export default function TapCounter({
             onComplete(finalScore);
          }
       } else {
-         setCurrentScore(newScore);
-         onScoreUpdate(newScore);
+         if (!requirementsMetRef.current) {
+            const roundScore = Math.round(100 / maxLevels);
+            const newScore = Math.min(100, completedLevels * roundScore);
+            setCurrentScore(newScore);
+            onScoreUpdate(newScore);
+         }
          startLevel(currentLevel + 1);
       }
    }, [currentLevel, maxLevels, startLevel, onScoreUpdate, onComplete]);

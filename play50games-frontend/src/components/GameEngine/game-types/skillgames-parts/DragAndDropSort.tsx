@@ -526,13 +526,42 @@ export default function DragAndDropSort({
    isPlaying,
    passingScore = 70,
 }: DragAndDropSortProps) {
-   const levelDefs = useMemo(() => {
+   // Use a ref to store the initial levelDefs to prevent reset during gameplay
+   const initialLevelDefsRef = useRef<LevelDefinition[] | null>(null);
+   const levelDefsInitializedRef = useRef(false);
+   
+   // Calculate levelDefs from config
+   const levelDefsFromConfig = useMemo(() => {
       const rawLevels = config?.levelDefinitions as RawLevel[] | undefined;
       const normalized = Array.isArray(rawLevels)
          ? normalizeLevels(rawLevels)
          : [];
       return normalized.length > 0 ? normalized : LEVEL_DEFS;
    }, [config]);
+   
+   // Initialize levelDefs ref only once when game starts playing
+   // Only update when isPlaying changes, not when levelDefsFromConfig changes during gameplay
+   useEffect(() => {
+      if (isPlaying && !levelDefsInitializedRef.current) {
+         // Only initialize once when game starts
+         initialLevelDefsRef.current = levelDefsFromConfig;
+         levelDefsInitializedRef.current = true;
+      } else if (!isPlaying) {
+         // Reset only when game stops
+         levelDefsInitializedRef.current = false;
+         initialLevelDefsRef.current = null;
+      }
+      // Intentionally not including levelDefsFromConfig in dependencies
+      // to prevent re-initialization when config changes during gameplay
+   }, [isPlaying]);
+   
+   // Use the initial levelDefs if game is playing, otherwise use current levelDefs
+   // Use useMemo to ensure stable reference when game is playing
+   const levelDefs = useMemo(() => {
+      return isPlaying && initialLevelDefsRef.current 
+         ? initialLevelDefsRef.current 
+         : levelDefsFromConfig;
+   }, [isPlaying, levelDefsFromConfig]);
 
    const configuredLevels = config?.levels ? Number(config.levels) : 0;
    const maxLevels =
@@ -589,6 +618,7 @@ export default function DragAndDropSort({
    const prevLevelRef = useRef<number | null>(null);
    const forceStartLevelRef = useRef<number | null>(null);
    const completionCalledRef = useRef(false);
+   const lastCompletedLevelRef = useRef<number | null>(null);
    const nextRoundClickedRef = useRef(false);
    const [nextRoundLocked, setNextRoundLocked] = useState(false);
    const categoryRefs = useRef<Record<string, HTMLDivElement | null>>({});
@@ -674,6 +704,7 @@ export default function DragAndDropSort({
 
       if (
          levelConfig.switchAt &&
+         levelConfig.phases.length > 1 &&
          phaseIndex === 0 &&
          phaseSwitchAt !== null &&
          placedCount >= phaseSwitchAt
@@ -699,6 +730,7 @@ export default function DragAndDropSort({
             gameStateRef.current = "ready";
             setGameState("ready");
             clearAll();
+            lastCompletedLevelRef.current = currentLevel;
          } else {
             gameStateRef.current = "failed";
             setGameState("failed");
@@ -720,9 +752,18 @@ export default function DragAndDropSort({
       clearAll,
    ]);
 
+   // Track if game was already initialized to prevent reset on config changes
+   const gameInitializedRef = useRef(false);
+   
    useEffect(() => {
       if (!isPlaying) {
          clearAll();
+         gameInitializedRef.current = false;
+         return;
+      }
+
+      // Only reset if game wasn't already initialized
+      if (gameInitializedRef.current) {
          return;
       }
 
@@ -735,6 +776,7 @@ export default function DragAndDropSort({
       setCurrentLevel(0);
       setCurrentScore(0);
       setRequirementsMet(false);
+      lastCompletedLevelRef.current = null;
       setGameState("playing");
       setItemList([]);
       setCategories([]);
@@ -744,6 +786,7 @@ export default function DragAndDropSort({
       setPlacedCount(0);
       setPhaseSwitchAt(null);
       setTotalItemsCount(0);
+      gameInitializedRef.current = true;
    }, [isPlaying, clearAll]);
 
    // Start level
@@ -764,6 +807,7 @@ export default function DragAndDropSort({
          setPlacedCount(0);
          setRequirementsMet(false);
          requirementsMetRef.current = false;
+         lastCompletedLevelRef.current = null;
          nextRoundClickedRef.current = false;
          setNextRoundLocked(false);
 
@@ -776,11 +820,11 @@ export default function DragAndDropSort({
             0
          );
          setTotalItemsCount(totalItems);
-         setPhaseSwitchAt(
-            levelConfig.switchAt
-               ? Math.ceil(totalItems * levelConfig.switchAt)
-               : null
-         );
+      setPhaseSwitchAt(
+         levelConfig.switchAt && levelConfig.phases.length > 1
+            ? Math.ceil(totalItems * levelConfig.switchAt)
+            : null
+      );
 
          // Generate items and categories for phase 0
          const newItems = generateItems(level, 0);
@@ -973,6 +1017,13 @@ export default function DragAndDropSort({
    useEffect(() => {
       if (prevLevelRef.current === null) return;
 
+      if (gameState === "ready" && !requirementsMetRef.current) {
+         return;
+      }
+      if (gameState === "ready" && lastCompletedLevelRef.current !== currentLevel) {
+         return;
+      }
+
       if (gameState === "ready" && currentLevel < maxLevels - 1) {
          const newScore = Math.round(((currentLevel + 1) / maxLevels) * 100);
          setCurrentScore(newScore);
@@ -1008,6 +1059,7 @@ export default function DragAndDropSort({
 
       setRequirementsMet(false);
       requirementsMetRef.current = false;
+      lastCompletedLevelRef.current = null;
       setGameState("playing");
       gameStateRef.current = "playing";
       setItemList([]);
@@ -1397,7 +1449,9 @@ export default function DragAndDropSort({
                         }}
                      />
                      Score:{" "}
-                     {currentLevel + 1 >= maxLevels && gameState === "ready"
+                     {requirementsMet &&
+                     lastCompletedLevelRef.current === currentLevel &&
+                     currentLevel + 1 >= maxLevels
                         ? 100
                         : currentScore}{" "}
                      / 100
@@ -1960,7 +2014,10 @@ export default function DragAndDropSort({
                })()}
 
             {/* Game Complete Message */}
-            {gameState === "ready" && currentLevel === maxLevels - 1 && (
+            {gameState === "ready" &&
+               currentLevel === maxLevels - 1 &&
+               requirementsMet &&
+               lastCompletedLevelRef.current === currentLevel && (
                <div
                   style={{
                      padding: isMobile ? "20px 24px" : "24px 32px",

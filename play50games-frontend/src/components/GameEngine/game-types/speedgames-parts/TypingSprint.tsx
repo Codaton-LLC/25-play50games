@@ -424,15 +424,17 @@ export default function TypingSprint({
 
    // Handle next round button click
    const handleNextRound = useCallback(() => {
-      const roundScore = Math.round(100 / maxLevels);
       const completedLevels = currentLevel + 1;
-      const newScore = Math.min(100, completedLevels * roundScore);
 
       if (completedLevels >= maxLevels) {
          finalizeGame();
       } else {
-         setCurrentScore(newScore);
-         onScoreUpdate(newScore);
+         if (!requirementsMetRef.current) {
+            const roundScore = Math.round(100 / maxLevels);
+            const newScore = Math.min(100, completedLevels * roundScore);
+            setCurrentScore(newScore);
+            onScoreUpdate(newScore);
+         }
 
          forceStartLevelRef.current = currentLevel + 1;
          setCurrentLevel((prev) => prev + 1);
@@ -773,6 +775,12 @@ export default function TypingSprint({
 
          if (currentLevel + 1 >= maxLevels) {
             finalizeGame();
+         } else {
+            const roundScore = Math.round(100 / maxLevels);
+            const completedLevels = currentLevel + 1;
+            const newScore = Math.min(100, completedLevels * roundScore);
+            setCurrentScore(newScore);
+            onScoreUpdate(newScore);
          }
       }
    }, [
@@ -782,6 +790,7 @@ export default function TypingSprint({
       getMinCorrectWords,
       currentLevel,
       maxLevels,
+      onScoreUpdate,
       finalizeGame,
    ]);
 

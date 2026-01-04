@@ -356,18 +356,20 @@ export default function ClickGreen({
    const handleNextRound = useCallback(() => {
       // Calculate score based on completed levels
       // Level 1 = 10 points, Level 2 = 20 points, Level 3 = 30 points, etc.
-      const roundScore = Math.round(100 / maxLevels);
       // When this is called, we just completed currentLevel + 1
       const completedLevels = currentLevel + 1; // Current level is 0-indexed, so +1 for completed
-      const newScore = Math.min(100, completedLevels * roundScore);
 
       // Check if game is complete (if we just completed the last level)
       if (completedLevels >= maxLevels) {
          finalizeGame();
       } else {
          // Advance to next level
-         setCurrentScore(newScore);
-         onScoreUpdate(newScore);
+         if (!requirementsMetRef.current) {
+            const roundScore = Math.round(100 / maxLevels);
+            const newScore = Math.min(100, completedLevels * roundScore);
+            setCurrentScore(newScore);
+            onScoreUpdate(newScore);
+         }
 
          forceStartLevelRef.current = currentLevel + 1;
          setCurrentLevel((prev) => prev + 1);
@@ -738,6 +740,12 @@ export default function ClickGreen({
 
          if (currentLevel + 1 >= maxLevels) {
             finalizeGame();
+         } else {
+            const roundScore = Math.round(100 / maxLevels);
+            const completedLevels = currentLevel + 1;
+            const newScore = Math.min(100, completedLevels * roundScore);
+            setCurrentScore(newScore);
+            onScoreUpdate(newScore);
          }
       }
    }, [
@@ -750,6 +758,7 @@ export default function ClickGreen({
       clearAll,
       currentLevel,
       maxLevels,
+      onScoreUpdate,
       finalizeGame,
    ]);
 

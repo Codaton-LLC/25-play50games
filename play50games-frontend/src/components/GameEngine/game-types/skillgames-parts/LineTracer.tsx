@@ -387,6 +387,8 @@ export default function LineTracer({
          const minProgress = levelConfig.minProgress || 90;
 
          if (currentAccuracy >= minAccuracy && progress >= minProgress) {
+            requirementsMetRef.current = true;
+            setRequirementsMet(true);
             setGameState("ready");
          } else {
             setGameState("failed");
@@ -408,6 +410,10 @@ export default function LineTracer({
       if (prevLevelRef.current === null) return;
       
       // Only update score when level is actually completed (not at start)
+      if (gameState === "ready" && !requirementsMetRef.current) {
+         return;
+      }
+
       if (gameState === "ready" && currentLevel < maxLevels - 1) {
          const newScore = Math.round(((currentLevel + 1) / maxLevels) * 100);
          setCurrentScore(newScore);
@@ -432,13 +438,15 @@ export default function LineTracer({
       if (nextRoundClickedRef.current) return;
       if (currentLevel < maxLevels - 1) {
          nextRoundClickedRef.current = true;
-         const roundScore = Math.round(100 / maxLevels);
-         const completedLevels = currentLevel + 1;
-         const newScore = Math.min(100, completedLevels * roundScore);
-         setCurrentScore(newScore);
-         setTimeout(() => {
-            onScoreUpdate(newScore);
-         }, 0);
+         if (!requirementsMetRef.current) {
+            const roundScore = Math.round(100 / maxLevels);
+            const completedLevels = currentLevel + 1;
+            const newScore = Math.min(100, completedLevels * roundScore);
+            setCurrentScore(newScore);
+            setTimeout(() => {
+               onScoreUpdate(newScore);
+            }, 0);
+         }
 
          // Clear all timers and reset state
          clearAll();

@@ -698,17 +698,23 @@ export default function AvoidRed({
          gameStateRef.current = "ready";
 
          // If this is the last level, finalize game completion
-         if (currentLevel + 1 >= maxLevels) {
-            const finalScore = 100;
-            setCurrentScore(finalScore);
-            onScoreUpdate(finalScore);
-            if (!completionCalledRef.current) {
-               completionCalledRef.current = true;
-               setTimeout(() => {
-                  onComplete(finalScore);
-               }, 1000);
-            }
-         }
+        if (currentLevel + 1 >= maxLevels) {
+           const finalScore = 100;
+           setCurrentScore(finalScore);
+           onScoreUpdate(finalScore);
+           if (!completionCalledRef.current) {
+              completionCalledRef.current = true;
+              setTimeout(() => {
+                 onComplete(finalScore);
+              }, 1000);
+           }
+        } else {
+           const roundScore = Math.round(100 / maxLevels);
+           const completedLevels = currentLevel + 1;
+           const newScore = Math.min(100, completedLevels * roundScore);
+           setCurrentScore(newScore);
+           onScoreUpdate(newScore);
+        }
       }
    }, [
       timeLeft,
@@ -773,12 +779,14 @@ export default function AvoidRed({
 
       // Advance to next level
       const nextLevel = currentLevel + 1;
-      const roundScore = Math.round(100 / maxLevels);
-      const newScore = nextLevel * roundScore;
       currentLevelRef.current = nextLevel;
       setCurrentLevel(nextLevel);
-      setCurrentScore(newScore);
-      onScoreUpdate(newScore);
+      if (!requirementsMetRef.current) {
+         const roundScore = Math.round(100 / maxLevels);
+         const newScore = nextLevel * roundScore;
+         setCurrentScore(newScore);
+         onScoreUpdate(newScore);
+      }
       startLevel(nextLevel);
    }, [currentLevel, maxLevels, onScoreUpdate, onComplete, startLevel]);
 

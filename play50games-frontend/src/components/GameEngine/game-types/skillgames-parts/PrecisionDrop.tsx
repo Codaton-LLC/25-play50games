@@ -199,6 +199,7 @@ export default function PrecisionDrop({
    const prevLevelRef = useRef<number | null>(null);
    const forceStartLevelRef = useRef<number | null>(null);
    const completionCalledRef = useRef(false);
+   const lastCompletedLevelRef = useRef<number | null>(null);
    const nextRoundClickedRef = useRef(false);
    const [nextRoundLocked, setNextRoundLocked] = useState(false);
    const lastTimestampRef = useRef<number>(0);
@@ -514,6 +515,7 @@ export default function PrecisionDrop({
                   clearAll();
                   gameStateRef.current = "ready";
                   setGameState("ready");
+                  lastCompletedLevelRef.current = currentLevel;
                } else {
                   gameStateRef.current = "failed";
                   setGameState("failed");
@@ -592,10 +594,11 @@ export default function PrecisionDrop({
          setMisses(0);
          setTargetVel(0);
          setTargetDir(1);
-         setShakeActive(false);
-         setRequirementsMet(false);
-         requirementsMetRef.current = false;
-         nextRoundClickedRef.current = false;
+      setShakeActive(false);
+      setRequirementsMet(false);
+      requirementsMetRef.current = false;
+      lastCompletedLevelRef.current = null;
+      nextRoundClickedRef.current = false;
          setNextRoundLocked(false);
          lastTimestampRef.current = 0;
          dropLockRef.current = false;
@@ -830,6 +833,7 @@ export default function PrecisionDrop({
             setRequirementsMet(true);
             gameStateRef.current = "ready";
             setGameState("ready");
+            lastCompletedLevelRef.current = currentLevel;
             clearAll();
          } else {
             gameStateRef.current = "failed";
@@ -849,6 +853,13 @@ export default function PrecisionDrop({
    // Handle level completion
    useEffect(() => {
       if (prevLevelRef.current === null) return;
+
+      if (gameState === "ready" && !requirementsMetRef.current) {
+         return;
+      }
+      if (gameState === "ready" && lastCompletedLevelRef.current !== currentLevel) {
+         return;
+      }
 
       if (gameState === "ready" && currentLevel < maxLevels - 1) {
          const newScore = Math.round(((currentLevel + 1) / maxLevels) * 100);
@@ -885,6 +896,7 @@ export default function PrecisionDrop({
 
       setRequirementsMet(false);
       requirementsMetRef.current = false;
+      lastCompletedLevelRef.current = null;
       setGameState("playing");
       gameStateRef.current = "playing";
       setObj(null);
@@ -1176,6 +1188,7 @@ export default function PrecisionDrop({
       setShakeActive(false);
       setRequirementsMet(false);
       requirementsMetRef.current = false;
+      lastCompletedLevelRef.current = null;
       nextRoundClickedRef.current = false;
       dropLockRef.current = false;
 
@@ -1277,7 +1290,9 @@ export default function PrecisionDrop({
                         }}
                      />
                      Score:{" "}
-                     {currentLevel + 1 >= maxLevels && gameState === "ready"
+                     {requirementsMet &&
+                     lastCompletedLevelRef.current === currentLevel &&
+                     currentLevel + 1 >= maxLevels
                         ? 100
                         : currentScore}{" "}
                      / 100
@@ -1607,7 +1622,10 @@ export default function PrecisionDrop({
             })()}
 
             {/* Game Complete Message */}
-            {gameState === "ready" && currentLevel === maxLevels - 1 && (
+            {gameState === "ready" &&
+               currentLevel === maxLevels - 1 &&
+               requirementsMet &&
+               lastCompletedLevelRef.current === currentLevel && (
                <div
                   style={{
                      padding: isMobile ? "20px 24px" : "24px 32px",

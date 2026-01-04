@@ -193,6 +193,7 @@ export default function StackBlocks({
    const prevLevelRef = useRef<number | null>(null);
    const forceStartLevelRef = useRef<number | null>(null);
    const completionCalledRef = useRef(false);
+   const lastCompletedLevelRef = useRef<number | null>(null);
    const nextRoundClickedRef = useRef(false);
    const [nextRoundLocked, setNextRoundLocked] = useState(false);
    const arenaRef = useRef<HTMLDivElement>(null);
@@ -429,6 +430,7 @@ export default function StackBlocks({
          setPerfectSnaps(0);
          setRequirementsMet(false);
          requirementsMetRef.current = false;
+         lastCompletedLevelRef.current = null;
          nextRoundClickedRef.current = false;
          setNextRoundLocked(false);
          setCurrentBlock(null);
@@ -614,6 +616,7 @@ export default function StackBlocks({
          clearAll();
          gameStateRef.current = "ready";
          setGameState("ready");
+         lastCompletedLevelRef.current = currentLevel;
          setStack(newStack);
          return;
       }
@@ -704,6 +707,7 @@ export default function StackBlocks({
             setRequirementsMet(true);
             gameStateRef.current = "ready";
             setGameState("ready");
+            lastCompletedLevelRef.current = currentLevel;
             clearAll();
          } else {
             gameStateRef.current = "failed";
@@ -723,6 +727,13 @@ export default function StackBlocks({
    // Handle level completion
    useEffect(() => {
       if (prevLevelRef.current === null) return;
+
+      if (gameState === "ready" && !requirementsMetRef.current) {
+         return;
+      }
+      if (gameState === "ready" && lastCompletedLevelRef.current !== currentLevel) {
+         return;
+      }
 
       if (gameState === "ready" && currentLevel < maxLevels - 1) {
          const newScore = Math.round(((currentLevel + 1) / maxLevels) * 100);
@@ -760,6 +771,7 @@ export default function StackBlocks({
 
       setRequirementsMet(false);
       requirementsMetRef.current = false;
+      lastCompletedLevelRef.current = null;
       setGameState("playing");
       gameStateRef.current = "playing";
       setStack([]);
@@ -1040,6 +1052,7 @@ export default function StackBlocks({
       setPerfectSnaps(0);
       setRequirementsMet(false);
       requirementsMetRef.current = false;
+      lastCompletedLevelRef.current = null;
       nextRoundClickedRef.current = false;
 
       // Don't set gameState to "playing" here - let startLevel do it after resetting timeLeft
@@ -1141,7 +1154,9 @@ export default function StackBlocks({
                         }}
                      />
                      Score:{" "}
-                     {currentLevel + 1 >= maxLevels && gameState === "ready"
+                     {requirementsMet &&
+                     lastCompletedLevelRef.current === currentLevel &&
+                     currentLevel + 1 >= maxLevels
                         ? 100
                         : currentScore}{" "}
                      / 100
@@ -1410,7 +1425,10 @@ export default function StackBlocks({
                })()}
 
             {/* Game Complete Message */}
-            {gameState === "ready" && currentLevel === maxLevels - 1 && (
+            {gameState === "ready" &&
+               currentLevel === maxLevels - 1 &&
+               requirementsMet &&
+               lastCompletedLevelRef.current === currentLevel && (
                <div
                   style={{
                      padding: isMobile ? "20px 24px" : "24px 32px",
