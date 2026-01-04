@@ -750,8 +750,8 @@ function show_games_custom_fields() {
                 timeLimit: 120,
                 passingScore: 80,
                 unlockRequirement: '',
-                description: 'Navigate maze with cursor without touching walls',
-                gameConfig: '{"gameType": "cursor-maze"}'
+                description: 'Navigate maze with cursor without touching walls. Reach the green exit without touching walls!',
+                gameConfig: '{"gameType": "cursor-maze", "levels": 15, "levelRequirements": [{"duration": 60}, {"duration": 58}, {"duration": 56}, {"duration": 54}, {"duration": 52}, {"duration": 48}, {"duration": 46}, {"duration": 44}, {"duration": 42}, {"duration": 40}, {"duration": 38}, {"duration": 36}, {"duration": 34}, {"duration": 32}, {"duration": 30}]}'
             },
             'mixed-quiz': {
                 title: 'Mixed Quiz',

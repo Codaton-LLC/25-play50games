@@ -3709,6 +3709,79 @@ Control a character that runs automatically through an endless runner. Jump over
 -  **Shrinking Targets**: Targets shrink over time (levels 10+)
 -  **Progressive Difficulty**: Each level increases minimum hits and adds new challenges
 
+#### Cursor Maze
+
+```json
+{
+   "gameType": "cursor-maze",
+   "levels": 15,
+   "levelRequirements": [
+      { "duration": 60 },
+      { "duration": 58 },
+      { "duration": 56 },
+      { "duration": 54 },
+      { "duration": 52 },
+      { "duration": 48 },
+      { "duration": 46 },
+      { "duration": 44 },
+      { "duration": 42 },
+      { "duration": 40 },
+      { "duration": 38 },
+      { "duration": 36 },
+      { "duration": 34 },
+      { "duration": 32 },
+      { "duration": 30 }
+   ]
+}
+```
+
+**Description:**
+
+Navigate a blue square through a procedurally generated maze to reach the green exit. Avoid touching walls - if you hit a wall, you'll stay at your current position (no reset to start). The game has 15 levels with increasing difficulty (larger mazes and shorter time limits).
+
+**Scoring:**
+
+-  Score is calculated based on completed levels: `completedLevels * (100 / maxLevels)`
+-  Level 1 = 6.67 points, Level 2 = 13.33 points, Level 3 = 20 points, etc.
+-  Maximum 100 points for 15 levels
+
+**Controls:**
+
+-  **Mouse**: Move mouse to control the blue square
+-  **Touch**: Drag finger on mobile to control the square
+-  **Keyboard**: Use WASD keys (W=Up, A=Left, S=Down, D=Right) or Arrow keys to move the square
+
+**Goal:**
+
+-  Navigate from the blue START area to the green EXIT area
+-  Avoid touching walls - hitting a wall keeps you at your current position
+-  Complete the maze before time runs out
+-  Complete all 15 levels to finish the game
+
+**Level Progression:**
+
+-  **Levels 1-5**: Smaller mazes (13-17 grid size), longer duration (60-52 seconds), fewer walls
+-  **Levels 6-10**: Medium mazes (15-19 grid size), moderate duration (48-40 seconds), more walls
+-  **Levels 11-15**: Larger mazes (18-22 grid size), shorter duration (38-30 seconds), many walls
+
+**Features:**
+
+-  **Procedurally Generated Mazes**: Each maze is unique, generated using Depth-First Search (DFS) algorithm
+-  **Solid Wall Collision**: Walls are solid - you cannot pass through them
+-  **Progressive Difficulty**: Grid size increases from 13x13 to 22x22, with more walls and less time
+-  **Visual Feedback**: Blue START area, green EXIT area with "EXIT" text, and clear wall boundaries
+-  **Multiple Control Methods**: Mouse, touch, or keyboard (WASD/Arrow keys)
+-  **No Reset on Wall Hit**: Hitting a wall keeps you at your current position instead of resetting to start
+
+**Tips:**
+
+-  Move slowly and carefully - precision beats speed!
+-  Plan your path before moving
+-  Keep the square centered in corridors
+-  On mobile, use touch and drag
+-  Lift your finger to pause movement
+-  The maze is procedurally generated, so each attempt is unique!
+
 #### Line Tracer
 
 ```json
@@ -4981,6 +5054,7 @@ src/
 │   │       │   ├── TargetAim.tsx
 │   │       │   ├── SpeedDrawing.tsx
 │   │       │   ├── OneHandMode.tsx
+│   │       │   ├── CursorMaze.tsx
 │   │       │   ├── LineTracer.tsx
 │   │       │   ├── TimingBar.tsx
 │   │       │   ├── StackBlocks.tsx
@@ -5071,6 +5145,7 @@ src/
 -  Target Aim
 -  Speed Drawing
 -  One-Hand Mode
+-  Cursor Maze
 -  Line Tracer
 -  Timing Bar
 -  Stack Blocks

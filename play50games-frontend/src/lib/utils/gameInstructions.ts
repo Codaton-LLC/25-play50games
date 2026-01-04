@@ -615,9 +615,17 @@ export const gameInstructions: Record<string, {
     ],
   },
   'cursor-maze': {
-    description: 'Navigate maze with cursor without touching walls',
-    instructions: 'Move your cursor through the maze to reach the exit. Don\'t touch the walls or you\'ll have to start over!',
-    tips: 'Move slowly and carefully. Plan your path before moving.'
+    description: 'Navigate a maze with your cursor to reach the green exit. Avoid touching walls or you\'ll reset to the start!',
+    instructions: '<p>Control a blue square through a procedurally generated maze. Your goal is to reach the green exit without touching any walls. The game has 15 levels, each with increasing difficulty (larger mazes and shorter time limits).</p><h4 style="margin-top: 16px; margin-bottom: 8px; font-weight: 600;">HOW TO PLAY:</h4><ol style="margin-left: 20px; margin-bottom: 16px;"><li>Move your mouse (or drag your finger on mobile) inside the canvas to control the blue square.</li><li>You can also use WASD keys or Arrow keys to move the square.</li><li>Navigate from the blue START area to the green EXIT area.</li><li>Avoid touching walls - if you hit a wall, you\'ll reset to the START position.</li><li>Each level has a time limit. Complete the maze before time runs out.</li><li>Levels 1-5 have smaller mazes with more time.</li><li>Levels 6-10 have medium mazes with moderate time.</li><li>Levels 11-15 have larger mazes with less time.</li><li>Complete all 15 levels to finish the game!</li></ol><h4 style="margin-top: 16px; margin-bottom: 8px; font-weight: 600;">LEVEL PROGRESSION:</h4><ul style="margin-left: 20px; margin-bottom: 16px;"><li><strong>Levels 1-5:</strong> Smaller mazes (13-17 grid size), longer duration (60-52 seconds), fewer walls.</li><li><strong>Levels 6-10:</strong> Medium mazes (15-19 grid size), moderate duration (48-40 seconds), more walls.</li><li><strong>Levels 11-15:</strong> Larger mazes (18-22 grid size), shorter duration (38-30 seconds), many walls.</li></ul>',
+    tips: 'Move slowly and carefully - precision beats speed! Plan your path before moving. Keep the square centered in corridors. On mobile, use touch and drag. Lift your finger to pause movement. The maze is procedurally generated, so each attempt is unique!',
+    mouseControls: [
+      { action: 'Move', label: 'Move mouse to control the blue square' },
+      { action: 'Drag', label: 'Drag finger on mobile to control the square' },
+    ],
+    keyboardControls: [
+      { keys: ['W', 'A', 'S', 'D'], label: 'Use WASD keys to move the square (W=Up, A=Left, S=Down, D=Right)' },
+      { keys: ['Arrow Up', 'Arrow Left', 'Arrow Down', 'Arrow Right'], label: 'Use Arrow keys to move the square' },
+    ],
   },
   
   // Final Games

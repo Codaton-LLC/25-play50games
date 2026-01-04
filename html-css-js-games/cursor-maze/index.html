@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<!--
+  Cursor Maze (HTML/CSS/JS)
+  - Move a blue square through a maze to the green exit.
+  - Touch wall = reset to start (counts fails)
+  - 10 levels
+
+  Fix for reported error:
+  - Never access maze.wallsCv unless maze is initialized
+  - renderIdle() used before Start
+  - Pointer events work on desktop + mobile
+-->
+<html lang="en">
+   <head>
+      <meta charset="UTF-8" />
+      <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+      <title>Cursor Maze</title>
+      <style>
+         :root {
+            --bg: #0b1220;
+            --text: #e8eefc;
+            --muted: #a6b3d1;
+            --accent: #6ea8ff;
+            --good: #36d399;
+            --bad: #fb7185;
+            --shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
+            --radius: 18px;
+            --panel: linear-gradient(
+               180deg,
+               rgba(255, 255, 255, 0.06),
+               rgba(255, 255, 255, 0.02)
+            );
+            --border: 1px solid rgba(255, 255, 255, 0.1);
+         }
+         * {
+            box-sizing: border-box;
+         }
+         body {
+            margin: 0;
+            font-family: system-ui;
+            background: radial-gradient(
+                  1200px 800px at 70% -10%,
+                  rgba(110, 168, 255, 0.28),
+                  transparent 60%
+               ),
+               radial-gradient(
+                  900px 600px at 0% 10%,
+                  rgba(54, 211, 153, 0.18),
+                  transparent 55%
+               ),
+               var(--bg);
+            color: var(--text);
+            min-height: 100svh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+         }
+         .app {
+            width: min(1100px, 100%);
+            display: grid;
+            grid-template-columns: 1.2fr 0.8fr;
+            gap: 18px;
+         }
+         @media (max-width: 980px) {
+            .app {
+               grid-template-columns: 1fr;
+            }
+         }
+         .panel {
+            background: var(--panel);
+            border: var(--border);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            overflow: hidden;
+         }
+         header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            padding: 18px;
+            gap: 12px;
+            flex-wrap: wrap;
+         }
+         h1 {
+            margin: 0;
+            font-size: 18px;
+         }
+         p {
+            margin: 4px 0 0;
+            color: var(--muted);
+            font-size: 13px;
+         }
+         button {
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            background: rgba(15, 27, 51, 0.7);
+            color: var(--text);
+            padding: 10px 14px;
+            font-weight: 900;
+            cursor: pointer;
+         }
+         button.primary {
+            background: linear-gradient(
+               180deg,
+               rgba(110, 168, 255, 0.9),
+               rgba(110, 168, 255, 0.55)
+            );
+            color: #081126;
+         }
+         .row {
+            display: flex;
+            gap: 12px;
+            padding: 14px 18px;
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            background: rgba(11, 22, 48, 0.45);
+            flex-wrap: wrap;
+         }
+         .pill {
+            padding: 8px 12px;
+            border-radius: 999px;
+            background: rgba(17, 28, 53, 0.55);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            font-size: 13px;
+            white-space: nowrap;
+         }
+         .content {
+            padding: 18px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+         }
+
+         .arena {
+            border-radius: 18px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: radial-gradient(
+                  320px 240px at 30% 30%,
+                  rgba(110, 168, 255, 0.1),
+                  transparent 60%
+               ),
+               linear-gradient(
+                  180deg,
+                  rgba(255, 255, 255, 0.05),
+                  rgba(255, 255, 255, 0.02)
+               );
+            overflow: hidden;
+            padding: 14px;
+            position: relative;
+            user-select: none;
+            touch-action: none;
+            height: 540px;
+         }
+
+         .mazeWrap {
+            height: 100%;
+            display: grid;
+            place-items: center;
+         }
+         canvas {
+            width: min(560px, 100%);
+            height: min(560px, 100%);
+            display: block;
+            border-radius: 16px;
+            outline: none;
+         }
+
+         .toast {
+            padding: 10px 12px;
+            border-radius: 14px;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            background: rgba(15, 27, 51, 0.55);
+            color: var(--muted);
+            font-size: 13px;
+         }
+
+         .overlay {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 22px;
+            color: var(--muted);
+            pointer-events: none;
+         }
+         .overlay strong {
+            color: var(--text);
+         }
+
+         .side {
+            padding: 18px;
+         }
+         .side h2 {
+            margin: 0 0 8px;
+            font-size: 14px;
+         }
+         .side ul {
+            margin: 0;
+            color: var(--muted);
+            font-size: 13px;
+            line-height: 1.35;
+            padding-left: 18px;
+         }
+         .side ul + h2 {
+            margin-top: 14px;
+         }
+         .kbd {
+            display: inline-block;
+            padding: 2px 8px;
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            border-radius: 8px;
+            background: rgba(17, 28, 53, 0.55);
+            color: var(--text);
+            font-weight: 800;
+            font-size: 12px;
+         }
+      </style>
+   </head>
+   <body>
+      <div class="app">
+         <section class="panel">
+            <header>
+               <div>
+                  <h1>Cursor Maze</h1>
+                  <p>Navigate the maze without touching walls</p>
+               </div>
+               <button class="primary" id="startBtn">Start</button>
+            </header>
+
+            <div class="row">
+               <div class="pill">Level: <b id="level">1</b>/10</div>
+               <div class="pill">Time: <b id="time">0.0</b>s</div>
+               <div class="pill">Fails: <b id="fails">0</b></div>
+               <div class="pill">Status: <b id="status">—</b></div>
+            </div>
+
+            <div class="content">
+               <div class="arena">
+                  <div class="mazeWrap">
+                     <canvas
+                        id="cv"
+                        width="560"
+                        height="560"
+                        tabindex="0"
+                     ></canvas>
+                  </div>
+                  <div class="overlay" id="overlay">
+                     <div>
+                        <strong>Press Start</strong><br />
+                        Move the
+                        <span style="color: var(--accent)">blue square</span> to
+                        the
+                        <span style="color: var(--good)">green exit</span
+                        >.<br />
+                        Touching a wall resets you to START.
+                     </div>
+                  </div>
+               </div>
+               <div class="toast" id="msg">
+                  Tip: Press Start, then move inside the maze.
+               </div>
+            </div>
+         </section>
+
+         <aside class="panel">
+            <div class="side">
+               <h2>How to Play</h2>
+               <ul>
+                  <li>Press <span class="kbd">Start</span>.</li>
+                  <li>Move mouse (or drag finger) inside the canvas.</li>
+                  <li>Touching a wall resets you to START.</li>
+                  <li>Reach the green exit to go to next level.</li>
+               </ul>
+
+               <h2>Tips</h2>
+               <ul>
+                  <li>Slow beats fast. Avoid sharp turns.</li>
+                  <li>Keep the square centered in corridors.</li>
+               </ul>
+
+               <h2>Mobile</h2>
+               <ul>
+                  <li>Touch + drag inside the canvas.</li>
+                  <li>Lift finger to pause.</li>
+               </ul>
+            </div>
+         </aside>
+      </div>
+
+      <script>
+         // ===== Cursor Maze – Vanilla JS (Pointer Events) =====
+
+         const TOTAL_LEVELS = 10;
+
+         const startBtn = document.getElementById("startBtn");
+         const cv = document.getElementById("cv");
+         const ctx = cv.getContext("2d");
+
+         const levelEl = document.getElementById("level");
+         const timeEl = document.getElementById("time");
+         const failsEl = document.getElementById("fails");
+         const statusEl = document.getElementById("status");
+         const msgEl = document.getElementById("msg");
+         const overlay = document.getElementById("overlay");
+
+         let running = false;
+         let level = 1;
+         let fails = 0;
+         let startTs = 0;
+         let rafId = 0;
+
+         // Player marker (square) position in CANVAS coordinates
+         let pointerActive = false;
+         let px = 56,
+            py = 56;
+
+         // Maze state
+         let gridSize = 15;
+         let cell = 0;
+         let maze = null; // {cells,start,exit,wallsCv,wallsCtx}
+
+         function setMsg(t) {
+            msgEl.textContent = t;
+         }
+         function clamp(n, a, b) {
+            return Math.max(a, Math.min(b, n));
+         }
+         function hud() {
+            levelEl.textContent = String(level);
+            failsEl.textContent = String(fails);
+         }
+
+         // --- Maze generation (DFS) ---
+         function makeMaze(n) {
+            const cells = Array.from({ length: n * n }, () => ({
+               v: false,
+               w: [true, true, true, true],
+            }));
+            const idx = (x, y) => y * n + x;
+            const inb = (x, y) => x >= 0 && y >= 0 && x < n && y < n;
+            const dirs = [
+               { dx: 0, dy: -1, a: 0, b: 2 },
+               { dx: 1, dy: 0, a: 1, b: 3 },
+               { dx: 0, dy: 1, a: 2, b: 0 },
+               { dx: -1, dy: 0, a: 3, b: 1 },
+            ];
+
+            const stack = [{ x: 0, y: 0 }];
+            cells[idx(0, 0)].v = true;
+
+            while (stack.length) {
+               const cur = stack[stack.length - 1];
+               const options = [];
+               for (const d of dirs) {
+                  const nx = cur.x + d.dx;
+                  const ny = cur.y + d.dy;
+                  if (inb(nx, ny) && !cells[idx(nx, ny)].v)
+                     options.push({ nx, ny, d });
+               }
+               if (!options.length) {
+                  stack.pop();
+                  continue;
+               }
+               const pick = options[Math.floor(Math.random() * options.length)];
+               const c = cells[idx(cur.x, cur.y)];
+               const ncell = cells[idx(pick.nx, pick.ny)];
+               c.w[pick.d.a] = false;
+               ncell.w[pick.d.b] = false;
+               ncell.v = true;
+               stack.push({ x: pick.nx, y: pick.ny });
+            }
+            return cells;
+         }
+
+         function buildMazeForLevel(lvl) {
+            gridSize = clamp(13 + lvl, 14, 24); // 14..24
+            cell = Math.floor(cv.width / gridSize);
+
+            const cells = makeMaze(gridSize);
+            const start = { x: 0, y: 0 };
+            const exit = { x: gridSize - 1, y: gridSize - 1 };
+
+            const wallsCv = document.createElement("canvas");
+            wallsCv.width = cv.width;
+            wallsCv.height = cv.height;
+            const wctx = wallsCv.getContext("2d");
+
+            wctx.fillStyle = "#0f1b33";
+            wctx.fillRect(0, 0, wallsCv.width, wallsCv.height);
+
+            wctx.strokeStyle = "#ffffff";
+            wctx.lineWidth = Math.max(8, Math.floor(cell * 0.18));
+            wctx.lineCap = "square";
+
+            const id = (x, y) => y * gridSize + x;
+
+            for (let y = 0; y < gridSize; y++) {
+               for (let x = 0; x < gridSize; x++) {
+                  const w = cells[id(x, y)].w;
+                  const x0 = x * cell;
+                  const y0 = y * cell;
+                  const x1 = x0 + cell;
+                  const y1 = y0 + cell;
+
+                  wctx.beginPath();
+                  if (w[0]) {
+                     wctx.moveTo(x0, y0);
+                     wctx.lineTo(x1, y0);
+                  }
+                  if (w[1]) {
+                     wctx.moveTo(x1, y0);
+                     wctx.lineTo(x1, y1);
+                  }
+                  if (w[2]) {
+                     wctx.moveTo(x0, y1);
+                     wctx.lineTo(x1, y1);
+                  }
+                  if (w[3]) {
+                     wctx.moveTo(x0, y0);
+                     wctx.lineTo(x0, y1);
+                  }
+                  wctx.stroke();
+               }
+            }
+
+            return { cells, start, exit, wallsCv, wallsCtx: wctx };
+         }
+
+         function renderIdle() {
+            ctx.clearRect(0, 0, cv.width, cv.height);
+            ctx.fillStyle = "#0f1b33";
+            ctx.fillRect(0, 0, cv.width, cv.height);
+            ctx.fillStyle = "rgba(166,179,209,.85)";
+            ctx.font = "14px system-ui";
+            ctx.fillText("Press Start to generate a maze.", 14, 22);
+            // small blue square preview
+            ctx.fillStyle = "rgba(110,168,255,.8)";
+            ctx.fillRect(54, 54, 14, 14);
+         }
+
+         function resetToStart() {
+            if (!maze) return;
+            const pad = Math.floor(cell * 0.5);
+            px = maze.start.x * cell + pad;
+            py = maze.start.y * cell + pad;
+         }
+
+         function pointHitsWall(x, y) {
+            if (!maze) return false;
+            const xi = clamp(Math.floor(x), 0, cv.width - 1);
+            const yi = clamp(Math.floor(y), 0, cv.height - 1);
+            const img = maze.wallsCtx.getImageData(xi, yi, 1, 1).data;
+            return img[0] > 200 && img[1] > 200 && img[2] > 200;
+         }
+
+         function pointInExit(x, y) {
+            if (!maze) return false;
+            const pad = Math.floor(cell * 0.25);
+            const ex = maze.exit.x * cell + pad;
+            const ey = maze.exit.y * cell + pad;
+            const sz = cell - pad * 2;
+            return x >= ex && x <= ex + sz && y >= ey && y <= ey + sz;
+         }
+
+         function drawMaze() {
+            // Absolute guard: never access maze props if maze is null
+            if (!maze) {
+               renderIdle();
+               return;
+            }
+
+            ctx.clearRect(0, 0, cv.width, cv.height);
+
+            // walls
+            ctx.globalAlpha = 0.92;
+            ctx.drawImage(maze.wallsCv, 0, 0);
+            ctx.globalAlpha = 1;
+
+            // start + exit pads
+            const pad = Math.floor(cell * 0.25);
+            const sx = maze.start.x * cell + pad;
+            const sy = maze.start.y * cell + pad;
+            const ex = maze.exit.x * cell + pad;
+            const ey = maze.exit.y * cell + pad;
+            const sz = cell - pad * 2;
+
+            ctx.fillStyle = "rgba(110,168,255,.25)";
+            ctx.fillRect(sx, sy, sz, sz);
+            ctx.strokeStyle = "rgba(110,168,255,.85)";
+            ctx.lineWidth = 2;
+            ctx.strokeRect(sx, sy, sz, sz);
+
+            ctx.fillStyle = "rgba(54,211,153,.25)";
+            ctx.fillRect(ex, ey, sz, sz);
+            ctx.strokeStyle = "rgba(54,211,153,.9)";
+            ctx.lineWidth = 2;
+            ctx.strokeRect(ex, ey, sz, sz);
+
+            // player square
+            const s = Math.max(10, Math.floor(cell * 0.3));
+            ctx.fillStyle = pointerActive
+               ? "rgba(110,168,255,.95)"
+               : "rgba(110,168,255,.55)";
+            ctx.fillRect(px - s / 2, py - s / 2, s, s);
+            ctx.strokeStyle = "rgba(255,255,255,.18)";
+            ctx.lineWidth = 2;
+            ctx.strokeRect(px - s / 2, py - s / 2, s, s);
+
+            ctx.fillStyle = "rgba(166,179,209,.75)";
+            ctx.font = "12px system-ui";
+            ctx.fillText(
+               "Blue = START | Green = EXIT | Touch wall = reset",
+               12,
+               18
+            );
+         }
+
+         function startGame() {
+            running = true;
+            level = 1;
+            fails = 0;
+            hud();
+            statusEl.textContent = "RUN";
+            overlay.style.display = "none";
+
+            maze = buildMazeForLevel(level);
+            resetToStart();
+            pointerActive = false;
+
+            startTs = performance.now();
+            cancelAnimationFrame(rafId);
+            rafId = requestAnimationFrame(loop);
+
+            setMsg(
+               "Move the blue square to the green exit. Touch wall = reset."
+            );
+         }
+
+         function nextLevel() {
+            level++;
+            if (level > TOTAL_LEVELS) {
+               endGame(true);
+               return;
+            }
+            hud();
+            maze = buildMazeForLevel(level);
+            resetToStart();
+            pointerActive = false;
+            startTs = performance.now();
+            setMsg(`Level ${level}: harder maze.`);
+         }
+
+         function endGame(win) {
+            running = false;
+            statusEl.textContent = win ? "WIN" : "STOP";
+            cancelAnimationFrame(rafId);
+            overlay.style.display = "flex";
+            overlay.innerHTML = `<div><strong>${
+               win ? "Completed!" : "Stopped"
+            }</strong><br>Fails: ${fails}<br><span style="color:rgba(166,179,209,.8)">Press Start to play again.</span></div>`;
+         }
+
+         function loop() {
+            if (!running) return;
+            const t = (performance.now() - startTs) / 1000;
+            timeEl.textContent = t.toFixed(1);
+            drawMaze();
+            rafId = requestAnimationFrame(loop);
+         }
+
+         function posFromEvent(e) {
+            const rect = cv.getBoundingClientRect();
+            const x = (e.clientX - rect.left) * (cv.width / rect.width);
+            const y = (e.clientY - rect.top) * (cv.height / rect.height);
+            return { x, y };
+         }
+
+         function handlePointerMove(e) {
+            if (!running || !maze) return;
+            const { x, y } = posFromEvent(e);
+            px = x;
+            py = y;
+            pointerActive = true;
+
+            if (pointHitsWall(px, py)) {
+               fails++;
+               failsEl.textContent = String(fails);
+               statusEl.textContent = "RESET";
+               setMsg("Wall touched! Reset to START.");
+               resetToStart();
+               pointerActive = false;
+               return;
+            }
+
+            if (pointInExit(px, py)) {
+               statusEl.textContent = "CLEAR";
+               setMsg("Nice! Next level…");
+               // prevent repeated triggers
+               running = false;
+               setTimeout(() => {
+                  if (!maze) return;
+                  running = true;
+                  nextLevel();
+               }, 550);
+            }
+         }
+
+         function handlePointerDown(e) {
+            if (cv.setPointerCapture) cv.setPointerCapture(e.pointerId);
+            if (!running) return;
+            handlePointerMove(e);
+         }
+
+         function handlePointerUp() {
+            pointerActive = false;
+         }
+
+         // Pointer Events (mouse + touch)
+         cv.addEventListener("pointerdown", handlePointerDown);
+         cv.addEventListener("pointermove", handlePointerMove);
+         cv.addEventListener("pointerup", handlePointerUp);
+         cv.addEventListener("pointercancel", handlePointerUp);
+         cv.addEventListener("pointerleave", handlePointerUp);
+
+         startBtn.addEventListener("click", startGame);
+
+         // init
+         (function init() {
+            ctx.imageSmoothingEnabled = true;
+            statusEl.textContent = "—";
+            setMsg("Press Start, then move inside the maze canvas.");
+            renderIdle();
+         })();
+
+         // ===== Tests =====
+         (function tests() {
+            try {
+               console.assert(
+                  typeof makeMaze === "function",
+                  "Test: makeMaze exists"
+               );
+               console.assert(
+                  makeMaze(5).length === 25,
+                  "Test: maze cell count"
+               );
+
+               const m = buildMazeForLevel(1);
+               console.assert(
+                  m && m.wallsCv instanceof HTMLCanvasElement,
+                  "Test: buildMazeForLevel returns walls canvas"
+               );
+
+               // Ensure drawMaze does NOT throw when maze is null
+               const prev = maze;
+               maze = null;
+               drawMaze();
+               maze = prev;
+
+               console.info("Cursor Maze tests: OK");
+            } catch (err) {
+               console.warn("Cursor Maze tests failed", err);
+            }
+         })();
+      </script>
+   </body>
+</html>
