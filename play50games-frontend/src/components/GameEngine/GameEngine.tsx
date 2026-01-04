@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Game } from "@/types/game";
 import { saveProgress } from "@/lib/storage/progressStorage";
 import { getGameInstructions } from "@/lib/utils/gameInstructions";
@@ -43,6 +43,181 @@ import SkillGames from "./game-types/SkillGames";
 import FinalGames from "./game-types/FinalGames";
 import KeyboardControls, { MouseControls } from "./KeyboardControls";
 import { trackShareClick } from "@/lib/api/share";
+
+// Maze Example Component - Generates real maze like in game
+const MazeExampleCanvas = () => {
+   const canvasRef = useRef<HTMLCanvasElement>(null);
+
+   useEffect(() => {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+
+      const size = 400;
+      const gridSize = 10;
+      const cellSize = size / gridSize;
+
+      // Set canvas size
+      canvas.width = size;
+      canvas.height = size;
+
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
+
+      // Fill background
+      ctx.fillStyle = "rgba(15, 27, 51, 1)";
+      ctx.fillRect(0, 0, size, size);
+
+      // Generate maze using DFS (same algorithm as in game)
+      interface MazeCell {
+         v: boolean;
+         w: [boolean, boolean, boolean, boolean]; // top, right, bottom, left
+      }
+
+      const cells: MazeCell[] = Array.from({ length: gridSize * gridSize }, () => ({
+         v: false,
+         w: [true, true, true, true],
+      }));
+
+      const idx = (x: number, y: number) => y * gridSize + x;
+      const inb = (x: number, y: number) => x >= 0 && y >= 0 && x < gridSize && y < gridSize;
+
+      const dirs = [
+         { dx: 0, dy: -1, a: 0, b: 2 },
+         { dx: 1, dy: 0, a: 1, b: 3 },
+         { dx: 0, dy: 1, a: 2, b: 0 },
+         { dx: -1, dy: 0, a: 3, b: 1 },
+      ];
+
+      const stack = [{ x: 0, y: 0 }];
+      cells[idx(0, 0)].v = true;
+
+      while (stack.length) {
+         const cur = stack[stack.length - 1];
+         const options: Array<{ nx: number; ny: number; d: typeof dirs[0] }> = [];
+
+         for (const d of dirs) {
+            const nx = cur.x + d.dx;
+            const ny = cur.y + d.dy;
+            if (inb(nx, ny) && !cells[idx(nx, ny)].v) {
+               options.push({ nx, ny, d });
+            }
+         }
+
+         if (!options.length) {
+            stack.pop();
+            continue;
+         }
+
+         const pick = options[Math.floor(Math.random() * options.length)];
+         const c = cells[idx(cur.x, cur.y)];
+         const ncell = cells[idx(pick.nx, pick.ny)];
+
+         c.w[pick.d.a] = false;
+         ncell.w[pick.d.b] = false;
+         ncell.v = true;
+         stack.push({ x: pick.nx, y: pick.ny });
+      }
+
+      // Draw walls
+      ctx.strokeStyle = "#ffffff";
+      ctx.lineWidth = Math.max(10, Math.floor(cellSize * 0.2));
+      ctx.lineCap = "square";
+      ctx.lineJoin = "miter";
+
+      for (let y = 0; y < gridSize; y++) {
+         for (let x = 0; x < gridSize; x++) {
+            const w = cells[idx(x, y)].w;
+            const x0 = x * cellSize;
+            const y0 = y * cellSize;
+            const x1 = x0 + cellSize;
+            const y1 = y0 + cellSize;
+
+            ctx.beginPath();
+            if (w[0]) {
+               ctx.moveTo(x0, y0);
+               ctx.lineTo(x1, y0);
+            }
+            if (w[1]) {
+               ctx.moveTo(x1, y0);
+               ctx.lineTo(x1, y1);
+            }
+            if (w[2]) {
+               ctx.moveTo(x0, y1);
+               ctx.lineTo(x1, y1);
+            }
+            if (w[3]) {
+               ctx.moveTo(x0, y0);
+               ctx.lineTo(x0, y1);
+            }
+            ctx.stroke();
+         }
+      }
+
+      // Draw start pad (blue)
+      const pad = Math.floor(cellSize * 0.25);
+      const sx = 0 * cellSize + pad;
+      const sy = 0 * cellSize + pad;
+      const sz = cellSize - pad * 2;
+      ctx.fillStyle = "rgba(110, 168, 255, 0.25)";
+      ctx.fillRect(sx, sy, sz, sz);
+      ctx.strokeStyle = "rgba(110, 168, 255, 0.85)";
+      ctx.lineWidth = 2;
+      ctx.strokeRect(sx, sy, sz, sz);
+
+      // Draw exit pad (green)
+      const ex = (gridSize - 1) * cellSize + pad;
+      const ey = (gridSize - 1) * cellSize + pad;
+      ctx.fillStyle = "rgba(54, 211, 153, 0.5)";
+      ctx.fillRect(ex, ey, sz, sz);
+      ctx.strokeStyle = "rgba(54, 211, 153, 1)";
+      ctx.lineWidth = 3;
+      ctx.strokeRect(ex, ey, sz, sz);
+
+      // Add exit text
+      ctx.fillStyle = "rgba(54, 211, 153, 1)";
+      ctx.font = `${Math.max(12, Math.floor(cellSize * 0.4))}px system-ui`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText("EXIT", ex + sz / 2, ey + sz / 2);
+
+      // Draw player square
+      const playerSize = Math.max(10, Math.floor(cellSize * 0.3));
+      const playerX = 0 * cellSize + cellSize / 2;
+      const playerY = 0 * cellSize + cellSize / 2;
+      ctx.fillStyle = "rgba(110, 168, 255, 0.95)";
+      ctx.fillRect(playerX - playerSize / 2, playerY - playerSize / 2, playerSize, playerSize);
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.18)";
+      ctx.lineWidth = 2;
+      ctx.strokeRect(playerX - playerSize / 2, playerY - playerSize / 2, playerSize, playerSize);
+   }, []);
+
+   return (
+      <div
+         style={{
+            position: "relative",
+            width: "100%",
+            maxWidth: "400px",
+            margin: "0 auto",
+            aspectRatio: "1 / 1",
+            borderRadius: "12px",
+            border: "1px solid var(--border)",
+            background: "rgba(15, 27, 51, 1)",
+            boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)",
+            marginBottom: "16px",
+            overflow: "hidden",
+         }}
+      >
+         <canvas
+            ref={canvasRef}
+            style={{
+               width: "100%",
+               height: "100%",
+               display: "block",
+            }}
+         />
+      </div>
+   );
+};
 
 interface GameEngineProps {
    game: Game;
@@ -5142,109 +5317,8 @@ export default function GameEngine({
                            Navigate the blue square through the maze to reach the green exit:
                         </p>
 
-                        {/* Example Maze Arena - Realistic Maze */}
-                        <div
-                           style={{
-                              position: "relative",
-                              width: "100%",
-                              maxWidth: "400px",
-                              margin: "0 auto",
-                              aspectRatio: "1 / 1",
-                              borderRadius: "12px",
-                              border: "1px solid var(--border)",
-                              background: "rgba(15, 27, 51, 1)",
-                              boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)",
-                              marginBottom: "16px",
-                              overflow: "hidden",
-                           }}
-                        >
-                           {/* Realistic Maze with proper walls */}
-                           <svg
-                              width="100%"
-                              height="100%"
-                              viewBox="0 0 400 400"
-                              style={{
-                                 position: "absolute",
-                                 top: 0,
-                                 left: 0,
-                              }}
-                           >
-                              <defs>
-                                 <linearGradient id="maze-bg" x1="0" y1="0" x2="1" y2="1">
-                                    <stop offset="0%" stopColor="#0c162b" />
-                                    <stop offset="100%" stopColor="#0f1b33" />
-                                 </linearGradient>
-                              </defs>
-
-                              <rect width="100%" height="100%" fill="url(#maze-bg)" />
-                              <rect x="6" y="6" width="388" height="388" rx="10" fill="none" stroke="#e2e8f0" strokeWidth="8" />
-
-                              {(() => {
-                                 const walls = [
-                                    { x1: 0, y1: 0, x2: 400, y2: 0 },
-                                    { x1: 0, y1: 400, x2: 400, y2: 400 },
-                                    { x1: 0, y1: 0, x2: 0, y2: 400 },
-                                    { x1: 400, y1: 0, x2: 400, y2: 400 },
-                                    { x1: 90, y1: 50, x2: 220, y2: 50 },
-                                    { x1: 280, y1: 50, x2: 400, y2: 50 },
-                                    { x1: 0, y1: 110, x2: 120, y2: 110 },
-                                    { x1: 190, y1: 110, x2: 320, y2: 110 },
-                                    { x1: 90, y1: 170, x2: 220, y2: 170 },
-                                    { x1: 280, y1: 170, x2: 400, y2: 170 },
-                                    { x1: 0, y1: 230, x2: 120, y2: 230 },
-                                    { x1: 200, y1: 230, x2: 330, y2: 230 },
-                                    { x1: 90, y1: 290, x2: 220, y2: 290 },
-                                    { x1: 280, y1: 290, x2: 400, y2: 290 },
-                                    { x1: 0, y1: 340, x2: 120, y2: 340 },
-                                    { x1: 200, y1: 340, x2: 330, y2: 340 },
-                                    { x1: 120, y1: 0, x2: 120, y2: 60 },
-                                    { x1: 220, y1: 60, x2: 220, y2: 120 },
-                                    { x1: 120, y1: 120, x2: 120, y2: 180 },
-                                    { x1: 320, y1: 120, x2: 320, y2: 180 },
-                                    { x1: 220, y1: 180, x2: 220, y2: 240 },
-                                    { x1: 120, y1: 240, x2: 120, y2: 300 },
-                                    { x1: 320, y1: 240, x2: 320, y2: 300 },
-                                    { x1: 220, y1: 300, x2: 220, y2: 360 },
-                                 ];
-                                 return walls.map((wall, i) => (
-                                    <line
-                                       key={i}
-                                       x1={wall.x1}
-                                       y1={wall.y1}
-                                       x2={wall.x2}
-                                       y2={wall.y2}
-                                       stroke="#f8fafc"
-                                       strokeWidth="12"
-                                       strokeLinecap="square"
-                                       strokeLinejoin="miter"
-                                    />
-                                 ));
-                              })()}
-
-                              <path
-                                 d="M 28 28 L 70 28 L 70 80 L 120 80 L 120 140 L 170 140 L 170 200 L 230 200 L 230 250 L 290 250 L 290 310 L 340 310 L 340 360"
-                                 stroke="rgba(59, 130, 246, 0.35)"
-                                 strokeWidth="4"
-                                 fill="none"
-                                 strokeLinecap="round"
-                                 strokeLinejoin="round"
-                              />
-
-                              <rect x="18" y="18" width="20" height="20" fill="rgba(96, 165, 250, 0.2)" stroke="#60a5fa" strokeWidth="2" rx="3" />
-                              <rect x="362" y="362" width="20" height="20" fill="rgba(16, 185, 129, 0.25)" stroke="#10b981" strokeWidth="2" rx="3" />
-
-                              <rect
-                                 x="24"
-                                 y="24"
-                                 width="12"
-                                 height="12"
-                                 fill="#60a5fa"
-                                 stroke="rgba(255, 255, 255, 0.4)"
-                                 strokeWidth="1"
-                                 rx="2"
-                              />
-                           </svg>
-                        </div>
+                        {/* Example Maze Arena - Real Canvas Maze */}
+                        <MazeExampleCanvas />
 
                         {/* Step-by-step instructions */}
                         <div
@@ -5268,7 +5342,12 @@ export default function GameEngine({
                               {
                                  step: 3,
                                  icon: <XCircleIcon style={{ width: 18, height: 18, color: "var(--warn)" }} />,
-                                 text: "Avoid touching walls - hitting a wall resets you to START",
+                                 text: "Avoid touching walls - hitting a wall keeps you at your current position",
+                              },
+                              {
+                                 step: 5,
+                                 icon: <KeyIcon style={{ width: 18, height: 18, color: "var(--accent)" }} />,
+                                 text: "You can also use WASD or Arrow keys to move the square",
                               },
                               {
                                  step: 4,
