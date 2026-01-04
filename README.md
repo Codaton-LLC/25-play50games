@@ -3597,6 +3597,101 @@ Aim and hit targets with precision across 15 progressively challenging levels. M
 **Goal:**
 
 -  Move the target icon (crosshair) to aim at targets
+
+#### Speed Drawing
+
+```json
+{
+   "gameType": "speed-drawing",
+   "levels": 15,
+   "levelDefinitions": [
+      { "duration": 20, "targetShape": "circle", "minAccuracy": 60 },
+      { "duration": 20, "targetShape": "square", "minAccuracy": 62 },
+      { "duration": 18, "targetShape": "triangle", "minAccuracy": 65 },
+      { "duration": 18, "targetShape": "star", "minAccuracy": 67 },
+      { "duration": 16, "targetShape": "heart", "minAccuracy": 70 },
+      { "duration": 16, "targetShape": "wave", "minAccuracy": 72 },
+      { "duration": 15, "targetShape": "curve", "minAccuracy": 75 },
+      { "duration": 15, "targetShape": "zigzag", "minAccuracy": 77 },
+      { "duration": 14, "targetShape": "circle", "minAccuracy": 78 },
+      { "duration": 14, "targetShape": "square", "minAccuracy": 80 },
+      { "duration": 13, "targetShape": "triangle", "minAccuracy": 82 },
+      { "duration": 13, "targetShape": "star", "minAccuracy": 83 },
+      { "duration": 12, "targetShape": "heart", "minAccuracy": 84 },
+      { "duration": 12, "targetShape": "wave", "minAccuracy": 85 },
+      { "duration": 10, "targetShape": "spiral", "minAccuracy": 85 }
+   ]
+}
+```
+
+**Description:**
+
+Draw target shapes as accurately as possible within the time limit. Each level has a specific shape to draw (circle, square, triangle, star, heart, wave, curve, zigzag, spiral) with increasing accuracy requirements.
+
+**Scoring:**
+
+-  Score is calculated based on completed levels: `completedLevels * (100 / maxLevels)`
+-  Level 1 = 6.67 points, Level 2 = 13.33 points, Level 3 = 20 points, etc.
+-  Maximum 100 points for 15 levels
+
+**Controls:**
+
+-  **Mouse/Touch**: Click and hold, then drag to draw the shape
+-  **Keyboard**: Not applicable (drawing requires mouse/touch input)
+
+**Goal:**
+
+-  Draw the target shape shown on screen as accurately as possible
+-  Meet the minimum accuracy requirement for each level
+-  Complete the drawing within the time limit
+
+#### One-Hand Mode
+
+```json
+{
+   "gameType": "one-hand-mode",
+   "levels": 15,
+   "levelRequirements": [
+      { "duration": 6, "speed": 260, "spawnInterval": 1.1 },
+      { "duration": 5.85, "speed": 290, "spawnInterval": 1.067 },
+      { "duration": 5.7, "speed": 320, "spawnInterval": 1.034 },
+      { "duration": 5.55, "speed": 350, "spawnInterval": 1.001 },
+      { "duration": 5.4, "speed": 380, "spawnInterval": 0.968 },
+      { "duration": 5.1, "speed": 410, "spawnInterval": 0.902 },
+      { "duration": 4.95, "speed": 440, "spawnInterval": 0.869 },
+      { "duration": 4.8, "speed": 470, "spawnInterval": 0.836 },
+      { "duration": 4.65, "speed": 500, "spawnInterval": 0.803 },
+      { "duration": 4.5, "speed": 530, "spawnInterval": 0.77 },
+      { "duration": 4.4, "speed": 560, "spawnInterval": 0.737 },
+      { "duration": 4.25, "speed": 590, "spawnInterval": 0.704 },
+      { "duration": 4.1, "speed": 620, "spawnInterval": 0.671 },
+      { "duration": 3.95, "speed": 650, "spawnInterval": 0.638 },
+      { "duration": 3.8, "speed": 680, "spawnInterval": 0.6 }
+   ]
+}
+```
+
+**Description:**
+
+Control a character that runs automatically through an endless runner. Jump over obstacles using a single input (click, tap, or spacebar). Test your timing and reflexes across 15 progressively challenging levels with increasing speed, shorter durations, and more frequent obstacles.
+
+**Scoring:**
+
+-  Score is calculated based on completed levels: `completedLevels * (100 / maxLevels)`
+-  Level 1 = 6.67 points, Level 2 = 13.33 points, Level 3 = 20 points, etc.
+-  Maximum 100 points for 15 levels
+
+**Controls:**
+
+-  **Mouse**: Click to jump
+-  **Touch**: Tap to jump
+-  **Keyboard**: Press SPACEBAR to jump
+
+**Goal:**
+
+-  Survive until the timer runs out by jumping over obstacles
+-  Avoid hitting any obstacles (hitting one ends the level)
+-  Complete all 15 levels to finish the game
 -  Hit targets when they are within range of the crosshair
 -  Complete all 15 levels by hitting the required number of targets
 
@@ -4883,7 +4978,14 @@ src/
 │   │           └── TapCounter.tsx
 │   │       ├── skillgames-parts/   # Individual skill game components
 │   │       │   ├── BallBalance.tsx
-│   │       │   └── TargetAim.tsx
+│   │       │   ├── TargetAim.tsx
+│   │       │   ├── SpeedDrawing.tsx
+│   │       │   ├── OneHandMode.tsx
+│   │       │   ├── LineTracer.tsx
+│   │       │   ├── TimingBar.tsx
+│   │       │   ├── StackBlocks.tsx
+│   │       │   ├── PrecisionDrop.tsx
+│   │       │   └── DragAndDropSort.tsx
 │   └── UnlockSystem/      # Game unlock logic
 ├── lib/
 │   ├── api/              # WordPress REST API clients
@@ -4967,6 +5069,8 @@ src/
 
 -  Ball Balance
 -  Target Aim
+-  Speed Drawing
+-  One-Hand Mode
 -  Line Tracer
 -  Timing Bar
 -  Stack Blocks
