@@ -97,7 +97,7 @@ const makeLevel = (
       (sum, phase) => sum + phase.items.length,
       0
    );
-   const minCorrect = Math.max(1, Math.floor(totalItems * 0.8));
+   const minCorrect = Math.max(1, totalItems);
    return { duration, penaltySec, phases, minCorrect, switchAt };
 };
 
@@ -184,7 +184,7 @@ const normalizeLevels = (rawLevels: RawLevel[] = []): LevelDefinition[] => {
                : typeof level.minCorrect === "string" &&
                  !isNaN(Number(level.minCorrect))
                ? Number(level.minCorrect)
-               : Math.max(1, Math.floor(totalItems * 0.8));
+               : Math.max(1, totalItems);
 
          return {
             duration,
