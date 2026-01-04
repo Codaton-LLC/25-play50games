@@ -1,6 +1,12 @@
 "use client";
 
-import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import React, {
+   useState,
+   useEffect,
+   useCallback,
+   useRef,
+   useMemo,
+} from "react";
 import {
    CheckCircleIcon,
    XCircleIcon,
@@ -87,12 +93,17 @@ const makeLevel = (
    phases: LevelPhase[],
    switchAt?: number
 ): LevelDefinition => {
-   const totalItems = phases.reduce((sum, phase) => sum + phase.items.length, 0);
+   const totalItems = phases.reduce(
+      (sum, phase) => sum + phase.items.length,
+      0
+   );
    const minCorrect = Math.max(1, Math.floor(totalItems * 0.8));
    return { duration, penaltySec, phases, minCorrect, switchAt };
 };
 
-const normalizeCategories = (categories: RawCategory[] = []): LevelCategory[] => {
+const normalizeCategories = (
+   categories: RawCategory[] = []
+): LevelCategory[] => {
    return categories.map((category) => ({
       id: category.id,
       label: category.label || category.id,
@@ -117,10 +128,27 @@ const buildPhaseItems = (categories: RawCategory[] = []): SortableItem[] => {
 const normalizeLevels = (rawLevels: RawLevel[] = []): LevelDefinition[] => {
    const normalized = rawLevels
       .map((level) => {
-         const duration = typeof level.duration === "number" ? level.duration : 45;
-         const penaltySec = typeof level.penaltySec === "number" ? level.penaltySec : 0;
+         const duration =
+            typeof level.duration === "number"
+               ? level.duration
+               : typeof level.duration === "string" &&
+                 !isNaN(Number(level.duration))
+               ? Number(level.duration)
+               : 45;
+         const penaltySec =
+            typeof level.penaltySec === "number"
+               ? level.penaltySec
+               : typeof level.penaltySec === "string" &&
+                 !isNaN(Number(level.penaltySec))
+               ? Number(level.penaltySec)
+               : 0;
          const switchAt =
-            typeof level.switchAt === "number" ? level.switchAt : undefined;
+            typeof level.switchAt === "number"
+               ? level.switchAt
+               : typeof level.switchAt === "string" &&
+                 !isNaN(Number(level.switchAt))
+               ? Number(level.switchAt)
+               : undefined;
 
          const phasesSource =
             level.phases && level.phases.length > 0
@@ -129,23 +157,33 @@ const normalizeLevels = (rawLevels: RawLevel[] = []): LevelDefinition[] => {
 
          const phases: LevelPhase[] = phasesSource
             .map((phase) => {
-               const phaseCategories = normalizeCategories(phase.categories || []);
+               const phaseCategories = normalizeCategories(
+                  phase.categories || []
+               );
                const phaseItems = buildPhaseItems(phase.categories || []);
                return {
                   categories: phaseCategories,
                   items: phaseItems,
                };
             })
-            .filter((phase) => phase.categories.length > 0 && phase.items.length > 0);
+            .filter(
+               (phase) => phase.categories.length > 0 && phase.items.length > 0
+            );
 
          if (phases.length === 0) {
             return null;
          }
 
-         const totalItems = phases.reduce((sum, phase) => sum + phase.items.length, 0);
+         const totalItems = phases.reduce(
+            (sum, phase) => sum + phase.items.length,
+            0
+         );
          const minCorrect =
             typeof level.minCorrect === "number"
                ? level.minCorrect
+               : typeof level.minCorrect === "string" &&
+                 !isNaN(Number(level.minCorrect))
+               ? Number(level.minCorrect)
                : Math.max(1, Math.floor(totalItems * 0.8));
 
          return {
@@ -162,198 +200,190 @@ const normalizeLevels = (rawLevels: RawLevel[] = []): LevelDefinition[] => {
 };
 
 const LEVEL_DEFS: LevelDefinition[] = [
-   makeLevel(
-      45,
-      0,
-      [
-         {
-            categories: [
-               { id: "red", label: "Red", color: "rgba(239, 68, 68, 0.25)" },
-               { id: "blue", label: "Blue", color: "rgba(59, 130, 246, 0.25)" },
-            ],
-            items: [
-               ...makeItems("red", ["🔴", "🟥", "❤️", "🍎"]),
-               ...makeItems("blue", ["🔵", "🟦", "💙", "🧊"]),
-            ],
-         },
-      ]
-   ),
-   makeLevel(
-      45,
-      0,
-      [
-         {
-            categories: [
-               { id: "circle", label: "Circle", color: "rgba(148, 163, 184, 0.25)" },
-               { id: "square", label: "Square", color: "rgba(203, 213, 225, 0.25)" },
-            ],
-            items: [
-               ...makeItems("circle", ["⚪", "⚫", "🔘", "⭕"]),
-               ...makeItems("square", ["⬜", "⬛", "◻️", "◼️"]),
-            ],
-         },
-      ]
-   ),
-   makeLevel(
-      40,
-      0,
-      [
-         {
-            categories: [
-               { id: "big", label: "Big", color: "rgba(34, 197, 94, 0.22)" },
-               { id: "small", label: "Small", color: "rgba(168, 85, 247, 0.22)" },
-            ],
-            items: [
-               ...makeItems("big", ["🐘", "🚌", "🏠", "🐋"]),
-               ...makeItems("small", ["🐭", "🐜", "🍬", "🧸"]),
-            ],
-         },
-      ]
-   ),
-   makeLevel(
-      40,
-      0,
-      [
-         {
-            categories: [
-               { id: "fruits", label: "Fruits", color: "rgba(234, 88, 12, 0.25)" },
-               { id: "animals", label: "Animals", color: "rgba(59, 130, 246, 0.25)" },
-            ],
-            items: [
-               ...makeItems("fruits", ["🍎", "🍌", "🍇", "🍉"]),
-               ...makeItems("animals", ["🐶", "🐱", "🐵", "🐯"]),
-            ],
-         },
-      ]
-   ),
-   makeLevel(
-      35,
-      0,
-      [
-         {
-            categories: [
-               { id: "tools", label: "Tools", color: "rgba(148, 163, 184, 0.25)" },
-               { id: "vehicles", label: "Vehicles", color: "rgba(59, 130, 246, 0.25)" },
-            ],
-            items: [
-               ...makeItems("tools", ["🔧", "🔨", "🧰", "🪛"]),
-               ...makeItems("vehicles", ["🚗", "🚕", "🚲", "🚁"]),
-            ],
-         },
-      ]
-   ),
-   makeLevel(
-      35,
-      0,
-      [
-         {
-            categories: [
-               { id: "food", label: "Food", color: "rgba(245, 158, 11, 0.25)" },
-               { id: "drinks", label: "Drinks", color: "rgba(14, 165, 233, 0.25)" },
-            ],
-            items: [
-               ...makeItems("food", ["🍔", "🍕", "🍟", "🌮"]),
-               ...makeItems("drinks", ["🥤", "🧃", "☕", "🥛"]),
-            ],
-         },
-      ]
-   ),
-   makeLevel(
-      35,
-      0,
-      [
-         {
-            categories: [
-               { id: "living", label: "Living", color: "rgba(34, 197, 94, 0.2)" },
-               { id: "nonliving", label: "Non-living", color: "rgba(100, 116, 139, 0.25)" },
-            ],
-            items: [
-               ...makeItems("living", ["🐶", "🐦", "🌳", "🐟"]),
-               ...makeItems("nonliving", ["🪑", "📱", "🚗", "🧱"]),
-            ],
-         },
-      ]
-   ),
-   makeLevel(
-      30,
-      0,
-      [
-         {
-            categories: [
-               { id: "indoor", label: "Indoor", color: "rgba(59, 130, 246, 0.2)" },
-               { id: "outdoor", label: "Outdoor", color: "rgba(234, 179, 8, 0.2)" },
-            ],
-            items: [
-               ...makeItems("indoor", ["🛋️", "🛏️", "🚿", "🧴"]),
-               ...makeItems("outdoor", ["🌳", "🏕️", "🏔️", "🏖️"]),
-            ],
-         },
-      ]
-   ),
-   makeLevel(
-      30,
-      0,
-      [
-         {
-            categories: [
-               { id: "natural", label: "Natural", color: "rgba(34, 197, 94, 0.2)" },
-               { id: "manmade", label: "Man-made", color: "rgba(94, 234, 212, 0.2)" },
-            ],
-            items: [
-               ...makeItems("natural", ["🌋", "🌊", "🌲", "🪨"]),
-               ...makeItems("manmade", ["🏭", "🏢", "🛣️", "🧱"]),
-            ],
-         },
-      ]
-   ),
-   makeLevel(
-      28,
-      2,
-      [
-         {
-            categories: [
-               { id: "safe", label: "Safe", color: "rgba(34, 197, 94, 0.2)" },
-               { id: "danger", label: "Dangerous", color: "rgba(239, 68, 68, 0.2)" },
-            ],
-            items: [
-               ...makeItems("safe", ["🪖", "🧯", "🦺", "🛟"]),
-               ...makeItems("danger", ["🔥", "⚡", "🗡️", "☣️"]),
-            ],
-         },
-      ]
-   ),
-   makeLevel(
-      26,
-      2,
-      [
-         {
-            categories: [
-               { id: "before", label: "Before", color: "rgba(59, 130, 246, 0.2)" },
-               { id: "after", label: "After", color: "rgba(234, 179, 8, 0.2)" },
-            ],
-            items: [
-               ...makeItems("before", ["🥚", "🌱", "🧊", "🌙"]),
-               ...makeItems("after", ["🐣", "🌳", "💧", "🌞"]),
-            ],
-         },
-      ]
-   ),
-   makeLevel(
-      24,
-      3,
-      [
-         {
-            categories: [
-               { id: "cause", label: "Cause", color: "rgba(248, 113, 113, 0.2)" },
-               { id: "effect", label: "Effect", color: "rgba(59, 130, 246, 0.2)" },
-            ],
-            items: [
-               ...makeItems("cause", ["⚡", "🌧️", "🔥", "🥶"]),
-               ...makeItems("effect", ["💡", "🌈", "💧", "🧊"]),
-            ],
-         },
-      ]
-   ),
+   makeLevel(45, 0, [
+      {
+         categories: [
+            { id: "red", label: "Red", color: "rgba(239, 68, 68, 0.25)" },
+            { id: "blue", label: "Blue", color: "rgba(59, 130, 246, 0.25)" },
+         ],
+         items: [
+            ...makeItems("red", ["🔴", "🟥", "❤️", "🍎"]),
+            ...makeItems("blue", ["🔵", "🟦", "💙", "🧊"]),
+         ],
+      },
+   ]),
+   makeLevel(45, 0, [
+      {
+         categories: [
+            {
+               id: "circle",
+               label: "Circle",
+               color: "rgba(148, 163, 184, 0.25)",
+            },
+            {
+               id: "square",
+               label: "Square",
+               color: "rgba(203, 213, 225, 0.25)",
+            },
+         ],
+         items: [
+            ...makeItems("circle", ["⚪", "⚫", "🔘", "⭕"]),
+            ...makeItems("square", ["⬜", "⬛", "◻️", "◼️"]),
+         ],
+      },
+   ]),
+   makeLevel(40, 0, [
+      {
+         categories: [
+            { id: "big", label: "Big", color: "rgba(34, 197, 94, 0.22)" },
+            { id: "small", label: "Small", color: "rgba(168, 85, 247, 0.22)" },
+         ],
+         items: [
+            ...makeItems("big", ["🐘", "🚌", "🏠", "🐋"]),
+            ...makeItems("small", ["🐭", "🐜", "🍬", "🧸"]),
+         ],
+      },
+   ]),
+   makeLevel(40, 0, [
+      {
+         categories: [
+            { id: "fruits", label: "Fruits", color: "rgba(234, 88, 12, 0.25)" },
+            {
+               id: "animals",
+               label: "Animals",
+               color: "rgba(59, 130, 246, 0.25)",
+            },
+         ],
+         items: [
+            ...makeItems("fruits", ["🍎", "🍌", "🍇", "🍉"]),
+            ...makeItems("animals", ["🐶", "🐱", "🐵", "🐯"]),
+         ],
+      },
+   ]),
+   makeLevel(35, 0, [
+      {
+         categories: [
+            { id: "tools", label: "Tools", color: "rgba(148, 163, 184, 0.25)" },
+            {
+               id: "vehicles",
+               label: "Vehicles",
+               color: "rgba(59, 130, 246, 0.25)",
+            },
+         ],
+         items: [
+            ...makeItems("tools", ["🔧", "🔨", "🧰", "🪛"]),
+            ...makeItems("vehicles", ["🚗", "🚕", "🚲", "🚁"]),
+         ],
+      },
+   ]),
+   makeLevel(35, 0, [
+      {
+         categories: [
+            { id: "food", label: "Food", color: "rgba(245, 158, 11, 0.25)" },
+            {
+               id: "drinks",
+               label: "Drinks",
+               color: "rgba(14, 165, 233, 0.25)",
+            },
+         ],
+         items: [
+            ...makeItems("food", ["🍔", "🍕", "🍟", "🌮"]),
+            ...makeItems("drinks", ["🥤", "🧃", "☕", "🥛"]),
+         ],
+      },
+   ]),
+   makeLevel(35, 0, [
+      {
+         categories: [
+            { id: "living", label: "Living", color: "rgba(34, 197, 94, 0.2)" },
+            {
+               id: "nonliving",
+               label: "Non-living",
+               color: "rgba(100, 116, 139, 0.25)",
+            },
+         ],
+         items: [
+            ...makeItems("living", ["🐶", "🐦", "🌳", "🐟"]),
+            ...makeItems("nonliving", ["🪑", "📱", "🚗", "🧱"]),
+         ],
+      },
+   ]),
+   makeLevel(30, 0, [
+      {
+         categories: [
+            { id: "indoor", label: "Indoor", color: "rgba(59, 130, 246, 0.2)" },
+            {
+               id: "outdoor",
+               label: "Outdoor",
+               color: "rgba(234, 179, 8, 0.2)",
+            },
+         ],
+         items: [
+            ...makeItems("indoor", ["🛋️", "🛏️", "🚿", "🧴"]),
+            ...makeItems("outdoor", ["🌳", "🏕️", "🏔️", "🏖️"]),
+         ],
+      },
+   ]),
+   makeLevel(30, 0, [
+      {
+         categories: [
+            {
+               id: "natural",
+               label: "Natural",
+               color: "rgba(34, 197, 94, 0.2)",
+            },
+            {
+               id: "manmade",
+               label: "Man-made",
+               color: "rgba(94, 234, 212, 0.2)",
+            },
+         ],
+         items: [
+            ...makeItems("natural", ["🌋", "🌊", "🌲", "🪨"]),
+            ...makeItems("manmade", ["🏭", "🏢", "🛣️", "🧱"]),
+         ],
+      },
+   ]),
+   makeLevel(28, 2, [
+      {
+         categories: [
+            { id: "safe", label: "Safe", color: "rgba(34, 197, 94, 0.2)" },
+            {
+               id: "danger",
+               label: "Dangerous",
+               color: "rgba(239, 68, 68, 0.2)",
+            },
+         ],
+         items: [
+            ...makeItems("safe", ["🪖", "🧯", "🦺", "🛟"]),
+            ...makeItems("danger", ["🔥", "⚡", "🗡️", "☣️"]),
+         ],
+      },
+   ]),
+   makeLevel(26, 2, [
+      {
+         categories: [
+            { id: "before", label: "Before", color: "rgba(59, 130, 246, 0.2)" },
+            { id: "after", label: "After", color: "rgba(234, 179, 8, 0.2)" },
+         ],
+         items: [
+            ...makeItems("before", ["🥚", "🌱", "🧊", "🌙"]),
+            ...makeItems("after", ["🐣", "🌳", "💧", "🌞"]),
+         ],
+      },
+   ]),
+   makeLevel(24, 3, [
+      {
+         categories: [
+            { id: "cause", label: "Cause", color: "rgba(248, 113, 113, 0.2)" },
+            { id: "effect", label: "Effect", color: "rgba(59, 130, 246, 0.2)" },
+         ],
+         items: [
+            ...makeItems("cause", ["⚡", "🌧️", "🔥", "🥶"]),
+            ...makeItems("effect", ["💡", "🌈", "💧", "🧊"]),
+         ],
+      },
+   ]),
    makeLevel(
       24,
       3,
@@ -370,8 +400,16 @@ const LEVEL_DEFS: LevelDefinition[] = [
          },
          {
             categories: [
-               { id: "problem", label: "Problem", color: "rgba(251, 191, 36, 0.2)" },
-               { id: "solution", label: "Solution", color: "rgba(59, 130, 246, 0.2)" },
+               {
+                  id: "problem",
+                  label: "Problem",
+                  color: "rgba(251, 191, 36, 0.2)",
+               },
+               {
+                  id: "solution",
+                  label: "Solution",
+                  color: "rgba(59, 130, 246, 0.2)",
+               },
             ],
             items: [
                ...makeItems("problem", ["🔌❌", "💡❌", "🚪🔒", "🌧️"]),
@@ -387,8 +425,16 @@ const LEVEL_DEFS: LevelDefinition[] = [
       [
          {
             categories: [
-               { id: "cause", label: "Cause", color: "rgba(248, 113, 113, 0.2)" },
-               { id: "effect", label: "Effect", color: "rgba(59, 130, 246, 0.2)" },
+               {
+                  id: "cause",
+                  label: "Cause",
+                  color: "rgba(248, 113, 113, 0.2)",
+               },
+               {
+                  id: "effect",
+                  label: "Effect",
+                  color: "rgba(59, 130, 246, 0.2)",
+               },
             ],
             items: [
                ...makeItems("cause", ["🌧️", "🏃", "😴", "🔥"]),
@@ -397,7 +443,11 @@ const LEVEL_DEFS: LevelDefinition[] = [
          },
          {
             categories: [
-               { id: "before", label: "Before", color: "rgba(59, 130, 246, 0.2)" },
+               {
+                  id: "before",
+                  label: "Before",
+                  color: "rgba(59, 130, 246, 0.2)",
+               },
                { id: "after", label: "After", color: "rgba(234, 179, 8, 0.2)" },
             ],
             items: [
@@ -414,10 +464,26 @@ const LEVEL_DEFS: LevelDefinition[] = [
       [
          {
             categories: [
-               { id: "fruits", label: "Fruits", color: "rgba(234, 88, 12, 0.25)" },
-               { id: "animals", label: "Animals", color: "rgba(59, 130, 246, 0.25)" },
-               { id: "vehicles", label: "Vehicles", color: "rgba(14, 165, 233, 0.25)" },
-               { id: "tools", label: "Tools", color: "rgba(100, 116, 139, 0.25)" },
+               {
+                  id: "fruits",
+                  label: "Fruits",
+                  color: "rgba(234, 88, 12, 0.25)",
+               },
+               {
+                  id: "animals",
+                  label: "Animals",
+                  color: "rgba(59, 130, 246, 0.25)",
+               },
+               {
+                  id: "vehicles",
+                  label: "Vehicles",
+                  color: "rgba(14, 165, 233, 0.25)",
+               },
+               {
+                  id: "tools",
+                  label: "Tools",
+                  color: "rgba(100, 116, 139, 0.25)",
+               },
             ],
             items: [
                ...makeItems("fruits", ["🍎", "🍌", "🍇"]),
@@ -430,8 +496,16 @@ const LEVEL_DEFS: LevelDefinition[] = [
             categories: [
                { id: "red", label: "Red", color: "rgba(239, 68, 68, 0.25)" },
                { id: "blue", label: "Blue", color: "rgba(59, 130, 246, 0.25)" },
-               { id: "circle", label: "Circle", color: "rgba(148, 163, 184, 0.25)" },
-               { id: "square", label: "Square", color: "rgba(203, 213, 225, 0.25)" },
+               {
+                  id: "circle",
+                  label: "Circle",
+                  color: "rgba(148, 163, 184, 0.25)",
+               },
+               {
+                  id: "square",
+                  label: "Square",
+                  color: "rgba(203, 213, 225, 0.25)",
+               },
             ],
             items: [
                ...makeItems("red", ["🔴", "🟥", "❤️"]),
@@ -454,7 +528,9 @@ export default function DragAndDropSort({
 }: DragAndDropSortProps) {
    const levelDefs = useMemo(() => {
       const rawLevels = config?.levelDefinitions as RawLevel[] | undefined;
-      const normalized = Array.isArray(rawLevels) ? normalizeLevels(rawLevels) : [];
+      const normalized = Array.isArray(rawLevels)
+         ? normalizeLevels(rawLevels)
+         : [];
       return normalized.length > 0 ? normalized : LEVEL_DEFS;
    }, [config]);
 
@@ -494,10 +570,14 @@ export default function DragAndDropSort({
    const [phaseSwitchAt, setPhaseSwitchAt] = useState<number | null>(null);
    const [placedCount, setPlacedCount] = useState(0);
    const [touchDragItemId, setTouchDragItemId] = useState<string | null>(null);
-   const [touchDragPos, setTouchDragPos] = useState<{ x: number; y: number } | null>(null);
-   const [touchDragOffset, setTouchDragOffset] = useState<{ x: number; y: number } | null>(
-      null
-   );
+   const [touchDragPos, setTouchDragPos] = useState<{
+      x: number;
+      y: number;
+   } | null>(null);
+   const [touchDragOffset, setTouchDragOffset] = useState<{
+      x: number;
+      y: number;
+   } | null>(null);
 
    // Refs
    const countdownTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -537,7 +617,9 @@ export default function DragAndDropSort({
    const getPhase = useCallback(
       (level: number, phase: number) => {
          const levelConfig = getLevelConfig(level);
-         return levelConfig.phases[Math.min(phase, levelConfig.phases.length - 1)];
+         return levelConfig.phases[
+            Math.min(phase, levelConfig.phases.length - 1)
+         ];
       },
       [getLevelConfig]
    );
@@ -607,7 +689,11 @@ export default function DragAndDropSort({
          itemList.length === 0 &&
          phaseIndex === levelConfig.phases.length - 1
       ) {
-         if (correctlySorted >= levelConfig.minCorrect) {
+         const minCorrect =
+            typeof levelConfig.minCorrect === "number"
+               ? levelConfig.minCorrect
+               : Number(levelConfig.minCorrect) || 0;
+         if (correctlySorted >= minCorrect) {
             requirementsMetRef.current = true;
             setRequirementsMet(true);
             gameStateRef.current = "ready";
@@ -670,33 +756,35 @@ export default function DragAndDropSort({
 
          // Reset state
          setItemList([]);
-      setCategories([]);
-      setDraggedItem(null);
-      setCorrectlySorted(0);
-      setIncorrectlySorted(0);
-      setPhaseIndex(0);
-      setPlacedCount(0);
-      setRequirementsMet(false);
-      requirementsMetRef.current = false;
-      nextRoundClickedRef.current = false;
-      setNextRoundLocked(false);
+         setCategories([]);
+         setDraggedItem(null);
+         setCorrectlySorted(0);
+         setIncorrectlySorted(0);
+         setPhaseIndex(0);
+         setPlacedCount(0);
+         setRequirementsMet(false);
+         requirementsMetRef.current = false;
+         nextRoundClickedRef.current = false;
+         setNextRoundLocked(false);
 
-      const levelConfig = getLevelConfig(level);
-      const levelDur = levelConfig.duration;
-      setTimeLeft(levelDur);
+         const levelConfig = getLevelConfig(level);
+         const levelDur = levelConfig.duration;
+         setTimeLeft(levelDur);
 
-      const totalItems = levelConfig.phases.reduce(
-         (sum, phase) => sum + phase.items.length,
-         0
-      );
-      setTotalItemsCount(totalItems);
-      setPhaseSwitchAt(
-         levelConfig.switchAt ? Math.ceil(totalItems * levelConfig.switchAt) : null
-      );
+         const totalItems = levelConfig.phases.reduce(
+            (sum, phase) => sum + phase.items.length,
+            0
+         );
+         setTotalItemsCount(totalItems);
+         setPhaseSwitchAt(
+            levelConfig.switchAt
+               ? Math.ceil(totalItems * levelConfig.switchAt)
+               : null
+         );
 
-      // Generate items and categories for phase 0
-      const newItems = generateItems(level, 0);
-      const newCategories = generateCategories(level, 0);
+         // Generate items and categories for phase 0
+         const newItems = generateItems(level, 0);
+         const newCategories = generateCategories(level, 0);
 
          setItemList(newItems);
          setCategories(newCategories);
@@ -727,10 +815,13 @@ export default function DragAndDropSort({
    }, [startLevel]);
 
    // Handle drag start
-   const handleDragStart = useCallback((itemId: string) => {
-      if (gameState !== "playing") return;
-      setDraggedItem(itemId);
-   }, [gameState]);
+   const handleDragStart = useCallback(
+      (itemId: string) => {
+         if (gameState !== "playing") return;
+         setDraggedItem(itemId);
+      },
+      [gameState]
+   );
 
    // Handle drag over
    const handleDragOver = useCallback((e: React.DragEvent) => {
@@ -766,7 +857,9 @@ export default function DragAndDropSort({
          } else {
             setIncorrectlySorted((prev) => prev + 1);
             if (levelConfig.penaltySec > 0) {
-               setTimeLeft((prev) => Math.max(0, prev - levelConfig.penaltySec));
+               setTimeLeft((prev) =>
+                  Math.max(0, prev - levelConfig.penaltySec)
+               );
             }
          }
       },
@@ -783,18 +876,21 @@ export default function DragAndDropSort({
       [draggedItem, processDrop]
    );
 
-   const handleTouchStart = useCallback((itemId: string, e: React.TouchEvent) => {
-      const touch = e.touches[0];
-      if (!touch) return;
-      const target = e.currentTarget as HTMLDivElement;
-      const rect = target.getBoundingClientRect();
-      setTouchDragItemId(itemId);
-      setTouchDragOffset({
-         x: touch.clientX - rect.left,
-         y: touch.clientY - rect.top,
-      });
-      setTouchDragPos({ x: touch.clientX, y: touch.clientY });
-   }, []);
+   const handleTouchStart = useCallback(
+      (itemId: string, e: React.TouchEvent) => {
+         const touch = e.touches[0];
+         if (!touch) return;
+         const target = e.currentTarget as HTMLDivElement;
+         const rect = target.getBoundingClientRect();
+         setTouchDragItemId(itemId);
+         setTouchDragOffset({
+            x: touch.clientX - rect.left,
+            y: touch.clientY - rect.top,
+         });
+         setTouchDragPos({ x: touch.clientX, y: touch.clientY });
+      },
+      []
+   );
 
    const handleTouchMove = useCallback((e: React.TouchEvent) => {
       const touch = e.touches[0];
@@ -816,7 +912,12 @@ export default function DragAndDropSort({
       const hitCategory = categoryEntries.find(([, node]) => {
          if (!node) return false;
          const rect = node.getBoundingClientRect();
-         return x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom;
+         return (
+            x >= rect.left &&
+            x <= rect.right &&
+            y >= rect.top &&
+            y <= rect.bottom
+         );
       });
 
       if (hitCategory) {
@@ -830,9 +931,16 @@ export default function DragAndDropSort({
 
    // End level when time runs out
    useEffect(() => {
-      if (timeLeft === 0 && gameState === "playing" && !requirementsMetRef.current) {
+      if (
+         timeLeft === 0 &&
+         gameState === "playing" &&
+         !requirementsMetRef.current
+      ) {
          const levelConfig = getLevelConfig(currentLevel);
-         const minCorrect = levelConfig.minCorrect;
+         const minCorrect =
+            typeof levelConfig.minCorrect === "number"
+               ? levelConfig.minCorrect
+               : Number(levelConfig.minCorrect) || 0;
 
          if (
             correctlySorted >= minCorrect &&
@@ -1210,7 +1318,10 @@ export default function DragAndDropSort({
    const progressPercentage = ((currentLevel + 1) / maxLevels) * 100;
 
    const levelConfig = getLevelConfig(currentLevel);
-   const minCorrect = levelConfig.minCorrect;
+   const minCorrect =
+      typeof levelConfig.minCorrect === "number"
+         ? levelConfig.minCorrect
+         : Number(levelConfig.minCorrect) || 0;
 
    return (
       <>
@@ -1480,7 +1591,9 @@ export default function DragAndDropSort({
                                  data-item-id={item.id}
                                  draggable
                                  onDragStart={() => handleDragStart(item.id)}
-                                 onTouchStart={(e) => handleTouchStart(item.id, e)}
+                                 onTouchStart={(e) =>
+                                    handleTouchStart(item.id, e)
+                                 }
                                  onTouchMove={handleTouchMove}
                                  onTouchEnd={handleTouchEnd}
                                  onTouchCancel={handleTouchEnd}
@@ -1490,7 +1603,9 @@ export default function DragAndDropSort({
                                     alignItems: "center",
                                     justifyContent: "center",
                                     gap: "4px",
-                                    padding: isMobile ? "12px 16px" : "14px 20px",
+                                    padding: isMobile
+                                       ? "12px 16px"
+                                       : "14px 20px",
                                     background:
                                        "linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1))",
                                     border: "2px solid rgba(59, 130, 246, 0.4)",
@@ -1505,26 +1620,36 @@ export default function DragAndDropSort({
                                     touchAction: "none",
                                     zIndex: touchDragItemId === item.id ? 5 : 1,
                                     transform:
-                                       touchDragItemId === item.id && touchDragPos && touchDragOffset
+                                       touchDragItemId === item.id &&
+                                       touchDragPos &&
+                                       touchDragOffset
                                           ? "translate3d(0, 0, 0)"
                                           : undefined,
                                     left:
-                                       touchDragItemId === item.id && touchDragPos && touchDragOffset
+                                       touchDragItemId === item.id &&
+                                       touchDragPos &&
+                                       touchDragOffset
                                           ? touchDragPos.x - touchDragOffset.x
                                           : undefined,
                                     top:
-                                       touchDragItemId === item.id && touchDragPos && touchDragOffset
+                                       touchDragItemId === item.id &&
+                                       touchDragPos &&
+                                       touchDragOffset
                                           ? touchDragPos.y - touchDragOffset.y
                                           : undefined,
                                     position:
-                                       touchDragItemId === item.id ? "fixed" : "relative",
+                                       touchDragItemId === item.id
+                                          ? "fixed"
+                                          : "relative",
                                  }}
                                  onMouseEnter={(e) => {
-                                    e.currentTarget.style.transform = "scale(1.05)";
+                                    e.currentTarget.style.transform =
+                                       "scale(1.05)";
                                     e.currentTarget.style.cursor = "grabbing";
                                  }}
                                  onMouseLeave={(e) => {
-                                    e.currentTarget.style.transform = "scale(1)";
+                                    e.currentTarget.style.transform =
+                                       "scale(1)";
                                     e.currentTarget.style.cursor = "grab";
                                  }}
                               >
@@ -1576,11 +1701,14 @@ export default function DragAndDropSort({
                               cursor: "pointer",
                            }}
                            onDragEnter={(e) => {
-                              e.currentTarget.style.border = "2px dashed rgba(59, 130, 246, 0.8)";
-                              e.currentTarget.style.background = category.color.replace("0.2", "0.3");
+                              e.currentTarget.style.border =
+                                 "2px dashed rgba(59, 130, 246, 0.8)";
+                              e.currentTarget.style.background =
+                                 category.color.replace("0.2", "0.3");
                            }}
                            onDragLeave={(e) => {
-                              e.currentTarget.style.border = "2px dashed rgba(255, 255, 255, 0.3)";
+                              e.currentTarget.style.border =
+                                 "2px dashed rgba(255, 255, 255, 0.3)";
                               e.currentTarget.style.background = category.color;
                            }}
                         >
@@ -1614,7 +1742,10 @@ export default function DragAndDropSort({
                               }}
                            >
                               {category.items.map((item, index) => {
-                                 const isCorrect = isItemCorrect(item, category.id);
+                                 const isCorrect = isItemCorrect(
+                                    item,
+                                    category.id
+                                 );
                                  return (
                                     <div
                                        key={`${item.id}-${index}`}
@@ -1623,7 +1754,9 @@ export default function DragAndDropSort({
                                           alignItems: "center",
                                           justifyContent: "center",
                                           gap: "4px",
-                                          padding: isMobile ? "8px 12px" : "10px 14px",
+                                          padding: isMobile
+                                             ? "8px 12px"
+                                             : "10px 14px",
                                           background: isCorrect
                                              ? "rgba(34, 197, 94, 0.3)"
                                              : "rgba(239, 68, 68, 0.3)",
@@ -1633,7 +1766,9 @@ export default function DragAndDropSort({
                                                 : "rgba(239, 68, 68, 0.6)"
                                           }`,
                                           borderRadius: "8px",
-                                          fontSize: isMobile ? "0.9rem" : "1rem",
+                                          fontSize: isMobile
+                                             ? "0.9rem"
+                                             : "1rem",
                                           fontWeight: 600,
                                           color: "var(--text)",
                                           minWidth: isMobile ? "50px" : "60px",
@@ -1722,94 +1857,107 @@ export default function DragAndDropSort({
             )}
 
             {/* Level Failed Message */}
-            {gameState === "failed" && (() => {
-               const levelConfig = getLevelConfig(currentLevel);
-               const minCorrect = levelConfig.minCorrect;
-               const correctMet = correctlySorted >= minCorrect;
-               
-               let failureReason = "";
-               if (!correctMet) {
-                  failureReason = "Not enough items correctly sorted";
-               } else if (itemList.length > 0) {
-                  failureReason = "Time ran out before all items were sorted";
-               }
-               
-               return (
-                  <div
-                     style={{
-                        padding: isMobile ? "20px 24px" : "24px 32px",
-                        background: "var(--card)",
-                        borderRadius: "var(--radius)",
-                        color: "var(--text)",
-                        fontSize: isMobile ? "1rem" : "1.1rem",
-                        fontWeight: 700,
-                        textAlign: "center",
-                        border: "1px solid var(--border)",
-                     }}
-                  >
-                     <div style={{ marginBottom: "16px", color: "var(--warn)" }}>
-                        Level {currentLevel + 1} Failed
-                     </div>
+            {gameState === "failed" &&
+               (() => {
+                  const levelConfig = getLevelConfig(currentLevel);
+                  const minCorrect =
+                     typeof levelConfig.minCorrect === "number"
+                        ? levelConfig.minCorrect
+                        : Number(levelConfig.minCorrect) || 0;
+                  const correctMet = correctlySorted >= minCorrect;
+
+                  let failureReason = "";
+                  if (!correctMet) {
+                     failureReason = "Not enough items correctly sorted";
+                  } else if (itemList.length > 0) {
+                     failureReason =
+                        "Time ran out before all items were sorted";
+                  }
+
+                  return (
                      <div
                         style={{
-                           fontSize: isMobile ? "0.9rem" : "1rem",
-                           fontWeight: 600,
-                           marginBottom: "12px",
-                           color: "var(--warn)",
-                        }}
-                     >
-                        {failureReason}
-                     </div>
-                     <div
-                        style={{
-                           fontSize: isMobile ? "0.9rem" : "1rem",
-                           fontWeight: 400,
-                           marginBottom: "8px",
-                           color: "var(--text-secondary)",
+                           padding: isMobile ? "20px 24px" : "24px 32px",
+                           background: "var(--card)",
+                           borderRadius: "var(--radius)",
+                           color: "var(--text)",
+                           fontSize: isMobile ? "1rem" : "1.1rem",
+                           fontWeight: 700,
+                           textAlign: "center",
+                           border: "1px solid var(--border)",
                         }}
                      >
                         <div
                            style={{
-                              marginBottom: "4px",
-                              display: "flex",
-                              alignItems: "center",
-                              gap: "4px",
-                              justifyContent: "center",
+                              marginBottom: "16px",
+                              color: "var(--warn)",
                            }}
                         >
-                           <span>
-                              Correct: Need {minCorrect} | You got {correctlySorted}
-                           </span>
-                           {correctMet ? (
-                              <CheckCircleIcon
-                                 style={{
-                                    width: isMobile ? 16 : 18,
-                                    height: isMobile ? 16 : 18,
-                                    color: "var(--ok)",
-                                    flexShrink: 0,
-                                 }}
-                              />
-                           ) : (
-                              <XCircleIcon
-                                 style={{
-                                    width: isMobile ? 16 : 18,
-                                    height: isMobile ? 16 : 18,
-                                    color: "var(--warn)",
-                                    flexShrink: 0,
-                                 }}
-                              />
+                           Level {currentLevel + 1} Failed
+                        </div>
+                        <div
+                           style={{
+                              fontSize: isMobile ? "0.9rem" : "1rem",
+                              fontWeight: 600,
+                              marginBottom: "12px",
+                              color: "var(--warn)",
+                           }}
+                        >
+                           {failureReason}
+                        </div>
+                        <div
+                           style={{
+                              fontSize: isMobile ? "0.9rem" : "1rem",
+                              fontWeight: 400,
+                              marginBottom: "8px",
+                              color: "var(--text-secondary)",
+                           }}
+                        >
+                           <div
+                              style={{
+                                 marginBottom: "4px",
+                                 display: "flex",
+                                 alignItems: "center",
+                                 gap: "4px",
+                                 justifyContent: "center",
+                              }}
+                           >
+                              <span>
+                                 Correct: Need {minCorrect} | You got{" "}
+                                 {correctlySorted}
+                              </span>
+                              {correctMet ? (
+                                 <CheckCircleIcon
+                                    style={{
+                                       width: isMobile ? 16 : 18,
+                                       height: isMobile ? 16 : 18,
+                                       color: "var(--ok)",
+                                       flexShrink: 0,
+                                    }}
+                                 />
+                              ) : (
+                                 <XCircleIcon
+                                    style={{
+                                       width: isMobile ? 16 : 18,
+                                       height: isMobile ? 16 : 18,
+                                       color: "var(--warn)",
+                                       flexShrink: 0,
+                                    }}
+                                 />
+                              )}
+                           </div>
+                           {itemList.length > 0 && (
+                              <div style={{ marginTop: "8px" }}>
+                                 Items remaining: {itemList.length}
+                                 {totalItemsCount > 0
+                                    ? ` / ${totalItemsCount}`
+                                    : ""}
+                              </div>
                            )}
                         </div>
-                        {itemList.length > 0 && (
-                           <div style={{ marginTop: "8px" }}>
-                              Items remaining: {itemList.length}
-                              {totalItemsCount > 0 ? ` / ${totalItemsCount}` : ""}
-                           </div>
-                        )}
                      </div>
-                  </div>
-               );
-            })()}
+                  );
+               })()}
 
             {/* Game Complete Message */}
             {gameState === "ready" && currentLevel === maxLevels - 1 && (
@@ -1997,7 +2145,3 @@ export default function DragAndDropSort({
       </>
    );
 }
-
-
-
-

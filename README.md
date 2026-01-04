@@ -3597,6 +3597,1056 @@ Aim and hit targets with precision across 15 progressively challenging levels. M
 **Goal:**
 
 -  Move the target icon (crosshair) to aim at targets
+-  Hit targets when they are within range of the crosshair
+-  Complete all 15 levels by hitting the required number of targets
+
+**Level Progression:**
+
+-  **Levels 1-5**: Static targets, increasing minimum hits (5-13)
+-  **Levels 6-7**: Moving targets introduced
+-  **Levels 8-9**: Multiple simultaneous targets
+-  **Levels 10+**: Shrinking targets, moving targets, and multiple targets combined
+
+**Features:**
+
+-  **Moving Targets**: Targets move around the arena (levels 6+)
+-  **Multiple Targets**: Multiple targets appear simultaneously (levels 8+)
+-  **Shrinking Targets**: Targets shrink over time (levels 10+)
+-  **Progressive Difficulty**: Each level increases minimum hits and adds new challenges
+
+#### Line Tracer
+
+```json
+{
+   "gameType": "line-tracer",
+   "levels": 15,
+   "levelRequirements": [
+      {
+         "minAccuracy": 40,
+         "minProgress": 80,
+         "duration": 60,
+         "pathType": "smooth",
+         "complexity": 3,
+         "pathLength": 12
+      },
+      {
+         "minAccuracy": 45,
+         "minProgress": 82,
+         "duration": 60,
+         "pathType": "smooth",
+         "complexity": 3,
+         "pathLength": 12
+      },
+      {
+         "minAccuracy": 50,
+         "minProgress": 84,
+         "duration": 60,
+         "pathType": "smooth",
+         "complexity": 4,
+         "pathLength": 11
+      },
+      {
+         "minAccuracy": 52,
+         "minProgress": 85,
+         "duration": 62,
+         "pathType": "smooth",
+         "complexity": 4,
+         "pathLength": 11
+      },
+      {
+         "minAccuracy": 55,
+         "minProgress": 86,
+         "duration": 80,
+         "pathType": "zigzag",
+         "complexity": 5,
+         "pathLength": 10
+      },
+      {
+         "minAccuracy": 60,
+         "minProgress": 87,
+         "duration": 100,
+         "pathType": "zigzag",
+         "complexity": 5,
+         "pathLength": 10
+      },
+      {
+         "minAccuracy": 62,
+         "minProgress": 88,
+         "duration": 110,
+         "pathType": "zigzag",
+         "complexity": 6,
+         "pathLength": 9
+      },
+      {
+         "minAccuracy": 65,
+         "minProgress": 89,
+         "duration": 130,
+         "pathType": "spiral",
+         "complexity": 6,
+         "pathLength": 9
+      },
+      {
+         "minAccuracy": 65,
+         "minProgress": 90,
+         "duration": 140,
+         "pathType": "spiral",
+         "complexity": 7,
+         "pathLength": 8
+      },
+      {
+         "minAccuracy": 70,
+         "minProgress": 91,
+         "duration": 130,
+         "pathType": "circle",
+         "complexity": 7,
+         "pathLength": 8
+      },
+      {
+         "minAccuracy": 75,
+         "minProgress": 92,
+         "duration": 140,
+         "pathType": "smooth",
+         "complexity": 8,
+         "pathLength": 8
+      },
+      {
+         "minAccuracy": 75,
+         "minProgress": 93,
+         "duration": 160,
+         "pathType": "zigzag",
+         "complexity": 8,
+         "pathLength": 8
+      },
+      {
+         "minAccuracy": 80,
+         "minProgress": 94,
+         "duration": 180,
+         "pathType": "spiral",
+         "complexity": 9,
+         "pathLength": 7
+      },
+      {
+         "minAccuracy": 82,
+         "minProgress": 95,
+         "duration": 200,
+         "pathType": "circle",
+         "complexity": 9,
+         "pathLength": 7
+      },
+      {
+         "minAccuracy": 85,
+         "minProgress": 95,
+         "duration": 220,
+         "pathType": "smooth",
+         "complexity": 10,
+         "pathLength": 7
+      }
+   ]
+}
+```
+
+**Description:**
+
+Trace paths with precision across 15 progressively challenging levels. Use your mouse or touch to follow the blue line as accurately as possible. Features include different path types (smooth, zigzag, spiral, circle) and increasing accuracy requirements.
+
+**Configuration:**
+
+-  `gameType` (required): Must be `"line-tracer"`
+-  `levels` (optional): Number of levels - Default: **15**
+-  `levelRequirements` (required): Array of requirements for each level
+   -  Each level must have:
+      -  `minAccuracy`: Minimum accuracy percentage required (0-100)
+      -  `minProgress`: Minimum progress percentage required (0-100)
+      -  `duration`: Duration per level in seconds
+      -  `pathType`: Type of path - `"smooth"`, `"zigzag"`, `"spiral"`, or `"circle"`
+      -  `complexity`: Path complexity (higher = more complex curves)
+      -  `pathLength`: Path length multiplier
+
+**Level Progression:**
+
+-  **Levels 1-4**: Smooth paths, accuracy 40-52%, progress 80-85%
+-  **Levels 5-7**: Zigzag paths, accuracy 55-62%, progress 86-88%
+-  **Levels 8-9**: Spiral paths, accuracy 65%, progress 89-90%
+-  **Levels 10+**: Circle and complex paths, accuracy 70-85%, progress 91-95%
+
+**Scoring:**
+
+-  Score is calculated based on completed levels: `Math.round((completedLevels / maxLevels) * 100)`
+-  Maximum 100 points for completing all 15 levels
+
+**Controls:**
+
+-  **Mouse/Touch**: Click and drag to trace the path
+-  **Keyboard**: Not applicable (mouse/touch only)
+
+**Goal:**
+
+-  Follow the blue path as accurately as possible
+-  Meet both accuracy and progress requirements to pass each level
+-  Complete all 15 levels with increasing difficulty
+
+**Features:**
+
+-  **Path Types**: Smooth curves, zigzag patterns, spirals, and circles
+-  **Progressive Difficulty**: Accuracy and progress requirements increase each level
+-  **Visual Feedback**: Real-time accuracy and progress tracking
+-  **Path Complexity**: Higher complexity means more challenging curves
+
+#### Timing Bar
+
+```json
+{
+   "gameType": "timing-bar",
+   "levels": 15,
+   "levelRequirements": [
+      { "minStops": 3, "duration": 30, "targetZoneWidth": 20, "barSpeed": 1.2 },
+      { "minStops": 3, "duration": 30, "targetZoneWidth": 19, "barSpeed": 1.3 },
+      { "minStops": 4, "duration": 30, "targetZoneWidth": 18, "barSpeed": 1.4 },
+      { "minStops": 4, "duration": 30, "targetZoneWidth": 17, "barSpeed": 1.5 },
+      { "minStops": 4, "duration": 30, "targetZoneWidth": 16, "barSpeed": 1.6 },
+      { "minStops": 5, "duration": 30, "targetZoneWidth": 15, "barSpeed": 1.7 },
+      { "minStops": 5, "duration": 30, "targetZoneWidth": 14, "barSpeed": 1.8 },
+      { "minStops": 5, "duration": 30, "targetZoneWidth": 13, "barSpeed": 1.9 },
+      { "minStops": 6, "duration": 30, "targetZoneWidth": 12, "barSpeed": 2.0 },
+      { "minStops": 6, "duration": 30, "targetZoneWidth": 11, "barSpeed": 2.1 },
+      { "minStops": 6, "duration": 30, "targetZoneWidth": 10, "barSpeed": 2.2 },
+      { "minStops": 7, "duration": 30, "targetZoneWidth": 9, "barSpeed": 2.3 },
+      { "minStops": 7, "duration": 30, "targetZoneWidth": 9, "barSpeed": 2.4 },
+      { "minStops": 8, "duration": 30, "targetZoneWidth": 8, "barSpeed": 2.4 },
+      { "minStops": 8, "duration": 30, "targetZoneWidth": 8, "barSpeed": 2.5 }
+   ]
+}
+```
+
+**Description:**
+
+Stop the moving bar at the highlighted green zone. Test your timing and precision across 15 progressively challenging levels with increasing speed and smaller target zones.
+
+**Configuration:**
+
+-  `gameType` (required): Must be `"timing-bar"`
+-  `levels` (optional): Number of levels - Default: **15**
+-  `levelRequirements` (required): Array of requirements for each level
+   -  Each level must have:
+      -  `minStops`: Minimum number of successful stops required
+      -  `duration`: Duration per level in seconds
+      -  `targetZoneWidth`: Width of the target zone (percentage, smaller = harder)
+      -  `barSpeed`: Speed multiplier for the moving bar (higher = faster)
+
+**Level Progression:**
+
+-  **Levels 1-2**: 3 stops, target zone 20-19%, speed 1.2-1.3
+-  **Levels 3-5**: 4 stops, target zone 18-16%, speed 1.4-1.6
+-  **Levels 6-8**: 5 stops, target zone 15-13%, speed 1.7-1.9
+-  **Levels 9-11**: 6 stops, target zone 12-10%, speed 2.0-2.2
+-  **Levels 12-15**: 7-8 stops, target zone 9-8%, speed 2.3-2.5
+
+**Scoring:**
+
+-  Score is calculated based on completed levels: `Math.round((completedLevels / maxLevels) * 100)`
+-  Maximum 100 points for completing all 15 levels
+
+**Controls:**
+
+-  **Mouse**: Click when the bar is in the green zone
+-  **Keyboard**: Press **Enter** or **Space** when the bar is in the green zone
+
+**Goal:**
+
+-  Stop the moving bar when it's in the green target zone
+-  Complete the required number of successful stops within the time limit
+-  Complete all 15 levels with increasing difficulty
+
+**Features:**
+
+-  **Moving Bar**: Bar moves back and forth automatically
+-  **Target Zone**: Green highlighted zone indicates where to stop
+-  **Progressive Difficulty**: Smaller target zones and faster bar speed each level
+-  **Visual Feedback**: Immediate feedback for successful/failed stops
+
+#### Stack Blocks
+
+```json
+{
+   "gameType": "stack-blocks",
+   "levels": 15,
+   "levelRequirements": [
+      {
+         "minBlocks": 5,
+         "duration": 30,
+         "blockSpeed": 0.5,
+         "initialBlockWidth": 50,
+         "widthReduction": 2
+      },
+      {
+         "minBlocks": 5,
+         "duration": 30,
+         "blockSpeed": 0.6,
+         "initialBlockWidth": 48,
+         "widthReduction": 2
+      },
+      {
+         "minBlocks": 6,
+         "duration": 30,
+         "blockSpeed": 0.7,
+         "initialBlockWidth": 46,
+         "widthReduction": 1.9
+      },
+      {
+         "minBlocks": 6,
+         "duration": 30,
+         "blockSpeed": 0.8,
+         "initialBlockWidth": 44,
+         "widthReduction": 1.9
+      },
+      {
+         "minBlocks": 7,
+         "duration": 30,
+         "blockSpeed": 0.9,
+         "initialBlockWidth": 42,
+         "widthReduction": 1.8
+      },
+      {
+         "minBlocks": 7,
+         "duration": 30,
+         "blockSpeed": 1.0,
+         "initialBlockWidth": 40,
+         "widthReduction": 1.8
+      },
+      {
+         "minBlocks": 8,
+         "duration": 30,
+         "blockSpeed": 1.1,
+         "initialBlockWidth": 38,
+         "widthReduction": 1.7
+      },
+      {
+         "minBlocks": 8,
+         "duration": 30,
+         "blockSpeed": 1.2,
+         "initialBlockWidth": 36,
+         "widthReduction": 1.7
+      },
+      {
+         "minBlocks": 9,
+         "duration": 30,
+         "blockSpeed": 1.3,
+         "initialBlockWidth": 34,
+         "widthReduction": 1.6
+      },
+      {
+         "minBlocks": 9,
+         "duration": 30,
+         "blockSpeed": 1.4,
+         "initialBlockWidth": 32,
+         "widthReduction": 1.6
+      },
+      {
+         "minBlocks": 10,
+         "duration": 30,
+         "blockSpeed": 1.4,
+         "initialBlockWidth": 32,
+         "widthReduction": 1.5
+      },
+      {
+         "minBlocks": 10,
+         "duration": 30,
+         "blockSpeed": 1.5,
+         "initialBlockWidth": 30,
+         "widthReduction": 1.5
+      },
+      {
+         "minBlocks": 11,
+         "duration": 30,
+         "blockSpeed": 1.5,
+         "initialBlockWidth": 30,
+         "widthReduction": 1.5
+      },
+      {
+         "minBlocks": 11,
+         "duration": 30,
+         "blockSpeed": 1.5,
+         "initialBlockWidth": 30,
+         "widthReduction": 1.5
+      },
+      {
+         "minBlocks": 12,
+         "duration": 30,
+         "blockSpeed": 1.5,
+         "initialBlockWidth": 30,
+         "widthReduction": 1.5
+      }
+   ]
+}
+```
+
+**Description:**
+
+Stack blocks as evenly as possible. Click on the moving green block to place it on the stack. Align blocks as close to center as possible to pass each level. Each block placed reduces in width based on overlap with the block below.
+
+**Configuration:**
+
+-  `gameType` (required): Must be `"stack-blocks"`
+-  `levels` (optional): Number of levels - Default: **15**
+-  `levelRequirements` (required): Array of requirements for each level
+   -  Each level must have:
+      -  `minBlocks`: Minimum number of blocks to place successfully
+      -  `duration`: Duration per level in seconds
+      -  `blockSpeed`: Speed multiplier for the moving block (higher = faster)
+      -  `initialBlockWidth`: Initial width of the first block (percentage of canvas width)
+      -  `widthReduction`: Amount to reduce block width per placement (pixels)
+
+**Level Progression:**
+
+-  **Levels 1-2**: 5 blocks, speed 0.5-0.6, initial width 50-48%
+-  **Levels 3-4**: 6 blocks, speed 0.7-0.8, initial width 46-44%
+-  **Levels 5-6**: 7 blocks, speed 0.9-1.0, initial width 42-40%
+-  **Levels 7-8**: 8 blocks, speed 1.1-1.2, initial width 38-36%
+-  **Levels 9-10**: 9 blocks, speed 1.3-1.4, initial width 34-32%
+-  **Levels 11-15**: 10-12 blocks, speed 1.4-1.5, initial width 32-30%
+
+**Scoring:**
+
+-  Score is calculated based on completed levels: `Math.round((completedLevels / maxLevels) * 100)`
+-  Maximum 100 points for completing all 15 levels
+
+**Controls:**
+
+-  **Mouse**: Click on the moving block to place it
+-  **Keyboard**: Press **Enter** or **Space** to place the block
+
+**Goal:**
+
+-  Place blocks on top of each other, aligning them as closely as possible
+-  Place the minimum number of blocks required within the time limit
+-  Complete all 15 levels with increasing difficulty
+
+**Features:**
+
+-  **Overlap Logic**: Blocks reduce in width based on overlap with the block below
+-  **Perfect Snap**: Blocks snap to exact position if placed very close (within tolerance)
+-  **Progressive Difficulty**: Faster block speed and smaller initial width each level
+-  **Canvas Rendering**: Smooth animation using Canvas API and requestAnimationFrame
+
+#### Precision Drop
+
+```json
+{
+   "gameType": "precision-drop",
+   "levels": 15,
+   "levelRequirements": [
+      {
+         "drops": 1,
+         "duration": 30,
+         "targetWidth": 160,
+         "targetSpeed": 0,
+         "shakeEnabled": false,
+         "minHits": 1
+      },
+      {
+         "drops": 1,
+         "duration": 30,
+         "targetWidth": 148,
+         "targetSpeed": 0,
+         "shakeEnabled": false,
+         "minHits": 1
+      },
+      {
+         "drops": 1,
+         "duration": 30,
+         "targetWidth": 136,
+         "targetSpeed": 0,
+         "shakeEnabled": false,
+         "minHits": 1
+      },
+      {
+         "drops": 1,
+         "duration": 30,
+         "targetWidth": 124,
+         "targetSpeed": 0,
+         "shakeEnabled": false,
+         "minHits": 1
+      },
+      {
+         "drops": 3,
+         "duration": 30,
+         "targetWidth": 112,
+         "targetSpeed": 210,
+         "shakeEnabled": false,
+         "minHits": 2
+      },
+      {
+         "drops": 3,
+         "duration": 30,
+         "targetWidth": 100,
+         "targetSpeed": 228,
+         "shakeEnabled": false,
+         "minHits": 2
+      },
+      {
+         "drops": 3,
+         "duration": 30,
+         "targetWidth": 88,
+         "targetSpeed": 246,
+         "shakeEnabled": false,
+         "minHits": 2
+      },
+      {
+         "drops": 3,
+         "duration": 30,
+         "targetWidth": 76,
+         "targetSpeed": 264,
+         "shakeEnabled": false,
+         "minHits": 2
+      },
+      {
+         "drops": 3,
+         "duration": 30,
+         "targetWidth": 64,
+         "targetSpeed": 282,
+         "shakeEnabled": false,
+         "minHits": 2
+      },
+      {
+         "drops": 5,
+         "duration": 30,
+         "targetWidth": 52,
+         "targetSpeed": 300,
+         "shakeEnabled": true,
+         "minHits": 3
+      },
+      {
+         "drops": 5,
+         "duration": 30,
+         "targetWidth": 40,
+         "targetSpeed": 318,
+         "shakeEnabled": true,
+         "minHits": 3
+      },
+      {
+         "drops": 5,
+         "duration": 30,
+         "targetWidth": 32,
+         "targetSpeed": 336,
+         "shakeEnabled": true,
+         "minHits": 3
+      },
+      {
+         "drops": 5,
+         "duration": 30,
+         "targetWidth": 28,
+         "targetSpeed": 354,
+         "shakeEnabled": true,
+         "minHits": 3
+      },
+      {
+         "drops": 5,
+         "duration": 30,
+         "targetWidth": 26,
+         "targetSpeed": 372,
+         "shakeEnabled": true,
+         "minHits": 3
+      },
+      {
+         "drops": 5,
+         "duration": 30,
+         "targetWidth": 24,
+         "targetSpeed": 390,
+         "shakeEnabled": true,
+         "minHits": 3
+      }
+   ]
+}
+```
+
+**Description:**
+
+Drop object into small target area. Move the object left/right, then click to drop it. Land fully inside the target to score. Each level has multiple drops (mini levels) that must be completed.
+
+**Configuration:**
+
+-  `gameType` (required): Must be `"precision-drop"`
+-  `levels` (optional): Number of levels - Default: **15**
+-  `levelRequirements` (required): Array of requirements for each level
+   -  Each level must have:
+      -  `drops`: Number of drops (mini levels) per level
+      -  `duration`: Duration per level in seconds
+      -  `targetWidth`: Width of the target area in pixels (smaller = harder)
+      -  `targetSpeed`: Speed of target movement in px/s (0 = static, >0 = moving)
+      -  `shakeEnabled`: Whether platform shakes while object is falling (true/false)
+      -  `minHits`: Minimum number of successful hits required to pass
+
+**Level Progression:**
+
+-  **Levels 1-4**: 1 drop, static target, width 160-124px
+-  **Levels 5-9**: 3 drops, moving target, width 112-64px, speed 210-282 px/s
+-  **Levels 10-15**: 5 drops, moving target + shake, width 52-24px, speed 300-390 px/s
+
+**Scoring:**
+
+-  Score is calculated based on completed levels: `Math.round((completedLevels / maxLevels) * 100)`
+-  Maximum 100 points for completing all 15 levels
+
+**Controls:**
+
+-  **Mouse**: Move mouse left/right to position object, click to drop
+-  **Keyboard**: **Arrow Left/Right** to move, **Enter** or **Space** to drop
+
+**Goal:**
+
+-  Position the object above the target
+-  Drop it so it lands fully inside the target area
+-  Complete the minimum number of successful hits within the time limit
+-  Complete all 15 levels with increasing difficulty
+
+**Features:**
+
+-  **Multiple Drops**: Each level has multiple drops (mini levels) to complete
+-  **Moving Target**: Target moves automatically from level 5+
+-  **Platform Shake**: Platform shakes while object falls from level 10+
+-  **Progressive Difficulty**: Smaller target, faster movement, and shake effects
+-  **Physics Simulation**: Realistic gravity and falling mechanics
+
+#### Drag & Drop Sort
+
+```json
+{
+   "gameType": "drag-sort",
+   "levels": 15,
+   "levelDefinitions": [
+      {
+         "duration": 45,
+         "penaltySec": 0,
+         "minCorrect": 6,
+         "categories": [
+            {
+               "id": "red",
+               "label": "🔴",
+               "color": "rgba(239, 68, 68, 0.25)",
+               "items": ["🔴", "🟥", "❤️", "🍎"]
+            },
+            {
+               "id": "blue",
+               "label": "🔵",
+               "color": "rgba(59, 130, 246, 0.25)",
+               "items": ["🔵", "🟦", "💙", "🧊"]
+            }
+         ]
+      },
+      {
+         "duration": 45,
+         "penaltySec": 0,
+         "minCorrect": 6,
+         "categories": [
+            {
+               "id": "circle",
+               "label": "⚪",
+               "color": "rgba(148, 163, 184, 0.25)",
+               "items": ["⚪", "⚫", "🔘", "⭕"]
+            },
+            {
+               "id": "square",
+               "label": "⬜",
+               "color": "rgba(203, 213, 225, 0.25)",
+               "items": ["⬜", "⬛", "◻️", "◼️"]
+            }
+         ]
+      },
+      {
+         "duration": 40,
+         "penaltySec": 0,
+         "minCorrect": 6,
+         "categories": [
+            {
+               "id": "big",
+               "label": "🐘",
+               "color": "rgba(34, 197, 94, 0.22)",
+               "items": ["🐘", "🚌", "🏠", "🐋"]
+            },
+            {
+               "id": "small",
+               "label": "🐭",
+               "color": "rgba(168, 85, 247, 0.22)",
+               "items": ["🐭", "🐜", "🍬", "🧸"]
+            }
+         ]
+      },
+      {
+         "duration": 40,
+         "penaltySec": 0,
+         "minCorrect": 6,
+         "categories": [
+            {
+               "id": "fruits",
+               "label": "🍎",
+               "color": "rgba(234, 88, 12, 0.25)",
+               "items": ["🍎", "🍌", "🍇", "🍉"]
+            },
+            {
+               "id": "animals",
+               "label": "🐶",
+               "color": "rgba(59, 130, 246, 0.25)",
+               "items": ["🐶", "🐱", "🐵", "🐯"]
+            }
+         ]
+      },
+      {
+         "duration": 35,
+         "penaltySec": 0,
+         "minCorrect": 6,
+         "categories": [
+            {
+               "id": "tools",
+               "label": "🔧",
+               "color": "rgba(148, 163, 184, 0.25)",
+               "items": ["🔧", "🔨", "🧰", "🪛"]
+            },
+            {
+               "id": "vehicles",
+               "label": "🚗",
+               "color": "rgba(59, 130, 246, 0.25)",
+               "items": ["🚗", "🚕", "🚲", "🚁"]
+            }
+         ]
+      },
+      {
+         "duration": 35,
+         "penaltySec": 0,
+         "minCorrect": 6,
+         "categories": [
+            {
+               "id": "food",
+               "label": "🍔",
+               "color": "rgba(245, 158, 11, 0.25)",
+               "items": ["🍔", "🍕", "🍟", "🌮"]
+            },
+            {
+               "id": "drinks",
+               "label": "🥤",
+               "color": "rgba(14, 165, 233, 0.25)",
+               "items": ["🥤", "🧃", "☕", "🥛"]
+            }
+         ]
+      },
+      {
+         "duration": 35,
+         "penaltySec": 0,
+         "minCorrect": 6,
+         "categories": [
+            {
+               "id": "living",
+               "label": "🌱",
+               "color": "rgba(34, 197, 94, 0.2)",
+               "items": ["🐶", "🐦", "🌳", "🐟"]
+            },
+            {
+               "id": "nonliving",
+               "label": "⚙️",
+               "color": "rgba(100, 116, 139, 0.25)",
+               "items": ["🪑", "📱", "🚗", "🧱"]
+            }
+         ]
+      },
+      {
+         "duration": 30,
+         "penaltySec": 0,
+         "minCorrect": 6,
+         "categories": [
+            {
+               "id": "indoor",
+               "label": "🏠",
+               "color": "rgba(59, 130, 246, 0.2)",
+               "items": ["🛋️", "🛏️", "🚿", "🧴"]
+            },
+            {
+               "id": "outdoor",
+               "label": "🌤️",
+               "color": "rgba(234, 179, 8, 0.2)",
+               "items": ["🌳", "🏕️", "🏔️", "🏖️"]
+            }
+         ]
+      },
+      {
+         "duration": 30,
+         "penaltySec": 0,
+         "minCorrect": 6,
+         "categories": [
+            {
+               "id": "natural",
+               "label": "🌿",
+               "color": "rgba(34, 197, 94, 0.2)",
+               "items": ["🌋", "🌊", "🌲", "🪨"]
+            },
+            {
+               "id": "manmade",
+               "label": "🏗️",
+               "color": "rgba(94, 234, 212, 0.2)",
+               "items": ["🏭", "🏢", "🛣️", "🧱"]
+            }
+         ]
+      },
+      {
+         "duration": 28,
+         "penaltySec": 2,
+         "minCorrect": 6,
+         "categories": [
+            {
+               "id": "safe",
+               "label": "🛡️",
+               "color": "rgba(34, 197, 94, 0.2)",
+               "items": ["🪖", "🧯", "🦺", "🛟"]
+            },
+            {
+               "id": "danger",
+               "label": "⚠️",
+               "color": "rgba(239, 68, 68, 0.2)",
+               "items": ["🔥", "⚡", "🗡️", "☣️"]
+            }
+         ]
+      },
+      {
+         "duration": 26,
+         "penaltySec": 2,
+         "minCorrect": 6,
+         "categories": [
+            {
+               "id": "before",
+               "label": "⏪",
+               "color": "rgba(59, 130, 246, 0.2)",
+               "items": ["🥚", "🌱", "🧊", "🌙"]
+            },
+            {
+               "id": "after",
+               "label": "⏩",
+               "color": "rgba(234, 179, 8, 0.2)",
+               "items": ["🐣", "🌳", "💧", "🌞"]
+            }
+         ]
+      },
+      {
+         "duration": 24,
+         "penaltySec": 3,
+         "minCorrect": 6,
+         "categories": [
+            {
+               "id": "cause",
+               "label": "💥",
+               "color": "rgba(248, 113, 113, 0.2)",
+               "items": ["⚡", "🌧️", "🔥", "🥶"]
+            },
+            {
+               "id": "effect",
+               "label": "✨",
+               "color": "rgba(59, 130, 246, 0.2)",
+               "items": ["💡", "🌈", "💧", "🧊"]
+            }
+         ]
+      },
+      {
+         "duration": 24,
+         "penaltySec": 3,
+         "minCorrect": 12,
+         "switchAt": 0.5,
+         "phases": [
+            {
+               "categories": [
+                  {
+                     "id": "true",
+                     "label": "✅",
+                     "color": "rgba(34, 197, 94, 0.2)",
+                     "items": ["🐟💧", "🕊️🌤️", "🌞☀️", "🌳🌿"]
+                  },
+                  {
+                     "id": "false",
+                     "label": "❌",
+                     "color": "rgba(239, 68, 68, 0.2)",
+                     "items": ["🐟🔥", "☂️🔥", "🌙☀️", "🌵❄️"]
+                  }
+               ]
+            },
+            {
+               "categories": [
+                  {
+                     "id": "problem",
+                     "label": "❓",
+                     "color": "rgba(251, 191, 36, 0.2)",
+                     "items": ["🔌❌", "💡❌", "🚪🔒", "🌧️"]
+                  },
+                  {
+                     "id": "solution",
+                     "label": "🧠",
+                     "color": "rgba(59, 130, 246, 0.2)",
+                     "items": ["🔌✅", "💡", "🔑", "☂️"]
+                  }
+               ]
+            }
+         ]
+      },
+      {
+         "duration": 22,
+         "penaltySec": 3,
+         "minCorrect": 12,
+         "switchAt": 0.5,
+         "phases": [
+            {
+               "categories": [
+                  {
+                     "id": "cause",
+                     "label": "💥",
+                     "color": "rgba(248, 113, 113, 0.2)",
+                     "items": ["🌧️", "🏃", "😴", "🔥"]
+                  },
+                  {
+                     "id": "effect",
+                     "label": "✨",
+                     "color": "rgba(59, 130, 246, 0.2)",
+                     "items": ["💧", "💦", "😪", "💨"]
+                  }
+               ]
+            },
+            {
+               "categories": [
+                  {
+                     "id": "before",
+                     "label": "⏪",
+                     "color": "rgba(59, 130, 246, 0.2)",
+                     "items": ["🥚", "🧊", "🌑", "🌱"]
+                  },
+                  {
+                     "id": "after",
+                     "label": "⏩",
+                     "color": "rgba(234, 179, 8, 0.2)",
+                     "items": ["🐣", "💧", "🌕", "🌳"]
+                  }
+               ]
+            }
+         ]
+      },
+      {
+         "duration": 20,
+         "penaltySec": 4,
+         "minCorrect": 19,
+         "switchAt": 0.5,
+         "phases": [
+            {
+               "categories": [
+                  {
+                     "id": "fruits",
+                     "label": "🍎",
+                     "color": "rgba(234, 88, 12, 0.25)",
+                     "items": ["🍎", "🍌", "🍇"]
+                  },
+                  {
+                     "id": "animals",
+                     "label": "🐶",
+                     "color": "rgba(59, 130, 246, 0.25)",
+                     "items": ["🐶", "🐱", "🐵"]
+                  },
+                  {
+                     "id": "vehicles",
+                     "label": "🚗",
+                     "color": "rgba(14, 165, 233, 0.25)",
+                     "items": ["🚗", "🚌", "🚲"]
+                  },
+                  {
+                     "id": "tools",
+                     "label": "🛠️",
+                     "color": "rgba(100, 116, 139, 0.25)",
+                     "items": ["🔧", "🔨", "🪛"]
+                  }
+               ]
+            },
+            {
+               "categories": [
+                  {
+                     "id": "red",
+                     "label": "🔴",
+                     "color": "rgba(239, 68, 68, 0.25)",
+                     "items": ["🔴", "🟥", "❤️"]
+                  },
+                  {
+                     "id": "blue",
+                     "label": "🔵",
+                     "color": "rgba(59, 130, 246, 0.25)",
+                     "items": ["🔵", "🟦", "💙"]
+                  },
+                  {
+                     "id": "circle",
+                     "label": "⚪",
+                     "color": "rgba(148, 163, 184, 0.25)",
+                     "items": ["⚪", "⚫", "⭕"]
+                  },
+                  {
+                     "id": "square",
+                     "label": "⬜",
+                     "color": "rgba(203, 213, 225, 0.25)",
+                     "items": ["⬜", "⬛", "◻️"]
+                  }
+               ]
+            }
+         ]
+      }
+   ]
+}
+```
+
+**Description:**
+
+Sort emoji items into the matching categories. Levels progress from simple visuals to real-world groups and logic, with faster timers later. Each level has different categories and items. Some levels have multiple phases that switch mid-level.
+
+**Configuration:**
+
+-  `gameType` (required): Must be `"drag-sort"`
+-  `levels` (optional): Number of levels - Default: **15**
+-  `levelDefinitions` (required): Array of level definitions
+   -  Each level must have:
+      -  `duration`: Duration per level in seconds
+      -  `penaltySec`: Time penalty in seconds for incorrect drops (0 = no penalty)
+      -  `minCorrect`: Minimum number of correctly sorted items required
+      -  `categories`: Array of category objects
+         -  Each category has:
+            -  `id`: Unique category identifier
+            -  `label`: Display label (emoji or text)
+            -  `color`: Background color (RGBA)
+            -  `items`: Array of emoji items that belong to this category
+      -  `switchAt` (optional): Fraction (0-1) indicating when to switch phases (e.g., 0.5 = switch at 50% items placed)
+      -  `phases` (optional): Array of phase objects for multi-phase levels
+         -  Each phase has `categories` array
+
+**Level Progression:**
+
+-  **Levels 1-2**: Simple visual categories (Red/Blue, Circle/Square), 45s, no penalty
+-  **Levels 3-4**: Size-based (Big/Small), real-world (Fruits/Animals), 40s
+-  **Levels 5-6**: Tools/Vehicles, Food/Drinks, 35s
+-  **Levels 7-9**: Conceptual (Living/Non-living, Indoor/Outdoor, Natural/Man-made), 30-35s
+-  **Levels 10-11**: Logic-based (Safe/Danger, Before/After), 26-28s, 2s penalty
+-  **Levels 12-13**: Cause/Effect, True/False, Problem/Solution, 24s, 3s penalty, multi-phase
+-  **Levels 14-15**: Complex multi-phase with 4 categories, 20-22s, 3-4s penalty
+
+**Scoring:**
+
+-  Score is calculated based on completed levels: `Math.round((completedLevels / maxLevels) * 100)`
+-  Maximum 100 points for completing all 15 levels
+
+**Controls:**
+
+-  **Mouse/Touch**: Click and drag items from center area, drop into category boxes
+
+**Goal:**
+
+-  Drag items from the center into their correct category boxes
+-  Correct drops: Item moves to category and turns green
+-  Wrong drops: Item stays in center, flashes red, and may incur time penalty
+-  Complete the minimum number of correct sorts within the time limit
+-  Complete all 15 levels with increasing difficulty
+
+**Features:**
+
+-  **Multiple Phases**: Some levels switch categories mid-level (levels 13-15)
+-  **Time Penalties**: Incorrect drops reduce time remaining (levels 10+)
+-  **Visual Feedback**: Correct items turn green, incorrect items flash red
+-  **Progressive Difficulty**: Faster timers, more categories, and logic-based sorting
+-  **Emoji-based**: All items are emojis for visual clarity
 -  Hit targets by clicking on them or pressing Enter/Space when the target icon is near them
 -  Each level requires you to hit a minimum number of targets within the time limit
 -  Targets appear at random positions and you must hit them before they disappear
@@ -3917,6 +4967,11 @@ src/
 
 -  Ball Balance
 -  Target Aim
+-  Line Tracer
+-  Timing Bar
+-  Stack Blocks
+-  Precision Drop
+-  Drag & Drop Sort
 
 ## Environment Variables
 
