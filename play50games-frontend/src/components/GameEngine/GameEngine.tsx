@@ -3772,6 +3772,251 @@ export default function GameEngine({
                   </div>
                )}
 
+               {gameType === "precision-drop" && (
+                  <div
+                     style={{
+                        background:
+                           "linear-gradient(135deg, rgba(125, 211, 252, 0.1) 0%, rgba(54, 211, 153, 0.1) 100%)",
+                        border: "2px solid var(--stroke)",
+                        borderRadius: isMobile
+                           ? "16px"
+                           : isTablet
+                           ? "18px"
+                           : "20px",
+                        padding: isMobile ? "20px" : isTablet ? "24px" : "32px",
+                        marginTop: isMobile ? "16px" : "24px",
+                        boxShadow: "0 8px 24px rgba(0, 0, 0, 0.2)",
+                     }}
+                  >
+                     <div
+                        style={{
+                           display: "flex",
+                           alignItems: "center",
+                           justifyContent: "center",
+                           gap: isMobile ? "8px" : "12px",
+                           marginBottom: isMobile
+                              ? "16px"
+                              : isTablet
+                              ? "20px"
+                              : "24px",
+                        }}
+                     >
+                        <ArrowDownIcon
+                           style={{
+                              width: isMobile ? 24 : isTablet ? 26 : 28,
+                              height: isMobile ? 24 : isTablet ? 26 : 28,
+                              color: "var(--accent)",
+                           }}
+                        />
+                        <h3
+                           style={{
+                              fontSize: isMobile
+                                 ? "20px"
+                                 : isTablet
+                                 ? "22px"
+                                 : "24px",
+                              fontWeight: 700,
+                              margin: 0,
+                              background:
+                                 "linear-gradient(135deg, var(--accent) 0%, var(--ok) 100%)",
+                              WebkitBackgroundClip: "text",
+                              WebkitTextFillColor: "transparent",
+                              backgroundClip: "text",
+                           }}
+                        >
+                           Example Round
+                        </h3>
+                     </div>
+
+                     <div
+                        style={{
+                           background: "var(--card)",
+                           border: "2px solid var(--stroke)",
+                           borderRadius: "16px",
+                           padding: isMobile ? "16px" : "24px",
+                           marginBottom: "20px",
+                        }}
+                     >
+                        <p
+                           style={{
+                              margin: "0 0 16px",
+                              color: "var(--text)",
+                              fontSize: isMobile ? "14px" : "16px",
+                              fontWeight: 600,
+                              textAlign: "center",
+                           }}
+                        >
+                           Move the object left/right, then click or press <strong>Enter</strong> / <strong>Space</strong> to drop it into the target:
+                        </p>
+
+                        {/* Example Arena */}
+                        <div
+                           style={{
+                              position: "relative",
+                              width: "100%",
+                              height: isMobile ? "200px" : "250px",
+                              borderRadius: "var(--radius)",
+                              border: "1px solid var(--border)",
+                              background:
+                                 "radial-gradient(320px 220px at 30% 30%, rgba(59, 130, 246, 0.1), transparent 55%), linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02))",
+                              boxShadow: "0 10px 18px rgba(0, 0, 0, 0.22)",
+                              marginBottom: "16px",
+                              overflow: "hidden",
+                              display: "flex",
+                              flexDirection: "column",
+                              justifyContent: "flex-end",
+                              alignItems: "center",
+                           }}
+                        >
+                           {/* Example Target */}
+                           <div
+                              style={{
+                                 position: "absolute",
+                                 bottom: "64px",
+                                 left: "50%",
+                                 transform: "translateX(-50%)",
+                                 width: "80px",
+                                 height: "14px",
+                                 background: "rgba(54,211,153,.22)",
+                                 border: "2px solid rgba(54,211,153,.65)",
+                                 borderRadius: "2px",
+                              }}
+                           />
+
+                           {/* Example Object */}
+                           <div
+                              style={{
+                                 position: "absolute",
+                                 top: "70px",
+                                 left: "50%",
+                                 transform: "translateX(-50%)",
+                                 width: "28px",
+                                 height: "28px",
+                                 borderRadius: "50%",
+                                 background: "rgba(110,168,255,.85)",
+                                 border: "2px solid rgba(255,255,255,.14)",
+                                 boxShadow: "0 0 0 4px rgba(110,168,255,.25)",
+                              }}
+                           />
+
+                           {/* Example Guide Line */}
+                           <div
+                              style={{
+                                 position: "absolute",
+                                 top: "98px",
+                                 left: "50%",
+                                 transform: "translateX(-50%)",
+                                 width: "2px",
+                                 height: "calc(100% - 98px - 64px)",
+                                 background: "rgba(110,168,255,.25)",
+                              }}
+                           />
+                        </div>
+
+                        <div
+                           style={{
+                              display: "flex",
+                              gap: "12px",
+                              justifyContent: "center",
+                              marginBottom: "12px",
+                              flexWrap: "wrap",
+                           }}
+                        >
+                           <div
+                              style={{
+                                 display: "flex",
+                                 alignItems: "center",
+                                 gap: "8px",
+                                 padding: "8px 12px",
+                                 background: "rgba(110, 168, 255, 0.1)",
+                                 borderRadius: "8px",
+                                 border: "1px solid rgba(110, 168, 255, 0.3)",
+                              }}
+                           >
+                              <div
+                                 style={{
+                                    width: "28px",
+                                    height: "28px",
+                                    borderRadius: "50%",
+                                    background: "rgba(110,168,255,.85)",
+                                 }}
+                              />
+                              <span
+                                 style={{
+                                    fontSize: isMobile ? "12px" : "13px",
+                                    color: "var(--text)",
+                                    fontWeight: 600,
+                                 }}
+                              >
+                                 Object (move & drop)
+                              </span>
+                           </div>
+                           <div
+                              style={{
+                                 display: "flex",
+                                 alignItems: "center",
+                                 gap: "8px",
+                                 padding: "8px 12px",
+                                 background: "rgba(54, 211, 153, 0.1)",
+                                 borderRadius: "8px",
+                                 border: "1px solid rgba(54, 211, 153, 0.3)",
+                              }}
+                           >
+                              <div
+                                 style={{
+                                    width: "80px",
+                                    height: "14px",
+                                    borderRadius: "2px",
+                                    background: "rgba(54,211,153,.22)",
+                                    border: "2px solid rgba(54,211,153,.65)",
+                                 }}
+                              />
+                              <span
+                                 style={{
+                                    fontSize: isMobile ? "12px" : "13px",
+                                    color: "var(--text)",
+                                    fontWeight: 600,
+                                 }}
+                              >
+                                 Target Zone
+                              </span>
+                           </div>
+                        </div>
+                        <div
+                           style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "8px",
+                              padding: "8px 12px",
+                              background: "rgba(125, 211, 252, 0.1)",
+                              borderRadius: "8px",
+                              border: "1px solid rgba(125, 211, 252, 0.3)",
+                              marginTop: "8px",
+                              width: "100%",
+                              justifyContent: "center",
+                           }}
+                        >
+                           <KeyIcon
+                              style={{
+                                 width: isMobile ? 16 : 18,
+                                 height: isMobile ? 16 : 18,
+                                 color: "var(--accent)",
+                              }}
+                           />
+                           <span
+                              style={{
+                                 fontSize: isMobile ? "12px" : "13px",
+                                 color: "var(--text)",
+                                 fontWeight: 600,
+                              }}
+                           >
+                              Keyboard: <strong>Arrow Left/Right</strong> to move, <strong>Enter/Space</strong> to drop
+                           </span>
+                        </div>
+                     </div>
+                  </div>
+               )}
+
                {gameType === "target-aim" && (
                   <div
                      style={{

@@ -16,7 +16,7 @@ import {
    getShareStatus,
 } from "@/lib/api/share";
 
-interface StackBlocksProps {
+interface PrecisionDropProps {
    config: Record<string, any>;
    onScoreUpdate: (score: number) => void;
    onComplete: (finalScore?: number) => void;
@@ -24,19 +24,27 @@ interface StackBlocksProps {
    passingScore?: number;
 }
 
-interface Block {
-   x: number; // pixel position from left
-   w: number; // width in pixels
-   y: number; // y position from top
+interface ObjectState {
+   x: number;
+   y: number;
+   vy: number;
+   state: "aim" | "fall" | "land";
 }
 
-export default function StackBlocks({
+interface TargetState {
+   x: number;
+   w: number;
+   y: number;
+   h: number;
+}
+
+export default function PrecisionDrop({
    config,
    onScoreUpdate,
    onComplete,
    isPlaying,
    passingScore = 70,
-}: StackBlocksProps) {
+}: PrecisionDropProps) {
    const defaultLevelDuration = 30; // seconds per level
    const levelRequirements = config?.levelRequirements || null;
    const configuredLevels = config?.levels ? Number(config.levels) : 0;
@@ -44,6 +52,14 @@ export default function StackBlocks({
       ? levelRequirements.length
       : 0;
    const maxLevels = Math.max(configuredLevels, requirementsCount) || 15;
+
+   // Constants from HTML
+   const OBJ_R = 14; // object radius
+   const GRAVITY = 1400; // px/s^2
+   const FLOOR_PAD = 64;
+   const TARGET_MARGIN = 20;
+   const SHAKE_AMPLITUDE = 6; // px
+   const SHAKE_FREQ = 22; // Hz
 
    // Get duration for current level
    const getLevelDuration = useCallback(
@@ -56,52 +72,74 @@ export default function StackBlocks({
       [levelRequirements, defaultLevelDuration]
    );
 
-   // Get minimum blocks to place for current level
-   const getMinBlocks = useCallback(
+   // Get number of drops (mini levels) for current level
+   const getDropsForLevel = useCallback(
       (level: number) => {
          if (levelRequirements && levelRequirements[level]) {
-            return levelRequirements[level].minBlocks || 5;
+            return levelRequirements[level].drops || 1;
          }
-         // Progressive difficulty: 5 at level 1, 12 at level 15
-         return 5 + Math.floor((level / maxLevels) * 7);
+         // Progressive: 1 drop at level 1, 3 at level 5, 5 at level 10+
+         if (level < 5) return 1;
+         if (level < 10) return 3;
+         return 5;
       },
-      [levelRequirements, maxLevels]
+      [levelRequirements]
    );
 
-   // Get block speed for current level (higher = harder)
-   const getBlockSpeed = useCallback(
+   // Get target width for current level (smaller = harder)
+   const getTargetWidth = useCallback(
       (level: number) => {
          if (levelRequirements && levelRequirements[level]) {
-            return levelRequirements[level].blockSpeed || 0.5;
+            return levelRequirements[level].targetWidth || 100;
          }
-         // Progressive difficulty: 0.5 at level 1, 1.5 at level 15
-         return 0.5 + (level / maxLevels) * 1.0;
+         // Progressive: starts at 160px, decreases by 12px per level, min 24px
+         const canvas = canvasRef.current;
+         if (!canvas) return 100;
+         const dpr = Math.max(1, window.devicePixelRatio || 1);
+         const w = canvas.width / dpr;
+         const minW = 24;
+         const maxW = Math.min(160, w * 0.35);
+         return Math.max(minW, maxW - (level * 12));
       },
-      [levelRequirements, maxLevels]
+      [levelRequirements]
    );
 
-   // Get initial block width for current level (smaller = harder)
-   const getInitialBlockWidth = useCallback(
+   // Get target speed for current level (0 = static, >0 = moving)
+   const getTargetSpeed = useCallback(
       (level: number) => {
          if (levelRequirements && levelRequirements[level]) {
-            return levelRequirements[level].initialBlockWidth || 50;
+            return levelRequirements[level].targetSpeed || 0;
          }
-         // Progressive difficulty: 50% at level 1, 30% at level 15
-         return Math.max(30, 50 - Math.floor((level / maxLevels) * 20));
+         // Progressive: static until level 5, then moving
+         if (level < 5) return 0;
+         return 120 + level * 18; // px/s
       },
-      [levelRequirements, maxLevels]
+      [levelRequirements]
    );
 
-   // Get block width reduction per placement
-   const getWidthReduction = useCallback(
+   // Check if shake is enabled for current level
+   const getShakeEnabled = useCallback(
       (level: number) => {
          if (levelRequirements && levelRequirements[level]) {
-            return levelRequirements[level].widthReduction || 2;
+            return levelRequirements[level].shakeEnabled || false;
          }
-         // Progressive difficulty: 2% at level 1, 1.5% at level 15
-         return Math.max(1.5, 2 - (level / maxLevels) * 0.5);
+         // Shake enabled from level 10+
+         return level >= 10;
       },
-      [levelRequirements, maxLevels]
+      [levelRequirements]
+   );
+
+   // Get minimum hits required for current level
+   const getMinHits = useCallback(
+      (level: number) => {
+         if (levelRequirements && levelRequirements[level]) {
+            return levelRequirements[level].minHits || 1;
+         }
+         // Progressive: need at least 1 hit at level 1, more at higher levels
+         const drops = getDropsForLevel(level);
+         return Math.max(1, Math.floor(drops * 0.6)); // 60% of drops
+      },
+      [levelRequirements, getDropsForLevel]
    );
 
    // Get level config
@@ -109,18 +147,20 @@ export default function StackBlocks({
       (level: number) => {
          return {
             duration: getLevelDuration(level),
-            minBlocks: getMinBlocks(level),
-            blockSpeed: getBlockSpeed(level),
-            initialBlockWidth: getInitialBlockWidth(level),
-            widthReduction: getWidthReduction(level),
+            drops: getDropsForLevel(level),
+            targetWidth: getTargetWidth(level),
+            targetSpeed: getTargetSpeed(level),
+            shakeEnabled: getShakeEnabled(level),
+            minHits: getMinHits(level),
          };
       },
       [
          getLevelDuration,
-         getMinBlocks,
-         getBlockSpeed,
-         getInitialBlockWidth,
-         getWidthReduction,
+         getDropsForLevel,
+         getTargetWidth,
+         getTargetSpeed,
+         getShakeEnabled,
+         getMinHits,
       ]
    );
 
@@ -137,52 +177,18 @@ export default function StackBlocks({
    const [isTablet, setIsTablet] = useState(false);
 
    // Game state
-   const BLOCK_H = 28; // block height in pixels
-   const PERFECT_EPS = 6; // pixel tolerance for "perfect" snap
-   const TOTAL_VISIBLE_ROWS = 10;
+   const [obj, setObj] = useState<ObjectState | null>(null);
+   const [target, setTarget] = useState<TargetState | null>(null);
+   const [dropsLeft, setDropsLeft] = useState(1);
+   const [hits, setHits] = useState(0);
+   const [misses, setMisses] = useState(0);
+   const [targetVel, setTargetVel] = useState(0);
+   const [targetDir, setTargetDir] = useState<1 | -1>(1);
+   const [shakeActive, setShakeActive] = useState(false);
 
-   const [stack, setStack] = useState<Block[]>([]);
-   const [currentBlock, setCurrentBlock] = useState<{
-      x: number;
-      w: number;
-      y: number;
-      vx: number;
-   } | null>(null);
-   const stackRef = useRef<Block[]>([]);
-   const currentBlockRef = useRef<{
-      x: number;
-      w: number;
-      y: number;
-      vx: number;
-   } | null>(null);
-   const blockDirectionRef = useRef<1 | -1>(1);
-   const [blocksPlaced, setBlocksPlaced] = useState(0);
-   const [perfectSnaps, setPerfectSnaps] = useState(0);
-
+   // Refs
    const canvasRef = useRef<HTMLCanvasElement>(null);
-   const lastTimestampRef = useRef<number>(0);
-   const setBlockDirectionSafe = useCallback((direction: 1 | -1) => {
-      blockDirectionRef.current = direction;
-   }, []);
-
-   useEffect(() => {
-      stackRef.current = stack;
-   }, [stack]);
-
-   useEffect(() => {
-      currentBlockRef.current = currentBlock;
-   }, [currentBlock]);
-
-   // Replay and Share functionality
-   const [replaysUsed, setReplaysUsed] = useState(0);
-   const [hasShared, setHasShared] = useState(false);
-   const [shareSuccess, setShareSuccess] = useState(false);
-   const [unlimitedActivated, setUnlimitedActivated] = useState(false);
-   const [currentShareId, setCurrentShareId] = useState<string | null>(null);
-   const shareCheckIntervalRef = useRef<NodeJS.Timeout | null>(null);
-
-   const maxReplays = hasShared ? 0 : 5; // 0 = unlimited
-
+   const arenaRef = useRef<HTMLDivElement>(null);
    const animationFrameRef = useRef<number | null>(null);
    const countdownTimerRef = useRef<NodeJS.Timeout | null>(null);
    const gameStateRef = useRef<"playing" | "ready" | "failed" | "paused">(
@@ -195,165 +201,29 @@ export default function StackBlocks({
    const completionCalledRef = useRef(false);
    const nextRoundClickedRef = useRef(false);
    const [nextRoundLocked, setNextRoundLocked] = useState(false);
-   const arenaRef = useRef<HTMLDivElement>(null);
+   const lastTimestampRef = useRef<number>(0);
+   const objRef = useRef<ObjectState | null>(null);
+   const targetRef = useRef<TargetState | null>(null);
+   const targetVelRef = useRef(0);
+   const targetDirRef = useRef<1 | -1>(1);
+   const shakeActiveRef = useRef(false);
+   const dropsLeftRef = useRef(1);
+   const hitsRef = useRef(0);
+   const dropLockRef = useRef(false);
+   const landingHandledRef = useRef(false);
+   const targetVelBaseRef = useRef(0);
+   const targetFlashRef = useRef(false);
+   const targetPauseTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-   // Draw function (defined first so it can be used in resizeCanvas)
-   const draw = useCallback(() => {
-      const canvas = canvasRef.current;
-      if (!canvas) return;
-      const ctx = canvas.getContext("2d");
-      if (!ctx) return;
+   // Replay and Share functionality
+   const [replaysUsed, setReplaysUsed] = useState(0);
+   const [hasShared, setHasShared] = useState(false);
+   const [shareSuccess, setShareSuccess] = useState(false);
+   const [unlimitedActivated, setUnlimitedActivated] = useState(false);
+   const [currentShareId, setCurrentShareId] = useState<string | null>(null);
+   const shareCheckIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
-      // Use actual canvas dimensions
-      const dpr = Math.max(1, window.devicePixelRatio || 1);
-      const w = canvas.width / dpr;
-      const h = canvas.height / dpr;
-
-      // Clear entire canvas
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-      // Subtle grid
-      ctx.strokeStyle = "rgba(255,255,255,.04)";
-      ctx.lineWidth = 1;
-      for (let x = 0; x < w; x += 40) {
-         ctx.beginPath();
-         ctx.moveTo(x, 0);
-         ctx.lineTo(x, h);
-         ctx.stroke();
-      }
-      for (let y = 0; y < h; y += 40) {
-         ctx.beginPath();
-         ctx.moveTo(0, y);
-         ctx.lineTo(w, y);
-         ctx.stroke();
-      }
-
-      // Draw stack (last N visible rows)
-      const visibleStack = stackRef.current.slice(
-         Math.max(0, stackRef.current.length - TOTAL_VISIBLE_ROWS)
-      );
-      for (let i = 0; i < visibleStack.length; i++) {
-         const b = visibleStack[i];
-         ctx.fillStyle = "rgba(110,168,255,.28)";
-         ctx.fillRect(b.x, b.y - BLOCK_H, b.w, BLOCK_H);
-         ctx.strokeStyle = "rgba(255,255,255,.10)";
-         ctx.strokeRect(b.x, b.y - BLOCK_H, b.w, BLOCK_H);
-      }
-
-      // Draw current moving block
-      const activeBlock = currentBlockRef.current;
-      if (activeBlock) {
-         ctx.fillStyle = "rgba(54,211,153,.75)";
-         ctx.fillRect(
-            activeBlock.x,
-            activeBlock.y - BLOCK_H,
-            activeBlock.w,
-            BLOCK_H
-         );
-         ctx.strokeStyle = "rgba(255,255,255,.14)";
-         ctx.strokeRect(
-            activeBlock.x,
-            activeBlock.y - BLOCK_H,
-            activeBlock.w,
-            BLOCK_H
-         );
-      }
-
-      // Floor label
-      ctx.fillStyle = "rgba(166,179,209,.55)";
-      ctx.font = "12px system-ui";
-      ctx.fillText("Tap / Click to drop", 14, 18);
-   }, []);
-
-   // Canvas resize handler
-   const resizeCanvas = useCallback(() => {
-      const canvas = canvasRef.current;
-      const arena = arenaRef.current;
-      if (!canvas || !arena) return;
-
-      // Use requestAnimationFrame to ensure DOM is ready
-      requestAnimationFrame(() => {
-         const rect = arena.getBoundingClientRect();
-         if (rect.width === 0 || rect.height === 0) return;
-
-         // Get computed styles to account for padding
-         const computedStyle = window.getComputedStyle(arena);
-         const paddingX =
-            parseFloat(computedStyle.paddingLeft) +
-            parseFloat(computedStyle.paddingRight);
-         const paddingY =
-            parseFloat(computedStyle.paddingTop) +
-            parseFloat(computedStyle.paddingBottom);
-
-         // Calculate actual canvas size (excluding padding)
-         const canvasWidth = rect.width - paddingX;
-         const canvasHeight = rect.height - paddingY;
-
-         if (canvasWidth <= 0 || canvasHeight <= 0) return;
-
-         const dpr = Math.max(1, window.devicePixelRatio || 1);
-         const width = Math.floor(canvasWidth * dpr);
-         const height = Math.floor(canvasHeight * dpr);
-
-         // Only resize if dimensions changed
-         if (canvas.width !== width || canvas.height !== height) {
-            canvas.width = width;
-            canvas.height = height;
-            canvas.style.width = canvasWidth + "px";
-            canvas.style.height = canvasHeight + "px";
-
-            const ctx = canvas.getContext("2d");
-            if (ctx) {
-               ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-            }
-
-            // Redraw after resize
-            draw();
-         }
-      });
-   }, [draw]);
-
-   // Get base Y position (near bottom)
-   const getBaseY = useCallback(() => {
-      const canvas = canvasRef.current;
-      if (!canvas) return 0;
-      const dpr = Math.max(1, window.devicePixelRatio || 1);
-      const h = canvas.height / dpr;
-      return h - 52;
-   }, []);
-
-   // Spawn next block
-   const spawnNext = useCallback(() => {
-      const canvas = canvasRef.current;
-      if (!canvas) return;
-
-      // Get current stack from state (we'll use a ref or callback)
-      setStack((currentStack) => {
-         if (currentStack.length === 0) {
-            // Should not happen, but handle it
-            return currentStack;
-         }
-
-         const top = currentStack[currentStack.length - 1];
-         const y = top.y - BLOCK_H;
-         const levelConfig = getLevelConfig(currentLevel);
-
-         // Use blockSpeed from config as multiplier for base speed (240 pixels/second)
-         const baseSpeed = 240;
-         const speed = baseSpeed * levelConfig.blockSpeed;
-
-         // Start from random side
-         const dpr = Math.max(1, window.devicePixelRatio || 1);
-         const canvasWidth = canvas.width / dpr;
-         const fromLeft = Math.random() > 0.5;
-         const x = fromLeft ? 30 : canvasWidth - 30 - top.w;
-
-         setCurrentBlock({ x, w: top.w, y, vx: speed });
-         setBlockDirectionSafe(fromLeft ? 1 : -1);
-
-         return currentStack;
-      });
-   }, [currentLevel, getLevelConfig]);
+   const maxReplays = hasShared ? 0 : 5; // 0 = unlimited
 
    // Responsive design
    useEffect(() => {
@@ -366,11 +236,304 @@ export default function StackBlocks({
       return () => window.removeEventListener("resize", checkResponsive);
    }, []);
 
+   // Sync refs with state
+   useEffect(() => {
+      objRef.current = obj;
+   }, [obj]);
+
+   useEffect(() => {
+      targetRef.current = target;
+   }, [target]);
+
+   useEffect(() => {
+      targetVelRef.current = targetVel;
+   }, [targetVel]);
+
+   useEffect(() => {
+      targetDirRef.current = targetDir;
+   }, [targetDir]);
+
+   useEffect(() => {
+      shakeActiveRef.current = shakeActive;
+   }, [shakeActive]);
+
+   useEffect(() => {
+      dropsLeftRef.current = dropsLeft;
+   }, [dropsLeft]);
+
+   useEffect(() => {
+      hitsRef.current = hits;
+   }, [hits]);
+
+   useEffect(() => {
+      if (gameState === "playing") {
+         arenaRef.current?.focus();
+      }
+   }, [gameState]);
+
+   // Helper functions
+   const clamp = useCallback((n: number, a: number, b: number) => {
+      return Math.max(a, Math.min(b, n));
+   }, []);
+
+   const rand = useCallback((min: number, max: number) => {
+      return min + Math.random() * (max - min);
+   }, []);
+
+   // Get floor Y position
+   const getFloorY = useCallback(() => {
+      const canvas = canvasRef.current;
+      if (!canvas) return 0;
+      const dpr = Math.max(1, window.devicePixelRatio || 1);
+      return canvas.height / dpr - FLOOR_PAD;
+   }, []);
+
+   // Draw function (defined before resizeCanvas so it can be used there)
+   const draw = useCallback(
+      (shakeOffset: number) => {
+         const canvas = canvasRef.current;
+         if (!canvas) return;
+         const ctx = canvas.getContext("2d");
+         if (!ctx) return;
+
+         const dpr = Math.max(1, window.devicePixelRatio || 1);
+         const w = canvas.width / dpr;
+         const h = canvas.height / dpr;
+
+         ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+         // Subtle grid
+         ctx.strokeStyle = "rgba(255,255,255,.04)";
+         ctx.lineWidth = 1;
+         for (let x = 0; x < w; x += 40) {
+            ctx.beginPath();
+            ctx.moveTo(x, 0);
+            ctx.lineTo(x, h);
+            ctx.stroke();
+         }
+         for (let y = 0; y < h; y += 40) {
+            ctx.beginPath();
+            ctx.moveTo(0, y);
+            ctx.lineTo(w, y);
+            ctx.stroke();
+         }
+
+         // Floor
+         const floorY = getFloorY();
+         ctx.fillStyle = "rgba(255,255,255,.06)";
+         ctx.fillRect(0, floorY, w, 4);
+
+         // Target (with shake offset)
+         const currentTarget = targetRef.current;
+         if (currentTarget) {
+            const minX = TARGET_MARGIN;
+            const maxX = w - TARGET_MARGIN - currentTarget.w;
+            const tX = clamp(
+               currentTarget.x + shakeOffset,
+               minX,
+               maxX
+            );
+
+            if (targetFlashRef.current) {
+               ctx.fillStyle = "rgba(34,197,94,.45)";
+               ctx.fillRect(tX, currentTarget.y, currentTarget.w, currentTarget.h);
+               ctx.strokeStyle = "rgba(34,197,94,.95)";
+               ctx.strokeRect(tX, currentTarget.y, currentTarget.w, currentTarget.h);
+            } else {
+               ctx.fillStyle = "rgba(54,211,153,.22)";
+               ctx.fillRect(tX, currentTarget.y, currentTarget.w, currentTarget.h);
+               ctx.strokeStyle = "rgba(54,211,153,.65)";
+               ctx.strokeRect(tX, currentTarget.y, currentTarget.w, currentTarget.h);
+            }
+         }
+
+         // Aiming guide line
+         const currentObj = objRef.current;
+         if (currentObj && currentObj.state === "aim") {
+            ctx.strokeStyle = "rgba(110,168,255,.25)";
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(currentObj.x, currentObj.y + OBJ_R + 4);
+            ctx.lineTo(currentObj.x, floorY);
+            ctx.stroke();
+         }
+
+         // Object
+         if (currentObj) {
+            ctx.fillStyle = "rgba(110,168,255,.25)";
+            ctx.beginPath();
+            ctx.arc(currentObj.x, currentObj.y, OBJ_R + 4, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = "rgba(110,168,255,.85)";
+            ctx.beginPath();
+            ctx.arc(currentObj.x, currentObj.y, OBJ_R, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.strokeStyle = "rgba(255,255,255,.14)";
+            ctx.stroke();
+         }
+
+         // Helper text
+         ctx.fillStyle = "rgba(166,179,209,.55)";
+         ctx.font = "12px system-ui";
+         ctx.fillText("Move left/right • Tap to drop", 14, 18);
+      },
+      [getFloorY, clamp]
+   );
+
+   // Canvas resize handler
+   const resizeCanvas = useCallback(() => {
+      const canvas = canvasRef.current;
+      const arena = arenaRef.current;
+      if (!canvas || !arena) return;
+
+      requestAnimationFrame(() => {
+         const rect = arena.getBoundingClientRect();
+         if (rect.width === 0 || rect.height === 0) return;
+
+         const computedStyle = window.getComputedStyle(arena);
+         const paddingX =
+            parseFloat(computedStyle.paddingLeft) +
+            parseFloat(computedStyle.paddingRight);
+         const paddingY =
+            parseFloat(computedStyle.paddingTop) +
+            parseFloat(computedStyle.paddingBottom);
+
+         const canvasWidth = rect.width - paddingX;
+         const canvasHeight = rect.height - paddingY;
+
+         if (canvasWidth <= 0 || canvasHeight <= 0) return;
+
+         const dpr = Math.max(1, window.devicePixelRatio || 1);
+         const width = Math.floor(canvasWidth * dpr);
+         const height = Math.floor(canvasHeight * dpr);
+
+         if (canvas.width !== width || canvas.height !== height) {
+            canvas.width = width;
+            canvas.height = height;
+            canvas.style.width = canvasWidth + "px";
+            canvas.style.height = canvasHeight + "px";
+
+            const ctx = canvas.getContext("2d");
+            if (ctx) {
+               ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+            }
+
+            draw(0);
+         }
+      });
+   }, [draw]);
+
+   // Current shake offset
+   const getCurrentShakeOffset = useCallback((ts: number) => {
+      if (!shakeActiveRef.current) return 0;
+      const t = ts / 1000;
+      return Math.sin(t * Math.PI * 2 * SHAKE_FREQ) * SHAKE_AMPLITUDE;
+   }, []);
+
+   // Check landing
+   const checkLanding = useCallback(
+      (shakeOffset: number) => {
+         const currentObj = objRef.current;
+         const currentTarget = targetRef.current;
+         if (!currentObj || !currentTarget) return;
+
+         const canvas = canvasRef.current;
+         if (!canvas) return;
+         const dpr = Math.max(1, window.devicePixelRatio || 1);
+         const w = canvas.width / dpr;
+
+         const minX = TARGET_MARGIN;
+         const maxX = w - TARGET_MARGIN - currentTarget.w;
+         const tX = clamp(
+            currentTarget.x + shakeOffset,
+            minX,
+            maxX
+         );
+
+         const left = currentObj.x - OBJ_R;
+         const right = currentObj.x + OBJ_R;
+         const tLeft = tX;
+         const tRight = tX + currentTarget.w;
+
+         const inside = left >= tLeft && right <= tRight;
+
+      if (landingHandledRef.current) return;
+      landingHandledRef.current = true;
+
+         if (inside) {
+            setHits((prev) => {
+               const newHits = prev + 1;
+               hitsRef.current = newHits;
+               return newHits;
+            });
+         } else {
+            setMisses((prev) => prev + 1);
+         }
+
+         // Check if more drops left
+         if (dropsLeftRef.current > 0) {
+            const canvas = canvasRef.current;
+            if (!canvas) return;
+
+            const dpr = Math.max(1, window.devicePixelRatio || 1);
+            const w = canvas.width / dpr;
+            const pauseMs = 1200;
+
+            targetFlashRef.current = true;
+            if (targetPauseTimeoutRef.current) {
+               clearTimeout(targetPauseTimeoutRef.current);
+            }
+
+            if (targetVelRef.current !== 0) {
+               targetVelRef.current = 0;
+               setTargetVel(0);
+            }
+
+            targetPauseTimeoutRef.current = setTimeout(() => {
+               if (gameStateRef.current !== "playing") return;
+               setObj({ x: w / 2, y: 70, vy: 0, state: "aim" });
+               setShakeActive(false);
+               dropLockRef.current = false;
+               landingHandledRef.current = false;
+               targetFlashRef.current = false;
+               if (targetVelBaseRef.current > 0) {
+                  targetVelRef.current = targetVelBaseRef.current;
+                  setTargetVel(targetVelBaseRef.current);
+               }
+            }, pauseMs);
+         } else {
+            // All drops completed, check if level passed
+            setTimeout(() => {
+               const levelConfig = getLevelConfig(currentLevel);
+               const minHits = levelConfig.minHits;
+               if (hitsRef.current >= minHits) {
+                  requirementsMetRef.current = true;
+                  setRequirementsMet(true);
+                  clearAll();
+                  gameStateRef.current = "ready";
+                  setGameState("ready");
+               } else {
+                  gameStateRef.current = "failed";
+                  setGameState("failed");
+                  clearAll();
+               }
+            }, 700);
+         }
+      },
+      [currentLevel, getLevelConfig, clamp]
+   );
+
    // Clear all timers
    const clearAll = useCallback(() => {
       if (animationFrameRef.current) {
          cancelAnimationFrame(animationFrameRef.current);
          animationFrameRef.current = null;
+      }
+      if (targetPauseTimeoutRef.current) {
+         clearTimeout(targetPauseTimeoutRef.current);
+         targetPauseTimeoutRef.current = null;
       }
       if (countdownTimerRef.current) {
          clearInterval(countdownTimerRef.current);
@@ -384,7 +547,6 @@ export default function StackBlocks({
          return;
       }
 
-      // Resize canvas on mount and window resize
       let resizeTimeout: NodeJS.Timeout;
       const handleResize = () => {
          clearTimeout(resizeTimeout);
@@ -393,7 +555,6 @@ export default function StackBlocks({
          }, 100);
       };
 
-      // Initial resize
       resizeCanvas();
       window.addEventListener("resize", handleResize);
       return () => {
@@ -406,7 +567,7 @@ export default function StackBlocks({
       if (gameState !== "playing") return;
       const raf = requestAnimationFrame(() => {
          resizeCanvas();
-         draw();
+         draw(0);
       });
       return () => cancelAnimationFrame(raf);
    }, [gameState, resizeCanvas, draw]);
@@ -423,16 +584,23 @@ export default function StackBlocks({
             animationFrameRef.current = null;
          }
 
-         // Reset all state before starting new level
-         setStack([]);
-         setBlocksPlaced(0);
-         setPerfectSnaps(0);
+         // Reset all state
+         setObj(null);
+         setTarget(null);
+         setDropsLeft(0);
+         setHits(0);
+         setMisses(0);
+         setTargetVel(0);
+         setTargetDir(1);
+         setShakeActive(false);
          setRequirementsMet(false);
          requirementsMetRef.current = false;
          nextRoundClickedRef.current = false;
          setNextRoundLocked(false);
-         setCurrentBlock(null);
          lastTimestampRef.current = 0;
+         dropLockRef.current = false;
+         landingHandledRef.current = false;
+         targetFlashRef.current = false;
 
          const levelConfig = getLevelConfig(level);
          const levelDur = levelConfig.duration;
@@ -441,42 +609,52 @@ export default function StackBlocks({
          // Resize canvas
          resizeCanvas();
 
-         // Initialize first block at bottom
+         // Initialize round
          setTimeout(() => {
             const canvas = canvasRef.current;
             if (!canvas) return;
 
-            const dpr = Math.max(1, window.devicePixelRatio || 1);
-            const canvasWidth = canvas.width / dpr;
-            const levelConfig = getLevelConfig(level);
+            requestAnimationFrame(() => {
+               const dpr = Math.max(1, window.devicePixelRatio || 1);
+               const w = canvas.width / dpr;
+               const floorY = getFloorY();
 
-            // Use initialBlockWidth from config as percentage
-            const initialWidthPercent = levelConfig.initialBlockWidth;
-            const w = (canvasWidth * initialWidthPercent) / 100;
-            const x = (canvasWidth - w) / 2;
-            const baseY = getBaseY();
+               const drops = levelConfig.drops;
+               setDropsLeft(drops);
+               dropsLeftRef.current = drops;
 
-            const initialStack: Block[] = [{ x, w, y: baseY }];
-            setStack(initialStack);
+               const tW = levelConfig.targetWidth;
+               const tX = rand(40, w - 40 - tW);
+               const newTarget: TargetState = {
+                  x: tX,
+                  w: tW,
+                  y: floorY + 6,
+                  h: 14,
+               };
+               setTarget(newTarget);
 
-            // Spawn first moving block
-            const y = baseY - BLOCK_H;
-            // Use blockSpeed from config as multiplier for base speed (240 pixels/second)
-            const baseSpeed = 240;
-            const speed = baseSpeed * levelConfig.blockSpeed;
-            const fromLeft = Math.random() > 0.5;
-            const startX = fromLeft ? 30 : canvasWidth - 30 - w;
+              const targetSpeed = levelConfig.targetSpeed;
+              setTargetVel(targetSpeed);
+              targetVelRef.current = targetSpeed;
+               targetVelBaseRef.current = targetSpeed;
+               const initialDir = Math.random() > 0.5 ? 1 : -1;
+               setTargetDir(initialDir);
+               targetDirRef.current = initialDir;
 
-            setCurrentBlock({ x: startX, w, y, vx: speed });
-            setBlockDirectionSafe(fromLeft ? 1 : -1);
+               const newObj: ObjectState = {
+                  x: w / 2,
+                  y: 70,
+                  vy: 0,
+                  state: "aim",
+               };
+               setObj(newObj);
+               setShakeActive(false);
 
-            // Draw immediately
-            setTimeout(() => {
-               draw();
-            }, 50);
+               draw(0);
+            });
          }, 100);
 
-         // Set game state to playing AFTER resetting timeLeft
+         // Set game state to playing
          gameStateRef.current = "playing";
          setGameState("playing");
 
@@ -507,49 +685,80 @@ export default function StackBlocks({
             const dt = Math.min(0.033, (ts - lastTimestampRef.current) / 1000);
             lastTimestampRef.current = ts;
 
-            // Move current block
-            setCurrentBlock((prev) => {
-               if (!prev) return null;
+            // Move target horizontally if speed > 0
+            setTarget((prev) => {
+               if (!prev || targetVelRef.current <= 0) return prev;
 
                const canvas = canvasRef.current;
                if (!canvas) return prev;
-
                const dpr = Math.max(1, window.devicePixelRatio || 1);
-               const canvasWidth = canvas.width / dpr;
-               const direction = blockDirectionRef.current;
-               const newX = prev.x + direction * prev.vx * dt;
-               const minX = 20;
-               const maxX = canvasWidth - 20 - prev.w;
+               const w = canvas.width / dpr;
 
+               const newX =
+                  prev.x +
+                  targetDirRef.current * targetVelRef.current * dt;
+               const minX = TARGET_MARGIN;
+               const maxX = w - TARGET_MARGIN - prev.w;
+
+               let newDir = targetDirRef.current;
                if (newX <= minX) {
-                  setBlockDirectionSafe(1);
+                  newDir = 1;
+                  setTargetDir(1);
                } else if (newX >= maxX) {
-                  setBlockDirectionSafe(-1);
+                  newDir = -1;
+                  setTargetDir(-1);
                }
 
                return {
                   ...prev,
-                  x: Math.max(minX, Math.min(maxX, newX)),
+                  x: clamp(newX, minX, maxX),
                };
             });
 
-            // Draw immediately
-            draw();
+            const shakeOffset = getCurrentShakeOffset(ts);
 
+            // Physics for falling object
+            setObj((prev) => {
+               if (!prev || prev.state !== "fall") return prev;
+
+               const newVy = prev.vy + GRAVITY * dt;
+               const newY = prev.y + newVy * dt;
+               const floorY = getFloorY();
+               const landY = floorY - OBJ_R;
+
+               if (newY >= landY) {
+                  const landed: ObjectState = {
+                     ...prev,
+                     y: landY,
+                     state: "land",
+                  };
+                  checkLanding(shakeOffset);
+                  return landed;
+               }
+
+               return {
+                  ...prev,
+                  y: newY,
+                  vy: newVy,
+               };
+            });
+
+            draw(shakeOffset);
             animationFrameRef.current = requestAnimationFrame(loop);
          };
 
-         // Start loop immediately
          lastTimestampRef.current = 0;
          animationFrameRef.current = requestAnimationFrame(loop);
       },
       [
          getLevelConfig,
          resizeCanvas,
-         getBaseY,
-         spawnNext,
+         getFloorY,
+         rand,
+         clamp,
+         getCurrentShakeOffset,
+         checkLanding,
          draw,
-         setBlockDirectionSafe,
       ]
    );
 
@@ -557,149 +766,66 @@ export default function StackBlocks({
       startLevelRef.current = startLevel;
    }, [startLevel]);
 
-   // Handle block placement (drop)
-   const handlePlace = useCallback(() => {
+   // Handle drop
+   const handleDrop = useCallback(() => {
       if (
          gameState !== "playing" ||
-         requirementsMet ||
-         !currentBlock ||
-         stack.length === 0
+         !obj ||
+         obj.state !== "aim" ||
+         dropsLeft <= 0
       )
          return;
+      if (dropLockRef.current) return;
+      dropLockRef.current = true;
+      landingHandledRef.current = false;
 
-      const below = stack[stack.length - 1];
-      let newX = currentBlock.x;
+      setObj((prev) => {
+         if (!prev) return null;
+         return { ...prev, state: "fall", vy: 0 };
+      });
+      setDropsLeft((prev) => {
+         const newVal = prev - 1;
+         dropsLeftRef.current = newVal;
+         return newVal;
+      });
 
-      // Perfect snap if nearly aligned
-      if (Math.abs(currentBlock.x - below.x) <= PERFECT_EPS) {
-         newX = below.x;
-         setPerfectSnaps((prev) => prev + 1);
-      }
-
-      // Compute overlap
-      const left = Math.max(newX, below.x);
-      const right = Math.min(newX + currentBlock.w, below.x + below.w);
-      const overlap = right - left;
-
-      // Game over if no overlap
-      if (overlap <= 0) {
-         setGameState("failed");
-         gameStateRef.current = "failed";
-         clearAll();
-         return;
-      }
-
-      // Place new block with only overlap part
-      const baseY = getBaseY();
-      const newBlock: Block = {
-         x: left,
-         w: overlap,
-         y: below.y - BLOCK_H,
-      };
-
-      const newStack = [...stack, newBlock];
-      setBlocksPlaced((prev) => prev + 1);
-
-      // Check if requirements are met (only based on blocks count)
+      // Activate shake if enabled for this level
       const levelConfig = getLevelConfig(currentLevel);
-      const minBlocks = levelConfig.minBlocks;
-
-      // Check requirements with current values
-      // newStack.length includes the base block, so placed blocks = newStack.length - 1
-      const placedBlocksCount = newStack.length - 1; // Subtract base block
-
-      if (placedBlocksCount >= minBlocks && !requirementsMetRef.current) {
-         requirementsMetRef.current = true;
-         setRequirementsMet(true);
-         clearAll();
-         gameStateRef.current = "ready";
-         setGameState("ready");
-         setStack(newStack);
-         return;
+      if (levelConfig.shakeEnabled) {
+         setShakeActive(true);
       }
+   }, [gameState, obj, dropsLeft, currentLevel, getLevelConfig]);
 
-      // Spawn next block (only if block is not too small)
-      if (overlap < 24) {
-         // Clamp to minimum width
-         newBlock.w = 24;
-         newBlock.x = below.x + (below.w - 24) / 2; // Center it
-      }
+   // Handle mouse/touch move
+   const handleMove = useCallback(
+      (clientX: number) => {
+         if (gameState !== "playing" || !obj || obj.state !== "aim") return;
 
-      // Update stack and spawn next block
-      setStack(newStack);
-
-      // Spawn next block after state update
-      setTimeout(() => {
          const canvas = canvasRef.current;
-         if (!canvas || newStack.length === 0) return;
+         const arena = arenaRef.current;
+         if (!canvas || !arena) return;
 
+         const rect = arena.getBoundingClientRect();
          const dpr = Math.max(1, window.devicePixelRatio || 1);
-         const canvasWidth = canvas.width / dpr;
-         const top = newStack[newStack.length - 1];
-         const y = top.y - BLOCK_H;
-         const levelConfig = getLevelConfig(currentLevel);
-         // Use blockSpeed from config as multiplier for base speed (240 pixels/second)
-         const baseSpeed = 240;
-         const speed = baseSpeed * levelConfig.blockSpeed;
-         const fromLeft = Math.random() > 0.5;
-         const x = fromLeft ? 30 : canvasWidth - 30 - top.w;
+         const w = canvas.width / dpr;
+         const relativeX = clientX - rect.left;
+         const newX = clamp(relativeX, OBJ_R + 6, w - OBJ_R - 6);
 
-         setCurrentBlock({ x, w: top.w, y, vx: speed });
-         setBlockDirectionSafe(fromLeft ? 1 : -1);
-      }, 50);
-   }, [
-      gameState,
-      requirementsMet,
-      currentBlock,
-      stack,
-      currentLevel,
-      getLevelConfig,
-      clearAll,
-      getBaseY,
-      spawnNext,
-      setBlockDirectionSafe,
-   ]);
-
-   // Handle keyboard input
-   const handlePlaceRef = useRef<() => void>(() => {});
-   useEffect(() => {
-      handlePlaceRef.current = handlePlace;
-   }, [handlePlace]);
-
-   useEffect(() => {
-      if (!isPlaying || gameState !== "playing") return;
-
-      const handleKeyPress = (e: KeyboardEvent) => {
-         if (e.key === "Enter" || e.key === " ") {
-            e.preventDefault();
-            if (
-               gameStateRef.current === "playing" &&
-               !requirementsMetRef.current &&
-               currentBlockRef.current &&
-               stackRef.current.length > 0
-            ) {
-               handlePlaceRef.current();
-            }
-         }
-      };
-
-      window.addEventListener("keydown", handleKeyPress);
-      return () => {
-         window.removeEventListener("keydown", handleKeyPress);
-      };
-   }, [isPlaying, gameState]);
+         setObj((prev) => {
+            if (!prev) return null;
+            return { ...prev, x: newX };
+         });
+      },
+      [gameState, obj, clamp]
+   );
 
    // End level when time runs out
    useEffect(() => {
-      if (
-         timeLeft === 0 &&
-         gameState === "playing" &&
-         !requirementsMetRef.current
-      ) {
+      if (timeLeft === 0 && gameState === "playing" && !requirementsMetRef.current) {
          const levelConfig = getLevelConfig(currentLevel);
-         const minBlocks = levelConfig.minBlocks;
+         const minHits = levelConfig.minHits;
 
-         if (blocksPlaced >= minBlocks) {
+         if (hits >= minHits) {
             requirementsMetRef.current = true;
             setRequirementsMet(true);
             gameStateRef.current = "ready";
@@ -715,7 +841,7 @@ export default function StackBlocks({
       timeLeft,
       gameState,
       currentLevel,
-      blocksPlaced,
+      hits,
       getLevelConfig,
       clearAll,
    ]);
@@ -729,7 +855,6 @@ export default function StackBlocks({
          setCurrentScore(newScore);
          onScoreUpdate(newScore);
       } else if (gameState === "ready" && currentLevel === maxLevels - 1) {
-         // Game complete
          const finalScore = 100;
          setCurrentScore(finalScore);
          onScoreUpdate(finalScore);
@@ -762,16 +887,24 @@ export default function StackBlocks({
       requirementsMetRef.current = false;
       setGameState("playing");
       gameStateRef.current = "playing";
-      setStack([]);
-      setBlocksPlaced(0);
-      setPerfectSnaps(0);
-      setCurrentBlock(null);
-      lastTimestampRef.current = 0;
+      setObj(null);
+      setTarget(null);
+      setDropsLeft(0);
+      setHits(0);
+      setMisses(0);
+      setTargetVel(0);
+      setTargetDir(1);
+      setShakeActive(false);
+      dropLockRef.current = false;
+      landingHandledRef.current = false;
+      targetFlashRef.current = false;
       const levelDur = getLevelDuration(currentLevel);
       setTimeLeft(levelDur);
       clearAll();
       setTimeout(() => {
-         startLevel(currentLevel);
+         if (startLevelRef.current) {
+            startLevelRef.current(currentLevel);
+         }
       }, 100);
       if (maxReplays > 0) {
          setReplaysUsed((prev) => prev + 1);
@@ -780,7 +913,6 @@ export default function StackBlocks({
       gameState,
       maxReplays,
       replaysUsed,
-      startLevel,
       currentLevel,
       getLevelDuration,
       clearAll,
@@ -796,8 +928,8 @@ export default function StackBlocks({
 
    const registerShareLink = useCallback(async (shareId: string) => {
       try {
-         await registerShare(shareId, "stack-blocks");
-         const gameKey = "play50games_shared_stack-blocks";
+         await registerShare(shareId, "precision-drop");
+         const gameKey = "play50games_shared_precision-drop";
          const expiry = Date.now() + 15 * 60 * 1000; // 15 minutes
          localStorage.setItem(
             gameKey,
@@ -824,8 +956,8 @@ export default function StackBlocks({
       if (navigator.share) {
          try {
             await navigator.share({
-               title: "Stack Blocks - Play50Games",
-               text: "Check out this stacking challenge!",
+               title: "Precision Drop - Play50Games",
+               text: "Check out this precision challenge!",
                url: shareableLink,
             });
             setShareSuccess(true);
@@ -871,7 +1003,7 @@ export default function StackBlocks({
       if (!currentShareId) return;
 
       const checkShareStatus = async () => {
-         const gameKey = "play50games_shared_stack-blocks";
+         const gameKey = "play50games_shared_precision-drop";
          try {
             const status = await getShareStatus(currentShareId);
             const hasClicks = status.has_clicks || status.clicks > 0;
@@ -934,7 +1066,7 @@ export default function StackBlocks({
 
    // Check for existing share on mount
    useEffect(() => {
-      const gameKey = "play50games_shared_stack-blocks";
+      const gameKey = "play50games_shared_precision-drop";
       const stored = localStorage.getItem(gameKey);
       if (stored) {
          try {
@@ -1021,7 +1153,6 @@ export default function StackBlocks({
    useEffect(() => {
       if (!isPlaying) return;
 
-      // Don't start if we're already on this level (unless forced)
       if (
          prevLevelRef.current === currentLevel &&
          forceStartLevelRef.current !== currentLevel
@@ -1034,15 +1165,20 @@ export default function StackBlocks({
          forceStartLevelRef.current = null;
       }
 
-      // Reset state before starting new level
-      setStack([]);
-      setBlocksPlaced(0);
-      setPerfectSnaps(0);
+      // Reset state
+      setObj(null);
+      setTarget(null);
+      setDropsLeft(0);
+      setHits(0);
+      setMisses(0);
+      setTargetVel(0);
+      setTargetDir(1);
+      setShakeActive(false);
       setRequirementsMet(false);
       requirementsMetRef.current = false;
       nextRoundClickedRef.current = false;
+      dropLockRef.current = false;
 
-      // Don't set gameState to "playing" here - let startLevel do it after resetting timeLeft
       gameStateRef.current = "ready";
       setGameState("ready");
 
@@ -1065,7 +1201,7 @@ export default function StackBlocks({
    const progressPercentage = ((currentLevel + 1) / maxLevels) * 100;
 
    const levelConfig = getLevelConfig(currentLevel);
-   const minBlocks = levelConfig.minBlocks;
+   const minHits = levelConfig.minHits;
 
    return (
       <>
@@ -1221,7 +1357,29 @@ export default function StackBlocks({
                            color: "var(--text)",
                         }}
                      >
-                        Blocks: {blocksPlaced}/{minBlocks}
+                        Hits: {hits}/{minHits}
+                     </span>
+                  </div>
+                  <div
+                     style={{
+                        background:
+                           "linear-gradient(135deg, rgba(34, 197, 94, 0.2), rgba(34, 197, 94, 0.1))",
+                        border: "1px solid rgba(34, 197, 94, 0.4)",
+                        borderRadius: "12px",
+                        padding: "10px 16px",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "8px",
+                     }}
+                  >
+                     <span
+                        style={{
+                           fontSize: "1rem",
+                           fontWeight: 600,
+                           color: "var(--text)",
+                        }}
+                     >
+                        Drops left: {dropsLeft}
                      </span>
                   </div>
                </div>
@@ -1231,12 +1389,53 @@ export default function StackBlocks({
             {gameState === "playing" ? (
                <div
                   ref={arenaRef}
-                  onClick={handlePlace}
+                  onClick={handleDrop}
+                  onMouseDown={() => arenaRef.current?.focus()}
+                  onMouseMove={(e) => handleMove(e.clientX)}
+                  onTouchMove={(e) => {
+                     if (e.touches[0]) {
+                        handleMove(e.touches[0].clientX);
+                     }
+                  }}
+                  onTouchStart={(e) => {
+                     arenaRef.current?.focus();
+                     if (e.touches[0]) {
+                        handleMove(e.touches[0].clientX);
+                     }
+                  }}
                   tabIndex={0}
                   onKeyDown={(e) => {
                      if (e.key === "Enter" || e.key === " ") {
                         e.preventDefault();
-                        handlePlace();
+                        handleDrop();
+                     } else if (e.key === "ArrowLeft") {
+                        e.preventDefault();
+                        const canvas = canvasRef.current;
+                        if (canvas && obj) {
+                           const dpr = Math.max(1, window.devicePixelRatio || 1);
+                           const w = canvas.width / dpr;
+                           setObj((prev) => {
+                              if (!prev) return null;
+                              return {
+                                 ...prev,
+                                 x: clamp(prev.x - 10, OBJ_R + 6, w - OBJ_R - 6),
+                              };
+                           });
+                        }
+                     } else if (e.key === "ArrowRight") {
+                        e.preventDefault();
+                        const canvas = canvasRef.current;
+                        if (canvas && obj) {
+                           const dpr = Math.max(1, window.devicePixelRatio || 1);
+                           const w = canvas.width / dpr;
+                           setObj((prev) => {
+                              if (!prev) return null;
+                              return {
+                                 ...prev,
+                                 x: clamp(prev.x + 10, OBJ_R + 6, w - OBJ_R - 6),
+                              };
+                           });
+                        }
                      }
                   }}
                   style={{
@@ -1255,6 +1454,7 @@ export default function StackBlocks({
                      padding: "10px",
                      cursor: "pointer",
                      outline: "none",
+                     boxSizing: "border-box",
                   }}
                >
                   <canvas
@@ -1263,6 +1463,8 @@ export default function StackBlocks({
                         width: "100%",
                         height: "100%",
                         display: "block",
+                        maxWidth: "100%",
+                        maxHeight: "100%",
                      }}
                   />
                </div>
@@ -1293,7 +1495,9 @@ export default function StackBlocks({
                         color: "var(--text-secondary)",
                      }}
                   >
-                     Blocks placed: {blocksPlaced}/{minBlocks}
+                     Hits: {hits}/{minHits}
+                     <br />
+                     Drops completed: {levelConfig.drops - dropsLeft}/{levelConfig.drops}
                   </div>
                   <button
                      onClick={handleNextRound}
@@ -1321,93 +1525,86 @@ export default function StackBlocks({
             )}
 
             {/* Level Failed Message */}
-            {gameState === "failed" &&
-               (() => {
-                  const levelConfig = getLevelConfig(currentLevel);
-                  const minBlocks = levelConfig.minBlocks;
-                  const blocksMet = blocksPlaced >= minBlocks;
-
-                  let failureReason = "";
-                  if (!blocksMet) {
-                     failureReason = "Blocks requirement not met";
-                  }
-
-                  return (
+            {gameState === "failed" && (() => {
+               const levelConfig = getLevelConfig(currentLevel);
+               const minHits = levelConfig.minHits;
+               const hitsMet = hits >= minHits;
+               
+               let failureReason = "";
+               if (!hitsMet) {
+                  failureReason = "Hits requirement not met";
+               }
+               
+               return (
+                  <div
+                     style={{
+                        padding: isMobile ? "20px 24px" : "24px 32px",
+                        background: "var(--card)",
+                        borderRadius: "var(--radius)",
+                        color: "var(--text)",
+                        fontSize: isMobile ? "1rem" : "1.1rem",
+                        fontWeight: 700,
+                        textAlign: "center",
+                        border: "1px solid var(--border)",
+                     }}
+                  >
+                     <div style={{ marginBottom: "16px", color: "var(--warn)" }}>
+                        Level {currentLevel + 1} Failed
+                     </div>
                      <div
                         style={{
-                           padding: isMobile ? "20px 24px" : "24px 32px",
-                           background: "var(--card)",
-                           borderRadius: "var(--radius)",
-                           color: "var(--text)",
-                           fontSize: isMobile ? "1rem" : "1.1rem",
-                           fontWeight: 700,
-                           textAlign: "center",
-                           border: "1px solid var(--border)",
+                           fontSize: isMobile ? "0.9rem" : "1rem",
+                           fontWeight: 600,
+                           marginBottom: "12px",
+                           color: "var(--warn)",
+                        }}
+                     >
+                        {failureReason}
+                     </div>
+                     <div
+                        style={{
+                           fontSize: isMobile ? "0.9rem" : "1rem",
+                           fontWeight: 400,
+                           marginBottom: "8px",
+                           color: "var(--text-secondary)",
                         }}
                      >
                         <div
                            style={{
-                              marginBottom: "16px",
-                              color: "var(--warn)",
+                              marginBottom: "4px",
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "4px",
+                              justifyContent: "center",
                            }}
                         >
-                           Level {currentLevel + 1} Failed
-                        </div>
-                        <div
-                           style={{
-                              fontSize: isMobile ? "0.9rem" : "1rem",
-                              fontWeight: 600,
-                              marginBottom: "12px",
-                              color: "var(--warn)",
-                           }}
-                        >
-                           {failureReason}
-                        </div>
-                        <div
-                           style={{
-                              fontSize: isMobile ? "0.9rem" : "1rem",
-                              fontWeight: 400,
-                              marginBottom: "8px",
-                              color: "var(--text-secondary)",
-                           }}
-                        >
-                           <div
-                              style={{
-                                 marginBottom: "4px",
-                                 display: "flex",
-                                 alignItems: "center",
-                                 gap: "4px",
-                                 justifyContent: "center",
-                              }}
-                           >
-                              <span>
-                                 Blocks: Need {minBlocks} | You placed{" "}
-                                 {blocksPlaced}
-                              </span>
-                              {blocksMet ? (
-                                 <CheckCircleIcon
-                                    style={{
-                                       width: isMobile ? 16 : 18,
-                                       height: isMobile ? 16 : 18,
-                                       color: "var(--ok)",
-                                       flexShrink: 0,
-                                    }}
-                                 />
-                              ) : (
-                                 <XCircleIcon
-                                    style={{
-                                       width: isMobile ? 16 : 18,
-                                       height: isMobile ? 16 : 18,
-                                       color: "var(--warn)",
-                                       flexShrink: 0,
-                                    }}
-                                 />
-                              )}
-                           </div>
+                           <span>
+                              Hits: Need {minHits} | You got {hits}
+                           </span>
+                           {hitsMet ? (
+                              <CheckCircleIcon
+                                 style={{
+                                    width: isMobile ? 16 : 18,
+                                    height: isMobile ? 16 : 18,
+                                    color: "var(--ok)",
+                                    flexShrink: 0,
+                                 }}
+                              />
+                           ) : (
+                              <XCircleIcon
+                                 style={{
+                                    width: isMobile ? 16 : 18,
+                                    height: isMobile ? 16 : 18,
+                                    color: "var(--warn)",
+                                    flexShrink: 0,
+                                 }}
+                              />
+                           )}
                         </div>
                      </div>
-                  );
-               })()}
+                  </div>
+               );
+            })()}
 
             {/* Game Complete Message */}
             {gameState === "ready" && currentLevel === maxLevels - 1 && (

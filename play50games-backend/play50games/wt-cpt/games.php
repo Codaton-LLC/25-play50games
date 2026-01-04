@@ -703,11 +703,11 @@ function show_games_custom_fields() {
                 gameType: 'skill',
                 gameOrder: 41,
                 difficulty: 2,
-                timeLimit: 90,
+                timeLimit: 0,
                 passingScore: 75,
                 unlockRequirement: '',
-                description: 'Drop object into small target area',
-                gameConfig: '{"gameType": "precision-drop", "rounds": 5}'
+                description: 'Drop object into small target area. Move the object left/right, then click to drop it. Land fully inside the target to score. Each level has multiple drops (mini levels) that must be completed.',
+                gameConfig: '{"gameType":"precision-drop","levels":15,"levelRequirements":[{"drops":1,"duration":30,"targetWidth":160,"targetSpeed":0,"shakeEnabled":false,"minHits":1},{"drops":1,"duration":30,"targetWidth":148,"targetSpeed":0,"shakeEnabled":false,"minHits":1},{"drops":1,"duration":30,"targetWidth":136,"targetSpeed":0,"shakeEnabled":false,"minHits":1},{"drops":1,"duration":30,"targetWidth":124,"targetSpeed":0,"shakeEnabled":false,"minHits":1},{"drops":3,"duration":30,"targetWidth":112,"targetSpeed":210,"shakeEnabled":false,"minHits":2},{"drops":3,"duration":30,"targetWidth":100,"targetSpeed":228,"shakeEnabled":false,"minHits":2},{"drops":3,"duration":30,"targetWidth":88,"targetSpeed":246,"shakeEnabled":false,"minHits":2},{"drops":3,"duration":30,"targetWidth":76,"targetSpeed":264,"shakeEnabled":false,"minHits":2},{"drops":3,"duration":30,"targetWidth":64,"targetSpeed":282,"shakeEnabled":false,"minHits":2},{"drops":5,"duration":30,"targetWidth":52,"targetSpeed":300,"shakeEnabled":true,"minHits":3},{"drops":5,"duration":30,"targetWidth":40,"targetSpeed":318,"shakeEnabled":true,"minHits":3},{"drops":5,"duration":30,"targetWidth":32,"targetSpeed":336,"shakeEnabled":true,"minHits":3},{"drops":5,"duration":30,"targetWidth":28,"targetSpeed":354,"shakeEnabled":true,"minHits":3},{"drops":5,"duration":30,"targetWidth":26,"targetSpeed":372,"shakeEnabled":true,"minHits":3},{"drops":5,"duration":30,"targetWidth":24,"targetSpeed":390,"shakeEnabled":true,"minHits":3}]}'
             },
             'drag-sort': {
                 title: 'Drag & Drop Sort',

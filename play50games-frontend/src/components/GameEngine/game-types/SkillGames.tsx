@@ -6,6 +6,7 @@ import TargetAim from './skillgames-parts/TargetAim';
 import LineTracer from './skillgames-parts/LineTracer';
 import TimingBar from './skillgames-parts/TimingBar';
 import StackBlocks from './skillgames-parts/StackBlocks';
+import PrecisionDrop from './skillgames-parts/PrecisionDrop';
 
 interface SkillGamesProps {
   config: Record<string, any>;
@@ -31,6 +32,7 @@ export default function SkillGames({ config, onScoreUpdate, onComplete, isPlayin
     'timing-bar': <TimingBar config={config} onScoreUpdate={onScoreUpdate} onComplete={onComplete} isPlaying={isPlaying} />,
     'stack-blocks': <StackBlocks config={config} onScoreUpdate={onScoreUpdate} onComplete={onComplete} isPlaying={isPlaying} />,
     'precision-drop': <PrecisionDrop config={config} onScoreUpdate={onScoreUpdate} onComplete={onComplete} isPlaying={isPlaying} />,
+    'precision-drop': <PrecisionDrop config={config} onScoreUpdate={onScoreUpdate} onComplete={onComplete} isPlaying={isPlaying} />,
     'drag-sort': <DragSort config={config} onScoreUpdate={onScoreUpdate} onComplete={onComplete} isPlaying={isPlaying} />,
     'speed-drawing': <SpeedDrawing config={config} onScoreUpdate={onScoreUpdate} onComplete={onComplete} isPlaying={isPlaying} />,
     'one-hand': <OneHand config={config} onScoreUpdate={onScoreUpdate} onComplete={onComplete} isPlaying={isPlaying} />,
@@ -44,66 +46,6 @@ export default function SkillGames({ config, onScoreUpdate, onComplete, isPlayin
 
 
 
-// Precision Drop Game (41)
-function PrecisionDrop({ config, onScoreUpdate, onComplete, isPlaying }: { config: Record<string, any>; onScoreUpdate: (score: number) => void; onComplete: (finalScore?: number) => void; isPlaying: boolean }) {
-  const rounds = config.rounds || 5;
-  const [objectPos, setObjectPos] = useState({ x: 50, y: 0 });
-  const [targetPos] = useState({ x: 50, y: 80 });
-  const [round, setRound] = useState(0);
-  const [score, setScore] = useState(0);
-  const [dropped, setDropped] = useState(false);
-
-  useEffect(() => {
-    if (round >= rounds) {
-      const finalScore = Math.round((score / rounds) * 100);
-      onScoreUpdate(finalScore);
-      setTimeout(() => onComplete(finalScore), 1000);
-      return;
-    }
-    
-    setObjectPos({ x: 50, y: 0 });
-    setDropped(false);
-  }, [round, rounds, score, onScoreUpdate, onComplete]);
-
-  useEffect(() => {
-    if (!isPlaying || dropped) return;
-    
-    const interval = setInterval(() => {
-      setObjectPos(prev => {
-        if (prev.y >= 100) {
-          const distance = Math.abs(prev.x - targetPos.x);
-          const roundScore = Math.max(0, 100 - distance * 2);
-          setScore(score + roundScore);
-          setDropped(true);
-          setTimeout(() => setRound(round + 1), 1000);
-          return prev;
-        }
-        return { ...prev, y: prev.y + 2 };
-      });
-    }, 50);
-    
-    return () => clearInterval(interval);
-  }, [isPlaying, dropped, targetPos, round, score, onScoreUpdate, onComplete]);
-
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (dropped) return;
-    if (e.key === 'ArrowLeft') setObjectPos(prev => ({ ...prev, x: Math.max(0, prev.x - 5) }));
-    if (e.key === 'ArrowRight') setObjectPos(prev => ({ ...prev, x: Math.min(100, prev.x + 5) }));
-  };
-
-  return (
-    <div className="precision-drop-game" onKeyDown={handleKeyPress} tabIndex={0}>
-      <h3>Precision Drop - Round {round + 1}/{rounds}</h3>
-      <div className="drop-area">
-        <div className="target-zone" style={{ left: `${targetPos.x - 5}%`, top: `${targetPos.y}%` }}></div>
-        <div className="falling-object" style={{ left: `${objectPos.x}%`, top: `${objectPos.y}%` }}>●</div>
-      </div>
-      <p style={{ display: 'flex', alignItems: 'center', gap: '6px', justifyContent: 'center' }}>
-        Use <ArrowLeftIcon style={{ width: 16, height: 16, display: 'inline' }} /> <ArrowRightIcon style={{ width: 16, height: 16, display: 'inline' }} /> to guide the object to the target
-      </p>
-    </div>
-  );
-}
 
 // Drag & Drop Sort Game (42)
 function DragSort({ config, onScoreUpdate, onComplete, isPlaying }: { config: Record<string, any>; onScoreUpdate: (score: number) => void; onComplete: (finalScore?: number) => void; isPlaying: boolean }) {

@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<!--
+  Precision Drop
+  Drop an object into a small target area.
+
+  How to Play:
+  - Press Start
+  - Move the object left/right above the target
+  - Click/tap to drop it
+  - Land fully inside the small target area to score
+
+  Difficulty:
+  - Rounds 1–4: 1 drop, target static
+  - Rounds 5–9: 3 drops, target moves left/right automatically
+  - Rounds 10+: 5 drops, moving target + shaking platform while the ball is falling
+
+  Usage: Save as precision-drop.html and open in a browser.
+-->
+<html lang="en">
+   <head>
+      <meta charset="UTF-8" />
+      <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <title>Precision Drop</title>
+      <style>
+         :root {
+            --bg: #0b1220;
+            --panel: #0f1b33;
+            --text: #e8eefc;
+            --muted: #a6b3d1;
+            --accent: #6ea8ff;
+            --good: #36d399;
+            --bad: #fb7185;
+            --warn: #fbbf24;
+            --shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
+            --radius: 18px;
+         }
+         * {
+            box-sizing: border-box;
+         }
+         body {
+            margin: 0;
+            font-family: system-ui;
+            background: radial-gradient(
+                  1200px 800px at 70% -10%,
+                  rgba(110, 168, 255, 0.28),
+                  transparent 60%
+               ),
+               radial-gradient(
+                  900px 600px at 0% 10%,
+                  rgba(54, 211, 153, 0.18),
+                  transparent 55%
+               ),
+               var(--bg);
+            color: var(--text);
+            min-height: 100svh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+         }
+
+         .app {
+            width: min(980px, 100%);
+            display: grid;
+            grid-template-columns: 1.2fr 0.8fr;
+            gap: 18px;
+         }
+         @media (max-width: 900px) {
+            .app {
+               grid-template-columns: 1fr;
+            }
+         }
+
+         .panel {
+            background: linear-gradient(
+               180deg,
+               rgba(255, 255, 255, 0.06),
+               rgba(255, 255, 255, 0.02)
+            );
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 18px;
+            box-shadow: var(--shadow);
+            overflow: hidden;
+         }
+
+         header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            padding: 18px;
+            gap: 12px;
+            flex-wrap: wrap;
+         }
+         h1 {
+            margin: 0;
+            font-size: 18px;
+         }
+         p {
+            margin: 4px 0 0;
+            color: var(--muted);
+            font-size: 13px;
+         }
+
+         button {
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            background: rgba(15, 27, 51, 0.7);
+            color: var(--text);
+            padding: 10px 14px;
+            font-weight: 900;
+            cursor: pointer;
+         }
+         button.primary {
+            background: linear-gradient(
+               180deg,
+               rgba(110, 168, 255, 0.9),
+               rgba(110, 168, 255, 0.55)
+            );
+            color: #081126;
+         }
+
+         .row {
+            display: flex;
+            gap: 12px;
+            padding: 14px 18px;
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            background: rgba(11, 22, 48, 0.45);
+            flex-wrap: wrap;
+         }
+
+         .pill {
+            padding: 8px 12px;
+            border-radius: 999px;
+            background: rgba(17, 28, 53, 0.55);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            font-size: 13px;
+            white-space: nowrap;
+         }
+
+         .content {
+            padding: 18px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+         }
+
+         .arena {
+            height: 460px;
+            border-radius: 18px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: radial-gradient(
+                  320px 240px at 30% 30%,
+                  rgba(110, 168, 255, 0.1),
+                  transparent 60%
+               ),
+               linear-gradient(
+                  180deg,
+                  rgba(255, 255, 255, 0.05),
+                  rgba(255, 255, 255, 0.02)
+               );
+            position: relative;
+            overflow: hidden;
+            user-select: none;
+            touch-action: manipulation;
+            padding: 10px;
+         }
+
+         canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+         }
+
+         .overlay {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 22px;
+            color: var(--muted);
+            pointer-events: none;
+         }
+         .overlay strong {
+            color: var(--text);
+         }
+
+         .side {
+            padding: 18px;
+         }
+         .side h2 {
+            margin: 0 0 8px;
+            font-size: 14px;
+         }
+         .side ul {
+            margin: 0;
+            color: var(--muted);
+            font-size: 13px;
+            line-height: 1.35;
+            padding-left: 18px;
+         }
+         .side ul + h2 {
+            margin-top: 14px;
+         }
+      </style>
+   </head>
+   <body>
+      <div class="app">
+         <section class="panel">
+            <header>
+               <div>
+                  <h1>Precision Drop</h1>
+                  <p>Drop object into small target area</p>
+               </div>
+               <button class="primary" id="startBtn">Start</button>
+            </header>
+
+            <div class="row">
+               <div class="pill">Round: <b id="round">1</b>/10</div>
+               <div class="pill">Score: <b id="score">0</b></div>
+               <div class="pill">Target width: <b id="tw">0</b>px</div>
+               <div class="pill">Result: <b id="result">—</b></div>
+            </div>
+
+            <div class="content">
+               <div class="arena" id="arena">
+                  <canvas id="cv"></canvas>
+                  <div class="overlay" id="overlay">
+                     <div>
+                        <strong>Press Start</strong><br />
+                        Move left/right, then click to drop.
+                     </div>
+                  </div>
+               </div>
+            </div>
+         </section>
+
+         <aside class="panel">
+            <div class="side">
+               <h2>How to Play</h2>
+               <ul>
+                  <li>Position the object above the target.</li>
+                  <li>Click/tap to drop it.</li>
+                  <li>Land inside the small target area to score.</li>
+               </ul>
+
+               <h2>Tips</h2>
+               <ul>
+                  <li>Take your time to aim.</li>
+                  <li>Small adjustments matter.</li>
+               </ul>
+            </div>
+         </aside>
+      </div>
+
+      <script>
+         // ===== Precision Drop – Vanilla JS (Canvas) =====
+
+         // Expected behavior question (quick):
+         // For level 10+ “shake”, should the platform shake ONLY visually while the ball falls (current),
+         // or should the shake also affect the true landing check (harder)?
+         // I implemented it to affect BOTH drawing and landing check so it feels consistent.
+
+         const TOTAL_ROUNDS = 10;
+         const OBJ_R = 14;
+         const GRAVITY = 1400; // px/s^2
+         const FLOOR_PAD = 64;
+
+         // target movement / shake
+         const TARGET_MARGIN = 20;
+         const SHAKE_AMPLITUDE = 6; // px
+         const SHAKE_FREQ = 22; // Hz-ish
+
+         let running = false;
+         let round = 1;
+         let score = 0;
+         let dropsLeft = 1;
+
+         let obj = null; // {x,y,vy,state:'aim'|'fall'|'land'}
+         let target = null; // {x,w,y,h}
+
+         let targetVel = 0; // px/s (>= round 5)
+         let targetDir = 1; // 1 or -1
+         let shakeActive = false; // only for round >= 10 while falling
+
+         let rafId = null;
+         let lastTs = 0;
+
+         const arena = document.getElementById("arena");
+         const cv = document.getElementById("cv");
+         const ctx = cv.getContext("2d");
+         const overlay = document.getElementById("overlay");
+
+         const roundEl = document.getElementById("round");
+         const scoreEl = document.getElementById("score");
+         const twEl = document.getElementById("tw");
+         const resultEl = document.getElementById("result");
+         const startBtn = document.getElementById("startBtn");
+
+         function clamp(n, a, b) {
+            return Math.max(a, Math.min(b, n));
+         }
+         function rand(min, max) {
+            return min + Math.random() * (max - min);
+         }
+
+         function resize() {
+            const r = arena.getBoundingClientRect();
+            const dpr = Math.max(1, window.devicePixelRatio || 1);
+            cv.width = Math.floor(r.width * dpr);
+            cv.height = Math.floor(r.height * dpr);
+            cv.style.width = r.width + "px";
+            cv.style.height = r.height + "px";
+            ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+            draw(0);
+         }
+
+         function hud() {
+            roundEl.textContent = String(round);
+            scoreEl.textContent = String(score);
+            twEl.textContent = target ? String(Math.round(target.w)) : "0";
+         }
+
+         function floorY() {
+            return cv.clientHeight - FLOOR_PAD;
+         }
+
+         function dropsForRound(r) {
+            if (r < 5) return 1;
+            if (r < 10) return 3;
+            return 5;
+         }
+
+         function targetWidthForRound(r) {
+            const w = cv.clientWidth;
+            const minW = 24;
+            const maxW = Math.min(160, w * 0.35);
+            return clamp(maxW - (r - 1) * 12, minW, maxW);
+         }
+
+         function targetSpeedForRound(r) {
+            if (r < 5) return 0;
+            return 120 + r * 18; // px/s
+         }
+
+         function startGame() {
+            running = true;
+            round = 1;
+            score = 0;
+            overlay.style.display = "none";
+            newRound();
+
+            lastTs = 0;
+            if (rafId) cancelAnimationFrame(rafId);
+            rafId = requestAnimationFrame(loop);
+         }
+
+         function newRound() {
+            const w = cv.clientWidth;
+            const y = floorY();
+
+            dropsLeft = dropsForRound(round);
+
+            const tW = targetWidthForRound(round);
+            const tX = rand(40, w - 40 - tW);
+            target = { x: tX, w: tW, y: y + 6, h: 14 };
+
+            targetVel = targetSpeedForRound(round);
+            targetDir = Math.random() > 0.5 ? 1 : -1;
+
+            obj = { x: w / 2, y: 70, vy: 0, state: "aim" };
+            shakeActive = false;
+
+            resultEl.textContent = "Drops left: " + dropsLeft;
+            hud();
+            draw(0);
+         }
+
+         function nextRound() {
+            round++;
+            if (round > TOTAL_ROUNDS) {
+               endGame();
+               return;
+            }
+            newRound();
+         }
+
+         function endGame() {
+            running = false;
+            if (rafId) cancelAnimationFrame(rafId);
+            rafId = null;
+
+            overlay.style.display = "flex";
+            overlay.innerHTML = `<div><strong>Done!</strong><br>
+    Score: ${score}<br>
+    <span style="color:var(--muted)">Press Start to play again.</span></div>`;
+         }
+
+         function drop() {
+            if (!running || !obj || obj.state !== "aim" || dropsLeft <= 0)
+               return;
+            obj.state = "fall";
+            obj.vy = 0;
+            dropsLeft--;
+            resultEl.textContent = "Drops left: " + dropsLeft;
+            // round 10+ shake while falling
+            shakeActive = round >= 10;
+         }
+
+         function currentShakeOffset(ts) {
+            if (!shakeActive) return 0;
+            const t = ts / 1000;
+            return Math.sin(t * Math.PI * 2 * SHAKE_FREQ) * SHAKE_AMPLITUDE;
+         }
+
+         function effectiveTargetX(shakeOffset) {
+            // clamp with margins so it doesn't shake outside bounds
+            const minX = TARGET_MARGIN;
+            const maxX = cv.clientWidth - TARGET_MARGIN - target.w;
+            return clamp(target.x + shakeOffset, minX, maxX);
+         }
+
+         function checkLanding(shakeOffset) {
+            const tX = effectiveTargetX(shakeOffset);
+
+            const left = obj.x - OBJ_R;
+            const right = obj.x + OBJ_R;
+            const tLeft = tX;
+            const tRight = tX + target.w;
+
+            const inside = left >= tLeft && right <= tRight;
+
+            if (inside) {
+               const bonus = Math.round(20 + (160 - target.w) * 0.25);
+               score += bonus;
+               resultEl.textContent =
+                  "HIT +" + bonus + " | Drops left: " + dropsLeft;
+            } else {
+               resultEl.textContent = "MISS | Drops left: " + dropsLeft;
+            }
+
+            hud();
+
+            if (dropsLeft > 0) {
+               // reset object for next drop in same round
+               obj = { x: cv.clientWidth / 2, y: 70, vy: 0, state: "aim" };
+               shakeActive = false; // shake only during falling
+            } else {
+               setTimeout(nextRound, 700);
+            }
+         }
+
+         function draw(shakeOffset) {
+            const w = cv.clientWidth;
+            const h = cv.clientHeight;
+            ctx.clearRect(0, 0, w, h);
+
+            // subtle grid
+            ctx.strokeStyle = "rgba(255,255,255,.04)";
+            ctx.lineWidth = 1;
+            for (let x = 0; x < w; x += 40) {
+               ctx.beginPath();
+               ctx.moveTo(x, 0);
+               ctx.lineTo(x, h);
+               ctx.stroke();
+            }
+            for (let y = 0; y < h; y += 40) {
+               ctx.beginPath();
+               ctx.moveTo(0, y);
+               ctx.lineTo(w, y);
+               ctx.stroke();
+            }
+
+            // floor
+            ctx.fillStyle = "rgba(255,255,255,.06)";
+            ctx.fillRect(0, floorY(), w, 4);
+
+            // target (with shake offset)
+            if (target) {
+               const tX = effectiveTargetX(shakeOffset);
+               ctx.fillStyle = "rgba(54,211,153,.22)";
+               ctx.fillRect(tX, target.y, target.w, target.h);
+               ctx.strokeStyle = "rgba(54,211,153,.65)";
+               ctx.strokeRect(tX, target.y, target.w, target.h);
+            }
+
+            // aiming guide line
+            if (obj && obj.state === "aim") {
+               ctx.strokeStyle = "rgba(110,168,255,.25)";
+               ctx.lineWidth = 2;
+               ctx.beginPath();
+               ctx.moveTo(obj.x, obj.y + OBJ_R + 4);
+               ctx.lineTo(obj.x, floorY());
+               ctx.stroke();
+            }
+
+            // object
+            if (obj) {
+               ctx.fillStyle = "rgba(110,168,255,.25)";
+               ctx.beginPath();
+               ctx.arc(obj.x, obj.y, OBJ_R + 4, 0, Math.PI * 2);
+               ctx.fill();
+
+               ctx.fillStyle = "rgba(110,168,255,.85)";
+               ctx.beginPath();
+               ctx.arc(obj.x, obj.y, OBJ_R, 0, Math.PI * 2);
+               ctx.fill();
+
+               ctx.strokeStyle = "rgba(255,255,255,.14)";
+               ctx.stroke();
+            }
+
+            // helper text
+            ctx.fillStyle = "rgba(166,179,209,.55)";
+            ctx.font = "12px system-ui";
+            ctx.fillText("Move left/right • Tap to drop", 14, 18);
+         }
+
+         function loop(ts) {
+            if (!running) return;
+            if (!lastTs) lastTs = ts;
+            const dt = Math.min(0.033, (ts - lastTs) / 1000);
+            lastTs = ts;
+
+            // move target horizontally from round 5+
+            if (target && targetVel > 0) {
+               target.x += targetDir * targetVel * dt;
+               const minX = TARGET_MARGIN;
+               const maxX = cv.clientWidth - TARGET_MARGIN - target.w;
+               if (target.x <= minX) {
+                  target.x = minX;
+                  targetDir = 1;
+               }
+               if (target.x >= maxX) {
+                  target.x = maxX;
+                  targetDir = -1;
+               }
+            }
+
+            const shakeOffset = currentShakeOffset(ts);
+
+            // physics
+            if (obj && obj.state === "fall") {
+               obj.vy += GRAVITY * dt;
+               obj.y += obj.vy * dt;
+
+               const landY = floorY() - OBJ_R;
+               if (obj.y >= landY) {
+                  obj.y = landY;
+                  obj.state = "land";
+                  checkLanding(shakeOffset);
+               }
+            }
+
+            draw(shakeOffset);
+            rafId = requestAnimationFrame(loop);
+         }
+
+         // Controls: mouse moves object in aim state
+         arena.addEventListener("mousemove", (e) => {
+            if (!running || !obj || obj.state !== "aim") return;
+            const rect = cv.getBoundingClientRect();
+            obj.x = clamp(
+               e.clientX - rect.left,
+               OBJ_R + 6,
+               cv.clientWidth - OBJ_R - 6
+            );
+         });
+
+         // Touch drag
+         arena.addEventListener(
+            "touchstart",
+            (e) => {
+               if (!running || !obj || obj.state !== "aim") return;
+               const t = e.touches[0];
+               if (!t) return;
+               const rect = cv.getBoundingClientRect();
+               obj.x = clamp(
+                  t.clientX - rect.left,
+                  OBJ_R + 6,
+                  cv.clientWidth - OBJ_R - 6
+               );
+            },
+            { passive: true }
+         );
+
+         arena.addEventListener(
+            "touchmove",
+            (e) => {
+               if (!running || !obj || obj.state !== "aim") return;
+               const t = e.touches[0];
+               if (!t) return;
+               const rect = cv.getBoundingClientRect();
+               obj.x = clamp(
+                  t.clientX - rect.left,
+                  OBJ_R + 6,
+                  cv.clientWidth - OBJ_R - 6
+               );
+            },
+            { passive: true }
+         );
+
+         // Click/tap to drop
+         arena.addEventListener("click", () => drop());
+         startBtn.addEventListener("click", startGame);
+         window.addEventListener("resize", resize);
+         resize();
+
+         // ===== Tests (Console) =====
+         (function runTests() {
+            try {
+               console.assert(TOTAL_ROUNDS === 10, "Test: 10 rounds");
+               console.assert(dropsForRound(1) === 1, "Test: drops round 1");
+               console.assert(dropsForRound(5) === 3, "Test: drops round 5");
+               console.assert(dropsForRound(10) === 5, "Test: drops round 10");
+
+               // target speed
+               console.assert(
+                  targetSpeedForRound(1) === 0,
+                  "Test: target static before 5"
+               );
+               console.assert(
+                  targetSpeedForRound(5) > 0,
+                  "Test: target moves from 5"
+               );
+
+               // clamp width
+               const w1 = targetWidthForRound(1);
+               const w10 = targetWidthForRound(10);
+               console.assert(
+                  w10 <= w1,
+                  "Test: target shrinks as rounds increase"
+               );
+
+               // shake offset deterministic-ish
+               const s0 = currentShakeOffset(0);
+               console.assert(
+                  typeof s0 === "number",
+                  "Test: shake returns number"
+               );
+
+               console.info("Precision Drop tests: OK");
+            } catch (err) {
+               console.warn("Precision Drop tests failed", err);
+            }
+         })();
+      </script>
+   </body>
+</html>

@@ -565,9 +565,17 @@ export const gameInstructions: Record<string, {
     ],
   },
   'precision-drop': {
-    description: 'Drop object into small target area',
-    instructions: 'Position the object above the target, then click to drop it. The target area is small, so precision matters!',
-    tips: 'Take your time to aim. Small adjustments can make a big difference.'
+    description: 'Drop object into small target area. Move the object left/right, then click to drop it. Land fully inside the target to score. Each level has multiple drops (mini levels) that must be completed.',
+    instructions: 'Position the object above the target by moving your mouse or using arrow keys. Click or press Enter/Space to drop it. The target area gets smaller as levels progress. From level 5+, the target moves automatically. From level 10+, the platform shakes while the object is falling, making it harder to land accurately. You need to complete a minimum number of successful hits to pass each level.',
+    tips: 'Take your time to aim before dropping. Small adjustments matter. Watch the target movement pattern in higher levels. For shake levels, try to drop when the shake offset is minimal.',
+    mouseControls: [
+      { action: 'Move', label: 'Move mouse left/right to position the object above the target' },
+      { action: 'Click', label: 'Click to drop the object' }
+    ],
+    keyboardControls: [
+      { keys: ['Arrow Left', 'Arrow Right'], label: 'Move object left/right' },
+      { keys: ['Enter', 'Space'], label: 'Press Enter or Space to drop the object' }
+    ],
   },
   'drag-sort': {
     description: 'Sort items into correct categories',
