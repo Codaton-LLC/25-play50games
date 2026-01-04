@@ -489,6 +489,36 @@ export default function SpeedDrawing({
    );
 
    // Calculate accuracy by comparing player path to target shape
+   const calculateProximityRatio = useCallback(
+      (
+         playerPoints: Point[],
+         targetPoints: Point[],
+         canvasWidth: number,
+         canvasHeight: number
+      ): number => {
+         if (playerPoints.length < 3 || targetPoints.length < 3) return 0;
+
+         const threshold = Math.min(canvasWidth, canvasHeight) * 0.06; // 6% of canvas
+         let onPathCount = 0;
+
+         for (const playerPoint of playerPoints) {
+            let minDist = Infinity;
+            for (const targetPoint of targetPoints) {
+               const dx = playerPoint.x - targetPoint.x;
+               const dy = playerPoint.y - targetPoint.y;
+               const dist = Math.sqrt(dx * dx + dy * dy);
+               if (dist < minDist) minDist = dist;
+            }
+            if (minDist <= threshold) {
+               onPathCount++;
+            }
+         }
+
+         return onPathCount / playerPoints.length;
+      },
+      []
+   );
+
    const calculateAccuracy = useCallback(
       (
          playerPoints: Point[],
@@ -497,6 +527,18 @@ export default function SpeedDrawing({
          canvasHeight: number
       ): number => {
          if (playerPoints.length < 3 || targetPoints.length < 3) return 0;
+
+         const proximityRatio = calculateProximityRatio(
+            playerPoints,
+            targetPoints,
+            canvasWidth,
+            canvasHeight
+         );
+
+         // If most points are far from the target path, treat as inaccurate
+         if (proximityRatio < 0.3) {
+            return 0;
+         }
 
          // Normalize points to 0-100 range
          const normalizePlayer = playerPoints.map((p) => ({
@@ -609,8 +651,8 @@ export default function SpeedDrawing({
                if (dist < minDist) minDist = dist;
             }
             totalDistance += minDist;
-            if (minDist < 3) matchedPoints++; // Stricter: 3% tolerance (was 5%)
-            if (minDist < 5) closePoints++; // Close but not perfect
+            if (minDist < 3) matchedPoints++; // Strict tolerance in normalized space
+            if (minDist < 6) closePoints++; // Close but not perfect
          }
 
          const avgDistance = totalDistance / alignedPlayer.length;
@@ -635,9 +677,11 @@ export default function SpeedDrawing({
             pathFollowingScore * 0.15 +
             closeScore * 0.1;
 
-         return Math.min(100, Math.max(0, accuracy));
+         const weightedAccuracy = accuracy * proximityRatio;
+
+         return Math.min(100, Math.max(0, weightedAccuracy));
       },
-      []
+      [calculateProximityRatio]
    );
 
    // Draw on canvas
@@ -1122,7 +1166,14 @@ export default function SpeedDrawing({
          finalCompletion = (startProgress + endProgress) / 2;
       }
 
+      const proximityRatio = calculateProximityRatio(
+         playerPath,
+         targetPath,
+         width,
+         height
+      );
       finalCompletion = Math.min(100, Math.max(0, finalCompletion));
+      finalCompletion = finalCompletion * proximityRatio;
       setDrawingCompletionProgress(finalCompletion);
       drawingCompletionProgressRef.current = finalCompletion;
 
@@ -1146,6 +1197,7 @@ export default function SpeedDrawing({
       getLevelConfig,
       generateTargetPath,
       calculateAccuracy,
+      calculateProximityRatio,
       getStartAndEndPoints,
       clearAll,
    ]);
@@ -1255,7 +1307,14 @@ export default function SpeedDrawing({
          completion = (startProgress + endProgress) / 2;
       }
 
-      const finalCompletion = Math.min(100, Math.max(0, completion));
+      const baseCompletion = Math.min(100, Math.max(0, completion));
+      const proximityRatio = calculateProximityRatio(
+         playerPath,
+         targetPath,
+         width,
+         height
+      );
+      const finalCompletion = baseCompletion * proximityRatio;
       setDrawingCompletionProgress(finalCompletion);
       drawingCompletionProgressRef.current = finalCompletion;
 
@@ -1271,6 +1330,7 @@ export default function SpeedDrawing({
       getLevelConfig,
       generateTargetPath,
       calculateAccuracy,
+      calculateProximityRatio,
       getStartAndEndPoints,
    ]);
 
