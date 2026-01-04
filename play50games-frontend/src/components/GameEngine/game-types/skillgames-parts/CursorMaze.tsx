@@ -582,16 +582,8 @@ export default function CursorMaze({
 
          // Move player with keyboard
          movePlayerWithKeyboard();
-
-         // Check if time ran out
-         if (timeLeft <= 0) {
-            gameStateRef.current = "failed";
-            setGameState("failed");
-            clearAll();
-            return;
-         }
       },
-      [timeLeft, clearAll, movePlayerWithKeyboard]
+      [movePlayerWithKeyboard]
    );
 
    // Start level
