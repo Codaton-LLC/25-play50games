@@ -578,9 +578,16 @@ export const gameInstructions: Record<string, {
     ],
   },
   'drag-sort': {
-    description: 'Sort items into correct categories',
-    instructions: 'Drag items from the center into the correct category boxes. Sort them quickly and accurately!',
-    tips: 'Look at the item characteristics. Group similar items together mentally first.'
+    description: 'Sort emojis into the matching categories. Levels go from simple visuals to real-world groups and logic.',
+    instructions: 'Drag emojis into the matching bins. Later levels add more categories and faster timers. Some levels switch categories halfway.',
+    tips: 'Match by look first (color/shape), then by meaning (animals, tools, safe vs danger). Wrong drops can cost time.',
+    mouseControls: [
+      { action: 'Drag', label: 'Click and drag items from the center area' },
+      { action: 'Drop', label: 'Drop items into the correct category boxes' }
+    ],
+    keyboardControls: [
+      { keys: ['Mouse/Touch'], label: 'Use mouse or touch to drag and drop items' }
+    ],
   },
   'speed-drawing': {
     description: 'Draw displayed shape within time limit',

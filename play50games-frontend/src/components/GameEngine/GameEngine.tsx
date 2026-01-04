@@ -32,6 +32,8 @@ import {
    SparklesIcon,
    CursorArrowRaysIcon,
    HandRaisedIcon,
+   ArrowsUpDownIcon,
+   Squares2X2Icon,
 } from "@heroicons/react/24/outline";
 import LogicGames from "./game-types/LogicGames";
 import MemoryGames from "./game-types/MemoryGames";
@@ -4011,6 +4013,236 @@ export default function GameEngine({
                               }}
                            >
                               Keyboard: <strong>Arrow Left/Right</strong> to move, <strong>Enter/Space</strong> to drop
+                           </span>
+                        </div>
+                     </div>
+                  </div>
+               )}
+
+               {gameType === "drag-sort" && (
+                  <div
+                     style={{
+                        background:
+                           "linear-gradient(135deg, rgba(125, 211, 252, 0.1) 0%, rgba(54, 211, 153, 0.1) 100%)",
+                        border: "2px solid var(--stroke)",
+                        borderRadius: isMobile
+                           ? "16px"
+                           : isTablet
+                           ? "18px"
+                           : "20px",
+                        padding: isMobile ? "20px" : isTablet ? "24px" : "32px",
+                        marginTop: isMobile ? "16px" : "24px",
+                        boxShadow: "0 8px 24px rgba(0, 0, 0, 0.2)",
+                     }}
+                  >
+                     <div
+                        style={{
+                           display: "flex",
+                           alignItems: "center",
+                           justifyContent: "center",
+                           gap: isMobile ? "8px" : "12px",
+                           marginBottom: isMobile
+                              ? "16px"
+                              : isTablet
+                              ? "20px"
+                              : "24px",
+                        }}
+                     >
+                        <ArrowsUpDownIcon
+                           style={{
+                              width: isMobile ? 24 : isTablet ? 26 : 28,
+                              height: isMobile ? 24 : isTablet ? 26 : 28,
+                              color: "var(--accent)",
+                           }}
+                        />
+                        <h3
+                           style={{
+                              fontSize: isMobile
+                                 ? "20px"
+                                 : isTablet
+                                 ? "22px"
+                                 : "24px",
+                              fontWeight: 700,
+                              margin: 0,
+                              background:
+                                 "linear-gradient(135deg, var(--accent) 0%, var(--ok) 100%)",
+                              WebkitBackgroundClip: "text",
+                              WebkitTextFillColor: "transparent",
+                              backgroundClip: "text",
+                           }}
+                        >
+                           Example Round
+                        </h3>
+                     </div>
+
+                     <div
+                        style={{
+                           background: "var(--card)",
+                           border: "2px solid var(--stroke)",
+                           borderRadius: "16px",
+                           padding: isMobile ? "16px" : "24px",
+                           marginBottom: "20px",
+                        }}
+                     >
+                        <p
+                           style={{
+                              margin: "0 0 16px",
+                              color: "var(--text)",
+                              fontSize: isMobile ? "14px" : "16px",
+                              fontWeight: 600,
+                              textAlign: "center",
+                           }}
+                        >
+                           Drag items from the center into the correct category boxes:
+                        </p>
+
+                        {/* Example Items */}
+                        <div
+                           style={{
+                              display: "flex",
+                              flexWrap: "wrap",
+                              gap: "8px",
+                              justifyContent: "center",
+                              marginBottom: "20px",
+                              padding: "12px",
+                              background: "rgba(59, 130, 246, 0.1)",
+                              borderRadius: "12px",
+                           }}
+                        >
+                           {[1, 2, 3].map((num) => (
+                              <div
+                                 key={num}
+                                 style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    padding: "10px 16px",
+                                    background:
+                                       "linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1))",
+                                    border: "2px solid rgba(59, 130, 246, 0.4)",
+                                    borderRadius: "8px",
+                                    fontSize: "1rem",
+                                    fontWeight: 600,
+                                    color: "var(--text)",
+                                    minWidth: "50px",
+                                 }}
+                              >
+                                 {num}
+                              </div>
+                           ))}
+                        </div>
+
+                        {/* Example Categories */}
+                        <div
+                           style={{
+                              display: "grid",
+                              gridTemplateColumns: isMobile ? "1fr" : "repeat(3, 1fr)",
+                              gap: "12px",
+                           }}
+                        >
+                           {["A", "B", "C"].map((cat, idx) => (
+                              <div
+                                 key={cat}
+                                 style={{
+                                    background: [
+                                       "rgba(59, 130, 246, 0.2)",
+                                       "rgba(34, 197, 94, 0.2)",
+                                       "rgba(168, 85, 247, 0.2)",
+                                    ][idx],
+                                    border: "2px dashed rgba(255, 255, 255, 0.3)",
+                                    borderRadius: "12px",
+                                    padding: "16px",
+                                    minHeight: "100px",
+                                    display: "flex",
+                                    flexDirection: "column",
+                                    gap: "8px",
+                                 }}
+                              >
+                                 <div
+                                    style={{
+                                       display: "flex",
+                                       alignItems: "center",
+                                       gap: "8px",
+                                       marginBottom: "8px",
+                                    }}
+                                 >
+                                    {cat === "A" ? (
+                                       <Squares2X2Icon
+                                          style={{ width: 20, height: 20, color: "var(--text)" }}
+                                       />
+                                    ) : cat === "B" ? (
+                                       <ArrowsUpDownIcon
+                                          style={{ width: 20, height: 20, color: "var(--text)" }}
+                                       />
+                                    ) : (
+                                       <SparklesIcon
+                                          style={{ width: 20, height: 20, color: "var(--text)" }}
+                                       />
+                                    )}
+                                    <h4
+                                       style={{
+                                          fontSize: "0.95rem",
+                                          fontWeight: 700,
+                                          color: "var(--text)",
+                                          margin: 0,
+                                       }}
+                                    >
+                                       Category {cat}
+                                    </h4>
+                                 </div>
+                                 <div
+                                    style={{
+                                       display: "flex",
+                                       flexWrap: "wrap",
+                                       gap: "6px",
+                                    }}
+                                 >
+                                    <div
+                                       style={{
+                                          padding: "6px 10px",
+                                          background: "rgba(34, 197, 94, 0.3)",
+                                          border: "2px solid rgba(34, 197, 94, 0.6)",
+                                          borderRadius: "6px",
+                                          fontSize: "0.9rem",
+                                          fontWeight: 600,
+                                          color: "var(--text)",
+                                       }}
+                                    >
+                                       {idx + 1}
+                                    </div>
+                                 </div>
+                              </div>
+                           ))}
+                        </div>
+
+                        <div
+                           style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "8px",
+                              padding: "8px 12px",
+                              background: "rgba(125, 211, 252, 0.1)",
+                              borderRadius: "8px",
+                              marginTop: "12px",
+                              width: "100%",
+                              justifyContent: "center",
+                           }}
+                        >
+                           <HandRaisedIcon
+                              style={{
+                                 width: isMobile ? 16 : 18,
+                                 height: isMobile ? 16 : 18,
+                                 color: "var(--accent)",
+                              }}
+                           />
+                           <span
+                              style={{
+                                 fontSize: isMobile ? "12px" : "13px",
+                                 color: "var(--text)",
+                                 fontWeight: 600,
+                              }}
+                           >
+                              Drag items to their correct categories. Items are automatically sorted within categories.
                            </span>
                         </div>
                      </div>

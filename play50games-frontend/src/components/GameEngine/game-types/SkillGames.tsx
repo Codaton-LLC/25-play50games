@@ -7,6 +7,7 @@ import LineTracer from './skillgames-parts/LineTracer';
 import TimingBar from './skillgames-parts/TimingBar';
 import StackBlocks from './skillgames-parts/StackBlocks';
 import PrecisionDrop from './skillgames-parts/PrecisionDrop';
+import DragAndDropSort from './skillgames-parts/DragAndDropSort';
 
 interface SkillGamesProps {
   config: Record<string, any>;
@@ -32,8 +33,7 @@ export default function SkillGames({ config, onScoreUpdate, onComplete, isPlayin
     'timing-bar': <TimingBar config={config} onScoreUpdate={onScoreUpdate} onComplete={onComplete} isPlaying={isPlaying} />,
     'stack-blocks': <StackBlocks config={config} onScoreUpdate={onScoreUpdate} onComplete={onComplete} isPlaying={isPlaying} />,
     'precision-drop': <PrecisionDrop config={config} onScoreUpdate={onScoreUpdate} onComplete={onComplete} isPlaying={isPlaying} />,
-    'precision-drop': <PrecisionDrop config={config} onScoreUpdate={onScoreUpdate} onComplete={onComplete} isPlaying={isPlaying} />,
-    'drag-sort': <DragSort config={config} onScoreUpdate={onScoreUpdate} onComplete={onComplete} isPlaying={isPlaying} />,
+    'drag-sort': <DragAndDropSort config={config} onScoreUpdate={onScoreUpdate} onComplete={onComplete} isPlaying={isPlaying} />,
     'speed-drawing': <SpeedDrawing config={config} onScoreUpdate={onScoreUpdate} onComplete={onComplete} isPlaying={isPlaying} />,
     'one-hand': <OneHand config={config} onScoreUpdate={onScoreUpdate} onComplete={onComplete} isPlaying={isPlaying} />,
     'cursor-maze': <CursorMaze config={config} onScoreUpdate={onScoreUpdate} onComplete={onComplete} isPlaying={isPlaying} />,
@@ -47,86 +47,6 @@ export default function SkillGames({ config, onScoreUpdate, onComplete, isPlayin
 
 
 
-// Drag & Drop Sort Game (42)
-function DragSort({ config, onScoreUpdate, onComplete, isPlaying }: { config: Record<string, any>; onScoreUpdate: (score: number) => void; onComplete: (finalScore?: number) => void; isPlaying: boolean }) {
-  const items = config.items || 8;
-  const [categories, setCategories] = useState<{ [key: string]: number[] }>({
-    'A': [],
-    'B': [],
-    'C': [],
-  });
-  const [itemList, setItemList] = useState<Array<{ id: number; value: number; category: string }>>([]);
-  const [draggedItem, setDraggedItem] = useState<number | null>(null);
-
-  useEffect(() => {
-    const newItems = Array.from({ length: items }, (_, i) => ({
-      id: i,
-      value: i + 1,
-      category: ['A', 'B', 'C'][Math.floor((i + 1) / 3)],
-    })).sort(() => Math.random() - 0.5);
-    setItemList(newItems);
-  }, []);
-
-  useEffect(() => {
-    const allSorted = Object.values(categories).every(cat => 
-      cat.length > 0 && cat.every((val, i) => i === 0 || val > cat[i - 1])
-    );
-    if (allSorted && itemList.length === 0) {
-      onScoreUpdate(100);
-      setTimeout(() => onComplete(100), 1000);
-    }
-  }, [categories, itemList, onScoreUpdate, onComplete]);
-
-  const handleDragStart = (id: number) => {
-    setDraggedItem(id);
-  };
-
-  const handleDrop = (category: string) => {
-    if (draggedItem === null) return;
-    const item = itemList.find(i => i.id === draggedItem);
-    if (!item) return;
-    
-    setCategories(prev => ({
-      ...prev,
-      [category]: [...prev[category], item.value].sort((a, b) => a - b),
-    }));
-    setItemList(itemList.filter(i => i.id !== draggedItem));
-    setDraggedItem(null);
-  };
-
-  return (
-    <div className="drag-sort-game">
-      <h3>Drag & Drop Sort</h3>
-      <div className="items-list">
-        {itemList.map(item => (
-          <div
-            key={item.id}
-            draggable
-            onDragStart={() => handleDragStart(item.id)}
-            className="sortable-item"
-          >
-            {item.value}
-          </div>
-        ))}
-      </div>
-      <div className="categories">
-        {Object.keys(categories).map(cat => (
-          <div
-            key={cat}
-            onDragOver={(e) => e.preventDefault()}
-            onDrop={() => handleDrop(cat)}
-            className="category-box"
-          >
-            <h4>Category {cat}</h4>
-            {categories[cat].map((val, i) => (
-              <div key={i} className="sorted-item">{val}</div>
-            ))}
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
 
 // Speed Drawing Game (43)
 function SpeedDrawing({ config, onScoreUpdate, onComplete, isPlaying }: { config: Record<string, any>; onScoreUpdate: (score: number) => void; onComplete: (finalScore?: number) => void; isPlaying: boolean }) {
