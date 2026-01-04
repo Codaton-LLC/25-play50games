@@ -692,11 +692,11 @@ function show_games_custom_fields() {
                 gameType: 'skill',
                 gameOrder: 40,
                 difficulty: 3,
-                timeLimit: 120,
-                passingScore: 80,
+                timeLimit: 0,
+                passingScore: 75,
                 unlockRequirement: '',
-                description: 'Stack blocks as evenly as possible',
-                gameConfig: '{"gameType": "stack-blocks", "blocks": 10}'
+                description: 'Stack blocks as evenly as possible. Click on the moving green block to place it on the stack. Align blocks as close to center as possible to pass each level.',
+                gameConfig: '{"gameType":"stack-blocks","levels":15,"levelRequirements":[{"minBlocks":5,"duration":30,"blockSpeed":0.5,"initialBlockWidth":50,"widthReduction":2},{"minBlocks":5,"duration":30,"blockSpeed":0.6,"initialBlockWidth":48,"widthReduction":2},{"minBlocks":6,"duration":30,"blockSpeed":0.7,"initialBlockWidth":46,"widthReduction":1.9},{"minBlocks":6,"duration":30,"blockSpeed":0.8,"initialBlockWidth":44,"widthReduction":1.9},{"minBlocks":7,"duration":30,"blockSpeed":0.9,"initialBlockWidth":42,"widthReduction":1.8},{"minBlocks":7,"duration":30,"blockSpeed":1.0,"initialBlockWidth":40,"widthReduction":1.8},{"minBlocks":8,"duration":30,"blockSpeed":1.1,"initialBlockWidth":38,"widthReduction":1.7},{"minBlocks":8,"duration":30,"blockSpeed":1.2,"initialBlockWidth":36,"widthReduction":1.7},{"minBlocks":9,"duration":30,"blockSpeed":1.3,"initialBlockWidth":34,"widthReduction":1.6},{"minBlocks":9,"duration":30,"blockSpeed":1.4,"initialBlockWidth":32,"widthReduction":1.6},{"minBlocks":10,"duration":30,"blockSpeed":1.4,"initialBlockWidth":32,"widthReduction":1.5},{"minBlocks":10,"duration":30,"blockSpeed":1.5,"initialBlockWidth":30,"widthReduction":1.5},{"minBlocks":11,"duration":30,"blockSpeed":1.5,"initialBlockWidth":30,"widthReduction":1.5},{"minBlocks":11,"duration":30,"blockSpeed":1.5,"initialBlockWidth":30,"widthReduction":1.5},{"minBlocks":12,"duration":30,"blockSpeed":1.5,"initialBlockWidth":30,"widthReduction":1.5}]}'
             },
             'precision-drop': {
                 title: 'Precision Drop',

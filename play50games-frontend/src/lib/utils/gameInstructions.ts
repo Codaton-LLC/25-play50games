@@ -554,9 +554,15 @@ export const gameInstructions: Record<string, {
     ],
   },
   'stack-blocks': {
-    description: 'Stack blocks as evenly as possible',
-    instructions: 'Click to drop blocks and stack them. Try to align them perfectly on top of each other.',
-    tips: 'Watch the block as it falls. Click when it\'s aligned with the block below.'
+    description: 'Stack blocks as evenly as possible. Click on the moving green block to place it on the stack. Align blocks as close to center as possible to pass each level.',
+    instructions: 'A green block moves left and right. Click on it or press Enter/Space to place it on the stack. You need to place a minimum number of blocks within the time limit. As levels progress, blocks move faster, become smaller, and require more blocks. Only the overlapping part stays when you place a block - if there\'s no overlap, the game ends.',
+    tips: 'Watch the rhythm of the moving block. Time your click or keypress to place it aligned with the block below. Higher levels require more precision and faster reactions. Practice predicting the block\'s position.',
+    mouseControls: [
+      { action: 'Click', label: 'Click on the arena to place the moving green block on the stack' }
+    ],
+    keyboardControls: [
+      { keys: ['Enter', 'Space'], label: 'Press Enter or Space to place the moving block on the stack' }
+    ],
   },
   'precision-drop': {
     description: 'Drop object into small target area',

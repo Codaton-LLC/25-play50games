@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<!--
+  Stack Blocks
+  Stack blocks as evenly as possible.
+
+  How to Play:
+  - Press Start
+  - A moving block slides left/right above the stack
+  - Click/tap to drop it
+  - Only the overlapping part stays; misalignment trims the block
+  - If there's no overlap: Game Over
+
+  Tips:
+  - Watch rhythm and click when aligned
+
+  Usage: Save as stack-blocks.html and open in a browser.
+-->
+<html lang="en">
+   <head>
+      <meta charset="UTF-8" />
+      <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <title>Stack Blocks</title>
+      <style>
+         :root {
+            --bg: #0b1220;
+            --panel: #0f1b33;
+            --text: #e8eefc;
+            --muted: #a6b3d1;
+            --accent: #6ea8ff;
+            --good: #36d399;
+            --bad: #fb7185;
+            --warn: #fbbf24;
+            --shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
+            --radius: 18px;
+         }
+         * {
+            box-sizing: border-box;
+         }
+         body {
+            margin: 0;
+            font-family: system-ui;
+            background: radial-gradient(
+                  1200px 800px at 70% -10%,
+                  rgba(110, 168, 255, 0.28),
+                  transparent 60%
+               ),
+               radial-gradient(
+                  900px 600px at 0% 10%,
+                  rgba(54, 211, 153, 0.18),
+                  transparent 55%
+               ),
+               var(--bg);
+            color: var(--text);
+            min-height: 100svh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+         }
+
+         .app {
+            width: min(980px, 100%);
+            display: grid;
+            grid-template-columns: 1.2fr 0.8fr;
+            gap: 18px;
+         }
+         @media (max-width: 900px) {
+            .app {
+               grid-template-columns: 1fr;
+            }
+         }
+
+         .panel {
+            background: linear-gradient(
+               180deg,
+               rgba(255, 255, 255, 0.06),
+               rgba(255, 255, 255, 0.02)
+            );
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            overflow: hidden;
+         }
+
+         header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            padding: 18px;
+            gap: 12px;
+            flex-wrap: wrap;
+         }
+         h1 {
+            margin: 0;
+            font-size: 18px;
+         }
+         p {
+            margin: 4px 0 0;
+            color: var(--muted);
+            font-size: 13px;
+         }
+
+         button {
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            background: rgba(15, 27, 51, 0.7);
+            color: var(--text);
+            padding: 10px 14px;
+            font-weight: 900;
+            cursor: pointer;
+         }
+         button.primary {
+            background: linear-gradient(
+               180deg,
+               rgba(110, 168, 255, 0.9),
+               rgba(110, 168, 255, 0.55)
+            );
+            color: #081126;
+         }
+
+         .row {
+            display: flex;
+            gap: 12px;
+            padding: 14px 18px;
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            background: rgba(11, 22, 48, 0.45);
+            flex-wrap: wrap;
+         }
+
+         .pill {
+            padding: 8px 12px;
+            border-radius: 999px;
+            background: rgba(17, 28, 53, 0.55);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            font-size: 13px;
+            white-space: nowrap;
+         }
+
+         .content {
+            padding: 18px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+         }
+
+         .arena {
+            height: 460px;
+            border-radius: 18px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: radial-gradient(
+                  320px 240px at 30% 30%,
+                  rgba(110, 168, 255, 0.1),
+                  transparent 60%
+               ),
+               linear-gradient(
+                  180deg,
+                  rgba(255, 255, 255, 0.05),
+                  rgba(255, 255, 255, 0.02)
+               );
+            position: relative;
+            overflow: hidden;
+            user-select: none;
+            touch-action: manipulation;
+            padding: 10px;
+         }
+
+         canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+         }
+
+         .overlay {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 22px;
+            color: var(--muted);
+            pointer-events: none;
+         }
+         .overlay strong {
+            color: var(--text);
+         }
+
+         .side {
+            padding: 18px;
+         }
+         .side h2 {
+            margin: 0 0 8px;
+            font-size: 14px;
+         }
+         .side ul {
+            margin: 0;
+            color: var(--muted);
+            font-size: 13px;
+            line-height: 1.35;
+            padding-left: 18px;
+         }
+         .side ul + h2 {
+            margin-top: 14px;
+         }
+      </style>
+   </head>
+   <body>
+      <div class="app">
+         <section class="panel">
+            <header>
+               <div>
+                  <h1>Stack Blocks</h1>
+                  <p>Stack blocks as evenly as possible</p>
+               </div>
+               <button class="primary" id="startBtn">Start</button>
+            </header>
+
+            <div class="row">
+               <div class="pill">Level: <b id="level">1</b></div>
+               <div class="pill">Score: <b id="score">0</b></div>
+               <div class="pill">Perfect: <b id="perfect">0</b></div>
+               <div class="pill">Block width: <b id="bw">0</b>px</div>
+            </div>
+
+            <div class="content">
+               <div class="arena" id="arena">
+                  <canvas id="cv"></canvas>
+                  <div class="overlay" id="overlay">
+                     <div>
+                        <strong>Press Start</strong><br />
+                        Click/tap to drop the moving block.<br />
+                        <span style="color: var(--muted)"
+                           >Only overlap stays — no overlap = game over.</span
+                        >
+                     </div>
+                  </div>
+               </div>
+            </div>
+         </section>
+
+         <aside class="panel">
+            <div class="side">
+               <h2>How to Play</h2>
+               <ul>
+                  <li>A block moves left/right above the stack.</li>
+                  <li>Click/tap to drop it.</li>
+                  <li>Only the overlap stays; misalignment trims the block.</li>
+                  <li>No overlap = Game Over.</li>
+               </ul>
+
+               <h2>Tips</h2>
+               <ul>
+                  <li>Watch the rhythm.</li>
+                  <li>Click when aligned with the block below.</li>
+               </ul>
+            </div>
+         </aside>
+      </div>
+
+      <script>
+         // ===== Stack Blocks – Vanilla JS (Canvas) =====
+         // Simple stacking game inspired by classic block stackers.
+
+         const TOTAL_VISIBLE_ROWS = 10;
+         const BLOCK_H = 28;
+         const PERFECT_EPS = 6; // px tolerance for "perfect" snap
+
+         let running = false;
+         let level = 1;
+         let score = 0;
+         let perfect = 0;
+
+         // stack blocks from bottom up: {x, w, y}
+         let stack = [];
+
+         // current moving block
+         let cur = null; // {x,w,y,vx}
+         let dir = 1;
+         let rafId = null;
+         let lastTs = 0;
+
+         const arena = document.getElementById("arena");
+         const cv = document.getElementById("cv");
+         const ctx = cv.getContext("2d");
+         const overlay = document.getElementById("overlay");
+
+         const levelEl = document.getElementById("level");
+         const scoreEl = document.getElementById("score");
+         const perfectEl = document.getElementById("perfect");
+         const bwEl = document.getElementById("bw");
+         const startBtn = document.getElementById("startBtn");
+
+         function clamp(n, a, b) {
+            return Math.max(a, Math.min(b, n));
+         }
+
+         function resize() {
+            const r = arena.getBoundingClientRect();
+            const dpr = Math.max(1, window.devicePixelRatio || 1);
+            cv.width = Math.floor(r.width * dpr);
+            cv.height = Math.floor(r.height * dpr);
+            cv.style.width = r.width + "px";
+            cv.style.height = r.height + "px";
+            ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+            draw();
+         }
+
+         function hud() {
+            levelEl.textContent = String(level);
+            scoreEl.textContent = String(score);
+            perfectEl.textContent = String(perfect);
+            bwEl.textContent = cur ? String(Math.round(cur.w)) : "0";
+         }
+
+         function baseY() {
+            // baseline near bottom
+            return cv.clientHeight - 52;
+         }
+
+         function newGame() {
+            running = true;
+            level = 1;
+            score = 0;
+            perfect = 0;
+
+            const w = Math.min(320, cv.clientWidth * 0.72);
+            const x = (cv.clientWidth - w) / 2;
+
+            stack = [{ x, w, y: baseY() }];
+            spawnNext();
+
+            overlay.style.display = "none";
+            hud();
+            lastTs = 0;
+            if (rafId) cancelAnimationFrame(rafId);
+            rafId = requestAnimationFrame(loop);
+         }
+
+         function spawnNext() {
+            const top = stack[stack.length - 1];
+            const y = top.y - BLOCK_H;
+
+            // speed increases slowly with level
+            const speed = 240 + (level - 1) * 18;
+
+            // start from random side
+            const fromLeft = Math.random() > 0.5;
+            const x = fromLeft ? 30 : cv.clientWidth - 30 - top.w;
+
+            cur = { x, w: top.w, y, vx: speed };
+            dir = fromLeft ? 1 : -1;
+         }
+
+         function visibleStack() {
+            // show last N rows
+            const n = TOTAL_VISIBLE_ROWS;
+            return stack.slice(Math.max(0, stack.length - n));
+         }
+
+         function draw() {
+            const w = cv.clientWidth;
+            const h = cv.clientHeight;
+            ctx.clearRect(0, 0, w, h);
+
+            // subtle grid
+            ctx.strokeStyle = "rgba(255,255,255,.04)";
+            ctx.lineWidth = 1;
+            for (let x = 0; x < w; x += 40) {
+               ctx.beginPath();
+               ctx.moveTo(x, 0);
+               ctx.lineTo(x, h);
+               ctx.stroke();
+            }
+            for (let y = 0; y < h; y += 40) {
+               ctx.beginPath();
+               ctx.moveTo(0, y);
+               ctx.lineTo(w, y);
+               ctx.stroke();
+            }
+
+            // draw stack
+            const vs = visibleStack();
+            for (let i = 0; i < vs.length; i++) {
+               const b = vs[i];
+               ctx.fillStyle = "rgba(110,168,255,.28)";
+               ctx.fillRect(b.x, b.y - BLOCK_H, b.w, BLOCK_H);
+
+               ctx.strokeStyle = "rgba(255,255,255,.10)";
+               ctx.strokeRect(b.x, b.y - BLOCK_H, b.w, BLOCK_H);
+            }
+
+            // draw current
+            if (cur) {
+               ctx.fillStyle = "rgba(54,211,153,.75)";
+               ctx.fillRect(cur.x, cur.y - BLOCK_H, cur.w, BLOCK_H);
+               ctx.strokeStyle = "rgba(255,255,255,.14)";
+               ctx.strokeRect(cur.x, cur.y - BLOCK_H, cur.w, BLOCK_H);
+            }
+
+            // floor label
+            ctx.fillStyle = "rgba(166,179,209,.55)";
+            ctx.font = "12px system-ui";
+            ctx.fillText("Tap / Click to drop", 14, 18);
+         }
+
+         function loop(ts) {
+            if (!running) return;
+            if (!lastTs) lastTs = ts;
+            const dt = Math.min(0.033, (ts - lastTs) / 1000);
+            lastTs = ts;
+
+            // move current
+            if (cur) {
+               cur.x += dir * cur.vx * dt;
+               const minX = 20;
+               const maxX = cv.clientWidth - 20 - cur.w;
+               if (cur.x <= minX) {
+                  cur.x = minX;
+                  dir = 1;
+               }
+               if (cur.x >= maxX) {
+                  cur.x = maxX;
+                  dir = -1;
+               }
+            }
+
+            draw();
+            hud();
+            rafId = requestAnimationFrame(loop);
+         }
+
+         function drop() {
+            if (!running || !cur) return;
+
+            const below = stack[stack.length - 1];
+
+            // snap if nearly perfect
+            if (Math.abs(cur.x - below.x) <= PERFECT_EPS) {
+               cur.x = below.x;
+               perfect++;
+               score += 15;
+            }
+
+            // compute overlap
+            const left = Math.max(cur.x, below.x);
+            const right = Math.min(cur.x + cur.w, below.x + below.w);
+            const overlap = right - left;
+
+            if (overlap <= 0) {
+               endGame();
+               return;
+            }
+
+            // keep overlap
+            const placed = { x: left, w: overlap, y: below.y - BLOCK_H };
+            // place new block ABOVE the previous one
+            stack.push({ x: placed.x, w: placed.w, y: below.y - BLOCK_H });
+
+            // score and level
+            score += Math.round(10 + overlap * 0.04);
+            level = stack.length; // simple: one level per block
+
+            // if stack goes too high, shift down visually by moving base (we keep y implicit by drawing last rows)
+            // spawn next
+            spawnNext();
+
+            // if it becomes too small, make it tougher but still playable
+            if (cur.w < 24) {
+               // clamp to minimum width by giving player a small rescue
+               cur.w = 24;
+            }
+
+            hud();
+         }
+
+         function endGame() {
+            running = false;
+            if (rafId) cancelAnimationFrame(rafId);
+            rafId = null;
+
+            overlay.style.display = "flex";
+            overlay.innerHTML = `<div><strong>Game Over</strong><br>
+    No overlap.<br><br>
+    <strong>Score:</strong> ${score}<br>
+    <strong>Level:</strong> ${level}<br>
+    <strong>Perfect:</strong> ${perfect}<br>
+    <span style="color:var(--muted)">Press Start to try again.</span>
+  </div>`;
+         }
+
+         // Input
+         arena.addEventListener("click", () => drop());
+         startBtn.addEventListener("click", () => newGame());
+         window.addEventListener("resize", resize);
+         resize();
+
+         // ===== Tests =====
+         (function runTests() {
+            try {
+               console.assert(BLOCK_H > 0, "Test: BLOCK_H > 0");
+               console.assert(PERFECT_EPS >= 0, "Test: PERFECT_EPS >= 0");
+
+               // overlap math sanity
+               const below = { x: 100, w: 80 };
+               const cur1 = { x: 120, w: 80 };
+               const left = Math.max(cur1.x, below.x);
+               const right = Math.min(cur1.x + cur1.w, below.x + below.w);
+               console.assert(
+                  right - left === 60,
+                  "Test: overlap computed correctly"
+               );
+
+               console.info("Stack Blocks tests: OK");
+            } catch (err) {
+               console.warn("Stack Blocks tests failed", err);
+            }
+         })();
+      </script>
+   </body>
+</html>

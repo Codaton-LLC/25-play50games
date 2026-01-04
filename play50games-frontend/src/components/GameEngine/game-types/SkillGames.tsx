@@ -5,6 +5,7 @@ import BallBalance from './skillgames-parts/BallBalance';
 import TargetAim from './skillgames-parts/TargetAim';
 import LineTracer from './skillgames-parts/LineTracer';
 import TimingBar from './skillgames-parts/TimingBar';
+import StackBlocks from './skillgames-parts/StackBlocks';
 
 interface SkillGamesProps {
   config: Record<string, any>;
@@ -42,74 +43,6 @@ export default function SkillGames({ config, onScoreUpdate, onComplete, isPlayin
 
 
 
-// Stack Blocks Game (40)
-function StackBlocks({ config, onScoreUpdate, onComplete, isPlaying }: { config: Record<string, any>; onScoreUpdate: (score: number) => void; onComplete: (finalScore?: number) => void; isPlaying: boolean }) {
-  const blocks = config.blocks || 10;
-  const [stack, setStack] = useState<Array<{ width: number; x: number }>>([]);
-  const [currentBlock, setCurrentBlock] = useState({ width: 50, x: 50 });
-  const [blockCount, setBlockCount] = useState(0);
-  const [score, setScore] = useState(0);
-
-  useEffect(() => {
-    if (blockCount >= blocks) {
-      const avgOffset = stack.reduce((sum, block) => sum + Math.abs(block.x - 50), 0) / stack.length;
-      const finalScore = Math.max(0, 100 - avgOffset * 2);
-      setScore(finalScore);
-      onScoreUpdate(finalScore);
-      setTimeout(() => onComplete(finalScore), 1000);
-      return;
-    }
-    
-    setCurrentBlock({
-      width: 50 - blockCount * 2,
-      x: 50,
-    });
-  }, [blockCount, blocks, stack, onScoreUpdate, onComplete]);
-
-  useEffect(() => {
-    if (!isPlaying) return;
-    
-    const interval = setInterval(() => {
-      setCurrentBlock(prev => ({
-        ...prev,
-        x: (prev.x + 1) % 100,
-      }));
-    }, 50);
-    
-    return () => clearInterval(interval);
-  }, [isPlaying, blockCount]);
-
-  const handlePlace = () => {
-    setStack([...stack, currentBlock]);
-    setBlockCount(blockCount + 1);
-  };
-
-  return (
-    <div className="stack-blocks-game">
-      <h3>Stack Blocks - {blockCount}/{blocks}</h3>
-      <div className="stack-area">
-        {stack.map((block, i) => (
-          <div
-            key={i}
-            className="stacked-block"
-            style={{
-              width: `${block.width}%`,
-              left: `${block.x}%`,
-            }}
-          ></div>
-        ))}
-        <div
-          className="current-block"
-          style={{
-            width: `${currentBlock.width}%`,
-            left: `${currentBlock.x}%`,
-          }}
-        ></div>
-      </div>
-      <button onClick={handlePlace}>Place Block</button>
-    </div>
-  );
-}
 
 // Precision Drop Game (41)
 function PrecisionDrop({ config, onScoreUpdate, onComplete, isPlaying }: { config: Record<string, any>; onScoreUpdate: (score: number) => void; onComplete: (finalScore?: number) => void; isPlaying: boolean }) {
