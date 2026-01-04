@@ -673,6 +673,30 @@ export default function LineTracer({
       drawCanvas();
    }, [drawCanvas]);
 
+   const scheduleCanvasSync = useCallback(() => {
+      let tries = 0;
+      const tryDraw = () => {
+         const arena = arenaRef.current;
+         const canvas = canvasRef.current;
+         if (!arena || !canvas) return;
+         const rect = arena.getBoundingClientRect();
+         if (rect.width > 0 && rect.height > 0) {
+            drawCanvas();
+            return;
+         }
+         if (tries < 3) {
+            tries += 1;
+            requestAnimationFrame(tryDraw);
+         }
+      };
+      requestAnimationFrame(tryDraw);
+   }, [drawCanvas]);
+
+   useEffect(() => {
+      if (gameState !== "playing" && gameState !== "paused") return;
+      scheduleCanvasSync();
+   }, [gameState, currentLevel, scheduleCanvasSync]);
+
    // Redraw when arena size changes (initial layout + resize)
    useEffect(() => {
       const arena = arenaRef.current;

@@ -825,6 +825,29 @@ export default function SpeedDrawing({
       drawCanvas();
    }, [drawCanvas]);
 
+   const scheduleCanvasSync = useCallback(() => {
+      let tries = 0;
+      const tryDraw = () => {
+         const canvas = canvasRef.current;
+         if (!canvas) return;
+         const rect = canvas.getBoundingClientRect();
+         if (rect.width > 0 && rect.height > 0) {
+            drawCanvas();
+            return;
+         }
+         if (tries < 3) {
+            tries += 1;
+            requestAnimationFrame(tryDraw);
+         }
+      };
+      requestAnimationFrame(tryDraw);
+   }, [drawCanvas]);
+
+   useEffect(() => {
+      if (gameState !== "playing") return;
+      scheduleCanvasSync();
+   }, [gameState, currentLevel, scheduleCanvasSync]);
+
    // Start level
    const startLevel = useCallback(
       (level: number) => {

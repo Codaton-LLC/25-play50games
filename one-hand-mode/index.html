@@ -1,0 +1,232 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>One-Hand Mode – Canvas Preview</title>
+<style>
+  body{margin:0;background:#0b1220;color:#e8eefc;font-family:system-ui;display:flex;align-items:center;justify-content:center;height:100vh}
+  .wrap{width:900px;max-width:96%;background:#111c35;border-radius:18px;padding:16px}
+  h1{margin:0 0 8px;font-size:18px}
+  .hud{display:flex;gap:12px;font-size:14px;color:#a6b3d1;margin-bottom:10px;flex-wrap:wrap}
+  canvas{width:100%;height:420px;background:#0f1b33;border-radius:14px;display:block}
+  .tip{font-size:13px;color:#a6b3d1;margin-top:8px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>One-Hand Mode (Preview)</h1>
+  <div class="hud">
+    <div>Level: <b id="lvl">1</b></div>
+    <div>Time: <b id="time">0.0</b>s</div>
+    <div>Score: <b id="score">0</b></div>
+    <div>Status: <b id="status">READY</b></div>
+  </div>
+  <canvas id="cv"></canvas>
+  <div class="tip">Click / Tap / Space = Jump • One control only (first input starts the game)</div>
+</div>
+
+<script>
+// One-Hand Mode – minimal canvas preview
+// Single input: click/tap/space = jump
+
+const cv = document.getElementById('cv');
+const ctx = cv.getContext('2d');
+const lvlEl = document.getElementById('lvl');
+const timeEl = document.getElementById('time');
+const scoreEl = document.getElementById('score');
+const statusEl = document.getElementById('status');
+
+let running = false;
+let level = 1;
+let score = 0;
+let startTs = 0;
+let lastTs = 0;
+let rafId = 0;
+
+const TOTAL_LEVELS = 5;
+let duration = 6; // seconds
+let speed = 260;  // px/s
+
+const P = { x: 90, y: 0, w: 26, h: 26, vy: 0, onGround: true };
+let groundY = 0;
+let obstacles = []; // {x,w,h}
+let spawnTimer = 0;
+
+function resize(){
+  const r = cv.getBoundingClientRect();
+  const dpr = Math.max(1, window.devicePixelRatio || 1);
+  cv.width = Math.floor(r.width * dpr);
+  cv.height = Math.floor(r.height * dpr);
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+  groundY = cv.clientHeight - 60;
+  P.y = groundY - P.h;
+  draw();
+}
+window.addEventListener('resize', resize);
+resize();
+
+function clamp(n,a,b){ return Math.max(a, Math.min(b,n)); }
+
+function jump(){
+  if(!running) startGame();
+  if(P.onGround){
+    P.vy = -620;
+    P.onGround = false;
+  }
+}
+
+function startGame(){
+  running = true;
+  level = 1;
+  score = 0;
+  duration = 6;
+  speed = 260;
+  obstacles = [];
+  spawnTimer = 0;
+
+  lastTs = 0; // important: reset dt
+  startTs = performance.now();
+  statusEl.textContent = 'RUN';
+
+  cancelAnimationFrame(rafId);
+  rafId = requestAnimationFrame(loop);
+}
+
+function spawnObstacle(){
+  obstacles.push({ x: cv.clientWidth + 30, w: 30, h: 30 });
+}
+
+function hit(a, b){
+  return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+}
+
+function update(dt){
+  // timer
+  const t = (performance.now() - startTs) / 1000;
+  const left = Math.max(0, duration - t);
+  timeEl.textContent = left.toFixed(1);
+
+  // win level
+  if(left <= 0){
+    level++;
+    if(level > TOTAL_LEVELS){
+      endGame(true);
+      return;
+    }
+    // next level harder
+    startTs = performance.now();
+    duration = clamp(duration - 0.4, 3.8, 6);
+    speed += 30;
+  }
+
+  // spawn
+  spawnTimer -= dt;
+  if(spawnTimer <= 0){
+    spawnObstacle();
+    spawnTimer = 1.1;
+  }
+
+  // physics
+  P.vy += 1600 * dt;
+  P.y += P.vy * dt;
+  if(P.y + P.h >= groundY){
+    P.y = groundY - P.h;
+    P.vy = 0;
+    P.onGround = true;
+  }
+
+  // move obstacles
+  for(const o of obstacles) o.x -= speed * dt;
+  obstacles = obstacles.filter(o => o.x + o.w > -40);
+
+  // collisions
+  const playerRect = { x: P.x, y: P.y, w: P.w, h: P.h };
+  for(const o of obstacles){
+    const r = { x: o.x, y: groundY - o.h, w: o.w, h: o.h };
+    if(hit(playerRect, r)){
+      endGame(false);
+      return;
+    }
+  }
+
+  // score
+  score += dt * 10;
+  scoreEl.textContent = String(Math.floor(score));
+  lvlEl.textContent = String(level);
+}
+
+function endGame(win){
+  running = false;
+  statusEl.textContent = win ? 'WIN' : 'FAIL';
+  cancelAnimationFrame(rafId);
+}
+
+function draw(){
+  const w = cv.clientWidth;
+  const h = cv.clientHeight;
+  ctx.clearRect(0, 0, w, h);
+
+  // ground
+  ctx.fillStyle = 'rgba(255,255,255,.05)';
+  ctx.fillRect(0, groundY, w, 4);
+
+  // player
+  ctx.fillStyle = '#6ea8ff';
+  ctx.fillRect(P.x, P.y, P.w, P.h);
+
+  // obstacles
+  ctx.fillStyle = '#fb7185';
+  for(const o of obstacles){
+    ctx.fillRect(o.x, groundY - o.h, o.w, o.h);
+  }
+}
+
+function loop(ts){
+  if(!running) return;
+  if(!lastTs) lastTs = ts;
+  const dt = Math.min(0.033, (ts - lastTs) / 1000);
+  lastTs = ts;
+
+  update(dt);
+  draw();
+  rafId = requestAnimationFrame(loop);
+}
+
+// input
+cv.addEventListener('click', jump);
+cv.addEventListener('touchstart', (e)=>{ e.preventDefault(); jump(); }, { passive:false });
+window.addEventListener('keydown', (e)=>{
+  if(e.code === 'Space'){
+    e.preventDefault();
+    jump();
+  }
+});
+
+// init
+(function init(){
+  statusEl.textContent = 'READY';
+  lvlEl.textContent = '1';
+  timeEl.textContent = '0.0';
+  scoreEl.textContent = '0';
+  draw();
+})();
+
+// ===== Tests (Console) =====
+(function tests(){
+  try{
+    console.assert(typeof startGame === 'function', 'Test: startGame exists');
+    console.assert(typeof jump === 'function', 'Test: jump exists');
+    console.assert(TOTAL_LEVELS === 5, 'Test: TOTAL_LEVELS is 5');
+    // hit test
+    console.assert(hit({x:0,y:0,w:10,h:10},{x:5,y:5,w:10,h:10}) === true, 'Test: hit true');
+    console.assert(hit({x:0,y:0,w:10,h:10},{x:20,y:20,w:10,h:10}) === false, 'Test: hit false');
+    console.info('One-Hand Mode preview tests: OK');
+  } catch (err) {
+    console.warn('One-Hand Mode preview tests failed', err);
+  }
+})();
+</script>
+</body>
+</html>

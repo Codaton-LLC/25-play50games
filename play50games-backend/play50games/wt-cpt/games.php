@@ -85,7 +85,7 @@ function show_games_custom_fields() {
                     <option value="precision-drop" data-category="skill">41. Precision Drop</option>
                     <option value="drag-sort" data-category="skill">42. Drag & Drop Sort</option>
                     <option value="speed-drawing" data-category="skill">43. Speed Drawing</option>
-                    <option value="one-hand" data-category="skill">44. One-Hand Mode</option>
+                    <option value="one-hand-mode" data-category="skill">44. One-Hand Mode</option>
                     <option value="cursor-maze" data-category="skill">45. Cursor Maze</option>
                 </optgroup>
                 <optgroup label="Final Games (46-50)" data-category="final">
@@ -731,16 +731,16 @@ function show_games_custom_fields() {
                 description: 'Draw shapes quickly and accurately within the time limit. Test your drawing skills across 15 progressively challenging levels.',
                 gameConfig: '{"gameType": "speed-drawing", "levels": 15, "levelDefinitions": [{"duration": 20, "targetShape": "circle", "minAccuracy": 60}, {"duration": 20, "targetShape": "square", "minAccuracy": 62}, {"duration": 18, "targetShape": "triangle", "minAccuracy": 65}, {"duration": 18, "targetShape": "star", "minAccuracy": 67}, {"duration": 16, "targetShape": "heart", "minAccuracy": 70}, {"duration": 16, "targetShape": "wave", "minAccuracy": 72}, {"duration": 15, "targetShape": "curve", "minAccuracy": 75}, {"duration": 15, "targetShape": "zigzag", "minAccuracy": 77}, {"duration": 14, "targetShape": "circle", "minAccuracy": 78}, {"duration": 14, "targetShape": "square", "minAccuracy": 80}, {"duration": 13, "targetShape": "triangle", "minAccuracy": 82}, {"duration": 13, "targetShape": "star", "minAccuracy": 83}, {"duration": 12, "targetShape": "heart", "minAccuracy": 84}, {"duration": 12, "targetShape": "wave", "minAccuracy": 85}, {"duration": 10, "targetShape": "spiral", "minAccuracy": 85}]}'
             },
-            'one-hand': {
+            'one-hand-mode': {
                 title: 'One-Hand Mode',
                 gameType: 'skill',
                 gameOrder: 44,
                 difficulty: 2,
-                timeLimit: 60,
+                timeLimit: 90,
                 passingScore: 75,
                 unlockRequirement: '',
-                description: 'Complete task using only one control',
-                gameConfig: '{"gameType": "one-hand", "rounds": 5}'
+                description: 'Jump over obstacles using only one control. A runner-style game that tests your timing and reflexes across 15 challenging levels.',
+                gameConfig: '{"gameType": "one-hand-mode", "levels": 15, "levelRequirements": [{"duration": 6, "speed": 260, "spawnInterval": 1.1}, {"duration": 5.85, "speed": 290, "spawnInterval": 1.067}, {"duration": 5.7, "speed": 320, "spawnInterval": 1.034}, {"duration": 5.55, "speed": 350, "spawnInterval": 1.001}, {"duration": 5.4, "speed": 380, "spawnInterval": 0.968}, {"duration": 5.1, "speed": 410, "spawnInterval": 0.902}, {"duration": 4.95, "speed": 440, "spawnInterval": 0.869}, {"duration": 4.8, "speed": 470, "spawnInterval": 0.836}, {"duration": 4.65, "speed": 500, "spawnInterval": 0.803}, {"duration": 4.5, "speed": 530, "spawnInterval": 0.77}, {"duration": 4.4, "speed": 560, "spawnInterval": 0.737}, {"duration": 4.25, "speed": 590, "spawnInterval": 0.704}, {"duration": 4.1, "speed": 620, "spawnInterval": 0.671}, {"duration": 3.95, "speed": 650, "spawnInterval": 0.638}, {"duration": 3.8, "speed": 680, "spawnInterval": 0.6}]}'
             },
             'cursor-maze': {
                 title: 'Cursor Maze',

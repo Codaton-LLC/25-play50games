@@ -602,10 +602,17 @@ export const gameInstructions: Record<string, {
       { keys: ['Mouse/Touch'], label: 'Use mouse or touch to draw shapes (keyboard not applicable for this game)' },
     ],
   },
-  'one-hand': {
-    description: 'Complete task using only one control',
-    instructions: 'Complete the challenge using only one hand or one control method. This tests your coordination!',
-    tips: 'Plan your moves. Efficiency is key when you have limited control options.'
+  'one-hand-mode': {
+    description: 'Jump over obstacles using only one control. A runner-style game that tests your timing and reflexes across 15 challenging levels.',
+    instructions: '<p>Control a character that runs automatically from left to right. Your only control is to make the character jump over obstacles. Click anywhere on the canvas, tap on mobile, or press Space to jump. Avoid hitting the red obstacles - if you touch one, the level fails!</p><h4 style="margin-top: 16px; margin-bottom: 8px; font-weight: 600;">HOW TO PLAY:</h4><ol style="margin-left: 20px; margin-bottom: 16px;"><li>Watch as obstacles (red blocks) approach from the right side</li><li>Click, tap, or press Space to jump over obstacles</li><li>Time your jumps carefully - jump too early or too late and you\'ll hit the obstacle</li><li>Blue obstacles are boosts - touching them gives a stronger jump and lets you jump again</li><li>From level 10+, you can double click to jump higher</li><li>Each level gets faster and more challenging</li></ol><h4 style="margin-top: 16px; margin-bottom: 8px; font-weight: 600;">PROGRESSIVE DIFFICULTY:</h4><ul style="margin-left: 20px; margin-bottom: 16px;"><li><strong style="color: #3b82f6;">Levels 1-5:</strong> Slower speed (260-380px/s), obstacles spawn every 1.1-0.95s</li><li><strong style="color: #f59e0b;">Levels 6-10:</strong> Medium speed (410-530px/s), obstacles spawn every 0.9-0.75s</li><li><strong style="color: #ef4444;">Levels 11-15:</strong> Fast speed (560-680px/s), obstacles spawn every 0.7-0.6s</li></ul>',
+    tips: 'Timing is everything! Watch the obstacles approach and jump just before they reach you. Don\'t spam clicks - each jump has a cooldown. The character can only jump when on the ground. Practice your timing - you need to jump early enough to clear the obstacle but not so early that you land on it. As levels progress, obstacles spawn more frequently and move faster, so stay focused!',
+    mouseControls: [
+      { action: 'Click', label: 'Click anywhere on the canvas to make the character jump' },
+      { action: 'Tap', label: 'Tap on mobile devices to jump' },
+    ],
+    keyboardControls: [
+      { keys: ['Space'], label: 'Press Space to make the character jump' },
+    ],
   },
   'cursor-maze': {
     description: 'Navigate maze with cursor without touching walls',
@@ -677,4 +684,3 @@ export function getGameInstructions(gameType: string, gameTitle?: string): {
     tips: 'Read the instructions carefully and take your time.'
   };
 }
-
