@@ -385,6 +385,7 @@ function MixedQuiz({
 
    return (
       <div
+         className="final-game"
          style={{
             display: "flex",
             flexDirection: "column",
@@ -419,7 +420,7 @@ function MixedQuiz({
                   style={{
                      width: isMobile ? 24 : 28,
                      height: isMobile ? 24 : 28,
-                     color: "var(--accent)",
+                     color: "#eab308",
                   }}
                />
                <h2
@@ -432,7 +433,7 @@ function MixedQuiz({
                      fontWeight: 700,
                      margin: 0,
                      background:
-                        "linear-gradient(135deg, var(--accent) 0%, var(--ok) 100%)",
+                        "linear-gradient(135deg, #eab308, rgba(234, 179, 8, 0.8))",
                      WebkitBackgroundClip: "text",
                      WebkitTextFillColor: "transparent",
                      backgroundClip: "text",
@@ -489,8 +490,8 @@ function MixedQuiz({
                      gap: "8px",
                      padding: isMobile ? "8px 14px" : "10px 18px",
                      background:
-                        "linear-gradient(135deg, rgba(134, 239, 172, 0.15), rgba(134, 239, 172, 0.08))",
-                     border: "1px solid rgba(134, 239, 172, 0.3)",
+                        "linear-gradient(135deg, rgba(234, 179, 8, 0.15), rgba(234, 179, 8, 0.08))",
+                     border: "1px solid rgba(234, 179, 8, 0.3)",
                      borderRadius: "12px",
                   }}
                >
@@ -498,7 +499,7 @@ function MixedQuiz({
                      style={{
                         width: isMobile ? 16 : 18,
                         height: isMobile ? 16 : 18,
-                        color: "var(--ok)",
+                        color: "#eab308",
                      }}
                   />
                   <span
@@ -530,10 +531,10 @@ function MixedQuiz({
                      width: `${progress}%`,
                      height: "100%",
                      background:
-                        "linear-gradient(90deg, var(--accent) 0%, var(--ok) 100%)",
+                        "linear-gradient(90deg, #eab308, rgba(234, 179, 8, 0.8))",
                      borderRadius: "999px",
                      transition: "width 0.3s ease",
-                     boxShadow: "0 0 10px rgba(125, 211, 252, 0.5)",
+                     boxShadow: "0 0 10px rgba(234, 179, 8, 0.5)",
                   }}
                />
             </div>
@@ -584,8 +585,8 @@ function MixedQuiz({
                      fontWeight: 800,
                      fontSize: isMobile ? "0.95rem" : "1.05rem",
                      background:
-                        "linear-gradient(135deg, rgba(134, 239, 172, 0.25), rgba(134, 239, 172, 0.1))",
-                     border: "2px solid rgba(134, 239, 172, 0.6)",
+                        "linear-gradient(135deg, rgba(234, 179, 8, 0.25), rgba(234, 179, 8, 0.1))",
+                     border: "2px solid rgba(234, 179, 8, 0.6)",
                      color: "var(--text)",
                      marginBottom: "16px",
                   }}
@@ -608,8 +609,8 @@ function MixedQuiz({
                   style={{
                      padding: isMobile ? "12px 24px" : "14px 28px",
                      background:
-                        "linear-gradient(135deg, rgba(134, 239, 172, 0.25), rgba(134, 239, 172, 0.12))",
-                     border: "2px solid rgba(134, 239, 172, 0.6)",
+                        "linear-gradient(135deg, rgba(234, 179, 8, 0.25), rgba(234, 179, 8, 0.12))",
+                     border: "2px solid rgba(234, 179, 8, 0.6)",
                      borderRadius: "12px",
                      color: "var(--text)",
                      fontSize: isMobile ? "1rem" : "1.05rem",
@@ -650,8 +651,8 @@ function MixedQuiz({
                      fontWeight: 800,
                      fontSize: isMobile ? "0.95rem" : "1.05rem",
                      background:
-                        "linear-gradient(135deg, rgba(134, 239, 172, 0.25), rgba(134, 239, 172, 0.1))",
-                     border: "2px solid rgba(134, 239, 172, 0.6)",
+                        "linear-gradient(135deg, rgba(234, 179, 8, 0.25), rgba(234, 179, 8, 0.1))",
+                     border: "2px solid rgba(234, 179, 8, 0.6)",
                      color: "var(--text)",
                      marginBottom: "16px",
                   }}
@@ -687,10 +688,24 @@ function SurvivalMode({
 }: FinalGamesProps) {
    const games = config.games || 5;
    const [currentGameIndex, setCurrentGameIndex] = useState(0);
+   const [completedGames, setCompletedGames] = useState(0);
    const [score, setScore] = useState(0);
-   const [failed, setFailed] = useState(false);
+   const [isMobile, setIsMobile] = useState(false);
+   const [isTablet, setIsTablet] = useState(false);
 
-   const gameSequence = [
+   // Responsive design
+   useEffect(() => {
+      const checkResponsive = () => {
+         setIsMobile(window.innerWidth < 640);
+         setIsTablet(window.innerWidth >= 640 && window.innerWidth < 1024);
+      };
+      checkResponsive();
+      window.addEventListener("resize", checkResponsive);
+      return () => window.removeEventListener("resize", checkResponsive);
+   }, []);
+
+   // Get game sequence from config, or use default
+   const gameSequence = config.gameSequence || [
       { type: "logic", config: { gameType: "number-order", numbers: 5 } },
       {
          type: "memory",
@@ -702,39 +717,39 @@ function SurvivalMode({
    ];
 
    const handleGameComplete = (gameScore: number) => {
-      if (gameScore < 70) {
-         setFailed(true);
-         onScoreUpdate(score);
-         setTimeout(() => onComplete(score), 1000);
-         return;
-      }
+      const safeGames = Math.max(1, games);
+      const perGameMax = 100 / safeGames;
+      const contribution = perGameMax;
 
-      setScore(score + gameScore);
+      // Calculate new score, ensuring it doesn't exceed 100
+      const newScore = Math.min(100, score + contribution);
+      setScore(newScore);
+      
+      // Increment completed games count
+      const newCompletedGames = completedGames + 1;
+      setCompletedGames(newCompletedGames);
+      
       if (currentGameIndex < games - 1) {
          setCurrentGameIndex(currentGameIndex + 1);
       } else {
-         onScoreUpdate(score + gameScore);
-         setTimeout(() => onComplete(score + gameScore), 1000);
+         // All games completed
+         const finalScore = Math.min(100, Math.round(newScore));
+         onScoreUpdate(finalScore);
+         setTimeout(() => onComplete(finalScore), 1000);
       }
    };
 
-   if (failed) {
-      return (
-         <div className="survival-mode-game">
-            <h3>Survival Mode - Failed!</h3>
-            <p>You didn't pass round {currentGameIndex + 1}</p>
-            <p>Final Score: {score}</p>
-         </div>
-      );
-   }
-
-   const currentGame = gameSequence[currentGameIndex % gameSequence.length];
+   // Use gameSequence from config, cycling if needed
+   const currentGame =
+      gameSequence[currentGameIndex % gameSequence.length] || gameSequence[0];
+   const gameKey = `${currentGame.type}-${currentGameIndex}`;
 
    const renderGame = () => {
       switch (currentGame.type) {
          case "logic":
             return (
                <LogicGames
+                  key={gameKey}
                   config={currentGame.config}
                   onScoreUpdate={() => {}}
                   onComplete={(s) => handleGameComplete(s || 0)}
@@ -744,6 +759,7 @@ function SurvivalMode({
          case "memory":
             return (
                <MemoryGames
+                  key={gameKey}
                   config={currentGame.config}
                   onScoreUpdate={() => {}}
                   onComplete={(s) => handleGameComplete(s || 0)}
@@ -753,6 +769,7 @@ function SurvivalMode({
          case "speed":
             return (
                <SpeedGames
+                  key={gameKey}
                   config={currentGame.config}
                   onScoreUpdate={() => {}}
                   onComplete={(s) => handleGameComplete(s || 0)}
@@ -762,6 +779,7 @@ function SurvivalMode({
          case "skill":
             return (
                <SkillGames
+                  key={gameKey}
                   config={currentGame.config}
                   onScoreUpdate={() => {}}
                   onComplete={(s) => handleGameComplete(s || 0)}
@@ -773,11 +791,169 @@ function SurvivalMode({
       }
    };
 
+   const currentScore = Math.min(100, Math.round(score));
+   // Progress should be based on completed games, not current game index
+   // Only show 100% when all games are actually completed
+   const progress = games > 0 ? Math.round((completedGames / games) * 100) : 0;
+
    return (
-      <div className="survival-mode-game">
-         <h3>
-            Survival Mode - Game {currentGameIndex + 1}/{games}
-         </h3>
+      <div
+         className="final-game"
+         style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: isMobile ? "16px" : "20px",
+            width: "100%",
+            maxWidth: "1200px",
+            margin: "0 auto",
+            padding: isMobile ? "16px" : "24px",
+         }}
+      >
+         {/* Header */}
+         <div
+            style={{
+               width: "100%",
+               display: "flex",
+               flexDirection: "column",
+               alignItems: "center",
+               gap: isMobile ? "12px" : "16px",
+            }}
+         >
+            <div
+               style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: isMobile ? "8px" : "12px",
+                  width: "100%",
+               }}
+            >
+               <TrophyIcon
+                  style={{
+                     width: isMobile ? 24 : 28,
+                     height: isMobile ? 24 : 28,
+                     color: "#eab308",
+                  }}
+               />
+               <h2
+                  style={{
+                     fontSize: isMobile
+                        ? "1.5rem"
+                        : isTablet
+                        ? "1.75rem"
+                        : "2rem",
+                     fontWeight: 700,
+                     margin: 0,
+                     background:
+                        "linear-gradient(135deg, #eab308, rgba(234, 179, 8, 0.8))",
+                     WebkitBackgroundClip: "text",
+                     WebkitTextFillColor: "transparent",
+                     backgroundClip: "text",
+                  }}
+               >
+                  Survival Mode
+               </h2>
+            </div>
+
+            {/* Game and Score Info */}
+            <div
+               style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: isMobile ? "12px" : "20px",
+                  flexWrap: "wrap",
+                  width: "100%",
+               }}
+            >
+               <div
+                  style={{
+                     display: "flex",
+                     alignItems: "center",
+                     gap: "8px",
+                     padding: isMobile ? "8px 14px" : "10px 18px",
+                     background:
+                        "linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(59, 130, 246, 0.08))",
+                     border: "1px solid rgba(59, 130, 246, 0.3)",
+                     borderRadius: "12px",
+                  }}
+               >
+                  <ClockIcon
+                     style={{
+                        width: isMobile ? 16 : 18,
+                        height: isMobile ? 16 : 18,
+                        color: "var(--accent)",
+                     }}
+                  />
+                  <span
+                     style={{
+                        fontSize: isMobile ? "0.9rem" : "1rem",
+                        fontWeight: 600,
+                        color: "var(--text)",
+                     }}
+                  >
+                     Game {currentGameIndex + 1} / {games}
+                  </span>
+               </div>
+               <div
+                  style={{
+                     display: "flex",
+                     alignItems: "center",
+                     gap: "8px",
+                     padding: isMobile ? "8px 14px" : "10px 18px",
+                     background:
+                        "linear-gradient(135deg, rgba(234, 179, 8, 0.15), rgba(234, 179, 8, 0.08))",
+                     border: "1px solid rgba(234, 179, 8, 0.3)",
+                     borderRadius: "12px",
+                  }}
+               >
+                  <TrophyIcon
+                     style={{
+                        width: isMobile ? 16 : 18,
+                        height: isMobile ? 16 : 18,
+                        color: "#eab308",
+                     }}
+                  />
+                  <span
+                     style={{
+                        fontSize: isMobile ? "0.9rem" : "1rem",
+                        fontWeight: 600,
+                        color: "var(--text)",
+                     }}
+                  >
+                     Score: {currentScore}
+                  </span>
+               </div>
+            </div>
+
+            {/* Progress Bar */}
+            <div
+               style={{
+                  width: "100%",
+                  maxWidth: "600px",
+                  height: isMobile ? "8px" : "10px",
+                  background: "rgba(255, 255, 255, 0.1)",
+                  borderRadius: "999px",
+                  overflow: "hidden",
+                  border: "1px solid var(--border)",
+               }}
+            >
+               <div
+                  style={{
+                     width: `${progress}%`,
+                     height: "100%",
+                     background:
+                        "linear-gradient(90deg, #eab308, rgba(234, 179, 8, 0.8))",
+                     borderRadius: "999px",
+                     transition: "width 0.3s ease",
+                     boxShadow: "0 0 10px rgba(234, 179, 8, 0.5)",
+                  }}
+               />
+            </div>
+         </div>
+
+         {/* Game */}
          {renderGame()}
       </div>
    );
@@ -814,7 +990,7 @@ function BossPuzzle({
    };
 
    return (
-      <div className="boss-puzzle-game">
+      <div className="boss-puzzle-game final-game">
          <h3>Boss Puzzle</h3>
          <p>Complete all 4 challenges</p>
          <div className="puzzle-grid">
@@ -1017,7 +1193,7 @@ function TimeChallenge({
    };
 
    return (
-      <div className="time-challenge-game">
+      <div className="time-challenge-game final-game">
          <h3>Time Challenge</h3>
          <p>
             Time: {timeLeft}s | Completed: {gamesCompleted}
@@ -1120,7 +1296,7 @@ function FinalTest({
    };
 
    return (
-      <div className="final-test-game">
+      <div className="final-test-game final-game">
          <h3>Final Certification Test</h3>
          <p>
             Round {round + 1}/{rounds}

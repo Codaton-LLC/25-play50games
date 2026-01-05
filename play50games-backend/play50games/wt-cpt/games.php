@@ -773,7 +773,7 @@ function show_games_custom_fields() {
                 passingScore: 85,
                 unlockRequirement: '',
                 description: 'Complete several mini-games in sequence without failing',
-                gameConfig: '{"gameType": "survival-mode", "games": 5}'
+                gameConfig: '{"gameType": "survival-mode", "games": 5, "gameSequence": [{"type": "logic", "config": {"gameType": "number-order", "numbers": 5}}, {"type": "memory", "config": {"gameType": "card-flip", "gridSize": 3, "pairs": 4}}, {"type": "speed", "config": {"gameType": "fast-math", "rounds": 5}}, {"type": "skill", "config": {"gameType": "target-aim", "targets": 5}}, {"type": "logic", "config": {"gameType": "balance-scale"}}]}'
             },
             'boss-puzzle': {
                 title: 'Boss Puzzle',

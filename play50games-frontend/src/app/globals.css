@@ -29,6 +29,14 @@ body {
   min-height: 100vh;
 }
 
+/* Final games - yellow background gradient */
+body.final-game {
+  background: radial-gradient(1000px 600px at 20% 10%, rgba(234, 179, 8, 0.20), transparent 60%),
+    radial-gradient(900px 550px at 80% 30%, rgba(234, 179, 8, 0.16), transparent 60%),
+    radial-gradient(900px 650px at 60% 90%, rgba(234, 179, 8, 0.14), transparent 60%),
+    var(--bg);
+}
+
 /* Home Page */
 .home-page {
   max-width: 1200px;
@@ -327,7 +335,19 @@ body {
   text-align: center;
 }
 
-.game-start-screen h2 {
+
+.game-start-screen.final-game h2 {
+  font-size: 32px;
+  font-weight: 700;
+  margin-bottom: 16px;
+  color: var(--text) !important;
+  background: linear-gradient(135deg, #eab308, rgba(234, 179, 8, 0.8)) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  background-clip: text !important;
+}
+
+.final-game .game-start-screen h2 {
   font-size: 32px;
   font-weight: 700;
   margin-bottom: 16px;
@@ -390,6 +410,123 @@ body {
   font-style: italic;
 }
 
+/* Final games - yellow styling for game-instructions-section */
+.game-start-screen.final-game .game-instructions-section>div[style*="rgba(125, 211, 252"] {
+  background: linear-gradient(135deg, rgba(234, 179, 8, 0.1) 0%, rgba(234, 179, 8, 0.05) 100%) !important;
+}
+
+.game-start-screen.final-game .game-instructions-section svg[style*="var(--accent)"] {
+  color: #eab308 !important;
+}
+
+.game-start-screen.final-game .game-instructions-section svg[style*="var(--ok)"] {
+  color: #eab308 !important;
+}
+
+.game-start-screen.final-game .game-instructions-section h3[style*="var(--accent)"] {
+  background: linear-gradient(135deg, #eab308, rgba(234, 179, 8, 0.8)) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  background-clip: text !important;
+}
+
+.game-start-screen.final-game .game-instructions-section div[style*="rgba(59, 130, 246"] {
+  background: rgba(234, 179, 8, 0.05) !important;
+}
+
+.game-start-screen.final-game .game-instructions-section div[style*="rgba(125, 211, 252"] {
+  background: rgba(234, 179, 8, 0.1) !important;
+}
+
+.game-start-screen.final-game .game-instructions-section div[style*="linear-gradient(135deg, rgba(59, 130, 246"] {
+  background: linear-gradient(135deg, rgba(234, 179, 8, 0.2), rgba(234, 179, 8, 0.1)) !important;
+}
+
+.game-start-screen.final-game .game-instructions-section div[style*="border: 2px solid rgba(59, 130, 246"] {
+  border: 2px solid rgba(234, 179, 8, 0.4) !important;
+}
+
+.game-start-screen.final-game .game-instructions-section div[style*="color: var(--accent)"] {
+  color: #eab308 !important;
+}
+
+.game-start-screen.final-game .game-tips h4 {
+  color: #eab308;
+}
+
+.game-start-screen.final-game .game-tips h4 svg {
+  color: #eab308 !important;
+}
+
+/* Final games - override all green colors to yellow in game-instructions-section */
+.game-instructions-section.final-game div[style*="rgba(54, 211, 153"] {
+  background: linear-gradient(135deg, rgba(234, 179, 8, 0.1) 0%, rgba(234, 179, 8, 0.05) 100%) !important;
+}
+
+.game-instructions-section.final-game div[style*="var(--ok)"] {
+  background: linear-gradient(135deg, #eab308, rgba(234, 179, 8, 0.8)) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  background-clip: text !important;
+}
+
+.game-instructions-section.final-game h3[style*="var(--ok)"] {
+  background: linear-gradient(135deg, #eab308, rgba(234, 179, 8, 0.8)) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  background-clip: text !important;
+}
+
+.game-instructions-section.final-game span[style*="rgba(54, 211, 153"] {
+  color: #eab308 !important;
+}
+
+.game-instructions-section.final-game div[style*="var(--ok)"] {
+  background: #eab308 !important;
+}
+
+.game-instructions-section.final-game div[style*="rgba(34, 197, 94"] {
+  background: rgba(234, 179, 8, 0.2) !important;
+}
+
+.game-instructions-section.final-game span[style*="var(--ok)"] {
+  color: #eab308 !important;
+}
+
+/* Final games - override progress bar gradient and box-shadow */
+.final-game div[style*="linear-gradient(90deg, var(--accent) 0%, var(--ok) 100%)"] {
+  background: linear-gradient(90deg, #eab308, rgba(234, 179, 8, 0.8)) !important;
+  box-shadow: 0 0 10px rgba(234, 179, 8, 0.5) !important;
+}
+
+/* Final games - override SVG icons with var(--ok) color to yellow */
+.final-game svg[style*="color: var(--ok)"] {
+  color: #eab308 !important;
+}
+
+/* Final games - override SVG icons with var(--accent) color to yellow */
+.final-game svg[style*="color: var(--accent)"] {
+  color: #eab308 !important;
+}
+
+/* Final games - override green gradient backgrounds and borders to yellow */
+.final-game div[style*="rgba(134, 239, 172"] {
+  background: linear-gradient(135deg, rgba(234, 179, 8, 0.25), rgba(234, 179, 8, 0.12)) !important;
+  border: 2px solid rgba(234, 179, 8, 0.6) !important;
+}
+
+/* Final games - override inline-flex badges with green colors to yellow */
+.final-game div[style*="display: inline-flex"][style*="rgba(134, 239, 172"] {
+  background: linear-gradient(135deg, rgba(234, 179, 8, 0.25), rgba(234, 179, 8, 0.1)) !important;
+  border: 2px solid rgba(234, 179, 8, 0.6) !important;
+}
+
+/* Final games - override buttons with green colors to yellow */
+.final-game button[style*="rgba(134, 239, 172"] {
+  background: linear-gradient(135deg, rgba(234, 179, 8, 0.25), rgba(234, 179, 8, 0.12)) !important;
+  border: 2px solid rgba(234, 179, 8, 0.6) !important;
+}
+
 .game-start-screen .game-info {
   display: flex;
   gap: 24px;
@@ -421,6 +558,11 @@ body {
   color: var(--accent);
 }
 
+/* Final games - yellow info-value */
+.game-start-screen.final-game .info-value {
+  color: #eab308;
+}
+
 .game-start-actions {
   display: flex;
   gap: 16px;
@@ -443,6 +585,18 @@ body {
 .game-start-screen .start-button:hover {
   transform: translateY(-2px);
   box-shadow: 0 8px 20px rgba(125, 211, 252, 0.3);
+}
+
+/* Final games - yellow button styling */
+.game-start-screen.final-game .start-button {
+  background: #eab308;
+  box-shadow: 0 4px 12px rgba(234, 179, 8, 0.3);
+  color: #fff;
+}
+
+.game-start-screen.final-game .start-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(234, 179, 8, 0.5);
 }
 
 .game-start-screen .start-button:active {
@@ -1341,6 +1495,370 @@ button:disabled {
     top: 0;
     color: var(--accent);
   }
+}
+
+/* Final games - yellow loader */
+body.final-game .loader {
+  color: #eab308;
+}
+
+body.final-game .loader::after,
+body.final-game .loader::before {
+  color: #eab308;
+}
+
+@keyframes animloaderFinal {
+  0% {
+    top: 0;
+    color: #eab308;
+  }
+
+  50% {
+    top: 30px;
+    color: rgba(234, 179, 8, 0.2);
+  }
+
+  100% {
+    top: 0;
+    color: #eab308;
+  }
+}
+
+body.final-game .loader {
+  animation: animloaderFinal 2s ease infinite;
+}
+
+body.final-game .loader::after {
+  animation: animloaderFinal 2s 0.2s ease infinite;
+}
+
+body.final-game .loader::before {
+  animation: animloaderFinal 2s 0.4s ease infinite;
+}
+
+/* Final games - yellow buttons with blue gradient backgrounds */
+body.final-game button[style*="rgba(125, 211, 252, 0.4)"] {
+  background: linear-gradient(135deg, rgba(234, 179, 8, 0.4) 0%, rgba(234, 179, 8, 0.2) 100%) !important;
+  border: 2px solid #eab308 !important;
+  box-shadow: rgba(234, 179, 8, 0.3) 0px 6px 20px !important;
+  color: #eab308 !important;
+}
+
+/* Final games - yellow text with var(--accent) color */
+body.final-game div[style*="color: var(--accent)"] {
+  color: #eab308 !important;
+}
+
+/* Final games - yellow completed elements */
+body.final-game .completed,
+.final-game .completed {
+  color: #eab308 !important;
+}
+
+body.final-game div[style*="color: var(--ok)"],
+.final-game div[style*="color: var(--ok)"] {
+  color: #eab308 !important;
+}
+
+body.final-game div[style*="color: var(--secondary)"],
+.final-game div[style*="color: var(--secondary)"] {
+  color: #eab308 !important;
+}
+
+/* Final games - yellow disabled buttons with green gradient backgrounds */
+body.final-game button[disabled][style*="rgba(134, 239, 172, 0.4)"] {
+  background: linear-gradient(135deg, rgba(234, 179, 8, 0.4) 0%, rgba(234, 179, 8, 0.2) 100%) !important;
+  border: 2px solid #eab308 !important;
+  box-shadow: rgba(234, 179, 8, 0.3) 0px 6px 20px !important;
+  color: #eab308 !important;
+}
+
+body.final-game button[disabled][style*="border: 2px solid var(--ok)"] {
+  border: 2px solid #eab308 !important;
+  color: #eab308 !important;
+}
+
+/* Final games - yellow box-shadows */
+body.final-game *[style*="box-shadow"][style*="rgba(125, 211, 252"] {
+  box-shadow: 0 0 10px rgba(234, 179, 8, 0.5) !important;
+}
+
+body.final-game *[style*="box-shadow"][style*="rgba(59, 130, 246"] {
+  box-shadow: 0 0 10px rgba(234, 179, 8, 0.5) !important;
+}
+
+body.final-game *[style*="box-shadow"][style*="var(--accent)"] {
+  box-shadow: 0 0 10px rgba(234, 179, 8, 0.5) !important;
+}
+
+/* Final games - yellow box-shadows for specific patterns */
+body.final-game *[style*="box-shadow: 0 0 10px rgba(125, 211, 252"] {
+  box-shadow: 0 0 10px rgba(234, 179, 8, 0.5) !important;
+}
+
+body.final-game *[style*="box-shadow: 0 6px 20px rgba(125, 211, 252"] {
+  box-shadow: 0 6px 20px rgba(234, 179, 8, 0.3) !important;
+}
+
+body.final-game *[style*="box-shadow: 0 8px 20px rgba(125, 211, 252"] {
+  box-shadow: 0 8px 20px rgba(234, 179, 8, 0.3) !important;
+}
+
+body.final-game *[style*="box-shadow: 0 4px 12px rgba(125, 211, 252"] {
+  box-shadow: 0 4px 12px rgba(234, 179, 8, 0.4) !important;
+}
+
+/* Final games - yellow divs with blue backgrounds and box-shadows */
+body.final-game div[style*="background: rgba(59, 130, 246, 0.8)"] {
+  background: rgba(234, 179, 8, 0.8) !important;
+  box-shadow: rgba(234, 179, 8, 0.4) 0px 2px 6px !important;
+}
+
+/* Final games - yellow for all green colors in mini-games */
+body.final-game div[style*="rgba(34, 197, 94"] {
+  background: rgba(234, 179, 8, 0.8) !important;
+  color: #eab308 !important;
+  border-color: #eab308 !important;
+  box-shadow: rgba(234, 179, 8, 0.4) 0px 2px 6px !important;
+}
+
+body.final-game div[style*="rgba(16, 185, 129"] {
+  background: rgba(234, 179, 8, 0.8) !important;
+  color: #eab308 !important;
+  border-color: #eab308 !important;
+  box-shadow: rgba(234, 179, 8, 0.4) 0px 2px 6px !important;
+}
+
+body.final-game span[style*="rgba(34, 197, 94"] {
+  color: #eab308 !important;
+  background: rgba(234, 179, 8, 0.2) !important;
+}
+
+body.final-game span[style*="rgba(16, 185, 129"] {
+  color: #eab308 !important;
+  background: rgba(234, 179, 8, 0.2) !important;
+}
+
+/* Final games - yellow buttons with blue gradient backgrounds (Replay, etc.) */
+body.final-game button[style*="linear-gradient(135deg, rgba(125, 211, 252, 0.2)"] {
+  background: linear-gradient(135deg, rgba(234, 179, 8, 0.2), rgba(234, 179, 8, 0.1)) !important;
+  border: 1px solid rgba(234, 179, 8, 0.6) !important;
+}
+
+body.final-game button[style*="border: 1px solid rgba(125, 211, 252, 0.6)"] {
+  border: 1px solid rgba(234, 179, 8, 0.6) !important;
+}
+
+/* Final games - yellow "Complete" messages and badges with green colors */
+/* This will catch all divs with green gradient backgrounds used for "Complete" messages */
+body.final-game div[style*="rgba(134, 239, 172, 0.25)"] {
+  background: linear-gradient(135deg, rgba(234, 179, 8, 0.25), rgba(234, 179, 8, 0.12)) !important;
+  border: 2px solid rgba(234, 179, 8, 0.6) !important;
+}
+
+/* Also catch divs with rgba(134, 239, 172, 0.1) */
+body.final-game div[style*="rgba(134, 239, 172, 0.1)"] {
+  background: linear-gradient(135deg, rgba(234, 179, 8, 0.25), rgba(234, 179, 8, 0.1)) !important;
+  border: 2px solid rgba(234, 179, 8, 0.6) !important;
+}
+
+/* Also catch divs with rgba(134, 239, 172, 0.12) */
+body.final-game div[style*="rgba(134, 239, 172, 0.12)"] {
+  background: linear-gradient(135deg, rgba(234, 179, 8, 0.25), rgba(234, 179, 8, 0.12)) !important;
+  border: 2px solid rgba(234, 179, 8, 0.6) !important;
+}
+
+/* Final games - yellow for "Complete" text with var(--ok) color */
+body.final-game div[style*="color: var(--ok)"] {
+  color: #eab308 !important;
+}
+
+/* Final games - yellow for SVG icons inside "Complete" badges */
+body.final-game div[style*="rgba(134, 239, 172"] svg {
+  color: #eab308 !important;
+}
+
+/* Final games - yellow for CheckCircleIcon and TrophyIcon in Complete notifications */
+body.final-game div[style*="rgba(134, 239, 172"] svg[style*="color"] {
+  color: #eab308 !important;
+}
+
+/* Final games - yellow box-shadow for divs with green box-shadow */
+body.final-game div[style*="box-shadow: rgba(134, 239, 172, 0.3)"] {
+  box-shadow: rgba(234, 179, 8, 0.3) 0px 6px 20px !important;
+}
+
+/* Final games - yellow box-shadow for divs with green backgrounds and box-shadow */
+body.final-game div[style*="rgba(134, 239, 172, 0.4)"][style*="box-shadow"] {
+  box-shadow: rgba(234, 179, 8, 0.3) 0px 6px 20px !important;
+}
+
+/* Final games - yellow for divs with blue gradient backgrounds */
+body.final-game div[style*="rgba(125, 211, 252, 0.4)"] {
+  background: linear-gradient(135deg, rgba(234, 179, 8, 0.4) 0%, rgba(234, 179, 8, 0.2) 100%) !important;
+  border: 2px solid #eab308 !important;
+  color: #eab308 !important;
+  box-shadow: rgba(234, 179, 8, 0.3) 0px 6px 20px !important;
+}
+
+/* Final games - yellow for "Correct" notifications with var(--ok) background */
+body.final-game div[style*="background: var(--ok)"] {
+  background: #eab308 !important;
+  border: 1px solid #eab308 !important;
+}
+
+/* Final games - yellow for "Correct" notifications with rgba(134, 239, 172, 0.2) background */
+body.final-game div[style*="rgba(134, 239, 172, 0.2)"] {
+  background: rgba(234, 179, 8, 0.2) !important;
+  border: 1px solid rgba(234, 179, 8, 0.6) !important;
+  border: 2px solid rgba(234, 179, 8, 0.6) !important;
+  color: #eab308 !important;
+}
+
+/* Final games - yellow for "Correct" notifications with linear-gradient green background */
+body.final-game div[style*="linear-gradient(135deg, rgba(134, 239, 172, 0.2)"] {
+  background: linear-gradient(135deg, rgba(234, 179, 8, 0.2), rgba(234, 179, 8, 0.1)) !important;
+  border: 2px solid rgba(234, 179, 8, 0.6) !important;
+  color: #eab308 !important;
+}
+
+/* Final games - yellow for "Correct" and "Great job" notifications with box-shadow green */
+body.final-game div[style*="box-shadow: 0 6px 24px rgba(134, 239, 172, 0.4)"] {
+  box-shadow: 0 6px 24px rgba(234, 179, 8, 0.4) !important;
+  background: rgba(234, 179, 8, 0.2) !important;
+  border: 2px solid rgba(234, 179, 8, 0.6) !important;
+  color: #eab308 !important;
+}
+
+/* Final games - yellow for .game-feedback.correct class */
+body.final-game .game-feedback.correct {
+  background: rgba(234, 179, 8, 0.2) !important;
+  border: 2px solid rgba(234, 179, 8, 0.6) !important;
+  color: #eab308 !important;
+  box-shadow: 0 6px 24px rgba(234, 179, 8, 0.4) !important;
+}
+
+/* Final games - yellow for SVG icons in correct feedback */
+body.final-game .game-feedback.correct svg {
+  color: #eab308 !important;
+}
+
+/* Final games - yellow for Rotate to Fit game elements */
+/* Progress bar with blue/green gradient */
+body.final-game .rotate-to-fit-game .progress-bar-container div[style*="linear-gradient(90deg, var(--accent) 0%, var(--ok) 100%)"] {
+  background: linear-gradient(90deg, #eab308 0%, rgba(234, 179, 8, 0.8) 100%) !important;
+  box-shadow: rgba(234, 179, 8, 0.5) 0px 0px 10px !important;
+}
+
+/* SVG icons with var(--accent) color */
+body.final-game .rotate-to-fit-game svg[style*="color: var(--accent)"] {
+  color: #eab308 !important;
+}
+
+/* Title icons */
+body.final-game .rotate-to-fit-game .title-icon {
+  color: #eab308 !important;
+}
+
+body.final-game .rotate-to-fit-game .title-icon-secondary {
+  color: #eab308 !important;
+}
+
+/* Stat icons */
+body.final-game .rotate-to-fit-game .stat-icon {
+  color: #eab308 !important;
+}
+
+/* Stat items text */
+body.final-game .rotate-to-fit-game .stat-item span {
+  color: #eab308 !important;
+}
+
+/* Selected badge */
+body.final-game .rotate-to-fit-game .selected-badge {
+  color: #eab308 !important;
+}
+
+/* Rotate buttons */
+body.final-game .rotate-to-fit-game .object-rotate-btn {
+  color: #eab308 !important;
+  border-color: rgba(234, 179, 8, 0.3) !important;
+}
+
+body.final-game .rotate-to-fit-game .object-rotate-btn:hover {
+  background: rgba(234, 179, 8, 0.1) !important;
+  border-color: rgba(234, 179, 8, 0.6) !important;
+}
+
+body.final-game .rotate-to-fit-game .object-rotate-btn .btn-icon {
+  color: #eab308 !important;
+}
+
+/* Selected object item */
+body.final-game .rotate-to-fit-game .object-item.selected {
+  border-color: rgba(234, 179, 8, 0.6) !important;
+  background: rgba(234, 179, 8, 0.05) !important;
+}
+
+/* Header background with blue gradient */
+body.final-game .rotate-to-fit-game .game-header {
+  background: linear-gradient(135deg, rgba(234, 179, 8, 0.1) 0%, rgba(234, 179, 8, 0.05) 100%) !important;
+  border-color: rgba(234, 179, 8, 0.3) !important;
+}
+
+/* Header title h2 */
+body.final-game .rotate-to-fit-game .header-title h2 {
+  color: #eab308 !important;
+  background: linear-gradient(135deg, #eab308, rgba(234, 179, 8, 0.8)) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  background-clip: text !important;
+}
+
+/* Target outline with blue border and background */
+body.final-game .rotate-to-fit-game .target-outline {
+  border-color: #eab308 !important;
+  background: linear-gradient(135deg, rgba(234, 179, 8, 0.1) 0%, rgba(234, 179, 8, 0.05) 100%) !important;
+}
+
+/* Selected pulse animation with blue box-shadow - override to yellow */
+@keyframes selectedPulseFinal {
+
+  0%,
+  100% {
+    box-shadow: rgba(234, 179, 8, 0.2) 0px 0px 0px 0px;
+  }
+
+  50% {
+    box-shadow: rgba(234, 179, 8, 0.2) 0px 0px 0px 5.95266px;
+  }
+}
+
+/* Override selectedPulse animation for final games */
+body.final-game .rotate-to-fit-game .object-item.selected {
+  animation: selectedPulseFinal 1.5s ease-in-out infinite !important;
+}
+
+/* Also override any element with selectedPulse animation */
+body.final-game .rotate-to-fit-game *[style*="animation: selectedPulse"],
+body.final-game .rotate-to-fit-game *[style*="animation-name: selectedPulse"] {
+  animation: selectedPulseFinal 1.5s ease-in-out infinite !important;
+}
+
+/* Keyboard hint with border and shadows */
+body.final-game .rotate-to-fit-game .keyboard-hint {
+  color: #eab308 !important;
+  border: 1px solid rgba(234, 179, 8, 0.6) !important;
+  box-shadow: rgba(234, 179, 8, 0.3) 0px 2px 8px !important;
+  background: rgba(234, 179, 8, 0.2) !important;
+}
+
+/* Keyboard hint inside rotate buttons */
+body.final-game .rotate-to-fit-game .object-rotate-btn .keyboard-hint {
+  color: #eab308 !important;
+  background: rgba(234, 179, 8, 0.2) !important;
+  border: 1px solid rgba(234, 179, 8, 0.6) !important;
+  box-shadow: rgba(234, 179, 8, 0.3) 0px 2px 8px !important;
 }
 
 .error-message {

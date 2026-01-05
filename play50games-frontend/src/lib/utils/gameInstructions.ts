@@ -644,7 +644,14 @@ export const gameInstructions: Record<string, {
   'survival-mode': {
     description: 'Complete several mini-games in sequence without failing',
     instructions: 'Complete multiple mini-games in a row. If you fail one, you have to start over. Survive as long as you can!',
-    tips: 'Take your time with each game. One mistake ends the run, so accuracy is crucial.'
+    tips: 'Take your time with each game. One mistake ends the run, so accuracy is crucial. Focus on accuracy over speed - a wrong answer means starting from the beginning. Stay calm and don\'t rush. Each game type has different rules - pay attention to the instructions. Build momentum by completing games successfully.',
+    keyboardControls: [],
+    mouseControls: [
+      {
+        action: 'Interact with game elements',
+        label: 'Click, drag, or move your mouse as required by each mini-game'
+      }
+    ]
   },
   'boss-puzzle': {
     description: 'Combine multiple mechanics into one difficult puzzle',

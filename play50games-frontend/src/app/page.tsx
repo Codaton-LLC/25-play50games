@@ -760,10 +760,7 @@ export default function HomePage() {
                            selectedCategory === "final"
                               ? "var(--card)"
                               : "transparent",
-                        border:
-                           selectedCategory === "final"
-                              ? "3px solid #eab308"
-                              : "none",
+                        border: "none",
                         borderRadius:
                            selectedCategory === "final" ? "18px" : "0",
                         boxShadow:

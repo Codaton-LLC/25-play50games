@@ -219,7 +219,7 @@ export default function ProgressPage() {
                               background: isFinal
                                  ? "var(--card)"
                                  : "transparent",
-                              border: isFinal ? "3px solid #eab308" : "none",
+                              border: "none",
                               borderRadius: isFinal ? "18px" : "0",
                               boxShadow: isFinal
                                  ? "0 10px 30px rgba(234, 179, 8, 0.2)"

@@ -73,13 +73,17 @@ const MazeExampleCanvas = () => {
          w: [boolean, boolean, boolean, boolean]; // top, right, bottom, left
       }
 
-      const cells: MazeCell[] = Array.from({ length: gridSize * gridSize }, () => ({
-         v: false,
-         w: [true, true, true, true],
-      }));
+      const cells: MazeCell[] = Array.from(
+         { length: gridSize * gridSize },
+         () => ({
+            v: false,
+            w: [true, true, true, true],
+         })
+      );
 
       const idx = (x: number, y: number) => y * gridSize + x;
-      const inb = (x: number, y: number) => x >= 0 && y >= 0 && x < gridSize && y < gridSize;
+      const inb = (x: number, y: number) =>
+         x >= 0 && y >= 0 && x < gridSize && y < gridSize;
 
       const dirs = [
          { dx: 0, dy: -1, a: 0, b: 2 },
@@ -93,7 +97,8 @@ const MazeExampleCanvas = () => {
 
       while (stack.length) {
          const cur = stack[stack.length - 1];
-         const options: Array<{ nx: number; ny: number; d: typeof dirs[0] }> = [];
+         const options: Array<{ nx: number; ny: number; d: (typeof dirs)[0] }> =
+            [];
 
          for (const d of dirs) {
             const nx = cur.x + d.dx;
@@ -185,10 +190,20 @@ const MazeExampleCanvas = () => {
       const playerX = 0 * cellSize + cellSize / 2;
       const playerY = 0 * cellSize + cellSize / 2;
       ctx.fillStyle = "rgba(110, 168, 255, 0.95)";
-      ctx.fillRect(playerX - playerSize / 2, playerY - playerSize / 2, playerSize, playerSize);
+      ctx.fillRect(
+         playerX - playerSize / 2,
+         playerY - playerSize / 2,
+         playerSize,
+         playerSize
+      );
       ctx.strokeStyle = "rgba(255, 255, 255, 0.18)";
       ctx.lineWidth = 2;
-      ctx.strokeRect(playerX - playerSize / 2, playerY - playerSize / 2, playerSize, playerSize);
+      ctx.strokeRect(
+         playerX - playerSize / 2,
+         playerY - playerSize / 2,
+         playerSize,
+         playerSize
+      );
    }, []);
 
    return (
@@ -249,6 +264,19 @@ export default function GameEngine({
    const [timeLeft, setTimeLeft] = useState(game.time_limit);
    const [isPlaying, setIsPlaying] = useState(false);
    const [isCompleted, setIsCompleted] = useState(false);
+
+   // Add final-game class to body when game is final
+   useEffect(() => {
+      const isFinalGame = game.game_type === "final";
+      if (isFinalGame) {
+         document.body.classList.add("final-game");
+      }
+      return () => {
+         if (isFinalGame) {
+            document.body.classList.remove("final-game");
+         }
+      };
+   }, [game.game_type]);
 
    // Track share click immediately when page loads (before game starts)
    useEffect(() => {
@@ -425,13 +453,20 @@ export default function GameEngine({
       const instructions = getGameInstructions(gameType, game.title);
       const displayDescription = game.description || instructions.description;
       const gridSize = game.game_config?.gridSize || 3;
+      const isFinalGame = game.game_type === "final";
 
       return (
-         <div className="game-start-screen">
+         <div
+            className={`game-start-screen ${isFinalGame ? "final-game" : ""}`}
+         >
             <h2>{game.title}</h2>
             <p className="game-description">{displayDescription}</p>
 
-            <div className="game-instructions-section">
+            <div
+               className={`game-instructions-section ${
+                  isFinalGame ? "final-game" : ""
+               }`}
+            >
                <h3>How to Play</h3>
                <div
                   className="instructions-text"
@@ -446,9 +481,11 @@ export default function GameEngine({
                {/* Interactive Example for Emoji Memory */}
                {gameType === "emoji-memory" && (
                   <div
+                     className={isFinalGame ? "final-game" : ""}
                      style={{
-                        background:
-                           "linear-gradient(135deg, rgba(125, 211, 252, 0.1) 0%, rgba(54, 211, 153, 0.1) 100%)",
+                        background: isFinalGame
+                           ? "linear-gradient(135deg, rgba(234, 179, 8, 0.1) 0%, rgba(234, 179, 8, 0.05) 100%)"
+                           : "linear-gradient(135deg, rgba(125, 211, 252, 0.1) 0%, rgba(54, 211, 153, 0.1) 100%)",
                         border: "2px solid var(--stroke)",
                         borderRadius: "20px",
                         padding: "32px",
@@ -469,7 +506,7 @@ export default function GameEngine({
                            style={{
                               width: 28,
                               height: 28,
-                              color: "var(--accent)",
+                              color: isFinalGame ? "#eab308" : "var(--accent)",
                            }}
                         />
                         <h3
@@ -477,8 +514,9 @@ export default function GameEngine({
                               fontSize: "24px",
                               fontWeight: 700,
                               margin: 0,
-                              background:
-                                 "linear-gradient(135deg, var(--accent) 0%, var(--ok) 100%)",
+                              background: isFinalGame
+                                 ? "linear-gradient(135deg, #eab308, rgba(234, 179, 8, 0.8))"
+                                 : "linear-gradient(135deg, var(--accent) 0%, var(--ok) 100%)",
                               WebkitBackgroundClip: "text",
                               WebkitTextFillColor: "transparent",
                               backgroundClip: "text",
@@ -2769,7 +2807,8 @@ export default function GameEngine({
                                           : `${2 * Math.PI * 94 * 0.25}`
                                     }
                                     style={{
-                                       transition: "stroke-dashoffset 0.3s ease",
+                                       transition:
+                                          "stroke-dashoffset 0.3s ease",
                                     }}
                                  />
                               </svg>
@@ -2788,7 +2827,8 @@ export default function GameEngine({
                                     justifyContent: "center",
                                     gap: "12px",
                                     cursor: "not-allowed",
-                                    boxShadow: "0 8px 24px rgba(59, 130, 246, 0.3)",
+                                    boxShadow:
+                                       "0 8px 24px rgba(59, 130, 246, 0.3)",
                                     userSelect: "none",
                                     position: "relative",
                                     zIndex: 1,
@@ -2873,8 +2913,8 @@ export default function GameEngine({
                                     fontWeight: 500,
                                  }}
                               >
-                                 <strong>Click or tap</strong> the large circular button
-                                 as fast as you can
+                                 <strong>Click or tap</strong> the large
+                                 circular button as fast as you can
                               </div>
                            </div>
 
@@ -2913,8 +2953,9 @@ export default function GameEngine({
                                     fontWeight: 500,
                                  }}
                               >
-                                 <strong>Watch the border</strong> around the circle fill
-                                 up as you tap - it shows your progress!
+                                 <strong>Watch the border</strong> around the
+                                 circle fill up as you tap - it shows your
+                                 progress!
                               </div>
                            </div>
 
@@ -2953,7 +2994,9 @@ export default function GameEngine({
                                     fontWeight: 500,
                                  }}
                               >
-                                 When the border is <strong>completely filled</strong> (turns green), you've reached the target!
+                                 When the border is{" "}
+                                 <strong>completely filled</strong> (turns
+                                 green), you've reached the target!
                               </div>
                            </div>
 
@@ -2984,9 +3027,9 @@ export default function GameEngine({
                                     fontWeight: 500,
                                  }}
                               >
-                                 <strong>Tip:</strong> Use multiple fingers or alternate
-                                 hands for faster tapping. Watch your tap rate (taps/sec)
-                                 at the top!
+                                 <strong>Tip:</strong> Use multiple fingers or
+                                 alternate hands for faster tapping. Watch your
+                                 tap rate (taps/sec) at the top!
                               </div>
                            </div>
                         </div>
@@ -3119,7 +3162,8 @@ export default function GameEngine({
                                  boxShadow: "0 8px 20px rgba(0, 0, 0, 0.25)",
                                  top: "50%",
                                  left: "50%",
-                                 transform: "translate(-50%, -50%) rotate(0deg)",
+                                 transform:
+                                    "translate(-50%, -50%) rotate(0deg)",
                                  transformOrigin: "center center",
                               }}
                            />
@@ -3137,7 +3181,8 @@ export default function GameEngine({
                                  boxShadow: "0 10px 20px rgba(0, 0, 0, 0.35)",
                                  top: "50%",
                                  left: "50%",
-                                 transform: "translate(-50%, calc(-50% - 18px))",
+                                 transform:
+                                    "translate(-50%, calc(-50% - 18px))",
                               }}
                            />
                         </div>
@@ -3169,7 +3214,8 @@ export default function GameEngine({
                                     borderRadius: "50%",
                                     background:
                                        "radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.95), rgba(110, 168, 255, 0.55))",
-                                    border: "1px solid rgba(255, 255, 255, 0.22)",
+                                    border:
+                                       "1px solid rgba(255, 255, 255, 0.22)",
                                     boxShadow: "0 4px 8px rgba(0, 0, 0, 0.2)",
                                  }}
                               />
@@ -3228,9 +3274,9 @@ export default function GameEngine({
                               textAlign: "center",
                            }}
                         >
-                           Move your mouse left/right over the arena (or use arrow
-                           keys) to tilt the platform. Keep the ball balanced in
-                           the center zone for the required time!
+                           Move your mouse left/right over the arena (or use
+                           arrow keys) to tilt the platform. Keep the ball
+                           balanced in the center zone for the required time!
                         </p>
                      </div>
                   </div>
@@ -3360,8 +3406,18 @@ export default function GameEngine({
                                  strokeLinejoin="round"
                               />
                               {/* Start/End markers */}
-                              <circle cx="5" cy="50" r="4" fill="rgba(34, 197, 94, 0.9)" />
-                              <circle cx="95" cy="50" r="4" fill="rgba(239, 68, 68, 0.9)" />
+                              <circle
+                                 cx="5"
+                                 cy="50"
+                                 r="4"
+                                 fill="rgba(34, 197, 94, 0.9)"
+                              />
+                              <circle
+                                 cx="95"
+                                 cy="50"
+                                 r="4"
+                                 fill="rgba(239, 68, 68, 0.9)"
+                              />
                            </svg>
 
                            {/* Example Player Path (green) */}
@@ -3589,7 +3645,8 @@ export default function GameEngine({
                                        "linear-gradient(180deg, rgba(59, 130, 246, 0.9), rgba(59, 130, 246, 0.55))",
                                     boxShadow: "0 6px 14px rgba(0, 0, 0, 0.35)",
                                     transform: "translateX(-50%)",
-                                    animation: "timingBarMove 2s ease-in-out infinite",
+                                    animation:
+                                       "timingBarMove 2s ease-in-out infinite",
                                     left: "50%",
                                  }}
                               />
@@ -3757,7 +3814,10 @@ export default function GameEngine({
                               textAlign: "center",
                            }}
                         >
-                           Click on the moving green block or press <strong>Enter</strong> / <strong>Space</strong> to place it on the stack. Align blocks as close to center as possible:
+                           Click on the moving green block or press{" "}
+                           <strong>Enter</strong> / <strong>Space</strong> to
+                           place it on the stack. Align blocks as close to
+                           center as possible:
                         </p>
 
                         {/* Example Arena */}
@@ -3786,7 +3846,7 @@ export default function GameEngine({
                                  style={{
                                     position: "absolute",
                                     bottom: `${index * 30}px`,
-                                    left: `${50 - (index * 2)}%`,
+                                    left: `${50 - index * 2}%`,
                                     width: `${50 - index * 2}%`,
                                     height: "30px",
                                     background:
@@ -3812,7 +3872,8 @@ export default function GameEngine({
                                  borderRadius: "4px",
                                  boxShadow: "0 6px 12px rgba(34, 197, 94, 0.5)",
                                  transform: "translateX(-50%)",
-                                 animation: "stackBlockMove 2s ease-in-out infinite",
+                                 animation:
+                                    "stackBlockMove 2s ease-in-out infinite",
                               }}
                            />
 
@@ -3881,7 +3942,8 @@ export default function GameEngine({
                                     fontWeight: 600,
                                  }}
                               >
-                                 Moving Block (click or press Enter/Space to place)
+                                 Moving Block (click or press Enter/Space to
+                                 place)
                               </span>
                            </div>
                            <div
@@ -3912,7 +3974,8 @@ export default function GameEngine({
                                     fontWeight: 600,
                                  }}
                               >
-                                 Keyboard: Press <strong>Enter</strong> or <strong>Space</strong> to place block
+                                 Keyboard: Press <strong>Enter</strong> or{" "}
+                                 <strong>Space</strong> to place block
                               </span>
                            </div>
                            <div
@@ -4024,7 +4087,9 @@ export default function GameEngine({
                               textAlign: "center",
                            }}
                         >
-                           Move the object left/right, then click or press <strong>Enter</strong> / <strong>Space</strong> to drop it into the target:
+                           Move the object left/right, then click or press{" "}
+                           <strong>Enter</strong> / <strong>Space</strong> to
+                           drop it into the target:
                         </p>
 
                         {/* Example Arena */}
@@ -4188,7 +4253,8 @@ export default function GameEngine({
                                  fontWeight: 600,
                               }}
                            >
-                              Keyboard: <strong>Arrow Left/Right</strong> to move, <strong>Enter/Space</strong> to drop
+                              Keyboard: <strong>Arrow Left/Right</strong> to
+                              move, <strong>Enter/Space</strong> to drop
                            </span>
                         </div>
                      </div>
@@ -4269,7 +4335,8 @@ export default function GameEngine({
                               textAlign: "center",
                            }}
                         >
-                           Drag items from the center into the correct category boxes:
+                           Drag items from the center into the correct category
+                           boxes:
                         </p>
 
                         {/* Example Items */}
@@ -4312,7 +4379,9 @@ export default function GameEngine({
                         <div
                            style={{
                               display: "grid",
-                              gridTemplateColumns: isMobile ? "1fr" : "repeat(3, 1fr)",
+                              gridTemplateColumns: isMobile
+                                 ? "1fr"
+                                 : "repeat(3, 1fr)",
                               gap: "12px",
                            }}
                         >
@@ -4325,7 +4394,8 @@ export default function GameEngine({
                                        "rgba(34, 197, 94, 0.2)",
                                        "rgba(168, 85, 247, 0.2)",
                                     ][idx],
-                                    border: "2px dashed rgba(255, 255, 255, 0.3)",
+                                    border:
+                                       "2px dashed rgba(255, 255, 255, 0.3)",
                                     borderRadius: "12px",
                                     padding: "16px",
                                     minHeight: "100px",
@@ -4344,15 +4414,27 @@ export default function GameEngine({
                                  >
                                     {cat === "A" ? (
                                        <Squares2X2Icon
-                                          style={{ width: 20, height: 20, color: "var(--text)" }}
+                                          style={{
+                                             width: 20,
+                                             height: 20,
+                                             color: "var(--text)",
+                                          }}
                                        />
                                     ) : cat === "B" ? (
                                        <ArrowsUpDownIcon
-                                          style={{ width: 20, height: 20, color: "var(--text)" }}
+                                          style={{
+                                             width: 20,
+                                             height: 20,
+                                             color: "var(--text)",
+                                          }}
                                        />
                                     ) : (
                                        <SparklesIcon
-                                          style={{ width: 20, height: 20, color: "var(--text)" }}
+                                          style={{
+                                             width: 20,
+                                             height: 20,
+                                             color: "var(--text)",
+                                          }}
                                        />
                                     )}
                                     <h4
@@ -4377,7 +4459,8 @@ export default function GameEngine({
                                        style={{
                                           padding: "6px 10px",
                                           background: "rgba(34, 197, 94, 0.3)",
-                                          border: "2px solid rgba(34, 197, 94, 0.6)",
+                                          border:
+                                             "2px solid rgba(34, 197, 94, 0.6)",
                                           borderRadius: "6px",
                                           fontSize: "0.9rem",
                                           fontWeight: 600,
@@ -4418,7 +4501,8 @@ export default function GameEngine({
                                  fontWeight: 600,
                               }}
                            >
-                              Drag items to their correct categories. Items are automatically sorted within categories.
+                              Drag items to their correct categories. Items are
+                              automatically sorted within categories.
                            </span>
                         </div>
                      </div>
@@ -4499,7 +4583,8 @@ export default function GameEngine({
                               textAlign: "center",
                            }}
                         >
-                           Draw the target shape shown below as accurately as possible:
+                           Draw the target shape shown below as accurately as
+                           possible:
                         </p>
 
                         {/* Example Target Shape */}
@@ -4627,22 +4712,54 @@ export default function GameEngine({
                            {[
                               {
                                  step: 1,
-                                 icon: <PencilIcon style={{ width: 18, height: 18, color: "var(--accent)" }} />,
+                                 icon: (
+                                    <PencilIcon
+                                       style={{
+                                          width: 18,
+                                          height: 18,
+                                          color: "var(--accent)",
+                                       }}
+                                    />
+                                 ),
                                  text: "Look at the target shape (faded blue outline)",
                               },
                               {
                                  step: 2,
-                                 icon: <HandRaisedIcon style={{ width: 18, height: 18, color: "var(--accent)" }} />,
+                                 icon: (
+                                    <HandRaisedIcon
+                                       style={{
+                                          width: 18,
+                                          height: 18,
+                                          color: "var(--accent)",
+                                       }}
+                                    />
+                                 ),
                                  text: "Click and hold your mouse (or touch and hold on mobile)",
                               },
                               {
                                  step: 3,
-                                 icon: <CursorArrowRaysIcon style={{ width: 18, height: 18, color: "var(--accent)" }} />,
+                                 icon: (
+                                    <CursorArrowRaysIcon
+                                       style={{
+                                          width: 18,
+                                          height: 18,
+                                          color: "var(--accent)",
+                                       }}
+                                    />
+                                 ),
                                  text: "Draw the shape by moving your mouse/finger",
                               },
                               {
                                  step: 4,
-                                 icon: <CheckCircleIcon style={{ width: 18, height: 18, color: "var(--ok)" }} />,
+                                 icon: (
+                                    <CheckCircleIcon
+                                       style={{
+                                          width: 18,
+                                          height: 18,
+                                          color: "var(--ok)",
+                                       }}
+                                    />
+                                 ),
                                  text: "Release when finished - accuracy is calculated automatically",
                               },
                            ].map((item) => (
@@ -4666,7 +4783,8 @@ export default function GameEngine({
                                        height: "28px",
                                        background:
                                           "linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1))",
-                                       border: "2px solid rgba(59, 130, 246, 0.4)",
+                                       border:
+                                          "2px solid rgba(59, 130, 246, 0.4)",
                                        borderRadius: "50%",
                                        fontWeight: 700,
                                        fontSize: "0.85rem",
@@ -4726,7 +4844,8 @@ export default function GameEngine({
                                  fontWeight: 600,
                               }}
                            >
-                              Each level has a time limit. Draw accurately to reach the minimum accuracy requirement!
+                              Each level has a time limit. Draw accurately to
+                              reach the minimum accuracy requirement!
                            </span>
                         </div>
                      </div>
@@ -4807,7 +4926,8 @@ export default function GameEngine({
                               textAlign: "center",
                            }}
                         >
-                           Move the viewport with WASD keys, then hit targets with Enter or Space:
+                           Move the viewport with WASD keys, then hit targets
+                           with Enter or Space:
                         </p>
 
                         {/* Example Arena */}
@@ -4887,7 +5007,8 @@ export default function GameEngine({
                                     borderRadius: "50%",
                                     background:
                                        "radial-gradient(circle, rgba(239, 68, 68, 0.9), rgba(220, 38, 38, 0.9))",
-                                    border: "2px solid rgba(255, 255, 255, 0.8)",
+                                    border:
+                                       "2px solid rgba(255, 255, 255, 0.8)",
                                  }}
                               />
                               <span
@@ -4966,7 +5087,9 @@ export default function GameEngine({
                               textAlign: "center",
                            }}
                         >
-                           Use WASD keys to move the viewport around the large arena. When a target is near the center (white dot), press Enter or Space to hit it!
+                           Use WASD keys to move the viewport around the large
+                           arena. When a target is near the center (white dot),
+                           press Enter or Space to hit it!
                         </p>
                      </div>
                   </div>
@@ -5047,7 +5170,8 @@ export default function GameEngine({
                               textAlign: "center",
                            }}
                         >
-                           Control a character that runs automatically. Jump over obstacles to survive:
+                           Control a character that runs automatically. Jump
+                           over obstacles to survive:
                         </p>
 
                         {/* Example Game Arena */}
@@ -5133,22 +5257,54 @@ export default function GameEngine({
                            {[
                               {
                                  step: 1,
-                                 icon: <PlayIcon style={{ width: 18, height: 18, color: "var(--accent)" }} />,
+                                 icon: (
+                                    <PlayIcon
+                                       style={{
+                                          width: 18,
+                                          height: 18,
+                                          color: "var(--accent)",
+                                       }}
+                                    />
+                                 ),
                                  text: "The character runs automatically from left to right",
                               },
                               {
                                  step: 2,
-                                 icon: <ArrowUpIcon style={{ width: 18, height: 18, color: "var(--accent)" }} />,
+                                 icon: (
+                                    <ArrowUpIcon
+                                       style={{
+                                          width: 18,
+                                          height: 18,
+                                          color: "var(--accent)",
+                                       }}
+                                    />
+                                 ),
                                  text: "Click, tap, or press SPACEBAR to make the character jump",
                               },
                               {
                                  step: 3,
-                                 icon: <HandRaisedIcon style={{ width: 18, height: 18, color: "var(--ok)" }} />,
+                                 icon: (
+                                    <HandRaisedIcon
+                                       style={{
+                                          width: 18,
+                                          height: 18,
+                                          color: "var(--ok)",
+                                       }}
+                                    />
+                                 ),
                                  text: "Time your jumps to clear obstacles",
                               },
                               {
                                  step: 4,
-                                 icon: <XCircleIcon style={{ width: 18, height: 18, color: "var(--warn)" }} />,
+                                 icon: (
+                                    <XCircleIcon
+                                       style={{
+                                          width: 18,
+                                          height: 18,
+                                          color: "var(--warn)",
+                                       }}
+                                    />
+                                 ),
                                  text: "Avoid hitting obstacles - hitting one ends the level",
                               },
                            ].map((item) => (
@@ -5172,7 +5328,8 @@ export default function GameEngine({
                                        height: "28px",
                                        background:
                                           "linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1))",
-                                       border: "2px solid rgba(59, 130, 246, 0.4)",
+                                       border:
+                                          "2px solid rgba(59, 130, 246, 0.4)",
                                        borderRadius: "50%",
                                        fontWeight: 700,
                                        fontSize: "0.85rem",
@@ -5232,7 +5389,8 @@ export default function GameEngine({
                                  fontWeight: 600,
                               }}
                            >
-                              Survive until the timer runs out to complete each level!
+                              Survive until the timer runs out to complete each
+                              level!
                            </span>
                         </div>
                      </div>
@@ -5314,7 +5472,8 @@ export default function GameEngine({
                               textAlign: "center",
                            }}
                         >
-                           Navigate the blue square through the maze to reach the green exit:
+                           Navigate the blue square through the maze to reach
+                           the green exit:
                         </p>
 
                         {/* Example Maze Arena - Real Canvas Maze */}
@@ -5331,27 +5490,67 @@ export default function GameEngine({
                            {[
                               {
                                  step: 1,
-                                 icon: <CursorArrowRaysIcon style={{ width: 18, height: 18, color: "var(--accent)" }} />,
+                                 icon: (
+                                    <CursorArrowRaysIcon
+                                       style={{
+                                          width: 18,
+                                          height: 18,
+                                          color: "var(--accent)",
+                                       }}
+                                    />
+                                 ),
                                  text: "Move your mouse (or drag finger on mobile) to control the blue square",
                               },
                               {
                                  step: 2,
-                                 icon: <ArrowRightIcon style={{ width: 18, height: 18, color: "var(--accent)" }} />,
+                                 icon: (
+                                    <ArrowRightIcon
+                                       style={{
+                                          width: 18,
+                                          height: 18,
+                                          color: "var(--accent)",
+                                       }}
+                                    />
+                                 ),
                                  text: "Navigate from the blue START area to the green EXIT area",
                               },
                               {
                                  step: 3,
-                                 icon: <XCircleIcon style={{ width: 18, height: 18, color: "var(--warn)" }} />,
+                                 icon: (
+                                    <XCircleIcon
+                                       style={{
+                                          width: 18,
+                                          height: 18,
+                                          color: "var(--warn)",
+                                       }}
+                                    />
+                                 ),
                                  text: "Avoid touching walls - hitting a wall keeps you at your current position",
                               },
                               {
                                  step: 5,
-                                 icon: <KeyIcon style={{ width: 18, height: 18, color: "var(--accent)" }} />,
+                                 icon: (
+                                    <KeyIcon
+                                       style={{
+                                          width: 18,
+                                          height: 18,
+                                          color: "var(--accent)",
+                                       }}
+                                    />
+                                 ),
                                  text: "You can also use WASD or Arrow keys to move the square",
                               },
                               {
                                  step: 4,
-                                 icon: <ClockIcon style={{ width: 18, height: 18, color: "var(--ok)" }} />,
+                                 icon: (
+                                    <ClockIcon
+                                       style={{
+                                          width: 18,
+                                          height: 18,
+                                          color: "var(--ok)",
+                                       }}
+                                    />
+                                 ),
                                  text: "Complete the maze before time runs out to pass the level",
                               },
                            ].map((item) => (
@@ -5375,7 +5574,8 @@ export default function GameEngine({
                                        height: "28px",
                                        background:
                                           "linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1))",
-                                       border: "2px solid rgba(59, 130, 246, 0.4)",
+                                       border:
+                                          "2px solid rgba(59, 130, 246, 0.4)",
                                        borderRadius: "50%",
                                        fontWeight: 700,
                                        fontSize: "0.85rem",
@@ -5435,7 +5635,8 @@ export default function GameEngine({
                                  fontWeight: 600,
                               }}
                            >
-                              Each level has a time limit. Complete the maze before time runs out!
+                              Each level has a time limit. Complete the maze
+                              before time runs out!
                            </span>
                         </div>
                      </div>
@@ -5447,7 +5648,7 @@ export default function GameEngine({
                   <div
                      style={{
                         background:
-                           "linear-gradient(135deg, rgba(125, 211, 252, 0.1) 0%, rgba(54, 211, 153, 0.1) 100%)",
+                           "linear-gradient(135deg, rgba(234, 179, 8, 0.1) 0%, rgba(234, 179, 8, 0.05) 100%)",
                         border: "2px solid var(--stroke)",
                         borderRadius: isMobile
                            ? "16px"
@@ -5476,7 +5677,7 @@ export default function GameEngine({
                            style={{
                               width: isMobile ? 24 : isTablet ? 26 : 28,
                               height: isMobile ? 24 : isTablet ? 26 : 28,
-                              color: "var(--accent)",
+                              color: "#eab308",
                            }}
                         />
                         <h3
@@ -5489,7 +5690,7 @@ export default function GameEngine({
                               fontWeight: 700,
                               margin: 0,
                               background:
-                                 "linear-gradient(135deg, var(--accent) 0%, var(--ok) 100%)",
+                                 "linear-gradient(135deg, #eab308, rgba(234, 179, 8, 0.8))",
                               WebkitBackgroundClip: "text",
                               WebkitTextFillColor: "transparent",
                               backgroundClip: "text",
@@ -5517,7 +5718,8 @@ export default function GameEngine({
                               textAlign: "center",
                            }}
                         >
-                           You'll face multiple rounds of randomly selected mini-games:
+                           You'll face multiple rounds of randomly selected
+                           mini-games:
                         </p>
 
                         {/* Step-by-step instructions */}
@@ -5531,22 +5733,54 @@ export default function GameEngine({
                            {[
                               {
                                  step: 1,
-                                 icon: <PuzzlePieceIcon style={{ width: 18, height: 18, color: "var(--accent)" }} />,
+                                 icon: (
+                                    <PuzzlePieceIcon
+                                       style={{
+                                          width: 18,
+                                          height: 18,
+                                          color: "#eab308",
+                                       }}
+                                    />
+                                 ),
                                  text: "Each round presents a random game type: Logic, Memory, Speed, or Skill",
                               },
                               {
                                  step: 2,
-                                 icon: <ArrowRightIcon style={{ width: 18, height: 18, color: "var(--accent)" }} />,
+                                 icon: (
+                                    <ArrowRightIcon
+                                       style={{
+                                          width: 18,
+                                          height: 18,
+                                          color: "#eab308",
+                                       }}
+                                    />
+                                 ),
                                  text: "Complete each mini-game to progress to the next round",
                               },
                               {
                                  step: 3,
-                                 icon: <TrophyIcon style={{ width: 18, height: 18, color: "var(--ok)" }} />,
+                                 icon: (
+                                    <TrophyIcon
+                                       style={{
+                                          width: 18,
+                                          height: 18,
+                                          color: "#eab308",
+                                       }}
+                                    />
+                                 ),
                                  text: "Your final score is the average of all round scores",
                               },
                               {
                                  step: 4,
-                                 icon: <ClockIcon style={{ width: 18, height: 18, color: "var(--accent)" }} />,
+                                 icon: (
+                                    <ClockIcon
+                                       style={{
+                                          width: 18,
+                                          height: 18,
+                                          color: "#eab308",
+                                       }}
+                                    />
+                                 ),
                                  text: "Complete all rounds to finish the Mixed Quiz challenge",
                               },
                            ].map((item) => (
@@ -5557,7 +5791,7 @@ export default function GameEngine({
                                     alignItems: "center",
                                     gap: "12px",
                                     padding: "10px 12px",
-                                    background: "rgba(59, 130, 246, 0.05)",
+                                    background: "rgba(234, 179, 8, 0.05)",
                                     borderRadius: "8px",
                                  }}
                               >
@@ -5569,12 +5803,13 @@ export default function GameEngine({
                                        width: "28px",
                                        height: "28px",
                                        background:
-                                          "linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1))",
-                                       border: "2px solid rgba(59, 130, 246, 0.4)",
+                                          "linear-gradient(135deg, rgba(234, 179, 8, 0.2), rgba(234, 179, 8, 0.1))",
+                                       border:
+                                          "2px solid rgba(234, 179, 8, 0.4)",
                                        borderRadius: "50%",
                                        fontWeight: 700,
                                        fontSize: "0.85rem",
-                                       color: "var(--accent)",
+                                       color: "#eab308",
                                        flexShrink: 0,
                                     }}
                                  >
@@ -5609,7 +5844,7 @@ export default function GameEngine({
                               alignItems: "center",
                               gap: "8px",
                               padding: "8px 12px",
-                              background: "rgba(125, 211, 252, 0.1)",
+                              background: "rgba(234, 179, 8, 0.1)",
                               borderRadius: "8px",
                               marginTop: "16px",
                               width: "100%",
@@ -5620,7 +5855,7 @@ export default function GameEngine({
                               style={{
                                  width: isMobile ? 16 : 18,
                                  height: isMobile ? 16 : 18,
-                                 color: "var(--accent)",
+                                 color: "#eab308",
                               }}
                            />
                            <span
@@ -5630,7 +5865,259 @@ export default function GameEngine({
                                  fontWeight: 600,
                               }}
                            >
-                              Stay flexible and adapt quickly to each new challenge type!
+                              Stay flexible and adapt quickly to each new
+                              challenge type!
+                           </span>
+                        </div>
+                     </div>
+                  </div>
+               )}
+
+               {/* Interactive Example for Survival Mode */}
+               {gameType === "survival-mode" && (
+                  <div
+                     className={isFinalGame ? "final-game" : ""}
+                     style={{
+                        background: isFinalGame
+                           ? "linear-gradient(135deg, rgba(234, 179, 8, 0.1) 0%, rgba(234, 179, 8, 0.05) 100%)"
+                           : "linear-gradient(135deg, rgba(125, 211, 252, 0.1) 0%, rgba(54, 211, 153, 0.1) 100%)",
+                        border: "2px solid var(--stroke)",
+                        borderRadius: isMobile
+                           ? "16px"
+                           : isTablet
+                           ? "18px"
+                           : "20px",
+                        padding: isMobile ? "20px" : isTablet ? "24px" : "32px",
+                        marginTop: isMobile ? "16px" : "24px",
+                        boxShadow: "0 8px 24px rgba(0, 0, 0, 0.2)",
+                     }}
+                  >
+                     <div
+                        style={{
+                           display: "flex",
+                           alignItems: "center",
+                           justifyContent: "center",
+                           gap: isMobile ? "8px" : "12px",
+                           marginBottom: isMobile
+                              ? "16px"
+                              : isTablet
+                              ? "20px"
+                              : "24px",
+                        }}
+                     >
+                        <TrophyIcon
+                           style={{
+                              width: isMobile ? 24 : isTablet ? 26 : 28,
+                              height: isMobile ? 24 : isTablet ? 26 : 28,
+                              color: isFinalGame ? "#eab308" : "var(--accent)",
+                           }}
+                        />
+                        <h3
+                           style={{
+                              fontSize: isMobile
+                                 ? "20px"
+                                 : isTablet
+                                 ? "22px"
+                                 : "24px",
+                              fontWeight: 700,
+                              margin: 0,
+                              background: isFinalGame
+                                 ? "linear-gradient(135deg, #eab308, rgba(234, 179, 8, 0.8))"
+                                 : "linear-gradient(135deg, var(--accent) 0%, var(--ok) 100%)",
+                              WebkitBackgroundClip: "text",
+                              WebkitTextFillColor: "transparent",
+                              backgroundClip: "text",
+                           }}
+                        >
+                           How Survival Mode Works
+                        </h3>
+                     </div>
+
+                     <div
+                        style={{
+                           background: "var(--card)",
+                           border: "2px solid var(--stroke)",
+                           borderRadius: "16px",
+                           padding: isMobile ? "16px" : "24px",
+                           marginBottom: "20px",
+                        }}
+                     >
+                        <p
+                           style={{
+                              margin: "0 0 16px",
+                              color: "var(--text)",
+                              fontSize: isMobile ? "14px" : "16px",
+                              fontWeight: 600,
+                              textAlign: "center",
+                           }}
+                        >
+                           Complete multiple mini-games in sequence without
+                           failing:
+                        </p>
+
+                        {/* Step-by-step instructions */}
+                        <div
+                           style={{
+                              display: "flex",
+                              flexDirection: "column",
+                              gap: "12px",
+                           }}
+                        >
+                           {[
+                              {
+                                 step: 1,
+                                 icon: (
+                                    <PuzzlePieceIcon
+                                       style={{
+                                          width: 18,
+                                          height: 18,
+                                          color: isFinalGame
+                                             ? "#eab308"
+                                             : "var(--accent)",
+                                       }}
+                                    />
+                                 ),
+                                 text: "You'll face a sequence of mini-games: Logic, Memory, Speed, and Skill",
+                              },
+                              {
+                                 step: 2,
+                                 icon: (
+                                    <ArrowRightIcon
+                                       style={{
+                                          width: 18,
+                                          height: 18,
+                                          color: isFinalGame
+                                             ? "#eab308"
+                                             : "var(--accent)",
+                                       }}
+                                    />
+                                 ),
+                                 text: "Complete each game successfully to progress to the next one",
+                              },
+                              {
+                                 step: 3,
+                                 icon: (
+                                    <TrophyIcon
+                                       style={{
+                                          width: 18,
+                                          height: 18,
+                                          color: isFinalGame
+                                             ? "#eab308"
+                                             : "var(--ok)",
+                                       }}
+                                    />
+                                 ),
+                                 text: "If you fail any game (score below 70), you must start over from the beginning",
+                              },
+                              {
+                                 step: 4,
+                                 icon: (
+                                    <ClockIcon
+                                       style={{
+                                          width: 18,
+                                          height: 18,
+                                          color: isFinalGame
+                                             ? "#eab308"
+                                             : "var(--accent)",
+                                       }}
+                                    />
+                                 ),
+                                 text: "Survive as long as you can and complete all games in the sequence!",
+                              },
+                           ].map((item) => (
+                              <div
+                                 key={item.step}
+                                 style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: "12px",
+                                    padding: "10px 12px",
+                                    background: isFinalGame
+                                       ? "rgba(234, 179, 8, 0.05)"
+                                       : "rgba(59, 130, 246, 0.05)",
+                                    borderRadius: "8px",
+                                 }}
+                              >
+                                 <div
+                                    style={{
+                                       display: "flex",
+                                       alignItems: "center",
+                                       justifyContent: "center",
+                                       width: "28px",
+                                       height: "28px",
+                                       background: isFinalGame
+                                          ? "linear-gradient(135deg, rgba(234, 179, 8, 0.2), rgba(234, 179, 8, 0.1))"
+                                          : "linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1))",
+                                       border: isFinalGame
+                                          ? "2px solid rgba(234, 179, 8, 0.4)"
+                                          : "2px solid rgba(59, 130, 246, 0.4)",
+                                       borderRadius: "50%",
+                                       fontWeight: 700,
+                                       fontSize: "0.85rem",
+                                       color: isFinalGame
+                                          ? "#eab308"
+                                          : "var(--accent)",
+                                       flexShrink: 0,
+                                    }}
+                                 >
+                                    {item.step}
+                                 </div>
+                                 <div
+                                    style={{
+                                       display: "flex",
+                                       alignItems: "center",
+                                       gap: "8px",
+                                       flex: 1,
+                                    }}
+                                 >
+                                    {item.icon}
+                                    <span
+                                       style={{
+                                          fontSize: isMobile ? "13px" : "14px",
+                                          color: "var(--text)",
+                                          fontWeight: 500,
+                                       }}
+                                    >
+                                       {item.text}
+                                    </span>
+                                 </div>
+                              </div>
+                           ))}
+                        </div>
+
+                        <div
+                           style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "8px",
+                              padding: "8px 12px",
+                              background: isFinalGame
+                                 ? "rgba(234, 179, 8, 0.1)"
+                                 : "rgba(125, 211, 252, 0.1)",
+                              borderRadius: "8px",
+                              marginTop: "16px",
+                              width: "100%",
+                              justifyContent: "center",
+                           }}
+                        >
+                           <LightBulbIcon
+                              style={{
+                                 width: isMobile ? 16 : 18,
+                                 height: isMobile ? 16 : 18,
+                                 color: isFinalGame
+                                    ? "#eab308"
+                                    : "var(--accent)",
+                              }}
+                           />
+                           <span
+                              style={{
+                                 fontSize: isMobile ? "12px" : "13px",
+                                 color: "var(--text)",
+                                 fontWeight: 600,
+                              }}
+                           >
+                              Accuracy is crucial - one mistake means starting
+                              over!
                            </span>
                         </div>
                      </div>
@@ -5712,7 +6199,8 @@ export default function GameEngine({
                               textAlign: "center",
                            }}
                         >
-                           An arrow appears. Match it quickly using arrow keys or tap buttons:
+                           An arrow appears. Match it quickly using arrow keys
+                           or tap buttons:
                         </p>
 
                         {/* Example Arrow Display */}
@@ -5735,7 +6223,8 @@ export default function GameEngine({
                                  display: "flex",
                                  alignItems: "center",
                                  justifyContent: "center",
-                                 boxShadow: "0 8px 24px rgba(59, 130, 246, 0.3)",
+                                 boxShadow:
+                                    "0 8px 24px rgba(59, 130, 246, 0.3)",
                               }}
                            >
                               <ArrowUpIcon
@@ -5815,7 +6304,9 @@ export default function GameEngine({
                                        display: "flex",
                                        alignItems: "center",
                                        justifyContent: "center",
-                                       fontSize: isMobile ? "0.7rem" : "0.75rem",
+                                       fontSize: isMobile
+                                          ? "0.7rem"
+                                          : "0.75rem",
                                        color: "var(--muted)",
                                     }}
                                  >
@@ -5881,7 +6372,9 @@ export default function GameEngine({
                               }}
                            >
                               Level 1: Match 8 arrows correctly in 30s
-                              {!isMobile && !isTablet && " (Use Arrow Keys or WASD)"}
+                              {!isMobile &&
+                                 !isTablet &&
+                                 " (Use Arrow Keys or WASD)"}
                            </div>
                         </div>
                      </div>
@@ -5930,8 +6423,8 @@ export default function GameEngine({
                                  fontWeight: 500,
                               }}
                            >
-                              <strong>Watch for the arrow</strong> that appears in the center
-                              of the screen
+                              <strong>Watch for the arrow</strong> that appears
+                              in the center of the screen
                            </div>
                         </div>
 
@@ -5970,8 +6463,8 @@ export default function GameEngine({
                                  fontWeight: 500,
                               }}
                            >
-                              <strong>Press the matching arrow key</strong> (↑ ↓ ← →) or use
-                              WASD keys on desktop
+                              <strong>Press the matching arrow key</strong> (↑ ↓
+                              ← →) or use WASD keys on desktop
                            </div>
                         </div>
 
@@ -6010,8 +6503,8 @@ export default function GameEngine({
                                  fontWeight: 500,
                               }}
                            >
-                              <strong>On mobile/tablet</strong>, tap the arrow button that
-                              matches the displayed direction
+                              <strong>On mobile/tablet</strong>, tap the arrow
+                              button that matches the displayed direction
                            </div>
                         </div>
 
@@ -6042,9 +6535,9 @@ export default function GameEngine({
                                  fontWeight: 500,
                               }}
                            >
-                              <strong>Tip:</strong> React quickly! The faster you match, the
-                              more correct answers you'll get. Arrows change faster as levels
-                              progress.
+                              <strong>Tip:</strong> React quickly! The faster
+                              you match, the more correct answers you'll get.
+                              Arrows change faster as levels progress.
                            </div>
                         </div>
                      </div>
@@ -6475,7 +6968,8 @@ export default function GameEngine({
                                  color: "white",
                                  fontWeight: 700,
                                  fontSize: "14px",
-                                 boxShadow: "0 4px 12px rgba(59, 130, 246, 0.4)",
+                                 boxShadow:
+                                    "0 4px 12px rgba(59, 130, 246, 0.4)",
                               }}
                            >
                               1
@@ -6513,8 +7007,8 @@ export default function GameEngine({
                                     lineHeight: "1.5",
                                  }}
                               >
-                                 Look at the left number and right number. Determine
-                                 which one is larger or smaller.
+                                 Look at the left number and right number.
+                                 Determine which one is larger or smaller.
                               </div>
                            </div>
                         </div>
@@ -6583,9 +7077,9 @@ export default function GameEngine({
                                     lineHeight: "1.5",
                                  }}
                               >
-                                 Click <strong>&lt;</strong> if left is smaller, or{" "}
-                                 <strong>&gt;</strong> if left is larger. You'll get
-                                 immediate feedback!
+                                 Click <strong>&lt;</strong> if left is smaller,
+                                 or <strong>&gt;</strong> if left is larger.
+                                 You'll get immediate feedback!
                               </div>
                            </div>
                         </div>
@@ -6616,7 +7110,8 @@ export default function GameEngine({
                                  color: "white",
                                  fontWeight: 700,
                                  fontSize: "14px",
-                                 boxShadow: "0 4px 12px rgba(251, 191, 36, 0.4)",
+                                 boxShadow:
+                                    "0 4px 12px rgba(251, 191, 36, 0.4)",
                               }}
                            >
                               3
@@ -6655,8 +7150,8 @@ export default function GameEngine({
                                  }}
                               >
                                  Make enough correct comparisons within the time
-                                 limit to pass the level. Each level has different
-                                 number types!
+                                 limit to pass the level. Each level has
+                                 different number types!
                               </div>
                            </div>
                         </div>
@@ -6744,13 +7239,62 @@ export default function GameEngine({
                               flexWrap: "wrap",
                            }}
                         >
-                           Objects will fall from the top. Click on good objects (
-                           <StarIcon style={{ width: 16, height: 16, color: "var(--ok)", flexShrink: 0 }} />,
-                           <HeartIcon style={{ width: 16, height: 16, color: "var(--ok)", flexShrink: 0 }} />,
-                           <BoltIcon style={{ width: 16, height: 16, color: "var(--ok)", flexShrink: 0 }} />,
-                           <CheckCircleIcon style={{ width: 16, height: 16, color: "var(--ok)", flexShrink: 0 }} />) and avoid bad ones (
-                           <XCircleIcon style={{ width: 16, height: 16, color: "var(--warn)", flexShrink: 0 }} />,
-                           <BoltIcon style={{ width: 16, height: 16, color: "var(--warn)", flexShrink: 0 }} />):
+                           Objects will fall from the top. Click on good objects
+                           (
+                           <StarIcon
+                              style={{
+                                 width: 16,
+                                 height: 16,
+                                 color: "var(--ok)",
+                                 flexShrink: 0,
+                              }}
+                           />
+                           ,
+                           <HeartIcon
+                              style={{
+                                 width: 16,
+                                 height: 16,
+                                 color: "var(--ok)",
+                                 flexShrink: 0,
+                              }}
+                           />
+                           ,
+                           <BoltIcon
+                              style={{
+                                 width: 16,
+                                 height: 16,
+                                 color: "var(--ok)",
+                                 flexShrink: 0,
+                              }}
+                           />
+                           ,
+                           <CheckCircleIcon
+                              style={{
+                                 width: 16,
+                                 height: 16,
+                                 color: "var(--ok)",
+                                 flexShrink: 0,
+                              }}
+                           />
+                           ) and avoid bad ones (
+                           <XCircleIcon
+                              style={{
+                                 width: 16,
+                                 height: 16,
+                                 color: "var(--warn)",
+                                 flexShrink: 0,
+                              }}
+                           />
+                           ,
+                           <BoltIcon
+                              style={{
+                                 width: 16,
+                                 height: 16,
+                                 color: "var(--warn)",
+                                 flexShrink: 0,
+                              }}
+                           />
+                           ):
                         </p>
 
                         {/* Example Falling Area */}
@@ -6785,7 +7329,8 @@ export default function GameEngine({
                                  alignItems: "center",
                                  justifyContent: "center",
                                  color: "white",
-                                 boxShadow: "0 4px 12px rgba(134, 239, 172, 0.3)",
+                                 boxShadow:
+                                    "0 4px 12px rgba(134, 239, 172, 0.3)",
                                  zIndex: 10,
                               }}
                            >
@@ -6811,7 +7356,8 @@ export default function GameEngine({
                                  alignItems: "center",
                                  justifyContent: "center",
                                  color: "white",
-                                 boxShadow: "0 4px 12px rgba(134, 239, 172, 0.3)",
+                                 boxShadow:
+                                    "0 4px 12px rgba(134, 239, 172, 0.3)",
                                  zIndex: 10,
                               }}
                            >
@@ -6837,7 +7383,8 @@ export default function GameEngine({
                                  alignItems: "center",
                                  justifyContent: "center",
                                  color: "white",
-                                 boxShadow: "0 4px 12px rgba(134, 239, 172, 0.3)",
+                                 boxShadow:
+                                    "0 4px 12px rgba(134, 239, 172, 0.3)",
                                  zIndex: 10,
                               }}
                            >
@@ -6865,7 +7412,8 @@ export default function GameEngine({
                                  alignItems: "center",
                                  justifyContent: "center",
                                  color: "white",
-                                 boxShadow: "0 4px 12px rgba(252, 165, 165, 0.3)",
+                                 boxShadow:
+                                    "0 4px 12px rgba(252, 165, 165, 0.3)",
                                  zIndex: 10,
                               }}
                            >
@@ -6891,7 +7439,8 @@ export default function GameEngine({
                                  alignItems: "center",
                                  justifyContent: "center",
                                  color: "white",
-                                 boxShadow: "0 4px 12px rgba(252, 165, 165, 0.3)",
+                                 boxShadow:
+                                    "0 4px 12px rgba(252, 165, 165, 0.3)",
                                  zIndex: 10,
                               }}
                            >
@@ -6956,15 +7505,63 @@ export default function GameEngine({
                            }}
                         >
                            <CheckCircleIcon style={{ width: 20, height: 20 }} />
-                           <span style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
-                           Click on good objects (
-                           <StarIcon style={{ width: 16, height: 16, color: "var(--ok)" }} /> star,
-                           <HeartIcon style={{ width: 16, height: 16, color: "var(--ok)" }} /> heart,
-                           <BoltIcon style={{ width: 16, height: 16, color: "var(--ok)" }} /> bolt,
-                           <CheckCircleIcon style={{ width: 16, height: 16, color: "var(--ok)" }} /> checkmark) to catch them!
-                           Avoid bad objects (
-                           <XCircleIcon style={{ width: 16, height: 16, color: "var(--warn)" }} /> X mark,
-                           <BoltIcon style={{ width: 16, height: 16, color: "var(--warn)" }} /> fire icon).
+                           <span
+                              style={{
+                                 display: "flex",
+                                 alignItems: "center",
+                                 gap: "6px",
+                                 flexWrap: "wrap",
+                              }}
+                           >
+                              Click on good objects (
+                              <StarIcon
+                                 style={{
+                                    width: 16,
+                                    height: 16,
+                                    color: "var(--ok)",
+                                 }}
+                              />{" "}
+                              star,
+                              <HeartIcon
+                                 style={{
+                                    width: 16,
+                                    height: 16,
+                                    color: "var(--ok)",
+                                 }}
+                              />{" "}
+                              heart,
+                              <BoltIcon
+                                 style={{
+                                    width: 16,
+                                    height: 16,
+                                    color: "var(--ok)",
+                                 }}
+                              />{" "}
+                              bolt,
+                              <CheckCircleIcon
+                                 style={{
+                                    width: 16,
+                                    height: 16,
+                                    color: "var(--ok)",
+                                 }}
+                              />{" "}
+                              checkmark) to catch them! Avoid bad objects (
+                              <XCircleIcon
+                                 style={{
+                                    width: 16,
+                                    height: 16,
+                                    color: "var(--warn)",
+                                 }}
+                              />{" "}
+                              X mark,
+                              <BoltIcon
+                                 style={{
+                                    width: 16,
+                                    height: 16,
+                                    color: "var(--warn)",
+                                 }}
+                              />{" "}
+                              fire icon).
                            </span>
                         </div>
                      </div>
@@ -7003,7 +7600,8 @@ export default function GameEngine({
                                  color: "white",
                                  fontWeight: 700,
                                  fontSize: "14px",
-                                 boxShadow: "0 4px 12px rgba(59, 130, 246, 0.4)",
+                                 boxShadow:
+                                    "0 4px 12px rgba(59, 130, 246, 0.4)",
                               }}
                            >
                               1
@@ -7116,11 +7714,43 @@ export default function GameEngine({
                                  }}
                               >
                                  Click on good objects (
-                                 <StarIcon style={{ width: 14, height: 14, color: "var(--ok)", flexShrink: 0 }} /> star,
-                                 <HeartIcon style={{ width: 14, height: 14, color: "var(--ok)", flexShrink: 0 }} /> heart,
-                                 <BoltIcon style={{ width: 14, height: 14, color: "var(--ok)", flexShrink: 0 }} /> bolt,
-                                 <CheckCircleIcon style={{ width: 14, height: 14, color: "var(--ok)", flexShrink: 0 }} /> checkmark) to catch them. You'll get points
-                                 for each good object caught!
+                                 <StarIcon
+                                    style={{
+                                       width: 14,
+                                       height: 14,
+                                       color: "var(--ok)",
+                                       flexShrink: 0,
+                                    }}
+                                 />{" "}
+                                 star,
+                                 <HeartIcon
+                                    style={{
+                                       width: 14,
+                                       height: 14,
+                                       color: "var(--ok)",
+                                       flexShrink: 0,
+                                    }}
+                                 />{" "}
+                                 heart,
+                                 <BoltIcon
+                                    style={{
+                                       width: 14,
+                                       height: 14,
+                                       color: "var(--ok)",
+                                       flexShrink: 0,
+                                    }}
+                                 />{" "}
+                                 bolt,
+                                 <CheckCircleIcon
+                                    style={{
+                                       width: 14,
+                                       height: 14,
+                                       color: "var(--ok)",
+                                       flexShrink: 0,
+                                    }}
+                                 />{" "}
+                                 checkmark) to catch them. You'll get points for
+                                 each good object caught!
                               </div>
                            </div>
                         </div>
@@ -7222,7 +7852,8 @@ export default function GameEngine({
                                  color: "white",
                                  fontWeight: 700,
                                  fontSize: "14px",
-                                 boxShadow: "0 4px 12px rgba(251, 191, 36, 0.4)",
+                                 boxShadow:
+                                    "0 4px 12px rgba(251, 191, 36, 0.4)",
                               }}
                            >
                               4

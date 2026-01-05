@@ -15,6 +15,19 @@ export default function GamePage() {
   const [loading, setLoading] = useState(true);
   const [guestId] = useState(() => getGuestId());
 
+  // Add final-game class to body if game is final (ID 46-50)
+  useEffect(() => {
+    const isFinalGame = gameId >= 46 && gameId <= 50;
+    if (isFinalGame) {
+      document.body.classList.add("final-game");
+    }
+    return () => {
+      if (isFinalGame) {
+        document.body.classList.remove("final-game");
+      }
+    };
+  }, [gameId]);
+
   useEffect(() => {
     loadGame();
   }, [gameId]);
