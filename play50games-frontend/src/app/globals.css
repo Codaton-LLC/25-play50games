@@ -1486,7 +1486,15 @@ button:disabled {
   box-shadow: 0 10px 30px rgba(234, 179, 8, 0.2);
 }
 
+.category-section.final-games {
+  box-shadow: 0 10px 30px rgba(234, 179, 8, 0.2);
+}
+
 .category-section.final-game .game-instructions .game-tips {
+  color: #eab308;
+}
+
+.final-games .game-instructions .game-tips {
   color: #eab308;
 }
 
@@ -1495,8 +1503,16 @@ button:disabled {
   border: 3px solid #eab308;
 }
 
+.final-games .game-card:hover:not(.locked) {
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.35);
+  border: 3px solid #eab308;
+}
 
 .category-section.final-game .category-title {
+  border-bottom-color: rgba(234, 179, 8, 0.3);
+}
+
+.final-games .category-title {
   border-bottom-color: rgba(234, 179, 8, 0.3);
 }
 
@@ -1505,8 +1521,31 @@ button:disabled {
   box-shadow: 0 10px 30px rgba(234, 179, 8, 0.2);
 }
 
+.final-games .game-card.completed {
+  border: 3px solid #eab308;
+  box-shadow: 0 10px 30px rgba(234, 179, 8, 0.2);
+}
+
+
 
 .category-section.final-game .completion-badge {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: linear-gradient(135deg, #eab308, rgba(234, 179, 8, 0.8));
+  color: var(--bg);
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  box-shadow: 0 4px 12px rgba(234, 179, 8, 0.4);
+  animation: badgePulseFinal 2s ease-in-out infinite;
+}
+
+.final-games .completion-badge {
   position: absolute;
   top: 12px;
   right: 12px;
