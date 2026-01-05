@@ -5442,6 +5442,201 @@ export default function GameEngine({
                   </div>
                )}
 
+               {/* Interactive Example for Mixed Quiz */}
+               {gameType === "mixed-quiz" && (
+                  <div
+                     style={{
+                        background:
+                           "linear-gradient(135deg, rgba(125, 211, 252, 0.1) 0%, rgba(54, 211, 153, 0.1) 100%)",
+                        border: "2px solid var(--stroke)",
+                        borderRadius: isMobile
+                           ? "16px"
+                           : isTablet
+                           ? "18px"
+                           : "20px",
+                        padding: isMobile ? "20px" : isTablet ? "24px" : "32px",
+                        marginTop: isMobile ? "16px" : "24px",
+                        boxShadow: "0 8px 24px rgba(0, 0, 0, 0.2)",
+                     }}
+                  >
+                     <div
+                        style={{
+                           display: "flex",
+                           alignItems: "center",
+                           justifyContent: "center",
+                           gap: isMobile ? "8px" : "12px",
+                           marginBottom: isMobile
+                              ? "16px"
+                              : isTablet
+                              ? "20px"
+                              : "24px",
+                        }}
+                     >
+                        <TrophyIcon
+                           style={{
+                              width: isMobile ? 24 : isTablet ? 26 : 28,
+                              height: isMobile ? 24 : isTablet ? 26 : 28,
+                              color: "var(--accent)",
+                           }}
+                        />
+                        <h3
+                           style={{
+                              fontSize: isMobile
+                                 ? "20px"
+                                 : isTablet
+                                 ? "22px"
+                                 : "24px",
+                              fontWeight: 700,
+                              margin: 0,
+                              background:
+                                 "linear-gradient(135deg, var(--accent) 0%, var(--ok) 100%)",
+                              WebkitBackgroundClip: "text",
+                              WebkitTextFillColor: "transparent",
+                              backgroundClip: "text",
+                           }}
+                        >
+                           How Mixed Quiz Works
+                        </h3>
+                     </div>
+
+                     <div
+                        style={{
+                           background: "var(--card)",
+                           border: "2px solid var(--stroke)",
+                           borderRadius: "16px",
+                           padding: isMobile ? "16px" : "24px",
+                           marginBottom: "20px",
+                        }}
+                     >
+                        <p
+                           style={{
+                              margin: "0 0 16px",
+                              color: "var(--text)",
+                              fontSize: isMobile ? "14px" : "16px",
+                              fontWeight: 600,
+                              textAlign: "center",
+                           }}
+                        >
+                           You'll face multiple rounds of randomly selected mini-games:
+                        </p>
+
+                        {/* Step-by-step instructions */}
+                        <div
+                           style={{
+                              display: "flex",
+                              flexDirection: "column",
+                              gap: "12px",
+                           }}
+                        >
+                           {[
+                              {
+                                 step: 1,
+                                 icon: <PuzzlePieceIcon style={{ width: 18, height: 18, color: "var(--accent)" }} />,
+                                 text: "Each round presents a random game type: Logic, Memory, Speed, or Skill",
+                              },
+                              {
+                                 step: 2,
+                                 icon: <ArrowRightIcon style={{ width: 18, height: 18, color: "var(--accent)" }} />,
+                                 text: "Complete each mini-game to progress to the next round",
+                              },
+                              {
+                                 step: 3,
+                                 icon: <TrophyIcon style={{ width: 18, height: 18, color: "var(--ok)" }} />,
+                                 text: "Your final score is the average of all round scores",
+                              },
+                              {
+                                 step: 4,
+                                 icon: <ClockIcon style={{ width: 18, height: 18, color: "var(--accent)" }} />,
+                                 text: "Complete all rounds to finish the Mixed Quiz challenge",
+                              },
+                           ].map((item) => (
+                              <div
+                                 key={item.step}
+                                 style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: "12px",
+                                    padding: "10px 12px",
+                                    background: "rgba(59, 130, 246, 0.05)",
+                                    borderRadius: "8px",
+                                 }}
+                              >
+                                 <div
+                                    style={{
+                                       display: "flex",
+                                       alignItems: "center",
+                                       justifyContent: "center",
+                                       width: "28px",
+                                       height: "28px",
+                                       background:
+                                          "linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1))",
+                                       border: "2px solid rgba(59, 130, 246, 0.4)",
+                                       borderRadius: "50%",
+                                       fontWeight: 700,
+                                       fontSize: "0.85rem",
+                                       color: "var(--accent)",
+                                       flexShrink: 0,
+                                    }}
+                                 >
+                                    {item.step}
+                                 </div>
+                                 <div
+                                    style={{
+                                       display: "flex",
+                                       alignItems: "center",
+                                       gap: "8px",
+                                       flex: 1,
+                                    }}
+                                 >
+                                    {item.icon}
+                                    <span
+                                       style={{
+                                          fontSize: isMobile ? "13px" : "14px",
+                                          color: "var(--text)",
+                                          fontWeight: 500,
+                                       }}
+                                    >
+                                       {item.text}
+                                    </span>
+                                 </div>
+                              </div>
+                           ))}
+                        </div>
+
+                        <div
+                           style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "8px",
+                              padding: "8px 12px",
+                              background: "rgba(125, 211, 252, 0.1)",
+                              borderRadius: "8px",
+                              marginTop: "16px",
+                              width: "100%",
+                              justifyContent: "center",
+                           }}
+                        >
+                           <LightBulbIcon
+                              style={{
+                                 width: isMobile ? 16 : 18,
+                                 height: isMobile ? 16 : 18,
+                                 color: "var(--accent)",
+                              }}
+                           />
+                           <span
+                              style={{
+                                 fontSize: isMobile ? "12px" : "13px",
+                                 color: "var(--text)",
+                                 fontWeight: 600,
+                              }}
+                           >
+                              Stay flexible and adapt quickly to each new challenge type!
+                           </span>
+                        </div>
+                     </div>
+                  </div>
+               )}
+
                {/* Interactive Example for Reflex Arrow */}
                {gameType === "reflex-arrow" && (
                   <div

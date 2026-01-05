@@ -762,7 +762,7 @@ function show_games_custom_fields() {
                 passingScore: 85,
                 unlockRequirement: '',
                 description: 'Randomly mix logic, memory, and reaction challenges',
-                gameConfig: '{"gameType": "mixed-quiz", "rounds": 5}'
+                gameConfig: '{"gameType": "mixed-quiz", "rounds": 5, "miniGameConfigs": {"logic": {"gameType": "number-order"}, "memory": {"gameType": "number-recall"}, "speed": {"gameType": "fast-math"}, "skill": {"gameType": "target-aim"}}}'
             },
             'survival-mode': {
                 title: 'Survival Mode',

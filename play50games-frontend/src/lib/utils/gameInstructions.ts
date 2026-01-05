@@ -630,9 +630,16 @@ export const gameInstructions: Record<string, {
   
   // Final Games
   'mixed-quiz': {
-    description: 'Randomly mix logic, memory, and reaction challenges',
-    instructions: 'You\'ll face a mix of different game types. Adapt quickly to each new challenge!',
-    tips: 'Stay flexible. Each round is different, so be ready for anything.'
+    description: 'A challenging mix of logic, memory, speed, and skill games. Complete multiple rounds of randomly selected mini-games to test your overall cognitive abilities.',
+    instructions: 'You\'ll face a series of randomly selected mini-games from different categories (Logic, Memory, Speed, and Skill). Each round presents a new challenge type. Complete all rounds to finish the quiz. Your final score is calculated as the average of all round scores. Adapt quickly to each new challenge type and stay focused throughout all rounds!',
+    tips: 'Stay flexible - each round is different, so be ready for anything. Don\'t get discouraged if one round is harder - focus on the next one. Each mini-game has its own rules - pay attention to the instructions. Your overall performance matters more than individual round scores. Take a moment between rounds to mentally prepare for the next challenge.',
+    keyboardControls: [],
+    mouseControls: [
+      {
+        action: 'Interact with game elements',
+        label: 'Click, drag, or move your mouse as required by each mini-game'
+      }
+    ]
   },
   'survival-mode': {
     description: 'Complete several mini-games in sequence without failing',

@@ -116,12 +116,12 @@ body {
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.28);
   transition: transform 0.3s, box-shadow 0.3s, border-color 0.3s;
   overflow: hidden;
+  border: 3px solid transparent;
 }
 
 .game-card:hover:not(.locked) {
-  transform: translateY(-5px);
   box-shadow: 0 15px 40px rgba(0, 0, 0, 0.35);
-  border-color: rgba(125, 211, 252, 0.3);
+  border: 3px solid var(--accent);
 }
 
 .game-card.locked {
@@ -130,21 +130,19 @@ body {
 }
 
 .game-card.completed {
-  border: 2px solid var(--secondary);
-  box-shadow: 0 10px 30px rgba(134, 239, 172, 0.2);
+  border: 2px solid var(--accent);
   position: relative;
 }
 
 .game-card.completed:hover:not(.locked) {
-  border-color: var(--secondary);
-  box-shadow: 0 15px 40px rgba(134, 239, 172, 0.3);
+  border: 2px solid var(--accent);
 }
 
 .completion-badge {
   position: absolute;
   top: 12px;
   right: 12px;
-  background: linear-gradient(135deg, var(--secondary), rgba(134, 239, 172, 0.8));
+  background: linear-gradient(135deg, var(--accent), rgba(125, 211, 252, 0.8));
   color: var(--bg);
   padding: 6px 12px;
   border-radius: 20px;
@@ -153,7 +151,7 @@ body {
   display: flex;
   align-items: center;
   gap: 4px;
-  box-shadow: 0 4px 12px rgba(134, 239, 172, 0.4);
+  box-shadow: 0 4px 12px rgba(125, 211, 252, 0.4);
   z-index: 10;
   animation: badgePulse 2s ease-in-out infinite;
 }
@@ -163,12 +161,12 @@ body {
   0%,
   100% {
     transform: scale(1);
-    box-shadow: 0 4px 12px rgba(134, 239, 172, 0.4);
+    box-shadow: 0 4px 12px rgba(125, 211, 252, 0.4);
   }
 
   50% {
     transform: scale(1.05);
-    box-shadow: 0 6px 16px rgba(134, 239, 172, 0.6);
+    box-shadow: 0 6px 16px rgba(125, 211, 252, 0.6);
   }
 }
 
@@ -998,13 +996,13 @@ button:disabled {
 
 /* Responsive grid for progress page - 3 columns default */
 @media (max-width: 1000px) {
-  .progress-list > div[style*="grid-template-columns"] {
+  .progress-list>div[style*="grid-template-columns"] {
     grid-template-columns: repeat(2, 1fr) !important;
   }
 }
 
 @media (max-width: 600px) {
-  .progress-list > div[style*="grid-template-columns"] {
+  .progress-list>div[style*="grid-template-columns"] {
     grid-template-columns: 1fr !important;
   }
 }
@@ -1309,7 +1307,7 @@ button:disabled {
 
 .loader::after,
 .loader::before {
-  content: '';  
+  content: '';
   box-sizing: border-box;
   width: 16px;
   height: 16px;
@@ -1333,10 +1331,12 @@ button:disabled {
     top: 0;
     color: var(--accent);
   }
+
   50% {
     top: 30px;
     color: rgba(125, 211, 252, 0.2);
   }
+
   100% {
     top: 0;
     color: var(--accent);
@@ -1479,6 +1479,62 @@ button:disabled {
   padding: 30px;
   border-radius: 18px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.28);
+}
+
+
+.category-section.final-game {
+  box-shadow: 0 10px 30px rgba(234, 179, 8, 0.2);
+}
+
+.category-section.final-game .game-instructions .game-tips {
+  color: #eab308;
+}
+
+.category-section.final-game .game-card:hover:not(.locked) {
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.35);
+  border: 3px solid #eab308;
+}
+
+
+.category-section.final-game .category-title {
+  border-bottom-color: rgba(234, 179, 8, 0.3);
+}
+
+.category-section.final-game .game-card.completed {
+  border: 3px solid #eab308;
+  box-shadow: 0 10px 30px rgba(234, 179, 8, 0.2);
+}
+
+
+.category-section.final-game .completion-badge {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: linear-gradient(135deg, #eab308, rgba(234, 179, 8, 0.8));
+  color: var(--bg);
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  box-shadow: 0 4px 12px rgba(234, 179, 8, 0.4);
+  animation: badgePulseFinal 2s ease-in-out infinite;
+}
+
+@keyframes badgePulseFinal {
+
+  0%,
+  100% {
+    transform: scale(1);
+    box-shadow: 0 4px 12px rgba(234, 179, 8, 0.4);
+  }
+
+  50% {
+    transform: scale(1.05);
+    box-shadow: 0 6px 16px rgba(234, 179, 8, 0.6);
+  }
 }
 
 .category-title {
@@ -2487,9 +2543,9 @@ button:disabled {
 .image-card.flash {
   outline: 3px solid rgba(110, 168, 255, 1) !important;
   outline-offset: 2px;
-  box-shadow: 0 0 30px rgba(110, 168, 255, 0.8), 
-              0 0 50px rgba(110, 168, 255, 0.5),
-              inset 0 0 20px rgba(110, 168, 255, 0.3) !important;
+  box-shadow: 0 0 30px rgba(110, 168, 255, 0.8),
+    0 0 50px rgba(110, 168, 255, 0.5),
+    inset 0 0 20px rgba(110, 168, 255, 0.3) !important;
   transform: translateY(-2px) scale(1.08) !important;
   background: linear-gradient(135deg, rgba(110, 168, 255, 0.4), rgba(110, 168, 255, 0.2)) !important;
   border-color: rgba(110, 168, 255, 1) !important;
@@ -2502,17 +2558,19 @@ button:disabled {
     transform: translateY(0) scale(1);
     box-shadow: 0 0 0px rgba(110, 168, 255, 0);
   }
+
   50% {
     transform: translateY(-3px) scale(1.12);
-    box-shadow: 0 0 40px rgba(110, 168, 255, 0.9), 
-                0 0 60px rgba(110, 168, 255, 0.6),
-                inset 0 0 25px rgba(110, 168, 255, 0.4);
+    box-shadow: 0 0 40px rgba(110, 168, 255, 0.9),
+      0 0 60px rgba(110, 168, 255, 0.6),
+      inset 0 0 25px rgba(110, 168, 255, 0.4);
   }
+
   100% {
     transform: translateY(-2px) scale(1.08);
-    box-shadow: 0 0 30px rgba(110, 168, 255, 0.8), 
-                0 0 50px rgba(110, 168, 255, 0.5),
-                inset 0 0 20px rgba(110, 168, 255, 0.3);
+    box-shadow: 0 0 30px rgba(110, 168, 255, 0.8),
+      0 0 50px rgba(110, 168, 255, 0.5),
+      inset 0 0 20px rgba(110, 168, 255, 0.3);
   }
 }
 
@@ -2531,11 +2589,13 @@ button:disabled {
     box-shadow: 0 0 0px rgba(110, 168, 255, 0);
     background: rgba(15, 27, 51, 0.45);
   }
+
   50% {
     transform: translateY(-2px) scale(1.05);
     box-shadow: 0 0 26px rgba(110, 168, 255, 0.55);
     background: rgba(110, 168, 255, 0.18);
   }
+
   100% {
     transform: translateY(0) scale(1);
     box-shadow: 0 10px 18px rgba(0, 0, 0, 0.16);
@@ -3800,9 +3860,12 @@ button:disabled {
 }
 
 @keyframes selectedPulse {
-  0%, 100% {
+
+  0%,
+  100% {
     box-shadow: 0 0 0 3px rgba(125, 211, 252, 0.3);
   }
+
   50% {
     box-shadow: 0 0 0 6px rgba(125, 211, 252, 0.2);
   }
