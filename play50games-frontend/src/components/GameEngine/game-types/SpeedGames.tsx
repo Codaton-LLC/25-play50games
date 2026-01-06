@@ -52,11 +52,10 @@ export default function SpeedGames({
 
       const gameType = config.gameType;
 
-      if (!gameType) {
-         return;
+      // Check if gameType is empty string or invalid
+      if (gameType && gameType.trim() !== "") {
+         setCurrentGame(gameType);
       }
-
-      setCurrentGame(gameType);
    }, [isPlaying, config]);
 
    const gameComponents: Record<string, JSX.Element> = {

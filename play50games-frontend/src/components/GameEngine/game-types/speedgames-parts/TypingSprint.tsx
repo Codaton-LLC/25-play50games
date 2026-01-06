@@ -88,6 +88,17 @@ export default function TypingSprint({
    const completionCalledRef = useRef(false);
    const inputRef = useRef<HTMLInputElement>(null);
 
+   // Focus input when game is playing
+   useEffect(() => {
+      if (isPlaying && gameState === "playing" && !requirementsMet && inputRef.current) {
+         // Small delay to ensure input is rendered
+         const timer = setTimeout(() => {
+            inputRef.current?.focus();
+         }, 100);
+         return () => clearTimeout(timer);
+      }
+   }, [isPlaying, gameState, requirementsMet]);
+
    // Responsive design
    useEffect(() => {
       const checkResponsive = () => {
@@ -1177,6 +1188,22 @@ export default function TypingSprint({
                         alignItems: "center",
                         gap: "24px",
                      }}
+                     onMouseDown={(e) => {
+                        if (gameStateRef.current === "playing") {
+                           e.preventDefault();
+                           inputRef.current?.focus();
+                        }
+                     }}
+                     onClick={() => {
+                        if (gameStateRef.current === "playing") {
+                           inputRef.current?.focus();
+                        }
+                     }}
+                     onTouchStart={() => {
+                        if (gameStateRef.current === "playing") {
+                           inputRef.current?.focus();
+                        }
+                     }}
                   >
                      <div
                         style={{
@@ -1200,6 +1227,17 @@ export default function TypingSprint({
                         value={input}
                         onChange={(e) => setInput(e.target.value)}
                         onKeyDown={handleKeyDown}
+                        onClick={(e) => {
+                           e.currentTarget.focus();
+                        }}
+                        onFocus={(e) => {
+                           e.currentTarget.select();
+                        }}
+                        onBlur={() => {
+                           if (gameStateRef.current === "playing") {
+                              setTimeout(() => inputRef.current?.focus(), 0);
+                           }
+                        }}
                         disabled={gameState !== "playing" || requirementsMet}
                         style={{
                            width: "100%",
@@ -1212,6 +1250,7 @@ export default function TypingSprint({
                            color: "var(--text)",
                            textAlign: "center",
                            outline: "none",
+                           cursor: gameState === "playing" && !requirementsMet ? "text" : "not-allowed",
                         }}
                         autoFocus
                         placeholder="Type here..."

@@ -25,8 +25,15 @@ export default function SkillGames({ config, onScoreUpdate, onComplete, isPlayin
   useEffect(() => {
     if (!isPlaying) return;
     
-    const gameType = config.gameType || 'ball-balance';
-    setCurrentGame(gameType);
+    const gameType = config.gameType;
+    
+    // Check if gameType is empty string or invalid
+    if (gameType && gameType.trim() !== "") {
+      setCurrentGame(gameType);
+    } else {
+      // Default fallback
+      setCurrentGame('ball-balance');
+    }
   }, [isPlaying, config]);
 
   const gameComponents: Record<string, JSX.Element> = {

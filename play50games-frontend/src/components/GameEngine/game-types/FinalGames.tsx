@@ -11,6 +11,7 @@ import {
    ClockIcon,
    ArrowPathRoundedSquareIcon,
    ShareIcon,
+   LockClosedIcon,
 } from "@heroicons/react/24/outline";
 
 // Lookup table for full game configs - maps gameType to full config
@@ -724,11 +725,11 @@ function SurvivalMode({
       // Calculate new score, ensuring it doesn't exceed 100
       const newScore = Math.min(100, score + contribution);
       setScore(newScore);
-      
+
       // Increment completed games count
       const newCompletedGames = completedGames + 1;
       setCompletedGames(newCompletedGames);
-      
+
       if (currentGameIndex < games - 1) {
          setCurrentGameIndex(currentGameIndex + 1);
       } else {
@@ -959,6 +960,77 @@ function SurvivalMode({
    );
 }
 
+// Helper function to determine game category from gameType
+const getGameCategory = (
+   gameType: string
+): "logic" | "memory" | "speed" | "skill" => {
+   // Logic games
+   const logicGames = [
+      "number-order",
+      "find-odd-one",
+      "tile-slider",
+      "balance-scale",
+      "circuit-path",
+      "maze-escape",
+      "pattern-completion",
+      "sudoku-4x4",
+      "rotate-to-fit",
+      "mirror-match",
+      "logic-gates",
+      "sequence-arrows",
+      "block-fill",
+      "match-shapes",
+      "color-sequence",
+   ];
+   // Memory games
+   const memoryGames = [
+      "card-flip",
+      "sound-memory",
+      "emoji-memory",
+      "number-recall",
+      "image-recall",
+      "path-memory",
+      "word-memory",
+      "face-memory",
+      "color-grid-memory",
+      "symbol-stack",
+   ];
+   // Speed games
+   const speedGames = [
+      "fast-math",
+      "whack-shape",
+      "typing-sprint",
+      "quick-compare",
+      "falling-objects",
+      "tap-counter",
+      "reflex-arrow",
+      "click-green",
+      "avoid-red",
+      "reaction-test",
+   ];
+   // Skill games
+   const skillGames = [
+      "target-aim",
+      "line-tracer",
+      "timing-bar",
+      "stack-blocks",
+      "precision-drop",
+      "drag-sort",
+      "speed-drawing",
+      "one-hand-mode",
+      "cursor-maze",
+      "ball-balance",
+   ];
+
+   if (logicGames.includes(gameType)) return "logic";
+   if (memoryGames.includes(gameType)) return "memory";
+   if (speedGames.includes(gameType)) return "speed";
+   if (skillGames.includes(gameType)) return "skill";
+
+   // Default fallback
+   return "logic";
+};
+
 // Boss Puzzle Game (48)
 function BossPuzzle({
    config,
@@ -966,13 +1038,97 @@ function BossPuzzle({
    onComplete,
    isPlaying,
 }: FinalGamesProps) {
-   const [puzzleState, setPuzzleState] = useState({
-      logic: false,
-      memory: false,
-      speed: false,
-      skill: false,
+   // Get full game config helper (same as in MixedQuiz)
+   const getFullGameConfig = (
+      gameType: string,
+      partialConfig: Record<string, any>
+   ): Record<string, any> => {
+      // Always ensure gameType is in the returned config - prioritize the passed gameType
+      const baseConfig = { gameType: gameType };
+
+      // If config already has full details, use it as is (but ensure gameType is set)
+      if (
+         partialConfig.levels ||
+         partialConfig.rounds ||
+         partialConfig.levelRequirements
+      ) {
+         return { ...baseConfig, ...partialConfig };
+      }
+
+      // Otherwise, look up the full config from lookup table
+      const fullConfig = GAME_CONFIGS_LOOKUP[gameType];
+      if (fullConfig) {
+         // Merge partial config (if any additional params) with full config
+         // But always prioritize the passed gameType
+         const { gameType: _, ...fullConfigWithoutType } = fullConfig;
+         return { ...baseConfig, ...fullConfigWithoutType, ...partialConfig };
+      }
+
+      // Fallback: return partial config with gameType
+      return { ...baseConfig, ...partialConfig };
+   };
+
+   // Get challenge configs from config prop ONLY - no defaults
+   const rawChallengeConfigs: Record<
+      string,
+      Record<string, any>
+   > = config.challengeConfigs || config.miniGameConfigs || {};
+
+   // Expand configs: if only gameType is provided, get full config from lookup
+   const challengeConfigs: Record<string, Record<string, any>> = {};
+   Object.keys(rawChallengeConfigs).forEach((key) => {
+      const partialConfig = rawChallengeConfigs[key] || {};
+      // Extract gameType and ensure it's not empty
+      const gameType =
+         partialConfig.gameType && partialConfig.gameType.trim() !== ""
+            ? partialConfig.gameType
+            : null;
+
+      // Only process if gameType exists (from backend)
+      if (gameType) {
+         // Create a clean partialConfig without gameType to avoid conflicts
+         const { gameType: _, ...cleanPartialConfig } = partialConfig;
+
+         // Merge partial config with full config from lookup
+         const fullConfig = getFullGameConfig(gameType, cleanPartialConfig);
+
+         // Build final config ensuring gameType is always set correctly
+         const finalConfig = {
+            ...fullConfig,
+            ...cleanPartialConfig,
+            gameType: gameType,
+         };
+
+         // Final validation: ensure gameType is not empty
+         if (finalConfig.gameType && finalConfig.gameType.trim() !== "") {
+            challengeConfigs[key] = finalConfig;
+         }
+      }
    });
+
+   // Get challenge order from config keys (maintain order from config)
+   const challengeOrder = Object.keys(challengeConfigs);
+
+   // Initialize dynamic state based on challenge keys
+   const [puzzleState, setPuzzleState] = useState<Record<string, boolean>>(
+      () => {
+         const state: Record<string, boolean> = {};
+         challengeOrder.forEach((key) => {
+            state[key] = false;
+         });
+         return state;
+      }
+   );
+
    const [score, setScore] = useState(0);
+
+   // Check if a challenge is unlocked
+   const isChallengeUnlocked = (challengeType: string): boolean => {
+      const index = challengeOrder.indexOf(challengeType);
+      if (index === 0) return true; // First challenge is always unlocked
+      const previousChallenge = challengeOrder[index - 1];
+      return puzzleState[previousChallenge] || false;
+   };
 
    useEffect(() => {
       const allComplete = Object.values(puzzleState).every(
@@ -984,116 +1140,280 @@ function BossPuzzle({
       }
    }, [puzzleState, onScoreUpdate, onComplete]);
 
-   const handlePuzzleComplete = (type: keyof typeof puzzleState) => {
+   const handlePuzzleComplete = (type: string) => {
       setPuzzleState((prev) => ({ ...prev, [type]: true }));
-      setScore(score + 25);
+      setScore(score + Math.round(100 / challengeOrder.length));
+   };
+
+   const isChallengeActive = (challengeType: string): boolean =>
+      isPlaying && isChallengeUnlocked(challengeType);
+
+   const normalizeLogicScore = (
+      rawScore: number | undefined,
+      challengeConfig: Record<string, any> | undefined
+   ): number => {
+      if (typeof rawScore !== "number") return 0;
+      const rounds = challengeConfig?.rounds || 20;
+      const maxScore = rounds * 5;
+      if (rawScore <= maxScore) {
+         return Math.round((rawScore / maxScore) * 100);
+      }
+      return rawScore;
+   };
+
+   // Count total challenges and completed ones
+   const totalChallenges = challengeOrder.length;
+   const completedCount = Object.values(puzzleState).filter(Boolean).length;
+
+   // Get challenge name for display
+   const getChallengeName = (
+      challengeType: string,
+      challengeConfig: Record<string, any>
+   ): string => {
+      // Try to get category from gameType
+      const gameType = challengeConfig?.gameType || "";
+      const category = getGameCategory(gameType);
+      const categoryNames: Record<string, string> = {
+         logic: "Logic",
+         memory: "Memory",
+         speed: "Speed",
+         skill: "Skill",
+      };
+      return `${categoryNames[category] || "Challenge"} Challenge`;
+   };
+
+   // Get category component based on gameType
+   const getCategoryComponent = (
+      challengeType: string,
+      challengeConfig: Record<string, any>
+   ) => {
+      const gameType = challengeConfig?.gameType || "";
+      const category = getGameCategory(gameType);
+
+      const commonProps = {
+         config: challengeConfig,
+         onScoreUpdate: () => {},
+         isPlaying: isPlaying && isChallengeActive(challengeType),
+      };
+
+      switch (category) {
+         case "logic":
+            return (
+               <LogicGames
+                  {...commonProps}
+                  onComplete={(s) => {
+                     const normalizedScore = normalizeLogicScore(
+                        s,
+                        challengeConfig
+                     );
+                     if (normalizedScore >= 70) {
+                        handlePuzzleComplete(challengeType);
+                     }
+                  }}
+               />
+            );
+         case "memory":
+            return (
+               <MemoryGames
+                  {...commonProps}
+                  onComplete={(s) => {
+                     if (s && s >= 70) {
+                        handlePuzzleComplete(challengeType);
+                     }
+                  }}
+               />
+            );
+         case "speed":
+            return (
+               <SpeedGames
+                  {...commonProps}
+                  onComplete={(s) => {
+                     if (s && s >= 70) {
+                        handlePuzzleComplete(challengeType);
+                     }
+                  }}
+               />
+            );
+         case "skill":
+            return (
+               <SkillGames
+                  {...commonProps}
+                  onComplete={(s) => {
+                     if (s && s >= 70) {
+                        handlePuzzleComplete(challengeType);
+                     }
+                  }}
+               />
+            );
+         default:
+            return <div>Unknown category</div>;
+      }
    };
 
    return (
       <div className="boss-puzzle-game final-game">
          <h3>Boss Puzzle</h3>
-         <p>Complete all 4 challenges</p>
+         <p>
+            Complete all {totalChallenges} challenges ({completedCount}/
+            {totalChallenges} completed)
+         </p>
          <div className="puzzle-grid">
-            <div className="puzzle-challenge">
-               <h4>Logic Challenge</h4>
-               {!puzzleState.logic ? (
-                  <LogicGames
-                     config={{ gameType: "tile-slider", gridSize: 3 }}
-                     onScoreUpdate={() => {}}
-                     onComplete={(s) =>
-                        s && s >= 70 && handlePuzzleComplete("logic")
-                     }
-                     isPlaying={isPlaying}
-                  />
-               ) : (
+            {challengeOrder.map((challengeType, index) => {
+               const challengeConfig = challengeConfigs[challengeType];
+               const isUnlocked = isChallengeUnlocked(challengeType);
+               const isActive = isChallengeActive(challengeType);
+               const isCompleted = puzzleState[challengeType] || false;
+               const previousChallenge =
+                  index > 0 ? challengeOrder[index - 1] : null;
+               const previousChallengeName = previousChallenge
+                  ? getChallengeName(
+                       previousChallenge,
+                       challengeConfigs[previousChallenge] || {}
+                    )
+                  : "";
+
+               return (
                   <div
-                     className="completed"
+                     key={challengeType}
+                     className="puzzle-challenge"
                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "6px",
+                        outline: "none",
+                        outlineOffset: "2px",
+                        opacity: isUnlocked ? 1 : 0.5,
+                        filter: isUnlocked ? "none" : "grayscale(0.8)",
+                        pointerEvents: isActive ? "auto" : "none",
+                        position: "relative",
+                        paddingTop: index === 0 ? "0" : "100px",
+                        paddingBottom: "100px",
+                        marginTop: "100px",
+                        marginBottom: "100px",
+                        width: "100%",
+                        height: !isUnlocked || isCompleted ? "500px" : "auto",
                      }}
                   >
-                     <CheckCircleIcon style={{ width: 18, height: 18 }} />
-                     Completed
+                     {!isUnlocked && (
+                        <div
+                           style={{
+                              position: "absolute",
+                              top: "50%",
+                              left: "50%",
+                              transform: "translate(-50%, -50%)",
+                              zIndex: 10,
+                              background: "#0b1020",
+                              color: "white",
+                              padding: "12px 20px",
+                              borderRadius: "12px",
+                              fontSize: "30px",
+                              fontWeight: 700,
+                              textAlign: "center",
+                              height: "100%",
+                              width: "100%",
+                              maxWidth: "100%",
+                              display: "flex",
+                              flexDirection: "column",
+                              alignItems: "center",
+                              justifyContent: "center",
+                           }}
+                        >
+                           <LockClosedIcon
+                              style={{
+                                 position: "absolute",
+                                 top: "12px",
+                                 right: "12px",
+                                 width: "24px",
+                                 height: "24px",
+                                 color: "white",
+                              }}
+                           />
+                           {getChallengeName(
+                              challengeType,
+                              challengeConfig || {}
+                           )}
+                           <br />
+                           <span style={{ fontSize: "0.75rem", opacity: 0.8 }}>
+                              {previousChallengeName
+                                 ? `Complete ${previousChallengeName} first`
+                                 : "Locked"}
+                           </span>
+                        </div>
+                     )}
+                     <h4 style={{ textAlign: "center", margin: "0 0 20px 0" }}>
+                        {getChallengeName(challengeType, challengeConfig || {})}{" "}
+                        ({index + 1}/{totalChallenges})
+                     </h4>
+                     {!isCompleted ? (
+                        <div
+                           style={{
+                              pointerEvents: isActive ? "auto" : "none",
+                           }}
+                        >
+                           {challengeConfig && challengeConfig.gameType ? (
+                              isActive ? (
+                                 getCategoryComponent(
+                                    challengeType,
+                                    challengeConfig
+                                 )
+                              ) : (
+                                 <div
+                                    style={{
+                                       padding: "20px",
+                                       textAlign: "center",
+                                       color: "var(--muted)",
+                                    }}
+                                 >
+                                    Click to start
+                                 </div>
+                              )
+                           ) : (
+                              <div
+                                 style={{
+                                    padding: "20px",
+                                    textAlign: "center",
+                                    color: "var(--muted)",
+                                 }}
+                              >
+                                 No game configured
+                              </div>
+                           )}
+                        </div>
+                     ) : (
+                        <div
+                           style={{
+                              position: "absolute",
+                              top: "50%",
+                              left: "50%",
+                              transform: "translate(-50%, -50%)",
+                              zIndex: 10,
+                              background: "rgb(34, 95, 67)",
+                              color: "white",
+                              padding: "12px 20px",
+                              borderRadius: "12px",
+                              fontSize: "30px",
+                              fontWeight: 700,
+                              textAlign: "center",
+                              height: "500px",
+                              width: "100%",
+                              maxWidth: "100%",
+                              marginTop: "100px",
+                              display: "flex",
+                              flexDirection: "column",
+                              alignItems: "center",
+                              justifyContent: "center",
+                           }}
+                        >
+                           {getChallengeName(
+                              challengeType,
+                              challengeConfig || {}
+                           )}
+                           <br />
+                           <span style={{ fontSize: "0.75rem", opacity: 0.8 }}>
+                              Completed
+                           </span>
+                        </div>
+                     )}
                   </div>
-               )}
-            </div>
-            <div className="puzzle-challenge">
-               <h4>Memory Challenge</h4>
-               {!puzzleState.memory ? (
-                  <MemoryGames
-                     config={{ gameType: "card-flip", gridSize: 4, pairs: 8 }}
-                     onScoreUpdate={() => {}}
-                     onComplete={(s) =>
-                        s && s >= 70 && handlePuzzleComplete("memory")
-                     }
-                     isPlaying={isPlaying}
-                  />
-               ) : (
-                  <div
-                     className="completed"
-                     style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "6px",
-                     }}
-                  >
-                     <CheckCircleIcon style={{ width: 18, height: 18 }} />
-                     Completed
-                  </div>
-               )}
-            </div>
-            <div className="puzzle-challenge">
-               <h4>Speed Challenge</h4>
-               {!puzzleState.speed ? (
-                  <SpeedGames
-                     config={{ gameType: "reaction-test", rounds: 5 }}
-                     onScoreUpdate={() => {}}
-                     onComplete={(s) =>
-                        s && s >= 70 && handlePuzzleComplete("speed")
-                     }
-                     isPlaying={isPlaying}
-                  />
-               ) : (
-                  <div
-                     className="completed"
-                     style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "6px",
-                     }}
-                  >
-                     <CheckCircleIcon style={{ width: 18, height: 18 }} />
-                     Completed
-                  </div>
-               )}
-            </div>
-            <div className="puzzle-challenge">
-               <h4>Skill Challenge</h4>
-               {!puzzleState.skill ? (
-                  <SkillGames
-                     config={{ gameType: "target-aim", targets: 10 }}
-                     onScoreUpdate={() => {}}
-                     onComplete={(s) =>
-                        s && s >= 70 && handlePuzzleComplete("skill")
-                     }
-                     isPlaying={isPlaying}
-                  />
-               ) : (
-                  <div
-                     className="completed"
-                     style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "6px",
-                     }}
-                  >
-                     <CheckCircleIcon style={{ width: 18, height: 18 }} />
-                     Completed
-                  </div>
-               )}
-            </div>
+               );
+            })}
          </div>
       </div>
    );

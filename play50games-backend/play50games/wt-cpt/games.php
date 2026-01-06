@@ -784,7 +784,7 @@ function show_games_custom_fields() {
                 passingScore: 90,
                 unlockRequirement: '',
                 description: 'Combine multiple mechanics into one difficult puzzle',
-                gameConfig: '{"gameType": "boss-puzzle"}'
+                gameConfig: '{"gameType": "boss-puzzle", "challengeConfigs": {"logic": {"gameType": "tile-slider", "gridSize": 3}, "memory": {"gameType": "card-flip", "gridSize": 4, "pairs": 8}, "speed": {"gameType": "reaction-test", "rounds": 5}, "skill": {"gameType": "target-aim", "targets": 10}}}'
             },
             'time-challenge': {
                 title: 'Time Challenge',

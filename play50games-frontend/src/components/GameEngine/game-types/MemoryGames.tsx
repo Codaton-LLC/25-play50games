@@ -48,9 +48,10 @@ export default function MemoryGames({
 
       // Get gameType from config
       // config should already contain gameType from gameConfig that was passed from GameEngine
-      const gameType = config.gameType || "";
+      const gameType = config.gameType;
 
-      if (gameType) {
+      // Check if gameType is empty string or invalid
+      if (gameType && gameType.trim() !== "") {
          setCurrentGame(gameType);
       } else {
          // If no gameType found, default to card-flip for backward compatibility

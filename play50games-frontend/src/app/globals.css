@@ -347,7 +347,7 @@ body.final-game {
   background-clip: text !important;
 }
 
-.final-game .game-start-screen h2 {
+body.final-game .game-start-screen h2 {
   font-size: 32px;
   font-weight: 700;
   margin-bottom: 16px;
@@ -494,35 +494,35 @@ body.final-game {
 }
 
 /* Final games - override progress bar gradient and box-shadow */
-.final-game div[style*="linear-gradient(90deg, var(--accent) 0%, var(--ok) 100%)"] {
+body.final-game div[style*="linear-gradient(90deg, var(--accent) 0%, var(--ok) 100%)"] {
   background: linear-gradient(90deg, #eab308, rgba(234, 179, 8, 0.8)) !important;
   box-shadow: 0 0 10px rgba(234, 179, 8, 0.5) !important;
 }
 
 /* Final games - override SVG icons with var(--ok) color to yellow */
-.final-game svg[style*="color: var(--ok)"] {
+body.final-game svg[style*="color: var(--ok)"] {
   color: #eab308 !important;
 }
 
 /* Final games - override SVG icons with var(--accent) color to yellow */
-.final-game svg[style*="color: var(--accent)"] {
+body.final-game svg[style*="color: var(--accent)"] {
   color: #eab308 !important;
 }
 
 /* Final games - override green gradient backgrounds and borders to yellow */
-.final-game div[style*="rgba(134, 239, 172"] {
+body.final-game div[style*="rgba(134, 239, 172"] {
   background: linear-gradient(135deg, rgba(234, 179, 8, 0.25), rgba(234, 179, 8, 0.12)) !important;
   border: 2px solid rgba(234, 179, 8, 0.6) !important;
 }
 
 /* Final games - override inline-flex badges with green colors to yellow */
-.final-game div[style*="display: inline-flex"][style*="rgba(134, 239, 172"] {
+body.final-game div[style*="display: inline-flex"][style*="rgba(134, 239, 172"] {
   background: linear-gradient(135deg, rgba(234, 179, 8, 0.25), rgba(234, 179, 8, 0.1)) !important;
   border: 2px solid rgba(234, 179, 8, 0.6) !important;
 }
 
 /* Final games - override buttons with green colors to yellow */
-.final-game button[style*="rgba(134, 239, 172"] {
+body.final-game button[style*="rgba(134, 239, 172"] {
   background: linear-gradient(135deg, rgba(234, 179, 8, 0.25), rgba(234, 179, 8, 0.12)) !important;
   border: 2px solid rgba(234, 179, 8, 0.6) !important;
 }
@@ -1550,18 +1550,15 @@ body.final-game div[style*="color: var(--accent)"] {
 }
 
 /* Final games - yellow completed elements */
-body.final-game .completed,
-.final-game .completed {
+body.final-game .completed {
   color: #eab308 !important;
 }
 
-body.final-game div[style*="color: var(--ok)"],
-.final-game div[style*="color: var(--ok)"] {
+body.final-game div[style*="color: var(--ok)"] {
   color: #eab308 !important;
 }
 
-body.final-game div[style*="color: var(--secondary)"],
-.final-game div[style*="color: var(--secondary)"] {
+body.final-game div[style*="color: var(--secondary)"] {
   color: #eab308 !important;
 }
 
@@ -1845,12 +1842,50 @@ body.final-game .rotate-to-fit-game *[style*="animation-name: selectedPulse"] {
   animation: selectedPulseFinal 1.5s ease-in-out infinite !important;
 }
 
+.puzzle-grid {
+  margin-top: 80px;
+}
+
+/* Number badge with blue gradient - all variations */
+body.final-game div[style*="position: absolute"][style*="border-radius: 50%"][style*="rgba(59, 130, 246, 0.9)"],
+body.final-game div[style*="position: absolute"][style*="border-radius: 50%"][style*="rgba(37, 99, 235, 0.9)"],
+body.final-game div[style*="position: absolute"][style*="top: 4px"][style*="left: 4px"][style*="border-radius: 50%"][style*="rgba(59, 130, 246"],
+body.final-game div[style*="position: absolute"][style*="top: 4px"][style*="right: 4px"][style*="border-radius: 50%"][style*="rgba(59, 130, 246"],
+body.final-game div[style*="position: absolute"][style*="top: -8px"][style*="right: -8px"][style*="border-radius: 50%"][style*="rgba(59, 130, 246"],
+body.final-game div[style*="position: absolute"][style*="top: 6px"][style*="left: 6px"][style*="border-radius"][style*="rgba(59, 130, 246"],
+body.final-game div[style*="position: absolute"][style*="top: 4px"][style*="left: 4px"][style*="width: 20px"][style*="height: 20px"][style*="border-radius: 50%"],
+body.final-game div[style*="position: absolute"][style*="top: 4px"][style*="left: 4px"][style*="width: 18px"][style*="height: 18px"][style*="border-radius: 50%"],
+body.final-game div[style*="position: absolute"][style*="top: 4px"][style*="right: 4px"][style*="width: 20px"][style*="height: 20px"][style*="border-radius: 50%"],
+body.final-game div[style*="position: absolute"][style*="top: 4px"][style*="right: 4px"][style*="width: 18px"][style*="height: 18px"][style*="border-radius: 50%"],
+body.final-game div[style*="position: absolute"][style*="top: -8px"][style*="right: -8px"][style*="width: 20px"][style*="height: 20px"][style*="border-radius: 50%"],
+body.final-game div[style*="position: absolute"][style*="top: -8px"][style*="right: -8px"][style*="width: 24px"][style*="height: 24px"][style*="border-radius: 50%"] {
+  background: linear-gradient(135deg, rgba(234, 179, 8, 0.9), rgba(234, 179, 8, 0.7)) !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2) !important;
+}
+
 /* Keyboard hint with border and shadows */
 body.final-game .rotate-to-fit-game .keyboard-hint {
   color: #eab308 !important;
   border: 1px solid rgba(234, 179, 8, 0.6) !important;
   box-shadow: rgba(234, 179, 8, 0.3) 0px 2px 8px !important;
   background: rgba(234, 179, 8, 0.2) !important;
+}
+
+/* Span with accent color (font-size: 1.1rem, font-weight: 700) */
+body.final-game span[style*="font-size: 1.1rem"][style*="font-weight: 700"][style*="color: var(--accent)"],
+body.final-game span[style*="font-size: 1.1rem"][style*="font-weight: 700"][style*="color:var(--accent)"],
+body.final-game span[style*="font-size: 1.1rem"][style*="color: var(--accent)"][style*="font-weight: 700"] {
+  color: #eab308 !important;
+}
+
+/* Span with accent color, background, border (font-size: 0.75rem, monospace) */
+body.final-game span[style*="font-size: 0.75rem"][style*="color: var(--accent)"][style*="rgba(125, 211, 252, 0.1)"],
+body.final-game span[style*="font-size: 0.75rem"][style*="color:var(--accent)"][style*="rgba(125, 211, 252, 0.1)"],
+body.final-game span[style*="font-family: monospace"][style*="color: var(--accent)"][style*="rgba(125, 211, 252, 0.1)"],
+body.final-game span[style*="font-family: monospace"][style*="color:var(--accent)"][style*="rgba(125, 211, 252, 0.1)"] {
+  color: #eab308 !important;
+  background: rgba(234, 179, 8, 0.1) !important;
+  border-color: rgba(234, 179, 8, 0.3) !important;
 }
 
 /* Keyboard hint inside rotate buttons */

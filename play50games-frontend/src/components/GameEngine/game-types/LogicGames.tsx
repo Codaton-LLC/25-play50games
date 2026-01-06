@@ -95,15 +95,16 @@ export default function LogicGames({
       // Determine which logic game to play based on config
       let gameType = config.gameType;
 
-      // Fallback: try to determine from game title if gameType is missing
-      if (!gameType && gameTitle) {
-         const titleLower = gameTitle.toLowerCase();
-         gameType = titleToGameType[titleLower] || "match-shapes";
-      }
-
-      // Final fallback
-      if (!gameType) {
-         gameType = "match-shapes";
+      // Check if gameType is empty string or invalid
+      if (!gameType || gameType.trim() === "") {
+         // Fallback: try to determine from game title if gameType is missing
+         if (gameTitle) {
+            const titleLower = gameTitle.toLowerCase();
+            gameType = titleToGameType[titleLower] || "match-shapes";
+         } else {
+            // Final fallback
+            gameType = "match-shapes";
+         }
       }
 
       setCurrentGame(gameType);
