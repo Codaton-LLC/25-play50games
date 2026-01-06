@@ -1888,6 +1888,12 @@ body.final-game span[style*="font-family: monospace"][style*="color:var(--accent
   border-color: rgba(234, 179, 8, 0.3) !important;
 }
 
+/* Final games - yellow background for canvas with blue background */
+body.final-game canvas[style*="background: rgb(15, 27, 51)"],
+body.final-game canvas[style*="background:rgb(15, 27, 51)"] {
+  background: rgb(30, 25, 10) !important;
+}
+
 /* Keyboard hint inside rotate buttons */
 body.final-game .rotate-to-fit-game .object-rotate-btn .keyboard-hint {
   color: #eab308 !important;

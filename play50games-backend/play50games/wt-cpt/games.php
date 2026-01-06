@@ -93,7 +93,7 @@ function show_games_custom_fields() {
                     <option value="survival-mode" data-category="final">47. Survival Mode</option>
                     <option value="boss-puzzle" data-category="final">48. Boss Puzzle</option>
                     <option value="time-challenge" data-category="final">49. Time Challenge</option>
-                    <option value="final-test" data-category="final">50. Final Certification Test</option>
+                    <option value="final-test" data-category="final">50. Final Game</option>
                 </optgroup>
             </select>
             <button type="button" id="fill_template" class="button button-secondary" style="margin-top: 10px;">Fill Template</button>
@@ -794,11 +794,11 @@ function show_games_custom_fields() {
                 timeLimit: 60,
                 passingScore: 85,
                 unlockRequirement: '',
-                description: 'Complete as many challenges as possible within time limit',
-                gameConfig: '{"gameType": "time-challenge", "duration": 60}'
+                description: 'How Time Challenge Works - Complete multiple mini-games in sequence without failing: 1) You\'ll face a sequence of mini-games: Logic, Memory, Speed, and Skill. 2) Complete each game successfully to progress to the next one. 3) If you fail any game (score below 70), you must start over from the beginning. 4) Survive as long as you can and complete all games in the sequence! Accuracy is crucial - one mistake means starting over!',
+                gameConfig: '{"gameType": "time-challenge", "challengeConfigs": [{"gameType": "match-shapes", "rounds": 5}, {"gameType": "color-grid-memory", "rounds": 5}, {"gameType": "typing-sprint", "targets": 10}, {"gameType": "stack-blocks", "targets": 10}]}'
             },
             'final-test': {
-                title: 'Final Certification Test',
+                title: 'Final Game',
                 gameType: 'final',
                 gameOrder: 50,
                 difficulty: 5,

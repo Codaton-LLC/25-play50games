@@ -1069,42 +1069,69 @@ function BossPuzzle({
    };
 
    // Get challenge configs from config prop ONLY - no defaults
+   // Support both object format (legacy) and array format (for duplicate categories)
    const rawChallengeConfigs: Record<
       string,
       Record<string, any>
    > = config.challengeConfigs || config.miniGameConfigs || {};
+   const rawChallengeConfigsArray: Array<Record<string, any>> = Array.isArray(config.challengeConfigs) 
+      ? config.challengeConfigs 
+      : Array.isArray(config.miniGameConfigs) 
+      ? config.miniGameConfigs 
+      : [];
 
    // Expand configs: if only gameType is provided, get full config from lookup
    const challengeConfigs: Record<string, Record<string, any>> = {};
-   Object.keys(rawChallengeConfigs).forEach((key) => {
-      const partialConfig = rawChallengeConfigs[key] || {};
-      // Extract gameType and ensure it's not empty
-      const gameType =
-         partialConfig.gameType && partialConfig.gameType.trim() !== ""
-            ? partialConfig.gameType
-            : null;
+   
+   // Handle array format (allows duplicate categories)
+   if (rawChallengeConfigsArray.length > 0) {
+      rawChallengeConfigsArray.forEach((challenge, index) => {
+         const partialConfig = challenge || {};
+         const gameType =
+            partialConfig.gameType && partialConfig.gameType.trim() !== ""
+               ? partialConfig.gameType
+               : null;
 
-      // Only process if gameType exists (from backend)
-      if (gameType) {
-         // Create a clean partialConfig without gameType to avoid conflicts
-         const { gameType: _, ...cleanPartialConfig } = partialConfig;
+         if (gameType) {
+            const { gameType: _, ...cleanPartialConfig } = partialConfig;
+            const fullConfig = getFullGameConfig(gameType, cleanPartialConfig);
+            const finalConfig = {
+               ...fullConfig,
+               ...cleanPartialConfig,
+               gameType: gameType,
+            };
 
-         // Merge partial config with full config from lookup
-         const fullConfig = getFullGameConfig(gameType, cleanPartialConfig);
-
-         // Build final config ensuring gameType is always set correctly
-         const finalConfig = {
-            ...fullConfig,
-            ...cleanPartialConfig,
-            gameType: gameType,
-         };
-
-         // Final validation: ensure gameType is not empty
-         if (finalConfig.gameType && finalConfig.gameType.trim() !== "") {
-            challengeConfigs[key] = finalConfig;
+            if (finalConfig.gameType && finalConfig.gameType.trim() !== "") {
+               // Use index-based key to allow duplicates
+               const uniqueKey = `challenge_${index}`;
+               challengeConfigs[uniqueKey] = finalConfig;
+            }
          }
-      }
-   });
+      });
+   } else {
+      // Handle object format (legacy - for backward compatibility)
+      Object.keys(rawChallengeConfigs).forEach((key) => {
+         const partialConfig = rawChallengeConfigs[key] || {};
+         const gameType =
+            partialConfig.gameType && partialConfig.gameType.trim() !== ""
+               ? partialConfig.gameType
+               : null;
+
+         if (gameType) {
+            const { gameType: _, ...cleanPartialConfig } = partialConfig;
+            const fullConfig = getFullGameConfig(gameType, cleanPartialConfig);
+            const finalConfig = {
+               ...fullConfig,
+               ...cleanPartialConfig,
+               gameType: gameType,
+            };
+
+            if (finalConfig.gameType && finalConfig.gameType.trim() !== "") {
+               challengeConfigs[key] = finalConfig;
+            }
+         }
+      });
+   }
 
    // Get challenge order from config keys (maintain order from config)
    const challengeOrder = Object.keys(challengeConfigs);
@@ -1426,89 +1453,242 @@ function TimeChallenge({
    onComplete,
    isPlaying,
 }: FinalGamesProps) {
-   const duration = config.duration || 60;
-   const [timeLeft, setTimeLeft] = useState(duration);
-   const [currentGame, setCurrentGame] = useState<string>("");
-   const [score, setScore] = useState(0);
-   const [gamesCompleted, setGamesCompleted] = useState(0);
+   // Get full game config helper (same as in BossPuzzle)
+   const getFullGameConfig = (
+      gameType: string,
+      partialConfig: Record<string, any>
+   ): Record<string, any> => {
+      // Always ensure gameType is in the returned config - prioritize the passed gameType
+      const baseConfig = { gameType: gameType };
 
-   useEffect(() => {
-      if (!isPlaying) return;
+      // If config already has full details, use it as is (but ensure gameType is set)
+      if (
+         partialConfig.levels ||
+         partialConfig.rounds ||
+         partialConfig.levelRequirements
+      ) {
+         return { ...baseConfig, ...partialConfig };
+      }
 
-      const timer = setInterval(() => {
-         setTimeLeft((prev: number) => {
-            if (prev <= 1) {
-               const finalScore = Math.round(score / gamesCompleted || 0);
-               onScoreUpdate(finalScore);
-               setTimeout(() => onComplete(finalScore), 1000);
-               return 0;
-            }
-            return prev - 1;
-         });
-      }, 1000);
+      // Otherwise, look up the full config from lookup table
+      const fullConfig = GAME_CONFIGS_LOOKUP[gameType];
+      if (fullConfig) {
+         // Merge partial config (if any additional params) with full config
+         // But always prioritize the passed gameType
+         const { gameType: _, ...fullConfigWithoutType } = fullConfig;
+         return { ...baseConfig, ...fullConfigWithoutType, ...partialConfig };
+      }
 
-      return () => clearInterval(timer);
-   }, [isPlaying, duration, score, gamesCompleted, onScoreUpdate, onComplete]);
-
-   useEffect(() => {
-      if (!isPlaying || timeLeft <= 0) return;
-
-      const gameTypes = [
-         "number-order",
-         "card-flip",
-         "fast-math",
-         "target-aim",
-      ];
-      const randomGame =
-         gameTypes[Math.floor(Math.random() * gameTypes.length)];
-      setCurrentGame(randomGame);
-   }, [isPlaying, timeLeft, gamesCompleted]);
-
-   const handleGameComplete = (gameScore: number) => {
-      setScore(score + gameScore);
-      setGamesCompleted(gamesCompleted + 1);
+      // Fallback: return partial config with gameType
+      return { ...baseConfig, ...partialConfig };
    };
 
-   const getGameComponent = () => {
-      switch (currentGame) {
-         case "number-order":
+   // Get challenge configs from config prop ONLY - no defaults
+   // Support both object format (legacy) and array format (for duplicate categories)
+   const rawChallengeConfigs: Record<
+      string,
+      Record<string, any>
+   > = config.challengeConfigs || config.miniGameConfigs || {};
+   const rawChallengeConfigsArray: Array<Record<string, any>> = Array.isArray(config.challengeConfigs) 
+      ? config.challengeConfigs 
+      : Array.isArray(config.miniGameConfigs) 
+      ? config.miniGameConfigs 
+      : [];
+
+   // Expand configs: if only gameType is provided, get full config from lookup
+   const challengeConfigs: Record<string, Record<string, any>> = {};
+   
+   // Handle array format (allows duplicate categories)
+   if (rawChallengeConfigsArray.length > 0) {
+      rawChallengeConfigsArray.forEach((challenge, index) => {
+         const partialConfig = challenge || {};
+         const gameType =
+            partialConfig.gameType && partialConfig.gameType.trim() !== ""
+               ? partialConfig.gameType
+               : null;
+
+         if (gameType) {
+            const { gameType: _, ...cleanPartialConfig } = partialConfig;
+            const fullConfig = getFullGameConfig(gameType, cleanPartialConfig);
+            const finalConfig = {
+               ...fullConfig,
+               ...cleanPartialConfig,
+               gameType: gameType,
+            };
+
+            if (finalConfig.gameType && finalConfig.gameType.trim() !== "") {
+               // Use index-based key to allow duplicates
+               const uniqueKey = `challenge_${index}`;
+               challengeConfigs[uniqueKey] = finalConfig;
+            }
+         }
+      });
+   } else {
+      // Handle object format (legacy - for backward compatibility)
+      Object.keys(rawChallengeConfigs).forEach((key) => {
+         const partialConfig = rawChallengeConfigs[key] || {};
+         const gameType =
+            partialConfig.gameType && partialConfig.gameType.trim() !== ""
+               ? partialConfig.gameType
+               : null;
+
+         if (gameType) {
+            const { gameType: _, ...cleanPartialConfig } = partialConfig;
+            const fullConfig = getFullGameConfig(gameType, cleanPartialConfig);
+            const finalConfig = {
+               ...fullConfig,
+               ...cleanPartialConfig,
+               gameType: gameType,
+            };
+
+            if (finalConfig.gameType && finalConfig.gameType.trim() !== "") {
+               challengeConfigs[key] = finalConfig;
+            }
+         }
+      });
+   }
+
+   // Get challenge order from config keys (maintain order from config)
+   const challengeOrder = Object.keys(challengeConfigs);
+
+   // Initialize dynamic state based on challenge keys
+   const [puzzleState, setPuzzleState] = useState<Record<string, boolean>>(
+      () => {
+         const state: Record<string, boolean> = {};
+         challengeOrder.forEach((key) => {
+            state[key] = false;
+         });
+         return state;
+      }
+   );
+
+   const [score, setScore] = useState(0);
+
+   // Check if a challenge is unlocked
+   const isChallengeUnlocked = (challengeType: string): boolean => {
+      const index = challengeOrder.indexOf(challengeType);
+      if (index === 0) return true; // First challenge is always unlocked
+      const previousChallenge = challengeOrder[index - 1];
+      return puzzleState[previousChallenge] || false;
+   };
+
+   useEffect(() => {
+      const allComplete = Object.values(puzzleState).every(
+         (complete) => complete
+      );
+      if (allComplete) {
+         onScoreUpdate(100);
+         setTimeout(() => onComplete(100), 1000);
+      }
+   }, [puzzleState, onScoreUpdate, onComplete]);
+
+   const handlePuzzleComplete = (type: string) => {
+      setPuzzleState((prev) => ({ ...prev, [type]: true }));
+      setScore(score + Math.round(100 / challengeOrder.length));
+   };
+
+   const isChallengeActive = (challengeType: string): boolean =>
+      isPlaying && isChallengeUnlocked(challengeType);
+
+   const normalizeLogicScore = (
+      rawScore: number | undefined,
+      challengeConfig: Record<string, any> | undefined
+   ): number => {
+      if (typeof rawScore !== "number") return 0;
+      const rounds = challengeConfig?.rounds || 20;
+      const maxScore = rounds * 5;
+      if (rawScore <= maxScore) {
+         return Math.round((rawScore / maxScore) * 100);
+      }
+      return rawScore;
+   };
+
+   // Count total challenges and completed ones
+   const totalChallenges = challengeOrder.length;
+   const completedCount = Object.values(puzzleState).filter(Boolean).length;
+
+   // Get challenge name for display
+   const getChallengeName = (
+      challengeType: string,
+      challengeConfig: Record<string, any>
+   ): string => {
+      // Try to get category from gameType
+      const gameType = challengeConfig?.gameType || "";
+      const category = getGameCategory(gameType);
+      const categoryNames: Record<string, string> = {
+         logic: "Logic",
+         memory: "Memory",
+         speed: "Speed",
+         skill: "Skill",
+      };
+      return `${categoryNames[category] || "Challenge"} Challenge`;
+   };
+
+   // Get category component based on gameType
+   const getCategoryComponent = (
+      challengeType: string,
+      challengeConfig: Record<string, any>
+   ) => {
+      const gameType = challengeConfig?.gameType || "";
+      const category = getGameCategory(gameType);
+
+      const commonProps = {
+         config: challengeConfig,
+         onScoreUpdate: () => {},
+         isPlaying: isPlaying && isChallengeActive(challengeType),
+      };
+
+      switch (category) {
+         case "logic":
             return (
                <LogicGames
-                  config={{ gameType: "number-order", numbers: 5 }}
-                  onScoreUpdate={() => {}}
-                  onComplete={(s) => handleGameComplete(s || 0)}
-                  isPlaying={isPlaying}
+                  {...commonProps}
+                  onComplete={(s) => {
+                     const normalizedScore = normalizeLogicScore(
+                        s,
+                        challengeConfig
+                     );
+                     if (normalizedScore >= 70) {
+                        handlePuzzleComplete(challengeType);
+                     }
+                  }}
                />
             );
-         case "card-flip":
+         case "memory":
             return (
                <MemoryGames
-                  config={{ gameType: "card-flip", gridSize: 3, pairs: 4 }}
-                  onScoreUpdate={() => {}}
-                  onComplete={(s) => handleGameComplete(s || 0)}
-                  isPlaying={isPlaying}
+                  {...commonProps}
+                  onComplete={(s) => {
+                     if (s && s >= 70) {
+                        handlePuzzleComplete(challengeType);
+                     }
+                  }}
                />
             );
-         case "fast-math":
+         case "speed":
             return (
                <SpeedGames
-                  config={{ gameType: "fast-math", rounds: 3 }}
-                  onScoreUpdate={() => {}}
-                  onComplete={(s) => handleGameComplete(s || 0)}
-                  isPlaying={isPlaying}
+                  {...commonProps}
+                  onComplete={(s) => {
+                     if (s && s >= 70) {
+                        handlePuzzleComplete(challengeType);
+                     }
+                  }}
                />
             );
-         case "target-aim":
+         case "skill":
             return (
                <SkillGames
-                  config={{ gameType: "target-aim", targets: 3 }}
-                  onScoreUpdate={() => {}}
-                  onComplete={(s) => handleGameComplete(s || 0)}
-                  isPlaying={isPlaying}
+                  {...commonProps}
+                  onComplete={(s) => {
+                     if (s && s >= 70) {
+                        handlePuzzleComplete(challengeType);
+                     }
+                  }}
                />
             );
          default:
-            return <div>Loading challenge...</div>;
+            return <div>Unknown category</div>;
       }
    };
 
@@ -1516,14 +1696,172 @@ function TimeChallenge({
       <div className="time-challenge-game final-game">
          <h3>Time Challenge</h3>
          <p>
-            Time: {timeLeft}s | Completed: {gamesCompleted}
+            Complete all {totalChallenges} challenges ({completedCount}/
+            {totalChallenges} completed)
          </p>
-         {getGameComponent()}
+         <div className="puzzle-grid">
+            {challengeOrder.map((challengeType, index) => {
+               const challengeConfig = challengeConfigs[challengeType];
+               const isUnlocked = isChallengeUnlocked(challengeType);
+               const isActive = isChallengeActive(challengeType);
+               const isCompleted = puzzleState[challengeType] || false;
+               const previousChallenge =
+                  index > 0 ? challengeOrder[index - 1] : null;
+               const previousChallengeName = previousChallenge
+                  ? getChallengeName(
+                       previousChallenge,
+                       challengeConfigs[previousChallenge] || {}
+                    )
+                  : "";
+
+               return (
+                  <div
+                     key={challengeType}
+                     className="puzzle-challenge"
+                     style={{
+                        outline: "none",
+                        outlineOffset: "2px",
+                        opacity: isUnlocked ? 1 : 0.5,
+                        filter: isUnlocked ? "none" : "grayscale(0.8)",
+                        pointerEvents: isActive ? "auto" : "none",
+                        position: "relative",
+                        paddingTop: index === 0 ? "0" : "100px",
+                        paddingBottom: "100px",
+                        marginTop: "100px",
+                        marginBottom: "100px",
+                        width: "100%",
+                        height: !isUnlocked || isCompleted ? "500px" : "auto",
+                     }}
+                  >
+                     {!isUnlocked && (
+                        <div
+                           style={{
+                              position: "absolute",
+                              top: "50%",
+                              left: "50%",
+                              transform: "translate(-50%, -50%)",
+                              zIndex: 10,
+                              background: "#0b1020",
+                              color: "white",
+                              padding: "12px 20px",
+                              borderRadius: "12px",
+                              fontSize: "30px",
+                              fontWeight: 700,
+                              textAlign: "center",
+                              height: "100%",
+                              width: "100%",
+                              maxWidth: "100%",
+                              display: "flex",
+                              flexDirection: "column",
+                              alignItems: "center",
+                              justifyContent: "center",
+                           }}
+                        >
+                           <LockClosedIcon
+                              style={{
+                                 position: "absolute",
+                                 top: "12px",
+                                 right: "12px",
+                                 width: "24px",
+                                 height: "24px",
+                                 color: "white",
+                              }}
+                           />
+                           {getChallengeName(
+                              challengeType,
+                              challengeConfig || {}
+                           )}
+                           <br />
+                           <span style={{ fontSize: "0.75rem", opacity: 0.8 }}>
+                              {previousChallengeName
+                                 ? `Complete ${previousChallengeName} first`
+                                 : "Locked"}
+                           </span>
+                        </div>
+                     )}
+                     <h4 style={{ textAlign: "center", margin: "0 0 20px 0" }}>
+                        {getChallengeName(challengeType, challengeConfig || {})}{" "}
+                        ({index + 1}/{totalChallenges})
+                     </h4>
+                     {!isCompleted ? (
+                        <div
+                           style={{
+                              pointerEvents: isActive ? "auto" : "none",
+                           }}
+                        >
+                           {challengeConfig && challengeConfig.gameType ? (
+                              isActive ? (
+                                 getCategoryComponent(
+                                    challengeType,
+                                    challengeConfig
+                                 )
+                              ) : (
+                                 <div
+                                    style={{
+                                       padding: "20px",
+                                       textAlign: "center",
+                                       color: "var(--muted)",
+                                    }}
+                                 >
+                                    Click to start
+                                 </div>
+                              )
+                           ) : (
+                              <div
+                                 style={{
+                                    padding: "20px",
+                                    textAlign: "center",
+                                    color: "var(--muted)",
+                                 }}
+                              >
+                                 No game configured
+                              </div>
+                           )}
+                        </div>
+                     ) : (
+                        <div
+                           style={{
+                              position: "absolute",
+                              top: "50%",
+                              left: "50%",
+                              transform: "translate(-50%, -50%)",
+                              zIndex: 10,
+                              background: "rgb(34, 95, 67)",
+                              color: "white",
+                              padding: "12px 20px",
+                              borderRadius: "12px",
+                              fontSize: "30px",
+                              fontWeight: 700,
+                              textAlign: "center",
+                              height: "500px",
+                              width: "100%",
+                              maxWidth: "100%",
+                              marginTop: "100px",
+                              display: "flex",
+                              flexDirection: "column",
+                              alignItems: "center",
+                              justifyContent: "center",
+                           }}
+                        >
+                           {getChallengeName(
+                              challengeType,
+                              challengeConfig || {}
+                           )}
+                           <br />
+                           <span style={{ fontSize: "0.75rem", opacity: 0.8 }}>
+                              Completed
+                           </span>
+                        </div>
+                     )}
+                  </div>
+               );
+            })}
+         </div>
       </div>
    );
 }
 
-// Final Certification Test (50)
+// Final Game (50)
 function FinalTest({
    config,
    onScoreUpdate,
@@ -1617,7 +1955,7 @@ function FinalTest({
 
    return (
       <div className="final-test-game final-game">
-         <h3>Final Certification Test</h3>
+         <h3>Final Game</h3>
          <p>
             Round {round + 1}/{rounds}
          </p>

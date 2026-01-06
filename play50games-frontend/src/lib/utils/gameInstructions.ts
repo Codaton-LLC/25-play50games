@@ -655,17 +655,17 @@ export const gameInstructions: Record<string, {
   },
   'boss-puzzle': {
     description: 'Combine multiple mechanics into one difficult puzzle',
-    instructions: 'This is the ultimate challenge combining multiple game mechanics. Think carefully and solve the complex puzzle!',
-    tips: 'Break the puzzle into smaller parts. Solve each part systematically.'
+    instructions: 'Complete multiple mini-games in sequence without failing. You\'ll face a sequence of mini-games: Logic, Memory, Speed, and Skill. Complete each game successfully to progress to the next one. If you fail any game (score below 70), you must start over from the beginning. Survive as long as you can and complete all games in the sequence! Accuracy is crucial - one mistake means starting over!',
+    tips: 'Take your time with each game. One mistake ends the run, so accuracy is crucial. Focus on accuracy over speed - a wrong answer means starting from the beginning. Stay calm and don\'t rush. Each game type has different rules - pay attention to the instructions. Build momentum by completing games successfully.'
   },
   'time-challenge': {
-    description: 'Complete as many challenges as possible within time limit',
-    instructions: 'Complete as many mini-games as you can within the time limit. Speed and accuracy both matter!',
-    tips: 'Don\'t spend too much time on one game. Move quickly but accurately.'
+    description: 'Complete multiple mini-games in sequence without failing',
+    instructions: 'Complete multiple mini-games in sequence without failing. You\'ll face a sequence of mini-games: Logic, Memory, Speed, and Skill. Complete each game successfully to progress to the next one. If you fail any game (score below 70), you must start over from the beginning. Survive as long as you can and complete all games in the sequence! Accuracy is crucial - one mistake means starting over!',
+    tips: 'Take your time with each game. One mistake ends the run, so accuracy is crucial. Focus on accuracy over speed - a wrong answer means starting from the beginning. Stay calm and don\'t rush. Each game type has different rules - pay attention to the instructions. Build momentum by completing games successfully.'
   },
   'final-test': {
     description: 'Randomized final exam using previous game mechanics',
-    instructions: 'This is your final test! You\'ll face randomized challenges from all previous games. Show what you\'ve learned!',
+    instructions: 'This is your final game! You\'ll face randomized challenges from all previous games. Show what you\'ve learned!',
     tips: 'Remember what you learned in each game type. Stay calm and focused.'
   }
 };

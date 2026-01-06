@@ -4859,6 +4859,146 @@ Sort emoji items into the matching categories. Levels progress from simple visua
 -  **Time Limit**: 0 (no overall time limit, each level has its own duration)
 -  **Passing Score**: 75 (75% of max score)
 
+### Final Games
+
+Final games combine multiple game mechanics and require completing multiple mini-games in sequence. They support both object and array formats for `challengeConfigs`.
+
+#### Boss Puzzle & Time Challenge Configuration
+
+**Array Format (Recommended - allows duplicate categories):**
+
+```json
+{
+  "gameType": "boss-puzzle",
+  "challengeConfigs": [
+    {
+      "gameType": "match-shapes",
+      "rounds": 20
+    },
+    {
+      "gameType": "color-grid-memory",
+      "rounds": 15
+    },
+    {
+      "gameType": "typing-sprint",
+      "targets": 15
+    },
+    {
+      "gameType": "stack-blocks",
+      "targets": 15
+    }
+  ]
+}
+```
+
+**Object Format (Legacy - for backward compatibility):**
+
+```json
+{
+  "gameType": "boss-puzzle",
+  "challengeConfigs": {
+    "logic": {
+      "gameType": "tile-slider",
+      "gridSize": 3
+    },
+    "memory": {
+      "gameType": "card-flip",
+      "gridSize": 4,
+      "pairs": 8
+    },
+    "speed": {
+      "gameType": "reaction-test",
+      "rounds": 5
+    },
+    "skill": {
+      "gameType": "target-aim",
+      "targets": 10
+    }
+  }
+}
+```
+
+**Key Features:**
+- **Sequential Unlocking**: Each challenge unlocks only after completing the previous one
+- **Visual Overlays**: Locked challenges show a "Locked" overlay with lock icon; completed challenges show a "Completed" overlay
+- **Dynamic Game Loading**: Games are loaded from backend configuration, no hardcoded defaults
+- **Array Format Support**: Allows multiple games with the same category (e.g., two "skill" games)
+- **Score Threshold**: Games must be completed with score ≥ 70 to unlock the next challenge
+
+**Configuration Fields:**
+- `gameType` (required): Must be `"boss-puzzle"` or `"time-challenge"`
+- `challengeConfigs` (required): Object or array of challenge configurations
+  - **Object format**: Keys are category names (logic, memory, speed, skill)
+  - **Array format**: Array of challenge objects (allows duplicate categories)
+- Each challenge config must have `gameType` and any game-specific parameters
+
+**Example with Duplicate Categories (Array Format):**
+
+```json
+{
+  "gameType": "time-challenge",
+  "challengeConfigs": [
+    {
+      "gameType": "typing-sprint",
+      "targets": 15
+    },
+    {
+      "gameType": "cursor-maze",
+      "targets": 15
+    }
+  ]
+}
+```
+
+**Mixed Quiz Configuration:**
+
+```json
+{
+  "gameType": "mixed-quiz",
+  "rounds": 5,
+  "miniGameConfigs": {
+    "logic": {"gameType": "number-order"},
+    "memory": {"gameType": "number-recall"},
+    "speed": {"gameType": "fast-math"},
+    "skill": {"gameType": "target-aim"}
+  }
+}
+```
+
+**Survival Mode Configuration:**
+
+```json
+{
+  "gameType": "survival-mode",
+  "games": 5,
+  "gameSequence": [
+    {"type": "logic", "config": {"gameType": "number-order", "numbers": 5}},
+    {"type": "memory", "config": {"gameType": "card-flip", "gridSize": 3, "pairs": 4}},
+    {"type": "speed", "config": {"gameType": "fast-math", "rounds": 5}},
+    {"type": "skill", "config": {"gameType": "target-aim", "targets": 5}},
+    {"type": "logic", "config": {"gameType": "balance-scale"}}
+  ]
+}
+```
+
+**Recommended Settings:**
+- **Boss Puzzle**:
+  - Time Limit: 600 seconds
+  - Passing Score: 90
+  - Difficulty: 5
+- **Time Challenge**:
+  - Time Limit: 60 seconds
+  - Passing Score: 85
+  - Difficulty: 4
+- **Mixed Quiz**:
+  - Time Limit: 180 seconds
+  - Passing Score: 85
+  - Difficulty: 4
+- **Survival Mode**:
+  - Time Limit: 300 seconds
+  - Passing Score: 85
+  - Difficulty: 4
+
 ## User Progress
 
 Progress is stored in:
@@ -5151,6 +5291,211 @@ src/
 -  Stack Blocks
 -  Precision Drop
 -  Drag & Drop Sort
+
+### Final Games
+
+Final games are the ultimate challenges that combine multiple game mechanics and require completing multiple mini-games in sequence.
+
+#### 46. Mixed Quiz
+
+A challenging mix of logic, memory, speed, and skill games. Complete multiple rounds of randomly selected mini-games to test your overall cognitive abilities.
+
+**How It Works:**
+- You'll face a series of randomly selected mini-games from different categories (Logic, Memory, Speed, and Skill)
+- Each round presents a new challenge type
+- Complete all rounds to finish the quiz
+- Your final score is calculated as the average of all round scores
+- Adapt quickly to each new challenge type and stay focused throughout all rounds
+
+**Configuration:**
+```json
+{
+  "gameType": "mixed-quiz",
+  "rounds": 5,
+  "miniGameConfigs": {
+    "logic": {"gameType": "number-order"},
+    "memory": {"gameType": "number-recall"},
+    "speed": {"gameType": "fast-math"},
+    "skill": {"gameType": "target-aim"}
+  }
+}
+```
+
+**Tips:**
+- Stay flexible - each round is different, so be ready for anything
+- Don't get discouraged if one round is harder - focus on the next one
+- Each mini-game has its own rules - pay attention to the instructions
+- Your overall performance matters more than individual round scores
+
+#### 47. Survival Mode
+
+Complete several mini-games in sequence without failing. If you fail one, you have to start over. Survive as long as you can!
+
+**How It Works:**
+- Complete multiple mini-games in a row
+- If you fail one, you have to start over from the beginning
+- Each game type has different rules - pay attention to the instructions
+- Build momentum by completing games successfully
+
+**Configuration:**
+```json
+{
+  "gameType": "survival-mode",
+  "games": 5,
+  "gameSequence": [
+    {"type": "logic", "config": {"gameType": "number-order", "numbers": 5}},
+    {"type": "memory", "config": {"gameType": "card-flip", "gridSize": 3, "pairs": 4}},
+    {"type": "speed", "config": {"gameType": "fast-math", "rounds": 5}},
+    {"type": "skill", "config": {"gameType": "target-aim", "targets": 5}},
+    {"type": "logic", "config": {"gameType": "balance-scale"}}
+  ]
+}
+```
+
+**Tips:**
+- Take your time with each game
+- One mistake ends the run, so accuracy is crucial
+- Focus on accuracy over speed - a wrong answer means starting from the beginning
+- Stay calm and don't rush
+
+#### 48. Boss Puzzle
+
+Combine multiple mechanics into one difficult puzzle. Complete multiple mini-games in sequence without failing.
+
+**How It Works:**
+1. You'll face a sequence of mini-games: Logic, Memory, Speed, and Skill
+2. Complete each game successfully to progress to the next one
+3. If you fail any game (score below 70), you must start over from the beginning
+4. Survive as long as you can and complete all games in the sequence!
+
+**Configuration:**
+
+**Object Format (Legacy):**
+```json
+{
+  "gameType": "boss-puzzle",
+  "challengeConfigs": {
+    "logic": {
+      "gameType": "tile-slider",
+      "gridSize": 3
+    },
+    "memory": {
+      "gameType": "card-flip",
+      "gridSize": 4,
+      "pairs": 8
+    },
+    "speed": {
+      "gameType": "reaction-test",
+      "rounds": 5
+    },
+    "skill": {
+      "gameType": "target-aim",
+      "targets": 10
+    }
+  }
+}
+```
+
+**Array Format (Recommended - allows duplicate categories):**
+```json
+{
+  "gameType": "boss-puzzle",
+  "challengeConfigs": [
+    {
+      "gameType": "match-shapes",
+      "rounds": 20
+    },
+    {
+      "gameType": "color-grid-memory",
+      "rounds": 15
+    },
+    {
+      "gameType": "typing-sprint",
+      "targets": 15
+    },
+    {
+      "gameType": "stack-blocks",
+      "targets": 15
+    }
+  ]
+}
+```
+
+**Features:**
+- Sequential unlocking: Each challenge unlocks only after completing the previous one
+- Visual locked overlay: Shows "Locked" with lock icon for incomplete challenges
+- Visual completed overlay: Shows "Completed" with green background for finished challenges
+- Dynamic game loading: Games are loaded from backend configuration
+- Supports both object and array formats for `challengeConfigs`
+
+**Tips:**
+- Accuracy is crucial - one mistake means starting over!
+- Take your time with each game
+- Focus on accuracy over speed
+- Each game type has different rules - pay attention to the instructions
+
+#### 49. Time Challenge
+
+Complete multiple mini-games in sequence without failing. Same mechanics as Boss Puzzle but with time pressure.
+
+**How It Works:**
+1. You'll face a sequence of mini-games: Logic, Memory, Speed, and Skill
+2. Complete each game successfully to progress to the next one
+3. If you fail any game (score below 70), you must start over from the beginning
+4. Survive as long as you can and complete all games in the sequence!
+
+**Configuration:**
+
+**Array Format (Recommended):**
+```json
+{
+  "gameType": "time-challenge",
+  "challengeConfigs": [
+    {
+      "gameType": "match-shapes",
+      "rounds": 5
+    },
+    {
+      "gameType": "color-grid-memory",
+      "rounds": 5
+    },
+    {
+      "gameType": "typing-sprint",
+      "targets": 10
+    },
+    {
+      "gameType": "stack-blocks",
+      "targets": 10
+    }
+  ]
+}
+```
+
+**Features:**
+- Same sequential unlocking system as Boss Puzzle
+- Supports array format for `challengeConfigs` (allows duplicate categories)
+- Visual locked and completed overlays
+- Dynamic game loading from backend configuration
+
+**Tips:**
+- Accuracy is crucial - one mistake means starting over!
+- Take your time with each game
+- Focus on accuracy over speed
+- Each game type has different rules - pay attention to the instructions
+
+#### 50. Final Game
+
+Randomized final exam using previous game mechanics. Show what you've learned!
+
+**How It Works:**
+- You'll face randomized challenges from all previous games
+- This is your final game to demonstrate mastery
+- Complete all challenges to earn your certificate
+
+**Tips:**
+- Remember what you learned in each game type
+- Stay calm and focused
+- This is the ultimate challenge!
 
 ## Environment Variables
 
