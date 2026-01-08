@@ -1,0 +1,14 @@
+{
+    "name": "play50games/theme",
+    "description": "Play50Games WordPress Theme",
+    "type": "wordpress-theme",
+    "require": {
+        "php": ">=7.4",
+        "dompdf/dompdf": "^2.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Play50Games\\": "includes/"
+        }
+    }
+}
