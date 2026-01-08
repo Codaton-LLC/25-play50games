@@ -49,7 +49,186 @@ import KeyboardControls, { MouseControls } from "./KeyboardControls";
 import { trackShareClick } from "@/lib/api/share";
 import Header from "@/components/Header/Header";
 
-// Maze Example Component - Uses grid cells like the actual game
+// Cursor Maze Example Component - Uses canvas like the actual game
+const CursorMazeExample = () => {
+   const canvasRef = useRef<HTMLCanvasElement>(null);
+   const [mazeGenerated, setMazeGenerated] = useState(false);
+
+   useEffect(() => {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+
+      const canvasWidth = 400;
+      const canvasHeight = 400;
+      const dpr = Math.max(1, window.devicePixelRatio || 1);
+
+      canvas.width = canvasWidth * dpr;
+      canvas.height = canvasHeight * dpr;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
+
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+      // Generate maze using DFS (same as CursorMaze.tsx)
+      const gridSize = 12;
+      const cellSize = Math.floor(canvasWidth / gridSize);
+
+      interface MazeCell {
+         v: boolean;
+         w: [boolean, boolean, boolean, boolean]; // top, right, bottom, left
+      }
+
+      const cells: MazeCell[] = Array.from({ length: gridSize * gridSize }, () => ({
+         v: false,
+         w: [true, true, true, true],
+      }));
+
+      const idx = (x: number, y: number) => y * gridSize + x;
+      const inb = (x: number, y: number) => x >= 0 && y >= 0 && x < gridSize && y < gridSize;
+
+      const dirs = [
+         { dx: 0, dy: -1, a: 0, b: 2 },
+         { dx: 1, dy: 0, a: 1, b: 3 },
+         { dx: 0, dy: 1, a: 2, b: 0 },
+         { dx: -1, dy: 0, a: 3, b: 1 },
+      ];
+
+      const stack = [{ x: 0, y: 0 }];
+      cells[idx(0, 0)].v = true;
+
+      while (stack.length) {
+         const cur = stack[stack.length - 1];
+         const options: Array<{
+            nx: number;
+            ny: number;
+            d: (typeof dirs)[0];
+         }> = [];
+
+         for (const d of dirs) {
+            const nx = cur.x + d.dx;
+            const ny = cur.y + d.dy;
+            if (inb(nx, ny) && !cells[idx(nx, ny)].v) {
+               options.push({ nx, ny, d });
+            }
+         }
+
+         if (!options.length) {
+            stack.pop();
+            continue;
+         }
+
+         const pick = options[Math.floor(Math.random() * options.length)];
+         const c = cells[idx(cur.x, cur.y)];
+         const ncell = cells[idx(pick.nx, pick.ny)];
+
+         c.w[pick.d.a] = false;
+         ncell.w[pick.d.b] = false;
+         ncell.v = true;
+         stack.push({ x: pick.nx, y: pick.ny });
+      }
+
+      // Draw maze
+      ctx.fillStyle = "rgba(15, 27, 51, 1)";
+      ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+
+      ctx.strokeStyle = "#ffffff";
+      ctx.lineWidth = Math.max(8, Math.floor(cellSize * 0.2));
+      ctx.lineCap = "square";
+      ctx.lineJoin = "miter";
+
+      for (let y = 0; y < gridSize; y++) {
+         for (let x = 0; x < gridSize; x++) {
+            const w = cells[idx(x, y)].w;
+            const x0 = x * cellSize;
+            const y0 = y * cellSize;
+            const x1 = x0 + cellSize;
+            const y1 = y0 + cellSize;
+
+            ctx.beginPath();
+            if (w[0]) {
+               ctx.moveTo(x0, y0);
+               ctx.lineTo(x1, y0);
+            }
+            if (w[1]) {
+               ctx.moveTo(x1, y0);
+               ctx.lineTo(x1, y1);
+            }
+            if (w[2]) {
+               ctx.moveTo(x0, y1);
+               ctx.lineTo(x1, y1);
+            }
+            if (w[3]) {
+               ctx.moveTo(x0, y0);
+               ctx.lineTo(x0, y1);
+            }
+            ctx.stroke();
+         }
+      }
+
+      // Draw start pad (blue)
+      const pad = Math.floor(cellSize * 0.25);
+      const sx = 0 * cellSize + pad;
+      const sy = 0 * cellSize + pad;
+      ctx.fillStyle = "rgba(110, 168, 255, 0.25)";
+      ctx.fillRect(sx, sy, cellSize - pad * 2, cellSize - pad * 2);
+      ctx.strokeStyle = "rgba(110, 168, 255, 0.85)";
+      ctx.lineWidth = 2;
+      ctx.strokeRect(sx, sy, cellSize - pad * 2, cellSize - pad * 2);
+
+      // Draw exit pad (green)
+      const ex = (gridSize - 1) * cellSize + pad;
+      const ey = (gridSize - 1) * cellSize + pad;
+      ctx.fillStyle = "rgba(54, 211, 153, 0.5)";
+      ctx.fillRect(ex, ey, cellSize - pad * 2, cellSize - pad * 2);
+      ctx.strokeStyle = "rgba(54, 211, 153, 1)";
+      ctx.lineWidth = 3;
+      ctx.strokeRect(ex, ey, cellSize - pad * 2, cellSize - pad * 2);
+
+      // Draw exit text
+      ctx.fillStyle = "rgba(54, 211, 153, 1)";
+      ctx.font = `${Math.max(12, Math.floor(cellSize * 0.4))}px system-ui`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText("EXIT", ex + (cellSize - pad * 2) / 2, ey + (cellSize - pad * 2) / 2);
+
+      // Draw player square (blue)
+      const s = Math.max(10, Math.floor(cellSize * 0.3));
+      ctx.fillStyle = "rgba(110, 168, 255, 0.95)";
+      ctx.fillRect(sx + (cellSize - pad * 2) / 2 - s / 2, sy + (cellSize - pad * 2) / 2 - s / 2, s, s);
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.18)";
+      ctx.lineWidth = 2;
+      ctx.strokeRect(sx + (cellSize - pad * 2) / 2 - s / 2, sy + (cellSize - pad * 2) / 2 - s / 2, s, s);
+
+      setMazeGenerated(true);
+   }, []);
+
+   return (
+      <div
+         style={{
+            maxWidth: "400px",
+            margin: "0 auto",
+            width: "100%",
+            aspectRatio: "1",
+            background: "rgba(255, 255, 255, 0.05)",
+            padding: "12px",
+            boxShadow: "0 8px 32px rgba(0, 0, 0, 0.3)",
+            overflow: "hidden",
+         }}
+      >
+         <canvas
+            ref={canvasRef}
+            style={{
+               width: "100%",
+               height: "100%",
+               display: "block",
+               background: "rgba(15, 27, 51, 1)",
+            }}
+         />
+      </div>
+   );
+};
+
+// Maze Example Component - Uses grid cells like the actual game (for maze-escape)
 const MazeExampleGrid = () => {
    const [maze, setMaze] = useState<number[][]>([]);
    const gridSize = 10;
@@ -7468,8 +7647,16 @@ export default function GameEngine({
                               the green exit:
                            </p>
 
-                           {/* Example Maze Arena - Real Canvas Maze */}
-                           <MazeExampleCanvas />
+                           {/* Example Maze Arena - Canvas-based Maze (like CursorMaze) */}
+                           <div
+                              style={{
+                                 display: "flex",
+                                 justifyContent: "center",
+                                 marginBottom: "16px",
+                              }}
+                           >
+                              <CursorMazeExample />
+                           </div>
 
                            {/* Step-by-step instructions */}
                            <div
