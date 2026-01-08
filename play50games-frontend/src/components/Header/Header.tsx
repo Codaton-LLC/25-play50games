@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useAuth } from "@/contexts/AuthContext";
 import {
    UserIcon,
@@ -24,6 +25,17 @@ export default function Header({
 }: HeaderProps) {
    const { user, isAuthenticated, logout } = useAuth();
    const [showUserMenu, setShowUserMenu] = useState(false);
+   const [isMobile, setIsMobile] = useState(false);
+
+   // Check if mobile
+   useEffect(() => {
+      const checkMobile = () => {
+         setIsMobile(window.innerWidth < 640);
+      };
+      checkMobile();
+      window.addEventListener("resize", checkMobile);
+      return () => window.removeEventListener("resize", checkMobile);
+   }, []);
 
    // Close user menu when clicking outside
    useEffect(() => {
@@ -52,16 +64,38 @@ export default function Header({
          <div
             style={{
                display: "flex",
-               justifyContent: "space-between",
-               alignItems: "center",
+               flexDirection: isMobile ? "column" : "row",
+               justifyContent: isMobile ? "center" : "space-between",
+               alignItems: isMobile ? "center" : "center",
                marginBottom: showSubtitle ? "1rem" : "0",
                flexWrap: "wrap",
                gap: "1rem",
             }}
          >
             {/* Logo on the left */}
-            <div>
-               <h1 style={{ margin: 0, fontSize: "2.5rem" }}>Play50Games</h1>
+            <div
+               style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: isMobile ? "center" : "flex-start",
+                  textAlign: isMobile ? "center" : "left",
+               }}
+            >
+               <Link href="/" style={{ display: "inline-block" }}>
+                  <Image
+                     src="/images/logo/play50games.png"
+                     alt="Play50Games"
+                     width={200}
+                     height={60}
+                     style={{
+                        height: "auto",
+                        width: "auto",
+                        maxHeight: "200px",
+                        objectFit: "contain",
+                     }}
+                     priority
+                  />
+               </Link>
                {showSubtitle && (
                   <p
                      style={{
@@ -75,7 +109,7 @@ export default function Header({
                )}
             </div>
 
-            {/* User Profile on the right */}
+            {/* User Profile on the right (when authenticated) */}
             {isAuthenticated && user ? (
                <div
                   style={{
@@ -224,9 +258,7 @@ export default function Header({
                            }}
                         >
                            <CheckBadgeIcon style={{ width: 20, height: 20 }} />
-                           <span style={{ fontSize: "14px" }}>
-                              Certificate
-                           </span>
+                           <span style={{ fontSize: "14px" }}>Certificate</span>
                         </Link>
                         <button
                            onClick={() => {
@@ -305,98 +337,113 @@ export default function Header({
                      </div>
                   )}
                </div>
-            ) : null}
+            ) : (
+               /* Login/Register section on the right (when not authenticated) */
+               onShowLoginModal &&
+               onShowRegisterModal && (
+                  <div
+                     style={{
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: isMobile ? "center" : "flex-end",
+                        gap: "0.75rem",
+                        width: isMobile ? "100%" : "auto",
+                     }}
+                  >
+                     <div
+                        style={{
+                           display: "flex",
+                           alignItems: "center",
+                           gap: "0.5rem",
+                           flexWrap: "wrap",
+                           justifyContent: isMobile ? "center" : "flex-end",
+                           width: isMobile ? "100%" : "auto",
+                        }}
+                     >
+                        <span
+                           style={{
+                              color: "var(--muted)",
+                              fontSize: "14px",
+                              textAlign: isMobile ? "center" : "right",
+                           }}
+                        >
+                           Login or register to save your progress
+                        </span>
+                     </div>
+                     <div
+                        style={{
+                           display: "flex",
+                           gap: "0.5rem",
+                           flexWrap: "wrap",
+                           width: isMobile ? "100%" : "auto",
+                           justifyContent: isMobile ? "center" : "flex-end",
+                        }}
+                     >
+                        <button
+                           onClick={onShowLoginModal}
+                           style={{
+                              padding: "9px 16px",
+                              backgroundColor: "rgba(125, 211, 252, 0.14)",
+                              color: "var(--accent)",
+                              border: "1px solid rgba(125, 211, 252, 0.35)",
+                              cursor: "pointer",
+                              fontWeight: "600",
+                              fontSize: "14px",
+                              transition: "all 0.2s ease",
+                              borderRadius: "8px",
+                              flex: isMobile ? "1" : "none",
+                              minWidth: isMobile ? "0" : "auto",
+                           }}
+                           onMouseEnter={(e) => {
+                              e.currentTarget.style.backgroundColor =
+                                 "rgba(125, 211, 252, 0.24)";
+                              e.currentTarget.style.borderColor =
+                                 "rgba(125, 211, 252, 0.5)";
+                           }}
+                           onMouseLeave={(e) => {
+                              e.currentTarget.style.backgroundColor =
+                                 "rgba(125, 211, 252, 0.14)";
+                              e.currentTarget.style.borderColor =
+                                 "rgba(125, 211, 252, 0.35)";
+                           }}
+                        >
+                           Login
+                        </button>
+                        <button
+                           onClick={onShowRegisterModal}
+                           style={{
+                              padding: "9px 16px",
+                              backgroundColor: "rgba(134, 239, 172, 0.14)",
+                              color: "var(--secondary)",
+                              border: "1px solid rgba(134, 239, 172, 0.35)",
+                              cursor: "pointer",
+                              fontWeight: "600",
+                              fontSize: "14px",
+                              transition: "all 0.2s ease",
+                              borderRadius: "8px",
+                              flex: isMobile ? "1" : "none",
+                              minWidth: isMobile ? "0" : "auto",
+                           }}
+                           onMouseEnter={(e) => {
+                              e.currentTarget.style.backgroundColor =
+                                 "rgba(134, 239, 172, 0.24)";
+                              e.currentTarget.style.borderColor =
+                                 "rgba(134, 239, 172, 0.5)";
+                           }}
+                           onMouseLeave={(e) => {
+                              e.currentTarget.style.backgroundColor =
+                                 "rgba(134, 239, 172, 0.14)";
+                              e.currentTarget.style.borderColor =
+                                 "rgba(134, 239, 172, 0.35)";
+                           }}
+                        >
+                           Register
+                        </button>
+                     </div>
+                  </div>
+               )
+            )}
          </div>
-
-         {/* Auth Section for non-authenticated users */}
-         {!isAuthenticated && onShowLoginModal && onShowRegisterModal && (
-            <div
-               style={{
-                  marginTop: "1rem",
-                  padding: "1rem",
-                  backgroundColor: "rgba(255, 255, 255, 0.06)",
-                  border: "1px solid var(--stroke)",
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  flexWrap: "wrap",
-                  gap: "1rem",
-               }}
-            >
-               <div
-                  style={{
-                     display: "flex",
-                     alignItems: "center",
-                     gap: "0.5rem",
-                  }}
-               >
-                  <span style={{ fontWeight: "bold", color: "var(--text)" }}>
-                     Playing as Guest
-                  </span>
-                  <span
-                     style={{ color: "var(--muted)", fontSize: "0.9rem" }}
-                  >
-                     (Progress saved locally)
-                  </span>
-               </div>
-               <div style={{ display: "flex", gap: "0.5rem" }}>
-                  <button
-                     onClick={onShowLoginModal}
-                     style={{
-                        padding: "9px 16px",
-                        backgroundColor: "rgba(125, 211, 252, 0.14)",
-                        color: "var(--accent)",
-                        border: "1px solid rgba(125, 211, 252, 0.35)",
-                        cursor: "pointer",
-                        fontWeight: "600",
-                        fontSize: "14px",
-                        transition: "all 0.2s ease",
-                     }}
-                     onMouseEnter={(e) => {
-                        e.currentTarget.style.backgroundColor =
-                           "rgba(125, 211, 252, 0.24)";
-                        e.currentTarget.style.borderColor =
-                           "rgba(125, 211, 252, 0.5)";
-                     }}
-                     onMouseLeave={(e) => {
-                        e.currentTarget.style.backgroundColor =
-                           "rgba(125, 211, 252, 0.14)";
-                        e.currentTarget.style.borderColor =
-                           "rgba(125, 211, 252, 0.35)";
-                     }}
-                  >
-                     Login
-                  </button>
-                  <button
-                     onClick={onShowRegisterModal}
-                     style={{
-                        padding: "9px 16px",
-                        backgroundColor: "rgba(134, 239, 172, 0.14)",
-                        color: "var(--secondary)",
-                        border: "1px solid rgba(134, 239, 172, 0.35)",
-                        cursor: "pointer",
-                        fontWeight: "600",
-                        fontSize: "14px",
-                        transition: "all 0.2s ease",
-                     }}
-                     onMouseEnter={(e) => {
-                        e.currentTarget.style.backgroundColor =
-                           "rgba(134, 239, 172, 0.24)";
-                        e.currentTarget.style.borderColor =
-                           "rgba(134, 239, 172, 0.5)";
-                     }}
-                     onMouseLeave={(e) => {
-                        e.currentTarget.style.backgroundColor =
-                           "rgba(134, 239, 172, 0.14)";
-                        e.currentTarget.style.borderColor =
-                           "rgba(134, 239, 172, 0.35)";
-                     }}
-                  >
-                     Register
-                  </button>
-               </div>
-            </div>
-         )}
       </header>
    );
 }
