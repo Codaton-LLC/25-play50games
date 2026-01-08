@@ -1099,7 +1099,6 @@ function MirrorMatch({
             <div
                style={{
                   background: "var(--card)",
-                  border: "2px solid var(--stroke)",
                   borderRadius: "20px",
                   padding: "40px",
                   boxShadow: "0 8px 24px rgba(0, 0, 0, 0.2)",
@@ -1359,7 +1358,6 @@ function MirrorMatch({
                                     fontWeight: 500,
                                     color: "var(--accent)",
                                     background: "rgba(125, 211, 252, 0.1)",
-                                    border: "1px solid var(--stroke)",
                                     borderRadius: "4px",
                                     padding: "2px 6px",
                                     fontFamily: "monospace",
@@ -1380,7 +1378,7 @@ function MirrorMatch({
             <div
                style={{
                   padding: "16px 24px",
-                  borderRadius: "12px",
+
                   fontSize: "1.1rem",
                   fontWeight: 600,
                   animation: "slideIn 0.3s ease-out",

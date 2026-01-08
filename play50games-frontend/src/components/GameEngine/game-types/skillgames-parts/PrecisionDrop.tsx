@@ -99,7 +99,7 @@ export default function PrecisionDrop({
          const w = canvas.width / dpr;
          const minW = 24;
          const maxW = Math.min(160, w * 0.35);
-         return Math.max(minW, maxW - (level * 12));
+         return Math.max(minW, maxW - level * 12);
       },
       [levelRequirements]
    );
@@ -329,22 +329,38 @@ export default function PrecisionDrop({
          if (currentTarget) {
             const minX = TARGET_MARGIN;
             const maxX = w - TARGET_MARGIN - currentTarget.w;
-            const tX = clamp(
-               currentTarget.x + shakeOffset,
-               minX,
-               maxX
-            );
+            const tX = clamp(currentTarget.x + shakeOffset, minX, maxX);
 
             if (targetFlashRef.current) {
                ctx.fillStyle = "rgba(34,197,94,.45)";
-               ctx.fillRect(tX, currentTarget.y, currentTarget.w, currentTarget.h);
+               ctx.fillRect(
+                  tX,
+                  currentTarget.y,
+                  currentTarget.w,
+                  currentTarget.h
+               );
                ctx.strokeStyle = "rgba(34,197,94,.95)";
-               ctx.strokeRect(tX, currentTarget.y, currentTarget.w, currentTarget.h);
+               ctx.strokeRect(
+                  tX,
+                  currentTarget.y,
+                  currentTarget.w,
+                  currentTarget.h
+               );
             } else {
                ctx.fillStyle = "rgba(54,211,153,.22)";
-               ctx.fillRect(tX, currentTarget.y, currentTarget.w, currentTarget.h);
+               ctx.fillRect(
+                  tX,
+                  currentTarget.y,
+                  currentTarget.w,
+                  currentTarget.h
+               );
                ctx.strokeStyle = "rgba(54,211,153,.65)";
-               ctx.strokeRect(tX, currentTarget.y, currentTarget.w, currentTarget.h);
+               ctx.strokeRect(
+                  tX,
+                  currentTarget.y,
+                  currentTarget.w,
+                  currentTarget.h
+               );
             }
          }
 
@@ -447,11 +463,7 @@ export default function PrecisionDrop({
 
          const minX = TARGET_MARGIN;
          const maxX = w - TARGET_MARGIN - currentTarget.w;
-         const tX = clamp(
-            currentTarget.x + shakeOffset,
-            minX,
-            maxX
-         );
+         const tX = clamp(currentTarget.x + shakeOffset, minX, maxX);
 
          const left = currentObj.x - OBJ_R;
          const right = currentObj.x + OBJ_R;
@@ -460,8 +472,8 @@ export default function PrecisionDrop({
 
          const inside = left >= tLeft && right <= tRight;
 
-      if (landingHandledRef.current) return;
-      landingHandledRef.current = true;
+         if (landingHandledRef.current) return;
+         landingHandledRef.current = true;
 
          if (inside) {
             setHits((prev) => {
@@ -594,11 +606,11 @@ export default function PrecisionDrop({
          setMisses(0);
          setTargetVel(0);
          setTargetDir(1);
-      setShakeActive(false);
-      setRequirementsMet(false);
-      requirementsMetRef.current = false;
-      lastCompletedLevelRef.current = null;
-      nextRoundClickedRef.current = false;
+         setShakeActive(false);
+         setRequirementsMet(false);
+         requirementsMetRef.current = false;
+         lastCompletedLevelRef.current = null;
+         nextRoundClickedRef.current = false;
          setNextRoundLocked(false);
          lastTimestampRef.current = 0;
          dropLockRef.current = false;
@@ -636,9 +648,9 @@ export default function PrecisionDrop({
                };
                setTarget(newTarget);
 
-              const targetSpeed = levelConfig.targetSpeed;
-              setTargetVel(targetSpeed);
-              targetVelRef.current = targetSpeed;
+               const targetSpeed = levelConfig.targetSpeed;
+               setTargetVel(targetSpeed);
+               targetVelRef.current = targetSpeed;
                targetVelBaseRef.current = targetSpeed;
                const initialDir = Math.random() > 0.5 ? 1 : -1;
                setTargetDir(initialDir);
@@ -698,8 +710,7 @@ export default function PrecisionDrop({
                const w = canvas.width / dpr;
 
                const newX =
-                  prev.x +
-                  targetDirRef.current * targetVelRef.current * dt;
+                  prev.x + targetDirRef.current * targetVelRef.current * dt;
                const minX = TARGET_MARGIN;
                const maxX = w - TARGET_MARGIN - prev.w;
 
@@ -824,7 +835,11 @@ export default function PrecisionDrop({
 
    // End level when time runs out
    useEffect(() => {
-      if (timeLeft === 0 && gameState === "playing" && !requirementsMetRef.current) {
+      if (
+         timeLeft === 0 &&
+         gameState === "playing" &&
+         !requirementsMetRef.current
+      ) {
          const levelConfig = getLevelConfig(currentLevel);
          const minHits = levelConfig.minHits;
 
@@ -841,14 +856,7 @@ export default function PrecisionDrop({
             clearAll();
          }
       }
-   }, [
-      timeLeft,
-      gameState,
-      currentLevel,
-      hits,
-      getLevelConfig,
-      clearAll,
-   ]);
+   }, [timeLeft, gameState, currentLevel, hits, getLevelConfig, clearAll]);
 
    // Handle level completion
    useEffect(() => {
@@ -857,7 +865,10 @@ export default function PrecisionDrop({
       if (gameState === "ready" && !requirementsMetRef.current) {
          return;
       }
-      if (gameState === "ready" && lastCompletedLevelRef.current !== currentLevel) {
+      if (
+         gameState === "ready" &&
+         lastCompletedLevelRef.current !== currentLevel
+      ) {
          return;
       }
 
@@ -1236,7 +1247,6 @@ export default function PrecisionDrop({
                   width: "100%",
                   maxWidth: "800px",
                   background: "var(--card)",
-                  border: "1px solid var(--stroke)",
                   borderRadius: isMobile ? "16px" : "20px",
                   padding: isMobile ? "16px" : "20px",
                   boxShadow: "0 8px 24px rgba(0, 0, 0, 0.2)",
@@ -1358,7 +1368,7 @@ export default function PrecisionDrop({
                         background:
                            "linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1))",
                         border: "1px solid rgba(59, 130, 246, 0.4)",
-                        borderRadius: "12px",
+
                         padding: "10px 16px",
                         display: "flex",
                         alignItems: "center",
@@ -1380,7 +1390,7 @@ export default function PrecisionDrop({
                         background:
                            "linear-gradient(135deg, rgba(34, 197, 94, 0.2), rgba(34, 197, 94, 0.1))",
                         border: "1px solid rgba(34, 197, 94, 0.4)",
-                        borderRadius: "12px",
+
                         padding: "10px 16px",
                         display: "flex",
                         alignItems: "center",
@@ -1427,13 +1437,20 @@ export default function PrecisionDrop({
                         e.preventDefault();
                         const canvas = canvasRef.current;
                         if (canvas && obj) {
-                           const dpr = Math.max(1, window.devicePixelRatio || 1);
+                           const dpr = Math.max(
+                              1,
+                              window.devicePixelRatio || 1
+                           );
                            const w = canvas.width / dpr;
                            setObj((prev) => {
                               if (!prev) return null;
                               return {
                                  ...prev,
-                                 x: clamp(prev.x - 10, OBJ_R + 6, w - OBJ_R - 6),
+                                 x: clamp(
+                                    prev.x - 10,
+                                    OBJ_R + 6,
+                                    w - OBJ_R - 6
+                                 ),
                               };
                            });
                         }
@@ -1441,13 +1458,20 @@ export default function PrecisionDrop({
                         e.preventDefault();
                         const canvas = canvasRef.current;
                         if (canvas && obj) {
-                           const dpr = Math.max(1, window.devicePixelRatio || 1);
+                           const dpr = Math.max(
+                              1,
+                              window.devicePixelRatio || 1
+                           );
                            const w = canvas.width / dpr;
                            setObj((prev) => {
                               if (!prev) return null;
                               return {
                                  ...prev,
-                                 x: clamp(prev.x + 10, OBJ_R + 6, w - OBJ_R - 6),
+                                 x: clamp(
+                                    prev.x + 10,
+                                    OBJ_R + 6,
+                                    w - OBJ_R - 6
+                                 ),
                               };
                            });
                         }
@@ -1512,7 +1536,8 @@ export default function PrecisionDrop({
                   >
                      Hits: {hits}/{minHits}
                      <br />
-                     Drops completed: {levelConfig.drops - dropsLeft}/{levelConfig.drops}
+                     Drops completed: {levelConfig.drops - dropsLeft}/
+                     {levelConfig.drops}
                   </div>
                   <button
                      onClick={handleNextRound}
@@ -1525,7 +1550,7 @@ export default function PrecisionDrop({
                         border: nextRoundLocked
                            ? "1px solid rgba(100, 100, 100, 0.4)"
                            : "2px solid rgba(134, 239, 172, 0.6)",
-                        borderRadius: "12px",
+
                         color: "var(--text)",
                         fontSize: isMobile ? "1rem" : "1.05rem",
                         fontWeight: 700,
@@ -1540,17 +1565,98 @@ export default function PrecisionDrop({
             )}
 
             {/* Level Failed Message */}
-            {gameState === "failed" && (() => {
-               const levelConfig = getLevelConfig(currentLevel);
-               const minHits = levelConfig.minHits;
-               const hitsMet = hits >= minHits;
-               
-               let failureReason = "";
-               if (!hitsMet) {
-                  failureReason = "Hits requirement not met";
-               }
-               
-               return (
+            {gameState === "failed" &&
+               (() => {
+                  const levelConfig = getLevelConfig(currentLevel);
+                  const minHits = levelConfig.minHits;
+                  const hitsMet = hits >= minHits;
+
+                  let failureReason = "";
+                  if (!hitsMet) {
+                     failureReason = "Hits requirement not met";
+                  }
+
+                  return (
+                     <div
+                        style={{
+                           padding: isMobile ? "20px 24px" : "24px 32px",
+                           background: "var(--card)",
+                           borderRadius: "var(--radius)",
+                           color: "var(--text)",
+                           fontSize: isMobile ? "1rem" : "1.1rem",
+                           fontWeight: 700,
+                           textAlign: "center",
+                           border: "1px solid var(--border)",
+                        }}
+                     >
+                        <div
+                           style={{
+                              marginBottom: "16px",
+                              color: "var(--warn)",
+                           }}
+                        >
+                           Level {currentLevel + 1} Failed
+                        </div>
+                        <div
+                           style={{
+                              fontSize: isMobile ? "0.9rem" : "1rem",
+                              fontWeight: 600,
+                              marginBottom: "12px",
+                              color: "var(--warn)",
+                           }}
+                        >
+                           {failureReason}
+                        </div>
+                        <div
+                           style={{
+                              fontSize: isMobile ? "0.9rem" : "1rem",
+                              fontWeight: 400,
+                              marginBottom: "8px",
+                              color: "var(--text-secondary)",
+                           }}
+                        >
+                           <div
+                              style={{
+                                 marginBottom: "4px",
+                                 display: "flex",
+                                 alignItems: "center",
+                                 gap: "4px",
+                                 justifyContent: "center",
+                              }}
+                           >
+                              <span>
+                                 Hits: Need {minHits} | You got {hits}
+                              </span>
+                              {hitsMet ? (
+                                 <CheckCircleIcon
+                                    style={{
+                                       width: isMobile ? 16 : 18,
+                                       height: isMobile ? 16 : 18,
+                                       color: "var(--ok)",
+                                       flexShrink: 0,
+                                    }}
+                                 />
+                              ) : (
+                                 <XCircleIcon
+                                    style={{
+                                       width: isMobile ? 16 : 18,
+                                       height: isMobile ? 16 : 18,
+                                       color: "var(--warn)",
+                                       flexShrink: 0,
+                                    }}
+                                 />
+                              )}
+                           </div>
+                        </div>
+                     </div>
+                  );
+               })()}
+
+            {/* Game Complete Message */}
+            {gameState === "ready" &&
+               currentLevel === maxLevels - 1 &&
+               requirementsMet &&
+               lastCompletedLevelRef.current === currentLevel && (
                   <div
                      style={{
                         padding: isMobile ? "20px 24px" : "24px 32px",
@@ -1563,98 +1669,23 @@ export default function PrecisionDrop({
                         border: "1px solid var(--border)",
                      }}
                   >
-                     <div style={{ marginBottom: "16px", color: "var(--warn)" }}>
-                        Level {currentLevel + 1} Failed
-                     </div>
-                     <div
-                        style={{
-                           fontSize: isMobile ? "0.9rem" : "1rem",
-                           fontWeight: 600,
-                           marginBottom: "12px",
-                           color: "var(--warn)",
-                        }}
-                     >
-                        {failureReason}
+                     <div style={{ marginBottom: "16px", color: "var(--ok)" }}>
+                        Game Complete!
                      </div>
                      <div
                         style={{
                            fontSize: isMobile ? "0.9rem" : "1rem",
                            fontWeight: 400,
-                           marginBottom: "8px",
+                           marginBottom: "20px",
                            color: "var(--text-secondary)",
                         }}
                      >
-                        <div
-                           style={{
-                              marginBottom: "4px",
-                              display: "flex",
-                              alignItems: "center",
-                              gap: "4px",
-                              justifyContent: "center",
-                           }}
-                        >
-                           <span>
-                              Hits: Need {minHits} | You got {hits}
-                           </span>
-                           {hitsMet ? (
-                              <CheckCircleIcon
-                                 style={{
-                                    width: isMobile ? 16 : 18,
-                                    height: isMobile ? 16 : 18,
-                                    color: "var(--ok)",
-                                    flexShrink: 0,
-                                 }}
-                              />
-                           ) : (
-                              <XCircleIcon
-                                 style={{
-                                    width: isMobile ? 16 : 18,
-                                    height: isMobile ? 16 : 18,
-                                    color: "var(--warn)",
-                                    flexShrink: 0,
-                                 }}
-                              />
-                           )}
-                        </div>
+                        All {maxLevels} levels completed!
+                        <br />
+                        Final Score: {currentScore}
                      </div>
                   </div>
-               );
-            })()}
-
-            {/* Game Complete Message */}
-            {gameState === "ready" &&
-               currentLevel === maxLevels - 1 &&
-               requirementsMet &&
-               lastCompletedLevelRef.current === currentLevel && (
-               <div
-                  style={{
-                     padding: isMobile ? "20px 24px" : "24px 32px",
-                     background: "var(--card)",
-                     borderRadius: "var(--radius)",
-                     color: "var(--text)",
-                     fontSize: isMobile ? "1rem" : "1.1rem",
-                     fontWeight: 700,
-                     textAlign: "center",
-                     border: "1px solid var(--border)",
-                  }}
-               >
-                  <div style={{ marginBottom: "16px", color: "var(--ok)" }}>
-                     Game Complete!
-                  </div>
-                  <div
-                     style={{
-                        fontSize: isMobile ? "0.9rem" : "1rem",
-                        fontWeight: 400,
-                        marginBottom: "20px",
-                        color: "var(--text-secondary)",
-                     }}
-                  >
-                     All {maxLevels} levels completed!
-                     <br />
-                     Final Score: {currentScore}
-                  </div>
-               </div>
-            )}
+               )}
 
             {/* Action Buttons: Replay, Share */}
             <div
@@ -1665,8 +1696,7 @@ export default function PrecisionDrop({
                   flexWrap: "wrap",
                   padding: isMobile ? "12px" : "16px",
                   background: "var(--card)",
-                  border: "1px solid var(--stroke)",
-                  borderRadius: "12px",
+
                   width: "100%",
                   maxWidth: "800px",
                }}
@@ -1746,7 +1776,7 @@ export default function PrecisionDrop({
                         maxReplays > 0 && replaysUsed >= maxReplays
                            ? "1px solid rgba(100, 100, 100, 0.4)"
                            : "1px solid rgba(125, 211, 252, 0.6)",
-                     borderRadius: "12px",
+
                      color: "var(--text)",
                      fontSize: isMobile ? "0.85rem" : "0.95rem",
                      fontWeight: 600,
@@ -1788,7 +1818,7 @@ export default function PrecisionDrop({
                      background:
                         "linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1))",
                      border: "2px solid rgba(59, 130, 246, 0.6)",
-                     borderRadius: "12px",
+
                      color: "var(--text)",
                      fontSize: isMobile ? "0.85rem" : "0.95rem",
                      fontWeight: 600,

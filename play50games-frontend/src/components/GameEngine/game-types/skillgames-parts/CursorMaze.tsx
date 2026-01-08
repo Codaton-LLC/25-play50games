@@ -155,7 +155,7 @@ export default function CursorMaze({
       const canvasWidth = 560;
       const canvasHeight = 560;
       const dpr = Math.max(1, window.devicePixelRatio || 1);
-      
+
       canvas.width = canvasWidth * dpr;
       canvas.height = canvasHeight * dpr;
       const ctx = canvas.getContext("2d");
@@ -192,8 +192,7 @@ export default function CursorMaze({
       }));
 
       const idx = (x: number, y: number) => y * n + x;
-      const inb = (x: number, y: number) =>
-         x >= 0 && y >= 0 && x < n && y < n;
+      const inb = (x: number, y: number) => x >= 0 && y >= 0 && x < n && y < n;
 
       const dirs = [
          { dx: 0, dy: -1, a: 0, b: 2 }, // top
@@ -210,7 +209,7 @@ export default function CursorMaze({
          const options: Array<{
             nx: number;
             ny: number;
-            d: typeof dirs[0];
+            d: (typeof dirs)[0];
          }> = [];
 
          for (const d of dirs) {
@@ -336,8 +335,14 @@ export default function CursorMaze({
       ];
 
       for (const point of checkPoints) {
-         const xi = Math.max(0, Math.min(Math.floor(point.x), maze.wallsCv.width - 1));
-         const yi = Math.max(0, Math.min(Math.floor(point.y), maze.wallsCv.height - 1));
+         const xi = Math.max(
+            0,
+            Math.min(Math.floor(point.x), maze.wallsCv.width - 1)
+         );
+         const yi = Math.max(
+            0,
+            Math.min(Math.floor(point.y), maze.wallsCv.height - 1)
+         );
 
          const img = maze.wallsCtx.getImageData(xi, yi, 1, 1).data;
          // Check if pixel is white (wall)
@@ -437,7 +442,7 @@ export default function CursorMaze({
       ctx.strokeStyle = "rgba(54, 211, 153, 1)";
       ctx.lineWidth = 3;
       ctx.strokeRect(ex, ey, sz, sz);
-      
+
       // Add exit indicator
       ctx.fillStyle = "rgba(54, 211, 153, 1)";
       ctx.font = `${Math.max(12, Math.floor(maze.cellSize * 0.4))}px system-ui`;
@@ -515,16 +520,28 @@ export default function CursorMaze({
       let deltaY = 0;
 
       // Check which keys are pressed
-      if (keysPressedRef.current.has("w") || keysPressedRef.current.has("ArrowUp")) {
+      if (
+         keysPressedRef.current.has("w") ||
+         keysPressedRef.current.has("ArrowUp")
+      ) {
          deltaY -= moveSpeedRef.current;
       }
-      if (keysPressedRef.current.has("s") || keysPressedRef.current.has("ArrowDown")) {
+      if (
+         keysPressedRef.current.has("s") ||
+         keysPressedRef.current.has("ArrowDown")
+      ) {
          deltaY += moveSpeedRef.current;
       }
-      if (keysPressedRef.current.has("a") || keysPressedRef.current.has("ArrowLeft")) {
+      if (
+         keysPressedRef.current.has("a") ||
+         keysPressedRef.current.has("ArrowLeft")
+      ) {
          deltaX -= moveSpeedRef.current;
       }
-      if (keysPressedRef.current.has("d") || keysPressedRef.current.has("ArrowRight")) {
+      if (
+         keysPressedRef.current.has("d") ||
+         keysPressedRef.current.has("ArrowRight")
+      ) {
          deltaX += moveSpeedRef.current;
       }
 
@@ -568,12 +585,21 @@ export default function CursorMaze({
          setTimeout(() => {
             onScoreUpdate(newScore);
          }, 0);
-
       } else {
          // Redraw on move
          draw();
       }
-   }, [pointHitsWall, pointInExit, clearAll, maxLevels, currentLevel, onScoreUpdate, onComplete, draw, addTrailPoint]);
+   }, [
+      pointHitsWall,
+      pointInExit,
+      clearAll,
+      maxLevels,
+      currentLevel,
+      onScoreUpdate,
+      onComplete,
+      draw,
+      addTrailPoint,
+   ]);
 
    // Update game logic
    const update = useCallback(
@@ -624,7 +650,7 @@ export default function CursorMaze({
          // Start timer
          levelStartTimeRef.current = performance.now();
          countdownTimerRef.current = setInterval(() => {
-            setTimeLeft((prev) => {
+            setTimeLeft((prev: number) => {
                const newTime = Math.max(0, prev - 0.1);
                if (newTime <= 0) {
                   if (gameStateRef.current === "playing") {
@@ -649,7 +675,10 @@ export default function CursorMaze({
                lastTimestampRef.current = timestamp;
             }
 
-            const dt = Math.min(0.033, (timestamp - lastTimestampRef.current) / 1000);
+            const dt = Math.min(
+               0.033,
+               (timestamp - lastTimestampRef.current) / 1000
+            );
             lastTimestampRef.current = timestamp;
 
             update(dt, level);
@@ -662,7 +691,15 @@ export default function CursorMaze({
 
          animationFrameRef.current = requestAnimationFrame(loop);
       },
-      [getLevelDuration, clearAll, resizeCanvas, update, draw, buildMazeForLevel, resetToStart]
+      [
+         getLevelDuration,
+         clearAll,
+         resizeCanvas,
+         update,
+         draw,
+         buildMazeForLevel,
+         resetToStart,
+      ]
    );
 
    // Handle pointer events
@@ -734,13 +771,22 @@ export default function CursorMaze({
             setTimeout(() => {
                onScoreUpdate(newScore);
             }, 0);
-
          } else {
             // Redraw on move
             draw();
          }
       },
-      [pointHitsWall, pointInExit, clearAll, maxLevels, currentLevel, onScoreUpdate, onComplete, draw, addTrailPoint]
+      [
+         pointHitsWall,
+         pointInExit,
+         clearAll,
+         maxLevels,
+         currentLevel,
+         onScoreUpdate,
+         onComplete,
+         draw,
+         addTrailPoint,
+      ]
    );
 
    const handlePointerDown = useCallback(
@@ -808,37 +854,34 @@ export default function CursorMaze({
       return `${currentUrl}?shared=${shareId}`;
    }, []);
 
-   const registerShareLink = useCallback(
-      async (shareId: string) => {
-         try {
-            await registerShare(shareId, "cursor-maze");
-            const stored = localStorage.getItem(gameKey);
-            if (stored) {
-               const data = JSON.parse(stored);
-               localStorage.setItem(
-                  gameKey,
-                  JSON.stringify({
-                     ...data,
-                     share_id: shareId,
-                     shared: false,
-                  })
-               );
-            } else {
-               localStorage.setItem(
-                  gameKey,
-                  JSON.stringify({
-                     share_id: shareId,
-                     shared: false,
-                  })
-               );
-            }
-            setCurrentShareId(shareId);
-         } catch (error) {
-            // Error registering share
+   const registerShareLink = useCallback(async (shareId: string) => {
+      try {
+         await registerShare(shareId, "cursor-maze");
+         const stored = localStorage.getItem(gameKey);
+         if (stored) {
+            const data = JSON.parse(stored);
+            localStorage.setItem(
+               gameKey,
+               JSON.stringify({
+                  ...data,
+                  share_id: shareId,
+                  shared: false,
+               })
+            );
+         } else {
+            localStorage.setItem(
+               gameKey,
+               JSON.stringify({
+                  share_id: shareId,
+                  shared: false,
+               })
+            );
          }
-      },
-      []
-   );
+         setCurrentShareId(shareId);
+      } catch (error) {
+         // Error registering share
+      }
+   }, []);
 
    const handleShare = useCallback(async () => {
       const shareableLink = getShareableLink();
@@ -1213,7 +1256,6 @@ export default function CursorMaze({
                width: "100%",
                maxWidth: "800px",
                background: "var(--card)",
-               border: "1px solid var(--stroke)",
                borderRadius: isMobile ? "16px" : "20px",
                padding: isMobile ? "16px" : "20px",
                boxShadow: "0 8px 24px rgba(0, 0, 0, 0.2)",
@@ -1347,7 +1389,7 @@ export default function CursorMaze({
                      border: nextRoundLocked
                         ? "1px solid rgba(100, 100, 100, 0.4)"
                         : "2px solid rgba(134, 239, 172, 0.6)",
-                     borderRadius: "12px",
+
                      color: "var(--text)",
                      fontSize: isMobile ? "1rem" : "1.05rem",
                      fontWeight: 700,
@@ -1375,7 +1417,6 @@ export default function CursorMaze({
                      fontWeight: 700,
                      textAlign: "center" as const,
                      boxShadow: "0 10px 24px rgba(0, 0, 0, 0.25)",
-                     border: "1px solid var(--stroke)",
                      display: "flex",
                      flexDirection: "column",
                      gap: "16px",
@@ -1435,7 +1476,6 @@ export default function CursorMaze({
                   fontWeight: 700,
                   textAlign: "center" as const,
                   boxShadow: "0 10px 24px rgba(0, 0, 0, 0.25)",
-                  border: "1px solid var(--stroke)",
                   display: "flex",
                   flexDirection: "column",
                   gap: "16px",
@@ -1477,7 +1517,6 @@ export default function CursorMaze({
                style={{
                   width: "100%",
                   background: "var(--card)",
-                  border: "1px solid var(--stroke)",
                   borderRadius: isMobile ? "16px" : "20px",
                   padding: isMobile ? "12px" : "16px",
                   boxShadow: "0 8px 24px rgba(0, 0, 0, 0.2)",
@@ -1490,7 +1529,7 @@ export default function CursorMaze({
                      maxWidth: "560px",
                      height: "auto",
                      aspectRatio: "1 / 1",
-                     borderRadius: "12px",
+
                      cursor: "crosshair",
                      touchAction: "none",
                      display: "block",
@@ -1564,8 +1603,7 @@ export default function CursorMaze({
                gap: "12px",
                padding: isMobile ? "12px" : "16px",
                background: "var(--card)",
-               border: "1px solid var(--stroke)",
-               borderRadius: "12px",
+
                width: "100%",
                maxWidth: "800px",
             }}
@@ -1652,7 +1690,7 @@ export default function CursorMaze({
                         maxReplays > 0 && replaysUsed >= maxReplays
                            ? "1px solid rgba(100, 100, 100, 0.4)"
                            : "1px solid rgba(125, 211, 252, 0.6)",
-                     borderRadius: "12px",
+
                      color: "var(--text)",
                      fontSize: isMobile ? "0.85rem" : "0.95rem",
                      fontWeight: 600,
@@ -1694,7 +1732,7 @@ export default function CursorMaze({
                      background:
                         "linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1))",
                      border: "1px solid rgba(59, 130, 246, 0.6)",
-                     borderRadius: "12px",
+
                      color: "var(--text)",
                      fontSize: isMobile ? "0.85rem" : "0.95rem",
                      fontWeight: 600,

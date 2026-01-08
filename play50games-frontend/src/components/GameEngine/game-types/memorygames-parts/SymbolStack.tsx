@@ -566,7 +566,6 @@ function SymbolStack({
                width: "100%",
                maxWidth: "800px",
                background: "var(--card)",
-               border: "1px solid var(--stroke)",
                borderRadius: isMobile ? "16px" : "20px",
                padding: isMobile ? "16px" : "20px",
                boxShadow: "0 8px 24px rgba(0, 0, 0, 0.2)",

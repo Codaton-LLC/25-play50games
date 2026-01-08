@@ -169,7 +169,6 @@ function BalanceScale({
                   gap: "1rem",
                   padding: "0.75rem 1.25rem",
                   background: "rgba(255, 255, 255, 0.05)",
-                  border: "1px solid var(--stroke)",
                   borderRadius: "16px",
                   backdropFilter: "blur(10px)",
                }}
@@ -271,7 +270,6 @@ function BalanceScale({
                   background:
                      "linear-gradient(180deg, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0.05) 100%)",
                   borderRadius: "4px",
-                  border: "1px solid var(--stroke)",
                   boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
                }}
             />
@@ -288,7 +286,6 @@ function BalanceScale({
                   background:
                      "linear-gradient(180deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0.1) 100%)",
                   borderRadius: "3px",
-                  border: "1px solid var(--stroke)",
                   zIndex: 1,
                }}
             />
@@ -306,7 +303,6 @@ function BalanceScale({
                   background:
                      "linear-gradient(90deg, rgba(125,211,252,0.3) 0%, rgba(134,239,172,0.3) 50%, rgba(125,211,252,0.3) 100%)",
                   borderRadius: "4px",
-                  border: "2px solid var(--stroke)",
                   boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
                   transition: "transform 0.8s cubic-bezier(0.4, 0, 0.2, 1)",
                   zIndex: 2,
@@ -334,7 +330,7 @@ function BalanceScale({
                      height: "60px",
                      background: `linear-gradient(135deg, rgba(125,211,252,0.4) 0%, rgba(125,211,252,0.2) 100%)`,
                      border: "2px solid var(--accent)",
-                     borderRadius: "12px",
+
                      display: "flex",
                      alignItems: "center",
                      justifyContent: "center",
@@ -379,7 +375,7 @@ function BalanceScale({
                      height: "60px",
                      background: `linear-gradient(135deg, rgba(134,239,172,0.4) 0%, rgba(134,239,172,0.2) 100%)`,
                      border: "2px solid var(--ok)",
-                     borderRadius: "12px",
+
                      display: "flex",
                      alignItems: "center",
                      justifyContent: "center",

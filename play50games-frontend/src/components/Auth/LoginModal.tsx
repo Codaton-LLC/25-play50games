@@ -21,29 +21,35 @@ export default function LoginModal({
    const [error, setError] = useState("");
    const [loading, setLoading] = useState(false);
    const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
-   
+
    const validateEmailOrUsername = (value: string) => {
       if (!value.trim()) {
-         return 'Email or username is required';
+         return "Email or username is required";
       }
-      return '';
+      return "";
    };
-   
+
    const validatePassword = (value: string) => {
       if (!value) {
-         return 'Password is required';
+         return "Password is required";
       }
-      return '';
+      return "";
    };
-   
+
    const handleEmailChange = (value: string) => {
       setEmail(value);
-      setFieldErrors(prev => ({ ...prev, email: validateEmailOrUsername(value) }));
+      setFieldErrors((prev) => ({
+         ...prev,
+         email: validateEmailOrUsername(value),
+      }));
    };
-   
+
    const handlePasswordChange = (value: string) => {
       setPassword(value);
-      setFieldErrors(prev => ({ ...prev, password: validatePassword(value) }));
+      setFieldErrors((prev) => ({
+         ...prev,
+         password: validatePassword(value),
+      }));
    };
 
    if (!isOpen) return null;
@@ -51,20 +57,20 @@ export default function LoginModal({
    const handleSubmit = async (e: React.FormEvent) => {
       e.preventDefault();
       setError("");
-      
+
       // Validate fields
       const errors: Record<string, string> = {
          email: validateEmailOrUsername(email),
          password: validatePassword(password),
       };
-      
+
       setFieldErrors(errors);
-      
+
       // Check if there are any errors
-      if (Object.values(errors).some(err => err !== '')) {
+      if (Object.values(errors).some((err) => err !== "")) {
          return;
       }
-      
+
       setLoading(true);
 
       try {
@@ -96,7 +102,6 @@ export default function LoginModal({
                      padding: "0.75rem",
                      backgroundColor: "rgba(252, 165, 165, 0.15)",
                      border: "1px solid rgba(252, 165, 165, 0.4)",
-                     borderRadius: "12px",
                      color: "var(--warn)",
                      marginBottom: "1rem",
                      fontSize: "14px",
@@ -114,13 +119,29 @@ export default function LoginModal({
                      type="text"
                      value={email}
                      onChange={(e) => handleEmailChange(e.target.value)}
-                     onBlur={() => setFieldErrors(prev => ({ ...prev, email: validateEmailOrUsername(email) }))}
+                     onBlur={() =>
+                        setFieldErrors((prev) => ({
+                           ...prev,
+                           email: validateEmailOrUsername(email),
+                        }))
+                     }
                      required
                      placeholder="your@email.com or username"
-                     style={{ borderColor: fieldErrors.email ? 'var(--warn)' : undefined }}
+                     style={{
+                        borderColor: fieldErrors.email
+                           ? "var(--warn)"
+                           : undefined,
+                     }}
                   />
                   {fieldErrors.email && (
-                     <small style={{ color: 'var(--warn)', fontSize: '0.875rem', display: 'block', marginTop: '0.25rem' }}>
+                     <small
+                        style={{
+                           color: "var(--warn)",
+                           fontSize: "0.875rem",
+                           display: "block",
+                           marginTop: "0.25rem",
+                        }}
+                     >
                         {fieldErrors.email}
                      </small>
                   )}
@@ -133,13 +154,29 @@ export default function LoginModal({
                      type="password"
                      value={password}
                      onChange={(e) => handlePasswordChange(e.target.value)}
-                     onBlur={() => setFieldErrors(prev => ({ ...prev, password: validatePassword(password) }))}
+                     onBlur={() =>
+                        setFieldErrors((prev) => ({
+                           ...prev,
+                           password: validatePassword(password),
+                        }))
+                     }
                      required
                      placeholder="••••••••"
-                     style={{ borderColor: fieldErrors.password ? 'var(--warn)' : undefined }}
+                     style={{
+                        borderColor: fieldErrors.password
+                           ? "var(--warn)"
+                           : undefined,
+                     }}
                   />
                   {fieldErrors.password && (
-                     <small style={{ color: 'var(--warn)', fontSize: '0.875rem', display: 'block', marginTop: '0.25rem' }}>
+                     <small
+                        style={{
+                           color: "var(--warn)",
+                           fontSize: "0.875rem",
+                           display: "block",
+                           marginTop: "0.25rem",
+                        }}
+                     >
                         {fieldErrors.password}
                      </small>
                   )}

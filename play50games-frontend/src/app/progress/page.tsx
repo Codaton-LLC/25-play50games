@@ -215,15 +215,10 @@ export default function ProgressPage() {
                            }
                            style={{
                               marginTop: "100px",
-                              padding: isFinal ? "30px" : "0",
                               background: isFinal
                                  ? "var(--card)"
                                  : "transparent",
                               border: "none",
-                              borderRadius: isFinal ? "18px" : "0",
-                              boxShadow: isFinal
-                                 ? "0 10px 30px rgba(234, 179, 8, 0.2)"
-                                 : "none",
                            }}
                         >
                            <h3
@@ -298,7 +293,6 @@ export default function ProgressPage() {
                                                 : bestScore > 0
                                                 ? "2px solid var(--accent)"
                                                 : "2px solid var(--stroke)",
-                                             borderRadius: "16px",
                                              padding: "20px",
                                              display: "flex",
                                              flexDirection: "column",
@@ -395,7 +389,6 @@ export default function ProgressPage() {
                                                       background: isFinal
                                                          ? "rgba(234, 179, 8, 0.2)"
                                                          : "rgba(125, 211, 252, 0.2)",
-                                                      borderRadius: "8px",
                                                       padding: "4px 8px",
                                                       fontSize: "0.75rem",
                                                       fontWeight: 600,
@@ -457,8 +450,6 @@ export default function ProgressPage() {
                                                                   ? "192, 192, 192"
                                                                   : "205, 127, 50"
                                                             }, 0.15)`,
-                                                            borderRadius:
-                                                               "12px",
                                                             border: `2px solid ${trophyColor}40`,
                                                          }}
                                                       >
@@ -641,7 +632,6 @@ export default function ProgressPage() {
                                                             background: isFinal
                                                                ? "rgba(234, 179, 8, 0.1)"
                                                                : "rgba(125, 211, 252, 0.1)",
-                                                            borderRadius: "8px",
                                                             fontSize: "0.8rem",
                                                             fontWeight: 600,
                                                             color: isFinal

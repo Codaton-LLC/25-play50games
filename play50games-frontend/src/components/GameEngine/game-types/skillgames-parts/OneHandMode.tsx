@@ -119,7 +119,13 @@ export default function OneHandMode({
 
    // Obstacles state
    const obstaclesRef = useRef<
-      Array<{ x: number; w: number; h: number; id: number; type: "normal" | "boost" }>
+      Array<{
+         x: number;
+         w: number;
+         h: number;
+         id: number;
+         type: "normal" | "boost";
+      }>
    >([]);
    const obstacleIdCounterRef = useRef(0);
    const groundYRef = useRef(0);
@@ -252,12 +258,12 @@ export default function OneHandMode({
          player.vy += 1600 * dt;
          player.y += player.vy * dt;
 
-      if (player.y + player.h >= groundYRef.current) {
-         player.y = groundYRef.current - player.h;
-         player.vy = 0;
-         player.onGround = true;
-         jumpsUsedRef.current = 0;
-      }
+         if (player.y + player.h >= groundYRef.current) {
+            player.y = groundYRef.current - player.h;
+            player.vy = 0;
+            player.onGround = true;
+            jumpsUsedRef.current = 0;
+         }
 
          // Spawn obstacles
          spawnTimerRef.current += dt;
@@ -279,9 +285,7 @@ export default function OneHandMode({
          }
 
          // Remove off-screen obstacles
-         obstaclesRef.current = obstacles.filter(
-            (o) => o.x + o.w > -40
-         );
+         obstaclesRef.current = obstacles.filter((o) => o.x + o.w > -40);
 
          // Check collisions
          const playerRect = {
@@ -351,14 +355,7 @@ export default function OneHandMode({
          const px = playerRef.current.x + playerRef.current.w / 2;
          const py = playerRef.current.y + playerRef.current.h / 2;
          const glow = playerRef.current.w * 1.6;
-         const gradient = ctx.createRadialGradient(
-            px,
-            py,
-            2,
-            px,
-            py,
-            glow
-         );
+         const gradient = ctx.createRadialGradient(px, py, 2, px, py, glow);
          gradient.addColorStop(0, "rgba(255, 200, 120, 0.45)");
          gradient.addColorStop(1, "rgba(255, 120, 80, 0)");
          ctx.fillStyle = gradient;
@@ -460,15 +457,14 @@ export default function OneHandMode({
             const updatedCanvas = canvasRef.current;
             if (updatedCanvas) {
                groundYRef.current = updatedCanvas.clientHeight - 60;
-               playerRef.current.y =
-                  groundYRef.current - playerRef.current.h;
+               playerRef.current.y = groundYRef.current - playerRef.current.h;
             }
          });
 
          // Start timer
          levelStartTimeRef.current = performance.now();
          countdownTimerRef.current = setInterval(() => {
-            setTimeLeft((prev) => {
+            setTimeLeft((prev: number) => {
                const newTime = Math.max(0, prev - 0.1);
                if (newTime <= 0) {
                   return 0;
@@ -488,7 +484,10 @@ export default function OneHandMode({
                lastTimestampRef.current = timestamp;
             }
 
-            const dt = Math.min(0.033, (timestamp - lastTimestampRef.current) / 1000);
+            const dt = Math.min(
+               0.033,
+               (timestamp - lastTimestampRef.current) / 1000
+            );
             lastTimestampRef.current = timestamp;
 
             update(dt, level);
@@ -688,21 +687,15 @@ export default function OneHandMode({
       return `${currentUrl}?shared=${shareId}`;
    }, []);
 
-   const registerShareLink = useCallback(
-      async (shareId: string) => {
-         try {
-            await registerShare(shareId, "one-hand-mode");
-            localStorage.setItem(
-               gameKey,
-               JSON.stringify({ share_id: shareId })
-            );
-            setCurrentShareId(shareId);
-         } catch (error) {
-            console.error("Error registering share:", error);
-         }
-      },
-      []
-   );
+   const registerShareLink = useCallback(async (shareId: string) => {
+      try {
+         await registerShare(shareId, "one-hand-mode");
+         localStorage.setItem(gameKey, JSON.stringify({ share_id: shareId }));
+         setCurrentShareId(shareId);
+      } catch (error) {
+         console.error("Error registering share:", error);
+      }
+   }, []);
 
    const handleShare = useCallback(async () => {
       const shareableLink = getShareableLink();
@@ -962,7 +955,6 @@ export default function OneHandMode({
                width: "100%",
                maxWidth: "800px",
                background: "var(--card)",
-               border: "1px solid var(--stroke)",
                borderRadius: isMobile ? "16px" : "20px",
                padding: isMobile ? "16px" : "20px",
                boxShadow: "0 8px 24px rgba(0, 0, 0, 0.2)",
@@ -1074,7 +1066,6 @@ export default function OneHandMode({
                style={{
                   width: "100%",
                   background: "var(--card)",
-                  border: "1px solid var(--stroke)",
                   borderRadius: isMobile ? "16px" : "20px",
                   padding: isMobile ? "12px" : "16px",
                   boxShadow: "0 8px 24px rgba(0, 0, 0, 0.2)",
@@ -1180,7 +1171,7 @@ export default function OneHandMode({
                      border: nextRoundLocked
                         ? "1px solid rgba(100, 100, 100, 0.4)"
                         : "2px solid rgba(134, 239, 172, 0.6)",
-                     borderRadius: "12px",
+
                      color: "var(--text)",
                      fontSize: isMobile ? "1rem" : "1.05rem",
                      fontWeight: 700,
@@ -1209,7 +1200,6 @@ export default function OneHandMode({
                      fontWeight: 700,
                      textAlign: "center" as const,
                      boxShadow: "0 10px 24px rgba(0, 0, 0, 0.25)",
-                     border: "1px solid var(--stroke)",
                      width: "100%",
                      maxWidth: "800px",
                   }}
@@ -1268,7 +1258,6 @@ export default function OneHandMode({
                   fontWeight: 700,
                   textAlign: "center" as const,
                   boxShadow: "0 10px 24px rgba(0, 0, 0, 0.25)",
-                  border: "1px solid var(--stroke)",
                   display: "flex",
                   flexDirection: "column",
                   gap: "16px",
@@ -1312,8 +1301,7 @@ export default function OneHandMode({
                gap: "12px",
                padding: isMobile ? "12px" : "16px",
                background: "var(--card)",
-               border: "1px solid var(--stroke)",
-               borderRadius: "12px",
+
                width: "100%",
                maxWidth: "800px",
             }}
@@ -1384,81 +1372,81 @@ export default function OneHandMode({
                }}
             >
                <button
-               onClick={handleReplay}
-               disabled={maxReplays > 0 && replaysUsed >= maxReplays}
-               style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: isMobile ? "6px" : "8px",
-                  padding: isMobile ? "10px 16px" : "10px 20px",
-                  width: isMobile ? "100%" : "auto",
-                  background:
-                     maxReplays > 0 && replaysUsed >= maxReplays
-                        ? "rgba(100, 100, 100, 0.2)"
-                        : "linear-gradient(135deg, rgba(125, 211, 252, 0.2), rgba(125, 211, 252, 0.1))",
-                  border:
-                     maxReplays > 0 && replaysUsed >= maxReplays
-                        ? "1px solid rgba(100, 100, 100, 0.4)"
-                        : "1px solid rgba(125, 211, 252, 0.6)",
-                  borderRadius: "12px",
-                  color: "var(--text)",
-                  fontSize: isMobile ? "0.85rem" : "0.95rem",
-                  fontWeight: 600,
-                  cursor:
-                     maxReplays > 0 && replaysUsed >= maxReplays
-                        ? "not-allowed"
-                        : "pointer",
-                  opacity:
-                     maxReplays > 0 && replaysUsed >= maxReplays ? 0.5 : 1,
-                  transition: "all 0.3s ease",
-               }}
-            >
-               <ArrowPathRoundedSquareIcon
+                  onClick={handleReplay}
+                  disabled={maxReplays > 0 && replaysUsed >= maxReplays}
                   style={{
-                     width: isMobile ? 18 : 20,
-                     height: isMobile ? 18 : 20,
-                     color:
+                     display: "flex",
+                     alignItems: "center",
+                     gap: isMobile ? "6px" : "8px",
+                     padding: isMobile ? "10px 16px" : "10px 20px",
+                     width: isMobile ? "100%" : "auto",
+                     background:
                         maxReplays > 0 && replaysUsed >= maxReplays
-                           ? "var(--muted)"
-                           : "var(--accent)",
-                  }}
-               />
-               <span>
-                  {isMobile ? "" : "Replay "}
-                  {maxReplays === 0
-                     ? "(∞)"
-                     : `(${maxReplays - replaysUsed}/${maxReplays})`}
-               </span>
-            </button>
+                           ? "rgba(100, 100, 100, 0.2)"
+                           : "linear-gradient(135deg, rgba(125, 211, 252, 0.2), rgba(125, 211, 252, 0.1))",
+                     border:
+                        maxReplays > 0 && replaysUsed >= maxReplays
+                           ? "1px solid rgba(100, 100, 100, 0.4)"
+                           : "1px solid rgba(125, 211, 252, 0.6)",
 
-            <button
-               onClick={handleShare}
-               style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: isMobile ? "6px" : "8px",
-                  padding: isMobile ? "10px 16px" : "10px 20px",
-                  width: isMobile ? "100%" : "auto",
-                  background:
-                     "linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1))",
-                  border: "1px solid rgba(59, 130, 246, 0.6)",
-                  borderRadius: "12px",
-                  color: "var(--text)",
-                  fontSize: isMobile ? "0.85rem" : "0.95rem",
-                  fontWeight: 600,
-                  cursor: "pointer",
-                  transition: "all 0.3s ease",
-               }}
-            >
-               <ShareIcon
-                  style={{
-                     width: isMobile ? 18 : 20,
-                     height: isMobile ? 18 : 20,
-                     color: "var(--accent)",
+                     color: "var(--text)",
+                     fontSize: isMobile ? "0.85rem" : "0.95rem",
+                     fontWeight: 600,
+                     cursor:
+                        maxReplays > 0 && replaysUsed >= maxReplays
+                           ? "not-allowed"
+                           : "pointer",
+                     opacity:
+                        maxReplays > 0 && replaysUsed >= maxReplays ? 0.5 : 1,
+                     transition: "all 0.3s ease",
                   }}
-               />
-               <span>Share for unlimited</span>
-            </button>
+               >
+                  <ArrowPathRoundedSquareIcon
+                     style={{
+                        width: isMobile ? 18 : 20,
+                        height: isMobile ? 18 : 20,
+                        color:
+                           maxReplays > 0 && replaysUsed >= maxReplays
+                              ? "var(--muted)"
+                              : "var(--accent)",
+                     }}
+                  />
+                  <span>
+                     {isMobile ? "" : "Replay "}
+                     {maxReplays === 0
+                        ? "(∞)"
+                        : `(${maxReplays - replaysUsed}/${maxReplays})`}
+                  </span>
+               </button>
+
+               <button
+                  onClick={handleShare}
+                  style={{
+                     display: "flex",
+                     alignItems: "center",
+                     gap: isMobile ? "6px" : "8px",
+                     padding: isMobile ? "10px 16px" : "10px 20px",
+                     width: isMobile ? "100%" : "auto",
+                     background:
+                        "linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1))",
+                     border: "1px solid rgba(59, 130, 246, 0.6)",
+
+                     color: "var(--text)",
+                     fontSize: isMobile ? "0.85rem" : "0.95rem",
+                     fontWeight: 600,
+                     cursor: "pointer",
+                     transition: "all 0.3s ease",
+                  }}
+               >
+                  <ShareIcon
+                     style={{
+                        width: isMobile ? 18 : 20,
+                        height: isMobile ? 18 : 20,
+                        color: "var(--accent)",
+                     }}
+                  />
+                  <span>Share for unlimited</span>
+               </button>
             </div>
          </div>
       </div>

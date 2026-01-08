@@ -171,7 +171,6 @@ function LogicGates({
             style={{
                width: "100%",
                background: "var(--card)",
-               border: "1px solid var(--stroke)",
                borderRadius: "16px",
                padding: "20px",
                boxShadow: "0 8px 24px rgba(0, 0, 0, 0.2)",
@@ -236,7 +235,6 @@ function LogicGates({
             <div
                style={{
                   background: "var(--card)",
-                  border: "2px solid var(--stroke)",
                   borderRadius: "20px",
                   padding: "40px",
                   boxShadow: "0 8px 24px rgba(0, 0, 0, 0.2)",
@@ -274,7 +272,7 @@ function LogicGates({
                         style={{
                            width: "80px",
                            height: "80px",
-                           borderRadius: "12px",
+
                            background:
                               input1 === 1
                                  ? "linear-gradient(135deg, rgba(134,239,172,0.3) 0%, rgba(134,239,172,0.1) 100%)"
@@ -315,7 +313,7 @@ function LogicGates({
                      <div
                         style={{
                            padding: "16px 32px",
-                           borderRadius: "12px",
+
                            background:
                               "linear-gradient(135deg, rgba(125, 211, 252, 0.2) 0%, rgba(125, 211, 252, 0.1) 100%)",
                            border: "2px solid var(--accent)",
@@ -351,7 +349,7 @@ function LogicGates({
                            style={{
                               width: "80px",
                               height: "80px",
-                              borderRadius: "12px",
+
                               background:
                                  input2 === 1
                                     ? "linear-gradient(135deg, rgba(134,239,172,0.3) 0%, rgba(134,239,172,0.1) 100%)"
@@ -665,7 +663,7 @@ function LogicGates({
                <div
                   style={{
                      padding: "16px 24px",
-                     borderRadius: "12px",
+
                      fontSize: "1.1rem",
                      fontWeight: 600,
                      animation: "slideIn 0.3s ease-out",

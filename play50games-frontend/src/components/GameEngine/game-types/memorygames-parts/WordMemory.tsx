@@ -776,7 +776,7 @@ function WordMemory({
          <div
             style={{
                padding: isMobile ? "14px 18px" : "16px 24px",
-               borderRadius: "12px",
+
                background: "rgba(15, 27, 51, 0.5)",
                border: "1px solid rgba(255, 255, 255, 0.1)",
                display: "flex",
@@ -898,7 +898,7 @@ function WordMemory({
                      onClick={() => handleWordClick(index)}
                      style={{
                         padding: isMobile ? "16px 12px" : "20px 16px",
-                        borderRadius: "12px",
+
                         border: `2px solid ${
                            isFlashing
                               ? "rgba(59, 130, 246, 0.8)"
@@ -1067,7 +1067,7 @@ function WordMemory({
                         ? "rgba(100, 100, 100, 0.3)"
                         : "rgba(251, 191, 36, 0.6)"
                   }`,
-                  borderRadius: "12px",
+
                   color:
                      maxHints > 0 && hintsUsed >= maxHints
                         ? "rgba(255, 255, 255, 0.4)"
@@ -1146,7 +1146,7 @@ function WordMemory({
                   background:
                      "linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1))",
                   border: "1px solid rgba(59, 130, 246, 0.6)",
-                  borderRadius: "12px",
+
                   color: "var(--text)",
                   fontSize: isMobile ? "0.85rem" : "0.95rem",
                   fontWeight: 600,
@@ -1260,7 +1260,7 @@ function WordMemory({
             <div
                style={{
                   padding: isMobile ? "12px 20px" : "16px 24px",
-                  borderRadius: "12px",
+
                   fontSize: isMobile ? "1rem" : "1.1rem",
                   fontWeight: 600,
                   animation: "slideIn 0.3s ease-out",

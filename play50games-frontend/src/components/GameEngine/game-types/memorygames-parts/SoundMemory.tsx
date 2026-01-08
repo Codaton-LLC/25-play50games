@@ -639,7 +639,6 @@ function SoundMemory({
             style={{
                width: "100%",
                background: "var(--card)",
-               border: "1px solid var(--stroke)",
                borderRadius: isMobile ? "14px" : "16px",
                padding: isMobile ? "16px" : "20px",
                boxShadow: "0 8px 24px rgba(0, 0, 0, 0.2)",
@@ -712,7 +711,6 @@ function SoundMemory({
             style={{
                width: "100%",
                background: "var(--card)",
-               border: "1px solid var(--stroke)",
                borderRadius: isMobile ? "14px" : "16px",
                padding: isMobile ? "16px" : "20px",
                textAlign: "center",
@@ -908,7 +906,7 @@ function SoundMemory({
                      maxReplays > 0 && replaysUsed >= maxReplays
                         ? "1px solid rgba(100, 100, 100, 0.4)"
                         : "1px solid rgba(125, 211, 252, 0.6)",
-                  borderRadius: "12px",
+
                   color: "var(--text)",
                   fontSize: isMobile ? "0.85rem" : "0.95rem",
                   fontWeight: 600,
@@ -986,7 +984,7 @@ function SoundMemory({
                   background:
                      "linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1))",
                   border: "1px solid rgba(59, 130, 246, 0.6)",
-                  borderRadius: "12px",
+
                   color: "var(--text)",
                   fontSize: isMobile ? "0.85rem" : "0.95rem",
                   fontWeight: 600,

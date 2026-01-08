@@ -6,6 +6,9 @@ import { Game } from "@/types/game";
 import { getGame } from "@/lib/api/games";
 import { getGuestId } from "@/lib/storage/progressStorage";
 import GameEngine from "@/components/GameEngine/GameEngine";
+import LoginModal from "@/components/Auth/LoginModal";
+import RegisterModal from "@/components/Auth/RegisterModal";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function GamePage() {
    const params = useParams();
@@ -14,6 +17,9 @@ export default function GamePage() {
    const [game, setGame] = useState<Game | null>(null);
    const [loading, setLoading] = useState(true);
    const [guestId] = useState(() => getGuestId());
+   const [showLoginModal, setShowLoginModal] = useState(false);
+   const [showRegisterModal, setShowRegisterModal] = useState(false);
+   const { login, register } = useAuth();
 
    // Add final-game class to body only for specific games: mixed-quiz, survival-mode, boss-puzzle
    // Add it during loading based on gameId (46, 47, 48) so loading is yellow
@@ -109,6 +115,26 @@ export default function GamePage() {
             game={game}
             onComplete={handleComplete}
             onExit={handleExit}
+            onShowLoginModal={() => setShowLoginModal(true)}
+            onShowRegisterModal={() => setShowRegisterModal(true)}
+         />
+         <LoginModal
+            isOpen={showLoginModal}
+            onClose={() => setShowLoginModal(false)}
+            onLogin={login}
+            onSwitchToRegister={() => {
+               setShowLoginModal(false);
+               setShowRegisterModal(true);
+            }}
+         />
+         <RegisterModal
+            isOpen={showRegisterModal}
+            onClose={() => setShowRegisterModal(false)}
+            onRegister={register}
+            onSwitchToLogin={() => {
+               setShowRegisterModal(false);
+               setShowLoginModal(true);
+            }}
          />
       </div>
    );

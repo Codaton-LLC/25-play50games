@@ -169,7 +169,6 @@ function ColorSequence({
             style={{
                width: "100%",
                background: "var(--card)",
-               border: "1px solid var(--stroke)",
                borderRadius: "16px",
                padding: "20px",
                boxShadow: "0 8px 24px rgba(0, 0, 0, 0.2)",
@@ -253,7 +252,6 @@ function ColorSequence({
             <div
                style={{
                   background: "var(--card)",
-                  border: "2px solid var(--stroke)",
                   borderRadius: "20px",
                   padding: "40px",
                   boxShadow: "0 8px 24px rgba(0, 0, 0, 0.2)",
@@ -341,7 +339,6 @@ function ColorSequence({
                <div
                   style={{
                      background: "var(--card)",
-                     border: "2px solid var(--stroke)",
                      borderRadius: "20px",
                      padding: "24px",
                      boxShadow: "0 8px 24px rgba(0, 0, 0, 0.2)",
@@ -497,7 +494,7 @@ function ColorSequence({
             <div
                style={{
                   padding: "16px 24px",
-                  borderRadius: "12px",
+
                   fontSize: "1.1rem",
                   fontWeight: 600,
                   animation: "slideIn 0.3s ease-out",

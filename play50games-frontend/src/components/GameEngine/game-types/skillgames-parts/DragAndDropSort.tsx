@@ -529,7 +529,7 @@ export default function DragAndDropSort({
    // Use a ref to store the initial levelDefs to prevent reset during gameplay
    const initialLevelDefsRef = useRef<LevelDefinition[] | null>(null);
    const levelDefsInitializedRef = useRef(false);
-   
+
    // Calculate levelDefs from config
    const levelDefsFromConfig = useMemo(() => {
       const rawLevels = config?.levelDefinitions as RawLevel[] | undefined;
@@ -538,7 +538,7 @@ export default function DragAndDropSort({
          : [];
       return normalized.length > 0 ? normalized : LEVEL_DEFS;
    }, [config]);
-   
+
    // Initialize levelDefs ref only once when game starts playing
    // Only update when isPlaying changes, not when levelDefsFromConfig changes during gameplay
    useEffect(() => {
@@ -554,12 +554,12 @@ export default function DragAndDropSort({
       // Intentionally not including levelDefsFromConfig in dependencies
       // to prevent re-initialization when config changes during gameplay
    }, [isPlaying]);
-   
+
    // Use the initial levelDefs if game is playing, otherwise use current levelDefs
    // Use useMemo to ensure stable reference when game is playing
    const levelDefs = useMemo(() => {
-      return isPlaying && initialLevelDefsRef.current 
-         ? initialLevelDefsRef.current 
+      return isPlaying && initialLevelDefsRef.current
+         ? initialLevelDefsRef.current
          : levelDefsFromConfig;
    }, [isPlaying, levelDefsFromConfig]);
 
@@ -754,7 +754,7 @@ export default function DragAndDropSort({
 
    // Track if game was already initialized to prevent reset on config changes
    const gameInitializedRef = useRef(false);
-   
+
    useEffect(() => {
       if (!isPlaying) {
          clearAll();
@@ -820,11 +820,11 @@ export default function DragAndDropSort({
             0
          );
          setTotalItemsCount(totalItems);
-      setPhaseSwitchAt(
-         levelConfig.switchAt && levelConfig.phases.length > 1
-            ? Math.ceil(totalItems * levelConfig.switchAt)
-            : null
-      );
+         setPhaseSwitchAt(
+            levelConfig.switchAt && levelConfig.phases.length > 1
+               ? Math.ceil(totalItems * levelConfig.switchAt)
+               : null
+         );
 
          // Generate items and categories for phase 0
          const newItems = generateItems(level, 0);
@@ -1020,7 +1020,10 @@ export default function DragAndDropSort({
       if (gameState === "ready" && !requirementsMetRef.current) {
          return;
       }
-      if (gameState === "ready" && lastCompletedLevelRef.current !== currentLevel) {
+      if (
+         gameState === "ready" &&
+         lastCompletedLevelRef.current !== currentLevel
+      ) {
          return;
       }
 
@@ -1395,7 +1398,6 @@ export default function DragAndDropSort({
                   width: "100%",
                   maxWidth: "800px",
                   background: "var(--card)",
-                  border: "1px solid var(--stroke)",
                   borderRadius: isMobile ? "16px" : "20px",
                   padding: isMobile ? "16px" : "20px",
                   boxShadow: "0 8px 24px rgba(0, 0, 0, 0.2)",
@@ -1517,7 +1519,7 @@ export default function DragAndDropSort({
                         background:
                            "linear-gradient(135deg, rgba(34, 197, 94, 0.2), rgba(34, 197, 94, 0.1))",
                         border: "1px solid rgba(34, 197, 94, 0.4)",
-                        borderRadius: "12px",
+
                         padding: "10px 16px",
                         display: "flex",
                         alignItems: "center",
@@ -1547,7 +1549,7 @@ export default function DragAndDropSort({
                            background:
                               "linear-gradient(135deg, rgba(239, 68, 68, 0.2), rgba(239, 68, 68, 0.1))",
                            border: "1px solid rgba(239, 68, 68, 0.4)",
-                           borderRadius: "12px",
+
                            padding: "10px 16px",
                            display: "flex",
                            alignItems: "center",
@@ -1591,7 +1593,6 @@ export default function DragAndDropSort({
                      <div
                         style={{
                            background: "var(--card)",
-                           border: "1px solid var(--stroke)",
                            borderRadius: "var(--radius)",
                            padding: isMobile ? "16px" : "20px",
                            boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)",
@@ -1663,7 +1664,7 @@ export default function DragAndDropSort({
                                     background:
                                        "linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1))",
                                     border: "2px solid rgba(59, 130, 246, 0.4)",
-                                    borderRadius: "12px",
+
                                     cursor: "grab",
                                     userSelect: "none",
                                     fontSize: isMobile ? "1rem" : "1.1rem",
@@ -1896,7 +1897,7 @@ export default function DragAndDropSort({
                         border: nextRoundLocked
                            ? "1px solid rgba(100, 100, 100, 0.4)"
                            : "2px solid rgba(134, 239, 172, 0.6)",
-                        borderRadius: "12px",
+
                         color: "var(--text)",
                         fontSize: isMobile ? "1rem" : "1.05rem",
                         fontWeight: 700,
@@ -2018,35 +2019,35 @@ export default function DragAndDropSort({
                currentLevel === maxLevels - 1 &&
                requirementsMet &&
                lastCompletedLevelRef.current === currentLevel && (
-               <div
-                  style={{
-                     padding: isMobile ? "20px 24px" : "24px 32px",
-                     background: "var(--card)",
-                     borderRadius: "var(--radius)",
-                     color: "var(--text)",
-                     fontSize: isMobile ? "1rem" : "1.1rem",
-                     fontWeight: 700,
-                     textAlign: "center",
-                     border: "1px solid var(--border)",
-                  }}
-               >
-                  <div style={{ marginBottom: "16px", color: "var(--ok)" }}>
-                     Game Complete!
-                  </div>
                   <div
                      style={{
-                        fontSize: isMobile ? "0.9rem" : "1rem",
-                        fontWeight: 400,
-                        marginBottom: "20px",
-                        color: "var(--text-secondary)",
+                        padding: isMobile ? "20px 24px" : "24px 32px",
+                        background: "var(--card)",
+                        borderRadius: "var(--radius)",
+                        color: "var(--text)",
+                        fontSize: isMobile ? "1rem" : "1.1rem",
+                        fontWeight: 700,
+                        textAlign: "center",
+                        border: "1px solid var(--border)",
                      }}
                   >
-                     All {maxLevels} levels completed!
-                     <br />
-                     Final Score: {currentScore}
+                     <div style={{ marginBottom: "16px", color: "var(--ok)" }}>
+                        Game Complete!
+                     </div>
+                     <div
+                        style={{
+                           fontSize: isMobile ? "0.9rem" : "1rem",
+                           fontWeight: 400,
+                           marginBottom: "20px",
+                           color: "var(--text-secondary)",
+                        }}
+                     >
+                        All {maxLevels} levels completed!
+                        <br />
+                        Final Score: {currentScore}
+                     </div>
                   </div>
-               </div>
-            )}
+               )}
 
             {/* Action Buttons: Replay, Share */}
             <div
@@ -2057,8 +2058,7 @@ export default function DragAndDropSort({
                   flexWrap: "wrap",
                   padding: isMobile ? "12px" : "16px",
                   background: "var(--card)",
-                  border: "1px solid var(--stroke)",
-                  borderRadius: "12px",
+
                   width: "100%",
                   maxWidth: "800px",
                }}
@@ -2138,7 +2138,7 @@ export default function DragAndDropSort({
                         maxReplays > 0 && replaysUsed >= maxReplays
                            ? "1px solid rgba(100, 100, 100, 0.4)"
                            : "1px solid rgba(125, 211, 252, 0.6)",
-                     borderRadius: "12px",
+
                      color: "var(--text)",
                      fontSize: isMobile ? "0.85rem" : "0.95rem",
                      fontWeight: 600,
@@ -2180,7 +2180,7 @@ export default function DragAndDropSort({
                      background:
                         "linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1))",
                      border: "2px solid rgba(59, 130, 246, 0.6)",
-                     borderRadius: "12px",
+
                      color: "var(--text)",
                      fontSize: isMobile ? "0.85rem" : "0.95rem",
                      fontWeight: 600,

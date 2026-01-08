@@ -136,7 +136,7 @@ export default function TimingBar({
       "playing"
    );
    const requirementsMetRef = useRef(false);
-   const startLevelRef = useRef<() => void>(() => {});
+   const startLevelRef = useRef<(level: number) => void>((level: number) => {});
    const prevLevelRef = useRef<number | null>(null);
    const forceStartLevelRef = useRef<number | null>(null);
    const completionCalledRef = useRef(false);
@@ -399,7 +399,10 @@ export default function TimingBar({
       if (gameState === "ready" && !requirementsMetRef.current) {
          return;
       }
-      if (gameState === "ready" && lastCompletedLevelRef.current !== currentLevel) {
+      if (
+         gameState === "ready" &&
+         lastCompletedLevelRef.current !== currentLevel
+      ) {
          return;
       }
 
@@ -761,7 +764,6 @@ export default function TimingBar({
                   width: "100%",
                   maxWidth: "800px",
                   background: "var(--card)",
-                  border: "1px solid var(--stroke)",
                   borderRadius: isMobile ? "16px" : "20px",
                   padding: isMobile ? "16px" : "20px",
                   boxShadow: "0 8px 24px rgba(0, 0, 0, 0.2)",
@@ -883,7 +885,7 @@ export default function TimingBar({
                         background:
                            "linear-gradient(135deg, rgba(34, 197, 94, 0.2), rgba(34, 197, 94, 0.1))",
                         border: "1px solid rgba(34, 197, 94, 0.4)",
-                        borderRadius: "12px",
+
                         padding: "10px 16px",
                         display: "flex",
                         alignItems: "center",
@@ -912,7 +914,7 @@ export default function TimingBar({
                         background:
                            "linear-gradient(135deg, rgba(239, 68, 68, 0.2), rgba(239, 68, 68, 0.1))",
                         border: "1px solid rgba(239, 68, 68, 0.4)",
-                        borderRadius: "12px",
+
                         padding: "10px 16px",
                         display: "flex",
                         alignItems: "center",
@@ -1051,13 +1053,11 @@ export default function TimingBar({
                         border: nextRoundLocked
                            ? "1px solid rgba(100, 100, 100, 0.4)"
                            : "2px solid rgba(134, 239, 172, 0.6)",
-                        borderRadius: "12px",
+
                         color: "var(--text)",
                         fontSize: isMobile ? "1rem" : "1.05rem",
                         fontWeight: 700,
-                        cursor: nextRoundLocked
-                           ? "not-allowed"
-                           : "pointer",
+                        cursor: nextRoundLocked ? "not-allowed" : "pointer",
                         opacity: nextRoundLocked ? 0.5 : 1,
                         transition: "all 0.3s ease",
                      }}
@@ -1104,35 +1104,35 @@ export default function TimingBar({
                currentLevel === maxLevels - 1 &&
                requirementsMet &&
                lastCompletedLevelRef.current === currentLevel && (
-               <div
-                  style={{
-                     padding: isMobile ? "20px 24px" : "24px 32px",
-                     background: "var(--card)",
-                     borderRadius: "var(--radius)",
-                     color: "var(--text)",
-                     fontSize: isMobile ? "1rem" : "1.1rem",
-                     fontWeight: 700,
-                     textAlign: "center",
-                     border: "1px solid var(--border)",
-                  }}
-               >
-                  <div style={{ marginBottom: "16px", color: "var(--ok)" }}>
-                     Game Complete!
-                  </div>
                   <div
                      style={{
-                        fontSize: isMobile ? "0.9rem" : "1rem",
-                        fontWeight: 400,
-                        marginBottom: "20px",
-                        color: "var(--text-secondary)",
+                        padding: isMobile ? "20px 24px" : "24px 32px",
+                        background: "var(--card)",
+                        borderRadius: "var(--radius)",
+                        color: "var(--text)",
+                        fontSize: isMobile ? "1rem" : "1.1rem",
+                        fontWeight: 700,
+                        textAlign: "center",
+                        border: "1px solid var(--border)",
                      }}
                   >
-                     All {maxLevels} levels completed!
-                     <br />
-                     Final Score: {currentScore}
+                     <div style={{ marginBottom: "16px", color: "var(--ok)" }}>
+                        Game Complete!
+                     </div>
+                     <div
+                        style={{
+                           fontSize: isMobile ? "0.9rem" : "1rem",
+                           fontWeight: 400,
+                           marginBottom: "20px",
+                           color: "var(--text-secondary)",
+                        }}
+                     >
+                        All {maxLevels} levels completed!
+                        <br />
+                        Final Score: {currentScore}
+                     </div>
                   </div>
-               </div>
-            )}
+               )}
 
             {/* Action Buttons: Replay, Share */}
             <div
@@ -1143,8 +1143,7 @@ export default function TimingBar({
                   flexWrap: "wrap",
                   padding: isMobile ? "12px" : "16px",
                   background: "var(--card)",
-                  border: "1px solid var(--stroke)",
-                  borderRadius: "12px",
+
                   width: "100%",
                   maxWidth: "800px",
                }}
@@ -1224,7 +1223,7 @@ export default function TimingBar({
                         maxReplays > 0 && replaysUsed >= maxReplays
                            ? "1px solid rgba(100, 100, 100, 0.4)"
                            : "1px solid rgba(125, 211, 252, 0.6)",
-                     borderRadius: "12px",
+
                      color: "var(--text)",
                      fontSize: isMobile ? "0.85rem" : "0.95rem",
                      fontWeight: 600,
@@ -1266,7 +1265,7 @@ export default function TimingBar({
                      background:
                         "linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1))",
                      border: "2px solid rgba(59, 130, 246, 0.6)",
-                     borderRadius: "12px",
+
                      color: "var(--text)",
                      fontSize: isMobile ? "0.85rem" : "0.95rem",
                      fontWeight: 600,

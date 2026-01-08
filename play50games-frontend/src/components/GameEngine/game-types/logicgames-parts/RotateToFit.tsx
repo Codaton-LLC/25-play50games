@@ -558,7 +558,7 @@ function RotateToFit({
             <div
                style={{
                   padding: "16px 24px",
-                  borderRadius: "12px",
+
                   fontSize: "1.1rem",
                   fontWeight: 600,
                   animation: "slideIn 0.3s ease-out",

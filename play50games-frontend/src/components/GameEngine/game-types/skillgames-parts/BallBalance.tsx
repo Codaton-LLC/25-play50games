@@ -199,12 +199,12 @@ export default function BallBalance({
          // Special features
          shrinkingPlatform: false,
          redZones: [] as Array<{ start: number; end: number }>,
-        platformShake: false,
-        shakeInterval: 0,
-        shakeIntensity: 6,
-        shakeDuration: 0.8,
-        shakeFrequency: 10,
-        shakeAngle: 3,
+         platformShake: false,
+         shakeInterval: 0,
+         shakeIntensity: 6,
+         shakeDuration: 0.8,
+         shakeFrequency: 10,
+         shakeAngle: 3,
          windZones: [] as Array<{ start: number; end: number; force: number }>,
          shrinkMinScale: 0.6,
          shrinkDelay: 0,
@@ -448,26 +448,26 @@ export default function BallBalance({
                   req.shakeDuration !== undefined
                      ? req.shakeDuration
                      : basePhysics.shakeDuration,
-              shakeFrequency:
-                 req.shakeFrequency !== undefined
-                    ? req.shakeFrequency
-                    : basePhysics.shakeFrequency,
-              shakeAngle:
-                 req.shakeAngle !== undefined
-                    ? req.shakeAngle
-                    : basePhysics.shakeAngle,
-              windZones:
-                 req.windZones && req.windZones.length > 0
-                    ? req.windZones
-                    : basePhysics.windZones,
-              shrinkMinScale:
-                 req.shrinkMinScale !== undefined
-                    ? req.shrinkMinScale
-                    : basePhysics.shrinkMinScale,
-              shrinkDelay:
-                 req.shrinkDelay !== undefined
-                    ? req.shrinkDelay
-                    : basePhysics.shrinkDelay,
+               shakeFrequency:
+                  req.shakeFrequency !== undefined
+                     ? req.shakeFrequency
+                     : basePhysics.shakeFrequency,
+               shakeAngle:
+                  req.shakeAngle !== undefined
+                     ? req.shakeAngle
+                     : basePhysics.shakeAngle,
+               windZones:
+                  req.windZones && req.windZones.length > 0
+                     ? req.windZones
+                     : basePhysics.windZones,
+               shrinkMinScale:
+                  req.shrinkMinScale !== undefined
+                     ? req.shrinkMinScale
+                     : basePhysics.shrinkMinScale,
+               shrinkDelay:
+                  req.shrinkDelay !== undefined
+                     ? req.shrinkDelay
+                     : basePhysics.shrinkDelay,
             };
          }
 
@@ -606,19 +606,19 @@ export default function BallBalance({
             const shrinkDelay = Math.max(0, currentConfig.shrinkDelay || 0);
             const effectiveElapsed = Math.max(0, elapsed - shrinkDelay);
             const shrinkProgress = Math.min(1, effectiveElapsed / levelDur);
-           const baseWidth =
-              initialPlatformWidthRef.current || currentConfig.platformWidth;
-           const minScale =
-              currentConfig.shrinkMinScale !== undefined
-                 ? currentConfig.shrinkMinScale
-                 : 0.6;
-           const minWidth = baseWidth * minScale;
-           const newWidth =
-              baseWidth - (baseWidth - minWidth) * shrinkProgress;
-           currentPlatformWidthRef.current = newWidth;
-           setCurrentPlatformWidth(newWidth);
+            const baseWidth =
+               initialPlatformWidthRef.current || currentConfig.platformWidth;
+            const minScale =
+               currentConfig.shrinkMinScale !== undefined
+                  ? currentConfig.shrinkMinScale
+                  : 0.6;
+            const minWidth = baseWidth * minScale;
+            const newWidth =
+               baseWidth - (baseWidth - minWidth) * shrinkProgress;
+            currentPlatformWidthRef.current = newWidth;
+            setCurrentPlatformWidth(newWidth);
             setPlatformScale(baseWidth > 0 ? newWidth / baseWidth : 1);
-        }
+         }
 
          // Platform shake effect
          if (currentConfig.platformShake && currentConfig.shakeInterval) {
@@ -685,8 +685,7 @@ export default function BallBalance({
          // Update ball physics
          // Acceleration along platform from gravity component
          const a =
-            Math.sin((effectiveAngle * Math.PI) / 180) *
-            currentConfig.gravity;
+            Math.sin((effectiveAngle * Math.PI) / 180) * currentConfig.gravity;
          ballVRef.current = ballVRef.current + a * dt;
          ballVRef.current =
             ballVRef.current * Math.pow(currentConfig.friction, dt * 60);
@@ -702,7 +701,8 @@ export default function BallBalance({
                      : Math.floor(Math.random() * windConfig.length);
                activeWindIndexRef.current = nextIndex;
                setActiveWindIndex(nextIndex);
-               nextWindSwitchTimeRef.current = now + 1500 + Math.random() * 1500;
+               nextWindSwitchTimeRef.current =
+                  now + 1500 + Math.random() * 1500;
             }
          } else if (activeWindIndexRef.current !== null) {
             activeWindIndexRef.current = null;
@@ -796,7 +796,14 @@ export default function BallBalance({
             onScoreUpdate(newScore);
          }
       }
-   }, [timeLeft, requirementsMet, gameState, currentLevel, maxLevels, onScoreUpdate]);
+   }, [
+      timeLeft,
+      requirementsMet,
+      gameState,
+      currentLevel,
+      maxLevels,
+      onScoreUpdate,
+   ]);
 
    const finalizeGame = useCallback(() => {
       if (completionCalledRef.current) return;
@@ -1325,7 +1332,8 @@ export default function BallBalance({
    const levelConfig = getLevelConfig(currentLevel);
    const progress = ((currentLevel + 1) / maxLevels) * 100;
    const minTimeInCenter = getMinTimeInCenter();
-   const activeWind = activeWindIndex !== null ? windZones[activeWindIndex] : null;
+   const activeWind =
+      activeWindIndex !== null ? windZones[activeWindIndex] : null;
    const windStatus = activeWind
       ? activeWind.force < 0
          ? "Wind Left Active"
@@ -1350,7 +1358,6 @@ export default function BallBalance({
                width: "100%",
                maxWidth: "800px",
                background: "var(--card)",
-               border: "1px solid var(--stroke)",
                borderRadius: isMobile ? "14px" : "16px",
                padding: isMobile ? "16px" : "20px",
                boxShadow: "0 8px 24px rgba(0, 0, 0, 0.2)",
@@ -1505,7 +1512,7 @@ export default function BallBalance({
                         position: "absolute",
                         width: `${zone.end - zone.start}px`,
                         height: "70px",
-                        borderRadius: "12px",
+
                         border: "2px solid rgba(239, 68, 68, 0.8)",
                         background:
                            timeInRedZone > 0.5
@@ -1534,7 +1541,7 @@ export default function BallBalance({
                         position: "absolute",
                         width: `${zone.end - zone.start}px`,
                         height: "70px",
-                        borderRadius: "12px",
+
                         border:
                            idx === activeWindIndex
                               ? "2px solid rgba(59, 130, 246, 0.9)"
@@ -1659,7 +1666,6 @@ export default function BallBalance({
                         fontWeight: 700,
                         textAlign: "center" as const,
                         boxShadow: "0 10px 24px rgba(0, 0, 0, 0.25)",
-                        border: "1px solid var(--stroke)",
                         zIndex: 10,
                      }}
                   >
@@ -1708,7 +1714,6 @@ export default function BallBalance({
                   fontWeight: 700,
                   textAlign: "center" as const,
                   boxShadow: "0 10px 24px rgba(0, 0, 0, 0.25)",
-                  border: "1px solid var(--stroke)",
                   width: "100%",
                   maxWidth: "800px",
                }}
@@ -1749,7 +1754,7 @@ export default function BallBalance({
                      background:
                         "linear-gradient(135deg, rgba(134, 239, 172, 0.25), rgba(134, 239, 172, 0.12))",
                      border: "2px solid rgba(134, 239, 172, 0.6)",
-                     borderRadius: "12px",
+
                      color: "var(--text)",
                      fontSize: isMobile ? "1rem" : "1.05rem",
                      fontWeight: 700,
@@ -1794,7 +1799,6 @@ export default function BallBalance({
                   fontWeight: 700,
                   textAlign: "center" as const,
                   boxShadow: "0 10px 24px rgba(0, 0, 0, 0.25)",
-                  border: "1px solid var(--stroke)",
                   width: "100%",
                   maxWidth: "800px",
                }}
@@ -1853,7 +1857,6 @@ export default function BallBalance({
                   fontWeight: 700,
                   textAlign: "center" as const,
                   boxShadow: "0 10px 24px rgba(0, 0, 0, 0.25)",
-                  border: "1px solid var(--stroke)",
                   width: "100%",
                   maxWidth: "800px",
                }}
@@ -1917,7 +1920,7 @@ export default function BallBalance({
                      background:
                         "linear-gradient(135deg, rgba(134, 239, 172, 0.25), rgba(134, 239, 172, 0.12))",
                      border: "2px solid rgba(134, 239, 172, 0.6)",
-                     borderRadius: "12px",
+
                      color: "var(--text)",
                      fontSize: isMobile ? "0.85rem" : "0.95rem",
                      fontWeight: 600,
@@ -1931,7 +1934,7 @@ export default function BallBalance({
                      background:
                         "linear-gradient(135deg, rgba(110, 168, 255, 0.25), rgba(110, 168, 255, 0.12))",
                      border: "2px solid rgba(110, 168, 255, 0.6)",
-                     borderRadius: "12px",
+
                      color: "var(--text)",
                      fontSize: isMobile ? "0.85rem" : "0.95rem",
                      fontWeight: 600,
@@ -1952,8 +1955,7 @@ export default function BallBalance({
                   flexWrap: "wrap",
                   padding: isMobile ? "12px" : "16px",
                   background: "var(--card)",
-                  border: "1px solid var(--stroke)",
-                  borderRadius: "12px",
+
                   width: "100%",
                   maxWidth: "800px",
                }}
@@ -2033,7 +2035,7 @@ export default function BallBalance({
                         maxReplays > 0 && replaysUsed >= maxReplays
                            ? "1px solid rgba(100, 100, 100, 0.4)"
                            : "1px solid rgba(125, 211, 252, 0.6)",
-                     borderRadius: "12px",
+
                      color: "var(--text)",
                      fontSize: isMobile ? "0.85rem" : "0.95rem",
                      fontWeight: 600,
@@ -2100,7 +2102,7 @@ export default function BallBalance({
                      background:
                         "linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1))",
                      border: "1px solid rgba(59, 130, 246, 0.6)",
-                     borderRadius: "12px",
+
                      color: "var(--text)",
                      fontSize: isMobile ? "0.85rem" : "0.95rem",
                      fontWeight: 600,

@@ -809,29 +809,29 @@ export default function FallingObjects({
 
          requirementsMetRef.current = true;
          setRequirementsMet(true);
-        setGameState("ready");
-        setObjects([]);
+         setGameState("ready");
+         setObjects([]);
 
-        if (currentLevel + 1 >= maxLevels) {
-           finalizeGame();
-        } else {
-           const roundScore = Math.round(100 / maxLevels);
-           const completedLevels = currentLevel + 1;
-           const newScore = Math.min(100, completedLevels * roundScore);
-           setCurrentScore(newScore);
-           onScoreUpdate(newScore);
-        }
-     }
-  }, [
-     caughtGood,
-     gameState,
-     requirementsMet,
-     getMinCaughtGood,
-     currentLevel,
-     maxLevels,
-     onScoreUpdate,
-     finalizeGame,
-  ]);
+         if (currentLevel + 1 >= maxLevels) {
+            finalizeGame();
+         } else {
+            const roundScore = Math.round(100 / maxLevels);
+            const completedLevels = currentLevel + 1;
+            const newScore = Math.min(100, completedLevels * roundScore);
+            setCurrentScore(newScore);
+            onScoreUpdate(newScore);
+         }
+      }
+   }, [
+      caughtGood,
+      gameState,
+      requirementsMet,
+      getMinCaughtGood,
+      currentLevel,
+      maxLevels,
+      onScoreUpdate,
+      finalizeGame,
+   ]);
 
    // Check if time runs out and requirements are not met
    useEffect(() => {
@@ -1004,7 +1004,6 @@ export default function FallingObjects({
                   width: "100%",
                   maxWidth: "800px",
                   background: "var(--card)",
-                  border: "1px solid var(--stroke)",
                   borderRadius: isMobile ? "14px" : "16px",
                   padding: isMobile ? "16px" : "20px",
                   boxShadow: "0 8px 24px rgba(0, 0, 0, 0.2)",
@@ -1126,7 +1125,7 @@ export default function FallingObjects({
                         background:
                            "linear-gradient(135deg, rgba(134, 239, 172, 0.25), rgba(134, 239, 172, 0.12))",
                         border: "2px solid rgba(134, 239, 172, 0.6)",
-                        borderRadius: "12px",
+
                         color: "var(--text)",
                         fontSize: isMobile ? "0.85rem" : "0.95rem",
                         fontWeight: 600,
@@ -1140,7 +1139,7 @@ export default function FallingObjects({
                         background:
                            "linear-gradient(135deg, rgba(252, 165, 165, 0.25), rgba(252, 165, 165, 0.12))",
                         border: "2px solid rgba(252, 165, 165, 0.6)",
-                        borderRadius: "12px",
+
                         color: "var(--text)",
                         fontSize: isMobile ? "0.85rem" : "0.95rem",
                         fontWeight: 600,
@@ -1154,7 +1153,7 @@ export default function FallingObjects({
                         background:
                            "linear-gradient(135deg, rgba(251, 191, 36, 0.25), rgba(251, 191, 36, 0.12))",
                         border: "2px solid rgba(251, 191, 36, 0.6)",
-                        borderRadius: "12px",
+
                         color: "var(--text)",
                         fontSize: isMobile ? "0.85rem" : "0.95rem",
                         fontWeight: 600,
@@ -1169,8 +1168,7 @@ export default function FallingObjects({
                   style={{
                      padding: isMobile ? "8px 12px" : "10px 16px",
                      background: "var(--card)",
-                     border: "1px solid var(--stroke)",
-                     borderRadius: "12px",
+
                      color: "var(--text)",
                      fontSize: isMobile ? "0.9rem" : "1rem",
                      fontWeight: 600,
@@ -1189,7 +1187,6 @@ export default function FallingObjects({
                         minHeight: isMobile ? "400px" : "500px",
                         maxHeight: isMobile ? "400px" : "500px",
                         borderRadius: "var(--radius)",
-                        border: "2px solid var(--stroke)",
                         background:
                            "radial-gradient(320px 220px at 30% 30%, rgba(59, 130, 246, 0.1), transparent 55%), linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02))",
                         boxShadow: "0 10px 18px rgba(0, 0, 0, 0.22)",
@@ -1282,7 +1279,7 @@ export default function FallingObjects({
                                     ? "rgba(134, 239, 172, 0.6)"
                                     : "rgba(252, 165, 165, 0.6)"
                               }`,
-                              borderRadius: "12px",
+
                               color:
                                  feedback === "good"
                                     ? "var(--ok)"
@@ -1328,7 +1325,6 @@ export default function FallingObjects({
                         fontWeight: 700,
                         textAlign: "center" as const,
                         boxShadow: "0 10px 24px rgba(0, 0, 0, 0.25)",
-                        border: "1px solid var(--stroke)",
                         width: "100%",
                      }}
                   >
@@ -1368,7 +1364,7 @@ export default function FallingObjects({
                            background:
                               "linear-gradient(135deg, rgba(134, 239, 172, 0.25), rgba(134, 239, 172, 0.12))",
                            border: "2px solid rgba(134, 239, 172, 0.6)",
-                           borderRadius: "12px",
+
                            color: "var(--text)",
                            fontSize: isMobile ? "1rem" : "1.05rem",
                            fontWeight: 700,
@@ -1393,7 +1389,6 @@ export default function FallingObjects({
                         fontWeight: 700,
                         textAlign: "center" as const,
                         boxShadow: "0 10px 24px rgba(0, 0, 0, 0.25)",
-                        border: "1px solid var(--stroke)",
                         width: "100%",
                      }}
                   >
@@ -1441,7 +1436,6 @@ export default function FallingObjects({
                         fontWeight: 700,
                         textAlign: "center" as const,
                         boxShadow: "0 10px 24px rgba(0, 0, 0, 0.25)",
-                        border: "1px solid var(--stroke)",
                         width: "100%",
                      }}
                   >
@@ -1488,8 +1482,7 @@ export default function FallingObjects({
                         flexWrap: "wrap",
                         padding: isMobile ? "12px" : "16px",
                         background: "var(--card)",
-                        border: "1px solid var(--stroke)",
-                        borderRadius: "12px",
+
                         width: "100%",
                      }}
                   >
@@ -1568,7 +1561,7 @@ export default function FallingObjects({
                               maxReplays > 0 && replaysUsed >= maxReplays
                                  ? "1px solid rgba(100, 100, 100, 0.4)"
                                  : "1px solid rgba(125, 211, 252, 0.6)",
-                           borderRadius: "12px",
+
                            color: "var(--text)",
                            fontSize: isMobile ? "0.85rem" : "0.95rem",
                            fontWeight: 600,
@@ -1612,7 +1605,7 @@ export default function FallingObjects({
                            background:
                               "linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1))",
                            border: "1px solid rgba(59, 130, 246, 0.6)",
-                           borderRadius: "12px",
+
                            color: "var(--text)",
                            fontSize: isMobile ? "0.85rem" : "0.95rem",
                            fontWeight: 600,

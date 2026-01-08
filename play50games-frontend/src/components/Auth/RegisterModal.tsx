@@ -169,7 +169,6 @@ export default function RegisterModal({ isOpen, onClose, onRegister, onSwitchToL
             padding: '0.75rem',
             backgroundColor: 'rgba(252, 165, 165, 0.15)',
             border: '1px solid rgba(252, 165, 165, 0.4)',
-            borderRadius: '12px',
             color: 'var(--warn)',
             marginBottom: '1rem',
             fontSize: '14px'

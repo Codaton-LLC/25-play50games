@@ -1440,7 +1440,10 @@ export default function SpeedDrawing({
          return;
       }
 
-      if (gameState === "ready" && lastCompletedLevelRef.current !== currentLevel) {
+      if (
+         gameState === "ready" &&
+         lastCompletedLevelRef.current !== currentLevel
+      ) {
          return;
       }
 
@@ -1460,9 +1463,7 @@ export default function SpeedDrawing({
          currentLevel < maxLevels - 1 &&
          scoreCalculatedForLevelRef.current !== currentLevel
       ) {
-         const rawScore = Math.round(
-            ((currentLevel + 1) / maxLevels) * 100
-         );
+         const rawScore = Math.round(((currentLevel + 1) / maxLevels) * 100);
          const newScore = Math.min(99, rawScore);
          setCurrentScore(newScore);
          onScoreUpdate(newScore);
@@ -1871,7 +1872,6 @@ export default function SpeedDrawing({
                   width: "100%",
                   maxWidth: "800px",
                   background: "var(--card)",
-                  border: "1px solid var(--stroke)",
                   borderRadius: isMobile ? "16px" : "20px",
                   padding: isMobile ? "16px" : "20px",
                   boxShadow: "0 8px 24px rgba(0, 0, 0, 0.2)",
@@ -1924,9 +1924,7 @@ export default function SpeedDrawing({
                            color: "var(--ok)",
                         }}
                      />
-                     Score:{" "}
-                     {currentScore}{" "}
-                     / 100
+                     Score: {currentScore} / 100
                   </span>
                   <span
                      style={{
@@ -1989,7 +1987,7 @@ export default function SpeedDrawing({
                         background:
                            "linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1))",
                         border: "1px solid rgba(59, 130, 246, 0.4)",
-                        borderRadius: "12px",
+
                         padding: "10px 16px",
                         display: "flex",
                         alignItems: "center",
@@ -2026,7 +2024,7 @@ export default function SpeedDrawing({
                                     ? "rgba(34, 197, 94, 0.4)"
                                     : "rgba(239, 68, 68, 0.4)"
                               }`,
-                              borderRadius: "12px",
+
                               padding: "10px 16px",
                               display: "flex",
                               alignItems: "center",
@@ -2072,7 +2070,7 @@ export default function SpeedDrawing({
                                     ? "rgba(34, 197, 94, 0.4)"
                                     : "rgba(239, 68, 68, 0.4)"
                               }`,
-                              borderRadius: "12px",
+
                               padding: "10px 16px",
                               display: "flex",
                               alignItems: "center",
@@ -2124,7 +2122,6 @@ export default function SpeedDrawing({
                      width: "100%",
                      maxWidth: "800px",
                      background: "var(--card)",
-                     border: "1px solid var(--stroke)",
                      borderRadius: "var(--radius)",
                      padding: isMobile ? "16px" : "20px",
                      boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)",
@@ -2194,7 +2191,7 @@ export default function SpeedDrawing({
                         border: nextRoundLocked
                            ? "1px solid rgba(100, 100, 100, 0.4)"
                            : "2px solid rgba(134, 239, 172, 0.6)",
-                        borderRadius: "12px",
+
                         color: "var(--text)",
                         fontSize: isMobile ? "1rem" : "1.05rem",
                         fontWeight: 700,
@@ -2343,8 +2340,7 @@ export default function SpeedDrawing({
                   flexWrap: "wrap",
                   padding: isMobile ? "12px" : "16px",
                   background: "var(--card)",
-                  border: "1px solid var(--stroke)",
-                  borderRadius: "12px",
+
                   width: "100%",
                   maxWidth: "800px",
                }}
@@ -2424,7 +2420,7 @@ export default function SpeedDrawing({
                         maxReplays > 0 && replaysUsed >= maxReplays
                            ? "1px solid rgba(100, 100, 100, 0.4)"
                            : "1px solid rgba(125, 211, 252, 0.6)",
-                     borderRadius: "12px",
+
                      color: "var(--text)",
                      fontSize: isMobile ? "0.85rem" : "0.95rem",
                      fontWeight: 600,
@@ -2466,7 +2462,7 @@ export default function SpeedDrawing({
                      background:
                         "linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1))",
                      border: "1px solid rgba(59, 130, 246, 0.6)",
-                     borderRadius: "12px",
+
                      color: "var(--text)",
                      fontSize: isMobile ? "0.85rem" : "0.95rem",
                      fontWeight: 600,

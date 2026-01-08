@@ -1,6 +1,12 @@
 "use client";
 
-import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import React, {
+   useState,
+   useEffect,
+   useCallback,
+   useRef,
+   useMemo,
+} from "react";
 import {
    CheckCircleIcon,
    XCircleIcon,
@@ -698,23 +704,23 @@ export default function AvoidRed({
          gameStateRef.current = "ready";
 
          // If this is the last level, finalize game completion
-        if (currentLevel + 1 >= maxLevels) {
-           const finalScore = 100;
-           setCurrentScore(finalScore);
-           onScoreUpdate(finalScore);
-           if (!completionCalledRef.current) {
-              completionCalledRef.current = true;
-              setTimeout(() => {
-                 onComplete(finalScore);
-              }, 1000);
-           }
-        } else {
-           const roundScore = Math.round(100 / maxLevels);
-           const completedLevels = currentLevel + 1;
-           const newScore = Math.min(100, completedLevels * roundScore);
-           setCurrentScore(newScore);
-           onScoreUpdate(newScore);
-        }
+         if (currentLevel + 1 >= maxLevels) {
+            const finalScore = 100;
+            setCurrentScore(finalScore);
+            onScoreUpdate(finalScore);
+            if (!completionCalledRef.current) {
+               completionCalledRef.current = true;
+               setTimeout(() => {
+                  onComplete(finalScore);
+               }, 1000);
+            }
+         } else {
+            const roundScore = Math.round(100 / maxLevels);
+            const completedLevels = currentLevel + 1;
+            const newScore = Math.min(100, completedLevels * roundScore);
+            setCurrentScore(newScore);
+            onScoreUpdate(newScore);
+         }
       }
    }, [
       timeLeft,
@@ -858,7 +864,7 @@ export default function AvoidRed({
          padding: isMobile ? "12px 24px" : "14px 28px",
          background: `linear-gradient(135deg, ${bgFrom}, ${bgTo})`,
          border: `2px solid ${borderColor}`,
-         borderRadius: "12px",
+
          color: "var(--text)",
          fontSize: isMobile ? "1rem" : "1.05rem",
          fontWeight: 700,
@@ -926,7 +932,6 @@ export default function AvoidRed({
       fontWeight: 700,
       textAlign: "center" as const,
       boxShadow: "0 10px 24px rgba(0, 0, 0, 0.25)",
-      border: "1px solid var(--stroke)",
       width: "100%",
    });
 
@@ -976,7 +981,6 @@ export default function AvoidRed({
                width: "100%",
                maxWidth: "800px",
                background: "var(--card)",
-               border: "1px solid var(--stroke)",
                borderRadius: isMobile ? "14px" : "16px",
                padding: isMobile ? "16px" : "20px",
                boxShadow: "0 8px 24px rgba(0, 0, 0, 0.2)",
@@ -1079,7 +1083,7 @@ export default function AvoidRed({
                   background:
                      "linear-gradient(135deg, rgba(252, 165, 165, 0.25), rgba(252, 165, 165, 0.12))",
                   border: "2px solid rgba(252, 165, 165, 0.6)",
-                  borderRadius: "12px",
+
                   color: "var(--text)",
                   fontSize: isMobile ? "0.85rem" : "0.95rem",
                   fontWeight: 600,
@@ -1093,7 +1097,7 @@ export default function AvoidRed({
                   background:
                      "linear-gradient(135deg, rgba(59, 130, 246, 0.25), rgba(59, 130, 246, 0.12))",
                   border: "2px solid rgba(59, 130, 246, 0.6)",
-                  borderRadius: "12px",
+
                   color: "var(--text)",
                   fontSize: isMobile ? "0.85rem" : "0.95rem",
                   fontWeight: 600,
@@ -1113,8 +1117,7 @@ export default function AvoidRed({
                   flexWrap: "wrap",
                   padding: isMobile ? "12px" : "16px",
                   background: "var(--card)",
-                  border: "1px solid var(--stroke)",
-                  borderRadius: "12px",
+
                   width: "100%",
                   maxWidth: "800px",
                }}
@@ -1195,7 +1198,7 @@ export default function AvoidRed({
                         maxReplays > 0 && replaysUsed >= maxReplays
                            ? "1px solid rgba(100, 100, 100, 0.4)"
                            : "1px solid rgba(125, 211, 252, 0.6)",
-                     borderRadius: "12px",
+
                      color: "var(--text)",
                      fontSize: isMobile ? "0.85rem" : "0.95rem",
                      fontWeight: 600,
@@ -1262,7 +1265,7 @@ export default function AvoidRed({
                      background:
                         "linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1))",
                      border: "1px solid rgba(59, 130, 246, 0.6)",
-                     borderRadius: "12px",
+
                      color: "var(--text)",
                      fontSize: isMobile ? "0.85rem" : "0.95rem",
                      fontWeight: 600,
@@ -1353,7 +1356,7 @@ export default function AvoidRed({
                      transform: "translate(-50%, -50%)",
                      width: `${obs.size}px`,
                      height: `${obs.size}px`,
-                     borderRadius: "12px",
+
                      background: "rgba(251, 113, 133, 0.9)",
                      boxShadow: "0 0 16px rgba(251, 113, 133, 0.35)",
                      pointerEvents: "none",

@@ -14,6 +14,7 @@ import { getGameInstructions } from "@/lib/utils/gameInstructions";
 import { useAuth } from "@/contexts/AuthContext";
 import LoginModal from "@/components/Auth/LoginModal";
 import RegisterModal from "@/components/Auth/RegisterModal";
+import Header from "@/components/Header/Header";
 import {
    TrophyIcon,
    CheckBadgeIcon,
@@ -27,6 +28,8 @@ import {
    LightBulbIcon,
    UserIcon,
    ArrowRightOnRectangleIcon,
+   ChevronDownIcon,
+   UserCircleIcon,
 } from "@heroicons/react/24/outline";
 
 type GameCategory = "all" | "logic" | "memory" | "speed" | "skill" | "final";
@@ -285,190 +288,11 @@ export default function HomePage() {
 
    return (
       <div className="home-page">
-         <header>
-            <h1>Play50Games</h1>
-            <p>Complete all games to earn your certificate!</p>
-
-            {/* Auth Section */}
-            <div
-               style={{
-                  marginTop: "1rem",
-                  padding: "1rem",
-                  backgroundColor: isAuthenticated
-                     ? "rgba(134, 239, 172, 0.1)"
-                     : "rgba(255, 255, 255, 0.06)",
-                  border: `1px solid ${
-                     isAuthenticated
-                        ? "rgba(134, 239, 172, 0.3)"
-                        : "var(--stroke)"
-                  }`,
-                  borderRadius: "12px",
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  flexWrap: "wrap",
-                  gap: "1rem",
-               }}
-            >
-               {isAuthenticated && user ? (
-                  <>
-                     <div
-                        style={{
-                           display: "flex",
-                           alignItems: "center",
-                           gap: "0.5rem",
-                        }}
-                     >
-                        <UserIcon
-                           style={{
-                              width: 20,
-                              height: 20,
-                              color: "var(--secondary)",
-                           }}
-                        />
-                        <span
-                           style={{ fontWeight: "bold", color: "var(--text)" }}
-                        >
-                           Welcome, {user.display_name || user.email}!
-                        </span>
-                        <span
-                           style={{ color: "var(--muted)", fontSize: "0.9rem" }}
-                        >
-                           (Your progress is saved)
-                        </span>
-                     </div>
-                     <button
-                        onClick={logout}
-                        style={{
-                           padding: "9px 16px",
-                           backgroundColor: "rgba(252, 165, 165, 0.15)",
-                           color: "var(--warn)",
-                           border: "1px solid rgba(252, 165, 165, 0.35)",
-                           borderRadius: "12px",
-                           cursor: "pointer",
-                           display: "flex",
-                           alignItems: "center",
-                           gap: "0.5rem",
-                           fontWeight: "600",
-                           fontSize: "14px",
-                           transition: "all 0.2s ease",
-                        }}
-                        onMouseEnter={(e) => {
-                           e.currentTarget.style.backgroundColor =
-                              "rgba(252, 165, 165, 0.25)";
-                           e.currentTarget.style.borderColor =
-                              "rgba(252, 165, 165, 0.5)";
-                        }}
-                        onMouseLeave={(e) => {
-                           e.currentTarget.style.backgroundColor =
-                              "rgba(252, 165, 165, 0.15)";
-                           e.currentTarget.style.borderColor =
-                              "rgba(252, 165, 165, 0.35)";
-                        }}
-                     >
-                        <ArrowRightOnRectangleIcon
-                           style={{ width: 18, height: 18 }}
-                        />
-                        Logout
-                     </button>
-                  </>
-               ) : (
-                  <>
-                     <div
-                        style={{
-                           display: "flex",
-                           alignItems: "center",
-                           gap: "0.5rem",
-                        }}
-                     >
-                        <span
-                           style={{ fontWeight: "bold", color: "var(--text)" }}
-                        >
-                           Playing as Guest
-                        </span>
-                        <span
-                           style={{ color: "var(--muted)", fontSize: "0.9rem" }}
-                        >
-                           (Progress saved locally)
-                        </span>
-                     </div>
-                     <div style={{ display: "flex", gap: "0.5rem" }}>
-                        <button
-                           onClick={() => setShowLoginModal(true)}
-                           style={{
-                              padding: "9px 16px",
-                              backgroundColor: "rgba(125, 211, 252, 0.14)",
-                              color: "var(--accent)",
-                              border: "1px solid rgba(125, 211, 252, 0.35)",
-                              borderRadius: "12px",
-                              cursor: "pointer",
-                              fontWeight: "600",
-                              fontSize: "14px",
-                              transition: "all 0.2s ease",
-                           }}
-                           onMouseEnter={(e) => {
-                              e.currentTarget.style.backgroundColor =
-                                 "rgba(125, 211, 252, 0.24)";
-                              e.currentTarget.style.borderColor =
-                                 "rgba(125, 211, 252, 0.5)";
-                           }}
-                           onMouseLeave={(e) => {
-                              e.currentTarget.style.backgroundColor =
-                                 "rgba(125, 211, 252, 0.14)";
-                              e.currentTarget.style.borderColor =
-                                 "rgba(125, 211, 252, 0.35)";
-                           }}
-                        >
-                           Login
-                        </button>
-                        <button
-                           onClick={() => setShowRegisterModal(true)}
-                           style={{
-                              padding: "9px 16px",
-                              backgroundColor: "rgba(134, 239, 172, 0.14)",
-                              color: "var(--secondary)",
-                              border: "1px solid rgba(134, 239, 172, 0.35)",
-                              borderRadius: "12px",
-                              cursor: "pointer",
-                              fontWeight: "600",
-                              fontSize: "14px",
-                              transition: "all 0.2s ease",
-                           }}
-                           onMouseEnter={(e) => {
-                              e.currentTarget.style.backgroundColor =
-                                 "rgba(134, 239, 172, 0.24)";
-                              e.currentTarget.style.borderColor =
-                                 "rgba(134, 239, 172, 0.5)";
-                           }}
-                           onMouseLeave={(e) => {
-                              e.currentTarget.style.backgroundColor =
-                                 "rgba(134, 239, 172, 0.14)";
-                              e.currentTarget.style.borderColor =
-                                 "rgba(134, 239, 172, 0.35)";
-                           }}
-                        >
-                           Register
-                        </button>
-                     </div>
-                  </>
-               )}
-            </div>
-         </header>
-
-         <nav className="main-nav">
-            <Link href="/progress">
-               <TrophyIcon className="nav-icon" />
-               View Progress
-            </Link>
-            <Link href="/certificate">
-               <CheckBadgeIcon className="nav-icon" />
-               Certificate
-            </Link>
-            <Link href="/diagnostics">
-               <InformationCircleIcon className="nav-icon" />
-               Diagnostics
-            </Link>
-         </nav>
+         <Header
+            showSubtitle={true}
+            onShowLoginModal={() => setShowLoginModal(true)}
+            onShowRegisterModal={() => setShowRegisterModal(true)}
+         />
 
          {/* Auth Modals */}
          <LoginModal
@@ -498,7 +322,6 @@ export default function HomePage() {
                   padding: "1rem",
                   backgroundColor: "#fee",
                   border: "2px solid #fcc",
-                  borderRadius: "8px",
                   color: "#c33",
                }}
             >
@@ -755,18 +578,11 @@ export default function HomePage() {
                      }
                      style={{
                         marginTop: selectedCategory === "final" ? "0" : "0",
-                        padding: selectedCategory === "final" ? "30px" : "0",
                         background:
                            selectedCategory === "final"
                               ? "var(--card)"
                               : "transparent",
                         border: "none",
-                        borderRadius:
-                           selectedCategory === "final" ? "18px" : "0",
-                        boxShadow:
-                           selectedCategory === "final"
-                              ? "0 10px 30px rgba(234, 179, 8, 0.2)"
-                              : "none",
                      }}
                   >
                      <div className="games-grid">

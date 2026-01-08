@@ -854,7 +854,7 @@ export default function ClickGreen({
          padding: isMobile ? "12px 24px" : "14px 28px",
          background: `linear-gradient(135deg, ${bgFrom}, ${bgTo})`,
          border: `2px solid ${borderColor}`,
-         borderRadius: "12px",
+
          color: "var(--text)",
          fontSize: isMobile ? "1rem" : "1.05rem",
          fontWeight: 700,
@@ -922,7 +922,6 @@ export default function ClickGreen({
       fontWeight: 700,
       textAlign: "center" as const,
       boxShadow: "0 10px 24px rgba(0, 0, 0, 0.25)",
-      border: "1px solid var(--stroke)",
       width: "100%",
    });
 
@@ -985,7 +984,6 @@ export default function ClickGreen({
                   width: "100%",
                   maxWidth: "800px",
                   background: "var(--card)",
-                  border: "1px solid var(--stroke)",
                   borderRadius: isMobile ? "14px" : "16px",
                   padding: isMobile ? "16px" : "20px",
                   boxShadow: "0 8px 24px rgba(0, 0, 0, 0.2)",
@@ -1107,7 +1105,7 @@ export default function ClickGreen({
                         background:
                            "linear-gradient(135deg, rgba(134, 239, 172, 0.25), rgba(134, 239, 172, 0.12))",
                         border: "2px solid rgba(134, 239, 172, 0.6)",
-                        borderRadius: "12px",
+
                         color: "var(--text)",
                         fontSize: isMobile ? "0.85rem" : "0.95rem",
                         fontWeight: 600,
@@ -1121,7 +1119,7 @@ export default function ClickGreen({
                         background:
                            "linear-gradient(135deg, rgba(252, 165, 165, 0.25), rgba(252, 165, 165, 0.12))",
                         border: "2px solid rgba(252, 165, 165, 0.6)",
-                        borderRadius: "12px",
+
                         color: "var(--text)",
                         fontSize: isMobile ? "0.85rem" : "0.95rem",
                         fontWeight: 600,
@@ -1441,8 +1439,6 @@ export default function ClickGreen({
                         flexWrap: "wrap",
                         padding: isMobile ? "12px" : "16px",
                         background: "var(--card)",
-                        border: "1px solid var(--stroke)",
-                        borderRadius: "12px",
                      }}
                   >
                      {/* Share Success Message */}
@@ -1521,7 +1517,7 @@ export default function ClickGreen({
                               maxReplays > 0 && replaysUsed >= maxReplays
                                  ? "1px solid rgba(100, 100, 100, 0.4)"
                                  : "1px solid rgba(125, 211, 252, 0.6)",
-                           borderRadius: "12px",
+
                            color: "var(--text)",
                            fontSize: isMobile ? "0.85rem" : "0.95rem",
                            fontWeight: 600,
@@ -1591,7 +1587,7 @@ export default function ClickGreen({
                            background:
                               "linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1))",
                            border: "1px solid rgba(59, 130, 246, 0.6)",
-                           borderRadius: "12px",
+
                            color: "var(--text)",
                            fontSize: isMobile ? "0.85rem" : "0.95rem",
                            fontWeight: 600,

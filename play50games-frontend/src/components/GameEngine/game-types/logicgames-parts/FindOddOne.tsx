@@ -277,7 +277,6 @@ function FindOddOne({
                gap: isMobile ? "8px" : isTablet ? "12px" : "0",
                width: "100%",
                background: "var(--card)",
-               border: "2px solid var(--stroke)",
                borderRadius: isMobile ? "12px" : isTablet ? "14px" : "16px",
                padding: isMobile
                   ? "12px 16px"
@@ -358,7 +357,6 @@ function FindOddOne({
          <div
             style={{
                background: "var(--card)",
-               border: "2px solid var(--stroke)",
                borderRadius: isMobile ? "12px" : isTablet ? "14px" : "16px",
                padding: isMobile ? "12px" : isTablet ? "14px" : "16px",
                boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)",

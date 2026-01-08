@@ -753,9 +753,8 @@ function PathMemory({
          <div
             style={{
                padding: isMobile ? "12px 16px" : "16px 24px",
-               borderRadius: "12px",
+
                background: "rgba(255, 255, 255, 0.05)",
-               border: "1px solid var(--stroke)",
                display: "flex",
                justifyContent: "space-between",
                alignItems: "center",
@@ -974,7 +973,7 @@ function PathMemory({
             <div
                style={{
                   padding: "16px 24px",
-                  borderRadius: "12px",
+
                   fontSize: "1.1rem",
                   fontWeight: 600,
                   animation: "slideIn 0.3s ease-out",
@@ -1037,7 +1036,7 @@ function PathMemory({
                         ? "rgba(100, 100, 100, 0.3)"
                         : "rgba(251, 191, 36, 0.6)"
                   }`,
-                  borderRadius: "12px",
+
                   color:
                      maxHints > 0 && hintsUsed >= maxHints
                         ? "rgba(255, 255, 255, 0.4)"
@@ -1106,7 +1105,7 @@ function PathMemory({
                   background:
                      "linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1))",
                   border: "1px solid rgba(59, 130, 246, 0.6)",
-                  borderRadius: "12px",
+
                   color: "var(--text)",
                   fontSize: isMobile ? "0.85rem" : "0.95rem",
                   fontWeight: 600,

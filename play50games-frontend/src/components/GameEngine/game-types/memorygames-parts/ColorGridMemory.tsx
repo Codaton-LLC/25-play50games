@@ -934,7 +934,7 @@ function ColorGridMemory({
             <div
                style={{
                   padding: isMobile ? "14px 20px" : "16px 24px",
-                  borderRadius: "12px",
+
                   fontSize: isMobile ? "1rem" : "1.1rem",
                   fontWeight: 600,
                   animation: "slideIn 0.3s ease-out",
@@ -1076,7 +1076,7 @@ function ColorGridMemory({
                         ? "rgba(255, 255, 255, 0.1)"
                         : "rgba(251, 191, 36, 0.6)"
                   }`,
-                  borderRadius: "12px",
+
                   color: "var(--text)",
                   fontSize: isMobile ? "0.85rem" : "0.95rem",
                   fontWeight: 600,
@@ -1126,7 +1126,7 @@ function ColorGridMemory({
                   background:
                      "linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1))",
                   border: "1px solid rgba(59, 130, 246, 0.6)",
-                  borderRadius: "12px",
+
                   color: "var(--text)",
                   fontSize: isMobile ? "0.85rem" : "0.95rem",
                   fontWeight: 600,

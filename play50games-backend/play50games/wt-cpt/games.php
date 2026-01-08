@@ -805,8 +805,8 @@ function show_games_custom_fields() {
                 timeLimit: 600,
                 passingScore: 90,
                 unlockRequirement: '',
-                description: 'Randomized final exam using previous game mechanics',
-                gameConfig: '{"gameType": "final-test", "rounds": 10}'
+                description: 'Complete 4 unique mini-games in sequence: Code Breaker (Logic), Flash Sequence (Memory), Color Switch (Speed), and Precision Tap (Skill). Each challenge must be completed successfully to unlock the next one.',
+                gameConfig: '{"gameType": "final-test", "logic": {"rounds": 5}, "memory": {"rounds": 5}, "speed": {"targets": 10}, "skill": {"targets": 10}}'
             }
         };
         

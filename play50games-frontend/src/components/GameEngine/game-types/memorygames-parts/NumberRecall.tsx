@@ -287,7 +287,6 @@ function NumberRecall({
             style={{
                width: "100%",
                background: "var(--card)",
-               border: "1px solid var(--stroke)",
                borderRadius: isMobile ? "14px" : "16px",
                padding: isMobile ? "16px" : "20px",
                boxShadow: "0 8px 24px rgba(0, 0, 0, 0.2)",
@@ -360,7 +359,6 @@ function NumberRecall({
             style={{
                width: "100%",
                background: "var(--card)",
-               border: "1px solid var(--stroke)",
                borderRadius: isMobile ? "14px" : "16px",
                padding: isMobile ? "16px" : "20px",
                textAlign: "center",
@@ -440,7 +438,6 @@ function NumberRecall({
             style={{
                width: "100%",
                background: "var(--card)",
-               border: "1px solid var(--stroke)",
                borderRadius: isMobile ? "14px" : "16px",
                padding: isMobile ? "24px" : "32px",
                boxShadow: "0 8px 24px rgba(0, 0, 0, 0.2)",
@@ -450,7 +447,6 @@ function NumberRecall({
                style={{
                   height: isMobile ? "120px" : "140px",
                   borderRadius: isMobile ? "16px" : "18px",
-                  border: "1px solid var(--stroke)",
                   background:
                      showing || revealedDigits.length > 0
                         ? "radial-gradient(220px 140px at 30% 30%, rgba(125, 211, 252, 0.14), transparent 55%), linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02))"
@@ -515,7 +511,6 @@ function NumberRecall({
                      style={{
                         flex: 1,
                         borderRadius: isMobile ? "12px" : "12px",
-                        border: "1px solid var(--stroke)",
                         background: "rgba(15, 27, 51, 0.7)",
                         color: "var(--text)",
                         padding: isMobile ? "12px" : "12px",
@@ -535,7 +530,6 @@ function NumberRecall({
                      style={{
                         padding: isMobile ? "12px 20px" : "12px 24px",
                         borderRadius: isMobile ? "12px" : "12px",
-                        border: "1px solid var(--stroke)",
                         background:
                            gameState !== "input" || !input.trim()
                               ? "rgba(100, 100, 100, 0.2)"
@@ -668,7 +662,7 @@ function NumberRecall({
                      maxHints > 0 && hintsUsed >= maxHints
                         ? "1px solid rgba(100, 100, 100, 0.4)"
                         : "1px solid rgba(251, 191, 36, 0.6)",
-                  borderRadius: "12px",
+
                   color: "var(--text)",
                   fontSize: isMobile ? "0.85rem" : "0.95rem",
                   fontWeight: 600,
@@ -744,7 +738,7 @@ function NumberRecall({
                   background:
                      "linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1))",
                   border: "1px solid rgba(59, 130, 246, 0.6)",
-                  borderRadius: "12px",
+
                   color: "var(--text)",
                   fontSize: isMobile ? "0.85rem" : "0.95rem",
                   fontWeight: 600,

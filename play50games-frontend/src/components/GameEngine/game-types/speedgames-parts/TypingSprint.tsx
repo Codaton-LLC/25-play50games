@@ -90,7 +90,12 @@ export default function TypingSprint({
 
    // Focus input when game is playing
    useEffect(() => {
-      if (isPlaying && gameState === "playing" && !requirementsMet && inputRef.current) {
+      if (
+         isPlaying &&
+         gameState === "playing" &&
+         !requirementsMet &&
+         inputRef.current
+      ) {
          // Small delay to ensure input is rendered
          const timer = setTimeout(() => {
             inputRef.current?.focus();
@@ -1010,7 +1015,6 @@ export default function TypingSprint({
                   width: "100%",
                   maxWidth: "800px",
                   background: "var(--card)",
-                  border: "1px solid var(--stroke)",
                   borderRadius: isMobile ? "14px" : "16px",
                   padding: isMobile ? "16px" : "20px",
                   boxShadow: "0 8px 24px rgba(0, 0, 0, 0.2)",
@@ -1132,7 +1136,7 @@ export default function TypingSprint({
                         background:
                            "linear-gradient(135deg, rgba(134, 239, 172, 0.25), rgba(134, 239, 172, 0.12))",
                         border: "2px solid rgba(134, 239, 172, 0.6)",
-                        borderRadius: "12px",
+
                         color: "var(--text)",
                         fontSize: isMobile ? "0.85rem" : "0.95rem",
                         fontWeight: 600,
@@ -1146,7 +1150,7 @@ export default function TypingSprint({
                         background:
                            "linear-gradient(135deg, rgba(252, 165, 165, 0.25), rgba(252, 165, 165, 0.12))",
                         border: "2px solid rgba(252, 165, 165, 0.6)",
-                        borderRadius: "12px",
+
                         color: "var(--text)",
                         fontSize: isMobile ? "0.85rem" : "0.95rem",
                         fontWeight: 600,
@@ -1161,8 +1165,7 @@ export default function TypingSprint({
                   style={{
                      padding: isMobile ? "8px 12px" : "10px 16px",
                      background: "var(--card)",
-                     border: "1px solid var(--stroke)",
-                     borderRadius: "12px",
+
                      color: "var(--text)",
                      fontSize: isMobile ? "0.9rem" : "1rem",
                      fontWeight: 600,
@@ -1180,7 +1183,6 @@ export default function TypingSprint({
                         maxWidth: "600px",
                         padding: isMobile ? "24px" : "32px",
                         background: "var(--card)",
-                        border: "1px solid var(--stroke)",
                         borderRadius: "var(--radius)",
                         boxShadow: "0 10px 24px rgba(0, 0, 0, 0.2)",
                         display: "flex",
@@ -1245,12 +1247,14 @@ export default function TypingSprint({
                            fontSize: isMobile ? "1.2rem" : "1.5rem",
                            fontWeight: 600,
                            background: "var(--background)",
-                           border: "2px solid var(--stroke)",
-                           borderRadius: "12px",
+
                            color: "var(--text)",
                            textAlign: "center",
                            outline: "none",
-                           cursor: gameState === "playing" && !requirementsMet ? "text" : "not-allowed",
+                           cursor:
+                              gameState === "playing" && !requirementsMet
+                                 ? "text"
+                                 : "not-allowed",
                         }}
                         autoFocus
                         placeholder="Type here..."
@@ -1280,7 +1284,6 @@ export default function TypingSprint({
                         fontWeight: 700,
                         textAlign: "center" as const,
                         boxShadow: "0 10px 24px rgba(0, 0, 0, 0.25)",
-                        border: "1px solid var(--stroke)",
                         width: "100%",
                      }}
                   >
@@ -1320,7 +1323,7 @@ export default function TypingSprint({
                            background:
                               "linear-gradient(135deg, rgba(134, 239, 172, 0.25), rgba(134, 239, 172, 0.12))",
                            border: "2px solid rgba(134, 239, 172, 0.6)",
-                           borderRadius: "12px",
+
                            color: "var(--text)",
                            fontSize: isMobile ? "1rem" : "1.05rem",
                            fontWeight: 700,
@@ -1345,7 +1348,6 @@ export default function TypingSprint({
                         fontWeight: 700,
                         textAlign: "center" as const,
                         boxShadow: "0 10px 24px rgba(0, 0, 0, 0.25)",
-                        border: "1px solid var(--stroke)",
                         width: "100%",
                      }}
                   >
@@ -1393,7 +1395,6 @@ export default function TypingSprint({
                         fontWeight: 700,
                         textAlign: "center" as const,
                         boxShadow: "0 10px 24px rgba(0, 0, 0, 0.25)",
-                        border: "1px solid var(--stroke)",
                         width: "100%",
                      }}
                   >
@@ -1440,8 +1441,7 @@ export default function TypingSprint({
                         flexWrap: "wrap",
                         padding: isMobile ? "12px" : "16px",
                         background: "var(--card)",
-                        border: "1px solid var(--stroke)",
-                        borderRadius: "12px",
+
                         width: "100%",
                      }}
                   >
@@ -1520,7 +1520,7 @@ export default function TypingSprint({
                               maxReplays > 0 && replaysUsed >= maxReplays
                                  ? "1px solid rgba(100, 100, 100, 0.4)"
                                  : "1px solid rgba(125, 211, 252, 0.6)",
-                           borderRadius: "12px",
+
                            color: "var(--text)",
                            fontSize: isMobile ? "0.85rem" : "0.95rem",
                            fontWeight: 600,
@@ -1564,7 +1564,7 @@ export default function TypingSprint({
                            background:
                               "linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1))",
                            border: "1px solid rgba(59, 130, 246, 0.6)",
-                           borderRadius: "12px",
+
                            color: "var(--text)",
                            fontSize: isMobile ? "0.85rem" : "0.95rem",
                            fontWeight: 600,

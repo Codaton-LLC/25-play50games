@@ -240,7 +240,7 @@ Mesazhe feedback që shfaqen pas veprimeve:
       <div
          style={{
             padding: "16px 24px",
-            borderRadius: "12px",
+
             fontSize: "1.1rem",
             fontWeight: 600,
             animation: "slideIn 0.3s ease-out",
@@ -586,7 +586,7 @@ Share button dhe Replay button duhet të kenë design të njëjtë për të gjit
                maxReplays > 0 && replaysUsed >= maxReplays
                   ? "1px solid rgba(100, 100, 100, 0.4)"
                   : "1px solid rgba(125, 211, 252, 0.6)",
-            borderRadius: "12px",
+
             color: "var(--text)",
             fontSize: isMobile ? "0.85rem" : "0.95rem",
             fontWeight: 600,
@@ -624,7 +624,7 @@ Share button dhe Replay button duhet të kenë design të njëjtë për të gjit
       background:
          "linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1))",
       border: "1px solid rgba(59, 130, 246, 0.6)",
-      borderRadius: "12px",
+
       color: "var(--text)",
       fontSize: isMobile ? "0.85rem" : "0.95rem",
       fontWeight: 600,

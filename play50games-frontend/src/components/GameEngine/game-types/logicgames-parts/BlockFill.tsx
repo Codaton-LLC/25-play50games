@@ -688,7 +688,6 @@ function BlockFill({
             style={{
                width: "100%",
                background: "var(--card)",
-               border: "1px solid var(--stroke)",
                borderRadius: "16px",
                padding: "20px",
                boxShadow: "0 8px 24px rgba(0, 0, 0, 0.2)",
@@ -782,7 +781,6 @@ function BlockFill({
                <div
                   style={{
                      background: "var(--card)",
-                     border: "1px solid var(--stroke)",
                      borderRadius: "18px",
                      padding: "16px",
                      position: "relative",
@@ -803,7 +801,7 @@ function BlockFill({
                            transform: "translateX(-50%)",
                            background: "rgba(110, 168, 255, 0.95)",
                            border: "2px solid rgba(110, 168, 255, 1)",
-                           borderRadius: "12px",
+
                            padding: "6px 12px",
                            fontSize: "0.75rem",
                            fontWeight: 700,
@@ -937,7 +935,7 @@ function BlockFill({
                                                    }px`,
                                                    width: cellSizePx,
                                                    height: cellSizePx,
-                                                   borderRadius: "12px",
+
                                                    border: cellValid
                                                       ? "2px dashed rgba(110, 168, 255, 0.8)"
                                                       : "2px dashed rgba(251, 113, 133, 0.8)",
@@ -991,7 +989,7 @@ function BlockFill({
                                        style={{
                                           width: cellSizePx,
                                           height: cellSizePx,
-                                          borderRadius: "12px",
+
                                           border: isFilled
                                              ? `2px solid ${
                                                   pieceColor?.border ||
@@ -1043,8 +1041,7 @@ function BlockFill({
                      disabled={!selectedPieceId}
                      style={{
                         padding: "10px 16px",
-                        borderRadius: "12px",
-                        border: "1px solid var(--stroke)",
+
                         background: selectedPieceId
                            ? "rgba(110, 168, 255, 0.1)"
                            : "rgba(255, 255, 255, 0.05)",
@@ -1068,8 +1065,7 @@ function BlockFill({
                      disabled={placements.length === 0}
                      style={{
                         padding: "10px 16px",
-                        borderRadius: "12px",
-                        border: "1px solid var(--stroke)",
+
                         background:
                            placements.length > 0
                               ? "rgba(110, 168, 255, 0.1)"
@@ -1095,7 +1091,7 @@ function BlockFill({
                   <div
                      style={{
                         padding: "16px 24px",
-                        borderRadius: "12px",
+
                         fontSize: "1.1rem",
                         fontWeight: 600,
                         animation: "slideIn 0.3s ease-out",
@@ -1134,7 +1130,6 @@ function BlockFill({
             <div
                style={{
                   background: "var(--card)",
-                  border: "1px solid var(--stroke)",
                   borderRadius: "18px",
                   padding: "16px",
                   minWidth: "280px",
@@ -1163,7 +1158,7 @@ function BlockFill({
                      border: selectedPieceId
                         ? "2px solid rgba(110, 168, 255, 0.5)"
                         : "1px solid var(--stroke)",
-                     borderRadius: "12px",
+
                      fontWeight: 600,
                      display: "flex",
                      alignItems: "center",
@@ -1275,7 +1270,7 @@ function BlockFill({
                                  height: "64px",
                                  padding: "6px",
                                  background: "rgba(15, 27, 51, 0.45)",
-                                 borderRadius: "12px",
+
                                  border: "1px solid rgba(255, 255, 255, 0.1)",
                               }}
                            >

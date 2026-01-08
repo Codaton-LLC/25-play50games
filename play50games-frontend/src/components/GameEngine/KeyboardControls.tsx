@@ -40,8 +40,7 @@ export default function KeyboardControls({
             marginTop: "16px",
             padding: "16px",
             background: "rgba(125, 211, 252, 0.08)",
-            border: "1px solid var(--stroke)",
-            borderRadius: "12px",
+
             display: "flex",
             flexDirection: "column",
             gap: "12px",
@@ -87,7 +86,6 @@ export default function KeyboardControls({
                   <kbd
                      style={{
                         background: "rgba(255, 255, 255, 0.1)",
-                        border: "1px solid var(--stroke)",
                         borderRadius: "6px",
                         padding: "4px 10px",
                         fontSize: "0.75rem",
@@ -139,8 +137,7 @@ export function MouseControls({
             marginTop: "16px",
             padding: "16px",
             background: "rgba(125, 211, 252, 0.08)",
-            border: "1px solid var(--stroke)",
-            borderRadius: "12px",
+
             display: "flex",
             flexDirection: "column",
             gap: "12px",
@@ -186,7 +183,6 @@ export function MouseControls({
                   <div
                      style={{
                         background: "rgba(255, 255, 255, 0.1)",
-                        border: "1px solid var(--stroke)",
                         borderRadius: "6px",
                         padding: "4px 10px",
                         fontSize: "0.75rem",

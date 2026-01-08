@@ -5,6 +5,7 @@ import LogicGames from "./LogicGames";
 import MemoryGames from "./MemoryGames";
 import SpeedGames from "./SpeedGames";
 import SkillGames from "./SkillGames";
+import FinalGameComplete from "./final-game-parts/FinalGameComplete";
 import {
    CheckCircleIcon,
    TrophyIcon,
@@ -174,7 +175,7 @@ export default function FinalGames({
          />
       ),
       "final-test": (
-         <FinalTest
+         <FinalGameComplete
             config={config}
             onScoreUpdate={onScoreUpdate}
             onComplete={onComplete}
@@ -464,7 +465,6 @@ function MixedQuiz({
                      background:
                         "linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(59, 130, 246, 0.08))",
                      border: "1px solid rgba(59, 130, 246, 0.3)",
-                     borderRadius: "12px",
                   }}
                >
                   <ClockIcon
@@ -493,7 +493,6 @@ function MixedQuiz({
                      background:
                         "linear-gradient(135deg, rgba(234, 179, 8, 0.15), rgba(234, 179, 8, 0.08))",
                      border: "1px solid rgba(234, 179, 8, 0.3)",
-                     borderRadius: "12px",
                   }}
                >
                   <TrophyIcon
@@ -549,7 +548,7 @@ function MixedQuiz({
                   background:
                      "linear-gradient(135deg, rgba(125, 211, 252, 0.15), rgba(125, 211, 252, 0.08))",
                   border: "1px solid rgba(125, 211, 252, 0.3)",
-                  borderRadius: "12px",
+
                   fontSize: isMobile ? "0.95rem" : "1.05rem",
                   fontWeight: 600,
                   color: "var(--text)",
@@ -571,7 +570,6 @@ function MixedQuiz({
                   fontWeight: 700,
                   textAlign: "center" as const,
                   boxShadow: "0 10px 24px rgba(0, 0, 0, 0.25)",
-                  border: "1px solid var(--stroke)",
                   width: "100%",
                   maxWidth: "800px",
                }}
@@ -612,7 +610,7 @@ function MixedQuiz({
                      background:
                         "linear-gradient(135deg, rgba(234, 179, 8, 0.25), rgba(234, 179, 8, 0.12))",
                      border: "2px solid rgba(234, 179, 8, 0.6)",
-                     borderRadius: "12px",
+
                      color: "var(--text)",
                      fontSize: isMobile ? "1rem" : "1.05rem",
                      fontWeight: 700,
@@ -637,7 +635,6 @@ function MixedQuiz({
                   fontWeight: 700,
                   textAlign: "center" as const,
                   boxShadow: "0 10px 24px rgba(0, 0, 0, 0.25)",
-                  border: "1px solid var(--stroke)",
                   width: "100%",
                   maxWidth: "800px",
                }}
@@ -877,7 +874,6 @@ function SurvivalMode({
                      background:
                         "linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(59, 130, 246, 0.08))",
                      border: "1px solid rgba(59, 130, 246, 0.3)",
-                     borderRadius: "12px",
                   }}
                >
                   <ClockIcon
@@ -906,7 +902,6 @@ function SurvivalMode({
                      background:
                         "linear-gradient(135deg, rgba(234, 179, 8, 0.15), rgba(234, 179, 8, 0.08))",
                      border: "1px solid rgba(234, 179, 8, 0.3)",
-                     borderRadius: "12px",
                   }}
                >
                   <TrophyIcon
@@ -1074,15 +1069,17 @@ function BossPuzzle({
       string,
       Record<string, any>
    > = config.challengeConfigs || config.miniGameConfigs || {};
-   const rawChallengeConfigsArray: Array<Record<string, any>> = Array.isArray(config.challengeConfigs) 
-      ? config.challengeConfigs 
-      : Array.isArray(config.miniGameConfigs) 
-      ? config.miniGameConfigs 
+   const rawChallengeConfigsArray: Array<Record<string, any>> = Array.isArray(
+      config.challengeConfigs
+   )
+      ? config.challengeConfigs
+      : Array.isArray(config.miniGameConfigs)
+      ? config.miniGameConfigs
       : [];
 
    // Expand configs: if only gameType is provided, get full config from lookup
    const challengeConfigs: Record<string, Record<string, any>> = {};
-   
+
    // Handle array format (allows duplicate categories)
    if (rawChallengeConfigsArray.length > 0) {
       rawChallengeConfigsArray.forEach((challenge, index) => {
@@ -1329,7 +1326,7 @@ function BossPuzzle({
                               background: "#0b1020",
                               color: "white",
                               padding: "12px 20px",
-                              borderRadius: "12px",
+
                               fontSize: "30px",
                               fontWeight: 700,
                               textAlign: "center",
@@ -1414,7 +1411,7 @@ function BossPuzzle({
                               background: "rgb(34, 95, 67)",
                               color: "white",
                               padding: "12px 20px",
-                              borderRadius: "12px",
+
                               fontSize: "30px",
                               fontWeight: 700,
                               textAlign: "center",
@@ -1489,15 +1486,17 @@ function TimeChallenge({
       string,
       Record<string, any>
    > = config.challengeConfigs || config.miniGameConfigs || {};
-   const rawChallengeConfigsArray: Array<Record<string, any>> = Array.isArray(config.challengeConfigs) 
-      ? config.challengeConfigs 
-      : Array.isArray(config.miniGameConfigs) 
-      ? config.miniGameConfigs 
+   const rawChallengeConfigsArray: Array<Record<string, any>> = Array.isArray(
+      config.challengeConfigs
+   )
+      ? config.challengeConfigs
+      : Array.isArray(config.miniGameConfigs)
+      ? config.miniGameConfigs
       : [];
 
    // Expand configs: if only gameType is provided, get full config from lookup
    const challengeConfigs: Record<string, Record<string, any>> = {};
-   
+
    // Handle array format (allows duplicate categories)
    if (rawChallengeConfigsArray.length > 0) {
       rawChallengeConfigsArray.forEach((challenge, index) => {
@@ -1744,7 +1743,7 @@ function TimeChallenge({
                               background: "#0b1020",
                               color: "white",
                               padding: "12px 20px",
-                              borderRadius: "12px",
+
                               fontSize: "30px",
                               fontWeight: 700,
                               textAlign: "center",
@@ -1829,7 +1828,7 @@ function TimeChallenge({
                               background: "rgb(34, 95, 67)",
                               color: "white",
                               padding: "12px 20px",
-                              borderRadius: "12px",
+
                               fontSize: "30px",
                               fontWeight: 700,
                               textAlign: "center",

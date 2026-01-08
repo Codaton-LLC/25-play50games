@@ -59,7 +59,9 @@ export default function TapCounter({
    // Get minimum taps required for current level
    const getMinTaps = useCallback(() => {
       if (levelRequirements && levelRequirements[currentLevel]) {
-         return levelRequirements[currentLevel].minTaps || 20 + currentLevel * 5;
+         return (
+            levelRequirements[currentLevel].minTaps || 20 + currentLevel * 5
+         );
       }
       // Default progression: 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90
       return 20 + currentLevel * 5;
@@ -92,7 +94,7 @@ export default function TapCounter({
       "playing"
    );
    const requirementsMetRef = useRef(false);
-   const startLevelRef = useRef<() => void>(() => {});
+   const startLevelRef = useRef<(level: number) => void>((level: number) => {});
    const prevLevelRef = useRef<number | null>(null);
    const forceStartLevelRef = useRef<number | null>(null);
    const completionCalledRef = useRef(false);
@@ -179,7 +181,7 @@ export default function TapCounter({
          const roundScore = Math.round(100 / maxLevels);
          const completedLevels = currentLevel + 1;
          const newScore = Math.min(100, completedLevels * roundScore);
-         
+
          setCurrentScore(newScore);
          onScoreUpdate(newScore);
 
@@ -273,7 +275,9 @@ export default function TapCounter({
 
    // Progress calculation - based on completed levels
    const progress = useMemo(() => {
-      return maxLevels > 0 ? Math.min(100, (currentLevel / maxLevels) * 100) : 0;
+      return maxLevels > 0
+         ? Math.min(100, (currentLevel / maxLevels) * 100)
+         : 0;
    }, [currentLevel, maxLevels]);
 
    // Share functionality
@@ -385,7 +389,13 @@ export default function TapCounter({
             return prev - 1;
          });
       }, 1000);
-   }, [replaysUsed, maxReplays, unlimitedActivated, currentLevel, getLevelDuration]);
+   }, [
+      replaysUsed,
+      maxReplays,
+      unlimitedActivated,
+      currentLevel,
+      getLevelDuration,
+   ]);
 
    // Check if share has clicks
    useEffect(() => {
@@ -582,7 +592,15 @@ export default function TapCounter({
             startLevel(0);
          }
       }
-   }, [isPlaying, gameState, currentLevel, taps, timeLeft, getLevelDuration, startLevel]);
+   }, [
+      isPlaying,
+      gameState,
+      currentLevel,
+      taps,
+      timeLeft,
+      getLevelDuration,
+      startLevel,
+   ]);
 
    // Force start level if needed
    useEffect(() => {
@@ -645,7 +663,6 @@ export default function TapCounter({
                   width: "100%",
                   maxWidth: "800px",
                   background: "var(--card)",
-                  border: "1px solid var(--stroke)",
                   borderRadius: isMobile ? "14px" : "16px",
                   padding: isMobile ? "16px" : "20px",
                   boxShadow: "0 8px 24px rgba(0, 0, 0, 0.2)",
@@ -768,7 +785,7 @@ export default function TapCounter({
                            background:
                               "linear-gradient(135deg, rgba(134, 239, 172, 0.25), rgba(134, 239, 172, 0.12))",
                            border: "2px solid rgba(134, 239, 172, 0.6)",
-                           borderRadius: "12px",
+
                            fontSize: isMobile ? "0.85rem" : "0.95rem",
                            fontWeight: 700,
                            color: "var(--text)",
@@ -786,7 +803,7 @@ export default function TapCounter({
                            background:
                               "linear-gradient(135deg, rgba(125, 211, 252, 0.25), rgba(125, 211, 252, 0.12))",
                            border: "2px solid rgba(125, 211, 252, 0.6)",
-                           borderRadius: "12px",
+
                            fontSize: isMobile ? "0.85rem" : "0.95rem",
                            fontWeight: 700,
                            color: "var(--text)",
@@ -804,7 +821,7 @@ export default function TapCounter({
                            background:
                               "linear-gradient(135deg, rgba(59, 130, 246, 0.25), rgba(59, 130, 246, 0.12))",
                            border: "2px solid rgba(59, 130, 246, 0.6)",
-                           borderRadius: "12px",
+
                            fontSize: isMobile ? "0.85rem" : "0.95rem",
                            fontWeight: 700,
                            color: "var(--text)",
@@ -827,7 +844,6 @@ export default function TapCounter({
                         minHeight: isMobile ? "400px" : "500px",
                         background:
                            "radial-gradient(320px 220px at 30% 30%, rgba(59, 130, 246, 0.1), transparent 55%), linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02))",
-                        border: "2px solid var(--stroke)",
                         borderRadius: "var(--radius)",
                         padding: isMobile ? "24px" : "32px",
                         display: "flex",
@@ -840,161 +856,173 @@ export default function TapCounter({
                         overflow: "hidden",
                      }}
                   >
-               {/* Tap Target with Circular Progress */}
-               <div
-                  style={{
-                     position: "relative",
-                     width: isMobile ? "200px" : "280px",
-                     height: isMobile ? "200px" : "280px",
-                  }}
-               >
-                  {/* Circular Progress SVG */}
-                  <svg
-                     width={isMobile ? "200" : "280"}
-                     height={isMobile ? "200" : "280"}
-                     style={{
-                        position: "absolute",
-                        top: 0,
-                        left: 0,
-                        transform: "rotate(-90deg)",
-                     }}
-                  >
-                     {/* Background circle */}
-                     <circle
-                        cx={isMobile ? "100" : "140"}
-                        cy={isMobile ? "100" : "140"}
-                        r={isMobile ? "96" : "134"}
-                        fill="none"
-                        stroke="rgba(59, 130, 246, 0.2)"
-                        strokeWidth={isMobile ? "8" : "12"}
-                     />
-                     {/* Progress circle */}
-                     <circle
-                        cx={isMobile ? "100" : "140"}
-                        cy={isMobile ? "100" : "140"}
-                        r={isMobile ? "96" : "134"}
-                        fill="none"
-                        stroke={
-                           tapProgress >= 100
-                              ? "var(--ok)"
-                              : "var(--accent)"
-                        }
-                        strokeWidth={isMobile ? "8" : "12"}
-                        strokeLinecap="round"
-                        strokeDasharray={
-                           isMobile
-                              ? `${2 * Math.PI * 96}`
-                              : `${2 * Math.PI * 134}`
-                        }
-                        strokeDashoffset={
-                           isMobile
-                              ? `${
-                                   2 * Math.PI * 96 * (1 - tapProgress / 100)
-                                }`
-                              : `${
-                                   2 * Math.PI * 134 * (1 - tapProgress / 100)
-                                }`
-                        }
-                        style={{
-                           transition: "stroke-dashoffset 0.3s ease, stroke 0.3s ease",
-                        }}
-                     />
-                  </svg>
-                  {/* Tap Button */}
-                  <button
-                     onPointerDown={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        handleTap();
-                     }}
-                     disabled={requirementsMet}
-                     style={{
-                        width: "100%",
-                        height: "100%",
-                        borderRadius: "50%",
-                        border: tapFeedback
-                           ? "4px solid var(--ok)"
-                           : "4px solid transparent",
-                        background: tapFeedback
-                           ? "rgba(134, 239, 172, 0.2)"
-                           : "rgba(59, 130, 246, 0.15)",
-                        display: "flex",
-                        flexDirection: "column",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        gap: "16px",
-                        cursor: requirementsMet ? "not-allowed" : "pointer",
-                        transition: "all 0.1s ease",
-                        transform: tapFeedback ? "scale(0.95)" : "scale(1)",
-                        boxShadow: tapFeedback
-                           ? "0 8px 24px rgba(134, 239, 172, 0.4)"
-                           : "0 8px 24px rgba(59, 130, 246, 0.3)",
-                        userSelect: "none",
-                        touchAction: "manipulation",
-                        WebkitTapHighlightColor: "transparent",
-                        position: "relative",
-                        zIndex: 1,
-                     }}
-                  >
+                     {/* Tap Target with Circular Progress */}
                      <div
                         style={{
-                           fontSize: isMobile ? "4rem" : "5rem",
-                           fontWeight: 800,
-                           color: "var(--text)",
-                           lineHeight: 1,
+                           position: "relative",
+                           width: isMobile ? "200px" : "280px",
+                           height: isMobile ? "200px" : "280px",
                         }}
                      >
-                        {taps}
+                        {/* Circular Progress SVG */}
+                        <svg
+                           width={isMobile ? "200" : "280"}
+                           height={isMobile ? "200" : "280"}
+                           style={{
+                              position: "absolute",
+                              top: 0,
+                              left: 0,
+                              transform: "rotate(-90deg)",
+                           }}
+                        >
+                           {/* Background circle */}
+                           <circle
+                              cx={isMobile ? "100" : "140"}
+                              cy={isMobile ? "100" : "140"}
+                              r={isMobile ? "96" : "134"}
+                              fill="none"
+                              stroke="rgba(59, 130, 246, 0.2)"
+                              strokeWidth={isMobile ? "8" : "12"}
+                           />
+                           {/* Progress circle */}
+                           <circle
+                              cx={isMobile ? "100" : "140"}
+                              cy={isMobile ? "100" : "140"}
+                              r={isMobile ? "96" : "134"}
+                              fill="none"
+                              stroke={
+                                 tapProgress >= 100
+                                    ? "var(--ok)"
+                                    : "var(--accent)"
+                              }
+                              strokeWidth={isMobile ? "8" : "12"}
+                              strokeLinecap="round"
+                              strokeDasharray={
+                                 isMobile
+                                    ? `${2 * Math.PI * 96}`
+                                    : `${2 * Math.PI * 134}`
+                              }
+                              strokeDashoffset={
+                                 isMobile
+                                    ? `${
+                                         2 *
+                                         Math.PI *
+                                         96 *
+                                         (1 - tapProgress / 100)
+                                      }`
+                                    : `${
+                                         2 *
+                                         Math.PI *
+                                         134 *
+                                         (1 - tapProgress / 100)
+                                      }`
+                              }
+                              style={{
+                                 transition:
+                                    "stroke-dashoffset 0.3s ease, stroke 0.3s ease",
+                              }}
+                           />
+                        </svg>
+                        {/* Tap Button */}
+                        <button
+                           onPointerDown={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              handleTap();
+                           }}
+                           disabled={requirementsMet}
+                           style={{
+                              width: "100%",
+                              height: "100%",
+                              borderRadius: "50%",
+                              border: tapFeedback
+                                 ? "4px solid var(--ok)"
+                                 : "4px solid transparent",
+                              background: tapFeedback
+                                 ? "rgba(134, 239, 172, 0.2)"
+                                 : "rgba(59, 130, 246, 0.15)",
+                              display: "flex",
+                              flexDirection: "column",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              gap: "16px",
+                              cursor: requirementsMet
+                                 ? "not-allowed"
+                                 : "pointer",
+                              transition: "all 0.1s ease",
+                              transform: tapFeedback
+                                 ? "scale(0.95)"
+                                 : "scale(1)",
+                              boxShadow: tapFeedback
+                                 ? "0 8px 24px rgba(134, 239, 172, 0.4)"
+                                 : "0 8px 24px rgba(59, 130, 246, 0.3)",
+                              userSelect: "none",
+                              touchAction: "manipulation",
+                              WebkitTapHighlightColor: "transparent",
+                              position: "relative",
+                              zIndex: 1,
+                           }}
+                        >
+                           <div
+                              style={{
+                                 fontSize: isMobile ? "4rem" : "5rem",
+                                 fontWeight: 800,
+                                 color: "var(--text)",
+                                 lineHeight: 1,
+                              }}
+                           >
+                              {taps}
+                           </div>
+                           <div
+                              style={{
+                                 fontSize: isMobile ? "0.875rem" : "1rem",
+                                 fontWeight: 600,
+                                 color: "var(--muted)",
+                                 textAlign: "center",
+                              }}
+                           >
+                              Taps
+                           </div>
+                        </button>
                      </div>
-                     <div
-                        style={{
-                           fontSize: isMobile ? "0.875rem" : "1rem",
-                           fontWeight: 600,
-                           color: "var(--muted)",
-                           textAlign: "center",
-                        }}
-                     >
-                        Taps
-                     </div>
-                  </button>
-               </div>
 
-               {/* Requirements */}
-               <div
-                  style={{
-                     display: "flex",
-                     flexDirection: "column",
-                     alignItems: "center",
-                     gap: "12px",
-                     width: "100%",
-                     maxWidth: "400px",
-                  }}
-               >
-                  <div
-                     style={{
-                        fontSize: isMobile ? "0.875rem" : "1rem",
-                        fontWeight: 600,
-                        color: "var(--text)",
-                        textAlign: "center",
-                     }}
-                  >
-                     Target: {minTaps} taps in {getLevelDuration(currentLevel)}s
+                     {/* Requirements */}
+                     <div
+                        style={{
+                           display: "flex",
+                           flexDirection: "column",
+                           alignItems: "center",
+                           gap: "12px",
+                           width: "100%",
+                           maxWidth: "400px",
+                        }}
+                     >
+                        <div
+                           style={{
+                              fontSize: isMobile ? "0.875rem" : "1rem",
+                              fontWeight: 600,
+                              color: "var(--text)",
+                              textAlign: "center",
+                           }}
+                        >
+                           Target: {minTaps} taps in{" "}
+                           {getLevelDuration(currentLevel)}s
+                        </div>
+                        <div
+                           style={{
+                              fontSize: isMobile ? "0.75rem" : "0.875rem",
+                              fontWeight: 500,
+                              color: "var(--muted)",
+                              textAlign: "center",
+                           }}
+                        >
+                           {tapsRemaining > 0
+                              ? `${tapsRemaining} more taps needed`
+                              : "Level Complete!"}
+                        </div>
+                     </div>
                   </div>
-                  <div
-                     style={{
-                        fontSize: isMobile ? "0.75rem" : "0.875rem",
-                        fontWeight: 500,
-                        color: "var(--muted)",
-                        textAlign: "center",
-                     }}
-                  >
-                     {tapsRemaining > 0
-                        ? `${tapsRemaining} more taps needed`
-                        : "Level Complete!"}
-                  </div>
-               </div>
-            </div>
-         )}
+               )}
 
                {/* Ready for Next Round Message */}
                {gameState === "ready" && currentLevel + 1 < maxLevels && (
@@ -1008,7 +1036,6 @@ export default function TapCounter({
                         fontWeight: 700,
                         textAlign: "center" as const,
                         boxShadow: "0 10px 24px rgba(0, 0, 0, 0.25)",
-                        border: "1px solid var(--stroke)",
                         width: "100%",
                      }}
                   >
@@ -1048,7 +1075,7 @@ export default function TapCounter({
                            background:
                               "linear-gradient(135deg, rgba(134, 239, 172, 0.25), rgba(134, 239, 172, 0.12))",
                            border: "2px solid rgba(134, 239, 172, 0.6)",
-                           borderRadius: "12px",
+
                            color: "var(--text)",
                            fontSize: isMobile ? "1rem" : "1.05rem",
                            fontWeight: 700,
@@ -1073,7 +1100,6 @@ export default function TapCounter({
                         fontWeight: 700,
                         textAlign: "center" as const,
                         boxShadow: "0 10px 24px rgba(0, 0, 0, 0.25)",
-                        border: "1px solid var(--stroke)",
                         width: "100%",
                      }}
                   >
@@ -1121,7 +1147,6 @@ export default function TapCounter({
                         fontWeight: 700,
                         textAlign: "center" as const,
                         boxShadow: "0 10px 24px rgba(0, 0, 0, 0.25)",
-                        border: "1px solid var(--stroke)",
                         width: "100%",
                      }}
                   >
@@ -1168,8 +1193,7 @@ export default function TapCounter({
                         flexWrap: "wrap",
                         padding: isMobile ? "12px" : "16px",
                         background: "var(--card)",
-                        border: "1px solid var(--stroke)",
-                        borderRadius: "12px",
+
                         width: "100%",
                      }}
                   >
@@ -1248,7 +1272,7 @@ export default function TapCounter({
                               maxReplays > 0 && replaysUsed >= maxReplays
                                  ? "1px solid rgba(100, 100, 100, 0.4)"
                                  : "1px solid rgba(125, 211, 252, 0.6)",
-                           borderRadius: "12px",
+
                            color: "var(--text)",
                            fontSize: isMobile ? "0.85rem" : "0.95rem",
                            fontWeight: 600,
@@ -1292,7 +1316,7 @@ export default function TapCounter({
                            background:
                               "linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1))",
                            border: "1px solid rgba(59, 130, 246, 0.6)",
-                           borderRadius: "12px",
+
                            color: "var(--text)",
                            fontSize: isMobile ? "0.85rem" : "0.95rem",
                            fontWeight: 600,

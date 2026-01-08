@@ -475,7 +475,6 @@ function SequenceArrows({
             style={{
                width: "100%",
                background: "var(--card)",
-               border: "1px solid var(--stroke)",
                borderRadius: "16px",
                padding: "20px",
                boxShadow: "0 8px 24px rgba(0, 0, 0, 0.2)",
@@ -547,7 +546,6 @@ function SequenceArrows({
             <div
                style={{
                   background: "var(--card)",
-                  border: "2px solid var(--stroke)",
                   borderRadius: "20px",
                   padding: "40px",
                   boxShadow: "0 8px 24px rgba(0, 0, 0, 0.2)",
@@ -580,7 +578,7 @@ function SequenceArrows({
                         ? "rgba(125, 211, 252, 0.2)"
                         : "rgba(125, 211, 252, 0.1)",
                      border: "2px solid var(--accent)",
-                     borderRadius: "12px",
+
                      padding: "8px 16px",
                      fontSize: "0.875rem",
                      fontWeight: 600,
@@ -616,7 +614,7 @@ function SequenceArrows({
                         width: "100%",
                         background: "rgba(125, 211, 252, 0.1)",
                         border: "1px solid var(--accent)",
-                        borderRadius: "12px",
+
                         padding: "12px",
                         fontSize: "0.875rem",
                         color: "var(--text)",
@@ -652,8 +650,7 @@ function SequenceArrows({
                               arrow === "?"
                                  ? "rgba(125, 211, 252, 0.2)"
                                  : "rgba(255, 255, 255, 0.05)",
-                           border: "2px solid var(--stroke)",
-                           borderRadius: "12px",
+
                            fontSize: arrow === "?" ? "1.5rem" : "inherit",
                            fontWeight: arrow === "?" ? 700 : 400,
                            color:
@@ -795,7 +792,7 @@ function SequenceArrows({
             <div
                style={{
                   padding: "16px 24px",
-                  borderRadius: "12px",
+
                   fontSize: "1.1rem",
                   fontWeight: 600,
                   animation: "slideIn 0.3s ease-out",

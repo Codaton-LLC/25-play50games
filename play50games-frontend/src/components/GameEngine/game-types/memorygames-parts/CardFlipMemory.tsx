@@ -677,7 +677,6 @@ function CardFlipMemory({
             style={{
                width: "100%",
                background: "var(--card)",
-               border: "1px solid var(--stroke)",
                borderRadius: "16px",
                padding: "20px",
                boxShadow: "0 8px 24px rgba(0, 0, 0, 0.2)",
@@ -763,7 +762,7 @@ function CardFlipMemory({
                      background:
                         "linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1))",
                      border: "2px solid rgba(59, 130, 246, 0.6)",
-                     borderRadius: "12px",
+
                      color: "var(--text)",
                      fontSize: "0.95rem",
                      fontWeight: 600,
@@ -928,7 +927,7 @@ function CardFlipMemory({
                         ? "rgba(255, 255, 255, 0.1)"
                         : "rgba(251, 191, 36, 0.6)"
                   }`,
-                  borderRadius: "12px",
+
                   color: "var(--text)",
                   fontSize: "0.95rem",
                   fontWeight: 600,
@@ -984,7 +983,6 @@ function CardFlipMemory({
                   width: "100%",
                   padding: "20px",
                   background: "var(--card)",
-                  border: "1px solid var(--stroke)",
                   borderRadius: "20px",
                   boxShadow: "0 8px 24px rgba(0, 0, 0, 0.2)",
                }}
@@ -1005,7 +1003,7 @@ function CardFlipMemory({
                         style={{
                            width: "100%",
                            aspectRatio: "1",
-                           borderRadius: "12px",
+
                            border:
                               showHint &&
                               hintPair &&
@@ -1108,7 +1106,7 @@ function CardFlipMemory({
                <div
                   style={{
                      padding: "16px 24px",
-                     borderRadius: "12px",
+
                      fontSize: "1.1rem",
                      fontWeight: 600,
                      animation: "slideIn 0.3s ease-out",

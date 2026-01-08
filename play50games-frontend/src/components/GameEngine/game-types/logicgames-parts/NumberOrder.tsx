@@ -175,7 +175,6 @@ function NumberOrder({
             style={{
                width: "100%",
                background: "var(--card)",
-               border: "1px solid var(--stroke)",
                borderRadius: "16px",
                padding: "20px",
                boxShadow: "0 8px 24px rgba(0, 0, 0, 0.2)",
@@ -258,7 +257,6 @@ function NumberOrder({
          <div
             style={{
                background: "var(--card)",
-               border: "2px solid var(--stroke)",
                borderRadius: "16px",
                padding: "20px",
                boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)",
@@ -343,7 +341,7 @@ function NumberOrder({
                         style={{
                            width: "60px",
                            height: "60px",
-                           borderRadius: "12px",
+
                            background: isSelected
                               ? isCorrectOrder
                                  ? "linear-gradient(135deg, rgba(134,239,172,0.4) 0%, rgba(134,239,172,0.2) 100%)"
@@ -401,7 +399,6 @@ function NumberOrder({
             <div
                style={{
                   background: "var(--card)",
-                  border: "2px solid var(--stroke)",
                   borderRadius: "16px",
                   padding: "16px",
                   boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)",
@@ -472,7 +469,7 @@ function NumberOrder({
                            style={{
                               width: "50px",
                               height: "50px",
-                              borderRadius: "12px",
+
                               background: isCorrect
                                  ? "linear-gradient(135deg, var(--ok) 0%, #10b981 100%)"
                                  : "linear-gradient(135deg, var(--warn) 0%, #ef4444 100%)",
@@ -503,7 +500,7 @@ function NumberOrder({
             <div
                style={{
                   padding: "16px 24px",
-                  borderRadius: "12px",
+
                   fontSize: "1.1rem",
                   fontWeight: 600,
                   animation: "slideIn 0.3s ease-out",

@@ -10,10 +10,7 @@ import {
    ClockIcon,
    ShareIcon,
 } from "@heroicons/react/24/outline";
-import {
-   registerShare,
-   getShareStatus,
-} from "@/lib/api/share";
+import { registerShare, getShareStatus } from "@/lib/api/share";
 
 interface WhackShapeProps {
    config: Record<string, any>;
@@ -816,7 +813,6 @@ export default function WhackShape({
       gap: "12px",
       padding: isMobile ? "24px" : "32px",
       background: "var(--card)",
-      border: "1px solid var(--stroke)",
       borderRadius: "16px",
       textAlign: "center",
    });
@@ -843,7 +839,7 @@ export default function WhackShape({
          padding: isMobile ? "10px 16px" : "12px 20px",
          background: `linear-gradient(135deg, ${bgFrom}, ${bgTo})`,
          border: `2px solid ${borderColor}`,
-         borderRadius: "12px",
+
          color: textColor,
          fontSize: isMobile ? "0.95rem" : "1rem",
          fontWeight: 700,
@@ -868,7 +864,7 @@ export default function WhackShape({
          padding: isMobile ? "12px 24px" : "14px 28px",
          background: `linear-gradient(135deg, ${bgFrom}, ${bgTo})`,
          border: `2px solid ${borderColor}`,
-         borderRadius: "12px",
+
          color: "var(--text)",
          fontSize: isMobile ? "1rem" : "1.05rem",
          fontWeight: 700,
@@ -948,7 +944,6 @@ export default function WhackShape({
                   gap: "12px",
                   padding: isMobile ? "16px" : "20px",
                   background: "var(--card)",
-                  border: "1px solid var(--stroke)",
                   borderRadius: "16px",
                }}
             >
@@ -1065,7 +1060,6 @@ export default function WhackShape({
                      width: "100%",
                      height: isMobile ? "300px" : "380px",
                      background: "var(--card)",
-                     border: "1px solid var(--stroke)",
                      borderRadius: "16px",
                      overflow: "hidden",
                      pointerEvents: requirementsMet ? "none" : "auto",
@@ -1082,7 +1076,7 @@ export default function WhackShape({
                         background:
                            "linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1))",
                         border: "2px solid rgba(59, 130, 246, 0.6)",
-                        borderRadius: "12px",
+
                         fontSize: isMobile ? "1rem" : "1.2rem",
                         fontWeight: 700,
                         color: "var(--text)",
@@ -1386,8 +1380,6 @@ export default function WhackShape({
                      flexWrap: "wrap",
                      padding: isMobile ? "12px" : "16px",
                      background: "var(--card)",
-                     border: "1px solid var(--stroke)",
-                     borderRadius: "12px",
                   }}
                >
                   {/* Share Success Message */}
@@ -1466,7 +1458,7 @@ export default function WhackShape({
                            maxReplays > 0 && replaysUsed >= maxReplays
                               ? "1px solid rgba(100, 100, 100, 0.4)"
                               : "1px solid rgba(125, 211, 252, 0.6)",
-                        borderRadius: "12px",
+
                         color: "var(--text)",
                         fontSize: isMobile ? "0.85rem" : "0.95rem",
                         fontWeight: 600,
@@ -1535,7 +1527,7 @@ export default function WhackShape({
                         background:
                            "linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1))",
                         border: "1px solid rgba(59, 130, 246, 0.6)",
-                        borderRadius: "12px",
+
                         color: "var(--text)",
                         fontSize: isMobile ? "0.85rem" : "0.95rem",
                         fontWeight: 600,

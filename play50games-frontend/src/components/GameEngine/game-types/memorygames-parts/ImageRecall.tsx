@@ -672,7 +672,6 @@ function ImageRecall({
             style={{
                width: "100%",
                background: "var(--card)",
-               border: "1px solid var(--stroke)",
                borderRadius: isMobile ? "14px" : "16px",
                padding: isMobile ? "16px" : "20px",
                boxShadow: "0 8px 24px rgba(0, 0, 0, 0.2)",
@@ -800,7 +799,6 @@ function ImageRecall({
             style={{
                width: "100%",
                background: "var(--card)",
-               border: "1px solid var(--stroke)",
                borderRadius: isMobile ? "14px" : "16px",
                padding: isMobile ? "16px" : "20px",
                textAlign: "center",
@@ -1151,7 +1149,7 @@ function ImageRecall({
                      maxHints > 0 && hintsUsed >= maxHints
                         ? "1px solid rgba(100, 100, 100, 0.4)"
                         : "1px solid rgba(251, 191, 36, 0.6)",
-                  borderRadius: "12px",
+
                   color: "var(--text)",
                   fontSize: isMobile ? "0.85rem" : "0.95rem",
                   fontWeight: 600,
@@ -1227,7 +1225,7 @@ function ImageRecall({
                   background:
                      "linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1))",
                   border: "1px solid rgba(59, 130, 246, 0.6)",
-                  borderRadius: "12px",
+
                   color: "var(--text)",
                   fontSize: isMobile ? "0.85rem" : "0.95rem",
                   fontWeight: 600,
