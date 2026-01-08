@@ -725,13 +725,6 @@ button:disabled {
   margin-bottom: 20px;
 }
 
-.completed {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  justify-content: center;
-  margin-top: 15px;
-}
 
 .success {
   display: flex;
