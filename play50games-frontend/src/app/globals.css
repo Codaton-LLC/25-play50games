@@ -146,6 +146,19 @@ body.final-game {
   border: 2px solid var(--accent);
 }
 
+.game-feature-image {
+  position: relative;
+  margin-bottom: 16px;
+}
+
+.game-feature-image>div:first-child {
+  transition: transform 0.3s ease;
+}
+
+.game-card:hover:not(.locked) .game-feature-image>div:first-child {
+  transform: scale(1.02);
+}
+
 .completion-badge {
   position: absolute;
   top: 12px;
@@ -153,7 +166,7 @@ body.final-game {
   background: linear-gradient(135deg, var(--accent), rgba(125, 211, 252, 0.8));
   color: var(--bg);
   padding: 6px 12px;
-
+  border-radius: 20px;
   font-size: 12px;
   font-weight: 700;
   display: flex;
@@ -176,6 +189,15 @@ body.final-game {
     transform: scale(1.05);
     box-shadow: 0 6px 16px rgba(125, 211, 252, 0.6);
   }
+}
+
+.game-card {
+  cursor: pointer;
+  display: block;
+}
+
+.game-card.locked {
+  cursor: not-allowed;
 }
 
 .game-card a {
@@ -2007,7 +2029,6 @@ body.final-game .rotate-to-fit-game .object-rotate-btn .keyboard-hint {
 }
 
 .category-count {
-  background: rgba(255, 255, 255, 0.15);
   padding: 2px 8px;
 
   font-size: 0.85rem;

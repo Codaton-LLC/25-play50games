@@ -15,6 +15,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import LoginModal from "@/components/Auth/LoginModal";
 import RegisterModal from "@/components/Auth/RegisterModal";
 import Header from "@/components/Header/Header";
+import GamePreview from "@/components/GamePreview/GamePreview";
 import {
    TrophyIcon,
    CheckBadgeIcon,
@@ -434,9 +435,19 @@ export default function HomePage() {
                                           gameType,
                                           game.title
                                        );
-                                       const displayDescription =
+                                       const displayDescription = (
                                           game.description ||
-                                          instructions.description;
+                                          instructions.description ||
+                                          ""
+                                       ).length > 150
+                                          ? (
+                                               game.description ||
+                                               instructions.description ||
+                                               ""
+                                            ).substring(0, 150) + "..."
+                                          : game.description ||
+                                            instructions.description ||
+                                            "";
                                        const instructionsExcerpt =
                                           getInstructionsExcerpt(
                                              instructions.instructions || ""
@@ -446,119 +457,123 @@ export default function HomePage() {
                                           gameProgress[game.id]?.completed ||
                                           false;
 
-                                       return (
+                                       return game.is_unlocked ? (
+                                          <Link
+                                             key={game.id}
+                                             href={`/games/${game.id}`}
+                                             className={`game-card ${
+                                                isCompleted ? "completed" : ""
+                                             }`}
+                                             style={{ textDecoration: "none" }}
+                                          >
+                                             <UnlockSystem game={game} />
+
+                                             {/* Feature Image */}
+                                             <div className="game-feature-image">
+                                                <GamePreview
+                                                   gameType={gameType}
+                                                   isFinalGame={
+                                                      game.game_type === "final"
+                                                   }
+                                                />
+
+                                                {/* Completion Badge - positioned over feature image */}
+                                                {isCompleted && (
+                                                   <div className="completion-badge">
+                                                      <CheckBadgeIcon
+                                                         style={{
+                                                            width: 16,
+                                                            height: 16,
+                                                            marginRight: 4,
+                                                         }}
+                                                      />
+                                                      Complete
+                                                   </div>
+                                                )}
+                                             </div>
+                                             <h3>{game.title}</h3>
+                                             <p className="game-description">
+                                                {displayDescription}
+                                             </p>
+                                             <div className="game-meta">
+                                                <span>
+                                                   <StarIcon
+                                                      style={{
+                                                         width: 14,
+                                                         height: 14,
+                                                         display: "inline",
+                                                         marginRight: 4,
+                                                      }}
+                                                   />
+                                                   Difficulty:{" "}
+                                                   {"★".repeat(game.difficulty)}
+                                                </span>
+                                                <span>
+                                                   <ClockIcon
+                                                      style={{
+                                                         width: 14,
+                                                         height: 14,
+                                                         display: "inline",
+                                                         marginRight: 4,
+                                                      }}
+                                                   />
+                                                   Time: {game.time_limit}s
+                                                </span>
+                                                <span>
+                                                   Target: {game.passing_score}%
+                                                </span>
+                                             </div>
+                                          </Link>
+                                       ) : (
                                           <div
                                              key={game.id}
-                                             className={`game-card ${
-                                                !game.is_unlocked
-                                                   ? "locked"
-                                                   : ""
-                                             } ${
+                                             className={`game-card locked ${
                                                 isCompleted ? "completed" : ""
                                              }`}
                                           >
                                              <UnlockSystem game={game} />
-                                             {isCompleted && (
-                                                <div className="completion-badge">
-                                                   <CheckBadgeIcon
-                                                      style={{
-                                                         width: 16,
-                                                         height: 16,
-                                                         marginRight: 4,
-                                                      }}
-                                                   />
-                                                   Complete
-                                                </div>
-                                             )}
-                                             {game.is_unlocked ? (
-                                                <Link
-                                                   href={`/games/${game.id}`}
-                                                >
-                                                   <h3>{game.title}</h3>
-                                                   <p className="game-description">
-                                                      {displayDescription}
-                                                   </p>
-                                                   <div className="game-instructions">
-                                                      <p className="instructions-text">
-                                                         {instructionsExcerpt}
-                                                      </p>
-                                                      {instructions.tips && (
-                                                         <p
-                                                            className="game-tips"
-                                                            style={{
-                                                               display: "flex",
-                                                               alignItems:
-                                                                  "center",
-                                                               gap: "6px",
-                                                            }}
-                                                         >
-                                                            <LightBulbIcon
-                                                               style={{
-                                                                  width: 16,
-                                                                  height: 16,
-                                                                  flexShrink: 0,
-                                                               }}
-                                                            />
-                                                            {instructions.tips}
-                                                         </p>
-                                                      )}
+
+                                             {/* Feature Image */}
+                                             <div className="game-feature-image">
+                                                <GamePreview
+                                                   gameType={gameType}
+                                                   isFinalGame={
+                                                      game.game_type === "final"
+                                                   }
+                                                />
+
+                                                {/* Completion Badge - positioned over feature image */}
+                                                {isCompleted && (
+                                                   <div className="completion-badge">
+                                                      <CheckBadgeIcon
+                                                         style={{
+                                                            width: 16,
+                                                            height: 16,
+                                                            marginRight: 4,
+                                                         }}
+                                                      />
+                                                      Complete
                                                    </div>
-                                                   <div className="game-meta">
-                                                      <span>
-                                                         <StarIcon
-                                                            style={{
-                                                               width: 14,
-                                                               height: 14,
-                                                               display:
-                                                                  "inline",
-                                                               marginRight: 4,
-                                                            }}
-                                                         />
-                                                         Difficulty:{" "}
-                                                         {"★".repeat(
-                                                            game.difficulty
-                                                         )}
-                                                      </span>
-                                                      <span>
-                                                         <ClockIcon
-                                                            style={{
-                                                               width: 14,
-                                                               height: 14,
-                                                               display:
-                                                                  "inline",
-                                                               marginRight: 4,
-                                                            }}
-                                                         />
-                                                         Time: {game.time_limit}
-                                                         s
-                                                      </span>
-                                                      <span>
-                                                         Target:{" "}
-                                                         {game.passing_score}%
-                                                      </span>
-                                                   </div>
-                                                </Link>
-                                             ) : (
-                                                <div>
-                                                   <h3>{game.title}</h3>
-                                                   <p className="locked-message">
-                                                      Complete previous games to
-                                                      unlock
-                                                   </p>
-                                                   <div className="game-meta">
-                                                      <span>
-                                                         Difficulty:{" "}
-                                                         {"★".repeat(
-                                                            game.difficulty
-                                                         )}
-                                                      </span>
-                                                      <span>
-                                                         Time: {game.time_limit}
-                                                         s
-                                                      </span>
-                                                   </div>
-                                                </div>
-                                             )}
+                                                )}
+                                             </div>
+
+                                             <h3>{game.title}</h3>
+                                             <p className="locked-message">
+                                                Complete previous games to
+                                                unlock
+                                             </p>
+                                             <div className="game-meta">
+                                                <span>
+                                                   Difficulty:{" "}
+                                                   {"★".repeat(game.difficulty)}
+                                                </span>
+                                                <span>
+                                                   Time: {game.time_limit}s
+                                                </span>
+                                                <span>
+                                                   Target: {game.passing_score}%
+                                                </span>
+                                             </div>
                                           </div>
                                        );
                                     })}
@@ -600,8 +615,17 @@ export default function HomePage() {
                                  gameType,
                                  game.title
                               );
-                              const displayDescription =
-                                 game.description || instructions.description;
+                              const displayDescription = (
+                                 game.description || instructions.description || ""
+                              ).length > 150
+                                 ? (
+                                      game.description ||
+                                      instructions.description ||
+                                      ""
+                                   ).substring(0, 150) + "..."
+                                 : game.description ||
+                                   instructions.description ||
+                                   "";
                               const instructionsExcerpt =
                                  getInstructionsExcerpt(
                                     instructions.instructions || ""
@@ -610,124 +634,142 @@ export default function HomePage() {
                                  gameProgress[game.id]?.completed || false;
                               const isFinalGame = gameType === "final";
 
-                              return (
-                                 <div
+                              return game.is_unlocked ? (
+                                 <Link
                                     key={game.id}
+                                    href={`/games/${game.id}`}
                                     className={`game-card ${
-                                       !game.is_unlocked ? "locked" : ""
-                                    } ${isCompleted ? "completed" : ""} ${
-                                       isFinalGame ? "final-game" : ""
-                                    }`}
+                                       isCompleted ? "completed" : ""
+                                    } ${isFinalGame ? "final-game" : ""}`}
+                                    style={{ textDecoration: "none" }}
                                  >
                                     <UnlockSystem game={game} />
-                                    {isCompleted && (
-                                       <div
-                                          className={`completion-badge ${
-                                             isFinalGame ? "final-game" : ""
-                                          }`}
-                                       >
-                                          <CheckBadgeIcon
+
+                                    {/* Feature Image */}
+                                    <div className="game-feature-image">
+                                       <GamePreview
+                                          gameType={gameType}
+                                          isFinalGame={isFinalGame}
+                                       />
+
+                                       {/* Completion Badge - positioned over feature image */}
+                                       {isCompleted && (
+                                          <div
+                                             className={`completion-badge ${
+                                                isFinalGame ? "final-game" : ""
+                                             }`}
+                                          >
+                                             <CheckBadgeIcon
+                                                style={{
+                                                   width: 16,
+                                                   height: 16,
+                                                   marginRight: 4,
+                                                }}
+                                             />
+                                             Complete
+                                          </div>
+                                       )}
+                                    </div>
+                                    <h3>{game.title}</h3>
+                                    <p className="game-description">
+                                       {displayDescription}
+                                    </p>
+                                    <div className="game-meta">
+                                       <span>
+                                          <StarIcon
                                              style={{
-                                                width: 16,
-                                                height: 16,
+                                                width: 14,
+                                                height: 14,
+                                                display: "inline",
                                                 marginRight: 4,
                                              }}
                                           />
-                                          Complete
-                                       </div>
-                                    )}
-                                    {game.is_unlocked ? (
-                                       <Link href={`/games/${game.id}`}>
-                                          <h3>{game.title}</h3>
-                                          <p className="game-description">
-                                             {displayDescription}
-                                          </p>
-                                          <div className="game-instructions">
-                                             <p className="instructions-text">
-                                                {instructionsExcerpt}
-                                             </p>
-                                             {instructions.tips && (
-                                                <p
-                                                   className="game-tips"
-                                                   style={{
-                                                      display: "flex",
-                                                      alignItems: "center",
-                                                      gap: "6px",
-                                                   }}
-                                                >
-                                                   <LightBulbIcon
-                                                      style={{
-                                                         width: 16,
-                                                         height: 16,
-                                                         flexShrink: 0,
-                                                      }}
-                                                   />
-                                                   {instructions.tips}
-                                                </p>
-                                             )}
+                                          Difficulty:{" "}
+                                          {"★".repeat(game.difficulty)}
+                                       </span>
+                                       <span>
+                                          <ClockIcon
+                                             style={{
+                                                width: 14,
+                                                height: 14,
+                                                display: "inline",
+                                                marginRight: 4,
+                                             }}
+                                          />
+                                          Time: {game.time_limit}s
+                                       </span>
+                                       <span>
+                                          Target: {game.passing_score}%
+                                       </span>
+                                    </div>
+                                 </Link>
+                              ) : (
+                                 <div
+                                    key={game.id}
+                                    className={`game-card locked ${
+                                       isCompleted ? "completed" : ""
+                                    } ${isFinalGame ? "final-game" : ""}`}
+                                 >
+                                    <UnlockSystem game={game} />
+
+                                    {/* Feature Image */}
+                                    <div className="game-feature-image">
+                                       <GamePreview
+                                          gameType={gameType}
+                                          isFinalGame={isFinalGame}
+                                       />
+
+                                       {/* Completion Badge - positioned over feature image */}
+                                       {isCompleted && (
+                                          <div
+                                             className={`completion-badge ${
+                                                isFinalGame ? "final-game" : ""
+                                             }`}
+                                          >
+                                             <CheckBadgeIcon
+                                                style={{
+                                                   width: 16,
+                                                   height: 16,
+                                                   marginRight: 4,
+                                                }}
+                                             />
+                                             Complete
                                           </div>
-                                          <div className="game-meta">
-                                             <span>
-                                                <StarIcon
-                                                   style={{
-                                                      width: 14,
-                                                      height: 14,
-                                                      display: "inline",
-                                                      marginRight: 4,
-                                                   }}
-                                                />
-                                                Difficulty:{" "}
-                                                {"★".repeat(game.difficulty)}
-                                             </span>
-                                             <span>
-                                                <ClockIcon
-                                                   style={{
-                                                      width: 14,
-                                                      height: 14,
-                                                      display: "inline",
-                                                      marginRight: 4,
-                                                   }}
-                                                />
-                                                Time: {game.time_limit}s
-                                             </span>
-                                             <span>
-                                                Target: {game.passing_score}%
-                                             </span>
-                                          </div>
-                                       </Link>
-                                    ) : (
-                                       <div>
-                                          <h3>{game.title}</h3>
-                                          <p className="locked-message">
-                                             Complete previous games to unlock
-                                          </p>
-                                          <div className="game-meta">
-                                             <span>
-                                                <StarIcon
-                                                   style={{
-                                                      width: 14,
-                                                      height: 14,
-                                                      display: "inline",
-                                                      marginRight: 4,
-                                                   }}
-                                                />
-                                                Difficulty:{" "}
-                                                {"★".repeat(game.difficulty)}
-                                             </span>
-                                             <span>
-                                                <ClockIcon
-                                                   style={{
-                                                      width: 14,
-                                                      height: 14,
-                                                      display: "inline",
-                                                      marginRight: 4,
-                                                   }}
-                                                />
-                                                Time: {game.time_limit}s
-                                             </span>
-                                          </div>
-                                       </div>
-                                    )}
+                                       )}
+                                    </div>
+
+                                    <h3>{game.title}</h3>
+                                    <p className="locked-message">
+                                       Complete previous games to unlock
+                                    </p>
+                                    <div className="game-meta">
+                                       <span>
+                                          <StarIcon
+                                             style={{
+                                                width: 14,
+                                                height: 14,
+                                                display: "inline",
+                                                marginRight: 4,
+                                             }}
+                                          />
+                                          Difficulty:{" "}
+                                          {"★".repeat(game.difficulty)}
+                                       </span>
+                                       <span>
+                                          <ClockIcon
+                                             style={{
+                                                width: 14,
+                                                height: 14,
+                                                display: "inline",
+                                                marginRight: 4,
+                                             }}
+                                          />
+                                          Time: {game.time_limit}s
+                                       </span>
+                                       <span>
+                                          Target: {game.passing_score}%
+                                       </span>
+                                    </div>
                                  </div>
                               );
                            })
