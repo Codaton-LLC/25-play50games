@@ -7,18 +7,31 @@ import { generateCertificate, getCertificate } from '@/lib/api/certificate';
 import { getAllProgress } from '@/lib/storage/progressStorage';
 import { getAllGames } from '@/lib/api/games';
 import { getGuestId } from '@/lib/storage/progressStorage';
-import { ArrowLeftIcon } from '@heroicons/react/24/outline';
+import { QRCodeSVG } from 'qrcode.react';
+import { useAuth } from '@/contexts/AuthContext';
+import LoginModal from '@/components/Auth/LoginModal';
+import RegisterModal from '@/components/Auth/RegisterModal';
+import Header from '@/components/Header/Header';
 
 export default function CertificatePage() {
+  const { user, isAuthenticated, isLoading: authLoading, login, register } = useAuth();
   const [certificate, setCertificate] = useState<Certificate | null>(null);
   const [loading, setLoading] = useState(false);
   const [playerName, setPlayerName] = useState('');
   const [canGenerate, setCanGenerate] = useState(false);
   const [guestId] = useState(() => getGuestId());
+  const [showLoginModal, setShowLoginModal] = useState(false);
+  const [showRegisterModal, setShowRegisterModal] = useState(false);
 
   useEffect(() => {
-    checkCompletion();
-  }, []);
+    if (isAuthenticated && user) {
+      // Set player name from user data
+      const name = user.display_name || 
+                   (user.first_name && user.last_name ? `${user.first_name} ${user.last_name}` : user.email);
+      setPlayerName(name);
+      checkCompletion();
+    }
+  }, [isAuthenticated, user]);
 
   const checkCompletion = async () => {
     try {
@@ -69,59 +82,235 @@ export default function CertificatePage() {
     }
   };
 
+  const getCertificateUrl = () => {
+    if (certificate) {
+      // If pdf_path exists, use it directly
+      if (certificate.pdf_path) {
+        return certificate.pdf_path;
+      }
+      // Otherwise, construct the PDF URL based on certificate_id
+      return `https://cms.play50.games/wp-content/uploads/play50-certificates/certificate-${certificate.certificate_id}.pdf`;
+    }
+    return '';
+  };
+
   const generateCertificateHTML = (cert: Certificate) => {
+    const certUrl = typeof window !== 'undefined' 
+      ? `${window.location.origin}/certificate/${cert.certificate_id}`
+      : '';
+    
     return `<!DOCTYPE html>
 <html>
 <head>
     <meta charset="UTF-8">
     <title>Certificate - ${cert.player_name}</title>
     <style>
-        body { font-family: 'Times New Roman', serif; margin: 0; padding: 40px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
-        .certificate { background: white; padding: 60px; border: 20px solid #FFD700; text-align: center; }
-        .certificate-header { font-size: 48px; font-weight: bold; color: #091057; margin-bottom: 20px; }
-        .player-name { font-size: 42px; font-weight: bold; color: #FF6900; margin: 30px 0; padding: 20px; border: 3px solid #091057; }
+        @page { size: A4 landscape; margin: 0; }
+        body { 
+            font-family: system-ui, -apple-system, 'Segoe UI', 'Roboto', sans-serif; 
+            margin: 0; 
+            padding: 40px; 
+            background: radial-gradient(1000px 600px at 20% 10%, rgba(125, 211, 252, 0.20), transparent 60%),
+              radial-gradient(900px 550px at 80% 30%, rgba(134, 239, 172, 0.16), transparent 60%),
+              radial-gradient(900px 650px at 60% 90%, rgba(252, 165, 165, 0.14), transparent 60%),
+              #0b1020;
+            color: rgba(255, 255, 255, 0.92);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .certificate { 
+            background: rgba(255, 255, 255, 0.06);
+            padding: 60px; 
+            border: 2px solid rgba(255, 255, 255, 0.12);
+            text-align: center; 
+            max-width: 900px;
+            width: 100%;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.28);
+        }
+        .certificate-header { 
+            font-size: 48px; 
+            font-weight: bold; 
+            color: rgba(255, 255, 255, 0.92); 
+            margin-bottom: 20px; 
+        }
+        .player-name { 
+            font-size: 42px; 
+            font-weight: bold; 
+            color: #7dd3fc; 
+            margin: 30px 0; 
+            padding: 20px; 
+            border-top: 2px solid rgba(255, 255, 255, 0.12);
+            border-bottom: 2px solid rgba(255, 255, 255, 0.12);
+        }
+        .certificate-text {
+            color: rgba(255, 255, 255, 0.70);
+            font-size: 18px;
+            margin: 20px 0;
+        }
+        .certificate-details {
+            display: flex;
+            justify-content: space-around;
+            margin: 40px 0;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.03);
+        }
+        .detail-item {
+            text-align: center;
+        }
+        .detail-label {
+            display: block;
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.70);
+            margin-bottom: 8px;
+        }
+        .detail-value {
+            display: block;
+            font-size: 20px;
+            font-weight: bold;
+            color: rgba(255, 255, 255, 0.92);
+        }
+        .certificate-id {
+            margin-top: 30px;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.03);
+            color: rgba(255, 255, 255, 0.70);
+            font-size: 12px;
+            font-family: monospace;
+        }
+        .qr-section {
+            margin: 30px 0;
+            padding: 20px;
+        }
+        .qr-hint {
+            margin-top: 10px;
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.70);
+        }
     </style>
 </head>
 <body>
     <div class="certificate">
         <div class="certificate-header">Certificate of Completion</div>
+        <p class="certificate-text">This is to certify that</p>
         <div class="player-name">${cert.player_name}</div>
-        <p>has successfully completed all 5 games</p>
-        <p>Date: ${new Date(cert.completion_date).toLocaleDateString()}</p>
-        <p>Score: ${cert.total_score} | Rank: ${cert.rank}</p>
-        <p>Certificate ID: ${cert.certificate_id}</p>
+        <p class="certificate-text">
+            has successfully completed all 5 games<br />
+            demonstrating exceptional skills in logic, memory, speed, and coordination.
+        </p>
+        <div class="certificate-details">
+            <div class="detail-item">
+                <span class="detail-label">Completion Date</span>
+                <span class="detail-value">${new Date(cert.completion_date).toLocaleDateString()}</span>
+            </div>
+            <div class="detail-item">
+                <span class="detail-label">Total Score</span>
+                <span class="detail-value">${cert.total_score}</span>
+            </div>
+            <div class="detail-item">
+                <span class="detail-label">Rank</span>
+                <span class="detail-value">${cert.rank}</span>
+            </div>
+        </div>
+        ${certUrl ? `<div class="qr-section">
+            <p class="qr-hint">Scan QR code to verify this certificate online</p>
+            <p class="qr-hint">${certUrl}</p>
+        </div>` : ''}
+        <div class="certificate-id">
+            Certificate ID: ${cert.certificate_id}
+        </div>
     </div>
 </body>
 </html>`;
   };
 
+  if (authLoading) {
+    return (
+      <div className="certificate-page">
+        <div className="certificate-loading">
+          <span className="loader"></span>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="certificate-page">
-      <header>
-        <h1>Certificate</h1>
-        <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <ArrowLeftIcon style={{ width: 16, height: 16 }} />
-          Back to Games
-        </Link>
-      </header>
+      <Header
+        showSubtitle={false}
+        onShowLoginModal={() => setShowLoginModal(true)}
+        onShowRegisterModal={() => setShowRegisterModal(true)}
+      />
 
-      {!certificate ? (
+      {/* Auth Modals */}
+      <LoginModal
+        isOpen={showLoginModal}
+        onClose={() => setShowLoginModal(false)}
+        onLogin={login}
+        onSwitchToRegister={() => {
+          setShowLoginModal(false);
+          setShowRegisterModal(true);
+        }}
+      />
+      <RegisterModal
+        isOpen={showRegisterModal}
+        onClose={() => setShowRegisterModal(false)}
+        onRegister={register}
+        onSwitchToLogin={() => {
+          setShowRegisterModal(false);
+          setShowLoginModal(true);
+        }}
+      />
+
+      {!isAuthenticated ? (
+        <div className="certificate-generate">
+          <div className="login-required">
+            <div className="login-icon">
+              <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="32" cy="32" r="30" stroke="var(--accent)" strokeWidth="3" fill="none"/>
+                <path d="M32 20 L32 32 M32 32 L40 40 M32 32 L24 40" stroke="var(--accent)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M20 48 C20 42 25 38 32 38 C39 38 44 42 44 48" stroke="var(--accent)" strokeWidth="3" strokeLinecap="round"/>
+              </svg>
+            </div>
+            <h2>Login Required</h2>
+            <p>You must be logged in to generate your certificate.</p>
+            <p className="login-hint">Please log in or create an account to access certificate generation.</p>
+            <div className="login-actions">
+              <button onClick={() => setShowLoginModal(true)} className="login-button">
+                Log In
+              </button>
+              <button onClick={() => setShowRegisterModal(true)} className="register-button">
+                Create Account
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : !certificate ? (
         <div className="certificate-generate">
           {canGenerate ? (
             <>
               <h2>Generate Your Certificate</h2>
               <p>Congratulations! You've completed all 5 games.</p>
-              <div className="name-input">
-                <label>Enter your name:</label>
-                <input
-                  type="text"
-                  value={playerName}
-                  onChange={(e) => setPlayerName(e.target.value)}
-                  placeholder="Your Name"
-                />
+              <div className="name-display">
+                <div className="player-name-display" style={{
+                  fontSize: '50px',
+                  fontWeight: '700',
+                  color: 'var(--accent)',
+                  textAlign: 'center',
+                  margin: '30px 0',
+                  padding: '20px',
+                  borderTop: '2px solid var(--stroke)',
+                  borderBottom: '2px solid var(--stroke)',
+                }}>
+                  {playerName}
+                </div>
+                <small style={{ display: 'block', marginTop: '8px', marginBottom: '25px', color: 'var(--muted)', fontSize: '12px', textAlign: 'center' }}>
+                  Name is taken from your account
+                </small>
               </div>
               <button onClick={handleGenerate} disabled={loading || !playerName.trim()}>
-                {loading ? 'Generating...' : 'Generate Certificate'}
+                Generate Certificate
               </button>
             </>
           ) : (
@@ -135,7 +324,15 @@ export default function CertificatePage() {
       ) : (
         <div className="certificate-view">
           <div className="certificate-display">
-            <h2>Certificate of Completion</h2>
+            <div className="certificate-badge">
+              <svg width="80" height="80" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="40" cy="40" r="38" stroke="var(--accent)" strokeWidth="4" fill="none"/>
+                <path d="M25 40 L35 50 L55 30" stroke="var(--accent)" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </div>
+            
+            <h1 className="certificate-title">Certificate of Completion</h1>
+            
             <div className="certificate-content">
               <p className="certificate-text">This is to certify that</p>
               <div className="player-name-large">{certificate.player_name}</div>
@@ -143,22 +340,49 @@ export default function CertificatePage() {
                 has successfully completed all 5 games<br />
                 demonstrating exceptional skills in logic, memory, speed, and coordination.
               </p>
+              
               <div className="certificate-details">
-                <div>
-                  <strong>Completion Date:</strong> {new Date(certificate.completion_date).toLocaleDateString()}
+                <div className="detail-item">
+                  <span className="detail-label">Completion Date</span>
+                  <span className="detail-value">{new Date(certificate.completion_date).toLocaleDateString()}</span>
                 </div>
-                <div>
-                  <strong>Total Score:</strong> {certificate.total_score}
+                <div className="detail-item">
+                  <span className="detail-label">Total Score</span>
+                  <span className="detail-value">{certificate.total_score}</span>
                 </div>
-                <div>
-                  <strong>Rank:</strong> {certificate.rank}
+                <div className="detail-item">
+                  <span className="detail-label">Rank</span>
+                  <span className="detail-value">{certificate.rank}</span>
                 </div>
               </div>
+
+              <div className="certificate-qr-section">
+                <div className="qr-code-container">
+                  <QRCodeSVG
+                    value={getCertificateUrl()}
+                    size={150}
+                    level="H"
+                    includeMargin={true}
+                    fgColor="var(--text)"
+                    bgColor="transparent"
+                  />
+                </div>
+                <p className="qr-hint">Scan to verify this certificate</p>
+              </div>
+
               <div className="certificate-id">
-                Certificate ID: {certificate.certificate_id}
+                Certificate ID: <span className="cert-id-value">{certificate.certificate_id}</span>
               </div>
             </div>
           </div>
+
+          <div className="certificate-footer">
+            <div className="certificate-brand">
+              <strong>Play50Games</strong>
+              <span>Learn. Play. Achieve.</span>
+            </div>
+          </div>
+
           <div className="certificate-actions">
             <button onClick={handleDownload}>Download Certificate</button>
             <Link href="/">Back to Games</Link>

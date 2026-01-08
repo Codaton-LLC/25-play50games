@@ -439,6 +439,41 @@ export default function Header({
                         >
                            Register
                         </button>
+                        <Link
+                           href="/certificate"
+                           style={{
+                              padding: "9px 16px",
+                              backgroundColor: "rgba(234, 179, 8, 0.14)",
+                              color: "#eab308",
+                              border: "1px solid rgba(234, 179, 8, 0.35)",
+                              cursor: "pointer",
+                              fontWeight: "600",
+                              fontSize: "14px",
+                              transition: "all 0.2s ease",
+                              borderRadius: "8px",
+                              textDecoration: "none",
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "6px",
+                              flex: isMobile ? "1" : "none",
+                              minWidth: isMobile ? "0" : "auto",
+                           }}
+                           onMouseEnter={(e) => {
+                              e.currentTarget.style.backgroundColor =
+                                 "rgba(234, 179, 8, 0.24)";
+                              e.currentTarget.style.borderColor =
+                                 "rgba(234, 179, 8, 0.5)";
+                           }}
+                           onMouseLeave={(e) => {
+                              e.currentTarget.style.backgroundColor =
+                                 "rgba(234, 179, 8, 0.14)";
+                              e.currentTarget.style.borderColor =
+                                 "rgba(234, 179, 8, 0.35)";
+                           }}
+                        >
+                           <CheckBadgeIcon style={{ width: 16, height: 16 }} />
+                           Certificates
+                        </Link>
                      </div>
                   </div>
                )

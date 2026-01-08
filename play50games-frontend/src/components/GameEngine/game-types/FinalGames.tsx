@@ -336,7 +336,7 @@ function MixedQuiz({
 
    const renderMiniGame = () => {
       const miniConfig = miniGameConfigs[currentMiniGame];
-      if (!miniConfig) return <div>Loading...</div>;
+      if (!miniConfig) return null;
 
       switch (currentMiniGame) {
          case "logic":
@@ -1908,7 +1908,7 @@ function FinalTest({
    };
 
    const renderChallenge = () => {
-      if (!currentChallenge) return <div>Loading...</div>;
+      if (!currentChallenge) return null;
 
       switch (currentChallenge.type) {
          case "logic":

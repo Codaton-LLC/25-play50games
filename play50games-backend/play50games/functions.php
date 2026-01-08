@@ -5,6 +5,12 @@
         define( '_S_VERSION', '1.0.0' );
     }
 
+    // Load Composer autoloader for DomPDF
+    $composer_autoload = get_stylesheet_directory() . '/vendor/autoload.php';
+    if (file_exists($composer_autoload)) {
+        require_once $composer_autoload;
+    }
+
     // Define global variable correctly
     global $theme_path;
     $theme_path = get_template_directory_uri();

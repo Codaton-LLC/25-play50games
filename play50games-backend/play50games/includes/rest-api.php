@@ -1096,12 +1096,17 @@ function play50_generate_certificate($request) {
     $player_name = sanitize_text_field($request->get_param('player_name'));
     $guest_id = $request->get_param('guest_id');
     
+    // Check if user is logged in
+    if ($user_id === 0) {
+        return new WP_Error('unauthorized', 'You must be logged in to generate a certificate', array('status' => 401));
+    }
+    
     if (empty($player_name)) {
         return new WP_Error('invalid_data', 'Player name is required', array('status' => 400));
     }
     
     // Check if all games are completed
-    $all_progress = $user_id > 0 ? get_user_meta($user_id, 'play50_all_progress', true) : array();
+    $all_progress = get_user_meta($user_id, 'play50_all_progress', true);
     
     if (!is_array($all_progress) || count($all_progress) < 5) {
         return new WP_Error('incomplete', 'All 5 games must be completed', array('status' => 400));
