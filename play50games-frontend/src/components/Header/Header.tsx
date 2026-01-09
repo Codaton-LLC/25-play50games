@@ -456,6 +456,7 @@ export default function Header({
                         </span>
                      </div>
                      <div
+                        className="header-buttons-container"
                         style={{
                            display: "flex",
                            gap: "0.5rem",

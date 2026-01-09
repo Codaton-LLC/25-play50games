@@ -62,6 +62,17 @@ body.final-game {
     width: 100%;
     min-width: auto;
   }
+  
+  .header-buttons-container {
+    flex-direction: column !important;
+    flex-wrap: wrap !important;
+  }
+  
+  .header-buttons-container > * {
+    flex: 1 1 auto !important;
+    width: 100% !important;
+    min-width: auto !important;
+  }
 }
 
 /* Home Page */
