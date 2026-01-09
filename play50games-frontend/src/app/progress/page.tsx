@@ -17,12 +17,19 @@ import {
    TrophyIcon,
 } from "@heroicons/react/24/outline";
 import { TrophyIcon as TrophyIconSolid } from "@heroicons/react/24/solid";
+import { useAuth } from "@/contexts/AuthContext";
+import LoginModal from "@/components/Auth/LoginModal";
+import RegisterModal from "@/components/Auth/RegisterModal";
+import Header from "@/components/Header/Header";
 
 export default function ProgressPage() {
+   const { user, isAuthenticated, login, register } = useAuth();
    const [progress, setProgress] = useState<Record<number, GameProgress>>({});
    const [games, setGames] = useState<Game[]>([]);
    const [loading, setLoading] = useState(true);
    const [guestId] = useState(() => getGuestId());
+   const [showLoginModal, setShowLoginModal] = useState(false);
+   const [showRegisterModal, setShowRegisterModal] = useState(false);
 
    useEffect(() => {
       loadData();
@@ -143,16 +150,42 @@ export default function ProgressPage() {
 
    return (
       <div className="progress-page">
-         <header>
-            <h1>Your Progress</h1>
+         <Header
+            showSubtitle={false}
+            onShowLoginModal={() => setShowLoginModal(true)}
+            onShowRegisterModal={() => setShowRegisterModal(true)}
+         />
+
+         {/* Auth Modals */}
+         <LoginModal
+            isOpen={showLoginModal}
+            onClose={() => setShowLoginModal(false)}
+            onLogin={login}
+            onSwitchToRegister={() => {
+               setShowLoginModal(false);
+               setShowRegisterModal(true);
+            }}
+         />
+         <RegisterModal
+            isOpen={showRegisterModal}
+            onClose={() => setShowRegisterModal(false)}
+            onRegister={register}
+            onSwitchToLogin={() => {
+               setShowRegisterModal(false);
+               setShowLoginModal(true);
+            }}
+         />
+
+         <div style={{ marginBottom: "2rem" }}>
+            <h1 style={{ marginBottom: "1rem" }}>Your Progress</h1>
             <Link
                href="/"
-               style={{ display: "flex", alignItems: "center", gap: "6px" }}
+               style={{ display: "flex", alignItems: "center", gap: "6px", color: "var(--text)", textDecoration: "none" }}
             >
                <ArrowLeftIcon style={{ width: 16, height: 16 }} />
                Back to Games
             </Link>
-         </header>
+         </div>
 
          <div className="progress-stats">
             <div className="stat-card">
