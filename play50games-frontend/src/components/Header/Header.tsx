@@ -10,6 +10,9 @@ import {
    TrophyIcon,
    CheckBadgeIcon,
    UserCircleIcon,
+   ShieldCheckIcon,
+   QuestionMarkCircleIcon,
+   EnvelopeIcon,
 } from "@heroicons/react/24/outline";
 
 interface HeaderProps {
@@ -242,7 +245,7 @@ export default function Header({
                               alignItems: "center",
                               gap: "12px",
                               padding: "12px 16px",
-                              color: "var(--text)",
+                              color: "#eab308",
                               textDecoration: "none",
                               borderRadius: "8px",
                               transition: "all 0.2s ease",
@@ -250,7 +253,7 @@ export default function Header({
                            }}
                            onMouseEnter={(e) => {
                               e.currentTarget.style.backgroundColor =
-                                 "rgba(255, 255, 255, 0.08)";
+                                 "rgba(234, 179, 8, 0.15)";
                            }}
                            onMouseLeave={(e) => {
                               e.currentTarget.style.backgroundColor =
@@ -259,6 +262,88 @@ export default function Header({
                         >
                            <CheckBadgeIcon style={{ width: 20, height: 20 }} />
                            <span style={{ fontSize: "14px" }}>Certificate</span>
+                        </Link>
+                        <Link
+                           href="/verify"
+                           onClick={() => setShowUserMenu(false)}
+                           style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "12px",
+                              padding: "12px 16px",
+                              color: "#7dd3fc",
+                              textDecoration: "none",
+                              borderRadius: "8px",
+                              transition: "all 0.2s ease",
+                              cursor: "pointer",
+                           }}
+                           onMouseEnter={(e) => {
+                              e.currentTarget.style.backgroundColor =
+                                 "rgba(125, 211, 252, 0.15)";
+                           }}
+                           onMouseLeave={(e) => {
+                              e.currentTarget.style.backgroundColor =
+                                 "transparent";
+                           }}
+                        >
+                           <ShieldCheckIcon style={{ width: 20, height: 20 }} />
+                           <span style={{ fontSize: "14px" }}>
+                              Verify Certificate
+                           </span>
+                        </Link>
+                        <Link
+                           href="/faq"
+                           onClick={() => setShowUserMenu(false)}
+                           style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "12px",
+                              padding: "12px 16px",
+                              color: "#a78bfa",
+                              textDecoration: "none",
+                              borderRadius: "8px",
+                              transition: "all 0.2s ease",
+                              cursor: "pointer",
+                           }}
+                           onMouseEnter={(e) => {
+                              e.currentTarget.style.backgroundColor =
+                                 "rgba(167, 139, 250, 0.15)";
+                           }}
+                           onMouseLeave={(e) => {
+                              e.currentTarget.style.backgroundColor =
+                                 "transparent";
+                           }}
+                        >
+                           <QuestionMarkCircleIcon
+                              style={{ width: 20, height: 20 }}
+                           />
+                           <span style={{ fontSize: "14px" }}>FAQ</span>
+                        </Link>
+                        <Link
+                           href="/contact-us"
+                           onClick={() => setShowUserMenu(false)}
+                           style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "12px",
+                              padding: "12px 16px",
+                              color: "#f472b6",
+                              textDecoration: "none",
+                              borderRadius: "8px",
+                              transition: "all 0.2s ease",
+                              cursor: "pointer",
+                           }}
+                           onMouseEnter={(e) => {
+                              e.currentTarget.style.backgroundColor =
+                                 "rgba(244, 114, 182, 0.15)";
+                           }}
+                           onMouseLeave={(e) => {
+                              e.currentTarget.style.backgroundColor =
+                                 "transparent";
+                           }}
+                        >
+                           <EnvelopeIcon style={{ width: 20, height: 20 }} />
+                           <span style={{ fontSize: "14px" }}>Contact Us</span>
                         </Link>
                         <button
                            onClick={() => {
@@ -379,6 +464,148 @@ export default function Header({
                            justifyContent: isMobile ? "center" : "flex-end",
                         }}
                      >
+                        <Link
+                           href="/certificate"
+                           style={{
+                              padding: "9px 16px",
+                              backgroundColor: "rgba(234, 179, 8, 0.14)",
+                              color: "#eab308",
+                              border: "1px solid rgba(234, 179, 8, 0.35)",
+                              cursor: "pointer",
+                              fontWeight: "600",
+                              fontSize: "14px",
+                              transition: "all 0.2s ease",
+                              borderRadius: "8px",
+                              textDecoration: "none",
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "6px",
+                              flex: isMobile ? "1" : "none",
+                              minWidth: isMobile ? "0" : "auto",
+                           }}
+                           onMouseEnter={(e) => {
+                              e.currentTarget.style.backgroundColor =
+                                 "rgba(234, 179, 8, 0.24)";
+                              e.currentTarget.style.borderColor =
+                                 "rgba(234, 179, 8, 0.5)";
+                           }}
+                           onMouseLeave={(e) => {
+                              e.currentTarget.style.backgroundColor =
+                                 "rgba(234, 179, 8, 0.14)";
+                              e.currentTarget.style.borderColor =
+                                 "rgba(234, 179, 8, 0.35)";
+                           }}
+                        >
+                           <CheckBadgeIcon style={{ width: 16, height: 16 }} />
+                           Certificates
+                        </Link>
+                        <Link
+                           href="/verify"
+                           style={{
+                              padding: "9px 16px",
+                              backgroundColor: "rgba(125, 211, 252, 0.14)",
+                              color: "#7dd3fc",
+                              border: "1px solid rgba(125, 211, 252, 0.35)",
+                              cursor: "pointer",
+                              fontWeight: "600",
+                              fontSize: "14px",
+                              transition: "all 0.2s ease",
+                              borderRadius: "8px",
+                              textDecoration: "none",
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "6px",
+                              flex: isMobile ? "1" : "none",
+                              minWidth: isMobile ? "0" : "auto",
+                           }}
+                           onMouseEnter={(e) => {
+                              e.currentTarget.style.backgroundColor =
+                                 "rgba(125, 211, 252, 0.24)";
+                              e.currentTarget.style.borderColor =
+                                 "rgba(125, 211, 252, 0.5)";
+                           }}
+                           onMouseLeave={(e) => {
+                              e.currentTarget.style.backgroundColor =
+                                 "rgba(125, 211, 252, 0.14)";
+                              e.currentTarget.style.borderColor =
+                                 "rgba(125, 211, 252, 0.35)";
+                           }}
+                        >
+                           <ShieldCheckIcon style={{ width: 16, height: 16 }} />
+                           Verify
+                        </Link>
+                        <Link
+                           href="/faq"
+                           style={{
+                              padding: "9px 16px",
+                              backgroundColor: "rgba(167, 139, 250, 0.14)",
+                              color: "#a78bfa",
+                              border: "1px solid rgba(167, 139, 250, 0.35)",
+                              cursor: "pointer",
+                              fontWeight: "600",
+                              fontSize: "14px",
+                              transition: "all 0.2s ease",
+                              borderRadius: "8px",
+                              textDecoration: "none",
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "6px",
+                              flex: isMobile ? "1" : "none",
+                              minWidth: isMobile ? "0" : "auto",
+                           }}
+                           onMouseEnter={(e) => {
+                              e.currentTarget.style.backgroundColor =
+                                 "rgba(167, 139, 250, 0.24)";
+                              e.currentTarget.style.borderColor =
+                                 "rgba(167, 139, 250, 0.5)";
+                           }}
+                           onMouseLeave={(e) => {
+                              e.currentTarget.style.backgroundColor =
+                                 "rgba(167, 139, 250, 0.14)";
+                              e.currentTarget.style.borderColor =
+                                 "rgba(167, 139, 250, 0.35)";
+                           }}
+                        >
+                           <QuestionMarkCircleIcon
+                              style={{ width: 16, height: 16 }}
+                           />
+                           FAQ
+                        </Link>
+                        <Link
+                           href="/contact-us"
+                           style={{
+                              padding: "9px 16px",
+                              backgroundColor: "rgba(244, 114, 182, 0.14)",
+                              color: "#f472b6",
+                              border: "1px solid rgba(244, 114, 182, 0.35)",
+                              cursor: "pointer",
+                              fontWeight: "600",
+                              fontSize: "14px",
+                              transition: "all 0.2s ease",
+                              borderRadius: "8px",
+                              textDecoration: "none",
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "6px",
+                              flex: isMobile ? "1" : "none",
+                              minWidth: isMobile ? "0" : "auto",
+                           }}
+                           onMouseEnter={(e) => {
+                              e.currentTarget.style.backgroundColor =
+                                 "rgba(244, 114, 182, 0.24)";
+                              e.currentTarget.style.borderColor =
+                                 "rgba(244, 114, 182, 0.5)";
+                           }}
+                           onMouseLeave={(e) => {
+                              e.currentTarget.style.backgroundColor =
+                                 "rgba(244, 114, 182, 0.14)";
+                              e.currentTarget.style.borderColor =
+                                 "rgba(244, 114, 182, 0.35)";
+                           }}
+                        >
+                           <EnvelopeIcon style={{ width: 16, height: 16 }} />
+                           Contact
+                        </Link>
                         <button
                            onClick={onShowLoginModal}
                            style={{
@@ -439,41 +666,6 @@ export default function Header({
                         >
                            Register
                         </button>
-                        <Link
-                           href="/certificate"
-                           style={{
-                              padding: "9px 16px",
-                              backgroundColor: "rgba(234, 179, 8, 0.14)",
-                              color: "#eab308",
-                              border: "1px solid rgba(234, 179, 8, 0.35)",
-                              cursor: "pointer",
-                              fontWeight: "600",
-                              fontSize: "14px",
-                              transition: "all 0.2s ease",
-                              borderRadius: "8px",
-                              textDecoration: "none",
-                              display: "flex",
-                              alignItems: "center",
-                              gap: "6px",
-                              flex: isMobile ? "1" : "none",
-                              minWidth: isMobile ? "0" : "auto",
-                           }}
-                           onMouseEnter={(e) => {
-                              e.currentTarget.style.backgroundColor =
-                                 "rgba(234, 179, 8, 0.24)";
-                              e.currentTarget.style.borderColor =
-                                 "rgba(234, 179, 8, 0.5)";
-                           }}
-                           onMouseLeave={(e) => {
-                              e.currentTarget.style.backgroundColor =
-                                 "rgba(234, 179, 8, 0.14)";
-                              e.currentTarget.style.borderColor =
-                                 "rgba(234, 179, 8, 0.35)";
-                           }}
-                        >
-                           <CheckBadgeIcon style={{ width: 16, height: 16 }} />
-                           Certificates
-                        </Link>
                      </div>
                   </div>
                )

@@ -57,6 +57,24 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: 'monthly', // Certificate page rarely changes
       priority: 0.7,
     },
+    {
+      url: `${SITE_URL}/verify`,
+      lastModified: currentDate,
+      changeFrequency: 'monthly', // Verify page rarely changes
+      priority: 0.6,
+    },
+    {
+      url: `${SITE_URL}/faq`,
+      lastModified: currentDate,
+      changeFrequency: 'monthly', // FAQ page rarely changes
+      priority: 0.6,
+    },
+    {
+      url: `${SITE_URL}/contact-us`,
+      lastModified: currentDate,
+      changeFrequency: 'monthly', // Contact page rarely changes
+      priority: 0.6,
+    },
   ];
 
   // Try to fetch games from API, fallback to static list

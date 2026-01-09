@@ -503,6 +503,13 @@ add_action('rest_api_init', function() {
         'permission_callback' => 'play50_check_api_key_permission',
     ));
     
+    // Verify certificate by cert_id_display (P50-YEAR-XXXXX)
+    register_rest_route('play50/v1', '/certificate/verify/(?P<cert_id>[a-zA-Z0-9\-]+)', array(
+        'methods' => 'GET',
+        'callback' => 'play50_verify_certificate',
+        'permission_callback' => '__return_true', // Allow public access for verification
+    ));
+    
     // Get user's certificate
     register_rest_route('play50/v1', '/certificate/user', array(
         'methods' => 'GET',
@@ -1218,6 +1225,72 @@ function play50_get_certificate($request) {
         update_post_meta($post->ID, 'certificate_fields', $meta);
     }
     
+    return new WP_REST_Response($meta, 200);
+}
+
+/**
+ * Verify certificate by cert_id_display (P50-YEAR-XXXXX)
+ */
+function play50_verify_certificate($request) {
+    $cert_id_display = sanitize_text_field($request['cert_id']);
+    
+    if (empty($cert_id_display)) {
+        return new WP_Error('invalid_data', 'Certificate ID is required', array('status' => 400));
+    }
+    
+    // Get all certificates and search for cert_id_display
+    $all_certificates = get_posts(array(
+        'post_type' => 'play50_certificate',
+        'posts_per_page' => -1,
+        'post_status' => 'publish',
+        'orderby' => 'date',
+        'order' => 'DESC',
+    ));
+    
+    $certificate_post = null;
+    foreach ($all_certificates as $cert_post) {
+        $meta = get_post_meta($cert_post->ID, 'certificate_fields', true);
+        if (is_array($meta)) {
+            // Check if cert_id_display matches
+            if (!empty($meta['cert_id_display']) && $meta['cert_id_display'] === $cert_id_display) {
+                $certificate_post = $cert_post;
+                break;
+            }
+            // Also check certificate_id for backward compatibility
+            if (!empty($meta['certificate_id']) && $meta['certificate_id'] === $cert_id_display) {
+                $certificate_post = $cert_post;
+                break;
+            }
+        }
+    }
+    
+    if (!$certificate_post) {
+        return new WP_Error('not_found', 'Certificate not found', array('status' => 404));
+    }
+    
+    $post = $certificate_post;
+    $meta = get_post_meta($post->ID, 'certificate_fields', true);
+    
+    // Verify meta exists and is valid
+    if (!is_array($meta) || empty($meta)) {
+        return new WP_Error('not_found', 'Certificate not found', array('status' => 404));
+    }
+    
+    // If cert_id_display doesn't exist, generate it for backward compatibility
+    if (empty($meta['cert_id_display']) && !empty($meta['certificate_id'])) {
+        $completion_date = !empty($meta['completion_date']) ? $meta['completion_date'] : current_time('Y-m-d');
+        $player_name = !empty($meta['player_name']) ? $meta['player_name'] : '';
+        $year = date('Y', strtotime($completion_date));
+        $hash = md5($meta['certificate_id'] . $completion_date . $player_name);
+        $unique_number = abs(crc32($hash)) % 100000;
+        $unique_number = str_pad($unique_number, 5, '0', STR_PAD_LEFT);
+        $meta['cert_id_display'] = 'P50-' . $year . '-' . $unique_number;
+        
+        // Save it for future use
+        update_post_meta($post->ID, 'certificate_fields', $meta);
+    }
+    
+    // Return certificate data including PDF path
     return new WP_REST_Response($meta, 200);
 }
 
