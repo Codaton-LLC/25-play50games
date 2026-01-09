@@ -24,6 +24,7 @@ export interface GameProgress {
 
 export interface Certificate {
   certificate_id: string;
+  cert_id_display?: string;
   user_id: number;
   player_name: string;
   completion_date: string;

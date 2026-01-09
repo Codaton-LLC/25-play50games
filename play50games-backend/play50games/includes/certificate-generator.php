@@ -17,7 +17,29 @@ function play50_generate_certificate_pdf($post_id, $certificate_data) {
     }
     
     $certificate_id = $certificate_data['certificate_id'];
-    $filename = 'certificate-' . $certificate_id . '.pdf';
+    
+    // Get or generate cert_id_display
+    if (empty($certificate_data['cert_id_display'])) {
+        $completion_date = !empty($certificate_data['completion_date']) ? $certificate_data['completion_date'] : current_time('Y-m-d');
+        $player_name = !empty($certificate_data['player_name']) ? $certificate_data['player_name'] : '';
+        $year = date('Y', strtotime($completion_date));
+        $hash = md5($certificate_id . $completion_date . $player_name);
+        $unique_number = abs(crc32($hash)) % 100000;
+        $unique_number = str_pad($unique_number, 5, '0', STR_PAD_LEFT);
+        $cert_id_display = 'P50-' . $year . '-' . $unique_number;
+    } else {
+        $cert_id_display = $certificate_data['cert_id_display'];
+    }
+    
+    // Create filename with firstname-lastname-cert_id_display
+    $player_name = !empty($certificate_data['player_name']) ? $certificate_data['player_name'] : 'player';
+    $name_parts = explode(' ', trim($player_name));
+    $firstname = !empty($name_parts[0]) ? sanitize_file_name($name_parts[0]) : 'player';
+    $lastname = !empty($name_parts[1]) ? sanitize_file_name($name_parts[1]) : '';
+    $name_slug = $lastname ? $firstname . '-' . $lastname : $firstname;
+    $name_slug = strtolower($name_slug);
+    
+    $filename = $name_slug . '-' . $cert_id_display . '.pdf';
     $filepath = $certificates_dir . '/' . $filename;
     $url = $upload_dir['baseurl'] . '/play50-certificates/' . $filename;
     
@@ -46,399 +68,311 @@ function play50_generate_certificate_pdf($post_id, $certificate_data) {
  * Generate certificate HTML
  */
 function play50_generate_certificate_html($certificate_data) {
-    $player_name = esc_html($certificate_data['player_name']);
-    $completion_date = esc_html($certificate_data['completion_date']);
-    $total_score = intval($certificate_data['total_score']);
-    $rank = esc_html($certificate_data['rank']);
-    $certificate_id = esc_html($certificate_data['certificate_id']);
-    
-    // Get PDF URL for QR code
-    $upload_dir = wp_upload_dir();
-    $pdf_url = $upload_dir['baseurl'] . '/play50-certificates/certificate-' . $certificate_id . '.pdf';
-    // Use full URL if baseurl is relative
-    if (strpos($pdf_url, 'http') !== 0) {
-        $site_url = get_site_url();
-        $pdf_url = $site_url . $pdf_url;
-    }
-    
-    // Generate QR code URL (using external API)
-    $qr_code_url = 'https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=' . urlencode($pdf_url);
-    
-    // Get logo URL from Main Logo in theme options
-    $theme_options_all = get_option('play50_games_theme_options_all');
-    $logo_url = '';
-    if (!empty($theme_options_all['play50_games_logo'])) {
-        $logo_url = $theme_options_all['play50_games_logo'];
-        // Ensure full URL if relative
-        if (strpos($logo_url, 'http') !== 0) {
-            $site_url = get_site_url();
-            // If it starts with /, it's already relative to site root
-            if (strpos($logo_url, '/') === 0) {
-                $logo_url = $site_url . $logo_url;
-            } else {
-                // Otherwise, it might be relative to uploads
-                $logo_url = $site_url . '/' . $logo_url;
-            }
-        }
-    }
-    
-    // Format certificate ID for display
-    $cert_id_display = 'P50-' . date('Y', strtotime($completion_date)) . '-' . substr($certificate_id, 0, 8);
-    
-    $html = '<!doctype html>
-<html lang="sq">
+
+  $player_name = esc_html($certificate_data['player_name']);
+  $completion_date = esc_html($certificate_data['completion_date']);
+  $total_score = intval($certificate_data['total_score']);
+  $rank = esc_html($certificate_data['rank']);
+  $certificate_id = esc_html($certificate_data['certificate_id']);
+
+  // Get or generate cert_id_display
+  if (!empty($certificate_data['cert_id_display'])) {
+      $cert_id_display = $certificate_data['cert_id_display'];
+  } else {
+      // Generate unique certificate display ID
+      $year = date('Y', strtotime($completion_date));
+      $hash = md5($certificate_id . $completion_date . $player_name);
+      $unique_number = abs(crc32($hash)) % 100000;
+      $unique_number = str_pad($unique_number, 5, '0', STR_PAD_LEFT);
+      $cert_id_display = 'P50-' . $year . '-' . $unique_number;
+  }
+
+  // Generate PDF URL with new filename format
+  $upload_dir = wp_upload_dir();
+  $name_parts = explode(' ', trim($player_name));
+  $firstname = !empty($name_parts[0]) ? sanitize_file_name($name_parts[0]) : 'player';
+  $lastname = !empty($name_parts[1]) ? sanitize_file_name($name_parts[1]) : '';
+  $name_slug = $lastname ? strtolower($firstname . '-' . $lastname) : strtolower($firstname);
+  $pdf_filename = $name_slug . '-' . $cert_id_display . '.pdf';
+  $pdf_url = $upload_dir['baseurl'] . '/play50-certificates/' . $pdf_filename;
+  if (strpos($pdf_url, 'http') !== 0) {
+      $pdf_url = get_site_url() . $pdf_url;
+  }
+  
+  // Add certificate ID as parameter to QR code URL
+  $verify_url = get_site_url() . '/verify?cert_id=' . urlencode($cert_id_display);
+  $qr_code_url = 'https://api.qrserver.com/v1/create-qr-code/?size=300x300&margin=2&ecc=H&data=' . urlencode($verify_url);
+
+  // Get logo URL from Main Logo in theme options
+  $theme_options_all = get_option('play50_games_theme_options_all');
+  $logo_url = '';
+  if (!empty($theme_options_all['play50_games_logo'])) {
+      $logo_url = $theme_options_all['play50_games_logo'];
+      // Ensure full URL if relative
+      if (strpos($logo_url, 'http') !== 0) {
+          $site_url = get_site_url();
+          // If it starts with /, it's already relative to site root
+          if (strpos($logo_url, '/') === 0) {
+              $logo_url = $site_url . $logo_url;
+          } else {
+              // Otherwise, it might be relative to uploads
+              $logo_url = $site_url . '/' . $logo_url;
+          }
+      }
+  }
+  
+  // Use default logo if not set - try to use Next.js image path
+  if (empty($logo_url)) {
+      $site_url = get_site_url();
+      // Try common logo paths
+      $possible_logo_paths = array(
+          $site_url . '/_next/image?url=%2Fimages%2Flogo%2Fplay50games.png&w=256&q=75',
+          $site_url . '/images/logo/play50games.png',
+          $site_url . '/wp-content/themes/play50games/images/logo/play50games.png'
+      );
+      // Use the first path that might work (Next.js path from user's template)
+      $logo_url = $possible_logo_paths[0];
+  }
+
+  // cert_id_display is already generated above, just format the date
+  $issued_date = date('d M Y', strtotime($completion_date));
+
+  $score_percentage = min(100, round(($total_score / 500) * 100));
+  $games_played = 5;
+  
+  // Escape logo URL for use in HTML
+  $logo_url_escaped = !empty($logo_url) ? esc_url($logo_url) : '';
+  $logo_html = !empty($logo_url_escaped) ? '<div class="logo-container"><img class="logo" src="' . $logo_url_escaped . '" alt="Play50Games Logo" /></div>' : '';
+
+  return <<<HTML
+<!doctype html>
+<html>
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Play50Games – Certificate</title>
-  <style>
-    /* A4 landscape print setup */
-    @page { size: A4 landscape; margin: 14mm; }
-    html, body { height: 100%; }
-    body {
-      margin: 0;
-      font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, "Noto Sans", "Liberation Sans", sans-serif;
-      color: #0b1220;
-      background: #0b1020;
-    }
-    .sheet {
-      width: 297mm;
-      height: 210mm;
-      margin: 0 auto;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 14mm;
-      box-sizing: border-box;
-    }
-    .card {
-      position: relative;
-      width: 100%;
-      height: 100%;
-      border-radius: 18px;
-      background: rgba(255, 255, 255, 0.05);
-      overflow: hidden;
-      box-shadow: 0 18px 40px rgba(0, 0, 0, 0.3);
-      border: 1px solid rgba(234, 179, 8, 0.2);
-    }
+<meta charset="utf-8">
+<style>
+@page {
+  size: A4 landscape;
+  margin: 0;
+}
 
-    /* Decorative background - Yellow/Gold gradients for final games */
-    .bg {
-      position: absolute; inset: 0;
-      background:
-        radial-gradient(1200px 600px at 10% 20%, rgba(234, 179, 8, 0.20), transparent 55%),
-        radial-gradient(1100px 650px at 95% 15%, rgba(234, 179, 8, 0.18), transparent 55%),
-        radial-gradient(1000px 700px at 85% 90%, rgba(234, 179, 8, 0.14), transparent 60%),
-        linear-gradient(90deg, rgba(234, 179, 8, 0.04), transparent 40%),
-        #0b1020;
-      pointer-events: none;
-    }
-    .grid {
-      position: absolute; inset: 0;
-      background-image:
-        linear-gradient(rgba(234, 179, 8, 0.05) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(234, 179, 8, 0.05) 1px, transparent 1px);
-      background-size: 22px 22px;
-      opacity: 0.30;
-      mask-image: radial-gradient(closest-side, rgba(0,0,0,0.95), rgba(0,0,0,0.35), transparent);
-      -webkit-mask-image: radial-gradient(closest-side, rgba(0,0,0,0.95), rgba(0,0,0,0.35), transparent);
-      pointer-events: none;
-    }
+body {
+  margin: 0;
+  padding: 0;
+  background: #0b1020;
+  font-family: Arial, sans-serif;
+  color: #ffffff;
+}
 
-    .content {
-      position: relative;
-      height: 100%;
-      padding: 15mm 20mm;
-      display: grid;
-      grid-template-rows: auto 1fr auto;
-      gap: 10mm;
-    }
+.sheet {
+  width: 100%;
+  box-sizing: border-box;
+}
 
-    /* Header */
-    .top {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 10mm;
-    }
-    .brand {
-      display: flex; align-items: center; gap: 10px;
-    }
-    .logo {
-      width: 42px; height: 42px;
-      border-radius: 14px;
-      background: linear-gradient(135deg, #111827, #334155);
-      position: relative;
-      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.10);
-      overflow: hidden;
-    }
-    .logo img {
-      width: 100%;
-      height: 100%;
-      object-fit: contain;
-      padding: 4px;
-    }
-    .brand h1 {
-      margin: 0;
-      font-size: 16px;
-      letter-spacing: 0.6px;
-      text-transform: uppercase;
-      color: rgba(255, 255, 255, 0.95);
-    }
-    .brand p {
-      margin: 2px 0 0;
-      font-size: 12px;
-      color: rgba(255, 255, 255, 0.70);
-    }
+.pad {
+  padding: 28px 36px;
+  box-sizing: border-box;
+}
 
-    .meta {
-      text-align: right;
-      font-size: 12px;
-      color: rgba(255, 255, 255, 0.70);
-      line-height: 1.35;
-    }
-    .pill {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      padding: 6px 10px;
-      border-radius: 999px;
-      background: rgba(234, 179, 8, 0.15);
-      border: 1px solid rgba(234, 179, 8, 0.3);
-      font-weight: 600;
-      color: rgba(255, 255, 255, 0.90);
-    }
-    .dot {
-      width: 8px; height: 8px;
-      border-radius: 99px;
-      background: #eab308;
-      box-shadow: 0 0 0 3px rgba(234, 179, 8, 0.25);
-    }
-    .meta strong {
-      color: #eab308;
-    }
+.header {
+  display: table;
+  width: 100%;
+}
 
-    /* Main */
-    .main {
-      display: grid;
-      place-items: center;
-      text-align: center;
-      padding: 4mm 8mm;
-    }
-    .title {
-      margin: 0;
-      font-size: 48px;
-      letter-spacing: 0.4px;
-      line-height: 1.05;
-      color: rgba(255, 255, 255, 0.95);
-    }
-    .subtitle {
-      margin: 10px 0 0;
-      font-size: 15px;
-      color: rgba(255, 255, 255, 0.75);
-      max-width: 200mm;
-      line-height: 1.5;
-    }
+.header-left,
+.header-right {
+  display: table-cell;
+  vertical-align: middle;
+}
 
-    .name {
-      margin: 12mm 0 2mm;
-      font-size: 40px;
-      font-weight: 800;
-      letter-spacing: 0.2px;
-      color: #eab308;
-    }
-    .underline {
-      width: 180mm;
-      height: 2px;
-      background: linear-gradient(90deg, transparent, rgba(234, 179, 8, 0.50), transparent);
-      border-radius: 2px;
-      margin: 4mm auto 0;
-    }
+.header-left {
+  display: table;
+}
 
-    .details {
-      margin-top: 8mm;
-      width: 220mm;
-      display: grid;
-      grid-template-columns: 1fr 1fr 1fr;
-      gap: 12px;
-    }
-    .detail {
-      padding: 12px 14px;
-      border-radius: 14px;
-      background: rgba(234, 179, 8, 0.10);
-      border: 1px solid rgba(234, 179, 8, 0.25);
-      text-align: left;
-    }
-    .detail .k {
-      font-size: 11px;
-      color: rgba(255, 255, 255, 0.70);
-      letter-spacing: 0.4px;
-      text-transform: uppercase;
-      margin-bottom: 6px;
-    }
-    .detail .v {
-      font-size: 14px;
-      font-weight: 700;
-      color: #eab308;
-    }
+.logo-container {
+  display: table-cell;
+  vertical-align: middle;
+  padding-right: 12px;
+}
 
-    /* Footer */
-    .footer {
-      display: grid;
-      grid-template-columns: 1fr auto 1fr;
-      align-items: end;
-      gap: 15mm;
-    }
-    .sign {
-      display: grid;
-      gap: 8px;
-    }
-    .line {
-      height: 1px;
-      background: rgba(255, 255, 255, 0.30);
-      width: 80mm;
-    }
-    .sign .label {
-      font-size: 12px;
-      color: rgba(255, 255, 255, 0.70);
-    }
-    .seal {
-      width: 64px; height: 64px;
-      border-radius: 999px;
-      background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.85), rgba(255,255,255,0.2)),
-                  linear-gradient(135deg, #eab308, rgba(234, 179, 8, 0.8));
-      display: grid;
-      place-items: center;
-      border: 1px solid rgba(234, 179, 8, 0.4);
-      box-shadow: 0 12px 26px rgba(234, 179, 8, 0.25);
-      position: relative;
-    }
-    .seal:before {
-      content: "";
-      position: absolute; inset: 8px;
-      border-radius: 999px;
-      border: 1px dashed rgba(255,255,255,0.55);
-      opacity: 0.9;
-    }
-    .seal span {
-      font-weight: 900;
-      letter-spacing: 1px;
-      color: #0b1020;
-      font-size: 12px;
-      text-transform: uppercase;
-    }
-    .small {
-      text-align: right;
-      font-size: 11px;
-      color: rgba(255, 255, 255, 0.65);
-      line-height: 1.4;
-    }
-    .qr-section {
-      margin-top: 8px;
-      text-align: center;
-    }
-    .qr-code-container {
-      display: inline-block;
-      padding: 8px;
-      background: rgba(255, 255, 255, 0.10);
-      border: 2px solid rgba(234, 179, 8, 0.30);
-      border-radius: 8px;
-      margin-bottom: 6px;
-    }
-    .qr-code-container img {
-      display: block;
-      width: 90px;
-      height: 90px;
-    }
-    .qr-hint {
-      font-size: 9px;
-      color: rgba(255, 255, 255, 0.65);
-      line-height: 1.3;
-    }
+.logo {
+  width: 56px;
+  height: auto;
+}
 
-    /* Print-friendly */
-    @media print {
-      body { background: #fff; }
-      .sheet { margin: 0; padding: 0; }
-      .card { box-shadow: none; }
-    }
-  </style>
+.brand-text {
+  display: table-cell;
+  vertical-align: middle;
+}
+
+.header-right {
+  text-align: right;
+  font-size: 12px;
+  opacity: 0.8;
+}
+
+ .title {
+   margin-top: 100px;
+   text-align: center;
+   font-size: 40px;
+   color: #eab308;
+ }
+
+.subtitle {
+  margin-top: 10px;
+  text-align: center;
+  font-size: 14px;
+  opacity: 0.75;
+}
+
+.name {
+  margin-top: 40px;
+  text-align: center;
+  font-size: 34px;
+  font-weight: bold;
+  color: #eab308;
+}
+
+.line {
+  width: 420px;
+  height: 2px;
+  background: #eab308;
+  margin: 14px auto 0;
+}
+
+.details {
+  margin-top: 30px;
+  display: table;
+  width: 100%;
+}
+
+.detail {
+  display: table-cell;
+  padding: 12px;
+}
+
+.box {
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.12);
+  padding: 14px;
+  border-radius: 10px;
+  text-align: center;
+}
+
+.box small {
+  display: block;
+  font-size: 11px;
+  opacity: 0.7;
+}
+
+.box strong {
+  display: block;
+  margin-top: 6px;
+  font-size: 18px;
+  color: #eab308;
+}
+
+.bottom {
+  margin-top: 70px;
+  display: table;
+  width: 100%;
+  font-size: 11px;
+  opacity: 0.8;
+}
+
+.qr {
+  display: table-cell;
+  width: 160px;
+  vertical-align: middle;
+}
+
+.qr img {
+  width: 140px;
+  height: 140px;
+  background: #fff;
+  padding: 10px;
+  display: block;
+}
+
+.qr-text {
+  margin-top: 8px;
+  font-size: 11px;
+  text-align: center;
+}
+
+.bottom-text {
+  display: table-cell;
+  text-align: right;
+  vertical-align: bottom;
+}
+</style>
 </head>
+
 <body>
-  <div class="sheet">
-    <div class="card">
-      <div class="bg"></div>
-      <div class="grid"></div>
+<div class="sheet">
+<div class="pad">
 
-      <div class="content">
-        <div class="top">
-          <div class="brand">
-            <div class="logo">' . (!empty($logo_url) ? '<img src="' . esc_url($logo_url) . '" alt="Play50Games Logo" />' : '') . '</div>
-            <div>
-              <h1>Play50Games</h1>
-              <p>Skill & Focus Training</p>
-            </div>
-          </div>
-
-          <div class="meta">
-            <div class="pill"><span class="dot"></span> VERIFIED</div><br />
-            Certificate ID: <strong>' . esc_html($cert_id_display) . '</strong><br />
-            Issued: <strong>' . esc_html(date('d M Y', strtotime($completion_date))) . '</strong>
-          </div>
-        </div>
-
-        <div class="main">
-          <h2 class="title">Certificate of Achievement</h2>
-          <p class="subtitle">
-            This certificate is proudly presented for completing all 5 games and demonstrating
-            exceptional skills in logic, memory, speed, and coordination.
-          </p>
-
-          <div class="name">' . esc_html($player_name) . '</div>
-          <div class="underline"></div>
-
-          <div class="details">
-            <div class="detail">
-              <div class="k">Completion Date</div>
-              <div class="v">' . esc_html(date('F j, Y', strtotime($completion_date))) . '</div>
-            </div>
-            <div class="detail">
-              <div class="k">Total Score</div>
-              <div class="v">' . esc_html(number_format($total_score)) . '</div>
-            </div>
-            <div class="detail">
-              <div class="k">Rank</div>
-              <div class="v">' . esc_html($rank) . '</div>
-            </div>
-          </div>
-        </div>
-
-        <div class="footer">
-          <div class="sign">
-            <div class="line"></div>
-            <div class="label"><strong>Play50Games Team</strong></div>
-          </div>
-
-          <div class="seal" aria-hidden="true"><span>P50</span></div>
-
-          <div class="small">
-            <div class="qr-section">
-              <div class="qr-code-container">
-                <img src="' . esc_url($qr_code_url) . '" alt="QR Code" />
-              </div>
-              <div class="qr-hint">Scan to verify</div>
-            </div>
-            Issued by Play50Games • Digital Certificate<br />
-            Verify with Certificate ID and issue date.
-          </div>
-        </div>
+<div class="header">
+  <div class="header-left">
+      {$logo_html}
+      <div class="brand-text">
+          <strong>Play50Games</strong><br>
+          <small>Skill & Focus Training</small>
       </div>
-    </div>
   </div>
+  <div class="header-right">
+      Certificate ID: <strong>{$cert_id_display}</strong><br>
+      Issued: <strong>{$issued_date}</strong>
+  </div>
+</div>
+
+<div class="title">Certificate of Achievement</div>
+<div class="subtitle">
+Presented in recognition of exceptional performance and cognitive skills.
+</div>
+
+<div class="name">{$player_name}</div>
+<div class="line"></div>
+
+<div class="details">
+  <div class="detail">
+      <div class="box">
+          <small>Rank</small>
+          <strong>{$rank}</strong>
+      </div>
+  </div>
+  <div class="detail">
+      <div class="box">
+          <small>Games Played</small>
+          <strong>{$games_played}</strong>
+      </div>
+  </div>
+  <div class="detail">
+      <div class="box">
+          <small>Score</small>
+          <strong>{$score_percentage}%</strong>
+      </div>
+  </div>
+</div>
+
+ <div class="bottom">
+   <div class="qr">
+       <img src="{$qr_code_url}">
+       <div class="qr-text">
+           Scan to verify<br>
+           play50.games/verify
+       </div>
+   </div>
+   <div class="bottom-text">
+       Issued by Play50Games<br>
+       Digital Certificate – Verify Online
+   </div>
+ </div>
+
+</div>
+</div>
 </body>
-</html>';
-    
-    return $html;
+</html>
+HTML;
 }
 
 /**
@@ -466,11 +400,13 @@ function play50_generate_certificate_pdf_with_dompdf($certificate_data) {
         $options = $dompdf->getOptions();
         $options->set('isRemoteEnabled', true); // Allow remote images (for logo, QR code)
         $options->set('isHtml5ParserEnabled', true);
+        $options->set('enableCssFloat', false);
         $dompdf->setOptions($options);
         
-    $dompdf->loadHtml($html);
-    $dompdf->setPaper('A4', 'landscape');
-    $dompdf->render();
+        $dompdf->loadHtml($html);
+        // Set paper size explicitly in points (A4 landscape: 842 x 595 points = 297mm x 210mm)
+        $dompdf->setPaper(array(0, 0, 842, 595), 'landscape');
+        $dompdf->render();
         
         $upload_dir = wp_upload_dir();
         $certificates_dir = $upload_dir['basedir'] . '/play50-certificates';
@@ -480,7 +416,28 @@ function play50_generate_certificate_pdf_with_dompdf($certificate_data) {
         }
         
         $certificate_id = $certificate_data['certificate_id'];
-        $filename = 'certificate-' . $certificate_id . '.pdf';
+        
+        // Get or generate cert_id_display
+        if (empty($certificate_data['cert_id_display'])) {
+            $completion_date = !empty($certificate_data['completion_date']) ? $certificate_data['completion_date'] : current_time('Y-m-d');
+            $player_name = !empty($certificate_data['player_name']) ? $certificate_data['player_name'] : '';
+            $year = date('Y', strtotime($completion_date));
+            $hash = md5($certificate_id . $completion_date . $player_name);
+            $unique_number = abs(crc32($hash)) % 100000;
+            $unique_number = str_pad($unique_number, 5, '0', STR_PAD_LEFT);
+            $cert_id_display = 'P50-' . $year . '-' . $unique_number;
+        } else {
+            $cert_id_display = $certificate_data['cert_id_display'];
+        }
+        
+        // Create filename with firstname-lastname-cert_id_display
+        $player_name = !empty($certificate_data['player_name']) ? $certificate_data['player_name'] : 'player';
+        $name_parts = explode(' ', trim($player_name));
+        $firstname = !empty($name_parts[0]) ? sanitize_file_name($name_parts[0]) : 'player';
+        $lastname = !empty($name_parts[1]) ? sanitize_file_name($name_parts[1]) : '';
+        $name_slug = $lastname ? strtolower($firstname . '-' . $lastname) : strtolower($firstname);
+        
+        $filename = $name_slug . '-' . $cert_id_display . '.pdf';
         $filepath = $certificates_dir . '/' . $filename;
         
         // Save PDF file

@@ -42,7 +42,16 @@ export default function CertificateViewPage() {
          if (certificate.pdf_path) {
             return certificate.pdf_path;
          }
-         // Otherwise, construct the PDF URL based on certificate_id
+         // Otherwise, construct the PDF URL based on new filename format
+         if (certificate.cert_id_display) {
+            // New format: firstname-lastname-cert_id_display.pdf
+            const nameParts = certificate.player_name.split(" ");
+            const firstname = nameParts[0]?.toLowerCase() || "player";
+            const lastname = nameParts[1]?.toLowerCase() || "";
+            const nameSlug = lastname ? `${firstname}-${lastname}` : firstname;
+            return `https://cms.play50.games/wp-content/uploads/play50-certificates/${nameSlug}-${certificate.cert_id_display}.pdf`;
+         }
+         // Fallback to old format for backward compatibility
          return `https://cms.play50.games/wp-content/uploads/play50-certificates/certificate-${certificate.certificate_id}.pdf`;
       }
       return "";
@@ -164,7 +173,8 @@ export default function CertificateViewPage() {
                   <div className="certificate-id">
                      Certificate ID:{" "}
                      <span className="cert-id-value">
-                        {certificate.certificate_id}
+                        {certificate.cert_id_display ||
+                           certificate.certificate_id}
                      </span>
                   </div>
                </div>

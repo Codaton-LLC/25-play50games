@@ -1136,11 +1136,20 @@ function play50_generate_certificate($request) {
         return $post_id;
     }
     
+    // Generate unique certificate display ID in format P50-YEAR-XXXXX (5 digits)
+    $completion_date = current_time('Y-m-d');
+    $year = date('Y', strtotime($completion_date));
+    $hash = md5($certificate_id . $completion_date . $player_name);
+    $unique_number = abs(crc32($hash)) % 100000;
+    $unique_number = str_pad($unique_number, 5, '0', STR_PAD_LEFT);
+    $cert_id_display = 'P50-' . $year . '-' . $unique_number;
+    
     $certificate_data = array(
         'certificate_id' => $certificate_id,
+        'cert_id_display' => $cert_id_display,
         'user_id' => $user_id,
         'player_name' => $player_name,
-        'completion_date' => current_time('Y-m-d'),
+        'completion_date' => $completion_date,
         'total_score' => $total_score,
         'rank' => $rank,
     );
@@ -1187,6 +1196,20 @@ function play50_get_certificate($request) {
     
     $post = $query->posts[0];
     $meta = get_post_meta($post->ID, 'certificate_fields', true);
+    
+    // If cert_id_display doesn't exist, generate it for backward compatibility
+    if (empty($meta['cert_id_display']) && !empty($meta['certificate_id'])) {
+        $completion_date = !empty($meta['completion_date']) ? $meta['completion_date'] : current_time('Y-m-d');
+        $player_name = !empty($meta['player_name']) ? $meta['player_name'] : '';
+        $year = date('Y', strtotime($completion_date));
+        $hash = md5($meta['certificate_id'] . $completion_date . $player_name);
+        $unique_number = abs(crc32($hash)) % 100000;
+        $unique_number = str_pad($unique_number, 5, '0', STR_PAD_LEFT);
+        $meta['cert_id_display'] = 'P50-' . $year . '-' . $unique_number;
+        
+        // Save it for future use
+        update_post_meta($post->ID, 'certificate_fields', $meta);
+    }
     
     return new WP_REST_Response($meta, 200);
 }

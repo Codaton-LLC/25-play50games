@@ -218,7 +218,7 @@ export default function CertificatePage() {
             <p class="qr-hint">${certUrl}</p>
         </div>` : ''}
         <div class="certificate-id">
-            Certificate ID: ${cert.certificate_id}
+            Certificate ID: ${cert.cert_id_display || cert.certificate_id}
         </div>
     </div>
 </body>
@@ -371,7 +371,7 @@ export default function CertificatePage() {
               </div>
 
               <div className="certificate-id">
-                Certificate ID: <span className="cert-id-value">{certificate.certificate_id}</span>
+                Certificate ID: <span className="cert-id-value">{certificate.cert_id_display || certificate.certificate_id}</span>
               </div>
             </div>
           </div>
