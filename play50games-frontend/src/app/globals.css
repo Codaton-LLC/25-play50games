@@ -1312,6 +1312,50 @@ button:disabled {
   cursor: not-allowed;
 }
 
+.certificate-exists {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+}
+
+.certificate-badge-icon {
+  margin-bottom: 20px;
+  color: var(--accent);
+}
+
+.certificate-exists h2 {
+  color: var(--text);
+  font-weight: 700;
+  margin-bottom: 15px;
+}
+
+.certificate-exists p {
+  color: var(--muted);
+  margin-bottom: 20px;
+}
+
+.view-certificate-button {
+  display: inline-block;
+  padding: 12px 24px;
+  background: rgba(125, 211, 252, 0.14);
+  border: 1px solid rgba(125, 211, 252, 0.35);
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 650;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.3s;
+  border-radius: 4px;
+}
+
+.view-certificate-button:hover {
+  background: rgba(125, 211, 252, 0.24);
+  border-color: rgba(125, 211, 252, 0.5);
+  transform: translateY(-2px);
+}
+
 .not-ready {
   background: var(--card);
   padding: 40px;

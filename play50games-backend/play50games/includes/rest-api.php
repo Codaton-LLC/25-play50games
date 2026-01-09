@@ -503,6 +503,13 @@ add_action('rest_api_init', function() {
         'permission_callback' => 'play50_check_api_key_permission',
     ));
     
+    // Get user's certificate
+    register_rest_route('play50/v1', '/certificate/user', array(
+        'methods' => 'GET',
+        'callback' => 'play50_get_user_certificate',
+        'permission_callback' => 'play50_check_api_key_permission',
+    ));
+    
     // Share tracking endpoints
     register_rest_route('play50/v1', '/share/register', array(
         'methods' => 'POST',
@@ -1108,8 +1115,8 @@ function play50_generate_certificate($request) {
     // Check if all games are completed
     $all_progress = get_user_meta($user_id, 'play50_all_progress', true);
     
-    if (!is_array($all_progress) || count($all_progress) < 5) {
-        return new WP_Error('incomplete', 'All 5 games must be completed', array('status' => 400));
+    if (!is_array($all_progress) || count($all_progress) < 50) {
+        return new WP_Error('incomplete', 'All 50 games must be completed', array('status' => 400));
     }
     
     // Calculate total score and rank
@@ -1196,6 +1203,75 @@ function play50_get_certificate($request) {
     
     $post = $query->posts[0];
     $meta = get_post_meta($post->ID, 'certificate_fields', true);
+    
+    // If cert_id_display doesn't exist, generate it for backward compatibility
+    if (empty($meta['cert_id_display']) && !empty($meta['certificate_id'])) {
+        $completion_date = !empty($meta['completion_date']) ? $meta['completion_date'] : current_time('Y-m-d');
+        $player_name = !empty($meta['player_name']) ? $meta['player_name'] : '';
+        $year = date('Y', strtotime($completion_date));
+        $hash = md5($meta['certificate_id'] . $completion_date . $player_name);
+        $unique_number = abs(crc32($hash)) % 100000;
+        $unique_number = str_pad($unique_number, 5, '0', STR_PAD_LEFT);
+        $meta['cert_id_display'] = 'P50-' . $year . '-' . $unique_number;
+        
+        // Save it for future use
+        update_post_meta($post->ID, 'certificate_fields', $meta);
+    }
+    
+    return new WP_REST_Response($meta, 200);
+}
+
+/**
+ * Get user's certificate
+ */
+function play50_get_user_certificate($request) {
+    $user_id = get_current_user_id();
+    
+    // Check if user is logged in
+    if ($user_id === 0) {
+        return new WP_Error('unauthorized', 'You must be logged in', array('status' => 401));
+    }
+    
+    // Get certificate for current user
+    // Get all certificates and filter by user_id
+    $all_certificates = get_posts(array(
+        'post_type' => 'play50_certificate',
+        'posts_per_page' => -1,
+        'post_status' => 'publish',
+        'orderby' => 'date',
+        'order' => 'DESC',
+    ));
+    
+    $user_certificate_post = null;
+    foreach ($all_certificates as $cert_post) {
+        $meta = get_post_meta($cert_post->ID, 'certificate_fields', true);
+        if (is_array($meta) && !empty($meta['user_id']) && intval($meta['user_id']) === $user_id) {
+            $user_certificate_post = $cert_post;
+            break; // Get the most recent one
+        }
+    }
+    
+    if (!$user_certificate_post) {
+        return new WP_Error('not_found', 'No certificate found for this user', array('status' => 404));
+    }
+    
+    $post = $user_certificate_post;
+    $meta = get_post_meta($post->ID, 'certificate_fields', true);
+    
+    // Verify meta exists and is valid
+    if (!is_array($meta) || empty($meta)) {
+        return new WP_Error('not_found', 'No certificate found for this user', array('status' => 404));
+    }
+    
+    // Verify this certificate belongs to the current user
+    if (empty($meta['user_id']) || intval($meta['user_id']) !== $user_id) {
+        return new WP_Error('not_found', 'No certificate found for this user', array('status' => 404));
+    }
+    
+    // Verify certificate has required fields
+    if (empty($meta['certificate_id']) || empty($meta['player_name'])) {
+        return new WP_Error('not_found', 'No certificate found for this user', array('status' => 404));
+    }
     
     // If cert_id_display doesn't exist, generate it for backward compatibility
     if (empty($meta['cert_id_display']) && !empty($meta['certificate_id'])) {

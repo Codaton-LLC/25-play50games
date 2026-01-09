@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Certificate } from '@/types/game';
-import { generateCertificate, getCertificate } from '@/lib/api/certificate';
+import { generateCertificate, getCertificate, getUserCertificate } from '@/lib/api/certificate';
 import { getAllProgress } from '@/lib/storage/progressStorage';
 import { getAllGames } from '@/lib/api/games';
 import { getGuestId } from '@/lib/storage/progressStorage';
@@ -17,21 +17,12 @@ export default function CertificatePage() {
   const { user, isAuthenticated, isLoading: authLoading, login, register } = useAuth();
   const [certificate, setCertificate] = useState<Certificate | null>(null);
   const [loading, setLoading] = useState(false);
+  const [loadingCertificate, setLoadingCertificate] = useState(true);
   const [playerName, setPlayerName] = useState('');
   const [canGenerate, setCanGenerate] = useState(false);
   const [guestId] = useState(() => getGuestId());
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showRegisterModal, setShowRegisterModal] = useState(false);
-
-  useEffect(() => {
-    if (isAuthenticated && user) {
-      // Set player name from user data
-      const name = user.display_name || 
-                   (user.first_name && user.last_name ? `${user.first_name} ${user.last_name}` : user.email);
-      setPlayerName(name);
-      checkCompletion();
-    }
-  }, [isAuthenticated, user]);
 
   const checkCompletion = async () => {
     try {
@@ -43,11 +34,43 @@ export default function CertificatePage() {
         return gameProgress && gameProgress.completed;
       }).length;
       
-      setCanGenerate(completedCount >= 5);
+      setCanGenerate(completedCount >= 50);
     } catch (error) {
       // Failed to check completion
     }
   };
+
+  const loadUserCertificate = async () => {
+    setLoadingCertificate(true);
+    try {
+      const userCert = await getUserCertificate();
+      console.log('Loaded user certificate:', userCert);
+      if (userCert && userCert.certificate_id && userCert.player_name) {
+        setCertificate(userCert);
+      } else {
+        setCertificate(null);
+      }
+    } catch (error) {
+      console.error('Error loading user certificate:', error);
+      setCertificate(null);
+    } finally {
+      setLoadingCertificate(false);
+    }
+  };
+
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      // Set player name from user data
+      const name = user.display_name || 
+                   (user.first_name && user.last_name ? `${user.first_name} ${user.last_name}` : user.email);
+      setPlayerName(name);
+      checkCompletion();
+      loadUserCertificate();
+    } else {
+      setLoadingCertificate(false);
+      setCertificate(null);
+    }
+  }, [isAuthenticated, user]);
 
   const handleGenerate = async () => {
     if (!playerName.trim()) {
@@ -58,8 +81,17 @@ export default function CertificatePage() {
     setLoading(true);
     try {
       const result = await generateCertificate(playerName, guestId);
-      setCertificate(result.data);
+      console.log('Certificate generated:', result);
+      // Set certificate from result directly
+      if (result.data && result.data.certificate_id) {
+        setCertificate(result.data);
+        setLoadingCertificate(false); // Make sure loading is false so it shows the certificate
+      } else {
+        // If result.data doesn't have certificate_id, reload from server
+        await loadUserCertificate();
+      }
     } catch (error: any) {
+      console.error('Error generating certificate:', error);
       alert(error.message || 'Failed to generate certificate');
     } finally {
       setLoading(false);
@@ -196,7 +228,7 @@ export default function CertificatePage() {
         <p class="certificate-text">This is to certify that</p>
         <div class="player-name">${cert.player_name}</div>
         <p class="certificate-text">
-            has successfully completed all 5 games<br />
+            has successfully completed all 50 games<br />
             demonstrating exceptional skills in logic, memory, speed, and coordination.
         </p>
         <div class="certificate-details">
@@ -286,12 +318,37 @@ export default function CertificatePage() {
             </div>
           </div>
         </div>
-      ) : !certificate ? (
+      ) : loadingCertificate ? (
+        <div className="certificate-generate">
+          <div className="certificate-loading">
+            <span className="loader"></span>
+            <p>Loading certificate...</p>
+          </div>
+        </div>
+      ) : certificate && certificate.certificate_id ? (
+        <div className="certificate-generate">
+          <div className="certificate-exists">
+            <div className="certificate-badge-icon">
+              <svg width="80" height="80" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="40" cy="40" r="38" stroke="var(--accent)" strokeWidth="4" fill="none"/>
+                <path d="M25 40 L35 50 L55 30" stroke="var(--accent)" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </div>
+            <h2>Certificate Generated</h2>
+            <p>You have successfully generated your certificate!</p>
+            <div style={{ margin: '30px 0' }}>
+              <Link href={`/certificate/${certificate.certificate_id}`} className="view-certificate-button">
+                View Certificate
+              </Link>
+            </div>
+          </div>
+        </div>
+      ) : (
         <div className="certificate-generate">
           {canGenerate ? (
             <>
               <h2>Generate Your Certificate</h2>
-              <p>Congratulations! You've completed all 5 games.</p>
+              <p>Congratulations! You've completed all 50 games.</p>
               <div className="name-display">
                 <div className="player-name-display" style={{
                   fontSize: '50px',
@@ -316,77 +373,10 @@ export default function CertificatePage() {
           ) : (
             <div className="not-ready">
               <h2>Complete All Games First</h2>
-              <p>You need to complete all 5 games to generate your certificate.</p>
+              <p>You need to complete all 50 games to generate your certificate.</p>
               <Link href="/">Go to Games</Link>
             </div>
           )}
-        </div>
-      ) : (
-        <div className="certificate-view">
-          <div className="certificate-display">
-            <div className="certificate-badge">
-              <svg width="80" height="80" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <circle cx="40" cy="40" r="38" stroke="var(--accent)" strokeWidth="4" fill="none"/>
-                <path d="M25 40 L35 50 L55 30" stroke="var(--accent)" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-            </div>
-            
-            <h1 className="certificate-title">Certificate of Completion</h1>
-            
-            <div className="certificate-content">
-              <p className="certificate-text">This is to certify that</p>
-              <div className="player-name-large">{certificate.player_name}</div>
-              <p className="certificate-text">
-                has successfully completed all 5 games<br />
-                demonstrating exceptional skills in logic, memory, speed, and coordination.
-              </p>
-              
-              <div className="certificate-details">
-                <div className="detail-item">
-                  <span className="detail-label">Completion Date</span>
-                  <span className="detail-value">{new Date(certificate.completion_date).toLocaleDateString()}</span>
-                </div>
-                <div className="detail-item">
-                  <span className="detail-label">Total Score</span>
-                  <span className="detail-value">{certificate.total_score}</span>
-                </div>
-                <div className="detail-item">
-                  <span className="detail-label">Rank</span>
-                  <span className="detail-value">{certificate.rank}</span>
-                </div>
-              </div>
-
-              <div className="certificate-qr-section">
-                <div className="qr-code-container">
-                  <QRCodeSVG
-                    value={getCertificateUrl()}
-                    size={150}
-                    level="H"
-                    includeMargin={true}
-                    fgColor="var(--text)"
-                    bgColor="transparent"
-                  />
-                </div>
-                <p className="qr-hint">Scan to verify this certificate</p>
-              </div>
-
-              <div className="certificate-id">
-                Certificate ID: <span className="cert-id-value">{certificate.cert_id_display || certificate.certificate_id}</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="certificate-footer">
-            <div className="certificate-brand">
-              <strong>Play50Games</strong>
-              <span>Learn. Play. Achieve.</span>
-            </div>
-          </div>
-
-          <div className="certificate-actions">
-            <button onClick={handleDownload}>Download Certificate</button>
-            <Link href="/">Back to Games</Link>
-          </div>
         </div>
       )}
     </div>

@@ -58,3 +58,17 @@ export async function getCertificate(certificateId: string): Promise<Certificate
   return response.json();
 }
 
+export async function getUserCertificate(): Promise<Certificate | null> {
+  const response = await fetch(`${API_BASE}/certificate/user`, {
+    headers: getApiHeaders(),
+  });
+  
+  if (!response.ok) {
+    if (response.status === 404) {
+      return null; // No certificate found
+    }
+    throw new Error('Failed to fetch certificate');
+  }
+  
+  return response.json();
+}

@@ -129,7 +129,7 @@ export default function CertificateViewPage() {
                      {certificate.player_name}
                   </div>
                   <p className="certificate-text">
-                     has successfully completed all 5 games
+                     has successfully completed all 50 games
                      <br />
                      demonstrating exceptional skills in logic, memory, speed,
                      and coordination.

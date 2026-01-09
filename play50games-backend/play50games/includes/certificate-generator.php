@@ -137,8 +137,8 @@ function play50_generate_certificate_html($certificate_data) {
   // cert_id_display is already generated above, just format the date
   $issued_date = date('d M Y', strtotime($completion_date));
 
-  $score_percentage = min(100, round(($total_score / 500) * 100));
-  $games_played = 5;
+  $score_percentage = min(100, round(($total_score / 5000) * 100)); // 50 games * 100 points each = 5000 max
+  $games_played = 50;
   
   // Escape logo URL for use in HTML
   $logo_url_escaped = !empty($logo_url) ? esc_url($logo_url) : '';
