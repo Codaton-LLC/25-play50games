@@ -75,6 +75,18 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: 'monthly', // Contact page rarely changes
       priority: 0.6,
     },
+    {
+      url: `${SITE_URL}/terms-and-conditions`,
+      lastModified: currentDate,
+      changeFrequency: 'yearly', // Terms rarely change
+      priority: 0.5,
+    },
+    {
+      url: `${SITE_URL}/privacy-policy`,
+      lastModified: currentDate,
+      changeFrequency: 'yearly', // Privacy policy rarely changes
+      priority: 0.5,
+    },
   ];
 
   // Try to fetch games from API, fallback to static list

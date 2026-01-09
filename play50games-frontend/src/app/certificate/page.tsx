@@ -12,6 +12,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import LoginModal from '@/components/Auth/LoginModal';
 import RegisterModal from '@/components/Auth/RegisterModal';
 import Header from '@/components/Header/Header';
+import Footer from '@/components/Footer/Footer';
 
 export default function CertificatePage() {
   const { user, isAuthenticated, isLoading: authLoading, login, register } = useAuth();
@@ -379,6 +380,7 @@ export default function CertificatePage() {
           )}
         </div>
       )}
+      <Footer />
     </div>
   );
 }

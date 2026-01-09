@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Header from '@/components/Header/Header';
+import Footer from '@/components/Footer/Footer';
 import { useAuth } from '@/contexts/AuthContext';
 import LoginModal from '@/components/Auth/LoginModal';
 import RegisterModal from '@/components/Auth/RegisterModal';
@@ -234,6 +235,7 @@ export default function VerifyPage() {
           </div>
         )}
       </div>
+      <Footer />
     </div>
   );
 }

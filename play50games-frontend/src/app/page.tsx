@@ -15,6 +15,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import LoginModal from "@/components/Auth/LoginModal";
 import RegisterModal from "@/components/Auth/RegisterModal";
 import Header from "@/components/Header/Header";
+import Footer from "@/components/Footer/Footer";
 import GamePreview from "@/components/GamePreview/GamePreview";
 import {
    TrophyIcon,
@@ -779,6 +780,7 @@ export default function HomePage() {
                )}
             </>
          )}
+         <Footer />
       </div>
    );
 }

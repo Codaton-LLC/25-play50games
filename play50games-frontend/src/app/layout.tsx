@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Script from "next/script";
 import "./globals.css";
 import { AuthProvider } from "@/contexts/AuthContext";
+import PrivacyConsent from "@/components/PrivacyConsent/PrivacyConsent";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://play50games.com";
 
@@ -111,7 +112,10 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
                />
             </noscript>
             {/* End Google Tag Manager (noscript) */}
-            <AuthProvider>{children}</AuthProvider>
+            <AuthProvider>
+               {children}
+               <PrivacyConsent />
+            </AuthProvider>
          </body>
       </html>
    );

@@ -2,10 +2,11 @@
 
 import { useState } from 'react';
 import Header from '@/components/Header/Header';
+import Footer from '@/components/Footer/Footer';
 import { useAuth } from '@/contexts/AuthContext';
 import LoginModal from '@/components/Auth/LoginModal';
 import RegisterModal from '@/components/Auth/RegisterModal';
-import { EnvelopeIcon, PhoneIcon, MapPinIcon } from '@heroicons/react/24/outline';
+import { EnvelopeIcon, MapPinIcon } from '@heroicons/react/24/outline';
 
 export default function ContactUsPage() {
   const { user, isAuthenticated, login, register } = useAuth();
@@ -84,11 +85,6 @@ export default function ContactUsPage() {
               <EnvelopeIcon style={{ width: 24, height: 24, color: 'var(--accent)' }} />
               <h3>Email</h3>
               <p>support@play50.games</p>
-            </div>
-            <div className="info-card">
-              <PhoneIcon style={{ width: 24, height: 24, color: 'var(--secondary)' }} />
-              <h3>Response Time</h3>
-              <p>Within 24 hours</p>
             </div>
             <div className="info-card">
               <MapPinIcon style={{ width: 24, height: 24, color: 'var(--ok)' }} />
@@ -221,6 +217,7 @@ export default function ContactUsPage() {
           </form>
         </div>
       </div>
+      <Footer />
     </div>
   );
 }

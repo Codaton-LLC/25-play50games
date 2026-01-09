@@ -21,6 +21,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import LoginModal from "@/components/Auth/LoginModal";
 import RegisterModal from "@/components/Auth/RegisterModal";
 import Header from "@/components/Header/Header";
+import Footer from "@/components/Footer/Footer";
 
 export default function ProgressPage() {
    const { user, isAuthenticated, login, register } = useAuth();
@@ -747,6 +748,7 @@ export default function ProgressPage() {
                   .filter(Boolean);
             })()}
          </div>
+         <Footer />
       </div>
    );
 }

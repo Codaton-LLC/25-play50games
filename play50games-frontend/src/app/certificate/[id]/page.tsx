@@ -8,6 +8,7 @@ import { getCertificate } from "@/lib/api/certificate";
 import { ArrowLeftIcon } from "@heroicons/react/24/outline";
 import { QRCodeSVG } from "qrcode.react";
 import Header from "@/components/Header/Header";
+import Footer from "@/components/Footer/Footer";
 
 export default function CertificateViewPage() {
    const params = useParams();
@@ -187,6 +188,7 @@ export default function CertificateViewPage() {
                </div>
             </div>
          </div>
+         <Footer />
       </div>
    );
 }
