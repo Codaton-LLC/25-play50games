@@ -16,6 +16,71 @@ function show_accordion_custom_fields() {
     ?>
 
     <script src="<?php echo $js_src; ?>"></script>
+    <style>
+        /* Color palette for different FAQ groups */
+        .accordion[data-group-title]:not([data-group-title=""]) {
+            border-left: 4px solid transparent;
+            transition: all 0.3s ease;
+        }
+        
+        /* Color scheme for groups - using a palette of distinct colors */
+        .accordion[data-group-title="registration-questions"],
+        .accordion[data-group-title="pyetje-per-regjistrimin"] {
+            border-left-color: #3b82f6 !important;
+            background-color: rgba(59, 130, 246, 0.05);
+        }
+        
+        .accordion[data-group-title="game-questions"],
+        .accordion[data-group-title="pyetje-per-lojrat"] {
+            border-left-color: #10b981 !important;
+            background-color: rgba(16, 185, 129, 0.05);
+        }
+        
+        .accordion[data-group-title="account-questions"],
+        .accordion[data-group-title="pyetje-per-llogarine"] {
+            border-left-color: #f59e0b !important;
+            background-color: rgba(245, 158, 11, 0.05);
+        }
+        
+        .accordion[data-group-title="certificate-questions"],
+        .accordion[data-group-title="pyetje-per-certifikaten"] {
+            border-left-color: #8b5cf6 !important;
+            background-color: rgba(139, 92, 246, 0.05);
+        }
+        
+        .accordion[data-group-title="payment-questions"],
+        .accordion[data-group-title="pyetje-per-pagesen"] {
+            border-left-color: #ef4444 !important;
+            background-color: rgba(239, 68, 68, 0.05);
+        }
+        
+        .accordion[data-group-title="technical-questions"],
+        .accordion[data-group-title="pyetje-teknike"] {
+            border-left-color: #06b6d4 !important;
+            background-color: rgba(6, 182, 212, 0.05);
+        }
+        
+        .accordion[data-group-title="general-questions"],
+        .accordion[data-group-title="pyetje-te-pergjithshme"] {
+            border-left-color: #ec4899 !important;
+            background-color: rgba(236, 72, 153, 0.05);
+        }
+        
+        /* Dynamic color assignment for other groups */
+        .accordion-box {
+            position: relative;
+        }
+        
+        .accordion[data-group-title]:not([data-group-title=""]) .click-area::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 4px;
+            background-color: inherit;
+        }
+    </style>
     <div>
 
         <input type="hidden" name="accordionMetaNonce" value="<?php echo wp_create_nonce( "saveAccordionFields" ); ?>">
@@ -32,14 +97,16 @@ function show_accordion_custom_fields() {
                     $headline_type          = $track["headline_type"] ?? "p";
                     $content                = $track["content"] ?? "";
                     $add_content_position   = $track["add_content_position"] ?? "";
-                    $add_content            = $track["add_content"];
+                    $add_content            = $track["add_content"] ?? "";
+                    $group_title            = $track["group_title"] ?? "";
 
                     if ($headline == "o")
                     {
                         continue;
                     }
 
-                    echo '<div class="accordion cpt-element" data-count="'.$c.'">
+                    $group_title_clean = !empty($group_title) ? sanitize_title($group_title) : '';
+                    echo '<div class="accordion cpt-element" data-count="'.$c.'" data-group-title="'.esc_attr($group_title_clean).'">
 
                             <div class="sortButtons">
                                 <button type="button" class="btn btn-sm btn-primary float-right mr-1 sort-down">
@@ -62,6 +129,11 @@ function show_accordion_custom_fields() {
                                         <dt></dt>
                                         <dd>
                                             <hr>
+                                        </dd>
+                                        
+                                        <dt>'.__("Group Title",'play50games').' <small>'.__('(Optional - for grouping FAQs)','play50games').'</small></dt>
+                                        <dd>
+                                            <input type="text" name="accordion_fields[accordions]['.$c.'][group_title]" placeholder="'.__('e.g., Registration Questions','play50games').'..." class="regular-text" value="'.$group_title.'">
                                         </dd>
                                         
                                         <dt>'.__("Accordion Title",'play50games').'</dt>
@@ -102,14 +174,73 @@ function show_accordion_custom_fields() {
     </div>
 
     <script>
-
+        
+        // Function to update group colors based on group titles (global)
+        function updateGroupColors() {
+                // Color palette
+                const colors = [
+                    { border: '#3b82f6', bg: 'rgba(59, 130, 246, 0.05)' }, // Blue
+                    { border: '#10b981', bg: 'rgba(16, 185, 129, 0.05)' }, // Green
+                    { border: '#f59e0b', bg: 'rgba(245, 158, 11, 0.05)' }, // Amber
+                    { border: '#8b5cf6', bg: 'rgba(139, 92, 246, 0.05)' }, // Purple
+                    { border: '#ef4444', bg: 'rgba(239, 68, 68, 0.05)' }, // Red
+                    { border: '#06b6d4', bg: 'rgba(6, 182, 212, 0.05)' }, // Cyan
+                    { border: '#ec4899', bg: 'rgba(236, 72, 153, 0.05)' }, // Pink
+                    { border: '#14b8a6', bg: 'rgba(20, 184, 166, 0.05)' }, // Teal
+                    { border: '#f97316', bg: 'rgba(249, 115, 22, 0.05)' }, // Orange
+                    { border: '#6366f1', bg: 'rgba(99, 102, 241, 0.05)' }, // Indigo
+                ];
+                
+                // Get all unique group titles
+                const groupMap = {};
+                let colorIndex = 0;
+                
+                jQuery('.accordion').each(function() {
+                    const $accordion = jQuery(this);
+                    const groupTitleInput = $accordion.find('input[name*="[group_title]"]');
+                    const groupTitle = groupTitleInput.val() ? groupTitleInput.val().trim().toLowerCase().replace(/[^a-z0-9]+/g, '-') : '';
+                    
+                    if (groupTitle) {
+                        if (!groupMap[groupTitle]) {
+                            groupMap[groupTitle] = colors[colorIndex % colors.length];
+                            colorIndex++;
+                        }
+                        
+                        // Update data attribute
+                        $accordion.attr('data-group-title', groupTitle);
+                        
+                        // Apply color
+                        const color = groupMap[groupTitle];
+                        $accordion.css({
+                            'border-left-color': color.border,
+                            'background-color': color.bg
+                        });
+                    } else {
+                        // Remove color if no group title
+                        $accordion.attr('data-group-title', '');
+                        $accordion.css({
+                            'border-left-color': 'transparent',
+                            'background-color': 'transparent'
+                        });
+                    }
+                });
+        }
+        
         jQuery(document).ready(function() {
+            
+            // Update colors on input change
+            jQuery(document).on('input', 'input[name*="[group_title]"]', function() {
+                updateGroupColors();
+            });
+            
+            // Initial color update
+            updateGroupColors();
 
             jQuery(".add").click(function() {
 
                 let count = getExistingElements(".accordion");
 
-                var accordionHTML = `<div class="accordion cpt-element" data-count="${count}">
+                var accordionHTML = `<div class="accordion cpt-element" data-count="${count}" data-group-title="">
 
                 <div class="sortButtons">
                     <button type="button" class="btn btn-sm btn-primary float-right mr-1 sort-down">
@@ -132,6 +263,11 @@ function show_accordion_custom_fields() {
                             <dt></dt>
                             <dd>
                                 <hr>
+                            </dd>
+
+                            <dt><?php _e('Group Title','play50games'); ?> <small><?php _e('(Optional - for grouping FAQs)','play50games'); ?></small></dt>
+                            <dd>
+                                <input type="text" name="accordion_fields[accordions][${count}][group_title]" placeholder="<?php _e('e.g., Registration Questions','play50games'); ?>..." class="regular-text" value="">
                             </dd>
 
                             <dt><?php _e('Accordion Title','play50games'); ?></dt>
@@ -194,6 +330,9 @@ function show_accordion_custom_fields() {
 
                 setButtons();
                 resetSort();
+                
+                // Update group colors after adding new accordion
+                setTimeout(updateGroupColors, 100);
 
             });
 
@@ -214,6 +353,8 @@ function show_accordion_custom_fields() {
                 jQuery(this).attr("data-sort", i);
                 i++;
             });
+            // Update colors after sorting
+            updateGroupColors();
         }
 
     </script>

@@ -590,6 +590,13 @@ add_action('rest_api_init', function() {
             return $api_check;
         },
     ));
+    
+    // Get FAQ items from Accordion CPT
+    register_rest_route('play50/v1', '/faq', array(
+        'methods' => 'GET',
+        'callback' => 'play50_get_faq',
+        'permission_callback' => '__return_true', // Public access for FAQ
+    ));
 });
 
 /**
@@ -1925,3 +1932,78 @@ function play50_save_progress_to_cpt($user_id, $game_id, $progress_data) {
     return $post_id;
 }
 
+/**
+ * Get FAQ items from Accordion CPT
+ */
+function play50_get_faq($request) {
+    $args = array(
+        'post_type' => 'Accordion',
+        'post_status' => 'publish',
+        'posts_per_page' => -1,
+        'orderby' => 'menu_order',
+        'order' => 'ASC',
+    );
+    
+    $query = new WP_Query($args);
+    $faqs_by_group = array();
+    $ungrouped_faqs = array();
+    
+    if ($query->have_posts()) {
+        while ($query->have_posts()) {
+            $query->the_post();
+            $post_id = get_the_ID();
+            $meta = get_post_meta($post_id, 'accordion_fields', true);
+            
+            if (is_array($meta) && isset($meta['accordions']) && is_array($meta['accordions'])) {
+                foreach ($meta['accordions'] as $index => $accordion) {
+                    // Skip empty accordions
+                    if (empty($accordion['headline']) || $accordion['headline'] === 'o') {
+                        continue;
+                    }
+                    
+                    $faq_item = array(
+                        'id' => $post_id . '_' . $index,
+                        'question' => isset($accordion['headline']) ? $accordion['headline'] : '',
+                        'answer' => isset($accordion['content']) ? $accordion['content'] : '',
+                    );
+                    
+                    // Group by group_title if it exists
+                    $group_title = isset($accordion['group_title']) ? trim($accordion['group_title']) : '';
+                    
+                    if (!empty($group_title)) {
+                        // Add to grouped FAQs
+                        if (!isset($faqs_by_group[$group_title])) {
+                            $faqs_by_group[$group_title] = array();
+                        }
+                        $faqs_by_group[$group_title][] = $faq_item;
+                    } else {
+                        // Add to ungrouped FAQs
+                        $ungrouped_faqs[] = $faq_item;
+                    }
+                }
+            }
+        }
+        wp_reset_postdata();
+    }
+    
+    // Build final response with groups
+    $result = array();
+    
+    // Add grouped FAQs
+    foreach ($faqs_by_group as $group_title => $faqs) {
+        $result[] = array(
+            'group_title' => $group_title,
+            'faqs' => $faqs,
+        );
+    }
+    
+    // Add ungrouped FAQs as a separate group if any exist
+    if (!empty($ungrouped_faqs)) {
+        $result[] = array(
+            'group_title' => null,
+            'faqs' => $ungrouped_faqs,
+        );
+    }
+    
+    return new WP_REST_Response($result, 200);
+}
