@@ -94,9 +94,9 @@ if (strpos($host, 'localhost') !== false || strpos($host, '127.0.0.1') !== false
     // Production environment - specify your frontend domain
     // Include localhost for development testing
     define('WP_ENVIRONMENT_TYPE', 'production');
-    define('PLAY50_CORS_ORIGIN', 'https://play50.games,http://localhost:3000,http://localhost:3001,http://127.0.0.1:3000');
+    define('PLAY50_CORS_ORIGIN', 'https://play50.games,https://25-play50games.vercel.app,http://localhost:3000,http://localhost:3001,http://127.0.0.1:3000');
     // Nëse ke multiple domains, përdor:
-    // define('PLAY50_CORS_ORIGIN', 'https://play50.games,https://www.play50.games,http://localhost:3000');
+    // define('PLAY50_CORS_ORIGIN', 'https://play50.games,https://www.play50.games,https://25-play50games.vercel.app,http://localhost:3000');
 }
 // ============================================
 

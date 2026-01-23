@@ -187,9 +187,14 @@ add_action('init', function() {
         
         $final_origin = '*';
         if (!empty($request_origin)) {
-            // Always allow localhost
+            // Always allow localhost, vercel.app, and play50 domains
             if (strpos($request_origin, 'http://localhost') === 0 || 
-                strpos($request_origin, 'http://127.0.0.1') === 0) {
+                strpos($request_origin, 'http://127.0.0.1') === 0 ||
+                strpos($request_origin, 'https://') === 0 && (
+                    strpos($request_origin, '.vercel.app') !== false ||
+                    strpos($request_origin, 'play50.games') !== false ||
+                    strpos($request_origin, 'play50.game') !== false
+                )) {
                 $final_origin = $request_origin;
             } elseif (strpos($allowed_origin, ',') !== false) {
                 $origins = array_map('trim', explode(',', $allowed_origin));
@@ -214,7 +219,10 @@ add_action('init', function() {
         header('Access-Control-Allow-Origin: ' . $final_origin);
         header('Access-Control-Allow-Methods: GET, POST, OPTIONS, PUT, DELETE');
         header('Access-Control-Allow-Headers: Authorization, Content-Type, X-WP-Nonce, X-Requested-With, X-API-Key, X-Play50-API-Key');
-        header('Access-Control-Allow-Credentials: true');
+        // Only set credentials if not using wildcard (CORS spec requirement)
+        if ($final_origin !== '*') {
+            header('Access-Control-Allow-Credentials: true');
+        }
     }
 }, 1);
 
@@ -231,10 +239,16 @@ add_action('rest_api_init', function() {
         
         if (!empty($request_origin)) {
             // Always allow localhost origins for development (even in production WordPress)
+            // Also allow vercel.app and play50 domains
             if (
                 strpos($request_origin, 'http://localhost') === 0 || 
                 strpos($request_origin, 'http://127.0.0.1') === 0 ||
-                strpos($request_origin, 'http://192.168.') === 0
+                strpos($request_origin, 'http://192.168.') === 0 ||
+                (strpos($request_origin, 'https://') === 0 && (
+                    strpos($request_origin, '.vercel.app') !== false ||
+                    strpos($request_origin, 'play50.games') !== false ||
+                    strpos($request_origin, 'play50.game') !== false
+                ))
             ) {
                 $final_origin = $request_origin;
             }
@@ -304,10 +318,16 @@ add_action('init', function() {
         
         if (!empty($request_origin)) {
             // Always allow localhost origins for development (even in production WordPress)
+            // Also allow vercel.app and play50 domains
             if (
                 strpos($request_origin, 'http://localhost') === 0 || 
                 strpos($request_origin, 'http://127.0.0.1') === 0 ||
-                strpos($request_origin, 'http://192.168.') === 0
+                strpos($request_origin, 'http://192.168.') === 0 ||
+                (strpos($request_origin, 'https://') === 0 && (
+                    strpos($request_origin, '.vercel.app') !== false ||
+                    strpos($request_origin, 'play50.games') !== false ||
+                    strpos($request_origin, 'play50.game') !== false
+                ))
             ) {
                 $final_origin = $request_origin;
             }
