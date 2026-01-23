@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Header from '@/components/Header/Header';
 import Footer from '@/components/Footer/Footer';
@@ -10,7 +10,7 @@ import RegisterModal from '@/components/Auth/RegisterModal';
 import { Certificate } from '@/types/game';
 import { getApiHeaders } from '@/lib/api/apiUtils';
 
-export default function VerifyPage() {
+function VerifyContent() {
   const searchParams = useSearchParams();
   const { user, isAuthenticated, login, register } = useAuth();
   const [certId, setCertId] = useState('');
@@ -255,4 +255,27 @@ function getApiBase(): string {
     return 'http://localhost/wp-json/play50/v1';
   }
   return process.env.WORDPRESS_API_URL || 'http://localhost/wp-json/play50/v1';
+}
+
+export default function VerifyPage() {
+  return (
+    <Suspense fallback={
+      <div className="verify-page">
+        <Header
+          showSubtitle={false}
+          onShowLoginModal={() => {}}
+          onShowRegisterModal={() => {}}
+        />
+        <div className="verify-container">
+          <div className="verify-header">
+            <h1>Verify Certificate</h1>
+            <p>Loading...</p>
+          </div>
+        </div>
+        <Footer />
+      </div>
+    }>
+      <VerifyContent />
+    </Suspense>
+  );
 }
