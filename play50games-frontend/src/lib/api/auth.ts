@@ -32,6 +32,7 @@ export interface AuthResponse {
   message?: string;
   user?: User;
   nonce?: string;
+  token?: string;
 }
 
 export interface AuthStatusResponse {
