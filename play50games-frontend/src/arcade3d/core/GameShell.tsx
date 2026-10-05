@@ -44,7 +44,7 @@ import {
    type SubmitResult,
 } from "./scores";
 import { formatDuration } from "./format";
-import { isResultShown, resultDelayFor } from "./frameLoop";
+import { isResultShown } from "./frameLoop";
 import { useAuth } from "@/contexts/AuthContext";
 import { getJwtToken } from "@/lib/api/apiUtils";
 import LoginModal from "@/components/Auth/LoginModal";
@@ -332,9 +332,9 @@ export default function GameShell({ meta, definition, exitHref = "/3d" }: GameSh
    const bottomObstruction = useBottomObstruction();
    const phase = useArcadeStore((s) => s.phase);
    const endReason = useArcadeStore((s) => s.endReason);
-   const resultDelay = resultDelayFor(definition);
    // flips once per run: the scene has stayed on screen for the result delay after the end
-   const resultShown = useArcadeStore((s) => isResultShown(s, resultDelay));
+   // (configure() below hands the store definition.resultDelayMs)
+   const resultShown = useArcadeStore(isResultShown);
    const leaderboard = useLeaderboard(meta.slug, { refreshKey: user?.id ?? null });
 
    const [webgl, setWebgl] = useState<WebGLSupport>("checking");
@@ -376,7 +376,11 @@ export default function GameShell({ meta, definition, exitHref = "/3d" }: GameSh
 
    // run config; reset() on unmount so the next game starts clean (safe to run twice)
    useEffect(() => {
-      arcadeStore.getState().configure({ durationMs: definition.durationMs, lives: definition.lives });
+      arcadeStore.getState().configure({
+         durationMs: definition.durationMs,
+         lives: definition.lives,
+         resultDelayMs: definition.resultDelayMs,
+      });
       submittedRunRef.current = null;
       return () => arcadeStore.getState().reset();
    }, [definition]);
@@ -529,7 +533,11 @@ export default function GameShell({ meta, definition, exitHref = "/3d" }: GameSh
    const retryStage = () => {
       setStageError(null);
       setStageKey((key) => key + 1);
-      arcadeStore.getState().configure({ durationMs: definition.durationMs, lives: definition.lives });
+      arcadeStore.getState().configure({
+         durationMs: definition.durationMs,
+         lives: definition.lives,
+         resultDelayMs: definition.resultDelayMs,
+      });
    };
 
    const saveToAccount = () => {

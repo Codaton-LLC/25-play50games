@@ -176,24 +176,22 @@ describe("<DynamicInstancedModel>", () => {
       expect(frames[0].priority).toBe(FRAME_PRIORITY.visuals);
    });
 
-   it("draws the stand-in parts or the fallback element while the GLB is missing", () => {
-      const parts: InstancePart[] = [
-         { geometry: new BoxGeometry(), material: new MeshBasicMaterial(), locals: [new Matrix4(), new Matrix4(), new Matrix4()] },
-         { geometry: new BoxGeometry(), material: new MeshBasicMaterial() },
-      ];
-      expect(meshTags(markup(createElement(DynamicInstancedModel, { asset: MISSING, count: 4, update: () => {}, fallbackParts: parts })))).toBe(2);
-      const html = markup(
-         createElement(DynamicInstancedModel, {
-            asset: MISSING,
-            count: 4,
-            update: () => {},
-            fallbackParts: parts,
-            fallback: createElement("span", null, "own stand-in"),
-         })
-      );
-      expect(html).toContain("own stand-in");
-      expect(meshTags(html)).toBe(0);
+   /** Three stand-in parts, so their meshes are told apart from a GLB's two. */
+   const standIns = (): InstancePart[] => [
+      { geometry: new BoxGeometry(), material: new MeshBasicMaterial(), locals: [new Matrix4(), new Matrix4(), new Matrix4()] },
+      { geometry: new BoxGeometry(), material: new MeshBasicMaterial() },
+      { geometry: new BoxGeometry(), material: new MeshBasicMaterial() },
+   ];
+
+   it("draws the stand-in parts while the GLB is missing, moved by the same update", () => {
+      const update = vi.fn();
+      const html = markup(createElement(DynamicInstancedModel, { asset: MISSING, count: 4, update, fallbackParts: standIns() }));
+      expect(meshTags(html)).toBe(3);
       expect(useGLTF).not.toHaveBeenCalled();
+      // the stand-in is a moving pool too: one frame callback places every copy
+      expect(frames).toHaveLength(1);
+      frames[0].callback();
+      expect(update).toHaveBeenCalledTimes(4);
    });
 
    it("a listed GLB: one InstancedMesh per GLB mesh for the whole pool, no stand-in", () => {
@@ -204,20 +202,20 @@ describe("<DynamicInstancedModel>", () => {
             asset: asset(PROP, { scale: 2 }),
             count: 32,
             update,
-            fallback: createElement("span", null, "stand-in"),
+            fallbackParts: standIns(),
          })
       );
       expect(useGLTF).toHaveBeenCalledWith(PROP, false, true);
       expect(meshTags(html)).toBe(2);
-      expect(html).not.toContain("stand-in");
       frames[0].callback();
       expect(update).toHaveBeenCalledTimes(32);
    });
 
    it("a listed GLB that fails to load, or a rigged one, falls back", () => {
-      expect(
-         markup(createElement(DynamicInstancedModel, { asset: asset(BROKEN), count: 2, update: () => {}, fallback: createElement("span", null, "stand-in") }))
-      ).toContain("stand-in");
+      const update = vi.fn();
+      expect(meshTags(markup(createElement(DynamicInstancedModel, { asset: asset(BROKEN), count: 2, update, fallbackParts: standIns() })))).toBe(3);
+      frames[frames.length - 1].callback();
+      expect(update).toHaveBeenCalledTimes(2);
       const rigged = new Group();
       rigged.add(new SkinnedMesh(new BoxGeometry(), new MeshBasicMaterial()));
       prop.rigged = rigged;

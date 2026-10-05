@@ -23,8 +23,8 @@ Owned by Claude. Games import from here and never edit it. If a game needs somet
 
 - When a run ends (`end("win" | "lose")` or `"timeup"`), GameShell submits the score **at once**, but the scene keeps rendering (and the HUD stays up) for `GameDefinition.resultDelayMs` before the result panel appears, so the crash or the win animation is seen. Default **800 ms** (`DEFAULT_RESULT_DELAY_MS`), `0` = the panel on the frame the run ends, at most 5000 (`RESULT_DELAY_MAX_MS`). `end("quit")` never waits.
 - During the delay the phase is already `"over"`: `useRunFrame` no longer runs, score and stat changes are ignored, and `useGameTime().now` keeps going. Animate the end with visuals (`useFrame` + `useGameTime`), as before.
-- It is counted in rendered frames (the store's `overMs`, advanced by the run clock, each frame at most 50 ms). Pause cannot interrupt it (an ended run cannot be paused), and a hidden tab renders no frames, so the delay simply waits for the player to come back. Retry and Exit appear with the panel.
-- Pure, for tests: `resultDelayFor(definition)` and `isResultShown(state, delayMs)` (`frameLoop.ts`), driven with `advanceRunClock` like the clock (`frameLoop.test.ts`).
+- GameShell hands the delay to the store with `configure({ durationMs, lives, resultDelayMs })` (resolved by `resultDelayFor`, kept in `config.resultDelayMs`). It is counted in rendered frames (the store's `overMs`, advanced by the run clock, each frame at most 50 ms), and the count stops at the delay, so the result screen causes no store update per frame. Pause cannot interrupt it (an ended run cannot be paused), and a hidden tab renders no frames, so the delay simply waits for the player to come back. Retry and Exit appear with the panel.
+- Pure, for tests: `resultDelayFor(definition)` and `isResultShown(state)` (`frameLoop.ts`, reads `state.config.resultDelayMs`), driven with `advanceRunClock` on a store configured with `resultDelayMs` (`frameLoop.test.ts`).
 
 ## Input events
 
@@ -38,14 +38,24 @@ Owned by Claude. Games import from here and never edit it. If a game needs somet
 | `tap` | a short press (at most `TAP_MAX_PX`, `TAP_MAX_MS`) without travel, at the press position |
 
 - Discrete moves (lane changes, grid hops) read `pressed` (keyboard and swipes in one place) instead of deriving edges from `moveX` / `moveY`: a key tapped and released between two frames never moves the axes, but it does set `pressed`. Two presses of one direction inside one frame (under about 16 ms) count once.
+- **`pressed` already includes swipes.** A swipe sets `swipe` and `pressed[direction]` on the same frame. Handle a move from `pressed` only, and do not act on `swipe` for the same move, or every swipe moves twice (two lanes, or a hop plus a queued second hop). Read `swipe` only for meanings `pressed` does not carry. A game that switches from `moveX` / `moveY` edges to `pressed` drops its `swipe` handling for those moves in the same change.
 - `pressed` is one object, mutated in place: read its fields, do not keep it.
+
+```ts
+useRunFrame(() => {
+   const { pressed } = input.current;            // keys and swipes, one flag per press
+   if (pressed.left) run.lane = Math.max(0, run.lane - 1);
+   if (pressed.right) run.lane = Math.min(LANES - 1, run.lane + 1);
+   if (pressed.up) jump(run);                    // no `input.current.swipe` branch for these moves
+});
+```
 
 ## Helpers
 
 | Need | Use | File |
 |---|---|---|
 | Game loop, input | `useRunFrame`, `useInput` (events: "Input events" above) | `useRunFrame.ts`, `input.tsx` |
-| Discrete moves | `input.current.pressed.left` etc. (keydown edges + swipes, never lost) | `inputController.ts` |
+| Discrete moves | `input.current.pressed.left` etc. (keydown edges + swipes, never lost; swipes included, so do not also move on `swipe`) | `inputController.ts` |
 | Crash / win animation before the result | `GameDefinition.resultDelayMs` (default 800) | `types.ts`, `GameShell.tsx` |
 | Pause-safe animation time | `useGameTime` | `gameTime.tsx` |
 | Screen-relative movement | `inputToWorld(moveX, moveY, cameraYaw, out?)` (up = away from the camera). Pure, so `rules.ts` may use it | `math.ts` (also re-exported by `view.ts` and `input.tsx`) |
@@ -55,7 +65,7 @@ Owned by Claude. Games import from here and never edit it. If a game needs somet
 | Where UI covers the canvas | `useSafeArea()` → `{ width, height, hud[], controls[], obstructions[] }` (px rects, live); `useSafeArea(selector, isEqual?)` re-renders only when the selection changes (`sameScreenRects` for rect lists) | `safeArea.tsx` |
 | Models | `<Model asset fallback={<MyPrimitive/>}>` (an element, not a component), `useModel`, `useModelFailed` (no clone), `SHARED_ASSETS` | `assets.tsx`, `sharedAssets.ts` |
 | Repeated props | `<InstancedModel asset spots fallback={<Instanced spots>…</Instanced>}>`: one draw call per mesh for all copies, primitive or GLB | `assets.tsx`, `render/` |
-| Moving pools (coins, obstacles, vehicles) | `<DynamicInstancedModel asset count update={(i, matrix) => …} fallbackParts? fallback?>`: one draw call per mesh for the whole pool, primitive or GLB, placed every frame | `assets.tsx`, `render/` |
+| Moving pools (coins, obstacles, vehicles) | `<DynamicInstancedModel asset count update={(i, matrix) => …} fallbackParts?>`: one draw call per mesh for the whole pool, stand-in parts, primitive or GLB, placed every frame | `assets.tsx`, `render/` |
 | Moving instancing by hand | `<DynamicInstanced count update parts?>` (or geometry + material children), pure `writeDynamicInstances` | `render/` |
 | Which GLBs exist | `MODEL_MANIFEST` / `hasModel(url)`: unlisted urls are never fetched | `modelManifest.ts` |
 | Static instancing by hand | `<Instanced spots>`, `useInstanceMatrices(meshRef, spots)`, `spotMatrix` | `render/` |
@@ -101,21 +111,27 @@ const placeCar = (i: number, m: Matrix4) => {          // every copy, every fram
 ```
 
 - `update` runs once per copy per frame, whatever the number of meshes, after `useRunFrame` and the camera. It writes the copy's placement (its feet, like `<Model position>`); the GLB's `scale` / `rotationY` / `yOffset` and mesh transforms are applied inside it. Shown copies are packed, so hidden pool slots cost nothing. No allocation; it may be a new function every render.
-- While the GLB is missing or broken (or rigged): `fallbackParts` (one `InstancedMesh` per part, with several `locals` pieces and piece `colors` per copy, e.g. a desk's top and legs in one draw call), or `fallback` (any element), or else the asset's primitive. All of them are placed by the same `update`, so a GLB drop needs no scene change. The parts are yours: build them once and dispose of them.
+- While the GLB is missing or broken (or rigged): `fallbackParts` (one `InstancedMesh` per part, with several `locals` pieces and piece `colors` per copy, e.g. a desk's top and legs in one draw call), or else the asset's primitive. Both are placed by the same `update`, so a GLB drop needs no scene change. The parts are yours: build them once and dispose of them.
+- There is no `fallback` element (unlike `<Model>` and `<InstancedModel>`): an element would be drawn once where it stands, not as a moving pool. Express the stand-in as `fallbackParts`.
 - Not frustum culled (a moving pool has no fixed bounds). Keep `count` fixed: a change rebuilds the meshes.
 
 ## Closed core gaps (follow-up 2)
 
-Games recorded these in their READMEs. The core has them now; adopting them is a game change (no game was edited here):
+Games recorded these in their READMEs. The core has them now. Two of them apply to **every game automatically**, with no game change: the result delay and mid-gesture swipes. The rest need adoption in the game (`pressed`, `sweptAabbXZ`, `rngNext`, `<DynamicInstancedModel>`, the `useSafeArea` selector). No game was edited here.
 
-| Gap | Now | Recorded by |
-|---|---|---|
-| The result panel hides the crash and the win | `resultDelayMs` (default 800 ms, on for every game) | office-escape |
-| Swipes fire on release | swipes fire mid-gesture at 30 px | office-escape |
-| Arrow taps between two frames are lost | `input.pressed` | office-escape, pigeon-crossing |
-| No swept ground-box test | `sweptAabbXZ` | pigeon-crossing |
-| `createRng` needs a closure per stream | `rngNext({ s })` | pigeon-crossing |
-| `<InstancedModel>` is static | `<DynamicInstancedModel>` / `<DynamicInstanced>` | office-escape (local `InstancedProp`), pigeon-crossing |
-| `useSafeArea()` has no selector | `useSafeArea(selector, isEqual?)` | office-escape |
+| Gap | Now | Adoption | Recorded by |
+|---|---|---|---|
+| The result panel hides the crash and the win | `resultDelayMs` (default 800 ms) | on for every game; set `resultDelayMs` only to change the length (0 = old behaviour) | office-escape |
+| Swipes fire on release | swipes fire mid-gesture at 30 px | on for every game | office-escape |
+| Arrow taps between two frames are lost | `input.pressed` | game change. `pressed` already includes swipes: move from `pressed` only and drop the `swipe` handling for the same moves, or every swipe moves twice | office-escape, pigeon-crossing |
+| No swept ground-box test | `sweptAabbXZ` | game change | pigeon-crossing |
+| `createRng` needs a closure per stream | `rngNext({ s })` | game change | pigeon-crossing |
+| `<InstancedModel>` is static | `<DynamicInstancedModel>` / `<DynamicInstanced>` | game change | office-escape (local `InstancedProp`), pigeon-crossing |
+| `useSafeArea()` has no selector | `useSafeArea(selector, isEqual?)` | game change | office-escape |
+
+Stale game notes, left for each game's own follow-up PR (this branch edits no game):
+
+- `games/office-escape/README.md` still describes the old behaviour: "Controls" (Touch: swipes "read on release"), "Collisions and the end of a run" (Hit: the panel mounts on the same frame and covers the tumble), "Runner animation" (crash and win "play behind the result panel"), and the two "Known issues and core gaps" entries "Swipes fire on release" and "The result panel hides the crash and the win". Both fixes are live for it already. Its "Edge cases" line "two lane events from keyboard and swipe both apply" (`readInput`: `lane2` from `swipe`) must change with any move to `pressed`.
+- The pigeon-crossing design (`origin/codex/game-pigeon-crossing`, README "Controls" and its test plan) maps `input.swipe` to hops next to keyboard edges, with a one-slot queue, and asserts the lost sub-frame press as a documented limitation. With `pressed`, hops come from `pressed` alone (no `swipe` branch, or a swipe hops and queues a second hop), and that limitation is gone.
 
 Still open: the bottom safe-area inset (`env(safe-area-inset-bottom)`) is not reported, and the cookie banner is found by a 1 s poll.

@@ -282,6 +282,46 @@ describe("direction presses", () => {
       expect(state()).toMatchObject({ jumpPressed: true, actionPressed: true });
    });
 
+   it("one swipe is exactly one press of its direction for the whole gesture (pressed already includes swipes)", () => {
+      /** Latches one frame and returns the directions pressed in it. */
+      const frame = () => {
+         input.latch();
+         return (Object.keys(none) as Array<keyof typeof none>).filter((key) => state().pressed[key]);
+      };
+      // mid-gesture swipe: the move, the rest of the drag and the release
+      const seen: string[] = [];
+      input.pointerDown(0, 0, 100, 100, 0);
+      seen.push(...frame());
+      input.pointerMove(0, 0, 100 - SWIPE_MIN_PX, 100, 40);
+      expect(state().swipe).toBeNull();
+      seen.push(...frame());
+      expect(state().swipe).toBe("left");
+      input.pointerMove(0, 0, 0, 100, 80);
+      seen.push(...frame());
+      input.pointerUp(-20, 100, 120);
+      seen.push(...frame(), ...frame());
+      expect(seen).toEqual(["left"]);
+      // a flick seen only on release: still one press
+      input.pointerDown(0, 0, 100, 100, 1000);
+      input.pointerUp(100, 100 + SWIPE_MIN_PX + 5, 1050);
+      expect(frame()).toEqual(["down"]);
+      expect(state().swipe).toBe("down");
+      expect(frame()).toEqual([]);
+      // a game that moves on `pressed` alone moves once per swipe; adding `swipe` would move twice
+      let lane = 1;
+      input.pointerDown(0, 0, 100, 100, 2000);
+      input.pointerMove(0, 0, 100 + SWIPE_MIN_PX, 100, 2030);
+      for (let i = 0; i < 3; i++) {
+         input.latch();
+         if (state().pressed.right) lane += 1;
+         if (state().pressed.left) lane -= 1;
+      }
+      input.pointerUp(100 + SWIPE_MIN_PX, 100, 2060);
+      input.latch();
+      if (state().pressed.right) lane += 1;
+      expect(lane).toBe(2);
+   });
+
    it("clearEvents and release drop pending and published presses; the object is never replaced", () => {
       const pressed = state().pressed;
       input.keyDown("KeyS");

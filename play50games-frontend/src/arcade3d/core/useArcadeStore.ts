@@ -8,12 +8,13 @@
 // Clock: tick() counts play time into elapsedMs and reports it as frameMs, which useRunFrame hands
 // to the game as dt. The frame in which the countdown ends counts its rest as play time, so the
 // game never moves for time the clock did not count (core/frameLoop.ts).
-// After the run: tick() counts rendered time into overMs (up to RESULT_DELAY_MAX_MS), which
-// GameShell waits for before it shows the result panel (GameDefinition.resultDelayMs).
+// After the run: tick() counts rendered time into overMs until it reaches config.resultDelayMs
+// (GameDefinition.resultDelayMs via configure()), then stops; GameShell shows the result panel once
+// it is there (isResultShown in core/frameLoop.ts).
 import { createStore, type StoreApi } from "zustand/vanilla";
 import { useStore } from "zustand";
 import type { EndReason, RunActions, RunPhase, RunState } from "./types";
-import { RESULT_DELAY_MAX_MS } from "./frameLoop";
+import { resultDelayFor } from "./frameLoop";
 
 export { DEFAULT_RESULT_DELAY_MS, RESULT_DELAY_MAX_MS } from "./frameLoop";
 
@@ -27,6 +28,12 @@ export interface RunConfig {
    durationMs: number | null;
    /** starting lives; null = game has no lives */
    lives: number | null;
+   /**
+    * Rendered ms the scene stays on screen after a run before the result panel (GameShell passes
+    * GameDefinition.resultDelayMs). configure() resolves it with resultDelayFor: unset = 800 ms
+    * (DEFAULT_RESULT_DELAY_MS), clamped to [0, RESULT_DELAY_MAX_MS].
+    */
+   resultDelayMs: number;
 }
 
 export interface ArcadeStore extends RunState, RunActions {
@@ -41,12 +48,13 @@ export interface ArcadeStore extends RunState, RunActions {
    frameMs: number;
    /**
     * Rendered ms since the run ended: 0 when phase "over" begins, then every tick() adds its frame
-    * time, up to RESULT_DELAY_MAX_MS. Frames only, so a hidden tab (no frames) does not count.
-    * GameShell shows the result once it reaches the game's result delay (core/frameLoop.ts).
+    * time until it reaches config.resultDelayMs, where it stops (no store update per frame once the
+    * result panel is up). Frames only, so a hidden tab (no frames) does not count. GameShell shows
+    * the result once it is there (isResultShown, core/frameLoop.ts).
     */
    overMs: number;
    config: RunConfig;
-   /** GameShell: set the game's timer and lives, back to "loading" (keeps runId) */
+   /** GameShell: set the game's timer, lives and result delay, back to "loading" (keeps runId) */
    configure(config: Partial<RunConfig>): void;
    /** GameShell: the scene finished loading ("loading" -> "ready") */
    markReady(): void;
@@ -56,7 +64,7 @@ export interface ArcadeStore extends RunState, RunActions {
 
 type RunData = Omit<RunState, "phase" | "runId"> & { countdownMs: number; frameMs: number; overMs: number };
 
-const NO_CONFIG: RunConfig = { durationMs: null, lives: null };
+const NO_CONFIG: RunConfig = { durationMs: null, lives: null, resultDelayMs: resultDelayFor({}) };
 
 function freshRun(config: RunConfig): RunData {
    return {
@@ -130,6 +138,7 @@ export function createArcadeStore(): StoreApi<ArcadeStore> {
             const next: RunConfig = {
                durationMs: config.durationMs ?? null,
                lives: config.lives ?? null,
+               resultDelayMs: resultDelayFor({ resultDelayMs: config.resultDelayMs }),
             };
             set({ ...freshRun(next), config: next, phase: "loading", pausedFrom: null });
          },
@@ -217,9 +226,10 @@ export function createArcadeStore(): StoreApi<ArcadeStore> {
                set({ countdownMs: 0, ...play(s, Math.max(0, -left)) });
                return;
             }
-            if (s.phase === "over" && dt > 0 && s.overMs < RESULT_DELAY_MAX_MS) {
-               // the scene stays on screen after the run: count the frames GameShell waits for
-               set({ overMs: Math.min(RESULT_DELAY_MAX_MS, s.overMs + dt), frameMs: 0 });
+            if (s.phase === "over" && dt > 0 && s.overMs < s.config.resultDelayMs) {
+               // the scene stays on screen after the run: count the frames GameShell waits for, then
+               // stop (the result screen causes no store update per frame)
+               set({ overMs: Math.min(s.config.resultDelayMs, s.overMs + dt), frameMs: 0 });
                return;
             }
             if (s.phase !== "playing" || dt === 0) {

@@ -359,16 +359,15 @@ export interface DynamicInstancedModelProps {
    /**
     * Stand-in meshes while the GLB is missing or broken, placed by the same `update`: one
     * InstancedMesh per part, with several pieces (and piece colours) per copy. Keep the array
-    * stable and dispose of it yourself. Without it (and without `fallback`), the asset's primitive.
+    * stable and dispose of it yourself. Without it, the asset's primitive (also placed by `update`).
+    * There is no `fallback` element (unlike <Model> / <InstancedModel>): an element would be drawn
+    * once, where it stands, instead of as a moving pool.
     */
    fallbackParts?: readonly InstancePart[];
-   /** ... or any element to draw instead (like <InstancedModel fallback>); wins over fallbackParts */
-   fallback?: ReactNode;
    name?: string;
 }
 
-function DynamicFallback({ asset, count, update, fallbackParts, fallback, name }: DynamicInstancedModelProps) {
-   if (fallback !== undefined) return <>{fallback}</>;
+function DynamicFallback({ asset, count, update, fallbackParts, name }: DynamicInstancedModelProps) {
    if (fallbackParts) return <DynamicInstanced count={count} update={update} parts={fallbackParts} name={name} />;
    return <PrimitiveInstances asset={asset} count={count} update={update} name={name} />;
 }
@@ -404,8 +403,8 @@ function DynamicInstancedModelContent(props: DynamicInstancedModelProps) {
  * A pool of copies of a prop that move every frame (coins, obstacles, vehicles). Once the GLB is
  * listed in the manifest, every mesh of it becomes one InstancedMesh for the whole pool (draw calls
  * = meshes in the GLB); until then, or when it fails to load or breaks while rendering,
- * `fallbackParts` / `fallback` / the asset's primitive, placed by the same `update`. A GLB drop
- * needs no scene change. Suspends while a listed GLB loads.
+ * `fallbackParts` or else the asset's primitive, placed by the same `update`. A GLB drop needs
+ * no scene change. Suspends while a listed GLB loads.
  */
 export function DynamicInstancedModel(props: DynamicInstancedModelProps) {
    return (

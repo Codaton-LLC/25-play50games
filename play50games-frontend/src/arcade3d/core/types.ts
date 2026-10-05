@@ -84,12 +84,20 @@ export interface InputState {
     * (auto-repeat does not count) and by a swipe in that direction. Use it for discrete moves
     * (lane changes, grid hops): moveX/moveY are sampled once per frame and miss a key tapped
     * between two frames. The object is mutated in place (never replaced).
+    *
+    * `pressed` already includes swipes: a swipe sets `swipe` and the same direction here on the
+    * same frame. Handle a move from `pressed` only, and do not act on `swipe` for the same move,
+    * or every swipe moves twice. Read `swipe` only for meanings `pressed` does not carry.
     */
    pressed: DirectionPresses;
    /**
     * One frame: a quick swipe on the canvas (touch or mouse drag), by its dominant axis. It fires
     * while the pointer is still moving, as soon as it has travelled SWIPE_MIN_PX within
     * SWIPE_MAX_MS (once per gesture), or on release for a flick no move event reported.
+    *
+    * Every swipe also sets `pressed[direction]` on the same frame. A game that moves on `pressed`
+    * must not move on `swipe` too (one swipe would move twice); read `swipe` only for meanings
+    * `pressed` does not carry (for example "this came from touch").
     */
    swipe: "up" | "down" | "left" | "right" | null;
    /** one frame: a short tap/click on the canvas, in pointer coordinates */
