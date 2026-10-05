@@ -66,7 +66,7 @@ Points games: server rejects `score > maxScore` or `score > base + maxPointsPerS
 | food-catcher | points | 5,000 | 5 s – 100 s | 0 + 50/s | pts | int |
 | office-escape | points | 200,000 | 3 s – 30 min | 0 + 100/s | pts | int |
 | pigeon-crossing | points | 50,000 | 3 s – 30 min | 0 + 100/s | pts | int |
-| penalty-hero | points | 1,500 | 10 s – 10 min | 0 + 150/s | goals | int |
+| penalty-hero | points | 1,500 | 10 s – 10 min | 0 + 150/s | pts | int |
 | warehouse-rush | points | 3,000 | 5 s – 75 s | 0 + 50/s | pts | int |
 | tower-climb | points | 50,000 | 3 s – 30 min | 0 + 100/s | pts | int |
 | clean-city | points | 6,000 | 10 s – 15 min | 1000 + 100/s | pts | int |
@@ -82,13 +82,13 @@ Limits are provisional. Changing one = Claude's "assets + limits" PR (meta + JSO
 | Slug | Universe (seed) | Generate with Hyper3D | Reuse from shared | Primitives in code |
 |---|---|---|---|---|
 | robot-collector | warehouse | robot ×3 → shared, battery → shared, crate → shared, barrel (all on lab account) | – | floor, walls |
-| food-catcher | food | chef ×2, apple, banana → shared, strawberry, burger, sock, tinCan → shared, runner final ×2 → shared | – | counter, lanes |
+| food-catcher | food | chef ×2, apple, banana → shared, burger, sock, tinCan → shared, runner final ×2 → shared | – | counter, lanes |
 | office-escape | office | desk → shared, printer, chair → shared, coffee cart, water cooler | runner | corridor, coins |
 | pigeon-crossing | street | pigeon ×2, car, taxi, van | – | road, kerbs |
-| penalty-hero | stadium | striker ×2, keeper ×2, ball | – | goal frame + net, pitch |
+| penalty-hero | stadium | striker ×2, keeper ×2 | – | ball, goal frame + net, pitch |
 | warehouse-rush | warehouse | shelf rack, pallet | robot, crate (tinted per zone) | colour zones |
 | tower-climb | playground | flag, spring pad | runner | platforms |
-| clean-city | street | bottle, bag, bin, bench, palm, umbrella, lamp | runner, tinCan, banana | ground per map |
+| clean-city | shared-cast (5050) | bottle, paper bag | runner, tinCan, banana | ground per map, bin, bench, lamp, palm, umbrella |
 | escape-room | office | key, book, door, console | runner, battery, desk, chair | room shell |
 | obstacle-race | playground | finish arch | runner | obstacles (Rapier colliders) |
 
@@ -130,7 +130,6 @@ Prop prompt:     <subject>, <style block>, <prop suffix>
 | pigeon-crossing | pigeon | character | chubby city pigeon mascot, oversized head, big expressive eyes, grey-blue feathers, green-purple neck sheen, wings spread |
 | pigeon-crossing | vehicles | prop | small rounded red hatchback car · rounded yellow taxi with roof sign · boxy white delivery van |
 | penalty-hero | striker / keeper | character | football striker mascot, blue kit with number 10, boots · goalkeeper mascot, bright green kit, oversized gloves |
-| penalty-hero | ball | prop | classic black and white football |
 | warehouse-rush | warehouse kit | prop | two-level metal warehouse shelf rack, orange uprights · wooden pallet |
 | tower-climb | climb kit | prop | checkpoint flag on a short pole, yellow flag · round bounce spring pad, red top |
 | clean-city | litter + map props | prop | crushed plastic bottle · crumpled plastic bag · green public bin with lid · wooden park bench · small palm tree · striped beach umbrella · street lamp post |

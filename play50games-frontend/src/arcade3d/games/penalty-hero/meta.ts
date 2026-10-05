@@ -9,7 +9,7 @@ export const penaltyHeroMeta: ArcadeGameMeta = {
    order: 5,
    status: "soon",
    difficulty: 2,
-   orientation: "any",
+   orientation: "portrait",
    controls: {
       scheme: "tap-target",
       keyboard: "Arrow keys to aim, Space to shoot",
@@ -22,7 +22,7 @@ export const penaltyHeroMeta: ArcadeGameMeta = {
       maxDurationMs: 600000,
       base: 0,
       maxPointsPerSec: 150,
-      unitLabel: "goals",
+      unitLabel: "pts",
       display: "int"
    },
    thumbnail: null,
