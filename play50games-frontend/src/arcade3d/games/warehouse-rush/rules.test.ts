@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { distanceToBoxXZ } from "@/arcade3d/core/collision";
+import { distanceToBoxXZ, resolveSphereAabb } from "@/arcade3d/core/collision";
 import { FRAME_PRIORITY, MAX_FRAME_DT, advanceRunClock, playedFrameDt } from "@/arcade3d/core/frameLoop";
 import { createRng, rngNext } from "@/arcade3d/core/math";
 import { createArcadeStore } from "@/arcade3d/core/useArcadeStore";
@@ -955,6 +955,27 @@ describe("warehouse-rush movement", () => {
       }
    });
 
+   it("the stick is analog: half a stick is half the top speed, empty-handed and carrying", () => {
+      for (const [carrying, top] of [[false, ROBOT.speed], [true, ROBOT.carrySpeed]] as const) {
+         const robot = createRobot();
+         robot.x = -5.5;
+         robot.z = -4.5;
+         for (let i = 0; i < 30; i++) stepRobot(robot, 0, 0.5, 1 / 60, carrying, open());
+         expect(robot.vz).toBeCloseTo(top / 2, 9);
+         expect(robot.vx).toBe(0);
+      }
+   });
+
+   it("an input longer than 1 is normalised: a diagonal into a wall slides at 6 · √½, not at 6", () => {
+      // on open floor the speed guard would cap an unnormalised (1, 1) at 6 anyway; along the wall it shows
+      const robot = createRobot();
+      robot.x = 9.5;
+      robot.z = -5;
+      for (let i = 0; i < 120; i++) stepRobot(robot, 1, 1, 1 / 60, false, open());
+      expect(robot.x).toBeCloseTo(ARENA.halfX - ROBOT.radius, 9);
+      expect(robot.vz).toBeCloseTo(ROBOT.speed * Math.SQRT1_2, 4);
+   });
+
    it("accelerates from rest at 30 u/s² and brakes to a stop at 36 u/s²", () => {
       const robot = createRobot();
       robot.x = -5.5;
@@ -1029,6 +1050,25 @@ describe("warehouse-rush movement", () => {
       expect(farthestOut).toBeLessThanOrEqual(1e-9);
    });
 
+   it("the speed guard is needed: a full-speed corner graze is pushed past top · dt, and the guard trims it to exactly top · dt", () => {
+      const obstacles = createRun(1, { layout: sideLayout() }).obstacles;
+      // empty-handed past pallet slot 5's corner, carrying past the left rack's corner (found by a probe)
+      for (const [carrying, top, x, z, vx, vz] of [
+         [false, ROBOT.speed, 2.0691796626324663, 4.375492030981725, 5.979354020272189, 0.49731830878704475],
+         [true, ROBOT.carrySpeed, -0.6367959303605898, 0.793715156146596, -4.775571167229557, 1.4811887208339538],
+      ] as const) {
+         const dt = MAX_STEP_MS / 1000;
+         // the move plus the pushes alone (what stepRobot does before its guard) overshoot by more than 3 %
+         const p = { x: x + vx * dt, y: 0, z: z + vz * dt };
+         for (const box of obstacles) resolveSphereAabb(p, ROBOT.radius, box, p);
+         expect(Math.hypot(p.x - x, p.z - z)).toBeGreaterThan(top * dt * 1.03);
+         const robot = createRobot();
+         Object.assign(robot, { x, z, vx, vz });
+         stepRobot(robot, vx / top, vz / top, dt, carrying, obstacles);
+         expect(Math.hypot(robot.x - x, robot.z - z)).toBeCloseTo(top * dt, 12);
+      }
+   });
+
    it("dt <= 0 does nothing; the robot turns to face where it goes", () => {
       const robot = createRobot();
       for (const dt of [0, -1, NaN]) stepRobot(robot, 1, 0, dt, false, open());
@@ -1041,6 +1081,16 @@ describe("warehouse-rush movement", () => {
       robot.x = -9;
       robot.z = -5;
       for (let i = 0; i < 60; i++) stepRobot(robot, 1, 0, 1 / 60, false, open());
+      expect(robot.heading).toBeCloseTo(Math.PI / 2, 3);
+   });
+
+   it("a stopped robot keeps its heading (it turns only while faster than 0.3 u/s)", () => {
+      const robot = createRobot();
+      robot.x = -9;
+      robot.z = -5;
+      for (let i = 0; i < 60; i++) stepRobot(robot, 1, 0, 1 / 60, false, open());
+      for (let i = 0; i < 60; i++) stepRobot(robot, 0, 0, 1 / 60, false, open());
+      expect(Math.hypot(robot.vx, robot.vz)).toBe(0);
       expect(robot.heading).toBeCloseTo(Math.PI / 2, 3);
    });
 
@@ -1123,6 +1173,20 @@ describe("warehouse-rush Action", () => {
          expect(ev.zone).toBe(delivers ? zoneAt(x, z) : NONE);
       }
       expect([zoneAt(-8, -4), zoneAt(8, -4), zoneAt(-8, 4), zoneAt(8, 4), zoneAt(0, 0), zoneAt(8, 0)]).toEqual([0, 1, 2, 3, NONE, NONE]);
+   });
+
+   it("the reach and zone edges are exact (MIN_LEG assumes them): 1e-6 past an edge does nothing", () => {
+      const b = palletBounds(5); // (3, 3.4): x 2.4..3.6, z 2.8..4.0
+      expect(inReach(3.6 + PICK_GAP, 3.4, b)).toBe(true);
+      expect(inReach(3.6 + PICK_GAP + 1e-6, 3.4, b)).toBe(false);
+      expect(inReach(3, 4 + PICK_GAP, b)).toBe(true);
+      expect(inReach(3, 4 + PICK_GAP + 1e-6, b)).toBe(false);
+      expect(zoneAt(ZONE.innerX, 4)).toBe(3);
+      expect(zoneAt(ZONE.innerX - 1e-6, 4)).toBe(NONE);
+      expect(zoneAt(8, ZONE.innerZ)).toBe(3);
+      expect(zoneAt(8, ZONE.innerZ - 1e-6)).toBe(NONE);
+      expect(zoneAt(-ZONE.innerX, -4)).toBe(0);
+      expect(zoneAt(-ZONE.innerX + 1e-6, -4)).toBe(NONE);
    });
 
    it("right zone +50, wrong zone -20, never below 0; Delivered counts right ones only", () => {
@@ -1209,6 +1273,24 @@ describe("warehouse-rush Action", () => {
       run.lockMs = 100;
       step(run, 16, { moveX: 0, moveY: 1, actionPressed: true });
       expect([run.robot.x, run.robot.z, run.robot.vx, run.robot.vz, run.lockMs]).toEqual([x, z, 0, 0, 84]);
+   });
+
+   it("a pick and a drop while moving stop the robot in that same step; lastZone is the drop's corner", () => {
+      // drive into SIDE pallet 3's reach from the +x side, pressing every frame
+      const run = runWith([1, 2, 0, 3], 3);
+      place(run, 6, 3.4);
+      let ev = step(run, 16, { moveX: -1, moveY: 0, actionPressed: false });
+      for (let k = 0; k < 100 && run.carrying === NONE; k++) ev = step(run, 16, { moveX: -1, moveY: 0, actionPressed: true });
+      expect(ev.picked).toBe(3);
+      expect([run.robot.vx, run.robot.vz]).toEqual([0, 0]);
+      expect(run.lastZone).toBe(NONE);
+      // wait out the lock, then drive into zone 3 pressing every frame
+      waitLock(run);
+      for (let k = 0; k < 200 && run.carrying !== NONE; k++) ev = step(run, 16, { moveX: 1, moveY: 0, actionPressed: true });
+      expect(ev.delivered).toBe(true);
+      expect([run.robot.vx, run.robot.vz]).toEqual([0, 0]);
+      expect(ev.zone).toBe(3);
+      expect(run.lastZone).toBe(3);
    });
 
    it("a carrying robot in reach of a pallet does nothing, and at most one pallet is ever in reach", () => {
@@ -1323,6 +1405,26 @@ describe("warehouse-rush refills", () => {
          expect(landing.picked).toBe(1);
          expect(r.carrying).toBe(colour);
       }
+   });
+
+   it("a refill due during a pick lock lands on time (step 2 runs before the lock)", () => {
+      // in play the pick lock often overlaps delivery + 1500 ms; the refill must not wait for the lock
+      const run = runWith([NONE, 1, 2, 3], 3);
+      run.refillDue[0] = 30;
+      run.refillCount = 1;
+      place(run, ...reachSpot(3));
+      expect(step(run, 10, PRESS).picked).toBe(3);
+      expect(run.lockMs).toBe(PICK_MS);
+      let landedAt = -1;
+      for (let k = 0; run.lockMs > 0 && k < 100; k++) {
+         const ev = step(run, 10, IDLE);
+         if (ev.refilled) landedAt = run.simMs;
+      }
+      expect(run.lockMs).toBe(0);
+      // pallet 0 has been empty since 0, pallet 3 since the pick at 10: it lands on pallet 0 at 30 ms
+      expect(landedAt).toBe(30);
+      expect(run.pallets[0].box).not.toBe(NONE);
+      expect(run.pallets[3].box).toBe(NONE);
    });
 
    it("two pending refills land in due order with the next two colours of the box stream", () => {
@@ -1647,6 +1749,26 @@ describe("warehouse-rush frame-rate independence", () => {
       expect(advanceClock(run, 0.4)).toBe(0);
       expect(advanceClock(run, 0.7)).toBe(1);
       expect(run.carry).toBeCloseTo(0.1, 9);
+   });
+
+   it("the robot moves only for whole ms of play: a sub-ms frame that adds no ms never moves it", () => {
+      const run = createRun(8);
+      place(run, -5.5, -4);
+      const go: StepInput = { moveX: 0, moveY: 1, actionPressed: false };
+      let still = 0;
+      for (let i = 0; i < 400; i++) {
+         const z0 = run.robot.z;
+         step(run, 0.4, go);
+         if (run.stepMs === 0) {
+            still += 1;
+            expect(run.robot.z).toBe(z0);
+         } else {
+            expect(run.robot.z - z0).toBeLessThanOrEqual((ROBOT.speed * run.stepMs) / 1000 + 1e-12);
+         }
+      }
+      expect(still).toBeGreaterThan(200);
+      expect(run.simMs).toBe(160);
+      expect(run.movedMs).toBe(160);
    });
 
    it("the same seed gives the same layout, boxes and first order at every frame rate; driving 1 s goes as far", () => {
