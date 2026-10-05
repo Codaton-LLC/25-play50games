@@ -251,7 +251,7 @@ Response (all games, enabled or not):
 ```json
 { "games": { "robot-collector": { "title": "Robot Collector", "kind": "points", "max_score": 1600, "min_duration_ms": 5000, "max_duration_ms": 75000, "base": 600, "max_pps": 120, "time_base_ms": null, "enabled": false } } }
 ```
-Errors: `missing_api_key`, `invalid_api_key`. Cache-Control: `public, max-age=300`.
+Errors: `missing_api_key`, `invalid_api_key`. Cache-Control: `public, max-age=300` + `Vary: Origin` (rest-api.php reflects the Origin in `Access-Control-Allow-Origin` and removes core's `rest_send_cors_headers`, which would normally add it).
 
 ### 6.2 `POST /arcade/scores`
 
@@ -295,10 +295,10 @@ Errors: every code in §4 except `rest_no_route`. Cache-Control: `private, no-st
 - `is_me` is always present (`false` without a valid token).
 - `me`: valid token and a non-hidden row for this slug → `{rank, best_score}` (fresh rank query, not cached), even when outside `limit`. Otherwise `null`.
 - `duration_ms` = `best_duration_ms` (may be `null`). `achieved_at` = `best_at`.
-- Errors: `missing_api_key`, `invalid_api_key`, `not_found` (unknown or disabled slug).
+- Errors: `missing_api_key`, `invalid_api_key`, `not_found` (unknown or disabled slug), `db_error` (top-50 or `me` query failed).
 - Headers:
   - No `Authorization` header: `Cache-Control: public, max-age=30`
-  - `Authorization` header present (valid or not): `Cache-Control: private, no-store`
+  - `Authorization` header present (valid or not) in any source the token is read from (`$_SERVER`, the request headers, `getallheaders()`), or a user was resolved: `Cache-Control: private, no-store`
   - Always: `Vary: Authorization, Origin`
 
 ### 6.4 `GET /arcade/me`
@@ -307,18 +307,19 @@ Object keyed by slug (`Partial<Record<ArcadeSlug, ArcadeMeEntry>>`). One key per
 ```json
 { "robot-collector": { "best": 1020, "best_duration_ms": 58000, "plays": 7, "last_played": "2026-10-05T12:34:56Z", "rank": 3 } }
 ```
-- `rank`: rank query, or `null` when the row is hidden (banned).
+- `rank`: rank query, or `null` when the row is hidden (banned). A failed rank query is `db_error` 500, never `null`.
 - No rows → `{}`. A plain empty PHP array would encode as `[]`, but returning a top-level `stdClass` from the callback is unsafe: WP core's `?_fields` / `?_embed` handling treats the data as an array and fatals on PHP 8. So the callback returns the (possibly empty) array and a `rest_pre_echo_response` filter scoped to this route turns `array()` into `new stdClass()` right before encoding.
 - **No other top-level keys.** `syncServerScores()` treats every key as a slug.
-- Errors: `missing_api_key`, `invalid_api_key`, `unauthorized`. Cache-Control: `private, no-store`.
+- Errors: `missing_api_key`, `invalid_api_key`, `unauthorized`, `db_error`. Cache-Control: `private, no-store`.
 
 ### 6.5 `GET /arcade/me/privacy` and `POST /arcade/me/privacy`
 
 - GET response: `{ "hide_name": false }`
 - POST body: `{ "hide_name": true }`. Accepted values: `true/false`, `1/0`, `"1"/"0"`, `"true"/"false"`. Missing or anything else → `invalid_data` (`field: hide_name`).
-- POST effect: `true` → `update_user_meta($uid, 'play50_arcade_hide_name', 1)`, `false` → `delete_user_meta(...)`. Then `play50_arcade_clear_cache()` for all slugs.
+- POST order: auth → rate limit (§8, `p50a_rl_priv_{uid}`, before body validation) → body → no-op check → write.
+- POST effect: when the value is unchanged, nothing is written and no cache is cleared. Otherwise `true` → `update_user_meta($uid, 'play50_arcade_hide_name', 1)`, `false` → `delete_user_meta(...)`, then `play50_arcade_clear_cache()` for all slugs.
 - POST response: `{ "hide_name": true }`
-- Errors: `missing_api_key`, `invalid_api_key`, `unauthorized`, `invalid_data`. Cache-Control: `private, no-store`.
+- Errors: `missing_api_key`, `invalid_api_key`, `unauthorized`, `invalid_data`, `rate_limited` (POST only). Cache-Control: `private, no-store`.
 
 ---
 
@@ -390,6 +391,7 @@ function play50_arcade_ip_hash() {
 | Per user | `p50a_rl_u_{uid}` | 10 / 60 s | 2nd |
 | Per hashed IP | `p50a_rl_ip_{ip_hash}` | 30 / 600 s | 3rd |
 | Register per hashed IP | `p50a_rl_reg_{ip_hash}` | 5 / 3600 s | `rest_pre_dispatch` |
+| Privacy change per user | `p50a_rl_priv_{uid}` | 10 / 60 s | `POST /arcade/me/privacy`, after auth |
 
 A request rejected by a later check still counts toward the earlier ones. 429 body: `data.retry_after` = the helper's return value.
 
@@ -398,8 +400,10 @@ Register limit (the existing route is not edited):
 add_filter('rest_pre_dispatch', 'play50_arcade_limit_register', 10, 3);
 function play50_arcade_limit_register($result, $server, $request) {
     if ($result !== null) return $result;
-    // WP matches routes case-insensitively, so /Auth/Register must count too.
-    if ($request->get_method() !== 'POST' || strtolower(untrailingslashit($request->get_route())) !== '/play50/v1/auth/register') {
+    // Same regex semantics as WP's router: '@^' . $route . '$@i' with no D modifier, so `$` also
+    // matches before a trailing "\n" (?rest_route=/play50/v1/auth/register%0A). A plain string
+    // compare would skip the limiter while WP still dispatches to the register handler.
+    if ($request->get_method() !== 'POST' || preg_match('@^/play50/v1/auth/register/?$@i', (string) $request->get_route()) !== 1) {
         return $result;
     }
     $wait = play50_arcade_hit('p50a_rl_reg_' . play50_arcade_ip_hash(), 5, HOUR_IN_SECONDS);
@@ -474,7 +478,7 @@ LIMIT 50
 
 | Response | Cache-Control |
 |---|---|
-| `GET /arcade/games` | `public, max-age=300` |
+| `GET /arcade/games` | `public, max-age=300` + `Vary: Origin` |
 | `GET /arcade/leaderboard/*` without `Authorization` | `public, max-age=30` + `Vary: Authorization, Origin` |
 | `GET /arcade/leaderboard/*` with `Authorization` | `private, no-store` + `Vary: Authorization, Origin` |
 | `/arcade/me*`, `POST /arcade/scores` | `private, no-store` |

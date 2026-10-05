@@ -303,13 +303,29 @@ if (!function_exists('play50_arcade_bearer_token')) {
 }
 
 if (!function_exists('play50_arcade_has_auth_header')) {
-    /** True when any Authorization header was sent (valid or not). */
+    /**
+     * True when any Authorization header was sent (valid or not). Checks every source the token
+     * can come from, including getallheaders() (mod_php hosts without the .htaccess rule).
+     */
     function play50_arcade_has_auth_header($request) {
         if (!empty($_SERVER['HTTP_AUTHORIZATION']) || !empty($_SERVER['REDIRECT_HTTP_AUTHORIZATION'])) {
             return true;
         }
         $header = ($request instanceof WP_REST_Request) ? $request->get_header('authorization') : null;
-        return is_string($header) && $header !== '';
+        if (is_string($header) && $header !== '') {
+            return true;
+        }
+        if (function_exists('getallheaders')) {
+            $all = getallheaders();
+            if (is_array($all)) {
+                foreach ($all as $name => $value) {
+                    if (is_string($name) && strtolower($name) === 'authorization' && is_string($value) && $value !== '') {
+                        return true;
+                    }
+                }
+            }
+        }
+        return play50_arcade_bearer_token($request) !== '';
     }
 }
 
@@ -401,6 +417,20 @@ if (!function_exists('play50_arcade_ip_hash')) {
     }
 }
 
+if (!function_exists('play50_arcade_route_is')) {
+    /**
+     * True when the request route matches $route the way WP_REST_Server matches it:
+     * case-insensitive, and without the D modifier, so `$` also matches before a final "\n".
+     * $route must be a literal path without regex characters.
+     */
+    function play50_arcade_route_is($request, $route) {
+        if (!($request instanceof WP_REST_Request)) {
+            return false;
+        }
+        return preg_match('@^' . $route . '/?$@i', (string) $request->get_route()) === 1;
+    }
+}
+
 if (!function_exists('play50_arcade_limit_register')) {
     /** rest_pre_dispatch: 5 sign-ups per hour per hashed IP. The register route itself is not edited. */
     function play50_arcade_limit_register($result, $server, $request) {
@@ -410,8 +440,9 @@ if (!function_exists('play50_arcade_limit_register')) {
         if (!($request instanceof WP_REST_Request)) {
             return $result;
         }
-        // Route matching in WP is case-insensitive, so compare lowercased.
-        if ($request->get_method() !== 'POST' || strtolower(untrailingslashit($request->get_route())) !== '/play50/v1/auth/register') {
+        // Same regex semantics as WP's router ('@^' . $route . '$@i', no D modifier), so a route
+        // that WP dispatches to the register handler (any case, trailing "\n") is always counted.
+        if ($request->get_method() !== 'POST' || !play50_arcade_route_is($request, '/play50/v1/auth/register')) {
             return $result;
         }
         $wait = play50_arcade_hit('p50a_rl_reg_' . play50_arcade_ip_hash(), 5, HOUR_IN_SECONDS);
@@ -565,7 +596,8 @@ if (!function_exists('play50_arcade_on_deleted_user')) {
 if (!function_exists('play50_arcade_get_games')) {
     /** GET /arcade/games */
     function play50_arcade_get_games($request) {
-        return play50_arcade_response(array('games' => (object) play50_arcade_games()), 'public, max-age=300');
+        // Vary: Origin because rest-api.php reflects the Origin in Access-Control-Allow-Origin.
+        return play50_arcade_response(array('games' => (object) play50_arcade_games()), 'public, max-age=300', 'Origin');
     }
 }
 
@@ -748,15 +780,20 @@ if (!function_exists('play50_arcade_get_leaderboard')) {
                 $uid,
                 $slug
             ), ARRAY_A);
+            if ($wpdb->last_error !== '') {
+                return play50_arcade_db_error('board me');
+            }
             if (is_array($mine)) {
                 $my_rank = play50_arcade_rank($slug, (int) $mine['best_score'], (string) $mine['best_at']);
-                if ($my_rank !== null) {
-                    $me = array('rank' => $my_rank, 'best_score' => (int) $mine['best_score']);
+                if ($my_rank === null) {
+                    return play50_arcade_db_error('board me rank');
                 }
+                $me = array('rank' => $my_rank, 'best_score' => (int) $mine['best_score']);
             }
         }
 
-        $cache_control = play50_arcade_has_auth_header($request) ? 'private, no-store' : 'public, max-age=30';
+        // Personalized whenever a user was resolved, whatever header source the token came from.
+        $cache_control = ($uid > 0 || play50_arcade_has_auth_header($request)) ? 'private, no-store' : 'public, max-age=30';
         return play50_arcade_response(array(
             'slug' => $slug,
             'entries' => $entries,
@@ -794,9 +831,13 @@ if (!function_exists('play50_arcade_get_me')) {
             if (!isset($games[$slug])) {
                 continue;
             }
+            // null only for hidden (banned) rows; a failed rank query is db_error, never a silent null.
             $rank = null;
             if ((int) $row['hidden'] === 0) {
                 $rank = play50_arcade_rank($slug, (int) $row['best_score'], (string) $row['best_at']);
+                if ($rank === null) {
+                    return play50_arcade_db_error('me rank');
+                }
             }
             $out[$slug] = array(
                 'best' => (int) $row['best_score'],
@@ -816,9 +857,7 @@ if (!function_exists('play50_arcade_get_me')) {
 if (!function_exists('play50_arcade_empty_me_object')) {
     /** rest_pre_echo_response: GET /arcade/me with no rows is {} (not []). */
     function play50_arcade_empty_me_object($result, $server, $request) {
-        if ($result === array()
-            && $request instanceof WP_REST_Request
-            && strtolower(untrailingslashit($request->get_route())) === '/play50/v1/arcade/me') {
+        if ($result === array() && play50_arcade_route_is($request, '/play50/v1/arcade/me')) {
             return new stdClass();
         }
         return $result;
@@ -846,10 +885,21 @@ if (!function_exists('play50_arcade_set_privacy')) {
         }
         $uid = (int) $user->ID;
 
+        // Every write path is throttled: this one clears every leaderboard cache.
+        $wait = play50_arcade_hit('p50a_rl_priv_' . $uid, 10, MINUTE_IN_SECONDS);
+        if ($wait) {
+            return play50_arcade_error('rate_limited', 'Too many requests. Try again later.', 429, array('retry_after' => (int) $wait));
+        }
+
         $body = play50_arcade_body($request);
         $hide = array_key_exists('hide_name', $body) ? play50_arcade_bool($body['hide_name']) : null;
         if ($hide === null) {
             return play50_arcade_invalid('hide_name', 'Invalid privacy setting.');
+        }
+
+        // No change: no write and no cache clear.
+        if ((bool) get_user_meta($uid, 'play50_arcade_hide_name', true) === $hide) {
+            return play50_arcade_response(array('hide_name' => $hide), 'private, no-store');
         }
 
         if ($hide) {
