@@ -160,6 +160,13 @@ function clampAxis(value: number, min: number, max: number): number {
    return value < min ? min : value > max ? max : value;
 }
 
+/** Horizontal (x/z) distance from a point to a box; 0 inside. E.g. spawn clearance from props. */
+export function distanceToBoxXZ(x: number, z: number, box: AABB): number {
+   const dx = Math.max(box.min.x - x, 0, x - box.max.x);
+   const dz = Math.max(box.min.z - z, 0, z - box.max.z);
+   return Math.hypot(dx, dz);
+}
+
 /** True when clampToBounds would move the point. */
 export function isOutOfBounds(point: Vec3Like, bounds: AABB, margin = 0): boolean {
    return (

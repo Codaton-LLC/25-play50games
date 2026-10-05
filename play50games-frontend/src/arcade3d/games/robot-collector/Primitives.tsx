@@ -1,26 +1,21 @@
 "use client";
 
-// Robot Collector stand-ins and decoration: the warehouse, the primitive robot and battery, and
-// the small three.js helpers they use. Warehouse-specific: a new game draws its own look and
-// does NOT copy this file (the reusable pattern is in Scene.tsx). The helpers at the top
-// (useCanvasTexture, useInstanceMatrices, BlobShadow) are core candidates, see README.md.
-import { useEffect, useLayoutEffect, useMemo, useRef, type RefObject } from "react";
-import { useThree } from "@react-three/fiber";
+// Robot Collector stand-ins and decoration: the warehouse, the primitive robot and battery.
+// Warehouse-specific: a new game draws its own look and does NOT copy this file (the reusable
+// pattern is in Scene.tsx; the helpers it uses come from core/render and core/assets).
+import { useEffect, useMemo, type RefObject } from "react";
 import {
    AdditiveBlending,
-   CanvasTexture,
    CircleGeometry,
    CylinderGeometry,
    DoubleSide,
    MeshBasicMaterial,
    MeshStandardMaterial,
-   Object3D,
    RingGeometry,
-   SRGBColorSpace,
    type Group,
-   type InstancedMesh,
 } from "three";
-import { Model, useModel } from "@/arcade3d/core/assets";
+import { InstancedModel } from "@/arcade3d/core/assets";
+import { Instanced, useCanvasTexture } from "@/arcade3d/core/render";
 import { ASSETS } from "./assets";
 import { ARENA, BARREL_RADIUS, CRATE_SIZE, PROPS, ROBOT_START } from "./rules";
 
@@ -47,86 +42,21 @@ export const COLORS = {
    batteryGlow: "#4ade80",
 } as const;
 
-// ---------- helpers (core candidates) ----------
-
-/** A CanvasTexture drawn once (floor markings, crate planks); disposed with the component. */
-function useCanvasTexture(
-   width: number,
-   height: number,
-   draw: (ctx: CanvasRenderingContext2D, width: number, height: number) => void
-): CanvasTexture {
-   const gl = useThree((state) => state.gl);
-   const texture = useMemo(() => {
-      const canvas = document.createElement("canvas");
-      canvas.width = width;
-      canvas.height = height;
-      const ctx = canvas.getContext("2d");
-      if (ctx) draw(ctx, width, height);
-      const map = new CanvasTexture(canvas);
-      map.colorSpace = SRGBColorSpace;
-      map.anisotropy = Math.min(8, gl.capabilities.getMaxAnisotropy());
-      return map;
-   }, [gl, width, height, draw]);
-   useEffect(() => () => texture.dispose(), [texture]);
-   return texture;
-}
-
-interface Spot {
-   x: number;
-   y: number;
-   z: number;
-   rotY?: number;
-   /** uniform scale, or per axis with sx/sy/sz */
-   scale?: number;
-   sx?: number;
-   sy?: number;
-   sz?: number;
-}
-const NO_SPOTS: Spot[] = [];
-
-/** Writes one matrix per spot into an InstancedMesh (once, before the first frame). */
-function useInstanceMatrices(ref: RefObject<InstancedMesh>, spots: readonly Spot[]) {
-   useLayoutEffect(() => {
-      const mesh = ref.current;
-      if (!mesh) return;
-      const o = new Object3D();
-      spots.forEach((spot, i) => {
-         o.position.set(spot.x, spot.y, spot.z);
-         o.rotation.set(0, spot.rotY ?? 0, 0);
-         const s = spot.scale ?? 1;
-         o.scale.set(spot.sx ?? s, spot.sy ?? s, spot.sz ?? s);
-         o.updateMatrix();
-         mesh.setMatrixAt(i, o.matrix);
-      });
-      mesh.instanceMatrix.needsUpdate = true;
-      mesh.computeBoundingSphere();
-   }, [ref, spots]);
-}
-
-/** Soft dark disc under a moving object (no shadow maps: they cost a render pass on phones). */
-export function BlobShadow({ radius, opacity = 0.32 }: { radius: number; opacity?: number }) {
-   return (
-      <mesh rotation-x={-Math.PI / 2} position-y={0.012} renderOrder={1}>
-         <circleGeometry args={[radius, 24]} />
-         <meshBasicMaterial color="#020617" transparent opacity={opacity} depthWrite={false} />
-      </mesh>
-   );
-}
-
 // ---------- the warehouse (static) ----------
 
 /** Small fixed wobble per prop, so the crates do not look machine-placed (deterministic). */
 const jitter = (i: number, amount: number) => Math.sin(i * 12.9898 + 4.1414) * amount;
 
-/** One spot per crate; a stacked crate is a second, slightly smaller one on top (looks only). */
+/** Where each crate stands (its feet); a stacked crate is a second, slightly smaller one on top (looks only). */
 const CRATE_SPOTS = PROPS.flatMap((prop, i) => {
    if (prop.kind !== "crate") return [];
-   const base = { x: prop.x, y: CRATE_SIZE / 2, z: prop.z, rotY: jitter(i, 0.05), scale: 1 };
+   const base = { x: prop.x, y: 0, z: prop.z, rotY: jitter(i, 0.05), scale: 1 };
    if (prop.stack !== 2) return [base];
-   const scale = 0.88;
-   return [base, { x: prop.x + jitter(i + 3, 0.06), y: CRATE_SIZE + (CRATE_SIZE * scale) / 2, z: prop.z, rotY: jitter(i + 7, 0.35), scale }];
+   return [base, { x: prop.x + jitter(i + 3, 0.06), y: CRATE_SIZE, z: prop.z, rotY: jitter(i + 7, 0.35), scale: 0.88 }];
 });
-const BARREL_SPOTS = PROPS.filter((prop) => prop.kind === "barrel");
+/** The stand-in box is centred on its spot, so it is lifted by half its height. */
+const CRATE_BOX_SPOTS = CRATE_SPOTS.map((spot) => ({ ...spot, y: spot.y + (CRATE_SIZE * spot.scale) / 2 }));
+const BARREL_SPOTS = PROPS.filter((prop) => prop.kind === "barrel").map((b, i) => ({ x: b.x, y: 0, z: b.z, rotY: jitter(i, 1) }));
 const BARREL_HEIGHT = 1;
 /** heights of the two ridges */
 const BARREL_RINGS = [0.33, 0.67];
@@ -222,10 +152,6 @@ const TRIM_SPOTS = WALL_SPOTS.map((spot) => ({ ...spot, y: WALL.height + 0.04, s
 /** Floor, slab, walls, crates and barrels: everything that never moves. */
 export function Warehouse() {
    const floor = useCanvasTexture(768, 512, drawFloor);
-   const walls = useRef<InstancedMesh>(null);
-   const trims = useRef<InstancedMesh>(null);
-   useInstanceMatrices(walls, WALL_SPOTS);
-   useInstanceMatrices(trims, TRIM_SPOTS);
 
    return (
       <group name="warehouse">
@@ -238,83 +164,59 @@ export function Warehouse() {
             <boxGeometry args={[(ARENA.halfX + WALL.thickness) * 2 + 0.3, 0.5, (ARENA.halfZ + WALL.thickness) * 2 + 0.3]} />
             <meshStandardMaterial color={COLORS.plinth} roughness={0.9} />
          </mesh>
-         <instancedMesh ref={walls} args={[undefined, undefined, WALL_SPOTS.length]}>
+         <Instanced spots={WALL_SPOTS}>
             <boxGeometry />
             <meshStandardMaterial color={COLORS.wall} roughness={0.7} />
-         </instancedMesh>
-         <instancedMesh ref={trims} args={[undefined, undefined, TRIM_SPOTS.length]}>
+         </Instanced>
+         <Instanced spots={TRIM_SPOTS}>
             <boxGeometry />
             <meshStandardMaterial color={COLORS.trim} roughness={0.5} />
-         </instancedMesh>
+         </Instanced>
          <Crates />
          <Barrels />
       </group>
    );
 }
 
-/** All crates: one InstancedMesh (1 draw call) until the GLB exists, then one <Model> each. */
+/** All crates: instanced (one draw call per mesh, whatever the count), the GLB once it exists. */
 function Crates() {
-   const { failed } = useModel(ASSETS.crate);
-   const mesh = useRef<InstancedMesh>(null);
-   const texture = useCanvasTexture(128, 128, drawCrate);
-   useInstanceMatrices(mesh, failed ? CRATE_SPOTS : NO_SPOTS);
+   return <InstancedModel asset={ASSETS.crate} spots={CRATE_SPOTS} fallback={<CrateBoxes />} />;
+}
 
-   if (!failed) {
-      return (
-         <>
-            {CRATE_SPOTS.map((spot, i) => (
-               <Model
-                  key={i}
-                  asset={ASSETS.crate}
-                  position={[spot.x, spot.y - (CRATE_SIZE * spot.scale) / 2, spot.z]}
-                  rotation-y={spot.rotY}
-                  scale={spot.scale}
-               />
-            ))}
-         </>
-      );
-   }
+/** Stand-in crates: one InstancedMesh of boxes with a canvas-drawn plank texture. */
+function CrateBoxes() {
+   const texture = useCanvasTexture(128, 128, drawCrate);
    return (
-      <instancedMesh ref={mesh} args={[undefined, undefined, CRATE_SPOTS.length]}>
+      <Instanced spots={CRATE_BOX_SPOTS}>
          <boxGeometry args={[CRATE_SIZE, CRATE_SIZE, CRATE_SIZE]} />
          <meshStandardMaterial map={texture} roughness={0.85} />
-      </instancedMesh>
+      </Instanced>
    );
 }
 
 const BARREL_BODY_SPOTS = BARREL_SPOTS.map((b) => ({ x: b.x, y: BARREL_HEIGHT / 2, z: b.z }));
 const BARREL_RING_SPOTS = BARREL_SPOTS.flatMap((b) => BARREL_RINGS.map((y) => ({ x: b.x, y, z: b.z })));
 
-/** All barrels: two InstancedMeshes (body with a lighter lid + ridges) until the GLB exists. */
+/** All barrels: instanced, the GLB once it exists. */
 function Barrels() {
-   const { failed } = useModel(ASSETS.barrel);
-   const bodies = useRef<InstancedMesh>(null);
-   const rings = useRef<InstancedMesh>(null);
-   useInstanceMatrices(bodies, failed ? BARREL_BODY_SPOTS : NO_SPOTS);
-   useInstanceMatrices(rings, failed ? BARREL_RING_SPOTS : NO_SPOTS);
+   return <InstancedModel asset={ASSETS.barrel} spots={BARREL_SPOTS} fallback={<BarrelStandIns />} />;
+}
 
-   if (!failed) {
-      return (
-         <>
-            {BARREL_SPOTS.map((b, i) => (
-               <Model key={i} asset={ASSETS.barrel} position={[b.x, 0, b.z]} rotation-y={jitter(i, 1)} />
-            ))}
-         </>
-      );
-   }
+/** Stand-in barrels: two InstancedMeshes (body with a lighter lid, ridges). */
+function BarrelStandIns() {
    return (
       <>
-         <instancedMesh ref={bodies} args={[undefined, undefined, BARREL_BODY_SPOTS.length]}>
+         <Instanced spots={BARREL_BODY_SPOTS}>
             <cylinderGeometry args={[BARREL_RADIUS * 0.94, BARREL_RADIUS * 0.94, BARREL_HEIGHT, 20]} />
             {/* cylinder material groups: 0 = side, 1 = top, 2 = bottom */}
             <meshStandardMaterial attach="material-0" color={COLORS.barrel} roughness={0.35} metalness={0.2} />
             <meshStandardMaterial attach="material-1" color={COLORS.barrelLid} roughness={0.4} metalness={0.2} />
             <meshStandardMaterial attach="material-2" color={COLORS.barrel} />
-         </instancedMesh>
-         <instancedMesh ref={rings} args={[undefined, undefined, BARREL_RING_SPOTS.length]}>
+         </Instanced>
+         <Instanced spots={BARREL_RING_SPOTS}>
             <cylinderGeometry args={[BARREL_RADIUS, BARREL_RADIUS, 0.07, 20]} />
             <meshStandardMaterial color={COLORS.barrelRing} roughness={0.3} metalness={0.3} />
-         </instancedMesh>
+         </Instanced>
       </>
    );
 }

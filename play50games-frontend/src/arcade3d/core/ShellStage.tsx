@@ -1,13 +1,15 @@
 "use client";
 
 // The <Canvas> part of GameShell: renderer settings, adaptive resolution, environment, run clock,
-// input latch, lazy Rapier physics and the game's Scene (remounted for every run via runId).
+// input latch, lazy Rapier physics and the game's Scene (remounted for every run via runId, with
+// a fresh useGameTime clock). Frame order: core/frameLoop.ts FRAME_PRIORITY.
 import { Suspense, lazy, useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { Canvas, useFrame, type RootState } from "@react-three/fiber";
 import { PerformanceMonitor } from "@react-three/drei";
 import type { GameDefinition } from "./types";
 import { arcadeStore, useArcadeStore } from "./useArcadeStore";
-import { clampFrameDt } from "./useRunFrame";
+import { FRAME_PRIORITY, advanceRunClock } from "./frameLoop";
+import { GameTimeProvider } from "./gameTime";
 import { InputLatch } from "./input";
 import CameraRig from "./CameraRig";
 
@@ -28,7 +30,7 @@ const DEFAULT_ENVIRONMENT: Environment = { background: "#0b1020", lighting: "day
 
 /** Advances the countdown and the run timer once per frame (before game callbacks). */
 function RunClock() {
-   useFrame((_state, delta) => arcadeStore.getState().tick(clampFrameDt(delta) * 1000), -1);
+   useFrame((_state, delta) => advanceRunClock(arcadeStore, delta), FRAME_PRIORITY.clock);
    return null;
 }
 
@@ -152,7 +154,9 @@ export default function ShellStage({ definition, frameloop, onContextLost, label
          <RunClock />
          <Suspense fallback={null}>
             <PhysicsGate enabled={!!physics}>
-               <Scene key={runId} />
+               <GameTimeProvider key={runId}>
+                  <Scene />
+               </GameTimeProvider>
             </PhysicsGate>
             <ReadySignal />
          </Suspense>

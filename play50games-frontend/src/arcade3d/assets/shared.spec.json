@@ -8,7 +8,7 @@
          "kind": "character",
          "mode": "image",
          "prompt": "Cute small utility robot, rounded body, big friendly eyes, full body, T-pose",
-         "concept": "tools/hyper3d/concepts/robot-collector-robot.png",
+         "concept": "tools/hyper3d/concepts/robot-collector-robot.webp",
          "tier": "Gen-2.5-Medium",
          "qualityOverride": 18000,
          "attempts": 3,

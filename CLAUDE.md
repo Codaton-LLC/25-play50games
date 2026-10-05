@@ -10,12 +10,14 @@ Cursor and Codex are pointed here via `AGENTS.md`. Agents: **Claude** (most work
 - Scripts: `npm run dev | build | start | lint`, `npm test` (= `vitest run`, config `vitest.config.mts`, files `src/**/*.test.ts`).
 - `src/arcade3d/` contracts are written (Phase 0): `types.ts`, `flags.ts`, `registry.ts`, `loaders.ts`, `core/{types,scores,useBestScore,format}.ts`, `core/PlaceholderScene.tsx`, tests `core/scores.test.ts` + `registry.sync.test.ts`, 10 stubs `games/<slug>/{meta.ts,index.tsx}` (all `status: "soon"`), prop-typed stubs `ui/*.tsx` (K2) and `components/Hub/{HubHero,CollectionPanel,ArcadeTeaserStrip}.tsx` (K1), and `assets/shared.spec.json`.
 - 3D core (C2): full `core/GameShell.tsx` + `ShellStage.tsx`, `ArcadeGameMount.tsx`, `useArcadeStore`, `useRunFrame`, `input.tsx` (+ pure `inputController.ts`), `TouchControls`, `CameraRig`, `collision`, `assets.tsx` (`Model`, `useModel`) + `sharedAssets.ts` (`SHARED_ASSETS`), `audio`, `analytics`, `useLeaderboard`, `ErrorBoundary`; tests `useArcadeStore.test.ts`, `collision.test.ts`, `inputController.test.ts`. Routes `app/3d/{layout,page}.tsx` + `app/3d/[slug]/page.tsx` (10 SSG slugs, `dynamicParams = false`).
+- Core follow-up (merged): `core/README.md` documents it — frame priorities (`FRAME_PRIORITY`, `useRunFrame` priority in `(-0.75, 0]`), `frameMs` counts every frame (no untimed countdown frame), `useGameTime` (pause-safe visual clock), `useFittedView`/`fitView` + `CameraRig` follow/shift, `useSafeArea` (HUD, touch controls, cookie banner), `<Model fallback>`, `<InstancedModel>`, `core/render/*` (`useInstanceMatrices`, `BlobShadow`, `useCanvasTexture`), `core/math.ts` (`inputToWorld`, three-free), `core/limits.ts` (`capScore`, `withinServerLimits`), `core/modelManifest.ts` (only listed GLBs are fetched; a test checks it against `public/models/3d`).
 - `src/lib/api/arcade.ts` (arcade client + mock, snake_case wire format) and `src/lib/api/apiBase.ts` (single WP base URL).
-- `play50games-backend/play50games/` – WordPress theme, REST `play50/v1` (`games`, `progress`, `unlock-status`, `certificate/*`, `share/*`, `auth/*`, `faq`). New: `includes/arcade-games.json` (server score limits, all `enabled: false`). `arcade-api.php` is not written yet (Phase 3).
-- Classic platform: 50 sequential 2D games (unlock chain + certificate). Today `/` is still the dashboard (`src/app/page.tsx`). Game page `games/[id]` → `GameEngine` (one 14k-line file) → `game-types/*Games.tsx` → `*-parts/<Game>.tsx`. Progress: `lib/storage/progressStorage.ts` (keys `play50games_*`). Game contract: `GAME_REQUIREMENTS.md`.
+- `/` is the landing hub (C1 + K1), the classic dashboard lives at `/classic`, `/3d` + `/3d/[slug]` exist behind `NEXT_PUBLIC_ARCADE_ENABLED` (off on Vercel until Release 1).
+- `play50games-backend/play50games/` – WordPress theme, REST `play50/v1`. Arcade backend is written AND deployed on production (2026-10-05): `includes/arcade-api.php`, `includes/arcade-games.json` (all `enabled: false`), `wt-cpt/arcade-scores-admin.php` (wp-admin "Arcade Scores"), guarded loader lines in `functions.php`. Server has no `PLAY50_API_KEY` defined (API-key gate open).
+- Classic platform: 50 sequential 2D games (unlock chain + certificate) at `/classic`. Game page `games/[id]` → `GameEngine` (one 14k-line file) → `game-types/*Games.tsx` → `*-parts/<Game>.tsx`. Progress: `lib/storage/progressStorage.ts` (keys `play50games_*`). Game contract: `GAME_REQUIREMENTS.md`.
 - `html-css-js-games/` – old prototypes, reference only.
-- Deploy: Vercel auto-deploys `main` (assumed). WP API is production (`cms.play50.games`); `.env.local` points at it.
-- Secrets: `wp-config.php` and `.idea/` are untracked, example configs scrubbed. JWT secret rotation happens in Phase 3.
+- Deploy: frontend = Vercel auto-deploys `main` → https://25-play50games.vercel.app (`play50.games` shows a hosting default page). Backend = WordPress at https://cms.play50.games (Plesk), **deployed by hand** (PhpStorm upload or Plesk File Manager) — merging to `main` never deploys the backend. `.env.local` points at the live CMS.
+- Secrets: `wp-config.php` and `.idea/` are untracked, example configs scrubbed. The old hard-coded JWT fallback is in git history → rotated at Release 1 (new secret prepared in `%USERPROFILE%\.play50\jwt-secret.txt`, never in chat/git).
 
 ## Goal
 
@@ -58,6 +60,8 @@ play50games-frontend/src/
       GameShell ShellStage ArcadeGameMount useArcadeStore useRunFrame input inputController
       TouchControls CameraRig collision assets(Model, useModel) sharedAssets(SHARED_ASSETS)
       audio analytics useLeaderboard ErrorBoundary                                  (Phase 2, C2)
+      frameLoop gameTime view useFittedView safeArea modelManifest math limits render/ README.md
+                                                                   (core follow-up: helpers games share)
     ui/  ArcadeCard ArcadeGrid LeaderboardTable ResultPanel BestScoreBadge  # Cursor K2, display only
     games/<slug>/  meta.ts index.tsx                                       (exist)
                    Scene.tsx rules.ts rules.test.ts assets.ts assets.spec.json README.md
@@ -80,10 +84,13 @@ docs/platform-plan.md · docs/arcade-api.md                    # Claude
 - `GameDefinition` (`core/types.ts`): `Scene`, `Hud?`, `assets: Record<id, ModelAsset>`, `physics?`, `durationMs?`, `lives?`, `camera`, `environment?`, `touchControls`, `hudStats?`, `instructions`, `finalScore?`.
 - Run phases `loading | ready | countdown | playing | paused | over`; `end(reason)` is idempotent. Games end runs with `end()`; GameShell computes the final score (`definition.finalScore` or store `score` + `elapsedMs`) and calls `submitScore` once per run. `end("quit")` exits without saving. Time games are ranked only on `end("win")` (`isRankedRun`): `"lose"`/`"timeup"` show the result with status `unranked`, score 0, nothing saved or sent.
 - `useArcadeStore` (`core/useArcadeStore.ts`): zustand store = `RunState` + `RunActions` plus shell-only `configure({durationMs, lives})`, `markReady()`, `tick(dtMs)` (advances the 3 s countdown, `elapsedMs`, `timeLeftMs`; `"timeup"` at 0), `countdownMs`, `pausedFrom`, `config`. `start()`/`restart()` increment `runId` (the Scene remounts per run); `reset()` is safe twice; score/stat changes are ignored once `over`; `loseLife()` to 0 ends with `"lose"`. Read with selectors in React, `useArcadeStore.getState()` in the frame loop. `createArcadeStore()` makes an isolated store (tests).
-- `useRunFrame((state, dt) => …)`: `useFrame` that runs only while `playing`, dt clamped to 1/20 s.
+- `useRunFrame((state, dt, time) => …, { priority? })`: runs only while `playing`. Its dt is exactly the play time the run clock counted this frame (≤ 1/20 s, including the rest of the frame in which the countdown ends, so there are no untimed frames; store `frameMs`). It runs before `CameraRig` and every plain `useFrame` (`FRAME_PRIORITY` in `core/frameLoop.ts`: input -2, clock -1, gameTime -0.75, simulation -0.5, camera -0.25, visuals 0), whatever the mount order. A custom priority must lie in (-0.75, 0] (throws in development). Pure twins for tests: `advanceRunClock`, `playedFrameDt`.
+- `useGameTime()` → `{ now, delta, play }`: pause-safe animation clock, per run. Never use `state.clock.elapsedTime` (R3F resets it whenever GameShell pauses). Details: `core/README.md`.
+- Camera and screen: `useFittedView({ area, pitch, yaws, focus, margin, padding, shift, fov?, avoid? })` → `{ yaw, distance, offset, shift }` (pure `fitView` in `core/view.ts`) keeps a world box on screen, clear of the HUD, the game HUD's `data-arcade-safe-area` panels, the touch controls and the cookie banner; `shift: true` moves the picture (lens shift) instead of shrinking it. The yaw is picked once per canvas size, so the banner never turns the camera mid-run. `followFocus({ lookAt, reach, fraction, bounds })` gives the `focus` of a follow camera from the same math as `CameraRig`. `useSafeArea()` → live `{ hud[], controls[], obstructions[] }` px rects. `inputToWorld(moveX, moveY, yaw, out?)` (pure, `core/math`) maps screen-relative input to the world. `CameraRig follow={ref | {x,y,z}} followFraction bounds damping offset shift` snaps on mount and eases into later changes.
+- Rendering helpers `core/render`: `<Instanced spots>`, `useInstanceMatrices`, `BlobShadow`, `useCanvasTexture`; repeated props `<InstancedModel asset spots fallback>` (`assets.tsx`, stays instanced once the GLB exists). Rules helpers: `core/math` (`createRng`, `randomSeed`, `turnTowards`, `inputToWorld`), `core/limits` (`withinServerLimits`, `capScore` for points games), `distanceToBoxXZ` in `collision.ts`.
 - `useInput()` → `MutableRefObject<InputState>`: `moveX/moveY` (-1..1, up = -1), held `jump`/`action`, one-frame `jumpPressed`/`actionPressed`/`swipe`/`tap`, `pointer {x, y, down}` (R3F-style -1..1). Keyboard WASD/arrows, Space, E/Enter; touch joystick/Jump/Action from `definition.touchControls` (coarse pointers only); swipes and taps on the canvas. Esc/P belong to the shell (pause).
 - `collision.ts`: pure `{x,y,z}` helpers (`aabbOverlap`, `aabbFromCenter`, `spheresOverlap`, `circlesOverlapXZ`, `sphereAabbOverlap`, `resolveSphereAabb`, `clampToBounds`, `isOutOfBounds`, …) with optional `out` to avoid allocations.
-- `assets.tsx`: `<Model asset={…} />` (GLB via `useGLTF(url, false, true)`, per-instance clone, SkeletonUtils when `rigged`, `scale/rotationY/yOffset`; ~1-unit primitive fallback when the GLB is missing), `useModel(asset)` → `{ scene, animations, failed }`, `SHARED_ASSETS` (runner, robot, battery, crate, tinCan, banana, desk, chair). `CameraRig` (static or `follow` ref), `playSfx(name)` + mute (`play50games_3d_muted`), `trackArcade` (dataLayer `arcade_start|arcade_game_over|arcade_new_best`), `useLeaderboard(slug)` → `{ enabled, data, loading, error, retry }`.
+- `assets.tsx`: `<Model asset={…} fallback?={<OwnPrimitive/>} />` (`fallback` is an element, not a component; GLB via `useGLTF(url, false, true)`, per-instance clone, SkeletonUtils when `rigged`, `scale/rotationY/yOffset`; the custom fallback or a ~1-unit primitive when the GLB is missing), `useModel(asset)` → `{ scene, animations, failed }`, `useModelFailed(asset)` (no clone). Only urls in `core/modelManifest.ts` (`MODEL_MANIFEST`, `hasModel`) are fetched. Anything else goes straight to its fallback, so missing GLBs make no requests. The assets PR adds the GLB and its manifest line together; `modelManifest.test.ts` checks the list against `public/models/3d`. `SHARED_ASSETS` (runner, robot, battery, crate, tinCan, banana, desk, chair). `CameraRig` (static, or follow a ref or a live point), `playSfx(name)` + mute (`play50games_3d_muted`), `trackArcade` (dataLayer `arcade_start|arcade_game_over|arcade_new_best`), `useLeaderboard(slug)` → `{ enabled, data, loading, error, retry }`.
 - `core/scores.ts`: `submitScore(run, userId)` (local first, then POST when JWT + leaderboard flag), `saveRunToAccount` (retry-safe: one local play per run and user), `isRankedRun(rules, endReason)`, `unrankedResult(slug, userId)`, `syncServerScores` (max every 5 min), `readLocalScores`. Keys `play50games_3d_scores:guest` / `play50games_3d_scores:u<id>`; event `play50games_3d_scores_updated`. `SubmitStatus` = `synced | saved-local | login-required | rate-limited | rejected | banned | offline | leaderboard-off | config-error | unranked`. The result screen offers Log in while there is no JWT (guest, cookie-only session, token dropped after a 401) and "Save to my account" only with a JWT.
 - `useBestScore(slug)` → `LocalScoreEntry | null` for the current user, updates live.
 - `arcadeApi` (`lib/api/arcade.ts`): `submit`, `leaderboard(slug, limit)`, `me()`, `setPrivacy`. `ArcadeMeEntry = { best, best_duration_ms, plays, last_played, rank }`. Errors map from the WP_Error `code` in the body, never the HTTP status alone.
@@ -115,19 +122,20 @@ Branches: Cursor `cursor/<pkg>`, Codex `codex/<pkg>` (local worktree or cloud br
 - `meta.ts` is plain data: no three/R3F/React imports. No top-level `useGLTF.preload`. Game code is loaded only via `loaders.ts`.
 - `meta.scoring` must equal `arcade-games.json` (`registry.sync.test.ts`). Limit changes go through Claude's "assets + limits" PR.
 - `rules.ts` is pure and deterministic with a seed; `rules.test.ts` covers scoring.
-- Use core: `GameDefinition`, `useRunFrame`, `useInput`, collision helpers, `useModel` + `SHARED_ASSETS`. Never write localStorage or call the API yourself.
+- Use core (`core/README.md`): `GameDefinition`, `useRunFrame`, `useGameTime`, `useInput` + `inputToWorld`, `useFittedView` + `followFocus` + `CameraRig`, collision, `core/render`, `core/math`, `core/limits`, `<Model fallback>` / `<InstancedModel>` + `SHARED_ASSETS`. Generic code never lives in a game folder; ask Claude to add it to the core. Never write localStorage or call the API yourself.
 - Keyboard AND touch. 60 fps target on mid phones, ≤ 150 draw calls.
 - Budgets: characters ≤ 20k tris, 1024 px textures, ≤ 1.5 MB; props ≤ 5k tris, 512 px, ≤ 300 KB.
-- Primitives are fine until the GLB exists (`useModel` falls back). Swap via `assets.ts`, not scene logic.
+- Primitives are fine until the GLB exists (unlisted in `core/modelManifest.ts` = never fetched, `<Model fallback>` draws yours). Swap via `assets.ts`, not scene logic.
 - Set `status: "live"` last.
 
 ## Hyper3D (Rodin) pipeline
 
-- CLI `tools/hyper3d/` (Node fetch): `plan`, `budget`, `smoke`, `gen --confirm`, `import`, `optimize`, `--mock` everywhere. Codex builds it; only Claude or the user runs paid commands.
-- **Credits are spent only after the user approves the batch in chat.** `gen` refuses without `--confirm`, outside the main checkout, or below a 2-credit reserve.
-- Keys and spend ledger live in `%USERPROFILE%\.play50\` (`hyper3d.env`). Never in git, logs or chat.
-- API base `https://api.hyper3d.com/api/v2`: `/rodin` (multipart) → poll `/status` → `/download` (links expire in ~10 min).
-- Characters: image-to-3D from ChatGPT concept art, `Gen-2.5-Medium`, `quality_override ≈ 18000`, T-pose. Props: text-to-3D, `Gen-2.5-Low`, 1.5–4k faces. Always `glb`, `mesh_mode=Raw`, `material=PBR`, fixed `seed`. Never HighPack or Extreme-High.
+- **Generation goes through the official Rodin MCP**, not the REST API: the user's Hyper3D plan has no API key (needs Business), but the MCP logs in with the account (OAuth, credits from the 45-credit workspace). Server `hyper3d-rodin` (`https://api.hyper3d.com/api/mcp`) is in `~/.claude.json` (user scope) and logged in via `claude mcp login hyper3d-rodin` (Claude Code CLI installed globally). Tools: `rodin_generate` (spends credits), `rodin_wait`, `rodin_get_result`, `rodin_create_uploads` (+ HTTP PUT for image-to-3D). MCP tiers: Gen-2.5-Extreme-Low / Medium / High (no "Low"), no seed, no T-pose flag, no balance tool.
+- **Credits are spent only after the user approves the batch in chat** ("po, gjenero ..."). Downloading result files also needs the user's explicit OK. Never show the signed `files[].url`; show `display_url`.
+- Flow used: generate (props: text, Gen-2.5-Medium, Raw, `quality_override` 1500; characters: image-to-3D from a concept image, Gen-2.5-Medium, 18000) → download `base_basic_pbr.glb` to the scratchpad → `node tools/hyper3d/src/cli.mjs import <file> --slug <shared|slug> --id <id>` → `optimize <slug> --id <id>` → add the url to `core/modelManifest.ts` → commit GLB + manifest (+ concept image in `tools/hyper3d/concepts/`).
+- Done so far (2026-10-05, 4 generations): shared `battery`, `crate`, `robot` (from `tools/hyper3d/concepts/robot-collector-robot.webp`), robot-collector `barrel`. Results 48–100 KB props, 613 KB robot.
+- Art direction the user liked: "premium mobile game" robot — clean, matte white with soft blue panels, glowing visor; NOT toy/cartoon/saturated (the first toy-style ChatGPT prompts looked clownish). Use this direction for the other characters (runner, chef, pigeon, striker, keeper). Concept images: ChatGPT chat, 3/4 front view, T-pose, plain light-grey background, 1024x1024; the user can paste the image in chat (Claude copies it from the conversation image cache to `%USERPROFILE%\.play50\concepts\`).
+- The old REST CLI path (`gen`/`smoke`, keys in `%USERPROFILE%\.play50\hyper3d.env`) stays but is unused; it refuses without `--confirm`.
 - `optimize` (gltf-transform): center pivot, webp textures (1024 / 512), simplify, meshopt, inspect; fails over budget. Load with `useGLTF(url, false, true)` (meshopt, no Draco CDN).
 - Raw originals stay in `tools/hyper3d/raw/` (gitignored). Only optimized GLBs are committed.
 - Smoke test first on the 10-credit lab account. Production budget ≈ 42 generations ≈ 21 credits of 45 (plan §4).
@@ -137,14 +145,33 @@ Branches: Cursor `cursor/<pkg>`, Codex `codex/<pkg>` (local worktree or cloud br
 
 | Phase | Scope | Who | Status |
 |---|---|---|---|
-| 0 | Contracts, stubs, deps, repo hygiene, docs | Claude | **In progress** (deps, contracts, stubs, scores + tests, arcade client, `arcade-games.json`, hygiene done) |
-| 1 | Hub + `/classic` + nav/SEO + stale-JWT fix → **Release 0** (arcade flag off) | Claude C1 ∥ Cursor K1 ∥ Codex X2 | Not started |
-| 2 | 3D core + `/3d` routes + UI kit + WP admin page | Claude C2 ∥ Cursor K2 ∥ Codex X3 | C2 done on `claude/c2-core`; K2, X3 open |
-| 3 | robot-collector + leaderboard API on prod + JWT rotation → **Release 1** | Claude | Not started |
-| 4 | Games 2–10, one at a time (order in `skills.md`) | Owners | Not started |
+| 0 | Contracts, stubs, deps, repo hygiene, docs | Claude | ✅ done |
+| 1 | Hub + `/classic` + nav/SEO + stale-JWT fix → **Release 0** (arcade flag off) | Claude C1 ∥ Cursor K1 ∥ Codex X2 | ✅ live on Vercel |
+| 2 | 3D core + `/3d` routes + UI kit + WP admin page + Hyper3D CLI | Claude C2 ∥ Cursor K2 ∥ Codex X3/X2 | ✅ merged (+ core follow-up) |
+| 3 | robot-collector + leaderboard API on prod + JWT rotation → **Release 1** | Claude | ⏳ robot-collector done with Hyper3D models; API deployed (games disabled); backup done; Release 1 code prep running (status live, `enabled:true`, privacy toggle, policy, register note, JWT fallback from `wp_salt`) |
+| 4 | Games 2–10, one at a time (order in `skills.md`) | Owners | ⏳ designs merged: food-catcher, penalty-hero, clean-city, office-escape; rules merged: penalty-hero |
 | 5 | Polish: JSON-LD, Lighthouse ≥ 90, trailer/OG, run tokens | Claude · Cursor · Codex | Not started |
 
-Phase 0 exit: `npm run build`, `npx tsc --noEmit`, `npx vitest run` pass; `/` bundle unchanged; pushed to `main`.
+### Where we are (update this section whenever work lands)
+
+Last update 2026-10-05.
+
+| Game | Owner | Design | `rules.ts` | Scene / playable | Models |
+|---|---|---|---|---|---|
+| robot-collector | Claude | ✅ | ✅ | ✅ (status flips to live in Release 1) | ✅ robot, battery, crate, barrel |
+| food-catcher | Cursor | ✅ | ✅ on `cursor/game-food-catcher` (1 test to add) | ⏳ Cursor building | chef concept + apple, burger, sock needed |
+| office-escape | Claude | ✅ | ⏳ Claude (workflow) | – | printer, coffee cart, water cooler + shared runner/desk/chair |
+| pigeon-crossing | Codex | ✅ verified on `codex/game-pigeon-crossing` (merge pending) | – | – | pigeon concept + car, taxi, van |
+| penalty-hero | Cursor (design fixes by Codex) | ✅ | ✅ merged | – | striker + keeper concepts |
+| warehouse-rush | Claude | – | – | – | shelf, pallet |
+| tower-climb | Codex | ✅ updated on `codex/game-tower-climb` (merge pending) | – | – | flag, spring pad |
+| clean-city | Cursor | ✅ | – | – | bottle, paper bag |
+| escape-room | Codex | ⏳ Codex writing (`codex/game-escape-room`) | – | – | key, book, door, console |
+| obstacle-race | Claude | – | – | – | finish arch |
+
+**Release 1 runbook** (user does the server/Vercel steps; Claude verifies): ✅ backup (Plesk) → set `JWT_AUTH_SECRET_KEY` in the server `wp-config.php` from `%USERPROFILE%\.play50\jwt-secret.txt` (everyone logs in once) → upload `functions.php` + `includes/arcade-games.json` (robot-collector enabled) → user creates a test account on the live site and saves its JWT to a local file (never in chat) → Claude runs the curl suite (`docs/arcade-api.md` §13) → wp-admin "Arcade Scores" → Reset game → Vercel env `NEXT_PUBLIC_ARCADE_ENABLED=1`, `NEXT_PUBLIC_ARCADE_LEADERBOARD=1`, plus `NEXT_PUBLIC_SITE_URL=https://25-play50games.vercel.app` → Redeploy → Claude verifies live.
+
+**Workflow with the other agents:** Claude hands out ready-to-paste prompts (in Albanian chat, prompt text in English); Cursor works in the separate worktree `C:\Users\grani\Documents\WORKSPACE\p50-cursor` (branches `cursor/<pkg>`), Codex works in the MAIN checkout `C:\Users\grani\Documents\WORKSPACE\25-play50games` (branches `codex/<pkg>`) — Claude never switches branches or edits files there; Claude works in its own worktrees under `.claude/worktrees/` and merges to `main` after review (designs, rules and games are reviewed adversarially, incl. mutation probes on tests). A local preview runs with `NEXT_PUBLIC_ARCADE_ENABLED=1 NEXT_PUBLIC_ARCADE_API_MOCK=1 NEXT_PUBLIC_ARCADE_LEADERBOARD=1 npx next dev -p 3100` from a Claude worktree.
 
 ## Working agreements
 
