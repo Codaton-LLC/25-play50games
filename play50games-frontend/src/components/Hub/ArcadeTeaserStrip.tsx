@@ -1,6 +1,7 @@
-// STUB (Phase 0). Owner: Cursor (K1). Keep the props exactly as typed; add a .module.css next to this file.
 import Link from "next/link";
+import type { CSSProperties } from "react";
 import type { ArcadeGameMeta } from "@/arcade3d/types";
+import styles from "./ArcadeTeaserStrip.module.css";
 
 export interface ArcadeTeaserStripProps {
    /** all games; live ones link to /3d/<slug>, the rest show as "soon" */
@@ -8,16 +9,36 @@ export interface ArcadeTeaserStripProps {
 }
 
 export default function ArcadeTeaserStrip({ games }: ArcadeTeaserStripProps) {
-   const live = games.filter((game) => game.status === "live");
-   const soon = games.length - live.length;
+   if (games.length === 0) {
+      return null;
+   }
+
    return (
-      <div>
-         {live.map((game) => (
-            <Link key={game.slug} href={`/3d/${game.slug}`}>
-               {game.title}
-            </Link>
-         ))}
-         {soon > 0 && <span>{soon} more coming</span>}
-      </div>
+      <ul className={styles.strip} aria-label="3D arcade games">
+         {games.map((game) => {
+            const accent = { "--tile-accent": game.accent } as CSSProperties;
+            const face = (
+               <>
+                  <span className={styles.bar} aria-hidden="true" />
+                  <span className={styles.title}>{game.title}</span>
+                  {game.status === "soon" ? <span className={styles.badge}>Soon</span> : null}
+               </>
+            );
+
+            return (
+               <li key={game.slug} className={styles.item}>
+                  {game.status === "live" ? (
+                     <Link className={`${styles.tile} ${styles.link}`} href={`/3d/${game.slug}`} style={accent}>
+                        {face}
+                     </Link>
+                  ) : (
+                     <div className={styles.tile} style={accent}>
+                        {face}
+                     </div>
+                  )}
+               </li>
+            );
+         })}
+      </ul>
    );
 }
