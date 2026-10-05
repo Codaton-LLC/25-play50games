@@ -1,0 +1,74 @@
+/* The speed-up notice. Wide screens: centred in the HUD row (between the chips and the buttons).
+   Narrow screens: just under the HUD row, over the ceiling band (no gameplay there). */
+.notice {
+   position: absolute;
+   top: calc(env(safe-area-inset-top, 0px) + 14px);
+   left: 50%;
+   transform: translateX(-50%);
+   pointer-events: none;
+}
+
+.toast {
+   display: inline-block;
+   padding: 0.35rem 0.85rem;
+   border: 1px solid var(--stroke);
+   border-radius: 999px;
+   background: var(--card);
+   color: var(--game-accent, #fbbf24);
+   font-size: 0.95rem;
+   font-weight: 800;
+   letter-spacing: 0.03em;
+   line-height: 1.2;
+   white-space: nowrap;
+   opacity: 0;
+   animation: faster 1.6s ease-out forwards;
+}
+
+.toast strong {
+   color: #fff;
+}
+
+/* the notice waits with the game while it is paused */
+.paused {
+   animation-play-state: paused;
+}
+
+@keyframes faster {
+   0% {
+      opacity: 0;
+      transform: translateY(-6px) scale(0.9);
+   }
+   12% {
+      opacity: 1;
+      transform: none;
+   }
+   80% {
+      opacity: 1;
+   }
+   100% {
+      opacity: 0;
+   }
+}
+
+@keyframes fade {
+   0%,
+   100% {
+      opacity: 0;
+   }
+   12%,
+   80% {
+      opacity: 1;
+   }
+}
+
+@media (max-width: 640px) {
+   .notice {
+      top: calc(env(safe-area-inset-top, 0px) + 66px);
+   }
+}
+
+@media (prefers-reduced-motion: reduce) {
+   .toast {
+      animation-name: fade;
+   }
+}
