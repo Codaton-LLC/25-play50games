@@ -9,7 +9,7 @@ export const towerClimbMeta: ArcadeGameMeta = {
    order: 7,
    status: "soon",
    difficulty: 2,
-   orientation: "any",
+   orientation: "portrait",
    controls: {
       scheme: "platformer",
       keyboard: "Left / right to move, Space to jump",
