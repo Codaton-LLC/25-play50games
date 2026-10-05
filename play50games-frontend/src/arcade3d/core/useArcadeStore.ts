@@ -5,6 +5,9 @@
 // Phases: loading -> ready -> countdown -> playing <-> paused -> over
 //   configure() -> loading; markReady() -> ready; start()/restart() -> countdown;
 //   tick() ends the countdown (-> playing) and the timer (-> over, "timeup").
+// Clock: tick() counts play time into elapsedMs and reports it as frameMs, which useRunFrame hands
+// to the game as dt. The frame in which the countdown ends counts its rest as play time, so the
+// game never moves for time the clock did not count (core/frameLoop.ts).
 import { createStore, type StoreApi } from "zustand/vanilla";
 import { useStore } from "zustand";
 import type { EndReason, RunActions, RunPhase, RunState } from "./types";
@@ -26,16 +29,21 @@ export interface ArcadeStore extends RunState, RunActions {
    countdownMs: number;
    /** phase that resume() returns to */
    pausedFrom: "countdown" | "playing" | null;
+   /**
+    * Play time (ms) the latest tick() added to elapsedMs; 0 when it added none (countdown, pause,
+    * a 0 ms frame). useRunFrame hands exactly this to the game as dt (core/frameLoop.ts).
+    */
+   frameMs: number;
    config: RunConfig;
    /** GameShell: set the game's timer and lives, back to "loading" (keeps runId) */
    configure(config: Partial<RunConfig>): void;
    /** GameShell: the scene finished loading ("loading" -> "ready") */
    markReady(): void;
-   /** GameShell clock, once per frame: advances the countdown, elapsedMs and timeLeftMs */
+   /** GameShell clock, once per frame: advances the countdown, elapsedMs and timeLeftMs; sets frameMs */
    tick(dtMs: number): void;
 }
 
-type RunData = Omit<RunState, "phase" | "runId"> & { countdownMs: number };
+type RunData = Omit<RunState, "phase" | "runId"> & { countdownMs: number; frameMs: number };
 
 const NO_CONFIG: RunConfig = { durationMs: null, lives: null };
 
@@ -49,6 +57,7 @@ function freshRun(config: RunConfig): RunData {
       endReason: null,
       stats: {},
       countdownMs: 0,
+      frameMs: 0,
    };
 }
 
@@ -63,6 +72,25 @@ function initialData() {
 }
 
 const ACTIVE: ReadonlySet<RunPhase> = new Set<RunPhase>(["countdown", "playing", "paused"]);
+
+type ClockUpdate = Partial<Pick<ArcadeStore, "phase" | "elapsedMs" | "timeLeftMs" | "frameMs" | "endReason" | "pausedFrom">>;
+
+/** Counts `ms` (>= 0) of play into a playing run, never past the end of its timer. */
+function play(s: Pick<ArcadeStore, "elapsedMs" | "timeLeftMs" | "config">, ms: number): ClockUpdate {
+   if (s.timeLeftMs === null) return { phase: "playing", elapsedMs: s.elapsedMs + ms, frameMs: ms };
+   const step = Math.min(ms, s.timeLeftMs);
+   const timeLeftMs = s.timeLeftMs - step;
+   if (timeLeftMs > 0) return { phase: "playing", elapsedMs: s.elapsedMs + step, timeLeftMs, frameMs: step };
+   // "timeup": elapsedMs is exactly durationMs (no float drift from summing frames)
+   return {
+      elapsedMs: s.config.durationMs ?? s.elapsedMs + step,
+      timeLeftMs: 0,
+      frameMs: step,
+      phase: "over",
+      endReason: "timeup",
+      pausedFrom: null,
+   };
+}
 
 /** Creates an independent store (tests, previews). The app uses the shared `arcadeStore`. */
 export function createArcadeStore(): StoreApi<ArcadeStore> {
@@ -163,35 +191,24 @@ export function createArcadeStore(): StoreApi<ArcadeStore> {
          },
 
          tick(dtMs) {
-            if (!(dtMs > 0)) return;
-            const dt = Math.min(dtMs, MAX_TICK_MS);
             const s = get();
+            const dt = dtMs > 0 ? Math.min(dtMs, MAX_TICK_MS) : 0;
 
-            if (s.phase === "countdown") {
+            if (s.phase === "countdown" && dt > 0) {
                const left = s.countdownMs - dt;
-               set(left > 0 ? { countdownMs: left } : { countdownMs: 0, phase: "playing" });
+               if (left > 0) {
+                  set({ countdownMs: left, frameMs: 0 });
+                  return;
+               }
+               // the countdown ended inside this frame: the rest of the frame is already play time
+               set({ countdownMs: 0, ...play(s, Math.max(0, -left)) });
                return;
             }
-            if (s.phase !== "playing") return;
-
-            if (s.timeLeftMs === null) {
-               set({ elapsedMs: s.elapsedMs + dt });
+            if (s.phase !== "playing" || dt === 0) {
+               if (s.frameMs !== 0) set({ frameMs: 0 });
                return;
             }
-            // never count past the end of the timer: elapsedMs equals durationMs on "timeup"
-            const step = Math.min(dt, s.timeLeftMs);
-            const timeLeftMs = s.timeLeftMs - step;
-            if (timeLeftMs > 0) {
-               set({ elapsedMs: s.elapsedMs + step, timeLeftMs });
-               return;
-            }
-            set({
-               elapsedMs: s.elapsedMs + step,
-               timeLeftMs: 0,
-               phase: "over",
-               endReason: "timeup",
-               pausedFrom: null,
-            });
+            set(play(s, dt));
          },
       };
    });

@@ -3,9 +3,17 @@
 // On-screen controls for phones and tablets: a virtual joystick plus Jump / Action buttons,
 // rendered per GameDefinition.touchControls. Only on coarse pointers (JS check + CSS media query).
 // "swipe" and "tap" need no buttons: InputProvider reads them from the canvas.
-import { useEffect, useRef, useState, useSyncExternalStore, type PointerEvent as ReactPointerEvent } from "react";
+import {
+   useEffect,
+   useRef,
+   useState,
+   useSyncExternalStore,
+   type PointerEvent as ReactPointerEvent,
+   type RefObject,
+} from "react";
 import type { TouchControl } from "./types";
 import { CONTROLS_ATTR, useInputController, type TouchButton } from "./input";
+import { SAFE_AREA_ATTR } from "./safeArea";
 import styles from "./TouchControls.module.css";
 
 const COARSE_QUERY = "(pointer: coarse)";
@@ -169,6 +177,29 @@ function HoldButton({ button, label }: { button: TouchButton; label: string }) {
 
 export interface TouchControlsProps {
    controls: TouchControl[];
+}
+
+/**
+ * An invisible copy of the controls' layout (same CSS, no handlers), always mounted so GameShell
+ * can measure where the controls sit (core/safeArea.tsx) before and between runs, when the real
+ * controls are not rendered. Hidden elements are never hit-tested, so it never takes input.
+ */
+export function TouchControlsProbe({ controls, probeRef }: TouchControlsProps & { probeRef: RefObject<HTMLDivElement> }) {
+   const joystick = controls.includes("joystick");
+   const jump = controls.includes("jump");
+   const action = controls.includes("action");
+   const mark = { [SAFE_AREA_ATTR]: "" };
+   return (
+      <div ref={probeRef} className={styles.controls} style={{ visibility: "hidden" }} aria-hidden="true">
+         {joystick && <div className={styles.joystick} {...mark} />}
+         {(jump || action) && (
+            <div className={styles.buttons} {...mark}>
+               {action && <span className={styles.button} />}
+               {jump && <span className={styles.button} />}
+            </div>
+         )}
+      </div>
+   );
 }
 
 export default function TouchControls({ controls }: TouchControlsProps) {

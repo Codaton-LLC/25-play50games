@@ -4,8 +4,17 @@
 //
 // The scoring limits in meta.ts only hold because of the level design below (robot top speed,
 // battery spacing, waves). README.md "Scoring" has the proof; rules.test.ts checks it.
-import { circlesOverlapXZ, clampToBounds, resolveSphereAabb, type AABB, type Vec3Like } from "@/arcade3d/core/collision";
-import type { ScoringRules } from "@/arcade3d/types";
+// Generic helpers (seeded RNG, angles, collision, the server's limit check) come from core.
+import {
+   circlesOverlapXZ,
+   clampToBounds,
+   distanceToBoxXZ,
+   resolveSphereAabb,
+   type AABB,
+   type Vec3Like,
+} from "@/arcade3d/core/collision";
+import { capScore as capToLimits, withinServerLimits as fitsLimits } from "@/arcade3d/core/limits";
+import { createRng, turnTowards } from "@/arcade3d/core/math";
 import { robotCollectorMeta } from "./meta";
 
 // ---------- tuning ----------
@@ -110,27 +119,6 @@ export const BOUNDS: AABB = {
    max: { x: ARENA.halfX, y: 10, z: ARENA.halfZ },
 };
 
-/** Horizontal distance from a point to a box (0 inside). */
-export function distanceToBox(x: number, z: number, box: AABB): number {
-   const dx = Math.max(box.min.x - x, 0, x - box.max.x);
-   const dz = Math.max(box.min.z - z, 0, z - box.max.z);
-   return Math.hypot(dx, dz);
-}
-
-// ---------- seeded random ----------
-
-/** mulberry32: tiny, fast, good enough for level layouts. Returns floats in [0, 1). */
-export function createRng(seed: number): () => number {
-   let a = seed >>> 0;
-   return () => {
-      a = (a + 0x6d2b79f5) >>> 0;
-      let t = a;
-      t = Math.imul(t ^ (t >>> 15), t | 1);
-      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-   };
-}
-
 // ---------- layouts ----------
 
 export interface Battery extends Vec3Like {
@@ -150,7 +138,7 @@ const dist = (a: { x: number; z: number }, b: { x: number; z: number }) => Math.
 /** A spot where a battery may spawn: inside SPAWN_AREA and SPAWN_CLEARANCE away from every prop. */
 export function isSpawnPoint(x: number, z: number): boolean {
    if (Math.abs(x) > SPAWN_AREA.halfX || Math.abs(z) > SPAWN_AREA.halfZ) return false;
-   return OBSTACLES.every((box) => distanceToBox(x, z, box) >= SPAWN_CLEARANCE);
+   return OBSTACLES.every((box) => distanceToBoxXZ(x, z, box) >= SPAWN_CLEARANCE);
 }
 
 let spawnCache: Array<{ x: number; z: number }> | null = null;
@@ -285,12 +273,6 @@ export function shortestRoute(layout: Layout, reach: number): number {
    return Math.min(...best.values());
 }
 
-/**
- * Game time the run clock does not count: the frame where the countdown turns into "playing"
- * moves the robot but adds nothing to elapsedMs. One frame, at most core MAX_FRAME_DT (1/20 s).
- */
-export const UNTIMED_MOVE_S = 0.05;
-
 /** Lower bound on the route of every layout that passes isValidLayout (README "Scoring"). */
 export const GUARANTEED_MIN_ROUTE =
    SPACING.fromStart -
@@ -298,9 +280,12 @@ export const GUARANTEED_MIN_ROUTE =
    WAVE_COUNT * (WAVE_SIZE - 1) * (SPACING.inWave - 2 * PICKUP_REACH) +
    (WAVE_COUNT - 1) * (SPACING.betweenWaves - 2 * PICKUP_REACH);
 
-/** Fastest elapsedMs at which a route of `routeLength` can be finished. */
+/**
+ * Fastest elapsedMs at which a route of `routeLength` can be finished. The core clock counts every
+ * moment the robot drives (useRunFrame's dt is the time the clock counted), so this is exact.
+ */
 export function fastestFinishMs(routeLength: number): number {
-   return Math.max(0, (routeLength / ROBOT.maxSpeed - UNTIMED_MOVE_S) * 1000);
+   return Math.max(0, (routeLength / ROBOT.maxSpeed) * 1000);
 }
 
 /** Lower bound on the elapsedMs of any win on this layout. */
@@ -319,26 +304,6 @@ export interface RobotState extends Vec3Like {
 
 export function createRobot(): RobotState {
    return { x: ROBOT_START.x, y: 0, z: ROBOT_START.z, vx: 0, vz: 0, heading: Math.PI };
-}
-
-/** Turns `from` towards `to` by the shorter way, eased by `amount` (0..1). */
-export function turnTowards(from: number, to: number, amount: number): number {
-   let diff = (to - from) % (2 * Math.PI);
-   if (diff > Math.PI) diff -= 2 * Math.PI;
-   if (diff < -Math.PI) diff += 2 * Math.PI;
-   return from + diff * amount;
-}
-
-/**
- * Screen-relative input -> world direction for a camera whose yaw is `yaw` (0 = camera on +z
- * looking towards -z). Joystick up (moveY = -1) always means "away from the camera".
- */
-export function inputToWorld(moveX: number, moveY: number, yaw: number, out: { x: number; z: number }) {
-   const c = Math.cos(yaw);
-   const s = Math.sin(yaw);
-   out.x = c * moveX + s * moveY;
-   out.z = -s * moveX + c * moveY;
-   return out;
 }
 
 /**
@@ -456,31 +421,15 @@ export function runScore(collected: number, won: boolean, timeLeftMs: number): n
    return collected * BATTERY_POINTS + (won ? timeBonus(timeLeftMs) : 0);
 }
 
-/** The duration the server sees: GameShell (core/scores.ts normalizeRun) submits whole ms. */
-const submittedMs = (durationMs: number) => Math.max(0, Math.round(durationMs));
-
-/**
- * The server's check for points games, in the same integer form (docs/arcade-api.md §7), for a
- * run that lasted `durationMs` (rounded to whole ms like the submitted run).
- */
-export function withinServerLimits(score: number, durationMs: number, rules: ScoringRules = robotCollectorMeta.scoring): boolean {
-   const d = submittedMs(durationMs);
-   return (
-      Number.isInteger(score) &&
-      score >= 0 &&
-      score <= rules.maxScore &&
-      d >= rules.minDurationMs &&
-      d <= rules.maxDurationMs &&
-      score * 1000 <= rules.base * 1000 + rules.maxPointsPerSec * d
-   );
+/** The server's check (core/limits.ts) with this game's limits from meta.ts. */
+export function withinServerLimits(score: number, durationMs: number): boolean {
+   return fitsLimits(score, durationMs, robotCollectorMeta.scoring);
 }
 
 /**
- * Safety net only: trims a score to what the server accepts for this duration (the store's raw
- * elapsedMs; rounded here exactly as GameShell rounds it before submitting). The proof in
- * README.md shows real runs never reach the cap, and rules.test.ts checks it stays a no-op.
+ * Safety net only (core/limits.ts capScore with meta.ts limits): the proof in README.md shows real
+ * runs never reach the cap, and rules.test.ts checks it stays a no-op.
  */
-export function capScore(score: number, durationMs: number, rules: ScoringRules = robotCollectorMeta.scoring): number {
-   const plausible = Math.floor((rules.base * 1000 + rules.maxPointsPerSec * submittedMs(durationMs)) / 1000);
-   return Math.max(0, Math.min(score, rules.maxScore, plausible));
+export function capScore(score: number, durationMs: number): number {
+   return capToLimits(score, durationMs, robotCollectorMeta.scoring);
 }

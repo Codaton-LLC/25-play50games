@@ -1,5 +1,17 @@
 // Runtime contracts for 3D Arcade games. Owned by Claude.
 // Type-only imports of three/R3F are fine here (erased at build time).
+//
+// Time and frame order (core/README.md has the full list of helpers):
+// - Game logic runs in useRunFrame((state, dt, time) => …). It runs only while "playing"; dt is
+//   exactly the play time the run clock counted this frame (also the rest of the frame in which the
+//   countdown ends), so the game never moves for time elapsedMs does not include.
+// - Visuals animate with useGameTime().now (stops while paused, restarts at 0 every run).
+//   NEVER use state.clock.elapsedTime or getElapsedTime(): GameShell pauses by switching the R3F
+//   frameloop, and R3F resets that clock on every switch.
+// - One frame: input latch -> run clock -> game time -> useRunFrame -> CameraRig -> useFrame
+//   visuals -> render (FRAME_PRIORITY in core/frameLoop.ts). useRunFrame runs before the camera and
+//   every plain useFrame wherever it is mounted, so a visual never draws the previous frame's state
+//   or camera. A custom useRunFrame priority must lie in (FRAME_PRIORITY.gameTime, 0] = (-0.75, 0].
 import type { ComponentType } from "react";
 import type { ArcadeGameMeta, ArcadeSlug } from "../types";
 
@@ -71,7 +83,7 @@ export type PrimitiveFallback = "box" | "capsule" | "sphere" | "cylinder";
 /** A GLB model (or a coloured primitive until the GLB exists). */
 export interface ModelAsset {
    id: string;
-   /** /models/3d/<slug|shared>/<id>.glb */
+   /** /models/3d/<slug|shared>/<id>.glb; fetched only once it is listed in core/modelManifest.ts */
    url: string;
    scale?: number;
    rotationY?: number;
@@ -90,7 +102,11 @@ export interface GameDefinition {
    slug: ArcadeSlug;
    /** rendered inside the <Canvas> */
    Scene: ComponentType;
-   /** optional extra HUD rendered over the canvas (plain DOM) */
+   /**
+    * Optional extra HUD over the canvas (plain DOM). Mounted, hidden, once the stage is up and shown
+    * during countdown, playing and paused. Mark panels the camera fit must keep clear of with
+    * `data-arcade-safe-area` (they join useSafeArea().hud).
+    */
    Hud?: ComponentType;
    assets: Record<string, ModelAsset>;
    /** true = wrap the scene in lazy-loaded Rapier <Physics> */

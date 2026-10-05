@@ -1,7 +1,8 @@
 // Models used by Robot Collector. Plain data, no three.js: index.tsx hands them to GameShell
 // (which frees the GLBs when the game closes) and Scene.tsx / Primitives.tsx render them.
-// Until a GLB exists, useModel reports `failed` and the game draws its own primitives instead,
-// so swapping in a model is a file drop plus (at most) a scale tweak here, never a scene change.
+// Until a GLB is listed in core/modelManifest.ts it is never fetched and the game draws its own
+// primitives (<Model fallback>, useModelFailed), so swapping in a model is the assets PR (file +
+// manifest line) plus at most a scale tweak here, never a scene change.
 import type { ModelAsset } from "@/arcade3d/core/types";
 import { PROP_BUDGET, SHARED_ASSETS } from "@/arcade3d/core/sharedAssets";
 
