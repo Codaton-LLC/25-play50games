@@ -54,11 +54,20 @@ if (!function_exists("play50_arcade_admin_redirect")) {
          "p50a_notice" => in_array($notice, $notices, true) ? $notice : "error"
       );
       $game = play50_arcade_admin_slug($game);
+      if ($game === "all") {
+         // "Clear all caches" returns to the game that was being viewed.
+         $game = play50_arcade_admin_slug(play50_arcade_admin_input($_POST, "return_game"));
+      }
       if ($game !== "" && $game !== "all") {
          $args["game"] = $game;
       }
       if ($count !== null && $notice === "reset") {
          $args["p50a_count"] = absint($count);
+      }
+      // Stay on the page the action was started from (render clamps it if the page no longer exists).
+      $paged = absint(play50_arcade_admin_input($_POST, "paged"));
+      if ($paged > 1 && $notice !== "reset") {
+         $args["paged"] = $paged;
       }
       wp_safe_redirect(add_query_arg($args, admin_url("admin.php")));
       exit;
@@ -97,7 +106,8 @@ if (!function_exists("play50_arcade_admin_duration")) {
       if ($milliseconds === null) {
          return "—";
       }
-      $centiseconds = intdiv(absint($milliseconds), 10);
+      // Rounded like formatDuration() on the site, so both show the same time.
+      $centiseconds = (int) round(absint($milliseconds) / 10);
       return sprintf("%d:%02d.%02d", intdiv($centiseconds, 6000), intdiv($centiseconds % 6000, 100), $centiseconds % 100);
    }
 }
@@ -129,6 +139,7 @@ if (!function_exists("play50_arcade_admin_form_start")) {
       echo '<form method="post" action="' . esc_url(admin_url("admin-post.php")) . '">';
       echo '<input type="hidden" name="action" value="' . esc_attr($action) . '">';
       echo '<input type="hidden" name="game" value="' . esc_attr($game) . '">';
+      echo '<input type="hidden" name="paged" value="' . esc_attr(max(1, absint(play50_arcade_admin_input($_GET, "paged")))) . '">';
       wp_nonce_field($nonce);
    }
 }
@@ -274,10 +285,16 @@ if (!function_exists("play50_arcade_admin_render")) {
       echo '<p>' . esc_html("Rows: " . $total . " · Page " . $paged . " of " . $pages . " · 50 rows per page") . '</p>';
       if ($pages > 1) {
          $base = add_query_arg(array("page" => "play50-arcade-scores", "game" => $game), admin_url("admin.php"));
+         // paginate_links() copies the current query string into every link; drop the one-time notice args.
+         $strip_notice = function ($link) {
+            return remove_query_arg(array("p50a_notice", "p50a_count"), $link);
+         };
+         add_filter("paginate_links", $strip_notice);
          $links = paginate_links(array(
             "base" => $base . "&paged=%#%", "format" => "", "current" => $paged,
             "total" => $pages, "type" => "list", "prev_text" => "Previous", "next_text" => "Next"
          ));
+         remove_filter("paginate_links", $strip_notice);
          echo wp_kses_post($links);
       }
       echo '<h2>' . esc_html("Reset selected game") . '</h2>';
@@ -288,6 +305,7 @@ if (!function_exists("play50_arcade_admin_render")) {
       echo '<h2>' . esc_html("Leaderboard cache") . '</h2>';
       foreach (array($game => "Clear selected game cache", "all" => "Clear all leaderboard caches") as $cache_game => $label) {
          play50_arcade_admin_form_start("play50_arcade_clear_cache", "play50_arcade_clear_cache", $cache_game);
+         echo '<input type="hidden" name="return_game" value="' . esc_attr($game) . '">';
          echo '<p><button class="button" type="submit">' . esc_html($label) . '</button></p></form>';
       }
       echo '</div>';
@@ -420,3 +438,10 @@ if (!function_exists("play50_arcade_admin_clear_cache")) {
    }
 }
 add_action("admin_post_play50_arcade_clear_cache", "play50_arcade_admin_clear_cache");
+
+// Let core's canonical-URL script remove the one-time notice args from the address bar.
+if (is_admin()) add_filter("removable_query_args", function ($args) {
+   $args[] = "p50a_notice";
+   $args[] = "p50a_count";
+   return $args;
+});
