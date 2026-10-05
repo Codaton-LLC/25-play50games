@@ -6,6 +6,7 @@ import {
    clampToBounds,
    closestPointInAabb,
    distanceSq,
+   distanceToBoxXZ,
    isOutOfBounds,
    pointInAabb,
    resolveSphereAabb,
@@ -129,5 +130,20 @@ describe("bounds", () => {
       expect(isOutOfBounds(v(0, 1, 0), arena)).toBe(false);
       expect(isOutOfBounds(v(4.8, 1, 0), arena, 0.5)).toBe(true);
       expect(isOutOfBounds(v(0, -0.1, 0), arena)).toBe(true);
+   });
+});
+
+describe("distanceToBoxXZ", () => {
+   const crate = box([-1, 0, -1], [1, 2, 1]);
+
+   it("is 0 inside and on the box, and ignores height", () => {
+      expect(distanceToBoxXZ(0, 0, crate)).toBe(0);
+      expect(distanceToBoxXZ(1, -1, crate)).toBe(0);
+   });
+
+   it("measures to the nearest face or corner on the ground", () => {
+      expect(distanceToBoxXZ(3, 0.5, crate)).toBe(2);
+      expect(distanceToBoxXZ(0, -4, crate)).toBe(3);
+      expect(distanceToBoxXZ(4, 5, crate)).toBe(5);
    });
 });
