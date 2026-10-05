@@ -1,6 +1,20 @@
 # Food Catcher 3D
 
-Owner: Cursor. Slug: `food-catcher`. Status stays `"soon"` until the game itself is built. This file is the design only. No scene or rules code yet.
+Owner: Cursor. Slug: `food-catcher`. The scene plays on top of `rules.ts`. Status stays `"soon"` until Claude reviews it.
+
+| File | What it owns |
+|---|---|
+| `meta.ts` | Card data and `scoring`. Unchanged. Status stays `"soon"`. |
+| `index.tsx` | `GameDefinition`: Scene, 2× Hud, assets, 90 s, 3 lives, combo stat. |
+| `rules.ts` / `rules.test.ts` | Pure seeded catch, movement and the score proof. |
+| `Scene.tsx` | One `useRunFrame` step, pointer ray, `useFittedView` camera, falling-item pool. |
+| `Primitives.tsx` | Kitchen, chef and food stand-ins. |
+| `Hud.tsx` | The 2× badge once the combo reaches 5. |
+| `assets.ts` / `assets.spec.json` | Model ids. GLBs are not fetched until they are in `modelManifest.ts`. |
+
+### What a new game copies from here
+
+Copy the robot-collector split, not this folder. From this scene, the useful pattern is a fixed pool of falling slots updated in `useFrame` from a pure `step()`, with the camera fit from `useFittedView` (`shift: true`, yaw 0) so the play rectangle stays clear of the shell HUD.
 
 ## Concept
 
