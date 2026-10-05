@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { Document, NodeIO, Logger } from "@gltf-transform/core";
-import { ALL_EXTENSIONS } from "@gltf-transform/extensions";
-import { center, dedup, getBounds, inspect, meshopt, prune, simplify, textureCompress, weld } from "@gltf-transform/functions";
+import { ALL_EXTENSIONS, EXTMeshoptCompression } from "@gltf-transform/extensions";
+import { center, cloneDocument, dedup, getBounds, inspect, prune, quantize, reorder, simplify, textureCompress, weld } from "@gltf-transform/functions";
 import { MeshoptDecoder, MeshoptEncoder, MeshoptSimplifier } from "meshoptimizer";
 import sharp from "sharp";
 
@@ -42,7 +42,9 @@ export async function readGLB(io, bytes) {
       throw new Error("Invalid GLB header");
    }
    const jsonSize = view.getUint32(12, true);
-   const json = JSON.parse(new TextDecoder().decode(bytes.subarray(20, 20 + jsonSize)));
+   let json;
+   try { json = JSON.parse(new TextDecoder().decode(bytes.subarray(20, 20 + jsonSize))); }
+   catch { throw new Error("Invalid GLB JSON"); }
    if ([...(json.buffers ?? []), ...(json.images ?? [])].some(item => item.uri)) {
       throw new Error("GLB must embed all buffers and textures; external resources are forbidden");
    }
@@ -71,16 +73,47 @@ export function inspectModel(doc) {
 
 export async function optimizeGLB(bytes, asset) {
    const io = await createIO();
-   const doc = await readGLB(io, bytes);
+   let doc = await readGLB(io, bytes);
    const before = inspectModel(doc);
+   const rigged = doc.getRoot().listSkins().length > 0 || asset.rigged === true;
+   const limitTris = Math.min(asset.budget.tris, asset.kind === "character" ? 20000 : 5000);
+   const limitBytes = Math.min(asset.budget.bytes, asset.kind === "character" ? 1500000 : 300000);
+   let simplificationError = null;
+   if (rigged && before.tris > limitTris) {
+      throw new Error(`OVER BUDGET ${asset.id}: ${before.tris}/${limitTris} tris; rigged geometry cannot be decimated`);
+   }
    await doc.transform(
-      dedup(), weld(),
-      textureCompress({ encoder: sharp, targetFormat: "webp", resize: [asset.textureSize, asset.textureSize] }),
-      simplify({ simplifier: MeshoptSimplifier, ratio: Math.min(1, asset.budget.tris / before.tris), error: 0.001 }),
-      prune(), center({ pivot: "below" }),
-      meshopt({ encoder: MeshoptEncoder, level: "medium", quantizePosition: 16 }),
-      center({ pivot: "below" })
+      dedup(),
+      textureCompress({ encoder: sharp, targetFormat: "webp", resize: [asset.textureSize, asset.textureSize] })
    );
+   if (!rigged) {
+      await doc.transform(weld());
+      const sourceTris = inspectModel(doc).tris;
+      if (sourceTris > limitTris) {
+         // Restart from the same geometry at each tolerance; never compound loss.
+         const source = doc;
+         for (const error of [0.001, 0.005, 0.01, 0.02, 0.05]) {
+            const candidate = cloneDocument(source);
+            await candidate.transform(simplify({ simplifier: MeshoptSimplifier, ratio: limitTris / sourceTris, error }));
+            doc = candidate;
+            simplificationError = error;
+            if (inspectModel(candidate).tris <= limitTris) { break; }
+         }
+         if (inspectModel(doc).tris > limitTris) {
+            throw new Error(`OVER BUDGET ${asset.id}: ${inspectModel(doc).tris}/${limitTris} tris after simplify error=0.05`);
+         }
+      }
+   }
+   await doc.transform(prune(), center({ pivot: "below" }));
+   // Position quantization compensates skinned meshes through inverse bind matrices.
+   // Keep positions as floats so rest-pose bounds remain usable without re-centering.
+   const otherAttributes = /^(?!POSITION$).*/;
+   await doc.transform(
+      reorder({ encoder: MeshoptEncoder, target: "size" }),
+      quantize({ pattern: otherAttributes, patternTargets: otherAttributes })
+   );
+   doc.createExtension(EXTMeshoptCompression).setRequired(true)
+      .setEncoderOptions({ method: EXTMeshoptCompression.EncoderMethod.QUANTIZE });
    const output = await io.writeBinary(doc);
    const decoded = await readGLB(io, output);
    const report = inspectModel(decoded);
@@ -89,12 +122,13 @@ export async function optimizeGLB(bytes, asset) {
       return { mime: texture.getMimeType(), width: meta.width, height: meta.height };
    }));
    const overTextures = textureSizes.some(t => t.mime !== "image/webp" || t.width > asset.textureSize || t.height > asset.textureSize);
-   const limitTris = Math.min(asset.budget.tris, asset.kind === "character" ? 20000 : 5000);
-   const limitBytes = Math.min(asset.budget.bytes, asset.kind === "character" ? 1500000 : 300000);
+   if (decoded.getRoot().listScenes().some(scene => Math.abs(getBounds(scene).min[1]) > 1e-6)) {
+      throw new Error(`Floor assertion failed for ${asset.id}: min Y must equal 0 after compression`);
+   }
    if (report.tris > limitTris || output.length > limitBytes || overTextures) {
       throw new Error(`OVER BUDGET ${asset.id}: ${report.tris}/${limitTris} tris, ${output.length}/${limitBytes} bytes, textures ${overTextures ? "FAIL" : "PASS"}`);
    }
-   return { output, report: { ...report, bytes: output.length, textureSizes, beforeTris: before.tris } };
+   return { output, report: { ...report, bytes: output.length, textureSizes, beforeTris: before.tris, rigged, simplificationError } };
 }
 
 export async function validateFile(file) {

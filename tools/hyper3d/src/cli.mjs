@@ -15,16 +15,16 @@ const help = `Hyper3D CLI (Node 24)
 node tools/hyper3d/src/cli.mjs <command> [options]
 plan <slug> [--spec <file>] [--mock]
 budget [--mock]
-smoke [--mock]
+smoke --confirm [--mock]
 gen <slug> --confirm [--account lab|prod] [--only <id>] [--spec <file>] [--mock]
-import <file> --slug <slug> --id <id> [--spec <file>] [--mock]
+import <file|https-url> --slug <slug> --id <id> [--spec <file>] [--mock]
 optimize <slug> [--id <id>] [--spec <file>] [--mock]
 optimize --mock defaults to shared and synthesizes missing fixture input.
 Mock commands make no network calls and never read personal keys or ledger.
-Paid commands are for Claude/the user after explicit batch approval.`;
+Import + optimize Rodin MCP output; legacy paid API commands require explicit approval.`;
 
 const allowed = {
-   plan: ["spec", "mock", "help"], budget: ["mock", "help"], smoke: ["mock", "help"],
+   plan: ["spec", "mock", "help"], budget: ["mock", "help"], smoke: ["confirm", "mock", "help"],
    gen: ["confirm", "account", "only", "spec", "mock", "help"],
    import: ["slug", "id", "spec", "mock", "help"], optimize: ["id", "spec", "mock", "help"]
 };
@@ -44,6 +44,36 @@ async function saveRaw(rawRoot, slug, id, bytes, n) {
    return file;
 }
 
+async function saveNextRaw(rawRoot, slug, id, bytes) {
+   let n = Math.max(0, ...(await filesFor(rawRoot, slug, id)).map(f => f.n)) + 1;
+   for (;;) {
+      try { return { file: await saveRaw(rawRoot, slug, id, bytes, n), n }; }
+      catch (error) { if (error.code !== "EEXIST") { throw error; } n++; }
+   }
+}
+
+async function importBytes(source) {
+   if (!/^[a-z][a-z\d+.-]*:\/\//i.test(source)) { return readFile(path.resolve(source)); }
+   let url;
+   try { url = new URL(source); } catch { throw new Error("Invalid import URL"); }
+   for (let redirects = 0; redirects <= 5; redirects++) {
+      if (url.protocol !== "https:" || url.username || url.password) { throw new Error("Import requires an HTTPS URL without embedded credentials"); }
+      let response;
+      try { response = await fetch(url.href, { redirect: "manual", signal: AbortSignal.timeout(API.timeoutMs) }); }
+      catch { throw new Error("Import download failed"); }
+      if ([301, 302, 303, 307, 308].includes(response.status)) {
+         const location = response.headers.get("Location");
+         if (!location) { throw new Error("Import redirect has no location"); }
+         try { url = new URL(location, url); } catch { throw new Error("Invalid import redirect"); }
+         continue;
+      }
+      if (!response.ok) { throw new Error(`Import download: HTTP ${response.status}`); }
+      try { return new Uint8Array(await response.arrayBuffer()); }
+      catch { throw new Error("Import download failed"); }
+   }
+   throw new Error("Import exceeded the redirect limit");
+}
+
 async function conceptBytes(repo, asset, mock) {
    if (asset.mode !== "image") { return undefined; }
    if (mock) { return fixturePNG(); }
@@ -56,8 +86,11 @@ async function conceptBytes(repo, asset, mock) {
    return bytes;
 }
 
-async function generate(ctx, spec, assets, account, smoke = false) {
-   await requireMainCheckout(ctx.repo);
+export async function generate(ctx, spec, assets, account, smoke = false) {
+   if (!ctx.mock) {
+      requireConfirm(ctx.confirm);
+      await requireMainCheckout(ctx.repo);
+   }
    // Preflight every image before any charge or ledger update.
    const images = new Map();
    for (const asset of assets) { images.set(asset.id, await conceptBytes(ctx.repo, asset, ctx.mock)); }
@@ -124,9 +157,9 @@ export async function run(args, overrides = {}) {
    const repo = overrides.repo ?? defaultRepo;
    const mockRoot = overrides.mockRoot ?? path.join(toolRoot, ".mock");
    const ctx = {
-      repo, print, mock: values.mock,
+      repo, print, mock: values.mock, confirm: values.confirm,
       rawRoot: values.mock ? path.join(mockRoot, "raw") : path.join(repo, "tools/hyper3d/raw"),
-      ledgerFile: values.mock ? path.join(mockRoot, "ledger.json") : path.join(personalDirectory(), "hyper3d-ledger.json"),
+      ledgerFile: values.mock ? path.join(mockRoot, "ledger.json") : ["budget", "gen", "smoke"].includes(command) ? path.join(personalDirectory(), "hyper3d-ledger.json") : undefined,
       modelsRoot: values.mock ? path.join(mockRoot, "models") : path.join(repo, "play50games-frontend/public/models/3d")
    };
    if (command === "budget") {
@@ -149,6 +182,7 @@ export async function run(args, overrides = {}) {
       return;
    }
    if (command === "smoke") {
+      requireConfirm(values.confirm);
       const shared = await loadSpec(repo, "shared");
       const asset = { ...selectAssets(shared, "robot")[0], tier: "Gen-2.5-Low", qualityOverride: 1500, attempts: 1 };
       const [result] = await generate(ctx, { ...shared, slug: "smoke" }, [asset], "lab", true);
@@ -181,11 +215,12 @@ export async function run(args, overrides = {}) {
    }
    if (command === "import") {
       identifier(values.id);
-      if (!argument) { throw new Error("import requires a file argument"); }
-      const bytes = ctx.mock ? await fixtureGLB() : await validateFile(path.resolve(argument));
-      const n = Math.max(0, ...(await filesFor(ctx.rawRoot, slug, values.id)).map(f => f.n)) + 1;
-      await saveRaw(ctx.rawRoot, slug, values.id, bytes, n);
-      print(`${ctx.mock ? "MOCK " : ""}import ${slug}/${values.id}-${n}: validated GLB; no credits recorded (web UI spend must be reconciled separately)`);
+      if (!argument) { throw new Error("import requires a GLB path or HTTPS URL"); }
+      const bytes = ctx.mock ? await fixtureGLB() : await importBytes(argument);
+      const { file, n } = await saveNextRaw(ctx.rawRoot, slug, values.id, bytes);
+      try { await validateFile(file); }
+      catch (error) { throw new Error(`Import ${slug}/${values.id}-${n} saved but validation failed: ${maskError(error)}`); }
+      print(`${ctx.mock ? "MOCK " : ""}import ${slug}/${values.id}-${n}: saved and validated GLB; no CLI credits spent (Rodin MCP/web UI billing is separate)`);
       return;
    }
    if (command === "optimize") {
@@ -198,7 +233,7 @@ export async function run(args, overrides = {}) {
          const dir = path.join(ctx.modelsRoot, asset.target);
          await mkdir(dir, { recursive: true });
          await writeFile(path.join(dir, `${asset.id}.glb`), output);
-         print(`${ctx.mock ? "MOCK " : ""}optimize ${asset.target}/${asset.id}.glb: ${report.tris} tris, ${report.bytes} bytes; WebP <=${asset.textureSize}px; floor pivot; meshopt; PASS`);
+         print(`${ctx.mock ? "MOCK " : ""}optimize ${asset.target}/${asset.id}.glb: ${report.tris} tris, ${report.bytes} bytes; ${report.rigged ? "rigged: weld/simplify skipped" : `simplify error=${report.simplificationError ?? "not needed"}`}; WebP <=${asset.textureSize}px; min Y=${report.bounds.min[1]}; floor pivot; meshopt; PASS`);
       }
    }
 }

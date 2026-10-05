@@ -24,3 +24,21 @@ API checks: docs.hyper3d.ai confirms TAPose, geometry_file_format, consumed,
 jobs.subscription_key, task_uuid and GET check_balance. FBX is a single-format
 alternative; privacy has a policy, no documented generation toggle. Smoke must
 distinguish acceptance from visual verification and documented from tested.
+
+## X2 review corrections
+
+Primary workflow is now Rodin MCP in Claude Code → import → optimize. Legacy API
+generation remains guarded. Only tools/hyper3d files are modified.
+
+1. Add regression tests for smoke/internal confirmation, case-insensitive IDs,
+   omitted API fields, fixed parser/transport errors, unique local/HTTPS imports,
+   skinned/seamed geometry preservation and simplification above the initial error.
+2. Skip checkout checks only in mock mode. Require confirmation inside every
+   real generation path, as well as at gen/smoke CLI entry points.
+3. Detect skins or explicit rigged metadata; skip weld/simplify for rigs. Retry
+   unrigged simplification from the original geometry at the five approved errors.
+4. Center once before compression, preserve float positions, assert decoded min Y
+   equals zero. Reject over-budget output before writing public models.
+5. Document MCP imports and revised safety/optimizer behavior. Verify main checkout
+   and linked-worktree node tests, mock commands and frontend integration checks.
+6. Commit, push and update PR #1; verify only tools/hyper3d differs from origin/main.

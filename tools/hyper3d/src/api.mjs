@@ -1,6 +1,5 @@
 import { setTimeout as delay } from "node:timers/promises";
 import { API, generationFields } from "./config.mjs";
-import { maskError } from "./safety.mjs";
 
 export class RodinClient {
    constructor(key, fetchImpl = globalThis.fetch, sleep = delay) {
@@ -10,27 +9,28 @@ export class RodinClient {
    }
 
    async request(endpoint, body, method = "POST") {
+      let response;
       try {
-         const response = await this.fetch(`${API.base}${API.paths[endpoint]}`, {
+         response = await this.fetch(`${API.base}${API.paths[endpoint]}`, {
             method,
             headers: { Authorization: `Bearer ${this.key}`, ...(body instanceof FormData || !body ? {} : { "Content-Type": "application/json" }) },
             body: body instanceof FormData ? body : body ? JSON.stringify(body) : undefined,
             signal: AbortSignal.timeout(API.timeoutMs)
          });
-         if (!response.ok) {
-            const retry = Number(response.headers.get("Retry-After"));
-            const error = new Error(`Rodin ${endpoint}: HTTP ${response.status}`);
-            if (response.status === 429) { error.retryAfterMs = Math.min(30000, Math.max(5000, retry * 1000 || 5000)); }
-            throw error;
-         }
-         const json = await response.json();
-         if (json.error) { throw new Error(`Rodin ${endpoint} rejected the request`); }
-         return json;
-      } catch (error) {
-         const safe = new Error(maskError(error, [this.key]));
-         safe.retryAfterMs = error.retryAfterMs;
-         throw safe;
+      } catch {
+         throw new Error(`Rodin ${endpoint}: request failed`);
       }
+      if (!response.ok) {
+         const retry = Number(response.headers.get("Retry-After"));
+         const error = new Error(`Rodin ${endpoint}: HTTP ${response.status}`);
+         if (response.status === 429) { error.retryAfterMs = Math.min(30000, Math.max(5000, retry * 1000 || 5000)); }
+         throw error;
+      }
+      let json;
+      try { json = await response.json(); } catch { throw new Error(`Rodin ${endpoint}: invalid JSON response`); }
+      if (!json || typeof json !== "object" || Array.isArray(json)) { throw new Error(`Rodin ${endpoint}: invalid response`); }
+      if (json.error) { throw new Error(`Rodin ${endpoint} rejected the request`); }
+      return json;
    }
 
    async balance() {
@@ -81,15 +81,16 @@ export class RodinClient {
          const result = await this.request("download", { [API.fields.task]: task });
          const file = result.list?.find(item => /\.glb$/i.test(item.name));
          if (!file) { throw new Error("Download response has no GLB output"); }
-         const url = new URL(file.url);
+         let url;
+         try { url = new URL(file.url); } catch { throw new Error("Invalid artifact download URL"); }
          if (url.protocol !== "https:") { throw new Error("Refusing a non-HTTPS download link"); }
          try {
             // Signed links authenticate themselves. Never forward the API key to a file host.
             const response = await this.fetch(url.href, { signal: AbortSignal.timeout(API.timeoutMs) });
             if (!response.ok) { throw new Error(`Artifact download: HTTP ${response.status}`); }
             return new Uint8Array(await response.arrayBuffer());
-         } catch (error) {
-            if (attempt === 1) { throw new Error(maskError(error, [this.key])); }
+         } catch {
+            if (attempt === 1) { throw new Error("Artifact download failed after retry"); }
          }
       }
    }

@@ -16,6 +16,7 @@
             "properties": {
                "id": { "type": "string", "pattern": "^[a-zA-Z0-9]+(?:-[a-zA-Z0-9]+)*$" },
                "kind": { "enum": ["character", "prop"] },
+               "rigged": { "type": "boolean" },
                "mode": { "enum": ["image", "text"] },
                "prompt": { "type": "string", "minLength": 1, "maxLength": 1024 },
                "concept": { "type": "string", "pattern": "^tools/hyper3d/concepts/[a-zA-Z0-9_-]+\\.png$" },

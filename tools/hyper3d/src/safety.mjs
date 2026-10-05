@@ -6,7 +6,7 @@ import { API } from "./config.mjs";
 const secrets = new Set();
 
 export function requireConfirm(confirm) {
-   if (!confirm) { throw new Error("gen requires --confirm (including --mock)"); }
+   if (!confirm) { throw new Error("Generation (gen/smoke) requires --confirm (including --mock)"); }
 }
 
 export function guardBudget(balance, cost) {

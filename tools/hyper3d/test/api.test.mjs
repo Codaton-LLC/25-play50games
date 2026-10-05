@@ -15,7 +15,9 @@ test("API submits documented fields and refreshes an expired download exactly on
          assert.equal(init.body.get("TAPose"), "true");
          assert.equal(init.body.get("quality_override"), "18000");
          assert.equal(init.body.get("geometry_file_format"), "glb");
-         assert.equal(init.body.get("geometry_instruct_mode"), "faithful");
+         assert.equal(init.body.has("geometry_instruct_mode"), false);
+         assert.equal(init.body.has("addons"), false);
+         assert.equal(init.body.has("prompt"), false);
          assert.equal(init.body.get("seed"), "5050");
          assert.ok(init.body.get("images") instanceof Blob);
          return Response.json({ uuid: "task-1", jobs: { subscription_key: "sub-1", uuids: ["job-1"] }, consumed: 0.5 }, { status: 201 });
@@ -37,6 +39,15 @@ test("API submits documented fields and refreshes an expired download exactly on
    assert.deepEqual([...await client.download(result.uuid)], [1, 2, 3]);
    assert.equal(downloads, 2);
    assert.equal(calls.filter(([u]) => u.endsWith("/rodin")).length, 1);
+});
+
+test("API never exposes invalid JSON or transport response text", async () => {
+   const { RodinClient } = await import("../src/api.mjs");
+   const marker = "private-response-fragment";
+   const invalid = new RodinClient("synthetic", async () => new Response(marker));
+   await assert.rejects(invalid.balance(), { message: "Rodin balance: invalid JSON response" });
+   const failed = new RodinClient("synthetic", async () => { throw new Error(marker); });
+   await assert.rejects(failed.balance(), { message: "Rodin balance: request failed" });
 });
 
 test("API rejects semantic errors, missing spend, failed jobs and empty jobs", async () => {

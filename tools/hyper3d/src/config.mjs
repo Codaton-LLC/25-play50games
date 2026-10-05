@@ -5,10 +5,9 @@ export const API = Object.freeze({
    fields: {
       images: "images", prompt: "prompt", tier: "tier", quality: "quality_override",
       pose: "TAPose", format: "geometry_file_format", mesh: "mesh_mode", material: "material",
-      seed: "seed", strategy: "geometry_instruct_mode", texture: "texture_mode",
-      addons: "addons", subscription: "subscription_key", task: "task_uuid"
+      seed: "seed", texture: "texture_mode", subscription: "subscription_key", task: "task_uuid"
    },
-   defaults: { format: "glb", mesh: "Raw", material: "PBR", strategy: "faithful", addons: "[]" },
+   defaults: { format: "glb", mesh: "Raw", material: "PBR" },
    creditEstimate: 0.5,
    reserve: 2,
    timeoutMs: 30000,
@@ -19,15 +18,13 @@ export const API = Object.freeze({
 export function generationFields(asset, seed) {
    const f = API.fields;
    return {
-      [f.prompt]: asset.prompt,
+      ...(asset.mode === "text" ? { [f.prompt]: asset.prompt } : {}),
       [f.tier]: asset.tier,
       [f.quality]: String(asset.qualityOverride),
       [f.pose]: String(asset.kind === "character"),
       [f.format]: API.defaults.format,
       [f.mesh]: API.defaults.mesh,
       [f.material]: API.defaults.material,
-      [f.strategy]: API.defaults.strategy,
-      [f.addons]: API.defaults.addons,
       [f.texture]: asset.kind === "character" ? "medium" : "low",
       [f.seed]: String(seed)
    };

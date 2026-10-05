@@ -23,6 +23,8 @@ test("spec defaults and rejects traversal, paid extras, duplicate IDs and invali
       s => { s.assets[0].addons = ["HighPack"]; },
       s => { s.assets[0].tier = "Gen-2.5-Extreme-High"; },
       s => { s.assets.push(s.assets[0]); },
+      s => { s.assets.push({ ...s.assets[0], id: "BATTERY" }); },
+      s => { s.assets[0].rigged = "true"; },
       s => { s.assets[0].budget.bytes = 300001; },
       s => { s.assets[0].kind = "character"; },
       s => { s.assets[0].attempts = 0; }
@@ -33,6 +35,7 @@ test("spec defaults and rejects traversal, paid extras, duplicate IDs and invali
    }
    const { loadSpec } = await import("../src/spec.mjs");
    assert.equal((await loadSpec(repo, "shared")).assets.length, 8);
+   assert.equal(parseSpec({ ...sample, assets: [{ ...sample.assets[0], rigged: true }] }).assets[0].rigged, true);
 });
 
 test("guards enforce confirmation, main checkout and two-credit reserve", async () => {
@@ -82,6 +85,8 @@ test("mock generation and optimization use real GLBs, floor pivot, WebP and mesh
       assert.ok(doc.getRoot().listExtensionsUsed().some(e => e.extensionName === "EXT_meshopt_compression"));
       assert.ok(messages.some(m => m.includes("PASS")));
       await assert.rejects(run(["gen", "shared", "--mock"], ctx), /confirm/);
+      await assert.rejects(run(["smoke", "--mock"], ctx), /confirm/);
+      await run(["smoke", "--confirm", "--mock"], ctx);
       await assert.rejects(run(["optimize", "shared", "--id", "missing", "--mock"], ctx), /Unknown/);
       const { optimizeGLB, fixtureGLB } = await import("../src/models.mjs");
       await assert.rejects(optimizeGLB(await fixtureGLB(), { ...sample.assets[0], budget: { tris: 5000, bytes: 1 } }), /OVER BUDGET/);

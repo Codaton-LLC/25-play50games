@@ -24,8 +24,9 @@ export function parseSpec(input) {
    for (const asset of spec.assets) {
       identifier(asset.id);
       identifier(asset.target, true);
-      if (ids.has(asset.id)) { throw new Error(`Duplicate asset id: ${asset.id}`); }
-      ids.add(asset.id);
+      const normalizedId = asset.id.toLowerCase();
+      if (ids.has(normalizedId)) { throw new Error(`Duplicate asset id (case-insensitive): ${asset.id}`); }
+      ids.add(normalizedId);
       if (asset.target !== "shared" && asset.target !== spec.slug) {
          throw new Error(`Invalid target for ${asset.id}: must be shared or spec slug`);
       }
