@@ -22,9 +22,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   const refreshAuth = async () => {
-    // Token sent with this status check (read before the request goes out)
-    const jwtToken = getJwtToken();
     try {
+      // Token sent with this status check (read before the request goes out)
+      const jwtToken = getJwtToken();
       const status = await checkAuthStatus();
       const wasAuthenticated = !!user;
       const isNowAuthenticated = status.authenticated && !!status.user;
