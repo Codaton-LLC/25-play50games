@@ -1,0 +1,124 @@
+.wrap {
+   width: 100%;
+   min-width: 0;
+}
+
+.table {
+   width: 100%;
+   border-collapse: collapse;
+   color: var(--text);
+   font-size: 0.88rem;
+}
+
+.caption {
+   position: absolute;
+   width: 1px;
+   height: 1px;
+   padding: 0;
+   margin: -1px;
+   overflow: hidden;
+   clip: rect(0, 0, 0, 0);
+   white-space: nowrap;
+   border: 0;
+}
+
+.sr {
+   position: absolute;
+   width: 1px;
+   height: 1px;
+   padding: 0;
+   margin: -1px;
+   overflow: hidden;
+   clip: rect(0, 0, 0, 0);
+   white-space: nowrap;
+   border: 0;
+}
+
+.table th,
+.table td {
+   padding: 0.65rem 0.35rem;
+   border-bottom: 1px solid var(--stroke);
+   text-align: left;
+   vertical-align: baseline;
+   font-weight: 500;
+}
+
+.table thead th {
+   color: var(--muted);
+   font-size: 0.72rem;
+   font-weight: 700;
+   letter-spacing: 0.04em;
+   text-transform: uppercase;
+}
+
+.rank {
+   width: 1%;
+   white-space: nowrap;
+   font-variant-numeric: tabular-nums;
+}
+
+.table .score {
+   width: 1%;
+   white-space: nowrap;
+   text-align: right;
+   font-variant-numeric: tabular-nums;
+}
+
+.table .date {
+   width: 1%;
+   white-space: nowrap;
+   text-align: right;
+   color: var(--muted);
+}
+
+.name {
+   overflow-wrap: anywhere;
+}
+
+.me {
+   background: color-mix(in srgb, var(--accent) 16%, transparent);
+}
+
+.me th,
+.me td {
+   color: var(--text);
+}
+
+.youBody tr th,
+.youBody tr td {
+   border-top: 2px solid var(--stroke);
+}
+
+.state {
+   margin: 0;
+   padding: 0.9rem 0.2rem;
+   color: var(--text);
+   font-size: 0.95rem;
+   line-height: 1.45;
+}
+
+.errorText {
+   margin: 0;
+}
+
+.retry {
+   display: inline-flex;
+   align-items: center;
+   justify-content: center;
+   min-height: 2.75rem;
+   margin-top: 0.7rem;
+   padding: 0.55rem 1rem;
+   border: 1px solid transparent;
+   border-radius: 999px;
+   background: var(--accent);
+   color: var(--bg);
+   font: inherit;
+   font-size: 0.95rem;
+   font-weight: 700;
+   cursor: pointer;
+}
+
+.retry:focus-visible {
+   outline: 2px solid var(--text);
+   outline-offset: 3px;
+}

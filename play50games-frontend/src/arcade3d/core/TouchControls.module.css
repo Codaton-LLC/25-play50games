@@ -1,0 +1,84 @@
+/* Touch controls layer. Lives inside the canvas wrapper (touch-action: none),
+   so dragging the joystick never scrolls or zooms the page. */
+.controls {
+   --controls-gap: 20px;
+   --controls-bottom: calc(env(safe-area-inset-bottom, 0px) + var(--arcade-bottom-obstruction, 0px) + var(--controls-gap));
+
+   display: none;
+   position: absolute;
+   inset: 0;
+   z-index: 3;
+   pointer-events: none;
+   user-select: none;
+   -webkit-user-select: none;
+   -webkit-touch-callout: none;
+}
+
+@media (pointer: coarse) {
+   .controls {
+      display: block;
+   }
+}
+
+.joystick {
+   position: absolute;
+   left: calc(env(safe-area-inset-left, 0px) + var(--controls-gap));
+   bottom: var(--controls-bottom);
+   width: 132px;
+   height: 132px;
+   border: 2px solid rgba(255, 255, 255, 0.22);
+   border-radius: 50%;
+   background: radial-gradient(circle at 50% 50%, rgba(125, 211, 252, 0.16), rgba(11, 16, 32, 0.45) 70%);
+   pointer-events: auto;
+}
+
+.knob {
+   position: absolute;
+   top: 50%;
+   left: 50%;
+   width: 60px;
+   height: 60px;
+   margin: -30px 0 0 -30px;
+   border: 2px solid rgba(255, 255, 255, 0.55);
+   border-radius: 50%;
+   background: rgba(125, 211, 252, 0.55);
+   box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+   will-change: transform;
+}
+
+.buttons {
+   position: absolute;
+   right: calc(env(safe-area-inset-right, 0px) + var(--controls-gap));
+   bottom: var(--controls-bottom);
+   display: flex;
+   align-items: flex-end;
+   gap: 16px;
+   pointer-events: auto;
+}
+
+.button {
+   width: 72px;
+   height: 72px;
+   min-width: 56px;
+   min-height: 56px;
+   border: 2px solid rgba(255, 255, 255, 0.35);
+   border-radius: 50%;
+   background: rgba(11, 16, 32, 0.6);
+   color: var(--text);
+   font: inherit;
+   font-size: 13px;
+   font-weight: 700;
+   letter-spacing: 0.02em;
+   -webkit-tap-highlight-color: transparent;
+}
+
+.button:focus-visible {
+   outline: 3px solid var(--accent);
+   outline-offset: 3px;
+}
+
+.buttonDown {
+   background: rgba(125, 211, 252, 0.45);
+   border-color: var(--accent);
+   transform: scale(0.94);
+}
