@@ -1,0 +1,52 @@
+{
+   "slug": "escape-room",
+   "universe": "shared-cast",
+   "seed": 5050,
+   "assets": [
+      {
+         "id": "key",
+         "kind": "prop",
+         "mode": "text",
+         "prompt": "Big golden old-fashioned key with a rounded bow and three chunky teeth, easy to recognize from above, Play50 toy world style, bright vinyl toy look, smooth rounded shapes, saturated colours, friendly cartoon proportions, single isolated prop, centered, no base, no ground, no text, clean game-ready low-poly topology",
+         "tier": "Gen-2.5-Low",
+         "qualityOverride": 1500,
+         "attempts": 1,
+         "target": "escape-room",
+         "budget": {
+            "tris": 5000,
+            "bytes": 300000
+         },
+         "textureSize": 512
+      },
+      {
+         "id": "book",
+         "kind": "prop",
+         "mode": "text",
+         "prompt": "Thick old red hardcover book, closed, rounded spine, chunky cream page block and a plain unlettered cover, Play50 toy world style, bright vinyl toy look, smooth rounded shapes, saturated colours, friendly cartoon proportions, single isolated prop, centered, no base, no ground, no text, clean game-ready low-poly topology",
+         "tier": "Gen-2.5-Low",
+         "qualityOverride": 2000,
+         "attempts": 1,
+         "target": "escape-room",
+         "budget": {
+            "tris": 5000,
+            "bytes": 300000
+         },
+         "textureSize": 512
+      },
+      {
+         "id": "door",
+         "kind": "prop",
+         "mode": "text",
+         "prompt": "Single upright wooden exit door leaf, warm brown panels, chunky golden handle, straight lower edge, no frame and no separate hinges, one rigid object for a simple game hinge animation, Play50 toy world style, bright vinyl toy look, smooth rounded shapes, saturated colours, friendly cartoon proportions, single isolated prop, centered, no base, no ground, no text, clean game-ready low-poly topology",
+         "tier": "Gen-2.5-Low",
+         "qualityOverride": 2500,
+         "attempts": 1,
+         "target": "escape-room",
+         "budget": {
+            "tris": 5000,
+            "bytes": 300000
+         },
+         "textureSize": 512
+      }
+   ]
+}
