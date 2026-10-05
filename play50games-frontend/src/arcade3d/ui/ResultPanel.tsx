@@ -11,6 +11,8 @@ export interface ResultPanelProps {
    score: number;
    durationMs?: number | null;
    best: number;
+   /** duration of the best run; time games show it instead of the score */
+   bestDurationMs?: number | null;
    isNewBest: boolean;
    /** null while the score is still being submitted */
    status: SubmitStatus | null;
@@ -45,6 +47,8 @@ function submitMessage(status: SubmitStatus | null, rank?: number | null): strin
          return "You are offline. Saved on this device.";
       case "config-error":
          return "The leaderboard is unavailable right now. Saved on this device.";
+      case "unranked":
+         return "Finish the course to set a time. This run was not saved.";
       default:
          return "Saving…";
    }
@@ -56,6 +60,7 @@ export default function ResultPanel(props: ResultPanelProps) {
       score,
       durationMs,
       best,
+      bestDurationMs,
       isNewBest,
       status,
       scoring,
@@ -73,7 +78,7 @@ export default function ResultPanel(props: ResultPanelProps) {
             <h2 className={styles.title}>{title}</h2>
             <p className={styles.score}>{formatScore(score, scoring, durationMs)}</p>
             {isNewBest ? <p className={styles.newBest}>New best!</p> : null}
-            <p className={styles.best}>Best {formatScore(best, scoring, isNewBest ? durationMs : undefined)}</p>
+            <p className={styles.best}>Best {formatScore(best, scoring, isNewBest ? durationMs : bestDurationMs)}</p>
             {rank != null ? <p className={styles.rank}>Rank #{rank}</p> : null}
             <p className={styles.message} aria-live="polite" data-status={status ?? "saving"}>
                {submitMessage(status, rank)}

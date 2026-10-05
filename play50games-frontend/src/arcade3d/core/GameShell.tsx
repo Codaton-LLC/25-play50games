@@ -403,6 +403,7 @@ export default function GameShell({ meta, definition, exitHref = "/3d" }: GameSh
                   slug,
                   score: run.score,
                   best: run.score,
+                  bestDurationMs: run.durationMs,
                   isNewBest: false,
                   plays: 0,
                   rank: null,
@@ -612,6 +613,8 @@ export default function GameShell({ meta, definition, exitHref = "/3d" }: GameSh
                            score={result?.score ?? outcome.run.score}
                            durationMs={outcome.run.durationMs}
                            best={result?.best ?? outcome.run.score}
+                           bestDurationMs={result?.bestDurationMs ?? null}
+                           rank={result?.rank ?? null}
                            isNewBest={result?.isNewBest ?? false}
                            status={outcome.saving ? null : result?.status ?? null}
                            scoring={meta.scoring}
@@ -622,11 +625,9 @@ export default function GameShell({ meta, definition, exitHref = "/3d" }: GameSh
                               loginRequired && canSaveToAccount && !outcome.saving ? saveToAccount : undefined
                            }
                         >
+                           <p className={styles.hint}>Played {formatDuration(outcome.run.durationMs)}</p>
                            <LeaderboardBlock leaderboard={leaderboard} meta={meta} />
                         </ResultPanel>
-                        <p className={styles.hint}>
-                           Played {formatDuration(outcome.run.durationMs)}
-                        </p>
                      </div>
                   </div>
                )}

@@ -50,6 +50,8 @@ export interface SubmitResult {
    slug: ArcadeSlug;
    score: number;
    best: number;
+   /** duration of the best run, when known (time games show it instead of the score) */
+   bestDurationMs: number | null;
    isNewBest: boolean;
    plays: number;
    rank: number | null;
@@ -183,6 +185,7 @@ function saveLocally(run: FinishedRun, userId: number | null): LocalSave {
          slug: run.slug,
          score: normalized.score,
          best: entry.best,
+         bestDurationMs: entry.bestDurationMs,
          isNewBest,
          plays: entry.plays,
          rank: entry.rank,
@@ -203,8 +206,10 @@ async function sendToLeaderboard({ normalized, result }: LocalSave, userId: numb
          duration_ms: normalized.durationMs,
       });
       const best = Math.max(result.best, data.best_score);
-      patchLocalEntry(userId, normalized.slug, { best, rank: data.rank });
-      return { ...result, best, rank: data.rank, isNewBest: data.is_new_best, status: "synced" };
+      // the server does not return the best run's duration; it is only known if the local best still stands
+      const bestDurationMs = best === result.best ? result.bestDurationMs : null;
+      patchLocalEntry(userId, normalized.slug, { best, bestDurationMs, rank: data.rank });
+      return { ...result, best, bestDurationMs, rank: data.rank, isNewBest: data.is_new_best, status: "synced" };
    } catch (error) {
       return { ...result, status: statusFromError(error) };
    }
@@ -239,6 +244,7 @@ export function unrankedResult(slug: ArcadeSlug, userId: number | null): SubmitR
       slug,
       score: 0,
       best: entry?.best ?? 0,
+      bestDurationMs: entry?.bestDurationMs ?? null,
       isNewBest: false,
       plays: entry?.plays ?? 0,
       rank: entry?.rank ?? null,
