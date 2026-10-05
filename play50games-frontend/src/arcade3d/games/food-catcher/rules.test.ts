@@ -15,7 +15,6 @@ import {
    SPAWN_X,
    SPAWN_Y,
    STEPS,
-   badChanceForSpawn,
    buildPlan,
    catchPoints,
    createRng,
@@ -25,6 +24,7 @@ import {
    itemY,
    overlapsCatchBox,
    spawnTimes,
+   splitDt,
    step,
    withinServerLimits,
    type RunState,
@@ -52,7 +52,7 @@ function play(state: RunState, dt: number, inputFor: (state: RunState, dt: numbe
 
 /** Chef is already under whichever item crosses on the next frame. That is perfect play. */
 function perfectInput(state: RunState, dt: number): StepInput {
-   const next = Math.min(ROUND_MS, state.elapsedMs + dt);
+   const next = Math.min(ROUND_MS, state.elapsedMs + splitDt(state.carryMs, dt).wholeMs);
    let x: number | null = null;
    let best = Infinity;
    for (let i = 0; i < state.items.length; i++) {
@@ -123,18 +123,49 @@ describe("schedule", () => {
       expect(a.map((p) => p.time)).toEqual(b.map((p) => p.time));
    });
 
-   it("uses the step's bad chance from spawn 4 on", () => {
-      expect(badChanceForSpawn(1200)).toBe(0.12);
-      expect(badChanceForSpawn(72_000)).toBe(0.28);
-      expect(badChanceForSpawn(80_000)).toBe(0.32);
-      const plan = buildPlan(7);
-      for (let i = 3; i < plan.length; i++) {
-         expect(plan[i].bad === false || BAD_KINDS.includes(plan[i].kind as (typeof BAD_KINDS)[number])).toBe(true);
-         if (plan[i].bad) expect(BAD_KINDS).toContain(plan[i].kind);
-         else expect(GOOD_KINDS).toContain(plan[i].kind);
-         expect(plan[i].x).toBeGreaterThanOrEqual(SPAWN_X.min);
-         expect(plan[i].x).toBeLessThanOrEqual(SPAWN_X.max);
+   it("keeps spawns 0-2 good and matches each step's bad chance over 2000 seeds", () => {
+      const tallies = STEPS.map(() => ({ bad: 0, total: 0 }));
+      for (let seed = 1; seed <= 2000; seed++) {
+         const plan = buildPlan(seed);
+         expect(plan[0].bad).toBe(false);
+         expect(plan[1].bad).toBe(false);
+         expect(plan[2].bad).toBe(false);
+         for (let i = 3; i < plan.length; i++) {
+            const row = STEPS.findIndex((stepRow) => plan[i].time >= stepRow.start && plan[i].time < stepRow.end);
+            expect(row).toBeGreaterThanOrEqual(0);
+            tallies[row].total += 1;
+            if (plan[i].bad) tallies[row].bad += 1;
+         }
       }
+      for (let row = 0; row < STEPS.length; row++) {
+         expect(tallies[row].bad).toBeGreaterThan(0);
+         expect(tallies[row].total).toBeGreaterThan(0);
+         const rate = tallies[row].bad / tallies[row].total;
+         expect(Math.abs(rate - STEPS[row].badChance)).toBeLessThanOrEqual(0.03);
+      }
+   });
+
+   it("changes kinds with the seed, shows every kind, and reaches both ends of the spawn line", () => {
+      expect(buildPlan(1).map((spawn) => spawn.kind)).not.toEqual(buildPlan(2).map((spawn) => spawn.kind));
+      const goods = new Set<string>();
+      const bads = new Set<string>();
+      let minX = Infinity;
+      let maxX = -Infinity;
+      for (let seed = 1; seed <= 2000; seed++) {
+         const plan = buildPlan(seed);
+         for (let i = 0; i < plan.length; i++) {
+            if (plan[i].x < minX) minX = plan[i].x;
+            if (plan[i].x > maxX) maxX = plan[i].x;
+            if (plan[i].bad) bads.add(plan[i].kind);
+            else goods.add(plan[i].kind);
+         }
+      }
+      for (let i = 0; i < GOOD_KINDS.length; i++) expect(goods.has(GOOD_KINDS[i])).toBe(true);
+      for (let i = 0; i < BAD_KINDS.length; i++) expect(bads.has(BAD_KINDS[i])).toBe(true);
+      expect(minX).toBeGreaterThanOrEqual(SPAWN_X.min);
+      expect(maxX).toBeLessThanOrEqual(SPAWN_X.max);
+      expect(minX).toBeLessThanOrEqual(SPAWN_X.min + 0.2);
+      expect(maxX).toBeGreaterThanOrEqual(SPAWN_X.max - 0.2);
    });
 });
 
@@ -173,6 +204,68 @@ describe("movement and the catch box", () => {
       expect(itemY(1200, 3950, 1.6)).toBeLessThanOrEqual(CATCH_BOX.top);
       expect(overlapsCatchBox(0, 1.6, 0)).toBe(true);
       expect(overlapsCatchBox(3.4, 1.6, 0)).toBe(false);
+      expect(overlapsCatchBox(1.05, 1.6, 0)).toBe(true);
+      expect(overlapsCatchBox(-1.05, 1.6, 0)).toBe(true);
+      expect(overlapsCatchBox(1.06, 1.6, 0)).toBe(false);
+      expect(overlapsCatchBox(-1.06, 1.6, 0)).toBe(false);
+   });
+
+   it("catches x = 1.0 on the crossing frame and misses x = 1.1", () => {
+      const caught = createRun(1);
+      caught.elapsedMs = 3900;
+      caught.nextSpawn = caught.plan.length;
+      caught.alive = 1;
+      const hit = caught.items[0];
+      hit.active = true;
+      hit.bad = false;
+      hit.kind = "apple";
+      hit.x = 1;
+      hit.speed = 1.6;
+      hit.bornMs = 1200;
+      hit.spawnIndex = 0;
+      expect(step(caught, DT, { dir: 0 }).caught).toBe(1);
+
+      const missed = createRun(1);
+      missed.elapsedMs = 3900;
+      missed.nextSpawn = missed.plan.length;
+      missed.alive = 1;
+      const miss = missed.items[0];
+      miss.active = true;
+      miss.bad = false;
+      miss.kind = "apple";
+      miss.x = 1.1;
+      miss.speed = 1.6;
+      miss.bornMs = 1200;
+      miss.spawnIndex = 0;
+      expect(step(missed, DT, { dir: 0 }).missed).toBe(1);
+   });
+
+   it("treats NaN and Infinity as no touch target and uses the keyboard", () => {
+      const nan = createRun(1);
+      step(nan, 200, { targetX: Number.NaN, dir: 1 });
+      expect(nan.chefV).toBe(9);
+      expect(nan.chefX).toBeCloseTo(1.8, 10);
+
+      const infinite = createRun(1);
+      step(infinite, 200, { targetX: Number.POSITIVE_INFINITY, dir: -1 });
+      expect(infinite.chefV).toBe(-9);
+      expect(infinite.chefX).toBeCloseTo(-1.8, 10);
+   });
+
+   it("keeps elapsedMs a whole number and parks the fractional dt in carryMs", () => {
+      expect(splitDt(0, 50)).toEqual({ wholeMs: 50, carryMs: 0 });
+      expect(splitDt(0, 16.7)).toEqual({ wholeMs: 16, carryMs: 0.7 });
+      const state = createRun(1);
+      step(state, 16.7, { dir: 0 });
+      expect(state.elapsedMs).toBe(16);
+      expect(state.carryMs).toBeCloseTo(0.7, 10);
+      expect(Number.isInteger(state.elapsedMs)).toBe(true);
+      for (let i = 0; i < 5000; i++) {
+         step(state, 16.7, { dir: 0 });
+         expect(Number.isInteger(state.elapsedMs)).toBe(true);
+         expect(state.carryMs).toBeGreaterThanOrEqual(0);
+         expect(state.carryMs).toBeLessThan(1);
+      }
    });
 });
 

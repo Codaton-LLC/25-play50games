@@ -4,7 +4,11 @@
 // Fall height is computed from the clock (spawn frame elapsed -> now), never by adding
 // speed * dt onto a stored y. The spawn schedule is an integer-millisecond clock.
 
+import { capScore as capToLimits, withinServerLimits as fitsLimits } from "@/arcade3d/core/limits";
+import { createRng } from "@/arcade3d/core/math";
 import { foodCatcherMeta } from "./meta";
+
+export { createRng };
 
 // ---------- tuning (README constants table) ----------
 
@@ -103,7 +107,8 @@ export function overlapsCatchBox(itemX: number, itemYPos: number, chefX: number)
    const nearestY = itemYPos < CATCH_BOX.bottom ? CATCH_BOX.bottom : itemYPos > CATCH_BOX.top ? CATCH_BOX.top : itemYPos;
    const dx = itemX - nearestX;
    const dy = itemYPos - nearestY;
-   return dx * dx + dy * dy <= ITEM_RADIUS * ITEM_RADIUS;
+   // 1e-9 keeps the exact touch at x = ±1.05 (half-width 0.7 + radius 0.35) from failing as a float.
+   return dx * dx + dy * dy <= ITEM_RADIUS * ITEM_RADIUS + 1e-9;
 }
 
 /** Points for a good catch that brings the combo to `comboAfter` (1-based). */
@@ -112,32 +117,28 @@ export function catchPoints(comboAfter: number): number {
 }
 
 /**
- * Clamp submitted by the shell: min(score, 5000, floor(50 * duration_s)).
- * `floor(50 * durationMs / 1000)` is that floor in integer milliseconds.
+ * Clamp submitted by the shell, via core/limits.ts: min(score, 5000, floor(50 * roundedSeconds)).
+ * The returned durationMs is the caller's value; the budget uses GameShell's rounded milliseconds.
  */
 export function finalScore(score: number, durationMs: number): { score: number; durationMs: number } {
-   const budget = Math.floor((MAX_POINTS_PER_SEC * durationMs) / 1000);
-   return { score: Math.min(score, MAX_SCORE, budget), durationMs };
+   return { score: capToLimits(score, durationMs, foodCatcherMeta.scoring), durationMs };
 }
 
+/** The server's check (core/limits.ts) with this game's limits from meta.ts. */
 export function withinServerLimits(score: number, durationMs: number): boolean {
-   if (!Number.isInteger(score) || score < 0 || score > MAX_SCORE) return false;
-   if (durationMs < foodCatcherMeta.scoring.minDurationMs || durationMs > foodCatcherMeta.scoring.maxDurationMs) return false;
-   return score * 1000 <= MAX_POINTS_PER_SEC * durationMs;
+   return fitsLimits(score, durationMs, foodCatcherMeta.scoring);
 }
 
-// ---------- rng ----------
-
-/** mulberry32. Returns floats in [0, 1). The seed always comes from the caller. */
-export function createRng(seed: number): () => number {
-   let a = seed >>> 0;
-   return () => {
-      a = (a + 0x6d2b79f5) >>> 0;
-      let t = a;
-      t = Math.imul(t ^ (t >>> 15), t | 1);
-      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-   };
+/**
+ * Split a frame dt into whole milliseconds plus a remainder in [0, 1).
+ * dt is quantised to 0.001 ms first, so a run of 16.7 ms steps does not drift.
+ */
+export function splitDt(carryMs: number, dtMs: number): { wholeMs: number; carryMs: number } {
+   if (!(dtMs > 0) || !Number.isFinite(dtMs)) return { wholeMs: 0, carryMs };
+   const pending = Math.round(carryMs * 1000) + Math.round(dtMs * 1000);
+   const wholeMs = Math.floor(pending / 1000);
+   const rest = pending - wholeMs * 1000;
+   return { wholeMs, carryMs: rest / 1000 };
 }
 
 // ---------- run ----------
@@ -174,7 +175,7 @@ export interface StepEvents {
 export interface StepInput {
    /** Touch: world x the chef walks toward, at most maxSpeed * dt, without passing it. */
    targetX?: number | null;
-   /** Keyboard: -1 left, 1 right, 0 released. Used only when targetX is not a number. */
+   /** Keyboard: -1 left, 1 right, 0 released. Used when targetX is missing, NaN or infinite. */
    dir?: -1 | 0 | 1;
 }
 
@@ -187,7 +188,10 @@ export interface RunOptions {
 
 export interface RunState {
    seed: number;
+   /** Whole milliseconds of unpaused play. Never a fractional sum of frame dts. */
    elapsedMs: number;
+   /** Unused fraction of a millisecond, in [0, 1). */
+   carryMs: number;
    chefX: number;
    chefV: number;
    score: number;
@@ -234,6 +238,7 @@ export function createRun(seed: number, options: RunOptions = {}): RunState {
    return {
       seed,
       elapsedMs: 0,
+      carryMs: 0,
       chefX: 0,
       chefV: 0,
       score: 0,
@@ -265,11 +270,16 @@ function approach(value: number, target: number, rate: number, dt: number): numb
    return target;
 }
 
+function finiteTarget(value: number | null | undefined): value is number {
+   return Number.isFinite(value);
+}
+
 function moveChef(state: RunState, dtMs: number, input: StepInput): void {
    const dt = dtMs / 1000;
    if (!(dt > 0)) return;
-   if (typeof input.targetX === "number") {
-      const goal = input.targetX < CHEF.minX ? CHEF.minX : input.targetX > CHEF.maxX ? CHEF.maxX : input.targetX;
+   const targetX = input.targetX;
+   if (finiteTarget(targetX)) {
+      const goal = targetX < CHEF.minX ? CHEF.minX : targetX > CHEF.maxX ? CHEF.maxX : targetX;
       const maxStep = CHEF.maxSpeed * dt;
       const dx = goal - state.chefX;
       const step = dx > maxStep ? maxStep : dx < -maxStep ? -maxStep : dx;
@@ -361,11 +371,17 @@ export function step(state: RunState, dtMs: number, input: StepInput = {}): Step
    if (state.ended || !(dtMs > 0)) return events;
 
    const prev = state.elapsedMs;
-   let elapsed = prev + dtMs;
-   if (elapsed > ROUND_MS) elapsed = ROUND_MS;
-   state.elapsedMs = elapsed;
+   const split = splitDt(state.carryMs, dtMs);
+   let whole = split.wholeMs;
+   let carry = split.carryMs;
+   if (prev + whole >= ROUND_MS) {
+      whole = ROUND_MS - prev;
+      carry = 0;
+   }
+   state.carryMs = carry;
+   state.elapsedMs = prev + whole;
 
-   moveChef(state, elapsed - prev, input);
+   moveChef(state, whole, input);
    spawnDue(state);
 
    // Resolve crossings in spawn order. n is at most the slot count (16).
