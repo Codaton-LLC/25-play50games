@@ -302,6 +302,10 @@ export default function RegisterModal({ isOpen, onClose, onRegister, onSwitchToL
             )}
           </div>
 
+          <p style={{ margin: '0 0 0.75rem', color: 'var(--muted)', fontSize: '0.8125rem', lineHeight: 1.5 }}>
+            Your first name and last initial may appear on 3D Arcade leaderboards. You can hide it anytime.
+          </p>
+
           <button type="submit" disabled={loading} className="btn-primary">
             {loading ? 'Registering...' : 'Register'}
           </button>
