@@ -1,8 +1,9 @@
-// STUB (Phase 0). Owner: Cursor (K2). Keep the props exactly as typed; add a .module.css next to this file.
 import Link from "next/link";
+import type { CSSProperties } from "react";
 import type { ArcadeGameMeta } from "../types";
 import type { LocalScoreEntry } from "../core/scores";
 import { formatScore } from "../core/format";
+import styles from "./ArcadeCard.module.css";
 
 export interface ArcadeCardProps {
    meta: ArcadeGameMeta;
@@ -10,13 +11,53 @@ export interface ArcadeCardProps {
 }
 
 export default function ArcadeCard({ meta, best }: ArcadeCardProps) {
+   const accent = { "--card-accent": meta.accent } as CSSProperties;
+   const soon = meta.status === "soon";
    const body = (
       <>
-         <h3>{meta.title}</h3>
-         <p>{meta.tagline}</p>
-         {meta.status === "soon" && <span>Soon</span>}
-         {best && <span>Best: {formatScore(best.best, meta.scoring, best.bestDurationMs)}</span>}
+         <div className={styles.art}>
+            {meta.thumbnail ? <img className={styles.image} src={meta.thumbnail} alt="" /> : null}
+            {soon ? <span className={styles.soon}>Soon</span> : null}
+         </div>
+         <div className={styles.copy}>
+            <div className={styles.heading}>
+               <h3 className={styles.title}>{meta.title}</h3>
+               <span className={styles.dots} aria-label={`Difficulty ${meta.difficulty} of 3`}>
+                  {[1, 2, 3].map((level) => (
+                     <span
+                        key={level}
+                        className={level <= meta.difficulty ? styles.dotOn : styles.dot}
+                        aria-hidden="true"
+                     />
+                  ))}
+               </span>
+            </div>
+            <p className={styles.tagline}>{meta.tagline}</p>
+            <p className={styles.best}>
+               {best ? (
+                  <>
+                     <span className={styles.bestLabel}>Best</span>{" "}
+                     {formatScore(best.best, meta.scoring, best.bestDurationMs)}
+                  </>
+               ) : (
+                  "No score yet"
+               )}
+            </p>
+         </div>
       </>
    );
-   return meta.status === "live" ? <Link href={`/3d/${meta.slug}`}>{body}</Link> : <div>{body}</div>;
+
+   if (meta.status === "live") {
+      return (
+         <Link className={`${styles.card} ${styles.link}`} href={`/3d/${meta.slug}`} style={accent}>
+            {body}
+         </Link>
+      );
+   }
+
+   return (
+      <article className={styles.card} style={accent}>
+         {body}
+      </article>
+   );
 }
