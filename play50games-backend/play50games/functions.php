@@ -500,9 +500,16 @@
     // ============================================
     // Play50Games JWT Configuration (Fallback)
     // ============================================
-    // Nëse JWT_AUTH_SECRET_KEY nuk është i definuar në wp-config.php, defino këtu
-    if (!defined('JWT_AUTH_SECRET_KEY')) {
-        define('JWT_AUTH_SECRET_KEY', 'play50games251228granit78954561fewtr435gad');
+    // JWT_AUTH_SECRET_KEY duhet të definohet në wp-config.php (në server, jo në git).
+    // The old hard-coded fallback is in git history, so it is never used again. Without the
+    // constant, derive a per-site key from this server's own salts (wp_salt() is pluggable and
+    // loaded before the theme). Never log or print the key itself.
+    if (!defined('JWT_AUTH_SECRET_KEY') && function_exists('wp_salt')) {
+        define('JWT_AUTH_SECRET_KEY', hash('sha256', wp_salt('auth') . '|play50-jwt'));
+        if (!get_transient('play50_jwt_secret_notice')) {
+            error_log('Play50Games: JWT_AUTH_SECRET_KEY is not defined in wp-config.php; using a key derived from the WordPress salts. Define it in wp-config.php.');
+            set_transient('play50_jwt_secret_notice', 1, DAY_IN_SECONDS);
+        }
     }
     if (!defined('JWT_AUTH_CORS_ENABLE')) {
         define('JWT_AUTH_CORS_ENABLE', true);

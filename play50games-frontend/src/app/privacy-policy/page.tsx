@@ -20,7 +20,7 @@ export default function PrivacyPolicyPage() {
     return `${day}.${month}.${year}`;
   };
 
-  const lastUpdatedDate = formatDate(new Date('2025-01-09')); // Fixed date to avoid hydration issues
+  const lastUpdatedDate = formatDate(new Date('2026-10-05')); // Fixed date to avoid hydration issues
 
   return (
     <div className="privacy-page">
@@ -191,7 +191,57 @@ export default function PrivacyPolicyPage() {
                 color: "var(--accent)",
               }}
             >
-              5. Information Sharing
+              5. 3D Arcade Scores and Leaderboards
+            </h2>
+            <p style={{ color: "var(--muted)", marginBottom: "15px" }}>
+              Each 3D Arcade game keeps its own score and has its own public
+              leaderboard:
+            </p>
+            <ul
+              style={{
+                color: "var(--muted)",
+                marginLeft: "20px",
+                marginBottom: "15px",
+              }}
+            >
+              <li>
+                Guests: scores are saved only on your device (browser local
+                storage) and are not added to any leaderboard.
+              </li>
+              <li>
+                Logged-in players: we store your best score for each game, the
+                time of that run, how often you played and when you last played.
+                Your best score is shown on that game&apos;s public leaderboard.
+              </li>
+              <li>
+                On leaderboards you appear with your first name and last initial
+                (for example &quot;Ana K.&quot;), never with your username or
+                email.
+              </li>
+              <li>
+                You can hide your name at any time with the &quot;Show my name on
+                leaderboards&quot; switch on the 3D Arcade page. You then appear as
+                &quot;Anonymous&quot; and your scores still count.
+              </li>
+              <li>
+                To prevent cheating and abuse, administrators can remove scores,
+                and a hashed form of your IP address is used briefly to limit how
+                often scores can be sent.
+              </li>
+              <li>Deleting your account also deletes your 3D Arcade scores.</li>
+            </ul>
+          </section>
+
+          <section style={{ marginBottom: "30px" }}>
+            <h2
+              style={{
+                fontSize: "20px",
+                fontWeight: 600,
+                marginBottom: "15px",
+                color: "var(--accent)",
+              }}
+            >
+              6. Information Sharing
             </h2>
             <p style={{ color: "var(--muted)", marginBottom: "15px" }}>
               We do not sell, trade, or rent your personal information to third
@@ -220,7 +270,7 @@ export default function PrivacyPolicyPage() {
                 color: "var(--accent)",
               }}
             >
-              6. Your Rights
+              7. Your Rights
             </h2>
             <p style={{ color: "var(--muted)", marginBottom: "15px" }}>
               You have the right to:
@@ -248,7 +298,7 @@ export default function PrivacyPolicyPage() {
                 color: "var(--accent)",
               }}
             >
-              7. Children's Privacy
+              8. Children's Privacy
             </h2>
             <p style={{ color: "var(--muted)", marginBottom: "15px" }}>
               Our service is not intended for children under 13 years of age. We
@@ -266,7 +316,7 @@ export default function PrivacyPolicyPage() {
                 color: "var(--accent)",
               }}
             >
-              8. Changes to This Policy
+              9. Changes to This Policy
             </h2>
             <p style={{ color: "var(--muted)", marginBottom: "15px" }}>
               We may update this Privacy Policy from time to time. We will
@@ -284,7 +334,7 @@ export default function PrivacyPolicyPage() {
                 color: "var(--accent)",
               }}
             >
-              9. Contact Us
+              10. Contact Us
             </h2>
             <p style={{ color: "var(--muted)", marginBottom: "15px" }}>
               If you have any questions about this Privacy Policy, please
