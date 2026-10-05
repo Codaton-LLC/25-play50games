@@ -5,7 +5,10 @@
 // Plain data, server-safe.
 
 export const MODEL_MANIFEST: readonly string[] = [
-   // "/models/3d/shared/robot.glb",
+   // batch 1 (2026-10-05): Hyper3D Rodin Gen-2.5-Medium, 1500 tris, optimized with tools/hyper3d
+   "/models/3d/shared/battery.glb",
+   "/models/3d/shared/crate.glb",
+   "/models/3d/robot-collector/barrel.glb",
 ];
 
 const LISTED: ReadonlySet<string> = new Set(MODEL_MANIFEST);
