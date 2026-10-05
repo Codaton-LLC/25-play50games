@@ -140,6 +140,58 @@ describe("tick", () => {
       s().tick(100);
       expect(s().elapsedMs).toBe(0);
    });
+
+   it("counts the rest of the frame in which the countdown ends as play time", () => {
+      s().configure({ durationMs: 10000 });
+      s().markReady();
+      s().start();
+      advance(COUNTDOWN_MS - 30);
+      expect(s()).toMatchObject({ phase: "countdown", countdownMs: 30, frameMs: 0 });
+      s().tick(50);
+      expect(s()).toMatchObject({ phase: "playing", countdownMs: 0, elapsedMs: 20, timeLeftMs: 9980, frameMs: 20 });
+      s().tick(50);
+      expect(s()).toMatchObject({ elapsedMs: 70, frameMs: 50 });
+   });
+
+   it("an exact end of the countdown starts playing with no play time yet", () => {
+      toPlaying({ durationMs: 10000 });
+      expect(s()).toMatchObject({ phase: "playing", elapsedMs: 0, frameMs: 0 });
+   });
+
+   it("frameMs is the play time the latest tick added, and 0 when it added none", () => {
+      toPlaying({ durationMs: 1000 });
+      s().tick(16);
+      expect(s().frameMs).toBe(16);
+      s().tick(0);
+      expect(s()).toMatchObject({ frameMs: 0, elapsedMs: 16 });
+      s().tick(16);
+      s().pause();
+      s().tick(16);
+      expect(s()).toMatchObject({ frameMs: 0, elapsedMs: 32 });
+      s().resume();
+      s().tick(10000);
+      expect(s().frameMs).toBe(MAX_TICK_MS);
+      // the time-up tick counts only what was left
+      advance(1000 - 32 - MAX_TICK_MS - 10);
+      s().tick(50);
+      expect(s()).toMatchObject({ phase: "over", endReason: "timeup", frameMs: 10, elapsedMs: 1000 });
+      s().tick(50);
+      expect(s().frameMs).toBe(0);
+   });
+
+   it("time-up sets elapsedMs to exactly the duration, whatever float drift the frames had", () => {
+      toPlaying({ durationMs: 60000 });
+      while (s().phase === "playing") s().tick(1000 / 60);
+      expect(s()).toMatchObject({ phase: "over", endReason: "timeup", elapsedMs: 60000, timeLeftMs: 0 });
+   });
+
+   it("an untimed game counts the countdown's rest too", () => {
+      s().markReady();
+      s().start();
+      advance(COUNTDOWN_MS - 5);
+      s().tick(40);
+      expect(s()).toMatchObject({ phase: "playing", elapsedMs: 35, timeLeftMs: null, frameMs: 35 });
+   });
 });
 
 describe("end", () => {

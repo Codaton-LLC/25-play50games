@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { createArcadeStore } from "@/arcade3d/core/useArcadeStore";
-import { MAX_FRAME_DT, clampFrameDt } from "@/arcade3d/core/useRunFrame";
+import { distanceToBoxXZ as distanceToBox } from "@/arcade3d/core/collision";
+import { FRAME_PRIORITY, MAX_FRAME_DT, advanceRunClock, playedFrameDt } from "@/arcade3d/core/frameLoop";
+import { createRng } from "@/arcade3d/core/math";
+import { COUNTDOWN_MS, createArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { robotCollectorMeta } from "./meta";
 import {
    ARENA,
@@ -18,18 +20,14 @@ import {
    ROBOT_START,
    SPACING,
    SPAWN_CLEARANCE,
-   UNTIMED_MOVE_S,
    WAVE_COUNT,
    WAVE_SIZE,
    capScore,
    collectTouched,
    createProgress,
-   createRng,
    createRobot,
-   distanceToBox,
    fastestFinishMs,
    generateLayout,
-   inputToWorld,
    isActive,
    isComplete,
    isSpawnPoint,
@@ -40,7 +38,6 @@ import {
    spawnPoints,
    stepRobot,
    timeBonus,
-   turnTowards,
    withinServerLimits,
    type Battery,
    type Layout,
@@ -152,32 +149,47 @@ interface SimResult {
    won: boolean;
    elapsedMs: number;
    collected: number;
-   maxStep: number;
+   /** fastest step seen, units/s */
+   topSpeed: number;
+   /** seconds the robot was driven (sum of the dt it was given) */
+   driven: number;
 }
 
 /**
- * Plays one run like the game does, at 60 fps: the first frame (countdown -> playing) moves the
- * robot without advancing the clock, every later frame advances the clock first, then moves.
+ * Plays one run like the game does, frame by frame (`frameS` per frame, default 60 fps): the real
+ * store with the core clock (advanceRunClock, as RunClock does), the 3-2-1 countdown, then each
+ * frame the robot moves by the dt useRunFrame would hand it (playedFrameDt).
  */
-function simulateRun(layout: Layout, steer: (robot: RobotState, target: Battery | null) => [number, number]): SimResult {
+function simulateRun(
+   layout: Layout,
+   steer: (robot: RobotState, target: Battery | null) => [number, number],
+   frameS = DT
+): SimResult {
+   const store = createArcadeStore();
+   store.getState().configure({ durationMs: DURATION_MS });
+   store.getState().markReady();
+   store.getState().start();
    const robot = createRobot();
    const progress = createProgress();
-   let elapsed = 0;
-   let maxStep = 0;
-   for (let frame = 0; elapsed < DURATION_MS / 1000; frame++) {
-      if (frame > 0) elapsed = Math.min(DURATION_MS / 1000, elapsed + DT);
-      if (elapsed >= DURATION_MS / 1000) break;
+   let topSpeed = 0;
+   let driven = 0;
+   while (store.getState().phase !== "over") {
+      advanceRunClock(store, frameS);
+      const dt = playedFrameDt(store.getState());
+      if (dt === 0) continue;
       const active = layout.batteries.filter((b) => isActive(progress, b));
       const target = active.sort((a, b) => Math.hypot(a.x - robot.x, a.z - robot.z) - Math.hypot(b.x - robot.x, b.z - robot.z))[0] ?? null;
       const [dx, dz] = steer(robot, target);
       const fromX = robot.x;
       const fromZ = robot.z;
-      stepRobot(robot, dx, dz, DT);
-      maxStep = Math.max(maxStep, Math.hypot(robot.x - fromX, robot.z - fromZ));
+      stepRobot(robot, dx, dz, dt);
+      driven += dt;
+      topSpeed = Math.max(topSpeed, Math.hypot(robot.x - fromX, robot.z - fromZ) / dt);
       collectTouched(progress, layout, robot);
-      if (isComplete(progress)) return { won: true, elapsedMs: elapsed * 1000, collected: progress.collected, maxStep };
+      if (isComplete(progress)) store.getState().end("win");
    }
-   return { won: false, elapsedMs: DURATION_MS, collected: progress.collected, maxStep };
+   const { endReason, elapsedMs } = store.getState();
+   return { won: endReason === "win", elapsedMs, collected: progress.collected, topSpeed, driven };
 }
 
 /** A good driver: shortest grid path to the nearest active battery, steering at a point ahead. */
@@ -369,31 +381,15 @@ describe("robot-collector movement", () => {
       expect(farthestOut).toBeLessThanOrEqual(-ROBOT.radius + 1e-9);
    });
 
-   it("ignores dt <= 0 and turns the short way round", () => {
+   it("ignores dt <= 0 and turns to face where it goes", () => {
       const robot = createRobot();
       stepRobot(robot, 1, 0, 0);
       stepRobot(robot, 1, 0, -1);
       expect([robot.x, robot.z, robot.vx]).toEqual([ROBOT_START.x, ROBOT_START.z, 0]);
-      expect(turnTowards(3, -3, 1)).toBeCloseTo(-3 + 2 * Math.PI, 9);
-      expect(turnTowards(0.1, -0.1, 0.5)).toBeCloseTo(0, 9);
-   });
-
-   it("maps screen input to the world for both camera yaws", () => {
-      const out = { x: 0, z: 0 };
-      // landscape camera (yaw 0): up = -z, right = +x
-      inputToWorld(0, -1, 0, out);
-      expect(out.x).toBeCloseTo(0, 9);
-      expect(out.z).toBeCloseTo(-1, 9);
-      inputToWorld(1, 0, 0, out);
-      expect(out.x).toBeCloseTo(1, 9);
-      expect(out.z).toBeCloseTo(0, 9);
-      // portrait camera (yaw 90°, looking along -x): up = -x, right = -z
-      inputToWorld(0, -1, Math.PI / 2, out);
-      expect(out.x).toBeCloseTo(-1, 9);
-      expect(out.z).toBeCloseTo(0, 9);
-      inputToWorld(1, 0, Math.PI / 2, out);
-      expect(out.x).toBeCloseTo(0, 9);
-      expect(out.z).toBeCloseTo(-1, 9);
+      // heading starts at PI (facing -z); driving +x for a while turns it to PI/2 (atan2(vx, vz))
+      robot.z = -3.5;
+      for (let i = 0; i < 60; i++) stepRobot(robot, 1, 0, DT);
+      expect(robot.heading).toBeCloseTo(Math.PI / 2, 3);
    });
 });
 
@@ -464,31 +460,39 @@ describe("robot-collector scoring", () => {
 });
 
 describe("robot-collector scoring limit proof (README.md)", () => {
-   it("the core clock times every frame the robot moves in, except one per run of at most UNTIMED_MOVE_S", () => {
-      expect(UNTIMED_MOVE_S).toBe(MAX_FRAME_DT);
-      // the real store, driven like ShellStage: each frame RunClock (priority -1) ticks with the
-      // clamped delta, then useRunFrame (priority 0) moves by the same clamped dt if "playing"
+   it("the core clock counts every moment the robot drives: driving time never exceeds elapsedMs", () => {
+      // inside one frame RunClock runs first, then useRunFrame (the priorities ShellStage and
+      // useRunFrame register; R3F runs lower priorities first)
+      expect(FRAME_PRIORITY.clock).toBeLessThan(FRAME_PRIORITY.simulation);
+      // the real store, driven like ShellStage: each frame advanceRunClock (RunClock), then the dt
+      // useRunFrame hands the game (playedFrameDt); 0 = the game does not run this frame
       const store = createArcadeStore();
       store.getState().configure({ durationMs: DURATION_MS });
       store.getState().markReady();
       const rng = createRng(11);
-      let moved = 0;
+      let driven = 0;
+      let firstDt = 0;
       let untimedFrames = 0;
+      let carried = 0;
       const frame = (delta: number) => {
          const before = store.getState().elapsedMs;
-         store.getState().tick(clampFrameDt(delta) * 1000);
-         if (store.getState().phase !== "playing") return;
-         const dt = clampFrameDt(delta);
-         moved += dt;
-         if (dt * 1000 > store.getState().elapsedMs - before + 1e-6) untimedFrames += 1;
+         advanceRunClock(store, delta);
+         const dt = playedFrameDt(store.getState());
+         if (dt === 0) return;
+         if (driven === 0) firstDt = dt;
+         driven += dt;
+         // every second the robot is driven in this frame was counted by the clock in this frame
+         if (dt * 1000 > store.getState().elapsedMs - before + 1e-9) untimedFrames += 1;
+         expect(dt).toBeLessThanOrEqual(MAX_FRAME_DT);
       };
 
       // runs that time out, are won, or are restarted midway; with pauses during the countdown
-      // and the play, and frames from 4 ms to 300 ms (tab switches, GC pauses)
-      for (const ending of ["timeup", "win", "restart", "win", "timeup", "restart"] as const) {
+      // and the play, and frames from 4 ms to 300 ms (tab switches, GC pauses), so the countdown
+      // ends in the middle of a frame
+      for (const ending of ["timeup", "win", "restart", "win", "timeup", "restart", "win", "timeup"] as const) {
          const { phase } = store.getState();
          if (phase === "ready" || phase === "over") store.getState().start();
-         moved = 0;
+         driven = 0;
          untimedFrames = 0;
          const stopAtMs = 5_000 + rng() * 40_000;
          while (store.getState().phase !== "over") {
@@ -502,11 +506,34 @@ describe("robot-collector scoring limit proof (README.md)", () => {
 
          const { elapsedMs } = store.getState();
          if (ending === "timeup") expect(elapsedMs).toBe(DURATION_MS);
-         expect(untimedFrames).toBe(1);
-         expect(moved - elapsedMs / 1000).toBeGreaterThan(0);
-         expect(moved - elapsedMs / 1000).toBeLessThanOrEqual(UNTIMED_MOVE_S + 1e-9);
+         expect(untimedFrames).toBe(0);
+         // driven <= elapsed: equal for a win or a restart; a time-up frame is counted, not driven
+         expect(driven).toBeLessThanOrEqual(elapsedMs / 1000 + 1e-9);
+         if (ending !== "timeup") expect(driven).toBeCloseTo(elapsedMs / 1000, 9);
+         else expect(elapsedMs / 1000 - driven).toBeLessThanOrEqual(MAX_FRAME_DT + 1e-9);
+         // the first frame drove only the part of its frame after "go"
+         if (firstDt < MAX_FRAME_DT - 1e-9) carried += 1;
          if (ending === "restart") store.getState().restart();
       }
+      // the random frames really ended countdowns mid-frame (the case the old clock did not time)
+      expect(carried).toBeGreaterThan(0);
+   });
+
+   it("the countdown's last frame drives only the time after go, and the clock counts it", () => {
+      const store = createArcadeStore();
+      store.getState().configure({ durationMs: DURATION_MS });
+      store.getState().markReady();
+      store.getState().start();
+      // 3000 ms countdown in 40 ms frames: 75 frames exactly, then 30 ms frames from 2990 ms
+      for (let i = 0; i < 74; i++) advanceRunClock(store, 0.04);
+      expect(store.getState().countdownMs).toBeCloseTo(40, 6);
+      advanceRunClock(store, 0.03);
+      expect(playedFrameDt(store.getState())).toBe(0);
+      advanceRunClock(store, 0.03); // 10 ms of countdown, 20 ms of play
+      expect(store.getState().phase).toBe("playing");
+      expect(playedFrameDt(store.getState())).toBeCloseTo(0.02, 9);
+      expect(store.getState().elapsedMs).toBeCloseTo(20, 6);
+      expect(COUNTDOWN_MS).toBe(3000);
    });
 
    it("without the level design, a fast win would break the limit (break-even is about 7.67 s)", () => {
@@ -514,13 +541,13 @@ describe("robot-collector scoring limit proof (README.md)", () => {
       expect(withinServerLimits(winScoreAt(7_700), 7_700)).toBe(true);
    });
 
-   it("the spacing rules force a route of at least 45.8 units, i.e. a win no earlier than 9.11 s", () => {
+   it("the spacing rules force a route of at least 45.8 units, i.e. a win no earlier than 9.16 s", () => {
       expect(GUARANTEED_MIN_ROUTE).toBeCloseTo(
          SPACING.fromStart - PICKUP_REACH + 5 * (SPACING.inWave - 2 * PICKUP_REACH) + 4 * (SPACING.betweenWaves - 2 * PICKUP_REACH),
          9
       );
       expect(GUARANTEED_MIN_ROUTE).toBeCloseTo(45.8, 9);
-      expect(fastestFinishMs(GUARANTEED_MIN_ROUTE)).toBeCloseTo(9_110, 6);
+      expect(fastestFinishMs(GUARANTEED_MIN_ROUTE)).toBeCloseTo(9_160, 6);
    });
 
    it("every win at or after the guaranteed earliest finish is within the limits", () => {
@@ -530,8 +557,10 @@ describe("robot-collector scoring limit proof (README.md)", () => {
          expect(withinServerLimits(score, t)).toBe(true);
          expect(capScore(score, t)).toBe(score);
       }
-      // best case overall: 1500 at 9.11 s, under maxScore 1600 and the 1693-point cap
+      // best case overall: 1500 at 9.16 s, under maxScore 1600 and the 1699-point cap
       expect(winScoreAt(earliest)).toBe(1500);
+      expect(capScore(5000, earliest)).toBe(1600);
+      expect(Math.floor(600 + 0.12 * earliest)).toBe(1699);
    });
 
    it("a time-up run is within the limits", () => {
@@ -557,17 +586,21 @@ describe("robot-collector scoring limit proof (README.md)", () => {
    });
 
    it("simulated runs with a path-finding driver win, but never faster than the bound", () => {
-      for (const seed of [...SEEDS.slice(0, 12), ...BIG_SEEDS.slice(0, 2)]) {
+      const seeds = [...SEEDS.slice(0, 12), ...BIG_SEEDS.slice(0, 2)];
+      seeds.forEach((seed, i) => {
          const layout = generateLayout(seed);
-         const run = simulateRun(layout, pathDriver());
+         // 60 fps, plus uneven frame rates whose frames do not divide the countdown
+         const run = simulateRun(layout, pathDriver(), i % 3 === 0 ? 0.0137 : DT);
          expect(run.won).toBe(true);
          expect(run.collected).toBe(BATTERY_COUNT);
-         expect(run.maxStep).toBeLessThanOrEqual(ROBOT.maxSpeed * DT + 1e-9);
+         expect(run.topSpeed).toBeLessThanOrEqual(ROBOT.maxSpeed + 1e-9);
+         expect(run.driven).toBeCloseTo(run.elapsedMs / 1000, 9);
          expect(run.elapsedMs).toBeGreaterThanOrEqual(minCompletionMs(layout));
          expect(run.elapsedMs).toBeLessThan(DURATION_MS / 2);
          const score = runScore(BATTERY_COUNT, true, DURATION_MS - run.elapsedMs);
-         expect(withinServerLimits(score, Math.round(run.elapsedMs))).toBe(true);
-      }
+         expect(withinServerLimits(score, run.elapsedMs)).toBe(true);
+         expect(capScore(score, run.elapsedMs)).toBe(score);
+      });
    });
 
    it("a robot that does not move scores 0 and times out", () => {

@@ -13,8 +13,8 @@ const definition: GameDefinition = {
    Scene,
    assets: ASSETS,
    durationMs: DURATION_MS,
-   // only the first frame uses this: Scene's own CameraRig fits the warehouse to the screen
-   // (turning it for portrait phones) and follows the robot
+   // only the first frame uses this: Scene's own CameraRig (core useFittedView) fits the warehouse
+   // to the screen, clear of the HUD and the joystick (turning it for portrait phones), and follows the robot
    camera: { position: [0, 19, 13], fov: 45, lookAt: [0, 0, 0] },
    environment: { background: "#0b1220", lighting: "indoor" },
    touchControls: ["joystick"],
