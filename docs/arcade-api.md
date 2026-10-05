@@ -207,6 +207,7 @@ All errors are `WP_Error` → `{"code":"...","message":"...","data":{"status":N,
 | `rate_limited` | 429 | §8; `data.retry_after` = seconds to wait | `rate_limited` |
 | `db_error` | 500 | `$wpdb` failure. Message is generic; `$wpdb->last_error` only goes to `error_log` | `server` |
 | `rest_no_route` | 404 | WP core: slug in the URL fails the route regex | `not_found` |
+| `rest_invalid_json` | 400 | WP core: malformed JSON body (rejected before our code runs) | `server` |
 
 Messages are short and user-safe (for example "Unknown game.", "Score rejected.", "Too many scores. Try again in a few seconds."). Never echo SQL, tokens or limits that are not already public.
 
@@ -307,7 +308,7 @@ Object keyed by slug (`Partial<Record<ArcadeSlug, ArcadeMeEntry>>`). One key per
 { "robot-collector": { "best": 1020, "best_duration_ms": 58000, "plays": 7, "last_played": "2026-10-05T12:34:56Z", "rank": 3 } }
 ```
 - `rank`: rank query, or `null` when the row is hidden (banned).
-- No rows → `{}`. Return `(object) array()`; a plain empty PHP array would encode as `[]`.
+- No rows → `{}`. A plain empty PHP array would encode as `[]`, but returning a top-level `stdClass` from the callback is unsafe: WP core's `?_fields` / `?_embed` handling treats the data as an array and fatals on PHP 8. So the callback returns the (possibly empty) array and a `rest_pre_echo_response` filter scoped to this route turns `array()` into `new stdClass()` right before encoding.
 - **No other top-level keys.** `syncServerScores()` treats every key as a slug.
 - Errors: `missing_api_key`, `invalid_api_key`, `unauthorized`. Cache-Control: `private, no-store`.
 
@@ -397,7 +398,8 @@ Register limit (the existing route is not edited):
 add_filter('rest_pre_dispatch', 'play50_arcade_limit_register', 10, 3);
 function play50_arcade_limit_register($result, $server, $request) {
     if ($result !== null) return $result;
-    if ($request->get_method() !== 'POST' || untrailingslashit($request->get_route()) !== '/play50/v1/auth/register') {
+    // WP matches routes case-insensitively, so /Auth/Register must count too.
+    if ($request->get_method() !== 'POST' || strtolower(untrailingslashit($request->get_route())) !== '/play50/v1/auth/register') {
         return $result;
     }
     $wait = play50_arcade_hit('p50a_rl_reg_' . play50_arcade_ip_hash(), 5, HOUR_IN_SECONDS);
@@ -529,7 +531,7 @@ A JWT that still exists for a deleted user gets 401 (§5, step 4).
 | `play50_arcade_clear_cache($slug = null)` | void. One slug, or all when null |
 | `play50_arcade_public_name($uid)` | The public name string (§10) |
 
-Internal (do not call from the admin page): `play50_arcade_install`, `play50_arcade_maybe_install`, `play50_arcade_game`, `play50_arcade_normalize_game`, `play50_arcade_auth_user`, `play50_arcade_hit`, `play50_arcade_ip_hash`, `play50_arcade_limit_register`, `play50_arcade_on_deleted_user`, `play50_arcade_register_routes` and the route callbacks.
+Internal (do not call from the admin page): `play50_arcade_install`, `play50_arcade_maybe_install`, `play50_arcade_game`, `play50_arcade_normalize_game`, `play50_arcade_auth_user`, `play50_arcade_hit`, `play50_arcade_ip_hash`, `play50_arcade_limit_register`, `play50_arcade_on_deleted_user`, `play50_arcade_empty_me_object`, `play50_arcade_register_routes`, the route callbacks and the small `play50_arcade_*` helpers (parsing, errors, rank, top-50).
 
 | Hook | Callback |
 |---|---|
@@ -537,6 +539,7 @@ Internal (do not call from the admin page): `play50_arcade_install`, `play50_arc
 | `init` | `play50_arcade_maybe_install` |
 | `rest_api_init` | `play50_arcade_register_routes` (every route has a `permission_callback`) |
 | `rest_pre_dispatch` (10, 3) | `play50_arcade_limit_register` |
+| `rest_pre_echo_response` (10, 3) | `play50_arcade_empty_me_object` (`GET /arcade/me` with no rows → `{}`, §6.4) |
 | `deleted_user` | `play50_arcade_on_deleted_user` |
 
 | Filter | Purpose |
