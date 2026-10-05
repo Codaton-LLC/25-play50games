@@ -1,7 +1,9 @@
-// STUB (Phase 0). Owner: Cursor (K2). Keep the props exactly as typed; add a .module.css next to this file.
+"use client";
+
 import type { ScoringRules } from "../types";
 import type { ArcadeLeaderboardEntry } from "@/lib/api/arcade";
 import { formatScore } from "../core/format";
+import styles from "./LeaderboardTable.module.css";
 
 export interface LeaderboardTableProps {
    entries: ArcadeLeaderboardEntry[];
@@ -13,34 +15,97 @@ export interface LeaderboardTableProps {
    onRetry?: () => void;
 }
 
+function formatPlayed(iso: string): string {
+   const date = new Date(iso);
+   if (Number.isNaN(date.getTime())) return "";
+   return new Intl.DateTimeFormat("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+      timeZone: "UTC",
+   }).format(date);
+}
+
 export default function LeaderboardTable({ entries, me, loading, error, scoring, onRetry }: LeaderboardTableProps) {
-   if (loading) return <p>Loading leaderboard…</p>;
-   if (error) {
+   if (loading) {
       return (
-         <p>
-            {error} {onRetry && <button onClick={onRetry}>Retry</button>}
+         <p className={styles.state} role="status">
+            Loading leaderboard…
          </p>
       );
    }
-   if (entries.length === 0) return <p>No scores yet. Be the first!</p>;
+
+   if (error) {
+      return (
+         <div className={styles.state} role="alert">
+            <p className={styles.errorText}>{error}</p>
+            {onRetry ? (
+               <button type="button" className={styles.retry} onClick={onRetry}>
+                  Retry
+               </button>
+            ) : null}
+         </div>
+      );
+   }
+
+   const meShown = me != null && entries.some((entry) => entry.is_me || entry.rank === me.rank);
+   if (entries.length === 0 && me == null) {
+      return <p className={styles.state}>Be the first on the leaderboard.</p>;
+   }
+
    return (
-      <table>
-         <tbody>
-            {entries.map((entry) => (
-               <tr key={entry.rank}>
-                  <td>{entry.rank}</td>
-                  <td>{entry.name}</td>
-                  <td>{formatScore(entry.score, scoring, entry.duration_ms)}</td>
-               </tr>
-            ))}
-            {me && !entries.some((entry) => entry.is_me) && (
+      <div className={styles.wrap}>
+         <table className={styles.table}>
+            <caption className={styles.caption}>Leaderboard</caption>
+            <thead>
                <tr>
-                  <td>{me.rank}</td>
-                  <td>You</td>
-                  <td>{me.best_score}</td>
+                  <th className={styles.rank} scope="col">
+                     Rank
+                  </th>
+                  <th className={styles.name} scope="col">
+                     Name
+                  </th>
+                  <th className={styles.score} scope="col">
+                     Score
+                  </th>
+                  <th className={styles.date} scope="col">
+                     Date
+                  </th>
                </tr>
-            )}
-         </tbody>
-      </table>
+            </thead>
+            {entries.length > 0 ? (
+               <tbody>
+                  {entries.map((entry) => {
+                     const mine = entry.is_me || (me != null && entry.rank === me.rank);
+                     return (
+                        <tr key={entry.rank} className={mine ? styles.me : undefined}>
+                           <th className={styles.rank} scope="row">
+                              {entry.rank}
+                           </th>
+                           <td className={styles.name}>
+                              {entry.name}
+                              {mine ? <span className={styles.sr}> (you)</span> : null}
+                           </td>
+                           <td className={styles.score}>{formatScore(entry.score, scoring, entry.duration_ms)}</td>
+                           <td className={styles.date}>{formatPlayed(entry.achieved_at)}</td>
+                        </tr>
+                     );
+                  })}
+               </tbody>
+            ) : null}
+            {me && !meShown ? (
+               <tbody className={styles.youBody}>
+                  <tr className={styles.me}>
+                     <th className={styles.rank} scope="row">
+                        {me.rank}
+                     </th>
+                     <td className={styles.name}>You</td>
+                     <td className={styles.score}>{formatScore(me.best_score, scoring)}</td>
+                     <td className={styles.date}>—</td>
+                  </tr>
+               </tbody>
+            ) : null}
+         </table>
+      </div>
    );
 }

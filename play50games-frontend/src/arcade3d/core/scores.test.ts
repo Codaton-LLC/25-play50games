@@ -13,11 +13,14 @@ import { ArcadeApiError } from "@/lib/api/arcade";
 import {
    ARCADE_SCORES_EVENT,
    computeTimeScore,
+   isRankedRun,
    normalizeRun,
    readLocalScores,
+   saveRunToAccount,
    scoresKey,
    submitScore,
    syncServerScores,
+   unrankedResult,
    type FinishedRun,
 } from "./scores";
 import { getGameMeta } from "../registry";
@@ -84,6 +87,26 @@ describe("scoring helpers", () => {
       const timed = normalizeRun(run({ slug: "obstacle-race", score: 1, durationMs: 42000 }), getGameMeta("obstacle-race")!.scoring);
       expect(timed.score).toBe(25800);
    });
+
+   it("ranks time games only on a win, points games on every ending but quit", () => {
+      const time = getGameMeta("obstacle-race")!.scoring;
+      const points = getGameMeta("robot-collector")!.scoring;
+      expect(isRankedRun(time, "win")).toBe(true);
+      expect(isRankedRun(time, "lose")).toBe(false);
+      expect(isRankedRun(time, "timeup")).toBe(false);
+      expect(isRankedRun(points, "lose")).toBe(true);
+      expect(isRankedRun(points, "timeup")).toBe(true);
+      expect(isRankedRun(points, "quit")).toBe(false);
+   });
+
+   it("reports an unranked run without saving anything", async () => {
+      await submitScore(run({ slug: "obstacle-race", durationMs: 60000 }), null);
+      events.length = 0;
+      const result = unrankedResult("obstacle-race", null);
+      expect(result).toMatchObject({ score: 0, best: 24000, isNewBest: false, plays: 1, status: "unranked" });
+      expect(readLocalScores(null)["obstacle-race"]!.plays).toBe(1);
+      expect(events).toHaveLength(0);
+   });
 });
 
 describe("submitScore", () => {
@@ -148,6 +171,24 @@ describe("submitScore", () => {
       expect(result.status).toBe(status);
       expect(local.getItem("play50games_jwt_token")).toBe("jwt");
       expect(readLocalScores(7)["robot-collector"]!.best).toBe(900);
+   });
+});
+
+describe("saveRunToAccount", () => {
+   it("counts a retried run once per account", async () => {
+      flags.ARCADE_LEADERBOARD = true;
+      const finished = run({ finishedAt: "2026-10-05T11:00:00.000Z" });
+      const first = await saveRunToAccount(finished, 9);
+      expect(first.status).toBe("login-required");
+      local.setItem("play50games_jwt_token", "jwt");
+      api.submit.mockResolvedValue({
+         success: true,
+         data: { slug: "robot-collector", score: 900, best_score: 900, is_new_best: true, plays: 1, rank: 4 },
+      });
+      const second = await saveRunToAccount(finished, 9);
+      expect(second).toMatchObject({ status: "synced", rank: 4, isNewBest: true });
+      expect(api.submit).toHaveBeenCalledTimes(1);
+      expect(readLocalScores(9)["robot-collector"]).toMatchObject({ plays: 1, best: 900, rank: 4 });
    });
 });
 
