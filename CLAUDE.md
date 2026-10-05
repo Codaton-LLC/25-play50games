@@ -148,8 +148,8 @@ Branches: Cursor `cursor/<pkg>`, Codex `codex/<pkg>` (local worktree or cloud br
 | 0 | Contracts, stubs, deps, repo hygiene, docs | Claude | ✅ done |
 | 1 | Hub + `/classic` + nav/SEO + stale-JWT fix → **Release 0** (arcade flag off) | Claude C1 ∥ Cursor K1 ∥ Codex X2 | ✅ live on Vercel |
 | 2 | 3D core + `/3d` routes + UI kit + WP admin page + Hyper3D CLI | Claude C2 ∥ Cursor K2 ∥ Codex X3/X2 | ✅ merged (+ core follow-up) |
-| 3 | robot-collector + leaderboard API on prod + JWT rotation → **Release 1** | Claude | ⏳ robot-collector done with Hyper3D models; API deployed (games disabled); backup done; Release 1 code prep running (status live, `enabled:true`, privacy toggle, policy, register note, JWT fallback from `wp_salt`) |
-| 4 | Games 2–10, one at a time (order in `skills.md`) | Owners | ⏳ designs merged: food-catcher, penalty-hero, clean-city, office-escape; rules merged: penalty-hero |
+| 3 | robot-collector + leaderboard API on prod + JWT rotation → **Release 1** | Claude | ⏳ code merged on main (robot-collector live + `enabled:true`, privacy toggle on /3d, policy section 5, register note, JWT fallback from `wp_salt`); backup done; waiting for the user: test account + OLD_JWT, replace the JWT value in server wp-config.php, upload from `%USERPROFILE%/.play50/upload/release1/` (arcade-games.json, then functions.php), then curl suite, reset, Vercel flags |
+| 4 | Games 2–10, one at a time (order in `skills.md`) | Owners | ⏳ playable on main: food-catcher, office-escape (status soon); designs merged: penalty-hero, clean-city, escape-room; rules merged: penalty-hero; core follow-up 2 running |
 | 5 | Polish: JSON-LD, Lighthouse ≥ 90, trailer/OG, run tokens | Claude · Cursor · Codex | Not started |
 
 ### Where we are (update this section whenever work lands)
@@ -158,15 +158,15 @@ Last update 2026-10-05.
 
 | Game | Owner | Design | `rules.ts` | Scene / playable | Models |
 |---|---|---|---|---|---|
-| robot-collector | Claude | ✅ | ✅ | ✅ (status flips to live in Release 1) | ✅ robot, battery, crate, barrel |
-| food-catcher | Cursor | ✅ | ✅ on `cursor/game-food-catcher` (1 test to add) | ⏳ Cursor building | chef concept + apple, burger, sock needed |
-| office-escape | Claude | ✅ | ⏳ Claude (workflow) | – | printer, coffee cart, water cooler + shared runner/desk/chair |
+| robot-collector | Claude | ✅ | ✅ | ✅ (status live on main; flags off on Vercel until Release 1) | ✅ robot, battery, crate, barrel |
+| food-catcher | Cursor | ✅ | ✅ | ✅ merged (status soon) | chef concept + apple, burger, sock needed |
+| office-escape | Claude | ✅ | ✅ | ✅ merged (status soon) | runner concept + printer, coffee cart, water cooler; shared desk/chair |
 | pigeon-crossing | Codex | ✅ verified on `codex/game-pigeon-crossing` (merge pending) | – | – | pigeon concept + car, taxi, van |
-| penalty-hero | Cursor (design fixes by Codex) | ✅ | ✅ merged | – | striker + keeper concepts |
+| penalty-hero | Cursor (design fixes by Codex) | ✅ | ✅ merged | ⏳ Cursor building (`cursor/game-penalty-hero`) | striker + keeper concepts |
 | warehouse-rush | Claude | – | – | – | shelf, pallet |
 | tower-climb | Codex | ✅ updated on `codex/game-tower-climb` (merge pending) | – | – | flag, spring pad |
 | clean-city | Cursor | ✅ | – | – | bottle, paper bag |
-| escape-room | Codex | ⏳ Codex writing (`codex/game-escape-room`) | – | – | key, book, door, console |
+| escape-room | Codex | ✅ merged | – | – | key, book, door, console |
 | obstacle-race | Claude | – | – | – | finish arch |
 
 **Release 1 runbook** (user does the server/Vercel steps; Claude verifies): ✅ backup (Plesk) → set `JWT_AUTH_SECRET_KEY` in the server `wp-config.php` from `%USERPROFILE%\.play50\jwt-secret.txt` (everyone logs in once) → upload `functions.php` + `includes/arcade-games.json` (robot-collector enabled) → user creates a test account on the live site and saves its JWT to a local file (never in chat) → Claude runs the curl suite (`docs/arcade-api.md` §13) → wp-admin "Arcade Scores" → Reset game → Vercel env `NEXT_PUBLIC_ARCADE_ENABLED=1`, `NEXT_PUBLIC_ARCADE_LEADERBOARD=1`, plus `NEXT_PUBLIC_SITE_URL=https://25-play50games.vercel.app` → Redeploy → Claude verifies live.
