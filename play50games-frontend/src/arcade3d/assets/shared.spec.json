@@ -3,13 +3,127 @@
    "universe": "shared-cast",
    "seed": 5050,
    "assets": [
-      { "id": "robot", "kind": "character", "mode": "image", "prompt": "Cute small utility robot, rounded body, big friendly eyes, full body, T-pose", "concept": "tools/hyper3d/concepts/robot-collector-robot.png", "tier": "Gen-2.5-Medium", "qualityOverride": 18000, "attempts": 3, "target": "shared", "budget": { "tris": 20000, "bytes": 1500000 }, "textureSize": 1024 },
-      { "id": "runner", "kind": "character", "mode": "image", "prompt": "Play50 Runner mascot, friendly cartoon proportions, sneakers and hoodie, full body, T-pose", "concept": "tools/hyper3d/concepts/shared-runner.png", "tier": "Gen-2.5-Medium", "qualityOverride": 18000, "attempts": 2, "target": "shared", "budget": { "tris": 20000, "bytes": 1500000 }, "textureSize": 1024 },
-      { "id": "battery", "kind": "prop", "mode": "text", "prompt": "Glowing green battery cell with a lightning bolt label", "tier": "Gen-2.5-Low", "qualityOverride": 1500, "attempts": 1, "target": "shared", "budget": { "tris": 5000, "bytes": 300000 }, "textureSize": 512 },
-      { "id": "crate", "kind": "prop", "mode": "text", "prompt": "Wooden shipping crate with metal corners", "tier": "Gen-2.5-Low", "qualityOverride": 1500, "attempts": 1, "target": "shared", "budget": { "tris": 5000, "bytes": 300000 }, "textureSize": 512 },
-      { "id": "tinCan", "kind": "prop", "mode": "text", "prompt": "Crushed empty soda tin can", "tier": "Gen-2.5-Low", "qualityOverride": 1000, "attempts": 1, "target": "shared", "budget": { "tris": 5000, "bytes": 300000 }, "textureSize": 512 },
-      { "id": "banana", "kind": "prop", "mode": "text", "prompt": "Single yellow banana", "tier": "Gen-2.5-Low", "qualityOverride": 1000, "attempts": 1, "target": "shared", "budget": { "tris": 5000, "bytes": 300000 }, "textureSize": 512 },
-      { "id": "desk", "kind": "prop", "mode": "text", "prompt": "Office desk with a small computer monitor", "tier": "Gen-2.5-Low", "qualityOverride": 3000, "attempts": 1, "target": "shared", "budget": { "tris": 5000, "bytes": 300000 }, "textureSize": 512 },
-      { "id": "chair", "kind": "prop", "mode": "text", "prompt": "Office swivel chair", "tier": "Gen-2.5-Low", "qualityOverride": 2500, "attempts": 1, "target": "shared", "budget": { "tris": 5000, "bytes": 300000 }, "textureSize": 512 }
+      {
+         "id": "robot",
+         "kind": "character",
+         "mode": "image",
+         "prompt": "Cute small utility robot, rounded body, big friendly eyes, full body, T-pose",
+         "concept": "tools/hyper3d/concepts/robot-collector-robot.png",
+         "tier": "Gen-2.5-Medium",
+         "qualityOverride": 18000,
+         "attempts": 3,
+         "target": "shared",
+         "budget": {
+            "tris": 20000,
+            "bytes": 1500000
+         },
+         "textureSize": 1024
+      },
+      {
+         "id": "runner",
+         "kind": "character",
+         "mode": "image",
+         "prompt": "Play50 Runner mascot, friendly cartoon proportions, sneakers and hoodie, full body, T-pose",
+         "concept": "tools/hyper3d/concepts/shared-runner.png",
+         "tier": "Gen-2.5-Medium",
+         "qualityOverride": 18000,
+         "attempts": 2,
+         "target": "shared",
+         "budget": {
+            "tris": 20000,
+            "bytes": 1500000
+         },
+         "textureSize": 1024
+      },
+      {
+         "id": "battery",
+         "kind": "prop",
+         "mode": "text",
+         "prompt": "Glowing green battery cell with a lightning bolt label, stylized toy-like 3D game asset, soft rounded shapes, bright saturated colors, clean silhouette, isolated single prop, centered, no base or ground",
+         "tier": "Gen-2.5-Low",
+         "qualityOverride": 1500,
+         "attempts": 1,
+         "target": "shared",
+         "budget": {
+            "tris": 5000,
+            "bytes": 300000
+         },
+         "textureSize": 512
+      },
+      {
+         "id": "crate",
+         "kind": "prop",
+         "mode": "text",
+         "prompt": "Wooden shipping crate with metal corners, stylized toy-like 3D game asset, soft rounded shapes, bright saturated colors, clean silhouette, isolated single prop, centered, no base or ground",
+         "tier": "Gen-2.5-Low",
+         "qualityOverride": 1500,
+         "attempts": 1,
+         "target": "shared",
+         "budget": {
+            "tris": 5000,
+            "bytes": 300000
+         },
+         "textureSize": 512
+      },
+      {
+         "id": "tinCan",
+         "kind": "prop",
+         "mode": "text",
+         "prompt": "Crushed empty soda tin can, stylized toy-like 3D game asset, soft rounded shapes, bright saturated colors, clean silhouette, isolated single prop, centered, no base or ground",
+         "tier": "Gen-2.5-Low",
+         "qualityOverride": 1500,
+         "attempts": 1,
+         "target": "shared",
+         "budget": {
+            "tris": 5000,
+            "bytes": 300000
+         },
+         "textureSize": 512
+      },
+      {
+         "id": "banana",
+         "kind": "prop",
+         "mode": "text",
+         "prompt": "Single yellow banana, stylized toy-like 3D game asset, soft rounded shapes, bright saturated colors, clean silhouette, isolated single prop, centered, no base or ground",
+         "tier": "Gen-2.5-Low",
+         "qualityOverride": 1500,
+         "attempts": 1,
+         "target": "shared",
+         "budget": {
+            "tris": 5000,
+            "bytes": 300000
+         },
+         "textureSize": 512
+      },
+      {
+         "id": "desk",
+         "kind": "prop",
+         "mode": "text",
+         "prompt": "Office desk with a small computer monitor, stylized toy-like 3D game asset, soft rounded shapes, bright saturated colors, clean silhouette, isolated single prop, centered, no base or ground",
+         "tier": "Gen-2.5-Low",
+         "qualityOverride": 3000,
+         "attempts": 1,
+         "target": "shared",
+         "budget": {
+            "tris": 5000,
+            "bytes": 300000
+         },
+         "textureSize": 512
+      },
+      {
+         "id": "chair",
+         "kind": "prop",
+         "mode": "text",
+         "prompt": "Office swivel chair, stylized toy-like 3D game asset, soft rounded shapes, bright saturated colors, clean silhouette, isolated single prop, centered, no base or ground",
+         "tier": "Gen-2.5-Low",
+         "qualityOverride": 2500,
+         "attempts": 1,
+         "target": "shared",
+         "budget": {
+            "tris": 5000,
+            "bytes": 300000
+         },
+         "textureSize": 512
+      }
    ]
 }
