@@ -6,6 +6,7 @@
 //
 //    const input = useInput();
 //    useRunFrame((_, dt) => { robot.position.x += input.current.moveX * SPEED * dt; });
+//    useRunFrame(() => { if (input.current.pressed.left) changeLane(-1); });   // discrete moves
 //
 // Esc / P are not game input: GameShell handles them (pause).
 import {
@@ -28,11 +29,13 @@ export { inputToWorld } from "./math";
 
 export {
    createInputController,
+   swipeDirection,
    SWIPE_MAX_MS,
    SWIPE_MIN_PX,
    TAP_MAX_MS,
    TAP_MAX_PX,
    type InputController,
+   type SwipeDirection,
    type TouchButton,
 } from "./inputController";
 
@@ -116,7 +119,8 @@ export function InputProvider({ children, target }: InputProviderProps) {
          if (fromControls(event)) return;
          if (activePointer !== null && event.pointerId !== activePointer) return;
          const [x, y] = normalise(event);
-         controller.pointerMove(x, y);
+         // screen px + time: the swipe fires mid-gesture, once it has travelled far enough
+         controller.pointerMove(x, y, event.clientX, event.clientY, event.timeStamp);
       };
       const onUp = (event: PointerEvent) => {
          if (event.pointerId !== activePointer) return;

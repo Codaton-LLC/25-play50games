@@ -8,9 +8,14 @@
 // Clock: tick() counts play time into elapsedMs and reports it as frameMs, which useRunFrame hands
 // to the game as dt. The frame in which the countdown ends counts its rest as play time, so the
 // game never moves for time the clock did not count (core/frameLoop.ts).
+// After the run: tick() counts rendered time into overMs (up to RESULT_DELAY_MAX_MS), which
+// GameShell waits for before it shows the result panel (GameDefinition.resultDelayMs).
 import { createStore, type StoreApi } from "zustand/vanilla";
 import { useStore } from "zustand";
 import type { EndReason, RunActions, RunPhase, RunState } from "./types";
+import { RESULT_DELAY_MAX_MS } from "./frameLoop";
+
+export { DEFAULT_RESULT_DELAY_MS, RESULT_DELAY_MAX_MS } from "./frameLoop";
 
 /** Length of the 3-2-1 countdown before every run. */
 export const COUNTDOWN_MS = 3000;
@@ -34,6 +39,12 @@ export interface ArcadeStore extends RunState, RunActions {
     * a 0 ms frame). useRunFrame hands exactly this to the game as dt (core/frameLoop.ts).
     */
    frameMs: number;
+   /**
+    * Rendered ms since the run ended: 0 when phase "over" begins, then every tick() adds its frame
+    * time, up to RESULT_DELAY_MAX_MS. Frames only, so a hidden tab (no frames) does not count.
+    * GameShell shows the result once it reaches the game's result delay (core/frameLoop.ts).
+    */
+   overMs: number;
    config: RunConfig;
    /** GameShell: set the game's timer and lives, back to "loading" (keeps runId) */
    configure(config: Partial<RunConfig>): void;
@@ -43,7 +54,7 @@ export interface ArcadeStore extends RunState, RunActions {
    tick(dtMs: number): void;
 }
 
-type RunData = Omit<RunState, "phase" | "runId"> & { countdownMs: number; frameMs: number };
+type RunData = Omit<RunState, "phase" | "runId"> & { countdownMs: number; frameMs: number; overMs: number };
 
 const NO_CONFIG: RunConfig = { durationMs: null, lives: null };
 
@@ -58,6 +69,7 @@ function freshRun(config: RunConfig): RunData {
       stats: {},
       countdownMs: 0,
       frameMs: 0,
+      overMs: 0,
    };
 }
 
@@ -73,7 +85,7 @@ function initialData() {
 
 const ACTIVE: ReadonlySet<RunPhase> = new Set<RunPhase>(["countdown", "playing", "paused"]);
 
-type ClockUpdate = Partial<Pick<ArcadeStore, "phase" | "elapsedMs" | "timeLeftMs" | "frameMs" | "endReason" | "pausedFrom">>;
+type ClockUpdate = Partial<Pick<ArcadeStore, "phase" | "elapsedMs" | "timeLeftMs" | "frameMs" | "endReason" | "pausedFrom" | "overMs">>;
 
 /** Counts `ms` (>= 0) of play into a playing run, never past the end of its timer. */
 function play(s: Pick<ArcadeStore, "elapsedMs" | "timeLeftMs" | "config">, ms: number): ClockUpdate {
@@ -89,6 +101,7 @@ function play(s: Pick<ArcadeStore, "elapsedMs" | "timeLeftMs" | "config">, ms: n
       phase: "over",
       endReason: "timeup",
       pausedFrom: null,
+      overMs: 0,
    };
 }
 
@@ -187,7 +200,7 @@ export function createArcadeStore(): StoreApi<ArcadeStore> {
          end(reason: EndReason) {
             const { phase, endReason } = get();
             if (!ACTIVE.has(phase) || endReason !== null) return;
-            set({ phase: "over", endReason: reason, pausedFrom: null, countdownMs: 0 });
+            set({ phase: "over", endReason: reason, pausedFrom: null, countdownMs: 0, overMs: 0 });
          },
 
          tick(dtMs) {
@@ -202,6 +215,11 @@ export function createArcadeStore(): StoreApi<ArcadeStore> {
                }
                // the countdown ended inside this frame: the rest of the frame is already play time
                set({ countdownMs: 0, ...play(s, Math.max(0, -left)) });
+               return;
+            }
+            if (s.phase === "over" && dt > 0 && s.overMs < RESULT_DELAY_MAX_MS) {
+               // the scene stays on screen after the run: count the frames GameShell waits for
+               set({ overMs: Math.min(RESULT_DELAY_MAX_MS, s.overMs + dt), frameMs: 0 });
                return;
             }
             if (s.phase !== "playing" || dt === 0) {

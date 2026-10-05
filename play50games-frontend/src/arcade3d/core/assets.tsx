@@ -6,6 +6,7 @@
 //    <Model asset={SHARED_ASSETS.battery} position={[2, 0, -1]} />
 //    <Model asset={ASSETS.robot} fallback={<RobotPrimitive />} />   // own stand-in until the GLB exists
 //    <InstancedModel asset={ASSETS.crate} spots={CRATE_SPOTS} fallback={<CrateStandIns />} />
+//    <DynamicInstancedModel asset={ASSETS.car} count={32} update={placeCar} fallbackParts={carParts} />
 //
 // - Only urls listed in core/modelManifest.ts are fetched; any other url renders its fallback at
 //   once (no request, no suspense). Assets PRs add the GLB and its manifest line together.
@@ -14,15 +15,23 @@
 //   placed many times. Repeated static props use <InstancedModel> instead: one InstancedMesh per
 //   GLB mesh for all spots (draw calls do not grow with the number of props), and the game's own
 //   instanced primitive (<Instanced>, core/render) until the GLB exists.
+// - Pools of props that move every frame (coins, obstacles, vehicles) use <DynamicInstancedModel>:
+//   the same one-InstancedMesh-per-GLB-mesh, with an update callback that places each copy every
+//   frame, and the game's stand-in parts (or the asset's primitive) until the GLB exists.
 // - Applies asset.scale / rotationY / yOffset to the GLB. The fallback primitive ignores them:
 //   it is about 1 unit tall, standing on y = 0 at the group origin.
 // - Never call useGLTF.preload at module top level; GameShell clears the cache on unmount.
-import { Component, forwardRef, useMemo, useRef, type ErrorInfo, type ReactNode } from "react";
+import { Component, forwardRef, useEffect, useMemo, useRef, type ErrorInfo, type ReactNode } from "react";
 import { useGLTF } from "@react-three/drei";
 import type { GroupProps } from "@react-three/fiber";
 import {
+   BoxGeometry,
+   CapsuleGeometry,
+   CylinderGeometry,
    Matrix4,
+   MeshStandardMaterial,
    Quaternion,
+   SphereGeometry,
    Vector3,
    type AnimationClip,
    type BufferGeometry,
@@ -33,12 +42,15 @@ import {
    type Object3D,
 } from "three";
 import { clone as cloneSkinned } from "three/examples/jsm/utils/SkeletonUtils.js";
-import type { GameDefinition, ModelAsset } from "./types";
+import type { GameDefinition, ModelAsset, PrimitiveFallback } from "./types";
 import { hasModel } from "./modelManifest";
 import { useInstanceMatrices, type InstanceSpot } from "./render/useInstanceMatrices";
+import { DynamicInstanced } from "./render/DynamicInstanced";
+import type { InstancePart, InstanceUpdate } from "./render/dynamicInstances";
 
 export { SHARED_ASSETS, CHARACTER_BUDGET, PROP_BUDGET, type SharedAssetId } from "./sharedAssets";
 export { MODEL_MANIFEST, hasModel } from "./modelManifest";
+export type { InstancePart, InstanceUpdate } from "./render/dynamicInstances";
 
 const DEFAULT_FALLBACK_COLOR = "#7dd3fc";
 const NO_CLIPS: AnimationClip[] = [];
@@ -290,6 +302,115 @@ export function InstancedModel(props: InstancedModelProps) {
    return (
       <ModelErrorBoundary key={props.asset.url} fallback={props.fallback}>
          <InstancedModelContent {...props} />
+      </ModelErrorBoundary>
+   );
+}
+
+// ---------- moving instanced props ----------
+
+/** The asset's fallback primitive as one instanced part: the same shape, size and colour as <FallbackPrimitive>. */
+function primitivePart(shape: PrimitiveFallback, color: string): InstancePart {
+   let geometry: BufferGeometry;
+   switch (shape) {
+      case "capsule":
+         geometry = new CapsuleGeometry(0.35, 0.6, 6, 12).translate(0, 0.65, 0);
+         break;
+      case "sphere":
+         geometry = new SphereGeometry(0.5, 20, 14).translate(0, 0.5, 0);
+         break;
+      case "cylinder":
+         geometry = new CylinderGeometry(0.4, 0.4, 1, 20).translate(0, 0.5, 0);
+         break;
+      case "box":
+      default:
+         geometry = new BoxGeometry(1, 1, 1).translate(0, 0.5, 0);
+   }
+   return { geometry, material: new MeshStandardMaterial({ color, roughness: 0.55 }) };
+}
+
+/** The asset's primitive as instanced parts, disposed with the component. */
+function usePrimitiveParts(asset: ModelAsset): InstancePart[] {
+   const shape = asset.fallback;
+   const color = asset.fallbackColor ?? DEFAULT_FALLBACK_COLOR;
+   const parts = useMemo(() => [primitivePart(shape, color)], [shape, color]);
+   useEffect(
+      () => () => {
+         for (const part of parts) {
+            part.geometry.dispose();
+            (part.material as Material).dispose();
+         }
+      },
+      [parts]
+   );
+   return parts;
+}
+
+export interface DynamicInstancedModelProps {
+   asset: ModelAsset;
+   /** the most copies drawn at once (the pool size); keep it fixed */
+   count: number;
+   /**
+    * Called every frame for each copy 0..count-1 (FRAME_PRIORITY.visuals: after useRunFrame and the
+    * camera): write where copy `index` stands (its feet, like <Model position>) into `matrix`, which
+    * arrives as the identity, and return false to hide it (an unused pool slot). The GLB's own
+    * scale / rotationY / yOffset and mesh transforms are applied inside that placement.
+    */
+   update: InstanceUpdate;
+   /**
+    * Stand-in meshes while the GLB is missing or broken, placed by the same `update`: one
+    * InstancedMesh per part, with several pieces (and piece colours) per copy. Keep the array
+    * stable and dispose of it yourself. Without it (and without `fallback`), the asset's primitive.
+    */
+   fallbackParts?: readonly InstancePart[];
+   /** ... or any element to draw instead (like <InstancedModel fallback>); wins over fallbackParts */
+   fallback?: ReactNode;
+   name?: string;
+}
+
+function DynamicFallback({ asset, count, update, fallbackParts, fallback, name }: DynamicInstancedModelProps) {
+   if (fallback !== undefined) return <>{fallback}</>;
+   if (fallbackParts) return <DynamicInstanced count={count} update={update} parts={fallbackParts} name={name} />;
+   return <PrimitiveInstances asset={asset} count={count} update={update} name={name} />;
+}
+
+function PrimitiveInstances({ asset, count, update, name }: Pick<DynamicInstancedModelProps, "asset" | "count" | "update" | "name">) {
+   const parts = usePrimitiveParts(asset);
+   return <DynamicInstanced count={count} update={update} parts={parts} name={name} />;
+}
+
+function DynamicInstancedModelContent(props: DynamicInstancedModelProps) {
+   const { asset, count, update, name } = props;
+   const gltf = loadGltf(asset.url);
+   const source = gltf?.scene ?? null;
+   const rigged = !!asset.rigged;
+   const { scale, rotationY, yOffset } = asset;
+   const parts = useMemo<InstancePart[] | null>(
+      () =>
+         source && !rigged
+            ? modelParts(source, { scale, rotationY, yOffset }).map((part) => ({
+                 geometry: part.geometry,
+                 material: part.material,
+                 locals: [part.matrix],
+              }))
+            : null,
+      [source, rigged, scale, rotationY, yOffset]
+   );
+   // rigged models are characters, not pooled props: they get the fallback too
+   if (!parts || parts.length === 0) return <DynamicFallback {...props} />;
+   return <DynamicInstanced count={count} update={update} parts={parts} name={name} />;
+}
+
+/**
+ * A pool of copies of a prop that move every frame (coins, obstacles, vehicles). Once the GLB is
+ * listed in the manifest, every mesh of it becomes one InstancedMesh for the whole pool (draw calls
+ * = meshes in the GLB); until then, or when it fails to load or breaks while rendering,
+ * `fallbackParts` / `fallback` / the asset's primitive, placed by the same `update`. A GLB drop
+ * needs no scene change. Suspends while a listed GLB loads.
+ */
+export function DynamicInstancedModel(props: DynamicInstancedModelProps) {
+   return (
+      <ModelErrorBoundary key={props.asset.url} fallback={<DynamicFallback {...props} />}>
+         <DynamicInstancedModelContent {...props} />
       </ModelErrorBoundary>
    );
 }
