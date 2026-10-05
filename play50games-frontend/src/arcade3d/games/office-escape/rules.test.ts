@@ -400,6 +400,9 @@ const idleBot: Bot = (_run, _stepMs, out) => {
 /** The whole-ms step the next step() will take with `dtMs` (the carry, as advanceClock does it). */
 const nextStepMs = (run: OfficeRun, dtMs: number) => Math.floor(run.carry + Math.min(dtMs, MAX_STEP_MS));
 
+/** The most coin slots a runner at distance `d` (mm) can have touched (|s − d| < 0.6 m reached). */
+const slotsReached = (d: number) => (d + 600 > COIN.first ? Math.ceil((d + 600 - COIN.first) / COIN.spacing) : 0);
+
 interface Played {
    run: OfficeRun;
    log: TrackLog | null;
@@ -410,6 +413,8 @@ interface Played {
    capped: number;
    /** frames where run.score != floor(distance / 1000) + 50 · coins */
    formulaMisses: number;
+   /** frames with more coins than coin slots the runner has reached */
+   coinOverruns: number;
    jumps: number;
    laneChanges: number;
 }
@@ -420,7 +425,7 @@ function play(seed: number, dt: DtSource, bot: Bot, { log = false, untilMs = Inf
    const input = createStepInput();
    const track = log ? newLog() : null;
    if (track) capture(run, track);
-   const result: Played = { run, log: track, frames: 0, elapsedMs: 0, capped: 0, formulaMisses: 0, jumps: 0, laneChanges: 0 };
+   const result: Played = { run, log: track, frames: 0, elapsedMs: 0, capped: 0, formulaMisses: 0, coinOverruns: 0, jumps: 0, laneChanges: 0 };
    while (!run.over && run.simMs < untilMs) {
       const dtMs = dt();
       bot(run, nextStepMs(run, dtMs), input);
@@ -431,6 +436,7 @@ function play(seed: number, dt: DtSource, bot: Bot, { log = false, untilMs = Inf
       if (ev.laneChanged) result.laneChanges += 1;
       if (capScore(run.score, result.elapsedMs) !== run.score) result.capped += 1;
       if (run.score !== scoreFor(run.distance, run.coins)) result.formulaMisses += 1;
+      if (run.coins > slotsReached(run.distance)) result.coinOverruns += 1;
       if (track) capture(run, track);
    }
    return result;
@@ -498,7 +504,7 @@ describe("office-escape constants (golden)", () => {
          SLIDE_SPEED: 10,
          JUMP_MS: 700,
          JUMP_APEX: 1100,
-         JUMP_BUFFER_MS: 150,
+         JUMP_BUFFER_MS: 135,
          MAX_STEP_MS: 50,
          GAP_MIN_MS: 950,
          FIRST_ROW_MS: 5000,
@@ -624,7 +630,10 @@ describe("office-escape clock, speed and distance", () => {
       // a long frame is clamped to 50 ms; dt <= 0 or NaN does nothing at all
       const clamp = createRun(4);
       step(clamp, 300, NONE);
-      expect(clamp.simMs).toBe(50);
+      // clamped before the carry: the 250 ms cut off is dropped, never replayed on later frames
+      expect([clamp.simMs, clamp.carry]).toEqual([50, 0]);
+      step(clamp, 1, NONE);
+      expect([clamp.simMs, clamp.stepMs]).toEqual([51, 1]);
       const before = JSON.stringify(clamp);
       for (const dt of [0, -5, Number.NaN, Number.NEGATIVE_INFINITY]) {
          const ev = step(clamp, dt, press(1, true));
@@ -706,7 +715,7 @@ describe("office-escape jump", () => {
       expect([run.jumpMs, run.feet]).toEqual([-1, 0]);
    });
 
-   it("a press in the air is kept only in the last 150 ms and starts at the landing moment", () => {
+   it("a press in the air is kept only in the last 135 ms and starts at the landing moment", () => {
       // 30 ms frames: phases 30, 60, ..., 690, 720 -> lands with 20 ms of overflow
       const buffered = createRun(8);
       step(buffered, 30, press(0, true));
@@ -719,16 +728,18 @@ describe("office-escape jump", () => {
       expect(buffered.jumpMs).toBe(20);
       expect(buffered.jumpBuffered).toBe(false);
 
-      // exactly 150 ms before landing still counts; 160 ms does not
+      // exactly 135 ms before landing still counts; 136 ms does not
       const edge = createRun(8);
-      step(edge, 10, press(0, true));
-      while (edge.jumpMs < 550) step(edge, 10, NONE);
-      step(edge, 10, press(0, true));
+      step(edge, 1, press(0, true));
+      while (edge.jumpMs < 565) step(edge, 1, NONE);
+      expect(edge.jumpMs).toBe(565);
+      step(edge, 1, press(0, true));
       expect(edge.jumpBuffered).toBe(true);
       const early = createRun(8);
-      step(early, 10, press(0, true));
-      while (early.jumpMs < 540) step(early, 10, NONE);
-      step(early, 10, press(0, true));
+      step(early, 1, press(0, true));
+      while (early.jumpMs < 564) step(early, 1, NONE);
+      expect(early.jumpMs).toBe(564);
+      step(early, 1, press(0, true));
       expect(early.jumpBuffered).toBe(false);
       while (!early.events.landed) step(early, 10, NONE);
       expect(early.events.jumped).toBe(false);
@@ -878,6 +889,97 @@ describe("office-escape track", () => {
             [6, 0, "ground"], [7, 0, "ground"], [8, 0, "ground"], [9, 0, "ground"],
          ],
       });
+   });
+
+   it("pins every draw of the 300 s track for three seeds (FNV-1a of the placed rows and coins)", () => {
+      const fnv = (text: string) => {
+         let h = 0x811c9dc5;
+         for (let i = 0; i < text.length; i++) h = Math.imul(h ^ text.charCodeAt(i), 0x01000193) >>> 0;
+         return h.toString(16).padStart(8, "0");
+      };
+      const hashes = [1, 2, 3].map((seed) => fnv(placedBy(driveTrack(seed, () => 16, 300_000).log, 300_000)));
+      expect(hashes).toEqual(["acf0e445", "fab50410", "3f4faa0b"]);
+   });
+
+   it("follows the stage table: obstacle mix per stage, 50/50 roles, no 3-row before 40 s (1000 seeds x 300 s)", () => {
+      const counts = Array.from({ length: 9 }, () => [0, 0, 0]);
+      let jumps = 0;
+      let freeObstacles = 0;
+      let firstTriple = Infinity;
+      for (let seed = 0; seed < 1000; seed++) {
+         const { log } = driveTrack(seed, () => MAX_STEP_MS, 300_000);
+         for (const r of log.rows) {
+            counts[stageAt(r.inMs)][r.count - 1] += 1;
+            if (r.count === 3) firstTriple = Math.min(firstTriple, r.inMs);
+            // 1- and 2-obstacle rows: the role is never forced
+            if (r.count < 3) {
+               for (const t of r.lanes) {
+                  if (t === NO_OBSTACLE) continue;
+                  freeObstacles += 1;
+                  if (OBSTACLE_TYPES[t].role === "jump") jumps += 1;
+               }
+            }
+         }
+      }
+      const problems: string[] = [];
+      for (let k = 0; k <= 8; k++) {
+         const total = counts[k][0] + counts[k][1] + counts[k][2];
+         if (total < 5000) problems.push(`stage ${k}: only ${total} rows`);
+         for (let n = 0; n < 3; n++) {
+            const share = (100 * counts[k][n]) / total;
+            if (Math.abs(share - STAGES[k].mix[n]) > 2.5) problems.push(`stage ${k}: ${n + 1}-rows ${share.toFixed(2)} %, table ${STAGES[k].mix[n]} %`);
+         }
+      }
+      expect(problems).toEqual([]);
+      expect(Math.abs((100 * jumps) / freeObstacles - 50)).toBeLessThanOrEqual(1);
+      // stage 2 starts at 40 s: the first 3-row of any run is entered right after it
+      expect(firstTriple).toBeGreaterThanOrEqual(2 * SPEED.stageMs);
+      expect(firstTriple).toBeLessThan(2 * SPEED.stageMs + 100);
+   }, 120_000);
+
+   it("recycles rows (back edge) and coins exactly 12 m behind the runner, never earlier", () => {
+      const problems: string[] = [];
+      let rowsFreed = 0;
+      let coinsFreed = 0;
+      for (const pattern of [FPS_60, FPS_20, RANDOM]) {
+         const run = createRun(77);
+         const dt = pattern.make(77);
+         // what each slot held before the step: freed (or rewritten) slots are checked against it
+         const rowWas = run.rows.map((r) => ({ alive: r.alive, index: r.index, back: rowBack(r) }));
+         const coinWas = run.coinPool.map((c) => ({ alive: c.alive, slot: c.slot, s: c.s }));
+         while (run.simMs < 200_000) {
+            step(run, dt(), NONE);
+            // the idle runner hits a row now and then: keep it running through the obstacles
+            run.over = false;
+            const behind = run.distance - RECYCLE_BEHIND;
+            run.rows.forEach((r, i) => {
+               const was = rowWas[i];
+               if (was.alive && (!r.alive || r.index !== was.index)) {
+                  rowsFreed += 1;
+                  if (was.back >= behind) problems.push(`${pattern.name}: row ${was.index} freed at ${run.distance - was.back} mm past its back edge`);
+               }
+               if (r.alive && rowBack(r) < behind) problems.push(`${pattern.name}: row ${r.index} alive ${run.distance - rowBack(r)} mm past its back edge`);
+               was.alive = r.alive;
+               was.index = r.index;
+               was.back = rowBack(r);
+            });
+            run.coinPool.forEach((c, i) => {
+               const was = coinWas[i];
+               if (was.alive && (!c.alive || c.slot !== was.slot)) {
+                  coinsFreed += 1;
+                  if (was.s >= behind) problems.push(`${pattern.name}: coin ${was.slot} freed at ${run.distance - was.s} mm past it`);
+               }
+               if (c.alive && c.s < behind) problems.push(`${pattern.name}: coin ${c.slot} alive ${run.distance - c.s} mm past it`);
+               was.alive = c.alive;
+               was.slot = c.slot;
+               was.s = c.s;
+            });
+            if (problems.length > 20) break;
+         }
+      }
+      expect(problems).toEqual([]);
+      expect(rowsFreed).toBeGreaterThan(3 * 100);
+      expect(coinsFreed).toBeGreaterThan(3 * 100);
    });
 
    it("createRun fills the corridor for the countdown: rows up to 74 m, then coins up to 72 m", () => {
@@ -1170,6 +1272,55 @@ describe("office-escape fairness", () => {
       expect(airAfterClearing + JUMP_LEAD).toBeLessThanOrEqual(GAP_MIN_MS);
       expect(JUMP_MS + JUMP_LEAD).toBe(815);
       expect(GAP_MIN_MS - (JUMP_MS + JUMP_LEAD)).toBeGreaterThan(MAX_STEP_MS);
+      // a press buffered before leaving a row lands the second jump by out + 135 + 700, in time for the lead
+      expect(JUMP_BUFFER_MS + JUMP_MS + JUMP_LEAD).toBeLessThanOrEqual(GAP_MIN_MS);
+   });
+
+   it("a jump buffered just before leaving a row still leaves time to take off for the next one, at every stage", () => {
+      // starting lane (passable), row lanes: boxes need take-off by in - 115, desk and printer by in - 103
+      const cases: Array<[number, number[]]> = [
+         [2, [OBSTACLE.chair, OBSTACLE.waterCooler, OBSTACLE.boxes]],
+         [1, [OBSTACLE.printer, OBSTACLE.desk, OBSTACLE.chair]],
+         [0, [OBSTACLE.boxes, OBSTACLE.chair, OBSTACLE.waterCooler]],
+      ];
+      const airLeft: number[] = [];
+      for (let left = 1; left <= JUMP_BUFFER_MS; left += 7) airLeft.push(left);
+      if (airLeft.at(-1) !== JUMP_BUFFER_MS) airLeft.push(JUMP_BUFFER_MS);
+      const problems: string[] = [];
+      let runs = 0;
+      for (let stage = 0; stage <= 8; stage++) {
+         const out = stage * SPEED.stageMs + (stage < 8 ? SPEED.stageMs - 300 : 5000);
+         for (const [lane, lanes] of cases) {
+            for (const left of airLeft) {
+               for (const pattern of [MS_1, FPS_144, FPS_60, FPS_20, RANDOM]) {
+                  const run = createRun(50 + stage);
+                  isolate(run);
+                  setClock(run, out);
+                  run.lane = lane;
+                  run.x = LANES[lane];
+                  // in the air with `left` ms to go and a second jump already buffered
+                  run.jumpMs = JUMP_MS - left;
+                  run.jumpBuffered = true;
+                  run.feet = jumpHeight(run.jumpMs);
+                  const row = placeRow(run, 1, out + GAP_MIN_MS, lanes);
+                  const bot = proofBot();
+                  const dt = pattern.make(stage * 1000 + left);
+                  while (!run.over && run.simMs < row.outMs + 100) {
+                     const dtMs = dt();
+                     bot(run, nextStepMs(run, dtMs), run.input);
+                     step(run, dtMs, run.input);
+                  }
+                  runs += 1;
+                  if (run.over) {
+                     const ev = run.events;
+                     problems.push(`stage ${stage} [${lanes}] air left ${left} ${pattern.name}: hit ${OBSTACLE_TYPES[ev.hitType].name} at ${run.simMs - out} ms after leaving, feet ${run.feet}`);
+                  }
+               }
+            }
+         }
+      }
+      expect(problems).toEqual([]);
+      expect(runs).toBe(9 * 3 * airLeft.length * 5);
    });
 
    it("the worst case at every stage: leave a row in the far lane in the air, then a minimum gap to a 3-row with only boxes passable", () => {
@@ -1298,8 +1449,6 @@ describe("office-escape scoring limit proof (README 'Server limits')", () => {
    });
 
    it("coins are bounded by distance: fewer than one per 10 m run", () => {
-      /** The most coin slots a runner at distance D can have touched (|s − D| < 0.6 m reached). */
-      const maxCoins = (d: number) => (d + 600 > COIN.first ? Math.ceil((d + 600 - COIN.first) / COIN.spacing) : 0);
       // a coin is first touched 599 mm before its centre (whole mm)...
       const s0 = coinSlotS(0);
       expect([touchesCoin(1, s0, "ground", s0 - 600, 0, 0), touchesCoin(1, s0, "ground", s0 - 599, 0, 0)]).toEqual([false, true]);
@@ -1307,24 +1456,24 @@ describe("office-escape scoring limit proof (README 'Server limits')", () => {
       for (let d = 0; d <= 100_000; d += 7) {
          let reachable = 0;
          for (let slot = 0; coinSlotS(slot) - 599 <= d; slot++) reachable += 1;
-         expect(maxCoins(d)).toBe(reachable);
+         expect(slotsReached(d)).toBe(reachable);
       }
       // the worst case is right after each new slot comes into reach: still under D / 10 m
       for (let k = 0; k < 2800; k++) {
          const d = COIN.first - 600 + 1 + k * COIN.spacing;
-         expect(maxCoins(d)).toBe(k + 1);
-         expect(maxCoins(d) * COIN.spacing).toBeLessThan(d);
-         expect(scoreFor(d, maxCoins(d))).toBeLessThan((6 * d) / 1000);
+         expect(slotsReached(d)).toBe(k + 1);
+         expect(slotsReached(d) * COIN.spacing).toBeLessThan(d);
+         expect(scoreFor(d, slotsReached(d))).toBeLessThan((6 * d) / 1000);
       }
       // the best run possible: 28,000 m and a coin in every slot is 167,950 < 179,495 < 200,000
       const end = distanceAt(RUN_LIMIT_MS + MAX_STEP_MS - 1);
       expect(end).toBe(28_000_784);
-      expect(maxCoins(end)).toBe(2799);
-      expect(scoreFor(end, maxCoins(end))).toBe(167_950);
+      expect(slotsReached(end)).toBe(2799);
+      expect(scoreFor(end, slotsReached(end))).toBe(167_950);
       expect(167_950).toBeLessThanOrEqual(Math.floor(0.1 * (RUN_LIMIT_MS - 50)));
       expect(withinServerLimits(167_950, RUN_LIMIT_MS)).toBe(true);
       // the earliest hit: at most 40 m and 3 coins (190) against a cap of 495 at 4950 ms
-      expect(scoreFor(distanceAt(FIRST_ROW_MS), maxCoins(distanceAt(FIRST_ROW_MS)))).toBe(190);
+      expect(scoreFor(distanceAt(FIRST_ROW_MS), slotsReached(distanceAt(FIRST_ROW_MS)))).toBe(190);
       expect(capScore(10_000, 4950)).toBe(495);
    });
 
@@ -1338,7 +1487,7 @@ describe("office-escape scoring limit proof (README 'Server limits')", () => {
             const res = play(seed, pattern.make(seed), randomBot(seed, laneRate, jumpRate), { untilMs: 300_000 });
             frames += res.frames;
             const label = `seed ${seed} ${pattern.name}`;
-            if (res.capped || res.formulaMisses) problems.push(`${label}: capped ${res.capped}, formula ${res.formulaMisses}`);
+            if (res.capped || res.formulaMisses || res.coinOverruns) problems.push(`${label}: capped ${res.capped}, formula ${res.formulaMisses}, coins ${res.coinOverruns}`);
             if (res.run.over) {
                hits += 1;
                if (res.run.simMs < FIRST_ROW_MS || res.elapsedMs < 4950) problems.push(`${label}: ended at ${res.run.simMs} ms`);
@@ -1351,18 +1500,21 @@ describe("office-escape scoring limit proof (README 'Server limits')", () => {
       expect(frames).toBeGreaterThan(100_000);
    }, 120_000);
 
-   it("a coin-chasing bot never breaks the limit and collects more than the proof's bot", () => {
+   it("a coin-chasing bot never breaks the limit at full speed, at any frame pattern, and collects more than the proof's bot", () => {
       const problems: string[] = [];
       let greedyCoins = 0;
       let plainCoins = 0;
+      let wins = 0;
       for (let seed = 200; seed < 208; seed++) {
-         for (const pattern of [FPS_60, RANDOM]) {
+         for (const pattern of [FPS_60, MS_8_3, MS_16_7, FPS_20, RANDOM]) {
             const greedy = play(seed, pattern.make(seed), proofBot({ greedy: true }));
             const plain = play(seed, pattern.make(seed), proofBot());
             greedyCoins += greedy.run.coins;
             plainCoins += plain.run.coins;
+            if (greedy.run.endReason === "win") wins += 1;
             const label = `seed ${seed} ${pattern.name}`;
-            if (greedy.capped || greedy.formulaMisses) problems.push(`${label}: capped ${greedy.capped}`);
+            // every frame: score <= 100 points/s and <= 200,000, and no more coins than slots reached
+            if (greedy.capped || greedy.formulaMisses || greedy.coinOverruns) problems.push(`${label}: capped ${greedy.capped}, coins ${greedy.coinOverruns}`);
             if (greedy.run.over && !withinServerLimits(greedy.run.score, greedy.elapsedMs)) problems.push(`${label}: over the limit`);
             // at most one coin per 10 m of track, whatever the lanes
             if (greedy.run.coins * COIN.spacing >= greedy.run.distance) problems.push(`${label}: ${greedy.run.coins} coins in ${greedy.run.distance} mm`);
@@ -1370,7 +1522,9 @@ describe("office-escape scoring limit proof (README 'Server limits')", () => {
       }
       expect(problems).toEqual([]);
       expect(greedyCoins).toBeGreaterThan(plainCoins);
-   }, 120_000);
+      // the checks really ran at 16 m/s: most greedy runs reach the limit
+      expect(wins).toBeGreaterThanOrEqual(30);
+   }, 180_000);
 });
 
 describe("office-escape with the real store (README proof step 1)", () => {

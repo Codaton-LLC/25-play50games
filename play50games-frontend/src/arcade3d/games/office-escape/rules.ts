@@ -35,12 +35,10 @@ export const JUMP_MS = 700;
 export const JUMP_APEX = 1100;
 /**
  * A jump pressed this many ms (or fewer) before landing starts on landing; an earlier one is dropped.
- * Known edge (not covered by README fairness step 5): a press buffered just before leaving a row,
- * with more than 135 ms of air left, keeps the runner up until up to 850 ms after leaving. A
- * minimum-gap row (extra 0, stage 5+) whose only passable lanes are boxes as its deepest obstacle
- * then needs take-off by 835 ms. Rare, and only after a double press; README follow-up.
+ * It is GAP_MIN_MS − JUMP_MS − 115 (the boxes lead), so a press buffered just before leaving a row
+ * lands the second jump by out + 835, in time to take off for the next row (README fairness step 5).
  */
-export const JUMP_BUFFER_MS = 150;
+export const JUMP_BUFFER_MS = 135;
 
 /** Largest simulation step, ms: useRunFrame's dt is at most 1/20 s. Longer steps are clamped. */
 export const MAX_STEP_MS = 50;
