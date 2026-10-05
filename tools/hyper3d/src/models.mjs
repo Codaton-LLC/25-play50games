@@ -1,6 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { Document, NodeIO, Logger } from "@gltf-transform/core";
-import { ALL_EXTENSIONS, EXTMeshoptCompression } from "@gltf-transform/extensions";
+import { ALL_EXTENSIONS, EXTMeshoptCompression, KHRMeshQuantization } from "@gltf-transform/extensions";
 import { center, cloneDocument, dedup, getBounds, inspect, prune, quantize, reorder, simplify, textureCompress, weld } from "@gltf-transform/functions";
 import { MeshoptDecoder, MeshoptEncoder, MeshoptSimplifier } from "meshoptimizer";
 import sharp from "sharp";
@@ -112,6 +112,14 @@ export async function optimizeGLB(bytes, asset) {
       reorder({ encoder: MeshoptEncoder, target: "size" }),
       quantize({ pattern: otherAttributes, patternTargets: otherAttributes })
    );
+   // quantize() only declares KHR_mesh_quantization when POSITION is quantized. Positions stay float
+   // here, so declare it ourselves whenever another attribute (NORMAL, TANGENT, TEXCOORD) was packed.
+   const packed = doc.getRoot().listMeshes().some(mesh => mesh.listPrimitives().some(prim =>
+      prim.listSemantics().some(semantic => semantic !== "POSITION" && !/^(JOINTS|WEIGHTS)_/.test(semantic)
+         && prim.getAttribute(semantic).getComponentSize() < 4)));
+   if (packed) {
+      doc.createExtension(KHRMeshQuantization).setRequired(true);
+   }
    doc.createExtension(EXTMeshoptCompression).setRequired(true)
       .setEncoderOptions({ method: EXTMeshoptCompression.EncoderMethod.QUANTIZE });
    const output = await io.writeBinary(doc);

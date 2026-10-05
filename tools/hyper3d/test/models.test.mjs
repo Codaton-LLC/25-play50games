@@ -91,6 +91,27 @@ test("declared rigged meshes skip welding even without a skin", async () => {
    assert.equal((await readGLB(io, output)).getRoot().listMeshes()[0].listPrimitives()[0].getAttribute("POSITION").getCount(), 5);
 });
 
+test("packed normals declare KHR_mesh_quantization so the GLB stays valid glTF", async () => {
+   const io = await createIO();
+   const doc = await readGLB(io, await sphereFixture());
+   const primitive = doc.getRoot().listMeshes()[0].listPrimitives()[0];
+   const positions = primitive.getAttribute("POSITION");
+   const normals = new Float32Array(positions.getCount() * 3);
+   for (let i = 0; i < positions.getCount(); i++) {
+      const [x, y, z] = positions.getElement(i, []);
+      const dx = x - 2, dy = y - 3, dz = z - 4, len = Math.hypot(dx, dy, dz) || 1;
+      normals.set([dx / len, dy / len, dz / len], i * 3);
+   }
+   primitive.setAttribute("NORMAL", doc.createAccessor().setBuffer(doc.getRoot().listBuffers()[0]).setType("VEC3").setArray(normals));
+   const { output } = await optimizeGLB(await io.writeBinary(doc), asset);
+   const decoded = await readGLB(io, output);
+   const normal = decoded.getRoot().listMeshes()[0].listPrimitives()[0].getAttribute("NORMAL");
+   const required = decoded.getRoot().listExtensionsRequired().map(ext => ext.extensionName);
+   assert.ok(normal.getComponentSize() < 4, "normals are packed");
+   assert.ok(required.includes("KHR_mesh_quantization"));
+   assert.ok(required.includes("EXT_meshopt_compression"));
+});
+
 test("simplification increases error to reach a real curved mesh budget and reports it", async () => {
    const bytes = await sphereFixture();
    assert.ok(inspectModel(await readGLB(await createIO(), bytes)).tris > 1000);
