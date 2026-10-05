@@ -1,6 +1,6 @@
 {
    "slug": "food-catcher",
-   "universe": "kitchen",
+   "universe": "food",
    "seed": 5152,
    "assets": [
       {
@@ -22,19 +22,7 @@
          "mode": "text",
          "prompt": "shiny red apple with one leaf, Play50 toy world style, bright vinyl toy look, smooth rounded shapes, saturated colours, friendly cartoon proportions, single isolated prop, centered, no base, no ground, no text, clean game-ready low-poly topology",
          "tier": "Gen-2.5-Low",
-         "qualityOverride": 1200,
-         "attempts": 1,
-         "target": "food-catcher",
-         "budget": { "tris": 5000, "bytes": 300000 },
-         "textureSize": 512
-      },
-      {
-         "id": "strawberry",
-         "kind": "prop",
-         "mode": "text",
-         "prompt": "big strawberry with green leaves, Play50 toy world style, bright vinyl toy look, smooth rounded shapes, saturated colours, friendly cartoon proportions, single isolated prop, centered, no base, no ground, no text, clean game-ready low-poly topology",
-         "tier": "Gen-2.5-Low",
-         "qualityOverride": 1800,
+         "qualityOverride": 1500,
          "attempts": 1,
          "target": "food-catcher",
          "budget": { "tris": 5000, "bytes": 300000 },
@@ -56,9 +44,9 @@
          "id": "sock",
          "kind": "prop",
          "mode": "text",
-         "prompt": "old striped sock with a hole, Play50 toy world style, bright vinyl toy look, smooth rounded shapes, saturated colours, friendly cartoon proportions, single isolated prop, centered, no base, no ground, no text, clean game-ready low-poly topology",
+         "prompt": "old faded grey sock with a hole, dirty brown patches, Play50 toy world style, bright vinyl toy look, smooth rounded shapes, saturated colours, friendly cartoon proportions, single isolated prop, centered, no base, no ground, no text, clean game-ready low-poly topology",
          "tier": "Gen-2.5-Low",
-         "qualityOverride": 1000,
+         "qualityOverride": 1500,
          "attempts": 1,
          "target": "food-catcher",
          "budget": { "tris": 5000, "bytes": 300000 },
