@@ -2,6 +2,8 @@
 
 // Kitchen, chef and food stand-ins. Drawn until the GLBs are in core/modelManifest.ts.
 // The chef stands on y = 0 and is about 1.6 tall. Food is centred on the group origin, ~0.9 across.
+import { memo } from "react";
+
 export const COLORS = {
    hat: "#f8fafc",
    apron: "#f1f5f9",
@@ -18,19 +20,30 @@ export const COLORS = {
    tin: "#cbd5e1",
    tinBand: "#94a3b8",
    ring: "#9f1239",
+   ringRim: "#f43f5e",
    counter: "#c4a574",
    counterEdge: "#a16207",
+   cabinet: "#6b4a2b",
    wall: "#3b2418",
    tile: "#78716c",
    floor: "#1c1410",
 } as const;
 
-export function Kitchen() {
+/**
+ * The back wall reaches far above and below the play rectangle (y [-9, 16], 24 wide) and a
+ * cabinet hangs under the counter, so the extra height a portrait phone shows (y -6.2 to 12.7 at 375×812)
+ * and the extra width of an ultra-wide screen are kitchen, not empty background.
+ */
+export const Kitchen = memo(function Kitchen() {
    return (
       <group name="kitchen">
-         <mesh position={[0, 3.4, -0.85]} receiveShadow={false}>
-            <boxGeometry args={[10.2, 7.4, 0.18]} />
+         <mesh position={[0, 3.5, -0.85]} receiveShadow={false}>
+            <boxGeometry args={[24, 25, 0.18]} />
             <meshStandardMaterial color={COLORS.wall} />
+         </mesh>
+         <mesh position={[0, -4.8, 0.1]}>
+            <boxGeometry args={[9.2, 8.5, 1.5]} />
+            <meshStandardMaterial color={COLORS.cabinet} />
          </mesh>
          <mesh position={[-2.2, 4.6, -0.74]}>
             <boxGeometry args={[1.1, 0.7, 0.06]} />
@@ -54,7 +67,7 @@ export function Kitchen() {
          </mesh>
       </group>
    );
-}
+});
 
 export function ChefPrimitive() {
    return (
@@ -172,11 +185,22 @@ export function TinPrimitive() {
    );
 }
 
+/**
+ * The junk tell. The camera looks straight down -z (pitch 0), so both parts are flat in the XY
+ * plane facing it: a dark red disc behind the item and a bright red rim around it. Unlit and not
+ * tone mapped, so the red reads the same under any light. Two opaque draw calls per junk item.
+ */
 export function BadRing() {
    return (
-      <mesh rotation-x={-Math.PI / 2}>
-         <torusGeometry args={[0.5, 0.045, 8, 20]} />
-         <meshBasicMaterial color={COLORS.ring} />
-      </mesh>
+      <group name="bad-ring">
+         <mesh position={[0, 0, -0.5]}>
+            <circleGeometry args={[0.62, 28]} />
+            <meshBasicMaterial color={COLORS.ring} toneMapped={false} />
+         </mesh>
+         <mesh>
+            <ringGeometry args={[0.52, 0.62, 28]} />
+            <meshBasicMaterial color={COLORS.ringRim} toneMapped={false} />
+         </mesh>
+      </group>
    );
 }

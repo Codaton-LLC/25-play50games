@@ -13,7 +13,7 @@ export const foodCatcherMeta: ArcadeGameMeta = {
    controls: {
       scheme: "lanes",
       keyboard: "Left / right arrows to move",
-      touch: "Drag or tap left / right"
+      touch: "Hold and drag left / right"
    },
    scoring: {
       kind: "points",

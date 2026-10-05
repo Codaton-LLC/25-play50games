@@ -129,17 +129,31 @@ export function withinServerLimits(score: number, durationMs: number): boolean {
    return fitsLimits(score, durationMs, foodCatcherMeta.scoring);
 }
 
+export interface DtSplit {
+   wholeMs: number;
+   carryMs: number;
+}
+
 /**
  * Split a frame dt into whole milliseconds plus a remainder in [0, 1).
  * dt is quantised to 0.001 ms first, so a run of 16.7 ms steps does not drift.
+ * Writes into `out` when given (step() reuses one object, so a frame allocates nothing).
  */
-export function splitDt(carryMs: number, dtMs: number): { wholeMs: number; carryMs: number } {
-   if (!(dtMs > 0) || !Number.isFinite(dtMs)) return { wholeMs: 0, carryMs };
+export function splitDt(carryMs: number, dtMs: number, out: DtSplit = { wholeMs: 0, carryMs: 0 }): DtSplit {
+   if (!(dtMs > 0) || !Number.isFinite(dtMs)) {
+      out.wholeMs = 0;
+      out.carryMs = carryMs;
+      return out;
+   }
    const pending = Math.round(carryMs * 1000) + Math.round(dtMs * 1000);
    const wholeMs = Math.floor(pending / 1000);
-   const rest = pending - wholeMs * 1000;
-   return { wholeMs, carryMs: rest / 1000 };
+   out.wholeMs = wholeMs;
+   out.carryMs = (pending - wholeMs * 1000) / 1000;
+   return out;
 }
+
+/** step()'s split, read right after it is written. */
+const SPLIT: DtSplit = { wholeMs: 0, carryMs: 0 };
 
 // ---------- run ----------
 
@@ -371,7 +385,7 @@ export function step(state: RunState, dtMs: number, input: StepInput = {}): Step
    if (state.ended || !(dtMs > 0)) return events;
 
    const prev = state.elapsedMs;
-   const split = splitDt(state.carryMs, dtMs);
+   const split = splitDt(state.carryMs, dtMs, SPLIT);
    let whole = split.wholeMs;
    let carry = split.carryMs;
    if (prev + whole >= ROUND_MS) {

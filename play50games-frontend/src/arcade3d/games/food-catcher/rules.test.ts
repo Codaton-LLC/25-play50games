@@ -124,25 +124,55 @@ describe("schedule", () => {
    });
 
    it("keeps spawns 0-2 good and matches each step's bad chance over 2000 seeds", () => {
-      const tallies = STEPS.map(() => ({ bad: 0, total: 0 }));
+      // The spawn times are the same for every seed, so each spawn's step row is looked up once.
+      const times = spawnTimes();
+      const rowOf = times.map((t) => STEPS.findIndex((row) => t >= row.start && t < row.end));
+      expect(rowOf.every((row) => row >= 0)).toBe(true);
+      const bad = STEPS.map(() => 0);
+      const total = STEPS.map(() => 0);
+      let earlyBad = 0;
       for (let seed = 1; seed <= 2000; seed++) {
          const plan = buildPlan(seed);
-         expect(plan[0].bad).toBe(false);
-         expect(plan[1].bad).toBe(false);
-         expect(plan[2].bad).toBe(false);
+         if (plan[0].bad || plan[1].bad || plan[2].bad) earlyBad += 1;
          for (let i = 3; i < plan.length; i++) {
-            const row = STEPS.findIndex((stepRow) => plan[i].time >= stepRow.start && plan[i].time < stepRow.end);
-            expect(row).toBeGreaterThanOrEqual(0);
-            tallies[row].total += 1;
-            if (plan[i].bad) tallies[row].bad += 1;
+            total[rowOf[i]] += 1;
+            if (plan[i].bad) bad[rowOf[i]] += 1;
          }
       }
+      expect(earlyBad).toBe(0);
+      // At least 9 * 2000 rolls per row, so one standard error is at most 0.0025. +-0.03 (12 errors)
+      // never fails the real table, and a row that used its neighbour's chance (0.04 away) still
+      // misses it by 4 errors.
       for (let row = 0; row < STEPS.length; row++) {
-         expect(tallies[row].bad).toBeGreaterThan(0);
-         expect(tallies[row].total).toBeGreaterThan(0);
-         const rate = tallies[row].bad / tallies[row].total;
+         expect(total[row]).toBeGreaterThanOrEqual(9 * 2000);
+         const rate = bad[row] / total[row];
          expect(Math.abs(rate - STEPS[row].badChance)).toBeLessThanOrEqual(0.03);
       }
+   });
+
+   // The kind is rolled from the seed, never picked from the spawn index.
+   it("rolls every good kind at each of the first three spawns", () => {
+      for (let i = 0; i < 3; i++) {
+         const kinds = new Set<string>();
+         for (let seed = 1; seed <= 200; seed++) kinds.add(buildPlan(seed)[i].kind);
+         expect([...kinds].sort()).toEqual([...GOOD_KINDS].sort());
+      }
+   });
+
+   it("rolls every good kind at a later spawn of a forced-good run", () => {
+      const kinds = new Set<string>();
+      for (let seed = 1; seed <= 200; seed++) kinds.add(buildPlan(seed, true)[5].kind);
+      expect(kinds.size).toBe(GOOD_KINDS.length);
+   });
+
+   it("rolls either junk kind at the first spawn that can be bad", () => {
+      // spawn 3 is bad 12% of the time, so 5000 seeds give about 600 junk rolls
+      const kinds = new Set<string>();
+      for (let seed = 1; seed <= 5000; seed++) {
+         const spawn = buildPlan(seed)[3];
+         if (spawn.bad) kinds.add(spawn.kind);
+      }
+      expect(kinds.size).toBe(BAD_KINDS.length);
    });
 
    it("changes kinds with the seed, shows every kind, and reaches both ends of the spawn line", () => {
@@ -280,23 +310,23 @@ describe("scoring", () => {
       expect(catchPoints(4)).toBe(GOOD_POINTS);
       expect(catchPoints(COMBO_DOUBLE_AT)).toBe(DOUBLE_POINTS);
       const state = align(1, true);
+      // the score each catching step really adds, read from the run (not replayed from catchPoints)
       const got: number[] = [];
-      play(state, DT, () => ({ dir: 0 }), (s) => {
-         if (s.combo >= 6) return true;
-         return false;
-      });
-      // replay the awards from the combo rule
-      let combo = 0;
-      let score = 0;
-      while (combo < 6) {
-         combo += 1;
-         const pts = catchPoints(combo);
-         score += pts;
-         got.push(pts);
+      let guard = 0;
+      while (got.length < 6 && !state.ended && guard++ < 10_000) {
+         const before = state.score;
+         const ev = step(state, DT, { dir: 0 });
+         expect(ev.missed).toBe(0);
+         if (ev.caught === 0) {
+            expect(state.score).toBe(before);
+            continue;
+         }
+         expect(ev.caught).toBe(1);
+         got.push(state.score - before);
       }
       expect(got).toEqual([10, 10, 10, 10, 20, 20]);
       expect(state.combo).toBe(6);
-      expect(state.score).toBe(score);
+      expect(state.score).toBe(80);
    });
 
    /** One item, one frame before it crosses y = 1.6. No further spawns. */

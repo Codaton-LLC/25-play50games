@@ -14,3 +14,9 @@
    letter-spacing: 0.04em;
    line-height: 1.2;
 }
+
+/* Under a 5 combo: still laid out (the safe area keeps its rect), just not drawn. Never set
+   visibility: visible here, or the badge would show through the shell's hidden HUD wrapper. */
+.off {
+   visibility: hidden;
+}

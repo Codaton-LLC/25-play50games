@@ -3,7 +3,9 @@
 // Food Catcher scene. rules.ts owns the catch; this file steps it once per frame and draws it.
 // The run object is created once per mount (GameShell remounts the Scene on retry). The frame
 // loop mutates it and never calls setState. Visuals read it and animate with useGameTime().
-import { useMemo, useRef, useState } from "react";
+// Only FittedCamera re-renders when the fit changes (resize, cookie banner); everything else is
+// memoised and moves in useFrame.
+import { memo, useMemo, useRef, useState } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import { Raycaster, Vector2, type Camera, type Group } from "three";
 import CameraRig from "@/arcade3d/core/CameraRig";
@@ -35,6 +37,7 @@ import {
    step,
    type ItemKind,
    type RunState,
+   type StepInput,
 } from "./rules";
 
 const LOOK_AT: [number, number, number] = [0, 3.25, 0];
@@ -60,6 +63,8 @@ const KINDS: readonly ItemKind[] = ["apple", "banana", "burger", "sock", "tinCan
 interface Scratch {
    ray: Raycaster;
    ndc: Vector2;
+   /** this frame's input to step(), rewritten every frame (no per-frame allocation) */
+   input: StepInput;
 }
 
 type ViewRun = RunState & { flashAt: number; flashX: number };
@@ -75,7 +80,7 @@ function projectFingerX(pointerX: number, pointerY: number, camera: Camera, scra
    return origin.x + dir.x * t;
 }
 
-function Simulation({ run, scratch }: { run: ViewRun; scratch: Scratch }) {
+const Simulation = memo(function Simulation({ run, scratch }: { run: ViewRun; scratch: Scratch }) {
    const input = useInput();
    const camera = useThree((state) => state.camera);
    const time = useGameTime();
@@ -83,9 +88,10 @@ function Simulation({ run, scratch }: { run: ViewRun; scratch: Scratch }) {
    useRunFrame((_state, dt) => {
       const pointer = input.current.pointer;
       const moveX = input.current.moveX;
-      const targetX = pointer.down ? projectFingerX(pointer.x, pointer.y, camera, scratch) : null;
-      const dir = moveX < -0.5 ? -1 : moveX > 0.5 ? 1 : 0;
-      const ev = step(run, dt * 1000, { targetX, dir });
+      const stepInput = scratch.input;
+      stepInput.targetX = pointer.down ? projectFingerX(pointer.x, pointer.y, camera, scratch) : null;
+      stepInput.dir = moveX < -0.5 ? -1 : moveX > 0.5 ? 1 : 0;
+      const ev = step(run, dt * 1000, stepInput);
       const store = useArcadeStore.getState();
       if (ev.caught > 0 || ev.missed > 0 || ev.badCaught > 0 || ev.lifeLost || ev.ended) {
          store.setScore(run.score);
@@ -107,9 +113,9 @@ function Simulation({ run, scratch }: { run: ViewRun; scratch: Scratch }) {
    });
 
    return null;
-}
+});
 
-function Chef({ run }: { run: RunState }) {
+const Chef = memo(function Chef({ run }: { run: RunState }) {
    const time = useGameTime();
    const root = useRef<Group>(null);
    const bob = useRef<Group>(null);
@@ -131,9 +137,9 @@ function Chef({ run }: { run: RunState }) {
          </group>
       </group>
    );
-}
+});
 
-function FallingItem({ index, run }: { index: number; run: RunState }) {
+const FallingItem = memo(function FallingItem({ index, run }: { index: number; run: RunState }) {
    const time = useGameTime();
    const root = useRef<Group>(null);
    const shown = useRef<Array<Group | null>>([]);
@@ -191,9 +197,9 @@ function FallingItem({ index, run }: { index: number; run: RunState }) {
          </group>
       </group>
    );
-}
+});
 
-function CatchFlash({ run }: { run: ViewRun }) {
+const CatchFlash = memo(function CatchFlash({ run }: { run: ViewRun }) {
    const time = useGameTime();
    const ring = useRef<Group>(null);
 
@@ -216,27 +222,37 @@ function CatchFlash({ run }: { run: ViewRun }) {
          </mesh>
       </group>
    );
+});
+
+/** The static camera: the only component that re-renders when the fit changes. */
+function FittedCamera() {
+   const view = useFittedView(VIEW);
+   return (
+      <CameraRig
+         camera={{
+            position: [LOOK_AT[0] + view.offset[0], LOOK_AT[1] + view.offset[1], LOOK_AT[2] + view.offset[2]],
+            fov: VIEW.fov,
+            lookAt: LOOK_AT,
+         }}
+         offset={view.offset}
+         shift={view.shift}
+         damping={6}
+      />
+   );
 }
 
 export default function Scene() {
-   const view = useFittedView(VIEW);
    const [run] = useState<ViewRun>(() => Object.assign(createRun(randomSeed()), { flashAt: -10, flashX: 0 }));
-   const scratch = useMemo<Scratch>(() => ({ ray: new Raycaster(), ndc: new Vector2() }), []);
+   const scratch = useMemo<Scratch>(
+      () => ({ ray: new Raycaster(), ndc: new Vector2(), input: { targetX: null, dir: 0 } }),
+      []
+   );
    const slots = useMemo(() => Array.from({ length: MAX_ALIVE }, (_v, i) => i), []);
 
    return (
       <>
          <Simulation run={run} scratch={scratch} />
-         <CameraRig
-            camera={{
-               position: [LOOK_AT[0] + view.offset[0], LOOK_AT[1] + view.offset[1], LOOK_AT[2] + view.offset[2]],
-               fov: 40,
-               lookAt: LOOK_AT,
-            }}
-            offset={view.offset}
-            shift={view.shift}
-            damping={6}
-         />
+         <FittedCamera />
          <Kitchen />
          <Chef run={run} />
          {slots.map((index) => (
