@@ -1,0 +1,8 @@
+{
+   "slug": "robot-collector",
+   "universe": "warehouse",
+   "seed": 5050,
+   "assets": [
+      { "id": "barrel", "kind": "prop", "mode": "text", "prompt": "Blue metal barrel with two ridges, Play50 toy world style, bright vinyl toy look, smooth rounded shapes, saturated colours, friendly cartoon proportions, single isolated prop, centered, no base, no ground, no text, clean game-ready low-poly topology", "tier": "Gen-2.5-Low", "qualityOverride": 2000, "attempts": 1, "target": "robot-collector", "budget": { "tris": 5000, "bytes": 300000 }, "textureSize": 512 }
+   ]
+}
