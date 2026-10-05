@@ -1,6 +1,6 @@
-// STUB (Phase 0). Owner: Cursor (K1). Keep the props exactly as typed; add a .module.css next to this file.
 import Link from "next/link";
 import type { ReactNode } from "react";
+import styles from "./CollectionPanel.module.css";
 
 export interface CollectionStat {
    label: string;
@@ -19,20 +19,35 @@ export interface CollectionPanelProps {
    children?: ReactNode;
 }
 
-export default function CollectionPanel({ id, title, description, href, ctaLabel, stats, children }: CollectionPanelProps) {
+export default function CollectionPanel({
+   id,
+   title,
+   description,
+   href,
+   ctaLabel,
+   stats,
+   children,
+}: CollectionPanelProps) {
+   const headingId = `${id}-title`;
+
    return (
-      <section id={id}>
-         <h2>{title}</h2>
-         <p>{description}</p>
-         <ul>
+      <section id={id} className={styles.panel} aria-labelledby={headingId}>
+         <h2 id={headingId} className={styles.title}>
+            {title}
+         </h2>
+         <p className={styles.description}>{description}</p>
+         <ul className={styles.facts}>
             {stats.map((stat) => (
-               <li key={stat.label}>
-                  <strong>{stat.value}</strong> {stat.label}
+               <li key={`${stat.value}:${stat.label}`} className={styles.chip}>
+                  {stat.value ? <strong>{stat.value}</strong> : null}
+                  {stat.label ? <span>{stat.label}</span> : null}
                </li>
             ))}
          </ul>
-         {children}
-         <Link href={href}>{ctaLabel}</Link>
+         {children ? <div className={styles.slot}>{children}</div> : null}
+         <Link className={styles.cta} href={href}>
+            {ctaLabel}
+         </Link>
       </section>
    );
 }

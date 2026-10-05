@@ -11,3 +11,7 @@ play50games-backend/.idea/
 # Secrets
 play50games-backend/wp-config.php
 .env*.local
+
+# Claude Code local worktrees and settings
+.claude/worktrees/
+.claude/settings.local.json

@@ -1,0 +1,353 @@
+.hero {
+   position: relative;
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   min-height: 60vh;
+   overflow: hidden;
+   background: var(--bg);
+   color: var(--text);
+}
+
+.backdrop,
+.mediaFrame {
+   position: absolute;
+   inset: 0;
+   pointer-events: none;
+}
+
+.sky {
+   position: absolute;
+   inset: 0;
+   background:
+      radial-gradient(70% 46% at 50% 36%, color-mix(in srgb, var(--accent) 18%, transparent), transparent 68%),
+      radial-gradient(36% 32% at 8% 0%, color-mix(in srgb, var(--accent) 16%, transparent), transparent 70%),
+      radial-gradient(32% 28% at 96% 6%, color-mix(in srgb, var(--accent) 10%, transparent), transparent 72%),
+      var(--bg);
+}
+
+.glow {
+   position: absolute;
+   left: 50%;
+   top: 40%;
+   width: min(680px, 88vw);
+   height: 220px;
+   transform: translate3d(-50%, -58%, 0);
+   background: radial-gradient(ellipse at center, color-mix(in srgb, var(--accent) 42%, transparent), transparent 70%);
+}
+
+.floor {
+   position: absolute;
+   left: -8%;
+   right: -8%;
+   bottom: 0;
+   height: 54%;
+   overflow: hidden;
+   perspective: 480px;
+   perspective-origin: 50% 0%;
+   -webkit-mask-image: linear-gradient(to top, #000 28%, transparent 96%);
+   mask-image: linear-gradient(to top, #000 28%, transparent 96%);
+}
+
+.plane {
+   position: absolute;
+   left: -30%;
+   right: -30%;
+   bottom: -6%;
+   height: 100%;
+   overflow: hidden;
+   transform: rotateX(64deg);
+   transform-origin: center bottom;
+}
+
+/* 2× tall layer. Travel is -50% (exactly one extra copy).
+   Cell height is 10% of the layer so the loop lands on a grid line. */
+.grid {
+   position: absolute;
+   left: 0;
+   top: 0;
+   width: 100%;
+   height: 200%;
+   background-image:
+      linear-gradient(to right, color-mix(in srgb, var(--accent) 50%, transparent) 1px, transparent 1px),
+      linear-gradient(to bottom, color-mix(in srgb, var(--accent) 50%, transparent) 1px, transparent 1px);
+   background-size: 56px 10%;
+   animation: grid-drift 16s linear infinite;
+}
+
+.tiles {
+   position: absolute;
+   inset: 0;
+}
+
+.tile {
+   position: absolute;
+   display: grid;
+   place-items: center;
+   width: 40px;
+   height: 40px;
+   border-radius: 12px;
+   color: var(--accent);
+   background:
+      linear-gradient(160deg, color-mix(in srgb, var(--accent) 24%, transparent), transparent 58%),
+      var(--card);
+   border: 1px solid color-mix(in srgb, var(--accent) 48%, var(--stroke));
+   box-shadow: 0 12px 28px rgba(0, 0, 0, 0.28);
+   animation: float-a 8.4s ease-in-out infinite;
+}
+
+.tile svg {
+   width: 58%;
+   height: 58%;
+   fill: none;
+   stroke: currentColor;
+   stroke-width: 1.6;
+   stroke-linejoin: round;
+   stroke-linecap: round;
+}
+
+.tile:nth-child(1) {
+   top: 8%;
+   left: 6%;
+}
+
+.tile:nth-child(2) {
+   top: 12%;
+   right: 7%;
+   animation-name: float-b;
+   animation-duration: 9.6s;
+   animation-delay: -1.6s;
+}
+
+.tile:nth-child(3) {
+   bottom: 13%;
+   left: 8%;
+   animation-name: float-b;
+   animation-duration: 8.8s;
+   animation-delay: -2.4s;
+}
+
+.tile:nth-child(4) {
+   bottom: 17%;
+   right: 9%;
+   animation-duration: 7.6s;
+   animation-delay: -3.1s;
+}
+
+.tile:nth-child(n + 5) {
+   display: none;
+}
+
+.tile:nth-child(5) {
+   top: 18%;
+   left: 17%;
+   animation-duration: 10s;
+   animation-delay: -0.7s;
+}
+
+.tile:nth-child(6) {
+   top: 15%;
+   right: 19%;
+   animation-name: float-b;
+   animation-duration: 8.2s;
+   animation-delay: -2.8s;
+}
+
+.tile:nth-child(7) {
+   bottom: 24%;
+   left: 21%;
+   animation-name: float-b;
+   animation-duration: 9.4s;
+   animation-delay: -1.2s;
+}
+
+.tile:nth-child(8) {
+   bottom: 21%;
+   right: 23%;
+   animation-duration: 11s;
+   animation-delay: -3.6s;
+}
+
+.vignette {
+   position: absolute;
+   inset: 0;
+   background: linear-gradient(to top, var(--bg) 0%, transparent 26%);
+}
+
+.poster,
+.media {
+   position: absolute;
+   inset: 0;
+   width: 100%;
+   height: 100%;
+   object-fit: cover;
+}
+
+.scrim {
+   position: absolute;
+   inset: 0;
+   background: linear-gradient(
+      to top,
+      var(--bg) 0%,
+      color-mix(in srgb, var(--bg) 62%, transparent) 46%,
+      color-mix(in srgb, var(--bg) 40%, transparent) 100%
+   );
+}
+
+.content {
+   position: relative;
+   z-index: 1;
+   width: min(44rem, calc(100% - 2rem));
+   margin-inline: auto;
+   padding: 2.75rem 0 3.25rem;
+   text-align: center;
+}
+
+.title {
+   margin: 0;
+   font-size: clamp(2.5rem, 8vw, 5.35rem);
+   font-weight: 800;
+   line-height: 0.92;
+   letter-spacing: -0.045em;
+   color: var(--text);
+}
+
+.subtitle {
+   max-width: 34rem;
+   margin: 0.95rem auto 0;
+   font-size: 1.05rem;
+   line-height: 1.5;
+   color: var(--muted);
+   text-wrap: balance;
+}
+
+.actions {
+   display: flex;
+   flex-wrap: wrap;
+   justify-content: center;
+   gap: 0.75rem;
+   margin-top: 1.45rem;
+}
+
+.cta {
+   display: inline-flex;
+   align-items: center;
+   justify-content: center;
+   flex: 1 1 14rem;
+   max-width: 20rem;
+   min-height: 3rem;
+   padding: 0.7rem 1.15rem;
+   border-radius: 999px;
+   border: 1px solid transparent;
+   font-size: 0.95rem;
+   font-weight: 700;
+   line-height: 1.2;
+   letter-spacing: 0.01em;
+   text-align: center;
+   text-decoration: none;
+   transition: transform 160ms ease;
+}
+
+.ctaPrimary {
+   background: var(--accent);
+   color: var(--bg);
+}
+
+.ctaSecondary {
+   background: transparent;
+   color: var(--text);
+   border-color: var(--stroke);
+}
+
+.ctaDisabled {
+   background: var(--card);
+   color: var(--muted);
+   border-color: var(--stroke);
+   cursor: default;
+}
+
+.ctaPrimary:hover,
+.ctaSecondary:hover {
+   transform: translate3d(0, -2px, 0);
+}
+
+.ctaPrimary:focus-visible {
+   outline: 2px solid var(--text);
+   outline-offset: 3px;
+}
+
+.ctaSecondary:focus-visible {
+   outline: 2px solid var(--accent);
+   outline-offset: 3px;
+}
+
+@keyframes grid-drift {
+   from {
+      transform: translate3d(0, 0, 0);
+   }
+   to {
+      transform: translate3d(0, -50%, 0);
+   }
+}
+
+@keyframes float-a {
+   0%,
+   100% {
+      transform: translate3d(0, 0, 0);
+   }
+   50% {
+      transform: translate3d(0, -10px, 0);
+   }
+}
+
+@keyframes float-b {
+   0%,
+   100% {
+      transform: translate3d(0, 0, 0);
+   }
+   50% {
+      transform: translate3d(7px, -12px, 0);
+   }
+}
+
+@media (min-width: 641px) {
+   .hero {
+      min-height: 75vh;
+   }
+
+   .tile {
+      width: 52px;
+      height: 52px;
+      border-radius: 14px;
+   }
+
+   .tile:nth-child(n + 5) {
+      display: grid;
+   }
+
+   .content {
+      padding-bottom: 4.5rem;
+   }
+
+   .subtitle {
+      max-width: 44rem;
+      font-size: 1.2rem;
+   }
+}
+
+@media (prefers-reduced-motion: reduce) {
+   .grid,
+   .tile:nth-child(n),
+   .ctaPrimary,
+   .ctaSecondary,
+   .ctaPrimary:hover,
+   .ctaSecondary:hover {
+      animation: none;
+      transition: none;
+      transform: none;
+   }
+
+   .media {
+      display: none;
+   }
+}
