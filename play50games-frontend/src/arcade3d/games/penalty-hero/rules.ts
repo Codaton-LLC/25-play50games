@@ -49,6 +49,10 @@ export type ZoneId = (typeof ZONES)[number];
 /** Column 0..2 is left/centre/right. Row 0 is bottom, row 1 is top. */
 export const ZONE_CENTRE_X = [-2.44, 0, 2.44] as const;
 export const ZONE_CENTRE_Y = [0.61, 1.83] as const;
+/** Goal opening on the plane z = 0: x = -3.66..3.66, y = 0..2.44, six zones of 2.44 x 1.22. */
+export const GOAL_HALF_WIDTH = 3.66;
+export const GOAL_HEIGHT = 2.44;
+export const ZONE_WIDTH = 2.44;
 
 const ZONE_LIMIT_MS = { runup: RUNUP_MS, flight: FLIGHT_MS, hold: HOLD_MS } as const;
 
@@ -70,6 +74,14 @@ export function axisClass(value: number): -1 | 0 | 1 {
 
 export function zoneIndex(col: number, row: number): number {
    return row === 1 ? col : 3 + col;
+}
+
+/** Zone under a point of the goal plane, or null outside the opening. Inner lines belong to the right/upper zone. */
+export function zoneAt(x: number, y: number): ZoneId | null {
+   if (!(x >= -GOAL_HALF_WIDTH && x <= GOAL_HALF_WIDTH && y >= 0 && y <= GOAL_HEIGHT)) return null;
+   const col = x < -ZONE_WIDTH / 2 ? 0 : x < ZONE_WIDTH / 2 ? 1 : 2;
+   const row = y < GOAL_HEIGHT / 2 ? 0 : 1;
+   return ZONES[zoneIndex(col, row)];
 }
 
 export function reticleOffset(aimMs: number, phase: number): number {

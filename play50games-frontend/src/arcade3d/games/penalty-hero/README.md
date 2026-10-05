@@ -1,18 +1,24 @@
 # Penalty Hero
 
-Owner: Cursor. Slug: `penalty-hero`. Accent `#f472b6`. Status stays `"soon"` until the game is built and reviewed. **This is an implementation specification, not a working game:** `index.tsx` still renders `PlaceholderScene`; Scene, rules and game tests below are planned. This review changes only this README, `assets.spec.json` and `meta.ts`.
+Owner: Cursor. Slug: `penalty-hero`. Accent `#f472b6`. Status stays `"soon"` until the game is reviewed and its models exist. **The game is playable** on primitives (striker, keeper, ball, goal, stadium); the striker and keeper GLBs drop in through `assets.ts`.
 
 | File | What it owns |
 |---|---|
 | `meta.ts` | Card data, portrait orientation and scoring limits. Plain data, server-safe; numeric limits match `arcade-games.json`. |
-| `index.tsx` | Planned `GameDefinition`: Scene, custom Hud, assets, camera, tap controls and one shell HUD stat; no whole-run countdown or lives. |
-| `rules.ts` | Planned pure seeded `createRun(seed)` and `step(state, dt, input)`: aim, accuracy, keeper draw, phases, outcomes and scoring. No three.js/React/DOM/random source. |
-| `rules.test.ts` | Planned Vitest, including idle scoring and the duration/rate proof. |
-| `Scene.tsx` | Planned mount seed, goal-plane tap projection, first-child Simulation, visuals, store reports and sounds. |
-| `Primitives.tsx` | Planned stadium, goal/net, code ball, character fallbacks, reticle and zones. |
-| `camera.ts` | Planned aspect-dependent fit to world bounds and space between the HUD and bottom overlays. |
-| `Hud.tsx` / `Hud.module.css` | Planned game-owned goals/streak, ten shot dots and GOAL/SAVED feedback. |
-| `assets.ts` / `assets.spec.json` | Planned `ModelAsset`s / two character generation requests. No generated ball. |
+| `index.tsx` | `GameDefinition`: Scene, Hud, assets, camera (0, 4, 20) → (0, 1.22, 0), fov 40, `touchControls: ["tap"]`, one shell stat `shots` / 10, `finalScore` through `rules.finalScore`. No run timer or lives. |
+| `rules.ts` | Pure seeded `createRun(seed)` and `step(state, dtMs, input)`: aim, accuracy, keeper draw, phases, outcomes and scoring, plus `zoneAt(x, y)` for goal-plane points. No three.js/React/DOM/random source. |
+| `rules.test.ts` | Vitest, including idle scoring, the duration/rate proof, shot targets, the limit cap and the zone mapping. |
+| `Scene.tsx` | Mount seed (`randomSeed`), first-child Simulation (`useRunFrame` → `step`, tap → ray → plane z = 0 → `zoneAt`), store stats and sounds, `useFittedView` + `CameraRig`, visuals from phase progress and `useGameTime`. |
+| `Primitives.tsx` | Stadium (canvas-texture pitch, crowd and boards), goal frame and net lines, code ball, striker and keeper fallbacks. |
+| `Hud.tsx` / `Hud.module.css` | Goals/streak pill, ten shot dots (✓ / ✕ plus colour), aim deadline from 5 s, GOAL / SAVED feedback (`aria-live="polite"`). Both panels are `data-arcade-safe-area`. |
+| `assets.ts` / `assets.spec.json` | Striker and keeper `ModelAsset`s / two character generation requests. No generated ball. |
+
+### How the build maps to this design
+
+- Store stats written by Scene: `shots` (shell HUD), `goals`, `streak`, `goalMask` (bit i = shot i scored), `feedback` (0 none, 1 goal, 2 saved, 3 wide, 4 timeout; cleared when the next aim starts) and `aimLeft` (whole seconds, only on change). `setScore` on every goal, `end("win")` on `ended`.
+- Camera: core `useFittedView` replaces the local `camera.ts` below. The fit box is the goal guard box, pitch `atan2(2.78, 20)`, `shift: true`, and `minDistance` is the README camera distance, so the camera only ever moves further back than (0, 4, 20). The striker and ball are in front of the goal box and are not part of the fit.
+- Reticle: a ring over the highlighted zone at `x = centre + r / 0.6 * 1.04 m`; the white band is the `abs(r) <= 0.25` window. The ring turns green inside it.
+- Keeper: rolls 65° about the hip toward side columns, lifts for the top row and drops the hip for a low dive; returns during the last 60 % of the hold. Striker: lean and lunge (+0.3 x, -0.6 z) in the run-up, a kick tilt in the first 200 ms of flight, back in the hold.
 
 ### What a new game copies from here
 
@@ -186,7 +192,9 @@ Planned `rules.test.ts` (Vitest, pure state/fake input, no wall-clock sleeps):
 
 ## Known issues and core gaps
 
-- Route is still a placeholder; implementation/assets pending. Projection measurements check specified camera maths, not actual gameplay/overlays.
+- Playable on primitives; striker/keeper GLBs pending. Projection measurements above check the earlier camera maths; the build uses core `useFittedView`.
+- The fine-pointer fit gate (pause and a resize hint when a desktop window makes the zones smaller than 44 px) is not built. Coarse pointers still get GameShell's portrait gate.
+- The striker can sit under the bottom Hud panel on short desktop windows, because only the goal box is fitted.
 - Core lacks a pause-safe animation clock and simulation-priority option. Keep dt-only local clock/first-child Simulation until shared contracts exist, then use core. Do not blindly copy robot-collector clock code or R3F elapsed time.
 - CameraRig has static/follow placement, no free-screen box fit. Proposed local fitter uses existing `useBottomObstruction`; core could supply fitting/overlay rects. Recheck core APIs before implementing.
 - Countdown transition leaves <=50 ms untimed; proof accounts for it. Real-store timing tests must be added with the rules. A core fix could strengthen the bound.

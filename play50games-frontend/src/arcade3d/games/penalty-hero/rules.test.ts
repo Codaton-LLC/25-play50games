@@ -28,6 +28,7 @@ import {
    reticleSeed,
    step,
    withinServerLimits,
+   zoneAt,
    type RunState,
    type StepInput,
    type ZoneId,
@@ -625,5 +626,51 @@ describe("pinned rules", () => {
          expect(Math.round(state.elapsedMs)).toBeGreaterThanOrEqual(16_000);
          expect(Math.round(state.elapsedMs)).toBeLessThanOrEqual(216_050);
       }
+   });
+});
+
+describe("review additions", () => {
+   function tapWith(phase: number, zoneId: ZoneId): RunState {
+      const state = createRun(42);
+      state.reticlePhase = phase;
+      step(state, DT, { zoneId });
+      return state;
+   }
+
+   it("aims an accurate shot at the zone centre and a wide one at the row centre", () => {
+      const bottomLeft = tapWith(0, "bottom-left");
+      expect(bottomLeft.pending.accurate).toBe(true);
+      expect(bottomLeft.targetX).toBe(-2.44);
+      expect(bottomLeft.targetY).toBe(0.61);
+      const topRight = tapWith(0, "top-right");
+      expect(topRight.pending.accurate).toBe(true);
+      expect(topRight.targetX).toBe(2.44);
+      expect(topRight.targetY).toBe(1.83);
+      const wide = tapWith(Math.PI / 2, "bottom-right");
+      expect(wide.pending.accurate).toBe(false);
+      expect(wide.targetX).toBe(WIDE_X);
+      expect(wide.targetY).toBe(0.61);
+   });
+
+   it("lets the limit cap bind when a score outruns the clock", () => {
+      expect(finalScore(1450, 9000)).toEqual({ score: 1350, durationMs: 9000 });
+      expect(capScore(1500, 9499.6)).toBe(1425);
+   });
+
+   it("draws the only weighted zone even at the top of the unit range", () => {
+      expect(drawWeightedIndex([5, 0, 0, 0, 0, 0], 1)).toBe(0);
+   });
+
+   it("maps goal-plane points to zones, inner lines to the right and upper zone", () => {
+      expect(zoneAt(-3.66, 0)).toBe("bottom-left");
+      expect(zoneAt(-1.22, 0.5)).toBe("bottom-centre");
+      expect(zoneAt(1.22, 0.5)).toBe("bottom-right");
+      expect(zoneAt(0, 1.22)).toBe("top-centre");
+      expect(zoneAt(3.66, 2.44)).toBe("top-right");
+      expect(zoneAt(-2, 1.9)).toBe("top-left");
+      expect(zoneAt(3.67, 1)).toBeNull();
+      expect(zoneAt(0, -0.01)).toBeNull();
+      expect(zoneAt(0, 2.45)).toBeNull();
+      expect(zoneAt(Number.NaN, 1)).toBeNull();
    });
 });
