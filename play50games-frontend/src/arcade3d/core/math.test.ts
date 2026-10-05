@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { createRng, randomSeed, turnTowards } from "./math";
+import { readFileSync } from "node:fs";
+import { createRng, inputToWorld, randomSeed, turnTowards } from "./math";
+import { inputToWorld as inputToWorldFromView } from "./view";
+import { inputToWorld as inputToWorldFromInput } from "./input";
 import { capScore, submittedMs, withinServerLimits } from "./limits";
 import type { ScoringRules } from "../types";
 
@@ -76,5 +79,49 @@ describe("server limits (points games)", () => {
       for (const [score, ms] of [[1520, 7_600], [5000, 70_000], [1600, 7_608.49]]) {
          expect(withinServerLimits(capScore(score, ms, rules), ms, rules)).toBe(true);
       }
+   });
+});
+
+describe("inputToWorld", () => {
+   it("maps screen input to the world for both camera yaws", () => {
+      const out = { x: 0, z: 0 };
+      // landscape camera (yaw 0): up = -z, right = +x
+      inputToWorld(0, -1, 0, out);
+      expect(out.x).toBeCloseTo(0, 9);
+      expect(out.z).toBeCloseTo(-1, 9);
+      inputToWorld(1, 0, 0, out);
+      expect(out.x).toBeCloseTo(1, 9);
+      expect(out.z).toBeCloseTo(0, 9);
+      // portrait camera (yaw 90°, looking along -x): up = -x, right = -z
+      inputToWorld(0, -1, Math.PI / 2, out);
+      expect(out.x).toBeCloseTo(-1, 9);
+      expect(out.z).toBeCloseTo(0, 9);
+      inputToWorld(1, 0, Math.PI / 2, out);
+      expect(out.x).toBeCloseTo(0, 9);
+      expect(out.z).toBeCloseTo(-1, 9);
+   });
+
+   it("up always points away from the camera, and the input's length is kept", () => {
+      for (const yaw of [0.3, 1.2, 2.5, -2]) {
+         const camera = { x: Math.sin(yaw), z: Math.cos(yaw) }; // camera direction from the focus
+         const up = inputToWorld(0, -1, yaw);
+         expect(up.x * camera.x + up.z * camera.z).toBeCloseTo(-1, 9);
+         const d = inputToWorld(0.6, 0.3, yaw);
+         expect(Math.hypot(d.x, d.z)).toBeCloseTo(Math.hypot(0.6, 0.3), 9);
+      }
+   });
+
+   it("writes into `out` without allocating", () => {
+      const out = { x: 5, z: 5 };
+      expect(inputToWorld(1, 0, 0, out)).toBe(out);
+      expect(out.x).toBe(1);
+      expect(out.z).toBeCloseTo(0, 12);
+   });
+
+   it("is pure (no three.js, so rules.ts can use it) and re-exported by core/view and core/input", () => {
+      const source = readFileSync(new URL("./math.ts", import.meta.url), "utf8");
+      expect(source).not.toMatch(/from "(three|react|@react-three)/);
+      expect(inputToWorldFromView).toBe(inputToWorld);
+      expect(inputToWorldFromInput).toBe(inputToWorld);
    });
 });

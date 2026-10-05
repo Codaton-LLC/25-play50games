@@ -342,6 +342,7 @@ export default function GameShell({ meta, definition, exitHref = "/3d" }: GameSh
 
    const canvasWrapRef = useRef<HTMLDivElement>(null);
    const hudRef = useRef<HTMLDivElement>(null);
+   const gameHudRef = useRef<HTMLDivElement>(null);
    const probeRef = useRef<HTMLDivElement>(null);
    const [safeArea] = useState(createSafeAreaStore);
    const resultRef = useRef<HTMLDivElement>(null);
@@ -359,9 +360,12 @@ export default function GameShell({ meta, definition, exitHref = "/3d" }: GameSh
       setWebgl(detectWebGL() ? "ok" : "unsupported");
    }, []);
 
-   // where the HUD and the touch controls cover the canvas (useSafeArea in scenes); the banner
-   // lifts the controls, and the HUD mounts once WebGL is known
-   useSafeAreaTracker(safeArea, canvasWrapRef, hudRef, probeRef, [bottomObstruction, coarse, webgl, stageError]);
+   // where the HUDs, the touch controls and the cookie banner cover the canvas (useSafeArea in
+   // scenes); the banner lifts the controls, and the HUDs mount once WebGL is known
+   useSafeAreaTracker(safeArea, canvasWrapRef, hudRef, probeRef, [bottomObstruction, coarse, webgl, stageError], {
+      gameHud: gameHudRef,
+      bottomObstruction,
+   });
 
    // run config; reset() on unmount so the next game starts clean (safe to run twice)
    useEffect(() => {
@@ -598,8 +602,14 @@ export default function GameShell({ meta, definition, exitHref = "/3d" }: GameSh
                </div>
 
                {hudMounted && <Hud definition={definition} onPause={pause} hidden={!showHud} rootRef={hudRef} />}
-               {showHud && definition.Hud && (
-                  <div className={styles.gameHud}>
+               {/* laid out (hidden) in every phase like the shell HUD, so the safe area knows its marked panels */}
+               {hudMounted && definition.Hud && (
+                  <div
+                     ref={gameHudRef}
+                     className={styles.gameHud}
+                     style={showHud ? undefined : { visibility: "hidden" }}
+                     aria-hidden={!showHud || undefined}
+                  >
                      <definition.Hud />
                   </div>
                )}

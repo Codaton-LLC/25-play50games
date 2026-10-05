@@ -11,8 +11,9 @@
 // - Visuals (useFrame) only read the run state and animate with useGameTime() (it stops while
 //   paused), never with state.clock.elapsedTime (GameShell's pause resets it).
 // - The store is the only way out: addScore / setStat / end(reason). GameShell does the rest.
-// - Camera: useFittedView keeps the warehouse on screen and clear of the HUD and the touch
-//   controls; CameraRig follows the robot part of the way; inputToWorld turns input with the yaw.
+// - Camera: useFittedView keeps the warehouse on screen and clear of the HUD, the touch controls
+//   and the cookie banner (moving the picture with a lens shift when it must); followFocus ties
+//   its follow range to CameraRig's; inputToWorld turns input with the yaw.
 // - Models: <Model asset fallback={…}> draws the GLB once it is in core/modelManifest.ts and this
 //   game's own primitive until then.
 import { useRef, useState } from "react";
@@ -24,12 +25,12 @@ import { playSfx } from "@/arcade3d/core/audio";
 import type { AABB } from "@/arcade3d/core/collision";
 import { useGameTime } from "@/arcade3d/core/gameTime";
 import { useInput } from "@/arcade3d/core/input";
-import { randomSeed } from "@/arcade3d/core/math";
+import { inputToWorld, randomSeed } from "@/arcade3d/core/math";
 import { BlobShadow } from "@/arcade3d/core/render";
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { useFittedView, type FittedViewOptions } from "@/arcade3d/core/useFittedView";
 import { useRunFrame } from "@/arcade3d/core/useRunFrame";
-import { inputToWorld } from "@/arcade3d/core/view";
+import { followFocus } from "@/arcade3d/core/view";
 import { ASSETS } from "./assets";
 import { BatteryPrimitive, COLORS, RobotPrimitive, WALL, Warehouse, useBatteryParts } from "./Primitives";
 import {
@@ -55,27 +56,34 @@ import {
 
 /** Camera tilt above the floor: a three-quarter top-down view. */
 const PITCH = (56 * Math.PI) / 180;
-/** The camera looks this fraction of the way from the warehouse centre to the robot. */
+/** Where the camera looks while the robot is on its start pad: the warehouse centre. */
+const LOOK_AT: [number, number, number] = [0, 0, 0];
+/** The camera looks this fraction of the way from LOOK_AT towards the robot (CameraRig followFraction). */
 const FOLLOW = 0.12;
+/** Everywhere the robot can drive. */
+const FLOOR: AABB = { min: { x: -ARENA.halfX, y: 0, z: -ARENA.halfZ }, max: { x: ARENA.halfX, y: 0, z: ARENA.halfZ } };
 /** The whole warehouse, walls included, stays on screen... */
 const WAREHOUSE: AABB = {
    min: { x: -(ARENA.halfX + WALL.thickness), y: 0, z: -(ARENA.halfZ + WALL.thickness) },
    max: { x: ARENA.halfX + WALL.thickness, y: WALL.height, z: ARENA.halfZ + WALL.thickness },
 };
 /**
- * ...from every point the follow camera can look at, inside the screen margins (room for the HUD
- * on top) and 8 px clear of the HUD and the touch controls. Landscape screens look across the long
- * side; a portrait phone turns the camera 90° so the 24-unit side runs up the screen.
+ * ...from every point the follow camera can look at (followFocus, with the same LOOK_AT and FOLLOW
+ * as the CameraRig below), inside the screen margins (room for the HUD on top) and 8 px clear of
+ * the HUD, the touch controls and the cookie banner. `shift` lets the picture move on screen, so
+ * the warehouse sits above a joystick the banner lifts instead of shrinking. Landscape screens
+ * look across the long side; a portrait phone turns the camera a quarter turn so the 24-unit side
+ * runs up the screen.
  */
 const VIEW: FittedViewOptions = {
    area: WAREHOUSE,
    pitch: PITCH,
    yaws: [0, Math.PI / 2],
-   focus: [-1, 1].flatMap((sx) => [-1, 1].map((sz) => ({ x: sx * FOLLOW * ARENA.halfX, y: 0, z: sz * FOLLOW * ARENA.halfZ }))),
+   focus: followFocus({ lookAt: LOOK_AT, reach: FLOOR, fraction: FOLLOW }),
    margin: { top: 0.11, bottom: 0.07, left: 0.02, right: 0.02 },
    padding: 8,
+   shift: true,
 };
-const ORIGIN: [number, number, number] = [0, 0, 0];
 
 // ---------- run state ----------
 
@@ -252,10 +260,11 @@ export default function Scene() {
       <>
          {/* the camera reads run.robot, which useRunFrame already moved this frame */}
          <CameraRig
-            camera={{ position: view.offset, lookAt: ORIGIN }}
+            camera={{ position: view.offset, lookAt: LOOK_AT }}
             follow={run.robot}
             followFraction={FOLLOW}
             offset={view.offset}
+            shift={view.shift}
             damping={4}
          />
          <Warehouse />

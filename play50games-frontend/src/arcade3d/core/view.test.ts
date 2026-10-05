@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { PerspectiveCamera, Vector3 } from "three";
 import type { AABB, Vec3Like } from "./collision";
-import { fitView, inputToWorld, type FitViewOptions, type FittedView, type ScreenRect } from "./view";
+import { fitView, followAim, followFocus, setLensShift, type FitViewOptions, type FittedView, type ScreenRect } from "./view";
 
 const ORIGIN = { x: 0, y: 0, z: 0 };
 /** A 2 x 2 wall facing the camera (z = 0), centred on the origin. */
@@ -12,9 +12,10 @@ const PITCH = (56 * Math.PI) / 180;
 const corners = (box: AABB): Vector3[] =>
    [box.min.x, box.max.x].flatMap((x) => [box.min.y, box.max.y].flatMap((y) => [box.min.z, box.max.z].map((z) => new Vector3(x, y, z))));
 
-/** Screen positions (CSS px from the top-left) of the box corners for a fitted view. */
+/** Screen positions (CSS px from the top-left) of the box corners for a fitted view (with its lens shift, as CameraRig sets it). */
 function cornersOnScreen(box: AABB, view: FittedView, options: Pick<FitViewOptions, "width" | "height" | "fov">, focus: Vec3Like = ORIGIN, scale = 1) {
    const cam = new PerspectiveCamera(options.fov, options.width / options.height, 0.1, 1000);
+   if (view.shift[0] !== 0 || view.shift[1] !== 0) setLensShift(cam, view.shift[0], view.shift[1], options.width, options.height);
    cam.position.set(focus.x + view.offset[0] * scale, focus.y + view.offset[1] * scale, focus.z + view.offset[2] * scale);
    cam.lookAt(focus.x, focus.y, focus.z);
    cam.updateMatrixWorld();
@@ -102,39 +103,136 @@ describe("fitView", () => {
    });
 });
 
-describe("inputToWorld", () => {
-   it("maps screen input to the world for both camera yaws", () => {
-      const out = { x: 0, z: 0 };
-      // landscape camera (yaw 0): up = -z, right = +x
-      inputToWorld(0, -1, 0, out);
-      expect(out.x).toBeCloseTo(0, 9);
-      expect(out.z).toBeCloseTo(-1, 9);
-      inputToWorld(1, 0, 0, out);
-      expect(out.x).toBeCloseTo(1, 9);
-      expect(out.z).toBeCloseTo(0, 9);
-      // portrait camera (yaw 90°, looking along -x): up = -x, right = -z
-      inputToWorld(0, -1, Math.PI / 2, out);
-      expect(out.x).toBeCloseTo(-1, 9);
-      expect(out.z).toBeCloseTo(0, 9);
-      inputToWorld(1, 0, Math.PI / 2, out);
-      expect(out.x).toBeCloseTo(0, 9);
-      expect(out.z).toBeCloseTo(-1, 9);
-   });
+/** Robot Collector's portrait layout: shell HUD groups and the joystick, lifted by a cookie banner `banner` px tall. */
+function portrait(banner: number) {
+   const width = 375;
+   const height = 812;
+   const hud: ScreenRect[] = [
+      { left: 10, top: 10, right: 218, bottom: 52 },
+      { left: width - 104, top: 10, right: width - 10, bottom: 54 },
+   ];
+   const joystick: ScreenRect = { left: 20, top: height - 20 - banner - 132, right: 152, bottom: height - 20 - banner };
+   const strip: ScreenRect[] = banner > 0 ? [{ left: 0, top: height - banner, right: width, bottom: height }] : [];
+   return { width, height, hud, joystick, avoid: [...hud, joystick, ...strip] };
+}
 
-   it("up always points away from the camera, and the input's length is kept", () => {
-      for (const yaw of [0.3, 1.2, 2.5, -2]) {
-         const camera = { x: Math.sin(yaw), z: Math.cos(yaw) }; // camera direction from the focus
-         const up = inputToWorld(0, -1, yaw);
-         expect(up.x * camera.x + up.z * camera.z).toBeCloseTo(-1, 9);
-         const d = inputToWorld(0.6, 0.3, yaw);
-         expect(Math.hypot(d.x, d.z)).toBeCloseTo(Math.hypot(0.6, 0.3), 9);
+const ROBOT_VIEW = {
+   fov: 45,
+   area: FLOOR,
+   pitch: PITCH,
+   margin: { top: 0.11, bottom: 0.07, left: 0.02, right: 0.02 },
+   padding: 8,
+   focus: followFocus({ reach: { min: { x: -12, y: 0, z: -8 }, max: { x: 12, y: 0, z: 8 } }, fraction: 0.12 }),
+};
+
+describe("fitView lens shift", () => {
+   it("setLensShift moves the picture by exactly (x, y) in NDC and does not turn the camera", () => {
+      const plain = new PerspectiveCamera(45, 375 / 812, 0.1, 1000);
+      plain.position.set(3, 9, 7);
+      plain.lookAt(0, 0, 0);
+      plain.updateMatrixWorld();
+      const shifted = plain.clone();
+      setLensShift(shifted, 0.2, 0.34, 375, 812);
+      expect(shifted.aspect).toBeCloseTo(375 / 812, 12);
+      for (const point of corners(FLOOR)) {
+         const a = point.clone().project(plain);
+         const b = point.clone().project(shifted);
+         expect(b.x - a.x).toBeCloseTo(0.2, 9);
+         expect(b.y - a.y).toBeCloseTo(0.34, 9);
+         expect(b.z).toBeCloseTo(a.z, 9);
       }
    });
 
-   it("writes into `out` without allocating", () => {
-      const out = { x: 5, z: 5 };
-      expect(inputToWorld(1, 0, 0, out)).toBe(out);
-      expect(out.x).toBe(1);
-      expect(out.z).toBeCloseTo(0, 12);
+   it("is off by default: shift [0, 0] and the same distance as before", () => {
+      const options = { ...ROBOT_VIEW, width: 812, height: 375, yaws: [0, Math.PI / 2], avoid: portrait(0).hud };
+      const off = fitView(options);
+      expect(off.shift).toEqual([0, 0]);
+      expect(fitView({ ...options, shift: false })).toEqual(off);
+   });
+
+   it("uses lopsided margins: the analytic fit of a wall in a band from -1 to 0.5", () => {
+      // fov 90, distance d: the 2-unit wall spans +-1/d in NDC; the band is 1.5 tall, centred at -0.25
+      const view = fitView({ width: 400, height: 400, fov: 90, area: WALL, pitch: 0, focus: [ORIGIN], margin: { top: 0.25 }, shift: true });
+      expect(view.distance).toBeCloseTo(4 / 3, 5);
+      expect(view.shift[0]).toBeCloseTo(0, 9);
+      expect(view.shift[1]).toBeCloseTo(-0.25, 5);
+      // without the shift it must fit +-0.5 around the centre
+      expect(fitView({ width: 400, height: 400, fov: 90, area: WALL, pitch: 0, focus: [ORIGIN], margin: { top: 0.25, bottom: 0.25 } }).distance).toBeCloseTo(2, 5);
+   });
+
+   it("keeps a centred box when it fits there (no needless shift)", () => {
+      const view = fitView({ width: 400, height: 400, fov: 90, area: WALL, pitch: 0, focus: [ORIGIN], shift: true });
+      expect(view.distance).toBeCloseTo(1, 6);
+      expect(view.shift[0]).toBeCloseTo(0, 6);
+      expect(view.shift[1]).toBeCloseTo(0, 6);
+   });
+
+   it("moves the warehouse above a joystick the banner lifts instead of shrinking it", () => {
+      const yaws = [Math.PI / 2];
+      const none = portrait(0);
+      const free = fitView({ ...ROBOT_VIEW, width: none.width, height: none.height, yaws, avoid: none.avoid, shift: true });
+      for (const banner of [100, 140, 165, 185]) {
+         const layout = portrait(banner);
+         const options = { ...ROBOT_VIEW, width: layout.width, height: layout.height, yaws };
+         const old = fitView({ ...options, avoid: layout.avoid });
+         const view = fitView({ ...options, avoid: layout.avoid, shift: true });
+         // about the size it has without the banner, and far closer than zooming out around the centre
+         expect(view.distance).toBeLessThan(free.distance * 1.1);
+         expect(view.distance).toBeLessThan(old.distance * 0.8);
+         expect(view.shift[1]).toBeGreaterThan(0);
+         // from every focus point: inside the margins, below the HUD, above the lifted joystick and the banner
+         for (const focus of ROBOT_VIEW.focus) {
+            const screen = cornersOnScreen(FLOOR, view, options, focus);
+            for (const p of screen) {
+               expect(p.x).toBeGreaterThanOrEqual(0.02 * layout.width - 1e-6);
+               expect(p.x).toBeLessThanOrEqual(0.98 * layout.width + 1e-6);
+               expect(p.y).toBeGreaterThanOrEqual(Math.max(0.11 * layout.height, 54 + 8) - 1e-6);
+               expect(p.y).toBeLessThanOrEqual(layout.joystick.top - 8 + 1e-6);
+            }
+         }
+      }
+   });
+});
+
+describe("followAim / followFocus", () => {
+   const reach: AABB = { min: { x: -12, y: 0, z: -8 }, max: { x: 12, y: 0, z: 8 } };
+
+   it("Robot Collector: the four corners 12% of the way out, on the floor", () => {
+      const focus = followFocus({ lookAt: [0, 0, 0], reach, fraction: 0.12 });
+      expect(focus).toHaveLength(4);
+      for (const sx of [-1, 1]) {
+         for (const sz of [-1, 1]) {
+            expect(focus.some((f) => Math.abs(f.x - sx * 1.44) < 1e-9 && f.y === 0 && Math.abs(f.z - sz * 0.96) < 1e-9)).toBe(true);
+         }
+      }
+   });
+
+   it("applies lookAt, fraction and bounds like CameraRig", () => {
+      const bounds: AABB = { min: { x: -3, y: 0, z: -100 }, max: { x: 5, y: 0, z: 100 } };
+      const focus = followFocus({ lookAt: [2, 0, 0], reach: { min: { x: -10, y: 0, z: -4 }, max: { x: 10, y: 2, z: 4 } }, fraction: 0.5, bounds });
+      // x: 2 + (-12) / 2 = -4 -> -3 (bounds), 2 + 8 / 2 = 6 -> 5; y: 0..1 -> 0 (bounds); z: -2..2
+      expect(new Set(focus.map((f) => f.x))).toEqual(new Set([-3, 5]));
+      expect(new Set(focus.map((f) => f.y))).toEqual(new Set([0]));
+      expect(new Set(focus.map((f) => f.z))).toEqual(new Set([-2, 2]));
+      expect(focus).toHaveLength(4);
+   });
+
+   it("every point CameraRig can aim at lies inside the focus corners", () => {
+      const lookAt: [number, number, number] = [1, 0, -2];
+      const bounds: AABB = { min: { x: -2, y: -1, z: -3 }, max: { x: 2, y: 1, z: 1 } };
+      const focus = followFocus({ lookAt, reach, fraction: 0.3, bounds });
+      const lo = { x: Math.min(...focus.map((f) => f.x)), y: Math.min(...focus.map((f) => f.y)), z: Math.min(...focus.map((f) => f.z)) };
+      const hi = { x: Math.max(...focus.map((f) => f.x)), y: Math.max(...focus.map((f) => f.y)), z: Math.max(...focus.map((f) => f.z)) };
+      const out = new Vector3();
+      for (let i = 0; i < 500; i++) {
+         const target = { x: -12 + ((i * 7919) % 2400) / 100, y: 0, z: -8 + ((i * 104729) % 1600) / 100 };
+         followAim(target, lookAt, 0.3, bounds, out);
+         expect(out.x).toBeGreaterThanOrEqual(lo.x - 1e-9);
+         expect(out.x).toBeLessThanOrEqual(hi.x + 1e-9);
+         expect(out.y).toBeGreaterThanOrEqual(lo.y - 1e-9);
+         expect(out.y).toBeLessThanOrEqual(hi.y + 1e-9);
+         expect(out.z).toBeGreaterThanOrEqual(lo.z - 1e-9);
+         expect(out.z).toBeLessThanOrEqual(hi.z + 1e-9);
+      }
    });
 });

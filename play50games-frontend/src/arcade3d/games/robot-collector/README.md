@@ -22,10 +22,10 @@ Owner: Claude. Slug: `robot-collector`. Game 1 of the 3D Arcade and the **refere
     - the run state, made once in `useState` (no setState in the loop);
     - one `useRunFrame` that calls `rules.ts` and then the store (`addScore`, `setStat`, `end`);
     - visuals that only read that state in `useFrame` and animate with `useGameTime()`;
-    - the camera block (`useFittedView` + `CameraRig follow` + `inputToWorld`);
-    - `<Model asset fallback={<OwnPrimitive/>}>` for every model.
-- **Do not copy:** `Primitives.tsx` (canvas-drawn textures, warehouse props, the robot and battery stand-ins) or the battery pop, beam and ring effects. They are decoration for this game.
-- **Everything generic comes from `core/`** (`core/README.md`): frame order, game time, camera fit, safe area, input mapping, instancing, blob shadows, canvas textures, seeded RNG, server limits. Games do not import from each other. If something generic is missing, ask Claude to add it to the core.
+    - the camera block: `VIEW` with `focus: followFocus(…)` and `shift: true`, `useFittedView(VIEW)`, `<CameraRig … followFraction offset shift>` with the same `LOOK_AT` and `FOLLOW`, and `inputToWorld(moveX, moveY, view.yaw)` from `core/math`;
+    - `<Model asset fallback={<OwnPrimitive/>}>` for every model, and `<InstancedModel asset spots fallback={<Instanced …/>}>` for repeated props (the `Crates` / `Barrels` pattern at the end of `Primitives.tsx`).
+- **Do not copy:** the rest of `Primitives.tsx` (canvas-drawn textures, the warehouse, the robot and battery stand-ins) or the battery pop, beam and ring effects. They are decoration for this game.
+- **Everything generic comes from `core/`** (`core/README.md`): frame order, game time, camera fit and follow range, lens shift, safe area, input mapping, instanced props, blob shadows, canvas textures, seeded RNG, server limits. Games do not import from each other. If something generic is missing, ask Claude to add it to the core.
 
 ## Concept
 
@@ -37,7 +37,7 @@ Matches `meta.ts` (`scheme: "joystick"`).
 
 - Keyboard: WASD or the arrow keys. Diagonals are not faster. Esc or P pauses (GameShell).
 - Touch: the virtual joystick (bottom left). It is analog, so a small push drives slowly.
-- Controls are **screen-relative**: up always means "away from the camera", also when a portrait phone turns the camera 90° (`inputToWorld` from `core/view.ts`, with the fitted view's yaw).
+- Controls are **screen-relative**: up always means "away from the camera", also when a portrait phone turns the camera 90° (`inputToWorld` from `core/math.ts`, with the fitted view's yaw).
 - Movement (`ROBOT` in `rules.ts`): top speed 5 units/s, acceleration 24 u/s², braking 30 u/s². The robot turns to face where it is going (`turnRate` 14/s, eased).
 
 ## Rules
@@ -94,22 +94,22 @@ In practice the bound is far from tight. `shortestRoute(layout, PICKUP_REACH)`, 
 - The camera looks three-quarter top-down, tilted 56° (`PITCH` in `Scene.tsx`).
 - `useFittedView` (core) finds the closest camera that keeps the whole warehouse, walls included, inside a safe screen area:
   - margins of 11% on top (room for the HUD), 7% at the bottom and 2% at the sides;
-  - 8 px clear of the live HUD and touch-control rects from `useSafeArea()`.
-- The touch-control rects include the joystick's lift above the cookie banner while it is open, so the floor never runs under the joystick. When the banner opens or closes (detected within 1 s), the camera eases to the new fit.
-- The fit tries two yaws and keeps the closer one. A landscape screen looks across the long side, and a portrait phone turns the camera 90° so that the 24-unit side runs up the screen. With the banner open, a 375 × 812 portrait screen keeps yaw 0, because the lifted joystick leaves more room that way.
-- Fitted sizes (near edge of the floor, focus centred). These are identical to the old game-local fit (checked at 9 screen sizes):
-  - 375 × 812 portrait: about 300 px wide. Its bottom edge is 221 px above the screen bottom; the joystick box ends at 160 px.
-  - 812 × 375 landscape: 403 px, 50% of the width.
-  - 915 × 412 landscape: 484 px.
+  - 8 px clear of the live HUD, the touch controls and the cookie banner from `useSafeArea()`.
+- `shift: true` lets the fit move the picture on screen (a lens shift, `CameraRig shift`) instead of only moving the camera back. While the cookie banner is open, the warehouse moves up into the space between the HUD and the lifted joystick at full size, above the banner. When the banner opens or closes (detected within 1 s), the camera eases to the new fit.
+- The fit tries two yaws and keeps the closer one. A landscape screen looks across the long side, and a portrait phone turns the camera 90° so that the 24-unit side runs up the screen. The yaw is picked once per screen size: the banner changes only the distance and the shift, never the yaw, so the controls keep their meaning mid-run.
+- Fitted sizes (near edge of the floor, focus centred):
+  - 375 × 812 portrait: 297 px wide. Its bottom edge is 221 px above the screen bottom; the joystick box ends at 160 px. With a 162 px banner: still 297 px, 361 px above the screen bottom (the lifted joystick box ends at 314 px).
+  - 812 × 375 landscape: 512 px (63% of the width), moved right of the joystick. With an 83 px banner: 411 px, above the banner.
+  - 915 × 412 landscape: 588 px. With an 83 px banner: 469 px.
   - 1280 × 800 desktop: 996 px.
-- The camera follows the robot. `CameraRig` reads `run.robot` (`follow`) and looks 12% of the way from the floor centre towards it (`followFraction`, `FOLLOW`), with damping 4. The view moves with the robot, but every battery stays on screen, because the fit allows for every point that 12% can reach (`focus`). The camera snaps into place when a run starts and eases into later changes of the fit.
-- Frame order needs no care in this file. `useRunFrame` runs before every `useFrame` (core `FRAME_PRIORITY`), so `CameraRig`, `Robot` and `Batteries` always draw this frame's state, in any mount order.
+- The camera follows the robot. `CameraRig` reads `run.robot` (`follow`) and looks 12% of the way from the floor centre (`LOOK_AT`) towards it (`followFraction`, `FOLLOW`), with damping 4. The view moves with the robot, but every battery stays on screen, because the fit's `focus` is `followFocus` of the same `LOOK_AT` and `FOLLOW` over the whole floor. The camera snaps into place when a run starts and eases into later changes of the fit.
+- Frame order needs no care in this file. `useRunFrame` runs before `CameraRig` (`FRAME_PRIORITY.camera`) and every `useFrame` (core `FRAME_PRIORITY`), so the camera, `Robot` and `Batteries` always draw this frame's state, in any mount order.
 - Looks only (`useFrame`, animated with `useGameTime()`):
   - The robot bobs and leans with speed, its antenna wobbles, its chest meter glows brighter with every battery, and it spins on a win.
   - Batteries pop in, bob and spin. They have a pulsing floor glow, a light beam (easy to spot on phones) and a ring flash on pickup.
   - A teal marker ring sits under the robot.
 - No shadow maps. Each moving object gets a `BlobShadow` (core), and the static props have baked contact shadows in the floor texture (`useCanvasTexture`, core).
-- Measured with primitives (production build, headless Chrome on a GTX 1660 Ti, 1280 × 800 and 375 × 812 / 812 × 375 touch emulation): **28–29 draw calls**, 4.7k triangles, 2 textures, 60 fps. Crates and barrels are `InstancedMesh`es (`useInstanceMatrices`, core), so all crates are one draw call and all barrels four (side, lid, bottom, ridges). The battery meshes share geometries and materials.
+- Measured with primitives (production build, headless Chrome on a GTX 1660 Ti, 1280 × 800 and 375 × 812 / 812 × 375 touch emulation, with and without the banner): **28–29 draw calls**, 4.7k triangles, 2 textures, 60 fps. Walls, crates and barrels are instanced (`<Instanced>`, `<InstancedModel>`, core), so all crates are one draw call and all barrels four (side, lid, bottom, ridges). The battery meshes share geometries and materials.
 
 ## Assets
 
@@ -121,7 +121,7 @@ In practice the bound is far from tight. `shortestRoute(layout, PICKUP_REACH)`, 
 | barrel | **this game** `models/3d/robot-collector/barrel.glb` | `./assets.spec.json` (universe `warehouse`, seed 5050, like the shared props) | Blue cylinder with two ridges and a lighter lid (instanced) |
 | floor, walls, slab, start pad, glow, beams, rings | primitives in code | none | (always primitives) |
 
-- The robot and the batteries are `<Model asset fallback={<RobotPrimitive/>}>`. The crates and barrels ask `useModelFailed(asset)` (no clone) to choose between one `InstancedMesh` and a `<Model>` per prop. Dropping in a GLB needs no scene change.
+- The robot and the batteries are `<Model asset fallback={<RobotPrimitive/>}>`. The crates and barrels are `<InstancedModel asset spots fallback={<CrateBoxes/>}>` (core): instanced stand-ins now, and one `InstancedMesh` per GLB mesh once the GLB is listed. Dropping in a GLB needs no scene change and the draw calls do not grow with the number of props.
 - A GLB is fetched only once its url is listed in `core/modelManifest.ts` (Claude's assets PR adds it with the file). Until then, the game makes **no `.glb` requests**.
 - A GLB should face +z, stand on y = 0 and be about 1 unit tall. `scale`, `rotationY` and `yOffset` in `assets.ts` are adjusted in the assets PR.
 - Collision never comes from a model. Footprints are fixed in `rules.ts` (`CRATE_SIZE` 1.2, `BARREL_RADIUS` 0.45, robot 0.5, battery 0.3).
@@ -138,7 +138,7 @@ GameShell draws Score, Time (counting down from 1:00, highlighted under 10 s) an
 - On a win, `setScore` and `end("win")` run in the same callback, after the clock ticked for that frame, so `timeLeftMs` and `elapsedMs` match the submitted duration. `end()` is idempotent.
 - Both batteries of a wave touched in one frame: impossible, since they are ≥ 5 apart. The next wave cannot be collected on the frame it appears: it is ≥ 8 away.
 - Retry and restart remount the Scene (`key = runId`), which brings a new seed, robot, progress and game time. Nothing carries over.
-- Resizing, rotating or the cookie banner opening/closing mid-run refits the camera, which eases to the new fit. The yaw may flip between landscape and portrait, and the controls follow the new yaw at once.
+- The cookie banner opening or closing mid-run refits the camera (distance and shift only), which eases to the new fit; the yaw and the controls stay as they are. Resizing or rotating the screen picks the yaw again, and the controls follow the new yaw at once.
 - A missing GLB shows its primitive. A GLB that breaks while rendering falls back through `<Model>`'s error boundary.
 - React strict mode (dev) double-creates the run state. That is harmless, because it lives in `useState`, not module scope.
 
@@ -177,20 +177,21 @@ GameShell draws Score, Time (counting down from 1:00, highlighted under 10 s) an
   - simulated runs on the real store clock (60 fps and an uneven 73 fps) with a path-finding driver win, never beat the bound and pass the limits;
   - an idle robot times out with 0 at exactly 60000 ms.
 
-The generic parts are tested in `core/`: clock carry-over, game time and frame order (`frameLoop.test.ts`, `useArcadeStore.test.ts`), the fit math and `inputToWorld` (`view.test.ts`), the manifest skip (`modelManifest.test.ts`, `assets.test.ts`), the RNG and the limits (`math.test.ts`).
+The generic parts are tested in `core/`: clock carry-over, game time and frame order (`frameLoop.test.ts`, `useArcadeStore.test.ts`), the fit math, the lens shift and the follow range (`view.test.ts`), the yaw lock (`useFittedView.test.ts`), the manifest skip and instanced props (`modelManifest.test.ts`, `assets.test.ts`), `inputToWorld`, the RNG and the limits (`math.test.ts`).
 
 Browser (production build with the flags on and the API mock, headless Chrome over CDP, network log on):
 
 - **Steps:**
-  - start screen, countdown;
+  - start screen, countdown (the camera does not move);
   - 3 batteries;
+  - with the banner open: Accept it mid-run (the yaw must not change, the floor stays clear of the lowered joystick, the robot still drives);
   - a 2.5 s pause mid-run (the clock must not move, and the batteries on the floor must still be full size after resume);
   - all 10 collected, win screen;
   - then Retry, 3 collected, time up.
 - **Screens:**
   - desktop 1280 × 800 with the keyboard;
   - 375 × 812 with touch emulation and the joystick, with and without the cookie banner;
-  - 812 × 375 with the banner open (the floor stays out of the lifted joystick's box).
+  - 812 × 375 with and without the banner (the floor stays out of the lifted joystick's box and above the banner).
 - **Checks:**
   - the score equals the formula for the store's `elapsedMs`, and the local best stores the rounded duration (for example, 1340 at 25.19 s on desktop and 1360 at 23.70 s on the portrait phone);
   - a time-up run is 300 for 3 batteries at exactly 1:00.00;
@@ -200,4 +201,4 @@ Browser (production build with the flags on and the API mock, headless Chrome ov
 ## Known issues and core gaps
 
 - The cookie banner is detected by a 1 s poll (core `useBottomObstruction`), so the camera eases to its new fit up to a second after the banner opens or closes.
-- The robot's start heading faces the camera of the first fit. If the banner changes the yaw just after load (portrait phones), the robot starts facing sideways. This is cosmetic.
+- Core gaps: none open.

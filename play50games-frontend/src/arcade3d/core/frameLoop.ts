@@ -10,7 +10,7 @@
 //   frame, so the game never moves for time the clock did not count (and the reverse).
 // - Visuals animate with useGameTime() (stops while paused), never with state.clock.elapsedTime:
 //   GameShell pauses by switching the R3F frameloop, and R3F resets that clock on every switch.
-// - Order inside one frame: input -> run clock -> game time -> simulation -> visuals -> render.
+// - Order inside one frame: input -> run clock -> game time -> simulation -> camera -> visuals -> render.
 import type { StoreApi } from "zustand/vanilla";
 import type { RunPhase } from "./types";
 import type { ArcadeStore } from "./useArcadeStore";
@@ -28,9 +28,30 @@ export const FRAME_PRIORITY = {
    gameTime: -0.75,
    /** useRunFrame (default): the game's step, before anything draws its state */
    simulation: -0.5,
-   /** plain useFrame (R3F default): visuals that read the simulation's state */
+   /** CameraRig: follows the simulation's state, before the visuals that read the camera */
+   camera: -0.25,
+   /** plain useFrame (R3F default): visuals that read the simulation's state and the camera */
    visuals: 0,
 } as const;
+
+/**
+ * The useFrame priority useRunFrame uses: FRAME_PRIORITY.simulation by default. A custom one must
+ * be above FRAME_PRIORITY.gameTime (at or below it, the callback would run before the run clock
+ * or useGameTime() advance and read the previous frame's values) and at most FRAME_PRIORITY.visuals
+ * (a positive priority turns off R3F's automatic rendering). Above FRAME_PRIORITY.camera it runs
+ * after the follow camera has moved. Anything else throws outside production and falls back to
+ * the default in production.
+ */
+export function runFramePriority(priority?: number): number {
+   if (priority === undefined) return FRAME_PRIORITY.simulation;
+   if (priority > FRAME_PRIORITY.gameTime && priority <= FRAME_PRIORITY.visuals) return priority;
+   if (process.env.NODE_ENV !== "production") {
+      throw new RangeError(
+         `useRunFrame priority ${priority} is outside (${FRAME_PRIORITY.gameTime}, ${FRAME_PRIORITY.visuals}] (FRAME_PRIORITY.gameTime, FRAME_PRIORITY.visuals].`
+      );
+   }
+   return FRAME_PRIORITY.simulation;
+}
 
 /** Largest dt (seconds) a frame callback ever sees: 1/20 s. */
 export const MAX_FRAME_DT = 1 / 20;

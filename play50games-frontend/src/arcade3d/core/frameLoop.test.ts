@@ -8,15 +8,43 @@ import {
    clampFrameDt,
    createGameTime,
    playedFrameDt,
+   runFramePriority,
 } from "./frameLoop";
 import { COUNTDOWN_MS, createArcadeStore } from "./useArcadeStore";
 
 describe("frame order", () => {
-   it("input, run clock, game time, simulation, visuals; all <= 0 so R3F keeps rendering", () => {
-      const order = [FRAME_PRIORITY.input, FRAME_PRIORITY.clock, FRAME_PRIORITY.gameTime, FRAME_PRIORITY.simulation, FRAME_PRIORITY.visuals];
+   it("input, run clock, game time, simulation, camera, visuals; all <= 0 so R3F keeps rendering", () => {
+      const order = [
+         FRAME_PRIORITY.input,
+         FRAME_PRIORITY.clock,
+         FRAME_PRIORITY.gameTime,
+         FRAME_PRIORITY.simulation,
+         FRAME_PRIORITY.camera,
+         FRAME_PRIORITY.visuals,
+      ];
       expect([...order].sort((a, b) => a - b)).toEqual(order);
       expect(new Set(order).size).toBe(order.length);
       expect(Math.max(...order)).toBeLessThanOrEqual(0);
+   });
+
+   it("useRunFrame priorities: default simulation, custom ones only in (gameTime, visuals]", () => {
+      expect(runFramePriority()).toBe(FRAME_PRIORITY.simulation);
+      for (const ok of [-0.7, -0.5, FRAME_PRIORITY.camera, -0.1, 0]) expect(runFramePriority(ok)).toBe(ok);
+      // at or before the game time it would read last frame's values; above 0 R3F stops rendering
+      for (const bad of [FRAME_PRIORITY.gameTime, -0.9, FRAME_PRIORITY.clock, -5, 0.5, 1, Number.NaN]) {
+         expect(() => runFramePriority(bad)).toThrow(RangeError);
+      }
+   });
+
+   it("an out-of-range priority falls back to the default in production", () => {
+      const env = process.env.NODE_ENV;
+      try {
+         (process.env as Record<string, string | undefined>).NODE_ENV = "production";
+         expect(runFramePriority(1)).toBe(FRAME_PRIORITY.simulation);
+         expect(runFramePriority(-1)).toBe(FRAME_PRIORITY.simulation);
+      } finally {
+         (process.env as Record<string, string | undefined>).NODE_ENV = env;
+      }
    });
 });
 

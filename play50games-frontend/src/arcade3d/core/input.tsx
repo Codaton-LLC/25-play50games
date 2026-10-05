@@ -23,8 +23,8 @@ import { arcadeStore } from "./useArcadeStore";
 import { FRAME_PRIORITY } from "./frameLoop";
 import { createInputController, type InputController } from "./inputController";
 
-/** Screen-relative move input -> world direction for a camera yaw (core/view.ts). */
-export { inputToWorld } from "./view";
+/** Screen-relative move input -> world direction for a camera yaw (pure, core/math.ts). */
+export { inputToWorld } from "./math";
 
 export {
    createInputController,
