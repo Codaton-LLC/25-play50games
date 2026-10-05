@@ -39,6 +39,12 @@ export interface AuthStatusResponse {
   authenticated: boolean;
   user: User | null;
   nonce?: string;
+  /**
+   * true only when the server answered HTTP 200 with parseable JSON, i.e. the
+   * authenticated flag is the server's real verdict. false for non-OK statuses
+   * (5xx, 401/403 from the API key check), non-JSON bodies and parse errors.
+   */
+  definitive?: boolean;
 }
 
 /**
@@ -163,21 +169,25 @@ export async function checkAuthStatus(): Promise<AuthStatusResponse> {
   });
 
   if (!response.ok) {
-    return { authenticated: false, user: null };
+    return { authenticated: false, user: null, definitive: false };
   }
 
   // Check if response has content before parsing JSON
   const contentType = response.headers.get('content-type');
   const text = await response.text();
-  
+
   if (!text || !contentType?.includes('application/json')) {
-    return { authenticated: false, user: null };
+    return { authenticated: false, user: null, definitive: false };
   }
 
   try {
-    return JSON.parse(text);
+    const data = JSON.parse(text);
+    if (!data || typeof data !== 'object') {
+      return { authenticated: false, user: null, definitive: false };
+    }
+    return { ...data, definitive: response.status === 200 };
   } catch (error) {
-    return { authenticated: false, user: null };
+    return { authenticated: false, user: null, definitive: false };
   }
 }
 

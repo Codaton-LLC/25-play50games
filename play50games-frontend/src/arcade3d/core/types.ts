@@ -39,18 +39,30 @@ export interface RunActions {
    end(reason: EndReason): void;
 }
 
-/** Unified input, read from a ref inside useRunFrame (non-reactive). */
+/**
+ * Unified input, read from a ref inside useRunFrame (non-reactive).
+ * Keyboard, joystick, touch buttons, swipes and canvas taps all land here.
+ * The `*Pressed`, `swipe` and `tap` fields are one-frame events: they are set at the start
+ * of the frame after the event and cleared at the start of the next one.
+ */
 export interface InputState {
-   /** -1..1 */
+   /** -1..1 (left = -1) */
    moveX: number;
    /** -1..1, up = -1 */
    moveY: number;
+   /** held: Space or the touch Jump button */
    jump: boolean;
+   /** held: E / Enter or the touch Action button */
    action: boolean;
    /** true only on the frame the jump started */
    jumpPressed: boolean;
+   /** true only on the frame the action started */
+   actionPressed: boolean;
+   /** one frame: a quick swipe on the canvas (touch or mouse drag) */
    swipe: "up" | "down" | "left" | "right" | null;
-   /** normalised -1..1 canvas coordinates */
+   /** one frame: a short tap/click on the canvas, in pointer coordinates */
+   tap: { x: number; y: number } | null;
+   /** normalised -1..1 canvas coordinates (x right = 1, y up = 1, like R3F) */
    pointer: { x: number; y: number; down: boolean };
 }
 

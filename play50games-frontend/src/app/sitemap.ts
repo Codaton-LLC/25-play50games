@@ -1,4 +1,6 @@
 import { MetadataRoute } from 'next';
+import { ARCADE_ENABLED } from '@/arcade3d/flags';
+import { getLiveGames } from '@/arcade3d/registry';
 
 // Helper function to get site URL
 function getSiteUrl(): string {
@@ -35,6 +37,24 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const SITE_URL = getSiteUrl();
   const currentDate = new Date();
 
+  // 3D Arcade pages - only while the arcade is switched on; "soon" games are left out (they are noindex)
+  const arcadePages: MetadataRoute.Sitemap = ARCADE_ENABLED
+    ? [
+        {
+          url: `${SITE_URL}/3d`,
+          lastModified: currentDate,
+          changeFrequency: 'weekly',
+          priority: 0.9,
+        },
+        ...getLiveGames().map((game) => ({
+          url: `${SITE_URL}/3d/${game.slug}`,
+          lastModified: currentDate,
+          changeFrequency: 'weekly' as const,
+          priority: 0.8,
+        })),
+      ]
+    : [];
+
   // Static pages - these are always included
   // Note: Login and Register are modals (not separate pages), so they don't need to be in sitemap
   // Note: /diagnostics is a debugging page and is disallowed in robots.txt, so it's not included
@@ -43,8 +63,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       url: `${SITE_URL}/`,
       lastModified: currentDate,
       changeFrequency: 'daily',
-      priority: 1.0, // Homepage has highest priority
+      priority: 1.0, // Homepage (landing hub) has highest priority
     },
+    {
+      url: `${SITE_URL}/classic`,
+      lastModified: currentDate,
+      changeFrequency: 'daily', // Classic 50 games dashboard
+      priority: 0.9,
+    },
+    ...arcadePages,
     {
       url: `${SITE_URL}/progress`,
       lastModified: currentDate,

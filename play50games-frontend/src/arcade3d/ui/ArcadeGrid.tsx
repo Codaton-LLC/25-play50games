@@ -1,9 +1,9 @@
 "use client";
 
-// STUB (Phase 0). Owner: Cursor (K2). Keep the props exactly as typed; add a .module.css next to this file.
 import type { ArcadeGameMeta } from "../types";
 import { useBestScore } from "../core/useBestScore";
 import ArcadeCard from "./ArcadeCard";
+import styles from "./ArcadeGrid.module.css";
 
 export interface ArcadeGridProps {
    games: ArcadeGameMeta[];
@@ -15,11 +15,15 @@ function CardWithBest({ meta }: { meta: ArcadeGameMeta }) {
 }
 
 export default function ArcadeGrid({ games }: ArcadeGridProps) {
+   const ordered = [...games].sort((a, b) => a.order - b.order);
+
    return (
-      <div>
-         {games.map((meta) => (
-            <CardWithBest key={meta.slug} meta={meta} />
+      <ul className={styles.grid}>
+         {ordered.map((meta) => (
+            <li key={meta.slug} className={styles.item}>
+               <CardWithBest meta={meta} />
+            </li>
          ))}
-      </div>
+      </ul>
    );
 }

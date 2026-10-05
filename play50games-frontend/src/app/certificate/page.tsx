@@ -375,7 +375,7 @@ export default function CertificatePage() {
             <div className="not-ready">
               <h2>Complete All Games First</h2>
               <p>You need to complete all 50 games to generate your certificate.</p>
-              <Link href="/">Go to Games</Link>
+              <Link href="/classic">Go to Games</Link>
             </div>
           )}
         </div>

@@ -1,0 +1,101 @@
+.page {
+   min-height: 100vh;
+   overflow-x: clip;
+}
+
+.header {
+   max-width: 1200px;
+   margin: 0 auto;
+   padding: 18px 18px 12px;
+}
+
+/* SectionTabs is a direct child of .content so it stays sticky */
+.content {
+   max-width: 1200px;
+   min-height: 60vh;
+   margin: 0 auto;
+   padding: 24px 18px 48px;
+}
+
+.intro {
+   max-width: 720px;
+   margin: 8px 0 28px;
+}
+
+.eyebrow {
+   margin-bottom: 8px;
+   color: var(--accent);
+   font-size: 12px;
+   font-weight: 700;
+   letter-spacing: 0.1em;
+   text-transform: uppercase;
+}
+
+.title {
+   margin-bottom: 12px;
+   color: var(--text);
+   font-size: clamp(1.9rem, 6vw, 2.6rem);
+   font-weight: 800;
+   line-height: 1.1;
+   letter-spacing: -0.02em;
+}
+
+.lead {
+   color: var(--muted);
+   font-size: 1.05rem;
+   line-height: 1.6;
+}
+
+.facts {
+   display: flex;
+   flex-wrap: wrap;
+   gap: 8px;
+   margin-top: 16px;
+   list-style: none;
+}
+
+.facts li {
+   padding: 6px 12px;
+   border: 1px solid var(--stroke);
+   border-radius: 999px;
+   background: var(--card);
+   color: var(--text);
+   font-size: 13px;
+   font-weight: 600;
+}
+
+.soon {
+   max-width: 640px;
+   margin: 24px auto 0;
+   padding: 32px 22px;
+   border: 1px solid var(--stroke);
+   border-radius: 20px;
+   background: var(--card);
+   text-align: center;
+}
+
+.soon .lead {
+   margin-bottom: 24px;
+}
+
+.cta {
+   display: inline-flex;
+   align-items: center;
+   justify-content: center;
+   min-height: 48px;
+   padding: 0 24px;
+   border-radius: 12px;
+   background: var(--accent);
+   color: #0b1020;
+   font-weight: 700;
+   text-decoration: none;
+}
+
+.cta:hover {
+   background: #a5e3fd;
+}
+
+.cta:focus-visible {
+   outline: 3px solid #fff;
+   outline-offset: 2px;
+}

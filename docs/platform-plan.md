@@ -95,7 +95,8 @@ ROOT/docs/platform-plan.md (this plan) · ROOT/docs/arcade-api.md (API contract)
   - `useModel` (an error boundary falls back to a primitive).
 - `scores.ts`: `submitScore(run,userId)` (local first, then POST when a JWT is present and the flag is on), `saveRunToAccount`, `syncServerScores` (at most every 5 min), `useBestScore(slug)`.
   - Keys: `play50games_3d_scores:guest` / `:u<id>`.
-  - Status union: `synced|saved-local|login-required|rate-limited|rejected|banned|offline|leaderboard-off|config-error`.
+  - Status union: `synced|saved-local|login-required|rate-limited|rejected|banned|offline|leaderboard-off|config-error|unranked`.
+  - Time games are ranked only on `end("win")`; a lost or timed-out run is `unranked` (score 0, nothing saved).
 - `arcadeApi`: `submit`, `leaderboard(slug,limit)`, `me()`, `setPrivacy`. It is a mock when the flag is set, and reuses `getApiHeaders()` plus the new `apiBase.ts`.
 - Rules for every game folder:
   - Do not import `GameEngine/**` or classic `progressStorage` / `progress`.

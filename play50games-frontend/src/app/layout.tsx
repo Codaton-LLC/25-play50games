@@ -6,25 +6,32 @@ import PrivacyConsent from "@/components/PrivacyConsent/PrivacyConsent";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://play50games.com";
 
+const DEFAULT_TITLE = "Play50Games – classic brain games and a 3D Arcade";
+const DEFAULT_DESCRIPTION =
+   "One place to play: 50 classic brain games with a certificate at the end, plus a 3D Arcade of quick mini-games that each keep their own best score.";
+
 export const metadata: Metadata = {
    metadataBase: new URL(SITE_URL),
    title: {
-      default: "Play50Games - Learn. Play. Achieve.",
+      default: DEFAULT_TITLE,
       template: "%s | Play50Games",
    },
-   description:
-      "Complete 50 browser games and earn your certificate! Challenge yourself with logic, memory, speed, and skill games.",
+   description: DEFAULT_DESCRIPTION,
    keywords: [
       "browser games",
       "online games",
+      "free online games",
+      "brain games",
       "logic games",
       "memory games",
       "speed games",
       "skill games",
       "brain training",
-      "cognitive games",
+      "3d games",
+      "3d arcade",
+      "arcade games",
+      "mini games",
       "certificate",
-      "achievement",
    ],
    authors: [{ name: "Play50Games" }],
    creator: "Play50Games",
@@ -44,9 +51,8 @@ export const metadata: Metadata = {
       locale: "en_US",
       url: SITE_URL,
       siteName: "Play50Games",
-      title: "Play50Games - Learn. Play. Achieve.",
-      description:
-         "Complete 50 browser games and earn your certificate! Challenge yourself with logic, memory, speed, and skill games.",
+      title: DEFAULT_TITLE,
+      description: DEFAULT_DESCRIPTION,
       images: [
          {
             url: `${SITE_URL}/images/play50games-cover.jpg`,
@@ -58,9 +64,8 @@ export const metadata: Metadata = {
    },
    twitter: {
       card: "summary_large_image",
-      title: "Play50Games - Learn. Play. Achieve.",
-      description:
-         "Complete 50 browser games and earn your certificate! Challenge yourself with logic, memory, speed, and skill games.",
+      title: DEFAULT_TITLE,
+      description: DEFAULT_DESCRIPTION,
       images: [`${SITE_URL}/images/play50games-cover.jpg`],
    },
    robots: {

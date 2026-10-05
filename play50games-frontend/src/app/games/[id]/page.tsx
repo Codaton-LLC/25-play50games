@@ -76,7 +76,7 @@ export default function GamePage() {
    };
 
    const handleExit = () => {
-      router.push("/");
+      router.push("/classic");
    };
 
    if (loading) {

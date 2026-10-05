@@ -1,8 +1,11 @@
 "use client";
 
 import Link from "next/link";
+import { ARCADE_ENABLED } from "@/arcade3d/flags";
 import {
   HomeIcon,
+  PuzzlePieceIcon,
+  CubeIcon,
   ChartBarIcon,
   CheckBadgeIcon,
   ShieldCheckIcon,
@@ -17,6 +20,10 @@ export default function Footer() {
 
   const pageLinks = [
     { name: "Home", href: "/", icon: HomeIcon, color: "#86efac", bgColor: "rgba(134, 239, 172, 0.14)", borderColor: "rgba(134, 239, 172, 0.35)" },
+    { name: "Classic 50", href: "/classic", icon: PuzzlePieceIcon, color: "#7dd3fc", bgColor: "rgba(125, 211, 252, 0.14)", borderColor: "rgba(125, 211, 252, 0.35)" },
+    ...(ARCADE_ENABLED
+      ? [{ name: "3D Arcade", href: "/3d", icon: CubeIcon, color: "#fb923c", bgColor: "rgba(251, 146, 60, 0.14)", borderColor: "rgba(251, 146, 60, 0.35)" }]
+      : []),
     { name: "Your Progress", href: "/progress", icon: ChartBarIcon, color: "#7dd3fc", bgColor: "rgba(125, 211, 252, 0.14)", borderColor: "rgba(125, 211, 252, 0.35)" },
     { name: "Certificates", href: "/certificate", icon: CheckBadgeIcon, color: "#eab308", bgColor: "rgba(234, 179, 8, 0.14)", borderColor: "rgba(234, 179, 8, 0.35)" },
     { name: "Verify", href: "/verify", icon: ShieldCheckIcon, color: "#7dd3fc", bgColor: "rgba(125, 211, 252, 0.14)", borderColor: "rgba(125, 211, 252, 0.35)" },
