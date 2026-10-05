@@ -1,0 +1,102 @@
+.page {
+   min-height: 100vh;
+   /* clip (not hidden): stops stray hero decoration from causing sideways scroll
+      without creating a scroll container, so the sticky SectionTabs keep working */
+   overflow-x: clip;
+}
+
+.header {
+   max-width: 1200px;
+   margin: 0 auto;
+   padding: 18px 18px 12px;
+}
+
+/* SectionTabs is a direct child of .content so it stays sticky through the panels */
+.content {
+   max-width: 1200px;
+   margin: 0 auto;
+   padding: 24px 18px 0;
+}
+
+.panels {
+   display: grid;
+   grid-template-columns: minmax(0, 1fr);
+   gap: 20px;
+}
+
+/* keep anchor targets (#classic, #arcade) clear of the sticky tabs */
+.panels > * {
+   scroll-margin-top: 80px;
+}
+
+.soon {
+   margin: 16px 0;
+   color: var(--muted);
+   font-size: 14px;
+   line-height: 1.55;
+}
+
+.how {
+   margin-top: 56px;
+}
+
+.howTitle {
+   margin-bottom: 20px;
+   color: var(--text);
+   font-size: 1.5rem;
+   font-weight: 700;
+   text-align: center;
+}
+
+.steps {
+   display: grid;
+   grid-template-columns: minmax(0, 1fr);
+   gap: 16px;
+   list-style: none;
+}
+
+.step {
+   padding: 20px;
+   border: 1px solid var(--stroke);
+   border-radius: 16px;
+   background: var(--card);
+}
+
+.stepNumber {
+   display: inline-flex;
+   align-items: center;
+   justify-content: center;
+   width: 32px;
+   height: 32px;
+   margin-bottom: 12px;
+   border-radius: 999px;
+   background: rgba(125, 211, 252, 0.14);
+   color: var(--accent);
+   font-weight: 700;
+}
+
+.stepTitle {
+   margin-bottom: 6px;
+   color: var(--text);
+   font-size: 1.05rem;
+   font-weight: 700;
+}
+
+.stepText {
+   color: var(--muted);
+   font-size: 14px;
+   line-height: 1.55;
+}
+
+@media (min-width: 720px) {
+   .steps {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+   }
+}
+
+@media (min-width: 900px) {
+   .panels {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 24px;
+   }
+}

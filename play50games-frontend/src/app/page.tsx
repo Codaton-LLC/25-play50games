@@ -1,785 +1,150 @@
-"use client";
-
-import { useEffect, useState, useMemo } from "react";
-import Link from "next/link";
-import { Game } from "@/types/game";
-import { getAllGames } from "@/lib/api/games";
-import {
-   getGuestId,
-   getAllProgress,
-   getAllProgressSync,
-} from "@/lib/storage/progressStorage";
-import UnlockSystem from "@/components/UnlockSystem/UnlockSystem";
-import { getGameInstructions } from "@/lib/utils/gameInstructions";
-import { useAuth } from "@/contexts/AuthContext";
-import LoginModal from "@/components/Auth/LoginModal";
-import RegisterModal from "@/components/Auth/RegisterModal";
-import Header from "@/components/Header/Header";
+// Landing hub "/". Server component: the H1 and both collection panels are in the server HTML.
+// No three.js here; the 3D Arcade code only loads under /3d/[slug].
+import type { Metadata } from "next";
+import HeaderWithAuth from "@/components/Header/HeaderWithAuth";
 import Footer from "@/components/Footer/Footer";
-import GamePreview from "@/components/GamePreview/GamePreview";
-import {
-   TrophyIcon,
-   CheckBadgeIcon,
-   InformationCircleIcon,
-   ClockIcon,
-   StarIcon,
-   PuzzlePieceIcon,
-   BoltIcon,
-   SparklesIcon,
-   FireIcon,
-   LightBulbIcon,
-   UserIcon,
-   ArrowRightOnRectangleIcon,
-   ChevronDownIcon,
-   UserCircleIcon,
-} from "@heroicons/react/24/outline";
+import SectionTabs from "@/components/Nav/SectionTabs";
+import HubHero, { type HubCta } from "@/components/Hub/HubHero";
+import CollectionPanel from "@/components/Hub/CollectionPanel";
+import ArcadeTeaserStrip from "@/components/Hub/ArcadeTeaserStrip";
+import ClassicProgressBadge from "@/components/Hub/ClassicProgressBadge";
+import { ARCADE_ENABLED } from "@/arcade3d/flags";
+import { ARCADE_GAMES } from "@/arcade3d/registry";
+import styles from "./page.module.css";
 
-type GameCategory = "all" | "logic" | "memory" | "speed" | "skill" | "final";
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://play50games.com";
 
-export default function HomePage() {
-   const {
-      user,
-      isAuthenticated,
-      login,
-      register,
-      logout,
-      isLoading: authLoading,
-   } = useAuth();
-   const [games, setGames] = useState<Game[]>([]);
-   const [loading, setLoading] = useState(true);
-   const [guestId] = useState(() => getGuestId());
-   const [selectedCategory, setSelectedCategory] =
-      useState<GameCategory>("all");
-   const [gameProgress, setGameProgress] = useState<
-      Record<number, { completed: boolean }>
-   >({});
-   const [showLoginModal, setShowLoginModal] = useState(false);
-   const [showRegisterModal, setShowRegisterModal] = useState(false);
+const HUB_TITLE = "Play50Games – classic brain games and a 3D Arcade";
+const HUB_DESCRIPTION =
+   "Play 50 classic brain games and earn your certificate, or jump into the 3D Arcade: quick 3D mini-games that each keep their own best score. Free in your browser.";
 
-   const getInstructionsExcerpt = (text: string, maxLength = 256) => {
-      const plainText = text
-         .replace(/<[^>]*>/g, " ")
-         .replace(/\s+/g, " ")
-         .trim();
-      if (plainText.length <= maxLength) return plainText;
-      return `${plainText.slice(0, maxLength - 3).trimEnd()}...`;
-   };
+export const metadata: Metadata = {
+   title: { absolute: HUB_TITLE },
+   description: HUB_DESCRIPTION,
+   alternates: {
+      canonical: "/",
+   },
+   openGraph: {
+      type: "website",
+      locale: "en_US",
+      url: `${SITE_URL}/`,
+      siteName: "Play50Games",
+      title: HUB_TITLE,
+      description: HUB_DESCRIPTION,
+      images: [
+         {
+            url: `${SITE_URL}/images/play50games-cover.jpg`,
+            width: 1200,
+            height: 630,
+            alt: "Play50Games - classic brain games and a 3D Arcade",
+         },
+      ],
+   },
+   twitter: {
+      card: "summary_large_image",
+      title: HUB_TITLE,
+      description: HUB_DESCRIPTION,
+      images: [`${SITE_URL}/images/play50games-cover.jpg`],
+   },
+};
 
-   useEffect(() => {
-      loadGames();
-      loadProgress();
+const ARCADE_CTA: HubCta = ARCADE_ENABLED
+   ? { label: "Enter the 3D Arcade", href: "/3d" }
+   : { label: "3D Arcade coming soon", href: "/3d", disabled: true };
 
-      // Refresh progress when returning to home page
-      const handleStorageChange = () => {
-         loadProgress();
-      };
+const STEPS = [
+   {
+      title: "Pick a collection",
+      text: ARCADE_ENABLED
+         ? "Take on the full Classic 50 challenge, or jump into the 3D Arcade for a quick round."
+         : "Start with the full Classic 50 challenge. The 3D Arcade opens soon for quick rounds.",
+   },
+   {
+      title: "Play at your own pace",
+      text: "Classic games unlock one after another. Arcade games are open from the start and remember your best score.",
+   },
+   {
+      title: "Save your progress",
+      text: "Log in to keep your progress on every device. Finish all 50 classic games to earn your certificate.",
+   },
+];
 
-      const handleProgressUpdate = () => {
-         loadProgress();
-      };
-
-      const handleProgressLoaded = (event: CustomEvent) => {
-         if (event.detail?.progress) {
-            const progressMap: Record<number, { completed: boolean }> = {};
-            Object.entries(event.detail.progress).forEach(
-               ([gameId, progress]: [string, any]) => {
-                  progressMap[parseInt(gameId)] = {
-                     completed: progress.completed,
-                  };
-               }
-            );
-            setGameProgress(progressMap);
-         }
-      };
-
-      window.addEventListener("storage", handleStorageChange);
-      // Listen for custom progress update events (for same-tab updates)
-      window.addEventListener(
-         "play50games_progress_updated",
-         handleProgressUpdate
-      );
-      window.addEventListener(
-         "play50games_progress_loaded",
-         handleProgressLoaded as EventListener
-      );
-      // Also check on focus (when user returns to tab)
-      window.addEventListener("focus", loadProgress);
-
-      // Periodically check for progress updates (in case localStorage changes in same tab)
-      const progressInterval = setInterval(() => {
-         loadProgress();
-      }, 2000); // Check every 2 seconds instead of 5
-
-      return () => {
-         window.removeEventListener("storage", handleStorageChange);
-         window.removeEventListener(
-            "play50games_progress_updated",
-            handleProgressUpdate
-         );
-         window.removeEventListener(
-            "play50games_progress_loaded",
-            handleProgressLoaded as EventListener
-         );
-         window.removeEventListener("focus", loadProgress);
-         clearInterval(progressInterval);
-      };
-   }, []);
-
-   const loadProgress = async () => {
-      const allProgress = await getAllProgress(); // Now async - gets from server for logged-in users
-      const progressMap: Record<number, { completed: boolean }> = {};
-      Object.entries(allProgress).forEach(([gameId, progress]) => {
-         progressMap[parseInt(gameId)] = { completed: progress.completed };
-      });
-      setGameProgress(progressMap);
-   };
-
-   const [error, setError] = useState<string | null>(null);
-
-   const loadGames = async () => {
-      try {
-         const gamesData = await getAllGames(guestId);
-         setGames(gamesData);
-         setError(null);
-      } catch (error: any) {
-         const errorMessage =
-            error.message ||
-            "Failed to load games. Please check your WordPress API connection.";
-         setError(errorMessage);
-      } finally {
-         setLoading(false);
-      }
-   };
-
-   // Filter games by category
-   const filteredGames = useMemo(() => {
-      if (selectedCategory === "all") {
-         return games;
-      }
-      return games.filter((game) => game.game_type === selectedCategory);
-   }, [games, selectedCategory]);
-
-   // Group games by category for display
-   const gamesByCategory = useMemo(() => {
-      const grouped: Record<string, Game[]> = {
-         logic: [],
-         memory: [],
-         speed: [],
-         skill: [],
-         final: [],
-      };
-
-      games.forEach((game) => {
-         if (grouped[game.game_type]) {
-            grouped[game.game_type].push(game);
-         }
-      });
-
-      return grouped;
-   }, [games]);
-
-   const categoryLabels: Record<
-      GameCategory,
-      { label: string; icon: React.ReactNode }
-   > = {
-      all: { label: "All Games", icon: null },
-      logic: {
-         label: "Logic & Puzzle",
-         icon: (
-            <PuzzlePieceIcon
-               style={{
-                  width: 18,
-                  height: 18,
-                  display: "inline",
-                  marginRight: 6,
-               }}
-            />
-         ),
-      },
-      memory: {
-         label: "Memory",
-         icon: (
-            <SparklesIcon
-               style={{
-                  width: 18,
-                  height: 18,
-                  display: "inline",
-                  marginRight: 6,
-               }}
-            />
-         ),
-      },
-      speed: {
-         label: "Speed & Reaction",
-         icon: (
-            <BoltIcon
-               style={{
-                  width: 18,
-                  height: 18,
-                  display: "inline",
-                  marginRight: 6,
-               }}
-            />
-         ),
-      },
-      skill: {
-         label: "Skill & Coordination",
-         icon: (
-            <FireIcon
-               style={{
-                  width: 18,
-                  height: 18,
-                  display: "inline",
-                  marginRight: 6,
-               }}
-            />
-         ),
-      },
-      final: {
-         label: "Final Games",
-         icon: (
-            <TrophyIcon
-               style={{
-                  width: 18,
-                  height: 18,
-                  display: "inline",
-                  marginRight: 6,
-               }}
-            />
-         ),
-      },
-   };
-
-   if (loading) {
-      return (
-         <div
-            style={{
-               display: "flex",
-               justifyContent: "center",
-               alignItems: "center",
-               minHeight: "100vh",
-               width: "100%",
-            }}
-         >
-            <span className="loader"></span>
-         </div>
-      );
-   }
-
-   // if (error) {
-   //   return (
-   //     <div className="home-page">
-   //       <header>
-   //         <h1>Play50Games</h1>
-   //       </header>
-   //       <div className="error-message">
-   //         <h2>Connection Error</h2>
-   //         <p>{error}</p>
-   //         <p className="error-hint">
-   //           <strong>To fix this:</strong><br />
-   //           1. Make sure WordPress is running<br />
-   //           2. Create a <code>.env.local</code> file with:<br />
-   //           <code>NEXT_PUBLIC_WORDPRESS_API_URL=https://cms.play50.games/wp-json/play50/v1</code><br />
-   //           3. Restart the Next.js dev server
-   //         </p>
-   //         <button onClick={loadGames} className="retry-button">Retry</button>
-   //       </div>
-   //     </div>
-   //   );
-   // }
-
+export default function HubPage() {
    return (
-      <div className="home-page">
-         <Header
-            showSubtitle={true}
-            onShowLoginModal={() => setShowLoginModal(true)}
-            onShowRegisterModal={() => setShowRegisterModal(true)}
-         />
+      <div className={styles.page}>
+         <div className={styles.header}>
+            <HeaderWithAuth />
+         </div>
 
-         {/* Auth Modals */}
-         <LoginModal
-            isOpen={showLoginModal}
-            onClose={() => setShowLoginModal(false)}
-            onLogin={login}
-            onSwitchToRegister={() => {
-               setShowLoginModal(false);
-               setShowRegisterModal(true);
-            }}
-         />
-         <RegisterModal
-            isOpen={showRegisterModal}
-            onClose={() => setShowRegisterModal(false)}
-            onRegister={register}
-            onSwitchToLogin={() => {
-               setShowRegisterModal(false);
-               setShowLoginModal(true);
-            }}
-         />
+         <main>
+            <HubHero
+               title="Play50Games"
+               subtitle="50 classic brain games. 10 new 3D arcade worlds. One place to play."
+               primaryCta={{ label: "Play Classic 50 Games", href: "/classic" }}
+               secondaryCta={ARCADE_CTA}
+            />
 
-         {error && (
-            <div
-               style={{
-                  margin: "1rem auto",
-                  maxWidth: "800px",
-                  padding: "1rem",
-                  backgroundColor: "#fee",
-                  border: "2px solid #fcc",
-                  color: "#c33",
-               }}
-            >
-               <h2 style={{ marginTop: 0 }}>Connection Error</h2>
-               <p style={{ whiteSpace: "pre-line" }}>{error}</p>
-               <div style={{ marginTop: "1rem" }}>
-                  <button
-                     onClick={loadGames}
-                     style={{
-                        padding: "0.5rem 1rem",
-                        backgroundColor: "#007bff",
-                        color: "white",
-                        border: "none",
-                        borderRadius: "4px",
-                        cursor: "pointer",
-                        marginRight: "0.5rem",
-                     }}
+            <div className={styles.content}>
+               <SectionTabs active="home" />
+
+               <div className={styles.panels}>
+                  <CollectionPanel
+                     id="classic"
+                     title="Play Classic 50 Games"
+                     description="Fifty brain games across logic, memory, speed and skill. Unlock them one by one and finish all 50 to earn your certificate."
+                     href="/classic"
+                     ctaLabel="Play Classic 50 Games"
+                     stats={[
+                        { label: "games", value: "50" },
+                        { label: "categories", value: "5" },
+                        { label: "certificate", value: "1" },
+                     ]}
                   >
-                     Retry
-                  </button>
-                  <Link
-                     href="/diagnostics"
-                     style={{
-                        padding: "0.5rem 1rem",
-                        backgroundColor: "#28a745",
-                        color: "white",
-                        textDecoration: "none",
-                        borderRadius: "4px",
-                        display: "inline-block",
-                     }}
+                     <ClassicProgressBadge />
+                  </CollectionPanel>
+
+                  <CollectionPanel
+                     id="arcade"
+                     title="3D Arcade"
+                     description="Quick 3D mini-games for keyboard and touch. No unlock chain: pick any game and chase your best score."
+                     href={ARCADE_ENABLED ? "/3d" : "#arcade"}
+                     ctaLabel={ARCADE_ENABLED ? "Enter the 3D Arcade" : "Coming soon"}
+                     stats={[
+                        { label: "mini-games", value: "10" },
+                        { label: "leaderboard per game", value: "1" },
+                        { label: "unlocks needed", value: "0" },
+                     ]}
                   >
-                     Run Diagnostics
-                  </Link>
-               </div>
-            </div>
-         )}
-
-         {games.length === 0 ? (
-            <div className="no-games">
-               <p>No games found. Please create games in WordPress Admin.</p>
-            </div>
-         ) : (
-            <>
-               {/* Category Filter Tabs */}
-               <div className="category-filter">
-                  {(Object.keys(categoryLabels) as GameCategory[]).map(
-                     (category) => {
-                        const count =
-                           category === "all"
-                              ? games.length
-                              : gamesByCategory[category]?.length || 0;
-
-                        const categoryInfo = categoryLabels[category];
-                        return (
-                           <button
-                              key={category}
-                              onClick={() => setSelectedCategory(category)}
-                              className={`category-tab ${
-                                 selectedCategory === category ? "active" : ""
-                              }`}
-                           >
-                              {categoryInfo.icon}
-                              {categoryInfo.label}
-                              {count > 0 && (
-                                 <span className="category-count">
-                                    ({count})
-                                 </span>
-                              )}
-                           </button>
-                        );
-                     }
-                  )}
-               </div>
-
-               {/* Games Display */}
-               {selectedCategory === "all" ? (
-                  // Show all games grouped by category
-                  <div className="games-by-category">
-                     {(Object.keys(gamesByCategory) as GameCategory[]).map(
-                        (category) => {
-                           if (
-                              category === "all" ||
-                              !gamesByCategory[category]?.length
-                           )
-                              return null;
-
-                           return (
-                              <div
-                                 key={category}
-                                 className={`category-section ${
-                                    category === "final" ? "final-game" : ""
-                                 }`}
-                              >
-                                 <h2
-                                    className="category-title"
-                                    style={{
-                                       display: "flex",
-                                       alignItems: "center",
-                                       gap: "8px",
-                                    }}
-                                 >
-                                    {categoryLabels[category].icon}
-                                    {categoryLabels[category].label}
-                                 </h2>
-                                 <div className="games-grid">
-                                    {gamesByCategory[category].map((game) => {
-                                       const gameType =
-                                          game.game_config?.gameType || "";
-                                       const instructions = getGameInstructions(
-                                          gameType,
-                                          game.title
-                                       );
-                                       const displayDescription = (
-                                          game.description ||
-                                          instructions.description ||
-                                          ""
-                                       ).length > 150
-                                          ? (
-                                               game.description ||
-                                               instructions.description ||
-                                               ""
-                                            ).substring(0, 150) + "..."
-                                          : game.description ||
-                                            instructions.description ||
-                                            "";
-                                       const instructionsExcerpt =
-                                          getInstructionsExcerpt(
-                                             instructions.instructions || ""
-                                          );
-
-                                       const isCompleted =
-                                          gameProgress[game.id]?.completed ||
-                                          false;
-
-                                       return game.is_unlocked ? (
-                                          <Link
-                                             key={game.id}
-                                             href={`/games/${game.id}`}
-                                             className={`game-card ${
-                                                isCompleted ? "completed" : ""
-                                             }`}
-                                             style={{ textDecoration: "none" }}
-                                          >
-                                             <UnlockSystem game={game} />
-
-                                             {/* Feature Image */}
-                                             <div className="game-feature-image">
-                                                <GamePreview
-                                                   gameType={gameType}
-                                                   isFinalGame={
-                                                      game.game_type === "final"
-                                                   }
-                                                />
-
-                                                {/* Completion Badge - positioned over feature image */}
-                                                {isCompleted && (
-                                                   <div className="completion-badge">
-                                                      <CheckBadgeIcon
-                                                         style={{
-                                                            width: 16,
-                                                            height: 16,
-                                                            marginRight: 4,
-                                                         }}
-                                                      />
-                                                      Complete
-                                                   </div>
-                                                )}
-                                             </div>
-                                             <h3>{game.title}</h3>
-                                             <p className="game-description">
-                                                {displayDescription}
-                                             </p>
-                                             <div className="game-meta">
-                                                <span>
-                                                   <StarIcon
-                                                      style={{
-                                                         width: 14,
-                                                         height: 14,
-                                                         display: "inline",
-                                                         marginRight: 4,
-                                                      }}
-                                                   />
-                                                   Difficulty:{" "}
-                                                   {"★".repeat(game.difficulty)}
-                                                </span>
-                                                <span>
-                                                   <ClockIcon
-                                                      style={{
-                                                         width: 14,
-                                                         height: 14,
-                                                         display: "inline",
-                                                         marginRight: 4,
-                                                      }}
-                                                   />
-                                                   Time: {game.time_limit}s
-                                                </span>
-                                                <span>
-                                                   Target: {game.passing_score}%
-                                                </span>
-                                             </div>
-                                          </Link>
-                                       ) : (
-                                          <div
-                                             key={game.id}
-                                             className={`game-card locked ${
-                                                isCompleted ? "completed" : ""
-                                             }`}
-                                          >
-                                             <UnlockSystem game={game} />
-
-                                             {/* Feature Image */}
-                                             <div className="game-feature-image">
-                                                <GamePreview
-                                                   gameType={gameType}
-                                                   isFinalGame={
-                                                      game.game_type === "final"
-                                                   }
-                                                />
-
-                                                {/* Completion Badge - positioned over feature image */}
-                                                {isCompleted && (
-                                                   <div className="completion-badge">
-                                                      <CheckBadgeIcon
-                                                         style={{
-                                                            width: 16,
-                                                            height: 16,
-                                                            marginRight: 4,
-                                                         }}
-                                                      />
-                                                      Complete
-                                                   </div>
-                                                )}
-                                             </div>
-
-                                             <h3>{game.title}</h3>
-                                             <p className="locked-message">
-                                                Complete previous games to
-                                                unlock
-                                             </p>
-                                             <div className="game-meta">
-                                                <span>
-                                                   Difficulty:{" "}
-                                                   {"★".repeat(game.difficulty)}
-                                                </span>
-                                                <span>
-                                                   Time: {game.time_limit}s
-                                                </span>
-                                                <span>
-                                                   Target: {game.passing_score}%
-                                                </span>
-                                             </div>
-                                          </div>
-                                       );
-                                    })}
-                                 </div>
-                              </div>
-                           );
-                        }
+                     {ARCADE_ENABLED ? (
+                        <ArcadeTeaserStrip games={ARCADE_GAMES} />
+                     ) : (
+                        <p className={styles.soon}>
+                           Ten 3D mini-games are on the way. They launch one at a
+                           time, each with its own leaderboard.
+                        </p>
                      )}
-                  </div>
-               ) : (
-                  // Show filtered games for selected category
-                  <div
-                     className={
-                        selectedCategory === "final"
-                           ? "final-games"
-                           : "category-section"
-                     }
-                     style={{
-                        marginTop: selectedCategory === "final" ? "0" : "0",
-                        background:
-                           selectedCategory === "final"
-                              ? "var(--card)"
-                              : "transparent",
-                        border: "none",
-                     }}
-                  >
-                     <div className="games-grid">
-                        {filteredGames.length === 0 ? (
-                           <div className="no-games">
-                              <p>
-                                 No {categoryLabels[selectedCategory].label}{" "}
-                                 games found.
-                              </p>
-                           </div>
-                        ) : (
-                           filteredGames.map((game) => {
-                              const gameType = game.game_config?.gameType || "";
-                              const instructions = getGameInstructions(
-                                 gameType,
-                                 game.title
-                              );
-                              const displayDescription = (
-                                 game.description || instructions.description || ""
-                              ).length > 150
-                                 ? (
-                                      game.description ||
-                                      instructions.description ||
-                                      ""
-                                   ).substring(0, 150) + "..."
-                                 : game.description ||
-                                   instructions.description ||
-                                   "";
-                              const instructionsExcerpt =
-                                 getInstructionsExcerpt(
-                                    instructions.instructions || ""
-                                 );
-                              const isCompleted =
-                                 gameProgress[game.id]?.completed || false;
-                              const isFinalGame = gameType === "final";
+                  </CollectionPanel>
+               </div>
 
-                              return game.is_unlocked ? (
-                                 <Link
-                                    key={game.id}
-                                    href={`/games/${game.id}`}
-                                    className={`game-card ${
-                                       isCompleted ? "completed" : ""
-                                    } ${isFinalGame ? "final-game" : ""}`}
-                                    style={{ textDecoration: "none" }}
-                                 >
-                                    <UnlockSystem game={game} />
+               <section className={styles.how} aria-labelledby="how-it-works-title">
+                  <h2 id="how-it-works-title" className={styles.howTitle}>
+                     How it works
+                  </h2>
+                  <ol className={styles.steps}>
+                     {STEPS.map((step, index) => (
+                        <li key={step.title} className={styles.step}>
+                           <span className={styles.stepNumber} aria-hidden="true">
+                              {index + 1}
+                           </span>
+                           <h3 className={styles.stepTitle}>{step.title}</h3>
+                           <p className={styles.stepText}>{step.text}</p>
+                        </li>
+                     ))}
+                  </ol>
+               </section>
+            </div>
+         </main>
 
-                                    {/* Feature Image */}
-                                    <div className="game-feature-image">
-                                       <GamePreview
-                                          gameType={gameType}
-                                          isFinalGame={isFinalGame}
-                                       />
-
-                                       {/* Completion Badge - positioned over feature image */}
-                                       {isCompleted && (
-                                          <div
-                                             className={`completion-badge ${
-                                                isFinalGame ? "final-game" : ""
-                                             }`}
-                                          >
-                                             <CheckBadgeIcon
-                                                style={{
-                                                   width: 16,
-                                                   height: 16,
-                                                   marginRight: 4,
-                                                }}
-                                             />
-                                             Complete
-                                          </div>
-                                       )}
-                                    </div>
-                                    <h3>{game.title}</h3>
-                                    <p className="game-description">
-                                       {displayDescription}
-                                    </p>
-                                    <div className="game-meta">
-                                       <span>
-                                          <StarIcon
-                                             style={{
-                                                width: 14,
-                                                height: 14,
-                                                display: "inline",
-                                                marginRight: 4,
-                                             }}
-                                          />
-                                          Difficulty:{" "}
-                                          {"★".repeat(game.difficulty)}
-                                       </span>
-                                       <span>
-                                          <ClockIcon
-                                             style={{
-                                                width: 14,
-                                                height: 14,
-                                                display: "inline",
-                                                marginRight: 4,
-                                             }}
-                                          />
-                                          Time: {game.time_limit}s
-                                       </span>
-                                       <span>
-                                          Target: {game.passing_score}%
-                                       </span>
-                                    </div>
-                                 </Link>
-                              ) : (
-                                 <div
-                                    key={game.id}
-                                    className={`game-card locked ${
-                                       isCompleted ? "completed" : ""
-                                    } ${isFinalGame ? "final-game" : ""}`}
-                                 >
-                                    <UnlockSystem game={game} />
-
-                                    {/* Feature Image */}
-                                    <div className="game-feature-image">
-                                       <GamePreview
-                                          gameType={gameType}
-                                          isFinalGame={isFinalGame}
-                                       />
-
-                                       {/* Completion Badge - positioned over feature image */}
-                                       {isCompleted && (
-                                          <div
-                                             className={`completion-badge ${
-                                                isFinalGame ? "final-game" : ""
-                                             }`}
-                                          >
-                                             <CheckBadgeIcon
-                                                style={{
-                                                   width: 16,
-                                                   height: 16,
-                                                   marginRight: 4,
-                                                }}
-                                             />
-                                             Complete
-                                          </div>
-                                       )}
-                                    </div>
-
-                                    <h3>{game.title}</h3>
-                                    <p className="locked-message">
-                                       Complete previous games to unlock
-                                    </p>
-                                    <div className="game-meta">
-                                       <span>
-                                          <StarIcon
-                                             style={{
-                                                width: 14,
-                                                height: 14,
-                                                display: "inline",
-                                                marginRight: 4,
-                                             }}
-                                          />
-                                          Difficulty:{" "}
-                                          {"★".repeat(game.difficulty)}
-                                       </span>
-                                       <span>
-                                          <ClockIcon
-                                             style={{
-                                                width: 14,
-                                                height: 14,
-                                                display: "inline",
-                                                marginRight: 4,
-                                             }}
-                                          />
-                                          Time: {game.time_limit}s
-                                       </span>
-                                       <span>
-                                          Target: {game.passing_score}%
-                                       </span>
-                                    </div>
-                                 </div>
-                              );
-                           })
-                        )}
-                     </div>
-                  </div>
-               )}
-            </>
-         )}
          <Footer />
       </div>
    );

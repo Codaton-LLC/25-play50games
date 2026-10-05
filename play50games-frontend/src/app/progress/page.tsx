@@ -180,11 +180,11 @@ export default function ProgressPage() {
          <div style={{ marginBottom: "2rem" }}>
             <h1 style={{ marginBottom: "1rem" }}>Your Progress</h1>
             <Link
-               href="/"
+               href="/classic"
                style={{ display: "flex", alignItems: "center", gap: "6px", color: "var(--text)", textDecoration: "none" }}
             >
                <ArrowLeftIcon style={{ width: 16, height: 16 }} />
-               Back to Games
+               Back to Classic Games
             </Link>
          </div>
 

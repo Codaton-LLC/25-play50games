@@ -1,0 +1,49 @@
+/* Platform nav under the logo row. Left-aligned like the logo on desktop, centred on phones
+   (same 640px breakpoint the header layout uses). */
+.platformNav {
+   display: flex;
+   flex-wrap: wrap;
+   justify-content: flex-start;
+   gap: 8px;
+   margin-top: 8px;
+}
+
+.platformLink {
+   display: inline-flex;
+   align-items: center;
+   min-height: 32px;
+   padding: 6px 12px;
+   border: 1px solid var(--stroke);
+   border-radius: 999px;
+   background: var(--card);
+   color: var(--text);
+   font-size: 13px;
+   font-weight: 600;
+   line-height: 1.2;
+   text-decoration: none;
+   white-space: nowrap;
+   transition: background-color 0.18s ease, border-color 0.18s ease;
+}
+
+.platformLink:hover {
+   background: rgba(125, 211, 252, 0.14);
+   border-color: rgba(125, 211, 252, 0.35);
+}
+
+.platformLink:focus-visible {
+   outline: 2px solid var(--accent);
+   outline-offset: 2px;
+}
+
+@media (max-width: 639px) {
+   .platformNav {
+      justify-content: center;
+      margin-top: 12px;
+   }
+}
+
+@media (prefers-reduced-motion: reduce) {
+   .platformLink {
+      transition: none;
+   }
+}

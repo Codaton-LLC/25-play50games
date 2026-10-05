@@ -4,6 +4,8 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useAuth } from "@/contexts/AuthContext";
+import { ARCADE_ENABLED } from "@/arcade3d/flags";
+import styles from "./Header.module.css";
 import {
    UserIcon,
    ArrowRightOnRectangleIcon,
@@ -19,12 +21,15 @@ interface HeaderProps {
    showSubtitle?: boolean;
    onShowLoginModal?: () => void;
    onShowRegisterModal?: () => void;
+   /** links to the game collections ("Classic 50", "3D Arcade") under the logo row */
+   showPlatformNav?: boolean;
 }
 
 export default function Header({
    showSubtitle = true,
    onShowLoginModal,
    onShowRegisterModal,
+   showPlatformNav = true,
 }: HeaderProps) {
    const { user, isAuthenticated, logout } = useAuth();
    const [showUserMenu, setShowUserMenu] = useState(false);
@@ -672,6 +677,19 @@ export default function Header({
                )
             )}
          </div>
+
+         {showPlatformNav && (
+            <nav aria-label="Platform" className={styles.platformNav}>
+               <Link href="/classic" className={styles.platformLink}>
+                  Classic 50
+               </Link>
+               {ARCADE_ENABLED && (
+                  <Link href="/3d" className={styles.platformLink}>
+                     3D Arcade
+                  </Link>
+               )}
+            </nav>
+         )}
       </header>
    );
 }

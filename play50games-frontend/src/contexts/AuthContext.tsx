@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { User, checkAuthStatus, login, register, logout as logoutAPI } from '@/lib/api/auth';
+import { getJwtToken, removeJwtToken } from '@/lib/api/apiUtils';
 import { syncProgressToAPI, setAuthStatus, clearLocalProgress, loadProgressFromServer } from '@/lib/storage/progressStorage';
 
 interface AuthContextType {
@@ -21,14 +22,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   const refreshAuth = async () => {
+    // Token sent with this status check (read before the request goes out)
+    const jwtToken = getJwtToken();
     try {
       const status = await checkAuthStatus();
       const wasAuthenticated = !!user;
       const isNowAuthenticated = status.authenticated && !!status.user;
-      
+
       setUser(status.user);
       setAuthStatus(status.authenticated);
-      
+
+      // Stale or forged JWT: the server definitively said "not authenticated" (HTTP 200 + JSON)
+      // although we sent a token, so drop it. Errors, 5xx and non-JSON replies are never
+      // definitive and never remove the token. Skip if a login stored a new token meanwhile.
+      if (
+        jwtToken &&
+        status.definitive === true &&
+        status.authenticated === false &&
+        getJwtToken() === jwtToken
+      ) {
+        removeJwtToken();
+        setAuthStatus(false);
+      }
+
       // If user is authenticated, sync/load progress from server
       if (isNowAuthenticated) {
         try {
