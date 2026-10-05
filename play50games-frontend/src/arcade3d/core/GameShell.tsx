@@ -20,9 +20,18 @@ import { assetUrls, clearModelCache } from "./assets";
 import { initAudio, playSfx, toggleMuted, useMuted } from "./audio";
 import { trackArcade } from "./analytics";
 import { useLeaderboard, type LeaderboardState } from "./useLeaderboard";
-import { saveRunToAccount, submitScore, type FinishedRun, type SubmitResult } from "./scores";
+import {
+   isRankedRun,
+   normalizeRun,
+   saveRunToAccount,
+   submitScore,
+   unrankedResult,
+   type FinishedRun,
+   type SubmitResult,
+} from "./scores";
 import { formatDuration } from "./format";
 import { useAuth } from "@/contexts/AuthContext";
+import { getJwtToken } from "@/lib/api/apiUtils";
 import LoginModal from "@/components/Auth/LoginModal";
 import RegisterModal from "@/components/Auth/RegisterModal";
 import BestScoreBadge from "../ui/BestScoreBadge";
@@ -299,6 +308,8 @@ export default function GameShell({ meta, definition, exitHref = "/3d" }: GameSh
    const [webgl, setWebgl] = useState<WebGLSupport>("checking");
    const [contextLost, setContextLost] = useState(false);
    const [stageKey, setStageKey] = useState(0);
+   /** the 3D stage crashed (Scene threw, Rapier chunk failed, renderer failed) */
+   const [stageError, setStageError] = useState<Error | null>(null);
    const [outcome, setOutcome] = useState<Outcome | null>(null);
    const [showLogin, setShowLogin] = useState(false);
    const [showRegister, setShowRegister] = useState(false);
@@ -349,6 +360,7 @@ export default function GameShell({ meta, definition, exitHref = "/3d" }: GameSh
    // run lifecycle: start analytics, the end of a run (score submit), the next run
    useEffect(() => {
       const slug = meta.slug;
+      const scoring = meta.scoring;
 
       const finishRun = (state: RunState) => {
          if (submittedRunRef.current === state.runId) return;
@@ -361,16 +373,22 @@ export default function GameShell({ meta, definition, exitHref = "/3d" }: GameSh
          const final = definition.finalScore
             ? definition.finalScore(state)
             : { score: state.score, durationMs: state.elapsedMs };
-         const run: FinishedRun = {
-            slug,
-            score: final.score,
-            durationMs: final.durationMs,
-            finishedAt: new Date().toISOString(),
-         };
+         const normalized = normalizeRun(
+            { slug, score: final.score, durationMs: final.durationMs, finishedAt: new Date().toISOString() },
+            scoring
+         );
+         // time games: only a win has a finish time; a lost or timed-out run scores 0 and is not saved
+         const ranked = isRankedRun(scoring, state.endReason);
+         const run: FinishedRun = ranked ? normalized : { ...normalized, score: 0 };
          const runId = state.runId;
-         setOutcome({ runId, run, result: null, saving: true });
          playSfx(state.endReason === "win" ? "win" : "lose");
          trackArcade("arcade_game_over", { game: slug, score: run.score, duration_ms: run.durationMs });
+
+         if (!ranked) {
+            setOutcome({ runId, run, result: unrankedResult(slug, userRef.current?.id ?? null), saving: false });
+            return;
+         }
+         setOutcome({ runId, run, result: null, saving: true });
 
          submitScore(run, userRef.current?.id ?? null)
             .then((result) => {
@@ -409,13 +427,13 @@ export default function GameShell({ meta, definition, exitHref = "/3d" }: GameSh
          if (state.phase === "countdown" && (prev.phase === "over" || prev.phase === "ready")) setOutcome(null);
          if (state.phase === "over") finishRun(state);
       });
-   }, [definition, meta.slug, exit]);
+   }, [definition, meta.slug, meta.scoring, exit]);
 
    // Esc / P toggle pause
    useEffect(() => {
       const onKey = (event: KeyboardEvent) => {
          if (event.code !== "Escape" && event.code !== "KeyP") return;
-         if (showLogin || showRegister || isEditable(event.target)) return;
+         if (showLogin || showRegister || stageError || isEditable(event.target)) return;
          const state = arcadeStore.getState();
          if (state.phase === "playing" || state.phase === "countdown") {
             event.preventDefault();
@@ -427,7 +445,7 @@ export default function GameShell({ meta, definition, exitHref = "/3d" }: GameSh
       };
       window.addEventListener("keydown", onKey);
       return () => window.removeEventListener("keydown", onKey);
-   }, [showLogin, showRegister, contextLost]);
+   }, [showLogin, showRegister, stageError, contextLost]);
 
    // leaving the tab or the window pauses
    useEffect(() => {
@@ -457,7 +475,15 @@ export default function GameShell({ meta, definition, exitHref = "/3d" }: GameSh
       arcadeStore.getState().pause();
    }, []);
 
+   // the stage boundary sits inside .canvasWrap (its own stacking context), so its error is lifted
+   // here and shown as a root-level overlay; the run is paused so HUD and keys stop acting on it
+   const onStageError = useCallback((error: Error) => {
+      setStageError(error);
+      arcadeStore.getState().pause();
+   }, []);
+
    const retryStage = () => {
+      setStageError(null);
       setStageKey((key) => key + 1);
       arcadeStore.getState().configure({ durationMs: definition.durationMs, lives: definition.lives });
    };
@@ -472,6 +498,8 @@ export default function GameShell({ meta, definition, exitHref = "/3d" }: GameSh
          .then((result) => {
             setOutcome((value) => (value && value.runId === runId ? { ...value, result, saving: false } : value));
             if (result.status === "synced") retryLeaderboardRef.current();
+            // the token expired or was rejected: log in again instead of offering the same save
+            if (result.status === "login-required") setShowLogin(true);
          })
          .catch(() => {
             setOutcome((value) => (value && value.runId === runId ? { ...value, result: current.result, saving: false } : value));
@@ -502,9 +530,12 @@ export default function GameShell({ meta, definition, exitHref = "/3d" }: GameSh
       );
    }
 
-   const showHud = phase === "countdown" || phase === "playing" || phase === "paused";
+   const stageFailed = stageError !== null;
+   const showHud = !stageFailed && (phase === "countdown" || phase === "playing" || phase === "paused");
    const result = outcome?.result ?? null;
    const loginRequired = result?.status === "login-required";
+   // saving needs a JWT; a cookie-only session or a token dropped after a 401 must log in again
+   const canSaveToAccount = !!user && !!getJwtToken();
    const frameloop = contextLost ? "never" : phase === "paused" ? "demand" : "always";
 
    return (
@@ -513,23 +544,7 @@ export default function GameShell({ meta, definition, exitHref = "/3d" }: GameSh
             <InputProvider target={canvasWrapRef}>
                <div ref={canvasWrapRef} className={styles.canvasWrap}>
                   {webgl === "ok" && (
-                     <ErrorBoundary
-                        resetKey={stageKey}
-                        fallback={() => (
-                           <Overlay label="Game error">
-                              <h1 className={styles.title}>Something went wrong</h1>
-                              <p className={styles.tagline}>The game stopped unexpectedly. You can try again.</p>
-                              <div className={styles.actions}>
-                                 <button type="button" className={styles.primary} onClick={retryStage} autoFocus>
-                                    Try again
-                                 </button>
-                                 <button type="button" className={styles.secondary} onClick={exit}>
-                                    Exit
-                                 </button>
-                              </div>
-                           </Overlay>
-                        )}
-                     >
+                     <ErrorBoundary resetKey={stageKey} onError={onStageError}>
                         <ShellStage
                            key={stageKey}
                            definition={definition}
@@ -539,7 +554,7 @@ export default function GameShell({ meta, definition, exitHref = "/3d" }: GameSh
                         />
                      </ErrorBoundary>
                   )}
-                  {(phase === "countdown" || phase === "playing") && (
+                  {!stageFailed && (phase === "countdown" || phase === "playing") && (
                      <TouchControls controls={definition.touchControls} />
                   )}
                </div>
@@ -551,9 +566,9 @@ export default function GameShell({ meta, definition, exitHref = "/3d" }: GameSh
                   </div>
                )}
 
-               {(phase === "loading" || webgl === "checking") && <LoadingOverlay title={meta.title} />}
+               {!stageFailed && (phase === "loading" || webgl === "checking") && <LoadingOverlay title={meta.title} />}
 
-               {phase === "ready" && webgl === "ok" && (
+               {!stageFailed && phase === "ready" && webgl === "ok" && (
                   <StartScreen
                      meta={meta}
                      definition={definition}
@@ -564,9 +579,9 @@ export default function GameShell({ meta, definition, exitHref = "/3d" }: GameSh
                   />
                )}
 
-               {phase === "countdown" && <Countdown />}
+               {!stageFailed && phase === "countdown" && <Countdown />}
 
-               {phase === "paused" && !contextLost && !wrongOrientation && (
+               {!stageFailed && phase === "paused" && !contextLost && !wrongOrientation && (
                   <Overlay label="Paused">
                      <h1 className={styles.title}>Paused</h1>
                      <div className={styles.actions}>
@@ -589,7 +604,7 @@ export default function GameShell({ meta, definition, exitHref = "/3d" }: GameSh
                   </Overlay>
                )}
 
-               {phase === "over" && outcome && (
+               {!stageFailed && phase === "over" && outcome && (
                   <div className={styles.overlay}>
                      <div ref={resultRef} className={styles.resultWrap} tabIndex={-1}>
                         <ResultPanel
@@ -602,8 +617,10 @@ export default function GameShell({ meta, definition, exitHref = "/3d" }: GameSh
                            scoring={meta.scoring}
                            onRetry={() => arcadeStore.getState().restart()}
                            onExit={exit}
-                           onLogin={loginRequired && !user ? () => setShowLogin(true) : undefined}
-                           onSaveToAccount={loginRequired && user && !outcome.saving ? saveToAccount : undefined}
+                           onLogin={loginRequired && !canSaveToAccount ? () => setShowLogin(true) : undefined}
+                           onSaveToAccount={
+                              loginRequired && canSaveToAccount && !outcome.saving ? saveToAccount : undefined
+                           }
                         >
                            <LeaderboardBlock leaderboard={leaderboard} meta={meta} />
                         </ResultPanel>
@@ -614,7 +631,22 @@ export default function GameShell({ meta, definition, exitHref = "/3d" }: GameSh
                   </div>
                )}
 
-               {wrongOrientation && !contextLost && (
+               {stageFailed && !contextLost && (
+                  <Overlay label="Game error" className={styles.stageError}>
+                     <h1 className={styles.title}>Something went wrong</h1>
+                     <p className={styles.tagline}>The game stopped unexpectedly. You can try again.</p>
+                     <div className={styles.actions}>
+                        <button type="button" className={styles.primary} onClick={retryStage} autoFocus>
+                           Try again
+                        </button>
+                        <button type="button" className={styles.secondary} onClick={exit}>
+                           Exit
+                        </button>
+                     </div>
+                  </Overlay>
+               )}
+
+               {!stageFailed && wrongOrientation && !contextLost && (
                   <Overlay label="Rotate your device" className={styles.rotate}>
                      <span className={styles.rotateIcon} aria-hidden="true" />
                      <h1 className={styles.title}>Rotate your device</h1>

@@ -16,6 +16,12 @@ const RapierPhysics = lazy(() => import("@react-three/rapier").then((mod) => ({ 
 
 const MAX_DPR = 1.75;
 const LOW_DPR = 1;
+/**
+ * After this many slow periods the device stays at LOW_DPR (no more resizes back and forth).
+ * Counted here because drei's own `flipflops` also counts inclines, so a steady 60/120 fps device
+ * would hit its fallback after ~11 s and be locked to the low resolution.
+ */
+const MAX_DECLINES = 3;
 
 type Environment = NonNullable<GameDefinition["environment"]>;
 const DEFAULT_ENVIRONMENT: Environment = { background: "#0b1020", lighting: "day" };
@@ -97,6 +103,14 @@ export default function ShellStage({ definition, frameloop, onContextLost, label
    const { Scene, camera, environment, physics } = definition;
    const runId = useArcadeStore((state) => state.runId);
    const [maxDpr, setMaxDpr] = useState(MAX_DPR);
+   const declinesRef = useRef(0);
+   const onDecline = useCallback(() => {
+      declinesRef.current += 1;
+      setMaxDpr(LOW_DPR);
+   }, []);
+   const onIncline = useCallback(() => {
+      if (declinesRef.current < MAX_DECLINES) setMaxDpr(MAX_DPR);
+   }, []);
 
    const lostRef = useRef(onContextLost);
    lostRef.current = onContextLost;
@@ -131,12 +145,7 @@ export default function ShellStage({ definition, frameloop, onContextLost, label
          aria-label={label}
          role="img"
       >
-         <PerformanceMonitor
-            flipflops={3}
-            onDecline={() => setMaxDpr(LOW_DPR)}
-            onIncline={() => setMaxDpr(MAX_DPR)}
-            onFallback={() => setMaxDpr(LOW_DPR)}
-         />
+         <PerformanceMonitor onDecline={onDecline} onIncline={onIncline} />
          <SceneEnvironment environment={environment} />
          <CameraRig camera={camera} />
          <InputLatch />

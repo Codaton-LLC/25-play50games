@@ -1,6 +1,7 @@
 // 3D Arcade scores: localStorage first, then the WordPress leaderboard for logged-in users.
 // Fully separate from classic progress (different keys, different endpoints). Owned by Claude.
 import type { ArcadeSlug, ScoringRules } from "../types";
+import type { EndReason } from "./types";
 import { getGameMeta } from "../registry";
 import { ARCADE_LEADERBOARD } from "../flags";
 import { arcadeApi, ArcadeApiError } from "@/lib/api/arcade";
@@ -41,7 +42,9 @@ export type SubmitStatus =
    | "banned"
    | "offline"
    | "leaderboard-off"
-   | "config-error";
+   | "config-error"
+   /** time game that did not finish (lose/timeup): nothing was saved or sent */
+   | "unranked";
 
 export interface SubmitResult {
    slug: ArcadeSlug;
@@ -67,6 +70,15 @@ export function normalizeRun(run: FinishedRun, rules: ScoringRules): FinishedRun
    const raw = rules.kind === "time" ? computeTimeScore(rules, durationMs) : Math.round(run.score);
    const score = Math.min(rules.maxScore, Math.max(0, raw));
    return { ...run, score, durationMs };
+}
+
+/**
+ * Time games rank only finished runs: a lost or timed-out run has no finish time, and deriving
+ * a score from its duration would reward dying early. Points games rank every run but "quit".
+ */
+export function isRankedRun(rules: ScoringRules, endReason: EndReason | null): boolean {
+   if (endReason === "quit") return false;
+   return rules.kind !== "time" || endReason === "win";
 }
 
 export function mergeRun(prev: LocalScoreEntry | undefined, run: FinishedRun): { entry: LocalScoreEntry; isNewBest: boolean } {
@@ -149,8 +161,13 @@ function statusFromError(error: unknown): SubmitStatus {
    }
 }
 
-/** Saves a finished run locally, then sends it to the leaderboard when the player is logged in. */
-export async function submitScore(run: FinishedRun, userId: number | null): Promise<SubmitResult> {
+interface LocalSave {
+   normalized: FinishedRun;
+   result: SubmitResult;
+}
+
+/** Merges a run into this user's local scores (one play). */
+function saveLocally(run: FinishedRun, userId: number | null): LocalSave {
    const meta = getGameMeta(run.slug);
    if (!meta) throw new Error(`Unknown arcade game: ${run.slug}`);
 
@@ -160,36 +177,73 @@ export async function submitScore(run: FinishedRun, userId: number | null): Prom
    scores[run.slug] = entry;
    writeLocalScores(userId, scores);
 
-   const result: SubmitResult = {
-      slug: run.slug,
-      score: normalized.score,
-      best: entry.best,
-      isNewBest,
-      plays: entry.plays,
-      rank: entry.rank,
-      status: "saved-local",
+   return {
+      normalized,
+      result: {
+         slug: run.slug,
+         score: normalized.score,
+         best: entry.best,
+         isNewBest,
+         plays: entry.plays,
+         rank: entry.rank,
+         status: "saved-local",
+      },
    };
+}
 
+/** Sends an already saved run to the leaderboard when the player is logged in. */
+async function sendToLeaderboard({ normalized, result }: LocalSave, userId: number | null): Promise<SubmitResult> {
    if (!ARCADE_LEADERBOARD) return { ...result, status: "leaderboard-off" };
    if (!userId || !getJwtToken()) return { ...result, status: "login-required" };
 
    try {
       const { data } = await arcadeApi.submit({
-         slug: run.slug,
+         slug: normalized.slug,
          score: normalized.score,
          duration_ms: normalized.durationMs,
       });
-      const best = Math.max(entry.best, data.best_score);
-      patchLocalEntry(userId, run.slug, { best, rank: data.rank });
+      const best = Math.max(result.best, data.best_score);
+      patchLocalEntry(userId, normalized.slug, { best, rank: data.rank });
       return { ...result, best, rank: data.rank, isNewBest: data.is_new_best, status: "synced" };
    } catch (error) {
       return { ...result, status: statusFromError(error) };
    }
 }
 
-/** Result screen: a guest logged in on the spot and wants this run on their account. */
+/** Saves a finished run locally, then sends it to the leaderboard when the player is logged in. */
+export async function submitScore(run: FinishedRun, userId: number | null): Promise<SubmitResult> {
+   return sendToLeaderboard(saveLocally(run, userId), userId);
+}
+
+/** runs already merged into an account's local scores, so a retry never counts a second play */
+const accountSaves = new Map<string, LocalSave>();
+
+/**
+ * Result screen: a guest logged in on the spot and wants this run on their account.
+ * Safe to retry (e.g. after a fresh login): the run is merged locally only once per user.
+ */
 export function saveRunToAccount(run: FinishedRun, userId: number): Promise<SubmitResult> {
-   return submitScore(run, userId);
+   const key = `${userId}|${run.slug}|${run.finishedAt}`;
+   let saved = accountSaves.get(key);
+   if (!saved) {
+      saved = saveLocally(run, userId);
+      accountSaves.set(key, saved);
+   }
+   return sendToLeaderboard(saved, userId);
+}
+
+/** Result of a run that does not count (see isRankedRun): nothing is saved, the current best is shown. */
+export function unrankedResult(slug: ArcadeSlug, userId: number | null): SubmitResult {
+   const entry = readLocalScores(userId)[slug];
+   return {
+      slug,
+      score: 0,
+      best: entry?.best ?? 0,
+      isNewBest: false,
+      plays: entry?.plays ?? 0,
+      rank: entry?.rank ?? null,
+      status: "unranked",
+   };
 }
 
 /** Replaces local bests with the server's for a logged-in user (at most every 5 minutes). */

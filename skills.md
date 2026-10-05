@@ -251,6 +251,7 @@ Build:
    - banned: "This account cannot post to the leaderboard."
    - offline: "You are offline. Saved on this device."
    - config-error: "The leaderboard is unavailable right now. Saved on this device."
+   - unranked: "Finish the course to set a time. This run was not saved." (time games that end with lose/timeup)
    Every action is a callback prop; ResultPanel never calls the API.
 
 Rules:
@@ -352,7 +353,7 @@ Template: copy the structure of arcade3d/games/robot-collector/ (Claude's refere
 How:
 - index.tsx default-exports a GameDefinition (arcade3d/core/types.ts): Scene, assets, camera, environment, touchControls, hudStats, instructions, durationMs / lives if the game needs them; finalScore only if the default (store score + elapsedMs) is wrong.
 - Game loop inside useRunFrame (runs only while playing, dt is clamped). Read input only from useInput (keyboard and touch are already unified). Use the collision helpers from arcade3d/core. Store actions: addScore, setStat / incStat, setLevel, loseLife, end(reason).
-- Never call submitScore, the arcade API or localStorage. End the run with end("win" | "lose" | "timeup"); GameShell shows the result and submits the score.
+- Never call submitScore, the arcade API or localStorage. End the run with end("win" | "lose" | "timeup"); GameShell shows the result and submits the score. Time games are ranked only on end("win"); lose/timeup runs are shown as unranked and never saved.
 - Models: list them in assets.ts as ModelAsset entries (shared ones via SHARED_ASSETS) and render with useModel. The GLBs are already in public/models/3d/<slug>/ and public/models/3d/shared/ (Claude's assets PR). A missing GLB falls back to a primitive, so start with primitives. Do not add or change GLBs.
 - Scoring lives in rules.ts: pure functions, deterministic with a seed (no Math.random or Date.now inside rules). rules.test.ts (vitest) covers scoring, the max score and edge cases.
 - meta.scoring must stay equal to play50games-backend/play50games/includes/arcade-games.json (registry.sync.test.ts checks it). If a limit looks wrong, stop and ask Claude; do not change it.
