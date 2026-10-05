@@ -511,6 +511,14 @@
     
     // load REST API
     require_once(get_stylesheet_directory() . '/includes/rest-api.php');
+
+    // load 3D Arcade API + admin page (separate from classic progress; loaded only when deployed)
+    if (file_exists(get_stylesheet_directory() . '/includes/arcade-api.php')) {
+        require_once(get_stylesheet_directory() . '/includes/arcade-api.php');
+    }
+    if (file_exists(get_stylesheet_directory() . '/wt-cpt/arcade-scores-admin.php')) {
+        require_once(get_stylesheet_directory() . '/wt-cpt/arcade-scores-admin.php');
+    }
     
     // load certificate generator
     require_once(get_stylesheet_directory() . '/includes/certificate-generator.php');

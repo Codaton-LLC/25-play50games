@@ -1,0 +1,14 @@
+{
+   "note": "Hyper3D specs for models reused by several games. Output: public/models/3d/shared/<id>.glb. Owned by Claude; generated only after the user approves the batch.",
+   "style_suffix": "stylized toy-like 3D game asset, soft rounded shapes, bright saturated colors, clean silhouette, isolated single prop, centered, no base or ground",
+   "assets": [
+      { "id": "robot", "kind": "character", "mode": "image", "concept": "tools/hyper3d/concepts/robot-collector/robot.png", "prompt": "Cute small utility robot, rounded body, big friendly eyes, full body, T-pose", "tier": "Gen-2.5-Medium", "quality_override": 18000, "tries": 3, "shared": true, "rigged": false },
+      { "id": "battery", "kind": "prop", "mode": "text", "prompt": "Glowing green battery cell with a lightning bolt label", "tier": "Gen-2.5-Low", "quality_override": 1500, "tries": 1, "shared": true, "rigged": false },
+      { "id": "crate", "kind": "prop", "mode": "text", "prompt": "Wooden shipping crate with metal corners", "tier": "Gen-2.5-Low", "quality_override": 1500, "tries": 1, "shared": true, "rigged": false },
+      { "id": "runner", "kind": "character", "mode": "image", "concept": "tools/hyper3d/concepts/shared/runner.png", "prompt": "Play50 Runner mascot, friendly cartoon proportions, sneakers and hoodie, full body, T-pose", "tier": "Gen-2.5-Medium", "quality_override": 18000, "tries": 2, "shared": true, "rigged": true },
+      { "id": "tinCan", "kind": "prop", "mode": "text", "prompt": "Crushed empty soda tin can", "tier": "Gen-2.5-Low", "quality_override": 1000, "tries": 1, "shared": true, "rigged": false },
+      { "id": "banana", "kind": "prop", "mode": "text", "prompt": "Single yellow banana", "tier": "Gen-2.5-Low", "quality_override": 1000, "tries": 1, "shared": true, "rigged": false },
+      { "id": "desk", "kind": "prop", "mode": "text", "prompt": "Office desk with a small computer monitor", "tier": "Gen-2.5-Low", "quality_override": 3000, "tries": 1, "shared": true, "rigged": false },
+      { "id": "chair", "kind": "prop", "mode": "text", "prompt": "Office swivel chair", "tier": "Gen-2.5-Low", "quality_override": 2500, "tries": 1, "shared": true, "rigged": false }
+   ]
+}

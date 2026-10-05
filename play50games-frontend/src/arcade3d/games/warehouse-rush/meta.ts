@@ -1,0 +1,31 @@
+import type { ArcadeGameMeta } from "@/arcade3d/types";
+
+// Plain data only (server-safe). scoring must match WP includes/arcade-games.json.
+export const warehouseRushMeta: ArcadeGameMeta = {
+   slug: "warehouse-rush",
+   title: "Warehouse Rush",
+   tagline: "Right box, right zone, 60 seconds.",
+   description: "Pick up coloured boxes and deliver them to the matching zone. The wrong zone costs points.",
+   order: 6,
+   status: "soon",
+   difficulty: 2,
+   orientation: "any",
+   controls: {
+      scheme: "joystick",
+      keyboard: "WASD to move, E / Space to pick up and drop",
+      touch: "Joystick + Action button"
+   },
+   scoring: {
+      kind: "points",
+      maxScore: 3000,
+      minDurationMs: 5000,
+      maxDurationMs: 75000,
+      base: 0,
+      maxPointsPerSec: 50,
+      unitLabel: "pts",
+      display: "int"
+   },
+   thumbnail: null,
+   accent: "#fb923c",
+   owner: "claude"
+};

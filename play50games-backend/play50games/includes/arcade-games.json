@@ -1,0 +1,103 @@
+{
+  "version": 1,
+  "games": {
+    "robot-collector": {
+      "title": "Robot Collector",
+      "kind": "points",
+      "max_score": 1600,
+      "min_duration_ms": 5000,
+      "max_duration_ms": 75000,
+      "base": 600,
+      "max_pps": 120,
+      "enabled": false
+    },
+    "food-catcher": {
+      "title": "Food Catcher 3D",
+      "kind": "points",
+      "max_score": 5000,
+      "min_duration_ms": 5000,
+      "max_duration_ms": 100000,
+      "base": 0,
+      "max_pps": 50,
+      "enabled": false
+    },
+    "office-escape": {
+      "title": "Office Escape",
+      "kind": "points",
+      "max_score": 200000,
+      "min_duration_ms": 3000,
+      "max_duration_ms": 1800000,
+      "base": 0,
+      "max_pps": 100,
+      "enabled": false
+    },
+    "pigeon-crossing": {
+      "title": "Pigeon Crossing",
+      "kind": "points",
+      "max_score": 50000,
+      "min_duration_ms": 3000,
+      "max_duration_ms": 1800000,
+      "base": 0,
+      "max_pps": 100,
+      "enabled": false
+    },
+    "penalty-hero": {
+      "title": "Penalty Hero",
+      "kind": "points",
+      "max_score": 1500,
+      "min_duration_ms": 10000,
+      "max_duration_ms": 600000,
+      "base": 0,
+      "max_pps": 150,
+      "enabled": false
+    },
+    "warehouse-rush": {
+      "title": "Warehouse Rush",
+      "kind": "points",
+      "max_score": 3000,
+      "min_duration_ms": 5000,
+      "max_duration_ms": 75000,
+      "base": 0,
+      "max_pps": 50,
+      "enabled": false
+    },
+    "tower-climb": {
+      "title": "Tower Climb",
+      "kind": "points",
+      "max_score": 50000,
+      "min_duration_ms": 3000,
+      "max_duration_ms": 1800000,
+      "base": 0,
+      "max_pps": 100,
+      "enabled": false
+    },
+    "clean-city": {
+      "title": "Clean the City",
+      "kind": "points",
+      "max_score": 6000,
+      "min_duration_ms": 10000,
+      "max_duration_ms": 900000,
+      "base": 1000,
+      "max_pps": 100,
+      "enabled": false
+    },
+    "escape-room": {
+      "title": "Tiny Escape Room",
+      "kind": "time",
+      "max_score": 60000,
+      "min_duration_ms": 15000,
+      "max_duration_ms": 600000,
+      "time_base_ms": 600000,
+      "enabled": false
+    },
+    "obstacle-race": {
+      "title": "Obstacle Race",
+      "kind": "time",
+      "max_score": 30000,
+      "min_duration_ms": 15000,
+      "max_duration_ms": 300000,
+      "time_base_ms": 300000,
+      "enabled": false
+    }
+  }
+}
