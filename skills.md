@@ -83,7 +83,7 @@ Limits are provisional. Changing one = Claude's "assets + limits" PR (meta + JSO
 |---|---|---|---|---|
 | robot-collector | warehouse | robot ×3 → shared, battery → shared, crate → shared, barrel (all on lab account) | – | floor, walls |
 | food-catcher | food | chef ×2, apple, banana → shared, burger, sock, tinCan → shared, runner final ×2 → shared | – | counter, lanes |
-| office-escape | office | desk → shared, printer, chair → shared, coffee cart, water cooler | runner | corridor, coins |
+| office-escape | shared-cast (5050) | printer, coffee cart, water cooler (desk, chair come from shared.spec.json) | runner, desk, chair | corridor, coins, boxes |
 | pigeon-crossing | street | pigeon ×2, car, taxi, van | – | road, kerbs |
 | penalty-hero | stadium | striker ×2, keeper ×2 | – | ball, goal frame + net, pitch |
 | warehouse-rush | warehouse | shelf rack, pallet | robot, crate (tinted per zone) | colour zones |

@@ -1,0 +1,43 @@
+{
+   "slug": "office-escape",
+   "universe": "shared-cast",
+   "seed": 5050,
+   "assets": [
+      {
+         "id": "printer",
+         "kind": "prop",
+         "mode": "text",
+         "prompt": "Chunky low office printer, wider than tall, light grey body, paper tray with a stack of white paper, teal button panel, stylized toy-like 3D game asset, soft rounded shapes, bright saturated colors, clean silhouette, isolated single prop, centered, no base or ground, no text or logos",
+         "tier": "Gen-2.5-Low",
+         "qualityOverride": 1500,
+         "attempts": 1,
+         "target": "office-escape",
+         "budget": { "tris": 5000, "bytes": 300000 },
+         "textureSize": 512
+      },
+      {
+         "id": "coffeeCart",
+         "kind": "prop",
+         "mode": "text",
+         "prompt": "Small rolling coffee cart, red two-shelf cart with chunky wheels, big silver coffee urn and a stack of paper cups on top, stylized toy-like 3D game asset, soft rounded shapes, bright saturated colors, clean silhouette, isolated single prop, centered, no base or ground, no text or logos",
+         "tier": "Gen-2.5-Low",
+         "qualityOverride": 2500,
+         "attempts": 1,
+         "target": "office-escape",
+         "budget": { "tris": 5000, "bytes": 300000 },
+         "textureSize": 512
+      },
+      {
+         "id": "waterCooler",
+         "kind": "prop",
+         "mode": "text",
+         "prompt": "Office water cooler, white body, big upside-down blue water bottle on top, small paper cup holder on the side, stylized toy-like 3D game asset, soft rounded shapes, bright saturated colors, clean silhouette, isolated single prop, centered, no base or ground, no text or logos",
+         "tier": "Gen-2.5-Low",
+         "qualityOverride": 2000,
+         "attempts": 1,
+         "target": "office-escape",
+         "budget": { "tris": 5000, "bytes": 300000 },
+         "textureSize": 512
+      }
+   ]
+}
