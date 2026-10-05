@@ -264,7 +264,7 @@ ROOT/docs/platform-plan.md (this plan) · ROOT/docs/arcade-api.md (API contract)
   2. The user excludes `wp-config.php` from the PhpStorm upload.
   3. The user sets a new random `JWT_AUTH_SECRET_KEY` in the server `wp-config.php`; everyone logs in once.
   4. The user confirms in chat.
-  5. Claude removes the fallback in `functions.php`.
+  5. Claude removes the hard-coded fallback in `functions.php` (done in the Release 1 prep: without the constant the theme now derives a key from the server's own salts and logs a notice).
 - **Assets:**
   - Lab smoke test plus the robot-collector batch (user approves about 5 credits).
   - `optimize`, then an assets PR.
@@ -278,6 +278,26 @@ ROOT/docs/platform-plan.md (this plan) · ROOT/docs/arcade-api.md (API contract)
   - The curl suite passes on prod with the test user, and the test rows are reset.
   - Classic `/progress` and `/certificate` are unchanged.
 - **Release 1:** flags on. If the secret rotation is delayed, ship with the leaderboard flag off (local scores only).
+
+#### Release 1 runbook
+The code is on `main` with the Vercel flags off (`robot-collector` is `live`; `arcade-games.json` has only `robot-collector` `enabled:true`). The WP arcade API is already on prod. Upload WordPress **before** touching the Vercel flags.
+
+1. **Backup:** hosting DB + theme files (including the server `wp-config.php`). Then log in on the site as **arcade-test** and keep that token as `OLD_JWT` in your local env (`read -rs OLD_JWT && export OLD_JWT`, same setup as `docs/arcade-api.md` §13). Step 3 uses it to prove the old key is dead.
+2. **JWT secret:** the server `wp-config.php` (kept out of the repo and out of the PhpStorm upload) very likely still defines the **leaked** key: the old tracked copy did, at about line 109, with the same value as the old `functions.php` fallback. Open it, find the existing `define('JWT_AUTH_SECRET_KEY', ...)` line and **replace its value**; add the line only if it is missing. There must be exactly **one** such define, above "That's all, stop editing" and above `require_once ABSPATH . 'wp-settings.php'`. Never add a second define below the old one: PHP keeps the first value and only warns. Generate the value locally (`openssl rand -base64 48`), never reuse the old value, never paste it in chat. Every existing JWT stops working: everyone logs in once (the frontend drops the stale token by itself).
+3. **Upload** `functions.php` + `includes/arcade-games.json`, each after `php -l`. Check that the site and `/wp-json/play50/v1/arcade/games` still load, then prove the old key is dead:
+   - `curl -s -w ' %{http_code}' -H "X-API-Key: $KEY" -H "Authorization: Bearer $OLD_JWT" "$WP/arcade/me"` returns **401** with `"code":"unauthorized"`, and `curl -s -H "X-API-Key: $KEY" -H "Authorization: Bearer $OLD_JWT" "$WP/auth/status"` returns `"authenticated":false`. A 200 or `"authenticated":true` means the leaked key is still in use: stop and fix step 2 before going on.
+   - The PHP error log has no "Constant JWT_AUTH_SECRET_KEY already defined" warning and no "JWT_AUTH_SECRET_KEY is not defined" notice.
+4. **Test:** log in as **arcade-test** (fresh JWT after step 2) and run the curl suite (`docs/arcade-api.md` §13, `SLUG=robot-collector`). All checks pass.
+5. **Clean up:** Admin → Arcade Scores → **Reset game** `robot-collector`, then **Clear cache**.
+6. **Vercel env (Production):** `NEXT_PUBLIC_ARCADE_ENABLED=1`, `NEXT_PUBLIC_ARCADE_LEADERBOARD=1`; `NEXT_PUBLIC_ARCADE_API_MOCK` stays unset.
+7. **Redeploy** (the flags are inlined at build time, so a rebuild is required).
+8. **Verify on prod:**
+   - `/` shows the 3D tab; `/3d` lists Robot Collector as playable; `/sitemap.xml` has `/3d` and `/3d/robot-collector`.
+   - Guest: play on desktop (keyboard) and phone (touch); the best survives a reload; the result offers Log in.
+   - Logged in: a run shows "synced"; the name ("First L.") and rank appear on the leaderboard; switching users never shows foreign bests.
+   - `/3d` "Show my name on leaderboards" off → the leaderboard shows "Anonymous"; switch it back on.
+   - Classic `/classic`, `/games/1`, `/progress`, `/certificate` behave as before.
+9. **Rollback:** Vercel flags off + redeploy (the hub and classic site keep working). If the API misbehaves, set `robot-collector` `enabled:false` in `arcade-games.json` and upload it.
 
 ### Phase 4: games 2–10, one at a time
 For each game:
