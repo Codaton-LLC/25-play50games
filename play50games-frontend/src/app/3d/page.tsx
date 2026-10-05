@@ -5,9 +5,10 @@ import HeaderWithAuth from "@/components/Header/HeaderWithAuth";
 import Footer from "@/components/Footer/Footer";
 import SectionTabs from "@/components/Nav/SectionTabs";
 import ArcadeGrid from "@/arcade3d/ui/ArcadeGrid";
-import { ARCADE_ENABLED } from "@/arcade3d/flags";
+import { ARCADE_ENABLED, ARCADE_LEADERBOARD } from "@/arcade3d/flags";
 import { ARCADE_GAMES, getLiveGames } from "@/arcade3d/registry";
 import ArcadeScoreSync from "./ArcadeScoreSync";
+import ArcadePrivacyToggle from "./ArcadePrivacyToggle";
 import styles from "./page.module.css";
 
 export const metadata: Metadata = ARCADE_ENABLED
@@ -72,6 +73,7 @@ export default function ArcadePage() {
                <>
                   <ArcadeIntro />
                   <ArcadeGrid games={ARCADE_GAMES} />
+                  {ARCADE_LEADERBOARD && <ArcadePrivacyToggle />}
                </>
             ) : (
                <ComingSoon />

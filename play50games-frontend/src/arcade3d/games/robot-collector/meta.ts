@@ -7,7 +7,7 @@ export const robotCollectorMeta: ArcadeGameMeta = {
    tagline: "Grab 10 batteries before the clock runs out.",
    description: "Steer a tiny warehouse robot and collect all 10 batteries before the timer hits zero. Every second left is bonus points.",
    order: 1,
-   status: "soon",
+   status: "live",
    difficulty: 1,
    orientation: "any",
    controls: {
