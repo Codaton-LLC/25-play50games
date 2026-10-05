@@ -1,6 +1,6 @@
 # Warehouse Rush
 
-Owner: Claude. Slug: `warehouse-rush`. Game 6 of the 3D Arcade: the first carry-and-drop game and the first game with an Action button. Status stays `"soon"` until the game is built and reviewed. **This file is the design. There is no scene or rules code yet.** `meta.ts` and the `index.tsx` stub are already on `main`. This prep adds only this README and `assets.spec.json`. The limits in `meta.ts` are correct as they are (proof below).
+Owner: Claude. Slug: `warehouse-rush`. Game 6 of the 3D Arcade: the first carry-and-drop game and the first game with an Action button. Status stays `"soon"` until the game is built and reviewed. **This file is the design.** `rules.ts` and `rules.test.ts` implement its rules and proof; the Scene, the HUD and the assets are not built yet. `meta.ts` and the `index.tsx` stub are already on `main`. The limits in `meta.ts` are correct as they are (proof below).
 
 | File | What it owns |
 |---|---|
@@ -56,6 +56,7 @@ Matches `meta.ts` (`scheme: "joystick"`): "WASD to move, E / Space to pick up an
 | Locks | pick `PICK_MS` 250, drop `DROP_MS` 250: the robot stands still and ignores input. |
 | Refill | `REFILL_MS` 1500 after each delivery, on the pallet that has been empty longest. |
 | Points | +50 right zone, −20 wrong zone, never below 0 (`POINTS`). |
+| Step | whole ms, at most 50 per step (`MAX_STEP_MS`; `useRunFrame`'s dt is at most 1/20 s). |
 
 Clearances: neighbouring pallets in a row are 1.8 apart edge to edge and the two reaches need 1.6, so **at most one pallet is ever in reach**. Every zone is at least 2.1 from every reach (`MIN_LEG`, proof step 4), so a pick and a drop are never possible at the same spot. The narrowest passages are the 1.8 between pallets, the 2.0 behind a pallet (z 4.0 to the wall at 6.0) and the 2.0 rack gap, all wider than the robot (1.0).
 
@@ -117,15 +118,15 @@ There is no dropping on the floor and no putting a box back: the carried box is 
 
 ### One step
 
-`step(run, dirX, dirZ, press, dtSeconds)` runs once per `useRunFrame`. Scene passes the input already mapped with `inputToWorld(moveX, moveY, view.yaw)`. A step with dt ≤ 0 does nothing.
+`step(run, dtMs, input)` runs once per `useRunFrame`, with `dtMs = dt · 1000`. `input` is one object per run (`createStepInput()`), rewritten every frame: `moveX` / `moveY` are the wanted direction on the floor in **world x / z**, already mapped by Scene with `inputToWorld(moveX, moveY, view.yaw)`, and `actionPressed` is the core's `actionPressed || jumpPressed`. A step with dtMs ≤ 0 (or NaN) does nothing.
 
-1. `simMs += dt · 1000`.
+1. **Clock:** `simMs` counts whole ms of play; the fraction is carried to the next step (`advanceClock`, as office-escape; a step counts at most 50 ms). So `simMs` never runs ahead of the store's `elapsedMs` and lags it by less than 1 ms. The step that reaches 60000 ends the run (`events.ended = "timeup"`) before anything else, as `RunClock` does. In the game that step never comes: the store ends the run first and `useRunFrame` does not run on that frame.
 2. Land every due refill.
-3. **Lock:** if `lockMs > 0`, then `lockMs = max(0, lockMs − dt · 1000)`, the velocity is set to 0, input and presses are ignored, and the step ends. A lock therefore covers whole steps: at least 250 ms of play without any movement.
+3. **Lock:** if `lockMs > 0`, then `lockMs = max(0, lockMs − stepMs)`, the velocity is set to 0, input and presses are ignored, and the step ends. A lock therefore covers whole steps: at least 250 ms of play without any movement.
 4. **Move:** the robot-collector movement, with the top speed of the carry state (6 or 5). Racks and pallets push the robot out (`resolveSphereAabb`), the walls keep it in (`clampToBounds`), then the **speed guard** scales the step back so it never moves more than `speed · dt`, whatever the pushes did. The velocity is what really happened. The robot turns to face where it goes.
 5. **Act** on a press (table above).
 
-The step reports what happened through counters on the run (picks, deliveries, right ones, wrong ones, refusals, the last change of the score, the zone). Nothing is allocated.
+The step reports what happened in `run.events`, one object reset at the start of every step and returned by `step`: `picked` and `refused` (the pallet index, −1 for none), `delivered` (right zone), `wrong`, `zone` (the corner), `delta` (the real change of the score), `newOrder`, `refilled` (a bit per pallet that got a box) and `ended`. The run also keeps the counters the Scene's publish cache reads (`picks`, `drops` = all deliveries, `delivered` = right ones, `wrong`, `refusals`, `lastDelta`, `lastZone`) and the proof's split of play time (`movedMs`, `lockedMs`). The pallets, the refill queue (a ring of 4) and the events object are made once in `createRun`: nothing is allocated after it.
 
 **Publishing to the store.** Scene keeps a cache of the values it last published (a ref) and publishes in two places:
 
@@ -137,7 +138,7 @@ Scene never calls `addScore`, so the HUD can never drift from the rules. Sounds:
 ### Fairness
 
 - **Every layout is solvable.** The racks, pallet slots and zones are fixed shapes, and the free space for the robot's centre is one connected region in all 216 layouts (flood fill on a 0.1 grid). Every reach and every zone lies in it. With the invariant above, every order can be finished.
-- **Every layout is about as hard as every other.** The 16 shortest pallet-to-zone legs (grid paths for the robot's centre around the racks and pallets) average **6.55–6.56** in all 9 pallet sets (shortest 2.2, longest 10.4, design prototype). The zone permutation only relabels the colours. The test pins the band 6.3–6.8.
+- **Every layout is about as hard as every other.** The 16 shortest pallet-to-zone legs (grid paths for the robot's centre around the racks and pallets) average **6.55–6.56** in all 9 pallet sets (shortest 2.2, longest 10.4, design prototype). The test measures them on a 0.1 m grid with 16 directions: 6.50–6.51, shortest 2.1 (= `MIN_LEG`), longest 10.3. The zone permutation only relabels the colours. The test pins the band 6.3–6.8 and a spread under 0.05 between the sets.
 - **Orders add luck, within a band.** The order stream decides how far each order sends the robot. A perfect-play bot over 300 seeds (prototype, below) scores 800–1050 around a median of 900, that is 16–21 deliveries around 18 (−2 / +3). The test pins the spread **in deliveries**, the unit the score moves in (one delivery = 50 points, about 6 % of the median): the 1st–99th percentile within ± 3 deliveries of the median, and every one of 1000 seeds within ± 5. A band in percent ignores that step. With a median of 850, ± 20 % is 680–1020, so a single lucky seed with 21 deliveries (1050) would fail the test although nothing in the design changed. These bounds are design limits, not fitted to the bot's first run. If a later change breaks them, that change made the order luck worse, and the fix belongs in the rules (for example drawing orders from a shuffled bag of the 4 colours, limited to occupied pallets), never in a wider band.
 - **Readable on a phone.** Every box has its zone letter on the lid and every zone has a big letter on the floor, so colour-blind players match letters. While the robot is empty-handed, a bobbing chevron stands over every box of the order colour. While it carries, the border of the target zone pulses. The whole warehouse is always on screen (static camera, below).
 
@@ -161,7 +162,7 @@ Scene never calls `addScore`, so the HUD can never drift from the rules. Sounds:
 - `score * 1000 <= 50 * duration_ms`, that is, `score <= 50 · t` with t = duration_ms / 1000
 
 1. **Duration.** A ranked run ends only on the clock: there are no lives and no win, and `end("quit")` is never ranked or sent. The clock ends the run with `elapsedMs` exactly 60000 (`play()` in `core/useArcadeStore.ts`), so every submission has `duration_ms = 60000`, inside 5000–75000, and the cap is 50 · 60 = 3000 = `maxScore`. So it is enough to show score ≤ 3000. The steps below show more: **score ≤ 50 · t at every moment t of play**, so the limits would still hold if a later version ended runs early (from 5 s on).
-2. **Clock.** `useRunFrame` hands the game exactly the play time `RunClock` counted in that frame, including the rest of the frame in which the countdown ends (core). Pause stops both. Locks cover whole steps and the robot moves only in the other steps, so for any span of play, moving time + lock time ≤ the play time that passed.
+2. **Clock.** `useRunFrame` hands the game exactly the play time `RunClock` counted in that frame, including the rest of the frame in which the countdown ends (core). Pause stops both. Locks cover whole steps and the robot moves only in the other steps, so for any span of play, moving time + lock time ≤ the play time that passed (`movedMs + lockedMs ≤ simMs ≤ elapsedMs`; `simMs` is whole ms, so a bound below is also met to the whole ms).
 3. **Speed.** The speed guard caps every step at 6 · dt empty-handed and 5 · dt carrying (the carry state is fixed during the move; a pick or a drop happens after the move). So driving a distance L takes at least L / 6 s, and at least L / 5 s with a box.
 4. **Distances.** `MIN_LEG` = **2.1**: the closest any reach comes to any zone. A side pallet's edge is at \|x\| 3.6, its reach ends at 4.4, the zone starts at 6.5 (their z ranges overlap). Every other pallet-zone pair is farther apart. Obstacles only make real paths longer. From the start (0, 0): 2.0 to the reach of a middle pallet, 2.888 to the reach of a side pallet (to its corner at (2.4, 2.8), minus 0.8).
 5. **One cycle ≥ 1270 ms** (`CYCLE_MIN_MS`). Take two deliveries at t_k and t_k+1. The grip is empty after t_k, so the box delivered at t_k+1 was picked after t_k, at some pallet P. There is exactly one such pick p: a carried box leaves the grip only by a delivery. In this order, and without overlap, the robot needs:
@@ -198,7 +199,7 @@ A prototype of these rules (same map, streams and refills; shortest grid paths a
 - **Human-like** (legs 25% slower, 0.3 s to react before each leg): 600–750.
 - At least 2 pallets held a box after every delivery, as step "Pallets, boxes and refills" says.
 
-Expect top human scores around 800–950. The test's path-following bot (real `stepRobot`, 60 fps) repeats the perfect-play check with the real rules.
+Expect top human scores around 800–950. The test's path-following bot (real `stepRobot`, 60 fps) repeats the perfect-play check with the real rules: over 1000 seeds a median of **18 deliveries (900)**, 16–20 from the 1st to the 99th percentile, all seeds 15–21. Across 2000 runs of perfect, nearest-zone, wrong-zone, random and mashing bots at 144 / 60 / 30 fps and random steps, the shortest real cycle was 1448 ms (bound 1270) and the earliest first delivery 1828 ms (bound 1151). The worst-case drill (Test plan) cycles in 1450–1500 ms and scores 1950–2000 (bound 2350).
 
 ## Scene and camera
 
@@ -349,7 +350,7 @@ const definition: GameDefinition = {
   - A **worst-case drill**: after each delivery the test rewrites the run (a plain object) so that the order's box is on a side pallet and its zone is the corner beside that pallet, and a straight-line bot drives at full speed. Its cycles stay ≥ 1270 ms and its 60 s score ≤ 2350.
   - At every frame of every run: `score ≤ 50 · elapsedMs / 1000`, `score ≤ 3000`, and `capScore` is a no-op. `withinServerLimits(score, 60000)` holds for every final score.
   - An idle robot times out with 0 at exactly 60000 ms.
-- **Fairness bot.** A path-following bot (grid shortest paths, the real `stepRobot`, 60 fps) plays 1000 fixed seeds: every order is finished, the 1st–99th percentile of its delivery counts lies within ± 3 of their median, and every seed within ± 5 (bands in deliveries, not percent: see Fairness). Its median is pinned too (± 1 delivery), from its first run. It should come out a little under the prototype's 18 deliveries (900), because the real robot slows in corners.
+- **Fairness bot.** A path-following bot (grid shortest paths, the real `stepRobot`, 60 fps) plays 1000 fixed seeds: every order is finished, the 1st–99th percentile of its delivery counts lies within ± 3 of their median, and every seed within ± 5 (bands in deliveries, not percent: see Fairness). Its median is pinned too (± 1 delivery), from its first run: **18**, the prototype's number.
 
 The generic parts are tested in `core/`: the clock and the frame order (`frameLoop.test.ts`, `useArcadeStore.test.ts`), the fit, the lens shift and the yaw lock (`view.test.ts`, `useFittedView.test.ts`), `rngNext` (`math.test.ts`), the manifest and instanced models (`modelManifest.test.ts`, `assets.test.ts`).
 
