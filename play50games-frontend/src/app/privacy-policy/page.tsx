@@ -209,9 +209,11 @@ export default function PrivacyPolicyPage() {
                 storage) and are not added to any leaderboard.
               </li>
               <li>
-                Logged-in players: we store your best score for each game, the
-                time of that run, how often you played and when you last played.
-                Your best score is shown on that game&apos;s public leaderboard.
+                Logged-in players: we store your best score for each game, how
+                long that run took and when you set it, your last score, how
+                often you played and when you last played. Your best score, the
+                time it took and the date you set it are shown on that
+                game&apos;s public leaderboard.
               </li>
               <li>
                 On leaderboards you appear with your first name and last initial
@@ -226,7 +228,7 @@ export default function PrivacyPolicyPage() {
               <li>
                 To prevent cheating and abuse, administrators can remove scores,
                 and a hashed form of your IP address is used briefly to limit how
-                often scores can be sent.
+                often scores can be sent and accounts can be created.
               </li>
               <li>Deleting your account also deletes your 3D Arcade scores.</li>
             </ul>
