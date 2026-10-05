@@ -1,0 +1,33 @@
+{
+   "slug": "penalty-hero",
+   "universe": "stadium",
+   "seed": 5155,
+   "assets": [
+      {
+         "id": "striker",
+         "kind": "character",
+         "mode": "image",
+         "prompt": "football striker mascot, blue kit with number 10, boots, Play50 toy world style, full body, T-pose, clean game-ready topology",
+         "concept": "tools/hyper3d/concepts/penalty-hero-striker.png",
+         "tier": "Gen-2.5-Medium",
+         "qualityOverride": 18000,
+         "attempts": 2,
+         "target": "penalty-hero",
+         "budget": { "tris": 20000, "bytes": 1500000 },
+         "textureSize": 1024
+      },
+      {
+         "id": "keeper",
+         "kind": "character",
+         "mode": "image",
+         "prompt": "goalkeeper mascot, bright green kit, oversized gloves, Play50 toy world style, full body, T-pose, clean game-ready topology",
+         "concept": "tools/hyper3d/concepts/penalty-hero-keeper.png",
+         "tier": "Gen-2.5-Medium",
+         "qualityOverride": 18000,
+         "attempts": 2,
+         "target": "penalty-hero",
+         "budget": { "tris": 20000, "bytes": 1500000 },
+         "textureSize": 1024
+      }
+   ]
+}

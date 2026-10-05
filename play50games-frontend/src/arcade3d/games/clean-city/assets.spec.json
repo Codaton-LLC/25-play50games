@@ -1,0 +1,31 @@
+{
+   "slug": "clean-city",
+   "universe": "shared-cast",
+   "seed": 5050,
+   "assets": [
+      {
+         "id": "bottle",
+         "kind": "prop",
+         "mode": "text",
+         "prompt": "crushed plastic bottle, Play50 toy world style, bright vinyl toy look, smooth rounded shapes, saturated colours, friendly cartoon proportions, single isolated prop, centered, no base, no ground, no text, clean game-ready low-poly topology",
+         "tier": "Gen-2.5-Low",
+         "qualityOverride": 1500,
+         "attempts": 1,
+         "target": "clean-city",
+         "budget": { "tris": 5000, "bytes": 300000 },
+         "textureSize": 512
+      },
+      {
+         "id": "bag",
+         "kind": "prop",
+         "mode": "text",
+         "prompt": "crumpled paper bag, Play50 toy world style, bright vinyl toy look, smooth rounded shapes, saturated colours, friendly cartoon proportions, single isolated prop, centered, no base, no ground, no text, clean game-ready low-poly topology",
+         "tier": "Gen-2.5-Low",
+         "qualityOverride": 1500,
+         "attempts": 1,
+         "target": "clean-city",
+         "budget": { "tris": 5000, "bytes": 300000 },
+         "textureSize": 512
+      }
+   ]
+}
