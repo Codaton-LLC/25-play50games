@@ -326,15 +326,10 @@ const Coins = memo(function Coins({ run, fx, standIns }: { run: OfficeRun; fx: F
             fx.coinTakenAt[i] = -1;
          }
          const raised = coin.kind === "raised";
-         let x = LANES[coin.lane] / 1000;
-         let y = (raised ? COIN.raisedY : COIN.groundY) / 1000 + Math.sin(t * 3 + coin.slot) * 0.05;
-         let z = (run.distance - coin.s) / 1000;
-         // a missed coin shrinks away behind the runner instead of flying past the camera
-         let scale = z > MISSED_FROM ? 1 - (z - MISSED_FROM) / MISSED_OVER : 1;
-         if (scale <= 0) continue;
-         let spin = t * 3.2 + coin.slot * 0.9;
+         let x: number, y: number, z: number, scale: number, spin: number;
          if (coin.taken) {
-            // collected: it flies up over the runner's head and shrinks away
+            // collected: it flies up over the runner's head and shrinks away in PICKUP_S, wherever
+            // its track position is by then (the missed-coin cull below is for untaken coins only)
             if (fx.coinTakenAt[i] < 0) fx.coinTakenAt[i] = t;
             const k = (t - fx.coinTakenAt[i]) / PICKUP_S;
             if (k >= 1) continue;
@@ -343,6 +338,14 @@ const Coins = memo(function Coins({ run, fx, standIns }: { run: OfficeRun; fx: F
             z = -0.1;
             scale = 1.15 * (1 - k * k);
             spin = t * 14;
+         } else {
+            x = LANES[coin.lane] / 1000;
+            y = (raised ? COIN.raisedY : COIN.groundY) / 1000 + Math.sin(t * 3 + coin.slot) * 0.05;
+            z = (run.distance - coin.s) / 1000;
+            // a missed coin shrinks away behind the runner instead of flying past the camera
+            scale = z > MISSED_FROM ? 1 - (z - MISSED_FROM) / MISSED_OVER : 1;
+            if (scale <= 0) continue;
+            spin = t * 3.2 + coin.slot * 0.9;
          }
          Q.setFromEuler(E.set(0, spin, 0));
          writeCopy(coinSlot, n, P.compose(V.set(x, y, z), Q, S.setScalar(scale)));

@@ -10,9 +10,10 @@
 //   colour (instanceColor), so a whole desk is one or two draw calls whatever the count.
 // - InstancedProp swaps the stand-in parts for the GLB's own meshes once the model is listed in
 //   core/modelManifest.ts (useModel + modelParts): same slots, same matrices, no scene change.
+//   A GLB that fails to load or breaks while rendering falls back to the stand-in parts.
 // - The corridor is static and repeats every 12 m: Scene.tsx slides its group by
 //   distance mod 12 m (a treadmill), so floor, walls, ceiling and decor never re-spawn.
-import { useEffect, useLayoutEffect, useMemo, useRef, type RefObject } from "react";
+import { Component, useEffect, useLayoutEffect, useMemo, useRef, type ErrorInfo, type ReactNode, type RefObject } from "react";
 import {
    AdditiveBlending,
    BoxGeometry,
@@ -573,13 +574,14 @@ export function PropMeshes({ parts, capacity, slot }: { parts: PropPart[]; capac
    );
 }
 
-/**
- * A prop type that may become a GLB (README "InstancedProp"): once `asset` is listed in
- * core/modelManifest.ts, every mesh of the GLB becomes one InstancedMesh (core modelParts: the
- * asset's scale / rotationY / yOffset are folded into its piece matrix); until then the stand-in
- * parts. Suspends while a listed GLB loads.
- */
-export function InstancedProp({ asset, fallback, capacity, slot }: { asset: ModelAsset; fallback: PropPart[]; capacity: number; slot: PropSlot }) {
+interface InstancedPropProps {
+   asset: ModelAsset;
+   fallback: PropPart[];
+   capacity: number;
+   slot: PropSlot;
+}
+
+function InstancedPropContent({ asset, fallback, capacity, slot }: InstancedPropProps) {
    const { scene } = useModel(asset);
    const parts = useMemo<PropPart[] | null>(() => {
       if (!scene) return null;
@@ -587,6 +589,42 @@ export function InstancedProp({ asset, fallback, capacity, slot }: { asset: Mode
       return found.length > 0 ? found.map((p) => ({ geometry: p.geometry, material: p.material, locals: [p.matrix], colors: null })) : null;
    }, [scene, asset]);
    return <PropMeshes parts={parts ?? fallback} capacity={capacity} slot={slot} />;
+}
+
+/**
+ * Catches what useModel does not (a listed GLB that breaks while rendering) and draws the stand-in
+ * parts instead, like core <Model> / <InstancedModel> do with their (unexported) ModelErrorBoundary.
+ * Without it the throw would reach ShellStage's ErrorBoundary and fail the whole stage.
+ */
+class PropErrorBoundary extends Component<InstancedPropProps & { children: ReactNode }, { failed: boolean }> {
+   state = { failed: false };
+
+   static getDerivedStateFromError() {
+      return { failed: true };
+   }
+
+   componentDidCatch(error: Error, info: ErrorInfo) {
+      if (process.env.NODE_ENV !== "production") console.warn("[office-escape] prop fell back to its stand-in", error, info);
+   }
+
+   render() {
+      const { fallback, capacity, slot, children } = this.props;
+      return this.state.failed ? <PropMeshes parts={fallback} capacity={capacity} slot={slot} /> : children;
+   }
+}
+
+/**
+ * A prop type that may become a GLB (README "InstancedProp"): once `asset` is listed in
+ * core/modelManifest.ts, every mesh of the GLB becomes one InstancedMesh (core modelParts: the
+ * asset's scale / rotationY / yOffset are folded into its piece matrix); until then, or when the
+ * GLB fails to load or breaks while rendering, the stand-in parts. Suspends while a listed GLB loads.
+ */
+export function InstancedProp(props: InstancedPropProps) {
+   return (
+      <PropErrorBoundary key={props.asset.url} {...props}>
+         <InstancedPropContent {...props} />
+      </PropErrorBoundary>
+   );
 }
 
 // ---------- the corridor (static; Scene.tsx slides it) ----------
