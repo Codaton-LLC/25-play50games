@@ -18,11 +18,7 @@ export const RUNUP_MS = 700;
 export const FLIGHT_MS = 500;
 export const HOLD_MS = 400;
 export const CYCLE_MS = RUNUP_MS + FLIGHT_MS + HOLD_MS;
-
-/** One untimed countdown frame, at most core MAX_FRAME_DT. Submitted duration can be this much shorter. */
-export const UNTIMED_FRAME_MS = 50;
-/** 10 * 1600 - 50. The rules clock itself is at least 16000; this is the submitted floor. */
-export const MIN_SUBMITTED_MS = SHOTS * CYCLE_MS - UNTIMED_FRAME_MS;
+// Ten cycles are 16000 ms of this clock. 15950 ms is only conservative slack under that floor.
 
 export const FIRST_GOAL_POINTS = 100;
 export const NEXT_GOAL_POINTS = 150;
@@ -37,6 +33,8 @@ export const RETICLE_SEED_MIX = 0x9e3779b9;
 
 export const INITIAL_WEIGHT = 2;
 export const WIDE_X = 4.16;
+/** Ball centre at the penalty spot. A timeout aims here instead of keeping the previous shot's target. */
+export const BALL_SPOT = { x: 0, y: 0.11 } as const;
 
 export const ZONES = [
    "top-left",
@@ -105,23 +103,22 @@ export function pointsForGoal(streakBefore: number): number {
    return streakBefore > 0 ? NEXT_GOAL_POINTS : FIRST_GOAL_POINTS;
 }
 
-/** min(score, 1500, floor(150 * duration_s)), with duration_s = durationMs / 1000. */
-export function finalScore(score: number, durationMs: number): { score: number; durationMs: number } {
-   const budget = Math.floor((MAX_POINTS_PER_SEC * durationMs) / 1000);
-   return { score: Math.min(score, MAX_SCORE, budget), durationMs };
-}
-
 /** The server's check (core/limits.ts) with this game's limits from meta.ts. */
 export function withinServerLimits(score: number, durationMs: number): boolean {
    return fitsLimits(score, durationMs, penaltyHeroMeta.scoring);
 }
 
 /**
- * Safety net only (core/limits.ts capScore with meta.ts limits). Rounds elapsed the way GameShell
- * does, then min(score, 1500, floor(150 * roundedSeconds)). Reachable finished runs never hit it.
+ * Safety net only (core/limits.ts). Rounds elapsed the way GameShell does, then
+ * min(score, 1500, floor(150 * roundedSeconds)). Reachable finished runs never hit it.
  */
 export function capScore(score: number, elapsedMs: number): number {
    return capToLimits(score, elapsedMs, penaltyHeroMeta.scoring);
+}
+
+/** Same clamp as capScore, with the caller's duration kept beside the trimmed score. */
+export function finalScore(score: number, durationMs: number): { score: number; durationMs: number } {
+   return { score: capScore(score, durationMs), durationMs };
 }
 
 // ---------- run ----------
@@ -141,8 +138,8 @@ export interface StepInput {
    moveY?: number;
    jumpPressed?: boolean;
    actionPressed?: boolean;
-   /** Zone already projected by Scene. null or omitted: no tap, or a tap that missed the goal. */
-   zoneId?: ZoneId | null;
+   /** Zone already projected by Scene. null, omitted, or an unknown id does not shoot. */
+   zoneId?: string | null;
 }
 
 interface Pending {
@@ -199,7 +196,7 @@ function clearEvents(events: StepEvents): void {
    events.ended = null;
 }
 
-function indexOfZone(id: ZoneId): number {
+function indexOfZone(id: string): number {
    for (let i = 0; i < ZONES.length; i++) {
       if (ZONES[i] === id) return i;
    }
@@ -300,6 +297,8 @@ function lockTimeout(state: RunState): void {
    pending.committed = false;
    state.keeperIndex = -1;
    state.reticle = reticleOffset(state.aimMs, state.reticlePhase);
+   state.targetX = BALL_SPOT.x;
+   state.targetY = BALL_SPOT.y;
    state.phase = "runup";
    state.phaseMs = 0;
 }
@@ -395,17 +394,11 @@ function consume(state: RunState, dtMs: number): void {
    }
 }
 
-function applyZone(state: RunState, zoneId: ZoneId): void {
-   const index = indexOfZone(zoneId);
-   if (index < 0) return;
-   state.col = index % 3;
-   state.row = index < 3 ? 1 : 0;
-}
-
 /**
  * Advance one frame. dtMs <= 0 does nothing. The event object is reused; read it before the next step.
  * A shot or timeout locks first, then this frame's dt is spent across run-up, flight and hold.
  * Timeout on this frame outranks a new shot. The shooting edge is not reused when the next AIM starts.
+ * An unknown zone id is not a tap.
  */
 export function step(state: RunState, dtMs: number, input: StepInput = {}): StepEvents {
    const events = state.events;
@@ -417,8 +410,12 @@ export function step(state: RunState, dtMs: number, input: StepInput = {}): Step
    aimHighlight(state, classX, classY);
 
    if (state.phase === "aim" && state.aimMs + dtMs < AIM_TIMEOUT_MS) {
-      const tapped = typeof input.zoneId === "string";
-      if (tapped) applyZone(state, input.zoneId as ZoneId);
+      const tapIndex = typeof input.zoneId === "string" ? indexOfZone(input.zoneId) : -1;
+      const tapped = tapIndex >= 0;
+      if (tapped) {
+         state.col = tapIndex % 3;
+         state.row = tapIndex < 3 ? 1 : 0;
+      }
       if (tapped || input.jumpPressed === true || input.actionPressed === true) lockShot(state);
    }
 

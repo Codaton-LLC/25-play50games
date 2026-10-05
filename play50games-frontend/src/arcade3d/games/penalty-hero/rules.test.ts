@@ -1,13 +1,15 @@
 import { describe, expect, it } from "vitest";
+import { advanceRunClock, playedFrameDt } from "@/arcade3d/core/frameLoop";
+import { createArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import {
    AIM_TIMEOUT_MS,
+   BALL_SPOT,
    CYCLE_MS,
    FIRST_GOAL_POINTS,
    FLIGHT_MS,
    HOLD_MS,
    INITIAL_WEIGHT,
    MAX_POINTS_PER_SEC,
-   MIN_SUBMITTED_MS,
    NEXT_GOAL_POINTS,
    RETICLE_BAND,
    RUNUP_MS,
@@ -296,17 +298,16 @@ describe("outcomes", () => {
 });
 
 describe("timing and the server cap", () => {
-   it("needs at least 15950 ms for ten shots, and 16000 ms when every shot is immediate", () => {
+   it("needs at least 16000 ms for ten immediate shots", () => {
+      // 15950 ms is only slack under this floor. The clock itself does not drop a frame.
       for (let d = 0; d < DTS.length; d++) {
          const state = spam(1, DTS[d]);
          expect(state.shotsDone).toBe(SHOTS);
          expect(state.ended).toBe("win");
-         expect(state.elapsedMs).toBeGreaterThanOrEqual(MIN_SUBMITTED_MS);
          expect(state.elapsedMs).toBeGreaterThanOrEqual(SHOTS * CYCLE_MS - 1);
       }
       const exact = spam(1, DT);
       expect(exact.elapsedMs).toBe(SHOTS * CYCLE_MS);
-      expect(MIN_SUBMITTED_MS).toBe(15_950);
       expect(spam(1, 8.3).elapsedMs).toBeGreaterThanOrEqual(SHOTS * CYCLE_MS);
       expect(spam(1, 16.7).elapsedMs).toBeGreaterThanOrEqual(SHOTS * CYCLE_MS);
    });
@@ -378,5 +379,251 @@ describe("timing and the server cap", () => {
       expect(fresh.elapsedMs).toBe(0);
       expect(fresh.phase).toBe("aim");
       expect(fresh.score).toBe(0);
+   });
+});
+
+function backToAim(state: RunState): void {
+   if (state.phase === "aim" && state.pending.kind === "none") return;
+   play(state, DT, () => ({}), (s) => s.phase === "aim" && s.pending.kind === "none");
+}
+
+describe("pinned rules", () => {
+   it("follows the keeper golden sequence for seed 0xdeadbeef", () => {
+      expect(drawWeightedIndex([2, 2, 2, 2, 2, 2], 1.6 / 12)).toBe(0);
+      expect(drawWeightedIndex([2, 2, 2, 2, 2, 2], 3.9 / 12)).toBe(1);
+      expect(createRun(1).weights).toEqual([2, 2, 2, 2, 2, 2]);
+
+      const seed = 0xdeadbeef;
+      const state = createRun(seed);
+      const ref = createRng(seed);
+      const w = [2, 2, 2, 2, 2, 2];
+      const taps = [0, 1, 2, 3, 4, 5, 0, 1, 2];
+      for (let t = 0; t < 8; t++) {
+         expect(state.phase).toBe("aim");
+         step(state, 10, { zoneId: ZONES[taps[t]] });
+         expect(state.keeperIndex).toBe(drawWeightedIndex(w, ref()));
+         w[taps[t]] += 1;
+         expect(state.weights).toEqual(w);
+         backToAim(state);
+      }
+      const weightsAtTimeout = w.slice();
+      play(state, DT, () => ({}), (s) => s.phase === "aim" && s.shotsDone === 9);
+      expect(state.lastResult).toBe("timeout");
+      expect(state.weights).toEqual(weightsAtTimeout);
+      step(state, 10, { zoneId: ZONES[taps[8]] });
+      expect(state.keeperIndex).toBe(drawWeightedIndex(w, ref()));
+      w[taps[8]] += 1;
+      expect(state.weights).toEqual(w);
+   });
+
+   it("moves once per key press and ignores a key held through the run-up", () => {
+      expect(axisClass(-0.51)).toBe(-1);
+      const state = createRun(1);
+      expect(state.col).toBe(1);
+      step(state, DT, { moveX: -1 });
+      expect(state.col).toBe(0);
+      step(state, DT, { moveX: 0 });
+      step(state, DT, { moveX: 1 });
+      step(state, DT, { moveX: 1 });
+      step(state, DT, { moveX: 1 });
+      expect(state.col).toBe(1);
+
+      const held = createRun(2);
+      held.reticlePhase = 0;
+      step(held, DT, { jumpPressed: true });
+      expect(held.col).toBe(1);
+      expect(held.phase).toBe("runup");
+      play(held, DT, () => ({ moveX: 1 }), (s) => s.phase === "aim" && s.shotsDone === 1);
+      expect(held.col).toBe(1);
+      step(held, DT, { moveX: 1 });
+      expect(held.col).toBe(1);
+   });
+
+   it("resets the streak on a save and on a timeout", () => {
+      const state = createRun(4);
+      const shoot = (keeperZone: number) => {
+         state.reticlePhase = 0;
+         for (let i = 0; i < 6; i++) state.weights[i] = i === keeperZone ? 5 : 0;
+         step(state, DT, { jumpPressed: true });
+         backToAim(state);
+      };
+      shoot(0);
+      expect(state.score).toBe(100);
+      expect(state.streak).toBe(1);
+      shoot(0);
+      expect(state.score).toBe(250);
+      expect(state.streak).toBe(2);
+      shoot(4);
+      expect(state.lastResult).toBe("saved");
+      expect(state.streak).toBe(0);
+      expect(state.score).toBe(250);
+      shoot(0);
+      expect(state.score).toBe(350);
+      expect(state.streak).toBe(1);
+      step(state, AIM_TIMEOUT_MS, {});
+      backToAim(state);
+      expect(state.lastResult).toBe("timeout");
+      expect(state.streak).toBe(0);
+      expect(state.score).toBe(350);
+      shoot(0);
+      expect(state.score).toBe(450);
+      expect(state.streak).toBe(1);
+   });
+
+   it("pins the phase lengths and the idle clock", () => {
+      expect([RUNUP_MS, FLIGHT_MS, HOLD_MS, AIM_TIMEOUT_MS]).toEqual([700, 500, 400, 20_000]);
+      const idle = createRun(9);
+      play(idle, DT, () => ({}));
+      expect(idle.elapsedMs).toBe(216_000);
+      expect(idle.score).toBe(0);
+
+      const carry = createRun(9);
+      step(carry, 19_990, {});
+      expect(carry.phase).toBe("aim");
+      expect(carry.aimMs).toBe(19_990);
+      step(carry, 30, {});
+      expect(carry.phase).toBe("runup");
+      expect(carry.pending.kind).toBe("timeout");
+      expect(carry.phaseMs).toBe(20);
+   });
+
+   it("redraws the reticle from its own stream", () => {
+      expect(reticleSeed(0)).toBe(0x9e3779b9);
+      expect(reticleSeed(0xffffffff)).toBe(0x61c88646);
+      expect(reticleOffset(300, 0)).toBeCloseTo(0.6, 6);
+      expect(reticleOffset(600, 0)).toBeCloseTo(0, 8);
+      expect(isAccurate(0.25)).toBe(true);
+      expect(isAccurate(0.2501)).toBe(false);
+      expect(isAccurate(RETICLE_BAND)).toBe(true);
+
+      const seed = 77;
+      const state = createRun(seed);
+      const rng = createRng(reticleSeed(seed));
+      expect(state.reticlePhase).toBeCloseTo(rng() * Math.PI * 2, 10);
+      state.reticlePhase = 0;
+      step(state, DT, { jumpPressed: true });
+      backToAim(state);
+      expect(state.reticlePhase).toBeCloseTo(rng() * Math.PI * 2, 10);
+   });
+
+   it("sends a wide ball outside the top row and parks a timeout on the ball spot", () => {
+      const right = createRun(1);
+      right.reticlePhase = Math.PI / 2;
+      step(right, DT, { moveY: -1 });
+      step(right, DT, { jumpPressed: true });
+      expect(right.targetX).toBeCloseTo(WIDE_X, 10);
+      expect(right.targetY).toBeCloseTo(1.83, 10);
+
+      const left = createRun(1);
+      left.reticlePhase = -Math.PI / 2;
+      step(left, DT, { moveY: -1 });
+      step(left, DT, { jumpPressed: true });
+      expect(left.targetX).toBeCloseTo(-WIDE_X, 10);
+      expect(left.targetY).toBeCloseTo(1.83, 10);
+
+      backToAim(left);
+      step(left, AIM_TIMEOUT_MS, {});
+      expect(left.pending.kind).toBe("timeout");
+      expect(left.targetX).toBe(BALL_SPOT.x);
+      expect(left.targetY).toBe(BALL_SPOT.y);
+   });
+
+   it("does not shoot an unknown zone, and a null tap leaves the aim clock running", () => {
+      const unknown = createRun(1);
+      const ev = step(unknown, DT, { zoneId: "nope" });
+      expect(ev.shot).toBe(false);
+      expect(unknown.phase).toBe("aim");
+      expect(unknown.pending.kind).toBe("none");
+      expect(unknown.aimMs).toBe(DT);
+
+      const missed = createRun(1);
+      const none = step(missed, DT, { zoneId: null });
+      expect(none.shot).toBe(false);
+      expect(missed.phase).toBe("aim");
+      expect(missed.aimMs).toBe(DT);
+   });
+
+   it("matches the store clock through countdown, pause and resume", () => {
+      const store = createArcadeStore();
+      store.getState().configure({ durationMs: null, lives: null });
+      store.getState().markReady();
+      store.getState().start();
+      const run = createRun(5);
+      let pausedPlay = false;
+      let pausedCountdown = false;
+      let guard = 0;
+      while (!run.ended && guard++ < 20_000) {
+         if (!pausedCountdown && store.getState().phase === "countdown") {
+            const left = store.getState().countdownMs;
+            store.getState().pause();
+            advanceRunClock(store, 0.05);
+            expect(playedFrameDt(store.getState())).toBe(0);
+            expect(store.getState().countdownMs).toBe(left);
+            store.getState().resume();
+            pausedCountdown = true;
+         }
+         advanceRunClock(store, 0.02);
+         const dt = playedFrameDt(store.getState());
+         if (dt > 0) step(run, store.getState().frameMs, run.phase === "aim" ? { jumpPressed: true } : {});
+         if (!pausedPlay && run.shotsDone === 2 && run.phase === "aim") {
+            const before = run.elapsedMs;
+            store.getState().pause();
+            for (let i = 0; i < 4; i++) {
+               advanceRunClock(store, 0.05);
+               expect(playedFrameDt(store.getState())).toBe(0);
+            }
+            expect(run.elapsedMs).toBe(before);
+            store.getState().resume();
+            pausedPlay = true;
+         }
+      }
+      expect(run.ended).toBe("win");
+      expect(Math.abs(store.getState().elapsedMs - run.elapsedMs)).toBeLessThanOrEqual(1e-6);
+      expect(Math.round(run.elapsedMs)).toBeGreaterThanOrEqual(16_000);
+      expect(withinServerLimits(run.score, run.elapsedMs)).toBe(true);
+      expect(capScore(run.score, run.elapsedMs)).toBe(run.score);
+   });
+
+   it("stays inside the scoring rules for a seeded fuzz of frames", () => {
+      for (let seed = 1; seed <= 8; seed++) {
+         const rng = createRng(seed + 50);
+         const state = createRun(seed);
+         let streak = 0;
+         let expectScore = 0;
+         let resolutions = 0;
+         let ends = 0;
+         let guard = 0;
+         while (!state.ended && guard++ < 80_000) {
+            const dt = rng() * 49 + 1;
+            const roll = rng();
+            const input: StepInput = {
+               moveX: rng() < 0.15 ? Number.NaN : rng() * 2 - 1,
+               moveY: rng() * 2 - 1,
+               jumpPressed: roll < 0.35,
+               actionPressed: roll > 0.85,
+               zoneId: roll < 0.2 ? ZONES[Math.floor(rng() * ZONES.length)] : roll < 0.3 ? "nope" : roll < 0.4 ? null : undefined,
+            };
+            const ev = step(state, dt, input);
+            if (ev.goal) {
+               expectScore += pointsForGoal(streak);
+               streak += 1;
+               resolutions += 1;
+            }
+            if (ev.saved || ev.wide || ev.timeout) {
+               streak = 0;
+               resolutions += 1;
+            }
+            if (ev.ended === "win") ends += 1;
+            expect(state.score).toBe(expectScore);
+            expect(state.score).toBeLessThanOrEqual(1450);
+            expect(state.score * 1000).toBeLessThanOrEqual(MAX_POINTS_PER_SEC * state.elapsedMs + 1e-6);
+         }
+         expect(state.ended).toBe("win");
+         expect(resolutions).toBe(10);
+         expect(ends).toBe(1);
+         expect(state.score).toBe(expectScore);
+         expect(Math.round(state.elapsedMs)).toBeGreaterThanOrEqual(16_000);
+         expect(Math.round(state.elapsedMs)).toBeLessThanOrEqual(216_050);
+      }
    });
 });
