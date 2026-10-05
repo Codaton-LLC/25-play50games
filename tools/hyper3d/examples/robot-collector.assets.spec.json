@@ -1,0 +1,32 @@
+{
+   "slug": "robot-collector",
+   "universe": "warehouse",
+   "seed": 5050,
+   "assets": [
+      {
+         "id": "robot", "kind": "character", "mode": "image",
+         "prompt": "Small friendly utility robot, teal and white, Play50 toy world, full body, T-pose",
+         "concept": "tools/hyper3d/concepts/robot-collector-robot.png",
+         "tier": "Gen-2.5-Medium", "qualityOverride": 18000, "attempts": 3,
+         "target": "shared", "budget": { "tris": 20000, "bytes": 1500000 }, "textureSize": 1024
+      },
+      {
+         "id": "battery", "kind": "prop", "mode": "text",
+         "prompt": "Chunky glowing green battery, Play50 toy world, isolated prop, no base, no text",
+         "tier": "Gen-2.5-Low", "qualityOverride": 1500, "attempts": 1,
+         "target": "shared", "budget": { "tris": 5000, "bytes": 300000 }, "textureSize": 512
+      },
+      {
+         "id": "crate", "kind": "prop", "mode": "text",
+         "prompt": "Wooden shipping crate with metal corners, Play50 toy world, isolated prop, no base, no text",
+         "tier": "Gen-2.5-Low", "qualityOverride": 1500, "attempts": 1,
+         "target": "shared", "budget": { "tris": 5000, "bytes": 300000 }, "textureSize": 512
+      },
+      {
+         "id": "barrel", "kind": "prop", "mode": "text",
+         "prompt": "Blue toy metal barrel with two ridges, Play50 toy world, isolated prop, no base, no text",
+         "tier": "Gen-2.5-Low", "qualityOverride": 2000, "attempts": 1,
+         "target": "robot-collector", "budget": { "tris": 5000, "bytes": 300000 }, "textureSize": 512
+      }
+   ]
+}

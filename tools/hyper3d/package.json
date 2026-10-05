@@ -1,0 +1,16 @@
+{
+   "name": "@play50/hyper3d-cli",
+   "version": "1.0.0",
+   "private": true,
+   "type": "module",
+   "engines": { "node": ">=24" },
+   "scripts": { "test": "node --test", "hyper3d": "node src/cli.mjs" },
+   "dependencies": {
+      "@gltf-transform/core": "^4.2.1",
+      "@gltf-transform/extensions": "^4.2.1",
+      "@gltf-transform/functions": "^4.2.1",
+      "ajv": "^8.17.1",
+      "meshoptimizer": "^0.24.0",
+      "sharp": "^0.35.5"
+   }
+}

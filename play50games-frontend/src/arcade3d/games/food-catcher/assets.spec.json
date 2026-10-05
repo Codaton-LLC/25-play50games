@@ -1,0 +1,56 @@
+{
+   "slug": "food-catcher",
+   "universe": "food",
+   "seed": 5152,
+   "assets": [
+      {
+         "id": "chef",
+         "kind": "character",
+         "mode": "image",
+         "prompt": "chunky chef mascot, oversized white chef hat, round belly, red neckerchief, white apron, Play50 toy world style, full body, T-pose, clean game-ready topology",
+         "concept": "tools/hyper3d/concepts/food-catcher-chef.png",
+         "tier": "Gen-2.5-Medium",
+         "qualityOverride": 18000,
+         "attempts": 2,
+         "target": "food-catcher",
+         "budget": { "tris": 20000, "bytes": 1500000 },
+         "textureSize": 1024
+      },
+      {
+         "id": "apple",
+         "kind": "prop",
+         "mode": "text",
+         "prompt": "shiny red apple with one leaf, Play50 toy world style, bright vinyl toy look, smooth rounded shapes, saturated colours, friendly cartoon proportions, single isolated prop, centered, no base, no ground, no text, clean game-ready low-poly topology",
+         "tier": "Gen-2.5-Low",
+         "qualityOverride": 1500,
+         "attempts": 1,
+         "target": "food-catcher",
+         "budget": { "tris": 5000, "bytes": 300000 },
+         "textureSize": 512
+      },
+      {
+         "id": "burger",
+         "kind": "prop",
+         "mode": "text",
+         "prompt": "cartoon burger with cheese and lettuce, Play50 toy world style, bright vinyl toy look, smooth rounded shapes, saturated colours, friendly cartoon proportions, single isolated prop, centered, no base, no ground, no text, clean game-ready low-poly topology",
+         "tier": "Gen-2.5-Low",
+         "qualityOverride": 2500,
+         "attempts": 1,
+         "target": "food-catcher",
+         "budget": { "tris": 5000, "bytes": 300000 },
+         "textureSize": 512
+      },
+      {
+         "id": "sock",
+         "kind": "prop",
+         "mode": "text",
+         "prompt": "old faded grey sock with a hole, dirty brown patches, Play50 toy world style, bright vinyl toy look, smooth rounded shapes, saturated colours, friendly cartoon proportions, single isolated prop, centered, no base, no ground, no text, clean game-ready low-poly topology",
+         "tier": "Gen-2.5-Low",
+         "qualityOverride": 1500,
+         "attempts": 1,
+         "target": "food-catcher",
+         "budget": { "tris": 5000, "bytes": 300000 },
+         "textureSize": 512
+      }
+   ]
+}
