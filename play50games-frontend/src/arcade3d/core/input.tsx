@@ -20,7 +20,11 @@ import {
 import { useFrame } from "@react-three/fiber";
 import type { InputState } from "./types";
 import { arcadeStore } from "./useArcadeStore";
+import { FRAME_PRIORITY } from "./frameLoop";
 import { createInputController, type InputController } from "./inputController";
+
+/** Screen-relative move input -> world direction for a camera yaw (core/view.ts). */
+export { inputToWorld } from "./view";
 
 export {
    createInputController,
@@ -156,7 +160,7 @@ export function useInput(): MutableRefObject<InputState> {
 /** Rendered once inside the Canvas by GameShell: publishes input before any game frame callback. */
 export function InputLatch() {
    const controller = useInputController();
-   // negative priority: runs before the default (0) useFrame/useRunFrame callbacks
-   useFrame(() => controller.latch(), -2);
+   // first in every frame (FRAME_PRIORITY.input): before the run clock, useRunFrame and visuals
+   useFrame(() => controller.latch(), FRAME_PRIORITY.input);
    return null;
 }

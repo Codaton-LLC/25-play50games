@@ -4,10 +4,14 @@
 // Owned by Claude. Usage inside a Scene:
 //
 //    <Model asset={SHARED_ASSETS.battery} position={[2, 0, -1]} />
+//    <Model asset={ASSETS.robot} fallback={<RobotPrimitive />} />   // own stand-in until the GLB exists
 //
+// - Only urls listed in core/modelManifest.ts are fetched; any other url renders its fallback at
+//   once (no request, no suspense). Assets PRs add the GLB and its manifest line together.
 // - Loads with useGLTF(url, false, true): meshopt on, no Draco (no decoder CDN).
 // - Every <Model> renders its own clone (SkeletonUtils for rigged models), so one GLB can be
-//   placed many times. For dozens of copies prefer instancing to stay under 150 draw calls.
+//   placed many times. For dozens of copies prefer instancing to stay under 150 draw calls:
+//   branch on useModelFailed(asset) (no clone) between an InstancedMesh and <Model>s.
 // - Applies asset.scale / rotationY / yOffset to the GLB. The fallback primitive ignores them:
 //   it is about 1 unit tall, standing on y = 0 at the group origin.
 // - Never call useGLTF.preload at module top level; GameShell clears the cache on unmount.
@@ -17,8 +21,10 @@ import type { GroupProps } from "@react-three/fiber";
 import type { AnimationClip, Group, Object3D } from "three";
 import { clone as cloneSkinned } from "three/examples/jsm/utils/SkeletonUtils.js";
 import type { GameDefinition, ModelAsset } from "./types";
+import { hasModel } from "./modelManifest";
 
 export { SHARED_ASSETS, CHARACTER_BUDGET, PROP_BUDGET, type SharedAssetId } from "./sharedAssets";
+export { MODEL_MANIFEST, hasModel } from "./modelManifest";
 
 const DEFAULT_FALLBACK_COLOR = "#7dd3fc";
 const NO_CLIPS: AnimationClip[] = [];
@@ -32,29 +38,47 @@ export interface ModelHandle {
    failed: boolean;
 }
 
+type Gltf = { scene: Object3D; animations: AnimationClip[] };
+
 function isThenable(value: unknown): value is PromiseLike<unknown> {
    return typeof value === "object" && value !== null && typeof (value as { then?: unknown }).then === "function";
 }
 
 /**
- * Loads a model (suspends while loading) and returns a private clone of it.
- * A missing or broken GLB does not throw: `failed` is true and `scene` is null.
+ * The loaded GLB, or null when it is not in the manifest (never fetched) or failed to load.
+ * Suspends while loading. Calling useGLTF behind a condition is safe: R3F's useLoader is a
+ * suspense cache (suspend-react) and uses no React hooks, so the hook order never changes.
  */
-export function useModel(asset: ModelAsset): ModelHandle {
-   let gltf: { scene: Object3D; animations: AnimationClip[] } | null = null;
+function loadGltf(url: string): Gltf | null {
+   if (!hasModel(url)) return null;
    try {
-      gltf = useGLTF(asset.url, false, true);
+      return useGLTF(url, false, true) as unknown as Gltf;
    } catch (thrown) {
       // a pending load suspends (thrown promise); a failed load falls back
       if (isThenable(thrown)) throw thrown;
-      gltf = null;
+      return null;
    }
+}
 
+/**
+ * Loads a model (suspends while loading) and returns a private clone of it.
+ * A missing, unlisted or broken GLB does not throw: `failed` is true and `scene` is null.
+ */
+export function useModel(asset: ModelAsset): ModelHandle {
+   const gltf = loadGltf(asset.url);
    const source = gltf?.scene ?? null;
    const rigged = !!asset.rigged;
    const scene = useMemo(() => (source ? (rigged ? cloneSkinned(source) : source.clone(true)) : null), [source, rigged]);
 
    return { scene, animations: gltf?.animations ?? NO_CLIPS, failed: !gltf };
+}
+
+/**
+ * Just "is this GLB missing or broken?", without cloning it: use it to choose between a
+ * primitive (e.g. one InstancedMesh for every crate) and <Model>s. Suspends while loading.
+ */
+export function useModelFailed(asset: ModelAsset): boolean {
+   return loadGltf(asset.url) === null;
 }
 
 /** The coloured stand-in for a model: about 1 unit tall, standing on y = 0. */
@@ -94,7 +118,7 @@ export function FallbackPrimitive({ asset, color }: { asset: ModelAsset; color?:
 }
 
 interface BoundaryProps {
-   fallback: ReactNode;
+   fallback: () => ReactNode;
    children: ReactNode;
 }
 
@@ -111,13 +135,13 @@ class ModelErrorBoundary extends Component<BoundaryProps, { failed: boolean }> {
    }
 
    render() {
-      return this.state.failed ? this.props.fallback : this.props.children;
+      return this.state.failed ? this.props.fallback() : this.props.children;
    }
 }
 
-function ModelContent({ asset, color }: { asset: ModelAsset; color?: string }) {
+function ModelContent({ asset, fallback }: { asset: ModelAsset; fallback: () => ReactNode }) {
    const { scene } = useModel(asset);
-   if (!scene) return <FallbackPrimitive asset={asset} color={color} />;
+   if (!scene) return <>{fallback()}</>;
    return (
       <primitive
          object={scene}
@@ -130,18 +154,25 @@ function ModelContent({ asset, color }: { asset: ModelAsset; color?: string }) {
 
 export interface ModelProps extends Omit<GroupProps, "children"> {
    asset: ModelAsset;
-   /** colour of the fallback primitive (defaults to asset.fallbackColor) */
+   /** colour of the default fallback primitive (defaults to asset.fallbackColor) */
    fallbackColor?: string;
+   /**
+    * What to draw while the GLB is missing or broken, instead of the default primitive: an element
+    * or a render function (called only when needed). Refs inside it work as usual.
+    */
+   fallback?: ReactNode | (() => ReactNode);
    /** extra children inside the model's group (e.g. a hit-box helper) */
    children?: ReactNode;
 }
 
-/** Renders a GLB model, or its fallback primitive when the GLB is missing. Suspends while loading. */
-export const Model = forwardRef<Group, ModelProps>(function Model({ asset, fallbackColor, children, ...group }, ref) {
+/** Renders a GLB model, or its fallback when the GLB is missing. Suspends while a listed GLB loads. */
+export const Model = forwardRef<Group, ModelProps>(function Model({ asset, fallbackColor, fallback, children, ...group }, ref) {
+   const stand = () =>
+      typeof fallback === "function" ? fallback() : fallback ?? <FallbackPrimitive asset={asset} color={fallbackColor} />;
    return (
       <group ref={ref} {...group}>
-         <ModelErrorBoundary key={asset.url} fallback={<FallbackPrimitive asset={asset} color={fallbackColor} />}>
-            <ModelContent asset={asset} color={fallbackColor} />
+         <ModelErrorBoundary key={asset.url} fallback={stand}>
+            <ModelContent asset={asset} fallback={stand} />
          </ModelErrorBoundary>
          {children}
       </group>
@@ -156,6 +187,7 @@ export function assetUrls(definition: Pick<GameDefinition, "assets">): string[] 
 /** Drops loaded GLBs from the useGLTF cache (and with it the last reference to their data). */
 export function clearModelCache(urls: string[]): void {
    for (const url of urls) {
+      if (!hasModel(url)) continue; // never fetched
       try {
          useGLTF.clear(url);
       } catch {

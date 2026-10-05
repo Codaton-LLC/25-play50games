@@ -3,8 +3,18 @@
 // The full-screen frame every 3D Arcade game runs in. Owned by Claude.
 // Games provide a GameDefinition; the shell owns everything around the Scene:
 // WebGL check, Canvas, loading, start screen, 3-2-1 countdown, HUD, pause, result + score submit,
-// login modals, touch controls, rotate/context-lost overlays and cleanup.
-import { useCallback, useEffect, useRef, useState, useSyncExternalStore, type CSSProperties, type ReactNode } from "react";
+// login modals, touch controls, rotate/context-lost overlays and cleanup. It also measures where
+// its HUD and touch controls cover the canvas and publishes that to scenes (core/safeArea.tsx).
+import {
+   useCallback,
+   useEffect,
+   useRef,
+   useState,
+   useSyncExternalStore,
+   type CSSProperties,
+   type ReactNode,
+   type RefObject,
+} from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useProgress } from "@react-three/drei";
@@ -13,7 +23,8 @@ import type { ArcadeGameMeta } from "../types";
 import type { GameDefinition, GameShellProps, RunState } from "./types";
 import { arcadeStore, useArcadeStore } from "./useArcadeStore";
 import { InputProvider } from "./input";
-import TouchControls, { useBottomObstruction, useCoarsePointer } from "./TouchControls";
+import TouchControls, { TouchControlsProbe, useBottomObstruction, useCoarsePointer } from "./TouchControls";
+import { SafeAreaProvider, createSafeAreaStore, useSafeAreaTracker } from "./safeArea";
 import ShellStage from "./ShellStage";
 import ErrorBoundary from "./ErrorBoundary";
 import { assetUrls, clearModelCache } from "./assets";
@@ -136,7 +147,21 @@ function Countdown() {
    );
 }
 
-function Hud({ definition, onPause }: { definition: GameDefinition; onPause: () => void }) {
+/**
+ * Score, time, lives, stats, mute and pause. Laid out (hidden) in every phase so the safe area
+ * (core/safeArea.tsx) knows where it sits before the run starts; its children are the measured groups.
+ */
+function Hud({
+   definition,
+   onPause,
+   hidden,
+   rootRef,
+}: {
+   definition: GameDefinition;
+   onPause: () => void;
+   hidden: boolean;
+   rootRef: RefObject<HTMLDivElement>;
+}) {
    const score = useArcadeStore((s) => s.score);
    const time = useArcadeStore((s) => (s.timeLeftMs !== null ? Math.ceil(s.timeLeftMs / 1000) : Math.floor(s.elapsedMs / 1000)));
    const timed = useArcadeStore((s) => s.timeLeftMs !== null);
@@ -147,7 +172,7 @@ function Hud({ definition, onPause }: { definition: GameDefinition; onPause: () 
    const low = timed && time <= 10;
 
    return (
-      <div className={styles.hud}>
+      <div ref={rootRef} className={styles.hud} style={hidden ? { visibility: "hidden" } : undefined} aria-hidden={hidden || undefined}>
          <div className={styles.hudGroup}>
             <span className={styles.chip} role="group" aria-label={`Score ${score}`}>
                <span className={styles.chipLabel}>Score</span>
@@ -316,6 +341,9 @@ export default function GameShell({ meta, definition, exitHref = "/3d" }: GameSh
    const wrongOrientation = useWrongOrientation(meta.orientation, coarse);
 
    const canvasWrapRef = useRef<HTMLDivElement>(null);
+   const hudRef = useRef<HTMLDivElement>(null);
+   const probeRef = useRef<HTMLDivElement>(null);
+   const [safeArea] = useState(createSafeAreaStore);
    const resultRef = useRef<HTMLDivElement>(null);
    const submittedRunRef = useRef<number | null>(null);
    const userRef = useRef(user);
@@ -330,6 +358,10 @@ export default function GameShell({ meta, definition, exitHref = "/3d" }: GameSh
    useEffect(() => {
       setWebgl(detectWebGL() ? "ok" : "unsupported");
    }, []);
+
+   // where the HUD and the touch controls cover the canvas (useSafeArea in scenes); the banner
+   // lifts the controls, and the HUD mounts once WebGL is known
+   useSafeAreaTracker(safeArea, canvasWrapRef, hudRef, probeRef, [bottomObstruction, coarse, webgl, stageError]);
 
    // run config; reset() on unmount so the next game starts clean (safe to run twice)
    useEffect(() => {
@@ -533,6 +565,7 @@ export default function GameShell({ meta, definition, exitHref = "/3d" }: GameSh
 
    const stageFailed = stageError !== null;
    const showHud = !stageFailed && (phase === "countdown" || phase === "playing" || phase === "paused");
+   const hudMounted = !stageFailed && webgl === "ok";
    const result = outcome?.result ?? null;
    const loginRequired = result?.status === "login-required";
    // saving needs a JWT; a cookie-only session or a token dropped after a 401 must log in again
@@ -546,21 +579,25 @@ export default function GameShell({ meta, definition, exitHref = "/3d" }: GameSh
                <div ref={canvasWrapRef} className={styles.canvasWrap}>
                   {webgl === "ok" && (
                      <ErrorBoundary resetKey={stageKey} onError={onStageError}>
-                        <ShellStage
-                           key={stageKey}
-                           definition={definition}
-                           frameloop={frameloop}
-                           onContextLost={onContextLost}
-                           label={`${meta.title} game view`}
-                        />
+                        {/* the Canvas bridges this context, so Scenes can read useSafeArea() */}
+                        <SafeAreaProvider store={safeArea}>
+                           <ShellStage
+                              key={stageKey}
+                              definition={definition}
+                              frameloop={frameloop}
+                              onContextLost={onContextLost}
+                              label={`${meta.title} game view`}
+                           />
+                        </SafeAreaProvider>
                      </ErrorBoundary>
                   )}
                   {!stageFailed && (phase === "countdown" || phase === "playing") && (
                      <TouchControls controls={definition.touchControls} />
                   )}
+                  <TouchControlsProbe controls={definition.touchControls} probeRef={probeRef} />
                </div>
 
-               {showHud && <Hud definition={definition} onPause={pause} />}
+               {hudMounted && <Hud definition={definition} onPause={pause} hidden={!showHud} rootRef={hudRef} />}
                {showHud && definition.Hud && (
                   <div className={styles.gameHud}>
                      <definition.Hud />
