@@ -1,40 +1,661 @@
 "use client";
 
-// STUB (Phase 0). Claude replaces this in Phase 2 with the full shell:
-// start screen, countdown, HUD, pause, result, touch controls, WebGL checks.
-import { Suspense } from "react";
+// The full-screen frame every 3D Arcade game runs in. Owned by Claude.
+// Games provide a GameDefinition; the shell owns everything around the Scene:
+// WebGL check, Canvas, loading, start screen, 3-2-1 countdown, HUD, pause, result + score submit,
+// login modals, touch controls, rotate/context-lost overlays and cleanup.
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore, type CSSProperties, type ReactNode } from "react";
 import Link from "next/link";
-import { Canvas } from "@react-three/fiber";
-import type { GameShellProps } from "./types";
+import { useRouter } from "next/navigation";
+import { useProgress } from "@react-three/drei";
+import { ArrowLeftIcon, PauseIcon, SpeakerWaveIcon, SpeakerXMarkIcon } from "@heroicons/react/24/solid";
+import type { ArcadeGameMeta } from "../types";
+import type { GameDefinition, GameShellProps, RunState } from "./types";
+import { arcadeStore, useArcadeStore } from "./useArcadeStore";
+import { InputProvider } from "./input";
+import TouchControls, { useBottomObstruction, useCoarsePointer } from "./TouchControls";
+import ShellStage from "./ShellStage";
+import ErrorBoundary from "./ErrorBoundary";
+import { assetUrls, clearModelCache } from "./assets";
+import { initAudio, playSfx, toggleMuted, useMuted } from "./audio";
+import { trackArcade } from "./analytics";
+import { useLeaderboard, type LeaderboardState } from "./useLeaderboard";
+import { saveRunToAccount, submitScore, type FinishedRun, type SubmitResult } from "./scores";
+import { formatDuration } from "./format";
+import { useAuth } from "@/contexts/AuthContext";
+import LoginModal from "@/components/Auth/LoginModal";
+import RegisterModal from "@/components/Auth/RegisterModal";
+import BestScoreBadge from "../ui/BestScoreBadge";
+import LeaderboardTable from "../ui/LeaderboardTable";
+import ResultPanel from "../ui/ResultPanel";
+import styles from "./GameShell.module.css";
 
-export default function GameShell({ meta, definition, exitHref = "/3d" }: GameShellProps) {
-   const { Scene, camera } = definition;
+// ---------- small hooks ----------
+
+type WebGLSupport = "checking" | "ok" | "unsupported";
+
+function detectWebGL(): boolean {
+   try {
+      const canvas = document.createElement("canvas");
+      const gl = (canvas.getContext("webgl2") || canvas.getContext("webgl")) as WebGLRenderingContext | null;
+      if (!gl) return false;
+      gl.getExtension("WEBGL_lose_context")?.loseContext();
+      return true;
+   } catch {
+      return false;
+   }
+}
+
+const PORTRAIT_QUERY = "(orientation: portrait)";
+
+function subscribePortrait(onChange: () => void): () => void {
+   if (typeof window === "undefined" || !window.matchMedia) return () => {};
+   const query = window.matchMedia(PORTRAIT_QUERY);
+   query.addEventListener?.("change", onChange);
+   window.addEventListener("resize", onChange);
+   return () => {
+      query.removeEventListener?.("change", onChange);
+      window.removeEventListener("resize", onChange);
+   };
+}
+
+const readPortrait = () => typeof window !== "undefined" && !!window.matchMedia && window.matchMedia(PORTRAIT_QUERY).matches;
+
+/** true when a touch device is held the wrong way for this game. */
+function useWrongOrientation(orientation: ArcadeGameMeta["orientation"], coarse: boolean): boolean {
+   const portrait = useSyncExternalStore(subscribePortrait, readPortrait, () => false);
+   if (!coarse || orientation === "any") return false;
+   return orientation === "landscape" ? portrait : !portrait;
+}
+
+function isEditable(target: EventTarget | null): boolean {
+   if (!(target instanceof HTMLElement)) return false;
+   const tag = target.tagName;
+   return tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || target.isContentEditable;
+}
+
+const clock = (ms: number) => {
+   const total = Math.max(0, Math.ceil(ms / 1000));
+   return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, "0")}`;
+};
+
+// ---------- overlays ----------
+
+function Overlay({ children, label, className }: { children: ReactNode; label: string; className?: string }) {
+   return (
+      <div className={`${styles.overlay} ${className ?? ""}`} role="dialog" aria-modal="true" aria-label={label}>
+         <div className={styles.panel}>{children}</div>
+      </div>
+   );
+}
+
+function LoadingOverlay({ title }: { title: string }) {
+   const { progress, active } = useProgress();
+   const pct = Math.round(active ? progress : Math.max(progress, 0));
+   return (
+      <div className={styles.overlay} role="status" aria-live="polite">
+         <div className={`${styles.panel} ${styles.center}`}>
+            <span className={styles.spinner} aria-hidden="true" />
+            <p className={styles.loadingTitle}>Loading {title}…</p>
+            <div
+               className={styles.progress}
+               role="progressbar"
+               aria-label="Loading progress"
+               aria-valuemin={0}
+               aria-valuemax={100}
+               aria-valuenow={pct}
+            >
+               <span className={styles.progressFill} style={{ width: `${Math.max(6, pct)}%` }} />
+            </div>
+         </div>
+      </div>
+   );
+}
+
+function Countdown() {
+   const seconds = useArcadeStore((s) => (s.phase === "countdown" ? Math.ceil(s.countdownMs / 1000) : 0));
+   useEffect(() => {
+      if (seconds > 0) playSfx("countdown");
+   }, [seconds]);
+   if (seconds <= 0) return null;
+   return (
+      <div className={styles.countdown} role="status" aria-live="assertive">
+         <span key={seconds} className={styles.countdownNumber}>
+            {seconds}
+         </span>
+      </div>
+   );
+}
+
+function Hud({ definition, onPause }: { definition: GameDefinition; onPause: () => void }) {
+   const score = useArcadeStore((s) => s.score);
+   const time = useArcadeStore((s) => (s.timeLeftMs !== null ? Math.ceil(s.timeLeftMs / 1000) : Math.floor(s.elapsedMs / 1000)));
+   const timed = useArcadeStore((s) => s.timeLeftMs !== null);
+   const lives = useArcadeStore((s) => s.lives);
+   const stats = useArcadeStore((s) => s.stats);
+   const canPause = useArcadeStore((s) => s.phase === "playing" || s.phase === "countdown");
+   const muted = useMuted();
+   const low = timed && time <= 10;
 
    return (
-      <div style={{ position: "fixed", inset: 0, background: "var(--bg)" }}>
-         <div
-            style={{
-               position: "absolute",
-               top: 0,
-               left: 0,
-               right: 0,
-               zIndex: 1,
-               display: "flex",
-               justifyContent: "space-between",
-               padding: "12px 16px",
-               color: "var(--text)",
-            }}
-         >
-            <strong>{meta.title}</strong>
-            <Link href={exitHref} style={{ color: "var(--accent)" }}>
-               Exit
-            </Link>
+      <div className={styles.hud}>
+         <div className={styles.hudGroup}>
+            <span className={styles.chip} role="group" aria-label={`Score ${score}`}>
+               <span className={styles.chipLabel}>Score</span>
+               <span className={styles.chipValue}>{score.toLocaleString("en-US")}</span>
+            </span>
+            <span
+               className={`${styles.chip} ${low ? styles.chipWarn : ""}`}
+               role="group"
+               aria-label={timed ? `${time} seconds left` : `${time} seconds played`}
+            >
+               <span className={styles.chipLabel}>{timed ? "Time" : "Played"}</span>
+               <span className={styles.chipValue}>{clock(time * 1000)}</span>
+            </span>
+            {lives !== null && (
+               <span className={styles.chip} role="group" aria-label={`${lives} lives left`}>
+                  <span className={styles.chipLabel}>Lives</span>
+                  <span className={styles.chipValue} aria-hidden="true">
+                     {lives > 0 ? "♥".repeat(Math.min(lives, 5)) : "–"}
+                     {lives > 5 ? ` ${lives}` : ""}
+                  </span>
+               </span>
+            )}
+            {definition.hudStats?.map((stat) => {
+               const value = stats[stat.key] ?? 0;
+               return (
+                  <span key={stat.key} className={styles.chip}>
+                     <span className={styles.chipLabel}>{stat.label}</span>
+                     <span className={styles.chipValue}>
+                        {value}
+                        {stat.max !== undefined ? `/${stat.max}` : ""}
+                     </span>
+                  </span>
+               );
+            })}
          </div>
-         <Canvas camera={{ position: camera.position, fov: camera.fov ?? 50 }} dpr={[1, 1.75]}>
-            <Suspense fallback={null}>
-               <Scene />
-            </Suspense>
-         </Canvas>
+         <div className={styles.hudGroup}>
+            <button
+               type="button"
+               className={styles.iconButton}
+               onClick={() => toggleMuted()}
+               aria-label="Mute sound"
+               aria-pressed={muted}
+            >
+               {muted ? <SpeakerXMarkIcon aria-hidden="true" /> : <SpeakerWaveIcon aria-hidden="true" />}
+            </button>
+            <button
+               type="button"
+               className={styles.iconButton}
+               onClick={onPause}
+               disabled={!canPause}
+               aria-label="Pause game"
+               aria-keyshortcuts="Escape P"
+            >
+               <PauseIcon aria-hidden="true" />
+            </button>
+         </div>
       </div>
+   );
+}
+
+function LeaderboardBlock({ leaderboard, meta }: { leaderboard: LeaderboardState; meta: ArcadeGameMeta }) {
+   if (!leaderboard.enabled) return null;
+   return (
+      <section className={styles.leaderboard} aria-label={`${meta.title} top 10`}>
+         <h2 className={styles.sectionTitle}>Top 10</h2>
+         <LeaderboardTable
+            entries={leaderboard.data?.entries ?? []}
+            me={leaderboard.data?.me ?? null}
+            loading={leaderboard.loading}
+            error={leaderboard.error}
+            scoring={meta.scoring}
+            onRetry={leaderboard.retry}
+         />
+      </section>
+   );
+}
+
+function StartScreen({
+   meta,
+   definition,
+   coarse,
+   exitHref,
+   leaderboard,
+   onPlay,
+}: {
+   meta: ArcadeGameMeta;
+   definition: GameDefinition;
+   coarse: boolean;
+   exitHref: string;
+   leaderboard: LeaderboardState;
+   onPlay: () => void;
+}) {
+   return (
+      <Overlay label={`${meta.title}: start`}>
+         <Link href={exitHref} className={styles.backLink}>
+            <ArrowLeftIcon aria-hidden="true" /> 3D Arcade
+         </Link>
+         <h1 className={styles.title}>{meta.title}</h1>
+         <p className={styles.tagline}>{meta.tagline}</p>
+
+         {definition.instructions.length > 0 && (
+            <ul className={styles.instructions}>
+               {definition.instructions.map((line) => (
+                  <li key={line}>{line}</li>
+               ))}
+            </ul>
+         )}
+
+         <dl className={styles.controls}>
+            <div className={coarse ? styles.controlDim : undefined}>
+               <dt>Keyboard</dt>
+               <dd>{meta.controls.keyboard}. Esc or P pauses.</dd>
+            </div>
+            <div className={coarse ? undefined : styles.controlDim}>
+               <dt>Touch</dt>
+               <dd>{meta.controls.touch}</dd>
+            </div>
+         </dl>
+
+         <div className={styles.best}>
+            <BestScoreBadge slug={meta.slug} />
+         </div>
+
+         <button type="button" className={styles.primary} onClick={onPlay} autoFocus>
+            Play
+         </button>
+
+         <LeaderboardBlock leaderboard={leaderboard} meta={meta} />
+      </Overlay>
+   );
+}
+
+// ---------- the shell ----------
+
+interface Outcome {
+   runId: number;
+   run: FinishedRun;
+   result: SubmitResult | null;
+   saving: boolean;
+}
+
+const END_TITLES: Record<string, string> = {
+   win: "You did it!",
+   lose: "Game over",
+   timeup: "Time's up!",
+   quit: "Run ended",
+};
+
+export default function GameShell({ meta, definition, exitHref = "/3d" }: GameShellProps) {
+   const router = useRouter();
+   const { user, login, register } = useAuth();
+   const coarse = useCoarsePointer();
+   const bottomObstruction = useBottomObstruction();
+   const phase = useArcadeStore((s) => s.phase);
+   const endReason = useArcadeStore((s) => s.endReason);
+   const leaderboard = useLeaderboard(meta.slug, { refreshKey: user?.id ?? null });
+
+   const [webgl, setWebgl] = useState<WebGLSupport>("checking");
+   const [contextLost, setContextLost] = useState(false);
+   const [stageKey, setStageKey] = useState(0);
+   const [outcome, setOutcome] = useState<Outcome | null>(null);
+   const [showLogin, setShowLogin] = useState(false);
+   const [showRegister, setShowRegister] = useState(false);
+   const wrongOrientation = useWrongOrientation(meta.orientation, coarse);
+
+   const canvasWrapRef = useRef<HTMLDivElement>(null);
+   const resultRef = useRef<HTMLDivElement>(null);
+   const submittedRunRef = useRef<number | null>(null);
+   const userRef = useRef(user);
+   userRef.current = user;
+   const retryLeaderboardRef = useRef(leaderboard.retry);
+   retryLeaderboardRef.current = leaderboard.retry;
+
+   const pause = useCallback(() => arcadeStore.getState().pause(), []);
+   const exit = useCallback(() => router.push(exitHref), [router, exitHref]);
+
+   // WebGL support (once)
+   useEffect(() => {
+      setWebgl(detectWebGL() ? "ok" : "unsupported");
+   }, []);
+
+   // run config; reset() on unmount so the next game starts clean (safe to run twice)
+   useEffect(() => {
+      arcadeStore.getState().configure({ durationMs: definition.durationMs, lives: definition.lives });
+      submittedRunRef.current = null;
+      return () => arcadeStore.getState().reset();
+   }, [definition]);
+
+   // free loaded GLBs when the game closes (R3F disposes the renderer and its scene)
+   useEffect(() => {
+      const urls = assetUrls(definition);
+      return () => clearModelCache(urls);
+   }, [definition]);
+
+   // audio unlocks on the first gesture
+   useEffect(() => initAudio(), []);
+
+   // no pull-to-refresh / rubber-banding while the game is open
+   useEffect(() => {
+      const html = document.documentElement;
+      const previous = html.style.overscrollBehavior;
+      html.style.overscrollBehavior = "none";
+      return () => {
+         html.style.overscrollBehavior = previous;
+      };
+   }, []);
+
+   // run lifecycle: start analytics, the end of a run (score submit), the next run
+   useEffect(() => {
+      const slug = meta.slug;
+
+      const finishRun = (state: RunState) => {
+         if (submittedRunRef.current === state.runId) return;
+         submittedRunRef.current = state.runId;
+
+         if (state.endReason === "quit") {
+            exit();
+            return;
+         }
+         const final = definition.finalScore
+            ? definition.finalScore(state)
+            : { score: state.score, durationMs: state.elapsedMs };
+         const run: FinishedRun = {
+            slug,
+            score: final.score,
+            durationMs: final.durationMs,
+            finishedAt: new Date().toISOString(),
+         };
+         const runId = state.runId;
+         setOutcome({ runId, run, result: null, saving: true });
+         playSfx(state.endReason === "win" ? "win" : "lose");
+         trackArcade("arcade_game_over", { game: slug, score: run.score, duration_ms: run.durationMs });
+
+         submitScore(run, userRef.current?.id ?? null)
+            .then((result) => {
+               setOutcome((current) => (current && current.runId === runId ? { ...current, result, saving: false } : current));
+               if (result.isNewBest) {
+                  trackArcade("arcade_new_best", { game: slug, score: result.score, duration_ms: run.durationMs });
+               }
+               if (result.status === "synced") retryLeaderboardRef.current();
+            })
+            .catch(() => {
+               const result: SubmitResult = {
+                  slug,
+                  score: run.score,
+                  best: run.score,
+                  isNewBest: false,
+                  plays: 0,
+                  rank: null,
+                  status: "config-error",
+               };
+               setOutcome((current) => (current && current.runId === runId ? { ...current, result, saving: false } : current));
+            });
+      };
+
+      // the store may already be over (e.g. a fast remount); handle it once
+      const now = arcadeStore.getState();
+      if (now.phase === "over") finishRun(now);
+
+      return arcadeStore.subscribe((state, prev) => {
+         if (state.phase === prev.phase) return;
+         if (state.phase === "playing" && prev.phase === "countdown") {
+            playSfx("go");
+            trackArcade("arcade_start", { game: slug, score: 0, duration_ms: 0 });
+            // keys must drive the game, not a focused button
+            if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+         }
+         if (state.phase === "countdown" && (prev.phase === "over" || prev.phase === "ready")) setOutcome(null);
+         if (state.phase === "over") finishRun(state);
+      });
+   }, [definition, meta.slug, exit]);
+
+   // Esc / P toggle pause
+   useEffect(() => {
+      const onKey = (event: KeyboardEvent) => {
+         if (event.code !== "Escape" && event.code !== "KeyP") return;
+         if (showLogin || showRegister || isEditable(event.target)) return;
+         const state = arcadeStore.getState();
+         if (state.phase === "playing" || state.phase === "countdown") {
+            event.preventDefault();
+            state.pause();
+         } else if (state.phase === "paused" && !contextLost) {
+            event.preventDefault();
+            state.resume();
+         }
+      };
+      window.addEventListener("keydown", onKey);
+      return () => window.removeEventListener("keydown", onKey);
+   }, [showLogin, showRegister, contextLost]);
+
+   // leaving the tab or the window pauses
+   useEffect(() => {
+      const onVisibility = () => {
+         if (document.visibilityState === "hidden") pause();
+      };
+      window.addEventListener("blur", pause);
+      document.addEventListener("visibilitychange", onVisibility);
+      return () => {
+         window.removeEventListener("blur", pause);
+         document.removeEventListener("visibilitychange", onVisibility);
+      };
+   }, [pause]);
+
+   // holding the phone the wrong way pauses
+   useEffect(() => {
+      if (wrongOrientation) pause();
+   }, [wrongOrientation, pause]);
+
+   // result screen: move focus into it for keyboard and screen-reader users
+   useEffect(() => {
+      if (phase === "over") resultRef.current?.focus();
+   }, [phase]);
+
+   const onContextLost = useCallback(() => {
+      setContextLost(true);
+      arcadeStore.getState().pause();
+   }, []);
+
+   const retryStage = () => {
+      setStageKey((key) => key + 1);
+      arcadeStore.getState().configure({ durationMs: definition.durationMs, lives: definition.lives });
+   };
+
+   const saveToAccount = () => {
+      const current = outcome;
+      const account = userRef.current;
+      if (!current || !account) return;
+      const runId = current.runId;
+      setOutcome({ ...current, saving: true, result: null });
+      saveRunToAccount(current.run, account.id)
+         .then((result) => {
+            setOutcome((value) => (value && value.runId === runId ? { ...value, result, saving: false } : value));
+            if (result.status === "synced") retryLeaderboardRef.current();
+         })
+         .catch(() => {
+            setOutcome((value) => (value && value.runId === runId ? { ...value, result: current.result, saving: false } : value));
+         });
+   };
+
+   const accentStyle = {
+      "--game-accent": meta.accent,
+      "--arcade-bottom-obstruction": `${bottomObstruction}px`,
+   } as CSSProperties;
+
+   // ---------- render ----------
+
+   if (webgl === "unsupported") {
+      return (
+         <div className={styles.root} style={accentStyle}>
+            <Overlay label="3D is not available">
+               <h1 className={styles.title}>3D is not available here</h1>
+               <p className={styles.tagline}>
+                  {meta.title} needs WebGL, which this browser or device has switched off. Try an up-to-date Chrome,
+                  Safari, Firefox or Edge, or turn on hardware acceleration.
+               </p>
+               <Link href={exitHref} className={styles.primary}>
+                  Back to the 3D Arcade
+               </Link>
+            </Overlay>
+         </div>
+      );
+   }
+
+   const showHud = phase === "countdown" || phase === "playing" || phase === "paused";
+   const result = outcome?.result ?? null;
+   const loginRequired = result?.status === "login-required";
+   const frameloop = contextLost ? "never" : phase === "paused" ? "demand" : "always";
+
+   return (
+      <>
+         <div className={styles.root} style={accentStyle}>
+            <InputProvider target={canvasWrapRef}>
+               <div ref={canvasWrapRef} className={styles.canvasWrap}>
+                  {webgl === "ok" && (
+                     <ErrorBoundary
+                        resetKey={stageKey}
+                        fallback={() => (
+                           <Overlay label="Game error">
+                              <h1 className={styles.title}>Something went wrong</h1>
+                              <p className={styles.tagline}>The game stopped unexpectedly. You can try again.</p>
+                              <div className={styles.actions}>
+                                 <button type="button" className={styles.primary} onClick={retryStage} autoFocus>
+                                    Try again
+                                 </button>
+                                 <button type="button" className={styles.secondary} onClick={exit}>
+                                    Exit
+                                 </button>
+                              </div>
+                           </Overlay>
+                        )}
+                     >
+                        <ShellStage
+                           key={stageKey}
+                           definition={definition}
+                           frameloop={frameloop}
+                           onContextLost={onContextLost}
+                           label={`${meta.title} game view`}
+                        />
+                     </ErrorBoundary>
+                  )}
+                  {(phase === "countdown" || phase === "playing") && (
+                     <TouchControls controls={definition.touchControls} />
+                  )}
+               </div>
+
+               {showHud && <Hud definition={definition} onPause={pause} />}
+               {showHud && definition.Hud && (
+                  <div className={styles.gameHud}>
+                     <definition.Hud />
+                  </div>
+               )}
+
+               {(phase === "loading" || webgl === "checking") && <LoadingOverlay title={meta.title} />}
+
+               {phase === "ready" && webgl === "ok" && (
+                  <StartScreen
+                     meta={meta}
+                     definition={definition}
+                     coarse={coarse}
+                     exitHref={exitHref}
+                     leaderboard={leaderboard}
+                     onPlay={() => arcadeStore.getState().start()}
+                  />
+               )}
+
+               {phase === "countdown" && <Countdown />}
+
+               {phase === "paused" && !contextLost && !wrongOrientation && (
+                  <Overlay label="Paused">
+                     <h1 className={styles.title}>Paused</h1>
+                     <div className={styles.actions}>
+                        <button
+                           type="button"
+                           className={styles.primary}
+                           onClick={() => arcadeStore.getState().resume()}
+                           autoFocus
+                        >
+                           Resume
+                        </button>
+                        <button type="button" className={styles.secondary} onClick={() => arcadeStore.getState().restart()}>
+                           Restart
+                        </button>
+                        <button type="button" className={styles.secondary} onClick={exit}>
+                           Exit
+                        </button>
+                     </div>
+                     <p className={styles.hint}>Press Esc or P to resume.</p>
+                  </Overlay>
+               )}
+
+               {phase === "over" && outcome && (
+                  <div className={styles.overlay}>
+                     <div ref={resultRef} className={styles.resultWrap} tabIndex={-1}>
+                        <ResultPanel
+                           title={END_TITLES[endReason ?? "lose"] ?? "Game over"}
+                           score={result?.score ?? outcome.run.score}
+                           durationMs={outcome.run.durationMs}
+                           best={result?.best ?? outcome.run.score}
+                           isNewBest={result?.isNewBest ?? false}
+                           status={outcome.saving ? null : result?.status ?? null}
+                           scoring={meta.scoring}
+                           onRetry={() => arcadeStore.getState().restart()}
+                           onExit={exit}
+                           onLogin={loginRequired && !user ? () => setShowLogin(true) : undefined}
+                           onSaveToAccount={loginRequired && user && !outcome.saving ? saveToAccount : undefined}
+                        >
+                           <LeaderboardBlock leaderboard={leaderboard} meta={meta} />
+                        </ResultPanel>
+                        <p className={styles.hint}>
+                           Played {formatDuration(outcome.run.durationMs)}
+                        </p>
+                     </div>
+                  </div>
+               )}
+
+               {wrongOrientation && !contextLost && (
+                  <Overlay label="Rotate your device" className={styles.rotate}>
+                     <span className={styles.rotateIcon} aria-hidden="true" />
+                     <h1 className={styles.title}>Rotate your device</h1>
+                     <p className={styles.tagline}>
+                        {meta.title} plays in {meta.orientation} mode. Turn your phone to continue.
+                     </p>
+                  </Overlay>
+               )}
+
+               {contextLost && (
+                  <Overlay label="Graphics stopped">
+                     <h1 className={styles.title}>The 3D view stopped</h1>
+                     <p className={styles.tagline}>
+                        Your device paused the graphics (this can happen when memory runs low). Reload to keep playing.
+                     </p>
+                     <button type="button" className={styles.primary} onClick={() => window.location.reload()} autoFocus>
+                        Tap to reload
+                     </button>
+                  </Overlay>
+               )}
+            </InputProvider>
+         </div>
+
+         <LoginModal
+            isOpen={showLogin}
+            onClose={() => setShowLogin(false)}
+            onLogin={login}
+            onSwitchToRegister={() => {
+               setShowLogin(false);
+               setShowRegister(true);
+            }}
+         />
+         <RegisterModal
+            isOpen={showRegister}
+            onClose={() => setShowRegister(false)}
+            onRegister={register}
+            onSwitchToLogin={() => {
+               setShowRegister(false);
+               setShowLogin(true);
+            }}
+         />
+      </>
    );
 }

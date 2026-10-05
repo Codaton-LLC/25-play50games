@@ -1,0 +1,486 @@
+/* GameShell: a fixed, full-screen frame. Only .canvasWrap blocks browser touch gestures;
+   every overlay keeps normal touch behaviour so it can scroll on small screens. */
+.root {
+   --game-accent: var(--accent);
+   --overlay-pad-top: max(16px, env(safe-area-inset-top, 0px));
+   --overlay-pad-right: max(16px, env(safe-area-inset-right, 0px));
+   /* + the cookie banner while it is open (set by GameShell) */
+   --overlay-pad-bottom: calc(max(16px, env(safe-area-inset-bottom, 0px)) + var(--arcade-bottom-obstruction, 0px));
+   --overlay-pad-left: max(16px, env(safe-area-inset-left, 0px));
+
+   position: fixed;
+   top: 0;
+   left: 0;
+   z-index: 10;
+   width: 100%;
+   height: 100vh;
+   height: 100dvh;
+   overflow: hidden;
+   background: var(--bg);
+   color: var(--text);
+}
+
+.canvasWrap {
+   position: absolute;
+   inset: 0;
+   z-index: 0;
+   touch-action: none;
+   user-select: none;
+   -webkit-user-select: none;
+   -webkit-tap-highlight-color: transparent;
+}
+
+/* ---------- overlays ---------- */
+
+.overlay {
+   position: absolute;
+   inset: 0;
+   z-index: 20;
+   display: flex;
+   flex-direction: column;
+   padding: var(--overlay-pad-top) var(--overlay-pad-right) var(--overlay-pad-bottom) var(--overlay-pad-left);
+   overflow-y: auto;
+   overscroll-behavior: contain;
+   -webkit-overflow-scrolling: touch;
+   background: rgba(11, 16, 32, 0.55);
+   -webkit-backdrop-filter: blur(4px);
+   backdrop-filter: blur(4px);
+}
+
+.panel {
+   width: 100%;
+   max-width: 520px;
+   /* auto margins centre the panel and still let a tall panel scroll from its top */
+   margin: auto;
+   padding: 24px 20px;
+   border: 1px solid var(--stroke);
+   border-radius: 20px;
+   background: rgba(13, 19, 38, 0.9);
+   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
+}
+
+.center {
+   display: flex;
+   flex-direction: column;
+   align-items: center;
+   text-align: center;
+}
+
+.title {
+   margin: 0 0 8px;
+   font-size: 1.75rem;
+   font-weight: 800;
+   line-height: 1.15;
+   letter-spacing: -0.01em;
+}
+
+.title::after {
+   content: "";
+   display: block;
+   width: 44px;
+   height: 4px;
+   margin-top: 10px;
+   border-radius: 999px;
+   background: var(--game-accent);
+}
+
+.center .title::after {
+   margin-left: auto;
+   margin-right: auto;
+}
+
+.tagline {
+   margin: 0 0 16px;
+   color: var(--muted);
+   font-size: 1rem;
+   line-height: 1.5;
+}
+
+.backLink {
+   display: inline-flex;
+   align-items: center;
+   gap: 6px;
+   min-height: 44px;
+   margin: -8px 0 6px -4px;
+   padding: 0 4px;
+   border-radius: 8px;
+   color: var(--accent);
+   font-size: 14px;
+   font-weight: 600;
+   text-decoration: none;
+}
+
+.backLink svg {
+   width: 16px;
+   height: 16px;
+}
+
+.backLink:hover {
+   text-decoration: underline;
+}
+
+.instructions {
+   margin: 0 0 16px;
+   padding-left: 1.2em;
+   line-height: 1.55;
+}
+
+.instructions li + li {
+   margin-top: 4px;
+}
+
+.controls {
+   display: grid;
+   gap: 8px;
+   margin: 0 0 16px;
+   padding: 12px 14px;
+   border: 1px solid var(--stroke);
+   border-radius: 12px;
+   background: var(--card);
+   font-size: 14px;
+   line-height: 1.45;
+}
+
+.controls dt {
+   color: var(--text);
+   font-size: 11px;
+   font-weight: 700;
+   letter-spacing: 0.08em;
+   text-transform: uppercase;
+}
+
+.controls dd {
+   margin: 2px 0 0;
+   color: var(--muted);
+}
+
+.controlDim {
+   opacity: 0.6;
+}
+
+.best {
+   min-height: 1.5em;
+   margin: 0 0 16px;
+   color: var(--muted);
+   font-size: 14px;
+}
+
+.actions {
+   display: grid;
+   gap: 10px;
+   margin-top: 8px;
+}
+
+.primary,
+.secondary {
+   display: inline-flex;
+   align-items: center;
+   justify-content: center;
+   width: 100%;
+   min-height: 48px;
+   padding: 0 24px;
+   border-radius: 12px;
+   font: inherit;
+   font-size: 1rem;
+   font-weight: 700;
+   text-decoration: none;
+   cursor: pointer;
+   transition: transform 0.12s ease, background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.primary {
+   border: none;
+   background: var(--accent);
+   color: #0b1020;
+}
+
+.primary:hover {
+   background: #a5e3fd;
+}
+
+.secondary {
+   border: 1px solid var(--stroke);
+   background: rgba(255, 255, 255, 0.04);
+   color: var(--text);
+}
+
+.secondary:hover {
+   border-color: rgba(255, 255, 255, 0.3);
+   background: rgba(255, 255, 255, 0.08);
+}
+
+.primary:active,
+.secondary:active {
+   transform: scale(0.98);
+}
+
+.primary:focus-visible,
+.secondary:focus-visible,
+.backLink:focus-visible,
+.iconButton:focus-visible {
+   outline: 3px solid #fff;
+   outline-offset: 2px;
+}
+
+.hint {
+   margin: 14px 0 0;
+   color: var(--muted);
+   font-size: 13px;
+   text-align: center;
+}
+
+.leaderboard {
+   margin-top: 20px;
+   padding-top: 16px;
+   border-top: 1px solid var(--stroke);
+   font-size: 14px;
+}
+
+.sectionTitle {
+   margin: 0 0 10px;
+   font-size: 1rem;
+   font-weight: 700;
+}
+
+.resultWrap {
+   width: 100%;
+   max-width: 560px;
+   margin: auto;
+   outline: none;
+}
+
+/* ---------- loading ---------- */
+
+.spinner {
+   width: 44px;
+   height: 44px;
+   margin-bottom: 16px;
+   border: 4px solid rgba(255, 255, 255, 0.15);
+   border-top-color: var(--game-accent);
+   border-radius: 50%;
+   animation: spin 0.9s linear infinite;
+}
+
+.loadingTitle {
+   margin: 0 0 14px;
+   font-weight: 600;
+}
+
+.progress {
+   width: 100%;
+   max-width: 240px;
+   height: 6px;
+   overflow: hidden;
+   border-radius: 999px;
+   background: rgba(255, 255, 255, 0.1);
+}
+
+.progressFill {
+   display: block;
+   height: 100%;
+   border-radius: inherit;
+   background: var(--game-accent);
+   transition: width 0.2s ease;
+}
+
+/* ---------- countdown ---------- */
+
+.countdown {
+   position: absolute;
+   inset: 0;
+   z-index: 18;
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   pointer-events: none;
+}
+
+.countdownNumber {
+   font-size: clamp(88px, 22vmin, 160px);
+   font-weight: 900;
+   line-height: 1;
+   color: #fff;
+   text-shadow: 0 6px 30px rgba(0, 0, 0, 0.55), 0 0 40px var(--game-accent);
+   animation: pop 0.9s ease-out both;
+}
+
+/* ---------- HUD ---------- */
+
+.hud {
+   position: absolute;
+   top: 0;
+   left: 0;
+   right: 0;
+   z-index: 14;
+   display: flex;
+   align-items: flex-start;
+   justify-content: space-between;
+   gap: 8px;
+   padding: calc(env(safe-area-inset-top, 0px) + 10px) calc(env(safe-area-inset-right, 0px) + 10px) 0
+      calc(env(safe-area-inset-left, 0px) + 10px);
+   pointer-events: none;
+}
+
+.hudGroup {
+   display: flex;
+   flex-wrap: wrap;
+   align-items: center;
+   gap: 6px;
+   pointer-events: auto;
+}
+
+.hudGroup:last-child {
+   flex-wrap: nowrap;
+}
+
+.chip {
+   display: inline-flex;
+   flex-direction: column;
+   min-width: 58px;
+   padding: 5px 10px;
+   border: 1px solid var(--stroke);
+   border-radius: 12px;
+   background: rgba(11, 16, 32, 0.66);
+   -webkit-backdrop-filter: blur(6px);
+   backdrop-filter: blur(6px);
+   line-height: 1.15;
+}
+
+.chipLabel {
+   color: var(--muted);
+   font-size: 10px;
+   font-weight: 700;
+   letter-spacing: 0.08em;
+   text-transform: uppercase;
+}
+
+.chipValue {
+   font-size: 16px;
+   font-weight: 800;
+   font-variant-numeric: tabular-nums;
+}
+
+.chipWarn {
+   border-color: rgba(252, 165, 165, 0.6);
+}
+
+.chipWarn .chipValue {
+   color: var(--warn);
+}
+
+.iconButton {
+   display: inline-flex;
+   align-items: center;
+   justify-content: center;
+   width: 44px;
+   height: 44px;
+   padding: 0;
+   border: 1px solid var(--stroke);
+   border-radius: 12px;
+   background: rgba(11, 16, 32, 0.66);
+   color: var(--text);
+   cursor: pointer;
+}
+
+.iconButton svg {
+   width: 22px;
+   height: 22px;
+}
+
+.iconButton:disabled {
+   opacity: 0.45;
+   cursor: default;
+}
+
+.gameHud {
+   position: absolute;
+   inset: 0;
+   z-index: 12;
+   pointer-events: none;
+}
+
+/* ---------- rotate device ---------- */
+
+.rotate {
+   z-index: 30;
+   background: rgba(11, 16, 32, 0.92);
+}
+
+.rotateIcon {
+   display: block;
+   width: 44px;
+   height: 72px;
+   margin: 0 auto 18px;
+   border: 3px solid var(--text);
+   border-radius: 10px;
+   animation: rotatePhone 2.2s ease-in-out infinite;
+}
+
+.rotate .title,
+.rotate .tagline {
+   text-align: center;
+}
+
+.rotate .title::after {
+   margin-left: auto;
+   margin-right: auto;
+}
+
+@keyframes spin {
+   to {
+      transform: rotate(360deg);
+   }
+}
+
+@keyframes pop {
+   0% {
+      opacity: 0;
+      transform: scale(1.6);
+   }
+   25% {
+      opacity: 1;
+      transform: scale(1);
+   }
+   100% {
+      opacity: 0.85;
+      transform: scale(0.92);
+   }
+}
+
+@keyframes rotatePhone {
+   0%,
+   20% {
+      transform: rotate(0deg);
+   }
+   50%,
+   80% {
+      transform: rotate(90deg);
+   }
+   100% {
+      transform: rotate(0deg);
+   }
+}
+
+@media (min-width: 640px) {
+   .panel {
+      padding: 28px;
+   }
+
+   .title {
+      font-size: 2rem;
+   }
+}
+
+@media (prefers-reduced-motion: reduce) {
+   .spinner,
+   .countdownNumber,
+   .rotateIcon {
+      animation: none;
+   }
+
+   .primary,
+   .secondary,
+   .progressFill {
+      transition: none;
+   }
+}

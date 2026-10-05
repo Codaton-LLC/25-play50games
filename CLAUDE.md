@@ -8,7 +8,8 @@ Cursor and Codex are pointed here via `AGENTS.md`. Agents: **Claude** (most work
 - `play50games-frontend/` – Next 14.2 (App Router), React 18.3, plain CSS (`globals.css`) + CSS vars (`--bg`, `--card`, `--stroke`, `--accent`), dark only, system fonts, Heroicons. No Tailwind.
 - 3D deps installed: `three@~0.170` (+ `@types/three`), `@react-three/fiber@^8`, `@react-three/drei@^9`, `@react-three/rapier@^1` (lazy, obstacle-race only), `zustand@^4`. Dev: `vitest@^2`. Never R3F 9 / drei 10 (React 19 only).
 - Scripts: `npm run dev | build | start | lint`, `npm test` (= `vitest run`, config `vitest.config.mts`, files `src/**/*.test.ts`).
-- `src/arcade3d/` contracts are written (Phase 0): `types.ts`, `flags.ts`, `registry.ts`, `loaders.ts`, `core/{types,scores,useBestScore,format}.ts`, `core/PlaceholderScene.tsx`, stub `core/{GameShell,ArcadeGameMount}.tsx`, tests `core/scores.test.ts` + `registry.sync.test.ts`, 10 stubs `games/<slug>/{meta.ts,index.tsx}` (all `status: "soon"`), prop-typed stubs `ui/*.tsx` (K2) and `components/Hub/{HubHero,CollectionPanel,ArcadeTeaserStrip}.tsx` (K1), and `assets/shared.spec.json`.
+- `src/arcade3d/` contracts are written (Phase 0): `types.ts`, `flags.ts`, `registry.ts`, `loaders.ts`, `core/{types,scores,useBestScore,format}.ts`, `core/PlaceholderScene.tsx`, tests `core/scores.test.ts` + `registry.sync.test.ts`, 10 stubs `games/<slug>/{meta.ts,index.tsx}` (all `status: "soon"`), prop-typed stubs `ui/*.tsx` (K2) and `components/Hub/{HubHero,CollectionPanel,ArcadeTeaserStrip}.tsx` (K1), and `assets/shared.spec.json`.
+- 3D core (C2): full `core/GameShell.tsx` + `ShellStage.tsx`, `ArcadeGameMount.tsx`, `useArcadeStore`, `useRunFrame`, `input.tsx` (+ pure `inputController.ts`), `TouchControls`, `CameraRig`, `collision`, `assets.tsx` (`Model`, `useModel`) + `sharedAssets.ts` (`SHARED_ASSETS`), `audio`, `analytics`, `useLeaderboard`, `ErrorBoundary`; tests `useArcadeStore.test.ts`, `collision.test.ts`, `inputController.test.ts`. Routes `app/3d/{layout,page}.tsx` + `app/3d/[slug]/page.tsx` (10 SSG slugs, `dynamicParams = false`).
 - `src/lib/api/arcade.ts` (arcade client + mock, snake_case wire format) and `src/lib/api/apiBase.ts` (single WP base URL).
 - `play50games-backend/play50games/` – WordPress theme, REST `play50/v1` (`games`, `progress`, `unlock-status`, `certificate/*`, `share/*`, `auth/*`, `faq`). New: `includes/arcade-games.json` (server score limits, all `enabled: false`). `arcade-api.php` is not written yet (Phase 3).
 - Classic platform: 50 sequential 2D games (unlock chain + certificate). Today `/` is still the dashboard (`src/app/page.tsx`). Game page `games/[id]` → `GameEngine` (one 14k-line file) → `game-types/*Games.tsx` → `*-parts/<Game>.tsx`. Progress: `lib/storage/progressStorage.ts` (keys `play50games_*`). Game contract: `GAME_REQUIREMENTS.md`.
@@ -53,9 +54,10 @@ play50games-frontend/src/
     types.ts flags.ts registry.ts loaders.ts   # Claude. Plain data, server-safe (loaders.ts is "use client")
     registry.sync.test.ts                      # meta.scoring must equal arcade-games.json
     core/                                      # Claude
-      types.ts scores.ts scores.test.ts useBestScore.ts format.ts PlaceholderScene.tsx   (exist)
-      GameShell ArcadeGameMount (stubs) useArcadeStore useRunFrame input TouchControls
-      CameraRig collision assets(useModel, SHARED_ASSETS) audio analytics useLeaderboard (Phase 2)
+      types.ts scores.ts useBestScore.ts format.ts PlaceholderScene.tsx            (Phase 0)
+      GameShell ShellStage ArcadeGameMount useArcadeStore useRunFrame input inputController
+      TouchControls CameraRig collision assets(Model, useModel) sharedAssets(SHARED_ASSETS)
+      audio analytics useLeaderboard ErrorBoundary                                  (Phase 2, C2)
     ui/  ArcadeCard ArcadeGrid LeaderboardTable ResultPanel BestScoreBadge  # Cursor K2, display only
     games/<slug>/  meta.ts index.tsx                                       (exist)
                    Scene.tsx rules.ts rules.test.ts assets.ts assets.spec.json README.md
@@ -76,7 +78,12 @@ docs/platform-plan.md · docs/arcade-api.md                    # Claude
 - `ArcadeGameMeta` (`types.ts`): slug, title, tagline, description, order, `status: "live" | "soon"`, difficulty, orientation, controls, `scoring`, thumbnail, accent, owner.
 - `ScoringRules`: `kind: "points" | "time"`, `maxScore`, `min/maxDurationMs`, `base`, `maxPointsPerSec`, `timeBaseMs?`, `unitLabel`, `display`. Points: server rejects `score > base + maxPointsPerSec * seconds`. Time: `score = max(0, floor((timeBaseMs - durationMs) / 10))`, recomputed by the server. Higher is always better.
 - `GameDefinition` (`core/types.ts`): `Scene`, `Hud?`, `assets: Record<id, ModelAsset>`, `physics?`, `durationMs?`, `lives?`, `camera`, `environment?`, `touchControls`, `hudStats?`, `instructions`, `finalScore?`.
-- Run phases `loading | ready | countdown | playing | paused | over`; `end(reason)` is idempotent. Games end runs with `end()`; GameShell computes the final score and calls `submitScore`.
+- Run phases `loading | ready | countdown | playing | paused | over`; `end(reason)` is idempotent. Games end runs with `end()`; GameShell computes the final score (`definition.finalScore` or store `score` + `elapsedMs`) and calls `submitScore` once per run. `end("quit")` exits without saving.
+- `useArcadeStore` (`core/useArcadeStore.ts`): zustand store = `RunState` + `RunActions` plus shell-only `configure({durationMs, lives})`, `markReady()`, `tick(dtMs)` (advances the 3 s countdown, `elapsedMs`, `timeLeftMs`; `"timeup"` at 0), `countdownMs`, `pausedFrom`, `config`. `start()`/`restart()` increment `runId` (the Scene remounts per run); `reset()` is safe twice; score/stat changes are ignored once `over`; `loseLife()` to 0 ends with `"lose"`. Read with selectors in React, `useArcadeStore.getState()` in the frame loop. `createArcadeStore()` makes an isolated store (tests).
+- `useRunFrame((state, dt) => …)`: `useFrame` that runs only while `playing`, dt clamped to 1/20 s.
+- `useInput()` → `MutableRefObject<InputState>`: `moveX/moveY` (-1..1, up = -1), held `jump`/`action`, one-frame `jumpPressed`/`actionPressed`/`swipe`/`tap`, `pointer {x, y, down}` (R3F-style -1..1). Keyboard WASD/arrows, Space, E/Enter; touch joystick/Jump/Action from `definition.touchControls` (coarse pointers only); swipes and taps on the canvas. Esc/P belong to the shell (pause).
+- `collision.ts`: pure `{x,y,z}` helpers (`aabbOverlap`, `aabbFromCenter`, `spheresOverlap`, `circlesOverlapXZ`, `sphereAabbOverlap`, `resolveSphereAabb`, `clampToBounds`, `isOutOfBounds`, …) with optional `out` to avoid allocations.
+- `assets.tsx`: `<Model asset={…} />` (GLB via `useGLTF(url, false, true)`, per-instance clone, SkeletonUtils when `rigged`, `scale/rotationY/yOffset`; ~1-unit primitive fallback when the GLB is missing), `useModel(asset)` → `{ scene, animations, failed }`, `SHARED_ASSETS` (runner, robot, battery, crate, tinCan, banana, desk, chair). `CameraRig` (static or `follow` ref), `playSfx(name)` + mute (`play50games_3d_muted`), `trackArcade` (dataLayer `arcade_start|arcade_game_over|arcade_new_best`), `useLeaderboard(slug)` → `{ enabled, data, loading, error, retry }`.
 - `core/scores.ts`: `submitScore(run, userId)` (local first, then POST when JWT + leaderboard flag), `saveRunToAccount`, `syncServerScores` (max every 5 min), `readLocalScores`. Keys `play50games_3d_scores:guest` / `play50games_3d_scores:u<id>`; event `play50games_3d_scores_updated`. `SubmitStatus` = `synced | saved-local | login-required | rate-limited | rejected | banned | offline | leaderboard-off | config-error`.
 - `useBestScore(slug)` → `LocalScoreEntry | null` for the current user, updates live.
 - `arcadeApi` (`lib/api/arcade.ts`): `submit`, `leaderboard(slug, limit)`, `me()`, `setPrivacy`. `ArcadeMeEntry = { best, best_duration_ms, plays, last_played, rank }`. Errors map from the WP_Error `code` in the body, never the HTTP status alone.
@@ -132,7 +139,7 @@ Branches: Cursor `cursor/<pkg>`, Codex `codex/<pkg>` (local worktree or cloud br
 |---|---|---|---|
 | 0 | Contracts, stubs, deps, repo hygiene, docs | Claude | **In progress** (deps, contracts, stubs, scores + tests, arcade client, `arcade-games.json`, hygiene done) |
 | 1 | Hub + `/classic` + nav/SEO + stale-JWT fix → **Release 0** (arcade flag off) | Claude C1 ∥ Cursor K1 ∥ Codex X2 | Not started |
-| 2 | 3D core + `/3d` routes + UI kit + WP admin page | Claude C2 ∥ Cursor K2 ∥ Codex X3 | Not started |
+| 2 | 3D core + `/3d` routes + UI kit + WP admin page | Claude C2 ∥ Cursor K2 ∥ Codex X3 | C2 done on `claude/c2-core`; K2, X3 open |
 | 3 | robot-collector + leaderboard API on prod + JWT rotation → **Release 1** | Claude | Not started |
 | 4 | Games 2–10, one at a time (order in `skills.md`) | Owners | Not started |
 | 5 | Polish: JSON-LD, Lighthouse ≥ 90, trailer/OG, run tokens | Claude · Cursor · Codex | Not started |
