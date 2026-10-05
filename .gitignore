@@ -3,6 +3,7 @@ graphify-out/
 **/.next/
 **/node_modules/
 tools/hyper3d/raw/
+tools/hyper3d/.mock/
 
 # IDE (PhpStorm deployment + SSH configs must stay local)
 .idea/
