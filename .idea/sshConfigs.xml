@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<project version="4">
-  <component name="SshConfigs">
-    <configs>
-      <sshConfig authType="PASSWORD" host="85.215.210.194" id="7dd39e06-8c40-4da6-b106-5c6ac74ffddb" port="22" nameFormat="DESCRIPTIVE" username="play50.games" useOpenSSHConfig="true" />
-    </configs>
-  </component>
-</project>

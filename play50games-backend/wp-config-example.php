@@ -31,7 +31,7 @@ if (WP_ENVIRONMENT_TYPE === 'local') {
 // Kjo key duhet të përdoret në frontend për të aksesuar API-n
 // Vendos një key të sigurt (përdor një generator të rastësishëm)
 // Për shembull: openssl rand -hex 32
-define('PLAY50_API_KEY', 'play50games251228granit');
+define('PLAY50_API_KEY', 'put-your-play50-api-key-here');
 
 // Enable REST API
 define('REST_REQUEST', true);

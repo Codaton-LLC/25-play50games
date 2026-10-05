@@ -1,0 +1,13 @@
+# Local tooling / generated
+graphify-out/
+**/.next/
+**/node_modules/
+tools/hyper3d/raw/
+
+# IDE (PhpStorm deployment + SSH configs must stay local)
+.idea/
+play50games-backend/.idea/
+
+# Secrets
+play50games-backend/wp-config.php
+.env*.local
