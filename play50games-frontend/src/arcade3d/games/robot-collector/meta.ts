@@ -25,7 +25,7 @@ export const robotCollectorMeta: ArcadeGameMeta = {
       unitLabel: "pts",
       display: "int"
    },
-   thumbnail: null,
+   thumbnail: "/images/3d/robot-collector.webp",
    accent: "#7dd3fc",
    owner: "claude"
 };
