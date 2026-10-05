@@ -2,7 +2,7 @@
 
 // Robot Collector: the GameDefinition GameShell runs (loaded lazily by arcade3d/loaders.ts).
 // Start here when copying this game: the shell owns screens, HUD, timer, pause and score submit;
-// the game owns Scene.tsx (looks + frame loop), rules.ts (logic) and assets.ts (models).
+// the game owns Scene.tsx (frame loop + moving things), rules.ts (logic) and assets.ts (models).
 import type { GameDefinition } from "@/arcade3d/core/types";
 import Scene from "./Scene";
 import { ASSETS } from "./assets";

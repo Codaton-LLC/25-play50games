@@ -1,19 +1,23 @@
 import { describe, expect, it } from "vitest";
-import { MAX_FRAME_DT } from "@/arcade3d/core/useRunFrame";
+import { createArcadeStore } from "@/arcade3d/core/useArcadeStore";
+import { MAX_FRAME_DT, clampFrameDt } from "@/arcade3d/core/useRunFrame";
 import { robotCollectorMeta } from "./meta";
 import {
    ARENA,
    BATTERY_COUNT,
    BOUNDS,
+   CRATE_SIZE,
    DURATION_MS,
    FALLBACK_SPOTS,
    GUARANTEED_MIN_ROUTE,
    IDEAL_ROUTE,
    OBSTACLES,
    PICKUP_REACH,
+   PROPS,
    ROBOT,
    ROBOT_START,
    SPACING,
+   SPAWN_CLEARANCE,
    UNTIMED_MOVE_S,
    WAVE_COUNT,
    WAVE_SIZE,
@@ -54,6 +58,18 @@ const layoutOf = (spots: ReadonlyArray<readonly [number, number]>): Layout => ({
    batteries: spots.map(([x, z], i) => battery(i, x, z)),
 });
 const fallback = () => layoutOf(FALLBACK_SPOTS);
+
+/** The spacing rules of isValidLayout, restated, so a test can show which rule rejects a layout. */
+function keepsSpacing(layout: Layout): boolean {
+   return layout.batteries.every(
+      (b, i) =>
+         (b.wave > 0 || Math.hypot(b.x - ROBOT_START.x, b.z - ROBOT_START.z) >= SPACING.fromStart) &&
+         layout.batteries.slice(0, i).every((o) => {
+            const d = Math.hypot(b.x - o.x, b.z - o.z);
+            return (o.wave !== b.wave || d >= SPACING.inWave) && (o.wave !== b.wave - 1 || d >= SPACING.betweenWaves);
+         })
+   );
+}
 
 /** The best possible win score if the run is won after `elapsedMs`. */
 const winScoreAt = (elapsedMs: number) => runScore(BATTERY_COUNT, true, DURATION_MS - elapsedMs);
@@ -218,14 +234,29 @@ describe("robot-collector layouts", () => {
    it("isValidLayout rejects broken layouts", () => {
       const good = fallback().batteries.map((b) => [b.x, b.z] as [number, number]);
       expect(isValidLayout(layoutOf(good.slice(0, 9)))).toBe(false);
-      // battery on top of the first crate
-      expect(isValidLayout(layoutOf([[-9.6, -5.4], ...good.slice(1)]))).toBe(false);
       // first battery too close to the start
       expect(isValidLayout(layoutOf([[1, 1], ...good.slice(1)]))).toBe(false);
       // the two batteries of wave 0 too close together
       expect(isValidLayout(layoutOf([good[0], [good[0][0] + 2, good[0][1] + 2], ...good.slice(2)]))).toBe(false);
       // a wave-1 battery too close to wave 0
       expect(isValidLayout(layoutOf([good[0], good[1], [good[1][0], good[1][1] + 3], ...good.slice(3)]))).toBe(false);
+   });
+
+   it("isValidLayout rejects a battery inside a prop, even when every other rule holds", () => {
+      const good = FALLBACK_SPOTS.slice(0, 9);
+      const crate = PROPS.find((p) => p.kind === "crate" && p.x === 4.2 && p.z === -5.6)!;
+      // the last battery (wave 4) in the middle of a crate, or just far enough in front of it
+      const inside = layoutOf([...good, [crate.x, crate.z]]);
+      const outside = layoutOf([...good, [crate.x, crate.z + CRATE_SIZE / 2 + SPAWN_CLEARANCE + 0.5]]);
+      for (const layout of [inside, outside]) {
+         expect(keepsSpacing(layout)).toBe(true);
+         expect(shortestRoute(layout, 0)).toBeGreaterThanOrEqual(IDEAL_ROUTE.min);
+         expect(shortestRoute(layout, 0)).toBeLessThanOrEqual(IDEAL_ROUTE.max);
+      }
+      // so only the spawn check can tell them apart
+      expect(isSpawnPoint(crate.x, crate.z)).toBe(false);
+      expect(isValidLayout(inside)).toBe(false);
+      expect(isValidLayout(outside)).toBe(true);
    });
 
    it("every spawn point is reachable from the start (the warehouse has no closed pockets)", () => {
@@ -423,12 +454,59 @@ describe("robot-collector scoring", () => {
       expect(withinServerLimits(100, 4_999)).toBe(false);
       expect(capScore(1520, 7_600)).toBe(1512);
       expect(capScore(5000, 70_000)).toBe(1600);
+      // GameShell submits Math.round(elapsedMs), so the cap and the check use the rounded duration:
+      // 7608.49 ms is sent as 7608, where 1513 is 40 thousandths of a point too many
+      expect(capScore(1600, 7_608.49)).toBe(1512);
+      expect(withinServerLimits(1512, 7_608.49)).toBe(true);
+      expect(withinServerLimits(1513, 7_608.49)).toBe(false);
+      expect(withinServerLimits(100, 4_999.5)).toBe(true);
    });
 });
 
 describe("robot-collector scoring limit proof (README.md)", () => {
-   it("the core does not count at most one frame of movement", () => {
+   it("the core clock times every frame the robot moves in, except one per run of at most UNTIMED_MOVE_S", () => {
       expect(UNTIMED_MOVE_S).toBe(MAX_FRAME_DT);
+      // the real store, driven like ShellStage: each frame RunClock (priority -1) ticks with the
+      // clamped delta, then useRunFrame (priority 0) moves by the same clamped dt if "playing"
+      const store = createArcadeStore();
+      store.getState().configure({ durationMs: DURATION_MS });
+      store.getState().markReady();
+      const rng = createRng(11);
+      let moved = 0;
+      let untimedFrames = 0;
+      const frame = (delta: number) => {
+         const before = store.getState().elapsedMs;
+         store.getState().tick(clampFrameDt(delta) * 1000);
+         if (store.getState().phase !== "playing") return;
+         const dt = clampFrameDt(delta);
+         moved += dt;
+         if (dt * 1000 > store.getState().elapsedMs - before + 1e-6) untimedFrames += 1;
+      };
+
+      // runs that time out, are won, or are restarted midway; with pauses during the countdown
+      // and the play, and frames from 4 ms to 300 ms (tab switches, GC pauses)
+      for (const ending of ["timeup", "win", "restart", "win", "timeup", "restart"] as const) {
+         const { phase } = store.getState();
+         if (phase === "ready" || phase === "over") store.getState().start();
+         moved = 0;
+         untimedFrames = 0;
+         const stopAtMs = 5_000 + rng() * 40_000;
+         while (store.getState().phase !== "over") {
+            const roll = rng();
+            if (roll < 0.01) store.getState().pause();
+            else if (roll < 0.03) store.getState().resume();
+            frame(rng() < 0.1 ? 0.05 + rng() * 0.25 : 0.004 + rng() * 0.03);
+            if (ending !== "timeup" && store.getState().elapsedMs >= stopAtMs) break;
+         }
+         if (ending === "win") store.getState().end("win");
+
+         const { elapsedMs } = store.getState();
+         if (ending === "timeup") expect(elapsedMs).toBe(DURATION_MS);
+         expect(untimedFrames).toBe(1);
+         expect(moved - elapsedMs / 1000).toBeGreaterThan(0);
+         expect(moved - elapsedMs / 1000).toBeLessThanOrEqual(UNTIMED_MOVE_S + 1e-9);
+         if (ending === "restart") store.getState().restart();
+      }
    });
 
    it("without the level design, a fast win would break the limit (break-even is about 7.67 s)", () => {

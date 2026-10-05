@@ -456,23 +456,31 @@ export function runScore(collected: number, won: boolean, timeLeftMs: number): n
    return collected * BATTERY_POINTS + (won ? timeBonus(timeLeftMs) : 0);
 }
 
-/** The server's check for points games, in the same integer form (docs/arcade-api.md §7). */
+/** The duration the server sees: GameShell (core/scores.ts normalizeRun) submits whole ms. */
+const submittedMs = (durationMs: number) => Math.max(0, Math.round(durationMs));
+
+/**
+ * The server's check for points games, in the same integer form (docs/arcade-api.md §7), for a
+ * run that lasted `durationMs` (rounded to whole ms like the submitted run).
+ */
 export function withinServerLimits(score: number, durationMs: number, rules: ScoringRules = robotCollectorMeta.scoring): boolean {
+   const d = submittedMs(durationMs);
    return (
       Number.isInteger(score) &&
       score >= 0 &&
       score <= rules.maxScore &&
-      durationMs >= rules.minDurationMs &&
-      durationMs <= rules.maxDurationMs &&
-      score * 1000 <= rules.base * 1000 + rules.maxPointsPerSec * durationMs
+      d >= rules.minDurationMs &&
+      d <= rules.maxDurationMs &&
+      score * 1000 <= rules.base * 1000 + rules.maxPointsPerSec * d
    );
 }
 
 /**
- * Safety net only: trims a score to what the server accepts for this duration. The proof in
+ * Safety net only: trims a score to what the server accepts for this duration (the store's raw
+ * elapsedMs; rounded here exactly as GameShell rounds it before submitting). The proof in
  * README.md shows real runs never reach the cap, and rules.test.ts checks it stays a no-op.
  */
 export function capScore(score: number, durationMs: number, rules: ScoringRules = robotCollectorMeta.scoring): number {
-   const plausible = Math.floor((rules.base * 1000 + rules.maxPointsPerSec * Math.max(0, durationMs)) / 1000);
+   const plausible = Math.floor((rules.base * 1000 + rules.maxPointsPerSec * submittedMs(durationMs)) / 1000);
    return Math.max(0, Math.min(score, rules.maxScore, plausible));
 }
