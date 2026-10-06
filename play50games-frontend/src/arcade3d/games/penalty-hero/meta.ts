@@ -25,7 +25,7 @@ export const penaltyHeroMeta: ArcadeGameMeta = {
       unitLabel: "pts",
       display: "int"
    },
-   thumbnail: null,
+   thumbnail: "/images/3d/penalty-hero.webp",
    accent: "#f472b6",
    owner: "cursor"
 };
