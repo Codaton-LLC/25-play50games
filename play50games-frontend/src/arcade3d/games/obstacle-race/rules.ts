@@ -121,11 +121,13 @@ export function jumpReach(dy: number): number {
 
 /**
  * The longest forward reach of any jump to a top dy higher, edge to edge (README "No section can be
- * skipped"): the take-off grace, a full coyote run-on, the flight from the coyote fall's height and
- * the landing grace. Carry is x only, so nothing adds to it.
+ * skipped"): the take-off grace, up to 1 ms of motion at the walk-off (its ms is the first whole ms
+ * past the grace), a full coyote run-on, the flight from the coyote fall's height, up to 1 ms at the
+ * landing (the first whole ms below the top) and the landing grace. Carry is x only, so nothing adds
+ * to it. A true bound for the real step: rules.test.ts tries every press ms against it.
  */
 export function skipReach(dy: number): number {
-   return FOOT + (V_RUN * COYOTE_MS) / 1000 + V_RUN * landingTime(dy, -COYOTE_DROP) + FOOT;
+   return FOOT + MAX_MOVE + (V_RUN * COYOTE_MS) / 1000 + V_RUN * landingTime(dy, -COYOTE_DROP) + MAX_MOVE + FOOT;
 }
 
 /** The ms of a jump in which the feet are above the bar's top (from take-off on the disc). */

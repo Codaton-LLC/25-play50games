@@ -373,6 +373,8 @@ interface Played {
    jumps: number;
    knocks: number;
    respawns: number;
+   /** the supports the runner stood on at frame ends, in order, repeats collapsed */
+   trail: number[];
 }
 
 /**
@@ -381,7 +383,7 @@ interface Played {
  * and every checkpoint and the finish come no earlier than earliestMs of their line.
  */
 function play(run: ObstacleRun, bot: Bot, nextDt: () => number, limitMs = DURATION_MS): Played {
-   const out: Played = { run, problems: [], checkpoints: [], jumps: 0, knocks: 0, respawns: 0 };
+   const out: Played = { run, problems: [], checkpoints: [], jumps: 0, knocks: 0, respawns: 0, trail: [run.runner.support] };
    for (let guard = 0; run.ended === null && run.simMs < limitMs && guard < 2_000_000; guard++) {
       const dt = nextDt();
       const before = progress(run);
@@ -395,6 +397,7 @@ function play(run: ObstacleRun, bot: Bot, nextDt: () => number, limitMs = DURATI
       }
       if (ev.jumped) out.jumps += 1;
       if (ev.knocked) out.knocks += 1;
+      if (run.runner.grounded && run.runner.support !== out.trail[out.trail.length - 1]) out.trail.push(run.runner.support);
       if (ev.checkpoint !== NONE) {
          out.checkpoints.push(run.checkpointMs);
          if (run.checkpointMs < earliestMs(run.course.checkpoints[ev.checkpoint].line)) out.problems.push(`checkpoint ${ev.checkpoint} at ${run.checkpointMs}`);
@@ -425,6 +428,28 @@ const EDGE: Course = {
    checkpoints: [{ line: 0, support: 0 }],
    finish: { line: 1000, support: 0 },
 };
+
+/**
+ * The random test's oracle for "inside a static solid", written apart from insideStatic (which the
+ * guard uses): the smallest horizontal distance from the centre (x, p) to the footprint of a static
+ * top (every support but the blocks) or a solid whose span overlaps the runner's (feet below its
+ * top, head above its bottom). Inside means less than FOOT. Infinity when nothing overlaps.
+ */
+function staticClearance(x: number, at: number, feet: number): number {
+   const box = (minX: number, maxX: number, minP: number, maxP: number) => Math.hypot(Math.max(minX - x, 0, x - maxX), Math.max(minP - at, 0, at - maxP));
+   const circle = (cx: number, cp: number, radius: number) => Math.max(0, Math.hypot(x - cx, at - cp) - radius);
+   const spans = (bottom: number, top: number) => feet < top && feet + RUNNER.height > bottom;
+   let min = Infinity;
+   for (const s of COURSE.supports) {
+      if (s.kind === "block" || !spans(s.bottom, s.top)) continue;
+      min = Math.min(min, s.kind === "disc" ? circle(s.cx, s.cp, s.radius) : box(s.minX, s.maxX, s.minP, s.maxP));
+   }
+   for (const o of COURSE.solids) {
+      if (!spans(o.bottom, o.top)) continue;
+      min = Math.min(min, o.shape === "circle" ? circle(o.cx, o.cp, o.radius) : box(o.minX, o.maxX, o.minP, o.maxP));
+   }
+   return min;
+}
 
 /** Gap, rise and the plain-jump numbers between two supports in path order. */
 function pairOf(a: Support, b: Support) {
@@ -500,7 +525,17 @@ describe("obstacle-race constants (golden)", () => {
          [-3.6, 116, 0.4, 0, 4.2],
          [3.6, 116, 0.4, 0, 4.2],
       ]);
-      expect(COURSE.solids.filter((o) => o.name.endsWith("pillar")).length).toBe(5);
+      // each pillar: the platform's centre ± 0.4 in p and x, from the water up to the slab (top − 0.3)
+      const pillars = COURSE.solids.filter((o) => o.name.endsWith("pillar"));
+      expect(pillars.map((o) => [o.name, o.shape])).toEqual(["J1", "J2", "J3", "J4", "J5"].map((n) => [`${n} pillar`, "box"]));
+      const rows = [
+         [37.2, 38.0, -0.4, 0.4, -2, 0.2],
+         [42.0, 42.8, -1.7, -0.9, -2, 0.7],
+         [47.0, 47.8, 0.1, 0.9, -2, 1.2],
+         [52.0, 52.8, 1.1, 1.9, -2, 0.7],
+         [57.0, 57.8, -0.4, 0.4, -2, 0.2],
+      ];
+      expect(pillars.map((o) => [o.minP, o.maxP, o.minX, o.maxX, o.bottom, o.top])).toEqual(rows.map((row) => row.map((v) => expect.closeTo(v, 12))));
    });
 
    it("the jump: apex 1.445 m at 340 ms, 680 ms in the air, a coyote jump starts 0.125 m low", () => {
@@ -536,12 +571,15 @@ describe("obstacle-race constants (golden)", () => {
       expect(Math.round(share("B5", "CP3") * 100)).toBe(29);
    });
 
-   it("the skip table: the longest reach of any jump (coyote run-on, coyote fall, both graces)", () => {
-      expect(skipReach(1)).toBeCloseTo(4.0, 9);
-      expect(skipReach(0)).toBeCloseTo(4.9898, 4);
-      expect(skipReach(-0.5)).toBeCloseTo(5.3295, 4);
-      expect(skipReach(-1)).toBeCloseTo(5.6249, 4);
-      expect(skipReach(-1.5)).toBeCloseTo(5.8898, 4);
+   it("the skip table: the longest reach of any jump (coyote run-on, coyote fall, both graces, 1 ms at each end)", () => {
+      expect(skipReach(1)).toBeCloseTo(4.012, 9);
+      expect(skipReach(0.5)).toBeCloseTo(4.58875, 5);
+      expect(skipReach(0)).toBeCloseTo(5.0018, 4);
+      expect(skipReach(-0.5)).toBeCloseTo(5.3415, 4);
+      expect(skipReach(-1)).toBeCloseTo(5.6369, 4);
+      expect(skipReach(-1.5)).toBeCloseTo(5.9018, 4);
+      // the whole ms at the walk-off and at the landing: 6 mm each
+      expect(skipReach(0) - (2 * FOOT + (V_RUN * COYOTE_MS) / 1000 + V_RUN * landingTime(0, -COYOTE_DROP))).toBeCloseTo(2 * MAX_MOVE, 12);
       // the reach grows with the coyote run-on and fall, so 100 ms is the worst case
       expect(skipReach(0)).toBeGreaterThan(2 * FOOT + V_RUN * landingTime(0));
    });
@@ -683,12 +721,12 @@ describe("obstacle-race course", () => {
          expect(distance, `${a.name} -> ${c.name} over ${between.name}`).toBeGreaterThan(skipReach(dy));
          if (dy === 0 && Math.abs(distance - 5.4) < 1e-9) {
             sameHeight += 1;
-            expect(distance - skipReach(dy)).toBeGreaterThanOrEqual(0.4);
+            expect(distance - skipReach(dy)).toBeGreaterThanOrEqual(0.39);
          }
       }
       expect(pairs).toBe(15);
       expect(sameHeight).toBe(5);
-      // no skip pair drops more than 1 m, and the biggest reach anywhere (a 1.5 m drop) is 5.89 m
+      // no skip pair drops more than 1 m, and the biggest reach anywhere (a 1.5 m drop) is 5.90 m
       expect(skipReach(-1.5)).toBeLessThan(7.4);
    });
 
@@ -733,6 +771,21 @@ describe("obstacle-race movement", () => {
       msSteps(diag, 400, input(1, -1));
       expect(Math.hypot(diag.runner.vx, diag.runner.vz)).toBeCloseTo(6, 12);
       expect(diag.runner.vx).toBeCloseTo(6 / Math.SQRT2, 12);
+      // a stick longer than 1 is normalised before the easing: while turning at speed (where the cap
+      // does not hide it), (2, 0) eases like (1, 0) and (1, −1) like the unit diagonal
+      for (const [a, b] of [
+         [input(2, 0), input(1, 0)],
+         [input(1, -1), input(Math.SQRT1_2, -Math.SQRT1_2)],
+      ] as const) {
+         const ra = place(createRun(), S["CP1"], 0, 29, 0, V_RUN);
+         const rb = cloneRun(ra);
+         for (let k = 0; k < 100; k++) {
+            step(ra, 1, a);
+            step(rb, 1, b);
+         }
+         expect(ra.runner.vx).toBeCloseTo(rb.runner.vx, 12);
+         expect(ra.runner.vz).toBeCloseTo(rb.runner.vz, 12);
+      }
       const half = place(createRun(FLAT), 0, 0, 0);
       msSteps(half, 400, input(0, -0.5));
       expect(half.runner.vz).toBeCloseTo(-3, 12);
@@ -845,6 +898,15 @@ describe("obstacle-race movement", () => {
       }
    });
 
+   it("a coyote jump uses up the coyote window: later presses in it never jump", () => {
+      const run = createRun(EDGE);
+      const walkOff = msSteps(run, 5000, FWD, (_ev, r) => !r.runner.grounded);
+      expect(step(run, 1, FWD_PRESS).jumped).toBe(true);
+      expect(run.simMs).toBe(walkOff + 1);
+      expect([run.runner.coyoteFrom, run.pressMs]).toEqual([NONE, NONE]);
+      for (let d = 2; d <= COYOTE_MS + 1; d++) expect(step(run, 1, FWD_PRESS).jumped, `${d} ms`).toBe(false);
+   });
+
    it("one press, one jump: no jump in the air, a press is used once, no double jump", () => {
       // one 50 ms frame with the press, then 3 s with none: exactly one jump
       const run = createRun(FLAT);
@@ -884,10 +946,39 @@ describe("obstacle-race movement", () => {
       const past = progress(run) - EDGE.supports[0].maxP;
       expect(past).toBeGreaterThan(4.78);
       expect(past).toBeLessThan(4.8);
-      // with the landing grace this is the skip table's flat reach
+      // with the landing grace this is the skip table's flat reach, within it
       expect(past + FOOT).toBeCloseTo(skipReach(0), 1);
-      expect(past + FOOT).toBeLessThanOrEqual(skipReach(0) + MAX_MOVE);
+      expect(past + FOOT).toBeLessThanOrEqual(skipReach(0));
    });
+
+   it("skipReach is a true bound: every press ms around a walk-off, at every rise a skip pair uses, lands within it (and within 2 cm of it)", () => {
+      const rises = [...new Set(PATH.slice(0, -2).map((a, i) => PATH[i + 2].top - a.top))].sort((a, b) => a - b);
+      expect(rises).toEqual([-1, -0.5, 0, 0.5, 1]);
+      const TOP = 1.5;
+      const course: Course = { ...EDGE, supports: [boxSupport("ledge", "pad", -4, 10, -4, 4, TOP, WATER_Y)] };
+      const walkOff = msSteps(createRun(course), 5000, FWD, (_e, r) => !r.runner.grounded);
+      expect(walkOff).toBeGreaterThan(300);
+      for (const dy of rises) {
+         // every press ms from 300 ms before the walk-off to the last coyote ms; `base` is one ms short of it
+         const base = createRun(course);
+         msSteps(base, walkOff - 301, FWD);
+         let best = -Infinity;
+         let tried = 0;
+         for (let at = walkOff - 300; at <= walkOff + COYOTE_MS; at++, step(base, 1, FWD)) {
+            const run = cloneRun(base);
+            expect(run.simMs).toBe(at - 1);
+            if (!step(run, 1, FWD_PRESS).jumped) continue;
+            tried += 1;
+            // the first ms below the target's top on the way down: where a landing would happen
+            if (msSteps(run, 3000, FWD, (_e, r) => r.simMs - r.runner.arcStart > APEX_MS && r.runner.y < TOP + dy)) {
+               best = Math.max(best, progress(run) + FOOT - course.supports[0].maxP);
+            }
+         }
+         expect(tried, `dy ${dy}`).toBe(401);
+         expect(best, `dy ${dy}`).toBeLessThanOrEqual(skipReach(dy) + 1e-9);
+         expect(best, `dy ${dy}`).toBeGreaterThan(skipReach(dy) - 0.02);
+      }
+   }, 60_000);
 
    it("a landing only from above; the centre 0.20 past an edge stands, 0.21 falls", () => {
       // a take-off never lands on its own top; the landing is on the way down
@@ -960,6 +1051,25 @@ describe("obstacle-race movement", () => {
       expect(beam.runner.support).toBe(S["beam"]);
    });
 
+   it("running at full stick on the beam or a block: each ms p gains exactly 6 mm and x exactly the carry (the guard leaves the carry alone)", () => {
+      const beam = place(createRun(), S["beam"], 0, 96, 650, V_RUN);
+      for (let k = 0; k < 300; k++) {
+         const [x0, p0] = [beam.runner.x, progress(beam)];
+         step(beam, 1, FWD);
+         expect(beam.runner.x - x0).toBeCloseTo(beamSlide(beam.simMs) / 1000, 12);
+         expect(progress(beam) - p0).toBeCloseTo(MAX_MOVE, 12);
+      }
+      expect(beam.runner.support).toBe(S["beam"]);
+      const b1 = place(createRun(), S["B1"], blockX(0, 900), 68.8, 900, V_RUN);
+      for (let k = 0; k < 300; k++) {
+         const [x0, p0] = [b1.runner.x, progress(b1)];
+         step(b1, 1, FWD);
+         expect(b1.runner.x - x0).toBeCloseTo(blockX(0, b1.simMs) - blockX(0, b1.simMs - 1), 12);
+         expect(progress(b1) - p0).toBeCloseTo(MAX_MOVE, 12);
+      }
+      expect(b1.runner.support).toBe(S["B1"]);
+   });
+
    it("pushed out of pillars, the hub and the arch posts, and slides along them", () => {
       // the hub, from its left (the bar is along ±p at ms 1428, far from the runner)
       const hub = place(createRun(), S["disc"], -1.3, 18, 1428);
@@ -993,6 +1103,29 @@ describe("obstacle-race movement", () => {
       expect(pil.runner.x).toBeCloseTo(0.1 - RUNNER.radius, 9);
       expect(z0 - pil.runner.z).toBeGreaterThan(0.05);
       expect(pil.runner.state).toBe("run");
+   });
+
+   it("off the disc's rim, steering back: pushed out to 6.35, never inside", () => {
+      // ms 1428: the bar lies along p, a quarter turn away from the runner
+      const run = place(createRun(), S["disc"], 6.19, 18, 1428);
+      run.runner.vx = 0.6;
+      const walkOff = msSteps(run, 100, input(0.1, 0), (_e, r) => !r.runner.grounded);
+      expect(walkOff).toBeGreaterThan(0);
+      const rad = () => Math.hypot(run.runner.x - DISC.x, progress(run) - DISC.p);
+      let prev = rad();
+      let below = 0;
+      for (let k = 0; k < 1000 && run.runner.state === "run"; k++) {
+         step(run, 1, input(-1, 0));
+         expect(insideStatic(COURSE, run.runner.x, run.runner.z, run.runner.y)).toBe(false);
+         if (run.runner.y < DISC.top) {
+            below += 1;
+            expect(rad()).toBeGreaterThanOrEqual(Math.min(prev, DISC.radius + RUNNER.radius) - 1e-9);
+         }
+         if (run.simMs - walkOff >= 40 && run.runner.state === "run") expect(rad()).toBeGreaterThanOrEqual(DISC.radius + RUNNER.radius - 1e-9);
+         prev = rad();
+      }
+      expect(below).toBeGreaterThan(300);
+      expect(run.runner.state).toBe("lost");
    });
 
    it("the guard is needed: a block's front corner sliding into an airborne runner pushes it past 6 mm without it", () => {
@@ -1031,6 +1164,53 @@ describe("obstacle-race movement", () => {
       const free = setup(false);
       step(free, 1, FWD);
       expect(Math.hypot(free.runner.x - x0, free.runner.z - z0)).toBeGreaterThan(0.2);
+   });
+
+   it("a pinned trim against a support keeps last ms's position: the head in J1's slab, the core inside or within FOOT of its back edge", () => {
+      const j1 = sup("J1");
+      // the centre 0.05 inside J1's back edge, and 0.15 outside it (core still overlapping)
+      for (const at of [j1.minP + 0.05, j1.minP - 0.15]) {
+         const run = placeAir(createRun(), 0, at, 0.1, 0, 0);
+         const [x0, z0] = [run.runner.x, run.runner.z];
+         expect(insideStatic(COURSE, x0, z0, run.runner.y), `p ${at}`).toBe(true);
+         let held = 0;
+         for (let k = 0; k < 1000 && run.runner.state === "run"; k++) {
+            step(run, 1, FWD);
+            const r = run.runner;
+            if (!(r.y < j1.top && r.y + RUNNER.height > j1.bottom)) break;
+            expect([r.x, r.z], `p ${at}, ms ${run.simMs}`).toEqual([x0, z0]);
+            held += 1;
+         }
+         // until the head drops below the slab (feet −1.3, 334 ms of falling)
+         expect(held, `p ${at}`).toBe(334);
+         // without the guard the push-out moves it out of the slab at once
+         const free = placeAir(createRun(COURSE, { guard: false }), 0, at, 0.1, 0, 0);
+         step(free, 1, FWD);
+         expect(j1.minP - progress(free)).toBeCloseTo(RUNNER.radius, 9);
+      }
+   });
+
+   it("insideStatic: a static top counts when the core overlaps it in the runner's span; a block never does", () => {
+      const j1 = sup("J1");
+      // the FOOT circle against J1's back edge, at feet 0.1 (head in the slab)
+      expect(insideStatic(COURSE, 0, -(j1.minP - 0.19), 0.1)).toBe(true);
+      expect(insideStatic(COURSE, 0, -(j1.minP - 0.21), 0.1)).toBe(false);
+      expect(insideStatic(COURSE, j1.maxX + 0.19, -37.6, 0.1)).toBe(true);
+      expect(insideStatic(COURSE, j1.maxX + 0.21, -37.6, 0.1)).toBe(false);
+      // the span, strictly: feet at the top stand on it; a head under the slab's bottom passes under it
+      expect(insideStatic(COURSE, 0, -37, j1.top)).toBe(false);
+      expect(insideStatic(COURSE, 0, -37, j1.top - 0.01)).toBe(true);
+      expect(insideStatic(COURSE, 0, -36.6, j1.bottom - RUNNER.height - 0.01)).toBe(false);
+      expect(insideStatic(COURSE, 0, -36.6, j1.bottom - RUNNER.height + 0.01)).toBe(true);
+      // the disc's rim (radius 6 + FOOT), below its top
+      expect(insideStatic(COURSE, DISC.radius + 0.19, -DISC.p, -0.5)).toBe(true);
+      expect(insideStatic(COURSE, DISC.radius + 0.21, -DISC.p, -0.5)).toBe(false);
+      // blocks move: an overlap the trim leaves is resolved by the next ms, so they never count,
+      // wherever they are (here each block's own centre at ms 0 and at ms 1000, under its top)
+      for (let k = 0; k < 5; k++) {
+         const b = PATH[S["B1"] + k];
+         for (const ms of [0, 1000]) expect(insideStatic(COURSE, blockX(k, ms), -(b.minP + b.maxP) / 2, -0.3), `B${k + 1} at ${ms}`).toBe(false);
+      }
    });
 
    it("200,000 random ms (the README asks for 50,000): p never moves more than 6 mm in one ms, a respawn never lands past maxP, nothing ends inside a static solid", () => {
@@ -1105,7 +1285,7 @@ describe("obstacle-race movement", () => {
             } else if (now - before > MAX_MOVE + 1e-12) {
                problems.push(`p +${now - before} at ${run.simMs} (${r.state})`);
             }
-            if (insideStatic(COURSE, r.x, r.z, r.y)) problems.push(`inside a solid at x ${r.x}, p ${now}, y ${r.y} (${r.state})`);
+            if (staticClearance(r.x, now, r.y) < FOOT - 1e-9) problems.push(`inside a solid at x ${r.x}, p ${now}, y ${r.y} (${r.state})`);
             if (r.state === "knocked" && Math.abs(r.x) > KNOCK_STOP_X + 1e-12) problems.push(`fling at x ${r.x}`);
             // a push-out or the guard changed the x step (the input velocity is eased before the move)
             if (r.state === "run" && !ev.jumped && Math.abs(r.x - x0 - r.vx / 1000 - (r.grounded ? r.carryX : carry)) > 1e-6 && Math.abs(vx) >= 0) counts.pushed += 1;
@@ -1211,6 +1391,7 @@ describe("obstacle-race obstacles", () => {
    it("knocks from every spot the bar can hit: the fling stops on the first ms clear of every top, |x| <= 6.35, feet still up", () => {
       const problems: string[] = [];
       let spots = 0;
+      let zeroSpots = 0;
       for (let ix = -25; ix <= 25; ix++) {
          for (let ip = 47; ip <= 97; ip++) {
             const x = ix / 4;
@@ -1234,6 +1415,9 @@ describe("obstacle-race obstacles", () => {
                const sliding = run.runner.knockDir !== 0;
                const e = step(run, 1, FWD_PRESS);
                const r = run.runner;
+               // away from x = 0, and towards +x from exactly 0 (README "Constants")
+               if (k === 1 && (x === 0 ? !(r.x > 0) : Math.sign(r.x - x) !== Math.sign(x))) problems.push(`fling towards ${r.x} from ${x}, ${at}`);
+               if (k === 1 && x === 0) zeroSpots += 1;
                if (Math.abs(r.x) > KNOCK_STOP_X + 1e-12) problems.push(`|x| ${r.x} from ${x}, ${at}`);
                if (r.z !== z) problems.push(`z moved from ${x}, ${at}`);
                if (sliding && r.knockDir === 0) {
@@ -1250,6 +1434,7 @@ describe("obstacle-race obstacles", () => {
       }
       expect(problems.slice(0, 10)).toEqual([]);
       expect(spots).toBeGreaterThan(1000);
+      expect(zeroSpots).toBeGreaterThan(10);
    }, 60_000);
 
    it("groundBelow: the highest top at or under the feet below the centre, the blocks where they are, else the water", () => {
@@ -1316,6 +1501,28 @@ describe("obstacle-race checkpoints and respawns", () => {
       won.checkpoint = 3;
       expect(step(won, 1, IDLE).finished).toBe(true);
       expect(won.finishMs).toBe(1);
+   });
+
+   it("hand-off keys and the camera height: STAT matches the hudStats key; groundY rises on a landing and drops on a respawn", () => {
+      // index.tsx's hudStats key is "checkpoint" (README "HUD"); finishMs is never shown
+      expect(STAT).toEqual({ checkpoint: "checkpoint", finishMs: "finishMs" });
+      const up = place(createRun(), S["J2"], -0.4, 42, 0, V_RUN);
+      expect(up.groundY).toBe(1.0);
+      msSteps(up, 400, FWD, (_e, r) => progress(r) >= 43.5);
+      step(up, 1, FWD_PRESS);
+      expect(up.groundY).toBe(1.0);
+      msSteps(up, 1000, FWD, (e) => e.landed);
+      expect([up.runner.support, up.groundY]).toEqual([S["J3"], 1.5]);
+      up.checkpoint = 1;
+      // off J3's side: the camera holds 1.5 through the fall, then drops to CP1's top on the respawn
+      let held = true;
+      const respawnAt = msSteps(up, 3000, input(1, 0), (e, r) => {
+         if (!e.respawned && r.groundY !== 1.5) held = false;
+         return e.respawned;
+      });
+      expect(respawnAt).toBeGreaterThan(0);
+      expect(held).toBe(true);
+      expect([up.groundY, up.runner.support]).toEqual([0, S["CP1"]]);
    });
 
    it("lost 600 ms, then spawn 300 ms, exact; input ignored in both; the clock keeps counting", () => {
@@ -1510,6 +1717,10 @@ describe("obstacle-race minimum-time proof (README.md)", () => {
          expect(played.run.finishMs).toBeGreaterThan(MIN_FINISH_MS);
          // the free path through every section: 5 platform jumps, 5 block jumps and 1 onto CP3 at least
          expect(played.jumps).toBeGreaterThanOrEqual(11);
+         // every section, in course order (the bot presses only from the ground, so frame ends see each
+         // landing; a bridge is a walking join and may be jumped)
+         const notBridge = (i: number) => PATH[i].kind !== "bridge";
+         expect(played.trail.filter(notBridge), pattern.name).toEqual(PATH.map((_, i) => i).filter(notBridge));
       }
       // pinned from the first run (README "What real play will score")
       expect(Math.abs(runs[0].played.run.finishMs - 22452)).toBeLessThanOrEqual(500);
