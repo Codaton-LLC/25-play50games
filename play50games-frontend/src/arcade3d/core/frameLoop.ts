@@ -10,7 +10,7 @@
 //   frame, so the game never moves for time the clock did not count (and the reverse).
 // - Visuals animate with useGameTime() (stops while paused), never with state.clock.elapsedTime:
 //   GameShell pauses by switching the R3F frameloop, and R3F resets that clock on every switch.
-// - Order inside one frame: input -> run clock -> game time -> simulation -> camera -> visuals -> render.
+// - Order inside one frame: input -> run clock -> game time -> simulation -> camera -> pose -> visuals -> render.
 // - After a run the scene keeps rendering for the game's result delay before the result panel
 //   appears (resultDelayFor -> configure({ resultDelayMs }), then isResultShown); the score is
 //   submitted at once.
@@ -33,6 +33,8 @@ export const FRAME_PRIORITY = {
    simulation: -0.5,
    /** CameraRig: follows the simulation's state, before the visuals that read the camera */
    camera: -0.25,
+   /** useHumanoidPose drivers write character poses, before <HumanoidModel> copies them into its bones */
+   pose: -0.125,
    /** plain useFrame (R3F default): visuals that read the simulation's state and the camera */
    visuals: 0,
 } as const;

@@ -11,7 +11,8 @@ Owned by Claude. Games import from here and never edit it. If a game needs somet
 | gameTime | -0.75 | advances `useGameTime()` |
 | simulation | -0.5 | every `useRunFrame` (default) |
 | camera | -0.25 | `CameraRig` follows the simulation's state |
-| visuals | 0 | every plain `useFrame` (R3F default), then R3F renders |
+| pose | -0.125 | `useHumanoidPose` drivers write character poses ("Characters: the auto-rig") |
+| visuals | 0 | every plain `useFrame` (R3F default), `<HumanoidModel>` copies poses into its bones, then R3F renders |
 
 - **Game logic goes in `useRunFrame((state, dt, time) => …)`.** It runs only while `"playing"`. `dt` (s, at most 1/20, always > 0) is exactly the play time the run clock counted in this frame. This includes the rest of the frame in which the countdown ends. The game never moves for time that `elapsedMs` does not include, so scoring proofs need no allowance for untimed frames. `time` is the run's play time in seconds.
 - **Visuals animate with `useGameTime()`**: `now` (s since this run's Scene mounted; it advances in every phase except `"paused"`, at most 0.1 s per frame), `delta` (this frame's step, 0 while paused) and `play` (play seconds). **Never use `state.clock.elapsedTime`.** GameShell pauses by switching the R3F frameloop, and R3F resets that clock on every switch.
@@ -87,6 +88,7 @@ useRunFrame(() => {
 | Fit range of a follow camera | `followFocus({ lookAt, reach, fraction, bounds })` → `focus` points, from the same math as `CameraRig` (`followAim`) | `view.ts` |
 | Where UI covers the canvas | `useSafeArea()` → `{ width, height, hud[], controls[], obstructions[] }` (px rects, live); `useSafeArea(selector, isEqual?)` re-renders only when the selection changes (`sameScreenRects` for rect lists) | `safeArea.tsx` |
 | Models | `<Model asset fallback={<MyPrimitive/>}>` (an element, not a component), `useModel`, `useModelFailed` (no clone), `SHARED_ASSETS` | `assets.tsx`, `sharedAssets.ts` |
+| Characters that walk (static T-pose GLBs) | `<HumanoidModel asset pose fallback>`, `useHumanoidPose(drive)`, `walkPose` / `idlePose` / `carryPose` / `cheerPose` / `jumpPose` / `reachPose`, `blendPoses` + `POSE_MASK` ("Characters: the auto-rig") | `rig/` |
 | Repeated props | `<InstancedModel asset spots fallback={<Instanced spots>…</Instanced>}>`: one draw call per mesh for all copies, primitive or GLB | `assets.tsx`, `render/` |
 | Moving pools (coins, obstacles, vehicles) | `<DynamicInstancedModel asset count update={(i, matrix) => …} fallbackParts?>`: one draw call per mesh for the whole pool, stand-in parts, primitive or GLB, placed every frame | `assets.tsx`, `render/` |
 | Moving instancing by hand | `<DynamicInstanced count update parts?>` (or geometry + material children), pure `writeDynamicInstances` | `render/` |
@@ -120,6 +122,67 @@ useRunFrame(() => {
 ## Models and the manifest
 
 `modelManifest.ts` lists every GLB under `public/models/3d`. `modelManifest.test.ts` fails when the list and the folder differ. A url that is not listed goes straight to its fallback: there is no request and no suspense. So a game written before its models exist makes no `.glb` requests. Claude's assets PRs commit the GLB and its manifest line together. Repeated props use `<InstancedModel>`, so a GLB drop keeps them instanced and needs no scene change.
+
+## Characters: the auto-rig (`rig/`)
+
+Hyper3D Rodin characters are **static meshes in T-pose**: arms straight out along ±x, facing +z, feet on y = 0, centred on x and z, no skeleton. The auto-rig builds the skeleton in code, so a character walks with its arms down and swinging instead of gliding along in a T. Concept images stay T-pose; the core brings the arms down and animates them.
+
+- **Opt in on the asset:** `humanoid: { landmarks? }` on the `ModelAsset` (`SHARED_ASSETS.robot` and `runner` have it). `<Model>` then draws the character standing with its arms down (no animation, no frame callback). `<HumanoidModel>` animates it. Everything else about `<Model>` is unchanged (manifest, suspense, fallback, GameShell's cache clearing).
+- **Bones** (`HUMANOID_BONES`, indices in `BONE`): `hips` (root) → `spine` → `chest` → `neck` → `head`; `chest` → `upperArmL` → `lowerArmL` and `upperArmR` → `lowerArmR`; `hips` → `upperLegL` → `lowerLegL` and `upperLegR` → `lowerLegR`. Hands ride the lower arms, feet the lower legs. **L is the character's own left: it faces +z, so L is +x** (and in a game that turns the model round, `rotationY: π`, L is still the character's left).
+- **Weights** (`computeSkinWeights`): arms are the vertices beyond the shoulder inside the arm band (only heights within `armRadius` of `shoulderY` count, so a head wider than the shoulders stays on the head), legs the vertices below the hips, split at x = 0 and blended across `crotchBlend` (the crotch, an apron or a short skirt share both legs instead of tearing), the rest the trunk chain by height. Every joint blends over its blend width; 4 influences per vertex, each row sums to 1.
+
+### Driving a character
+
+```tsx
+const [gait] = useState(() => ({ phase: 0, amount: 0 }));
+const [scratch] = useState(createPose);
+const pose = useHumanoidPose((p) => {               // FRAME_PRIORITY.pose: after the step and the camera
+   const v = Math.hypot(run.vx, run.vz);              // this frame's state
+   gait.phase = wrapPhase(gait.phase + (v * time.delta / STRIDE_M) * Math.PI * 2);
+   gait.amount += (Math.min(1, v / MAX_SPEED) - gait.amount) * (1 - Math.exp(-12 * time.delta));
+   idlePose(time.now, p);                             // standing: a breath, a glance
+   blendPoses(p, walkPose(gait.phase, gait.amount, scratch), Math.min(1, gait.amount * 5), p);
+   if (carrying) blendPoses(p, carryPose(1, scratch), 1, p, POSE_MASK.arms); // arms only
+});
+<HumanoidModel asset={ASSETS.runner} pose={pose} fallback={<RunnerPrimitive />} />
+```
+
+- **Poses** (`rig/poses.ts`, pure, no allocation; every builder writes into `out` and returns it): `restPose` (the T-pose), `armsDownPose`, `idlePose(t)`, `walkPose(phase, amount)` (amount 0 = `armsDownPose` exactly, about 0.5 a walk, 1 a run; the left leg is forward at phase π/2 and phase + π is the mirror image; advance the phase with the distance moved so the feet do not slide), `carryPose(height)` (0 = holding something at the chest, 1 = overhead), `reachPose(side, height)`, `cheerPose(t)`, `jumpPose(tuck)`, and `aimArm(out, side, upper, fore, roll?)` to point an arm exactly. `blendPoses(a, b, k, out, mask?)` (in place is fine; `POSE_MASK.arms / legs / upper / all`), `mirrorPose`, `copyPose`, `createPose`.
+- **Arm angles start from the hanging arm.** The rig lowers each upper arm by `pose.dropL` / `dropR` (0 = straight out, 1 = hanging at the character's own `armSpread`) before the pose's rotation, so one pose fits a slim runner and a bulky robot. `reachPose` and `aimArm` set the drop to 0 and aim from the T-pose, so their directions are exact.
+- **`pose.lift`** is a vertical offset of the whole body as a fraction of the hip height (the walk's bob). `<HumanoidModel>` applies it to the hips; pass `applyLift={false}` when the game already bobs the model's group (the robot games do, so the stand-in and a carried box bob with it).
+- **Frame order:** `<HumanoidModel>` copies the pose into its bones every frame at `FRAME_PRIORITY.visuals`. Write the pose before that: in a `useHumanoidPose` driver (`FRAME_PRIORITY.pose`, after `useRunFrame` and the camera; the driver may be a new function every render) or in `useRunFrame`. A plain `useFrame` that writes it may run after the copy (same priority) and show a frame late. A plain `useFrame` that **reads** what the driver computed (a gait phase, the lift) sees this frame's values.
+- `<HumanoidModel>` props: `asset`, `pose?` (default arms down), `applyLift?` (default true), `fallback?` (an element, as for `<Model>`), `fallbackColor?`, group props and `children`.
+- The skinned meshes share the loaded geometry's attributes and materials (only `skinIndex` / `skinWeight` are new) and are **not frustum culled** (moving limbs change the bounds; one character is one draw call per GLB mesh). The template is built once per loaded GLB and set of landmarks (`humanoidTemplate`, cached by scene); every `<HumanoidModel>` clones its own bones (SkeletonUtils). The bind pose draws exactly where `<Model>` draws the static GLB (same `scale` / `stretch` / `rotationY` / `yOffset`).
+- Lower level (core and tests): `estimateHumanoidLandmarks`, `computeSkinWeights`, `humanoidJoints`, `buildHumanoidTemplate`, `cloneHumanoid`, `applyHumanoidPose`, `disposeHumanoid` (a clone's bone textures; `useHumanoidRig` calls it when the clone unmounts, so the per-run Scene remount leaks nothing), `resolvePose`, `setBoneEuler`, `useHumanoidRig` (`assets.tsx`).
+
+### Landmarks, and measuring a character
+
+`HumanoidLandmarks` (GLB units, the GLB root's space with the mesh node transforms applied, before `asset.scale`): `shoulderY`, `shoulderX`, `shoulderZ`, `armRadius`, `elbowX`, `wristX`, `armSpread` (rad from straight down), `crotchY`, `hipY`, `hipX`, `hipZ`, `kneeY`, `spineY`, `chestY`, `neckY`, `headY`, `spineZ`, and the blend half-widths `shoulderBlend`, `elbowBlend`, `hipBlend`, `kneeBlend`, `crotchBlend`, `spineBlend`, `neckBlend`. `x` values are |x| (both sides).
+
+`estimateHumanoidLandmarks(positions, explicit?)` finds them from the vertex cloud: the arm band from the forearms' heights, the shoulder half an arm radius outside the torso (where the |x| columns' vertical extent collapses to the arm's), wrists at 70 % of the way to the hand tips, elbows halfway, the crotch from where the middle-depth strip of the cloud parts into two legs (so an apron or a short skirt does not hide the gap), hips a little above it, knees halfway down, the neck at the narrowest height above the arms, the arm spread from the body's width below the shoulder. Explicit fields win one by one, and later estimates build on them.
+
+**Each character's landmarks are committed explicitly** on its asset, so what ships never depends on the heuristics. The recipe, used for the robot (`ROBOT_LANDMARKS` in `sharedAssets.ts`, checked by `rig/robot.test.ts`):
+
+1. Read the GLB's positions in the root's space (node transforms applied): a throwaway node script with `@gltf-transform` (`tools/hyper3d/node_modules`) or `robot.test.ts`'s `readRobot`, which meshopt-decodes the POSITION accessor directly.
+2. Run `estimateHumanoidLandmarks` on them for a starting set.
+3. Look at it posed: bundle `core/rig` with esbuild into a scratch page (outside the repo) that loads the GLB with `GLTFLoader` + `MeshoptDecoder`, builds the template with `buildHumanoidTemplate(gltf.scene, { landmarks })` and renders rest, arms down, the walk at several phases, the carry, side by side, front and side views. Tune the fields that look wrong (arms through the body: `armSpread` or `shoulderX`; a shoulder cap or a head bending with an arm: `shoulderX`, `armRadius`; a torn knee or elbow: the joint or its blend).
+4. Commit the full set on the asset and add a test like `robot.test.ts` (the committed set within a few cm of the estimate, hands clear of the hips with the arms down, the bind pose equal to the static GLB).
+
+### When `runner.glb` lands (office-escape and the other runner games)
+
+`SHARED_ASSETS.runner` is `humanoid: {}` (no longer `rigged`: Rodin gives no skeleton), so the moment the GLB is in the manifest `<Model asset={ASSETS.runner}>` already stands it up with its arms down. office-escape still draws `RunnerPrimitive` until then and was not edited. Its own follow-up, in `games/office-escape/Scene.tsx` `Runner`:
+
+- measure and commit the runner's landmarks (recipe above) in `SHARED_ASSETS.runner.humanoid.landmarks`;
+- replace `<Model asset={ASSETS.runner} fallback={<RunnerPrimitive rig={rig} />} />` with `<HumanoidModel asset={ASSETS.runner} pose={pose} applyLift={false} fallback={<RunnerPrimitive rig={rig} />} />` (the body group already bobs per stride, squashes and leans);
+- build `pose` with `useHumanoidPose` from the phase the scene already computes: `walkPose(p, speed01, pose)` with its stride phase `p = (distance % STRIDE_MM) / STRIDE_MM · 2π` (the same convention: its left leg forward at π/2; the model is turned round with `rotationY: π`, and L stays the runner's own left), `idlePose(t)` while standing, `jumpPose(tuck)` blended by its `fx.air` while airborne, `cheerPose(t)` on a win; for the crash, `aimArm` / `reachPose` or a blend towards a flailing pose. `RunnerPrimitive` keeps its own limb groups as the fallback.
+
+### Limits
+
+- **T-pose only.** Arms must be close to level (an A-pose of more than about 15° breaks the arm band), the model centred on x = 0 and facing +z. The pipeline (`tools/hyper3d` optimize) guarantees the rest.
+- 13 bones: no fingers, no feet, no spine twist beyond the 3 trunk joints, no facial animation. A tail, a hood or a cape follows the nearest trunk bone; a long coat or a dress stretches between the legs (`crotchBlend`).
+- Linear blend skinning: a joint bent far (a knee past 120°, an arm past straight up) loses volume. The poses stay inside that.
+- Not for props or pools (`<InstancedModel>` / `<DynamicInstancedModel>` treat a humanoid asset as a static mesh), and not for GLBs with a real skeleton (`rigged`; a skinned GLB gets no auto-rig).
+- The pigeon is not a humanoid: it stays a solid hopping bird.
 
 ## Moving pools: `<DynamicInstancedModel>`
 

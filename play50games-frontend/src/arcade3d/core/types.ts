@@ -8,12 +8,13 @@
 // - Visuals animate with useGameTime().now (stops while paused, restarts at 0 every run).
 //   NEVER use state.clock.elapsedTime or getElapsedTime(): GameShell pauses by switching the R3F
 //   frameloop, and R3F resets that clock on every switch.
-// - One frame: input latch -> run clock -> game time -> useRunFrame -> CameraRig -> useFrame
-//   visuals -> render (FRAME_PRIORITY in core/frameLoop.ts). useRunFrame runs before the camera and
+// - One frame: input latch -> run clock -> game time -> useRunFrame -> CameraRig -> humanoid pose
+//   drivers -> useFrame visuals -> render (FRAME_PRIORITY in core/frameLoop.ts). useRunFrame runs before the camera and
 //   every plain useFrame wherever it is mounted, so a visual never draws the previous frame's state
 //   or camera. A custom useRunFrame priority must lie in (FRAME_PRIORITY.gameTime, 0] = (-0.75, 0].
 import type { ComponentType } from "react";
 import type { ArcadeGameMeta, ArcadeSlug } from "../types";
+import type { HumanoidLandmarks } from "./rig/humanoid";
 
 export type RunPhase = "loading" | "ready" | "countdown" | "playing" | "paused" | "over";
 export type EndReason = "win" | "lose" | "timeup" | "quit";
@@ -136,7 +137,15 @@ export interface ModelAsset {
    stretch?: readonly [number, number, number];
    rotationY?: number;
    yOffset?: number;
+   /** a GLB with its own skeleton (skinned meshes): cloned with SkeletonUtils */
    rigged?: boolean;
+   /**
+    * A static T-pose character (Hyper3D Rodin: arms out along ±x, facing +z, no skeleton). The core
+    * auto-rig (core/rig) builds a skeleton in code: <Model> draws it with its arms down and
+    * <HumanoidModel pose> animates it (walk, carry, cheer...). `landmarks` are measured joint
+    * positions in GLB units; any field left out is estimated from the mesh (core/rig/README).
+    */
+   humanoid?: { landmarks?: Partial<HumanoidLandmarks> };
    /** logical name -> clip name in the GLB, e.g. { run: "Run" } */
    animations?: Record<string, string>;
    fallback: PrimitiveFallback;
