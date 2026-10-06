@@ -25,7 +25,7 @@ export const officeEscapeMeta: ArcadeGameMeta = {
       unitLabel: "pts",
       display: "int"
    },
-   thumbnail: null,
+   thumbnail: "/images/3d/office-escape.webp",
    accent: "#fbbf24",
    owner: "claude"
 };

@@ -64,11 +64,17 @@ export interface ArcadeSubmitResponse {
    };
 }
 
+/** `hide_name: true` = leaderboards show the player as "Anonymous" (the score stays ranked). */
+export interface ArcadePrivacy {
+   hide_name: boolean;
+}
+
 export interface ArcadeApiClient {
    submit(body: ArcadeSubmitBody): Promise<ArcadeSubmitResponse>;
    leaderboard(slug: ArcadeSlug, limit?: number): Promise<ArcadeLeaderboard>;
    me(): Promise<Partial<Record<ArcadeSlug, ArcadeMeEntry>>>;
-   setPrivacy(hideName: boolean): Promise<{ hide_name: boolean }>;
+   getPrivacy(): Promise<ArcadePrivacy>;
+   setPrivacy(hideName: boolean): Promise<ArcadePrivacy>;
 }
 
 /** Maps a WordPress WP_Error `code` to our error codes. Uses body.code, never the HTTP status alone. */
@@ -126,8 +132,9 @@ const realClient: ArcadeApiClient = {
    leaderboard: (slug, limit = 10) =>
       request<ArcadeLeaderboard>(`/arcade/leaderboard/${slug}?limit=${limit}`),
    me: () => request<Partial<Record<ArcadeSlug, ArcadeMeEntry>>>("/arcade/me"),
+   getPrivacy: () => request<ArcadePrivacy>("/arcade/me/privacy"),
    setPrivacy: (hideName) =>
-      request<{ hide_name: boolean }>("/arcade/me/privacy", {
+      request<ArcadePrivacy>("/arcade/me/privacy", {
          method: "POST",
          body: JSON.stringify({ hide_name: hideName }),
       }),
@@ -137,6 +144,7 @@ const realClient: ArcadeApiClient = {
 
 const MOCK_NAMES = ["Ana K.", "Blerim D.", "Drita M.", "Ermal S.", "Fjolla R.", "Gent H.", "Hana L."];
 const mockBest = new Map<ArcadeSlug, { score: number; duration_ms: number; plays: number; at: string }>();
+let mockHideName = false;
 
 const mockClient: ArcadeApiClient = {
    async submit(body) {
@@ -169,7 +177,7 @@ const mockClient: ArcadeApiClient = {
       }));
       const mine = mockBest.get(slug);
       if (mine) {
-         entries.push({ rank: 0, name: "You", score: mine.score, duration_ms: mine.duration_ms, achieved_at: mine.at, is_me: true });
+         entries.push({ rank: 0, name: mockHideName ? "Anonymous" : "You", score: mine.score, duration_ms: mine.duration_ms, achieved_at: mine.at, is_me: true });
       }
       entries.sort((a, b) => b.score - a.score).forEach((e, i) => (e.rank = i + 1));
       const me = entries.find((e) => e.is_me);
@@ -186,8 +194,12 @@ const mockClient: ArcadeApiClient = {
       });
       return out;
    },
+   async getPrivacy() {
+      return { hide_name: mockHideName };
+   },
    async setPrivacy(hideName) {
-      return { hide_name: hideName };
+      mockHideName = hideName;
+      return { hide_name: mockHideName };
    },
 };
 

@@ -12,8 +12,11 @@ import {
    resolveSphereAabb,
    sphereAabbOverlap,
    spheresOverlap,
+   sweptAabbXZ,
    type AABB,
+   type SweepHit,
 } from "./collision";
+import { createRng } from "./math";
 
 const v = (x: number, y: number, z: number) => ({ x, y, z });
 const box = (min: [number, number, number], max: [number, number, number]): AABB => ({ min: v(...min), max: v(...max) });
@@ -145,5 +148,104 @@ describe("distanceToBoxXZ", () => {
       expect(distanceToBoxXZ(3, 0.5, crate)).toBe(2);
       expect(distanceToBoxXZ(0, -4, crate)).toBe(3);
       expect(distanceToBoxXZ(4, 5, crate)).toBe(5);
+   });
+});
+
+describe("sweptAabbXZ", () => {
+   const wall = box([2, 0, -1], [3, 5, 1]);
+   const unit = (x: number, z: number) => box([x - 0.5, 0, z - 0.5], [x + 0.5, 1, z + 0.5]);
+   /** x/z overlap (touching counts) after moving `a` by `delta * t` */
+   const overlapAt = (a: AABB, d: { x: number; z: number }, b: AABB, t: number) =>
+      a.min.x + d.x * t <= b.max.x && a.max.x + d.x * t >= b.min.x && a.min.z + d.z * t <= b.max.z && a.max.z + d.z * t >= b.min.z;
+
+   it("returns the time of impact and the face it hit", () => {
+      const hit: SweepHit = { time: -1, normalX: 9, normalZ: 9 };
+      // the box's right face (x 0.5) reaches the wall (x 2) after 1.5 of 3 units
+      expect(sweptAabbXZ(unit(0, 0), { x: 3, z: 0 }, wall, hit)).toBeCloseTo(0.5, 12);
+      expect(hit).toEqual({ time: 0.5, normalX: -1, normalZ: 0 });
+      // from the other side, along -x
+      expect(sweptAabbXZ(unit(5, 0), { x: -4, z: 0 }, wall, hit)).toBeCloseTo(0.375, 12);
+      expect(hit).toMatchObject({ normalX: 1, normalZ: 0 });
+      // along z into the wall's far face
+      expect(sweptAabbXZ(unit(2.5, 3), { x: 0, z: -2 }, wall, hit)).toBeCloseTo(0.75, 12);
+      expect(hit).toMatchObject({ normalX: 0, normalZ: 1 });
+   });
+
+   it("misses: too short, moving away, passing beside, parallel and apart", () => {
+      expect(sweptAabbXZ(unit(0, 0), { x: 1, z: 0 }, wall)).toBeNull();
+      expect(sweptAabbXZ(unit(0, 0), { x: -5, z: 0 }, wall)).toBeNull();
+      expect(sweptAabbXZ(unit(0, 3), { x: 6, z: 0 }, wall)).toBeNull();
+      expect(sweptAabbXZ(unit(0, 0), { x: 0, z: 10 }, wall)).toBeNull();
+      expect(sweptAabbXZ(unit(0, 0), { x: 0, z: 0 }, wall)).toBeNull();
+      // diagonal past the corner
+      expect(sweptAabbXZ(unit(0, 3), { x: 4, z: -0.5 }, wall)).toBeNull();
+   });
+
+   it("touching counts: at the end of the step, along a face, and at the start (time 0)", () => {
+      expect(sweptAabbXZ(unit(0, 0), { x: 1.5, z: 0 }, wall)).toBeCloseTo(1, 12);
+      // sliding along the wall's z face, edges touching the whole time
+      expect(sweptAabbXZ(unit(2.5, 1.5), { x: 3, z: 0 }, wall)).toBe(0);
+      const hit: SweepHit = { time: -1, normalX: 9, normalZ: 9 };
+      expect(sweptAabbXZ(unit(2.5, 0), { x: 0, z: 0 }, wall, hit)).toBe(0);
+      expect(hit).toEqual({ time: 0, normalX: 0, normalZ: 0 });
+      // overlapping at the start but moving out still hits at 0
+      expect(sweptAabbXZ(unit(2.2, 0), { x: -3, z: 0 }, wall)).toBe(0);
+   });
+
+   it("does not tunnel through a thin box, and ignores height", () => {
+      const thin = box([0.99, 50, -3], [1.01, 51, 3]);
+      expect(sweptAabbXZ(box([-0.1, 0, -0.1], [0.1, 1, 0.1]), { x: 40, z: 0 }, thin)).toBeCloseTo(0.89 / 40, 12);
+   });
+
+   it("two moving boxes: relative motion gives the time for both", () => {
+      // a car (2 long) driving +x at 10 m/s, a pigeon hopping -z at 3 m/s, over a 0.5 s step
+      const car = box([-6, 0, -0.5], [-4, 1, 0.5]);
+      const pigeon = box([-0.3, 0, 0.7], [0.3, 1, 1.3]);
+      const carMove = { x: 5, z: 0 };
+      const pigeonMove = { x: 0, z: -1.5 };
+      const t = sweptAabbXZ(pigeon, { x: pigeonMove.x - carMove.x, z: pigeonMove.z - carMove.z }, car);
+      expect(t).not.toBeNull();
+      // at that moment both boxes, each moved by its own share, touch
+      const at = (b: AABB, d: { x: number; z: number }, k: number) =>
+         box([b.min.x + d.x * k, b.min.y, b.min.z + d.z * k], [b.max.x + d.x * k, b.max.y, b.max.z + d.z * k]);
+      expect(overlapAt(at(pigeon, pigeonMove, t! + 1e-9), { x: 0, z: 0 }, at(car, carMove, t! + 1e-9), 0)).toBe(true);
+      expect(overlapAt(at(pigeon, pigeonMove, t! - 1e-6), { x: 0, z: 0 }, at(car, carMove, t! - 1e-6), 0)).toBe(false);
+   });
+
+   it("agrees with dense sampling for random boxes and moves (no allocation, `out` untouched on a miss)", () => {
+      const rng = createRng(4242);
+      const r = (lo: number, hi: number) => lo + (hi - lo) * rng();
+      const hit: SweepHit = { time: 0, normalX: 0, normalZ: 0 };
+      let hits = 0;
+      for (let n = 0; n < 2000; n++) {
+         const cx = r(-4, 4);
+         const cz = r(-4, 4);
+         const a = box([cx - r(0.05, 1), 0, cz - r(0.05, 1)], [cx + r(0.05, 1), 1, cz + r(0.05, 1)]);
+         const b = box([r(-1, 0), 0, r(-1, 0)], [r(0, 1), 1, r(0, 1)]);
+         const d = { x: rng() < 0.15 ? 0 : r(-8, 8), z: rng() < 0.15 ? 0 : r(-8, 8) };
+         hit.time = -7;
+         const t = sweptAabbXZ(a, d, b, hit);
+         let first: number | null = null;
+         for (let i = 0; i <= 4000; i++) {
+            if (overlapAt(a, d, b, i / 4000)) {
+               first = i / 4000;
+               break;
+            }
+         }
+         if (t === null) {
+            expect(first).toBeNull();
+            expect(hit.time).toBe(-7);
+            continue;
+         }
+         hits += 1;
+         expect(t).toBeGreaterThanOrEqual(0);
+         expect(t).toBeLessThanOrEqual(1);
+         expect(hit.time).toBe(t);
+         expect(overlapAt(a, d, b, Math.min(1, t + 1e-9))).toBe(true);
+         if (t > 0) expect(overlapAt(a, d, b, t - 1e-6)).toBe(false);
+         // sampling can only find it later (it may miss a contact shorter than a sample)
+         if (first !== null) expect(first).toBeGreaterThanOrEqual(t - 1e-9);
+      }
+      expect(hits).toBeGreaterThan(200);
    });
 });

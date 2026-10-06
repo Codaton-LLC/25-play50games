@@ -11,8 +11,9 @@
 //    <instancedMesh ref={mesh} args={[undefined, undefined, CRATE_SPOTS.length]}>…</instancedMesh>
 //
 // Writes the matrices once, before the first frame, and again only when `spots` changes.
-// For things that move every frame, set matrices yourself in useFrame instead.
-// A prop that may become a GLB uses <InstancedModel> (core/assets.tsx) instead.
+// For things that move every frame, use <DynamicInstanced> (core/render) or, for a prop that may
+// become a GLB, <DynamicInstancedModel> (core/assets.tsx).
+// A static prop that may become a GLB uses <InstancedModel> (core/assets.tsx) instead.
 import { useLayoutEffect, type RefObject } from "react";
 import { Euler, Matrix4, Quaternion, Vector3, type InstancedMesh } from "three";
 

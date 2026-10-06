@@ -1,0 +1,19 @@
+{
+   "slug": "obstacle-race",
+   "universe": "shared-cast",
+   "seed": 5050,
+   "assets": [
+      {
+         "id": "finishArch",
+         "kind": "prop",
+         "mode": "text",
+         "prompt": "Inflatable finish line arch, one wide rounded inflatable tube bent into an arch on two thick legs, bright red legs and a yellow top tube, a black and white checkered banner across the top, about twice as wide as it is tall and thin from front to back, Play50 toy world style, bright vinyl toy look, smooth rounded shapes, saturated colours, friendly cartoon proportions, single isolated prop, centered, no base, no ground, no text, clean game-ready low-poly topology",
+         "tier": "Gen-2.5-Low",
+         "qualityOverride": 3000,
+         "attempts": 1,
+         "target": "obstacle-race",
+         "budget": { "tris": 5000, "bytes": 300000 },
+         "textureSize": 512
+      }
+   ]
+}

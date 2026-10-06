@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
-import { createRng, inputToWorld, randomSeed, turnTowards } from "./math";
+import { createRng, inputToWorld, randomSeed, rngNext, turnTowards, type RngState } from "./math";
 import { inputToWorld as inputToWorldFromView } from "./view";
 import { inputToWorld as inputToWorldFromInput } from "./input";
 import { capScore, submittedMs, withinServerLimits } from "./limits";
@@ -27,6 +27,32 @@ describe("createRng", () => {
          expect(seed).toBeGreaterThanOrEqual(0);
          expect(seed).toBeLessThan(2 ** 32);
       }
+   });
+});
+
+describe("rngNext (scalar mulberry32)", () => {
+   it("gives exactly createRng(seed)'s sequence for the same seed", () => {
+      for (const seed of [0, 1, 7, 123456789, 2 ** 31, 2 ** 32 - 1, -1, -123, 1.5, -1.5, 2 ** 32 + 5, 2 ** 40 + 3]) {
+         const rng = createRng(seed);
+         const state: RngState = { s: seed };
+         for (let i = 0; i < 500; i++) expect(rngNext(state)).toBe(rng());
+      }
+   });
+
+   it("keeps its whole state in the object it is given (no closure), so it can be reset and copied", () => {
+      const state: RngState = { s: 99 };
+      const first = [rngNext(state), rngNext(state), rngNext(state)];
+      expect(Number.isInteger(state.s)).toBe(true);
+      expect(state.s).toBeGreaterThanOrEqual(0);
+      expect(state.s).toBeLessThan(2 ** 32);
+      // a copy continues the same stream; a reset replays it
+      const copy: RngState = { ...state };
+      expect(rngNext(copy)).toBe(rngNext(state));
+      state.s = 99;
+      expect([rngNext(state), rngNext(state), rngNext(state)]).toEqual(first);
+      const values = Array.from({ length: 10000 }, () => rngNext(state));
+      expect(Math.min(...values)).toBeGreaterThanOrEqual(0);
+      expect(Math.max(...values)).toBeLessThan(1);
    });
 });
 
