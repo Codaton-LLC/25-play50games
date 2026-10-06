@@ -2,12 +2,13 @@
 
 // Tiny Escape Room look: a roofless office, four stations, the door and the runner stand-in.
 // Positions come from the run's layout. Opening parts are rigid transforms of existing groups.
-import { useMemo, type MutableRefObject } from "react";
+import { useLayoutEffect, useMemo, useRef, type MutableRefObject } from "react";
 import { useFrame } from "@react-three/fiber";
-import { RingGeometry, type Group, type MeshStandardMaterial } from "three";
+import { RingGeometry, type Group, type Mesh, type MeshStandardMaterial } from "three";
 import { InstancedModel, Model } from "@/arcade3d/core/assets";
 import { Instanced, type InstanceSpot } from "@/arcade3d/core/render";
 import { ASSETS } from "./assets";
+import { LOOT_AT, createCupboardShell, poseCupboard } from "./cupboard";
 import {
    DOOR_OPEN_MS,
    DOOR_POSITION,
@@ -42,6 +43,7 @@ function openAmount(phase: string, progressMs: number): number {
 interface Moving {
    drawer: Array<Group | null>;
    hinge: Array<Group | null>;
+   roof: Array<Mesh | null>;
    lid: Array<Group | null>;
    loot: Array<Group | null>;
    leaf: Group | null;
@@ -103,7 +105,8 @@ export function Room({ run, moving }: { run: EscapeRun; moving: MutableRefObject
             slide.position.x = out * (0.45 + 0.42 * open);
          }
          const hinge = parts.hinge[i];
-         if (hinge) hinge.rotation.y = (run.layout.stations[i].x < 0 ? -1.3 : 1.3) * open;
+         const roof = parts.roof[i];
+         if (hinge && roof) poseCupboard(hinge, roof, run.layout.stations[i].x < 0 ? 1 : -1, open);
          const lid = parts.lid[i];
          if (lid) lid.rotation.x = -1.15 * open;
       }
@@ -163,18 +166,7 @@ export function Room({ run, moving }: { run: EscapeRun; moving: MutableRefObject
             return (
                <group key={station.id} position={[cx, 0, station.z]} name={`station-${station.id}`}>
                   {station.kind === "cupboard" ? (
-                     <>
-                        <mesh position={[0, 0.65, 0]}>
-                           <boxGeometry args={[1.1, 1.3, 1.25]} />
-                           <meshStandardMaterial color="#57534e" roughness={0.7} />
-                        </mesh>
-                        <group ref={(g) => { set.hinge[station.id] = g; }} position={[toward * 0.56, 0.7, -0.55]}>
-                           <mesh position={[0, 0, 0.55]}>
-                              <boxGeometry args={[0.06, 1.15, 1.1]} />
-                              <meshStandardMaterial color="#78716c" roughness={0.65} />
-                           </mesh>
-                        </group>
-                     </>
+                     <Cupboard toward={toward > 0 ? 1 : -1} stationId={station.id} moving={moving} />
                   ) : null}
                   {station.kind === "drawer" ? (
                      <group ref={(g) => { set.drawer[station.id] = g; }} position={[toward * 0.45, 0.32, 0]}>
@@ -209,7 +201,7 @@ export function Room({ run, moving }: { run: EscapeRun; moving: MutableRefObject
                      </group>
                   ) : null}
                   {station.kind === "cupboard" && station.item !== -1 ? (
-                     <group ref={(g) => { set.loot[station.item] = g; }} position={[0, 0.7, 0]} visible={false}>
+                     <group ref={(g) => { set.loot[station.item] = g; }} position={LOOT_AT} visible={false}>
                         <Loot kind={station.item} />
                      </group>
                   ) : null}
@@ -252,11 +244,33 @@ export function createMoving(): Moving {
    return {
       drawer: [null, null, null, null],
       hinge: [null, null, null, null],
+      roof: [null, null, null, null],
       lid: [null, null, null, null],
       loot: [null, null, null],
       leaf: null,
       glow: null,
    };
+}
+
+/** Built in the effect: a strict-mode replay disposes that copy and the next run builds another. */
+function Cupboard({ toward, stationId, moving }: { toward: 1 | -1; stationId: number; moving: MutableRefObject<Moving> }) {
+   const host = useRef<Group>(null);
+   useLayoutEffect(() => {
+      const parent = host.current;
+      if (!parent) return;
+      const shell = createCupboardShell(toward);
+      parent.add(shell.root);
+      const parts = moving.current;
+      parts.hinge[stationId] = shell.hinge;
+      parts.roof[stationId] = shell.roof;
+      return () => {
+         if (parts.hinge[stationId] === shell.hinge) parts.hinge[stationId] = null;
+         if (parts.roof[stationId] === shell.roof) parts.roof[stationId] = null;
+         parent.remove(shell.root);
+         shell.dispose();
+      };
+   }, [moving, stationId, toward]);
+   return <group ref={host} />;
 }
 
 export interface RunnerLimbs {

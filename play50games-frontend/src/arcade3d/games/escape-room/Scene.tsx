@@ -36,6 +36,7 @@ import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { useFittedView, type FittedViewOptions } from "@/arcade3d/core/useFittedView";
 import { useRunFrame } from "@/arcade3d/core/useRunFrame";
 import { PrimitiveRunner, Room, createMoving, type RunnerLimbs } from "./Primitives";
+import { groundRingScale } from "./marker";
 import { BADGE_PX, MARKER_PX, hitsBillboard, screenSpriteSize } from "./picker";
 import {
    DOOR_ID,
@@ -248,6 +249,7 @@ function Runner({ run }: { run: EscapeRun }) {
    const gait = useRef({ phase: 0, amount: 0, lift: 0, heading: Math.PI, reach: 0, cheer: 0, side: -1 as 1 | -1 });
    const [scratch] = useState(createPose);
    const camera = useThree((s) => s.camera) as PerspectiveCamera;
+   const width = useThree((s) => s.size.width);
    const height = useThree((s) => s.size.height);
 
    const pose = useHumanoidPose((p) => {
@@ -297,9 +299,9 @@ function Runner({ run }: { run: EscapeRun }) {
       applyRunnerLimbs(pose, limbs.current);
       const mark = marker.current;
       if (mark) {
-         const side = placeBadge(camera, height, player.x, player.z, MARKER_PX);
+         const scale = groundRingScale(camera, player.x, 0.03, player.z, MARKER_PX, width, height);
          mark.position.set(player.x, 0.03, player.z);
-         mark.scale.set(Math.max(side, 0.001), Math.max(side, 0.001), 1);
+         mark.scale.set(scale, scale, 1);
       }
    });
 

@@ -1,10 +1,11 @@
-/* Checklist. One fixed 174 x 36 box, 20 px from the bottom-right corner, marked
-   data-arcade-safe-area. The words inside change; the box never does, so the camera
-   fit does not move when a message replaces the three item names. */
+/* Checklist. One fixed 174 x 36 box, 20 px from the bottom-right corner, plus the
+   safe-area inset and the cookie-banner offset. Marked data-arcade-safe-area. The words
+   inside change; the box never does, so the camera fit does not move when a message
+   replaces the three item names. */
 .panel {
    position: absolute;
    right: calc(env(safe-area-inset-right, 0px) + 20px);
-   bottom: calc(env(safe-area-inset-bottom, 0px) + 20px);
+   bottom: calc(20px + env(safe-area-inset-bottom, 0px) + var(--arcade-bottom-obstruction, 0px));
    box-sizing: border-box;
    width: 174px;
    height: 36px;
