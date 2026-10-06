@@ -1,0 +1,179 @@
+/* below the shell HUD row, which starts at the top safe-area inset (notch, viewport-fit cover) */
+.tally {
+   position: absolute;
+   top: calc(env(safe-area-inset-top, 0px) + 4.4rem);
+   left: 50%;
+   transform: translateX(-50%);
+   display: flex;
+   gap: 0.9rem;
+   padding: 0.3rem 0.85rem;
+   border: 1px solid var(--stroke);
+   border-radius: 999px;
+   background: var(--card);
+   color: var(--text, #e2e8f0);
+   font-size: 0.85rem;
+   line-height: 1.2;
+   white-space: nowrap;
+}
+
+.tally strong {
+   color: var(--accent, #f472b6);
+   font-weight: 800;
+}
+
+.feedback {
+   position: absolute;
+   top: 30%;
+   left: 0;
+   right: 0;
+   display: flex;
+   justify-content: center;
+   text-align: center;
+}
+
+.feedback p {
+   margin: 0;
+   display: flex;
+   flex-direction: column;
+   align-items: center;
+   gap: 0.2rem;
+   animation: pop 0.35s ease-out;
+}
+
+.title {
+   font-size: 2.6rem;
+   font-weight: 900;
+   letter-spacing: 0.06em;
+   line-height: 1;
+   text-shadow: 0 2px 12px rgba(0, 0, 0, 0.55);
+}
+
+.detail {
+   padding: 0.2rem 0.6rem;
+   border-radius: 999px;
+   background: var(--card);
+   color: var(--text, #e2e8f0);
+   font-size: 0.85rem;
+   font-weight: 600;
+}
+
+.goal .title {
+   color: #4ade80;
+}
+
+.miss .title {
+   color: #f87171;
+}
+
+/* the last 5 s of the aim clock: big and solid, so it reads over the stands */
+.feedback p.deadline {
+   flex-direction: row;
+   align-items: baseline;
+   gap: 0.45rem;
+   padding: 0.35rem 1.15rem 0.4rem;
+   border: 2px solid #fbbf24;
+   border-radius: 999px;
+   background: rgba(69, 26, 3, 0.92);
+   color: #fef3c7;
+   font-weight: 900;
+   line-height: 1;
+   box-shadow: 0 0 0 4px rgba(251, 191, 36, 0.22), 0 8px 24px rgba(0, 0, 0, 0.5);
+}
+
+.feedback p.deadlineUrgent {
+   border-color: #fca5a5;
+   background: rgba(185, 28, 28, 0.95);
+   color: #fff;
+   box-shadow: 0 0 0 5px rgba(248, 113, 113, 0.35), 0 8px 24px rgba(0, 0, 0, 0.5);
+}
+
+.deadlineLabel {
+   font-size: 1rem;
+   letter-spacing: 0.08em;
+   text-transform: uppercase;
+}
+
+.deadlineValue {
+   min-width: 1ch;
+   font-size: 2.1rem;
+   font-variant-numeric: tabular-nums;
+}
+
+.deadlineUnit {
+   font-size: 1rem;
+   opacity: 0.85;
+}
+
+/* above the home indicator and the cookie banner while it is open (GameShell sets the variable) */
+.bottom {
+   position: absolute;
+   bottom: calc(0.9rem + env(safe-area-inset-bottom, 0px) + var(--arcade-bottom-obstruction, 0px));
+   left: 50%;
+   transform: translateX(-50%);
+   display: flex;
+   flex-direction: column;
+   align-items: center;
+   gap: 0.3rem;
+   padding: 0.45rem 0.7rem;
+   border: 1px solid var(--stroke);
+   border-radius: 14px;
+   background: var(--card);
+}
+
+.dots {
+   display: flex;
+   gap: 0.3rem;
+   margin: 0;
+   padding: 0;
+   list-style: none;
+}
+
+.dot {
+   display: grid;
+   place-items: center;
+   width: 1.35rem;
+   height: 1.35rem;
+   border-radius: 50%;
+   font-size: 0.75rem;
+   font-weight: 900;
+   line-height: 1;
+}
+
+.dotPending {
+   border: 2px solid var(--stroke);
+}
+
+.dotGoal {
+   background: #16a34a;
+   color: #f0fdf4;
+}
+
+.dotMiss {
+   background: #b91c1c;
+   color: #fef2f2;
+}
+
+.hint {
+   margin: 0;
+   color: var(--text, #e2e8f0);
+   opacity: 0.75;
+   font-size: 0.75rem;
+   white-space: nowrap;
+}
+
+@keyframes pop {
+   from {
+      transform: scale(0.7);
+      opacity: 0;
+   }
+   to {
+      transform: scale(1);
+      opacity: 1;
+   }
+}
+
+@media (prefers-reduced-motion: reduce) {
+   .feedback p {
+      animation: none;
+   }
+}
