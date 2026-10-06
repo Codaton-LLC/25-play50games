@@ -1,9 +1,9 @@
 // Models used by Office Escape. Plain data, no three.js: index.tsx hands them to GameShell (which
 // frees the GLBs when the game closes) and Scene.tsx / Primitives.tsx render them.
 // The desk, chair, printer, coffee cart and water cooler GLBs are in core/modelManifest.ts (group A,
-// 2026-10-06); the runner is not yet, so it draws its primitive (Primitives.tsx). Swapping a model
-// in is the assets PR (file + manifest line) plus the scale here, never a scene change. Collision
-// never comes from a model (rules.ts hitboxes).
+// 2026-10-06), the shared runner since group B. Swapping a model in is the assets PR (file +
+// manifest line) plus the scale here, never a scene change. Collision never comes from a model
+// (rules.ts hitboxes).
 import type { ModelAsset } from "@/arcade3d/core/types";
 import { PROP_BUDGET, SHARED_ASSETS } from "@/arcade3d/core/sharedAssets";
 
@@ -11,8 +11,10 @@ const own = (id: string) => `/models/3d/office-escape/${id}.glb`;
 
 export const ASSETS = {
    // shared cast (src/arcade3d/assets/shared.spec.json -> public/models/3d/shared/*.glb).
-   // The runner GLB faces +z by convention and this game runs towards -z, so it is turned round.
-   runner: { ...SHARED_ASSETS.runner, rotationY: Math.PI },
+   // The runner GLB (a 1.90-tall static T-pose, animated by the core auto-rig in Scene.tsx) faces
+   // +z by convention and this game runs towards -z, so it is turned round; 0.82 draws it 1.55 m,
+   // the RunnerPrimitive's height.
+   runner: { ...SHARED_ASSETS.runner, scale: 0.82, rotationY: Math.PI },
    // Prop GLBs face +z (towards the oncoming runner) and stand on y = 0. Scales come from the GLBs'
    // measured bounds (w x h x d) and give about the README "Obstacles" drawn sizes:
    // desk 1.90 x 1.47 x 0.92 (top at 0.55) -> 1.62 x 1.25 x 0.78, top at 0.47, monitor below 0.9
