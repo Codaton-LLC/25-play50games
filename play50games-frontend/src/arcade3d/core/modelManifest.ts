@@ -11,6 +11,20 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/robot-collector/barrel.glb",
    // robot (2026-10-05): image-to-3D from the ChatGPT concept, Gen-2.5-Medium, 18k tris
    "/models/3d/shared/robot.glb",
+   // group A props (2026-10-06): text-to-3D, Gen-2.5-Medium, 1500-3000 tris
+   "/models/3d/shared/tinCan.glb",
+   "/models/3d/shared/banana.glb",
+   "/models/3d/shared/desk.glb",
+   "/models/3d/shared/chair.glb",
+   "/models/3d/office-escape/printer.glb",
+   "/models/3d/office-escape/coffeeCart.glb",
+   "/models/3d/office-escape/waterCooler.glb",
+   "/models/3d/food-catcher/apple.glb",
+   "/models/3d/food-catcher/burger.glb",
+   "/models/3d/food-catcher/sock.glb",
+   "/models/3d/warehouse-rush/shelfRack.glb",
+   "/models/3d/warehouse-rush/pallet.glb",
+   "/models/3d/obstacle-race/finishArch.glb",
 ];
 
 const LISTED: ReadonlySet<string> = new Set(MODEL_MANIFEST);

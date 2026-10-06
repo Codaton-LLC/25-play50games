@@ -35,7 +35,8 @@ Owned by Claude. Games import from here and never edit it. If a game needs somet
 | `jumpPressed`, `actionPressed` | a new Space / E / Enter keydown, a touch Jump / Action press |
 | `pressed.left / right / up / down` | a new keydown of that arrow or WASD key (auto-repeat does not count), or a swipe that way |
 | `swipe` | a quick drag on the canvas, by its dominant axis. It fires **while the finger is still moving**, as soon as it has travelled `SWIPE_MIN_PX` (30) within `SWIPE_MAX_MS` (700), once per gesture; a flick that no move event reported fires on release |
-| `tap` | a short press (at most `TAP_MAX_PX`, `TAP_MAX_MS`) without travel, at the press position |
+| `tap` | a short press (at most `TAP_MAX_PX`, `TAP_MAX_MS`) without travel, at the press position. Reported **on release** |
+| `tapDown` | the canvas pointer going down (a finger touching the canvas, the main mouse button), at that position. Reported **on the press**, before the release and whatever the gesture becomes |
 
 - Discrete moves (lane changes, grid hops) read `pressed` (keyboard and swipes in one place) instead of deriving edges from `moveX` / `moveY`: a key tapped and released between two frames never moves the axes, but it does set `pressed`. Two presses of one direction inside one frame (under about 16 ms) count once.
 - **`pressed` already includes swipes.** A swipe sets `swipe` and `pressed[direction]` on the same frame. Handle a move from `pressed` only, and do not act on `swipe` for the same move, or every swipe moves twice (two lanes, or a hop plus a queued second hop). Read `swipe` only for meanings `pressed` does not carry. A game that switches from `moveX` / `moveY` edges to `pressed` drops its `swipe` handling for those moves in the same change.
@@ -50,12 +51,34 @@ useRunFrame(() => {
 });
 ```
 
+### `tap` or `tapDown`
+
+| | `tap` | `tapDown` |
+|---|---|---|
+| When | on release, up to `TAP_MAX_MS` (350 ms) after the touch | on the frame after the finger lands |
+| A drag, a swipe, a long hold | no `tap` | `tapDown` all the same (every gesture starts with one) |
+| Use it for | select, inspect, confirm: a press that must not be a drag or a swipe (escape-room inspect, penalty-hero zones) | flap, shoot, whack, hit a target, start a charge (then `pointer.down` tells the hold), anything where a 100–350 ms wait on release feels late |
+
+- **One action reads one of them.** A short press sets both: `tapDown` on the press, `tap` on the release, and on the same frame when both happen between two frames. Acting on both acts twice.
+- **`tapDown` also starts every swipe.** A game that reads swipes (or `pressed`) and `tapDown` gets the `tapDown` first, a frame or more before the swipe is known. Use `tap` there, unless the press really should act before the swipe (for example "touch to start charging, swipe to aim").
+- Both are in pointer coordinates (-1..1, y up, like R3F), so `Raycaster.setFromCamera(tapDown, camera)` works. `tapDown` is the press position, the same point a later `tap` reports.
+- One canvas pointer at a time: the first pointer down on the canvas (for a mouse, only the main button). A second finger that lands while it is down reports no `tapDown`, `tap` or swipe. A pointer that starts on the touch controls (joystick, Jump, Action) is never the canvas pointer, so a tap beside a held joystick counts and a Jump press is `jumpPressed` only. Two presses inside one frame count once (the latest). The routing is the pure `createCanvasPointers` in `inputController.ts`.
+- A phase change drops pending events, `tapDown` included. A finger that lands during the countdown reports no `tapDown` once play starts, but its release can still be a `tap`.
+
+```ts
+useRunFrame(() => {
+   const { tapDown } = input.current;
+   if (tapDown) whack(projectToBoard(tapDown, camera)); // on touch, not on release
+});
+```
+
 ## Helpers
 
 | Need | Use | File |
 |---|---|---|
 | Game loop, input | `useRunFrame`, `useInput` (events: "Input events" above) | `useRunFrame.ts`, `input.tsx` |
 | Discrete moves | `input.current.pressed.left` etc. (keydown edges + swipes, never lost; swipes included, so do not also move on `swipe`) | `inputController.ts` |
+| Canvas presses | `input.current.tapDown` (on touch, every gesture) or `tap` (on release, short presses only); one of them per action ("`tap` or `tapDown`" above) | `inputController.ts` |
 | Crash / win animation before the result | `GameDefinition.resultDelayMs` (default 800) | `types.ts`, `GameShell.tsx` |
 | Pause-safe animation time | `useGameTime` | `gameTime.tsx` |
 | Screen-relative movement | `inputToWorld(moveX, moveY, cameraYaw, out?)` (up = away from the camera). Pure, so `rules.ts` may use it | `math.ts` (also re-exported by `view.ts` and `input.tsx`) |

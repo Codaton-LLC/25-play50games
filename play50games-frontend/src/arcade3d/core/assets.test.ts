@@ -5,7 +5,7 @@ import { renderToString } from "react-dom/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { BoxGeometry, Group, Matrix4, Mesh, MeshBasicMaterial, Vector3, type Object3D } from "three";
 import type { ModelAsset } from "./types";
-import { InstancedModel, Model, clearModelCache, modelParts, useModel, useModelFailed } from "./assets";
+import { InstancedModel, Model, assetScale, clearModelCache, modelParts, useModel, useModelFailed } from "./assets";
 import { spotMatrix } from "./render";
 
 const { useGLTF, LISTED, BROKEN, PROP, prop } = vi.hoisted(() => {
@@ -150,6 +150,18 @@ describe("instanced props", () => {
       expect(lid.x).toBeCloseTo(0, 9);
       expect(lid.y).toBeCloseTo(2.5, 9);
       expect(lid.z).toBeCloseTo(-1, 9);
+   });
+
+   it("stretch scales the GLB's own axes on top of scale, before rotationY", () => {
+      expect(assetScale({})).toEqual([1, 1, 1]);
+      expect(assetScale({ scale: 2 })).toEqual([2, 2, 2]);
+      expect(assetScale({ scale: 2, stretch: [1.5, 0.5, 1] })).toEqual([3, 1, 2]);
+      const parts = modelParts(propScene(), { scale: 2, stretch: [1.5, 0.5, 1], rotationY: Math.PI / 2, yOffset: 0.5 });
+      // lid at (0.5, 1, 0) in the model: x scaled 3 -> 1.5, y scaled 1 -> 1, then x -> -z, lifted 0.5
+      const lid = new Vector3().applyMatrix4(parts[1].matrix);
+      expect(lid.x).toBeCloseTo(0, 9);
+      expect(lid.y).toBeCloseTo(1.5, 9);
+      expect(lid.z).toBeCloseTo(-1.5, 9);
    });
 
    it("spotMatrix: translate, turn around +y, scale", () => {
