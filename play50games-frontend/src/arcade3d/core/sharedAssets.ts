@@ -61,13 +61,60 @@ export const ROBOT_LANDMARKS: HumanoidLandmarks = {
    neckBlend: 0.015,
 };
 
+/**
+ * The runner's joints (GLB units: 1.79 x 1.90 x 0.48 T-pose, faces +z, hoodie, joggers, sneakers),
+ * measured from runner.glb (2026-10-06, the same recipe as the robot's; rig/runner.test.ts). The
+ * estimate finds nearly all of them; set by eye:
+ * - hemY = crotchY (no skirt weights): the estimate took the close inner thighs of the joggers for
+ *   cloth bridging the legs (hem 0.648) and would have skirt-weighted the thighs' front;
+ * - hipZ -0.05 (estimate -0.074, the shins' middle): between the thighs' middle (about -0.03) and
+ *   the knees' (-0.065), so the legs swing about their own axis; legDepth widened with it;
+ * - ankleY 0.19 with a 0.03 blend (estimate 0.16 / 0.049): the sneakers (up to about 0.15) are rigid;
+ * - armSpread 0.16 rad = 9° (estimate 0.145): the hanging hands clear the hips with a little room.
+ */
+export const RUNNER_LANDMARKS: HumanoidLandmarks = {
+   shoulderY: 1.386,
+   shoulderX: 0.244,
+   shoulderZ: -0.003,
+   armRadius: 0.063,
+   clavicleX: 0.122,
+   elbowX: 0.472,
+   wristX: 0.699,
+   armSpread: 0.16,
+   crotchY: 0.79,
+   hipY: 0.874,
+   hipX: 0.15,
+   hipZ: -0.05,
+   kneeY: 0.437,
+   ankleY: 0.19,
+   toeZ: 0.211,
+   heelZ: -0.156,
+   legDepth: 0.09,
+   legOuterX: 0.273,
+   hemY: 0.79,
+   spineY: 1.027,
+   chestY: 1.181,
+   neckY: 1.573,
+   headY: 1.589,
+   spineZ: -0.005,
+   shoulderBlend: 0.038,
+   elbowBlend: 0.031,
+   hipBlend: 0.087,
+   kneeBlend: 0.066,
+   ankleBlend: 0.03,
+   crotchBlend: 0.073,
+   spineBlend: 0.046,
+   neckBlend: 0.012,
+};
+
 export const SHARED_ASSETS: Record<SharedAssetId, ModelAsset> = {
    // Rodin characters come as static T-poses: the core auto-rig (core/rig) animates them. The
-   // runner's landmarks are estimated until runner.glb exists (then measured like the robot's).
+   // runner is 1.90 tall in GLB units: a game sets `scale` for its own drawn height (office-escape
+   // 0.82 = 1.55 m, obstacle-race 0.79 = 1.50 m).
    runner: {
       id: "runner",
       url: shared("runner"),
-      humanoid: {},
+      humanoid: { landmarks: RUNNER_LANDMARKS },
       fallback: "capsule",
       fallbackColor: "#f97316",
       budget: { ...CHARACTER_BUDGET },
