@@ -5,13 +5,14 @@ Owner: Claude. Slug: `obstacle-race`. Game 10 of the 3D Arcade: the only time tr
 | File | What it owns |
 |---|---|
 | `meta.ts` | Card data and `scoring` (must equal `arcade-games.json`). Plain data, server-safe. Unchanged by the build except `thumbnail`. |
-| `index.tsx` | The `GameDefinition`: Scene, assets, `physics: true` (the debris layer only), `durationMs: 300000`, camera, environment, `touchControls: ["joystick", "jump"]`, `hudStats`, instructions, `resultDelayMs`, `finalScore` (the exact finish ms). |
-| `rules.ts` | Everything that decides the outcome: the fixed course as data, the integer-ms clock, kinematic movement with closed-form jumps, collisions, the moving obstacles as functions of rules time, the bar knock, checkpoints, falls and respawns, the finish, the proof constants. Pure: no three.js, React, DOM, Rapier, `Math.random` or `Date.now`. |
-| `rules.test.ts` | Vitest for `rules.ts`: the golden constants, course checks, movement, obstacles, checkpoints, and the minimum-time proof driven through the real store clock. |
-| `camera.test.ts` | The fit table below, from core `fitView` with the fixture rects, and the runner inside the window at every course width. |
-| `Scene.tsx` | The frame loop: maps input, calls `step`, reports events to the store, keeps the follow point, places the fitted follow camera (and cuts it on a respawn), draws the run. |
+| `index.tsx` | The `GameDefinition`: Scene, assets, `physics: true` (the debris layer only), no `durationMs` (the rules own the 300 s cap, so the shell shows "Played" counting up), camera, environment, `touchControls: ["joystick", "jump"]`, `hudStats`, instructions, `resultDelayMs`, `finalScore` (the exact finish ms). |
+| `rules.ts` | Everything that decides the outcome: the fixed course as data, the integer-ms clock and its 300 s cap, kinematic movement with closed-form jumps, collisions, the moving obstacles as functions of rules time, the bar knock, checkpoints, falls and respawns, the finish, the proof constants. Pure: no three.js, React, DOM, Rapier, `Math.random` or `Date.now`. |
+| `rules.test.ts` | Vitest for `rules.ts`: the golden constants, course checks, movement, obstacles, checkpoints, the minimum-time proof driven through the real store clock, and "nothing flows back" from the debris layer. |
+| `camera.test.ts` | The fit table below, from core `fitView` with the fixture rects; the runner, every section's full width and the next landing target inside the window. |
+| `Scene.tsx` | The frame loop: maps input, calls `step`, reports events to the store (`end("timeup")` included), keeps the follow point, places the fitted follow camera (and cuts it on a respawn), draws the run. |
 | `Primitives.tsx` | Course look: pads, bridges, pillars, the sweeper disc, hub and bar, the blocks, the beam, the water, checkpoint gates, the stand-in runner and the stand-in arch. |
-| `Debris.tsx` | The Rapier layer: foam cubes the runner can kick into the pool. Never read by the rules. |
+| `debrisPose.ts` | The pure part of the debris layer: `debrisPose(run, stepping, sink)`, from a read-only `run` and whether Rapier steps this frame (phase `"playing"`), the pose of the runner capsule, the bar, the blocks and the beam, and whether each one moves or teleports this frame. Writes into a sink, never into `run`; no Rapier import. |
+| `Debris.tsx` | The Rapier layer: foam cubes the runner can kick into the pool. Feeds `debrisPose.ts`'s poses to the bodies. The only file that imports `@react-three/rapier`. Never read by the rules. |
 | `assets.ts` / `assets.spec.json` | Models used (`ModelAsset`s) / the Hyper3D spec for the one model only this game generates (the finish arch). |
 
 ### What a new game copies from here
@@ -21,7 +22,7 @@ Owner: Claude. Slug: `obstacle-race`. Game 10 of the 3D Arcade: the only time tr
   1. **A distance proof for a time game.** A cap on forward progress per rules ms, plus a respawn that never lands ahead of where the runner already was, gives a minimum finish time from the course length alone. No obstacle has to be part of the proof.
   2. **Fixed 1 ms steps with closed-form jumps.** The arc depends only on the ms since take-off, so a jump is the same at 30, 60 or 144 fps.
   3. **The exact finish ms.** The rules record the ms in which the finish happened; the Scene publishes it with `setStat("finishMs")` before `end("win")`, and `finalScore` submits it, so the frame rate never costs a player time.
-  4. **Rapier for looks only.** Physics bodies are posed from the rules every frame and nothing flows back.
+  4. **Rapier for looks only.** Physics bodies are posed from the rules every frame and nothing flows back. A jump in a pose (a respawn, a run start, a pose set while Rapier is paused) is a teleport, never a swept kinematic move.
   5. **A fitted window around a follow point.** `useFittedView` fits a box *relative to* the followed point, with the camera's lag as `focus`, so the fit holds anywhere on a 126 m course.
 - **Do not copy:** the playground primitives, the debris, the runner tumble. They are decoration for this game.
 
@@ -54,8 +55,9 @@ The design question was (A) Rapier bodies for the runner and the obstacles, with
 
 - 4 stacks of 6 foam cubes (0.45 m) at the edges of the start pad and the three checkpoint pads, away from the spawn line. The runner can kick them over and into the pool. One `<InstancedRigidBodies>` (24 cubes, one draw call); a cube below −2.2 m sinks out of sight and sleeps.
 - Every solid of the course is mirrored as a fixed collider, built from the same `COURSE` data the rules use. The bar, the blocks and the beam are kinematic bodies posed every frame from the rules functions, so a cube on the disc gets swept into the pool. The runner is a kinematic capsule posed from `run` after each step: it pushes cubes and is never pushed.
-- **Nothing flows back.** The rules never import Rapier, and the Scene never writes a Rapier result into `run`. The browser test runs one scripted input with `physics: true` and with `physics: false` and requires the same `finishMs`.
-- **Cut line.** The build PR measures the layer on a mid-phone profile (Chrome, 4× CPU throttle, Fast 4G): Rapier's step under 1 ms per frame, and "ready" no more than 1.5 s later than without it. If either fails, it ships with `physics: false` and without `Debris` (no chunk, no cost). Rules, proof, camera and leaderboard are the same either way.
+- **Teleports are placed, not swept.** `setNextKinematicTranslation` / `setNextKinematicRotation` turn a pose change into a velocity for the next step, so a jump in the pose would launch every cube it touches. A respawn moves the runner up to about 25 m (water to the checkpoint line), and while Rapier is paused (core `PhysicsGate`: every phase but `"playing"`) the Scene keeps turning the bar for looks, so the first step after "Go" would sweep it from the pose Rapier last stepped (the 3 s countdown turns it 3.3 rad, all in one 1/60 s step). `debrisPose.ts` therefore marks a pose as a **teleport**, written with `setTranslation(…, true)` / `setRotation(…, true)` (no swept velocity), on mount, whenever `run.respawns` changes, in every frame where Rapier does not step (phase not `"playing"`), and whenever a body would move more than 1 m in one frame (a guard). Only an ordinary step uses `setNextKinematic*`.
+- **Nothing flows back.** The rules never import Rapier, and the Scene never writes a Rapier result into `run`. This is proven in vitest, not in the browser (frame times vary between headless runs, so two browser runs of one key script never give the same `finishMs`, with or without Rapier): a source check that `@react-three/rapier` and `@dimforge` appear only in `Debris.tsx` (not in `rules.ts`, `debrisPose.ts` or `Scene.tsx`, and `Scene.tsx` never calls a body's `translation()`, `linvel()` or `rotation()`); and one fixed frame list replayed through `step()` twice, once with `debrisPose` writing into a recording stub sink after every frame and once without it, ending in deep-equal run states, with `run` deep-equal before and after every `debrisPose` call.
+- **Cut line.** The build PR measures the layer on a mid-phone profile (Chrome, 4× CPU throttle, Fast 4G): Rapier's step under 1 ms per frame, and "ready" no more than **0.5 s** later than without it. `PhysicsGate` suspends the Scene until the chunk (767 KB gzipped) has loaded and its WASM has started, so the start screen waits for 24 decorative cubes. That is worth half a second at most. If either measurement fails, the game ships with `physics: false` and without `Debris` (no chunk, no cost), and the debris returns in its own follow-up PR once the measurement passes. Rules, proof, camera and leaderboard are the same either way.
 - **No ragdoll.** The shared runner has no concept art yet, a ragdoll needs a rigged skeleton with about ten bodies and joints, and a fall lasts under 1.5 s before the respawn cut. A scripted tumble (spin, flailing limbs on the primitive) reads the same on a phone.
 
 ## Constants
@@ -65,19 +67,19 @@ The design question was (A) Rapier bodies for the runner and the obstacles, with
 | Name | Value |
 |---|---|
 | Rules time | whole ms (`simMs`), fixed **1 ms steps**, at most 50 per frame (`useRunFrame` dt ≤ 1/20 s). The fraction is carried to the next frame. |
-| Runner | circle radius 0.35 in x/z, height 1.5 (feet to head), drawn 1.5 tall. Spawns at x = 0, feet y = 0, p = 0, facing forward. |
-| Run speed | `V_RUN` **6.0 m/s** at full stick; the stick is analog. Acceleration 40 m/s² on the ground (also braking), 20 m/s² in the air. |
+| Runner | circle radius 0.35 in x/z, height 1.5 (feet to head), drawn 1.5 tall. Starts at x = 0, feet y = 0, p = 0, facing forward, at rest, in state **run** (the countdown is the start freeze; `SPAWN_MS` applies to respawns only). |
+| Run speed | `V_RUN` **6.0 m/s** at full stick; the stick is analog. Acceleration 40 m/s² on the ground (also braking), 20 m/s² in the air. From rest, full speed takes 150 ms and 0.453 m (1 ms steps: ease, then move). |
 | Jump | gravity `G` 25 m/s², `V_JUMP` 8.5 m/s, closed form `y = y0 + 8.5·t − 12.5·t²`: apex **1.445 m** at 340 ms, **680 ms** in the air on the flat. |
-| Coyote / buffer | 100 ms / 120 ms, inclusive. |
+| Coyote / buffer | 100 ms / 120 ms, inclusive. Gravity runs from the walk-off ms, so a coyote jump starts from the fall's current height (`y0` at most 0.125 m below the top). |
 | Support grace | `FOOT` 0.2: the runner stands on a top while its centre is within 0.2 m outside the top's edge. |
 | Carry | grounded on a block: the block's own Δx each ms; on the beam: the slide. In the air the take-off carry is kept (launch carry). **x only, never z.** |
 | Sweeper | disc radius 6, top 0. Hub radius 0.7, 1.6 tall, solid, not a support. One bar through the hub: arms out to 5.9, 0.35 thick, 0.25–0.70 m above the disc. ω 1.1 rad/s (period 5712 ms), angle `ω · simMs / 1000`, along ±x at 0. |
-| Knock | a bar hit flings the runner off the disc: vx = 12 m/s away from x = 0 (+x at x = 0), vy = 8, vz = 0, no collisions, no input. |
+| Knock | a bar hit flings the runner off the disc: vx = 12 m/s away from x = 0 (+x at x = 0), vy = 8, vz = 0, no collisions, no input. The sideways part stops (vx = 0) in the first ms in which the runner's circle overlaps no top any more (the disc, the bridges): \|x\| ≤ 6 + 0.35 = **6.35**, reached within 529 ms, before the feet are back at the top's height (640 ms). The runner then drops straight into the pool, in view (Scene and camera). |
 | Blocks | 5 slabs, 2.4 (x) × 2.2 (z) × 0.6, top 0. x = 2.4 · (2s − 1) with s = smoothstep of a triangle wave (`u = frac(t / 4000 + φ)`, `w = 1 − |2u − 1|`, `s = w²(3 − 2w)`), phases φ = 0, ½, ¼, ¾, ½. Top speed 3.6 m/s, smooth turns, no trig. |
 | Beam | 20 × 1.0, top 0. Slide `v = 1.8 · (2s − 1)` m/s along x, the same wave with period 3200 ms. Drawn tilting ±10° in phase. |
 | Kill plane | feet below `KILL_Y` −1.5: the runner is lost. Water drawn at −2.0. |
 | Lost / spawn | `LOST_MS` 600 in the water, then a respawn at the active checkpoint and `SPAWN_MS` 300 frozen. The clock keeps running. |
-| Run limit | `DURATION_MS` 300000 (= `timeBaseMs`): GameShell's `"timeup"`, unranked. |
+| Run limit | `DURATION_MS` 300000 (= `timeBaseMs`), owned by the rules: the ms that brings `simMs` to 300000 moves nothing and reports `timeup`; the Scene calls `end("timeup")`, unranked. The definition has no `durationMs`. |
 | Bound | `MIN_FINISH_MS` = ceil(116 / 0.006) = **19334** (proof). |
 
 ## The course
@@ -137,7 +139,7 @@ p   8   +--+  +--+
 p  -4   +--------+
 ```
 
-Every gap and every move has room to spare (`V_RUN` × the time to land at that rise; minimum travel = the gap minus both 0.2 m edge graces; neighbouring platforms overlap in x, so the shortest jump is straight forward):
+Every gap and every move has room to spare (`V_RUN` × the time to land at that rise, a plain jump from the top's height without coyote run-on: the reach a player can count on; minimum travel = the gap minus both 0.2 m edge graces; neighbouring platforms overlap in x, so the shortest jump is straight forward). The skip check below uses the opposite, the most the rules allow:
 
 | Jump | Gap | Rise | Time to land | Reach at full speed | Minimum travel | Share of the reach |
 |---|---|---|---|---|---|---|
@@ -150,7 +152,21 @@ Every gap and every move has room to spare (`V_RUN` × the time to land at that 
 - **Blocks never force a wait.** In the worst instant two neighbouring blocks are 4.8 m apart (centres, opposite ends). Landing needs the centre within 1.4 of the target's centre, so the runner needs 3.4 m sideways and 1.2 m forward in 680 ms: 5.3 m/s, under 6. Waiting for a better moment is a choice, not a rule. A runner standing on a block reaches at most 0.55 m past its front edge, and the next row is 1.6 m away, so a sliding block never touches a runner on the block behind it.
 - **The bar can be jumped wherever it is fast enough.** Feet stay above its 0.70 m top for 488 ms of a jump (96–584 ms after take-off). The bar takes `(0.35 + 0.7) / (1.1 · r)` to pass a runner at radius r: 477 ms at r = 2, 318 ms at 3, 162 ms at the tip. Inside r ≈ 1.96 it is too slow to clear, so the line past the hub is at |x| ≥ 2 (or between two sweeps).
 - **The beam can always be held.** The slide is at most 1.8 m/s; countering it at full stick still leaves 5.7 m/s forward.
-- **No section can be skipped.** The longest jump the rules allow anywhere, a 1.5 m drop with both edge graces, covers 5.35 m. The shortest distance from any platform to the one after the next is 5.4 m (CP2 → B2, between blocks, B4 → CP3; 7.2–7.6 m among the jump platforms). The disc (12 m) and the beam (20 m) are only crossed on foot. So every obstacle must be passed, in order. Side walls are not needed: the pool beside the course is the wall, and the proof below needs neither walls nor this paragraph.
+- **No section can be skipped.** The longest forward reach of a jump, edge to edge, counts everything the rules allow: the 0.2 m support grace at take-off, a full 100 ms of coyote run-on (+0.6 m at 6 m/s), the flight from the coyote fall's height, and the 0.2 m grace at the landing:
+
+  `reach(dy) = 0.2 + V_RUN · 0.1 + V_RUN · t_land(dy, y0 = −½ · G · 0.1²) + 0.2`, where `t_land` solves `y0 + 8.5·t − 12.5·t² = dy` on the way down and `dy` is the target top minus the take-off top. The reach grows with the coyote time, so 100 ms is the worst case. Carry (blocks, beam, launch carry) is x only, so it never adds forward reach.
+
+  | Skip (a support to the one after the next) | Distance in p | dy | Reach | Margin |
+  |---|---|---|---|---|
+  | CP1 → J2, J1 → J3 | 7.2, 7.4 | +1.0 | 4.00 m | ≥ 3.2 |
+  | J2 → J4 | 7.6 | 0 | 4.99 m | 2.6 |
+  | J3 → J5, J4 → CP2 | 7.6, 7.4 | −1.0 | 5.63 m | ≥ 1.77 |
+  | J5 → B1 (over CP2) | 10.0 | −0.5 | 5.33 m | 4.7 |
+  | CP2 → B2, B1 → B3, B2 → B4, B3 → B5, B4 → CP3 | 5.4 | 0 | **4.99 m** | **0.41** |
+  | B5 → beam (over CP3) | 7.6 | 0 | 4.99 m | 2.6 |
+  | bridge A → bridge B (over the disc) | 10.0 | 0 | 4.99 m | 5.0 |
+
+  The tightest skips are the 5.4 m ones between supports at the same height: a flat reach of 4.99 m leaves 0.41 m. The largest reach anywhere, a 1.5 m drop, is 5.89 m, but no skip pair has a drop of more than 1.0 m, and the drop pairs are at least 7.4 m apart. The beam (20 m) is only crossed on foot, and every run lands on the disc at least once (10 m between the bridges). So every obstacle must be passed, in order. Side walls are not needed: the pool beside the course is the wall, and the proof below needs neither walls nor this paragraph.
 
 ## Rules
 
@@ -159,24 +175,24 @@ Every gap and every move has room to spare (`V_RUN` × the time to land at that 
 `step(run, dtMs, input)` runs once per `useRunFrame`, with `dtMs = dt · 1000`. `input` is one object per run (`createStepInput()`), rewritten every frame: `moveX`, `moveZ` (the stick mapped with `inputToWorld(…, 0)`, length at most 1) and `jumpPressed`. A step with dtMs ≤ 0 or NaN does nothing.
 
 1. **Clock.** Add `dtMs` to the carried remainder, take its whole ms (at most 50), keep the fraction in [0, 1). `simMs` therefore never runs ahead of the store's `elapsedMs` and lags it by under 1 ms (as warehouse-rush). A jump press is latched once per frame (it starts the 120 ms buffer at the frame's first ms).
-2. **Each ms**, `simMs += 1`, the obstacles move to their place at `simMs`, then the runner's state acts:
+2. **Each ms**, `simMs += 1`. **Cap first:** if `simMs` is now `DURATION_MS` (300000), the ms moves nothing, `events.timeup` is set, and this and every later step do nothing (as after the finish). So the last ms that can move or finish is 299999, and a finish in an earlier ms of the same frame stops the step before the cap is reached. (warehouse-rush's `advanceClock` caps its clock at `DURATION_MS` and reports `"timeup"` the same way; here the cap is checked per ms, so the earlier ms of that frame still run.) Otherwise the obstacles move to their place at `simMs`, then the runner's state acts:
    - **run:**
      1. carry: on a block, add the block's Δx for this ms; on the beam, add the slide;
      2. jump if a press is buffered and the runner is grounded or within coyote time: `vy = 8.5`, airborne, launch carry = this ms's carry;
      3. ease the input velocity towards `V_RUN · stick` (40 or 20 m/s²) and cap it at 6 m/s;
      4. move x/z by input velocity + carry;
-     5. vertical: airborne `y` from the closed form; a **landing** is a descending crossing of a support's top (feet at or above it before, below it after) with the centre over it (`FOOT` grace); grounded with no support under the centre any more = walked off (coyote starts);
+     5. vertical: airborne `y` from the closed form; a **landing** is a descending crossing of a support's top (feet at or above it before, below it after) with the centre over it (`FOOT` grace); grounded with no support under the centre any more = walked off (airborne with vy = 0 from this ms, so gravity runs; coyote starts);
      6. **side collisions:** circle against every solid whose span overlaps the runner's (feet below its top, head above its bottom): pads, bridges, pillars, blocks, beam, the hub and the arch posts are pushed out of (`resolveSphereAabb`, circles for the disc's rim, the hub and the posts);
      7. **progress guard:** the step without its carry (input plus push-outs) is scaled back to at most 6 mm. Carry has no z part, so **p moves at most 6 mm per ms**. If the trimmed position would end inside a static solid, the runner keeps last ms's position instead (it was valid, and not moving passes the guard). An overlap with a block that the trim leaves (at most one ms of block motion, 3.6 mm) is resolved by the next ms. The guard only bites on rare corner grazes (a block's front corner sliding into an airborne runner adds a fraction of a mm forward), but without it the proof would need an allowance;
      8. **bar:** feet below 0.70 over the disc and the circle overlapping the bar's rectangle (in the bar's rotating frame) = knocked;
      9. feet below `KILL_Y` = lost;
      10. **checkpoint:** grounded on the next checkpoint's pad with p ≥ its line activates it (in order only: k + 1 after k);
      11. **finish:** grounded on the finish pad with p ≥ 116 and checkpoint 3 active = finished, `finishMs = simMs`, once. Later steps do nothing.
-   - **knocked:** the fling (x and y only, ghost), no input. Feet below `KILL_Y` = lost. The fling clears the disc's edge before it comes down: |x| grows by 12 · 0.64 = 7.68 m before the feet are back at 0, past the 6 m rim, and z never changes.
+   - **knocked:** the fling (x and y only, ghost), no input. The sideways part stops in the first ms in which the circle overlaps no top (disc or bridge); y keeps the closed form. Feet below `KILL_Y` = lost (792 ms after the hit). The fling clears every top before it comes down: \|x\| reaches 6.35, the most it needs, within 6.35 / 12 = 529 ms, and the feet are back at the top's height only at 640 ms. z never changes, and \|x\| never exceeds 6.35, so the camera keeps the splash in view.
    - **lost:** no motion (the Scene sinks the runner with a splash). After `LOST_MS`: respawn at (0, top, p = line) of the active checkpoint, velocity and carry 0, grounded, state spawn.
    - **spawn:** no motion, no input, for `SPAWN_MS`; then run.
 
-The step reports what happened in `run.events`, one object reset at the start of every step: `jumped`, `landed`, `checkpoint` (index or −1), `knocked`, `lost`, `respawned`, `finished`. The run keeps `simMs`, `finishMs`, the active checkpoint, `respawns`, `maxP` (the furthest p reached, for tests) and `groundY` (the top of the last support, for the camera). `createRun(course = COURSE)` makes everything once; nothing is allocated after it. Taking the course as data lets the tests run a flattened course (Test plan).
+The step reports what happened in `run.events`, one object reset at the start of every step: `jumped`, `landed`, `checkpoint` (index or −1), `knocked`, `lost`, `respawned`, `finished`, `timeup`. The Scene calls `end("win")` on `finished` (after `setStat("finishMs")`) and `end("timeup")` on `timeup`. The run keeps `simMs`, `finishMs`, the active checkpoint, `respawns`, `maxP` (the furthest p reached, for tests) and `groundY` (the top of the last support, for the camera). `createRun(course = COURSE)` makes everything once; nothing is allocated after it. Taking the course as data lets the tests run a flattened course (Test plan).
 
 ### Obstacles
 
@@ -205,7 +221,8 @@ This is a **time game**: `kind: "time"`, `timeBaseMs` 300000, `maxScore` 30000, 
 
 | Finish time | Score |
 |---|---|
-| 19.334 s (the bound, unreachable with obstacles) | 28066 |
+| 19.334 s (the proof bound, unreachable) | 28066 |
+| 19.408 s (a flat course, straight line from rest) | 28059 |
 | 28.000 s | 27200 |
 | 45.000 s | 25500 |
 | 1:30.000 | 21000 |
@@ -243,36 +260,37 @@ The server accepts a time run only if `15000 ≤ duration_ms ≤ 300000` (its sc
 | Checkpoint 3 | 88.6 | 14767 |
 | **Finish** | **116** | **19334** (`MIN_FINISH_MS`) |
 
-5. **Submitted duration.** `finalScore` submits `finishMs` (a whole number, so `normalizeRun`'s rounding leaves it), with `19334 ≤ finishMs ≤ elapsedMs`. `useRunFrame` runs only while the store is playing, and the store ends the run as `"timeup"` in the tick where `elapsedMs` reaches 300000, so a win has `elapsedMs < 300000`. Thus **19334 ≤ duration_ms ≤ 299999**, inside 15000–300000, and the score is at most `floor(280666 / 10)` = **28066 ≤ 30000**.
-6. **Non-wins.** The time-up (300000 ms, idle or lost runs) and quit are unranked and never sent.
-7. **Margin.** The bound is 4.33 s (29 %) above the server's floor, and it is a straight line at full speed through the hub, across every gap without waiting. Real wins are far slower (next section). The rounding the server sees cannot lower it: the duration is a whole number of ms already.
+5. **Submitted duration.** `finalScore` submits `finishMs` (a whole number, so `normalizeRun`'s rounding leaves it), with `19334 ≤ finishMs ≤ elapsedMs`. The rules cap their own clock: the ms that brings `simMs` to 300000 moves nothing and ends the step with `timeup` (One step, 2), so a finish happens at `simMs ≤ 299999`. Thus **19334 ≤ duration_ms ≤ 299999**, inside 15000–300000, and the score is at most `floor(280666 / 10)` = **28066 ≤ 30000**. (The store has no `durationMs`, so it never ends the run on its own; `end` is idempotent, and after `finished` or `timeup` the step does nothing.)
+6. **Non-wins.** The time-up (the rules' `timeup` at `simMs` 300000, for idle or lost runs; the Scene calls `end("timeup")`) and quit are unranked and never sent.
+7. **Margin.** The bound is 4.33 s (29 %) above the server's floor, and it is a straight line at full speed from the first ms through the hub, across every gap without waiting. It is tight up to the 150 ms acceleration ramp: from rest, full speed is reached after 0.453 m instead of 0.9 m, so even a flat course takes 19408 ms (Test plan). Real wins are far slower (next section). The rounding the server sees cannot lower it: the duration is a whole number of ms already.
 
 **The limits in `meta.ts` and `arcade-games.json` are correct and unchanged.** Optional, for the assets + limits PR (the user decides): raise `minDurationMs` to 19000. An honest client can never go below 19334, so the server would then reject forged sub-19 s claims too. The golden test ties it: `MIN_FINISH_MS ≥ minDurationMs + 300`, so a later speed or course change that breaks it fails the build.
 
 ### What real play will score (design estimate)
 
-Not measured yet; the build PR's speedrun bot replaces these numbers with its pinned time. The straight line is 19.3 s. The hub detour, a bar jump or a wait for a sweep (up to 2.9 s between sweeps of one spot), five platform jumps at full speed, five block jumps with some waiting, and the beam at about 5 m/s with corrections put a perfect run around **26–30 s** (score about 27000–27400). A first good run with one or two falls: 45–70 s. Every fall costs 1.2–1.7 s plus the way back.
+Not measured yet; the build PR's speedrun bot replaces these numbers with its pinned time. The straight line from rest is 19.4 s. The hub detour, a bar jump or a wait for a sweep (up to 2.9 s between sweeps of one spot), five platform jumps at full speed, five block jumps with some waiting, and the beam at about 5 m/s with corrections put a perfect run around **26–30 s** (score about 27000–27400). A first good run with one or two falls: 45–70 s. Every fall costs 1.2–1.7 s plus the way back.
 
 ## Scene and camera
 
-- **Follow camera, no yaw.** The course runs up the screen on every device (`yaws: [0]`), so up on the stick is always forward. The camera follows a point `F` that the Scene updates in `useRunFrame` after the step, except while knocked or lost:
-  - `F.x = 0.6 · runner.x` (`FOLLOW_X`: the camera drifts with the runner, the course centre stays in view);
-  - `F.y = run.groundY`, the top of the last support (the camera rises a step when the runner lands higher; it does not bob with jumps);
+- **Follow camera, no yaw.** The course runs up the screen on every device (`yaws: [0]`), so up on the stick is always forward. The camera follows a point `F` that the Scene updates in `useRunFrame` after the step, in every state (run, knocked, lost, spawn), except between a respawn and the cut:
+  - `F.x = 0.3 · runner.x` (`FOLLOW_X`: the camera drifts with the runner, the course around it stays in view; why 0.3 below);
+  - `F.y = run.groundY`, the top of the last support (the camera rises a step when the runner lands higher; it does not bob with jumps, and it holds while knocked or falling);
   - `F.z = runner.z`.
 
-  While knocked or lost `F` holds still: the player sees the runner fly into the pool. On a respawn the camera **cuts** to the checkpoint: the `CameraRig` is keyed by `run.respawns` (a follow rig snaps on mount, core), during the 300 ms spawn freeze. A small component compares `run.respawns` in a `useFrame` and sets its key state only when it changed, so React renders once per respawn, never per frame.
+  While knocked, `F` keeps following at `FOLLOW_X` (the fling moves it sideways at 0.3 · 12 = 3.6 m/s, and z not at all), and the fling stops sideways at \|x\| ≤ 6.35, so the player sees the runner fly off and splash into the pool. While lost the runner does not move, so neither does `F`. On a respawn the camera **cuts** to the checkpoint: the `CameraRig` is keyed by `run.respawns` (a follow rig snaps on mount, core), during the 300 ms spawn freeze. A small component compares `run.respawns` in a `useFrame` and sets its key state only when it changed, so React renders once per respawn, never per frame. **F holds until the cut:** from the respawn step until the rig keyed with the new count has mounted, the Scene does not update `F`, so the outgoing rig (still easing towards `F` for the one to three frames React takes) never sees the checkpoint and cannot swoop about 25 m towards it. The new rig's wrapper writes the new `F` in a layout effect, which runs before the rig's own mount effect snaps the camera to it; from then on `F` follows as above.
 - **A fitted window around F.** `useFittedView` is translation-invariant, so `area` is a box relative to `F` at the origin: the runner (its body, a jump's apex 2.95 m above the ground), the course around it and the course ahead. Two module-level views, picked by aspect (a rotation refits):
 
 ```ts
-const LAG: AABB = { min: { x: -0.75, y: -0.5, z: -0.8 }, max: { x: 0.75, y: 0.5, z: 0.8 } };
+const FOLLOW_X = 0.3;
+const LAG: AABB = { min: { x: -0.45, y: -0.5, z: -0.8 }, max: { x: 0.45, y: 0.5, z: 0.8 } };
 const FOCUS = followFocus({ lookAt: [0, 0, 0], reach: LAG, fraction: 1 });
 const PORTRAIT = {             // width < height
-   area: { min: { x: -3.2, y: -1, z: -22 }, max: { x: 3.2, y: 3, z: 2 } },
+   area: { min: { x: -4.8, y: -1, z: -22 }, max: { x: 4.8, y: 3, z: 0.5 } },
    pitch: (45 * Math.PI) / 180, fov: 60,
    yaws: [0], focus: FOCUS, margin: { top: 0.02, right: 0.02, bottom: 0.02, left: 0.02 }, padding: 8, shift: true,
 };
 const LANDSCAPE = {            // width >= height
-   area: { min: { x: -4, y: -1, z: -11 }, max: { x: 4, y: 3, z: 2 } },
+   area: { min: { x: -4.8, y: -1, z: -11 }, max: { x: 4.8, y: 3, z: 0.5 } },
    pitch: (40 * Math.PI) / 180, fov: 50,
    yaws: [0], focus: FOCUS, margin: { top: 0.02, right: 0.02, bottom: 0.02, left: 0.02 }, padding: 8, shift: true,
 };
@@ -280,19 +298,23 @@ const LANDSCAPE = {            // width >= height
 //    followFraction={1} offset={view.offset} shift={view.shift} damping={8} />
 ```
 
-- **Lag in the fit.** `CameraRig` eases with damping 8, so it trails a target moving at v by at most v / 8. F moves forward at most 6 m/s (0.75 m) and sideways at most 0.6 · (6 + 3.6) = 5.8 m/s (0.72 m); `groundY` steps by at most 0.5 m per landing. `LAG` covers these, and `focus` is its corners, so the window stays on screen while the camera catches up.
-- **The runner stays inside the window.** Relative to F it sits at `0.4 · x`: at most 0.4 · 6.2 + 0.35 = 2.83 m from the centre on the disc (the widest part), inside ±3.2 (portrait) and ±4 (landscape).
-- **Fitted views** (core `fitView`, run for this README; the same inputs as the core fixtures: shell HUD groups `{10, 10, 218, 52}` and `{w − 104, 10, w − 10, 54}`, joystick 132 px and Jump 72 px at 20 px from the bottom corners, both lifted by the cookie banner, the banner as an obstruction). "Window" is the window box on screen with the camera at rest; "gaps" are the closest px from its outline to the HUD, the joystick and Jump at rest. "Binds" is what stops the fit from coming closer, with the camera at the worst corner of `LAG` (2 % margins; 8 px padding for the rects). `camera.test.ts` pins the table (±0.5 px).
+- **Why `FOLLOW_X` 0.3 and ±4.8 m.** The window shows `F.x ± 4.8`, and the runner sits at `0.7 · x` from F. Two needs pull against each other:
+  - **Every section's full width and the next landing target.** For a lane of half-width W (the runner's centre up to W + 0.2 with the edge grace), the whole lane is in the window only if `area.x ≥ W + FOLLOW_X · (W + 0.2)`. The widest lane with a moving target is the block lane: blocks slide ±2.4 with half-width 1.2, so W = 3.6, and the next block (opposite phase, 1.4–6.2 m ahead of the runner) can be anywhere in it: 3.6 + 0.3 · 3.8 = **4.74**. With the earlier `FOLLOW_X` 0.6 and ±3.2 this held only for W ≤ 1.93: a runner at the outer edge of a block at its +2.4 end (x 3.8) put the next block's near-left corner at about x −10 px of 375 in portrait (off-screen).
+  - **The runner's body everywhere.** `(1 − FOLLOW_X) · |x| + 0.35 ≤ area.x`: on the disc's rim (x 6.2) 4.69, at the knock's splash (x 6.35) **4.795**.
 
-| Screen (CSS px) | Pitch / fov | Distance | Lens shift | Window on screen | Runner | Ground px/m at the runner / far edge | A 2.6 m gap 4 m ahead | Gaps HUD / joystick / Jump | Binds |
-|---|---|---|---|---|---|---|---|---|---|
-| 375 × 812 | 45° / 60° | 19.89 m | (0, −0.171) | x 50–325, y 102–553 | 39.6 px tall, feet at y 475 | 35.4 / 19.8 (22 m ahead) | 46 px | 50 / 107 / 167 | both side margins |
-| 375 × 812, 162 px banner | 45° / 60° | 24.82 m | (0, 0.015) | x 82–293, y 75–462 | 31.4 px | 28.3 / 17.4 | 39 px | 23 / 36 / 96 | the HUD and the lifted joystick |
-| 812 × 375 | 40° / 50° | 10.72 m | (0.108, −0.297) | x 229–671, y 25–327 | 47.4 px, feet at (450, 243) | 37.5 / 21.0 (11 m ahead) | 33 px | 92 / 84 / 107 | top and bottom margins |
-| 812 × 375, 83 px banner | 40° / 50° | 14.92 m | (0, −0.054) | x 266–546, y 22–257 | 33.1 px | 27.0 / 17.2 | 28 px | 90 / 114 / 178 | the top margin and the banner |
-| 1280 × 800 (no touch controls) | 40° / 50° | 11.03 m | (0, −0.276) | x 187–1094, y 52–684 | 98.0 px, feet at (640, 510) | 77.8 / 44.1 | 70 px | 181 / – / – | both side margins and the top margin |
+  The larger of the two, `max(3.6 + 3.8 · f, 6.55 − 6.2 · f)`, is smallest at f ≈ 0.295: `FOLLOW_X` 0.3 with `area.x` ±4.8 meets both. The start and finish pads (±4) and the disc (±6) are wider than a window that keeps the runner readable; on them the window holds the runner, the hub (±0.7) on the disc and the arch opening (±3.2) on the finish pad. Ahead, the next landing target ends at most 7.6 m in front of the runner (a jump platform's far edge), inside `area.min.z` (−11 / −22), and at most 0.5 m above `F.y`. Behind, the box needs only the runner's 0.35 m radius, so `area.max.z` is 0.5 (it was 2; trimming it brings the camera closer, below).
+- **Lag in the fit.** `CameraRig` eases with damping 8, so it trails a target moving at v by at most v / 8. F moves forward at most 6 m/s (0.75 m) and sideways at most 0.3 · 12 = 3.6 m/s while knocked (0.45 m; running on a block, 0.3 · (6 + 3.6) = 2.9 m/s); `groundY` steps by at most 0.5 m per landing. `LAG` covers these, and `focus` is its corners, so the window stays on screen while the camera catches up. On screen, checked for this README from every corner of `LAG`: with the runner at x 3.8 on a block, the block lane's far-left edge (x −3.6, 1.4–6.2 m ahead) is at x ≥ 33 px of 375 in portrait; the splash (x 6.35 ± 0.35, water at −2, below the box) is at x ≤ 356 of 375 in portrait and ≤ 1159 of 1280 on the laptop.
+- **Fitted views** (core `fitView`, run for this README; the same inputs as the core fixtures: shell HUD groups `{10, 10, 218, 52}` and `{w − 104, 10, w − 10, 54}`, joystick 132 px and Jump 72 px at 20 px from the bottom corners, both lifted by the cookie banner, the banner as an obstruction). "Window" is the window box on screen with the camera at rest; "gaps" are the closest px from its outline to the HUD, the joystick and Jump at rest. "Binds" is what stops the fit from coming closer, with the camera at the worst corner of `LAG` (2 % margins; 8 px padding for the rects). "Depth" is px per m along the course at the runner's feet. `camera.test.ts` pins the table (±0.5 px).
 
-  Portrait is bound by the width: 6.4 m of course plus the lag across 375 px. It looks 22 m ahead (3.7 s at full speed), and the lens shift puts the runner 58 % down the screen. The phone in landscape is bound by the height and looks 11 m ahead; the laptop by the width. The lag box costs about 40 px of each side in portrait (the window at rest stops at x 50 / 325, the margins are at 7.5 / 367.5): that is the price of a fit that holds while the camera catches up. Fixed `camera` for the first frame (`index.tsx`): the 1280 × 800 offset, `position: [0, 7.09, 8.45]`, `fov: 50`, `lookAt: [0, 0, 0]`; the Scene's rig takes over on mount.
+| Screen (CSS px) | Pitch / fov | Distance | Lens shift | Window on screen | Runner | Ground px/m at the runner / far edge | Depth at the feet | A 2.6 m gap 4 m ahead | Gaps HUD / joystick / Jump | Binds |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 375 × 812 | 45° / 60° | 23.90 m | (0, −0.013) | x 30–345, y 78–442 | 32.7 px tall, feet at y 411 | 29.4 / 17.8 (22 m ahead) | 20.8 px/m | 40 px | 24 / 218 / 278 | both side margins |
+| 375 × 812, 162 px banner | 45° / 60° | 23.90 m | (0, −0.013) | x 30–345, y 78–442 | 32.7 px | 29.4 / 17.8 | 20.8 px/m | 40 px | 24 / 56 / 116 | both side margins (the banner costs nothing) |
+| 812 × 375 | 40° / 50° | 9.63 m | (0.109, −0.381) | x 187–714, y 25–303 | 53.3 px, feet at (450, 259) | 41.7 / 22.3 (11 m ahead) | 26.9 px/m | 35 px | 54 / 81 / 74 | the joystick and Jump |
+| 812 × 375, 83 px banner | 40° / 50° | 12.59 m | (0, −0.176) | x 218–594, y 23–254 | 39.7 px | 31.9 / 19.1 | 20.5 px/m | 31 px | 54 / 66 / 138 | the top margin and the banner |
+| 1280 × 800 (no touch controls) | 40° / 50° | 10.58 m | (0, −0.308) | x 142–1138, y 52–609 | 102.6 px, feet at (640, 523) | 81.1 / 45.1 | 52.2 px/m | 71 px | 130 / – / – | both side margins |
+
+  Portrait is bound by the width: 9.6 m of course plus the 0.9 m lag across 375 px. The banner only moves the picture there (the same distance with and without it). It looks 22 m ahead (3.7 s at full speed), and the runner stands at mid-screen (feet at y 411 of 812). **The price of the full block lane is the portrait runner's size:** 39.6 → 32.7 px tall and 25 → 20.8 px of depth per m at its feet, so the 0.2 m edge grace is about 4 px on a phone (the `BlobShadow` on the support is the cue that matters, below). Trimming `area.max.z` from 2 to 0.5 won back 1.5 px of it (31.2 px with the old depth), and the banner row is now better than before (31.4 → 32.7 px). The phone in landscape is bound by the touch controls and looks 11 m ahead; the laptop by the width. The lag box costs about 23 px of each side in portrait (the window at rest stops at x 30 / 345, the margins are at 7.5 / 367.5): that is the price of a fit that holds while the camera catches up. Fixed `camera` for the first frame (`index.tsx`): the 1280 × 800 offset, `position: [0, 6.80, 8.10]`, `fov: 50`, `lookAt: [0, 0, 0]`; the Scene's rig takes over on mount.
 - **Frame order** needs no care: `useRunFrame` runs before `CameraRig` and every `useFrame` (core).
 - **Reading jumps.** The runner's `BlobShadow` (core) sits on the highest support under its centre (`groundBelow(x, z, ms)` in the rules, the blocks at their current x), or on the water. It is the main depth cue for a jump. A soft indigo ring under the feet marks the runner from far away.
 - **Looks only** (`useFrame`, `useGameTime()`): run cycle by distance, jump and landing squash, arms out and wobbling on the beam, flailing tumble when knocked or falling, splash and ripples, the checkpoint gate lighting up (green, flag pop) on activation, the runner cheering under the arch through the result delay (`resultDelayMs: 1200`). Water: one plane with a scrolling canvas texture. Environment: background and fog `#bae6fd`, fog 45–110 m, `lighting: "day"`.
@@ -326,9 +348,9 @@ export const ASSETS = {
 
 ## HUD
 
-- **Shell HUD:** Score, Time and `hudStats: [{ key: "checkpoint", label: "Checkpoint", max: 3 }]` ("Checkpoint 2/3"). The store clears stats when a run starts and the chip shows 0 until set, so no run-start hand-off is needed. The Scene calls `setStat("checkpoint", k)` on each activation. No custom HUD panel.
-- **Core gap (a blocker for `"live"`):** for a time game the shell still shows Score (always 0 here) and, with `durationMs` set, Time counting **down** from 5:00. A race needs the elapsed time. Core change (Claude, a core PR before this game goes live): for `scoring.kind === "time"`, hide Score and show Time counting up, still ending the run at `durationMs`. Until then the game is playable with the 5:00 countdown.
-- **Sounds:** `"jump"` on take-off, `"pickup"` on a checkpoint, `"hit"` on a knock or a fall; GameShell plays `"win"` on the finish and `"lose"` on the time-up.
+- **Shell HUD:** Score, **Played** and `hudStats: [{ key: "checkpoint", label: "Checkpoint", max: 3 }]` ("Checkpoint 2/3"). The definition sets no `durationMs`, so the store has no `timeLeftMs` and GameShell shows "Played", counting **up** from `elapsedMs` (whole seconds): exactly the race clock, with no core change. The 300 s limit lives in the rules instead (One step, 2), which end the run with `"timeup"` as GameShell's own timer would. The store clears stats when a run starts and the chip shows 0 until set, so no run-start hand-off is needed. The Scene calls `setStat("checkpoint", k)` on each activation. No custom HUD panel.
+- **Core gap (a blocker for `"live"`):** the shell's Score chip is always 0 for a time game (the score follows from the duration only after the run). Core change (Claude, a core PR before this game goes live): for `scoring.kind === "time"`, hide the Score chip. Until then the game is playable with a Score of 0 on screen.
+- **Sounds:** `"jump"` on take-off, `"pickup"` on a checkpoint, `"hit"` on a knock or a fall; GameShell plays `"win"` on the finish and `"lose"` on the time-up (any end but a win).
 
 `index.tsx`:
 
@@ -338,9 +360,9 @@ const definition: GameDefinition = {
    Scene,
    assets: ASSETS,
    physics: true,                 // the Debris layer only; rules never touch Rapier
-   durationMs: DURATION_MS,       // 300000: the time-up, unranked
+   // no durationMs: the shell shows "Played" counting up; rules.ts ends the run at 300000 ms ("timeup")
    // first frame only: Scene's CameraRig (core useFittedView) takes over on mount
-   camera: { position: [0, 7.09, 8.45], fov: 50, lookAt: [0, 0, 0] },
+   camera: { position: [0, 6.8, 8.1], fov: 50, lookAt: [0, 0, 0] },
    environment: { background: "#bae6fd", fog: ["#bae6fd", 45, 110], lighting: "day" },
    touchControls: ["joystick", "jump"],
    hudStats: [{ key: "checkpoint", label: "Checkpoint", max: 3 }],
@@ -362,7 +384,7 @@ const definition: GameDefinition = {
 
 - **Pause** (Esc, P, tab hidden, blur) stops `useRunFrame`, the rules clock and every obstacle with it (they are functions of `simMs`), and Rapier (core). A runner paused mid-jump resumes the same arc; one paused on a block resumes on the same spot of it.
 - **Countdown:** the runner stands on the start line; `useRunFrame` does not run, so presses are dropped; the obstacles animate into their "Go" pose.
-- **Finish and time-up on the same frame:** `RunClock` ends the run first, `useRunFrame` does not run, no win. Deterministic.
+- **Finish and time-up on the same frame:** the rules decide by ms. A finish in an ms up to 299999 stops the step first (a win); otherwise the ms that brings `simMs` to 300000 is the time-up. The store has no timer of its own, so nothing ends the run before `useRunFrame` runs. Deterministic.
 - **Finish while the frame continues:** the step stops at the finishing ms; nothing after it moves.
 - **Landing on the finish pad past the line from a jump:** finishes on the landing ms (the finish needs grounded).
 - **Knock in the air:** a jump that comes down onto the bar (feet below 0.70) is a hit too. Standing on the bar or the hub is impossible (not supports; the hub is 1.6 tall, above the apex).
@@ -378,17 +400,17 @@ const definition: GameDefinition = {
 
 `rules.test.ts` (vitest):
 
-- **Constants (golden).** Every number in "Constants" and the course table, plus the derived ones recomputed from the tuning numbers: apex 1.445 and 340 ms, airtime 680 ms, the jump table (time to land, reach, share), the bar's 488 ms window and its 1.96 m inner radius, the knock's 7.68 m, the block top speed 3.6 m/s, `MIN_FINISH_MS` 19334 and each checkpoint's earliest ms. `MIN_FINISH_MS ≥ minDurationMs + 300`, and the scoring limits equal `meta.ts`. A change to a speed, a gap or a line without updating the proof fails.
-- **Course.** Parts in p order without holes on the walking path (bridges overlap the disc); all joins at equal heights; every checkpoint line and the finish line inside their pads; the spawn on the start line. Every jump in the table has share ≤ 0.65 of its reach. Every skip distance > the longest jump (5.35 m). The free paths exist (a bot walks each section).
+- **Constants (golden).** Every number in "Constants" and the course table, plus the derived ones recomputed from the tuning numbers: apex 1.445 and 340 ms, airtime 680 ms, the jump table (time to land, reach, share), the bar's 488 ms window and its 1.96 m inner radius, the knock's sideways stop at 6.35 m within 529 ms (before 640 ms), the block top speed 3.6 m/s, the ramp (150 ms, 0.453 m), the skip table's reaches (4.00 / 4.99 / 5.33 / 5.63 m, and 5.89 m for a 1.5 m drop), `MIN_FINISH_MS` 19334 and each checkpoint's earliest ms. `MIN_FINISH_MS ≥ minDurationMs + 300`, and the scoring limits equal `meta.ts`. A change to a speed, a gap or a line without updating the proof fails.
+- **Course.** Parts in p order without holes on the walking path (bridges overlap the disc); all joins at equal heights; every checkpoint line and the finish line inside their pads; the spawn on the start line. Every jump in the table has share ≤ 0.65 of its reach. For every pair of supports with one support between them (computed from `COURSE`, not from the table), the distance in p is greater than that pair's `reach(dy)` from "No section can be skipped" (coyote run-on, coyote fall and both graces included), and the 5.4 m same-height pairs keep a margin ≥ 0.4 m. The free paths exist (a bot walks each section).
 - **Movement.**
   - Top speed exactly 6 m/s; a diagonal is not faster; half a stick is half the speed; acceleration and braking as listed.
-  - Jump apex and airtime identical at 1, 4, 16.7, 33 and 50 ms frames (1 ms steps). Coyote at 99 / 100 / 101 ms, buffer at 119 / 120 / 121 ms; a held press never jumps twice; no jump in the air.
+  - Jump apex and airtime identical at 1, 4, 16.7, 33 and 50 ms frames (1 ms steps). Coyote at 99 / 100 / 101 ms, buffer at 119 / 120 / 121 ms; a held press never jumps twice; no jump in the air. A coyote jump at 100 ms starts at `y0` = −0.125 relative to the top, and a bot that walks off a flat edge at full speed and jumps at the last coyote ms has its centre cross the top's height 4.79 m (± 0.01) past the edge, so a target edge up to 4.99 m away still catches it with the landing grace: the skip table's flat reach, from the real step.
   - A landing only from above; the centre 0.20 past an edge stands, 0.21 falls.
   - On a block the runner keeps its spot on the block exactly, every ms; launch carry stays constant in the air; the beam's slide moves a standing runner by the formula.
   - Pushed out of pillars, the hub and the arch posts, and slides along them.
   - 50,000 random ms (random stick, jump mashing, random positions and states along the course, all obstacle phases): p never moves more than 6 mm in one ms, a respawn never sets p above `maxP`, nothing ever ends inside a static solid.
   - **The guard is needed:** a pinned corner graze (an airborne runner at full forward speed, a block's front corner sliding into it from the side) moves p by more than 6 mm in that ms without the guard (the test runs the same resolution with the guard off) and by exactly 6 mm with it. A pinned trim against a pillar's corner keeps last ms's position.
-- **Obstacles.** Golden positions of the bar, every block and the beam at fixed ms (including negative ms for the countdown visuals). The bar hits at feet 0.699 and not at 0.700; tangency of the circle counts. A timed jump at r = 3 clears it; a standing runner is knocked. The knock never touches the disc again (ghost), z stays the same, and the runner is lost 792 ms later.
+- **Obstacles.** Golden positions of the bar, every block and the beam at fixed ms (including negative ms for the countdown visuals). The bar hits at feet 0.699 and not at 0.700; tangency of the circle counts. A timed jump at r = 3 clears it; a standing runner is knocked. The knock never touches the disc again (ghost), z stays the same, and the runner is lost 792 ms later. Knocks from every spot the bar can hit (a grid over the disc and the bridge overlaps): the sideways fling stops at the first ms clear of every top, \|x\| ≤ 6.35 always, and the feet are still above the top's height at that ms.
 - **Checkpoints and respawns.**
   - Activation needs grounded on the pad with p ≥ the line: an airborne crossing does nothing until the landing; landing deep on the pad activates.
   - Activated exactly at the line, the respawn p equals the line (a mutation that respawns at the pad's centre fails: it would be ahead of the activation point).
@@ -397,30 +419,31 @@ const definition: GameDefinition = {
 - **Finish.** Once; `finishMs` is the ms of the landing or the crossing; later steps change nothing.
 - **Proof.**
   - The real store (`createArcadeStore`), driven with `advanceRunClock` and `playedFrameDt` through countdowns that end mid-frame, pauses, resumes and frames from 4 to 300 ms: no untimed step, `simMs ≤ elapsedMs < simMs + 1` after every frame.
-  - **The bound is tight for the movement and loose for the course:** on a flattened course (`createRun(FLAT)`: one 126 m pad, no obstacles, the same lines) a straight-line bot at full stick reaches each line at exactly the table's ms (± 1) and finishes at 19334. On the real course no bot or random input finishes before 19334, and every checkpoint respects its earliest ms.
+  - **The bound is tight up to the 150 ms acceleration ramp, and loose for the course:** on a flattened course (`createRun(FLAT)`: one 126 m pad, no obstacles, the same lines) a straight-line bot at full stick from the first ms (the run starts in state run, at rest) reaches each line at `N = 150 + ceil((line − 0.453) / 0.006)`: CP1 **4908**, CP2 **10408**, CP3 **14842**, the finish **19408** (pinned exactly: these were simulated for this README with the real step order, ease then move, in floats). Each is ≥ the table's earliest ms (4834 / 10334 / 14767 / 19334); the 74 ms between them is the ramp (150 ms from rest to 6 m/s cover 0.453 m instead of 0.9 m). `MIN_FINISH_MS` stays 19334, the conservative proof constant. On the real course no bot or random input finishes before 19334, and every checkpoint respects its earliest ms.
   - A **speedrun bot** (scripted route past the hub, timed jumps, block riding, beam correction, the real `step` at 60 fps) finishes; its time is pinned (± 0.5 s) from its first run and replaces the estimate above. It also finishes at 30 and 144 fps, above the bound.
   - `finalScore` with the bot's final store state: `durationMs` = `finishMs` ≤ `elapsedMs`, `normalizeRun` gives `computeTimeScore`, the duration lies in 15000–300000 and the score is at most 28066. (Not `withinServerLimits`: its points-per-second check is a points game's rule, and a time game's rate is 0.)
-  - An idle runner times out with `"timeup"` at exactly 300000 ms; `isRankedRun` is false for it and for quit.
+  - **The rules' cap.** An idle runner's step reports `timeup` at exactly `simMs` 300000, with no motion in that ms; every later step does nothing. A run set up to finish at ms 299999 is a win with `finishMs` 299999; one that would finish at ms 300000 is a time-up. Through the store (no `durationMs`): the Scene's `end("timeup")` gives `endReason` `"timeup"`, and `isRankedRun` is false for it and for quit.
 - **Determinism.** Two runs with the same frame list and inputs end in deep-equal run states and event sequences. `rules.ts` imports nothing but `core/math`, `core/collision` and types (a source check: no three.js, React, Rapier).
+- **Nothing flows back from the debris** (instead of a browser comparison, which frame-time jitter makes unrepeatable). A source check: `@react-three/rapier` and `@dimforge` appear only in `Debris.tsx`; `rules.ts`, `debrisPose.ts` and `Scene.tsx` never import them, and `Scene.tsx` never calls a body's `translation()`, `linvel()` or `rotation()`. One fixed frame list (with a knock, a fall, a respawn and the finish) replayed through `step()` twice, once calling `debrisPose(run, stepping, sink)` with a recording stub sink after every frame and once without: deep-equal run states and event sequences, and `run` deep-equal before and after every `debrisPose` call. The same replay checks the teleports: the stub sees a teleport for the capsule on the first frame and on every `run.respawns` change, a teleport for every body in frames replayed with `stepping` false (as outside `"playing"`), and a swept move only when the body moves at most 1 m.
 
-`camera.test.ts`: the fit table rows from core `fitView` (±0.5 px), the runner's body inside the window at every course width with `FOLLOW_X`, and the lag box ≥ v / 8 for the maximum speeds.
+`camera.test.ts`: the fit table rows from core `fitView` (±0.5 px). The window holds, relative to `F` with `FOLLOW_X` (so from every focus corner, as `fitView` guarantees for `area`): every lane's full width, from every runner x on it, with the next landing target (bridges ±1.5, checkpoint pads ±3, the jump platforms and the next one, the block lane ±3.6 with every block at every phase, the beam ±0.5); the runner's body everywhere (the disc's rim, the start and finish pads, the knock's stop at 6.35); the hub on the disc and the arch opening on the finish pad. A mutation back to `FOLLOW_X` 0.6 or `area.x` ±3.2 fails the block-lane case. The lag box ≥ v / 8 for the maximum speeds (6 m/s forward, 3.6 m/s sideways for `F`, the 0.5 m `groundY` step).
 
 The generic parts are tested in `core/`: the clock and frame order (`frameLoop.test.ts`, `useArcadeStore.test.ts`), the fit, the lens shift and `followFocus` (`view.test.ts`, `useFittedView.test.ts`), the manifest (`modelManifest.test.ts`), the scores and `isRankedRun` (`scores.test.ts`).
 
 Browser (production build with the flags on and the API mock, headless Chrome over CDP, network log on):
 
-- **Desktop 1280 × 800, keyboard:** start, countdown (the runner stays put with W held; the bar turns), a bar knock (respawn at the start, camera cut, the clock running), CP1, a deliberate fall from J3 (respawn at CP1), CP2, the blocks, CP3, the beam, the finish. The result shows `finishMs` formatted, the local best stores it as the duration, the score equals the formula.
+- **Desktop 1280 × 800, keyboard:** start, countdown (the runner stays put with W held; the bar turns), a bar knock (the runner flies off and splashes in view, respawn at the start, the camera holds and then cuts with no swoop, the clock running), CP1, a deliberate fall from J3 (respawn at CP1), CP2, the blocks, CP3, the beam, the finish. The HUD shows "Played" counting up and "Checkpoint k/3". The result shows `finishMs` formatted, the local best stores it as the duration, the score equals the formula.
 - **Pause** 2 s mid-jump and while riding a block: no drift, the obstacles freeze and resume in place.
 - **375 × 812 and 812 × 375 with touch emulation** (joystick + Jump), with and without the cookie banner: the fit matches the table (±2 px); the window stays clear of the HUD, the joystick and Jump; a full run with touch only.
-- **Physics on and off:** one scripted input, two builds of the definition (`physics: true` / `false`): the same `finishMs`. Kicked cubes never change the runner.
-- **Checks:** draw calls ≤ 150 and 60 fps on desktop and in phone emulation; the Rapier chunk is fetched once, no `.glb` requests before the assets PR (none is listed); `renderer.info.memory` constant over a run; the cut-line measurements (Rapier step time, time to "ready" with and without the chunk).
+- **Physics on** (the equality with physics off is proven in vitest, above; two browser runs of one key script never match, because frame times vary): a full run completes with `physics: true`. The bot walks into a cube stack from a standstill, straight forward at full stick: while it walks through, `run.x` never changes and p follows the flat-course ramp of its own `simMs` exactly (both frame-independent), and the cubes fly. In the frames after a respawn and after "Go", with cubes placed on the spawn line and on the disc, no cube is faster than 13 m/s (twice the bar tip's 6.5 m/s; a swept 25 m respawn would launch one at about 1500 m/s): the teleport rule.
+- **Checks:** draw calls ≤ 150 and 60 fps on desktop and in phone emulation; the Rapier chunk is fetched once, no `.glb` requests before the assets PR (none is listed); `renderer.info.memory` constant over a run; the cut-line measurements (Rapier step time under 1 ms; time to "ready" with and without the chunk, at most 0.5 s apart on the 4× CPU / Fast 4G profile).
 
 ## Known issues and core gaps
 
-- **Time-game HUD (blocker for `"live"`).** The shell shows Score 0 and a 5:00 countdown for a time game (HUD above). Core change before release.
-- **`PhysicsGate` is built for looks, not rules.** It pauses Rapier in every phase but `"playing"`, so debris freezes during the countdown and the result delay; it steps on R3F's raw delta (clamped 0.5 s) at the visuals priority; and the Scene suspends until the Rapier chunk is loaded, so the start screen waits for a decorative layer. Fine for this game's debris, a dead end for any rules physics. Core candidate: a decorative mode (its own Suspense, stepping until `isResultShown`).
+- **Time-game HUD (blocker for `"live"`).** The shell shows a Score chip that is always 0 for a time game (HUD above). Core change before release: hide it for `scoring.kind === "time"`. The race clock needs no core change (no `durationMs`: "Played" counts up, and the rules own the 300 s cap).
+- **`PhysicsGate` is built for looks, not rules.** It pauses Rapier in every phase but `"playing"`, so debris freezes during the countdown and the result delay; it steps on R3F's raw delta (clamped 0.5 s) at the visuals priority; and the Scene suspends until the Rapier chunk is loaded, so the start screen waits for a decorative layer (hence the 0.5 s cut line). While it is paused, kinematic poses must be teleports (the debris layer handles this, Physics). Fine for this game's debris, a dead end for any rules physics. Core candidate: a decorative mode (its own Suspense, stepping until `isResultShown`).
 - **No core channel for an exact finish time.** The game passes it through `setStat("finishMs")` and `finalScore`. Core candidate: `end("win", { durationMs })` for time games.
-- **No camera cut in `CameraRig`.** The game keys the rig by the respawn count. Core candidate: a `snapKey` prop.
+- **No camera cut in `CameraRig`.** The game keys the rig by the respawn count and holds `F` until the new rig has mounted (Scene and camera). Core candidate: a `snapKey` prop that snaps in the same frame.
 - **The runner's concept art is pending.** Until the shared runner exists, the stand-in runs the whole game. The arch can be generated independently.
 - **Forged submissions.** The proof covers honest clients: none can finish under 19334 ms. A forged POST can still claim any duration from 15000 ms; that is Phase 5 (run tokens). The optional `minDurationMs` 19000 above shrinks the gap. A fixed, seedless course makes a server-side replay of an input log possible later.
 - **Catalog.** `skills.md` lists this game's universe as `playground` and its obstacles as "Rapier colliders". This design uses `shared-cast` / 5050 and primitives with rules collision (Rapier only mirrors them for the debris). Claude updates the catalog in the assets PR; this branch edits only this folder.
