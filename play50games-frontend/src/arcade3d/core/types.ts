@@ -128,6 +128,12 @@ export interface ModelAsset {
    /** /models/3d/<slug|shared>/<id>.glb; fetched only once it is listed in core/modelManifest.ts */
    url: string;
    scale?: number;
+   /**
+    * Per-axis factors on top of `scale`, in the GLB's own x / y / z (before rotationY). Rodin
+    * normalises every model to a longest side of about 1.9, so a prop sometimes needs its
+    * proportions fixed, e.g. a desk made lower without making it narrower. Keep them near 1.
+    */
+   stretch?: readonly [number, number, number];
    rotationY?: number;
    yOffset?: number;
    rigged?: boolean;
