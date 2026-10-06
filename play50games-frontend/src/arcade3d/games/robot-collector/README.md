@@ -106,6 +106,7 @@ In practice the bound is far from tight. `shortestRoute(layout, PICKUP_REACH)`, 
 - Frame order needs no care in this file. `useRunFrame` runs before `CameraRig` (`FRAME_PRIORITY.camera`) and every `useFrame` (core `FRAME_PRIORITY`), so the camera, `Robot` and `Batteries` always draw this frame's state, in any mount order.
 - Looks only (`useFrame`, animated with `useGameTime()`):
   - The robot bobs and leans with speed, its antenna wobbles, its chest meter glows brighter with every battery, and it spins on a win.
+  - The robot GLB is a static T-pose; the core auto-rig (`core/rig`, `<HumanoidModel>`) gives it a skeleton in code. Its limbs follow a walk cycle whose phase advances with the distance driven (stride 1.4 m walking, 2.2 m at full speed) and whose amount eases to the speed: arms hanging and breathing when still, a walk, then a run with bent elbows. On a win both arms go up in a waving V while it spins. The group's bob uses the same phase, so the body rises and falls in step (`applyLift={false}`: the pose adds no bob of its own). `RobotPrimitive` (antenna, chest meter) is unchanged and still the fallback. Looks only: rules, scoring and the camera are untouched.
   - Batteries pop in, bob and spin. They have a pulsing floor glow, a light beam (easy to spot on phones) and a ring flash on pickup.
   - A teal marker ring sits under the robot.
 - No shadow maps. Each moving object gets a `BlobShadow` (core), and the static props have baked contact shadows in the floor texture (`useCanvasTexture`, core).

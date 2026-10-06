@@ -15,7 +15,8 @@
 //   and the cookie banner (moving the picture with a lens shift when it must); followFocus ties
 //   its follow range to CameraRig's; inputToWorld turns input with the yaw.
 // - Models: <Model asset fallback={…}> draws the GLB once it is in core/modelManifest.ts and this
-//   game's own primitive until then.
+//   game's own primitive until then. The robot is a static T-pose GLB: <HumanoidModel> (core/rig)
+//   rigs it in code and useHumanoidPose drives its limbs (idle, walk/run by speed, a cheer on a win).
 import { useRef, useState } from "react";
 import { useFrame } from "@react-three/fiber";
 import type { Group, Mesh, MeshStandardMaterial } from "three";
@@ -27,6 +28,7 @@ import { useGameTime } from "@/arcade3d/core/gameTime";
 import { useInput } from "@/arcade3d/core/input";
 import { inputToWorld, randomSeed } from "@/arcade3d/core/math";
 import { BlobShadow } from "@/arcade3d/core/render";
+import { HumanoidModel, blendPoses, cheerPose, createPose, idlePose, useHumanoidPose, walkPose, wrapPhase } from "@/arcade3d/core/rig";
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { useFittedView, type FittedViewOptions } from "@/arcade3d/core/useFittedView";
 import { useRunFrame } from "@/arcade3d/core/useRunFrame";
@@ -96,14 +98,42 @@ interface RunData {
 
 // ---------- the robot ----------
 
+/** Stride length (m, two steps) of the robot GLB (hips 1 m up): shorter when walking, longer at a run. */
+const STRIDE_WALK = 1.4;
+const STRIDE_RUN = 2.2;
+
+/** The walk cycle (looks only): phase from the distance walked, amount eased towards the speed. */
+interface Gait {
+   phase: number;
+   amount: number;
+   cheer: number;
+}
+
 function Robot({ run }: { run: RunData }) {
    const time = useGameTime();
    const root = useRef<Group>(null);
    const rig = useRef<Group>(null);
    const antenna = useRef<Group>(null);
    const panel = useRef<MeshStandardMaterial>(null);
+   const [gait] = useState<Gait>(() => ({ phase: 0, amount: 0, cheer: 0 }));
+   const [scratch] = useState(createPose);
 
-   // looks only: follows the simulated robot, bobs and leans with its speed
+   // the GLB robot's limbs (core/rig): idle -> walk -> run with its speed, arms up on a win.
+   // FRAME_PRIORITY.pose: after useRunFrame moved the robot, before the useFrame below reads the phase.
+   const pose = useHumanoidPose((p) => {
+      const dt = time.delta;
+      const { phase, endReason } = useArcadeStore.getState();
+      const v = phase === "playing" ? Math.hypot(run.robot.vx, run.robot.vz) : 0;
+      const speed = Math.min(1, v / ROBOT.maxSpeed);
+      gait.phase = wrapPhase(gait.phase + ((v * dt) / (STRIDE_WALK + (STRIDE_RUN - STRIDE_WALK) * speed)) * Math.PI * 2);
+      gait.amount += (speed - gait.amount) * (1 - Math.exp(-12 * dt));
+      gait.cheer += ((phase === "over" && endReason === "win" ? 1 : 0) - gait.cheer) * (1 - Math.exp(-8 * dt));
+      idlePose(time.now, p);
+      blendPoses(p, walkPose(gait.phase, gait.amount, scratch), Math.min(1, gait.amount * 5), p);
+      if (gait.cheer > 0.001) blendPoses(p, cheerPose(time.now, scratch), gait.cheer, p);
+   });
+
+   // looks only: follows the simulated robot, bobs (in step with the walk) and leans with its speed
    useFrame(() => {
       const g = root.current;
       const body = rig.current;
@@ -117,7 +147,7 @@ function Robot({ run }: { run: RunData }) {
       g.position.set(robot.x, 0, robot.z);
       if (won) g.rotation.y += time.delta * 5;
       else g.rotation.y = robot.heading;
-      body.position.y = won ? Math.abs(Math.sin(t * 7)) * 0.25 : Math.abs(Math.sin(t * 15)) * 0.05 * speed + Math.sin(t * 2.2) * 0.012;
+      body.position.y = won ? Math.abs(Math.sin(t * 7)) * 0.25 : Math.abs(Math.sin(gait.phase)) * 0.05 * speed + Math.sin(t * 2.2) * 0.012;
       body.rotation.x = 0.16 * speed;
       if (antenna.current) antenna.current.rotation.x = -0.3 * speed + Math.sin(t * 11) * 0.1 * speed;
       if (panel.current) panel.current.emissiveIntensity = 0.2 + (1.8 * progress.collected) / BATTERY_COUNT;
@@ -132,7 +162,8 @@ function Robot({ run }: { run: RunData }) {
             <meshBasicMaterial color={COLORS.robot} transparent opacity={0.75} depthWrite={false} />
          </mesh>
          <group ref={rig}>
-            <Model asset={ASSETS.robot} fallback={<RobotPrimitive antenna={antenna} panel={panel} />} />
+            {/* the group above bobs, so the model does not add the pose's own lift */}
+            <HumanoidModel asset={ASSETS.robot} pose={pose} applyLift={false} fallback={<RobotPrimitive antenna={antenna} panel={panel} />} />
          </group>
       </group>
    );
