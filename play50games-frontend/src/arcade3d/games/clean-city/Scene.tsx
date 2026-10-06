@@ -14,7 +14,7 @@
 //   InstancedModel per kind, all three maps mounted, visible from stats.map.
 import { memo, useLayoutEffect, useRef, useState } from "react";
 import { useFrame } from "@react-three/fiber";
-import { Matrix4, Quaternion, Vector3, type Group, type Mesh, type MeshBasicMaterial } from "three";
+import { Euler, Matrix4, Quaternion, Vector3, type Group, type Mesh, type MeshBasicMaterial } from "three";
 import CameraRig from "@/arcade3d/core/CameraRig";
 import { playSfx } from "@/arcade3d/core/audio";
 import type { AABB } from "@/arcade3d/core/collision";
@@ -22,6 +22,24 @@ import { useGameTime } from "@/arcade3d/core/gameTime";
 import { useInput } from "@/arcade3d/core/input";
 import { inputToWorld, randomSeed } from "@/arcade3d/core/math";
 import { BlobShadow, DynamicInstanced } from "@/arcade3d/core/render";
+import {
+   BONE,
+   HumanoidModel,
+   POSE_MASK,
+   blendPoses,
+   bodyLift,
+   cheerPose,
+   createPose,
+   idlePose,
+   reachPose,
+   useHumanoidPose,
+   walkPose,
+   walkStride,
+   wrapPhase,
+   type HumanoidLandmarks,
+   type HumanoidPose,
+} from "@/arcade3d/core/rig";
+import { ROBOT_LANDMARKS, SHARED_ASSETS } from "@/arcade3d/core/sharedAssets";
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { useFittedView, type FittedViewOptions } from "@/arcade3d/core/useFittedView";
 import { useRunFrame } from "@/arcade3d/core/useRunFrame";
@@ -268,37 +286,96 @@ function Litter({ run, fx }: { run: CleanRun; fx: LitterFx }) {
 
 // ---------- runner ----------
 
+/** Robot joints until runner.glb is measured; a later full landmark set on the shared asset replaces them. */
+const RUNNER_LEGS: HumanoidLandmarks = { ...ROBOT_LANDMARKS, ...SHARED_ASSETS.runner.humanoid?.landmarks };
+const RUNNER_SCALE = SHARED_ASSETS.runner.scale ?? 1;
+const MIN_STRIDE = 0.1;
+const REACH_S = 0.45;
+const CHEER_S = 1.15;
+const LIMB_Q = new Quaternion();
+const LIMB_E = new Euler();
+
+function boneEuler(pose: HumanoidPose, bone: number): Euler {
+   const o = bone * 4;
+   LIMB_Q.set(pose.q[o], pose.q[o + 1], pose.q[o + 2], pose.q[o + 3]);
+   return LIMB_E.setFromQuaternion(LIMB_Q, "XYZ");
+}
+
+/** The stand-in is built arms-down. Hanging bones swing on x; a raised arm (drop 0) lifts from the side. */
+function applyRunnerLimbs(pose: HumanoidPose, limbs: RunnerLimbs): void {
+   const { legL, legR, armL, armR } = limbs;
+   if (legL) {
+      const e = boneEuler(pose, BONE.upperLegL);
+      legL.rotation.set(-e.x, 0, e.z);
+   }
+   if (legR) {
+      const e = boneEuler(pose, BONE.upperLegR);
+      legR.rotation.set(-e.x, 0, e.z);
+   }
+   if (armL) poseArm(pose, BONE.upperArmL, pose.dropL, armL, 1);
+   if (armR) poseArm(pose, BONE.upperArmR, pose.dropR, armR, -1);
+}
+
+function poseArm(pose: HumanoidPose, bone: number, drop: number, arm: Group, side: number): void {
+   const e = boneEuler(pose, bone);
+   const raised = 1 - drop;
+   arm.rotation.set(-e.x * drop - 1.15 * raised, 0, side * 0.85 * raised);
+}
+
 /**
- * Speed and walk phase are computed once here. PrimitiveRunner only displays them.
- * Swap the body for the core humanoid rig (arms down, same phase and stride) in this one line:
- *   <Humanoid asset={ASSETS.runner} motion={motion} />
+ * The shared runner: idle when still, a walk whose stride keeps the planted foot still, a short
+ * reach on each pickup, and a cheer when a map is cleared. runner.glb is not in the manifest, so
+ * the primitive shows and moves with the same pose.
  */
 function Runner({ run }: { run: CleanRun }) {
    const time = useGameTime();
    const root = useRef<Group>(null);
+   const body = useRef<Group>(null);
+   const standIn = useRef<Group>(null);
    const limbs = useRef<RunnerLimbs>({ legL: null, legR: null, armL: null, armR: null, bob: null });
-   const motion = useRef({ phase: 0, stride: 0 });
+   const gait = useRef({ phase: 0, amount: 0, lift: 0 });
+   const fx = useRef({ collected: 0, map: 0, reachAt: -10, cheerAt: -10 });
+   const [scratch] = useState(createPose);
+   const pose = useHumanoidPose((p) => {
+      const dt = time.delta;
+      const t = time.now;
+      const r = run.runner;
+      const v = Math.hypot(r.vx, r.vz);
+      const g = gait.current;
+      g.amount += (Math.min(1, v / RUNNER.speed) - g.amount) * (1 - Math.exp(-12 * dt));
+      const stride = Math.max(MIN_STRIDE, walkStride(g.amount, RUNNER_LEGS) * RUNNER_SCALE);
+      g.phase = wrapPhase(g.phase + (v * dt / stride) * Math.PI * 2);
+      walkPose(g.phase, g.amount, p);
+      blendPoses(p, idlePose(t, scratch), 1 - Math.min(1, g.amount * 5), p, POSE_MASK.upper);
+      const mark = fx.current;
+      if (run.collected > mark.collected) mark.reachAt = t;
+      mark.collected = run.collected;
+      if (run.map > mark.map) mark.cheerAt = t;
+      mark.map = run.map;
+      const reach = Math.max(0, 1 - (t - mark.reachAt) / REACH_S);
+      const { phase, endReason } = useArcadeStore.getState();
+      const won = phase === "over" && endReason === "win";
+      const cheer = won ? 1 : Math.max(0, 1 - (t - mark.cheerAt) / CHEER_S);
+      if (reach > 0.001) blendPoses(p, reachPose(1, 0.35, scratch), reach, p, POSE_MASK.arms);
+      if (cheer > 0.001) blendPoses(p, cheerPose(t, scratch), cheer, p);
+      g.lift = bodyLift(p, RUNNER_LEGS) * RUNNER_SCALE;
+   });
 
    useFrame(() => {
       const g = root.current;
-      if (!g) return;
+      const b = body.current;
+      if (!g || !b) return;
       const r = run.runner;
       const t = time.now;
-      const speed = Math.min(1, Math.hypot(r.vx, r.vz) / RUNNER.speed);
-      const m = motion.current;
-      m.stride = speed;
-      m.phase += time.delta * (3 + 9 * speed);
       const { phase, endReason } = useArcadeStore.getState();
       const won = phase === "over" && endReason === "win";
       g.position.set(r.x, 0, r.z);
       g.rotation.y = won ? g.rotation.y + time.delta * 4 : r.heading;
-      const swing = Math.sin(m.phase) * 0.7 * m.stride;
-      const { legL, legR, armL, armR, bob } = limbs.current;
-      if (legL) legL.rotation.x = swing;
-      if (legR) legR.rotation.x = -swing;
-      if (armL) armL.rotation.x = -swing * 0.85;
-      if (armR) armR.rotation.x = swing * 0.85;
-      if (bob) bob.position.y = won ? Math.abs(Math.sin(t * 7)) * 0.2 : Math.abs(Math.sin(m.phase)) * 0.04 * m.stride;
+      const walk = gait.current;
+      b.position.y = standIn.current
+         ? won ? Math.abs(Math.sin(t * 7)) * 0.2 : Math.abs(Math.sin(walk.phase)) * 0.04 * walk.amount
+         : walk.lift;
+      applyRunnerLimbs(pose, limbs.current);
    });
 
    return (
@@ -308,7 +385,14 @@ function Runner({ run }: { run: CleanRun }) {
             <ringGeometry args={[0.46, 0.58, 24]} />
             <meshBasicMaterial color={RUNNER_RING} transparent opacity={0.85} depthWrite={false} />
          </mesh>
-         <PrimitiveRunner limbs={limbs} />
+         <group ref={body}>
+            <HumanoidModel
+               asset={SHARED_ASSETS.runner}
+               pose={pose}
+               applyLift={false}
+               fallback={<group ref={standIn}><PrimitiveRunner limbs={limbs} /></group>}
+            />
+         </group>
       </group>
    );
 }

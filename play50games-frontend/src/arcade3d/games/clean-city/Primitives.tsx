@@ -400,10 +400,7 @@ export interface RunnerLimbs {
    bob: Group | null;
 }
 
-/**
- * Vinyl-toy runner, about 1 unit tall, arms down. Swap this for the core humanoid rig
- * (asset ASSETS.runner, same phase and stride) when it lands: one component, one line in Scene.
- */
+/** Vinyl-toy runner, arms down. Scene swings these groups from the shared humanoid pose. */
 export function PrimitiveRunner({ limbs }: { limbs: MutableRefObject<RunnerLimbs> }) {
    const set = (key: keyof RunnerLimbs) => (g: Group | null) => {
       limbs.current[key] = g;
