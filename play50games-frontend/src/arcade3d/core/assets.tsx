@@ -7,7 +7,10 @@
 //    <Model asset={ASSETS.robot} fallback={<RobotPrimitive />} />   // own stand-in until the GLB exists
 //    <InstancedModel asset={ASSETS.crate} spots={CRATE_SPOTS} fallback={<CrateStandIns />} />
 //    <DynamicInstancedModel asset={ASSETS.car} count={32} update={placeCar} fallbackParts={carParts} />
+//    <HumanoidModel asset={ASSETS.runner} pose={pose} fallback={<RunnerPrimitive />} />  // core/rig
 //
+// - A `humanoid` asset (a static T-pose character) is auto-rigged in code (core/rig): <Model>
+//   draws it standing with its arms down, <HumanoidModel> (core/rig) animates it with poses.
 // - Only urls listed in core/modelManifest.ts are fetched; any other url renders its fallback at
 //   once (no request, no suspense). Assets PRs add the GLB and its manifest line together.
 // - Loads with useGLTF(url, false, true): meshopt on, no Draco (no decoder CDN).
@@ -47,6 +50,7 @@ import { hasModel } from "./modelManifest";
 import { useInstanceMatrices, type InstanceSpot } from "./render/useInstanceMatrices";
 import { DynamicInstanced } from "./render/DynamicInstanced";
 import type { InstancePart, InstanceUpdate } from "./render/dynamicInstances";
+import { cloneHumanoid, disposeHumanoid, humanoidTemplate, type HumanoidRig } from "./rig/skinning";
 
 export { SHARED_ASSETS, CHARACTER_BUDGET, PROP_BUDGET, type SharedAssetId } from "./sharedAssets";
 export { MODEL_MANIFEST, hasModel } from "./modelManifest";
@@ -74,8 +78,9 @@ function isThenable(value: unknown): value is PromiseLike<unknown> {
  * The loaded GLB, or null when it is not in the manifest (never fetched) or failed to load.
  * Suspends while loading. Calling useGLTF behind a condition is safe: R3F's useLoader is a
  * suspense cache (suspend-react) and uses no React hooks, so the hook order never changes.
+ * Core only (core/rig/HumanoidModel); games use useModel / <Model>.
  */
-function loadGltf(url: string): Gltf | null {
+export function loadGltf(url: string): Gltf | null {
    if (!hasModel(url)) return null;
    try {
       return useGLTF(url, false, true) as unknown as Gltf;
@@ -148,8 +153,11 @@ interface BoundaryProps {
    children: ReactNode;
 }
 
-/** Catches anything useModel did not (e.g. a GLB that breaks while rendering) and shows the fallback. */
-class ModelErrorBoundary extends Component<BoundaryProps, { failed: boolean }> {
+/**
+ * Catches anything useModel did not (e.g. a GLB that breaks while rendering) and shows the fallback.
+ * Core only (also core/rig/HumanoidModel).
+ */
+export class ModelErrorBoundary extends Component<BoundaryProps, { failed: boolean }> {
    state = { failed: false };
 
    static getDerivedStateFromError() {
@@ -185,6 +193,40 @@ function ModelContent({ asset, fallback }: { asset: ModelAsset; fallback: ReactN
    );
 }
 
+// ---------- auto-rigged humanoids (core/rig) ----------
+
+/**
+ * A humanoid asset's private skinned copy (core/rig: skeleton built in code, arms down), or null
+ * when the GLB is missing, unlisted or broken. Suspends while loading. The skinned template is
+ * built once per loaded GLB and explicit landmarks; every call site gets its own bones.
+ * Core only (<Model>, <HumanoidModel>).
+ */
+export function useHumanoidRig(asset: ModelAsset): HumanoidRig | null {
+   const gltf = loadGltf(asset.url);
+   const source = gltf?.scene ?? null;
+   const options = asset.humanoid;
+   // humanoidTemplate is cached by scene and landmark values, so a new options object is cheap
+   const template = useMemo(() => (source ? humanoidTemplate(source, options) : null), [source, options]);
+   const rig = useMemo(() => (template ? cloneHumanoid(template) : null), [template]);
+   // every run remounts the Scene and clones new bones: free this clone's bone textures with it
+   useEffect(() => (rig ? () => disposeHumanoid(rig) : undefined), [rig]);
+   return rig;
+}
+
+/** <Model> of a humanoid asset: the auto-rigged character standing with its arms down (no animation). */
+function HumanoidStill({ asset, fallback }: { asset: ModelAsset; fallback: ReactNode }) {
+   const rig = useHumanoidRig(asset);
+   if (!rig) return <>{fallback}</>;
+   return (
+      <primitive
+         object={rig.root}
+         scale={assetScale(asset)}
+         rotation-y={asset.rotationY ?? 0}
+         position-y={asset.yOffset ?? 0}
+      />
+   );
+}
+
 export interface ModelProps extends Omit<GroupProps, "children"> {
    asset: ModelAsset;
    /** colour of the default fallback primitive (defaults to asset.fallbackColor) */
@@ -199,13 +241,16 @@ export interface ModelProps extends Omit<GroupProps, "children"> {
    children?: ReactNode;
 }
 
-/** Renders a GLB model, or its fallback when the GLB is missing. Suspends while a listed GLB loads. */
+/**
+ * Renders a GLB model, or its fallback when the GLB is missing. Suspends while a listed GLB loads.
+ * A `humanoid` asset is auto-rigged and stands with its arms down (animate it with <HumanoidModel>).
+ */
 export const Model = forwardRef<Group, ModelProps>(function Model({ asset, fallbackColor, fallback, children, ...group }, ref) {
    const stand = fallback ?? <FallbackPrimitive asset={asset} color={fallbackColor} />;
    return (
       <group ref={ref} {...group}>
          <ModelErrorBoundary key={asset.url} fallback={stand}>
-            <ModelContent asset={asset} fallback={stand} />
+            {asset.humanoid ? <HumanoidStill asset={asset} fallback={stand} /> : <ModelContent asset={asset} fallback={stand} />}
          </ModelErrorBoundary>
          {children}
       </group>

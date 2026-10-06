@@ -1,0 +1,30 @@
+.root {
+   position: absolute;
+   inset: auto 12px calc(18px + env(safe-area-inset-bottom, 0px) + var(--arcade-bottom-obstruction, 0px));
+   display: flex;
+   justify-content: center;
+   pointer-events: none;
+}
+
+.hint {
+   display: grid;
+   gap: 4px;
+   max-width: 360px;
+   padding: 12px 18px;
+   border: 1px solid var(--stroke);
+   border-radius: 14px;
+   background: var(--bg);
+   color: var(--text);
+   text-align: center;
+   font-size: 13px;
+   line-height: 1.4;
+}
+
+.hint strong {
+   color: var(--game-accent, var(--accent));
+   font-size: 15px;
+}
+
+.hint span {
+   color: var(--muted);
+}

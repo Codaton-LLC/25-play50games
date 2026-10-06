@@ -152,7 +152,7 @@ Concept art (one per character; attach the chosen style sheet):
 Play50 toy-world style, matching the attached style sheet: three-quarter front view of <character subject>, T-pose (arms straight out to the sides, legs slightly apart), full body from head to feet, single figure centered, plain light-grey background, no shadow, no props, no text, no logo, soft even lighting, 1024x1024.
 ```
 
-Regenerate if feet or hands are cropped, extra objects appear, or the pose is not a clean T-pose.
+Regenerate if feet or hands are cropped, extra objects appear, or the pose is not a clean T-pose. The T-pose is what the core auto-rig (`core/rig`) needs: it brings the arms down and animates them in code, so a clean T (arms level, legs apart, nothing bridging an arm and the body) matters more than a natural stance.
 
 ## Per-game workflow (Phase 4)
 
