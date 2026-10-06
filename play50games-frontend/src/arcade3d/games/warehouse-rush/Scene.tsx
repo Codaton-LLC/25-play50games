@@ -17,17 +17,20 @@
 // - Visuals animate with useGameTime() (pause-safe), never with state.clock.elapsedTime.
 // - Boxes: 6 slots (4 pallets, the carried one, the one sinking into a zone), each its own clone of
 //   the shared crate GLB with one of 4 recoloured materials (Primitives.tsx useBoxLook).
+// - The robot GLB is a static T-pose: <HumanoidModel> (core/rig) rigs it in code. Its legs walk
+//   with its speed and its arms go up under the carried box (useHumanoidPose in <Robot>).
 import { memo, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import { Color, Matrix4, Quaternion, Vector3, type Group, type Mesh, type MeshBasicMaterial, type Sprite, type SpriteMaterial } from "three";
 import CameraRig from "@/arcade3d/core/CameraRig";
-import { Model, useModel } from "@/arcade3d/core/assets";
+import { useModel } from "@/arcade3d/core/assets";
 import { playSfx } from "@/arcade3d/core/audio";
 import type { AABB } from "@/arcade3d/core/collision";
 import { useGameTime } from "@/arcade3d/core/gameTime";
 import { useInput } from "@/arcade3d/core/input";
 import { inputToWorld, randomSeed, turnTowards } from "@/arcade3d/core/math";
 import { BlobShadow, DynamicInstanced, useCanvasTexture } from "@/arcade3d/core/render";
+import { HumanoidModel, POSE_MASK, blendPoses, carryPose, createPose, idlePose, useHumanoidPose, walkPose, wrapPhase } from "@/arcade3d/core/rig";
 import { useArcadeStore, type ArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { useFittedView, type FittedViewOptions } from "@/arcade3d/core/useFittedView";
 import { useRunFrame } from "@/arcade3d/core/useRunFrame";
@@ -118,11 +121,25 @@ const easeOutBack = (k: number) => 1 + 2.70158 * (k - 1) ** 3 + 1.70158 * (k - 1
 const popOf = (fx: Fx, i: number, t: number) => easeOutBack(clamp01((t - fx.refillAt[i]) / POP_S));
 /** 0..1 of the robot's top speed (empty-handed). */
 const speed01 = (run: WarehouseRun) => Math.min(1, Math.hypot(run.robot.vx, run.robot.vz) / ROBOT.speed);
-/** The body bob of the robot (the carried box rides it too, so it never sinks into the head). */
-const bodyBob = (t: number, speed: number) => Math.abs(Math.sin(t * 15)) * 0.05 * speed + Math.sin(t * 2.2) * 0.012;
+/**
+ * The body bob of the robot: twice per stride of the walk cycle (`gait`, see <Robot>), plus a slow
+ * breath at time t. The carried box rides it too, so it never sinks into the head.
+ */
+const bodyBob = (gait: number, speed: number, t: number) => Math.abs(Math.sin(gait)) * 0.05 * speed + Math.sin(t * 2.2) * 0.012;
+/**
+ * Stride length (m, two steps) of the 1.2 m robot: shorter when walking, longer at full speed, where
+ * it keeps the old bob's beat (about 2.4 strides a second at 6 m/s) rather than a true footfall.
+ */
+const STRIDE_WALK = 1.2;
+const STRIDE_RUN = 2.5;
+/** The arms go up with the box during the pick lock (LIFT_S) and down as it sinks into the zone. */
+const ARMS_DOWN_S = 0.25;
 
 /** What only the look needs. Times are useGameTime().now values (-10 = never). */
 interface Fx {
+   /** the robot's walk cycle (rad) and its eased amount 0..1 (idle -> walk -> run) */
+   gaitPhase: number;
+   gaitAmount: number;
    pickAt: number;
    pickFromX: number;
    pickFromZ: number;
@@ -143,6 +160,8 @@ interface Fx {
 
 function createFx(): Fx {
    return {
+      gaitPhase: 0,
+      gaitAmount: 0,
       pickAt: -10,
       pickFromX: 0,
       pickFromZ: 0,
@@ -241,7 +260,7 @@ const Simulation = memo(function Simulation({ run, fx, pub, yaw }: { run: Wareho
          fx.dropZ = run.robot.z;
          fx.dropHeading = run.robot.heading;
          fx.dropColour = carried;
-         fx.dropBob = bodyBob(t, 0);
+         fx.dropBob = bodyBob(fx.gaitPhase, 0, t);
          fx.squashAt = t;
          fx.popupAt = t;
          fx.popupKind = popupKind(ev.delta);
@@ -270,8 +289,30 @@ const Robot = memo(function Robot({ run, fx }: { run: WarehouseRun; fx: Fx }) {
    const time = useGameTime();
    const root = useRef<Group>(null);
    const body = useRef<Group>(null);
+   const [scratch] = useState(createPose);
 
-   // looks only: follows the simulated robot, bobs and leans with its speed, squashes on pick and drop
+   // the GLB robot's limbs (core/rig): idle -> walk -> run with its speed, and both arms up under
+   // the box while it carries one (rising with the lift, lowering as the box sinks into a zone).
+   // FRAME_PRIORITY.pose: after the step, before every visual that reads fx.gaitPhase.
+   const pose = useHumanoidPose((p) => {
+      const dt = time.delta;
+      const t = time.now;
+      const playing = useArcadeStore.getState().phase === "playing";
+      const v = playing ? Math.hypot(run.robot.vx, run.robot.vz) : 0;
+      const speed = Math.min(1, v / ROBOT.speed);
+      fx.gaitPhase = wrapPhase(fx.gaitPhase + ((v * dt) / (STRIDE_WALK + (STRIDE_RUN - STRIDE_WALK) * speed)) * Math.PI * 2);
+      fx.gaitAmount += (speed - fx.gaitAmount) * (1 - Math.exp(-12 * dt));
+      idlePose(t, p);
+      blendPoses(p, walkPose(fx.gaitPhase, fx.gaitAmount, scratch), Math.min(1, fx.gaitAmount * 5), p);
+      const arms =
+         run.carrying !== NONE
+            ? easeInOut(clamp01((t - fx.pickAt) / LIFT_S))
+            : 1 - easeInOut(clamp01((t - fx.dropAt) / ARMS_DOWN_S));
+      if (arms > 0.001) blendPoses(p, carryPose(1, scratch), arms, p, POSE_MASK.arms);
+   });
+
+   // looks only: follows the simulated robot, bobs (in step with the walk) and leans with its speed,
+   // squashes on pick and drop
    useFrame(() => {
       const g = root.current;
       const b = body.current;
@@ -281,7 +322,7 @@ const Robot = memo(function Robot({ run, fx }: { run: WarehouseRun; fx: Fx }) {
       const speed = speed01(run);
       g.position.set(robot.x, 0, robot.z);
       g.rotation.y = robot.heading;
-      b.position.y = bodyBob(t, speed);
+      b.position.y = bodyBob(fx.gaitPhase, speed, t);
       b.rotation.x = 0.16 * speed;
       const k = (t - fx.squashAt) / SQUASH_S;
       const sy = k >= 0 && k < 1 ? 1 - 0.1 * Math.sin(k * Math.PI) : 1;
@@ -306,7 +347,8 @@ const Robot = memo(function Robot({ run, fx }: { run: WarehouseRun; fx: Fx }) {
             <meshBasicMaterial color={COLORS.robot} depthTest={false} depthWrite={false} />
          </mesh>
          <group ref={body}>
-            <Model asset={ASSETS.robot} fallback={<RobotPrimitive />} />
+            {/* the group above bobs (with the carried box), so the model does not add the pose's own lift */}
+            <HumanoidModel asset={ASSETS.robot} pose={pose} applyLift={false} fallback={<RobotPrimitive />} />
          </group>
       </group>
    );
@@ -444,7 +486,7 @@ const Boxes = memo(function Boxes({ run, fx, yaw }: { run: WarehouseRun; fx: Fx;
          hide(carry);
       } else {
          const k = easeInOut(clamp01((t - fx.pickAt) / LIFT_S));
-         const headY = CARRY_Y + bodyBob(t, speed01(run));
+         const headY = CARRY_Y + bodyBob(fx.gaitPhase, speed01(run), t);
          const arc = Math.sin(k * Math.PI) * 0.25;
          place(
             carry,
