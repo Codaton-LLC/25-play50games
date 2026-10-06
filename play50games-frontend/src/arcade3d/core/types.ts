@@ -61,10 +61,10 @@ export interface DirectionPresses {
 
 /**
  * Unified input, read from a ref inside useRunFrame (non-reactive).
- * Keyboard, joystick, touch buttons, swipes and canvas taps all land here.
- * The `*Pressed`, `pressed`, `swipe` and `tap` fields are one-frame events: they are set at the
- * start of the frame after the event and cleared at the start of the next one. An event is never
- * lost, however short: a key pressed and released between two frames still shows up once.
+ * Keyboard, joystick, touch buttons, swipes and canvas taps and presses all land here.
+ * The `*Pressed`, `pressed`, `swipe`, `tap` and `tapDown` fields are one-frame events: they are
+ * set at the start of the frame after the event and cleared at the start of the next one. An event
+ * is never lost, however short: a key pressed and released between two frames still shows up once.
  */
 export interface InputState {
    /** -1..1 (left = -1) */
@@ -100,8 +100,22 @@ export interface InputState {
     * `pressed` does not carry (for example "this came from touch").
     */
    swipe: "up" | "down" | "left" | "right" | null;
-   /** one frame: a short tap/click on the canvas, in pointer coordinates */
+   /**
+    * One frame: a short tap/click on the canvas, in pointer coordinates (the press position).
+    * Reported on release, and only for a press without travel (never for a drag or a swipe).
+    */
    tap: { x: number; y: number } | null;
+   /**
+    * One frame: the canvas's primary pointer went down (a finger touched the canvas, the main
+    * mouse button was pressed), at that position, in pointer coordinates like `tap`. Reported on
+    * the press itself, before the release and whatever the gesture turns into (tap, hold, drag,
+    * swipe), so every tap and swipe starts with one. A press and release between two frames
+    * still reports it, on the same frame as its `tap`. Never set by a pointer that starts on the
+    * touch controls, nor by a second finger while the canvas pointer is down.
+    *
+    * Read `tap` or `tapDown` for one action, not both, or a short press acts twice.
+    */
+   tapDown: { x: number; y: number } | null;
    /** normalised -1..1 canvas coordinates (x right = 1, y up = 1, like R3F) */
    pointer: { x: number; y: number; down: boolean };
 }
