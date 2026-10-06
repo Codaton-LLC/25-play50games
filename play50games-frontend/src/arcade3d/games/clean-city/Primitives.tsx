@@ -4,12 +4,13 @@
 // Decoration only. Positions come from rules.ts MAPS (the same squares the runner collides with).
 // A prop that may become a GLB is an <InstancedModel> whose fallback is the primitive; litter
 // stand-ins are InstanceParts for <DynamicInstancedModel> (Scene.tsx), one pool per kind.
-import { memo, useMemo, type MutableRefObject, type ReactNode } from "react";
+import { memo, useLayoutEffect, useMemo, useState, type MutableRefObject, type ReactNode } from "react";
 import { BoxGeometry, CapsuleGeometry, CylinderGeometry, type Group } from "three";
-import { InstancedModel, modelParts, useModel } from "@/arcade3d/core/assets";
+import { InstancedModel, useModel } from "@/arcade3d/core/assets";
 import { DynamicInstanced, Instanced, useCanvasTexture, type CanvasDraw, type InstanceSpot, type InstanceUpdate } from "@/arcade3d/core/render";
 import type { ModelAsset } from "@/arcade3d/core/types";
 import { ASSETS } from "./assets";
+import { bakedEffect, type BakedPart } from "./baked";
 import { FLOOR_HALF, MAPS, type ObstacleKind } from "./rules";
 
 // ---------- palette ----------
@@ -336,25 +337,17 @@ export const Beach = memo(function Beach() {
 // ---------- litter pools ----------
 
 /**
- * One moving pool. Uses <DynamicInstanced> children, not <DynamicInstancedModel>.
- * Core PartMesh frees its mesh with mesh.dispose() on unmount, but R3F's dispose={null}
- * (which PartMesh sets) overwrites that method with null, so the cleanup throws and the
- * game dies on the strict-mode remount. Children pools do not. Swap this for
- * <DynamicInstancedModel asset count update fallbackParts> once that cleanup is fixed.
- * A listed GLB is instanced one mesh at a time (a clone, so the loader cache stays).
+ * One moving pool. A listed GLB is instanced one mesh at a time from clones, so the loader
+ * cache stays. The clones are created in the layout effect and disposed in its cleanup: a
+ * strict-mode replay frees that set and the next run builds another, instead of disposing a
+ * useMemo copy that the meshes still hold.
  */
 export function LitterKind({ asset, count, update, standIn }: { asset: ModelAsset; count: number; update: InstanceUpdate; standIn: ReactNode }) {
    const { scene, failed } = useModel(asset);
-   // Clones, not the loader cache. Not disposed: a strict-mode effect replay would free the
-   // useMemo copies out from under the meshes. One set per mount; a run remounts the Scene.
-   const baked = useMemo(() => {
-      if (!scene) return null;
-      return modelParts(scene, asset).map((part) => {
-         const geo = part.geometry.clone();
-         geo.applyMatrix4(part.matrix);
-         const src = Array.isArray(part.material) ? part.material[0] : part.material;
-         return { geo, mat: src.clone() };
-      });
+   const [baked, setBaked] = useState<BakedPart[] | null>(null);
+   useLayoutEffect(() => {
+      if (!scene) return;
+      return bakedEffect(scene, asset, setBaked);
    }, [scene, asset]);
    if (failed || !baked || baked.length === 0) return <>{standIn}</>;
    return (

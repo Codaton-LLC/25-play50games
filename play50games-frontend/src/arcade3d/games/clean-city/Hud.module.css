@@ -1,11 +1,11 @@
 /* Map name (Park / City / Beach). The shell HUD already shows Map n/3 and Litter n/20.
    The wrapper is a fixed 148 x 36 px box marked data-arcade-safe-area: the text inside it
    changes, the box never does, so the camera fit does not move when the map changes.
-   Bottom right, clear of the top chips and of the joystick (bottom left, 132 px). */
+   Bottom right, clear of the joystick, plus the safe-area inset and the cookie banner. */
 .panel {
    position: absolute;
    right: calc(env(safe-area-inset-right, 0px) + 16px);
-   bottom: calc(env(safe-area-inset-bottom, 0px) + 28px);
+   bottom: calc(28px + env(safe-area-inset-bottom, 0px) + var(--arcade-bottom-obstruction, 0px));
    box-sizing: border-box;
    width: 148px;
    height: 36px;
