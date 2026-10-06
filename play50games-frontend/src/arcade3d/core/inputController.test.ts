@@ -3,8 +3,11 @@ import {
    SWIPE_MAX_MS,
    SWIPE_MIN_PX,
    TAP_MAX_MS,
+   createCanvasPointers,
    createInputController,
    swipeDirection,
+   type CanvasPointerEvent,
+   type CanvasPointers,
    type InputController,
 } from "./inputController";
 
@@ -211,6 +214,200 @@ describe("early swipes (fired while the pointer moves)", () => {
       input.pointerMove(0, 0, 100 + SWIPE_MIN_PX, 100, 1030);
       input.latch();
       expect(state().swipe).toBe("right");
+   });
+});
+
+describe("tapDown", () => {
+   it("is set on the press, before the release, for exactly one frame", () => {
+      input.pointerDown(0.25, -0.5, 100, 100, 0);
+      input.latch();
+      expect(state().tapDown).toEqual({ x: 0.25, y: -0.5 });
+      expect(state().tap).toBeNull();
+      expect(state().pointer.down).toBe(true);
+      input.latch();
+      expect(state().tapDown).toBeNull();
+      // the release is the tap, at the same position; no second tapDown
+      input.pointerUp(102, 101, 120);
+      input.latch();
+      expect(state().tap).toEqual({ x: 0.25, y: -0.5 });
+      expect(state().tapDown).toBeNull();
+   });
+
+   it("a press and release between two frames still reports tapDown, on the same frame as the tap", () => {
+      input.pointerDown(-0.4, 0.6, 100, 100, 0);
+      input.pointerUp(100, 100, 8);
+      expect(state().tapDown).toBeNull();
+      input.latch();
+      expect(state().tapDown).toEqual({ x: -0.4, y: 0.6 });
+      expect(state().tap).toEqual({ x: -0.4, y: 0.6 });
+      expect(state().pointer.down).toBe(false);
+      input.latch();
+      expect(state().tapDown).toBeNull();
+      expect(state().tap).toBeNull();
+   });
+
+   it("starts every gesture: a swipe and a long hold report it too", () => {
+      // a flick inside one frame: tapDown and the swipe on the same frame
+      input.pointerDown(0, 0, 100, 100, 0);
+      input.pointerMove(0.2, 0, 100 + SWIPE_MIN_PX, 100, 20);
+      input.latch();
+      expect(state().tapDown).toEqual({ x: 0, y: 0 });
+      expect(state().swipe).toBe("right");
+      input.pointerUp(100 + SWIPE_MIN_PX, 100, 40);
+      input.latch();
+      expect(state().tapDown).toBeNull();
+      // a hold: tapDown at once, then nothing (too long for a tap)
+      input.pointerDown(0.1, 0.1, 200, 200, 1000);
+      input.latch();
+      expect(state().tapDown).toEqual({ x: 0.1, y: 0.1 });
+      input.latch();
+      input.pointerUp(200, 200, 1000 + TAP_MAX_MS + 1);
+      input.latch();
+      expect(state().tapDown).toBeNull();
+      expect(state().tap).toBeNull();
+   });
+
+   it("two presses inside one frame count once, the latest", () => {
+      input.pointerDown(0.1, 0.1, 100, 100, 0);
+      input.pointerUp(100, 100, 4);
+      input.pointerDown(0.7, -0.2, 300, 300, 9);
+      input.latch();
+      expect(state().tapDown).toEqual({ x: 0.7, y: -0.2 });
+      input.latch();
+      expect(state().tapDown).toBeNull();
+   });
+
+   it("clearEvents and release drop a pending or published tapDown", () => {
+      input.pointerDown(0, 0, 100, 100, 0);
+      input.clearEvents();
+      input.latch();
+      expect(state().tapDown).toBeNull();
+      input.pointerUp(100, 100, 50);
+      input.pointerDown(0.5, 0.5, 100, 100, 1000);
+      input.latch();
+      expect(state().tapDown).toEqual({ x: 0.5, y: 0.5 });
+      input.release();
+      expect(state().tapDown).toBeNull();
+   });
+});
+
+describe("canvas pointers (multi-touch, touch controls)", () => {
+   /** a PointerEvent as createCanvasPointers reads it, plus test-only canvas coords and target */
+   interface FakePointer extends CanvasPointerEvent {
+      x: number;
+      y: number;
+      controls: boolean;
+   }
+   type Extra = Partial<Pick<FakePointer, "pointerType" | "button" | "controls">>;
+   /** pointer `id` at canvas (x, y) at time t; screen px follow the canvas coords (400 x 800 canvas) */
+   const at = (id: number, x: number, y: number, t: number, extra: Extra = {}): FakePointer => ({
+      pointerId: id,
+      pointerType: "touch",
+      button: 0,
+      clientX: 200 + x * 200,
+      clientY: 400 - y * 400,
+      timeStamp: t,
+      x,
+      y,
+      controls: false,
+      ...extra,
+   });
+   let canvas: CanvasPointers<FakePointer>;
+
+   beforeEach(() => {
+      canvas = createCanvasPointers<FakePointer>(input, {
+         toCanvas: (event) => [event.x, event.y],
+         onControls: (event) => event.controls,
+      });
+   });
+
+   it("a press and release between two frames still reports tapDown and the tap", () => {
+      canvas.down(at(1, 0.3, -0.2, 0));
+      canvas.up(at(1, 0.3, -0.2, 10));
+      input.latch();
+      expect(state().tapDown).toEqual({ x: 0.3, y: -0.2 });
+      expect(state().tap).toEqual({ x: 0.3, y: -0.2 });
+   });
+
+   it("only the first finger on the canvas reports tapDown; others report nothing until it lifts", () => {
+      canvas.down(at(1, -0.5, 0, 0));
+      input.latch();
+      expect(state().tapDown).toEqual({ x: -0.5, y: 0 });
+      // a second finger lands, moves fast and lifts while the first is down: no tapDown, no swipe
+      canvas.down(at(2, 0.5, 0, 20));
+      canvas.move(at(2, 0.9, 0, 40));
+      canvas.up(at(2, 0.9, 0, 60));
+      input.latch();
+      expect(state()).toMatchObject({ tapDown: null, swipe: null, tap: null, pointer: { x: -0.5, down: true } });
+      // the first finger's gesture is intact: its short release is the tap
+      canvas.up(at(1, -0.5, 0, 100));
+      input.latch();
+      expect(state().tap).toEqual({ x: -0.5, y: 0 });
+      // two fingers landing inside one frame: one tapDown, the first finger's
+      canvas.down(at(3, 0.2, 0.2, 1000));
+      canvas.down(at(4, -0.2, -0.2, 1004));
+      input.latch();
+      expect(state().tapDown).toEqual({ x: 0.2, y: 0.2 });
+      // once the followed finger lifts, the next finger to land reports again
+      canvas.up(at(3, 0.2, 0.2, 1500));
+      canvas.up(at(4, -0.2, -0.2, 1510));
+      canvas.down(at(5, 0.6, 0.6, 2000));
+      input.latch();
+      expect(state().tapDown).toEqual({ x: 0.6, y: 0.6 });
+   });
+
+   it("never reports tapDown from the touch controls; a tap beside a held joystick still counts", () => {
+      // finger 1 holds the joystick: no tapDown, its moves and release reach no gesture
+      canvas.down(at(1, -0.8, -0.8, 0, { controls: true }));
+      input.setJoystick(1, 0);
+      canvas.move(at(1, -0.6, -0.8, 30, { controls: true }));
+      input.latch();
+      expect(state()).toMatchObject({ tapDown: null, swipe: null, moveX: 1, pointer: { down: false } });
+      // finger 2 taps the canvas while the joystick is held
+      canvas.down(at(2, 0.4, 0.3, 100));
+      input.latch();
+      expect(state().tapDown).toEqual({ x: 0.4, y: 0.3 });
+      canvas.up(at(1, -0.6, -0.8, 120, { controls: true })); // not the canvas pointer: ignored
+      expect(state().pointer.down).toBe(true);
+      canvas.up(at(2, 0.4, 0.3, 150));
+      input.latch();
+      expect(state().tap).toEqual({ x: 0.4, y: 0.3 });
+      // a Jump button press is jumpPressed only
+      canvas.down(at(3, 0.8, -0.8, 1000, { controls: true }));
+      input.setButton("jump", true);
+      input.latch();
+      expect(state()).toMatchObject({ jumpPressed: true, tapDown: null });
+      canvas.up(at(3, 0.8, -0.8, 1050, { controls: true }));
+      input.setButton("jump", false);
+      input.latch();
+      expect(state()).toMatchObject({ tapDown: null, tap: null });
+   });
+
+   it("a mouse reports tapDown for the main button only; pens and touch always", () => {
+      canvas.down(at(1, 0, 0, 0, { pointerType: "mouse", button: 2 }));
+      input.latch();
+      expect(state().tapDown).toBeNull();
+      expect(state().pointer.down).toBe(false);
+      canvas.up(at(1, 0, 0, 50, { pointerType: "mouse", button: 2 }));
+      canvas.down(at(1, 0.1, 0, 100, { pointerType: "mouse" }));
+      input.latch();
+      expect(state().tapDown).toEqual({ x: 0.1, y: 0 });
+      canvas.up(at(1, 0.1, 0, 150, { pointerType: "mouse" }));
+      canvas.down(at(7, -0.1, 0, 300, { pointerType: "pen" }));
+      input.latch();
+      expect(state().tapDown).toEqual({ x: -0.1, y: 0 });
+   });
+
+   it("a cancelled canvas pointer frees the canvas for the next one", () => {
+      canvas.down(at(1, 0, 0, 0));
+      input.latch();
+      canvas.cancel(at(2, 0, 0, 10)); // another pointer's cancel: ignored
+      expect(state().pointer.down).toBe(true);
+      canvas.cancel(at(1, 0, 0, 20));
+      expect(state().pointer.down).toBe(false);
+      canvas.down(at(2, 0.5, 0, 30));
+      input.latch();
+      expect(state().tapDown).toEqual({ x: 0.5, y: 0 });
    });
 });
 

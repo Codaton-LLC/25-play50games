@@ -93,6 +93,8 @@ const RACK_SPOTS: InstanceSpot[] = [
    { x: -RACK_CENTRE_X, y: 0, z: 0 },
    { x: RACK_CENTRE_X, y: 0, z: 0 },
 ];
+/** The rack GLB is one 1.8 m bay pair (assets.ts): two copies side by side make each 3.6 m rack. */
+const RACK_MODEL_SPOTS: InstanceSpot[] = RACK_SPOTS.flatMap((r) => [-1, 1].map((side) => ({ x: r.x + side * (RACK_LENGTH / 4), y: 0, z: 0 })));
 
 /** One piece of a stand-in, relative to its prop's feet. */
 interface Piece {
@@ -423,7 +425,7 @@ export const Warehouse = memo(function Warehouse({ layout, yaw }: { layout: Layo
             <boxGeometry />
             <meshStandardMaterial color={COLORS.trim} roughness={0.6} />
          </Instanced>
-         <InstancedModel asset={ASSETS.shelfRack} spots={RACK_SPOTS} fallback={<RackStandIns />} />
+         <InstancedModel asset={ASSETS.shelfRack} spots={RACK_MODEL_SPOTS} fallback={<RackStandIns />} />
          <InstancedModel asset={ASSETS.pallet} spots={pallets} fallback={<PalletStandIns spots={pallets} />} />
       </group>
    );

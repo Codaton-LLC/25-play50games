@@ -19,7 +19,7 @@
                "rigged": { "type": "boolean" },
                "mode": { "enum": ["image", "text"] },
                "prompt": { "type": "string", "minLength": 1, "maxLength": 1024 },
-               "concept": { "type": "string", "pattern": "^tools/hyper3d/concepts/[a-zA-Z0-9_-]+\\.png$" },
+               "concept": { "type": "string", "pattern": "^tools/hyper3d/concepts/[a-zA-Z0-9_-]+\\.(png|webp)$" },
                "tier": { "enum": ["Gen-2.5-Extreme-Low", "Gen-2.5-Low", "Gen-2.5-Medium", "Gen-2.5-High"] },
                "qualityOverride": { "type": "integer", "minimum": 500, "maximum": 20000 },
                "attempts": { "type": "integer", "minimum": 1, "maximum": 100 },
