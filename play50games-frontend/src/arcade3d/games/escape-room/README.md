@@ -130,7 +130,7 @@ The proof assumes a speedrunner knows the seed, skips the empty container, choos
 
 ## Scene and camera
 
-Use a roofless cutaway room: floor 12 × 10, back wall up to 1.2 m, low front/side kerbs, desks/cupboards ≤ 1.4 m and door/frame ≤ 2.1 m. Furniture and drawers stay inside the physical guard box **x ±6.2, y -0.15…2.3, z ±5.2** through every rigid transform. Runner position/collision belongs to rules; its walk lean, turns and shadow only visualize it. No GLB animation is required for opening containers or the door.
+Scene.tsx is the playable room. It uses the fit below with no follow camera. The room is a roofless cutaway: floor 12 × 10, back wall up to 1.2 m, low front/side kerbs, desks/cupboards ≤ 1.4 m and door/frame ≤ 2.1 m. Furniture and drawers stay inside the physical guard box **x ±6.2, y -0.15…2.3, z ±5.2** through every rigid transform. Runner position/collision belongs to rules; its walk lean, turns and shadow only visualize it. No GLB animation is required for opening containers or the door.
 
 Call `useFittedView({ area: ROOM_BOX, pitch: 55° in radians, yaws: [30° in radians], focus: [ROOM_FOCUS], margin: { top: 0.11, bottom: 0.07, left: 0.02, right: 0.02 }, padding: 24, shift: true, fov: 45 })` with module-level objects. Use `CameraRig` with `camera.position = ROOM_FOCUS + view.offset`, `lookAt = ROOM_FOCUS`, FOV 45 and `shift={view.shift}`. This fixed camera has **no follow**; no local fitter or per-frame camera solve. The hook refits distance/lens shift on resize and safe-area changes while the single yaw keeps controls stable.
 
@@ -201,8 +201,9 @@ Allocate run state, four station/box records, three loot records, fixed wall/cha
 
 ## Known issues and core gaps
 
-- This is a preparation: Scene, rules, rules tests, assets declarations, HUD, thumbnail, playable loader and browser measurements do not exist yet. The table and mathematical proof define acceptance criteria; they are not a claim that a browser game passed them. Keep status `"soon"` until implementation and the project Definition of done are complete.
-- The current core already provides a pause-safe clock, simulation-first priorities, a camera fitter/lens shift, live safe-area rectangles, input-to-world mapping and Model fallbacks/instancing. Do not list these as missing or copy local replacements from older game designs. The reference game's points-limit tests need the time-game adaptation documented above, not a new score helper.
+- The scene is playable and status stays `"soon"`. The camera table is still the math target for `fitView`; the live fit uses `useSafeArea` on top of those same options. Rules and `rules.test.ts` belong to Codex and were not edited here.
+- Inspect uses `input.tap` (release, not a drag), never `tapDown`. A missed tap passes an invalid target so it does not fall through to the E / Enter nearest-object key.
+- The runner is `PrimitiveRunner`. Replace that one component with the core humanoid rig (`ASSETS.runner`) when it lands. Key, book and door are primitive fallbacks until their GLBs exist. Desk, chair and battery use the shared models.
 - Banner obstruction discovery in the current core can lag its polling interval (about 1 s). Test banner transitions, not just settled snapshots; any generic safe-area timing defect is for Claude in `core/`, not a game-owned DOM observer/fitter.
-- The design depends on explicit model envelopes and inspect badges. Claude's eventual GLBs need scale/pivot inspection; mesh geometry must never silently change reach or movement collisions. Only the shared battery is currently supplied among this game's reused models; the other fallbacks are part of the implementation work.
+- Desk, chair and battery GLBs are on main and scaled in `assets.ts`. Key, book and the door leaf are still primitives. Mesh size never changes reach or collisions. Measured draw calls on the furnished room: 26.
 - The catalogue's older escape-room row calls the universe `office` and proposes a console. This requested spec uses `shared-cast` seed 5050 and omits the console for the single office. Claude can reconcile the owned catalogue during the asset review; this branch does not edit `skills.md`, metadata, API rules or core files.

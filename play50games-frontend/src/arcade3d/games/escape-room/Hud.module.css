@@ -1,0 +1,40 @@
+/* Checklist. One fixed 174 x 36 box, 20 px from the bottom-right corner, marked
+   data-arcade-safe-area. The words inside change; the box never does, so the camera
+   fit does not move when a message replaces the three item names. */
+.panel {
+   position: absolute;
+   right: calc(env(safe-area-inset-right, 0px) + 20px);
+   bottom: calc(env(safe-area-inset-bottom, 0px) + 20px);
+   box-sizing: border-box;
+   width: 174px;
+   height: 36px;
+   pointer-events: none;
+}
+
+.pill {
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   gap: 8px;
+   box-sizing: border-box;
+   width: 100%;
+   height: 100%;
+   padding: 0 8px;
+   border: 2px solid #eab308;
+   border-radius: 999px;
+   background: rgba(11, 16, 32, 0.72);
+   color: #fff;
+   font-size: 12px;
+   font-weight: 800;
+   letter-spacing: 0.02em;
+   line-height: 1;
+   white-space: nowrap;
+}
+
+.got {
+   color: #eab308;
+}
+
+.got::before {
+   content: "✓ ";
+}
