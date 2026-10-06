@@ -5,6 +5,9 @@
 // WebGL check, Canvas, loading, start screen, 3-2-1 countdown, HUD, pause, result + score submit,
 // login modals, touch controls, rotate/context-lost overlays and cleanup. It also measures where
 // its HUD and touch controls cover the canvas and publishes that to scenes (core/safeArea.tsx).
+// When a run ends, the score is submitted at once, but the scene (and the HUD) stay on screen for
+// the game's result delay (GameDefinition.resultDelayMs, default 800 ms) before the result panel
+// appears, so a crash or a win animation can be seen.
 import {
    useCallback,
    useEffect,
@@ -41,6 +44,7 @@ import {
    type SubmitResult,
 } from "./scores";
 import { formatDuration } from "./format";
+import { isResultShown } from "./frameLoop";
 import { useAuth } from "@/contexts/AuthContext";
 import { getJwtToken } from "@/lib/api/apiUtils";
 import LoginModal from "@/components/Auth/LoginModal";
@@ -328,6 +332,9 @@ export default function GameShell({ meta, definition, exitHref = "/3d" }: GameSh
    const bottomObstruction = useBottomObstruction();
    const phase = useArcadeStore((s) => s.phase);
    const endReason = useArcadeStore((s) => s.endReason);
+   // flips once per run: the scene has stayed on screen for the result delay after the end
+   // (configure() below hands the store definition.resultDelayMs)
+   const resultShown = useArcadeStore(isResultShown);
    const leaderboard = useLeaderboard(meta.slug, { refreshKey: user?.id ?? null });
 
    const [webgl, setWebgl] = useState<WebGLSupport>("checking");
@@ -369,7 +376,11 @@ export default function GameShell({ meta, definition, exitHref = "/3d" }: GameSh
 
    // run config; reset() on unmount so the next game starts clean (safe to run twice)
    useEffect(() => {
-      arcadeStore.getState().configure({ durationMs: definition.durationMs, lives: definition.lives });
+      arcadeStore.getState().configure({
+         durationMs: definition.durationMs,
+         lives: definition.lives,
+         resultDelayMs: definition.resultDelayMs,
+      });
       submittedRunRef.current = null;
       return () => arcadeStore.getState().reset();
    }, [definition]);
@@ -502,10 +513,10 @@ export default function GameShell({ meta, definition, exitHref = "/3d" }: GameSh
       if (wrongOrientation) pause();
    }, [wrongOrientation, pause]);
 
-   // result screen: move focus into it for keyboard and screen-reader users
+   // result screen: move focus into it for keyboard and screen-reader users (once it appears)
    useEffect(() => {
-      if (phase === "over") resultRef.current?.focus();
-   }, [phase]);
+      if (resultShown) resultRef.current?.focus();
+   }, [resultShown]);
 
    const onContextLost = useCallback(() => {
       setContextLost(true);
@@ -522,7 +533,11 @@ export default function GameShell({ meta, definition, exitHref = "/3d" }: GameSh
    const retryStage = () => {
       setStageError(null);
       setStageKey((key) => key + 1);
-      arcadeStore.getState().configure({ durationMs: definition.durationMs, lives: definition.lives });
+      arcadeStore.getState().configure({
+         durationMs: definition.durationMs,
+         lives: definition.lives,
+         resultDelayMs: definition.resultDelayMs,
+      });
    };
 
    const saveToAccount = () => {
@@ -568,7 +583,9 @@ export default function GameShell({ meta, definition, exitHref = "/3d" }: GameSh
    }
 
    const stageFailed = stageError !== null;
-   const showHud = !stageFailed && (phase === "countdown" || phase === "playing" || phase === "paused");
+   // the HUD stays up while the ended run is still on screen (the result delay)
+   const showHud =
+      !stageFailed && (phase === "countdown" || phase === "playing" || phase === "paused" || (phase === "over" && !resultShown));
    const hudMounted = !stageFailed && webgl === "ok";
    const result = outcome?.result ?? null;
    const loginRequired = result?.status === "login-required";
@@ -652,7 +669,7 @@ export default function GameShell({ meta, definition, exitHref = "/3d" }: GameSh
                   </Overlay>
                )}
 
-               {!stageFailed && phase === "over" && outcome && (
+               {!stageFailed && resultShown && outcome && (
                   <div className={styles.overlay}>
                      <div ref={resultRef} className={styles.resultWrap} tabIndex={-1}>
                         <ResultPanel

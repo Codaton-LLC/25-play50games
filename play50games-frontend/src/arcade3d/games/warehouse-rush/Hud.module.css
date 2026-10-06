@@ -1,0 +1,149 @@
+/* The order panel (README "HUD"). The wrapper is a fixed 260 x 44 px box marked
+   data-arcade-safe-area: never transformed or animated, so the camera fit never moves mid-run.
+   Narrow screens: centred under the shell's HUD row (top 62 px). 600 px and wider: in the HUD row,
+   its right edge 8 px left of the mute and pause buttons (112 px from the edge), clear of the
+   Score / Time / Delivered chips. Centred it would meet the chips below 712 px. */
+.panel {
+   position: absolute;
+   top: calc(env(safe-area-inset-top, 0px) + 62px);
+   left: calc(50% - 130px);
+   box-sizing: border-box;
+   width: 260px;
+   height: 44px;
+   pointer-events: none;
+}
+
+@media (min-width: 600px) {
+   .panel {
+      top: calc(env(safe-area-inset-top, 0px) + 10px);
+      left: auto;
+      right: calc(env(safe-area-inset-right, 0px) + 112px);
+   }
+}
+
+/* everything that moves: a dark pill like the shell chips, its border in the order colour */
+.pill {
+   --order: #94a3b8;
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   gap: 8px;
+   box-sizing: border-box;
+   width: 100%;
+   height: 100%;
+   padding: 0 12px;
+   border: 2px solid var(--order);
+   border-radius: 999px;
+   background: rgba(11, 16, 32, 0.72);
+   -webkit-backdrop-filter: blur(6px);
+   backdrop-filter: blur(6px);
+   color: #fff;
+   font-size: 14px;
+   font-weight: 800;
+   line-height: 1.2;
+   letter-spacing: 0.01em;
+}
+
+.text {
+   min-width: 0;
+   overflow: hidden;
+   text-overflow: ellipsis;
+   white-space: nowrap;
+}
+
+.colour {
+   color: #fff;
+   color: color-mix(in srgb, var(--order) 62%, #fff);
+}
+
+/* the box: fills (with a check) while the robot carries the ordered box */
+.icon {
+   flex: none;
+   display: inline-flex;
+   align-items: center;
+   justify-content: center;
+   box-sizing: border-box;
+   width: 20px;
+   height: 20px;
+   border: 2px solid var(--order);
+   border-radius: 4px;
+   color: #0b1020;
+   font-size: 13px;
+   font-weight: 900;
+   line-height: 1;
+}
+
+.carrying {
+   background: var(--order);
+}
+
+.right {
+   animation: right 0.6s ease-out;
+}
+
+.wrong {
+   animation: wrong 0.5s ease-out;
+}
+
+/* after .right / .wrong: their shorthand would reset the play state */
+.paused {
+   animation-play-state: paused;
+}
+
+@keyframes right {
+   0% {
+      background: rgba(22, 163, 74, 0.92);
+      box-shadow: 0 0 0 0 rgba(74, 222, 128, 0.85);
+   }
+   100% {
+      background: rgba(11, 16, 32, 0.72);
+      box-shadow: 0 0 0 12px rgba(74, 222, 128, 0);
+   }
+}
+
+@keyframes wrong {
+   0% {
+      background: rgba(220, 38, 38, 0.92);
+      transform: none;
+   }
+   15% {
+      transform: translateX(-7px);
+   }
+   35% {
+      transform: translateX(6px);
+   }
+   55% {
+      transform: translateX(-4px);
+   }
+   75% {
+      transform: translateX(2px);
+   }
+   100% {
+      background: rgba(11, 16, 32, 0.72);
+      transform: none;
+   }
+}
+
+@keyframes flashWrong {
+   0% {
+      background: rgba(220, 38, 38, 0.92);
+   }
+   100% {
+      background: rgba(11, 16, 32, 0.72);
+   }
+}
+
+@media (prefers-reduced-motion: reduce) {
+   .wrong {
+      animation-name: flashWrong;
+   }
+}
+
+.srOnly {
+   position: absolute;
+   width: 1px;
+   height: 1px;
+   overflow: hidden;
+   clip: rect(0 0 0 0);
+   white-space: nowrap;
+}

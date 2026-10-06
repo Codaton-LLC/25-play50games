@@ -1,0 +1,41 @@
+/* Landscape / wide screens: the badge sits in the shell's HUD row (between the chips and the
+   mute/pause buttons), so it adds nothing to the safe area and the camera fit stays centred. */
+.badge {
+   position: absolute;
+   top: 0.75rem;
+   left: 50%;
+   transform: translateX(-50%);
+   margin: 0;
+   padding: 0.35rem 0.8rem;
+   border: 1px solid var(--stroke);
+   border-radius: 999px;
+   background: var(--card);
+   color: #86efac;
+   font-size: 0.95rem;
+   font-weight: 800;
+   letter-spacing: 0.04em;
+   line-height: 1.2;
+}
+
+/* Portrait phones: the chip row fills the top, so the badge goes below it. The portrait fit is
+   width-bound, so this rect costs no play area. */
+@media (orientation: portrait) and (max-width: 640px) {
+   .badge {
+      top: 4.6rem;
+   }
+}
+
+/* Under a 5 combo: still laid out (the safe area keeps its rect), just not drawn. Never set
+   visibility: visible here, or the badge would show through the shell's hidden HUD wrapper. */
+.off {
+   visibility: hidden;
+}
+
+.srOnly {
+   position: absolute;
+   width: 1px;
+   height: 1px;
+   overflow: hidden;
+   clip: rect(0 0 0 0);
+   white-space: nowrap;
+}

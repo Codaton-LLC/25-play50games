@@ -25,7 +25,7 @@ export const warehouseRushMeta: ArcadeGameMeta = {
       unitLabel: "pts",
       display: "int"
    },
-   thumbnail: null,
+   thumbnail: "/images/3d/warehouse-rush.webp",
    accent: "#fb923c",
    owner: "claude"
 };
