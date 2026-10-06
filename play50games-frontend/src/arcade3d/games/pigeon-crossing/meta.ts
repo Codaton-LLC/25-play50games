@@ -12,8 +12,8 @@ export const pigeonCrossingMeta: ArcadeGameMeta = {
    orientation: "portrait",
    controls: {
       scheme: "hop",
-      keyboard: "Arrows / WASD to hop",
-      touch: "Swipe or tap to hop"
+      keyboard: "Arrows / WASD: one hop per press",
+      touch: "Swipe in any direction; tap hops forward"
    },
    scoring: {
       kind: "points",
