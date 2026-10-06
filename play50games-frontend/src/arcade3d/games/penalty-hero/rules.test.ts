@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { advanceRunClock, playedFrameDt } from "@/arcade3d/core/frameLoop";
+import { createInputController } from "@/arcade3d/core/inputController";
 import { createArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import {
    AIM_TIMEOUT_MS,
@@ -16,7 +17,7 @@ import {
    SHOTS,
    WIDE_X,
    ZONES,
-   axisClass,
+   aimPresses,
    capScore,
    createRng,
    createRun,
@@ -28,6 +29,7 @@ import {
    reticleSeed,
    step,
    withinServerLimits,
+   zoneAt,
    type RunState,
    type StepInput,
    type ZoneId,
@@ -95,66 +97,184 @@ describe("schedule and determinism", () => {
 });
 
 describe("aiming", () => {
-   it("moves one zone on a threshold crossing and does not repeat while held", () => {
+   it("moves one zone per press and clamps at the edges", () => {
       const state = createRun(1);
       expect(ZONES[4]).toBe("bottom-centre");
       expect(state.col).toBe(1);
       expect(state.row).toBe(0);
-      expect(axisClass(0.5)).toBe(0);
-      expect(axisClass(-0.5)).toBe(0);
-      expect(axisClass(0.51)).toBe(1);
 
-      let ev = step(state, DT, { moveX: 1 });
+      let ev = step(state, DT, { pressed: { right: true } });
       expect(ev.aimMoved).toBe(true);
       expect(state.col).toBe(2);
       expect(state.row).toBe(0);
-      ev = step(state, DT, { moveX: 1 });
+      ev = step(state, DT, { pressed: { right: true } });
       expect(ev.aimMoved).toBe(false);
       expect(state.col).toBe(2);
-      ev = step(state, DT, { moveX: 1 });
+      // a held key sends no new press: nothing repeats
+      ev = step(state, DT, {});
       expect(ev.aimMoved).toBe(false);
       expect(state.col).toBe(2);
 
-      step(state, DT, { moveX: 0 });
-      ev = step(state, DT, { moveX: -1 });
+      ev = step(state, DT, { pressed: { left: true } });
       expect(ev.aimMoved).toBe(true);
       expect(state.col).toBe(1);
+      ev = step(state, DT, { pressed: { left: true } });
+      expect(state.col).toBe(0);
+      ev = step(state, DT, { pressed: { left: true } });
+      expect(ev.aimMoved).toBe(false);
+      expect(state.col).toBe(0);
 
-      ev = step(state, DT, { moveY: -1 });
+      ev = step(state, DT, { pressed: { up: true } });
       expect(ev.aimMoved).toBe(true);
       expect(state.row).toBe(1);
-      expect(state.col).toBe(1);
-      ev = step(state, DT, { moveY: -1 });
+      expect(state.col).toBe(0);
+      ev = step(state, DT, { pressed: { up: true } });
       expect(ev.aimMoved).toBe(false);
       expect(state.row).toBe(1);
+      ev = step(state, DT, { pressed: { down: true } });
+      expect(ev.aimMoved).toBe(true);
+      expect(state.row).toBe(0);
+      ev = step(state, DT, { pressed: { down: true } });
+      expect(ev.aimMoved).toBe(false);
+      expect(state.row).toBe(0);
    });
 
-   it("lets horizontal win a diagonal and rearms in the dead zone", () => {
+   it("applies both axes of a diagonal and cancels opposite presses", () => {
       const state = createRun(1);
-      const ev = step(state, DT, { moveX: 1, moveY: -1 });
+      const ev = step(state, DT, { pressed: { right: true, up: true } });
       expect(ev.aimMoved).toBe(true);
       expect(state.col).toBe(2);
+      expect(state.row).toBe(1);
+      const both = step(state, DT, { pressed: { left: true, right: true, up: true, down: true } });
+      expect(both.aimMoved).toBe(false);
+      expect(state.col).toBe(2);
+      expect(state.row).toBe(1);
+      step(state, DT, { pressed: { left: true, right: true, down: true } });
+      expect(state.col).toBe(2);
       expect(state.row).toBe(0);
-      step(state, DT, { moveX: 0.2, moveY: 0.2 });
-      const again = step(state, DT, { moveX: -1, moveY: -1 });
-      expect(again.aimMoved).toBe(true);
+      const none = step(state, DT, { pressed: null });
+      expect(none.aimMoved).toBe(false);
+      step(state, DT, { pressed: { left: true, up: true } });
       expect(state.col).toBe(1);
-      expect(state.row).toBe(0);
+      expect(state.row).toBe(1);
    });
 
-   it("ignores a held key when the next shot begins", () => {
+   it("moves before the shot of the same frame and drops presses until the next aim", () => {
       const state = createRun(1);
       state.reticlePhase = 0;
-      step(state, DT, { moveX: 1, jumpPressed: true });
+      step(state, DT, { pressed: { right: true, up: true }, jumpPressed: true });
       expect(state.col).toBe(2);
+      expect(state.row).toBe(1);
+      expect(state.pending.zone).toBe(2);
       expect(state.phase).toBe("runup");
-      play(state, DT, () => ({ moveX: 1 }), (s) => s.phase === "aim" && s.shotsDone === 1);
+      // a press in every frame of the run-up, flight and hold, including the frame that starts the next aim
+      play(state, DT, () => ({ pressed: { left: true, down: true } }), (s) => s.phase === "aim" && s.shotsDone === 1);
       expect(state.phase).toBe("aim");
       expect(state.col).toBe(2);
-      const ev = step(state, DT, { moveX: 1 });
+      expect(state.row).toBe(1);
+      const ev = step(state, DT, {});
       expect(ev.aimMoved).toBe(false);
       expect(ev.shot).toBe(false);
       expect(state.col).toBe(2);
+      step(state, DT, { pressed: { left: true } });
+      expect(state.col).toBe(1);
+   });
+
+   it("keeps keyboard taps between two frames and ignores swipes (core input)", () => {
+      const controller = createInputController();
+      const aim = { left: false, right: false, up: false, down: false };
+      const state = createRun(1);
+      const frame = () => {
+         controller.latch();
+         const inp = controller.state.current;
+         return step(state, DT, { pressed: aimPresses(inp.pressed, inp.swipe, aim) });
+      };
+      // pressed and released before the frame: moveX never sees it, pressed does
+      controller.keyDown("ArrowLeft");
+      controller.keyUp("ArrowLeft");
+      expect(frame().aimMoved).toBe(true);
+      expect(state.col).toBe(0);
+      controller.keyDown("KeyW");
+      controller.keyUp("KeyW");
+      controller.keyDown("ArrowRight");
+      controller.keyUp("ArrowRight");
+      frame();
+      expect(state.col).toBe(1);
+      expect(state.row).toBe(1);
+      // auto-repeat and a held key do not move again
+      controller.keyDown("ArrowRight");
+      frame();
+      expect(state.col).toBe(2);
+      controller.keyDown("ArrowRight", true);
+      expect(frame().aimMoved).toBe(false);
+      controller.keyUp("ArrowRight");
+
+      // a swipe sets pressed.left and swipe "left" on the same frame: no aim move
+      controller.pointerDown(0, 0, 200, 400, 0);
+      controller.pointerMove(-0.3, 0, 150, 400, 60);
+      controller.latch();
+      expect(controller.state.current.pressed.left).toBe(true);
+      expect(controller.state.current.swipe).toBe("left");
+      const inp = controller.state.current;
+      expect(step(state, DT, { pressed: aimPresses(inp.pressed, inp.swipe, aim) }).aimMoved).toBe(false);
+      expect(aim).toEqual({ left: false, right: false, up: false, down: false });
+      expect(state.col).toBe(2);
+      controller.pointerUp(150, 400, 120);
+      expect(frame().aimMoved).toBe(false);
+      // other directions of that frame still count
+      expect(aimPresses({ left: true, right: false, up: true, down: false }, "left", aim)).toEqual({
+         left: false,
+         right: false,
+         up: true,
+         down: false,
+      });
+   });
+
+   it("judges a touch where it landed: tapDown shoots on the press, a held finger cannot push it wide", () => {
+      const controller = createInputController();
+      const zoneOf = (p: { x: number; y: number } | null): ZoneId | null => (p ? "top-left" : null);
+      const onPress = createRun(1);
+      const onRelease = createRun(1);
+      onPress.reticlePhase = 0;
+      onRelease.reticlePhase = 0;
+      // 600 ms of aim: the ring is on the band centre (offset 0)
+      for (let i = 0; i < 12; i++) {
+         step(onPress, DT, {});
+         step(onRelease, DT, {});
+      }
+      expect(onPress.aimMs).toBe(600);
+      expect(isAccurate(reticleOffset(onPress.aimMs, 0))).toBe(true);
+
+      controller.pointerDown(-0.5, 0.4, 100, 300, 1000);
+      controller.latch();
+      const first = controller.state.current;
+      expect(first.tapDown).toEqual({ x: -0.5, y: 0.4 });
+      expect(first.tap).toBeNull();
+      const ev = step(onPress, DT, { zoneId: zoneOf(first.tapDown) });
+      step(onRelease, DT, { zoneId: zoneOf(first.tap) });
+      expect(ev.shot).toBe(true);
+      expect(onPress.pending.zone).toBe(0);
+      expect(onPress.pending.accurate).toBe(true);
+      expect(onPress.reticle).toBeCloseTo(0, 10);
+      expect(onRelease.phase).toBe("aim");
+
+      // the finger stays down 250 ms: a shot on release (tap) is judged then, outside the band
+      for (let i = 0; i < 5; i++) {
+         controller.latch();
+         expect(controller.state.current.tapDown).toBeNull();
+         step(onPress, DT, { zoneId: zoneOf(controller.state.current.tapDown) });
+         step(onRelease, DT, { zoneId: zoneOf(controller.state.current.tap) });
+      }
+      controller.pointerUp(100, 300, 1250);
+      controller.latch();
+      expect(controller.state.current.tap).not.toBeNull();
+      step(onRelease, DT, { zoneId: zoneOf(controller.state.current.tap) });
+      expect(onRelease.pending.kind).toBe("shot");
+      expect(onRelease.pending.accurate).toBe(false);
+      // the press shot once: one reinforcement, still in the run-up
+      expect(onPress.pending.accurate).toBe(true);
+      expect(onPress.weights[0]).toBe(INITIAL_WEIGHT + 1);
+      expect(onPress.phase).toBe("runup");
    });
 
    it("shoots on Space or E, and a tap uses the projected zone", () => {
@@ -245,7 +365,7 @@ describe("outcomes", () => {
    it("times out as a miss and ignores a shot on that frame", () => {
       const state = createRun(8);
       state.aimMs = AIM_TIMEOUT_MS - DT;
-      const ev = step(state, DT, { jumpPressed: true, zoneId: "top-left", moveX: 1 });
+      const ev = step(state, DT, { jumpPressed: true, zoneId: "top-left", pressed: { right: true } });
       expect(ev.shot).toBe(false);
       expect(ev.timeout).toBe(false);
       expect(state.pending.kind).toBe("timeout");
@@ -416,16 +536,15 @@ describe("pinned rules", () => {
       expect(state.weights).toEqual(w);
    });
 
-   it("moves once per key press and ignores a key held through the run-up", () => {
-      expect(axisClass(-0.51)).toBe(-1);
+   it("moves once per key press and drops presses made during the run-up", () => {
       const state = createRun(1);
       expect(state.col).toBe(1);
-      step(state, DT, { moveX: -1 });
+      step(state, DT, { pressed: { left: true } });
       expect(state.col).toBe(0);
-      step(state, DT, { moveX: 0 });
-      step(state, DT, { moveX: 1 });
-      step(state, DT, { moveX: 1 });
-      step(state, DT, { moveX: 1 });
+      step(state, DT, {});
+      step(state, DT, { pressed: { right: true } });
+      step(state, DT, {});
+      step(state, DT, {});
       expect(state.col).toBe(1);
 
       const held = createRun(2);
@@ -433,10 +552,12 @@ describe("pinned rules", () => {
       step(held, DT, { jumpPressed: true });
       expect(held.col).toBe(1);
       expect(held.phase).toBe("runup");
-      play(held, DT, () => ({ moveX: 1 }), (s) => s.phase === "aim" && s.shotsDone === 1);
+      play(held, DT, () => ({ pressed: { right: true } }), (s) => s.phase === "aim" && s.shotsDone === 1);
       expect(held.col).toBe(1);
-      step(held, DT, { moveX: 1 });
+      step(held, DT, {});
       expect(held.col).toBe(1);
+      step(held, DT, { pressed: { right: true } });
+      expect(held.col).toBe(2);
    });
 
    it("resets the streak on a save and on a timeout", () => {
@@ -509,14 +630,14 @@ describe("pinned rules", () => {
    it("sends a wide ball outside the top row and parks a timeout on the ball spot", () => {
       const right = createRun(1);
       right.reticlePhase = Math.PI / 2;
-      step(right, DT, { moveY: -1 });
+      step(right, DT, { pressed: { up: true } });
       step(right, DT, { jumpPressed: true });
       expect(right.targetX).toBeCloseTo(WIDE_X, 10);
       expect(right.targetY).toBeCloseTo(1.83, 10);
 
       const left = createRun(1);
       left.reticlePhase = -Math.PI / 2;
-      step(left, DT, { moveY: -1 });
+      step(left, DT, { pressed: { up: true } });
       step(left, DT, { jumpPressed: true });
       expect(left.targetX).toBeCloseTo(-WIDE_X, 10);
       expect(left.targetY).toBeCloseTo(1.83, 10);
@@ -597,8 +718,7 @@ describe("pinned rules", () => {
             const dt = rng() * 49 + 1;
             const roll = rng();
             const input: StepInput = {
-               moveX: rng() < 0.15 ? Number.NaN : rng() * 2 - 1,
-               moveY: rng() * 2 - 1,
+               pressed: rng() < 0.15 ? null : { left: rng() < 0.2, right: rng() < 0.2, up: rng() < 0.2, down: rng() < 0.2 },
                jumpPressed: roll < 0.35,
                actionPressed: roll > 0.85,
                zoneId: roll < 0.2 ? ZONES[Math.floor(rng() * ZONES.length)] : roll < 0.3 ? "nope" : roll < 0.4 ? null : undefined,
@@ -625,5 +745,54 @@ describe("pinned rules", () => {
          expect(Math.round(state.elapsedMs)).toBeGreaterThanOrEqual(16_000);
          expect(Math.round(state.elapsedMs)).toBeLessThanOrEqual(216_050);
       }
+   });
+});
+
+describe("review additions", () => {
+   function tapWith(phase: number, zoneId: ZoneId): RunState {
+      const state = createRun(42);
+      state.reticlePhase = phase;
+      step(state, DT, { zoneId });
+      return state;
+   }
+
+   it("aims an accurate shot at the zone centre and a wide one at the row centre", () => {
+      const bottomLeft = tapWith(0, "bottom-left");
+      expect(bottomLeft.pending.accurate).toBe(true);
+      expect(bottomLeft.targetX).toBe(-2.44);
+      expect(bottomLeft.targetY).toBe(0.61);
+      const topRight = tapWith(0, "top-right");
+      expect(topRight.pending.accurate).toBe(true);
+      expect(topRight.targetX).toBe(2.44);
+      expect(topRight.targetY).toBe(1.83);
+      const wide = tapWith(Math.PI / 2, "bottom-right");
+      expect(wide.pending.accurate).toBe(false);
+      expect(wide.targetX).toBe(WIDE_X);
+      expect(wide.targetY).toBe(0.61);
+   });
+
+   it("lets the limit cap bind when a score outruns the clock", () => {
+      expect(finalScore(1450, 9000)).toEqual({ score: 1350, durationMs: 9000 });
+      expect(capScore(1500, 9499.6)).toBe(1425);
+   });
+
+   it("draws the only weighted zone even at the top of the unit range", () => {
+      expect(drawWeightedIndex([5, 0, 0, 0, 0, 0], 1)).toBe(0);
+      // the top ticket stays on the last weighted zone, never on the zero weights behind it
+      expect(drawWeightedIndex([2, 3, 0, 0, 0, 0], 1)).toBe(1);
+      expect(drawWeightedIndex([2, 3, 0, 0, 0, 0], 0.999999)).toBe(1);
+   });
+
+   it("maps goal-plane points to zones, inner lines to the right and upper zone", () => {
+      expect(zoneAt(-3.66, 0)).toBe("bottom-left");
+      expect(zoneAt(-1.22, 0.5)).toBe("bottom-centre");
+      expect(zoneAt(1.22, 0.5)).toBe("bottom-right");
+      expect(zoneAt(0, 1.22)).toBe("top-centre");
+      expect(zoneAt(3.66, 2.44)).toBe("top-right");
+      expect(zoneAt(-2, 1.9)).toBe("top-left");
+      expect(zoneAt(3.67, 1)).toBeNull();
+      expect(zoneAt(0, -0.01)).toBeNull();
+      expect(zoneAt(0, 2.45)).toBeNull();
+      expect(zoneAt(Number.NaN, 1)).toBeNull();
    });
 });
