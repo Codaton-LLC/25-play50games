@@ -25,6 +25,13 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/warehouse-rush/shelfRack.glb",
    "/models/3d/warehouse-rush/pallet.glb",
    "/models/3d/obstacle-race/finishArch.glb",
+   // group B characters (2026-10-06): image-to-3D from the ChatGPT concepts (tools/hyper3d/concepts),
+   // Gen-2.5-Medium, static T-pose meshes (18k tris, the pigeon 12k), animated by the core auto-rig
+   "/models/3d/shared/runner.glb",
+   "/models/3d/food-catcher/chef.glb",
+   "/models/3d/penalty-hero/striker.glb",
+   "/models/3d/penalty-hero/keeper.glb",
+   "/models/3d/pigeon-crossing/pigeon.glb",
 ];
 
 const LISTED: ReadonlySet<string> = new Set(MODEL_MANIFEST);
