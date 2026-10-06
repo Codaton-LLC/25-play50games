@@ -547,7 +547,7 @@ export function createGateRigs(): GateRig[] {
    }));
 }
 
-// ---------- the finish arch (stand-in until finishArch.glb exists) ----------
+// ---------- the finish arch (always this one: the group A finishArch.glb does not fit the posts, assets.ts) ----------
 
 /** Two red inflatable legs (the rules' solid posts), a yellow top tube and a checkered banner. Faces +z. */
 export function FinishArchPrimitive() {

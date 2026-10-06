@@ -142,6 +142,8 @@ interface Follow {
 /** useFrame priorities between the simulation (-0.5) and CameraRig (-0.25): the visual clock, then the camera cut. */
 const VISUAL_CLOCK_PRIORITY = -0.45;
 const CUT_PRIORITY = -0.4;
+/** After CameraRig (-0.25), before the visuals (0): the cut frame's re-aim (FollowCamera). */
+const REAIM_PRIORITY = -0.2;
 
 // ---------- the game ----------
 
@@ -246,21 +248,36 @@ const ORIGIN: [number, number, number] = [0, 0, 0];
  * respawn count. A respawn re-keys it in the same frame (flushSync from a useFrame between the
  * simulation and the camera): the new rig's wrapper writes F in a layout effect, the rig snaps to it
  * on mount, and the outgoing rig never eases towards the checkpoint 25 m away.
+ * The outgoing rig still runs once more in the cut frame: R3F 8 runs a frame's callbacks from the
+ * subscriber list as it was when the frame began, so the unmounted rig's useFrame (-0.25) turns the
+ * camera back towards its own look point near the fall, a one-frame pitch up the course. The re-aim
+ * at -0.2 looks at F again (the new rig's snap: followFraction 1, no bounds) before anything draws.
+ * The position and the lens shift need nothing: the old rig eases the position towards F + offset,
+ * where the snap put it, and sets its full shift again after its cleanup cleared it.
  */
 const FollowCamera = memo(function FollowCamera({ run, follow }: { run: ObstacleRun; follow: Follow }) {
+   const camera = useThree((state) => state.camera);
    const width = useThree((state) => state.size.width);
    const height = useThree((state) => state.size.height);
    const VIEW = viewFor(width, height);
    const view = useFittedView(VIEW);
    const [cut, setCut] = useState(run.respawns);
    const seen = useRef(run.respawns);
+   const cutNow = useRef(false);
 
    useFrame(() => {
       if (run.respawns === seen.current) return;
       seen.current = run.respawns;
       // a render once per respawn, never per frame; synchronous, so the cut lands in this frame
       flushSync(() => setCut(run.respawns));
+      cutNow.current = true;
    }, CUT_PRIORITY);
+
+   useFrame(() => {
+      if (!cutNow.current) return;
+      cutNow.current = false;
+      camera.lookAt(follow.x, follow.y, follow.z);
+   }, REAIM_PRIORITY);
 
    return <CutRig key={cut} run={run} follow={follow} view={view} fov={VIEW.fov} />;
 });
@@ -613,6 +630,17 @@ export default function Scene() {
    const [run] = useState(() => createRun());
    const [fx] = useState(createFx);
    const [follow] = useState<Follow>(() => ({ ...followPoint(run, { x: 0, y: 0, z: 0 }), hold: false }));
+   const gl = useThree((state) => state.gl);
+   const scene = useThree((state) => state.scene);
+   const camera = useThree((state) => state.camera);
+
+   // Every shader once, now (about 8 ms, behind the start panel or the countdown), not the first time
+   // its object comes into view: the gate banners and flags and the finish checker are off-screen at
+   // the start and would compile mid-run (a 40-140 ms frame on a first visit). compile() walks the
+   // whole scene, hidden objects included; on a remount the programs are already cached.
+   useLayoutEffect(() => {
+      gl.compile(scene, camera);
+   }, [gl, scene, camera]);
 
    return (
       <>
@@ -626,7 +654,10 @@ export default function Scene() {
          <Blocks fx={fx} />
          <Beam fx={fx} />
          <CheckpointGates run={run} fx={fx} />
-         <Model asset={ASSETS.finishArch} fallback={<FinishArchPrimitive />} position={[0, 0, -LINES.finish]} />
+         {/* drawn from rules.ts ARCH, never a model: the group A GLB does not fit the posts (assets.ts) */}
+         <group position={[0, 0, -LINES.finish]}>
+            <FinishArchPrimitive />
+         </group>
          <Runner run={run} fx={fx} />
          <Effects fx={fx} />
       </>

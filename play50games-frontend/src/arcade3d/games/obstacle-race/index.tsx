@@ -23,11 +23,12 @@ const definition: GameDefinition = {
    environment: { background: "#bae6fd", fog: ["#bae6fd", 45, 110], lighting: "day" },
    touchControls: ["joystick", "jump"],
    hudStats: [{ key: STAT.checkpoint, label: "Checkpoint", max: 3 }],
+   // three lines of two rows each on a phone (the controls box already lists the keys), so Play
+   // clears the cookie banner at 375 x 812 as in the other games
    instructions: [
-      "Run to the finish arch as fast as you can: WASD or the joystick to run, Space or Jump to jump.",
-      "Jump the spinning bar, hop the platforms, ride the sliding blocks, keep your balance on the beam.",
-      "Fall in the pool and you restart at the last checkpoint. The clock keeps running.",
-      "Your finish time is your score.",
+      "Race to the finish arch. Your finish time is your score.",
+      "Jump the bar, hop the platforms, ride the blocks, cross the beam.",
+      "A fall sends you back to the last checkpoint. The clock runs on.",
    ],
    // the runner cheers under the arch before the result panel
    resultDelayMs: 1200,
