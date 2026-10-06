@@ -4,6 +4,7 @@
 // GameShell measures and publishes; games read it (also inside the Canvas):
 //
 //    const { hud, controls, obstructions } = useSafeArea();   // ScreenRects in CSS px from the canvas top-left
+//    const top = useSafeArea((area) => hudBottom(area));       // a selector: re-renders only when it changes
 //
 // - hud: the shell's score/time/stats chips and mute/pause buttons (one rect per group), plus every
 //   element of the game's own `definition.Hud` marked `data-arcade-safe-area` (SAFE_AREA_ATTR),
@@ -46,9 +47,14 @@ export interface SafeAreaStore {
 }
 
 const near = (a: number, b: number) => Math.abs(a - b) < 0.5;
-const sameRects = (a: ScreenRect[], b: ScreenRect[]) =>
+const sameRects = (a: readonly ScreenRect[], b: readonly ScreenRect[]) =>
    a.length === b.length &&
    a.every((r, i) => near(r.left, b[i].left) && near(r.top, b[i].top) && near(r.right, b[i].right) && near(r.bottom, b[i].bottom));
+
+/** Two rect lists within half a px of each other: an `isEqual` for useSafeArea selectors that return rects. */
+export function sameScreenRects(a: readonly ScreenRect[], b: readonly ScreenRect[]): boolean {
+   return sameRects(a, b);
+}
 
 /** Is `next` the same layout as `prev` (within half a px)? */
 export function sameSafeArea(prev: SafeArea, next: SafeArea): boolean {
@@ -88,10 +94,50 @@ export function SafeAreaProvider({ store, children }: { store: SafeAreaStore; ch
 const noSubscribe = () => () => {};
 const empty = () => EMPTY;
 
-/** The live safe-area rects (an empty layout outside GameShell). Re-renders only when they change. */
-export function useSafeArea(): SafeArea {
+export type SafeAreaSelector<T> = (area: SafeArea) => T;
+export type SafeAreaEquality<T> = (a: T, b: T) => boolean;
+
+/**
+ * The memo behind useSafeArea(selector): the same layout and selector give the same value without
+ * calling the selector again, and a new layout whose selection `isEqual` to the last one gives the
+ * last value back (same identity), so React does not re-render. No allocation per call.
+ */
+export function createSafeAreaSelection<T>(): (area: SafeArea, selector: SafeAreaSelector<T>, isEqual: SafeAreaEquality<T>) => T {
+   let has = false;
+   let lastArea: SafeArea | null = null;
+   let lastSelector: SafeAreaSelector<T> | null = null;
+   let lastValue = undefined as T;
+   return (area, selector, isEqual) => {
+      if (has && area === lastArea && selector === lastSelector) return lastValue;
+      const next = selector(area);
+      if (!has || !isEqual(lastValue, next)) lastValue = next;
+      has = true;
+      lastArea = area;
+      lastSelector = selector;
+      return lastValue;
+   };
+}
+
+/**
+ * The live safe-area rects (an empty layout outside GameShell). Re-renders only when they change.
+ *
+ * With a selector it re-renders only when the selected value changes (`isEqual`, default
+ * Object.is), not for every HUD chip that grows with the score:
+ *
+ *    const insetTop = useSafeArea((area) => Math.max(0, ...area.hud.map((r) => r.bottom)));
+ *    const controls = useSafeArea((area) => area.controls, sameScreenRects);
+ *
+ * Objects built in the selector need an `isEqual` (e.g. `shallow` from "zustand/shallow").
+ */
+export function useSafeArea(): SafeArea;
+export function useSafeArea<T>(selector: SafeAreaSelector<T>, isEqual?: SafeAreaEquality<T>): T;
+export function useSafeArea<T>(selector?: SafeAreaSelector<T>, isEqual: SafeAreaEquality<T> = Object.is): SafeArea | T {
    const store = useContext(SafeAreaContext);
-   return useSyncExternalStore(store?.subscribe ?? noSubscribe, store?.get ?? empty, empty);
+   const [select] = useState(() => createSafeAreaSelection<T>());
+   const get = store?.get ?? empty;
+   const getSnapshot = selector ? () => select(get(), selector, isEqual) : get;
+   const getServerSnapshot = selector ? () => select(EMPTY, selector, isEqual) : empty;
+   return useSyncExternalStore<SafeArea | T>(store?.subscribe ?? noSubscribe, getSnapshot, getServerSnapshot);
 }
 
 /** Measures `elements` relative to `base` (zero-size elements, e.g. display: none, are skipped). */

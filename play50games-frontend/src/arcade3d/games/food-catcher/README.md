@@ -1,6 +1,20 @@
 # Food Catcher 3D
 
-Owner: Cursor. Slug: `food-catcher`. Status stays `"soon"` until the game itself is built. This file is the design only. No scene or rules code yet.
+Owner: Cursor. Slug: `food-catcher`. The scene plays on top of `rules.ts`. Status stays `"soon"` until Claude reviews it.
+
+| File | What it owns |
+|---|---|
+| `meta.ts` | Card data, control lines and `scoring`. Status stays `"soon"`. |
+| `index.tsx` | `GameDefinition`: Scene, 2× Hud, assets, 90 s, 3 lives, combo stat, `finalScore` (the capScore safety net). |
+| `rules.ts` / `rules.test.ts` | Pure seeded catch, movement and the score proof. |
+| `Scene.tsx` | One `useRunFrame` step, pointer ray, `useFittedView` camera, falling-item pool. Only `FittedCamera` re-renders on a refit; the rest is memoised. |
+| `Primitives.tsx` | Kitchen, chef, food stand-ins and the junk tell. |
+| `Hud.tsx` | The 2× badge: always laid out, visible only while the combo is 5 or more. |
+| `assets.ts` / `assets.spec.json` | Model ids. GLBs are not fetched until they are in `modelManifest.ts`. |
+
+### What a new game copies from here
+
+Copy the robot-collector split, not this folder. From this scene, the useful pattern is a fixed pool of falling slots updated in `useFrame` from a pure `step()`, with the camera fit from `useFittedView` (`shift: true`, yaw 0) so the play rectangle stays clear of the shell HUD.
 
 ## Concept
 
@@ -8,10 +22,10 @@ A chunky chef slides along a kitchen counter and catches food falling toward the
 
 ## Controls
 
-Matches `meta.ts` (`scheme: "lanes"`). The published keyboard line is "Left / right arrows to move".
+Matches `meta.ts` (`scheme: "lanes"`). The published lines are "Left / right arrows to move" and "Hold and drag left / right".
 
 - Keyboard: Left and Right arrows, or A and D. Hold accelerates the chef toward that direction. Release decelerates to a stop. The chef does not jump.
-- Touch, one mapping: while the pointer is down, shoot a ray through the pointer and intersect the play plane `z = 0`. The chef moves toward that hit's x, along the counter, and never faster than max speed. Releasing the pointer stops the input. The chef does not jump.
+- Touch (and a held mouse button), one mapping: while the pointer is down, shoot a ray through the pointer and intersect the play plane `z = 0`. The chef moves toward that hit's x, along the counter, and never faster than max speed. Releasing the pointer stops the input. The chef does not jump. There are no on-screen buttons (`touchControls: []`).
 
 ## Constants
 
@@ -119,33 +133,30 @@ Perfect play catches an item only once its center has reached y = 1.6, and the r
 
 `2420 <= 5000` and `2420 <= floor(50 * 90) = 4500`. The integer server check is `2420 * 1000 = 2,420,000 <= 50 * 90000 = 4,500,000`.
 
-`finalScore` returns `{ score: min(score, 5000, floor(50 * duration_s)), durationMs }`, with `duration_s = durationMs / 1000`, so the floor is `floor(50 * durationMs / 1000)`. A full clear submits duration 90000. A three-life loss submits the cross time of the third caught bad item, at earliest 9950. On either legal run the clamp does not change the awarded total.
+`finalScore` returns `{ score: min(score, 5000, floor(50 * duration_s)), durationMs }`, with `duration_s = durationMs / 1000`, so the floor is `floor(50 * durationMs / 1000)` (core `capScore`, on the whole milliseconds GameShell submits). `index.tsx` wires it as `finalScore: (s) => finalScore(s.score, s.elapsedMs)` with the shell store's score and play time. A full clear submits duration 90000. A three-life loss submits the cross time of the third caught bad item, at earliest 9950. On either legal run the clamp does not change the awarded total.
 
 ## Camera and scene layout
 
-The play rectangle that must stay on screen is x in [-4.2, 4.2] and y in [0, 6.5]. Its center is `(0, 3.25)`. The camera looks straight at that center from `+z`, with fov 40. It does not follow the chef.
+The play rectangle that must stay on screen is x in [-4.2, 4.2] and y in [0, 6.5] (z [-0.9, 1.05] covers the depth of the chef and the counter edge). Its center is `(0, 3.25)`. The camera looks straight at it from `+z` (pitch 0, yaw 0) with fov 40. It does not follow the chef.
 
-`GameDefinition.camera` starts at position `[0, 3.25, 8.93]`, fov 40, lookAt `[0, 3.25, 0]`. Scene then fits the rectangle from `useThree` size, on mount and whenever the size changes:
+`GameDefinition.camera` (`index.tsx`) is only the first frame: position `[0, 3.25, 12]`, fov 40, lookAt `[0, 3.25, 0]`. Scene's `FittedCamera` then fits the rectangle with core `useFittedView` and places a static `CameraRig` at `lookAt + view.offset` with `shift={view.shift}`:
 
-```text
-aspect = size.width / size.height
-tanHalf = tan(20°)
-z = max(3.25, 4.2 / aspect) / tanHalf
-camera.position = (0, 3.25, z)
-camera.lookAt(0, 3.25, 0)
-camera.fov = 40
-camera.aspect = aspect
-camera.updateProjectionMatrix()
+```ts
+const LOOK_AT = [0, 3.25, 0];
+const VIEW = {
+   area: { min: { x: -4.2, y: 0, z: -0.9 }, max: { x: 4.2, y: 6.5, z: 1.05 } },
+   pitch: 0,
+   yaws: [0],
+   focus: [{ x: 0, y: 3.25, z: 0 }],
+   fov: 40,
+   padding: 8,   // px kept clear around the shell HUD and the 2x badge
+   shift: true,  // lens shift: the rectangle may sit off-centre in the free space under the HUD
+};
 ```
 
-`tan(20°) ≈ 0.36397`.
+The fit finds the closest camera distance that keeps the rectangle inside the canvas and out from under the safe area (`useSafeArea`: the shell HUD, the 2× badge, the cookie banner; there are no touch controls). It reruns only when the canvas size or the safe area changes (resize, rotation, the banner), never because of play. The 2× badge is always laid out and only made invisible under a 5 combo, so reaching or losing the combo does not change the safe area and the camera z stays where it is.
 
-| View | Aspect | z | What is tight |
-|---|---|---|---|
-| 375×812 portrait | 375/812 ≈ 0.4618 | 24.99 | width. Half-width is 4.2. Half-height is about 9.09, so y runs from about -5.84 to 12.34 and still contains [0, 6.5]. |
-| 16:9 | 16/9 | 8.93 | height. Half-height is 3.25, so y is exactly [0, 6.5]. Half-width is 3.25 × 16/9 ≈ 5.78, which contains [-4.2, 4.2]. |
-
-The counter and the kitchen wall are code primitives. Items fall straight down. Bad items (sock and tin can) wear a dark red ring, `#9f1239`, drawn in code around the item. The ring is not part of the GLB.
+The counter, the kitchen wall and the cabinet under the counter are code primitives. The wall spans y [-9, 16] and 24 units across, so the extra height of a portrait phone (y -6.2 to 12.7 at 375×812) and the extra width of an ultra-wide screen show kitchen, not empty background. Items fall straight down. Bad items (sock and tin can) carry the junk tell, drawn in code: a dark red disc (`#9f1239`) behind the item and a bright red rim (`#f43f5e`) around it, both flat in the XY plane so they face the pitch-0 camera (two unlit draw calls per junk item). The tell is not part of the GLB.
 
 ## Assets
 
@@ -165,7 +176,7 @@ Reuse from `public/models/3d/shared/` (not in this spec):
 | banana | Good item. |
 | tinCan | Bad item. |
 
-Until a GLB exists, each of those ids is a coloured primitive. Swapping the model is an `assets.ts` change, not a scene change. The Play50 Runner is not in this scene. The dark red ring is drawn for whichever bad id is in the air, primitive or GLB.
+Until a GLB exists, each of those ids is a coloured primitive. Swapping the model is an `assets.ts` change, not a scene change. The Play50 Runner is not in this scene. The junk tell is drawn for whichever bad id is in the air, primitive or GLB.
 
 ## HUD
 
@@ -175,7 +186,7 @@ The shell already draws score, time and lives. The game definition sets:
 - `lives: 3`
 - `hudStats: [{ key: "combo", label: "Combo" }]`
 
-Scene writes the combo with `setStat("combo", combo)`. An optional small `Hud` draws a 2x badge when the combo is 5 or more. It does not repeat the score, the clock or the hearts.
+Scene writes the combo with `setStat("combo", combo)`. The small `Hud` draws a 2x badge when the combo is 5 or more. It does not repeat the score, the clock or the hearts. The badge is marked `data-arcade-safe-area` and stays mounted and laid out for the whole run (`visibility: hidden` under 5), so its rect in the safe area never changes mid-run.
 
 ## Edge cases
 
@@ -194,9 +205,10 @@ Scene writes the combo with `setStat("combo", combo)`. An optional small `Hud` d
 
 - Same seed reproduces the same item kinds, x positions and spawn times.
 - A different seed changes the kinds and the x positions. It does not change the spawn times.
-- The first 3 spawns are good for every seed. From spawn 4 on, the bad chance is the table's chance for that spawn's step.
+- The first 3 spawns are good for every seed. From spawn 4 on, the bad chance is the table's chance for that spawn's step (2000 seeds, within ±0.03).
+- The kind is rolled from the seed, never taken from the spawn index: across seeds, each of the first three spawns shows all three good kinds, a later spawn of a forced-good run shows all three, and spawn 4 shows both junk kinds when it is bad.
 - Spawns are at least the step gap apart, and never under 500 ms.
-- Good catches 1 through 4 score +10 each. The 5th scores +20, and a 6th scores +20.
+- Good catches 1 through 4 score +10 each. The 5th scores +20, and a 6th scores +20 (the real score change of each catching step is `[10, 10, 10, 10, 20, 20]`).
 - Missing a good item resets the combo. The next good catch scores +10.
 - Catching a bad item resets the combo and costs one life.
 - Dodging a bad item keeps the combo and the lives. If the combo was already 5 or more, the next good catch still scores +20.
@@ -210,6 +222,6 @@ Scene writes the combo with `setStat("combo", combo)`. An optional small `Hud` d
 ## Known issues / open questions
 
 - The chef concept PNG `tools/hyper3d/concepts/food-catcher-chef.png` is a prerequisite for the image-to-3D chef. It is not part of this change, and the chef cannot be generated until it exists.
-- `meta.ts` still publishes the touch line "Drag or tap left / right". The scene uses the single pointer-x mapping in Controls. That string is outside these two files.
+- Portrait letterbox: the play rectangle is 8.4 wide and 6.5 tall, so on a portrait phone the fit is bound by the width and the rectangle fills only about a third of the screen height (375×812, measured: camera z ≈ 26, the view spans y -6.2 to 12.7, about 43 px per unit). The taller wall and the cabinet fill the rest with kitchen, but the items stay small (about 36 px across). A taller play area for portrait would change the fall distance and the score proof, so it is not done here.
 - `skills.md` still lists a strawberry prop for this game. This spec does not generate one.
 - Shared banana and tin can stay on the shared spec (seed 5050). This game only places them, and it does not regenerate them.

@@ -19,13 +19,18 @@
 // A follow camera is placed at its target on mount; later config changes (resize, a new fitted
 // offset or shift) are eased into instead of jumping. The rig moves the camera at
 // FRAME_PRIORITY.camera: after useRunFrame, before every plain useFrame.
-import { useEffect, useMemo, useRef, type RefObject } from "react";
+// The lens shift survives Scene remounts (start, retry, restart remount the Scene and its rig):
+// the outgoing rig clears the lens in a layout cleanup, in the commit that mounts the new rig and
+// before its first frame, and every frame a rig checks that the camera still draws with its shift
+// (stepLensShift), so a clear that lands after the new rig's first write is undone before the
+// next frame is drawn.
+import { useEffect, useLayoutEffect, useMemo, useRef, type RefObject } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import { PerspectiveCamera, Vector3, type Object3D } from "three";
 import type { GameDefinition } from "./types";
 import type { AABB, Vec3Like } from "./collision";
 import { FRAME_PRIORITY } from "./frameLoop";
-import { followAim, setLensShift } from "./view";
+import { clearLensShift, followAim, stepLensShift, type LensState } from "./view";
 
 export interface CameraRigProps {
    camera: GameDefinition["camera"];
@@ -42,7 +47,9 @@ export interface CameraRigProps {
    /**
     * Lens shift from useFittedView (`view.shift`; NDC, x right, y up, 2 = the canvas): moves the
     * whole picture on screen without turning the camera. Set on the first frame, eased with
-    * `damping` afterwards and removed when the rig unmounts. Omit it to leave the lens alone.
+    * `damping` afterwards, set again whenever the camera stops drawing with it (another rig
+    * cleared it), and removed when the rig unmounts or `shift` goes away. Omit it to leave the
+    * lens alone.
     */
    shift?: readonly [number, number];
 }
@@ -62,7 +69,7 @@ export default function CameraRig({ camera: config, follow, damping = 5, offset,
       () => ({ offset: new Vector3(), target: new Vector3(), look: new Vector3(), desired: new Vector3() }),
       []
    );
-   const lens = useMemo(() => ({ x: 0, y: 0, width: 0, height: 0, set: false }), []);
+   const lens = useMemo<LensState>(() => ({ x: 0, y: 0, set: false }), []);
    const managesLens = shift !== undefined;
 
    /** The point to look at this frame (false = nothing to follow yet). */
@@ -101,12 +108,15 @@ export default function CameraRig({ camera: config, follow, damping = 5, offset,
       // eslint-disable-next-line react-hooks/exhaustive-deps
    }, [camera, px, py, pz, lx, ly, lz, fov, scratch, follow, offset?.[0], offset?.[1], offset?.[2]]);
 
-   // the lens shift belongs to this rig only while it has a `shift`
-   useEffect(() => {
+   // the lens shift belongs to this rig only while it has a `shift`. A layout cleanup: on a Scene
+   // remount it runs in the commit that mounts the next rig, before that rig's first frame. A
+   // passive one waits for React's deferred passive flush when the remount is not a discrete-event
+   // commit, and a frame can run first: the new rig wrote its shift, then the old rig cleared it
+   // (stepLensShift now writes it again on the next frame either way)
+   useLayoutEffect(() => {
       if (!managesLens) return;
       return () => {
-         if (camera instanceof PerspectiveCamera) camera.clearViewOffset();
-         lens.set = false;
+         if (camera instanceof PerspectiveCamera) clearLensShift(camera, lens);
       };
    }, [camera, managesLens, lens]);
 
@@ -114,14 +124,9 @@ export default function CameraRig({ camera: config, follow, damping = 5, offset,
    // projections and raycasts in plain useFrame callbacks see this frame's camera
    useFrame((state, delta) => {
       const t = 1 - Math.exp(-damping * Math.min(delta, 0.1));
+      // writes only when the shift eases, the canvas resizes or the camera lost it (a remount)
       if (shift && camera instanceof PerspectiveCamera) {
-         const { width, height } = state.size;
-         const x = lens.set ? lens.x + (shift[0] - lens.x) * t : shift[0];
-         const y = lens.set ? lens.y + (shift[1] - lens.y) * t : shift[1];
-         if (!lens.set || Math.abs(x - lens.x) > 1e-6 || Math.abs(y - lens.y) > 1e-6 || width !== lens.width || height !== lens.height) {
-            setLensShift(camera, x, y, width, height);
-            Object.assign(lens, { x, y, width, height, set: true });
-         }
+         stepLensShift(camera, lens, shift[0], shift[1], state.size.width, state.size.height, t);
       }
       if (!aim(scratch.target)) return;
       offsetOf(scratch.offset);

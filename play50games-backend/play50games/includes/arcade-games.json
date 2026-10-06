@@ -9,7 +9,7 @@
       "max_duration_ms": 75000,
       "base": 600,
       "max_pps": 120,
-      "enabled": false
+      "enabled": true
     },
     "food-catcher": {
       "title": "Food Catcher 3D",

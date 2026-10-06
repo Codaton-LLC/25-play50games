@@ -1,0 +1,31 @@
+{
+   "slug": "warehouse-rush",
+   "universe": "warehouse",
+   "seed": 5050,
+   "assets": [
+      {
+         "id": "shelfRack",
+         "kind": "prop",
+         "mode": "text",
+         "prompt": "Long low two-level metal warehouse shelf rack, orange uprights, grey steel shelves, three bays with a few plain brown cardboard boxes on the shelves, about four times as long as it is deep, Play50 toy world style, bright vinyl toy look, smooth rounded shapes, saturated colours, friendly cartoon proportions, single isolated prop, centered, no base, no ground, no text, clean game-ready low-poly topology",
+         "tier": "Gen-2.5-Low",
+         "qualityOverride": 3000,
+         "attempts": 1,
+         "target": "warehouse-rush",
+         "budget": { "tris": 5000, "bytes": 300000 },
+         "textureSize": 512
+      },
+      {
+         "id": "pallet",
+         "kind": "prop",
+         "mode": "text",
+         "prompt": "Wooden shipping pallet, square and flat, light wood top slats on three chunky runners, low and wide, Play50 toy world style, bright vinyl toy look, smooth rounded shapes, saturated colours, friendly cartoon proportions, single isolated prop, centered, no base, no ground, no text, clean game-ready low-poly topology",
+         "tier": "Gen-2.5-Low",
+         "qualityOverride": 1500,
+         "attempts": 1,
+         "target": "warehouse-rush",
+         "budget": { "tris": 5000, "bytes": 300000 },
+         "textureSize": 512
+      }
+   ]
+}

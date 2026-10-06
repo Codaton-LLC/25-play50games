@@ -1,7 +1,19 @@
 import { describe, expect, it } from "vitest";
 import { PerspectiveCamera, Vector3 } from "three";
 import type { AABB, Vec3Like } from "./collision";
-import { fitView, followAim, followFocus, setLensShift, type FitViewOptions, type FittedView, type ScreenRect } from "./view";
+import {
+   clearLensShift,
+   fitView,
+   followAim,
+   followFocus,
+   hasLensShift,
+   setLensShift,
+   stepLensShift,
+   type FitViewOptions,
+   type FittedView,
+   type LensState,
+   type ScreenRect,
+} from "./view";
 
 const ORIGIN = { x: 0, y: 0, z: 0 };
 /** A 2 x 2 wall facing the camera (z = 0), centred on the origin. */
@@ -191,6 +203,102 @@ describe("fitView lens shift", () => {
             }
          }
       }
+   });
+});
+
+describe("CameraRig lens shift (stepLensShift / clearLensShift)", () => {
+   // Robot Collector at 812 x 375: the fit moves the picture 0.177 NDC left of the joystick
+   const W = 812;
+   const H = 375;
+   const SX = 0.17704;
+   const SY = -0.05588;
+   const T = 1 - Math.exp(-5 / 60);
+   const canvasCamera = () => {
+      const cam = new PerspectiveCamera(45, W / H, 0.1, 400);
+      cam.position.set(0, 19, 13);
+      cam.lookAt(0, 0, 0);
+      cam.updateMatrixWorld();
+      return cam;
+   };
+   const newLens = (): LensState => ({ x: 0, y: 0, set: false });
+   /** the projection a camera with exactly this lens shift has */
+   const shiftedProjection = (x: number, y: number, width = W, height = H) => {
+      const cam = new PerspectiveCamera(45, width / height, 0.1, 400);
+      setLensShift(cam, x, y, width, height);
+      return cam.projectionMatrix.elements;
+   };
+   const expectProjection = (cam: PerspectiveCamera, expected: ArrayLike<number>) => {
+      for (let i = 0; i < 16; i++) expect(cam.projectionMatrix.elements[i]).toBeCloseTo(expected[i], 12);
+   };
+
+   it("snaps on the first frame, then writes only when the shift moves", () => {
+      const cam = canvasCamera();
+      const lens = newLens();
+      expect(stepLensShift(cam, lens, SX, SY, W, H, T)).toBe(true);
+      expect(lens).toEqual({ x: SX, y: SY, set: true });
+      expect(hasLensShift(cam, SX, SY, W, H)).toBe(true);
+      expectProjection(cam, shiftedProjection(SX, SY));
+      // a held shift: no write, frame after frame
+      for (let i = 0; i < 5; i++) expect(stepLensShift(cam, lens, SX, SY, W, H, T)).toBe(false);
+      // a new fit (the banner opens): eased, not snapped
+      expect(stepLensShift(cam, lens, SX, SY + 0.2, W, H, 0.25)).toBe(true);
+      expect(lens.y).toBeCloseTo(SY + 0.05, 12);
+      expect(hasLensShift(cam, lens.x, lens.y, W, H)).toBe(true);
+   });
+
+   it("a Scene remount: the outgoing rig's late cleanup does not leave the run unshifted", () => {
+      const cam = canvasCamera();
+      const outgoing = newLens();
+      stepLensShift(cam, outgoing, SX, SY, W, H, T);
+      // start / retry: the new rig's first frame runs before the old rig's cleanup
+      const incoming = newLens();
+      expect(stepLensShift(cam, incoming, SX, SY, W, H, T)).toBe(true);
+      clearLensShift(cam, outgoing);
+      expect(cam.view?.enabled).toBe(false);
+      expect(hasLensShift(cam, SX, SY, W, H)).toBe(false);
+      // the next frame puts it back (before it is drawn), exactly the fitted lens
+      expect(stepLensShift(cam, incoming, SX, SY, W, H, T)).toBe(true);
+      expect(cam.view?.enabled).toBe(true);
+      expectProjection(cam, shiftedProjection(SX, SY));
+      expect(stepLensShift(cam, incoming, SX, SY, W, H, T)).toBe(false);
+   });
+
+   it("puts back exactly its own eased value when another write replaced it", () => {
+      const cam = canvasCamera();
+      const lens = newLens();
+      stepLensShift(cam, lens, 0, 0, W, H, T);
+      stepLensShift(cam, lens, SX, SY, W, H, 0.5);
+      const x = lens.x;
+      const y = lens.y;
+      setLensShift(cam, 0.9, 0.9, W, H);
+      expect(stepLensShift(cam, lens, x, y, W, H, 0.5)).toBe(true);
+      expect(hasLensShift(cam, x, y, W, H)).toBe(true);
+      expectProjection(cam, shiftedProjection(x, y));
+   });
+
+   it("writes again at the new size after a resize", () => {
+      const cam = canvasCamera();
+      const lens = newLens();
+      stepLensShift(cam, lens, SX, SY, W, H, T);
+      expect(stepLensShift(cam, lens, SX, SY, H, W, T)).toBe(true);
+      expect(hasLensShift(cam, SX, SY, H, W)).toBe(true);
+      expect(hasLensShift(cam, SX, SY, W, H)).toBe(false);
+      expectProjection(cam, shiftedProjection(SX, SY, H, W));
+   });
+
+   it("clearLensShift: the plain projection again, and the next rig snaps", () => {
+      const cam = canvasCamera();
+      const plain = cam.projectionMatrix.elements.slice();
+      const lens = newLens();
+      stepLensShift(cam, lens, SX, SY, W, H, T);
+      clearLensShift(cam, lens);
+      expect(lens.set).toBe(false);
+      expect(cam.view?.enabled).toBe(false);
+      expectProjection(cam, plain);
+      // the shift went away (or the rig unmounted) and came back: snapped, not eased from the old value
+      expect(stepLensShift(cam, lens, -SX, SY, W, H, 0.1)).toBe(true);
+      expect(lens.x).toBe(-SX);
+      expectProjection(cam, shiftedProjection(-SX, SY));
    });
 });
 

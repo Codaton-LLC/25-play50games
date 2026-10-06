@@ -51,11 +51,20 @@ export interface RunActions {
    end(reason: EndReason): void;
 }
 
+/** One-frame direction presses (InputState.pressed). */
+export interface DirectionPresses {
+   left: boolean;
+   right: boolean;
+   up: boolean;
+   down: boolean;
+}
+
 /**
  * Unified input, read from a ref inside useRunFrame (non-reactive).
  * Keyboard, joystick, touch buttons, swipes and canvas taps all land here.
- * The `*Pressed`, `swipe` and `tap` fields are one-frame events: they are set at the start
- * of the frame after the event and cleared at the start of the next one.
+ * The `*Pressed`, `pressed`, `swipe` and `tap` fields are one-frame events: they are set at the
+ * start of the frame after the event and cleared at the start of the next one. An event is never
+ * lost, however short: a key pressed and released between two frames still shows up once.
  */
 export interface InputState {
    /** -1..1 (left = -1) */
@@ -70,7 +79,26 @@ export interface InputState {
    jumpPressed: boolean;
    /** true only on the frame the action started */
    actionPressed: boolean;
-   /** one frame: a quick swipe on the canvas (touch or mouse drag) */
+   /**
+    * One frame: a direction was pressed. Set by every new keydown of an arrow or WASD key
+    * (auto-repeat does not count) and by a swipe in that direction. Use it for discrete moves
+    * (lane changes, grid hops): moveX/moveY are sampled once per frame and miss a key tapped
+    * between two frames. The object is mutated in place (never replaced).
+    *
+    * `pressed` already includes swipes: a swipe sets `swipe` and the same direction here on the
+    * same frame. Handle a move from `pressed` only, and do not act on `swipe` for the same move,
+    * or every swipe moves twice. Read `swipe` only for meanings `pressed` does not carry.
+    */
+   pressed: DirectionPresses;
+   /**
+    * One frame: a quick swipe on the canvas (touch or mouse drag), by its dominant axis. It fires
+    * while the pointer is still moving, as soon as it has travelled SWIPE_MIN_PX within
+    * SWIPE_MAX_MS (once per gesture), or on release for a flick no move event reported.
+    *
+    * Every swipe also sets `pressed[direction]` on the same frame. A game that moves on `pressed`
+    * must not move on `swipe` too (one swipe would move twice); read `swipe` only for meanings
+    * `pressed` does not carry (for example "this came from touch").
+    */
    swipe: "up" | "down" | "left" | "right" | null;
    /** one frame: a short tap/click on the canvas, in pointer coordinates */
    tap: { x: number; y: number } | null;
@@ -128,6 +156,13 @@ export interface GameDefinition {
    hudStats?: Array<{ key: string; label: string; max?: number }>;
    /** short lines shown on the start screen */
    instructions: string[];
+   /**
+    * How long (ms) the scene keeps playing on screen after a run ends, before the result panel
+    * appears, so a crash or a win animation can be seen. Default 800 (DEFAULT_RESULT_DELAY_MS),
+    * 0 = at once, at most RESULT_DELAY_MAX_MS. Counted in rendered frames (a hidden tab waits).
+    * The score is submitted at the end of the run either way; "quit" exits at once.
+    */
+   resultDelayMs?: number;
    /** override how the final score/duration is computed (default: store score + elapsedMs) */
    finalScore?(state: RunState): { score: number; durationMs: number };
 }

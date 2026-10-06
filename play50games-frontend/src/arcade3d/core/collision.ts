@@ -178,3 +178,72 @@ export function isOutOfBounds(point: Vec3Like, bounds: AABB, margin = 0): boolea
       point.z > bounds.max.z - margin
    );
 }
+
+/** Where a sweep first touches (sweptAabbXZ `out`). */
+export interface SweepHit {
+   /** time of impact 0..1 (a fraction of `delta`); 0 = already touching at the start */
+   time: number;
+   /**
+    * The face of the still box that was hit, as a unit normal on x or z pointing back at the mover
+    * (-1, 0 when it moved along +x into the box's min-x face); 0, 0 when they touched at the start.
+    */
+   normalX: number;
+   normalZ: number;
+}
+
+/**
+ * Swept box test on the ground plane (x/z; y is ignored): `moving` travels by `delta` during the
+ * step, `still` does not move. Returns the earliest time of impact in [0, 1] (a fraction of
+ * `delta`), or null when they never touch during the step. Touching counts as a hit, and boxes
+ * that already touch or overlap at the start return 0. Nothing tunnels: a fast mover that would
+ * jump over a thin box between two frames still hits it.
+ *
+ * - Two moving boxes: pass both where they are at the start of the step and the relative motion
+ *   `delta = deltaA - deltaB` (B's frame of reference); the time is the same for both.
+ * - Contact: `moving` has moved by `delta * time`. `out` (optional, reused) receives the time and
+ *   the face normal on a hit and is left alone on a miss. No allocation either way.
+ */
+export function sweptAabbXZ(moving: AABB, delta: { x: number; z: number }, still: AABB, out?: SweepHit): number | null {
+   let enter = -Infinity;
+   let exit = Infinity;
+   let normalX = 0;
+   let normalZ = 0;
+
+   // x: when do the boxes' x ranges start and stop overlapping?
+   if (delta.x === 0) {
+      if (moving.max.x < still.min.x || moving.min.x > still.max.x) return null;
+   } else {
+      const toward = delta.x > 0;
+      const t0 = (toward ? still.min.x - moving.max.x : still.max.x - moving.min.x) / delta.x;
+      const t1 = (toward ? still.max.x - moving.min.x : still.min.x - moving.max.x) / delta.x;
+      enter = t0;
+      exit = t1;
+      normalX = toward ? -1 : 1;
+   }
+
+   // z: the same; the later start of the two is the contact
+   if (delta.z === 0) {
+      if (moving.max.z < still.min.z || moving.min.z > still.max.z) return null;
+   } else {
+      const toward = delta.z > 0;
+      const t0 = (toward ? still.min.z - moving.max.z : still.max.z - moving.min.z) / delta.z;
+      const t1 = (toward ? still.max.z - moving.min.z : still.min.z - moving.max.z) / delta.z;
+      if (t0 > enter) {
+         enter = t0;
+         normalX = 0;
+         normalZ = toward ? -1 : 1;
+      }
+      if (t1 < exit) exit = t1;
+   }
+
+   // both ranges must overlap at some moment (touching counts) inside the step
+   if (enter > exit || exit < 0 || enter > 1) return null;
+   const started = enter <= 0;
+   const time = started ? 0 : enter;
+   if (out) {
+      out.time = time;
+      out.normalX = started ? 0 : normalX;
+      out.normalZ = started ? 0 : normalZ;
+   }
+   return time;
+}

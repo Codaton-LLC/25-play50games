@@ -11,8 +11,11 @@
 // - Visuals animate with useGameTime() (stops while paused), never with state.clock.elapsedTime:
 //   GameShell pauses by switching the R3F frameloop, and R3F resets that clock on every switch.
 // - Order inside one frame: input -> run clock -> game time -> simulation -> camera -> visuals -> render.
+// - After a run the scene keeps rendering for the game's result delay before the result panel
+//   appears (resultDelayFor -> configure({ resultDelayMs }), then isResultShown); the score is
+//   submitted at once.
 import type { StoreApi } from "zustand/vanilla";
-import type { RunPhase } from "./types";
+import type { EndReason, GameDefinition, RunPhase } from "./types";
 import type { ArcadeStore } from "./useArcadeStore";
 
 /**
@@ -74,6 +77,44 @@ export function advanceRunClock(store: StoreApi<ArcadeStore>, delta: number): vo
 export function playedFrameDt(state: Pick<ArcadeStore, "phase" | "frameMs">): number {
    if (state.phase !== "playing" || !(state.frameMs > 0)) return 0;
    return state.frameMs / 1000;
+}
+
+// ---------- result delay ----------
+
+/** GameDefinition.resultDelayMs when a game sets none: the scene stays on screen this long after a run. */
+export const DEFAULT_RESULT_DELAY_MS = 800;
+/**
+ * Longest result delay. The store's overMs counts only up to the game's own delay
+ * (config.resultDelayMs, at most this), so the result screen causes no store update per frame.
+ */
+export const RESULT_DELAY_MAX_MS = 5000;
+
+/**
+ * The result delay (ms) of a game: `definition.resultDelayMs`, DEFAULT_RESULT_DELAY_MS when unset,
+ * clamped to [0, RESULT_DELAY_MAX_MS] (anything that is not a number >= 0 counts as 0). GameShell
+ * hands it to the store with configure({ resultDelayMs }), which resolves it the same way.
+ */
+export function resultDelayFor(definition: Pick<GameDefinition, "resultDelayMs">): number {
+   const ms = definition.resultDelayMs;
+   if (ms === undefined) return DEFAULT_RESULT_DELAY_MS;
+   if (!(ms > 0)) return 0;
+   return Math.min(ms, RESULT_DELAY_MAX_MS);
+}
+
+/**
+ * Is the result panel up? Only in phase "over", once the store's `overMs` (rendered ms since the
+ * end, advanced by advanceRunClock) has reached the run's `config.resultDelayMs` (set by
+ * configure()). A delay of 0 shows it on the frame the run ends, and so does "quit" (GameShell
+ * exits instead). Pause cannot interrupt it: an ended run cannot be paused, and a hidden tab
+ * renders no frames, so the delay simply waits for the player.
+ */
+export function isResultShown(
+   state: Pick<ArcadeStore, "phase" | "overMs"> & { endReason: EndReason | null; config: { resultDelayMs: number } }
+): boolean {
+   if (state.phase !== "over") return false;
+   const delayMs = state.config.resultDelayMs;
+   if (!(delayMs > 0) || state.endReason === "quit") return true;
+   return state.overMs >= Math.min(delayMs, RESULT_DELAY_MAX_MS);
 }
 
 // ---------- game time (visual animation) ----------
