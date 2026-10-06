@@ -1,0 +1,57 @@
+{
+   "slug": "pigeon-crossing",
+   "universe": "street",
+   "seed": 5250,
+   "assets": [
+      {
+         "id": "pigeon",
+         "kind": "character",
+         "mode": "image",
+         "prompt": "chubby city pigeon mascot, oversized head, big expressive eyes, grey-blue feathers, green-purple neck sheen, wings folded flat against the body, compact narrow silhouette, feet slightly apart, no T-pose, no spread wings, unrigged single solid bird, no wing animation, Play50 toy world style, full body, clean game-ready topology",
+         "rigged": false,
+         "concept": "tools/hyper3d/concepts/pigeon-crossing-pigeon.webp",
+         "tier": "Gen-2.5-Medium",
+         "qualityOverride": 18000,
+         "attempts": 2,
+         "target": "pigeon-crossing",
+         "budget": { "tris": 20000, "bytes": 1500000 },
+         "textureSize": 1024
+      },
+      {
+         "id": "car",
+         "kind": "prop",
+         "mode": "text",
+         "prompt": "small rounded red hatchback car, dark windows, four chunky wheels, Play50 toy world style, bright vinyl toy look, smooth rounded shapes, saturated colours, friendly cartoon proportions, single isolated prop, centered, no base, no ground, no text, no logo, clean game-ready low-poly topology",
+         "tier": "Gen-2.5-Low",
+         "qualityOverride": 2500,
+         "attempts": 1,
+         "target": "pigeon-crossing",
+         "budget": { "tris": 5000, "bytes": 300000 },
+         "textureSize": 512
+      },
+      {
+         "id": "taxi",
+         "kind": "prop",
+         "mode": "text",
+         "prompt": "rounded yellow taxi with a small blank roof sign, dark windows, four chunky wheels, Play50 toy world style, bright vinyl toy look, smooth rounded shapes, saturated colours, friendly cartoon proportions, single isolated prop, centered, no base, no ground, no text, no logo, clean game-ready low-poly topology",
+         "tier": "Gen-2.5-Low",
+         "qualityOverride": 2500,
+         "attempts": 1,
+         "target": "pigeon-crossing",
+         "budget": { "tris": 5000, "bytes": 300000 },
+         "textureSize": 512
+      },
+      {
+         "id": "van",
+         "kind": "prop",
+         "mode": "text",
+         "prompt": "boxy white delivery van, dark windows, four chunky wheels, blank side panels, Play50 toy world style, bright vinyl toy look, smooth rounded shapes, saturated colours, friendly cartoon proportions, single isolated prop, centered, no base, no ground, no text, no logo, clean game-ready low-poly topology",
+         "tier": "Gen-2.5-Low",
+         "qualityOverride": 2500,
+         "attempts": 1,
+         "target": "pigeon-crossing",
+         "budget": { "tris": 5000, "bytes": 300000 },
+         "textureSize": 512
+      }
+   ]
+}

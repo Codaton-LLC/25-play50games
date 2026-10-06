@@ -26,7 +26,7 @@ export const obstacleRaceMeta: ArcadeGameMeta = {
       unitLabel: "time",
       display: "time"
    },
-   thumbnail: null,
+   thumbnail: "/images/3d/obstacle-race.webp",
    accent: "#6366f1",
    owner: "claude"
 };
