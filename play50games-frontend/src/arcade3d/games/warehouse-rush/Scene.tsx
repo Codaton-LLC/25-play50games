@@ -19,7 +19,7 @@
 //   the shared crate GLB with one of 4 recoloured materials (Primitives.tsx useBoxLook).
 import { memo, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
-import { Color, Matrix4, PerspectiveCamera, Quaternion, Vector3, type Group, type Mesh, type MeshBasicMaterial, type Sprite, type SpriteMaterial } from "three";
+import { Color, Matrix4, Quaternion, Vector3, type Group, type Mesh, type MeshBasicMaterial, type Sprite, type SpriteMaterial } from "three";
 import CameraRig from "@/arcade3d/core/CameraRig";
 import { Model, useModel } from "@/arcade3d/core/assets";
 import { playSfx } from "@/arcade3d/core/audio";
@@ -30,7 +30,7 @@ import { inputToWorld, randomSeed, turnTowards } from "@/arcade3d/core/math";
 import { BlobShadow, DynamicInstanced, useCanvasTexture } from "@/arcade3d/core/render";
 import { useArcadeStore, type ArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { useFittedView, type FittedViewOptions } from "@/arcade3d/core/useFittedView";
-import { FRAME_PRIORITY, useRunFrame } from "@/arcade3d/core/useRunFrame";
+import { useRunFrame } from "@/arcade3d/core/useRunFrame";
 import { ASSETS, BOX } from "./assets";
 import {
    COLORS,
@@ -82,27 +82,6 @@ const VIEW: FittedViewOptions = {
    padding: 8,
    shift: true,
 };
-
-/**
- * Core gap (README "Known issues"): on every start, retry and restart the outgoing Scene's
- * CameraRig clears the lens shift (clearViewOffset) in a passive unmount cleanup that runs after
- * the new rig has already applied it on its first frame; the new rig thinks its shift is set and
- * never applies it again, so the whole run would be drawn unshifted (812 x 375: the floor slides
- * 29 px over the joystick). This re-enables the view the old rig disabled: its offsets still hold
- * the new rig's values, so the picture is exactly the fitted one. Runs after CameraRig.
- */
-const LensKeeper = memo(function LensKeeper() {
-   const camera = useThree((state) => state.camera);
-   useFrame(() => {
-      if (!(camera instanceof PerspectiveCamera)) return;
-      const view = camera.view;
-      if (view && !view.enabled) {
-         view.enabled = true;
-         camera.updateProjectionMatrix();
-      }
-   }, FRAME_PRIORITY.camera);
-   return null;
-});
 
 // ---------- looks (visual only, never read by the rules) ----------
 
@@ -684,7 +663,6 @@ export default function Scene() {
       <>
          <Simulation run={run} fx={fx} pub={pub} yaw={view.yaw} />
          <CameraRig camera={{ position: view.offset, lookAt: LOOK_AT }} offset={view.offset} shift={view.shift} />
-         <LensKeeper />
          <Warehouse layout={run.layout} yaw={view.yaw} />
          <Robot run={run} fx={fx} />
          <Boxes run={run} fx={fx} yaw={view.yaw} />

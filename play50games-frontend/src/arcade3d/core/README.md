@@ -87,6 +87,7 @@ useRunFrame(() => {
   - its own `avoid` rects.
   `avoidHud`, `avoidControls` and `avoidObstructions` (all default true) switch the first three off.
 - `shift: true` lets the fit also move the picture on screen with a lens shift. The camera does not turn. The arena then sits in the free space, for example between the HUD and a joystick the banner lifts, instead of shrinking around the screen centre. Pass `view.shift` to `CameraRig shift`.
+- The lens shift survives Scene remounts (start, retry and restart remount the Scene and its `CameraRig`). The outgoing rig clears it in a layout cleanup, before the new rig's first frame, and every frame a rig checks that the camera still draws with its shift and writes it again if not (`stepLensShift` in `view.ts`; no write while it holds). A Scene needs no lens workaround. Removing `shift` (or the rig) clears the lens.
 - The yaw is picked from `yaws` once per canvas size. The banner opening or closing and HUD panels change only the distance and the shift, so the camera never turns 90° in the middle of a run, and `inputToWorld(…, view.yaw)` keeps its meaning.
 - A follow camera: build `focus` with `followFocus` from the same `lookAt`, `followFraction` and `bounds` you give `CameraRig`.
 - The fov is the canvas camera's (`definition.camera.fov`). If the Scene's `CameraRig` sets another fov, pass the same `fov` to `useFittedView`.

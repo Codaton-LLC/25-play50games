@@ -9,6 +9,7 @@
 //   fitView's `focus`, so the two can never disagree.
 // - inputToWorld: joystick/WASD input -> a world direction for the camera's yaw. It lives in
 //   core/math.ts (pure, no three.js, so rules.ts can use it) and is re-exported here.
+// - setLensShift / stepLensShift / clearLensShift: a fitted `shift` on the camera (CameraRig).
 // Yaw convention everywhere: radians around +y, 0 = camera on the +z side looking towards -z.
 import { PerspectiveCamera, Vector3 } from "three";
 import type { AABB, Vec3Like } from "./collision";
@@ -279,6 +280,63 @@ export function fitView(options: FitViewOptions): FittedView {
 export function setLensShift(camera: PerspectiveCamera, x: number, y: number, width: number, height: number): void {
    // an offset of (-x/2, y/2) of the canvas moves the picture by (x, y) in NDC
    camera.setViewOffset(width, height, (-x / 2) * width, (y / 2) * height, width, height);
+}
+
+/** Does the camera draw with exactly the view offset setLensShift(camera, x, y, width, height) writes? */
+export function hasLensShift(camera: PerspectiveCamera, x: number, y: number, width: number, height: number): boolean {
+   const view = camera.view;
+   return (
+      view !== null &&
+      view.enabled &&
+      view.fullWidth === width &&
+      view.fullHeight === height &&
+      view.width === width &&
+      view.height === height &&
+      view.offsetX === (-x / 2) * width &&
+      view.offsetY === (y / 2) * height
+   );
+}
+
+/** The lens shift one CameraRig last wrote (one object per rig, reused every frame). */
+export interface LensState {
+   x: number;
+   y: number;
+   /** written since the rig took the lens; false = the next write snaps to the target */
+   set: boolean;
+}
+
+/**
+ * One frame of CameraRig's lens shift: eases `lens` towards (shiftX, shiftY) by `t` (0..1; the
+ * first write snaps) and writes it to the camera when it moved, the canvas changed size, or the
+ * camera no longer draws with it. The last one covers a Scene remount (start, retry, restart): the
+ * outgoing Scene's rig clears the view in its cleanup, which may run after the incoming rig's
+ * first frame, so a rig never trusts its own record alone. No allocation. True when it wrote.
+ */
+export function stepLensShift(
+   camera: PerspectiveCamera,
+   lens: LensState,
+   shiftX: number,
+   shiftY: number,
+   width: number,
+   height: number,
+   t: number
+): boolean {
+   const x = lens.set ? lens.x + (shiftX - lens.x) * t : shiftX;
+   const y = lens.set ? lens.y + (shiftY - lens.y) * t : shiftY;
+   if (lens.set && Math.abs(x - lens.x) <= 1e-6 && Math.abs(y - lens.y) <= 1e-6 && hasLensShift(camera, lens.x, lens.y, width, height)) {
+      return false;
+   }
+   setLensShift(camera, x, y, width, height);
+   lens.x = x;
+   lens.y = y;
+   lens.set = true;
+   return true;
+}
+
+/** CameraRig's cleanup: the camera draws without a lens shift again; `lens` snaps on its next write. */
+export function clearLensShift(camera: PerspectiveCamera, lens: LensState): void {
+   camera.clearViewOffset();
+   lens.set = false;
 }
 
 /**
