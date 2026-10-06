@@ -581,12 +581,18 @@ describe("pigeon-crossing clock, scoring and parity", () => {
       const funcs = new Map<string, ts.FunctionDeclaration>();
       for (const n of source.statements) if (ts.isFunctionDeclaration(n) && n.name) funcs.set(n.name.text, n);
       const seen = new Set<string>();
+      // methods that return a new array, object, iterator, string or function (review: a
+      // `void run.vehicles.slice(0, 0)` in the step loop used to pass)
+      const allocatingMethods = new Set(["slice", "splice", "map", "filter", "concat", "flat", "flatMap", "from", "of", "split", "join", "keys", "values", "entries", "bind", "toSorted", "toReversed", "toSpliced", "with", "fill", "assign", "create", "structuredClone", "toString", "toFixed"]);
       const inspect = (name: string): void => {
          if (seen.has(name)) return; seen.add(name);
          const body = funcs.get(name)?.body;
          expect(body, name).toBeDefined();
          const visit = (n: ts.Node): void => {
             if (ts.isNewExpression(n) || ts.isObjectLiteralExpression(n) || ts.isArrayLiteralExpression(n) || ts.isArrowFunction(n) || ts.isFunctionExpression(n)) throw new Error(`Allocation in ${name}`);
+            if (ts.isSpreadElement(n) || ts.isSpreadAssignment(n) || ts.isTemplateExpression(n)) throw new Error(`Allocation in ${name}: ${n.getText(source)}`);
+            if (ts.isCallExpression(n) && ts.isPropertyAccessExpression(n.expression) && allocatingMethods.has(n.expression.name.text)) throw new Error(`Allocating call in ${name}: ${n.getText(source)}`);
+            if (ts.isCallExpression(n) && ts.isIdentifier(n.expression) && n.expression.text === "structuredClone") throw new Error(`Allocating call in ${name}: ${n.getText(source)}`);
             if (ts.isCallExpression(n) && ts.isIdentifier(n.expression) && funcs.has(n.expression.text)) inspect(n.expression.text);
             ts.forEachChild(n, visit);
          };
