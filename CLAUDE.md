@@ -161,19 +161,19 @@ Last update 2026-10-06 (afternoon; weekly usage limit nearly used up, resets 202
 
 | Game | Owner | Design | `rules.ts` | Scene / playable | Models |
 |---|---|---|---|---|---|
-| robot-collector | Claude | ✅ | ✅ | ✅ (status live on main; flags off on Vercel until Release 1) | ✅ robot, battery, crate, barrel; robot still static T-pose until the auto-rig lands |
-| food-catcher | Cursor | ✅ | ✅ | ✅ merged (status soon) | ✅ apple, burger, sock, banana, tinCan on main; chef on `claude/assets-group-b` |
-| office-escape | Claude | ✅ | ✅ | ✅ merged (status soon) | ✅ printer, coffeeCart, waterCooler, desk, chair on main; runner on `claude/assets-group-b` |
-| pigeon-crossing | Codex | ✅ merged | ✅ merged (Cursor reviewed; Claude test fix) | ⏳ `codex/game-pigeon-crossing-scene` done, review by Cursor pending | pigeon on `claude/assets-group-b`; car, taxi, van not generated |
-| penalty-hero | Cursor | ✅ | ✅ | ✅ merged (status soon, tapDown shots) | striker + keeper on `claude/assets-group-b` |
+| robot-collector | Claude | ✅ | ✅ | ✅ (status live on main; flags off on Vercel until Release 1) | ✅ robot (auto-rig, walks; scale 0.82 = 1.4 m, was 2.4 m at 1.4), battery, crate, barrel |
+| food-catcher | Cursor | ✅ | ✅ | ✅ merged (status soon) | ✅ apple, burger, sock, banana, tinCan; chef (`claude/characters-rigged`: auto-rig, idle/walk/reach, `CHEF_LANDMARKS`, 0.96 = 1.82 m) |
+| office-escape | Claude | ✅ | ✅ | ✅ merged (status soon) | ✅ printer, coffeeCart, waterCooler, desk, chair; runner (`claude/characters-rigged`: auto-rig, run/leap/crash/cheer, `RUNNER_LANDMARKS`, 0.82 = 1.55 m) |
+| pigeon-crossing | Codex | ✅ merged | ✅ merged (Cursor reviewed; Claude test fix) | ✅ merged (status soon) | pigeon GLB live (`claude/characters-rigged`: plain `<Model>`, not humanoid, 1.25 m); car, taxi, van not generated |
+| penalty-hero | Cursor | ✅ | ✅ | ✅ merged (status soon, tapDown shots) | striker + keeper (`claude/characters-rigged`: auto-rig, run-up/kick, ready/dive poses in `poses.ts`, 0.92 = 1.75 m / 0.98 = 1.85 m) |
 | warehouse-rush | Claude | ✅ | ✅ | ✅ merged (status soon) | ✅ shelfRack (2 copies per rack), pallet, robot, crate |
 | tower-climb | Codex | ✅ updated on `codex/game-tower-climb` (merge pending) | – (next for Codex) | – | flag, spring pad not generated |
 | clean-city | Cursor | ✅ | ✅ merged (reviewed, 11 test fixes) | ⏳ `cursor/game-clean-city-scene` done, review by Codex pending | bottle, bag, bin, bench, palm, umbrella, lamp not generated |
 | escape-room | Codex (scene: Cursor) | ✅ | ✅ merged (reviewed; corner soft-lock fixed) | ⏳ `cursor/game-escape-room-scene` done, review by Codex pending | key, book, door, console not generated |
-| obstacle-race | Claude | ✅ | ✅ | ✅ merged (status soon; Rapier debris not shipped) | finish arch drawn as a primitive (the Rodin arch is a double arch, unused; regenerate only if the user approves) |
+| obstacle-race | Claude | ✅ | ✅ | ✅ merged (status soon; Rapier debris not shipped) | runner (`claude/characters-rigged`: auto-rig, run/leap/beam/flail/cheer, 0.79 = 1.5 m); finish arch drawn as a primitive (the Rodin arch is a double arch, unused; regenerate only if the user approves) |
 
 **Open threads (next steps):**
-- Core auto-rig (`claude/auto-rig`, workflow review + fixes done, final check running): static T-pose GLBs become SkinnedMeshes with a code skeleton; poses: armsDown, walk/run swing, idle, carry/arms-up, reach. Merge after its final check, then adopt it per game. The user requires that characters never glide in T-pose: arms and legs must move.
+- Core auto-rig: merged (`claude/auto-rig`); the five group B characters are adopted on `claude/characters-rigged` (= main + `claude/assets-group-b`): measured landmarks on each asset with a test per character (`core/rig/characterChecks.ts`), the runner (office-escape, obstacle-race), the chef and the striker/keeper drawn through `<HumanoidModel>`, the pigeon through `<Model>`, the robot-collector scale fixed to 1.4 m, `turnBone` + `flailPose` in the core; `core/README.md` "Adoption" lists what drives each pose. The user requires that characters never glide in T-pose: arms and legs must move.
 - `claude/assets-group-b` (Hyper3D characters runner, chef, striker, keeper, pigeon; concepts in `tools/hyper3d/concepts/*.webp`): merge only together with the humanoid adoption in office-escape (runner), food-catcher (chef), penalty-hero (striker, keeper), robot-collector + warehouse-rush (robot). Pigeon: hop/squash in code.
 - Scene reviews: Cursor reviews the pigeon-crossing scene, Codex reviews the escape-room and clean-city scenes (reports come back through the user); then Claude verifies, fixes, merges.
 - Codex next: tower-climb rules. Group C props (cars, clean-city props, escape-room props, tower flag/spring) need the user's spend approval.
