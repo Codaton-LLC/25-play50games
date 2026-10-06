@@ -9,7 +9,7 @@
 // createRun(): the three layouts, the caches, the 20 litter slots and the events object are made
 // there and rewritten in place, and step() returns the same events object every time.
 // README.md is the design and holds the scoring proof.
-import { clampToBounds, distanceToBoxXZ, resolveSphereAabb, type AABB, type Vec3Like } from "@/arcade3d/core/collision";
+import { circlesOverlapXZ, clampToBounds, distanceToBoxXZ, resolveSphereAabb, type AABB, type Vec3Like } from "@/arcade3d/core/collision";
 import { MAX_FRAME_DT } from "@/arcade3d/core/frameLoop";
 import { capScore as capToLimits, withinServerLimits as fitsLimits } from "@/arcade3d/core/limits";
 import { rngNext, turnTowards, type RngState } from "@/arcade3d/core/math";
@@ -78,7 +78,11 @@ const EDGE_EPS = 1e-9;
 export const MAP_MIN_ROUTE = START_SPACING - PICKUP_REACH + (ITEMS_PER_MAP - 1) * (PAIR_SPACING - 2 * PICKUP_REACH);
 /** Proof step 3, the run: three maps (the runner is put back on the pad, it never walks between maps): 226.2. */
 export const GUARANTEED_MIN_ROUTE = MAP_COUNT * MAP_MIN_ROUTE;
-/** Proof step 4: 226.2 / 5 - one untimed frame (0.05 s) = 45.19 s. */
+/**
+ * Proof step 4: 226.2 / 5 - a conservative 0.05 s safety margin (one MAX_FRAME_DT) = 45.19 s. Core
+ * times every frame (useRunFrame's dt is counted in elapsedMs, core/README.md), so the margin is not
+ * an untimed frame; it only makes the earliest win earlier than physics allows.
+ */
 export const FASTEST_FINISH_MS = Math.round((GUARANTEED_MIN_ROUTE / RUNNER.speed - MAX_FRAME_DT) * 1000);
 /** The win at FASTEST_FINISH_MS: 3000 + 10 * 194 = 4940. */
 export const BEST_SCORE = MAP_COUNT * ITEMS_PER_MAP * LITTER_POINTS + BONUS_PER_SECOND * Math.floor((DURATION_MS - FASTEST_FINISH_MS) / 1000);
@@ -491,8 +495,10 @@ export function capScore(score: number, durationMs: number): number {
 // ---------- the run ----------
 
 /** One of the 20 litter slots: moved onto the next layout on a map change, never replaced. */
-export interface LitterSlot {
+export interface LitterSlot extends Vec3Like {
    x: number;
+   /** always 0: litter lies on the ground (a Vec3Like for core's circle test) */
+   y: number;
    z: number;
    /** index into LITTER_KINDS */
    kind: number;
@@ -604,7 +610,7 @@ export function createRun(seed: number): CleanRun {
       carry: 0,
       stepMs: 0,
       runner: createRunner(),
-      litter: Array.from({ length: ITEMS_PER_MAP }, () => ({ x: 0, z: 0, kind: 0, active: false })),
+      litter: Array.from({ length: ITEMS_PER_MAP }, () => ({ x: 0, y: 0, z: 0, kind: 0, active: false })),
       items: 0,
       collected: 0,
       score: 0,
@@ -639,11 +645,9 @@ export function advanceClock(run: CleanRun, dtMs: number): number {
 
 const finite = (v: number): number => (Number.isFinite(v) ? v : 0);
 
-/** Is the runner's centre within PICKUP_REACH of the slot's centre? */
+/** Is the runner's circle touching the slot's (centres within PICKUP_REACH = 0.5 + 0.3)? Core's circle test. */
 export function inReach(runner: Vec3Like, slot: LitterSlot): boolean {
-   const dx = runner.x - slot.x;
-   const dz = runner.z - slot.z;
-   return dx * dx + dz * dz <= PICKUP_REACH * PICKUP_REACH + EDGE_EPS;
+   return circlesOverlapXZ(runner, RUNNER.radius, slot, LITTER_RADIUS);
 }
 
 /**

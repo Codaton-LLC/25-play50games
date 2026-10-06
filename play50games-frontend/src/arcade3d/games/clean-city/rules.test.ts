@@ -262,17 +262,41 @@ function nearestFree(free: Uint8Array, x: number, z: number): number {
    return best;
 }
 
-/** Test-side reachability: grid distance from the start pad over FREE (5 cm off the squares). */
-const FROM_START = FREE.map((free) => distanceField(free, (x, z) => dist(x, z, START_PAD.x, START_PAD.z) < 1e-9));
+/** Test-side reachability: grid distance from the start pad over a free mask (5 cm off the squares). */
+const isStartNode = (x: number, z: number) => dist(x, z, START_PAD.x, START_PAD.z) < 1e-9;
+const FROM_START = FREE.map((free) => distanceField(free, isStartNode));
 
-function reachableByTest(map: number, x: number, z: number): boolean {
-   const field = FROM_START[map];
-   for (let i = 0; i < FLOOD_N; i++) {
-      for (let j = 0; j < FLOOD_N; j++) {
+/** A node reached from the start pad lies within the reach of (x, z) (the 9 x 9 nodes around it cover 0.8). */
+function reachedOn(field: Float64Array, x: number, z: number): boolean {
+   const ci = Math.round(x / FLOOD_STEP + MID);
+   const cj = Math.round(z / FLOOD_STEP + MID);
+   for (let i = Math.max(0, ci - 4); i <= Math.min(FLOOD_N - 1, ci + 4); i++) {
+      for (let j = Math.max(0, cj - 4); j <= Math.min(FLOOD_N - 1, cj + 4); j++) {
          if (field[i * FLOOD_N + j] < Infinity && dist(nodeX(i), nodeZ(j), x, z) <= PICKUP_REACH) return true;
       }
    }
    return false;
+}
+
+const reachableByTest = (map: number, x: number, z: number): boolean => reachedOn(FROM_START[map], x, z);
+
+/**
+ * Test-side check of the placement rules (own formulas, not isValidLayout): the sorted names of the
+ * rules a layout's spots break. "pairPrev" is a clash with the piece just before it.
+ */
+function brokenRules(l: Layout, boxes: readonly AABB[], fromStart: Float64Array): string[] {
+   const broken = new Set<string>();
+   for (let i = 0; i < l.x.length; i++) {
+      const x = l.x[i];
+      const z = l.z[i];
+      if (Math.abs(x) > SPAWN_HALF || Math.abs(z) > SPAWN_HALF) broken.add("box");
+      if (Math.abs(x * 2 - Math.round(x * 2)) > 1e-9 || Math.abs(z * 2 - Math.round(z * 2)) > 1e-9) broken.add("grid");
+      if (clearance(x, z, boxes) < PROP_CLEARANCE - 1e-9) broken.add("clear");
+      if (dist(x, z, START_PAD.x, START_PAD.z) < START_SPACING - 1e-9) broken.add("start");
+      if (!reachedOn(fromStart, x, z)) broken.add("reach");
+      for (let j = 0; j < i; j++) if (dist(x, z, l.x[j], l.z[j]) < PAIR_SPACING - 1e-9) broken.add(j === i - 1 ? "pairPrev" : "pair");
+   }
+   return [...broken].sort();
 }
 
 // ---------- bots ----------
@@ -403,6 +427,9 @@ function jitterBot(): Bot {
 }
 
 const idleBot = (): Bot => ({ next: () => IDLE });
+
+/** Plays `bot` until the run has `k` pieces, then lets go of the stick. */
+const untilCollected = (bot: Bot, k: number): Bot => ({ next: (run, dtMs) => (run.collected < k ? bot.next(run, dtMs) : IDLE) });
 
 // ---------- a whole run, with every invariant checked at every step ----------
 
@@ -650,23 +677,30 @@ describe("clean-city maps", () => {
       }
    });
 
-   it("the flood fill excludes a walled-in pocket, and the clearance check and the flood fill use the obstacle squares", () => {
-      // two walls close the corner x 9..13.5, z -13.5..-9 against the floor edge (the floor is the wall clamp)
+   it("the flood fill excludes a walled-in pocket, isValidLayout rejects an unreachable spot, and the clearance check and the flood fill use the obstacle squares", () => {
+      // two walls close the corner x 10.2..13.5, z -13.5..-8.6 against the floor edge (the floor is the wall clamp)
       const walls: AABB[] = [
-         { min: { x: 8, y: -10, z: -14 }, max: { x: 8.6, y: 10, z: -8 } },
-         { min: { x: 8, y: -10, z: -8.6 }, max: { x: 14, y: 10, z: -8 } },
+         { min: { x: 9.6, y: -10, z: -14 }, max: { x: 10.2, y: 10, z: -8 } },
+         { min: { x: 9.6, y: -10, z: -8.6 }, max: { x: 14, y: 10, z: -8 } },
       ];
-      const pocket = buildMapCache(0, [...BOXES[0], ...walls]);
+      const pocketBoxes = [...BOXES[0], ...walls];
+      const pocket = buildMapCache(0, pocketBoxes);
       expect(isReachable(pocket, 13, -12.5)).toBe(false);
       expect(isReachable(CACHES[0], 13, -12.5)).toBe(true);
       expect(isClear(pocket.obstacles, 13, -12.5)).toBe(true);
       expect([...pocket.spots].some((s) => spotX(s) > 9 && spotZ(s) < -9)).toBe(false);
-      expect(pocket.spots.length).toBeGreaterThan(2000);
-      // the fallback has a piece at (13, -12.5), inside the pocket: valid on the park, unreachable with the walls
+      expect(pocket.spots.length).toBe(2637);
+      // the fallback has a piece at (13, -12.5), inside the pocket: valid on the park, unreachable with the walls.
+      // The walls keep 1.0 clear of every other fallback piece, so reachability is the only rule the layout breaks
+      // (test-side: own clearance and grid search over the pocket); without isValidLayout's reach check it would pass.
       const l = layoutOf(0, FALLBACK_SPOTS[0]);
       expect(l.x[17]).toBe(13);
       expect(l.z[17]).toBe(-12.5);
       expect(isValidLayout(l, CACHES[0])).toBe(true);
+      expect(l.x.every((x, i) => isClear(pocket.obstacles, x, l.z[i]))).toBe(true);
+      expect(l.x.every((x, i) => i === 17 || isReachable(pocket, x, l.z[i]))).toBe(true);
+      const pocketField = distanceField(freeMask(pocketBoxes, 0.05), isStartNode);
+      expect(brokenRules(l, pocketBoxes, pocketField)).toEqual(["reach"]);
       expect(isValidLayout(l, pocket)).toBe(false);
       // the tree at (-7, -7) is a square: its corner (-7.7, -7.7) blocks, a circle of r 0.7 would not
       const touch = -7.7 - 0.5 * Math.SQRT1_2;
@@ -691,25 +725,35 @@ describe("clean-city layouts", () => {
             if (l.fallback) fallback += 1;
             if (!isValidLayout(l, CACHES[map])) invalid += 1;
             maxPasses = Math.max(maxPasses, l.passes);
-            // test-side check of the spacing rules (own formulas)
-            for (let i = 0; i < ITEMS_PER_MAP; i++) {
-               if (clearance(l.x[i], l.z[i], BOXES[map]) < PROP_CLEARANCE - 1e-9) problems.push(`${seed}/${map}: clearance`);
-               if (dist(l.x[i], l.z[i], START_PAD.x, START_PAD.z) < START_SPACING - 1e-9) problems.push(`${seed}/${map}: start`);
-               if (Math.abs(l.x[i]) > SPAWN_HALF || Math.abs(l.z[i]) > SPAWN_HALF) problems.push(`${seed}/${map}: box`);
-               for (let j = 0; j < i; j++) if (dist(l.x[i], l.z[i], l.x[j], l.z[j]) < PAIR_SPACING - 1e-9) problems.push(`${seed}/${map}: pair`);
-            }
+            // test-side check of the placement rules (own formulas, reachability included)
+            const broken = brokenRules(l, BOXES[map], FROM_START[map]);
+            if (broken.length > 0) problems.push(`${seed}/${map}: ${broken.join(", ")}`);
          }
       }
       expect(problems.slice(0, 5)).toEqual([]);
       expect([fallback, invalid]).toEqual([0, 0]);
       expect(maxPasses).toBeLessThanOrEqual(8);
       for (let map = 0; map < MAP_COUNT; map++) {
+         // README proof step 6: the fallback data keeps the same rules, checked by the test's own formulas too
+         expect(brokenRules(layoutOf(map, FALLBACK_SPOTS[map]), BOXES[map], FROM_START[map]), MAPS[map].id).toEqual([]);
          expect(isValidLayout(layoutOf(map, FALLBACK_SPOTS[map]), CACHES[map])).toBe(true);
          expect(generateLayout(42, map, CACHES[map])).toEqual(generateLayout(42, map, CACHES[map]));
          expect(generateLayout(42, map)).toEqual(generateLayout(42, map, CACHES[map]));
       }
       expect(createRun(42).layouts).toEqual([0, 1, 2].map((map) => generateLayout(42, map, CACHES[map])));
       expect(generateLayout(2 ** 32 + 5, 1, CACHES[1])).toEqual({ ...generateLayout(5, 1, CACHES[1]), seed: 5 });
+   });
+
+   it("when all 40 passes fail, generateLayout returns that map's FALLBACK_SPOTS with five of each kind", () => {
+      for (let map = 0; map < MAP_COUNT; map++) {
+         // no spots left: every pass runs out before the first piece
+         const l = generateLayout(77, map, { ...CACHES[map], spots: new Int32Array(0) });
+         expect([l.fallback, l.passes, l.map, l.seed], MAPS[map].id).toEqual([true, 0, map, 77]);
+         expect(l.x).toEqual(FALLBACK_SPOTS[map].map((s) => s[0]));
+         expect(l.z).toEqual(FALLBACK_SPOTS[map].map((s) => s[1]));
+         expect([0, 1, 2, 3].map((k) => l.kinds.filter((v) => v === k).length)).toEqual([PER_KIND, PER_KIND, PER_KIND, PER_KIND]);
+         expect(isValidLayout(l, CACHES[map])).toBe(true);
+      }
    });
 
    it("placement is the README procedure: uniform picks from the list still valid after every piece (independent restatement)", () => {
@@ -757,16 +801,35 @@ describe("clean-city layouts", () => {
       expect(layoutSeedFor(7, 1)).toBe((7 ^ 0x85ebca6b) >>> 0);
    });
 
-   it("isValidLayout rejects a close pair, a piece near the pad, outside the box, off the grid, near a square, unreachable, bad kinds", () => {
+   it("isValidLayout rejects a close pair, a piece near the pad, outside the box, off the grid, near a square, bad kinds (unreachable: the pocket test)", () => {
       const good = layoutOf(1, FALLBACK_SPOTS[1]);
       expect(isValidLayout(good, CACHES[1])).toBe(true);
+      expect(brokenRules(good, BOXES[1], FROM_START[1])).toEqual([]);
+      // each fixture moves one piece so that exactly one rule breaks (the test's own formulas say which),
+      // so deleting that one check from isValidLayout lets the fixture through
+      const move = (k: number, x: number, z: number) => (l: Layout) => ((l.x[k] = x), (l.z[k] = z));
+      const oneRule: Array<[string, string, (l: Layout) => void]> = [
+         // piece 2 is (-6, -12): 5.0 from the piece just before it (a check that skips the previous piece misses it)
+         ["pair 5.0", "pairPrev", move(1, -11, -12)],
+         ["3.5 from the pad", "start", move(4, 3.5, 12)],
+         ["outside the spawn box", "box", move(0, -14, 12)],
+         ["off the grid", "grid", (l) => (l.x[3] += 0.25)],
+         // building (-7, -6) spans z -7.6..-4.4
+         ["0.9 from a building", "clear", move(5, -7, -3.5)],
+         // lamp (3, 8) spans x 2.7..3.3
+         ["0.7 from a lamp", "clear", move(8, 2, 8)],
+      ];
+      for (const [what, rule, breakIt] of oneRule) {
+         const l = cloneLayout(good);
+         breakIt(l);
+         expect(brokenRules(l, BOXES[1], FROM_START[1]), what).toEqual([rule]);
+         expect(isValidLayout(l, CACHES[1]), what).toBe(false);
+      }
+      expect(dist(-11, -12, good.x[2], good.z[2])).toBeCloseTo(5, 12);
+      expect(dist(3.5, 12, START_PAD.x, START_PAD.z)).toBeCloseTo(3.5, 12);
+      expect(clearance(-7, -3.5, BOXES[1])).toBeCloseTo(0.9, 12);
+      expect(clearance(2, 8, BOXES[1])).toBeCloseTo(0.7, 12);
       const bad: Array<[string, (l: Layout) => void]> = [
-         ["pair 5.0", (l) => ((l.x[1] = l.x[0] + 5), (l.z[1] = l.z[0]))],
-         ["3.5 from the pad", (l) => ((l.x[0] = 0), (l.z[0] = 8.5))],
-         ["outside the spawn box", (l) => (l.x[9] = 14)],
-         ["off the grid", (l) => (l.x[3] += 0.25)],
-         ["0.9 from a building", (l) => ((l.x[0] = -7 + 1.6 + 0.9), (l.z[0] = -6))],
-         ["0.5 from a lamp", (l) => ((l.x[0] = 3.5 + 0.3), (l.z[0] = -1))],
          ["19 pieces", (l) => (l.x.pop(), l.z.pop())],
          ["six bottles", (l) => (l.kinds[19] = 0)],
          ["kind 4", (l) => (l.kinds[0] = 4)],
@@ -847,6 +910,23 @@ describe("clean-city movement", () => {
       expect(r.vz).toBeCloseTo(-5 + 30 / 60, 9);
       for (let i = 0; i < 12; i++) stepRunner(r, 0, 0, 1 / 60, open);
       expect(Math.hypot(r.vx, r.vz)).toBe(0);
+      // a small stick (0.3) still accelerates at 24 u/s², not at the brake rate
+      const small = createRunner();
+      small.x = -12;
+      small.z = 10;
+      stepRunner(small, 0.3, 0, 1 / 60, open);
+      expect(Math.hypot(small.vx, small.vz)).toBeCloseTo(24 / 60, 9);
+   });
+
+   it("an input longer than 1 is normalised: a diagonal into a wall slides at speed · √½", () => {
+      // pressed into the +x wall, the (1, 1) stick wants (5√½, 5√½); without normalising it would slide at 5
+      const r = createRunner();
+      r.x = 13.5;
+      r.z = -13;
+      for (let i = 0; i < 120; i++) stepRunner(r, 1, 1, 1 / 60, open);
+      expect(r.x).toBeCloseTo(SPAWN_HALF, 9);
+      expect(r.vx).toBeCloseTo(0, 9);
+      expect(r.vz).toBeCloseTo(RUNNER.speed * Math.SQRT1_2, 4);
    });
 
    it("stops at a building and a bench and slides along them", () => {
@@ -925,6 +1005,14 @@ describe("clean-city movement", () => {
       const before = JSON.stringify(run);
       for (const dt of [0, -16, Number.NaN]) step(run, dt, { moveX: 1, moveY: 0 });
       expect(JSON.stringify(run)).toBe(before);
+      // ... not even a pickup: standing on a piece, a zero, negative or NaN step collects nothing
+      for (const dt of [0, -16, Number.NaN]) {
+         const onPiece = createRun(3);
+         const slot = onPiece.litter[0];
+         place(onPiece, slot.x, slot.z);
+         const ev = step(onPiece, dt, IDLE);
+         expect([ev.collected, slot.active, onPiece.score, onPiece.collected], `${dt}`).toEqual([NONE, true, 0, 0]);
+      }
       const still = createRun(3);
       for (let i = 0; i < 10; i++) step(still, 16, { moveX: Number.NaN, moveY: Number.POSITIVE_INFINITY });
       expect([still.runner.x, still.runner.z, still.simMs]).toEqual([0, 12, 160]);
@@ -952,6 +1040,25 @@ describe("clean-city pickups and map changes", () => {
       expect(step(run, 1, IDLE).collected).toBe(0);
       for (let i = 0; i < 5; i++) expect(step(run, 16, IDLE).collected).toBe(NONE);
       expect([run.items, run.collected, run.score]).toEqual([1, 1, 50]);
+   });
+
+   it("a step moves first, then collects (README order: clock, move, pickup)", () => {
+      const run = createRun(5);
+      // a piece with open floor 0.85 to its right and no other piece near
+      const k = run.litter.findIndex(
+         (s) =>
+            s.x + 0.85 <= SPAWN_HALF &&
+            clearance(s.x + 0.85, s.z, BOXES[0]) > 1.5 &&
+            run.litter.every((o) => o === s || dist(o.x, o.z, s.x + 0.85, s.z) > 2)
+      );
+      expect(k).toBeGreaterThanOrEqual(0);
+      const s = run.litter[k];
+      // 0.85 away at full speed towards it: out of reach before the move, 0.77 after 16 ms of it
+      place(run, s.x + 0.85, s.z);
+      run.runner.vx = -RUNNER.speed;
+      const ev = step(run, 16, { moveX: -1, moveY: 0 });
+      expect(dist(run.runner.x, run.runner.z, s.x, s.z)).toBeCloseTo(0.85 - RUNNER.speed * 0.016, 9);
+      expect([ev.collected, s.active, run.collected]).toEqual([k, false, 1]);
    });
 
    it("only the current map's pieces count: standing on a map-2 spot during map 1 collects nothing", () => {
@@ -994,25 +1101,30 @@ describe("clean-city pickups and map changes", () => {
    });
 
    it("map 3's 20th piece ends the run with 'win' and the time bonus; later steps change nothing", () => {
-      const run = createRun(8);
-      run.map = 2;
-      for (let i = 0; i < ITEMS_PER_MAP; i++) {
-         run.litter[i].x = run.layouts[2].x[i];
-         run.litter[i].z = run.layouts[2].z[i];
-         run.litter[i].active = i === 19;
+      // the README's 90 s win, and one a ms later: that step crosses the 150 s-left line, so the bonus is
+      // taken from the time left after the step (149.999 s: 1490), not before it (150.015 s: 1500)
+      for (const [wonAt, score] of [[90_000, 4500], [90_001, 4490]] as const) {
+         const run = createRun(8);
+         run.map = 2;
+         for (let i = 0; i < ITEMS_PER_MAP; i++) {
+            run.litter[i].x = run.layouts[2].x[i];
+            run.litter[i].z = run.layouts[2].z[i];
+            run.litter[i].active = i === 19;
+         }
+         run.items = 19;
+         run.collected = 59;
+         run.score = 2950;
+         run.simMs = wonAt - 16;
+         place(run, run.litter[19].x, run.litter[19].z);
+         const ev = { ...step(run, 16, IDLE) };
+         expect(ev, `${wonAt}`).toEqual({ collected: 19, mapCleared: true, nextMap: NONE, ended: "win" });
+         expect([run.ended, run.wonAtMs, run.collected, run.score]).toEqual(["win", wonAt, 60, score]);
+         expect(run.score).toBe(runScore(60, true, DURATION_MS - wonAt));
+         const { events: _e, ...after } = run;
+         expect(step(run, 16, { moveX: 1, moveY: 0 })).toEqual({ collected: NONE, mapCleared: false, nextMap: NONE, ended: null });
+         const { events: _e2, ...now } = run;
+         expect(JSON.stringify(now)).toBe(JSON.stringify(after));
       }
-      run.items = 19;
-      run.collected = 59;
-      run.score = 2950;
-      run.simMs = 90_000 - 16;
-      place(run, run.litter[19].x, run.litter[19].z);
-      const ev = { ...step(run, 16, IDLE) };
-      expect(ev).toEqual({ collected: 19, mapCleared: true, nextMap: NONE, ended: "win" });
-      expect([run.ended, run.wonAtMs, run.collected, run.score]).toEqual(["win", 90_000, 60, 4500]);
-      const { events: _e, ...after } = run;
-      expect(step(run, 16, { moveX: 1, moveY: 0 })).toEqual({ collected: NONE, mapCleared: false, nextMap: NONE, ended: null });
-      const { events: _e2, ...now } = run;
-      expect(JSON.stringify(now)).toBe(JSON.stringify(after));
    });
 
    it("the step that reaches 240 s ends the run first: the last piece on that step is not collected", () => {
@@ -1187,7 +1299,9 @@ describe("clean-city real store parity", () => {
          if (store.getState().phase === "ready") store.getState().start();
          else store.getState().restart();
          const run = createRun(7000 + i);
-         const bot = ending === "win" ? pathBot() : idleBot();
+         // the time-up run collects 25 pieces (5 on map 2) and then stands still, so its score is not 0 = 0
+         const timeupPieces = 25;
+         const bot = ending === "win" ? pathBot() : untilCollected(pathBot(), timeupPieces);
          store.getState().setStat("map", 1);
          store.getState().setStat("items", 0);
          let untimed = 0;
@@ -1242,7 +1356,10 @@ describe("clean-city real store parity", () => {
             expect(s.elapsedMs).toBe(DURATION_MS);
             expect(run.ended).toBe(null);
             expect(run.simMs).toBeGreaterThan(DURATION_MS - MAX_FRAME_DT * 1000 - 1);
+            expect([run.collected, run.map, run.items]).toEqual([timeupPieces, 1, timeupPieces - ITEMS_PER_MAP]);
+            expect(run.score).toBe(LITTER_POINTS * timeupPieces);
             expect(s.score).toBe(run.score);
+            expect(s.stats.items).toBe(run.items);
             expect(withinServerLimits(s.score, s.elapsedMs)).toBe(true);
          }
       }
