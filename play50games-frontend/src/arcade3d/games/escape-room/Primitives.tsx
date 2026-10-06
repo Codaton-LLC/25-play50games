@@ -267,7 +267,7 @@ export interface RunnerLimbs {
    bob: Group | null;
 }
 
-/** About 1.4 tall, arms down. Swap for the core rig: <Humanoid asset={ASSETS.runner} motion={motion} />. */
+/** About 1.4 tall, arms down. Scene swings these groups from the shared humanoid pose. */
 export function PrimitiveRunner({ limbs }: { limbs: MutableRefObject<RunnerLimbs> }) {
    const set = (key: keyof RunnerLimbs) => (g: Group | null) => {
       limbs.current[key] = g;
