@@ -5,6 +5,9 @@
 // loop mutates it and never calls setState. Visuals read it and animate with useGameTime().
 // Only FittedCamera re-renders when the fit changes (resize, cookie banner); everything else is
 // memoised and moves in useFrame.
+// The chef GLB is a static T-pose: <HumanoidModel> (core/rig) rigs it in code and useHumanoidPose
+// drives its limbs (the idle, a walk by its speed with the feet on the ground, a reach up on a
+// catch). ChefPrimitive stays as the fallback.
 import { memo, useMemo, useRef, useState } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import { Raycaster, Vector2, type Camera, type Group } from "three";
@@ -14,11 +17,24 @@ import { playSfx } from "@/arcade3d/core/audio";
 import type { AABB } from "@/arcade3d/core/collision";
 import { useGameTime } from "@/arcade3d/core/gameTime";
 import { useInput } from "@/arcade3d/core/input";
-import { randomSeed } from "@/arcade3d/core/math";
+import { randomSeed, turnTowards } from "@/arcade3d/core/math";
+import {
+   HumanoidModel,
+   POSE_MASK,
+   blendPoses,
+   bodyLift,
+   carryPose,
+   createPose,
+   idlePose,
+   useHumanoidPose,
+   walkPose,
+   walkStride,
+   wrapPhase,
+} from "@/arcade3d/core/rig";
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { useFittedView, type FittedViewOptions } from "@/arcade3d/core/useFittedView";
 import { useRunFrame } from "@/arcade3d/core/useRunFrame";
-import { ASSETS } from "./assets";
+import { ASSETS, CHEF_LANDMARKS } from "./assets";
 import {
    ApplePrimitive,
    BadRing,
@@ -115,25 +131,95 @@ const Simulation = memo(function Simulation({ run, scratch }: { run: ViewRun; sc
    return null;
 });
 
-const Chef = memo(function Chef({ run }: { run: RunState }) {
+/** The chef GLB's joints and its scale here: its stride and its height over its planted foot. */
+const LEGS = CHEF_LANDMARKS;
+const CHEF_SCALE = ASSETS.chef.scale ?? 1;
+/** The phase never advances by more than a stride this short (m): standing still, the stride is 0. */
+const MIN_STRIDE = 0.1;
+/**
+ * The walk's own stride (core/rig walkStride) keeps the planted foot still, but the chef dashes at
+ * up to 9 m/s: it steps at most this often (strides a second); faster, the stride stretches and the
+ * feet slide a little (warehouse-rush does the same).
+ */
+const MAX_CADENCE = 4;
+/** The GLB chef turns to face the way it runs (±90°) above this speed (m/s), back to the camera when it stops. */
+const TURN_SPEED = 1;
+/** A catch: the arms reach up towards the item for this long (s), then drop. */
+const REACH_S = 0.4;
+
+/** The walk cycle (looks only) of the GLB chef: phase, eased amount, its facing and the body's height. */
+interface Gait {
+   phase: number;
+   amount: number;
+   yaw: number;
+   /** the body's height over its planted foot this frame (m): core/rig bodyLift x CHEF_SCALE */
+   lift: number;
+}
+
+const Chef = memo(function Chef({ run }: { run: ViewRun }) {
    const time = useGameTime();
    const root = useRef<Group>(null);
+   const turn = useRef<Group>(null);
    const bob = useRef<Group>(null);
+   const standIn = useRef<Group>(null);
+   const [gait] = useState<Gait>(() => ({ phase: 0, amount: 0, yaw: 0, lift: 0 }));
+   const [scratch] = useState(createPose);
 
+   // the GLB chef's limbs (core/rig), FRAME_PRIORITY.pose: after the step, before the useFrame
+   // below. Idle (a breath and a glance) when still; a walk whose amount eases with |chefV| and whose
+   // phase advances by the distance run over the walk's own stride, so the planted foot stays put
+   // (the chef turns to face the way it runs); on a catch (run.flashAt, set by the simulation on a
+   // good or a bad catch) both arms reach up towards the item for REACH_S and drop again.
+   const pose = useHumanoidPose((p) => {
+      const t = time.now;
+      const dt = time.delta;
+      const playing = useArcadeStore.getState().phase === "playing";
+      const v = playing ? Math.abs(run.chefV) : 0;
+      gait.amount += (Math.min(1, v / CHEF.maxSpeed) - gait.amount) * (1 - Math.exp(-12 * dt));
+      const stride = Math.max(MIN_STRIDE, walkStride(gait.amount, LEGS) * CHEF_SCALE, v / MAX_CADENCE);
+      gait.phase = wrapPhase(gait.phase + ((v * dt) / stride) * Math.PI * 2);
+      // face the way it runs: +x is the camera's right, a quarter turn to the chef's left
+      const facing = v > TURN_SPEED ? (run.chefV > 0 ? Math.PI / 2 : -Math.PI / 2) : 0;
+      gait.yaw = turnTowards(gait.yaw, facing, 1 - Math.exp(-10 * dt));
+      walkPose(gait.phase, gait.amount, p);
+      // nearly still: the idle's breath and glance in the upper body (the legs keep the walk's)
+      blendPoses(p, idlePose(t, scratch), 1 - Math.min(1, gait.amount * 5), p, POSE_MASK.upper);
+      const k = (t - run.flashAt) / REACH_S;
+      if (k >= 0 && k < 1) blendPoses(p, carryPose(0.7, scratch), Math.sin(k * Math.PI), p, POSE_MASK.arms);
+      gait.lift = bodyLift(p, LEGS) * CHEF_SCALE;
+   });
+
+   // looks only: follows the simulated chef and leans into its speed; the GLB turns the way it runs
+   // and rises and falls with its planted foot, the stand-in bobs with its speed as before
    useFrame(() => {
       const g = root.current;
+      const facing = turn.current;
       const body = bob.current;
-      if (!g || !body) return;
+      if (!g || !facing || !body) return;
+      const fallback = standIn.current !== null;
       g.position.x = run.chefX;
       const speed = Math.min(1, Math.abs(run.chefV) / CHEF.maxSpeed);
       g.rotation.z = -run.chefV * 0.03;
-      body.position.y = Math.abs(Math.sin(time.now * 10)) * 0.04 * speed;
+      facing.rotation.y = fallback ? 0 : gait.yaw;
+      body.position.y = fallback ? Math.abs(Math.sin(time.now * 10)) * 0.04 * speed : gait.lift;
    });
 
    return (
       <group ref={root} position={[0, 0, CHEF_Z]} name="chef">
-         <group ref={bob}>
-            <Model asset={ASSETS.chef} fallback={<ChefPrimitive />} />
+         <group ref={turn}>
+            <group ref={bob}>
+               {/* the group above carries the body's height (gait.lift), so the model does not add it again */}
+               <HumanoidModel
+                  asset={ASSETS.chef}
+                  pose={pose}
+                  applyLift={false}
+                  fallback={
+                     <group ref={standIn}>
+                        <ChefPrimitive />
+                     </group>
+                  }
+               />
+            </group>
          </group>
       </group>
    );
