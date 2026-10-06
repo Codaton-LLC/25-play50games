@@ -17,6 +17,8 @@ const FEEDBACK_TEXT: Record<number, { title: string; detail: string } | undefine
 };
 
 const DOTS = Array.from({ length: SHOTS }, (_v, i) => i);
+/** The aim deadline shows for the last seconds of the 20 s per shot. */
+const DEADLINE_FROM_S = 5;
 
 export default function PenaltyHud() {
    const shots = useArcadeStore((s) => s.stats.shots ?? 0);
@@ -44,8 +46,16 @@ export default function PenaltyHud() {
                   <span className={styles.title}>{shown.title}</span>
                   {shown.detail ? <span className={styles.detail}>{shown.detail}</span> : null}
                </p>
-            ) : aimLeft > 0 && aimLeft <= 5 ? (
-               <p className={styles.deadline}>{aimLeft} s</p>
+            ) : aimLeft > 0 && aimLeft <= DEADLINE_FROM_S ? (
+               // keyed by the second, so it pops once per second
+               <p
+                  key={`aim-${shots}-${aimLeft}`}
+                  className={`${styles.deadline} ${aimLeft <= 2 ? styles.deadlineUrgent : ""}`}
+               >
+                  <span className={styles.deadlineLabel}>Shoot!</span>{" "}
+                  <span className={styles.deadlineValue}>{aimLeft}</span>{" "}
+                  <span className={styles.deadlineUnit}>s</span>
+               </p>
             ) : null}
          </div>
 

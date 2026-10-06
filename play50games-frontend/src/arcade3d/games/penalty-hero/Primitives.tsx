@@ -15,6 +15,8 @@ export const COLORS = {
    stand: "#1e293b",
    standEdge: "#334155",
    board: "#0f172a",
+   boardText: "#2b3a52",
+   boardTextAlt: "#334460",
    frame: "#f8fafc",
    net: "#e2e8f0",
    skin: "#e8b48f",
@@ -87,17 +89,24 @@ function drawCrowd(ctx: CanvasRenderingContext2D, w: number, h: number) {
       }
    }
    ctx.globalAlpha = 1;
+   // The lowest rows show through the top of the net: fade them into the stand so the top zones read.
+   const fade = ctx.createLinearGradient(0, h * 0.62, 0, h);
+   fade.addColorStop(0, "rgba(30, 41, 59, 0)");
+   fade.addColorStop(1, "rgba(30, 41, 59, 0.9)");
+   ctx.fillStyle = fade;
+   ctx.fillRect(0, h * 0.62, w, h * 0.38);
 }
 
+/** Dark boards with low-contrast lettering: they sit behind the bottom zones and must not compete. */
 function drawBoards(ctx: CanvasRenderingContext2D, w: number, h: number) {
    ctx.fillStyle = COLORS.board;
    ctx.fillRect(0, 0, w, h);
-   ctx.font = `800 ${Math.round(h * 0.56)}px system-ui, sans-serif`;
+   ctx.font = `800 ${Math.round(h * 0.5)}px system-ui, sans-serif`;
    ctx.textBaseline = "middle";
    ctx.textAlign = "center";
    const words = ["PLAY50", "3D ARCADE", "PLAY50", "3D ARCADE", "PLAY50", "3D ARCADE"];
    for (let i = 0; i < words.length; i++) {
-      ctx.fillStyle = i % 2 === 0 ? "#94a3b8" : "#cbd5e1";
+      ctx.fillStyle = i % 2 === 0 ? COLORS.boardText : COLORS.boardTextAlt;
       ctx.fillText(words[i], ((i + 0.5) * w) / words.length, h / 2);
    }
 }

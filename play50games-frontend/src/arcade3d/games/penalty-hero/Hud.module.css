@@ -1,6 +1,7 @@
+/* below the shell HUD row, which starts at the top safe-area inset (notch, viewport-fit cover) */
 .tally {
    position: absolute;
-   top: 4.4rem;
+   top: calc(env(safe-area-inset-top, 0px) + 4.4rem);
    left: 50%;
    transform: translateX(-50%);
    display: flex;
@@ -64,19 +65,49 @@
    color: #f87171;
 }
 
-.deadline {
-   padding: 0.25rem 0.75rem;
-   border: 1px solid #f87171;
+/* the last 5 s of the aim clock: big and solid, so it reads over the stands */
+.feedback p.deadline {
+   flex-direction: row;
+   align-items: baseline;
+   gap: 0.45rem;
+   padding: 0.35rem 1.15rem 0.4rem;
+   border: 2px solid #fbbf24;
    border-radius: 999px;
-   background: var(--card);
-   color: #fca5a5;
-   font-size: 1rem;
-   font-weight: 800;
+   background: rgba(69, 26, 3, 0.92);
+   color: #fef3c7;
+   font-weight: 900;
+   line-height: 1;
+   box-shadow: 0 0 0 4px rgba(251, 191, 36, 0.22), 0 8px 24px rgba(0, 0, 0, 0.5);
 }
 
+.feedback p.deadlineUrgent {
+   border-color: #fca5a5;
+   background: rgba(185, 28, 28, 0.95);
+   color: #fff;
+   box-shadow: 0 0 0 5px rgba(248, 113, 113, 0.35), 0 8px 24px rgba(0, 0, 0, 0.5);
+}
+
+.deadlineLabel {
+   font-size: 1rem;
+   letter-spacing: 0.08em;
+   text-transform: uppercase;
+}
+
+.deadlineValue {
+   min-width: 1ch;
+   font-size: 2.1rem;
+   font-variant-numeric: tabular-nums;
+}
+
+.deadlineUnit {
+   font-size: 1rem;
+   opacity: 0.85;
+}
+
+/* above the home indicator and the cookie banner while it is open (GameShell sets the variable) */
 .bottom {
    position: absolute;
-   bottom: calc(0.9rem + env(safe-area-inset-bottom, 0px));
+   bottom: calc(0.9rem + env(safe-area-inset-bottom, 0px) + var(--arcade-bottom-obstruction, 0px));
    left: 50%;
    transform: translateX(-50%);
    display: flex;

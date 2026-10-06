@@ -43,12 +43,14 @@ import {
    ZONE_CENTRE_X,
    ZONE_CENTRE_Y,
    ZONE_WIDTH,
+   aimPresses,
    createRun,
    isAccurate,
    reticleOffset,
    step,
    zoneAt,
    zoneIndex,
+   type AimPresses,
    type RunState,
    type StepInput,
    type ZoneId,
@@ -89,12 +91,13 @@ interface Scratch {
    ndc: Vector2;
    point: Vector3;
    plane: Plane;
+   aim: Required<AimPresses>;
    input: StepInput;
 }
 
 type ViewRun = RunState & { lastShots: number; aimLeft: number; goalMask: number };
 
-/** Tap on the canvas -> zone of the goal plane z = 0. Meshes are never hit-tested. */
+/** Canvas press (pointer coords) -> zone of the goal plane z = 0. Meshes are never hit-tested. */
 function tapZone(x: number, y: number, camera: Camera, scratch: Scratch): ZoneId | null {
    scratch.ndc.set(x, y);
    scratch.ray.setFromCamera(scratch.ndc, camera);
@@ -115,11 +118,14 @@ function Simulation({ run, scratch }: { run: ViewRun; scratch: Scratch }) {
    useRunFrame((_state, dt) => {
       const inp = input.current;
       const frame = scratch.input;
-      frame.moveX = inp.moveX;
-      frame.moveY = inp.moveY;
+      // Keyboard aim: arrow / WASD keydowns, never lost between frames. Swipes do not aim.
+      frame.pressed = aimPresses(inp.pressed, inp.swipe, scratch.aim);
       frame.jumpPressed = inp.jumpPressed;
       frame.actionPressed = inp.actionPressed;
-      frame.zoneId = inp.tap && run.phase === "aim" ? tapZone(inp.tap.x, inp.tap.y, camera, scratch) : null;
+      // Touch / click shoots on the press (tapDown), with the reticle that was on screen then.
+      // `tap` would wait for the release and judge the shot 100-350 ms late.
+      const down = inp.tapDown;
+      frame.zoneId = down && run.phase === "aim" ? tapZone(down.x, down.y, camera, scratch) : null;
       const shotIndex = run.shotsDone;
       const ev = step(run, dt * 1000, frame);
       const store = useArcadeStore.getState();
@@ -386,6 +392,7 @@ export default function Scene() {
          ndc: new Vector2(),
          point: new Vector3(),
          plane: new Plane(new Vector3(0, 0, 1), 0),
+         aim: { left: false, right: false, up: false, down: false },
          input: {},
       }),
       []

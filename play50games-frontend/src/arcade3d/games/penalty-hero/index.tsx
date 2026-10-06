@@ -19,7 +19,7 @@ const definition: GameDefinition = {
    touchControls: ["tap"],
    hudStats: [{ key: "shots", label: "Shots", max: SHOTS }],
    instructions: [
-      "Arrow keys pick a zone, Space shoots. On touch, tap a zone.",
+      "Arrow keys pick a zone, Space shoots. On touch, tap a zone: the shot goes as your finger lands.",
       "Shoot when the ring is inside the white band, or the ball goes wide.",
       "Ten shots. Goals in a row score 150 instead of 100.",
    ],
