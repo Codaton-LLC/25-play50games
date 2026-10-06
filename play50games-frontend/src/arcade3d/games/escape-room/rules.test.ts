@@ -7,10 +7,10 @@ import { computeTimeScore, isRankedRun, normalizeRun } from "@/arcade3d/core/sco
 import { createArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { escapeRoomMeta } from "./meta";
 import {
-   ALL_ITEMS, DOOR_ID, DOOR_POSITION, DURATION_MS, INSPECT_REACH, ITEM_NAMES, NONE,
+   ALL_ITEMS, DOOR_ID, DOOR_POSITION, DURATION_MS, INSPECT_REACH, ITEM_NAMES, NONE, RUNNER,
    STATION_ANCHORS, STATION_KINDS, createRun, createStepInput, fallbackLayout,
    generateLayout, inReach, isValidLayout, isWalkable, step, targetInReach,
-   type EscapeRun, type Layout, type StepInput,
+   type EscapeRun, type Layout, type StepEvents, type StepInput,
 } from "./rules";
 import * as rules from "./rules";
 
@@ -58,19 +58,22 @@ function openAndTake(run: EscapeRun, id: number): void {
    advance(run, 899);
 }
 
-/** Independent circle/rectangle oracle, including the two chairs, not the game's walkability helper. */
-function clear(layout: Layout, x: number, z: number): boolean {
-   if (Math.abs(x) > 5.65 || Math.abs(z) > 4.65) return false;
+/**
+ * Independent circle/rectangle oracle, including the two chairs, not the game's walkability helper.
+ * `radius` above 0.35 turns it into a contact probe (false = touching a wall or a body).
+ */
+function clear(layout: Layout, x: number, z: number, radius = 0.35): boolean {
+   if (Math.abs(x) > 6 - radius || Math.abs(z) > 5 - radius) return false;
    for (const s of layout.stations) {
       const cx = s.x + Math.sign(s.x);
       const dx = Math.max(Math.abs(x - cx) - 0.6, 0);
       const dz = Math.max(Math.abs(z - s.z) - 0.7, 0);
-      if (dx * dx + dz * dz < 0.35 ** 2 - 1e-10) return false;
+      if (dx * dx + dz * dz < radius ** 2 - 1e-10) return false;
    }
    for (const cx of [-5, 5]) {
       const dx = Math.max(Math.abs(x - cx) - 0.4, 0);
       const dz = Math.max(Math.abs(z) - 0.4, 0);
-      if (dx * dx + dz * dz < 0.35 ** 2 - 1e-10) return false;
+      if (dx * dx + dz * dz < radius ** 2 - 1e-10) return false;
    }
    return true;
 }
@@ -267,6 +270,15 @@ describe("escape-room movement and inspection", () => {
       expect(Math.hypot(diag.player.vx, diag.player.vz)).toBeCloseTo(1.8, 10);
       expect(diag.player.x).toBeGreaterThan(0);
       expect(diag.player.z).toBeLessThan(4);
+      // Analog input shorter than 1 is not stretched: a half-tilted stick walks at half speed.
+      const half = createRun(1);
+      advance(half, 1000, { ...IDLE, moveX: 0.5 });
+      expect(half.player.vx).toBeCloseTo(0.9, 9);
+      expect(half.player.vz).toBe(0);
+      const analog = createRun(1);
+      advance(analog, 1000, { ...IDLE, moveX: 0.3, moveY: -0.4 });
+      expect(Math.hypot(analog.player.vx, analog.player.vz)).toBeCloseTo(0.9, 9);
+      expect(analog.player.vx / analog.player.vz).toBeCloseTo(-0.75, 9);
    });
 
    it("never walks through station boxes/chairs/walls or gains speed from collision correction", () => {
@@ -288,6 +300,107 @@ describe("escape-room movement and inspection", () => {
          expect(run.player.y).toBe(0);
       }
    }, 120000);
+
+   it("the side-wall clamp never leaves the runner inside a chair, and the chair/wall pocket is no soft-lock", () => {
+      // Review regression: the wall clamp alone used to skip the rollback check, so a diagonal
+      // into the chair/side-wall corner ended inside the chair's 0.35 m zone and stayed stuck.
+      const n = Math.SQRT1_2;
+      const pocketZ = 0.4 + Math.sqrt(0.35 ** 2 - 0.25 ** 2);
+      for (const [sx, sz, ux, uz] of [[5.35, 0.9449, 1, -1], [-5.35, -0.9449, -1, 1], [5.35, -0.9449, 1, 1], [-5.35, 0.9449, -1, -1]]) {
+         const run = createRun(0, { layout: fallbackLayout(0) });
+         place(run, sx, sz);
+         run.player.vx = 1.8 * ux * n;
+         run.player.vz = 1.8 * uz * n;
+         const push: StepInput = { ...IDLE, moveX: ux * n, moveY: uz * n };
+         for (let i = 0; i < 2000; i++) {
+            step(run, 1, push);
+            if (!clear(run.layout, run.player.x, run.player.z)) throw new Error(`Inside a chair at ${run.player.x}, ${run.player.z} (ms ${i})`);
+         }
+         expect(Math.abs(run.player.x)).toBe(5.65); // it really reached the pocket
+         expect(Math.abs(run.player.z)).toBeCloseTo(pocketZ, 6);
+         const x = run.player.x, z = run.player.z;
+         advance(run, 500, { ...IDLE, moveX: -ux * n, moveY: -uz * n });
+         expect(Math.hypot(run.player.x - x, run.player.z - z)).toBeGreaterThan(0.3);
+      }
+   });
+
+   it("pushes along axes, diagonals and shallow angles into every wall, corner, chair pocket and station face", () => {
+      const angles = [0, 45, 90, 135, 180, 225, 270, 315, 10, 80, 100, 170, 190, 260, 280, 350];
+      const dirs = angles.map((a) => [Math.cos(a * Math.PI / 180), Math.sin(a * Math.PI / 180)]);
+      const input = createStepInput();
+      let wallFrames = 0, bodyFrames = 0;
+      for (let seed = 0; seed < 4; seed++) {
+         const stations = createRun(seed).layout.stations;
+         const starts = [[0, 0], [3, 0], [-3, 0], [0, -4], [0, 4], [5.6, 1.2], [5.6, -1.2], [-5.6, 1.2], [-5.6, -1.2], ...stations.map((s) => [s.x, s.z])];
+         for (const [sx, sz] of starts) {
+            const run = createRun(seed);
+            for (const [ux, uz] of dirs) {
+               place(run, sx, sz);
+               input.moveX = ux;
+               input.moveY = uz;
+               for (let i = 0; i < 200; i++) {
+                  const x = run.player.x, z = run.player.z, ms = run.simMs;
+                  step(run, 20, input);
+                  const px = run.player.x, pz = run.player.z;
+                  const fail = (what: string) => new Error(`${what}: seed ${seed} from ${sx},${sz} push ${ux.toFixed(3)},${uz.toFixed(3)} at ${px},${pz}`);
+                  if (Math.hypot(px - x, pz - z) > 1.8 * (run.simMs - ms) / 1000 + 1e-9) throw fail("Too fast");
+                  if (Math.abs(px) > 5.65 + 1e-9 || Math.abs(pz) > 4.65 + 1e-9) throw fail("Outside the room");
+                  if (!clear(run.layout, px, pz)) throw fail("Inside a body");
+                  if (Math.abs(px) >= 5.65 - 1e-9 || Math.abs(pz) >= 4.65 - 1e-9) wallFrames++;
+                  else if (!clear(run.layout, px, pz, 0.35 + 1e-6)) bodyFrames++;
+               }
+            }
+         }
+      }
+      // The fuzz really presses on walls and furniture, not only the open floor.
+      expect(wallFrames).toBeGreaterThan(10000);
+      expect(bodyFrames).toBeGreaterThan(10000);
+   }, 120000);
+
+   it("slides along walls and furniture faces instead of stopping dead on contact", () => {
+      const n = Math.SQRT1_2;
+      const slide = (x: number, z: number, moveX: number, moveY: number, ms: number): EscapeRun => {
+         const run = createRun(0, { layout: fallbackLayout(0) });
+         place(run, x, z);
+         for (let i = 0; i < ms; i++) {
+            step(run, 1, { ...IDLE, moveX, moveY });
+            if (!clear(run.layout, run.player.x, run.player.z)) throw new Error(`Inside a body at ${run.player.x}, ${run.player.z}`);
+         }
+         return run;
+      };
+      // Station 0's inner face (x = -4.4), pushed diagonally from its anchor: z climbs along the face.
+      const station = slide(-4, -3, -n, n, 500);
+      expect(station.player.x).toBeGreaterThan(-4.06);
+      expect(station.player.x).toBeLessThanOrEqual(-4.05 + 1e-9);
+      expect(station.player.z).toBeGreaterThan(-2.7);
+      // The +x chair's -z face (z = -0.4): x runs along it.
+      const chair = slide(4.7, -0.8, n, n, 500);
+      expect(chair.player.z).toBeGreaterThan(-0.76);
+      expect(chair.player.z).toBeLessThanOrEqual(-0.75 + 1e-9);
+      expect(chair.player.x).toBeGreaterThan(5);
+      // Front, back and side walls: the clamp keeps the runner on the wall line and it keeps moving.
+      const front = slide(-2, 4.3, 0.6, 0.8, 1000);
+      expect(front.player.z).toBe(4.65);
+      expect(front.player.x).toBeGreaterThan(-1.5); // about 0.26 m of this comes before the wall
+      const back = slide(2, -4.3, -0.6, -0.8, 1000);
+      expect(back.player.z).toBe(-4.65);
+      expect(back.player.x).toBeLessThan(1.5);
+      const side = slide(5.3, 0.8, 0.6, 0.8, 1000);
+      expect(side.player.x).toBe(5.65);
+      expect(side.player.z).toBeGreaterThan(1.5);
+   });
+
+   it("caps the net step after a deep push-out and then rolls a still-blocked position back", () => {
+      // 0.30 m from station 0's face (a caller placement inside the 0.35 m radius): the core pushes
+      // the runner 5 cm out in one ms; the net cap must keep that to 1.8 mm, and the shortened
+      // position is still blocked, so the previous position is restored.
+      const run = createRun(0, { layout: fallbackLayout(0) });
+      place(run, -4.1, -3);
+      step(run, 1, { ...IDLE, moveX: 1 });
+      expect(Math.hypot(run.player.x + 4.1, run.player.z + 3)).toBeLessThanOrEqual(1.8e-3 + 1e-12);
+      expect(run.player.x).toBe(-4.1);
+      expect(run.player.vx).toBe(0);
+   });
 
    it("selects exactly one eligible object and enforces anchor radius, IDs and tap priority", () => {
       const run = createRun(0, { layout: fallbackLayout(0) });
@@ -311,18 +424,32 @@ describe("escape-room movement and inspection", () => {
       expect(targetInReach(run)).toBe(NONE);
    });
 
-   it("a remote inspect does not stop movement; an accepted inspect locks before that frame's move", () => {
+   it("a remote inspect does not stop movement; an accepted inspect zeroes velocity and locks before that frame's move", () => {
       const run = createRun(0);
       step(run, 50, tap(0, 1, 0));
       expect(run.player.x).toBeGreaterThan(0);
-      const s = run.layout.stations[0];
-      place(run, s.x, s.z);
-      const x = run.player.x, z = run.player.z;
-      step(run, 50, tap(0, 1, 1));
-      expect(run.player.x).toBe(x);
-      expect(run.player.z).toBe(z);
-      expect(run.player.vx).toBe(0);
-      expect(run.action.remainingMs).toBe(1050);
+      expect(run.action.kind).toBe("none");
+      // Walk into reach at speed, then inspect in the frame that reaches it.
+      const moving = createRun(0, { layout: fallbackLayout(0) });
+      place(moving, -1.5, -3);
+      for (let guard = 0; !inReach(moving.layout, 0, moving.player.x, moving.player.z) && guard < 3000; guard++) step(moving, 1, { ...IDLE, moveX: -1 });
+      expect(inReach(moving.layout, 0, moving.player.x, moving.player.z)).toBe(true);
+      expect(moving.player.vx).toBeLessThan(-1);
+      const x = moving.player.x, z = moving.player.z;
+      step(moving, 50, tap(0, -1, 0));
+      expect(moving.action.kind).toBe("open");
+      expect(moving.player.x).toBe(x);
+      expect(moving.player.z).toBe(z);
+      expect(moving.player.vx).toBe(0);
+      expect(moving.player.vz).toBe(0);
+      expect(moving.action.remainingMs).toBe(1050);
+      advance(moving, 1050);
+      expect(moving.stations[0].phase).toBe("open");
+      expect(moving.action.kind).toBe("none");
+      // Movement resumes from rest, not at the speed it had before the inspect.
+      step(moving, 1, { ...IDLE, moveX: 1 });
+      expect(Math.hypot(moving.player.vx, moving.player.vz)).toBeLessThanOrEqual(RUNNER.accel / 1000 + 1e-12);
+      expect(moving.player.vx).toBeGreaterThan(0);
    });
 
    it("opening takes 1100 ms, retrieval takes a fresh press and 900 ms, and busy edges are dropped", () => {
@@ -368,8 +495,14 @@ describe("escape-room movement and inspection", () => {
       expect(run.stations[3].phase).toBe("open");
       expect(run.message).toBe("empty");
       expect(step(run, 50, tap(3)).inspected).toBe(NONE);
+      expect(run.message).toBe("empty"); // a refused inspect leaves the feedback alone
       expect(run.foundMask).toBe(0);
       expect(run.found).toBe(0);
+      // The next accepted open clears the "Empty" message on its first frame.
+      place(run, -4, -3);
+      expect(step(run, 1, tap(0)).inspected).toBe(0);
+      expect(run.action.kind).toBe("open");
+      expect(run.message).toBe("none");
    });
 
    it("door is locked until all items, then spends 600 + 1200 ms and emits win once", () => {
@@ -380,11 +513,26 @@ describe("escape-room movement and inspection", () => {
       expect(run.door.phase).toBe("locked");
       expect(run.door.progressMs).toBe(0);
       expect(run.message).toBe("locked");
-      for (const id of [0, 1]) openAndTake(run, id);
+      // The next accepted station action clears "Find all three items" on its first frame.
+      place(run, -4, -3);
+      expect(step(run, 1, tap(0)).inspected).toBe(0);
+      expect(run.action.kind).toBe("open");
+      expect(run.message).toBe("none");
+      advance(run, 1099);
+      step(run, 1, tap(0));
+      advance(run, 899);
+      expect(run.found).toBe(1);
+      openAndTake(run, 1);
       place(run, 0, -4.2);
       step(run, 1, KEY);
       expect(run.door.phase).toBe("locked");
-      openAndTake(run, 2);
+      expect(run.message).toBe("locked");
+      place(run, -4, 3);
+      expect(step(run, 1, tap(2)).inspected).toBe(2);
+      expect(run.message).toBe("none");
+      advance(run, 1099);
+      step(run, 1, tap(2));
+      advance(run, 899);
       place(run, 0, -4.2);
       step(run, 1, KEY);
       expect(run.foundMask).toBe(7);
@@ -456,6 +604,34 @@ describe("escape-room clock, buffers and pure step", () => {
       expect(another.simMs).toBe(0);
    });
 
+   it("fixed pools keep their lengths and identities through a full win and a 600 s idle time-up; step never regenerates the layout", () => {
+      const refs = (run: EscapeRun): object[] => [
+         run.events, run.action, run.player, run.door, run.stations, run.items, run.layout,
+         run.layout.stations, run.layout.obstacles, ...run.layout.obstacles, ...run.layout.stations,
+         ...run.layout.stations.map((s) => s.bounds), ...run.stations, ...run.items,
+      ];
+      const check = (run: EscapeRun, drive: () => void, seed: number): void => {
+         const before = refs(run), layout = structuredClone(run.layout);
+         drive();
+         const after = refs(run);
+         expect(after).toHaveLength(before.length);
+         for (let i = 0; i < after.length; i++) expect(after[i], `ref ${i}`).toBe(before[i]);
+         expect(run.layout).toEqual(layout);
+         expect(run.seed).toBe(seed);
+         expect(run.layout.seed).toBe(seed);
+         expect([run.stations.length, run.items.length, run.layout.stations.length, run.layout.obstacles.length]).toEqual([4, 3, 4, 6]);
+         for (let i = 0; i < 4; i++) expect(run.layout.obstacles[i]).toBe(run.layout.stations[i].bounds);
+      };
+      const win = createRun(5050);
+      check(win, () => play(win, () => 1000 / 60), 5050);
+      expect(win.ended).toBe("win");
+      expect(win.found).toBe(3);
+      const timeup = createRun(759); // no inspect at all, walking into the -z/+x walls until time-up
+      check(timeup, () => advance(timeup, 600000, { ...IDLE, moveX: 1, moveY: -1 }), 759);
+      expect(timeup.ended).toBe("timeup");
+      expect(timeup.simMs).toBe(600000);
+   });
+
    it("the reachable local step call graph allocates no arrays/objects/closures, and contains no wall clock/random/renderer", () => {
       const source = readFileSync(new URL("./rules.ts", import.meta.url), "utf8");
       const file = ts.createSourceFile("rules.ts", source, ts.ScriptTarget.Latest, true);
@@ -481,6 +657,23 @@ describe("escape-room clock, buffers and pure step", () => {
       check("step");
       expect(seen.size).toBeGreaterThan(3);
       expect(source).not.toMatch(/Math\.random\s*\(|Date\.now\s*\(|performance\.now\s*\(|setTimeout\s*\(|from ["'](?:react|three)["']/);
+      // Every import is a pure core module: no react, three/*, @react-three/*, .tsx or side-effect import.
+      const imports: string[] = [];
+      const visitAll = (node: ts.Node): void => {
+         if (ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) {
+            if (node.moduleSpecifier && ts.isStringLiteral(node.moduleSpecifier)) {
+               imports.push(node.moduleSpecifier.text);
+               if (ts.isImportDeclaration(node)) expect(node.importClause, `side-effect import ${node.moduleSpecifier.text}`).toBeDefined();
+            }
+         } else if (ts.isCallExpression(node) && (node.expression.kind === ts.SyntaxKind.ImportKeyword
+            || (ts.isIdentifier(node.expression) && node.expression.text === "require"))) {
+            throw new Error(`Dynamic import in rules.ts: ${node.getText(file)}`);
+         }
+         ts.forEachChild(node, visitAll);
+      };
+      visitAll(file);
+      expect(imports.length).toBeGreaterThan(0);
+      for (const specifier of imports) expect(["@/arcade3d/core/collision", "@/arcade3d/core/math"]).toContain(specifier);
    });
 });
 
@@ -518,6 +711,58 @@ describe("escape-room minimum completion and TIME scoring", () => {
       }
       expect(adversarialWins).toBeGreaterThan(20); // attacks include successful runs, not just stuck bots
    }, 120000);
+
+   it("golden perfect-bot finishes at 60 Hz, 144 Hz and 1 ms frames, which agree within the per-action frame slack", () => {
+      // Exact regression (first run of the reviewed rules). The >= 15300 proof tests cannot see
+      // changes to acceleration, braking, sliding or post-inspect velocity: every perfect run lands
+      // at least ~1.5 s above its own seed's bound. A change here is a design change.
+      const GOLDEN: Record<number, [number, number][]> = {
+         0: [[18150, 7800], [18133, 7821], [18110, 7800]],
+         5050: [[17683, 7800], [17688, 7820], [17666, 7800]],
+         759: [[17216, 7800], [17237, 7821], [17194, 7800]],
+      };
+      const rates = [1000 / 60, 1000 / 144, 1];
+      for (const seed of [0, 5050, 759]) {
+         const results = rates.map((dt) => {
+            const run = play(createRun(seed), () => dt);
+            expect(run.ended, `seed ${seed} dt ${dt}`).toBe("win");
+            return [run.finishMs, run.lockedMs] as [number, number];
+         });
+         expect(results, `seed ${seed}`).toEqual(GOLDEN[seed]);
+         // Seven serial actions, each locking the rest of the frame it completes in.
+         expect(Math.abs(results[0][0] - results[1][0])).toBeLessThanOrEqual(7 * (1000 / 60));
+         for (let r = 0; r < rates.length; r++) {
+            expect(results[r][1] - 7800).toBeGreaterThanOrEqual(0);
+            expect(results[r][1] - 7800).toBeLessThan(7 * rates[r]);
+         }
+      }
+   }, 120000);
+
+   it("60 Hz and 144 Hz complete open, retrieve and door actions within one counted frame of their exact duration", () => {
+      for (const dt of [1000 / 60, 1000 / 144]) {
+         const run = createRun(0, { layout: fallbackLayout(0) });
+         for (let i = 0; i < 7; i++) step(run, dt, IDLE); // start the actions at a non-zero carried fraction
+         const timed = (input: StepInput, duration: number, done: (ev: StepEvents) => boolean): number => {
+            const accept = run.simMs;
+            let ev = step(run, dt, input);
+            expect(run.action.kind).not.toBe("none");
+            for (let guard = 0; !done(ev) && guard < 1000; guard++) ev = step(run, dt, IDLE);
+            expect(done(ev), `dt ${dt}`).toBe(true);
+            const slack = run.simMs - accept - duration;
+            expect(slack, `dt ${dt} duration ${duration}`).toBeGreaterThanOrEqual(0);
+            expect(slack, `dt ${dt} duration ${duration}`).toBeLessThan(dt);
+            return accept;
+         };
+         place(run, -4, -3);
+         timed(tap(0), 1100, (ev) => ev.opened === 0);
+         timed(tap(0), 900, (ev) => ev.found === 0);
+         openAndTake(run, 1);
+         openAndTake(run, 2);
+         place(run, 0, -4.2);
+         const accept = timed(KEY, 1800, (ev) => ev.ended === "win");
+         expect(run.finishMs).toBe(accept + 1800); // the win is stamped at the action's own ms
+      }
+   });
 
    it("uses core time scoring/normalization and win-only ranking, never the points-game zero rate", () => {
       const scoring = escapeRoomMeta.scoring;
@@ -586,25 +831,29 @@ describe("escape-room real-store parity", () => {
       expect(store.getState().elapsedMs).toBe(0);
    });
 
-   it("the store's winning duration/score and paused opening match pure rules, without a finalScore override", () => {
+   it("the store's winning duration/score and paused open/retrieve/door actions match pure rules, then restart starts clean", () => {
       const store = createArcadeStore();
       store.getState().configure({ durationMs: 600000 });
       store.getState().markReady();
       store.getState().start();
       const run = createRun(5050), bot = makeBot(run);
+      store.getState().setStat("found", 0); // Scene mount
       const rng = createRng(99);
-      let paused = false, foundEvents = 0, winEvents = 0;
+      const pausedKinds = new Set<string>();
+      let foundEvents = 0, winEvents = 0;
       for (let i = 0; store.getState().phase !== "over" && i < 20000; i++) {
-         if (!paused && run.action.kind === "open") {
+         if (run.action.kind !== "none" && !pausedKinds.has(run.action.kind)) {
             const snapshot = structuredClone(run);
+            const elapsed = store.getState().elapsedMs;
             store.getState().pause();
             for (let j = 0; j < 100; j++) {
                advanceRunClock(store, 0.05);
                expect(playedFrameDt(store.getState())).toBe(0);
             }
-            expect(run).toEqual(snapshot);
+            expect(run, run.action.kind).toEqual(snapshot);
+            expect(store.getState().elapsedMs).toBe(elapsed);
             store.getState().resume();
-            paused = true;
+            pausedKinds.add(run.action.kind);
          }
          advanceRunClock(store, 0.004 + rng() * 0.046);
          const dt = playedFrameDt(store.getState());
@@ -614,7 +863,7 @@ describe("escape-room real-store parity", () => {
          if (ev.ended) { winEvents++; store.getState().end(ev.ended); }
          expect(run.simMs).toBeLessThanOrEqual(store.getState().elapsedMs + 1e-6);
       }
-      expect(paused).toBe(true);
+      expect([...pausedKinds].sort()).toEqual(["door", "open", "retrieve"]);
       expect(foundEvents).toBe(3);
       expect(winEvents).toBe(1);
       expect(store.getState().endReason).toBe("win");
@@ -624,6 +873,34 @@ describe("escape-room real-store parity", () => {
       const submitted = normalizeRun({ slug: "escape-room", score: store.getState().score, durationMs: store.getState().elapsedMs, finishedAt: "2026-10-06T00:00:00Z" }, escapeRoomMeta.scoring);
       expect(submitted.score).toBe(Math.max(0, Math.floor((600000 - submitted.durationMs) / 10)));
       expect(isRankedRun(escapeRoomMeta.scoring, store.getState().endReason)).toBe(true);
+
+      // Restart after a win: the store clears the stats, Scene remounts with a fresh run and sets
+      // Found to 0, and none of the old run's events, message or checklist leak into the new one.
+      run.message = "locked"; // stale feedback in the old run must not matter either
+      store.getState().restart();
+      expect(store.getState().phase).toBe("countdown");
+      expect(store.getState().stats.found).toBeUndefined();
+      const next = createRun(77);
+      store.getState().setStat("found", 0);
+      let dt = 0;
+      for (let i = 0; !dt && i < 200; i++) {
+         advanceRunClock(store, 0.05);
+         dt = playedFrameDt(store.getState());
+      }
+      expect(dt).toBeGreaterThan(0);
+      const ev = step(next, dt * 1000, IDLE);
+      expect(ev).toBe(next.events);
+      expect(ev).not.toBe(run.events);
+      expect(ev).toEqual({ inspected: NONE, opened: NONE, found: NONE, doorOpened: false, ended: null });
+      expect(next.message).toBe("none");
+      expect([next.found, next.foundMask, next.finishMs, next.ended]).toEqual([0, 0, NONE, null]);
+      expect(next.stations.map((s) => s.phase)).toEqual(["closed", "closed", "closed", "closed"]);
+      expect(next.items.map((item) => item.visible || item.found)).toEqual([false, false, false]);
+      expect(next.door.phase).toBe("locked");
+      expect(next.stations[0]).not.toBe(run.stations[0]);
+      expect(next.simMs).toBeLessThanOrEqual(store.getState().elapsedMs + 1e-6);
+      expect(store.getState().stats.found).toBe(0);
+      expect(store.getState().endReason).toBe(null);
    });
 
    it("shell time-up suppresses a last game callback and leaves an idle time game unranked", () => {

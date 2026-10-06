@@ -132,6 +132,10 @@ export function isValidLayout(layout: Layout): boolean {
       const cx = s.x + Math.sign(s.x);
       if (layout.obstacles[i] !== b || b.min.y !== -10 || b.max.y !== 10
          || b.min.x !== cx - 0.6 || b.max.x !== cx + 0.6 || b.min.z !== s.z - 0.7 || b.max.z !== s.z + 0.7) return false;
+      // Defensive only: with the current constants the exact jitter/box checks above already imply
+      // a clear anchor, >= 3.75 m to the door and >= 5.5 m between anchors, so these branches (and
+      // the start/door walkability checks below) cannot fire and no test can cover them. They stay
+      // as the README's start/door/anchor contract, a guard against future constant changes.
       if (!isWalkable(layout, s.x, s.z) || Math.hypot(s.x, s.z + 4.2) <= 2 * INSPECT_REACH) return false;
       for (let j = 0; j < i; j++) if (Math.hypot(s.x - layout.stations[j].x, s.z - layout.stations[j].z) <= 2 * INSPECT_REACH) return false;
    }
@@ -330,7 +334,11 @@ function tickAction(run: EscapeRun): void {
    if (action.remainingMs === 0) { action.kind = "none"; action.target = NONE; }
 }
 
-/** One ms of circle/AABB movement, with the README's net speed guard and blocked-position rollback. */
+/**
+ * One ms of circle/AABB movement, with the README's net speed guard and blocked-position rollback.
+ * The rollback check runs on every moved ms: the wall clamp alone can pull the runner back into a
+ * chair's radius at the chair/side-wall corner, so "nothing was pushed" does not mean "clear".
+ */
 function movePlayer(run: EscapeRun, mx: number, mz: number): void {
    const p = run.player;
    if (mx === 0 && mz === 0 && p.vx === 0 && p.vz === 0) return;
@@ -344,12 +352,10 @@ function movePlayer(run: EscapeRun, mx: number, mz: number): void {
    p.x += p.vx / 1000;
    p.z += p.vz / 1000;
    p.y = 0;
-   let corrected = false;
    for (let i = 0; i < run.layout.obstacles.length; i++) {
       const b = run.layout.obstacles[i];
       const gap = distanceToBoxXZ(p.x, p.z, b);
       if (gap >= RUNNER.radius) continue;
-      corrected = true;
       // An invalid caller position must not use the core's allocating inside-box recovery path.
       if (gap <= 1e-6) { p.x = fromX; p.z = fromZ; p.vx = 0; p.vz = 0; return; }
       resolveSphereAabb(p, RUNNER.radius, b, p);
@@ -360,9 +366,8 @@ function movePlayer(run: EscapeRun, mx: number, mz: number): void {
    if (moved > maxMove) {
       p.x = fromX + dx * maxMove / moved;
       p.z = fromZ + dz * maxMove / moved;
-      corrected = true;
    }
-   if (corrected && !isWalkable(run.layout, p.x, p.z)) { p.x = fromX; p.z = fromZ; }
+   if (!isWalkable(run.layout, p.x, p.z)) { p.x = fromX; p.z = fromZ; }
    p.vx = (p.x - fromX) * 1000;
    p.vz = (p.z - fromZ) * 1000;
 }
