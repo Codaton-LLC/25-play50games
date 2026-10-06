@@ -1,18 +1,18 @@
 # Clean the City
 
-Owner: Cursor. Slug: `clean-city`. Game 8 of the 3D Arcade. Status stays `"soon"` until the game itself is built. This file is the design. No scene or rules code yet. `meta.ts` and the `index.tsx` stub already exist and are not part of this prep.
+Owner: Cursor. Slug: `clean-city`. Game 8 of the 3D Arcade. Status stays `"soon"`. This file is the design. `rules.ts` is the pure game; `Scene.tsx` plays it. `meta.scoring` is unchanged.
 
 The mechanic is the robot-collector one: walk, touch an item, it is collected. Movement, the speed guard, circle-vs-AABB collision and the camera fit are copied from that game. This folder does not import it.
 
 | File | What it owns |
 |---|---|
 | `meta.ts` | Card data and `scoring` (must equal `arcade-games.json`). Plain data, server-safe. Already on `main`. Do not change the limits. |
-| `index.tsx` | The `GameDefinition` GameShell runs: Scene, assets, `durationMs: 240000`, camera, `hudStats`, instructions. Stub today. |
+| `index.tsx` | The `GameDefinition` GameShell runs: Scene, Hud, assets, `durationMs: 240000`, camera, `hudStats`, instructions. |
 | `rules.ts` | Map configs, seeded litter, movement, pickups, scoring. Pure, no three.js/React/DOM/`Math.random`. |
 | `rules.test.ts` | Vitest for `rules.ts`, including the scoring-limit proof below. |
 | `Scene.tsx` | The frame loop. On mount, `useState` builds all three layouts and the reachable-spot cache. The frame loop only steps and writes the store. |
 | `Primitives.tsx` | Park, city and beach look: ground, paths, buildings, benches, bins, lamps, palms, umbrellas, and the stand-in runner and litter. |
-| `camera.ts` | Fits the follow camera to the screen (HUD on top, joystick bottom left). Yaw stays 0. |
+| `Hud.tsx` | The map name (Park / City / Beach). Fixed box, `data-arcade-safe-area`. |
 | `assets.ts` / `assets.spec.json` | Models used (`ModelAsset`s) / the Hyper3D spec for the two props only this game generates. |
 
 ### What a new game copies from here
@@ -141,7 +141,7 @@ The shortest legal clear is 45.19 s of straight lines. A real seed walks around 
 - Frame order: `<Simulation>` is the Scene's first child, so its `useRunFrame` step runs before the camera and the meshes. Visuals use `run.time`, advanced by the frame delta (at most 0.1 s), never `state.clock.elapsedTime`.
 - The frame loop does not allocate. Layouts, the reachable-spot cache and the 20 litter slots exist from mount. A map change writes new x, z and kind into those slots and sets `stats.map`. Ring and glow meshes are the same 20, moved with the slots.
 - No shadow maps. Moving things get a blob shadow. Litter and repeated props are instanced.
-- Draw-call budget is the arcade one: ≤ 150, with 60 fps as the target. Instancing litter, benches, trees and buildings is how this stays near the reference game's range. Measure it when the scene exists. Do not treat a guess as a measurement.
+- Draw-call budget is the arcade one: ≤ 150, with 60 fps as the target. Measured on the park (ground, benches, trees, bin, 20 litter pieces with rings, runner): `renderer.info.render.calls` was 24. City and beach swap a similar prop set, so the count stays in that range.
 
 ## Assets
 
@@ -199,15 +199,10 @@ Browser (when the scene exists; production build, flags on with the API mock):
 
 ## Known issues and core gaps
 
-- This prep does not build the game. `meta.ts` limits stay as they are. The proof shows those limits are already wide enough. Break-even stays 40.0 s and the earliest win stays 45.19 s.
+- The scene is playable and `meta.ts` limits stay as they are. The proof shows those limits are already wide enough. Break-even stays 40.0 s and the earliest win stays 45.19 s. `capScore` trims only an impossible finish (a teleporting test win at 7.7 s became 1,769; a real run cannot finish before 45.19 s, where the cap does not bind).
 - `skills.md` and plan §4 still list universe `street` and Hyper3D generations for the bin, bench, palm, umbrella and lamp. This spec uses universe `shared-cast` and seed 5050, matching the shared tin can and banana, and generates only the bottle and the paper bag. The scenery is primitives on purpose. The catalog update belongs to Claude.
 - Core collision can push a circle out of a box (`resolveSphereAabb`) and can test two circles (`circlesOverlapXZ`). It cannot push a circle out of a circle. Round props are squares so the game does not need a `resolveCircleXZ`. The clearance check and the flood fill use those squares too.
-- The core gaps this game will hit are the ones robot-collector already recorded, and the copies live in this folder until the core has them:
-  - `<Model>` has no `fallback` prop, so the scene asks `useModel(asset).failed` and draws its own primitive.
-  - `CameraRig` has no "fit this box above the HUD and the joystick" option. `camera.ts` is the copy of `fitView`, with yaw fixed at 0.
-  - The core does not report the joystick's screen rect. The fit copies 132 + 20 + 8 px from `TouchControls.module.css` and reads safe-area insets with a probe.
-  - R3F resets `state.clock.elapsedTime` on pause and resume. Visuals use `run.time`.
-  - Frame order depends on `<Simulation>` mounting first.
-  - The countdown handoff frame is untimed (at most 0.05 s). The proof allows for that one frame per run.
-  - Input uses `inputToWorld` at yaw 0.
-- Until the two GLBs exist, each load requests those files, gets a 404, and shows the primitives. The shared runner, tin can and banana 404 the same way until their GLBs exist.
+- The scene uses the core that closed those gaps: `useFittedView` + `followFocus` + `CameraRig` (`shift: true`, yaw locked at 0), `useGameTime()`, `useRunFrame`, `<InstancedModel>` for map props and `<DynamicInstanced>` pools for litter. Input is `inputToWorld(moveX, moveY, view.yaw)`.
+- `<DynamicInstancedModel>` is not used. Its `PartMesh` cleanup calls `mesh.dispose()` after R3F's `dispose={null}` has overwritten that method with null, so the pool throws on the strict-mode remount and the game never starts. Litter pools use `<DynamicInstanced>` children instead (one draw call per mesh, same placement). Swap back when the core cleanup is fixed.
+- The runner is `PrimitiveRunner` in `Primitives.tsx`: one body, arms down, walk phase computed once in `Scene.tsx`. Replace that component with the core humanoid rig (`ASSETS.runner`) when it lands.
+- Tin can and banana GLBs are instanced at scale 0.5 (longest side 0.95). Bottle, bag and the scenery are primitive stand-ins until their GLBs exist; those urls are not in the manifest, so nothing 404s.
