@@ -18,7 +18,7 @@
 // - Pools of props that move every frame (coins, obstacles, vehicles) use <DynamicInstancedModel>:
 //   the same one-InstancedMesh-per-GLB-mesh, with an update callback that places each copy every
 //   frame, and the game's stand-in parts (or the asset's primitive) until the GLB exists.
-// - Applies asset.scale / rotationY / yOffset to the GLB. The fallback primitive ignores them:
+// - Applies asset.scale / stretch / rotationY / yOffset to the GLB. The fallback primitive ignores them:
 //   it is about 1 unit tall, standing on y = 0 at the group origin.
 // - Never call useGLTF.preload at module top level; GameShell clears the cache on unmount.
 import { Component, forwardRef, useEffect, useMemo, useRef, type ErrorInfo, type ReactNode } from "react";
@@ -165,13 +165,20 @@ class ModelErrorBoundary extends Component<BoundaryProps, { failed: boolean }> {
    }
 }
 
+/** asset.scale times asset.stretch, per axis of the GLB */
+export function assetScale(asset: Pick<ModelAsset, "scale" | "stretch">): [number, number, number] {
+   const s = asset.scale ?? 1;
+   const k = asset.stretch;
+   return k ? [s * k[0], s * k[1], s * k[2]] : [s, s, s];
+}
+
 function ModelContent({ asset, fallback }: { asset: ModelAsset; fallback: ReactNode }) {
    const { scene } = useModel(asset);
    if (!scene) return <>{fallback}</>;
    return (
       <primitive
          object={scene}
-         scale={asset.scale ?? 1}
+         scale={assetScale(asset)}
          rotation-y={asset.rotationY ?? 0}
          position-y={asset.yOffset ?? 0}
       />
@@ -219,15 +226,14 @@ const UP = new Vector3(0, 1, 0);
 
 /**
  * The meshes of a loaded GLB scene with their transforms, placed exactly like <Model> places the
- * GLB (asset.scale, rotationY, yOffset). Skinned meshes are skipped (rigged models are not props).
+ * GLB (asset.scale, stretch, rotationY, yOffset). Skinned meshes are skipped (rigged models are not props).
  */
-export function modelParts(scene: Object3D, asset: Pick<ModelAsset, "scale" | "rotationY" | "yOffset">): ModelPart[] {
+export function modelParts(scene: Object3D, asset: Pick<ModelAsset, "scale" | "stretch" | "rotationY" | "yOffset">): ModelPart[] {
    scene.updateMatrixWorld(true);
-   const s = asset.scale ?? 1;
    const root = new Matrix4().compose(
       new Vector3(0, asset.yOffset ?? 0, 0),
       new Quaternion().setFromAxisAngle(UP, asset.rotationY ?? 0),
-      new Vector3(s, s, s)
+      new Vector3(...assetScale(asset))
    );
    // <Model> replaces the GLB root's own transform with the asset's, so measure from the root
    const fromRoot = scene.matrixWorld.clone().invert();
@@ -257,10 +263,10 @@ function InstancedModelContent({ asset, spots, fallback }: InstancedModelProps) 
    const gltf = loadGltf(asset.url);
    const source = gltf?.scene ?? null;
    const rigged = !!asset.rigged;
-   const { scale, rotationY, yOffset } = asset;
+   const { scale, stretch, rotationY, yOffset } = asset;
    const parts = useMemo(
-      () => (source && !rigged ? modelParts(source, { scale, rotationY, yOffset }) : null),
-      [source, rigged, scale, rotationY, yOffset]
+      () => (source && !rigged ? modelParts(source, { scale, stretch, rotationY, yOffset }) : null),
+      [source, rigged, scale, stretch, rotationY, yOffset]
    );
    if (!source || parts?.length === 0) return <>{fallback}</>;
    if (!parts) {
@@ -382,17 +388,17 @@ function DynamicInstancedModelContent(props: DynamicInstancedModelProps) {
    const gltf = loadGltf(asset.url);
    const source = gltf?.scene ?? null;
    const rigged = !!asset.rigged;
-   const { scale, rotationY, yOffset } = asset;
+   const { scale, stretch, rotationY, yOffset } = asset;
    const parts = useMemo<InstancePart[] | null>(
       () =>
          source && !rigged
-            ? modelParts(source, { scale, rotationY, yOffset }).map((part) => ({
+            ? modelParts(source, { scale, stretch, rotationY, yOffset }).map((part) => ({
                  geometry: part.geometry,
                  material: part.material,
                  locals: [part.matrix],
               }))
             : null,
-      [source, rigged, scale, rotationY, yOffset]
+      [source, rigged, scale, stretch, rotationY, yOffset]
    );
    // rigged models are characters, not pooled props: they get the fallback too
    if (!parts || parts.length === 0) return <DynamicFallback {...props} />;

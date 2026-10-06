@@ -2,11 +2,13 @@
 
 // Unified input for 3D Arcade games. Owned by Claude.
 // Keyboard (WASD/arrows move, Space jump, E/Enter action), the touch joystick and buttons,
-// swipes and taps on the canvas all feed ONE InputState ref. Games read it inside useRunFrame:
+// swipes, taps and presses (tapDown) on the canvas all feed ONE InputState ref. Games read it
+// inside useRunFrame:
 //
 //    const input = useInput();
 //    useRunFrame((_, dt) => { robot.position.x += input.current.moveX * SPEED * dt; });
 //    useRunFrame(() => { if (input.current.pressed.left) changeLane(-1); });   // discrete moves
+//    useRunFrame(() => { if (input.current.tapDown) flap(); });               // on touch, not release
 //
 // Esc / P are not game input: GameShell handles them (pause).
 import {
@@ -22,18 +24,22 @@ import { useFrame } from "@react-three/fiber";
 import type { InputState } from "./types";
 import { arcadeStore } from "./useArcadeStore";
 import { FRAME_PRIORITY } from "./frameLoop";
-import { createInputController, type InputController } from "./inputController";
+import { createCanvasPointers, createInputController, type InputController } from "./inputController";
 
 /** Screen-relative move input -> world direction for a camera yaw (pure, core/math.ts). */
 export { inputToWorld } from "./math";
 
 export {
+   createCanvasPointers,
    createInputController,
    swipeDirection,
    SWIPE_MAX_MS,
    SWIPE_MIN_PX,
    TAP_MAX_MS,
    TAP_MAX_PX,
+   type CanvasPointerEvent,
+   type CanvasPointerOptions,
+   type CanvasPointers,
    type InputController,
    type SwipeDirection,
    type TouchButton,
@@ -49,12 +55,12 @@ function isEditable(target: EventTarget | null): boolean {
    return tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || target.isContentEditable;
 }
 
-/** Elements inside this attribute (the touch controls) never count as canvas swipes or taps. */
+/** Elements inside this attribute (the touch controls) never count as canvas swipes, taps or tapDowns. */
 export const CONTROLS_ATTR = "data-arcade-controls";
 
 export interface InputProviderProps {
    children: ReactNode;
-   /** element that receives swipes, taps and pointer moves (the canvas wrapper) */
+   /** element that receives swipes, taps, tapDowns and pointer moves (the canvas wrapper) */
    target?: RefObject<HTMLElement>;
 }
 
@@ -93,55 +99,33 @@ export function InputProvider({ children, target }: InputProviderProps) {
       };
    }, [controller]);
 
-   // swipes, taps and pointer position on the canvas
+   // swipes, taps, tapDowns and pointer position on the canvas
    useEffect(() => {
       const element = target?.current;
       if (!element) return;
-      let activePointer: number | null = null;
 
-      const normalise = (event: PointerEvent): [number, number] => {
-         const rect = element.getBoundingClientRect();
-         const x = ((event.clientX - rect.left) / (rect.width || 1)) * 2 - 1;
-         const y = -(((event.clientY - rect.top) / (rect.height || 1)) * 2 - 1);
-         return [clamp1(x), clamp1(y)];
-      };
-      const fromControls = (event: PointerEvent) =>
-         event.target instanceof Element && event.target.closest(`[${CONTROLS_ATTR}]`) !== null;
+      // which pointer is the canvas pointer (multi-touch, touch controls) is decided by the pure
+      // createCanvasPointers (tested in inputController.test.ts); this effect only wires the DOM
+      const { down, move, up, cancel } = createCanvasPointers<PointerEvent>(controller, {
+         toCanvas(event) {
+            const rect = element.getBoundingClientRect();
+            const x = ((event.clientX - rect.left) / (rect.width || 1)) * 2 - 1;
+            const y = -(((event.clientY - rect.top) / (rect.height || 1)) * 2 - 1);
+            return [clamp1(x), clamp1(y)];
+         },
+         onControls: (event) =>
+            event.target instanceof Element && event.target.closest(`[${CONTROLS_ATTR}]`) !== null,
+      });
 
-      const onDown = (event: PointerEvent) => {
-         if (activePointer !== null || fromControls(event)) return;
-         if (event.pointerType === "mouse" && event.button !== 0) return;
-         activePointer = event.pointerId;
-         const [x, y] = normalise(event);
-         controller.pointerDown(x, y, event.clientX, event.clientY, event.timeStamp);
-      };
-      const onMove = (event: PointerEvent) => {
-         if (fromControls(event)) return;
-         if (activePointer !== null && event.pointerId !== activePointer) return;
-         const [x, y] = normalise(event);
-         // screen px + time: the swipe fires mid-gesture, once it has travelled far enough
-         controller.pointerMove(x, y, event.clientX, event.clientY, event.timeStamp);
-      };
-      const onUp = (event: PointerEvent) => {
-         if (event.pointerId !== activePointer) return;
-         activePointer = null;
-         controller.pointerUp(event.clientX, event.clientY, event.timeStamp);
-      };
-      const onCancel = (event: PointerEvent) => {
-         if (event.pointerId !== activePointer) return;
-         activePointer = null;
-         controller.pointerCancel();
-      };
-
-      element.addEventListener("pointerdown", onDown);
-      element.addEventListener("pointermove", onMove);
-      window.addEventListener("pointerup", onUp);
-      window.addEventListener("pointercancel", onCancel);
+      element.addEventListener("pointerdown", down);
+      element.addEventListener("pointermove", move);
+      window.addEventListener("pointerup", up);
+      window.addEventListener("pointercancel", cancel);
       return () => {
-         element.removeEventListener("pointerdown", onDown);
-         element.removeEventListener("pointermove", onMove);
-         window.removeEventListener("pointerup", onUp);
-         window.removeEventListener("pointercancel", onCancel);
+         element.removeEventListener("pointerdown", down);
+         element.removeEventListener("pointermove", move);
+         window.removeEventListener("pointerup", up);
+         window.removeEventListener("pointercancel", cancel);
          controller.pointerCancel();
       };
    }, [controller, target]);

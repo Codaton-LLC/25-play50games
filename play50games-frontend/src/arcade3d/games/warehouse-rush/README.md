@@ -280,7 +280,7 @@ export const ASSETS = {
 } satisfies Record<string, ModelAsset>;
 ```
 
-- The robot and the crate are in `core/modelManifest.ts`, so they load from the first run (713 KB). The rack and the pallet are never fetched until the assets PR lists them; until then their instanced primitives show (measured: the only `.glb` requests are `shared/robot.glb` and `shared/crate.glb`).
+- The robot and the crate are in `core/modelManifest.ts`, so they load from the first run (713 KB). The rack (183 KB) and the pallet (67 KB) are listed too since group A (2026-10-06). The rack GLB is turned a quarter and stretched to one 1.8 x 1.1 x 0.9 bay pair (`assets.ts`), two copies per rack (`Primitives.tsx` `RACK_MODEL_SPOTS`); the pallet is scaled to 1.2 x 0.18 x 1.2. The instanced primitives stay as the fallback.
 
 ## HUD
 
