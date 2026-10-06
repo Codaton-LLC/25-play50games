@@ -183,7 +183,7 @@ ROOT/docs/platform-plan.md (this plan) · ROOT/docs/arcade-api.md (API contract)
 - **Smoke test first** (10-credit "lab" account). It checks API access, the real `consumed`, `TAPose` casing, `quality_override`, FBX output and privacy. If there is no API access, we fall back to generating in the web UI plus `import`.
 - **Style "Play50 toy world":** bright vinyl-toy look with one seed per universe.
 - **Shared models** in `models/3d/shared/`: runner, robot, battery, crate, tinCan, banana, desk, chair. They are reused across games.
-- **Rigging:** one rigged "Play50 Runner" via Mixamo (needs Blender plus an Adobe login, optional). Every other character is animated in code. If rigging fails, the runner is animated in code too.
+- **Rigging:** done in code for every character, the runner included (2026-10-06): the core auto-rig (`core/rig`, `core/README.md` "Characters: the auto-rig") builds a skeleton and skin weights from the static T-pose mesh and animates it with procedural poses (arms down, walk/run, carry, cheer, jump). No Mixamo pass. Concepts stay T-pose.
 
 **Budget:**
 - Lab: about 10 generations (≈5 credits) on the 10-credit account.

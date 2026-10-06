@@ -18,15 +18,17 @@ import { COUNTDOWN_MS, createArcadeStore, type ArcadeStore } from "./useArcadeSt
 import type { StoreApi } from "zustand/vanilla";
 
 describe("frame order", () => {
-   it("input, run clock, game time, simulation, camera, visuals; all <= 0 so R3F keeps rendering", () => {
+   it("input, run clock, game time, simulation, camera, pose, visuals; all <= 0 so R3F keeps rendering", () => {
       const order = [
          FRAME_PRIORITY.input,
          FRAME_PRIORITY.clock,
          FRAME_PRIORITY.gameTime,
          FRAME_PRIORITY.simulation,
          FRAME_PRIORITY.camera,
+         FRAME_PRIORITY.pose,
          FRAME_PRIORITY.visuals,
       ];
+      expect(Object.keys(FRAME_PRIORITY)).toHaveLength(order.length);
       expect([...order].sort((a, b) => a - b)).toEqual(order);
       expect(new Set(order).size).toBe(order.length);
       expect(Math.max(...order)).toBeLessThanOrEqual(0);

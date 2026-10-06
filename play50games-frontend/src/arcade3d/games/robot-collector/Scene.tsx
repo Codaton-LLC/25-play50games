@@ -15,7 +15,8 @@
 //   and the cookie banner (moving the picture with a lens shift when it must); followFocus ties
 //   its follow range to CameraRig's; inputToWorld turns input with the yaw.
 // - Models: <Model asset fallback={…}> draws the GLB once it is in core/modelManifest.ts and this
-//   game's own primitive until then.
+//   game's own primitive until then. The robot is a static T-pose GLB: <HumanoidModel> (core/rig)
+//   rigs it in code and useHumanoidPose drives its limbs (idle, walk/run by speed, a cheer on a win).
 import { useRef, useState } from "react";
 import { useFrame } from "@react-three/fiber";
 import type { Group, Mesh, MeshStandardMaterial } from "three";
@@ -27,6 +28,20 @@ import { useGameTime } from "@/arcade3d/core/gameTime";
 import { useInput } from "@/arcade3d/core/input";
 import { inputToWorld, randomSeed } from "@/arcade3d/core/math";
 import { BlobShadow } from "@/arcade3d/core/render";
+import {
+   HumanoidModel,
+   POSE_MASK,
+   blendPoses,
+   bodyLift,
+   cheerPose,
+   createPose,
+   idlePose,
+   useHumanoidPose,
+   walkPose,
+   walkStride,
+   wrapPhase,
+} from "@/arcade3d/core/rig";
+import { ROBOT_LANDMARKS } from "@/arcade3d/core/sharedAssets";
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { useFittedView, type FittedViewOptions } from "@/arcade3d/core/useFittedView";
 import { useRunFrame } from "@/arcade3d/core/useRunFrame";
@@ -96,14 +111,51 @@ interface RunData {
 
 // ---------- the robot ----------
 
+/** The robot GLB's joints (core/sharedAssets) and its scale here: its stride and its height over its feet. */
+const LEGS = ROBOT_LANDMARKS;
+const SCALE = ASSETS.robot.scale ?? 1;
+/** The phase never advances by more than a stride this short (m): standing still, the stride is 0. */
+const MIN_STRIDE = 0.1;
+
+/** The walk cycle (looks only): phase from the distance walked, amount eased towards the speed. */
+interface Gait {
+   phase: number;
+   amount: number;
+   cheer: number;
+   /** the body's height over its planted foot this frame (m): core/rig bodyLift x SCALE */
+   lift: number;
+}
+
 function Robot({ run }: { run: RunData }) {
    const time = useGameTime();
    const root = useRef<Group>(null);
    const rig = useRef<Group>(null);
+   const standIn = useRef<Group>(null);
    const antenna = useRef<Group>(null);
    const panel = useRef<MeshStandardMaterial>(null);
+   const [gait] = useState<Gait>(() => ({ phase: 0, amount: 0, cheer: 0, lift: 0 }));
+   const [scratch] = useState(createPose);
 
-   // looks only: follows the simulated robot, bobs and leans with its speed
+   // the GLB robot's limbs (core/rig): idle -> walk -> run with its speed, arms up on a win. The
+   // phase advances by the distance driven over the walk's own stride, so the planted foot stays put.
+   // FRAME_PRIORITY.pose: after useRunFrame moved the robot, before the useFrame below reads the lift.
+   const pose = useHumanoidPose((p) => {
+      const dt = time.delta;
+      const { phase, endReason } = useArcadeStore.getState();
+      const v = phase === "playing" ? Math.hypot(run.robot.vx, run.robot.vz) : 0;
+      gait.amount += (Math.min(1, v / ROBOT.maxSpeed) - gait.amount) * (1 - Math.exp(-12 * dt));
+      const stride = Math.max(MIN_STRIDE, walkStride(gait.amount, LEGS) * SCALE);
+      gait.phase = wrapPhase(gait.phase + ((v * dt) / stride) * Math.PI * 2);
+      gait.cheer += ((phase === "over" && endReason === "win" ? 1 : 0) - gait.cheer) * (1 - Math.exp(-8 * dt));
+      walkPose(gait.phase, gait.amount, p);
+      // nearly still: the idle's breath and glance in the upper body (the legs keep the walk's)
+      blendPoses(p, idlePose(time.now, scratch), 1 - Math.min(1, gait.amount * 5), p, POSE_MASK.upper);
+      if (gait.cheer > 0.001) blendPoses(p, cheerPose(time.now, scratch), gait.cheer, p);
+      gait.lift = bodyLift(p, LEGS) * SCALE;
+   });
+
+   // looks only: follows the simulated robot. The GLB rises and falls with its planted foot (the
+   // walk leans its own spine); the stand-in bobs and leans with the speed as before.
    useFrame(() => {
       const g = root.current;
       const body = rig.current;
@@ -113,12 +165,15 @@ function Robot({ run }: { run: RunData }) {
       const speed = Math.min(1, Math.hypot(robot.vx, robot.vz) / ROBOT.maxSpeed);
       const { phase, endReason } = useArcadeStore.getState();
       const won = phase === "over" && endReason === "win";
+      const fallback = standIn.current !== null;
 
       g.position.set(robot.x, 0, robot.z);
       if (won) g.rotation.y += time.delta * 5;
       else g.rotation.y = robot.heading;
-      body.position.y = won ? Math.abs(Math.sin(t * 7)) * 0.25 : Math.abs(Math.sin(t * 15)) * 0.05 * speed + Math.sin(t * 2.2) * 0.012;
-      body.rotation.x = 0.16 * speed;
+      if (won) body.position.y = Math.abs(Math.sin(t * 7)) * 0.25;
+      else if (fallback) body.position.y = Math.abs(Math.sin(gait.phase)) * 0.05 * speed + Math.sin(t * 2.2) * 0.012;
+      else body.position.y = gait.lift;
+      body.rotation.x = fallback ? 0.16 * speed : 0;
       if (antenna.current) antenna.current.rotation.x = -0.3 * speed + Math.sin(t * 11) * 0.1 * speed;
       if (panel.current) panel.current.emissiveIntensity = 0.2 + (1.8 * progress.collected) / BATTERY_COUNT;
    });
@@ -132,7 +187,17 @@ function Robot({ run }: { run: RunData }) {
             <meshBasicMaterial color={COLORS.robot} transparent opacity={0.75} depthWrite={false} />
          </mesh>
          <group ref={rig}>
-            <Model asset={ASSETS.robot} fallback={<RobotPrimitive antenna={antenna} panel={panel} />} />
+            {/* the group above carries the body's height (gait.lift), so the model does not add it again */}
+            <HumanoidModel
+               asset={ASSETS.robot}
+               pose={pose}
+               applyLift={false}
+               fallback={
+                  <group ref={standIn}>
+                     <RobotPrimitive antenna={antenna} panel={panel} />
+                  </group>
+               }
+            />
          </group>
       </group>
    );
