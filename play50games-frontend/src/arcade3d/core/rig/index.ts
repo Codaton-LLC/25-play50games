@@ -25,6 +25,7 @@ export {
    cheerPose,
    copyPose,
    createPose,
+   flailPose,
    idlePose,
    jumpPose,
    levelFoot,

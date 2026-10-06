@@ -552,6 +552,28 @@ export function jumpPose(tuck: number, out: HumanoidPose): HumanoidPose {
    return out;
 }
 
+/**
+ * Knocked off its feet (a crash, a fall): both arms up and out, waving, the legs bent and apart,
+ * the head shaking, in the air (`ground` 0: the game's group carries the tumble). `t` in seconds.
+ */
+export function flailPose(t: number, out: HumanoidPose): HumanoidPose {
+   armsDownPose(out);
+   out.ground = 0;
+   for (let i = 0; i < 2; i++) {
+      const side = i === 0 ? 1 : -1;
+      const f = Math.sin(t * 22 + i * 2.1);
+      // the upper arm this far out from straight up (never closer than 0.65 rad: a wide head), waving,
+      // the forearm bent further up and forward
+      const v = 0.85 + 0.2 * f;
+      aimArm(out, side, Math.sin(v), Math.cos(v), 0.35, Math.sin(v - 0.6), Math.cos(v - 0.6), 0.55);
+      setLeg(out, side, 0.45 + 0.35 * f * side, 0.3);
+      setKnee(out, side, 0.9 - 0.3 * f * side);
+   }
+   setTrunk(out, BONE.spine, 0.15);
+   setTrunk(out, BONE.head, -0.2, 0.3 * Math.sin(t * 13));
+   return out;
+}
+
 /** Wraps a phase into [0, 2π). */
 export function wrapPhase(phase: number): number {
    const p = phase % TAU;
