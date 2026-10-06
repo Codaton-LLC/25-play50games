@@ -7,7 +7,10 @@
 //    <Model asset={ASSETS.robot} fallback={<RobotPrimitive />} />   // own stand-in until the GLB exists
 //    <InstancedModel asset={ASSETS.crate} spots={CRATE_SPOTS} fallback={<CrateStandIns />} />
 //    <DynamicInstancedModel asset={ASSETS.car} count={32} update={placeCar} fallbackParts={carParts} />
+//    <HumanoidModel asset={ASSETS.runner} pose={pose} fallback={<RunnerPrimitive />} />  // core/rig
 //
+// - A `humanoid` asset (a static T-pose character) is auto-rigged in code (core/rig): <Model>
+//   draws it standing with its arms down, <HumanoidModel> (core/rig) animates it with poses.
 // - Only urls listed in core/modelManifest.ts are fetched; any other url renders its fallback at
 //   once (no request, no suspense). Assets PRs add the GLB and its manifest line together.
 // - Loads with useGLTF(url, false, true): meshopt on, no Draco (no decoder CDN).
@@ -18,7 +21,7 @@
 // - Pools of props that move every frame (coins, obstacles, vehicles) use <DynamicInstancedModel>:
 //   the same one-InstancedMesh-per-GLB-mesh, with an update callback that places each copy every
 //   frame, and the game's stand-in parts (or the asset's primitive) until the GLB exists.
-// - Applies asset.scale / rotationY / yOffset to the GLB. The fallback primitive ignores them:
+// - Applies asset.scale / stretch / rotationY / yOffset to the GLB. The fallback primitive ignores them:
 //   it is about 1 unit tall, standing on y = 0 at the group origin.
 // - Never call useGLTF.preload at module top level; GameShell clears the cache on unmount.
 import { Component, forwardRef, useEffect, useMemo, useRef, type ErrorInfo, type ReactNode } from "react";
@@ -47,6 +50,7 @@ import { hasModel } from "./modelManifest";
 import { useInstanceMatrices, type InstanceSpot } from "./render/useInstanceMatrices";
 import { DynamicInstanced } from "./render/DynamicInstanced";
 import type { InstancePart, InstanceUpdate } from "./render/dynamicInstances";
+import { cloneHumanoid, disposeHumanoid, humanoidTemplate, type HumanoidRig } from "./rig/skinning";
 
 export { SHARED_ASSETS, CHARACTER_BUDGET, PROP_BUDGET, type SharedAssetId } from "./sharedAssets";
 export { MODEL_MANIFEST, hasModel } from "./modelManifest";
@@ -74,8 +78,9 @@ function isThenable(value: unknown): value is PromiseLike<unknown> {
  * The loaded GLB, or null when it is not in the manifest (never fetched) or failed to load.
  * Suspends while loading. Calling useGLTF behind a condition is safe: R3F's useLoader is a
  * suspense cache (suspend-react) and uses no React hooks, so the hook order never changes.
+ * Core only (core/rig/HumanoidModel); games use useModel / <Model>.
  */
-function loadGltf(url: string): Gltf | null {
+export function loadGltf(url: string): Gltf | null {
    if (!hasModel(url)) return null;
    try {
       return useGLTF(url, false, true) as unknown as Gltf;
@@ -148,8 +153,11 @@ interface BoundaryProps {
    children: ReactNode;
 }
 
-/** Catches anything useModel did not (e.g. a GLB that breaks while rendering) and shows the fallback. */
-class ModelErrorBoundary extends Component<BoundaryProps, { failed: boolean }> {
+/**
+ * Catches anything useModel did not (e.g. a GLB that breaks while rendering) and shows the fallback.
+ * Core only (also core/rig/HumanoidModel).
+ */
+export class ModelErrorBoundary extends Component<BoundaryProps, { failed: boolean }> {
    state = { failed: false };
 
    static getDerivedStateFromError() {
@@ -165,13 +173,54 @@ class ModelErrorBoundary extends Component<BoundaryProps, { failed: boolean }> {
    }
 }
 
+/** asset.scale times asset.stretch, per axis of the GLB */
+export function assetScale(asset: Pick<ModelAsset, "scale" | "stretch">): [number, number, number] {
+   const s = asset.scale ?? 1;
+   const k = asset.stretch;
+   return k ? [s * k[0], s * k[1], s * k[2]] : [s, s, s];
+}
+
 function ModelContent({ asset, fallback }: { asset: ModelAsset; fallback: ReactNode }) {
    const { scene } = useModel(asset);
    if (!scene) return <>{fallback}</>;
    return (
       <primitive
          object={scene}
-         scale={asset.scale ?? 1}
+         scale={assetScale(asset)}
+         rotation-y={asset.rotationY ?? 0}
+         position-y={asset.yOffset ?? 0}
+      />
+   );
+}
+
+// ---------- auto-rigged humanoids (core/rig) ----------
+
+/**
+ * A humanoid asset's private skinned copy (core/rig: skeleton built in code, arms down), or null
+ * when the GLB is missing, unlisted or broken. Suspends while loading. The skinned template is
+ * built once per loaded GLB and explicit landmarks; every call site gets its own bones.
+ * Core only (<Model>, <HumanoidModel>).
+ */
+export function useHumanoidRig(asset: ModelAsset): HumanoidRig | null {
+   const gltf = loadGltf(asset.url);
+   const source = gltf?.scene ?? null;
+   const options = asset.humanoid;
+   // humanoidTemplate is cached by scene and landmark values, so a new options object is cheap
+   const template = useMemo(() => (source ? humanoidTemplate(source, options) : null), [source, options]);
+   const rig = useMemo(() => (template ? cloneHumanoid(template) : null), [template]);
+   // every run remounts the Scene and clones new bones: free this clone's bone textures with it
+   useEffect(() => (rig ? () => disposeHumanoid(rig) : undefined), [rig]);
+   return rig;
+}
+
+/** <Model> of a humanoid asset: the auto-rigged character standing with its arms down (no animation). */
+function HumanoidStill({ asset, fallback }: { asset: ModelAsset; fallback: ReactNode }) {
+   const rig = useHumanoidRig(asset);
+   if (!rig) return <>{fallback}</>;
+   return (
+      <primitive
+         object={rig.root}
+         scale={assetScale(asset)}
          rotation-y={asset.rotationY ?? 0}
          position-y={asset.yOffset ?? 0}
       />
@@ -192,13 +241,16 @@ export interface ModelProps extends Omit<GroupProps, "children"> {
    children?: ReactNode;
 }
 
-/** Renders a GLB model, or its fallback when the GLB is missing. Suspends while a listed GLB loads. */
+/**
+ * Renders a GLB model, or its fallback when the GLB is missing. Suspends while a listed GLB loads.
+ * A `humanoid` asset is auto-rigged and stands with its arms down (animate it with <HumanoidModel>).
+ */
 export const Model = forwardRef<Group, ModelProps>(function Model({ asset, fallbackColor, fallback, children, ...group }, ref) {
    const stand = fallback ?? <FallbackPrimitive asset={asset} color={fallbackColor} />;
    return (
       <group ref={ref} {...group}>
          <ModelErrorBoundary key={asset.url} fallback={stand}>
-            <ModelContent asset={asset} fallback={stand} />
+            {asset.humanoid ? <HumanoidStill asset={asset} fallback={stand} /> : <ModelContent asset={asset} fallback={stand} />}
          </ModelErrorBoundary>
          {children}
       </group>
@@ -219,15 +271,14 @@ const UP = new Vector3(0, 1, 0);
 
 /**
  * The meshes of a loaded GLB scene with their transforms, placed exactly like <Model> places the
- * GLB (asset.scale, rotationY, yOffset). Skinned meshes are skipped (rigged models are not props).
+ * GLB (asset.scale, stretch, rotationY, yOffset). Skinned meshes are skipped (rigged models are not props).
  */
-export function modelParts(scene: Object3D, asset: Pick<ModelAsset, "scale" | "rotationY" | "yOffset">): ModelPart[] {
+export function modelParts(scene: Object3D, asset: Pick<ModelAsset, "scale" | "stretch" | "rotationY" | "yOffset">): ModelPart[] {
    scene.updateMatrixWorld(true);
-   const s = asset.scale ?? 1;
    const root = new Matrix4().compose(
       new Vector3(0, asset.yOffset ?? 0, 0),
       new Quaternion().setFromAxisAngle(UP, asset.rotationY ?? 0),
-      new Vector3(s, s, s)
+      new Vector3(...assetScale(asset))
    );
    // <Model> replaces the GLB root's own transform with the asset's, so measure from the root
    const fromRoot = scene.matrixWorld.clone().invert();
@@ -257,10 +308,10 @@ function InstancedModelContent({ asset, spots, fallback }: InstancedModelProps) 
    const gltf = loadGltf(asset.url);
    const source = gltf?.scene ?? null;
    const rigged = !!asset.rigged;
-   const { scale, rotationY, yOffset } = asset;
+   const { scale, stretch, rotationY, yOffset } = asset;
    const parts = useMemo(
-      () => (source && !rigged ? modelParts(source, { scale, rotationY, yOffset }) : null),
-      [source, rigged, scale, rotationY, yOffset]
+      () => (source && !rigged ? modelParts(source, { scale, stretch, rotationY, yOffset }) : null),
+      [source, rigged, scale, stretch, rotationY, yOffset]
    );
    if (!source || parts?.length === 0) return <>{fallback}</>;
    if (!parts) {
@@ -382,17 +433,17 @@ function DynamicInstancedModelContent(props: DynamicInstancedModelProps) {
    const gltf = loadGltf(asset.url);
    const source = gltf?.scene ?? null;
    const rigged = !!asset.rigged;
-   const { scale, rotationY, yOffset } = asset;
+   const { scale, stretch, rotationY, yOffset } = asset;
    const parts = useMemo<InstancePart[] | null>(
       () =>
          source && !rigged
-            ? modelParts(source, { scale, rotationY, yOffset }).map((part) => ({
+            ? modelParts(source, { scale, stretch, rotationY, yOffset }).map((part) => ({
                  geometry: part.geometry,
                  material: part.material,
                  locals: [part.matrix],
               }))
             : null,
-      [source, rigged, scale, rotationY, yOffset]
+      [source, rigged, scale, stretch, rotationY, yOffset]
    );
    // rigged models are characters, not pooled props: they get the fallback too
    if (!parts || parts.length === 0) return <DynamicFallback {...props} />;

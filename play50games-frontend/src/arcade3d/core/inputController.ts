@@ -2,13 +2,16 @@
 // InputProvider (input.tsx) feeds it real keyboard/pointer events; tests drive it directly.
 //
 // - Held input (moveX/moveY, jump, action, pointer) is sampled once per frame by latch().
-// - One-frame events (jumpPressed, actionPressed, pressed.*, swipe, tap) are latched when the
-//   event happens and published by the next latch(), so a key tapped between two frames is never
-//   lost. A direction press comes from a new keydown of an arrow / WASD key (not auto-repeat) or
-//   from a swipe in that direction.
-// - A swipe fires during the gesture, as soon as the pointer has travelled SWIPE_MIN_PX within
-//   SWIPE_MAX_MS (once per gesture; pointerUp then reports nothing). pointerUp still reports a
-//   flick whose moves were not seen, and a short press without travel is a tap.
+// - One-frame events (jumpPressed, actionPressed, pressed.*, swipe, tap, tapDown) are latched when
+//   the event happens and published by the next latch(), so a key tapped between two frames is
+//   never lost. A direction press comes from a new keydown of an arrow / WASD key (not
+//   auto-repeat) or from a swipe in that direction.
+// - pointerDown reports tapDown at once (before the gesture is known). A swipe fires during the
+//   gesture, as soon as the pointer has travelled SWIPE_MIN_PX within SWIPE_MAX_MS (once per
+//   gesture; pointerUp then reports nothing). pointerUp still reports a flick whose moves were not
+//   seen, and a short press without travel is a tap.
+// - createCanvasPointers decides which DOM pointer is the canvas pointer (one at a time, never one
+//   that starts on the touch controls), so multi-touch is testable without a DOM.
 import type { MutableRefObject } from "react";
 import type { DirectionPresses, InputState } from "./types";
 
@@ -40,7 +43,10 @@ export interface InputController {
    /** joystick vector, each axis -1..1 (up = -1) */
    setJoystick(x: number, y: number): void;
    setButton(button: TouchButton, down: boolean): void;
-   /** x/y: normalised canvas coordinates; px/py: screen pixels (for swipe distance) */
+   /**
+    * The canvas pointer went down (reports tapDown). x/y: normalised canvas coordinates; px/py:
+    * screen pixels (for swipe distance)
+    */
    pointerDown(x: number, y: number, px: number, py: number, timeMs: number): void;
    /**
     * x/y: normalised canvas coordinates. With the screen pixels and the time it also commits a
@@ -83,6 +89,7 @@ export function createInputController(): InputController {
       pressed: { left: false, right: false, up: false, down: false },
       swipe: null,
       tap: null,
+      tapDown: null,
       pointer: { x: 0, y: 0, down: false },
    };
    const ref: MutableRefObject<InputState> = { current: state };
@@ -97,6 +104,7 @@ export function createInputController(): InputController {
    const pendingPress: DirectionPresses = { left: false, right: false, up: false, down: false };
    let pendingSwipe: InputState["swipe"] = null;
    let pendingTap: InputState["tap"] = null;
+   let pendingTapDown: InputState["tapDown"] = null;
    /** the pointer gesture in progress; `swiped` once it has committed its swipe */
    let gesture: { x: number; y: number; px: number; py: number; t: number; swiped: boolean } | null = null;
 
@@ -152,6 +160,8 @@ export function createInputController(): InputController {
          state.pointer.y = y;
          state.pointer.down = true;
          gesture = { x, y, px, py, t: timeMs, swiped: false };
+         // on the press itself, whatever the gesture becomes (two downs in one frame: the latest)
+         pendingTapDown = { x, y };
       },
 
       pointerMove(x, y, px, py, timeMs) {
@@ -212,11 +222,13 @@ export function createInputController(): InputController {
          pressed.down = pendingPress.down;
          state.swipe = pendingSwipe;
          state.tap = pendingTap;
+         state.tapDown = pendingTapDown;
          pendingJump = false;
          pendingAction = false;
          noPresses(pendingPress);
          pendingSwipe = null;
          pendingTap = null;
+         pendingTapDown = null;
       },
 
       clearEvents() {
@@ -225,11 +237,13 @@ export function createInputController(): InputController {
          noPresses(pendingPress);
          pendingSwipe = null;
          pendingTap = null;
+         pendingTapDown = null;
          state.jumpPressed = false;
          state.actionPressed = false;
          noPresses(state.pressed);
          state.swipe = null;
          state.tap = null;
+         state.tapDown = null;
       },
 
       release() {
@@ -248,4 +262,72 @@ export function createInputController(): InputController {
       },
    };
    return controller;
+}
+
+/** The part of a DOM PointerEvent the canvas input reads (a PointerEvent fits as is). */
+export interface CanvasPointerEvent {
+   pointerId: number;
+   /** "mouse" | "pen" | "touch" */
+   pointerType: string;
+   /** for a mouse, 0 = the main button */
+   button: number;
+   /** screen px (swipe and tap distance) */
+   clientX: number;
+   clientY: number;
+   timeStamp: number;
+}
+
+export interface CanvasPointerOptions<E extends CanvasPointerEvent> {
+   /** normalised -1..1 canvas coordinates of the event (y up), like InputState.pointer */
+   toCanvas(event: E): readonly [number, number];
+   /** true when the event is on the touch controls (joystick, Jump, Action) */
+   onControls(event: E): boolean;
+}
+
+export interface CanvasPointers<E extends CanvasPointerEvent> {
+   down(event: E): void;
+   move(event: E): void;
+   up(event: E): void;
+   cancel(event: E): void;
+}
+
+/**
+ * Routes canvas pointer events to the controller. InputProvider feeds it real PointerEvents.
+ * The canvas follows one pointer at a time, its primary pointer: the first one that goes down on
+ * the canvas while no other is followed (for a mouse, only the main button). A pointer that
+ * starts on the touch controls never counts, so a finger holding the joystick or a button does
+ * not block a tap beside it. The followed pointer's down is tapDown and its gesture is the
+ * swipe or tap. Other fingers that land while it is down report nothing.
+ */
+export function createCanvasPointers<E extends CanvasPointerEvent>(
+   controller: InputController,
+   options: CanvasPointerOptions<E>,
+): CanvasPointers<E> {
+   let active: number | null = null;
+   return {
+      down(event) {
+         if (active !== null || options.onControls(event)) return;
+         if (event.pointerType === "mouse" && event.button !== 0) return;
+         active = event.pointerId;
+         const [x, y] = options.toCanvas(event);
+         controller.pointerDown(x, y, event.clientX, event.clientY, event.timeStamp);
+      },
+      move(event) {
+         if (options.onControls(event)) return;
+         if (active !== null && event.pointerId !== active) return;
+         const [x, y] = options.toCanvas(event);
+         // screen px + time: the swipe fires mid-gesture, once it has travelled far enough
+         controller.pointerMove(x, y, event.clientX, event.clientY, event.timeStamp);
+      },
+      up(event) {
+         if (event.pointerId !== active) return;
+         active = null;
+         controller.pointerUp(event.clientX, event.clientY, event.timeStamp);
+      },
+      cancel(event) {
+         if (event.pointerId !== active) return;
+         active = null;
+         controller.pointerCancel();
+      },
+   };
 }

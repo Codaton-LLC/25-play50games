@@ -23,7 +23,7 @@
 //   meshes with the same `update`.
 import { useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useFrame } from "@react-three/fiber";
-import { DynamicDrawUsage, Matrix4, type Color, type InstancedMesh } from "three";
+import { DynamicDrawUsage, InstancedMesh, Matrix4, type Color } from "three";
 import { FRAME_PRIORITY } from "../frameLoop";
 import { piecesOf, writeDynamicInstances, type InstancePart, type InstanceTarget, type InstanceUpdate } from "./dynamicInstances";
 
@@ -37,6 +37,15 @@ export interface DynamicInstancedProps {
    /** without `parts`: the geometry and material(s) of the one InstancedMesh */
    children?: ReactNode;
    name?: string;
+}
+
+/**
+ * Frees a pool mesh's instance buffers (the renderer drops them on its "dispose" event). R3F's
+ * dispose={null} prop sets mesh.dispose = null to keep the shared geometry and material, so the
+ * method is called from the prototype: mesh.dispose() would throw on unmount (every Retry).
+ */
+export function releaseInstanceBuffers(mesh: InstancedMesh): void {
+   InstancedMesh.prototype.dispose.call(mesh);
 }
 
 /** Ready for per-frame writes: nothing drawn before the first frame, a dynamic buffer, piece colours. */
@@ -60,7 +69,7 @@ function PartMesh({ part, target, capacity }: { part: InstancePart; target: Inst
       return () => {
          if (target.mesh === mesh) target.mesh = null;
          // frees the instance buffers; the geometry and material belong to the caller (dispose={null})
-         mesh.dispose();
+         releaseInstanceBuffers(mesh);
       };
    }, [part, target, capacity, pieces]);
    return (

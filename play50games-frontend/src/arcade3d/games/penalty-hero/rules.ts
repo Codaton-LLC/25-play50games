@@ -49,6 +49,10 @@ export type ZoneId = (typeof ZONES)[number];
 /** Column 0..2 is left/centre/right. Row 0 is bottom, row 1 is top. */
 export const ZONE_CENTRE_X = [-2.44, 0, 2.44] as const;
 export const ZONE_CENTRE_Y = [0.61, 1.83] as const;
+/** Goal opening on the plane z = 0: x = -3.66..3.66, y = 0..2.44, six zones of 2.44 x 1.22. */
+export const GOAL_HALF_WIDTH = 3.66;
+export const GOAL_HEIGHT = 2.44;
+export const ZONE_WIDTH = 2.44;
 
 const ZONE_LIMIT_MS = { runup: RUNUP_MS, flight: FLIGHT_MS, hold: HOLD_MS } as const;
 
@@ -61,15 +65,35 @@ export function reticleSeed(seed: number): number {
    return (seed ^ RETICLE_SEED_MIX) >>> 0;
 }
 
-/** -1 below -0.5, +1 above +0.5, otherwise 0. The threshold itself is still the dead zone. */
-export function axisClass(value: number): -1 | 0 | 1 {
-   if (value < -0.5) return -1;
-   if (value > 0.5) return 1;
-   return 0;
+/**
+ * This frame's aim presses from core `input.pressed` and `input.swipe`, written into `out`.
+ * Swipes do not aim: on touch a zone is picked by touching it, and every swipe starts with a
+ * press that may already have shot. Core sets `pressed[direction]` for every swipe (with `swipe`
+ * on the same frame), so the swipe's direction is dropped here. A key of that same direction
+ * pressed in that same frame goes with it (that needs a keyboard and a finger at once).
+ */
+export function aimPresses(
+   pressed: Readonly<Required<AimPresses>>,
+   swipe: "left" | "right" | "up" | "down" | null,
+   out: Required<AimPresses>
+): Required<AimPresses> {
+   out.left = pressed.left && swipe !== "left";
+   out.right = pressed.right && swipe !== "right";
+   out.up = pressed.up && swipe !== "up";
+   out.down = pressed.down && swipe !== "down";
+   return out;
 }
 
 export function zoneIndex(col: number, row: number): number {
    return row === 1 ? col : 3 + col;
+}
+
+/** Zone under a point of the goal plane, or null outside the opening. Inner lines belong to the right/upper zone. */
+export function zoneAt(x: number, y: number): ZoneId | null {
+   if (!(x >= -GOAL_HALF_WIDTH && x <= GOAL_HALF_WIDTH && y >= 0 && y <= GOAL_HEIGHT)) return null;
+   const col = x < -ZONE_WIDTH / 2 ? 0 : x < ZONE_WIDTH / 2 ? 1 : 2;
+   const row = y < GOAL_HEIGHT / 2 ? 0 : 1;
+   return ZONES[zoneIndex(col, row)];
 }
 
 export function reticleOffset(aimMs: number, phase: number): number {
@@ -133,9 +157,20 @@ export interface StepEvents {
    ended: "win" | null;
 }
 
+/** One-frame direction presses, like core `InputState.pressed`. Each moves the highlight one zone. */
+export interface AimPresses {
+   left?: boolean;
+   right?: boolean;
+   up?: boolean;
+   down?: boolean;
+}
+
 export interface StepInput {
-   moveX?: number;
-   moveY?: number;
+   /**
+    * Arrow / WASD keydowns of this frame (Scene passes core `input.pressed` without swipes). Only
+    * read in AIM: a press during run-up, flight or hold is dropped, never kept for the next shot.
+    */
+   pressed?: AimPresses | null;
    jumpPressed?: boolean;
    actionPressed?: boolean;
    /** Zone already projected by Scene. null, omitted, or an unknown id does not shoot. */
@@ -159,10 +194,8 @@ export interface RunState {
    aimMs: number;
    /** 0 left, 1 centre, 2 right. */
    col: number;
-   /** 0 bottom, 1 top. moveY < 0 moves toward the top. */
+   /** 0 bottom, 1 top. An `up` press moves toward the top. */
    row: number;
-   latchX: -1 | 0 | 1;
-   latchY: -1 | 0 | 1;
    weights: number[];
    shotsDone: number;
    goals: number;
@@ -214,8 +247,6 @@ export function createRun(seed: number): RunState {
       aimMs: 0,
       col: 1,
       row: 0,
-      latchX: 0,
-      latchY: 0,
       weights,
       shotsDone: 0,
       goals: 0,
@@ -237,28 +268,20 @@ export function createRun(seed: number): RunState {
    return state;
 }
 
-function aimHighlight(state: RunState, classX: -1 | 0 | 1, classY: -1 | 0 | 1): void {
-   const crossX = classX !== 0 && classX !== state.latchX;
-   const crossY = classY !== 0 && classY !== state.latchY;
-   if (state.phase === "aim" && (crossX || crossY)) {
-      let moved = false;
-      if (crossX) {
-         const col = state.col + classX;
-         if (col >= 0 && col <= 2) {
-            state.col = col;
-            moved = true;
-         }
-      } else {
-         const row = state.row + (classY < 0 ? 1 : -1);
-         if (row >= 0 && row <= 1) {
-            state.row = row;
-            moved = true;
-         }
-      }
-      if (moved) state.events.aimMoved = true;
-   }
-   state.latchX = classX;
-   state.latchY = classY;
+/**
+ * One zone per press, clamped at the edges (no wrapping). Both axes apply in one frame, so a
+ * diagonal (two keys between two frames) moves the column and the row. Opposite presses cancel.
+ */
+function aimHighlight(state: RunState, pressed: AimPresses | null | undefined): void {
+   if (state.phase !== "aim" || !pressed) return;
+   const dx = (pressed.right === true ? 1 : 0) - (pressed.left === true ? 1 : 0);
+   const dy = (pressed.up === true ? 1 : 0) - (pressed.down === true ? 1 : 0);
+   const col = Math.min(2, Math.max(0, state.col + dx));
+   const row = Math.min(1, Math.max(0, state.row + dy));
+   if (col === state.col && row === state.row) return;
+   state.col = col;
+   state.row = row;
+   state.events.aimMoved = true;
 }
 
 function placeTarget(state: RunState, accurate: boolean, offset: number): void {
@@ -396,7 +419,8 @@ function consume(state: RunState, dtMs: number): void {
 
 /**
  * Advance one frame. dtMs <= 0 does nothing. The event object is reused; read it before the next step.
- * A shot or timeout locks first, then this frame's dt is spent across run-up, flight and hold.
+ * Aim presses apply first, then a shot or timeout locks, then this frame's dt is spent across
+ * run-up, flight and hold. A shot samples the reticle at the aim time already on screen.
  * Timeout on this frame outranks a new shot. The shooting edge is not reused when the next AIM starts.
  * An unknown zone id is not a tap.
  */
@@ -405,9 +429,7 @@ export function step(state: RunState, dtMs: number, input: StepInput = {}): Step
    clearEvents(events);
    if (state.ended || !(dtMs > 0)) return events;
 
-   const classX = axisClass(input.moveX ?? 0);
-   const classY = axisClass(input.moveY ?? 0);
-   aimHighlight(state, classX, classY);
+   aimHighlight(state, input.pressed);
 
    if (state.phase === "aim" && state.aimMs + dtMs < AIM_TIMEOUT_MS) {
       const tapIndex = typeof input.zoneId === "string" ? indexOfZone(input.zoneId) : -1;

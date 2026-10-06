@@ -18,7 +18,7 @@ import {
 } from "three";
 import type { ModelAsset } from "./types";
 import { FRAME_PRIORITY } from "./frameLoop";
-import { DynamicInstanced, piecesOf, writeDynamicInstances, type InstancePart, type InstanceTarget } from "./render";
+import { DynamicInstanced, piecesOf, releaseInstanceBuffers, writeDynamicInstances, type InstancePart, type InstanceTarget } from "./render";
 import { DynamicInstancedModel } from "./assets";
 
 const { useGLTF, useFrame, frames, PROP, BROKEN, RIGGED, prop } = vi.hoisted(() => {
@@ -164,6 +164,18 @@ describe("<DynamicInstanced>", () => {
          { geometry: new BoxGeometry(), material: new MeshBasicMaterial() },
       ];
       expect(meshTags(markup(createElement(DynamicInstanced, { count: 3, update: () => {}, parts })))).toBe(2);
+   });
+});
+
+describe("releasing a pool mesh on unmount", () => {
+   it("works on a mesh whose dispose R3F nulled (dispose={null}) and still frees the instance buffers", () => {
+      const mesh = new InstancedMesh(new BoxGeometry(), new MeshBasicMaterial(), 4);
+      // what R3F's dispose={null} prop does to the object (it keeps the shared geometry/material)
+      (mesh as unknown as { dispose: null }).dispose = null;
+      const disposed = vi.fn();
+      mesh.addEventListener("dispose", disposed);
+      expect(() => releaseInstanceBuffers(mesh)).not.toThrow();
+      expect(disposed).toHaveBeenCalledTimes(1);
    });
 });
 
