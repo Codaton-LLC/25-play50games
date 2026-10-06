@@ -135,6 +135,8 @@ const lerp = (a: number, b: number, k: number) => a + (b - a) * k;
 const easeInOut = (k: number) => k * k * (3 - 2 * k);
 /** Overshoots a little, then settles: the refill pop-in. */
 const easeOutBack = (k: number) => 1 + 2.70158 * (k - 1) ** 3 + 1.70158 * (k - 1) ** 2;
+/** The refill pop-in of pallet i's box at time t: 0 before it starts, overshoots a little, then 1 (its chevron grows with it). */
+const popOf = (fx: Fx, i: number, t: number) => easeOutBack(clamp01((t - fx.refillAt[i]) / POP_S));
 /** 0..1 of the robot's top speed (empty-handed). */
 const speed01 = (run: WarehouseRun) => Math.min(1, Math.hypot(run.robot.vx, run.robot.vz) / ROBOT.speed);
 /** The body bob of the robot (the carried box rides it too, so it never sinks into the head). */
@@ -451,7 +453,7 @@ const Boxes = memo(function Boxes({ run, fx, yaw }: { run: WarehouseRun; fx: Fx;
             hide(slot);
             continue;
          }
-         const pop = Math.max(0.001, easeOutBack(clamp01((t - fx.refillAt[i]) / POP_S)));
+         const pop = Math.max(0.001, popOf(fx, i, t));
          const k = (t - fx.refusedAt[i]) / SHAKE_S;
          const shake = k >= 0 && k < 1 ? Math.sin(k * Math.PI * 6) * (1 - k) : 0;
          place(slot, pallet.box, pallet.x + shake * 0.07, PALLET_HEIGHT, pallet.z, BOX_TURN[i] + shake * 0.12, pop);
@@ -499,13 +501,17 @@ const Boxes = memo(function Boxes({ run, fx, yaw }: { run: WarehouseRun; fx: Fx;
 
 const V = new Vector3();
 const Q = new Quaternion();
-const ONE = new Vector3(1, 1, 1);
+const S = new Vector3();
 const UP = new Vector3(0, 1, 0);
 /** The cone points down. */
 const FLIP = new Quaternion().setFromAxisAngle(new Vector3(1, 0, 0), Math.PI);
 
-/** A bobbing chevron over every box of the order colour while the robot is empty-handed. */
-const Chevrons = memo(function Chevrons({ run }: { run: WarehouseRun }) {
+/**
+ * A bobbing chevron over every box of the order colour while the robot is empty-handed. It pops in
+ * with its box (the starting boxes during the countdown, every refill), so it never hangs over an
+ * empty pallet.
+ */
+const Chevrons = memo(function Chevrons({ run, fx }: { run: WarehouseRun; fx: Fx }) {
    const time = useGameTime();
    const material = useRef<MeshBasicMaterial>(null);
    const shown = useRef(NONE);
@@ -515,8 +521,10 @@ const Chevrons = memo(function Chevrons({ run }: { run: WarehouseRun }) {
       const pallet = run.pallets[i];
       if (pallet.box === NONE || pallet.box !== run.order) return false;
       const t = time.now;
+      const pop = popOf(fx, i, t);
+      if (pop < 0.01) return false;
       Q.setFromAxisAngle(UP, t * 2.4 + i).multiply(FLIP);
-      m.compose(V.set(pallet.x, CHEVRON_Y + Math.sin(t * 4.2 + i * 1.3) * 0.09, pallet.z), Q, ONE);
+      m.compose(V.set(pallet.x, CHEVRON_Y + Math.sin(t * 4.2 + i * 1.3) * 0.09, pallet.z), Q, S.setScalar(pop));
    };
 
    useFrame(() => {
@@ -680,7 +688,7 @@ export default function Scene() {
          <Warehouse layout={run.layout} yaw={view.yaw} />
          <Robot run={run} fx={fx} />
          <Boxes run={run} fx={fx} yaw={view.yaw} />
-         <Chevrons run={run} />
+         <Chevrons run={run} fx={fx} />
          <TargetZone run={run} />
          <Popup fx={fx} />
       </>
