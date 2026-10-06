@@ -33,6 +33,7 @@ export {
    resolvePose,
    restPose,
    setBoneEuler,
+   turnBone,
    walkPose,
    wrapPhase,
    type HumanoidPose,

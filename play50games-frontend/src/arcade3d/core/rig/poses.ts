@@ -92,6 +92,21 @@ export function setBoneEuler(q: Float32Array, bone: number, x: number, y: number
    q[o + 3] = c1 * c2 * c3 - s1 * s2 * s3;
 }
 
+const TURN_Q = new Float32Array(4);
+
+/**
+ * Turns bone `bone` further, on top of whatever the pose already holds for it: Euler angles
+ * (x, y, z, three.js "XYZ") applied in the bone's parent frame, so a lean (x) tips the bone and all
+ * its children about the parent's axes. `turnBone(p, BONE.spine, lean, 0, 0)` leans a walking spine
+ * further into the run without redoing the walk's own twist. Zero angles change nothing.
+ */
+export function turnBone(out: HumanoidPose, bone: number, x: number, y: number, z: number): HumanoidPose {
+   if (x === 0 && y === 0 && z === 0) return out;
+   setBoneEuler(TURN_Q, 0, x, y, z);
+   mulQuat(TURN_Q, 0, out.q, bone * 4, out.q, bone * 4);
+   return out;
+}
+
 // side: +1 = L (+x), -1 = R (-x)
 const clavicle = (side: number) => (side > 0 ? BONE.clavicleL : BONE.clavicleR);
 const upperArm = (side: number) => (side > 0 ? BONE.upperArmL : BONE.upperArmR);
