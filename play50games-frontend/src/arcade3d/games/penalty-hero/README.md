@@ -1,25 +1,32 @@
 # Penalty Hero
 
-Owner: Cursor. Slug: `penalty-hero`. Accent `#f472b6`. Status stays `"soon"` until the game is built and reviewed. **This is an implementation specification, not a working game:** `index.tsx` still renders `PlaceholderScene`; Scene, rules and game tests below are planned. This review changes only this README, `assets.spec.json` and `meta.ts`.
+Owner: Cursor. Slug: `penalty-hero`. Accent `#f472b6`. Status stays `"soon"` until the game is reviewed and its models exist. **The game is playable** on primitives (striker, keeper, ball, goal, stadium); the striker and keeper GLBs drop in through `assets.ts`.
 
 | File | What it owns |
 |---|---|
-| `meta.ts` | Card data, portrait orientation and scoring limits. Plain data, server-safe; numeric limits match `arcade-games.json`. |
-| `index.tsx` | Planned `GameDefinition`: Scene, custom Hud, assets, camera, tap controls and one shell HUD stat; no whole-run countdown or lives. |
-| `rules.ts` | Planned pure seeded `createRun(seed)` and `step(state, dt, input)`: aim, accuracy, keeper draw, phases, outcomes and scoring. No three.js/React/DOM/random source. |
-| `rules.test.ts` | Planned Vitest, including idle scoring and the duration/rate proof. |
-| `Scene.tsx` | Planned mount seed, goal-plane tap projection, first-child Simulation, visuals, store reports and sounds. |
-| `Primitives.tsx` | Planned stadium, goal/net, code ball, character fallbacks, reticle and zones. |
-| `camera.ts` | Planned aspect-dependent fit to world bounds and space between the HUD and bottom overlays. |
-| `Hud.tsx` / `Hud.module.css` | Planned game-owned goals/streak, ten shot dots and GOAL/SAVED feedback. |
-| `assets.ts` / `assets.spec.json` | Planned `ModelAsset`s / two character generation requests. No generated ball. |
+| `meta.ts` | Card data, portrait orientation, thumbnail `/images/3d/penalty-hero.webp` and scoring limits. Plain data, server-safe; numeric limits match `arcade-games.json`. |
+| `index.tsx` | `GameDefinition`: Scene, Hud, assets, camera (0, 4, 20) → (0, 1.22, 0), fov 40, `touchControls: ["tap"]`, one shell stat `shots` / 10, `finalScore` through `rules.finalScore`. No run timer or lives. |
+| `rules.ts` | Pure seeded `createRun(seed)` and `step(state, dtMs, input)`: aim, accuracy, keeper draw, phases, outcomes and scoring, plus `zoneAt(x, y)` for goal-plane points and `aimPresses` (core `pressed` without swipes). No three.js/React/DOM/random source. |
+| `rules.test.ts` | Vitest, including idle scoring, the duration/rate proof, shot targets, the limit cap, the zone mapping, keyboard presses and swipes through the core input controller, and a press judged where it landed (`tapDown`) against one judged on release (`tap`). |
+| `Scene.tsx` | Mount seed (`randomSeed`), Simulation (`useRunFrame` → `step`; `tapDown` → ray → plane z = 0 → `zoneAt`; `pressed` → aim), store stats and sounds, `useFittedView` + `CameraRig`, visuals from phase progress and `useGameTime`. |
+| `Primitives.tsx` | Stadium (canvas-texture pitch, crowd and boards), goal frame and net lines, code ball, striker and keeper fallbacks. The boards and the lowest crowd rows behind the net are dark and low-contrast, so they do not compete with the zones. |
+| `Hud.tsx` / `Hud.module.css` | Goals/streak pill (below the shell HUD row, offset by the top safe-area inset), ten shot dots (✓ / ✕ plus colour) with the hint (lifted above the home indicator and the cookie banner), the aim deadline for the last 5 s (a large amber pill, red from 2 s, popping each second), GOAL / SAVED feedback (`aria-live="polite"`). The pill and the dots panel are `data-arcade-safe-area`. |
+| `assets.ts` / `assets.spec.json` | Striker and keeper `ModelAsset`s / two character generation requests. No generated ball. |
+
+### How the build maps to this design
+
+- Store stats written by Scene: `shots` (shell HUD), `goals`, `streak`, `goalMask` (bit i = shot i scored), `feedback` (0 none, 1 goal, 2 saved, 3 wide, 4 timeout; cleared when the next aim starts) and `aimLeft` (whole seconds, only on change). `setScore` on every goal, `end("win")` on `ended`.
+- Camera: core `useFittedView` replaces the local `camera.ts` below. The fit box is the goal guard box, pitch `atan2(2.78, 20)`, `shift: true`, and `minDistance` is the README camera distance, so the camera only ever moves further back than (0, 4, 20). The striker and ball are in front of the goal box and are not part of the fit.
+- Reticle: a ring over the highlighted zone at `x = centre + r / 0.6 * 1.04 m`; the white band is the `abs(r) <= 0.25` window. The ring turns green inside it.
+- Keeper: rolls 65° about the hip toward side columns, lifts for the top row and drops the hip for a low dive; returns during the last 60 % of the hold. Striker: lean and lunge (+0.3 x, -0.6 z) in the run-up, a kick tilt in the first 200 ms of flight, back in the hold.
+- Input (core "Input events"): a touch or a click shoots on the **press** (`input.tapDown`), never on the release. The shot samples the reticle of the last rendered frame, which is what was on screen when the finger landed, and locks on the next frame. `input.tap` would wait for the release and judge the shot 100–350 ms late, which turned well-timed taps wide. Keyboard aim reads `input.pressed` (arrow / WASD keydowns, latched by core), so a key tapped between two frames still moves the highlight, and two keys in one frame move both axes. The end delay is core's default `resultDelayMs` (800 ms).
 
 ### What a new game copies from here
 
-- Use robot-collector on main as the structure template: this file split, server-safe metadata, a `GameDefinition`, pure seeded rules and tests proving server limits. Reuse core `useRunFrame`, `useInput`, store, `useModel`, `Model` and audio contracts. Never import another game's code.
-- Make run state once in a lazy Scene `useState` initializer; do not call setState in the frame loop. Render `<Simulation />` **first**, before visuals. It calls `useRunFrame` → `step(state, dt, input)` → store actions/sound events. Visual callbacks only render the resulting state; they do not advance time.
-- Check `CLAUDE.md` and `arcade3d/core` again before implementation. On the main revision merged for this review, there is no shared pause-safe game clock, simulation-first priority option or free-screen camera-fit helper. Until core supplies them, keep a local dt-driven `run.time`, first-child Simulation and the fit below. Adopt core helpers when available instead of copying robot-collector implementations.
-- Do not copy warehouse props/layouts, camera yaw/follow, battery effects or scoring. Use `useModel(asset).failed` → stadium primitive, otherwise `<Model asset>`. Copy a generic utility only if needed and still absent from core.
+- Use robot-collector on main as the structure template: this file split, server-safe metadata, a `GameDefinition`, pure seeded rules and tests proving server limits. Reuse core `useRunFrame`, `useInput`, store, `Model` and audio contracts. Never import another game's code.
+- Make run state once in a lazy Scene `useState` initializer; do not call setState in the frame loop. `<Simulation />` calls `useRunFrame` → `step(state, dt, input)` → store actions/sound events. Core runs every `useRunFrame` before the camera and every plain `useFrame`, whatever the mount order. Visual callbacks only render the resulting state; they do not advance time.
+- Core supplies what this design once planned locally: `useGameTime` (pause-safe animation clock), `useFittedView` + `CameraRig shift` (free-screen fit around the HUD, the game HUD's marked panels and the cookie banner), `<Model fallback>`, and `tapDown` / `pressed` input events. Use them; check `core/README.md` before copying anything.
+- Do not copy warehouse props/layouts, camera yaw/follow, battery effects or scoring. Characters use `<Model asset fallback={<Primitive />}>`. Copy a generic utility only if needed and still absent from core.
 
 ## Concept
 
@@ -34,9 +41,10 @@ Ten penalties into a goal split into six zones. Choose a zone and strike when it
 | Top | top-left | top-centre | top-right |
 | Bottom | bottom-left | bottom-centre | bottom-right |
 
-- Read `useInput().current`. In AIM, classify each axis as -1 below -0.5, +1 above +0.5, otherwise 0. Move the highlight **one zone on a threshold crossing** into a new nonzero direction; holding does not repeat. Clamp at edges, no wrapping; start bottom-centre, `moveY < 0` means up. If both axes cross together, horizontal wins and both latches update. Returning through the dead zone rearms. Track latches even in locked phases so a held key cannot move the next shot automatically.
+- Read `useInput().current`. In AIM, every direction press in `input.pressed` (a new arrow / WASD keydown; auto-repeat and held keys do not count) moves the highlight **one zone**. Clamp at edges, no wrapping; start bottom-centre, `up` means the top row. Both axes apply in one frame (two keys between two frames move diagonally); opposite presses in one frame cancel. A press during run-up, flight or hold is dropped, never kept for the next shot. Core latches every press, so a key tapped and released between two frames is never lost (`moveX` / `moveY`, sampled once per frame, would miss it).
+- **Swipes do not aim** (a decision of this review). Core sets `pressed[direction]` for every swipe, with `swipe` on the same frame, so `aimPresses` drops the swipe's direction. On touch the zone is picked by touching it, and every swipe starts with a press that may already have shot; a swipe that also moved the highlight would act twice. A key of the same direction pressed in the very frame a swipe fires is dropped with it (a keyboard and a finger at once).
 - Space (`jumpPressed`) or E/Enter (`actionPressed`) shoots the highlighted zone. Apply aim movement before the shooting edge; accept one shot per frame, never held `jump`/`action` auto-repeat.
-- Touch/click: `Raycaster.setFromCamera(input.tap, camera)` then `ray.intersectPlane()` onto **z = 0**, using a `Plane` with normal `(0, 0, 1)`. Convert the point to a zone; never intersect keeper, ball, net or GLB meshes. Outside-zone taps, a parallel ray or no intersection do nothing, including no timeout reset. Tap selects and shoots once; accuracy uses the reticle at that simulation instant.
+- Touch/click: on the press, `Raycaster.setFromCamera(input.tapDown, camera)` then `ray.intersectPlane()` onto **z = 0**, using a `Plane` with normal `(0, 0, 1)`. Convert the point to a zone; never intersect keeper, ball, net or GLB meshes. Outside-zone presses, a parallel ray or no intersection do nothing, including no timeout reset. A press on a zone selects it and shoots once, judged by the reticle on screen when the finger landed (the last rendered frame); holding the finger, dragging or releasing changes nothing. `input.tap` is not read: it fires on release, up to 350 ms later.
 - Zone bounds: x = -3.66..3.66, split at -1.22 and 1.22; y = 0..2.44, split at 1.22. Internal boundaries belong to the right/upper zone; include outer goal edges. A locked shot ignores further aim/shoot input through run-up, flight and feedback. At the 20 s deadline, timeout takes precedence over a new shot. Esc/P, hidden tab and blur belong to shell pause.
 
 ## Rules and skill
@@ -62,7 +70,7 @@ Ten penalties into a goal split into six zones. Choose a zone and strike when it
 
 `step` consumes frame time once, carrying remaining dt across phase boundaries without skipping or double-counting phases. Accept at most one shooting edge; do not reuse it in the next AIM. Finish the tenth hold before ending. dt <= 0 makes no progress. Pause stops the simulation callback, freezing all visual state.
 
-`core/ShellStage` ticks RunClock at priority -1 and latches input before game callbacks. `useRunFrame` is priority 0 with no priority argument. Simulation must be the first visual-tree child: same-priority callbacks follow mount order, and children mount before parents. Do not simulate in the parent Scene after its visual children. Visuals render `run.time` and phase progress in `useFrame`, including paused resizes, without advancing them.
+`core/ShellStage` latches input (priority -2) and ticks RunClock (-1) before game callbacks. `useRunFrame` runs at the simulation priority (-0.5), before `CameraRig` (-0.25) and every plain `useFrame` (0), whatever the mount order (`core/README.md` "Time and frame order"). Visuals render phase progress in `useFrame` and animate with `useGameTime`, including paused resizes, without advancing the run.
 
 ## Scoring
 
@@ -83,7 +91,7 @@ First goal after a miss: +100. Each consecutive goal: +150 (100 plus 50 streak b
 Server checks: integer score in [0, 1500], duration in [10000, 600000] ms and `score * 1000 <= 150 * durationMs`.
 
 1. All ten cycles, including timeouts and the final hold, consume at least 1600 ms each of **simulation useRunFrame dt**: 16000 ms total simulation. Wall clocks, renderer elapsed time and tween completions cannot shortcut that bound.
-2. RunClock and Simulation use the same clamped delta. Currently the countdown-to-playing frame can simulate without incrementing store `elapsedMs`; it occurs once and is <=50 ms. Pause advances neither. Thus the **guaranteed submitted minimum is 15950 ms**, allowing for that untimed frame. Use GameShell's default duration, `Math.round(elapsedMs)`, not the animation clock. A new core clock/order helper must retain or strengthen this conservative bound.
+2. RunClock and Simulation use the same clamped delta. The design allowed for one untimed countdown-to-playing frame (<=50 ms), giving a **guaranteed submitted minimum of 15950 ms**. Core now counts every played frame in `elapsedMs` (no untimed frame, `useRunFrame` dt = store `frameMs`), so the real floor is 16000 ms and 15950 stays as conservative slack. Pause advances neither. Use GameShell's default duration, `Math.round(elapsedMs)`, not the animation clock.
 3. Minimum-duration margin: **5950 ms**. Perfect score 1450 is 50 below the absolute cap. Rate cap at the bound: `150 * 15.95 = 2392.5 pts`, margin **942.5 pts**. Integer inequality: `1450000 <= 2392500`, margin 942500. Break-even for 1450 is about 9666.67 ms, below the guarantee.
 4. Saves, wide shots and timeouts only remove points/break streaks, so every run <=1450. Waiting adds time, not points. Ten maximum waits plus cycles consume `10 * (20000 + 1600) = 216000` ms simulation; carrying remainder across boundaries and allowing one final frame gives submitted duration <=**216050 ms**, under 600000.
 5. Reduced motion changes poses only; accuracy and phase durations stay identical. Pausing cannot complete a phase; skill cannot shorten the cycle. Idle runs score 0 at roughly 216 s and pass every limit.
@@ -105,7 +113,7 @@ World units are metres, +y up, goal plane z = 0; striker faces -z:
 
 Fit the whole composition: goal guard box x = ±4.06, y = -0.40..2.84, z = 0; striker box above; ball box x = ±0.11, y = 0..0.22, z = 10.89..11.11. The goal's 0.40 m margin covers frame/net and rigid dive bounds. Keep striker motion inside its declared box. No ball/keeper camera follow.
 
-Local `camera.ts` fit, until core supplies a free-screen helper:
+Local `camera.ts` fit as designed before core had a free-screen helper (kept for the measurements; the build uses core `useFittedView`, which avoids the same HUD, panels and banner):
 
 1. Use CSS canvas W/H; reserve left/right 16 px plus safe insets, **top 72 px** plus top inset for one-row shell HUD, **bottom 88 px** plus bottom inset and existing `useBottomObstruction()` from `core/TouchControls`. Refit on size/inset/obstruction changes. `touchControls: ["tap"]` has no joystick/action buttons; reserve bottom space for custom Hud, controls/home area anyway.
 2. Transform all box corners to camera space: u = x / -z, v = y / -z. For symmetric side padding L/R, pixel focal length `f = min((W-L-R)/(2*max(abs(uMin),abs(uMax))), (H-T-B)/(vMax-vMin))`. Vertical FOV is `2 * atan(H/(2*f))` in degrees. W makes this aspect-dependent.
@@ -156,12 +164,14 @@ Exactly **one** shell `hudStat`: `{ key: "shots", label: "Shots", max: 10 }`, us
 
 `definition.Hud` owns Goals, Streak, ten small bottom shot dots (pending/goal/miss plus text), reticle timing cue and GOAL/SAVED feedback. Reserve its height in the fit, use noninteractive `pointer-events: none`, and announce outcomes with `aria-live="polite"`; colour alone does not indicate results. Goals/streak may be store stats without being shell HUD stats.
 
+Placement: the Goals/Streak pill sits at `env(safe-area-inset-top) + 4.4rem`, below the shell HUD row, which starts at the same inset (notch phones, `viewport-fit=cover`). The dots panel sits at `0.9rem + env(safe-area-inset-bottom) + var(--arcade-bottom-obstruction)`, the variable GameShell sets to the open cookie banner's height, so the banner never hides it (the touch controls use the same lift). The aim deadline shows the last 5 s of the 20 s as a large pill ("SHOOT! 4 s"), amber, then red from 2 s, popping once per second.
+
 ## Edge cases
 
 - Pause/hidden tab freezes every timer and animation. Paused resize only reprojects state. The tenth hold resumes its remaining time before `end("win")`; end is idempotent. Zero-goal completion still uses the win title.
 - Timeout outranks same-frame input. Outside taps do not prolong AIM. Held keys do not repeat. Score, weights, outcome and sound are committed once.
-- Retry/restart clears phase, latches, streak, weights, score and seed. Strict Mode may initialize twice; there is no global run state or paid side effect.
-- Rotation to landscape on coarse pointers invokes portrait gate and shell pause. On return, refit before shooting. Fine-pointer windows with an inadequate fit also pause through the planned local fit gate. Include `useBottomObstruction` in the fit; do not promise usable targets if an obstruction consumes required space.
+- Retry/restart clears phase, aim, streak, weights, score and seed. Strict Mode may initialize twice; there is no global run state or paid side effect.
+- Rotation to landscape on coarse pointers invokes portrait gate and shell pause. On return, refit before shooting. Fine-pointer windows with an inadequate fit should also pause through the planned fit gate (not built). The fit already avoids the cookie banner (`useFittedView` obstructions); do not promise usable targets if an obstruction consumes required space.
 - Missing/broken GLBs use primitives. Ball and tap regions do not depend on character geometry.
 
 ## Test plan
@@ -169,11 +179,11 @@ Exactly **one** shell `hudStat`: `{ key: "shots", label: "Shots", max: 10 }`, us
 Planned `rules.test.ts` (Vitest, pure state/fake input, no wall-clock sleeps):
 
 - Same seed/dt/input timeline reproduces results; uint32 extremes/multiple seeds, integer weighted draws, all zones reachable, exact +1/no timeout reinforcement, separate reticle stream.
-- Threshold-crossing aim, held axes/no repeats, dead-zone rearm, corners/diagonal priority, Space/E edges, locked-phase input ignored. Deadline input cannot evade timeout.
+- One zone per press, clamping at corners, diagonals in one frame, opposite presses cancel, Space/E edges, locked-phase presses dropped. Through the core input controller: a key tapped between two frames still moves, auto-repeat does not, a swipe does not aim, and a press (`tapDown`) is judged where it landed while a release (`tap`) 250 ms later goes wide. Deadline input cannot evade timeout.
 - Accuracy inside/at/outside abs(r) = 0.25; goal versus keeper save; wide = SAVED/0/streak reset. dt = 0/reduced motion cannot change results.
 - Streak 100/150/reset, perfect 1450, every other sequence <=1450. **Drive ten idle timeouts: 0 points, 0 goals, 0 streak, ten completed shots**, never auto-scoring the default zone.
 - Every 700/500/400 ms phase, including final hold, at 60/120 Hz and irregular raw deltas clamped by core; carry remainder, no skipped cycle/reused edge/double resolution.
-- Drive real `createArcadeStore` like ShellStage, RunClock first, through countdown/pause/resume/retry. Check exactly one untimed frame <=50 ms, submitted minimum **15950 ms**, maximum <=216050 ms, **942.5-point rate margin**, and `capScore` a no-op for completed runs.
+- Drive real `createArcadeStore` like ShellStage, RunClock first, through countdown/pause/resume/retry. Check the store and the run clock agree (no untimed frame since the core follow-up), submitted minimum **15950 ms** (real floor 16000 ms), maximum <=216050 ms, **942.5-point rate margin**, and `capScore` a no-op for completed runs.
 - One `end("win")`, final score/stats before end, one pickup/hit event per result, no replay on resume. No renderer/wall-clock reads or `Math.random` in rules.
 
 **Browser acceptance plan (pending Scene implementation):** local production build, arcade enabled and API mock enabled, never production WordPress.
@@ -186,10 +196,10 @@ Planned `rules.test.ts` (Vitest, pure state/fake input, no wall-clock sleeps):
 
 ## Known issues and core gaps
 
-- Route is still a placeholder; implementation/assets pending. Projection measurements check specified camera maths, not actual gameplay/overlays.
-- Core lacks a pause-safe animation clock and simulation-priority option. Keep dt-only local clock/first-child Simulation until shared contracts exist, then use core. Do not blindly copy robot-collector clock code or R3F elapsed time.
-- CameraRig has static/follow placement, no free-screen box fit. Proposed local fitter uses existing `useBottomObstruction`; core could supply fitting/overlay rects. Recheck core APIs before implementing.
-- Countdown transition leaves <=50 ms untimed; proof accounts for it. Real-store timing tests must be added with the rules. A core fix could strengthen the bound.
-- `<Model>` has no custom fallback prop; a separate `useModel` failure check can clone unnecessarily, as robot-collector documents. Keep it out of rules.
+- Playable on primitives; striker/keeper GLBs pending. Projection measurements above check the earlier camera maths; the build uses core `useFittedView`.
+- The fine-pointer fit gate (pause and a resize hint when a desktop window makes the zones smaller than 44 px) is not built. Coarse pointers still get GameShell's portrait gate.
+- Only the goal box is fitted. The striker and the ball can sit under the bottom Hud panel on short desktop windows, and on phones while the cookie banner is open (the panel is lifted above the banner, over the penalty spot). The panel is translucent and the zones stay clear; fitting the spot too needs a second fit box (core `useFittedView` takes one).
 - Full-composition landscape targets fail 44 px height; metadata enforces portrait. Landscape support needs a separately measured camera/composition redesign, not different scoring limits.
-- GameShell enforces orientation only on coarse pointers. The planned game's local fit gate must cover inadequate fine-pointer viewports/large bottom obstructions too; changing core is outside this review's scope.
+- GameShell enforces orientation only on coarse pointers. The planned fit gate must cover inadequate fine-pointer viewports/large bottom obstructions too.
+- Swipes never aim (see Controls). A same-direction key press in the frame a swipe fires is dropped with the swipe; that needs a keyboard and a finger at once.
+- Core open items that touch this game: the bottom safe-area inset is not reported to the fit, and the cookie banner is found by a 1 s poll, so the dots panel's lift can trail the banner by up to a second.
