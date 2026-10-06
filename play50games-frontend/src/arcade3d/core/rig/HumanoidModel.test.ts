@@ -4,14 +4,14 @@
 import { createElement, type ReactNode } from "react";
 import { renderToString } from "react-dom/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { BufferAttribute, BufferGeometry, Group, Mesh, MeshBasicMaterial, SkinnedMesh } from "three";
+import { BufferAttribute, BufferGeometry, Group, Mesh, MeshBasicMaterial, SkinnedMesh, Vector3 } from "three";
 import type { ModelAsset } from "../types";
 import { FRAME_PRIORITY } from "../frameLoop";
 import { Model, useHumanoidRig } from "../assets";
-import { BONE } from "./humanoid";
+import { BONE, BONE_COUNT } from "./humanoid";
 import { HumanoidModel, useHumanoidPose } from "./HumanoidModel";
-import { createPose, walkPose, type HumanoidPose } from "./poses";
-import { applyHumanoidPose } from "./skinning";
+import { armsDownPose, createPose, resolvePose, walkPose, type HumanoidPose } from "./poses";
+import { applyHumanoidPose, cloneHumanoid, type HumanoidRig } from "./skinning";
 import { HUMAN_PARTS, buildShape } from "./testShapes";
 
 const { useGLTF, useFrame, frames, LISTED, BROKEN, gltf } = vi.hoisted(() => {
@@ -40,7 +40,7 @@ vi.mock("../modelManifest", () => ({
 }));
 vi.mock("./skinning", async (importOriginal) => {
    const actual = await importOriginal<typeof import("./skinning")>();
-   return { ...actual, applyHumanoidPose: vi.fn(actual.applyHumanoidPose) };
+   return { ...actual, applyHumanoidPose: vi.fn(actual.applyHumanoidPose), cloneHumanoid: vi.fn(actual.cloneHumanoid) };
 });
 
 const asset = (url: string, extra: Partial<ModelAsset> = {}): ModelAsset => ({
@@ -106,7 +106,7 @@ describe("a listed humanoid GLB", () => {
       const b = run(() => useHumanoidRig(asset(LISTED)))!;
       expect(useGLTF).toHaveBeenCalledWith(LISTED, false, true);
       expect(a.root.children.some((o) => (o as SkinnedMesh).isSkinnedMesh)).toBe(true);
-      expect(a.bones).toHaveLength(13);
+      expect(a.bones).toHaveLength(17);
       expect(a.root).not.toBe(b.root);
    });
 
@@ -143,10 +143,34 @@ describe("a listed humanoid GLB", () => {
 
    it("<Model> of a humanoid asset stands it up with its arms down (auto-rigged, no frame callback)", () => {
       gltf.scene = characterScene();
+      const clone = vi.mocked(cloneHumanoid);
+      clone.mockClear();
       const html = markup(createElement(Model, { asset: asset(LISTED), fallback: createElement("span", null, "stand-in") }));
       expect(html).toContain("<primitive");
       expect(html).not.toContain("stand-in");
       expect(frames).toHaveLength(0);
+      // what <Model> drew: a skinned copy of the character, its bones in the arms-down pose
+      expect(clone).toHaveBeenCalledTimes(1);
+      const rig = clone.mock.results[0].value as HumanoidRig;
+      const skin = rig.root.children.find((o) => (o as SkinnedMesh).isSkinnedMesh) as SkinnedMesh;
+      expect(skin).toBeDefined();
+      const down = resolvePose(armsDownPose(createPose()), rig.landmarks.armSpread, new Float32Array(BONE_COUNT * 4));
+      for (const bone of [BONE.upperArmL, BONE.upperArmR, BONE.lowerArmL, BONE.clavicleL]) {
+         const q = rig.bones[bone].quaternion;
+         expect(Math.abs(q.x * down[bone * 4] + q.y * down[bone * 4 + 1] + q.z * down[bone * 4 + 2] + q.w * down[bone * 4 + 3])).toBeCloseTo(1, 6);
+      }
+      // so a hand tip (the T-pose's x = 0.84) hangs well below the shoulder, not out in a T
+      rig.root.updateMatrixWorld(true);
+      const tips = skin.geometry.getAttribute("position");
+      const v = new Vector3();
+      let checked = 0;
+      for (let i = 0; i < tips.count; i++) {
+         if (tips.getX(i) < 0.84) continue;
+         checked++;
+         skin.applyBoneTransform(i, v.fromBufferAttribute(tips, i));
+         expect(v.y).toBeLessThan(rig.landmarks.shoulderY - 0.3);
+      }
+      expect(checked).toBeGreaterThan(5);
    });
 });
 

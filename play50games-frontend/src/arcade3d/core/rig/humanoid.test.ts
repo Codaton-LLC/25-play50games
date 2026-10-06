@@ -13,7 +13,7 @@ import {
    smoothstep,
    type HumanoidLandmarks,
 } from "./humanoid";
-import { APRON, HUMAN, HUMAN_PARTS, ROBOT_LIKE, ROBOT_LIKE_PARTS, SKIRT, buildShape, mirrorPartners } from "./testShapes";
+import { APRON, HUMAN, HUMAN_FEET, HUMAN_PARTS, ROBOT_LIKE, ROBOT_LIKE_PARTS, SKIRT, buildShape, mirrorPartners } from "./testShapes";
 
 const human = buildShape(HUMAN_PARTS);
 const humanL = estimateHumanoidLandmarks(human);
@@ -31,13 +31,17 @@ function weightsAt(points: number[], l: HumanoidLandmarks) {
 
 describe("bones", () => {
    it("a fixed order with parents before children; L = +x mirrors R", () => {
-      expect(HUMANOID_BONES).toHaveLength(13);
-      expect(BONE_COUNT).toBe(13);
+      expect(HUMANOID_BONES).toHaveLength(17);
+      expect(BONE_COUNT).toBe(17);
       HUMANOID_BONES.forEach((name, i) => expect(BONE[name]).toBe(i));
       BONE_PARENT.forEach((parent, i) => expect(parent).toBeLessThan(i));
-      expect(BONE_PARENT[BONE.upperArmL]).toBe(BONE.chest);
+      expect(BONE_PARENT[BONE.clavicleL]).toBe(BONE.chest);
+      expect(BONE_PARENT[BONE.upperArmL]).toBe(BONE.clavicleL);
+      expect(BONE_PARENT[BONE.upperArmR]).toBe(BONE.clavicleR);
       expect(BONE_PARENT[BONE.lowerArmR]).toBe(BONE.upperArmR);
       expect(BONE_PARENT[BONE.upperLegL]).toBe(BONE.hips);
+      expect(BONE_PARENT[BONE.footL]).toBe(BONE.lowerLegL);
+      expect(BONE_PARENT[BONE.footR]).toBe(BONE.lowerLegR);
       for (let b = 0; b < BONE_COUNT; b++) {
          expect(BONE_MIRROR[BONE_MIRROR[b]]).toBe(b);
          const name = HUMANOID_BONES[b];
@@ -54,9 +58,14 @@ describe("bones", () => {
       expect(x(BONE.upperLegL)).toBeCloseTo(humanL.hipX, 9);
       expect(x(BONE.upperArmR)).toBeCloseTo(-humanL.shoulderX, 9);
       expect(x(BONE.lowerLegR)).toBeCloseTo(-humanL.hipX, 9);
+      expect(x(BONE.clavicleL)).toBeCloseTo(humanL.clavicleX, 9);
+      expect(x(BONE.clavicleR)).toBeCloseTo(-humanL.clavicleX, 9);
+      expect(x(BONE.footR)).toBeCloseTo(-humanL.hipX, 9);
       for (const b of [BONE.hips, BONE.spine, BONE.chest, BONE.neck, BONE.head]) expect(x(b)).toBe(0);
       expect(j[BONE.lowerLegL * 3 + 1]).toBeCloseTo(humanL.kneeY, 9);
+      expect(j[BONE.footL * 3 + 1]).toBeCloseTo(humanL.ankleY, 9);
       expect(j[BONE.head * 3 + 1]).toBeCloseTo(humanL.headY, 9);
+      expect(j[BONE.clavicleL * 3 + 1]).toBeCloseTo(humanL.shoulderY, 9);
    });
 });
 
@@ -81,7 +90,18 @@ describe("estimateHumanoidLandmarks", () => {
       expect(l.neckY).toBeGreaterThan(HUMAN.neck[0] - 0.02);
       expect(l.neckY).toBeLessThan(HUMAN.neck[1] + 0.02);
       expect(l.headY).toBeGreaterThan(l.neckY);
-      expect(l.headY).toBeLessThan(HUMAN.height);
+      // the head joint at the top of the neck: the whole skull (from 1.52 up) is rigid on the head
+      expect(l.headY + l.neckBlend).toBeLessThanOrEqual(HUMAN.neck[1] + 0.001);
+      expect(l.headY + l.neckBlend).toBeGreaterThan(HUMAN.neck[1] - 0.02);
+      expect(l.neckY - l.neckBlend).toBeGreaterThanOrEqual(HUMAN.neck[0] - 0.005);
+      // no feet modelled: the ankle low on the shin, below the knee's blend
+      expect(l.ankleY).toBeGreaterThan(0.05);
+      expect(l.ankleY + l.ankleBlend).toBeLessThan(l.kneeY - l.kneeBlend);
+      expect(l.clavicleX).toBeCloseTo(l.shoulderX / 2, 9);
+      // nothing bridges the legs: no cloth
+      expect(l.hemY).toBe(l.crotchY);
+      expect(Math.abs(l.legDepth - 0.08)).toBeLessThan(0.005);
+      expect(Math.abs(l.legOuterX - 0.19)).toBeLessThan(0.005);
       // the trunk chain goes up in order
       expect(l.hipY).toBeLessThan(l.spineY);
       expect(l.spineY).toBeLessThan(l.chestY);
@@ -96,14 +116,33 @@ describe("estimateHumanoidLandmarks", () => {
       expect(estimateHumanoidLandmarks(Array.from(human))).toEqual(humanL);
    });
 
-   it("an apron in front of the legs, or a short skirt round them, does not move the crotch", () => {
-      for (const extra of [[APRON], SKIRT]) {
+   it("an apron in front of the legs, or a short skirt round them, does not move the crotch or the legs; its hem is found", () => {
+      for (const [extra, hem] of [
+         [[APRON], 0.5],
+         [SKIRT, 0.55],
+      ] as const) {
          const l = estimateHumanoidLandmarks(buildShape([...HUMAN_PARTS, ...extra]));
          // seen from the front the cloth hides the gap down to 0.5 / 0.55; the crotch stays at 0.85
          expect(Math.abs(l.crotchY - HUMAN.crotchY)).toBeLessThan(0.045);
          expect(Math.abs(l.hipX - HUMAN.legX)).toBeLessThan(0.03);
          expect(Math.abs(l.shoulderY - humanL.shoulderY)).toBeLessThan(1e-9);
+         // the legs' depth comes from the bare shins, so the cloth in front does not pull it forward
+         expect(Math.abs(l.hipZ)).toBeLessThan(0.005);
+         expect(Math.abs(l.legDepth - 0.08)).toBeLessThan(0.005);
+         expect(Math.abs(l.hemY - hem)).toBeLessThan(0.02);
       }
+   });
+
+   it("long feet: the ankle above the shoe, toes and heels at the sole's ends", () => {
+      const l = estimateHumanoidLandmarks(buildShape([...HUMAN_PARTS, HUMAN_FEET]));
+      // the shoe (0.07 high) is all below the ankle's blend: it stays rigid on the foot
+      expect(l.ankleY - l.ankleBlend).toBeGreaterThanOrEqual(0.07 - 0.002);
+      expect(l.ankleY + l.ankleBlend).toBeLessThan(l.kneeY - l.kneeBlend);
+      expect(l.toeZ).toBeCloseTo(0.22, 2);
+      expect(l.heelZ).toBeCloseTo(-0.1, 2);
+      // the rest as without feet
+      expect(Math.abs(l.crotchY - humanL.crotchY)).toBeLessThan(0.02);
+      expect(l.hipZ).toBeCloseTo(0, 2);
    });
 
    it("a robot with a head wider than its shoulders and flat hands", () => {
@@ -160,13 +199,31 @@ describe("computeSkinWeights", () => {
       expect(weightOf(tips, 3, BONE.lowerArmR)).toBeGreaterThan(0.999);
    });
 
-   it("the chest centre is spine and chest only; the head is head only; feet are lower legs", () => {
-      const p = weightsAt([0, humanL.chestY, 0.11, 0, humanL.chestY + 0.05, -0.11, 0, 1.75, 0, 0.12, 0.02, 0, -0.12, 0.02, 0], humanL);
+   it("the chest centre is spine and chest only; the head is head only; soles are feet, shins lower legs", () => {
+      const l = humanL;
+      const p = weightsAt(
+         [0, l.chestY, 0.11, 0, l.chestY + 0.05, -0.11, 0, 1.75, 0, 0.12, 0.02, 0, -0.12, 0.02, 0, 0.12, (l.ankleY + l.kneeY) / 2, 0],
+         l
+      );
       expect(weightOf(p, 0, BONE.spine) + weightOf(p, 0, BONE.chest)).toBeGreaterThan(0.999);
       expect(weightOf(p, 1, BONE.chest)).toBeGreaterThan(0.5);
       expect(weightOf(p, 2, BONE.head)).toBeGreaterThan(0.999);
-      expect(weightOf(p, 3, BONE.lowerLegL)).toBeGreaterThan(0.999);
-      expect(weightOf(p, 4, BONE.lowerLegR)).toBeGreaterThan(0.999);
+      expect(weightOf(p, 3, BONE.footL)).toBeGreaterThan(0.999);
+      expect(weightOf(p, 4, BONE.footR)).toBeGreaterThan(0.999);
+      expect(weightOf(p, 5, BONE.lowerLegL)).toBeGreaterThan(0.999);
+   });
+
+   it("between the clavicle joint and the shoulder: the clavicle; the neck and the chest's middle are no clavicle", () => {
+      const l = humanL;
+      const mid = (l.clavicleX + l.shoulderX - l.shoulderBlend) / 2;
+      const p = weightsAt([l.shoulderX - l.shoulderBlend, l.shoulderY, 0, -(l.shoulderX - l.shoulderBlend), l.shoulderY, 0, mid, l.shoulderY, 0, 0.02, l.shoulderY, 0, mid, l.shoulderY + 2 * l.armRadius, 0], l);
+      expect(weightOf(p, 0, BONE.clavicleL)).toBeGreaterThan(0.999);
+      expect(weightOf(p, 1, BONE.clavicleR)).toBeGreaterThan(0.999);
+      expect(weightOf(p, 2, BONE.clavicleL)).toBeGreaterThan(0.2);
+      expect(weightOf(p, 2, BONE.clavicleL)).toBeLessThan(0.999);
+      expect(weightOf(p, 3, BONE.clavicleL) + weightOf(p, 3, BONE.clavicleR)).toBe(0);
+      // above the arm band (the neck, a wide head) stays on the trunk
+      expect(weightOf(p, 4, BONE.clavicleL)).toBe(0);
    });
 
    it("blends monotonically across the shoulder, the elbow and the knee", () => {
@@ -199,6 +256,21 @@ describe("computeSkinWeights", () => {
       expect(nonDecreasing(shin)).toBe(true);
       expect(shin[0]).toBeLessThan(1e-6);
       expect(shin[40]).toBeGreaterThan(0.999);
+      // down the left shin: lower leg -> foot
+      const ankle = along([l.hipX, l.ankleY + 2 * l.ankleBlend, 0], [l.hipX, l.ankleY - 2 * l.ankleBlend, 0]);
+      const foot = series(ankle, BONE.footL);
+      expect(nonDecreasing(foot)).toBe(true);
+      expect(foot[0]).toBeLessThan(1e-6);
+      expect(foot[40]).toBeGreaterThan(0.999);
+      // from the chest's middle out to the arm: chest 1 -> 0, then clavicle, then arm, smoothly
+      const out = along([0, l.shoulderY, 0], [l.shoulderX + 2 * l.shoulderBlend, l.shoulderY, 0]);
+      const chest = series(out, BONE.chest);
+      const beyond = chest.map((_v, i) => weightOf(out, i, BONE.clavicleL) + weightOf(out, i, BONE.upperArmL) + weightOf(out, i, BONE.lowerArmL));
+      expect(nonDecreasing(beyond)).toBe(true);
+      expect(nonDecreasing(chest.map((v) => -v))).toBe(true);
+      expect(beyond[0]).toBe(0);
+      expect(beyond[40]).toBeGreaterThan(0.999);
+      expect(Math.max(...beyond.slice(1).map((v, i) => v - beyond[i]))).toBeLessThan(0.2);
    });
 
    it("the crotch and an apron between the legs blend both legs (and the hips), never one leg", () => {
@@ -215,6 +287,30 @@ describe("computeSkinWeights", () => {
       const left = weightOf(p, 2, BONE.upperLegL) + weightOf(p, 2, BONE.lowerLegL);
       expect(left).toBeGreaterThan(0.5);
       expect(left).toBeLessThan(0.75);
+   });
+
+   it("cloth that bridges the legs (an apron) is skirt-weighted: wider L/R share down to the hem, some hips; the legs stay on their own leg", () => {
+      const withApron = buildShape([...HUMAN_PARTS, APRON]);
+      const l = estimateHumanoidLandmarks(withApron);
+      const legOf = (w: ReturnType<typeof weightsAt>, i: number, side: 1 | -1) =>
+         side > 0
+            ? weightOf(w, i, BONE.upperLegL) + weightOf(w, i, BONE.lowerLegL) + weightOf(w, i, BONE.footL)
+            : weightOf(w, i, BONE.upperLegR) + weightOf(w, i, BONE.lowerLegR) + weightOf(w, i, BONE.footR);
+      // the apron's front at the hem: x = 0 shares both legs, in front of the left leg mostly (not only) the left
+      const hem = weightsAt([0, 0.51, 0.11, 0.12, 0.51, 0.11, 0.2, 0.51, 0.11, 0.12, 0.8, 0.11, 0.12, 0.6, 0, 0.12, 0.51, 0], l);
+      expect(legOf(hem, 0, 1)).toBeCloseTo(legOf(hem, 0, -1), 6);
+      expect(legOf(hem, 1, 1)).toBeGreaterThan(0.6);
+      expect(legOf(hem, 1, 1)).toBeLessThan(0.9);
+      expect(legOf(hem, 2, 1)).toBeGreaterThan(legOf(hem, 1, 1));
+      // up the apron the hips take a share that fades out down to the hem
+      expect(weightOf(hem, 3, BONE.hips)).toBeGreaterThan(0.2);
+      expect(weightOf(hem, 1, BONE.hips)).toBeLessThan(0.05);
+      // the leg inside its column: all left, cloth or not around it
+      expect(legOf(hem, 4, 1)).toBeGreaterThan(0.999);
+      expect(legOf(hem, 5, 1)).toBeGreaterThan(0.999);
+      // the same apron point on a body whose legs nothing bridges: all left (the hard split)
+      const bare = weightsAt([0.12, 0.51, 0.11], humanL);
+      expect(legOf(bare, 0, 1)).toBeGreaterThan(0.999);
    });
 
    it("a head wider than the shoulders stays on the head (the arm band gates by height)", () => {

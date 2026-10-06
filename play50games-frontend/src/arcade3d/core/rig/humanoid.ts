@@ -6,7 +6,8 @@
 //    estimateHumanoidLandmarks(positions, explicit?)  where the joints are (T-pose heuristics);
 //    computeSkinWeights(positions, landmarks)         4 bone weights per vertex, smooth at joints;
 //    humanoidJoints(landmarks)                        the bone origins.
-// core/rig/skinning.ts builds the three.js SkinnedMesh from it, core/rig/poses.ts the poses.
+// core/rig/skinning.ts builds the three.js SkinnedMesh from it, core/rig/poses.ts the poses and
+// core/rig/gait.ts the ground contact and the stride.
 //
 // Sides: L is the character's own left. It faces +z, so its left hand is on +x (R on -x).
 // Units: GLB model units (the GLB root's space, mesh node transforms applied, before asset.scale).
@@ -18,14 +19,18 @@ export const HUMANOID_BONES = [
    "chest",
    "neck",
    "head",
+   "clavicleL",
    "upperArmL",
    "lowerArmL",
+   "clavicleR",
    "upperArmR",
    "lowerArmR",
    "upperLegL",
    "lowerLegL",
+   "footL",
    "upperLegR",
    "lowerLegR",
+   "footR",
 ] as const;
 
 export type HumanoidBone = (typeof HUMANOID_BONES)[number];
@@ -39,21 +44,28 @@ export const BONE = {
    chest: 2,
    neck: 3,
    head: 4,
-   upperArmL: 5,
-   lowerArmL: 6,
-   upperArmR: 7,
-   lowerArmR: 8,
-   upperLegL: 9,
-   lowerLegL: 10,
-   upperLegR: 11,
-   lowerLegR: 12,
+   clavicleL: 5,
+   upperArmL: 6,
+   lowerArmL: 7,
+   clavicleR: 8,
+   upperArmR: 9,
+   lowerArmR: 10,
+   upperLegL: 11,
+   lowerLegL: 12,
+   footL: 13,
+   upperLegR: 14,
+   lowerLegR: 15,
+   footR: 16,
 } as const satisfies Record<HumanoidBone, number>;
 
-/** Parent of each bone (-1 = the root). Arms hang from the chest, legs from the hips. */
-export const BONE_PARENT: readonly number[] = [-1, 0, 1, 2, 3, 2, 5, 2, 7, 0, 9, 0, 11];
+/**
+ * Parent of each bone (-1 = the root), always before its children. The clavicles hang from the
+ * chest and carry the arms, the legs hang from the hips and carry the feet.
+ */
+export const BONE_PARENT: readonly number[] = [-1, 0, 1, 2, 3, 2, 5, 6, 2, 8, 9, 0, 11, 12, 0, 14, 15];
 
 /** The same bone on the other side (L <-> R); the trunk maps to itself. */
-export const BONE_MIRROR: readonly number[] = [0, 1, 2, 3, 4, 7, 8, 5, 6, 11, 12, 9, 10];
+export const BONE_MIRROR: readonly number[] = [0, 1, 2, 3, 4, 8, 9, 10, 5, 6, 7, 14, 15, 16, 11, 12, 13];
 
 /**
  * Where the joints of a T-pose character are, in GLB model units. Heights are y, half-widths are
@@ -69,6 +81,8 @@ export interface HumanoidLandmarks {
    shoulderZ: number;
    /** half the arms' thickness (y). Only vertices within it of shoulderY can belong to an arm */
    armRadius: number;
+   /** |x| of the clavicle joints (at shoulderY): the shoulder between it and shoulderX shrugs with a raised arm */
+   clavicleX: number;
    /** |x| of the elbows */
    elbowX: number;
    /** |x| of the wrists (the hand beyond it rides the lower arm) */
@@ -85,17 +99,29 @@ export interface HumanoidLandmarks {
    hipZ: number;
    /** height of the knees */
    kneeY: number;
+   /** height of the ankles: everything below ankleY - ankleBlend is the rigid foot */
+   ankleY: number;
+   /** z of the sole's front end (the toes; the soles lie on y = 0) */
+   toeZ: number;
+   /** z of the sole's back end (the heels) */
+   heelZ: number;
+   /** the bare lower legs' half depth about hipZ: cloth further out (an apron) is skirt-weighted */
+   legDepth: number;
+   /** the bare lower legs' outer |x|: cloth further out (a skirt's sides) is skirt-weighted */
+   legOuterX: number;
+   /** the lowest height where cloth bridges the legs (an apron's or a skirt's hem); crotchY = none */
+   hemY: number;
    /** height of the spine joint (lower back) */
    spineY: number;
    /** height of the chest joint (upper back) */
    chestY: number;
-   /** height of the neck joint (the narrowest point above the arms) */
+   /** height of the neck joint */
    neckY: number;
-   /** height of the head joint */
+   /** height of the head joint: the top of the neck, so the skull (a helmet, a face) stays rigid */
    headY: number;
    /** z of the trunk bones (hips, spine, chest, neck, head) */
    spineZ: number;
-   /** weights blend across shoulderX ± shoulderBlend (chest <-> upper arm) */
+   /** weights blend across shoulderX ± shoulderBlend (clavicle <-> upper arm) */
    shoulderBlend: number;
    /** elbowX ± elbowBlend (upper <-> lower arm) */
    elbowBlend: number;
@@ -103,7 +129,9 @@ export interface HumanoidLandmarks {
    hipBlend: number;
    /** kneeY ± kneeBlend (upper <-> lower leg) */
    kneeBlend: number;
-   /** x = ±crotchBlend (left leg <-> right leg), so the crotch and an apron share both legs */
+   /** ankleY ± ankleBlend (lower leg <-> foot) */
+   ankleBlend: number;
+   /** x = ±crotchBlend (left leg <-> right leg) at the crotch; skirt-weighted cloth spreads it further down */
    crotchBlend: number;
    /** spineY and chestY ± spineBlend */
    spineBlend: number;
@@ -112,6 +140,7 @@ export interface HumanoidLandmarks {
 }
 
 const clamp = (v: number, lo: number, hi: number) => (v < lo ? lo : v > hi ? hi : v);
+const lerp = (a: number, b: number, k: number) => a + (b - a) * k;
 
 /** 0 at or below `a`, 1 at or above `b`, smooth in between (a step when b <= a). */
 export function smoothstep(a: number, b: number, v: number): number {
@@ -126,7 +155,7 @@ function median(values: number[]): number {
    return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
 }
 
-/** Bands of the height profile (the hand tips, the neck, the arm spread). */
+/** Bands of the height profile (the hand tips, the neck, the arm spread, the feet, the hem). */
 const BANDS = 120;
 /** The forearms: from this to this fraction of the hand reach out from x = 0. */
 const FOREARM = [0.55, 0.8] as const;
@@ -142,6 +171,12 @@ const STRIP = 0.4;
 const SPLIT_GAP = 0.5;
 /** The 3 smallest |x| per band side are kept: the 3rd ignores a stray vertex or two in the gap. */
 const KTH = 3;
+/** The neck: the bands next to the narrowest one that are at most this much wider. */
+const NECK_RUN = 1.25;
+/** Skirt-weighted cloth: its L/R blend widens by this x the distance below the crotch. */
+const SKIRT_SPREAD = 0.6;
+/** Cloth starts this fraction of legDepth beyond the bare legs (smoothly). */
+const CLOTH_GAP = 0.3;
 
 /**
  * Finds the joints of a T-pose humanoid from its vertex cloud (xyz triples, GLB model units;
@@ -152,13 +187,20 @@ const KTH = 3;
  *   the hand tips); shoulderY is their middle, armRadius half their height.
  * - Shoulders: from x = 0 outwards, the first |x| columns whose vertical extent (from one arm
  *   thickness below the arms to their top) collapses to the arm's own end the torso; the joint
- *   is half an arm radius further out.
+ *   is half an arm radius further out. Clavicles halfway in.
  * - Wrists at 70 % of the way from the shoulder to the hand tip, elbows halfway to the wrist.
  * - Crotch: going up from the shins, the last height where the middle-depth strip of the cloud is
  *   empty around x = 0 (two legs). Only the strip counts, so an apron in front of the legs or a
  *   short skirt around them does not hide the gap. Hips a little above the crotch, knees halfway
  *   between the hips and the floor, the leg centre lines from the strip's inner and outer edges.
- * - Neck: the narrowest height in the lower half of what is above the arms.
+ * - Feet: going up from the floor, the bands deeper (z) than halfway between the shins and the
+ *   soles; the ankle sits a blend width above them, so the whole foot is rigid. Toes and heels
+ *   from the foot's z extent.
+ * - Cloth: the lower legs' depth and width (between the ankle and the knee), and the hem = the
+ *   lowest height below the crotch where something bridges the gap between the legs.
+ * - Neck: the narrowest height in the lower half of what is above the arms, and the bands around
+ *   it nearly as narrow; the head joint sits at the top of that neck (everything above is rigid
+ *   on the head), the neck joint two blend widths lower.
  * - Arm spread: the smallest outward angle at which a hanging arm clears the body below it.
  */
 export function estimateHumanoidLandmarks(positions: ArrayLike<number>, explicit: Partial<HumanoidLandmarks> = {}): HumanoidLandmarks {
@@ -179,7 +221,7 @@ export function estimateHumanoidLandmarks(positions: ArrayLike<number>, explicit
    const height = maxY - minY;
    if (!(height > 0) || !(reach > 0)) throw new RangeError("estimateHumanoidLandmarks: the cloud is flat.");
 
-   // ---- height profile: how far out each band reaches, and its depth ----
+   // ---- height profile: how far out each band reaches ----
    const bandH = height / BANDS;
    const bandOf = (y: number) => clamp(Math.floor((y - minY) / bandH), 0, BANDS - 1);
    const bandReach = new Float64Array(BANDS);
@@ -242,6 +284,7 @@ export function estimateHumanoidLandmarks(positions: ArrayLike<number>, explicit
    }
    const wristX = explicit.wristX ?? shoulderX + 0.7 * (reach - shoulderX);
    const elbowX = explicit.elbowX ?? (shoulderX + wristX) / 2;
+   const clavicleX = explicit.clavicleX ?? 0.5 * shoulderX;
 
    // ---- the depth of the upper arms ----
    let shoulderZ = explicit.shoulderZ;
@@ -258,16 +301,35 @@ export function estimateHumanoidLandmarks(positions: ArrayLike<number>, explicit
       shoulderZ = zLo <= zHi ? (zLo + zHi) / 2 : 0;
    }
 
-   // ---- neck: the narrowest band in the lower half of what is above the arms ----
-   let neckY = explicit.neckY;
-   if (neckY === undefined) {
-      const from = bandOf(armTop) + 1;
-      const to = bandOf(armTop + 0.5 * (maxY - armTop));
-      let best = -1;
-      for (let b = from; b <= to; b++) if (bandReach[b] > 0 && (best < 0 || bandReach[b] < bandReach[best])) best = b;
-      neckY = best < 0 ? armTop : minY + (best + 0.5) * bandH;
+   // ---- neck: the narrowest bands in the lower half of what is above the arms ----
+   const neckFrom = bandOf(armTop) + 1;
+   const neckTo = bandOf(armTop + 0.5 * (maxY - armTop));
+   let narrow = -1;
+   for (let b = neckFrom; b <= neckTo; b++) if (bandReach[b] > 0 && (narrow < 0 || bandReach[b] < bandReach[narrow])) narrow = b;
+   let neckLo = armTop;
+   let neckHi = armTop;
+   if (narrow >= 0) {
+      // out from the narrowest band while the bands stay narrow (an empty band says nothing: a sparse mesh)
+      let lo = narrow;
+      let hi = narrow;
+      const limit = NECK_RUN * bandReach[narrow];
+      for (let b = narrow - 1; b >= neckFrom; b--) {
+         if (bandReach[b] === 0) continue;
+         if (bandReach[b] > limit) break;
+         lo = b;
+      }
+      for (let b = narrow + 1; b <= neckTo; b++) {
+         if (bandReach[b] === 0) continue;
+         if (bandReach[b] > limit) break;
+         hi = b;
+      }
+      neckLo = minY + lo * bandH;
+      neckHi = minY + (hi + 1) * bandH;
    }
-   const headY = explicit.headY ?? neckY + 0.25 * (maxY - neckY);
+   const neckBlend = explicit.neckBlend ?? Math.max(0.5 * bandH, 0.25 * (neckHi - neckLo));
+   // the head joint at the top of the neck: from headY + neckBlend up, all head (a helmet, a face)
+   const headY = explicit.headY ?? neckHi - neckBlend;
+   const neckY = explicit.neckY ?? headY - 2 * neckBlend;
 
    // ---- legs: the middle-depth strip of each band, split around x = 0 ----
    const legH = height / LEG_BANDS;
@@ -346,8 +408,108 @@ export function estimateHumanoidLandmarks(positions: ArrayLike<number>, explicit
       legDepths.push((zMin[b] + zMax[b]) / 2);
    }
    const hipX = explicit.hipX ?? (legCentres.length ? median(legCentres) : 0.55 * shoulderX);
-   const hipZ = explicit.hipZ ?? (legDepths.length ? median(legDepths) : 0);
-   const crotchBlend = explicit.crotchBlend ?? clamp(legGaps.length ? median(legGaps) : 0.3 * hipX, 0.15 * hipX, 0.6 * hipX);
+   const stripZ = legDepths.length ? median(legDepths) : 0;
+   const legGap = legGaps.length ? median(legGaps) : 0.3 * hipX;
+   const crotchBlend = explicit.crotchBlend ?? clamp(legGap, 0.15 * hipX, 0.6 * hipX);
+   const hipBlend = explicit.hipBlend ?? 0.2 * (hipY - kneeY);
+   const kneeBlend = explicit.kneeBlend ?? 0.15 * (hipY - kneeY);
+
+   // ---- feet: the bands from the floor up that are deeper than halfway from the shins to the soles ----
+   const kneeBand = bandOf(kneeY);
+   const bandZLo = new Float64Array(kneeBand + 1).fill(Infinity);
+   const bandZHi = new Float64Array(kneeBand + 1).fill(-Infinity);
+   for (let i = 0; i < n; i++) {
+      const y = positions[i * 3 + 1];
+      if (y > kneeY) continue;
+      const b = bandOf(y);
+      const z = positions[i * 3 + 2];
+      if (z < bandZLo[b]) bandZLo[b] = z;
+      if (z > bandZHi[b]) bandZHi[b] = z;
+   }
+   const depthOf = (b: number) => (bandZHi[b] >= bandZLo[b] ? bandZHi[b] - bandZLo[b] : 0);
+   let soleDepth = 0;
+   for (let b = 0; b <= bandOf(minY + 0.05 * height) && b <= kneeBand; b++) soleDepth = Math.max(soleDepth, depthOf(b));
+   let shinDepth = Infinity;
+   for (let b = bandOf(minY + 0.35 * (kneeY - minY)); b <= bandOf(minY + 0.6 * (kneeY - minY)); b++) {
+      const d = depthOf(b);
+      if (d > 0) shinDepth = Math.min(shinDepth, d);
+   }
+   let footTop = minY + 0.2 * (kneeY - minY);
+   if (shinDepth < Infinity && soleDepth > 1.15 * shinDepth) {
+      const deep = (shinDepth + soleDepth) / 2;
+      let top = -1;
+      for (let b = 0, misses = 0; b <= kneeBand && misses < 2; b++) {
+         const d = depthOf(b);
+         if (d === 0) continue; // an empty band says nothing (a sparse mesh)
+         if (d > deep) {
+            top = b;
+            misses = 0;
+         } else {
+            misses++;
+         }
+      }
+      if (top >= 0) footTop = minY + (top + 1) * bandH;
+   }
+   const ankleBlend = explicit.ankleBlend ?? 0.15 * (kneeY - footTop);
+   const ankleY = explicit.ankleY ?? footTop + ankleBlend;
+
+   // ---- the bare lower legs (ankle to knee): the legs' depth (z) and width, no apron down there ----
+   let shinLo = Infinity;
+   let shinHi = -Infinity;
+   let shinWide = 0;
+   for (let i = 0; i < n; i++) {
+      const y = positions[i * 3 + 1];
+      if (y < ankleY + ankleBlend || y > kneeY - kneeBlend) continue;
+      const z = positions[i * 3 + 2];
+      if (z < shinLo) shinLo = z;
+      if (z > shinHi) shinHi = z;
+      shinWide = Math.max(shinWide, Math.abs(positions[i * 3]));
+   }
+   const hasShins = shinLo <= shinHi;
+   // the leg bones' depth: the middle of the shins (an apron or a skirt in front of the thighs would
+   // pull the strips' middle forward), else the strips'
+   const hipZ = explicit.hipZ ?? (hasShins ? (shinLo + shinHi) / 2 : stripZ);
+   const legDepth = explicit.legDepth ?? (hasShins ? Math.max(shinHi - hipZ, hipZ - shinLo) : 0.5 * hipX);
+   const legOuterX = explicit.legOuterX ?? (hasShins ? shinWide : 1.6 * hipX);
+
+   let toeZ = explicit.toeZ;
+   let heelZ = explicit.heelZ;
+   if (toeZ === undefined || heelZ === undefined) {
+      let zLo = Infinity;
+      let zHi = -Infinity;
+      for (let i = 0; i < n; i++) {
+         if (positions[i * 3 + 1] > ankleY - ankleBlend) continue;
+         const z = positions[i * 3 + 2];
+         if (z < zLo) zLo = z;
+         if (z > zHi) zHi = z;
+      }
+      toeZ ??= zHi >= zLo ? zHi : hipZ + 0.1 * height;
+      heelZ ??= zHi >= zLo ? zLo : hipZ - 0.03 * height;
+   }
+
+   // ---- cloth: the hem of what bridges the legs ----
+   let hemY = explicit.hemY;
+   if (hemY === undefined) {
+      // below the crotch, a band is bridged when 3+ of its vertices lie within half the leg gap of x = 0
+      const bridgeX = 0.5 * legGap;
+      const bridged = new Uint32Array(BANDS);
+      for (let i = 0; i < n; i++) {
+         const y = positions[i * 3 + 1];
+         if (y >= crotchY || Math.abs(positions[i * 3]) >= bridgeX) continue;
+         bridged[bandOf(y)]++;
+      }
+      hemY = crotchY;
+      for (let b = bandOf(crotchY) - 1, misses = 0; b >= 0 && minY + b * bandH > kneeY - kneeBlend && misses < 2; b--) {
+         if (bridged[b] >= KTH) {
+            hemY = minY + b * bandH;
+            misses = 0;
+         } else {
+            misses++;
+         }
+      }
+      // the crotch's own curve is no cloth: cloth hangs below the hips' blend
+      if (hemY > crotchY - hipBlend) hemY = crotchY;
+   }
 
    // ---- trunk ----
    const spineY = explicit.spineY ?? hipY + 0.3 * (shoulderY - hipY);
@@ -385,6 +547,7 @@ export function estimateHumanoidLandmarks(positions: ArrayLike<number>, explicit
       shoulderX,
       shoulderZ,
       armRadius,
+      clavicleX,
       elbowX,
       wristX,
       armSpread,
@@ -393,6 +556,12 @@ export function estimateHumanoidLandmarks(positions: ArrayLike<number>, explicit
       hipX,
       hipZ,
       kneeY,
+      ankleY,
+      toeZ,
+      heelZ,
+      legDepth,
+      legOuterX,
+      hemY,
       spineY,
       chestY,
       neckY,
@@ -400,11 +569,12 @@ export function estimateHumanoidLandmarks(positions: ArrayLike<number>, explicit
       spineZ,
       shoulderBlend: explicit.shoulderBlend ?? 0.6 * armRadius,
       elbowBlend: explicit.elbowBlend ?? Math.min(0.5 * armRadius, 0.25 * (wristX - shoulderX)),
-      hipBlend: explicit.hipBlend ?? 0.2 * (hipY - kneeY),
-      kneeBlend: explicit.kneeBlend ?? 0.15 * (hipY - kneeY),
+      hipBlend,
+      kneeBlend,
+      ankleBlend,
       crotchBlend,
       spineBlend: explicit.spineBlend ?? 0.3 * (chestY - spineY),
-      neckBlend: explicit.neckBlend ?? 0.35 * (headY - neckY),
+      neckBlend,
    };
 }
 
@@ -423,12 +593,14 @@ export function humanoidJoints(l: HumanoidLandmarks, out: Float64Array = new Flo
    set(BONE.chest, 0, l.chestY, l.spineZ);
    set(BONE.neck, 0, l.neckY, l.spineZ);
    set(BONE.head, 0, l.headY, l.spineZ);
-   for (const side of [1, -1]) {
+   for (let side = 1; side >= -1; side -= 2) {
       const left = side > 0;
+      set(left ? BONE.clavicleL : BONE.clavicleR, side * l.clavicleX, l.shoulderY, l.shoulderZ);
       set(left ? BONE.upperArmL : BONE.upperArmR, side * l.shoulderX, l.shoulderY, l.shoulderZ);
       set(left ? BONE.lowerArmL : BONE.lowerArmR, side * l.elbowX, l.shoulderY, l.shoulderZ);
       set(left ? BONE.upperLegL : BONE.upperLegR, side * l.hipX, l.hipY, l.hipZ);
       set(left ? BONE.lowerLegL : BONE.lowerLegR, side * l.hipX, l.kneeY, l.hipZ);
+      set(left ? BONE.footL : BONE.footR, side * l.hipX, l.ankleY, l.hipZ);
    }
    return out;
 }
@@ -444,11 +616,19 @@ export interface SkinWeights {
 }
 
 /**
- * Bone weights for every vertex (xyz triples, the same model space as `l`). Arms are the vertices
- * beyond the shoulder inside the arm band, legs those below the hips, split at x = 0 (blended over
- * ±crotchBlend, so the crotch and an apron or skirt share both legs instead of tearing), the rest
- * the trunk chain by height. Every joint blends smoothly over its blend width; at most 4
- * influences (the 4 largest, renormalised), each row sums to 1. Deterministic.
+ * Bone weights for every vertex (xyz triples, the same model space as `l`). Deterministic.
+ *
+ * - Arms: the vertices beyond the shoulder inside the arm band; between the clavicle joint and the
+ *   shoulder the clavicle (it shrugs with a raised arm), inside it the chest.
+ * - Legs: the vertices below the hips, split at x = 0 and blended over ±crotchBlend; feet below
+ *   the ankle. Cloth that bridges the legs (an apron, a short skirt: between the hem and the
+ *   crotch, beyond the bare legs' depth or width) is skirt-weighted: its L/R blend widens with the
+ *   distance below the crotch and it keeps a share of the hips that fades out down to the hem, so
+ *   it hangs between the legs instead of stretching into a sheet.
+ * - The rest: the trunk chain by height.
+ *
+ * Every joint blends smoothly over its blend width; at most 4 influences (the 4 largest,
+ * renormalised), each row sums to 1.
  */
 export function computeSkinWeights(positions: ArrayLike<number>, l: HumanoidLandmarks, out?: SkinWeights): SkinWeights {
    const n = Math.floor(positions.length / 3);
@@ -459,29 +639,52 @@ export function computeSkinWeights(positions: ArrayLike<number>, l: HumanoidLand
    // the arm band fades out over a quarter of the arm radius: a head or a hip just above or below
    // the arms at the same |x| stays on the trunk
    const gateEnd = l.armRadius * 1.25;
+   const clothGap = CLOTH_GAP * l.legDepth;
+   const hasCloth = l.hemY < l.crotchY;
 
    for (let i = 0; i < n; i++) {
       const x = positions[i * 3];
       const y = positions[i * 3 + 1];
+      const z = positions[i * 3 + 2];
       const ax = Math.abs(x);
       const left = x >= 0;
       w.fill(0);
 
-      const arm =
-         smoothstep(l.shoulderX - l.shoulderBlend, l.shoulderX + l.shoulderBlend, ax) *
-         (1 - smoothstep(l.armRadius, gateEnd, Math.abs(y - l.shoulderY)));
+      // ---- arms and clavicles ----
+      const gate = 1 - smoothstep(l.armRadius, gateEnd, Math.abs(y - l.shoulderY));
+      const beyond = smoothstep(l.shoulderX - l.shoulderBlend, l.shoulderX + l.shoulderBlend, ax);
+      const arm = beyond * gate;
       const forearm = smoothstep(l.elbowX - l.elbowBlend, l.elbowX + l.elbowBlend, ax);
       w[left ? BONE.upperArmL : BONE.upperArmR] = arm * (1 - forearm);
       w[left ? BONE.lowerArmL : BONE.lowerArmR] = arm * forearm;
-      const body = 1 - arm;
+      // the clavicle: from its joint out to where the arm starts (it is 1 wherever `beyond` > 0)
+      const clavicle = gate * smoothstep(l.clavicleX, l.shoulderX - l.shoulderBlend, ax) * (1 - beyond);
+      w[left ? BONE.clavicleL : BONE.clavicleR] = clavicle;
+      const body = 1 - arm - clavicle;
 
-      const leg = body * (1 - smoothstep(l.crotchY - l.hipBlend, l.hipY + l.hipBlend, y));
-      const toL = smoothstep(-l.crotchBlend, l.crotchBlend, x);
+      // ---- legs (and the cloth that bridges them) ----
+      const legZone = 1 - smoothstep(l.crotchY - l.hipBlend, l.hipY + l.hipBlend, y);
+      let leg = legZone;
+      let toL = smoothstep(-l.crotchBlend, l.crotchBlend, x);
+      if (hasCloth && legZone > 0) {
+         const zone = smoothstep(l.hemY - 0.5 * l.kneeBlend, l.hemY, y);
+         const out = Math.max(smoothstep(l.legDepth, l.legDepth + clothGap, Math.abs(z - l.hipZ)), smoothstep(l.legOuterX, l.legOuterX + clothGap, ax));
+         const cloth = zone * out;
+         if (cloth > 0) {
+            const spread = l.crotchBlend + SKIRT_SPREAD * Math.max(0, l.crotchY - y);
+            toL = lerp(toL, smoothstep(-spread, spread, x), cloth);
+            leg = lerp(legZone, Math.min(legZone, 1 - smoothstep(l.hemY, l.hipY + l.hipBlend, y)), cloth);
+         }
+      }
+      leg *= body;
       const shin = 1 - smoothstep(l.kneeY - l.kneeBlend, l.kneeY + l.kneeBlend, y);
+      const foot = Math.min(shin, 1 - smoothstep(l.ankleY - l.ankleBlend, l.ankleY + l.ankleBlend, y));
       w[BONE.upperLegL] = leg * toL * (1 - shin);
-      w[BONE.lowerLegL] = leg * toL * shin;
+      w[BONE.lowerLegL] = leg * toL * (shin - foot);
+      w[BONE.footL] = leg * toL * foot;
       w[BONE.upperLegR] = leg * (1 - toL) * (1 - shin);
-      w[BONE.lowerLegR] = leg * (1 - toL) * shin;
+      w[BONE.lowerLegR] = leg * (1 - toL) * (shin - foot);
+      w[BONE.footR] = leg * (1 - toL) * foot;
 
       // the trunk chain by height: c1..c4 never increase, so every weight is >= 0 and they add up
       const trunk = body - leg;

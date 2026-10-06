@@ -17,6 +17,7 @@ import { Bone, BufferGeometry, Matrix4, Object3D, Quaternion, Skeleton, SkinnedM
 import { clone as cloneSkinned } from "three/examples/jsm/utils/SkeletonUtils.js";
 import type { ModelAsset } from "../types";
 import { BONE, BONE_COUNT, BONE_PARENT, HUMANOID_BONES, computeSkinWeights, estimateHumanoidLandmarks, humanoidJoints, type HumanoidLandmarks } from "./humanoid";
+import { bodyLift } from "./gait";
 import { armsDownPose, createPose, resolvePose, type HumanoidPose } from "./poses";
 
 export type HumanoidOptions = NonNullable<ModelAsset["humanoid"]>;
@@ -176,7 +177,8 @@ const Q = new Quaternion();
 
 /**
  * Writes a pose into the rig's bones (no allocation). `applyLift` (default true) moves the hips by
- * `pose.lift` x the hip height; pass false when the game bobs the model's group itself.
+ * bodyLift(pose, landmarks) (gait.ts: the ground contact that keeps the lower sole on the floor,
+ * plus the pose's own lift); pass false when the game bobs the model's group itself by bodyLift.
  */
 export function applyHumanoidPose(rig: HumanoidRig, pose: HumanoidPose, applyLift = true): void {
    resolvePose(pose, rig.landmarks.armSpread, RESOLVED);
@@ -184,5 +186,5 @@ export function applyHumanoidPose(rig: HumanoidRig, pose: HumanoidPose, applyLif
       const o = b * 4;
       rig.bones[b].quaternion.copy(Q.set(RESOLVED[o], RESOLVED[o + 1], RESOLVED[o + 2], RESOLVED[o + 3]));
    }
-   rig.bones[BONE.hips].position.y = rig.hipsY + (applyLift ? pose.lift * rig.landmarks.hipY : 0);
+   rig.bones[BONE.hips].position.y = rig.hipsY + (applyLift ? bodyLift(pose, rig.landmarks) : 0);
 }

@@ -143,7 +143,8 @@ export interface ModelAsset {
     * A static T-pose character (Hyper3D Rodin: arms out along ±x, facing +z, no skeleton). The core
     * auto-rig (core/rig) builds a skeleton in code: <Model> draws it with its arms down and
     * <HumanoidModel pose> animates it (walk, carry, cheer...). `landmarks` are measured joint
-    * positions in GLB units; any field left out is estimated from the mesh (core/rig/README).
+    * positions in GLB units; any field left out is estimated from the mesh (core/README.md
+    * "Characters: the auto-rig").
     */
    humanoid?: { landmarks?: Partial<HumanoidLandmarks> };
    /** logical name -> clip name in the GLB, e.g. { run: "Run" } */

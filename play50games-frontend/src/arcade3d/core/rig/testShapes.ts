@@ -86,8 +86,31 @@ export const HUMAN_PARTS: readonly Part[] = [
    { min: [0.2, 1.33, -0.05], max: [0.85, 1.43, 0.05], pair: true },
 ];
 
+/** Long flat feet (shoes) for HUMAN_PARTS: 0.32 deep (z -0.1..0.22), 0.07 high; the leg is 0.16 deep. */
+export const HUMAN_FEET: Part = { min: [0.05, 0, -0.1], max: [0.19, 0.07, 0.22], pair: true };
+
 /** A short apron in front of the legs, from the waist to above the knees: it hides the leg gap from the front. */
 export const APRON: Part = { min: [-0.22, 0.5, 0.1], max: [0.22, 0.9, 0.11] };
+
+/**
+ * A flat grid in the plane z = `z` (x0..x1, y0..y1, every `step`) with its triangles: positions are
+ * appended after `before` vertices (pass the cloud it joins), triangle indices refer to the whole.
+ */
+export function gridFace(before: number, x0: number, x1: number, y0: number, y1: number, z: number, step = STEP): { positions: number[]; triangles: number[] } {
+   const nx = Math.round((x1 - x0) / step);
+   const ny = Math.round((y1 - y0) / step);
+   const positions: number[] = [];
+   const triangles: number[] = [];
+   for (let j = 0; j <= ny; j++) for (let i = 0; i <= nx; i++) positions.push(x0 + ((x1 - x0) * i) / nx, y0 + ((y1 - y0) * j) / ny, z);
+   const at = (i: number, j: number) => before + j * (nx + 1) + i;
+   for (let j = 0; j < ny; j++) {
+      for (let i = 0; i < nx; i++) {
+         triangles.push(at(i, j), at(i + 1, j), at(i + 1, j + 1));
+         triangles.push(at(i, j), at(i + 1, j + 1), at(i, j + 1));
+      }
+   }
+   return { positions, triangles };
+}
 
 /** A short skirt all round the legs (a ring of four thin walls), from the waist to above the knees. */
 export const SKIRT: readonly Part[] = [

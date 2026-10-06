@@ -14,7 +14,10 @@ export {
    type SkinWeights,
 } from "./humanoid";
 export {
+   CLAVICLE_SHARE,
    POSE_MASK,
+   REACH_TOP,
+   SHRUG_TOP,
    aimArm,
    armsDownPose,
    blendPoses,
@@ -24,6 +27,7 @@ export {
    createPose,
    idlePose,
    jumpPose,
+   levelFoot,
    mirrorPose,
    reachPose,
    resolvePose,
@@ -34,6 +38,7 @@ export {
    type HumanoidPose,
    type PoseMask,
 } from "./poses";
+export { bodyLift, groundLift, soleHeight, walkStride } from "./gait";
 export {
    applyHumanoidPose,
    buildHumanoidTemplate,

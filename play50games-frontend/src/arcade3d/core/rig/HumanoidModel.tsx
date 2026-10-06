@@ -5,7 +5,8 @@
 //
 //    const walk = useRef({ phase: 0 });
 //    const pose = useHumanoidPose((p) => {                       // FRAME_PRIORITY.pose, every frame
-//       walk.current.phase += (speed / STRIDE) * Math.PI * 2 * time.delta;
+//       const stride = Math.max(0.2, walkStride(speed01, LANDMARKS) * scale);   // core/rig/gait.ts
+//       walk.current.phase += (speed / stride) * Math.PI * 2 * time.delta;
 //       walkPose(walk.current.phase, speed01, p);              // core/rig/poses.ts builders
 //    });
 //    <HumanoidModel asset={ASSETS.robot} pose={pose} fallback={<RobotPrimitive />} />
@@ -15,9 +16,11 @@
 // - The skinned template is built once per GLB; every <HumanoidModel> has its own bones.
 // - The asset transform is <Model>'s (scale, stretch, rotationY, yOffset): the bind pose draws
 //   exactly where <Model> draws the static GLB.
-// - Every frame at FRAME_PRIORITY.visuals the pose is copied into the bones (no allocation). Write
-//   the pose before that: in a useHumanoidPose driver (FRAME_PRIORITY.pose, after the camera) or in
-//   useRunFrame. A plain useFrame may run after the copy (same priority) and show one frame late.
+// - Every frame at FRAME_PRIORITY.visuals the pose is copied into the bones (no allocation) and the
+//   hips are raised by bodyLift(pose, landmarks) (the lower sole on the floor; applyLift={false}
+//   leaves that to the game's own group). Write the pose before that: in a useHumanoidPose driver
+//   (FRAME_PRIORITY.pose, after the camera) or in useRunFrame. A plain useFrame may run after the
+//   copy (same priority) and show one frame late.
 import { forwardRef, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { useFrame, type GroupProps } from "@react-three/fiber";
 import type { Group } from "three";
@@ -77,7 +80,7 @@ export interface HumanoidModelProps extends Omit<GroupProps, "children"> {
    asset: ModelAsset;
    /** read every frame (mutate it, e.g. from useHumanoidPose); default: arms down */
    pose?: HumanoidPose;
-   /** move the body by pose.lift (default true); false when the game bobs this group itself */
+   /** raise the body by bodyLift(pose) (default true); false when the game moves this group by it itself */
    applyLift?: boolean;
    /** colour of the default fallback primitive (defaults to asset.fallbackColor) */
    fallbackColor?: string;

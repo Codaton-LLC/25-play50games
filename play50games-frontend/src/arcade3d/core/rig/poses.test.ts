@@ -1,9 +1,13 @@
-// Procedural poses: shapes, symmetry, blending and the arm drop, checked as pure rotations.
+// Procedural poses: shapes, symmetry, blending, the arm drop and the clavicles' shrug, the feet,
+// checked as pure rotations.
 import { describe, expect, it } from "vitest";
 import { Quaternion, Vector3 } from "three";
 import { BONE, BONE_COUNT } from "./humanoid";
 import {
+   CLAVICLE_SHARE,
    POSE_MASK,
+   REACH_TOP,
+   WALK_LEG_SWING,
    aimArm,
    armsDownPose,
    blendPoses,
@@ -13,10 +17,12 @@ import {
    createPose,
    idlePose,
    jumpPose,
+   levelFoot,
    mirrorPose,
    reachPose,
    resolvePose,
    restPose,
+   setBoneEuler,
    walkPose,
    wrapPhase,
    type HumanoidPose,
@@ -36,6 +42,7 @@ function expectSamePose(a: HumanoidPose, b: HumanoidPose, digits = 6): void {
    expect(a.dropL).toBeCloseTo(b.dropL, digits);
    expect(a.dropR).toBeCloseTo(b.dropR, digits);
    expect(a.lift).toBeCloseTo(b.lift, digits);
+   expect(a.ground).toBeCloseTo(b.ground, digits);
 }
 
 /** Where the rest direction `dir` of a bone points after the chain of resolved rotations (parent frames). */
@@ -50,12 +57,18 @@ const resolved = (pose: HumanoidPose, spread = SPREAD) => resolvePose(pose, spre
 const X = new Vector3(1, 0, 0);
 const NX = new Vector3(-1, 0, 0);
 const DOWN = new Vector3(0, -1, 0);
+const Z = new Vector3(0, 0, 1);
+/** The bone chains from the root of each arm (the clavicle carries the upper arm). */
+const ARM_L = [BONE.chest, BONE.clavicleL, BONE.upperArmL];
+const ARM_R = [BONE.chest, BONE.clavicleR, BONE.upperArmR];
+const FORE_L = [...ARM_L, BONE.lowerArmL];
+const FORE_R = [...ARM_R, BONE.lowerArmR];
 
 describe("basics", () => {
    it("createPose is the rest pose: every bone unrotated, arms out", () => {
       const p = createPose();
       for (let b = 0; b < BONE_COUNT; b++) expect(Array.from(p.q.subarray(b * 4, b * 4 + 4))).toEqual([0, 0, 0, 1]);
-      expect([p.dropL, p.dropR, p.lift]).toEqual([0, 0, 0]);
+      expect([p.dropL, p.dropR, p.lift, p.ground]).toEqual([0, 0, 0, 1]);
    });
 
    it("every builder writes into `out`, returns it and keeps its array (no allocation)", () => {
@@ -73,6 +86,7 @@ describe("basics", () => {
          () => mirrorPose(out, out),
          () => blendPoses(out, armsDownPose(createPose()), 0.5, out),
          () => copyPose(createPose(), out),
+         () => levelFoot(out, -1, 0.5),
       ];
       for (const build of builders) {
          expect(build()).toBe(out);
@@ -115,34 +129,62 @@ describe("basics", () => {
 describe("the arm drop (resolvePose)", () => {
    it("drop 0 keeps the T-pose; drop 1 hangs each arm armSpread out from straight down, on its own side", () => {
       const rest = resolved(restPose(createPose()));
-      expect(chainDir(rest, [BONE.chest, BONE.upperArmL], X).distanceTo(X)).toBeLessThan(1e-6);
+      expect(chainDir(rest, ARM_L, X).distanceTo(X)).toBeLessThan(1e-6);
       const down = resolved(armsDownPose(createPose()));
-      const left = chainDir(down, [BONE.chest, BONE.upperArmL], X);
-      const right = chainDir(down, [BONE.chest, BONE.upperArmR], NX);
+      const left = chainDir(down, ARM_L, X);
+      const right = chainDir(down, ARM_R, NX);
       expect(left.x).toBeCloseTo(Math.sin(SPREAD), 6);
       expect(left.y).toBeCloseTo(-Math.cos(SPREAD), 6);
       expect(left.z).toBeCloseTo(0, 6);
       expect(right.x).toBeCloseTo(-Math.sin(SPREAD), 6);
       expect(right.y).toBeCloseTo(-Math.cos(SPREAD), 6);
       // the rig's spread is what decides it: another body hangs its arms further out
-      expect(chainDir(resolved(armsDownPose(createPose()), 0.5), [BONE.upperArmL], X).x).toBeCloseTo(Math.sin(0.5), 6);
+      expect(chainDir(resolved(armsDownPose(createPose()), 0.5), ARM_L, X).x).toBeCloseTo(Math.sin(0.5), 6);
    });
 
    it("armsDown bends the elbows a little forward (+z), both sides alike", () => {
       const down = resolved(armsDownPose(createPose()));
-      const foreL = chainDir(down, [BONE.upperArmL, BONE.lowerArmL], X);
-      const foreR = chainDir(down, [BONE.upperArmR, BONE.lowerArmR], NX);
+      const foreL = chainDir(down, FORE_L, X);
+      const foreR = chainDir(down, FORE_R, NX);
       expect(foreL.z).toBeGreaterThan(0.05);
       expect(foreR.z).toBeCloseTo(foreL.z, 6);
       expect(foreL.y).toBeLessThan(-0.9);
    });
 
-   it("only the upper arms are lowered; everything else is the pose's own rotation", () => {
+   it("only the arms and the clavicles are the rig's; everything else is the pose's own rotation", () => {
       const p = walkPose(1.1, 0.7, createPose());
+      p.q[BONE.clavicleL * 4] = 0.3; // whatever a pose holds there, the rig decides the clavicles
       const r = resolved(p);
+      const rig: number[] = [BONE.upperArmL, BONE.upperArmR, BONE.clavicleL, BONE.clavicleR];
       for (let b = 0; b < BONE_COUNT; b++) {
-         if (b === BONE.upperArmL || b === BONE.upperArmR) continue;
+         if (rig.includes(b)) continue;
          expect(Array.from(r.subarray(b * 4, b * 4 + 4))).toEqual(Array.from(p.q.subarray(b * 4, b * 4 + 4)));
+      }
+      // arms at or below level: the clavicles stay put
+      for (const pose of [p, armsDownPose(createPose()), restPose(createPose())]) {
+         const q = resolved(pose);
+         for (const c of [BONE.clavicleL, BONE.clavicleR]) expect(quat(q, c).angleTo(new Quaternion())).toBeLessThan(1e-6);
+      }
+   });
+
+   it("a raised arm shrugs its clavicle up by CLAVICLE_SHARE of its elevation and keeps its own direction", () => {
+      expect(CLAVICLE_SHARE).toBeGreaterThan(0.3);
+      for (const side of [1, -1] as const) {
+         const p = armsDownPose(createPose());
+         // the arm 40° above level, out to the side and a little forward
+         const e = 0.7;
+         aimArm(p, side, Math.cos(e), Math.sin(e), 0.2, Math.cos(e), Math.sin(e), 0.2);
+         const r = resolved(p);
+         const clavicle = side > 0 ? BONE.clavicleL : BONE.clavicleR;
+         const out = side > 0 ? X : NX;
+         // the clavicle's own outward axis rises (both sides: up, not down)
+         const shoulder = chainDir(r, [BONE.chest, clavicle], out);
+         const elevation = Math.asin(new Vector3(Math.cos(e), Math.sin(e), 0.2).normalize().y);
+         expect(shoulder.y).toBeCloseTo(Math.sin(CLAVICLE_SHARE * elevation), 5);
+         expect(shoulder.z).toBeCloseTo(0, 6);
+         // and the arm still points where aimArm sent it
+         const arm = chainDir(r, side > 0 ? ARM_L : ARM_R, out);
+         expect(arm.distanceTo(new Vector3(side * Math.cos(e), Math.sin(e), 0.2).normalize())).toBeLessThan(1e-5);
       }
    });
 });
@@ -169,8 +211,8 @@ describe("walkPose", () => {
       const legR = chainDir(r, [BONE.hips, BONE.upperLegR], DOWN);
       expect(legL.z).toBeGreaterThan(0.2);
       expect(legR.z).toBeLessThan(-0.2);
-      const armL = chainDir(r, [BONE.chest, BONE.upperArmL], X);
-      const armR = chainDir(r, [BONE.chest, BONE.upperArmR], NX);
+      const armL = chainDir(r, ARM_L, X);
+      const armR = chainDir(r, ARM_R, NX);
       expect(armL.z).toBeLessThan(-0.1);
       expect(armR.z).toBeGreaterThan(0.1);
       // and the stride grows with the amount
@@ -178,28 +220,81 @@ describe("walkPose", () => {
       expect(chainDir(wide, [BONE.hips, BONE.upperLegL], DOWN).z).toBeGreaterThan(legL.z);
    });
 
-   it("the knee folds the shin backwards, most on the back swing", () => {
-      const shinAt = (phase: number) => {
-         const r = resolved(walkPose(phase, 1, createPose()));
-         // the shin relative to its thigh: positive z bend = the foot goes back (-z)
-         return chainDir(r, [BONE.lowerLegL], DOWN);
-      };
-      for (const phase of PHASES) expect(shinAt(phase).z).toBeLessThanOrEqual(1e-6);
-      // leg fully forward (π/2): nearly straight; between push-off and mid-swing (-π/4): folded
-      expect(-shinAt(-Math.PI / 4).z).toBeGreaterThan(0.8);
-      expect(-shinAt(Math.PI / 2).z).toBeLessThan(0.3);
+   it("the thighs reach exactly WALK_LEG_SWING x amount at the long stride, both ways", () => {
+      for (const amount of [0.3, 0.6]) {
+         const r = resolved(walkPose(Math.PI / 2, amount, createPose()));
+         // the thigh in the hips' frame (its small outward turn does not change its pitch)
+         const pitch = (bone: number) => {
+            const d = chainDir(r, [bone], DOWN);
+            return Math.atan2(d.z, -d.y);
+         };
+         expect(pitch(BONE.upperLegL)).toBeCloseTo(WALK_LEG_SWING * amount, 2);
+         expect(pitch(BONE.upperLegR)).toBeCloseTo(-WALK_LEG_SWING * amount, 2);
+      }
    });
 
-   it("the lift bobs at or below 0, twice a stride, deeper with the amount", () => {
-      const lift = (phase: number, amount: number) => walkPose(phase, amount, createPose()).lift;
-      for (const phase of PHASES) {
-         expect(lift(phase, 0.5)).toBeLessThanOrEqual(0);
-         expect(lift(phase, 0.5)).toBeCloseTo(lift(phase + Math.PI, 0.5), 9);
+   it("the knee folds only in the swing, most in its middle; straight on the ground and at the long stride", () => {
+      // (a walk: amount 0.5, before a run starts bending the reaching knee)
+      const knee = (phase: number) => 2 * Math.acos(Math.min(1, Math.abs(walkPose(phase, 0.5, createPose()).q[BONE.lowerLegL * 4 + 3])));
+      const shinAt = (phase: number) => chainDir(resolved(walkPose(phase, 1, createPose())), [BONE.lowerLegL], DOWN);
+      // a bend only ever takes the foot back (-z)
+      for (const phase of PHASES) expect(shinAt(phase).z).toBeLessThanOrEqual(1e-6);
+      // the left leg swings from -π/2 to π/2: folded at -π/4 and at 0, straight again at both ends
+      expect(knee(-Math.PI / 4)).toBeGreaterThan(0.3);
+      expect(knee(0)).toBeGreaterThan(0.4);
+      for (const phase of [Math.PI / 2, (3 * Math.PI) / 2, Math.PI, 2.3, 4]) expect(knee(phase)).toBeLessThan(1e-4);
+   });
+
+   it("the soles stay flat: hips x thigh x shin x foot only turns about the vertical, every phase and amount", () => {
+      for (const amount of [0.2, 0.6, 1]) {
+         for (const phase of PHASES) {
+            const p = walkPose(phase, amount, createPose());
+            for (const [thigh, shin, foot] of [
+               [BONE.upperLegL, BONE.lowerLegL, BONE.footL],
+               [BONE.upperLegR, BONE.lowerLegR, BONE.footR],
+            ]) {
+               const sole = chainDir(p.q, [BONE.hips, thigh, shin, foot], new Vector3(0, 1, 0));
+               expect(sole.y).toBeCloseTo(1, 6);
+               // and the toes still point where the hips do (forward, turned by their twist only)
+               const toes = chainDir(p.q, [BONE.hips, thigh, shin, foot], Z);
+               expect(toes.distanceTo(chainDir(p.q, [BONE.hips], Z))).toBeLessThan(1e-5);
+            }
+         }
       }
-      // a walk is highest with the legs together (0), a run in its flight (legs apart, π/2)
-      expect(lift(0, 0.5)).toBeGreaterThan(lift(Math.PI / 2, 0.5));
-      expect(lift(Math.PI / 2, 1)).toBeGreaterThan(lift(0, 1));
-      expect(Math.min(lift(0, 1), lift(Math.PI / 2, 1))).toBeLessThan(Math.min(lift(0, 0.3), lift(Math.PI / 2, 0.3)));
+   });
+
+   it("levelFoot k blends from rigid on the shin (0) to flat (1)", () => {
+      const p = jumpPose(1, createPose());
+      const rigid = levelFoot(levelFoot(copyPose(p, createPose()), 1, 1), 1, 0);
+      expect(quat(rigid.q, BONE.footL).angleTo(new Quaternion())).toBeLessThan(1e-6);
+      const flat = levelFoot(copyPose(p, createPose()), 1, 1);
+      expect(chainDir(flat.q, [BONE.hips, BONE.upperLegL, BONE.lowerLegL, BONE.footL], new Vector3(0, 1, 0)).y).toBeCloseTo(1, 6);
+      const half = levelFoot(copyPose(p, createPose()), 1, 0.5);
+      const angle = quat(flat.q, BONE.footL).angleTo(new Quaternion());
+      expect(quat(half.q, BONE.footL).angleTo(new Quaternion())).toBeCloseTo(angle / 2, 2);
+      // the hips lean forward: the foot still ends flat
+      const leaning = jumpPose(0.5, createPose());
+      setBoneEuler(leaning.q, BONE.hips, 0.4, 0.3, 0);
+      levelFoot(leaning, -1);
+      expect(chainDir(leaning.q, [BONE.hips, BONE.upperLegR, BONE.lowerLegR, BONE.footR], new Vector3(0, 1, 0)).y).toBeCloseTo(1, 6);
+   });
+
+   it("a walk keeps its ground contact (ground 1, no lift); a run lets go with its legs apart and flies a little", () => {
+      for (const phase of PHASES) {
+         const walk = walkPose(phase, 0.5, createPose());
+         expect(walk.ground).toBe(1);
+         expect(walk.lift).toBe(0);
+         const run = walkPose(phase, 1, createPose());
+         expect(run.ground).toBeGreaterThanOrEqual(0);
+         expect(run.ground).toBeLessThanOrEqual(1);
+         expect(run.lift).toBeGreaterThanOrEqual(0);
+         expect(run.ground).toBeCloseTo(walkPose(phase + Math.PI, 1, createPose()).ground, 9);
+      }
+      // planted at mid-stance (legs together), in the air at the long stride
+      expect(walkPose(0, 1, createPose()).ground).toBeCloseTo(1, 9);
+      expect(walkPose(Math.PI / 2, 1, createPose()).ground).toBeCloseTo(0, 9);
+      expect(walkPose(Math.PI / 2, 1, createPose()).lift).toBeGreaterThan(0.01);
+      expect(walkPose(0, 1, createPose()).lift).toBeCloseTo(0, 9);
    });
 });
 
@@ -216,22 +311,21 @@ describe("other poses", () => {
 
    it("carry 1 raises both arms past the head, forearms up and hands edge-on; carry 0 holds them forward at the chest", () => {
       const up = resolved(carryPose(1, createPose()));
-      const upperL = chainDir(up, [BONE.chest, BONE.upperArmL], X);
-      const foreL = chainDir(up, [BONE.chest, BONE.upperArmL, BONE.lowerArmL], X);
+      const upperL = chainDir(up, ARM_L, X);
+      const foreL = chainDir(up, FORE_L, X);
       expect(upperL.y).toBeGreaterThan(0.6);
       expect(upperL.x).toBeGreaterThan(0.6); // out, past the head
       expect(foreL.y).toBeGreaterThan(0.99); // then straight up beside it
       expect(Math.abs(foreL.x)).toBeLessThan(0.1);
-      const foreR = chainDir(up, [BONE.chest, BONE.upperArmR, BONE.lowerArmR], NX);
+      const foreR = chainDir(up, FORE_R, NX);
       expect(foreR.x).toBeCloseTo(-foreL.x, 5);
       // the hand's flat side (the T-pose's front, +z) faces forward, not across the head
-      const Z = new Vector3(0, 0, 1);
-      expect(chainDir(up, [BONE.chest, BONE.upperArmL, BONE.lowerArmL], Z).z).toBeGreaterThan(0.9);
-      expect(chainDir(up, [BONE.chest, BONE.upperArmR, BONE.lowerArmR], Z).z).toBeGreaterThan(0.9);
+      expect(chainDir(up, FORE_L, Z).z).toBeGreaterThan(0.9);
+      expect(chainDir(up, FORE_R, Z).z).toBeGreaterThan(0.9);
       const front = resolved(carryPose(0, createPose()));
-      const foreFront = chainDir(front, [BONE.chest, BONE.upperArmL, BONE.lowerArmL], X);
+      const foreFront = chainDir(front, FORE_L, X);
       expect(foreFront.z).toBeGreaterThan(0.9);
-      expect(chainDir(front, [BONE.chest, BONE.upperArmL], X).y).toBeLessThan(-0.6);
+      expect(chainDir(front, ARM_L, X).y).toBeLessThan(-0.6);
    });
 
    it("aimArm points the upper arm and the forearm exactly, for either side", () => {
@@ -242,36 +336,68 @@ describe("other poses", () => {
          const r = resolved(p, spread);
          const u = new Vector3(0.3, 0.5, 0.8).normalize();
          const f = new Vector3(-0.2, 0.9, 0.4).normalize();
-         expect(chainDir(r, [BONE.upperArmL], X).distanceTo(u)).toBeLessThan(1e-5);
-         expect(chainDir(r, [BONE.upperArmL, BONE.lowerArmL], X).distanceTo(f)).toBeLessThan(1e-5);
-         expect(chainDir(r, [BONE.upperArmR], NX).distanceTo(new Vector3(-u.x, u.y, u.z))).toBeLessThan(1e-5);
-         expect(chainDir(r, [BONE.upperArmR, BONE.lowerArmR], NX).distanceTo(new Vector3(-f.x, f.y, f.z))).toBeLessThan(1e-5);
+         expect(chainDir(r, ARM_L, X).distanceTo(u)).toBeLessThan(1e-5);
+         expect(chainDir(r, FORE_L, X).distanceTo(f)).toBeLessThan(1e-5);
+         expect(chainDir(r, ARM_R, NX).distanceTo(new Vector3(-u.x, u.y, u.z))).toBeLessThan(1e-5);
+         expect(chainDir(r, FORE_R, NX).distanceTo(new Vector3(-f.x, f.y, f.z))).toBeLessThan(1e-5);
       }
       expect([p.dropL, p.dropR]).toEqual([0, 0]);
-      // a straight arm along +z still gives a valid rotation
+      // a straight arm along +z, or straight back along the arm, still gives a valid rotation
       aimArm(p, 1, 0, 0, 1, 0, 0, 1);
-      expect(chainDir(resolved(p), [BONE.upperArmL], X).distanceTo(new Vector3(0, 0, 1))).toBeLessThan(1e-5);
+      expect(chainDir(resolved(p), ARM_L, X).distanceTo(new Vector3(0, 0, 1))).toBeLessThan(1e-5);
+      aimArm(p, -1, -1, 0, 0, -1, 0, 0);
+      expect(chainDir(resolved(p), ARM_R, NX).distanceTo(X)).toBeLessThan(1e-5);
    });
 
-   it("reach: level at 0 and straight up at 1 on the reaching side, for every body; the other arm hangs", () => {
+   it("aimArm turns each segment the shortest way: neither wrings about its own axis (the shoulder is not crushed)", () => {
+      const u = new Vector3(0.75, 0.65, 0.1).normalize();
+      const f = new Vector3(0.04, 1, 0.08).normalize();
+      for (const side of [1, -1] as const) {
+         const p = armsDownPose(createPose());
+         aimArm(p, side, u.x, u.y, u.z, f.x, f.y, f.z);
+         const r = resolved(p);
+         const out = side > 0 ? X : NX;
+         const arm = side > 0 ? ARM_L : ARM_R;
+         const fore = side > 0 ? FORE_L : FORE_R;
+         const dir = new Vector3(side * u.x, u.y, u.z);
+         // the shortest turn from the rest axis to the arm keeps the axis between them fixed
+         const axis = out.clone().cross(dir).normalize();
+         expect(chainDir(r, arm, axis).distanceTo(axis)).toBeLessThan(1e-5);
+         // the forearm's turn (in the upper arm's frame) has no part about its own rest axis (x)
+         expect(Math.abs(r[(side > 0 ? BONE.lowerArmL : BONE.lowerArmR) * 4])).toBeLessThan(1e-6);
+         expect(chainDir(r, fore, out).distanceTo(new Vector3(side * f.x, f.y, f.z))).toBeLessThan(1e-5);
+      }
+   });
+
+   it("reach: level at 0 and REACH_TOP above level at 1, out on the reaching side, for every body; the other arm hangs", () => {
+      expect(REACH_TOP).toBeLessThan(Math.PI / 2 - 0.25); // never straight up into a wide head
       for (const spread of [0.1, 0.5]) {
          const level = resolved(reachPose(1, 0, createPose()), spread);
-         expect(chainDir(level, [BONE.upperArmL], X).distanceTo(X)).toBeLessThan(1e-6);
+         expect(chainDir(level, ARM_L, X).distanceTo(X)).toBeLessThan(1e-6);
          const up = resolved(reachPose(-1, 1, createPose()), spread);
-         expect(chainDir(up, [BONE.upperArmR], NX).distanceTo(new Vector3(0, 1, 0))).toBeLessThan(1e-6);
-         expect(chainDir(up, [BONE.upperArmL], X).y).toBeLessThan(-0.8);
+         expect(chainDir(up, ARM_R, NX).distanceTo(new Vector3(-Math.cos(REACH_TOP), Math.sin(REACH_TOP), 0))).toBeLessThan(1e-6);
+         expect(chainDir(up, ARM_L, X).y).toBeLessThan(-0.8);
       }
       expectSamePose(reachPose(-1, 0.6, createPose()), mirrorPose(reachPose(1, 0.6, createPose()), createPose()));
    });
 
-   it("cheer has both arms up; jump pulls both knees up", () => {
+   it("cheer has both arms up in a V, the forearms more upright; jump pulls both knees up and leaves the ground", () => {
       const c = resolved(cheerPose(0.3, createPose()));
-      expect(chainDir(c, [BONE.chest, BONE.upperArmL], X).y).toBeGreaterThan(0.5);
-      expect(chainDir(c, [BONE.chest, BONE.upperArmR], NX).y).toBeGreaterThan(0.5);
+      for (const [arm, fore, out] of [
+         [ARM_L, FORE_L, X],
+         [ARM_R, FORE_R, NX],
+      ] as const) {
+         const upper = chainDir(c, arm, out);
+         expect(upper.y).toBeGreaterThan(0.6);
+         expect(upper.x * out.x).toBeGreaterThan(0.3); // out to its own side
+         expect(chainDir(c, fore, out).y).toBeGreaterThan(upper.y);
+      }
       const j = resolved(jumpPose(1, createPose()));
       expect(chainDir(j, [BONE.hips, BONE.upperLegL], DOWN).z).toBeGreaterThan(0.5);
       expect(chainDir(j, [BONE.hips, BONE.upperLegR], DOWN).z).toBeGreaterThan(0.5);
-      expectSamePose(jumpPose(0, createPose()), armsDownPose(createPose()));
+      expect(jumpPose(0.5, createPose()).ground).toBe(0);
+      // tuck 0 is the standing pose, but in the air
+      expectSamePose(jumpPose(0, createPose()), { ...armsDownPose(createPose()), ground: 0 });
    });
 });
 

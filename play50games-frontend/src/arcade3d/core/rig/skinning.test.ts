@@ -16,10 +16,11 @@ import {
 } from "three";
 import { assetScale } from "../assets";
 import type { ModelAsset } from "../types";
+import { bodyLift } from "./gait";
 import { BONE, estimateHumanoidLandmarks, type HumanoidLandmarks } from "./humanoid";
 import { armsDownPose, createPose, restPose, walkPose, type HumanoidPose } from "./poses";
 import { applyHumanoidPose, buildHumanoidTemplate, cloneHumanoid, disposeHumanoid, humanoidTemplate, type HumanoidRig } from "./skinning";
-import { HUMAN, HUMAN_PARTS, buildShape, mirrorPartners } from "./testShapes";
+import { APRON, HUMAN, HUMAN_FEET, HUMAN_PARTS, buildShape, gridFace, mirrorPartners } from "./testShapes";
 
 const human = buildShape(HUMAN_PARTS);
 const humanL = estimateHumanoidLandmarks(human);
@@ -122,7 +123,7 @@ describe("buildHumanoidTemplate", () => {
       expect(skins[0].geometry.getAttribute("skinIndex").itemSize).toBe(4);
       expect(skins[0].geometry.getAttribute("skinWeight").count).toBe(human.length / 3);
       expect(skins[0].frustumCulled).toBe(false);
-      expect(skins[0].skeleton.bones).toHaveLength(13);
+      expect(skins[0].skeleton.bones).toHaveLength(17);
    });
 
    it("reads quantized (normalized int16) positions through the node's dequantizing scale", () => {
@@ -310,12 +311,12 @@ describe("skinned poses", () => {
       expect(elbows).toBeGreaterThan(20);
    });
 
-   it("the lift moves the whole body by lift x hip height, only when applied", () => {
+   it("applyLift raises the whole body by bodyLift (the pose's lift x hip height when standing), only when applied", () => {
       const pose = armsDownPose(createPose());
-      pose.lift = -0.05;
+      pose.lift = 0.05;
       const down = posed(armsDownPose(createPose())).world;
       const lifted = posed(pose).world;
-      for (let i = 0; i < n; i += 11) expect(lifted[i * 3 + 1] - down[i * 3 + 1]).toBeCloseTo(-0.05 * humanL.hipY, 5);
+      for (let i = 0; i < n; i += 11) expect(lifted[i * 3 + 1] - down[i * 3 + 1]).toBeCloseTo(0.05 * humanL.hipY, 5);
       const off = posed(pose, undefined, false);
       expect(maxDistance(off.world, down)).toBeLessThan(1e-6);
       expect(off.rig.bones[BONE.hips].position.y).toBe(off.rig.hipsY);
@@ -328,5 +329,98 @@ describe("skinned poses", () => {
       expect(rig.bones[BONE.upperArmL].getWorldPosition(p).x).toBeCloseTo(0.25, 6);
       expect(rig.bones[BONE.upperArmR].getWorldPosition(p).x).toBeCloseTo(-0.25, 6);
       expect(rig.landmarks.shoulderX).toBe(0.25);
+   });
+});
+
+/** A rig over `positions` (one mesh at the GLB root), with optional explicit landmarks. */
+function rigOf(positions: Float32Array, landmarks?: Partial<HumanoidLandmarks>): HumanoidRig {
+   const root = new Group();
+   root.add(meshOf(positions));
+   return cloneHumanoid(buildHumanoidTemplate(root, { landmarks })!);
+}
+
+describe("the feet on the floor (a human with long flat shoes)", () => {
+   const shape = buildShape([...HUMAN_PARTS, HUMAN_FEET]);
+   const rig = rigOf(shape);
+   const lowest = (pose: HumanoidPose, applyLift: boolean) => {
+      applyHumanoidPose(rig, pose, applyLift);
+      const world = skinnedWorld(rig);
+      let low = Infinity;
+      for (let i = 1; i < world.length; i += 3) low = Math.min(low, world[i]);
+      // a game that moves the model's group itself adds bodyLift to it
+      return low + (applyLift ? 0 : bodyLift(pose, rig.landmarks));
+   };
+   const PHASE_STEPS = 24;
+
+   it("a walk keeps one sole on the floor at every phase (within 1 cm) and none below it, lifted by the rig or by the game", () => {
+      for (const amount of [0.3, 0.5]) {
+         for (const applyLift of [true, false]) {
+            for (let k = 0; k < PHASE_STEPS; k++) {
+               const low = lowest(walkPose((k / PHASE_STEPS) * Math.PI * 2, amount, createPose()), applyLift);
+               expect(low, `amount ${amount} phase ${k}`).toBeGreaterThan(-0.005);
+               expect(low, `amount ${amount} phase ${k}`).toBeLessThan(0.01);
+            }
+         }
+      }
+   });
+
+   it("a run never sinks a sole into the floor, and plants one near mid-stance (legs together)", () => {
+      for (const amount of [0.6, 0.8, 1]) {
+         for (let k = 0; k < PHASE_STEPS; k++) expect(lowest(walkPose((k / PHASE_STEPS) * Math.PI * 2, amount, createPose()), true)).toBeGreaterThan(-0.005);
+         for (const phase of [0, Math.PI]) expect(Math.abs(lowest(walkPose(phase, amount, createPose()), true))).toBeLessThan(0.01);
+      }
+   });
+
+   it("standing poses stand on the floor; the soles stay flat on it while the body dips at the long stride", () => {
+      expect(Math.abs(lowest(armsDownPose(createPose()), true))).toBeLessThan(1e-4);
+      // at the long stride both legs are straight and apart: the body is lower than standing
+      const stride = walkPose(Math.PI / 2, 0.5, createPose());
+      expect(bodyLift(stride, rig.landmarks)).toBeLessThan(-0.01);
+      applyHumanoidPose(rig, stride);
+      const world = skinnedWorld(rig);
+      // every sole vertex (rest y = 0) of both shoes is on the floor: the shoes are flat, not tipped
+      let soles = 0;
+      for (let i = 0; i < shape.length / 3; i++) {
+         if (shape[i * 3 + 1] > 1e-6) continue;
+         soles++;
+         expect(Math.abs(world[i * 3 + 1])).toBeLessThan(0.004);
+      }
+      expect(soles).toBeGreaterThan(50);
+   });
+});
+
+describe("cloth that bridges the legs (an apron)", () => {
+   // the apron's front face as a triangulated grid, on top of the human and the apron box
+   const body = buildShape([...HUMAN_PARTS, APRON]);
+   const face = gridFace(body.length / 3, APRON.min[0], APRON.max[0], APRON.min[1], APRON.max[1], APRON.max[2]);
+   const shape = Float32Array.from([...body, ...face.positions]);
+   const area = (p: Float32Array, a: number, b: number, c: number) => {
+      const u = new Vector3(p[b * 3] - p[a * 3], p[b * 3 + 1] - p[a * 3 + 1], p[b * 3 + 2] - p[a * 3 + 2]);
+      const v = new Vector3(p[c * 3] - p[a * 3], p[c * 3 + 1] - p[a * 3 + 1], p[c * 3 + 2] - p[a * 3 + 2]);
+      return u.cross(v).length() / 2;
+   };
+   /** The largest area stretch of an apron front triangle in a pose. */
+   const worstStretch = (rig: HumanoidRig, pose: HumanoidPose) => {
+      applyHumanoidPose(rig, pose, false);
+      const world = skinnedWorld(rig);
+      let worst = 0;
+      for (let t = 0; t < face.triangles.length; t += 3) {
+         const a = face.triangles[t];
+         const b = face.triangles[t + 1];
+         const c = face.triangles[t + 2];
+         worst = Math.max(worst, area(world, a, b, c) / area(shape, a, b, c));
+      }
+      return worst;
+   };
+
+   it("hangs between the legs at a walk: no apron triangle stretches 1.5x (a hard L/R split stretches it into a sheet)", () => {
+      const rig = rigOf(shape);
+      expect(rig.landmarks.hemY).toBeLessThan(0.52);
+      const walk = walkPose(Math.PI / 2, 0.5, createPose());
+      expect(worstStretch(rig, walk)).toBeLessThan(1.5);
+      expect(worstStretch(rig, walkPose((3 * Math.PI) / 2, 0.5, createPose()))).toBeLessThan(1.5);
+      // the same apron weighted as if nothing bridged the legs: the webbing the skirt weights prevent
+      const split = rigOf(shape, { hemY: rig.landmarks.crotchY });
+      expect(worstStretch(split, walk)).toBeGreaterThan(2.5);
    });
 });

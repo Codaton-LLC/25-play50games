@@ -14,16 +14,24 @@ const shared = (id: SharedAssetId) => `/models/3d/shared/${id}.glb`;
 
 /**
  * The robot's joints (GLB units: 1.90 x 1.72 x 0.60 T-pose, faces +z), measured once from
- * robot.glb (2026-10-06, core/README "Measuring a character") and checked in the rig preview:
- * estimateHumanoidLandmarks gives all of these within a few cm; the shoulders sit at the outer edge
- * of the shoulder caps (the estimate, 0.25, would turn the caps with the arms), the elbow and
- * wrist on the model's own joints, the hips a little lower, and a 16° arm spread clears the body.
+ * robot.glb (2026-10-06, core/README "Measuring a character") and checked in the rig preview.
+ * estimateHumanoidLandmarks finds most of them within 3 cm (rig/robot.test.ts pins the rest):
+ * - shoulderX 0.30 (estimate 0.292): the joint on the outer edge of the shoulder caps;
+ * - armSpread 0.28 rad = 16° (estimate 0.162 = 9°): raised by eye so the hanging arms clear the body;
+ * - elbowX / wristX on the model's own joints (5 cm inside the estimate), the hips 3 cm lower;
+ * - hipZ 0.033 (estimate -0.022, the shins' middle; the robot's calves reach back): the thighs' and
+ *   knees' middle; legDepth is measured about it;
+ * - neckY 1.15, headY 1.18, neckBlend 0.015 (estimate 1.179 / 1.193 / 0.007): the head joint at the
+ *   top of the neck, so the whole helmet (from 1.195 up) is rigid on the head bone;
+ * - ankleY 0.17 with a 0.03 blend (estimate 0.177 / 0.034): the boots (up to about 0.14) are rigid feet;
+ * - nothing bridges its legs: hemY = crotchY (no skirt weights).
  */
 export const ROBOT_LANDMARKS: HumanoidLandmarks = {
    shoulderY: 1.079,
    shoulderX: 0.3,
    shoulderZ: 0.031,
    armRadius: 0.093,
+   clavicleX: 0.15,
    elbowX: 0.47,
    wristX: 0.7,
    armSpread: 0.28,
@@ -32,18 +40,25 @@ export const ROBOT_LANDMARKS: HumanoidLandmarks = {
    hipX: 0.172,
    hipZ: 0.033,
    kneeY: 0.355,
+   ankleY: 0.17,
+   toeZ: 0.29,
+   heelZ: -0.218,
+   legDepth: 0.203,
+   legOuterX: 0.322,
+   hemY: 0.65,
    spineY: 0.821,
    chestY: 0.931,
-   neckY: 1.193,
-   headY: 1.324,
+   neckY: 1.15,
+   headY: 1.18,
    spineZ: 0.057,
    shoulderBlend: 0.056,
    elbowBlend: 0.046,
    hipBlend: 0.071,
    kneeBlend: 0.053,
+   ankleBlend: 0.03,
    crotchBlend: 0.063,
    spineBlend: 0.033,
-   neckBlend: 0.046,
+   neckBlend: 0.015,
 };
 
 export const SHARED_ASSETS: Record<SharedAssetId, ModelAsset> = {
