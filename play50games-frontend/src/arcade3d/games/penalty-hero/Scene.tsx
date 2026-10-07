@@ -36,14 +36,16 @@ import { FEEDBACK } from "./Hud";
 import {
    BACKSWING_FROM,
    KEEPER_BOUNCE,
+   KEEPER_HIP,
    KEEPER_ROOT,
    SPOT_Z,
    STRIKER_ROOT,
    keeperDip,
+   keeperDivePlacement,
    keeperSway,
    strikerPlacement,
 } from "./layout";
-import { keeperDivePose, keeperReadyPose, kickPose } from "./poses";
+import { KICK_CONTACT, keeperDivePose, keeperReadyPose, kickPose } from "./poses";
 import { BallPrimitive, Goal, KeeperPrimitive, Stadium, StrikerPrimitive } from "./Primitives";
 import {
    AIM_TIMEOUT_MS,
@@ -70,14 +72,11 @@ import {
    type ZoneId,
 } from "./rules";
 
-const KEEPER_HIP = 0.95;
-const DIVE_ROLL = (65 * Math.PI) / 180;
 /** The striker's lean into the run-up (rad): the stand-in's whole body, the GLB's spine. */
 const RUNUP_LEAN = 0.22;
 /** The GLB striker's run-up: one stride of walkPose over the 700 ms, the kick's backswing in its last quarter (layout.ts BACKSWING_FROM)... */
 const RUNUP_STRIDES = 1;
-/** ...contact at this point of the kick (poses.ts kickPose) as the flight starts, the follow-through over this long. */
-const KICK_CONTACT = 0.55;
+/** ...contact at poses.ts KICK_CONTACT as the flight starts, the follow-through over this long. */
 const KICK_MS = 150;
 /** The poses ease towards their target at this rate (1/s), so a phase change never pops. */
 const POSE_EASE = 25;
@@ -416,6 +415,7 @@ function Keeper({ run }: { run: RunState }) {
    const hip = useRef<Group>(null);
    const standIn = useRef<Group>(null);
    const [scratch] = useState(createPose);
+   const [place] = useState(() => ({ x: 0, y: 0, roll: 0 }));
    const scale = ASSETS.keeper.scale ?? 1;
 
    // the GLB keeper's limbs (core/rig): the ready stance (knees bent, gloves out, breathing, its
@@ -441,16 +441,10 @@ function Keeper({ run }: { run: RunState }) {
       // and hops, the GLB shifts its weight over its planted feet and bounces in its knees (the pose)
       const sway = keeperSway(time.now, !fallback);
       const hop = fallback && run.phase === "aim" ? Math.abs(Math.sin(time.now * KEEPER_BOUNCE.rate)) * KEEPER_BOUNCE.standIn : 0;
-      const reachX = side * 2.0;
-      // A side dive rolls about the hip, so a low dive drops the hip to keep the body near the grass.
-      const lift = side === 0 ? (row === 1 ? 0.55 : 0.12) : row === 1 ? 0.75 : -0.42;
-      g.position.set(
-         KEEPER_ROOT[0] + sway * (1 - dive) + reachX * dive,
-         hop + lift * Math.sin((Math.PI / 2) * dive),
-         KEEPER_ROOT[2]
-      );
-      const roll = side === 0 ? 0 : -side * DIVE_ROLL * (row === 1 ? 1 : 0.95);
-      h.rotation.z = roll * dive;
+      // the leap and the roll about the hip (layout.ts: the GLB's low side dive stays above the grass)
+      keeperDivePlacement(dive, side, row, !fallback, place);
+      g.position.set(KEEPER_ROOT[0] + sway * (1 - dive) + place.x, hop + place.y, KEEPER_ROOT[2]);
+      h.rotation.z = place.roll;
    });
 
    return (

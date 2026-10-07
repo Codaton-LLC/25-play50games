@@ -48,6 +48,8 @@ function swingLeg(out: HumanoidPose, side: number, forward: number, outward: num
 
 /** The kicking leg: the striker's own right (-x). The ball sits at its right foot (layout.ts; poses.test.ts checks it). */
 export const KICK_SIDE = -1;
+/** kickPose's contact with the ball: the flight starts here (Scene.tsx; poses.test.ts puts the boot at the ball). */
+export const KICK_CONTACT = 0.55;
 
 /**
  * The kick, from the backswing (`u` 0) through contact (about 0.55) to the follow-through (1):
