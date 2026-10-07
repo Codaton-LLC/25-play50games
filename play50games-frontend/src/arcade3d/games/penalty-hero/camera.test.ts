@@ -15,9 +15,9 @@ const FIT_TABLE = [
    { width: 360, height: 740, banner: 0, distance: 35.137, striker: [131.52, 406.02, 195.43, 495.29], ball: [175.39, 473.36, 184.61, 484.54] },
    { width: 360, height: 740, banner: 183, distance: 35.137, striker: [131.52, 358.27, 195.43, 447.54], ball: [175.39, 425.60, 184.61, 436.78] },
    { width: 844, height: 390, banner: 0, distance: 22.574, striker: [153.72, 172.41, 227.69, 276.36], ball: [204.81, 245.06, 214.87, 258.18] },
-   { width: 844, height: 390, banner: 83, distance: 24.720, striker: [127.25, 150.65, 188.67, 236.82], ball: [169.59, 212.27, 178.10, 223.13] },
+   { width: 844, height: 390, banner: 83, distance: 28.118, striker: [99.99, 152.01, 148.40, 219.80], ball: [133.30, 201.70, 140.13, 210.22] },
    { width: 740, height: 360, banner: 0, distance: 23.705, striker: [127.88, 162.21, 189.52, 248.76], ball: [170.40, 223.49, 178.88, 234.41] },
-   { width: 740, height: 360, banner: 83, distance: 25.851, striker: [107.69, 139.63, 159.73, 212.59], ball: [143.54, 192.30, 150.80, 201.48] },
+   { width: 740, height: 360, banner: 83, distance: 30.438, striker: [80.52, 140.65, 119.56, 195.27], ball: [107.36, 181.16, 112.92, 188.02] },
 ] as const;
 
 function safeArea(width: number, height: number, bannerHeight: number): SafeArea {
@@ -29,7 +29,7 @@ function safeArea(width: number, height: number, bannerHeight: number): SafeArea
       hud: [
          { left: 10, top: 10, right: 202, bottom: 54 },
          { left: width - 104, top: 10, right: width - 10, bottom: 54 },
-         { left: width / 2 - 69, top: bottom - 73, right: width / 2 + 69, bottom: bottom - 14 },
+         { left: width / 2 - 142, top: bottom - 73, right: width / 2 + 142, bottom: bottom - 14 },
          { left: width / 2 - 69, top: 70, right: width / 2 + 69, bottom: 98 },
       ],
       controls: [],
