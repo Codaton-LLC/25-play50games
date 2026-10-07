@@ -1,0 +1,46 @@
+/* The hint slot: a fixed box (hint.ts HINT_SLOT) marked data-arcade-safe-area. Its size never
+   changes with the message, and it sits where the fitted column never is, so the camera fit is the
+   same with and without a message. Fine pointer: under the shell's score chips, left of the column. */
+.slot {
+   position: absolute;
+   top: calc(env(safe-area-inset-top, 0px) + 60px);
+   left: calc(env(safe-area-inset-left, 0px) + 10px);
+   box-sizing: border-box;
+   width: 220px;
+   height: 34px;
+   display: flex;
+   align-items: center;
+   justify-content: flex-start;
+   pointer-events: none;
+}
+
+/* Touch: between the joystick (20 + 132 px) and the Jump button (72 + 20 px), on the controls'
+   bottom line, above the safe-area inset and the cookie banner like the controls. */
+@media (pointer: coarse) {
+   .slot {
+      top: auto;
+      left: calc(env(safe-area-inset-left, 0px) + 160px);
+      right: calc(env(safe-area-inset-right, 0px) + 100px);
+      bottom: calc(20px + env(safe-area-inset-bottom, 0px) + var(--arcade-bottom-obstruction, 0px));
+      width: auto;
+      height: 52px;
+      align-items: flex-end;
+      justify-content: center;
+   }
+}
+
+.pill {
+   box-sizing: border-box;
+   max-width: 100%;
+   max-height: 100%;
+   overflow: hidden;
+   padding: 0.3rem 0.65rem;
+   border: 1px solid var(--stroke);
+   border-radius: 0.6rem;
+   background: rgba(11, 16, 32, 0.72);
+   color: var(--text);
+   font-size: 0.75rem;
+   font-weight: 600;
+   line-height: 1.2;
+   text-align: center;
+}
