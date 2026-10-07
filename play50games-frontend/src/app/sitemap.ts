@@ -1,36 +1,11 @@
 import { MetadataRoute } from 'next';
 import { ARCADE_ENABLED } from '@/arcade3d/flags';
 import { getLiveGames } from '@/arcade3d/registry';
+import { getApiBase } from '@/lib/api/apiBase';
 
 // Helper function to get site URL
 function getSiteUrl(): string {
   return process.env.NEXT_PUBLIC_SITE_URL || 'https://play50games.com';
-}
-
-// Helper function to get API base URL (same logic as games.ts)
-function getApiBase(): string {
-  // Server-side: prefer server env var, then public env var
-  if (process.env.WORDPRESS_API_URL) {
-    return process.env.WORDPRESS_API_URL;
-  }
-  if (process.env.NEXT_PUBLIC_WORDPRESS_API_URL) {
-    return process.env.NEXT_PUBLIC_WORDPRESS_API_URL;
-  }
-  
-  // Try to detect from SITE_URL if available
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL;
-  if (siteUrl) {
-    // If site is on play50.games, API might be on cms.play50.games
-    if (siteUrl.includes('play50.games')) {
-      return 'https://cms.play50.games/wp-json/play50/v1';
-    }
-    if (siteUrl.includes('play50.game')) {
-      return 'https://cms.play50.game/wp-json/play50/v1';
-    }
-  }
-  
-  // Default to live API
-  return 'https://cms.play50.games/wp-json/play50/v1';
 }
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {

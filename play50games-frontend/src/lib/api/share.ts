@@ -1,22 +1,6 @@
 // Share tracking API client
+import { getApiBase } from './apiBase';
 import { getApiHeaders } from './apiUtils';
-
-// Get API base URL
-function getApiBase(): string {
-  if (typeof window !== 'undefined') {
-    const envUrl = process.env.NEXT_PUBLIC_WORDPRESS_API_URL;
-    if (envUrl) return envUrl;
-    const currentOrigin = window.location.origin;
-    if (currentOrigin.includes('play50.games')) {
-      return 'https://cms.play50.games/wp-json/play50/v1';
-    }
-    if (currentOrigin.includes('play50.game')) {
-      return 'https://cms.play50.game/wp-json/play50/v1';
-    }
-    return 'http://localhost/wp-json/play50/v1';
-  }
-  return process.env.WORDPRESS_API_URL || 'http://localhost/wp-json/play50/v1';
-}
 
 const API_BASE = getApiBase();
 
