@@ -13,7 +13,7 @@ npm install sharp --prefix tools/og
 node tools/og/generate.mjs
 ```
 
-`tools/og/package.json` and `node_modules` stay untracked.
+`tools/og/package.json` and `package-lock.json` pin sharp. `node_modules` stays untracked.
 
 The script writes:
 
