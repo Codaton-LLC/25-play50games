@@ -5,7 +5,8 @@
 // loop mutates it and never calls setState. Visuals read it and animate with useGameTime().
 // The striker and the keeper GLBs are static T-poses: <HumanoidModel> (core/rig) rigs them in code
 // and useHumanoidPose drives their limbs from the same run-up / flight / hold progress the groups
-// animate (poses.ts: the kick, the ready stance, the dive). The primitives stay as the fallbacks.
+// animate (poses.ts: the kick, the ready stance, the dive). The ball GLB is a plain <Model> in the
+// ball's spin group, fitted to BallPrimitive (assets.ts). The primitives stay as the fallbacks.
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import {
@@ -21,6 +22,7 @@ import {
    type MeshBasicMaterial,
 } from "three";
 import CameraRig from "@/arcade3d/core/CameraRig";
+import { Model } from "@/arcade3d/core/assets";
 import { playSfx } from "@/arcade3d/core/audio";
 import { useGameTime } from "@/arcade3d/core/gameTime";
 import { useInput } from "@/arcade3d/core/input";
@@ -299,7 +301,7 @@ function Ball({ run }: { run: RunState }) {
       <>
          <group ref={root} name="ball-root">
             <group ref={spin}>
-               <BallPrimitive />
+               <Model asset={ASSETS.ball} fallback={<BallPrimitive />} />
             </group>
          </group>
          <group ref={shadow}>

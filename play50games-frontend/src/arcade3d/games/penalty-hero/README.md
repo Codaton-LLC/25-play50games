@@ -1,6 +1,6 @@
 # Penalty Hero
 
-Owner: Cursor. Slug: `penalty-hero`. Accent `#f472b6`. Status stays `"soon"` until the game is reviewed and its models exist. **The game is playable** on primitives (striker, keeper, ball, goal, stadium); the striker and keeper GLBs drop in through `assets.ts`.
+Owner: Cursor. Slug: `penalty-hero`. Accent `#f472b6`. Status stays `"soon"` until the game is reviewed and its models exist. **The game is playable** on primitives (striker, keeper, ball, goal, stadium); the striker, keeper and ball GLBs drop in through `assets.ts`.
 
 | File | What it owns |
 |---|---|
@@ -10,9 +10,9 @@ Owner: Cursor. Slug: `penalty-hero`. Accent `#f472b6`. Status stays `"soon"` unt
 | `rules.test.ts` | Vitest, including idle scoring, the duration/rate proof, shot targets, the limit cap, the zone mapping, keyboard presses and swipes through the core input controller, and a press judged where it landed (`tapDown`) against one judged on release (`tap`). |
 | `Scene.tsx` | Mount seed (`randomSeed`), Simulation (`useRunFrame` → `step`; `tapDown` → ray → plane z = 0 → `zoneAt`; `pressed` → aim), store stats and sounds, `useFittedView` + `CameraRig`, visuals from phase progress and `useGameTime`. |
 | `camera.ts` / `camera.test.ts` | Shared fitted-view bounds/config and projected whole-composition checks with the real Three.js camera. |
-| `Primitives.tsx` | Stadium (canvas-texture pitch, crowd and boards), goal frame and net lines, code ball, striker and keeper fallbacks. The boards and the lowest crowd rows behind the net are dark and low-contrast, so they do not compete with the zones. |
+| `Primitives.tsx` | Stadium (canvas-texture pitch, crowd and boards), goal frame and net lines, the ball, striker and keeper fallbacks (`BallPrimitive` = the hook-free `BallMesh`, radius `BALL_RADIUS`, with a canvas panel texture). The boards and the lowest crowd rows behind the net are dark and low-contrast, so they do not compete with the zones. |
 | `Hud.tsx` / `Hud.module.css` | Goals/streak pill (below the shell HUD row, offset by the top safe-area inset), ten shot dots (✓ / ✕ plus colour) with the hint (lifted above the home indicator and the cookie banner), the aim deadline for the last 5 s (a large amber pill, red from 2 s, popping each second), GOAL / SAVED feedback (`aria-live="polite"`). The pill and the dots panel are `data-arcade-safe-area`. |
-| `assets.ts` / `assets.spec.json` | Striker and keeper `ModelAsset`s / two character generation requests. No generated ball. |
+| `assets.ts` / `assets.spec.json` | Striker, keeper and ball `ModelAsset`s (with `BALL_RADIUS` and the ball GLB's measured `BALL_GLB_SIZE`) / their three generation requests. `ball.test.ts` checks the ball GLB as drawn against the stand-in's sphere and the spot. |
 
 ### How the build maps to this design
 
@@ -151,10 +151,10 @@ Play50 toy-world style, matching the attached style sheet: three-quarter front v
 |---|---|---|---|
 | striker | `/models/3d/penalty-hero/striker.glb`, this game (group B, 2026-10-06: 18k tris, 537 KB, 1.83 × 1.90 × 0.35 T-pose; `scale: 0.92` = **1.75 m**, turned to face −z) | `assets.spec.json`, image concept above | Blue capsule/head/boots; rigid root animation |
 | keeper | `/models/3d/penalty-hero/keeper.glb`, this game (group B: 18k tris, 521 KB, 1.86 × 1.89 × 0.38 T-pose; `scale: 0.98` = **1.85 m**, facing +z) | `assets.spec.json`, image concept above | Green capsule/head/gloves; rigid translate/roll |
-| ball | **Code primitive**, radius 0.11 | None | Sphere with simple black/white panels/materials, always code |
+| ball | `/models/3d/penalty-hero/ball.glb`, this game (group D, 2026-10-07: image-to-3D from `tools/hyper3d/concepts/penalty-hero-ball.webp`, 1500 tris, 73 KB, 1.890 × 1.851 × 1.907, floor pivot; `scale` 0.1154 × `stretch` [1.009, 1.030, 1] = **0.22 m** on every axis, `yOffset` −0.11 centres it on the spin group's pivot; `ball.test.ts`) | `assets.spec.json`, image concept | `BallPrimitive`: radius `BALL_RADIUS` 0.11 sphere with black panels on a canvas texture; drawn by `<Model fallback>` in the spin group |
 | goal frame/net, pitch, zones, reticle | Code primitives | None | Boxes/lines, plane and coloured markers |
 
-Universe **`stadium`**, generation seed **5155**. Striker ×2 + keeper ×2 = four generations, estimated **2 credits** at 0.5 each. Removing the generated ball saves **0.5 credit**, previously 2.5. Character caps stay 20k tris / 1024 px / 1.5 MB. No skins needed. Claude handles approved concepts/models/generation/import/optimization; this branch touches neither GLBs nor concepts. Swap fallback/model in `assets.ts`, not rules or tap mapping.
+Universe **`stadium`**, generation seed **5155**. Striker ×2 + keeper ×2 = four generations, estimated **2 credits** at 0.5 each. The ball was left out at first (saving **0.5 credit**) and generated later, in group D (2026-10-07). Character caps stay 20k tris / 1024 px / 1.5 MB. No skins needed. Claude handles approved concepts/models/generation/import/optimization; this branch touches neither GLBs nor concepts. Swap fallback/model in `assets.ts`, not rules or tap mapping.
 
 ## HUD
 
@@ -201,3 +201,4 @@ Planned `rules.test.ts` (Vitest, pure state/fake input, no wall-clock sleeps):
 - GameShell enforces orientation only on coarse pointers. The planned fit gate must cover inadequate fine-pointer viewports/large bottom obstructions too.
 - Swipes never aim (see Controls). A same-direction key press in the frame a swipe fires is dropped with the swipe; that needs a keyboard and a finger at once.
 - Core open items that touch this game: the bottom safe-area inset is not reported to the fit, and the cookie banner is found by a 1 s poll, so the dots panel's lift can trail the banner by up to a second.
+- The ball GLB has no black panels (unlike its concept and the stand-in): Rodin textured it white with grey seams, so in play it reads as a plain white ball. Keeping it or one regeneration is the user's call; a new GLB needs `BALL_GLB_SIZE` re-measured (`ball.test.ts` fails until it is).
