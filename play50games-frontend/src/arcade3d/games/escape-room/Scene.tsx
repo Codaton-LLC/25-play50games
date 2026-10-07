@@ -6,7 +6,7 @@
 // through to the E / Enter nearest-target key. E and the action button use actionPressed.
 import { memo, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
-import { Euler, Quaternion, Raycaster, Vector2, Vector3, type Group, type PerspectiveCamera } from "three";
+import { Raycaster, Vector2, Vector3, type Group, type MeshBasicMaterial, type PerspectiveCamera } from "three";
 import CameraRig from "@/arcade3d/core/CameraRig";
 import { playSfx } from "@/arcade3d/core/audio";
 import type { AABB } from "@/arcade3d/core/collision";
@@ -15,7 +15,6 @@ import { useInput } from "@/arcade3d/core/input";
 import { inputToWorld, randomSeed } from "@/arcade3d/core/math";
 import { BlobShadow } from "@/arcade3d/core/render";
 import {
-   BONE,
    HumanoidModel,
    POSE_MASK,
    blendPoses,
@@ -37,7 +36,8 @@ import { useFittedView, type FittedViewOptions } from "@/arcade3d/core/useFitted
 import { useRunFrame } from "@/arcade3d/core/useRunFrame";
 import { PrimitiveRunner, Room, createMoving, type RunnerLimbs } from "./Primitives";
 import { groundRingScale } from "./marker";
-import { BADGE_PX, MARKER_PX, hitsBillboard, screenSpriteSize } from "./picker";
+import { BADGE_LOOK, BADGE_PX, MARKER_PX, badgeShowsLoot, hitsBillboard, screenSpriteSize } from "./picker";
+import { armDirection, legDirection, reachSide, type Dir3 } from "./standIn";
 import {
    DOOR_ID,
    DOOR_POSITION,
@@ -170,8 +170,11 @@ const Simulation = memo(function Simulation({ run, yaw }: { run: EscapeRun; yaw:
    return null;
 });
 
+/** The 44 px tap target. Over an opened container's loot it turns see-through, so the loot shows. */
 function Badge({ run }: { run: EscapeRun }) {
    const mesh = useRef<Group>(null);
+   const fill = useRef<MeshBasicMaterial>(null);
+   const ring = useRef<MeshBasicMaterial>(null);
    const camera = useThree((s) => s.camera) as PerspectiveCamera;
    const height = useThree((s) => s.size.height);
    useFrame(() => {
@@ -185,16 +188,19 @@ function Badge({ run }: { run: EscapeRun }) {
       g.position.copy(BADGE);
       g.lookAt(camera.position);
       g.scale.set(Math.max(side, 0.001), Math.max(side, 0.001), 1);
+      const take = badgeShowsLoot(run, id);
+      if (fill.current) fill.current.opacity = take ? BADGE_LOOK.takeFill : BADGE_LOOK.fill;
+      if (ring.current) ring.current.opacity = take ? BADGE_LOOK.takeRing : BADGE_LOOK.ring;
    });
    return (
       <group ref={mesh} name="inspect-badge">
          <mesh>
             <planeGeometry args={[1, 1]} />
-            <meshBasicMaterial color="#eab308" transparent opacity={0.92} depthWrite={false} />
+            <meshBasicMaterial ref={fill} color="#eab308" transparent opacity={BADGE_LOOK.fill} depthWrite={false} />
          </mesh>
          <mesh position={[0, 0, 0.01]}>
             <ringGeometry args={[0.28, 0.42, 20]} />
-            <meshBasicMaterial color="#fffbeb" depthWrite={false} />
+            <meshBasicMaterial ref={ring} color="#fffbeb" transparent opacity={BADGE_LOOK.ring} depthWrite={false} />
          </mesh>
       </group>
    );
@@ -204,34 +210,21 @@ function Badge({ run }: { run: EscapeRun }) {
 const RUNNER_LEGS: HumanoidLandmarks = { ...ROBOT_LANDMARKS, ...SHARED_ASSETS.runner.humanoid?.landmarks };
 const RUNNER_SCALE = SHARED_ASSETS.runner.scale ?? 1;
 const MIN_STRIDE = 0.1;
-const LIMB_Q = new Quaternion();
-const LIMB_E = new Euler();
+const DOWN = new Vector3(0, -1, 0);
+const LIMB_DIR: Dir3 = { x: 0, y: -1, z: 0 };
+const LIMB_V = new Vector3();
 
-function boneEuler(pose: HumanoidPose, bone: number): Euler {
-   const o = bone * 4;
-   LIMB_Q.set(pose.q[o], pose.q[o + 1], pose.q[o + 2], pose.q[o + 3]);
-   return LIMB_E.setFromQuaternion(LIMB_Q, "XYZ");
+function aimLimb(limb: Group, dir: Dir3): void {
+   limb.quaternion.setFromUnitVectors(DOWN, LIMB_V.set(dir.x, dir.y, dir.z).normalize());
 }
 
-/** The stand-in is built arms-down. Hanging bones swing on x; a raised arm (drop 0) lifts from the side. */
+/** The stand-in is built limbs-down; each limb points along its rig bone (arms in a V on the win, out to the side in a reach). */
 function applyRunnerLimbs(pose: HumanoidPose, limbs: RunnerLimbs): void {
    const { legL, legR, armL, armR } = limbs;
-   if (legL) {
-      const e = boneEuler(pose, BONE.upperLegL);
-      legL.rotation.set(-e.x, 0, e.z);
-   }
-   if (legR) {
-      const e = boneEuler(pose, BONE.upperLegR);
-      legR.rotation.set(-e.x, 0, e.z);
-   }
-   if (armL) poseArm(pose, BONE.upperArmL, pose.dropL, armL, 1);
-   if (armR) poseArm(pose, BONE.upperArmR, pose.dropR, armR, -1);
-}
-
-function poseArm(pose: HumanoidPose, bone: number, drop: number, arm: Group, side: number): void {
-   const e = boneEuler(pose, bone);
-   const raised = 1 - drop;
-   arm.rotation.set(-e.x * drop - 1.15 * raised, 0, side * 0.85 * raised);
+   if (legL) aimLimb(legL, legDirection(pose, 1, LIMB_DIR));
+   if (legR) aimLimb(legR, legDirection(pose, -1, LIMB_DIR));
+   if (armL) aimLimb(armL, armDirection(pose, 1, RUNNER_LEGS.armSpread, LIMB_DIR));
+   if (armR) aimLimb(armR, armDirection(pose, -1, RUNNER_LEGS.armSpread, LIMB_DIR));
 }
 
 /**
@@ -266,10 +259,8 @@ function Runner({ run }: { run: EscapeRun }) {
       if (acting) {
          const id = run.action.target;
          const target = id === DOOR_ID ? DOOR_POSITION : run.layout.stations[id];
-         const dx = target.x - player.x;
-         const dz = target.z - player.z;
-         const right = Math.cos(g.heading) * dx - Math.sin(g.heading) * dz;
-         g.side = right >= 0 ? -1 : 1;
+         // the arm on the target's side (rig L = +x local), for the stand-in and for runner.glb alike
+         g.side = reachSide(g.heading, target.x - player.x, target.z - player.z);
       }
       const { phase, endReason } = useArcadeStore.getState();
       const won = phase === "over" && endReason === "win";

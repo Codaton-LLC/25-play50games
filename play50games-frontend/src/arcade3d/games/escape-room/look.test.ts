@@ -1,9 +1,12 @@
-// Open cupboards must show their loot to the fitted camera, and the ground marker must
-// cover 24 css px through that same camera (a horizontal ring, not a facing sprite).
+// Open cupboards, the desk drawer and the under-desk box must show their loot to the fitted
+// camera, and the ground marker must cover 24 css px through that same camera (a horizontal
+// ring, not a facing sprite).
 import { describe, expect, it } from "vitest";
 import {
+   Box3,
    BoxGeometry,
    CylinderGeometry,
+   Group,
    Mesh,
    MeshStandardMaterial,
    PerspectiveCamera,
@@ -11,7 +14,18 @@ import {
    Vector3,
 } from "three";
 import { fitView, setLensShift, type ScreenRect } from "@/arcade3d/core/view";
+import { ASSETS } from "./assets";
 import { LOOT_AT, createCupboardShell, poseCupboard } from "./cupboard";
+import {
+   DESK_HALF_X,
+   DESK_HALF_Z,
+   DESK_TOP_Y,
+   DRAWER,
+   UNDER_DESK,
+   drawerX,
+   underDeskLid,
+   underDeskX,
+} from "./desk";
 import { MARKER_RADIUS, groundRingScale } from "./marker";
 import { MARKER_PX, screenSpriteSize } from "./picker";
 import { DOOR_POSITION, STATION_ANCHORS, STATION_BODY, START } from "./rules";
@@ -110,6 +124,173 @@ describe("escape-room opened cupboard", () => {
             }
          }
       }
+   });
+});
+
+type DeskLoot = "key" | "book" | "battery";
+
+/** The loot as Primitives.tsx draws it: the key and book fallbacks, the battery GLB's measured box. */
+function deskLoot(kind: DeskLoot): Mesh {
+   let mesh: Mesh;
+   if (kind === "key") {
+      mesh = new Mesh(new BoxGeometry(0.28, 0.08, 0.12), new MeshStandardMaterial());
+      mesh.position.y = 0.08;
+   } else if (kind === "book") {
+      mesh = new Mesh(new BoxGeometry(0.22, 0.08, 0.3), new MeshStandardMaterial());
+      mesh.position.y = 0.06;
+   } else {
+      // shared battery.glb: 1.02 x 1.90 x 1.01, standing on y = 0, scaled in assets.ts
+      const k = ASSETS.battery.scale ?? 1;
+      mesh = new Mesh(new BoxGeometry(1.02 * k, 1.9 * k, 1.01 * k), new MeshStandardMaterial());
+      mesh.position.y = (1.9 * k) / 2;
+   }
+   mesh.name = "loot";
+   return mesh;
+}
+
+interface DeskStation {
+   root: Group;
+   loot: Mesh;
+   lid: Mesh | null;
+   cx: number;
+   toward: 1 | -1;
+}
+
+/**
+ * Station 0 (drawer) or 2 (under-desk) as Primitives.tsx builds it, posed at `open`, with the desk
+ * as a solid body box up to its top (the GLB's legs could only let more through).
+ */
+function deskStation(id: 0 | 2, x: number, z: number, open: number, kind: DeskLoot): DeskStation {
+   const toward: 1 | -1 = x < 0 ? 1 : -1;
+   const cx = x + Math.sign(x) * STATION_BODY.offset;
+   const root = new Group();
+   root.position.set(cx, 0, z);
+   const desk = new Mesh(new BoxGeometry(DESK_HALF_X * 2, DESK_TOP_Y, DESK_HALF_Z * 2), new MeshStandardMaterial());
+   desk.position.y = DESK_TOP_Y / 2;
+   desk.name = "desk";
+   root.add(desk);
+   const part = new Group();
+   const holder = new Group();
+   let lid: Mesh | null = null;
+   if (id === 0) {
+      part.position.set(toward * drawerX(open), DRAWER.y, 0);
+      const drawer = new Mesh(new BoxGeometry(...DRAWER.size), new MeshStandardMaterial());
+      drawer.name = "drawer";
+      part.add(drawer);
+      holder.position.y = DRAWER.lootY;
+   } else {
+      const [w, h, d] = UNDER_DESK.size;
+      part.position.set(toward * underDeskX(open), UNDER_DESK.y, 0);
+      const box = new Mesh(new BoxGeometry(w, h, d), new MeshStandardMaterial());
+      box.name = "box";
+      part.add(box);
+      const hinge = new Group();
+      hinge.position.set(0, h / 2, -d / 2);
+      hinge.rotation.x = -UNDER_DESK.lidOpen * underDeskLid(open);
+      lid = new Mesh(new BoxGeometry(w, UNDER_DESK.lidThick, d), new MeshStandardMaterial());
+      lid.position.set(0, UNDER_DESK.lidThick / 2, d / 2);
+      lid.name = "lid";
+      hinge.add(lid);
+      part.add(hinge);
+      holder.position.y = UNDER_DESK.lootY;
+   }
+   const loot = deskLoot(kind);
+   holder.add(loot);
+   part.add(holder);
+   root.add(part);
+   root.updateMatrixWorld(true);
+   return { root, loot, lid, cx, toward };
+}
+
+function disposeTree(root: Group): void {
+   root.traverse((o) => {
+      if (o instanceof Mesh) {
+         o.geometry.dispose();
+         (o.material as MeshStandardMaterial).dispose();
+      }
+   });
+}
+
+const BOX = new Box3();
+
+describe("escape-room opened desk stations", () => {
+   const cameras = [
+      ["375x812", fittedCamera(375, 812)],
+      ["1280x800", fittedCamera(1280, 800)],
+   ] as const;
+   const kinds: DeskLoot[] = ["key", "book", "battery"];
+
+   it("a ray from the fitted camera hits the opened drawer's and under-desk box's loot before the desk", () => {
+      for (const [label, camera] of cameras) {
+         for (const id of [0, 2] as const) {
+            for (const dx of JITTER) {
+               for (const dz of JITTER) {
+                  const x = STATION_ANCHORS[id].x + dx;
+                  const z = STATION_ANCHORS[id].z + dz;
+                  for (const kind of kinds) {
+                     const station = deskStation(id, x, z, 1, kind);
+                     BOX.setFromObject(station.loot);
+                     // the loot's centre and the middle of its top face
+                     const targets = [
+                        BOX.getCenter(new Vector3()),
+                        new Vector3((BOX.min.x + BOX.max.x) / 2, BOX.max.y - 0.01, (BOX.min.z + BOX.max.z) / 2),
+                     ];
+                     for (const target of targets) {
+                        DIR.copy(target).sub(camera.position).normalize();
+                        RAY.set(camera.position, DIR);
+                        const first = RAY.intersectObject(station.root, true)[0];
+                        const where = `${label} station ${id} ${kind} @ ${x},${z}`;
+                        expect(first, where).toBeTruthy();
+                        expect(first.object.name, where).toBe("loot");
+                     }
+                     disposeTree(station.root);
+                  }
+               }
+            }
+         }
+      }
+   });
+
+   it("opened loot is out past the desk top's edge, or lower than the top", () => {
+      for (const id of [0, 2] as const) {
+         for (const dx of JITTER) {
+            for (const kind of kinds) {
+               const x = STATION_ANCHORS[id].x + dx;
+               const station = deskStation(id, x, STATION_ANCHORS[id].z, 1, kind);
+               BOX.setFromObject(station.loot);
+               const edge = station.cx + station.toward * DESK_HALF_X;
+               const outside = station.toward > 0 ? BOX.min.x > edge : BOX.max.x < edge;
+               expect(outside || BOX.max.y < DESK_TOP_Y, `station ${id} ${kind}`).toBe(true);
+               disposeTree(station.root);
+            }
+         }
+      }
+   });
+
+   it("the under-desk lid stays below the desk top while it is under it, through the whole open", () => {
+      for (let i = 0; i <= 50; i++) {
+         const open = i / 50;
+         const station = deskStation(2, STATION_ANCHORS[2].x, STATION_ANCHORS[2].z, open, "battery");
+         expect(station.lid).toBeTruthy();
+         BOX.setFromObject(station.lid as Mesh);
+         const edge = station.cx + station.toward * DESK_HALF_X;
+         const underTop = station.toward > 0 ? BOX.min.x < edge : BOX.max.x > edge;
+         // a tabletop is a few cm thick: the lid may not rise into it while it is under the desk
+         if (underTop) expect(BOX.max.y, `open ${open}`).toBeLessThan(DESK_TOP_Y - 0.05);
+         disposeTree(station.root);
+      }
+      // and it does open, well up, once the box is out
+      const opened = deskStation(2, STATION_ANCHORS[2].x, STATION_ANCHORS[2].z, 1, "key");
+      BOX.setFromObject(opened.lid as Mesh);
+      expect(BOX.max.y).toBeGreaterThan(UNDER_DESK.y + UNDER_DESK.size[1] / 2 + 0.45);
+      disposeTree(opened.root);
+   });
+
+   it("closed, the under-desk box hides under the desk; open, it is past the edge and short of the anchor", () => {
+      expect(underDeskX(0) + UNDER_DESK.size[0] / 2).toBeLessThanOrEqual(DESK_HALF_X);
+      expect(underDeskX(1) - UNDER_DESK.size[0] / 2).toBeGreaterThan(DESK_HALF_X);
+      // the anchor is STATION_BODY.offset (1.0) from the body's centre
+      expect(underDeskX(1) + UNDER_DESK.size[0] / 2).toBeLessThan(STATION_BODY.offset + 0.05);
    });
 });
 

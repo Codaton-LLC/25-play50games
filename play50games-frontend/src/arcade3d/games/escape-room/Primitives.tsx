@@ -9,6 +9,7 @@ import { InstancedModel, Model } from "@/arcade3d/core/assets";
 import { Instanced, type InstanceSpot } from "@/arcade3d/core/render";
 import { ASSETS } from "./assets";
 import { LOOT_AT, createCupboardShell, poseCupboard } from "./cupboard";
+import { DRAWER, UNDER_DESK, drawerX, underDeskLid, underDeskX } from "./desk";
 import {
    DOOR_OPEN_MS,
    DOOR_POSITION,
@@ -44,6 +45,8 @@ interface Moving {
    drawer: Array<Group | null>;
    hinge: Array<Group | null>;
    roof: Array<Mesh | null>;
+   /** the under-desk box (slides out) and its lid (hinged on the back edge) */
+   box: Array<Group | null>;
    lid: Array<Group | null>;
    loot: Array<Group | null>;
    leaf: Group | null;
@@ -99,16 +102,17 @@ export function Room({ run, moving }: { run: EscapeRun; moving: MutableRefObject
       for (let i = 0; i < 4; i++) {
          const station = run.stations[i];
          const open = openAmount(station.phase, station.progressMs);
+         const toward = run.layout.stations[i].x < 0 ? 1 : -1;
          const slide = parts.drawer[i];
-         if (slide) {
-            const out = run.layout.stations[i].x < 0 ? 1 : -1;
-            slide.position.x = out * (0.45 + 0.42 * open);
-         }
+         if (slide) slide.position.x = toward * drawerX(open);
          const hinge = parts.hinge[i];
          const roof = parts.roof[i];
-         if (hinge && roof) poseCupboard(hinge, roof, run.layout.stations[i].x < 0 ? 1 : -1, open);
+         if (hinge && roof) poseCupboard(hinge, roof, toward, open);
+         // the box slides out from under the desk top first, then its lid swings up behind the loot
+         const box = parts.box[i];
+         if (box) box.position.x = toward * underDeskX(open);
          const lid = parts.lid[i];
-         if (lid) lid.rotation.x = -1.15 * open;
+         if (lid) lid.rotation.x = -UNDER_DESK.lidOpen * underDeskLid(open);
       }
       for (let item = 0; item < 3; item++) {
          const loot = parts.loot[item];
@@ -169,39 +173,46 @@ export function Room({ run, moving }: { run: EscapeRun; moving: MutableRefObject
                      <Cupboard toward={toward > 0 ? 1 : -1} stationId={station.id} moving={moving} />
                   ) : null}
                   {station.kind === "drawer" ? (
-                     <group ref={(g) => { set.drawer[station.id] = g; }} position={[toward * 0.45, 0.32, 0]}>
+                     <group ref={(g) => { set.drawer[station.id] = g; }} position={[toward * DRAWER.x, DRAWER.y, 0]} name="drawer">
                         <mesh>
-                           <boxGeometry args={[0.45, 0.16, 0.7]} />
+                           <boxGeometry args={DRAWER.size} />
                            <meshStandardMaterial color="#d6d3d1" roughness={0.6} />
                         </mesh>
                         {station.item !== -1 ? (
-                           <group ref={(g) => { set.loot[station.item] = g; }} position={[0, 0.14, 0]} visible={false}>
+                           <group ref={(g) => { set.loot[station.item] = g; }} position={[0, DRAWER.lootY, 0]} visible={false} name="loot">
                               <Loot kind={station.item} />
                            </group>
                         ) : null}
                      </group>
                   ) : null}
                   {station.kind === "under-desk" ? (
-                     <group position={[toward * 0.2, 0.16, 0]}>
+                     <group
+                        ref={(g) => { set.box[station.id] = g; }}
+                        position={[toward * UNDER_DESK.x, UNDER_DESK.y, 0]}
+                        name="under-desk"
+                     >
                         <mesh>
-                           <boxGeometry args={[0.4, 0.28, 0.55]} />
+                           <boxGeometry args={UNDER_DESK.size} />
                            <meshStandardMaterial color="#44403c" roughness={0.7} />
                         </mesh>
-                        <group ref={(g) => { set.lid[station.id] = g; }} position={[toward * -0.18, 0.14, 0]}>
-                           <mesh position={[toward * 0.18, 0.02, 0]}>
-                              <boxGeometry args={[0.4, 0.04, 0.55]} />
+                        <group
+                           ref={(g) => { set.lid[station.id] = g; }}
+                           position={[0, UNDER_DESK.size[1] / 2, -UNDER_DESK.size[2] / 2]}
+                        >
+                           <mesh position={[0, UNDER_DESK.lidThick / 2, UNDER_DESK.size[2] / 2]}>
+                              <boxGeometry args={[UNDER_DESK.size[0], UNDER_DESK.lidThick, UNDER_DESK.size[2]]} />
                               <meshStandardMaterial color="#a8a29e" roughness={0.6} />
                            </mesh>
                         </group>
                         {station.item !== -1 ? (
-                           <group ref={(g) => { set.loot[station.item] = g; }} position={[0, 0.2, 0]} visible={false}>
+                           <group ref={(g) => { set.loot[station.item] = g; }} position={[0, UNDER_DESK.lootY, 0]} visible={false} name="loot">
                               <Loot kind={station.item} />
                            </group>
                         ) : null}
                      </group>
                   ) : null}
                   {station.kind === "cupboard" && station.item !== -1 ? (
-                     <group ref={(g) => { set.loot[station.item] = g; }} position={LOOT_AT} visible={false}>
+                     <group ref={(g) => { set.loot[station.item] = g; }} position={LOOT_AT} visible={false} name="loot">
                         <Loot kind={station.item} />
                      </group>
                   ) : null}
@@ -245,6 +256,7 @@ export function createMoving(): Moving {
       drawer: [null, null, null, null],
       hinge: [null, null, null, null],
       roof: [null, null, null, null],
+      box: [null, null, null, null],
       lid: [null, null, null, null],
       loot: [null, null, null],
       leaf: null,
@@ -281,7 +293,10 @@ export interface RunnerLimbs {
    bob: Group | null;
 }
 
-/** About 1.4 tall, arms down. Scene swings these groups from the shared humanoid pose. */
+/**
+ * About 1.4 tall, arms down, facing +z. L = the runner's left = +x, as in core/rig, so Scene
+ * points each limb group along its own side's bone (standIn.ts).
+ */
 export function PrimitiveRunner({ limbs }: { limbs: MutableRefObject<RunnerLimbs> }) {
    const set = (key: keyof RunnerLimbs) => (g: Group | null) => {
       limbs.current[key] = g;
@@ -300,25 +315,25 @@ export function PrimitiveRunner({ limbs }: { limbs: MutableRefObject<RunnerLimbs
             <torusGeometry args={[0.17, 0.035, 6, 14]} />
             <meshStandardMaterial color="#eab308" roughness={0.4} />
          </mesh>
-         <group ref={set("legL")} position={[-0.1, 0.46, 0]}>
+         <group ref={set("legL")} position={[0.1, 0.46, 0]}>
             <mesh position={[0, -0.2, 0]}>
                <capsuleGeometry args={[0.07, 0.28, 4, 8]} />
                <meshStandardMaterial color="#1e293b" roughness={0.7} />
             </mesh>
          </group>
-         <group ref={set("legR")} position={[0.1, 0.46, 0]}>
+         <group ref={set("legR")} position={[-0.1, 0.46, 0]}>
             <mesh position={[0, -0.2, 0]}>
                <capsuleGeometry args={[0.07, 0.28, 4, 8]} />
                <meshStandardMaterial color="#1e293b" roughness={0.7} />
             </mesh>
          </group>
-         <group ref={set("armL")} position={[-0.28, 0.86, 0]}>
+         <group ref={set("armL")} position={[0.28, 0.86, 0]}>
             <mesh position={[0, -0.18, 0]}>
                <capsuleGeometry args={[0.055, 0.22, 4, 8]} />
                <meshStandardMaterial color="#f97316" roughness={0.55} />
             </mesh>
          </group>
-         <group ref={set("armR")} position={[0.28, 0.86, 0]}>
+         <group ref={set("armR")} position={[-0.28, 0.86, 0]}>
             <mesh position={[0, -0.18, 0]}>
                <capsuleGeometry args={[0.055, 0.22, 4, 8]} />
                <meshStandardMaterial color="#f97316" roughness={0.55} />

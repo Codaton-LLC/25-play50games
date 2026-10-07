@@ -1,9 +1,23 @@
 // Badge hit test for Tiny Escape Room. Pure: no three.js objects, no allocation.
 // A station or the door is inspected by tapping a camera-facing square above its anchor.
 // The square's world size is chosen so it covers BADGE_PX css pixels at the current depth.
+import { DOOR_ID, NONE, type EscapeRun } from "./rules";
 
 export const BADGE_PX = 44;
 export const MARKER_PX = 24;
+
+/** The badge's fill and ring opacity: solid to inspect, see-through over loot that is on show. */
+export const BADGE_LOOK = { fill: 0.92, ring: 1, takeFill: 0.2, takeRing: 0.5 } as const;
+
+/**
+ * Is the badge over station `id` the "take" badge of an opened, filled container? Its loot sits
+ * right under it: the 44 px square is wider than a whole station on a phone (about 20 px per m).
+ */
+export function badgeShowsLoot(run: EscapeRun, id: number): boolean {
+   if (id < 0 || id === DOOR_ID || id >= run.stations.length) return false;
+   const item = run.layout.stations[id].item;
+   return item !== NONE && run.stations[id].phase === "open" && run.items[item].visible;
+}
 
 /** World length of a css-pixel sprite facing the camera. fovDeg is the vertical field of view. */
 export function screenSpriteSize(depth: number, fovDeg: number, canvasHeight: number, cssPx: number): number {
