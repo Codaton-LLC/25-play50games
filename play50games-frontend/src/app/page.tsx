@@ -10,6 +10,7 @@ import ArcadeTeaserStrip from "@/components/Hub/ArcadeTeaserStrip";
 import ClassicProgressBadge from "@/components/Hub/ClassicProgressBadge";
 import { ARCADE_ENABLED } from "@/arcade3d/flags";
 import { ARCADE_GAMES } from "@/arcade3d/registry";
+import { hubJsonLd, serializeJsonLd } from "@/lib/seo/jsonLd";
 import styles from "./page.module.css";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://play50games.com";
@@ -72,6 +73,10 @@ const STEPS = [
 export default function HubPage() {
    return (
       <div className={styles.page}>
+         <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{ __html: serializeJsonLd(hubJsonLd(SITE_URL, ARCADE_ENABLED)) }}
+         />
          <div className={styles.header}>
             <HeaderWithAuth />
          </div>
