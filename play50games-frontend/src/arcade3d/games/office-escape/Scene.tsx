@@ -35,7 +35,6 @@ import {
    bodyLift,
    cheerPose,
    createPose,
-   flailPose,
    idlePose,
    jumpPose,
    turnBone,
@@ -49,6 +48,7 @@ import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { useRunFrame } from "@/arcade3d/core/useRunFrame";
 import { ASSETS } from "./assets";
 import { chaseInsets, fitChase, type ChaseFit } from "./camera";
+import { CRASH, crashPlacement, crashPose, type CrashPlacement } from "./crash";
 import {
    Backdrop,
    COLORS,
@@ -389,17 +389,12 @@ const Coins = memo(function Coins({ run, fx, standIns }: { run: OfficeRun; fx: F
 const STRIDE_MM = 2400;
 const DEG = Math.PI / 180;
 const APEX_M = JUMP_APEX / 1000;
-/** The crash: knock-back (m) and the turn towards the middle (rad); the body stays above the screen's bottom edge. */
-const CRASH_BACK = 0.25;
-const CRASH_YAW = 0.6;
 const mix = (a: number, b: number, k: number) => a + (b - a) * k;
 /** The runner GLB's joints (core/sharedAssets) and its scale here: its height over its planted foot. */
 const LEGS = RUNNER_LANDMARKS;
 const SCALE = ASSETS.runner.scale ?? 1;
 /** walkPose's amount at the 8 m/s start (0.5 = a walk, 1 = a run) and at the 16 m/s cap. */
 const RUN_AMOUNT = { start: 0.85, cap: 1 } as const;
-/** The crash pose takes over the limbs this quickly (s) once the runner is hit. */
-const CRASH_POSE_S = 0.25;
 
 /** The run cycle (looks only) of the GLB runner: its eased amount, cheer and the body's height. */
 interface Gait {
@@ -418,6 +413,7 @@ const Runner = memo(function Runner({ run, fx }: { run: OfficeRun; fx: Fx }) {
    const [rig] = useState(createRunnerRig);
    const [gait] = useState<Gait>(() => ({ amount: 0, cheer: 0, lift: 0 }));
    const [scratch] = useState(createPose);
+   const [crash] = useState<CrashPlacement>(() => ({ e: 0, y: 0, z: 0, tilt: 0, yaw: 0 }));
 
    // the GLB runner's limbs (core/rig), FRAME_PRIORITY.pose: after the step, before the useFrame
    // below. The run cycle's phase is the stand-in's (distance / STRIDE_MM, so the legs move with
@@ -457,7 +453,8 @@ const Runner = memo(function Runner({ run, fx }: { run: OfficeRun; fx: Fx }) {
          blendPoses(p, jumpPose(0.4 + 0.6 * tuck, scratch), fx.air, p);
       }
       if (gait.cheer > 0.001) blendPoses(p, cheerPose(t, scratch), gait.cheer, p);
-      if (fx.crashAt >= 0) blendPoses(p, flailPose(t, scratch), Math.min(1, (t - fx.crashAt) / CRASH_POSE_S), p);
+      // on its back: the arms flail, the legs kick up off the floor (crash.ts)
+      if (fx.crashAt >= 0) blendPoses(p, crashPose(t, scratch), Math.min(1, (t - fx.crashAt) / CRASH.poseS), p);
       gait.lift = bodyLift(p, LEGS) * SCALE;
    });
 
@@ -479,19 +476,16 @@ const Runner = memo(function Runner({ run, fx }: { run: OfficeRun; fx: Fx }) {
 
       if (fx.crashAt >= 0) {
          // knocked back onto its back (diagonally, towards the middle, so it stays in view), a
-         // bounce, then a dizzy head. Looks only: the run is already over.
+         // bounce, then a dizzy head (crash.ts). Looks only: the run is already over.
          const k = t - fx.crashAt;
-         const f = Math.min(1, k / 0.45);
-         const e = 1 - (1 - f) ** 3;
-         const bounce = k > 0.45 ? Math.sin((k - 0.45) * 14) * 0.07 * Math.exp(-(k - 0.45) * 5) : 0;
-         const yaw = (run.x > 0 ? -CRASH_YAW : CRASH_YAW) * e;
-         g.position.set(x, feet * (1 - f) + Math.sin(f * Math.PI) * 0.4 + 0.12 * e, CRASH_BACK * e);
-         g.rotation.set(1.42 * e + bounce, yaw, 0, "YXZ");
+         const { e, y, z, tilt, yaw } = crashPlacement(k, feet, run.x > 0 ? -1 : 1, crash);
+         g.position.set(x, y, z);
+         g.rotation.set(tilt, yaw, 0, "YXZ");
          b.position.set(0, 0, 0);
          b.rotation.set(0, 0, 0);
          b.scale.set(1, 1, 1);
          // the shadow lies under the body's middle
-         sh.position.set(x + Math.sin(yaw) * 0.75 * e, 0, CRASH_BACK * e + Math.cos(yaw) * 0.75 * e);
+         sh.position.set(x + Math.sin(yaw) * 0.75 * e, 0, CRASH.back * e + Math.cos(yaw) * 0.75 * e);
          sh.rotation.set(0, yaw, 0);
          sh.scale.set(1 + 0.3 * e, 1, 1 + 1.3 * e);
          if (limbs) {

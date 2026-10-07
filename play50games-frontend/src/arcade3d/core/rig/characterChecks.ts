@@ -3,6 +3,7 @@
 // tests) calls describeCharacter(): the GLB is read and meshopt-decoded without a loader
 // (robotGlb.ts), auto-rigged with the committed landmarks, and its poses are skinned on the CPU
 // like the vertex shader does. rig/robot.test.ts is the hand-written original of these checks.
+// rigCharacter() gives a game test the same CPU skinner for its own poses (a catch, a crash).
 import { beforeAll, describe, expect, it } from "vitest";
 import { BufferAttribute, BufferGeometry, Group, Matrix4, Mesh, MeshBasicMaterial, SkinnedMesh, Vector3 } from "three";
 import type { ModelAsset } from "../types";
@@ -37,6 +38,49 @@ const BLENDS: Array<keyof HumanoidLandmarks> = ["shoulderBlend", "elbowBlend", "
 const STEPS = 16;
 const phaseOf = (k: number) => (k / STEPS) * Math.PI * 2;
 
+/** A character GLB auto-rigged with its asset's committed landmarks, posed on the CPU. */
+export interface RiggedCharacter {
+   glb: CharacterGlb;
+   rig: HumanoidRig;
+   skin: SkinnedMesh;
+   position: BufferAttribute;
+   /** every vertex in `pose`, skinned on the CPU like the vertex shader does (GLB root space, before the asset's scale and turn) */
+   posed(pose: HumanoidPose, applyLift?: boolean): Float32Array;
+}
+
+/**
+ * Reads `asset`'s GLB (from public/), rigs it like <HumanoidModel> does and returns a CPU skinner:
+ * for game tests that check a pose of their own on the real mesh (a catch, a crash). Call it in a
+ * beforeAll.
+ */
+export async function rigCharacter(asset: ModelAsset): Promise<RiggedCharacter> {
+   const glb = await readCharacterGlb(asset.url);
+   const root = new Group();
+   const holder = new Group();
+   holder.position.fromArray(glb.node);
+   const geometry = new BufferGeometry();
+   const position = new BufferAttribute(glb.local, 3);
+   geometry.setAttribute("position", position);
+   holder.add(new Mesh(geometry, new MeshBasicMaterial()));
+   root.add(holder);
+   const rig = cloneHumanoid(buildHumanoidTemplate(root, asset.humanoid)!);
+   const skin = rig.root.children.find((o) => (o as SkinnedMesh).isSkinnedMesh) as SkinnedMesh;
+   const v = new Vector3();
+   return {
+      glb,
+      rig,
+      skin,
+      position,
+      posed(pose: HumanoidPose, applyLift = true): Float32Array {
+         applyHumanoidPose(rig, pose, applyLift);
+         rig.root.updateMatrixWorld(true);
+         const world = new Float32Array(glb.cloud.length);
+         for (let i = 0; i < position.count; i++) skin.applyBoneTransform(i, v.fromBufferAttribute(position, i)).applyMatrix4(skin.matrixWorld).toArray(world, i * 3);
+         return world;
+      },
+   };
+}
+
 /** Registers the checks of one character (inside the caller's describe). */
 export function describeCharacter(name: string, spec: CharacterSpec): void {
    const L = spec.landmarks;
@@ -44,30 +88,15 @@ export function describeCharacter(name: string, spec: CharacterSpec): void {
    let rig: HumanoidRig;
    let skin: SkinnedMesh;
    let position: BufferAttribute;
+   let character: RiggedCharacter;
 
    beforeAll(async () => {
-      glb = await readCharacterGlb(spec.asset.url);
-      const root = new Group();
-      const holder = new Group();
-      holder.position.fromArray(glb.node);
-      const geometry = new BufferGeometry();
-      position = new BufferAttribute(glb.local, 3);
-      geometry.setAttribute("position", position);
-      holder.add(new Mesh(geometry, new MeshBasicMaterial()));
-      root.add(holder);
-      rig = cloneHumanoid(buildHumanoidTemplate(root, spec.asset.humanoid)!);
-      skin = rig.root.children.find((o) => (o as SkinnedMesh).isSkinnedMesh) as SkinnedMesh;
+      character = await rigCharacter(spec.asset);
+      ({ glb, rig, skin, position } = character);
    });
 
    /** Every vertex in `pose`, skinned on the CPU like the vertex shader does (GLB root space). */
-   function posed(pose: HumanoidPose, applyLift = true): Float32Array {
-      applyHumanoidPose(rig, pose, applyLift);
-      rig.root.updateMatrixWorld(true);
-      const world = new Float32Array(glb.cloud.length);
-      const v = new Vector3();
-      for (let i = 0; i < position.count; i++) skin.applyBoneTransform(i, v.fromBufferAttribute(position, i)).applyMatrix4(skin.matrixWorld).toArray(world, i * 3);
-      return world;
-   }
+   const posed = (pose: HumanoidPose, applyLift = true): Float32Array => character.posed(pose, applyLift);
 
    /** The lowest point of each foot (rest y below the ankle's blend), and of the whole character. */
    function feet(world: Float32Array): { left: number; right: number; all: number } {

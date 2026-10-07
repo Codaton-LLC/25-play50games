@@ -38,7 +38,6 @@ import {
    idlePose,
    useHumanoidPose,
    walkPose,
-   walkStride,
    wrapPhase,
 } from "@/arcade3d/core/rig";
 import { ROBOT_LANDMARKS } from "@/arcade3d/core/sharedAssets";
@@ -47,6 +46,7 @@ import { useFittedView, type FittedViewOptions } from "@/arcade3d/core/useFitted
 import { useRunFrame } from "@/arcade3d/core/useRunFrame";
 import { followFocus } from "@/arcade3d/core/view";
 import { ASSETS } from "./assets";
+import { ROBOT_SCALE, robotPhaseStep } from "./gait";
 import { BatteryPrimitive, COLORS, RobotPrimitive, WALL, Warehouse, useBatteryParts } from "./Primitives";
 import {
    ARENA,
@@ -111,17 +111,9 @@ interface RunData {
 
 // ---------- the robot ----------
 
-/** The robot GLB's joints (core/sharedAssets) and its scale here: its stride and its height over its feet. */
+/** The robot GLB's joints (core/sharedAssets) and its scale here: its height over its feet (its stride: gait.ts). */
 const LEGS = ROBOT_LANDMARKS;
-const SCALE = ASSETS.robot.scale ?? 1;
-/** The phase never advances by more than a stride this short (m): standing still, the stride is 0. */
-const MIN_STRIDE = 0.1;
-/**
- * The walk's own stride (core/rig walkStride, 1.1 m at full speed for this 1.4 m robot) keeps the
- * planted foot still, but at 5 m/s its legs would beat 4.5 times a second: it steps at most this
- * often (strides a second); faster, the stride stretches and the feet slide a little (README).
- */
-const MAX_CADENCE = 4;
+const SCALE = ROBOT_SCALE;
 
 /** The walk cycle (looks only): phase from the distance walked, amount eased towards the speed. */
 interface Gait {
@@ -150,8 +142,8 @@ function Robot({ run }: { run: RunData }) {
       const { phase, endReason } = useArcadeStore.getState();
       const v = phase === "playing" ? Math.hypot(run.robot.vx, run.robot.vz) : 0;
       gait.amount += (Math.min(1, v / ROBOT.maxSpeed) - gait.amount) * (1 - Math.exp(-12 * dt));
-      const stride = Math.max(MIN_STRIDE, walkStride(gait.amount, LEGS) * SCALE, v / MAX_CADENCE);
-      gait.phase = wrapPhase(gait.phase + ((v * dt) / stride) * Math.PI * 2);
+      // the walk's own stride (the planted foot stays put), at most ROBOT_MAX_CADENCE strides a second (gait.ts)
+      gait.phase = wrapPhase(gait.phase + robotPhaseStep(gait.amount, v, dt));
       gait.cheer += ((phase === "over" && endReason === "win" ? 1 : 0) - gait.cheer) * (1 - Math.exp(-8 * dt));
       walkPose(gait.phase, gait.amount, p);
       // nearly still: the idle's breath and glance in the upper body (the legs keep the walk's)

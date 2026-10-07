@@ -110,7 +110,11 @@ export const RUNNER_LANDMARKS: HumanoidLandmarks = {
 export const SHARED_ASSETS: Record<SharedAssetId, ModelAsset> = {
    // Rodin characters come as static T-poses: the core auto-rig (core/rig) animates them. The
    // runner is 1.90 tall in GLB units: a game sets `scale` for its own drawn height (office-escape
-   // 0.82 = 1.55 m, obstacle-race 0.79 = 1.50 m).
+   // 0.82 = 1.55 m, obstacle-race 0.79 = 1.50 m). There is deliberately no default: drawn as is
+   // (`SHARED_ASSETS.runner.scale ?? 1`) it stands 1.90 m tall. A game draws
+   // `{ ...SHARED_ASSETS.runner, scale }` from its own assets.ts and derives its stride and lift
+   // scale from that asset (escape-room about 0.74 = 1.40 m, clean-city about 0.47 = 0.9 m: check
+   // against the camera fit); RUNNER_LANDMARKS are complete, so no ROBOT_LANDMARKS spread.
    runner: {
       id: "runner",
       url: shared("runner"),

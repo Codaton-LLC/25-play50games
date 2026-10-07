@@ -33,6 +33,16 @@ import { useFittedView, type FittedViewOptions } from "@/arcade3d/core/useFitted
 import { useRunFrame } from "@/arcade3d/core/useRunFrame";
 import { ASSETS } from "./assets";
 import { FEEDBACK } from "./Hud";
+import {
+   BACKSWING_FROM,
+   KEEPER_BOUNCE,
+   KEEPER_ROOT,
+   SPOT_Z,
+   STRIKER_ROOT,
+   keeperDip,
+   keeperSway,
+   strikerPlacement,
+} from "./layout";
 import { keeperDivePose, keeperReadyPose, kickPose } from "./poses";
 import { BallPrimitive, Goal, KeeperPrimitive, Stadium, StrikerPrimitive } from "./Primitives";
 import {
@@ -81,16 +91,12 @@ const VIEW: FittedViewOptions = {
    minDistance: MIN_DISTANCE,
 };
 
-const SPOT_Z = 11;
-const STRIKER_ROOT: [number, number, number] = [-0.65, 0, 11.8];
-const KEEPER_ROOT: [number, number, number] = [0, 0, -0.15];
 const KEEPER_HIP = 0.95;
 const DIVE_ROLL = (65 * Math.PI) / 180;
 /** The striker's lean into the run-up (rad): the stand-in's whole body, the GLB's spine. */
 const RUNUP_LEAN = 0.22;
-/** The GLB striker's run-up: one stride of walkPose over the 700 ms, the kick's backswing in its last quarter... */
+/** The GLB striker's run-up: one stride of walkPose over the 700 ms, the kick's backswing in its last quarter (layout.ts BACKSWING_FROM)... */
 const RUNUP_STRIDES = 1;
-const BACKSWING_FROM = 0.75;
 /** ...contact at this point of the kick (poses.ts kickPose) as the flight starts, the follow-through over this long. */
 const KICK_CONTACT = 0.55;
 const KICK_MS = 150;
@@ -339,6 +345,7 @@ function Striker({ run }: { run: RunState }) {
    const standIn = useRef<Group>(null);
    const [target] = useState(createPose);
    const [scratch] = useState(createPose);
+   const [place] = useState(() => ({ x: 0, z: 0, yaw: 0 }));
 
    // the GLB striker's limbs (core/rig), FRAME_PRIORITY.pose: the idle while aiming, a stride of the
    // walk over the run-up (its amount growing with the progress), the kick's backswing in the
@@ -380,10 +387,12 @@ function Striker({ run }: { run: RunState }) {
       // the stand-in's stride bob, idle bob and whole-body lean; the GLB walks and leans in its own joints
       const stride = fallback && run.phase === "runup" && shot ? Math.abs(Math.sin(p * Math.PI * 3)) * 0.05 : 0;
       const idle = fallback && run.phase === "aim" ? Math.sin(time.now * 2.4) * 0.01 : 0;
-      g.position.set(STRIKER_ROOT[0] + 0.3 * e, stride + idle, STRIKER_ROOT[2] - 0.6 * e);
+      // the run-up towards the ball (layout.ts): the kicking foot ends beside it
+      strikerPlacement(e, place);
+      g.position.set(place.x, stride + idle, place.z);
       const kick = fallback && shot && run.phase === "flight" ? Math.sin(Math.PI * clamp01(run.phaseMs / 200)) * 0.12 : 0;
       g.rotation.x = fallback ? -RUNUP_LEAN * e - kick : 0;
-      g.rotation.y = -0.25 * e;
+      g.rotation.y = place.yaw;
    });
 
    return (
@@ -409,39 +418,50 @@ function diveProgress(run: RunState): number {
    return 0;
 }
 
-/** The zone the keeper dives to: its side (-1 / 0 / 1 along x) and row (1 high, 0 low). */
-function diveZone(run: RunState): { side: -1 | 0 | 1; row: 0 | 1 } {
+/** The side of the zone the keeper dives to: -1 / 0 / 1 along x (the middle while it does not dive). */
+function diveSide(run: RunState): -1 | 0 | 1 {
    const k = run.keeperIndex;
    const col = k >= 0 ? k % 3 : 1;
-   return { side: col === 0 ? -1 : col === 2 ? 1 : 0, row: k >= 0 && k < 3 ? 1 : 0 };
+   return col === 0 ? -1 : col === 2 ? 1 : 0;
+}
+
+/** The row of the zone the keeper dives to: 1 high, 0 low. */
+function diveRow(run: RunState): 0 | 1 {
+   const k = run.keeperIndex;
+   return k >= 0 && k < 3 ? 1 : 0;
 }
 
 function Keeper({ run }: { run: RunState }) {
    const time = useGameTime();
    const root = useRef<Group>(null);
    const hip = useRef<Group>(null);
+   const standIn = useRef<Group>(null);
    const [scratch] = useState(createPose);
+   const scale = ASSETS.keeper.scale ?? 1;
 
-   // the GLB keeper's limbs (core/rig): the ready stance (knees bent, gloves out, breathing), blended
-   // into the dive towards the ball's zone by the same dive progress that moves and rolls the group.
-   // The keeper faces +z, so the zone's side is its own (+1 = its left = +x).
+   // the GLB keeper's limbs (core/rig): the ready stance (knees bent, gloves out, breathing, its
+   // weight shifting with the group's sway over planted feet and a bounce in its knees: poses.ts),
+   // blended into the dive towards the ball's zone by the same dive progress that moves and rolls
+   // the group (which also fades the sway out). The keeper faces +z, so the zone's side is its own
+   // (+1 = its left = +x).
    const pose = useHumanoidPose((p) => {
-      keeperReadyPose(time.now, p);
       const dive = diveProgress(run);
-      if (dive > 0.001) {
-         const { side, row } = diveZone(run);
-         blendPoses(p, keeperDivePose(side, row, scratch), dive, p);
-      }
+      keeperReadyPose(time.now, p, (keeperSway(time.now, true) * (1 - dive)) / scale, keeperDip(time.now));
+      if (dive > 0.001) blendPoses(p, keeperDivePose(diveSide(run), diveRow(run), scratch), dive, p);
    });
 
    useFrame(() => {
       const g = root.current;
       const h = hip.current;
       if (!g || !h) return;
+      const fallback = standIn.current !== null;
       const dive = diveProgress(run);
-      const { side, row } = diveZone(run);
-      const sway = run.phase === "aim" || run.phase === "runup" ? Math.sin(time.now * 2.2) * 0.22 : 0;
-      const hop = run.phase === "aim" ? Math.abs(Math.sin(time.now * 4.4)) * 0.04 : 0;
+      const side = diveSide(run);
+      const row = diveRow(run);
+      // the sway fades out into the dive and back in after it (it never jumps); the stand-in slides
+      // and hops, the GLB shifts its weight over its planted feet and bounces in its knees (the pose)
+      const sway = keeperSway(time.now, !fallback);
+      const hop = fallback && run.phase === "aim" ? Math.abs(Math.sin(time.now * KEEPER_BOUNCE.rate)) * KEEPER_BOUNCE.standIn : 0;
       const reachX = side * 2.0;
       // A side dive rolls about the hip, so a low dive drops the hip to keep the body near the grass.
       const lift = side === 0 ? (row === 1 ? 0.55 : 0.12) : row === 1 ? 0.75 : -0.42;
@@ -458,7 +478,15 @@ function Keeper({ run }: { run: RunState }) {
       <group ref={root} position={KEEPER_ROOT} name="keeper">
          <group ref={hip} position={[0, KEEPER_HIP, 0]}>
             <group position={[0, -KEEPER_HIP, 0]}>
-               <HumanoidModel asset={ASSETS.keeper} pose={pose} fallback={<KeeperPrimitive />} />
+               <HumanoidModel
+                  asset={ASSETS.keeper}
+                  pose={pose}
+                  fallback={
+                     <group ref={standIn}>
+                        <KeeperPrimitive />
+                     </group>
+                  }
+               />
             </group>
          </group>
          <BlobShadow radius={0.45} />

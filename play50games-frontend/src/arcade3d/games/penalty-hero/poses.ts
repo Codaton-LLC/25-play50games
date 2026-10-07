@@ -17,8 +17,10 @@ import {
    reachPose,
    setBoneEuler,
    turnBone,
+   type HumanoidLandmarks,
    type HumanoidPose,
 } from "@/arcade3d/core/rig";
+import { KEEPER_LANDMARKS } from "./assets";
 
 const clamp01 = (v: number) => (v < 0 ? 0 : v > 1 ? 1 : v);
 const lerp = (a: number, b: number, k: number) => a + (b - a) * k;
@@ -44,7 +46,7 @@ function swingLeg(out: HumanoidPose, side: number, forward: number, outward: num
    setBoneEuler(out.q, lowerLeg(side), bend, 0, 0);
 }
 
-/** The kicking leg: the striker's own right (-x). The ball sits at its right foot. */
+/** The kicking leg: the striker's own right (-x). The ball sits at its right foot (layout.ts; poses.test.ts checks it). */
 export const KICK_SIDE = -1;
 
 /**
@@ -78,14 +80,51 @@ export function kickPose(u: number, out: HumanoidPose): HumanoidPose {
 }
 
 /**
+ * Turns a leg (the hips unturned) so its ankle is at (tx, ty, tz) from its hip joint (GLB units, the
+ * character's frame; the joints are in line as core/rig humanoidJoints places them): two-bone IK,
+ * the knee's bend from the reach (the thigh `lt` and the shin `ls` long), then the thigh's outward
+ * and forward swings to point the leg there. Allocation-free.
+ */
+function plantLeg(out: HumanoidPose, side: number, tx: number, ty: number, tz: number, lt: number, ls: number): void {
+   const cb = Math.max(-1, Math.min(1, (tx * tx + ty * ty + tz * tz - lt * lt - ls * ls) / (2 * lt * ls)));
+   const bend = Math.acos(cb);
+   // the bent leg in the thigh's frame is (0, -p, -q); outward first, then forward
+   const p = lt + ls * cb;
+   const q = ls * Math.sin(bend);
+   const outward = Math.asin(Math.max(-1, Math.min(1, (side * tx) / p)));
+   const m = p * Math.cos(outward);
+   // (ty, tz) is (-m, -q) turned by -forward about x
+   const forward = -Math.atan2(q * ty - m * tz, -m * ty - q * tz);
+   swingLeg(out, side, forward, outward, bend);
+}
+
+/** The ready stance's legs (rad): the thighs forward and out, the knees bent. */
+const READY_LEG = { forward: 0.4, outward: 0.12, bend: 0.75 } as const;
+
+/**
  * The keeper's ready stance: knees bent, leaning forward, both gloves out in front at hip height
  * with the palms forward, the head up, a breath from the idle (`t` in seconds). Standing
  * (`ground` 1): the crouch lowers the body onto its flat soles.
+ *
+ * Its weight shift (layout.ts keeperSway): the game moves the keeper's group `shift` (GLB units:
+ * metres / the asset's scale) to its left (+x) and the legs reach back to where the feet stood, so
+ * the soles stay planted on the grass; `dip` (GLB units) bends both knees further, lowering the body
+ * over the same feet (its bounce). Both 0 = the stance as designed. `l` = the keeper's landmarks
+ * (the legs' lengths).
  */
-export function keeperReadyPose(t: number, out: HumanoidPose): HumanoidPose {
+export function keeperReadyPose(t: number, out: HumanoidPose, shift = 0, dip = 0, l: HumanoidLandmarks = KEEPER_LANDMARKS): HumanoidPose {
    idlePose(t, out);
+   // the stance's ankle from its hip joint: outward (ox), down (oy), forward (oz)
+   const lt = l.hipY - l.kneeY;
+   const ls = l.kneeY - l.ankleY;
+   const p0 = lt + ls * Math.cos(READY_LEG.bend);
+   const q0 = ls * Math.sin(READY_LEG.bend);
+   const ox = p0 * Math.sin(READY_LEG.outward);
+   const m0 = p0 * Math.cos(READY_LEG.outward);
+   const oy = -m0 * Math.cos(READY_LEG.forward) - q0 * Math.sin(READY_LEG.forward);
+   const oz = m0 * Math.sin(READY_LEG.forward) - q0 * Math.cos(READY_LEG.forward);
    for (let side = 1; side >= -1; side -= 2) {
-      swingLeg(out, side, 0.4, 0.12, 0.75);
+      plantLeg(out, side, side * ox - shift, oy + dip, oz, lt, ls);
       levelFoot(out, side);
       // upper arm down, out and forward; forearm forward and a little up, the glove's palm forward
       aimArm(out, side as 1 | -1, 0.6, -0.65, 0.45, 0.25, 0.3, 0.92);
