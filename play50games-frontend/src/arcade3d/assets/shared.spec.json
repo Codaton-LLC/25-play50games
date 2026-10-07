@@ -124,6 +124,22 @@
             "bytes": 300000
          },
          "textureSize": 512
+      },
+      {
+         "id": "coin",
+         "kind": "prop",
+         "mode": "text",
+         "prompt": "shiny gold coin standing upright on its edge, thick rounded rim, a raised star on the face, single isolated prop, no base, no ground, game-ready low-poly",
+         "concept": "tools/hyper3d/concepts/shared-coin.webp",
+         "tier": "Gen-2.5-Medium",
+         "qualityOverride": 1000,
+         "attempts": 1,
+         "target": "shared",
+         "budget": {
+            "tris": 5000,
+            "bytes": 300000
+         },
+         "textureSize": 512
       }
    ]
 }
