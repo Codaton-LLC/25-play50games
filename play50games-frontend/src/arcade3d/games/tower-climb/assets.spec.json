@@ -1,0 +1,22 @@
+{
+   "slug": "tower-climb",
+   "universe": "shared-cast",
+   "seed": 5050,
+   "assets": [
+      {
+         "id": "checkpoint-flag",
+         "kind": "prop",
+         "mode": "text",
+         "prompt": "Checkpoint flag on a short rounded pole, bright yellow triangular pennant, chunky friendly proportions, Play50 toy world style, bright vinyl toy look, smooth rounded shapes, saturated colours, single isolated prop, centered, no base, no ground, no text, clean game-ready low-poly topology",
+         "tier": "Gen-2.5-Low",
+         "qualityOverride": 1500,
+         "attempts": 1,
+         "target": "tower-climb",
+         "budget": {
+            "tris": 5000,
+            "bytes": 300000
+         },
+         "textureSize": 512
+      }
+   ]
+}

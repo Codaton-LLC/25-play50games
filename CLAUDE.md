@@ -152,7 +152,7 @@ Branches: Cursor `cursor/<pkg>`, Codex `codex/<pkg>` (local worktree or cloud br
 | 1 | Hub + `/classic` + nav/SEO + stale-JWT fix → **Release 0** (arcade flag off) | Claude C1 ∥ Cursor K1 ∥ Codex X2 | ✅ live on Vercel |
 | 2 | 3D core + `/3d` routes + UI kit + WP admin page + Hyper3D CLI | Claude C2 ∥ Cursor K2 ∥ Codex X3/X2 | ✅ merged (+ core follow-up) |
 | 3 | robot-collector + leaderboard API on prod + JWT rotation → **Release 1** | Claude | ⏳ code merged on main (robot-collector live + `enabled:true`, privacy toggle on /3d, policy section 5, register note, JWT fallback from `wp_salt`); backup done; waiting for the user: test account + OLD_JWT, replace the JWT value in server wp-config.php, upload from `%USERPROFILE%/.play50/upload/release1/` (arcade-games.json, then functions.php), then curl suite, reset, Vercel flags |
-| 4 | Games 2–10, one at a time (order in `skills.md`) | Owners | ⏳ playable on main (status soon): food-catcher, office-escape, penalty-hero, warehouse-rush, obstacle-race; rules merged: pigeon-crossing, clean-city, escape-room; see "Where we are" |
+| 4 | Games 2–10, one at a time (order in `skills.md`) | Owners | ⏳ playable on main (status soon): food-catcher, office-escape, penalty-hero, warehouse-rush, obstacle-race; rules merged: pigeon-crossing, clean-city, escape-room, tower-climb; see "Where we are" |
 | 5 | Polish: JSON-LD, Lighthouse ≥ 90, trailer/OG, run tokens | Claude · Cursor · Codex | Not started |
 
 ### Where we are (update this section whenever work lands)
@@ -167,7 +167,7 @@ Last update 2026-10-06 (afternoon; weekly usage limit nearly used up, resets 202
 | pigeon-crossing | Codex | ✅ merged | ✅ merged (Cursor reviewed; Claude test fix) | ⏳ `codex/game-pigeon-crossing-scene` done, review by Cursor pending | pigeon on `claude/assets-group-b`; car, taxi, van not generated |
 | penalty-hero | Cursor | ✅ | ✅ | ✅ merged (status soon, tapDown shots) | striker + keeper on `claude/assets-group-b` |
 | warehouse-rush | Claude | ✅ | ✅ | ✅ merged (status soon) | ✅ shelfRack (2 copies per rack), pallet, robot, crate |
-| tower-climb | Codex | ✅ updated on `codex/game-tower-climb` (merge pending) | – (next for Codex) | – | flag, spring pad not generated |
+| tower-climb | Codex | ✅ merged | ✅ merged (Claude review: 14 test/README fixes, mutation-probed) | ⏳ `codex/game-tower-climb-scene` in progress (Codex), review pending | flag, spring pad not generated |
 | clean-city | Cursor | ✅ | ✅ merged (reviewed, 11 test fixes) | ⏳ `cursor/game-clean-city-scene` done, review by Codex pending | bottle, bag, bin, bench, palm, umbrella, lamp not generated |
 | escape-room | Codex (scene: Cursor) | ✅ | ✅ merged (reviewed; corner soft-lock fixed) | ⏳ `cursor/game-escape-room-scene` done, review by Codex pending | key, book, door, console not generated |
 | obstacle-race | Claude | ✅ | ✅ | ✅ merged (status soon; Rapier debris not shipped) | finish arch drawn as a primitive (the Rodin arch is a double arch, unused; regenerate only if the user approves) |
@@ -176,7 +176,7 @@ Last update 2026-10-06 (afternoon; weekly usage limit nearly used up, resets 202
 - Core auto-rig (`claude/auto-rig`, workflow review + fixes done, final check running): static T-pose GLBs become SkinnedMeshes with a code skeleton; poses: armsDown, walk/run swing, idle, carry/arms-up, reach. Merge after its final check, then adopt it per game. The user requires that characters never glide in T-pose: arms and legs must move.
 - `claude/assets-group-b` (Hyper3D characters runner, chef, striker, keeper, pigeon; concepts in `tools/hyper3d/concepts/*.webp`): merge only together with the humanoid adoption in office-escape (runner), food-catcher (chef), penalty-hero (striker, keeper), robot-collector + warehouse-rush (robot). Pigeon: hop/squash in code.
 - Scene reviews: Cursor reviews the pigeon-crossing scene, Codex reviews the escape-room and clean-city scenes (reports come back through the user); then Claude verifies, fixes, merges.
-- Codex next: tower-climb rules. Group C props (cars, clean-city props, escape-room props, tower flag/spring) need the user's spend approval.
+- Codex next: finish the tower-climb scene on `codex/game-tower-climb-scene` (merge origin/main first: the rules, tests and README fixes are on main), then a scene review. Group C props (cars, clean-city props, escape-room props, tower flag/spring) need the user's spend approval.
 - Release 1 still waits for the user's server steps (runbook below).
 
 **Release 1 runbook** (user does the server/Vercel steps; Claude verifies): ✅ backup (Plesk) → set `JWT_AUTH_SECRET_KEY` in the server `wp-config.php` from `%USERPROFILE%\.play50\jwt-secret.txt` (everyone logs in once) → upload `functions.php` + `includes/arcade-games.json` (robot-collector enabled) → user creates a test account on the live site and saves its JWT to a local file (never in chat) → Claude runs the curl suite (`docs/arcade-api.md` §13) → wp-admin "Arcade Scores" → Reset game → Vercel env `NEXT_PUBLIC_ARCADE_ENABLED=1`, `NEXT_PUBLIC_ARCADE_LEADERBOARD=1`, plus `NEXT_PUBLIC_SITE_URL=https://25-play50games.vercel.app` → Redeploy → Claude verifies live.
