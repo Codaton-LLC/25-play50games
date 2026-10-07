@@ -12,7 +12,8 @@ Owner: **Codex**. Slug: `pigeon-crossing`, game 4. Accent `#a78bfa`. Scene imple
 | `Primitives.tsx` | Pigeon fallback and mount-owned pooled stand-in geometry/materials, disposed on unmount. |
 | `camera.ts` / `camera.test.ts` | Pure full-frustum horizon, fit/gate inputs, projected mesh hull, refit cache and bounded bird poses; tests of measurements, pools, occlusion and crash grounding. |
 | `Hud.tsx` / `Hud.module.css` | Preview and view-gate hints, pointer-transparent and outside safe-area measurement. |
-| `assets.ts` / `assets.spec.json` | Model mappings / approved generation spec (spec unchanged). |
+| `assets.ts` / `assets.spec.json` | Model mappings (the pigeon and the three vehicle GLBs fitted to their stand-ins) / approved generation spec (spec unchanged). |
+| `assets.test.ts` | The real vehicle GLBs as the pools draw them: the stand-in's size within 5 %, inside the hit box and 1.5 m, hidden under the side cover at every birth and death. |
 | `public/images/3d/pigeon-crossing.webp` | 960 × 540 thumbnail, 8,358 bytes, authored from this game's primitives. `meta.thumbnail` remains null under the controls-only edit restriction. |
 
 ### What a new game copies from here
@@ -180,9 +181,9 @@ Universe **`street`**, fixed asset seed **5250** (not the fresh gameplay seed). 
 | Model | Source | Spec | Fallback |
 |---|---|---|---|
 | pigeon | `/models/3d/pigeon-crossing/pigeon.glb` | Image, folded-wing concept below, **unrigged**, Gen-2.5-Medium, 18000, ×2 | `<Model fallback>`: grey-blue rounded body/head, eyes, orange feet, wings folded against body |
-| car | `/models/3d/pigeon-crossing/car.glb` | Text, Gen-2.5-Low, 2500, ×1 | `fallbackParts`: rounded red body/windows/wheels |
-| taxi | `/models/3d/pigeon-crossing/taxi.glb` | Text, Gen-2.5-Low, 2500, ×1 | `fallbackParts`: yellow car with blank roof sign |
-| van | `/models/3d/pigeon-crossing/van.glb` | Text, Gen-2.5-Low, 2500, ×1 | `fallbackParts`: boxy white body/windows/wheels |
+| car | `/models/3d/pigeon-crossing/car.glb` (live, group C) | Text, Gen-2.5-Low, 2500, ×1 | `fallbackParts`: rounded red body/windows/wheels |
+| taxi | `/models/3d/pigeon-crossing/taxi.glb` (live, group C) | Text, Gen-2.5-Low, 2500, ×1 | `fallbackParts`: yellow car with blank roof sign |
+| van | `/models/3d/pigeon-crossing/van.glb` (live, group C) | Text, Gen-2.5-Low, 2500, ×1 | `fallbackParts`: boxy white body/windows/wheels |
 | road, grass, curbs, markings, roofed side building occluders, hop shadow | Code primitives | None | Always code |
 
 The approved asset plan estimates five generations / **2.5 credits**. This scene task spends none: Claude owns Rodin MCP/import/optimization and the manifest. Keep GLB/Raw/PBR/explicit seed conventions, never HighPack/Extreme-High. Pigeon cap: 20k tris, 1024 px, 1.5 MB; each vehicle: 5k, 512 px, 300 KB. Collision stays in rules; future vehicle GLBs need calibration to the declared boxes. Missing models use primitives without changing traffic.
@@ -194,6 +195,16 @@ Claude's group-B pigeon is measured at 0.99 × 1.90 × 1.74 m, feet on y = 0 and
 **GLB projection preflight (2026-10-06):** normalized actual mesh, approved core fit/fixture rectangles, 101 hop poses and lag ±0.30 m, with a 0.05 px continuous-pose margin. At **375 × 812**: rest **40.24 px**, minimum **39.36 px**, with either banner state. At **360 × 640**: **37.83 / 36.97 px** with either banner state. At **812 × 375**, banner closed: **33.60 / 32.75 px**; at **1280 × 800**, banner closed: **71.69 / 69.93 px**. The phone orientation stays portrait because the fallback still needs it.
 
 **The GLB is live** (group B merged, 2026-10-06): `pigeon.glb` is in `core/modelManifest.ts`, so `<Model asset={ASSETS.pigeon} fallback={<PigeonPrimitive/>}>` draws it with `scale 0.658, stretch [0.86, 1, 1], rotationY π` (0.56 × 1.25 × 1.15 m, facing −z) as one mesh, one draw call, and the view gate measures its real hull (`modelVertices`); the primitive stays as the fallback. The hop squash and stretch, the head bob and the crash flatten stay on the group, as for the primitive: the bird is not a humanoid and gets no auto-rig (wings folded, no skeleton). Played on the production build in headless Chrome (2026-10-06): the GLB bird hops at 375 × 812 with the size gate passing, and at 1280 × 800.
+
+**The vehicle GLBs are live** (group C, 2026-10-07): `car.glb`, `taxi.glb` and `van.glb` are in `core/modelManifest.ts`. Rodin made each one long along its z, like the stand-ins' local frame (length along z, front at +z, which the pool's `FACE_RIGHT` / `FACE_LEFT` turns to the travel direction), so `assets.ts` only scales them to their stand-in's outer box (wheels included) and turns the car round:
+
+| Vehicle | GLB (w × h × l) | Front | `assets.ts` | Drawn (w × h × l) | Stand-in | Hit box (depth × length) |
+|---|---|---|---|---|---|---|
+| car | 0.91 × 0.81 × 1.90 | −z | scale 1.4, stretch [0.87, 1, 1], rotationY π | 1.11 × 1.14 × 2.66 | 1.11 × 1.13 × 2.66 | 1.15 × 2.80 |
+| taxi | 0.93 × 1.12 × 1.89 | +z | scale 1.56, stretch [0.795, 0.742, 1] | 1.16 × 1.29 × 2.95 | 1.16 × 1.30 × 2.96 | 1.20 × 3.10 |
+| van | 1.17 × 1.04 × 1.89 | +z | scale 1.93, stretch [0.56, 0.64, 1] | 1.26 × 1.29 × 3.66 | 1.26 × 1.29 × 3.66 | 1.30 × 3.80 |
+
+The taxi is a tall cartoon cab (it would stand 1.75 m at its length), so it is lowered to the stand-in's 1.30; the short boxy van is drawn as a long panel van (its hit box is 2.9 times as long as deep). All three stay under 1.5 m and inside their hit boxes, so the side cover still hides every birth and death (`assets.test.ts` projects every GLB vertex there, as `camera.test.ts` does for the stand-ins). Each pool draws the GLB's one mesh, one draw call per kind (the stand-ins: two). The stand-in parts stay as `fallbackParts`. Played on the production build in headless Chrome (2026-10-07, a bot reading the run): to level 10 at 1280 × 800 and level 3 at 375 × 812 with swipes, no hit; cars, taxis and vans face the way they drive, fill their lanes and come out of the side blocks without a pop. Draw calls in play: 12–13 with the GLBs, 14–16 with the stand-ins.
 
 ### Prerequisite: pigeon ChatGPT concept
 
@@ -272,4 +283,5 @@ Game `Hud` (`Hud.tsx`, CSS Module, existing vars, `pointer-events: none`, not ma
 - Phones narrower than 360 CSS px play below the 24 px size (22.94 px at 320 × 568); landscape phones are excluded by `orientation: "portrait"`. The fallback measurements do not certify a future GLB: continuous poses, live insets and banner transitions still require asset/browser acceptance.
 - Folded wings are an intentional unrigged-bird exception to the catalogue's T-pose default. Preserve it in the concept and Rodin prompt; MCP has no T-pose flag. No skeleton/Mixamo or GLB wing animation. This update edits only design text, not tools/core/concepts/models.
 - Pure tests now cover fitted measurements, the full-frustum horizon, steady 40-row following, eased refit unions, coarse/fine gates, real vertex/hull parity, folded width, every vehicle piece under side cover and crash grounding. In-place generator/pool tests remain from step 1. Live popping checks during crossings/resize and eventual GLB animation still need the browser flow after core cleanup is fixed.
+- **Retry after a long run starts paused** (found in the group C playtest, 2026-10-07; the same with the stand-in vehicles, so not from the GLBs): after a run that reached level 3 or more, Retry shows the Paused menu at once instead of the countdown; Resume plays normally. Likely the remounted Scene's first pool check (`StreetCamera`'s clock-priority `useFrame`, before `CameraRig` snaps the shared camera back to row 0) sees the old far camera, so `fillVisible` needs more than 40 rows and pauses with reason `"pool"`. Not fixed here.
 - Fairness windows and tier saturation are intentional. Faster/denser progression stops at tier 10; raising limits, shortening hops, changing row count/bonus or removing preview invalidates the proof and needs fresh review.
