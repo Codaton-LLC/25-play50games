@@ -47,7 +47,7 @@ import { useArcadeStore, type ArcadeStore } from "@/arcade3d/core/useArcadeStore
 import { useFittedView, type FittedViewOptions } from "@/arcade3d/core/useFittedView";
 import { useRunFrame } from "@/arcade3d/core/useRunFrame";
 import { ASSETS, BOX } from "./assets";
-import { warehousePhaseStep } from "./gait";
+import { WAREHOUSE_SCALE, warehousePhaseStep } from "./gait";
 import {
    COLORS,
    LID_Y,
@@ -139,9 +139,9 @@ const speed01 = (run: WarehouseRun) => Math.min(1, Math.hypot(run.robot.vx, run.
  * cycle (`gait`, see <Robot>), plus a slow breath at time t.
  */
 const standInBob = (gait: number, speed: number, t: number) => Math.abs(Math.sin(gait)) * 0.05 * speed + Math.sin(t * 2.2) * 0.012;
-/** The robot GLB's joints (core/sharedAssets) and its scale here: its stride and its height over its feet. */
+/** The robot GLB's joints (core/sharedAssets) and its scale here: its height over its feet (its stride: gait.ts). */
 const LEGS = ROBOT_LANDMARKS;
-const SCALE = ASSETS.robot.scale ?? 1;
+const SCALE = WAREHOUSE_SCALE;
 /** The arms go up with the box during the pick lock (LIFT_S) and down as it sinks into the zone. */
 const ARMS_DOWN_S = 0.25;
 
@@ -307,7 +307,8 @@ const Robot = memo(function Robot({ run, fx }: { run: WarehouseRun; fx: Fx }) {
 
    // the GLB robot's limbs (core/rig): idle -> walk -> run with its speed, and both arms up under
    // the box while it carries one (rising with the lift, lowering as the box sinks into a zone).
-   // The shared gaitPhaseStep preserves the measured stride until its cadence cap has to stretch it.
+   // The phase advances by the distance driven over the walk's own stride, at most 4 strides a
+   // second (gait.ts on core gaitPhaseStep): this small robot's feet slide a little (README).
    // FRAME_PRIORITY.pose: after the step, before every visual that reads fx.bob.
    const pose = useHumanoidPose((p) => {
       const dt = time.delta;
