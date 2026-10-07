@@ -7,6 +7,7 @@ import { ARCADE_ENABLED } from "@/arcade3d/flags";
 import { ARCADE_SLUGS, isArcadeSlug } from "@/arcade3d/types";
 import { getGameMeta } from "@/arcade3d/registry";
 import ArcadeGameMount from "@/arcade3d/core/ArcadeGameMount";
+import { gameJsonLd, serializeJsonLd } from "@/lib/seo/jsonLd";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://play50games.com";
 
@@ -64,8 +65,12 @@ export function generateMetadata({ params }: PageProps): Metadata {
 
 export default function ArcadeGamePage({ params }: PageProps) {
    if (!ARCADE_ENABLED || !isArcadeSlug(params.slug)) notFound();
+   const jsonLd = gameJsonLd(SITE_URL, getGameMeta(params.slug), ARCADE_ENABLED);
    return (
       <main>
+         {jsonLd && (
+            <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }} />
+         )}
          <ArcadeGameMount slug={params.slug} />
       </main>
    );
