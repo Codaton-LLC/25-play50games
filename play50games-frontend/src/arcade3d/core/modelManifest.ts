@@ -25,6 +25,16 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/warehouse-rush/shelfRack.glb",
    "/models/3d/warehouse-rush/pallet.glb",
    "/models/3d/obstacle-race/finishArch.glb",
+   // group C props (2026-10-07): text-to-3D, Gen-2.5-Medium, 1500-2500 tris
+   "/models/3d/pigeon-crossing/car.glb",
+   "/models/3d/pigeon-crossing/taxi.glb",
+   "/models/3d/pigeon-crossing/van.glb",
+   "/models/3d/clean-city/bottle.glb",
+   "/models/3d/clean-city/bag.glb",
+   "/models/3d/escape-room/key.glb",
+   "/models/3d/escape-room/book.glb",
+   "/models/3d/escape-room/door.glb",
+   "/models/3d/tower-climb/checkpoint-flag.glb",
 ];
 
 const LISTED: ReadonlySet<string> = new Set(MODEL_MANIFEST);
