@@ -13,12 +13,22 @@ const X_AXIS = new Vector3(1, 0, 0), Y_AXIS = new Vector3(0, 1, 0);
 export interface VisualState { endNow: number; checkpointMs: number }
 export function createVisualState(): VisualState { return { endNow: NONE, checkpointMs: NONE }; }
 
+/** Coins and flags (never stood on) show only once their whole extent is inside the column. */
 function fits(run: TowerRun, bottom: number, top: number): boolean {
    return bottom >= run.viewBottomY - 1e-9 && top <= run.maxHeight + 4 + 1e-9;
 }
 
+/**
+ * Slabs and spurs go by their top, as the rules' collision does: a top at or above the loss line can
+ * still be stood on, so it is drawn. The part of its body below the line is clipped by the pools'
+ * materials (Primitives.tsx `planes[0]`, moved to viewBottomY every frame).
+ */
+function topInColumn(run: TowerRun, top: number, rise = 0): boolean {
+   return top >= run.viewBottomY - 1e-9 && top + rise <= run.maxHeight + 4 + 1e-9;
+}
+
 export function writeSlab(run: TowerRun, slot: SlabSlot, matrix: Matrix4): false | void {
-   if (!slot.active || !fits(run, slot.y - SLAB.thickness, slot.y)) return false;
+   if (!slot.active || !topInColumn(run, slot.y)) return false;
    matrix.makeTranslation(slabX(slot, run.timeMs), slot.y, 0);
 }
 
@@ -34,8 +44,10 @@ export function writeSpur(
       const age = Math.max(0, ms - slot.warnStartMs);
       rock = Math.sin(age / 1000 * Math.PI * 12) * Math.min(1, age / SPUR.warningMs) * Math.PI / 60;
    }
+   // the rock tips the front and back edges up/down by this much; the top under the runner (z = 0) stays at y
    const extra = Math.abs(Math.sin(rock)) * SLAB.depth / 2;
-   if (!fits(run, y - SLAB.thickness - extra, y + extra)) return false;
+   // A falling spur slides down through the danger line, clipped there, and goes once its top passes it.
+   if (!topInColumn(run, y, extra)) return false;
    matrix.compose(POSITION.set(slot.baseX, y, 0), ROTATION.setFromAxisAngle(X_AXIS, rock), ONE);
 }
 

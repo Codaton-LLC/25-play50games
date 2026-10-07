@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { PerspectiveCamera, Vector3 } from "three";
 import { fitView, setLensShift, type ScreenRect } from "@/arcade3d/core/view";
 import { AREA, FOV, LOOK_AT, VIEW, FOLLOW_DAMPING } from "./camera";
+import { HINT_SLOT } from "./hint";
 
 function projection(width: number, height: number, banner = 0) {
    const avoid: ScreenRect[] = [
@@ -62,6 +63,36 @@ describe("tower-climb core fitted column", () => {
          }
       });
    }
+
+   it("the game HUD's hint slot never changes the fit: centred on desktop, the same lens with and without it", () => {
+      // the shell HUD as GameShell lays it out (one rect per group: chips left, mute/pause right)
+      const shell = (width: number): ScreenRect[] => [
+         { left: 10, top: 10, right: 220, bottom: 52 }, { left: width - 104, top: 10, right: width - 10, bottom: 54 },
+      ];
+      const fine = ({ left, top, width, height } = HINT_SLOT.fine): ScreenRect => ({ left, top, right: left + width, bottom: top + height });
+      const coarse = (width: number, height: number, banner: number): ScreenRect => ({
+         left: HINT_SLOT.coarse.left, right: width - HINT_SLOT.coarse.right,
+         top: height - banner - HINT_SLOT.coarse.bottom - HINT_SLOT.coarse.height, bottom: height - banner - HINT_SLOT.coarse.bottom,
+      });
+      const fitWith = (width: number, height: number, avoid: ScreenRect[]) => fitView({ ...VIEW, fov: FOV, width, height, avoid });
+      for (const [width, height] of [[1280, 800], [1440, 900], [1024, 768], [1366, 768], [1920, 1080]]) for (const banner of [0, 120]) {
+         const base = shell(width);
+         if (banner) base.push({ left: 0, top: height - banner, right: width, bottom: height });
+         const without = fitWith(width, height, base), withHint = fitWith(width, height, [...base, fine()]);
+         expect(withHint).toEqual(without);
+         if (width === 1280) expect(Math.abs(without.shift[0])).toBeLessThan(0.01);
+      }
+      for (const [width, height] of [[375, 812], [390, 844], [360, 740], [414, 896]]) for (const banner of [0, 162]) {
+         const base = [...shell(width),
+            { left: 20, right: 152, top: height - banner - 152, bottom: height - banner - 20 },
+            { left: width - 92, right: width - 20, top: height - banner - 92, bottom: height - banner - 20 }];
+         if (banner) base.push({ left: 0, top: height - banner, right: width, bottom: height });
+         expect(fitWith(width, height, [...base, coarse(width, height, banner)])).toEqual(fitWith(width, height, base));
+      }
+      // the old centred panel under the chips (x 530..749, y 77..105) pushed the column off centre
+      const old = fitWith(1280, 800, [...shell(1280), { left: 530, top: 77, right: 749, bottom: 105 }]);
+      expect(Math.abs(old.shift[0])).toBeGreaterThan(0.1);
+   });
 
    it("keeps its yaw when the cookie banner lifts the controls and is invariant under vertical translation", () => {
       const { fit, camera } = projection(375, 812, 162);

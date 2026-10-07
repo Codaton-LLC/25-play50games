@@ -2,9 +2,9 @@
 
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
-import { Box3, PerspectiveCamera, Vector3, type Group, type Matrix4, type Mesh } from "three";
+import { PerspectiveCamera, Vector3, type Group, type Matrix4, type Mesh } from "three";
 import CameraRig from "@/arcade3d/core/CameraRig";
-import { DynamicInstancedModel, useHumanoidRig } from "@/arcade3d/core/assets";
+import { DynamicInstancedModel } from "@/arcade3d/core/assets";
 import { playSfx } from "@/arcade3d/core/audio";
 import { FRAME_PRIORITY } from "@/arcade3d/core/frameLoop";
 import { useGameTime } from "@/arcade3d/core/gameTime";
@@ -12,18 +12,18 @@ import { useInput } from "@/arcade3d/core/input";
 import { randomSeed } from "@/arcade3d/core/math";
 import { BlobShadow, DynamicInstanced } from "@/arcade3d/core/render";
 import { sameScreenRects, useSafeArea, type SafeArea } from "@/arcade3d/core/safeArea";
-import { SHARED_ASSETS } from "@/arcade3d/core/sharedAssets";
+import { RUNNER_LANDMARKS } from "@/arcade3d/core/sharedAssets";
 import {
-   HumanoidModel, POSE_MASK, blendPoses, bodyLift, cheerPose, createPose,
-   idlePose, jumpPose, useHumanoidPose, walkPose, walkStride, wrapPhase,
+   HumanoidModel, POSE_MASK, blendPoses, bodyLift, cheerPose, createPose, idlePose, jumpPose, useHumanoidPose, walkPose,
 } from "@/arcade3d/core/rig";
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { useFittedView } from "@/arcade3d/core/useFittedView";
 import { useRunFrame } from "@/arcade3d/core/useRunFrame";
-import { ASSETS } from "./assets";
+import { ASSETS, RUNNER_SCALE } from "./assets";
 import { AREA, FOLLOW_DAMPING, FOV, LOOK_AT, VIEW } from "./camera";
-import { COLORS, RunnerPrimitive, useTowerParts, type TowerParts } from "./Primitives";
-import { CHECKPOINT, MOVING, NONE, POOLS, RUNNER, STATIC, V_RUN, createRun, createStepInput, readStepInput, step, type TowerRun } from "./rules";
+import { RUNNER_ORDER, RunnerPrimitive, useTowerParts, type TowerParts } from "./Primitives";
+import { CHECKPOINT, MOVING, NONE, POOLS, RUNNER, STATIC, createRun, createStepInput, readStepInput, step, type TowerRun } from "./rules";
+import { createRunnerGait, stepRunnerGait } from "./runnerGait";
 import { createVisualState, runnerFootY, writeCoin, writeFlag, writeSection, writeSlab, writeSpur, type VisualState } from "./visuals";
 
 const MOTION_QUERY = "(prefers-reduced-motion: reduce)";
@@ -109,43 +109,30 @@ const Tower = memo(function Tower({ run, parts }: { run: TowerRun; parts: TowerP
    return <DynamicInstanced count={POOLS.sections} update={update} parts={parts.tower} name="tower-panels" />;
 });
 
+/**
+ * The shared runner on the core auto-rig (<HumanoidModel> + useHumanoidPose), 0.55 m tall through
+ * ASSETS.runner.scale: the walk by its own ground motion (runnerGait.ts: amount and phase eased, no
+ * running in place at the x bound or on a moving slab), jumpPose in the air, the cheer on a new
+ * checkpoint, the body's lift on its own group. While runner.glb is missing it is the rigid stand-in,
+ * animated from the same gait. It draws after a depth reset (RUNNER_ORDER), whole in front of the
+ * slab it stands under: the next slab's clearance (0.29-0.39 m) is less than its height.
+ */
 const Runner = memo(function Runner({ run, visual, parts }: { run: TowerRun; visual: VisualState; parts: TowerParts }) {
    const time = useGameTime();
    const root = useRef<Group>(null), body = useRef<Group>(null), standIn = useRef<Group>(null), shadow = useRef<Group>(null);
-   // Core owns this calibration clone's bones/lifecycle; geometry/material stay loader-owned.
-   const calibration = useHumanoidRig(SHARED_ASSETS.runner);
-   const fit = useMemo(() => {
-      const scale = (SHARED_ASSETS.runner.scale ?? 1) * (SHARED_ASSETS.runner.stretch?.[1] ?? 1);
-      const height = calibration ? new Box3().setFromObject(calibration.root).getSize(new Vector3()).y * scale : RUNNER.height;
-      return { outer: RUNNER.height / Math.max(0.01, height), native: scale };
-   }, [calibration]);
-   const fallbackScale = RUNNER.height / (parts.runnerHeight * fit.outer);
-   const [gait] = useState(() => ({ phase: 0, amount: 0, lift: 0, heading: 0 }));
+   const [gait] = useState(createRunnerGait);
    const [scratch] = useState(createPose);
+   // FRAME_PRIORITY.pose: after the step moved the runner, before the useFrame below reads the lift
    const pose = useHumanoidPose(p => {
       const phase = useArcadeStore.getState().phase;
       if (phase === "paused" || (phase === "over" && !run.pendingLose)) return;
-      const fallback = standIn.current !== null;
-      const landmarks = fallback ? parts.runner.landmarks : calibration?.landmarks ?? parts.runner.landmarks;
-      const scale = fallback ? RUNNER.height / parts.runnerHeight : fit.native * fit.outer;
-      const moving = phase === "playing" && !run.pendingLose;
-      const speed = moving ? Math.abs(run.player.vx) : 0;
-      gait.amount = Math.min(1, speed / V_RUN);
-      if (moving && run.player.grounded) {
-         const stride = Math.max(0.01, walkStride(gait.amount, landmarks) * scale);
-         gait.phase = wrapPhase(gait.phase + speed * run.stepMs / 1000 / stride * Math.PI * 2);
-      }
+      stepRunnerGait(gait, run, phase === "playing", time.delta, visual.checkpointMs);
       walkPose(gait.phase, gait.amount, p);
+      // nearly still: the idle's breath in the upper body (the legs keep the walk's)
       blendPoses(p, idlePose(time.now, scratch), 1 - Math.min(1, gait.amount * 5), p, POSE_MASK.upper);
-      if (!run.player.grounded || run.pendingLose) {
-         const tuck = run.pendingLose ? 0.3 : Math.max(0, 1 - Math.abs(run.player.vy) / 4);
-         blendPoses(p, jumpPose(tuck, scratch), 1, p);
-      } else if (visual.checkpointMs !== NONE) {
-         const age = run.timeMs - visual.checkpointMs;
-         if (age >= 0 && age < 600) blendPoses(p, cheerPose(age / 1000, scratch), Math.sin(age / 600 * Math.PI), p, POSE_MASK.arms);
-      }
-      gait.lift = bodyLift(p, landmarks) * scale;
-      if (moving && Math.abs(run.player.vx) > 0.001) gait.heading = run.player.vx > 0 ? Math.PI / 2 : -Math.PI / 2;
+      if (gait.air > 0.001) blendPoses(p, jumpPose(gait.tuck, scratch), gait.air, p);
+      if (gait.cheer > 0.001) blendPoses(p, cheerPose((run.timeMs - visual.checkpointMs) / 1000, scratch), gait.cheer, p, POSE_MASK.arms);
+      gait.lift = bodyLift(p, RUNNER_LANDMARKS) * RUNNER_SCALE;
    });
    useFrame(() => {
       if (!root.current || !body.current || !shadow.current) return;
@@ -153,16 +140,21 @@ const Runner = memo(function Runner({ run, visual, parts }: { run: TowerRun; vis
       root.current.position.set(run.pendingLose ? run.loss.x : run.player.x, foot, 0);
       root.current.rotation.y = gait.heading;
       root.current.visible = !run.pendingLose || foot >= run.viewBottomY - 1.55;
-      body.current.position.y = gait.lift;
+      // the GLB rises and falls with its planted foot; the rigid stand-in bobs with its stride
+      body.current.position.y = standIn.current !== null
+         ? Math.abs(Math.sin(gait.phase)) * 0.012 * gait.amount * (1 - gait.air) : gait.lift;
       shadow.current.visible = run.player.grounded && !run.pendingLose;
       shadow.current.position.set(run.player.x, run.player.y + 0.012, 0);
    });
    return (
       <>
          <group ref={shadow}><BlobShadow radius={0.25} opacity={0.3} /></group>
-         <group ref={root} name="runner"><group ref={body} scale={fit.outer}>
-            <HumanoidModel asset={SHARED_ASSETS.runner} pose={pose} applyLift={false}
-               fallback={<group ref={standIn} scale={fallbackScale}><RunnerPrimitive parts={parts} pose={pose} /></group>} />
+         <group ref={root} name="runner"><group ref={body}>
+            {/* the group above carries the body's lift, so the model does not add it again */}
+            <HumanoidModel asset={ASSETS.runner} pose={pose} applyLift={false} renderOrder={RUNNER_ORDER}
+               fallback={<group ref={standIn} renderOrder={RUNNER_ORDER}><RunnerPrimitive parts={parts} gait={gait} /></group>}>
+               <primitive object={parts.depthReset} dispose={null} />
+            </HumanoidModel>
          </group></group>
       </>
    );

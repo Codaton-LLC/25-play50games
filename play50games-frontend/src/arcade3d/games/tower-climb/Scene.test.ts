@@ -9,7 +9,12 @@ describe("tower-climb scene/core contract", () => {
       expect(definition).not.toMatch(/resultDelayMs|finalScore|PlaceholderScene/);
       expect(definition).toContain('touchControls: ["joystick", "jump"]');
       expect(definition).toContain('hudStats: [{ key: "height", label: "Height" }]');
-      expect(scene).toContain("<HumanoidModel asset={SHARED_ASSETS.runner}");
+      // the shared runner through the documented auto-rig path only (scale in assets.ts, no core-only rig APIs)
+      expect(scene).toContain("<HumanoidModel asset={ASSETS.runner}");
+      expect(scene).toContain("useHumanoidPose(");
+      for (const text of [scene, readFileSync(new URL("./Primitives.tsx", import.meta.url), "utf8")]) {
+         expect(text).not.toMatch(/useHumanoidRig|buildHumanoidTemplate|cloneHumanoid|applyHumanoidPose|disposeHumanoid|Box3/);
+      }
       expect(scene).toContain("readStepInput(input.current, controls)");
       expect(scene).toContain("store.setStat(\"height\", 0)");
       expect(scene).toContain("count={POOLS.slabs}"); expect(scene).toContain("count={POOLS.spurs}");
