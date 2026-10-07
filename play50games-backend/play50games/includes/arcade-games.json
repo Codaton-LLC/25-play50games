@@ -19,7 +19,7 @@
       "max_duration_ms": 93000,
       "base": 0,
       "max_pps": 28,
-      "enabled": false
+      "enabled": true
     },
     "office-escape": {
       "title": "Office Escape",

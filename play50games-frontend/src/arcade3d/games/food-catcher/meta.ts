@@ -7,7 +7,7 @@ export const foodCatcherMeta: ArcadeGameMeta = {
    tagline: "Catch the good food, dodge the junk.",
    description: "A hungry chef catches falling fruit. Chain catches for a 2x combo, but three bad items and you are out.",
    order: 2,
-   status: "soon",
+   status: "live",
    difficulty: 1,
    orientation: "any",
    controls: {
