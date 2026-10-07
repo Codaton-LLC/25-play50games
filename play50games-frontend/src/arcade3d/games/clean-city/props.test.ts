@@ -1,7 +1,8 @@
 // Clean the City obstacle props (group D GLBs: bench, bin, lamp, palm, umbrella), each one as it is
-// drawn: the real mesh, assets.ts scale / stretch, propSpots.ts spot and turn. Checked against the
-// rules data (rules.ts MAPS squares, the litter spots, the runner) and against the fitted cameras'
-// view of every litter piece. Collision never comes from a mesh: the squares are the truth.
+// drawn: the real mesh, assets.ts scale / stretch, propSpots.ts spot and turn (GLB_PROPS is what
+// Primitives.tsx GlbProps renders, entry by entry). Checked against the rules data (rules.ts MAPS
+// squares, the litter spots, the runner) and against the fitted cameras' view of every litter piece.
+// Collision never comes from a mesh: the squares are the truth.
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
@@ -14,11 +15,12 @@ import type { ModelAsset } from "@/arcade3d/core/types";
 import { fitView } from "@/arcade3d/core/view";
 import { ASSETS, LITTER_DRAW } from "./assets";
 import { FOCUS, FOV, VIEW } from "./camera";
-import { GLB_PROPS, obstacleCentres, type PropSet } from "./propSpots";
-import { MAPS, RUNNER, buildMapCache, spotX, spotZ, type MapCache, type ObstacleKind } from "./rules";
+import { GLB_PROPS, obstacleCentres, type GlbKind, type PropSet } from "./propSpots";
+import { MAPS, RUNNER, buildMapCache, spotX, spotZ, type MapCache } from "./rules";
 
 const UP = new Vector3(0, 1, 0);
-const GLB_KINDS: readonly ObstacleKind[] = ["bench", "bin", "lamp", "palm", "pole"];
+const QUARTER = Math.PI / 2;
+const GLB_KINDS: readonly GlbKind[] = ["bench", "bin", "lamp", "palm", "pole"];
 /** The documented drawn sizes (assets.ts, README "Obstacle props"): width x height x depth at rotY 0. */
 const DRAWN: Record<string, readonly [number, number, number]> = {
    bench: [2.4, 0.84, 0.8],
@@ -29,6 +31,17 @@ const DRAWN: Record<string, readonly [number, number, number]> = {
 };
 /** The middle of a drawn litter piece (they are 0.78-0.90 tall): the point that must stay in view. */
 const LITTER_MID = 0.4;
+/**
+ * At the runner's height (every vertex below its head), the widest gap between a copy and any edge of
+ * its square, measured on the real meshes plus about 0.01 (bench 0, bin 0.002, lamp 0.046, palm 0.570,
+ * pole 0.231). The crown and the canopy span the square above the head; below it the palm trunk
+ * (about 0.3 across, off the crown's centre) and the umbrella pole (0.07) leave ground the runner
+ * cannot enter, while the lamp's base (0.55, below 0.2) nearly fills its square. These caps pin
+ * today's shapes; they do not claim the square is filled.
+ */
+const BODY_GAP: Record<GlbKind, number> = { bench: 0.01, bin: 0.01, lamp: 0.05, palm: 0.58, pole: 0.24 };
+/** The palm's widest body-height gap (0.57, the GLB's -z side) never faces the camera (+z) or the floor's middle. */
+const PALM_SHOWN_GAP = 0.45;
 
 interface Mesh {
    cloud: Float32Array;
@@ -100,9 +113,19 @@ describe("clean-city obstacle props: the GLBs", () => {
          expect(asset.humanoid).toBeUndefined();
          expect(asset.rigged ?? false).toBe(false);
          const glb = readFileSync(path.join(process.cwd(), "public", asset.url));
-         const json = JSON.parse(glb.subarray(20, 20 + glb.readUInt32LE(12)).toString("utf8")) as { meshes: Array<{ primitives: unknown[] }> };
+         const json = JSON.parse(glb.subarray(20, 20 + glb.readUInt32LE(12)).toString("utf8")) as {
+            meshes: Array<{ primitives: unknown[] }>;
+            nodes: Array<{ rotation?: number[]; scale?: number[]; matrix?: number[] }>;
+         };
          expect(json.meshes.length, asset.id).toBe(1);
          expect(json.meshes[0].primitives.length, asset.id).toBe(1);
+         // readCharacterGlb (this file's point cloud) applies a node's translation only, <InstancedModel>
+         // its whole matrix: with no rotation or scale on any node, the cloud is what is drawn
+         for (const node of json.nodes) {
+            expect(node.rotation, `${asset.id} node rotation`).toBeUndefined();
+            expect(node.scale, `${asset.id} node scale`).toBeUndefined();
+            expect(node.matrix, `${asset.id} node matrix`).toBeUndefined();
+         }
       }
       for (const asset of [ASSETS.tree, ASSETS.building]) expect(hasModel(asset.url), asset.url).toBe(false);
       for (const set of GLB_PROPS) expect(set.asset).toBe(set.kind === "pole" ? ASSETS.umbrella : ASSETS[set.kind as "bench" | "bin" | "lamp" | "palm"]);
@@ -120,10 +143,20 @@ describe("clean-city obstacle props: the GLBs", () => {
          expect(box.max.y, `${id}: VIEW.area keeps props up to ${VIEW.area.max.y} in frame`).toBeLessThanOrEqual(VIEW.area.max.y);
       }
    });
+
+   it("are turned by quarter turns only, and never a half turn for the palms and umbrella poles", () => {
+      for (const { set, spot } of copies()) {
+         const rotY = spot.rotY ?? 0;
+         const label = `${set.asset.id} at (${spot.x}, ${spot.z}) rotY ${rotY}`;
+         expect(Math.abs(rotY / QUARTER - Math.round(rotY / QUARTER)), label).toBeLessThan(1e-9);
+         // a half turn shows the umbrella canopy's underside and the palm's widest gap to the camera
+         if (set.kind === "pole" || set.kind === "palm") expect(Math.cos(rotY), label).toBeGreaterThan(-1 + 1e-6);
+      }
+   });
 });
 
 describe("clean-city obstacle props: the squares the runner collides with", () => {
-   it("each copy fills its square and never reaches past it (the umbrella canopy: only above the runner's head, only where its centre cannot go)", async () => {
+   it("each copy stays inside its square and spans it (the umbrella canopy: past it only above the runner's head, only where its centre cannot go)", async () => {
       const head = await runnerHeight();
       expect(head).toBeGreaterThan(0.9);
       for (const { set, spot, o } of copies()) {
@@ -133,7 +166,10 @@ describe("clean-city obstacle props: the squares the runner collides with", () =
          const outside = points.filter((p) => Math.abs(p.x - o.x) > o.halfX + 1e-3 || Math.abs(p.z - o.z) > o.halfZ + 1e-3);
          if (set.kind !== "pole") {
             expect(outside.length, `${label}: points outside the square`).toBe(0);
-            // the visible prop is what stops the runner: it spans its square (no invisible margin)
+            // seen from the camera the prop marks its square: the bench and the bin span it at every
+            // height, the lamp with its base (below 0.2) and its globe, the palm with its crown, which
+            // is above the runner's head. Between, the lamp post and the palm trunk are narrower
+            // (next test): the runner stops short of the trunk, never inside a drawn part.
             expect(box.max.x - box.min.x, `${label} x`).toBeGreaterThan(0.95 * 2 * o.halfX);
             expect(box.max.z - box.min.z, `${label} z`).toBeGreaterThan(0.95 * 2 * o.halfZ);
          } else {
@@ -148,6 +184,30 @@ describe("clean-city obstacle props: the squares the runner collides with", () =
             expect(Math.max(box.max.x - o.x, o.x - box.min.x, box.max.z - o.z, o.z - box.min.z), label).toBeGreaterThan(0.95 * (o.halfX + RUNNER.radius));
          }
          expect(box.min.y, label).toBeCloseTo(0, 3);
+      }
+   });
+
+   it("at the runner's height, each copy leaves no more of its square empty than today's shape (BODY_GAP)", async () => {
+      const head = await runnerHeight();
+      for (const { set, spot, o } of copies()) {
+         const label = `${set.asset.id} at (${o.x}, ${o.z}) rotY ${spot.rotY ?? 0}`;
+         let minX = Infinity;
+         let maxX = -Infinity;
+         let minZ = Infinity;
+         let maxZ = -Infinity;
+         for (const p of await drawnPoints(set.asset, spot)) {
+            if (p.y >= head) continue;
+            minX = Math.min(minX, p.x - o.x);
+            maxX = Math.max(maxX, p.x - o.x);
+            minZ = Math.min(minZ, p.z - o.z);
+            maxZ = Math.max(maxZ, p.z - o.z);
+         }
+         const gap = { "+x": o.halfX - maxX, "-x": o.halfX + minX, "+z": o.halfZ - maxZ, "-z": o.halfZ + minZ };
+         for (const [side, g] of Object.entries(gap)) expect(g, `${label}: ${side} gap`).toBeLessThanOrEqual(BODY_GAP[set.kind]);
+         if (set.kind === "palm") {
+            expect(gap["+z"], `${label}: the gap facing the camera`).toBeLessThanOrEqual(PALM_SHOWN_GAP);
+            expect(o.x > 0 ? gap["-x"] : gap["+x"], `${label}: the gap facing the floor's middle`).toBeLessThanOrEqual(PALM_SHOWN_GAP);
+         }
       }
    });
 

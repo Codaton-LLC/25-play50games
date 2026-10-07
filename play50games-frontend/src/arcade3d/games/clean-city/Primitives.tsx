@@ -4,24 +4,16 @@
 // Decoration only. Positions come from rules.ts MAPS (the same squares the runner collides with,
 // propSpots.ts). Every obstacle is an <InstancedModel> (one draw call per GLB per map) whose
 // fallback is its primitive: bench, bin, lamp, palm and umbrella draw their group D GLBs fitted to
-// the squares (assets.ts), trees and buildings have no GLB and stay primitives. Litter stand-ins are
-// the fallbackParts of one <DynamicInstancedModel> pool per kind (Scene.tsx).
-import { memo, useEffect, useState, type MutableRefObject, type ReactNode } from "react";
+// the squares (assets.ts), one per propSpots.ts GLB_PROPS entry, its asset and spots as listed
+// there (GlbProps); trees and buildings have no GLB and stay primitives. Litter stand-ins are the
+// fallbackParts of one <DynamicInstancedModel> pool per kind (Scene.tsx).
+import { memo, useEffect, useMemo, useState, type ComponentType, type MutableRefObject, type ReactNode } from "react";
 import { BoxGeometry, CapsuleGeometry, CylinderGeometry, MeshStandardMaterial, type BufferGeometry, type Group, type Material } from "three";
 import { InstancedModel } from "@/arcade3d/core/assets";
 import { Instanced, useCanvasTexture, type CanvasDraw, type InstancePart, type InstanceSpot } from "@/arcade3d/core/render";
+import type { ModelAsset } from "@/arcade3d/core/types";
 import { ASSETS } from "./assets";
-import {
-   BEACH_BIN,
-   BEACH_PALM,
-   BEACH_POLE,
-   CITY_BIN,
-   CITY_BUILDING,
-   CITY_LAMP,
-   PARK_BENCH,
-   PARK_BIN,
-   PARK_TREE,
-} from "./propSpots";
+import { CITY_BUILDING, GLB_PROPS, PARK_TREE, type GlbKind } from "./propSpots";
 import { FLOOR_HALF, LITTER_KINDS, MAPS } from "./rules";
 
 // ---------- palette ----------
@@ -117,17 +109,11 @@ function Ground({ draw }: { draw: CanvasDraw }) {
 /** Primitive part centres: the geometry is centred, so y is the centre, not the feet. */
 const atY = (spots: readonly InstanceSpot[], y: number): InstanceSpot[] => spots.map((s) => ({ ...s, y }));
 
-const BENCH_SEAT = atY(PARK_BENCH, 0.46);
-const BENCH_BACK = PARK_BENCH.map((s) => ({ x: s.x, y: 0.78, z: s.z - 0.34 }));
-const BENCH_LEGS = PARK_BENCH.flatMap((s) =>
-   [-1, 1].flatMap((sx) => [-1, 1].map((sz) => ({ x: s.x + sx * 0.95, y: 0.2, z: s.z + sz * 0.26 })))
-);
-
 /**
  * GLB copies stand on y = 0 at `spots` (turned by spot.rotY). `fallback` is the primitive (usually
  * several <Instanced>), drawn if the GLB is unlisted or fails. The group's name finds them in a playtest.
  */
-function Prop({ asset, spots, fallback }: { asset: (typeof ASSETS)[keyof typeof ASSETS]; spots: readonly InstanceSpot[]; fallback: ReactNode }) {
+function Prop({ asset, spots, fallback }: { asset: ModelAsset; spots: readonly InstanceSpot[]; fallback: ReactNode }) {
    if (spots.length === 0) return null;
    return (
       <group name={`prop-${asset.id}`}>
@@ -136,28 +122,119 @@ function Prop({ asset, spots, fallback }: { asset: (typeof ASSETS)[keyof typeof 
    );
 }
 
-function Benches() {
+interface PartsProps {
+   spots: readonly InstanceSpot[];
+}
+
+function BenchParts({ spots }: PartsProps) {
+   const parts = useMemo(
+      () => ({
+         seat: atY(spots, 0.46),
+         back: spots.map((s) => ({ x: s.x, y: 0.78, z: s.z - 0.34 })),
+         legs: spots.flatMap((s) => [-1, 1].flatMap((sx) => [-1, 1].map((sz) => ({ x: s.x + sx * 0.95, y: 0.2, z: s.z + sz * 0.26 })))),
+      }),
+      [spots]
+   );
    return (
-      <Prop
-         asset={ASSETS.bench}
-         spots={PARK_BENCH}
-         fallback={
-            <>
-               <Instanced spots={BENCH_SEAT} name="bench-seat">
-                  <boxGeometry args={[2.4, 0.16, 0.8]} />
-                  <meshStandardMaterial color={COLORS.bench} roughness={0.7} />
-               </Instanced>
-               <Instanced spots={BENCH_BACK} name="bench-back">
-                  <boxGeometry args={[2.4, 0.42, 0.1]} />
-                  <meshStandardMaterial color={COLORS.bench} roughness={0.7} />
-               </Instanced>
-               <Instanced spots={BENCH_LEGS} name="bench-legs">
-                  <boxGeometry args={[0.12, 0.4, 0.12]} />
-                  <meshStandardMaterial color={COLORS.benchLeg} roughness={0.8} />
-               </Instanced>
-            </>
-         }
-      />
+      <>
+         <Instanced spots={parts.seat} name="bench-seat">
+            <boxGeometry args={[2.4, 0.16, 0.8]} />
+            <meshStandardMaterial color={COLORS.bench} roughness={0.7} />
+         </Instanced>
+         <Instanced spots={parts.back} name="bench-back">
+            <boxGeometry args={[2.4, 0.42, 0.1]} />
+            <meshStandardMaterial color={COLORS.bench} roughness={0.7} />
+         </Instanced>
+         <Instanced spots={parts.legs} name="bench-legs">
+            <boxGeometry args={[0.12, 0.4, 0.12]} />
+            <meshStandardMaterial color={COLORS.benchLeg} roughness={0.8} />
+         </Instanced>
+      </>
+   );
+}
+
+function BinParts({ spots }: PartsProps) {
+   const parts = useMemo(() => ({ drum: atY(spots, 0.5), rim: atY(spots, 1.02) }), [spots]);
+   return (
+      <>
+         <Instanced spots={parts.drum}>
+            <cylinderGeometry args={[0.62, 0.7, 1.0, 14]} />
+            <meshStandardMaterial color={COLORS.bin} roughness={0.55} />
+         </Instanced>
+         <Instanced spots={parts.rim}>
+            <cylinderGeometry args={[0.7, 0.7, 0.08, 14]} />
+            <meshStandardMaterial color={COLORS.binRim} metalness={0.2} roughness={0.4} />
+         </Instanced>
+      </>
+   );
+}
+
+function LampParts({ spots }: PartsProps) {
+   const parts = useMemo(() => ({ pole: atY(spots, 0.85), globe: atY(spots, 1.85) }), [spots]);
+   return (
+      <>
+         <Instanced spots={parts.pole}>
+            <cylinderGeometry args={[0.3, 0.34, 1.7, 10]} />
+            <meshStandardMaterial color={COLORS.pole} metalness={0.35} roughness={0.4} />
+         </Instanced>
+         <Instanced spots={parts.globe}>
+            <sphereGeometry args={[0.36, 12, 10]} />
+            <meshStandardMaterial color={COLORS.lamp} emissive={COLORS.lamp} emissiveIntensity={0.7} roughness={0.35} />
+         </Instanced>
+      </>
+   );
+}
+
+function PalmParts({ spots }: PartsProps) {
+   const parts = useMemo(() => ({ trunk: atY(spots, 0.7), crown: spots.map((s) => ({ ...s, y: 1.7, sy: 0.55 })) }), [spots]);
+   return (
+      <>
+         <Instanced spots={parts.trunk}>
+            <cylinderGeometry args={[0.5, 0.6, 1.4, 10]} />
+            <meshStandardMaterial color={COLORS.palmTrunk} roughness={0.85} />
+         </Instanced>
+         <Instanced spots={parts.crown}>
+            <sphereGeometry args={[1.05, 12, 10]} />
+            <meshStandardMaterial color={COLORS.palm} roughness={0.75} />
+         </Instanced>
+      </>
+   );
+}
+
+function UmbrellaParts({ spots }: PartsProps) {
+   const parts = useMemo(() => ({ pole: atY(spots, 0.8), canopy: atY(spots, 1.7) }), [spots]);
+   return (
+      <>
+         <Instanced spots={parts.pole}>
+            <cylinderGeometry args={[0.25, 0.25, 1.6, 8]} />
+            <meshStandardMaterial color={COLORS.pole} roughness={0.5} />
+         </Instanced>
+         <Instanced spots={parts.canopy}>
+            <coneGeometry args={[1.15, 0.5, 14]} />
+            <meshStandardMaterial color={COLORS.canopy} roughness={0.55} />
+         </Instanced>
+      </>
+   );
+}
+
+/** Each GLB kind's primitive: its fallback, on the same spots. */
+const GLB_FALLBACK: Record<GlbKind, ComponentType<PartsProps>> = {
+   bench: BenchParts,
+   bin: BinParts,
+   lamp: LampParts,
+   palm: PalmParts,
+   pole: UmbrellaParts,
+};
+
+/** Every GLB_PROPS entry of map `map`, and nothing else: its asset on its spots, its kind's primitive as the fallback. */
+function GlbProps({ map }: { map: number }) {
+   return (
+      <>
+         {GLB_PROPS.filter((set) => set.map === map).map((set) => {
+            const Fallback = GLB_FALLBACK[set.kind];
+            return <Prop key={set.kind} asset={set.asset} spots={set.spots} fallback={<Fallback spots={set.spots} />} />;
+         })}
+      </>
    );
 }
 
@@ -175,27 +252,6 @@ function Trees() {
                <Instanced spots={atY(PARK_TREE, 1.45)}>
                   <sphereGeometry args={[0.95, 14, 12]} />
                   <meshStandardMaterial color={COLORS.leaves} roughness={0.8} />
-               </Instanced>
-            </>
-         }
-      />
-   );
-}
-
-function Bins({ spots }: { spots: readonly InstanceSpot[] }) {
-   return (
-      <Prop
-         asset={ASSETS.bin}
-         spots={spots}
-         fallback={
-            <>
-               <Instanced spots={atY(spots, 0.5)}>
-                  <cylinderGeometry args={[0.62, 0.7, 1.0, 14]} />
-                  <meshStandardMaterial color={COLORS.bin} roughness={0.55} />
-               </Instanced>
-               <Instanced spots={atY(spots, 1.02)}>
-                  <cylinderGeometry args={[0.7, 0.7, 0.08, 14]} />
-                  <meshStandardMaterial color={COLORS.binRim} metalness={0.2} roughness={0.4} />
                </Instanced>
             </>
          }
@@ -237,79 +293,12 @@ function Buildings() {
    );
 }
 
-function Lamps() {
-   const spots = CITY_LAMP;
-   return (
-      <Prop
-         asset={ASSETS.lamp}
-         spots={spots}
-         fallback={
-            <>
-               <Instanced spots={atY(spots, 0.85)}>
-                  <cylinderGeometry args={[0.3, 0.34, 1.7, 10]} />
-                  <meshStandardMaterial color={COLORS.pole} metalness={0.35} roughness={0.4} />
-               </Instanced>
-               <Instanced spots={atY(spots, 1.85)}>
-                  <sphereGeometry args={[0.36, 12, 10]} />
-                  <meshStandardMaterial color={COLORS.lamp} emissive={COLORS.lamp} emissiveIntensity={0.7} roughness={0.35} />
-               </Instanced>
-            </>
-         }
-      />
-   );
-}
-
-function Palms() {
-   const spots = BEACH_PALM;
-   return (
-      <Prop
-         asset={ASSETS.palm}
-         spots={spots}
-         fallback={
-            <>
-               <Instanced spots={atY(spots, 0.7)}>
-                  <cylinderGeometry args={[0.5, 0.6, 1.4, 10]} />
-                  <meshStandardMaterial color={COLORS.palmTrunk} roughness={0.85} />
-               </Instanced>
-               <Instanced spots={spots.map((s) => ({ ...s, y: 1.7, sy: 0.55 }))}>
-                  <sphereGeometry args={[1.05, 12, 10]} />
-                  <meshStandardMaterial color={COLORS.palm} roughness={0.75} />
-               </Instanced>
-            </>
-         }
-      />
-   );
-}
-
-function Umbrellas() {
-   const spots = BEACH_POLE;
-   return (
-      <Prop
-         asset={ASSETS.umbrella}
-         spots={spots}
-         fallback={
-            <>
-               <Instanced spots={atY(spots, 0.8)}>
-                  <cylinderGeometry args={[0.25, 0.25, 1.6, 8]} />
-                  <meshStandardMaterial color={COLORS.pole} roughness={0.5} />
-               </Instanced>
-               <Instanced spots={atY(spots, 1.7)}>
-                  <coneGeometry args={[1.15, 0.5, 14]} />
-                  <meshStandardMaterial color={COLORS.canopy} roughness={0.55} />
-               </Instanced>
-            </>
-         }
-      />
-   );
-}
-
 export const Park = memo(function Park() {
    return (
       <group name="park">
          <Ground draw={drawPark} />
-         <Benches />
+         <GlbProps map={0} />
          <Trees />
-         <Bins spots={PARK_BIN} />
       </group>
    );
 });
@@ -319,8 +308,7 @@ export const City = memo(function City() {
       <group name="city">
          <Ground draw={drawCity} />
          <Buildings />
-         <Lamps />
-         <Bins spots={CITY_BIN} />
+         <GlbProps map={1} />
       </group>
    );
 });
@@ -329,9 +317,7 @@ export const Beach = memo(function Beach() {
    return (
       <group name="beach">
          <Ground draw={drawBeach} />
-         <Palms />
-         <Umbrellas />
-         <Bins spots={BEACH_BIN} />
+         <GlbProps map={2} />
       </group>
    );
 });
