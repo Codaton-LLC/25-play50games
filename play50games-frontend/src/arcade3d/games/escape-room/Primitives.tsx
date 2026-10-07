@@ -7,7 +7,7 @@ import { useFrame } from "@react-three/fiber";
 import { RingGeometry, type Group, type Mesh, type MeshStandardMaterial } from "three";
 import { InstancedModel, Model } from "@/arcade3d/core/assets";
 import { Instanced, type InstanceSpot } from "@/arcade3d/core/render";
-import { ASSETS } from "./assets";
+import { ASSETS, BOOK_DRAWN, BOOK_LIE, DOOR_LEAF, KEY_DRAWN } from "./assets";
 import { LOOT_AT, createCupboardShell, poseCupboard } from "./cupboard";
 import { DRAWER, UNDER_DESK, drawerX, underDeskLid, underDeskX } from "./desk";
 import {
@@ -57,18 +57,20 @@ function Loot({ kind }: { kind: number }) {
    if (kind === 0) {
       return (
          <Model asset={ASSETS.key} fallback={
-            <mesh position={[0, 0.08, 0]}>
-               <boxGeometry args={[0.28, 0.08, 0.12]} />
+            <mesh position={[0, KEY_DRAWN.y, 0]}>
+               <boxGeometry args={[...KEY_DRAWN.size]} />
                <meshStandardMaterial color="#eab308" metalness={0.4} roughness={0.35} />
             </mesh>
          } />
       );
    }
    if (kind === 1) {
+      // the book GLB stands on its edge: the group lays it flat (assets.ts BOOK_LIE); the
+      // stand-in box is turned back so it lies exactly where it always did
       return (
-         <Model asset={ASSETS.book} fallback={
-            <mesh position={[0, 0.06, 0]}>
-               <boxGeometry args={[0.22, 0.08, 0.3]} />
+         <Model asset={ASSETS.book} position-y={BOOK_DRAWN.y} rotation-x={BOOK_LIE} fallback={
+            <mesh rotation-x={-BOOK_LIE}>
+               <boxGeometry args={[...BOOK_DRAWN.size]} />
                <meshStandardMaterial color="#b91c1c" roughness={0.6} />
             </mesh>
          } />
@@ -236,11 +238,12 @@ export function Room({ run, moving }: { run: EscapeRun; moving: MutableRefObject
                <boxGeometry args={[0.18, 0.28, 0.06]} />
                <meshStandardMaterial ref={(m) => { set.glow = m; }} color="#292524" emissive="#eab308" emissiveIntensity={0.15} />
             </mesh>
-            <group ref={(g) => { set.leaf = g; }} position={[-0.7, 0, 0.08]}>
-               <group position={[0.7, 0, 0]}>
+            {/* the hinge on the leaf's -x edge; the leaf (GLB or box, both 1.4 x 2.0 x 0.12) centred on it */}
+            <group ref={(g) => { set.leaf = g; }} position={[-DOOR_LEAF[0] / 2, 0, 0.08]}>
+               <group position={[DOOR_LEAF[0] / 2, 0, 0]}>
                   <Model asset={ASSETS.door} fallback={
-                     <mesh position={[0, 1, 0]}>
-                        <boxGeometry args={[1.4, 2, 0.12]} />
+                     <mesh position={[0, DOOR_LEAF[1] / 2, 0]}>
+                        <boxGeometry args={[...DOOR_LEAF]} />
                         <meshStandardMaterial color="#b45309" roughness={0.6} />
                      </mesh>
                   } />

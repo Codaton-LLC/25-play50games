@@ -30,10 +30,11 @@ import {
    type HumanoidLandmarks,
    type HumanoidPose,
 } from "@/arcade3d/core/rig";
-import { ROBOT_LANDMARKS, SHARED_ASSETS } from "@/arcade3d/core/sharedAssets";
+import { RUNNER_LANDMARKS } from "@/arcade3d/core/sharedAssets";
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { useFittedView, type FittedViewOptions } from "@/arcade3d/core/useFittedView";
 import { useRunFrame } from "@/arcade3d/core/useRunFrame";
+import { ASSETS } from "./assets";
 import { PrimitiveRunner, Room, createMoving, type RunnerLimbs } from "./Primitives";
 import { groundRingScale } from "./marker";
 import { BADGE_LOOK, BADGE_PX, MARKER_PX, badgeShowsLoot, hitsBillboard, screenSpriteSize } from "./picker";
@@ -206,9 +207,10 @@ function Badge({ run }: { run: EscapeRun }) {
    );
 }
 
-/** Robot joints until runner.glb is measured; a later full landmark set on the shared asset replaces them. */
-const RUNNER_LEGS: HumanoidLandmarks = { ...ROBOT_LANDMARKS, ...SHARED_ASSETS.runner.humanoid?.landmarks };
-const RUNNER_SCALE = SHARED_ASSETS.runner.scale ?? 1;
+/** runner.glb's measured joints (the complete set on the shared asset), in GLB units. */
+const RUNNER_LEGS: HumanoidLandmarks = RUNNER_LANDMARKS;
+/** assets.ts draws the runner 1.40 m tall; the stride and the lift are in world units through it. */
+const RUNNER_SCALE = ASSETS.runner.scale ?? 1;
 const MIN_STRIDE = 0.1;
 const DOWN = new Vector3(0, -1, 0);
 const LIMB_DIR: Dir3 = { x: 0, y: -1, z: 0 };
@@ -229,8 +231,9 @@ function applyRunnerLimbs(pose: HumanoidPose, limbs: RunnerLimbs): void {
 
 /**
  * The shared runner: idle when still, a walk whose stride keeps the planted foot still, a reach
- * toward the station or door while an action runs, and a cheer on the win. runner.glb is not in
- * the manifest, so the primitive shows and moves with the same pose. The ground marker stays 24 px.
+ * toward the station or door while an action runs, and a cheer on the win. runner.glb (auto-rigged,
+ * 1.40 m) takes the pose; the primitive, shown while it loads or if it fails, points its limbs
+ * along the same bones. The ground marker stays 24 px.
  */
 function Runner({ run }: { run: EscapeRun }) {
    const time = useGameTime();
@@ -308,7 +311,7 @@ function Runner({ run }: { run: EscapeRun }) {
             <BlobShadow radius={0.4} />
             <group ref={body}>
                <HumanoidModel
-                  asset={SHARED_ASSETS.runner}
+                  asset={ASSETS.runner}
                   pose={pose}
                   applyLift={false}
                   fallback={<group ref={standIn}><PrimitiveRunner limbs={limbs} /></group>}
