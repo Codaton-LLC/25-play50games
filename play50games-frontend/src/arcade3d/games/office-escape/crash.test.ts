@@ -1,8 +1,11 @@
 // Office Escape's crash on the real runner.glb (crash.ts, as Scene.tsx draws it): knocked onto its
 // back, it flails with its legs up, and no part of it goes through the floor during the end
-// animation; the group's motion is the one the README describes.
+// animation; the group's motion is the one the README describes, and the result delay (index.tsx)
+// keeps it on screen until the fall and the bounce are over.
+import { readFileSync } from "node:fs";
 import { beforeAll, describe, expect, it } from "vitest";
 import { Euler, Matrix4, Quaternion, Vector3 } from "three";
+import { resultDelayFor } from "@/arcade3d/core/frameLoop";
 import { BONE, blendPoses, createPose, flailPose, turnBone, walkPose } from "@/arcade3d/core/rig";
 import { rigCharacter, type RiggedCharacter } from "@/arcade3d/core/rig/characterChecks";
 import { ASSETS } from "./assets";
@@ -82,5 +85,28 @@ describe("office-escape crash on runner.glb", () => {
          // the leg's down direction swung towards the front (+z) by about a radian
          expect(new Vector3(0, -1, 0).applyQuaternion(q).z).toBeGreaterThan(0.6);
       }
+   });
+});
+
+describe("office-escape result delay", () => {
+   // index.tsx imports the Scene (R3F), so its resultDelayMs is read from the source
+   const source = readFileSync(new URL("./index.tsx", import.meta.url), "utf8");
+   const delayMs = Number(/resultDelayMs:\s*(\d+)/.exec(source)?.[1]);
+
+   it("keeps the scene up until the fall is over and the bounce has died down, then shows the panel", () => {
+      expect(delayMs).toBeGreaterThan(0);
+      // the core uses it as set (not clamped to its 5 s cap)
+      expect(resultDelayFor({ resultDelayMs: delayMs })).toBe(delayMs);
+      const p: CrashPlacement = { e: 0, y: 0, z: 0, tilt: 0, yaw: 0 };
+      expect(crashPlacement(delayMs / 1000, 0, 1, p).e).toBe(1);
+      // the largest swing of the bounce left once the panel covers the runner, against its first one
+      let peak = 0;
+      let rest = 0;
+      for (let k = CRASH.fallS; k <= 2.5; k += 0.005) {
+         const swing = Math.abs(crashPlacement(k, 0, 1, p).tilt - CRASH.tilt);
+         peak = Math.max(peak, swing);
+         if (k >= delayMs / 1000) rest = Math.max(rest, swing);
+      }
+      expect(rest).toBeLessThan(peak * 0.2);
    });
 });
