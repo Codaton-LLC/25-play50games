@@ -34,7 +34,7 @@ import { RUNNER_LANDMARKS } from "@/arcade3d/core/sharedAssets";
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { useFittedView, type FittedViewOptions } from "@/arcade3d/core/useFittedView";
 import { useRunFrame } from "@/arcade3d/core/useRunFrame";
-import { ASSETS } from "./assets";
+import { RUNNER_ASSET, RUNNER_SCALE } from "./assets";
 import { PrimitiveRunner, Room, createMoving, type RunnerLimbs } from "./Primitives";
 import { groundRingScale } from "./marker";
 import { BADGE_LOOK, BADGE_PX, MARKER_PX, badgeShowsLoot, hitsBillboard, screenSpriteSize } from "./picker";
@@ -209,8 +209,8 @@ function Badge({ run }: { run: EscapeRun }) {
 
 /** runner.glb's measured joints (the complete set on the shared asset), in GLB units. */
 const RUNNER_LEGS: HumanoidLandmarks = RUNNER_LANDMARKS;
-/** assets.ts draws the runner 1.40 m tall; the stride and the lift are in world units through it. */
-const RUNNER_SCALE = ASSETS.runner.scale ?? 1;
+// RUNNER_ASSET (1.40 m) and RUNNER_SCALE come from assets.ts: the stride and the lift are in
+// world units through the scale the runner is drawn at (assets.test.ts pins both).
 const MIN_STRIDE = 0.1;
 const DOWN = new Vector3(0, -1, 0);
 const LIMB_DIR: Dir3 = { x: 0, y: -1, z: 0 };
@@ -311,7 +311,7 @@ function Runner({ run }: { run: EscapeRun }) {
             <BlobShadow radius={0.4} />
             <group ref={body}>
                <HumanoidModel
-                  asset={ASSETS.runner}
+                  asset={RUNNER_ASSET}
                   pose={pose}
                   applyLift={false}
                   fallback={<group ref={standIn}><PrimitiveRunner limbs={limbs} /></group>}

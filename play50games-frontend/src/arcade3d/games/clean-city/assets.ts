@@ -11,7 +11,9 @@
 // already (DynamicInstancedModel does not scale fallbackParts by asset.scale).
 // Group C (2026-10-07): bottle 1.26 x 1.91 x 1.20 and bag 1.90 x 1.90 x 1.21 are fitted to their
 // stand-ins (Primitives.tsx createLitterStandIns): the bottle 0.44 x 0.90 x 0.44 (slimmed: the
-// GLB is a squat jar), the bag 0.62 x 0.80 x 0.46. Both centred and standing on y = 0 like the
+// GLB is a squat clear jar of colourful scraps with a red cap, not the spec's crushed bottle; at
+// play size a multicoloured piece in its ring. README "Group C": the user decides on a
+// regeneration), the bag 0.62 x 0.80 x 0.46. Both centred and standing on y = 0 like the
 // stand-ins (sizes.test.ts measures the real GLBs).
 import type { ModelAsset } from "@/arcade3d/core/types";
 import { CHARACTER_BUDGET, PROP_BUDGET, SHARED_ASSETS } from "@/arcade3d/core/sharedAssets";

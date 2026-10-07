@@ -34,6 +34,17 @@ export const BOOK_DRAWN = { size: [0.22, 0.08, 0.3], y: 0.06 } as const;
 /** The door leaf: 1.4 x 2.0 x 0.12, its bottom on the floor, hinged at its -x edge. */
 export const DOOR_LEAF = [1.4, 2, 0.12] as const;
 
+type Vec3 = [number, number, number];
+/**
+ * The transforms Primitives.tsx draws with (spread as props, never mutated; assets.test.ts reads
+ * them back from the drawn elements). The book's <Model> group lays the standing GLB flat at
+ * BOOK_DRAWN.y; the stand-in box inside it is turned back, so it lies as authored.
+ */
+export const BOOK_GROUP: { position: Vec3; rotation: Vec3 } = { position: [0, BOOK_DRAWN.y, 0], rotation: [BOOK_LIE, 0, 0] };
+export const BOOK_STAND_IN: { rotation: Vec3 } = { rotation: [-BOOK_LIE, 0, 0] };
+/** The door: the hinge group (the scene swings it about y) on the leaf's -x edge, 0.08 in front of the frame, and the leaf (GLB or box) centred on it. */
+export const DOOR_HINGE: { position: Vec3; leaf: Vec3 } = { position: [-DOOR_LEAF[0] / 2, 0, 0.08], leaf: [DOOR_LEAF[0] / 2, 0, 0] };
+
 export const ASSETS = {
    // 0.74 draws the 1.90 runner 1.40 m tall: the README's visible height and the stand-in's.
    runner: { ...SHARED_ASSETS.runner, scale: 0.74 },
@@ -56,3 +67,8 @@ export const ASSETS = {
    // the 1.4 x 2.0 x 0.12 leaf, turned round so the knob is at the free (+x) edge
    door: { ...local("door", "box", "#b45309"), scale: 1.0566, stretch: [1.113, 1, 0.424], rotationY: Math.PI },
 } satisfies Record<string, ModelAsset>;
+
+/** The character Scene.tsx draws (<HumanoidModel asset={RUNNER_ASSET}>): runner.glb 1.40 m tall. */
+export const RUNNER_ASSET: ModelAsset = ASSETS.runner;
+/** Its scale: the stride and the body lift are in world units through it. */
+export const RUNNER_SCALE = RUNNER_ASSET.scale ?? 1;

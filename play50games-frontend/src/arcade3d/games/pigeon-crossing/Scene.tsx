@@ -2,7 +2,7 @@
 
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
-import { PerspectiveCamera, Quaternion, Vector3, type Group, type Matrix4, type Mesh } from "three";
+import { PerspectiveCamera, Vector3, type Group, type Matrix4, type Mesh } from "three";
 import CameraRig from "@/arcade3d/core/CameraRig";
 import { DynamicInstancedModel, Model, useModel } from "@/arcade3d/core/assets";
 import { playSfx } from "@/arcade3d/core/audio";
@@ -25,10 +25,9 @@ import {
 import { useStreetGate } from "./Hud";
 import { COLORS, PigeonPrimitive, useStreetParts, type StreetParts } from "./Primitives";
 import { COVER_INNER_X, HOP_MS, LANE_SLOTS, NONE, ROW_PITCH, VEHICLE_SLOTS, createRun, fillHorizon, step, type PigeonRun } from "./rules";
+import { VEHICLE_ASSETS, vehicleFacing } from "./traffic";
 
 const POSITION = new Vector3(), ONE = new Vector3(1, 1, 1);
-const FACE_RIGHT = new Quaternion().setFromAxisAngle(new Vector3(0, 1, 0), Math.PI / 2);
-const FACE_LEFT = new Quaternion().setFromAxisAngle(new Vector3(0, 1, 0), -Math.PI / 2);
 const CAMERA = { position: [0, 29.711, 17.204] as [number, number, number], lookAt: LOOK_AT, fov: FOV };
 
 interface Layout {
@@ -149,12 +148,11 @@ const Rows = memo(function Rows({ run, parts }: { run: PigeonRun; parts: StreetP
    );
 });
 
-const VEHICLE_ASSETS = [ASSETS.car, ASSETS.taxi, ASSETS.van];
 const VehiclePool = memo(function VehiclePool({ run, kind, parts }: { run: PigeonRun; kind: number; parts: StreetParts }) {
    const update = useCallback((i: number, matrix: Matrix4) => {
       const vehicle = run.vehicles[i];
       if (!vehicle.active || vehicle.kind !== kind) return false;
-      matrix.compose(POSITION.set(vehicle.x, 0, vehicle.z), vehicle.direction > 0 ? FACE_RIGHT : FACE_LEFT, ONE);
+      matrix.compose(POSITION.set(vehicle.x, 0, vehicle.z), vehicleFacing(vehicle.direction), ONE);
    }, [run, kind]);
    return <DynamicInstancedModel asset={VEHICLE_ASSETS[kind]} count={VEHICLE_SLOTS} update={update} fallbackParts={parts.vehicles[kind]} name={`traffic-${VEHICLE_ASSETS[kind].id}`} />;
 });
