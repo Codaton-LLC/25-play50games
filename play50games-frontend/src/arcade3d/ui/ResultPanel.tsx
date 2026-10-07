@@ -28,6 +28,33 @@ export interface ResultPanelProps {
    rank?: number | null;
 }
 
+/** The big figure. An unranked time run has no finish time, so it must not show the clock. */
+export function resultScoreText(
+   score: number,
+   scoring: ScoringRules,
+   durationMs: number | null | undefined,
+   status: SubmitStatus | null,
+): string {
+   if (scoring.display === "time" && status === "unranked") return "Not ranked";
+   return formatScore(score, scoring, durationMs);
+}
+
+/** "Best 1:23.45", or "No best yet" when a time game has nothing stored. Points games keep the number. */
+export function resultBestText(
+   best: number,
+   scoring: ScoringRules,
+   durationMs: number | null | undefined,
+   bestDurationMs: number | null | undefined,
+   isNewBest: boolean,
+): string {
+   if (scoring.display === "time") {
+      const shown = isNewBest ? durationMs : bestDurationMs;
+      if (shown == null) return "No best yet";
+      return `Best ${formatScore(best, scoring, shown)}`;
+   }
+   return `Best ${formatScore(best, scoring, isNewBest ? durationMs : bestDurationMs)}`;
+}
+
 function submitMessage(status: SubmitStatus | null, rank?: number | null): string {
    switch (status) {
       case "synced":
@@ -76,9 +103,9 @@ export default function ResultPanel(props: ResultPanelProps) {
       <div className={styles.overlay} role="dialog" aria-label={title} aria-modal="true">
          <div className={styles.card}>
             <h2 className={styles.title}>{title}</h2>
-            <p className={styles.score}>{formatScore(score, scoring, durationMs)}</p>
+            <p className={styles.score}>{resultScoreText(score, scoring, durationMs, status)}</p>
             {isNewBest ? <p className={styles.newBest}>New best!</p> : null}
-            <p className={styles.best}>Best {formatScore(best, scoring, isNewBest ? durationMs : bestDurationMs)}</p>
+            <p className={styles.best}>{resultBestText(best, scoring, durationMs, bestDurationMs, isNewBest)}</p>
             {rank != null ? <p className={styles.rank}>Rank #{rank}</p> : null}
             <p className={styles.message} aria-live="polite" data-status={status ?? "saving"}>
                {submitMessage(status, rank)}
