@@ -37,12 +37,13 @@ export const CHEF_MAX_CADENCE = 4;
  */
 export const CHEF_RUN_SPEED = 5;
 /**
- * The GLB chef turns towards the way it runs by |v| / CHEF_TURN_SPEED (m/s) of a quarter turn, the
- * whole quarter (±90°, side-on to the camera) at and above it, and back to the camera when it stops.
- * Turning by the speed keeps it continuous, so a finger jittering around a slow drag moves the facing
- * a little, never flips it, and even a slow drag turns the walk's stride along the counter. With the
- * old all-or-nothing turn above 1 m/s the chef faced the camera on a slow drag and slid sideways on
- * flat feet (chef.test.ts: the planted foot's slip).
+ * The GLB chef turns towards the way it runs by |v| / CHEF_TURN_SPEED (m/s) of a quarter turn (`v` its
+ * eased speed, ChefGait.v), the whole quarter (±90°, side-on to the camera) at and above it, and back
+ * to the camera when it stops. Turning by the speed keeps it continuous, so a finger jittering around
+ * a slow drag moves the facing a little, never flips it, and even a slow drag turns the walk's stride
+ * along the counter; the eased speed rides out a frame's hitch (one short or long step of the touch
+ * drive). With the old all-or-nothing turn above 1 m/s the chef faced the camera on a slow drag and
+ * slid sideways on flat feet (chef.test.ts: the planted foot's slip).
  */
 export const CHEF_TURN_SPEED = 0.5;
 /** A catch: the arms reach up towards the item for this long (s), then drop. */
@@ -55,32 +56,35 @@ export interface ChefGait {
    phase: number;
    amount: number;
    yaw: number;
-   /** the spine's lean into the run (rad, signed like the speed: > 0 towards +x) */
+   /** the chef's speed eased at 12/s (m/s, signed: > 0 towards +x): the facing and the lean follow it */
+   v: number;
+   /** the spine's lean into the run (rad, signed like the speed: > 0 towards +x): CHEF_LEAN x v */
    lean: number;
    /** the body's height over its planted foot this frame (m): core/rig bodyLift x CHEF_SCALE */
    lift: number;
 }
 
 export function createChefGait(): ChefGait {
-   return { phase: 0, amount: 0, yaw: 0, lean: 0, lift: 0 };
+   return { phase: 0, amount: 0, yaw: 0, v: 0, lean: 0, lift: 0 };
 }
 
 /**
  * One frame of the GLB chef's walk: the amount eases towards |v| / CHEF_RUN_SPEED (`v` the chef's
  * speed, signed, 0 when the run is not playing), the phase advances by the distance run over the
  * walk's own stride (so the planted foot stays put, at most CHEF_MAX_CADENCE strides a second), the
- * chef turns towards the way it runs by its speed (CHEF_TURN_SPEED) and its spine leans into the
- * speed. `dt` in seconds (0 while
- * paused: nothing moves).
+ * speed eases (gait.v), the chef turns towards the way it runs by that speed (CHEF_TURN_SPEED) and
+ * its spine leans into it. `dt` in seconds (0 while paused: nothing moves).
  */
 export function stepChefGait(gait: ChefGait, v: number, dt: number): ChefGait {
    const speed = Math.abs(v);
-   gait.amount += (Math.min(1, speed / CHEF_RUN_SPEED) - gait.amount) * (1 - Math.exp(-12 * dt));
+   const ease = 1 - Math.exp(-12 * dt);
+   gait.amount += (Math.min(1, speed / CHEF_RUN_SPEED) - gait.amount) * ease;
    gait.phase = wrapPhase(gait.phase + gaitPhaseStep(gait.amount, LEGS, CHEF_SCALE, speed, dt, CHEF_MAX_CADENCE, CHEF_MIN_STRIDE));
+   gait.v += (v - gait.v) * ease;
    // face the way it runs: +x is the camera's right, a quarter turn to the chef's left (a share of it below CHEF_TURN_SPEED)
-   const facing = (Math.PI / 2) * Math.max(-1, Math.min(1, v / CHEF_TURN_SPEED));
+   const facing = (Math.PI / 2) * Math.max(-1, Math.min(1, gait.v / CHEF_TURN_SPEED));
    gait.yaw = turnTowards(gait.yaw, facing, 1 - Math.exp(-10 * dt));
-   gait.lean += (CHEF_LEAN * v - gait.lean) * (1 - Math.exp(-12 * dt));
+   gait.lean = CHEF_LEAN * gait.v;
    return gait;
 }
 

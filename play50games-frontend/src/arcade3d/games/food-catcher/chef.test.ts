@@ -241,6 +241,15 @@ describe("food-catcher chef gait (stepChefGait)", () => {
       expect(stop.yaw).toBeCloseTo(0, 3);
       // continuous in the speed: a finger jittering around a slow drag moves the facing a little, never by a quarter
       for (let v = -1; v < 1; v += 0.01) expect(Math.abs(settle(v + 0.01).yaw - settle(v).yaw), `v ${v.toFixed(2)}`).toBeLessThan(0.04);
+      // a frame's hitch in a 0.8 m/s drag (a short step, then a long one: 0.27 and 2.2 m/s, as a stalled
+      // frame does in the headless playtest) leaves the facing side-on: it follows the eased speed
+      const drag = settle(0.8);
+      let worst = 0;
+      for (const v of [0.27, 2.2, 0.8, 0.8, 0.8]) {
+         stepChefGait(drag, v, 1 / 60);
+         worst = Math.max(worst, Math.abs(drag.yaw - Math.PI / 2));
+      }
+      expect(worst).toBeLessThan(0.02);
    });
 });
 
