@@ -4,10 +4,13 @@
 // never sees any of it (no collision, no litter, no camera fit change).
 //
 // Where decor may stand (README "Decor around the maps"):
-// - Outside DECOR_KEEP_OUT: the square |x|, |z| <= 14.3 holds everything the run draws on the floor
-//   (the runner's body reaches 14.0, a litter piece's glow 13.5 + 0.72 = 14.22). Every decor
-//   footprint, a pigeon's flight included, stays outside it, so no decor overlaps the floor, an
-//   obstacle square, a litter spot or a reachable runner position (decorSpots.test.ts).
+// - Outside DECOR_KEEP_OUT: the square |x|, |z| <= 14.3 holds everything the run collides with or
+//   spawns (the runner's body reaches 14.0, a litter piece's glow 13.5 + 0.72 = 14.22, 14.29 at its
+//   pop-in overshoot). Every decor footprint, a pigeon's peck and flight included, stays outside it,
+//   so no decor overlaps the floor, an obstacle square, a litter spot or a reachable runner
+//   position (decorSpots.test.ts). One effect reaches past it: the pickup burst's fading outer
+//   edge (Scene.tsx, up to 13.5 + 1.0 = 14.5, opacity <= 0.21 past 14.3) may slip under the city
+//   kerb; it stays short of every car and pigeon.
 // - Never beyond the near edge (z > 14): the camera looks from +z, so only something on that side
 //   could stand between it and the floor. Seen from the camera (x within the follow range, +z),
 //   decor beyond the far edge or the left/right edges is always behind or beside what it looks at.
@@ -19,7 +22,11 @@ import { FLOOR_HALF, SPAWN_HALF } from "./rules";
 
 /** Litter glow (Scene.tsx circle r 0.72) around a centre at most SPAWN_HALF out: the floor content's reach. */
 export const FLOOR_CONTENT_HALF = SPAWN_HALF + 0.72;
-/** Decor footprints stay outside |x|, |z| <= this (0.08 of air past the glow). */
+/**
+ * Decor footprints stay outside |x|, |z| <= this: everything the run collides with or spawns
+ * (0.08 of air past the glow, 0.008 past its pop-in overshoot). The pickup burst's faint outer
+ * edge (up to 14.5) is the one thing drawn past it (header).
+ */
 export const DECOR_KEEP_OUT = 14.3;
 
 // ---------- the ground around the floor ----------
@@ -108,15 +115,17 @@ export const PIGEON_HOMES: readonly PigeonHome[] = [
    home(10.0, -15.1, -1.4, 1.7),
 ];
 
-/** Drawn pigeon size: assets.ts scales the GLB to this height (half the 0.95 runner). */
+/** The pigeon's height (Decor.tsx createPigeonParts): half the 0.95 runner. */
 export const PIGEON_HEIGHT = 0.475;
-/** Half the drawn pigeon's longest side (0.44 long) and a little air: its footprint radius around the pose point. */
-export const PIGEON_RADIUS = 0.23;
+/** The pigeon's footprint radius around its pose point at rest (standing level: 0.264 measured on its parts). */
+export const PIGEON_RADIUS = 0.27;
+/** Its footprint radius in any pose: a peck tips the head forward (0.363 measured on its parts). */
+export const PIGEON_REACH = 0.37;
 
 /** One loop of the idle: two pecks, a pause, a hop that turns to a new heading. Seconds. */
 export const PIGEON_CYCLE = 2.8;
 const PECK_PITCH = 0.42;
-/** A peck tips the bird about its toes, this far ahead of the feet: the body lifts by PECK_PIVOT x sin(tip). */
+/** A peck tips the bird about a point this far ahead of its feet (under its beak): the body lifts by PECK_PIVOT x sin(tip). */
 const PECK_PIVOT = 0.19;
 const PECKS: readonly number[] = [0.12, 0.32];
 const PECK_LEN = 0.15;
