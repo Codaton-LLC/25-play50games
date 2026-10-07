@@ -21,48 +21,52 @@ const prop = (id: string, fallbackColor: string, glbHeight: number): ModelAsset 
 });
 
 /**
- * The chef's joints (GLB units: 1.79 x 1.90 x 0.48 T-pose, faces +z; jacket, apron from the waist
- * to the knees, trousers, low shoes, a tall toque), measured from chef.glb (2026-10-06, core/README
- * "Measuring a character"; chef.test.ts). Set by eye over the estimate:
- * - hemY 0.53 (estimate 0.633): the apron's hem, where its sides and front end in the profile; the
- *   apron is skirt-weighted from the crotch down to it, so it hangs between the stepping legs;
- * - crotchY 0.75 / hipY 0.83 (estimate 0.791 / 0.865): the legs part at 0.75 in the mesh;
- * - shoulderY 1.245, armRadius 0.085 (estimate 1.237 / 0.071): the band covers the puffy sleeves;
- * - ankleY 0.13 with a 0.04 blend (estimate 0.146 / 0.051): the low shoes (to about 0.08) are rigid;
- * - armSpread 0.18 rad = 10° (estimate 0.143): the hanging hands clear the apron's sides (0.23).
+ * The chef's joints (GLB units: 1.90 x 1.87 x 0.53 T-pose, faces +z; the v2 chef of 2026-10-07: a
+ * big head with glasses and a beard sitting right on a stand-up collar, a double-breasted jacket
+ * whose tunic skirt ends above the knees (front hem 0.543, sides 0.571, back 0.587), a belt,
+ * trousers over chunky shoes, a toque; short chibi legs: hips at 0.69 for 1.87), measured from
+ * chef.glb (core/README "Landmarks, and measuring a character"; chef.test.ts). The estimate, except
+ * (set by eye in posed previews):
+ * - neckY 1.25 / headY 1.27, neckBlend 0.012 (estimate 1.305 / 1.359 / 0.027): the beard reaches
+ *   down to the collar (1.25 at the front) and hides the neck, so the head joint sits on the collar
+ *   and the whole face, beard and toque turn rigidly (the estimate bent the beard with the neck);
+ * - hemY 0.545 (estimate 0.499): the tunic's front hem; the estimate's 0.499 is where the close
+ *   inner thighs touch below it, which would skirt-weight the bare thighs into a web.
+ * The right shoe's sole sits 9 mm above the left one's in the mesh (the soles are not flat: heels
+ * at 0.014, the balls at 0.000 / 0.009), so a planted right foot hovers up to 9 mm (chef.test.ts).
  */
 export const CHEF_LANDMARKS: HumanoidLandmarks = {
-   shoulderY: 1.245,
-   shoulderX: 0.215,
-   shoulderZ: 0.02,
-   armRadius: 0.085,
-   clavicleX: 0.108,
-   elbowX: 0.454,
-   wristX: 0.692,
-   armSpread: 0.18,
-   crotchY: 0.75,
-   hipY: 0.83,
-   hipX: 0.14,
-   hipZ: 0.01,
-   kneeY: 0.42,
-   ankleY: 0.13,
-   toeZ: 0.241,
-   heelZ: -0.074,
-   legDepth: 0.076,
-   legOuterX: 0.233,
-   hemY: 0.53,
-   spineY: 0.977,
-   chestY: 1.088,
-   neckY: 1.42,
-   headY: 1.443,
-   spineZ: 0.057,
-   shoulderBlend: 0.043,
-   elbowBlend: 0.036,
-   hipBlend: 0.08,
-   kneeBlend: 0.065,
-   ankleBlend: 0.04,
-   crotchBlend: 0.054,
-   spineBlend: 0.033,
+   shoulderY: 1.138,
+   shoulderX: 0.27,
+   shoulderZ: 0.021,
+   armRadius: 0.089,
+   clavicleX: 0.135,
+   elbowX: 0.508,
+   wristX: 0.746,
+   armSpread: 0.142,
+   crotchY: 0.623,
+   hipY: 0.691,
+   hipX: 0.134,
+   hipZ: 0.013,
+   kneeY: 0.346,
+   ankleY: 0.158,
+   toeZ: 0.258,
+   heelZ: -0.096,
+   legDepth: 0.105,
+   legOuterX: 0.227,
+   hemY: 0.545,
+   spineY: 0.825,
+   chestY: 0.959,
+   neckY: 1.25,
+   headY: 1.27,
+   spineZ: 0.06,
+   shoulderBlend: 0.053,
+   elbowBlend: 0.044,
+   hipBlend: 0.069,
+   kneeBlend: 0.052,
+   ankleBlend: 0.033,
+   crotchBlend: 0.053,
+   spineBlend: 0.04,
    neckBlend: 0.012,
 };
 
@@ -72,9 +76,10 @@ export const ASSETS = {
       url: "/models/3d/food-catcher/chef.glb",
       fallback: "capsule",
       fallbackColor: "#f8fafc",
-      // the GLB is 1.90 tall (toque included): 0.96 draws it 1.82 m, the ChefPrimitive's height
-      // (hat top at 1.83). A static T-pose: the core auto-rig animates it (Scene.tsx <Chef>).
-      scale: 0.96,
+      // the GLB is 1.869 tall (toque included; its 1.90 longest side is the arm span): 0.975 draws
+      // it 1.82 m, the ChefPrimitive's height (hat top at 1.83). A static T-pose: the core auto-rig
+      // animates it (Scene.tsx <Chef>).
+      scale: 0.975,
       humanoid: { landmarks: CHEF_LANDMARKS },
       budget: { ...CHARACTER_BUDGET },
    },

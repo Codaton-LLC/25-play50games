@@ -30,11 +30,12 @@ export const CHEF_MIN_STRIDE = 0.1;
 export const CHEF_MAX_CADENCE = 4;
 /**
  * The speed (m/s) of walkPose's full run (amount 1); slower, the amount is the speed over it. The
- * chef's walk stride is about 2 m per unit of amount (x CHEF_SCALE), so up to about 4 m/s its own
- * stride covers the ground at under CHEF_MAX_CADENCE and the planted foot stays put (chef.test.ts);
- * with the amount at speed / 9 (the dash's top) every speed would be cadence-capped and slide.
+ * chef's short legs walk about 1.56 m per unit of amount (walkStride x CHEF_SCALE, 1.27 m at a full
+ * run), so with the amount at speed / 5 its own stride covers the ground at under CHEF_MAX_CADENCE up
+ * to about 5 m/s and the planted foot stays put (chef.test.ts); with the amount at speed / 7.5 (the
+ * long-legged v1 chef's) or speed / 9 (the dash's top) slow walks would already be cadence-capped and slide.
  */
-export const CHEF_RUN_SPEED = 7.5;
+export const CHEF_RUN_SPEED = 5;
 /** The GLB chef turns to face the way it runs (±90°) above this speed (m/s), back to the camera when it stops. */
 export const CHEF_TURN_SPEED = 1;
 /** A catch: the arms reach up towards the item for this long (s), then drop. */

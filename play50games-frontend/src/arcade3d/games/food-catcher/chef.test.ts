@@ -1,7 +1,8 @@
-// The auto-rig on the real chef (public/models/3d/food-catcher/chef.glb): the measured
-// CHEF_LANDMARKS match what the heuristics find, its poses keep the feet on the floor, the hands
-// clear of the apron and the toque rigid, and the apron hangs between the stepping legs
-// (core/rig/characterChecks.ts). A new chef.glb must be re-measured. Then the game's own chef
+// The auto-rig on the real chef (public/models/3d/food-catcher/chef.glb, the v2 chef of 2026-10-07):
+// the measured CHEF_LANDMARKS match what the heuristics find, its poses keep the feet on the floor,
+// the hands clear of the tunic and the bearded head and toque rigid, and the tunic's skirt hangs
+// between the stepping legs (core/rig/characterChecks.ts); its scale keeps it 1.82 m tall. A new
+// chef.glb must be re-measured. Then the game's own chef
 // (poses.ts) on the same mesh: the catch's reach never swings the arms out through the T-pose, the
 // dash's lean keeps the feet out of the floor, and the walk's stride and cadence.
 import { beforeAll, describe, expect, it } from "vitest";
@@ -9,9 +10,11 @@ import { Quaternion, Vector3 } from "three";
 import { BONE, createPose, walkStride } from "@/arcade3d/core/rig";
 import { describeCharacter, rigCharacter, type RiggedCharacter } from "@/arcade3d/core/rig/characterChecks";
 import { bodyLift } from "@/arcade3d/core/rig/gait";
+import { readCharacterGlb } from "@/arcade3d/core/rig/robotGlb";
 import { ASSETS, CHEF_LANDMARKS } from "./assets";
 import {
    CHEF_MAX_CADENCE,
+   CHEF_RUN_SPEED,
    CHEF_SCALE,
    CHEF_TURN_SPEED,
    REACH_S,
@@ -27,16 +30,29 @@ describe("food-catcher chef.glb", () => {
    describeCharacter("chef", {
       asset: ASSETS.chef,
       landmarks: CHEF_LANDMARKS,
-      height: 1.898,
-      reach: 0.897,
+      height: 1.869,
+      reach: 0.95,
       estimate: {
-         // the apron's hem: its decimated middle hides the lower bands from the estimate's bridge count (0.633 for 0.53)
-         tolerance: { hemY: 0.12 },
+         // the head joint on the collar (the beard hides the neck): 1.27 for the estimate's 1.359
+         tolerance: { headY: 0.1 },
       },
-      headFrom: 1.46,
-      hipHalfWidth: 0.235,
-      // the apron: from its hem to the crotch, in front of the thighs (the legs' front is at about z 0.09)
-      apron: { hemY: 0.53, topY: 0.75, frontZ: 0.12 },
+      // the head joint on the collar: everything above its blend (the beard from just under the chin, the face, the toque) is rigid
+      headFrom: 1.285,
+      hipHalfWidth: 0.24,
+      // the tunic's skirt: from its front hem to the crotch, in front of the thighs (their front is at about z 0.16)
+      apron: { hemY: 0.545, topY: 0.623, frontZ: 0.18 },
+   });
+
+   it("its scale draws it 1.82 m tall, the ChefPrimitive's height (the GLB's 1.90 longest side is the arm span, not the height)", async () => {
+      const glb = await readCharacterGlb(ASSETS.chef.url);
+      let top = 0;
+      let reach = 0;
+      for (let i = 0; i < glb.cloud.length; i += 3) {
+         top = Math.max(top, glb.cloud[i + 1]);
+         reach = Math.max(reach, Math.abs(glb.cloud[i]));
+      }
+      expect(2 * reach).toBeGreaterThan(top);
+      expect(top * (ASSETS.chef.scale ?? 1)).toBeCloseTo(1.82, 2);
    });
 });
 
@@ -70,12 +86,34 @@ describe("food-catcher chef (poses.ts) on chef.glb", () => {
       return { hands, low };
    }
 
+   it("the bare thighs below the tunic's hem follow their own leg only: no skirt weights there (the estimate's hem, 0.499, is where the close inner thighs touch)", () => {
+      const index = chef.skin.geometry.getAttribute("skinIndex");
+      const weight = chef.skin.geometry.getAttribute("skinWeight");
+      const LEFT: number[] = [BONE.upperLegL, BONE.lowerLegL, BONE.footL];
+      const RIGHT: number[] = [BONE.upperLegR, BONE.lowerLegR, BONE.footR];
+      const rest = chef.glb.cloud;
+      let thighs = 0;
+      for (let i = 0; i < rest.length / 3; i++) {
+         const x = rest[i * 3];
+         const y = rest[i * 3 + 1];
+         // the trousers between the knee and the tunic's front hem (0.543 in the mesh; the cloth fades in
+         // over half a knee blend below hemY, from 0.519), away from the inner thighs' crotch blend
+         if (y < 0.4 || y > 0.515 || Math.abs(x) < 0.06) continue;
+         thighs++;
+         const other = x > 0 ? RIGHT : LEFT;
+         let share = 0;
+         for (let k = 0; k < 4; k++) if (other.includes(index.getComponent(i, k))) share += weight.getComponent(i, k);
+         expect(share, `vertex ${i} at (${x.toFixed(3)}, ${y.toFixed(3)})`).toBeLessThan(0.01);
+      }
+      expect(thighs).toBeGreaterThan(200);
+   });
+
    const STILL = { amount: 0, yaw: 0, lean: 0 };
-   const WALK = { amount: 0.5, yaw: Math.PI / 2, lean: 0.03 * 3.75 };
+   const WALK = { amount: 0.5, yaw: Math.PI / 2, lean: 0.03 * 0.5 * CHEF_RUN_SPEED };
    const DASH = { amount: 1, yaw: -Math.PI / 2, lean: -0.03 * CHEF.maxSpeed };
    const PHASES = [0, 1.6, 3.1, 4.7];
 
-   it("a catch reaches up and down again without swinging the arms out through the T-pose: the hands stay within 0.5 of the middle (the T reach is 0.897), still, walking or dashing", () => {
+   it("a catch reaches up and down again without swinging the arms out through the T-pose: the hands stay within 0.5 of the middle (the T reach is 0.95), still, walking or dashing", () => {
       const out = createPose();
       const scratch = createPose();
       for (const [name, base] of [
@@ -114,7 +152,7 @@ describe("food-catcher chef (poses.ts) on chef.glb", () => {
    it("dashing at 9 m/s (turned to face the way it runs, its spine leaning into the speed), walking and still: nothing below the floor once lifted", () => {
       const out = createPose();
       const scratch = createPose();
-      for (const v of [9, -9, 3.75, 0.6]) {
+      for (const v of [9, -9, 3.75, 2.5, 0.6]) {
          const settled = settle(v);
          for (const phase of [0, 0.8, 1.6, 2.4, 3.1, 3.9, 4.7, 5.5]) {
             const gait = gaitAt(settled.amount, phase, settled.yaw, settled.lean);
@@ -169,8 +207,9 @@ describe("food-catcher chef gait (stepChefGait)", () => {
       expect(gait.amount).toBeLessThan(1e-6);
    });
 
-   it("at walking speeds (up to 4 m/s) the stride is the walk's own, so the planted foot stays put", () => {
-      for (const v of [0.6, 1.5, 2.5, 3.5, 4]) {
+   it("at walking and running speeds up to 5 m/s (CHEF_RUN_SPEED) the stride is the walk's own, so the planted foot stays put", () => {
+      expect(CHEF_RUN_SPEED).toBe(5);
+      for (const v of [0.6, 1.5, 2.5, 3.5, 4, 4.5, 5]) {
          const { stride, gait } = strideAt(v);
          expect(stride, `v ${v}`).toBeCloseTo(walkStride(gait.amount, CHEF_LANDMARKS) * CHEF_SCALE, 6);
       }
