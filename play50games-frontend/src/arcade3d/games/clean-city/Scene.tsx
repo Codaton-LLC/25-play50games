@@ -10,8 +10,9 @@
 // - Camera: useFittedView + followFocus + CameraRig, yaw locked at 0, shift so the floor sits
 //   clear of the HUD, the map pill, the joystick and the cookie banner. A map change teleports
 //   the runner; the rig eases toward it (it only snaps on mount), so the view does not jump.
-// - Litter: one DynamicInstancedModel pool per kind (5). Collected copies hide. Map props: one
-//   InstancedModel per kind, all three maps mounted, visible from stats.map.
+// - Litter: one <DynamicInstancedModel> pool per kind (PER_KIND = 5 copies), the stand-in parts
+//   (useLitterStandIns) as its fallbackParts. Collected copies hide. Map props: one InstancedModel
+//   per kind, all three maps mounted, Worlds sets visible from run.map in a useFrame.
 import { memo, useLayoutEffect, useRef, useState } from "react";
 import { useFrame } from "@react-three/fiber";
 import { Euler, Matrix4, Quaternion, Vector3, type Group, type Mesh, type MeshBasicMaterial } from "three";
@@ -21,6 +22,7 @@ import type { AABB } from "@/arcade3d/core/collision";
 import { useGameTime } from "@/arcade3d/core/gameTime";
 import { useInput } from "@/arcade3d/core/input";
 import { inputToWorld, randomSeed } from "@/arcade3d/core/math";
+import { DynamicInstancedModel } from "@/arcade3d/core/assets";
 import { BlobShadow, DynamicInstanced } from "@/arcade3d/core/render";
 import {
    BONE,
@@ -39,13 +41,13 @@ import {
    type HumanoidLandmarks,
    type HumanoidPose,
 } from "@/arcade3d/core/rig";
-import { ROBOT_LANDMARKS, SHARED_ASSETS } from "@/arcade3d/core/sharedAssets";
+import { ROBOT_LANDMARKS } from "@/arcade3d/core/sharedAssets";
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { useFittedView, type FittedViewOptions } from "@/arcade3d/core/useFittedView";
 import { useRunFrame } from "@/arcade3d/core/useRunFrame";
 import { followFocus } from "@/arcade3d/core/view";
 import { ASSETS } from "./assets";
-import { Beach, City, LitterKind, LitterStandIn, Park, PrimitiveRunner, RUNNER_RING, type RunnerLimbs } from "./Primitives";
+import { Beach, City, Park, PrimitiveRunner, RUNNER_RING, useLitterStandIns, type RunnerLimbs } from "./Primitives";
 import {
    FLOOR_HALF,
    ITEMS_PER_MAP,
@@ -196,6 +198,7 @@ function Litter({ run, fx }: { run: CleanRun; fx: LitterFx }) {
    const time = useGameTime();
    const glow = useRef<MeshBasicMaterial>(null);
    const burst = useRef<Mesh>(null);
+   const standIns = useLitterStandIns();
 
    // before the instance writers (priority 0): which slot each copy is, and the pop clock
    useFrame(() => {
@@ -260,12 +263,13 @@ function Litter({ run, fx }: { run: CleanRun; fx: LitterFx }) {
    return (
       <group name="litter">
          {LITTER_KINDS.map((kind, k) => (
-            <LitterKind
+            <DynamicInstancedModel
                key={kind}
                asset={LITTER_ASSET[k]}
                count={PER_KIND}
                update={placeKind(k)}
-               standIn={<LitterStandIn kind={k} count={PER_KIND} update={placeKind(k)} />}
+               fallbackParts={standIns[k]}
+               name={`litter-${kind}`}
             />
          ))}
          <DynamicInstanced count={ITEMS_PER_MAP} name="litter-rings" update={placeFlat(0.04)}>
@@ -287,9 +291,16 @@ function Litter({ run, fx }: { run: CleanRun; fx: LitterFx }) {
 // ---------- runner ----------
 
 /** Robot joints until runner.glb is measured; a later full landmark set on the shared asset replaces them. */
-const RUNNER_LEGS: HumanoidLandmarks = { ...ROBOT_LANDMARKS, ...SHARED_ASSETS.runner.humanoid?.landmarks };
-const RUNNER_SCALE = SHARED_ASSETS.runner.scale ?? 1;
+const RUNNER_LEGS: HumanoidLandmarks = { ...ROBOT_LANDMARKS, ...ASSETS.runner.humanoid?.landmarks };
+/** assets.ts sets it for the drawn height; the stride and the lift are in world units through it. */
+const RUNNER_SCALE = ASSETS.runner.scale ?? 1;
 const MIN_STRIDE = 0.1;
+/**
+ * Strides a second at most (as robot-collector and warehouse-rush). At scale 0.5 the walk's own
+ * stride (0.67 at full speed) would beat about 7.5 times a second at 5 units/s; faster than this,
+ * the stride stretches and the planted foot slides a little (README).
+ */
+const MAX_CADENCE = 4;
 const REACH_S = 0.45;
 const CHEER_S = 1.15;
 const LIMB_Q = new Quaternion();
@@ -343,7 +354,7 @@ function Runner({ run }: { run: CleanRun }) {
       const v = Math.hypot(r.vx, r.vz);
       const g = gait.current;
       g.amount += (Math.min(1, v / RUNNER.speed) - g.amount) * (1 - Math.exp(-12 * dt));
-      const stride = Math.max(MIN_STRIDE, walkStride(g.amount, RUNNER_LEGS) * RUNNER_SCALE);
+      const stride = Math.max(MIN_STRIDE, walkStride(g.amount, RUNNER_LEGS) * RUNNER_SCALE, v / MAX_CADENCE);
       g.phase = wrapPhase(g.phase + (v * dt / stride) * Math.PI * 2);
       walkPose(g.phase, g.amount, p);
       blendPoses(p, idlePose(t, scratch), 1 - Math.min(1, g.amount * 5), p, POSE_MASK.upper);
@@ -387,7 +398,7 @@ function Runner({ run }: { run: CleanRun }) {
          </mesh>
          <group ref={body}>
             <HumanoidModel
-               asset={SHARED_ASSETS.runner}
+               asset={ASSETS.runner}
                pose={pose}
                applyLift={false}
                fallback={<group ref={standIn}><PrimitiveRunner limbs={limbs} /></group>}

@@ -3,15 +3,13 @@
 // Clean the City look: three outdoor grounds, the obstacle stand-ins and the litter stand-ins.
 // Decoration only. Positions come from rules.ts MAPS (the same squares the runner collides with).
 // A prop that may become a GLB is an <InstancedModel> whose fallback is the primitive; litter
-// stand-ins are InstanceParts for <DynamicInstancedModel> (Scene.tsx), one pool per kind.
-import { memo, useLayoutEffect, useMemo, useState, type MutableRefObject, type ReactNode } from "react";
-import { BoxGeometry, CapsuleGeometry, CylinderGeometry, type Group } from "three";
-import { InstancedModel, useModel } from "@/arcade3d/core/assets";
-import { DynamicInstanced, Instanced, useCanvasTexture, type CanvasDraw, type InstanceSpot, type InstanceUpdate } from "@/arcade3d/core/render";
-import type { ModelAsset } from "@/arcade3d/core/types";
+// stand-ins are the fallbackParts of one <DynamicInstancedModel> pool per kind (Scene.tsx).
+import { memo, useEffect, useState, type MutableRefObject, type ReactNode } from "react";
+import { BoxGeometry, CapsuleGeometry, CylinderGeometry, MeshStandardMaterial, type BufferGeometry, type Group, type Material } from "three";
+import { InstancedModel } from "@/arcade3d/core/assets";
+import { Instanced, useCanvasTexture, type CanvasDraw, type InstancePart, type InstanceSpot } from "@/arcade3d/core/render";
 import { ASSETS } from "./assets";
-import { bakedEffect, type BakedPart } from "./baked";
-import { FLOOR_HALF, MAPS, type ObstacleKind } from "./rules";
+import { FLOOR_HALF, LITTER_KINDS, MAPS, type ObstacleKind } from "./rules";
 
 // ---------- palette ----------
 
@@ -336,53 +334,54 @@ export const Beach = memo(function Beach() {
 
 // ---------- litter pools ----------
 
-/**
- * One moving pool. A listed GLB is instanced one mesh at a time from clones, so the loader
- * cache stays. The clones are created in the layout effect and disposed in its cleanup: a
- * strict-mode replay frees that set and the next run builds another, instead of disposing a
- * useMemo copy that the meshes still hold.
- */
-export function LitterKind({ asset, count, update, standIn }: { asset: ModelAsset; count: number; update: InstanceUpdate; standIn: ReactNode }) {
-   const { scene, failed } = useModel(asset);
-   const [baked, setBaked] = useState<BakedPart[] | null>(null);
-   useLayoutEffect(() => {
-      if (!scene) return;
-      return bakedEffect(scene, asset, setBaked);
-   }, [scene, asset]);
-   if (failed || !baked || baked.length === 0) return <>{standIn}</>;
-   return (
-      <>
-         {baked.map((part, i) => (
-            <DynamicInstanced key={`${asset.id}-${i}`} count={count} update={update} name={`${asset.id}-${i}`}>
-               <primitive object={part.geo} attach="geometry" />
-               <primitive object={part.mat} attach="material" />
-            </DynamicInstanced>
-         ))}
-      </>
-   );
-}
-
-/** Stand-in shapes, bottom on y = 0, about 0.9 tall. Shared for the page: R3F does not dispose primitives. */
-const STAND_IN_GEO = [
-   new CylinderGeometry(0.16, 0.22, 0.9, 12).translate(0, 0.45, 0),
-   new BoxGeometry(0.62, 0.8, 0.46).translate(0, 0.4, 0),
-   new CylinderGeometry(0.22, 0.24, 0.85, 12).translate(0, 0.425, 0),
-   new CapsuleGeometry(0.12, 0.55, 4, 8).rotateZ(0.7).translate(0, 0.28, 0),
-];
 const STAND_IN_COLOR = ["#4ade80", "#d6a46b", "#94a3b8", "#facc15"];
-const STAND_IN_NAME = ["bottle-standin", "bag-standin", "can-standin", "banana-standin"];
 
-/** Stand-in for one kind (0 bottle, 1 bag, 2 can, 3 banana). */
-export function LitterStandIn({ kind, count, update }: { kind: number; count: number; update: InstanceUpdate }) {
-   return (
-      <DynamicInstanced count={count} update={update} name={STAND_IN_NAME[kind] ?? "litter-standin"}>
-         <primitive object={STAND_IN_GEO[kind] ?? STAND_IN_GEO[0]} attach="geometry" />
-         <meshStandardMaterial color={STAND_IN_COLOR[kind] ?? STAND_IN_COLOR[0]} roughness={0.5} />
-      </DynamicInstanced>
-   );
+/** Moves a stand-in shape so its lowest point is on y = 0 (the copy's feet). */
+function standOnFloor<T extends BufferGeometry>(geometry: T): T {
+   geometry.computeBoundingBox();
+   const bottom = geometry.boundingBox?.min.y ?? 0;
+   return geometry.translate(0, -bottom, 0);
 }
 
-// ---------- the runner (one body; the core rig replaces this component) ----------
+/**
+ * The litter stand-ins, one part per kind in LITTER_KINDS order (bottle, bag, can, banana):
+ * bottom on y = 0, about 0.8-0.9 across, already at the drawn size (DynamicInstancedModel does
+ * not scale fallbackParts by asset.scale). Fresh geometries and materials: free them with
+ * disposeLitterStandIns.
+ */
+export function createLitterStandIns(): InstancePart[][] {
+   const shapes: BufferGeometry[] = [
+      standOnFloor(new CylinderGeometry(0.16, 0.22, 0.9, 12)),
+      standOnFloor(new BoxGeometry(0.62, 0.8, 0.46)),
+      standOnFloor(new CylinderGeometry(0.22, 0.24, 0.85, 12)),
+      standOnFloor(new CapsuleGeometry(0.12, 0.55, 4, 8).rotateZ(0.7)),
+   ];
+   return LITTER_KINDS.map((_, k) => [
+      { geometry: shapes[k], material: new MeshStandardMaterial({ color: STAND_IN_COLOR[k], roughness: 0.5 }) },
+   ]);
+}
+
+export function disposeLitterStandIns(kinds: readonly (readonly InstancePart[])[]): void {
+   for (const parts of kinds) {
+      for (const part of parts) {
+         part.geometry.dispose();
+         const materials: readonly Material[] = Array.isArray(part.material) ? part.material : [part.material];
+         for (const material of materials) material.dispose();
+      }
+   }
+}
+
+/**
+ * One stand-in set per Scene mount (every Retry), freed on unmount, like core's own primitive
+ * parts. Strict mode's replayed cleanup frees it early: three uploads it again on the next draw.
+ */
+export function useLitterStandIns(): readonly (readonly InstancePart[])[] {
+   const [kinds] = useState(createLitterStandIns);
+   useEffect(() => () => disposeLitterStandIns(kinds), [kinds]);
+   return kinds;
+}
+
+// ---------- the runner's stand-in (<HumanoidModel> fallback until runner.glb is listed) ----------
 
 /** Limb pivots. The parent writes rotation.x from the one walk phase. Arms hang down. */
 export interface RunnerLimbs {

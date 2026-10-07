@@ -10,6 +10,7 @@ The mechanic is the robot-collector one: walk, touch an item, it is collected. M
 | `index.tsx` | The `GameDefinition` GameShell runs: Scene, Hud, assets, `durationMs: 240000`, camera, `hudStats`, instructions. |
 | `rules.ts` | Map configs, seeded litter, movement, pickups, scoring. Pure, no three.js/React/DOM/`Math.random`. |
 | `rules.test.ts` | Vitest for `rules.ts`, including the scoring-limit proof below. |
+| `sizes.test.ts` | Vitest for the drawn sizes: the litter stand-ins (on y = 0, one fresh set per mount, all freed on dispose) and the runner's scale. |
 | `Scene.tsx` | The frame loop. On mount, `useState` builds all three layouts and the reachable-spot cache. The frame loop only steps and writes the store. |
 | `Primitives.tsx` | Park, city and beach look: ground, paths, buildings, benches, bins, lamps, palms, umbrellas, and the stand-in runner and litter. |
 | `Hud.tsx` | The map name (Park / City / Beach). Fixed box, `data-arcade-safe-area`. |
@@ -67,7 +68,7 @@ Matches `meta.ts` (`scheme: "joystick"`).
 - The 1.0 clearance test and the reachability flood fill use those same squares. Clearance is the distance from the litter centre to the obstacle AABB. The boundary is not in that list. The flood fill walks runner-centre cells that `resolveSphereAabb` would accept against those AABBs and the wall clamp. A litter spot is reachable when some accepted centre is within 0.8 of it.
 - Map clear: the 20th pickup ends the map. The runner is placed on the next map's start pad with zero velocity, `stats.map` advances, and the 20 slots take the next layout's positions and kinds. Map 3's 20th pickup ends the run with `end("win")`.
 - The clock reaches 0: GameShell ends the run with `"timeup"`.
-- Scenery switches from a store selector on `stats.map` (1, 2 or 3). All three scenery groups are mounted, and `visible` follows that selector. The other choice, one group whose materials swap, is also fine. Either way the map change does not mount or dispose geometry.
+- Scenery switches with `run.map`. All three scenery groups stay mounted; `Worlds` sets `visible` from `run.map` in a `useFrame` (priority -0.2), the same frame the litter moves, not a render later. The map change does not mount or dispose geometry.
 - A layout must pass `isValidLayout`:
   - Litter sits on the 0.5 grid inside the spawn box (\|x\| ≤ 13.5, \|z\| ≤ 13.5). Each centre is at least 1.0 from every obstacle square and at least 4.0 from `(0, 12)`. Any two centres on that map are at least 5.4 apart. Every spot is in that map's reachable cache.
   - Obstacles are fixed by the map config, not by the seed. They leave corridors at least 2.2 wide (the runner is 1.0 across).
@@ -138,7 +139,7 @@ The shortest legal clear is 45.19 s of straight lines. A real seed walks around 
   - 812 × 375: the floor's screen y runs from 91 to 324, and the floor's near-left corner is to the right of the joystick box.
   - 1280 × 800: about 21 px per world unit.
 - Resizing or rotating refits. Yaw stays 0, so the control mapping does not flip.
-- Frame order: `<Simulation>` is the Scene's first child, so its `useRunFrame` step runs before the camera and the meshes. Visuals use `run.time`, advanced by the frame delta (at most 0.1 s), never `state.clock.elapsedTime`.
+- Frame order: `<Simulation>` is the Scene's first child, so its `useRunFrame` step runs before the camera and the meshes. Visuals animate with `useGameTime()`, which freezes on pause, never `state.clock.elapsedTime`.
 - The frame loop does not allocate. Layouts, the reachable-spot cache and the 20 litter slots exist from mount. A map change writes new x, z and kind into those slots and sets `stats.map`. Ring and glow meshes are the same 20, moved with the slots.
 - No shadow maps. Moving things get a blob shadow. Litter and repeated props are instanced.
 - Draw-call budget is the arcade one: ≤ 150, with 60 fps as the target. Measured on the park (ground, benches, trees, bin, 20 litter pieces with rings, runner): `renderer.info.render.calls` was 24. City and beach swap a similar prop set, so the count stays in that range.
@@ -168,12 +169,14 @@ GameShell draws Score, Time (counting down from 4:00) and `hudStats`:
 
 - `[{ key: "items", label: "Litter", max: 20 }, { key: "map", label: "Map", max: 3 }]`
 
-`setStat("items", n)` on every pickup, reset to 0 when the next map loads. `setStat("map", 1 | 2 | 3)` when that map loads. Scenery reads `stats.map` with a store selector. The game has no custom HUD. The shell already shows score, time and these two stats.
+`setStat("items", n)` on every pickup, reset to 0 when the next map loads. `setStat("map", 1 | 2 | 3)` when that map loads. The scenery does not read the store: all three groups stay mounted and `Worlds` sets `visible` from `run.map` in a `useFrame` (priority -0.2), the same frame the litter moves.
+
+The game's own HUD (`Hud.tsx`, `Hud: MapHud`) is one pill with the map name (Park / City / Beach), bottom right. It is a fixed 148 × 36 px box marked `data-arcade-safe-area`, so the camera fit keeps the floor clear of it and a map change never moves the fit, and its bottom offset adds `var(--arcade-bottom-obstruction)`, so the cookie banner never covers it on a phone.
 
 ## Edge cases
 
-- Pause (Esc, P, tab hidden, window blur) stops `useRunFrame` and the clock. Visual animation freezes too, because it is driven by `run.time`.
-- Pause and resume reset R3F's `state.clock.elapsedTime`. Visuals never read it. `run.time` only moves by the frame delta.
+- Pause (Esc, P, tab hidden, window blur) stops `useRunFrame` and the clock. Visual animation freezes too: visuals animate with `useGameTime()`, which freezes on pause.
+- Pause and resume reset R3F's `state.clock.elapsedTime`. Visuals never read it; `useGameTime()` only moves by the played frame delta.
 - Map transition and the 20th pickup are the same frame: score the pickup, write the next layout into the existing 20 slots, park the runner on `(0, 12)`, set `stats.map`, and do not collect anything else that frame. No mesh is mounted or destroyed. The nearest new piece is at least 3.2 away, and one frame moves at most 5 × 0.05 = 0.25, so it is not collected on the following frame either.
 - The 20th piece of map 3 and the end of the clock on the same frame: `RunClock` runs first and ends the run as `"timeup"`, so that piece is not collected (at most 2950). `end()` is idempotent.
 - On a win, `setScore` and `end("win")` run in the same callback, after the clock ticked for that frame, so `timeLeftMs` and `elapsedMs` match the submitted duration.
@@ -202,8 +205,8 @@ Browser (when the scene exists; production build, flags on with the API mock):
 - The scene is playable and `meta.ts` limits stay as they are. The proof shows those limits are already wide enough. Break-even stays 40.0 s and the earliest win stays 45.19 s. `capScore` trims only an impossible finish (a teleporting test win at 7.7 s became 1,769; a real run cannot finish before 45.19 s, where the cap does not bind).
 - `skills.md` and plan §4 still list universe `street` and Hyper3D generations for the bin, bench, palm, umbrella and lamp. This spec uses universe `shared-cast` and seed 5050, matching the shared tin can and banana, and generates only the bottle and the paper bag. The scenery is primitives on purpose. The catalog update belongs to Claude.
 - Core collision can push a circle out of a box (`resolveSphereAabb`) and can test two circles (`circlesOverlapXZ`). It cannot push a circle out of a circle. Round props are squares so the game does not need a `resolveCircleXZ`. The clearance check and the flood fill use those squares too.
-- The scene uses the current core: `useFittedView` + `followFocus` + `CameraRig` (`shift: true`, yaw locked at 0), `useGameTime()`, `useRunFrame`, `<Model fallback>`, `<InstancedModel>` for map props and `<DynamicInstanced>` pools for litter. Input is `inputToWorld(moveX, moveY, view.yaw)`. Every played frame is timed, including the countdown handoff; the proof's 0.05 s is only a safety margin.
-- Litter pools stay on `<DynamicInstanced>` children (one draw call per mesh). The core pool cleanup now releases instance buffers through the prototype, so a later swap to `<DynamicInstancedModel>` no longer throws on remount.
-- The runner is `<HumanoidModel asset={SHARED_ASSETS.runner}>`. `runner.glb` is not in the manifest, so `PrimitiveRunner` shows and moves its arms and legs from the same pose (idle, walk, a short reach on each pickup, a cheer when a map clears). Listing the GLB swaps the body without a scene change. Its joints still use the robot's landmarks until the runner is measured.
+- The scene uses the current core: `useFittedView` + `followFocus` + `CameraRig` (`shift: true`, yaw locked at 0), `useGameTime()`, `useRunFrame`, `<InstancedModel>` for map props, one `<DynamicInstancedModel>` pool per litter kind and `<DynamicInstanced>` for the litter rings and glows. Input is `inputToWorld(moveX, moveY, view.yaw)`. Every played frame is timed, including the countdown handoff; the proof's 0.05 s is only a safety margin.
+- Litter: one `<DynamicInstancedModel>` per kind, pool size `PER_KIND` (5), placed by the same `update` whatever is drawn. A listed GLB (tin can, banana) is one InstancedMesh per GLB mesh for the whole pool, sharing the loader cache's geometry and material (nothing cloned, nothing for the game to free). Until a GLB is listed, or when it fails, the pool draws the game's stand-in parts (`useLitterStandIns`, passed as `fallbackParts`): one set per Scene mount, disposed on unmount, so Retries do not pile up geometries.
+- The runner is `<HumanoidModel asset={ASSETS.runner}>`, scale 0.5 in `assets.ts` (the shared GLB is 1.90 tall, so it draws 0.95, about 1 unit). `runner.glb` is not in the manifest, so `PrimitiveRunner` (drawn unscaled, 0.9 tall) shows and moves its arms and legs from the same pose (idle, walk, a short reach on each pickup, a cheer when a map clears). The stride and the body lift use that scale too: the walk's own stride keeps the planted foot still, but the phase never beats faster than `MAX_CADENCE` = 4 strides a second (as robot-collector and warehouse-rush), so at full speed (5 units/s against a 0.67 stride with the robot's landmarks) the stride stretches to 1.25 and the planted foot slides about half a step. Listing the GLB swaps the body without a scene change. Its joints use the robot's landmarks until the shared runner asset carries its own.
 - Tin can and banana GLBs are instanced at scale 0.5 (longest side 0.95). Bottle, bag and the scenery are primitive stand-ins until their GLBs exist; those urls are not in the manifest, so nothing is fetched.
 - Still open in the core, and this fit uses them: the cookie banner is found by a 1 s poll, and `env(safe-area-inset-bottom)` is not reported. A generic measurement bug belongs in `core/`, not a local fitter.

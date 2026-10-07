@@ -13,6 +13,8 @@ import type { ModelAsset } from "@/arcade3d/core/types";
 import { CHARACTER_BUDGET, PROP_BUDGET, SHARED_ASSETS } from "@/arcade3d/core/sharedAssets";
 
 const LITTER_SCALE = 0.5;
+/** The shared runner GLB is 1.90 tall: 0.5 draws it 0.95, the README's "about 1 unit". */
+const RUNNER_SCALE = 0.5;
 
 const prop = (id: string, fallback: ModelAsset["fallback"], fallbackColor: string): ModelAsset => ({
    id,
@@ -23,8 +25,10 @@ const prop = (id: string, fallback: ModelAsset["fallback"], fallbackColor: strin
 });
 
 export const ASSETS = {
-   // shared cast. No GLB yet: Scene draws PrimitiveRunner until the core humanoid rig lands.
-   runner: { ...SHARED_ASSETS.runner },
+   // shared cast. runner.glb is not listed yet: Scene draws <HumanoidModel asset={ASSETS.runner}>
+   // with PrimitiveRunner as its fallback (drawn unscaled). The scale applies to the GLB once it
+   // is listed, and Scene's stride and body lift use it too.
+   runner: { ...SHARED_ASSETS.runner, scale: RUNNER_SCALE },
    // shared litter (public/models/3d/shared/*.glb), longest side 0.95
    tinCan: { ...SHARED_ASSETS.tinCan, scale: LITTER_SCALE },
    banana: { ...SHARED_ASSETS.banana, scale: LITTER_SCALE },
