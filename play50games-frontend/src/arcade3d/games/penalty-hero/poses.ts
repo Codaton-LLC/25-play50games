@@ -109,9 +109,9 @@ const READY_LEG = { forward: 0.4, outward: 0.12, bend: 0.75 } as const;
  * dive's glance at the ball, the idle's glance). Its head joint (KEEPER_LANDMARKS headY) sits inside
  * the beard: the beard below it bends with the neck and the face above it turns with the head, so a
  * full turn shears the beard off the chin (2.8x stretched edges in a side dive). At this share no
- * edge of the face and beard stretches more than 1.5x (keeper.test.ts).
+ * edge of the face and beard stretches more than 1.5x (1.4x at worst, a side dive; keeper.test.ts).
  */
-export const KEEPER_HEAD_TURN = 0.3;
+export const KEEPER_HEAD_TURN = 0.25;
 
 /** Keeps share `k` of bone `bone`'s turn (nlerp from the identity, the shorter way). */
 function keepTurn(out: HumanoidPose, bone: number, k: number): void {
