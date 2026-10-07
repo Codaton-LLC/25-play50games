@@ -21,7 +21,7 @@ export const pigeonCrossingMeta: ArcadeGameMeta = {
       minDurationMs: 3000,
       maxDurationMs: 1800000,
       base: 0,
-      maxPointsPerSec: 100,
+      maxPointsPerSec: 28,
       unitLabel: "pts",
       display: "int"
    },

@@ -17,11 +17,11 @@ export const penaltyHeroMeta: ArcadeGameMeta = {
    },
    scoring: {
       kind: "points",
-      maxScore: 1500,
-      minDurationMs: 10000,
-      maxDurationMs: 600000,
+      maxScore: 1450,
+      minDurationMs: 15500,
+      maxDurationMs: 225000,
       base: 0,
-      maxPointsPerSec: 150,
+      maxPointsPerSec: 95,
       unitLabel: "pts",
       display: "int"
    },

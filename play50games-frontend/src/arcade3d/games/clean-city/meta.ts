@@ -17,9 +17,9 @@ export const cleanCityMeta: ArcadeGameMeta = {
    },
    scoring: {
       kind: "points",
-      maxScore: 6000,
-      minDurationMs: 10000,
-      maxDurationMs: 900000,
+      maxScore: 4940,
+      minDurationMs: 43000,
+      maxDurationMs: 250000,
       base: 1000,
       maxPointsPerSec: 100,
       unitLabel: "pts",

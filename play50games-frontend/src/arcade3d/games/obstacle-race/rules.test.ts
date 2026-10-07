@@ -613,8 +613,8 @@ describe("obstacle-race constants (golden)", () => {
       expect([earliestMs(LINES.cp1), earliestMs(LINES.cp2), earliestMs(LINES.cp3), earliestMs(LINES.finish)]).toEqual([4834, 10334, 14767, 19334]);
       expect(RULES).toEqual({
          kind: "time",
-         maxScore: 30000,
-         minDurationMs: 15000,
+         maxScore: 28150,
+         minDurationMs: 18500,
          maxDurationMs: 300000,
          base: 0,
          maxPointsPerSec: 0,
@@ -624,10 +624,13 @@ describe("obstacle-race constants (golden)", () => {
       });
       expect(RULES.timeBaseMs).toBe(DURATION_MS);
       expect(RULES.maxDurationMs).toBe(DURATION_MS);
-      // README: the bound stays 300 ms above the server's floor, and its score under maxScore
-      expect(MIN_FINISH_MS).toBeGreaterThanOrEqual(RULES.minDurationMs + 300);
+      // README: the bound stays 834 ms (4.3%, at least 3%) above the server's floor, and its score under maxScore
+      expect(MIN_FINISH_MS - RULES.minDurationMs).toBe(834);
+      expect(MIN_FINISH_MS - RULES.minDurationMs).toBeGreaterThanOrEqual(Math.ceil(0.03 * MIN_FINISH_MS));
       expect(computeTimeScore(RULES, MIN_FINISH_MS)).toBe(28066);
       expect(computeTimeScore(RULES, MIN_FINISH_MS)).toBeLessThanOrEqual(RULES.maxScore);
+      // maxScore is exactly the score the server allows at its fastest accepted time
+      expect(computeTimeScore(RULES, RULES.minDurationMs)).toBe(RULES.maxScore);
    });
 
    it("the score table (README Scoring)", () => {

@@ -8,8 +8,9 @@
 // never runs ahead of the store's elapsedMs and lags it by less than 1 ms. No allocation after
 // createRun(): the pallets, the refill queue and the events object are fixed and rewritten in place,
 // and step() returns the same events object every time.
-// README.md is the design and holds the scoring proof. MIN_LEG, CYCLE_MIN_MS, FIRST_DELIVERY_MIN_MS
-// and SCORE_BOUND are computed below from the tuning numbers; rules.test.ts checks them.
+// README.md is the design and holds the scoring proof. MIN_LEG, CYCLE_MIN_MS, FIRST_DELIVERY_MIN_MS,
+// EARLIEST_DELIVERY_MS and SCORE_BOUND are computed below from the tuning numbers; rules.test.ts
+// checks them.
 import { clampToBounds, distanceToBoxXZ, resolveSphereAabb, type AABB, type Vec3Like } from "@/arcade3d/core/collision";
 import { capScore as capToLimits, withinServerLimits as fitsLimits } from "@/arcade3d/core/limits";
 import { rngNext, turnTowards, type RngState } from "@/arcade3d/core/math";
@@ -198,16 +199,90 @@ export const FIRST_DELIVERY_MIN_MS = PALLET_SLOTS.reduce(
    Infinity
 );
 
-/** Proof step 7: the most deliveries (right or wrong) any play can make by `ms` of play. */
+/**
+ * The 9 pallet sets a layout can have (drawLayout): 2 of the 3 slots in the back row with 2 of the 3
+ * in the front row, in index order.
+ */
+export const PALLET_SETS: ReadonlyArray<readonly number[]> = [0, 1, 2].flatMap((skipBack) =>
+   [0, 1, 2].map((skipFront) => [
+      ...[0, 1, 2].filter((k) => k !== skipBack),
+      ...[0, 1, 2].filter((k) => k !== skipFront).map((k) => SLOTS_PER_ROW + k),
+   ])
+);
+
+/**
+ * Proof step 8: the earliest ms of play of the k-th delivery (index k - 1), right or wrong, over all 9
+ * pallet sets and any play. An exact search over the state (zone corner of the last drop, last picked
+ * pallet) with straight-line legs at the speed caps (steps 3 and 4), both locks (step 5) and the refill
+ * lemma (step 7): a pallet picked twice in a row has its box again no earlier than REFILL_MS after the
+ * delivery in between. Colours, racks, acceleration and every other refill are left out, which can only
+ * make the times earlier, so each entry is a lower bound for real play. The last entry is past the clock.
+ */
+function earliestDeliveries(): number[] {
+   // enough entries to pass DURATION_MS: every delivery after the first takes at least CYCLE_MIN_MS
+   const count = 2 + Math.ceil((DURATION_MS - FIRST_DELIVERY_MIN_MS) / CYCLE_MIN_MS);
+   const best = new Array<number>(count).fill(Infinity);
+   const emptyMs = (slot: number, corner: number) => (reachToZone(slot, corner) / ROBOT.speed) * 1000;
+   const carryMs = (slot: number, corner: number) => (reachToZone(slot, corner) / ROBOT.carrySpeed) * 1000;
+   for (const set of PALLET_SETS) {
+      const n = set.length;
+      // time[corner * n + p]: the earliest delivery into `corner` of a box picked from pallet p
+      let time = new Array<number>(CORNER_COUNT * n).fill(Infinity);
+      for (let p = 0; p < n; p++) {
+         const pick = (startToReach(set[p]) / ROBOT.speed) * 1000;
+         for (let c = 0; c < CORNER_COUNT; c++) time[c * n + p] = pick + PICK_MS + carryMs(set[p], c);
+      }
+      for (let k = 0; k < count; k++) {
+         best[k] = Math.min(best[k], ...time);
+         const next = new Array<number>(CORNER_COUNT * n).fill(Infinity);
+         for (let c = 0; c < CORNER_COUNT; c++) {
+            for (let p = 0; p < n; p++) {
+               const t = time[c * n + p];
+               for (let q = 0; q < n; q++) {
+                  let pick = t + DROP_MS + emptyMs(set[q], c);
+                  // the refill lemma: the pallet emptied by the last pick is refilled REFILL_MS after this delivery
+                  if (q === p) pick = Math.max(pick, t + REFILL_MS);
+                  for (let c2 = 0; c2 < CORNER_COUNT; c2++) {
+                     const s = c2 * n + q;
+                     next[s] = Math.min(next[s], pick + PICK_MS + carryMs(set[q], c2));
+                  }
+               }
+            }
+         }
+         time = next;
+      }
+   }
+   return best;
+}
+
+/**
+ * Proof step 8 (README table): EARLIEST_DELIVERY_MS[k - 1] is the earliest ms of play of the k-th
+ * delivery: 1151.3, 2873.3, 4666.9, then 1793.6 ms more each; the 33rd at 58474.5, the 34th at 60268.1.
+ */
+export const EARLIEST_DELIVERY_MS: readonly number[] = earliestDeliveries();
+
+/** The most deliveries (right or wrong) any play can make by `ms` of play. */
 export function maxDeliveriesBy(ms: number): number {
-   if (!(ms >= FIRST_DELIVERY_MIN_MS)) return 0;
-   return 1 + Math.floor((ms - FIRST_DELIVERY_MIN_MS) / CYCLE_MIN_MS);
+   const table = EARLIEST_DELIVERY_MS;
+   if (!(ms >= table[0])) return 0;
+   const last = table.length - 1;
+   // past the table (never in a 60 s run): every further delivery takes at least CYCLE_MIN_MS
+   if (ms >= table[last]) return table.length + Math.floor((ms - table[last]) / CYCLE_MIN_MS);
+   // table[lo] <= ms < table[hi]; the table rises strictly
+   let lo = 0;
+   let hi = last;
+   while (hi - lo > 1) {
+      const mid = (lo + hi) >> 1;
+      if (table[mid] <= ms) lo = mid;
+      else hi = mid;
+   }
+   return lo + 1;
 }
 
 /** The highest score any play can have by `ms` of play: 50 per possible delivery. */
 export const scoreBoundAt = (ms: number): number => POINTS.right * maxDeliveriesBy(ms);
 
-/** The highest score any 60 s run can reach: 47 deliveries, 2350 (under maxScore 3000). */
+/** The highest score any 60 s run can reach: 33 deliveries, 1650 (under maxScore 1700). */
 export const SCORE_BOUND = scoreBoundAt(DURATION_MS);
 
 // ---------- layouts ----------

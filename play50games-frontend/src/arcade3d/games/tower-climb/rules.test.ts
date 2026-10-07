@@ -11,6 +11,25 @@ import * as tower from "./rules";
 
 const idle = { moveX: 0, jumpEdge: false };
 
+// ---------- README "Server limits" proof, restated from the physics ----------
+
+/** (c) Seconds from a launch (vy0 = V_JUMP) to landing on a top `rise` m higher. */
+const landS = (rise: number) => tower.landingTime(rise);
+/** (d) Seconds from a launch to rising `rise` m on the way up. */
+const upS = (rise: number) => (tower.V_JUMP - Math.sqrt(tower.V_JUMP ** 2 - 2 * tower.G * rise)) / tower.G;
+/** Each pair of steps rises exactly 1 m: a first rise of 0.45, 0.5 or 0.55 and the rest. */
+const FIRST_RISES = [0.45, 0.5, 0.55];
+/** (c) The cheapest 1 m pair: 450 + 550 in either order, 1.2881819 s. */
+const PAIR_S = Math.min(...FIRST_RISES.map((d) => landS(d) + landS(1 - d)));
+/** (d) From the pair below to height M: land on step 2M-1, then rise the rest of the metre in the air. */
+const LAST_S = Math.min(...FIRST_RISES.map((d) => landS(d) + upS(1 - d)));
+/** (d) Whole metre M is reached no earlier than this many ms of rules time (the 350 ms hold first). */
+const earliestMetreMs = (M: number) => (M <= 0 ? 0 : 1000 * (tower.HOLD_MS / 1000 + PAIR_S * (M - 1) + LAST_S));
+/** (d) The score bound with M whole metres: a coin at most per 8 m band. */
+const scoreBound = (M: number) => tower.HEIGHT_POINTS * M + tower.COIN_POINTS * Math.floor(M / 8);
+/** A test placement time at height y that the proof allows (1.3 s per metre is slower than any climb). */
+const placedMs = (y: number) => Math.ceil(1300 * y) + 350;
+
 function advance(run: tower.TowerRun, ms: number, input = idle): void {
    while (ms > 0) { const dt = Math.min(ms, 50); tower.step(run, dt, input); ms -= dt; }
 }
@@ -33,7 +52,7 @@ function onParent(side: number, offset = 0): { run: tower.TowerRun; spur: tower.
    const parentIndex = data.spurParents[index], y = data.heights[parentIndex] / 1000;
    run.player.grounded = false; run.contactA = run.contactB = tower.NONE;
    run.maxHeight = y; run.viewBottomY = y - 2; run.cameraTarget.y = y + 1;
-   run.timeMs = Math.max(1000, Math.ceil(y * 500) + 350); run.holdUnlocked = true;
+   run.timeMs = Math.max(1000, placedMs(y)); run.holdUnlocked = true;
    tower.fillPools(run);
    const parent = run.slabs[parentIndex % 32], spur = run.spurs[index % 16];
    run.player.x = parent.baseX + side * offset; run.player.y = y; run.player.vy = 0;
@@ -44,11 +63,11 @@ function onParent(side: number, offset = 0): { run: tower.TowerRun; spur: tower.
 }
 
 describe("tower-climb approved tuning and input", () => {
-   it("pins the physics, clocks, footprint, pools and 47250 proof ceiling", () => {
+   it("pins the physics, clocks, footprint, pools and 18320 proof ceiling", () => {
       expect(tower).toMatchObject({ G: 10, V_JUMP: 4, V_RUN: 3, MIN_LAUNCH_MS: 400,
          COYOTE_MS: 100, BUFFER_MS: 120, HOLD_MS: 350, MIN_LOSS_MS: 3000,
          MAX_STEP_MS: 50, DURATION_MS: 1800000, BLOCKS: 451, REWARD_BANDS: 450,
-         STEPS_PER_BLOCK: 16, MAX_THEORETICAL_SCORE: 47250 });
+         STEPS_PER_BLOCK: 16, MAX_THEORETICAL_SCORE: 18320 });
       expect(tower.RUNNER).toEqual({ halfWidth: 0.22, height: 0.55, depth: 0.4 });
       expect(tower.POOLS).toEqual({ slabs: 32, spurs: 16, coins: 4, flags: 4, sections: 8 });
       expect(tower.SPUR).toMatchObject({ width: 0.8, offset: 1.2, warningMs: 800, halfGuard: 1.1, gravity: 6, maxSpeed: 6 });
@@ -100,7 +119,7 @@ function standAt(index: number, x?: number): tower.TowerRun {
    const run = tower.createRun(5050), y = run.tower.heights[index] / 1000;
    run.player.grounded = false; run.contactA = run.contactB = tower.NONE;
    run.maxHeight = y; run.viewBottomY = y - 2; run.cameraTarget.y = y + 1;
-   run.timeMs = Math.max(4000, Math.ceil(y * 500) + 350); run.holdUnlocked = true;
+   run.timeMs = Math.max(4000, placedMs(y)); run.holdUnlocked = true;
    tower.fillPools(run);
    run.player.x = x ?? tower.slabX(run.slabs[index % 32], run.timeMs); run.player.y = y;
    run.player.grounded = true; run.player.groundIndex = index; run.permission = true;
@@ -333,12 +352,12 @@ describe("tower-climb swept support, coyote and buffer", () => {
 });
 
 function assertProof(run: tower.TowerRun): void {
-   const t = run.timeMs / 1000, u = Math.max(0, t - 0.2995);
-   const heightBound = t < 0.35 ? 0 : 0.8 + 2 * u;
-   if (run.maxHeight > heightBound + 1e-9 || run.collectedCoins > Math.floor(run.maxHeight / 8)
+   const metres = Math.floor(run.maxHeight), pps = towerClimbMeta.scoring.maxPointsPerSec;
+   // (d) whole metre M no earlier than earliestMetreMs(M); 1 ms for the integer clock's rounding
+   if (run.timeMs + 1 < earliestMetreMs(metres) || run.collectedCoins > Math.floor(run.maxHeight / 8)
       || run.rawScore !== Math.floor(run.maxHeight) * 10 + run.collectedCoins * 25
-      || run.score !== run.rawScore || run.score * 1000 > 100 * run.timeMs
-      || run.score > 47250 || run.maxHeight > 3600.201 + 1e-9)
+      || run.score !== run.rawScore || run.score * 1000 > pps * run.timeMs
+      || run.score > tower.MAX_THEORETICAL_SCORE || metres > 1397)
       throw new Error(`Proof failed at ${run.timeMs}: H=${run.maxHeight}, coins=${run.collectedCoins}, raw=${run.rawScore}, score=${run.score}`);
 }
 
@@ -393,14 +412,47 @@ describe("tower-climb score proof and recycled pools", () => {
       expect(tower.SLAB).toEqual({ width: 1.4, depth: 0.6, thickness: 0.16 });
       expect(tower.WEIGHTS).toEqual({ static: 8, moving: 2, absent: 1, present: 1 });
       expect(tower).toMatchObject({ BLOCK_MM: 8000, HEIGHT_POINTS: 10, COIN_POINTS: 25, X_BOUND: 1.98 });
-      expect(towerClimbMeta.scoring).toMatchObject({ kind: "points", base: 0, maxScore: 50000,
-         maxPointsPerSec: 100, minDurationMs: 3000, maxDurationMs: 1800000 });
-      for (let ms = 350; ms <= 1800000; ms++) {
-         const h = 0.8 + 2 * Math.max(0, ms / 1000 - 0.2995);
-         const score = 10 * Math.floor(h) + 25 * Math.floor(h / 8);
-         if (score > 47250 || score * 1000 > 100 * ms || capScore(score, ms, towerClimbMeta.scoring) !== score)
+      expect(towerClimbMeta.scoring).toMatchObject({ kind: "points", base: 0, maxScore: 19000,
+         maxPointsPerSec: 11, minDurationMs: 3000, maxDurationMs: 1800000 });
+      // (c) the landing times and the cheapest pair; (d) the last part of a metre
+      expect([landS(0.45), landS(0.5), landS(0.55)].map((s) => s * 1000)).toEqual([
+         expect.closeTo(664.575, 3), expect.closeTo(644.949, 3), expect.closeTo(623.607, 3)]);
+      expect(PAIR_S).toBeCloseTo(1.2881819, 7);
+      expect(landS(0.5) * 2).toBeCloseTo(1.289898, 6);
+      expect(LAST_S).toBeCloseTo(0.7590317, 7);
+      // (b) a launch reaches at most the next step: the apex 0.8 m is under any two rises (>= 0.9 m)
+      expect(tower.V_JUMP ** 2 / (2 * tower.G)).toBeCloseTo(0.8, 12);
+      expect(earliestMetreMs(1)).toBeCloseTo(1109.0317, 3);
+      expect(earliestMetreMs(8)).toBeCloseTo(10126.305, 2);
+      // (e) the steepest S / t: 105 at metre 8, 10.369 points/s (10.421 with the README's 50.5 ms slack)
+      let steepest = 0, steepestAt = 0;
+      for (let M = 1; M <= 1397; M++) {
+         const ratio = scoreBound(M) / (earliestMetreMs(M) - 50.5);
+         if (ratio > steepest) [steepest, steepestAt] = [ratio, M];
+      }
+      expect(steepestAt).toBe(8);
+      expect(steepest * 1000).toBeCloseTo(10.421, 3);
+      expect((scoreBound(8) / earliestMetreMs(8)) * 1000).toBeCloseTo(10.369, 3);
+      expect(steepest * 1000).toBeLessThan(towerClimbMeta.scoring.maxPointsPerSec);
+      // the sustained rate 13.125 points per 1.2881819 s is 10.189 points/s, over the next integer down
+      expect(13.125 / PAIR_S).toBeCloseTo(10.189, 3);
+      expect(13.125 / PAIR_S).toBeGreaterThan(towerClimbMeta.scoring.maxPointsPerSec - 1);
+      // (f) by 30 minutes (with the slack) at most 1397 whole metres: 18320
+      expect(earliestMetreMs(1397)).toBeLessThanOrEqual(1800000 + 50.5);
+      expect(earliestMetreMs(1398)).toBeGreaterThan(1800000 + 50.5);
+      expect(scoreBound(1397)).toBe(tower.MAX_THEORETICAL_SCORE);
+      expect(tower.MAX_THEORETICAL_SCORE).toBeLessThan(towerClimbMeta.scoring.maxScore);
+      // every ms of a run: the best score the proof allows (with the slack) passes the server and the cap
+      let M = 0;
+      for (let ms = 0; ms <= 1800000; ms++) {
+         while (earliestMetreMs(M + 1) <= ms + 50.5) M++;
+         const score = scoreBound(M);
+         if (score > tower.MAX_THEORETICAL_SCORE || score * 1000 > 11 * ms || capScore(score, ms, towerClimbMeta.scoring) !== score)
             throw new Error(`Analytic upper bound at ${ms}`);
       }
+      expect(M).toBe(1397);
+      // the 451-block tower far exceeds the 1397 m + 6 m pool look-ahead
+      expect(tower.BLOCKS * 8).toBeGreaterThan(1397 + 1 + 6);
    });
 
    it("perfect/adversarial bots obey the uncapped proof at 8.3/16.7/50 ms and random 1–50 ms", () => {
@@ -411,7 +463,7 @@ describe("tower-climb score proof and recycled pools", () => {
          expect(adversary.ended).toBe("lose");
       }
       console.info(`Tower measured best seeded centre-landing bot: ${best.toFixed(2)} pts/min (30-minute runs, seed 5050)`);
-      expect(best).toBeGreaterThan(400); expect(best).toBeLessThan(1575);
+      expect(best).toBeGreaterThan(400); expect(best).toBeLessThanOrEqual(tower.MAX_THEORETICAL_SCORE / 30);
    });
 
    it("coins require feet at the band, are unique, and 17.9 m/two coins gives 220", () => {
@@ -423,7 +475,8 @@ describe("tower-climb score proof and recycled pools", () => {
       tower.step(run, 1, idle); expect(run.events.delta).toBe(25); expect(run.score).toBe(before + 25);
       advance(run, 500); expect(run.collectedCoins).toBe(1); expect(run.events.coin).toBe(tower.NONE);
       run.contactA = run.contactB = tower.NONE; run.player.grounded = false;
-      run.maxHeight = 17.9; run.viewBottomY = 15.9; run.cameraTarget.y = 18.9; tower.fillPools(run);
+      // a placement time the proof allows at 17.9 m, so the 11 points/s cap stays a no-op
+      run.maxHeight = 17.9; run.viewBottomY = 15.9; run.cameraTarget.y = 18.9; run.timeMs = placedMs(17.9); tower.fillPools(run);
       const second = run.coins[2]; run.player.x = second.x; run.player.y = 16;
       run.player.grounded = true; run.player.groundIndex = 32; run.contactA = 64;
       tower.step(run, 1, idle); expect(run.score).toBe(220); expect(run.collectedCoins).toBe(2);
@@ -623,7 +676,7 @@ describe("tower-climb core parity and allocation contract", () => {
    });
 
    it("a terminal score outside the server limits is reported unranked", () => {
-      const run = tower.createRun(1); run.timeMs = 1799999; run.score = 50001;
+      const run = tower.createRun(1); run.timeMs = 1799999; run.score = towerClimbMeta.scoring.maxScore + 1;
       tower.step(run, 1, idle);
       expect(run.ended).toBe("timeup"); expect(run.ranked).toBe(false);
       const idleRun = tower.createRun(1); idleRun.timeMs = 1799999;

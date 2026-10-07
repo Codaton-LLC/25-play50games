@@ -18,7 +18,7 @@ export const RUNUP_MS = 700;
 export const FLIGHT_MS = 500;
 export const HOLD_MS = 400;
 export const CYCLE_MS = RUNUP_MS + FLIGHT_MS + HOLD_MS;
-// Ten cycles are 16000 ms of this clock. 15950 ms is only conservative slack under that floor.
+// Ten cycles are 16000 ms of this clock. The server's 15500 ms minimum is 500 ms of slack under that floor.
 
 export const FIRST_GOAL_POINTS = 100;
 export const NEXT_GOAL_POINTS = 150;
@@ -134,7 +134,7 @@ export function withinServerLimits(score: number, durationMs: number): boolean {
 
 /**
  * Safety net only (core/limits.ts). Rounds elapsed the way GameShell does, then
- * min(score, 1500, floor(150 * roundedSeconds)). Reachable finished runs never hit it.
+ * min(score, 1450, floor(95 * roundedSeconds)). Reachable finished runs never hit it.
  */
 export function capScore(score: number, elapsedMs: number): number {
    return capToLimits(score, elapsedMs, penaltyHeroMeta.scoring);

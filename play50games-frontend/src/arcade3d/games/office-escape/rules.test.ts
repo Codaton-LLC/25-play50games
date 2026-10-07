@@ -403,6 +403,15 @@ const nextStepMs = (run: OfficeRun, dtMs: number) => Math.floor(run.carry + Math
 /** The most coin slots a runner at distance `d` (mm) can have touched (|s − d| < 0.6 m reached). */
 const slotsReached = (d: number) => (d + 600 > COIN.first ? Math.ceil((d + 600 - COIN.first) / COIN.spacing) : 0);
 
+/**
+ * The most coins a runner at distance `d` (mm) can hold: the stream lays runs of at most 6 coin
+ * slots, each followed by an empty slot, so n slots hold at most n − floor(n / 7) coins.
+ */
+const coinsReachable = (d: number) => {
+   const n = slotsReached(d);
+   return n - Math.floor(n / 7);
+};
+
 interface Played {
    run: OfficeRun;
    log: TrackLog | null;
@@ -413,7 +422,7 @@ interface Played {
    capped: number;
    /** frames where run.score != floor(distance / 1000) + 50 · coins */
    formulaMisses: number;
-   /** frames with more coins than coin slots the runner has reached */
+   /** frames with more coins than the coin slots the runner has reached can hold (n − floor(n / 7)) */
    coinOverruns: number;
    jumps: number;
    laneChanges: number;
@@ -436,7 +445,7 @@ function play(seed: number, dt: DtSource, bot: Bot, { log = false, untilMs = Inf
       if (ev.laneChanged) result.laneChanges += 1;
       if (capScore(run.score, result.elapsedMs) !== run.score) result.capped += 1;
       if (run.score !== scoreFor(run.distance, run.coins)) result.formulaMisses += 1;
-      if (run.coins > slotsReached(run.distance)) result.coinOverruns += 1;
+      if (run.coins > coinsReachable(run.distance)) result.coinOverruns += 1;
       if (track) capture(run, track);
    }
    return result;
@@ -553,11 +562,11 @@ describe("office-escape constants (golden)", () => {
    it("the scoring limits are the ones in meta.ts and arcade-games.json", () => {
       expect(officeEscapeMeta.scoring).toEqual({
          kind: "points",
-         maxScore: 200000,
-         minDurationMs: 3000,
+         maxScore: 152500,
+         minDurationMs: 4800,
          maxDurationMs: 1800000,
          base: 0,
-         maxPointsPerSec: 100,
+         maxPointsPerSec: 85,
          unitLabel: "pts",
          display: "int",
       });
@@ -1411,42 +1420,76 @@ describe("office-escape scoring", () => {
       expect(scoreFor(390_000, 20)).toBe(1390);
       expect(scoreFor(distanceAt(45_000), 20)).toBe(1390);
       expect(scoreFor(28_000_000, 2799)).toBe(167_950);
+      expect(scoreFor(28_000_000, 2400)).toBe(148_000);
    });
 
    it("matches the server's check for meta.ts", () => {
-      expect(withinServerLimits(1000, 10_000)).toBe(true);
-      expect(withinServerLimits(1001, 10_000)).toBe(false);
-      expect(withinServerLimits(100, 2_999)).toBe(false);
-      expect(withinServerLimits(100, 3_000)).toBe(true);
+      expect(withinServerLimits(850, 10_000)).toBe(true);
+      expect(withinServerLimits(851, 10_000)).toBe(false);
+      expect(withinServerLimits(100, 4_799)).toBe(false);
+      expect(withinServerLimits(100, 4_800)).toBe(true);
       expect(withinServerLimits(100, 1_800_000)).toBe(true);
       expect(withinServerLimits(100, 1_800_001)).toBe(false);
-      expect(withinServerLimits(200_001, 1_800_000)).toBe(false);
+      expect(withinServerLimits(152_501, 1_800_000)).toBe(false);
+      expect(withinServerLimits(152_500, 1_795_050)).toBe(true);
       expect(withinServerLimits(12.5, 10_000)).toBe(false);
-      expect(capScore(5000, 10_000)).toBe(1000);
-      // 100 points/s x 1800 s = 180,000: the rate binds before maxScore (200,000) at every duration
-      expect(capScore(500_000, 1_800_000)).toBe(180_000);
+      expect(capScore(5000, 10_000)).toBe(850);
+      // 85 points/s x 1800 s = 153,000: maxScore (152,500) binds at the run end
+      expect(capScore(500_000, 1_800_000)).toBe(152_500);
+      expect(capScore(500_000, 1_794_000)).toBe(152_490);
       // the server sees Math.round(elapsedMs)
-      expect(capScore(1000, 9_999.4)).toBe(999);
-      expect(capScore(1000, 9_999.5)).toBe(1000);
+      expect(capScore(1000, 9_999.4)).toBe(849);
+      expect(capScore(1000, 9_999.5)).toBe(850);
    });
 });
 
 describe("office-escape scoring limit proof (README 'Server limits')", () => {
-   it("6 · D(d + 50) <= 0.1 · d for every whole ms d from 4950 to 1,795,050; the largest ratio is 0.936, at the end", () => {
+   it("floor(D / 1000) + 50 · (n − floor(n / 7)) at D(d + 50) <= 0.085 · d for every whole ms d from 4950 to 1,795,050; the largest ratio is 0.970, at the end", () => {
+      const pps = officeEscapeMeta.scoring.maxPointsPerSec;
+      expect(pps).toBe(85);
       let worst = 0;
       let worstAt = 0;
       for (let d = 4950; d <= RUN_LIMIT_MS + 50; d++) {
-         // in points: 6 · distanceAt(d + 50) / 1000 <= 100 · d / 1000
-         const ratio = (6 * distanceAt(d + 50)) / (100 * d);
+         // in points: the score bound at distanceAt(d + 50) <= 85 · d / 1000
+         const D = distanceAt(d + 50);
+         const ratio = (1000 * scoreFor(D, coinsReachable(D))) / (pps * d);
          if (ratio > worst) {
             worst = ratio;
             worstAt = d;
          }
       }
       expect(worst).toBeLessThanOrEqual(1);
-      expect(worst).toBeCloseTo(0.936, 3);
-      expect(worstAt).toBe(RUN_LIMIT_MS + 50);
+      // 82.455 points/s: 3.1% under the 85 of meta.ts
+      expect(worst).toBeCloseTo(0.970, 3);
+      expect(worst * pps).toBeCloseTo(82.455, 3);
+      expect(worstAt).toBeGreaterThan(RUN_LIMIT_MS - 1000);
+      // the old every-slot bound (6 · D) would break 85/s: 93.6 points/s over the whole run
+      expect(6 * distanceAt(RUN_LIMIT_MS) / RUN_LIMIT_MS).toBeGreaterThan(pps);
    });
+
+   it("the coin stream never fills 7 slots in a row, so n slots hold at most n − floor(n / 7) coins (200 seeds x 29:55)", () => {
+      const problems: string[] = [];
+      let longest = 0;
+      for (let seed = 9000; seed < 9200; seed++) {
+         const { log } = driveTrack(seed, () => MAX_STEP_MS, RUN_LIMIT_MS);
+         const slots = log.slotsSeen;
+         let streak = 0;
+         let count = 0;
+         for (let n = 1; n <= slots; n++) {
+            const filled = log.coins[n - 1] !== undefined;
+            streak = filled ? streak + 1 : 0;
+            count += filled ? 1 : 0;
+            longest = Math.max(longest, streak);
+            if (streak > COIN_RUN.max) problems.push(`seed ${seed}: ${streak} coin slots in a row at slot ${n - 1}`);
+            if (count > n - Math.floor(n / 7)) problems.push(`seed ${seed}: ${count} coins in the first ${n} slots`);
+         }
+         if (slots < 2799) problems.push(`seed ${seed}: only ${slots} slots written`);
+      }
+      expect(problems.slice(0, 10)).toEqual([]);
+      expect(COIN_RUN.max).toBe(6);
+      expect(COIN_GAP.min).toBe(1);
+      expect(longest).toBe(6);
+   }, 120_000);
 
    it("coins are bounded by distance: fewer than one per 10 m run", () => {
       // a coin is first touched 599 mm before its centre (whole mm)...
@@ -1464,17 +1507,26 @@ describe("office-escape scoring limit proof (README 'Server limits')", () => {
          expect(slotsReached(d)).toBe(k + 1);
          expect(slotsReached(d) * COIN.spacing).toBeLessThan(d);
          expect(scoreFor(d, slotsReached(d))).toBeLessThan((6 * d) / 1000);
+         expect(coinsReachable(d)).toBe(k + 1 - Math.floor((k + 1) / 7));
       }
-      // the best run possible: 28,000 m and a coin in every slot is 167,950 < 179,495 < 200,000
+      // the best run possible: 28,000 m and the densest stream (2400 coins in 2799 slots) is
+      // 148,000 <= 152,500 (maxScore) <= floor(85 · 1,794,950 / 1000) = 152,570
       const end = distanceAt(RUN_LIMIT_MS + MAX_STEP_MS - 1);
       expect(end).toBe(28_000_784);
       expect(slotsReached(end)).toBe(2799);
+      expect(coinsReachable(end)).toBe(2400);
+      expect(scoreFor(end, coinsReachable(end))).toBe(148_000);
+      expect(148_000).toBeLessThanOrEqual(officeEscapeMeta.scoring.maxScore);
+      expect(Math.floor((85 * (RUN_LIMIT_MS - 50)) / 1000)).toBe(152_570);
+      expect(withinServerLimits(148_000, RUN_LIMIT_MS - 50)).toBe(true);
+      expect(capScore(148_000, RUN_LIMIT_MS - 50)).toBe(148_000);
+      // a coin in every slot (167,950) would not fit: the density bound is what the limits rest on
       expect(scoreFor(end, slotsReached(end))).toBe(167_950);
-      expect(167_950).toBeLessThanOrEqual(Math.floor(0.1 * (RUN_LIMIT_MS - 50)));
-      expect(withinServerLimits(167_950, RUN_LIMIT_MS)).toBe(true);
-      // the earliest hit: at most 40 m and 3 coins (190) against a cap of 495 at 4950 ms
-      expect(scoreFor(distanceAt(FIRST_ROW_MS), slotsReached(distanceAt(FIRST_ROW_MS)))).toBe(190);
-      expect(capScore(10_000, 4950)).toBe(495);
+      expect(withinServerLimits(167_950, RUN_LIMIT_MS)).toBe(false);
+      // the earliest hit: at most 40 m and 3 coins (190) against a cap of 420 at 4950 ms
+      expect(scoreFor(distanceAt(FIRST_ROW_MS), coinsReachable(distanceAt(FIRST_ROW_MS)))).toBe(190);
+      expect(capScore(10_000, 4950)).toBe(420);
+      expect(FIRST_ROW_MS - officeEscapeMeta.scoring.minDurationMs).toBe(200);
    });
 
    it("random and mashing inputs never break the limit (300 seeds x 4 frame patterns)", () => {
@@ -1513,7 +1565,7 @@ describe("office-escape scoring limit proof (README 'Server limits')", () => {
             plainCoins += plain.run.coins;
             if (greedy.run.endReason === "win") wins += 1;
             const label = `seed ${seed} ${pattern.name}`;
-            // every frame: score <= 100 points/s and <= 200,000, and no more coins than slots reached
+            // every frame: score <= 85 points/s and <= 152,500, and no more coins than the reached slots hold
             if (greedy.capped || greedy.formulaMisses || greedy.coinOverruns) problems.push(`${label}: capped ${greedy.capped}, coins ${greedy.coinOverruns}`);
             if (greedy.run.over && !withinServerLimits(greedy.run.score, greedy.elapsedMs)) problems.push(`${label}: over the limit`);
             // at most one coin per 10 m of track, whatever the lanes

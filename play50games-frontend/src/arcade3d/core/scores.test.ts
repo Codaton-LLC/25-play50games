@@ -78,11 +78,14 @@ describe("scoring helpers", () => {
    it("computes time scores like the server", () => {
       const rules = getGameMeta("obstacle-race")!.scoring;
       expect(computeTimeScore(rules, 15000)).toBe(28500);
+      // the fastest time the server accepts scores exactly maxScore
+      expect(computeTimeScore(rules, rules.minDurationMs)).toBe(28150);
+      expect(computeTimeScore(rules, rules.minDurationMs)).toBe(rules.maxScore);
       expect(computeTimeScore(rules, 400000)).toBe(0);
    });
 
    it("clamps points and derives time scores", () => {
-      expect(normalizeRun(run({ score: 99999 }), getGameMeta("robot-collector")!.scoring).score).toBe(1600);
+      expect(normalizeRun(run({ score: 99999 }), getGameMeta("robot-collector")!.scoring).score).toBe(1470);
       expect(normalizeRun(run({ score: -5 }), getGameMeta("robot-collector")!.scoring).score).toBe(0);
       const timed = normalizeRun(run({ slug: "obstacle-race", score: 1, durationMs: 42000 }), getGameMeta("obstacle-race")!.scoring);
       expect(timed.score).toBe(25800);

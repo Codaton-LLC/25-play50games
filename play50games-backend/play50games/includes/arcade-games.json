@@ -1,12 +1,12 @@
 {
-  "version": 1,
+  "version": 2,
   "games": {
     "robot-collector": {
       "title": "Robot Collector",
       "kind": "points",
-      "max_score": 1600,
-      "min_duration_ms": 5000,
-      "max_duration_ms": 75000,
+      "max_score": 1470,
+      "min_duration_ms": 12500,
+      "max_duration_ms": 62000,
       "base": 600,
       "max_pps": 120,
       "enabled": true
@@ -14,21 +14,21 @@
     "food-catcher": {
       "title": "Food Catcher 3D",
       "kind": "points",
-      "max_score": 5000,
-      "min_duration_ms": 5000,
-      "max_duration_ms": 100000,
+      "max_score": 2500,
+      "min_duration_ms": 9500,
+      "max_duration_ms": 93000,
       "base": 0,
-      "max_pps": 50,
+      "max_pps": 28,
       "enabled": false
     },
     "office-escape": {
       "title": "Office Escape",
       "kind": "points",
-      "max_score": 200000,
-      "min_duration_ms": 3000,
+      "max_score": 152500,
+      "min_duration_ms": 4800,
       "max_duration_ms": 1800000,
       "base": 0,
-      "max_pps": 100,
+      "max_pps": 85,
       "enabled": false
     },
     "pigeon-crossing": {
@@ -38,45 +38,45 @@
       "min_duration_ms": 3000,
       "max_duration_ms": 1800000,
       "base": 0,
-      "max_pps": 100,
+      "max_pps": 28,
       "enabled": false
     },
     "penalty-hero": {
       "title": "Penalty Hero",
       "kind": "points",
-      "max_score": 1500,
-      "min_duration_ms": 10000,
-      "max_duration_ms": 600000,
+      "max_score": 1450,
+      "min_duration_ms": 15500,
+      "max_duration_ms": 225000,
       "base": 0,
-      "max_pps": 150,
+      "max_pps": 95,
       "enabled": false
     },
     "warehouse-rush": {
       "title": "Warehouse Rush",
       "kind": "points",
-      "max_score": 3000,
-      "min_duration_ms": 5000,
-      "max_duration_ms": 75000,
+      "max_score": 1700,
+      "min_duration_ms": 57000,
+      "max_duration_ms": 63000,
       "base": 0,
-      "max_pps": 50,
+      "max_pps": 29,
       "enabled": false
     },
     "tower-climb": {
       "title": "Tower Climb",
       "kind": "points",
-      "max_score": 50000,
+      "max_score": 19000,
       "min_duration_ms": 3000,
       "max_duration_ms": 1800000,
       "base": 0,
-      "max_pps": 100,
+      "max_pps": 11,
       "enabled": false
     },
     "clean-city": {
       "title": "Clean the City",
       "kind": "points",
-      "max_score": 6000,
-      "min_duration_ms": 10000,
-      "max_duration_ms": 900000,
+      "max_score": 4940,
+      "min_duration_ms": 43000,
+      "max_duration_ms": 250000,
       "base": 1000,
       "max_pps": 100,
       "enabled": false
@@ -84,8 +84,8 @@
     "escape-room": {
       "title": "Tiny Escape Room",
       "kind": "time",
-      "max_score": 60000,
-      "min_duration_ms": 15000,
+      "max_score": 58370,
+      "min_duration_ms": 16300,
       "max_duration_ms": 600000,
       "time_base_ms": 600000,
       "enabled": false
@@ -93,8 +93,8 @@
     "obstacle-race": {
       "title": "Obstacle Race",
       "kind": "time",
-      "max_score": 30000,
-      "min_duration_ms": 15000,
+      "max_score": 28150,
+      "min_duration_ms": 18500,
       "max_duration_ms": 300000,
       "time_base_ms": 300000,
       "enabled": false

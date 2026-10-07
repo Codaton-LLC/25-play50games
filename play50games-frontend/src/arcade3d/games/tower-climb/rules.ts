@@ -12,7 +12,8 @@ export const G = 10, V_JUMP = 4, V_RUN = 3;
 export const MIN_LAUNCH_MS = 400, COYOTE_MS = 100, BUFFER_MS = 120;
 export const HOLD_MS = 350, MIN_LOSS_MS = 3000, MAX_STEP_MS = 50, DURATION_MS = 1800000;
 export const BLOCKS = 451, REWARD_BANDS = 450, STEPS_PER_BLOCK = 16, BLOCK_MM = 8000;
-export const MAX_THEORETICAL_SCORE = 47250;
+/** README proof (f): at most 1397 whole metres by 30 minutes, 13970 + 25 · 174 coins. */
+export const MAX_THEORETICAL_SCORE = 18320;
 export const HEIGHT_POINTS = 10, COIN_POINTS = 25, X_BOUND = 1.98;
 export const RUNNER = { halfWidth: 0.22, height: 0.55, depth: 0.4 } as const;
 export const SLAB = { width: 1.4, depth: 0.6, thickness: 0.16 } as const;

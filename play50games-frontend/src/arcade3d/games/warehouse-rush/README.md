@@ -1,6 +1,6 @@
 # Warehouse Rush
 
-Owner: Claude. Slug: `warehouse-rush`. Game 6 of the 3D Arcade: the first carry-and-drop game and the first game with an Action button. Status stays `"soon"` until the game is reviewed. **This file is the design.** `rules.ts` and `rules.test.ts` implement its rules and proof; `Scene.tsx`, `Primitives.tsx`, `Hud.tsx` and `assets.ts` build the playable game on them (browser results under "Test plan"). The limits in `meta.ts` are correct as they are (proof below).
+Owner: Claude. Slug: `warehouse-rush`. Game 6 of the 3D Arcade: the first carry-and-drop game and the first game with an Action button. Status stays `"soon"` until the game is reviewed. **This file is the design.** `rules.ts` and `rules.test.ts` implement its rules and proof; `Scene.tsx`, `Primitives.tsx`, `Hud.tsx` and `assets.ts` build the playable game on them (browser results under "Test plan"). The limits in `meta.ts` were tightened on 2026-10-07 to the proven maximum plus one delivery (proof below).
 
 | File | What it owns |
 |---|---|
@@ -153,17 +153,17 @@ Scene never calls `addScore`, so the HUD can never drift from the rules. Sounds:
 
 `score = right ? score + 50 : max(0, score − 20)` after each delivery. The score is always a multiple of 10. Examples: 14 right deliveries, then 2 wrong ones: 700 − 40 = **660**. Two wrong ones first, then 14 right: 0, 0, then **700** (the floor ate the penalties). The HUD shows Score and Delivered (right deliveries only). GameShell submits the store's score with `elapsedMs`, which is exactly 60000 at the time-up (core).
 
-`index.tsx` sets `finalScore: (s) => ({ score: capScore(s.score, s.elapsedMs), durationMs: s.elapsedMs })`. That is `min(score, 3000, floor(50 · round(e) / 1000))`, the robot-collector safety net, and the tests prove it never changes a reachable score.
+`index.tsx` sets `finalScore: (s) => ({ score: capScore(s.score, s.elapsedMs), durationMs: s.elapsedMs })`. That is `min(score, 1700, floor(29 · round(e) / 1000))`, the robot-collector safety net, and the tests prove it never changes a reachable score.
 
 ### Server limits and why they hold (the proof)
 
-`meta.ts` and `arcade-games.json` set `kind: "points"`, `maxScore` 3000, `base` 0, `maxPointsPerSec` 50, duration 5–75 s. The server accepts a run only if:
+`meta.ts` and `arcade-games.json` set `kind: "points"`, `maxScore` 1700, `base` 0, `maxPointsPerSec` 29, duration 57–63 s (tightened 2026-10-07 from 3000, 50/s and 5–75 s, which accepted 3000 against a true maximum of 1650). The server accepts a run only if:
 
-- `score <= 3000`
-- `5000 <= duration_ms <= 75000`
-- `score * 1000 <= 50 * duration_ms`, that is, `score <= 50 · t` with t = duration_ms / 1000
+- `score <= 1700`
+- `57000 <= duration_ms <= 63000`
+- `score * 1000 <= 29 * duration_ms`, that is, `score <= 29 · t` with t = duration_ms / 1000
 
-1. **Duration.** A ranked run ends only on the clock: there are no lives and no win, and `end("quit")` is never ranked or sent. The clock ends the run with `elapsedMs` exactly 60000 (`play()` in `core/useArcadeStore.ts`), so every submission has `duration_ms = 60000`, inside 5000–75000, and the cap is 50 · 60 = 3000 = `maxScore`. So it is enough to show score ≤ 3000. The steps below show more: **score ≤ 50 · t at every moment t of play**, so the limits would still hold if a later version ended runs early (from 5 s on).
+1. **Duration.** A ranked run ends only on the clock: there are no lives and no win, and `end("quit")` is never ranked or sent. The clock ends the run with `elapsedMs` exactly 60000 (`play()` in `core/useArcadeStore.ts`), so every submission has `duration_ms = 60000`, inside 57000–63000 (± 5%), and the cap is min(1700, 29 · 60 = 1740) = 1700 = `maxScore`. So it is enough to show score ≤ 1700. The lever is `maxScore`; the duration window only pulls in around the one honest duration. (A fast honest start runs above 29 · t, for example 2 deliveries by 3.3 s, which is fine: only the 60 s submission is checked. If a later version ended runs early, the limits would have to be revisited.)
 2. **Clock.** `useRunFrame` hands the game exactly the play time `RunClock` counted in that frame, including the rest of the frame in which the countdown ends (core). Pause stops both. Locks cover whole steps and the robot moves only in the other steps, so for any span of play, moving time + lock time ≤ the play time that passed (`movedMs + lockedMs ≤ simMs ≤ elapsedMs`; `simMs` is whole ms, so a bound below is also met to the whole ms).
 3. **Speed.** The speed guard caps every step at 6 · dt empty-handed and 5 · dt carrying (the carry state is fixed during the move; a pick or a drop happens after the move). So driving a distance L takes at least L / 6 s, and at least L / 5 s with a box.
 4. **Distances.** `MIN_LEG` = **2.1**: the closest any reach comes to any zone. A side pallet's edge is at \|x\| 3.6, its reach ends at 4.4, the zone starts at 6.5 (their z ranges overlap). Every other pallet-zone pair is farther apart. Obstacles only make real paths longer. From the start (0, 0): 2.0 to the reach of a middle pallet, 2.888 to the reach of a side pallet (to its corner at (2.4, 2.8), minus 0.8).
@@ -175,23 +175,27 @@ Scene never calls `addScore`, so the HUD can never drift from the rules. Sounds:
 
    So t_k+1 − t_k ≥ 250 + 350 + 250 + 420 = **1270 ms**. Wrong deliveries need the same cycle, so the bound counts every delivery.
 6. **First delivery ≥ 1151.3 ms** (`FIRST_DELIVERY_MIN_MS`). The same argument from the start, with p the one pick before the first delivery, at pallet P: a drive at ≤ 6 u/s from (0, 0) to the reach of P, then the pick lock, then the carry into a zone at ≤ 5 u/s. Over the pallets: a side pallet gives 2.888 / 6 + 0.25 + 2.1 / 5 = **1.1513 s**, a middle pallet 2.0 / 6 + 0.25 + 5.1 / 5 = 1.603 s.
-7. **The bound.** The k-th delivery comes at t ≥ 1.1513 + 1.27 · (k − 1) s, so N(t), the number of deliveries by t, is at most `1 + floor((t − 1.1513) / 1.27)` (0 before 1.1513 s). The score is at most 50 · N(t): +50 adds 50 to both sides, and `max(0, s − 20)` never raises a score that is ≥ 0. Earliest possible score against the cap:
+   Steps 5 and 6 alone allow a delivery every 1.27 s, 47 by 60 s (2350). That bound ignores the refills, and its worst case needs a box back on the pallet just emptied, which honest play cannot get. Steps 7 and 8 take the refills into account.
+7. **The refill lemma.** Picks and deliveries alternate. Every delivery schedules one refill, and refills land in due order (`landRefills`), each on the empty pallet with the oldest `emptiedAt`. By induction, **refill n lands on the pallet of pick n**, at the first step with `simMs ≥ t_n + 1500` (t_n = delivery n): when it lands, refills 1 … n − 1 are on the pallets of picks 1 … n − 1, so the empty pallets are those of picks n, n + 1, …, emptied in that order. The invariant boxes + pending = 4 means no refill is ever skipped. So **picking the same pallet twice in a row needs p_{n+1} ≥ t_n + 1500**. The test checks the lemma at every refill of 2000 runs, and a mutation that refills the newest empty pallet instead breaks it.
+8. **The earliest delivery times** (`EARLIEST_DELIVERY_MS`). An exact shortest-path search over the state (zone corner of the last drop, last picked pallet), for each of the 9 pallet sets: the first delivery costs `startToReach / 6 + 0.25 + reachToZone / 5`, and each further cycle costs `pick = max(t + 0.25 + reachToZone(P, previous zone) / 6, P = last pallet ? t + 1.5 : −∞)`, then `t' = pick + 0.25 + reachToZone(P, next zone) / 5`. Colours, racks, acceleration and the other refills are left out, which can only make the times earlier, so each entry is a lower bound for any play, wrong deliveries included. The minimum over the sets (a test also recomputes the first 4 by brute force over every pick-and-zone sequence):
 
-| Delivery k | Earliest time (bound) | Score at most | Cap floor(50 · t) |
-|---|---|---|---|
-| 1 | 1.151 s | 50 | 57 |
-| 2 | 2.421 s | 100 | 121 |
-| 4 | 4.961 s | 200 | 248 |
-| 5 | 6.231 s | 250 | 311 |
-| 10 | 12.581 s | 500 | 629 |
-| 20 | 25.281 s | 1000 | 1264 |
-| 40 | 50.681 s | 2000 | 2534 |
-| 47 | 59.571 s | **2350** | 2978 |
+| Delivery k | Earliest time (bound) | Score at most |
+|---|---|---|
+| 1 | 1.151 s | 50 |
+| 2 | 2.873 s | 100 |
+| 3 | 4.667 s | 150 |
+| 4 | 6.461 s | 200 |
+| 10 | 17.222 s | 500 |
+| 20 | 35.158 s | 1000 |
+| 30 | 53.094 s | 1500 |
+| 32 | 56.681 s | 1600 |
+| 33 | 58.475 s | **1650** |
+| 34 | 60.268 s | (after the time-up) |
 
-   The 48th delivery would come at ≥ 60.84 s, after the time-up. So **score ≤ 2350** (`SCORE_BOUND`), under `maxScore` 3000. The rate 50 · N(t) / t is largest at the first possible delivery, 50 / 1.1513 = **43.4 points/s**, and falls towards 50 / 1.27 = 39.4 points/s. It stays under 50 at every t. By 5 s at most 4 deliveries (200 points) are possible.
-8. **The integer check** at `duration_ms` = 60000: 2350 · 1000 = 2,350,000 ≤ 50 · 60000 = 3,000,000. ✓
+   From the third delivery on, every cycle costs at least 1793.6 ms: the fastest sustained loop is a cross-rack alternation between the two side pallets on one x side and their zones (5.242 m empty, 2.1 m carrying); a fast same-zone cycle (1270 ms) followed by a middle-pallet cycle (2370 ms) gives about the same. The 34th delivery would come at ≥ 60.268 s, after the time-up, so every pallet set allows at most 33 deliveries: **score ≤ 1650** (`SCORE_BOUND`). The score is at most 50 · N(t): +50 adds 50 to both sides, and `max(0, s − 20)` never raises a score that is ≥ 0. The bound allows 150 by 5 s, 850 by 30 s, 1600 by 57 s and 1650 by 59 s. The sustained rate is at most 27.9 points/s; the steepest moment is the first delivery, 50 / 1.1513 = 43.4 points/s. Without the refill lemma the same search gives 2350, step 6's bound.
+9. **The integer check** at `duration_ms` = 60000: 1650 · 1000 = 1,650,000 ≤ 1700 · 1000 and ≤ 29 · 60000 = 1,740,000. ✓ Inside the window the bound stays under the line at every t: by 57 s at most 1600 ≤ 1653, by 58.4745 s at most 1650 ≤ 1695, and the first 1700 would come only at 60.268 s.
 
-**The limits in `meta.ts` and `arcade-games.json` are correct and unchanged.** They leave room: a 3000 cap with base 0 and 50/s fits a 60 s game whose bound is 2350.
+Margins: `maxScore` 1700 is the proven 1650 plus one delivery (+3.0%). The bound is 268 ms (one cycle's slack) away from allowing a 34th delivery, and extremely improbable luck (repeated same-colour orders on the right pallets) is not excluded by the rules, so the limit does not go below 1650. An acceleration argument is not used: pushes from corner grazes can make a step longer than |v| · dt (the speed guard test shows it). The best a forger can post drops from 3000 to 1700, at a claimed 58621 ms or more (the 29/s line).
 
 ### What real play scores (design prototype)
 
@@ -201,7 +205,9 @@ A prototype of these rules (same map, streams and refills; shortest grid paths a
 - **Human-like** (legs 25% slower, 0.3 s to react before each leg): 600–750.
 - At least 2 pallets held a box after every delivery, as step "Pallets, boxes and refills" says.
 
-Expect top human scores around 800–950. The test's path-following bot (real `stepRobot`, 60 fps) repeats the perfect-play check with the real rules: over 1000 seeds a median of **18 deliveries (900)**, 16–20 from the 1st to the 99th percentile, all seeds 15–21. Across 2000 runs of perfect, nearest-zone, wrong-zone, random and mashing bots at 144 / 60 / 30 fps and random steps, the shortest real cycle was 1448 ms (bound 1270) and the earliest first delivery 1828 ms (bound 1151). The worst-case drill (Test plan) cycles in 1450–1500 ms and scores 1950–2000 (bound 2350).
+Expect top human scores around 800–950. The test's path-following bot (real `stepRobot`, 60 fps) repeats the perfect-play check with the real rules: over 1000 seeds a median of **18 deliveries (900)**, 16–20 from the 1st to the 99th percentile, all seeds 15–21. Across 2000 runs of perfect, nearest-zone, wrong-zone, random and mashing bots at 144 / 60 / 30 fps and random steps, the shortest real cycle was 1448 ms (bound 1270) and the earliest first delivery 1828 ms (bound 1151). The forced-luck drill (Test plan: the best order every time) scores 1300–1450 (26–29 deliveries, cycles of about 2.1 s) over all 9 pallet sets and 4 frame patterns (bound 1650).
+
+Measured for the 2026-10-07 limits (throwaway probes, deleted): honest seeds 0–9999 at 60 fps scored at most 22 deliveries = 1100 (seed 3433), mostly 17–18; the shortest real cycle was 1450 ms and the earliest first delivery 1850 ms. A forced-luck drill that rewrites only the colours of boxes already on pallets and the order (2–3 cycles ahead) scored at most 28 = 1400 over all 9 pallet sets at 144, 60 and 30 fps and random 1–50 ms steps. Across 10,000 honest bot runs, 2000 runs of random, mashing, nearest-zone and wrong-zone bots and 144 forced-luck runs, the refill lemma held at every landing and every delivery was at or after the earliest-time table. So `maxScore` 1700 is +21% over the drill and +55% over the best honest seed.
 
 ## Scene and camera
 
@@ -339,7 +345,7 @@ const definition: GameDefinition = {
 
 `rules.test.ts` (vitest):
 
-- **Constants (golden).** Every number in "Constants" is pinned, and so are the derived ones: `MIN_LEG` 2.1, `CYCLE_MIN_MS` 1270, `FIRST_DELIVERY_MIN_MS` 1151.3 (±0.1), `SCORE_BOUND` 2350. The derived ones are also recomputed from the tuning numbers, so changing a speed, a lock, a slot or the reach without updating the proof fails. The scoring limits equal `meta.ts`.
+- **Constants (golden).** Every number in "Constants" is pinned, and so are the derived ones: `MIN_LEG` 2.1, `CYCLE_MIN_MS` 1270, `FIRST_DELIVERY_MIN_MS` 1151.3 (±0.1), the earliest-time table (1151.3, 2873.3, 4666.9, 6460.5, …, 58474.5, 60268.1, then 1793.6 ms per delivery), `maxDeliveriesBy(60000)` = 33, `maxDeliveriesBy(5000)` = 3 and `SCORE_BOUND` 1650 (step 6 alone: 2350). The derived ones are also recomputed from the tuning numbers, and the first 4 table entries by brute force over every pick-and-zone sequence, so changing a speed, a lock, a slot, the reach or the refill delay without updating the proof fails. The scoring limits equal `meta.ts` (1700 at 60000 accepted, 1701, 56999 ms and 63001 ms rejected, the 29/s line from 58621 ms), and the bound stays under min(1700, 29 · t) from 57 s to 60 s.
 - **Layouts.** `generateLayout` is deterministic per seed. 20,000 seeds reach all 216 layouts and every one passes `isValidLayout` (a permutation of the 4 colours, exactly 2 slots per row). `isValidLayout` rejects a repeated colour, 3 pallets in a row and a pallet off the slot grid. One connected free region (flood fill) holds every reach and every zone in all 216. The mean shortest pallet-to-zone leg lies in 6.3–6.8 for all 9 pallet sets. The reaches never overlap, and every zone is ≥ `MIN_LEG` from every reach. Golden draws for three seeds: the zone corners, the pallet slots and the first 12 box colours.
 - **Streams.** The three streams are independent: the layout and the box colours are the same whatever the player does (a bot run and an idle run of one seed). Changing the order stream's seed changes no layout or box colour.
 - **Movement.** Top speed exactly 6 empty and 5 carrying; diagonals are not faster; the stick is analog (half a stick = half the top speed); an input longer than 1 is normalised (a diagonal into a wall slides at 6 · √½); it accelerates from rest and brakes to a stop; it stops at racks, pallets and walls and slides along them. 20,000 random steps (random input, random dt, random carry state) never move more than the cap · dt, never enter a rack or a pallet, never leave the floor. The speed guard is needed: two pinned full-speed corner grazes (one empty, one carrying) are pushed more than 3 % past top · dt, and the guard trims each to exactly top · dt. dt ≤ 0 does nothing; a stopped robot keeps its heading.
@@ -354,9 +360,9 @@ const definition: GameDefinition = {
 - **Invariants under random play** (2000 seeds × 60 s, random and mashing inputs, 144 / 60 / 30 fps and random 1–50 ms steps): boxes in play + pending refills = 4; pending ≤ 2; ≥ 2 occupied pallets at every order draw; a box of the order colour is always on a pallet or in the grip; no pallet ever holds two boxes; the carried box always has the order colour.
 - **Proof.**
   - The real store (`createArcadeStore`), driven with `advanceRunClock` and `playedFrameDt` like robot-collector, through countdowns, pauses, resumes and frames from 4 to 300 ms: no untimed step, and moving time + lock time ≤ `elapsedMs`. A 0.4 ms frame that adds no whole ms never moves the robot (it moves only for counted ms).
-  - Deliveries are always ≥ 1270 ms apart and the first is ≥ 1151.3 ms, for the bots below and the random inputs above.
-  - A **worst-case drill**: after each delivery the test rewrites the run (a plain object) so that the order's box is on a side pallet and its zone is the corner beside that pallet, and a straight-line bot drives at full speed. Its cycles stay ≥ 1270 ms and its 60 s score ≤ 2350.
-  - At every frame of every run: `score ≤ 50 · elapsedMs / 1000`, `score ≤ 3000`, and `capScore` is a no-op. `withinServerLimits(score, 60000)` holds for every final score.
+  - Deliveries are always ≥ 1270 ms apart, the first is ≥ 1151.3 ms, and the k-th is at or after the earliest-time table, for the bots below and the random inputs above. Every refill lands on the pallet of the matching pick (the refill lemma).
+  - A **forced-luck drill**: before the first pick and after each delivery the test rewrites only the colours of the boxes on pallets (and of a refill when it lands) and the order, choosing 3 cycles ahead over the path fields with the real refill timing, and the path bot drives. Over all 9 pallet sets at 4 frame patterns it scores 1300–1450 (asserted ≥ 1300, so it stays meaningful), never more than 1650, and every delivery is at or after the table. (The old worst-case drill put a box back on the pallet it had just emptied, which the refills never do, and scored about 2000.)
+  - At every frame of every run: `score ≤ scoreBoundAt(simMs)` and `score ≤ 1650`. `withinServerLimits(score, 60000)` holds and `capScore` is a no-op for every final score.
   - An idle robot times out with 0 at exactly 60000 ms.
 - **Fairness bot.** A path-following bot (grid shortest paths, the real `stepRobot`, 60 fps) plays 1000 fixed seeds: every order is finished, the 1st–99th percentile of its delivery counts lies within ± 3 of their median, and every seed within ± 5 (bands in deliveries, not percent: see Fairness). Its median is pinned too (± 1 delivery), from its first run: **18**, the prototype's number.
 

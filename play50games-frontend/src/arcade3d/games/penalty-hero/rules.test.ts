@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { advanceRunClock, playedFrameDt } from "@/arcade3d/core/frameLoop";
 import { createInputController } from "@/arcade3d/core/inputController";
 import { createArcadeStore } from "@/arcade3d/core/useArcadeStore";
+import { penaltyHeroMeta } from "./meta";
 import {
    AIM_TIMEOUT_MS,
    BALL_SPOT,
@@ -11,6 +12,7 @@ import {
    HOLD_MS,
    INITIAL_WEIGHT,
    MAX_POINTS_PER_SEC,
+   MAX_SCORE,
    NEXT_GOAL_POINTS,
    RETICLE_BAND,
    RUNUP_MS,
@@ -419,7 +421,7 @@ describe("outcomes", () => {
 
 describe("timing and the server cap", () => {
    it("needs at least 16000 ms for ten immediate shots", () => {
-      // 15950 ms is only slack under this floor. The clock itself does not drop a frame.
+      // The server's 15500 ms minimum is only slack under this floor. The clock itself does not drop a frame.
       for (let d = 0; d < DTS.length; d++) {
          const state = spam(1, DTS[d]);
          expect(state.shotsDone).toBe(SHOTS);
@@ -470,7 +472,7 @@ describe("timing and the server cap", () => {
       expect(whole.phase).toBe("aim");
    });
 
-   it("stays under 150 points per second for many seeds and frame steps", () => {
+   it("stays under maxPointsPerSec (95) for many seeds and frame steps", () => {
       for (let s = 0; s < 20; s++) {
          for (let d = 0; d < DTS.length; d++) {
             const state = spam(1000 + s * 13, DTS[d]);
@@ -481,8 +483,36 @@ describe("timing and the server cap", () => {
             expect(withinServerLimits(state.score, Math.round(state.elapsedMs))).toBe(true);
          }
       }
-      expect(finalScore(9000, 16_000)).toEqual({ score: 1500, durationMs: 16_000 });
+      expect(finalScore(9000, 16_000)).toEqual({ score: 1450, durationMs: 16_000 });
       expect(finalScore(1450, 16_000).score).toBe(1450);
+   });
+
+   it("uses the tightened limits: 1450 max, 15.5-225 s, 95 points per second", () => {
+      expect(penaltyHeroMeta.scoring).toMatchObject({
+         kind: "points",
+         maxScore: 1450,
+         minDurationMs: 15500,
+         maxDurationMs: 225000,
+         base: 0,
+         maxPointsPerSec: 95,
+      });
+      expect(MAX_SCORE).toBe(1450);
+      expect(MAX_POINTS_PER_SEC).toBe(95);
+      // the floor every run reaches (10 cycles of 1600 ms) keeps 500 ms over the minimum
+      expect(SHOTS * CYCLE_MS - penaltyHeroMeta.scoring.minDurationMs).toBe(500);
+      // the longest run (10 aim timeouts + 10 cycles + one capped frame) keeps 8950 ms under the maximum
+      expect(penaltyHeroMeta.scoring.maxDurationMs - (SHOTS * (AIM_TIMEOUT_MS + CYCLE_MS) + 50)).toBe(8950);
+      // a perfect run at the floor needs 90.625 points per second; the line allows 1520 at 16 s
+      expect(Math.floor((MAX_POINTS_PER_SEC * SHOTS * CYCLE_MS) / 1000)).toBe(1520);
+      // the in-run peak (1450 just after the 10th goal commits, at 15.6 s) stays under the line
+      expect(1450 * 1000).toBeLessThanOrEqual(MAX_POINTS_PER_SEC * 15_600);
+      expect(withinServerLimits(1450, 16_000)).toBe(true);
+      expect(withinServerLimits(1450, 15_500)).toBe(true);
+      expect(withinServerLimits(1450, 15_499)).toBe(false);
+      expect(withinServerLimits(1451, 20_000)).toBe(false);
+      expect(withinServerLimits(0, 225_000)).toBe(true);
+      expect(withinServerLimits(0, 225_001)).toBe(false);
+      expect(withinServerLimits(0, SHOTS * (AIM_TIMEOUT_MS + CYCLE_MS) + 50)).toBe(true);
    });
 
    it("ignores a non-positive dt and ends only once", () => {
@@ -772,8 +802,10 @@ describe("review additions", () => {
    });
 
    it("lets the limit cap bind when a score outruns the clock", () => {
-      expect(finalScore(1450, 9000)).toEqual({ score: 1350, durationMs: 9000 });
-      expect(capScore(1500, 9499.6)).toBe(1425);
+      expect(finalScore(1450, 15_000)).toEqual({ score: 1425, durationMs: 15_000 });
+      // the server sees Math.round: 15263.4 ms is 15263 (1449.985), 15263.5 ms is 15264 (1450.08)
+      expect(capScore(1500, 15_263.4)).toBe(1449);
+      expect(capScore(1500, 15_263.5)).toBe(1450);
    });
 
    it("draws the only weighted zone even at the top of the unit range", () => {

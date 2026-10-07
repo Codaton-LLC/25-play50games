@@ -1,12 +1,12 @@
 # Clean the City
 
-Owner: Cursor. Slug: `clean-city`. Game 8 of the 3D Arcade. Status stays `"soon"`. This file is the design. `rules.ts` is the pure game; `Scene.tsx` plays it. `meta.scoring` is unchanged.
+Owner: Cursor. Slug: `clean-city`. Game 8 of the 3D Arcade. Status stays `"soon"`. This file is the design. `rules.ts` is the pure game; `Scene.tsx` plays it. `meta.scoring` was tightened on 2026-10-07 (4940, 43–250 s; see "Server limits").
 
 The mechanic is the robot-collector one: walk, touch an item, it is collected. Movement, the speed guard, circle-vs-AABB collision and the camera fit are copied from that game. This folder does not import it.
 
 | File | What it owns |
 |---|---|
-| `meta.ts` | Card data and `scoring` (must equal `arcade-games.json`). Plain data, server-safe. Already on `main`. Do not change the limits. |
+| `meta.ts` | Card data and `scoring` (must equal `arcade-games.json`). Plain data, server-safe. The limits change only with the proof below (Claude's limits PR). |
 | `index.tsx` | The `GameDefinition` GameShell runs: Scene, Hud, assets, `durationMs: 240000`, camera, `hudStats`, instructions. |
 | `rules.ts` | Map configs, seeded litter, movement, pickups, scoring. Pure, no three.js/React/DOM/`Math.random`. |
 | `rules.test.ts` | Vitest for `rules.ts`, including the scoring-limit proof below. |
@@ -102,17 +102,19 @@ The final score is `runScore(collected, won, timeLeftMs)`. The duration GameShel
 
 ### Server limits and why they hold (the proof)
 
-`meta.ts` and `arcade-games.json` set `kind: "points"`, `maxScore` 6000, `base` 1000, `maxPointsPerSec` 100, duration 10–900 s. The server accepts a run only if it passes every check below:
+`meta.ts` and `arcade-games.json` set `kind: "points"`, `maxScore` 4940, `base` 1000, `maxPointsPerSec` 100, duration 43–250 s (tightened 2026-10-07 from 6000 and 10–900 s, which accepted 6000 at a claimed 50 s: 1060 above the proven maximum). The server accepts a run only if it passes every check below:
 
-- `score <= 6000`
-- `10000 <= duration_ms <= 900000`
+- `score <= 4940`
+- `43000 <= duration_ms <= 250000`
 - `score * 1000 <= 1000 * 1000 + 100 * duration_ms`, that is, `score <= 1000 + 100 * t`
 
-**Max score, any play.** A win's bonus is at most `10 * 240 = 2400` (the whole clock still on the board), so the score is at most 3000 + 2400 = **5400**. A time-up is at most 2950. Both are ≤ 6000. ✓
+Only two kinds of run are submitted: a win, or a time-up at exactly 240000 ms (the store sets `elapsedMs = durationMs`). Quit does not submit and the game has no lives.
 
-**Time up.** t = 240 s, so the rate cap is 1000 + 24000 = 25000. The score is at most 2950. The submitted duration is 240000 ms, inside 10–900 s. ✓
+**Max score, any play.** The best win is the earliest one (step 4): **4940** = `maxScore`, with no room. A time-up is at most 2950. ✓
 
-**Win at time t.** The score is `3000 + 10 * floor(240 - t)`. It falls as t grows. The cap `1000 + 100 t` rises. They meet at **t = 40.0 s**: 3000 + 10 × 200 = 5000 against a cap of 5000. A win at 39.9 s is still in that bonus bucket (5000 points) against a cap of 4990, and the server would reject it. So any win before 40 s has to be **physically impossible**. It is, with 5.19 s to spare:
+**Time up.** t = 240 s, 10 s (4.2%) under the 250 s maximum. The rate cap is 1000 + 24000 = 25000; the score is at most 2950. ✓
+
+**Win at time t.** The score is `3000 + 10 * floor(240 - t)`. It falls as t grows. The cap `1000 + 100 t` rises. They meet at **t = 40.0 s**: 3000 + 10 × 200 = 5000 against a cap of 5000; a win at 39.9 s is still in that bonus bucket (5000 points) against a cap of 4990. The 43 s minimum duration already rejects any run before 43 s, and the rate line never binds inside the 43–250 s window (at 43 s it allows 5300, at the earliest win 5519). So any win before 43 s has to be **physically impossible**. It is, with 2.19 s to spare:
 
 1. **Speed.** `stepRunner` never moves the runner more than `maxSpeed * dt` = 5 · dt in one step. The test drives 20,000 random steps with random dt and checks this.
 2. **Clock.** One run has one countdown. `RunClock` (priority -1) counts every played frame, and `useRunFrame`'s dt is exactly the play time it counted in that frame, including the rest of the frame in which the countdown ends (`core/README.md`), so no frame is untimed. Pause stops both. Map changes happen while the run is already playing, so that frame is timed. The rules' whole-ms clock never runs ahead of `elapsedMs`, so driving time is at most `elapsedMs / 1000`. Step 4 still subtracts one `MAX_FRAME_DT` (0.05 s) as a conservative safety margin.
@@ -120,15 +122,19 @@ The final score is `runScore(collected, won, timeLeftMs)`. The duration GameShel
    - Start pad to the first piece of a map: ≥ 4.0 − 0.8 = 3.2.
    - Between two pieces: ≥ 5.4 − 1.6 = 3.8. Nineteen of those is 72.2.
    - One map is at least 3.2 + 72.2 = **75.4** units. Three maps are at least **226.2** units (`GUARANTEED_MIN_ROUTE`). Obstacles only make it longer. Two pieces 5.4 apart cannot be touched from one spot, because 5.4 > 1.6.
-4. **Earliest win.** 226.2 / 5 − 0.05 (the safety margin of step 2) = **45.19 s** (`fastestFinishMs` = 45190). Time left is 240000 − 45190 = 194810 ms, which is 194 full seconds. The best possible score is 3000 + 10 × 194 = **4940**. That is ≤ 6000 and ≤ 1000 + 100 × 45.19 = 5519 (579 points of room, 5.19 s past the 40.0 s line). The integer check is `4940 * 1000 = 4,940,000 <= 1,000,000 + 100 * 45190 = 5,519,000`. Every later win scores less against a higher cap.
+4. **Earliest win.** 226.2 / 5 − 0.05 (the safety margin of step 2) = **45.19 s** (`fastestFinishMs` = 45190). Time left is 240000 − 45190 = 194810 ms, which is 194 full seconds. The best possible score is 3000 + 10 × 194 = **4940**. That is exactly `maxScore` 4940 and ≤ 1000 + 100 × 45.19 = 5519 (579 points of room, 5.19 s past the 40.0 s line). The integer check is `4940 * 1000 = 4,940,000 <= 1,000,000 + 100 * 45190 = 5,519,000`. 45190 ms is 2190 ms (4.85%) over the 43000 ms minimum. Every later win scores less against a higher cap. A score of 4950 would need a win by 45000 ms, which step 3 rules out; the proof keeps 0.29 s of slack (the 0.05 s frame margin plus the unused 0.24 s of the 194-second bonus bucket).
 5. **Any earlier pickup.** For k < 60 there is no time bonus, so the score is `50 * k`. The earliest moment k pieces can have been collected uses the same legs, and the rate cap is above that score. The tightest of those is the first piece: route 3.2, t = 0.59 s, score 50 against a cap of 1059. The win in step 4 is the tight case. A submitted run is only a win or a time-up (quit does not submit), and both are inside the duration window: a win is at least 45190 ms, a time-up is 240000 ms.
 6. **Every seed.** `generateLayout` returns a layout that passes `isValidLayout`, which checks exactly the spacing used in step 3. The fallback passes those checks too. The 1000 × 3 test never takes it.
 
-`capScore` still trims the final score to the server limit as a safety net. It rounds the duration the way GameShell does before submitting (`Math.round(elapsedMs)`). The tests check that it changes nothing for any reachable win or time-up. **The limits in `meta.ts` and `arcade-games.json` are correct and unchanged.**
+`capScore` still trims the final score to the server limit as a safety net. It rounds the duration the way GameShell does before submitting (`Math.round(elapsedMs)`). The tests check that it changes nothing for any reachable win or time-up.
+
+Margins: `maxScore` 4940 equals the proven maximum (never undercut); `minDurationMs` 43000 is 2190 ms (4.85%) under the proven earliest win (45190 ms, 4.95% under the physical 45240 ms); `maxDurationMs` 250000 is 4.2% over the exact 240000 ms time-up; `base` 1000 / `maxPointsPerSec` 100 are unchanged. The frontier goes down over time while the rate line goes up, so base and rate are not levers here: the minimum duration trims the corner more strongly. The best a forger can post drops from 6000 to 4940 (the proven ceiling, 240 above the best bot run), at a claimed 43000 ms or more, and the run-token TTL (`max_duration_ms` + 300 s) shrinks from 1200 s to 550 s.
+
+Measured (throwaway bots, deleted, nothing committed): the test's nearest-first perfect bot (12 seeds) wins at best in 87407 ms, 4520 points. A planned bot (2-opt plus or-opt order over the reach-shortened legs, 12 restarts, touch points of the shortest path through the 0.8 reach disks, grid paths around obstacles) on the 15 luckiest of 3000 seeds plus 8 typical seeds, at 16.7 / 8.3 / 50 / random 1–50 ms frames: 184 wins, best 69205 ms = **4700** (seeds 934, 89, 2727, 967); typical seeds 73–74 s, about 4660. Even with no obstacles, acceleration or turning, the planned orders on the luckiest seeds need at least 64–65 s (disk paths 319.8–326 units), so perfect driving would reach at most about 4750. A check against `core/limits` accepted every win from 45190 to 239999 ms (whole ms and .4/.6 fractions) and every time-up score 0–2950 with `capScore` a no-op, and rejected 4950, 42999 ms and 250001 ms.
 
 ### Why 240 s
 
-The shortest legal clear is 45.19 s of straight lines. A real seed walks around benches and buildings, so a clean run is longer than that, on the order of a minute or more. 240 s is 80 s a map: enough to cross the 28-unit floor several times while looking for the last piece, and short enough that the bonus still matters (a 90 s clear is 4500, a 3-minute clear is 3600, and timing out scores at most 2950). 240 s sits inside the 900 s maximum. A per-map clock would reset the bonus and break the single duration the server checks, so the timer is one clock for all three maps.
+The shortest legal clear is 45.19 s of straight lines. A real seed walks around benches and buildings, so a clean run is longer than that, on the order of a minute or more. 240 s is 80 s a map: enough to cross the 28-unit floor several times while looking for the last piece, and short enough that the bonus still matters (a 90 s clear is 4500, a 3-minute clear is 3600, and timing out scores at most 2950). 240 s sits inside the 250 s maximum. A per-map clock would reset the bonus and break the single duration the server checks, so the timer is one clock for all three maps.
 
 ## Scene and camera
 
@@ -193,7 +199,7 @@ The game's own HUD (`Hud.tsx`, `Hud: MapHud`) is one pill with the map name (Par
 - Movement: reaches exactly top speed; diagonals are not faster; brakes to a stop; stops at a building and a bench and slides along them; a tree, lamp, palm and umbrella pole block as squares; 20,000 random steps never exceed 5 · dt, never enter an obstacle square and never leave the spawn box.
 - Pickups: only the current map's 20 count; the 20th writes the next layout into the same slots and does not collect on that frame; map 3's 20th completes the run; nothing is collected twice.
 - Scoring: 50 per piece; the time bonus uses full seconds only; a 90 s win is 4500; time-up with 40 pieces is 2000; `withinServerLimits` matches the server formula; `capScore` is a no-op on reachable results.
-- Proof: `GUARANTEED_MIN_ROUTE` is 226.2 and the earliest win is 45190 ms; the 40.0 s line is the break-even (5000 against 5000, and 39.9 s fails); every win from 45.19 s to 240 s passes both limits; every time-up score passes; an idle runner times out with 0.
+- Proof: `GUARANTEED_MIN_ROUTE` is 226.2 and the earliest win is 45190 ms; the 40.0 s line is the break-even of the rate line (5000 against 5000, and 39.9 s breaks it), and the 43 s minimum rejects both; `maxScore` equals `BEST_SCORE` (4940) and the minimum keeps 2190 ms under the earliest win; every win from 45.19 s to 240 s passes both limits; every time-up score passes; the boundary checks (4940 at 43 s and 250 s accepted, 4950, 42999 ms and 250001 ms rejected, 42999.6 ms rounds to 43000); an idle runner times out with 0.
 
 Browser (when the scene exists; production build, flags on with the API mock):
 
@@ -203,7 +209,7 @@ Browser (when the scene exists; production build, flags on with the API mock):
 
 ## Known issues and core gaps
 
-- The scene is playable and `meta.ts` limits stay as they are. The proof shows those limits are already wide enough. Break-even stays 40.0 s and the earliest win stays 45.19 s. `capScore` trims only an impossible finish (a teleporting test win at 7.7 s became 1,769; a real run cannot finish before 45.19 s, where the cap does not bind).
+- The scene is playable. The `meta.ts` limits were tightened on 2026-10-07 to the proof (4940 max, 43–250 s); break-even stays 40.0 s, the earliest win stays 45.19 s, and the 43 s minimum duration rejects anything earlier. `capScore` trims only an impossible finish (a teleporting test win at 7.7 s became 1,769; a real run cannot finish before 45.19 s, where the cap does not bind).
 - `skills.md` and plan §4 still list universe `street` and Hyper3D generations for the bin, bench, palm, umbrella and lamp. This spec uses universe `shared-cast` and seed 5050, matching the shared tin can and banana, and generates only the bottle and the paper bag. The scenery is primitives on purpose. The catalog update belongs to Claude.
 - Core collision can push a circle out of a box (`resolveSphereAabb`) and can test two circles (`circlesOverlapXZ`). It cannot push a circle out of a circle. Round props are squares so the game does not need a `resolveCircleXZ`. The clearance check and the flood fill use those squares too.
 - The scene uses the current core: `useFittedView` + `followFocus` + `CameraRig` (`shift: true`, yaw locked at 0), `useGameTime()`, `useRunFrame`, `<InstancedModel>` for map props, one `<DynamicInstancedModel>` pool per litter kind and `<DynamicInstanced>` for the litter rings and glows. Input is `inputToWorld(moveX, moveY, view.yaw)`. Every played frame is timed, including the countdown handoff; the proof's 0.05 s is only a safety margin.

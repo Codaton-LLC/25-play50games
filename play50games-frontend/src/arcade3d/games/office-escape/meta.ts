@@ -17,11 +17,11 @@ export const officeEscapeMeta: ArcadeGameMeta = {
    },
    scoring: {
       kind: "points",
-      maxScore: 200000,
-      minDurationMs: 3000,
+      maxScore: 152500,
+      minDurationMs: 4800,
       maxDurationMs: 1800000,
       base: 0,
-      maxPointsPerSec: 100,
+      maxPointsPerSec: 85,
       unitLabel: "pts",
       display: "int"
    },

@@ -17,9 +17,9 @@ export const robotCollectorMeta: ArcadeGameMeta = {
    },
    scoring: {
       kind: "points",
-      maxScore: 1600,
-      minDurationMs: 5000,
-      maxDurationMs: 75000,
+      maxScore: 1470,
+      minDurationMs: 12500,
+      maxDurationMs: 62000,
       base: 600,
       maxPointsPerSec: 120,
       unitLabel: "pts",

@@ -82,7 +82,7 @@ That schedule emits 126 spawns: 12, 15, 18, 24, 27, 30 across the six steps. The
 - The round ends when the third life is lost or when the clock hits 90 seconds. `end()` runs once.
 - Pause (Esc, P, or the tab hidden) freezes the clock, spawning and falling. Resume continues the same run. Pause time is not part of `durationMs`.
 
-Why a scored end before 5 s cannot happen. Lives are the only early end, and quit does not submit a score. The earliest third bad item is spawn 6, and only if spawns 4, 5 and 6 all roll bad. Those spawns sit in the first step, so they fall at 1.6 units/s. The center drops 4.4 units in `4.4 / 1.6 = 2.75 s = 2750 ms` (55 frames of 50 ms). The item is inserted at y = 6.0 on its spawn frame and does not move on that frame.
+Why a scored end before 9.5 s cannot happen. Lives are the only early end, and quit does not submit a score. The earliest third bad item is spawn 6, and only if spawns 4, 5 and 6 all roll bad. Those spawns sit in the first step, so they fall at 1.6 units/s. The center drops 4.4 units in `4.4 / 1.6 = 2.75 s = 2750 ms` (55 frames of 50 ms). The item is inserted at y = 6.0 on its spawn frame and does not move on that frame.
 
 | Spawn | Time | Earliest kind | Crosses y = 1.6 |
 |---|---|---|---|
@@ -93,7 +93,7 @@ Why a scored end before 5 s cannot happen. Lives are the only early end, and qui
 | 5 | 6000 ms | second possible bad | 8750 ms |
 | 6 | 7200 ms | third possible bad | 9950 ms |
 
-The third life is lost at 9950 ms at the earliest, which is inside `minDurationMs` 5000 and `maxDurationMs` 100000. The run does not wait, and it does not pad the clock.
+The third life is lost at 9950 ms at the earliest, which is inside `minDurationMs` 9500 (450 ms, 4.5%, of margin) and `maxDurationMs` 93000. The run does not wait, and it does not pad the clock. A bad-chasing bot over 3000 seeds and 11 frame patterns never ended sooner.
 
 ## Scoring
 
@@ -102,12 +102,20 @@ The third life is lost at 9950 ms at the earliest, which is inside `minDurationM
 | Limit | Value |
 |---|---|
 | `base` | 0 |
-| `maxPointsPerSec` | 50 |
-| `maxScore` | 5000 |
-| `minDurationMs` | 5000 (5 s) |
-| `maxDurationMs` | 100000 (100 s) |
+| `maxPointsPerSec` | 28 |
+| `maxScore` | 2500 |
+| `minDurationMs` | 9500 (9.5 s) |
+| `maxDurationMs` | 93000 (93 s) |
 
-The server accepts a points run only when `score` is an integer, `0 <= score <= 5000`, `5000 <= durationMs <= 100000`, and `score * 1000 <= 50 * durationMs`.
+The server accepts a points run only when `score` is an integer, `0 <= score <= 2500`, `9500 <= durationMs <= 93000`, and `score * 1000 <= 28 * durationMs`.
+
+These limits were tightened on 2026-10-07 (from 5000, 5–100 s and 50/s, which accepted more than twice the provable maximum) to the proven envelope below plus 3–5%:
+
+- `maxScore` 2500 is 3.3% above the proven maximum 2420.
+- `maxPointsPerSec` 28 (an integer: the server casts it with `(int)`): 28 × 90 = 2520 is 4.1% above the best end ratio (2420 / 90 s = 26.889 pts/s), 3.7% above the all-good mid-run bound (2420 at the 123rd crossing, 89608 ms, 27.007 pts/s; no submitted run ends there) and 6.3% above the best lose run (2360 at 89608 ms, 26.337 pts/s). 27 would leave 0.4% at the time-up and fails the cumulative bound below by 52 points at the 126th spawn.
+- `minDurationMs` 9500 is 450 ms (4.5%) below the earliest honest end (9950 ms, above). `maxDurationMs` 93000 is 3.3% above the exact 90000 ms time-up.
+- `base` stays 0: a positive base would only widen what early runs may claim, and a negative one would reject the earliest honest lose runs (30 points at 9.95 s).
+- The best a forger can post is 2500 at a claimed 89286 ms or more (2500 × 1000 / 28); a forged 2420 needs at least 86429 ms. Before, 5000 needed 100 s.
 
 Award, before the clamp:
 
@@ -118,22 +126,24 @@ Award, before the clamp:
 
 `n` good catches with no reset score `10 * n` when `n < 5`, and `20 * n - 40` when `n >= 5` (four +10 catches, then +20).
 
-Cumulative goods on the game clock. Treat every spawn as good. That is the densest point stream the gap table allows, because a bad roll only removes points. After `n` spawns the score is at most the formula above, and the `n`th spawn is at time `t_n` from the schedule. At every `t_n`, `floor(50 * t_n / 1000)` is at least that score. The smallest slack on the spawn clock is 50 points, at the first spawn: 10 points against `floor(50 * 1.2) = 60`. From the fifth spawn on, each new good item is worth 20. The shortest gap is 500 ms, and 500 ms adds 25 points of budget. Step totals, still assuming every spawn is good:
+Cumulative goods on the game clock. Treat every spawn as good. That is the densest point stream the gap table allows, because a bad roll only removes points. After `n` spawns the score is at most the formula above, and the `n`th spawn is at time `t_n` from the schedule. At every `t_n`, `floor(28 * t_n / 1000)` is at least that score (the test checks all 126 spawns). The smallest slack on the spawn clock is 23 points, at the first spawn: 10 points against `floor(28 * 1.2) = 33`. From the fifth spawn on, each new good item is worth 20. The shortest gap is 500 ms, and 500 ms adds 14 points of budget, so the slack shrinks in the last step, but the stream ends at spawn 126 (2480 against `floor(28 * 89.95) = 2518`). Step totals, still assuming every spawn is good:
 
-| Clock | Good spawns so far | Points if all were already caught | Budget `floor(50 * t / 1000)` |
+| Clock | Good spawns so far | Points if all were already caught | Budget `floor(28 * t / 1000)` |
 |---|---|---|---|
-| 15 s | 12 | 200 | 750 |
-| 30 s | 27 | 500 | 1500 |
-| 45 s | 46 | 880 | 2250 |
-| 60 s | 69 | 1340 | 3000 |
-| 75 s | 96 | 1880 | 3750 |
-| 90 s | 126 | 2480 | 4500 |
+| 15 s | 12 | 200 | 420 |
+| 30 s | 27 | 500 | 840 |
+| 45 s | 46 | 880 | 1260 |
+| 60 s | 69 | 1340 | 1680 |
+| 75 s | 96 | 1880 | 2100 |
+| 90 s | 126 | 2480 | 2520 |
 
 Perfect play catches an item only once its center has reached y = 1.6, and the round stops at 90 s. At 3.8 units/s the last step needs 24 frames of 50 ms (1200 ms) to fall 4.4 units, so the spawns at 88950, 89450 and 89950 ms are still in the air at 90 s. The other 123 spawns resolve in time. Four +10 and 119 +20 is `40 + 2380 = 2420`.
 
-`2420 <= 5000` and `2420 <= floor(50 * 90) = 4500`. The integer server check is `2420 * 1000 = 2,420,000 <= 50 * 90000 = 4,500,000`.
+`2420 <= 2500` and `2420 <= floor(28 * 90) = 2520`. The integer server check is `2420 * 1000 = 2,420,000 <= 28 * 90000 = 2,520,000`.
 
-`finalScore` returns `{ score: min(score, 5000, floor(50 * duration_s)), durationMs }`, with `duration_s = durationMs / 1000`, so the floor is `floor(50 * durationMs / 1000)` (core `capScore`, on the whole milliseconds GameShell submits). `index.tsx` wires it as `finalScore: (s) => finalScore(s.score, s.elapsedMs)` with the shell store's score and play time. A full clear submits duration 90000. A three-life loss submits the cross time of the third caught bad item, at earliest 9950. On either legal run the clamp does not change the awarded total.
+Measured with throwaway bots (deleted, nothing committed): perfect all-good play over 11 dt patterns (1, 16.7, 1000/60, 1000/120, 1000/144, 1000/30, 50, 7, random 1–50, random 10–20, 16.7 with 50 ms spikes) × 40 seeds always scored 2420 at 90000 ms, never more; an adversarial bot that made crossings k−2..k bad reproduced the best lose run exactly (2360 at 89608 ms). Best honest score over time: 80 at 9.95 s, 460 at 30 s, 1280 at 60 s, 2220 at 85 s, 2420 at 89.6–90 s.
+
+`finalScore` returns `{ score: min(score, 2500, floor(28 * duration_s)), durationMs }`, with `duration_s = durationMs / 1000`, so the floor is `floor(28 * durationMs / 1000)` (core `capScore`, on the whole milliseconds GameShell submits). `index.tsx` wires it as `finalScore: (s) => finalScore(s.score, s.elapsedMs)` with the shell store's score and play time. A full clear submits duration 90000. A three-life loss submits the cross time of the third caught bad item, at earliest 9950. On either legal run the clamp does not change the awarded total.
 
 ## Camera and scene layout
 
@@ -197,7 +207,7 @@ Scene writes the combo with `setStat("combo", combo)`. The small `Hud` draws a 2
 - Catch and miss are resolved once per item, on the crossing frame.
 - `end()` is idempotent. A life loss on the same frame as 0:00 still ends once.
 - The chef cannot leave x [-3.5, 3.5].
-- A scored end before 5 s is not produced. The earliest third bad catch is 9950 ms. Quit leaves through the shell and does not submit.
+- A scored end before 9.5 s is not produced. The earliest third bad catch is 9950 ms. Quit leaves through the shell and does not submit.
 
 ## Test plan for `rules.ts`
 
@@ -217,7 +227,8 @@ Scene writes the combo with `setStat("combo", combo)`. The small `Hud` draws a 2
 - Three caught bad items end the run. The earliest schedule (spawns 4, 5 and 6 are bad, and each is caught) ends at 9950 ms.
 - The clock ends the run at 90 s.
 - Fixed frame step 50 ms. An item spawned at T sits at y = 6.0 on that frame and then moves `speed * 0.05` on each later frame. Perfect play treats every spawn as good and catches it on the frame its center crosses y = 1.6. The test asserts the score is exactly 2420 (123 catches: `4 * 10 + 119 * 20`).
-- `finalScore` of that run is `min(2420, 5000, floor(50 * 90)) = 2420`.
+- `finalScore` of that run is `min(2420, 2500, floor(28 * 90)) = 2420`.
+- Limits: no seed ends before `minDurationMs` 9500 even when every bad item is chased; chased and perfect runs at 4 frame steps stay under `maxScore` and 28 points per second; every spawn good and caught at its spawn time stays under the 28/s line (smallest slack 23 at the first spawn); the boundary checks (2420 at 90–93 s accepted, 93001 ms, 2501 and 9499 ms rejected, a forged 2420 needs 86429 ms).
 - The 16-item cap skips a refused spawn and does not release it later.
 - Two `end` paths in one run (lives and the clock on the same tick) produce one result.
 

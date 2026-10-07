@@ -17,11 +17,11 @@ export const warehouseRushMeta: ArcadeGameMeta = {
    },
    scoring: {
       kind: "points",
-      maxScore: 3000,
-      minDurationMs: 5000,
-      maxDurationMs: 75000,
+      maxScore: 1700,
+      minDurationMs: 57000,
+      maxDurationMs: 63000,
       base: 0,
-      maxPointsPerSec: 50,
+      maxPointsPerSec: 29,
       unitLabel: "pts",
       display: "int"
    },

@@ -17,11 +17,11 @@ export const towerClimbMeta: ArcadeGameMeta = {
    },
    scoring: {
       kind: "points",
-      maxScore: 50000,
+      maxScore: 19000,
       minDurationMs: 3000,
       maxDurationMs: 1800000,
       base: 0,
-      maxPointsPerSec: 100,
+      maxPointsPerSec: 11,
       unitLabel: "pts",
       display: "int"
    },

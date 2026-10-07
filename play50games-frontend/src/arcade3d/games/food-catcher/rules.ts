@@ -117,7 +117,7 @@ export function catchPoints(comboAfter: number): number {
 }
 
 /**
- * Clamp submitted by the shell, via core/limits.ts: min(score, 5000, floor(50 * roundedSeconds)).
+ * Clamp submitted by the shell, via core/limits.ts: min(score, 2500, floor(28 * roundedSeconds)).
  * The returned durationMs is the caller's value; the budget uses GameShell's rounded milliseconds.
  */
 export function finalScore(score: number, durationMs: number): { score: number; durationMs: number } {
