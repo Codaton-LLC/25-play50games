@@ -20,7 +20,7 @@ import { CHARACTER_BUDGET, PROP_BUDGET, SHARED_ASSETS } from "@/arcade3d/core/sh
 
 const LITTER_SCALE = 0.5;
 /** The shared runner GLB is 1.90 tall: 0.5 draws it 0.95, the README's "about 1 unit". */
-const RUNNER_SCALE = 0.5;
+const RUNNER_SCALE = 0.503; // v2 runner.glb (1.886 tall): 0.503 keeps it 0.95
 
 const prop = (id: string, fallback: ModelAsset["fallback"], fallbackColor: string): ModelAsset => ({
    id,

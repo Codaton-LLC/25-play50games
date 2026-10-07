@@ -3,7 +3,7 @@
 //   desk 1.90 x 1.47 x 0.92, tabletop at y = 0.55
 //   chair 1.21 x 1.90 x 1.24
 //   battery 1.02 x 1.90 x 1.01
-//   runner 1.79 x 1.90 x 0.48 (T-pose, auto-rigged; faces +z)
+//   runner 1.90 x 1.886 x 0.52 (v2, T-pose: the arm span is the longest side; auto-rigged; faces +z)
 //   group C (2026-10-07): key 1.90 x 0.25 x 0.91 (lying flat, bow at -x), book 0.70 x 1.90 x 1.30
 //   (standing on its tail edge: red cover at -x, spine at +z), door 1.19 x 1.89 x 0.27 (a leaf in
 //   its own thin casing, knob at -x)
@@ -46,8 +46,8 @@ export const BOOK_STAND_IN: { rotation: Vec3 } = { rotation: [-BOOK_LIE, 0, 0] }
 export const DOOR_HINGE: { position: Vec3; leaf: Vec3 } = { position: [-DOOR_LEAF[0] / 2, 0, 0.08], leaf: [DOOR_LEAF[0] / 2, 0, 0] };
 
 export const ASSETS = {
-   // 0.74 draws the 1.90 runner 1.40 m tall: the README's visible height and the stand-in's.
-   runner: { ...SHARED_ASSETS.runner, scale: 0.74 },
+   // 0.744 draws the 1.886 runner 1.40 m tall: the README's visible height and the stand-in's.
+   runner: { ...SHARED_ASSETS.runner, scale: 0.744 },
    // long side (model x, 1.90) runs along the station's z (1.4). Tabletop y 0.55 stays put;
    // height 1.47 is squeezed to the 1.4 cap. Model z (0.92) becomes the 1.2 body width.
    desk: {
