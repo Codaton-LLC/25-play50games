@@ -57,6 +57,10 @@
       clear): a taller panel scrolls inside itself from its top, so its frame and its buttons stay
       on screen. Auto margins centre it. */
    max-height: 100%;
+   /* the containing block of absolutely positioned content (the top 10's visually hidden caption
+      and labels): it scrolls and clips with the panel instead of overflowing the overlay, which
+      would then scroll the whole card off its top (a landscape phone: 120 px) */
+   position: relative;
    margin: auto;
    padding: var(--panel-pad-y) var(--panel-pad-x);
    overflow-y: auto;

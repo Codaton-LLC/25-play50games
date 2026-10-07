@@ -3,7 +3,7 @@
 // The shell's overlay frame and its start card. Owned by Claude; GameShell renders them.
 // - Overlay: a full-screen dialog whose panel never outgrows the free area (the overlay's padding
 //   keeps the notch and the cookie banner clear), so a tall panel scrolls inside itself and its
-//   frame and buttons stay on screen.
+//   frame and buttons stay on screen. The mouse wheel over the backdrop beside it scrolls the panel.
 // - StartCard: back link, title, tagline, instructions, controls, best score, Play, top 10. On a
 //   short screen (a landscape phone, a portrait phone under the cookie banner) the card scrolls and
 //   Play stays pinned to its bottom, above the banner. It opens scrolled to the top (title first);
@@ -19,6 +19,38 @@ import BestScoreBadge from "../ui/BestScoreBadge";
 import LeaderboardTable from "../ui/LeaderboardTable";
 import styles from "./GameShell.module.css";
 
+export interface BackdropWheel {
+   target: unknown;
+   currentTarget: unknown;
+   deltaY: number;
+   /** WheelEvent.deltaMode: 0 pixels, 1 lines, 2 pages */
+   deltaMode: number;
+   ctrlKey: boolean;
+}
+
+export interface ScrollBox {
+   scrollHeight: number;
+   clientHeight: number;
+   scrollBy(options: ScrollToOptions): void;
+}
+
+/** px per wheel line (deltaMode 1, Firefox) */
+const WHEEL_LINE_PX = 16;
+
+/**
+ * The wheel over the backdrop beside a panel scrolls the panel, as it scrolled the whole overlay
+ * before the panel scrolled itself (a desktop start card with its top 10 is taller than the
+ * screen). false, and nothing scrolls, when the wheel is over the panel (it scrolls natively),
+ * zooms (ctrl), the overlay can scroll itself, or the panel has nothing to scroll.
+ */
+export function scrollPanelFromBackdrop(event: BackdropWheel, overlay: ScrollBox, panel: ScrollBox | null): boolean {
+   if (!panel || event.ctrlKey || event.deltaY === 0 || event.target !== event.currentTarget) return false;
+   if (overlay.scrollHeight > overlay.clientHeight + 1 || panel.scrollHeight <= panel.clientHeight + 1) return false;
+   const unit = event.deltaMode === 1 ? WHEEL_LINE_PX : event.deltaMode === 2 ? panel.clientHeight : 1;
+   panel.scrollBy({ top: event.deltaY * unit });
+   return true;
+}
+
 export function Overlay({
    children,
    label,
@@ -30,9 +62,18 @@ export function Overlay({
    className?: string;
    panelClassName?: string;
 }) {
+   const panelRef = useRef<HTMLDivElement>(null);
    return (
-      <div className={`${styles.overlay} ${className ?? ""}`} role="dialog" aria-modal="true" aria-label={label}>
-         <div className={`${styles.panel} ${panelClassName ?? ""}`}>{children}</div>
+      <div
+         className={`${styles.overlay} ${className ?? ""}`}
+         role="dialog"
+         aria-modal="true"
+         aria-label={label}
+         onWheel={(event) => scrollPanelFromBackdrop(event, event.currentTarget, panelRef.current)}
+      >
+         <div ref={panelRef} className={`${styles.panel} ${panelClassName ?? ""}`}>
+            {children}
+         </div>
       </div>
    );
 }
