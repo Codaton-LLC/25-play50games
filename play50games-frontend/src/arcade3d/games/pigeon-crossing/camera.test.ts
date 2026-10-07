@@ -150,6 +150,25 @@ describe("pigeon-crossing fitted view", () => {
       }
    });
 
+   it("fills the camera's guarded rows plus the pigeon's row and hop target, and refuses an invalid view", () => {
+      const f = fixture(1280, 800), cache = createStreetCache(), horizon = createHorizon();
+      const run = createRun(3);
+      expect(street.fillStreet(run, cache, horizon, f.camera)).toBe(false); // no fitted view yet
+      configureStreetView(cache, f.view, 1280, 800);
+      expect(street.fillStreet(run, cache, horizon, f.camera)).toBe(true);
+      const visible = horizon.last;
+      run.player.row = visible + 3; // ahead of what the camera shows, still inside the ring
+      expect(street.fillStreet(run, cache, horizon, f.camera)).toBe(true);
+      expect(horizon.last).toBe(visible + 3);
+      expect(run.lanes.some((lane) => lane.row === visible + 3)).toBe(true);
+      run.player.row = 0; run.hop.active = true; run.hop.toRow = visible + 5;
+      expect(street.fillStreet(run, cache, horizon, f.camera)).toBe(true);
+      expect(horizon.last).toBe(visible + 5);
+      run.hop.active = false;
+      f.camera.lookAt(0, 30, -3.6); f.camera.updateMatrixWorld(); // the sky: no ground ahead
+      expect(street.fillStreet(run, cache, horizon, f.camera)).toBe(false);
+   });
+
    it("keeps a valid 40-row view bounded during ordinary fractional scrolling and follow lag", () => {
       const f = fixture(400, 1440), cache = createStreetCache(), horizon = createHorizon();
       configureStreetView(cache, f.view, 400, 1440);

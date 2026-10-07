@@ -3,7 +3,7 @@ import { BoxGeometry, Matrix4, Mesh, PerspectiveCamera, Plane, Ray, SphereGeomet
 import type { FitViewOptions, FittedView } from "@/arcade3d/core/view";
 import { setLensShift } from "@/arcade3d/core/view";
 import { ASSETS } from "./assets";
-import { COVER_INNER_X, LANE_SLOTS, PIGEON, ROW_PITCH } from "./rules";
+import { COVER_INNER_X, LANE_SLOTS, PIGEON, ROW_PITCH, fillHorizon, type PigeonRun } from "./rules";
 
 export const FOV = 45;
 export const PITCH = 55 * Math.PI / 180;
@@ -285,4 +285,19 @@ export function updateStreetHorizon(cache: StreetCache, camera: PerspectiveCamer
       cache.transition = false;
    }
    return out;
+}
+
+/**
+ * Geometry/pool preparation only (frozen refits never advance the clock or restart traffic): the
+ * guarded rows of the actual camera, widened to the pigeon's row and hop target, filled into the
+ * lane ring. False (and step() blocked) when they do not fit the ring, e.g. from a camera that is
+ * not yet this run's (Scene.tsx StreetCamera judges the camera only once CameraRig placed it).
+ */
+export function fillStreet(run: PigeonRun, cache: StreetCache, horizon: Horizon, camera: PerspectiveCamera): boolean {
+   if (!cache.initialized) return false;
+   updateStreetHorizon(cache, camera, run.player.z, horizon);
+   horizon.first = Math.min(horizon.first, run.player.row);
+   horizon.last = Math.max(horizon.last, run.player.row);
+   if (run.hop.active) { horizon.first = Math.min(horizon.first, run.hop.toRow); horizon.last = Math.max(horizon.last, run.hop.toRow); }
+   return cache.union.valid && fillHorizon(run, horizon.first, horizon.last);
 }
