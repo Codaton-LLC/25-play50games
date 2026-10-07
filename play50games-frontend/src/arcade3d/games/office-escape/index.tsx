@@ -20,6 +20,9 @@ const definition: GameDefinition = {
    environment: { background: "#dbeafe", fog: ["#dbeafe", 40, 75], lighting: "indoor" },
    touchControls: ["swipe"],
    hudStats: [{ key: "coins", label: "Coins" }],
+   // the scene stays up this long after a hit before the result panel: the runner's fall onto its
+   // back (crash.ts CRASH.fallS, 0.45 s) and one bounce (another ~0.45 s) play out in full
+   resultDelayMs: 900,
    instructions: [
       "Run as far as you can. Swipe or press Left / Right to change lanes.",
       "Swipe up or press Space to jump desks, printers and boxes.",

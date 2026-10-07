@@ -1,6 +1,9 @@
 // Tiny synthesized sound effects for the 3D Arcade (Web Audio, no files to download).
 // Owned by Claude. The AudioContext is created lazily on the first user gesture (browser
 // autoplay rules); until then playSfx() is a silent no-op. Mute is remembered per device.
+// Only a gesture the browser counts as user activation creates or resumes it (isAudioGesture):
+// a context made outside one starts suspended and every later attempt logs an autoplay warning
+// (Esc, which grants no activation, or script-dispatched events used to log 1-12 per session).
 //
 //    import { playSfx } from "@/arcade3d/core/audio";
 //    playSfx("pickup");
@@ -77,15 +80,35 @@ function unlock(): void {
    }
 }
 
+export interface AudioGestureEvent {
+   isTrusted: boolean;
+   type: string;
+   key?: string;
+}
+
 /**
- * Listens for the first user gestures and unlocks audio then. Call once while a game is mounted;
- * the returned function removes the listeners.
+ * May this event create or resume the AudioContext without an autoplay warning? Only a real
+ * (trusted) event while the page has transient user activation (`navigator.userActivation`,
+ * every current browser). Without that API: any trusted event but Esc, which never activates.
+ */
+export function isAudioGesture(event: AudioGestureEvent, activation?: { isActive: boolean } | null): boolean {
+   if (!event.isTrusted) return false;
+   if (activation) return activation.isActive;
+   return !(event.type === "keydown" && event.key === "Escape");
+}
+
+/**
+ * Listens for the first user gestures and unlocks audio then (and resumes it after the browser
+ * suspended it). Call once while a game is mounted; the returned function removes the listeners.
  */
 export function initAudio(): () => void {
    if (typeof window === "undefined") return () => {};
    // only events that grant user activation on every browser (a touch pointerdown does not)
    const events = ["pointerup", "click", "keydown", "touchend"] as const;
-   const onGesture = () => unlock();
+   const onGesture = (event: Event) => {
+      if (ctx?.state === "running") return;
+      if (isAudioGesture(event as KeyboardEvent, navigator.userActivation)) unlock();
+   };
    events.forEach((name) => window.addEventListener(name, onGesture, { passive: true }));
    return () => events.forEach((name) => window.removeEventListener(name, onGesture));
 }

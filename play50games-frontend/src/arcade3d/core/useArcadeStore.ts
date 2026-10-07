@@ -14,7 +14,7 @@
 import { createStore, type StoreApi } from "zustand/vanilla";
 import { useStore } from "zustand";
 import type { EndReason, RunActions, RunPhase, RunState } from "./types";
-import { resultDelayFor } from "./frameLoop";
+import { isPausable, resultDelayFor } from "./frameLoop";
 
 export { DEFAULT_RESULT_DELAY_MS, RESULT_DELAY_MAX_MS } from "./frameLoop";
 
@@ -155,7 +155,7 @@ export function createArcadeStore(): StoreApi<ArcadeStore> {
 
          pause() {
             const { phase } = get();
-            if (phase === "countdown" || phase === "playing") set({ phase: "paused", pausedFrom: phase });
+            if (isPausable(phase)) set({ phase: "paused", pausedFrom: phase });
          },
 
          resume() {

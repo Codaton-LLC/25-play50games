@@ -9,6 +9,7 @@ import {
    advanceRunClock,
    clampFrameDt,
    createGameTime,
+   isPausable,
    isResultShown,
    playedFrameDt,
    resultDelayFor,
@@ -16,6 +17,7 @@ import {
 } from "./frameLoop";
 import { COUNTDOWN_MS, createArcadeStore, type ArcadeStore } from "./useArcadeStore";
 import type { StoreApi } from "zustand/vanilla";
+import type { RunPhase } from "./types";
 
 describe("frame order", () => {
    it("input, run clock, game time, simulation, camera, pose, visuals; all <= 0 so R3F keeps rendering", () => {
@@ -111,6 +113,22 @@ describe("run clock -> useRunFrame dt", () => {
       advanceRunClock(store, 0.02);
       expect(playedFrameDt(store.getState())).toBeCloseTo(0.02, 12);
       expect(store.getState().elapsedMs - elapsed).toBeCloseTo(20, 9);
+   });
+});
+
+describe("pausable phases", () => {
+   it("only a run that counts down or is played can be paused (the HUD's Pause, Esc / P, the store)", () => {
+      const phases: RunPhase[] = ["loading", "ready", "countdown", "playing", "paused", "over"];
+      expect(phases.filter(isPausable)).toEqual(["countdown", "playing"]);
+      // the store follows the same rule
+      const store = createArcadeStore();
+      store.getState().markReady();
+      for (const phase of phases) {
+         store.setState({ phase, pausedFrom: null });
+         store.getState().pause();
+         expect(store.getState().phase).toBe(isPausable(phase) ? "paused" : phase);
+         if (isPausable(phase)) expect(store.getState().pausedFrom).toBe(phase);
+      }
    });
 });
 

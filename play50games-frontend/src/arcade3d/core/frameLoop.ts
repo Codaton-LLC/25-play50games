@@ -81,6 +81,15 @@ export function playedFrameDt(state: Pick<ArcadeStore, "phase" | "frameMs">): nu
    return state.frameMs / 1000;
 }
 
+/**
+ * Can the run be paused now? Only while it counts down or is played: the store's pause(), Esc / P
+ * and the HUD's Pause button (shown only then: not on the start card, while paused, after the end
+ * or on the result screen) all follow this.
+ */
+export function isPausable(phase: RunPhase): phase is "countdown" | "playing" {
+   return phase === "countdown" || phase === "playing";
+}
+
 // ---------- result delay ----------
 
 /** GameDefinition.resultDelayMs when a game sets none: the scene stays on screen this long after a run. */

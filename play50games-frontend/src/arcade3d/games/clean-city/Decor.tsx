@@ -5,14 +5,17 @@
 // is decorSpots.ts (pure, checked against the rules data by decorSpots.test.ts). Nothing here touches the run:
 // the pigeons only read the runner's position to fly off when it comes close.
 // - Cars: one <InstancedModel> per kind (one draw call each), static spots at module level.
-// - Pigeons: one <DynamicInstancedModel> (one draw call), placed every frame from useGameTime()
-//   (pause-safe, never state.clock), no allocation in the frame loop.
-// - The GLBs load in their own <Suspense>: the run never waits for decoration.
+// - Pigeons: a small bird built in code (createPigeonParts: six pieces of one low sphere, 600
+//   triangles a bird) on one core <DynamicInstanced> (one draw call), placed every frame from
+//   useGameTime() (pause-safe, never state.clock), no allocation in the frame loop. No GLB:
+//   pigeon-crossing's 12,000-triangle pigeon made the flock 60,000 triangles for birds a few px
+//   tall (review 2026-10-07); this flock is 3,000.
+// - The car GLBs load in their own <Suspense>: the run never waits for decoration.
 import { Suspense, memo, useCallback, useEffect, useState } from "react";
 import { Color, Euler, Matrix4, MeshStandardMaterial, Quaternion, SphereGeometry, Vector3 } from "three";
-import { DynamicInstancedModel, InstancedModel } from "@/arcade3d/core/assets";
+import { InstancedModel } from "@/arcade3d/core/assets";
 import { useGameTime } from "@/arcade3d/core/gameTime";
-import { Instanced, type InstancePart, type InstanceSpot } from "@/arcade3d/core/render";
+import { DynamicInstanced, Instanced, type InstancePart, type InstanceSpot } from "@/arcade3d/core/render";
 import { ASSETS } from "./assets";
 import {
    CAR_SPOTS,
@@ -34,7 +37,10 @@ const COLORS = {
    kerb: "#cbd5e1",
    line: "#f1f5f9",
    pigeon: "#8192a9",
+   pigeonNeck: "#62787f",
    pigeonHead: "#5b6b82",
+   pigeonTail: "#4b5568",
+   pigeonLeg: "#c0616b",
 } as const;
 
 // ---------- ground and kerb ----------
@@ -78,25 +84,37 @@ function ParkedCars() {
 
 // ---------- pigeons (park) ----------
 
+const X_AXIS = new Vector3(1, 0, 0);
+/** One piece of the bird: a sphere stretched to radii (rx, ry, rz) at (x, y, z), tipped `tilt` about x. */
+const piece = (x: number, y: number, z: number, rx: number, ry: number, rz: number, tilt = 0): Matrix4 =>
+   new Matrix4().compose(new Vector3(x, y, z), new Quaternion().setFromAxisAngle(X_AXIS, tilt), new Vector3(rx, ry, rz));
+
 /**
- * A pigeon stand-in at the drawn size (0.47 tall, facing -z): body and head, one sphere geometry,
- * one draw call. Fresh per Scene mount; free it with disposePigeonStandIn.
+ * The park's pigeon, drawn in code at PIGEON_HEIGHT (0.475, half the runner), feet on y = 0 at the
+ * origin, head at -z (yaw 0 faces away from the camera): body, neck, head, a tail tipped up and two
+ * pink legs, six pieces of one 10 x 6 sphere (100 triangles each), one material, one draw call for
+ * the whole flock. Fresh per Scene mount; free it with disposePigeonParts.
  */
-export function createPigeonStandIn(): InstancePart[] {
-   const sphere = new SphereGeometry(1, 12, 8);
-   const body = new Matrix4().compose(new Vector3(0, 0.19, 0.02), new Quaternion(), new Vector3(0.12, 0.12, 0.2));
-   const head = new Matrix4().compose(new Vector3(0, 0.38, -0.13), new Quaternion(), new Vector3(0.08, 0.08, 0.08));
+export function createPigeonParts(): InstancePart[] {
+   const sphere = new SphereGeometry(1, 10, 6);
    return [
       {
          geometry: sphere,
          material: new MeshStandardMaterial({ color: "#ffffff", roughness: 0.7 }),
-         locals: [body, head],
-         colors: [new Color(COLORS.pigeon), new Color(COLORS.pigeonHead)],
+         locals: [
+            piece(0, 0.19, 0, 0.11, 0.105, 0.19),
+            piece(0, 0.3, -0.11, 0.07, 0.085, 0.07),
+            piece(0, 0.4, -0.14, 0.075, 0.075, 0.075),
+            piece(0, 0.205, 0.18, 0.06, 0.022, 0.09, -0.25),
+            piece(0.035, 0.05, -0.03, 0.013, 0.05, 0.013),
+            piece(-0.035, 0.05, -0.03, 0.013, 0.05, 0.013),
+         ],
+         colors: [COLORS.pigeon, COLORS.pigeonNeck, COLORS.pigeonHead, COLORS.pigeonTail, COLORS.pigeonLeg, COLORS.pigeonLeg].map((c) => new Color(c)),
       },
    ];
 }
 
-export function disposePigeonStandIn(parts: readonly InstancePart[]): void {
+export function disposePigeonParts(parts: readonly InstancePart[]): void {
    for (const part of parts) {
       part.geometry.dispose();
       for (const material of Array.isArray(part.material) ? part.material : [part.material]) material.dispose();
@@ -121,9 +139,9 @@ const PigeonFlock = memo(function PigeonFlock({ run }: { run: CleanRun }) {
       fleeing: new Uint8Array(PIGEON_HOMES.length),
       pose: createPigeonPose(),
    }));
-   // one stand-in per mount (every Retry), freed on unmount
-   const [standIn] = useState(createPigeonStandIn);
-   useEffect(() => () => disposePigeonStandIn(standIn), [standIn]);
+   // one geometry and material per mount (every Retry), freed on unmount
+   const [parts] = useState(createPigeonParts);
+   useEffect(() => () => disposePigeonParts(parts), [parts]);
 
    const update = useCallback(
       (i: number, matrix: Matrix4) => {
@@ -145,7 +163,7 @@ const PigeonFlock = memo(function PigeonFlock({ run }: { run: CleanRun }) {
 
    return (
       <group name="decor-pigeons">
-         <DynamicInstancedModel asset={ASSETS.pigeon} count={PIGEON_HOMES.length} update={update} fallbackParts={standIn} name="pigeons" />
+         <DynamicInstanced count={PIGEON_HOMES.length} update={update} parts={parts} name="pigeons" />
       </group>
    );
 });
@@ -157,9 +175,7 @@ export const ParkDecor = memo(function ParkDecor({ run }: { run: CleanRun }) {
    return (
       <group name="decor-park">
          <Surround color={COLORS.verge} />
-         <Suspense fallback={null}>
-            <PigeonFlock run={run} />
-         </Suspense>
+         <PigeonFlock run={run} />
       </group>
    );
 });

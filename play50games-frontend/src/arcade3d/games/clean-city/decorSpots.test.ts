@@ -1,7 +1,8 @@
 // Clean the City decor (decorSpots.ts, Decor.tsx): pure decoration that never meets the game.
-// Every footprint is measured on the real GLB as it is drawn (assets.ts scale / stretch / rotationY,
-// then the spot), and checked against the rules data: the floor, every obstacle square, every litter
-// spawn spot and every reachable runner position of all three maps.
+// Every footprint is measured on the mesh as it is drawn (the car GLBs with assets.ts scale /
+// stretch / rotationY, then the spot; the pigeon's code-built parts in every pose its animation
+// takes), and checked against the rules data: the floor, every obstacle square, every litter spawn
+// spot and every reachable runner position of all three maps.
 import { describe, expect, it } from "vitest";
 import { Box3, BufferGeometry, Euler, Material, Matrix4, Quaternion, Vector3 } from "three";
 import { aabbOverlap, distanceToBoxXZ, type AABB } from "@/arcade3d/core/collision";
@@ -10,7 +11,7 @@ import { spotMatrix, type InstanceSpot } from "@/arcade3d/core/render";
 import { readCharacterGlb } from "@/arcade3d/core/rig/robotGlb";
 import type { ModelAsset } from "@/arcade3d/core/types";
 import { ASSETS } from "./assets";
-import { createPigeonStandIn, disposePigeonStandIn } from "./Decor";
+import { createPigeonParts, disposePigeonParts } from "./Decor";
 import {
    CAR_SPOTS,
    DASH_SPOTS,
@@ -24,6 +25,7 @@ import {
    PIGEON_HEIGHT,
    PIGEON_HOMES,
    PIGEON_RADIUS,
+   PIGEON_REACH,
    SCARE_FAR,
    SCARE_NEAR,
    SURROUND_SPOTS,
@@ -33,6 +35,7 @@ import {
    pigeonPose,
    stepScare,
    yawFacing,
+   type PigeonPose,
 } from "./decorSpots";
 import { FLOOD_N, FLOOD_STEP, FLOOR_HALF, MAPS, RUNNER, SPAWN_HALF, START_PAD, buildMapCache, obstacleBox, spotX, spotZ, type MapCache } from "./rules";
 
@@ -57,9 +60,50 @@ async function drawnPoints(asset: ModelAsset, place: Matrix4): Promise<Vector3[]
 }
 
 const toAabb = (box: Box3): AABB => ({ min: { x: box.min.x, y: box.min.y, z: box.min.z }, max: { x: box.max.x, y: box.max.y, z: box.max.z } });
+const square = (half: number): AABB => ({ min: { x: -half, y: -10, z: -half }, max: { x: half, y: 10, z: half } });
 
 /** The floor content's square (runner body, litter glows), tall. */
-const KEEP_OUT: AABB = { min: { x: -DECOR_KEEP_OUT, y: -10, z: -DECOR_KEEP_OUT }, max: { x: DECOR_KEEP_OUT, y: 10, z: DECOR_KEEP_OUT } };
+const KEEP_OUT: AABB = square(DECOR_KEEP_OUT);
+
+// Scene.tsx's pickup burst: ringGeometry(0.35, 0.5) at the runner's centre (|x|, |z| <= SPAWN_HALF),
+// scaled 0.4 + 1.6 k and faded to opacity 0.85 (1 - k) over k = 0..1. Mirrored here (as LITTER_GLOW).
+const BURST_OUTER = 0.5;
+const burstReach = (k: number): number => SPAWN_HALF + BURST_OUTER * (0.4 + 1.6 * k);
+const burstOpacity = (k: number): number => 0.85 * (1 - k);
+/** Everything the burst can touch, at its widest: no car or pigeon footprint may reach in. */
+const BURST_SQUARE: AABB = square(burstReach(1));
+/** Scene.tsx's litter pop-in easing (the glow's scale), mirrored. */
+const easeOutBack = (k: number): number => 1 + 2.70158 * (k - 1) ** 3 + 1.70158 * (k - 1) ** 2;
+
+/** The pigeon's vertices in its own frame (feet at the origin, head at -z), every piece as Decor.tsx draws it. */
+function pigeonPoints(): Vector3[] {
+   const parts = createPigeonParts();
+   const points: Vector3[] = [];
+   for (const part of parts) {
+      const positions = part.geometry.getAttribute("position");
+      for (const local of part.locals ?? [new Matrix4()]) {
+         for (let i = 0; i < positions.count; i++) points.push(new Vector3().fromBufferAttribute(positions, i).applyMatrix4(local));
+      }
+   }
+   disposePigeonParts(parts);
+   return points;
+}
+const PIGEON_POINTS = pigeonPoints();
+const PIGEON_BOX = new Box3().setFromPoints(PIGEON_POINTS);
+const PIGEON_CORNERS: readonly Vector3[] = [0, 1, 2, 3, 4, 5, 6, 7].map(
+   (i) => new Vector3(i & 1 ? PIGEON_BOX.max.x : PIGEON_BOX.min.x, i & 2 ? PIGEON_BOX.max.y : PIGEON_BOX.min.y, i & 4 ? PIGEON_BOX.max.z : PIGEON_BOX.min.z)
+);
+
+/** Where Decor.tsx's update places a pigeon in `pose` (position, then Euler(pitch, yaw, 0, "YXZ"), unit scale). */
+function poseMatrix(pose: PigeonPose, x = pose.x, z = pose.z): Matrix4 {
+   return new Matrix4().compose(new Vector3(x, pose.y, z), new Quaternion().setFromEuler(new Euler(pose.pitch, pose.yaw, 0, "YXZ")), new Vector3(1, 1, 1));
+}
+
+/** A box round the pigeon in `pose` that holds the whole mesh: its own box's 8 corners, placed. */
+const pigeonBoxAt = (pose: PigeonPose): Box3 => {
+   const m = poseMatrix(pose);
+   return new Box3().setFromPoints(PIGEON_CORNERS.map((c) => c.clone().applyMatrix4(m)));
+};
 
 /** Outside the keep-out square, and on the far side or beside the floor: never beyond the near edge. */
 function expectDecorPlace(box: Box3, label: string): void {
@@ -92,7 +136,7 @@ function expectClearOfRules(box: Box3, label: string): void {
 }
 
 describe("clean-city decor: the keep-out square", () => {
-   it("holds everything the run draws on the floor", () => {
+   it("holds everything the run collides with or spawns", () => {
       expect(FLOOR_CONTENT_HALF).toBeGreaterThanOrEqual(SPAWN_HALF + RUNNER.radius);
       expect(FLOOR_CONTENT_HALF).toBeGreaterThanOrEqual(SPAWN_HALF + LITTER_GLOW);
       expect(FLOOR_CONTENT_HALF).toBeGreaterThanOrEqual(FLOOR_HALF);
@@ -105,6 +149,24 @@ describe("clean-city decor: the keep-out square", () => {
          }
       }
       expect(Math.abs(START_PAD.z) + 1.12).toBeLessThan(DECOR_KEEP_OUT);
+      // a litter glow at the top of its pop-in overshoot still fits
+      let overshoot = 0;
+      for (let k = 0; k <= 1; k += 0.001) overshoot = Math.max(overshoot, easeOutBack(k));
+      expect(overshoot).toBeGreaterThan(1.09);
+      expect(SPAWN_HALF + LITTER_GLOW * overshoot).toBeLessThan(DECOR_KEEP_OUT);
+   });
+
+   it("the pickup burst is the one effect past it: faint there (it may slip under the city kerb), short of every car and pigeon", () => {
+      expect(burstReach(1)).toBeCloseTo(14.5, 9);
+      expect(burstReach(1)).toBeGreaterThan(DECOR_KEEP_OUT);
+      // from the moment its edge passes the keep-out it is at most 0.21 opaque
+      const k = (DECOR_KEEP_OUT - SPAWN_HALF) / BURST_OUTER / 1.6 - 0.4 / 1.6;
+      expect(burstReach(k)).toBeCloseTo(DECOR_KEEP_OUT, 9);
+      expect(burstOpacity(k)).toBeLessThanOrEqual(0.215);
+      // it can reach the kerb (KERB.inner is inside its reach), but no further decor: the car and
+      // pigeon tests check their footprints against BURST_SQUARE
+      expect(KERB.inner).toBeLessThan(burstReach(1));
+      expect(BURST_SQUARE.max.x).toBeCloseTo(14.5, 9);
    });
 });
 
@@ -126,6 +188,7 @@ describe("clean-city decor: parked cars (city)", () => {
             const label = `${name} at (${spot.x}, ${spot.z})`;
             expectDecorPlace(box, label);
             expectClearOfRules(box, label);
+            expect(aabbOverlap(toAabb(box), BURST_SQUARE), `${label} within the pickup burst's reach`).toBe(false);
             // beyond the far kerb, not on it
             expect(box.max.z, label).toBeLessThan(-(KERB.inner + KERB.width));
             expect(box.min.y, label).toBeCloseTo(0, 2);
@@ -177,35 +240,63 @@ describe("clean-city decor: parked cars (city)", () => {
 });
 
 describe("clean-city decor: pigeons (park)", () => {
-   it("3-5 pigeons; every pose they take (pecking, hopping, flying off and back) stays outside the floor content", () => {
+   it("3-5 pigeons; every pose they take (pecking, hopping, flying off and back) keeps the whole bird outside the floor content", () => {
       expect(PIGEON_HOMES.length).toBeGreaterThanOrEqual(3);
       expect(PIGEON_HOMES.length).toBeLessThanOrEqual(5);
       const pose = createPigeonPose();
+      const bad: string[] = [];
+      let tipped = 0;
       for (const home of PIGEON_HOMES) {
          expect(Math.hypot(home.awayX, home.awayZ)).toBeCloseTo(1, 9);
          for (const scare of [0, 0.1, 0.3, 0.5, 0.7, 0.9, 1]) {
             for (const fleeing of [true, false]) {
                for (let t = 0; t < 3 * PIGEON_CYCLE; t += 0.02) {
                   pigeonPose(home, t, scare, fleeing, pose);
-                  const box = new Box3(
-                     new Vector3(pose.x - PIGEON_RADIUS, pose.y, pose.z - PIGEON_RADIUS),
-                     new Vector3(pose.x + PIGEON_RADIUS, pose.y + PIGEON_HEIGHT, pose.z + PIGEON_RADIUS)
-                  );
-                  expect(aabbOverlap(toAabb(box), KEEP_OUT)).toBe(false);
-                  expect(box.max.z).toBeLessThanOrEqual(FLOOR_HALF);
-                  expect(pose.y).toBeGreaterThanOrEqual(0);
-                  expect(pose.y).toBeLessThanOrEqual(FLEE_HEIGHT + 0.1);
+                  if (pose.pitch < -0.3) tipped += 1;
+                  // the bird's own box turned and placed as Decor.tsx places it: holds every vertex
+                  const box = toAabb(pigeonBoxAt(pose));
+                  const where = `pigeon (${home.x}, ${home.z}) t ${t.toFixed(2)} scare ${scare}`;
+                  if (aabbOverlap(box, KEEP_OUT)) bad.push(`${where}: in the floor content`);
+                  if (aabbOverlap(box, BURST_SQUARE)) bad.push(`${where}: within the pickup burst's reach`);
+                  if (box.max.z > FLOOR_HALF) bad.push(`${where}: beyond the near edge`);
+                  if (pose.y < 0 || pose.y > FLEE_HEIGHT + 0.1) bad.push(`${where}: y ${pose.y}`);
                }
             }
          }
-         // the home and the landing spot FLEE_DISTANCE out, with their footprints, clear of every rules position
+         // the home and the landing spot FLEE_DISTANCE out, with the footprint of any pose, clear of every rules position
          for (const out of [0, FLEE_DISTANCE]) {
             const x = home.x + home.awayX * out;
             const z = home.z + home.awayZ * out;
-            const box = new Box3(new Vector3(x - PIGEON_RADIUS, 0, z - PIGEON_RADIUS), new Vector3(x + PIGEON_RADIUS, PIGEON_HEIGHT, z + PIGEON_RADIUS));
+            const box = new Box3(new Vector3(x - PIGEON_REACH, 0, z - PIGEON_REACH), new Vector3(x + PIGEON_REACH, PIGEON_HEIGHT, z + PIGEON_REACH));
             expectClearOfRules(box, `pigeon at (${x}, ${z})`);
          }
       }
+      expect(bad.slice(0, 5)).toEqual([]);
+      // the sweep did see the deep pecks
+      expect(tipped).toBeGreaterThan(0);
+   });
+
+   it("the footprint radii hold on the drawn bird: PIGEON_RADIUS standing level, PIGEON_REACH in every pose (a peck reaches further)", () => {
+      const reachIn = (m: Matrix4): number => {
+         let reach = 0;
+         const p = new Vector3();
+         for (const q of PIGEON_POINTS) {
+            p.copy(q).applyMatrix4(m);
+            reach = Math.max(reach, Math.hypot(p.x, p.z));
+         }
+         return reach;
+      };
+      const pose = createPigeonPose();
+      const rest = reachIn(poseMatrix(pigeonPose(PIGEON_HOMES[0], 0.5 * PIGEON_CYCLE, 0, false, pose), 0, 0));
+      expect(pose.pitch).toBe(0);
+      expect(rest).toBeLessThanOrEqual(PIGEON_RADIUS);
+      let any = 0;
+      for (const home of PIGEON_HOMES) {
+         for (let t = 0; t < 2 * PIGEON_CYCLE; t += 0.005) any = Math.max(any, reachIn(poseMatrix(pigeonPose(home, t, 0, false, pose), 0, 0)));
+      }
+      expect(any).toBeLessThanOrEqual(PIGEON_REACH);
+      // the peck is what reaches further (measured 0.264 level, 0.363 pecking)
+      expect(any).toBeGreaterThan(rest + 0.05);
    });
 
    it("pigeons keep their distance from each other", () => {
@@ -218,7 +309,7 @@ describe("clean-city decor: pigeons (park)", () => {
       }
    });
 
-   it("peck and hop in place: no jump in heading or position between frames, the head never dips through the ground", async () => {
+   it("peck and hop in place: no jump in heading or position between frames, the head never dips through the ground", () => {
       const a = createPigeonPose();
       const b = createPigeonPose();
       for (const home of PIGEON_HOMES) {
@@ -230,36 +321,33 @@ describe("clean-city decor: pigeons (park)", () => {
             expect(Math.hypot(b.x - a.x, b.z - a.z)).toBe(0);
          }
       }
-      // every peck on the real mesh, placed as Decor.tsx places it: nothing below the ground
+      // every peck on the drawn bird, placed as Decor.tsx places it: nothing below the ground
       let deepest = 0;
       let lowest = Infinity;
-      const points = await drawnPoints(ASSETS.pigeon, new Matrix4());
-      const place = new Matrix4();
       const p = new Vector3();
       for (let t = 0; t < PIGEON_CYCLE; t += 0.01) {
          const pose = pigeonPose(PIGEON_HOMES[0], t, 0, false, a);
          if (pose.pitch === 0) continue;
          deepest = Math.min(deepest, pose.pitch);
-         place.makeRotationFromEuler(new Euler(pose.pitch, pose.yaw, 0, "YXZ")).setPosition(0, pose.y, 0);
-         for (const q of points) lowest = Math.min(lowest, p.copy(q).applyMatrix4(place).y);
+         const place = poseMatrix(pose, 0, 0);
+         for (const q of PIGEON_POINTS) lowest = Math.min(lowest, p.copy(q).applyMatrix4(place).y);
       }
       expect(deepest).toBeLessThan(-0.3);
       expect(lowest).toBeGreaterThan(-0.01);
    });
 
-   it("is pigeon-crossing's pigeon GLB (listed in the manifest), a plain mesh about 0.30 tall facing -z at yaw 0", async () => {
-      expect(ASSETS.pigeon.url).toBe("/models/3d/pigeon-crossing/pigeon.glb");
-      expect(hasModel(ASSETS.pigeon.url)).toBe(true);
-      expect(ASSETS.pigeon.rigged).toBe(false);
-      expect("humanoid" in ASSETS.pigeon).toBe(false);
-      const points = await drawnPoints(ASSETS.pigeon, new Matrix4());
-      const box = new Box3().setFromPoints(points);
-      const size = box.getSize(new Vector3());
-      expect(size.y).toBeCloseTo(PIGEON_HEIGHT, 2);
-      expect(Math.max(size.x, size.z) / 2).toBeLessThanOrEqual(PIGEON_RADIUS);
+   it("is drawn in code, not a GLB: PIGEON_HEIGHT (0.48) tall, feet on y = 0, head at -z (facing away at yaw 0), 3,000 triangles for the flock in one draw call", () => {
+      // pigeon-crossing's pigeon.glb (12,000 triangles) is never fetched by this game
+      for (const asset of Object.values(ASSETS) as ModelAsset[]) expect(asset.url).not.toMatch(/pigeon\.glb$/);
+      const size = PIGEON_BOX.getSize(new Vector3());
+      expect(size.y).toBeCloseTo(PIGEON_HEIGHT, 3);
+      expect(PIGEON_BOX.min.y).toBeCloseTo(0, 3);
+      // about as long as tall, wider than nothing: reads as a bird side on and from above
+      expect(size.z).toBeGreaterThan(0.4);
+      expect(size.z).toBeLessThan(0.55);
       // the head (the top tenth) is at -z: yawFacing(0, -1) = 0 faces it away from the camera
-      const top = points.filter((p) => p.y > box.max.y - 0.1 * size.y);
-      expect(top.reduce((sum, p) => sum + p.z, 0) / top.length).toBeLessThan(0);
+      const top = PIGEON_POINTS.filter((p) => p.y > PIGEON_BOX.max.y - 0.1 * size.y);
+      expect(top.reduce((sum, p) => sum + p.z, 0) / top.length).toBeLessThan(-0.05);
       expect(yawFacing(0, -1)).toBeCloseTo(0, 9);
       // flying out faces the away direction: the drawn forward (-z) turned by the yaw
       for (const home of PIGEON_HOMES) {
@@ -268,6 +356,19 @@ describe("clean-city decor: pigeons (park)", () => {
          expect(forward.x).toBeCloseTo(home.awayX, 9);
          expect(forward.z).toBeCloseTo(home.awayZ, 9);
       }
+      // one part (one InstancedMesh, one draw call), its pieces all instances of it
+      const parts = createPigeonParts();
+      expect(parts).toHaveLength(1);
+      let perBird = 0;
+      for (const part of parts) {
+         const index = part.geometry.getIndex();
+         const triangles = (index ? index.count : part.geometry.getAttribute("position").count) / 3;
+         perBird += triangles * Math.max(1, part.locals?.length ?? 0);
+         expect(part.colors?.length).toBe(part.locals?.length);
+      }
+      disposePigeonParts(parts);
+      expect(perBird).toBe(600);
+      expect(perBird * PIGEON_HOMES.length).toBeLessThanOrEqual(3000);
    });
 
    it("fly off when the runner comes within SCARE_NEAR, land FLEE_DISTANCE out, come back once it is past SCARE_FAR", () => {
@@ -301,28 +402,19 @@ describe("clean-city decor: pigeons (park)", () => {
       }
    });
 
-   it("the stand-in is built per mount at the drawn size and frees its geometry and material", () => {
+   it("its geometry and material are built per mount and freed on dispose", () => {
       const live = new Set<BufferGeometry | Material>();
       for (let mount = 0; mount < 5; mount++) {
-         const parts = createPigeonStandIn();
+         const parts = createPigeonParts();
          for (const part of parts) {
             for (const item of [part.geometry, ...(Array.isArray(part.material) ? part.material : [part.material])]) {
                expect(live.has(item)).toBe(false);
                live.add(item);
                item.addEventListener("dispose", () => live.delete(item));
             }
-            const box = new Box3();
-            const p = new Vector3();
-            const positions = part.geometry.getAttribute("position");
-            for (const local of part.locals ?? []) {
-               for (let i = 0; i < positions.count; i++) box.expandByPoint(p.fromBufferAttribute(positions, i).applyMatrix4(local));
-            }
-            expect(box.min.y).toBeGreaterThanOrEqual(0);
-            expect(box.max.y).toBeLessThanOrEqual(PIGEON_HEIGHT + 0.01);
-            expect(Math.max(-box.min.x, box.max.x, -box.min.z, box.max.z)).toBeLessThanOrEqual(PIGEON_RADIUS);
          }
          expect(live.size).toBe(2);
-         disposePigeonStandIn(parts);
+         disposePigeonParts(parts);
          expect(live.size).toBe(0);
       }
    });
@@ -330,7 +422,7 @@ describe("clean-city decor: pigeons (park)", () => {
 
 describe("clean-city decor: assets", () => {
    it("every decor asset points at a GLB in the manifest and is a plain mesh; the cars stand on y = 0", () => {
-      const decor: readonly ModelAsset[] = [ASSETS.car, ASSETS.taxi, ASSETS.van, ASSETS.pigeon];
+      const decor: readonly ModelAsset[] = [ASSETS.car, ASSETS.taxi, ASSETS.van];
       for (const asset of decor) {
          expect(hasModel(asset.url), asset.url).toBe(true);
          expect(asset.humanoid).toBeUndefined();
