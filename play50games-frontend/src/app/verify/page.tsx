@@ -9,6 +9,7 @@ import LoginModal from '@/components/Auth/LoginModal';
 import RegisterModal from '@/components/Auth/RegisterModal';
 import { Certificate } from '@/types/game';
 import { getApiHeaders } from '@/lib/api/apiUtils';
+import { getApiBase } from '@/lib/api/apiBase';
 
 function VerifyContent() {
   const searchParams = useSearchParams();
@@ -238,23 +239,6 @@ function VerifyContent() {
       <Footer />
     </div>
   );
-}
-
-// Helper function
-function getApiBase(): string {
-  if (typeof window !== 'undefined') {
-    const envUrl = process.env.NEXT_PUBLIC_WORDPRESS_API_URL;
-    if (envUrl) return envUrl;
-    const currentOrigin = window.location.origin;
-    if (currentOrigin.includes('play50.games')) {
-      return 'https://cms.play50.games/wp-json/play50/v1';
-    }
-    if (currentOrigin.includes('play50.game')) {
-      return 'https://cms.play50.game/wp-json/play50/v1';
-    }
-    return 'http://localhost/wp-json/play50/v1';
-  }
-  return process.env.WORDPRESS_API_URL || 'http://localhost/wp-json/play50/v1';
 }
 
 export default function VerifyPage() {
