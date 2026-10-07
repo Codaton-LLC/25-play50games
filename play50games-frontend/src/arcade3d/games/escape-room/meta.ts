@@ -12,8 +12,8 @@ export const escapeRoomMeta: ArcadeGameMeta = {
    orientation: "any",
    controls: {
       scheme: "point-and-move",
-      keyboard: "WASD to move, click to inspect",
-      touch: "Joystick + tap to inspect"
+      keyboard: "WASD / arrows to move, click or E to inspect",
+      touch: "Joystick to move, tap a marker to inspect"
    },
    scoring: {
       kind: "time",
@@ -26,7 +26,7 @@ export const escapeRoomMeta: ArcadeGameMeta = {
       unitLabel: "time",
       display: "time"
    },
-   thumbnail: null,
+   thumbnail: "/images/3d/escape-room.webp",
    accent: "#eab308",
    owner: "codex"
 };

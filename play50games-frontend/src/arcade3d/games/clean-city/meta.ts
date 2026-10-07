@@ -25,7 +25,7 @@ export const cleanCityMeta: ArcadeGameMeta = {
       unitLabel: "pts",
       display: "int"
    },
-   thumbnail: null,
+   thumbnail: "/images/3d/clean-city.webp",
    accent: "#4ade80",
    owner: "cursor"
 };
