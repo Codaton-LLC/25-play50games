@@ -113,8 +113,8 @@ export const SHARED_ASSETS: Record<SharedAssetId, ModelAsset> = {
    // 0.82 = 1.55 m, obstacle-race 0.79 = 1.50 m). There is deliberately no default: drawn as is
    // (`SHARED_ASSETS.runner.scale ?? 1`) it stands 1.90 m tall. A game draws
    // `{ ...SHARED_ASSETS.runner, scale }` from its own assets.ts and derives its stride and lift
-   // scale from that asset (escape-room about 0.74 = 1.40 m, clean-city about 0.47 = 0.9 m: check
-   // against the camera fit); RUNNER_LANDMARKS are complete, so no ROBOT_LANDMARKS spread.
+   // scale from that asset (clean-city 0.5 = 0.95 m; escape-room about 0.74 = 1.40 m, its stand-in's
+   // height: check against the camera fit); RUNNER_LANDMARKS are complete, so no ROBOT_LANDMARKS spread.
    runner: {
       id: "runner",
       url: shared("runner"),
