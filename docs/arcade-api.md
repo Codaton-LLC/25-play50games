@@ -612,132 +612,28 @@ function play50_arcade_admin_delete_row() {
 
 ## 13. Curl test suite (prod, test user)
 
-Run it per platform-plan §3 "5.4": backup taken, `php -l` clean, frontend flags off, only `$SLUG` has `enabled:true`, logged in as the dedicated **arcade-test** user.
+Run it per platform-plan §3 "5.4": backup taken, `php -l` clean, frontend flags off, only `$SLUG` has `enabled:true`, logged in as the dedicated **arcade-test** user. After Release 1 the board is live with real players: the flags stay on, the run uses only the arcade-test user, and the cleanup deletes only its rows (below).
 
-Setup in Git Bash. Values come from your local env. Never paste them into chat, never commit them, never use `set -x`.
+Run the maintained suite in `tools/arcade-api-smoke.sh`; its full usage, groups, and budget behavior are documented in [`tools/arcade-api-smoke.md`](../tools/arcade-api-smoke.md). It covers the reads, submit auth, validation, rate limits, privacy, optional time-game, and optional register cases below. Do not run it from Codex against production; Claude runs the live suite after the §3 prerequisites are met.
+
+The default `--api-key-gate open` matches the current server (no `PLAY50_API_KEY` is configured). Use `--api-key-gate closed` after enabling the gate. The script keeps the manual cases and cleanup below as follow-up steps.
+
 ```bash
 export WP="https://<cms-host>/wp-json/play50/v1"
-read -rs KEY && export KEY   # the frontend API key
-read -rs JWT && export JWT   # arcade-test token: DevTools > localStorage > play50games_jwt_token
+read -rs KEY && export KEY
+read -rs JWT && export JWT
+bash tools/arcade-api-smoke.sh --dry-run
+bash tools/arcade-api-smoke.sh
 ```
-
-Save as a local scratch file (not in the repo), then run `bash arcade-smoke.sh`. It takes about 2 minutes. Wait 10 minutes between full runs (IP limit 30 / 10 min).
-```bash
-#!/usr/bin/env bash
-set -u
-: "${WP:?export WP}" "${KEY:?export KEY}" "${JWT:?export JWT}"
-SLUG="${SLUG:-robot-collector}"   # must be enabled:true
-TIME_SLUG="${TIME_SLUG:-}"        # escape-room | obstacle-race, only when enabled
-RUN_REGISTER="${RUN_REGISTER:-0}" # 1 = test the register limit (blocks sign-ups from this IP for 1 h)
-
-# robot-collector: max 1600, 5000..75000 ms, base 600, max_pps 120. Adjust for other games.
-OK_SCORE=100;   OK_MS=30000
-BAD_SCORE=1500; BAD_MS=5000       # 1500 > 600 + 120 * 5
-
-K=(-H "X-API-Key: $KEY")
-A=(-H "Authorization: Bearer $JWT")
-F=(-H "Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxfQ.forged")
-P=(-X POST -H "Content-Type: application/json")
-S="$WP/arcade/scores"
-pass=0; fail=0
-ok()  { pass=$((pass + 1)); echo "PASS  $1"; }
-bad() { fail=$((fail + 1)); echo "FAIL  $1"; }
-
-# check NAME STATUS CODE|- BODY_REGEX|- curl-args...
-check() {
-   local name="$1" want="$2" code="$3" re="$4"; shift 4
-   local out status body
-   out=$(curl -s -w $'\n%{http_code}' "$@")
-   status="${out##*$'\n'}"; body="${out%$'\n'*}"
-   if [ "$status" = "$want" ] \
-      && { [ "$code" = "-" ] || grep -q "\"code\":\"$code\"" <<<"$body"; } \
-      && { [ "$re" = "-" ] || grep -qE "$re" <<<"$body"; }; then
-      ok "$name"
-   else
-      bad "$name -> HTTP $status ${body:0:300}"
-   fi
-}
-# hdr NAME HEADER_REGEX curl-args...
-hdr() {
-   local name="$1" re="$2"; shift 2
-   if curl -s -o /dev/null -D - "$@" | tr -d '\r' | grep -qiE "$re"; then ok "$name"; else bad "$name (no header ~ $re)"; fi
-}
-run() { printf '{"slug":"%s","score":%s,"duration_ms":%s}' "$1" "$2" "$3"; }
-gap() { sleep 3.2; }
-V=$(run "$SLUG" $OK_SCORE $OK_MS)
-
-echo "== A. reads"
-check "games: with key"           200 - "\"$SLUG\""  "${K[@]}" "$WP/arcade/games"
-check "games: no key"             401 missing_api_key - "$WP/arcade/games?_=$RANDOM"
-check "games: wrong key"          403 invalid_api_key - -H "X-API-Key: wrong-$RANDOM" "$WP/arcade/games?_=$RANDOM"
-check "board: guest"              200 - '"me":null'  "${K[@]}" "$WP/arcade/leaderboard/$SLUG?limit=10"
-check "board: forged JWT ignored" 200 - '"me":null'  "${K[@]}" "${F[@]}" "$WP/arcade/leaderboard/$SLUG"
-check "board: limit clamped"      200 - '"entries":' "${K[@]}" "$WP/arcade/leaderboard/$SLUG?limit=999"
-check "board: unknown slug"       404 not_found -    "${K[@]}" "$WP/arcade/leaderboard/no-such-game"
-hdr   "board: public cache"       '^cache-control:.*public'  "${K[@]}" "$WP/arcade/leaderboard/$SLUG"
-hdr   "board: private with JWT"   '^cache-control:.*private' "${K[@]}" "${A[@]}" "$WP/arcade/leaderboard/$SLUG"
-check "me: ok"                    200 - -            "${K[@]}" "${A[@]}" "$WP/arcade/me"
-check "me: no JWT"                401 unauthorized - "${K[@]}" "$WP/arcade/me"
-check "me: forged JWT"            401 unauthorized - "${K[@]}" "${F[@]}" "$WP/arcade/me"
-
-echo "== B. submit auth (not rate-counted)"
-check "submit: no JWT"            401 unauthorized -    "${P[@]}" "$S" "${K[@]}" -d "$V"
-check "submit: cookie only"       401 unauthorized -    "${P[@]}" "$S" "${K[@]}" -H "Cookie: ${COOKIE:-wordpress_logged_in_x=fake}" -d "$V"
-check "submit: no API key"        401 missing_api_key - "${P[@]}" "$S" "${A[@]}" -d "$V"
-check "submit: forged JWT"        401 unauthorized -    "${P[@]}" "$S" "${K[@]}" "${F[@]}" -d "$V"
-check "submit: bad slug"          400 invalid_data -    "${P[@]}" "$S" "${K[@]}" "${A[@]}" -d "$(run 'Robot!' 10 $OK_MS)"
-check "submit: unknown slug"      404 not_found -       "${P[@]}" "$S" "${K[@]}" "${A[@]}" -d "$(run no-such-game 10 $OK_MS)"
-
-echo "== C. validation (each counts; 3.2 s apart)"
-check "submit: valid"             200 - '"success":true' "${P[@]}" "$S" "${K[@]}" "${A[@]}" -d "$V"; gap
-check "me: has slug"              200 - "\"$SLUG\":\\{\"best\":" "${K[@]}" "${A[@]}" "$WP/arcade/me"
-check "board: me filled"          200 - '"me":\{"rank":[0-9]+' "${K[@]}" "${A[@]}" "$WP/arcade/leaderboard/$SLUG"
-check "submit: score 99999"       400 invalid_data - "${P[@]}" "$S" "${K[@]}" "${A[@]}" -d "$(run "$SLUG" 99999 $OK_MS)"; gap
-check "submit: implausible"       400 invalid_data - "${P[@]}" "$S" "${K[@]}" "${A[@]}" -d "$(run "$SLUG" $BAD_SCORE $BAD_MS)"; gap
-check "submit: duration_ms 100"   400 invalid_data - "${P[@]}" "$S" "${K[@]}" "${A[@]}" -d "$(run "$SLUG" 10 100)"; gap
-check "submit: negative score"    400 invalid_data - "${P[@]}" "$S" "${K[@]}" "${A[@]}" -d "$(run "$SLUG" -5 $OK_MS)"; gap
-check "submit: float score"       400 invalid_data - "${P[@]}" "$S" "${K[@]}" "${A[@]}" -d "$(run "$SLUG" 12.5 $OK_MS)"; gap
-check "submit: no duration"       400 invalid_data - "${P[@]}" "$S" "${K[@]}" "${A[@]}" -d "{\"slug\":\"$SLUG\",\"score\":10}"; gap
-check "submit: valid again"       200 - '"plays":[0-9]+' "${P[@]}" "$S" "${K[@]}" "${A[@]}" -d "$V"
-check "submit: 3 s gap"           429 rate_limited - "${P[@]}" "$S" "${K[@]}" "${A[@]}" -d "$V"
-
-if [ -n "$TIME_SLUG" ]; then
-   echo "== T. time game: server computes the score"
-   case "$TIME_SLUG" in escape-room) TB=600000 ;; obstacle-race) TB=300000 ;; *) TB=0 ;; esac
-   check "time: client score ignored" 200 - "\"score\":$(( (TB - 60000) / 10 ))," \
-      "${P[@]}" "$S" "${K[@]}" "${A[@]}" -d "$(run "$TIME_SLUG" 999999 60000)"
-fi
-
-echo "== D. 10 per minute per user (waits 61 s for a fresh window)"
-sleep 61
-for i in 1 2 3 4 5 6 7 8 9 10; do
-   check "minute #$i" 200 - - "${P[@]}" "$S" "${K[@]}" "${A[@]}" -d "$V"; gap
-done
-check "minute #11" 429 rate_limited - "${P[@]}" "$S" "${K[@]}" "${A[@]}" -d "$V"
-
-echo "== E. privacy"
-check "privacy: get"              200 - '"hide_name":(true|false)' "${K[@]}" "${A[@]}" "$WP/arcade/me/privacy"
-check "privacy: hide"             200 - '"hide_name":true'  "${P[@]}" "$WP/arcade/me/privacy" "${K[@]}" "${A[@]}" -d '{"hide_name":true}'
-check "board: shows Anonymous"    200 - '"name":"Anonymous"[^}]*"is_me":true' "${K[@]}" "${A[@]}" "$WP/arcade/leaderboard/$SLUG?limit=50"
-check "privacy: show"             200 - '"hide_name":false' "${P[@]}" "$WP/arcade/me/privacy" "${K[@]}" "${A[@]}" -d '{"hide_name":false}'
-check "privacy: bad body"         400 invalid_data -        "${P[@]}" "$WP/arcade/me/privacy" "${K[@]}" "${A[@]}" -d '{}'
-check "privacy: no JWT"           401 unauthorized -        "${P[@]}" "$WP/arcade/me/privacy" "${K[@]}" -d '{"hide_name":true}'
-
-if [ "$RUN_REGISTER" = "1" ]; then
-   echo "== R. register 5 per hour per IP (empty bodies: no account is created)"
-   for i in 1 2 3 4 5; do
-      check "register #$i" 400 missing_fields - "${P[@]}" "$WP/auth/register" "${K[@]}" -d '{}'
-   done
-   check "register #6" 429 rate_limited - "${P[@]}" "$WP/auth/register" "${K[@]}" -d '{}'
-fi
-
-echo; echo "passed: $pass  failed: $fail"
-[ "$fail" -eq 0 ]
-```
-
-Budget per run: about 20 counted submits from your IP (limit 30 / 10 min). "Board: shows Anonymous" assumes the test user is in the top 50, which holds on an empty pre-launch board.
 
 ### Manual cases (wp-admin + curl)
+
+`$V` is the suite's valid robot-collector submit. Send it with the JWT on stdin, not in argv:
+```bash
+V='{"slug":"robot-collector","score":100,"duration_ms":30000}'
+printf 'header = "Authorization: Bearer %s"\n' "$JWT" |
+   curl -s -K - -X POST "$WP/arcade/scores" -H "Content-Type: application/json" -d "$V"
+```
 
 | Case | Steps | Expected |
 |---|---|---|
@@ -747,6 +643,7 @@ Budget per run: about 20 counted submits from your IP (limit 30 / 10 min). "Boar
 | Upsert correctness | Submit a higher score, then a lower one (3 s apart) | `best_score` keeps the higher value, `best_at` / `best_duration_ms` belong to the higher run, `plays` +2, `last_score` = the lower one |
 
 ### Cleanup (always)
-1. Admin → Arcade Scores → **Reset game** for `$SLUG` (and `$TIME_SLUG`), then **Clear cache** → all.
+1. Before launch (empty board): Admin → Arcade Scores → **Reset game** for `$SLUG` (and `$TIME_SLUG`), then **Clear cache** → all.
+   Live board (real players, after Release 1): **never Reset game**, it deletes every player's scores. Select `$SLUG` (and `$TIME_SLUG`), **Delete** only the arcade-test rows, then **Clear cache** → all.
 2. `GET /arcade/leaderboard/$SLUG` shows no test rows.
-3. Only then turn the frontend flags on (plan §3 "5.4", step 5).
+3. Before launch only: then turn the frontend flags on (plan §3 "5.4", step 5).
