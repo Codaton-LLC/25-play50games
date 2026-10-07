@@ -152,7 +152,7 @@ Branches: Cursor `cursor/<pkg>`, Codex `codex/<pkg>` (local worktree or cloud br
 | 1 | Hub + `/classic` + nav/SEO + stale-JWT fix → **Release 0** (arcade flag off) | Claude C1 ∥ Cursor K1 ∥ Codex X2 | ✅ live on Vercel |
 | 2 | 3D core + `/3d` routes + UI kit + WP admin page + Hyper3D CLI | Claude C2 ∥ Cursor K2 ∥ Codex X3/X2 | ✅ merged (+ core follow-up) |
 | 3 | robot-collector + leaderboard API on prod + JWT rotation → **Release 1** | Claude | ⏳ code merged on main (robot-collector live + `enabled:true`, privacy toggle on /3d, policy section 5, register note, JWT fallback from `wp_salt`); backup done; waiting for the user: test account + OLD_JWT, replace the JWT value in server wp-config.php, upload from `%USERPROFILE%/.play50/upload/release1/` (arcade-games.json, then functions.php), then curl suite, reset, Vercel flags |
-| 4 | Games 2–10, one at a time (order in `skills.md`) | Owners | ⏳ playable on main (status soon): food-catcher, office-escape, penalty-hero, warehouse-rush, obstacle-race, escape-room; rules merged: pigeon-crossing, clean-city, tower-climb; see "Where we are" |
+| 4 | Games 2–10, one at a time (order in `skills.md`) | Owners | ⏳ playable on main (status soon): food-catcher, office-escape, penalty-hero, warehouse-rush, obstacle-race, escape-room, clean-city; rules merged: pigeon-crossing, tower-climb; see "Where we are" |
 | 5 | Polish: JSON-LD, Lighthouse ≥ 90, trailer/OG, run tokens | Claude · Cursor · Codex | Not started |
 
 ### Where we are (update this section whenever work lands)
@@ -168,14 +168,14 @@ Last update 2026-10-06 (afternoon; weekly usage limit nearly used up, resets 202
 | penalty-hero | Cursor | ✅ | ✅ | ✅ merged (status soon, tapDown shots) | striker + keeper on `claude/assets-group-b` |
 | warehouse-rush | Claude | ✅ | ✅ | ✅ merged (status soon) | ✅ shelfRack (2 copies per rack), pallet, robot, crate |
 | tower-climb | Codex | ✅ merged | ✅ merged (Claude review: 14 test/README fixes, mutation-probed) | ⏳ `codex/game-tower-climb-scene` in progress (Codex), review pending | flag, spring pad not generated |
-| clean-city | Cursor | ✅ | ✅ merged (reviewed, 11 test fixes) | ⏳ `cursor/game-clean-city-scene` done, review by Codex pending | bottle, bag, bin, bench, palm, umbrella, lamp not generated |
+| clean-city | Cursor | ✅ | ✅ merged (reviewed, 11 test fixes) | ✅ merged (status soon; Codex + Claude reviews fixed: litter pools on core `<DynamicInstancedModel>` with per-mount stand-ins, memory flat over 10 Retries; map pill above the cookie banner; runner `<HumanoidModel asset={ASSETS.runner}>` at scale 0.5, cadence cap 4) | ✅ tinCan, banana (shared) on main; runner on `claude/assets-group-b`; bottle, bag, bin, bench, palm, umbrella, lamp not generated |
 | escape-room | Codex (scene: Cursor) | ✅ | ✅ merged (reviewed; corner soft-lock fixed) | ✅ merged (status soon; Codex + Claude reviews fixed: opened loot visible incl. the under-desk box sliding out, checklist above the cookie banner, 24 px ground marker; stand-in runner follows the shared humanoid pose) | ✅ desk, chair, battery (shared) on main; runner on `claude/assets-group-b`; key, book, door not generated |
 | obstacle-race | Claude | ✅ | ✅ | ✅ merged (status soon; Rapier debris not shipped) | finish arch drawn as a primitive (the Rodin arch is a double arch, unused; regenerate only if the user approves) |
 
 **Open threads (next steps):**
 - Core auto-rig (`claude/auto-rig`, workflow review + fixes done, final check running): static T-pose GLBs become SkinnedMeshes with a code skeleton; poses: armsDown, walk/run swing, idle, carry/arms-up, reach. Merge after its final check, then adopt it per game. The user requires that characters never glide in T-pose: arms and legs must move.
 - `claude/assets-group-b` (Hyper3D characters runner, chef, striker, keeper, pigeon; concepts in `tools/hyper3d/concepts/*.webp`): merge only together with the humanoid adoption in office-escape (runner), food-catcher (chef), penalty-hero (striker, keeper), robot-collector + warehouse-rush (robot). Pigeon: hop/squash in code.
-- Scene reviews: Cursor reviews the pigeon-crossing scene, Codex reviews the clean-city scene (escape-room merged 2026-10-07) (reports come back through the user); then Claude verifies, fixes, merges.
+- Scene reviews: Cursor reviews the pigeon-crossing scene (escape-room and clean-city merged 2026-10-07) (reports come back through the user); then Claude verifies, fixes, merges.
 - Codex next: finish the tower-climb scene on `codex/game-tower-climb-scene` (merge origin/main first: the rules, tests and README fixes are on main), then a scene review. Group C props (cars, clean-city props, escape-room props, tower flag/spring) need the user's spend approval.
 - Release 1 still waits for the user's server steps (runbook below).
 
