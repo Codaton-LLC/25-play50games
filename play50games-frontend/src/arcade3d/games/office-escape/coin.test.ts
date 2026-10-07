@@ -7,21 +7,22 @@ import { Box3, BufferGeometry, Euler, Float32BufferAttribute, Group, Matrix4, Me
 import { modelParts } from "@/arcade3d/core/assets";
 import { hasModel } from "@/arcade3d/core/modelManifest";
 import { readCharacterGlb } from "@/arcade3d/core/rig/robotGlb";
-import { SHARED_ASSETS } from "@/arcade3d/core/sharedAssets";
+import { COIN_GLB_SIZE, SHARED_ASSETS } from "@/arcade3d/core/sharedAssets";
+import type { ModelAsset } from "@/arcade3d/core/types";
 import { ASSETS } from "./assets";
 import { COIN_STAND_IN } from "./Primitives";
 import { COIN } from "./rules";
 
 /** The coin's vertices in the pool's local frame (the coin's point at the origin), via core modelParts. */
-async function drawnCoin(): Promise<Vector3[]> {
-   const { local, node } = await readCharacterGlb(ASSETS.coin.url);
+async function drawnCoin(asset: ModelAsset = ASSETS.coin): Promise<Vector3[]> {
+   const { local, node } = await readCharacterGlb(asset.url);
    const geometry = new BufferGeometry();
    geometry.setAttribute("position", new Float32BufferAttribute(local, 3));
    const mesh = new Mesh(geometry);
    mesh.position.fromArray(node);
    const root = new Group();
    root.add(mesh);
-   const parts = modelParts(root, ASSETS.coin);
+   const parts = modelParts(root, asset);
    expect(parts).toHaveLength(1);
    const points: Vector3[] = [];
    for (let i = 0; i < local.length; i += 3) points.push(new Vector3(local[i], local[i + 1], local[i + 2]).applyMatrix4(parts[0].matrix));
@@ -36,6 +37,18 @@ describe("office-escape coin GLB", () => {
       expect(hasModel(ASSETS.coin.url)).toBe(true);
       expect(ASSETS.coin.rigged).toBeFalsy();
       expect(ASSETS.coin.humanoid).toBeUndefined();
+   });
+
+   it("fits from core COIN_GLB_SIZE, the real mesh's bounds, standing on y = 0", async () => {
+      // the one place the GLB's numbers live (both games derive scale and yOffset from it)
+      const raw = new Box3().setFromPoints(await drawnCoin(SHARED_ASSETS.coin)), size = raw.getSize(new Vector3());
+      expect(Math.abs(size.x - COIN_GLB_SIZE.width), `width ${size.x}`).toBeLessThan(0.002);
+      expect(Math.abs(size.y - COIN_GLB_SIZE.height), `height ${size.y}`).toBeLessThan(0.002);
+      expect(Math.abs(size.z - COIN_GLB_SIZE.depth), `depth ${size.z}`).toBeLessThan(0.002);
+      expect(Math.abs(raw.min.y), `foot ${raw.min.y}`).toBeLessThan(0.002);
+      // the fit the README quotes: about 0.316, the centre lifted onto the coin's point
+      expect(ASSETS.coin.scale).toBeCloseTo(0.316, 3);
+      expect(ASSETS.coin.yOffset).toBeCloseTo(-0.294, 3);
    });
 
    it("is drawn at the stand-in disc's size, centred on the coin's point, faces along ±z", async () => {

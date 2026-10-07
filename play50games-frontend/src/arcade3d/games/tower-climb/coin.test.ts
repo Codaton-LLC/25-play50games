@@ -50,6 +50,9 @@ describe("tower-climb coin GLB", () => {
       expect(hasModel(ASSETS.coin.url)).toBe(true);
       expect(ASSETS.coin.rigged).toBeFalsy();
       expect(ASSETS.coin.humanoid).toBeUndefined();
+      // fitted from core COIN_GLB_SIZE (office-escape/coin.test.ts checks it on the real mesh): about
+      // 0.316, the README's figure
+      expect(ASSETS.coin.scale).toBeCloseTo(0.316, 3);
    });
 
    it("replaces the stand-in disc in place: its diameter, about its thickness, centred on the coin's point", async () => {

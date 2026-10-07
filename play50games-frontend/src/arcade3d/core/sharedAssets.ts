@@ -173,10 +173,8 @@ export const SHARED_ASSETS: Record<SharedAssetId, ModelAsset> = {
       fallbackColor: "#475569",
       budget: { ...PROP_BUDGET },
    },
-   // A gold coin with a raised star on both faces (group D, 2026-10-07): 1.899 x 1.861 x 0.492 in
-   // GLB units, standing on its edge on y = 0 (centre at y 0.93), its faces along ±z, about 0.33 deep
-   // at the rim. Like the runner, no default scale: a game spreads it with its own `scale` and,
-   // for a coin placed by its centre, `yOffset` = -scale x 1.861 / 2 (office-escape, tower-climb).
+   // A gold coin with a raised star on both faces (group D, 2026-10-07), COIN_GLB_SIZE below. Like
+   // the runner, no default scale: a game spreads it with its own `scale` and `yOffset`.
    coin: {
       id: "coin",
       url: shared("coin"),
@@ -185,3 +183,12 @@ export const SHARED_ASSETS: Record<SharedAssetId, ModelAsset> = {
       budget: { ...PROP_BUDGET },
    },
 };
+
+/**
+ * SHARED_ASSETS.coin's measured bounds in GLB units: it stands on its edge on y = 0 (centre at
+ * y 0.93), its faces along ±z, about 0.33 deep at the rim. A game fits it from these, never from
+ * copies of the numbers: `scale` = its diameter / width and, for a coin placed by its centre,
+ * `yOffset` = -scale x height / 2 (office-escape, tower-climb; office-escape/coin.test.ts checks
+ * them against the real mesh).
+ */
+export const COIN_GLB_SIZE = { width: 1.899, height: 1.861, depth: 0.492 } as const;
