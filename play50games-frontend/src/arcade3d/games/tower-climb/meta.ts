@@ -25,7 +25,7 @@ export const towerClimbMeta: ArcadeGameMeta = {
       unitLabel: "pts",
       display: "int"
    },
-   thumbnail: null,
+   thumbnail: "/images/3d/tower-climb.webp",
    accent: "#06b6d4",
    owner: "codex"
 };
