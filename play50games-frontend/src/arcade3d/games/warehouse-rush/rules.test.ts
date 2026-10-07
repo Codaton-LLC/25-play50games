@@ -14,6 +14,7 @@ import {
    CYCLE_MIN_MS,
    DROP_MS,
    DURATION_MS,
+   EARLIEST_DELIVERY_MS,
    FIRST_DELIVERY_MIN_MS,
    MAX_STEP_MS,
    MIN_LEG,
@@ -23,6 +24,7 @@ import {
    PALLET_COUNT,
    PALLET_HALF,
    PALLET_HEIGHT,
+   PALLET_SETS as RULES_PALLET_SETS,
    PALLET_SLOTS,
    PICK_GAP,
    PICK_MS,
@@ -507,6 +509,9 @@ function play(run: WarehouseRun, bot: Bot, nextDt: () => number, beforeStep?: (r
    let maxPending = 0;
    let minOccupiedAtDraw = Infinity;
    let steps = 0;
+   // the refill lemma (README proof step 7): refill n lands on the pallet of pick n
+   const pickedPallets: number[] = [];
+   let refillsLanded = 0;
    const events = run.events;
    while (run.ended === null && steps < 200_000) {
       beforeStep?.(run, events);
@@ -516,6 +521,16 @@ function play(run: WarehouseRun, bot: Bot, nextDt: () => number, beforeStep?: (r
       const ev = step(run, dtMs, input);
       steps += 1;
       if (ev !== events) fail("step returned another events object");
+      if (ev.refilled) {
+         // refills land before the move and the action, so this step's pick is not in the list yet
+         let expected = 0;
+         let landing = 0;
+         for (let i = 0; i < PALLET_COUNT; i++) if (ev.refilled & (1 << i)) landing += 1;
+         for (let k = 0; k < landing; k++) expected |= 1 << pickedPallets[refillsLanded + k];
+         if (expected !== ev.refilled) fail(`refills ${ev.refilled.toString(2)} are not on the pallets of picks ${refillsLanded + 1}..${refillsLanded + landing}`);
+         refillsLanded += landing;
+      }
+      if (ev.picked !== NONE) pickedPallets.push(ev.picked);
 
       const occupied = occupiedPallets(run);
       const carried = run.carrying === NONE ? 0 : 1;
@@ -540,11 +555,12 @@ function play(run: WarehouseRun, bot: Bot, nextDt: () => number, beforeStep?: (r
          if (last === undefined ? run.simMs < FIRST_DELIVERY_MIN_MS : run.simMs - last < CYCLE_MIN_MS) {
             fail(`delivery ${deliveries.length + 1} too early (${last ?? "start"} -> ${run.simMs})`);
          }
+         if (run.simMs < EARLIEST_DELIVERY_MS[deliveries.length]) fail(`delivery ${deliveries.length + 1} at ${run.simMs} ms beats the earliest-time table`);
          deliveries.push(run.simMs);
       }
       const s = run.score;
       if (s < 0 || s % 10 !== 0) fail(`score ${s}`);
-      if (s > scoreBoundAt(run.simMs) || s * 1000 > 50 * run.simMs || s > 3000) fail(`score ${s} over the bound`);
+      if (s > scoreBoundAt(run.simMs) || s > SCORE_BOUND) fail(`score ${s} over the bound`);
       if (run.movedMs + run.lockedMs > run.simMs) fail("moving + lock time > play time");
    }
    return { run, deliveries, refillColours, problems, maxPending, minOccupiedAtDraw, steps };
@@ -609,7 +625,7 @@ describe("warehouse-rush constants (golden)", () => {
       expect(MIN_LEG).toBeCloseTo(2.1, 9);
       expect(CYCLE_MIN_MS).toBeCloseTo(1270, 6);
       expect(Math.abs(FIRST_DELIVERY_MIN_MS - 1151.3)).toBeLessThan(0.1);
-      expect(SCORE_BOUND).toBe(2350);
+      expect(SCORE_BOUND).toBe(1650);
 
       // README proof step 4: a side pallet's edge (3.6) plus the reach (4.4) against the zone (6.5)
       const minLeg = ZONE.innerX - (PALLET_SLOTS[2].x + PALLET_HALF) - PICK_GAP;
@@ -626,8 +642,10 @@ describe("warehouse-rush constants (golden)", () => {
       expect(viaSide).toBeCloseTo(1151.303, 3);
       expect(viaMiddle).toBeCloseTo(1603.333, 3);
       expect(FIRST_DELIVERY_MIN_MS).toBeCloseTo(Math.min(viaSide, viaMiddle), 9);
-      // step 7
-      expect(SCORE_BOUND).toBe(POINTS.right * (1 + Math.floor((DURATION_MS - FIRST_DELIVERY_MIN_MS) / CYCLE_MIN_MS)));
+      // steps 5 and 6 alone (no refill lemma) would allow 47 deliveries, 2350; steps 7 and 8 allow 33
+      expect(POINTS.right * (1 + Math.floor((DURATION_MS - FIRST_DELIVERY_MIN_MS) / CYCLE_MIN_MS))).toBe(2350);
+      expect(SCORE_BOUND).toBe(POINTS.right * EARLIEST_DELIVERY_MS.filter((ms) => ms <= DURATION_MS).length);
+      expect(RULES_PALLET_SETS).toEqual(PALLET_SETS);
 
       expect(PALLET_SLOTS.map((_s, slot) => startToReach(slot))).toEqual([toSide, toMiddle, toSide, toSide, toMiddle, toSide].map((v) => expect.closeTo(v, 9)));
       // every pallet-zone pair: exactly MIN_LEG only for a side pallet and the corner beside it
@@ -641,52 +659,98 @@ describe("warehouse-rush constants (golden)", () => {
       }
    });
 
-   it("the earliest possible score against the cap (README table), and 4 deliveries at most by 5 s", () => {
-      const earliest = (k: number) => FIRST_DELIVERY_MIN_MS + (k - 1) * CYCLE_MIN_MS;
-      const table: Array<[number, number]> = [[1, 1151.3], [2, 2421.3], [4, 4961.3], [5, 6231.3], [10, 12581.3], [20, 25281.3], [40, 50681.3], [47, 59571.3]];
+   it("the earliest delivery times (README proof step 8 table): 33 deliveries at most by 60 s, 3 by 5 s", () => {
+      const table: Array<[number, number]> = [
+         [1, 1151.3], [2, 2873.3], [3, 4666.9], [4, 6460.5], [10, 17222.0], [20, 35157.9],
+         [30, 53093.8], [32, 56680.9], [33, 58474.5], [34, 60268.1],
+      ];
       for (const [k, ms] of table) {
-         expect(Math.abs(earliest(k) - ms)).toBeLessThan(0.1);
-         expect(maxDeliveriesBy(earliest(k))).toBe(k);
-         expect(maxDeliveriesBy(earliest(k) - 0.01)).toBe(k - 1);
-         expect(scoreBoundAt(earliest(k))).toBe(50 * k);
+         const earliest = EARLIEST_DELIVERY_MS[k - 1];
+         expect(Math.abs(earliest - ms)).toBeLessThan(0.1);
+         expect(maxDeliveriesBy(earliest)).toBe(k);
+         expect(maxDeliveriesBy(earliest - 0.01)).toBe(k - 1);
+         expect(scoreBoundAt(earliest)).toBe(50 * k);
       }
-      expect(earliest(48)).toBeGreaterThan(DURATION_MS);
-      expect(maxDeliveriesBy(DURATION_MS)).toBe(47);
-      expect(maxDeliveriesBy(5000)).toBe(4);
-      expect(scoreBoundAt(5000)).toBe(200);
+      expect(EARLIEST_DELIVERY_MS[0]).toBeCloseTo(FIRST_DELIVERY_MIN_MS, 9);
+      // the fastest sustained loop: 1793.6 ms per delivery from the third one on (cross-rack alternation)
+      for (let k = 2; k < EARLIEST_DELIVERY_MS.length; k++) expect(EARLIEST_DELIVERY_MS[k] - EARLIEST_DELIVERY_MS[k - 1]).toBeCloseTo(1793.587, 2);
+      // the table only tightens step 5's bound, and rises strictly
+      for (let k = 1; k < EARLIEST_DELIVERY_MS.length; k++) {
+         expect(EARLIEST_DELIVERY_MS[k]).toBeGreaterThan(EARLIEST_DELIVERY_MS[k - 1]);
+         expect(EARLIEST_DELIVERY_MS[k]).toBeGreaterThanOrEqual(FIRST_DELIVERY_MIN_MS + k * CYCLE_MIN_MS);
+      }
+      expect(EARLIEST_DELIVERY_MS[EARLIEST_DELIVERY_MS.length - 1]).toBeGreaterThan(DURATION_MS);
+      expect(maxDeliveriesBy(DURATION_MS)).toBe(33);
+      expect(maxDeliveriesBy(5000)).toBe(3);
+      expect(scoreBoundAt(5000)).toBe(150);
+      expect(scoreBoundAt(30_000)).toBe(850);
+      expect(scoreBoundAt(57_000)).toBe(1600);
+      expect(scoreBoundAt(59_000)).toBe(1650);
       expect([maxDeliveriesBy(0), maxDeliveriesBy(-5), maxDeliveriesBy(NaN)]).toEqual([0, 0, 0]);
-      // the bound is under 50 points/s at every whole ms of play (and under the server cap)
-      for (let ms = 0; ms <= 75_000; ms++) {
+      // past the table (no 60 s run gets there) every delivery still costs at least CYCLE_MIN_MS
+      const last = EARLIEST_DELIVERY_MS[EARLIEST_DELIVERY_MS.length - 1];
+      expect(maxDeliveriesBy(last + CYCLE_MIN_MS)).toBe(EARLIEST_DELIVERY_MS.length + 1);
+      // inside the server's duration window the bound stays under min(maxScore, 29 · t)
+      for (let ms = 57_000; ms <= DURATION_MS; ms++) {
          const bound = scoreBoundAt(ms);
-         if (bound * 1000 > 50 * ms || bound > 3000) throw new Error(`bound ${bound} at ${ms} ms`);
+         if (bound * 1000 > 29 * ms || bound > 1700) throw new Error(`bound ${bound} at ${ms} ms`);
       }
-      // the steepest moment is the first possible delivery: 43.4 points/s
+      // the steepest moment is the first possible delivery: 43.4 points/s (only the 60 s check matters)
       expect((50 / FIRST_DELIVERY_MIN_MS) * 1000).toBeCloseTo(43.43, 2);
+   });
+
+   it("the earliest-time table equals a brute force over every pick-and-zone sequence of up to 4 deliveries", () => {
+      // README proof step 8 restated as a plain enumeration: straight legs at the speed caps, both locks,
+      // and a pallet picked twice in a row waits for its refill 1500 ms after the delivery in between
+      const emptyMs = (slot: number, corner: number) => (reachToZone(slot, corner) / ROBOT.speed) * 1000;
+      const carryMs = (slot: number, corner: number) => (reachToZone(slot, corner) / ROBOT.carrySpeed) * 1000;
+      const best = [Infinity, Infinity, Infinity, Infinity];
+      const walk = (slots: readonly number[], depth: number, t: number, lastPallet: number, lastCorner: number) => {
+         if (depth === best.length) return;
+         for (let p = 0; p < slots.length; p++) {
+            let pick = depth === 0 ? (startToReach(slots[p]) / ROBOT.speed) * 1000 : t + DROP_MS + emptyMs(slots[p], lastCorner);
+            if (depth > 0 && p === lastPallet) pick = Math.max(pick, t + REFILL_MS);
+            for (let c = 0; c < CORNER_COUNT; c++) {
+               const delivered = pick + PICK_MS + carryMs(slots[p], c);
+               best[depth] = Math.min(best[depth], delivered);
+               walk(slots, depth + 1, delivered, p, c);
+            }
+         }
+      };
+      for (const slots of PALLET_SETS) walk(slots, 0, 0, NONE, NONE);
+      best.forEach((ms, k) => expect(EARLIEST_DELIVERY_MS[k]).toBeCloseTo(ms, 6));
+      // without the refill wait the second delivery could come 1270 ms after the first (the old bound)
+      expect(EARLIEST_DELIVERY_MS[1] - EARLIEST_DELIVERY_MS[0]).toBeGreaterThan(CYCLE_MIN_MS + 400);
    });
 
    it("the scoring limits equal meta.ts, and the server check rounds like GameShell", () => {
       expect(warehouseRushMeta.scoring).toEqual({
          kind: "points",
-         maxScore: 3000,
-         minDurationMs: 5000,
-         maxDurationMs: 75000,
+         maxScore: 1700,
+         minDurationMs: 57000,
+         maxDurationMs: 63000,
          base: 0,
-         maxPointsPerSec: 50,
+         maxPointsPerSec: 29,
          unitLabel: "pts",
          display: "int",
       });
       expect(withinServerLimits(SCORE_BOUND, DURATION_MS)).toBe(true);
-      expect(withinServerLimits(3000, DURATION_MS)).toBe(true);
-      expect(withinServerLimits(3001, 75_000)).toBe(false);
-      expect(withinServerLimits(250, 5_000)).toBe(true);
-      expect(withinServerLimits(251, 5_000)).toBe(false);
-      expect(withinServerLimits(0, 4_999)).toBe(false);
+      expect(withinServerLimits(1700, DURATION_MS)).toBe(true);
+      expect(withinServerLimits(1701, DURATION_MS)).toBe(false);
+      expect(withinServerLimits(3001, DURATION_MS)).toBe(false);
+      expect(withinServerLimits(0, 56_999)).toBe(false);
+      expect(withinServerLimits(0, 57_000)).toBe(true);
+      expect(withinServerLimits(0, 63_000)).toBe(true);
+      expect(withinServerLimits(0, 63_001)).toBe(false);
       expect(withinServerLimits(-10, DURATION_MS)).toBe(false);
-      expect(capScore(5000, DURATION_MS)).toBe(3000);
-      expect(capScore(300, 5_000)).toBe(250);
+      // 29 points/s binds only below 58621 ms: 1700 at 58620 ms is 0.02 too many
+      expect(withinServerLimits(1700, 58_620)).toBe(false);
+      expect(withinServerLimits(1700, 58_621)).toBe(true);
+      expect(capScore(5000, DURATION_MS)).toBe(1700);
       expect(capScore(SCORE_BOUND, DURATION_MS)).toBe(SCORE_BOUND);
-      // GameShell submits Math.round(elapsedMs): 1999.4 ms is 1999, where 100 points is 0.05 too many
-      expect(capScore(100, 1_999.4)).toBe(99);
+      // GameShell submits Math.round(elapsedMs): 57999.4 ms is 57999, where 1682 is 0.029 too many
+      expect(capScore(1700, 57_999.4)).toBe(1681);
+      expect(capScore(1700, 57_999.5)).toBe(1682);
    });
 });
 
@@ -1549,7 +1613,8 @@ describe("warehouse-rush scoring limit proof (README.md)", () => {
             worstBehind = Math.max(worstBehind, e - run.simMs);
             const score = store.getState().score;
             if (run.movedMs + run.lockedMs > e + 1e-6) problems.push(`moved + locked > elapsed at ${e}`);
-            if (score * 1000 > 50 * e || score > 3000 || capScore(score, e) !== score) problems.push(`score ${score} at ${e}`);
+            // the bound at every moment; the server's 29/s line matters only at the 60 s submission (checked below)
+            if (score > scoreBoundAt(run.simMs) || score > SCORE_BOUND) problems.push(`score ${score} at ${e}`);
             if (ev.delivered || ev.wrong) {
                if (lastDelivery >= 0 && run.simMs - lastDelivery < CYCLE_MIN_MS) problems.push(`cycle ${run.simMs - lastDelivery}`);
                lastDelivery = run.simMs;
@@ -1587,76 +1652,101 @@ describe("warehouse-rush scoring limit proof (README.md)", () => {
    }, 60_000);
 
    /**
-    * README "Test plan", worst-case drill: after each delivery the run is rewritten so that the order's
-    * box is on the side pallet beside the zone the robot just dropped into, and that zone is the order's.
-    * A straight-line bot drives at full speed between them.
+    * README "Test plan", forced-luck drill: luck as good as the rules allow. Before the first pick and
+    * after every delivery the test rewrites only what the streams could have drawn: the colours of the
+    * boxes on pallets (including a refill when it lands) and the order. It plans 3 cycles ahead over the
+    * bots' path fields with the real refill timing (step 7), takes the plan's first pallet (one with a box,
+    * or one whose refill lands before the drop lock ends) and zone, paints that box the zone's colour,
+    * makes it the order and paints every other box another colour. The layout, the refills and the clock
+    * are untouched, and pathBot drives. The run stays legal, so it must stay under the proof's bounds.
     */
-   function drill(nextDt: () => number) {
-      const run = createRun(11, { layout: sideLayout() });
-      let corner = 3;
-      let rewrite = true;
-      const input = createStepInput();
+   /** The time a leg from rest loses to the acceleration (v / 2a), so the plan's refill timing is real. */
+   const START_EMPTY_MS = (ROBOT.speed / (2 * ROBOT.accel)) * 1000;
+   const START_CARRY_MS = (ROBOT.carrySpeed / (2 * ROBOT.accel)) * 1000;
+
+   function luckyDrill(slots: readonly number[], nextDt: () => number) {
+      const run = createRun(11, { layout: { seed: 11, zoneColours: [0, 1, 2, 3], slots: [...slots] } });
+      const f = fieldsFor(slots);
+      const bot = pathBot("order");
       const deliveries: number[] = [];
+      const ready = [0, 0, 0, 0];
+      let planned = NONE;
+      /** Paints the planned box the order colour and every other box on a pallet another one. */
+      const paint = () => {
+         for (let i = 0; i < PALLET_COUNT; i++) {
+            if (run.pallets[i].box !== NONE) run.pallets[i].box = i === planned ? run.order : (run.order + 1) % COLOUR_COUNT;
+         }
+      };
+      const plan = () => {
+         // when each pallet has a box: now, or when its pending refill lands (refill n on the pallet of
+         // pick n, so the queue goes to the empty pallets in emptiedAt order)
+         const empty = run.pallets.map((_p, i) => i).filter((i) => run.pallets[i].box === NONE);
+         empty.sort((a, b) => run.pallets[a].emptiedAt - run.pallets[b].emptiedAt);
+         for (let i = 0; i < PALLET_COUNT; i++) ready[i] = run.pallets[i].box === NONE ? Infinity : 0;
+         empty.forEach((i, k) => (ready[i] = run.refillDue[(run.refillHead + k) % PALLET_COUNT]));
+         const n = nearestFree(f.free, run.robot.x, run.robot.z);
+         let bestEnd = Infinity;
+         let choice: [number, number] = [NONE, NONE];
+         const search = (depth: number, t: number, corner: number, first: [number, number]) => {
+            if (depth === 3) {
+               if (t < bestEnd) [bestEnd, choice] = [t, first];
+               return;
+            }
+            for (let p = 0; p < PALLET_COUNT; p++) {
+               // the first pick: a box now, or one that lands while the robot still stands in its lock
+               if (depth === 0 && ready[p] > run.simMs + run.lockMs) continue;
+               const drive = depth === 0 ? f.reach[p][n] : f.leg[p][corner];
+               const pick = Math.max(t + (depth === 0 ? run.lockMs : DROP_MS) + (drive / ROBOT.speed) * 1000 + START_EMPTY_MS, ready[p]);
+               for (let c = 0; c < CORNER_COUNT; c++) {
+                  const delivered = pick + PICK_MS + (f.leg[p][c] / ROBOT.carrySpeed) * 1000 + START_CARRY_MS;
+                  const saved = ready[p];
+                  ready[p] = delivered + REFILL_MS;
+                  search(depth + 1, delivered, c, depth === 0 ? [p, c] : first);
+                  ready[p] = saved;
+               }
+            }
+         };
+         search(0, run.simMs, NONE, choice);
+         planned = choice[0];
+         run.order = run.layout.zoneColours[choice[1]];
+         paint();
+      };
+      plan();
       for (let guard = 0; run.ended === null && guard < MAX_LOOP; guard++) {
-         if (rewrite && run.carrying === NONE) {
-            const colour = run.order;
-            const z = run.layout.zoneColours;
-            const at = z.indexOf(colour);
-            z[at] = z[corner];
-            z[corner] = colour;
-            run.pallets[corner].box = colour;
-            rewrite = false;
-         }
          const dtMs = nextDt();
-         const r = run.robot;
-         const dt = Math.min(dtMs, MAX_STEP_MS) / 1000;
-         const sx = cornerSignX(corner);
-         const sz = cornerSignZ(corner);
-         const pallet = run.pallets[corner];
-         input.actionPressed = false;
-         if (run.carrying === NONE) {
-            // straight at the pallet's near corner from the start, straight back along x from the zone
-            const aimX = sx * (3 - PALLET_HALF);
-            const aimZ = Math.abs(r.x) > 4 ? r.z : sz * (3.4 - PALLET_HALF);
-            const len = Math.hypot(aimX - r.x, aimZ - r.z) || 1;
-            input.moveX = (aimX - r.x) / len;
-            input.moveY = (aimZ - r.z) / len;
-            if (inReach(r.x, r.z, pallet.bounds) || inReach(r.x + r.vx * dt, r.z + r.vz * dt, pallet.bounds)) input.actionPressed = true;
-         } else {
-            // straight along x into the zone (with a little z first if the pick was below its edge)
-            const aimX = sx * 9;
-            const aimZ = sz * Math.min(Math.max(Math.abs(r.z), ZONE.innerZ + 0.3), 5.4);
-            const len = Math.hypot(aimX - r.x, aimZ - r.z) || 1;
-            input.moveX = (aimX - r.x) / len;
-            input.moveY = (aimZ - r.z) / len;
-            if (zoneAt(r.x, r.z) === corner || zoneAt(r.x + r.vx * dt, r.z + r.vz * dt) === corner) input.actionPressed = true;
-         }
-         const ev = step(run, dtMs, input);
+         const ev = step(run, dtMs, bot.next(run, dtMs));
+         // a refill lands with the colour the plan needs (the planned pallet) or one the bot does not want
+         if (ev.refilled && run.carrying === NONE) paint();
          if (ev.delivered || ev.wrong) {
             deliveries.push(run.simMs);
-            corner = ev.zone;
-            rewrite = true;
+            plan();
          }
       }
       return { run, deliveries };
    }
 
-   it("worst-case drill: the order box always beside the zone, full speed: cycles >= 1270 ms, score <= 2350", () => {
-      for (const pattern of PATTERNS) {
-         const { run, deliveries } = drill(pattern.make(1));
-         const cycles = deliveries.slice(1).map((t, k) => t - deliveries[k]);
-         expect(run.wrong).toBe(0);
-         expect(deliveries[0]).toBeGreaterThanOrEqual(FIRST_DELIVERY_MIN_MS);
-         expect(Math.min(...cycles)).toBeGreaterThanOrEqual(CYCLE_MIN_MS);
-         expect(run.score).toBeLessThanOrEqual(SCORE_BOUND);
-         expect(withinServerLimits(run.score, DURATION_MS)).toBe(true);
-         // the drill really is close to the bound: about 1.45 s per cycle, about 2000 points
-         expect(Math.min(...cycles)).toBeLessThan(1520);
-         // the first trip picks on the start's side of the pallet, so it is well above its (loose) bound
-         expect(deliveries[0]).toBeLessThan(2000);
-         expect(run.score).toBeGreaterThan(1900);
+   it("forced-luck drill: the best order every time, at full speed, in all 9 pallet sets: within the table, score <= 1650", () => {
+      let best = 0;
+      let worst = Infinity;
+      for (const slots of PALLET_SETS) {
+         for (const pattern of PATTERNS) {
+            const { run, deliveries } = luckyDrill(slots, pattern.make(1));
+            expect(run.wrong).toBe(0);
+            expect(run.ended).toBe("timeup");
+            deliveries.forEach((ms, k) => expect(ms).toBeGreaterThanOrEqual(EARLIEST_DELIVERY_MS[k]));
+            expect(run.score).toBe(50 * deliveries.length);
+            expect(run.score).toBeLessThanOrEqual(SCORE_BOUND);
+            expect(withinServerLimits(run.score, DURATION_MS)).toBe(true);
+            expect(capScore(run.score, DURATION_MS)).toBe(run.score);
+            best = Math.max(best, run.score);
+            worst = Math.min(worst, run.score);
+         }
       }
-   });
+      // the drill really is close to the bound: cycles of about 2.1 s, 26-29 deliveries (bound 33)
+      expect(worst).toBeGreaterThanOrEqual(1300);
+      expect(best).toBeGreaterThanOrEqual(1400);
+      console.log(`warehouse-rush forced-luck drill: ${worst}-${best} points (bound ${SCORE_BOUND})`);
+   }, 120_000);
 
    it("the step that reaches 60 s ends the run first: no move, no drop, no refill (like RunClock)", () => {
       const run = runWith([NONE, 1, 2, 0], 3);

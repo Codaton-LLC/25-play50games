@@ -17,8 +17,8 @@ export const obstacleRaceMeta: ArcadeGameMeta = {
    },
    scoring: {
       kind: "time",
-      maxScore: 30000,
-      minDurationMs: 15000,
+      maxScore: 28150,
+      minDurationMs: 18500,
       maxDurationMs: 300000,
       base: 0,
       maxPointsPerSec: 0,

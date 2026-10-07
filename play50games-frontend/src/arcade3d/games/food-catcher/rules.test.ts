@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { foodCatcherMeta } from "./meta";
 import {
    BAD_KINDS,
    CATCH_BOX,
@@ -10,6 +11,7 @@ import {
    GOOD_POINTS,
    LIVES,
    MAX_ALIVE,
+   MAX_POINTS_PER_SEC,
    MAX_SCORE,
    ROUND_MS,
    SPAWN_X,
@@ -399,6 +401,9 @@ describe("scoring", () => {
       expect(state.elapsedMs).toBe(9950);
       expect(state.lives).toBe(0);
       expect(finalScore(state.score, state.elapsedMs).score).toBe(state.score);
+      // the earliest honest end keeps 450 ms (4.5%) over the server's minimum duration
+      expect(state.elapsedMs - foodCatcherMeta.scoring.minDurationMs).toBe(450);
+      expect(withinServerLimits(state.score, state.elapsedMs)).toBe(true);
    });
 
    it("ends on the clock at 90 s", () => {
@@ -428,7 +433,7 @@ describe("scoring", () => {
       expect(state.ended).toBe("timeup");
       expect(state.elapsedMs).toBe(ROUND_MS);
       expect(state.score).toBeLessThanOrEqual(MAX_SCORE);
-      expect(state.score * 1000).toBeLessThanOrEqual(50 * state.elapsedMs);
+      expect(state.score * 1000).toBeLessThanOrEqual(MAX_POINTS_PER_SEC * state.elapsedMs);
       expect(finalScore(state.score, state.elapsedMs).score).toBe(state.score);
       // locked after the first measurement so a later change cannot drift silently
       expect(tally.caught).toBe(123);
@@ -437,38 +442,82 @@ describe("scoring", () => {
 });
 
 describe("limits", () => {
-   it("does not lose a life before 5 s for 1000 seeds, even when every bad item is chased", () => {
+   it("does not lose a life before 5 s, nor end before minDurationMs (9.5 s), for 1000 seeds, even when every bad item is chased", () => {
+      const { minDurationMs } = foodCatcherMeta.scoring;
+      expect(minDurationMs).toBe(9500);
       for (let s = 0; s < SEEDS.length; s++) {
          const state = createRun(SEEDS[s]);
          play(state, DT, () => catchBadInput(state), (run) => run.elapsedMs >= 5000);
          expect(state.ended).toBeNull();
          expect(state.lives).toBe(LIVES);
          expect(state.elapsedMs).toBeGreaterThanOrEqual(5000);
+         play(state, DT, () => catchBadInput(state), (run) => run.elapsedMs >= minDurationMs);
+         expect(state.ended).toBeNull();
+         expect(state.lives).toBeGreaterThan(0);
+         expect(state.elapsedMs).toBeGreaterThanOrEqual(minDurationMs);
       }
    });
 
-   it("stays under 5000 and under 50 points per second for many seeds and frame steps", () => {
+   it("stays under maxScore and under maxPointsPerSec for many seeds and frame steps", () => {
       const dts = [DT_60, DT, 33, 100];
       for (let s = 0; s < 25; s++) {
          for (let d = 0; d < dts.length; d++) {
             const chased = createRun(100 + s * 17);
             play(chased, dts[d], () => catchBadInput(chased));
             expect(chased.score).toBeLessThanOrEqual(MAX_SCORE);
-            expect(chased.score * 1000).toBeLessThanOrEqual(50 * chased.elapsedMs);
+            expect(chased.score * 1000).toBeLessThanOrEqual(MAX_POINTS_PER_SEC * chased.elapsedMs);
             expect(finalScore(chased.score, chased.elapsedMs).score).toBeLessThanOrEqual(chased.score);
             const perfect = createRun(200 + s * 17, { forceGood: true });
             play(perfect, dts[d], perfectInput);
             expect(perfect.score).toBeLessThanOrEqual(MAX_SCORE);
-            expect(perfect.score * 1000).toBeLessThanOrEqual(50 * perfect.elapsedMs);
+            expect(perfect.score * 1000).toBeLessThanOrEqual(MAX_POINTS_PER_SEC * perfect.elapsedMs);
             expect(withinServerLimits(perfect.score, perfect.elapsedMs)).toBe(true);
+            expect(finalScore(perfect.score, perfect.elapsedMs).score).toBe(perfect.score);
          }
       }
    });
 
+   it("the 28/s line holds even if every spawn were good and caught at its spawn time", () => {
+      // the README's cumulative bound: n good catches score at most 10n (n < 5) or 20n - 40
+      const times = spawnTimes();
+      let minSlack = Infinity;
+      for (let n = 1; n <= times.length; n++) {
+         const points = n < COMBO_DOUBLE_AT ? GOOD_POINTS * n : DOUBLE_POINTS * n - 40;
+         expect(points * 1000).toBeLessThanOrEqual(MAX_POINTS_PER_SEC * times[n - 1]);
+         minSlack = Math.min(minSlack, Math.floor((MAX_POINTS_PER_SEC * times[n - 1]) / 1000) - points);
+      }
+      // smallest slack: 10 points at the first spawn against floor(28 * 1.2) = 33
+      expect(minSlack).toBe(23);
+      // the all-good curve reaches 2420 at the 123rd crossing (89608 ms), still under the line
+      expect(2420 * 1000).toBeLessThanOrEqual(MAX_POINTS_PER_SEC * 89_608);
+      // 27/s would be too tight: 126 good spawns by 89950 ms are worth 2480 > floor(27 * 89.95)
+      expect(Math.floor((27 * times[times.length - 1]) / 1000)).toBeLessThan(DOUBLE_POINTS * times.length - 40);
+   });
+
    it("clamps an over-cap score", () => {
-      expect(finalScore(9000, 90_000)).toEqual({ score: 4500, durationMs: 90_000 });
-      expect(finalScore(100, 1000)).toEqual({ score: 50, durationMs: 1000 });
+      expect(foodCatcherMeta.scoring).toMatchObject({
+         kind: "points",
+         maxScore: 2500,
+         minDurationMs: 9500,
+         maxDurationMs: 93000,
+         base: 0,
+         maxPointsPerSec: 28,
+      });
+      expect(finalScore(9000, 90_000)).toEqual({ score: 2500, durationMs: 90_000 });
+      expect(finalScore(100, 1000)).toEqual({ score: 28, durationMs: 1000 });
       expect(finalScore(2420, 90_000).score).toBe(2420);
+      // the proven maximum, at the exact time-up, with 3.3% / 4.1% of room
+      expect(withinServerLimits(2420, 90_000)).toBe(true);
+      expect(withinServerLimits(2420, 93_000)).toBe(true);
+      expect(withinServerLimits(2420, 93_001)).toBe(false);
+      expect(withinServerLimits(2501, 92_000)).toBe(false);
+      expect(withinServerLimits(30, 9_499)).toBe(false);
+      expect(withinServerLimits(30, 9_500)).toBe(true);
+      // the best lose run: 120 goods = 2360 at the 123rd crossing
+      expect(withinServerLimits(2360, 89_608)).toBe(true);
+      // a forged 2420 needs at least 86429 ms
+      expect(withinServerLimits(2420, 86_428)).toBe(false);
+      expect(withinServerLimits(2420, 86_429)).toBe(true);
    });
 
    it("skips a spawn the 16 cap refuses and does not release it later", () => {

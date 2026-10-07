@@ -3,7 +3,7 @@
 // Clean the City: the GameDefinition GameShell runs (loaded lazily by arcade3d/loaders.ts).
 // The shell owns the screens, the HUD chips, the 240 s clock, pause and the score submit.
 // The game owns Scene.tsx (one step per frame, then the draw), rules.ts (already built) and
-// Primitives.tsx (the three maps). Status stays "soon"; scoring is meta.ts, unchanged.
+// Primitives.tsx (the three maps). Status stays "soon"; scoring is meta.ts (README "Server limits").
 import type { GameDefinition } from "@/arcade3d/core/types";
 import Scene from "./Scene";
 import MapHud from "./Hud";

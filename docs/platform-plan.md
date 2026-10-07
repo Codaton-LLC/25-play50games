@@ -347,7 +347,7 @@ Owned by Claude only: `package.json`/lock, `next.config.js`, `tsconfig.json`, `a
 
 | # | Game | Owner | New thing it introduces | Score |
 |---|---|---|---|---|
-| 1 | robot-collector | Claude | Reference game: joystick, collect + timer | points (max 1600) |
+| 1 | robot-collector | Claude | Reference game: joystick, collect + timer | points (max 1470) |
 | 2 | food-catcher | Cursor | Proves the template works for another agent; spawners | points |
 | 3 | office-escape | Claude | Rigged runner, lane runner | points (distance + coins) |
 | 4 | pigeon-crossing | Codex | Grid hop, deterministic traffic | points |

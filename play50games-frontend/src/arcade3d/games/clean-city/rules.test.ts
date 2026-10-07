@@ -481,7 +481,7 @@ function play(run: CleanRun, bot: Bot, nextDt: () => number): PlayResult {
       }
       if (run.collected !== run.map * ITEMS_PER_MAP + run.items && run.ended !== "win") fail("counters");
       const s = run.score;
-      if (s > 6000 || s * 1000 > 1000 * 1000 + 100 * run.simMs) fail(`score ${s} over the bound at ${run.simMs}`);
+      if (s > cleanCityMeta.scoring.maxScore || s * 1000 > 1000 * 1000 + 100 * run.simMs) fail(`score ${s} over the bound at ${run.simMs}`);
       if (run.ended === "win") {
          if (run.collected !== 60 || run.simMs < FASTEST_FINISH_MS) fail(`win with ${run.collected} at ${run.simMs}`);
          if (s !== runScore(60, true, DURATION_MS - run.simMs)) fail("win score");
@@ -545,12 +545,19 @@ describe("clean-city constants (golden)", () => {
       expect(BEST_SCORE).toBe(4940);
       expect(BEST_SCORE).toBe(3000 + 10 * 194);
       expect(BREAK_EVEN_MS).toBe(40_000);
-      // the break-even: 5000 against a cap of 5000 at 40.0 s; 39.9 s is the same bonus bucket and fails
+      // the rate line's break-even: 5000 against a line of 5000 at 40.0 s; 39.9 s is the same bonus
+      // bucket and breaks the line. The 43 s minimum duration rejects both anyway.
       const winAt = (ms: number) => runScore(60, true, DURATION_MS - ms);
+      const { maxScore, minDurationMs } = cleanCityMeta.scoring;
       expect(winAt(BREAK_EVEN_MS)).toBe(5000);
-      expect(withinServerLimits(winAt(BREAK_EVEN_MS), BREAK_EVEN_MS)).toBe(true);
+      expect(winAt(BREAK_EVEN_MS) * 1000).toBeLessThanOrEqual(1000 * 1000 + 100 * BREAK_EVEN_MS);
       expect(winAt(39_900)).toBe(5000);
-      expect(withinServerLimits(winAt(39_900), 39_900)).toBe(false);
+      expect(winAt(39_900) * 1000).toBeGreaterThan(1000 * 1000 + 100 * 39_900);
+      expect(withinServerLimits(winAt(BREAK_EVEN_MS), BREAK_EVEN_MS)).toBe(false);
+      // maxScore is exactly the proven maximum, and the minimum duration keeps 2190 ms (4.85%) under the earliest win
+      expect(maxScore).toBe(BEST_SCORE);
+      expect(minDurationMs).toBeLessThanOrEqual(FASTEST_FINISH_MS - 2000);
+      expect(FASTEST_FINISH_MS - minDurationMs).toBe(2190);
       // the earliest win: 4,940,000 <= 5,519,000
       expect(winAt(FASTEST_FINISH_MS)).toBe(BEST_SCORE);
       expect(BEST_SCORE * 1000).toBeLessThanOrEqual(1000 * 1000 + 100 * FASTEST_FINISH_MS);
@@ -572,22 +579,27 @@ describe("clean-city constants (golden)", () => {
    it("the scoring limits equal meta.ts, and the server check rounds like GameShell", () => {
       expect(cleanCityMeta.scoring).toEqual({
          kind: "points",
-         maxScore: 6000,
-         minDurationMs: 10000,
-         maxDurationMs: 900000,
+         maxScore: 4940,
+         minDurationMs: 43000,
+         maxDurationMs: 250000,
          base: 1000,
          maxPointsPerSec: 100,
          unitLabel: "pts",
          display: "int",
       });
-      expect(withinServerLimits(6000, 900_000)).toBe(true);
-      expect(withinServerLimits(6001, 900_000)).toBe(false);
-      expect(withinServerLimits(2000, 10_000)).toBe(true);
-      expect(withinServerLimits(2001, 10_000)).toBe(false);
-      expect(withinServerLimits(0, 9_999)).toBe(false);
-      expect(capScore(9000, 900_000)).toBe(6000);
-      expect(capScore(5000, 39_900)).toBe(4990);
-      expect(capScore(2000, 9_999.6)).toBe(2000);
+      expect(withinServerLimits(4940, 250_000)).toBe(true);
+      expect(withinServerLimits(4950, 250_000)).toBe(false);
+      expect(withinServerLimits(4940, 43_000)).toBe(true);
+      expect(withinServerLimits(0, 42_999)).toBe(false);
+      expect(withinServerLimits(0, 250_001)).toBe(false);
+      // the time-up is exactly 240000 ms, 4.2% under the maximum
+      expect(withinServerLimits(2950, DURATION_MS)).toBe(true);
+      // GameShell submits Math.round(elapsedMs): 42999.6 ms is 43000, 42999.4 ms is 42999
+      expect(withinServerLimits(0, 42_999.6)).toBe(true);
+      expect(withinServerLimits(0, 42_999.4)).toBe(false);
+      expect(capScore(9000, 250_000)).toBe(4940);
+      expect(capScore(5000, 39_900)).toBe(4940);
+      expect(capScore(5000, 30_000)).toBe(4000);
    });
 });
 
@@ -1152,7 +1164,7 @@ describe("clean-city pickups and map changes", () => {
 describe("clean-city bots and the scoring bound", () => {
    const best = { ms: Infinity, score: 0 };
 
-   it("a perfect bot wins every seed at every frame pattern; score <= 6000 and <= 1000 + 100 t all the way", () => {
+   it("a perfect bot wins every seed at every frame pattern; score <= maxScore (4940) and <= 1000 + 100 t all the way", () => {
       const problems: string[] = [];
       const finishes: number[] = [];
       for (let seed = 0; seed < 12; seed++) {

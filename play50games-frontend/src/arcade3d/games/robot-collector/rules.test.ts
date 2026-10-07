@@ -10,6 +10,7 @@ import {
    BOUNDS,
    CRATE_SIZE,
    DURATION_MS,
+   FAIRNESS_MIN_ROUTE,
    FALLBACK_SPOTS,
    GUARANTEED_MIN_ROUTE,
    IDEAL_ROUTE,
@@ -438,24 +439,27 @@ describe("robot-collector scoring", () => {
    it("matches the server limits in meta.ts", () => {
       expect(robotCollectorMeta.scoring).toMatchObject({
          kind: "points",
-         maxScore: 1600,
+         maxScore: 1470,
          base: 600,
          maxPointsPerSec: 120,
-         minDurationMs: 5000,
-         maxDurationMs: 75000,
+         minDurationMs: 12500,
+         maxDurationMs: 62000,
       });
-      expect(withinServerLimits(1520, 7_700)).toBe(true);
-      expect(withinServerLimits(1520, 7_600)).toBe(false);
-      expect(withinServerLimits(1601, 70_000)).toBe(false);
-      expect(withinServerLimits(100, 4_999)).toBe(false);
-      expect(capScore(1520, 7_600)).toBe(1512);
-      expect(capScore(5000, 70_000)).toBe(1600);
+      expect(withinServerLimits(1470, 12_500)).toBe(true);
+      expect(withinServerLimits(1470, 12_499)).toBe(false);
+      expect(withinServerLimits(1471, 30_000)).toBe(false);
+      expect(withinServerLimits(900, 62_000)).toBe(true);
+      expect(withinServerLimits(900, 62_001)).toBe(false);
+      expect(capScore(5000, 30_000)).toBe(1470);
       // GameShell submits Math.round(elapsedMs), so the cap and the check use the rounded duration:
-      // 7608.49 ms is sent as 7608, where 1513 is 40 thousandths of a point too many
-      expect(capScore(1600, 7_608.49)).toBe(1512);
-      expect(withinServerLimits(1512, 7_608.49)).toBe(true);
-      expect(withinServerLimits(1513, 7_608.49)).toBe(false);
-      expect(withinServerLimits(100, 4_999.5)).toBe(true);
+      // 12499.5 ms is sent as 12500, the minimum
+      expect(withinServerLimits(100, 12_499.5)).toBe(true);
+      expect(withinServerLimits(100, 12_499.49)).toBe(false);
+      // the rate line binds only under 7250 ms (600 + 0.12 * 7250 = 1470): 6608.49 ms is sent as
+      // 6608, where 600 + 0.12 * 6608 = 1392.96, and 6608.5 ms as 6609 (1393.08)
+      expect(capScore(1600, 6_608.49)).toBe(1392);
+      expect(capScore(1600, 6_608.5)).toBe(1393);
+      expect(capScore(1600, 7_250)).toBe(1470);
    });
 });
 
@@ -536,12 +540,17 @@ describe("robot-collector scoring limit proof (README.md)", () => {
       expect(COUNTDOWN_MS).toBe(3000);
    });
 
-   it("without the level design, a fast win would break the limit (break-even is about 7.67 s)", () => {
-      expect(withinServerLimits(winScoreAt(7_600), 7_600)).toBe(false);
-      expect(withinServerLimits(winScoreAt(7_700), 7_700)).toBe(true);
+   it("without the level design, a win before 12.5 s would be rejected", () => {
+      // 1470 at 12.4 s fails the minimum duration, 1480 (a win by 12.0 s) fails maxScore
+      expect(winScoreAt(12_400)).toBe(1470);
+      expect(withinServerLimits(winScoreAt(12_400), 12_400)).toBe(false);
+      expect(winScoreAt(11_900)).toBe(1480);
+      expect(withinServerLimits(winScoreAt(11_900), 30_000)).toBe(false);
+      expect(winScoreAt(12_500)).toBe(1470);
+      expect(withinServerLimits(winScoreAt(12_500), 12_500)).toBe(true);
    });
 
-   it("the spacing rules force a route of at least 45.8 units, i.e. a win no earlier than 9.16 s", () => {
+   it("the spacing rules alone force a route of at least 45.8 units (a win no earlier than 9.16 s)", () => {
       expect(GUARANTEED_MIN_ROUTE).toBeCloseTo(
          SPACING.fromStart - PICKUP_REACH + 5 * (SPACING.inWave - 2 * PICKUP_REACH) + 4 * (SPACING.betweenWaves - 2 * PICKUP_REACH),
          9
@@ -550,17 +559,49 @@ describe("robot-collector scoring limit proof (README.md)", () => {
       expect(fastestFinishMs(GUARANTEED_MIN_ROUTE)).toBeCloseTo(9_160, 6);
    });
 
+   it("the fairness band forces a route of at least 64.8 units, i.e. a win no earlier than 12.96 s", () => {
+      // no leg is clipped at 0 by the reach, so the reach shortens every route by exactly 15.2
+      expect(SPACING.fromStart).toBeGreaterThan(PICKUP_REACH);
+      expect(SPACING.inWave).toBeGreaterThan(2 * PICKUP_REACH);
+      expect(SPACING.betweenWaves).toBeGreaterThan(2 * PICKUP_REACH);
+      expect(FAIRNESS_MIN_ROUTE).toBeCloseTo(IDEAL_ROUTE.min - PICKUP_REACH - (BATTERY_COUNT - 1) * 2 * PICKUP_REACH, 9);
+      expect(FAIRNESS_MIN_ROUTE).toBeCloseTo(64.8, 9);
+      // 64.8 / 5 * 1000 is 12959.999999999998 in floats: the exact value is 12960
+      expect(Math.round(fastestFinishMs(FAIRNESS_MIN_ROUTE))).toBe(12_960);
+      expect(fastestFinishMs(FAIRNESS_MIN_ROUTE)).toBeCloseTo(12_960, 6);
+   });
+
+   it("on every seed the reach route is exactly the ideal route minus 15.2, so at least 64.8", () => {
+      for (const layout of [...[...SEEDS, ...BIG_SEEDS].map(generateLayout), fallback()]) {
+         const ideal = shortestRoute(layout, 0);
+         const reach = shortestRoute(layout, PICKUP_REACH);
+         expect(ideal).toBeGreaterThanOrEqual(IDEAL_ROUTE.min);
+         expect(reach).toBeCloseTo(ideal - 15.2, 9);
+         expect(reach).toBeGreaterThanOrEqual(FAIRNESS_MIN_ROUTE - 1e-9);
+      }
+   });
+
    it("every win at or after the guaranteed earliest finish is within the limits", () => {
-      const earliest = Math.floor(fastestFinishMs(GUARANTEED_MIN_ROUTE));
+      const earliest = Math.round(fastestFinishMs(FAIRNESS_MIN_ROUTE));
       for (let t = earliest; t <= DURATION_MS; t += 10) {
          const score = winScoreAt(t);
          expect(withinServerLimits(score, t)).toBe(true);
          expect(capScore(score, t)).toBe(score);
       }
-      // best case overall: 1500 at 9.16 s, under maxScore 1600 and the 1699-point cap
-      expect(winScoreAt(earliest)).toBe(1500);
-      expect(capScore(5000, earliest)).toBe(1600);
-      expect(Math.floor(600 + 0.12 * earliest)).toBe(1699);
+      // best case overall: 1470 at 12.96 s, exactly maxScore 1470 and under the 2155-point line
+      expect(winScoreAt(earliest)).toBe(1470);
+      expect(winScoreAt(earliest)).toBe(robotCollectorMeta.scoring.maxScore);
+      expect(capScore(5000, earliest)).toBe(1470);
+      expect(Math.floor(600 + 0.12 * earliest)).toBe(2155);
+      // margins: the minimum duration is 460 ms (3.5%) under the earliest win, the maximum 3.3%
+      // over the exact 60 s of a time-up
+      const { minDurationMs, maxDurationMs } = robotCollectorMeta.scoring;
+      expect(earliest - minDurationMs).toBe(460);
+      expect(earliest - minDurationMs).toBeGreaterThanOrEqual(0.03 * earliest);
+      expect(maxDurationMs).toBeGreaterThanOrEqual(DURATION_MS * 1.03);
+      // 1480 would need a win at 12.0 s or sooner, 7.4% faster than the proof allows
+      expect(winScoreAt(12_001)).toBe(1470);
+      expect(winScoreAt(12_000)).toBe(1480);
    });
 
    it("a time-up run is within the limits", () => {
@@ -574,14 +615,16 @@ describe("robot-collector scoring limit proof (README.md)", () => {
       for (const seed of [...SEEDS, ...BIG_SEEDS]) {
          const layout = generateLayout(seed);
          const route = shortestRoute(layout, PICKUP_REACH);
-         expect(route).toBeGreaterThanOrEqual(GUARANTEED_MIN_ROUTE - 1e-9);
+         expect(route).toBeGreaterThanOrEqual(FAIRNESS_MIN_ROUTE - 1e-9);
          // the ideal route is the fairness band; the lower bound can only be shorter
          expect(shortestRoute(layout, 0)).toBeLessThanOrEqual(IDEAL_ROUTE.max + 1e-9);
          const minMs = minCompletionMs(layout);
          fastest = Math.min(fastest, minMs);
          expect(withinServerLimits(winScoreAt(Math.floor(minMs)), Math.floor(minMs))).toBe(true);
       }
-      // real layouts are far above the break-even point (about 12 s in practice)
+      // no seeded layout beats the 12.96 s bound (the bound is reached almost exactly: 64.8023
+      // units on seed 2118636122)
+      expect(fastest).toBeGreaterThanOrEqual(fastestFinishMs(FAIRNESS_MIN_ROUTE) - 1e-6);
       expect(fastest).toBeGreaterThan(fastestFinishMs(GUARANTEED_MIN_ROUTE));
    });
 
@@ -596,6 +639,7 @@ describe("robot-collector scoring limit proof (README.md)", () => {
          expect(run.topSpeed).toBeLessThanOrEqual(ROBOT.maxSpeed + 1e-9);
          expect(run.driven).toBeCloseTo(run.elapsedMs / 1000, 9);
          expect(run.elapsedMs).toBeGreaterThanOrEqual(minCompletionMs(layout));
+         expect(run.elapsedMs).toBeGreaterThanOrEqual(robotCollectorMeta.scoring.minDurationMs);
          expect(run.elapsedMs).toBeLessThan(DURATION_MS / 2);
          const score = runScore(BATTERY_COUNT, true, DURATION_MS - run.elapsedMs);
          expect(withinServerLimits(score, run.elapsedMs)).toBe(true);

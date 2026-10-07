@@ -74,29 +74,33 @@ Ten penalties into a goal split into six zones. Choose a zone and strike when it
 
 ## Scoring
 
-`meta.scoring`: `kind: "points"`, `display: "int"`, **`unitLabel: "pts"`**. Every other scoring value is unchanged:
+`meta.scoring`: `kind: "points"`, `display: "int"`, **`unitLabel: "pts"`**. The limits were tightened on 2026-10-07 (from 1500, 150 pts/s and 10–600 s) to the proof below:
 
 | Limit | Value |
 |---|---|
 | `base` | 0 |
-| `maxPointsPerSec` | 150 |
-| `maxScore` | 1500 |
-| `minDurationMs` | 10000 |
-| `maxDurationMs` | 600000 |
+| `maxPointsPerSec` | 95 |
+| `maxScore` | 1450 |
+| `minDurationMs` | 15500 |
+| `maxDurationMs` | 225000 |
 
 First goal after a miss: +100. Each consecutive goal: +150 (100 plus 50 streak bonus). Every miss: 0 and reset streak. Perfect run: `100 + 9 * 150 = 1450 pts`. No time bonus.
 
 ### Server limits and why they hold (the proof)
 
-Server checks: integer score in [0, 1500], duration in [10000, 600000] ms and `score * 1000 <= 150 * durationMs`.
+Server checks: integer score in [0, 1450], duration in [15500, 225000] ms and `score * 1000 <= 95 * durationMs`.
 
-1. All ten cycles, including timeouts and the final hold, consume at least 1600 ms each of **simulation useRunFrame dt**: 16000 ms total simulation. Wall clocks, renderer elapsed time and tween completions cannot shortcut that bound.
-2. RunClock and Simulation use the same clamped delta. The design allowed for one untimed countdown-to-playing frame (<=50 ms), giving a **guaranteed submitted minimum of 15950 ms**. Core now counts every played frame in `elapsedMs` (no untimed frame, `useRunFrame` dt = store `frameMs`), so the real floor is 16000 ms and 15950 stays as conservative slack. Pause advances neither. Use GameShell's default duration, `Math.round(elapsedMs)`, not the animation clock.
-3. Minimum-duration margin: **5950 ms**. Perfect score 1450 is 50 below the absolute cap. Rate cap at the bound: `150 * 15.95 = 2392.5 pts`, margin **942.5 pts**. Integer inequality: `1450000 <= 2392500`, margin 942500. Break-even for 1450 is about 9666.67 ms, below the guarantee.
-4. Saves, wide shots and timeouts only remove points/break streaks, so every run <=1450. Waiting adds time, not points. Ten maximum waits plus cycles consume `10 * (20000 + 1600) = 216000` ms simulation; carrying remainder across boundaries and allowing one final frame gives submitted duration <=**216050 ms**, under 600000.
+1. All ten cycles, including timeouts and the final hold, consume at least 1600 ms each of **simulation useRunFrame dt** (run-up 700 + flight 500 + hold 400; aim time can be 0 and leftover dt carries across phases): 16000 ms total simulation. The only end is `end("win")` after 10 cycles, so every run lasts at least that, whatever it scores. Wall clocks, renderer elapsed time and tween completions cannot shortcut that bound.
+2. RunClock and Simulation use the same clamped delta, and core counts every played frame in `elapsedMs` (no untimed frame, `useRunFrame` dt = store `frameMs`), so the submitted floor is **16000 ms**. Pause advances neither. Use GameShell's default duration, `Math.round(elapsedMs)`, not the animation clock.
+3. Minimum-duration margin: **500 ms** (3.1%) over `minDurationMs` 15500. The perfect score 1450 is exactly `maxScore`: the score is discrete and no clock is involved, so a margin would only hand forgers 1451–1500. Rate cap at the floor: `95 * 16 = 1520 pts`, a 70-point margin (4.8%) over the 90.625 pts/s a perfect run at the floor needs; integer inequality `1450000 <= 1520000`. Inside a run the rate peaks at 1450 / 15.6 s = 92.95 pts/s, just after the 10th goal commits and before its 400 ms hold, still under 95 (2.2%), so the per-frame rate checks hold too. On its own the line holds 1450 to a claimed 15263.2 ms or more (break-even), so with the 15500 ms minimum the rate line never binds for any score ≤ 1450: the accepted region is the rectangle 0–1450 by 15500–225000 ms.
+4. Saves, wide shots and timeouts only remove points/break streaks, so every run <=1450. Waiting adds time, not points. Ten maximum waits plus cycles consume `10 * (20000 + 1600) = 216000` ms simulation; carrying remainder across boundaries and allowing one final frame gives submitted duration <=**216050 ms**, 8950 ms (4.1%) under 225000.
 5. Reduced motion changes poses only; accuracy and phase durations stay identical. Pausing cannot complete a phase; skill cannot shorten the cycle. Idle runs score 0 at roughly 216 s and pass every limit.
 
-Planned defensive `capScore` uses `min(rawScore, 1500, floor(150 * Math.round(elapsedMs) / 1000))` at submission. Prove it is a no-op for reachable completed runs rather than hiding a broken bound with a clamp.
+Measured with throwaway bots (deleted, nothing committed): 1000 seeds × 7 dt patterns (50, 16.7, 8.3, 6.94, random 1–50, jitter, 0.5–2.5 ms) with an oracle bot that knew the keeper stream and a spam bot: 7000 perfect runs, fastest 1450 at 16454 ms (88.1 pts/s), median 17687 ms; shortest run of any kind 16000 ms, longest idle run 216048 ms. 22800 more runs (oracle, spam, random, idle) checked against these limits: 0 rejected, `capScore` never bound, highest in-run rate 92.1 pts/s.
+
+The best a forger can post is 1450 at a claimed 15500 ms (before: 1500 at 10 s), and the run-token TTL drops to 525 s.
+
+Defensive `capScore` uses `min(rawScore, 1450, floor(95 * Math.round(elapsedMs) / 1000))` at submission. It is a no-op for reachable completed runs (at 16000 ms it gives 1520, which `maxScore` caps to 1450) rather than hiding a broken bound with a clamp.
 
 ## Scene and camera
 
@@ -188,7 +192,7 @@ Planned `rules.test.ts` (Vitest, pure state/fake input, no wall-clock sleeps):
 - Accuracy inside/at/outside abs(r) = 0.25; goal versus keeper save; wide = SAVED/0/streak reset. dt = 0/reduced motion cannot change results.
 - Streak 100/150/reset, perfect 1450, every other sequence <=1450. **Drive ten idle timeouts: 0 points, 0 goals, 0 streak, ten completed shots**, never auto-scoring the default zone.
 - Every 700/500/400 ms phase, including final hold, at 60/120 Hz and irregular raw deltas clamped by core; carry remainder, no skipped cycle/reused edge/double resolution.
-- Drive real `createArcadeStore` like ShellStage, RunClock first, through countdown/pause/resume/retry. Check the store and the run clock agree (no untimed frame since the core follow-up), submitted minimum **15950 ms** (real floor 16000 ms), maximum <=216050 ms, **942.5-point rate margin**, and `capScore` a no-op for completed runs.
+- Drive real `createArcadeStore` like ShellStage, RunClock first, through countdown/pause/resume/retry. Check the store and the run clock agree (no untimed frame since the core follow-up), submitted floor **16000 ms** (500 ms over the 15500 ms minimum), maximum <=216050 ms (8950 ms under 225000), the **70-point rate margin** at the floor (1520 against 1450), the in-run peak under 95 pts/s, and `capScore` a no-op for completed runs. The limits are pinned (1450, 15.5–225 s, 95 pts/s) with boundary checks.
 - One `end("win")`, final score/stats before end, one pickup/hit event per result, no replay on resume. No renderer/wall-clock reads or `Math.random` in rules.
 
 **Browser acceptance plan (pending Scene implementation):** local production build, arcade enabled and API mock enabled, never production WordPress.

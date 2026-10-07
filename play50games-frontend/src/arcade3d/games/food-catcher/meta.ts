@@ -17,11 +17,11 @@ export const foodCatcherMeta: ArcadeGameMeta = {
    },
    scoring: {
       kind: "points",
-      maxScore: 5000,
-      minDurationMs: 5000,
-      maxDurationMs: 100000,
+      maxScore: 2500,
+      minDurationMs: 9500,
+      maxDurationMs: 93000,
       base: 0,
-      maxPointsPerSec: 50,
+      maxPointsPerSec: 28,
       unitLabel: "pts",
       display: "int"
    },

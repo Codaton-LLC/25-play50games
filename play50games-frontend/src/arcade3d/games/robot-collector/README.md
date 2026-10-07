@@ -65,15 +65,15 @@ The final score is `runScore(collected, won, timeLeftMs)`. The duration GameShel
 
 ### Server limits and why they hold (the proof)
 
-`meta.ts` and `arcade-games.json` set `kind: "points"`, `maxScore` 1600, `base` 600, `maxPointsPerSec` 120 and a duration of 5–75 s. The server accepts a run only if it passes every check below (`core/limits.ts` mirrors them):
+`meta.ts` and `arcade-games.json` set `kind: "points"`, `maxScore` 1470, `base` 600, `maxPointsPerSec` 120 and a duration of 12.5–62 s (tightened 2026-10-07 from 1600 and 5–75 s, which accepted 1600 at 8.3 s: 130 points and about 4.6 s beyond anything the game can produce). The server accepts a run only if it passes every check below (`core/limits.ts` mirrors them):
 
-- `score <= 1600`
-- `5000 <= duration_ms <= 75000`
-- `score * 1000 <= 600 * 1000 + 120 * duration_ms`, that is, `score <= 600 + 120 * t`
+- `score <= 1470`
+- `12500 <= duration_ms <= 62000`
+- `score * 1000 <= 600 * 1000 + 120 * duration_ms`, that is, `score <= 600 + 120 * t`. The line is 2100 at 12.5 s and only bites below 7.25 s, which the minimum duration already rejects, so the accepted region is simply 12.5–62 s by 0–1470.
 
-**Time up.** t = 60 s, so the cap is 600 + 7200 = 7800. The score is at most 900. ✓
+**Time up.** The store ends it at exactly t = 60 s (`elapsedMs` = `durationMs`), 2 s under the 62 s maximum. The cap is 600 + 7200 = 7800 and the score is at most 900. ✓
 
-**Win at time t.** The score is `1000 + 10 * floor(60 - t)`, which falls as t grows. The cap `600 + 120 t` rises. The two cross at t ≈ **7.67 s**: a win at 7.6 s (1520 points against a cap of 1512) would be rejected, and a win at 7.7 s (1520 against 1524) is accepted. So the level must make any win before about 7.7 s **physically impossible**. It does, with a margin of 1.49 s:
+**Win at time t.** The score is `1000 + 10 * floor(60 - t)`, which falls as t grows. 1470 is a win after 12.0 s and before 13.0 s; 1480 needs a win by 12.0 s. So the level must make any win before 12.5 s **physically impossible**. It does: no win can come before 12.96 s, 460 ms (3.5%) after the minimum duration, and a win there scores exactly the 1470 maximum:
 
 1. **Speed.** `stepRobot` never moves the robot more than `maxSpeed * dt` = 5 · dt in one step. After velocity, collision push-out and the wall clamp, it scales the step back if needed. The test drives 20,000 random steps with random dt and checks this.
 2. **Clock.** Each frame, `RunClock` (`FRAME_PRIORITY.clock`, -1) counts the clamped frame delta into `elapsedMs` and records it as `frameMs`. `useRunFrame` (`FRAME_PRIORITY.simulation`, -0.5) then hands the game exactly that `frameMs` as dt. This includes the rest of the frame in which the countdown ends, which the core carries into `elapsedMs`. Pause stops both. So the robot's driving time is never more than `elapsedMs / 1000`. It is equal on a win, and on a time-up the last frame is counted but not driven. The test drives the real store (`createArcadeStore`) through `advanceRunClock` and `playedFrameDt`, the functions `RunClock` and `useRunFrame` use. It runs countdowns, pauses, resumes, restarts, wins and time-ups with frames from 4 to 300 ms, and checks that there are no untimed frames and that driving time ≤ `elapsedMs`. The simulated runs below use the same clock. The order (clock first) comes from the two priorities, and the test checks them.
@@ -81,13 +81,23 @@ The final score is `runScore(collected, won, timeLeftMs)`. The duration GameShel
    - Start to the first battery: ≥ 4 − 0.8 = 3.2.
    - Inside each wave: ≥ 5 − 1.6 = 3.4, five times, for 17.
    - Between waves: ≥ 8 − 1.6 = 6.4, four times, for 25.6.
-   - Any route is therefore at least **45.8 units** long (`GUARANTEED_MIN_ROUTE`). Props only make it longer.
-4. **Earliest win.** 45.8 / 5 = **9.16 s** (`fastestFinishMs`). The best possible score then is 1000 + 10 · 50 = **1500**. That is ≤ 1600 and ≤ 600 + 120 · 9.16 = 1699. Every later win scores less against a higher cap, so it passes too.
-5. **Every seed.** `generateLayout` returns only layouts that pass `isValidLayout`, or the tested fallback. `isValidLayout` checks exactly the spacing used in step 3.
+   - Spacing alone therefore gives a route of at least **45.8 units** (`GUARANTEED_MIN_ROUTE`). Props only make it longer.
+   - The fairness band gives a stronger bound. Every leg is longer than the reach can shorten it (4 > 0.8, 5 > 1.6, 8 > 1.6), so no leg is clipped at 0 and the reach shortens every collection order by exactly 0.8 + 9 · 1.6 = 15.2: `shortestRoute(layout, PICKUP_REACH)` = ideal route − 15.2. A valid layout's ideal route is at least 80 (`IDEAL_ROUTE.min`), so every real route is at least **64.8 units** (`FAIRNESS_MIN_ROUTE`). The test checks the − 15.2 identity on 1005 seeds and the fallback.
+4. **Earliest win.** 64.8 / 5 = **12.96 s** (`fastestFinishMs`; 12959.999999999998 in floats, so the tests round it). The best possible score then is 1000 + 10 · 47 = **1470** = `maxScore`. 12960 ≥ 12500, and 1470 ≤ 600 + 120 · 12.96 = 2155. Every later win scores no more against a higher line, so it passes too. A score of 1480 would need a win by 12.0 s, 7.4% faster than the proof allows.
+5. **Every seed.** `generateLayout` returns only layouts that pass `isValidLayout`, or the tested fallback. `isValidLayout` checks exactly the spacing and the fairness band used in step 3.
 
-In practice the bound is far from tight. `shortestRoute(layout, PICKUP_REACH)`, the exact minimum over every collection order, is 65–80 units on real layouts, so the earliest win is about 13 s. The test's path-finding driver wins in 17–21 s (1380–1420 points). Expect top human scores around 1350–1450.
+A tighter version exists but is not used for the limit: the robot also starts from rest (accel 24, dt ≤ 0.05, no props within 2.67 units of the start), which costs at least 0.30 units, so the earliest win is 13.02 s and the maximum 1460. It leaves only 20 ms of slack and breaks if `accel` or `MAX_FRAME_DT` change, so 1470 is the tightest robust ceiling.
 
-`capScore` still trims the final score to the server limit as a safety net. It rounds the duration exactly like GameShell does before submitting (`Math.round(elapsedMs)`), so its result always passes the server check. The tests check that it changes nothing for any reachable win. **The limits in `meta.ts` and `arcade-games.json` are correct and unchanged.**
+Measured (80,000 seeds: 0–999 plus 79k random 32-bit seeds, throwaway probes, not committed):
+
+- The 64.8 bound is reached almost exactly: seed 2118636122 has a reach route of 64.8023.
+- The shortest route ignoring props and inertia, for every seed with reach < 66.5, is at least 68.34 (seed 1368283751): 13.67 s and 1460 points. Prop-aware grid bounds on the six most favourable seeds: 14.11–14.42 s.
+- Near-optimal full-knowledge bots on the real store clock (54 runs at 60 fps, 20 fps and random 4–50 ms frames): a DP-gradient driver wins in 15.58–16.30 s (1430–1440); an MPC driver (rollouts with the real `stepRobot`) at best in 14.77 s = **1450** (seed 858, 60 fps). Every run had a top speed of exactly 5.0 and passed the limits.
+- The test's path-finding driver wins in 17–21 s (1380–1420 points). Expect top human scores around 1350–1450.
+
+So 1470 is 1.4% above the best measured run, the 12.5 s minimum is 15% under the fastest measured win (14.77 s), and the 62 s maximum is 3.3% over the 60 s time-up. The steepest rate is 1470 / 12.96 s = 113.4 pts/s from 0 (67.1 pts/s above base 600); the line allows 120 above base.
+
+`capScore` still trims the final score to the server limit as a safety net. It rounds the duration exactly like GameShell does before submitting (`Math.round(elapsedMs)`), so its result always passes the server check. The tests check that it changes nothing for any reachable win (S(t) ≤ 1470 ≤ 600 + 0.12 t for t ≥ 12960). The new limits do not re-check stored scores: a stored robot-collector score above 1470, or with a duration under 12500 ms, is certainly forged and can be reset in wp-admin "Arcade Scores".
 
 ## Scene and camera
 
@@ -170,12 +180,12 @@ GameShell draws Score, Time (counting down from 1:00, highlighted under 10 s) an
   - `withinServerLimits` and `capScore` with this game's limits.
 - **Proof:**
   - the real store, driven with `advanceRunClock` and `playedFrameDt`, has no untimed frames, and driving time ≤ `elapsedMs` across countdowns that end mid-frame;
-  - break-even ≈ 7.67 s;
-  - `GUARANTEED_MIN_ROUTE` is 45.8, so the earliest win is 9.16 s;
-  - every win from then to 60 s passes the limits, and `capScore` is a no-op;
+  - a win before 12.5 s is rejected (1470 at 12.4 s by the minimum duration, 1480 by `maxScore`);
+  - `GUARANTEED_MIN_ROUTE` (spacing only) is 45.8; `FAIRNESS_MIN_ROUTE` is 64.8, and on every seed the reach route is exactly the ideal route − 15.2, so the earliest win is 12.96 s and scores 1470;
+  - every win from then to 60 s passes the limits, and `capScore` is a no-op; the minimum duration keeps 460 ms (≥ 3%) of margin, the maximum ≥ 3% over 60 s;
   - every time-up score passes;
-  - every seeded layout's own minimum completion passes;
-  - simulated runs on the real store clock (60 fps and an uneven 73 fps) with a path-finding driver win, never beat the bound and pass the limits;
+  - every seeded layout's own minimum completion passes, and none beats 12.96 s;
+  - simulated runs on the real store clock (60 fps and an uneven 73 fps) with a path-finding driver win, never beat the bound or the minimum duration and pass the limits;
   - an idle robot times out with 0 at exactly 60000 ms.
 
 The generic parts are tested in `core/`: clock carry-over, game time and frame order (`frameLoop.test.ts`, `useArcadeStore.test.ts`), the fit math, the lens shift and the follow range (`view.test.ts`), the yaw lock (`useFittedView.test.ts`), the manifest skip and instanced props (`modelManifest.test.ts`, `assets.test.ts`), `inputToWorld`, the RNG and the limits (`math.test.ts`).

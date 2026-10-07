@@ -27,9 +27,11 @@ describe("escape-room golden constants", () => {
          RETRIEVE_MS: 900,
          UNLOCK_MS: 600,
          DOOR_OPEN_MS: 1200,
-         MIN_ROUTE: 13.5,
-         MIN_FINISH_MS: 15300,
+         MIN_ROUTE: 15.48,
+         MIN_FINISH_MS: 16400,
       });
+      // the server's minimum duration keeps 100 ms under the speed-only bound
+      expect(rules.MIN_FINISH_MS - escapeRoomMeta.scoring.minDurationMs).toBe(100);
    });
 });
 
@@ -146,7 +148,7 @@ function play(run: EscapeRun, nextDt: () => number, strategy: Strategy = "perfec
          throw new Error("Movement exceeded the proof speed");
       }
       if (!clear(run.layout, run.player.x, run.player.z)) throw new Error("Bot walked through furniture");
-      if (run.ended === "win" && run.simMs < 15300) throw new Error(`Early win at ${run.simMs}`);
+      if (run.ended === "win" && run.simMs < rules.MIN_FINISH_MS) throw new Error(`Early win at ${run.simMs}`);
    }
    return run;
 }
@@ -678,20 +680,109 @@ describe("escape-room clock, buffers and pure step", () => {
 });
 
 describe("escape-room minimum completion and TIME scoring", () => {
-   it("all 1000 seed-aware speedruns and the fallback finish, never before 15300 ms", () => {
+   it("all 1000 seed-aware speedruns and the fallback finish, never before MIN_FINISH_MS (16400 ms)", () => {
       let minimum = Infinity;
       for (let seed = -1; seed < 1000; seed++) {
          const rng = createRng(seed ^ 0x85ebca6b);
          const run = createRun(seed, seed === -1 ? { layout: fallbackLayout(seed) } : undefined);
          play(run, () => seed % 2 ? 1 + rng() * 49 : 1000 / 60);
          expect(run.ended, `seed ${seed}`).toBe("win");
-         expect(run.finishMs).toBeGreaterThanOrEqual(15300);
+         expect(run.finishMs).toBeGreaterThanOrEqual(rules.MIN_FINISH_MS);
          expect(run.finishMs).toBeLessThan(600000);
          expect(run.lockedMs).toBeGreaterThanOrEqual(7800);
          expect(run.found).toBe(3);
          minimum = Math.min(minimum, run.finishMs);
       }
-      expect(minimum).toBeGreaterThanOrEqual(15300);
+      expect(minimum).toBeGreaterThanOrEqual(rules.MIN_FINISH_MS);
+      expect(minimum).toBeGreaterThanOrEqual(escapeRoomMeta.scoring.minDurationMs);
+   }, 120000);
+
+   it("exhaustive tour bound: every layout shape and visit order needs a route of at least 15.48 m", () => {
+      // README proof (a): 4 empty stations x 3^6 jitters of the three needed stations x 6 orders. The
+      // runner starts at START, touches each needed station's reach circle (radius 1), then the
+      // door's. Obstacles are ignored (a relaxation, so the minimum is a lower bound). For each case
+      // a coordinate descent finds the touch points (a real route: an upper bound), and the dual of
+      // the convex problem gives a certified lower bound: for any unit vectors u_i,
+      // sum |q_i+1 - q_i| >= sum u_i . (q_i+1 - q_i), minimised over the disks in closed form.
+      const r = INSPECT_REACH;
+      const JITTER = [-0.25, 0, 0.25];
+      const p = [{ x: 0, z: 0 }, { x: 0, z: 0 }, { x: 0, z: 0 }, { x: 0, z: 0 }, { x: 0, z: 0 }];
+      const c = [{ x: rules.START.x, z: rules.START.z }, { x: 0, z: 0 }, { x: 0, z: 0 }, { x: 0, z: 0 }, { x: DOOR_POSITION.x, z: DOOR_POSITION.z }];
+      const onCircle = (k: number, angle: number) => {
+         p[k].x = c[k].x + r * Math.cos(angle);
+         p[k].z = c[k].z + r * Math.sin(angle);
+      };
+      const dist = (a: { x: number; z: number }, b: { x: number; z: number }) => Math.hypot(a.x - b.x, a.z - b.z);
+      /** min |q - a| + |q - b| over circle k: golden section over the arc between the two directions */
+      const between = (k: number) => {
+         const a = p[k - 1], b = p[k + 1];
+         let lo = Math.atan2(a.z - c[k].z, a.x - c[k].x);
+         let hi = Math.atan2(b.z - c[k].z, b.x - c[k].x);
+         if (hi - lo > Math.PI) lo += 2 * Math.PI;
+         else if (lo - hi > Math.PI) hi += 2 * Math.PI;
+         const f = (angle: number) => {
+            onCircle(k, angle);
+            return dist(p[k], a) + dist(p[k], b);
+         };
+         const g = (Math.sqrt(5) - 1) / 2;
+         let x1 = hi - g * (hi - lo), x2 = lo + g * (hi - lo), f1 = f(x1), f2 = f(x2);
+         for (let i = 0; i < 60; i++) {
+            if (f1 < f2) { hi = x2; x2 = x1; f2 = f1; x1 = hi - g * (hi - lo); f1 = f(x1); }
+            else { lo = x1; x1 = x2; f1 = f2; x2 = lo + g * (hi - lo); f2 = f(x2); }
+         }
+         onCircle(k, (lo + hi) / 2);
+      };
+      const length = () => dist(p[0], p[1]) + dist(p[1], p[2]) + dist(p[2], p[3]) + dist(p[3], p[4]);
+      const dual = () => {
+         const u = [0, 1, 2, 3].map((i) => {
+            const d = dist(p[i], p[i + 1]);
+            return { x: (p[i + 1].x - p[i].x) / d, z: (p[i + 1].z - p[i].z) / d };
+         });
+         let bound = -(u[0].x * c[0].x + u[0].z * c[0].z) + (c[4].x * u[3].x + c[4].z * u[3].z) - r;
+         for (let k = 1; k <= 3; k++) {
+            const wx = u[k - 1].x - u[k].x, wz = u[k - 1].z - u[k].z;
+            bound += c[k].x * wx + c[k].z * wz - r * Math.hypot(wx, wz);
+         }
+         return bound;
+      };
+      let bestRoute = Infinity, bestBound = Infinity, worstGap = 0, cases = 0;
+      for (let empty = 0; empty < 4; empty++) {
+         const needed = [0, 1, 2, 3].filter((s) => s !== empty);
+         for (let jitter = 0; jitter < 729; jitter++) {
+            const stations = needed.map((s, n) => {
+               const code = Math.floor(jitter / 9 ** n) % 9;
+               return { x: STATION_ANCHORS[s].x + JITTER[code % 3], z: STATION_ANCHORS[s].z + JITTER[Math.floor(code / 3)] };
+            });
+            for (const order of PERMUTATIONS) {
+               for (let k = 1; k <= 3; k++) c[k] = stations[order[k - 1]];
+               p[0].x = c[0].x;
+               p[0].z = c[0].z;
+               // start each touch point on its circle towards the next centre, then sweep to convergence
+               for (let k = 1; k <= 4; k++) onCircle(k, Math.atan2(c[k - 1].z - c[k].z, c[k - 1].x - c[k].x));
+               let before = Infinity;
+               for (let sweep = 0; sweep < 200 && before - length() > 1e-13; sweep++) {
+                  before = length();
+                  for (let k = 1; k <= 3; k++) between(k);
+                  onCircle(4, Math.atan2(p[3].z - c[4].z, p[3].x - c[4].x));
+               }
+               const route = length();
+               const bound = dual();
+               expect(bound).toBeLessThanOrEqual(route + 1e-9);
+               worstGap = Math.max(worstGap, route - bound);
+               bestRoute = Math.min(bestRoute, route);
+               bestBound = Math.min(bestBound, bound);
+               cases += 1;
+            }
+         }
+      }
+      expect(cases).toBe(4 * 729 * 6);
+      expect(worstGap).toBeLessThan(1e-6);
+      expect(bestRoute).toBeCloseTo(15.48396, 4);
+      expect(bestBound).toBeGreaterThanOrEqual(rules.MIN_ROUTE);
+      // (b) speed and action time: at least 16402 ms, so the 16400 ms bound and the 16300 ms minimum hold
+      const speedOnlyMs = (bestBound / RUNNER.speed) * 1000 + 3 * (rules.OPEN_MS + rules.RETRIEVE_MS) + rules.UNLOCK_MS + rules.DOOR_OPEN_MS;
+      expect(speedOnlyMs).toBeGreaterThanOrEqual(rules.MIN_FINISH_MS);
+      expect(speedOnlyMs).toBeGreaterThanOrEqual(escapeRoomMeta.scoring.minDurationMs + 100);
    }, 120000);
 
    it("fixed/random frames and adversarial spamming, early openings and station shortcuts cannot beat the bound", () => {
@@ -703,7 +794,7 @@ describe("escape-room minimum completion and TIME scoring", () => {
                const run = play(createRun(seed), dt === -1 ? () => 0.25 + rng() * 49.75 : () => dt, strategy, 90000);
                if (strategy === "perfect") expect(run.ended).toBe("win");
                if (run.ended === "win") {
-                  expect(run.finishMs).toBeGreaterThanOrEqual(15300);
+                  expect(run.finishMs).toBeGreaterThanOrEqual(rules.MIN_FINISH_MS);
                   if (strategy !== "perfect") adversarialWins++;
                }
             }
@@ -713,9 +804,9 @@ describe("escape-room minimum completion and TIME scoring", () => {
    }, 120000);
 
    it("golden perfect-bot finishes at 60 Hz, 144 Hz and 1 ms frames, which agree within the per-action frame slack", () => {
-      // Exact regression (first run of the reviewed rules). The >= 15300 proof tests cannot see
-      // changes to acceleration, braking, sliding or post-inspect velocity: every perfect run lands
-      // at least ~1.5 s above its own seed's bound. A change here is a design change.
+      // Exact regression (first run of the reviewed rules). The >= MIN_FINISH_MS proof tests cannot
+      // see changes to acceleration, braking, sliding or post-inspect velocity: every perfect run lands
+      // above its own seed's bound. A change here is a design change.
       const GOLDEN: Record<number, [number, number][]> = {
          0: [[18150, 7800], [18133, 7821], [18110, 7800]],
          5050: [[17683, 7800], [17688, 7820], [17666, 7800]],
@@ -766,12 +857,16 @@ describe("escape-room minimum completion and TIME scoring", () => {
 
    it("uses core time scoring/normalization and win-only ranking, never the points-game zero rate", () => {
       const scoring = escapeRoomMeta.scoring;
-      expect(scoring).toMatchObject({ kind: "time", timeBaseMs: 600000, maxScore: 60000, minDurationMs: 15000, maxDurationMs: 600000, maxPointsPerSec: 0 });
-      for (const [ms, score] of [[15300, 58470], [30000, 57000], [45678, 55432], [60000, 54000], [599990, 1], [600000, 0], [700000, 0]]) {
+      expect(scoring).toMatchObject({ kind: "time", timeBaseMs: 600000, maxScore: 58370, minDurationMs: 16300, maxDurationMs: 600000, maxPointsPerSec: 0 });
+      // 17004 ms is the fastest possible win (58299), 16300 ms the server's best (58370 = maxScore)
+      for (const [ms, score] of [[17004, 58299], [16300, 58370], [30000, 57000], [45678, 55432], [60000, 54000], [599990, 1], [600000, 0], [700000, 0]]) {
          expect(computeTimeScore(scoring, ms)).toBe(score);
          expect(normalizeRun({ slug: "escape-room", score: 123, durationMs: ms, finishedAt: "2026-10-06T00:00:00Z" }, scoring).score).toBe(score);
       }
-      expect(normalizeRun({ slug: "escape-room", score: 999999, durationMs: 15309.5, finishedAt: "2026-10-06T00:00:00Z" }, scoring)).toMatchObject({ durationMs: 15310, score: 58469 });
+      expect(computeTimeScore(scoring, scoring.minDurationMs)).toBe(scoring.maxScore);
+      // anything faster than the minimum is clamped to maxScore by the client (and rejected by the server)
+      expect(normalizeRun({ slug: "escape-room", score: 123, durationMs: 15300, finishedAt: "2026-10-06T00:00:00Z" }, scoring).score).toBe(58370);
+      expect(normalizeRun({ slug: "escape-room", score: 999999, durationMs: 17004.4, finishedAt: "2026-10-06T00:00:00Z" }, scoring)).toMatchObject({ durationMs: 17004, score: 58299 });
       expect(isRankedRun(scoring, "win")).toBe(true);
       for (const reason of ["lose", "timeup", "quit", null] as const) expect(isRankedRun(scoring, reason)).toBe(false);
    });
@@ -868,7 +963,7 @@ describe("escape-room real-store parity", () => {
       expect(winEvents).toBe(1);
       expect(store.getState().endReason).toBe("win");
       expect(store.getState().stats.found).toBe(3);
-      expect(store.getState().elapsedMs).toBeGreaterThanOrEqual(15300);
+      expect(store.getState().elapsedMs).toBeGreaterThanOrEqual(rules.MIN_FINISH_MS);
       expect(store.getState().elapsedMs - run.finishMs).toBeLessThan(51);
       const submitted = normalizeRun({ slug: "escape-room", score: store.getState().score, durationMs: store.getState().elapsedMs, finishedAt: "2026-10-06T00:00:00Z" }, escapeRoomMeta.scoring);
       expect(submitted.score).toBe(Math.max(0, Math.floor((600000 - submitted.durationMs) / 10)));

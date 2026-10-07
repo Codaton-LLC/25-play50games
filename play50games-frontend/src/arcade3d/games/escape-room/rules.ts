@@ -24,7 +24,12 @@ export const STATION_ANCHORS = [{ x: -4, z: -3 }, { x: 4, z: -3 }, { x: -4, z: 3
 export const STATION_KINDS = ["drawer", "cupboard", "under-desk", "cupboard"] as const;
 export const STATION_BODY = { offset: 1, halfX: 0.6, halfZ: 0.7, height: 1.4 } as const;
 export const DOOR_POSITION = { x: 0, z: -4.2 } as const;
-export const MIN_ROUTE = 13.5;
+/**
+ * README proof: the shortest route over every layout and visit order (start, the three item stations'
+ * reach circles, the door's), 15.48396 m, rounded down. With the speed cap and the 7800 ms of actions
+ * a win needs at least 16400 ms (the start from rest after each action, left out here, adds ~0.6 s).
+ */
+export const MIN_ROUTE = 15.48;
 export const MIN_FINISH_MS = Math.ceil(MIN_ROUTE / RUNNER.speed * 1000) + 3 * (OPEN_MS + RETRIEVE_MS) + UNLOCK_MS + DOOR_OPEN_MS;
 const EDGE_EPS = 1e-9;
 

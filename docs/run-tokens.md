@@ -12,22 +12,22 @@ Require a server-issued, user-bound, game-bound, single-use ticket before a rank
 
 It does **not** deliver ranking integrity. A bot with one valid account posts the best score the server accepts with one start, a short wait and one submit. The elapsed bound only enforces the wait, and only against long claimed durations; it cannot reject a short one. The board keeps one best per user (`GREATEST` in the upsert, arcade-api.md §9), so one accepted forgery is enough, and replay is worthless to a cheater anyway. The start limits are at least as generous as the submit limits, so they do not slow a bot either.
 
-Earliest server age of a ticket at which the current limits accept each game's best score: `max(min_duration_ms, (max_score − base) × 1000 / max_pps) − DURATION_SLACK_MS`; for TIME games, the best score the server computes at `min_duration_ms`. Every value lies inside the ticket TTL.
+Earliest server age of a ticket at which the current limits accept each game's best score: `max(min_duration_ms, (max_score − base) × 1000 / max_pps) − DURATION_SLACK_MS`; for TIME games, the best score the server computes at `min_duration_ms`. Every value lies inside the ticket TTL. Values for the tightened limits of 2026-10-07 (`arcade-games.json` version 2; the previous best accepted score in brackets):
 
 | Game | Best accepted score | Claimed duration | Earliest ticket age |
 |---|---|---|---|
-| robot-collector | 1600 (the rules allow at most 1470, see below) | 8334 ms | ~7.3 s |
-| penalty-hero | 1500 | 10000 ms | ~9 s |
-| escape-room (time) | 58500 | 15000 ms | ~14 s |
-| obstacle-race (time) | 28500 | 15000 ms | ~14 s |
-| clean-city | 6000 | 50000 ms | ~49 s |
-| warehouse-rush | 3000 | 60000 ms | ~59 s |
-| food-catcher | 5000 | 100000 ms | ~99 s |
-| pigeon-crossing | 50000 | 500000 ms | ~499 s |
-| tower-climb | 50000 | 500000 ms | ~499 s |
-| office-escape | 180000 (ceiling; 200000 is unreachable within 1800000 ms) | 1800000 ms | ~1799 s |
+| robot-collector | 1470 (was 1600) | 12500 ms | ~11.5 s |
+| penalty-hero | 1450 (was 1500) | 15500 ms | ~14.5 s |
+| escape-room (time) | 58370 (was 58500) | 16300 ms | ~15.3 s |
+| obstacle-race (time) | 28150 (was 28500) | 18500 ms | ~17.5 s |
+| clean-city | 4940 (was 6000) | 43000 ms | ~42 s |
+| warehouse-rush | 1700 (was 3000) | 58621 ms | ~57.6 s |
+| food-catcher | 2500 (was 5000) | 89286 ms | ~88 s |
+| tower-climb | 19000 (was 50000) | 1727273 ms | ~1726 s |
+| pigeon-crossing | 50000 | 1785715 ms | ~1785 s |
+| office-escape | 152500 (was a 180000 ceiling) | 1794118 ms | ~1793 s |
 
-The real lever for ranking quality is a separate **"assets + limits" PR per game**: change `meta.ts` scoring and `arcade-games.json` together (`registry.sync.test.ts` checks them) so that the server's accepted maximum is the game's provable maximum and nothing above it. For robot-collector the levers are `max_score` and `min_duration_ms`, not `base`/`max_pps`. The score is `100 × batteries + 10 × full seconds left` (`DURATION_MS` 60000), and every valid layout has an ideal centre-to-centre route of at least `IDEAL_ROUTE.min` = 80 units. Each leg shrinks by at most the pickup reach (0.8 for the first leg, 1.6 for each of the nine others), so any real route is at least 80 − 15.2 = 64.8 units. At `ROBOT.maxSpeed` 5 that means no win before 12.96 s and at most 1000 + 10 × 47 = 1470 points. The PR extends the README "Scoring" proof from its current spacing bound (45.8 units, 9.16 s, 1500) to this bound, keeps the proof and tests that no reachable run hits the cap, and sets the limits from it (about `max_score` 1470 and `min_duration_ms` 12000; the review's estimate of 1440–1460 and 14–16 s also counts acceleration and turning, and is usable only if the proof and tests cover it). After it, the earliest forgery age for robot-collector is ~11 s for 1470. Even tight limits let a forger post the best possible score; only server-side verification of the run itself could stop that, and it is out of scope.
+The real lever for ranking quality is the **"assets + limits" PR**: change `meta.ts` scoring and `arcade-games.json` together (`registry.sync.test.ts` checks them) so that the server's accepted maximum is the game's provable maximum and nothing above it. That PR is `claude/tighter-limits` (2026-10-07): every game's limits now sit at its proven maximum plus about 3–5%, and each README "Server limits" section carries the proof and its margins, with tests that no reachable run hits the cap. For robot-collector the levers are `max_score` and `min_duration_ms`, not `base`/`max_pps`: every valid layout has an ideal route of at least `IDEAL_ROUTE.min` = 80 units, the pickup reach shortens it by exactly 15.2, so any real route is at least 64.8 units, no win comes before 12.96 s and the maximum is 1000 + 10 × 47 = 1470 (`max_score` 1470, `min_duration_ms` 12500). Even tight limits let a forger post the best possible score; only server-side verification of the run itself could stop that, and it is out of scope. The new limits do not re-check stored scores: a stored robot-collector score above 1470, or with a duration under 12500 ms, is certainly forged and can be reset in wp-admin.
 
 This is **not gameplay attestation**. Tokens do not establish that inputs, collisions, a TIME game's win or the reported duration were genuine. An automated client can collect tickets and use them within the issuance and submit limits, including parallel runs. Distributed accounts or IPs and compromised JWTs remain outside every guarantee. The browser API key is not a secret: production has no `PLAY50_API_KEY` defined, so that gate is open.
 

@@ -17,8 +17,8 @@ export const escapeRoomMeta: ArcadeGameMeta = {
    },
    scoring: {
       kind: "time",
-      maxScore: 60000,
-      minDurationMs: 15000,
+      maxScore: 58370,
+      minDurationMs: 16300,
       maxDurationMs: 600000,
       base: 0,
       maxPointsPerSec: 0,

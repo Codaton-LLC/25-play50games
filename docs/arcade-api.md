@@ -110,14 +110,14 @@ Edited only by Claude ("assets + limits" PR). Must match each game's `meta.scori
 
 ```json
 {
-  "version": 1,
+  "version": 2,
   "games": {
     "robot-collector": {
       "title": "Robot Collector",
       "kind": "points",
-      "max_score": 1600,
-      "min_duration_ms": 5000,
-      "max_duration_ms": 75000,
+      "max_score": 1470,
+      "min_duration_ms": 12500,
+      "max_duration_ms": 62000,
       "base": 600,
       "max_pps": 120,
       "enabled": false
@@ -125,8 +125,8 @@ Edited only by Claude ("assets + limits" PR). Must match each game's `meta.scori
     "escape-room": {
       "title": "Tiny Escape Room",
       "kind": "time",
-      "max_score": 60000,
-      "min_duration_ms": 15000,
+      "max_score": 58370,
+      "min_duration_ms": 16300,
       "max_duration_ms": 600000,
       "time_base_ms": 600000,
       "enabled": false
@@ -145,7 +145,7 @@ Edited only by Claude ("assets + limits" PR). Must match each game's `meta.scori
 | `time_base_ms` | omitted (normalized to null) | required, > 0 |
 | `enabled` | `true` only for live games (only the game under test during prod tests) | same |
 
-`version` is informational (bump it when limits change).
+`version` is informational (bump it when limits change). Version 2 (2026-10-07) tightened every game's limits to its proven maximum plus about 3–5% (each game's README "Server limits and why they hold").
 
 ### Loader
 
@@ -179,9 +179,9 @@ Normalized shape (also the `/arcade/games` output):
 array(
     'title' => 'Robot Collector',
     'kind' => 'points',          // 'points' | 'time'
-    'max_score' => 1600,
-    'min_duration_ms' => 5000,
-    'max_duration_ms' => 75000,
+    'max_score' => 1470,
+    'min_duration_ms' => 12500,
+    'max_duration_ms' => 62000,
     'base' => 600,               // 0 for time games
     'max_pps' => 120,            // 0 for time games
     'time_base_ms' => null,      // int for time games
@@ -249,7 +249,7 @@ All success responses are HTTP 200. Field order below is the output order (tests
 
 Response (all games, enabled or not):
 ```json
-{ "games": { "robot-collector": { "title": "Robot Collector", "kind": "points", "max_score": 1600, "min_duration_ms": 5000, "max_duration_ms": 75000, "base": 600, "max_pps": 120, "time_base_ms": null, "enabled": false } } }
+{ "games": { "robot-collector": { "title": "Robot Collector", "kind": "points", "max_score": 1470, "min_duration_ms": 12500, "max_duration_ms": 62000, "base": 600, "max_pps": 120, "time_base_ms": null, "enabled": false } } }
 ```
 Errors: `missing_api_key`, `invalid_api_key`. Cache-Control: `public, max-age=300` + `Vary: Origin` (rest-api.php reflects the Origin in `Access-Control-Allow-Origin` and removes core's `rest_send_cors_headers`, which would normally add it).
 

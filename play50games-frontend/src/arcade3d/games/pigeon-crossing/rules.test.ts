@@ -168,7 +168,7 @@ function measure(seed: number, nextDt: () => number, duration: number, adversari
       const n = 20 * run.completed + run.furthest;
       if (run.timeMs + 1e-8 < 3050 + 550 * n && n) throw new Error("Progress before its timed bound");
       if (run.score !== scoreFor(run.completed, run.furthest)) throw new Error("Cap concealed invalid score");
-      if (run.score > 100 * run.poseMs / 1000 + 1e-8 || run.score > 50000) throw new Error("Server score limit broken");
+      if (run.score > LIMITS.maxPointsPerSec * run.poseMs / 1000 + 1e-8 || run.score > LIMITS.maxScore) throw new Error("Server score limit broken");
       if (run.hops < n) throw new Error("Rows awarded without hops");
    }
    return run;
@@ -541,6 +541,20 @@ describe("pigeon-crossing clock, scoring and parity", () => {
       expect(scoreFor(166, 19)).toBe(49990);
       expect(scoreFor(167, 0)).toBe(50100);
       expect(3050 + 550 * 3340).toBe(1840050);
+      // the limits: 28 points/s is the tightest integer rate the no-traffic bound allows (S/t < 300/11
+      // = 27.27); 27 fails with zero waits from level 28 on (8400 at 311050 ms > 27 x 311.05 = 8398)
+      expect(LIMITS).toMatchObject({ kind: "points", maxScore: 50000, minDurationMs: 3000, maxDurationMs: 1800000, base: 0, maxPointsPerSec: 28 });
+      expect(scoreFor(28, 0) * 1000).toBeGreaterThan((LIMITS.maxPointsPerSec - 1) * (3050 + 550 * 560));
+      expect(withinServerLimits(scoreFor(28, 0), 3050 + 550 * 560, LIMITS)).toBe(true);
+      // integer slack 28 · (3050 + 550n) − 1000 S = 85400 + 8000k + 5400r > 0 for n = 20k + r
+      for (const [k, r] of [[0, 0], [0, 19], [163, 7], [166, 19]]) {
+         const n = 20 * k + r;
+         expect(28 * (3050 + 550 * n) - 1000 * scoreFor(k, r)).toBe(85400 + 8000 * k + 5400 * r);
+      }
+      // the rate alone reaches 50000 only at a claimed 1785715 ms
+      expect(withinServerLimits(50000, 1785714, LIMITS)).toBe(false);
+      expect(withinServerLimits(50000, 1785715, LIMITS)).toBe(true);
+      expect(capScore(3000, 30000, LIMITS)).toBe(840);
    });
 
    it("real store counts countdown residuals and pause, then holds the ended scene for 800 ms", () => {

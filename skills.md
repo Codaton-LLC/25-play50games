@@ -62,18 +62,18 @@ Points games: server rejects `score > maxScore` or `score > base + maxPointsPerS
 
 | Slug | Kind | Max score | Duration window | Cap (base + pts/s) | Unit | Display |
 |---|---|---|---|---|---|---|
-| robot-collector | points | 1,600 | 5 s – 75 s | 600 + 120/s | pts | int |
-| food-catcher | points | 5,000 | 5 s – 100 s | 0 + 50/s | pts | int |
-| office-escape | points | 200,000 | 3 s – 30 min | 0 + 100/s | pts | int |
-| pigeon-crossing | points | 50,000 | 3 s – 30 min | 0 + 100/s | pts | int |
-| penalty-hero | points | 1,500 | 10 s – 10 min | 0 + 150/s | pts | int |
-| warehouse-rush | points | 3,000 | 5 s – 75 s | 0 + 50/s | pts | int |
-| tower-climb | points | 50,000 | 3 s – 30 min | 0 + 100/s | pts | int |
-| clean-city | points | 6,000 | 10 s – 15 min | 1000 + 100/s | pts | int |
-| escape-room | time | 60,000 | 15 s – 10 min | timeBase 600 s | time | time |
-| obstacle-race | time | 30,000 | 15 s – 5 min | timeBase 300 s | time | time |
+| robot-collector | points | 1,470 | 12.5 s – 62 s | 600 + 120/s | pts | int |
+| food-catcher | points | 2,500 | 9.5 s – 93 s | 0 + 28/s | pts | int |
+| office-escape | points | 152,500 | 4.8 s – 30 min | 0 + 85/s | pts | int |
+| pigeon-crossing | points | 50,000 | 3 s – 30 min | 0 + 28/s | pts | int |
+| penalty-hero | points | 1,450 | 15.5 s – 225 s | 0 + 95/s | pts | int |
+| warehouse-rush | points | 1,700 | 57 s – 63 s | 0 + 29/s | pts | int |
+| tower-climb | points | 19,000 | 3 s – 30 min | 0 + 11/s | pts | int |
+| clean-city | points | 4,940 | 43 s – 250 s | 1000 + 100/s | pts | int |
+| escape-room | time | 58,370 | 16.3 s – 10 min | timeBase 600 s | time | time |
+| obstacle-race | time | 28,150 | 18.5 s – 5 min | timeBase 300 s | time | time |
 
-Limits are provisional. Changing one = Claude's "assets + limits" PR (meta + JSON together), never a game branch.
+Limits were tightened on 2026-10-07 (`arcade-games.json` version 2) to each game's proven maximum plus about 3–5%; the proof and its margins are in each game's README "Server limits and why they hold". Changing one = Claude's "assets + limits" PR (meta + JSON together, with the proof and tests), never a game branch.
 
 ### Models per game (plan §4)
 

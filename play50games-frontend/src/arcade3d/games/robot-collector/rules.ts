@@ -273,12 +273,21 @@ export function shortestRoute(layout: Layout, reach: number): number {
    return Math.min(...best.values());
 }
 
-/** Lower bound on the route of every layout that passes isValidLayout (README "Scoring"). */
+/** Spacing-only lower bound on the route of every layout that passes isValidLayout (45.8). */
 export const GUARANTEED_MIN_ROUTE =
    SPACING.fromStart -
    PICKUP_REACH +
    WAVE_COUNT * (WAVE_SIZE - 1) * (SPACING.inWave - 2 * PICKUP_REACH) +
    (WAVE_COUNT - 1) * (SPACING.betweenWaves - 2 * PICKUP_REACH);
+
+/**
+ * The stronger bound the server limits rest on (README "Server limits"). Every leg of a valid
+ * layout is longer than the pickup reach can shorten it (≥ 4 > 0.8 from the start, ≥ 5 and ≥ 8 >
+ * 1.6 between batteries), so no leg is clipped at 0 and shortestRoute(layout, PICKUP_REACH) is
+ * exactly the ideal route minus 0.8 + 9 · 1.6 = 15.2. The fairness band keeps the ideal route ≥
+ * IDEAL_ROUTE.min = 80, so every real route is at least 64.8 units. A constant only: no gameplay.
+ */
+export const FAIRNESS_MIN_ROUTE = IDEAL_ROUTE.min - PICKUP_REACH - (BATTERY_COUNT - 1) * 2 * PICKUP_REACH;
 
 /**
  * Fastest elapsedMs at which a route of `routeLength` can be finished. The core clock counts every
