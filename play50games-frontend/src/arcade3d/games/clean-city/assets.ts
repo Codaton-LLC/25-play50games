@@ -9,6 +9,12 @@
 // the longest side 0.95, inside the README's drawn size of about 0.9-1.0. The pickup circle
 // stays r = 0.3 whatever the mesh does. The stand-in parts are authored at that drawn size
 // already (DynamicInstancedModel does not scale fallbackParts by asset.scale).
+// Group C (2026-10-07): bottle 1.26 x 1.91 x 1.20 and bag 1.90 x 1.90 x 1.21 are fitted to their
+// stand-ins (Primitives.tsx createLitterStandIns): the bottle 0.44 x 0.90 x 0.44 (slimmed: the
+// GLB is a squat clear jar of colourful scraps with a red cap, not the spec's crushed bottle; at
+// play size a multicoloured piece in its ring. README "Group C": the user decides on a
+// regeneration), the bag 0.62 x 0.80 x 0.46. Both centred and standing on y = 0 like the
+// stand-ins (sizes.test.ts measures the real GLBs).
 import type { ModelAsset } from "@/arcade3d/core/types";
 import { CHARACTER_BUDGET, PROP_BUDGET, SHARED_ASSETS } from "@/arcade3d/core/sharedAssets";
 
@@ -25,17 +31,16 @@ const prop = (id: string, fallback: ModelAsset["fallback"], fallbackColor: strin
 });
 
 export const ASSETS = {
-   // shared cast. runner.glb is not listed yet: Scene draws <HumanoidModel asset={ASSETS.runner}>
-   // with PrimitiveRunner as its fallback (drawn unscaled). The scale applies to the GLB once it
-   // is listed, and Scene's stride and body lift use it too.
+   // shared cast. Scene draws <HumanoidModel asset={ASSETS.runner}> (runner.glb, auto-rigged) with
+   // PrimitiveRunner (0.90 tall, drawn unscaled) as its fallback. The scale draws the GLB 0.95 tall,
+   // and Scene's stride and body lift use it too.
    runner: { ...SHARED_ASSETS.runner, scale: RUNNER_SCALE },
    // shared litter (public/models/3d/shared/*.glb), longest side 0.95
    tinCan: { ...SHARED_ASSETS.tinCan, scale: LITTER_SCALE },
    banana: { ...SHARED_ASSETS.banana, scale: LITTER_SCALE },
-   // this game only (./assets.spec.json). Not generated yet: primitive fallbacks, scale 1.
-   // When a GLB lands (longest side ~1.9), set scale to LITTER_SCALE here.
-   bottle: { ...prop("bottle", "cylinder", "#4ade80"), scale: 1 },
-   bag: { ...prop("bag", "box", "#d6a46b"), scale: 1 },
+   // this game only (./assets.spec.json, group C): fitted to the stand-ins' footprint and height
+   bottle: { ...prop("bottle", "cylinder", "#4ade80"), scale: 0.471, stretch: [0.743, 1, 0.776] },
+   bag: { ...prop("bag", "box", "#d6a46b"), scale: 0.421, stretch: [0.775, 1, 0.9] },
    // scenery, not in assets.spec.json (README: stay primitives). Same swap path.
    bench: prop("bench", "box", "#c4a574"),
    tree: prop("tree", "cylinder", "#166534"),

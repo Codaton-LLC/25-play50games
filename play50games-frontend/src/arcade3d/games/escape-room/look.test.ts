@@ -14,7 +14,7 @@ import {
    Vector3,
 } from "three";
 import { fitView, setLensShift, type ScreenRect } from "@/arcade3d/core/view";
-import { ASSETS } from "./assets";
+import { ASSETS, BOOK_DRAWN, KEY_DRAWN } from "./assets";
 import { LOOT_AT, createCupboardShell, poseCupboard } from "./cupboard";
 import {
    DESK_HALF_X,
@@ -71,9 +71,9 @@ function fittedCamera(width: number, height: number): PerspectiveCamera {
 
 function addLoot(kind: "book" | "battery"): Mesh {
    const mesh = kind === "book"
-      ? new Mesh(new BoxGeometry(0.22, 0.08, 0.3), new MeshStandardMaterial())
+      ? new Mesh(new BoxGeometry(...BOOK_DRAWN.size), new MeshStandardMaterial())
       : new Mesh(new CylinderGeometry(0.07, 0.07, 0.24, 10), new MeshStandardMaterial());
-   mesh.position.set(0, kind === "book" ? 0.06 : 0.12, 0);
+   mesh.position.set(0, kind === "book" ? BOOK_DRAWN.y : 0.12, 0);
    mesh.name = "loot";
    return mesh;
 }
@@ -129,15 +129,18 @@ describe("escape-room opened cupboard", () => {
 
 type DeskLoot = "key" | "book" | "battery";
 
-/** The loot as Primitives.tsx draws it: the key and book fallbacks, the battery GLB's measured box. */
+/**
+ * The loot as Primitives.tsx draws it: the key and book boxes (their stand-ins, and the group C GLBs
+ * fitted to them: assets.test.ts), the battery GLB's measured box.
+ */
 function deskLoot(kind: DeskLoot): Mesh {
    let mesh: Mesh;
    if (kind === "key") {
-      mesh = new Mesh(new BoxGeometry(0.28, 0.08, 0.12), new MeshStandardMaterial());
-      mesh.position.y = 0.08;
+      mesh = new Mesh(new BoxGeometry(...KEY_DRAWN.size), new MeshStandardMaterial());
+      mesh.position.y = KEY_DRAWN.y;
    } else if (kind === "book") {
-      mesh = new Mesh(new BoxGeometry(0.22, 0.08, 0.3), new MeshStandardMaterial());
-      mesh.position.y = 0.06;
+      mesh = new Mesh(new BoxGeometry(...BOOK_DRAWN.size), new MeshStandardMaterial());
+      mesh.position.y = BOOK_DRAWN.y;
    } else {
       // shared battery.glb: 1.02 x 1.90 x 1.01, standing on y = 0, scaled in assets.ts
       const k = ASSETS.battery.scale ?? 1;

@@ -41,7 +41,7 @@ import {
    type HumanoidLandmarks,
    type HumanoidPose,
 } from "@/arcade3d/core/rig";
-import { ROBOT_LANDMARKS } from "@/arcade3d/core/sharedAssets";
+import { RUNNER_LANDMARKS } from "@/arcade3d/core/sharedAssets";
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { useFittedView, type FittedViewOptions } from "@/arcade3d/core/useFittedView";
 import { useRunFrame } from "@/arcade3d/core/useRunFrame";
@@ -290,8 +290,8 @@ function Litter({ run, fx }: { run: CleanRun; fx: LitterFx }) {
 
 // ---------- runner ----------
 
-/** Robot joints until runner.glb is measured; a later full landmark set on the shared asset replaces them. */
-const RUNNER_LEGS: HumanoidLandmarks = { ...ROBOT_LANDMARKS, ...ASSETS.runner.humanoid?.landmarks };
+/** runner.glb's measured joints (the complete set on the shared asset), in GLB units. */
+const RUNNER_LEGS: HumanoidLandmarks = RUNNER_LANDMARKS;
 /** assets.ts sets it for the drawn height; the stride and the lift are in world units through it. */
 const RUNNER_SCALE = ASSETS.runner.scale ?? 1;
 const MIN_STRIDE = 0.1;
@@ -335,8 +335,8 @@ function poseArm(pose: HumanoidPose, bone: number, drop: number, arm: Group, sid
 
 /**
  * The shared runner: idle when still, a walk whose stride keeps the planted foot still, a short
- * reach on each pickup, and a cheer when a map is cleared. runner.glb is not in the manifest, so
- * the primitive shows and moves with the same pose.
+ * reach on each pickup, and a cheer when a map is cleared. runner.glb (auto-rigged) takes the pose;
+ * the primitive, shown while it loads or if it fails, moves with the same pose.
  */
 function Runner({ run }: { run: CleanRun }) {
    const time = useGameTime();

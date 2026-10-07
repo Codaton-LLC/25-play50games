@@ -2,10 +2,11 @@
 // crossed on the chest), a reach goes out on its own side, a walk swings the legs and arms.
 import { describe, expect, it } from "vitest";
 import { armsDownPose, cheerPose, createPose, idlePose, reachPose, walkPose } from "@/arcade3d/core/rig";
-import { ROBOT_LANDMARKS } from "@/arcade3d/core/sharedAssets";
+import { RUNNER_LANDMARKS } from "@/arcade3d/core/sharedAssets";
 import { armDirection, legDirection, reachSide, type Dir3 } from "./standIn";
 
-const SPREAD = ROBOT_LANDMARKS.armSpread;
+/** the runner's own spread, as Scene.tsx points the stand-in's arms */
+const SPREAD = RUNNER_LANDMARKS.armSpread;
 const d = (): Dir3 => ({ x: 0, y: 0, z: 0 });
 
 describe("escape-room stand-in limbs", () => {
