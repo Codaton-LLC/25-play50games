@@ -227,7 +227,7 @@ export function fillPools(run: TowerRun): boolean {
       slot.id = parent * 2 + 1; slot.index = parent; slot.spurIndex = index; slot.parentIndex = parent;
       slot.baseX = data.spurXs[index] / 1000; slot.y = data.heights[parent] / 1000;
       slot.phaseMs = 0; slot.frozenAtMs = NONE; slot.active = true;
-      slot.warnStartMs = data.warnStarts[index]; slot.deadlineMs = slot.warnStartMs < 0 ? NONE : slot.warnStartMs + 800;
+      slot.warnStartMs = data.warnStarts[index]; slot.deadlineMs = slot.warnStartMs < 0 ? NONE : slot.warnStartMs + SPUR.warningMs;
       slot.collapseMs = data.collapseTimes[index]; slot.state = slot.collapseMs >= 0 ? FALLING : slot.warnStartMs >= 0 ? WARNING : INTACT;
       run.nextSpur++;
    }
@@ -256,12 +256,14 @@ export function fillPools(run: TowerRun): boolean {
    return true;
 }
 
-/** Triangular horizontal motion, and the frozen collision pose after a loss/time-up. */
+const MOVE_HALF_MS = MOVING_SLAB.periodMs / 2, MOVE_SPAN = 2 * MOVING_SLAB.travel;
+
+/** Triangular horizontal motion (±travel, one period), and the frozen collision pose after a loss/time-up. */
 export function slabX(slab: SlabSlot, ms: number): number {
    if (slab.kind !== MOVING) return slab.baseX;
    const t = slab.frozenAtMs >= 0 ? slab.frozenAtMs : ms;
-   const phase = ((t + slab.phaseMs) % 2000) / 1000;
-   return slab.baseX + (phase <= 1 ? -0.2 + 0.4 * phase : 0.6 - 0.4 * phase);
+   const phase = ((t + slab.phaseMs) % MOVING_SLAB.periodMs) / MOVE_HALF_MS;
+   return slab.baseX + (phase <= 1 ? MOVE_SPAN * phase - MOVING_SLAB.travel : MOVING_SLAB.travel - MOVE_SPAN * (phase - 1));
 }
 
 export function landingTime(rise: number, vy = V_JUMP): number {
