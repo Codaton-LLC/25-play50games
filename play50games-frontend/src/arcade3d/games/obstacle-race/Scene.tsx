@@ -21,9 +21,12 @@
 //   useHumanoidPose drives its limbs from the run state (the run cycle by ground covered, the leap,
 //   the beam balance, the flailing tumble, the cheer, the slump). RunnerPrimitive, with its own
 //   swung limbs, stays as the fallback.
+// - The finish arch is the group D GLB fitted to the rules' ARCH (assets.ts), with
+//   FinishArchPrimitive as its fallback.
 import { memo, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { flushSync, useFrame, useThree } from "@react-three/fiber";
-import { Color, type Group, type Matrix4, type Mesh, type MeshStandardMaterial } from "three";
+import { Color, type Group, type Matrix4, type Mesh, type MeshStandardMaterial, type Texture } from "three";
+import { Model } from "@/arcade3d/core/assets";
 import CameraRig from "@/arcade3d/core/CameraRig";
 import { playSfx } from "@/arcade3d/core/audio";
 import { useGameTime } from "@/arcade3d/core/gameTime";
@@ -736,11 +739,21 @@ export default function Scene() {
    const camera = useThree((state) => state.camera);
 
    // Every shader once, now (about 8 ms, behind the start panel or the countdown), not the first time
-   // its object comes into view: the gate banners and flags and the finish checker are off-screen at
+   // its object comes into view: the gate banners and flags and the finish arch are off-screen at
    // the start and would compile mid-run (a 40-140 ms frame on a first visit). compile() walks the
    // whole scene, hidden objects included; on a remount the programs are already cached.
+   // Every texture goes up now too: the finish arch's three 512 px maps (and the gate banners'
+   // canvases) would otherwise upload in the frame their object first comes into view (measured:
+   // a 23-52 ms frame at p 50-53).
    useLayoutEffect(() => {
       gl.compile(scene, camera);
+      scene.traverse((object) => {
+         const material = (object as Mesh).material;
+         if (!material) return;
+         for (const m of Array.isArray(material) ? material : [material]) {
+            for (const value of Object.values(m)) if ((value as Texture | null)?.isTexture) gl.initTexture(value as Texture);
+         }
+      });
    }, [gl, scene, camera]);
 
    return (
@@ -755,10 +768,8 @@ export default function Scene() {
          <Blocks fx={fx} />
          <Beam fx={fx} />
          <CheckpointGates run={run} fx={fx} />
-         {/* drawn from rules.ts ARCH, never a model: the group A GLB does not fit the posts (assets.ts) */}
-         <group position={[0, 0, -LINES.finish]}>
-            <FinishArchPrimitive />
-         </group>
+         {/* the GLB fitted to rules.ts ARCH (legs on the posts, assets.ts); the stand-in if it is missing or broken */}
+         <Model asset={ASSETS.finishArch} position={[0, 0, -LINES.finish]} fallback={<FinishArchPrimitive />} />
          <Runner run={run} fx={fx} />
          <Effects fx={fx} />
       </>
