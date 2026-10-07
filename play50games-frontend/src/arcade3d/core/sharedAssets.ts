@@ -4,7 +4,7 @@
 import type { ModelAsset } from "./types";
 import type { HumanoidLandmarks } from "./rig/humanoid";
 
-export type SharedAssetId = "runner" | "robot" | "battery" | "crate" | "tinCan" | "banana" | "desk" | "chair";
+export type SharedAssetId = "runner" | "robot" | "battery" | "crate" | "tinCan" | "banana" | "desk" | "chair" | "coin";
 
 /** Budgets after `optimize` (platform-plan §4). */
 export const CHARACTER_BUDGET = { tris: 20000, bytes: 1_500_000 } as const;
@@ -171,6 +171,17 @@ export const SHARED_ASSETS: Record<SharedAssetId, ModelAsset> = {
       url: shared("chair"),
       fallback: "box",
       fallbackColor: "#475569",
+      budget: { ...PROP_BUDGET },
+   },
+   // A gold coin with a raised star on both faces (group D, 2026-10-07): 1.899 x 1.861 x 0.492 in
+   // GLB units, standing on its edge on y = 0 (centre at y 0.93), its faces along ±z, about 0.33 deep
+   // at the rim. Like the runner, no default scale: a game spreads it with its own `scale` and,
+   // for a coin placed by its centre, `yOffset` = -scale x 1.861 / 2 (office-escape, tower-climb).
+   coin: {
+      id: "coin",
+      url: shared("coin"),
+      fallback: "cylinder",
+      fallbackColor: "#fbbf24",
       budget: { ...PROP_BUDGET },
    },
 };

@@ -484,9 +484,13 @@ function finishMaterial(finish: Finish): MeshStandardMaterial {
    }
 }
 
+/** The stand-in coin (m): a disc centred on the coin's point, its faces along ±z. ASSETS.coin matches it. */
+export const COIN_STAND_IN = { radius: 0.3, thickness: 0.07 } as const;
+
 export interface StandIns {
    /** stand-in parts per OBSTACLE id */
    obstacles: PropPart[][];
+   /** the coin's stand-in parts: ASSETS.coin's fallback in <InstancedProp> */
    coin: PropPart[];
    glow: PropPart[];
    shadow: PropPart[];
@@ -514,8 +518,8 @@ export function useStandIns(): StandIns {
       };
       const obstacles = OBSTACLE_TYPES.map((o) => OBSTACLE_DEFS[o.name].map(build));
 
-      // coin: a gold disc standing up (axis along z), star on both faces
-      const coinGeo = new CylinderGeometry(0.3, 0.3, 0.07, 24);
+      // coin: a gold disc standing up (axis along z), star on both faces; the coin GLB's fallback
+      const coinGeo = new CylinderGeometry(COIN_STAND_IN.radius, COIN_STAND_IN.radius, COIN_STAND_IN.thickness, 24);
       coinGeo.rotateX(Math.PI / 2);
       const edge = new MeshStandardMaterial({ color: COLORS.coinEdge, roughness: 0.3, metalness: 0.6, emissive: "#b45309", emissiveIntensity: 0.25 });
       const face = new MeshStandardMaterial({ map: coinFace, roughness: 0.3, metalness: 0.45, emissive: "#f59e0b", emissiveIntensity: 0.3 });
