@@ -11,6 +11,7 @@ import ClassicProgressBadge from "@/components/Hub/ClassicProgressBadge";
 import { ARCADE_ENABLED } from "@/arcade3d/flags";
 import { ARCADE_GAMES } from "@/arcade3d/registry";
 import { hubJsonLd, serializeJsonLd } from "@/lib/seo/jsonLd";
+import { OG_IMAGES, ogImage } from "@/lib/seo/ogImages";
 import styles from "./page.module.css";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://play50games.com";
@@ -18,6 +19,7 @@ const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://play50games.com";
 const HUB_TITLE = "Play50Games – classic brain games and a 3D Arcade";
 const HUB_DESCRIPTION =
    "Play 50 classic brain games and earn your certificate, or jump into the 3D Arcade: quick 3D mini-games that each keep their own best score. Free in your browser.";
+const HUB_IMAGE = ogImage(SITE_URL, OG_IMAGES.hub, "Play50Games - classic brain games and a 3D Arcade");
 
 export const metadata: Metadata = {
    title: { absolute: HUB_TITLE },
@@ -32,20 +34,13 @@ export const metadata: Metadata = {
       siteName: "Play50Games",
       title: HUB_TITLE,
       description: HUB_DESCRIPTION,
-      images: [
-         {
-            url: `${SITE_URL}/images/play50games-cover.jpg`,
-            width: 1200,
-            height: 630,
-            alt: "Play50Games - classic brain games and a 3D Arcade",
-         },
-      ],
+      images: [HUB_IMAGE],
    },
    twitter: {
       card: "summary_large_image",
       title: HUB_TITLE,
       description: HUB_DESCRIPTION,
-      images: [`${SITE_URL}/images/play50games-cover.jpg`],
+      images: [HUB_IMAGE.url],
    },
 };
 

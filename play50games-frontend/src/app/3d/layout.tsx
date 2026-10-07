@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { OG_IMAGES, ogImage } from "@/lib/seo/ogImages";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://play50games.com";
 
@@ -6,6 +7,7 @@ const TITLE = "3D Arcade";
 const SOCIAL_TITLE = "3D Arcade | Play50Games";
 const DESCRIPTION =
    "Quick 3D mini-games you can play in your browser with keyboard or touch. No unlocks: pick any game, chase your best score and climb its leaderboard.";
+const IMAGE = ogImage(SITE_URL, OG_IMAGES.arcade, "3D Arcade - Play50Games");
 
 export const metadata: Metadata = {
    title: {
@@ -23,20 +25,13 @@ export const metadata: Metadata = {
       siteName: "Play50Games",
       title: SOCIAL_TITLE,
       description: DESCRIPTION,
-      images: [
-         {
-            url: `${SITE_URL}/images/play50games-cover.jpg`,
-            width: 1200,
-            height: 630,
-            alt: "3D Arcade - Play50Games",
-         },
-      ],
+      images: [IMAGE],
    },
    twitter: {
       card: "summary_large_image",
       title: SOCIAL_TITLE,
       description: DESCRIPTION,
-      images: [`${SITE_URL}/images/play50games-cover.jpg`],
+      images: [IMAGE.url],
    },
 };
 

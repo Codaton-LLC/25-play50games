@@ -1,6 +1,6 @@
 # Open Graph cards
 
-Static social previews for Play50Games. 1200×630 PNG, each at most 200 KB. No trailer. Page metadata is not wired here; Claude adds `openGraph.images` in the C1 files.
+Static social previews for Play50Games. 1200×630 PNG, each at most 200 KB. No trailer. The pages attach them through `play50games-frontend/src/lib/seo/ogImages.ts` (`openGraph.images` + `twitter.images`, absolute URLs on `NEXT_PUBLIC_SITE_URL`); `ogImages.test.ts` fails when a card or a game thumbnail is missing.
 
 Palette is the site one: background `#0b1020`, accent `#7dd3fc`, white text. Type is Segoe UI (Arial if that face is missing). Sharp draws the type through SVG, so a normal Windows font install is enough. The font file is not copied into the repo.
 
@@ -24,7 +24,7 @@ The script writes:
 | `play50games-frontend/public/images/og/arcade.png` | Arcade index. Wordmark `3D Arcade \| Play50Games`. |
 | `play50games-frontend/public/images/og/3d/<slug>.png` | One card per arcade game. |
 
-Game cards place the existing thumbnail `public/images/3d/<slug>.webp` in a rounded frame on the left (cover crop) and the game title plus the wordmark on the right. `clean-city.webp` and `escape-room.webp` are not on `main` yet; if the file is missing, the script reads it from `origin/cursor/game-<slug>-scene`. Tower Climb has no thumbnail, so that card is type and a stack of platforms, not a screenshot.
+Game cards place the in-game thumbnail `public/images/3d/<slug>.webp` (captured by `tools/thumbs`) in a rounded square frame on the left (cover crop: the middle 56% of the 16:9 shot, so keep the hero near the centre of its capture) and the game title plus the wordmark on the right. A missing thumbnail stops the script: capture it first, then regenerate the cards.
 
 PNGs are palette-quantized (128 colours, then fewer if needed) so they stay under 200 KB.
 

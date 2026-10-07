@@ -11,22 +11,31 @@
 //   { down: "ArrowUp" }              key pressed and kept down (released by { up } or after the shot)
 //   { up: "ArrowUp" }                release a key pressed with { down }
 //   { click: [0.5, 0.4] }            mouse tap on the canvas, x/y as fractions of canvas size
+//   { zoom: 1.8, at: [0.5, 0.4] }    frame for the shot, not an action: a canvas-shaped window
+//                                    1/zoom of the canvas around `at` (fractions, kept inside the
+//                                    canvas), zoom 1..2. The desktop camera of a top-down game
+//                                    shows the whole board, so its hero is only 10-25 px tall
+//                                    without it. The hero must end the script inside the window.
 
 export const INPUT_SCRIPTS = {
-   // joystick: drive the robot around; the shot catches it walking
+   // joystick: a short walk up from the start pad, then towards the camera (visor in view)
    "robot-collector": [
-      { hold: "ArrowLeft", ms: 900 },
-      { hold: "ArrowUp", ms: 500 },
-      { down: "ArrowRight" },
-      { wait: 800 },
+      { hold: "ArrowUp", ms: 600 },
+      { hold: "ArrowLeft", ms: 250 },
+      { down: "ArrowDown" },
+      { wait: 400 },
+      { zoom: 2, at: [0.47, 0.44] },
    ],
 
-   // held left / right moves the chef; the shot catches it running for the food
+   // held left / right moves the chef (fast: 9 u/s); let some food fall first, run to the left,
+   // then back right so the shot catches it mid-stride near the middle of the counter (the OG
+   // card keeps only the middle of the shot)
    "food-catcher": [
-      { hold: "ArrowLeft", ms: 500 },
-      { hold: "ArrowRight", ms: 900 },
-      { down: "ArrowLeft" },
-      { wait: 450 },
+      { wait: 1500 },
+      { hold: "ArrowLeft", ms: 450 },
+      { down: "ArrowRight" },
+      { wait: 200 },
+      { zoom: 1.4, at: [0.5, 0.62] },
    ],
 
    // runner (auto-run): change lanes, then the shot lands near the top of a leap (JUMP_MS 700)
@@ -41,15 +50,13 @@ export const INPUT_SCRIPTS = {
    ],
 
    // hop: one hop per arrow press (Space does nothing), ignored during the 3 s road preview
-   // (PREVIEW_MS 3050); the shot lands mid-hop (HOP_MS 550)
+   // (PREVIEW_MS 3050), whose traffic is clear. Wait on the start grass until cars come, then
+   // a sideways hop (still on grass, so never run over); the shot lands mid-hop (HOP_MS 550)
    "pigeon-crossing": [
-      { wait: 3200 },
-      { tap: "ArrowUp" },
-      { wait: 700 },
+      { wait: 8500 },
       { tap: "ArrowLeft" },
-      { wait: 700 },
-      { tap: "ArrowUp" },
-      { wait: 120 },
+      { wait: 150 },
+      { zoom: 1.5, at: [0.47, 0.45] },
    ],
 
    // tap-target: aim with the arrows, Space shoots; the shot lands with the ball in the air
@@ -64,12 +71,12 @@ export const INPUT_SCRIPTS = {
       { wait: 850 },
    ],
 
-   // joystick: weave through the warehouse aisles, walking at the shot
+   // joystick: out of the rack gap and left past the top pallets, walking at the shot
    "warehouse-rush": [
-      { hold: "ArrowUp", ms: 1100 },
-      { hold: "ArrowRight", ms: 600 },
-      { down: "ArrowUp" },
-      { wait: 700 },
+      { hold: "ArrowUp", ms: 400 },
+      { down: "ArrowLeft" },
+      { wait: 350 },
+      { zoom: 1.8, at: [0.45, 0.42] },
    ],
 
    // platformer: run right, jump, come back left and shoot mid-jump
@@ -81,14 +88,15 @@ export const INPUT_SCRIPTS = {
       { wait: 350 },
       { tap: "Space" },
       { wait: 200 },
+      { zoom: 2, at: [0.47, 0.6] },
    ],
 
-   // joystick: sweep the streets for litter, walking at the shot
+   // joystick: up the path from the start pad, then left towards the litter, walking at the shot
    "clean-city": [
-      { hold: "ArrowUp", ms: 900 },
-      { hold: "ArrowLeft", ms: 700 },
-      { down: "ArrowUp" },
-      { wait: 700 },
+      { hold: "ArrowUp", ms: 600 },
+      { down: "ArrowLeft" },
+      { wait: 400 },
+      { zoom: 2, at: [0.43, 0.62] },
    ],
 
    // WASD / arrows walk the runner around the room (a click only inspects a badge)
@@ -97,6 +105,7 @@ export const INPUT_SCRIPTS = {
       { hold: "ArrowRight", ms: 600 },
       { down: "ArrowUp" },
       { wait: 600 },
+      { zoom: 1.6, at: [0.5, 0.52] },
    ],
 
    // platformer: run straight up the course and shoot mid-leap (a sidestep falls into the pool)

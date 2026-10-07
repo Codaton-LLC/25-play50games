@@ -4,10 +4,13 @@ Captures real in-game thumbnails for the 10 3D Arcade games: drives headless
 Chrome over the DevTools protocol (raw `ws`, no puppeteer), declines the cookie
 banner, clicks Play, waits out the 3-2-1 countdown, plays a few seconds with a
 per-game input script (`inputs.mjs`), checks the run is still on (no result
-panel, no pause or error overlay; such a run is played once more), hides every
-HTML overlay above the canvas, screenshots the canvas (1280x720 layout at 2x)
-and post-processes it with sharp (16:9, 640x360, webp, quality tuned so each
-file is <= 60 KB; a blank canvas or an oversized file fails).
+panel, no pause or error overlay, and the shell's Pause button still enabled
+before and after the shot, so a crash inside the result delay is not caught;
+such a run is played once more), hides every HTML overlay above the canvas
+(a style rule, so a panel that mounts late stays hidden too), screenshots the
+canvas (1280x720 layout at 2x, or a `{ zoom }` window of it) and post-processes
+it with sharp (16:9, 640x360, webp, quality tuned so each file is <= 60 KB; a
+blank canvas or an oversized file fails).
 
 ## Setup
 
@@ -57,4 +60,9 @@ ok/fail, KB, path) prints at the end.
 Per-game input scripts live in `inputs.mjs` — one data entry per game, easy to
 tune (tap / hold / down / up / click-at-canvas-fraction / wait steps). The shot
 is taken right after the last step, so end a script on a held key (`down`) or a
-fresh jump to catch the character mid-move.
+fresh jump to catch the character mid-move. A `{ zoom: 1..2, at: [x, y] }` step
+frames the shot on a canvas-shaped window around a point (the desktop camera of
+the top-down games shows the whole board, so the hero is tiny without it); the
+2x screenshot keeps at least one source pixel per output pixel up to zoom 2.
+The Open Graph cards (`tools/og`) crop the middle of each thumbnail to a square,
+so keep the hero near the centre of the shot.

@@ -8,6 +8,7 @@ import { ARCADE_SLUGS, isArcadeSlug } from "@/arcade3d/types";
 import { getGameMeta } from "@/arcade3d/registry";
 import ArcadeGameMount from "@/arcade3d/core/ArcadeGameMount";
 import { gameJsonLd, serializeJsonLd } from "@/lib/seo/jsonLd";
+import { gameOgImagePath, ogImage } from "@/lib/seo/ogImages";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://play50games.com";
 
@@ -35,10 +36,7 @@ export function generateMetadata({ params }: PageProps): Metadata {
 
    const url = `${SITE_URL}/3d/${meta.slug}`;
    const socialTitle = `${meta.title} | 3D Arcade | Play50Games`;
-   const alt = `${meta.title} - 3D Arcade`;
-   const image = meta.thumbnail
-      ? { url: `${SITE_URL}${meta.thumbnail}`, alt }
-      : { url: `${SITE_URL}/images/play50games-cover.jpg`, width: 1200, height: 630, alt };
+   const image = ogImage(SITE_URL, gameOgImagePath(meta.slug), `${meta.title} - 3D Arcade`);
 
    return {
       title: meta.title,

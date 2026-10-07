@@ -1,7 +1,7 @@
 // Builds the static Open Graph cards (1200x630) into play50games-frontend/public/images/og.
 // Sharp is a tool dependency only. Do not add it to play50games-frontend.
 // Run from the repo root: node tools/og/generate.mjs
-import { execFileSync } from "node:child_process";
+// Game cards are built from the in-game thumbnails (public/images/3d/<slug>.webp, tools/thumbs).
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -85,27 +85,6 @@ function gameOverlay(title) {
    `);
 }
 
-function towerArt() {
-   const { x, y, w, h, r } = FRAME;
-   const bars = [
-      [70, 430, 250],
-      [150, 360, 220],
-      [90, 290, 260],
-      [180, 220, 200],
-      [110, 150, 240],
-      [200, 80, 180],
-   ];
-   const platforms = bars.map(([bx, by, bw], i) => {
-      const fill = i % 2 === 0 ? ACCENT : "rgba(255,255,255,0.88)";
-      return `<rect x="${x + bx}" y="${y + by}" width="${bw}" height="16" rx="8" fill="${fill}"/>`;
-   }).join("");
-   return `
-      <rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${r}" fill="#12182c" stroke="rgba(255,255,255,0.12)" stroke-width="2"/>
-      ${platforms}
-      <circle cx="${x + 250}" cy="${y + 64}" r="14" fill="${ACCENT}"/>
-   `;
-}
-
 function hubSvg() {
    return svg(`
       <rect width="${W}" height="${H}" fill="${BG}"/>
@@ -161,9 +140,10 @@ function thumbPath(slug) {
 
 function readThumb(slug) {
    const file = thumbPath(slug);
-   if (existsSync(file)) return readFileSync(file);
-   const ref = `origin/cursor/game-${slug}-scene:play50games-frontend/public/images/3d/${slug}.webp`;
-   return execFileSync("git", ["show", ref], { cwd: ROOT, maxBuffer: 20_000_000 });
+   if (!existsSync(file)) {
+      throw new Error(`${path.relative(ROOT, file)} is missing: capture it first (tools/thumbs/README.md)`);
+   }
+   return readFileSync(file);
 }
 
 async function roundedThumb(input) {
@@ -204,14 +184,11 @@ async function writeCard(name, pixels) {
 }
 
 async function gameCard(game) {
-   const layers = [];
-   if (game.slug === "tower-climb") {
-      layers.push({ input: svg(towerArt()), left: 0, top: 0 });
-   } else {
-      const thumb = await roundedThumb(readThumb(game.slug));
-      layers.push({ input: thumb, left: FRAME.x, top: FRAME.y });
-   }
-   layers.push({ input: gameOverlay(game.title), left: 0, top: 0 });
+   const thumb = await roundedThumb(readThumb(game.slug));
+   const layers = [
+      { input: thumb, left: FRAME.x, top: FRAME.y },
+      { input: gameOverlay(game.title), left: 0, top: 0 },
+   ];
    await writeCard(path.join("3d", `${game.slug}.png`), await flatten(layers));
 }
 
