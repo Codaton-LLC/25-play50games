@@ -15,12 +15,23 @@
 // play size a multicoloured piece in its ring. README "Group C": the user decides on a
 // regeneration), the bag 0.62 x 0.80 x 0.46. Both centred and standing on y = 0 like the
 // stand-ins (sizes.test.ts measures the real GLBs).
+// Decor (2026-10-07, README "Decor around the maps"): the parked cars reuse the pigeon-crossing
+// GLBs (same urls, already in the manifest; no new generation). Their stretch and rotationY are
+// pigeon-crossing's fitted numbers, copied (a game never imports another game's code); the scale is
+// pigeon-crossing's times one size factor, so they stand at life size next to this game's 0.95
+// runner (a 1.75 m person: 1 unit = 1.84 m). decorSpots.test.ts measures the real meshes.
+//   car  pigeon-crossing 1.11 x 1.14 x 2.66 (w x h x l) x 0.82 -> 0.91 x 0.93 x 2.18 (4.0 m long)
+//   taxi 1.16 x 1.29 x 2.95 x 0.82 -> 0.95 x 1.06 x 2.42; van 1.26 x 1.29 x 3.66 x 0.82 -> 1.03 x 1.06 x 3.00
+// The park pigeons are not a GLB: pigeon-crossing's pigeon has 12,000 triangles, 60,000 for the
+// flock of birds a few px tall, so Decor.tsx builds a 600-triangle bird in code (createPigeonParts).
 import type { ModelAsset } from "@/arcade3d/core/types";
 import { CHARACTER_BUDGET, PROP_BUDGET, SHARED_ASSETS } from "@/arcade3d/core/sharedAssets";
 
 const LITTER_SCALE = 0.5;
 /** The shared runner GLB is 1.90 tall: 0.5 draws it 0.95, the README's "about 1 unit". */
 const RUNNER_SCALE = 0.5;
+/** pigeon-crossing's vehicle scales times this: a 4 m car next to the 0.95 runner. */
+const CAR_SIZE = 0.82;
 
 const prop = (id: string, fallback: ModelAsset["fallback"], fallbackColor: string): ModelAsset => ({
    id,
@@ -49,6 +60,20 @@ export const ASSETS = {
    lamp: prop("lamp", "cylinder", "#94a3b8"),
    palm: prop("palm", "cylinder", "#15803d"),
    umbrella: prop("umbrella", "cylinder", "#38bdf8"),
+   // decor (pigeon-crossing's GLBs): parked cars on the city's far street. Long along the GLB's z,
+   // front at +z after rotationY, wheels on y = 0.
+   car: {
+      id: "car", url: "/models/3d/pigeon-crossing/car.glb", scale: 1.4 * CAR_SIZE, stretch: [0.87, 1, 1], rotationY: Math.PI,
+      fallback: "box", fallbackColor: "#f47967", budget: { ...PROP_BUDGET },
+   },
+   taxi: {
+      id: "taxi", url: "/models/3d/pigeon-crossing/taxi.glb", scale: 1.56 * CAR_SIZE, stretch: [0.795, 0.742, 1],
+      fallback: "box", fallbackColor: "#ffd15b", budget: { ...PROP_BUDGET },
+   },
+   van: {
+      id: "van", url: "/models/3d/pigeon-crossing/van.glb", scale: 1.93 * CAR_SIZE, stretch: [0.56, 0.64, 1],
+      fallback: "box", fallbackColor: "#e9edf3", budget: { ...PROP_BUDGET },
+   },
 } satisfies Record<string, ModelAsset>;
 
 /** Drawn litter size the stand-ins are built at (the GLBs reach it through LITTER_SCALE). */
