@@ -612,7 +612,7 @@ function play50_arcade_admin_delete_row() {
 
 ## 13. Curl test suite (prod, test user)
 
-Run it per platform-plan §3 "5.4": backup taken, `php -l` clean, frontend flags off, only `$SLUG` has `enabled:true`, logged in as the dedicated **arcade-test** user.
+Run it per platform-plan §3 "5.4": backup taken, `php -l` clean, frontend flags off, only `$SLUG` has `enabled:true`, logged in as the dedicated **arcade-test** user. After Release 1 the board is live with real players: the flags stay on, the run uses only the arcade-test user, and the cleanup deletes only its rows (below).
 
 Run the maintained suite in `tools/arcade-api-smoke.sh`; its full usage, groups, and budget behavior are documented in [`tools/arcade-api-smoke.md`](../tools/arcade-api-smoke.md). It covers the reads, submit auth, validation, rate limits, privacy, optional time-game, and optional register cases below. Do not run it from Codex against production; Claude runs the live suite after the §3 prerequisites are met.
 
@@ -628,6 +628,13 @@ bash tools/arcade-api-smoke.sh
 
 ### Manual cases (wp-admin + curl)
 
+`$V` is the suite's valid robot-collector submit. Send it with the JWT on stdin, not in argv:
+```bash
+V='{"slug":"robot-collector","score":100,"duration_ms":30000}'
+printf 'header = "Authorization: Bearer %s"\n' "$JWT" |
+   curl -s -K - -X POST "$WP/arcade/scores" -H "Content-Type: application/json" -d "$V"
+```
+
 | Case | Steps | Expected |
 |---|---|---|
 | Banned user | Admin → Arcade Scores → Ban arcade-test → wait 3 s → submit `$V` | 403 `forbidden`; the test user is gone from `GET /arcade/leaderboard/$SLUG`; `/arcade/me` rank is `null` |
@@ -636,6 +643,7 @@ bash tools/arcade-api-smoke.sh
 | Upsert correctness | Submit a higher score, then a lower one (3 s apart) | `best_score` keeps the higher value, `best_at` / `best_duration_ms` belong to the higher run, `plays` +2, `last_score` = the lower one |
 
 ### Cleanup (always)
-1. Admin → Arcade Scores → **Reset game** for `$SLUG` (and `$TIME_SLUG`), then **Clear cache** → all.
+1. Before launch (empty board): Admin → Arcade Scores → **Reset game** for `$SLUG` (and `$TIME_SLUG`), then **Clear cache** → all.
+   Live board (real players, after Release 1): **never Reset game**, it deletes every player's scores. Select `$SLUG` (and `$TIME_SLUG`), **Delete** only the arcade-test rows, then **Clear cache** → all.
 2. `GET /arcade/leaderboard/$SLUG` shows no test rows.
-3. Only then turn the frontend flags on (plan §3 "5.4", step 5).
+3. Before launch only: then turn the frontend flags on (plan §3 "5.4", step 5).

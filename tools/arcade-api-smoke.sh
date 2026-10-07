@@ -44,9 +44,9 @@ if [[ -n $env_file ]]; then
    while IFS= read -r line || [[ -n $line ]]; do
       line=${line%$'\r'}
       [[ $line =~ ^[[:space:]]*(#|$) ]] && continue
-      [[ $line =~ ^[[:space:]]*(KEY|JWT|WP)[[:space:]]*=(.*)$ ]] || stop 'Env file accepts only KEY, JWT and WP assignments.'
-      name=${BASH_REMATCH[1]}
-      value=${BASH_REMATCH[2]}
+      [[ $line =~ ^[[:space:]]*(export[[:space:]]+)?(KEY|JWT|WP)[[:space:]]*=(.*)$ ]] || stop 'Env file accepts only KEY, JWT and WP assignments.'
+      name=${BASH_REMATCH[2]}
+      value=${BASH_REMATCH[3]}
       value=${value#"${value%%[![:space:]]*}"}
       value=${value%"${value##*[![:space:]]}"}
       if [[ ${#value} -ge 2 ]]; then
@@ -93,9 +93,10 @@ printed=0
 wait_for() {
    if [[ $phase == count ]]; then
       case "$1" in 3.2) planned_wait_ms=$((planned_wait_ms + 3200)) ;; 61) planned_wait_ms=$((planned_wait_ms + 61000)) ;; esac
-   elif [[ $phase == dry ]]; then
-      [[ $1 != 61 ]] || say 'WAIT 61 s (fresh per-user submit window)'
-   else
+      return
+   fi
+   [[ $1 != 61 ]] || say 'WAIT 61 s (fresh per-user submit window)'
+   if [[ $phase == live ]]; then
       sleep "$1" || stop 'Wait interrupted.'
    fi
 }
@@ -173,7 +174,10 @@ check() {
       fail=$((fail + 1))
       # No raw body, headers, URL, curl error or credentials, even if the server echoes them.
       [[ $status =~ ^[0-9]{3}$ ]] || status="unknown"
-      say "FAIL $name: HTTP $status; expected $want $code and response pattern"
+      local expected="HTTP $want"
+      [[ $code == - ]] || expected+=" code $code"
+      [[ $pattern == - ]] || expected+=" and a matching $kind"
+      say "FAIL $name: got HTTP $status; expected $expected"
    fi
 }
 
@@ -280,7 +284,8 @@ WP=${WP%/}
 case "$WP" in http://*/play50/v1|https://*/play50/v1) ;; *) stop 'WP must be an HTTP(S) REST base ending in /play50/v1.' ;; esac
 [[ ! $WP =~ [[:space:]] && $WP != *'@'* && $WP != *'?'* && $WP != *'#'* ]] || stop 'WP must not contain credentials, whitespace, query or fragment.'
 [[ $only == register || -n $JWT ]] || stop 'JWT is required.'
-[[ -n $KEY ]] || stop 'KEY is required.'
+# An open gate ignores the key, so KEY may be empty there (no X-API-Key header is sent).
+[[ $gate == open || -n $KEY ]] || stop 'KEY is required with --api-key-gate closed.'
 for program in curl sed grep date sleep mktemp mv mkdir rmdir rm; do command -v "$program" >/dev/null || stop 'Required shell tool is missing.'; done
 
 temp_root=${TMPDIR:-${TEMP:-/tmp}}
