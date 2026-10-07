@@ -318,6 +318,9 @@ const PAGE_STATE_JS = `(() => {
    const visible = (el) => el.getClientRects().length > 0 && getComputedStyle(el).visibility !== "hidden";
    const buttons = [...document.querySelectorAll("button")].filter(visible).map((b) => b.textContent.trim());
    const dialogs = [...document.querySelectorAll('[role="dialog"]')].filter(visible).map((d) => d.getAttribute("aria-label") || "");
+   // the shell's Pause button is enabled only while the run is counting down or playing: it turns
+   // off the moment the run ends, while the scene still plays its crash for the result delay
+   const pause = document.querySelector('button[aria-label="Pause game"]');
    return {
       ready: document.readyState === "complete",
       path: location.pathname.replace(/\\/+$/, ""),
@@ -325,6 +328,7 @@ const PAGE_STATE_JS = `(() => {
       play: buttons.includes("Play"),
       retry: buttons.includes("Retry"),
       countdown: !!document.querySelector('[role="status"][aria-live="assertive"]'),
+      running: !!pause && !pause.disabled,
       dialogs,
    };
 })()`;
@@ -344,15 +348,16 @@ const CLICK_BUTTON_JS = (label) => `(() => {
 // The largest canvas is the game view (helpers may create small ones).
 const GAME_CANVAS_JS = `[...document.querySelectorAll("canvas")].sort((a, b) => b.width * b.height - a.width * a.height)[0]`;
 
+// A style rule (not inline styles on today's nodes), so an overlay that mounts after this call,
+// such as a late result panel, is hidden too.
 const HIDE_OVERLAYS_JS = `(() => {
    const canvas = ${GAME_CANVAS_JS};
    if (!canvas) return false;
-   const keep = new Set();
    let el = canvas;
-   while (el) { keep.add(el); el = el.parentElement; }
-   document.querySelectorAll("body *").forEach((n) => {
-      if (!keep.has(n)) n.style.setProperty("visibility", "hidden", "important");
-   });
+   while (el) { el.setAttribute("data-thumb-keep", ""); el = el.parentElement; }
+   const style = document.createElement("style");
+   style.textContent = "body *:not([data-thumb-keep]) { visibility: hidden !important; }";
+   document.head.appendChild(style);
    document.documentElement.style.background = "#000";
    document.body.style.background = "#000";
    return true;
@@ -396,13 +401,42 @@ async function mouseTap(cdp, sessionId, x, y) {
    }
 }
 
+/** Checks a { zoom, at } frame step: zoom 1..2 (the 2x screenshot keeps >= 1 source px per output px). */
+function checkFrame(slug, step) {
+   const { zoom, at = [0.5, 0.5] } = step;
+   const fraction = (v) => typeof v === "number" && v >= 0 && v <= 1;
+   if (typeof zoom !== "number" || !(zoom >= 1 && zoom <= 2) || !Array.isArray(at) || at.length !== 2 || !at.every(fraction)) {
+      throw new FatalError(`${slug}: bad frame step ${JSON.stringify(step)} in inputs.mjs (zoom 1..2, at [x, y] in 0..1)`);
+   }
+   return { zoom, at };
+}
+
+/** The screenshot clip: the whole canvas, or a canvas-shaped window zoomed around frame.at (kept inside). */
+function shotClip(rect, frame) {
+   if (!frame) return { x: rect.x, y: rect.y, width: rect.width, height: rect.height, scale: 1 };
+   const width = rect.width / frame.zoom;
+   const height = rect.height / frame.zoom;
+   const clamp = (v, lo, hi) => Math.min(Math.max(v, lo), hi);
+   return {
+      x: clamp(rect.x + rect.width * frame.at[0] - width / 2, rect.x, rect.x + rect.width - width),
+      y: clamp(rect.y + rect.height * frame.at[1] - height / 2, rect.y, rect.y + rect.height - height),
+      width,
+      height,
+      scale: 1,
+   };
+}
+
 // Runs the per-game input script after the countdown. Keys pressed with { down } stay held
-// (so the shot catches the character mid-move); they are returned for release after the shot.
+// (so the shot catches the character mid-move); they are returned for release after the shot,
+// with the { zoom } frame for the shot (null = the whole canvas).
 async function playScript(cdp, sessionId, slug, rect) {
    const steps = INPUT_SCRIPTS[slug] ?? [];
    const held = new Set();
+   let frame = null;
    for (const step of steps) {
-      if (step.wait) {
+      if (step.zoom !== undefined) {
+         frame = checkFrame(slug, step);
+      } else if (step.wait) {
          await sleep(step.wait);
       } else if (step.tap) {
          await keyEvent(cdp, sessionId, "rawKeyDown", step.tap);
@@ -429,7 +463,7 @@ async function playScript(cdp, sessionId, slug, rect) {
          throw new FatalError(`${slug}: unknown step ${JSON.stringify(step)} in inputs.mjs`);
       }
    }
-   return held;
+   return { held, frame };
 }
 
 // --- One game ---------------------------------------------------------------
@@ -474,23 +508,26 @@ async function captureGame(cdp, sessionId, slug) {
 
    const rect = await evaluate(cdp, sessionId, CANVAS_RECT_JS);
    if (!rect || rect.width < 100 || rect.height < 100) throw new Error("no game canvas on the page");
-   const held = await playScript(cdp, sessionId, slug, rect);
+   const { held, frame } = await playScript(cdp, sessionId, slug, rect);
 
-   // The run must still be on: no result panel, no pause / error overlay.
+   // The run must still be on: no result panel, no pause / error overlay, and not inside the
+   // result delay after a crash (the Pause button turns off as soon as the run ends).
    const s = await state();
-   if (s.retry) throw new Error("the run ended before the shot (tune inputs.mjs)");
+   if (s.retry || !s.running) throw new Error("the run ended before the shot (tune inputs.mjs)");
    const bad = badDialog(s);
    if (bad) throw new Error(`the game shows "${bad}" at the shot`);
 
-   // Hide every HTML overlay above the canvas and shoot just the canvas.
+   // Hide every HTML overlay above the canvas and shoot just the canvas (or the zoom frame).
    await evaluate(cdp, sessionId, HIDE_OVERLAYS_JS);
    await sleep(120);
    const shotRect = await evaluate(cdp, sessionId, CANVAS_RECT_JS);
    const shot = await cdp.send("Page.captureScreenshot", {
       format: "png",
-      clip: { x: shotRect.x, y: shotRect.y, width: shotRect.width, height: shotRect.height, scale: 1 },
+      clip: shotClip(shotRect, frame),
    }, sessionId);
    for (const key of held) await keyEvent(cdp, sessionId, "keyUp", key);
+   // a run that ended while the overlays were being hidden shows its crash, not play
+   if (!(await state()).running) throw new Error("the run ended at the shot (tune inputs.mjs)");
    const png = Buffer.from(shot.data, "base64");
 
    // A WebGL canvas that did not draw comes out as one flat colour.
