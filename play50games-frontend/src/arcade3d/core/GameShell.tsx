@@ -8,6 +8,8 @@
 // When a run ends, the score is submitted at once, but the scene (and the HUD) stay on screen for
 // the game's result delay (GameDefinition.resultDelayMs, default 800 ms) before the result panel
 // appears, so a crash or a win animation can be seen.
+// Overlays (ShellOverlays.tsx) stay inside the free area above the cookie banner, open scrolled to
+// the top and focus their first button without scrolling (overlayFocus.ts, never autoFocus).
 import {
    useCallback,
    useEffect,
@@ -15,13 +17,12 @@ import {
    useState,
    useSyncExternalStore,
    type CSSProperties,
-   type ReactNode,
    type RefObject,
 } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useProgress } from "@react-three/drei";
-import { ArrowLeftIcon, PauseIcon, SpeakerWaveIcon, SpeakerXMarkIcon } from "@heroicons/react/24/solid";
+import { PauseIcon, SpeakerWaveIcon, SpeakerXMarkIcon } from "@heroicons/react/24/solid";
 import type { ArcadeGameMeta } from "../types";
 import type { GameDefinition, GameShellProps, RunState } from "./types";
 import { arcadeStore, useArcadeStore } from "./useArcadeStore";
@@ -33,7 +34,9 @@ import ErrorBoundary from "./ErrorBoundary";
 import { assetUrls, clearModelCache } from "./assets";
 import { initAudio, playSfx, toggleMuted, useMuted } from "./audio";
 import { trackArcade } from "./analytics";
-import { useLeaderboard, type LeaderboardState } from "./useLeaderboard";
+import { useLeaderboard } from "./useLeaderboard";
+import { FocusButton, LeaderboardBlock, Overlay, StartCard } from "./ShellOverlays";
+import { focusWithoutScroll } from "./overlayFocus";
 import {
    isRankedRun,
    normalizeRun,
@@ -49,8 +52,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import { getJwtToken } from "@/lib/api/apiUtils";
 import LoginModal from "@/components/Auth/LoginModal";
 import RegisterModal from "@/components/Auth/RegisterModal";
-import BestScoreBadge from "../ui/BestScoreBadge";
-import LeaderboardTable from "../ui/LeaderboardTable";
 import ResultPanel from "../ui/ResultPanel";
 import styles from "./GameShell.module.css";
 
@@ -104,14 +105,6 @@ const clock = (ms: number) => {
 };
 
 // ---------- overlays ----------
-
-function Overlay({ children, label, className }: { children: ReactNode; label: string; className?: string }) {
-   return (
-      <div className={`${styles.overlay} ${className ?? ""}`} role="dialog" aria-modal="true" aria-label={label}>
-         <div className={styles.panel}>{children}</div>
-      </div>
-   );
-}
 
 function LoadingOverlay({ title }: { title: string }) {
    const { progress, active } = useProgress();
@@ -234,78 +227,6 @@ function Hud({
             </button>
          </div>
       </div>
-   );
-}
-
-function LeaderboardBlock({ leaderboard, meta }: { leaderboard: LeaderboardState; meta: ArcadeGameMeta }) {
-   if (!leaderboard.enabled) return null;
-   return (
-      <section className={styles.leaderboard} aria-label={`${meta.title} top 10`}>
-         <h2 className={styles.sectionTitle}>Top 10</h2>
-         <LeaderboardTable
-            entries={leaderboard.data?.entries ?? []}
-            me={leaderboard.data?.me ?? null}
-            loading={leaderboard.loading}
-            error={leaderboard.error}
-            scoring={meta.scoring}
-            onRetry={leaderboard.retry}
-         />
-      </section>
-   );
-}
-
-function StartScreen({
-   meta,
-   definition,
-   coarse,
-   exitHref,
-   leaderboard,
-   onPlay,
-}: {
-   meta: ArcadeGameMeta;
-   definition: GameDefinition;
-   coarse: boolean;
-   exitHref: string;
-   leaderboard: LeaderboardState;
-   onPlay: () => void;
-}) {
-   return (
-      <Overlay label={`${meta.title}: start`}>
-         <Link href={exitHref} className={styles.backLink}>
-            <ArrowLeftIcon aria-hidden="true" /> 3D Arcade
-         </Link>
-         <h1 className={styles.title}>{meta.title}</h1>
-         <p className={styles.tagline}>{meta.tagline}</p>
-
-         {definition.instructions.length > 0 && (
-            <ul className={styles.instructions}>
-               {definition.instructions.map((line) => (
-                  <li key={line}>{line}</li>
-               ))}
-            </ul>
-         )}
-
-         <dl className={styles.controls}>
-            <div className={coarse ? styles.controlDim : undefined}>
-               <dt>Keyboard</dt>
-               <dd>{meta.controls.keyboard}. Esc or P pauses.</dd>
-            </div>
-            <div className={coarse ? undefined : styles.controlDim}>
-               <dt>Touch</dt>
-               <dd>{meta.controls.touch}</dd>
-            </div>
-         </dl>
-
-         <div className={styles.best}>
-            <BestScoreBadge slug={meta.slug} />
-         </div>
-
-         <button type="button" className={styles.primary} onClick={onPlay} autoFocus>
-            Play
-         </button>
-
-         <LeaderboardBlock leaderboard={leaderboard} meta={meta} />
-      </Overlay>
    );
 }
 
@@ -513,9 +434,10 @@ export default function GameShell({ meta, definition, exitHref = "/3d" }: GameSh
       if (wrongOrientation) pause();
    }, [wrongOrientation, pause]);
 
-   // result screen: move focus into it for keyboard and screen-reader users (once it appears)
+   // result screen: move focus into it for keyboard and screen-reader users (once it appears),
+   // without scrolling it away from its title
    useEffect(() => {
-      if (resultShown) resultRef.current?.focus();
+      if (resultShown) focusWithoutScroll(resultRef.current);
    }, [resultShown]);
 
    const onContextLost = useCallback(() => {
@@ -634,7 +556,7 @@ export default function GameShell({ meta, definition, exitHref = "/3d" }: GameSh
                {!stageFailed && (phase === "loading" || webgl === "checking") && <LoadingOverlay title={meta.title} />}
 
                {!stageFailed && phase === "ready" && webgl === "ok" && (
-                  <StartScreen
+                  <StartCard
                      meta={meta}
                      definition={definition}
                      coarse={coarse}
@@ -650,14 +572,9 @@ export default function GameShell({ meta, definition, exitHref = "/3d" }: GameSh
                   <Overlay label="Paused">
                      <h1 className={styles.title}>Paused</h1>
                      <div className={styles.actions}>
-                        <button
-                           type="button"
-                           className={styles.primary}
-                           onClick={() => arcadeStore.getState().resume()}
-                           autoFocus
-                        >
+                        <FocusButton className={styles.primary} onClick={() => arcadeStore.getState().resume()}>
                            Resume
-                        </button>
+                        </FocusButton>
                         <button type="button" className={styles.secondary} onClick={() => arcadeStore.getState().restart()}>
                            Restart
                         </button>
@@ -669,8 +586,9 @@ export default function GameShell({ meta, definition, exitHref = "/3d" }: GameSh
                   </Overlay>
                )}
 
+               {/* ResultPanel's own overlay fills .resultWrap, which ends above the cookie banner */}
                {!stageFailed && resultShown && outcome && (
-                  <div className={styles.overlay}>
+                  <div className={styles.resultLayer}>
                      <div ref={resultRef} className={styles.resultWrap} tabIndex={-1}>
                         <ResultPanel
                            title={END_TITLES[endReason ?? "lose"] ?? "Game over"}
@@ -701,9 +619,9 @@ export default function GameShell({ meta, definition, exitHref = "/3d" }: GameSh
                      <h1 className={styles.title}>Something went wrong</h1>
                      <p className={styles.tagline}>The game stopped unexpectedly. You can try again.</p>
                      <div className={styles.actions}>
-                        <button type="button" className={styles.primary} onClick={retryStage} autoFocus>
+                        <FocusButton className={styles.primary} onClick={retryStage}>
                            Try again
-                        </button>
+                        </FocusButton>
                         <button type="button" className={styles.secondary} onClick={exit}>
                            Exit
                         </button>
@@ -727,9 +645,9 @@ export default function GameShell({ meta, definition, exitHref = "/3d" }: GameSh
                      <p className={styles.tagline}>
                         Your device paused the graphics (this can happen when memory runs low). Reload to keep playing.
                      </p>
-                     <button type="button" className={styles.primary} onClick={() => window.location.reload()} autoFocus>
+                     <FocusButton className={styles.primary} onClick={() => window.location.reload()}>
                         Tap to reload
-                     </button>
+                     </FocusButton>
                   </Overlay>
                )}
             </InputProvider>

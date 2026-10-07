@@ -27,6 +27,14 @@ Owned by Claude. Games import from here and never edit it. If a game needs somet
 - GameShell hands the delay to the store with `configure({ durationMs, lives, resultDelayMs })` (resolved by `resultDelayFor`, kept in `config.resultDelayMs`). It is counted in rendered frames (the store's `overMs`, advanced by the run clock, each frame at most 50 ms), and the count stops at the delay, so the result screen causes no store update per frame. Pause cannot interrupt it (an ended run cannot be paused), and a hidden tab renders no frames, so the delay simply waits for the player to come back. Retry and Exit appear with the panel.
 - Pure, for tests: `resultDelayFor(definition)` and `isResultShown(state)` (`frameLoop.ts`, reads `state.config.resultDelayMs`), driven with `advanceRunClock` on a store configured with `resultDelayMs` (`frameLoop.test.ts`).
 
+## Shell overlays: start card, pause, result
+
+- Every overlay (`ShellOverlays.tsx` `Overlay`: start, pause, error, rotate, context lost) keeps its panel inside the free area: the overlay's padding clears the notch and the cookie banner (`--arcade-bottom-obstruction`), and the panel is at most that tall (`max-height: 100%`) and scrolls inside itself. A button is never under the banner, and the panel's frame stays whole.
+- The start card (`StartCard`) opens scrolled to the top, title first. Its Play button sits in a sticky bar: on a short screen (a landscape phone, a portrait phone under the banner) Play stays pinned to the bottom of the card while the rest scrolls; where everything fits it sits in place, before the top 10.
+- First focus goes through `FocusButton` / `focusWithoutScroll` (`overlayFocus.ts`), never `autoFocus`: a plain `focus()` scrolls the overlay to the button (a landscape phone opened the start card ~300 px down). `ShellOverlays.test.ts` fails on `autoFocus` or a bare `.focus()` in `core/`.
+- Short screens (`max-height: 520px`): a tighter card, only this device's control row, and the pause / error buttons in one row.
+- The result: ResultPanel (`ui/`) lays its own scrolling overlay over `.resultWrap`, which ends above the banner (and the safe-area insets).
+
 ## Input events
 
 `useInput().current` (read in `useRunFrame`) has held input and one-frame events. Held input (`moveX`, `moveY`, `jump`, `action`, `pointer`) is sampled once per frame. One-frame events are latched when they happen and published on the next frame, so **none is ever lost**, however short:
