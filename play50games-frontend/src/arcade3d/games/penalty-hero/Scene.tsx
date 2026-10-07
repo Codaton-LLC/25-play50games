@@ -22,16 +22,16 @@ import {
 } from "three";
 import CameraRig from "@/arcade3d/core/CameraRig";
 import { playSfx } from "@/arcade3d/core/audio";
-import type { AABB } from "@/arcade3d/core/collision";
 import { useGameTime } from "@/arcade3d/core/gameTime";
 import { useInput } from "@/arcade3d/core/input";
 import { randomSeed } from "@/arcade3d/core/math";
 import { BlobShadow } from "@/arcade3d/core/render";
 import { BONE, HumanoidModel, blendPoses, createPose, idlePose, turnBone, useHumanoidPose, walkPose } from "@/arcade3d/core/rig";
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
-import { useFittedView, type FittedViewOptions } from "@/arcade3d/core/useFittedView";
+import { useFittedView } from "@/arcade3d/core/useFittedView";
 import { useRunFrame } from "@/arcade3d/core/useRunFrame";
 import { ASSETS } from "./assets";
+import { CAMERA_FOV, CAMERA_LOOK_AT, PENALTY_VIEW } from "./camera";
 import { FEEDBACK } from "./Hud";
 import {
    BACKSWING_FROM,
@@ -69,27 +69,6 @@ import {
    type StepInput,
    type ZoneId,
 } from "./rules";
-
-const FOV = 40;
-const LOOK_AT: [number, number, number] = [0, 1.22, 0];
-/** README camera: (0, 4, 20) looking at the goal centre. The fit only ever moves it further back. */
-const PITCH = Math.atan2(4 - LOOK_AT[1], 20);
-const MIN_DISTANCE = Math.hypot(4 - LOOK_AT[1], 20);
-/** The goal guard box: the opening plus 0.4 m for the frame, net and the keeper's dive. */
-const GOAL_BOX: AABB = {
-   min: { x: -4.06, y: -0.4, z: 0 },
-   max: { x: 4.06, y: 2.84, z: 0 },
-};
-const VIEW: FittedViewOptions = {
-   area: GOAL_BOX,
-   pitch: PITCH,
-   yaws: [0],
-   focus: [{ x: LOOK_AT[0], y: LOOK_AT[1], z: LOOK_AT[2] }],
-   fov: FOV,
-   padding: 10,
-   shift: true,
-   minDistance: MIN_DISTANCE,
-};
 
 const KEEPER_HIP = 0.95;
 const DIVE_ROLL = (65 * Math.PI) / 180;
@@ -495,7 +474,7 @@ function Keeper({ run }: { run: RunState }) {
 }
 
 export default function Scene() {
-   const view = useFittedView(VIEW);
+   const view = useFittedView(PENALTY_VIEW);
    const [run] = useState<ViewRun>(() =>
       Object.assign(createRun(randomSeed()), { lastShots: 0, aimLeft: 0, goalMask: 0 })
    );
@@ -516,9 +495,9 @@ export default function Scene() {
          <Simulation run={run} scratch={scratch} />
          <CameraRig
             camera={{
-               position: [LOOK_AT[0] + view.offset[0], LOOK_AT[1] + view.offset[1], LOOK_AT[2] + view.offset[2]],
-               fov: FOV,
-               lookAt: LOOK_AT,
+               position: [CAMERA_LOOK_AT[0] + view.offset[0], CAMERA_LOOK_AT[1] + view.offset[1], CAMERA_LOOK_AT[2] + view.offset[2]],
+               fov: CAMERA_FOV,
+               lookAt: CAMERA_LOOK_AT,
             }}
             offset={view.offset}
             shift={view.shift}
