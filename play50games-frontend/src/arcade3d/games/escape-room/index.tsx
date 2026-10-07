@@ -1,16 +1,30 @@
 "use client";
 
-// Stub until the game is built. Owner: codex. Replace PlaceholderScene with ./Scene.
+// Tiny Escape Room: the GameDefinition GameShell runs. Time game. The shell owns the clock,
+// the result and the submit. Found is the only shell stat. Status stays "soon".
 import type { GameDefinition } from "@/arcade3d/core/types";
-import { PlaceholderScene } from "@/arcade3d/core/PlaceholderScene";
+import Scene from "./Scene";
+import Checklist from "./Hud";
+import { ASSETS } from "./assets";
+import { DURATION_MS } from "./rules";
 
 const definition: GameDefinition = {
    slug: "escape-room",
-   Scene: PlaceholderScene,
-   assets: {},
-   camera: { position: [0, 6, 10], fov: 50, lookAt: [0, 0, 0] },
-   touchControls: ["joystick","tap"],
-   instructions: ["Find every item on the list.","Then open the door. Faster is better."],
+   Scene,
+   Hud: Checklist,
+   assets: ASSETS,
+   durationMs: DURATION_MS,
+   // first frame only: Scene's CameraRig fits the room at yaw 30°, clear of the HUD,
+   // the checklist, the joystick and the cookie banner
+   camera: { position: [4, 14, 12], fov: 45, lookAt: [0, 0.5, 0] },
+   environment: { background: "#c5d4e8", lighting: "indoor" },
+   touchControls: ["joystick", "tap"],
+   hudStats: [{ key: "found", label: "Found", max: 3 }],
+   instructions: [
+      "Open containers, take all three items, then open the door.",
+      "Walk with WASD or arrows. Click a yellow marker, or press E, when you are close.",
+      "Faster escapes rank higher. You have 10 minutes.",
+   ],
 };
 
 export default definition;

@@ -74,12 +74,24 @@ describe("tower-climb approved tuning and input", () => {
       advance(run, 349, { moveX: 1, jumpEdge: true });
       expect(run.player.y).toBe(0); expect(run.launches).toBe(0); expect(run.score).toBe(0);
       tower.step(run, 1, idle); expect(run.bufferUntilMs).toBe(tower.NONE);
+      // The press buffered at 300 ms (deadline 420) must not launch by itself at the 350 ms unlock.
+      expect(run.holdUnlocked).toBe(true); expect(run.launches).toBe(0);
+      expect(run.events.jumped).toBe(false); expect(run.lastJumpMs).toBe(tower.NONE);
       run.player.x = 0;
       tower.step(run, 1, { moveX: 0, jumpEdge: true });
       expect(run.lastJumpMs).toBe(350); expect(run.launches).toBe(1);
       advance(run, 399);
       expect(run.player.y).toBeCloseTo(0.8, 10); expect(run.player.vy).toBeCloseTo(0, 10);
       expect(run.maxHeight).toBeCloseTo(0.8, 10);
+   });
+
+   it("a single frame across the hold unlock throws away the press buffered during the hold", () => {
+      const run = tower.createRun(1);
+      advance(run, 340, { moveX: 0, jumpEdge: true }); expect(run.bufferUntilMs).toBe(420);
+      tower.step(run, 50, idle);
+      expect(run.timeMs).toBe(390); expect(run.holdUnlocked).toBe(true); expect(run.bufferUntilMs).toBe(tower.NONE);
+      expect(run.launches).toBe(0); expect(run.events.jumped).toBe(false); expect(run.lastJumpMs).toBe(tower.NONE);
+      expect(run.player.grounded).toBe(true); expect(run.player.y).toBe(0);
    });
 });
 
@@ -116,7 +128,7 @@ describe("tower-climb generated permanent route", () => {
             const rise = (data.heights[i] - data.heights[i - 1]) / 1000;
             const seconds = (4 + Math.sqrt(16 - 20 * rise)) / 10;
             const worstShift = Math.abs(data.xs[i] - data.xs[i - 1]) / 1000
-               + (data.kinds[i] === 1 ? 0.2 : 0) + (data.kinds[i - 1] === 1 ? 0.2 : 0);
+               + (data.kinds[i] === 1 ? tower.MOVING_SLAB.travel : 0) + (data.kinds[i - 1] === 1 ? tower.MOVING_SLAB.travel : 0);
             if (rise < 0.45 || rise > 0.55 || Math.abs(data.xs[i]) > 1000 || data.xs[i] % 100
                || Math.abs(data.xs[i] - data.xs[i - 1]) > 1000 || worstShift > 3 * seconds - 0.47)
                throw new Error(`Unreachable link ${seed}:${i}`);
@@ -147,6 +159,43 @@ describe("tower-climb generated permanent route", () => {
       }
       expect(moving).toBeGreaterThan(1000000); expect(spurs).toBeGreaterThan(100000);
       expect(left).toBeGreaterThan(100000); expect(right).toBeGreaterThan(100000);
+   });
+
+   it("moving slabs travel exactly ±0.20 m at 0.40 m/s over a 2000 ms triangle, as the reach proof assumes", () => {
+      const slot: tower.SlabSlot = { id: 2, index: 1, baseX: 0.3, y: 0.5, width: 1.4, kind: tower.MOVING,
+         phaseMs: 0, active: true, frozenAtMs: tower.NONE };
+      const shifted: tower.SlabSlot = { ...slot, phaseMs: 500 };
+      let low = Infinity, high = -Infinity, speed = 0, halfPeriodDiffers = false;
+      for (let ms = 0; ms < 4000; ms++) {
+         const x = tower.slabX(slot, ms), offset = x - slot.baseX;
+         low = Math.min(low, offset); high = Math.max(high, offset);
+         speed = Math.max(speed, Math.abs(tower.slabX(slot, ms + 1) - x) * 1000);
+         expect(tower.slabX(slot, ms + tower.MOVING_SLAB.periodMs)).toBeCloseTo(x, 12);
+         expect(tower.slabX(shifted, ms)).toBeCloseTo(tower.slabX(slot, ms + 500), 12);
+         if (Math.abs(tower.slabX(slot, ms + tower.MOVING_SLAB.periodMs / 2) - x) > 0.1) halfPeriodDiffers = true;
+      }
+      expect(high).toBeCloseTo(tower.MOVING_SLAB.travel, 12); expect(low).toBeCloseTo(-tower.MOVING_SLAB.travel, 12);
+      expect(speed).toBeCloseTo(tower.MOVING_SLAB.speed, 9); expect(halfPeriodDiffers).toBe(true);
+      expect(tower.slabX({ ...slot, kind: tower.STATIC }, 1234)).toBe(slot.baseX);
+   });
+
+   it("depends on its seed and keeps one pinned layout per seed (generator and decoration streams)", () => {
+      const fnv = (data: tower.Tower): number => {
+         let hash = 0x811c9dc5;
+         for (const table of [data.heights, data.xs, data.kinds, data.phases, data.spurXs]) {
+            const bytes = new Uint8Array(table.buffer, table.byteOffset, table.byteLength);
+            for (let i = 0; i < bytes.length; i++) hash = Math.imul(hash ^ bytes[i], 0x01000193);
+         }
+         return hash >>> 0;
+      };
+      const one = tower.generateTower(1), two = tower.generateTower(2);
+      expect(Buffer.compare(Buffer.from(one.heights.buffer), Buffer.from(two.heights.buffer))).not.toBe(0);
+      expect(fnv(one)).not.toBe(fnv(two));
+      expect(one.spurCount).toBe(603); expect(fnv(one)).toBe(3101616858);
+      expect(tower.generateTower(5050).spurCount).toBe(585); expect(fnv(tower.generateTower(5050))).toBe(1736415414);
+      const deco = { s: (1 ^ 0x9e3779b9) >>> 0 };
+      for (let block = 0; block < 3; block++) expect(one.decoration[block]).toBe(Math.floor(rngNext(deco) * 2 ** 32));
+      expect(one.decoration[0]).toBe(814657751);
    });
 
    it("is deterministic at uint32 extremes; rejected rise/shift/prop/spur mutations cannot pass validation", () => {
@@ -222,6 +271,25 @@ describe("tower-climb swept support, coyote and buffer", () => {
       descending(run, 0.5); tower.step(run, 1, idle);
       expect(run.events.landed).toBe(index * 2); expect(run.player.grounded).toBe(true);
       expect(run.player.x).toBeCloseTo(tower.slabX(slab, 4001) - 0.92 + 0.00001, 12);
+   });
+
+   it("a sideways-moving runner is tested at its own crossing x, not at the slice end", () => {
+      const run = standAt(1); run.player.x = run.slabs[1].baseX + 0.918;
+      descending(run, 0.5); const before = run.timeMs;
+      // Crossing at +0.5 ms: x = +0.9195 overlaps (< 0.92); the slice end +0.921 would not.
+      tower.step(run, 1, { moveX: 1, jumpEdge: false });
+      expect(run.events.landed).toBe(2); expect(run.permission).toBe(true);
+      expect(run.player.x).toBeCloseTo(run.slabs[1].baseX + 0.921, 12);
+      expect(run.player.grounded).toBe(false); expect(run.coyoteUntilMs).toBe(before + 1 + 100);
+   });
+
+   it("a checkpoint is announced on its first landing only", () => {
+      const run = standAt(16, 0);
+      descending(run, 0.5); tower.step(run, 1, idle);
+      expect(run.events.landed).toBe(32); expect(run.events.checkpoint).toBe(1); expect(run.tower.flagSeen[1]).toBe(1);
+      advance(run, 500); expect(run.events.checkpoint).toBe(tower.NONE);
+      descending(run, 0.5); tower.step(run, 1, idle);
+      expect(run.events.landed).toBe(32); expect(run.events.checkpoint).toBe(tower.NONE);
    });
 
    it("the 400 ms guard cannot be bypassed by buffered landing or coyote", () => {
@@ -362,6 +430,18 @@ describe("tower-climb score proof and recycled pools", () => {
       advance(run, 500); expect(run.score).toBe(220);
    });
 
+   it("the coin pickup reach is 0.52 m from the pickup centre (feet + 0.275) to the coin's draw position", () => {
+      // Feet on the 8 m ledge: dy = 8 + 0.275 - 8.3 = -0.025, so the horizontal limit is sqrt(0.52² - 0.025²) ≈ 0.51940.
+      for (const [d, collected] of [[0, 1], [0.519, 1], [0.5197, 0], [0.521, 0], [0.6, 0]] as const) {
+         const run = standAt(16), coin = run.coins[1];
+         expect(coin.id).toBe(1); expect(coin.active).toBe(true);
+         run.player.x = coin.x - Math.sign(coin.x) * d;
+         tower.step(run, 1, idle);
+         expect(run.player.grounded).toBe(true); expect(run.collectedCoins).toBe(collected);
+         expect(run.tower.coinTaken[1]).toBe(collected);
+      }
+   });
+
    it("fixed slot/event identities survive the whole tower; missed coins never respawn and live targets cannot recycle", () => {
       const run = tower.createRun(21), slabs = run.slabs.slice(), spurs = run.spurs.slice(), coins = run.coins.slice();
       const flags = run.flags.slice(), sections = run.sections.slice(), events = run.events;
@@ -425,6 +505,24 @@ describe("tower-climb integer clock, loss latch and drawn-only poses", () => {
       expect(tower.posedMs(run, visual, "over", 50.8)).toBeCloseTo(1800800);
       expect(tower.debrisDrop(-5)).toBe(0); expect(tower.debrisDrop(1000)).toBe(3);
       expect(tower.debrisDrop(1800)).toBeCloseTo(7.8);
+   });
+
+   it("time-up freezes moving slabs, so a runner on one stays on it through the result delay", () => {
+      const index = tower.generateTower(5050).kinds.findIndex(k => k === tower.MOVING);
+      const run = standAt(index), slab = run.slabs[index % 32];
+      run.timeMs = 1799990; run.player.x = tower.slabX(slab, run.timeMs);
+      const x0 = tower.slabX(slab, run.timeMs), p = { ...run.player };
+      tower.step(run, 50, idle);
+      expect(run.ended).toBe("timeup"); expect(run.timeMs).toBe(1800000); expect(slab.frozenAtMs).toBe(1799990);
+      expect(tower.slabX(slab, run.timeMs)).toBe(x0); expect(tower.slabX(slab, run.timeMs + 800)).toBe(x0);
+      expect(tower.slabX({ ...slab, frozenAtMs: tower.NONE }, run.timeMs)).not.toBeCloseTo(x0, 6);
+      expect(run.player).toEqual(p);
+   });
+
+   it("lossFall continues the recorded arc: feet + vy·τ - 5τ²", () => {
+      expect(tower.lossFall({ atMs: 1000, x: 0, footY: 3, vy: -1 }, 1500)).toBeCloseTo(1.25, 12);
+      expect(tower.lossFall({ atMs: 1000, x: 0, footY: 3, vy: 0 }, 1557)).toBeCloseTo(3 - 5 * 0.557 ** 2, 12);
+      expect(tower.lossFall({ atMs: 1000, x: 0, footY: 3, vy: -2 }, 900)).toBe(3);
    });
 });
 
@@ -524,6 +622,14 @@ describe("tower-climb core parity and allocation contract", () => {
       expect(withinServerLimits(run.score, store.getState().elapsedMs, towerClimbMeta.scoring)).toBe(true);
    });
 
+   it("a terminal score outside the server limits is reported unranked", () => {
+      const run = tower.createRun(1); run.timeMs = 1799999; run.score = 50001;
+      tower.step(run, 1, idle);
+      expect(run.ended).toBe("timeup"); expect(run.ranked).toBe(false);
+      const idleRun = tower.createRun(1); idleRun.timeMs = 1799999;
+      tower.step(idleRun, 1, idle); expect(idleRun.ended).toBe("timeup"); expect(idleRun.ranked).toBe(true);
+   });
+
    it("step/fills and all their local callees allocate nothing, use no live RNG and read no wall clock/swipe", () => {
       const text = readFileSync(new URL("./rules.ts", import.meta.url), "utf8");
       const source = ts.createSourceFile("rules.ts", text, ts.ScriptTarget.Latest, true);
@@ -550,8 +656,12 @@ describe("tower-climb core parity and allocation contract", () => {
          };
          visit(body);
       };
-      inspect("step"); inspect("fillPools");
+      inspect("step"); inspect("fillPools"); inspect("readStepInput");
       expect(text).toMatch(/import .*rngNext.*core\/math/);
+      // Score cap and terminal check come from core/limits, never a local copy.
+      expect(text).toMatch(/import \{ capScore, withinServerLimits \} from "@\/arcade3d\/core\/limits"/);
+      expect(funcs.get("awards")!.getText()).toContain("capScore(run.rawScore, ms, RULES)");
+      expect(funcs.get("finish")!.getText()).toContain("withinServerLimits(run.score, run.timeMs, RULES)");
       expect(text).not.toMatch(/Math\.random\s*\(|Date\.now\s*\(|performance\.now\s*\(|setTimeout\s*\(|input\.swipe|0x6d2b79f5/);
    });
 });

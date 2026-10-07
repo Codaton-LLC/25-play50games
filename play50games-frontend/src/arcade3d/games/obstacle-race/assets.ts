@@ -1,9 +1,8 @@
 // Models used by Obstacle Race. Plain data, no three.js: index.tsx hands them to GameShell (which
 // frees the GLBs when the game closes) and Scene.tsx renders them.
-// The runner GLB is not in core/modelManifest.ts yet, so it is never fetched: the scene draws its
-// stand-in (Primitives.tsx RunnerPrimitive). Swapping it in is the assets PR (file + manifest line)
-// plus the scale here, never a scene change. Collision never comes from a model: the course is
-// primitives sized from rules.ts.
+// The shared runner GLB (group B, 2026-10-06) is a 1.90-tall static T-pose animated by the core
+// auto-rig in Scene.tsx; the stand-in (Primitives.tsx RunnerPrimitive) is its fallback. Collision
+// never comes from a model: the course is primitives sized from rules.ts.
 // The finish arch is not a model here. The group A finishArch.glb (main 1acca9c) is a deep double
 // arch, 1.85 x 1.36 x 1.90, with its legs at |x| 0.44-0.78 (centre 0.61): the clear opening is about
 // half its width, against the rules' 80 % (posts r 0.4 at x +-3.6, 6.4 m clear of 8 m, ARCH in
@@ -17,6 +16,7 @@ import { SHARED_ASSETS } from "@/arcade3d/core/sharedAssets";
 
 export const ASSETS = {
    // shared cast (src/arcade3d/assets/shared.spec.json -> public/models/3d/shared/runner.glb).
-   // The runner GLB faces +z by convention and this game runs towards -z, so it is turned round.
-   runner: { ...SHARED_ASSETS.runner, rotationY: Math.PI },
+   // The runner GLB faces +z by convention and this game runs towards -z, so it is turned round;
+   // 0.79 draws it 1.50 m, the rules' RUNNER.height (the stand-in is scaled to it too).
+   runner: { ...SHARED_ASSETS.runner, scale: 0.79, rotationY: Math.PI },
 } satisfies Record<string, ModelAsset>;

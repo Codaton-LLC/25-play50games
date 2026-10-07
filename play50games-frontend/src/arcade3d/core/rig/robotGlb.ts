@@ -1,5 +1,6 @@
-// The shared robot GLB for the rig tests (vitest only; the app never imports this file):
-// public/models/3d/shared/robot.glb read and meshopt-decoded directly, without a loader.
+// The character GLBs for the rig tests (vitest only; the app never imports this file): a GLB under
+// public/models/3d read and meshopt-decoded directly, without a loader. Every Rodin character is
+// one node (translated so the feet are on y = 0) with one mesh of one primitive, float positions.
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { MeshoptDecoder } from "three/examples/jsm/libs/meshopt_decoder.module.js";
@@ -20,7 +21,7 @@ interface GltfJson {
    bufferViews: Array<{ byteOffset?: number; byteLength: number; byteStride?: number; extensions?: { EXT_meshopt_compression?: MeshoptView } }>;
 }
 
-export interface RobotGlb {
+export interface CharacterGlb {
    /** POSITION as stored (the mesh node's own space) */
    local: Float32Array;
    /** the mesh node's translation */
@@ -33,9 +34,15 @@ export interface RobotGlb {
    positionType: number;
 }
 
-/** Decodes robot.glb's mesh (one primitive: positions and triangle indices). */
-export async function readRobotGlb(): Promise<RobotGlb> {
-   const glb = readFileSync(path.join(process.cwd(), "public/models/3d/shared/robot.glb"));
+/** @deprecated name kept for robot.test.ts; every character reads as a CharacterGlb */
+export type RobotGlb = CharacterGlb;
+
+/**
+ * Decodes a character GLB's mesh (one primitive: positions and triangle indices). `url` is the
+ * asset's url (/models/3d/<slug>/<id>.glb), read from public/.
+ */
+export async function readCharacterGlb(url: string): Promise<CharacterGlb> {
+   const glb = readFileSync(path.join(process.cwd(), "public", url));
    const jsonLength = glb.readUInt32LE(12);
    const json = JSON.parse(glb.subarray(20, 20 + jsonLength).toString("utf8")) as GltfJson;
    const binStart = 20 + jsonLength + 8;
@@ -70,4 +77,9 @@ export async function readRobotGlb(): Promise<RobotGlb> {
          ? Uint32Array.from(new Uint32Array(ib.buffer, ib.byteOffset + (ia.byteOffset ?? 0), ia.count))
          : Uint32Array.from(new Uint16Array(ib.buffer, ib.byteOffset + (ia.byteOffset ?? 0), ia.count));
    return { local, node: t, cloud, indices, positionType: accessor.componentType };
+}
+
+/** Decodes the shared robot.glb (public/models/3d/shared/robot.glb). */
+export function readRobotGlb(): Promise<CharacterGlb> {
+   return readCharacterGlb("/models/3d/shared/robot.glb");
 }

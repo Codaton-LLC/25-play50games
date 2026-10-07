@@ -15,22 +15,40 @@
 // - Store calls only on change: setScore on a new metre or coin (capScore, a no-op safety net),
 //   setStat("coins") on a pickup, setLevel on a speed-up, end("lose" | "win") once.
 // - Visuals animate with useGameTime() (pause-safe), never with state.clock.elapsedTime.
+// - The runner GLB is a static T-pose: <HumanoidModel> (core/rig) rigs it in code and
+//   useHumanoidPose drives its limbs from the run state (the run cycle by distance, the leap, the
+//   crash, the win). RunnerPrimitive, with its own swung limbs, stays as the fallback.
 import { memo, useMemo, useRef, useState } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import { Color, Euler, Matrix4, Quaternion, Vector3, type Group, type MeshBasicMaterial } from "three";
 import CameraRig from "@/arcade3d/core/CameraRig";
-import { Model } from "@/arcade3d/core/assets";
 import { playSfx } from "@/arcade3d/core/audio";
 import { useGameTime } from "@/arcade3d/core/gameTime";
 import { useInput } from "@/arcade3d/core/input";
 import { randomSeed } from "@/arcade3d/core/math";
 import { BlobShadow } from "@/arcade3d/core/render";
+import {
+   BONE,
+   HumanoidModel,
+   POSE_MASK,
+   blendPoses,
+   bodyLift,
+   cheerPose,
+   createPose,
+   idlePose,
+   jumpPose,
+   turnBone,
+   useHumanoidPose,
+   walkPose,
+} from "@/arcade3d/core/rig";
 import { useSafeArea } from "@/arcade3d/core/safeArea";
+import { RUNNER_LANDMARKS } from "@/arcade3d/core/sharedAssets";
 import type { ModelAsset } from "@/arcade3d/core/types";
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { useRunFrame } from "@/arcade3d/core/useRunFrame";
 import { ASSETS } from "./assets";
 import { chaseInsets, fitChase, type ChaseFit } from "./camera";
+import { CRASH, crashPlacement, crashPose, type CrashPlacement } from "./crash";
 import {
    Backdrop,
    COLORS,
@@ -371,17 +389,74 @@ const Coins = memo(function Coins({ run, fx, standIns }: { run: OfficeRun; fx: F
 const STRIDE_MM = 2400;
 const DEG = Math.PI / 180;
 const APEX_M = JUMP_APEX / 1000;
-/** The crash: knock-back (m) and the turn towards the middle (rad); the body stays above the screen's bottom edge. */
-const CRASH_BACK = 0.25;
-const CRASH_YAW = 0.6;
 const mix = (a: number, b: number, k: number) => a + (b - a) * k;
+/** The runner GLB's joints (core/sharedAssets) and its scale here: its height over its planted foot. */
+const LEGS = RUNNER_LANDMARKS;
+const SCALE = ASSETS.runner.scale ?? 1;
+/** walkPose's amount at the 8 m/s start (0.5 = a walk, 1 = a run) and at the 16 m/s cap. */
+const RUN_AMOUNT = { start: 0.85, cap: 1 } as const;
+
+/** The run cycle (looks only) of the GLB runner: its eased amount, cheer and the body's height. */
+interface Gait {
+   amount: number;
+   cheer: number;
+   /** the body's height over its planted foot this frame (m): core/rig bodyLift x SCALE */
+   lift: number;
+}
 
 const Runner = memo(function Runner({ run, fx }: { run: OfficeRun; fx: Fx }) {
    const time = useGameTime();
    const root = useRef<Group>(null);
    const body = useRef<Group>(null);
    const shadow = useRef<Group>(null);
+   const standIn = useRef<Group>(null);
    const [rig] = useState(createRunnerRig);
+   const [gait] = useState<Gait>(() => ({ amount: 0, cheer: 0, lift: 0 }));
+   const [scratch] = useState(createPose);
+   const [crash] = useState<CrashPlacement>(() => ({ e: 0, y: 0, z: 0, tilt: 0, yaw: 0 }));
+
+   // the GLB runner's limbs (core/rig), FRAME_PRIORITY.pose: after the step, before the useFrame
+   // below. The run cycle's phase is the stand-in's (distance / STRIDE_MM, so the legs move with
+   // the ground and stop when it stops), its amount eases from the idle to a run with the speed;
+   // the leap blends in by the airborne blend (knees tucked at the apex), the crash into a flail, the
+   // win into a cheer. The lean into the run and the roll into a lane change are the spine's (a
+   // whole-body lean about the feet would tip the soles into the floor). The smoothed looks shared
+   // with the stand-in (fx.lean, fx.roll, fx.air) are advanced here, once per frame.
+   const pose = useHumanoidPose((p) => {
+      const t = time.now;
+      const dt = time.delta;
+      const ease = 1 - Math.exp(-14 * dt);
+      const moving = run.distance > 0 && !run.over;
+      const speed = speedAt(run.simMs);
+      const phase = ((run.distance % STRIDE_MM) / STRIDE_MM) * Math.PI * 2;
+      const grounded = run.jumpMs < 0;
+      const { phase: runPhase, endReason } = useArcadeStore.getState();
+      const won = runPhase === "over" && endReason === "win";
+
+      // lean into the run (6° + 0.5° per m/s over 8), roll into a lane change (±10°)
+      fx.lean += ((moving ? (6 + 0.5 * (speed - 8)) * DEG : 0.03) - fx.lean) * ease;
+      const dx = LANES[run.lane] - run.x;
+      const slide = moving ? Math.max(-1, Math.min(1, dx / 600)) : 0;
+      fx.roll += (-slide * 10 * DEG - fx.roll) * ease;
+      fx.air += ((grounded ? 0 : 1) - fx.air) * (1 - Math.exp(-20 * dt));
+      gait.amount += ((moving ? mix(RUN_AMOUNT.start, RUN_AMOUNT.cap, Math.min(1, (speed - 8) / 8)) : 0) - gait.amount) * (1 - Math.exp(-10 * dt));
+      gait.cheer += ((won ? 1 : 0) - gait.cheer) * (1 - Math.exp(-8 * dt));
+
+      walkPose(phase, gait.amount, p);
+      // nearly still (the countdown, the end): the idle's breath and glance in the upper body
+      blendPoses(p, idlePose(t, scratch), 1 - Math.min(1, gait.amount * 5), p, POSE_MASK.upper);
+      // the roll tips the chest the other way (tilt > 0 = to its right = the world's +x, as the model is turned round)
+      turnBone(p, BONE.spine, fx.lean, 0, -fx.roll);
+      if (fx.air > 0.001) {
+         // a leap: knees tucked at the apex
+         const tuck = run.jumpMs >= 0 ? Math.sin((Math.min(run.jumpMs, 700) / 700) * Math.PI) : 0;
+         blendPoses(p, jumpPose(0.4 + 0.6 * tuck, scratch), fx.air, p);
+      }
+      if (gait.cheer > 0.001) blendPoses(p, cheerPose(t, scratch), gait.cheer, p);
+      // on its back: the arms flail, the legs kick up off the floor (crash.ts)
+      if (fx.crashAt >= 0) blendPoses(p, crashPose(t, scratch), Math.min(1, (t - fx.crashAt) / CRASH.poseS), p);
+      gait.lift = bodyLift(p, LEGS) * SCALE;
+   });
 
    useFrame(() => {
       const g = root.current;
@@ -389,7 +464,6 @@ const Runner = memo(function Runner({ run, fx }: { run: OfficeRun; fx: Fx }) {
       const sh = shadow.current;
       if (!g || !b || !sh) return;
       const t = time.now;
-      const ease = 1 - Math.exp(-14 * time.delta);
       const x = run.x / 1000;
       const feet = run.feet / 1000;
       const moving = run.distance > 0 && !run.over;
@@ -398,22 +472,20 @@ const Runner = memo(function Runner({ run, fx }: { run: OfficeRun; fx: Fx }) {
       const { phase, endReason } = useArcadeStore.getState();
       const { hipL, hipR, kneeL, kneeR, shoulderL, shoulderR, elbowL, elbowR, head, tails } = rig;
       const limbs = hipL && hipR && kneeL && kneeR && shoulderL && shoulderR && elbowL && elbowR;
+      const fallback = standIn.current !== null;
 
       if (fx.crashAt >= 0) {
          // knocked back onto its back (diagonally, towards the middle, so it stays in view), a
-         // bounce, then a dizzy head. Looks only: the run is already over.
+         // bounce, then a dizzy head (crash.ts). Looks only: the run is already over.
          const k = t - fx.crashAt;
-         const f = Math.min(1, k / 0.45);
-         const e = 1 - (1 - f) ** 3;
-         const bounce = k > 0.45 ? Math.sin((k - 0.45) * 14) * 0.07 * Math.exp(-(k - 0.45) * 5) : 0;
-         const yaw = (run.x > 0 ? -CRASH_YAW : CRASH_YAW) * e;
-         g.position.set(x, feet * (1 - f) + Math.sin(f * Math.PI) * 0.4 + 0.12 * e, CRASH_BACK * e);
-         g.rotation.set(1.42 * e + bounce, yaw, 0, "YXZ");
+         const { e, y, z, tilt, yaw } = crashPlacement(k, feet, run.x > 0 ? -1 : 1, crash);
+         g.position.set(x, y, z);
+         g.rotation.set(tilt, yaw, 0, "YXZ");
          b.position.set(0, 0, 0);
          b.rotation.set(0, 0, 0);
          b.scale.set(1, 1, 1);
          // the shadow lies under the body's middle
-         sh.position.set(x + Math.sin(yaw) * 0.75 * e, 0, CRASH_BACK * e + Math.cos(yaw) * 0.75 * e);
+         sh.position.set(x + Math.sin(yaw) * 0.75 * e, 0, CRASH.back * e + Math.cos(yaw) * 0.75 * e);
          sh.rotation.set(0, yaw, 0);
          sh.scale.set(1 + 0.3 * e, 1, 1 + 1.3 * e);
          if (limbs) {
@@ -439,18 +511,18 @@ const Runner = memo(function Runner({ run, fx }: { run: OfficeRun; fx: Fx }) {
       sh.rotation.set(0, 0, 0);
       sh.scale.setScalar(1 - 0.45 * Math.min(1, (feet + hop) / APEX_M));
 
-      // lean into the run (6° + 0.5° per m/s over 8), roll into a lane change (±10°), wobble at the wall
-      fx.lean += ((moving ? (6 + 0.5 * (speed - 8)) * DEG : 0.03) - fx.lean) * ease;
-      const dx = LANES[run.lane] - run.x;
-      const slide = moving ? Math.max(-1, Math.min(1, dx / 600)) : 0;
-      fx.roll += (-slide * 10 * DEG - fx.roll) * ease;
+      // the stand-in leans and rolls as a whole and wobbles at the wall; the GLB's spine leans and
+      // rolls (pose), the wall wobble stays on the body
       const wk = (t - fx.blockedAt) / 0.3;
       const wobble = wk >= 0 && wk < 1 ? Math.sin(wk * Math.PI * 3) * (1 - wk) * 0.14 * fx.blockedDir : 0;
-      b.rotation.set(-fx.lean, 0, fx.roll - wobble);
+      if (fallback) b.rotation.set(-fx.lean, 0, fx.roll - wobble);
+      else b.rotation.set(0, 0, -wobble);
 
-      // bob per step on the ground, a gentle breath while standing
+      // the stand-in bobs per step on the ground and breathes while standing; the GLB rises and
+      // falls with its planted foot (the pose's bodyLift)
       const grounded = run.jumpMs < 0;
-      b.position.y = moving && grounded ? Math.abs(Math.sin(p)) * 0.06 : Math.sin(t * 3) * 0.008;
+      if (fallback) b.position.y = moving && grounded ? Math.abs(Math.sin(p)) * 0.06 : Math.sin(t * 3) * 0.008;
+      else b.position.y = gait.lift;
 
       // squash on take-off and landing, stretch while rising (from the jump phase and the landing time)
       let sy = 1;
@@ -465,7 +537,6 @@ const Runner = memo(function Runner({ run, fx }: { run: OfficeRun; fx: Fx }) {
       const sxz = 1 / Math.sqrt(sy);
       b.scale.set(sxz, sy, sxz);
 
-      fx.air += ((grounded ? 0 : 1) - fx.air) * (1 - Math.exp(-20 * time.delta));
       const air = fx.air;
       if (limbs) {
          // run cycle (±35° at the hips), then blended towards a leap with the knees tucked at the apex
@@ -494,7 +565,17 @@ const Runner = memo(function Runner({ run, fx }: { run: OfficeRun; fx: Fx }) {
          </group>
          <group ref={root} name="runner">
             <group ref={body}>
-               <Model asset={ASSETS.runner} fallback={<RunnerPrimitive rig={rig} />} />
+               {/* the body group carries the GLB's height over its planted foot (gait.lift), so the model does not add it again */}
+               <HumanoidModel
+                  asset={ASSETS.runner}
+                  pose={pose}
+                  applyLift={false}
+                  fallback={
+                     <group ref={standIn}>
+                        <RunnerPrimitive rig={rig} />
+                     </group>
+                  }
+               />
             </group>
          </group>
       </>
