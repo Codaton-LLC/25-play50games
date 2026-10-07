@@ -193,7 +193,7 @@ What the heuristics got wrong on the group B characters, for the next one: a fla
 
 ### Adoption
 
-| Game | Character | Scale (GLB 1.90 tall → m) | What drives the pose |
+| Game | Character | Scale (GLB height → m) | What drives the pose |
 |---|---|---|---|
 | robot-collector | shared robot (1.72 tall) | 0.82 → 1.4 | `walkPose` by distance / `walkStride` (`gait.ts` `robotPhaseStep`: cadence capped at 4/s), the idle's upper body when still, `cheerPose` on a win; `applyLift={false}`, the group carries `bodyLift` |
 | warehouse-rush | shared robot | 0.7 → 1.2 | the same walk (cadence capped), `carryPose(1)` on the arms with the box |

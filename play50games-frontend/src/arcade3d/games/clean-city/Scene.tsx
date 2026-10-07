@@ -299,9 +299,9 @@ const RUNNER_LEGS: HumanoidLandmarks = RUNNER_LANDMARKS;
 const RUNNER_SCALE = ASSETS.runner.scale ?? 1;
 const MIN_STRIDE = 0.1;
 /**
- * Strides a second at most (as robot-collector and warehouse-rush). At scale 0.5 the walk's own
- * stride (0.67 at full speed) would beat about 7.5 times a second at 5 units/s; faster than this,
- * the stride stretches and the planted foot slides a little (README).
+ * Strides a second at most (as robot-collector and warehouse-rush). At scale 0.503 the walk's own
+ * stride (0.77 at full speed) would beat about 6.5 times a second at 5 units/s; faster than this,
+ * the stride stretches and the planted foot slides (about 38 % at full speed, README).
  */
 const MAX_CADENCE = 4;
 const REACH_S = 0.45;
