@@ -1,8 +1,8 @@
 // Models used by Clean the City. Plain data, no three.js: index.tsx hands them to GameShell
 // (which frees the GLBs when the game closes) and Scene.tsx / Primitives.tsx render them.
-// Only urls listed in core/modelManifest.ts are fetched. tinCan and banana are; the rest go
-// straight to the primitive fallbacks in Primitives.tsx, so swapping a GLB in later is a scale
-// tweak here, never a scene change. Collision never comes from a model (rules.ts).
+// Only urls listed in core/modelManifest.ts are fetched. All are except tree and building, which go
+// straight to their primitives in Primitives.tsx, so swapping a GLB in later is a scale tweak
+// here, never a scene change. Collision never comes from a model (rules.ts).
 //
 // Rodin makes the longest side about 1.9 and the optimize step stands the mesh on y = 0.
 // Measured (w x h x d): tinCan 1.83 x 1.69 x 1.90, banana 1.90 x 1.56 x 1.85. Scale 0.5 makes
@@ -25,6 +25,22 @@
 //   pigeon 1.25 tall x 0.38 -> 0.48 tall, 0.44 long: half the runner, smaller than any litter piece
 //   (0.95, this world's toy scale). Life size would be about 0.16 here and 0.30 was tried: both are
 //   grey specks of 2-5 px at this camera (playtest 2026-10-07); 0.48 reads as a bird.
+// Obstacle props (group D, 2026-10-07, README "Obstacle props"): bench, bin, lamp, palm and umbrella
+// are fitted to the obstacle squares of rules.ts MAPS (the runner collides with those squares, never
+// with a mesh), centred on the square, feet on y = 0. Measured on the optimized GLBs (w x h x d; the
+// optimize step centres x and z): bench 1.893 x 0.842 x 0.803, bin 1.390 x 1.903 x 1.394, lamp 0.448 x
+// 1.900 x 0.432, palm 1.775 x 1.903 x 1.782, umbrella 1.780 x 1.902 x 1.737 (pole 0.13 across, canopy
+// from y 1.17). Drawn (props.test.ts checks every one on the real mesh, as placed by propSpots.ts):
+//   bench    2.40 x 0.84 x 0.80  the 2.4 x 0.8 square, the GLB's own height for that depth
+//   bin      1.40 x 1.25 x 1.40  the 1.4 square; lower than the GLB's 1.9 (a bin 1.3 x the runner)
+//   lamp     0.60 x 2.00 x 0.58  the base fills the 0.6 square; lower than uniform (2.55)
+//   palm     1.20 x 1.70 x 1.20  the crown inside the 1.2 square; taller than uniform (1.28)
+//   umbrella 1.50 x 1.60 x 1.46  uniform. The pole (0.11) stands in its 0.5 square; the canopy is the
+//            one part the rules call visual (README obstacle table): it reaches 0.75 from the pole, where
+//            the runner's centre stops (0.25 + its radius 0.5), never over a litter spot, and its lowest
+//            edge (0.99) clears the runner's 0.95 head.
+// No prop hides a litter piece: from every fitted camera, the middle of every litter spot near it
+// stays in view (props.test.ts casts the rays). The primitives in Primitives.tsx are the fallbacks.
 import type { ModelAsset } from "@/arcade3d/core/types";
 import { CHARACTER_BUDGET, PROP_BUDGET, SHARED_ASSETS } from "@/arcade3d/core/sharedAssets";
 
@@ -55,14 +71,15 @@ export const ASSETS = {
    // this game only (./assets.spec.json, group C): fitted to the stand-ins' footprint and height
    bottle: { ...prop("bottle", "cylinder", "#4ade80"), scale: 0.471, stretch: [0.743, 1, 0.776] },
    bag: { ...prop("bag", "box", "#d6a46b"), scale: 0.421, stretch: [0.775, 1, 0.9] },
-   // scenery, not in assets.spec.json (README: stay primitives). Same swap path.
-   bench: prop("bench", "box", "#c4a574"),
+   // obstacle props (./assets.spec.json, group D): fitted to their obstacle squares (see above)
+   bench: { ...prop("bench", "box", "#c4a574"), scale: 0.996, stretch: [1.2727, 1, 1] },
+   bin: { ...prop("bin", "cylinder", "#475569"), scale: 1.0043, stretch: [1, 0.6541, 1] },
+   lamp: { ...prop("lamp", "cylinder", "#94a3b8"), scale: 1.3404, stretch: [1, 0.7852, 1] },
+   palm: { ...prop("palm", "cylinder", "#15803d"), scale: 0.6734, stretch: [1, 1.3264, 1] },
+   umbrella: { ...prop("umbrella", "cylinder", "#38bdf8"), scale: 0.8428 },
+   // scenery that stays primitives (no GLB in the manifest, nothing fetched). Same swap path.
    tree: prop("tree", "cylinder", "#166534"),
-   bin: prop("bin", "cylinder", "#475569"),
    building: prop("building", "box", "#64748b"),
-   lamp: prop("lamp", "cylinder", "#94a3b8"),
-   palm: prop("palm", "cylinder", "#15803d"),
-   umbrella: prop("umbrella", "cylinder", "#38bdf8"),
    // decor (pigeon-crossing's GLBs): parked cars on the city's far street, pigeons on the park's
    // far lawn. Long along the GLB's z, front at +z after rotationY, feet on y = 0.
    car: {

@@ -1,15 +1,28 @@
 "use client";
 
-// Clean the City look: three outdoor grounds, the obstacle stand-ins and the litter stand-ins.
-// Decoration only. Positions come from rules.ts MAPS (the same squares the runner collides with).
-// A prop that may become a GLB is an <InstancedModel> whose fallback is the primitive; litter
-// stand-ins are the fallbackParts of one <DynamicInstancedModel> pool per kind (Scene.tsx).
+// Clean the City look: three outdoor grounds, the obstacle props and the litter stand-ins.
+// Decoration only. Positions come from rules.ts MAPS (the same squares the runner collides with,
+// propSpots.ts). Every obstacle is an <InstancedModel> (one draw call per GLB per map) whose
+// fallback is its primitive: bench, bin, lamp, palm and umbrella draw their group D GLBs fitted to
+// the squares (assets.ts), trees and buildings have no GLB and stay primitives. Litter stand-ins are
+// the fallbackParts of one <DynamicInstancedModel> pool per kind (Scene.tsx).
 import { memo, useEffect, useState, type MutableRefObject, type ReactNode } from "react";
 import { BoxGeometry, CapsuleGeometry, CylinderGeometry, MeshStandardMaterial, type BufferGeometry, type Group, type Material } from "three";
 import { InstancedModel } from "@/arcade3d/core/assets";
 import { Instanced, useCanvasTexture, type CanvasDraw, type InstancePart, type InstanceSpot } from "@/arcade3d/core/render";
 import { ASSETS } from "./assets";
-import { FLOOR_HALF, LITTER_KINDS, MAPS, type ObstacleKind } from "./rules";
+import {
+   BEACH_BIN,
+   BEACH_PALM,
+   BEACH_POLE,
+   CITY_BIN,
+   CITY_BUILDING,
+   CITY_LAMP,
+   PARK_BENCH,
+   PARK_BIN,
+   PARK_TREE,
+} from "./propSpots";
+import { FLOOR_HALF, LITTER_KINDS, MAPS } from "./rules";
 
 // ---------- palette ----------
 
@@ -99,25 +112,9 @@ function Ground({ draw }: { draw: CanvasDraw }) {
    );
 }
 
-// ---------- obstacle spots (module level: InstancedModel must not see a new array each render) ----------
+// ---------- obstacle props (spots in propSpots.ts, module level) ----------
 
-function centres(map: number, kind: ObstacleKind): InstanceSpot[] {
-   const spots: InstanceSpot[] = [];
-   for (const o of MAPS[map].obstacles) if (o.kind === kind) spots.push({ x: o.x, y: 0, z: o.z });
-   return spots;
-}
-
-const PARK_BENCH = centres(0, "bench");
-const PARK_TREE = centres(0, "tree");
-const PARK_BIN = centres(0, "bin");
-const CITY_BUILDING = centres(1, "building");
-const CITY_LAMP = centres(1, "lamp");
-const CITY_BIN = centres(1, "bin");
-const BEACH_PALM = centres(2, "palm");
-const BEACH_POLE = centres(2, "pole");
-const BEACH_BIN = centres(2, "bin");
-
-/** Box centres: the geometry is centred, so y is the centre, not the feet. */
+/** Primitive part centres: the geometry is centred, so y is the centre, not the feet. */
 const atY = (spots: readonly InstanceSpot[], y: number): InstanceSpot[] => spots.map((s) => ({ ...s, y }));
 
 const BENCH_SEAT = atY(PARK_BENCH, 0.46);
@@ -126,10 +123,17 @@ const BENCH_LEGS = PARK_BENCH.flatMap((s) =>
    [-1, 1].flatMap((sx) => [-1, 1].map((sz) => ({ x: s.x + sx * 0.95, y: 0.2, z: s.z + sz * 0.26 })))
 );
 
-/** GLB copies stand on y = 0 at `spots`. `fallback` is the primitive (usually several <Instanced>). */
+/**
+ * GLB copies stand on y = 0 at `spots` (turned by spot.rotY). `fallback` is the primitive (usually
+ * several <Instanced>), drawn if the GLB is unlisted or fails. The group's name finds them in a playtest.
+ */
 function Prop({ asset, spots, fallback }: { asset: (typeof ASSETS)[keyof typeof ASSETS]; spots: readonly InstanceSpot[]; fallback: ReactNode }) {
    if (spots.length === 0) return null;
-   return <InstancedModel asset={asset} spots={spots} fallback={fallback} />;
+   return (
+      <group name={`prop-${asset.id}`}>
+         <InstancedModel asset={asset} spots={spots} fallback={fallback} />
+      </group>
+   );
 }
 
 function Benches() {

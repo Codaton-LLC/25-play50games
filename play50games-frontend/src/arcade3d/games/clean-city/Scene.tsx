@@ -7,7 +7,7 @@
 // - <Simulation> is mounted first and runs in useRunFrame, before the camera and every useFrame.
 // - Visuals read the run and animate with useGameTime(), never state.clock.elapsedTime.
 // - The store is the only way out: addScore / setStat / setScore / end. GameShell submits.
-// - Camera: useFittedView + followFocus + CameraRig, yaw locked at 0, shift so the floor sits
+// - Camera (constants in camera.ts): useFittedView + followFocus + CameraRig, yaw locked at 0, shift so the floor sits
 //   clear of the HUD, the map pill, the joystick and the cookie banner. A map change teleports
 //   the runner; the rig eases toward it (it only snaps on mount), so the view does not jump.
 // - Litter: one <DynamicInstancedModel> pool per kind (PER_KIND = 5 copies), the stand-in parts
@@ -20,7 +20,6 @@ import { useFrame } from "@react-three/fiber";
 import { Euler, Matrix4, Quaternion, Vector3, type Group, type Mesh, type MeshBasicMaterial } from "three";
 import CameraRig from "@/arcade3d/core/CameraRig";
 import { playSfx } from "@/arcade3d/core/audio";
-import type { AABB } from "@/arcade3d/core/collision";
 import { useGameTime } from "@/arcade3d/core/gameTime";
 import { useInput } from "@/arcade3d/core/input";
 import { inputToWorld, randomSeed } from "@/arcade3d/core/math";
@@ -45,21 +44,19 @@ import {
 } from "@/arcade3d/core/rig";
 import { RUNNER_LANDMARKS } from "@/arcade3d/core/sharedAssets";
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
-import { useFittedView, type FittedViewOptions } from "@/arcade3d/core/useFittedView";
+import { useFittedView } from "@/arcade3d/core/useFittedView";
 import { useRunFrame } from "@/arcade3d/core/useRunFrame";
-import { followFocus } from "@/arcade3d/core/view";
 import { ASSETS } from "./assets";
+import { DAMPING, FOLLOW, FOV, LOOK_AT, REACH, VIEW } from "./camera";
 import { CityDecor, ParkDecor } from "./Decor";
 import { Beach, City, Park, PrimitiveRunner, RUNNER_RING, useLitterStandIns, type RunnerLimbs } from "./Primitives";
 import {
-   FLOOR_HALF,
    ITEMS_PER_MAP,
    LITTER_KINDS,
    LITTER_POINTS,
    NONE,
    PER_KIND,
    RUNNER,
-   SPAWN_HALF,
    START_PAD,
    capScore,
    createRun,
@@ -68,33 +65,6 @@ import {
    step,
    type CleanRun,
 } from "./rules";
-
-// ---------- camera (README: pitch 56°, yaw 0, follow 12%, damping 4) ----------
-
-const PITCH = (56 * Math.PI) / 180;
-const LOOK_AT: [number, number, number] = [0, 0, 0];
-const FOLLOW = 0.12;
-/** Where the runner's centre can be. followFocus and CameraRig share it. */
-const REACH: AABB = {
-   min: { x: -SPAWN_HALF, y: 0, z: -SPAWN_HALF },
-   max: { x: SPAWN_HALF, y: 0, z: SPAWN_HALF },
-};
-/** The whole 28 x 28 floor, plus room for the tallest prop, from every follow point. */
-const FLOOR: AABB = {
-   min: { x: -FLOOR_HALF, y: 0, z: -FLOOR_HALF },
-   max: { x: FLOOR_HALF, y: 2.6, z: FLOOR_HALF },
-};
-const FOCUS = followFocus({ lookAt: LOOK_AT, reach: REACH, fraction: FOLLOW });
-const VIEW: FittedViewOptions = {
-   area: FLOOR,
-   pitch: PITCH,
-   yaws: [0],
-   focus: FOCUS,
-   margin: { top: 0.02, bottom: 0.02, left: 0.02, right: 0.02 },
-   padding: 8,
-   shift: true,
-   fov: 45,
-};
 
 // ---------- litter presentation (visual only) ----------
 
@@ -454,13 +424,13 @@ export default function Scene() {
       <>
          <Simulation run={run} fx={fx} yaw={view.yaw} />
          <CameraRig
-            camera={{ position: view.offset, fov: 45, lookAt: LOOK_AT }}
+            camera={{ position: view.offset, fov: FOV, lookAt: LOOK_AT }}
             follow={run.runner}
             followFraction={FOLLOW}
             bounds={REACH}
             offset={view.offset}
             shift={view.shift}
-            damping={4}
+            damping={DAMPING}
          />
          <mesh rotation-x={-Math.PI / 2} position={[START_PAD.x, 0.03, START_PAD.z]} name="start-pad">
             <ringGeometry args={[0.9, 1.12, 28]} />
