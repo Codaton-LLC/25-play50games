@@ -18,13 +18,13 @@ import { useRunFrame } from "@/arcade3d/core/useRunFrame";
 import { ASSETS } from "./assets";
 import {
    COVER_HEIGHT, FOLLOW_DAMPING, FOV, LOOK_AT, STREET_VIEW, configureStreetView,
-   createHorizon, createStreetCache, fallbackVertices, modelVertices, pigeonHull,
-   maximumRows, updateStreetHorizon, viewGate, type StreetCache, type Horizon,
+   createHorizon, createStreetCache, fallbackVertices, fillStreet, modelVertices, pigeonHull,
+   maximumRows, viewGate, type StreetCache, type Horizon,
    createPigeonPose, writePigeonPose, placePigeon,
 } from "./camera";
 import { useStreetGate } from "./Hud";
 import { COLORS, PigeonPrimitive, useStreetParts, type StreetParts } from "./Primitives";
-import { COVER_INNER_X, HOP_MS, LANE_SLOTS, NONE, ROW_PITCH, VEHICLE_SLOTS, createRun, fillHorizon, step, type PigeonRun } from "./rules";
+import { COVER_INNER_X, HOP_MS, LANE_SLOTS, NONE, ROW_PITCH, VEHICLE_SLOTS, createRun, step, type PigeonRun } from "./rules";
 import { VEHICLE_ASSETS, vehicleFacing } from "./traffic";
 
 const POSITION = new Vector3(), ONE = new Vector3(1, 1, 1);
@@ -43,12 +43,7 @@ function createLayout(): Layout {
 
 /** Geometry/pool preparation only: frozen refits never advance the clock or restart traffic. */
 function fillVisible(run: PigeonRun, layout: Layout, camera: PerspectiveCamera): boolean {
-   if (!layout.cache.initialized) return false;
-   const horizon = updateStreetHorizon(layout.cache, camera, run.player.z, layout.horizon);
-   horizon.first = Math.min(horizon.first, run.player.row);
-   horizon.last = Math.max(horizon.last, run.player.row);
-   if (run.hop.active) { horizon.first = Math.min(horizon.first, run.hop.toRow); horizon.last = Math.max(horizon.last, run.hop.toRow); }
-   return layout.cache.union.valid && fillHorizon(run, horizon.first, horizon.last);
+   return fillStreet(run, layout.cache, layout.horizon, camera);
 }
 
 const Simulation = memo(function Simulation({ run, layout }: { run: PigeonRun; layout: Layout }) {
@@ -103,6 +98,14 @@ const StreetCamera = memo(function StreetCamera({ run, layout }: { run: PigeonRu
       if (gate.reason && (phase === "countdown" || phase === "playing")) useArcadeStore.getState().pause();
    }, [gate.reason, phase]);
    useEffect(() => () => useStreetGate.getState().setReason(null), []);
+   // The shared camera is this run's only once CameraRig has placed it at the pigeon, in its mount
+   // effect: a passive effect, so after a Retry remount a frame can run first with the camera still
+   // where the last run ended (from level 3 on, rows 0..60+ exceed the 40 slots: every such Retry
+   // opened Paused). Passive mount effects run children first, so this one follows the rig's
+   // placement. Until then the frame checks below leave the pools alone (the fitted-view gate still
+   // pauses); step() cannot run (countdown, and Simulation's own fill check pauses before a step).
+   const placed = useRef(false);
+   useEffect(() => { placed.current = true; }, []);
 
    // Pool preparation precedes RunClock, so an invalid resized view pauses before any dt is
    // counted. This never steps gameplay; the default-priority Simulation remains its only step.
@@ -113,6 +116,7 @@ const StreetCamera = memo(function StreetCamera({ run, layout }: { run: PigeonRu
          if (state.phase === "playing" || state.phase === "countdown") state.pause();
          return;
       }
+      if (!placed.current) return;
       if (!fillVisible(run, layout, camera)) {
          useStreetGate.getState().setReason("pool");
          const state = useArcadeStore.getState();
@@ -122,7 +126,7 @@ const StreetCamera = memo(function StreetCamera({ run, layout }: { run: PigeonRu
 
    // After the shared rig, before pool visuals. A paused resize also pre-fills before first paint.
    useFrame(() => {
-      if (!(camera instanceof PerspectiveCamera) || gate.reason) return;
+      if (!(camera instanceof PerspectiveCamera) || gate.reason || !placed.current) return;
       if (!fillVisible(run, layout, camera)) {
          useStreetGate.getState().setReason("pool");
          const state = useArcadeStore.getState();
