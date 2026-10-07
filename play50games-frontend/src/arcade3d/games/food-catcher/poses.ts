@@ -36,8 +36,15 @@ export const CHEF_MAX_CADENCE = 4;
  * long-legged v1 chef's) or speed / 9 (the dash's top) slow walks would already be cadence-capped and slide.
  */
 export const CHEF_RUN_SPEED = 5;
-/** The GLB chef turns to face the way it runs (±90°) above this speed (m/s), back to the camera when it stops. */
-export const CHEF_TURN_SPEED = 1;
+/**
+ * The GLB chef turns towards the way it runs by |v| / CHEF_TURN_SPEED (m/s) of a quarter turn, the
+ * whole quarter (±90°, side-on to the camera) at and above it, and back to the camera when it stops.
+ * Turning by the speed keeps it continuous, so a finger jittering around a slow drag moves the facing
+ * a little, never flips it, and even a slow drag turns the walk's stride along the counter. With the
+ * old all-or-nothing turn above 1 m/s the chef faced the camera on a slow drag and slid sideways on
+ * flat feet (chef.test.ts: the planted foot's slip).
+ */
+export const CHEF_TURN_SPEED = 0.5;
 /** A catch: the arms reach up towards the item for this long (s), then drop. */
 export const REACH_S = 0.4;
 /** The lean into the speed (rad per m/s): the stand-in's whole body (about its feet), the GLB's spine. */
@@ -62,15 +69,16 @@ export function createChefGait(): ChefGait {
  * One frame of the GLB chef's walk: the amount eases towards |v| / CHEF_RUN_SPEED (`v` the chef's
  * speed, signed, 0 when the run is not playing), the phase advances by the distance run over the
  * walk's own stride (so the planted foot stays put, at most CHEF_MAX_CADENCE strides a second), the
- * chef turns to face the way it runs and its spine leans into the speed. `dt` in seconds (0 while
+ * chef turns towards the way it runs by its speed (CHEF_TURN_SPEED) and its spine leans into the
+ * speed. `dt` in seconds (0 while
  * paused: nothing moves).
  */
 export function stepChefGait(gait: ChefGait, v: number, dt: number): ChefGait {
    const speed = Math.abs(v);
    gait.amount += (Math.min(1, speed / CHEF_RUN_SPEED) - gait.amount) * (1 - Math.exp(-12 * dt));
    gait.phase = wrapPhase(gait.phase + gaitPhaseStep(gait.amount, LEGS, CHEF_SCALE, speed, dt, CHEF_MAX_CADENCE, CHEF_MIN_STRIDE));
-   // face the way it runs: +x is the camera's right, a quarter turn to the chef's left
-   const facing = speed > CHEF_TURN_SPEED ? (v > 0 ? Math.PI / 2 : -Math.PI / 2) : 0;
+   // face the way it runs: +x is the camera's right, a quarter turn to the chef's left (a share of it below CHEF_TURN_SPEED)
+   const facing = (Math.PI / 2) * Math.max(-1, Math.min(1, v / CHEF_TURN_SPEED));
    gait.yaw = turnTowards(gait.yaw, facing, 1 - Math.exp(-10 * dt));
    gait.lean += (CHEF_LEAN * v - gait.lean) * (1 - Math.exp(-12 * dt));
    return gait;
