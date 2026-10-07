@@ -1,7 +1,8 @@
 // The start card and the overlays' first focus: Play sits in the pinned bar, after the card's
 // text and before the top 10; nothing in the shell uses autoFocus (it scrolls the overlay, so a
-// landscape phone opened the start card ~300 px down with its title off screen); the wheel over
-// the backdrop scrolls the panel. FocusButton's mount focus: overlayFocus.test.ts.
+// landscape phone opened the start card ~300 px down with its title off screen); the HUD's Pause
+// is shown and tabbable only while the run can be paused; the wheel over the backdrop scrolls the
+// panel. FocusButton's mount focus: overlayFocus.test.ts.
 import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { createElement } from "react";
@@ -12,7 +13,14 @@ import { foodCatcherMeta } from "../games/food-catcher/meta";
 import type { GameDefinition } from "./types";
 import type { LeaderboardState } from "./useLeaderboard";
 import { focusWithoutScroll } from "./overlayFocus";
-import { StartCard, scrollPanelFromBackdrop, type BackdropWheel, type ScrollBox } from "./ShellOverlays";
+import {
+   HudButtons,
+   StartCard,
+   scrollPanelFromBackdrop,
+   type BackdropWheel,
+   type HudButtonsProps,
+   type ScrollBox,
+} from "./ShellOverlays";
 import styles from "./GameShell.module.css";
 
 vi.mock("@/contexts/AuthContext", () => ({ useAuth: () => ({ user: null }) }));
@@ -86,6 +94,47 @@ describe("start card", () => {
       expect(panel).toContain("position: relative;");
       expect(rule(".startAction")).toContain("position: sticky;");
       expect(rule(".startAction")).toContain("bottom: 0;");
+   });
+});
+
+describe("HUD buttons", () => {
+   const hudButtons = (props: Partial<HudButtonsProps> = {}) =>
+      renderToStaticMarkup(
+         createElement(HudButtons, { hidden: false, canPause: true, muted: false, onToggleMute: () => {}, onPause: () => {}, ...props })
+      );
+   /** the opening tag of the button labelled `label` */
+   const tag = (html: string, label: string) => html.match(new RegExp(`<button[^>]*aria-label="${label}"[^>]*>`))?.[0] ?? "";
+   const tabbable = (button: string) => button !== "" && !button.includes('disabled=""') && !button.includes('tabindex="-1"');
+   const shown = (button: string) => button !== "" && !/visibility:\s*hidden/.test(button);
+
+   it("shows Mute and Pause, both tabbable, while the run counts down or is played", () => {
+      const html = hudButtons();
+      expect(shown(tag(html, "Mute sound")) && tabbable(tag(html, "Mute sound"))).toBe(true);
+      expect(shown(tag(html, "Pause game")) && tabbable(tag(html, "Pause game"))).toBe(true);
+      expect(tag(html, "Pause game")).toContain('aria-keyshortcuts="Escape P"');
+      // Mute first, then Pause: the group's order (and its measured size) never changes
+      expect(html.indexOf("Mute sound")).toBeLessThan(html.indexOf("Pause game"));
+   });
+
+   it("hides Pause when the run cannot be paused (paused, after the end), keeping its place; Mute stays usable", () => {
+      const html = hudButtons({ canPause: false });
+      const pause = tag(html, "Pause game");
+      expect(pause).not.toBe("");
+      expect(shown(pause)).toBe(false);
+      expect(tabbable(pause)).toBe(false);
+      expect(pause).toContain('disabled=""');
+      expect(shown(tag(html, "Mute sound")) && tabbable(tag(html, "Mute sound"))).toBe(true);
+   });
+
+   it("leaves nothing tabbable while the whole HUD is hidden (start card, result screen), so Play is the first stop", () => {
+      const html = hudButtons({ hidden: true, canPause: false });
+      expect(tabbable(tag(html, "Mute sound"))).toBe(false);
+      expect(tabbable(tag(html, "Pause game"))).toBe(false);
+   });
+
+   it("shows the mute state", () => {
+      expect(tag(hudButtons({ muted: true }), "Mute sound")).toContain('aria-pressed="true"');
+      expect(tag(hudButtons({ muted: false }), "Mute sound")).toContain('aria-pressed="false"');
    });
 });
 

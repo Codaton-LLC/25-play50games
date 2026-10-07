@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { LockClosedIcon, XMarkIcon } from "@heroicons/react/24/outline";
 import Link from "next/link";
+import styles from "./PrivacyConsent.module.css";
 
 const STORAGE_KEY = "play50games_privacy_consent";
 const EXPIRY_DAYS = 7; // 1 week
@@ -149,6 +150,7 @@ export default function PrivacyConsent() {
         >
           <button
             onClick={handleNotAccept}
+            className={styles.button}
             style={{
               padding: "10px 20px",
               backgroundColor: "rgba(255, 255, 255, 0.08)",
@@ -173,6 +175,7 @@ export default function PrivacyConsent() {
           </button>
           <button
             onClick={handleAccept}
+            className={styles.button}
             style={{
               padding: "10px 20px",
               backgroundColor: "rgba(134, 239, 172, 0.14)",

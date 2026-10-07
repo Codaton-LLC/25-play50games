@@ -1,0 +1,8 @@
+/* The banner's look lives in PrivacyConsent.tsx (inline styles). On touch screens its two buttons
+   grow to full-size touch targets (44 px tall, 38 px with a mouse). The 3D Arcade measures the
+   banner's height as it is drawn (useBottomObstruction), so its controls and overlays follow. */
+@media (pointer: coarse) {
+   .button {
+      min-height: 44px;
+   }
+}
