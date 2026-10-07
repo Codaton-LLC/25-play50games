@@ -7,9 +7,12 @@ import SectionTabs from "@/components/Nav/SectionTabs";
 import ArcadeGrid from "@/arcade3d/ui/ArcadeGrid";
 import { ARCADE_ENABLED, ARCADE_LEADERBOARD } from "@/arcade3d/flags";
 import { ARCADE_GAMES, getLiveGames } from "@/arcade3d/registry";
+import { arcadeJsonLd, serializeJsonLd } from "@/lib/seo/jsonLd";
 import ArcadeScoreSync from "./ArcadeScoreSync";
 import ArcadePrivacyToggle from "./ArcadePrivacyToggle";
 import styles from "./page.module.css";
+
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://play50games.com";
 
 export const metadata: Metadata = ARCADE_ENABLED
    ? {
@@ -61,8 +64,12 @@ function ArcadeIntro() {
 }
 
 export default function ArcadePage() {
+   const jsonLd = arcadeJsonLd(SITE_URL, getLiveGames(), ARCADE_ENABLED);
    return (
       <div className={styles.page}>
+         {jsonLd && (
+            <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }} />
+         )}
          <div className={styles.header}>
             <HeaderWithAuth />
          </div>
