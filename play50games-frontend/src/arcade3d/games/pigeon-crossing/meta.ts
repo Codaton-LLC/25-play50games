@@ -25,7 +25,7 @@ export const pigeonCrossingMeta: ArcadeGameMeta = {
       unitLabel: "pts",
       display: "int"
    },
-   thumbnail: null,
+   thumbnail: "/images/3d/pigeon-crossing.webp",
    accent: "#a78bfa",
    owner: "codex"
 };

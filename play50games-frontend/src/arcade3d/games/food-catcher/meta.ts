@@ -25,7 +25,7 @@ export const foodCatcherMeta: ArcadeGameMeta = {
       unitLabel: "pts",
       display: "int"
    },
-   thumbnail: null,
+   thumbnail: "/images/3d/food-catcher.webp",
    accent: "#86efac",
    owner: "cursor"
 };

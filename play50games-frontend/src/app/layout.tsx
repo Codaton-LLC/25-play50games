@@ -3,12 +3,14 @@ import Script from "next/script";
 import "./globals.css";
 import { AuthProvider } from "@/contexts/AuthContext";
 import PrivacyConsent from "@/components/PrivacyConsent/PrivacyConsent";
+import { OG_IMAGES, ogImage } from "@/lib/seo/ogImages";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://play50games.com";
 
 const DEFAULT_TITLE = "Play50Games – classic brain games and a 3D Arcade";
 const DEFAULT_DESCRIPTION =
    "One place to play: 50 classic brain games with a certificate at the end, plus a 3D Arcade of quick mini-games that each keep their own best score.";
+const DEFAULT_IMAGE = ogImage(SITE_URL, OG_IMAGES.hub, "Play50Games - classic brain games and a 3D Arcade");
 
 export const metadata: Metadata = {
    metadataBase: new URL(SITE_URL),
@@ -53,20 +55,13 @@ export const metadata: Metadata = {
       siteName: "Play50Games",
       title: DEFAULT_TITLE,
       description: DEFAULT_DESCRIPTION,
-      images: [
-         {
-            url: `${SITE_URL}/images/play50games-cover.jpg`,
-            width: 1200,
-            height: 630,
-            alt: "Play50Games",
-         },
-      ],
+      images: [DEFAULT_IMAGE],
    },
    twitter: {
       card: "summary_large_image",
       title: DEFAULT_TITLE,
       description: DEFAULT_DESCRIPTION,
-      images: [`${SITE_URL}/images/play50games-cover.jpg`],
+      images: [DEFAULT_IMAGE.url],
    },
    robots: {
       index: true,
