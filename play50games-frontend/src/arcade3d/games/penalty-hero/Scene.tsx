@@ -26,27 +26,17 @@ import { useGameTime } from "@/arcade3d/core/gameTime";
 import { useInput } from "@/arcade3d/core/input";
 import { randomSeed } from "@/arcade3d/core/math";
 import { BlobShadow } from "@/arcade3d/core/render";
-import { BONE, HumanoidModel, blendPoses, createPose, idlePose, turnBone, useHumanoidPose, walkPose } from "@/arcade3d/core/rig";
+import { HumanoidModel, blendPoses, createPose, useHumanoidPose } from "@/arcade3d/core/rig";
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { useFittedView } from "@/arcade3d/core/useFittedView";
 import { useRunFrame } from "@/arcade3d/core/useRunFrame";
 import { ASSETS } from "./assets";
 import { CAMERA_FOV, CAMERA_LOOK_AT, PENALTY_VIEW } from "./camera";
 import { FEEDBACK } from "./Hud";
-import {
-   BACKSWING_FROM,
-   KEEPER_BOUNCE,
-   KEEPER_HIP,
-   KEEPER_ROOT,
-   SPOT_Z,
-   STRIKER_ROOT,
-   keeperDip,
-   keeperDivePlacement,
-   keeperSway,
-   strikerPlacement,
-} from "./layout";
-import { KICK_CONTACT, keeperDivePose, keeperReadyPose, kickPose } from "./poses";
+import { KEEPER_BOUNCE, KEEPER_HIP, KEEPER_ROOT, SPOT_Z, STRIKER_ROOT, keeperDip, keeperDivePlacement, keeperSway } from "./layout";
+import { keeperDivePose, keeperReadyPose } from "./poses";
 import { BallPrimitive, Goal, KeeperPrimitive, Stadium, StrikerPrimitive } from "./Primitives";
+import { KICK_LEAN, RUNUP_LEAN, createStrikerFrame, drawStrikerPose, strikerFrame, strikerPose } from "./strikerMotion";
 import {
    AIM_TIMEOUT_MS,
    BALL_SPOT,
@@ -54,7 +44,6 @@ import {
    HOLD_MS,
    RETICLE_AMPLITUDE,
    RETICLE_BAND,
-   RUNUP_MS,
    ZONES,
    ZONE_CENTRE_X,
    ZONE_CENTRE_Y,
@@ -72,14 +61,6 @@ import {
    type ZoneId,
 } from "./rules";
 
-/** The striker's lean into the run-up (rad): the stand-in's whole body, the GLB's spine. */
-const RUNUP_LEAN = 0.22;
-/** The GLB striker's run-up: one stride of walkPose over the 700 ms, the kick's backswing in its last quarter (layout.ts BACKSWING_FROM)... */
-const RUNUP_STRIDES = 1;
-/** ...contact at poses.ts KICK_CONTACT as the flight starts, the follow-through over this long. */
-const KICK_MS = 150;
-/** The poses ease towards their target at this rate (1/s), so a phase change never pops. */
-const POSE_EASE = 25;
 const ZONE_H = 1.22;
 const RING_ON = new Color("#4ade80");
 const RING_OFF = new Color("#fbbf24");
@@ -308,69 +289,36 @@ function Ball({ run }: { run: RunState }) {
    );
 }
 
-/** The run-up's progress 0..1 (the lunge, the lean), from the shot's phases; 0 while aiming. */
-function runupProgress(run: RunState): number {
-   const shot = run.pending.kind === "shot";
-   if (shot && run.phase === "runup") return run.phaseMs / RUNUP_MS;
-   if (shot && run.phase === "flight") return 1;
-   if (shot && run.phase === "hold") return 1 - smooth(run.phaseMs / HOLD_MS);
-   return 0;
-}
-
 function Striker({ run }: { run: RunState }) {
    const time = useGameTime();
    const root = useRef<Group>(null);
    const standIn = useRef<Group>(null);
    const [target] = useState(createPose);
    const [scratch] = useState(createPose);
-   const [place] = useState(() => ({ x: 0, z: 0, yaw: 0 }));
+   const [frame] = useState(createStrikerFrame);
 
-   // the GLB striker's limbs (core/rig), FRAME_PRIORITY.pose: the idle while aiming, a stride of the
-   // walk over the run-up (its amount growing with the progress), the kick's backswing in the
-   // run-up's last quarter so the laces meet the ball as the flight starts, the follow-through over
-   // the flight and back to the idle through the hold. The lean into the run-up is the spine's (a
-   // whole-body lean about the feet would tip the soles into the grass). Every target is eased into,
-   // so a phase change never pops.
+   // the GLB striker's limbs (core/rig), FRAME_PRIORITY.pose, from strikerMotion.ts: the idle while
+   // aiming, the run-up's stride and the kick's backswing, the follow-through over the flight, and
+   // the walk back through the hold into the next aim, every foot planted where it lands. The target
+   // is eased into, so a phase change never pops; planted legs are drawn exactly (an eased leg would
+   // lag its spot and slide the boot).
    const pose = useHumanoidPose((p) => {
-      const t = time.now;
-      const shot = run.pending.kind === "shot";
-      const e = smooth(runupProgress(run));
-      let lean = RUNUP_LEAN * e;
-      if (shot && run.phase === "runup") {
-         const u = run.phaseMs / RUNUP_MS;
-         if (u < BACKSWING_FROM) {
-            walkPose(u * RUNUP_STRIDES * Math.PI * 2, 0.35 + 0.6 * u, target);
-         } else {
-            kickPose((KICK_CONTACT * (u - BACKSWING_FROM)) / (1 - BACKSWING_FROM), target);
-         }
-      } else if (shot && run.phase === "flight") {
-         kickPose(KICK_CONTACT + (1 - KICK_CONTACT) * clamp01(run.phaseMs / KICK_MS), target);
-         lean += Math.sin(Math.PI * clamp01(run.phaseMs / 200)) * 0.12;
-      } else if (shot && run.phase === "hold") {
-         blendPoses(kickPose(1, target), idlePose(t, scratch), smooth(run.phaseMs / HOLD_MS), target);
-      } else {
-         idlePose(t, target);
-      }
-      turnBone(target, BONE.spine, lean, 0, 0);
-      blendPoses(p, target, 1 - Math.exp(-POSE_EASE * time.delta), p);
+      strikerFrame(run, frame);
+      drawStrikerPose(p, target, strikerPose(run, frame, time.now, target, scratch), time.delta);
    });
 
    useFrame(() => {
       const g = root.current;
       if (!g) return;
-      const shot = run.pending.kind === "shot";
-      const p = runupProgress(run);
-      const e = smooth(p);
+      // the run-up towards the ball and the walk back (strikerMotion.ts, layout.ts): the kicking foot ends beside the ball
+      strikerFrame(run, frame);
       const fallback = standIn.current !== null;
-      // the stand-in's stride bob, idle bob and whole-body lean; the GLB walks and leans in its own joints
-      const stride = fallback && run.phase === "runup" && shot ? Math.abs(Math.sin(p * Math.PI * 3)) * 0.05 : 0;
-      const idle = fallback && run.phase === "aim" ? Math.sin(time.now * 2.4) * 0.01 : 0;
-      // the run-up towards the ball (layout.ts): the kicking foot ends beside it
-      strikerPlacement(e, place);
-      g.position.set(place.x, stride + idle, place.z);
-      const kick = fallback && shot && run.phase === "flight" ? Math.sin(Math.PI * clamp01(run.phaseMs / 200)) * 0.12 : 0;
-      g.rotation.x = fallback ? -RUNUP_LEAN * e - kick : 0;
-      g.rotation.y = place.yaw;
+      // the stand-in's stride and step bob, idle bob and whole-body lean; the GLB walks and leans in its own joints
+      const bob = fallback ? frame.bob * 0.05 : 0;
+      const idle = fallback && run.phase === "aim" && frame.mode === "idle" ? Math.sin(time.now * 2.4) * 0.01 : 0;
+      g.position.set(frame.x, bob + idle, frame.z);
+      g.rotation.x = fallback ? -RUNUP_LEAN * frame.lean - KICK_LEAN * frame.kick : 0;
+      g.rotation.y = frame.yaw;
    });
 
    return (

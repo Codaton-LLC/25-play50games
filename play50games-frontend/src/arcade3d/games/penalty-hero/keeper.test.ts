@@ -7,6 +7,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 import { blendPoses, createPose } from "@/arcade3d/core/rig/poses";
 import { describeCharacter, rigCharacter, type RiggedCharacter } from "@/arcade3d/core/rig/characterChecks";
 import { bodyLift } from "@/arcade3d/core/rig/gait";
+import { readCharacterGlb } from "@/arcade3d/core/rig/robotGlb";
 import { ASSETS, KEEPER_LANDMARKS } from "./assets";
 import { KEEPER_BOUNCE, KEEPER_HIP, KEEPER_SWAY, keeperDivePlacement } from "./layout";
 import { keeperDivePose, keeperReadyPose } from "./poses";
@@ -25,6 +26,18 @@ describe("penalty-hero keeper.glb", () => {
       },
       headFrom: 1.52,
       hipHalfWidth: 0.24,
+   });
+
+   it("its scale draws it 1.85 m tall, the first GLB's height (the v2 GLB's 1.89 longest side is the arm span, not the height)", async () => {
+      const glb = await readCharacterGlb(ASSETS.keeper.url);
+      let top = 0;
+      let reach = 0;
+      for (let i = 0; i < glb.cloud.length; i += 3) {
+         top = Math.max(top, glb.cloud[i + 1]);
+         reach = Math.max(reach, Math.abs(glb.cloud[i]));
+      }
+      expect(2 * reach).toBeGreaterThan(top);
+      expect(top * (ASSETS.keeper.scale ?? 1)).toBeCloseTo(1.85, 2);
    });
 });
 
@@ -97,5 +110,56 @@ describe("penalty-hero keeper's weight shift and dives on keeper.glb", () => {
          }
       }
       expect(worst, where).toBeGreaterThan(-0.005);
+   }, 30_000);
+
+   it("the beard stays on the chin: no edge of the face and beard (the middle of the head from the collar up) stretches more than 1.5x in the ready stance over a breath or through any dive", () => {
+      // the head joint (headY 1.494) is inside the beard (rest y 1.41-1.52 at the front): a full
+      // head turn tore the beard off the face (2.8x in a side dive, 2.3x in the ready stance)
+      const rest = keeper.glb.cloud;
+      const idx = keeper.glb.indices;
+      const n = rest.length / 3;
+      const near = (i: number) => rest[i * 3 + 1] > 1.36 && rest[i * 3 + 1] < 1.7 && Math.abs(rest[i * 3]) < 0.13;
+      const edges: number[] = [];
+      const seen = new Set<number>();
+      for (let t = 0; t < idx.length; t += 3) {
+         for (let e = 0; e < 3; e++) {
+            const a = Math.min(idx[t + e], idx[t + ((e + 1) % 3)]);
+            const b = Math.max(idx[t + e], idx[t + ((e + 1) % 3)]);
+            if (seen.has(a * n + b) || !near(a) || !near(b)) continue;
+            seen.add(a * n + b);
+            const length = Math.hypot(rest[a * 3] - rest[b * 3], rest[a * 3 + 1] - rest[b * 3 + 1], rest[a * 3 + 2] - rest[b * 3 + 2]);
+            if (length > 1e-4) edges.push(a, b, length);
+         }
+      }
+      // the chin's front (the beard) is among the edges
+      expect(edges.length).toBeGreaterThan(1000);
+      const stretch = (world: Float32Array) => {
+         let most = 0;
+         for (let i = 0; i < edges.length; i += 3) {
+            const a = edges[i];
+            const b = edges[i + 1];
+            const d = Math.hypot(world[a * 3] - world[b * 3], world[a * 3 + 1] - world[b * 3 + 1], world[a * 3 + 2] - world[b * 3 + 2]);
+            most = Math.max(most, d / edges[i + 2]);
+         }
+         return most;
+      };
+      const p = createPose();
+      const dive = createPose();
+      let worst = 0;
+      let where = "";
+      for (const t of [0, 0.7, 1.3, 2.2, 3.1, 4.4]) {
+         const s = stretch(keeper.posed(keeperReadyPose(t, p)));
+         if (s > worst) [worst, where] = [s, `ready t ${t}`];
+      }
+      for (const [side, row] of [[-1, 0], [1, 0], [-1, 1], [1, 1], [0, 0], [0, 1]] as const) {
+         for (const d of [0.25, 0.5, 0.75, 1]) {
+            // Scene.tsx Keeper: the ready stance blended into the dive
+            keeperReadyPose(0.7, p);
+            blendPoses(p, keeperDivePose(side, row, dive), d, p);
+            const s = stretch(keeper.posed(p));
+            if (s > worst) [worst, where] = [s, `side ${side} row ${row} dive ${d}`];
+         }
+      }
+      expect(worst, where).toBeLessThan(1.5);
    }, 30_000);
 });
