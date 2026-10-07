@@ -17,16 +17,36 @@
 // - The follow camera (camera.ts): CameraRig follows the point F, keyed by run.respawns so a
 //   respawn is a cut, never a swoop (FollowCamera below).
 // - Visuals animate with useGameTime() (pause-safe), never with state.clock.elapsedTime.
+// - The runner GLB is a static T-pose: <HumanoidModel> (core/rig) rigs it in code and
+//   useHumanoidPose drives its limbs from the run state (the run cycle by ground covered, the leap,
+//   the beam balance, the flailing tumble, the cheer, the slump). RunnerPrimitive, with its own
+//   swung limbs, stays as the fallback.
 import { memo, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { flushSync, useFrame, useThree } from "@react-three/fiber";
 import { Color, type Group, type Matrix4, type Mesh, type MeshStandardMaterial } from "three";
 import CameraRig from "@/arcade3d/core/CameraRig";
-import { Model } from "@/arcade3d/core/assets";
 import { playSfx } from "@/arcade3d/core/audio";
 import { useGameTime } from "@/arcade3d/core/gameTime";
 import { useInput } from "@/arcade3d/core/input";
 import { inputToWorld, turnTowards } from "@/arcade3d/core/math";
 import { BlobShadow, DynamicInstanced } from "@/arcade3d/core/render";
+import {
+   BONE,
+   HumanoidModel,
+   POSE_MASK,
+   aimArm,
+   blendPoses,
+   bodyLift,
+   cheerPose,
+   createPose,
+   flailPose,
+   idlePose,
+   jumpPose,
+   turnBone,
+   useHumanoidPose,
+   walkPose,
+} from "@/arcade3d/core/rig";
+import { RUNNER_LANDMARKS } from "@/arcade3d/core/sharedAssets";
 import type { RunPhase } from "@/arcade3d/core/types";
 import { COUNTDOWN_MS, useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { useFittedView } from "@/arcade3d/core/useFittedView";
@@ -395,6 +415,27 @@ const clamp01 = (v: number) => (v < 0 ? 0 : v > 1 ? 1 : v);
 /** The knocked runner rolls this fast (rad/s), away from the hub, round its waist (m above the feet). */
 const TUMBLE = 11;
 const WAIST = 0.8;
+/** The runner GLB's joints (core/sharedAssets) and its scale here: its height over its planted foot. */
+const LEGS = RUNNER_LANDMARKS;
+const SCALE = ASSETS.runner.scale ?? 1;
+/** walkPose's amount at full speed (1 = a run; the amount scales with the speed). */
+const RUN_AMOUNT = 1;
+
+/** The run cycle (looks only) of the GLB runner: its eased amount, the end blends, the body's height. */
+interface Gait {
+   amount: number;
+   cheer: number;
+   slump: number;
+   balance: number;
+   /** the body's height over its planted foot this frame (m): core/rig bodyLift x SCALE */
+   lift: number;
+}
+
+/** Is the grounded runner on the balance beam? */
+const onBeamOf = (run: ObstacleRun) => {
+   const r = run.runner;
+   return r.grounded && r.support !== NONE && COURSE.supports[r.support].kind === "beam";
+};
 
 const Runner = memo(function Runner({ run, fx }: { run: ObstacleRun; fx: Fx }) {
    const time = useGameTime();
@@ -403,8 +444,75 @@ const Runner = memo(function Runner({ run, fx }: { run: ObstacleRun; fx: Fx }) {
    const spin = useRef<Group>(null);
    const shadow = useRef<Group>(null);
    const marker = useRef<Mesh>(null);
+   const standIn = useRef<Group>(null);
    const [rig] = useState(createRunnerRig);
+   const [gait] = useState<Gait>(() => ({ amount: 0, cheer: 0, slump: 0, balance: 0, lift: 0 }));
+   const [scratch] = useState(createPose);
    const parts = useFxParts();
+
+   // the GLB runner's limbs (core/rig), FRAME_PRIORITY.pose: after the step, before the useFrame
+   // below. The run cycle's phase is the stand-in's (ground covered on foot / STRIDE), its amount
+   // eases with the speed; the leap blends in by the airborne blend (knees tucked at the apex), the
+   // beam puts the arms out for balance, a knock or a fall flails (the group tumbles), the win
+   // cheers, the time-up slumps. The lean into the run is the spine's (a whole-body lean about the
+   // feet would tip the soles into the floor). The looks shared with the stand-in (fx.stride,
+   // fx.yaw, fx.lean, fx.air) are advanced here, once per frame.
+   const pose = useHumanoidPose((p) => {
+      const r = run.runner;
+      const t = time.now;
+      const dt = time.delta;
+      const ease = 1 - Math.exp(-14 * dt);
+      const { phase, endReason } = useArcadeStore.getState();
+      const won = phase === "over" && endReason === "win";
+      const slumped = phase === "over" && endReason === "timeup";
+
+      // ground covered on foot drives the run cycle (a respawn's jump is not a stride)
+      const moved = Math.hypot(r.x - fx.lastX, r.z - fx.lastZ);
+      fx.lastX = r.x;
+      fx.lastZ = r.z;
+      if (r.state === "run" && r.grounded && moved < 1) fx.stride += moved;
+      const cycle = (fx.stride / STRIDE) * Math.PI * 2;
+      const speed = Math.min(1, Math.hypot(r.vx, r.vz) / V_RUN);
+      const running = r.state === "run" && r.grounded && speed > 0.08 && !won;
+      const flailing = r.state === "knocked" || r.state === "lost";
+
+      // facing: towards the input velocity; towards the camera when cheering
+      if (won) fx.yaw = turnTowards(fx.yaw, Math.PI, 1 - Math.exp(-6 * dt));
+      else if (r.state === "run" && speed > 0.15) fx.yaw = turnTowards(fx.yaw, Math.atan2(-r.vx, -r.vz), 1 - Math.exp(-12 * dt));
+      fx.lean += ((running ? (4 + 6 * speed) * DEG : 0) - fx.lean) * ease;
+      fx.air += ((r.grounded || r.state === "spawn" ? 0 : 1) - fx.air) * (1 - Math.exp(-18 * dt));
+      gait.amount += ((running ? RUN_AMOUNT * Math.max(0.5, speed) : 0) - gait.amount) * (1 - Math.exp(-10 * dt));
+      gait.cheer += ((won ? 1 : 0) - gait.cheer) * (1 - Math.exp(-8 * dt));
+      gait.slump += ((slumped ? 1 : 0) - gait.slump) * (1 - Math.exp(-6 * dt));
+      gait.balance += ((onBeamOf(run) && !flailing ? 1 : 0) - gait.balance) * (1 - Math.exp(-10 * dt));
+
+      walkPose(cycle, gait.amount, p);
+      // nearly still (the start, a spawn, the end): the idle's breath and glance in the upper body
+      blendPoses(p, idlePose(t, scratch), 1 - Math.min(1, gait.amount * 5), p, POSE_MASK.upper);
+      turnBone(p, BONE.spine, fx.lean, 0, 0);
+      if (gait.balance > 0.001) {
+         // arms out level and wobbling for balance on the beam
+         blendPoses(p, idlePose(t, scratch), 1, scratch, POSE_MASK.all);
+         const w = Math.sin(t * 5) * 0.2;
+         aimArm(scratch, 1, 1, 0.1 + w, 0.1, 1, 0.3 + w, 0.15);
+         aimArm(scratch, -1, 1, 0.1 - w, 0.1, 1, 0.3 - w, 0.15);
+         blendPoses(p, scratch, gait.balance, p, POSE_MASK.arms);
+      }
+      const air = flailing ? 0 : fx.air;
+      if (air > 0.001) {
+         // a leap: knees tucked at the apex
+         const tuck = !r.grounded ? Math.sin(Math.min(1, Math.max(0, (t - fx.jumpAt) / 0.68)) * Math.PI) : 0;
+         blendPoses(p, jumpPose(0.4 + 0.6 * tuck, scratch), air, p);
+      }
+      if (flailing) blendPoses(p, flailPose(t, scratch), Math.min(1, (t - Math.max(fx.knockAt, fx.lostAt)) / 0.2), p);
+      if (gait.cheer > 0.001) blendPoses(p, cheerPose(t, scratch), gait.cheer, p);
+      if (gait.slump > 0.001) {
+         // hanging arms, the head and the shoulders dropped
+         turnBone(p, BONE.spine, 0.2 * gait.slump, 0, 0);
+         turnBone(p, BONE.head, 0.45 * gait.slump, 0, 0);
+      }
+      gait.lift = bodyLift(p, LEGS) * SCALE;
+   });
 
    useFrame(() => {
       const g = root.current;
@@ -415,25 +523,15 @@ const Runner = memo(function Runner({ run, fx }: { run: ObstacleRun; fx: Fx }) {
       const r = run.runner;
       const t = time.now;
       const dt = time.delta;
-      const ease = 1 - Math.exp(-14 * dt);
       const { phase, endReason } = useArcadeStore.getState();
       const won = phase === "over" && endReason === "win";
       const slumped = phase === "over" && endReason === "timeup";
       const { hipL, hipR, kneeL, kneeR, shoulderL, shoulderR, elbowL, elbowR, head, tails } = rig;
       const limbs = hipL && hipR && kneeL && kneeR && shoulderL && shoulderR && elbowL && elbowR;
-
-      // ground covered on foot drives the run cycle (a respawn's jump is not a stride)
-      const moved = Math.hypot(r.x - fx.lastX, r.z - fx.lastZ);
-      fx.lastX = r.x;
-      fx.lastZ = r.z;
-      if (r.state === "run" && r.grounded && moved < 1) fx.stride += moved;
+      const fallback = standIn.current !== null;
       const cycle = (fx.stride / STRIDE) * Math.PI * 2;
       const speed = Math.min(1, Math.hypot(r.vx, r.vz) / V_RUN);
       const running = r.state === "run" && r.grounded && speed > 0.08 && !won;
-
-      // facing: towards the input velocity; towards the camera when cheering
-      if (won) fx.yaw = turnTowards(fx.yaw, Math.PI, 1 - Math.exp(-6 * dt));
-      else if (r.state === "run" && speed > 0.15) fx.yaw = turnTowards(fx.yaw, Math.atan2(-r.vx, -r.vz), 1 - Math.exp(-12 * dt));
 
       // where the feet are drawn: the rules' position, sunk below the water once lost
       let y = r.y;
@@ -472,11 +570,12 @@ const Runner = memo(function Runner({ run, fx }: { run: ObstacleRun; fx: Fx }) {
       } else {
          fx.roll = 0;
          s.rotation.set(0, 0, 0);
-         const onBeam = r.grounded && r.support !== NONE && COURSE.supports[r.support].kind === "beam";
-         fx.lean += ((running ? (4 + 6 * speed) * DEG : 0) - fx.lean) * ease;
+         const onBeam = onBeamOf(run);
          const wobble = onBeam ? Math.sin(t * 7) * 6 * DEG + (beamSlide(fx.obstacleMs) / BEAM.slide) * -5 * DEG : 0;
-         b.rotation.set(-fx.lean + (slumped ? 0.25 : 0), 0, wobble);
-         b.position.set(0, running ? Math.abs(Math.sin(cycle)) * 0.05 : Math.sin(t * 3) * 0.006, 0);
+         // the stand-in leans and slumps as a whole and bobs per step; the GLB leans and slumps in
+         // its spine (pose) and rises and falls with its planted foot (the pose's bodyLift)
+         b.rotation.set(fallback ? -fx.lean + (slumped ? 0.25 : 0) : 0, 0, wobble);
+         b.position.set(0, fallback ? (running ? Math.abs(Math.sin(cycle)) * 0.05 : Math.sin(t * 3) * 0.006) : gait.lift, 0);
          let sy = 1;
          const sinceJump = t - fx.jumpAt;
          const sinceLand = t - fx.landAt;
@@ -486,7 +585,6 @@ const Runner = memo(function Runner({ run, fx }: { run: ObstacleRun; fx: Fx }) {
          b.scale.set(sxz, sy, sxz);
       }
 
-      fx.air += ((r.grounded || r.state === "spawn" ? 0 : 1) - fx.air) * (1 - Math.exp(-18 * dt));
       const air = flailing ? 0 : fx.air;
       if (limbs) {
          if (flailing) {
@@ -513,7 +611,7 @@ const Runner = memo(function Runner({ run, fx }: { run: ObstacleRun; fx: Fx }) {
             kneeL.rotation.set(-0.6 * tuck, 0, 0);
             kneeR.rotation.set(-0.6 * tuck, 0, 0);
          } else {
-            const onBeam = r.grounded && r.support !== NONE && COURSE.supports[r.support].kind === "beam";
+            const onBeam = onBeamOf(run);
             const sw = running ? Math.sin(cycle) * speed : 0;
             const c = running ? Math.cos(cycle) : 0;
             const idle = running ? 0 : Math.sin(t * 2.2) * 0.05;
@@ -547,10 +645,13 @@ const Runner = memo(function Runner({ run, fx }: { run: ObstacleRun; fx: Fx }) {
             <group ref={body}>
                <group ref={spin} position-y={WAIST}>
                   <group position-y={-WAIST}>
-                     <Model
+                     {/* the body group carries the GLB's height over its planted foot (gait.lift), so the model does not add it again */}
+                     <HumanoidModel
                         asset={ASSETS.runner}
+                        pose={pose}
+                        applyLift={false}
                         fallback={
-                           <group scale={STAND_IN_SCALE}>
+                           <group ref={standIn} scale={STAND_IN_SCALE}>
                               <RunnerPrimitive rig={rig} />
                            </group>
                         }

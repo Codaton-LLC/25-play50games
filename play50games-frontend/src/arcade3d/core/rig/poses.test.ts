@@ -15,6 +15,7 @@ import {
    cheerPose,
    copyPose,
    createPose,
+   flailPose,
    idlePose,
    jumpPose,
    levelFoot,
@@ -23,6 +24,7 @@ import {
    resolvePose,
    restPose,
    setBoneEuler,
+   turnBone,
    walkPose,
    wrapPhase,
    type HumanoidPose,
@@ -83,6 +85,8 @@ describe("basics", () => {
          () => reachPose(-1, 0.4, out),
          () => cheerPose(2, out),
          () => jumpPose(0.5, out),
+         () => flailPose(0.4, out),
+         () => turnBone(out, BONE.spine, 0.1, 0, 0),
          () => mirrorPose(out, out),
          () => blendPoses(out, armsDownPose(createPose()), 0.5, out),
          () => copyPose(createPose(), out),
@@ -103,6 +107,8 @@ describe("basics", () => {
          idlePose(t, p);
          check();
          cheerPose(t, p);
+         check();
+         flailPose(t, p);
          check();
       }
       for (const k of [0, 0.3, 1]) {
@@ -398,6 +404,34 @@ describe("other poses", () => {
       expect(jumpPose(0.5, createPose()).ground).toBe(0);
       // tuck 0 is the standing pose, but in the air
       expectSamePose(jumpPose(0, createPose()), { ...armsDownPose(createPose()), ground: 0 });
+   });
+
+   it("flail: in the air, both arms above the shoulders and out to their sides, both knees bent, and it moves with t", () => {
+      for (const t of [0, 0.1, 0.25]) {
+         const f = flailPose(t, createPose());
+         expect(f.ground).toBe(0);
+         const r = resolved(f);
+         for (const [arm, out] of [
+            [ARM_L, X],
+            [ARM_R, NX],
+         ] as const) {
+            const upper = chainDir(r, arm, out);
+            expect(upper.y).toBeGreaterThan(0.4);
+            expect(upper.x * out.x).toBeGreaterThan(0.4);
+         }
+         // the shin folds back from the thigh on both sides
+         for (const [thigh, shin] of [
+            [BONE.upperLegL, BONE.lowerLegL],
+            [BONE.upperLegR, BONE.lowerLegR],
+         ] as const) {
+            const down = chainDir(r, [BONE.hips, thigh], DOWN);
+            const shinDir = chainDir(r, [BONE.hips, thigh, shin], DOWN);
+            expect(shinDir.z).toBeLessThan(down.z - 0.3);
+         }
+      }
+      const a = flailPose(0, createPose());
+      const b = flailPose(0.1, createPose());
+      expect(Math.abs(quat(a.q, BONE.upperArmL).dot(quat(b.q, BONE.upperArmL)))).toBeLessThan(0.999);
    });
 });
 

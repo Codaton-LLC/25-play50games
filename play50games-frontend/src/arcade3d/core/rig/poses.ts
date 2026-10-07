@@ -92,6 +92,21 @@ export function setBoneEuler(q: Float32Array, bone: number, x: number, y: number
    q[o + 3] = c1 * c2 * c3 - s1 * s2 * s3;
 }
 
+const TURN_Q = new Float32Array(4);
+
+/**
+ * Turns bone `bone` further, on top of whatever the pose already holds for it: Euler angles
+ * (x, y, z, three.js "XYZ") applied in the bone's parent frame, so a lean (x) tips the bone and all
+ * its children about the parent's axes. `turnBone(p, BONE.spine, lean, 0, 0)` leans a walking spine
+ * further into the run without redoing the walk's own twist. Zero angles change nothing.
+ */
+export function turnBone(out: HumanoidPose, bone: number, x: number, y: number, z: number): HumanoidPose {
+   if (x === 0 && y === 0 && z === 0) return out;
+   setBoneEuler(TURN_Q, 0, x, y, z);
+   mulQuat(TURN_Q, 0, out.q, bone * 4, out.q, bone * 4);
+   return out;
+}
+
 // side: +1 = L (+x), -1 = R (-x)
 const clavicle = (side: number) => (side > 0 ? BONE.clavicleL : BONE.clavicleR);
 const upperArm = (side: number) => (side > 0 ? BONE.upperArmL : BONE.upperArmR);
@@ -534,6 +549,28 @@ export function jumpPose(tuck: number, out: HumanoidPose): HumanoidPose {
       setElbow(out, side, ARMS_DOWN_ELBOW + 0.5 * k);
    }
    setTrunk(out, BONE.spine, 0.12 * k);
+   return out;
+}
+
+/**
+ * Knocked off its feet (a crash, a fall): both arms up and out, waving, the legs bent and apart,
+ * the head shaking, in the air (`ground` 0: the game's group carries the tumble). `t` in seconds.
+ */
+export function flailPose(t: number, out: HumanoidPose): HumanoidPose {
+   armsDownPose(out);
+   out.ground = 0;
+   for (let i = 0; i < 2; i++) {
+      const side = i === 0 ? 1 : -1;
+      const f = Math.sin(t * 22 + i * 2.1);
+      // the upper arm this far out from straight up (never closer than 0.65 rad: a wide head), waving,
+      // the forearm bent further up and forward
+      const v = 0.85 + 0.2 * f;
+      aimArm(out, side, Math.sin(v), Math.cos(v), 0.35, Math.sin(v - 0.6), Math.cos(v - 0.6), 0.55);
+      setLeg(out, side, 0.45 + 0.35 * f * side, 0.3);
+      setKnee(out, side, 0.9 - 0.3 * f * side);
+   }
+   setTrunk(out, BONE.spine, 0.15);
+   setTrunk(out, BONE.head, -0.2, 0.3 * Math.sin(t * 13));
    return out;
 }
 

@@ -25,6 +25,7 @@ export {
    cheerPose,
    copyPose,
    createPose,
+   flailPose,
    idlePose,
    jumpPose,
    levelFoot,
@@ -33,12 +34,13 @@ export {
    resolvePose,
    restPose,
    setBoneEuler,
+   turnBone,
    walkPose,
    wrapPhase,
    type HumanoidPose,
    type PoseMask,
 } from "./poses";
-export { bodyLift, groundLift, soleHeight, walkStride } from "./gait";
+export { MIN_GAIT_STRIDE, bodyLift, footPoint, gaitPhaseStep, groundLift, soleHeight, walkStride } from "./gait";
 export {
    applyHumanoidPose,
    buildHumanoidTemplate,

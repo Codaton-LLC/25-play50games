@@ -164,7 +164,7 @@ Generate (this game's `assets.spec.json`, universe `food`, seed 5152):
 
 | id | Kind | Notes |
 |---|---|---|
-| chef | character | Image-to-3D. Prerequisite: `tools/hyper3d/concepts/food-catcher-chef.png` must exist before that generation. The player. Animated in code. |
+| chef | character | Image-to-3D from `tools/hyper3d/concepts/food-catcher-chef.webp` (group B, 2026-10-06: 18k tris, 484 KB, a 1.79 × 1.90 × 0.48 static T-pose: jacket, apron, trousers, toque). The player, animated by the core auto-rig (below). |
 | apple | prop | Good item. `qualityOverride` 1500. |
 | burger | prop | Good item. |
 | sock | prop | Bad item. `qualityOverride` 1500. Subject: "old faded grey sock with a hole, dirty brown patches", then the Play50 style block and the prop suffix. |
@@ -177,6 +177,8 @@ Reuse from `public/models/3d/shared/` (not in this spec):
 | tinCan | Bad item. |
 
 Until a GLB exists, each of those ids is a coloured primitive. Swapping the model is an `assets.ts` change, not a scene change. The Play50 Runner is not in this scene. The junk tell is drawn for whichever bad id is in the air, primitive or GLB.
+
+- **The chef on the auto-rig** (2026-10-06). `assets.ts`: `scale: 0.96` draws the 1.90-tall GLB at **1.82 m**, the `ChefPrimitive`'s height (hat top 1.83; the catch box in the rules is unchanged), with its joints `CHEF_LANDMARKS` measured once from the GLB (`chef.test.ts`): the apron from the waist to the knees is skirt-weighted (hem 0.53), so it hangs between the stepping legs instead of stretching. The Scene draws `<HumanoidModel asset pose applyLift={false} fallback={<ChefPrimitive/>}>` and builds the pose every frame in `useHumanoidPose` (after the step) from `poses.ts` (pure, tested on the real GLB in `chef.test.ts`): `idlePose` (a breath and a glance) when still; `walkPose` with an amount easing towards |`chefV`| / 7.5 m/s and a phase advanced by the distance run over the walk's own stride (`gaitPhaseStep`, `walkStride` × 0.96: about 2 m per unit of amount, 0.98 m at a walk, 1.59 m at a run), so up to about 4 m/s the planted foot stays put; faster it steps at most 4 strides a second, so the feet slide a little in a 9 m/s dash; the GLB turns a quarter to face the way it runs above 1 m/s and back to the camera when it stops (`turnTowards`), and leans into the speed in its spine (`turnBone`, towards the travel direction in its own turned frame: forward while it runs sideways, a tilt while it faces the camera), because the old whole-body roll about the feet dipped the leading foot up to 11 cm into the counter once the model turned. On a catch, good or bad (`run.flashAt`, which the simulation sets for the catch flash), both arms reach up towards the item for 0.4 s and drop (`catchReach`: `carryPose(0.7 w)` blended by `min(1, 3w)`, `w = sin(πk)`, so the arms go through the forearms-forward carry; a plain blend into `carryPose(0.7)` swung them out level through the T-pose on the way up and down). The body group carries the GLB's rise over its planted foot (`bodyLift` × 0.96) instead of the stand-in's bob. The stand-in keeps facing the camera with its old bob and its whole-body lean.
 
 ## HUD
 
@@ -221,7 +223,7 @@ Scene writes the combo with `setStat("combo", combo)`. The small `Hud` draws a 2
 
 ## Known issues / open questions
 
-- The chef concept PNG `tools/hyper3d/concepts/food-catcher-chef.png` is a prerequisite for the image-to-3D chef. It is not part of this change, and the chef cannot be generated until it exists.
+- The chef GLB exists (group B, from `tools/hyper3d/concepts/food-catcher-chef.webp`) and is drawn through the core auto-rig (Assets). Its feet slide a little in a dash above about 4 m/s (the cadence cap), it runs sideways to the camera (it turns to face the way it runs), and a leg swung far forward can poke through the apron's hem (the core's skirt-weighting limit; under 5 cm over a walk cycle, `chef.test.ts`).
 - Portrait letterbox: the play rectangle is 8.4 wide and 6.5 tall, so on a portrait phone the fit is bound by the width and the rectangle fills only about a third of the screen height (375×812, measured: camera z ≈ 26, the view spans y -6.2 to 12.7, about 43 px per unit). The taller wall and the cabinet fill the rest with kitchen, but the items stay small (about 36 px across). A taller play area for portrait would change the fall distance and the score proof, so it is not done here.
 - `skills.md` still lists a strawberry prop for this game. This spec does not generate one.
 - Shared banana and tin can stay on the shared spec (seed 5050). This game only places them, and it does not regenerate them.

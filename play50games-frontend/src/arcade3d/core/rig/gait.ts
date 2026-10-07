@@ -3,6 +3,8 @@
 //
 //    const bob = bodyLift(pose, landmarks) * asset.scale;          // the body's height over the floor
 //    gait.phase += (v * dt) / (walkStride(amount, landmarks) * asset.scale) * 2π;
+//    // the same with a shortest stride and a cadence cap (a fast character's legs):
+//    gait.phase = wrapPhase(gait.phase + gaitPhaseStep(amount, landmarks, asset.scale, v, dt, 4));
 //
 // The rig has no feet IK: walkPose keeps the soles flat (levelFoot) and the body is lifted by
 // whatever puts the lower sole on the floor (groundLift: the legs' forward kinematics with the
@@ -94,6 +96,16 @@ export function soleHeight(pose: HumanoidPose, l: HumanoidLandmarks, side: 1 | -
    return footOf(pose, l, side)[3] + lift;
 }
 
+/**
+ * Where a foot is in `pose`, the body unlifted (GLB units, the character's own frame): into `out`
+ * [ankle x, ankle y, ankle z, the lower sole point's y]. For tests and games that plant a foot
+ * (add bodyLift to the y values for the drawn height). Allocation-free with a reused `out`.
+ */
+export function footPoint(pose: HumanoidPose, l: HumanoidLandmarks, side: 1 | -1, out: Float64Array = new Float64Array(4)): Float64Array {
+   out.set(footOf(pose, l, side));
+   return out;
+}
+
 // ---------- the stride ----------
 
 const SCRATCH = createPose();
@@ -112,4 +124,30 @@ export function walkStride(amount: number, l: HumanoidLandmarks): number {
    walkPose((3 * Math.PI) / 2, amount, SCRATCH);
    const back = footOf(SCRATCH, l, 1)[2];
    return 2 * (front - back);
+}
+
+/** gaitPhaseStep's shortest stride (m) by default: standing still, walkStride is 0. */
+export const MIN_GAIT_STRIDE = 0.1;
+
+/**
+ * How far (rad) walkPose's phase advances this frame for a character drawn at `scale` moving at
+ * `speed` (m/s) for `dt` (s), with walkPose's `amount`: the distance over the stride x 2π. The stride
+ * is the walk's own (walkStride x scale, so the planted foot stays put), but never shorter than
+ * `minStride` (m) and never so short that the legs beat more than `maxCadence` strides a second
+ * (faster, the stride stretches and the feet slide a little). 0 at speed 0. Pure and allocation-free.
+ *
+ *    gait.phase = wrapPhase(gait.phase + gaitPhaseStep(gait.amount, LANDMARKS, scale, v, dt, 4));
+ */
+export function gaitPhaseStep(
+   amount: number,
+   l: HumanoidLandmarks,
+   scale: number,
+   speed: number,
+   dt: number,
+   maxCadence = Infinity,
+   minStride = MIN_GAIT_STRIDE
+): number {
+   if (!(speed > 0) || !(dt > 0)) return 0;
+   const stride = Math.max(minStride, walkStride(amount, l) * scale, speed / maxCadence);
+   return ((speed * dt) / stride) * Math.PI * 2;
 }
