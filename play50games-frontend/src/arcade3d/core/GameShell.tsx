@@ -22,7 +22,6 @@ import {
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useProgress } from "@react-three/drei";
-import { PauseIcon, SpeakerWaveIcon, SpeakerXMarkIcon } from "@heroicons/react/24/solid";
 import type { ArcadeGameMeta } from "../types";
 import type { GameDefinition, GameShellProps, RunState } from "./types";
 import { arcadeStore, useArcadeStore } from "./useArcadeStore";
@@ -35,7 +34,7 @@ import { assetUrls, clearModelCache } from "./assets";
 import { initAudio, playSfx, toggleMuted, useMuted } from "./audio";
 import { trackArcade } from "./analytics";
 import { useLeaderboard } from "./useLeaderboard";
-import { FocusButton, LeaderboardBlock, Overlay, StartCard } from "./ShellOverlays";
+import { FocusButton, HudButtons, LeaderboardBlock, Overlay, StartCard } from "./ShellOverlays";
 import { focusWithoutScroll } from "./overlayFocus";
 import {
    isRankedRun,
@@ -47,7 +46,7 @@ import {
    type SubmitResult,
 } from "./scores";
 import { formatDuration } from "./format";
-import { isResultShown } from "./frameLoop";
+import { isPausable, isResultShown } from "./frameLoop";
 import { useAuth } from "@/contexts/AuthContext";
 import { getJwtToken } from "@/lib/api/apiUtils";
 import LoginModal from "@/components/Auth/LoginModal";
@@ -164,7 +163,7 @@ function Hud({
    const timed = useArcadeStore((s) => s.timeLeftMs !== null);
    const lives = useArcadeStore((s) => s.lives);
    const stats = useArcadeStore((s) => s.stats);
-   const canPause = useArcadeStore((s) => s.phase === "playing" || s.phase === "countdown");
+   const canPause = useArcadeStore((s) => isPausable(s.phase));
    const muted = useMuted();
    const low = timed && time <= 10;
 
@@ -205,27 +204,7 @@ function Hud({
                );
             })}
          </div>
-         <div className={styles.hudGroup}>
-            <button
-               type="button"
-               className={styles.iconButton}
-               onClick={() => toggleMuted()}
-               aria-label="Mute sound"
-               aria-pressed={muted}
-            >
-               {muted ? <SpeakerXMarkIcon aria-hidden="true" /> : <SpeakerWaveIcon aria-hidden="true" />}
-            </button>
-            <button
-               type="button"
-               className={styles.iconButton}
-               onClick={onPause}
-               disabled={!canPause}
-               aria-label="Pause game"
-               aria-keyshortcuts="Escape P"
-            >
-               <PauseIcon aria-hidden="true" />
-            </button>
-         </div>
+         <HudButtons hidden={hidden} canPause={canPause} muted={muted} onToggleMute={toggleMuted} onPause={onPause} />
       </div>
    );
 }
@@ -404,7 +383,7 @@ export default function GameShell({ meta, definition, exitHref = "/3d" }: GameSh
          if (event.code !== "Escape" && event.code !== "KeyP") return;
          if (showLogin || showRegister || stageError || isEditable(event.target)) return;
          const state = arcadeStore.getState();
-         if (state.phase === "playing" || state.phase === "countdown") {
+         if (isPausable(state.phase)) {
             event.preventDefault();
             state.pause();
          } else if (state.phase === "paused" && !contextLost) {

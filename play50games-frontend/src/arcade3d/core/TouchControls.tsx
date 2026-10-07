@@ -152,6 +152,9 @@ function HoldButton({ button, label }: { button: TouchButton; label: string }) {
          type="button"
          className={`${styles.button} ${down ? styles.buttonDown : ""}`}
          aria-label={label}
+         // pointer-only (a key press does nothing here: the keyboard has Space / E), so it stays out
+         // of the tab order and a run's first Tab reaches the HUD's Mute
+         tabIndex={-1}
          onPointerDown={(event) => {
             if (pointerId.current !== null) return;
             pointerId.current = event.pointerId;
