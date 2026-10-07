@@ -8,9 +8,11 @@
 //   short screen (a landscape phone, a portrait phone under the cookie banner) the card scrolls and
 //   Play stays pinned to its bottom, above the banner. It opens scrolled to the top (title first);
 //   Play takes the focus without scrolling the card (FocusButton, not autoFocus).
+// - HudButtons: the HUD's Mute and Pause. Pause is shown (and in the tab order) only while the run
+//   can be paused, so the start card's Play is the first focus and nothing is tabbable behind it.
 import { useRef, type ButtonHTMLAttributes, type ReactNode } from "react";
 import Link from "next/link";
-import { ArrowLeftIcon } from "@heroicons/react/24/solid";
+import { ArrowLeftIcon, PauseIcon, SpeakerWaveIcon, SpeakerXMarkIcon } from "@heroicons/react/24/solid";
 import type { ArcadeGameMeta } from "../types";
 import type { GameDefinition } from "./types";
 import type { LeaderboardState } from "./useLeaderboard";
@@ -83,6 +85,52 @@ export function FocusButton(props: Omit<ButtonHTMLAttributes<HTMLButtonElement>,
    const ref = useRef<HTMLButtonElement>(null);
    useInitialFocus(ref);
    return <button {...props} ref={ref} type="button" />;
+}
+
+export interface HudButtonsProps {
+   /** the whole HUD is laid out but hidden (start card, result screen, a crashed stage) */
+   hidden: boolean;
+   /** the run counts down or is played (frameLoop isPausable) */
+   canPause: boolean;
+   muted: boolean;
+   onToggleMute: () => void;
+   onPause: () => void;
+}
+
+/**
+ * Mute and Pause, the HUD's last group. Both keep their place in every phase (the safe area
+ * measures the group, so a camera fit never jumps when the run starts), but only a button that can
+ * act is shown and tabbable: Mute whenever the HUD is up, Pause only while the run counts down or
+ * is played (hidden on the start card, while paused, during the result delay and on the result
+ * screen). Esc / P pause by the same rule (GameShell).
+ */
+export function HudButtons({ hidden, canPause, muted, onToggleMute, onPause }: HudButtonsProps) {
+   return (
+      <div className={styles.hudGroup}>
+         <button
+            type="button"
+            className={styles.iconButton}
+            onClick={() => onToggleMute()}
+            aria-label="Mute sound"
+            aria-pressed={muted}
+            tabIndex={hidden ? -1 : undefined}
+         >
+            {muted ? <SpeakerXMarkIcon aria-hidden="true" /> : <SpeakerWaveIcon aria-hidden="true" />}
+         </button>
+         <button
+            type="button"
+            className={styles.iconButton}
+            onClick={onPause}
+            disabled={!canPause}
+            aria-label="Pause game"
+            aria-keyshortcuts="Escape P"
+            tabIndex={hidden || !canPause ? -1 : undefined}
+            style={canPause ? undefined : { visibility: "hidden" }}
+         >
+            <PauseIcon aria-hidden="true" />
+         </button>
+      </div>
+   );
 }
 
 export function LeaderboardBlock({ leaderboard, meta }: { leaderboard: LeaderboardState; meta: ArcadeGameMeta }) {
