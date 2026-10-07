@@ -1,17 +1,23 @@
 # Tiny Escape Room
 
-Owner: Codex. Slug: `escape-room`. Game 9 of the 3D Arcade. **Design preparation only:** this change adds the design and asset spec, not a playable game. The existing `meta.ts` and loader stub stay unchanged, with status `"soon"`. The implementation and browser tests below are the next hand-off.
+Owner: Codex (design and rules), scene by Cursor. Slug: `escape-room`. Game 9 of the 3D Arcade. **Playable, status `"soon"`.** Codex's design and reviewed `rules.ts` / `rules.test.ts` are on main; the scene branch adds the files below and edits `index.tsx` (the full `GameDefinition`) and `meta.ts` (control texts and the thumbnail only; scoring and status unchanged).
 
 | File | What it owns |
 |---|---|
-| `meta.ts` (existing) | Server-safe card data and scoring equal to `arcade-games.json`; `orientation: "any"`. Read-only in this preparation. |
-| `index.tsx` (existing stub; implementation planned) | `GameDefinition`: Scene, assets, `durationMs: 600000`, fixed camera, HUD stat and instructions. |
-| `rules.ts` (planned) | Pure seeded layout, collision, movement, inspect states, checklist and win condition; no React, three.js, DOM or `Math.random`. |
-| `rules.test.ts` (planned) | Determinism, reachability, interaction boundaries and the minimum-duration proof, driven through the real core clock. |
-| `Scene.tsx` (planned) | Draws the run seed, translates input into reusable rule input, calls `step(state, dt, input)` in `useRunFrame`, reports events and renders state. |
-| `Primitives.tsx` (planned) | This room's cutaway shell, drawers, cupboards, fallback props, inspect badges and rigid opening parts. |
-| `Hud.tsx` / `Hud.module.css` (planned) | Optional three-item checklist and inspect progress; CSS Modules and existing CSS variables. |
-| `assets.ts` (planned) / `assets.spec.json` | Shared and local `ModelAsset` declarations / the three props this game proposes generating. |
+| `meta.ts` | Server-safe card data and scoring equal to `arcade-games.json`; `orientation: "any"`, status `"soon"`. |
+| `index.tsx` | `GameDefinition`: Scene, Hud, assets, `durationMs: 600000`, fixed camera, the Found stat and instructions. |
+| `rules.ts` | Pure seeded layout, collision, movement, inspect states, checklist and win condition; no React, three.js, DOM or `Math.random`. |
+| `rules.test.ts` | Determinism, reachability, interaction boundaries and the minimum-duration proof, driven through the real core clock. |
+| `Scene.tsx` | Draws the run seed, translates input into reusable rule input, calls `step(state, dt, input)` in `useRunFrame`, reports events and renders state: badge, runner, ground marker. |
+| `Primitives.tsx` | This room's cutaway shell, desk drawer, under-desk box, cupboards, loot, door and the primitive runner; rigid opening parts posed from the rules' timers. |
+| `cupboard.ts` | The open cupboard shell (walls, shelf, outward door; the roof leaves the graph while it opens). |
+| `desk.ts` | Drawer and under-desk box sizes and their slide/lid poses: both come out past the desk top's edge before the loot shows. |
+| `marker.ts` | `groundRingScale`: the runner's floor ring sized so its smaller screen extent is 24 CSS px. |
+| `picker.ts` | Badge size on screen (`screenSpriteSize`) and the billboard hit test for taps. |
+| `standIn.ts` | The primitive runner's limb directions from the shared humanoid pose, and which arm reaches a target. |
+| `look.test.ts` / `picker.test.ts` / `standIn.test.ts` | Camera rays to opened loot (cupboards, drawer, under-desk box) and the 24 px marker / badge picking / stand-in cheer, reach and walk. |
+| `Hud.tsx` / `Hud.module.css` | Three-item checklist and inspect progress; CSS Modules and existing CSS variables, lifted over the cookie banner. |
+| `assets.ts` / `assets.spec.json` | Shared and local `ModelAsset` declarations / the three props this game proposes generating. |
 
 ### What a new game copies from here
 
@@ -24,7 +30,7 @@ Owner: Codex. Slug: `escape-room`. Game 9 of the 3D Arcade. **Design preparation
 
 A small, roofless office contains four searchable stations and a locked back door. The shared runner must find exactly **three items: Key, Book and Battery**, then inspect the door to escape. Each item is inside a different container. The fourth container is empty. Opening a container reveals its contents; a separate inspection picks up the item. Familiar shapes and a bright yellow accent (`#eab308`) make the search readable without written clues on models.
 
-One room ships first. Extra office/lab/spaceship variants add no mechanic to this preparation, so there is no lab console in the spec. Seeded container positions and item assignments provide variation while retaining the same solvable geometry and duration bound. The start screen explains: “Open containers, take all three items, then open the door. Faster escapes rank higher.”
+One room ships first. Extra office/lab/spaceship variants add no mechanic, so there is no lab console in the spec. Seeded container positions and item assignments provide variation while retaining the same solvable geometry and duration bound. The start screen explains: “Open containers, take all three items, then open the door. Faster escapes rank higher.”
 
 ## Controls
 
@@ -50,7 +56,7 @@ All world distances are metres; gameplay times are integer milliseconds.
 | Furniture | Two shared desks at stations 0/2; primitive cupboards at 1/3; two shared chairs at `(±5, 0)` with 0.8 × 0.8 collision footprints. |
 | Door | Logical anchor `(0, 0, -4.2)`; leaf at `(0, 0, -4.85)`, size 1.4 × 2.0 × 0.12; primitive frame height 2.1. |
 | Inspect reach | 1.0 m in x/z from runner centre to the station/door anchor; model bounds do not change reach. |
-| Container opening | 1100 ms; rigid drawer slide, cupboard hinge or under-desk box lid. Collision footprints stay fixed. |
+| Container opening | 1100 ms; rigid drawer slide, cupboard hinge, or the under-desk box sliding out past the desk top's edge and then lifting its lid. Collision footprints stay fixed. |
 | Item retrieval | 900 ms, separate fresh inspection after the container is open. |
 | Door action | 600 ms unlocking + 1200 ms leaf opening = 1800 ms; allowed only with all three items. |
 | Run limit | 600000 ms of unpaused play, matching `timeBaseMs` and the existing maximum duration. |
@@ -91,7 +97,7 @@ Use the core's normalized `input.tap`. Do not raycast the walls, floor, furnitur
 
 Reuse one `Raycaster`, plane, hit point and camera-right/up vectors. Set the ray from `input.tap` and the most recently rendered camera, intersect only the eligible badge's billboard plane, reject intersections behind the camera and test its local square bounds. This ignores intervening walls by design while still requiring proximity. Avoid `intersectObjects()` and its allocated hit arrays. The same transform is used for the visible badge and hit plane, including lens shift. On pointer-up the game inspects the displayed candidate, never a hidden item inside an unopened container.
 
-For a perspective camera, the badge's world side is `44 * 2 * depth * tan(fov / 2) / canvasHeight`, with depth measured along the camera direction; its projection remains 44 CSS px at either aspect/DPR. The runner's location marker uses the same method with 24 px. Candidate highlight, badge and keyboard selection all use the same distance/eligibility test. A drag used for the joystick, an off-badge tap or a distant tap cannot inspect.
+For a perspective camera, the badge's world side is `44 * 2 * depth * tan(fov / 2) / canvasHeight`, with depth measured along the camera direction; its projection remains 44 CSS px at either aspect/DPR. The runner's 24 px location marker is a ring flat on the floor, so that method would draw it too small (17–20 px measured); `groundRingScale` (`marker.ts`) instead sizes it from its ground projection, so the ring's smaller screen extent is 24 CSS px. Candidate highlight, badge and keyboard selection all use the same distance/eligibility test. A drag used for the joystick, an off-badge tap or a distant tap cannot inspect.
 
 ### Simulation clock and frame order
 
@@ -130,7 +136,7 @@ The proof assumes a speedrunner knows the seed, skips the empty container, choos
 
 ## Scene and camera
 
-Use a roofless cutaway room: floor 12 × 10, back wall up to 1.2 m, low front/side kerbs, desks/cupboards ≤ 1.4 m and door/frame ≤ 2.1 m. Furniture and drawers stay inside the physical guard box **x ±6.2, y -0.15…2.3, z ±5.2** through every rigid transform. Runner position/collision belongs to rules; its walk lean, turns and shadow only visualize it. No GLB animation is required for opening containers or the door.
+Scene.tsx is the playable room. It uses the fit below with no follow camera. The room is a roofless cutaway: floor 12 × 10, back wall up to 1.2 m, low front/side kerbs, desks/cupboards ≤ 1.4 m and door/frame ≤ 2.1 m. Furniture and drawers stay inside the physical guard box **x ±6.2, y -0.15…2.3, z ±5.2** through every rigid transform. Runner position/collision belongs to rules; its walk lean, turns and shadow only visualize it. No GLB animation is required for opening containers or the door.
 
 Call `useFittedView({ area: ROOM_BOX, pitch: 55° in radians, yaws: [30° in radians], focus: [ROOM_FOCUS], margin: { top: 0.11, bottom: 0.07, left: 0.02, right: 0.02 }, padding: 24, shift: true, fov: 45 })` with module-level objects. Use `CameraRig` with `camera.position = ROOM_FOCUS + view.offset`, `lookAt = ROOM_FOCUS`, FOV 45 and `shift={view.shift}`. This fixed camera has **no follow**; no local fitter or per-frame camera solve. The hook refits distance/lens shift on resize and safe-area changes while the single yaw keeps controls stable.
 
@@ -145,7 +151,7 @@ The table uses **the current pure `fitView`**, not browser measurements. Its rep
 | 375 × 812 / 162 px | 44.886 | (0.0178, 0.1918) | 7.5…367.5 / 179.1…485.7 | 50.4…329.2 / 213.6…436.2 |
 | 812 × 375 / 83 px | 35.823 | (0.0061, 0.0688) | 300.9…511.1 / 89.7…268.0 | 317.6…497.8 / 99.7…247.5 |
 
-Project all guard corners, each station's jitter extrema and the separate door badge; all physical room points and actionable badge rectangles must clear the live HUD/joystick/checklist/banner, not merely the canvas edges. A 44 px badge can extend beyond the physical guard projection, so test its complete pixel rectangle separately. Retain the existing `orientation: "any"`: both supplied aspects have usable inspect targets. The runner's 24 px location marker preserves legibility in the banner-open landscape fit. These are math acceptance targets; browser screenshots and touch testing remain pending.
+Project all guard corners, each station's jitter extrema and the separate door badge; all physical room points and actionable badge rectangles must clear the live HUD/joystick/checklist/banner, not merely the canvas edges. A 44 px badge can extend beyond the physical guard projection, so test its complete pixel rectangle separately. Retain the existing `orientation: "any"`: both supplied aspects have usable inspect targets. The runner's 24 px location marker preserves legibility in the banner-open landscape fit. These are math acceptance targets. Headless Chrome playtests at 1280 × 800 and at 375 × 812 with touch emulation (keyboard, joystick and taps, banner open) checked the live fit, the checklist above the banner, the badge taps, the 24 px marker and the opened loot of every station.
 
 ## Assets
 
@@ -154,7 +160,7 @@ Project all guard corners, each station's jitter extrema and the separate door b
 - Reuse `SHARED_ASSETS.runner`, `.battery`, `.desk` and `.chair` with this game's scale/offset declarations in `assets.ts`; generate no duplicate character or furniture. The runner uses the already approved shared concept, so this game needs no new character concept PNG.
 - Room shell, walls, floor, shelves, drawer panels, cupboard doors, under-desk box, door frame/keypad, rings, badges and checklist icons are code primitives. The door GLB is one rigid leaf: `assets.ts` fits it to 1.4 × 2.0 × 0.12 m and offsets its floor-centred model beneath a hinge group. The primitive frame is stationary; the leaf rotates during its final 1200 ms.
 - Use `<Model asset fallback={<OwnPrimitive/>}>` for runner/loot/door and `<InstancedModel asset spots fallback={<Instanced .../>}>` for repeated static desks/chairs. Keep spot arrays stable for the run. Dynamic primitive panels mutate their existing transforms; do not regenerate instance arrays per frame.
-- The current `modelManifest` determines whether a GLB is requested. The shared battery is listed on main; unlisted runner/furniture/local props immediately use fallbacks without 404 requests. Claude adds optimized files and manifest entries together; this preparation edits neither. Fit models to the documented visual/collision envelopes, never derive gameplay reach from a replacement mesh.
+- The current `modelManifest` determines whether a GLB is requested. The shared battery is listed on main; unlisted runner/furniture/local props immediately use fallbacks without 404 requests. Claude adds optimized files and manifest entries together; a game branch edits neither. Fit models to the documented visual/collision envelopes, never derive gameplay reach from a replacement mesh.
 - Prerequisite for implementation: Claude reviews these designs/specs and confirms shared-model availability. Any paid generation is Claude/user-owned through the official Rodin MCP workflow; no credits, API keys or real smoke/gen calls are used here. Import/optimize may be tested with the CLI's `--mock` fixtures. Generated props use GLB, Raw mesh mode, PBR and explicit seed 5050, never HighPack/Extreme-High.
 
 Three proposed generations are approximately **1.5 credits** at the existing 0.5/generation estimate; this is a planning estimate, not an approved spend or measured MCP cost. The lab console is deliberately omitted from this one-office design. Actual consumption and approval belong to the asset hand-off.
@@ -180,7 +186,7 @@ Allocate run state, four station/box records, three loot records, fixed wall/cha
 
 ## Test plan
 
-### `rules.test.ts` (to implement)
+### `rules.test.ts`
 
 1. Follow the reference's pure-function/Vitest style. Same seed yields identical station jitter and item permutation; 1000 unsigned seeds plus 0, 5050 and `0xffffffff` have exactly one of each item and one empty station. Invalid layout exercises the explicit zero-jitter fallback.
 2. For all 1000 layouts, inflate collision boxes by 0.35 m and flood-fill free centres on a 0.25 m grid from the start; reach every station and the door. A scripted axis-route bot opens/takes three items and opens the exit before time-up, including each container type and each item permutation. Verify moving panels never alter the route.
@@ -190,7 +196,7 @@ Allocate run state, four station/box records, three loot records, fixed wall/cha
 6. Check `computeTimeScore`, `normalizeRun` and `isRankedRun` against the table, rounding boundaries and `maxScore: 60000`; every generated winning route stays within 15000–600000 ms. An idle run and door completion at time-up are unranked, score 0 and cause no best/save/submit. Do not apply points-only `withinServerLimits` with a time game's zero rate.
 7. Fixed pool lengths/identities remain unchanged after 600 s, all interactions and restart cleanup. Step preserves the seed and required layout; generation never occurs during a frame. Assert pause freezes each action and elapsed movement, and restart clears events/stat/message/picker state.
 
-### Camera/picker tests and browser plan (to perform after implementation)
+### Camera/picker tests and browser plan
 
 - Pure camera tests call the core `fitView` for each table snapshot, then project the full physical guard, every station jitter extremum, door badge and runner marker. Assert targets ≥ 44 × 44 CSS px, runner marker ≥ 24 px, positive depth and no overlap with HUD, joystick, checklist or banner. Match the displayed transform and picker plane at both DPR 1 and 2.
 - Test ray/badge hits, near edges, outside corners, behind/parallel rays, unreachable objects and hidden loot. Placing a wall or furniture mesh between ray and badge must not intercept the inspect; proximity still rejects a far-side object. After a refit, ray hits the badge at its displayed screen location. No allocated raycast hit array.
@@ -201,8 +207,10 @@ Allocate run state, four station/box records, three loot records, fixed wall/cha
 
 ## Known issues and core gaps
 
-- This is a preparation: Scene, rules, rules tests, assets declarations, HUD, thumbnail, playable loader and browser measurements do not exist yet. The table and mathematical proof define acceptance criteria; they are not a claim that a browser game passed them. Keep status `"soon"` until implementation and the project Definition of done are complete.
-- The current core already provides a pause-safe clock, simulation-first priorities, a camera fitter/lens shift, live safe-area rectangles, input-to-world mapping and Model fallbacks/instancing. Do not list these as missing or copy local replacements from older game designs. The reference game's points-limit tests need the time-game adaptation documented above, not a new score helper.
-- Banner obstruction discovery in the current core can lag its polling interval (about 1 s). Test banner transitions, not just settled snapshots; any generic safe-area timing defect is for Claude in `core/`, not a game-owned DOM observer/fitter.
-- The design depends on explicit model envelopes and inspect badges. Claude's eventual GLBs need scale/pivot inspection; mesh geometry must never silently change reach or movement collisions. Only the shared battery is currently supplied among this game's reused models; the other fallbacks are part of the implementation work.
-- The catalogue's older escape-room row calls the universe `office` and proposes a console. This requested spec uses `shared-cast` seed 5050 and omits the console for the single office. Claude can reconcile the owned catalogue during the asset review; this branch does not edit `skills.md`, metadata, API rules or core files.
+- The scene is playable and status stays `"soon"`. The camera table is still the math target for `fitView`; the live fit uses `useSafeArea` on top of those same options. Rules and `rules.test.ts` belong to Codex and were not edited here.
+- Inspect uses `input.tap` (release, not a drag), never `tapDown`. A missed tap passes an invalid target so it does not fall through to the E / Enter nearest-object key.
+- The runner is `<HumanoidModel asset={SHARED_ASSETS.runner}>`. `runner.glb` is not in the manifest, so `PrimitiveRunner` shows and points each arm and leg along its rig bone from the same pose (`standIn.ts`; L = the runner's left = +x, as in the rig): idle, a walk whose stride matches the speed, a reach with the arm on the target's side while opening or inspecting, and both arms up in a waving V on the win. Listing the GLB swaps the body without a scene change, and the rig reaches with the same arm. Its joints still use the robot's landmarks until the runner is measured. Key, book and door are primitive fallbacks until their GLBs exist. Desk, chair and battery use the shared models.
+- Opened loot is always in the camera's view: the cupboard roof leaves the graph while it opens (its door swings outward), the drawer slides out past the desk's edge, and the under-desk box slides out from under the desk top first and only then lifts its lid on the back edge, behind the loot (`desk.ts`; `look.test.ts` casts rays from both fitted cameras over every jitter, with the desk as a solid box up to its 0.54 m top). The 44 px badge of an opened, filled container (the "take" badge) turns see-through (`BADGE_LOOK`, `badgeShowsLoot` in `picker.ts`): at about 20 px per metre on a phone it is wider than the whole station, and the loot sits right under it.
+- Still open in the core: the cookie banner is found by a 1 s poll, and `env(safe-area-inset-bottom)` is not reported. The live fit uses `useSafeArea`, so a banner or inset change can lag; that measurement stays in `core/`.
+- Desk, chair and battery GLBs are on main and scaled in `assets.ts`. Key, book and the door leaf are still primitives. Mesh size never changes reach or collisions. Measured draw calls (`renderer.info.render.calls`, desktop and phone): 36 in the furnished room, 39 with a container open.
+- The catalogue's older escape-room row calls the universe `office` and proposes a console. This requested spec uses `shared-cast` seed 5050 and omits the console for the single office. Claude can reconcile the owned catalogue during the asset review; this branch does not edit `skills.md`, the scoring metadata, API rules or core files (`meta.ts` only gets its control texts and thumbnail).
