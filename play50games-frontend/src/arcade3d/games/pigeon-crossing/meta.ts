@@ -7,7 +7,7 @@ export const pigeonCrossingMeta: ArcadeGameMeta = {
    tagline: "Why did the pigeon cross the road?",
    description: "Hop a brave pigeon across busy lanes of traffic. Every level adds faster cars.",
    order: 4,
-   status: "soon",
+   status: "live",
    difficulty: 2,
    orientation: "portrait",
    controls: {
