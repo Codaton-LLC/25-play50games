@@ -12,7 +12,7 @@ export const towerClimbMeta: ArcadeGameMeta = {
    orientation: "portrait",
    controls: {
       scheme: "platformer",
-      keyboard: "Left / right to move, Space or Up to jump",
+      keyboard: "A/D or Left/Right to move; Space, W or Up to jump",
       touch: "Joystick + Jump button, or swipe up"
    },
    scoring: {
