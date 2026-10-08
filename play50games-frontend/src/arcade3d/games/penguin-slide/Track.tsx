@@ -8,7 +8,7 @@ import { scaledCount, useQuality } from "@/arcade3d/core/quality";
 import { DynamicInstanced, useCanvasTexture } from "@/arcade3d/core/render";
 import { ASSETS } from "./assets";
 import { usePropParts } from "./Primitives";
-import { CLOCK, chunkAt, safeCentre, sampleTrack, widthAt, worldAt, type Chunk, type Run } from "./rules";
+import { CLOCK, corridorAt, chunkAt, safeCentre, sampleTrack, widthAt, worldAt, type Chunk, type Run } from "./rules";
 
 const ROWS = 121;
 const COLS = 8;
@@ -48,11 +48,11 @@ function fillTrack(g: BufferGeometry, c: Chunk, p: Vector3, t: Vector3, columns:
    const pos = g.getAttribute("position"), normal = g.getAttribute("normal"), color = g.getAttribute("color");
    for (let row = 0; row < ROWS; row++) {
       const s = 60 * row / (ROWS - 1);
-      const w = widthAt(c, s), island = c.form === "split" ? Math.max(0, Math.abs(safeCentre(c, s, 1)) - 1.25) : 0;
+      const w = widthAt(c, s), island = c.form === "split" ? Math.max(0, Math.abs(safeCentre(c, s, 1) - corridorAt(c, s)) - 1.25) : 0;
       columns[0] = -w - 1.4; columns[1] = -w; columns[2] = -w + 0.2; columns[3] = -island;
       columns[4] = island; columns[5] = w - 0.2; columns[6] = w; columns[7] = w + 1.4;
       for (let col = 0; col < COLS; col++) {
-         const d = columns[col], i = row * COLS + col;
+         const d = columns[col] + corridorAt(c, s), i = row * COLS + col;
          sampleTrack(c, s, d, p, t);
          const snowy = col <= 1 || col >= 6 || (island > 0 && (col === 3 || col === 4));
          const lift = col === 0 || col === 7 ? 0.7 : snowy ? 0.08 : 0;
@@ -114,7 +114,7 @@ export default function Track({ run }: { run: Run }) {
       const c = run.chunks[Math.floor(i / 10)], slot = i % 10;
       if (slot >= treeCount) return false;
       const s = c.index * 60 + 3 + Math.floor(slot / 2) * 12;
-      place(s, (slot % 2 ? 1 : -1) * 5.2, m, 0, 0.8 + (slot % 3) * 0.2);
+      place(s, corridorAt(c, s - c.index * 60) + (slot % 2 ? 1 : -1) * 5.2, m, 0, 0.8 + (slot % 3) * 0.2);
    };
    const obstacle = (kind: "ice" | "snowman" | "crack", i: number, m: Matrix4) => {
       const o = run.chunks[Math.floor(i / 5)].obstacles[i % 5];
@@ -127,12 +127,14 @@ export default function Track({ run }: { run: Run }) {
       place(r.s, r.d, m);
    };
    const flag = (i: number, m: Matrix4) => {
-      const gate = Math.floor(i / 2), side = i % 2 ? 1 : -1;
+      const gate = Math.floor(i / 4), branch = i % 4 < 2 ? -1 : 1, side = i % 2 ? 1 : -1;
       let s = run.gateS;
       for (let j = 0; j < gate; j++) s += CLOCK.gateSpacing + CLOCK.gateGrowth * Math.min((run.gateIndex + j) / CLOCK.gateGrowthCount, 1);
       if (s > (run.chunks[2].index + 1) * 60) return false;
       const c = chunkAt(run, s);
-      place(s, safeCentre(c, s - c.index * 60, run.branch) + side, m);
+      if (c.form !== "split" && branch === 1) return false;
+      if (c === run.chunks[1] && run.branch && branch !== run.branch) return false;
+      place(s, safeCentre(c, s - c.index * 60, branch) + side, m);
    };
    const gatePost = (i: number, m: Matrix4) => {
       if (flag(i, m) === false) return false;
@@ -147,11 +149,11 @@ export default function Track({ run }: { run: Run }) {
       </group>
       <DynamicInstancedModel name="fish-trails" asset={ASSETS.fish} count={36} update={fish} fallbackParts={fishParts} />
       <DynamicInstancedModel name="pine-banks" asset={ASSETS.pine} count={30} update={tree} fallbackParts={pineParts} />
-      <DynamicInstancedModel name="time-flags" asset={ASSETS.flag} count={6} update={flag} fallbackParts={flagParts} />
+      <DynamicInstancedModel name="time-flags" asset={ASSETS.flag} count={12} update={flag} fallbackParts={flagParts} />
       <DynamicInstanced count={15} update={(i, m) => obstacle("ice", i, m)} parts={iceParts} name="ice-blocks" />
       <DynamicInstanced count={15} update={(i, m) => obstacle("snowman", i, m)} parts={snowmanParts} name="snowmen" />
       <DynamicInstanced count={15} update={(i, m) => obstacle("crack", i, m)} parts={crackParts} name="cracks" />
       <DynamicInstanced count={3} update={ramp} parts={rampParts} name="spin-ramps" />
-      <DynamicInstanced count={6} update={gatePost} name="gate-posts"><boxGeometry args={[1, 1, 1]} /><meshStandardMaterial color="#6ee7b7" emissive="#34d399" emissiveIntensity={0.3} /></DynamicInstanced>
+      <DynamicInstanced count={12} update={gatePost} name="gate-posts"><boxGeometry args={[1, 1, 1]} /><meshStandardMaterial color="#6ee7b7" emissive="#34d399" emissiveIntensity={0.3} /></DynamicInstanced>
    </group>;
 }

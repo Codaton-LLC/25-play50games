@@ -14,7 +14,7 @@ const FORMS = ["straight", "curve", "s-bend", "ramp", "narrow", "split"] as cons
 export type Form = typeof FORMS[number];
 export type Branch = -1 | 0 | 1;
 export interface Point { x: number; y: number; z: number }
-export interface Entry { x: number; y: number; z: number; heading: number; grade: number }
+export interface Entry { x: number; y: number; z: number; heading: number; grade: number; corridor?: number }
 export interface Item { id: string; s: number; d: number; branch: Branch; used: boolean }
 export interface Obstacle extends Item { kind: "ice" | "snowman" | "crack"; radius: number }
 export interface Chunk {
@@ -40,8 +40,12 @@ const taper = (s: number) => {
 export function widthAt(c: Chunk, s: number): number {
    return c.form === "narrow" ? COURSE.width - (COURSE.width - COURSE.narrow) * taper(s) : COURSE.width;
 }
+export function corridorAt(c: Chunk, s: number): number {
+   const u = clamp(s / COURSE.chunk, 0, 1);
+   return (c.entry.corridor ?? 0) * (1 - u) + (c.exit.corridor ?? 0) * u;
+}
 export function safeCentre(c: Chunk, s: number, branch: Branch = -1): number {
-   return c.form === "split" ? (branch === 1 ? 1 : -1) * 1.5 * taper(s) : 0;
+   return corridorAt(c, s) + (c.form === "split" ? (branch === 1 ? 1 : -1) * 1.5 * taper(s) : 0);
 }
 
 function pathFor(entry: Entry, grade: number, form: Form, turn: number): Path {
@@ -114,19 +118,22 @@ export function generateChunk(seed: number, index: number, entry: Entry, elapsed
    const path = branches ? branches[0] : pathFor(entry, grade, form, rng() * 2 - 1);
    const endpoint = pointAt(path, COURSE.chunk);
    const tangent = tangentAt(path, COURSE.chunk);
-   const exit = { ...endpoint, heading: Math.atan2(tangent.x, tangent.z), grade };
+   const exit = { ...endpoint, heading: Math.atan2(tangent.x, tangent.z), grade, corridor: index <= 0 ? 0 : form === "split" ? (entry.corridor ?? 0) : (rng() < 0.5 ? -1.5 : 1.5) };
    const graph = branches ? createPathGraph([createPath([entry]), ...branches, createPath([endpoint])], [[1, 2], [3], [3], []]) : createPathGraph([path], [[]]);
    const c: Chunk = { index, entry: { ...entry }, exit, grade, form, path, branches, graph, fish: [], obstacles: [], ramp: null, attempts: attempt + 1, fallback: false };
    if (index <= 0) return c;
    const start = index * COURSE.chunk;
    const count = 2 + Math.floor(3 * Math.min(elapsed / 120, 1));
    for (let i = 0; i < count; i++) {
-      const s = start + i * COURSE.separation;
+      const s = start + 3 + i * COURSE.separation;
       const kind = (["ice", "snowman", "crack"] as const)[Math.floor(rng() * 3)];
       const radius = kind === "snowman" ? 0.5 : 0.6;
-      // The centre line is reserved; optional obstacles sit at the outside banks.
-      const side = rng() < 0.5 ? -1 : 1;
-      const d = side * (c.form === "split" ? 3.3 : c.form === "narrow" ? 1.8 : 2.4);
+      const local = s - start;
+      const centre = corridorAt(c, local);
+      // Cover the former line while leaving both swept branch corridors clear.
+      const side = centre >= 0 ? -1 : 1;
+      const envelope = c.form === "split" ? 1.5 * taper(local) : 0;
+      const d = centre + side * (envelope + COURSE.corridor + COURSE.radius + radius + 0.25);
       c.obstacles.push({ id: `${seed}:${index}:o${i}`, s, d, radius, kind, branch: 0, used: false });
    }
    for (let i = 0; i < POINTS.fishBudget; i++) {
@@ -134,16 +141,16 @@ export function generateChunk(seed: number, index: number, entry: Entry, elapsed
       const branch: Branch = c.form === "split" ? (i % 2 ? 1 : -1) : 0;
       c.fish.push({ id: `${seed}:${index}:f${i}`, s: start + local, d: safeCentre(c, local, branch), branch, used: false });
    }
-   if (form === "ramp") c.ramp = { id: `${seed}:${index}:r`, s: start + 24, d: 1.5, branch: 0, used: false };
+   if (form === "ramp") c.ramp = { id: `${seed}:${index}:r`, s: start + 24, d: safeCentre(c, 24) + 1.5, branch: 0, used: false };
    if (!accept(c)) {
       if (attempt + 1 < COURSE.attempts) return generateChunk(seed, index, entry, elapsed, attempt + 1, accept);
       c.form = "straight";
       c.path = pathFor(entry, grade, "straight", 0);
       c.branches = null;
       c.graph = createPathGraph([c.path], [[]]);
-      c.exit = { ...pointAt(c.path, COURSE.chunk), heading: entry.heading, grade };
-      for (const o of c.obstacles) o.d = o.d < 0 ? -2.4 : 2.4;
-      for (const f of c.fish) { f.d = 0; f.branch = 0; }
+      c.exit = { ...pointAt(c.path, COURSE.chunk), heading: entry.heading, grade, corridor: exit.corridor };
+      for (const o of c.obstacles) { const centre = corridorAt(c, o.s - start); o.d = centre + (centre >= 0 ? -1 : 1) * 1.8; }
+      for (const f of c.fish) { f.d = safeCentre(c, f.s - start); f.branch = 0; }
       c.ramp = null;
       c.attempts = COURSE.attempts;
       c.fallback = true;
@@ -159,9 +166,12 @@ export function validChunk(c: Chunk): boolean {
       if (o.s < 60 || o.s < c.index * 60 || o.s >= (c.index + 1) * 60) return false;
       if (i && o.s - c.obstacles[i - 1].s < COURSE.separation) return false;
       if (!Number.isFinite(o.d) || !Number.isFinite(o.s)) return false;
-      // Conservative whole-corridor envelope also covers swept footprints at tapers.
-      const envelope = c.form === "split" ? 1.5 : 0;
-      if (Math.abs(o.d) - envelope < COURSE.corridor + COURSE.radius + o.radius) return false;
+      // Check the whole longitudinal collision footprint, including tapers.
+      for (const branch of [-1, 1] as const) for (const ds of [-1, 0, 1]) {
+         const local = o.s - c.index * 60 + ds * (o.radius + COURSE.radius);
+         if (Math.abs(o.d - safeCentre(c, local, branch)) < COURSE.corridor + COURSE.radius + o.radius) return false;
+      }
+      if (c.ramp && Math.abs(o.s - c.ramp.s) <= 1.5 + o.radius && Math.abs(o.d - c.ramp.d) <= 0.9 + o.radius) return false;
    }
    for (let i = 0; i < c.fish.length; i++) {
       const f = c.fish[i];
@@ -266,7 +276,7 @@ function integrate(r: Run, dt: number): void {
       recycle(r);
       const c = chunkAt(r, r.s);
       const local = r.s - c.index * 60;
-      if (c.form === "split" && r.branch === 0) r.branch = r.d > 0 ? 1 : -1;
+      if (c.form === "split" && r.branch === 0) r.branch = r.d > corridorAt(c, local) ? 1 : -1;
       if (r.airDuration) h = Math.min(h, r.airDuration - r.air);
       if (r.impulseTime > 0) h = Math.min(h, r.impulseTime);
       const steer = r.steer + clamp(r.target - r.steer, -DRIVE.smoothing * h, DRIVE.smoothing * h);
@@ -382,7 +392,7 @@ export function worldAt(r: Run, s: number, d: number, out: Point): Point {
 export function sampleTrack(c: Chunk, s: number, d: number, out: Point, tangent: Point, branch: Branch = d > 0 ? 1 : -1): Point {
    const path = c.branches ? c.branches[branch === 1 ? 1 : 0] : c.path;
    pointAt(path, s, out); tangentAt(path, s, tangent);
-   const offset = d - (c.branches ? safeCentre(c, s, branch) : 0);
+   const offset = d - (c.branches ? (branch === 1 ? 1 : -1) * 1.5 * taper(s) : 0);
    const length = Math.hypot(tangent.x, tangent.z) || 1;
    out.x += tangent.z / length * offset;
    out.z -= tangent.x / length * offset;

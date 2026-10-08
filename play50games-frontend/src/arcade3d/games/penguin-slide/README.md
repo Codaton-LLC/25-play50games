@@ -182,3 +182,20 @@ Bot budget: 100 normal and 50 forced-speed survival runs at 20 fps; 64 limits ru
 Claude measured baseline: 1,000 survival runs cost 559 s and 800 limits runs cost 231 s. Run reduction alone predicts about 84+87=171 s, insufficient for the target. Removing per-frame matcher overhead is the additional optimization; whole-file under-60 s timing awaits Claude Vitest. Diagnostic benchmark and TypeScript validation are recorded in the fix1 handoff; no new Vitest timing is claimed here. Build and browser QA also remain pending.
 
 Diagnostic measured 150 survival runs in 21.33 s and the initial 300 limits runs in 60.36 s (81.69 s total, standalone Node assertions, not Vitest). Therefore final limits sampling is 96 runs: 64/16/16 across frame schedules, each balanced across four modes. Linear measured-cost estimate is about 19.3 s for limits, 40.6 s combined, leaving about 19 s for course/assets and Vitest overhead. The taper reachability proof also aggregates maxima over all 480,000 samples instead of allocating two matchers per sample. Final whole-file timing still requires Claude validation.
+
+
+### P-15-fix2 Status
+
+Implemented for Claude validation; build, Vitest, browser and headless results are pending. This section supersedes the fixed-centre generator and fix1 sampling notes above.
+
+- Real penguin and fallback turn local +z belly toward world -y, with local +y head down-track (world -z). Standing fit grows from 0.8 m to 1 m; centring, belly support and fallback scale together. Real-GLB tests cover orientation and slope/bank clearance.
+- Corridor entry/exit offsets persist between chunks. Ordinary chunks interpolate to seeded ?1.5 m over 60 m (at most 1 m per 20 m, 1.1 m/s at 22 m/s). Splits retain the incoming offset while their branch tapers open/merge. Track, banks and trees follow that offset; fish and gates mark it. Hazards sit toward the former line outside both swept safe corridors. A 0.25 m placement margin covers corridor movement over collision footprints. Fallback retains corridor endpoints and event budgets.
+- Ramp validation rejects obstacle circles intersecting its 3 m by 1.8 m footprint. Obstacle slots start at local 3 m, avoiding the old local-24 overlap. Tests cover 1,000 seeds with ramp coverage and a constructed invalid overlap.
+- Idle regression requires at least 45/50 seeds to end before 90 s. Safe bots retain zero-crash/180 s assertions at normal and forced 22 m/s. Gate tests cover inclusive ?1 m and misses at ?1.01 m.
+- Fog and sky horizon both use #e9fbff. One fogged 300 m snow-field plane, 0.8 m below the player and sloping downhill at the maximum 8% grade, surrounds the moving glacier below visible track slopes (one extra draw call).
+- Camera area narrows to x=?3.5, z=-22..4, y=0..2.5, with 0.5 m padding. Fish GLBs fit 0.6 m long; fallback fish enlarge proportionally. Expected penguin height: about 30 CSS px on 390x844 and 20 px on 844x390; nearby fish about 8?16 px. These are sizing estimates, not measured screenshots; Claude must verify HUD/banner variants and speed pullback.
+- Thumbnail adds zoom 1.6 around [0.5, 0.65]; recapture pending. Split gates draw both branches ahead of entry, then only the selected branch. Flag/post pools increase to 12.
+- Level writes require change. Yaw HUD writes use changed 10-degree bins. Final capScore uses penguinSlideMeta.scoring.
+- Runtime budget: 40 normal + 20 forced-speed survival runs; 32/8/8 limits runs across 60-fps/20-fps/random frames; 256 deterministic seeds across six forms. Existing 1,000-seed boundary/reachability checks remain, plus 1,000-seed ramp coverage. Under-60-second timing needs Claude measurement.
+
+Validation: TypeScript no-emit check passed during this round; final result is in the handoff. No Vitest/build/browser command, thumbnail capture, production access, commit/push or branch change.

@@ -3,7 +3,7 @@ import { resolve } from "node:path";
 import { Box3, Matrix4, Quaternion, Vector3 } from "three";
 import { describe, expect, it } from "vitest";
 import { EXPANSION_GLB_SIZE } from "@/arcade3d/core/sharedAssets";
-import { ASSETS, BELLY_LIFT, FLAG_BOUNDS, PENGUIN_SCALE, bellyClearance } from "./assets";
+import { ASSETS, BELLY_LIFT, BELLY_ROTATION_Y, FLAG_BOUNDS, PENGUIN_SCALE, bellyClearance } from "./assets";
 
 interface Glb {
    accessors: Array<{ min: number[]; max: number[] }>;
@@ -32,21 +32,30 @@ function bounds(url: string): Box3 {
 }
 
 describe("penguin-slide real GLB fits", () => {
-   it("fits the solid penguin to 0.8 m standing and its resting belly clears by 1 cm", () => {
+   it("fits the solid penguin to 1 m standing and its resting belly clears by 1 cm", () => {
       const box = bounds(ASSETS.penguin.url);
       const size = box.getSize(new Vector3());
       expect(size.x).toBeCloseTo(EXPANSION_GLB_SIZE.penguin.width, 3);
-      expect(size.y * PENGUIN_SCALE).toBeCloseTo(0.8, 3);
+      expect(size.y * PENGUIN_SCALE).toBeCloseTo(1, 3);
       expect(size.z).toBeCloseTo(EXPANSION_GLB_SIZE.penguin.depth, 3);
-      const belly = box.clone().applyMatrix4(new Matrix4().makeScale(PENGUIN_SCALE, PENGUIN_SCALE, PENGUIN_SCALE)).applyMatrix4(new Matrix4().makeRotationX(-Math.PI / 2));
+      const belly = box.clone().applyMatrix4(new Matrix4().makeScale(PENGUIN_SCALE, PENGUIN_SCALE, PENGUIN_SCALE)).applyMatrix4(new Matrix4().makeRotationY(BELLY_ROTATION_Y)).applyMatrix4(new Matrix4().makeRotationX(-Math.PI / 2));
       expect(belly.min.y + BELLY_LIFT).toBeCloseTo(0.01, 3);
       expect(ASSETS.penguin.humanoid).toBeUndefined();
+   });
+
+   it("points the real fitted GLB belly down and head down-track", () => {
+      const box = bounds(ASSETS.penguin.url);
+      expect(box.getSize(new Vector3()).y * PENGUIN_SCALE).toBeCloseTo(1, 3);
+      const fit = new Matrix4().makeRotationX(-Math.PI / 2).multiply(new Matrix4().makeRotationY(BELLY_ROTATION_Y));
+      expect(new Vector3(0, 0, 1).transformDirection(fit).y).toBeCloseTo(-1, 8);
+      const head = new Vector3(0, box.max.y, 0).sub(new Vector3(0, box.min.y, 0)).transformDirection(fit);
+      expect(head.z).toBeCloseTo(-1, 8);
    });
 
    it("fits fish and trees from shared measured bounds", () => {
       const fish = bounds(ASSETS.fish.url).getSize(new Vector3());
       const pine = bounds(ASSETS.pine.url).getSize(new Vector3());
-      expect(fish.z * ASSETS.fish.scale).toBeCloseTo(0.35, 3);
+      expect(fish.z * ASSETS.fish.scale).toBeCloseTo(0.6, 3);
       expect(pine.y * ASSETS.pine.scale).toBeCloseTo(4, 3);
    });
 
@@ -54,7 +63,7 @@ describe("penguin-slide real GLB fits", () => {
       const box = bounds(ASSETS.penguin.url);
       for (const grade of [0.03, 0.055, 0.08]) for (const degrees of [-12, -6, 0, 6, 12]) {
          const roll = degrees * Math.PI / 180;
-         const transform = new Matrix4().makeRotationZ(roll).multiply(new Matrix4().makeTranslation(0, BELLY_LIFT, 0)).multiply(new Matrix4().makeRotationX(-Math.PI / 2 - Math.atan(grade))).multiply(new Matrix4().makeTranslation(0, -0.4, 0)).multiply(new Matrix4().makeScale(PENGUIN_SCALE, PENGUIN_SCALE, PENGUIN_SCALE));
+         const transform = new Matrix4().makeRotationZ(roll).multiply(new Matrix4().makeTranslation(0, BELLY_LIFT, 0)).multiply(new Matrix4().makeRotationX(-Math.PI / 2 - Math.atan(grade))).multiply(new Matrix4().makeTranslation(0, -0.5, 0)).multiply(new Matrix4().makeRotationY(BELLY_ROTATION_Y)).multiply(new Matrix4().makeScale(PENGUIN_SCALE, PENGUIN_SCALE, PENGUIN_SCALE));
          let lowest = Infinity;
          for (const x of [box.min.x, box.max.x]) for (const y of [box.min.y, box.max.y]) for (const z of [box.min.z, box.max.z]) {
             const point = new Vector3(x, y, z).applyMatrix4(transform);

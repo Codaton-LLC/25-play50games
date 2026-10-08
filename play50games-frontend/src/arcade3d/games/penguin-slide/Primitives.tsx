@@ -27,7 +27,7 @@ export function usePropParts(kind: "fish" | "pine" | "flag" | "ice" | "snowman" 
    const parts = useMemo<InstancePart[]>(() => {
       const at = (x: number, y: number, z: number, sx = 1, sy = 1, sz = 1) => new Matrix4().makeScale(sx, sy, sz).setPosition(x, y, z);
       if (kind === "fish") return [
-         { geometry: new SphereGeometry(1, 10, 6), material: new MeshStandardMaterial({ color: "#fb923c", roughness: 0.5 }), locals: [at(0, 0, 0, 0.1, 0.12, 0.19), at(0, 0, -0.18, 0.12, 0.04, 0.08)] },
+         { geometry: new SphereGeometry(1, 10, 6), material: new MeshStandardMaterial({ color: "#fb923c", roughness: 0.5 }), locals: [at(0, 0, 0, 0.17, 0.204, 0.323), at(0, 0, -0.306, 0.204, 0.068, 0.136)] },
       ];
       if (kind === "pine") return [
          { geometry: new ConeGeometry(1, 1, 7), material: new MeshStandardMaterial({ color: "#286756", roughness: 1 }), locals: [at(0, 1.35, 0, 0.95, 1.8, 0.95), at(0, 2.4, 0, 0.7, 1.7, 0.7), at(0, 3.3, 0, 0.4, 1.4, 0.4)] },

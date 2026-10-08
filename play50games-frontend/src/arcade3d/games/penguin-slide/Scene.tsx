@@ -17,11 +17,12 @@ import { BlobShadow } from "@/arcade3d/core/render";
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { useRunFrame } from "@/arcade3d/core/useRunFrame";
 import { useFittedView } from "@/arcade3d/core/useFittedView";
-import { ASSETS, BELLY_LIFT, bellyClearance } from "./assets";
+import { ASSETS, BELLY_LIFT, BELLY_ROTATION_Y, bellyClearance } from "./assets";
 import { ChaseCamera, VIEW, useReducedMotion } from "./camera";
 import { PenguinPrimitive } from "./Primitives";
 import Track from "./Track";
-import { PROPOSED_LIMITS, airHeight, chunkAt, createRun, landingSpins, runScore, safeCentre, sampleTrack, stepRun, worldAt, type Run } from "./rules";
+import { penguinSlideMeta as meta } from "./meta";
+import { airHeight, chunkAt, createRun, landingSpins, runScore, safeCentre, sampleTrack, stepRun, worldAt, type Run } from "./rules";
 
 function Penguin({ run, reduced }: { run: Run; reduced: boolean }) {
    const root = useRef<Group>(null), body = useRef<Group>(null), fallback = useRef<Group>(null), shadow = useRef<Group>(null);
@@ -43,14 +44,14 @@ function Penguin({ run, reduced }: { run: Run; reduced: boolean }) {
          shadow.current.scale.setScalar(1 / (1 + airHeight(run) * 0.3));
       }
       root.current.rotation.set(0, -run.yaw * Math.PI / 180, roll);
-      body.current.position.y = fallback.current ? 0.28 : BELLY_LIFT;
+      body.current.position.y = fallback.current ? 0.3475 : BELLY_LIFT;
       body.current.rotation.set(-Math.PI / 2 - Math.atan(grade) + (tumble && !reduced ? (1 - run.tumble + ending) * Math.PI * 2 : 0), 0, 0);
       squashStretch(look.motion.squash, look.scale);
       body.current.scale.set(look.scale.x, look.scale.y, look.scale.z);
    });
    return <><group ref={shadow}><BlobShadow radius={0.42} y={0.012} /></group><group ref={root} name="penguin">
       <group ref={body} rotation={[-Math.PI / 2, 0, 0]} position={[0, BELLY_LIFT, 0]}>
-         <group position={[0, -0.4, 0]}><Model asset={ASSETS.penguin} fallback={<group ref={fallback}><PenguinPrimitive /></group>} /></group>
+         <group position={[0, -0.5, 0]} rotation={[0, BELLY_ROTATION_Y, 0]}><Model asset={ASSETS.penguin} fallback={<group ref={fallback} scale={1.25}><PenguinPrimitive /></group>} /></group>
       </group>
    </group></>;
 }
@@ -92,8 +93,10 @@ export default function Scene() {
       store.setStat("assist", Number(run.assist));
       store.setStat("air", Number(run.airDuration > 0));
       store.setStat("alignment", Number(landingSpins(run.yaw) >= 0));
-      store.setStat("yaw", run.yaw);
-      store.setLevel(1 + Math.floor(Math.min(run.elapsed / 120, 1) * 3));
+      const yaw = Math.round(run.yaw / 10) * 10;
+      if (store.stats.yaw !== yaw) store.setStat("yaw", yaw);
+      const level = 1 + Math.floor(Math.min(run.elapsed / 120, 1) * 3);
+      if (store.level !== level) store.setLevel(level);
       scratch.at.x = run.d; scratch.at.y = airHeight(run) + 0.3; scratch.at.z = 0;
       if (run.events.fish) {
          scratch.fishPending += run.events.fish;
@@ -110,7 +113,7 @@ export default function Scene() {
          fx.burst("snow", scratch.at, 3); scratch.snowAt = time.play;
       }
       // TODO(P-06): startLoop("slide") and the new carve/ramp/gate cues after that API merges.
-      if (run.end) { store.setScore(capScore(runScore(run), store.elapsedMs, PROPOSED_LIMITS)); store.end(run.end); }
+      if (run.end) { store.setScore(capScore(runScore(run), store.elapsedMs, meta.scoring)); store.end(run.end); }
    });
 
    useFrame(() => {
@@ -124,6 +127,9 @@ export default function Scene() {
       <ChaseCamera run={run} reduced={reduced} view={view} />
       <SkyDome top="#8ed7f2" bottom="#e9fbff" />
       <SnowFall count={reduced ? 60 : 300} area={[24, 16, 70]} />
+      <mesh name="snow-field" rotation={[-Math.PI / 2 - Math.atan(0.08), 0, 0]} position={[0, -0.8, 0]}>
+         <planeGeometry args={[300, 300]} /><meshStandardMaterial color="#e9fbff" roughness={1} />
+      </mesh>
       <Track run={run} />
       <Penguin run={run} reduced={reduced} />
       <TargetMarkers targets={marker} color="#34d399" />

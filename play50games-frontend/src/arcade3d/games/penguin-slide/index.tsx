@@ -11,7 +11,7 @@ const definition: GameDefinition = {
    Hud,
    assets: ASSETS,
    camera: { position: [0, 12, 22], fov: 50, lookAt: [0, 0, -10] },
-   environment: { background: "#bae6fd", fog: ["#bae6fd", 25, 56], lighting: "snow" },
+   environment: { background: "#e9fbff", fog: ["#e9fbff", 25, 56], lighting: "snow" },
    touchControls: ["joystick", "jump"],
    touchLabels: { jump: "Hop" },
    hudStats: [{ key: "time", label: "Time" }, { key: "distance", label: "Distance" }, { key: "crashes", label: "Crashes", max: 3 }],

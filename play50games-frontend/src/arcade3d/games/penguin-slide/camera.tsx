@@ -11,9 +11,9 @@ import type { FittedView } from "@/arcade3d/core/view";
 import type { Run } from "./rules";
 
 export const VIEW = {
-   area: { min: { x: -5, y: 0, z: -32 }, max: { x: 5, y: 4, z: 4 } },
+   area: { min: { x: -3.5, y: 0, z: -22 }, max: { x: 3.5, y: 2.5, z: 4 } },
    pitch: 25 * Math.PI / 180, yaws: [0], focus: [{ x: 0, y: 0, z: -10 }],
-   padding: 2, margin: { top: 0.11, bottom: 0.08, left: 0.03, right: 0.03 }, shift: true, fov: 50,
+   padding: 0.5, margin: { top: 0.11, bottom: 0.08, left: 0.03, right: 0.03 }, shift: true, fov: 50,
 };
 
 export function useReducedMotion(): boolean {

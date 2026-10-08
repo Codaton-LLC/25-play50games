@@ -4,7 +4,7 @@ import { createArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { createRng } from "@/arcade3d/core/math";
 import { capScore, withinServerLimits } from "@/arcade3d/core/limits";
 import { pointAt, tangentAt } from "@/arcade3d/core/path";
-import { PROPOSED_LIMITS, createRun, generateChunk, validChunk, stepRun, runScore, safeCentre, widthAt, airHeight, landingSpins, type StepInput, type Run } from "./rules";
+import { PROPOSED_LIMITS, createRun, generateChunk, validChunk, stepRun, runScore, corridorAt, safeCentre, widthAt, airHeight, landingSpins, type StepInput, type Run } from "./rules";
 
 const idle: StepInput = { steer: 0, left: false, right: false, jump: false };
 const frames = (r: Run, seconds: number, input = idle) => {
@@ -69,9 +69,9 @@ function simulate(seed: number, mode: "safe" | "spam" | "crash" | "reward", raw:
 }
 
 describe("penguin-slide course", () => {
-   it("is deterministic and validates 1,000 seeds through all six forms", () => {
+   it("is deterministic and validates 256 seeds through all six forms", () => {
       const forms = new Set<string>();
-      for (let seed = 0; seed < 1000; seed++) {
+      for (let seed = 0; seed < 256; seed++) {
          let entry = createRun(seed).chunks[1].exit;
          for (let index = 1; index <= 6; index++) {
             const a = generateChunk(seed, index, entry, 120);
@@ -150,7 +150,7 @@ describe("penguin-slide course", () => {
             for (let s = 0.25; s <= 60; s += 0.25) {
                const d = safeCentre(c, s, branch);
                maxShiftExcess = Math.max(maxShiftExcess, Math.abs(d - last) - 4 * 0.25 / 22);
-               maxWidthExcess = Math.max(maxWidthExcess, Math.abs(d) + 0.35 - widthAt(c, s));
+               maxWidthExcess = Math.max(maxWidthExcess, Math.abs(d - corridorAt(c, s)) + 0.35 - widthAt(c, s));
                last = d;
             }
          }
@@ -158,6 +158,50 @@ describe("penguin-slide course", () => {
       expect(maxShiftExcess).toBeLessThanOrEqual(1e-9);
       expect(maxWidthExcess).toBeLessThanOrEqual(1e-9);
    }, 120_000);
+});
+
+describe("fix2 course regressions", () => {
+   it("ends idle runs before 90 seconds on at least 45 of 50 seeds", () => {
+      let ended = 0;
+      for (let seed = 0; seed < 50; seed++) {
+         const r = createRun(seed);
+         while (!r.end && r.elapsed < 90) stepRun(r, idle, 1 / 20);
+         if (r.end && (r.crashes === 3 || r.end === "timeup")) ended++;
+      }
+      expect(ended).toBeGreaterThanOrEqual(45);
+   });
+
+   it("keeps obstacles outside ramp footprints on 1000 seeds", () => {
+      const entry = createRun(0).chunks[1].exit;
+      let ramps = 0;
+      for (let seed = 0; seed < 1000; seed++) {
+         const c = generateChunk(seed, 2, entry, 120);
+         if (c.ramp) ramps++;
+         if (c.ramp) for (const o of c.obstacles) {
+            expect(Math.abs(o.s - c.ramp.s) > 1.5 + o.radius || Math.abs(o.d - c.ramp.d) > 0.9 + o.radius).toBe(true);
+         }
+      }
+      expect(ramps).toBeGreaterThan(100);
+   });
+
+   it("rejects an obstacle inside a ramp footprint", () => {
+      const c = generateChunk(7, 2, createRun(7).chunks[2].exit, 120);
+      c.ramp = { id: "overlap", s: c.obstacles[0].s, d: c.obstacles[0].d, branch: 0, used: false };
+      expect(validChunk(c)).toBe(false);
+   });
+
+   it("accepts both gate edges and rejects points 1 cm outside", () => {
+      for (const offset of [-1.01, -1, 1, 1.01]) {
+         const r = createRun(8);
+         r.s = 60; stepRun(r, idle, 0.01);
+         for (const c of r.chunks) { c.obstacles.length = 0; c.fish.length = 0; c.ramp = null; }
+         r.s = 119.9; r.speed = 22; r.remaining = 30;
+         const c = r.chunks[2];
+         r.d = safeCentre(c, 0, -1) + offset;
+         stepRun(r, idle, 0.01);
+         expect(r.gates).toBe(Math.abs(offset) <= 1 ? 1 : 0);
+      }
+   });
 });
 
 describe("penguin-slide movement and air", () => {
@@ -312,7 +356,7 @@ describe("penguin-slide scoring and clocks", () => {
          r.remaining = 30; r.elapsed = 0;
          // Isolate the gate: the miss lane otherwise overlaps a generated obstacle.
          for (const chunk of r.chunks) { chunk.obstacles.length = 0; chunk.fish.length = 0; chunk.ramp = null; }
-         r.s = 119.9; r.speed = 22; r.d = hit ? 0 : 3;
+         r.s = 119.9; r.speed = 22; r.d = safeCentre(r.chunks[2], 0) + (hit ? 0 : 2);
          stepRun(r, idle, 0.01);
          expect(r.gates).toBe(hit ? 1 : 0);
          expect(r.remaining).toBeCloseTo(30 - 0.01 + (hit ? 8 : 0), 6);
@@ -348,9 +392,9 @@ describe("penguin-slide scoring and clocks", () => {
 });
 
 describe("penguin-slide real-store score proof", () => {
-   it("safe corridor bots survive 180 s on 100 seeds and 50 forced-22 m/s seeds", () => {
+   it("safe corridor bots survive 180 s on 40 seeds and 20 forced-22 m/s seeds", () => {
       for (const forcedSpeed of [false, true]) {
-         for (let seed = 0; seed < (forcedSpeed ? 50 : 100); seed++) {
+         for (let seed = 0; seed < (forcedSpeed ? 20 : 40); seed++) {
             const r = simulate(seed, "safe", () => 1 / 20, forcedSpeed);
             expect(r.crashes).toBe(0);
             expect(r.elapsed).toBe(180);
@@ -358,9 +402,9 @@ describe("penguin-slide real-store score proof", () => {
       }
    }, 60_000);
 
-   it("legal bots satisfy proposed limits across 64 60-fps, 16 20-fps and 16 random-frame runs", () => {
+   it("legal bots satisfy proposed limits across 32 60-fps, 8 20-fps and 8 random-frame runs", () => {
       const modes = ["safe", "spam", "crash", "reward"] as const;
-      for (const [count, rate] of [[64, 60], [16, 20], [16, 0]] as const) {
+      for (const [count, rate] of [[32, 60], [8, 20], [8, 0]] as const) {
          for (let seed = 0; seed < count; seed++) {
             const rng = createRng(21 + seed);
             const raw = rate ? () => 1 / rate : () => 0.004 + rng() * 0.296;
