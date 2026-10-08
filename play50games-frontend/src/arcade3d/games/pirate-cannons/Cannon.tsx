@@ -93,9 +93,9 @@ export function Cannon({ run, aim, look }: { run: RunState; aim: AimState; look:
          <group ref={body} matrixAutoUpdate={false}>
             <Model asset={ASSETS.cannon} fallback={<CannonPrimitive />} />
          </group>
-         <TrajectoryDots projectile={preview} params={params} count={PREVIEW.count} step={PREVIEW.step} fraction={1} radius={0.12} opacity={0.9} endOpacity={0.15} endScale={0.5} color={COLORS.dots} />
+         <TrajectoryDots projectile={preview} params={params} count={PREVIEW.count} step={PREVIEW.step} fraction={1} radius={0.3} opacity={0.95} endOpacity={0.15} endScale={0.5} color={COLORS.dots} />
          <mesh ref={landing} rotation={[-Math.PI / 2, 0, 0]}>
-            <ringGeometry args={[0.7, 0.95, 32]} />
+            <ringGeometry args={[1.0, 1.35, 32]} />
             <meshBasicMaterial color={COLORS.dots} transparent opacity={0.55} depthWrite={false} />
          </mesh>
          <DynamicInstanced count={run.balls.length} update={placeBall} parts={ballParts} name="balls" />

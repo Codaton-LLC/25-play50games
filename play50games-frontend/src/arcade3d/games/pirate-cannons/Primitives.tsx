@@ -80,7 +80,7 @@ export function useGalleonSailParts(): readonly InstancePart[] {
 
 /** HP pips: flat discs facing the camera (the camera looks along -z). */
 export function usePipParts(): readonly InstancePart[] {
-   return usePoolParts(() => [{ geometry: new CircleGeometry(0.42, 16), material: new MeshStandardMaterial({ color: "#ffffff", roughness: 0.5, emissive: "#7f1d1d", emissiveIntensity: 0.35 }) }]);
+   return usePoolParts(() => [{ geometry: new CircleGeometry(0.55, 16), material: new MeshStandardMaterial({ color: "#ffffff", roughness: 0.5, emissive: "#7f1d1d", emissiveIntensity: 0.35 }) }]);
 }
 
 export function useBallParts(): readonly InstancePart[] {

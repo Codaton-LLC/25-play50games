@@ -1,6 +1,6 @@
 "use client";
 
-// The cove: sky, sea, the stone fort (platform, parapet, corner tower, the wind flag), the island
+// The cove: sky, sea, the stone fort (platform, parapet, the wind flag on its pole), the island
 // with its two palms, the harbour mouth on the right (buoy line at the rules' x, a mole with a
 // lighthouse). Static except the water and the flag. Every rules volume (island, buoy line) comes
 // from rules.ts; the models are fitted over them.
@@ -60,7 +60,7 @@ function useMound(): LatheGeometry {
    return g;
 }
 
-/** The flag on the corner tower: it streams with the wind, and comes down when the harbour falls. */
+/** The flag on the fort's pole: it streams with the wind, and comes down when the harbour falls. */
 function WindFlag({ run }: { run: RunState }) {
    const time = useGameTime();
    const pole = useRef<Group>(null);
@@ -82,12 +82,12 @@ function WindFlag({ run }: { run: RunState }) {
       c.scale.y = 1 - 0.3 * (1 - strength);
    });
    return (
-      <group position={[-FORT.halfX + 0.9, CANNON.platformY + 2.6, FORT.front + 0.9]}>
-         <mesh position={[0, 1.3, 0]}>
-            <cylinderGeometry args={[0.05, 0.06, 2.6, 6]} />
+      <group position={[-FORT.halfX + 0.4, CANNON.platformY, FORT.back - 0.4]}>
+         <mesh position={[0, 1.8, 0]}>
+            <cylinderGeometry args={[0.06, 0.08, 3.6, 6]} />
             <meshStandardMaterial color="#e7e5e4" roughness={0.6} />
          </mesh>
-         <group ref={pole} position={[0, 2.25, 0]}>
+         <group ref={pole} position={[0, 3.25, 0]}>
             <mesh ref={cloth} position={[0.6, 0, 0]}>
                <planeGeometry args={[1.2, 0.7]} />
                <meshStandardMaterial color={COLORS.flag} roughness={0.7} side={2} />
@@ -106,7 +106,7 @@ export function Bay({ run }: { run: RunState }) {
    return (
       <group name="bay">
          <SkyDome top="#38bdf8" bottom="#e0f2fe" />
-         <Water size={[150, 110]} position={[0, 0, -40]} color={COLORS.sea} deep={COLORS.deep} amplitude={0.15} wavelength={7} />
+         <Water size={[400, 320]} position={[0, 0, -80]} color={COLORS.sea} deep={COLORS.deep} amplitude={0.15} wavelength={7} />
 
          {/* the fort */}
          <mesh position={[0, FORT.bottom + fortH / 2, (FORT.front + FORT.back) / 2]}>
@@ -117,10 +117,7 @@ export function Bay({ run }: { run: RunState }) {
             <boxGeometry args={[PARAPET_BLOCK.w, PARAPET_BLOCK.h, FORT.parapetDepth]} />
             <meshStandardMaterial color={COLORS.stoneDark} roughness={0.95} />
          </Instanced>
-         <mesh position={[-FORT.halfX + 0.9, CANNON.platformY + 1.3, FORT.front + 0.9]}>
-            <cylinderGeometry args={[0.9, 1.05, 2.6, 12]} />
-            <meshStandardMaterial color={COLORS.stoneDark} roughness={0.95} />
-         </mesh>
+
          <WindFlag run={run} />
 
          {/* the island */}

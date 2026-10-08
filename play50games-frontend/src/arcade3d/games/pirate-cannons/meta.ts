@@ -28,7 +28,7 @@ export const pirateCannonsMeta: ArcadeGameMeta = {
       unitLabel: "pts",
       display: "int",
    },
-   thumbnail: null,
+   thumbnail: "/images/3d/pirate-cannons.webp",
    accent: "#f87171",
    owner: "claude",
 };

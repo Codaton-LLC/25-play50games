@@ -8,33 +8,23 @@ const DEG = Math.PI / 180;
 
 /** The canvas camera's fov (definition.camera.fov). */
 export const FOV = 50;
-/** Low and behind the cannon on a landscape screen; steeper in portrait (a 38 m field cannot fit a narrow screen from a low eye). */
-export const PITCH = { landscape: 12 * DEG, portrait: 30 * DEG } as const;
-
-/** The three lanes with their zig-zags and spheres: what must stay on screen. */
-export const SEA_BOX: AABB = { min: { x: -19, y: 0, z: -60 }, max: { x: 19, y: 6, z: -20 } };
-/** The point the camera looks at: the near lane's centre line, so the cannon below it stays in view. */
-export const SEA_FOCUS: [number, number, number] = [0, 0, -20];
 /**
- * The camera stays at least this far behind the cannon (m): a landscape phone's wide view would
- * otherwise fit the near lane from right above the fort and lose the cannon under the screen.
+ * The tilt. A low eye (the design's 14° for landscape) cannot show the cannon: the
+ * 38 m near lane fills a landscape screen from right above the fort, so the cannon fell under it, and
+ * the 40 m of lanes folded into a strip a tenth of the screen tall. 30° shows the cannon at the
+ * bottom and spreads the lanes up the screen; landscape goes to 36° (the lanes take a third of the
+ * screen, the cannon two thirds down), portrait keeps the decided 30°.
  */
-export const CAMERA_BEHIND = 9;
+export const PITCH = { landscape: 36 * DEG, portrait: 30 * DEG } as const;
 
-const FOCUS = [{ x: SEA_FOCUS[0], y: SEA_FOCUS[1], z: SEA_FOCUS[2] }];
+/** The three lanes (with their zig-zags and spheres) and the cannon (its muzzle is inside, z -0.8, y 3): what must stay on screen. */
+export const SEA_BOX: AABB = { min: { x: -19, y: 0, z: -60 }, max: { x: 19, y: 6, z: 0 } };
+/** The point the camera looks at: the box's floor centre (useFittedView's default focus). */
+export const SEA_FOCUS: [number, number, number] = [0, 0, -30];
+
 const YAWS = [0];
-const MARGIN = { top: 0.1, bottom: 0.03, left: 0.02, right: 0.02 };
-const view = (pitch: number): FittedViewOptions => ({
-   area: SEA_BOX,
-   pitch,
-   yaws: YAWS,
-   focus: FOCUS,
-   margin: MARGIN,
-   padding: 8,
-   shift: true,
-   fov: FOV,
-   minDistance: (CAMERA_BEHIND - SEA_FOCUS[2]) / Math.cos(pitch),
-});
+const MARGIN = { top: 0.08, bottom: 0.03, left: 0.02, right: 0.02 };
+const view = (pitch: number): FittedViewOptions => ({ area: SEA_BOX, pitch, yaws: YAWS, margin: MARGIN, padding: 8, shift: true, fov: FOV });
 const VIEWS = { landscape: view(PITCH.landscape), portrait: view(PITCH.portrait) };
 
 /** The fit for this canvas (one cached object per orientation, so useFittedView refits only on a turn). */
@@ -53,7 +43,7 @@ export const COLORS = {
    accent: "#f87171",
    wood: "#92400e",
    ball: "#1f2937",
-   dots: "#fff7ed",
+   dots: "#fef3c7",
    ring: "#fde68a",
    buoyRed: "#ef4444",
    buoyWhite: "#f8fafc",
@@ -65,4 +55,4 @@ export const COLORS = {
 } as const;
 
 /** The fort: the platform (top y = rules CANNON.platformY) and its parapet along the sea side, kept under the lowest shot. */
-export const FORT = { halfX: 4.2, front: -3, back: 4, bottom: -1, parapetTop: 2.55, parapetDepth: 0.5 } as const;
+export const FORT = { halfX: 2.8, front: -1.9, back: 3.2, bottom: -1, parapetTop: 2.55, parapetDepth: 0.4 } as const;

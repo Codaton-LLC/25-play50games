@@ -58,7 +58,7 @@ All numbers live in `rules.ts` (`WORLD`, `CANNON`, `SHIPS`, `WAVES`, `BARREL`, `
 - **Powder barrels** (`BARREL`, `REUSED_ASSETS.barrel`): one per wave, 2 s after its start, on a seeded lane at lane z + 3 (towards the cannon) on lanes 25 and 55, lane z − 3 on lane 40 (z −43, clear of the island), from **x −18** (inside the fitted view, seen at once) drifting +x at 0.6 m/s, removed at x +18 (60 s, so ≤ 4 alive, pool 5); hit sphere r 0.6, centre y 0.2. Hit → blast radius **6 m**: every ship with a sphere within 6 + r of the centre takes 1 HP; barrels within 6 m go off **0.15 s** later (chain). One shot damages a ship at most once, whatever the chain.
 - **Chest** (`CHEST`, P2): once per run, at a seeded time 30–60 s, on lane 40 or 55, from **x −18** (in view at once) at 1.6 m/s (22.5 s across); sphere r 0.6, y 0.25; worth 300. It leaves at x +18 without a penalty.
 - **Island** (`ISLAND`): centre (−7, −33), mound r 3.5 up to y 0.9, two palm trunks (cylinders r 0.3 to y 3.0) and crowns (spheres r 1.3 at y 3.2). Trunks stand ≤ 2 m from the centre, so the crowns stay inside the mound's circle. A ball touching any of them is a miss (sand or leaf puff). Ships clear it on hull spheres, not centres: the zig-zag is flat there (island rule), so the nearest sphere edges are z −26.7 (lane 25, galleon r 1.7; mound edge −29.5) and −38.3 (lane 40; mound edge −36.5), ≥ 1.8 m clear; barrels (z −22 / −43 / −52) and the chest (lane z) clear it too. Tested: no hull, barrel or chest sphere enters the island cylinder on any tick of 1,000 seeds.
-- **Harbour:** a live ship whose centre crosses x +18 costs a life (`loseLife()`, `lives: 3`) and sails on, fading. Changed from spec: the harbour mouth is the buoy line on the right of every lane, so lanes stay straight and the field fits a phone.
+- **Harbour:** a live ship whose centre crosses x +18 costs a life (`loseLife()`, `lives: 3`) and sails on past the buoys (no fade: the pool is instanced and opaque). Changed from spec: the harbour mouth is the buoy line on the right of every lane, so lanes stay straight and the field fits a phone.
 - **Clock:** `durationMs: 90000` (fixed timer, the shell ends with `"timeup"`). Tick order: ships, balls and blasts, harbour, then the score.
 
 ## Scoring
@@ -83,7 +83,7 @@ The provisional 9000 is below what an excellent run can reach (every ship sunk m
 4. **Earliest loss:** the third harbour crossing is at ≥ **20.54 s** (wave 1, worst order: sloops spawned at 0 and 5.33 s take 41 / 2.8 = 14.64 s, arriving 14.64 and 19.98 s, the dinghy spawned at 10.67 s takes 39.5 / 4 = 9.875 s, arriving 20.54 s; the other orders are later; wave 2's earliest arrival is 20 + 39.5 / 4.4 = 28.98 s; zig-zags, gaps and slot waits only delay). 20540 ≥ 19000 (8 % margin). Was 22.67 s with the x −30 spawn, so the proposed minimum drops from 21000 to 19000 ms. A time-up is 90 s, ≤ 92 s.
 5. **Every seed:** the generator only permutes the fixed multisets and jitters later, so 1 and 4 hold for all seeds (checked on 1,000).
 
-Measured during the build: an oracle bot (perfect intercept lead with `solveLaunch` iterated on the predicted ship position, the island avoided, barrels when they chain ≥ 2) on the real store at 60 fps, 20 fps and random 4–50 ms frames; its best and the margin to 10500 go here. If its best is under 70 % of 10500, the limits PR tightens the ceiling (e.g. a per-shot bound from the reload). `capScore` stays the safety net.
+**Measured** (`rules.test.ts`, 200 seeds each): the oracle bot (lead by `solveLaunch` iterated on the predicted ship, island avoided, barrels when 2+ ships are in the blast, the chest, never two balls on a ship that one more hit sinks) on the real store at 60 fps, 20 fps and random 4–50 ms frames: best **8150** (77.6 % of 10500; seed 142553, time-up, 42 shots), worst 7325, identical at every frame rate (fixed tick); every run within the proposed limits, `capScore` a no-op. Margins: 2350 under 10500 (the chain bonus needs 2+ ships near a barrel, rare); the earliest loss 20.54 s is 1.54 s over 19000 ms. Over 70 %, so 10500 stands (README risk "loose by design").
 
 ## Run end
 
@@ -92,9 +92,9 @@ Measured during the build: an oracle bot (perfect intercept lead with `solveLaun
 
 ## Scene and camera
 
-- **Fixed, behind the cannon, looking out to sea** (the lanes' depth must read as distance): `useFittedView({ area: SEA_BOX, pitch, yaws: [0], margin: { top: 0.12, bottom: 0.2, left: 0.02, right: 0.02 }, padding: 8, shift: true })`; `SEA_BOX` = x ±19, y 0–6, z −60 to −20 (the three lanes with zig-zags and spheres); `pitch` **14°** when the canvas is landscape, **30°** in portrait (a 38 m wide field cannot fit a portrait screen from a low eye). The bottom margin keeps a band for the cannon and the parapet below the field. `<CameraRig camera={{ position, lookAt: SEA_FOCUS }} offset={view.offset} shift={view.shift}>` (static). Changed from spec ("low pitch"): portrait is steeper, because of the width.
+- **Fixed, behind the cannon, looking out to sea** (the lanes' depth must read as distance): `looks.ts` `viewFor` = `useFittedView({ area: SEA_BOX, pitch, yaws: [0], margin: { top: 0.08, bottom: 0.03, left: 0.02, right: 0.02 }, padding: 8, shift: true })`; `SEA_BOX` = x ±19, y 0–6, z −60 to **0** (the three lanes and the cannon's muzzle, so the fit keeps the cannon on screen too); `pitch` **36°** landscape, **30°** portrait (decision 2). `<CameraRig camera={{ position, lookAt: SEA_FOCUS }} offset shift>` (static). Changed in the build: the design's 14° landscape view with the lanes-only box put the muzzle 250 px under a 1280 × 800 screen and folded the lanes into a strip a tenth of the screen tall (the 38 m near lane fills a landscape screen from right above the fort); every lower-eye variant measured (focus on the near lane, a minimum camera distance) either lost the cannon or shrank the ships more. Cost: empty sea below the fort on landscape screens.
 - Recoil: the cannon slides back 0.35 m and returns over 0.4 s (`spring`), plus `fx.shake(0.12)`.
-- `environment: { background: "#bae6fd", fog: ["#bae6fd", 70, 160], lighting: "day" }`; `<SkyDome top="#38bdf8" bottom="#e0f2fe">`; `<Water size={[140, 100]} position={[0, 0, -40]} color="#0ea5e9" deep="#0369a1" amplitude={0.15}>`. Ships bob and roll by `hover` and a sine (looks only; rules stay flat). Sinking: roll to 25°, down 2.5 m over 1.6 s, `splash` bubbles, `debris`.
+- `environment: { background: "#bae6fd", fog: ["#bae6fd", 140, 380], lighting: "day" }` (the fitted camera is 70–110 m away: the design's 70–160 fog washed out the bay on a phone); `<SkyDome top="#38bdf8" bottom="#e0f2fe">`; `<Water size={[400, 320]} position={[0, 0, -80]} …>` (reaches the horizon). Ships bob and roll by `hover` and a sine (looks only; rules stay flat). Sinking: roll to 25°, down 2.5 m over 1.6 s, `splash` bubbles, `debris`.
 
 ## Core helpers used
 
@@ -126,7 +126,7 @@ No new generation: every GLB is in `core/modelManifest.ts`. Fits in `assets.ts`,
 
 `rules.test.ts` ≤ ~600 lines (K.4) plus `aim.test.ts` ≤ ~120; behaviour over branches; core is already tested.
 
-- **Ballistics:** the rules' ball equals an independent analytic formula (≤ 1e-6 m) and a 1 kHz `stepProjectile` reference (< 1 cm) at 55 m; wind drift = ½ a t²; the same aim, wind and fire time at 30, 60, 144 fps and random 4–50 ms frames give the same hit tick, ship and score.
+- **Ballistics:** the rules' ball equals an independent analytic formula (≤ 1e-6 m) and a 2 kHz `stepProjectile` reference (< 1 cm; 1 kHz Euler drifts 1.01 cm) at 55 m; wind drift = ½ a t²; the same aim, wind and fire time at 30, 60, 144 fps and random 4–50 ms frames give the same hit tick, ship and score.
 - **Aim:** gains, clamps, relative to the drag's start; release fires, `cancelled` only adjusts, tap fires, one buffered fire during the reload; keyboard 0.5° nudge per press, sweep after 0.25 s, snap.
 - **Waves:** deterministic per seed; the multisets, spawn windows, speeds, wind ranges, barrels, chest window; gap rule; ≤ 8 alive; bows at x −20, barrels and chest at x −18; flat zig-zag past the island; `fixedStep` never drops a tick at 50 ms frames.
 - **Every ship reachable:** for 1,000 seeds each ship has a window ≥ 1.5 s in which an oracle shot inside the aim limits, clear of the island, under its wave's wind, hits it.
@@ -137,7 +137,7 @@ No new generation: every GLB is in `core/modelManifest.ts`. Fits in `assets.ts`,
 
 ## Performance
 
-Target **35** draw calls, cap **45** (spec ≈ 40). Estimate: sky 1, water 1, fort 3, cannon 1 + ring 1, flag 2, island 1, palms 2, mole + lighthouse 3, buoys 1, ships 1, pennants 1, sails 1, pips 1, wakes 1, barrels 1, chest 1, flotsam 1, balls 1, landing ring 1, dots 1, fx pools ≤ 5, score sprites ≤ 3 → 30–36. Triangles ≤ 100k (8 ships × 5k, cannon 4k, chest 4k). Pools sized at mount (`fx.warm("smoke", "splash", "debris", "puff", "sparkle", "score")`); no per-frame allocation (module scratch). `useQuality`: water "reduced" / "flat", flotsam 3 → 0 and fx counts scaled. Lights: the `day` preset only. Measured with `?perf=1` (p95 on the mid-phone profile, 09 §L.3) and reported here.
+Target **35** draw calls, cap **45** (spec ≈ 40). **Measured** (`?perf=1`, headless Chrome, flagged preview build): 1280 × 800 calls 23–27 (max 28), 37–48k tris, p95 17.0 ms; 390 × 844 touch, banner open, 4× CPU: calls 27 (max 29), p95 19.6 ms; 844 × 390 touch, 4× CPU: calls 27 (max 28), p95 20.3 ms. Restart ×11: geometries 26 and textures 12 flat. No console errors. Estimate: sky 1, water 1, fort 3, cannon 1 + ring 1, flag 2, island 1, palms 2, mole + lighthouse 3, buoys 1, ships 1, pennants 1, sails 1, pips 1, wakes 1, barrels 1, chest 1, flotsam 1, balls 1, landing ring 1, dots 1, fx pools ≤ 5, score sprites ≤ 3 → 30–36. Triangles ≤ 100k (8 ships × 5k, cannon 4k, chest 4k). Pools sized at mount (`fx.warm("smoke", "splash", "debris", "puff", "sparkle", "score")`); no per-frame allocation (module scratch). `useQuality`: water "reduced" / "flat", flotsam 3 → 0 and fx counts scaled. Lights: the `day` preset only. Measured with `?perf=1` (p95 on the mid-phone profile, 09 §L.3) and reported here.
 
 ## Audio
 
@@ -162,4 +162,15 @@ Wind as an arrow plus a number (m/s², one decimal) in the HUD and a streaming f
 
 ## Status
 
-(empty until the build)
+```text
+HANDOFF P-15
+Branch / last commit: claude/game-pirate-cannons (see git log; not pushed)
+Files changed (git diff --name-only main...HEAD): games/pirate-cannons/** (+ tests), public/images/3d/pirate-cannons.webp, tools/thumbs/inputs/pirate-cannons.mjs
+Checks: next build pass (plain + flagged) | tsc --noEmit pass | vitest run all pass (112 files, 1489 tests) | tools/gamecheck, tools/perf: not merged yet, the ?perf=1 probe used instead
+Built: rules (seeded waves, 120 Hz fixed tick, closed-form balls with per-shot wind, ships on core paths with the gap and island rules, barrel chains, chest, resolution-order streak) + proof; aim.ts (relative drag, tap re-fire, keyboard nudge/sweep/snap); Scene, Cannon (turntable, recoil, reload arc, TrajectoryDots, landing ring, balls), Ships (pooled ships, pennants, galleon sails, HP pips, sinking), Bay (fort, wind flag, island, buoys, lighthouse), wind vane HUD; 4 test files (rules, aim, camera, assets on the real meshes).
+Scoring formula: mult x (100 a hit + lane bonus 0/50/100 on the sink + chain 100 per extra ship (max 300) + chest 300), mult 1.5 from the 3rd consecutive scoring shot. Proposed limits 10500, 19000-92000 ms, 1500 + 110/s (meta keeps the provisional ones).
+Decisions I took and why: landscape pitch 36° and the cannon inside the fit box (14° hid the cannon); fog 140-380 and a 400 m sea (the far camera fogged the bay); ships cross the buoys and sail on (no fade: instanced, opaque); no wakes; zig-zag eased in over the first 4 m (bow in view within 0.5 s); a follower matches the leader's x speed (zig-zag courses closed the gap).
+Open questions: none.
+Known issues / follow-ups: audio TODO(P-06); far ships small on a landscape phone (sloop on lane 55 about 25 px at 844 x 390); the bottom third of a landscape screen is open sea; P-06 audio.
+Evidence: %USERPROFILE%/.play50/pirate-cannons/*.png and *-report.json
+```

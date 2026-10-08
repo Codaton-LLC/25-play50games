@@ -130,7 +130,7 @@ export function Ships({ run, looks }: { run: RunState; looks: ShipLooks }) {
       const s = run.ships[i];
       if (!frame.shown[i] || s.state !== SHIP_SAILING || n >= s.hp) return false;
       const lift = (SHIP_MAST_TOP + 1.1) * frame.k[i];
-      m.makeTranslation(frame.x[i] + (n - (s.hp - 1) / 2) * 1.0, frame.y[i] + lift, frame.z[i]);
+      m.makeTranslation(frame.x[i] + (n - (s.hp - 1) / 2) * 1.3, frame.y[i] + lift, frame.z[i]);
    };
 
    return (

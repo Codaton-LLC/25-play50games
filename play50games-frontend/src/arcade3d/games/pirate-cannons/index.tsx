@@ -21,7 +21,7 @@ const definition: GameDefinition = {
    // only the first frame uses this: Scene's CameraRig (core useFittedView, looks.ts viewFor) fits the
    // three lanes and the cannon clear of the HUD, the wind vane and the cookie banner
    camera: { position: [0, 7, 9], fov: FOV, lookAt: SEA_FOCUS },
-   environment: { background: "#bae6fd", fog: ["#bae6fd", 70, 160], lighting: "day" },
+   environment: { background: "#bae6fd", fog: ["#bae6fd", 140, 380], lighting: "day" },
    input: { drag: true },
    touchControls: [],
    hudStats: [{ key: "wave", label: "Wave", max: WAVES.length }],
