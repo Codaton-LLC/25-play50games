@@ -7,7 +7,7 @@ export const towerClimbMeta: ArcadeGameMeta = {
    tagline: "Jump higher. Do not look down.",
    description: "Climb a tower of moving and falling platforms, grab coins and reach checkpoints.",
    order: 7,
-   status: "soon",
+   status: "live",
    difficulty: 2,
    orientation: "portrait",
    controls: {
