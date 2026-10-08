@@ -18,7 +18,18 @@ if (!defined('ABSPATH')) {
 }
 
 if (!defined('PLAY50_ARCADE_DB_VERSION')) {
-    define('PLAY50_ARCADE_DB_VERSION', '1');
+    // '2' adds the run-token claims table (docs/run-tokens.md). The scores table is unchanged.
+    define('PLAY50_ARCADE_DB_VERSION', '2');
+}
+
+// Run tokens (docs/run-tokens.md §2): a ticketed submit may claim at most the ticket's server age
+// plus this much play time (server clock steps, ms rounding, one capped frame).
+if (!defined('PLAY50_ARCADE_RUN_DURATION_SLACK_MS')) {
+    define('PLAY50_ARCADE_RUN_DURATION_SLACK_MS', 1000);
+}
+// A ticket lives the game's max_duration_ms plus this (countdown, pauses, upload, a login after the run).
+if (!defined('PLAY50_ARCADE_RUN_TTL_SLACK_MS')) {
+    define('PLAY50_ARCADE_RUN_TTL_SLACK_MS', 300000);
 }
 
 // ---------------------------------------------------------------------------
@@ -33,11 +44,20 @@ if (!function_exists('play50_arcade_table')) {
     }
 }
 
+if (!function_exists('play50_arcade_runs_table')) {
+    /** Run-token claims table (one row per used ticket, kept until the ticket expires). Public: admin readiness. */
+    function play50_arcade_runs_table() {
+        global $wpdb;
+        return $wpdb->prefix . 'play50_arcade_runs';
+    }
+}
+
 if (!function_exists('play50_arcade_install')) {
     function play50_arcade_install() {
         global $wpdb;
         require_once ABSPATH . 'wp-admin/includes/upgrade.php';
         $table = play50_arcade_table();
+        $runs = play50_arcade_runs_table();
         $charset_collate = $wpdb->get_charset_collate();
         $sql = "CREATE TABLE {$table} (
   id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
@@ -56,7 +76,23 @@ if (!function_exists('play50_arcade_install')) {
 ) {$charset_collate};";
         dbDelta($sql);
 
-        if ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $wpdb->esc_like($table))) === $table) {
+        // Claims only: a ticket is signed and stored nowhere until its submit claims it here.
+        $runs_sql = "CREATE TABLE {$runs} (
+  run_nonce char(32) NOT NULL,
+  user_id bigint(20) unsigned NOT NULL,
+  game_slug varchar(40) NOT NULL,
+  issued_ms bigint(20) unsigned NOT NULL,
+  expires_ms bigint(20) unsigned NOT NULL,
+  used_ms bigint(20) unsigned NOT NULL,
+  PRIMARY KEY  (run_nonce),
+  KEY expires (expires_ms),
+  KEY user_game (user_id,game_slug)
+) {$charset_collate};";
+        dbDelta($runs_sql);
+
+        // The version is recorded only once both tables exist (readiness = this autoloaded option).
+        if ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $wpdb->esc_like($table))) === $table
+            && $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $wpdb->esc_like($runs))) === $runs) {
             update_option('play50_arcade_db_version', PLAY50_ARCADE_DB_VERSION, true);
         } else {
             error_log('play50 arcade: table install failed');
@@ -454,6 +490,219 @@ if (!function_exists('play50_arcade_limit_register')) {
 }
 
 // ---------------------------------------------------------------------------
+// Run tokens (docs/run-tokens.md, arcade-api.md §7a)
+//
+// A ticket is "r1.<issued_ms>.<expires_ms>.<nonce>.<sig>": a 128-bit random nonce and the server
+// times, signed with HMAC-SHA256 over the owner's user ID and the game slug as well. Nothing is
+// stored at issue; the submit that uses it claims the nonce with one autocommitted INSERT IGNORE
+// (the primary key makes a second claim affect 0 rows), and the claim row stays until the ticket
+// expires. No transaction, no locking read: a claim is never undone, so a failure after it can burn
+// a ticket but never apply one twice.
+// ---------------------------------------------------------------------------
+
+if (!function_exists('play50_arcade_now_ms')) {
+    /** Server time in integer Unix ms (64-bit PHP). The only clock the token checks use. */
+    function play50_arcade_now_ms() {
+        return (int) floor(microtime(true) * 1000);
+    }
+}
+
+if (!function_exists('play50_arcade_run_token_required')) {
+    /**
+     * Enforcement switch, default OFF. The constant (wp-config.php) wins over the option; any defined
+     * value other than false/0/"0"/"false" turns it ON. OFF: tokenless submits are accepted as before
+     * and a ticket that is sent is still verified. ON: a submit without a ticket is rejected.
+     */
+    function play50_arcade_run_token_required() {
+        if (defined('PLAY50_ARCADE_REQUIRE_RUN_TOKEN')) {
+            return play50_arcade_bool(constant('PLAY50_ARCADE_REQUIRE_RUN_TOKEN')) !== false;
+        }
+        return play50_arcade_bool(get_option('play50_arcade_require_run_token', false)) === true;
+    }
+}
+
+if (!function_exists('play50_arcade_run_tokens_ready')) {
+    /** The claims table is installed (DB version recorded after SHOW TABLES) and PHP ints hold ms. */
+    function play50_arcade_run_tokens_ready() {
+        return PHP_INT_SIZE >= 8 && get_option('play50_arcade_db_version') === PLAY50_ARCADE_DB_VERSION;
+    }
+}
+
+if (!function_exists('play50_arcade_run_token_key')) {
+    /**
+     * Binary HMAC key. Derived from the site's own wp_salt('auth') (wp-config.php, never in git) with a
+     * label of its own, or from PLAY50_ARCADE_RUN_TOKEN_SECRET when wp-config defines one (32+ chars).
+     * Changing either invalidates only the tickets in flight (at most one run each).
+     */
+    function play50_arcade_run_token_key() {
+        static $key = null;
+        if ($key === null) {
+            $secret = (defined('PLAY50_ARCADE_RUN_TOKEN_SECRET') && is_string(constant('PLAY50_ARCADE_RUN_TOKEN_SECRET'))
+                && strlen(constant('PLAY50_ARCADE_RUN_TOKEN_SECRET')) >= 32)
+                ? constant('PLAY50_ARCADE_RUN_TOKEN_SECRET')
+                : wp_salt('auth');
+            $key = hash_hmac('sha256', 'play50 arcade run token v1', (string) $secret, true);
+        }
+        return $key;
+    }
+}
+
+if (!function_exists('play50_arcade_run_token_sign')) {
+    /** Lowercase hex HMAC-SHA256 over every field the ticket is bound to. */
+    function play50_arcade_run_token_sign($uid, $slug, $issued_ms, $expires_ms, $nonce) {
+        $message = 'r1|' . (int) $uid . '|' . (string) $slug . '|' . (int) $issued_ms . '|' . (int) $expires_ms . '|' . (string) $nonce;
+        return hash_hmac('sha256', $message, play50_arcade_run_token_key());
+    }
+}
+
+if (!function_exists('play50_arcade_run_token_issue')) {
+    /** A new ticket for ($uid, $slug), valid until the game's max_duration_ms + TTL slack. */
+    function play50_arcade_run_token_issue($uid, $slug, $game, $now_ms) {
+        $nonce = bin2hex(random_bytes(16));
+        $issued_ms = (int) $now_ms;
+        $expires_ms = $issued_ms + (int) $game['max_duration_ms'] + PLAY50_ARCADE_RUN_TTL_SLACK_MS;
+        $sig = play50_arcade_run_token_sign($uid, $slug, $issued_ms, $expires_ms, $nonce);
+        return 'r1.' . $issued_ms . '.' . $expires_ms . '.' . $nonce . '.' . $sig;
+    }
+}
+
+if (!function_exists('play50_arcade_run_token_parse')) {
+    /** {issued_ms, expires_ms, nonce, sig} for a well-formed ticket string, else null. */
+    function play50_arcade_run_token_parse($token) {
+        if (!is_string($token)
+            || preg_match('/^r1\.([1-9][0-9]{0,15})\.([1-9][0-9]{0,15})\.([0-9a-f]{32})\.([0-9a-f]{64})$/D', $token, $m) !== 1) {
+            return null;
+        }
+        return array('issued_ms' => (int) $m[1], 'expires_ms' => (int) $m[2], 'nonce' => $m[3], 'sig' => $m[4]);
+    }
+}
+
+if (!function_exists('play50_arcade_run_token_check')) {
+    /**
+     * Pure ticket check (no database). Order: format -> signature (user, slug, times, nonce) ->
+     * expiry -> elapsed. Single use is the claim's job.
+     * @return array {nonce, issued_ms, expires_ms} or a reason string:
+     *         'malformed' | 'signature' | 'expired' | 'elapsed'
+     */
+    function play50_arcade_run_token_check($token, $uid, $slug, $duration_ms, $now_ms) {
+        $parsed = play50_arcade_run_token_parse($token);
+        if ($parsed === null) {
+            return 'malformed';
+        }
+        $issued_ms = $parsed['issued_ms'];
+        $expires_ms = $parsed['expires_ms'];
+        $nonce = $parsed['nonce'];
+        $expected = play50_arcade_run_token_sign($uid, $slug, $issued_ms, $expires_ms, $nonce);
+        if (!hash_equals($expected, $parsed['sig'])) {
+            return 'signature';
+        }
+        if ((int) $now_ms >= $expires_ms) {
+            return 'expired';
+        }
+        // The run cannot have lasted longer than the ticket has existed (a backward clock step lands here too).
+        if ((int) $duration_ms > (int) $now_ms - $issued_ms + PLAY50_ARCADE_RUN_DURATION_SLACK_MS) {
+            return 'elapsed';
+        }
+        return array('nonce' => $nonce, 'issued_ms' => $issued_ms, 'expires_ms' => $expires_ms);
+    }
+}
+
+if (!function_exists('play50_arcade_run_token_claim')) {
+    /**
+     * One autocommitted INSERT IGNORE on the nonce primary key.
+     * @return true (claimed) | 'used' (already claimed) | WP_Error (db_error)
+     */
+    function play50_arcade_run_token_claim($ticket, $uid, $slug, $now_ms) {
+        global $wpdb;
+        $runs = play50_arcade_runs_table();
+        $result = $wpdb->query($wpdb->prepare(
+            "INSERT IGNORE INTO {$runs} (run_nonce, user_id, game_slug, issued_ms, expires_ms, used_ms)
+            VALUES (%s, %d, %s, %d, %d, %d)",
+            $ticket['nonce'],
+            (int) $uid,
+            (string) $slug,
+            (int) $ticket['issued_ms'],
+            (int) $ticket['expires_ms'],
+            (int) $now_ms
+        ));
+        if ($result === false) {
+            return play50_arcade_db_error('run token claim');
+        }
+        return ((int) $result === 1) ? true : 'used';
+    }
+}
+
+if (!function_exists('play50_arcade_run_token_reject')) {
+    /** 400 invalid_data with a fixed reason, never unauthorized/forbidden. Logs the reason and slug only. */
+    function play50_arcade_run_token_reject($reason, $slug) {
+        error_log('play50 arcade: run_token ' . $reason . ' ' . $slug);
+        $field = ($reason === 'elapsed') ? 'duration_ms' : 'run_token';
+        $message = ($reason === 'required')
+            ? 'Log in and play again to put a run on the leaderboard.'
+            : 'This run could not be verified. Play again to rank.';
+        return play50_arcade_error('invalid_data', $message, 400, array('field' => $field, 'reason' => $reason));
+    }
+}
+
+if (!function_exists('play50_arcade_verify_run_token')) {
+    /**
+     * Submit step 10c, after the score checks and before the upsert.
+     * Order: presence -> format -> readiness -> signature -> expiry -> elapsed -> claim.
+     * @return true (continue to the upsert) | WP_Error
+     */
+    function play50_arcade_verify_run_token($body, $uid, $slug, $duration_ms) {
+        $required = play50_arcade_run_token_required();
+        $token = (is_array($body) && isset($body['run_token'])) ? $body['run_token'] : null;
+
+        if ($token === null) {
+            if ($required) {
+                return play50_arcade_run_token_reject('required', $slug);
+            }
+            error_log('play50 arcade: run_token tokenless ' . $slug);
+            return true;
+        }
+        if (play50_arcade_run_token_parse($token) === null) {
+            return play50_arcade_run_token_reject('malformed', $slug);
+        }
+        if (!play50_arcade_run_tokens_ready()) {
+            if ($required) {
+                return play50_arcade_db_error('run tokens not ready');
+            }
+            // Enforcement off and no claims table: the legacy path, as for a tokenless submit.
+            error_log('play50 arcade: run_token not-ready ' . $slug);
+            return true;
+        }
+
+        $now_ms = play50_arcade_now_ms();
+        $ticket = play50_arcade_run_token_check($token, $uid, $slug, $duration_ms, $now_ms);
+        if (!is_array($ticket)) {
+            return play50_arcade_run_token_reject($ticket, $slug);
+        }
+        $claim = play50_arcade_run_token_claim($ticket, $uid, $slug, $now_ms);
+        if (is_wp_error($claim)) {
+            return $claim;
+        }
+        if ($claim !== true) {
+            return play50_arcade_run_token_reject('used', $slug);
+        }
+        return true;
+    }
+}
+
+if (!function_exists('play50_arcade_runs_gc')) {
+    /** Opportunistic cleanup, at most once per 10 minutes: expired claim rows only, 1000 at a time. */
+    function play50_arcade_runs_gc($now_ms) {
+        if (get_transient('p50a_runs_gc')) {
+            return;
+        }
+        set_transient('p50a_runs_gc', 1, 10 * MINUTE_IN_SECONDS);
+        global $wpdb;
+        $runs = play50_arcade_runs_table();
+        $wpdb->query($wpdb->prepare("DELETE FROM {$runs} WHERE expires_ms <= %d LIMIT 1000", (int) $now_ms));
+    }
+}
+
+// ---------------------------------------------------------------------------
 // Names, ranks, cache (§9, §10)
 // ---------------------------------------------------------------------------
 
@@ -585,6 +834,9 @@ if (!function_exists('play50_arcade_on_deleted_user')) {
     function play50_arcade_on_deleted_user($user_id) {
         global $wpdb;
         $wpdb->delete(play50_arcade_table(), array('user_id' => (int) $user_id), array('%d'));
+        if (play50_arcade_run_tokens_ready()) {
+            $wpdb->delete(play50_arcade_runs_table(), array('user_id' => (int) $user_id), array('%d'));
+        }
         play50_arcade_clear_cache();
     }
 }
@@ -597,7 +849,62 @@ if (!function_exists('play50_arcade_get_games')) {
     /** GET /arcade/games */
     function play50_arcade_get_games($request) {
         // Vary: Origin because rest-api.php reflects the Origin in Access-Control-Allow-Origin.
-        return play50_arcade_response(array('games' => (object) play50_arcade_games()), 'public, max-age=300', 'Origin');
+        // run_tokens: the enforcement mode and whether the claims table is installed (read-only check).
+        return play50_arcade_response(array(
+            'games' => (object) play50_arcade_games(),
+            'run_tokens' => array(
+                'mode' => play50_arcade_run_token_required() ? 'required' : 'optional',
+                'ready' => play50_arcade_run_tokens_ready(),
+            ),
+        ), 'public, max-age=300', 'Origin');
+    }
+}
+
+if (!function_exists('play50_arcade_start_run')) {
+    /** POST /arcade/runs/start {"slug": "..."} -> {"run_token": "..."}. docs/run-tokens.md §3. */
+    function play50_arcade_start_run($request) {
+        // API key, token, user (also the permission_callback; memoized).
+        $user = play50_arcade_auth_user($request);
+        if (is_wp_error($user)) {
+            return $user;
+        }
+        $uid = (int) $user->ID;
+
+        if (get_user_meta($uid, 'play50_arcade_banned', true)) {
+            return play50_arcade_error('forbidden', 'This account cannot submit arcade scores.', 403);
+        }
+
+        $body = play50_arcade_body($request);
+        $slug = isset($body['slug']) ? $body['slug'] : null;
+        if (!play50_arcade_valid_slug($slug)) {
+            return play50_arcade_invalid('slug', 'Invalid game.');
+        }
+        $game = play50_arcade_game($slug);
+        if (!$game) {
+            return play50_arcade_not_found();
+        }
+
+        // Every countdown starts one run (Retry and Restart included): user -> IP.
+        $wait = play50_arcade_hit('p50a_rl_start_u_' . $uid, 30, MINUTE_IN_SECONDS);
+        if (!$wait) {
+            $wait = play50_arcade_hit('p50a_rl_start_ip_' . play50_arcade_ip_hash(), 120, 10 * MINUTE_IN_SECONDS);
+        }
+        if ($wait) {
+            return play50_arcade_error('rate_limited', 'Too many runs. Try again in a few seconds.', 429, array('retry_after' => (int) $wait));
+        }
+
+        // No claims table, no ticket: the client then submits tokenless.
+        if (!play50_arcade_run_tokens_ready()) {
+            return play50_arcade_db_error('run tokens not ready');
+        }
+
+        $now_ms = play50_arcade_now_ms();
+        play50_arcade_runs_gc($now_ms);
+
+        return play50_arcade_response(
+            array('run_token' => play50_arcade_run_token_issue($uid, $slug, $game, $now_ms)),
+            'private, no-store'
+        );
     }
 }
 
@@ -661,6 +968,12 @@ if (!function_exists('play50_arcade_submit')) {
                 || $score * 1000 > $game['base'] * 1000 + $game['max_pps'] * $duration_ms) {
                 return play50_arcade_invalid('score');
             }
+        }
+
+        // 10c. Run token (§7a): verified when sent; required only while enforcement is on.
+        $verdict = play50_arcade_verify_run_token($body, $uid, $slug, $duration_ms);
+        if (is_wp_error($verdict)) {
+            return $verdict;
         }
 
         $table = play50_arcade_table();
@@ -933,6 +1246,12 @@ if (!function_exists('play50_arcade_register_routes')) {
         register_rest_route('play50/v1', '/arcade/scores', array(
             'methods' => 'POST',
             'callback' => 'play50_arcade_submit',
+            'permission_callback' => 'play50_arcade_auth_user',
+        ));
+
+        register_rest_route('play50/v1', '/arcade/runs/start', array(
+            'methods' => 'POST',
+            'callback' => 'play50_arcade_start_run',
             'permission_callback' => 'play50_arcade_auth_user',
         ));
 

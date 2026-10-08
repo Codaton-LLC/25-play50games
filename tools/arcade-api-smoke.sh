@@ -9,31 +9,34 @@ say() { printf '%s\n' "$*" | sed -E 's/eyJ[A-Za-z0-9._+/=-]*/[REDACTED]/g'; }
 stop() { say "FAIL $*" >&2; exit 1; }
 usage() {
    say 'Usage: bash tools/arcade-api-smoke.sh [--env FILE] [--dry-run]'
-   say '       [--only reads|auth|validation|rate|privacy|time|register]'
-   say '       [--api-key-gate open|closed]'
+   say '       [--only reads|auth|validation|rate|privacy|time|register|tokens]'
+   say '       [--api-key-gate open|closed] [--run-token-mode optional|required]'
 }
 
 dry_run=0
 only=""
 gate="open"
+token_mode="optional"
 env_file=""
 while (( $# )); do
    case "$1" in
       --dry-run) dry_run=1; shift ;;
-      --env|--only|--api-key-gate)
+      --env|--only|--api-key-gate|--run-token-mode)
          (( $# >= 2 )) || stop 'Option needs a value.'
          case "$1" in
             --env) env_file=$2 ;;
             --only) [[ -z $only ]] || stop 'Use --only once.'; only=$2 ;;
             --api-key-gate) gate=$2 ;;
+            --run-token-mode) token_mode=$2 ;;
          esac
          shift 2 ;;
       --help|-h) usage; exit 0 ;;
       *) stop 'Unknown option. Use --help.' ;;
    esac
 done
-case "$only" in ""|reads|auth|validation|rate|privacy|time|register) ;; *) stop 'Invalid --only group.' ;; esac
+case "$only" in ""|reads|auth|validation|rate|privacy|time|register|tokens) ;; *) stop 'Invalid --only group.' ;; esac
 case "$gate" in open|closed) ;; *) stop 'API-key gate must be open or closed.' ;; esac
+case "$token_mode" in optional|required) ;; *) stop 'Run-token mode must be optional or required.' ;; esac
 
 WP=${WP:-}
 KEY=${KEY:-}
@@ -78,6 +81,8 @@ for value in "$OK_SCORE" "$OK_MS" "$BAD_SCORE" "$BAD_MS"; do
 done
 
 run() { printf '{"slug":"%s","score":%s,"duration_ms":%s}' "$1" "$2" "$3"; }
+# A submit body carrying a run ticket. The ticket only ever travels in curl's stdin config.
+run_with() { printf '{"slug":"%s","score":%s,"duration_ms":%s,"run_token":"%s"}' "$1" "$2" "$3" "$4"; }
 V=$(run "$SLUG" "$OK_SCORE" "$OK_MS")
 selected() { [[ -z $only || $only == "$1" ]]; }
 phase="count"
@@ -92,7 +97,11 @@ printed=0
 
 wait_for() {
    if [[ $phase == count ]]; then
-      case "$1" in 3.2) planned_wait_ms=$((planned_wait_ms + 3200)) ;; 61) planned_wait_ms=$((planned_wait_ms + 61000)) ;; esac
+      case "$1" in
+         3.2) planned_wait_ms=$((planned_wait_ms + 3200)) ;;
+         *[!0-9]*|'') ;;
+         *) planned_wait_ms=$((planned_wait_ms + $1 * 1000)) ;;
+      esac
       return
    fi
    [[ $1 != 61 ]] || say 'WAIT 61 s (fresh per-user submit window)'
@@ -178,6 +187,42 @@ check() {
       [[ $code == - ]] || expected+=" code $code"
       [[ $pattern == - ]] || expected+=" and a matching $kind"
       say "FAIL $name: got HTTP $status; expected $expected"
+   fi
+}
+
+# Requests one run ticket for $1 into the private variable `ticket`. The ticket is never printed,
+# never passed in argv and never handed to the failure printer (which prints no bodies anyway).
+ticket=""
+mint() {
+   local slug=$1 out status body
+   ticket=""
+   if [[ $phase == count ]]; then
+      planned_requests=$((planned_requests + 1))
+      ticket="planned"
+      return
+   fi
+   if [[ $phase == dry ]]; then
+      printed=$((printed + 1))
+      say "PLAN $printed POST \$WP/arcade/runs/start [auth=jwt key=real] => 200, ticket kept privately"
+      ticket="planned"
+      return
+   fi
+   if ! out=$(curl_config POST /arcade/runs/start jwt real "{\"slug\":\"$slug\"}" body |
+      curl -q --config - --silent --connect-timeout 10 --max-time 30 --write-out $'\n%{http_code}' 2>/dev/null); then
+      fail=$((fail + 1))
+      say "FAIL mint: transport error (details suppressed)"
+      return
+   fi
+   status=${out##*$'\n'}
+   body=${out%$'\n'*}
+   if [[ $status == 200 && $body =~ \"run_token\"[[:space:]]*:[[:space:]]*\"(r1\.[0-9]+\.[0-9]+\.[0-9a-f]{32}\.[0-9a-f]{64})\" ]]; then
+      ticket=${BASH_REMATCH[1]}
+      pass=$((pass + 1))
+      say 'PASS mint: ticket received'
+   else
+      fail=$((fail + 1))
+      [[ $status =~ ^[0-9]{3}$ ]] || status="unknown"
+      say "FAIL mint: got HTTP $status; expected HTTP 200 and a ticket"
    fi
 }
 
@@ -267,6 +312,38 @@ suite() {
       else
          section 'register skipped (RUN_REGISTER=1 or --only register)'
       fi
+   fi
+   # Run tokens (docs/arcade-api.md §7a). Only with --only tokens: its 6 score submits would push a
+   # full run over the 30-per-10-minutes budget. One accepted ticketed play is written for the
+   # test user (clean it up like every §13 run). The ticket must age OK_MS before the valid submit.
+   if [[ $only == tokens ]]; then
+      section "run tokens (server mode $token_mode; waits $((OK_MS / 1000 + 2)) s for the ticket to age)"
+      local reason='"reason"[[:space:]]*:[[:space:]]*"'
+      check 'games: run_tokens ready' 200 - "\"run_tokens\"[[:space:]]*:[[:space:]]*\\{[[:space:]]*\"mode\"[[:space:]]*:[[:space:]]*\"$token_mode\"[[:space:]]*,[[:space:]]*\"ready\"[[:space:]]*:[[:space:]]*true" GET '/arcade/games?_=smoke-run-tokens' none real
+      check 'start: no JWT' 401 unauthorized - POST /arcade/runs/start none real "{\"slug\":\"$SLUG\"}"
+      check 'start: forged JWT' 401 unauthorized - POST /arcade/runs/start forged real "{\"slug\":\"$SLUG\"}"
+      check 'start: cookie only' 401 unauthorized - POST /arcade/runs/start cookie real "{\"slug\":\"$SLUG\"}"
+      check 'start: bad slug' 400 invalid_data - POST /arcade/runs/start jwt real '{"slug":"Robot!"}'
+      check 'start: unknown game' 404 not_found - POST /arcade/runs/start jwt real '{"slug":"no-such-game"}'
+      check 'start: private, no-store' 200 - '^cache-control:.*no-store' POST /arcade/runs/start jwt real "{\"slug\":\"$SLUG\"}" header
+      check 'start: ticket shape' 200 - '^\{"run_token":"r1\.[0-9]+\.[0-9]+\.[0-9a-f]{32}\.[0-9a-f]{64}"\}$' POST /arcade/runs/start jwt real "{\"slug\":\"$SLUG\"}"
+      mint "$SLUG"
+      local fresh=$ticket
+      check 'submit: malformed ticket' 400 invalid_data "${reason}malformed\"" POST /arcade/scores jwt real "$(run_with "$SLUG" "$OK_SCORE" "$OK_MS" 'r1.not-a-ticket')"; gap
+      check 'submit: ticket younger than the run' 400 invalid_data "${reason}elapsed\"" POST /arcade/scores jwt real "$(run_with "$SLUG" "$OK_SCORE" "$OK_MS" "$fresh")"; gap
+      if [[ -n ${OTHER_SLUG:-} ]]; then
+         check 'submit: ticket of another game' 400 invalid_data "${reason}signature\"" POST /arcade/scores jwt real "$(run_with "$OTHER_SLUG" "$OK_SCORE" "$OK_MS" "$fresh")"; gap
+      fi
+      wait_for $((OK_MS / 1000 + 2))
+      check 'submit: aged ticket' 200 - '"success"[[:space:]]*:[[:space:]]*true' POST /arcade/scores jwt real "$(run_with "$SLUG" "$OK_SCORE" "$OK_MS" "$fresh")"; gap
+      check 'submit: replayed ticket' 400 invalid_data "${reason}used\"" POST /arcade/scores jwt real "$(run_with "$SLUG" "$OK_SCORE" "$OK_MS" "$fresh")"; gap
+      if [[ $token_mode == optional ]]; then
+         check 'submit: tokenless (old client) accepted' 200 - '"success"[[:space:]]*:[[:space:]]*true' POST /arcade/scores jwt real "$V"
+      else
+         check 'submit: tokenless rejected' 400 invalid_data "${reason}required\"" POST /arcade/scores jwt real "$V"
+      fi
+      ticket=""
+      fresh=""
    fi
 }
 

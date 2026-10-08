@@ -44,7 +44,9 @@ export type SubmitStatus =
    | "leaderboard-off"
    | "config-error"
    /** time game that did not finish (lose/timeup): nothing was saved or sent */
-   | "unranked";
+   | "unranked"
+   /** the server requires a run ticket and this run has none (its start failed): saved on this device */
+   | "ranking-unavailable";
 
 export interface SubmitResult {
    slug: ArcadeSlug;
@@ -152,6 +154,8 @@ function statusFromError(error: unknown): SubmitStatus {
       case "rate_limited":
          return "rate-limited";
       case "invalid_data":
+         // run-token rejections are invalid_data too; only "required" gets its own copy
+         return error.reason === "required" ? "ranking-unavailable" : "rejected";
       case "not_found":
          return "rejected";
       case "network":
@@ -194,8 +198,15 @@ function saveLocally(run: FinishedRun, userId: number | null): LocalSave {
    };
 }
 
-/** Sends an already saved run to the leaderboard when the player is logged in. */
-async function sendToLeaderboard({ normalized, result }: LocalSave, userId: number | null): Promise<SubmitResult> {
+/**
+ * Sends an already saved run to the leaderboard when the player is logged in: once, with the run's
+ * ticket when it has one, otherwise without (the server decides; docs/run-tokens.md §7).
+ */
+async function sendToLeaderboard(
+   { normalized, result }: LocalSave,
+   userId: number | null,
+   runToken: string | null
+): Promise<SubmitResult> {
    if (!ARCADE_LEADERBOARD) return { ...result, status: "leaderboard-off" };
    if (!userId || !getJwtToken()) return { ...result, status: "login-required" };
 
@@ -204,6 +215,7 @@ async function sendToLeaderboard({ normalized, result }: LocalSave, userId: numb
          slug: normalized.slug,
          score: normalized.score,
          duration_ms: normalized.durationMs,
+         ...(runToken ? { run_token: runToken } : {}),
       });
       const best = Math.max(result.best, data.best_score);
       // the server does not return the best run's duration; it is only known if the local best still stands
@@ -215,26 +227,34 @@ async function sendToLeaderboard({ normalized, result }: LocalSave, userId: numb
    }
 }
 
-/** Saves a finished run locally, then sends it to the leaderboard when the player is logged in. */
-export async function submitScore(run: FinishedRun, userId: number | null): Promise<SubmitResult> {
-   return sendToLeaderboard(saveLocally(run, userId), userId);
-}
-
 /** runs already merged into an account's local scores, so a retry never counts a second play */
 const accountSaves = new Map<string, LocalSave>();
+const accountSaveKey = (userId: number, run: FinishedRun) => `${userId}|${run.slug}|${run.finishedAt}`;
 
 /**
- * Result screen: a guest logged in on the spot and wants this run on their account.
- * Safe to retry (e.g. after a fresh login): the run is merged locally only once per user.
+ * Saves a finished run locally, then sends it to the leaderboard when the player is logged in.
+ * `runToken`: the run's single-use ticket (memory only, never stored), or null to send without one.
  */
-export function saveRunToAccount(run: FinishedRun, userId: number): Promise<SubmitResult> {
-   const key = `${userId}|${run.slug}|${run.finishedAt}`;
+export async function submitScore(run: FinishedRun, userId: number | null, runToken: string | null = null): Promise<SubmitResult> {
+   const saved = saveLocally(run, userId);
+   // a later "Save to my account" by the same user only resends (no second local play)
+   if (userId) accountSaves.set(accountSaveKey(userId, run), saved);
+   return sendToLeaderboard(saved, userId, runToken);
+}
+
+/**
+ * Result screen: the player logged in on the spot and wants this run on their account.
+ * Safe to retry (e.g. after a fresh login): the run is merged locally only once per user.
+ * Pass the run's ticket only when the run was played by this same user.
+ */
+export function saveRunToAccount(run: FinishedRun, userId: number, runToken: string | null = null): Promise<SubmitResult> {
+   const key = accountSaveKey(userId, run);
    let saved = accountSaves.get(key);
    if (!saved) {
       saved = saveLocally(run, userId);
       accountSaves.set(key, saved);
    }
-   return sendToLeaderboard(saved, userId);
+   return sendToLeaderboard(saved, userId, runToken);
 }
 
 /** Result of a run that does not count (see isRankedRun): nothing is saved, the current best is shown. */
