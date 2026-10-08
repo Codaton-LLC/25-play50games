@@ -29,7 +29,7 @@
       "max_duration_ms": 1800000,
       "base": 0,
       "max_pps": 85,
-      "enabled": false
+      "enabled": true
     },
     "pigeon-crossing": {
       "title": "Pigeon Crossing",
@@ -59,7 +59,7 @@
       "max_duration_ms": 63000,
       "base": 0,
       "max_pps": 29,
-      "enabled": false
+      "enabled": true
     },
     "tower-climb": {
       "title": "Tower Climb",
@@ -79,7 +79,7 @@
       "max_duration_ms": 250000,
       "base": 1000,
       "max_pps": 100,
-      "enabled": false
+      "enabled": true
     },
     "escape-room": {
       "title": "Tiny Escape Room",
@@ -88,7 +88,7 @@
       "min_duration_ms": 16300,
       "max_duration_ms": 600000,
       "time_base_ms": 600000,
-      "enabled": false
+      "enabled": true
     },
     "obstacle-race": {
       "title": "Obstacle Race",
