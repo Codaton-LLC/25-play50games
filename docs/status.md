@@ -51,14 +51,15 @@ Known local issues: port 3100 is held by an old `next start` from `.claude/workt
 
 | Branch | Agent | Mode | Worktree | Allowed paths | Task | Since |
 |---|---|---|---|---|---|---|
-| codex/core-helpers | Codex | CLI | p50-codex | core/{ballistics,path,motion,kinematics}.ts, core/ai/** | P-04: run 2 done (16 files, 26 tests pass under Claude), committed `3a80b55`, in review | 2026-10-08 |
-| kimi/core-audio | Kimi | CLI | p50-kimi | core/audio.ts, audio.test.ts, README "Sound" | P-06 running | 2026-10-08 |
+| codex/core-helpers | Codex | CLI | p50-codex | core/{ballistics,path,motion,kinematics}.ts, core/ai/** | P-04 **merged** `55924ab` (after 1 fix round, re-review: all 12 mutation probes caught) | 2026-10-08 |
+| kimi/core-audio | Kimi | CLI | p50-kimi | core/audio.ts, audio.test.ts, README "Sound" | P-06 committed `17c95d8`; review: merge after fixes (LFO ignores volume, engine pitch, set after stop, NaN, disconnect, ramp/master tests, README); fix round 1 **stopped by Kimi's 5-hour quota** at 18:54 with audio.ts fixed and audio.test.ts half-updated (uncommitted in p50-kimi): rerun "finish fix round 1" after the quota resets | 2026-10-08 |
+| claude/expansion-fx | Claude | – | .claude/worktrees/fx | core/** (no game folders) | P-03 in progress (loop wiring behind core/loopControl.ts until P-06 merges) | 2026-10-08 |
 | codex/probe | Codex | CLI | p50-codex | none (report only) | P-00 (done, CLI ok) | 2026-10-08 |
 | kimi/probe | Kimi | CLI | p50-kimi | none (report only) | P-00 (done, CLI ok) | 2026-10-08 |
 | antigravity/probe | Antigravity | copy-paste | p50-antigravity | none (report only) | P-00 (done 2026-10-08: auto-loads AGENTS.md only; project skills auto-load from `.agents/skills/`; build, tsc, vitest 1144 tests pass; can push; WebGL drew robot-collector on port 3102, but through its own headless Chrome CDP script, not the interactive browser agent; quota only in the app UI) | 2026-10-08 |
 | antigravity/baseline-audit | Antigravity | copy-paste | p50-antigravity | none (report only) | P-01 (done 2026-10-08) | 2026-10-08 |
 | cursor/probe | Cursor | copy-paste | p50-cursor | none (report only) | P-00 (done 2026-10-08: auto-loads CLAUDE.md + AGENTS.md; project skills folder `.cursor/skills/` did not auto-load in a subagent, so prompts keep pointing at the SKILL.md path; vitest 2.1.9; can push; no quota readout) | 2026-10-08 |
-| cursor/ui-collections | Cursor | copy-paste | p50-cursor | `arcade3d/ui/**` | P-08 (P-02 merged: ready to paste) | 2026-10-08 |
+| cursor/ui-collections | Cursor | copy-paste | p50-cursor | `arcade3d/ui/**` | P-08 **merged** `b52d6bf` (cherry-picked onto main + /3d wired: chips only when more than one collection shows) | 2026-10-08 |
 
 ## Effort ledger
 
@@ -72,4 +73,6 @@ Known local issues: port 3100 is held by an old `next start` from `.claude/workt
 | P-00 probe | Antigravity | copy-paste | 1 | – | – | 0 | ok |
 | P-01 baseline | Antigravity | copy-paste | 1 | – | – | 0 | headless only |
 | P-02 registry for 30 | Claude | – | 1 | ~1 | self-check | 0 | merged `3eb92de` |
-| P-04 core helpers | Codex | CLI | 2 | 0.2 | in review | 0 | run 1 stopped (stale main ref), run 2 12 min |
+| P-04 core helpers | Codex | CLI | 3 | 0.3 | 2 | 0 | run 1 stopped (stale main ref), run 2 12 min, fix round 4 min; merged |
+| P-06 audio | Kimi | CLI | 2 | 0.8 | 1 | 0 | run 1 30 min; fix round cut by the 5-hour quota (Kimi Pro: about one big task per 5-hour window) |
+| P-08 UI collections | Cursor | copy-paste | 1 | – | self-check | 0 | merged |
