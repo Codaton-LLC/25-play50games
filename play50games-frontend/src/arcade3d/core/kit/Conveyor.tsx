@@ -64,14 +64,15 @@ export function Conveyor({
       (ctx: CanvasRenderingContext2D, w: number, h: number) => {
          ctx.fillStyle = color;
          ctx.fillRect(0, 0, w, h);
-         // one chevron per repeat, pointing along +v (the travel direction), plus belt seams
+         // one chevron per repeat, pointing along +v (the travel direction: the canvas top is v = 1
+         // with the texture's flipY), plus belt seams
          ctx.strokeStyle = stripe;
          ctx.lineWidth = w * 0.09;
          ctx.lineCap = "round";
          ctx.beginPath();
-         ctx.moveTo(w * 0.2, h * 0.3);
-         ctx.lineTo(w * 0.5, h * 0.62);
-         ctx.lineTo(w * 0.8, h * 0.3);
+         ctx.moveTo(w * 0.2, h * 0.62);
+         ctx.lineTo(w * 0.5, h * 0.3);
+         ctx.lineTo(w * 0.8, h * 0.62);
          ctx.stroke();
          ctx.fillStyle = "rgba(0,0,0,0.25)";
          ctx.fillRect(0, h * 0.96, w, h * 0.04);
