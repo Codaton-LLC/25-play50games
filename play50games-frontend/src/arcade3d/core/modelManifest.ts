@@ -69,6 +69,19 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/luggage-rush/suitcase.glb",
    "/models/3d/monster-kitchen/monster.glb",
    "/models/3d/monster-kitchen/cauldron.glb",
+   // expansion batch 2-3 (2026-10-08): the non-humanoid models, Rodin Gen-2.5-Medium, optimized to the
+   // catalog's caps (1500-3000 tris; the solid dino 12k and panda 10k with 1024 px textures)
+   "/models/3d/shared/dino.glb",
+   "/models/3d/shared/leafyTree.glb",
+   "/models/3d/shared/castleTower.glb",
+   "/models/3d/delivery-drone/drone.glb",
+   "/models/3d/rocket-landing/rocket.glb",
+   "/models/3d/mini-golf/windmill.glb",
+   "/models/3d/ghost-vacuum/vacuum.glb",
+   "/models/3d/knight-arena/dummy.glb",
+   "/models/3d/castle-defender/goblin.glb",
+   "/models/3d/alien-farm/glowPod.glb",
+   "/models/3d/zoo-escape/panda.glb",
 ];
 
 const LISTED: ReadonlySet<string> = new Set(MODEL_MANIFEST);

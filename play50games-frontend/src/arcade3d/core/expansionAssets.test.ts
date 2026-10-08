@@ -1,4 +1,4 @@
-// Expansion batch 1 GLBs (sharedAssets EXPANSION_ASSETS): listed in the manifest, within the
+// Expansion GLBs (sharedAssets EXPANSION_ASSETS, batches 1-3): listed in the manifest, within the
 // catalog's budgets, and drawn at the catalog's target size by their default fit, measured on the
 // real, meshopt-decoded meshes through core modelParts (what <Model> / <InstancedModel> draw).
 import { readFileSync, statSync } from "node:fs";
@@ -10,10 +10,16 @@ import { hasModel } from "./modelManifest";
 import { readCharacterGlb } from "./rig/robotGlb";
 import {
    CAULDRON_INNER_RADIUS_GLB,
+   CHARACTER_BUDGET,
+   DRONE_ROTORS_GLB,
    EXPANSION_ASSETS,
    EXPANSION_GLB_POINTS,
    EXPANSION_GLB_SIZE,
    expansionPoint,
+   LEAFY_TREE_TRUNK_RADIUS_GLB,
+   PROP_BUDGET,
+   ROCKET_FEET_GLB,
+   WINDMILL_TUNNEL_GLB,
    type ExpansionAssetId,
 } from "./sharedAssets";
 import type { ModelAsset } from "./types";
@@ -35,7 +41,22 @@ const TARGETS: Record<ExpansionAssetId, { x?: number; y?: number; z?: number }> 
    suitcase: { x: 0.5, z: 0.25 },
    monster: { y: 1.4 },
    cauldron: { x: 0.9 },
+   // batch 2-3
+   dino: { y: 0.8, z: 1.1 },
+   drone: { x: 0.9 },
+   rocket: { y: 2.2 },
+   windmill: { y: 2.2 },
+   leafyTree: { y: 3.5 },
+   vacuum: { y: 0.55 },
+   dummy: { y: 1.5 },
+   goblin: { y: 0.9 },
+   castleTower: { y: 6 },
+   glowPod: { y: 1 },
+   panda: { z: 1 },
 };
+
+/** Solid creatures optimized with the character profile (1024 px textures, up to 1.5 MB). */
+const CREATURES: readonly ExpansionAssetId[] = ["dino", "panda"];
 
 /** The GLB's vertices as the asset's fit draws them (metres, model origin), via core modelParts. */
 async function drawn(asset: Pick<ModelAsset, "url" | "scale" | "stretch" | "rotationY" | "yOffset">): Promise<Vector3[]> {
@@ -62,9 +83,9 @@ function glbInfo(url: string): { bytes: number; meshes: number; primitives: numb
    return { bytes: statSync(file).size, meshes: json.meshes.length, primitives: json.meshes.reduce((n, m) => n + m.primitives.length, 0) };
 }
 
-describe("expansion batch 1 GLBs", () => {
+describe("expansion GLBs", () => {
    it("every url is in the manifest, a plain prop (no rig, no humanoid)", () => {
-      expect(IDS).toHaveLength(11);
+      expect(IDS).toHaveLength(22);
       for (const id of IDS) {
          const asset = EXPANSION_ASSETS[id];
          expect(asset.id).toBe(id);
@@ -80,14 +101,17 @@ describe("expansion batch 1 GLBs", () => {
          const asset = EXPANSION_ASSETS[id];
          const info = glbInfo(asset.url);
          expect(info.bytes, `${id} bytes`).toBeLessThanOrEqual(asset.budget.bytes);
-         expect(info.bytes, `${id} bytes`).toBeLessThanOrEqual(300_000);
+         expect(asset.budget.bytes, id).toBe(CREATURES.includes(id) ? CHARACTER_BUDGET.bytes : PROP_BUDGET.bytes);
          expect(info.meshes, id).toBe(1);
          expect(info.primitives, id).toBe(1);
          const { indices } = await readCharacterGlb(asset.url);
          expect(indices.length / 3, `${id} tris`).toBeLessThanOrEqual(asset.budget.tris);
       }
       // the catalog's caps (§E.4)
-      const caps: Record<ExpansionAssetId, number> = { chest: 4000, cannon: 4000, rock: 3000, fish: 1500, pineTree: 3000, penguin: 8000, ship: 5000, cart: 4000, suitcase: 2500, monster: 8000, cauldron: 3000 };
+      const caps: Record<ExpansionAssetId, number> = {
+         chest: 4000, cannon: 4000, rock: 3000, fish: 1500, pineTree: 3000, penguin: 8000, ship: 5000, cart: 4000, suitcase: 2500, monster: 8000, cauldron: 3000,
+         dino: 12000, drone: 3000, rocket: 3000, windmill: 4000, leafyTree: 3000, vacuum: 2500, dummy: 3000, goblin: 4500, castleTower: 4000, glowPod: 2000, panda: 10000,
+      };
       for (const id of IDS) expect(EXPANSION_ASSETS[id].budget.tris, id).toBeLessThanOrEqual(caps[id]);
    });
 
@@ -166,5 +190,73 @@ describe("expansion batch 1 GLBs", () => {
       // the opening: nothing of the pot inside the inner radius in the top 10 cm below the rim
       const inside = pot.filter((p) => p.y > rim.y - 0.1 && p.y < rim.y - 0.01 && Math.hypot(p.x, p.z) < innerRadius - 0.01);
       expect(inside.length).toBe(0);
+   });
+   it("batch 2-3: the measured points lie on the meshes", async () => {
+      const near = (points: Vector3[], p: { x: number; y: number; z: number }) => Math.min(...points.map((q) => q.distanceTo(new Vector3(p.x, p.y, p.z))));
+      const at = (id: ExpansionAssetId, p: { x: number; y: number; z: number }) => expansionPoint(EXPANSION_ASSETS[id], p);
+      const P = EXPANSION_GLB_POINTS;
+
+      // dino: the back's top at mid-body, the topmost point of the body there (1 cm), about 0.41 m up
+      const dino = await drawn(EXPANSION_ASSETS.dino);
+      const back = at("dino", P.dinoBackTop);
+      expect(near(dino, back)).toBeLessThan(0.03);
+      expect(Math.max(...dino.filter((p) => Math.abs(p.x) < 0.03 && Math.abs(p.z - back.z) < 0.03).map((p) => p.y))).toBeLessThan(back.y + 0.01);
+      expect(back.y).toBeGreaterThan(0.38);
+      expect(back.y).toBeLessThan(0.44);
+
+      // drone: the claw is its lowest part, under the nose (+z); the rotor rings sit above it, two each side
+      const drone = await drawn(EXPANSION_ASSETS.drone);
+      const hook = at("drone", P.droneHook);
+      expect(near(drone, hook)).toBeLessThan(0.03);
+      expect(hook.z).toBeGreaterThan(0.1);
+      expect(hook.y).toBeLessThan(0.03);
+      for (const r of DRONE_ROTORS_GLB) {
+         const c = at("drone", r);
+         expect(c.y, "rotor above the claw").toBeGreaterThan(hook.y + 0.25);
+         expect(Math.abs(c.x)).toBeGreaterThan(0.2);
+      }
+      expect(DRONE_ROTORS_GLB.filter((r) => r.x < 0)).toHaveLength(2);
+
+      // rocket: the bell's rim is above the feet, hollow inside; the four feet stand on the floor around it
+      const rocket = await drawn(EXPANSION_ASSETS.rocket);
+      const bell = at("rocket", P.rocketBell);
+      expect(bell.y).toBeGreaterThan(0.1);
+      expect(bell.y).toBeLessThan(0.2);
+      expect(rocket.filter((p) => Math.hypot(p.x, p.z) < 0.15 && p.y < bell.y - 0.01)).toHaveLength(0);
+      for (const f of ROCKET_FEET_GLB) {
+         const c = at("rocket", f);
+         expect(rocket.some((p) => p.y < 0.03 && Math.hypot(p.x - c.x, p.z - c.z) < 0.15), "a foot pad on the floor").toBe(true);
+         expect(Math.hypot(c.x, c.z)).toBeGreaterThan(0.45);
+      }
+
+      // windmill: the hub on its front face; the tunnel is open straight through along z, a 0.25 m ball fits
+      const mill = await drawn(EXPANSION_ASSETS.windmill);
+      const hub = at("windmill", P.windmillHub);
+      expect(near(mill, hub)).toBeLessThan(0.08);
+      expect(hub.z).toBeGreaterThan(0.6);
+      expect(hub.y).toBeGreaterThan(1.05);
+      const s = EXPANSION_ASSETS.windmill.scale ?? 1;
+      const clearX = (WINDMILL_TUNNEL_GLB.clearWidth / 2) * s, clearY = WINDMILL_TUNNEL_GLB.clearHeight * s;
+      expect(mill.filter((p) => Math.abs(p.x) < clearX && p.y > 0.005 && p.y < clearY)).toHaveLength(0);
+      expect(WINDMILL_TUNNEL_GLB.width * s).toBeGreaterThan(0.25);
+      expect(WINDMILL_TUNNEL_GLB.height * s).toBeGreaterThan(0.25);
+
+      // castle tower: the walkway inside the battlements, below its top
+      const tower = await drawn(EXPANSION_ASSETS.castleTower);
+      const walk = at("castleTower", P.castleTowerPlatform);
+      const ring = tower.filter((p) => Math.abs(Math.hypot(p.x, p.z) - 0.55 * (EXPANSION_ASSETS.castleTower.scale ?? 1)) < 0.1 && Math.abs(p.y - walk.y) < 0.05);
+      expect(ring.length).toBeGreaterThan(0);
+      expect(walk.y).toBeGreaterThan(4);
+      expect(walk.y).toBeLessThan(5);
+
+      // vacuum: the connector on top; the dummy's pivot at the base; the trunk circle covers the trunk
+      const vacuum = await drawn(EXPANSION_ASSETS.vacuum);
+      expect(near(vacuum, at("vacuum", P.vacuumHose))).toBeLessThan(0.02);
+      expect(at("dummy", P.dummyPivot).y).toBe(0);
+      const tree = await drawn(EXPANSION_ASSETS.leafyTree);
+      const r = LEAFY_TREE_TRUNK_RADIUS_GLB * (EXPANSION_ASSETS.leafyTree.scale ?? 1);
+      const trunk = tree.filter((p) => p.y > 0.2 && p.y < 0.6 && Math.hypot(p.x, p.z) < 0.6);
+      expect(trunk.length).toBeGreaterThan(0);
+      expect(Math.max(...trunk.map((p) => Math.hypot(p.x, p.z)))).toBeLessThan(r + 0.01);
    });
 });

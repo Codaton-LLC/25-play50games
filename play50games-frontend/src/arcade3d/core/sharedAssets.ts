@@ -286,7 +286,19 @@ export type ExpansionAssetId =
    | "cart"
    | "suitcase"
    | "monster"
-   | "cauldron";
+   | "cauldron"
+   // batch 2-3
+   | "dino"
+   | "drone"
+   | "rocket"
+   | "windmill"
+   | "leafyTree"
+   | "vacuum"
+   | "dummy"
+   | "goblin"
+   | "castleTower"
+   | "glowPod"
+   | "panda";
 
 /**
  * The optimized GLBs' bounds in GLB units (x = width, y = height, z = depth, before rotationY),
@@ -305,6 +317,18 @@ export const EXPANSION_GLB_SIZE = {
    suitcase: { width: 0.9811, height: 1.9003, depth: 0.5362 },
    monster: { width: 1.8973, height: 1.7788, depth: 1.2314 },
    cauldron: { width: 1.9041, height: 1.2522, depth: 1.6892 },
+   // batch 2-3
+   dino: { width: 1.1249, height: 1.4694, depth: 1.8939 },
+   drone: { width: 1.8941, height: 1.0245, depth: 1.4229 },
+   rocket: { width: 1.3018, height: 1.8955, depth: 1.2424 },
+   windmill: { width: 1.3533, height: 1.8979, depth: 1.2987 },
+   leafyTree: { width: 1.804, height: 1.9133, depth: 1.247 },
+   vacuum: { width: 0.7937, height: 1.6149, depth: 1.8963 },
+   dummy: { width: 0.7805, height: 1.8965, depth: 0.6395 },
+   goblin: { width: 1.4028, height: 1.8957, depth: 0.7557 },
+   castleTower: { width: 1.3862, height: 1.91, depth: 1.4204 },
+   glowPod: { width: 1.2724, height: 1.8995, depth: 1.0186 },
+   panda: { width: 1.1989, height: 1.6446, depth: 1.8992 },
 } as const satisfies Record<ExpansionAssetId, { width: number; height: number; depth: number }>;
 
 /** Points measured on the GLBs (GLB units, before the fit; `expansionPoint` maps them to metres). */
@@ -326,19 +350,73 @@ export const EXPANSION_GLB_POINTS = {
    cauldronInnerFloor: { x: 0, y: 0.263, z: 0 },
    /** the top of the suitcase's hard shell; the extended trolley handle rises above it to y 1.90 */
    suitcaseShellTop: { x: 0, y: 1.475, z: 0 },
+   // batch 2-3
+   /** the top of the dino's back at mid-body (the egg stack's base): flat within 1 cm from z -0.3 to 0, the frill rises from z 0.1 */
+   dinoBackTop: { x: 0, y: 0.756, z: -0.1 },
+   /** the drone's claw, centre of its lowest part (the parcel hangs here); the body's underside is at y 0.31 */
+   droneHook: { x: 0, y: 0.03, z: 0.38 },
+   /** the base of the dummy's post: its wobble pivot (the red base disc, radius 0.355, top at y 0.048) */
+   dummyPivot: { x: 0, y: 0, z: 0 },
+   /** the rocket's engine bell: centre of its lowest rim (the flame starts here) */
+   rocketBell: { x: 0, y: 0.13, z: 0 },
+   /**
+    * The windmill's hub: the centre of the round wooden boss on its front face (the disc spans y 0.84-1.15,
+    * x ±0.2; its front at z 0.56): the procedural blades turn about +z here.
+    */
+   windmillHub: { x: 0, y: 0.99, z: 0.56 },
+   /** the castle tower's walkway inside the battlements (the cone roof fills the middle, radius < 0.45) */
+   castleTowerPlatform: { x: 0, y: 1.374, z: 0 },
+   /**
+    * The hose connector: the small block on top of the pack behind its carry handle (the handle runs along
+    * z 0.1-0.5 up to y 1.61). Rodin modelled no real connector; this is the nearest feature.
+    */
+   vacuumHose: { x: 0, y: 1.52, z: -0.02 },
 } as const;
+
+/**
+ * The drone's four rotor-ring centres (GLB units, for the code blur discs), about ±3 cm: the model is
+ * pitched nose-down (the front rings lower) and its rear rings sit slightly inward and asymmetric.
+ */
+export const DRONE_ROTORS_GLB = [
+   { x: -0.7, y: 0.7, z: 0.41 },
+   { x: 0.7, y: 0.7, z: 0.41 },
+   { x: -0.64, y: 0.9, z: -0.46 },
+   { x: 0.5, y: 0.9, z: -0.46 },
+] as const;
+
+/** The rocket's four landing feet (GLB units, centres of the pads on y = 0), for the 2D landing polygon. */
+export const ROCKET_FEET_GLB = [
+   { x: 0, y: 0, z: 0.449 },
+   { x: 0, y: 0, z: -0.424 },
+   { x: 0.43, y: 0, z: 0 },
+   { x: -0.429, y: 0, z: 0.021 },
+] as const;
+
+/**
+ * The leafy tree's trunk radius (GLB units): its collision circle. The trunk is 0.08-0.15 from the axis
+ * at y 0.1-0.3 (mean 0.11; the roots flare to 0.19 at y 0.05), so 0.14 covers it but for one root.
+ */
+export const LEAFY_TREE_TRUNK_RADIUS_GLB = 0.14;
+
+/**
+ * The windmill's tunnel (GLB units), open straight through along z (front arch at z +0.65, back at -0.65).
+ * Its narrowest section is the back arch's throat at z -0.4..-0.5: `width` across at the floor (y 0.05),
+ * `height` its ceiling at x = 0; `clearWidth` the box |x| < clearWidth / 2 that is free from y 0 to
+ * `clearHeight` along the whole tunnel. The front arch is wider (0.47 x 0.37).
+ */
+export const WINDMILL_TUNNEL_GLB = { width: 0.31, height: 0.247, clearWidth: 0.2, clearHeight: 0.2 } as const;
 
 /** The cauldron's inner radius at its rim, GLB units (the liquid disc's radius × the fit's scale). */
 export const CAULDRON_INNER_RADIUS_GLB = 0.7;
 
 const EX = EXPANSION_GLB_SIZE;
-const expansion = (id: ExpansionAssetId, slug: string, fit: Pick<ModelAsset, "scale" | "stretch" | "rotationY">, fallback: ModelAsset["fallback"], fallbackColor: string, tris: number): ModelAsset => ({
+const expansion = (id: ExpansionAssetId, slug: string, fit: Pick<ModelAsset, "scale" | "stretch" | "rotationY">, fallback: ModelAsset["fallback"], fallbackColor: string, tris: number, bytes: number = PROP_BUDGET.bytes): ModelAsset => ({
    id,
    url: `/models/3d/${slug}/${id}.glb`,
    ...fit,
    fallback,
    fallbackColor,
-   budget: { tris, bytes: PROP_BUDGET.bytes },
+   budget: { tris, bytes },
 });
 
 /**
@@ -375,6 +453,32 @@ export const EXPANSION_ASSETS: Record<ExpansionAssetId, ModelAsset> = {
    monster: expansion("monster", "monster-kitchen", { scale: 1.4 / EX.monster.height }, "capsule", "#ede9fe", 8000),
    // 0.9 m wide across its side handles (x), the rim 0.81 across
    cauldron: expansion("cauldron", "monster-kitchen", { scale: 0.9 / EX.cauldron.width }, "cylinder", "#334155", 3000),
+
+   // batch 2-3. dino and panda are solid creatures optimized with the character profile (1024 px).
+   // 1.1 long x 0.8 tall, head +z (Rodin's dino is taller: stretch y 0.94)
+   dino: expansion("dino", "shared", { scale: 1.1 / EX.dino.depth, stretch: [1, 0.8 / (EX.dino.height * (1.1 / EX.dino.depth)), 1] }, "capsule", "#84cc16", 12000, CHARACTER_BUDGET.bytes),
+   // 0.9 wide, camera eye +z, claw under the nose
+   drone: expansion("drone", "delivery-drone", { scale: 0.9 / EX.drone.width }, "box", "#e2e8f0", 3000),
+   // 2.2 m tall (catalog), window +z
+   rocket: expansion("rocket", "rocket-landing", { scale: 2.2 / EX.rocket.height }, "capsule", "#e5e7eb", 3000),
+   // 2.2 m tall, hub and tunnel arch +z (the tunnel runs through along z)
+   windmill: expansion("windmill", "mini-golf", { scale: 2.2 / EX.windmill.height }, "cylinder", "#fde68a", 4000),
+   // 3.5 m tall (the catalog says 3-4 m)
+   leafyTree: expansion("leafyTree", "shared", { scale: 3.5 / EX.leafyTree.height }, "cylinder", "#65a30d", 3000),
+   // 0.55 m tall, the glowing canister +z, the back with its straps at -z (on a +z-facing runner's back:
+   // rotationY π). Rodin added shoulder straps that hang to the floor behind the pack (z -0.5 to -0.95).
+   vacuum: expansion("vacuum", "ghost-vacuum", { scale: 0.55 / EX.vacuum.height }, "box", "#e5e7eb", 2500),
+   // 1.5 m on its base disc (the pivot at y = 0): a wooden mannequin standing on a red disc (r 0.32, its
+   // centre 3 cm to -x), no post
+   dummy: expansion("dummy", "knight-arena", { scale: 1.5 / EX.dummy.height }, "capsule", "#d97706", 3000),
+   // 0.9 m, faces +z
+   goblin: expansion("goblin", "castle-defender", { scale: 0.9 / EX.goblin.height }, "capsule", "#a3b18a", 4500),
+   // 6 m tall, door +z
+   castleTower: expansion("castleTower", "shared", { scale: 6 / EX.castleTower.height }, "cylinder", "#a8a29e", 4000),
+   // 1.0 m: the grown stage (a game scales it down to 0.5 for the first stage)
+   glowPod: expansion("glowPod", "alien-farm", { scale: 1 / EX.glowPod.height }, "sphere", "#22d3ee", 2000),
+   // 1.0 m long on all fours, faces +z
+   panda: expansion("panda", "zoo-escape", { scale: 1 / EX.panda.depth }, "capsule", "#f8fafc", 10000, CHARACTER_BUDGET.bytes),
 };
 
 /**
