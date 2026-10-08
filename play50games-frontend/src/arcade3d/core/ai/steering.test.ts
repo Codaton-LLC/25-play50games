@@ -18,4 +18,21 @@ describe("steering", () => {
       }
       separate(a, [a, { x: 0.1, y: 0, z: 0 }, { x: 5, y: 0, z: 0 }], 1, 2, out1); expect(out1.x).toBe(-2);
    });
+   it("moves two coincident agents apart", () => {
+      const a = agent(), b = agent(), neighbors = [a, b];
+      const fa = { x: 0, y: 0, z: 0 }, fb = { ...fa };
+      separate(a, neighbors, 1, 2, fa); separate(b, neighbors, 1, 2, fb);
+      a.x += fa.x; b.x += fb.x; expect(Math.abs(a.x - b.x)).toBeGreaterThan(1);
+   });
+   it("scales wander variance with elapsed time", () => {
+      const a = agent(), state = { angle: 0 }, out = { x: 0, y: 0, z: 0 };
+      wander(a, state, () => 1, 2, 3, 0.25, out); expect(state.angle).toBe(1.5);
+      for (const hz of [30, 60, 144]) {
+         let variance = 0;
+         for (let i = 0; i < hz; i++) {
+            state.angle = 0; wander(a, state, () => 1, 2, 3, 1 / hz, out); variance += state.angle ** 2;
+         }
+         expect(variance).toBeCloseTo(9, 12);
+      }
+   });
 });

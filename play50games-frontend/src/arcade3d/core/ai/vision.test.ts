@@ -23,4 +23,10 @@ describe("vision", () => {
       expect(hasLineOfSightXZ(v(0, 0), v(0, 3), [box])).toBe(true);
       expect(hasLineOfSightXZ(v(3, 3), v(0, 0), [box])).toBe(false);
    });
+   it("rejects non-finite sight endpoints even without blockers", () => {
+      for (const value of [NaN, Infinity, -Infinity]) {
+         expect(hasLineOfSightXZ(v(value, 0), v(1, 0), [])).toBe(false);
+         expect(hasLineOfSightXZ(v(0, 0), { x: 1, y: value, z: 0 }, [])).toBe(false);
+      }
+   });
 });

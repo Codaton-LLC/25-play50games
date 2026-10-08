@@ -18,14 +18,14 @@ export function flee(agent: Agent, target: Vec3, maxSpeed: number, out: Vec3): V
    return out;
 }
 export interface WanderState { angle: number }
-/** Stateful yaw jitter, radians/sec; yaw 0 faces +Z. rng supplies [0,1). */
+/** Stateful yaw jitter, radians/sqrt(second); yaw 0 faces +Z. rng supplies [0,1). */
 export function wander(agent: Agent, state: WanderState, rng: () => number, maxSpeed: number, jitter: number, dt: number, out: Vec3): Vec3 {
-   state.angle += (rng() * 2 - 1) * jitter * dt;
+   if (dt > 0 && Number.isFinite(dt)) state.angle += (rng() * 2 - 1) * jitter * Math.sqrt(dt);
    out.x = Math.sin(agent.yaw + state.angle) * maxSpeed - agent.vx;
    out.y = -agent.vy; out.z = Math.cos(agent.yaw + state.angle) * maxSpeed - agent.vz;
    return out;
 }
-/** Inverse-distance repulsion, capped at maxSpeed. Coincident neighbors use a deterministic +X direction. */
+/** Inverse-distance repulsion, capped at maxSpeed. Coincident neighbors use opposing index-parity directions; pass the same ordered list including self. */
 export function separate(agent: Agent, neighbors: readonly Vec3[], radius: number, maxSpeed: number, out: Vec3): Vec3 {
    let x = 0, y = 0, z = 0;
    for (let i = 0; i < neighbors.length; i++) {
@@ -33,7 +33,7 @@ export function separate(agent: Agent, neighbors: readonly Vec3[], radius: numbe
       if (n === agent) continue;
       const dx = agent.x - n.x, dy = agent.y - n.y, dz = agent.z - n.z, d2 = dx * dx + dy * dy + dz * dz;
       if (d2 < radius * radius) {
-         if (d2 === 0) x += 1; else { x += dx / d2; y += dy / d2; z += dz / d2; }
+         if (d2 === 0) x += i % 2 === 0 ? -1 : 1; else { x += dx / d2; y += dy / d2; z += dz / d2; }
       }
    }
    const d = Math.hypot(x, y, z), scale = d > maxSpeed && d > 0 ? maxSpeed / d : 1;

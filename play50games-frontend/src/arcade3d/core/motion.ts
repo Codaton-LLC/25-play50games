@@ -28,7 +28,7 @@ export function bank(lateralAccel: number, maxRoll: number): number {
 export interface SpringState { x: number; v: number }
 /** Exact damped oscillator for a constant target. damping < 0 selects critical damping. */
 export function spring(state: SpringState, target: number, stiffness: number, damping: number, dt: number): number {
-   if (dt <= 0) return state.x;
+   if (!(dt > 0) || !Number.isFinite(dt)) return state.x;
    const k = Math.max(0, stiffness), c = damping < 0 ? 2 * Math.sqrt(k) : damping;
    const q = state.x - target, v = state.v, a = c / 2, disc = a * a - k;
    let x: number, velocity: number;

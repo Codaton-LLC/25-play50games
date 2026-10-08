@@ -9,6 +9,7 @@ export function inViewCone(origin: Vec3, yaw: number, halfAngle: number, range: 
 }
 /** Segment versus closed XZ slabs: grazing a corner, or starting inside, blocks sight. */
 export function hasLineOfSightXZ(a: Vec3, b: Vec3, blockers: readonly Box[]): boolean {
+   if (!Number.isFinite(a.x) || !Number.isFinite(a.y) || !Number.isFinite(a.z) || !Number.isFinite(b.x) || !Number.isFinite(b.y) || !Number.isFinite(b.z)) return false;
    for (let i = 0; i < blockers.length; i++) {
       const box = blockers[i];
       let lo = 0, hi = 1;

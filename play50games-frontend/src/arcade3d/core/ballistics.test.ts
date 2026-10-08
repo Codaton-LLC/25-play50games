@@ -51,4 +51,37 @@ describe("ballistics", () => {
       const proj = { x: 0, y: 1, z: 0, vx: 1e8, vy: -1e8, vz: 0 };
       expect(landingPoint(proj, params)?.x).toBeCloseTo(1, 10);
    });
+   it("distinguishes the closed-form low and high launch angles", () => {
+      for (const x of [3, 15, 35]) {
+         const y = 2, s = 25, g = params.gravity;
+         const root = Math.sqrt(s ** 4 - g * (g * x * x + 2 * y * s * s));
+         const low = solveLaunch(origin, { x, y, z: 0 }, s, params)!;
+         const high = solveLaunch(origin, { x, y, z: 0 }, s, params, true)!;
+         const lowAngle = Math.atan2(low.y, low.x), highAngle = Math.atan2(high.y, high.x);
+         expect(lowAngle).toBeCloseTo(Math.atan((s * s - root) / (g * x)), 12);
+         expect(highAngle).toBeCloseTo(Math.atan((s * s + root) / (g * x)), 12);
+         expect(highAngle).toBeGreaterThan(lowAngle);
+      }
+   });
+   it("predicts tiny-gravity wind landing in constant time", () => {
+      let windReads = 0;
+      const wind = { x: 0.001, z: -0.002 };
+      const p = { gravity: 1e-4, get wind() { windReads++; return wind; } };
+      const proj = { x: 1, y: 0, z: 2, vx: 3, vy: 10, vz: -1 };
+      const start = performance.now(); const landing = landingPoint(proj, p)!;
+      expect(performance.now() - start).toBeLessThan(100);
+      expect(windReads).toBeLessThanOrEqual(2); // catches iterative prediction without relying on timing
+      const t = 2 * proj.vy / p.gravity, h = t / 1000;
+      let x = proj.x, z = proj.z, vx = proj.vx, vz = proj.vz;
+      for (let i = 0; i < 1000; i++) {
+         x += vx * h + p.wind.x * h * h / 2; z += vz * h + p.wind.z * h * h / 2;
+         vx += p.wind.x * h; vz += p.wind.z * h;
+      }
+      expect(Math.hypot(landing.x - x, landing.z - z)).toBeLessThan(0.001);
+   });
+   it("fails closed on non-finite counts and gravity", () => {
+      const proj = { x: 0, y: 1, z: 0, vx: 1, vy: 0, vz: 0 };
+      expect(trajectoryPoints(proj, params, NaN, 0.1, new Float32Array(6))).toBe(0);
+      for (const gravity of [NaN, Infinity, -Infinity]) expect(solveLaunch(origin, { x: 1, y: 0, z: 0 }, 2, { gravity })).toBeNull();
+   });
 });

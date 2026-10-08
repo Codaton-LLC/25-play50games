@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { advance, createPath, createPathGraph, nearestS, pointAt, tangentAt } from "./path";
+import { advanceGraph, advance, createPath, createPathGraph, nearestS, pointAt, tangentAt } from "./path";
 const v = (x: number, z = 0) => ({ x, y: 0, z });
 describe("paths", () => {
    it("measures a circle polygon within 0.5 percent", () => {
@@ -34,5 +34,18 @@ describe("paths", () => {
    it("chooses junction branches and terminates missing choices", () => {
       const path = createPath([v(0), v(1)]), graph = createPathGraph([path, path, path], [[1, 2], [0], []]);
       expect(graph.next(0, 1)).toBe(2); expect(graph.next(2, 0)).toBeNull(); expect(graph.next(9, 0)).toBeNull();
+   });
+   it("preserves junction overflow across multiple segments", () => {
+      const paths = [createPath([v(0), v(1)]), createPath([v(1), v(3)]), createPath([v(3), v(8)])];
+      const rider = { path: paths[0], s: 0.9, position: v(0.9), overflow: 0 };
+      advance(rider, 5); expect(rider.overflow).toBeCloseTo(4.9, 12);
+      rider.s = 0.9;
+      advanceGraph(rider, createPathGraph(paths, [[1], [2], []]), (junction) => junction + 1, 5);
+      expect(rider.path).toBe(paths[2]); expect(Math.abs(3 + rider.s - 5.9)).toBeLessThan(1e-9);
+      expect(rider.position.x).toBeCloseTo(5.9, 12); expect(rider.overflow).toBe(0);
+   });
+   it("uses the start for NaN and last nonzero endpoint tangent", () => {
+      const path = createPath([v(2), v(4), v(4)]);
+      expect(pointAt(path, NaN)).toEqual(v(2)); expect(tangentAt(path, path.total)).toEqual(v(1));
    });
 });

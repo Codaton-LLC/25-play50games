@@ -28,4 +28,8 @@ describe("motion", () => {
       const out = { x: 0, y: 0, z: 0 };
       for (const scale of [0.5, 1, 2]) { expect(squashStretch(scale, out)).toBe(out); expect(out.x * out.y * out.z).toBeCloseTo(1); }
    });
+   it("ignores invalid or nonpositive spring time", () => {
+      const state = { x: 2, v: 3 };
+      for (const dt of [NaN, 0, -1]) { spring(state, 0, 25, 1, dt); expect(state).toEqual({ x: 2, v: 3 }); }
+   });
 });

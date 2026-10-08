@@ -30,16 +30,19 @@ export function circleSegmentXZ(body: CircleBodyXZ, segment: SegmentXZ, out?: Se
    return o;
 }
 
-/** Resolves an existing contact, no allocation. friction is the fraction of tangential velocity removed. */
-export function resolveCircleSegmentXZ(body: CircleBodyXZ, contact: SegmentContact, restitution = 0, friction = 0): void {
+/** Resolves an existing contact, no allocation. mu is the nonnegative Coulomb coefficient, limiting tangential change by normal impulse. */
+export function resolveCircleSegmentXZ(body: CircleBodyXZ, contact: SegmentContact, restitution = 0, mu = 0): void {
    body.x += contact.nx * contact.depth; body.z += contact.nz * contact.depth;
    const rx = body.vx - contact.vx, rz = body.vz - contact.vz;
    const normal = rx * contact.nx + rz * contact.nz;
    if (normal >= 0) return;
-   const e = Math.max(0, Math.min(1, restitution)), f = Math.max(0, Math.min(1, friction));
+   const e = Number.isFinite(restitution) ? Math.max(0, Math.min(1, restitution)) : 0;
    const tx = rx - normal * contact.nx, tz = rz - normal * contact.nz;
-   body.vx = contact.vx - e * normal * contact.nx + tx * (1 - f);
-   body.vz = contact.vz - e * normal * contact.nz + tz * (1 - f);
+   const tangent = Math.hypot(tx, tz);
+   const impulse = -(1 + e) * normal;
+   const f = tangent > 0 && Number.isFinite(mu) ? Math.max(0, 1 - Math.max(0, mu) * impulse / tangent) : 1;
+   body.vx = contact.vx - e * normal * contact.nx + tx * f;
+   body.vz = contact.vz - e * normal * contact.nz + tz * f;
 }
 
 /** Rotates endpoints around the pivot by deltaAngle, in place. */
@@ -57,6 +60,22 @@ export function substep(dt: number, maxStep: number, fn: (dt: number) => void): 
    const n = Math.ceil(dt / maxStep);
    for (let i = 0; i < n; i++) fn(dt / n);
    return n;
+}
+export interface FixedStepState { acc: number }
+/** Initialize once; retain state and callback between display frames. */
+export function createFixedStep(step: number): FixedStepState {
+   if (!(step > 0) || !Number.isFinite(step)) throw new RangeError("Invalid fixed step");
+   return { acc: 0 };
+}
+/** Run at most eight whole steps, dropping excess whole steps but retaining the remainder. */
+export function fixedStep(state: FixedStepState, dt: number, step: number, fn: (dt: number) => void): number {
+   if (!(dt > 0) || !Number.isFinite(dt) || !(step > 0) || !Number.isFinite(step)) return 0;
+   const total = state.acc + dt;
+   const whole = Math.floor(total / step + 1e-10);
+   const count = Math.min(8, whole);
+   state.acc = Math.max(0, total - whole * step);
+   for (let i = 0; i < count; i++) fn(step);
+   return count;
 }
 export interface RigidBody2D { x: number; y: number; angle: number; vx: number; vy: number; omega: number }
 export interface RigidBodyForces { thrust: number; torque: number; gravity: number; mass?: number; inertia?: number }
