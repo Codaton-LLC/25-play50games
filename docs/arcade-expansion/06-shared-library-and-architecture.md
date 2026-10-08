@@ -77,7 +77,7 @@ Generic procedural pieces used by two or more games live in core so games never 
 | Lifecycle | exists | `GameShell`, `useArcadeStore`, `frameLoop.ts` | unchanged |
 | Asset preloading and caching | **extend** | `assets.tsx`, `ArcadeCard` | drei `useGLTF` cache per session (exists); new: prefetch the game's JS chunk on card hover/focus (`GAME_LOADERS[slug]()`); no top-level `useGLTF.preload` (rule kept) |
 | Disposal and memory | exists + **probe** | `GameShell.tsx:288`, per-run Scene remount, `disposeHumanoid` | new: perf probe reports `geometries`/`textures`; the 10-retry flatness test becomes a gate |
-| Keyboard, mouse, touch | **extend** | `inputController.ts`, `input.tsx`, `TouchControls` | new aim-drag gesture (`InputState.drag`), keyboard aim fallback; Jump/Action labels per game (`touchLabels`) |
+| Keyboard, mouse, touch | **extend** | `inputController.ts`, `input.tsx`, `TouchControls` | new aim-drag gesture (`InputState.drag`), digit keys (`InputState.digit`), keyboard aim fallback; Jump/Action labels per game (`touchLabels`) |
 | Camera | exists + **extend** | `useFittedView`, `CameraRig` | new `shake` impulse on `CameraRig`; first-person yaw mode (museum) is game-local |
 | Collision | exists + **extend** | `collision.ts` | new `kinematics.ts`: circle vs segment with restitution, moving segments, 2D rigid body step |
 | Physics | **decision: none** | – | custom pure kinematics; Rapier stays installed for a future game (D6) |
@@ -171,6 +171,8 @@ export interface AimDrag {
 export interface InputState {
    // ...existing fields
    drag: AimDrag;
+   /** one frame: a digit key 1–9 (Digit or Numpad) was pressed, else null (pile, upgrade and slot choices) */
+   digit: number | null;
 }
 
 export type LightingPreset = "day" | "indoor" | "night" | "sunset" | "snow" | "space";
@@ -180,6 +182,7 @@ export interface ModelAsset {
    /** P1-D: draw this GLB with another look, e.g. a statue */
    material?: "stone" | "bronze" | "gold" | "bone" | { color: string; roughness?: number; metalness?: number; emissive?: string };
 }
+// plus a `tint?: string` prop on <Model> and <HumanoidModel> (multiplies the GLB colour; one cached material per tint)
 
 export interface GameDefinition {
    // ...existing fields

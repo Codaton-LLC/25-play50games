@@ -47,7 +47,7 @@ Goal of the sprint: decisions taken, agents verified, core v3 mostly built, styl
 |---|---|---|---|---|---|
 | N-01 | Decisions D1–D11 | **You** | read README §A | – (reply in chat) | answers recorded by Claude in `docs/status.md` |
 | N-02 | Hyper3D balance and per-generation charge; check the MCP login on your PC (`claude mcp login hyper3d-rodin` if needed) | **You** | – | – | numbers in `docs/status.md` |
-| N-03 | Create helper branches (`codex/core-helpers`, `kimi/core-audio`, `antigravity/baseline-audit`, `<agent>/probe`), the work board in `docs/status.md`, install the skills in `.claude/skills/` | **Claude** | N-01 (D9) | – (Claude, local) | branches exist in each worktree; work board lists them |
+| N-03 | Create helper branches (`codex/core-helpers`, `kimi/core-audio`, `antigravity/baseline-audit`, `<agent>/probe`): checked out in the Antigravity and Kimi worktrees, only created as refs for Codex (it switches itself in the main checkout); the work board in `docs/status.md`; install the skills in `.claude/skills/` | **Claude** | N-01 (D9) | – (Claude, local) | branches exist in each worktree; work board lists them |
 | N-04 | Capability probe of each helper | **Codex, Antigravity, Kimi** | N-03 | **P-00** (fill `<agent>` and the worktree: Codex `C:\Users\grani\Documents\WORKSPACE-play50games`, Antigravity `…\WORKSPACE\p50-antigravity`, Kimi `…\WORKSPACE\p50-kimi`) | three probe reports; §H.2 updated by Claude |
 | N-05 | Runtime baseline of the 10 games | **Antigravity** | N-03 | **P-01** | baseline table + screenshots |
 | N-06 | Registry for 30 (P1-A) | **Claude** | N-01 (D2, D4, D5) | **P-02** | merged; production `/3d` unchanged; preview shows 30 |

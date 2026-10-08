@@ -6,7 +6,7 @@ Repository `Codaton-LLC/25-play50games`, `main` at `422fdff` (2026-10-08), read 
 
 | Area | Finding | Source |
 |---|---|---|
-| Framework | Next 14.2 App Router, React 18.3, TypeScript, plain CSS + CSS Modules, CSS vars (`--bg #0b1020`, `--card`, `--stroke`, `--accent #7dd3fc`), dark only, system fonts, Heroicons. No Tailwind. | `package.json`, `docs/platform-plan.md` **[V]** |
+| Framework | Next 14.2 App Router, React 18.3 (lockfile; `package.json` ranges ^14 / ^18.2), TypeScript, plain CSS + CSS Modules, CSS vars (`--bg #0b1020`, `--card`, `--stroke`, `--accent #7dd3fc`), dark only, system fonts, Heroicons. No Tailwind. | `package.json`, `docs/platform-plan.md` **[V]** |
 | 3D | `three ~0.170`, `@react-three/fiber ^8.18`, `@react-three/drei ^9.122`, `@react-three/rapier ^1.5` (lazy), `zustand ^4.5`. Dev: `vitest ^2.1`. | `package.json` **[V]** |
 | Physics | Rapier is wired lazily (`core/ShellStage.tsx:17`, `PhysicsGate`) behind `GameDefinition.physics`, but **no game sets `physics: true`** (obstacle-race uses custom rules, `games/obstacle-race/index.tsx:20`). | **[V]** |
 | Renderer | One `<Canvas>` per game: `dpr={[1, 1.75]}`, `antialias: true`, `powerPreference: "high-performance"`, camera near 0.1 / far 400, drei `PerformanceMonitor`: on a decline DPR drops to 1, after 3 declines it stays there. No shadow maps (games use `BlobShadow`), no post-processing. | `core/ShellStage.tsx:19-26, 141-163` **[V]** |
@@ -49,7 +49,7 @@ Repository `Codaton-LLC/25-play50games`, `main` at `422fdff` (2026-10-08), read 
 ## B.4 Assets
 
 - **39 GLBs, 6.5 MB** in `public/models/3d` **[V]**: characters 439–613 KB (robot, runner, chef, striker, keeper, pigeon, cleaner), props 41–182 KB. Shared: runner, robot, battery, crate, tinCan, banana, desk, chair, coin.
-- Budgets: characters ≤ 20k tris, 1024 px, ≤ 1.5 MB; props ≤ 5k tris, 512 px, ≤ 300 KB **[V]** `sharedAssets.ts` `CHARACTER_BUDGET` / `PROP_BUDGET`.
+- Budgets: characters ≤ 20k tris, 1024 px, ≤ 1.5 MB; props ≤ 5k tris, 512 px, ≤ 300 KB **[V]** (tris and bytes in `sharedAssets.ts` `CHARACTER_BUDGET` / `PROP_BUDGET`; texture sizes in CLAUDE.md and the `optimize` step).
 - Pipeline: Hyper3D Rodin through the **official Rodin MCP** in the user's local Claude Code (OAuth, no API key; tiers Gen-2.5-Extreme-Low / Medium / High, no seed, no T-pose flag, no balance tool) → `node tools/hyper3d/src/cli.mjs import` → `optimize` (gltf-transform: centred pivot, webp textures, simplify, meshopt, budget check) → manifest line → `scale` / `stretch` / `rotationY` fitted in the game's `assets.ts` **[V]** CLAUDE.md, `tools/hyper3d/README.md`.
 - The MCP lives in `~/.claude.json` on your PC, **not in this cloud session**: asset generation can only run in your local Claude Code **[V]**.
 - Concepts: `tools/hyper3d/concepts/*.webp` (14 files, none with your face; the v2 face concepts stay in `%USERPROFILE%\.play50\concepts\`) **[V]**.
@@ -77,12 +77,12 @@ Touch joystick, Jump/Action buttons (coarse pointers only), swipes, taps; screen
 | # | Limitation | Impact | Fix (phase) |
 |---|---|---|---|
 | L1 | `ARCADE_SLUGS`, `AgentOwner`, `ControlScheme` and `status` are closed unions for 10 games, 3 agents | new games do not type-check | P1-A |
-| L2 | `/3d` is one flat grid; hub copy hard-codes "10" (`app/page.tsx:82, 113, 122`) | 30 cards do not scan; copy goes stale | P1-A + UI kit task |
+| L2 | `/3d` is one flat grid; copy hard-codes "10" / "Ten" (`app/page.tsx:82, 113, 122`, `app/3d/page.tsx:35`) | 30 cards do not scan; copy goes stale | P1-A + UI kit task |
 | L3 | No hidden state for work in progress (`soon` cards are visible on production) | 20 in-progress games would show as 20 "Soon" cards | P1-A (`dev` + preview flag) |
 | L4 | No shared particles, floating text, camera shake | 20 games would each write their own | P1-B |
 | L5 | 7 one-shot sounds, no loops (engines, vacuums, belts, thrusters) | many new games need a loop | P1-B |
 | L6 | No shared perf probe; budgets checked by review | regressions are invisible | P1-B + `tools/perf` |
-| L7 | No aim-drag gesture, no ballistics, paths, steering, vision, patrol, procedural creature motion | 11 games would re-invent them | P1-C, P1-D |
+| L7 | No aim-drag gesture, no digit keys, no ballistics, paths, steering, vision, patrol, procedural creature motion | 19 of the 20 games would re-invent at least one | P1-C, P1-D |
 | L8 | No bone attachments, no material override, no per-copy tint for GLB pools | forces extra Hyper3D generations | P1-D |
 | L9 | Lighting presets only `day / indoor / night`; no water, sky or starfield helpers | snow, sunset, sea and space games | P1-B |
 | L10 | Agent read order ≈ 200 KB of mandatory docs | ~50k tokens per session before work starts | D10 (slim CLAUDE.md, read sets) |

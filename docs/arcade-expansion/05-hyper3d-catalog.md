@@ -38,7 +38,7 @@ The existing assets are the reference (01 §B.5): friendly stylised shapes, but 
 ## E.3 Verified workflow and animation needs
 
 - Generation runs **only in your local Claude Code** through the official Rodin MCP (`hyper3d-rodin`): `rodin_create_uploads` (+ HTTP PUT of the concept for image-to-3D), `rodin_generate`, `rodin_wait`, `rodin_get_result` **[V]** CLAUDE.md. Tiers via MCP: Gen-2.5-Extreme-Low / Medium / High; **no seed, no T-pose flag, no balance tool** **[V]**.
-- Settings used so far and kept: characters = image-to-3D, Gen-2.5-Medium, `quality_override` 18000; props = text-to-3D (simple) or image-to-3D (hero props, as group D did), Gen-2.5-Medium, `quality_override` 1500 (3000 for big hero props) **[V]**.
+- Settings used so far and kept: characters = image-to-3D, Gen-2.5-Medium, `quality_override` 18000; props = text-to-3D (simple) or image-to-3D (hero props, as group D did), Gen-2.5-Medium, `quality_override` 1500 **[V]**. New in this plan **[A]**: 3000 for the big hero props (cannon, ship, cart, drone, rocket, windmill, goblin, castleTower), still capped by `optimize`.
 - Then: download `base_basic_pbr.glb` to the scratchpad → `node tools/hyper3d/src/cli.mjs import <file> --slug <shared|slug> --id <id>` → `optimize <slug> --id <id>` → manifest line in `core/modelManifest.ts` → fit in `assets.ts` → size test → commit GLB + manifest (+ concept if it shows no face) **[V]**.
 - Rodin also advertises rigging/animation features in its web product **[W]**; **not used and not verified**: the arcade's characters are animated in code, which is already proven on seven characters.
 
@@ -494,7 +494,7 @@ Alien spiral gourd: a twisted spiral-shaped gourd with soft ridges on a short st
 | Retry reserve | 7 (≈ 25 %; characters first) |
 | Tier 3 (optional) | 5 |
 | Procedural assets (B) | ≈ 60 (ghosts, eggs, nest, gems, parcels, buildings, crane, building pieces, tracks, ice blocks, snowmen, forts, saucer, modules, planets, terrains, pads, belts, diverters, conveyors, fences, bushes, vision cones, flashlight, hats, scarves, sword, shield, jetpack, hose, wrench, vases, paintings, pedestals, …) |
-| High priority (P1) GLB generations | 25 (all tier 1 + the tier 2 heroes) |
+| High priority (P1) GLB generations | 27 (all tier 1 and tier 2 rows in E.4) |
 
 **Credits** (rate unverified: read the dashboard first)
 
@@ -504,7 +504,19 @@ Alien spiral gourd: a twisted spiral-shaped gourd with soft ridges on a short st
 | Balanced (tier 1 + 2, 7 retries) | 34 | **17** | 34 |
 | High (+ tier 3, 10 retries) | 42 | 21 | 42 |
 
-Recorded spend so far ≈ 40 generations ≈ 20 credits at 0.5 **[V]** → about 25 left of 45 **[A]**. If the dashboard shows less than the balanced scenario needs, the **cut list** (in order): tier 3 → castleTower (procedural tower) → dummy (procedural) → glowPod (procedural pod) → goblin (procedural blob goblin) → keeper (runner + safari hat attachment). Each cut is pre-designed in the game spec so no game is blocked.
+Recorded spend so far ≈ 40 generations ≈ 20 credits at 0.5 **[V]** → about 25 left of 45 **[A]**. If the dashboard shows less than the balanced scenario needs, the **cut list** (in order): tier 3 → castleTower → dummy → glowPod → goblin → keeper → snowKid → alien → astronaut → panda. Every cut has a fallback below, so no game is blocked; the game's README records which one it uses.
+
+| Cut asset | Fallback (no credits) |
+|---|---|
+| castleTower | procedural: cylinder + crenellation boxes, stone canvas texture (knight-arena already stands one in until batch 3) |
+| dummy | procedural: burlap cylinder torso + sphere head + two stub arms on a post |
+| glowPod | procedural: lathe pod + three curled leaf planes, emissive by instance colour |
+| goblin | procedural pooled goblin: capsule body, sphere head, cone ears (`fallbackParts`, one draw call per part) |
+| keeper | shared runner + procedural safari hat + flashlight attachments |
+| snowKid | shared runner at 1.4 m ("older kids") with team beanie + scarf attachments |
+| alien | shared robot with a mint `tint` + antenna attachments |
+| astronaut | shared runner + procedural bubble helmet and jetpack, white `tint` |
+| panda | code-built panda (spheres and capsules, like clean-city's code-built pigeons) |
 
 **Batches and approvals**
 

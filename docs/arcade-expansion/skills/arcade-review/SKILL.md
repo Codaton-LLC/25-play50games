@@ -6,7 +6,7 @@ description: Review a 3D Arcade branch in two parts: A) mechanical checks by scr
 # Arcade review
 
 ## Part A: mechanical (Kimi or any agent; report only, no edits)
-1. `git fetch origin <branch> && git checkout --detach origin/<branch>`.
+1. In a separate review worktree, never your own: `git fetch origin <branch>` then `git worktree add --detach ../p50-review-<slug> origin/<branch>` and `npm ci` there; remove it at the end (`git worktree remove`).
 2. Repo root: `node tools/gamecheck <slug>` (core tasks: `--allow <glob>` with the task's allowed paths).
 3. `play50games-frontend`: `npm run build` (note the route table: `/` and `/classic` unchanged), `npx tsc --noEmit`, `npx vitest run`.
 4. `tools/perf` capture + compare for the game (skill `arcade-playtest`, step 5).

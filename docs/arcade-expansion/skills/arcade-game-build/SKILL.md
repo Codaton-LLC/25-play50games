@@ -24,14 +24,14 @@ A playable, tested, budget-compliant game folder that copies the reference game'
 7. **Feel:** `useFx()` bursts and floating scores, `useCameraShake`, `playSfx` / `startLoop`, `resultDelayMs` for the end animation. Visuals read state in `useFrame` and animate with `useGameTime()`.
 8. **Budgets:** `?perf=1` and `node tools/perf/capture.mjs --slugs <slug>`; draw calls ≤ the README target; geometries flat over 10 Retries; no allocation and no `setState` in frame callbacks.
 9. **Checks:** `npm run build`, `npx tsc --noEmit`, `npx vitest run` (in play50games-frontend), `node tools/gamecheck <slug>` (repo root).
-10. **Evidence:** screenshots at 1280 × 800, 390 × 844 (banner open), 844 × 390; perf JSON; the `tools/thumbs` input script for the game.
+10. **Evidence:** screenshots at 1280 × 800, 390 × 844 (banner open), 844 × 390; perf JSON; the game's input script `tools/thumbs/inputs/<slug>.mjs` (also used by `tools/perf`).
 11. README "Status" = the HANDOFF block.
 
 ## Outputs
 The game folder, an optional thumbnail, the HANDOFF block.
 
 ## Validation checklist
-- [ ] `git diff --name-only main...HEAD` ⊆ `games/<slug>/**` + `public/images/3d/<slug>.webp`.
+- [ ] `git diff --name-only main...HEAD` ⊆ `games/<slug>/**` + `public/images/3d/<slug>.webp` + `tools/thumbs/inputs/<slug>.mjs`.
 - [ ] No imports from other games, `components/GameEngine/**`, `lib/storage/progressStorage`, `lib/api/progress`; no top-level `useGLTF.preload`; no `Math.random` / `Date.now` in `rules.ts`; no `state.clock.elapsedTime`.
 - [ ] No localStorage, no API call, no `submitScore`; runs end with `end(reason)`.
 - [ ] Runs on primitives with every GLB missing.

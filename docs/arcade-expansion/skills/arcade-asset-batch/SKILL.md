@@ -20,7 +20,7 @@ description: Run one approved Hyper3D (Rodin) asset batch for the 3D Arcade thro
    1. image mode: `rodin_create_uploads`, HTTP PUT the concept;
    2. `rodin_generate` with the exact prompt from §E.5, tier Gen-2.5-Medium, `quality_override` from the entry;
    3. `rodin_wait`, `rodin_get_result`; show the `display_url`; wait for the user's verdict;
-   4. on "ok": download `base_basic_pbr.glb` to the scratchpad; on "no": one retry with a prompt fix you explain; a second retry needs a new OK;
+   4. on "ok": download `base_basic_pbr.glb` to the scratchpad; on "no": one retry with a prompt fix you explain, **only while the batch's approved reserve lasts** (05 §E.6: 3 / 2 / 2); any retry beyond the reserve, or a second retry of one asset, needs a new "po" from the user;
    5. append the ledger (`%USERPROFILE%\.play50\hyper3d-ledger.json`): time, asset, task id, attempt, credits shown.
 3. For each accepted file: `node tools/hyper3d/src/cli.mjs import <file> --slug <shared|slug> --id <id>` → `optimize <slug> --id <id>` (must pass budget) → add the url to `core/modelManifest.ts` in an "expansion batch <N>" block → continue with skill `arcade-model-adopt`.
 4. Commit GLBs + manifest lines (+ face-free concepts to `tools/hyper3d/concepts/<slug>-<id>.webp`) on `claude/assets-batch-<N>`.

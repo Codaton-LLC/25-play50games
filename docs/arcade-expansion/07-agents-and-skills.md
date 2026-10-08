@@ -52,7 +52,8 @@ R = does the work, A = approves / merges, C = consulted, Q = QA. Every merge to 
 
 - `main` = always deployable (flags + `status: "dev"` keep work invisible). Only Claude merges, with merge commits (`git merge --no-ff`), as today.
 - One branch per task: `claude/<pkg>`, `codex/<pkg>`, `antigravity/<pkg>`, `kimi/<pkg>`. Game branches: `<agent>/game-<slug>`; design-only branches: `<agent>/design-<slug>`.
-- Claude creates the helper's branch in the helper's worktree before handing out the prompt (copies `.env.local`; helpers run `npm ci` themselves) **[V]** CLAUDE.md. Codex stays in the main checkout; never two Codex tasks at once.
+- Claude creates the helper's branch in the helper's worktree before handing out the prompt (copies `.env.local`; helpers run `npm ci` themselves) **[V]** CLAUDE.md. Codex works in the main checkout, where Claude never switches branches: Claude only creates the branch ref from its own worktree (`git branch codex/<pkg> main`; refs are shared by all worktrees) and Codex runs `git switch codex/<pkg>` as its first step. Never two Codex tasks at once.
+- Reviewers and QA agents check a branch out in a **separate** review worktree (`git worktree add --detach ..\p50-review-<slug> origin/<branch>`), never in the worktree where their own branch is in progress, and remove it afterwards.
 - Long branches merge `main` in (never rebase someone else's branch).
 
 ### File ownership (single writer per path)
@@ -61,11 +62,11 @@ R = does the work, A = approves / merges, C = consulted, Q = QA. Every merge to 
 |---|---|
 | `package.json`, lockfile, `next.config.js`, `tsconfig.json`, `vitest.config.mts` | Claude |
 | `arcade3d/{types,registry,loaders,flags}.ts`, `arcade3d/core/**`, `public/models/3d/**`, `app/3d/**`, `app/page.tsx` | Claude (P1-C helpers and audio delegated by explicit file list, D9) |
-| `arcade3d/games/<slug>/**`, `public/images/3d/<slug>.webp` | that game's owner (02 §C.2) |
+| `arcade3d/games/<slug>/**`, `public/images/3d/<slug>.webp`, `tools/thumbs/inputs/<slug>.mjs` | that game's owner (02 §C.2) |
 | `arcade3d/ui/**` | Antigravity (collections task), then Claude |
 | `tools/gamecheck/**`, `tools/perf/**` | Kimi |
 | `tools/hyper3d/**` (not `concepts/`) | Codex |
-| `tools/hyper3d/concepts/**`, `tools/thumbs/inputs.mjs`, `tools/og/**` | Claude |
+| `tools/hyper3d/concepts/**`, `tools/thumbs/{capture,inputs}.mjs`, `tools/og/**` | Claude |
 | `play50games-backend/**` | Claude (JSON edits only for the expansion) |
 | `docs/**`, `CLAUDE.md`, `AGENTS.md`, `skills.md` | Claude |
 

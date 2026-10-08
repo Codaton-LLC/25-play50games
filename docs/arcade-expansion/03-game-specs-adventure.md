@@ -7,6 +7,8 @@ Part 2 (games 11–20) is `04-game-specs-skill.md`. Each spec is the input for t
 - **Runtime contract:** every game is a `GameDefinition` (`core/types.ts`) run by GameShell: phases, countdown, pause (Esc/P, hidden tab), result panel, score submission, Retry/Exit and the result delay come from core. A game ends its run with `end("win" | "lose" | "timeup")` and never touches localStorage or the API.
 - **Logic** lives in a pure, seeded `rules.ts` driven from one `useRunFrame`; visuals read the state in `useFrame` and animate with `useGameTime()`. Discrete moves read `input.pressed`; presses read `tapDown` (immediate) or `tap` (release), never both.
 - **Camera** uses `useFittedView` (+ `followFocus` for follow cameras) with `shift: true`, so the play area stays clear of the HUD, the touch controls and the cookie banner on every screen.
+- **Clocks**: a game with a fixed timer sets `durationMs` (the shell counts it down and ends with `"timeup"`). A game whose clock changes during play (time gates, penalties) keeps its own timer in `rules.ts`, sets no `durationMs`, shows it as a HUD stat and ends with `end("timeup")` itself.
+- **Poses**: `reachPose` raises an arm **sideways** (it reads as a wave); reaching, digging and pointing at something in front are game-local poses built with `aimArm` / `turnBone` in the game's `poses.ts` (penalty-hero pattern).
 - **Characters**: humanoids through `<HumanoidModel>` + `useHumanoidPose` + `walkStride` / `bodyLift` (never a T-pose, never feet through the floor). Non-humanoids through `<Model>` + `core/motion` (new, P1-C).
 - **Look**: "Play50 toy world, premium edition" (05 §E.1): matte/satin materials, one accent per asset, soft hemisphere + one directional light, blob shadows, gameplay glow only on things you can interact with.
 - **Feedback language** (shared by all 20, from `core/fx`): collect = gold sparkle burst + `pickup`; good action = mint ring + chime; mistake = coral flash + `hit`; combo = rising pitch; win = confetti + `win`.
@@ -23,7 +25,7 @@ Part 2 (games 11–20) is `04-game-specs-skill.md`. Each spec is the input for t
 ### Common Definition of Done (every game)
 
 1. Folder complete: `meta.ts`, `index.tsx`, `Scene.tsx`, `rules.ts`, `rules.test.ts`, `assets.ts`, `assets.spec.json`, `README.md` (template, ≤ 200 lines), thumbnail `public/images/3d/<slug>.webp` (captured by `tools/thumbs`).
-2. `npm run build`, `npx tsc --noEmit`, `npx vitest run` and `node tools/gamecheck <slug>` pass; `git diff --name-only main...<branch>` lists only the game's folder and its thumbnail.
+2. `npm run build`, `npx tsc --noEmit`, `npx vitest run` and `node tools/gamecheck <slug>` pass; `git diff --name-only main...<branch>` lists only the game's folder, its thumbnail and its input script `tools/thumbs/inputs/<slug>.mjs`.
 3. Plays end to end with keyboard and with touch; controls in `meta.ts` match what the game does.
 4. Uses the shared GLBs and core helpers named in its spec; no game-local copy of a core helper; no import from another game.
 5. Draw-call and frame-time budgets met in the perf probe; GLBs within budget (`optimize` passed); still runs on primitives if a GLB is missing.
@@ -42,7 +44,7 @@ Part 2 (games 11–20) is `04-game-specs-skill.md`. Each spec is the input for t
 4. **Controls.** Desktop: WASD / arrows move; E, Enter or Space dig (hold 0.6 s). Touch: joystick + Action button (hold). `touchControls: ["joystick", "action"]`. Scheme `joystick`.
 5. **Camera.** Follow camera, 3/4 top-down (pitch ≈ 55°), `useFittedView` with `followFocus` over the island bounds; portrait phones get the yaw from `yaws`. Justification: the island must be read around the player to plan a route, and the detector ring must be visible on the ground.
 6. **Mechanics.**
-   - Movement: robot-collector's model (top speed 5 m/s, accel 24, brake 30, eased turning), sand and grass the same speed, shallow water ring at 60 % speed (wading), deep water is the boundary (`clampToBounds` against an island polygon / ellipse radius function).
+   - Movement: robot-collector's model (top speed 5 m/s, accel 24, brake 30, eased turning), sand and grass the same speed, shallow water ring at 60 % speed (wading), deep water is the boundary (a game-local radial clamp to the island ellipse; core `clampToBounds` is an AABB).
    - Collisions: palms, rocks, the chest stack and the dock posts as circles / AABBs (`resolveSphereAabb`).
    - Treasures: 5 spots from `generateIsland(seed)` on sand or grass, ≥ 6 m apart, ≥ 1.5 m from props, all reachable (flood fill test). Types: 2 coin piles, 2 gems, 1 chest (the chest always last-but-one or last so the big reveal comes late).
    - Detector: strength `s = clamp(1 − d / 12, 0, 1)` to the nearest undug treasure; ring pulse period 1.2 s → 0.15 s, colour slate → gold, beep rate the same (P1-B audio). Signature mechanic.
@@ -54,7 +56,7 @@ Part 2 (games 11–20) is `04-game-specs-skill.md`. Each spec is the input for t
 8. **Replayability.** New seed every run (layout + treasure spots + palm grove variation), best score and leaderboard, clean-dig and time bonus to optimise. Later (Phase 7, if approved): achievements "No false digs", "Under 40 s".
 9. **Duration.** 40–90 s; typical first run ≈ 75 s.
 10. **Level design.** Island ellipse 28 × 22 m: a dock at the south (start), beach ring 3 m, grass interior, a palm grove (8–12 palms, instanced), two rock outcrops (instanced rocks), a beach umbrella spot, a wrecked rowboat (procedural, decoration only). Water all around (core `<Water>`), sky dome gradient.
-11. **Visual direction.** Runner (shared v2, auto-rig: walk/run by `walkStride`, `reachPose` + a bent spine for digging, `cheerPose` on win) with a procedural explorer hat attached to the head bone (P1-D attachments). Palm, umbrella, coin (shared, D), chest (new shared A), rock (new shared A), gems (procedural faceted icosahedron, emissive edge). Palette: sand `#f2d7a6`, sea `#2dd4bf` → deep `#0e7490`, palm green `#4d7c0f`, rock `#78716c`, gold `#fbbf24`, accent `#2dd4bf`. Lighting `sunset` preset (new) for warmth, fog for depth. Effects: sand puff on dig, gold sparkle burst + floating "+200" on a find, detector ring on the ground (one transparent ring mesh with a shader pulse), tide foam line.
+11. **Visual direction.** Runner (shared v2, auto-rig: walk/run by `walkStride`, a game-local dig pose (`aimArm` both arms down and forward + a bent spine via `turnBone`), `cheerPose` on win) with a procedural explorer hat attached to the head bone (P1-D attachments). Palm, umbrella, coin (shared, D), chest (new shared A), rock (new shared A), gems (procedural faceted icosahedron, emissive edge). Palette: sand `#f2d7a6`, sea `#2dd4bf` → deep `#0e7490`, palm green `#4d7c0f`, rock `#78716c`, gold `#fbbf24`, accent `#2dd4bf`. Lighting `sunset` preset (new) for warmth, fog for depth. Effects: sand puff on dig, gold sparkle burst + floating "+200" on a find, detector ring on the ground (one transparent ring mesh with a shader pulse), tide foam line.
 12. **Audio.** Detector beep (rate = strength), dig thud loop while holding, treasure chime, tide whoosh at 70 s, win fanfare; ambient surf loop (P1-B loop). Mute via the shell.
 13. **Performance.** ≈ 45 draw calls (palms 1–2 instanced, rocks 1, water 1, sky 1, island 2, runner 2, treasures ≤ 5, effects pooled 2); ≈ 80k tris; one shader plane (water) with a cheap vertex wave; no dynamic lights beyond the preset.
 14. **Accessibility.** The detector speaks three channels at once (pulse speed, ring size, colour), so colour is never needed alone; sound optional; hold-to-dig has a visible progress ring; the seagull hint; high-contrast HUD chips "Treasures 2/5".
@@ -104,7 +106,7 @@ Part 2 (games 11–20) is `04-game-specs-skill.md`. Each spec is the input for t
 1. **Concept.** Flip conveyor switches so every suitcase rides to the flight with its colour and symbol before the baggage hall overflows.
 2. **Core loop.** Watch the bags coming → read each bag's tag (colour + symbol) → set the diverters ahead of it → the bag drops into its flight's chute → combo grows; fix the next junction.
 3. **Objective.** Score as much as possible in 120 s. 3 strikes (wrong flight or a bag falling off the overflow end) end the run early (`end("lose")`); the clock ending is `"timeup"`.
-4. **Controls.** Desktop: keys A / S / D toggle diverters 1–3 (F for the 4th from 70 s), or click a diverter. Touch: tap a diverter (`tapDown`: immediate). `touchControls: ["tap"]`. Scheme `tap-target`.
+4. **Controls.** Desktop: A / ←, S / ↓ and D / → toggle diverters 1–3, W / ↑ the 4th from 70 s (read from `pressed`: this game has no movement), or click a diverter. Touch: tap a diverter (`tapDown`: immediate). `touchControls: ["tap"]`. Scheme `tap-target`.
 5. **Camera.** Fixed isometric view (pitch ≈ 50°) that fits the whole belt network (`useFittedView` with two yaws: landscape and portrait). Justification: every junction must be visible at once; nothing moves the camera.
 6. **Mechanics.**
    - The belt network is a graph of `core/path` segments: one main belt, three diverters (each a two-way junction), four gate chutes, one overflow end.
@@ -154,7 +156,7 @@ Part 2 (games 11–20) is `04-game-specs-skill.md`. Each spec is the input for t
 14. **Accessibility.** Boulder lanes telegraph with a dust trail and a ground shadow 0.8 s ahead; stack count on the HUD and on the dino; dash has a visible cooldown ring.
 15. **Complexity.** 2.
 16. **Estimated work.** 8–12 agent-hours; review 2 h; you 1 h.
-17. **Dependencies.** P1-C `motion`, `path`; P1-B fx, sunset; assets s:dino, s:rock, s:leafyTree (batch 2), palm.
+17. **Dependencies.** P1-C `motion`, `path`; P1-B fx, sunset; assets s:dino, s:leafyTree (batch 2), s:rock (batch 1), palm.
 18. **Testing criteria.** Rules: speed multipliers, stack drop on hit, dash invulnerability window, spawn rules for 1,000 seeds, scoring proof (greedy bot vs safe bot both within limits). Visual: eggs on the back never intersect the body at full waddle. Perf: ≤ 50 draw calls.
 19. **Definition of Done.** Common DoD + the dino's waddle reads as walking (feet do not slide visibly at top speed: stride-matched bob frequency).
 
@@ -235,7 +237,7 @@ Part 2 (games 11–20) is `04-game-specs-skill.md`. Each spec is the input for t
 5. **Camera.** Follow, high (pitch ≈ 60°), fitted to the 24 × 18 m arena with `followFocus`. Justification: incoming throws must be readable.
 6. **Mechanics.**
    - Player and rivals move at 4.5 m/s; scooping roots you for 0.5 s.
-   - Throws: `core/ballistics` arc with flight time 0.6–0.9 s; lead from target velocity; hit test sphere vs capsule.
+   - Throws: `core/ballistics` arc with flight time 0.6–0.9 s; lead from target velocity; hit test = ball sphere vs two stacked spheres per kid (`spheresOverlap`).
    - Rival AI (`core/ai/steering` + `vision`): FSM `cover → scoop → peek → windup (0.45 s telegraph) → throw → relocate`, dodges when a ball's predicted landing is within 1 m (reaction time 0.35 → 0.2 s by difficulty).
    - Forts: AABB covers with 3 HP; each hit removes a layer (scale step); at 0 they become a low mound.
    - Big snowball: hold scoop for 1.5 s → a big ball that rolls on the ground (knocks a rival down for 1.5 s).
@@ -294,7 +296,7 @@ Part 2 (games 11–20) is `04-game-specs-skill.md`. Each spec is the input for t
 1. **Concept.** Run the crane on a toy building site: pick the right material for the glowing blueprint slot and swing it into place, floor by floor.
 2. **Core loop.** Read the next blueprint step → pick the matching pile (slab, pillar, wall, window, roof) → move the jib and trolley → time the drop against the swing → rating → next step; finish the building, start the next.
 3. **Objective.** Build 3 buildings (house, shop, tower) in 150 s → `end("win")` + time bonus. Stability meter: each bad placement wobbles the building; at 0 it collapses (`end("lose")`).
-4. **Controls.** Desktop: A / D rotate the jib, W / S move the trolley out / in, Space drop, 1–5 or a click choose a pile. Touch: joystick (x = rotate, y = trolley) + Action (drop) + tap a pile. `touchControls: ["joystick", "action", "tap"]`. Scheme `joystick`.
+4. **Controls.** Desktop: A / D rotate the jib, W / S move the trolley out / in, Space drop, 1–5 (`InputState.digit`, P1-D) or a click choose a pile. Touch: joystick (x = rotate, y = trolley) + Action (drop) + tap a pile. `touchControls: ["joystick", "action", "tap"]`. Scheme `joystick`.
 5. **Camera.** Fixed 3/4 view of the site (pitch ≈ 40°) with a slight follow of the hook height as buildings grow; fitted to site + building top.
 6. **Mechanics.**
    - Crane in polar coordinates (angle, radius) with acceleration limits; hook = damped 2D pendulum driven by the trolley's and jib's acceleration (`core/kinematics` helper, pure).
@@ -306,7 +308,7 @@ Part 2 (games 11–20) is `04-game-specs-skill.md`. Each spec is the input for t
 8. **Replayability.** Seeded pile order and building variants (window and roof styles); perfect streaks.
 9. **Duration.** 90–150 s.
 10. **Level design.** Site 30 × 24 m: crane at the centre-back, three plots in a row, material yard with 5 piles, site fence, a parked van (D), pallets and crates (D).
-11. **Visual direction.** All building pieces procedural (slabs, pillars, brick walls with canvas texture, glass windows with emissive frames, roofs); crane procedural (instanced lattice bars, yellow); runner (D) with a procedural hard hat attachment pointing (`reachPose`) and cheering. Palette: crane `#fbbf24`, concrete `#d6d3d1`, brick `#c2410c`, glass `#bae6fd`, site `#a8a29e`, accent `#fbbf24`. Lighting `day`. Effects: dust puff on landing, "Perfect!" floating text, mint outline on the target slot, wobble shake.
+11. **Visual direction.** All building pieces procedural (slabs, pillars, brick walls with canvas texture, glass windows with emissive frames, roofs); crane procedural (instanced lattice bars, yellow); runner (D) with a procedural hard hat attachment pointing (a game-local `aimArm` point) and cheering. Palette: crane `#fbbf24`, concrete `#d6d3d1`, brick `#c2410c`, glass `#bae6fd`, site `#a8a29e`, accent `#fbbf24`. Lighting `day`. Effects: dust puff on landing, "Perfect!" floating text, mint outline on the target slot, wobble shake.
 12. **Audio.** Crane motor loop, cable creak with swing, clank on landing (pitch by rating), perfect ding, collapse rumble.
 13. **Performance.** ≈ 45 draw calls; building pieces instanced per kind.
 14. **Accessibility.** Drop shadow + a vertical guide line from the hook to the ground (mint when over the slot); swing amplitude shown; "steady crane" assist on coarse pointers (more damping).
@@ -338,7 +340,7 @@ Part 2 (games 11–20) is `04-game-specs-skill.md`. Each spec is the input for t
 8. **Replayability.** Seeded phases and the saucer route; perfect streaks; load optimisation.
 9. **Duration.** 100 s.
 10. **Level design.** Crater farm with 9 plots in a 3 × 3 grid, glowing irrigation channels, purple rocks (s:rock with a tinted material), crates (D) as decor, starfield and a big moon.
-11. **Visual direction.** Alien farmer (A, humanoid, auto-rig: walk, reach on harvest, carry), glowPod crop (A) scaled by growth stage + emissive pulse (material emissive driven per frame), optional gourd (tier 3; else procedural spiral lathe). Saucer procedural (lathe + emissive ring lights + additive beam cone). Palette: soil `#3b0764`, crop glow `#4ade80` / `#22d3ee`, rocks `#7c3aed` tint, sky `#020617`, accent `#4ade80`. Lighting `night` + emissives; core `<Starfield>`. Effects: harvest pop, beam sparkles, spore clouds.
+11. **Visual direction.** Alien farmer (A, humanoid, auto-rig: walk, a game-local `aimArm` reach down to the crop on harvest, carry), glowPod crop (A) scaled by growth stage + emissive pulse (material emissive driven per frame), optional gourd (tier 3; else procedural spiral lathe). Saucer procedural (lathe + emissive ring lights + additive beam cone). Palette: soil `#3b0764`, crop glow `#4ade80` / `#22d3ee`, rocks `#7c3aed` tint, sky `#020617`, accent `#4ade80`. Lighting `night` + emissives; core `<Starfield>`. Effects: harvest pop, beam sparkles, spore clouds.
 12. **Audio.** Each ripe crop hums with a pitch rising to its peak (the timing cue), harvest pop (higher for perfect), beam whoosh, spore puff; ambient night loop.
 13. **Performance.** ≈ 45 draw calls; plots instanced; emissive pulse via instance colour (no per-plot material).
 14. **Accessibility.** Ripe window shown as a ring filling around the plot (shape + light), the hum cue, perfect window widened on coarse pointers (±0.35 s).

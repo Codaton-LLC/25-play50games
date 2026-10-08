@@ -2,12 +2,14 @@
 
 Every prompt is copy-paste ready. Fill only the `<…>` fields the prompt names. Prompts point agents at files instead of pasting context (cheaper, never stale). Claude tells you when to paste each one (the order is in I.1 and in the roadmap, 09 §J).
 
-## I.0 Shared blocks (already included in every prompt below)
+## I.0 Shared blocks
 
 ### Common preamble
 
+Every prompt for Codex, Antigravity and Kimi below starts with this preamble, filled in, and repeats its rules line ("Always: …"). Claude's own prompts are shorter because Claude works under CLAUDE.md.
+
 ```text
-[PLAY50 TASK <ID>] Repo Codaton-LLC/25-play50games. Worktree: <worktree path>. Branch: <branch> (already created by Claude; do not create or switch branches).
+[PLAY50 TASK <ID>] Repo Codaton-LLC/25-play50games. Worktree: <worktree path>. Branch: <branch> (already created by Claude; never create a branch. Codex in the main checkout: run `git switch` to it first; in the other worktrees it is already checked out).
 FIRST, before reading or changing anything else, reply with exactly one line:
 "TASK <ID> | <target> | branch <branch> | allowed: <allowed paths>"
 and check it against `git branch --show-current` and the files you see. If anything does not match, stop and say what differs.
@@ -68,11 +70,12 @@ Evidence: screenshot paths, perf JSON paths
 ## P-00 Agent capability probe (Codex, Antigravity, Kimi; report only)
 
 ```text
-[PLAY50 TASK P-00] Repo Codaton-LLC/25-play50games. Worktree: <worktree path>. Branch: <agent>/probe (already created by Claude; do not create or switch branches).
+[PLAY50 TASK P-00] Repo Codaton-LLC/25-play50games. Worktree: <worktree path>. Branch: <agent>/probe (already created by Claude; never create a branch. Codex in the main checkout: run `git switch` to it first; in the other worktrees it is already checked out).
 FIRST, before reading or changing anything else, reply with exactly one line:
 "TASK P-00 | capability probe | branch <agent>/probe | allowed: none (report only, nothing committed)"
 and check it against `git branch --show-current`. Stop if anything differs.
 Read only: AGENTS.md and docs/arcade-expansion/07-agents-and-skills.md §H.2.
+Always: change only the allowed paths; never edit package.json, package-lock.json, or Claude-owned files (CLAUDE.md "Ownership") outside this task's allowed paths; never spend Hyper3D credits; never call, test against or upload to production (cms.play50.games, the live Vercel site); never commit secrets, .env*.local, node_modules, .next or tools/hyper3d/raw.
 Answer each question with evidence (command output or a screenshot path), at most 30 lines in total:
 1. Which files did you load automatically as project instructions when this session started (AGENTS.md, CLAUDE.md, others)?
 2. Project skills: do you support SKILL.md skills, and from which folder? Test it: copy docs/arcade-expansion/skills/arcade-playtest/ into that folder in this worktree (do NOT commit), start a fresh session or task, ask "what does the arcade-playtest skill do?", report whether it loaded by itself, then delete the copy.
@@ -81,6 +84,8 @@ Answer each question with evidence (command output or a screenshot path), at mos
 5. Browser (Antigravity only): build with NEXT_PUBLIC_ARCADE_ENABLED=1 NEXT_PUBLIC_ARCADE_API_MOCK=1 NEXT_PUBLIC_ARCADE_LEADERBOARD=1 `npx next build`, run `npx next start -p 3100`, open http://localhost:3100/3d/robot-collector in your browser agent, press Play: does the 3D scene draw? Screenshot.
 6. Headless Chrome (Codex, Kimi): can you run `node tools/thumbs/capture.mjs --slugs robot-collector --base-url http://localhost:3100` against the same local build (install its deps with `npm install sharp ws --prefix tools/thumbs` first; never commit them)? Paste the last 10 lines.
 7. How do you see your remaining usage or quota? Paste what it shows now.
+Checks: every answer carries the command output or screenshot it asks for; `git status` is clean at the end.
+Acceptance: all 7 questions answered with evidence; nothing committed, pushed or left behind (the copied skill deleted).
 Do NOT: commit, push, edit tracked files, or call production.
 End with the HANDOFF block (files changed: none).
 ```
@@ -88,12 +93,12 @@ End with the HANDOFF block (files changed: none).
 ## P-01 Runtime baseline audit (Antigravity, report only)
 
 ```text
-[PLAY50 TASK P-01] Repo Codaton-LLC/25-play50games. Worktree: C:\Users\grani\Documents\WORKSPACE\p50-antigravity. Branch: antigravity/baseline-audit (already created by Claude; do not create or switch branches).
+[PLAY50 TASK P-01] Repo Codaton-LLC/25-play50games. Worktree: C:\Users\grani\Documents\WORKSPACE\p50-antigravity. Branch: antigravity/baseline-audit (already created by Claude; never create a branch. Codex in the main checkout: run `git switch` to it first; in the other worktrees it is already checked out).
 FIRST, before reading or changing anything else, reply with exactly one line:
 "TASK P-01 | baseline audit of the 10 existing games | branch antigravity/baseline-audit | allowed: none (report only)"
 and check it against `git branch --show-current`. If anything does not match, stop and say what differs.
 Read only: AGENTS.md, docs/arcade-expansion/01-repo-audit.md, play50games-frontend/src/arcade3d/core/README.md (sections "Time and frame order", "Camera fit and the safe area").
-Rules: you change no file and make no commit. Never call production. Never spend Hyper3D credits.
+Rules: you change no file and make no commit. Always: change only the allowed paths; never edit package.json, package-lock.json, or Claude-owned files (CLAUDE.md "Ownership") outside this task's allowed paths; never spend Hyper3D credits; never call, test against or upload to production (cms.play50.games, the live Vercel site); never commit secrets, .env*.local, node_modules, .next or tools/hyper3d/raw.
 
 Role: QA engineer with a real browser (use your built-in browser agent).
 Objective: measure how the 10 existing games behave today, so the expansion has a baseline.
@@ -108,6 +113,7 @@ Steps:
    - take one screenshot during play and one of the result panel.
 4. Note anything broken, overlapped by the HUD/joystick/cookie banner, unreadable, or slow.
 
+Checks: `git status` clean at the end; the server was localhost only.
 Acceptance: a table with one row per game and view: renders (y/n), p50/p95 frame ms, Retry x3 ok (y/n), overlaps, bugs; screenshots saved outside the repo with their paths listed.
 Do NOT: edit or commit anything; point anything at production; install global packages.
 End with the HANDOFF block (files changed: none).
@@ -116,10 +122,13 @@ End with the HANDOFF block (files changed: none).
 ## P-01b Static audit re-check (Kimi, optional, report only)
 
 ```text
-[PLAY50 TASK P-01b] Repo Codaton-LLC/25-play50games. Worktree: C:\Users\grani\Documents\WORKSPACE\p50-kimi. Branch: kimi/audit-recheck (already created by Claude; do not create or switch branches).
+[PLAY50 TASK P-01b] Repo Codaton-LLC/25-play50games. Worktree: C:\Users\grani\Documents\WORKSPACE\p50-kimi. Branch: kimi/audit-recheck (already created by Claude; never create a branch. Codex in the main checkout: run `git switch` to it first; in the other worktrees it is already checked out).
 FIRST reply with exactly one line: "TASK P-01b | static audit re-check | branch kimi/audit-recheck | allowed: none (report only)" and check it against `git branch --show-current`; stop if it differs.
 Read only: AGENTS.md, docs/arcade-expansion/01-repo-audit.md.
+Always: change only the allowed paths; never edit package.json, package-lock.json, or Claude-owned files (CLAUDE.md "Ownership") outside this task's allowed paths; never spend Hyper3D credits; never call, test against or upload to production (cms.play50.games, the live Vercel site); never commit secrets, .env*.local, node_modules, .next or tools/hyper3d/raw.
 Objective: verify every [V] claim in 01-repo-audit.md against the code, cheaply. For each claim with a file and line, open exactly that file and range. Report: claim, verified / wrong / stale, the correct fact with file:line.
+Checks: each verdict quotes the file:line you opened.
+Acceptance: every [V] claim in 01-repo-audit.md has a verdict; wrong ones carry the correct fact.
 Do NOT edit files, scan unrelated folders, or run builds. End with the HANDOFF block (files changed: none).
 ```
 
@@ -134,10 +143,10 @@ Do:
 2. flags.ts: ARCADE_PREVIEW (NEXT_PUBLIC_ARCADE_PREVIEW, literal key).
 3. 20 stub folders games/<slug>/{meta.ts,index.tsx} (status "dev", collection, order 11–30, owner per 02 §C.2, accent per 02 §C.1, provisional scoring per 02 §C.4, thumbnail null, index.tsx = PlaceholderScene); registry.ts and loaders.ts entries.
 4. Visibility: getVisibleGames() hides "dev" unless ARCADE_PREVIEW; /3d, the hub teaser, sitemap, JSON-LD and OG use it; app/3d/[slug]: generateStaticParams keeps all 30 (static), the page calls notFound() for a "dev" slug unless ARCADE_PREVIEW; robots noindex for "dev" and "soon".
-5. /3d: sections per collection (Originals, Adventure, Skill) using ArcadeGrid per section (the UI kit task P-08 styles the chips later); hub copy counts from the registry (app/page.tsx lines with "10" / "Ten").
+5. /3d: sections per collection (Originals, Adventure, Skill), interim: one ArcadeGrid per section (replaced by one ArcadeGrid with the `collections` prop when P-08 lands); hub and arcade copy counts from the registry (app/page.tsx lines 82, 113, 122 and app/3d/page.tsx line 35, "10" / "Ten").
 6. arcade-games.json version 3: 20 new entries, enabled false, provisional limits (max_score = 1.5 × estimate, base = max_score, max_pps = max_score) so registry.sync.test.ts passes; php validation rules respected (slug regex, positive limits).
 7. sharedAssets.ts: REUSED_ASSETS aliases for the game-folder GLBs listed in 06 §F.1 (url, budget, fallback, no game edits).
-8. tools/thumbs/inputs.mjs and tools/og: entries skip "dev" games without a script (no failure).
+8. tools/thumbs: drop the 10-slug whitelist (accept any slug in ARCADE_SLUGS); load the input script from tools/thumbs/inputs/<slug>.mjs when it exists (owned by that game's owner), else the existing inputs.mjs entry, else a generic script (idle, then taps and arrow presses); export the loader for tools/perf. tools/og: skip games without a thumbnail (no failure).
 9. Tests: registry (30 slugs, unique orders, every meta has a loader), visibility with and without the preview flag, sync test green.
 Checks: npm run build (route table: /3d/[slug] 30 static pages; / and /classic unchanged First Load JS ±1 KB), npx tsc --noEmit, npx vitest run.
 Acceptance: with all flags as on Vercel production, /3d shows exactly the same 10 games as before; with ARCADE_PREVIEW=1 it shows 30 in three sections; /3d/treasure-island is 404 without the preview flag.
@@ -166,11 +175,12 @@ Do NOT: edit any game folder; add dependencies.
 ## P-04 Core P1-C: pure gameplay helpers (Codex)
 
 ```text
-[PLAY50 TASK P-04] Repo Codaton-LLC/25-play50games. Worktree: C:\Users\grani\Documents\WORKSPACE-play50games (main checkout). Branch: codex/core-helpers (already created by Claude; do not create or switch branches).
+[PLAY50 TASK P-04] Repo Codaton-LLC/25-play50games. Worktree: C:\Users\grani\Documents\WORKSPACE-play50games (main checkout). Branch: codex/core-helpers (already created by Claude; never create a branch. Codex in the main checkout: run `git switch` to it first; in the other worktrees it is already checked out).
 FIRST, before reading or changing anything else, reply with exactly one line:
 "TASK P-04 | core pure helpers | branch codex/core-helpers | allowed: play50games-frontend/src/arcade3d/core/{ballistics,path,motion,kinematics}.ts + .test.ts, core/ai/** , core/README.md (new sections only)"
 and check it against `git branch --show-current`. Stop if anything differs.
 Read only: AGENTS.md; docs/arcade-expansion/06-shared-library-and-architecture.md §9.3 (the interfaces you implement) and §9.4; play50games-frontend/src/arcade3d/core/README.md "Helpers"; core/collision.ts and core/math.ts (style, the `out` parameter pattern, Vec3-like {x,y,z}); core/collision.test.ts (test style).
+Always: change only the allowed paths; never edit package.json, package-lock.json, or Claude-owned files (CLAUDE.md "Ownership") outside this task's allowed paths; never spend Hyper3D credits; never call, test against or upload to production (cms.play50.games, the live Vercel site); never commit secrets, .env*.local, node_modules, .next or tools/hyper3d/raw.
 Rules: this is a delegated core task (decision D9): you may create/edit ONLY the allowed files above. No React, no three.js imports in these files: pure TypeScript, deterministic, allocation-free in hot paths (optional `out` params), no Math.random (take an rng or a seed), no Date.now.
 
 Role: senior engine programmer writing small, pure, well-tested game math.
@@ -194,9 +204,9 @@ End with the HANDOFF block.
 [PLAY50 TASK P-05] Branch claude/expansion-input-rig from main (after P-03 and P-04), Claude worktree.
 Read: core/README.md (incl. P-03/P-04 sections), 06 §9.3 (AimDrag, material, attachments, per-copy tint), §F.3, 05 §E.3.
 Do:
-1. inputController.ts + input.tsx: the aim-drag gesture (InputState.drag: active, released one-frame, start, current, power 0..1 over AIM_DRAG_FULL_PX, angle, cancelled under AIM_DRAG_MIN_PX); it coexists with tap/tapDown/swipe rules (a drag is never a swipe in a game that reads drag: definition-level opt-in `input: { drag: true }`); keyboard aim fallback documented. Pure tests in inputController.test.ts.
+1. inputController.ts + input.tsx: the aim-drag gesture (InputState.drag: active, released one-frame, start, current, power 0..1 over AIM_DRAG_FULL_PX, angle, cancelled under AIM_DRAG_MIN_PX); it coexists with tap/tapDown/swipe rules (a drag is never a swipe in a game that reads drag: definition-level opt-in `input: { drag: true }`); keyboard aim fallback documented; InputState.digit (one frame: 1–9 from Digit/Numpad keys, for pile, upgrade and slot choices). Pure tests in inputController.test.ts.
 2. render/TrajectoryDots.tsx (instanced dots from ballistics.trajectoryPoints, fade, partial preview fraction).
-3. assets.tsx: ModelAsset.material overrides (stone, bronze, gold, bone, custom) shared per kind (one material instance per kind per scene); <DynamicInstancedModel> update(i, matrix, color) per-copy tint via instanceColor (GLB and fallbackParts).
+3. assets.tsx: ModelAsset.material overrides (stone, bronze, gold, bone, custom) shared per kind (one material instance per kind per scene), honoured by <Model>, <InstancedModel> and <HumanoidModel>; a `tint` prop on <Model> and <HumanoidModel> (multiplies the GLB colour; one cached material per distinct tint); <DynamicInstancedModel> update(i, matrix, color) per-copy tint via instanceColor (GLB and fallbackParts).
 4. rig/attachments.ts + <HumanoidModel attach={{ head, chest, handL, handR }}>: anchors from landmarks (head top, chest back, wrist + palm offset), children follow bones each frame (no allocation); tests on the runner (hat stays on the head through walk, carry, cheer within 1 cm).
 5. core/kit: <Conveyor>, <Fence>, <Flashlight> (spot + additive cone, cone angle/range props matching ai/vision), <Pedestal>, <Gem>, <Parcel>.
 6. core/hud: <TargetMarkers targets> (off-screen arrows placed inside the safe area), <TimingRing>.
@@ -208,11 +218,12 @@ Do NOT: edit games; add dependencies.
 ## P-06 Audio cues and loops (Kimi)
 
 ```text
-[PLAY50 TASK P-06] Repo Codaton-LLC/25-play50games. Worktree: C:\Users\grani\Documents\WORKSPACE\p50-kimi. Branch: kimi/core-audio (already created by Claude; do not create or switch branches).
+[PLAY50 TASK P-06] Repo Codaton-LLC/25-play50games. Worktree: C:\Users\grani\Documents\WORKSPACE\p50-kimi. Branch: kimi/core-audio (already created by Claude; never create a branch. Codex in the main checkout: run `git switch` to it first; in the other worktrees it is already checked out).
 FIRST, before reading or changing anything else, reply with exactly one line:
 "TASK P-06 | core audio cues and loops | branch kimi/core-audio | allowed: play50games-frontend/src/arcade3d/core/audio.ts, core/audio.test.ts, core/README.md section "Sound" only"
 and check it against `git branch --show-current`. Stop if anything differs.
 Read only: AGENTS.md; play50games-frontend/src/arcade3d/core/audio.ts and audio.test.ts (all of it); core/README.md section "Sound"; docs/arcade-expansion/06-shared-library-and-architecture.md §9.3 (the audio block).
+Always: change only the allowed paths; never edit package.json, package-lock.json, or Claude-owned files (CLAUDE.md "Ownership") outside this task's allowed paths; never spend Hyper3D credits; never call, test against or upload to production (cms.play50.games, the live Vercel site); never commit secrets, .env*.local, node_modules, .next or tools/hyper3d/raw.
 Rules: delegated core task (decision D9): only the allowed files. No audio files, no dependencies: everything is synthesized with Web Audio (oscillators, noise buffers, filters, envelopes), like the existing cues. Keep the gesture rules exactly as they are (initAudio, isAudioGesture, no AudioContext before a trusted gesture), and mute (play50games_3d_muted) must silence loops at once.
 
 Role: audio programmer for a browser game platform.
@@ -224,6 +235,7 @@ Implement:
 4. Pure helpers testable without Web Audio (envelope maths, the loop registry, the 4-loop cap, mute handling) and tests in audio.test.ts (fake AudioContext as the existing tests do). Keep the test file growth under ~250 lines.
 5. core/README.md "Sound": the new API with a 10-line example.
 Checks: in play50games-frontend `npm run build`, `npx tsc --noEmit`, `npx vitest run` pass; `git diff --name-only main...HEAD` lists only the allowed files. Listen to every cue in a local page you do not commit, and describe each in one line in the HANDOFF.
+Acceptance: every new cue and loop plays after the first gesture and is silent while muted; existing playSfx calls sound and behave exactly as before; at most 4 loops at once; tests green.
 Do NOT: edit GameShell or any other file (Claude wires loops into pause/mute/unmount in P-03), add audio assets, change existing cue sounds.
 End with the HANDOFF block.
 ```
@@ -231,17 +243,18 @@ End with the HANDOFF block.
 ## P-07 `tools/gamecheck` + `tools/perf` (Kimi)
 
 ```text
-[PLAY50 TASK P-07] Repo Codaton-LLC/25-play50games. Worktree: C:\Users\grani\Documents\WORKSPACE\p50-kimi. Branch: kimi/tools-gamecheck-perf (already created by Claude; do not create or switch branches).
+[PLAY50 TASK P-07] Repo Codaton-LLC/25-play50games. Worktree: C:\Users\grani\Documents\WORKSPACE\p50-kimi. Branch: kimi/tools-gamecheck-perf (already created by Claude; never create a branch. Codex in the main checkout: run `git switch` to it first; in the other worktrees it is already checked out).
 FIRST, before reading or changing anything else, reply with exactly one line:
 "TASK P-07 | tools/gamecheck + tools/perf | branch kimi/tools-gamecheck-perf | allowed: tools/gamecheck/**, tools/perf/**"
 and check it against `git branch --show-current`. Stop if anything differs.
 Read only: AGENTS.md; tools/thumbs/README.md, tools/thumbs/capture.mjs and inputs.mjs (reuse their CDP pattern and per-game input scripts); docs/arcade-expansion/03-game-specs-adventure.md "Common Definition of Done"; docs/arcade-expansion/06-shared-library-and-architecture.md §10.1 and §10.5; docs/arcade-expansion/09-roadmap-budget-qa.md §K.4 (budgets); play50games-frontend/src/arcade3d/core/perfProbe.tsx (window.__arcadePerf).
-Rules: Node 24 ESM, no new dependencies in play50games-frontend; a self-contained package.json in each tool folder is fine (like tools/thumbs, gitignored node_modules). Only localhost URLs are accepted (refuse anything else, like tools/thumbs).
+Always: change only the allowed paths; never edit package.json, package-lock.json, or Claude-owned files (CLAUDE.md "Ownership") outside this task's allowed paths; never spend Hyper3D credits; never call, test against or upload to production (cms.play50.games, the live Vercel site); never commit secrets, .env*.local, node_modules, .next or tools/hyper3d/raw.
+Rules: Node 24 ESM. No committed package.json and no new dependencies: install what tools/thumbs already uses (`ws`, `sharp`) with `npm install <pkg> --prefix tools/<tool>` (gitignored, like tools/thumbs); any other package needs Claude's OK first. Only localhost URLs are accepted (refuse anything else, like tools/thumbs).
 
 Role: build/test tooling engineer.
 Build:
 A. tools/gamecheck/index.mjs <slug> [--base main]: runs from the repo root and prints a pass/fail table:
-   1. ownership: `git diff --name-only <base>...HEAD` ⊆ allowed paths (games/<slug>/**, public/images/3d/<slug>.webp) unless --allow <glob> is given (core tasks);
+   1. ownership: `git diff --name-only <base>...HEAD` ⊆ allowed paths (games/<slug>/**, public/images/3d/<slug>.webp, tools/thumbs/inputs/<slug>.mjs) unless --allow <glob> is given (core tasks);
    2. required files present (meta.ts, index.tsx, Scene.tsx, rules.ts, rules.test.ts, assets.ts, assets.spec.json, README.md);
    3. README has the template sections (from games/treasure-island/README.md headings once it exists; until then the list in the Definition of Done) and is ≤ 200 lines;
    4. rules.test.ts ≤ 600 lines (warning, not failure, above);
@@ -249,11 +262,12 @@ A. tools/gamecheck/index.mjs <slug> [--base main]: runs from the repo root and p
    6. meta.ts has no three/React imports; meta.scoring equals arcade-games.json (reuse the logic of registry.sync.test.ts or call vitest on it);
    7. `npx tsc --noEmit` and `npx vitest run src/arcade3d/games/<slug>` in play50games-frontend.
    Exit code non-zero on any failure. --json for machine output.
-B. tools/perf/capture.mjs [--slugs a,b] [--base-url http://localhost:3100] [--cpu 1|4] [--seconds 30]: like tools/thumbs (headless Chrome over CDP), opens /3d/<slug>?perf=1, declines the cookie banner, plays with the inputs.mjs script for the given seconds, presses Retry 10 times (geometries/textures after each), reads window.__arcadePerf, writes tools/perf/out/<slug>.json; desktop 1280x800 and mobile 390x844 with touch emulation and CPU throttling.
+B. tools/perf/capture.mjs [--slugs a,b] [--base-url http://localhost:3100] [--cpu 1|4] [--seconds 30]: like tools/thumbs (headless Chrome over CDP), opens /3d/<slug>?perf=1, declines the cookie banner, plays with the game's input script (the loader Claude adds to tools/thumbs in P-02: tools/thumbs/inputs/<slug>.mjs, else the old inputs.mjs entry, else the generic script) for the given seconds, presses Retry 10 times (geometries/textures after each), reads window.__arcadePerf, writes tools/perf/out/<slug>.json; desktop 1280x800 and mobile 390x844 with touch emulation and CPU throttling.
 C. tools/perf/compare.mjs: compares out/*.json with tools/perf/baseline.json; fails on calls +10 %, p95 +20 %, geometries or textures growing over the retries, or any budget breach from 06 §10.1; prints a table.
 D. Baseline: run capture.mjs on the 10 existing games (desktop and 4x CPU mobile) and commit tools/perf/baseline.json (check it against the numbers in Claude's P-03 merge notes; explain differences over 10 %).
 E. README.md for each tool; `node --test` tests for the pure parts (path rules, README section parsing, comparison maths).
 Checks: `node --test` in both tools; run gamecheck on robot-collector (expect pass on the folder rules that apply to existing games; document which rules are expansion-only and skipped for the originals) and perf on robot-collector and tower-climb against a local server.
+Acceptance: gamecheck fails on a branch that touches a path outside its allowed list (prove it with a scratch commit you then drop) and passes the applicable rules on robot-collector; capture + compare run end to end on two games; baseline.json committed.
 Do NOT: touch play50games-frontend or any other folder; run against production; commit out/ files (gitignore them; baseline.json is the only committed result).
 End with the HANDOFF block.
 ```
@@ -261,12 +275,13 @@ End with the HANDOFF block.
 ## P-08 UI kit: collections and loading card (Antigravity)
 
 ```text
-[PLAY50 TASK P-08] Repo Codaton-LLC/25-play50games. Worktree: C:\Users\grani\Documents\WORKSPACE\p50-antigravity. Branch: antigravity/ui-collections (already created by Claude; do not create or switch branches).
+[PLAY50 TASK P-08] Repo Codaton-LLC/25-play50games. Worktree: C:\Users\grani\Documents\WORKSPACE\p50-antigravity. Branch: antigravity/ui-collections (already created by Claude; never create a branch. Codex in the main checkout: run `git switch` to it first; in the other worktrees it is already checked out).
 FIRST, before reading or changing anything else, reply with exactly one line:
 "TASK P-08 | arcade UI collections | branch antigravity/ui-collections | allowed: play50games-frontend/src/arcade3d/ui/** (tsx + module.css + tests)"
 and check it against `git branch --show-current`. Stop if anything differs.
 Read only: AGENTS.md; play50games-frontend/src/arcade3d/ui/* (all files); play50games-frontend/src/arcade3d/types.ts (ArcadeGameMeta, ArcadeCollection); play50games-frontend/src/app/3d/page.tsx and page.module.css (how the grid is used); docs/arcade-expansion/02-production-matrix.md §C.1.
-Rules: display components only. The only hook allowed is useBestScore. No fetching, no API/store imports, no three or @react-three imports. CSS Modules + existing CSS vars (--bg, --card, --stroke, --accent); never globals.css; no new dependencies.
+Always: change only the allowed paths; never edit package.json, package-lock.json, or Claude-owned files (CLAUDE.md "Ownership") outside this task's allowed paths; never spend Hyper3D credits; never call, test against or upload to production (cms.play50.games, the live Vercel site); never commit secrets, .env*.local, node_modules, .next or tools/hyper3d/raw.
+Rules: display components only. Hooks allowed: useBestScore, plus React useState/useEffect for the filter state only (sessionStorage inside try/catch). No fetching, no API/store imports, no three or @react-three imports. CSS Modules + existing CSS vars (--bg, --card, --stroke, --accent); never globals.css; no new dependencies.
 
 Role: front-end engineer, mobile first, accessible.
 Build:
@@ -276,6 +291,7 @@ Build:
 4. Tests: a small vitest for the filter logic (pure function) only.
 Check in your browser at 375px, 768px and 1280px with 30 games (use a local scratch page you do not commit that renders ArcadeGrid with the registry and NEXT_PUBLIC_ARCADE_PREVIEW=1): no horizontal overflow, focus visible, chips usable by keyboard, contrast ≥ 4.5:1. Attach screenshots.
 Checks: `npm run build`, `npx tsc --noEmit`, `npx vitest run` pass; `git diff --name-only main...HEAD` lists only arcade3d/ui/**.
+Acceptance: without the `collections` prop the grid renders exactly as today; with it, sections and chips work by mouse, touch and keyboard at 375 / 768 / 1280 px; screenshots attached. Claude then replaces P-02's interim one-grid-per-section on /3d with one ArcadeGrid that has the prop.
 Do NOT: edit app/3d/page.tsx (Claude wires the prop), types, registry or any other folder.
 End with the HANDOFF block.
 ```
@@ -302,7 +318,7 @@ For humanoids append: `Full body from head to feet in a clean T-pose: arms strai
 [PLAY50 TASK P-11] Asset batch <N>. Local Claude Code on the user's PC (the Rodin MCP is there). Branch claude/assets-batch-<N> in a Claude worktree.
 Read: docs/arcade-expansion/05-hyper3d-catalog.md (§E.2, §E.3, the batch table in §E.6 and each asset's entry), skills arcade-asset-batch (docs/arcade-expansion/skills/arcade-asset-batch/SKILL.md).
 Preconditions (stop if one is missing): the user has written "po, gjenero batch <N>" in chat; every image-to-3D asset of the batch has an approved concept image saved in %USERPROFILE%\.play50\concepts\ (and, if it shows no face, a copy in tools/hyper3d/concepts/); the user has read the Hyper3D dashboard balance and it covers the batch plus its reserve.
-Do: for each asset in batch order: upload the concept (rodin_create_uploads + PUT) when image mode; rodin_generate with tier Gen-2.5-Medium and the quality_override from the catalog, the prompt text exactly as in §E.5; rodin_wait; show the user the display_url (never the signed files[].url) and wait for "ok" before downloading; record every generation in the ledger (%USERPROFILE%\.play50\hyper3d-ledger.json) with the credits the dashboard shows. One retry per asset at most without asking again; a second retry needs the user's OK.
+Do: for each asset in batch order: upload the concept (rodin_create_uploads + PUT) when image mode; rodin_generate with tier Gen-2.5-Medium and the quality_override from the catalog, the prompt text exactly as in §E.5; rodin_wait; show the user the display_url (never the signed files[].url) and wait for "ok" before downloading; record every generation in the ledger (%USERPROFILE%\.play50\hyper3d-ledger.json) with the credits the dashboard shows. Retries without asking only while the batch's reserve (05 §E.6: 3 / 2 / 2) lasts, at most one per asset; any retry beyond the reserve needs a new "po" from the user.
 Output: the downloaded base_basic_pbr.glb files in the scratchpad, a table (asset, task id, attempts, credits, verdict), then continue with P-12 for each accepted asset.
 Do NOT: use HighPack or Extreme-High; generate anything not in the approved batch; commit raw files.
 ```
@@ -330,17 +346,19 @@ Output: the landmark set with the fields set by eye explained in comments, scree
 ## P-14 Game design README, gate G0 (game owner)
 
 ```text
-[PLAY50 TASK P-14] Repo Codaton-LLC/25-play50games. Worktree: <worktree path>. Branch: <agent>/design-<slug> (already created by Claude; do not create or switch branches).
+[PLAY50 TASK P-14] Repo Codaton-LLC/25-play50games. Worktree: <worktree path>. Branch: <agent>/design-<slug> (already created by Claude; never create a branch. Codex in the main checkout: run `git switch` to it first; in the other worktrees it is already checked out).
 FIRST, before reading or changing anything else, reply with exactly one line:
 "TASK P-14 | design <slug> | branch <agent>/design-<slug> | allowed: play50games-frontend/src/arcade3d/games/<slug>/README.md, play50games-frontend/src/arcade3d/games/<slug>/assets.spec.json"
 and check it against `git branch --show-current`. Stop if anything differs.
 Read only: AGENTS.md; docs/arcade-expansion/<03-game-specs-adventure.md | 04-game-specs-skill.md> section "<N>. <Title>" and, in 03, "Conventions shared by all 20 specs" and "Common Definition of Done"; play50games-frontend/src/arcade3d/core/README.md (the sections for the modules your spec lists under "Dependencies"); play50games-frontend/src/arcade3d/games/treasure-island/README.md (the template; if it is not merged yet, robot-collector/README.md); docs/arcade-expansion/skills/arcade-game-design/SKILL.md (follow it).
 
+Always: change only the allowed paths; never edit package.json, package-lock.json, or Claude-owned files (CLAUDE.md "Ownership") outside this task's allowed paths; never spend Hyper3D credits; never call, test against or upload to production (cms.play50.games, the live Vercel site); never commit secrets, .env*.local, node_modules, .next or tools/hyper3d/raw.
 Role: game designer and technical lead of <slug>.
 Objective: turn the spec into an implementable design README (≤ 200 lines, template sections), and the asset spec. No code.
 The README must state: concept, controls (desktop + touch, exactly what meta.ts will say), rules with every number you will use, the scoring formula and how you will prove its server limits, run end conditions (which end reason, when), camera (useFittedView area/pitch/yaws, follow or fixed), the core helpers you will use by name, assets (ids from 05 §E.4, classes, sizes, what is procedural), the file split, the test plan (what rules.test.ts proves, under ~600 lines), the perf budget (draw calls target), accessibility, known risks and open questions. Where you change something from the spec, say what and why.
 assets.spec.json: the schema used by the existing games (copy clean-city's shape), only for assets this game owns (no shared ones).
 Checks: `git diff --name-only main...HEAD` lists only the two allowed files.
+Acceptance: Claude and the user can approve the design without a question the README could have answered; every item of the skill's validation checklist is ticked in the HANDOFF.
 Do NOT: write code, create other files, change the spec in docs/.
 End with the HANDOFF block (Open questions = what Claude or the user must decide).
 ```
@@ -348,12 +366,13 @@ End with the HANDOFF block (Open questions = what Claude or the user must decide
 ## P-15 Build one game (game owner)
 
 ```text
-[PLAY50 TASK P-15] Repo Codaton-LLC/25-play50games. Worktree: <worktree path>. Branch: <agent>/game-<slug> (already created by Claude; do not create or switch branches).
+[PLAY50 TASK P-15] Repo Codaton-LLC/25-play50games. Worktree: <worktree path>. Branch: <agent>/game-<slug> (already created by Claude; never create a branch. Codex in the main checkout: run `git switch` to it first; in the other worktrees it is already checked out).
 FIRST, before reading or changing anything else, reply with exactly one line:
-"TASK P-15 | build <slug> | branch <agent>/game-<slug> | allowed: play50games-frontend/src/arcade3d/games/<slug>/**, play50games-frontend/public/images/3d/<slug>.webp"
+"TASK P-15 | build <slug> | branch <agent>/game-<slug> | allowed: play50games-frontend/src/arcade3d/games/<slug>/**, play50games-frontend/public/images/3d/<slug>.webp, tools/thumbs/inputs/<slug>.mjs"
 and check it against `git branch --show-current`. Stop if anything differs.
 Read only (in this order): AGENTS.md; play50games-frontend/src/arcade3d/games/<slug>/README.md (your approved design: it is the spec); docs/arcade-expansion/03-game-specs-adventure.md "Conventions shared by all 20 specs" + "Common testing criteria" + "Common Definition of Done"; play50games-frontend/src/arcade3d/core/README.md ("Time and frame order", "Input events", "Helpers", "Camera fit and the safe area", and the sections of every module your README lists); play50games-frontend/src/arcade3d/games/treasure-island/ (reference: Scene.tsx, rules.ts, rules.test.ts, index.tsx, meta.ts, assets.ts, README.md); docs/arcade-expansion/skills/arcade-game-build/SKILL.md and skills/arcade-score-limits/SKILL.md (follow them). Open other core files only to check a signature.
 
+Always: change only the allowed paths; never edit package.json, package-lock.json, or Claude-owned files (CLAUDE.md "Ownership") outside this task's allowed paths; never spend Hyper3D credits; never call, test against or upload to production (cms.play50.games, the live Vercel site); never commit secrets, .env*.local, node_modules, .next or tools/hyper3d/raw.
 Role: owner and gameplay engineer of <slug> on an existing React Three Fiber platform (Next 14, React 18, three 0.170, R3F 8, drei 9, zustand 4, vitest 2).
 Objective: <slug> playable end to end, meeting the Common Definition of Done, status stays "dev".
 
@@ -367,15 +386,15 @@ Requirements:
 7. Effects and sound: core/fx (useFx, useCameraShake), core/env, core/kit, core/hud; playSfx / startLoop from core/audio (loops are stopped by the shell).
 8. End the run with end("win" | "lose" | "timeup") as designed; never call submitScore, the arcade API or localStorage.
 9. meta.ts: plain data; controls text matches the game; scoring stays as Claude set it (provisional) unless your HANDOFF asks for a change with the proof.
-10. Thumbnail: run tools/thumbs for <slug> against your local server (add nothing to tools/; give Claude the input script in the HANDOFF) or leave thumbnail null.
+10. Playtest script and thumbnail: write tools/thumbs/inputs/<slug>.mjs (the only file you may add under tools/; same shape as the entries in tools/thumbs/inputs.mjs), then run tools/thumbs for <slug> against your local server, or leave thumbnail null.
 
 Coding conventions: 3-space indent, double quotes, semicolons; small files by concern (camera.ts, poses.ts, Hud.tsx …) like the existing games; comments only where the code is not obvious.
 Performance: draw calls ≤ the target in your README (hard cap 150); repeated props instanced; ≤ 1 extra dynamic light; no per-frame allocation; geometries/textures flat over 10 Retries (?perf=1).
 Testing: rules.test.ts (≤ ~600 lines) covers determinism, every scoring event, win/lose conditions, the generators' validity over 1,000 seeds where you generate layouts, and the scoring-limit proof with a bot driving the real store (advanceRunClock + playedFrameDt), per the arcade-score-limits skill; character/size tests for every GLB you fit.
 Checks before the HANDOFF: in play50games-frontend `npm run build`, `npx tsc --noEmit`, `npx vitest run`; from the repo root `node tools/gamecheck <slug>`; play it with keyboard at 1280x800 and with touch emulation at 390x844 (cookie banner open) and 844x390; `node tools/perf/capture.mjs --slugs <slug>`.
 Acceptance: the Common Definition of Done (03), every item checked in the HANDOFF.
-Handoff deliverables: the HANDOFF block (also pasted into README "Status"), screenshots at the three sizes, tools/perf JSON, the tools/thumbs input script, the scoring formula and limit proof summary.
-Do NOT: edit anything outside the allowed paths (core, types, registry, loaders, other games, tools, package.json, arcade-games.json, the manifest, GLBs); import from another game; add dependencies; set status "soon" or "live"; spend credits; call production.
+Handoff deliverables: the HANDOFF block (also pasted into README "Status"), screenshots at the three sizes, tools/perf JSON, the scoring formula and limit proof summary.
+Do NOT: edit anything outside the allowed paths (core, types, registry, loaders, other games, tools other than your inputs file, package.json, arcade-games.json, the manifest, GLBs); import from another game; add dependencies; set status "soon" or "live"; spend credits; call production.
 End with the HANDOFF block.
 ```
 
@@ -386,20 +405,20 @@ End with the HANDOFF block.
 | treasure-island | Claude | 03 §1 | env, fx, attachments, material, quality | chest, rock (1) | it becomes the template: README sections, test budget |
 | museum-guard | Antigravity | 03 §2 | ai/vision, motion, material, kit Flashlight, audio pan | knight, dino, penguin (1–2) | drag-to-turn must not scroll the page; radar never hides the view |
 | luggage-rush | Codex | 03 §3 | path (PathGraph), per-copy tint, kit Conveyor | suitcase (1) | junction rule tested at the crossing line |
-| dino-egg-rescue | Antigravity | 03 §4 | motion, path, fx | dino, rock, leafyTree (2) | egg stack on the back through the waddle |
+| dino-egg-rescue | Antigravity | 03 §4 | motion, path, fx | dino, leafyTree (2), rock (1) | egg stack on the back through the waddle |
 | delivery-drone | Codex | 03 §5 | ballistics, path, motion, TargetMarkers, startLoop | drone (2) | pendulum energy; city chunking for draw calls |
 | shopping-cart | Antigravity | 03 §6 | ai/patrol, fx, startLoop | cart (1) | runner hands on the handle; no tunnelling at 9 m/s |
 | snowball-battle | Claude | 03 §7 | ballistics, ai/steering, ai/vision, attachments | snowKid (3), pineTree (1) | AI fairness; throws never through forts |
 | ghost-vacuum | Kimi | 03 §8 | ai/steering, ai/vision, attachments, kit Flashlight, startLoop | vacuum (2) | hose never through the body; ghosts cute |
-| construction-worker | Kimi | 03 §9 | kinematics (pendulum), attachments, fx | none | swing energy never grows |
+| construction-worker | Kimi | 03 §9 | kinematics (pendulum), attachments, digit keys, fx | none | swing energy never grows |
 | alien-farm | Kimi | 03 §10 | path, env Starfield, per-copy tint, material | alien, glowPod (3) | audio-first timing works |
 | mini-golf | Claude | 04 §11 | kinematics, ballistics, aim-drag, TrajectoryDots, env Water | windmill (2) | frame-rate independence; every hole solvable |
 | robot-factory | Kimi | 04 §12 | path, kit Conveyor, per-copy tint, fx sparks | none | finished robot walks off cleanly |
 | pirate-cannons | Claude | 04 §13 | ballistics, path, aim-drag, TrajectoryDots, env Water | ship, cannon, chest (1) | documents aim-drag tuning for the family |
-| castle-defender | Codex | 04 §14 | ballistics (launchForTime), path, motion, per-copy tint | goblin, castleTower (3) | 40 goblins within the frame budget |
+| castle-defender | Codex | 04 §14 | ballistics (launchForTime), path, motion, per-copy tint, digit keys | goblin, castleTower (3) | 40 goblins within the frame budget |
 | penguin-slide | Codex | 04 §15 | path (spline), motion, env SnowFall, startLoop | penguin, fish, pineTree (1) | generator never impossible; memory flat over 3 min |
 | space-repair | Antigravity | 04 §16 | kinematics, path, TargetMarkers, TimingRing, attachments, env Starfield | astronaut (3) | floating poses never a T |
-| monster-kitchen | Kimi | 04 §17 | motion, per-copy tint, attachments, fx | monster, cauldron, fish (1) | order bubble vs HUD at 390x844 |
+| monster-kitchen | Kimi | 04 §17 | motion, tint, fx | monster, cauldron, fish (1) | order bubble vs HUD at 390x844 |
 | knight-arena | Antigravity | 04 §18 | attachments, fx Trail, motion | knight, dummy (2) | swings read; sword never through the head |
 | zoo-escape | Claude | 04 §19 | ai/patrol, ai/vision, ai/steering, ballistics, motion, kit Fence | panda, keeper (3) | drawn cones equal the logic |
 | rocket-landing | Codex | 04 §20 | kinematics (rigid body 2D), env Starfield, fx, startLoop | rocket (2) | every planet landable on its fuel |
@@ -409,9 +428,11 @@ End with the HANDOFF block.
 ```text
 [PLAY50 TASK P-16] Same repo, worktree and branch as your P-15 task (<agent>/game-<slug>).
 FIRST reply with exactly one line: "TASK P-16 | animation <slug> | branch <agent>/game-<slug> | allowed: play50games-frontend/src/arcade3d/games/<slug>/**" and check it against `git branch --show-current`; stop if it differs.
+Always: change only the allowed paths; never edit package.json, package-lock.json, or Claude-owned files (CLAUDE.md "Ownership") outside this task's allowed paths; never spend Hyper3D credits; never call, test against or upload to production (cms.play50.games, the live Vercel site); never commit secrets, .env*.local, node_modules, .next or tools/hyper3d/raw.
 Read only: core/README.md "Characters: the auto-rig" (Driving a character, Limits) and the core/motion section; games/penalty-hero/poses.ts and poses.test.ts (how a game builds its own poses from aimArm / turnBone / setBoneEuler, pure and tested); your README.
 Objective: every character and creature in <slug> moves believably: humanoids never T-pose, planted feet do not slide at walking speed (walkStride / gaitPhaseStep), the body is lifted by bodyLift; solid creatures use core/motion (hop, waddle, bank, squash) with the stride frequency matched to their speed; custom poses (swings, throws, digs) live in games/<slug>/poses.ts as pure functions with tests on the real mesh (rig/characterChecks.ts rigCharacter: hands where they should be, nothing below the floor, the head rigid).
 Checks: build, tsc, vitest, gamecheck; side and front screenshots of each pose at 390x844.
+Acceptance: no frame of any humanoid shows a T-pose; planted feet within 1 cm of the floor in the pose tests; creature motion matches its speed (no visible skating).
 Do NOT: edit core/rig; add bones; use state.clock.elapsedTime.
 End with the HANDOFF block.
 ```
@@ -422,8 +443,11 @@ End with the HANDOFF block.
 [PLAY50 TASK P-17a] Repo Codaton-LLC/25-play50games. Worktree: C:\Users\grani\Documents\WORKSPACE\p50-kimi. Review target: branch <agent>/game-<slug> (fetch it; do not commit or push anything).
 FIRST reply with exactly one line: "TASK P-17a | review <slug> on <agent>/game-<slug> | allowed: none (report only)" and confirm the branch exists; stop if not.
 Read only: docs/arcade-expansion/skills/arcade-review/SKILL.md (part A, mechanical) and the branch's games/<slug>/README.md and HANDOFF.
-Do: `git checkout --detach origin/<agent>/game-<slug>`; run `node tools/gamecheck <slug>`, `npm run build`, `npx tsc --noEmit`, `npx vitest run` in play50games-frontend; run tools/perf for <slug> against a local server and compare with the budgets; list every Definition-of-Done item as pass / fail / not checkable with evidence (command output lines, file:line).
+Always: change only the allowed paths; never edit package.json, package-lock.json, or Claude-owned files (CLAUDE.md "Ownership") outside this task's allowed paths; never spend Hyper3D credits; never call, test against or upload to production (cms.play50.games, the live Vercel site); never commit secrets, .env*.local, node_modules, .next or tools/hyper3d/raw.
+Do: in a separate review worktree, never your own: `git fetch origin <agent>/game-<slug>` then `git worktree add --detach ..\p50-review-<slug> origin/<agent>/game-<slug>` (run `npm ci` there); run `node tools/gamecheck <slug>`, `npm run build`, `npx tsc --noEmit`, `npx vitest run` in play50games-frontend; run tools/perf for <slug> against a local server and compare with the budgets; list every Definition-of-Done item as pass / fail / not checkable with evidence (command output lines, file:line).
 Output: a report (≤ 60 lines) ordered by severity; no opinions on design (that is Claude's pass).
+Checks: the report quotes the exit status of every command.
+Acceptance: every Definition-of-Done item has a verdict with evidence; the review worktree is removed at the end (`git worktree remove ..\p50-review-<slug>`).
 Do NOT: edit, commit, push or fix anything.
 End with the HANDOFF block (files changed: none).
 ```
@@ -443,9 +467,11 @@ Output: one fix list for the owner (blockers / should / nice), ≤ 15 items, eac
 [PLAY50 TASK P-18] Repo Codaton-LLC/25-play50games. Worktree: C:\Users\grani\Documents\WORKSPACE\p50-antigravity. Target: branch <agent>/game-<slug> (or main at a wave end). No commits.
 FIRST reply with exactly one line: "TASK P-18 | visual QA <slug or wave> | target <branch> | allowed: none (report only)"; stop if the branch does not exist.
 Read only: docs/arcade-expansion/skills/arcade-playtest/SKILL.md; the game's README "Controls" and "Visual direction"; docs/arcade-expansion/05-hyper3d-catalog.md §E.1 (style rules).
-Do: build with NEXT_PUBLIC_ARCADE_ENABLED=1 NEXT_PUBLIC_ARCADE_API_MOCK=1 NEXT_PUBLIC_ARCADE_LEADERBOARD=1 NEXT_PUBLIC_ARCADE_PREVIEW=1 and start on port 3100; in your browser agent play the game at 1280x800 (keyboard), 390x844 and 360x740 (touch, cookie banner open and closed), 844x390 landscape; record a short video of one run per size.
+Always: change only the allowed paths; never edit package.json, package-lock.json, or Claude-owned files (CLAUDE.md "Ownership") outside this task's allowed paths; never spend Hyper3D credits; never call, test against or upload to production (cms.play50.games, the live Vercel site); never commit secrets, .env*.local, node_modules, .next or tools/hyper3d/raw.
+Do: get the target into a separate review worktree, never your own: `git fetch origin <branch>` then `git worktree add --detach ..\p50-review-<slug> origin/<branch>` (`origin/main` at a wave end) and `npm ci` there; build there with NEXT_PUBLIC_ARCADE_ENABLED=1 NEXT_PUBLIC_ARCADE_API_MOCK=1 NEXT_PUBLIC_ARCADE_LEADERBOARD=1 NEXT_PUBLIC_ARCADE_PREVIEW=1 and start on port 3100; in your browser agent play the game at 1280x800 (keyboard), 390x844 and 360x740 (touch, cookie banner open and closed), 844x390 landscape; record a short video of one run per size.
 Check and report with screenshots: anything hidden under the HUD, the joystick/buttons or the banner; text readability; touch targets ≥ 44 px; controls match the instructions; characters never in a T-pose, feet on the floor, no clipping; colours follow the style rules (matte, restrained, one accent); effects readable but not noisy; Pause/Resume/Retry/Exit; reduced-motion behaviour; console errors.
 Output: a report ordered by severity (≤ 40 lines) with screenshot and video paths.
+Acceptance: every size covered (banner open and closed on phones), every check above answered; the review worktree removed at the end.
 Do NOT: edit or commit anything.
 End with the HANDOFF block (files changed: none).
 ```
@@ -458,6 +484,15 @@ Read: 06 §10 (budgets, diagnosis order), the failing game's README perf section
 Do: reproduce with tools/perf (same CPU throttle and size) → diagnose in the §10.5 order (calls → triangles/textures → programs → overdraw → allocations) → fix in the owning code (game folder by the owner; core by Claude) → re-run tools/perf and the 10-retry memory check.
 Acceptance: the metric back within budget, no other metric worse, tests green.
 Do NOT: lower visual quality below the spec without the user's OK; touch other games.
+```
+
+When a game owner runs P-19 on its game branch, prefix it with:
+
+```text
+[PLAY50 TASK P-19] Repo Codaton-LLC/25-play50games. Worktree: <worktree path>. Branch: <agent>/game-<slug> (never create a branch; Codex in the main checkout: `git switch` to it first).
+FIRST reply with exactly one line: "TASK P-19 | performance <slug> | branch <agent>/game-<slug> | allowed: play50games-frontend/src/arcade3d/games/<slug>/**" and check it against `git branch --show-current`; stop if it differs.
+Always: change only the allowed paths; never edit package.json, package-lock.json, or Claude-owned files (CLAUDE.md "Ownership") outside this task's allowed paths; never spend Hyper3D credits; never call, test against or upload to production (cms.play50.games, the live Vercel site); never commit secrets, .env*.local, node_modules, .next or tools/hyper3d/raw.
+End with the HANDOFF block (with the before/after tools/perf numbers).
 ```
 
 ## P-20 Wave-end integration and regression (Claude)
@@ -474,8 +509,11 @@ Output: the wave report (regressions, fixes, recalibrated estimates).
 [PLAY50 TASK P-21] Repo Codaton-LLC/25-play50games. Worktree: <your worktree>. Target: main, game <slug>. No commits.
 FIRST reply with exactly one line: "TASK P-21 | go-live audit <slug> | target main | allowed: none (report only)". Then confirm, by printing the meta.ts slug field, that you are auditing <slug> and nothing else.
 Read only: docs/arcade-expansion/skills/arcade-go-live/SKILL.md (audit checklist), docs/arcade-expansion/09-roadmap-budget-qa.md §L, the game's README.
+Always: change only the allowed paths; never edit package.json, package-lock.json, or Claude-owned files (CLAUDE.md "Ownership") outside this task's allowed paths; never spend Hyper3D credits; never call, test against or upload to production (cms.play50.games, the live Vercel site); never commit secrets, .env*.local, node_modules, .next or tools/hyper3d/raw.
 Do: run the audit checklist against a local preview build (never production): DoD items, perf JSON within budgets, the README's limit proof present and matching meta.scoring, controls, overlaps with the cookie banner, console errors, a full run with keyboard and with touch.
 Output: READY / NOT READY with blockers (file:line or screenshot), ≤ 30 lines.
+Checks: the build, vitest and gamecheck commands of the checklist with their exit status.
+Acceptance: READY only if every checklist item passes with evidence.
 Do NOT: edit, commit, or touch production.
 End with the HANDOFF block (files changed: none).
 ```

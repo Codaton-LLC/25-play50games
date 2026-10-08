@@ -96,7 +96,7 @@ You      D1–D11  approve style/concepts, "po, gjenero"   playtests ×5      pl
 - **Effort:** build 82–124 agent-hours; Claude reviews 20 h; you 9–11 h.
 - **Prompts:** as wave 1.
 - **Acceptance gate:** wave-2 regression green.
-- **Risks:** golf physics tuning (time-box; the hole set can shrink to the 6 best of 8); drone city draw calls (chunking from day one).
+- **Risks:** golf physics tuning (time-box; the hole set can shrink to the 6 best of the 10 designed); drone city draw calls (chunking from day one).
 - **Your actions:** approve designs, playtest 7 games, batch 3 approvals.
 
 ### Phase 6: Wave 3 (advanced games)
@@ -133,7 +133,7 @@ You      D1–D11  approve style/concepts, "po, gjenero"   playtests ×5      pl
 | Reviews / QA | 55–65 h (adversarial) | – | 18–24 h (visual QA) | 8–12 h (mechanical) | – | 30–35 h (playtests) |
 | Assets | 25–35 h | – | – | – | ≈ 27 concept images | 6–8 h |
 | Integration + release | 35–45 h | – | 8–10 h (audits) | 8–10 h (audits) | – | 12–15 h (uploads, checks) |
-| **Total** | **≈ 230–310 h** | **≈ 70–105 h** | **≈ 85–120 h** | **≈ 80–115 h** | – | **≈ 55–75 h** |
+| **Total** | **≈ 230–310 h** | **≈ 70–105 h** | **≈ 85–120 h** | **≈ 80–115 h** | – | **≈ 50–60 h** |
 
 Program total ≈ 460–650 agent-hours (≈ 550 at midpoints). Hyper3D: 34 generations ≈ 17 credits at 0.5 (≈ 34 at 1.0). **Claude is the bottleneck**: the plan moves everything that is not core, assets or adversarial review away from it.
 
@@ -152,7 +152,7 @@ Program total ≈ 460–650 agent-hours (≈ 550 at midpoints). Hyper3D: 34 gene
 
 | Lever | How | Expected effect |
 |---|---|---|
-| Build common systems once | Phase 1 (06 §9.1) | 11 games avoid re-inventing 1–4 systems each; avoids a mid-wave core round (≈ 30–50 agent-hours) |
+| Build common systems once | Phase 1 (06 §9.1) | 19 games avoid re-inventing 1–4 systems each; avoids a mid-wave core round (≈ 30–50 agent-hours) |
 | Reuse assets | 30 existing GLBs, 10 new shared, ≈ 60 procedural | 34 generations instead of ≈ 70 (≈ 18 credits saved at 0.5) |
 | Standard prompts | 08 with the common preamble and HANDOFF | fewer wrong-target runs (Kimi's audit mix-up), shorter hand-offs |
 | Small read sets | P-24 + prompts list sections | ≈ 30k tokens saved per session; at ≈ 12 sessions per game × 20 games ≈ 7M tokens |
@@ -161,7 +161,7 @@ Program total ≈ 460–650 agent-hours (≈ 550 at midpoints). Hyper3D: 34 gene
 | Fewer debugging cycles | pure rules + scoring bots + gamecheck + perf compare before review | review finds design issues, not mechanical ones |
 | Cached docs | `core/README.md` sections with examples; skills as files | agents stop re-deriving APIs from source |
 | Automated validation | `tools/gamecheck`, `tools/perf`, `tools/thumbs` | each check is a command, not a review hour |
-| Asset retries | concept approval before generation; one retry max without asking | ≈ 25 % reserve instead of ×2 attempts |
+| Asset retries | concept approval before generation; retries only from the batch's approved reserve | ≈ 25 % reserve instead of ×2 attempts |
 
 ### K.4 Budgets every agent works to
 
@@ -172,7 +172,7 @@ Program total ≈ 460–650 agent-hours (≈ 550 at midpoints). Hyper3D: 34 gene
 | Review rounds | 2 (the second only for blockers) | Claude |
 | HANDOFF | ≤ 40 lines | prompt |
 | Read set per game session | ≈ 70 KB | prompts + slim CLAUDE.md |
-| Hyper3D retries | 1 per asset without asking | P-11 |
+| Hyper3D retries | only from the approved batch reserve (3 / 2 / 2), at most 1 per asset; more needs a new "po" | P-11 |
 | Draw calls / frame time / memory | 06 §10.1 | tools/perf compare |
 
 ### K.5 Execution scenarios

@@ -36,23 +36,23 @@ Columns: **Cx** complexity 1–5 · **Camera** · **Scheme** (control scheme, ne
 | # | Slug | Cx | Camera | Scheme | Hyper3D (A) | Reuse (D / C) | Core deps | Owner | Wave | Build | Rev | You |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
 | 1 | treasure-island | 2 | follow 3/4 | joystick | s:chest, s:rock | runner, palm, umbrella, coin, crate, pigeon (hint) | env water/sky, fx, attach (hat), quality | Claude | Ref | 16–24 | 4 | 2 |
-| 2 | museum-guard | 3 | first-person, fixed centre | look\* | (bust: tier 3, optional) | door, robot, bench; s:knight, s:dino, s:penguin | material override, kit flashlight, fx, audio pan | Antigravity | 3 | 12–18 | 3 | 1.5 |
+| 2 | museum-guard | 3 | first-person, fixed centre | look\* | (bust: tier 3, optional) | door, robot, bench; s:knight, s:dino, s:penguin | material override, ai/vision, motion, kit flashlight, fx, audio pan | Antigravity | 3 | 12–18 | 3 | 1.5 |
 | 3 | luggage-rush | 2 | fixed isometric | tap-target | suitcase | runner (decor) | path/conveyor, per-copy tint, kit conveyor, fx | Codex | 1 | 8–12 | 2 | 1 |
 | 4 | dino-egg-rescue | 2 | follow 3/4 | joystick | s:dino | palm; s:rock, s:leafyTree | motion (waddle, squash), path, fx | Antigravity | 2 | 8–12 | 2 | 1 |
 | 5 | delivery-drone | 3 | high chase | flight\* | drone | car, taxi, van, pigeon, crate | path, target markers, audio loop, motion (bank, hover), fx | Codex | 2 | 12–18 | 3 | 1.5 |
 | 6 | shopping-cart | 2 | follow 3/4 | joystick | cart | runner, cleaner, chef, apple, banana, burger, tinCan, bottle, bag | patrol, fx, audio loop | Antigravity | 1 | 8–12 | 2 | 1 |
-| 7 | snowball-battle | 4 | follow high | joystick + aim-drag\* | snowKid | s:pineTree | ballistics, steering, vision, attach, fx | Claude | 3 | 18–28 | 4 | 2 |
+| 7 | snowball-battle | 4 | follow high | joystick + tap-target | snowKid | s:pineTree | ballistics, steering, vision, attach, fx | Claude | 3 | 18–28 | 4 | 2 |
 | 8 | ghost-vacuum | 3 | follow top-down | joystick | vacuum | runner, desk, chair, book, door | attach, steering, kit flashlight, audio loop, fx | Kimi | 2 | 12–18 | 3 | 1.5 |
-| 9 | construction-worker | 3 | fixed 3/4, slight follow | joystick + action | – | runner, pallet, crate, van | attach (hard hat), kinematics (pendulum), fx | Kimi | 3 | 12–18 | 3 | 1.5 |
+| 9 | construction-worker | 3 | fixed 3/4, slight follow | joystick + action + digit keys | – | runner, pallet, crate, van | attach (hard hat), kinematics (pendulum), fx | Kimi | 3 | 12–18 | 3 | 1.5 |
 | 10 | alien-farm | 3 | follow 3/4, night | joystick | alien, glowPod | crate; s:rock | path, env starfield, fx, audio | Kimi | 3 | 12–18 | 3 | 1.5 |
 | 11 | mini-golf | 4 | per-hole fitted | aim-drag\* | windmill | checkpoint-flag; s:rock, s:leafyTree | aim-drag, trajectory dots, kinematics, env water | Claude | 2 | 18–28 | 4 | 2 |
 | 12 | robot-factory | 2 | fixed side 3/4 | tap-target | – | robot, battery, barrel, crate | path/conveyor, kit conveyor, fx sparks, per-copy tint | Kimi | 2 | 8–12 | 2 | 1 |
 | 13 | pirate-cannons | 3 | fixed behind cannon | aim-drag\* | ship, s:cannon | barrel, crate, palm; s:chest | aim-drag, ballistics, trajectory dots, path, env water, fx | Claude | 1 | 12–18 | 3 | 1.5 |
-| 14 | castle-defender | 4 | fixed high | tap-target | goblin, s:castleTower | door; s:cannon, s:rock, s:leafyTree | ballistics, path, motion (hop), per-copy tint, fx | Codex | 3 | 18–28 | 4 | 2 |
+| 14 | castle-defender | 4 | fixed high | tap-target | goblin, s:castleTower | door; s:cannon, s:rock, s:leafyTree | ballistics, path, motion (hop), per-copy tint, digit keys, fx | Codex | 3 | 18–28 | 4 | 2 |
 | 15 | penguin-slide | 3 | chase | steer\* | s:penguin, s:fish, s:pineTree | checkpoint-flag | path (track spline), motion (bank, squash), fx, audio loop | Codex | 1 | 12–18 | 3 | 1.5 |
-| 16 | space-repair | 3 | follow top-down | joystick + timing\* | astronaut | battery | env starfield, attach (jetpack), fx, audio loop, target markers | Antigravity | 3 | 12–18 | 3 | 1.5 |
-| 17 | monster-kitchen | 2 | fixed front | tap-target | monster, cauldron | chef, apple, banana, burger, sock, tinCan; s:fish | fx (steam, bubbles), per-copy tint | Kimi | 1 | 8–12 | 2 | 1 |
-| 18 | knight-arena | 3 | fixed 3/4 | timing\* (directions) | s:knight, dummy | s:castleTower, s:leafyTree | attach (sword), fx, audio | Antigravity | 2 | 12–18 | 3 | 1.5 |
+| 16 | space-repair | 3 | follow top-down | joystick + timing\* | astronaut | battery | kinematics, path, env starfield, attach (jetpack), fx, audio loop, target markers, timing ring | Antigravity | 3 | 12–18 | 3 | 1.5 |
+| 17 | monster-kitchen | 2 | fixed front | tap-target | monster, cauldron | chef, apple, banana, burger, sock, tinCan; s:fish | motion, fx (steam, bubbles), per-copy tint | Kimi | 1 | 8–12 | 2 | 1 |
+| 18 | knight-arena | 3 | fixed 3/4 | timing\* (directions) | s:knight, dummy | s:castleTower, s:leafyTree | attach (sword), motion, fx, audio | Antigravity | 2 | 12–18 | 3 | 1.5 |
 | 19 | zoo-escape | 4 | follow top-down | joystick | panda, keeper | bench, bin, lamp, palm; s:rock, s:leafyTree | patrol, vision, steering, motion, attach (flashlight), kit fence | Claude | 3 | 18–28 | 4 | 2 |
 | 20 | rocket-landing | 3 | side 2.5D follow | flight\* | rocket | battery (fuel cells) | kinematics, env starfield, fx (flame), audio loop | Codex | 2 | 12–18 | 3 | 1.5 |
 
@@ -116,7 +116,8 @@ Every game is a **points** game. The real limits (`maxScore`, duration window, `
 
 | Step | Claude | Codex | Antigravity | Kimi |
 |---|---|---|---|---|
-| Phase 3 | **treasure-island** (reference) | design READMEs: penguin-slide, luggage-rush | design README: shopping-cart; collections UI | design README: monster-kitchen; `tools/gamecheck`, `tools/perf` |
+| Phase 1 | core v3 (P-02, P-03, P-05) | pure helpers (P-04) | baseline audit (P-01), collections UI (P-08) | audio (P-06), `tools/gamecheck` + `tools/perf` (P-07) |
+| Phase 3 | **treasure-island** (reference) | design READMEs: penguin-slide, luggage-rush | design README: shopping-cart | design README: monster-kitchen |
 | Wave 1 | **pirate-cannons** | **penguin-slide** → **luggage-rush** | **shopping-cart** | **monster-kitchen** |
 | Wave 2 | **mini-golf** | **delivery-drone** → **rocket-landing** | **dino-egg-rescue** → **knight-arena** | **robot-factory** → **ghost-vacuum** |
 | Wave 3 | **zoo-escape** → **snowball-battle** | **castle-defender** | **space-repair** → **museum-guard** | **alien-farm** → **construction-worker** |

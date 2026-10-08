@@ -27,4 +27,4 @@ Print the `meta.ts` slug first to prove the target. Then check and report READY 
 `enabled: false` for the slug in the JSON (upload) and `status: "dev"` (merge). The hub and the other games keep working.
 
 ## Never
-Test against production with anything but the user's own normal run; paste `$KEY` / `$JWT`; upload anything but the JSON.
+Run test suites, bots, perf captures or curl writes against production (the only production actions are the read-only `GET` in step 5 and the normal guest / logged-in runs in step 7); paste `$KEY` / `$JWT`; upload anything but the JSON.

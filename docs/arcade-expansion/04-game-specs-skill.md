@@ -55,7 +55,7 @@ Conventions, common testing criteria and the common Definition of Done are in `0
 8. **Replayability.** Seeded blueprints and streams; combo chains.
 9. **Duration.** 90 s.
 10. **Level design.** One factory bay: belt from left to right, grab zone with a procedural robot arm, assembly cradle, exit door for finished robots, scrap bin.
-11. **Visual direction.** Parts procedural plus reused props (barrel, crate, battery, D) tinted; the finished robot = shared robot GLB with the blueprint's colour tint and visor colour, walking off with `<HumanoidModel>` (walk by `walkStride`, a wave with `reachPose`). Procedural robot arm (instanced segments) animates each grab. Palette: factory `#1e293b`, belt `#475569`, parts `#7dd3fc` / `#fbbf24` / `#f87171` / `#a3e635`, sparks `#fde047`, accent `#7dd3fc`. Lighting `indoor`. Effects: snap flash, sparks on faulty parts (fx `sparks`), steam vents.
+11. **Visual direction.** Parts procedural plus reused props (barrel, crate, battery, D) tinted; the finished robot = shared robot GLB drawn with the blueprint's colour through the `tint` prop on `<HumanoidModel>` (P1-D), walking off with `<HumanoidModel>` (walk by `walkStride`, a wave with `reachPose`). Procedural robot arm (instanced segments) animates each grab. Palette: factory `#1e293b`, belt `#475569`, parts `#7dd3fc` / `#fbbf24` / `#f87171` / `#a3e635`, sparks `#fde047`, accent `#7dd3fc`. Lighting `indoor`. Effects: snap flash, sparks on faulty parts (fx `sparks`), steam vents.
 12. **Audio.** Belt hum loop, grab clunk, snap click, fault zap, robot "boop-beep" on completion.
 13. **Performance.** ≈ 35 draw calls; parts pooled per kind; one skinned robot at a time (two during the hand-over).
 14. **Accessibility.** Blueprint icons with shape + colour; the needed part highlighted on the belt; faulty parts spark **and** blink; slower first robot.
@@ -69,7 +69,7 @@ Conventions, common testing criteria and the common Definition of Done are in `0
 
 ## 13. Pirate Cannon Battle (`pirate-cannons`): Claude · wave 1 · complexity 3
 
-**Director's call.** This is the reference for the aim-and-release family (golf, snowballs, castle use the same core). Keep it tight: one fort cannon, ships on lanes, **wind** that changes every wave and a **partial** arc preview (you see the first 40 % of the flight), so long shots are a skill. Floating powder barrels give chain-reaction moments.
+**Director's call.** This is the reference for the aim-and-release family (mini-golf reuses the aim-drag; snowballs, castle, the zoo distraction and the drone drop reuse the ballistics). Keep it tight: one fort cannon, ships on lanes, **wind** that changes every wave and a **partial** arc preview (you see the first 40 % of the flight), so long shots are a skill. Floating powder barrels give chain-reaction moments.
 
 1. **Concept.** Man a seaside fort's cartoon cannon: drag to aim, read the wind, and sink pirate ships before they reach the harbour.
 2. **Core loop.** Pick a target → drag to aim (yaw + elevation) → read the wind vane → release → splash or hit → reload (1.2 s) → next.
@@ -105,7 +105,7 @@ Conventions, common testing criteria and the common Definition of Done are in `0
 1. **Concept.** Hold the castle wall against waves of bumbling cartoon goblins: tap to fire the wall cannon, drop rocks on ladders and keep the gate standing.
 2. **Core loop.** Goblins advance → tap ahead of a group (lead them) → splash → ladder crews reach the wall → drop a rock (cooldown) → wave cleared → choose an upgrade.
 3. **Objective.** Survive 5 waves (`end("win")`, ≈ 150 s). Gate health 0 = `end("lose")`.
-4. **Controls.** Desktop: click a point on the field to fire there; or arrows move a reticle, Space fires; E drops a rock on the most threatened ladder; 1 / 2 pick an upgrade. Touch: tap the field (`tapDown`), Action = rock drop, tap an upgrade card. `touchControls: ["tap", "action"]`. Scheme `tap-target`.
+4. **Controls.** Desktop: click a point on the field to fire there; or arrows move a reticle, Space fires; E drops a rock on the most threatened ladder; 1 / 2 pick an upgrade (`InputState.digit`, P1-D). Touch: tap the field (`tapDown`), Action = rock drop, tap an upgrade card. `touchControls: ["tap", "action"]`. Scheme `tap-target`.
 5. **Camera.** Fixed high view from behind the wall, fitted to the field, the wall and the gate.
 6. **Mechanics.**
    - Fire: `core/ballistics` solves the launch for the tapped point (flight 0.6–1.0 s); splash radius 2 m; reload 0.8 s.
@@ -117,7 +117,7 @@ Conventions, common testing criteria and the common Definition of Done are in `0
 8. **Replayability.** Seeded wave order inside the table; upgrade choices change the run.
 9. **Duration.** 120–160 s.
 10. **Level design.** A green field narrowing to the castle; three paths (road, river bank, forest edge); the wall with the cannon in the centre and two castle towers.
-11. **Visual direction.** Goblin (A, ≤ 5k tris, pooled `<DynamicInstancedModel>` with per-copy tint per type, hop-march from `core/motion`), castle tower (A, shared with knight-arena) ×2, wall procedural (crenellated, stone canvas), gate = door (D) scaled, cannon (s:cannon), trees and rocks (shared). Palette: grass `#65a30d`, stone `#a8a29e`, goblins `#84cc16` / `#a3e635` with tints, banners `#3b82f6`, accent `#94a3b8`. Lighting `day`. Effects: impact dust ring, goblins tumbling (flail spin), ladder splinters, wave banner.
+11. **Visual direction.** Goblin (A, ≤ 4.5k tris, pooled `<DynamicInstancedModel>` with per-copy tint per type, hop-march from `core/motion`), castle tower (A, shared with knight-arena) ×2, wall procedural (crenellated, stone canvas), gate = door (D) scaled, cannon (s:cannon), trees and rocks (shared). Palette: grass `#65a30d`, stone `#a8a29e`, goblins `#84cc16` / `#a3e635` with tints, banners `#3b82f6`, accent `#94a3b8`. Lighting `day`. Effects: impact dust ring, goblins tumbling (flail spin), ladder splinters, wave banner.
 12. **Audio.** Boom, impact thump, goblin "hup" chirps (synth), ladder crash, wave horn, gate thud.
 13. **Performance.** ≈ 50 draw calls with 40 goblins (pooled), projectiles pooled.
 14. **Accessibility.** Landing marker under the reticle; threatened ladders flash; gate health bar; generous tap snapping to the nearest goblin group on coarse pointers.
@@ -135,7 +135,7 @@ Conventions, common testing criteria and the common Definition of Done are in `0
 
 1. **Concept.** Belly-slide a penguin down a twisting glacier: carve between ice blocks, launch off ramps and slurp up fish.
 2. **Core loop.** Carve left/right → line up fish trails → hit ramps for air and spin tricks → pass time gates → speed rises until you run out of time.
-3. **Objective.** Go as far as possible: start with 30 s, each gate +8 s; time 0 = `"timeup"`. Three crashes = `end("lose")`.
+3. **Objective.** Go as far as possible: start with 30 s, each gate +8 s (a game-local clock in `rules.ts`, no `durationMs`; at 0 the game calls `end("timeup")`). Three crashes = `end("lose")`.
 4. **Controls.** Desktop: A / D or left / right steer (analog by hold time), Space hop; in the air left / right spins. Touch: joystick x steers (or drag anywhere: pointer x), Jump button hops. `touchControls: ["joystick", "jump"]`. Scheme `steer` (new).
 5. **Camera.** Chase camera behind and above (pitch ≈ 25°), rolls slightly into banked turns, pulls back with speed; fog hides the generation edge.
 6. **Mechanics.**
@@ -181,7 +181,7 @@ Conventions, common testing criteria and the common Definition of Done are in `0
 8. **Replayability.** Seeded breakdown schedules; perfect chains.
 9. **Duration.** 60–120 s.
 10. **Level design.** A ring station of 8 modules around a hub, two solar wings, a docking port, Earth below, starfield.
-11. **Visual direction.** Astronaut (A, humanoid, auto-rig: floating idle with slow limb drift, arms forward when thrusting, `reachPose` while repairing), jetpack + wrench procedural attachments with flame fx; modules procedural (cylinders, domes, panels with canvas decals), Earth sphere with a canvas texture, core `<Starfield>`. Palette: hull `#e2e8f0`, panels `#1e3a8a`, warning `#f87171`, fixed `#34d399`, space `#020617`, accent `#818cf8`. Lighting `space` (new: one hard key, dim fill, rim). Effects: thruster puffs, sparks, repair flash, power-low red vignette (DOM).
+11. **Visual direction.** Astronaut (A, humanoid, auto-rig: floating idle with slow limb drift, arms forward when thrusting, a game-local `aimArm` reach toward the module while repairing), jetpack + wrench procedural attachments with flame fx; modules procedural (cylinders, domes, panels with canvas decals), Earth sphere with a canvas texture, core `<Starfield>`. Palette: hull `#e2e8f0`, panels `#1e3a8a`, warning `#f87171`, fixed `#34d399`, space `#020617`, accent `#818cf8`. Lighting `space` (new: one hard key, dim fill, rim). Effects: thruster puffs, sparks, repair flash, power-low red vignette (DOM).
 12. **Audio.** Thruster loop, spark crackle (panned), repair ratchet, perfect ding, power alarm under 25 %.
 13. **Performance.** ≈ 45 draw calls; one skinned character + attachments.
 14. **Accessibility.** Off-screen arrows (`<TargetMarkers>`), the timing ring is big and has a tick sound per lap, auto-brake assist, the green arc widened on coarse pointers.
@@ -212,7 +212,7 @@ Conventions, common testing criteria and the common Definition of Done are in `0
 8. **Replayability.** Seeded orders and monster types; tip optimisation.
 9. **Duration.** 60–90 s.
 10. **Level design.** A cosy cave kitchen: counter, the wheel on the left, the cauldron in the centre, the monster window at the back, shelves of jars (procedural).
-11. **Visual direction.** Chef (D v2, `idlePose`, `reachPose` toward the wheel, cheer on a 5-order), monster (A: round blob with stubby arms, wobble and dance from `core/motion`, three variants by per-copy tint + procedural horns/hat attachments), cauldron (A) with a procedural liquid surface whose colour lerps with the order. Palette: cave `#3f3f46`, warm light `#fdba74`, cauldron liquid by order, monsters `#a78bfa` / `#4ade80` / `#f472b6`, accent `#f472b6`. Lighting `indoor` warm. Effects: steam, bubbles, splash on toss, burp cloud, confetti tip.
+11. **Visual direction.** Chef (D v2, `idlePose`, a game-local `aimArm` reach toward the wheel, cheer on a 5-order), monster (A: round blob with stubby arms, wobble and dance from `core/motion`, three variants by `tint` + procedural horns and hats as children of the monster's group at measured head points), cauldron (A) with a procedural liquid surface whose colour lerps with the order. Palette: cave `#3f3f46`, warm light `#fdba74`, cauldron liquid by order, monsters `#a78bfa` / `#4ade80` / `#f472b6`, accent `#f472b6`. Lighting `indoor` warm. Effects: steam, bubbles, splash on toss, burp cloud, confetti tip.
 12. **Audio.** Plop, bubbling loop, burp, wheel click, happy monster chirp, grumpy grumble (synth).
 13. **Performance.** ≈ 35 draw calls; ingredients instanced per kind; one skinned chef.
 14. **Accessibility.** Ingredient icons in the order match the 3D items and carry a shape outline; patience as a bar and a face; rotation also by tapping the side arrows.
@@ -261,7 +261,7 @@ Conventions, common testing criteria and the common Definition of Done are in `0
 
 1. **Concept.** Help a mischievous panda sneak out of the zoo: hide in bushes, slip past the keepers' flashlight gaze and reach the gate.
 2. **Core loop.** Watch the cones → move between bushes → toss a distraction to turn a keeper → grab snacks on the way → reach the stage exit → next stage → the gate.
-3. **Objective.** Reach the gate after 3 stages (`end("win")`). Caught = back to the stage start with −5 s; 3 catches = `end("lose")`. 180 s timer (`timeup`).
+3. **Objective.** Reach the gate after 3 stages (`end("win")`). Caught = back to the stage start with −5 s; 3 catches = `end("lose")`. 180 s timer kept in `rules.ts` (no `durationMs`, because catches change it; at 0 the game calls `end("timeup")`).
 4. **Controls.** Desktop: WASD move; hold Space = sneak (slower, quieter); E = toss a distraction ahead (2 per stage). Touch: joystick + Jump (hold, sneak) + Action (toss). `touchControls: ["joystick", "jump", "action"]`. Scheme `joystick`.
 5. **Camera.** Follow top-down (pitch ≈ 62°) so cones are readable, fitted to the stage with `followFocus`.
 6. **Mechanics.**
