@@ -7,6 +7,7 @@ import SectionTabs from "@/components/Nav/SectionTabs";
 import ArcadeGrid from "@/arcade3d/ui/ArcadeGrid";
 import { ARCADE_ENABLED, ARCADE_LEADERBOARD } from "@/arcade3d/flags";
 import { getLiveGames, getVisibleGames, getVisibleSections } from "@/arcade3d/registry";
+import type { ArcadeCollection } from "@/arcade3d/types";
 import { arcadeJsonLd, serializeJsonLd } from "@/lib/seo/jsonLd";
 import ArcadeScoreSync from "./ArcadeScoreSync";
 import ArcadePrivacyToggle from "./ArcadePrivacyToggle";
@@ -64,23 +65,19 @@ function ArcadeIntro() {
    );
 }
 
-// One grid per collection; a single section (production today: the originals only) shows no heading,
-// so the page looks as it did before the expansion.
+/** Section copy for the collection chips on /3d. */
+const COLLECTION_INFO = [
+   { id: "originals", title: "Originals", blurb: "The first ten games. Each one keeps its own best score." },
+   { id: "adventure", title: "Adventure", blurb: "Explore, collect and escape in little toy worlds." },
+   { id: "skill", title: "Skill", blurb: "Aim, time and steer: short runs that reward a steady hand." },
+] as const satisfies ReadonlyArray<{ id: ArcadeCollection; title: string; blurb: string }>;
+
+// One grid with sections and filter chips; while only one collection shows (production today: the
+// originals), a plain grid without chips or headings, so the page looks as it did before the expansion.
 function ArcadeSections() {
-   const sections = getVisibleSections();
-   if (sections.length === 1) return <ArcadeGrid games={sections[0].games} />;
-   return (
-      <>
-         {sections.map((section) => (
-            <section key={section.id} className={styles.section} aria-labelledby={`arcade-${section.id}`}>
-               <h2 id={`arcade-${section.id}`} className={styles.sectionTitle}>
-                  {section.title}
-               </h2>
-               <ArcadeGrid games={section.games} />
-            </section>
-         ))}
-      </>
-   );
+   const games = getVisibleGames();
+   const grouped = getVisibleSections().length > 1;
+   return <ArcadeGrid games={games} collections={grouped ? [...COLLECTION_INFO] : undefined} />;
 }
 
 export default function ArcadePage() {
