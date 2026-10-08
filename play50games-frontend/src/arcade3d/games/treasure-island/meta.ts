@@ -1,7 +1,7 @@
 import type { ArcadeGameMeta } from "@/arcade3d/types";
 
 // Plain data only (server-safe). scoring must match WP includes/arcade-games.json.
-// Provisional limits (docs/arcade-expansion/02 §C.4): set for real in the game's "assets + limits" PR.
+// Limits proven in README.md "Server limits and why they hold" (rules.test.ts checks them).
 export const treasureIslandMeta: ArcadeGameMeta = {
    slug: "treasure-island",
    title: "Treasure Island",
@@ -19,11 +19,11 @@ export const treasureIslandMeta: ArcadeGameMeta = {
    },
    scoring: {
       kind: "points",
-      maxScore: 2850,
-      minDurationMs: 15000,
+      maxScore: 2060,
+      minDurationMs: 8500,
       maxDurationMs: 92000,
-      base: 2850,
-      maxPointsPerSec: 2850,
+      base: 1250,
+      maxPointsPerSec: 100,
       unitLabel: "pts",
       display: "int",
    },

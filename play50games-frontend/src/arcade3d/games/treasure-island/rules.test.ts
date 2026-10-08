@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { FRAME_PRIORITY, MAX_FRAME_DT, advanceRunClock, playedFrameDt } from "@/arcade3d/core/frameLoop";
 import { createRng } from "@/arcade3d/core/math";
 import { createArcadeStore } from "@/arcade3d/core/useArcadeStore";
+import { treasureIslandMeta } from "./meta";
 import {
    DETECTOR,
    DIG,
@@ -31,6 +32,8 @@ import {
    pulsePeriod,
    reachRho,
    reachableCells,
+   capScore,
+   withinServerLimits,
    rho,
    runScore,
    shoreAt,
@@ -683,6 +686,7 @@ describe("treasure-island scoring limit proof (README.md)", () => {
          expect(sim.digTime).toBeGreaterThanOrEqual(TREASURE_COUNT * DIG.holdS - 1e-9);
          expect(sim.walked).toBeGreaterThanOrEqual(shortestRoute(island.treasures, DIG.reach) - 1e-6);
          expect(sim.elapsedMs).toBeGreaterThanOrEqual(EARLIEST_WIN_MS);
+         expect(withinServerLimits(sim.score, sim.elapsedMs)).toBe(true);
       });
    });
 
@@ -690,8 +694,34 @@ describe("treasure-island scoring limit proof (README.md)", () => {
       ISLANDS.slice(0, 20).forEach((island, k) => {
          const sim = simulate(island, spamBot(k), randomFrames(k));
          expect(sim.topSpeed).toBeLessThanOrEqual(EXPLORER.maxSpeed + 1e-9);
+         expect(withinServerLimits(sim.score, sim.elapsedMs)).toBe(true);
          if (sim.won) expect(sim.elapsedMs).toBeGreaterThanOrEqual(EARLIEST_WIN_MS);
          else expect(sim.score).toBeLessThanOrEqual(4 * (POINTS.find + POINTS.clean));
       });
+   });
+
+   it("matches the server limits; every win from 8.98 s and every time-up passes, capScore a no-op; bots reach >= 90 % of maxScore", () => {
+      expect(treasureIslandMeta.scoring).toMatchObject({ kind: "points", maxScore: 2060, minDurationMs: 8500, maxDurationMs: 92000, base: 1250, maxPointsPerSec: 100 });
+      for (let t = Math.ceil(EARLIEST_WIN_MS); t <= DURATION_MS; t += 10) {
+         for (const clean of [0, 5]) {
+            const score = runScore(5, clean, true, DURATION_MS - t);
+            expect(withinServerLimits(score, t)).toBe(true);
+            expect(capScore(score, t)).toBe(score);
+         }
+      }
+      for (let found = 0; found < 5; found++) for (let clean = 0; clean <= found; clean++) expect(withinServerLimits(runScore(found, clean, false, 0), DURATION_MS)).toBe(true);
+      // the edges: 2061 or a run under 8.5 s is rejected, the 8.98 s best case is maxScore
+      expect(runScore(5, 5, true, DURATION_MS - Math.ceil(EARLIEST_WIN_MS))).toBe(2060);
+      expect(withinServerLimits(2061, 30_000)).toBe(false);
+      expect(withinServerLimits(2060, 8_499)).toBe(false);
+      expect(withinServerLimits(1000, 92_001)).toBe(false);
+      // the margin: 480 ms (5 %) under the earliest win
+      expect(Math.round(EARLIEST_WIN_MS) - treasureIslandMeta.scoring.minDurationMs).toBe(480);
+      // the measured best bot (10.25-10.5 s, 2040) is within 90-100 % of maxScore and passes
+      const best = simulate(ISLANDS[94], pathBot(ISLANDS[94]), fixed(1000 / 60));
+      expect(best.won).toBe(true);
+      expect(best.score).toBeGreaterThanOrEqual(0.9 * treasureIslandMeta.scoring.maxScore);
+      expect(withinServerLimits(best.score, best.elapsedMs)).toBe(true);
+      expect(capScore(best.score, best.elapsedMs)).toBe(best.score);
    });
 });

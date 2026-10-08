@@ -102,11 +102,11 @@
     "treasure-island": {
       "title": "Treasure Island",
       "kind": "points",
-      "max_score": 2850,
-      "min_duration_ms": 15000,
+      "max_score": 2060,
+      "min_duration_ms": 8500,
       "max_duration_ms": 92000,
-      "base": 2850,
-      "max_pps": 2850,
+      "base": 1250,
+      "max_pps": 100,
       "enabled": false
     },
     "museum-guard": {
