@@ -28,8 +28,8 @@ import type { ModelAsset } from "@/arcade3d/core/types";
 import { CHARACTER_BUDGET, PROP_BUDGET, SHARED_ASSETS } from "@/arcade3d/core/sharedAssets";
 
 const LITTER_SCALE = 0.5;
-/** The shared runner GLB is 1.90 tall: 0.5 draws it 0.95, the README's "about 1 unit". */
-const RUNNER_SCALE = 0.5;
+/** The shared runner GLB (v2) is 1.886 tall: 0.503 draws it 0.95, the README's "about 1 unit". */
+const RUNNER_SCALE = 0.503;
 /** pigeon-crossing's vehicle scales times this: a 4 m car next to the 0.95 runner. */
 const CAR_SIZE = 0.82;
 

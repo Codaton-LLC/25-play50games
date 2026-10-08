@@ -1,7 +1,8 @@
 "use client";
 
 // Kitchen, chef and food stand-ins. Drawn until the GLBs are in core/modelManifest.ts.
-// The chef stands on y = 0 and is about 1.6 tall. Food is centred on the group origin, ~0.9 across.
+// The chef stand-in stands on its group's origin and is about 1.8 tall (Scene.tsx puts that origin on
+// the worktop, WORKTOP_TOP_Y). Food is centred on the group origin, ~0.9 across.
 import { memo, useEffect, useMemo } from "react";
 import {
    BoxGeometry,
@@ -60,6 +61,16 @@ const DECOR = {
    steelDark: "#5c6166",
    knob: "#36312d",
 } as const;
+
+/** The counter box (centre y, height): its top face is the rules' floor, y 0. */
+export const COUNTER = { y: -0.28, h: 0.56 } as const;
+/** The wooden worktop on the counter (centre y, height), 1 cm sunk into the counter's top. */
+export const WORKTOP = { y: 0.02, h: 0.06 } as const;
+/**
+ * The worktop's top face (y 0.05), where the chef stands: Scene.tsx puts the chef's root group here,
+ * so its soles are on the board and not 5 cm inside it (the rules' catch box, y 0 to 1.6, is unchanged).
+ */
+export const WORKTOP_TOP_Y = WORKTOP.y + WORKTOP.h / 2;
 
 /** The wall's front face (the wall box is centred on z = -0.85, 0.18 deep). */
 const WALL_FRONT = -0.76;
@@ -255,12 +266,12 @@ export const Kitchen = memo(function Kitchen() {
             <meshStandardMaterial color={COLORS.cabinet} />
          </mesh>
          <WallDecor />
-         <mesh position={[0, -0.28, 0.15]}>
-            <boxGeometry args={[9.4, 0.56, 1.7]} />
+         <mesh position={[0, COUNTER.y, 0.15]}>
+            <boxGeometry args={[9.4, COUNTER.h, 1.7]} />
             <meshStandardMaterial color={COLORS.counter} />
          </mesh>
-         <mesh position={[0, 0.02, 0.15]}>
-            <boxGeometry args={[9.2, 0.06, 1.55]} />
+         <mesh position={[0, WORKTOP.y, 0.15]} name="worktop">
+            <boxGeometry args={[9.2, WORKTOP.h, 1.55]} />
             <meshStandardMaterial color="#e7c99a" />
          </mesh>
          <mesh position={[0, -0.02, 0.95]}>

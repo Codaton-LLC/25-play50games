@@ -9,11 +9,12 @@ import { RUNNER_SCALE } from "./assets";
 import { MOVING, NONE, V_RUN, slabX, type TowerRun } from "./rules";
 
 /**
- * The walk's own stride at a full run (core walkStride, 1.66 GLB units x 0.29 = 0.48 m) takes 6.25
- * strides a second at V_RUN; while the amount eases up from a stand the stride would be shorter, so
- * the legs never beat faster than this (the feet slide for those few frames instead).
+ * The walk's own stride at a full run (core walkStride, 1.53 GLB units x 0.2916 = 0.446 m: the v2
+ * runner's short legs) takes 6.73 strides a second at V_RUN; while the amount eases up from a stand
+ * the stride would be shorter, so the legs never beat faster than this (the feet slide for those few
+ * frames instead).
  */
-export const RUNNER_MAX_CADENCE = 6.5;
+export const RUNNER_MAX_CADENCE = 7;
 /** The arms-up cheer on a new checkpoint (run ms; a sine envelope, arms only). */
 export const CHEER_MS = 600;
 
