@@ -12,7 +12,9 @@
 //   the runner; the rig eases toward it (it only snaps on mount), so the view does not jump.
 // - Litter: one <DynamicInstancedModel> pool per kind (PER_KIND = 5 copies), the stand-in parts
 //   (useLitterStandIns) as its fallbackParts. Collected copies hide. Map props: one InstancedModel
-//   per kind, all three maps mounted, Worlds sets visible from run.map in a useFrame.
+//   per kind, all three maps mounted, Worlds sets visible from run.map in a useFrame. The park and
+//   the city also carry their decor (Decor.tsx: ground beyond the floor, parked cars, pigeons),
+//   outside everything the run draws on the floor (decorSpots.ts).
 import { memo, useLayoutEffect, useRef, useState } from "react";
 import { useFrame } from "@react-three/fiber";
 import { Euler, Matrix4, Quaternion, Vector3, type Group, type Mesh, type MeshBasicMaterial } from "three";
@@ -47,6 +49,7 @@ import { useFittedView, type FittedViewOptions } from "@/arcade3d/core/useFitted
 import { useRunFrame } from "@/arcade3d/core/useRunFrame";
 import { followFocus } from "@/arcade3d/core/view";
 import { ASSETS } from "./assets";
+import { CityDecor, ParkDecor } from "./Decor";
 import { Beach, City, Park, PrimitiveRunner, RUNNER_RING, useLitterStandIns, type RunnerLimbs } from "./Primitives";
 import {
    FLOOR_HALF,
@@ -296,9 +299,9 @@ const RUNNER_LEGS: HumanoidLandmarks = RUNNER_LANDMARKS;
 const RUNNER_SCALE = ASSETS.runner.scale ?? 1;
 const MIN_STRIDE = 0.1;
 /**
- * Strides a second at most (as robot-collector and warehouse-rush). At scale 0.5 the walk's own
- * stride (0.67 at full speed) would beat about 7.5 times a second at 5 units/s; faster than this,
- * the stride stretches and the planted foot slides a little (README).
+ * Strides a second at most (as robot-collector and warehouse-rush). At scale 0.503 the walk's own
+ * stride (0.77 at full speed) would beat about 6.5 times a second at 5 units/s; faster than this,
+ * the stride stretches and the planted foot slides (about 38 % at full speed, README).
  */
 const MAX_CADENCE = 4;
 const REACH_S = 0.45;
@@ -427,9 +430,11 @@ function Worlds({ run }: { run: CleanRun }) {
       <>
          <group ref={park} name="map-park">
             <Park />
+            <ParkDecor run={run} />
          </group>
          <group ref={city} visible={false} name="map-city">
             <City />
+            <CityDecor />
          </group>
          <group ref={beach} visible={false} name="map-beach">
             <Beach />

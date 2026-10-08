@@ -11,10 +11,10 @@ const own = (id: string) => `/models/3d/office-escape/${id}.glb`;
 
 export const ASSETS = {
    // shared cast (src/arcade3d/assets/shared.spec.json -> public/models/3d/shared/*.glb).
-   // The runner GLB (a 1.90-tall static T-pose, animated by the core auto-rig in Scene.tsx) faces
-   // +z by convention and this game runs towards -z, so it is turned round; 0.82 draws it 1.55 m,
-   // the RunnerPrimitive's height.
-   runner: { ...SHARED_ASSETS.runner, scale: 0.82, rotationY: Math.PI },
+   // The runner GLB (v2, a 1.886-tall static T-pose, animated by the core auto-rig in Scene.tsx)
+   // faces +z by convention and this game runs towards -z, so it is turned round; 0.825 draws it
+   // 1.556 m, the RunnerPrimitive's height (camera.ts RUNNER_DRAWN; crash.test.ts measures it).
+   runner: { ...SHARED_ASSETS.runner, scale: 0.825, rotationY: Math.PI },
    // Prop GLBs face +z (towards the oncoming runner) and stand on y = 0. Scales come from the GLBs'
    // measured bounds (w x h x d) and give about the README "Obstacles" drawn sizes:
    // desk 1.90 x 1.47 x 0.92 (top at 0.55) -> 1.62 x 1.25 x 0.78, top at 0.47, monitor below 0.9
