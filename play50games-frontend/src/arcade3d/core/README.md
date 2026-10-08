@@ -130,7 +130,7 @@ useRunFrame(() => {
 - `useFittedView` finds the closest camera that keeps `area` on screen from every `focus` point. It stays inside `margin` and out from under everything in `useSafeArea()`:
   - `hud`: the shell HUD, plus every element of the game's own `definition.Hud` marked `data-arcade-safe-area` (for example an inventory panel);
   - `controls`: the touch controls, including the joystick's lift above the cookie banner;
-  - `obstructions`: the cookie banner strip while it is open;
+  - `obstructions`: the cookie banner strip while it is open, or the home-indicator inset when that is taller;
   - its own `avoid` rects.
   `avoidHud`, `avoidControls` and `avoidObstructions` (all default true) switch the first three off.
 - `shift: true` lets the fit also move the picture on screen with a lens shift. The camera does not turn. The arena then sits in the free space, for example between the HUD and a joystick the banner lifts, instead of shrinking around the screen centre. Pass `view.shift` to `CameraRig shift`.
@@ -261,7 +261,7 @@ Stale game notes, left for each game's own follow-up PR (this branch edits no ga
 - `games/office-escape/README.md` is current for both (2026-10-07: `resultDelayMs: 900` for the fall and the bounce, swipes mid-gesture). Its "Edge cases" line "two lane events from keyboard and swipe both apply" (`readInput`: `lane2` from `swipe`) must change with any move to `pressed`.
 - The pigeon-crossing design (`origin/codex/game-pigeon-crossing`, README "Controls" and its test plan) maps `input.swipe` to hops next to keyboard edges, with a one-slot queue, and asserts the lost sub-frame press as a documented limitation. With `pressed`, hops come from `pressed` alone (no `swipe` branch, or a swipe hops and queues a second hop), and that limitation is gone.
 
-Still open: the bottom safe-area inset (`env(safe-area-inset-bottom)`) is not reported, and the cookie banner is found by a 1 s poll.
+Closed in P-03 (core v3): Esc / P no longer act behind the "Rotate your device" overlay, and the bottom safe-area inset is reported ("Safe area: the bottom inset" below). Still open: the cookie banner is found by a 1 s poll.
 
 ## Ballistics helper
 
@@ -382,3 +382,92 @@ const noise = { x: 2, y: 0, z: 3 };
 investigate(state, noise);
 stepPatrol(agent, state, route, 1 / 60, options); // repeat until patrol resumes
 ```
+
+## Effects: `core/fx` (bursts, score popups, shake, trail)
+
+ShellStage wraps every run's Scene in `<FxLayer>`, so a Scene calls `useFx()` and nothing else. A layer that is never used draws nothing: a kind's pool (one `InstancedMesh`, one draw call for all its particles) mounts on its first burst, the 8 score sprites (one draw call each while shown) on the first `score()`. Kinds: `sparkle`, `puff`, `splash`, `debris`, `confetti`, `smoke`, `sparks`, `snow` (`BURST_STYLES` in `fx/bursts.ts`). Counts are scaled by `useQuality().particles`; nothing allocates per emit or per frame after a kind's first use (call `fx.warm(...)` on mount to build the pools before play, so the first use does not hitch). Effects run on `useGameTime()`: frozen while paused, gone on the next run. `fx.shake(amount)` (0..1; the same as `useCameraShake()(amount)`) adds a decaying offset along the camera's right / up after every `CameraRig` (priority camera + 0.05) and takes it off before the next frame's rigs (gameTime + 0.05), so it works with a static camera and with follow rigs; it does nothing when the player prefers reduced motion. Score text uses one canvas texture per sprite slot, redrawn only when the slot's text changes. `<Trail>` is a camera-facing ribbon behind a ref or a live point: one draw call, tapering and fading, shrinking when the target stops.
+
+```tsx
+import { Trail, useFx } from "../../core/fx";
+const fx = useFx();
+useEffect(() => fx.warm("sparkle", "score"), [fx]);
+useRunFrame(() => {
+   if (!run.justPicked) return;
+   fx.burst("sparkle", run.player, 18);                 // any {x, y, z}
+   fx.score(run.player, "+100", { color: "#fde68a" });
+   fx.shake(0.15);
+});
+<Trail target={ballRef} length={24} width={0.2} color="#fde68a" />
+```
+
+## Quality tiers: `core/quality.ts`
+
+`useQuality()` → `{ tier, particles, decor, water, maxDpr }`. The tier comes from drei `PerformanceMonitor` declines (counted by ShellStage, never forgotten during a visit) and the pointer: `high` = desktop, no declines (particles 1, decor 1, water "full"); `mid` = a coarse pointer or 1 decline (0.7, 0.8, "reduced"); `low` = 2+ declines (0.4, 0.5, "flat"). Pure: `tierFor({ declines, coarsePointer })`, `qualityFor`, `scaledCount(count, factor)`. ShellStage's resolution is unchanged (1.75, 1 after a slow period); `maxDpr` (1.75 / 1.5 / 1) is the plan's cap and informational for now. Outside the canvas (a DOM Hud) it reads `high`. Cosmetic counts only, never in `rules.ts`.
+
+```tsx
+import { scaledCount, useQuality } from "../../core/quality";
+const { decor, tier } = useQuality();
+const rocks = ROCK_SPOTS.slice(0, scaledCount(ROCK_SPOTS.length, decor));
+<InstancedModel asset={ASSETS.rock} spots={rocks} />
+{tier !== "low" && <SnowFall count={600} />}
+```
+
+## Perf probe: `core/perfProbe.tsx` (`?perf=1`)
+
+Open a game with `?perf=1` (e.g. `/3d/robot-collector?perf=1`): ShellStage mounts the probe (the URL is read once; never otherwise). `window.__arcadePerf` = `{ calls, maxCalls, triangles, geometries, textures, programs, frames, samples, p50, p95, max }`: calls / triangles of the last rendered frame (read at the start of the next frame, before anything draws, so always a whole frame), `maxCalls` since the stage mounted, live GPU objects, and the frame times (ms) of the last 600 unpaused frames (`perfStats.ts` ring buffer, no allocation per frame, percentiles twice a second). A small read-only overlay sits top left (`pointer-events: none`). Checked on all ten games (docs/arcade-expansion/perf-baseline-p03.md): `calls` equals an independent per-animation-frame count of WebGL draw calls (robot-collector 17).
+
+```js
+// DevTools console, or a CDP script (tools/perf)
+const p = window.__arcadePerf;
+console.log(p.calls, p.maxCalls, p.triangles, p.geometries, p.p95);
+```
+
+## Environment: `core/env`
+
+Small, disposable pieces, one draw call each, no per-frame allocation. `<SkyDome top bottom offset exponent>`: a gradient sphere, never fogged, following the camera. `<Starfield count seed size upperOnly>`: one seeded `THREE.Points`. `<SnowFall count area center speed size>`: falling `Points`, the drawn count scaled by `useQuality().particles`. `<Water size position color deep foam amplitude wavelength speed foamEdge opacity>`: vertex waves, a fresnel-ish colour, foam on the crests and an optional edge band (a shoreline); the waves follow `useQuality().water` (full; reduced = fewer vertices and 60 % height; flat = one quad), fog works, visual only (rules keep their own flat water height). Render them inside the Scene (SnowFall and Water use the game clock).
+
+```tsx
+import { SkyDome, SnowFall, Starfield, Water } from "../../core/env";
+<SkyDome top="#1e3a8a" bottom="#fdba74" />
+<Water size={[60, 60]} position={[0, -0.3, 0]} amplitude={0.2} foamEdge={0.04} />
+<Starfield count={900} seed={7} />                // space
+<SnowFall count={700} area={[40, 16, 40]} />      // snow
+```
+
+## Lighting presets
+
+`environment.lighting` (`LightingPreset` in `types.ts`): `day`, `indoor`, `night`, plus `sunset` (a warm, low sun from the side, a purple ground bounce), `snow` (bright, cool, soft) and `space` (one hard white sun, almost no fill). Each is an ambient + hemisphere + one directional light, like the first three; no shadows.
+
+```ts
+environment: { background: "#1e1b4b", fog: ["#1e1b4b", 30, 90], lighting: "sunset" },
+// a snow world: { background: "#e2e8f0", lighting: "snow" }; space: { background: "#020617", lighting: "space" }
+```
+
+## Touch button labels
+
+`GameDefinition.touchLabels?: { jump?: string; action?: string }` sets the text (and accessible name) of the touch Jump / Action buttons; default "Jump" / "Action" (`touchButtonLabels` in `TouchControls.tsx`). Keep them to one short word: the button is a 72 px circle.
+
+```ts
+touchControls: ["joystick", "action", "jump"],
+touchLabels: { action: "Throw", jump: "Duck" },
+```
+
+## Loop control: `core/loopControl.ts`
+
+Looping sounds stop when a run pauses or ends, when the player mutes and when the game closes. GameShell calls `stopShellLoops()` at those moments (`loopsStopOn(prev, next)`: entering "paused" or "over"; the mute toggle; unmount). The audio module registers its stopper once (TODO(P-06): `registerLoopStopper(stopAllLoops)` in `audio.ts` when its loops land). Games never call these.
+
+```ts
+import { registerLoopStopper, stopShellLoops } from "./loopControl";
+const unregister = registerLoopStopper(stopAllLoops);   // audio.ts, once
+stopShellLoops();                                       // GameShell: pause, mute, over, unmount
+```
+
+## Safe area: the bottom inset
+
+`useSafeArea()` also reports `insetBottom` (CSS px of `env(safe-area-inset-bottom)`, measured with a hidden fixed probe on every resize and rotation), and the `obstructions` strip covers the taller of the cookie banner and that inset (`bottomCover(banner, inset)`), so `useFittedView` keeps content clear of the home indicator on phones without a home button. It is 0 on desktop, so desktop fits are unchanged. `insetBottom` is optional in `SafeArea` (layouts built by hand in tests stay valid).
+
+```ts
+const inset = useSafeArea((area) => area.insetBottom ?? 0);   // e.g. lift a bottom marker
+```
+
+Esc / P (`pauseKeyAction` in `frameLoop.ts`) do nothing while the "Rotate your device" overlay is up: the run stays paused until the phone is turned back (before, Esc resumed it behind the overlay).
