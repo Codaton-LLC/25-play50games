@@ -51,6 +51,9 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/clean-city/palm.glb",
    "/models/3d/clean-city/umbrella.glb",
    "/models/3d/clean-city/lamp.glb",
+   // clean-city's own character (2026-10-08): image-to-3D, Gen-2.5-Medium, static T-pose, 18k tris,
+   // animated by the core auto-rig
+   "/models/3d/clean-city/cleaner.glb",
 ];
 
 const LISTED: ReadonlySet<string> = new Set(MODEL_MANIFEST);
