@@ -8,7 +8,7 @@ All effort numbers are estimates **[A]**; they are recalibrated after Phase 3 an
 
 | Phase | Goal | Parallel lanes | Exit gate |
 |---|---|---|---|
-| 0 Audit | facts + decisions | Claude (done), Antigravity P-01, Kimi P-01b (optional) | your D1–D11 answers |
+| 0 Audit + kickoff | facts, decisions, CLI pilot | Claude (audit done), you (decisions, CLI installs), Claude P-26 on your PC (merge plan, status, skills, `p50-codex`, P-00 pilot through the CLIs), Antigravity P-00 + P-01 (pasted) | D1–D11 answered, pilot result known |
 | 1 Architecture | core v3 + tools | Claude P-02 → P-03 → P-05 ∥ Codex P-04 (from day 1) ∥ Kimi P-06 (from day 1), P-07 ∥ Antigravity P-08 ∥ Claude P-24 | core freeze v3.0 |
 | 2 Visual foundation | style v2, batch 1 GLBs | ChatGPT P-09/P-10 → you approve → Claude P-11/12 | batch 1 in the manifest |
 | 3 Reference game | treasure-island | Claude P-15; owners write wave-1 designs (P-14) | template freeze |
@@ -30,7 +30,7 @@ You      D1–D11  approve style/concepts, "po, gjenero"   playtests ×5      pl
 
 ### Phase 0: Repository audit
 
-- **Tasks:** static audit (done: `01-repo-audit.md`); runtime baseline P-01; optional static re-check P-01b; your decisions.
+- **Tasks:** static audit (done: `01-repo-audit.md`); your decisions; you install and log in the Codex and Kimi CLIs; Claude's kickoff P-26 on your PC (plan merged to main, `docs/status.md`, skills, `p50-codex` worktree, P-00 pilot through the CLIs); P-00 + P-01 pasted into Antigravity; optional P-01b.
 - **Owners:** Claude, Antigravity, Kimi; you decide.
 - **Dependencies:** none.
 - **Effort:** Antigravity 3 h, Kimi 1 h, you 1–2 h (reading A, answering D1–D11, reading the dashboard balance).
@@ -44,6 +44,7 @@ You      D1–D11  approve style/concepts, "po, gjenero"   playtests ×5      pl
 ### Phase 1: Architecture (core v3)
 
 - **Tasks:** P-02 registry for 30; P-03 effects, quality, perf probe, env, presets, shell fixes; P-04 pure helpers (Codex); P-05 input/rig/render/kit/HUD; P-06 audio (Kimi); P-07 gamecheck + perf (Kimi); P-08 collections UI (Antigravity); P-24 slim docs.
+- **Mode:** Codex P-04 and Kimi P-06 / P-07 run through their CLIs (P-25) if the pilot passed, otherwise by copy-paste; Antigravity P-08 is pasted.
 - **Dependencies:** P-04 (new pure files) and P-06 (audio.ts only) start at once, in parallel with P-02. P-03 and P-08 after P-02. P-05 after P-03 + P-04. P-07 after P-03.
 - **Effort:** Claude 30–40 h (P-02 6, P-03 12, P-05 14, P-24 2, reviews of P-04/06/07/08 6); Codex 8–12 h; Kimi 12–16 h; Antigravity 5–8 h; you 1 h.
 - **Prompts:** P-02, P-03, P-04, P-05, P-06, P-07, P-08, P-24.

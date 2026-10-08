@@ -7,9 +7,9 @@
 | Agent | Environment and access **[V]** | Delivered in this repo **[V]** | Capabilities from the web **[W]** | Limits seen | Best use in the expansion |
 |---|---|---|---|---|---|
 | **Claude** (Claude Code) | Local on your PC (Windows) with the Hyper3D Rodin MCP; own worktrees under `.claude/worktrees/`; cloud sessions (like this one) with GitHub access but **no Hyper3D MCP** | Phase 0–3, the whole core (13k lines), backend + API, 4 games, all assets, all reviews and merges, auto-rig | skills, subagents, MCP, hooks | usage limits; its browser pane stays at "Loading" for R3F, so playtests run headless over CDP | core v3, reference game + 4 games, assets, every review and merge, release |
-| **Codex** (OpenAI) | Works in the **main checkout** `C:\Users\grani\Documents\WORKSPACE-play50games`, branches `codex/<pkg>`; Claude never switches branches there | Hyper3D CLI, WP admin page, pigeon-crossing, tower-climb, escape-room, JSON-LD, API smoke script, warehouse gait | CLI + cloud tasks in parallel sandboxes, reads `AGENTS.md`, project skills in `.codex/skills` ([source](https://codex.danielvaughan.com/2026/03/27/codex-cli-skills-ecosystem/)) | reviews needed many test/README fixes (tower-climb: 14) | 5 games (precise rule-heavy ones: tracks, lander, castle waves), pure core helpers (P1-C) under review |
+| **Codex** (OpenAI) | Until now in the main checkout `C:\Users\grani\Documents\WORKSPACE-play50games`; from the expansion on (D12) its own worktree `…\WORKSPACE\p50-codex`, branches `codex/<pkg>`, run through `codex exec` by Claude on your PC; the main checkout stays yours | Hyper3D CLI, WP admin page, pigeon-crossing, tower-climb, escape-room, JSON-LD, API smoke script, warehouse gait | CLI + cloud tasks in parallel sandboxes, reads `AGENTS.md`, project skills in `.codex/skills` ([source](https://codex.danielvaughan.com/2026/03/27/codex-cli-skills-ecosystem/)) | reviews needed many test/README fixes (tower-climb: 14) | 5 games (precise rule-heavy ones: tracks, lander, castle waves), pure core helpers (P1-C) under review |
 | **Antigravity** (Google) | Worktree `…\p50-antigravity`, branches `antigravity/<pkg>` | one `getApiBase`, go-live audits (food-catcher, pigeon-crossing) | agent manager for parallel agents, built-in browser sub-agent (Chromium) with screenshots and recordings as "Artifacts", Gemini 3, CLI since v2.0 ([Thoughtworks Radar](https://www.thoughtworks.com/radar/tools/google-antigravity), [InfoWorld](https://www.infoworld.com/article/4096113/a-first-look-at-googles-new-antigravity-ide.html)) | no full game yet in this repo; whether its browser renders this R3F canvas is unverified | UI kit (collections), visual and mobile QA in a real browser, 5 games (visual, joystick-style) |
-| **Kimi** (Moonshot, Kimi Code) | Worktree `…\p50-kimi`, branches `kimi/<pkg>` | `tools/thumbs` (CDP capture), a go-live audit (it audited food-catcher instead of office-escape) | CLI agent with plan mode, `AGENTS.md`, skills, MCP, subagents, headless/CI ([kimi-cli](https://upd.dev/MoonshotAI/kimi-cli/src/1.47.0), [overview](https://innfactory.ai/en/ai-harness/kimi-code/)); code is sent to Moonshot's service **[W]** | followed the wrong target once: prompts must make it echo the slug and branch first | tooling (`tools/gamecheck`, `tools/perf`), first-pass mechanical reviews, audio cues, 5 games (tap/timing ones) |
+| **Kimi** (Moonshot, Kimi Code) | Worktree `…\p50-kimi`, branches `kimi/<pkg>`; run through `kimi -p` by Claude on your PC (D12) | `tools/thumbs` (CDP capture), a go-live audit (it audited food-catcher instead of office-escape) | CLI agent with plan mode, `AGENTS.md`, skills, MCP, subagents, headless/CI ([kimi-cli](https://upd.dev/MoonshotAI/kimi-cli/src/1.47.0), [overview](https://innfactory.ai/en/ai-harness/kimi-code/)); code is sent to Moonshot's service **[W]** | followed the wrong target once: prompts must make it echo the slug and branch first | tooling (`tools/gamecheck`, `tools/perf`), first-pass mechanical reviews, audio cues, 5 games (tap/timing ones) |
 | **ChatGPT** (chat) | no repo access; you paste prompts and pass images to Claude | style sheets and every character concept | image generation | concept consistency drifts between chats: attach the approved style sheet every time | style sheet v2, all concept images |
 | **Cursor** | worktree `…\p50-cursor`, out of credits since 2026-10-07 | K1, K2, food-catcher, penalty-hero, clean-city | – | no credits | reserve: takes any unstarted game with the same prompt |
 | **You** | GitHub, Vercel, Plesk/WordPress, Hyper3D account, ChatGPT, phones | decisions, approvals, uploads | – | time | decisions, art approval, playtests, uploads, releases |
@@ -52,7 +52,7 @@ R = does the work, A = approves / merges, C = consulted, Q = QA. Every merge to 
 
 - `main` = always deployable (flags + `status: "dev"` keep work invisible). Only Claude merges, with merge commits (`git merge --no-ff`), as today.
 - One branch per task: `claude/<pkg>`, `codex/<pkg>`, `antigravity/<pkg>`, `kimi/<pkg>`. Game branches: `<agent>/game-<slug>`; design-only branches: `<agent>/design-<slug>`.
-- Claude creates the helper's branch in the helper's worktree before handing out the prompt (copies `.env.local`; helpers run `npm ci` themselves) **[V]** CLAUDE.md. Codex works in the main checkout, where Claude never switches branches: Claude only creates the branch ref from its own worktree (`git branch codex/<pkg> main`; refs are shared by all worktrees) and Codex runs `git switch codex/<pkg>` as its first step. Never two Codex tasks at once.
+- Claude creates the helper's branch in the helper's worktree before each task (copies `.env.local`; helpers run `npm ci` themselves, except Codex in CLI mode, whose sandbox has no network: Claude runs `npm ci` for it) **[V]** CLAUDE.md. From the expansion on, Codex works in its own worktree `C:\Users\grani\Documents\WORKSPACE\p50-codex` (D12), so Claude can check its branches out and the main checkout stays yours. Never two tasks of one agent at once.
 - Reviewers and QA agents check a branch out in a **separate** review worktree (`git worktree add --detach ..\p50-review-<slug> origin/<branch>`), never in the worktree where their own branch is in progress, and remove it afterwards.
 - Long branches merge `main` in (never rebase someone else's branch).
 
@@ -105,6 +105,24 @@ The **work board** (`docs/status.md` "Active branches", Claude the only writer) 
 | Concepts for batch N+1 while batch N is being fitted | Core changes needed by a running game: merged to `main` first, then the game merges `main` in |
 | Go-live audits of finished games | Backend JSON upload before the frontend `status: "live"` merge |
 
+### G.4 Hand-off modes (decision D12, approved 2026-10-08)
+
+| Agent | Mode | Why |
+|---|---|---|
+| Codex | **CLI**: `codex exec --sandbox workspace-write` in `p50-codex` | official non-interactive mode; the sandbox writes only inside the worktree; its tasks (pure core helpers, rule-heavy games) are batch-shaped |
+| Kimi | **CLI**: `kimi -p` in `p50-kimi` | headless mode built for scripts and CI; its tasks (tools, mechanical reviews, audio, games) are batch-shaped; Claude passes the slug and branch, so the wrong-target mix-up cannot happen |
+| Antigravity | **copy-paste** in its app | its value is the interactive browser agent with screenshots and recordings; `agy -p` is reported to hang when another program starts it ([issue](https://github.com/google-antigravity/antigravity-cli/issues/318)) |
+| Cursor | **copy-paste** in Cursor, if its credits return | print mode has reported rough edges (does not exit, git, MCP approvals) |
+| ChatGPT | **copy-paste** | images are made in the chat |
+
+How CLI mode works (prompt P-25, run by Claude Code on your PC; this cloud session cannot reach your worktrees):
+1. Claude checks the branch out in the agent's worktree and writes the filled-in prompt plus the `[CLI MODE]` addendum (08 §I.0) to `.handoff/<ID>/prompt.md` (`.handoff/` is git-excluded).
+2. Claude starts the CLI in the background with a timeout; the agent edits files only and writes `.handoff/<ID>/HANDOFF.md`.
+3. Claude reads only the HANDOFF (cheap), checks the changed paths and runs build/tsc/vitest/gamecheck, then commits on the agent's branch (Codex cannot: its sandbox keeps `.git` read-only) and pushes.
+4. Review and fix rounds as before; two failed runs on one task switch it to copy-paste.
+
+Rules: you install and log in each CLI once (Claude never sees credentials); no `--yolo`, `--full-auto`, `danger-full-access` or `--dangerously-skip-permissions`; no CLI run in the main checkout; Kimi's config denies network calls to the production hosts. The P-00 pilot (P-26 step 7) confirms the exact commands on your Windows PC before any real task (a Windows sandbox problem is reported for `codex exec` ([issue](https://github.com/openai/codex/issues/28278))).
+
 ---
 
 ## H. AI skills and tooling strategy
@@ -123,6 +141,8 @@ The **work board** (`docs/status.md` "Active branches", Claude the only writer) 
 | Agent | Recommendation | Why | Status |
 |---|---|---|---|
 | all | Node 24 + a local Chrome/Chromium for `tools/thumbs` / `tools/perf` | headless playtests | Node 24 is the project's version **[V]** |
+| you, for Codex | Codex CLI: `npm install -g @openai/codex`, then sign in once (`codex login`) | CLI mode (D12) | install command from OpenAI's docs **[W]**; check with `codex --version` |
+| you, for Kimi | Kimi Code CLI: install as its official docs say, then `kimi login` (device code) | CLI mode (D12) | **[W]**; check with `kimi --version` |
 | Claude (your PC) | keep `hyper3d-rodin` logged in (`claude mcp login hyper3d-rodin` when it expires) | asset batches | **[V]** |
 | Codex | project skills folder: copy `docs/arcade-expansion/skills/*` to `.codex/skills/` | auto-loaded skills | path from **[W]**, verify in N-04 |
 | Kimi | load the same skills through its skills mechanism (or the prompt points to the SKILL.md path); optional `chrome-devtools` MCP for interactive debugging | its docs show MCP and skills **[W]** | verify in N-04 |

@@ -9,7 +9,7 @@ Every prompt is copy-paste ready. Fill only the `<…>` fields the prompt names.
 Every prompt for Codex, Antigravity and Kimi below starts with this preamble, filled in, and repeats its rules line ("Always: …"). Claude's own prompts are shorter because Claude works under CLAUDE.md.
 
 ```text
-[PLAY50 TASK <ID>] Repo Codaton-LLC/25-play50games. Worktree: <worktree path>. Branch: <branch> (already created by Claude; never create a branch. Codex in the main checkout: run `git switch` to it first; in the other worktrees it is already checked out).
+[PLAY50 TASK <ID>] Repo Codaton-LLC/25-play50games. Worktree: <worktree path>. Branch: <branch> (already created and checked out in your worktree by Claude; never create or switch branches).
 FIRST, before reading or changing anything else, reply with exactly one line:
 "TASK <ID> | <target> | branch <branch> | allowed: <allowed paths>"
 and check it against `git branch --show-current` and the files you see. If anything does not match, stop and say what differs.
@@ -31,6 +31,22 @@ Decisions I took and why:
 Open questions for Claude or the user:
 Known issues / follow-ups:
 Evidence: screenshot paths, perf JSON paths
+```
+
+### Hand-off modes (decision D12)
+
+| Agent | Mode | Who delivers the prompt |
+|---|---|---|
+| Codex | **CLI** (`codex exec`), in its own worktree `C:\Users\grani\Documents\WORKSPACE\p50-codex` | Claude Code on your PC (P-25) |
+| Kimi | **CLI** (`kimi -p`), in `C:\Users\grani\Documents\WORKSPACE\p50-kimi` | Claude Code on your PC (P-25) |
+| Antigravity | **copy-paste** in the Antigravity app (its browser agent does the visual QA) | you |
+| Cursor (if it returns) | **copy-paste** in Cursor | you |
+| ChatGPT | **copy-paste** (concept images, `11-chatgpt-concept-prompts.md`) | you |
+
+The prompts are the same in both modes. In CLI mode Claude appends this addendum and runs the agent; if a CLI run fails twice, that task falls back to copy-paste with the same prompt.
+
+```text
+[CLI MODE] You run without a chat: nobody can answer you during this run. Write the echo line as the first line of your HANDOFF; if it does not match what you see, stop and write the HANDOFF at once. Do not commit, push, create or switch branches: Claude commits your work after its checks. Never use network access to production. When you finish, or when you are blocked, write the HANDOFF block to .handoff/<ID>/HANDOFF.md in this worktree and stop. Put every question under "Open questions" instead of waiting for an answer.
 ```
 
 ## I.1 Index: which prompt goes to which agent, in which order
@@ -64,13 +80,15 @@ Evidence: screenshot paths, perf JSON paths
 | P-22 | Go-live | Claude + you | `claude/golive-<slug>` | 8 | P-21 clean | release preparation |
 | P-23 | Mobile controls tuning (core) | Claude | `claude/touch-tuning` | after wave 1 | P-18 reports of wave 1 | mobile controls |
 | P-24 | Slim the agent read set (D10) | Claude | `claude/docs-slim` | 1 | D10 | cost |
+| P-25 | Run a Codex or Kimi task through its CLI (orchestration) | Claude (your PC) | the task's branch | every Codex / Kimi task | D12; the CLI installed and logged in | agent orchestration |
+| P-26 | Kickoff on your PC | Claude (your PC) | `main` (docs only) | 0 | your answers to D1–D11, CLIs installed | starting the program |
 
 ---
 
 ## P-00 Agent capability probe (Codex, Antigravity, Kimi; report only)
 
 ```text
-[PLAY50 TASK P-00] Repo Codaton-LLC/25-play50games. Worktree: <worktree path>. Branch: <agent>/probe (already created by Claude; never create a branch. Codex in the main checkout: run `git switch` to it first; in the other worktrees it is already checked out).
+[PLAY50 TASK P-00] Repo Codaton-LLC/25-play50games. Worktree: <worktree path>. Branch: <agent>/probe (already created and checked out in your worktree by Claude; never create or switch branches).
 FIRST, before reading or changing anything else, reply with exactly one line:
 "TASK P-00 | capability probe | branch <agent>/probe | allowed: none (report only, nothing committed)"
 and check it against `git branch --show-current`. Stop if anything differs.
@@ -93,7 +111,7 @@ End with the HANDOFF block (files changed: none).
 ## P-01 Runtime baseline audit (Antigravity, report only)
 
 ```text
-[PLAY50 TASK P-01] Repo Codaton-LLC/25-play50games. Worktree: C:\Users\grani\Documents\WORKSPACE\p50-antigravity. Branch: antigravity/baseline-audit (already created by Claude; never create a branch. Codex in the main checkout: run `git switch` to it first; in the other worktrees it is already checked out).
+[PLAY50 TASK P-01] Repo Codaton-LLC/25-play50games. Worktree: C:\Users\grani\Documents\WORKSPACE\p50-antigravity. Branch: antigravity/baseline-audit (already created and checked out in your worktree by Claude; never create or switch branches).
 FIRST, before reading or changing anything else, reply with exactly one line:
 "TASK P-01 | baseline audit of the 10 existing games | branch antigravity/baseline-audit | allowed: none (report only)"
 and check it against `git branch --show-current`. If anything does not match, stop and say what differs.
@@ -122,7 +140,7 @@ End with the HANDOFF block (files changed: none).
 ## P-01b Static audit re-check (Kimi, optional, report only)
 
 ```text
-[PLAY50 TASK P-01b] Repo Codaton-LLC/25-play50games. Worktree: C:\Users\grani\Documents\WORKSPACE\p50-kimi. Branch: kimi/audit-recheck (already created by Claude; never create a branch. Codex in the main checkout: run `git switch` to it first; in the other worktrees it is already checked out).
+[PLAY50 TASK P-01b] Repo Codaton-LLC/25-play50games. Worktree: C:\Users\grani\Documents\WORKSPACE\p50-kimi. Branch: kimi/audit-recheck (already created and checked out in your worktree by Claude; never create or switch branches).
 FIRST reply with exactly one line: "TASK P-01b | static audit re-check | branch kimi/audit-recheck | allowed: none (report only)" and check it against `git branch --show-current`; stop if it differs.
 Read only: AGENTS.md, docs/arcade-expansion/01-repo-audit.md.
 Always: change only the allowed paths; never edit package.json, package-lock.json, or Claude-owned files (CLAUDE.md "Ownership") outside this task's allowed paths; never spend Hyper3D credits; never call, test against or upload to production (cms.play50.games, the live Vercel site); never commit secrets, .env*.local, node_modules, .next or tools/hyper3d/raw.
@@ -175,7 +193,7 @@ Do NOT: edit any game folder; add dependencies.
 ## P-04 Core P1-C: pure gameplay helpers (Codex)
 
 ```text
-[PLAY50 TASK P-04] Repo Codaton-LLC/25-play50games. Worktree: C:\Users\grani\Documents\WORKSPACE-play50games (main checkout). Branch: codex/core-helpers (already created by Claude; never create a branch. Codex in the main checkout: run `git switch` to it first; in the other worktrees it is already checked out).
+[PLAY50 TASK P-04] Repo Codaton-LLC/25-play50games. Worktree: C:\Users\grani\Documents\WORKSPACE\p50-codex. Branch: codex/core-helpers (already created and checked out in your worktree by Claude; never create or switch branches).
 FIRST, before reading or changing anything else, reply with exactly one line:
 "TASK P-04 | core pure helpers | branch codex/core-helpers | allowed: play50games-frontend/src/arcade3d/core/{ballistics,path,motion,kinematics}.ts + .test.ts, core/ai/** , core/README.md (new sections only)"
 and check it against `git branch --show-current`. Stop if anything differs.
@@ -218,7 +236,7 @@ Do NOT: edit games; add dependencies.
 ## P-06 Audio cues and loops (Kimi)
 
 ```text
-[PLAY50 TASK P-06] Repo Codaton-LLC/25-play50games. Worktree: C:\Users\grani\Documents\WORKSPACE\p50-kimi. Branch: kimi/core-audio (already created by Claude; never create a branch. Codex in the main checkout: run `git switch` to it first; in the other worktrees it is already checked out).
+[PLAY50 TASK P-06] Repo Codaton-LLC/25-play50games. Worktree: C:\Users\grani\Documents\WORKSPACE\p50-kimi. Branch: kimi/core-audio (already created and checked out in your worktree by Claude; never create or switch branches).
 FIRST, before reading or changing anything else, reply with exactly one line:
 "TASK P-06 | core audio cues and loops | branch kimi/core-audio | allowed: play50games-frontend/src/arcade3d/core/audio.ts, core/audio.test.ts, core/README.md section "Sound" only"
 and check it against `git branch --show-current`. Stop if anything differs.
@@ -243,7 +261,7 @@ End with the HANDOFF block.
 ## P-07 `tools/gamecheck` + `tools/perf` (Kimi)
 
 ```text
-[PLAY50 TASK P-07] Repo Codaton-LLC/25-play50games. Worktree: C:\Users\grani\Documents\WORKSPACE\p50-kimi. Branch: kimi/tools-gamecheck-perf (already created by Claude; never create a branch. Codex in the main checkout: run `git switch` to it first; in the other worktrees it is already checked out).
+[PLAY50 TASK P-07] Repo Codaton-LLC/25-play50games. Worktree: C:\Users\grani\Documents\WORKSPACE\p50-kimi. Branch: kimi/tools-gamecheck-perf (already created and checked out in your worktree by Claude; never create or switch branches).
 FIRST, before reading or changing anything else, reply with exactly one line:
 "TASK P-07 | tools/gamecheck + tools/perf | branch kimi/tools-gamecheck-perf | allowed: tools/gamecheck/**, tools/perf/**"
 and check it against `git branch --show-current`. Stop if anything differs.
@@ -275,7 +293,7 @@ End with the HANDOFF block.
 ## P-08 UI kit: collections and loading card (Antigravity)
 
 ```text
-[PLAY50 TASK P-08] Repo Codaton-LLC/25-play50games. Worktree: C:\Users\grani\Documents\WORKSPACE\p50-antigravity. Branch: antigravity/ui-collections (already created by Claude; never create a branch. Codex in the main checkout: run `git switch` to it first; in the other worktrees it is already checked out).
+[PLAY50 TASK P-08] Repo Codaton-LLC/25-play50games. Worktree: C:\Users\grani\Documents\WORKSPACE\p50-antigravity. Branch: antigravity/ui-collections (already created and checked out in your worktree by Claude; never create or switch branches).
 FIRST, before reading or changing anything else, reply with exactly one line:
 "TASK P-08 | arcade UI collections | branch antigravity/ui-collections | allowed: play50games-frontend/src/arcade3d/ui/** (tsx + module.css + tests)"
 and check it against `git branch --show-current`. Stop if anything differs.
@@ -346,7 +364,7 @@ Output: the landmark set with the fields set by eye explained in comments, scree
 ## P-14 Game design README, gate G0 (game owner)
 
 ```text
-[PLAY50 TASK P-14] Repo Codaton-LLC/25-play50games. Worktree: <worktree path>. Branch: <agent>/design-<slug> (already created by Claude; never create a branch. Codex in the main checkout: run `git switch` to it first; in the other worktrees it is already checked out).
+[PLAY50 TASK P-14] Repo Codaton-LLC/25-play50games. Worktree: <worktree path>. Branch: <agent>/design-<slug> (already created and checked out in your worktree by Claude; never create or switch branches).
 FIRST, before reading or changing anything else, reply with exactly one line:
 "TASK P-14 | design <slug> | branch <agent>/design-<slug> | allowed: play50games-frontend/src/arcade3d/games/<slug>/README.md, play50games-frontend/src/arcade3d/games/<slug>/assets.spec.json"
 and check it against `git branch --show-current`. Stop if anything differs.
@@ -366,7 +384,7 @@ End with the HANDOFF block (Open questions = what Claude or the user must decide
 ## P-15 Build one game (game owner)
 
 ```text
-[PLAY50 TASK P-15] Repo Codaton-LLC/25-play50games. Worktree: <worktree path>. Branch: <agent>/game-<slug> (already created by Claude; never create a branch. Codex in the main checkout: run `git switch` to it first; in the other worktrees it is already checked out).
+[PLAY50 TASK P-15] Repo Codaton-LLC/25-play50games. Worktree: <worktree path>. Branch: <agent>/game-<slug> (already created and checked out in your worktree by Claude; never create or switch branches).
 FIRST, before reading or changing anything else, reply with exactly one line:
 "TASK P-15 | build <slug> | branch <agent>/game-<slug> | allowed: play50games-frontend/src/arcade3d/games/<slug>/**, play50games-frontend/public/images/3d/<slug>.webp, tools/thumbs/inputs/<slug>.mjs"
 and check it against `git branch --show-current`. Stop if anything differs.
@@ -489,7 +507,7 @@ Do NOT: lower visual quality below the spec without the user's OK; touch other g
 When a game owner runs P-19 on its game branch, prefix it with:
 
 ```text
-[PLAY50 TASK P-19] Repo Codaton-LLC/25-play50games. Worktree: <worktree path>. Branch: <agent>/game-<slug> (never create a branch; Codex in the main checkout: `git switch` to it first).
+[PLAY50 TASK P-19] Repo Codaton-LLC/25-play50games. Worktree: <worktree path>. Branch: <agent>/game-<slug> (already checked out in your worktree; never create or switch branches).
 FIRST reply with exactly one line: "TASK P-19 | performance <slug> | branch <agent>/game-<slug> | allowed: play50games-frontend/src/arcade3d/games/<slug>/**" and check it against `git branch --show-current`; stop if it differs.
 Always: change only the allowed paths; never edit package.json, package-lock.json, or Claude-owned files (CLAUDE.md "Ownership") outside this task's allowed paths; never spend Hyper3D credits; never call, test against or upload to production (cms.play50.games, the live Vercel site); never commit secrets, .env*.local, node_modules, .next or tools/hyper3d/raw.
 End with the HANDOFF block (with the before/after tools/perf numbers).
@@ -541,4 +559,44 @@ Do NOT: change a game's rules.
 [PLAY50 TASK P-24] Docs only, claude/docs-slim.
 Do: move CLAUDE.md "Where we are" history, the per-game table and the open-thread log to docs/status.md (keep a 10-line summary and a link); keep CLAUDE.md under ~15 KB with contracts, rules and ownership; AGENTS.md: a "read set" per task type (game agent: AGENTS.md + core/README.md + its spec + its README + the reference game ≈ 70 KB); skills.md: point the expansion to docs/arcade-expansion/ and mark the old saturated style block as superseded by 05 §E.1.
 Acceptance: no rule is lost (diff reviewed rule by rule); every prompt in 08 still points at existing sections.
+```
+
+## P-25 Run a Codex or Kimi task through its CLI (Claude on your PC, decision D12)
+
+```text
+[PLAY50 TASK P-25] Run task <ID> for <codex|kimi> in CLI mode. Local Claude Code on the user's PC (the worktrees are there).
+Read: docs/arcade-expansion/07-agents-and-skills.md §G.4, the task's prompt in 08, docs/status.md (work board).
+Preconditions (stop if one fails): the CLI answers `codex --version` / `kimi --version`; the agent's worktree is clean (`git -C <wt> status --porcelain` empty); no other task of this agent is running; the task's prerequisites in the 08 index are merged.
+Steps:
+1. Branch: `git -C <wt> fetch origin` then `git -C <wt> switch -c <branch> origin/main` (or switch to the existing branch for a fix round). Never in the main checkout C:\Users\grani\Documents\WORKSPACE-play50games.
+2. Dependencies: in <wt>/play50games-frontend run `npm ci` when package-lock.json changed since the last run (Codex's sandbox has no network).
+3. Prompt: write the task's prompt from 08 with every <field> filled, plus the [CLI MODE] addendum (08 §I.0), to <wt>/.handoff/<ID>/prompt.md (`.handoff/` is in .git/info/exclude).
+4. Run in the background with a timeout (30 min small tasks, 90 min games), stdout+stderr to <wt>/.handoff/<ID>/run.log:
+   - Codex: `codex exec --sandbox workspace-write -C <wt> "<contents of prompt.md>"` with stdin closed (< /dev/null or NUL); never danger-full-access or --full-auto.
+   - Kimi: from <wt>: `kimi -p "<contents of prompt.md>"` with stdin closed; never --yolo; its config denies network calls to cms.play50.games and 25-play50games.vercel.app.
+   (Exact flags as confirmed by the P-00 pilot and recorded in docs/status.md; check `codex exec --help` / `kimi --help` if a flag fails.)
+5. When it ends: read only .handoff/<ID>/HANDOFF.md (the last 40 lines of run.log if it is missing). Missing HANDOFF or timeout = failed run.
+6. Check: `git -C <wt> status --porcelain` ⊆ the task's allowed paths (`node tools/gamecheck <slug>` or `--allow <glob>` for core tasks); build, tsc, vitest in <wt>.
+7. Commit on the agent's branch: `<agent>(<task>): <one-line summary>` with the trailer `Agent: <codex|kimi>`; push the branch. Update the work board and the effort ledger in docs/status.md.
+8. Review as usual (P-17a / P-17b). A fix round = a new run on the same branch whose prompt is the fix list plus the [CLI MODE] addendum.
+9. Two failed runs on one task: stop, tell the user, and switch that task to copy-paste.
+Never: run two tasks of one agent at once; run an agent in the main checkout; pass credentials or tokens on the command line; let an agent commit, push or touch production.
+```
+
+## P-26 Kickoff on your PC (Claude local, step 3 of the start guide)
+
+```text
+[PLAY50 TASK P-26] Kickoff of the 3D Arcade expansion. Local Claude Code on the user's PC, started in the main repository.
+Read: docs/arcade-expansion/README.md (§A.6), 10-owner-checklist-and-sprint-1.md (§M.3, §N), 07-agents-and-skills.md (§G.4), 08-prompt-library.md (§I.0, P-00, P-25).
+Inputs the user gives you in chat: answers to D1–D11 (D12 is approved), the Hyper3D balance and the charge shown for one Gen-2.5 Medium generation, which agents have usage this week.
+Do, in order, and report after each numbered step in one line:
+1. Plan on main: `git fetch origin`; check that `git diff --name-only origin/main...origin/claude/keen-thompson-7ve97l` lists only docs/arcade-expansion/** and CLAUDE.md; merge it into main with --no-ff from a Claude worktree; push main (docs only: Vercel builds nothing new).
+2. docs/status.md (new, Claude-only): the decisions with the user's answers and date, the Hyper3D balance and charge, agents available, the work board (Active branches: branch, agent, worktree, allowed paths, mode), the effort ledger (task, agent, mode, runs, hours, review rounds, credits). Commit to main (docs only).
+3. Skills: copy docs/arcade-expansion/skills/* to .claude/skills/; commit.
+4. Worktrees: create C:\Users\grani\Documents\WORKSPACE\p50-codex (`git worktree add --detach <path> origin/main`), copy play50games-frontend/.env.local, run `npm ci` in play50games-frontend there; check that p50-kimi and p50-antigravity exist and are clean (stop and ask if not); append `.handoff/` to .git/info/exclude.
+5. CLIs: `codex --version` and `kimi --version` work and are logged in (the user did it); if not, stop and tell the user what is missing.
+6. Branches: codex/probe in p50-codex, kimi/probe in p50-kimi, antigravity/probe and antigravity/baseline-audit created as refs for p50-antigravity (check out antigravity/probe there).
+7. Pilot: run P-00 for Codex and for Kimi with P-25 (report-only tasks: nothing to commit). Record in docs/status.md the exact command that worked for each, the run time, and every problem (Windows sandbox, hangs, prompts).
+8. Reply to the user with: the pilot result per agent (CLI ok / fall back to copy-paste), the filled-in P-00 and P-01 prompts to paste into Antigravity, and the next step of §M.3.
+Do NOT: start P-02 or any core work before the user has seen the pilot result; spend Hyper3D credits; touch the main checkout's working tree or branches.
 ```

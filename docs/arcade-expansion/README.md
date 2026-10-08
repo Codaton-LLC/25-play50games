@@ -51,6 +51,7 @@ The platform does not need a rebuild. The 3D core in `play50games-frontend/src/a
 | 10 | Every score is a **points** game with a server limit proven by a bot through the real store, as for the existing ten. | The server has the points model already (`arcade-api.php`); time games cannot reward pickups (the server recomputes the score from duration). |
 | 11 | Reference-game-first: **Treasure Island** (Claude) before any other agent starts a game. **Pirate Cannon Battle** (Claude) is the first wave-1 game because it proves aim-drag (reused by mini-golf) and ballistics (reused by snowball-battle, castle-defender, zoo-escape and delivery-drone). | Same pattern that made robot-collector the template; it is the cheapest way to stop 19 agents repeating 19 mistakes. |
 | 12 | Cost levers: a slim "game agent read set" (≈70 KB instead of ≈200 KB of mandatory docs), design README approved before code, test and README budgets, `tools/gamecheck` for every mechanical check, one adversarial review per game. | The current read order (CLAUDE.md 49 KB, skills.md 34 KB, platform-plan 32 KB, arcade-api 34 KB) **[V]** costs every agent session ~50k tokens before it reads a line of its game. |
+| 13 | Codex and Kimi through their CLIs, Antigravity, Cursor and ChatGPT by copy-paste (D12). | About 80 fewer copy-paste rounds for you; Claude reads only each run's HANDOFF file; Antigravity's value is its interactive browser. |
 
 ### A.3 What the core gets before game 1 (Phase 1, Claude-owned)
 
@@ -105,5 +106,6 @@ Phase 8  release: each game goes live one by one (your decision per game, existi
 | D9 | Bounded core tasks may be delegated (P1-C pure helpers to Codex, the audio cues to Kimi) with an explicit file list, Claude reviewing and merging | Approve |
 | D10 | Slim the agent read set: move CLAUDE.md's long "Where we are" log to `docs/status.md`, keep CLAUDE.md under ~15 KB | Approve |
 | D11 | Achievements-lite and music: postponed to Phase 7 | Approve |
+| D12 | Hand-off mode: Codex and Kimi run through their CLIs, driven by Claude Code on your PC (P-25); Codex moves to its own worktree `p50-codex`; Antigravity, Cursor and ChatGPT stay copy-paste (07 §G.4) | **Approved 2026-10-08** |
 
 Non-blocking questions are listed in `10-owner-checklist-and-sprint-1.md` §M.0.
