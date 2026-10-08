@@ -30,6 +30,13 @@ export const ARROW = {
    tuckS: 0.15,
 } as const;
 
+/**
+ * The arrow's shape on its texture (Primitives.tsx drawArrow), so marker.test.ts can project the
+ * arrow itself rather than its whole quad: outline width and shaft half-width as fractions of the
+ * texture's width, the neck (where the head starts) as a fraction of its height from the top.
+ */
+export const ARROW_SHAPE = { line: 0.12, shaft: 0.18, neck: 0.46 } as const;
+
 /** The floor frame: a rounded square ring around the pallet, over its bay marks. */
 export const RING = {
    /** outer half-size (m): 0.4 beyond the pallet's edge, past its 0.85 bay corner marks */
@@ -58,6 +65,71 @@ export function marked(run: WarehouseRun, i: number): boolean {
 /** Is the robot in pallet `i`'s reach (the rules' own test: an Action now picks its box)? The arrow tucks away then. */
 export function robotAtPallet(run: WarehouseRun, i: number): boolean {
    return inReach(run.robot.x, run.robot.z, run.pallets[i].bounds);
+}
+
+/**
+ * The robot as the arrow could cover it (m): a column 1.2 m tall whose body and hanging arms lie
+ * within 0.3 m of its centre, and the lead: the arrow tucks away while the robot is within this much
+ * of a spot where it would be covered (at 6 m/s the robot crosses 0.3 m in 0.05 s, a third of the tuck).
+ */
+export const ROBOT_COLUMN = { radius: 0.3, height: 1.2, lead: 0.3 } as const;
+
+/**
+ * Would pallet (palletX, palletZ)'s arrow, its tip at `clearY` (clearTipY) anywhere in its bounce, be
+ * drawn over the robot at (robotX, robotZ)? The arrow is a billboard over the pallet's centre: nearer
+ * the camera than a robot just behind the box, and drawn later, so it covers the robot wherever their
+ * outlines meet on screen with the robot farther away. In landscape that is the central aisle between
+ * the racks and the near row, the main path and the way to a near-row box. Screen rectangles in
+ * slopes ((p · right, p · up) / (p · forward)): the arrow's quad over its whole bounce, and the robot's
+ * column grown by its radius and ROBOT_COLUMN.lead at its nearest depth. marker.test.ts projects the
+ * drawn arrow and the column's true outline through every fitted camera and checks that every spot
+ * where they meet, and everything within the lead of it, is flagged. No allocation.
+ */
+export function robotBehindArrow(
+   cam: CameraAxes,
+   palletX: number,
+   palletZ: number,
+   clearY: number,
+   robotX: number,
+   robotZ: number
+): boolean {
+   // the camera's right axis: forward x up
+   const rx = cam.fy * cam.uz - cam.fz * cam.uy;
+   const ry = cam.fz * cam.ux - cam.fx * cam.uz;
+   const rz = cam.fx * cam.uy - cam.fy * cam.ux;
+   // the arrow at the tap and at the top of its bounce
+   const ax = palletX - cam.px;
+   const az = palletZ - cam.pz;
+   let ay = clearY - cam.py;
+   const d0 = ax * cam.fx + ay * cam.fy + az * cam.fz;
+   const x0 = (ax * rx + ay * ry + az * rz) / d0;
+   const y0 = (ax * cam.ux + ay * cam.uy + az * cam.uz) / d0;
+   ay += ARROW.bounce;
+   const d1 = ax * cam.fx + ay * cam.fy + az * cam.fz;
+   const x1 = (ax * rx + ay * ry + az * rz) / d1;
+   const y1 = (ax * cam.ux + ay * cam.uy + az * cam.uz) / d1 + ARROW.height / d1;
+   const half = ARROW.width / 2 / Math.min(d0, d1);
+   // the robot's column: its axis at the floor and at its top, grown by radius + lead
+   const bx = robotX - cam.px;
+   const bz = robotZ - cam.pz;
+   let by = -cam.py;
+   const e0 = bx * cam.fx + by * cam.fy + bz * cam.fz;
+   const u0 = (bx * rx + by * ry + bz * rz) / e0;
+   const v0 = (bx * cam.ux + by * cam.uy + bz * cam.uz) / e0;
+   by += ROBOT_COLUMN.height;
+   const e1 = bx * cam.fx + by * cam.fy + bz * cam.fz;
+   const u1 = (bx * rx + by * ry + bz * rz) / e1;
+   const v1 = (bx * cam.ux + by * cam.uy + bz * cam.uz) / e1;
+   const reach = ROBOT_COLUMN.radius + ROBOT_COLUMN.lead;
+   // nearer than the arrow everywhere: the robot (depth tested, drawn first) covers the arrow instead
+   if (Math.max(e0, e1) + reach <= Math.min(d0, d1)) return false;
+   const grow = reach / Math.min(e0, e1);
+   return (
+      Math.max(u0, u1) + grow > Math.min(x0, x1) - half &&
+      Math.min(u0, u1) - grow < Math.max(x0, x1) + half &&
+      Math.max(v0, v1) + grow > y0 &&
+      Math.min(v0, v1) - grow < y1
+   );
 }
 
 /** Moves the tuck amount (1 = shown, 0 = tucked away) towards `target` over ARROW.tuckS. dt 0 (paused) changes nothing. */

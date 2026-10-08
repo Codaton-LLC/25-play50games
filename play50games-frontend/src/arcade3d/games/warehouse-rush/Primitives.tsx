@@ -19,7 +19,7 @@ import {
 import { InstancedModel, useModel } from "@/arcade3d/core/assets";
 import { Instanced, useCanvasTexture, type CanvasDraw, type InstanceSpot } from "@/arcade3d/core/render";
 import { ASSETS, BOX, LID_LETTER } from "./assets";
-import { ARROW, RING } from "./marker";
+import { ARROW, ARROW_SHAPE, RING } from "./marker";
 import {
    ARENA,
    COLOURS,
@@ -609,10 +609,10 @@ export const ARROW_TEXTURE = { width: 128, height: Math.round((128 * ARROW.heigh
  */
 export function drawArrow(ctx: CanvasRenderingContext2D, w: number, h: number) {
    ctx.clearRect(0, 0, w, h);
-   const line = w * 0.12;
+   const line = w * ARROW_SHAPE.line;
    const pad = line / 2 + 2;
-   const shaft = w * 0.18;
-   const neck = h * 0.46;
+   const shaft = w * ARROW_SHAPE.shaft;
+   const neck = h * ARROW_SHAPE.neck;
    const cx = w / 2;
    ctx.beginPath();
    ctx.moveTo(cx - shaft, pad);

@@ -59,6 +59,7 @@ import {
    ringOpacity,
    ringScale,
    robotAtPallet,
+   robotBehindArrow,
    tuckStep,
    type CameraAxes,
 } from "./marker";
@@ -574,8 +575,9 @@ interface MarkerLook {
  * pulses on the floor around the pallet, both in the order colour (unlit, not tone mapped: the
  * order panel's colour). They pop in with their box (the starting boxes during the countdown,
  * every refill), so none ever hangs over an empty pallet. The arrow tucks away into its tip while
- * the robot stands in that pallet's reach: from the camera it would cover the robot behind a box
- * of the near row, and an Action there picks the box anyway. One draw call per kind for all four
+ * the robot stands in that pallet's reach (an Action there picks the box anyway) or in the band just
+ * behind the box from the camera (`robotBehindArrow`): the arrow is nearer the camera and draws
+ * later, so it would cover the robot there. The floor frame stays. One draw call per kind for all four
  * pallets; nothing is allocated per frame.
  */
 const OrderMarkers = memo(function OrderMarkers({ run, fx }: { run: WarehouseRun; fx: Fx }) {
@@ -635,9 +637,17 @@ const OrderMarkers = memo(function OrderMarkers({ run, fx }: { run: WarehouseRun
    });
 
    const placeArrow = (i: number, m: Matrix4) => {
-      const target = robotAtPallet(run, i) ? 0 : 1;
+      // the camera once per frame (the copies are placed in index order, 0 first)
+      if (i === 0) readAxes(camera, AXES);
+      const pallet = run.pallets[i];
+      // as low as this camera allows with the whole arrow above the box (follows the fit as it eases)
+      const clearY = clearTipY(AXES, pallet.x, pallet.z, BOX_TURN[i]);
+      // tucked away in the pallet's reach, and wherever it would be drawn over the robot (just behind
+      // the box from the camera: the arrow is nearer the camera and draws later)
+      const hidden = robotAtPallet(run, i) || robotBehindArrow(AXES, pallet.x, pallet.z, clearY, run.robot.x, run.robot.z);
+      const target = hidden ? 0 : 1;
       if (!marked(run, i)) {
-         // a marker that appears beside the robot (a refill landing in its reach) starts tucked away
+         // a marker that appears beside or behind the robot (a refill landing there) starts tucked away
          tuck[i] = target;
          return false;
       }
@@ -645,9 +655,6 @@ const OrderMarkers = memo(function OrderMarkers({ run, fx }: { run: WarehouseRun
       const pop = popOf(fx, i, time.now);
       const size = pop * easeInOut(tuck[i]);
       if (size < 0.01) return false;
-      const pallet = run.pallets[i];
-      // as low as this camera allows with the whole arrow above the box (follows the fit as it eases)
-      const clearY = clearTipY(readAxes(camera, AXES), pallet.x, pallet.z, BOX_TURN[i]);
       m.compose(V.set(pallet.x, arrowTipAt(clearY, time.now, pop), pallet.z), camera.quaternion, S.setScalar(size));
    };
 

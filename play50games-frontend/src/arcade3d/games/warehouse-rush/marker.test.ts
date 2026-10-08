@@ -3,15 +3,18 @@
 // and stays inside the fitted warehouse (so never under the HUD or the controls).
 import { describe, expect, it } from "vitest";
 import { PerspectiveCamera, Quaternion, Vector3 } from "three";
+import { distanceToBoxXZ } from "@/arcade3d/core/collision";
 import { fitView } from "@/arcade3d/core/view";
 import { BOX, LID_LETTER } from "./assets";
 import { FOV, LOOK_AT, PITCH, VIEW, WAREHOUSE } from "./camera";
 import {
    ARROW,
+   ARROW_SHAPE,
    BOX_TURN_MAX,
    LID_TOP,
    POP_MAX,
    RING,
+   ROBOT_COLUMN,
    arrowTipAt,
    beat,
    clearTipY,
@@ -20,10 +23,24 @@ import {
    ringOpacity,
    ringScale,
    robotAtPallet,
+   robotBehindArrow,
    tuckStep,
    type CameraAxes,
 } from "./marker";
-import { NONE, PALLET_COUNT, PALLET_HALF, PALLET_HEIGHT, PALLET_SLOTS, PICK_GAP, createRun } from "./rules";
+import {
+   BOUNDS,
+   NONE,
+   PALLET_COUNT,
+   PALLET_HALF,
+   PALLET_HEIGHT,
+   PALLET_SLOTS,
+   PICK_GAP,
+   RACKS,
+   ROBOT,
+   createRun,
+   inReach,
+   palletBounds,
+} from "./rules";
 
 describe("warehouse-rush order markers: which pallets", () => {
    it("marks exactly the boxes of the order colour, only while the robot is empty-handed", () => {
@@ -335,11 +352,37 @@ describe("warehouse-rush order markers: from the game camera", () => {
       expect(tightest).toBeGreaterThan(0);
    });
 
-   it("keeps the arrow just over the lid for a camera that does not look down", () => {
+   it("gives a finite height above the lid for a level camera", () => {
       const level = { px: 0, py: 1, pz: 20, ux: 0, uy: 1, uz: 0, fx: 0, fy: 0, fz: -1 };
       const y = clearTipY(level, 0, 3.4, 0);
       expect(Number.isFinite(y)).toBe(true);
-      expect(y).toBeGreaterThanOrEqual(LID_TOP);
+      expect(y).toBeGreaterThan(LID_TOP);
+   });
+
+   it("keeps the arrow just over the lid letter for a camera with no height that clears the box (looking up from below, past the box)", () => {
+      // looking 80° up from under the floor, the box just past the zenith: no tip height puts the
+      // arrow above the box on this screen, the closed form has no positive answer
+      const a = (80 * Math.PI) / 180;
+      const under = { px: 0, py: -5, pz: 3.2, ux: 0, uy: Math.cos(a), uz: Math.sin(a), fx: 0, fy: Math.sin(a), fz: -Math.cos(a) };
+      expect(clearTipY(under, 0, 3.4, 0)).toBe(PALLET_HEIGHT + LID_LETTER.y);
+   });
+
+   it("the lid letter lies inside the lid's outline on screen, so clearing the lid clears the letter", () => {
+      // why the letter check above is only a backstop: the letter is inset in the lid and only 1.2 cm over it
+      for (const yaw of YAWS) {
+         for (const distance of DISTANCES) {
+            const cam = cameraAt(yaw, distance);
+            for (const slot of PALLET_SLOTS) {
+               for (const turn of TURNS) {
+                  for (const scale of SCALES) {
+                     const boxTop = Math.max(...boxCorners(slot.x, slot.z, turn, scale).map((p) => ndc(cam, p).y));
+                     const letterTop = Math.max(...letterCorners(slot.x, slot.z, yaw, scale).map((p) => ndc(cam, p).y));
+                     expect(letterTop, `yaw ${yaw} d ${distance} slot ${slot.x},${slot.z}`).toBeLessThan(boxTop);
+                  }
+               }
+            }
+         }
+      }
    });
 
    it("neighbouring floor frames never touch, and each one clears its pallet", () => {
@@ -350,6 +393,227 @@ describe("warehouse-rush order markers: from the game camera", () => {
       expect(gap - 2 * RING.half * (1 + RING.swell) * POP_MAX).toBeGreaterThan(0.5);
    });
 });
+
+// ---------- the arrow and the robot behind its box ----------
+
+type P2 = [number, number];
+
+/** The drawn arrow (Primitives.tsx drawArrow, ARROW_SHAPE) in the quad: its two convex pieces, m from the tip (x right, y up), before the outline. */
+const TEX_W = 128;
+const TEX_H = Math.round((TEX_W * ARROW.height) / ARROW.width);
+const texToM = (px: number, py: number): P2 => [((px - TEX_W / 2) * ARROW.width) / TEX_W, ((TEX_H - py) * ARROW.height) / TEX_H];
+const LINE = TEX_W * ARROW_SHAPE.line;
+const PAD = LINE / 2 + 2;
+const SHAFT = TEX_W * ARROW_SHAPE.shaft;
+const NECK = TEX_H * ARROW_SHAPE.neck;
+const ARROW_PIECES: P2[][] = [
+   [texToM(TEX_W / 2 - SHAFT, PAD), texToM(TEX_W / 2 + SHAFT, PAD), texToM(TEX_W / 2 + SHAFT, NECK), texToM(TEX_W / 2 - SHAFT, NECK)],
+   [texToM(PAD, NECK), texToM(TEX_W - PAD, NECK), texToM(TEX_W / 2, TEX_H - PAD)],
+];
+/** The outline's half-width (m): the drawn arrow is its path grown by this much (round joins). */
+const OUTLINE = (LINE / 2) * Math.max(ARROW.width / TEX_W, ARROW.height / TEX_H);
+/**
+ * Every free robot position (on a 0.1 m grid) out of a pallet's reach where the pallet's settled arrow
+ * (its box turned by `turn`), anywhere in its bounce, is drawn over the robot from the camera: the
+ * arrow (outline included) overlaps the true outline of the robot's column on screen and part of the
+ * column lies behind the arrow's plane. Screen coordinates are slopes ((p · right, p · up) /
+ * (p · forward)): the billboard is parallel to the screen, so its shape keeps its proportions there.
+ */
+function coveredRobots(cam: PerspectiveCamera, slot: number, turn: number, visit: (x: number, z: number, clearY: number) => void) {
+   const axes = axesOf(cam);
+   const right = new Vector3(1, 0, 0).applyQuaternion(cam.quaternion);
+   const P = cam.position;
+   const out = [0, 0, 0];
+   const project = (x: number, y: number, z: number) => {
+      const dx = x - P.x;
+      const dy = y - P.y;
+      const dz = z - P.z;
+      const d = dx * axes.fx + dy * axes.fy + dz * axes.fz;
+      out[0] = (dx * right.x + dy * right.y + dz * right.z) / d;
+      out[1] = (dx * axes.ux + dy * axes.uy + dz * axes.uz) / d;
+      out[2] = d;
+      return out;
+   };
+   const { x: px, z: pz } = PALLET_SLOTS[slot];
+   const bounds = palletBounds(slot);
+   // the arrow's tip heights from the tap to the top of the bounce
+   const clearY = clearTipY(axes, px, pz, turn);
+   const tips: number[] = [];
+   for (let k = 0; k <= 6; k++) tips.push(clearY + (ARROW.bounce * k) / 6);
+   const arrows = tips.map((tipY) => {
+      const [tx, ty, td] = project(px, tipY, pz);
+      const grow = OUTLINE / td;
+      return {
+         depth: td,
+         grow,
+         pieces: ARROW_PIECES.map((piece) => piece.map(([mx, my]) => [tx + mx / td, ty + my / td] as P2)),
+         x0: tx - ARROW.width / 2 / td - grow,
+         x1: tx + ARROW.width / 2 / td + grow,
+         y0: ty - grow,
+         y1: ty + ARROW.height / td + grow,
+      };
+   });
+   const R = ROBOT_COLUMN.radius;
+   for (let gx = -40; gx <= 40; gx++) {
+      for (let gz = -40; gz <= 40; gz++) {
+         const x = px + gx / 10;
+         const z = pz + gz / 10;
+         // free: inside the walls, clear of the racks and this pallet, out of its reach
+         if (Math.abs(x) > BOUNDS.max.x - ROBOT.radius || Math.abs(z) > BOUNDS.max.z - ROBOT.radius) continue;
+         if (distanceToBoxXZ(x, z, bounds) < ROBOT.radius || RACKS.some((rack) => distanceToBoxXZ(x, z, rack) < ROBOT.radius)) continue;
+         if (inReach(x, z, bounds)) continue;
+         // a quick box test on the column's axis, grown by the radius at its nearest depth
+         const [fx, fy, fd] = project(x, 0, z);
+         const [hx, hy, hd] = project(x, ROBOT_COLUMN.height, z);
+         const spread = (2 * R) / Math.min(fd, hd);
+         const bx0 = Math.min(fx, hx) - spread;
+         const bx1 = Math.max(fx, hx) + spread;
+         const by0 = Math.min(fy, hy) - spread;
+         const by1 = Math.max(fy, hy) + spread;
+         if (!arrows.some((a) => bx1 > a.x0 && bx0 < a.x1 && by1 > a.y0 && by0 < a.y1)) continue;
+         // the column's outline on screen and its farthest depth
+         const pts: P2[] = [];
+         let far = -Infinity;
+         for (let k = 0; k < 16; k++) {
+            const cx = x + R * Math.cos((k * Math.PI) / 8);
+            const cz = z + R * Math.sin((k * Math.PI) / 8);
+            for (const y of [0, ROBOT_COLUMN.height]) {
+               const [sx, sy, d] = project(cx, y, cz);
+               pts.push([sx, sy]);
+               far = Math.max(far, d);
+            }
+         }
+         const column = convexHull2(pts);
+         if (arrows.some((a) => far > a.depth && a.pieces.some((piece) => polygonDistance(piece, column) < a.grow))) visit(x, z, clearY);
+      }
+   }
+}
+
+/** The sweep's distances a fit can use for `yaw` (the portrait yaw only from about 24 m), up to 65 m. */
+function fittedDistances(yaw: number): number[] {
+   let nearest = Infinity;
+   for (let aspect = 0.2; aspect <= 3; aspect += 0.01) {
+      const fit = fitView({ ...VIEW, width: 1000 * aspect, height: 1000, fov: FOV, avoid: [] });
+      if (fit.yaw === yaw) nearest = Math.min(nearest, fit.distance);
+   }
+   return DISTANCES.filter((d) => d >= nearest - 1 && d <= 65);
+}
+
+describe("warehouse-rush order markers: the robot behind a marked box", () => {
+   it("flags the robot just behind a box from the camera, not in front of it, beside it or on the start pad", () => {
+      // landscape, the near-row pallet (0, 3.4) straight ahead: behind it is towards -z (the aisle)
+      const cam = axesOf(cameraAt(0, 20));
+      const clearY = clearTipY(cam, 0, 3.4, 0);
+      expect(robotBehindArrow(cam, 0, 3.4, clearY, 0, 1.6)).toBe(true);
+      expect(robotBehindArrow(cam, 0, 3.4, clearY, 0.6, 1.3)).toBe(true);
+      // in front of the box (nearer the camera) the robot covers the arrow, not the other way round
+      expect(robotBehindArrow(cam, 0, 3.4, clearY, 0, 5.4)).toBe(false);
+      // beside the box, along the aisle
+      expect(robotBehindArrow(cam, 0, 3.4, clearY, 2.5, 1.6)).toBe(false);
+      // the portrait camera (+x side) looks along -x
+      const portrait = axesOf(cameraAt(Math.PI / 2, 40));
+      const far = clearTipY(portrait, 3, -3.4, 0);
+      expect(robotBehindArrow(portrait, 3, -3.4, far, 1.2, -3.4)).toBe(true);
+      expect(robotBehindArrow(portrait, 3, -3.4, far, 3, -5.4)).toBe(false);
+      // from the start pad every arrow shows, for every fitted camera
+      for (const yaw of YAWS) {
+         for (const distance of fittedDistances(yaw)) {
+            const axes = axesOf(cameraAt(yaw, distance));
+            for (const slot of PALLET_SLOTS) {
+               for (const turn of TURNS) {
+                  const y = clearTipY(axes, slot.x, slot.z, turn);
+                  expect(robotBehindArrow(axes, slot.x, slot.z, y, 0, 0), `yaw ${yaw} d ${distance} slot ${slot.x},${slot.z}`).toBe(false);
+               }
+            }
+         }
+      }
+   });
+
+   it("out of reach, every spot where the arrow is drawn over the robot is flagged, and so is everything within the lead of it", () => {
+      const lead = ROBOT_COLUMN.lead - 1e-9;
+      const around: P2[] = [];
+      for (let k = 0; k < 8; k++) around.push([lead * Math.cos((k * Math.PI) / 4), lead * Math.sin((k * Math.PI) / 4)]);
+      let covered = 0;
+      let behindNear = 0;
+      for (const yaw of YAWS) {
+         for (const distance of fittedDistances(yaw)) {
+            const cam = cameraAt(yaw, distance);
+            const axes = axesOf(cam);
+            for (let slot = 0; slot < PALLET_SLOTS.length; slot++) {
+               const { x: px, z: pz } = PALLET_SLOTS[slot];
+               for (const turn of TURNS) {
+                  coveredRobots(cam, slot, turn, (x, z, clearY) => {
+                     covered += 1;
+                     const where = `yaw ${yaw} d ${distance} slot ${px},${pz} turn ${turn} robot ${x.toFixed(1)},${z.toFixed(1)}`;
+                     expect(robotBehindArrow(axes, px, pz, clearY, x, z), where).toBe(true);
+                     for (const [ox, oz] of around) expect(robotBehindArrow(axes, px, pz, clearY, x + ox, z + oz), `${where} +${ox.toFixed(2)},${oz.toFixed(2)}`).toBe(true);
+                     // landscape: the aisle between the racks and the near row
+                     if (yaw === 0 && pz > 0 && z > 0.9 && z < 2.3) behindNear += 1;
+                  });
+               }
+            }
+         }
+      }
+      // the sweep does find the robots the arrow would cover, in the aisle behind the near row too
+      expect(covered).toBeGreaterThan(1000);
+      expect(behindNear).toBeGreaterThan(100);
+   }, 60_000);
+});
+
+/** Counter-clockwise convex hull of 2D points. */
+function convexHull2(points: P2[]): P2[] {
+   return convexHull(points.map(([x, y]) => new Vector3(x, y, 0)));
+}
+
+/** Distance between two convex polygons (0 when they overlap). */
+function polygonDistance(a: P2[], b: P2[]): number {
+   if (!separated(a, b)) return 0;
+   let best = Infinity;
+   for (const [from, to] of [
+      [a, b],
+      [b, a],
+   ]) {
+      for (const p of from) {
+         for (let k = 0; k < to.length; k++) best = Math.min(best, segmentDistance(p, to[k], to[(k + 1) % to.length]));
+      }
+   }
+   return best;
+}
+
+/** Separating-axis test for two convex polygons. */
+function separated(a: P2[], b: P2[]): boolean {
+   for (const poly of [a, b]) {
+      for (let k = 0; k < poly.length; k++) {
+         const p = poly[k];
+         const q = poly[(k + 1) % poly.length];
+         const nx = q[1] - p[1];
+         const ny = p[0] - q[0];
+         let amin = Infinity;
+         let amax = -Infinity;
+         let bmin = Infinity;
+         let bmax = -Infinity;
+         for (const v of a) {
+            const d = v[0] * nx + v[1] * ny;
+            amin = Math.min(amin, d);
+            amax = Math.max(amax, d);
+         }
+         for (const v of b) {
+            const d = v[0] * nx + v[1] * ny;
+            bmin = Math.min(bmin, d);
+            bmax = Math.max(bmax, d);
+         }
+         if (amax < bmin || bmax < amin) return true;
+      }
+   }
+   return false;
+}
+
+function segmentDistance(p: P2, a: P2, b: P2): number {
+   const dx = b[0] - a[0];
+   const dy = b[1] - a[1];
+   const t = Math.max(0, Math.min(1, ((p[0] - a[0]) * dx + (p[1] - a[1]) * dy) / (dx * dx + dy * dy || 1)));
+   return Math.hypot(p[0] - a[0] - t * dx, p[1] - a[1] - t * dy);
+}
 
 /** Counter-clockwise convex hull of NDC points (x, y). */
 function convexHull(points: Vector3[]): Array<[number, number]> {
