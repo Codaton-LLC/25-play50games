@@ -89,6 +89,13 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/luggage-rush/plane.glb",
    "/models/3d/treasure-island/crab.glb",
    "/models/3d/alien-farm/gourd.glb",
+   // expansion batch 2-3 characters (2026-10-08): image-to-3D T-pose humanoids, 18k tris, 1024 px,
+   // auto-rigged with their committed landmarks (sharedAssets EXPANSION_CHARACTERS)
+   "/models/3d/shared/knight.glb",
+   "/models/3d/snowball-battle/snowKid.glb",
+   "/models/3d/space-repair/astronaut.glb",
+   "/models/3d/alien-farm/alien.glb",
+   "/models/3d/zoo-escape/keeper.glb",
 ];
 
 const LISTED: ReadonlySet<string> = new Set(MODEL_MANIFEST);

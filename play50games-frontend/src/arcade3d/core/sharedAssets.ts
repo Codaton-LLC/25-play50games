@@ -522,3 +522,260 @@ export function expansionPoint(asset: Pick<ModelAsset, "scale" | "stretch" | "ro
    const c = Math.cos(a), sn = Math.sin(a);
    return { x: x * c + z * sn, y: y + (asset.yOffset ?? 0), z: -x * sn + z * c };
 }
+
+/**
+ * Expansion batch 2-3 characters (2026-10-08): Hyper3D Rodin image-to-3D T-pose GLBs (the user's
+ * face on the knight, the astronaut and the keeper; the snow kid a child, the alien its own),
+ * optimized with the character profile and drawn through the core auto-rig: each asset carries
+ * `humanoid: { landmarks }` measured from its mesh (core/README "Landmarks, and measuring a
+ * character"; rig/expansionCharacters.test.ts checks them on the real meshes). The default fit
+ * stands each one on y = 0, facing +z, at its target height in metres; a game spreads the entry to
+ * change the scale and derives it from EXPANSION_CHARACTER_GLB_HEIGHT.
+ */
+export type ExpansionCharacterId = "knight" | "snowKid" | "astronaut" | "alien" | "keeper";
+
+/** The T-pose GLBs' heights (GLB units; the arm span is the longest side, about 1.9). */
+export const EXPANSION_CHARACTER_GLB_HEIGHT = {
+   knight: 1.884,
+   snowKid: 1.9011,
+   astronaut: 1.8231,
+   alien: 1.8902,
+   keeper: 1.8921,
+} as const satisfies Record<ExpansionCharacterId, number>;
+
+/** The default heights in metres (a game may refit: museum-guard's statue knight is 1.6 m in the catalog). */
+export const EXPANSION_CHARACTER_HEIGHT = {
+   knight: 1.75,
+   snowKid: 1.3,
+   astronaut: 1.75,
+   alien: 1.1,
+   keeper: 1.75,
+} as const satisfies Record<ExpansionCharacterId, number>;
+
+/**
+ * The shared knight's joints (GLB units: 1.884 tall T-pose, reach 0.949, faces +z; open-face helmet
+ * with a plume, pauldrons, gauntlets, a tabard to mid-thigh, boots), measured 2026-10-08. The
+ * estimate's set but:
+ * - armRadius 0.17 (estimate 0.101) about shoulderY 1.148: the pauldrons reach up to 1.32, so their
+ *   tops go down with the arms instead of staying out as fins;
+ * - hemY 0.55 (the estimate): the tabard bridges the legs above the knee, so it is skirt-weighted.
+ */
+export const KNIGHT_LANDMARKS: HumanoidLandmarks = {
+   shoulderY: 1.148,
+   shoulderX: 0.276,
+   shoulderZ: 0.019,
+   armRadius: 0.17,
+   clavicleX: 0.138,
+   elbowX: 0.511,
+   wristX: 0.747,
+   armSpread: 0.227,
+   crotchY: 0.707,
+   hipY: 0.775,
+   hipX: 0.15,
+   hipZ: 0.028,
+   kneeY: 0.388,
+   ankleY: 0.165,
+   toeZ: 0.328,
+   heelZ: -0.095,
+   legDepth: 0.118,
+   legOuterX: 0.259,
+   hemY: 0.55,
+   spineY: 0.887,
+   chestY: 0.999,
+   neckY: 1.358,
+   headY: 1.405,
+   spineZ: 0.076,
+   shoulderBlend: 0.06,
+   elbowBlend: 0.05,
+   hipBlend: 0.078,
+   kneeBlend: 0.058,
+   ankleBlend: 0.039,
+   crotchBlend: 0.045,
+   spineBlend: 0.034,
+   neckBlend: 0.024,
+};
+
+/**
+ * The snowball-battle kid's joints (GLB units: 1.901 tall, reach 0.943; puffer jacket, cargo
+ * trousers, boots), measured 2026-10-08. The estimate's set but: armRadius 0.115 (estimate 0.091):
+ * the puffy sleeves span y 1.12-1.32 about shoulderY 1.209; hemY = crotchY (the estimate's 0.602 is
+ * the close cargo thighs: the jacket ends above the crotch).
+ */
+export const SNOW_KID_LANDMARKS: HumanoidLandmarks = {
+   shoulderY: 1.209,
+   shoulderX: 0.305,
+   shoulderZ: -0.006,
+   armRadius: 0.115,
+   clavicleX: 0.152,
+   elbowX: 0.528,
+   wristX: 0.751,
+   armSpread: 0.237,
+   crotchY: 0.713,
+   hipY: 0.785,
+   hipX: 0.174,
+   hipZ: -0.047,
+   kneeY: 0.393,
+   ankleY: 0.194,
+   toeZ: 0.282,
+   heelZ: -0.185,
+   legDepth: 0.141,
+   legOuterX: 0.338,
+   hemY: 0.713,
+   spineY: 0.912,
+   chestY: 1.039,
+   neckY: 1.458,
+   headY: 1.521,
+   spineZ: 0.016,
+   shoulderBlend: 0.055,
+   elbowBlend: 0.046,
+   hipBlend: 0.079,
+   kneeBlend: 0.059,
+   ankleBlend: 0.035,
+   crotchBlend: 0.061,
+   spineBlend: 0.038,
+   neckBlend: 0.032,
+};
+
+/**
+ * The space-repair astronaut's joints (GLB units: 1.823 tall, reach 0.945; bulky suit, round helmet,
+ * a backpack on the GLB), measured 2026-10-08. The estimate's set but: armRadius 0.115 (estimate
+ * 0.099): the suit's arms span y 1.02-1.23; armSpread 0.24 (estimate 0.202): the gloves hang clear
+ * of the suit's hips; hemY = crotchY (the estimate's 0.577 is the bulky thighs). The helmet (from
+ * headY 1.352 + its blend) is rigid.
+ */
+export const ASTRONAUT_LANDMARKS: HumanoidLandmarks = {
+   shoulderY: 1.123,
+   shoulderX: 0.309,
+   shoulderZ: 0.047,
+   armRadius: 0.115,
+   clavicleX: 0.155,
+   elbowX: 0.532,
+   wristX: 0.754,
+   armSpread: 0.24,
+   crotchY: 0.684,
+   hipY: 0.751,
+   hipX: 0.18,
+   hipZ: -0.007,
+   kneeY: 0.376,
+   ankleY: 0.185,
+   toeZ: 0.313,
+   heelZ: -0.156,
+   legDepth: 0.133,
+   legOuterX: 0.319,
+   hemY: 0.684,
+   spineY: 0.863,
+   chestY: 0.974,
+   neckY: 1.291,
+   headY: 1.352,
+   spineZ: -0.006,
+   shoulderBlend: 0.059,
+   elbowBlend: 0.05,
+   hipBlend: 0.075,
+   kneeBlend: 0.056,
+   ankleBlend: 0.034,
+   crotchBlend: 0.066,
+   spineBlend: 0.033,
+   neckBlend: 0.03,
+};
+
+/**
+ * The alien-farm alien's joints (GLB units: 1.890 tall, reach 0.928; a big head with antennae on a
+ * short neck, shirt, short dungarees, boots), measured 2026-10-08. The estimate's set but:
+ * armRadius 0.105 (estimate 0.089): the rolled sleeves span y 0.93-1.12; hemY = crotchY (the
+ * estimate's 0.473 is the dungaree legs). The head joint at the top of the short neck (headY 1.142,
+ * the estimate) keeps the head and antennae rigid.
+ */
+export const ALIEN_LANDMARKS: HumanoidLandmarks = {
+   shoulderY: 1.027,
+   shoulderX: 0.3,
+   shoulderZ: -0.043,
+   armRadius: 0.105,
+   clavicleX: 0.15,
+   elbowX: 0.52,
+   wristX: 0.739,
+   armSpread: 0.25,
+   crotchY: 0.551,
+   hipY: 0.613,
+   hipX: 0.179,
+   hipZ: -0.022,
+   kneeY: 0.306,
+   ankleY: 0.18,
+   toeZ: 0.29,
+   heelZ: -0.178,
+   legDepth: 0.115,
+   legOuterX: 0.306,
+   hemY: 0.551,
+   spineY: 0.737,
+   chestY: 0.861,
+   neckY: 1.126,
+   headY: 1.142,
+   spineZ: -0.001,
+   shoulderBlend: 0.053,
+   elbowBlend: 0.045,
+   hipBlend: 0.061,
+   kneeBlend: 0.046,
+   ankleBlend: 0.022,
+   crotchBlend: 0.055,
+   spineBlend: 0.037,
+   neckBlend: 0.008,
+};
+
+/**
+ * The zoo-escape keeper's joints (GLB units: 1.892 tall, reach 0.951; safari hat, short-sleeved
+ * shirt, neckerchief, shorts, hiking boots), measured 2026-10-08. The estimate's set but:
+ * armRadius 0.11 (estimate 0.073): the short sleeves span y 1.10-1.31 about shoulderY 1.213, so they
+ * hang with the arm instead of staying out as fins; hemY = crotchY (the estimate's 0.536 is the
+ * shorts). The hat (from y 1.48) is above the head joint, rigid.
+ */
+export const ZOO_KEEPER_LANDMARKS: HumanoidLandmarks = {
+   shoulderY: 1.213,
+   shoulderX: 0.286,
+   shoulderZ: -0.074,
+   armRadius: 0.11,
+   clavicleX: 0.143,
+   elbowX: 0.519,
+   wristX: 0.752,
+   armSpread: 0.181,
+   crotchY: 0.71,
+   hipY: 0.782,
+   hipX: 0.167,
+   hipZ: -0.059,
+   kneeY: 0.391,
+   ankleY: 0.179,
+   toeZ: 0.257,
+   heelZ: -0.205,
+   legDepth: 0.121,
+   legOuterX: 0.323,
+   hemY: 0.71,
+   spineY: 0.911,
+   chestY: 1.041,
+   neckY: 1.372,
+   headY: 1.435,
+   spineZ: -0.01,
+   shoulderBlend: 0.044,
+   elbowBlend: 0.037,
+   hipBlend: 0.078,
+   kneeBlend: 0.059,
+   ankleBlend: 0.037,
+   crotchBlend: 0.065,
+   spineBlend: 0.039,
+   neckBlend: 0.032,
+};
+
+const character = (id: ExpansionCharacterId, slug: string, landmarks: HumanoidLandmarks, fallbackColor: string): ModelAsset => ({
+   id,
+   url: `/models/3d/${slug}/${id}.glb`,
+   scale: EXPANSION_CHARACTER_HEIGHT[id] / EXPANSION_CHARACTER_GLB_HEIGHT[id],
+   humanoid: { landmarks },
+   fallback: "capsule",
+   fallbackColor,
+   budget: { ...CHARACTER_BUDGET },
+});
+
+export const EXPANSION_CHARACTERS: Record<ExpansionCharacterId, ModelAsset> = {
+   knight: character("knight", "shared", KNIGHT_LANDMARKS, "#2563eb"),
+   snowKid: character("snowKid", "snowball-battle", SNOW_KID_LANDMARKS, "#e5e7eb"),
+   astronaut: character("astronaut", "space-repair", ASTRONAUT_LANDMARKS, "#f8fafc"),
+   alien: character("alien", "alien-farm", ALIEN_LANDMARKS, "#4ade80"),
+   keeper: character("keeper", "zoo-escape", ZOO_KEEPER_LANDMARKS, "#d6c29a"),
+};
