@@ -23,7 +23,7 @@ Claude-only file (decision D10). The work board and the effort ledger are update
 
 | Item | Value | Date |
 |---|---|---|
-| Hyper3D balance | 31 credits (the charge per Gen-2.5 Medium generation is confirmed by the balance after batch 1; plan assumes 0.5) | 2026-10-08 |
+| Hyper3D balance | **14 credits** after 34 generations (27 core + 5 tier 3 + 2 retries); charge confirmed **0.5 per Gen-2.5-Medium generation** (31 -> 17.5 after the 27 core). IDs in %USERPROFILE%\.play50\hyper3d\*-ids.txt | 2026-10-08 |
 | Codex | Plus plan (the smallest: small tasks, one at a time) | 2026-10-08 |
 | Kimi | Pro plan | 2026-10-08 |
 | Antigravity | Pro plan | 2026-10-08 |
@@ -45,7 +45,8 @@ Known local issues: port 3100 is held by an old `next start` from `.claude/workt
 - P-26 kickoff done (2026-10-08): CLIs installed and logged in, `p50-codex` worktree, probe branches, pilots of all four agents (above).
 - P-01 baseline (Antigravity, 2026-10-08): all 10 games render at 1280x800 and 390x844 with the cookie banner open, Retry x3 ok, no overlaps; frame times p50 16.7 / p95 17.2-17.8 ms, but measured in headless Chrome (vsync-capped, desktop GPU), so they are a smoke baseline, not phone numbers; it reported `__towerProbe` missing although tower-climb sets it (Scene.tsx:185). Screenshots and `audit_results.json` in `%USERPROFILE%\.gemini\antigravity\brain\bce5aadd-dee1-472d-a6c6-551e07e29d9c\scratch\`. Real-phone numbers come with `tools/perf` (P-07).
 - **P-02 merged 2026-10-08** (`3eb92de`): 30 slugs, `status: "dev"`, collections, `NEXT_PUBLIC_ARCADE_PREVIEW`, 20 stubs, `arcade-games.json` v3 (20 disabled entries, provisional limits; no server upload needed until a new game goes live), `REUSED_ASSETS`, tools/thumbs + og. Checked: production flags = the same 10 cards, `/3d/treasure-island` 404; preview = 3 sections, dev routes 200 + noindex. Follow-ups: dev cards are not clickable in preview (the UI kit links only live cards: P-08), the `tools/og` arcade card still says "10 mini-games" (regenerate when the first new game goes live), chef/cleaner landmarks still in their game folders.
-- Nothing of the expansion is built yet. The 10 original games are unchanged.
+- Core v3 (P-02, P-03, P-04, P-05, P-08) merged on 2026-10-08; P-06 (Kimi audio) waits for its quota, then P-07 (Kimi tools). After P-06 is merged, register `stopAllLoops` in core/loopControl.ts (one line, TODO(P-06)). Then core freeze v3.0 and the reference game treasure-island (P-14 design for the user's approval).
+- The 10 original games are unchanged (perf calls per game equal to the P-03 baseline after every merge).
 
 ## Work board (active branches)
 
@@ -53,7 +54,9 @@ Known local issues: port 3100 is held by an old `next start` from `.claude/workt
 |---|---|---|---|---|---|---|
 | codex/core-helpers | Codex | CLI | p50-codex | core/{ballistics,path,motion,kinematics}.ts, core/ai/** | P-04 **merged** `55924ab` (after 1 fix round, re-review: all 12 mutation probes caught) | 2026-10-08 |
 | kimi/core-audio | Kimi | CLI | p50-kimi | core/audio.ts, audio.test.ts, README "Sound" | P-06 committed `17c95d8`; review: merge after fixes (LFO ignores volume, engine pitch, set after stop, NaN, disconnect, ramp/master tests, README); fix round 1 **stopped by Kimi's 5-hour quota** at 18:54 with audio.ts fixed and audio.test.ts half-updated (uncommitted in p50-kimi): rerun "finish fix round 1" after the quota resets | 2026-10-08 |
-| claude/expansion-fx | Claude | – | .claude/worktrees/fx | core/** (no game folders) | P-03 in progress (loop wiring behind core/loopControl.ts until P-06 merges) | 2026-10-08 |
+| claude/expansion-fx | Claude | – | .claude/worktrees/fx | core/** | P-03 **merged** `a005f96` (review: shake undo, declines cap, percentile test fixed; DPR cap documented as a deviation in 06 §10.4; iPhone bottom inset to check on a real phone) | 2026-10-08 |
+| claude/expansion-input-rig | Claude | – | .claude/worktrees/p05 | core/** | P-05 **merged** `88f5c2e` (review: pointer capture for aim drag, layout-effect attachments/looks, `tinted` pools) | 2026-10-08 |
+| claude/assets-batch-1 + claude/assets-characters-b23 | Claude | – | assets1, chars | public/models/3d, core/modelManifest, sharedAssets, rig tests | **merged** `ff0b06a`: 22 props/creatures (EXPANSION_ASSETS, sizes, points, tests) + tier 3 + rock/suitcase v2 + 5 rigged characters (knight, snowKid, astronaut, alien, keeper; landmarks + checks). Known looks: suitcase keeps a trolley handle (tint in code), vacuum straps, plane is a prop plane, crab 4 legs, astronaut backpack (= jetpack), knight armour glossy black (material override possible) | 2026-10-08 |
 | codex/probe | Codex | CLI | p50-codex | none (report only) | P-00 (done, CLI ok) | 2026-10-08 |
 | kimi/probe | Kimi | CLI | p50-kimi | none (report only) | P-00 (done, CLI ok) | 2026-10-08 |
 | antigravity/probe | Antigravity | copy-paste | p50-antigravity | none (report only) | P-00 (done 2026-10-08: auto-loads AGENTS.md only; project skills auto-load from `.agents/skills/`; build, tsc, vitest 1144 tests pass; can push; WebGL drew robot-collector on port 3102, but through its own headless Chrome CDP script, not the interactive browser agent; quota only in the app UI) | 2026-10-08 |
