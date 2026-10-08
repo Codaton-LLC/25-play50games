@@ -49,7 +49,10 @@ import {
 } from "./scores";
 import { formatDuration } from "./format";
 import { isPausable, isResultShown } from "./frameLoop";
+import { createRunTickets } from "./runTicket";
+import { ARCADE_LEADERBOARD } from "../flags";
 import { useAuth } from "@/contexts/AuthContext";
+import { arcadeApi } from "@/lib/api/arcade";
 import { getJwtToken } from "@/lib/api/apiUtils";
 import LoginModal from "@/components/Auth/LoginModal";
 import RegisterModal from "@/components/Auth/RegisterModal";
@@ -190,6 +193,10 @@ interface Outcome {
    run: FinishedRun;
    result: SubmitResult | null;
    saving: boolean;
+   /** who played the run (null = guest): "Save to my account" merges guest runs or resends own runs only */
+   userId: number | null;
+   /** the run's single-use ticket (memory only), resent only by the same user */
+   runToken: string | null;
 }
 
 const END_TITLES: Record<string, string> = {
@@ -232,6 +239,17 @@ export default function GameShell({ meta, definition, exitHref = "/3d" }: GameSh
    userRef.current = user;
    const retryLeaderboardRef = useRef(leaderboard.retry);
    retryLeaderboardRef.current = leaderboard.retry;
+   // one ticket context per shell mount (core/runTicket.ts); requests never block the countdown
+   const [tickets] = useState(() =>
+      createRunTickets({
+         startRun: (slug) => arcadeApi.startRun(slug),
+         getState: () => arcadeStore.getState(),
+         getUserId: () => userRef.current?.id ?? null,
+         hasJwt: () => !!getJwtToken(),
+         enabled: () => ARCADE_LEADERBOARD,
+      })
+   );
+   useEffect(() => () => tickets.reset(), [tickets]);
 
    const pause = useCallback(() => arcadeStore.getState().pause(), []);
    const exit = useCallback(() => router.push(exitHref), [router, exitHref]);
@@ -302,16 +320,20 @@ export default function GameShell({ meta, definition, exitHref = "/3d" }: GameSh
          const ranked = isRankedRun(scoring, state.endReason);
          const run: FinishedRun = ranked ? normalized : { ...normalized, score: 0 };
          const runId = state.runId;
+         const userId = userRef.current?.id ?? null;
+         // frozen at the end: a ticket that arrives later is too late for this run
+         const ticket = tickets.ticketFor(runId, userId);
          playSfx(state.endReason === "win" ? "win" : "lose");
-         trackArcade("arcade_game_over", { game: slug, score: run.score, duration_ms: run.durationMs });
+         trackArcade("arcade_game_over", { game: slug, score: run.score, duration_ms: run.durationMs, ticket: ticket.outcome });
 
          if (!ranked) {
-            setOutcome({ runId, run, result: unrankedResult(slug, userRef.current?.id ?? null), saving: false });
+            setOutcome({ runId, run, result: unrankedResult(slug, userId), saving: false, userId, runToken: null });
             return;
          }
-         setOutcome({ runId, run, result: null, saving: true });
+         setOutcome({ runId, run, result: null, saving: true, userId, runToken: ticket.token });
 
-         submitScore(run, userRef.current?.id ?? null)
+         // one upload: with the ticket when it was kept, otherwise without (the server decides)
+         submitScore(run, userId, ticket.token)
             .then((result) => {
                setOutcome((current) => (current && current.runId === runId ? { ...current, result, saving: false } : current));
                if (result.isNewBest) {
@@ -337,8 +359,11 @@ export default function GameShell({ meta, definition, exitHref = "/3d" }: GameSh
       // the store may already be over (e.g. a fast remount); handle it once
       const now = arcadeStore.getState();
       if (now.phase === "over") finishRun(now);
+      if (now.phase === "countdown") tickets.onRunStart(now.runId, slug);
 
       return arcadeStore.subscribe((state, prev) => {
+         // every new run (Play, Retry, Restart from pause or from the countdown) asks for its ticket
+         if (state.phase === "countdown" && state.runId !== prev.runId) tickets.onRunStart(state.runId, slug);
          if (state.phase === prev.phase) return;
          if (state.phase === "playing" && prev.phase === "countdown") {
             playSfx("go");
@@ -349,7 +374,7 @@ export default function GameShell({ meta, definition, exitHref = "/3d" }: GameSh
          if (state.phase === "countdown" && (prev.phase === "over" || prev.phase === "ready")) setOutcome(null);
          if (state.phase === "over") finishRun(state);
       });
-   }, [definition, meta.slug, meta.scoring, exit]);
+   }, [definition, meta.slug, meta.scoring, exit, tickets]);
 
    // Esc / P toggle pause
    useEffect(() => {
@@ -419,9 +444,11 @@ export default function GameShell({ meta, definition, exitHref = "/3d" }: GameSh
       const current = outcome;
       const account = userRef.current;
       if (!current || !account) return;
+      // another account's run is never merged or sent; a guest run is merged without a ticket
+      if (current.userId !== null && current.userId !== account.id) return;
       const runId = current.runId;
       setOutcome({ ...current, saving: true, result: null });
-      saveRunToAccount(current.run, account.id)
+      saveRunToAccount(current.run, account.id, current.userId === account.id ? current.runToken : null)
          .then((result) => {
             setOutcome((value) => (value && value.runId === runId ? { ...value, result, saving: false } : value));
             if (result.status === "synced") retryLeaderboardRef.current();
@@ -465,7 +492,9 @@ export default function GameShell({ meta, definition, exitHref = "/3d" }: GameSh
    const result = outcome?.result ?? null;
    const loginRequired = result?.status === "login-required";
    // saving needs a JWT; a cookie-only session or a token dropped after a 401 must log in again
-   const canSaveToAccount = !!user && !!getJwtToken();
+   // and only the run's own player, or anyone for a guest run
+   const canSaveToAccount =
+      !!user && !!getJwtToken() && (outcome?.userId == null || outcome.userId === user.id);
    const frameloop = contextLost ? "never" : phase === "paused" ? "demand" : "always";
 
    return (

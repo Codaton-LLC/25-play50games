@@ -177,6 +177,91 @@ describe("submitScore", () => {
    });
 });
 
+describe("run tickets", () => {
+   const synced = {
+      success: true,
+      data: { slug: "robot-collector", score: 900, best_score: 900, is_new_best: true, plays: 1, rank: 2 },
+   };
+
+   it("sends the run's ticket with the score, once", async () => {
+      flags.ARCADE_LEADERBOARD = true;
+      local.setItem("play50games_jwt_token", "jwt");
+      api.submit.mockResolvedValue(synced);
+      const result = await submitScore(run({ finishedAt: "2026-10-08T09:00:00.000Z" }), 7, "r1.ticket");
+      expect(api.submit).toHaveBeenCalledTimes(1);
+      expect(api.submit).toHaveBeenCalledWith({ slug: "robot-collector", score: 900, duration_ms: 45000, run_token: "r1.ticket" });
+      expect(result.status).toBe("synced");
+   });
+
+   it("submits without a ticket exactly as before when there is none", async () => {
+      flags.ARCADE_LEADERBOARD = true;
+      local.setItem("play50games_jwt_token", "jwt");
+      api.submit.mockResolvedValue(synced);
+      await submitScore(run({ finishedAt: "2026-10-08T09:01:00.000Z" }), 7, null);
+      expect(api.submit.mock.calls[0][0]).toEqual({ slug: "robot-collector", score: 900, duration_ms: 45000 });
+      expect(api.submit.mock.calls[0][0]).not.toHaveProperty("run_token");
+   });
+
+   it("never sends a ticket for a guest (nothing is uploaded)", async () => {
+      flags.ARCADE_LEADERBOARD = true;
+      const result = await submitScore(run(), null, "r1.ticket");
+      expect(result.status).toBe("login-required");
+      expect(api.submit).not.toHaveBeenCalled();
+   });
+
+   it("maps a 'required' rejection to ranking-unavailable and keeps the JWT", async () => {
+      flags.ARCADE_LEADERBOARD = true;
+      local.setItem("play50games_jwt_token", "jwt");
+      api.submit.mockRejectedValue(new ArcadeApiError("invalid_data", "no", 400, "required"));
+      const result = await submitScore(run({ finishedAt: "2026-10-08T09:02:00.000Z" }), 7);
+      expect(result.status).toBe("ranking-unavailable");
+      expect(local.getItem("play50games_jwt_token")).toBe("jwt");
+      expect(readLocalScores(7)["robot-collector"]!.best).toBe(900);
+   });
+
+   it.each(["malformed", "signature", "expired", "elapsed", "used"])(
+      "maps the ticket reason %s to rejected, never to a login",
+      async (reason) => {
+         flags.ARCADE_LEADERBOARD = true;
+         local.setItem("play50games_jwt_token", "jwt");
+         api.submit.mockRejectedValue(new ArcadeApiError("invalid_data", "no", 400, reason));
+         const result = await submitScore(run({ finishedAt: `2026-10-08T09:03:00.000Z` }), 7, "r1.ticket");
+         expect(result.status).toBe("rejected");
+         expect(local.getItem("play50games_jwt_token")).toBe("jwt");
+      }
+   );
+
+   it("Save to my account by the same user resends with the same ticket and adds no second local play", async () => {
+      flags.ARCADE_LEADERBOARD = true;
+      local.setItem("play50games_jwt_token", "dead");
+      const finished = run({ finishedAt: "2026-10-08T09:04:00.000Z" });
+      api.submit.mockRejectedValueOnce(new ArcadeApiError("unauthorized", "no", 401));
+      const first = await submitScore(finished, 7, "r1.ticket");
+      expect(first.status).toBe("login-required");
+      expect(readLocalScores(7)["robot-collector"]!.plays).toBe(1);
+
+      local.setItem("play50games_jwt_token", "fresh");
+      api.submit.mockResolvedValueOnce(synced);
+      const second = await saveRunToAccount(finished, 7, "r1.ticket");
+      expect(second.status).toBe("synced");
+      expect(api.submit).toHaveBeenCalledTimes(2);
+      expect(api.submit.mock.calls[1][0]).toMatchObject({ run_token: "r1.ticket" });
+      expect(readLocalScores(7)["robot-collector"]!.plays).toBe(1);
+   });
+
+   it("a guest run saved to an account merges once and goes up without a ticket", async () => {
+      flags.ARCADE_LEADERBOARD = true;
+      const finished = run({ finishedAt: "2026-10-08T09:05:00.000Z" });
+      await submitScore(finished, null);
+      local.setItem("play50games_jwt_token", "jwt");
+      api.submit.mockResolvedValue(synced);
+      const result = await saveRunToAccount(finished, 12);
+      expect(result.status).toBe("synced");
+      expect(api.submit.mock.calls[0][0]).not.toHaveProperty("run_token");
+      expect(readLocalScores(12)["robot-collector"]!.plays).toBe(1);
+   });
+});
+
 describe("saveRunToAccount", () => {
    it("counts a retried run once per account", async () => {
       flags.ARCADE_LEADERBOARD = true;

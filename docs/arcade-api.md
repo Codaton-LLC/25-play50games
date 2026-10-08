@@ -22,7 +22,7 @@ Plan context: `docs/platform-plan.md` §3. If this file and the plan differ, thi
 | Files never edited | `includes/rest-api.php`. `functions.php` only gets guarded `require_once` lines (Claude) |
 | Prefixes | PHP functions `play50_arcade_*`, admin functions `play50_arcade_admin_*`, transients `p50a_*` |
 | Kill switch | `enabled:false` in `arcade-games.json`: that game's submit and leaderboard return 404 |
-| Reserved | `POST /arcade/runs/start` (Phase 5 run tokens). Until then `run_token` is accepted and ignored |
+| Run tokens | `POST /arcade/runs/start` issues a signed single-use ticket; a submit that carries `run_token` is verified (§7a). Enforcement switch `PLAY50_ARCADE_REQUIRE_RUN_TOKEN`, default **off**: tokenless submits (old clients) are accepted until it is turned on |
 
 Load order in `functions.php`, after the `rest-api.php` include:
 ```php
@@ -37,10 +37,10 @@ foreach (array('/includes/arcade-api.php', '/wt-cpt/arcade-scores-admin.php') as
 
 ## 2. Table
 
-`{$wpdb->prefix}play50_arcade_scores`: one row per (user, game).
+`{$wpdb->prefix}play50_arcade_scores`: one row per (user, game). Since DB version `'2'` a second table, `{$wpdb->prefix}play50_arcade_runs`, holds run-token claims (§7a); the install runs `dbDelta` on both and records the version only when `SHOW TABLES` finds both. The excerpt below is the version-1 install; `arcade-api.php` is the source.
 
 ```php
-define('PLAY50_ARCADE_DB_VERSION', '1');
+define('PLAY50_ARCADE_DB_VERSION', '1'); // '2' since run tokens
 
 function play50_arcade_table() {
     global $wpdb;
@@ -101,6 +101,17 @@ dbDelta rules (keep them when the schema changes):
 | `hidden` | `1` = excluded from leaderboards and ranks (set by ban, cleared by unban) |
 | `best_at` | When `best_score` was set (tie-break: earlier wins) |
 | `last_played` | Latest accepted run |
+
+`{$wpdb->prefix}play50_arcade_runs` (claims only; a ticket is stored nowhere until its submit claims it):
+
+| Column | Meaning |
+|---|---|
+| `run_nonce` | `char(32)`, the ticket's 128-bit nonce in hex, primary key (single use) |
+| `user_id`, `game_slug` | Who claimed it, for which game (index `user_game`; deleted with the user) |
+| `issued_ms`, `expires_ms` | The ticket's signed server times (index `expires`, for cleanup) |
+| `used_ms` | When the claim happened |
+
+Rows are deleted only after `expires_ms` (opportunistic cleanup, §7a), so a replay within the ticket's life always finds its claim; after that the signed expiry rejects it anyway.
 
 ---
 
@@ -202,7 +213,7 @@ All errors are `WP_Error` → `{"code":"...","message":"...","data":{"status":N,
 | `invalid_api_key` | 403 | Wrong API key (same helper) | `api_key` |
 | `unauthorized` | 401 | No Bearer token, bad signature, expired, or user deleted | `unauthorized` (client drops the token) |
 | `forbidden` | 403 | User has `play50_arcade_banned` | `banned` |
-| `invalid_data` | 400 | Bad body or limits violated; `data.field` = `slug` / `score` / `duration_ms` / `hide_name` | `invalid_data` |
+| `invalid_data` | 400 | Bad body or limits violated; `data.field` = `slug` / `score` / `duration_ms` / `hide_name` / `run_token`. Run-token failures add `data.reason` (§7a) | `invalid_data` (`reason` kept on the error; `required` → status `ranking-unavailable`) |
 | `not_found` | 404 | Unknown or disabled slug | `not_found` |
 | `rate_limited` | 429 | §8; `data.retry_after` = seconds to wait | `rate_limited` |
 | `db_error` | 500 | `$wpdb` failure. Message is generic; `$wpdb->last_error` only goes to `error_log` | `server` |
@@ -221,7 +232,7 @@ Note: when `PLAY50_API_KEY` is not defined, the existing helper allows every req
 |---|---|---|
 | **public** | `play50_check_api_key_permission()` | `GET /arcade/games`, `GET /arcade/leaderboard/<slug>` |
 | **user** | 1. API key (as above)<br>2. Token: `play50_get_jwt_from_header()`, fallback `Bearer` parsed from `$request->get_header('authorization')` (covers hosts that only set `REDIRECT_HTTP_AUTHORIZATION`)<br>3. `$uid = play50_get_user_id_from_jwt($token)`; `0` → `unauthorized`<br>4. `get_userdata($uid)` false (deleted user) → `unauthorized` | `GET/POST /arcade/me*`, `POST /arcade/scores` |
-| **ban** | `get_user_meta($uid, 'play50_arcade_banned', true)` truthy → `forbidden` | `POST /arcade/scores` only (inside the callback, before body validation) |
+| **ban** | `get_user_meta($uid, 'play50_arcade_banned', true)` truthy → `forbidden` | `POST /arcade/scores` and `POST /arcade/runs/start` (inside the callback, before body validation) |
 
 - Implement steps 1-4 as `play50_arcade_auth_user(WP_REST_Request $request)` returning `WP_User|WP_Error`, memoized per request. Use it as the `permission_callback` (return the `WP_Error`, never `false`).
 - **Never** call `get_current_user_id()`, `is_user_logged_in()` or `wp_get_current_user()` in arcade code. A request with only WP cookies is a request without a token → 401. Bearer-only auth also means no CSRF surface.
@@ -237,6 +248,7 @@ Client mapping (`arcadeApi` in `arcade.ts`):
 | Method | Route | Permission | Client method |
 |---|---|---|---|
 | GET | `/arcade/games` | public | none (admin, debugging, tests) |
+| POST | `/arcade/runs/start` | user + ban | `startRun()` (§6.6) |
 | POST | `/arcade/scores` | user + ban | `submit()` |
 | GET | `/arcade/leaderboard/(?P<slug>[a-z0-9-]{1,40})` | public, JWT optional | `leaderboard()` |
 | GET | `/arcade/me` | user | `me()` |
@@ -249,8 +261,9 @@ All success responses are HTTP 200. Field order below is the output order (tests
 
 Response (all games, enabled or not):
 ```json
-{ "games": { "robot-collector": { "title": "Robot Collector", "kind": "points", "max_score": 1470, "min_duration_ms": 12500, "max_duration_ms": 62000, "base": 600, "max_pps": 120, "time_base_ms": null, "enabled": false } } }
+{ "games": { "robot-collector": { "title": "Robot Collector", "kind": "points", "max_score": 1470, "min_duration_ms": 12500, "max_duration_ms": 62000, "base": 600, "max_pps": 120, "time_base_ms": null, "enabled": false } }, "run_tokens": { "mode": "optional", "ready": true } }
 ```
+`run_tokens` (since run tokens; an older server has no such key): `mode` is `"required"` while the enforcement switch is on, else `"optional"`; `ready` is `true` once the claims table is installed (DB version 2). This is the read-only way to check a backend upload and the switch (cached up to 300 s).
 Errors: `missing_api_key`, `invalid_api_key`. Cache-Control: `public, max-age=300` + `Vary: Origin` (rest-api.php reflects the Origin in `Access-Control-Allow-Origin` and removes core's `rest_send_cors_headers`, which would normally add it).
 
 ### 6.2 `POST /arcade/scores`
@@ -261,7 +274,7 @@ Body (`ArcadeSubmitBody`):
 | `slug` | string | `^[a-z0-9-]{1,40}$` |
 | `score` | int | Required for points games. Ignored for time games (may be missing) |
 | `duration_ms` | int | Required |
-| `run_token` | string | Optional, ignored until Phase 5 |
+| `run_token` | string | Optional while enforcement is off; required when it is on. The `run_token` from `POST /arcade/runs/start`, unchanged. Verified whenever present (§7a). Missing or `null` = tokenless |
 
 "int" means a JSON integer (`is_int`) or a digit-only string up to 9 digits. Floats, negatives, booleans and `null` are `invalid_data`.
 
@@ -321,6 +334,16 @@ Object keyed by slug (`Partial<Record<ArcadeSlug, ArcadeMeEntry>>`). One key per
 - POST response: `{ "hide_name": true }`
 - Errors: `missing_api_key`, `invalid_api_key`, `unauthorized`, `invalid_data`, `rate_limited` (POST only). Cache-Control: `private, no-store`.
 
+### 6.6 `POST /arcade/runs/start`
+
+Body: `{ "slug": "robot-collector" }` (only `slug` is read). Response, HTTP 200, `Cache-Control: private, no-store`, exactly:
+```json
+{ "run_token": "r1.1791000000000.1791000362000.7c9e5b30f0124ca3b6df90a12f348bd7.<64 hex>" }
+```
+The ticket is opaque to the client (`isRunToken` only rejects junk). It never goes into a URL, storage, analytics or a log line.
+
+Order: API key → JWT/existing user (permission callback) → ban (`forbidden` 403) → slug format (`invalid_data` 400, `field: slug`) → known and enabled game (`not_found` 404) → start limits (§8, `rate_limited` 429) → claims table ready (else `db_error` 500: the client then submits without a ticket) → opportunistic cleanup → issue. Nothing is stored at issue. The route exists whatever the enforcement switch says. An older server answers `rest_no_route` 404, which the client treats as "no ticket".
+
 ---
 
 ## 7. Submit: validation order and scoring
@@ -340,6 +363,7 @@ The first failing step returns; later steps do not run.
 | 9 | `min_duration_ms <= duration_ms <= max_duration_ms` | `invalid_data` 400 |
 | 10a | Points: `score` is an int, `0 <= score <= max_score`, plausible (below) | `invalid_data` 400 |
 | 10b | Time: compute `score` (below), ignore the client value | none |
+| 10c | Run token (§7a): verified when present; required only while enforcement is on | `invalid_data` 400 with `reason`; `db_error` 500 |
 | 11 | Read previous `best_score`, then upsert (§9) | `db_error` 500 |
 | 12 | Read the row back, rank it, clear the slug cache if `is_new_best`, respond | `db_error` 500 |
 
@@ -355,6 +379,34 @@ $ok = $score * 1000 <= $game['base'] * 1000 + $game['max_pps'] * $duration_ms;
 ```php
 $score = min($game['max_score'], max(0, intdiv($game['time_base_ms'] - $duration_ms, 10)));
 ```
+
+## 7a. Run tokens
+
+Design and threat model: [run-tokens.md](run-tokens.md). Tokens give replay/plays hygiene and an issuance record, not ranking integrity (a forger with one account still posts the best score the limits accept).
+
+**Ticket.** `r1.<issued_ms>.<expires_ms>.<nonce>.<sig>`: server times in integer Unix ms (`play50_arcade_now_ms()`, 64-bit PHP), a 128-bit `random_bytes(16)` nonce in lowercase hex, and `sig` = lowercase hex HMAC-SHA256 over `r1|<user_id>|<slug>|<issued_ms>|<expires_ms>|<nonce>`. `expires_ms = issued_ms + max_duration_ms + 300000` (`PLAY50_ARCADE_RUN_TTL_SLACK_MS`). The key is derived from the site's own `wp_salt('auth')` with its own label (`hash_hmac('sha256', 'play50 arcade run token v1', wp_salt('auth'), true)`), or from `PLAY50_ARCADE_RUN_TOKEN_SECRET` when `wp-config.php` defines one of 32+ characters; nothing secret is in git. Changing the salts or that constant only invalidates the tickets in flight.
+
+**Enforcement switch.** `define('PLAY50_ARCADE_REQUIRE_RUN_TOKEN', true);` in `wp-config.php` (wins when defined; any value but `false`/`0`/`"0"`/`"false"` means on), else the option `play50_arcade_require_run_token` (`1`/`true` = on). Default **off**. `GET /arcade/games` reports it as `run_tokens.mode`.
+
+**Submit step 10c**, in this order (the first failure returns; rejections write nothing, so the ticket stays usable for a correct submit):
+
+| Check | Off (default) | On |
+|---|---|---|
+| `run_token` missing or `null` | Accepted on the legacy path; log `run_token tokenless <slug>` | `invalid_data` 400, `field: run_token`, `reason: required` |
+| Not exactly the ticket format | `reason: malformed` | same |
+| Claims table not ready (DB version ≠ 2) | Ticket ignored, legacy path; log `run_token not-ready <slug>` | `db_error` 500 |
+| Signature does not match this user, this slug and the ticket's own fields (another account, another game, a tampered time or nonce, a re-keyed site) | `reason: signature` | same |
+| `now_ms >= expires_ms` | `reason: expired` | same |
+| `duration_ms > now_ms − issued_ms + 1000` (`PLAY50_ARCADE_RUN_DURATION_SLACK_MS`; a backward server clock step lands here too) | `reason: elapsed`, `field: duration_ms` | same |
+| Claim: `INSERT IGNORE INTO {runs} (run_nonce, user_id, game_slug, issued_ms, expires_ms, used_ms)`; 0 rows → already used; `false` → `db_error` 500 | `reason: used` | same |
+
+Then the unchanged upsert (§9). The claim is one autocommitted statement before the upsert and is never undone: an upsert failure after it returns `db_error` and burns the ticket (the run stays saved on the device), and a "server has gone away" re-run of an applied claim reads as `used`. No transaction, no locking read. Every rejection logs `play50 arcade: run_token <reason> <slug>` (no user, IP, ticket or payload) and is `invalid_data` 400 with `field` and `reason`, never `unauthorized` (that would drop the JWT) or `forbidden`. Messages are fixed ("This run could not be verified. Play again to rank.").
+
+The 3 s gap and the other submit limits run before step 10c, so a rejected ticket still spends submit budget and a rate-limited submit never touches its ticket.
+
+**Cleanup.** A start runs `DELETE FROM {runs} WHERE expires_ms <= now LIMIT 1000` at most once per 10 minutes (transient `p50a_runs_gc`). Validity never depends on it: the signed expiry rejects an old ticket whether or not its claim row is gone. A deleted user's claim rows are deleted with their scores.
+
+**Client** (`core/runTicket.ts`, `core/scores.ts`, `GameShell`): with the leaderboard flag on and a logged-in user with a JWT, every new run's countdown sends one background `startRun(slug)`; play never waits for it. The ticket is kept only if it arrives while the same run is still in its countdown (or paused during it), for the same user, so an honest duration is always below the ticket's age. At the end the run is uploaded once: with the ticket when one was kept, otherwise without, exactly as before tickets existed (old server, offline, 404, 401, 429, 500 or a late answer). "Save to my account" resends the same ticket only for the run's own player; a guest run is merged and sent without one; another account's run is neither merged nor sent. `reason: required` maps to the status `ranking-unavailable`; every other ticket reason to `rejected`. Tickets live in memory only; `arcade_game_over` carries `ticket: ok | late | failed | none`.
 
 ---
 
@@ -392,6 +444,8 @@ function play50_arcade_ip_hash() {
 | Per hashed IP | `p50a_rl_ip_{ip_hash}` | 30 / 600 s | 3rd |
 | Register per hashed IP | `p50a_rl_reg_{ip_hash}` | 5 / 3600 s | `rest_pre_dispatch` |
 | Privacy change per user | `p50a_rl_priv_{uid}` | 10 / 60 s | `POST /arcade/me/privacy`, after auth |
+| Run start per user | `p50a_rl_start_u_{uid}` | 30 / 60 s | `POST /arcade/runs/start`, 1st (after ban, slug, game) |
+| Run start per hashed IP | `p50a_rl_start_ip_{ip_hash}` | 120 / 600 s | `POST /arcade/runs/start`, 2nd |
 
 A request rejected by a later check still counts toward the earlier ones. 429 body: `data.retry_after` = the helper's return value.
 
@@ -517,6 +571,9 @@ add_action('deleted_user', 'play50_arcade_on_deleted_user');
 function play50_arcade_on_deleted_user($user_id) {
     global $wpdb;
     $wpdb->delete(play50_arcade_table(), array('user_id' => (int) $user_id), array('%d'));
+    if (play50_arcade_run_tokens_ready()) {
+        $wpdb->delete(play50_arcade_runs_table(), array('user_id' => (int) $user_id), array('%d'));
+    }
     play50_arcade_clear_cache();
 }
 ```
@@ -535,7 +592,9 @@ A JWT that still exists for a deleted user gets 401 (§5, step 4).
 | `play50_arcade_clear_cache($slug = null)` | void. One slug, or all when null |
 | `play50_arcade_public_name($uid)` | The public name string (§10) |
 
-Internal (do not call from the admin page): `play50_arcade_install`, `play50_arcade_maybe_install`, `play50_arcade_game`, `play50_arcade_normalize_game`, `play50_arcade_auth_user`, `play50_arcade_hit`, `play50_arcade_ip_hash`, `play50_arcade_limit_register`, `play50_arcade_on_deleted_user`, `play50_arcade_empty_me_object`, `play50_arcade_register_routes`, the route callbacks and the small `play50_arcade_*` helpers (parsing, errors, rank, top-50).
+Also public for a later admin readiness panel (call behind `function_exists()`): `play50_arcade_runs_table()`, `play50_arcade_run_tokens_ready()`, `play50_arcade_run_token_required()`.
+
+Internal (do not call from the admin page): the other run-token helpers (`play50_arcade_now_ms`, `play50_arcade_run_token_*`, `play50_arcade_verify_run_token`, `play50_arcade_runs_gc`, `play50_arcade_start_run`), `play50_arcade_install`, `play50_arcade_maybe_install`, `play50_arcade_game`, `play50_arcade_normalize_game`, `play50_arcade_auth_user`, `play50_arcade_hit`, `play50_arcade_ip_hash`, `play50_arcade_limit_register`, `play50_arcade_on_deleted_user`, `play50_arcade_empty_me_object`, `play50_arcade_register_routes`, the route callbacks and the small `play50_arcade_*` helpers (parsing, errors, rank, top-50).
 
 | Hook | Callback |
 |---|---|
@@ -551,7 +610,12 @@ Internal (do not call from the admin page): `play50_arcade_install`, `play50_arc
 | `play50_arcade_games` | Override or extend the normalized game list |
 | `play50_arcade_client_ip` | Real client IP behind a trusted proxy |
 
-Before every upload: `php -l includes/arcade-api.php` and `php -l wt-cpt/arcade-scores-admin.php`.
+| Constant (`wp-config.php`, optional) | Default |
+|---|---|
+| `PLAY50_ARCADE_REQUIRE_RUN_TOKEN` | undefined = the option `play50_arcade_require_run_token`, itself off |
+| `PLAY50_ARCADE_RUN_TOKEN_SECRET` | undefined = key derived from `wp_salt('auth')` |
+
+Before every upload: `php -l includes/arcade-api.php` and `php -l wt-cpt/arcade-scores-admin.php`, plus the pure-PHP harness `php tools/arcade-php-tests/run.php` (and `... run.php constant-on`, `... run.php constant-off`) for any change to `arcade-api.php`. For `arcade-games.json`, `php -r 'json_decode(file_get_contents($argv[1]), true, 512, JSON_THROW_ON_ERROR); echo "ok\n";' includes/arcade-games.json`.
 
 ---
 

@@ -38,9 +38,10 @@ A file value overrides the corresponding environment variable. `--dry-run` needs
 | Option | Meaning |
 |---|---|
 | `--env FILE` | Read `WP`, `KEY`, and `JWT` assignments from a local env file. |
-| `--only GROUP` | Run just `reads`, `auth`, `validation`, `rate`, `privacy`, `time`, or `register`. Specify once. |
+| `--only GROUP` | Run just `reads`, `auth`, `validation`, `rate`, `privacy`, `time`, `register`, or `tokens`. Specify once. |
 | `--dry-run` | Print the selected request plan without network activity. |
 | `--api-key-gate open\|closed` | Select expected results for an absent/incorrect API key; default is `open`. |
+| `--run-token-mode optional\|required` | The server's run-token enforcement for the `tokens` group (`GET /arcade/games` → `run_tokens.mode`); default `optional`. |
 | `--help` | Print usage. |
 
 `SLUG` defaults to `robot-collector` and must be enabled on the test site. `TIME_SLUG` is optional (`escape-room` or `obstacle-race`) and must also be enabled; set it to run the time-game score calculation check. `RUN_REGISTER=1` adds the optional registration rate-limit check to a full run. `--only register` runs it regardless of that variable; it may block sign-ups from the test IP for one hour. The validation fixtures can be changed with `OK_SCORE`, `OK_MS`, `BAD_SCORE`, and `BAD_MS`; defaults match the §13 robot-collector contract.
@@ -54,6 +55,7 @@ Groups mirror §13:
 - `privacy`: read, hide, show, malformed body, and unauthenticated privacy updates. "board: shows Anonymous" reads the top 50, so it fails when the test user's score is not in the top 50 of a live board.
 - `time`: optional server-computed score for an enabled time game.
 - `register`: optional five-per-hour registration limit using empty bodies, so no account is created.
+- `tokens`: run tickets (`docs/arcade-api.md` §7a), only with `--only tokens` (its five or six score submits would push a full run over the budget). Checks `run_tokens` in the catalog, start auth/slug/game/cache/shape, then one private ticket: malformed and too-young (`elapsed`) rejections, an optional `OTHER_SLUG` (another enabled game) for `signature`, a real wait of `OK_MS` + 2 s, the accepted ticketed submit, its replay (`used`), and a tokenless submit (accepted in `optional`, `required` in `required` mode). The ticket stays in a shell variable: never printed, never in argv. It writes one or two counted plays for the test user; clean up as in §13.
 
 The default API-key gate is `open`, matching the current server where `PLAY50_API_KEY` is not configured. In open mode, catalog reads without or with a wrong key expect HTTP 200. The no-key score-auth probe uses the valid dedicated test JWT and score fixture, so the request reaches the submit handler and expects HTTP 200; this is a counted test score and must be removed by the §13 cleanup. With `--api-key-gate closed`, missing and invalid keys expect 401 and 403 respectively.
 

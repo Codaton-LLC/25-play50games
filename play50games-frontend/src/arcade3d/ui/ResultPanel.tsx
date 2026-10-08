@@ -84,6 +84,8 @@ function submitMessage(status: SubmitStatus | null, rank?: number | null): strin
          return "The leaderboard is unavailable right now. Saved on this device.";
       case "unranked":
          return "Finish the course to set a time. This run was not saved.";
+      case "ranking-unavailable":
+         return "Saved on this device. This run could not be ranked; play again to rank.";
       default:
          return "Saving…";
    }

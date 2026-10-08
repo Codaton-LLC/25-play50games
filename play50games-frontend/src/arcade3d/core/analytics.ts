@@ -7,6 +7,8 @@ export interface ArcadeEventPayload {
    game: string;
    score: number;
    duration_ms: number;
+   /** arcade_game_over only: how the run's ticket turned out (core/runTicket.ts), never the ticket */
+   ticket?: "ok" | "late" | "failed" | "none";
 }
 
 export function trackArcade(event: ArcadeEventName, payload: ArcadeEventPayload): void {
@@ -19,6 +21,7 @@ export function trackArcade(event: ArcadeEventName, payload: ArcadeEventPayload)
          game: payload.game,
          score: Math.round(payload.score),
          duration_ms: Math.round(payload.duration_ms),
+         ...(payload.ticket ? { ticket: payload.ticket } : {}),
       });
    } catch {
       // analytics must never break a game
