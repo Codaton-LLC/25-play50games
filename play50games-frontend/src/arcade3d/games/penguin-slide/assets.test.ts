@@ -64,7 +64,7 @@ describe("penguin-slide real GLB fits", () => {
       }
    });
 
-   it("raises the centred checkpoint flag's pole to the surface and fits 1.5 m", () => {
+   it("keeps the floor-normalized checkpoint flag's pole on the surface and fits 1.5 m", () => {
       const box = bounds(ASSETS.flag.url);
       expect(box.min.y).toBeCloseTo(FLAG_BOUNDS.minY, 5);
       expect(box.getSize(new Vector3()).y * ASSETS.flag.scale).toBeCloseTo(1.5, 5);

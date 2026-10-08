@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
-import { Vector3 } from "three";
+import { Fog, Vector3 } from "three";
 import CameraRig from "@/arcade3d/core/CameraRig";
 import { FRAME_PRIORITY } from "@/arcade3d/core/frameLoop";
 import { useGameTime } from "@/arcade3d/core/gameTime";
@@ -29,8 +29,9 @@ export function useReducedMotion(): boolean {
 
 export function ChaseCamera({ run, reduced, view }: { run: Run; reduced: boolean; view: FittedView }) {
    const camera = useThree((s) => s.camera);
+   const scene = useThree((s) => s.scene);
    const time = useGameTime();
-   const scratch = useMemo(() => ({ desired: new Vector3(), focus: new Vector3(0, 0, -10), up: new Vector3(), placed: false }), []);
+   const scratch = useMemo(() => ({ desired: new Vector3(), focus: new Vector3(0, 0, -10), up: new Vector3(), forward: new Vector3(), placed: false }), []);
    const config = useMemo(() => ({ position: [view.offset[0], view.offset[1], view.offset[2] - 10] as [number, number, number], lookAt: [0, 0, -10] as [number, number, number], fov: 50 }), [view.offset]);
    useEffect(() => { scratch.placed = false; }, [config, scratch]);
    useFrame(() => {
@@ -41,6 +42,13 @@ export function ChaseCamera({ run, reduced, view }: { run: Run; reduced: boolean
       const roll = reduced ? 0 : bank(run.steer * 2, 3 * Math.PI / 180);
       camera.up.set(Math.sin(roll), Math.cos(roll), 0);
       camera.lookAt(scratch.focus);
+      if (scene.fog instanceof Fog) {
+         // Linear fog uses view-space depth. Offset after fitting and pullback.
+         scratch.forward.copy(scratch.focus).sub(camera.position).normalize();
+         const d = -camera.position.dot(scratch.forward);
+         scene.fog.near = d + 22;
+         scene.fog.far = d + 46;
+      }
    }, FRAME_PRIORITY.camera);
    return <CameraRig camera={config} offset={view.offset} shift={view.shift} />;
 }

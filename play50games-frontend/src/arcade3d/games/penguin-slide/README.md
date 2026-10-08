@@ -63,7 +63,7 @@ Proof plan: assert ds<=22*dt for every step, chunk-wide reward budgets and non-r
 - `useFittedView`: fixed local area x=[-5,5], y=[0,4], forward=[-4,32], focus=[0,0,10]; pitch=25*pi/180, yaws=[0], padding=2, margin={top:0.11,bottom:0.08,left:0.03,right:0.03}, shift=true, fov=50. Refit only on canvas/safe-area changes, never speed or per frame. No `followFocus` or game `CameraRig follow`: the player does not translate longitudinally in this frame.
 - Scene owns camera `useFrame` at `FRAME_PRIORITY.camera`, after simulation; mutate preallocated vectors, camera position and lookAt directly using fixed fitted offset/focus. Apply speed pullback factor 1+0.2*(v/22), damping=6 with pause-safe game delta; snap on mount/rebase and keep distance >=fit. A static non-following CameraRig may own fitted lens shift only; it has no per-frame position writer. No per-frame React state or offset prop updates; custom camera pose is the sole frame writer before visuals/shake.
 - Cosmetic camera roll <=3 degrees; body/track bank <=12 degrees (`bank`, reference gravity 9.81). Disable camera roll and speed pullback for reduced motion. Penguin belly rotated 90 degrees, lifted from measured belly bounds to track+0.01; add air height and tangent orientation. No rig/T-pose requirements for this solid creature.
-- `environment`: background="#bae6fd", fog=["#bae6fd",25,56], lighting="snow". SkyDome, SnowFall count=300, ice/snow banks, pines, optional procedural arch cave and frozen-lake scenery have no rules colliders. Retain 3 slots: the next-slot end approaches 60 m ahead before recycle; full fog by camera depth 56 m conceals it, unlike [35,85]. Validate nearest edge depth >=56 m through curves/splits at both fit and maximum pullback; hazards retain >=20 m clear preview before fog begins. Fog adds no draw calls or resident geometry. No Rapier.
+- `environment`: snow lighting and sky background. Definition fog [25,56] is an initial value; ChaseCamera updates it after every fitted/damped pose. Three fog uses view-space depth: d is the penguin ground-origin depth, near=d+22 m, far=d+46 m. The player and 20 m preview remain clear across portrait/banner fits and pullback. At pitch 25 degrees a straight edge 60 m ahead adds about 54 m depth; a 20-degree curve retains about 51 m, past far. Browser QA must verify the nearest split/curve edge and preview silhouettes. No added geometry or draw calls.
 
 ## Core helpers used
 
@@ -167,8 +167,18 @@ Minimum proof: approved README's weakest third-crash bound >=9.87 s includes two
 Bot measurements: pending vitest; no measured best score/duration claimed. capScore no-op assertions are authored. The approved analytic maximum intentionally overcounts unreachable simultaneous rewards; the skill's >=90% max bot criterion is not asserted.
 Decisions: outer-bank obstacles preserve both split corridors; smooth tapers stay below the 4 m/s steering reach at 22 m/s; split branch lengths solved to 60 m; primitive launch pads have raised side rails with a clear centre; HUD follows measured shell chips.
 Open questions:
-- Camera/fog: fixed camera-depth fog [25,56] can fog the penguin and 20 m preview when portrait/banner fitting increases distance. Review this in Claude's screenshots; should fog distances be offset by fitted player depth? Approved values were retained.
+- Camera/fog: fix1 implements player view-depth d+[22,46]; portrait/banner and split-edge visual QA remains pending.
 - Claude: adopt 9000 ms minimum with the paired meta/server update after bot results? No server-owned files were changed.
 - P-06: confirm merged cue identifiers and loop API before replacing the explicit TODOs.
 Acceptance: awaiting Claude build/vitest/browser/perf results and any resulting fix round; do not promote beyond dev.
 ```
+
+### P-15-fix1 status
+
+Current flag GLB scene bounds measured: minY=0, height=1.8968853950500488. Its 1.5 m fit needs zero lift. Gate miss fixture excludes hazards: the original missed lane hit an obstacle before the gate. Production gate rules are unchanged. Split endpoints use 9-decimal component tolerance.
+
+Bot budget: 100 normal and 50 forced-speed survival runs at 20 fps; 64 limits runs at 60 fps, 16 at 20 fps, 16 seeded random-frame runs. Four legal modes rotate evenly (16 each at 60 fps; four each in smaller sets). Rules keep 1/120 s substeps. Pauses/countdown, terminal limits and capScore checks remain. Every played frame contributes to a maximum travel-excess assertion, replacing millions of matcher calls with one per run. No shared harness import.
+
+Claude measured baseline: 1,000 survival runs cost 559 s and 800 limits runs cost 231 s. Run reduction alone predicts about 84+87=171 s, insufficient for the target. Removing per-frame matcher overhead is the additional optimization; whole-file under-60 s timing awaits Claude Vitest. Diagnostic benchmark and TypeScript validation are recorded in the fix1 handoff; no new Vitest timing is claimed here. Build and browser QA also remain pending.
+
+Diagnostic measured 150 survival runs in 21.33 s and the initial 300 limits runs in 60.36 s (81.69 s total, standalone Node assertions, not Vitest). Therefore final limits sampling is 96 runs: 64/16/16 across frame schedules, each balanced across four modes. Linear measured-cost estimate is about 19.3 s for limits, 40.6 s combined, leaving about 19 s for course/assets and Vitest overhead. The taper reachability proof also aggregates maxima over all 480,000 samples instead of allocating two matchers per sample. Final whole-file timing still requires Claude validation.

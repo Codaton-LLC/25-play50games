@@ -10,7 +10,8 @@ export function bellyClearance(grade: number, roll: number, fallback = false): n
    const support = width * Math.abs(Math.sin(roll)) + 0.4 * Math.abs(Math.sin(slope) * (1 - cos)) + depth * (cos * Math.cos(slope) + grade * Math.sin(slope));
    return support - (depth + 0.01) * cos + 0.01;
 }
-export const FLAG_BOUNDS = { minY: -0.9476878643035889, height: 1.896885395050049 };
+// The current reused GLB is floor-normalized; shared aliases supply no fit.
+export const FLAG_BOUNDS = { minY: 0, height: 1.896885395050049 };
 const FLAG_SCALE = 1.5 / FLAG_BOUNDS.height;
 export const ASSETS = {
    penguin: { ...EXPANSION_ASSETS.penguin, scale: PENGUIN_SCALE },
