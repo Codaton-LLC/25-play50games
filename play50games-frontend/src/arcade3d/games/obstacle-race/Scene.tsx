@@ -58,7 +58,7 @@ import { useRunFrame } from "@/arcade3d/core/useRunFrame";
 import type { FittedView } from "@/arcade3d/core/view";
 import { ASSETS } from "./assets";
 import { DAMPING, followPoint, viewFor, type RaceView } from "./camera";
-import { archOpacity, clearPostArm, postArmWeight } from "./finishLooks";
+import { archOpacity, clearPostArm, fadeCopy, postArmWeight } from "./finishLooks";
 import {
    COLORS,
    CourseStatic,
@@ -419,6 +419,8 @@ const CheckpointGates = memo(function CheckpointGates({ run, fx }: { run: Obstac
  * before the Scene's gl.compile (children's layout effects run first), and only their opacity
  * changes. Copies, because the GLB's materials are shared with the useGLTF cache (core <Model>
  * clones the scene, not its materials). At opacity 1 it draws as before (it still writes depth).
+ * The copies are front-sided (finishLooks.ts fadeCopy): a transparent double-sided material is
+ * drawn in two passes, each looking its program up again, every frame the arch is in view.
  */
 const FinishArch = memo(function FinishArch({ run }: { run: ObstacleRun }) {
    const time = useGameTime();
@@ -430,9 +432,7 @@ const FinishArch = memo(function FinishArch({ run }: { run: ObstacleRun }) {
       if (!root) return;
       const swapped: Array<{ mesh: Mesh; original: Material | Material[] }> = [];
       const copy = (m: Material) => {
-         const c = m.clone();
-         c.transparent = true;
-         c.opacity = 1;
+         const c = fadeCopy(m);
          fade.materials.push(c);
          return c;
       };
