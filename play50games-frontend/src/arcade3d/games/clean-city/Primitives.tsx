@@ -36,8 +36,10 @@ const COLORS = {
    palm: "#15803d",
    palmTrunk: "#a16207",
    canopy: "#38bdf8",
-   hoodie: "#f97316",
-   headband: "#4ade80",
+   vest: "#f97316",
+   stripe: "#e5e7eb",
+   sleeve: "#374151",
+   hair: "#5b3a29",
    skin: "#fdba74",
    pants: "#1e293b",
    shoe: "#0f172a",
@@ -371,7 +373,7 @@ export function useLitterStandIns(): readonly (readonly InstancePart[])[] {
    return kinds;
 }
 
-// ---------- the runner's stand-in (<HumanoidModel> fallback until runner.glb is listed) ----------
+// ---------- the cleaner's stand-in (<HumanoidModel> fallback while cleaner.glb loads or if it fails) ----------
 
 /** Limb pivots. The parent writes rotation.x from the one walk phase. Arms hang down. */
 export interface RunnerLimbs {
@@ -382,24 +384,28 @@ export interface RunnerLimbs {
    bob: Group | null;
 }
 
-/** Vinyl-toy runner, arms down. Scene swings these groups from the shared humanoid pose. */
+/** Vinyl-toy cleaner in an orange hi-vis vest, arms down. Scene swings these groups from the humanoid pose. */
 export function PrimitiveRunner({ limbs }: { limbs: MutableRefObject<RunnerLimbs> }) {
    const set = (key: keyof RunnerLimbs) => (g: Group | null) => {
       limbs.current[key] = g;
    };
    return (
-      <group ref={set("bob")} name="runner-body">
+      <group ref={set("bob")} name="cleaner-body">
          <mesh position={[0, 0.5, 0]} castShadow={false}>
             <boxGeometry args={[0.4, 0.36, 0.24]} />
-            <meshStandardMaterial color={COLORS.hoodie} roughness={0.55} />
+            <meshStandardMaterial color={COLORS.vest} roughness={0.55} />
+         </mesh>
+         <mesh position={[0, 0.44, 0]}>
+            <boxGeometry args={[0.41, 0.04, 0.25]} />
+            <meshStandardMaterial color={COLORS.stripe} roughness={0.3} metalness={0.4} />
          </mesh>
          <mesh position={[0, 0.74, 0]}>
             <sphereGeometry args={[0.16, 14, 12]} />
             <meshStandardMaterial color={COLORS.skin} roughness={0.6} />
          </mesh>
-         <mesh position={[0, 0.84, 0]} rotation-x={Math.PI / 2}>
-            <torusGeometry args={[0.155, 0.03, 6, 14]} />
-            <meshStandardMaterial color={COLORS.headband} roughness={0.4} />
+         <mesh position={[0, 0.76, -0.01]} scale={[1, 0.85, 1]}>
+            <sphereGeometry args={[0.168, 14, 10, 0, Math.PI * 2, 0, Math.PI / 2]} />
+            <meshStandardMaterial color={COLORS.hair} roughness={0.8} />
          </mesh>
          <mesh position={[0, 0.74, 0.13]}>
             <sphereGeometry args={[0.035, 8, 8]} />
@@ -420,13 +426,13 @@ export function PrimitiveRunner({ limbs }: { limbs: MutableRefObject<RunnerLimbs
          <group ref={set("armL")} position={[-0.26, 0.6, 0]}>
             <mesh position={[0, -0.14, 0]}>
                <capsuleGeometry args={[0.05, 0.16, 4, 8]} />
-               <meshStandardMaterial color={COLORS.hoodie} roughness={0.55} />
+               <meshStandardMaterial color={COLORS.sleeve} roughness={0.6} />
             </mesh>
          </group>
          <group ref={set("armR")} position={[0.26, 0.6, 0]}>
             <mesh position={[0, -0.14, 0]}>
                <capsuleGeometry args={[0.05, 0.16, 4, 8]} />
-               <meshStandardMaterial color={COLORS.hoodie} roughness={0.55} />
+               <meshStandardMaterial color={COLORS.sleeve} roughness={0.6} />
             </mesh>
          </group>
       </group>

@@ -1,8 +1,9 @@
 // Clean the City drawn sizes: the litter stand-ins (the fallbackParts of the four
-// <DynamicInstancedModel> pools), the group C litter GLBs fitted to them, and the runner's scale.
+// <DynamicInstancedModel> pools), the group C litter GLBs fitted to them, and the cleaner's scale.
 // Collision never comes from these (rules.ts).
 import { describe, expect, it } from "vitest";
 import { Box3, Vector3, type BufferGeometry, type Material } from "three";
+import { hasModel } from "@/arcade3d/core/modelManifest";
 import { readCharacterGlb } from "@/arcade3d/core/rig/robotGlb";
 import { SHARED_ASSETS } from "@/arcade3d/core/sharedAssets";
 import type { ModelAsset } from "@/arcade3d/core/types";
@@ -90,15 +91,15 @@ describe("clean-city litter GLBs (group C)", () => {
    });
 });
 
-describe("clean-city runner", () => {
-   it("is the shared runner (runner.glb, measured) drawn about 1 unit tall, near its 0.90 stand-in", async () => {
-      expect(ASSETS.runner.url).toBe(SHARED_ASSETS.runner.url);
-      expect(ASSETS.runner.humanoid).toEqual(SHARED_ASSETS.runner.humanoid);
-      const { cloud } = await readCharacterGlb(ASSETS.runner.url);
+describe("clean-city cleaner", () => {
+   it("is this game's own cleaner.glb (listed, not the shared runner) drawn 0.95 tall, the runner's old height, near its 0.90 stand-in", async () => {
+      expect(ASSETS.cleaner.url).toBe("/models/3d/clean-city/cleaner.glb");
+      expect(hasModel(ASSETS.cleaner.url)).toBe(true);
+      expect(ASSETS.cleaner.url).not.toBe(SHARED_ASSETS.runner.url);
+      expect(Object.values(ASSETS).some((asset) => asset.url === SHARED_ASSETS.runner.url)).toBe(false);
+      const { cloud } = await readCharacterGlb(ASSETS.cleaner.url);
       let top = 0;
       for (let i = 1; i < cloud.length; i += 3) top = Math.max(top, cloud[i]);
-      const drawn = top * (ASSETS.runner.scale ?? 1);
-      expect(drawn).toBeGreaterThanOrEqual(0.9);
-      expect(drawn).toBeLessThanOrEqual(1);
+      expect(top * (ASSETS.cleaner.scale ?? 1)).toBeCloseTo(0.95, 3);
    });
 });

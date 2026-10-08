@@ -10,6 +10,9 @@
 // - Camera (constants in camera.ts): useFittedView + followFocus + CameraRig, yaw locked at 0, shift so the floor sits
 //   clear of the HUD, the map pill, the joystick and the cookie banner. A map change teleports
 //   the runner; the rig eases toward it (it only snaps on mount), so the view does not jump.
+// - The runner of the rules is drawn as the cleaner (cleaner.glb, auto-rigged): its gait (gait.ts)
+//   keeps the planted foot still at every speed in straight-line travel (while it turns the foot
+//   swings with the body: README "The cleaner"); a reach on each pickup, a cheer on a map clear.
 // - Litter: one <DynamicInstancedModel> pool per kind (PER_KIND = 5 copies), the stand-in parts
 //   (useLitterStandIns) as its fallbackParts. Collected copies hide. Map props: one InstancedModel
 //   per kind, all three maps mounted, Worlds sets visible from run.map in a useFrame. The park and
@@ -37,18 +40,16 @@ import {
    reachPose,
    useHumanoidPose,
    walkPose,
-   walkStride,
-   wrapPhase,
-   type HumanoidLandmarks,
    type HumanoidPose,
 } from "@/arcade3d/core/rig";
-import { RUNNER_LANDMARKS } from "@/arcade3d/core/sharedAssets";
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { useFittedView } from "@/arcade3d/core/useFittedView";
 import { useRunFrame } from "@/arcade3d/core/useRunFrame";
-import { ASSETS } from "./assets";
+import { ASSETS, CLEANER_LANDMARKS } from "./assets";
 import { DAMPING, FOLLOW, FOV, LOOK_AT, REACH, VIEW } from "./camera";
 import { CityDecor, ParkDecor } from "./Decor";
+import { CLEANER_SCALE, createCleanerGait, gaitFrameDt, stepCleanerGait } from "./gait";
+import { cheerWeight, reachWeight } from "./poseWeights";
 import { Beach, City, Park, PrimitiveRunner, RUNNER_RING, useLitterStandIns, type RunnerLimbs } from "./Primitives";
 import {
    ITEMS_PER_MAP,
@@ -56,7 +57,6 @@ import {
    LITTER_POINTS,
    NONE,
    PER_KIND,
-   RUNNER,
    START_PAD,
    capScore,
    createRun,
@@ -261,21 +261,8 @@ function Litter({ run, fx }: { run: CleanRun; fx: LitterFx }) {
    );
 }
 
-// ---------- runner ----------
+// ---------- the cleaner ----------
 
-/** runner.glb's measured joints (the complete set on the shared asset), in GLB units. */
-const RUNNER_LEGS: HumanoidLandmarks = RUNNER_LANDMARKS;
-/** assets.ts sets it for the drawn height; the stride and the lift are in world units through it. */
-const RUNNER_SCALE = ASSETS.runner.scale ?? 1;
-const MIN_STRIDE = 0.1;
-/**
- * Strides a second at most (as robot-collector and warehouse-rush). At scale 0.503 the walk's own
- * stride (0.77 at full speed) would beat about 6.5 times a second at 5 units/s; faster than this,
- * the stride stretches and the planted foot slides (about 38 % at full speed, README).
- */
-const MAX_CADENCE = 4;
-const REACH_S = 0.45;
-const CHEER_S = 1.15;
 const LIMB_Q = new Quaternion();
 const LIMB_E = new Euler();
 
@@ -307,42 +294,44 @@ function poseArm(pose: HumanoidPose, bone: number, drop: number, arm: Group, sid
 }
 
 /**
- * The shared runner: idle when still, a walk whose stride keeps the planted foot still, a short
- * reach on each pickup, and a cheer when a map is cleared. runner.glb (auto-rigged) takes the pose;
- * the primitive, shown while it loads or if it fails, moves with the same pose.
+ * The cleaner (cleaner.glb, this game's character): idle when still, a walk or a run whose stride
+ * keeps the planted foot still (gait.ts), a short reach on each pickup, and a cheer when a map is
+ * cleared and on the win (poseWeights.ts: eased in, held, eased out quickly through level).
+ * cleaner.glb (auto-rigged) takes the pose; the primitive, shown while it loads or if it fails,
+ * moves with the same pose.
  */
-function Runner({ run }: { run: CleanRun }) {
+function Cleaner({ run }: { run: CleanRun }) {
    const time = useGameTime();
    const root = useRef<Group>(null);
    const body = useRef<Group>(null);
    const standIn = useRef<Group>(null);
    const limbs = useRef<RunnerLimbs>({ legL: null, legR: null, armL: null, armR: null, bob: null });
-   const gait = useRef({ phase: 0, amount: 0, lift: 0 });
-   const fx = useRef({ collected: 0, map: 0, reachAt: -10, cheerAt: -10 });
+   const [gait] = useState(createCleanerGait);
+   const fx = useRef({ collected: 0, map: 0, won: false, reachAt: -10, cheerAt: -10 });
    const [scratch] = useState(createPose);
    const pose = useHumanoidPose((p) => {
-      const dt = time.delta;
       const t = time.now;
       const r = run.runner;
-      const v = Math.hypot(r.vx, r.vz);
-      const g = gait.current;
-      g.amount += (Math.min(1, v / RUNNER.speed) - g.amount) * (1 - Math.exp(-12 * dt));
-      const stride = Math.max(MIN_STRIDE, walkStride(g.amount, RUNNER_LEGS) * RUNNER_SCALE, v / MAX_CADENCE);
-      g.phase = wrapPhase(g.phase + (v * dt / stride) * Math.PI * 2);
-      walkPose(g.phase, g.amount, p);
-      blendPoses(p, idlePose(t, scratch), 1 - Math.min(1, g.amount * 5), p, POSE_MASK.upper);
+      const store = useArcadeStore.getState();
+      const { phase, endReason } = store;
+      // the rules keep the last velocity once the run is over: the cleaner stops there. While playing
+      // the phase steps by the play time the rules moved the runner (FRAME_PRIORITY.pose runs after
+      // the simulation, so frameMs is this frame's), never the longer animation delta
+      stepCleanerGait(gait, phase === "playing" ? Math.hypot(r.vx, r.vz) : 0, gaitFrameDt(store, time.delta));
+      walkPose(gait.phase, gait.amount, p);
+      blendPoses(p, idlePose(t, scratch), 1 - Math.min(1, gait.amount * 5), p, POSE_MASK.upper);
       const mark = fx.current;
+      const won = phase === "over" && endReason === "win";
       if (run.collected > mark.collected) mark.reachAt = t;
       mark.collected = run.collected;
-      if (run.map > mark.map) mark.cheerAt = t;
+      if (run.map > mark.map || (won && !mark.won)) mark.cheerAt = t;
       mark.map = run.map;
-      const reach = Math.max(0, 1 - (t - mark.reachAt) / REACH_S);
-      const { phase, endReason } = useArcadeStore.getState();
-      const won = phase === "over" && endReason === "win";
-      const cheer = won ? 1 : Math.max(0, 1 - (t - mark.cheerAt) / CHEER_S);
+      mark.won = won;
+      const reach = reachWeight(t - mark.reachAt);
+      const cheer = cheerWeight(t - mark.cheerAt, won);
       if (reach > 0.001) blendPoses(p, reachPose(1, 0.35, scratch), reach, p, POSE_MASK.arms);
       if (cheer > 0.001) blendPoses(p, cheerPose(t, scratch), cheer, p);
-      g.lift = bodyLift(p, RUNNER_LEGS) * RUNNER_SCALE;
+      gait.lift = bodyLift(p, CLEANER_LANDMARKS) * CLEANER_SCALE;
    });
 
    useFrame(() => {
@@ -355,15 +344,14 @@ function Runner({ run }: { run: CleanRun }) {
       const won = phase === "over" && endReason === "win";
       g.position.set(r.x, 0, r.z);
       g.rotation.y = won ? g.rotation.y + time.delta * 4 : r.heading;
-      const walk = gait.current;
       b.position.y = standIn.current
-         ? won ? Math.abs(Math.sin(t * 7)) * 0.2 : Math.abs(Math.sin(walk.phase)) * 0.04 * walk.amount
-         : walk.lift;
+         ? won ? Math.abs(Math.sin(t * 7)) * 0.2 : Math.abs(Math.sin(gait.phase)) * 0.04 * gait.amount
+         : gait.lift;
       applyRunnerLimbs(pose, limbs.current);
    });
 
    return (
-      <group ref={root} name="runner">
+      <group ref={root} name="cleaner">
          <BlobShadow radius={0.42} />
          <mesh rotation-x={-Math.PI / 2} position-y={0.02}>
             <ringGeometry args={[0.46, 0.58, 24]} />
@@ -371,7 +359,7 @@ function Runner({ run }: { run: CleanRun }) {
          </mesh>
          <group ref={body}>
             <HumanoidModel
-               asset={ASSETS.runner}
+               asset={ASSETS.cleaner}
                pose={pose}
                applyLift={false}
                fallback={<group ref={standIn}><PrimitiveRunner limbs={limbs} /></group>}
@@ -438,7 +426,7 @@ export default function Scene() {
          </mesh>
          <Worlds run={run} />
          <Litter run={run} fx={fx} />
-         <Runner run={run} />
+         <Cleaner run={run} />
       </>
    );
 }
