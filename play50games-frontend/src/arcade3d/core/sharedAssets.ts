@@ -265,3 +265,517 @@ export const REUSED_ASSETS: Record<ReusedAssetId, ModelAsset> = {
    van: reused("van", "/models/3d/pigeon-crossing/van.glb", "box", "#e9edf3"),
    pigeon: reused("pigeon", "/models/3d/pigeon-crossing/pigeon.glb", "sphere", "#8192a9", CHARACTER_BUDGET),
 };
+
+/**
+ * Expansion batch 1 (2026-10-08): Hyper3D Rodin GLBs for the 20 expansion games, optimized with
+ * tools/hyper3d (docs/arcade-expansion/05-hyper3d-catalog.md §E.4 / §E.5). None of those games has a
+ * scene yet, so each entry carries a default fit: drawn as is, the model stands on y = 0 at the
+ * catalog's target size in metres, its front (the cannon's barrel, the ship's bow, the cart's
+ * handle) towards +z. A game spreads an entry to refit it (`{ ...EXPANSION_ASSETS.rock, scale }`)
+ * and derives that fit from EXPANSION_GLB_SIZE, never from copied numbers. Every optimized GLB is
+ * centred on x / z with its lowest point on y = 0, so no entry needs a yOffset.
+ */
+export type ExpansionAssetId =
+   | "chest"
+   | "cannon"
+   | "rock"
+   | "fish"
+   | "pineTree"
+   | "penguin"
+   | "ship"
+   | "cart"
+   | "suitcase"
+   | "monster"
+   | "cauldron"
+   // batch 2-3
+   | "dino"
+   | "drone"
+   | "rocket"
+   | "windmill"
+   | "leafyTree"
+   | "vacuum"
+   | "dummy"
+   | "goblin"
+   | "castleTower"
+   | "glowPod"
+   | "panda"
+   // tier 3 (class E decor)
+   | "bust"
+   | "mushroom"
+   | "plane"
+   | "crab"
+   | "gourd";
+
+/**
+ * The optimized GLBs' bounds in GLB units (x = width, y = height, z = depth, before rotationY),
+ * measured 2026-10-08 (core/expansionAssets.test.ts checks them against the real meshes). Rodin
+ * scales the longest side to about 1.9.
+ */
+export const EXPANSION_GLB_SIZE = {
+   chest: { width: 1.8972, height: 1.634, depth: 1.5005 },
+   cannon: { width: 1.3736, height: 1.4473, depth: 1.8975 },
+   // v2 (2026-10-08, regenerated grey stone, same url)
+   rock: { width: 1.9011, height: 0.8989, depth: 1.857 },
+   fish: { width: 0.6609, height: 1.1352, depth: 1.8988 },
+   pineTree: { width: 1.3784, height: 1.9181, depth: 1.3535 },
+   penguin: { width: 1.9003, height: 1.8671, depth: 1.2884 },
+   ship: { width: 1.2975, height: 1.7119, depth: 1.8944 },
+   cart: { width: 1.2879, height: 1.897, depth: 1.6085 },
+   // v2 (2026-10-08, same url): the extended trolley handle is still there
+   suitcase: { width: 1.0493, height: 1.8981, depth: 0.5448 },
+   monster: { width: 1.8973, height: 1.7788, depth: 1.2314 },
+   cauldron: { width: 1.9041, height: 1.2522, depth: 1.6892 },
+   // batch 2-3
+   dino: { width: 1.1249, height: 1.4694, depth: 1.8939 },
+   drone: { width: 1.8941, height: 1.0245, depth: 1.4229 },
+   rocket: { width: 1.3018, height: 1.8955, depth: 1.2424 },
+   windmill: { width: 1.3533, height: 1.8979, depth: 1.2987 },
+   leafyTree: { width: 1.804, height: 1.9133, depth: 1.247 },
+   vacuum: { width: 0.7937, height: 1.6149, depth: 1.8963 },
+   dummy: { width: 0.7805, height: 1.8965, depth: 0.6395 },
+   goblin: { width: 1.4028, height: 1.8957, depth: 0.7557 },
+   castleTower: { width: 1.3862, height: 1.91, depth: 1.4204 },
+   glowPod: { width: 1.2724, height: 1.8995, depth: 1.0186 },
+   panda: { width: 1.1989, height: 1.6446, depth: 1.8992 },
+   // tier 3
+   bust: { width: 1.2118, height: 1.9114, depth: 1.0072 },
+   mushroom: { width: 1.8782, height: 1.9016, depth: 1.8658 },
+   plane: { width: 1.9045, height: 0.8171, depth: 1.628 },
+   crab: { width: 1.9036, height: 1.3386, depth: 1.5298 },
+   gourd: { width: 1.7987, height: 1.8942, depth: 1.1177 },
+} as const satisfies Record<ExpansionAssetId, { width: number; height: number; depth: number }>;
+
+/** Points measured on the GLBs (GLB units, before the fit; `expansionPoint` maps them to metres). */
+export const EXPANSION_GLB_POINTS = {
+   /** the centre of the cannon's muzzle ring, on its front face (the barrel points +z, slightly up) */
+   cannonMuzzle: { x: 0, y: 1.036, z: 0.9488 },
+   /** the sloop's hull side top at midship (the deck edge); the keel is at y = 0 */
+   shipDeck: { x: 0, y: 0.495, z: 0 },
+   /**
+    * A waterline for the bob: 40 % of the midship side height, at the hull's widest band (the beam
+    * is greatest at y 0.2-0.4). A judgement, not a mesh feature: a game may sink it further.
+    */
+   shipWaterline: { x: 0, y: 0.2, z: 0 },
+   /** the middle of the red push bar (GLB -z, +z after rotationY π): where the runner's hands go */
+   cartHandle: { x: 0, y: 1.777, z: -0.7 },
+   /** the inner edge of the cauldron's rolled rim (radius 0.70 at its narrowest, y 1.1) */
+   cauldronInnerRim: { x: 0, y: 1.235, z: 0 },
+   /** the cauldron's inner floor (the bottom of its interior) */
+   cauldronInnerFloor: { x: 0, y: 0.263, z: 0 },
+   /**
+    * The top of the suitcase's hard shell (v2: flat at 1.46-1.47 across it); the extended trolley handle
+    * rises above it to y 1.90 at its back (z -0.2), a short carry handle to 1.55 beside it.
+    */
+   suitcaseShellTop: { x: 0, y: 1.47, z: 0 },
+   // batch 2-3
+   /** the top of the dino's back at mid-body (the egg stack's base): flat within 1 cm from z -0.3 to 0, the frill rises from z 0.1 */
+   dinoBackTop: { x: 0, y: 0.756, z: -0.1 },
+   /** the drone's claw, centre of its lowest part (the parcel hangs here); the body's underside is at y 0.31 */
+   droneHook: { x: 0, y: 0.03, z: 0.38 },
+   /** the base of the dummy's post: its wobble pivot (the red base disc, radius 0.355, top at y 0.048) */
+   dummyPivot: { x: 0, y: 0, z: 0 },
+   /** the rocket's engine bell: centre of its lowest rim (the flame starts here) */
+   rocketBell: { x: 0, y: 0.13, z: 0 },
+   /**
+    * The windmill's hub: the centre of the round wooden boss on its front face (the disc spans y 0.84-1.15,
+    * x ±0.2; its front at z 0.56): the procedural blades turn about +z here.
+    */
+   windmillHub: { x: 0, y: 0.99, z: 0.56 },
+   /** the castle tower's walkway inside the battlements (the cone roof fills the middle, radius < 0.45) */
+   castleTowerPlatform: { x: 0, y: 1.374, z: 0 },
+   /**
+    * The hose connector: the small block on top of the pack behind its carry handle (the handle runs along
+    * z 0.1-0.5 up to y 1.61). Rodin modelled no real connector; this is the nearest feature.
+    */
+   vacuumHose: { x: 0, y: 1.52, z: -0.02 },
+} as const;
+
+/**
+ * The drone's four rotor-ring centres (GLB units, for the code blur discs), about ±3 cm: the model is
+ * pitched nose-down (the front rings lower) and its rear rings sit slightly inward and asymmetric.
+ */
+export const DRONE_ROTORS_GLB = [
+   { x: -0.7, y: 0.7, z: 0.41 },
+   { x: 0.7, y: 0.7, z: 0.41 },
+   { x: -0.64, y: 0.9, z: -0.46 },
+   { x: 0.5, y: 0.9, z: -0.46 },
+] as const;
+
+/** The rocket's four landing feet (GLB units, centres of the pads on y = 0), for the 2D landing polygon. */
+export const ROCKET_FEET_GLB = [
+   { x: 0, y: 0, z: 0.449 },
+   { x: 0, y: 0, z: -0.424 },
+   { x: 0.43, y: 0, z: 0 },
+   { x: -0.429, y: 0, z: 0.021 },
+] as const;
+
+/**
+ * The leafy tree's trunk radius (GLB units): its collision circle. The trunk is 0.08-0.15 from the axis
+ * at y 0.1-0.3 (mean 0.11; the roots flare to 0.19 at y 0.05), so 0.14 covers it but for one root.
+ */
+export const LEAFY_TREE_TRUNK_RADIUS_GLB = 0.14;
+
+/**
+ * The windmill's tunnel (GLB units), open straight through along z (front arch at z +0.65, back at -0.65).
+ * Its narrowest section is the back arch's throat at z -0.4..-0.5: `width` across at the floor (y 0.05),
+ * `height` its ceiling at x = 0; `clearWidth` the box |x| < clearWidth / 2 that is free from y 0 to
+ * `clearHeight` along the whole tunnel. The front arch is wider (0.47 x 0.37).
+ */
+export const WINDMILL_TUNNEL_GLB = { width: 0.31, height: 0.247, clearWidth: 0.2, clearHeight: 0.2 } as const;
+
+/** The cauldron's inner radius at its rim, GLB units (the liquid disc's radius × the fit's scale). */
+export const CAULDRON_INNER_RADIUS_GLB = 0.7;
+
+const EX = EXPANSION_GLB_SIZE;
+const expansion = (id: ExpansionAssetId, slug: string, fit: Pick<ModelAsset, "scale" | "stretch" | "rotationY">, fallback: ModelAsset["fallback"], fallbackColor: string, tris: number, bytes: number = PROP_BUDGET.bytes): ModelAsset => ({
+   id,
+   url: `/models/3d/${slug}/${id}.glb`,
+   ...fit,
+   fallback,
+   fallbackColor,
+   budget: { tris, bytes },
+});
+
+/**
+ * Default fits (budget = the catalog's tris cap, 300 KB). Where Rodin's proportions differ from the
+ * catalog's box the fit stretches the model to it (chest, cart, suitcase); a game that prefers the
+ * model's own proportions keeps `scale` and drops `stretch`.
+ */
+export const EXPANSION_ASSETS: Record<ExpansionAssetId, ModelAsset> = {
+   // 0.9 wide x 0.6 tall x 0.6 deep, lock plate +z. Rodin's chest is taller (1.63 / 1.90): the
+   // stretch flattens it by about a quarter.
+   chest: expansion("chest", "shared", { scale: 0.9 / EX.chest.width, stretch: [1, 0.6 / (EX.chest.height * (0.9 / EX.chest.width)), 0.6 / (EX.chest.depth * (0.9 / EX.chest.width))] }, "box", "#8b5a2b", 4000),
+   // 1.6 long, barrel +z
+   cannon: expansion("cannon", "shared", { scale: 1.6 / EX.cannon.depth }, "cylinder", "#b45309", 4000),
+   // a 1 m unit on its longest side (x); games vary scale / stretch / yaw per copy
+   rock: expansion("rock", "shared", { scale: 1 / EX.rock.width }, "sphere", "#78716c", 3000),
+   // 0.35 long, head +z
+   fish: expansion("fish", "shared", { scale: 0.35 / EX.fish.depth }, "capsule", "#f97316", 1500),
+   // 4 m tall
+   pineTree: expansion("pineTree", "shared", { scale: 4 / EX.pineTree.height }, "cylinder", "#166534", 3000),
+   // 0.8 m standing, faces +z (penguin-slide lays it on its belly in code)
+   penguin: expansion("penguin", "shared", { scale: 0.8 / EX.penguin.height }, "capsule", "#1f2937", 8000),
+   // the sloop: 6 m long, bow +z (dinghy x0.5, galleon x1.5 in the game)
+   ship: expansion("ship", "pirate-cannons", { scale: 6 / EX.ship.depth }, "box", "#92400e", 5000),
+   // 0.6 wide x 1.0 tall x 1.0 long, push handle +z (the GLB has it at -z). Rodin's cart is wider
+   // and shorter than the catalog's: stretch x 0.88, z 1.18.
+   cart: expansion("cart", "shopping-cart", { scale: 1 / EX.cart.height, stretch: [0.6 / (EX.cart.width / EX.cart.height), 1, 1 / (EX.cart.depth / EX.cart.height)], rotationY: Math.PI }, "box", "#e5e7eb", 4000),
+   // upright, front +z: the shell 0.5 wide x 0.7 tall x 0.25 deep (the game lays it on the belt).
+   // The v2 GLB (regenerated without the handle in its prompt) still has an extended trolley handle
+   // above the shell at its back: drawn 0.90 m tall in all.
+   suitcase: expansion("suitcase", "luggage-rush", {
+      scale: 0.7 / EXPANSION_GLB_POINTS.suitcaseShellTop.y,
+      stretch: [0.5 / (EX.suitcase.width * (0.7 / EXPANSION_GLB_POINTS.suitcaseShellTop.y)), 1, 0.25 / (EX.suitcase.depth * (0.7 / EXPANSION_GLB_POINTS.suitcaseShellTop.y))],
+   }, "box", "#d4d4d8", 2500),
+   // 1.4 m tall, faces +z
+   monster: expansion("monster", "monster-kitchen", { scale: 1.4 / EX.monster.height }, "capsule", "#ede9fe", 8000),
+   // 0.9 m wide across its side handles (x), the rim 0.81 across
+   cauldron: expansion("cauldron", "monster-kitchen", { scale: 0.9 / EX.cauldron.width }, "cylinder", "#334155", 3000),
+
+   // batch 2-3. dino and panda are solid creatures optimized with the character profile (1024 px).
+   // 1.1 long x 0.8 tall, head +z (Rodin's dino is taller: stretch y 0.94)
+   dino: expansion("dino", "shared", { scale: 1.1 / EX.dino.depth, stretch: [1, 0.8 / (EX.dino.height * (1.1 / EX.dino.depth)), 1] }, "capsule", "#84cc16", 12000, CHARACTER_BUDGET.bytes),
+   // 0.9 wide, camera eye +z, claw under the nose
+   drone: expansion("drone", "delivery-drone", { scale: 0.9 / EX.drone.width }, "box", "#e2e8f0", 3000),
+   // 2.2 m tall (catalog), window +z
+   rocket: expansion("rocket", "rocket-landing", { scale: 2.2 / EX.rocket.height }, "capsule", "#e5e7eb", 3000),
+   // 2.2 m tall, hub and tunnel arch +z (the tunnel runs through along z)
+   windmill: expansion("windmill", "mini-golf", { scale: 2.2 / EX.windmill.height }, "cylinder", "#fde68a", 4000),
+   // 3.5 m tall (the catalog says 3-4 m)
+   leafyTree: expansion("leafyTree", "shared", { scale: 3.5 / EX.leafyTree.height }, "cylinder", "#65a30d", 3000),
+   // 0.55 m tall, the glowing canister +z, the back with its straps at -z (on a +z-facing runner's back:
+   // rotationY π). Rodin added shoulder straps that hang to the floor behind the pack (z -0.5 to -0.95).
+   vacuum: expansion("vacuum", "ghost-vacuum", { scale: 0.55 / EX.vacuum.height }, "box", "#e5e7eb", 2500),
+   // 1.5 m on its base disc (the pivot at y = 0): a wooden mannequin standing on a red disc (r 0.32, its
+   // centre 3 cm to -x), no post
+   dummy: expansion("dummy", "knight-arena", { scale: 1.5 / EX.dummy.height }, "capsule", "#d97706", 3000),
+   // 0.9 m, faces +z
+   goblin: expansion("goblin", "castle-defender", { scale: 0.9 / EX.goblin.height }, "capsule", "#a3b18a", 4500),
+   // 6 m tall, door +z
+   castleTower: expansion("castleTower", "shared", { scale: 6 / EX.castleTower.height }, "cylinder", "#a8a29e", 4000),
+   // 1.0 m: the grown stage (a game scales it down to 0.5 for the first stage)
+   glowPod: expansion("glowPod", "alien-farm", { scale: 1 / EX.glowPod.height }, "sphere", "#22d3ee", 2000),
+   // 1.0 m long on all fours, faces +z
+   panda: expansion("panda", "zoo-escape", { scale: 1 / EX.panda.depth }, "capsule", "#f8fafc", 10000, CHARACTER_BUDGET.bytes),
+
+   // tier 3 (class E decor, 2026-10-08)
+   // 0.6 m tall on its short round foot, face +z (a marble head and shoulders)
+   bust: expansion("bust", "museum-guard", { scale: 0.6 / EX.bust.height }, "capsule", "#f5f5f4", 3000),
+   // 0.5 m tall, cap 0.49 across
+   mushroom: expansion("mushroom", "shared", { scale: 0.5 / EX.mushroom.height }, "sphere", "#dc2626", 2000),
+   // 8 m long, nose (propeller) +z: a single-propeller toy plane, wingspan 9.4 m, 4.0 m tall on its wheels
+   plane: expansion("plane", "luggage-rush", { scale: 8 / EX.plane.depth }, "box", "#e0f2fe", 4000),
+   // 0.35 m wide across its claws, eyes +z
+   crab: expansion("crab", "treasure-island", { scale: 0.35 / EX.crab.width }, "sphere", "#ef4444", 2000),
+   // 0.6 m tall with its curled tendrils (they spread along x)
+   gourd: expansion("gourd", "alien-farm", { scale: 0.6 / EX.gourd.height }, "sphere", "#22d3ee", 3000),
+};
+
+/**
+ * A point measured on an expansion GLB (EXPANSION_GLB_POINTS, GLB units) where the asset's fit draws
+ * it, in metres relative to the model's origin: scale x stretch per GLB axis, then rotationY, then
+ * yOffset (the order <Model> applies them).
+ */
+export function expansionPoint(asset: Pick<ModelAsset, "scale" | "stretch" | "rotationY" | "yOffset">, p: { x: number; y: number; z: number }): { x: number; y: number; z: number } {
+   const s = asset.scale ?? 1, k = asset.stretch ?? [1, 1, 1], a = asset.rotationY ?? 0;
+   const x = p.x * s * k[0], y = p.y * s * k[1], z = p.z * s * k[2];
+   const c = Math.cos(a), sn = Math.sin(a);
+   return { x: x * c + z * sn, y: y + (asset.yOffset ?? 0), z: -x * sn + z * c };
+}
+
+/**
+ * Expansion batch 2-3 characters (2026-10-08): Hyper3D Rodin image-to-3D T-pose GLBs (the user's
+ * face on the knight, the astronaut and the keeper; the snow kid a child, the alien its own),
+ * optimized with the character profile and drawn through the core auto-rig: each asset carries
+ * `humanoid: { landmarks }` measured from its mesh (core/README "Landmarks, and measuring a
+ * character"; rig/expansionCharacters.test.ts checks them on the real meshes). The default fit
+ * stands each one on y = 0, facing +z, at its target height in metres; a game spreads the entry to
+ * change the scale and derives it from EXPANSION_CHARACTER_GLB_HEIGHT.
+ */
+export type ExpansionCharacterId = "knight" | "snowKid" | "astronaut" | "alien" | "keeper";
+
+/** The T-pose GLBs' heights (GLB units; the arm span is the longest side, about 1.9). */
+export const EXPANSION_CHARACTER_GLB_HEIGHT = {
+   knight: 1.884,
+   snowKid: 1.9011,
+   astronaut: 1.8231,
+   alien: 1.8902,
+   keeper: 1.8921,
+} as const satisfies Record<ExpansionCharacterId, number>;
+
+/** The default heights in metres (a game may refit: museum-guard's statue knight is 1.6 m in the catalog). */
+export const EXPANSION_CHARACTER_HEIGHT = {
+   knight: 1.75,
+   snowKid: 1.3,
+   astronaut: 1.75,
+   alien: 1.1,
+   keeper: 1.75,
+} as const satisfies Record<ExpansionCharacterId, number>;
+
+/**
+ * The shared knight's joints (GLB units: 1.884 tall T-pose, reach 0.949, faces +z; open-face helmet
+ * with a plume, pauldrons, gauntlets, a tabard to mid-thigh, boots), measured 2026-10-08. The
+ * estimate's set but:
+ * - armRadius 0.17 (estimate 0.101) about shoulderY 1.148: the pauldrons reach up to 1.32, so their
+ *   tops go down with the arms instead of staying out as fins;
+ * - hemY 0.55 (the estimate): the tabard bridges the legs above the knee, so it is skirt-weighted.
+ */
+export const KNIGHT_LANDMARKS: HumanoidLandmarks = {
+   shoulderY: 1.148,
+   shoulderX: 0.276,
+   shoulderZ: 0.019,
+   armRadius: 0.17,
+   clavicleX: 0.138,
+   elbowX: 0.511,
+   wristX: 0.747,
+   armSpread: 0.227,
+   crotchY: 0.707,
+   hipY: 0.775,
+   hipX: 0.15,
+   hipZ: 0.028,
+   kneeY: 0.388,
+   ankleY: 0.165,
+   toeZ: 0.328,
+   heelZ: -0.095,
+   legDepth: 0.118,
+   legOuterX: 0.259,
+   hemY: 0.55,
+   spineY: 0.887,
+   chestY: 0.999,
+   neckY: 1.358,
+   headY: 1.405,
+   spineZ: 0.076,
+   shoulderBlend: 0.06,
+   elbowBlend: 0.05,
+   hipBlend: 0.078,
+   kneeBlend: 0.058,
+   ankleBlend: 0.039,
+   crotchBlend: 0.045,
+   spineBlend: 0.034,
+   neckBlend: 0.024,
+};
+
+/**
+ * The snowball-battle kid's joints (GLB units: 1.901 tall, reach 0.943; puffer jacket, cargo
+ * trousers, boots), measured 2026-10-08. The estimate's set but: armRadius 0.115 (estimate 0.091):
+ * the puffy sleeves span y 1.12-1.32 about shoulderY 1.209; hemY = crotchY (the estimate's 0.602 is
+ * the close cargo thighs: the jacket ends above the crotch).
+ */
+export const SNOW_KID_LANDMARKS: HumanoidLandmarks = {
+   shoulderY: 1.209,
+   shoulderX: 0.305,
+   shoulderZ: -0.006,
+   armRadius: 0.115,
+   clavicleX: 0.152,
+   elbowX: 0.528,
+   wristX: 0.751,
+   armSpread: 0.237,
+   crotchY: 0.713,
+   hipY: 0.785,
+   hipX: 0.174,
+   hipZ: -0.047,
+   kneeY: 0.393,
+   ankleY: 0.194,
+   toeZ: 0.282,
+   heelZ: -0.185,
+   legDepth: 0.141,
+   legOuterX: 0.338,
+   hemY: 0.713,
+   spineY: 0.912,
+   chestY: 1.039,
+   neckY: 1.458,
+   headY: 1.521,
+   spineZ: 0.016,
+   shoulderBlend: 0.055,
+   elbowBlend: 0.046,
+   hipBlend: 0.079,
+   kneeBlend: 0.059,
+   ankleBlend: 0.035,
+   crotchBlend: 0.061,
+   spineBlend: 0.038,
+   neckBlend: 0.032,
+};
+
+/**
+ * The space-repair astronaut's joints (GLB units: 1.823 tall, reach 0.945; bulky suit, round helmet,
+ * a backpack on the GLB), measured 2026-10-08. The estimate's set but: armRadius 0.115 (estimate
+ * 0.099): the suit's arms span y 1.02-1.23; armSpread 0.24 (estimate 0.202): the gloves hang clear
+ * of the suit's hips; hemY = crotchY (the estimate's 0.577 is the bulky thighs). The helmet (from
+ * headY 1.352 + its blend) is rigid.
+ */
+export const ASTRONAUT_LANDMARKS: HumanoidLandmarks = {
+   shoulderY: 1.123,
+   shoulderX: 0.309,
+   shoulderZ: 0.047,
+   armRadius: 0.115,
+   clavicleX: 0.155,
+   elbowX: 0.532,
+   wristX: 0.754,
+   armSpread: 0.24,
+   crotchY: 0.684,
+   hipY: 0.751,
+   hipX: 0.18,
+   hipZ: -0.007,
+   kneeY: 0.376,
+   ankleY: 0.185,
+   toeZ: 0.313,
+   heelZ: -0.156,
+   legDepth: 0.133,
+   legOuterX: 0.319,
+   hemY: 0.684,
+   spineY: 0.863,
+   chestY: 0.974,
+   neckY: 1.291,
+   headY: 1.352,
+   spineZ: -0.006,
+   shoulderBlend: 0.059,
+   elbowBlend: 0.05,
+   hipBlend: 0.075,
+   kneeBlend: 0.056,
+   ankleBlend: 0.034,
+   crotchBlend: 0.066,
+   spineBlend: 0.033,
+   neckBlend: 0.03,
+};
+
+/**
+ * The alien-farm alien's joints (GLB units: 1.890 tall, reach 0.928; a big head with antennae on a
+ * short neck, shirt, short dungarees, boots), measured 2026-10-08. The estimate's set but:
+ * armRadius 0.105 (estimate 0.089): the rolled sleeves span y 0.93-1.12; hemY = crotchY (the
+ * estimate's 0.473 is the dungaree legs). The head joint at the top of the short neck (headY 1.142,
+ * the estimate) keeps the head and antennae rigid.
+ */
+export const ALIEN_LANDMARKS: HumanoidLandmarks = {
+   shoulderY: 1.027,
+   shoulderX: 0.3,
+   shoulderZ: -0.043,
+   armRadius: 0.105,
+   clavicleX: 0.15,
+   elbowX: 0.52,
+   wristX: 0.739,
+   armSpread: 0.25,
+   crotchY: 0.551,
+   hipY: 0.613,
+   hipX: 0.179,
+   hipZ: -0.022,
+   kneeY: 0.306,
+   ankleY: 0.18,
+   toeZ: 0.29,
+   heelZ: -0.178,
+   legDepth: 0.115,
+   legOuterX: 0.306,
+   hemY: 0.551,
+   spineY: 0.737,
+   chestY: 0.861,
+   neckY: 1.126,
+   headY: 1.142,
+   spineZ: -0.001,
+   shoulderBlend: 0.053,
+   elbowBlend: 0.045,
+   hipBlend: 0.061,
+   kneeBlend: 0.046,
+   ankleBlend: 0.022,
+   crotchBlend: 0.055,
+   spineBlend: 0.037,
+   neckBlend: 0.008,
+};
+
+/**
+ * The zoo-escape keeper's joints (GLB units: 1.892 tall, reach 0.951; safari hat, short-sleeved
+ * shirt, neckerchief, shorts, hiking boots), measured 2026-10-08. The estimate's set but:
+ * armRadius 0.11 (estimate 0.073): the short sleeves span y 1.10-1.31 about shoulderY 1.213, so they
+ * hang with the arm instead of staying out as fins; hemY = crotchY (the estimate's 0.536 is the
+ * shorts). The hat (from y 1.48) is above the head joint, rigid.
+ */
+export const ZOO_KEEPER_LANDMARKS: HumanoidLandmarks = {
+   shoulderY: 1.213,
+   shoulderX: 0.286,
+   shoulderZ: -0.074,
+   armRadius: 0.11,
+   clavicleX: 0.143,
+   elbowX: 0.519,
+   wristX: 0.752,
+   armSpread: 0.181,
+   crotchY: 0.71,
+   hipY: 0.782,
+   hipX: 0.167,
+   hipZ: -0.059,
+   kneeY: 0.391,
+   ankleY: 0.179,
+   toeZ: 0.257,
+   heelZ: -0.205,
+   legDepth: 0.121,
+   legOuterX: 0.323,
+   hemY: 0.71,
+   spineY: 0.911,
+   chestY: 1.041,
+   neckY: 1.372,
+   headY: 1.435,
+   spineZ: -0.01,
+   shoulderBlend: 0.044,
+   elbowBlend: 0.037,
+   hipBlend: 0.078,
+   kneeBlend: 0.059,
+   ankleBlend: 0.037,
+   crotchBlend: 0.065,
+   spineBlend: 0.039,
+   neckBlend: 0.032,
+};
+
+const character = (id: ExpansionCharacterId, slug: string, landmarks: HumanoidLandmarks, fallbackColor: string): ModelAsset => ({
+   id,
+   url: `/models/3d/${slug}/${id}.glb`,
+   scale: EXPANSION_CHARACTER_HEIGHT[id] / EXPANSION_CHARACTER_GLB_HEIGHT[id],
+   humanoid: { landmarks },
+   fallback: "capsule",
+   fallbackColor,
+   budget: { ...CHARACTER_BUDGET },
+});
+
+export const EXPANSION_CHARACTERS: Record<ExpansionCharacterId, ModelAsset> = {
+   knight: character("knight", "shared", KNIGHT_LANDMARKS, "#2563eb"),
+   snowKid: character("snowKid", "snowball-battle", SNOW_KID_LANDMARKS, "#e5e7eb"),
+   astronaut: character("astronaut", "space-repair", ASTRONAUT_LANDMARKS, "#f8fafc"),
+   alien: character("alien", "alien-farm", ALIEN_LANDMARKS, "#4ade80"),
+   keeper: character("keeper", "zoo-escape", ZOO_KEEPER_LANDMARKS, "#d6c29a"),
+};

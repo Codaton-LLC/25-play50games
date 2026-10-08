@@ -55,6 +55,47 @@ export const MODEL_MANIFEST: readonly string[] = [
    // clean-city's own character (2026-10-08): image-to-3D, Gen-2.5-Medium, static T-pose, 18k tris,
    // animated by the core auto-rig
    "/models/3d/clean-city/cleaner.glb",
+   // expansion batch 1 (2026-10-08): Rodin Gen-2.5-Medium (image-to-3D from concepts or
+   // text-to-3D, catalog §E.5), optimized with tools/hyper3d to the catalog's caps (1500-3000 tris;
+   // monster and penguin 8k with 1024 px textures); default fits in sharedAssets EXPANSION_ASSETS
+   "/models/3d/shared/chest.glb",
+   "/models/3d/shared/cannon.glb",
+   "/models/3d/shared/rock.glb",
+   "/models/3d/shared/fish.glb",
+   "/models/3d/shared/pineTree.glb",
+   "/models/3d/shared/penguin.glb",
+   "/models/3d/pirate-cannons/ship.glb",
+   "/models/3d/shopping-cart/cart.glb",
+   "/models/3d/luggage-rush/suitcase.glb",
+   "/models/3d/monster-kitchen/monster.glb",
+   "/models/3d/monster-kitchen/cauldron.glb",
+   // expansion batch 2-3 (2026-10-08): the non-humanoid models, Rodin Gen-2.5-Medium, optimized to the
+   // catalog's caps (1500-3000 tris; the solid dino 12k and panda 10k with 1024 px textures)
+   "/models/3d/shared/dino.glb",
+   "/models/3d/shared/leafyTree.glb",
+   "/models/3d/shared/castleTower.glb",
+   "/models/3d/delivery-drone/drone.glb",
+   "/models/3d/rocket-landing/rocket.glb",
+   "/models/3d/mini-golf/windmill.glb",
+   "/models/3d/ghost-vacuum/vacuum.glb",
+   "/models/3d/knight-arena/dummy.glb",
+   "/models/3d/castle-defender/goblin.glb",
+   "/models/3d/alien-farm/glowPod.glb",
+   "/models/3d/zoo-escape/panda.glb",
+   // expansion tier 3 (2026-10-08): class E decor, Rodin Gen-2.5-Medium text-to-3D, 1500-3000 tris, 512 px
+   // (shared rock and luggage-rush suitcase were regenerated as v2 in place, same urls)
+   "/models/3d/museum-guard/bust.glb",
+   "/models/3d/shared/mushroom.glb",
+   "/models/3d/luggage-rush/plane.glb",
+   "/models/3d/treasure-island/crab.glb",
+   "/models/3d/alien-farm/gourd.glb",
+   // expansion batch 2-3 characters (2026-10-08): image-to-3D T-pose humanoids, 18k tris, 1024 px,
+   // auto-rigged with their committed landmarks (sharedAssets EXPANSION_CHARACTERS)
+   "/models/3d/shared/knight.glb",
+   "/models/3d/snowball-battle/snowKid.glb",
+   "/models/3d/space-repair/astronaut.glb",
+   "/models/3d/alien-farm/alien.glb",
+   "/models/3d/zoo-escape/keeper.glb",
 ];
 
 const LISTED: ReadonlySet<string> = new Set(MODEL_MANIFEST);
