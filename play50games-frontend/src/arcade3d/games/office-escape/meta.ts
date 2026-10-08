@@ -7,7 +7,7 @@ export const officeEscapeMeta: ArcadeGameMeta = {
    tagline: "Late for the meeting. Run!",
    description: "Sprint through the office, jump desks and dodge chairs. It gets faster every 20 seconds.",
    order: 3,
-   status: "soon",
+   status: "live",
    difficulty: 1,
    orientation: "any",
    controls: {

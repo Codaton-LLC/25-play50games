@@ -7,7 +7,7 @@ export const warehouseRushMeta: ArcadeGameMeta = {
    tagline: "Right box, right zone, 60 seconds.",
    description: "Pick up coloured boxes and deliver them to the matching zone. The wrong zone costs points.",
    order: 6,
-   status: "soon",
+   status: "live",
    difficulty: 2,
    orientation: "any",
    controls: {
