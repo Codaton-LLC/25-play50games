@@ -260,22 +260,35 @@
 /* ---------- start card ---------- */
 
 /* The Play bar supplies the card's bottom padding (or the top 10 below it does), so the bar can
-   cover the strip under itself while it is pinned. The card is opaque, in the bar's colour, so the
-   bar does not show as a darker band where it sits in place. */
+   cover the strip under itself while it is pinned. The top padding is a box (::before), not
+   padding: a scroll container's padding keeps a sticky bar that far off its edge (Chrome, measured),
+   and the bar pinned to the top must reach the card's top edge. The card is opaque, in the bar's
+   colour, so the bar does not show as a darker band where it sits in place. */
 .startPanel {
+   padding-top: 0;
    padding-bottom: 0;
    background: rgb(13, 19, 38);
 }
 
+.startPanel::before {
+   content: "";
+   display: block;
+   height: var(--panel-pad-y);
+}
+
 /* Play stays pinned to the bottom of the card while the card scrolls (a landscape phone, a
-   portrait phone under the cookie banner); where everything fits it sits in place */
+   portrait phone under the cookie banner), and to its top once the top 10 below it is scrolled
+   up, so it is always on screen; where everything fits it sits in place. Opaque: pinned to the top,
+   a fade at its top edge showed a sliver of the row scrolled under it (in place, the strip above
+   Play only covers the empty gap under the best score). */
 .startAction {
    position: sticky;
+   top: 0;
    bottom: 0;
    z-index: 1;
    margin: -12px calc(-1 * var(--panel-pad-x)) 0;
    padding: 12px var(--panel-pad-x) var(--panel-pad-y);
-   background: linear-gradient(rgba(13, 19, 38, 0), rgb(13, 19, 38) 12px);
+   background: rgb(13, 19, 38);
 }
 
 .startAction + .leaderboard {
@@ -294,8 +307,8 @@
    backdrop-filter: blur(4px);
 }
 
-/* ResultPanel (ui/) lays its own scrolling overlay over this box: clear of the notch and of the
-   cookie banner while it is open */
+/* ResultPanel (ui/) lays its own overlay over this box: clear of the notch and of the cookie banner
+   while it is open. Its card scrolls inside that overlay and pins its actions on view. */
 .resultWrap {
    position: absolute;
    top: env(safe-area-inset-top, 0px);

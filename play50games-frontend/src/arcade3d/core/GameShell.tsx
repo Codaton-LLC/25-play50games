@@ -8,8 +8,10 @@
 // When a run ends, the score is submitted at once, but the scene (and the HUD) stay on screen for
 // the game's result delay (GameDefinition.resultDelayMs, default 800 ms) before the result panel
 // appears, so a crash or a win animation can be seen.
-// Overlays (ShellOverlays.tsx) stay inside the free area above the cookie banner, open scrolled to
-// the top and focus their first button without scrolling (overlayFocus.ts, never autoFocus).
+// Overlays (ShellOverlays.tsx) and the result card (ui/ResultPanel) stay inside the free area above
+// the cookie banner and scroll inside their card with the buttons pinned on view; they open
+// scrolled to the top and focus their first button without scrolling (overlayFocus.ts, never
+// autoFocus). Time games show no score chip in the HUD (ShellOverlays.tsx HudChips).
 import {
    useCallback,
    useEffect,
@@ -34,7 +36,7 @@ import { assetUrls, clearModelCache } from "./assets";
 import { initAudio, playSfx, toggleMuted, useMuted } from "./audio";
 import { trackArcade } from "./analytics";
 import { useLeaderboard } from "./useLeaderboard";
-import { FocusButton, HudButtons, LeaderboardBlock, Overlay, StartCard } from "./ShellOverlays";
+import { FocusButton, HudButtons, HudChips, LeaderboardBlock, Overlay, StartCard } from "./ShellOverlays";
 import { focusWithoutScroll } from "./overlayFocus";
 import {
    isRankedRun,
@@ -98,11 +100,6 @@ function isEditable(target: EventTarget | null): boolean {
    return tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || target.isContentEditable;
 }
 
-const clock = (ms: number) => {
-   const total = Math.max(0, Math.ceil(ms / 1000));
-   return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, "0")}`;
-};
-
 // ---------- overlays ----------
 
 function LoadingOverlay({ title }: { title: string }) {
@@ -144,16 +141,20 @@ function Countdown() {
 }
 
 /**
- * Score, time, lives, stats, mute and pause. Laid out (hidden) in every phase so the safe area
- * (core/safeArea.tsx) knows where it sits before the run starts; its children are the measured groups.
+ * Score (points games only), time, lives, stats, mute and pause. Laid out (hidden) in every phase
+ * so the safe area (core/safeArea.tsx) knows where it sits before the run starts; its children are
+ * the measured groups.
  */
 function Hud({
    definition,
+   scoring,
    onPause,
    hidden,
    rootRef,
 }: {
    definition: GameDefinition;
+   /** meta.scoring, passed whole: HudChips derives from its kind whether a score chip shows */
+   scoring: ArcadeGameMeta["scoring"];
    onPause: () => void;
    hidden: boolean;
    rootRef: RefObject<HTMLDivElement>;
@@ -165,45 +166,18 @@ function Hud({
    const stats = useArcadeStore((s) => s.stats);
    const canPause = useArcadeStore((s) => isPausable(s.phase));
    const muted = useMuted();
-   const low = timed && time <= 10;
 
    return (
       <div ref={rootRef} className={styles.hud} style={hidden ? { visibility: "hidden" } : undefined} aria-hidden={hidden || undefined}>
-         <div className={styles.hudGroup}>
-            <span className={styles.chip} role="group" aria-label={`Score ${score}`}>
-               <span className={styles.chipLabel}>Score</span>
-               <span className={styles.chipValue}>{score.toLocaleString("en-US")}</span>
-            </span>
-            <span
-               className={`${styles.chip} ${low ? styles.chipWarn : ""}`}
-               role="group"
-               aria-label={timed ? `${time} seconds left` : `${time} seconds played`}
-            >
-               <span className={styles.chipLabel}>{timed ? "Time" : "Played"}</span>
-               <span className={styles.chipValue}>{clock(time * 1000)}</span>
-            </span>
-            {lives !== null && (
-               <span className={styles.chip} role="group" aria-label={`${lives} lives left`}>
-                  <span className={styles.chipLabel}>Lives</span>
-                  <span className={styles.chipValue} aria-hidden="true">
-                     {lives > 0 ? "♥".repeat(Math.min(lives, 5)) : "–"}
-                     {lives > 5 ? ` ${lives}` : ""}
-                  </span>
-               </span>
-            )}
-            {definition.hudStats?.map((stat) => {
-               const value = stats[stat.key] ?? 0;
-               return (
-                  <span key={stat.key} className={styles.chip}>
-                     <span className={styles.chipLabel}>{stat.label}</span>
-                     <span className={styles.chipValue}>
-                        {value}
-                        {stat.max !== undefined ? `/${stat.max}` : ""}
-                     </span>
-                  </span>
-               );
-            })}
-         </div>
+         <HudChips
+            scoring={scoring}
+            score={score}
+            time={time}
+            timed={timed}
+            lives={lives}
+            stats={stats}
+            hudStats={definition.hudStats}
+         />
          <HudButtons hidden={hidden} canPause={canPause} muted={muted} onToggleMute={toggleMuted} onPause={onPause} />
       </div>
    );
@@ -519,7 +493,9 @@ export default function GameShell({ meta, definition, exitHref = "/3d" }: GameSh
                   <TouchControlsProbe controls={definition.touchControls} probeRef={probeRef} />
                </div>
 
-               {hudMounted && <Hud definition={definition} onPause={pause} hidden={!showHud} rootRef={hudRef} />}
+               {hudMounted && (
+                  <Hud definition={definition} scoring={meta.scoring} onPause={pause} hidden={!showHud} rootRef={hudRef} />
+               )}
                {/* laid out (hidden) in every phase like the shell HUD, so the safe area knows its marked panels */}
                {hudMounted && definition.Hud && (
                   <div
