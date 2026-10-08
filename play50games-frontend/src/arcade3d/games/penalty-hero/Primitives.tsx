@@ -1,11 +1,12 @@
 "use client";
 
-// Stadium, goal, ball and the two footballer stand-ins. Characters are drawn until their GLBs are
-// in core/modelManifest.ts; they stand on y = 0. The goal opening is x = -3.66..3.66, y = 0..2.44
+// Stadium, goal, and the stand-ins of the ball and the two footballers, drawn while their GLBs are
+// missing or broken; the footballers stand on y = 0. The goal opening is x = -3.66..3.66, y = 0..2.44
 // on the plane z = 0, with the frame outside it and the net back to z = -1.5.
 import { useEffect, useMemo, type ReactNode } from "react";
-import { BufferGeometry, Float32BufferAttribute } from "three";
+import { BufferGeometry, Float32BufferAttribute, type Texture } from "three";
 import { useCanvasTexture } from "@/arcade3d/core/render";
+import { BALL_RADIUS } from "./assets";
 
 export const COLORS = {
    sky: "#0b1226",
@@ -243,15 +244,20 @@ function drawBall(ctx: CanvasRenderingContext2D, w: number, h: number) {
    }
 }
 
-/** Radius 0.11, centred on the group origin. */
-export function BallPrimitive() {
-   const map = useCanvasTexture(256, 128, drawBall);
+/** The stand-in ball's mesh: radius BALL_RADIUS, centred on the group origin. Hook-free (ball.test.ts reads its sphere). */
+export function BallMesh({ map }: { map: Texture | null }) {
    return (
       <mesh name="ball">
-         <sphereGeometry args={[0.11, 20, 14]} />
+         <sphereGeometry args={[BALL_RADIUS, 20, 14]} />
          <meshStandardMaterial map={map} roughness={0.5} />
       </mesh>
    );
+}
+
+/** The ball.glb fallback: BallMesh with black panels painted on a canvas. */
+export function BallPrimitive() {
+   const map = useCanvasTexture(256, 128, drawBall);
+   return <BallMesh map={map} />;
 }
 
 // ---------- footballers ----------
