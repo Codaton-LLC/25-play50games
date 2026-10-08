@@ -2,10 +2,12 @@
 export { BlobShadow, type BlobShadowProps } from "./BlobShadow";
 export { DynamicInstanced, releaseInstanceBuffers, type DynamicInstancedProps } from "./DynamicInstanced";
 export {
+   createInstanceTint,
    piecesOf,
    writeDynamicInstances,
    type InstancePart,
    type InstanceTarget,
+   type InstanceTint,
    type InstanceUpdate,
 } from "./dynamicInstances";
 export { Instanced, type InstancedProps } from "./Instanced";

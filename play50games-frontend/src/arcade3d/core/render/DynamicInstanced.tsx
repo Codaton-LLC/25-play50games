@@ -13,6 +13,8 @@
 //       <meshStandardMaterial color="#ef4444" />
 //    </DynamicInstanced>
 //    <DynamicInstanced count={24} update={place} parts={deskParts} />   // several meshes / pieces per copy
+//    const tinted = (i: number, m: Matrix4, color: Color) => { …; color.copy(BAG_COLORS[i % 4]); };
+//                                                     // per-copy tint (instanceColor), no allocation
 //
 // - `update` runs in a FRAME_PRIORITY.visuals useFrame (after useRunFrame and the camera), so it
 //   draws this frame's state. It may be a new function every render (kept in a ref).
@@ -25,7 +27,7 @@ import { useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "reac
 import { useFrame } from "@react-three/fiber";
 import { DynamicDrawUsage, InstancedMesh, Matrix4, type Color } from "three";
 import { FRAME_PRIORITY } from "../frameLoop";
-import { piecesOf, writeDynamicInstances, type InstancePart, type InstanceTarget, type InstanceUpdate } from "./dynamicInstances";
+import { createInstanceTint, piecesOf, writeDynamicInstances, type InstancePart, type InstanceTarget, type InstanceUpdate } from "./dynamicInstances";
 
 export interface DynamicInstancedProps {
    /** the most copies drawn at once (the pool size); keep it fixed (a change rebuilds the meshes) */
@@ -106,14 +108,17 @@ export function DynamicInstanced({ count, update, parts, children, name }: Dynam
    updateRef.current = update;
    const capacity = count > 0 ? Math.floor(count) : 0;
    const targets = useMemo<InstanceTarget[]>(
-      () => (parts ? parts.map((part) => ({ mesh: null, locals: part.locals ?? null })) : [{ mesh: null, locals: null }]),
+      () =>
+         parts
+            ? parts.map((part) => ({ mesh: null, locals: part.locals ?? null, colors: part.colors ?? null }))
+            : [{ mesh: null, locals: null, colors: null }],
       [parts]
    );
-   const [scratch] = useState(() => ({ matrix: new Matrix4(), piece: new Matrix4() }));
+   const [scratch] = useState(() => ({ matrix: new Matrix4(), piece: new Matrix4(), tint: createInstanceTint() }));
 
    // after useRunFrame and the camera: every copy is drawn where the simulation left it this frame
    useFrame(() => {
-      writeDynamicInstances(targets, capacity, updateRef.current, scratch.matrix, scratch.piece);
+      writeDynamicInstances(targets, capacity, updateRef.current, scratch.matrix, scratch.piece, scratch.tint);
    }, FRAME_PRIORITY.visuals);
 
    if (!parts) {

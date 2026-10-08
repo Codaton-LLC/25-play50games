@@ -18,7 +18,7 @@ import {
 } from "three";
 import type { ModelAsset } from "./types";
 import { FRAME_PRIORITY } from "./frameLoop";
-import { DynamicInstanced, piecesOf, releaseInstanceBuffers, writeDynamicInstances, type InstancePart, type InstanceTarget } from "./render";
+import { DynamicInstanced, createInstanceTint, piecesOf, releaseInstanceBuffers, writeDynamicInstances, type InstancePart, type InstanceTarget } from "./render";
 import { DynamicInstancedModel } from "./assets";
 
 const { useGLTF, useFrame, frames, PROP, BROKEN, RIGGED, prop } = vi.hoisted(() => {
@@ -140,6 +140,60 @@ describe("writeDynamicInstances", () => {
       expect(piecesOf(null)).toBe(1);
       expect(piecesOf([])).toBe(1);
       expect(piecesOf([new Matrix4(), new Matrix4()])).toBe(2);
+   });
+});
+
+describe("per-copy tint", () => {
+   const colorAt = (mesh: InstancedMesh, i: number) => {
+      const c = new Color();
+      mesh.getColorAt(i, c);
+      return c.toArray().map((v) => Math.round(v * 1000) / 1000);
+   };
+
+   it("an update that never sets the colour writes no colours (old callers unchanged)", () => {
+      const mesh = new InstancedMesh(new BoxGeometry(), new MeshBasicMaterial(), 3);
+      const seen: number[][] = [];
+      const tint = createInstanceTint();
+      writeDynamicInstances([{ mesh }], 3, (_i, _m, color) => void seen.push(color.toArray()), new Matrix4(), new Matrix4(), tint);
+      expect(mesh.instanceColor).toBeNull();
+      expect(tint.on).toBe(false);
+      expect(seen).toEqual([[1, 1, 1], [1, 1, 1], [1, 1, 1]]);
+   });
+
+   it("tints each shown copy, packed like the matrices, and multiplies piece colours", () => {
+      const red = new Color(1, 0, 0);
+      const half = new Color(0.5, 0.5, 0.5);
+      const plain = new InstancedMesh(new BoxGeometry(), new MeshBasicMaterial(), 4);
+      const pieces = new InstancedMesh(new BoxGeometry(), new MeshBasicMaterial(), 8);
+      const targets: InstanceTarget[] = [
+         { mesh: plain, locals: null },
+         { mesh: pieces, locals: [new Matrix4(), new Matrix4()], colors: [new Color(1, 1, 1), half] },
+      ];
+      const tint = createInstanceTint();
+      const update = (i: number, _m: Matrix4, color: Color) => {
+         if (i === 0) return false;
+         if (i === 2) color.copy(red);
+      };
+      writeDynamicInstances(targets, 3, update, new Matrix4(), new Matrix4(), tint);
+      expect(tint.on).toBe(true);
+      // copy 1 = slot 0 (untinted, white), copy 2 = slot 1 (red)
+      expect(colorAt(plain, 0)).toEqual([1, 1, 1]);
+      expect(colorAt(plain, 1)).toEqual([1, 0, 0]);
+      expect(colorAt(pieces, 2)).toEqual([1, 0, 0]);
+      expect(colorAt(pieces, 3)).toEqual([0.5, 0, 0]);
+      const version = plain.instanceColor!.version;
+      // next frame nobody is tinted: the slots go back to white (no stale red)
+      writeDynamicInstances(targets, 3, () => {}, new Matrix4(), new Matrix4(), tint);
+      expect(colorAt(plain, 1)).toEqual([1, 1, 1]);
+      expect(colorAt(pieces, 3)).toEqual([0.5, 0.5, 0.5]);
+      expect(plain.instanceColor!.version).toBeGreaterThan(version);
+   });
+
+   it("allocates nothing per copy (the same colour object every call)", () => {
+      const mesh = new InstancedMesh(new BoxGeometry(), new MeshBasicMaterial(), 3);
+      const objects = new Set<Color>();
+      writeDynamicInstances([{ mesh }], 3, (_i, _m, color) => void objects.add(color.setRGB(0.2, 0.4, 0.6)), new Matrix4(), new Matrix4(), createInstanceTint());
+      expect(objects.size).toBe(1);
    });
 });
 
