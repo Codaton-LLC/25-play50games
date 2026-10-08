@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, startTransition } from "react";
 import Link from "next/link";
 import { Game } from "@/types/game";
 import { getAllGames } from "@/lib/api/games";
@@ -129,14 +129,19 @@ export default function ClassicDashboardPage() {
    const loadGames = async () => {
       try {
          const gamesData = await getAllGames(guestId);
-         setGames(gamesData);
-         setError(null);
+         // The 50 cards are a big render: as a transition React renders them in small slices
+         // instead of one long task. All three updates share the transition, so the spinner
+         // stays until the cards are ready (no empty "No games found" frame in between).
+         startTransition(() => {
+            setGames(gamesData);
+            setError(null);
+            setLoading(false);
+         });
       } catch (error: any) {
          const errorMessage =
             error.message ||
             "Failed to load games. Please check your WordPress API connection.";
          setError(errorMessage);
-      } finally {
          setLoading(false);
       }
    };
