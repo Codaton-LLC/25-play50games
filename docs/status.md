@@ -51,7 +51,7 @@ Known local issues: port 3100 is held by an old `next start` from `.claude/workt
 |---|---|---|---|---|---|---|
 | codex/probe | Codex | CLI | p50-codex | none (report only) | P-00 (done, CLI ok) | 2026-10-08 |
 | kimi/probe | Kimi | CLI | p50-kimi | none (report only) | P-00 (done, CLI ok) | 2026-10-08 |
-| antigravity/probe | Antigravity | copy-paste | p50-antigravity | none (report only) | P-00 (waiting for the user to paste) | 2026-10-08 |
+| antigravity/probe | Antigravity | copy-paste | p50-antigravity | none (report only) | P-00 (done 2026-10-08: auto-loads AGENTS.md only; project skills auto-load from `.agents/skills/`; build, tsc, vitest 1144 tests pass; can push; WebGL drew robot-collector on port 3102, but through its own headless Chrome CDP script, not the interactive browser agent; quota only in the app UI) | 2026-10-08 |
 | antigravity/baseline-audit | Antigravity | copy-paste | p50-antigravity | none (report only) | P-01 (after P-00) | 2026-10-08 |
 | cursor/probe | Cursor | copy-paste | p50-cursor | none (report only) | P-00 (done 2026-10-08: auto-loads CLAUDE.md + AGENTS.md; project skills folder `.cursor/skills/` did not auto-load in a subagent, so prompts keep pointing at the SKILL.md path; vitest 2.1.9; can push; no quota readout) | 2026-10-08 |
 | cursor/ui-collections | Cursor | copy-paste | p50-cursor | `arcade3d/ui/**` | P-08 (after P-02) | 2026-10-08 |
@@ -65,3 +65,4 @@ Known local issues: port 3100 is held by an old `next start` from `.claude/workt
 | P-00 probe | Codex | CLI | 2 | 0.1 | – | 0 | run 1 failed (elevated sandbox), run 2 ok |
 | P-00 probe | Kimi | CLI | 1 | 0.2 | – | 0 | ok |
 | P-00 probe | Cursor | copy-paste | 1 | – | – | 0 | ok |
+| P-00 probe | Antigravity | copy-paste | 1 | – | – | 0 | ok |
