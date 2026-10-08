@@ -33,6 +33,7 @@ import {
    Kitchen,
    SockPrimitive,
    TinPrimitive,
+   WORKTOP_TOP_Y,
 } from "./Primitives";
 import {
    CHEF,
@@ -157,8 +158,9 @@ const Chef = memo(function Chef({ run }: { run: ViewRun }) {
       body.position.y = fallback ? Math.abs(Math.sin(time.now * 10)) * 0.04 * speed : gait.lift;
    });
 
+   // the root stands on the worktop's top face (y 0.05), so the soles are on the board, not inside it
    return (
-      <group ref={root} position={[0, 0, CHEF_Z]} name="chef">
+      <group ref={root} position={[0, WORKTOP_TOP_Y, CHEF_Z]} name="chef">
          <group ref={turn}>
             <group ref={bob}>
                {/* the group above carries the body's height (gait.lift), so the model does not add it again */}
