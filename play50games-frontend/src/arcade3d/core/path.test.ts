@@ -2,6 +2,21 @@ import { describe, expect, it } from "vitest";
 import { advanceGraph, advance, createPath, createPathGraph, nearestS, pointAt, tangentAt } from "./path";
 const v = (x: number, z = 0) => ({ x, y: 0, z });
 describe("paths", () => {
+   it("retains segment identity when paths are shared", () => {
+      const shared = createPath([v(0), v(1)]), end = createPath([v(1), v(3)]);
+      const graph = createPathGraph([shared, shared, end], [[1], [2], []]);
+      const rider = { path: shared, s: 0, position: v(0), segment: undefined as number | undefined };
+      advanceGraph(rider, graph, () => 1, 1.5);
+      expect(rider.segment).toBe(1); expect(rider.s).toBeCloseTo(0.5);
+      advanceGraph(rider, graph, (index) => index + 1, 1);
+      expect(rider.segment).toBe(2); expect(rider.path).toBe(end); expect(rider.s).toBeCloseTo(0.5);
+   });
+   it("skips invalid junction entries before valid choices", () => {
+      const paths = [createPath([v(0), v(1)]), createPath([v(1), v(2)])];
+      const rider = { path: paths[0], s: 0, position: v(0) };
+      advanceGraph(rider, createPathGraph(paths, [[-1, 99, NaN, 1], []]), () => 1, 1.5);
+      expect(rider.path).toBe(paths[1]); expect(rider.s).toBeCloseTo(0.5);
+   });
    it("measures a circle polygon within 0.5 percent", () => {
       const points = Array.from({ length: 64 }, (_, i) => v(Math.cos(i * Math.PI / 32) * 10, Math.sin(i * Math.PI / 32) * 10));
       const path = createPath(points, { closed: true });

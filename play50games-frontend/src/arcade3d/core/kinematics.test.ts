@@ -2,6 +2,13 @@ import { describe, expect, it } from "vitest";
 import { circleSegmentXZ, resolveCircleSegmentXZ, rotateSegmentXZ, stepPendulum, stepPendulum2D, stepRigidBody2D, createFixedStep, fixedStep, substep, type SegmentContact } from "./kinematics";
 const scratch = (): SegmentContact => ({ x: 0, z: 0, nx: 0, nz: 0, depth: 0, vx: 0, vz: 0 });
 describe("kinematics", () => {
+   it("uses the initialized fixed step without repeating it", () => {
+      const clock = createFixedStep(0.01); let time = 0;
+      const integrate = (dt: number) => { time += dt; };
+      expect(fixedStep(clock, 0.006, integrate)).toBe(0);
+      expect(fixedStep(clock, 0.006, integrate)).toBe(1);
+      expect(clock.acc).toBeCloseTo(0.002, 12); expect(time).toBeCloseTo(0.01);
+   });
    it("never gains kinetic energy across 10,000 bounces", () => {
       for (const restitution of [0, 0.8, 1]) {
          const body = { x: 0.5, z: 0, vx: -3, vz: 2, radius: 0.5 }, hit = scratch();

@@ -80,7 +80,7 @@ export function nearestS(path: Path, point: Vec3): number {
    }
    return normalizeS(path, s);
 }
-export interface RiderState { path: Path; s: number; position: Vec3; overflow?: number }
+export interface RiderState { path: Path; s: number; position: Vec3; overflow?: number; segment?: number }
 export function advance(state: RiderState, ds: number): RiderState {
    const distance = state.s + (Number.isFinite(ds) ? ds : 0);
    state.s = normalizeS(state.path, distance);
@@ -88,12 +88,13 @@ export function advance(state: RiderState, ds: number): RiderState {
    pointAt(state.path, state.s, state.position);
    return state;
 }
-export interface PathGraph { segments: Path[]; next(segment: number, choice: number): number | null }
+export interface PathGraph { segments: Path[]; choiceCount?(segment: number): number; next(segment: number, choice: number): number | null }
 /** One row per segment; choices are outgoing segment indices at its end; invalid choices return null. */
 export function createPathGraph(segments: readonly Path[], junctions: readonly (readonly number[])[]): PathGraph {
    const paths = [...segments], links = junctions.map((row) => [...row]);
    return {
       segments: paths,
+      choiceCount: (segment) => links[segment]?.length ?? 0,
       next(segment, choice) {
          const next = links[segment]?.[choice];
          return Number.isInteger(segment) && Number.isInteger(choice) && next !== undefined && Number.isInteger(next) && next >= 0 && next < paths.length ? next : null;
@@ -102,18 +103,21 @@ export function createPathGraph(segments: readonly Path[], junctions: readonly (
 }
 
 /** Forward graph traversal. choose receives the ending segment index and returns an outgoing path index.
+ * Invalid entries are skipped within choiceCount; legacy graphs stop at the first null.
  * Missing links, reverse travel and zero-length cycles leave the unconsumed distance in overflow. */
 export function advanceGraph(state: RiderState, graph: PathGraph, choose: (junction: number) => number, ds: number): RiderState {
+   state.segment ??= graph.segments.indexOf(state.path);
    advance(state, ds);
    let zeroLengthHops = 0;
    while ((state.overflow ?? 0) > 0) {
-      const index = graph.segments.indexOf(state.path);
+      const index = state.segment;
       if (index < 0) break;
       const next = choose(index);
       let linked = false;
-      for (let choice = 0; ; choice++) {
+      const count = graph.choiceCount?.(index);
+      for (let choice = 0; count === undefined || choice < count; choice++) {
          const candidate = graph.next(index, choice);
-         if (candidate === null) break;
+         if (candidate === null) { if (count === undefined) break; else continue; }
          if (candidate === next) { linked = true; break; }
       }
       if (!linked) break;
@@ -121,7 +125,7 @@ export function advanceGraph(state: RiderState, graph: PathGraph, choose: (junct
       if (path.total === 0) { if (++zeroLengthHops > graph.segments.length) break; }
       else zeroLengthHops = 0;
       const remaining = state.overflow ?? 0;
-      state.path = path; state.s = 0;
+      state.path = path; state.segment = next; state.s = 0;
       advance(state, remaining);
    }
    return state;
