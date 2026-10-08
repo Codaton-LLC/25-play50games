@@ -200,3 +200,68 @@ export const SHARED_ASSETS: Record<SharedAssetId, ModelAsset> = {
  * them against the real mesh).
  */
 export const COIN_GLB_SIZE = { width: 1.899, height: 1.861, depth: 0.492 } as const;
+
+/**
+ * GLBs that live in an original game's folder and are reused by the expansion games
+ * (docs/arcade-expansion/06 §F.1). The URLs stay where they are (thumbnails, tests and the manifest
+ * keep working); a new game imports these aliases from core, never from another game's folder.
+ * No scale: Rodin GLBs are about 1.9 units on their longest side, so each game fits the model from
+ * its own measured size (spread the entry: `{ ...REUSED_ASSETS.palm, scale: 1.2 / 1.9 }`), as
+ * office-escape and tower-climb do with the coin. The originals keep their own assets.ts entries.
+ * chef and cleaner are T-pose characters: their landmarks (CHEF_LANDMARKS, CLEANER_LANDMARKS) still
+ * live in food-catcher / clean-city and move to core in the first expansion game that animates them.
+ */
+export type ReusedAssetId =
+   | "barrel"
+   | "apple"
+   | "burger"
+   | "sock"
+   | "chef"
+   | "cleaner"
+   | "bottle"
+   | "bag"
+   | "bench"
+   | "bin"
+   | "lamp"
+   | "palm"
+   | "umbrella"
+   | "book"
+   | "door"
+   | "pallet"
+   | "checkpointFlag"
+   | "car"
+   | "taxi"
+   | "van"
+   | "pigeon";
+
+const reused = (
+   id: ReusedAssetId,
+   url: string,
+   fallback: ModelAsset["fallback"],
+   fallbackColor: string,
+   budget: ModelAsset["budget"] = PROP_BUDGET,
+): ModelAsset => ({ id, url, fallback, fallbackColor, budget });
+
+export const REUSED_ASSETS: Record<ReusedAssetId, ModelAsset> = {
+   barrel: reused("barrel", "/models/3d/robot-collector/barrel.glb", "cylinder", "#38bdf8"),
+   apple: reused("apple", "/models/3d/food-catcher/apple.glb", "sphere", "#ef4444"),
+   burger: reused("burger", "/models/3d/food-catcher/burger.glb", "cylinder", "#d97706"),
+   sock: reused("sock", "/models/3d/food-catcher/sock.glb", "box", "#a78bfa"),
+   chef: reused("chef", "/models/3d/food-catcher/chef.glb", "capsule", "#f8fafc", CHARACTER_BUDGET),
+   cleaner: reused("cleaner", "/models/3d/clean-city/cleaner.glb", "capsule", "#f97316", CHARACTER_BUDGET),
+   bottle: reused("bottle", "/models/3d/clean-city/bottle.glb", "cylinder", "#22c55e"),
+   bag: reused("bag", "/models/3d/clean-city/bag.glb", "box", "#e2e8f0"),
+   bench: reused("bench", "/models/3d/clean-city/bench.glb", "box", "#92400e"),
+   bin: reused("bin", "/models/3d/clean-city/bin.glb", "cylinder", "#64748b"),
+   lamp: reused("lamp", "/models/3d/clean-city/lamp.glb", "cylinder", "#94a3b8"),
+   palm: reused("palm", "/models/3d/clean-city/palm.glb", "cylinder", "#4d7c0f"),
+   umbrella: reused("umbrella", "/models/3d/clean-city/umbrella.glb", "cylinder", "#f43f5e"),
+   book: reused("book", "/models/3d/escape-room/book.glb", "box", "#7c3aed"),
+   door: reused("door", "/models/3d/escape-room/door.glb", "box", "#a16207"),
+   pallet: reused("pallet", "/models/3d/warehouse-rush/pallet.glb", "box", "#b45309"),
+   checkpointFlag: reused("checkpointFlag", "/models/3d/tower-climb/checkpoint-flag.glb", "cylinder", "#fbbf24"),
+   car: reused("car", "/models/3d/pigeon-crossing/car.glb", "box", "#f47967"),
+   taxi: reused("taxi", "/models/3d/pigeon-crossing/taxi.glb", "box", "#ffd15b"),
+   van: reused("van", "/models/3d/pigeon-crossing/van.glb", "box", "#e9edf3"),
+   pigeon: reused("pigeon", "/models/3d/pigeon-crossing/pigeon.glb", "sphere", "#8192a9", CHARACTER_BUDGET),
+};

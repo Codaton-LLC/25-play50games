@@ -1,11 +1,12 @@
-// One 3D Arcade game, full screen. The page is static (10 slugs); the game itself mounts on the
+// One 3D Arcade game, full screen. The page is static (every slug); the game itself mounts on the
 // client only (ArcadeGameMount -> GAME_LOADERS + GameShell), so three.js never ships with the page.
 // "soon" games stay playable at their URL but are noindex (their cards are not clickable).
+// "dev" games are 404 unless NEXT_PUBLIC_ARCADE_PREVIEW is on (preview builds), and noindex there.
 import type { Metadata, Viewport } from "next";
 import { notFound } from "next/navigation";
 import { ARCADE_ENABLED } from "@/arcade3d/flags";
 import { ARCADE_SLUGS, isArcadeSlug } from "@/arcade3d/types";
-import { getGameMeta } from "@/arcade3d/registry";
+import { getGameMeta, isGameVisible } from "@/arcade3d/registry";
 import ArcadeGameMount from "@/arcade3d/core/ArcadeGameMount";
 import { gameJsonLd, serializeJsonLd } from "@/lib/seo/jsonLd";
 import { gameOgImagePath, ogImage } from "@/lib/seo/ogImages";
@@ -32,7 +33,7 @@ export const viewport: Viewport = {
 
 export function generateMetadata({ params }: PageProps): Metadata {
    const meta = ARCADE_ENABLED ? getGameMeta(params.slug) : undefined;
-   if (!meta) return {};
+   if (!meta || !isGameVisible(meta)) return {};
 
    const url = `${SITE_URL}/3d/${meta.slug}`;
    const socialTitle = `${meta.title} | 3D Arcade | Play50Games`;
@@ -42,7 +43,7 @@ export function generateMetadata({ params }: PageProps): Metadata {
       title: meta.title,
       description: meta.description,
       alternates: { canonical: `/3d/${meta.slug}` },
-      robots: meta.status === "soon" ? { index: false, follow: true } : undefined,
+      robots: meta.status === "live" ? undefined : { index: false, follow: true },
       openGraph: {
          type: "website",
          locale: "en_US",
@@ -62,14 +63,15 @@ export function generateMetadata({ params }: PageProps): Metadata {
 }
 
 export default function ArcadeGamePage({ params }: PageProps) {
-   if (!ARCADE_ENABLED || !isArcadeSlug(params.slug)) notFound();
-   const jsonLd = gameJsonLd(SITE_URL, getGameMeta(params.slug), ARCADE_ENABLED);
+   const meta = ARCADE_ENABLED && isArcadeSlug(params.slug) ? getGameMeta(params.slug) : undefined;
+   if (!meta || !isGameVisible(meta)) notFound();
+   const jsonLd = gameJsonLd(SITE_URL, meta, ARCADE_ENABLED);
    return (
       <main>
          {jsonLd && (
             <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }} />
          )}
-         <ArcadeGameMount slug={params.slug} />
+         <ArcadeGameMount slug={meta.slug} />
       </main>
    );
 }

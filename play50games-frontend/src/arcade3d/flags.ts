@@ -11,3 +11,6 @@ export const ARCADE_LEADERBOARD = on(process.env.NEXT_PUBLIC_ARCADE_LEADERBOARD)
 
 /** Replaces the WordPress arcade API with an in-memory mock (development only). */
 export const ARCADE_API_MOCK = on(process.env.NEXT_PUBLIC_ARCADE_API_MOCK);
+
+/** Shows "dev" games on /3d and serves their routes (preview builds only, never on Vercel production). */
+export const ARCADE_PREVIEW = on(process.env.NEXT_PUBLIC_ARCADE_PREVIEW);

@@ -1,4 +1,4 @@
-// Capture real in-game thumbnails for the 10 3D Arcade games.
+// Capture real in-game thumbnails for the 3D Arcade games.
 // Launches Chrome headless, drives it over the DevTools protocol (ws, no puppeteer),
 // plays each game a few seconds with a per-game input script, hides the HTML overlays,
 // screenshots the canvas, post-processes with sharp (16:9, 640x360, webp <= 60 KB).
@@ -18,23 +18,15 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import sharp from "sharp";
 import WebSocket from "ws";
-import { INPUT_SCRIPTS } from "./inputs.mjs";
+import { arcadeSlugs, hasOwnScript, loadInputScript } from "./scripts.mjs";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const FRONTEND_PUBLIC = path.resolve(HERE, "../../play50games-frontend/public");
 
-const DEFAULT_SLUGS = [
-   "robot-collector",
-   "food-catcher",
-   "office-escape",
-   "pigeon-crossing",
-   "penalty-hero",
-   "warehouse-rush",
-   "tower-climb",
-   "clean-city",
-   "escape-room",
-   "obstacle-race",
-];
+// Any slug in ARCADE_SLUGS is accepted (a "dev" game needs a preview build: NEXT_PUBLIC_ARCADE_PREVIEW=1);
+// without --slugs, the games with an input script of their own are captured.
+const ALL_SLUGS = arcadeSlugs();
+const DEFAULT_SLUGS = ALL_SLUGS.filter(hasOwnScript);
 
 const DEFAULT_CHROME = {
    win32: "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
@@ -92,7 +84,7 @@ function checkArgs() {
          `--base-url must be a local server (localhost / 127.0.0.1 / [::1]), not ${host}: the tool plays real runs`,
       );
    }
-   const unknown = SLUGS.filter((s) => !DEFAULT_SLUGS.includes(s));
+   const unknown = SLUGS.filter((s) => !ALL_SLUGS.includes(s));
    if (unknown.length > 0) throw new FatalError(`unknown slug(s): ${unknown.join(", ")}`);
    if (SLUGS.length === 0) throw new FatalError("no slugs to capture");
    if (!existsSync(CHROME)) throw new FatalError(`Chrome not found at ${CHROME} (pass --chrome <path> or set CHROME_PATH)`);
@@ -430,7 +422,7 @@ function shotClip(rect, frame) {
 // (so the shot catches the character mid-move); they are returned for release after the shot,
 // with the { zoom } frame for the shot (null = the whole canvas).
 async function playScript(cdp, sessionId, slug, rect) {
-   const steps = INPUT_SCRIPTS[slug] ?? [];
+   const { steps } = await loadInputScript(slug);
    const held = new Set();
    let frame = null;
    for (const step of steps) {
