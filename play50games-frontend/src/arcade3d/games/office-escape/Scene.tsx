@@ -375,9 +375,11 @@ const Coins = memo(function Coins({ run, fx, standIns }: { run: OfficeRun; fx: F
       showCopies(glowSlot, n);
    });
 
+   // the shared coin GLB (ASSETS.coin: the stand-in's size, centred on the coin's point, so the same
+   // spin, bob and pickup matrices place it), or the stand-in disc while it is missing or broken
    return (
       <group name="coins">
-         <PropMeshes parts={standIns.coin} capacity={COIN_SLOTS} slot={coinSlot} />
+         <InstancedProp asset={ASSETS.coin} fallback={standIns.coin} capacity={COIN_SLOTS} slot={coinSlot} />
          <PropMeshes parts={standIns.glow} capacity={COIN_SLOTS} slot={glowSlot} />
       </group>
    );

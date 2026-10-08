@@ -4,7 +4,7 @@
 import type { ModelAsset } from "./types";
 import type { HumanoidLandmarks } from "./rig/humanoid";
 
-export type SharedAssetId = "runner" | "robot" | "battery" | "crate" | "tinCan" | "banana" | "desk" | "chair";
+export type SharedAssetId = "runner" | "robot" | "battery" | "crate" | "tinCan" | "banana" | "desk" | "chair" | "coin";
 
 /** Budgets after `optimize` (platform-plan §4). */
 export const CHARACTER_BUDGET = { tris: 20000, bytes: 1_500_000 } as const;
@@ -181,4 +181,22 @@ export const SHARED_ASSETS: Record<SharedAssetId, ModelAsset> = {
       fallbackColor: "#475569",
       budget: { ...PROP_BUDGET },
    },
+   // A gold coin with a raised star on both faces (group D, 2026-10-07), COIN_GLB_SIZE below. Like
+   // the runner, no default scale: a game spreads it with its own `scale` and `yOffset`.
+   coin: {
+      id: "coin",
+      url: shared("coin"),
+      fallback: "cylinder",
+      fallbackColor: "#fbbf24",
+      budget: { ...PROP_BUDGET },
+   },
 };
+
+/**
+ * SHARED_ASSETS.coin's measured bounds in GLB units: it stands on its edge on y = 0 (centre at
+ * y 0.93), its faces along ±z, about 0.33 deep at the rim. A game fits it from these, never from
+ * copies of the numbers: `scale` = its diameter / width and, for a coin placed by its centre,
+ * `yOffset` = -scale x height / 2 (office-escape, tower-climb; office-escape/coin.test.ts checks
+ * them against the real mesh).
+ */
+export const COIN_GLB_SIZE = { width: 1.899, height: 1.861, depth: 0.492 } as const;

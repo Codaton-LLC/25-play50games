@@ -1,13 +1,16 @@
 // Models used by Office Escape. Plain data, no three.js: index.tsx hands them to GameShell (which
 // frees the GLBs when the game closes) and Scene.tsx / Primitives.tsx render them.
 // The desk, chair, printer, coffee cart and water cooler GLBs are in core/modelManifest.ts (group A,
-// 2026-10-06), the shared runner since group B. Swapping a model in is the assets PR (file +
-// manifest line) plus the scale here, never a scene change. Collision never comes from a model
-// (rules.ts hitboxes).
+// 2026-10-06), the shared runner since group B and the shared coin since group D. Swapping a model
+// in is the assets PR (file + manifest line) plus the scale here, never a scene change. Collision
+// never comes from a model (rules.ts hitboxes).
 import type { ModelAsset } from "@/arcade3d/core/types";
-import { PROP_BUDGET, SHARED_ASSETS } from "@/arcade3d/core/sharedAssets";
+import { COIN_GLB_SIZE, PROP_BUDGET, SHARED_ASSETS } from "@/arcade3d/core/sharedAssets";
 
 const own = (id: string) => `/models/3d/office-escape/${id}.glb`;
+
+/** Draws shared/coin.glb 0.60 m across, the stand-in coin's diameter (Primitives.tsx COIN_STAND_IN): about 0.316. */
+const COIN_SCALE = 0.6 / COIN_GLB_SIZE.width;
 
 export const ASSETS = {
    // shared cast (src/arcade3d/assets/shared.spec.json -> public/models/3d/shared/*.glb).
@@ -22,6 +25,12 @@ export const ASSETS = {
    // chair 1.21 x 1.90 x 1.24 -> 0.90 x 1.41 x 0.92.
    desk: { ...SHARED_ASSETS.desk, scale: 0.85 },
    chair: { ...SHARED_ASSETS.chair, scale: 0.74 },
+   // The shared gold coin (group D), drawn like the stand-in disc (Primitives.tsx COIN_STAND_IN:
+   // 0.60 across, 0.07 thick, centred on the coin's point): 1.899 x 1.861 x 0.492 (COIN_GLB_SIZE)
+   // -> 0.60 x 0.59, and stretch z 0.7 thins it to 0.074 at the rim (0.11 over the raised stars).
+   // yOffset puts its centre, not its edge, on the point Scene.tsx spins and bobs it about (well
+   // inside the 0.7 m rules box). coin.test.ts measures all of it on the real mesh.
+   coin: { ...SHARED_ASSETS.coin, scale: COIN_SCALE, stretch: [1, 1, 0.7], yOffset: (-COIN_SCALE * COIN_GLB_SIZE.height) / 2 },
    // this game only (./assets.spec.json -> public/models/3d/office-escape/*.glb)
    printer: {
       id: "printer",
