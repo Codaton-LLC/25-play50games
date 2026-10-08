@@ -1,0 +1,20 @@
+{
+   "slug": "pirate-cannons",
+   "universe": "play50-toy-world-premium",
+   "seed": 5050,
+   "assets": [
+      {
+         "id": "ship",
+         "kind": "prop",
+         "mode": "image",
+         "prompt": "Small chunky cartoon pirate sloop: a rounded wooden hull with a red trim line, one mast with one large square cream sail, a small raised stern deck and a short bowsprit. Premium stylised mobile-game look, friendly rounded toy proportions, soft bevelled edges, matte painted wood and cloth. Single object, centred, upright on its keel, bow pointing to the viewer's left, symmetrical port and starboard. No flag, no crew, no cannons, no water, no ropes or rigging lines, no text, no skull logo. Clean game-ready low-poly topology, clean PBR textures without baked shadows.",
+         "concept": "tools/hyper3d/concepts/pirate-cannons-ship.png",
+         "tier": "Gen-2.5-Medium",
+         "qualityOverride": 3000,
+         "attempts": 1,
+         "target": "pirate-cannons",
+         "budget": { "tris": 5000, "bytes": 300000 },
+         "textureSize": 512
+      }
+   ]
+}
