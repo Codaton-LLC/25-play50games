@@ -22,10 +22,11 @@
 //   the beam balance, the flailing tumble, the cheer, the slump). RunnerPrimitive, with its own
 //   swung limbs, stays as the fallback.
 // - The finish arch is the group D GLB fitted to the rules' ARCH (assets.ts), with
-//   FinishArchPrimitive as its fallback.
+//   FinishArchPrimitive as its fallback. It fades while a runner who jumped over the line cheers
+//   behind it, and a runner cheering by a post keeps that arm out of its leg (finishLooks.ts).
 import { memo, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { flushSync, useFrame, useThree } from "@react-three/fiber";
-import { Color, type Group, type Matrix4, type Mesh, type MeshStandardMaterial, type Texture } from "three";
+import { Color, type Group, type Material, type Matrix4, type Mesh, type MeshStandardMaterial, type Texture } from "three";
 import { Model } from "@/arcade3d/core/assets";
 import CameraRig from "@/arcade3d/core/CameraRig";
 import { playSfx } from "@/arcade3d/core/audio";
@@ -57,6 +58,7 @@ import { useRunFrame } from "@/arcade3d/core/useRunFrame";
 import type { FittedView } from "@/arcade3d/core/view";
 import { ASSETS } from "./assets";
 import { DAMPING, followPoint, viewFor, type RaceView } from "./camera";
+import { archOpacity, clearPostArm, postArmWeight } from "./finishLooks";
 import {
    COLORS,
    CourseStatic,
@@ -406,6 +408,64 @@ const CheckpointGates = memo(function CheckpointGates({ run, fx }: { run: Obstac
    return <Gates rigs={rigs} />;
 });
 
+// ---------- the finish arch ----------
+
+/**
+ * The GLB arch (or its stand-in) on the posts. A runner who jumped over the line lands 1.5-4.1 m
+ * past it and cheers behind the banner and the top tube, out of the follow camera's sight, so the
+ * arch fades to ARCH_FADED through that result delay (finishLooks.ts archOpacity). Its materials
+ * are this mount's own copies, transparent from the start: a material turning transparent in the
+ * cheer would build a new program there (three.js drops the OPAQUE define), so they turn at mount,
+ * before the Scene's gl.compile (children's layout effects run first), and only their opacity
+ * changes. Copies, because the GLB's materials are shared with the useGLTF cache (core <Model>
+ * clones the scene, not its materials). At opacity 1 it draws as before (it still writes depth).
+ */
+const FinishArch = memo(function FinishArch({ run }: { run: ObstacleRun }) {
+   const time = useGameTime();
+   const arch = useRef<Group>(null);
+   const [fade] = useState(() => ({ materials: [] as Material[], opacity: 1 }));
+
+   useLayoutEffect(() => {
+      const root = arch.current;
+      if (!root) return;
+      const swapped: Array<{ mesh: Mesh; original: Material | Material[] }> = [];
+      const copy = (m: Material) => {
+         const c = m.clone();
+         c.transparent = true;
+         c.opacity = 1;
+         fade.materials.push(c);
+         return c;
+      };
+      root.traverse((object) => {
+         const mesh = object as Mesh;
+         if (!mesh.isMesh) return;
+         const original = mesh.material;
+         mesh.material = Array.isArray(original) ? original.map(copy) : copy(original);
+         swapped.push({ mesh, original });
+      });
+      fade.opacity = 1;
+      return () => {
+         for (const { mesh, original } of swapped) mesh.material = original;
+         const copies = fade.materials.splice(0);
+         // after the next run's Scene has compiled (a retry remounts it in this commit), so the
+         // shared program is still in use and nothing is rebuilt
+         setTimeout(() => copies.forEach((m) => m.dispose()), 0);
+      };
+   }, [fade]);
+
+   useFrame(() => {
+      const { phase, endReason } = useArcadeStore.getState();
+      const target = archOpacity(phase, endReason, run.runner.z);
+      if (fade.opacity === target) return;
+      fade.opacity += (target - fade.opacity) * (1 - Math.exp(-8 * time.delta));
+      if (Math.abs(target - fade.opacity) < 0.002) fade.opacity = target;
+      for (let i = 0; i < fade.materials.length; i++) fade.materials[i].opacity = fade.opacity;
+   });
+
+   // the GLB fitted to rules.ts ARCH (legs on the posts, assets.ts); the stand-in if it is missing or broken
+   return <Model ref={arch} asset={ASSETS.finishArch} position={[0, 0, -LINES.finish]} fallback={<FinishArchPrimitive />} />;
+});
+
 // ---------- the runner ----------
 
 /** The stand-in is about 1.55 m tall; the rules' runner is 1.5 m. */
@@ -508,7 +568,11 @@ const Runner = memo(function Runner({ run, fx }: { run: ObstacleRun; fx: Fx }) {
          blendPoses(p, jumpPose(0.4 + 0.6 * tuck, scratch), air, p);
       }
       if (flailing) blendPoses(p, flailPose(t, scratch), Math.min(1, (t - Math.max(fx.knockAt, fx.lostAt)) / 0.2), p);
-      if (gait.cheer > 0.001) blendPoses(p, cheerPose(t, scratch), gait.cheer, p);
+      if (gait.cheer > 0.001) {
+         blendPoses(p, cheerPose(t, scratch), gait.cheer, p);
+         // finished hugging a post: the arm on its side up and back (−z), out of the arch's leg
+         clearPostArm(p, r.x, r.z, fx.yaw, t, gait.cheer, scratch);
+      }
       if (gait.slump > 0.001) {
          // hanging arms, the head and the shoulders dropped
          turnBone(p, BONE.spine, 0.2 * gait.slump, 0, 0);
@@ -602,10 +666,16 @@ const Runner = memo(function Runner({ run, fx }: { run: ObstacleRun; fx: Fx }) {
             kneeL.rotation.set(-0.8, 0, 0);
             kneeR.rotation.set(-0.8, 0, 0);
          } else if (won) {
-            // cheering under the arch
+            // cheering under the arch; by a post, the arm on its side up and down the course (−z)
+            // instead of out (finishLooks.ts; the stand-in's L is at -x, which its group's yaw turns
+            // to world x = -cos(yaw), as the GLB's; π ∓ 0.84 swings the arm 48° from straight up
+            // towards its front (yaw 0) or its back (yaw π), world −z both ways)
             const w = Math.sin(t * 10) * 0.25;
-            shoulderL.rotation.set(2.9 + w, 0, -0.35);
-            shoulderR.rotation.set(2.9 - w, 0, 0.35);
+            const back = Math.PI - 0.84 * Math.cos(fx.yaw);
+            const kL = postArmWeight(1, r.x, r.z, fx.yaw);
+            const kR = postArmWeight(-1, r.x, r.z, fx.yaw);
+            shoulderL.rotation.set(mix(2.9 + w, back + 0.3 * w, kL), 0, mix(-0.35, 0, kL));
+            shoulderR.rotation.set(mix(2.9 - w, back - 0.3 * w, kR), 0, mix(0.35, 0, kR));
             elbowL.rotation.set(0.3, 0, 0);
             elbowR.rotation.set(0.3, 0, 0);
             const tuck = Math.abs(Math.sin(t * 6));
@@ -768,8 +838,7 @@ export default function Scene() {
          <Blocks fx={fx} />
          <Beam fx={fx} />
          <CheckpointGates run={run} fx={fx} />
-         {/* the GLB fitted to rules.ts ARCH (legs on the posts, assets.ts); the stand-in if it is missing or broken */}
-         <Model asset={ASSETS.finishArch} position={[0, 0, -LINES.finish]} fallback={<FinishArchPrimitive />} />
+         <FinishArch run={run} />
          <Runner run={run} fx={fx} />
          <Effects fx={fx} />
       </>

@@ -76,14 +76,16 @@ describe("obstacle-race finish arch GLB", () => {
       }
    });
 
-   it("keeps the runway clear: nothing low between the legs, the banner over the runner and its cheer", async () => {
+   it("keeps the runway clear: nothing low between the legs, the banner over a walked finish and its cheer", async () => {
       const points = await drawnPoints();
       // below the legs' tops every vertex belongs to a leg
       const inner = ARCH.postX - ARCH.postRadius - SLEEVE;
       for (const p of points) if (p.y < LEG_TOP) expect(Math.abs(p.x)).toBeGreaterThanOrEqual(inner);
       // up to the widest a runner's centre gets at the line (pushed off a post: 2.85 m), the lowest
-      // point (the banner's lower edge, 2.16 m) is over the 1.5 m runner hopping 0.32 m with its
-      // hands up in its cheer (Scene.tsx), anywhere on the line
+      // point (the banner's lower edge, 2.16 m) is over the 1.5 m runner walking over the line and
+      // hopping 0.32 m with its hands up in its cheer (Scene.tsx). Not over a jump across the line
+      // (apex 1.445 m, the head up to about 2.95 m): it passes through the banner, which has no
+      // collision, for a few frames (README "Known issues")
       const lane = ARCH.postX - ARCH.postRadius - RUNNER.radius;
       const lowest = Math.min(...points.filter((p) => Math.abs(p.x) <= lane).map((p) => p.y));
       expect(lowest).toBeGreaterThan(RUNNER.height + 0.6);
