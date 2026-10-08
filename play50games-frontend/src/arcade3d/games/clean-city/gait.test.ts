@@ -297,7 +297,7 @@ describe("clean-city: the planted foot stays put (core footPoint, the cleaner's 
       for (const v of [1, 2]) expect(stanceSlide(runnerStep(L, CLEANER_SCALE), L, CLEANER_SCALE, steady(v), 2, 1), `cleaner v ${v}`).toBeGreaterThan(0.15);
    });
 
-   it("plain walkStride at a run (no RUN_STRIDE) would skid the planted foot backwards: over 30 % at 5 u/s", () => {
+   it("plain walkStride at a run (not the contact stride) would skid the planted foot backwards: over 30 % at 5 u/s", () => {
       const plain: Step = (g, v, dt) => {
          g.amount = Math.min(1, v / RUNNER.speed);
          g.phase += ((v * dt) / (walkStride(g.amount, L) * CLEANER_SCALE)) * TAU;

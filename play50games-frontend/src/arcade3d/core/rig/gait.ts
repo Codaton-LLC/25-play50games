@@ -2,7 +2,7 @@
 // no allocation.
 //
 //    const bob = bodyLift(pose, landmarks) * asset.scale;          // the body's height over the floor
-//    gait.phase += (v * dt) / (walkStride(amount, landmarks) * asset.scale) * 2π;
+//    gait.phase += (v * dt) / (contactStride(amount, landmarks) * asset.scale) * 2π;
 //    // the same with a shortest stride and a cadence cap (a fast character's legs):
 //    gait.phase = wrapPhase(gait.phase + gaitPhaseStep(amount, landmarks, asset.scale, v, dt, 4));
 //

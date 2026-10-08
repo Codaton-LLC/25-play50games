@@ -440,7 +440,7 @@ const LEGS = new Float64Array(2);
 /**
  * One stride of a walk or a run. `phase` (rad) goes once round per stride (two steps): the left
  * leg is fully forward at π/2, the right one at 3π/2, and phase + π is the mirror image. Advance it
- * with the distance walked (phase += distance / stride * 2π, the stride from gait.ts walkStride) so
+ * with the distance walked (phase += distance / stride * 2π, the stride from gait.ts contactStride) so
  * the feet do not slide. `amount` 0..1: 0 = armsDownPose exactly, about 0.5 = a walk, 1 = a run
  * (wider swings, knees and elbows bent further, a forward lean). The legs swing about x, straight
  * on the ground; the knee folds only while the leg swings forward through the air, and its thigh
