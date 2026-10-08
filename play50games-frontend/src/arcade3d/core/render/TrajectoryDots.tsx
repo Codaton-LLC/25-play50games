@@ -12,7 +12,9 @@
 // - The arc ends where it meets `groundY` (the last dot sits on the ground) or after `count` dots.
 // - `fraction` (0..1) shows only the first part of the arc: a partial preview that hints the
 //   direction without giving the landing spot away. 1 = the whole arc.
-// - Dot i always fades by i / count, so the dots do not flicker as the arc grows or shrinks.
+// - The fade and the shrink run over the dots the `fraction` allows (shownDots(count, fraction)):
+//   a partial preview fades out fully at its end. Dot i always gets the same look for a given
+//   count and fraction, so the dots do not flicker as the arc grows or shrinks.
 import { useEffect, useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import {
@@ -115,11 +117,13 @@ export function TrajectoryDots({
       return { mesh, geometry, material, alpha, points: new Float32Array(n * 3), matrix: new Matrix4() };
    }, [n]);
 
+   // the fade runs over the dots a full arc shows at this fraction
+   const span = Math.max(1, shownDots(n, fraction));
    useEffect(() => {
       const a = parts.alpha.array as Float32Array;
-      for (let i = 0; i < n; i++) a[i] = dotOpacity(i, n, opacity, endOpacity);
+      for (let i = 0; i < n; i++) a[i] = dotOpacity(Math.min(i, span - 1), span, opacity, endOpacity);
       parts.alpha.needsUpdate = true;
-   }, [parts, n, opacity, endOpacity]);
+   }, [parts, n, span, opacity, endOpacity]);
 
    useEffect(() => {
       (parts.material.uniforms.uColor.value as Color).set(color);
@@ -134,8 +138,8 @@ export function TrajectoryDots({
       [parts]
    );
 
-   const live = useRef({ projectile, params, step, groundY, fraction, radius, endScale, visible });
-   live.current = { projectile, params, step, groundY, fraction, radius, endScale, visible };
+   const live = useRef({ projectile, params, step, groundY, fraction, radius, endScale, visible, span });
+   live.current = { projectile, params, step, groundY, fraction, radius, endScale, visible, span };
 
    useFrame(() => {
       const p = live.current;
@@ -147,7 +151,7 @@ export function TrajectoryDots({
       const available = trajectoryPoints(p.projectile, p.params, n, p.step, points, p.groundY);
       const shown = shownDots(available, p.fraction);
       for (let i = 0; i < shown; i++) {
-         const s = p.radius * (1 + (p.endScale - 1) * (n > 1 ? i / (n - 1) : 0));
+         const s = p.radius * (1 + (p.endScale - 1) * (p.span > 1 ? Math.min(1, i / (p.span - 1)) : 0));
          matrix.makeScale(s, s, s).setPosition(points[i * 3], points[i * 3 + 1], points[i * 3 + 2]);
          mesh.setMatrixAt(i, matrix);
       }
