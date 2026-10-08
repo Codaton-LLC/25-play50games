@@ -40,7 +40,24 @@ Owned by Claude. Games import from here and never edit it. If a game needs somet
 
 ## Sound
 
-`playSfx(name)` (`audio.ts`) plays short synthesized effects; mute is remembered per device (`play50games_3d_muted`, the HUD's Mute). The AudioContext is created (or resumed after the browser suspended it) only inside a real user gesture: `initAudio()` (GameShell) listens for `pointerup`, `click`, `keydown` and `touchend`, and `isAudioGesture` lets through only trusted events while `navigator.userActivation.isActive` (without that API: any trusted event but Esc). So the console has no autoplay warnings, also for Esc before Play or script-dispatched events (before: 1 and 11–12 warnings, and Esc first lost the first countdown beep). Before the first gesture `playSfx` is a silent no-op; Play itself is that gesture, so the countdown beeps play.
+`playSfx(name, opts?)` (`audio.ts`) plays short synthesized effects; mute is remembered per device (`play50games_3d_muted`, the HUD's Mute). The AudioContext is created (or resumed after the browser suspended it) only inside a real user gesture: `initAudio()` (GameShell) listens for `pointerup`, `click`, `keydown` and `touchend`, and `isAudioGesture` lets through only trusted events while `navigator.userActivation.isActive` (without that API: any trusted event but Esc). So the console has no autoplay warnings, also for Esc before Play or script-dispatched events (before: 1 and 11–12 warnings, and Esc first lost the first countdown beep). Before the first gesture `playSfx` is a silent no-op; Play itself is that gesture, so the countdown beeps play.
+
+Cues: `pickup`, `hit`, `jump`, `win`, `lose`, `countdown`, `go`, `whoosh`, `splash`, `thud`, `chime`, `combo`, `buzz`, `boom`, `click`, `pop`, `zap`, `alarm` — every one under 0.6 s, synthesized (no audio files). `opts` is optional and backwards compatible: `pitch` (0.5–2) multiplies frequencies, `pan` (−1..1) plays through a `StereoPannerNode`, `volume` (0–1) scales the level.
+
+Loops for ongoing sounds (engines, water, machinery): `startLoop(name, opts?)` with `engine`, `rotor`, `vacuum`, `belt`, `surf`, `bubbling`, `slide`, `thrust`, `hum`, `ambient`. It returns a handle whose `set({ pitch, volume, pan })` ramps over 60 ms (no clicks); a loop started before the first gesture is a silent handle that starts when audio unlocks, and mute silences it at once through the master gain. At most 4 loops sound at once — starting a 5th stops the oldest. `stopAllLoops()` stops every loop (GameShell calls it on pause, mute and unmount).
+
+```ts
+import { playSfx, startLoop, stopAllLoops } from "@/arcade3d/core/audio";
+
+playSfx("pickup");                              // as before
+playSfx("combo", { pitch: 1.2, pan: 0.4 });     // brighter, panned right
+const engine = startLoop("engine", { volume: 0.6 });
+engine.set({ pitch: 1.5 });                     // rev up: 60 ms ramp, no click
+const surf = startLoop("surf");                 // waves under a boat level
+surf.set({ pan: -0.3, volume: 0.4 });
+surf.stop();                                    // 60 ms fade out
+stopAllLoops();                                 // the shell, on pause/unmount
+```
 
 ## Input events
 
