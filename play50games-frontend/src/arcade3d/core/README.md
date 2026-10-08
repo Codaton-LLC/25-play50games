@@ -117,6 +117,13 @@ useRunFrame(() => {
 | Seeded fills without closures | `rngNext(state)` with `state = { s: seed }`: the same sequence as `createRng(seed)`, the state in your own scratch | `math.ts` |
 | Points-game limits | `withinServerLimits(score, ms, rules)`, `capScore` | `limits.ts` |
 | Store | `useArcadeStore` (`addScore`, `setStat`, `end`, …) | `useArcadeStore.ts` |
+| Projectile aiming and prediction | `solveLaunch`, `launchForTime`, `stepProjectile`, `trajectoryPoints`, `landingPoint` | `ballistics.ts` |
+| Arc-length paths and conveyor junctions | `createPath`, `pointAt`, `tangentAt`, `nearestS`, `advance`, `createPathGraph` | `path.ts` |
+| Whole-body offsets and damped springs | `hop`, `waddle`, `hover`, `bank`, `spring`, `squashStretch` | `motion.ts` |
+| Blades, landers and suspended loads | `circleSegmentXZ`, `resolveCircleSegmentXZ`, `substep`, `stepRigidBody2D`, `stepPendulum` | `kinematics.ts` |
+| Steering forces | `seek`, `arrive`, `flee`, `wander`, `separate` | `ai/steering.ts` (barrel: `ai/index.ts`) |
+| Horizontal sight checks | `inViewCone`, `hasLineOfSightXZ` | `ai/vision.ts` |
+| Patrol and investigation | `stepPatrol`, `investigate` | `ai/patrol.ts` |
 
 ## Camera fit and the safe area
 
@@ -255,3 +262,123 @@ Stale game notes, left for each game's own follow-up PR (this branch edits no ga
 - The pigeon-crossing design (`origin/codex/game-pigeon-crossing`, README "Controls" and its test plan) maps `input.swipe` to hops next to keyboard edges, with a one-slot queue, and asserts the lost sub-frame press as a documented limitation. With `pressed`, hops come from `pressed` alone (no `swipe` branch, or a swipe hops and queues a second hop), and that limitation is gone.
 
 Still open: the bottom safe-area inset (`env(safe-area-inset-bottom)`) is not reported, and the cookie banner is found by a 1 s poll.
+
+## Ballistics helper
+
+Pure metre/second coordinates, +Y up; gravity is a nonnegative downward acceleration and wind is constant XZ acceleration. `solveLaunch` solves both arcs including wind and returns null for unreachable/coincident targets and non-finite gravity or speed. `launchForTime` requires finite positive time; pass a Vec3Like output to avoid allocation (input/output aliasing works). `stepProjectile` mutates state using semi-implicit Euler. Prediction samples use the continuous closed form, so Euler playback has timestep error. `trajectoryPoints` includes the initial point and final ground contact, bounds writes to buffer capacity, and returns points written (zero for non-finite count). `landingPoint(proj, params, groundY?, out?)` computes impact time and wind position in closed form in constant time; null means no future ground hit. Grounded upward launches predict their next landing; grounded downward or buried projectiles land immediately. Allocate state and buffers once.
+
+```ts
+import { launchForTime, stepProjectile, trajectoryPoints, landingPoint } from "./ballistics";
+const from = { x: 0, y: 1, z: 0 }, to = { x: 8, y: 0, z: 0 };
+const params = { gravity: 9.81, wind: { x: 1, z: 0 } };
+const velocity = { x: 0, y: 0, z: 0 };
+launchForTime(from, to, 2, params, velocity);
+const projectile = { ...from, vx: velocity.x, vy: velocity.y, vz: velocity.z };
+const buffer = new Float32Array(90), landing = { x: 0, y: 0, z: 0 };
+const count = trajectoryPoints(projectile, params, 30, 0.1, buffer);
+landingPoint(projectile, params, 0, landing);
+stepProjectile(projectile, 1 / 120, params); // repeat per simulation step
+```
+
+## Path helper
+
+`createPath` copies control points and builds a Float64 arc-length table once. Open polylines clamp; closed polylines wrap both positive and negative distances. `smooth` selects uniform Catmull-Rom with `samples` intervals per segment (default 16); point/tangent queries operate on the sampled polyline. At a joint, tangent is the outgoing segment (incoming at an open endpoint); duplicate open endpoints use the last nonzero tangent; entirely coincident paths have zero tangent. Non-finite point distances select the start. Distances use all three axes. Empty paths are rejected; singleton paths stay fixed. `advance(state, ds)` mutates `{ path, s, position, overflow? }` without allocation, writing signed unconsumed open-path distance to `overflow`. `nearestS` chooses the first nearest segment on ties. `createPathGraph(segments, junctions)` copies outgoing index lists; `next(segment, choice)` returns null for unavailable choices. Junction lists have one row per segment. `advanceGraph(state, graph, choose, ds)` carries forward overflow into connected paths; `choose(endingSegmentIndex)` returns an outgoing path index. Missing links, reverse travel and zero-length cycles retain overflow.
+
+```ts
+import { createPath, advance, tangentAt, nearestS, createPathGraph } from "./path";
+const points = [{ x: 0, y: 0, z: 0 }, { x: 4, y: 0, z: 2 }];
+const path = createPath(points, { closed: true, smooth: true, samples: 24 });
+const rider = { path, s: 0, position: { x: 0, y: 0, z: 0 } };
+const tangent = { x: 0, y: 0, z: 0 };
+advance(rider, 2 / 60);
+tangentAt(path, rider.s, tangent);
+const closest = nearestS(path, rider.position);
+const graph = createPathGraph([path], [[0]]);
+const nextSegment = graph.next(0, 0); // 0; an absent choice returns null
+```
+
+## Motion helper
+
+BodyOffset is `{ y, roll, yaw, squash }`: vertical displacement, radians, and vertical scale (1 at rest). Every motion helper resets all fields and fills the required output. Hop/waddle phase is radians; hover time is seconds. `bank` maps lateral acceleration to roll with a gravity reference of 9.81 and clamps to maxRoll. `spring` exactly solves a unit-mass linear spring for a constant target each step; stiffness and damping are nonnegative, or damping = -1 selects critical damping. It mutates `{ x, v }` and returns x; non-finite or nonpositive dt leaves state unchanged. `squashStretch(verticalScale, out)` fills positive volume-preserving XYZ scale. Compose offsets in the game when desired.
+
+```ts
+import { hop, waddle, hover, bank, spring, squashStretch } from "./motion";
+const offset = { y: 0, roll: 0, yaw: 0, squash: 1 };
+const scale = { x: 1, y: 1, z: 1 };
+const suspension = { x: 0, v: 0 };
+hop(Math.PI / 3, 0.4, offset);
+squashStretch(offset.squash, scale);
+waddle(0.5, 0.1, offset); // replaces the previous offset
+hover(2, 0.05, offset);
+const roll = bank(3, 0.4);
+spring(suspension, 0.2, 40, -1, 1 / 60);
+```
+
+## Kinematics helper
+
+XZ circles use `{ x, z, vx, vz, radius }`; segments use endpoints a/b and optional pivot, omega, vx/vz. `circleSegmentXZ` returns a contact or null; reuse SegmentContact output. `resolveCircleSegmentXZ` pushes out and reflects relative incoming velocity, clamping restitution to [0,1]. The fourth argument is nonnegative Coulomb `mu`: tangential speed decreases by at most mu times the applied normal velocity change, without reversing direction. Rotation about +Y follows vx = omega * relativeZ, vz = -omega * relativeX; moving walls can transfer energy. `rotateSegmentXZ` rotates endpoints in place. Contacts are discrete: use sufficiently small steps to avoid tunneling. `substep(dt, maxStep, fn)` consumes all dt in equal steps no larger than maxStep, returning step count; cache fn. Use `createFixedStep(step)` once and `fixedStep(clock, dt, step, fn)` per frame for frame-rate independence: fractional time carries forward; at most eight whole steps run per call, dropping excess whole steps. Invalid dt/step runs no steps. Keep the step constant and cache fn. `substep` provides only a per-call size bound. Lander `stepRigidBody2D` uses semi-implicit Euler, radians, unit mass/inertia defaults, angle 0 thrust along +Y, positive angle towards -X. Pendulum `stepPendulum` is an exact damped small-angle model with `{ x: angle, v: angularSpeed }`, positive length/gravity, damping in inverse seconds. `stepPendulum2D` applies independent X/Z swing axes driven by pivot acceleration; it is a linear approximation, not a spherical pendulum.
+
+```ts
+import { circleSegmentXZ, resolveCircleSegmentXZ, createFixedStep, fixedStep, stepRigidBody2D } from "./kinematics";
+const ball = { x: 0.1, z: 0, vx: -1, vz: 0, radius: 0.2 };
+const wall = { a: { x: 0, z: -2 }, b: { x: 0, z: 2 } };
+const hit = { x: 0, z: 0, nx: 0, nz: 0, depth: 0, vx: 0, vz: 0 };
+if (circleSegmentXZ(ball, wall, hit)) resolveCircleSegmentXZ(ball, hit, 0.8, 0.1);
+const lander = { x: 0, y: 2, angle: 0, vx: 0, vy: 0, omega: 0 };
+const forces = { thrust: 10, torque: 0, gravity: 9.81 };
+const integrate = (dt: number) => stepRigidBody2D(lander, dt, forces);
+const clock = createFixedStep(1 / 120); // initialize once
+fixedStep(clock, 1 / 30, 1 / 120, integrate);
+// Keep integrate, forces and hit for subsequent frames.
+```
+
+## AI steering helper
+
+All AI functions are re-exported by `ai/index.ts`. Agent is `{ x, y, z, vx, vy, vz, yaw }`; AI yaw 0 faces +Z, positive yaw faces +X. Seek/arrive/flee fill a required Vec3 output with desired velocity minus current velocity, an acceleration with a one-second response time. Arrive scales desired speed inside slowRadius. `wander` takes caller-owned angle state, rng, speed, angular jitter in radians/sqrt(second), dt and output; jitter scales by sqrt(dt) for consistent random-walk variance; it only changes the angle state. `separate` returns capped inverse-distance repulsion, ignores self by identity, and uses neighbor-index parity for coincident neighbors. Pass the same ordered list including both agents/self for opposing coincident-pair forces. Combine and clamp forces in the game. Never alias steering output to agent or a neighbor position.
+
+```ts
+import { seek, arrive, flee, wander, separate } from "./ai";
+import { createRng } from "./math";
+const agent = { x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, yaw: 0 };
+const target = { x: 4, y: 0, z: 2 }, force = { x: 0, y: 0, z: 0 };
+const wanderState = { angle: 0 }, rng = createRng(42);
+seek(agent, target, 2, force);
+arrive(agent, target, 2, 1, force);
+flee(agent, target, 2, force);
+wander(agent, wanderState, rng, 2, 0.8, 1 / 60, force);
+separate(agent, [target], 1, 2, force); // keep neighbor array between frames
+```
+
+## AI vision helper
+
+`inViewCone` uses horizontal range and yaw, ignoring height; range and angular boundaries are inclusive, and coincident points are visible. Half angles at least PI see all directions. Box reuses collision.ts AABB `{ min: Vec3Like, max: Vec3Like }`; sight tests only X/Z. `hasLineOfSightXZ` checks the whole closed segment, so starting inside a box or touching a corner blocks sight. Non-finite sight endpoints fail closed even without blockers. Both helpers allocate nothing.
+
+```ts
+import { inViewCone, hasLineOfSightXZ, type Box } from "./ai";
+const origin = { x: 0, y: 1, z: 0 };
+const target = { x: 2, y: 1, z: 3 };
+const yaw = 0, halfAngle = Math.PI / 4, range = 8;
+const blockers: Box[] = [{ min: { x: 4, y: 0, z: 1 }, max: { x: 5, y: 2, z: 2 } }];
+const inCone = inViewCone(origin, yaw, halfAngle, range, target);
+const clear = hasLineOfSightXZ(origin, target, blockers);
+const visible = inCone && clear;
+if (visible) { /* game decides whether to investigate */ }
+// Reuse blockers and vector objects; these queries never mutate them.
+```
+
+## AI patrol helper
+
+PatrolState retains index (next route waypoint), wait seconds, mode and caller-owned target; optional lookPhase/lookYaw preserve deterministic waiting motion. `stepPatrol` moves Agent directly along the route's sampled waypoints at constant speed, updating its velocity and yaw. It loops waypoints even on an open route (last to first); use closed routes for a continuous circuit. PatrolOptions supplies speed plus optional wait, investigateWait, lookAngle radians and lookSpeed radians/sec. `investigate(state, point)` copies the target, keeps the route index, and cancels waiting. After inspecting it, the agent returns to the nearest point of its route and resumes the saved waypoint. A return target can cut across the world; games must handle obstacles. State.target must be a separate object from agent/route points. No per-step allocation.
+
+```ts
+import { stepPatrol, investigate, type PatrolState } from "./ai";
+import { createPath } from "./path";
+const route = createPath([{ x: 0, y: 0, z: 0 }, { x: 5, y: 0, z: 0 }], { closed: true });
+const agent = { x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, yaw: 0 };
+const state: PatrolState = { index: 1, wait: 0, mode: "patrol", target: { x: 0, y: 0, z: 0 } };
+const options = { speed: 2, wait: 0.5, investigateWait: 1 };
+stepPatrol(agent, state, route, 1 / 60, options);
+const noise = { x: 2, y: 0, z: 3 };
+investigate(state, noise);
+stepPatrol(agent, state, route, 1 / 60, options); // repeat until patrol resumes
+```
