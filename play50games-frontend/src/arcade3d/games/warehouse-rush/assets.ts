@@ -39,3 +39,5 @@ export const ASSETS = {
 
 /** The box on a pallet (crate GLB at scale 0.53, or the stand-in): width x height x depth, m. */
 export const BOX = { width: 1.0, height: 0.71, depth: 0.96 } as const;
+/** The lid letter: a square decal this size (m), this high over the box's feet (just above the crate's 0.708 m lid). */
+export const LID_LETTER = { size: 0.56, y: BOX.height + 0.012 } as const;

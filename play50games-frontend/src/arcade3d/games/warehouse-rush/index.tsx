@@ -8,6 +8,7 @@ import type { GameDefinition } from "@/arcade3d/core/types";
 import Scene from "./Scene";
 import OrderHud from "./Hud";
 import { ASSETS } from "./assets";
+import { FOV } from "./camera";
 import { DURATION_MS, capScore } from "./rules";
 
 const definition: GameDefinition = {
@@ -18,7 +19,7 @@ const definition: GameDefinition = {
    durationMs: DURATION_MS,
    // first frame only: Scene's CameraRig (core useFittedView) fits the warehouse, clear of the HUD,
    // the order panel, the joystick and the Action button
-   camera: { position: [0, 17.3, 11.7], fov: 45, lookAt: [0, 0, 0] },
+   camera: { position: [0, 17.3, 11.7], fov: FOV, lookAt: [0, 0, 0] },
    environment: { background: "#0b1220", lighting: "indoor" },
    touchControls: ["joystick", "action"],
    hudStats: [{ key: "delivered", label: "Delivered" }],
