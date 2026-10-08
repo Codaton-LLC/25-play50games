@@ -15,6 +15,7 @@
 import type { ComponentType } from "react";
 import type { ArcadeGameMeta, ArcadeSlug } from "../types";
 import type { HumanoidLandmarks } from "./rig/humanoid";
+import type { MaterialOverride } from "./materials";
 
 export type RunPhase = "loading" | "ready" | "countdown" | "playing" | "paused" | "over";
 export type EndReason = "win" | "lose" | "timeup" | "quit";
@@ -181,6 +182,13 @@ export interface ModelAsset {
     * "Characters: the auto-rig").
     */
    humanoid?: { landmarks?: Partial<HumanoidLandmarks> };
+   /**
+    * Draw this GLB with another look, e.g. a statue: "stone" | "bronze" | "gold" | "bone" or
+    * { color, roughness?, metalness?, emissive? }. Every mesh gets ONE shared material per look (no
+    * textures); honoured by <Model>, <InstancedModel>, <DynamicInstancedModel> and <HumanoidModel>
+    * (core/materials.ts). Spread an existing asset with a new id: `{ ...ROBOT, id: "robotGold", material: "gold" }`.
+    */
+   material?: MaterialOverride;
    /** logical name -> clip name in the GLB, e.g. { run: "Run" } */
    animations?: Record<string, string>;
    fallback: PrimitiveFallback;
