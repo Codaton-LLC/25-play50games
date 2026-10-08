@@ -145,7 +145,8 @@ export default function ShellStage({ definition, frameloop, onContextLost, label
    const onDecline = useCallback(() => {
       declinesRef.current += 1;
       setMaxDpr(LOW_DPR);
-      setDeclines(declinesRef.current);
+      // the tier saturates at 2 declines: stop re-rendering the Scene on every later decline
+      setDeclines(Math.min(declinesRef.current, 2));
    }, []);
    const onIncline = useCallback(() => {
       if (declinesRef.current < MAX_DECLINES) setMaxDpr(MAX_DPR);

@@ -78,7 +78,7 @@ export interface FxApi {
 const NOOP_FX: FxApi = { burst() {}, score() {}, shake() {}, warm() {} };
 
 /** Undo the shake offset after the run clock and the game clock, before the game and the rigs. */
-const SHAKE_UNDO_PRIORITY = FRAME_PRIORITY.gameTime + 0.05;
+const SHAKE_UNDO_PRIORITY = FRAME_PRIORITY.gameTime + 0.01;
 /** Apply it after every CameraRig (FRAME_PRIORITY.camera), before the poses and visuals. */
 const SHAKE_APPLY_PRIORITY = FRAME_PRIORITY.camera + 0.05;
 
@@ -294,17 +294,22 @@ function FloatingScores({ pool }: { pool: ScoreSlots }) {
 function ShakeDriver({ store }: { store: FxStore }) {
    const camera = useThree((state) => state.camera);
    const time = useGameTime();
-   const applied = useMemo(() => ({ offset: new Vector3(), axis: new Vector3(), on: false }), []);
+   const applied = useMemo(
+      () => ({ offset: new Vector3(), axis: new Vector3(), shaken: new Vector3(), on: false }),
+      []
+   );
 
    const undo = () => {
       if (!applied.on) return;
-      camera.position.sub(applied.offset);
+      // something placed the camera absolutely since the shake (CameraRig on a resize, a game's
+      // own .set()): that position is already clean, so the offset is dropped, not subtracted
+      if (camera.position.equals(applied.shaken)) camera.position.sub(applied.offset);
       applied.offset.set(0, 0, 0);
       applied.on = false;
    };
 
-   // the camera is left unshaken when the run's layer goes (Retry, Exit)
-   useEffect(() => undo, [camera]); // eslint-disable-line react-hooks/exhaustive-deps
+   // the camera is left unshaken when the run's layer goes (Retry, Exit), before the next frame renders
+   useLayoutEffect(() => undo, [camera]); // eslint-disable-line react-hooks/exhaustive-deps
 
    useFrame(undo, SHAKE_UNDO_PRIORITY);
 
@@ -318,6 +323,7 @@ function ShakeDriver({ store }: { store: FxStore }) {
       applied.axis.setFromMatrixColumn(camera.matrixWorld, 1).multiplyScalar(shake.y);
       applied.offset.add(applied.axis);
       camera.position.add(applied.offset);
+      applied.shaken.copy(camera.position);
       applied.on = true;
    }, SHAKE_APPLY_PRIORITY);
 

@@ -14,6 +14,12 @@ describe("frame stats", () => {
       expect(framePercentiles(stats, out())).toEqual({ p50: 50, p95: 95, max: 100 });
    });
 
+   it("sorts samples that arrive out of order", () => {
+      const stats = createFrameStats(8);
+      for (const ms of [30, 10, 20, 5]) pushFrame(stats, ms);
+      expect(framePercentiles(stats, out())).toEqual({ p50: 10, p95: 30, max: 30 });
+   });
+
    it("keeps only the last `capacity` frames", () => {
       const stats = createFrameStats(4);
       for (const ms of [100, 100, 100, 100, 10, 20, 30, 40]) pushFrame(stats, ms);
