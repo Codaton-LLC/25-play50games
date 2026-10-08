@@ -40,7 +40,24 @@ Owned by Claude. Games import from here and never edit it. If a game needs somet
 
 ## Sound
 
-`playSfx(name)` (`audio.ts`) plays short synthesized effects; mute is remembered per device (`play50games_3d_muted`, the HUD's Mute). The AudioContext is created (or resumed after the browser suspended it) only inside a real user gesture: `initAudio()` (GameShell) listens for `pointerup`, `click`, `keydown` and `touchend`, and `isAudioGesture` lets through only trusted events while `navigator.userActivation.isActive` (without that API: any trusted event but Esc). So the console has no autoplay warnings, also for Esc before Play or script-dispatched events (before: 1 and 11–12 warnings, and Esc first lost the first countdown beep). Before the first gesture `playSfx` is a silent no-op; Play itself is that gesture, so the countdown beeps play.
+`playSfx(name, opts?)` (`audio.ts`) plays short synthesized effects; mute is remembered per device (`play50games_3d_muted`, the HUD's Mute). The AudioContext is created (or resumed after the browser suspended it) only inside a real user gesture: `initAudio()` (GameShell) listens for `pointerup`, `click`, `keydown` and `touchend`, and `isAudioGesture` lets through only trusted events while `navigator.userActivation.isActive` (without that API: any trusted event but Esc). So the console has no autoplay warnings, also for Esc before Play or script-dispatched events (before: 1 and 11–12 warnings, and Esc first lost the first countdown beep). Before the first gesture `playSfx` is a silent no-op; Play itself is that gesture, so the countdown beeps play.
+
+Cues: `pickup`, `hit`, `jump`, `win`, `lose`, `countdown`, `go`, `whoosh`, `splash`, `thud`, `chime`, `combo`, `buzz`, `boom`, `click`, `pop`, `zap`, `alarm` — every one under 0.6 s, synthesized (no audio files). `opts` is optional and backwards compatible: `pitch` (0.5–2) multiplies frequencies, `pan` (−1..1) plays through a `StereoPannerNode`, `volume` (0–1) scales the level.
+
+Loops for ongoing sounds (engines, water, machinery): `startLoop(name, opts?)` with `engine`, `rotor`, `vacuum`, `belt`, `surf`, `bubbling`, `slide`, `thrust`, `hum`, `ambient`. It returns a handle whose `set({ pitch, volume, pan })` ramps over 60 ms (no clicks); a loop started before the first gesture is a silent handle that starts when audio unlocks, and mute silences it at once through the master gain. At most 4 loops sound at once — starting a 5th stops the oldest. `stopAllLoops()` stops every loop; the shell stops every loop on pause, mute, run end and unmount (wired in P-03).
+
+```ts
+import { playSfx, startLoop, stopAllLoops } from "@/arcade3d/core/audio";
+
+playSfx("pickup");                              // as before
+playSfx("combo", { pitch: 1.2, pan: 0.4 });     // brighter, panned right
+const engine = startLoop("engine", { volume: 0.6 });
+engine.set({ pitch: 1.5 });                     // rev up: 60 ms ramp, no click
+const surf = startLoop("surf");                 // waves under a boat level
+surf.set({ pan: -0.3, volume: 0.4 });
+surf.stop();                                    // 60 ms fade out
+stopAllLoops();                                 // the shell: pause, run end, unmount
+```
 
 ## Input events
 
@@ -280,6 +297,21 @@ landingPoint(projectile, params, 0, landing);
 stepProjectile(projectile, 1 / 120, params); // repeat per simulation step
 ```
 
+## Testing helpers: botHarness
+
+`core/testing/botHarness.ts` is for vitest only (`botHarness.test.ts` fails if runtime code imports it); pure, no three.js or React. Score-limit bots (the arcade-score-limits skill asks for 200+ seeds per bot) reuse it instead of copying a path finder: `createGrid({ cell, halfX, halfZ })`, `freeGrid(grid, walkable)` (the game's own rule per node), `findPath` (Dijkstra, 8 neighbours, no cut corners; `[]` when walled off), `nearestFree`, `followPath` + `steer` (unit direction along the path, then straight at the goal), and `simulateRun(store, { durationMs, lives?, frame, step })`, which configures, starts and drives a fresh store exactly like the canvas (`advanceRunClock`, then `step(playedFrameDt, elapsedMs / 1000, store)` while playing) until the phase is `"over"`. `fixedFrames(ms)` / `randomFrames(seed, min?, max?)` make the frame lengths. `games/treasure-island/rules.test.ts` uses all of it.
+
+```ts
+const grid = createGrid({ cell: 0.25, halfX: 16, halfZ: 13 });
+const free = freeGrid(grid, (x, z) => insideArena(x, z) && clearance(level, x, z) >= RADIUS + 0.1);
+const follower = followPath(grid, free, p.x, p.z, goal.x, goal.z);
+const end = simulateRun(createArcadeStore(), { durationMs: DURATION_MS, frame: randomFrames(seed), step: (dt, time, store) => {
+   steer(grid, follower, p.x, p.z, input); // writes input.dirX / input.dirZ
+   stepGame(run, input, dt, time);           // the game's pure step + its store calls (addScore, end("win"))
+} });
+expect(withinServerLimits(end.score, end.elapsedMs)).toBe(true);
+```
+
 ## Path helper
 
 `createPath` copies control points and builds a Float64 arc-length table once. Open polylines clamp; closed polylines wrap both positive and negative distances. `smooth` selects uniform Catmull-Rom with `samples` intervals per segment (default 16); point/tangent queries operate on the sampled polyline. At a joint, tangent is the outgoing segment (incoming at an open endpoint); duplicate open endpoints use the last nonzero tangent; entirely coincident paths have zero tangent. Non-finite point distances select the start. Distances use all three axes. Empty paths are rejected; singleton paths stay fixed. `advance(state, ds)` mutates `{ path, s, position, overflow? }` without allocation, writing signed unconsumed open-path distance to `overflow`. `nearestS` chooses the first nearest segment on ties. `createPathGraph(segments, junctions)` copies outgoing index lists; `next(segment, choice)` returns null for unavailable choices. Junction lists have one row per segment. `advanceGraph(state, graph, choose, ds)` carries forward overflow into connected paths; `choose(endingSegmentIndex)` returns an outgoing path index. Missing links, reverse travel and zero-length cycles retain overflow. Riders retain optional `segment` identity, initialized with `indexOf` once when omitted; set it when entering a graph externally. Invalid junction entries are skipped using `choiceCount(segment)` to bound the row scan; legacy graphs without it stop at the first null.
@@ -454,7 +486,7 @@ touchLabels: { action: "Throw", jump: "Duck" },
 
 ## Loop control: `core/loopControl.ts`
 
-Looping sounds stop when a run pauses or ends, when the player mutes and when the game closes. GameShell calls `stopShellLoops()` at those moments (`loopsStopOn(prev, next)`: entering "paused" or "over"; the mute toggle; unmount). The audio module registers its stopper once (TODO(P-06): `registerLoopStopper(stopAllLoops)` in `audio.ts` when its loops land). Games never call these.
+Looping sounds stop when a run pauses or ends, when the player mutes and when the game closes. GameShell calls `stopShellLoops()` at those moments (`loopsStopOn(prev, next)`: entering "paused" or "over"; the mute toggle; unmount). The audio module registers its stopper once (`registerLoopStopper(stopAllLoops)` at the end of `audio.ts`). Games never call these.
 
 ```ts
 import { registerLoopStopper, stopShellLoops } from "./loopControl";
