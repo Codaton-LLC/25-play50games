@@ -69,7 +69,7 @@
       "max_duration_ms": 1800000,
       "base": 0,
       "max_pps": 11,
-      "enabled": false
+      "enabled": true
     },
     "clean-city": {
       "title": "Clean the City",
