@@ -127,6 +127,19 @@ export function InputProvider({ children, target, drag = false }: InputProviderP
          },
          onControls: (event) =>
             event.target instanceof Element && event.target.closest(`[${CONTROLS_ATTR}]`) !== null,
+         // aim-drag mode: the drag keeps reporting when the pointer leaves the canvas
+         toCanvasUnclamped(event) {
+            const rect = element.getBoundingClientRect();
+            return [((event.clientX - rect.left) / (rect.width || 1)) * 2 - 1, -(((event.clientY - rect.top) / (rect.height || 1)) * 2 - 1)];
+         },
+         capture(event, on) {
+            try {
+               if (on) element.setPointerCapture(event.pointerId);
+               else if (element.hasPointerCapture(event.pointerId)) element.releasePointerCapture(event.pointerId);
+            } catch {
+               // a pointer that is already gone
+            }
+         },
       });
 
       element.addEventListener("pointerdown", down);

@@ -789,3 +789,63 @@ describe("digit keys", () => {
       expect(state()).toMatchObject({ moveX: 0, moveY: 0, jumpPressed: false, actionPressed: false, swipe: null });
    });
 });
+
+describe("aim drag outside the canvas", () => {
+   const event = (pointerId: number, clientX: number, clientY: number, timeStamp: number): CanvasPointerEvent => ({ pointerId, pointerType: "mouse", button: 0, clientX, clientY, timeStamp });
+   // a 200 x 200 px canvas at the origin
+   const norm = (e: CanvasPointerEvent): [number, number] => [e.clientX / 100 - 1, 1 - e.clientY / 100];
+   const clamp = (v: number) => Math.max(-1, Math.min(1, v));
+
+   function setup(dragMode: boolean) {
+      const controller = createInputController();
+      controller.setDragMode(dragMode);
+      const captures: Array<[number, boolean]> = [];
+      const pointers = createCanvasPointers(controller, {
+         toCanvas: (e) => norm(e).map(clamp) as [number, number],
+         toCanvasUnclamped: norm,
+         onControls: () => false,
+         capture: (e, on) => void captures.push([e.pointerId, on]),
+      });
+      return { controller, pointers, captures, state: () => controller.state.current };
+   }
+
+   it("captures the pointer in drag mode and releases it on up and on cancel", () => {
+      const { pointers, captures } = setup(true);
+      pointers.down(event(1, 100, 100, 0));
+      pointers.up(event(1, 100, 150, 50));
+      pointers.down(event(2, 100, 100, 100));
+      pointers.cancel(event(2, 100, 100, 120));
+      expect(captures).toEqual([[1, true], [1, false], [2, true], [2, false]]);
+   });
+
+   it("never captures without drag mode (swipes unchanged)", () => {
+      const { pointers, captures, controller, state } = setup(false);
+      pointers.down(event(1, 100, 100, 0));
+      pointers.move(event(1, 100 + SWIPE_MIN_PX, 100, 30));
+      controller.latch();
+      expect(state().swipe).toBe("right");
+      pointers.up(event(1, 160, 100, 60));
+      expect(captures).toEqual([]);
+   });
+
+   it("a drag that leaves the canvas follows the pointer, and the release frame agrees", () => {
+      const { pointers, controller, state } = setup(true);
+      pointers.down(event(1, 100, 20, 0));
+      // dragged down past the bottom edge (y 200) to y 300
+      pointers.move(event(1, 100, 300, 30));
+      controller.latch();
+      expect(state().drag.current.y).toBeCloseTo(-2); // not frozen at the edge (-1)
+      pointers.up(event(1, 60, 320, 60));
+      controller.latch();
+      const d = state().drag;
+      expect(d.released).toBe(true);
+      expect(d.current.x).toBeCloseTo(-0.4);
+      expect(d.current.y).toBeCloseTo(-2.2);
+      // power and angle from the same release point: start - current = (40, 300) px, y up
+      expect(d.power).toBe(1);
+      expect(d.angle).toBeCloseTo(Math.atan2(300, 40));
+      const sx = d.start.x - d.current.x;
+      const sy = d.start.y - d.current.y;
+      expect(Math.atan2(sy, sx)).toBeCloseTo(d.angle);
+   });
+});

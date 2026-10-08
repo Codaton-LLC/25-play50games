@@ -67,13 +67,19 @@ export interface InputController {
     * swipe as soon as the gesture has travelled SWIPE_MIN_PX within SWIPE_MAX_MS.
     */
    pointerMove(x: number, y: number, px?: number, py?: number, timeMs?: number): void;
-   pointerUp(px: number, py: number, timeMs: number): void;
+   /**
+    * The canvas pointer went up at screen px/py. x/y (optional): its normalised canvas coordinates,
+    * so a released aim drag's `current` is the release point (its power and angle are measured there).
+    */
+   pointerUp(px: number, py: number, timeMs: number, x?: number, y?: number): void;
    pointerCancel(): void;
    /**
     * Aim-drag mode (GameDefinition.input.drag): on, a canvas gesture fills `drag` and never reports
     * a swipe (taps and tapDowns as before); off (the default), `drag` stays idle.
     */
    setDragMode(on: boolean): void;
+   /** true while aim-drag mode is on (createCanvasPointers captures the pointer then) */
+   isDragMode(): boolean;
    /** once per frame, before game logic: publishes held input and this frame's one-shot events */
    latch(): void;
    /** drops pending one-shot events (phase changes) */
@@ -325,9 +331,14 @@ export function createInputController(): InputController {
          }
       },
 
-      pointerUp(px, py, timeMs) {
+      pointerUp(px, py, timeMs, x, y) {
          state.pointer.down = false;
          if (dragMode && dragNow.active) {
+            // the release point: current, power and angle agree in the released frame
+            if (x !== undefined && y !== undefined) {
+               dragNow.current.x = x;
+               dragNow.current.y = y;
+            }
             dragCx = px;
             dragCy = py;
             endDrag(measureDrag() < AIM_DRAG_MIN_PX);
@@ -352,6 +363,10 @@ export function createInputController(): InputController {
          state.pointer.down = false;
          gesture = null;
          endDrag(true);
+      },
+
+      isDragMode() {
+         return dragMode;
       },
 
       setDragMode(on) {
@@ -464,6 +479,16 @@ export interface CanvasPointerOptions<E extends CanvasPointerEvent> {
    toCanvas(event: E): readonly [number, number];
    /** true when the event is on the touch controls (joystick, Jump, Action) */
    onControls(event: E): boolean;
+   /**
+    * Aim-drag mode only: the canvas coordinates without the -1..1 clamp (a captured drag may leave
+    * the canvas); default toCanvas.
+    */
+   toCanvasUnclamped?(event: E): readonly [number, number];
+   /**
+    * Aim-drag mode only: capture (`on`) or release the followed pointer, so a mouse drag that leaves
+    * the canvas keeps reporting moves (element.setPointerCapture). Never called without the mode.
+    */
+   capture?(event: E, on: boolean): void;
 }
 
 export interface CanvasPointers<E extends CanvasPointerEvent> {
@@ -486,6 +511,14 @@ export function createCanvasPointers<E extends CanvasPointerEvent>(
    options: CanvasPointerOptions<E>,
 ): CanvasPointers<E> {
    let active: number | null = null;
+   /** the followed pointer was captured (aim-drag mode at its press) */
+   let captured = false;
+   const coords = (event: E) => (captured && options.toCanvasUnclamped ? options.toCanvasUnclamped(event) : options.toCanvas(event));
+   const uncapture = (event: E) => {
+      if (!captured) return;
+      captured = false;
+      options.capture?.(event, false);
+   };
    return {
       down(event) {
          if (active !== null || options.onControls(event)) return;
@@ -493,22 +526,31 @@ export function createCanvasPointers<E extends CanvasPointerEvent>(
          active = event.pointerId;
          const [x, y] = options.toCanvas(event);
          controller.pointerDown(x, y, event.clientX, event.clientY, event.timeStamp);
+         if (controller.isDragMode() && options.capture) {
+            captured = true;
+            options.capture(event, true);
+         }
       },
       move(event) {
-         if (options.onControls(event)) return;
+         if (!captured && options.onControls(event)) return;
          if (active !== null && event.pointerId !== active) return;
-         const [x, y] = options.toCanvas(event);
+         const [x, y] = coords(event);
          // screen px + time: the swipe fires mid-gesture, once it has travelled far enough
          controller.pointerMove(x, y, event.clientX, event.clientY, event.timeStamp);
       },
       up(event) {
          if (event.pointerId !== active) return;
          active = null;
-         controller.pointerUp(event.clientX, event.clientY, event.timeStamp);
+         if (captured) {
+            const [x, y] = coords(event);
+            uncapture(event);
+            controller.pointerUp(event.clientX, event.clientY, event.timeStamp, x, y);
+         } else controller.pointerUp(event.clientX, event.clientY, event.timeStamp);
       },
       cancel(event) {
          if (event.pointerId !== active) return;
          active = null;
+         uncapture(event);
          controller.pointerCancel();
       },
    };
