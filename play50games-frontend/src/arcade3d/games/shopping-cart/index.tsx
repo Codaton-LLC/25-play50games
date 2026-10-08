@@ -1,16 +1,27 @@
 "use client";
 
-// Stub until the game is built. Owner: antigravity. Replace PlaceholderScene with ./Scene.
+// Crazy Shopping Cart GameDefinition: loaded lazily by arcade3d/loaders.ts.
 import type { GameDefinition } from "@/arcade3d/core/types";
-import { PlaceholderScene } from "@/arcade3d/core/PlaceholderScene";
+import Scene from "./Scene";
+import { ASSETS } from "./assets";
+import { DURATION_MS, LIST_COUNT } from "./rules";
 
 const definition: GameDefinition = {
    slug: "shopping-cart",
-   Scene: PlaceholderScene,
-   assets: {},
-   camera: { position: [0, 6, 10], fov: 50, lookAt: [0, 0, 0] },
+   Scene,
+   assets: ASSETS,
+   durationMs: DURATION_MS,
+   camera: { position: [0, 16, 18], fov: 45, lookAt: [0, 0, 0] },
+   environment: { background: "#f8fafc", lighting: "indoor" },
    touchControls: ["joystick", "jump"],
-   instructions: ["Grab every item on your list.", "Dodge shoppers, spills and can pyramids."],
+   touchLabels: { jump: "Ride" },
+   hudStats: [{ key: "items", label: "Items", max: LIST_COUNT }],
+   resultDelayMs: 1200,
+   instructions: [
+      "Steer the runaway cart through aisles to grab all 6 items on your list.",
+      "Hold Ride (Space or Ride button) to drift faster; dodge shoppers, spills & pyramids.",
+      "Collect all 6 items and dash to checkout before 75 s runs out!",
+   ],
 };
 
 export default definition;

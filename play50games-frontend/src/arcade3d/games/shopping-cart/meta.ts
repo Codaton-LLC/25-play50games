@@ -15,7 +15,7 @@ export const shoppingCartMeta: ArcadeGameMeta = {
    controls: {
       scheme: "joystick",
       keyboard: "WASD / arrows to steer, hold Space to ride",
-      touch: "Joystick + hold Jump to ride",
+      touch: "Joystick to steer, hold Ride to ride",
    },
    scoring: {
       kind: "points",
