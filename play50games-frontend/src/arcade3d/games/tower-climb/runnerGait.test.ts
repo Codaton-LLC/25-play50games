@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { walkStride, wrapPhase } from "@/arcade3d/core/rig";
+import { contactStride, walkStride, wrapPhase } from "@/arcade3d/core/rig";
 import { RUNNER_LANDMARKS } from "@/arcade3d/core/sharedAssets";
 import { RUNNER_SCALE } from "./assets";
 import { MOVING, NONE, X_BOUND, createRun, fillPools, slabX, step, type StepInput, type TowerRun } from "./rules";
@@ -35,10 +35,13 @@ describe("tower-climb runner gait (looks only)", () => {
       expect(gait.amount).toBeGreaterThan(0.1); expect(gait.amount).toBeLessThan(0.3);
       for (let i = 0; i < 30; i++) frame(run, gait, right);               // 0.52 s: x 1.55, short of the bound
       expect(gait.amount).toBeGreaterThan(0.99);
-      // at a full run the phase moves exactly the ground covered over the walk's own stride (the planted foot stays put)
+      // at a full run the phase moves exactly the ground covered over the contact stride (the planted foot stays put):
+      // 0.63 m, 4.8 strides a second (the walk's own 0.45 m stride would need 6.7 and slide the foot 45 %)
       const before = gait.phase, x = run.player.x;
       frame(run, gait, right);
-      const stride = walkStride(gait.amount, RUNNER_LANDMARKS) * RUNNER_SCALE;
+      const stride = contactStride(gait.amount, RUNNER_LANDMARKS) * RUNNER_SCALE;
+      expect(stride).toBeCloseTo(0.63, 2);
+      expect(stride / (walkStride(gait.amount, RUNNER_LANDMARKS) * RUNNER_SCALE)).toBeGreaterThan(1.4);
       expect(3 / stride).toBeLessThan(RUNNER_MAX_CADENCE);
       expect(phaseDelta(before, gait.phase)).toBeCloseTo((run.player.x - x) / stride * Math.PI * 2, 9);
       frame(run, gait, idle);

@@ -23,12 +23,16 @@ import {
    reachPose,
    resolvePose,
    restPose,
+   SLOW_FOLD,
    setBoneEuler,
    turnBone,
+   walkLegAngles,
    walkPose,
    wrapPhase,
    type HumanoidPose,
 } from "./poses";
+import { ROBOT_LANDMARKS } from "../sharedAssets";
+import { bodyLift, footPoint } from "./gait";
 
 const SPREAD = 0.25;
 const PHASES = [0, 0.4, Math.PI / 2, 2, Math.PI, 4.1, (3 * Math.PI) / 2, 5.9];
@@ -249,6 +253,39 @@ describe("walkPose", () => {
       expect(knee(-Math.PI / 4)).toBeGreaterThan(0.3);
       expect(knee(0)).toBeGreaterThan(0.4);
       for (const phase of [Math.PI / 2, (3 * Math.PI) / 2, Math.PI, 2.3, 4]) expect(knee(phase)).toBeLessThan(1e-4);
+   });
+
+   it("a slow walk still lifts its feet: the swing knee folds SLOW_FOLD from amount 0.2 (the walk's own fold, amount x (0.6 + 0.9 amount), was 0.16 there), easing in from 0 at a stand", () => {
+      const legs = new Float64Array(2);
+      /** The swing knee's peak fold over a stride (the left leg). */
+      const peakFold = (amount: number) => {
+         let peak = 0;
+         for (let i = 0; i < 720; i++) peak = Math.max(peak, walkLegAngles((i / 720) * Math.PI * 2, amount, 1, legs)[1]);
+         return peak;
+      };
+      expect(SLOW_FOLD).toBe(0.7);
+      expect(peakFold(0)).toBe(0);
+      for (const a of [0.2, 0.3, 0.4, 0.5]) expect(peakFold(a), `amount ${a}`).toBeCloseTo(SLOW_FOLD, 2);
+      // from about 0.61 the walk's own fold is the larger one (a run folds further)
+      expect(peakFold(0.8)).toBeGreaterThan(SLOW_FOLD + 0.3);
+      let last = 0;
+      for (let a = 0.01; a <= 0.2; a += 0.01) {
+         const fold = peakFold(a);
+         expect(fold, `amount ${a.toFixed(2)}`).toBeGreaterThanOrEqual(last - 1e-9);
+         expect(fold - last, `amount ${a.toFixed(2)}`).toBeLessThan(0.15);
+         last = fold;
+      }
+      // the swing sole's clearance (core gait.ts forward kinematics, the robot's legs): 3 cm at amount 0.2 and up (0.3 cm before)
+      for (const a of [0.2, 0.3, 0.5]) {
+         let clear = 0;
+         const p = createPose();
+         const f = new Float64Array(4);
+         for (let i = 0; i < 360; i++) {
+            walkPose((i / 360) * Math.PI * 2, a, p);
+            clear = Math.max(clear, footPoint(p, ROBOT_LANDMARKS, 1, f)[3] + bodyLift(p, ROBOT_LANDMARKS));
+         }
+         expect(clear, `amount ${a}`).toBeGreaterThan(0.035);
+      }
    });
 
    it("the soles stay flat: hips x thigh x shin x foot only turns about the vertical, every phase and amount", () => {

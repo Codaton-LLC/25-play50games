@@ -132,7 +132,7 @@ const Chef = memo(function Chef({ run }: { run: ViewRun }) {
 
    // the GLB chef's limbs (core/rig, poses.ts), FRAME_PRIORITY.pose: after the step, before the
    // useFrame below. Idle (a breath and a glance) when still; a walk whose amount eases with |chefV|
-   // and whose phase advances by the distance run over the walk's own stride, so the planted foot
+   // and whose phase advances by the distance run over the contact stride, so the planted foot
    // stays put (the chef turns to face the way it runs and leans its spine into the speed); on a
    // catch (run.flashAt, set by the simulation on a good or a bad catch) both arms reach up towards
    // the item for REACH_S and drop again.

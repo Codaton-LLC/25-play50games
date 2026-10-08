@@ -160,6 +160,19 @@ describe("penalty-hero striker's motion on striker.glb", () => {
       }
    });
 
+   it("runs up on planted feet: from its spot to the ball (0.72 m) a boot on the grass travels under 10 cm in all (its ankle pinned, the boot pivoting as the hips turn along the run-up and back into the kick; the timed stride slid them 45 cm), from mid-walk-back (eased in) under 22 cm (57 cm)", () => {
+      for (let shot = 0; shot < 10; shot++) {
+         const pick = (f: Frame) => f.shot === shot && f.mode === "runup";
+         const kept = frames.filter(pick);
+         const way = Math.hypot(kept[kept.length - 1].gx - kept[0].gx, kept[kept.length - 1].gz - kept[0].gz);
+         const [l, r] = plantedTravel(frames, pick);
+         const fromSpot = way > RETURN * 0.95;
+         expect(l, `shot ${shot} left boot (run-up ${way.toFixed(2)} m)`).toBeLessThan(fromSpot ? 0.1 : 0.22);
+         expect(r, `shot ${shot} right boot (run-up ${way.toFixed(2)} m)`).toBeLessThan(fromSpot ? 0.1 : 0.22);
+         if (shot < 2) expect(fromSpot, `shot ${shot}`).toBe(true);
+      }
+   });
+
    it("steps back: in a full walk back each boot leaves the grass twice, by 5 cm or more (the kick leg's landing besides)", () => {
       for (const shot of FULL) {
          const kept = frames.filter(walkBack(shot));

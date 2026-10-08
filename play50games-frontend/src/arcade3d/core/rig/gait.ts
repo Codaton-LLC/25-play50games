@@ -126,15 +126,125 @@ export function walkStride(amount: number, l: HumanoidLandmarks): number {
    return 2 * (front - back);
 }
 
-/** gaitPhaseStep's shortest stride (m) by default: standing still, walkStride is 0. */
+/** A sole this close to the floor (GLB units, after bodyLift) touches it: contactStride's contact. */
+export const CONTACT_EPS = 0.002;
+/** contactStride's coarse sweep over the stance half (phases), before each end is bisected. */
+const CONTACT_STEPS = 20;
+const CONTACT_BISECT = 9;
+/** [the left ankle's z, its lifted sole's height] of the last leftContact call */
+const LEFT = new Float64Array(2);
+
+/**
+ * walkPose's left foot at `phase`: its ankle z (body unlifted) into LEFT[0], and whether it touches
+ * the floor and carries the body (its sole, lifted by bodyLift, within CONTACT_EPS of the floor
+ * and not above the right one).
+ */
+function leftContact(phase: number, amount: number, l: HumanoidLandmarks): boolean {
+   walkPose(phase, amount, SCRATCH);
+   const right = footOf(SCRATCH, l, -1)[3];
+   const left = footOf(SCRATCH, l, 1);
+   const lift = SCRATCH.ground * -Math.min(left[3], right) + SCRATCH.lift * l.hipY;
+   LEFT[0] = left[2];
+   LEFT[1] = left[3] + lift;
+   return LEFT[1] < CONTACT_EPS && left[3] <= right + 1e-9;
+}
+
+/** The phase (stance half) between `inside` (in contact) and `outside` (not) where the contact ends. */
+function contactEdge(inside: number, outside: number, amount: number, l: HumanoidLandmarks): number {
+   for (let i = 0; i < CONTACT_BISECT; i++) {
+      const mid = (inside + outside) / 2;
+      if (leftContact(mid, amount, l)) inside = mid;
+      else outside = mid;
+   }
+   return inside;
+}
+
+/**
+ * The stride length (GLB units, one cycle of walkPose's phase) at which the planted foot does not
+ * slide while it actually touches the floor, at every amount. walkStride assumes the foot is
+ * planted for the whole stance half (from its forward reach to its backward reach): true at a walk
+ * (amount up to about 0.54), where the two agree. A run (0.55 and up) flies with its legs apart and
+ * its foot touches the floor only around mid-stance (about 37 % of the cycle at 0.55, 9 % at 1),
+ * where the ankle sweeps back faster than the half's average, so the stride that keeps it still
+ * there is longer (about 1.15 x walkStride at 0.55, 1.42 x at 1, on the human characters).
+ *
+ * The value is measureContactStride's at amounts k / CONTACT_TABLE_STEPS (measured once per
+ * landmarks object, lazily, and kept), interpolated linearly: within 1 % of the measurement except
+ * in the narrow walk-to-run handover (amount 0.53-0.56), where the contact shrinks from half the
+ * cycle to about 37 % over 0.01 of amount. Multiply by the asset's scale for metres; advance the
+ * phase by `distance / stride x 2π` (gaitPhaseStep does). 0 at amount 0 (standing): clamp it
+ * before dividing. Pure; allocation-free after its first call per character (one small table).
+ */
+export function contactStride(amount: number, l: HumanoidLandmarks): number {
+   if (!(amount > 0)) return 0;
+   let table = CONTACT_TABLES.get(l);
+   if (!table) {
+      table = new Float64Array(CONTACT_TABLE_STEPS + 1).fill(NaN);
+      table[0] = 0;
+      CONTACT_TABLES.set(l, table);
+   }
+   const x = Math.min(1, amount) * CONTACT_TABLE_STEPS;
+   const i = Math.min(CONTACT_TABLE_STEPS - 1, Math.floor(x));
+   if (Number.isNaN(table[i])) table[i] = measureContactStride(i / CONTACT_TABLE_STEPS, l);
+   if (Number.isNaN(table[i + 1])) table[i + 1] = measureContactStride((i + 1) / CONTACT_TABLE_STEPS, l);
+   return table[i] + (table[i + 1] - table[i]) * (x - i);
+}
+
+/** contactStride's table: measured at amounts k / this (k = 0..this). */
+export const CONTACT_TABLE_STEPS = 128;
+const CONTACT_TABLES = new WeakMap<HumanoidLandmarks, Float64Array>();
+
+/**
+ * contactStride measured exactly at `amount` (GLB units; what its table holds): from walkPose, the
+ * legs' forward kinematics and bodyLift, within the left foot's stance half (phase π/2..3π/2) the
+ * longest run of phases where its sole is within CONTACT_EPS of the floor and not above the other
+ * one (a coarse sweep, then each end bisected), and the ankle's sweep over it: 2π x the ankle's
+ * travel / the phase it took. Pure and allocation-free, but about 50 forward-kinematics passes of
+ * walkPose (a few hundred microseconds): per frame, call contactStride.
+ */
+export function measureContactStride(amount: number, l: HumanoidLandmarks): number {
+   if (!(amount > 0)) return 0;
+   const a = Math.min(1, amount);
+   const from = Math.PI / 2;
+   const step = Math.PI / CONTACT_STEPS;
+   // the longest run of sampled phases in contact
+   let bestStart = -1;
+   let bestLen = 0;
+   let start = -1;
+   for (let i = 0; i <= CONTACT_STEPS + 1; i++) {
+      const on = i <= CONTACT_STEPS && leftContact(from + i * step, a, l);
+      if (on && start < 0) start = i;
+      if (!on && start >= 0) {
+         if (i - start > bestLen) {
+            bestLen = i - start;
+            bestStart = start;
+         }
+         start = -1;
+      }
+   }
+   if (bestStart < 0) return walkStride(a, l);
+   const last = bestStart + bestLen - 1;
+   // each end of the run: between the last sample in contact and the first one out (or the half's end)
+   const p0 = bestStart === 0 ? from : contactEdge(from + bestStart * step, from + (bestStart - 1) * step, a, l);
+   const p1 = last === CONTACT_STEPS ? from + Math.PI : contactEdge(from + last * step, from + (last + 1) * step, a, l);
+   if (!(p1 - p0 > 1e-6)) return walkStride(a, l);
+   leftContact(p0, a, l);
+   const z0 = LEFT[0];
+   leftContact(p1, a, l);
+   const z1 = LEFT[0];
+   return (Math.PI * 2 * (z0 - z1)) / (p1 - p0);
+}
+
+/** gaitPhaseStep's shortest stride (m) by default: standing still, the contact stride is 0. */
 export const MIN_GAIT_STRIDE = 0.1;
 
 /**
  * How far (rad) walkPose's phase advances this frame for a character drawn at `scale` moving at
  * `speed` (m/s) for `dt` (s), with walkPose's `amount`: the distance over the stride x 2π. The stride
- * is the walk's own (walkStride x scale, so the planted foot stays put), but never shorter than
- * `minStride` (m) and never so short that the legs beat more than `maxCadence` strides a second
- * (faster, the stride stretches and the feet slide a little). 0 at speed 0. Pure and allocation-free.
+ * is the one the planted foot needs while it touches the floor (contactStride x scale: the walk's
+ * own stride at a walk, longer at a run), but never shorter than `minStride` (m) and never so short
+ * that the legs beat more than `maxCadence` strides a second (faster, the stride stretches and the
+ * feet slide). 0 at speed 0. Pure; allocation-free after the first call per character.
  *
  *    gait.phase = wrapPhase(gait.phase + gaitPhaseStep(gait.amount, LANDMARKS, scale, v, dt, 4));
  */
@@ -148,6 +258,6 @@ export function gaitPhaseStep(
    minStride = MIN_GAIT_STRIDE
 ): number {
    if (!(speed > 0) || !(dt > 0)) return 0;
-   const stride = Math.max(minStride, walkStride(amount, l) * scale, speed / maxCadence);
+   const stride = Math.max(minStride, contactStride(amount, l) * scale, speed / maxCadence);
    return ((speed * dt) / stride) * Math.PI * 2;
 }

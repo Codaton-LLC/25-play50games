@@ -13,9 +13,9 @@
 //   the group moves and turns, and the swing foot is carried from one spot to the next in an arc.
 //   After the last shot it only lands the kick leg and brings the other foot alongside (the run
 //   ends in that hold). A shot during the walk back starts the run-up from where the striker is.
-import { BONE, POSE_MASK, blendPoses, createPose, footPoint, idlePose, levelFoot, turnBone, walkPose, type HumanoidPose } from "@/arcade3d/core/rig";
+import { BONE, POSE_MASK, blendPoses, contactStride, createPose, footPoint, idlePose, levelFoot, turnBone, walkPose, wrapPhase, type HumanoidPose } from "@/arcade3d/core/rig";
 import { ASSETS, STRIKER_LANDMARKS } from "./assets";
-import { BACKSWING_FROM, strikerPlacement } from "./layout";
+import { BACKSWING_FROM, RUNUP, strikerPlacement } from "./layout";
 import { KICK_CONTACT, KICK_SIDE, kickPose, plantLeg } from "./poses";
 import { HOLD_MS, RUNUP_MS, SHOTS, type RunState } from "./rules";
 
@@ -24,8 +24,38 @@ export const RUNUP_LEAN = 0.22;
 /** The kick's extra lean (rad) over the flight's first KICK_LEAN_MS. */
 export const KICK_LEAN = 0.12;
 const KICK_LEAN_MS = 200;
-/** The GLB striker's run-up: one stride of walkPose over the 700 ms, the kick's backswing in its last quarter (layout.ts BACKSWING_FROM)... */
-const RUNUP_STRIDES = 1;
+/**
+ * The GLB striker's run-up: a walk (walkPose, its amount from 0.35 to 0.54: the run-up is 0.72 m in
+ * 0.7 s, a walking pace) until the kick's backswing in its last quarter (layout.ts BACKSWING_FROM).
+ * Its phase is the ground the group has covered over the walk's stride (core contactStride) from
+ * RUNUP_START_PHASE, and the stance foot is pinned where it landed, so the planted foot stays put
+ * however the run-up eases in and out (a timed stride slid the boots 31 cm, the backswing 15 more).
+ */
+export const runupAmount = (u: number) => 0.35 + 0.25 * u;
+/** The run-up's legs grow out of the idle's over this share of it (the stance foot pinned meanwhile). */
+const RUNUP_INTO_WALK = 0.15;
+/**
+ * walkPose's phase as the run-up starts: the left foot under the hip (mid-stance, where the idle has
+ * it), the right leg swinging first. About 0.7 strides later the backswing starts with the left foot
+ * landing in front and the kicking leg lifting behind, as kickPose(0) holds them (runupScale).
+ */
+export const RUNUP_START_PHASE = Math.PI;
+/** The run-up's walk from `from` to the ball (m): the group's move (layout.ts RUNUP). */
+const RUNUP_LENGTH = Math.hypot(RUNUP.x, RUNUP.z);
+const RUNUP_SAMPLES = 24;
+/**
+ * The run-up's walk draws its legs exactly (no easing: an eased leg lags its spot), from its start
+ * (it grows out of the idle's legs) or, when it starts during a walk back (legs mid-step), from this
+ * share on.
+ */
+export const RUNUP_EXACT_FROM = 0.2;
+/**
+ * The run-up's heading (the group's yaw that faces along it, rad): the group turns only from 0 to
+ * RUNUP.yaw (towards the goal) while it moves towards the ball 25° to its right, so the walk turns
+ * its hips along the run-up (the chest turned back to the group's facing): the legs step the way the
+ * body goes, or the planted foot would slide sideways (about 40 % of the ground covered).
+ */
+export const RUNUP_HEADING = Math.atan2(-RUNUP.x, -RUNUP.z);
 /** ...contact at poses.ts KICK_CONTACT as the flight starts, the follow-through over this long. */
 const KICK_MS = 150;
 /** Scene.tsx eases the drawn pose towards strikerPose's target at this rate (1/s), so a phase change never pops (the planted legs excepted). */
@@ -154,6 +184,58 @@ export function strikerFrame(run: RunState, out: StrikerFrame): StrikerFrame {
 
 const L = STRIKER_LANDMARKS;
 const SCALE = ASSETS.striker.scale;
+
+/** The strides the run-up's walk has taken by progress `u` from `from`: its ground (the smoothstep's speed) over the walk's stride at each moment's amount (midpoint rule). */
+function runupStrides(u: number, from: number): number {
+   const to = Math.max(0, Math.min(u, BACKSWING_FROM));
+   const h = to / RUNUP_SAMPLES;
+   let strides = 0;
+   for (let i = 0; i < RUNUP_SAMPLES; i++) {
+      const w = (i + 0.5) * h;
+      // the group's speed in run-up progress: d/dw lerp(from, 1, smooth(w)) x the run-up's length
+      const ground = RUNUP_LENGTH * (1 - from) * 6 * w * (1 - w) * h;
+      strides += ground / (contactStride(runupAmount(w), L) * SCALE);
+   }
+   return strides;
+}
+
+let scaleFrom = NaN;
+let scaleOf = 1;
+let landsOf = false;
+
+/**
+ * The run-up's stride count scaled so the walk ends (at BACKSWING_FROM) with the plant foot landing
+ * in front (phase π/2 + 2πk), and whether it does: a full run-up walks about 0.7 strides from
+ * RUNUP_START_PHASE, so it lands after 0.75 (the steps 7 % shorter). A short one (started during a
+ * walk back) keeps its own strides and does not land there.
+ */
+function runupScale(from: number): number {
+   if (from === scaleFrom) return scaleOf;
+   const natural = Math.PI * 2 * runupStrides(BACKSWING_FROM, from);
+   // the plant foot (the striker's left: KICK_SIDE is its right) lands in front at phase π/2 + 2πk
+   const down = KICK_SIDE > 0 ? (3 * Math.PI) / 2 : Math.PI / 2;
+   const land = down + Math.PI * 2 * Math.round((RUNUP_START_PHASE + natural - down) / (Math.PI * 2)) - RUNUP_START_PHASE;
+   landsOf = natural > 0 && land > Math.PI / 2 && Math.abs(land / natural - 1) < 0.25;
+   scaleOf = landsOf ? land / natural : 1;
+   scaleFrom = from;
+   return scaleOf;
+}
+
+/**
+ * walkPose's phase over the run-up at progress `u` (0..BACKSWING_FROM) from run-up progress `from`:
+ * RUNUP_START_PHASE plus 2π x the strides the group has walked (runupScale's). So the phase advances
+ * by the ground covered over the stride and the stance foot is where the walk would keep it (it is
+ * pinned there too: pinRunupStance). Pure (a memo of the last `from`), allocation-free.
+ */
+export function runupPhase(u: number, from: number): number {
+   return RUNUP_START_PHASE + Math.PI * 2 * runupScale(from) * runupStrides(u, from);
+}
+
+/** Does the run-up from `from` end with the plant foot landing as the backswing starts (runupScale)? */
+export function runupLands(from: number): boolean {
+   runupScale(from);
+   return landsOf;
+}
 const TURN = ASSETS.striker.rotationY;
 const PLANT_SIDE: 1 | -1 = KICK_SIDE > 0 ? -1 : 1;
 const THIGH = L.hipY - L.kneeY;
@@ -197,6 +279,121 @@ function toWorld(e: number, lx: number, lz: number, out: Float64Array, at = 0): 
 /** A foot's place under its hip (the idle's) at run-up progress `e`, in the world. */
 function homeOf(side: number, e: number, out: Float64Array, at = 0): void {
    toWorld(e, side * L.hipX, L.hipZ, out, at);
+}
+
+// ---------- the run-up's planted foot ----------
+
+const RUNUP_POSE = createPose();
+const RUNUP_NOW = { x: 0, z: 0, yaw: 0 };
+const RUNUP_PLACE = { x: 0, z: 0, yaw: 0 };
+const LOCK = new Float64Array(2);
+const ANKLE = new Float64Array(4);
+/** The hips' pivot (z, GLB units): core humanoidJoints puts the hips joint at (0, hipY, spineZ). */
+const HIPS_Z = L.spineZ;
+
+/** The run-up's walk at progress `u` into `out`, the group's placement into `place`: walkPose with the hips along the run-up (the chest turned back to the group's facing). */
+function runupWalk(u: number, from: number, out: HumanoidPose, place: { x: number; z: number; yaw: number }): HumanoidPose {
+   strikerPlacement(lerp(from, 1, smooth(u)), place);
+   walkPose(runupPhase(u, from), runupAmount(u), out);
+   const across = RUNUP_HEADING - place.yaw;
+   turnBone(out, BONE.hips, 0, across, 0);
+   turnBone(out, BONE.spine, 0, -across, 0);
+   return out;
+}
+
+/** The run-up progress (0..u) at which walkPose's phase reaches `phase` (runupPhase grows with u): bisection. */
+function runupProgressAt(phase: number, u: number, from: number): number {
+   let lo = 0;
+   let hi = u;
+   for (let i = 0; i < 24; i++) {
+      const mid = (lo + hi) / 2;
+      if (runupPhase(mid, from) < phase) lo = mid;
+      else hi = mid;
+   }
+   return hi;
+}
+
+/**
+ * The run-up walk's stance foot (the left from phase π/2 to 3π/2 of each stride, the right in the
+ * other half) pinned where it touched down (or where it stood as the run-up started): two-bone IK
+ * in the turned hips' frame, its height the walk's own. With the phase advanced by the walk's own
+ * stride the walk would keep it there by itself; the pin also holds it while the stride grows out of
+ * standing and the group turns.
+ */
+function pinRunupStance(u: number, from: number, out: HumanoidPose, place: { x: number; z: number; yaw: number }): void {
+   const phase = runupPhase(u, from);
+   const w = wrapPhase(phase);
+   const side = w >= Math.PI / 2 && w < (3 * Math.PI) / 2 ? 1 : -1;
+   const down = phase - wrapPhase(phase - (side > 0 ? Math.PI / 2 : (3 * Math.PI) / 2));
+   const at = down <= RUNUP_START_PHASE ? 0 : runupProgressAt(down, u, from);
+   runupWalk(at, from, RUNUP_POSE, RUNUP_PLACE);
+   footPoint(RUNUP_POSE, L, side, ANKLE);
+   toWorld(lerp(from, 1, smooth(at)), ANKLE[0], ANKLE[2], LOCK);
+   pinLeg(out, side, LOCK[0], LOCK[1], footPoint(out, L, side, ANKLE)[1], place);
+}
+
+/**
+ * One leg of `out` reaching for the world point (x, z) (m) with its ankle at height `y` (GLB units,
+ * unlifted), for the group at `place`, its sole level: two-bone IK in the hips' frame, which may be
+ * turned about y (the run-up's walk turns them along it).
+ */
+function pinLeg(out: HumanoidPose, side: number, x: number, z: number, y: number, place: { x: number; z: number; yaw: number }): void {
+   // the spot in the striker's frame, then in the hips' unturned frame (they turn about y only)
+   const turn = TURN + place.yaw;
+   const c = Math.cos(turn);
+   const s = Math.sin(turn);
+   const dx = x - place.x;
+   const dz = z - place.z;
+   const lx = (dx * c - dz * s) / SCALE;
+   const lz = (dx * s + dz * c) / SCALE - HIPS_Z;
+   const o = BONE.hips * 4;
+   const hips = 2 * Math.atan2(out.q[o + 1], out.q[o + 3]);
+   const hc = Math.cos(hips);
+   const hs = Math.sin(hips);
+   const tx = lx * hc - lz * hs - side * L.hipX;
+   const tz = lx * hs + lz * hc + HIPS_Z - L.hipZ;
+   // a spot beyond the leg's reach at that height: the ankle higher in the body's frame (the body
+   // sinks onto it, bodyLift keeps the lower sole on the floor), the knee kept a little bent
+   let ty = y - L.hipY;
+   const leg = THIGH + SHIN;
+   if (tx * tx + ty * ty + tz * tz > leg * leg) ty = Math.max(ty, -Math.sqrt(Math.max(0, (PIN_REACH * leg) ** 2 - tx * tx - tz * tz)));
+   plantLeg(out, side, tx, ty, tz, THIGH, SHIN);
+   levelFoot(out, side);
+}
+
+/** A pinned leg reaches at most this share of its length (its knee never locks straight). */
+const PIN_REACH = 0.985;
+
+const PLANT_SPOT = new Float64Array(2);
+const LANDING = new Float64Array(2);
+const OWN = new Float64Array(2);
+/** The backswing grows out of the walk's last pose over this share of it (the plant foot already on its spot). */
+const RUNUP_INTO_KICK = 0.35;
+
+/** Where the kick plants its foot (world m), into PLANT_SPOT: kickPose's own at the ball (run-up progress 1). */
+function plantSpot(): Float64Array {
+   const kick = kickEndOf();
+   toWorld(1, kick.plantX, kick.plantZ, PLANT_SPOT);
+   return PLANT_SPOT;
+}
+
+/**
+ * The plant foot's last swing of the run-up (it lands as the backswing starts, runupLands) carried
+ * onto the kick's plant spot: its own swing shifted by the gap between where the walk would land it
+ * and the spot, more as it nears the ground. Then the backswing keeps it there, so it never slides.
+ */
+function placePlantFoot(u: number, from: number, out: HumanoidPose, place: { x: number; z: number; yaw: number }): void {
+   const end = runupPhase(BACKSWING_FROM, from);
+   const phase = runupPhase(u, from);
+   if (!(phase > end - Math.PI)) return;
+   const p = smooth((phase - (end - Math.PI)) / Math.PI);
+   runupWalk(BACKSWING_FROM, from, RUNUP_POSE, RUNUP_PLACE);
+   footPoint(RUNUP_POSE, L, PLANT_SIDE, ANKLE);
+   toWorld(lerp(from, 1, smooth(BACKSWING_FROM)), ANKLE[0], ANKLE[2], LANDING);
+   footPoint(out, L, PLANT_SIDE, ANKLE);
+   toWorld(lerp(from, 1, smooth(u)), ANKLE[0], ANKLE[2], OWN);
+   plantSpot();
+   pinLeg(out, PLANT_SIDE, OWN[0] + (PLANT_SPOT[0] - LANDING[0]) * p, OWN[1] + (PLANT_SPOT[1] - LANDING[1]) * p, ANKLE[1], place);
 }
 
 // the step under way: where its swing foot took off (FROM) and lands (SPOT), where the other foot stands (STILL); world m
@@ -287,9 +484,30 @@ export function strikerPose(run: RunState, frame: StrikerFrame, now: number, out
    let planted = true;
    if (frame.mode === "runup") {
       const u = run.phaseMs / RUNUP_MS;
-      if (u < BACKSWING_FROM) walkPose(u * RUNUP_STRIDES * Math.PI * 2, 0.35 + 0.6 * u, out);
-      else kickPose((KICK_CONTACT * (u - BACKSWING_FROM)) / (1 - BACKSWING_FROM), out);
-      planted = false;
+      const lands = runupLands(frame.from);
+      if (u < BACKSWING_FROM) {
+         // the legs along the run-up (the chest kept to the group's facing), the stance foot pinned,
+         // the plant foot's last swing carried onto the kick's plant spot
+         runupWalk(u, frame.from, out, RUNUP_NOW);
+         // the legs (and the hips' turn) grow out of the idle's: the swing leg lifts, the stance foot stays
+         if (u < RUNUP_INTO_WALK) blendPoses(out, idlePose(now, scratch), 1 - smooth(u / RUNUP_INTO_WALK), out, POSE_MASK.legs);
+         pinRunupStance(u, frame.from, out, frame);
+         if (lands) placePlantFoot(u, frame.from, out, frame);
+      } else {
+         const k = (u - BACKSWING_FROM) / (1 - BACKSWING_FROM);
+         kickPose(KICK_CONTACT * k, out);
+         if (lands) {
+            // out of the walk's last pose into the backswing, the plant foot kept on its spot
+            const w = smooth(k / RUNUP_INTO_KICK);
+            if (w < 1) blendPoses(runupWalk(BACKSWING_FROM, frame.from, RUNUP_POSE, RUNUP_PLACE), out, w, out);
+            plantSpot();
+            pinLeg(out, PLANT_SIDE, PLANT_SPOT[0], PLANT_SPOT[1], footPoint(out, L, PLANT_SIDE, ANKLE)[1], frame);
+         }
+      }
+      // the legs exact (an eased leg lags its spot) once the ease from the idle is done; a run-up
+      // that starts during a walk back (legs mid-step) eases in, and if its plant foot does not land
+      // as the backswing starts, into the backswing too
+      planted = (frame.from === 0 || u >= RUNUP_EXACT_FROM) && (lands || u < BACKSWING_FROM);
    } else if (frame.mode === "flight") {
       kickPose(KICK_CONTACT + (1 - KICK_CONTACT) * clamp01(run.phaseMs / KICK_MS), out);
       planted = false;

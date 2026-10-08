@@ -57,6 +57,7 @@ import { useFittedView } from "@/arcade3d/core/useFittedView";
 import { useRunFrame } from "@/arcade3d/core/useRunFrame";
 import type { FittedView } from "@/arcade3d/core/view";
 import { ASSETS } from "./assets";
+import { RUNNER_SCALE, runAmount, runnerPhaseStep } from "./gait";
 import { DAMPING, followPoint, viewFor, type RaceView } from "./camera";
 import { archOpacity, clearPostArm, fadeCopy, postArmWeight } from "./finishLooks";
 import {
@@ -119,11 +120,11 @@ interface Fx {
    spawnZ: number;
    /** per checkpoint (1..3): when it was activated */
    gateAt: number[];
-   /** the runner's pose: facing (rad), airborne blend, lean, distance run on the ground (m), last position */
+   /** the runner's pose: facing (rad), airborne blend, lean, the run cycle's phase (rad, gait.ts), last position */
    yaw: number;
    air: number;
    lean: number;
-   stride: number;
+   phase: number;
    lastX: number;
    lastZ: number;
    roll: number;
@@ -148,7 +149,7 @@ function createFx(): Fx {
       yaw: 0,
       air: 0,
       lean: 0,
-      stride: 0,
+      phase: 0,
       lastX: 0,
       lastZ: 0,
       roll: 0,
@@ -470,8 +471,6 @@ const FinishArch = memo(function FinishArch({ run }: { run: ObstacleRun }) {
 
 /** The stand-in is about 1.55 m tall; the rules' runner is 1.5 m. */
 const STAND_IN_SCALE = RUNNER.height / 1.55;
-/** Ground covered by one stride cycle (m). */
-const STRIDE = 1.7;
 const DEG = Math.PI / 180;
 const mix = (a: number, b: number, k: number) => a + (b - a) * k;
 const clamp01 = (v: number) => (v < 0 ? 0 : v > 1 ? 1 : v);
@@ -480,9 +479,7 @@ const TUMBLE = 11;
 const WAIST = 0.8;
 /** The runner GLB's joints (core/sharedAssets) and its scale here: its height over its planted foot. */
 const LEGS = RUNNER_LANDMARKS;
-const SCALE = ASSETS.runner.scale ?? 1;
-/** walkPose's amount at full speed (1 = a run; the amount scales with the speed). */
-const RUN_AMOUNT = 1;
+const SCALE = RUNNER_SCALE;
 
 /** The run cycle (looks only) of the GLB runner: its eased amount, the end blends, the body's height. */
 interface Gait {
@@ -514,11 +511,12 @@ const Runner = memo(function Runner({ run, fx }: { run: ObstacleRun; fx: Fx }) {
    const parts = useFxParts();
 
    // the GLB runner's limbs (core/rig), FRAME_PRIORITY.pose: after the step, before the useFrame
-   // below. The run cycle's phase is the stand-in's (ground covered on foot / STRIDE), its amount
-   // eases with the speed; the leap blends in by the airborne blend (knees tucked at the apex), the
+   // below. The run cycle's phase (the stand-in's too) advances by the ground covered on foot over
+   // the contact stride for its amount (gait.ts: the planted foot stays put), the amount eases with
+   // the speed; the leap blends in by the airborne blend (knees tucked at the apex), the
    // beam puts the arms out for balance, a knock or a fall flails (the group tumbles), the win
    // cheers, the time-up slumps. The lean into the run is the spine's (a whole-body lean about the
-   // feet would tip the soles into the floor). The looks shared with the stand-in (fx.stride,
+   // feet would tip the soles into the floor). The looks shared with the stand-in (fx.phase,
    // fx.yaw, fx.lean, fx.air) are advanced here, once per frame.
    const pose = useHumanoidPose((p) => {
       const r = run.runner;
@@ -533,18 +531,18 @@ const Runner = memo(function Runner({ run, fx }: { run: ObstacleRun; fx: Fx }) {
       const moved = Math.hypot(r.x - fx.lastX, r.z - fx.lastZ);
       fx.lastX = r.x;
       fx.lastZ = r.z;
-      if (r.state === "run" && r.grounded && moved < 1) fx.stride += moved;
-      const cycle = (fx.stride / STRIDE) * Math.PI * 2;
       const speed = Math.min(1, Math.hypot(r.vx, r.vz) / V_RUN);
       const running = r.state === "run" && r.grounded && speed > 0.08 && !won;
       const flailing = r.state === "knocked" || r.state === "lost";
+      gait.amount += ((running ? runAmount(speed) : 0) - gait.amount) * (1 - Math.exp(-10 * dt));
+      if (r.state === "run" && r.grounded && moved < 1) fx.phase += runnerPhaseStep(gait.amount, moved, dt);
+      const cycle = fx.phase;
 
       // facing: towards the input velocity; towards the camera when cheering
       if (won) fx.yaw = turnTowards(fx.yaw, Math.PI, 1 - Math.exp(-6 * dt));
       else if (r.state === "run" && speed > 0.15) fx.yaw = turnTowards(fx.yaw, Math.atan2(-r.vx, -r.vz), 1 - Math.exp(-12 * dt));
       fx.lean += ((running ? (4 + 6 * speed) * DEG : 0) - fx.lean) * ease;
       fx.air += ((r.grounded || r.state === "spawn" ? 0 : 1) - fx.air) * (1 - Math.exp(-18 * dt));
-      gait.amount += ((running ? RUN_AMOUNT * Math.max(0.5, speed) : 0) - gait.amount) * (1 - Math.exp(-10 * dt));
       gait.cheer += ((won ? 1 : 0) - gait.cheer) * (1 - Math.exp(-8 * dt));
       gait.slump += ((slumped ? 1 : 0) - gait.slump) * (1 - Math.exp(-6 * dt));
       gait.balance += ((onBeamOf(run) && !flailing ? 1 : 0) - gait.balance) * (1 - Math.exp(-10 * dt));
@@ -596,7 +594,7 @@ const Runner = memo(function Runner({ run, fx }: { run: ObstacleRun; fx: Fx }) {
       const { hipL, hipR, kneeL, kneeR, shoulderL, shoulderR, elbowL, elbowR, head, tails } = rig;
       const limbs = hipL && hipR && kneeL && kneeR && shoulderL && shoulderR && elbowL && elbowR;
       const fallback = standIn.current !== null;
-      const cycle = (fx.stride / STRIDE) * Math.PI * 2;
+      const cycle = fx.phase;
       const speed = Math.min(1, Math.hypot(r.vx, r.vz) / V_RUN);
       const running = r.state === "run" && r.grounded && speed > 0.08 && !won;
 

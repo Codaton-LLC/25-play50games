@@ -46,7 +46,7 @@ import { useFittedView, type FittedViewOptions } from "@/arcade3d/core/useFitted
 import { useRunFrame } from "@/arcade3d/core/useRunFrame";
 import { followFocus } from "@/arcade3d/core/view";
 import { ASSETS } from "./assets";
-import { ROBOT_SCALE, robotPhaseStep } from "./gait";
+import { ROBOT_SCALE, robotAmount, robotPhaseStep } from "./gait";
 import { BatteryPrimitive, COLORS, RobotPrimitive, WALL, Warehouse, useBatteryParts } from "./Primitives";
 import {
    ARENA,
@@ -135,14 +135,14 @@ function Robot({ run }: { run: RunData }) {
    const [scratch] = useState(createPose);
 
    // the GLB robot's limbs (core/rig): idle -> walk -> run with its speed, arms up on a win. The
-   // phase advances by the distance driven over the walk's own stride, so the planted foot stays put.
+   // phase advances by the distance driven over the contact stride, so the planted foot stays put.
    // FRAME_PRIORITY.pose: after useRunFrame moved the robot, before the useFrame below reads the lift.
    const pose = useHumanoidPose((p) => {
       const dt = time.delta;
       const { phase, endReason } = useArcadeStore.getState();
       const v = phase === "playing" ? Math.hypot(run.robot.vx, run.robot.vz) : 0;
-      gait.amount += (Math.min(1, v / ROBOT.maxSpeed) - gait.amount) * (1 - Math.exp(-12 * dt));
-      // the walk's own stride (the planted foot stays put), at most ROBOT_MAX_CADENCE strides a second (gait.ts)
+      gait.amount = robotAmount(gait.amount, v, dt);
+      // the stride the planted foot needs (core contactStride), a cadence cap that never binds (gait.ts)
       gait.phase = wrapPhase(gait.phase + robotPhaseStep(gait.amount, v, dt));
       gait.cheer += ((phase === "over" && endReason === "win" ? 1 : 0) - gait.cheer) * (1 - Math.exp(-8 * dt));
       walkPose(gait.phase, gait.amount, p);

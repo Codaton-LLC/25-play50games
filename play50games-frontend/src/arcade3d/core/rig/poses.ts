@@ -379,6 +379,13 @@ export function idlePose(t: number, out: HumanoidPose): HumanoidPose {
 export const WALK_LEG_SWING = 0.72;
 /** ...the thigh lifts by this share of its knee's fold (the folded leg passes under the body, clear of the floor). */
 const HIP_FLEX = 0.5;
+/**
+ * A slow walk still lifts its feet: the swing knee folds at least this much (rad), reached by amount
+ * SLOW_FOLD_RAMP (smoothly from 0, so amount 0 stays armsDownPose), where the walk's own fold
+ * (amount x (0.6 + 0.9 amount)) would barely bend it and the feet would shuffle along the floor.
+ */
+export const SLOW_FOLD = 0.7;
+const SLOW_FOLD_RAMP = 0.2;
 /** A run's flight: the body rises by this fraction of the hip height, legs apart. */
 const RUN_FLIGHT = 0.02;
 /** A run bends the forward leg's knee by this much (rad) at full reach. */
@@ -400,7 +407,7 @@ export function walkLegAngles(phase: number, amount: number, side: number, out: 
    let flex = 0;
    if (w < Math.PI) {
       const u = w / Math.PI;
-      const fold = a * (0.6 + 0.9 * a);
+      const fold = Math.max(a * (0.6 + 0.9 * a), SLOW_FOLD * smooth01(a / SLOW_FOLD_RAMP));
       // the knee folds early in the swing and is straight again before the thigh comes back from
       // its lift (most at 2/3 of the swing), so the foot stays clear of the floor until it lands
       const k = Math.sin(Math.PI * Math.min(1, u / KNEE_END));

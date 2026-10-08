@@ -40,7 +40,18 @@ export {
    type HumanoidPose,
    type PoseMask,
 } from "./poses";
-export { MIN_GAIT_STRIDE, bodyLift, footPoint, gaitPhaseStep, groundLift, soleHeight, walkStride } from "./gait";
+export {
+   CONTACT_EPS,
+   MIN_GAIT_STRIDE,
+   bodyLift,
+   contactStride,
+   footPoint,
+   gaitPhaseStep,
+   groundLift,
+   measureContactStride,
+   soleHeight,
+   walkStride,
+} from "./gait";
 export {
    applyHumanoidPose,
    buildHumanoidTemplate,

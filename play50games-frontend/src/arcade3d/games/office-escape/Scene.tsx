@@ -49,6 +49,7 @@ import { useRunFrame } from "@/arcade3d/core/useRunFrame";
 import { ASSETS } from "./assets";
 import { chaseInsets, fitChase, type ChaseFit } from "./camera";
 import { CRASH, crashPlacement, crashPose, type CrashPlacement } from "./crash";
+import { RUNNER_SCALE, createRunnerGait, stepRunnerGait, type RunnerGait } from "./gait";
 import {
    Backdrop,
    COLORS,
@@ -387,20 +388,15 @@ const Coins = memo(function Coins({ run, fx, standIns }: { run: OfficeRun; fx: F
 
 // ---------- the runner ----------
 
-/** Stride length (mm): the legs move with the ground and stop when it stops. */
-const STRIDE_MM = 2400;
 const DEG = Math.PI / 180;
 const APEX_M = JUMP_APEX / 1000;
 const mix = (a: number, b: number, k: number) => a + (b - a) * k;
 /** The runner GLB's joints (core/sharedAssets) and its scale here: its height over its planted foot. */
 const LEGS = RUNNER_LANDMARKS;
-const SCALE = ASSETS.runner.scale ?? 1;
-/** walkPose's amount at the 8 m/s start (0.5 = a walk, 1 = a run) and at the 16 m/s cap. */
-const RUN_AMOUNT = { start: 0.85, cap: 1 } as const;
+const SCALE = RUNNER_SCALE;
 
-/** The run cycle (looks only) of the GLB runner: its eased amount, cheer and the body's height. */
-interface Gait {
-   amount: number;
+/** The run cycle (looks only) of the GLB runner and the stand-in: phase and amount (gait.ts), cheer and the body's height. */
+interface Gait extends RunnerGait {
    cheer: number;
    /** the body's height over its planted foot this frame (m): core/rig bodyLift x SCALE */
    lift: number;
@@ -413,13 +409,14 @@ const Runner = memo(function Runner({ run, fx }: { run: OfficeRun; fx: Fx }) {
    const shadow = useRef<Group>(null);
    const standIn = useRef<Group>(null);
    const [rig] = useState(createRunnerRig);
-   const [gait] = useState<Gait>(() => ({ amount: 0, cheer: 0, lift: 0 }));
+   const [gait] = useState<Gait>(() => ({ ...createRunnerGait(), cheer: 0, lift: 0 }));
    const [scratch] = useState(createPose);
    const [crash] = useState<CrashPlacement>(() => ({ e: 0, y: 0, z: 0, tilt: 0, yaw: 0 }));
 
    // the GLB runner's limbs (core/rig), FRAME_PRIORITY.pose: after the step, before the useFrame
-   // below. The run cycle's phase is the stand-in's (distance / STRIDE_MM, so the legs move with
-   // the ground and stop when it stops), its amount eases from the idle to a run with the speed;
+   // below. The run cycle's phase advances by the ground covered over the contact stride (gait.ts:
+   // the legs move with the ground and stop when it stops, the planted foot stays put up to
+   // 12.4 m/s); the stand-in reads the same phase. Its amount eases from the idle to the full run;
    // the leap blends in by the airborne blend (knees tucked at the apex), the crash into a flail, the
    // win into a cheer. The lean into the run and the roll into a lane change are the spine's (a
    // whole-body lean about the feet would tip the soles into the floor). The smoothed looks shared
@@ -430,7 +427,7 @@ const Runner = memo(function Runner({ run, fx }: { run: OfficeRun; fx: Fx }) {
       const ease = 1 - Math.exp(-14 * dt);
       const moving = run.distance > 0 && !run.over;
       const speed = speedAt(run.simMs);
-      const phase = ((run.distance % STRIDE_MM) / STRIDE_MM) * Math.PI * 2;
+      const phase = stepRunnerGait(gait, run.distance, moving, dt).phase;
       const grounded = run.jumpMs < 0;
       const { phase: runPhase, endReason } = useArcadeStore.getState();
       const won = runPhase === "over" && endReason === "win";
@@ -441,7 +438,6 @@ const Runner = memo(function Runner({ run, fx }: { run: OfficeRun; fx: Fx }) {
       const slide = moving ? Math.max(-1, Math.min(1, dx / 600)) : 0;
       fx.roll += (-slide * 10 * DEG - fx.roll) * ease;
       fx.air += ((grounded ? 0 : 1) - fx.air) * (1 - Math.exp(-20 * dt));
-      gait.amount += ((moving ? mix(RUN_AMOUNT.start, RUN_AMOUNT.cap, Math.min(1, (speed - 8) / 8)) : 0) - gait.amount) * (1 - Math.exp(-10 * dt));
       gait.cheer += ((won ? 1 : 0) - gait.cheer) * (1 - Math.exp(-8 * dt));
 
       walkPose(phase, gait.amount, p);
@@ -470,7 +466,7 @@ const Runner = memo(function Runner({ run, fx }: { run: OfficeRun; fx: Fx }) {
       const feet = run.feet / 1000;
       const moving = run.distance > 0 && !run.over;
       const speed = speedAt(run.simMs);
-      const p = ((run.distance % STRIDE_MM) / STRIDE_MM) * Math.PI * 2;
+      const p = gait.phase;
       const { phase, endReason } = useArcadeStore.getState();
       const { hipL, hipR, kneeL, kneeR, shoulderL, shoulderR, elbowL, elbowR, head, tails } = rig;
       const limbs = hipL && hipR && kneeL && kneeR && shoulderL && shoulderR && elbowL && elbowR;

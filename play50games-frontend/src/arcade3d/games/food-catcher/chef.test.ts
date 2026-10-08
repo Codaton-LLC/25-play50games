@@ -9,9 +9,10 @@
 import { readFileSync } from "node:fs";
 import { beforeAll, describe, expect, it } from "vitest";
 import { Quaternion, Vector3 } from "three";
-import { BONE, createPose, walkStride } from "@/arcade3d/core/rig";
+import { BONE, contactStride, createPose, walkStride } from "@/arcade3d/core/rig";
 import { describeCharacter, rigCharacter, type RiggedCharacter } from "@/arcade3d/core/rig/characterChecks";
 import { bodyLift } from "@/arcade3d/core/rig/gait";
+import { gaitSlide, meshFeet } from "@/arcade3d/core/rig/stanceSlide";
 import { readCharacterGlb } from "@/arcade3d/core/rig/robotGlb";
 import { ASSETS, CHEF_LANDMARKS } from "./assets";
 import {
@@ -192,6 +193,10 @@ describe("food-catcher chef (poses.ts) on chef.glb", () => {
 
 describe("food-catcher chef gait (stepChefGait)", () => {
    const TAU = Math.PI * 2;
+   let chefMesh: RiggedCharacter;
+   beforeAll(async () => {
+      chefMesh = await rigCharacter(ASSETS.chef);
+   });
    /** The stride (m) the phase implies at a constant speed, and the strides a second. */
    function strideAt(v: number): { stride: number; cadence: number; gait: ChefGait } {
       const dt = 1 / 60;
@@ -210,21 +215,40 @@ describe("food-catcher chef gait (stepChefGait)", () => {
       expect(gait.amount).toBeLessThan(1e-6);
    });
 
-   it("at walking and running speeds up to 5 m/s (CHEF_RUN_SPEED) the stride is the walk's own, so the planted foot stays put", () => {
+   it("at every speed up to the 9 m/s dash the stride is the contact stride (the walk's own at a walk), so the planted foot stays put: the cadence cap never binds", () => {
       expect(CHEF_RUN_SPEED).toBe(5);
-      for (const v of [0.6, 1.5, 2.5, 3.5, 4, 4.5, 5]) {
-         const { stride, gait } = strideAt(v);
-         expect(stride, `v ${v}`).toBeCloseTo(walkStride(gait.amount, CHEF_LANDMARKS) * CHEF_SCALE, 6);
+      let peak = 0;
+      for (const v of [0.3, 0.6, 1.5, 2.5, 3.5, 4, 4.5, 5, 6, 7, 8, CHEF.maxSpeed]) {
+         const { stride, cadence, gait } = strideAt(v);
+         expect(stride, `v ${v}`).toBeCloseTo(contactStride(gait.amount, CHEF_LANDMARKS) * CHEF_SCALE, 6);
+         if (v <= 2.5) expect(stride / (walkStride(gait.amount, CHEF_LANDMARKS) * CHEF_SCALE), `walk v ${v}`).toBeCloseTo(1, 2);
+         peak = Math.max(peak, cadence);
       }
+      // the most at the dash: 5.03 strides a second on the full run's 1.79 m contact stride
+      expect(strideAt(CHEF.maxSpeed).cadence).toBeCloseTo(5.03, 1);
+      expect(peak).toBeLessThan(CHEF_MAX_CADENCE);
+      expect(CHEF_MAX_CADENCE).toBeLessThan(5.2);
    });
 
-   it("at the 9 m/s dash the legs beat at most CHEF_MAX_CADENCE (4) strides a second", () => {
-      expect(CHEF_MAX_CADENCE).toBe(4);
-      for (const v of [6, CHEF.maxSpeed, -CHEF.maxSpeed]) {
-         const { cadence } = strideAt(Math.abs(v));
-         expect(cadence).toBeLessThanOrEqual(CHEF_MAX_CADENCE + 1e-9);
-         expect(cadence).toBeGreaterThan(CHEF_MAX_CADENCE - 0.01);
+   it("the planted sole's net travel per stance is under 3 % of the body's from 0.5 m/s to the dash (the old cadence cap of 4 slid it 19 % at the dash; chef.glb's soles)", () => {
+      const feet = meshFeet(chefMesh);
+      for (const v of [0.5, 1, 2.5, 5, 7, CHEF.maxSpeed]) {
+         const gait = createChefGait();
+         const r = gaitSlide(CHEF_LANDMARKS, CHEF_SCALE, feet, (dt) => {
+            stepChefGait(gait, v, dt);
+            return { phase: gait.phase, amount: gait.amount, speed: v };
+         });
+         expect(r.stances, `v ${v}`).toBeGreaterThan(4);
+         expect(r.net, `v ${v}`).toBeLessThan(0.03);
       }
+      // the old gait at the dash: the same amount, the stride stretched to 9 / 4 m
+      const old = { phase: 0, amount: 0 };
+      const before = gaitSlide(CHEF_LANDMARKS, CHEF_SCALE, feet, (dt) => {
+         old.amount += (1 - old.amount) * (1 - Math.exp(-12 * dt));
+         old.phase += ((CHEF.maxSpeed * dt) / Math.max(walkStride(old.amount, CHEF_LANDMARKS) * CHEF_SCALE, CHEF.maxSpeed / 4)) * TAU;
+         return { phase: old.phase, amount: old.amount, speed: CHEF.maxSpeed };
+      });
+      expect(before.net).toBeGreaterThan(0.15);
    });
 
    it("turns towards the way it runs by |v| / CHEF_TURN_SPEED of a quarter turn (all of it at and above 0.5 m/s), back to the camera when it stops, never flipping", () => {

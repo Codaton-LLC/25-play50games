@@ -25,7 +25,6 @@ import {
    reachPose,
    useHumanoidPose,
    walkPose,
-   walkStride,
    wrapPhase,
    type HumanoidLandmarks,
    type HumanoidPose,
@@ -35,6 +34,7 @@ import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { useFittedView, type FittedViewOptions } from "@/arcade3d/core/useFittedView";
 import { useRunFrame } from "@/arcade3d/core/useRunFrame";
 import { RUNNER_ASSET, RUNNER_SCALE } from "./assets";
+import { runnerPhaseStep, walkAmount } from "./gait";
 import { PrimitiveRunner, Room, createMoving, type RunnerLimbs } from "./Primitives";
 import { groundRingScale } from "./marker";
 import { BADGE_LOOK, BADGE_PX, MARKER_PX, badgeShowsLoot, hitsBillboard, screenSpriteSize } from "./picker";
@@ -211,7 +211,6 @@ function Badge({ run }: { run: EscapeRun }) {
 const RUNNER_LEGS: HumanoidLandmarks = RUNNER_LANDMARKS;
 // RUNNER_ASSET (1.40 m) and RUNNER_SCALE come from assets.ts: the stride and the lift are in
 // world units through the scale the runner is drawn at (assets.test.ts pins both).
-const MIN_STRIDE = 0.1;
 const DOWN = new Vector3(0, -1, 0);
 const LIMB_DIR: Dir3 = { x: 0, y: -1, z: 0 };
 const LIMB_V = new Vector3();
@@ -254,9 +253,10 @@ function Runner({ run }: { run: EscapeRun }) {
       const player = run.player;
       const v = Math.hypot(player.vx, player.vz);
       const g = gait.current;
-      g.amount += (Math.min(1, v / RUNNER.speed) - g.amount) * (1 - Math.exp(-12 * dt));
-      const stride = Math.max(MIN_STRIDE, walkStride(g.amount, RUNNER_LEGS) * RUNNER_SCALE);
-      g.phase = wrapPhase(g.phase + (v * dt / stride) * Math.PI * 2);
+      // the amount reaches the run only at 2.7 m/s (a jog at the room's 1.8), the phase advances by
+      // the distance over the contact stride, so the planted foot stays put (gait.ts)
+      g.amount += (walkAmount(v) - g.amount) * (1 - Math.exp(-12 * dt));
+      g.phase = wrapPhase(g.phase + runnerPhaseStep(g.amount, v, dt));
       if (v > RUNNER.speed * 0.2) g.heading = Math.atan2(player.vx, player.vz);
       const acting = run.action.kind !== "none";
       if (acting) {

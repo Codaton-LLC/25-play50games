@@ -20,20 +20,25 @@ import { ASSETS, CHEF_LANDMARKS } from "./assets";
 /** The chef GLB's joints and its scale here: its stride and its height over its planted foot. */
 const LEGS = CHEF_LANDMARKS;
 export const CHEF_SCALE = ASSETS.chef.scale ?? 1;
-/** The phase never advances by more than a stride this short (m): standing still, the stride is 0. */
-export const CHEF_MIN_STRIDE = 0.1;
 /**
- * The walk's own stride (core/rig walkStride) keeps the planted foot still, but the chef dashes at
- * up to 9 m/s: it steps at most this often (strides a second); faster, the stride stretches and the
- * feet slide a little (warehouse-rush does the same).
+ * The phase never advances by more than a stride this short (m): standing still, the stride is 0.
+ * The chef's own stride is longer from 0.07 m/s (a slow drag), so the planted foot stays put there.
  */
-export const CHEF_MAX_CADENCE = 4;
+export const CHEF_MIN_STRIDE = 0.02;
+/**
+ * The stride the planted foot needs while it touches the floor (core contactStride x CHEF_SCALE:
+ * the walk's own at a walk, 1.79 m at the full run) keeps it still. The chef dashes at up to 9 m/s
+ * (the keyboard's speed): that takes 5.03 strides a second, the most at any speed, and the full run
+ * is already the longest stride walkPose has. This cap is a safety just above it: it never binds at
+ * a steady speed (chef.test.ts). The old cap of 4 stretched the dash's stride and slid the feet 19 %.
+ */
+export const CHEF_MAX_CADENCE = 5.1;
 /**
  * The speed (m/s) of walkPose's full run (amount 1); slower, the amount is the speed over it. The
- * chef's short legs walk about 1.56 m per unit of amount (walkStride x CHEF_SCALE, 1.27 m at a full
- * run), so with the amount at speed / 5 its own stride covers the ground at under CHEF_MAX_CADENCE up
- * to about 5 m/s and the planted foot stays put (chef.test.ts); with the amount at speed / 7.5 (the
- * long-legged v1 chef's) or speed / 9 (the dash's top) slow walks would already be cadence-capped and slide.
+ * chef's short legs walk about 1.56 m per unit of amount (walkStride x CHEF_SCALE), so with the
+ * amount at speed / 5 its stride covers the ground at about 3.2-3.3 strides a second at a walk and
+ * 2.8-3.9 at a run up to 7 m/s; with the amount at speed / 7.5 (the long-legged v1 chef's) or
+ * speed / 9 (the dash's top) slow walks would need over 4.
  */
 export const CHEF_RUN_SPEED = 5;
 /**
@@ -71,7 +76,7 @@ export function createChefGait(): ChefGait {
 /**
  * One frame of the GLB chef's walk: the amount eases towards |v| / CHEF_RUN_SPEED (`v` the chef's
  * speed, signed, 0 when the run is not playing), the phase advances by the distance run over the
- * walk's own stride (so the planted foot stays put, at most CHEF_MAX_CADENCE strides a second), the
+ * contact stride (so the planted foot stays put; CHEF_MAX_CADENCE never binds at a steady speed), the
  * speed eases (gait.v), the chef turns towards the way it runs by that speed (CHEF_TURN_SPEED) and
  * its spine leans into it. `dt` in seconds (0 while paused: nothing moves).
  */

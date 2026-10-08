@@ -47,7 +47,7 @@ import { useFittedView } from "@/arcade3d/core/useFittedView";
 import { useRunFrame } from "@/arcade3d/core/useRunFrame";
 import { ASSETS } from "./assets";
 import { LOOK_AT, VIEW } from "./camera";
-import { WAREHOUSE_SCALE, warehousePhaseStep } from "./gait";
+import { WAREHOUSE_SCALE, warehouseAmount, warehousePhaseStep } from "./gait";
 import {
    ARROW,
    BOX_TURN_MAX,
@@ -299,15 +299,16 @@ const Robot = memo(function Robot({ run, fx }: { run: WarehouseRun; fx: Fx }) {
 
    // the GLB robot's limbs (core/rig): idle -> walk -> run with its speed, and both arms up under
    // the box while it carries one (rising with the lift, lowering as the box sinks into a zone).
-   // The phase advances by the distance driven over the walk's own stride, at most 4 strides a
-   // second (gait.ts on core gaitPhaseStep): this small robot's feet slide a little (README).
+   // The amount is the run's from 4 m/s (a long stride for this small robot's speed) and the phase
+   // advances by the distance driven over the contact stride (gait.ts on core gaitPhaseStep), so the
+   // planted foot stays put.
    // FRAME_PRIORITY.pose: after the step, before every visual that reads fx.bob.
    const pose = useHumanoidPose((p) => {
       const dt = time.delta;
       const t = time.now;
       const playing = useArcadeStore.getState().phase === "playing";
       const v = playing ? Math.hypot(run.robot.vx, run.robot.vz) : 0;
-      fx.gaitAmount += (Math.min(1, v / ROBOT.speed) - fx.gaitAmount) * (1 - Math.exp(-12 * dt));
+      fx.gaitAmount = warehouseAmount(fx.gaitAmount, v, dt);
       fx.gaitPhase = wrapPhase(fx.gaitPhase + warehousePhaseStep(fx.gaitAmount, v, dt));
       walkPose(fx.gaitPhase, fx.gaitAmount, p);
       // nearly still: the idle's breath and glance in the upper body (the legs keep the walk's)
