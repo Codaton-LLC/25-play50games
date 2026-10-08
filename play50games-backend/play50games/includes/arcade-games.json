@@ -49,7 +49,7 @@
       "max_duration_ms": 225000,
       "base": 0,
       "max_pps": 95,
-      "enabled": false
+      "enabled": true
     },
     "warehouse-rush": {
       "title": "Warehouse Rush",
@@ -97,7 +97,7 @@
       "min_duration_ms": 18500,
       "max_duration_ms": 300000,
       "time_base_ms": 300000,
-      "enabled": false
+      "enabled": true
     }
   }
 }
