@@ -55,7 +55,7 @@ An oracle that never strikes, sends each bag down the 8.4 m chute, and is allowe
 
 ## Scene and camera
 
-- **Fixed isometric, pitch 50°**: every junction is on screen and the camera never moves. `useFittedView({ area, pitch: 50°, yaws: [0.55, 0.55 + π/2], margin: { top: 0.10, bottom: 0.08, left: 0.02, right: 0.02 }, padding: 8, shift: true })`. `area` is the hall box x 0.4–11.6, z −0.6–14.8, y 0–2.6 (belts, gates, handler). Landscape yaw 0.55 shows the spine in depth and the chutes to the right; portrait adds π/2. No `follow`, no `CameraRig` follow.
+- **Fixed isometric, pitch 50°**: every junction is on screen and the camera never moves. `useFittedView({ area, pitch: 50°, yaws: [0.55, 0.55 + π/2], margin: { top: 0.10, bottom: 0.08, left: 0.02, right: 0.02 }, padding: 8, shift: true, minDistance: 45, maxDistance: 90 })`. `area` is the hall box padded by about 1.5 m (x 0.4–11.6, z −0.6–14.8, y 0–2.6). Landscape yaw 0.55 shows the spine in depth and the chutes to the right; portrait adds π/2. The rig follows a fixed hall-centre point (`followFraction` 1) so ShellStage's own CameraRig cannot leave `definition.camera` in place. The build moved the spine from x 2.2 to x 3.4 and runs the overflow toward −x (it ends at x 0.6) so the 2.8 m overflow and the gates at x 7.4 stay inside that box. Lengths are unchanged.
 - **Hall:** floor `#cbd5e1`, belts `#334155`, one window bay on the north wall. Lighting `indoor` only.
 - **Handler** (decor): `SHARED_ASSETS.runner` at the same 0.825 scale as the other games (1.556 m), `useHumanoidPose`, `applyLift={false}`, group raised by `bodyLift × 0.825`. `idlePose` with a `reachPose` wave on one arm (the core pose that reads as a wave). Feet on the floor. Hidden when `useQuality().decor` is the low tier.
 - Diverter arrows are a yaw, not a colour. Each on-screen hit box is at least 64 × 64 px; if two would overlap, the nearest diverter wins and the boxes are clipped apart.
@@ -123,4 +123,4 @@ Each flight has a colour, a tag symbol and the same shape on the chute, so a gre
 
 ## Status
 
-(empty until the build)
+Playable on `cursor/game-luggage-rush` (status stays `dev`). `meta.scoring` is still the provisional 7500 / 7500 / 7500; the proof's limits are maxScore 7620, base 0, maxPointsPerSec 64 (Claude's limits PR). Measured in this browser with `?perf=1`: 20 draw calls (max 22), about 5130 triangles, geometries 26–28, p95 about 34 ms (the browser's frame time, not the mid-phone profile). `tools/perf` and `tools/gamecheck` do not exist. The chevron scrolls at the base 1.35 m/s because `<Conveyor>` only reads `speed` on render. Audio is the P-06 fallback (`pickup` / `hit`, no belt loop).
