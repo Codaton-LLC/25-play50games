@@ -48,6 +48,8 @@ function swingLeg(out: HumanoidPose, side: number, forward: number, outward: num
 
 /** The kicking leg: the striker's own right (-x). The ball sits at its right foot (layout.ts; poses.test.ts checks it). */
 export const KICK_SIDE = -1;
+/** kickPose's contact with the ball: the flight starts here (Scene.tsx; poses.test.ts puts the boot at the ball). */
+export const KICK_CONTACT = 0.55;
 
 /**
  * The kick, from the backswing (`u` 0) through contact (about 0.55) to the follow-through (1):
@@ -83,9 +85,10 @@ export function kickPose(u: number, out: HumanoidPose): HumanoidPose {
  * Turns a leg (the hips unturned) so its ankle is at (tx, ty, tz) from its hip joint (GLB units, the
  * character's frame; the joints are in line as core/rig humanoidJoints places them): two-bone IK,
  * the knee's bend from the reach (the thigh `lt` and the shin `ls` long), then the thigh's outward
- * and forward swings to point the leg there. Allocation-free.
+ * and forward swings to point the leg there. Allocation-free. The keeper's ready stance plants its
+ * feet with it, the striker's walk back (strikerMotion.ts) every step.
  */
-function plantLeg(out: HumanoidPose, side: number, tx: number, ty: number, tz: number, lt: number, ls: number): void {
+export function plantLeg(out: HumanoidPose, side: number, tx: number, ty: number, tz: number, lt: number, ls: number): void {
    const cb = Math.max(-1, Math.min(1, (tx * tx + ty * ty + tz * tz - lt * lt - ls * ls) / (2 * lt * ls)));
    const bend = Math.acos(cb);
    // the bent leg in the thigh's frame is (0, -p, -q); outward first, then forward
@@ -100,6 +103,31 @@ function plantLeg(out: HumanoidPose, side: number, tx: number, ty: number, tz: n
 
 /** The ready stance's legs (rad): the thighs forward and out, the knees bent. */
 const READY_LEG = { forward: 0.4, outward: 0.12, bend: 0.75 } as const;
+
+/**
+ * The share of its poses' head turn the keeper's head keeps (the ready stance's look up, the
+ * dive's glance at the ball, the idle's glance). Its head joint (KEEPER_LANDMARKS headY) sits inside
+ * the beard: the beard below it bends with the neck and the face above it turns with the head, so a
+ * full turn shears the beard off the chin (2.8x stretched edges in a side dive). At this share no
+ * edge of the face and beard stretches more than 1.5x (1.4x at worst, a side dive; keeper.test.ts).
+ */
+export const KEEPER_HEAD_TURN = 0.25;
+
+/** Keeps share `k` of bone `bone`'s turn (nlerp from the identity, the shorter way). */
+function keepTurn(out: HumanoidPose, bone: number, k: number): void {
+   const q = out.q;
+   const o = bone * 4;
+   const sign = q[o + 3] < 0 ? -1 : 1;
+   const x = sign * q[o] * k;
+   const y = sign * q[o + 1] * k;
+   const z = sign * q[o + 2] * k;
+   const w = 1 - k + sign * q[o + 3] * k;
+   const len = Math.hypot(x, y, z, w) || 1;
+   q[o] = x / len;
+   q[o + 1] = y / len;
+   q[o + 2] = z / len;
+   q[o + 3] = w / len;
+}
 
 /**
  * The keeper's ready stance: knees bent, leaning forward, both gloves out in front at hip height
@@ -131,6 +159,7 @@ export function keeperReadyPose(t: number, out: HumanoidPose, shift = 0, dip = 0
    }
    turnBone(out, BONE.spine, 0.25, 0, 0);
    turnBone(out, BONE.head, -0.22, 0, 0);
+   keepTurn(out, BONE.head, KEEPER_HEAD_TURN);
    return out;
 }
 
@@ -153,6 +182,7 @@ export function keeperDivePose(side: -1 | 0 | 1, row: 0 | 1, out: HumanoidPose):
          for (let s = 1; s >= -1; s -= 2) swingLeg(out, s, 0.9, 0.15, 1.4);
          turnBone(out, BONE.spine, 0.35, 0, 0);
       }
+      keepTurn(out, BONE.head, KEEPER_HEAD_TURN);
       out.ground = 0;
       return out;
    }
@@ -165,6 +195,7 @@ export function keeperDivePose(side: -1 | 0 | 1, row: 0 | 1, out: HumanoidPose):
    // the body bends towards the ball (tilt > 0 tips the top to its right = -x)
    turnBone(out, BONE.spine, 0.1, 0, -side * 0.25);
    turnBone(out, BONE.head, -0.1, side * 0.2, 0);
+   keepTurn(out, BONE.head, KEEPER_HEAD_TURN);
    out.ground = 0;
    return out;
 }

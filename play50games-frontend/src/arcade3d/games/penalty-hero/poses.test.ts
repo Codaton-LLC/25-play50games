@@ -7,7 +7,7 @@ import { BONE, BONE_COUNT } from "@/arcade3d/core/rig/humanoid";
 import { createPose, resolvePose, type HumanoidPose } from "@/arcade3d/core/rig/poses";
 import { ASSETS, KEEPER_LANDMARKS, STRIKER_LANDMARKS } from "./assets";
 import { BACKSWING_FROM, KEEPER_SWAY, SPOT_Z, keeperDip, keeperSway, strikerPlacement } from "./layout";
-import { KICK_SIDE, keeperDivePose, keeperReadyPose, kickPose } from "./poses";
+import { KICK_CONTACT, KICK_SIDE, keeperDivePose, keeperReadyPose, kickPose } from "./poses";
 import { BALL_SPOT } from "./rules";
 
 const quat = (q: Float32Array, bone: number) => new Quaternion(q[bone * 4], q[bone * 4 + 1], q[bone * 4 + 2], q[bone * 4 + 3]);
@@ -77,6 +77,22 @@ describe("kickPose", () => {
       }
    });
 
+   it("at contact the boot is at the ball: the kicking ankle 0.22-0.30 m behind the ball's centre along the run (the instep meets it) and within 0.25 m of it sideways, its sole on the grass", () => {
+      const L = STRIKER_LANDMARKS;
+      const scale = ASSETS.striker.scale;
+      const place = strikerPlacement(1, { x: 0, z: 0, yaw: 0 });
+      const p = kickPose(KICK_CONTACT, createPose());
+      const foot = footPoint(p, L, KICK_SIDE);
+      // the ankle from the striker's frame into the world: the asset's turn and the group's, then its place
+      const turn = ASSETS.striker.rotationY + place.yaw;
+      const x = place.x + scale * (foot[0] * Math.cos(turn) + foot[2] * Math.sin(turn));
+      const z = place.z + scale * (-foot[0] * Math.sin(turn) + foot[2] * Math.cos(turn));
+      expect(z - SPOT_Z).toBeGreaterThan(0.22);
+      expect(z - SPOT_Z).toBeLessThan(0.3);
+      expect(Math.abs(x - BALL_SPOT.x)).toBeLessThan(0.25);
+      expect(Math.abs(soleHeight(p, L, KICK_SIDE))).toBeLessThan(0.01);
+   });
+
    it("the opposite arm swings forward for balance, the kicking side's arm back", () => {
       const r = resolved(kickPose(1, createPose()), STRIKER_LANDMARKS.armSpread);
       const opposite = KICK_SIDE > 0 ? [BONE.chest, BONE.clavicleR, BONE.upperArmR] : [BONE.chest, BONE.clavicleL, BONE.upperArmL];
@@ -90,8 +106,10 @@ describe("keeperReadyPose", () => {
    it("crouches on flat soles (both on the floor once lifted), gloves forward and below the shoulders, leaning forward", () => {
       const p = keeperReadyPose(1.3, createPose());
       expect(p.ground).toBe(1);
-      // the crouch lowers the body: the lift is negative, both soles on the floor
-      expect(bodyLift(p, KEEPER_LANDMARKS)).toBeLessThan(-0.05);
+      // the crouch lowers the body by more than 7 % of the leg's length (hip to ankle: 4.6 GLB cm on
+      // the v2 keeper's short legs), both soles on the floor
+      const leg = KEEPER_LANDMARKS.hipY - KEEPER_LANDMARKS.ankleY;
+      expect(bodyLift(p, KEEPER_LANDMARKS)).toBeLessThan(-0.07 * leg);
       for (const side of [1, -1] as const) {
          expect(Math.abs(soleHeight(p, KEEPER_LANDMARKS, side))).toBeLessThan(0.01);
       }
