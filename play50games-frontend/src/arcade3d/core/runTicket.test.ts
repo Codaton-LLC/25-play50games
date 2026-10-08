@@ -107,7 +107,7 @@ describe("createRunTickets", () => {
       const { startRun, tickets } = setup(over);
       tickets.onRunStart(1, "robot-collector");
       expect(startRun).not.toHaveBeenCalled();
-      expect(tickets.ticketFor(1, over.userId === null ? null : 7)).toEqual({ token: null, outcome: "none" });
+      expect(tickets.ticketFor(1, "userId" in over ? null : 7)).toEqual({ token: null, outcome: "none" });
    });
 
    it("submits without a ticket when the start fails (old server 404, offline, 401, 429, 500)", async () => {
