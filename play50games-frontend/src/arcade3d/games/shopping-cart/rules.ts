@@ -512,7 +512,7 @@ export function stepRun(
 
    if (hasInput) {
       // Input direction in world coordinates: moveX right (+x), moveY up (north, -z)
-      let targetHeading = Math.atan2(input.moveX, -input.moveY);
+      let targetHeading = Math.atan2(input.moveX, input.moveY);
 
       // Auto-steer assist on coarse pointers
       if (!cart.riding && run.collectedCount < LIST_COUNT) {

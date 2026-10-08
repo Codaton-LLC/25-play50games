@@ -2,38 +2,34 @@
 
 // Crazy Shopping Cart Scene: connects input, rules.stepRun, and the arcade store every frame,
 // and renders the supermarket store, cart + runner, shoppers, products, hazards and camera.
-import { useMemo, useRef, useState } from "react";
-import { useFrame } from "@react-three/fiber";
-import { DoubleSide, Group, Vector3 } from "three";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useFrame, useThree } from "@react-three/fiber";
+import { DoubleSide, Group, Matrix4, Vector3 } from "three";
 import CameraRig from "@/arcade3d/core/CameraRig";
 import { Model } from "@/arcade3d/core/assets";
-import { playSfx } from "@/arcade3d/core/audio";
+import { playSfx, startLoop, type LoopHandle } from "@/arcade3d/core/audio";
 import { useFx } from "@/arcade3d/core/fx";
 import { useGameTime } from "@/arcade3d/core/gameTime";
 import { useInput } from "@/arcade3d/core/input";
 import { inputToWorld, randomSeed } from "@/arcade3d/core/math";
-import { BlobShadow } from "@/arcade3d/core/render";
+import { BlobShadow, DynamicInstanced, Instanced } from "@/arcade3d/core/render";
 import { HumanoidModel, createPose, useHumanoidPose } from "@/arcade3d/core/rig";
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { useFittedView } from "@/arcade3d/core/useFittedView";
-import { followFocus } from "@/arcade3d/core/view";
 import { useRunFrame } from "@/arcade3d/core/useRunFrame";
-import { ASSETS, type ProductKind } from "./assets";
+import { ASSETS } from "./assets";
+import { PITCH, STORE_BOUNDS, viewFor } from "./camera";
 import {
    CartPrimitive,
    ProductPrimitive,
-   ShelfUnitPrimitive,
    ShopperPrimitive,
 } from "./Primitives";
 import { advancePhase, gaitAmount, runnerPhaseStep, runnerPose, shopperPose, type RunnerLook } from "./poses";
 import {
    CHECKOUT_COUNTERS,
-   DURATION_MS,
    FREEZER_ROW,
    FRUIT_ISLAND,
-   PYRAMID_RADIUS,
    SHELVES,
-   SHELF_SLOTS,
    SPILLS,
    START_POS,
    STORE,
@@ -43,19 +39,10 @@ import {
    type StepInput,
 } from "./rules";
 
-const PITCH_RAD = (55 * Math.PI) / 180;
-
-const STORE_BOUNDS = {
-   min: { x: -14, y: 0, z: -10 },
-   max: { x: 14, y: 2, z: 10 },
-};
-
-const WINDOW_BOX = {
-   min: { x: -7, y: 0, z: -7 },
-   max: { x: 7, y: 2, z: 7 },
-};
-
 export default function Scene() {
+   const width = useThree((s) => s.size.width);
+   const height = useThree((s) => s.size.height);
+   const view = useFittedView(viewFor(width, height));
    const time = useGameTime();
    const input = useInput();
    const fx = useFx();
@@ -64,28 +51,31 @@ export default function Scene() {
    const [run] = useState<RunState>(() => createRun(randomSeed()));
 
    // Live point for camera look-ahead
-   const followTarget = useRef<{ x: number; y: number; z: number }>({ x: START_POS.x, y: 0, z: START_POS.z });
-
-   // Camera fitting a 14 m window around the cart
-   const view = useFittedView({
-      area: WINDOW_BOX,
-      pitch: PITCH_RAD,
-      yaws: [0, Math.PI / 2],
-      focus: followFocus({
-         lookAt: [0, 0, 0],
-         reach: WINDOW_BOX,
-         fraction: 1,
-         bounds: STORE_BOUNDS,
-      }),
-      margin: { top: 0.11, bottom: 0.07, left: 0.02, right: 0.02 },
-      padding: 4,
-      shift: true,
+   const followTarget = useRef<{ x: number; y: number; z: number }>({
+      x: START_POS.x,
+      y: 0,
+      z: START_POS.z,
    });
+
+   // Cart rolling sound loop (P-06)
+   const rollLoop = useRef<LoopHandle | null>(null);
+
+   useEffect(() => {
+      fx.warm("sparkle", "puff", "confetti", "score");
+      const handle = startLoop("engine", { volume: 0, pitch: 0.8 });
+      rollLoop.current = handle;
+      return () => {
+         handle.stop();
+      };
+   }, [fx]);
 
    // One useRunFrame driving pure rules and arcade store
    useRunFrame(() => {
       const { phase } = useArcadeStore.getState();
-      if (phase !== "playing") return;
+      if (phase !== "playing") {
+         rollLoop.current?.set({ volume: 0 });
+         return;
+      }
 
       const dt = time.delta;
       const inp = input.current;
@@ -106,38 +96,57 @@ export default function Scene() {
       followTarget.current.y = 0;
       followTarget.current.z = cart.z + 0.25 * cart.vz;
 
+      // Modulate cart rolling engine loop sound with velocity
+      if (run.won || run.timedOut || cart.stunTimer > 0) {
+         rollLoop.current?.set({ volume: 0 });
+      } else {
+         const speed = cart.speed;
+         const vol = Math.min(0.5, (speed / 9.0) * 0.45);
+         const pitch = 0.7 + 0.5 * (speed / 9.0);
+         rollLoop.current?.set({ volume: vol, pitch });
+      }
+
       // SFX and Visual FX on events
       for (const p of events.pickups) {
          useArcadeStore.getState().addScore(p.score);
          useArcadeStore.getState().setStat("items", run.collectedCount);
          playSfx("pickup");
-         fx.burst("sparkle", { x: p.x, y: 0.8, z: p.z }, 14);
+         if (p.combo > 1) {
+            playSfx("chime", { pitch: 1.0 + Math.min(0.5, p.combo * 0.1) });
+         }
+         fx.burst("sparkle", { x: p.x, y: 0.8, z: p.z }, 16);
          fx.score({ x: p.x, y: 1.2, z: p.z }, `+${p.score}`);
       }
 
       if (events.listCompleted) {
          useArcadeStore.getState().addScore(300);
-         playSfx("win");
+         playSfx("chime", { pitch: 1.3 });
          fx.score({ x: cart.x, y: 1.5, z: cart.z }, "+300 Complete!");
       }
 
       for (const pyr of events.pyramidToppled) {
-         playSfx("hit");
+         playSfx("thud");
          fx.burst("puff", { x: pyr.x, y: 0.4, z: pyr.z }, 16);
       }
 
       for (const bump of events.shopperBumped) {
-         playSfx("hit");
+         playSfx("thud");
          fx.shake(0.4);
          fx.burst("puff", { x: bump.x, y: 1.2, z: bump.z }, 12);
       }
 
+      if (events.spillSkid) {
+         playSfx("splash", { volume: 0.4 });
+      }
+
       if (events.won) {
+         rollLoop.current?.set({ volume: 0 });
          playSfx("win");
          fx.burst("confetti", { x: cart.x, y: 1.0, z: cart.z }, 30);
          useArcadeStore.getState().setScore(run.score);
          useArcadeStore.getState().end("win");
       } else if (events.timeup) {
+         rollLoop.current?.set({ volume: 0 });
          useArcadeStore.getState().setScore(run.score);
          useArcadeStore.getState().end("timeup");
       }
@@ -146,7 +155,7 @@ export default function Scene() {
    return (
       <group>
          <CameraRig
-            camera={{ position: [0, 16, 18], fov: 45, lookAt: [0, 0, 0] }}
+            camera={{ position: view.offset, lookAt: [0, 0, 0] }}
             follow={followTarget.current}
             bounds={STORE_BOUNDS}
             damping={4}
@@ -155,7 +164,7 @@ export default function Scene() {
             shift={view.shift}
          />
 
-         {/* Supermarket Interior Environment */}
+         {/* Supermarket Interior Environment (floor, walls, shelves, fixtures) */}
          <StoreEnvironment run={run} />
 
          {/* Cart + Pusher Runner Coupled Group */}
@@ -166,13 +175,11 @@ export default function Scene() {
             <ShopperComponent key={shopper.id} shopper={shopper} />
          ))}
 
-         {/* Shelf Items */}
+         {/* Shelf Items with glowing 0.8m halos and floating badges */}
          <ShelfItems items={run.list} />
 
-         {/* Can Pyramids */}
-         {run.pyramids.map((pyr, i) => (
-            <CanPyramidComponent key={i} pyramid={pyr} />
-         ))}
+         {/* Instanced Can Pyramids */}
+         <InstancedCanPyramids pyramids={run.pyramids} />
 
          {/* Spills */}
          <SpillsComponent playTimeS={run.playTimeS} />
@@ -264,32 +271,55 @@ function ShopperComponent({ shopper }: { shopper: RunState["shoppers"][0] }) {
    );
 }
 
-// ---------- Shelf Items with Beacons & Badges ----------
+// ---------- Shelf Items with 0.8 m Glow Halo & Bobbing Badges ----------
 
 function ShelfItems({ items }: { items: RunState["list"] }) {
    const time = useGameTime();
 
+   // Dynamic instancing for the 0.8 m floor glow halos (1 draw call)
+   const updateHalos = useMemo(
+      () => (index: number, matrix: Matrix4) => {
+         const item = items[index];
+         if (!item || item.collected) return false;
+         matrix.makeTranslation(item.x, 0.02, item.z);
+      },
+      [items]
+   );
+
+   // Dynamic instancing for floating bobbing beacon badges (1 draw call)
+   const updateBadges = useMemo(
+      () => (index: number, matrix: Matrix4) => {
+         const item = items[index];
+         if (!item || item.collected) return false;
+         const bob = Math.sin(time.now * 3 + index) * 0.1;
+         matrix.makeTranslation(item.x, 1.25 + bob, item.z);
+      },
+      [items, time]
+   );
+
    return (
       <group>
+         {/* 1 draw call for all glowing 0.8 m halo rings */}
+         <DynamicInstanced count={items.length} update={updateHalos}>
+            <ringGeometry args={[0.2, 0.8, 32]} />
+            <meshBasicMaterial color="#fb923c" transparent opacity={0.7} side={DoubleSide} />
+         </DynamicInstanced>
+
+         {/* 1 draw call for all floating beacon badges */}
+         <DynamicInstanced count={items.length} update={updateBadges}>
+            <octahedronGeometry args={[0.22, 0]} />
+            <meshStandardMaterial color="#fb923c" emissive="#fb923c" emissiveIntensity={0.6} roughness={0.3} />
+         </DynamicInstanced>
+
+         {/* 3D Model items rotating above shelves */}
          {items.map((item, i) => {
             if (item.collected) return null;
             const bob = Math.sin(time.now * 3 + i) * 0.1;
-            const pulse = 0.8 + 0.2 * Math.sin(time.now * 5 + i);
-
             const asset = ASSETS[item.kind as keyof typeof ASSETS] ?? ASSETS.apple;
 
             return (
-               <group key={i} position={[item.x, 0.7 + bob, item.z]}>
-                  {/* Glowing emissive halo disk on floor */}
-                  <mesh position={[0, -0.65 - bob, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-                     <ringGeometry args={[0.2, 0.5 * pulse, 24]} />
-                     <meshBasicMaterial color="#fb923c" transparent opacity={0.6 * pulse} side={DoubleSide} />
-                  </mesh>
-
-                  {/* 3D Model item */}
-                  <group rotation={[0, time.now * 1.5, 0]}>
-                     <Model asset={asset} fallback={<ProductPrimitive kind={item.kind} />} />
-                  </group>
+               <group key={i} position={[item.x, 0.72 + bob, item.z]} rotation={[0, time.now * 1.5, 0]}>
+                  <Model asset={asset} fallback={<ProductPrimitive kind={item.kind} />} />
                </group>
             );
          })}
@@ -297,51 +327,58 @@ function ShelfItems({ items }: { items: RunState["list"] }) {
    );
 }
 
-// ---------- Can Pyramid Component ----------
+// ---------- Instanced Can Pyramids Component (2 draw calls total) ----------
 
-function CanPyramidComponent({ pyramid }: { pyramid: RunState["pyramids"][0] }) {
-   if (pyramid.toppled) {
-      // Scattered cans on the floor
-      return (
-         <group position={[pyramid.x, 0.05, pyramid.z]}>
-            <mesh position={[-0.2, 0, 0.1]} rotation={[Math.PI / 2, 0, 0.5]}>
-               <cylinderGeometry args={[0.07, 0.07, 0.16, 8]} />
-               <meshStandardMaterial color="#94a3b8" metalness={0.8} />
-            </mesh>
-            <mesh position={[0.2, 0, -0.1]} rotation={[Math.PI / 2, 0, -0.8]}>
-               <cylinderGeometry args={[0.07, 0.07, 0.16, 8]} />
-               <meshStandardMaterial color="#94a3b8" metalness={0.8} />
-            </mesh>
-            <mesh position={[0.05, 0, -0.2]} rotation={[Math.PI / 2, 0, 1.2]}>
-               <cylinderGeometry args={[0.07, 0.07, 0.16, 8]} />
-               <meshStandardMaterial color="#94a3b8" metalness={0.8} />
-            </mesh>
-         </group>
-      );
-   }
+function InstancedCanPyramids({ pyramids }: { pyramids: RunState["pyramids"] }) {
+   // 18 base cans (3 per pyramid * 6 pyramids) in 1 draw call
+   const updateBaseCans = useMemo(
+      () => (index: number, matrix: Matrix4) => {
+         const pyrIndex = Math.floor(index / 3);
+         const canSub = index % 3;
+         const pyr = pyramids[pyrIndex];
+         if (!pyr) return false;
 
-   // Standing pyramid
+         if (pyr.toppled) {
+            // Scattered cans on the floor
+            if (canSub === 0) matrix.makeTranslation(pyr.x - 0.25, 0.05, pyr.z + 0.15);
+            else if (canSub === 1) matrix.makeTranslation(pyr.x + 0.25, 0.05, pyr.z - 0.15);
+            else matrix.makeTranslation(pyr.x + 0.08, 0.05, pyr.z - 0.25);
+         } else {
+            // Standing pyramid bottom layer
+            if (canSub === 0) matrix.makeTranslation(pyr.x - 0.15, 0.1, pyr.z - 0.1);
+            else if (canSub === 1) matrix.makeTranslation(pyr.x + 0.15, 0.1, pyr.z - 0.1);
+            else matrix.makeTranslation(pyr.x, 0.1, pyr.z + 0.15);
+         }
+      },
+      [pyramids]
+   );
+
+   // 6 top cans in 1 draw call
+   const updateTopCans = useMemo(
+      () => (index: number, matrix: Matrix4) => {
+         const pyr = pyramids[index];
+         if (!pyr) return false;
+
+         if (pyr.toppled) {
+            matrix.makeTranslation(pyr.x - 0.05, 0.05, pyr.z + 0.3);
+         } else {
+            matrix.makeTranslation(pyr.x, 0.3, pyr.z);
+         }
+      },
+      [pyramids]
+   );
+
    return (
-      <group position={[pyramid.x, 0, pyramid.z]}>
-         {/* Bottom layer of 3 cans */}
-         <mesh position={[-0.15, 0.1, -0.1]}>
+      <group>
+         <DynamicInstanced count={18} update={updateBaseCans}>
             <cylinderGeometry args={[0.08, 0.08, 0.2, 10]} />
             <meshStandardMaterial color="#cbd5e1" metalness={0.7} />
-         </mesh>
-         <mesh position={[0.15, 0.1, -0.1]}>
-            <cylinderGeometry args={[0.08, 0.08, 0.2, 10]} />
-            <meshStandardMaterial color="#cbd5e1" metalness={0.7} />
-         </mesh>
-         <mesh position={[0, 0.1, 0.15]}>
-            <cylinderGeometry args={[0.08, 0.08, 0.2, 10]} />
-            <meshStandardMaterial color="#cbd5e1" metalness={0.7} />
-         </mesh>
-         {/* Top can */}
-         <mesh position={[0, 0.3, 0]}>
+         </DynamicInstanced>
+
+         <DynamicInstanced count={6} update={updateTopCans}>
             <cylinderGeometry args={[0.08, 0.08, 0.2, 10]} />
             <meshStandardMaterial color="#fb923c" metalness={0.7} />
-         </mesh>
-         <BlobShadow radius={0.4} opacity={0.3} />
+         </DynamicInstanced>
       </group>
    );
 }
@@ -366,7 +403,7 @@ function SpillsComponent({ playTimeS }: { playTimeS: number }) {
                         opacity={0.75}
                      />
                   </mesh>
-                  {/* Warning Caution sign cone */}
+                  {/* Warning Caution cone */}
                   <mesh position={[0.8, 0.25, 0]}>
                      <coneGeometry args={[0.15, 0.5, 8]} />
                      <meshStandardMaterial color="#facc15" roughness={0.4} />
@@ -378,32 +415,84 @@ function SpillsComponent({ playTimeS }: { playTimeS: number }) {
    );
 }
 
-// ---------- Store Environment Component ----------
+// ---------- Store Environment (Instanced Shelves, Counters, Outer Bounds) ----------
+
+const SHELF_SPOTS = SHELVES.map((s) => ({
+   x: (s.min.x + s.max.x) / 2,
+   y: 1.0,
+   z: (s.min.z + s.max.z) / 2,
+}));
+
+const SHELF_TRIM_SPOTS = SHELVES.map((s) => ({
+   x: (s.min.x + s.max.x) / 2,
+   y: 0.1,
+   z: (s.min.z + s.max.z) / 2,
+}));
+
+const SHELF_BANNER_SPOTS = SHELVES.map((s) => ({
+   x: (s.min.x + s.max.x) / 2,
+   y: 2.05,
+   z: (s.min.z + s.max.z) / 2,
+}));
+
+const COUNTER_SPOTS = CHECKOUT_COUNTERS.map((c) => ({
+   x: (c.min.x + c.max.x) / 2,
+   y: 0.5,
+   z: (c.min.z + c.max.z) / 2,
+}));
+
+const REGISTER_SPOTS = CHECKOUT_COUNTERS.map((c) => ({
+   x: (c.min.x + c.max.x) / 2,
+   y: 1.15,
+   z: (c.min.z + c.max.z) / 2 - 0.3,
+}));
+
+const WALL_SPOTS = [
+   { x: 0, y: 1.9, z: -12, sx: 32, sy: 3.8, sz: 0.4 },
+   { x: 0, y: 1.9, z: 12, sx: 32, sy: 3.8, sz: 0.4 },
+   { x: -16, y: 1.9, z: 0, sx: 0.4, sy: 3.8, sz: 24 },
+   { x: 16, y: 1.9, z: 0, sx: 0.4, sy: 3.8, sz: 24 },
+];
 
 function StoreEnvironment({ run }: { run: RunState }) {
    return (
       <group>
-         {/* Floor plane with supermarket tiles */}
-         <mesh position={[0, 0, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-            <planeGeometry args={[STORE.width, STORE.depth]} />
-            <meshStandardMaterial color="#f8fafc" roughness={0.3} metalness={0.1} />
+         {/* Extended dark perimeter floor to prevent any white edge beyond the store */}
+         <mesh position={[0, -0.01, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+            <planeGeometry args={[70, 70]} />
+            <meshStandardMaterial color="#0b1220" roughness={0.9} />
          </mesh>
 
-         {/* 4 Shelf Island Blocks */}
-         {SHELVES.map((shelf, i) => {
-            const w = shelf.max.x - shelf.min.x;
-            const l = shelf.max.z - shelf.min.z;
-            const cx = (shelf.min.x + shelf.max.x) / 2;
-            const cz = (shelf.min.z + shelf.max.z) / 2;
-            return (
-               <group key={i} position={[cx, 0, cz]}>
-                  <ShelfUnitPrimitive width={w} length={l} />
-               </group>
-            );
-         })}
+         {/* Store floor plane with supermarket tiles */}
+         <mesh position={[0, 0, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+            <planeGeometry args={[STORE.width, STORE.depth]} />
+            <meshStandardMaterial color="#f1f5f9" roughness={0.3} metalness={0.1} />
+         </mesh>
+
+         {/* Instanced 4 Shelf Island Blocks: 3 draw calls total */}
+         <Instanced spots={SHELF_SPOTS}>
+            <boxGeometry args={[1.2, 2.0, 12.0]} />
+            <meshStandardMaterial color="#f8fafc" roughness={0.5} metalness={0.2} />
+         </Instanced>
+
+         <Instanced spots={SHELF_TRIM_SPOTS}>
+            <boxGeometry args={[1.25, 0.2, 12.05]} />
+            <meshStandardMaterial color="#64748b" roughness={0.8} />
+         </Instanced>
+
+         <Instanced spots={SHELF_BANNER_SPOTS}>
+            <boxGeometry args={[1.22, 0.1, 12.0]} />
+            <meshStandardMaterial color="#fb923c" roughness={0.4} />
+         </Instanced>
 
          {/* Fruit Island Display */}
-         <group position={[(FRUIT_ISLAND.min.x + FRUIT_ISLAND.max.x) / 2, 0, (FRUIT_ISLAND.min.z + FRUIT_ISLAND.max.z) / 2]}>
+         <group
+            position={[
+               (FRUIT_ISLAND.min.x + FRUIT_ISLAND.max.x) / 2,
+               0,
+               (FRUIT_ISLAND.min.z + FRUIT_ISLAND.max.z) / 2,
+            ]}
+         >
             <mesh position={[0, 0.45, 0]}>
                <boxGeometry args={[3.0, 0.9, 6.0]} />
                <meshStandardMaterial color="#a16207" roughness={0.8} />
@@ -418,58 +507,42 @@ function StoreEnvironment({ run }: { run: RunState }) {
          <group position={[0, 0, (FREEZER_ROW.min.z + FREEZER_ROW.max.z) / 2]}>
             <mesh position={[0, 1.0, 0]}>
                <boxGeometry args={[24.0, 2.0, 1.2]} />
-               <meshStandardMaterial color="#bae6fd" roughness={0.2} metalness={0.5} transparent opacity={0.9} />
+               <meshStandardMaterial
+                  color="#bae6fd"
+                  roughness={0.2}
+                  metalness={0.5}
+                  transparent
+                  opacity={0.9}
+               />
             </mesh>
          </group>
 
-         {/* Checkout Counters */}
-         {CHECKOUT_COUNTERS.map((counter, i) => {
-            const w = counter.max.x - counter.min.x;
-            const l = counter.max.z - counter.min.z;
-            const cx = (counter.min.x + counter.max.x) / 2;
-            const cz = (counter.min.z + counter.max.z) / 2;
-            return (
-               <group key={i} position={[cx, 0, cz]}>
-                  <mesh position={[0, 0.5, 0]}>
-                     <boxGeometry args={[w, 1.0, l]} />
-                     <meshStandardMaterial color="#334155" roughness={0.5} />
-                  </mesh>
-                  {/* Register screen */}
-                  <mesh position={[0, 1.15, -0.3]}>
-                     <boxGeometry args={[0.3, 0.25, 0.1]} />
-                     <meshStandardMaterial color="#22c55e" emissive="#15803d" roughness={0.3} />
-                  </mesh>
-               </group>
-            );
-         })}
+         {/* Instanced Checkout Counters: 2 draw calls total */}
+         <Instanced spots={COUNTER_SPOTS}>
+            <boxGeometry args={[0.8, 1.0, 1.8]} />
+            <meshStandardMaterial color="#334155" roughness={0.5} />
+         </Instanced>
+
+         <Instanced spots={REGISTER_SPOTS}>
+            <boxGeometry args={[0.3, 0.25, 0.1]} />
+            <meshStandardMaterial color="#22c55e" emissive="#15803d" roughness={0.3} />
+         </Instanced>
 
          {/* Finish Zone Line Mat */}
          <mesh position={[0, 0.015, 11.0]} rotation={[-Math.PI / 2, 0, 0]}>
             <planeGeometry args={[9.0, 1.6]} />
             <meshStandardMaterial
-               color={run.listComplete ? "#22c55e" : "#e2e8f0"}
+               color={run.listComplete ? "#22c55e" : "#cbd5e1"}
                emissive={run.listComplete ? "#16a34a" : "#000000"}
                roughness={0.4}
             />
          </mesh>
 
-         {/* Outer walls */}
-         <mesh position={[0, 1.5, -12]}>
-            <boxGeometry args={[32, 3, 0.4]} />
-            <meshStandardMaterial color="#e2e8f0" roughness={0.8} />
-         </mesh>
-         <mesh position={[0, 1.5, 12]}>
-            <boxGeometry args={[32, 3, 0.4]} />
-            <meshStandardMaterial color="#e2e8f0" roughness={0.8} />
-         </mesh>
-         <mesh position={[-16, 1.5, 0]}>
-            <boxGeometry args={[0.4, 3, 24]} />
-            <meshStandardMaterial color="#e2e8f0" roughness={0.8} />
-         </mesh>
-         <mesh position={[16, 1.5, 0]}>
-            <boxGeometry args={[0.4, 3, 24]} />
-            <meshStandardMaterial color="#e2e8f0" roughness={0.8} />
-         </mesh>
+         {/* Instanced Outer Walls (3.8 m tall): 1 draw call */}
+         <Instanced spots={WALL_SPOTS}>
+            <boxGeometry args={[1, 1, 1]} />
+            <meshStandardMaterial color="#1e293b" roughness={0.7} />
+         </Instanced>
       </group>
    );
 }

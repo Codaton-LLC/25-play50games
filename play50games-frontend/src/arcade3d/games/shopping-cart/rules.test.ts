@@ -1,6 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { advanceRunClock, playedFrameDt } from "@/arcade3d/core/frameLoop";
 import { createArcadeStore } from "@/arcade3d/core/useArcadeStore";
+import {
+   createGrid,
+   fixedFrames,
+   followPath,
+   freeGrid,
+   randomFrames,
+   simulateRun,
+   steer,
+} from "@/arcade3d/core/testing/botHarness";
 import { shoppingCartMeta } from "./meta";
 import {
    CART,
@@ -284,78 +292,106 @@ describe("shopping-cart rules", () => {
       });
    });
 
-   describe("scoring limit proof with store bot", () => {
-      it("oracle bot driving real arcade store never wins under 6.5 s and never exceeds proposed limits", () => {
+   describe("scoring limit proof with store bot (botHarness)", () => {
+      const grid = createGrid({ cell: 0.5, halfX: 16, halfZ: 12 });
+      const free = freeGrid(grid, (x, z) => {
+         if (x < -15.2 || x > 15.2 || z < -11.2 || z > 11.2) return false;
+         for (const obs of SOLID_OBSTACLES) {
+            if (
+               x >= obs.min.x - 0.4 &&
+               x <= obs.max.x + 0.4 &&
+               z >= obs.min.z - 0.4 &&
+               z <= obs.max.z + 0.4
+            ) {
+               return false;
+            }
+         }
+         return true;
+      });
+
+      it("path-following bots win through simulateRun across 20 seeds at 60 fps, 20 fps and random frames, never before 6.5 s", () => {
+         const framesFor = (k: number) =>
+            [fixedFrames(1000 / 60), fixedFrames(50), randomFrames(k)][k % 3];
+
          for (let s = 0; s < 20; s++) {
             const store = createArcadeStore();
-            store.getState().configure({ durationMs: 75000 });
-            store.getState().markReady();
-            store.getState().start();
-            // Advance countdown
-            for (let i = 0; i < 30; i++) {
-               advanceRunClock(store, 100);
-            }
-
             const run = createRun(s);
-            let elapsed = 0;
+            const targets = [...run.list.map((it) => ({ x: it.x, z: it.z })), { x: 0, z: 11.0 }];
+            let targetIdx = 0;
+            let follower = followPath(
+               grid,
+               free,
+               run.cart.x,
+               run.cart.z,
+               targets[0].x,
+               targets[0].z
+            );
+            const steerDir = { dirX: 0, dirZ: 0 };
 
-            // Collect all 6 items via legal aisle pathing with cornering speed ~7.2 m/s
-            for (const item of run.list) {
-               const distToItem = storeDistance(run.cart, item);
-               const dtWalk = distToItem / 7.2;
-               const steps = Math.max(1, Math.ceil(dtWalk / DT));
-               for (let step = 0; step < steps; step++) {
-                  elapsed += DT;
-                  advanceRunClock(store, DT * 1000);
-                  run.cart.x += (item.x - run.cart.x) / (steps - step);
-                  run.cart.z += (item.z - run.cart.z) / (steps - step);
-                  const ev = stepRun(run, input(0, 1, true), DT, elapsed);
-                  for (const p of ev.pickups) store.getState().addScore(p.score);
-                  if (ev.listCompleted) store.getState().addScore(POINTS.listComplete);
-               }
-            }
+            simulateRun(store, {
+               durationMs: DURATION_MS,
+               frame: framesFor(s),
+               step: (dt, time, sStore) => {
+                  const currentTarget = targets[targetIdx];
+                  if (!currentTarget) return;
 
-            // Dash to checkout
-            const distToCheckout = storeDistance(run.cart, { x: 0, z: 11.0 });
-            const stepsFin = Math.max(1, Math.ceil((distToCheckout / 7.2) / DT));
-            for (let step = 0; step < stepsFin; step++) {
-               elapsed += DT;
-               advanceRunClock(store, DT * 1000);
-               run.cart.x += (0 - run.cart.x) / (stepsFin - step);
-               run.cart.z += (11.0 - run.cart.z) / (stepsFin - step);
-               const ev = stepRun(run, input(0, 1, true), DT, elapsed);
-               if (ev.won) {
-                  store.getState().setScore(run.score);
-                  store.getState().end("win");
-                  break;
-               }
-            }
+                  steer(grid, follower, run.cart.x, run.cart.z, steerDir, 0.7);
+                  const stepInp: StepInput = {
+                     moveX: steerDir.dirX,
+                     moveY: -steerDir.dirZ,
+                     ride: true,
+                  };
+
+                  const ev = stepRun(run, stepInp, dt, time);
+                  for (const p of ev.pickups) {
+                     sStore.getState().addScore(p.score);
+                     targetIdx++;
+                     if (targetIdx < targets.length) {
+                        follower = followPath(
+                           grid,
+                           free,
+                           run.cart.x,
+                           run.cart.z,
+                           targets[targetIdx].x,
+                           targets[targetIdx].z
+                        );
+                     }
+                  }
+                  if (ev.listCompleted) {
+                     sStore.getState().addScore(POINTS.listComplete);
+                  }
+                  if (ev.won) {
+                     sStore.getState().setScore(run.score);
+                     sStore.getState().end("win");
+                  } else if (ev.timeup) {
+                     sStore.getState().setScore(run.score);
+                     sStore.getState().end("timeup");
+                  }
+               },
+            });
 
             const finalState = store.getState();
-            expect(elapsed).toBeGreaterThanOrEqual(6.5);
+            expect(finalState.elapsedMs).toBeGreaterThanOrEqual(6500);
             expect(finalState.score).toBeLessThanOrEqual(PROPOSED_LIMITS.maxScore);
             expect(withinProposedLimits(finalState.score, finalState.elapsedMs)).toBe(true);
+            expect(withinServerLimits(finalState.score, finalState.elapsedMs)).toBe(true);
          }
       });
 
-      it("idle player times out with 0 score at 75 s", () => {
+      it("idle player times out with 0 score at 75 s using simulateRun", () => {
          const store = createArcadeStore();
-         store.getState().configure({ durationMs: 75000 });
-         store.getState().markReady();
-         store.getState().start();
-         for (let i = 0; i < 30; i++) {
-            advanceRunClock(store, 100);
-         }
          const run = createRun(123);
-         for (let f = 0; f < 75 * 60; f++) {
-            advanceRunClock(store, DT * 1000);
-            const ev = stepRun(run, input(0, 0, false), DT, f * DT);
-            if (ev.timeup) {
-               store.getState().setScore(run.score);
-               store.getState().end("timeup");
-               break;
-            }
-         }
+         simulateRun(store, {
+            durationMs: DURATION_MS,
+            frame: fixedFrames(1000 / 60),
+            step: (dt, time, sStore) => {
+               const ev = stepRun(run, input(0, 0, false), dt, time);
+               if (ev.timeup) {
+                  sStore.getState().setScore(run.score);
+                  sStore.getState().end("timeup");
+               }
+            },
+         });
          expect(store.getState().score).toBe(0);
          expect(store.getState().phase).toBe("over");
          expect(withinServerLimits(0, 75000)).toBe(true);

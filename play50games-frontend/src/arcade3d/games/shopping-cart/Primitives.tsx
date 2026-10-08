@@ -53,9 +53,34 @@ export function ProductPrimitive({ kind }: { kind: string }): ReactNode {
       gourd: "#10b981",
    };
    const color = colors[kind] ?? "#fb923c";
+
+   if (kind === "tinCan" || kind === "battery" || kind === "bottle") {
+      return (
+         <mesh>
+            <cylinderGeometry args={[0.16, 0.16, 0.36, 12]} />
+            <meshStandardMaterial color={color} roughness={0.3} metalness={kind === "tinCan" ? 0.7 : 0.2} />
+         </mesh>
+      );
+   }
+   if (kind === "bag") {
+      return (
+         <mesh>
+            <boxGeometry args={[0.3, 0.35, 0.2]} />
+            <meshStandardMaterial color={color} roughness={0.6} />
+         </mesh>
+      );
+   }
+   if (kind === "burger") {
+      return (
+         <mesh>
+            <cylinderGeometry args={[0.2, 0.2, 0.18, 12]} />
+            <meshStandardMaterial color={color} roughness={0.5} />
+         </mesh>
+      );
+   }
    return (
       <mesh>
-         <sphereGeometry args={[0.15, 12, 12]} />
+         <sphereGeometry args={[0.2, 14, 14]} />
          <meshStandardMaterial color={color} roughness={0.4} />
       </mesh>
    );

@@ -12,7 +12,7 @@ const definition: GameDefinition = {
    assets: ASSETS,
    durationMs: DURATION_MS,
    camera: { position: [0, 16, 18], fov: 45, lookAt: [0, 0, 0] },
-   environment: { background: "#f8fafc", lighting: "indoor" },
+   environment: { background: "#0b1220", fog: ["#0b1220", 18, 38], lighting: "indoor" },
    touchControls: ["joystick", "jump"],
    touchLabels: { jump: "Ride" },
    hudStats: [{ key: "items", label: "Items", max: LIST_COUNT }],
