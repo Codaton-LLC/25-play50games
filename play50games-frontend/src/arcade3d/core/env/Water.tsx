@@ -104,7 +104,7 @@ void main() {
    vec3 col = mix(uColor, uDeep, clamp(fresnel * 0.85 + (0.5 - 0.5 * vCrest) * 0.25, 0.0, 1.0));
    // a soft sky glint at grazing angles
    col += vec3(0.18, 0.22, 0.26) * fresnel;
-   float foam = smoothstep(0.55, 0.95, vCrest);
+   float foam = 0.7 * smoothstep(0.75, 1.0, vCrest);
    if (uEdge > 0.0) {
       vec2 d = min(vUv, 1.0 - vUv) * uAspect;
       float edge = 1.0 - smoothstep(0.0, uEdge, min(d.x, d.y));
