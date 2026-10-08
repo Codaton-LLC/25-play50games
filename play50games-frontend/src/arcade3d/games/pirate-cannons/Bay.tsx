@@ -8,7 +8,7 @@ import { useEffect, useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import { LatheGeometry, Vector2, type Group, type Mesh } from "three";
 import { InstancedModel } from "@/arcade3d/core/assets";
-import { SkyDome, Water } from "@/arcade3d/core/env";
+import { Water } from "@/arcade3d/core/env";
 import { useGameTime } from "@/arcade3d/core/gameTime";
 import { Instanced, type InstanceSpot } from "@/arcade3d/core/render";
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
@@ -71,7 +71,9 @@ function WindFlag({ run }: { run: RunState }) {
       const c = cloth.current;
       if (!g || !c) return;
       const target = Math.atan2(run.wind.x, run.wind.z) - Math.PI / 2;
-      state.angle += (target - state.angle) * (1 - Math.exp(-3 * time.delta));
+      // the shortest way round: a wind change across atan2's ±π seam never spins the flag a full turn
+      const turn = Math.atan2(Math.sin(target - state.angle), Math.cos(target - state.angle));
+      state.angle += turn * (1 - Math.exp(-3 * time.delta));
       g.rotation.y = state.angle;
       const { phase, endReason } = useArcadeStore.getState();
       const lost = phase === "over" && endReason === "lose";
@@ -105,7 +107,12 @@ export function Bay({ run }: { run: RunState }) {
    const fortH = CANNON.platformY - FORT.bottom;
    return (
       <group name="bay">
-         <SkyDome top="#38bdf8" bottom="#e0f2fe" />
+         {/* the open sea out to the camera's far plane, flat and fogged into the sky's horizon colour, so
+             the wave plane's edges never show in a wide screen's top corners */}
+         <mesh rotation-x={-Math.PI / 2} position={[0, -0.25, -260]} name="far-sea">
+            <planeGeometry args={[1600, 1000]} />
+            <meshBasicMaterial color={COLORS.farSea} />
+         </mesh>
          <Water size={[400, 320]} position={[0, 0, -80]} color={COLORS.sea} deep={COLORS.deep} amplitude={0.15} wavelength={7} />
 
          {/* the fort */}

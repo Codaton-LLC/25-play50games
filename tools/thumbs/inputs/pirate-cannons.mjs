@@ -3,11 +3,11 @@
 // aim), fire with Space and take the shot with the ball in the air over its trajectory dots, the
 // fort, the island and the ships in the frame.
 export default [
-   { wait: 2600 },
+   { wait: 5200 },
    { tap: "ArrowUp" },
    { tap: "ArrowUp" },
    { tap: "ArrowLeft" },
    { tap: "Space" },
    { wait: 420 },
-   { zoom: 1.35, at: [0.5, 0.42] },
+   { zoom: 1.3, at: [0.5, 0.6] },
 ];

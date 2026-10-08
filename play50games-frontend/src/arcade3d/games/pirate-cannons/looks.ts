@@ -33,7 +33,11 @@ export function viewFor(width: number, height: number): FittedViewOptions {
 }
 
 export const COLORS = {
+   /** the sky: the canvas background and the fog (index.tsx environment), one colour so the fogged far sea meets it */
+   sky: "#bae6fd",
    sea: "#0ea5e9",
+   /** the flat open sea beyond the wave plane (about the wave plane's far tone) */
+   farSea: "#3fb4e6",
    deep: "#0369a1",
    sand: "#fde68a",
    stone: "#a8a29e",
