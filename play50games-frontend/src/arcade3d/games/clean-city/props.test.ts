@@ -13,9 +13,9 @@ import { hasModel } from "@/arcade3d/core/modelManifest";
 import { spotMatrix, type InstanceSpot } from "@/arcade3d/core/render";
 import { readCharacterGlb } from "@/arcade3d/core/rig/robotGlb";
 import type { ModelAsset } from "@/arcade3d/core/types";
-import { fitView } from "@/arcade3d/core/view";
+import { fitView, followAim } from "@/arcade3d/core/view";
 import { ASSETS, LITTER_DRAW } from "./assets";
-import { FOCUS, FOV, VIEW } from "./camera";
+import { FOCUS, FOV, LOOK_AT, VIEW, cameraFor, type CameraSetup } from "./camera";
 import { BASE_SETS, GLB_PROPS, PROP_BASE, obstacleCentres, type BasePart, type GlbKind, type PropSet } from "./propSpots";
 import { MAPS, RUNNER, buildMapCache, spotX, spotZ, type MapCache } from "./rules";
 
@@ -423,5 +423,92 @@ describe("clean-city obstacle props: litter stays in view", () => {
          expect(blocked.slice(0, 5), `${blocked.length} blocked rays`).toEqual([]);
       }
       expect(rays).toBeGreaterThan(10_000);
+   });
+
+   it("from the phone cameras, no prop covers a litter piece the cleaner stands near", async () => {
+      // camera.ts cameraFor on phones: a window around the cleaner, closer than the whole-floor fits,
+      // so its rays to the screen's top are shallower. The closest fits (no HUD or banner rects)
+      // in portrait and landscape; the cleaner within PHONE_NEAR of the piece (a 3 x 3 grid), the
+      // aim clamped to the window's bounds as CameraRig does (followFraction 1).
+      const PHONE_NEAR = 2;
+      const views: { setup: CameraSetup; distance: number }[] = [];
+      for (const [width, height] of [[360, 740], [375, 812], [390, 844], [740, 360], [812, 375], [844, 390]]) {
+         const setup = cameraFor(width, height);
+         expect(setup.kind).toBe("phone");
+         views.push({ setup, distance: fitView({ ...setup.view, width, height, fov: FOV }).distance });
+      }
+      const ray = new Ray();
+      const hit = new Vector3();
+      const target = new Vector3();
+      const cam = new Vector3();
+      const aim = { x: 0, y: 0, z: 0 };
+      let rays = 0;
+      let middles = 0;
+      const middleBy = new Map<string, number>();
+      for (let map = 0; map < MAPS.length; map++) {
+         const solids: { label: string; tri: Vector3[]; box: Box3 }[] = [];
+         for (const set of GLB_PROPS.filter((s) => s.map === map)) {
+            const { indices } = await meshOf(set.asset.url);
+            for (let index = 0; index < set.spots.length; index++) {
+               const spot = set.spots[index];
+               const points = await drawnPoints(set.asset, spot);
+               const tri = [...Array.from(indices, (i) => points[i]), ...baseTriangles(set, index)];
+               solids.push({ label: `${set.asset.id} at (${spot.x}, ${spot.z})`, tri, box: new Box3().setFromPoints(tri) });
+            }
+         }
+         /** Is the segment from `cam` to `target` blocked by a near solid? Names it, or null. */
+         const blocker = (near: typeof solids): string | null => {
+            const length = cam.distanceTo(target);
+            ray.origin.copy(cam);
+            ray.direction.copy(target).sub(cam).normalize();
+            for (const solid of near) {
+               if (!ray.intersectBox(solid.box, hit)) continue;
+               for (let t = 0; t < solid.tri.length; t += 3) {
+                  if (ray.intersectTriangle(solid.tri[t], solid.tri[t + 1], solid.tri[t + 2], false, hit) && hit.distanceTo(cam) < length) return solid.label;
+               }
+            }
+            return null;
+         };
+         // the piece's middle and four points of its ground ring (radius 0.42-0.62): hidden only if all five are
+         const MARKS: [number, number, number][] = [[0, LITTER_MID, 0], [0.55, 0.04, 0], [-0.55, 0.04, 0], [0, 0.04, 0.55], [0, 0.04, -0.55]];
+         const hidden: string[] = [];
+         for (const s of cacheOf(map).spots) {
+            const lx = spotX(s);
+            const lz = spotZ(s);
+            const near = solids.filter((solid) => Math.max(solid.box.min.x - lx, lx - solid.box.max.x, solid.box.min.z - lz, lz - solid.box.max.z) <= 3);
+            if (near.length === 0) continue;
+            for (const { setup, distance } of views) {
+               for (const dx of [-PHONE_NEAR, 0, PHONE_NEAR]) {
+                  for (const dz of [-PHONE_NEAR, 0, PHONE_NEAR]) {
+                     followAim({ x: lx + dx, y: 0, z: lz + dz }, LOOK_AT, setup.followFraction, setup.bounds, aim);
+                     cam.set(aim.x, Math.sin(setup.view.pitch) * distance, aim.z + Math.cos(setup.view.pitch) * distance);
+                     let by: string | null = null;
+                     let seen = false;
+                     for (const [mx, my, mz] of MARKS) {
+                        target.set(lx + mx, my, lz + mz);
+                        rays++;
+                        const b = blocker(near);
+                        if (b === null) {
+                           seen = true;
+                           break;
+                        }
+                        by ??= b;
+                        if (mx === 0 && mz === 0) {
+                           middles++;
+                           middleBy.set(b.split(" ")[0], (middleBy.get(b.split(" ")[0]) ?? 0) + 1);
+                        }
+                     }
+                     if (!seen) hidden.push(`map ${map}: litter (${lx}, ${lz}) behind ${by}, cleaner at (${lx + dx}, ${lz + dz})`);
+                  }
+               }
+            }
+         }
+         expect(hidden.slice(0, 5), `${hidden.length} hidden pieces`).toEqual([]);
+      }
+      expect(rays).toBeGreaterThan(10_000);
+      // the middle alone may be crossed by a thin lamp post or an umbrella canopy's rim (36 and 33 of about
+      // 150,000 views), never the whole piece: its ring shows past them
+      expect(middles).toBeLessThan(100);
+      expect([...middleBy.keys()].sort()).toEqual(["lamp", "umbrella"]);
    });
 });

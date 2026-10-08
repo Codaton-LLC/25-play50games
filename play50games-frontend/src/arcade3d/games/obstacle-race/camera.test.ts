@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 import type { Vec3Like } from "@/arcade3d/core/collision";
 import type { ScreenRect } from "@/arcade3d/core/view";
 import { fitView, type FittedView } from "@/arcade3d/core/view";
-import { DAMPING, FOCUS, FOLLOW_X, LAG, LANDSCAPE, PORTRAIT, followPoint, viewFor, type RaceView } from "./camera";
+import { DAMPING, FOCUS, FOLLOW_X, LAG, LANDSCAPE, PHONE_LANDSCAPE, PHONE_MAX_SIDE, PORTRAIT, followPoint, viewFor, type RaceView } from "./camera";
 import { APEX_HEIGHT, ARCH, BLOCK, COURSE, DISC, FOOT, HUB, KNOCK, KNOCK_STOP_X, RUNNER, V_RUN, WATER_Y, createRun } from "./rules";
 
 // ---------- the fixture (core useFittedView.test.ts / README "Fitted views") ----------
@@ -103,10 +103,10 @@ interface Row {
 
 // README "Fitted views" (rounded as printed there; the test allows the rounding)
 const TABLE: Row[] = [
-   { w: 375, h: 812, banner: 0, touch: true, view: PORTRAIT, distance: 23.9, shift: [0, -0.013], window: [30, 345, 78, 442], runner: 32.7, feet: [187.5, 411], ground: [29.4, 17.8], depth: 20.8, gap26: 40, gaps: [24, 218, 278] },
-   { w: 375, h: 812, banner: 162, touch: true, view: PORTRAIT, distance: 23.9, shift: [0, -0.013], window: [30, 345, 78, 442], runner: 32.7, feet: null, ground: [29.4, 17.8], depth: 20.8, gap26: 40, gaps: [24, 56, 116] },
-   { w: 812, h: 375, banner: 0, touch: true, view: LANDSCAPE, distance: 9.63, shift: [0.109, -0.381], window: [187, 714, 25, 303], runner: 53.3, feet: [450, 259], ground: [41.7, 22.3], depth: 26.9, gap26: 35, gaps: [54, 81, 74] },
-   { w: 812, h: 375, banner: 83, touch: true, view: LANDSCAPE, distance: 12.59, shift: [0, -0.176], window: [218, 594, 23, 254], runner: 39.7, feet: null, ground: [31.9, 19.1], depth: 20.5, gap26: 31, gaps: [54, 66, 138] },
+   { w: 375, h: 812, banner: 0, touch: true, view: PORTRAIT, distance: 23.62, shift: [0, 0], window: [30.1, 344.9, 133.6, 438.6], runner: 37.5, feet: [187.5, 406], ground: [29.8, 17.0], depth: 17.5, gap26: 32.6, gaps: [79.6, 221.4, 281.4] },
+   { w: 375, h: 812, banner: 162, touch: true, view: PORTRAIT, distance: 23.62, shift: [0, 0], window: [30.1, 344.9, 133.6, 438.6], runner: 37.5, feet: null, ground: [29.8, 17.0], depth: 17.5, gap26: 32.6, gaps: [79.6, 59.4, 119.4] },
+   { w: 812, h: 375, banner: 0, touch: true, view: PHONE_LANDSCAPE, distance: 9.371, shift: [0.1009, -0.3245], window: [180.4, 713.5, 33.5, 295], runner: 58.05, feet: [446.9, 248.3], ground: [42.91, 20.94], depth: 24.66, gap26: 30.1, gaps: [45.4, 92.5, 70.6] },
+   { w: 812, h: 375, banner: 83, touch: true, view: PHONE_LANDSCAPE, distance: 11.455, shift: [0, -0.1383], window: [199, 613, 21.5, 251.7], runner: 46.63, feet: null, ground: [35.1, 18.89], depth: 20.16, gap26: 27.7, gaps: [37.5, 51.2, 133.7] },
    { w: 1280, h: 800, banner: 0, touch: false, view: LANDSCAPE, distance: 10.58, shift: [0, -0.308], window: [142, 1138, 52, 609], runner: 102.6, feet: [640, 523], ground: [81.1, 45.1], depth: 52.2, gap26: 71, gaps: [130, NaN, NaN] },
 ];
 
@@ -155,6 +155,82 @@ describe("obstacle-race camera: README fit table (core fitView)", () => {
       expect(fitted.offset[0]).toBe(0);
       expect(fitted.offset[1]).toBeCloseTo(6.8, 1);
       expect(fitted.offset[2]).toBeCloseTo(8.1, 1);
+   });
+});
+
+// ---------- phones: a bigger runner (README "Phones: a bigger runner") ----------
+
+/** The safe area GameShell measured on the production build (2026-10-08, mobile emulation): shell HUD groups, joystick, Jump, the banner strip. */
+const PHONES: Array<{ w: number; h: number; banner: boolean; rects: ScreenRect[]; runner: number; before: number }> = (
+   [
+      [360, 740, true, [[10, 10, 172, 52], [256, 10, 350, 54], [20, 399, 152, 531], [268, 459, 340, 531], [0, 551, 360, 740]], 35.8, 24.9],
+      [360, 740, false, [[10, 10, 172, 52], [256, 10, 350, 54], [20, 588, 152, 720], [268, 648, 340, 720]], 35.8, 31.2],
+      [390, 844, true, [[10, 10, 172, 52], [286, 10, 380, 54], [20, 524, 152, 656], [298, 584, 370, 656], [0, 676, 390, 844]], 39.0, 34.0],
+      [390, 844, false, [[10, 10, 172, 52], [286, 10, 380, 54], [20, 692, 152, 824], [298, 752, 370, 824]], 39.0, 34.0],
+      [740, 360, true, [[10, 10, 172, 52], [636, 10, 730, 54], [20, 123, 152, 255], [648, 183, 720, 255], [0, 275, 740, 360]], 43.3, 37.0],
+      [740, 360, false, [[10, 10, 172, 52], [636, 10, 730, 54], [20, 208, 152, 340], [648, 268, 720, 340]], 51.0, 46.5],
+      [844, 390, true, [[10, 10, 172, 52], [740, 10, 834, 54], [20, 153, 152, 285], [752, 213, 824, 285], [0, 305, 844, 390]], 48.9, 41.7],
+      [844, 390, false, [[10, 10, 172, 52], [740, 10, 834, 54], [20, 238, 152, 370], [752, 298, 824, 370]], 62.4, 56.1],
+   ] as Array<[number, number, boolean, number[][], number, number]>
+).map(([w, h, banner, r, runner, before]) => ({ w, h, banner, rects: r.map(([left, top, right, bottom]) => ({ left, top, right, bottom })), runner, before }));
+
+/** The runner's 1.5 m standing at F (feet to head, CSS px) with `view` fitted to the phone's safe area. */
+function runnerPx(view: RaceView, w: number, h: number, avoid: ScreenRect[]): number {
+   const fitted = fit(view, w, h, avoid);
+   const project = projector(view, fitted, w, h);
+   return project({ x: 0, y: 0, z: 0 })[1] - project({ x: 0, y: RUNNER.height, z: 0 })[1];
+}
+
+/** The side extent every view keeps (README "Why FOLLOW_X 0.3 and ±4.8 m"). */
+const AREA_X_ALL = 4.8;
+
+/** The views before 2026-10-08: portrait at 45°, a phone in landscape on the desktop view. */
+const OLD_PORTRAIT: RaceView = { ...PORTRAIT, pitch: (45 * Math.PI) / 180 };
+
+describe("obstacle-race camera: phones", () => {
+   it("picks the view by aspect and the shorter side: portrait, a phone's landscape, the desktop's", () => {
+      expect(viewFor(360, 740)).toBe(PORTRAIT);
+      expect(viewFor(768, 1024)).toBe(PORTRAIT);
+      expect(viewFor(740, 360)).toBe(PHONE_LANDSCAPE);
+      expect(viewFor(844, 390)).toBe(PHONE_LANDSCAPE);
+      expect(viewFor(1280, PHONE_MAX_SIDE - 1)).toBe(PHONE_LANDSCAPE);
+      expect(viewFor(1280, PHONE_MAX_SIDE)).toBe(LANDSCAPE);
+      expect(viewFor(1280, 800)).toBe(LANDSCAPE);
+      expect(viewFor(1024, 768)).toBe(LANDSCAPE);
+      // the phone views keep the window's side extent, the lag focus and no yaw (the lane proofs below)
+      for (const view of [PORTRAIT, PHONE_LANDSCAPE]) {
+         expect(view.area.min.x).toBe(-AREA_X_ALL);
+         expect(view.area.max.x).toBe(AREA_X_ALL);
+         expect(view.area.max.y).toBe(LANDSCAPE.area.max.y);
+         expect(view.focus).toBe(FOCUS);
+         expect(view.yaws).toEqual([0]);
+      }
+   });
+
+   for (const p of PHONES) {
+      it(`${p.w} x ${p.h}, banner ${p.banner ? "open" : "closed"}: the runner ${p.runner} px tall (was ${p.before}), at least 35`, () => {
+         const view = viewFor(p.w, p.h);
+         const now = runnerPx(view, p.w, p.h, p.rects);
+         expect(Math.abs(now - p.runner)).toBeLessThanOrEqual(0.05);
+         expect(now).toBeGreaterThanOrEqual(35);
+         const old = runnerPx(p.w < p.h ? OLD_PORTRAIT : LANDSCAPE, p.w, p.h, p.rects);
+         expect(Math.abs(old - p.before)).toBeLessThanOrEqual(0.05);
+         expect(now / old).toBeGreaterThan(1.09);
+         // the whole window, 22 m (portrait) or 12 m (landscape) ahead, stays on screen and clear of the UI
+         const fitted = fit(view, p.w, p.h, p.rects);
+         const win = windowBox(view, projector(view, fitted, p.w, p.h));
+         expect(win.x0).toBeGreaterThanOrEqual(0);
+         expect(win.x1).toBeLessThanOrEqual(p.w);
+         expect(win.y0).toBeGreaterThanOrEqual(0);
+         expect(win.y1).toBeLessThanOrEqual(p.h);
+         for (const r of p.rects) expect(gap(win.points, r)).toBeGreaterThan(0);
+      });
+   }
+
+   it("looks at least 12 m ahead on a phone (the next landing target is at most 7.6 m ahead)", () => {
+      expect(-PORTRAIT.area.min.z).toBe(22);
+      expect(-PHONE_LANDSCAPE.area.min.z).toBe(12);
+      expect(-LANDSCAPE.area.min.z).toBe(11);
    });
 });
 
@@ -277,8 +353,8 @@ describe("obstacle-race camera: what the window holds (README 'Why FOLLOW_X 0.3 
          maxSplash = Math.max(maxSplash, project({ x: KNOCK_STOP_X + RUNNER.radius, y: WATER_Y, z: knocked.z }, Fk)[0]);
          maxSplashLaptop = Math.max(maxSplashLaptop, projectLaptop({ x: KNOCK_STOP_X + RUNNER.radius, y: WATER_Y, z: knocked.z }, Fk)[0]);
       }
-      expect(minLeft).toBeGreaterThanOrEqual(33 - 0.5);
-      expect(maxSplash).toBeLessThanOrEqual(356 + 0.5);
+      expect(minLeft).toBeGreaterThanOrEqual(34 - 0.5);
+      expect(maxSplash).toBeLessThanOrEqual(342 + 0.5);
       expect(maxSplashLaptop).toBeLessThanOrEqual(1159 + 0.5);
    });
 });

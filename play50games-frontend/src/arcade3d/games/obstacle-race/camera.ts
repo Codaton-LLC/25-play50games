@@ -24,10 +24,14 @@ const MARGIN = { top: 0.02, right: 0.02, bottom: 0.02, left: 0.02 } as const;
 
 export type RaceView = FittedViewOptions & { fov: number };
 
-/** Width < height: looks 22 m ahead, the window is ±4.8 m around F. */
+/**
+ * Width < height: looks 22 m ahead, the window is ±4.8 m around F. Pitched 36° (45° until
+ * 2026-10-08): the fit is bound by the window's width, so a lower camera draws the runner taller
+ * at the same lane width (README "Phones: a bigger runner").
+ */
 export const PORTRAIT: RaceView = {
    area: { min: { x: -4.8, y: -1, z: -22 }, max: { x: 4.8, y: 3, z: 0.5 } },
-   pitch: (45 * Math.PI) / 180,
+   pitch: (36 * Math.PI) / 180,
    fov: 60,
    yaws: [0],
    focus: FOCUS,
@@ -36,7 +40,7 @@ export const PORTRAIT: RaceView = {
    shift: true,
 };
 
-/** Width >= height: looks 11 m ahead. */
+/** Width >= height on a desktop or tablet (shorter side at least PHONE_MAX_SIDE): looks 11 m ahead. */
 export const LANDSCAPE: RaceView = {
    area: { min: { x: -4.8, y: -1, z: -11 }, max: { x: 4.8, y: 3, z: 0.5 } },
    pitch: (40 * Math.PI) / 180,
@@ -48,9 +52,29 @@ export const LANDSCAPE: RaceView = {
    shift: true,
 };
 
-/** The view for a canvas: portrait below a 1:1 aspect (a rotation refits). */
+/** A landscape canvas whose shorter side is below this many CSS px is a phone (PHONE_LANDSCAPE). */
+export const PHONE_MAX_SIDE = 600;
+
+/**
+ * A phone held sideways: looks 12 m ahead, pitched 35°. The fit is bound by the screen's height
+ * (the HUD, the controls, the banner), and a lower camera draws the course ahead shorter on screen,
+ * so the camera comes closer and the runner is drawn taller (README "Phones: a bigger runner").
+ */
+export const PHONE_LANDSCAPE: RaceView = {
+   area: { min: { x: -4.8, y: -1, z: -12 }, max: { x: 4.8, y: 3, z: 0.5 } },
+   pitch: (35 * Math.PI) / 180,
+   fov: 50,
+   yaws: [0],
+   focus: FOCUS,
+   margin: MARGIN,
+   padding: 8,
+   shift: true,
+};
+
+/** The view for a canvas: portrait below a 1:1 aspect, a phone's landscape below PHONE_MAX_SIDE (a rotation or resize refits). */
 export function viewFor(width: number, height: number): RaceView {
-   return width < height ? PORTRAIT : LANDSCAPE;
+   if (width < height) return PORTRAIT;
+   return height < PHONE_MAX_SIDE ? PHONE_LANDSCAPE : LANDSCAPE;
 }
 
 /** Writes the follow point F for the run into `out`: x = FOLLOW_X · x, y = the last support's top, z = the runner's z. */

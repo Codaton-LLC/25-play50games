@@ -9,7 +9,9 @@
 // - The store is the only way out: addScore / setStat / setScore / end. GameShell submits.
 // - Camera (constants in camera.ts): useFittedView + followFocus + CameraRig, yaw locked at 0, shift so the floor sits
 //   clear of the HUD, the map pill, the joystick and the cookie banner. A map change teleports
-//   the runner; the rig eases toward it (it only snaps on mount), so the view does not jump.
+//   the runner; the rig eases toward it (it only snaps on mount), so the view does not jump. On a
+//   phone (camera.ts cameraFor, by canvas size) it follows the cleaner with a window around it
+//   instead of the whole floor, and LitterHints points to the nearest off-screen pieces.
 // - The runner of the rules is drawn as the cleaner (cleaner.glb, auto-rigged): its gait (gait.ts)
 //   keeps the planted foot still at every speed in straight-line travel (while it turns the foot
 //   swings with the body: README "The cleaner"); a stoop to each piece it picks up (pickup.ts: the
@@ -20,7 +22,7 @@
 //   the city also carry their decor (Decor.tsx: ground beyond the floor, parked cars, pigeons),
 //   outside everything the run draws on the floor (decorSpots.ts).
 import { memo, useLayoutEffect, useRef, useState } from "react";
-import { useFrame } from "@react-three/fiber";
+import { useFrame, useThree } from "@react-three/fiber";
 import { Euler, Matrix4, Quaternion, Vector3, type Group, type Mesh, type MeshBasicMaterial } from "three";
 import CameraRig from "@/arcade3d/core/CameraRig";
 import { playSfx } from "@/arcade3d/core/audio";
@@ -48,7 +50,7 @@ import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { useFittedView } from "@/arcade3d/core/useFittedView";
 import { useRunFrame } from "@/arcade3d/core/useRunFrame";
 import { ASSETS, CLEANER_LANDMARKS } from "./assets";
-import { DAMPING, FOLLOW, FOV, LOOK_AT, REACH, VIEW } from "./camera";
+import { FOV, LOOK_AT, cameraFor } from "./camera";
 import { CityDecor, ParkDecor } from "./Decor";
 import { CLEANER_SCALE, createCleanerGait, gaitFrameDt, stepCleanerGait } from "./gait";
 import { createPickupMark, localOffset, notePickup, pickupPose, type LocalOffset, type PickupMark } from "./pickup";
@@ -68,6 +70,7 @@ import {
    step,
    type CleanRun,
 } from "./rules";
+import LitterHints from "./LitterHints";
 
 // ---------- litter presentation (visual only) ----------
 
@@ -424,7 +427,11 @@ function Worlds({ run }: { run: CleanRun }) {
 // ---------- the scene ----------
 
 export default function Scene() {
-   const view = useFittedView(VIEW);
+   // the whole floor, or on a phone a window around the cleaner (camera.ts cameraFor: by canvas size only)
+   const width = useThree((state) => state.size.width);
+   const height = useThree((state) => state.size.height);
+   const setup = cameraFor(width, height);
+   const view = useFittedView(setup.view);
    const [run] = useState(() => createRun(randomSeed()));
    const [fx] = useState(createFx);
 
@@ -434,11 +441,11 @@ export default function Scene() {
          <CameraRig
             camera={{ position: view.offset, fov: FOV, lookAt: LOOK_AT }}
             follow={run.runner}
-            followFraction={FOLLOW}
-            bounds={REACH}
+            followFraction={setup.followFraction}
+            bounds={setup.bounds}
             offset={view.offset}
             shift={view.shift}
-            damping={DAMPING}
+            damping={setup.damping}
          />
          <mesh rotation-x={-Math.PI / 2} position={[START_PAD.x, 0.03, START_PAD.z]} name="start-pad">
             <ringGeometry args={[0.9, 1.12, 28]} />
@@ -447,6 +454,7 @@ export default function Scene() {
          <Worlds run={run} />
          <Litter run={run} fx={fx} />
          <Cleaner run={run} />
+         <LitterHints run={run} />
       </>
    );
 }

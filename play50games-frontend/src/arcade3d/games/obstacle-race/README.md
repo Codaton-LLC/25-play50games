@@ -6,7 +6,7 @@ Owner: Claude. Slug: `obstacle-race`. Game 10 of the 3D Arcade: the only time tr
 |---|---|
 | `meta.ts` | Card data and `scoring` (must equal `arcade-games.json`). Plain data, server-safe. Unchanged by the build except `thumbnail` (and the 2026-10-07 limits: `maxScore` 28150, `minDurationMs` 18500) (`/images/3d/obstacle-race.webp`, 640 × 360, rendered from the game). |
 | `index.tsx` | The `GameDefinition`: Scene, assets, `physics: false` (the debris layer missed its cut line; `true` returns with it), no `durationMs` (the rules own the 300 s cap, so the shell shows "Played" counting up), camera, environment, `touchControls: ["joystick", "jump"]`, `hudStats`, instructions, `resultDelayMs`, `finalScore` (rules.ts: the exact finish ms). |
-| `camera.ts` | The follow-camera constants (`FOLLOW_X`, `LAG`, `FOCUS`, the `PORTRAIT` / `LANDSCAPE` views, `viewFor`) and `followPoint`. Pure. |
+| `camera.ts` | The follow-camera constants (`FOLLOW_X`, `LAG`, `FOCUS`, the `PORTRAIT` / `PHONE_LANDSCAPE` / `LANDSCAPE` views, `viewFor`) and `followPoint`. Pure. |
 | `rules.ts` | Everything that decides the outcome: the fixed course as data, the integer-ms clock and its 300 s cap, kinematic movement with closed-form jumps, collisions, the moving obstacles as functions of rules time, the bar knock, checkpoints, falls and respawns, the finish, the proof constants. Pure: no three.js, React, DOM, Rapier, `Math.random` or `Date.now`. |
 | `rules.test.ts` | Vitest for `rules.ts`: the golden constants, course checks, movement, obstacles, checkpoints, the minimum-time proof driven through the real store clock, and "nothing flows back" from the debris layer. |
 | `camera.test.ts` | The fit table below, from core `fitView` with the fixture rects; the runner, every section's full width and the next landing target inside the window. |
@@ -297,12 +297,17 @@ The speedrun bot in `rules.test.ts` runs the real `step` with lookahead jumps. I
 const FOLLOW_X = 0.3;
 const LAG: AABB = { min: { x: -0.45, y: -0.5, z: -0.8 }, max: { x: 0.45, y: 0.5, z: 0.8 } };
 const FOCUS = followFocus({ lookAt: [0, 0, 0], reach: LAG, fraction: 1 });
-const PORTRAIT = {             // width < height
+const PORTRAIT = {             // width < height (45° until 2026-10-08)
    area: { min: { x: -4.8, y: -1, z: -22 }, max: { x: 4.8, y: 3, z: 0.5 } },
-   pitch: (45 * Math.PI) / 180, fov: 60,
+   pitch: (36 * Math.PI) / 180, fov: 60,
    yaws: [0], focus: FOCUS, margin: { top: 0.02, right: 0.02, bottom: 0.02, left: 0.02 }, padding: 8, shift: true,
 };
-const LANDSCAPE = {            // width >= height
+const PHONE_LANDSCAPE = {      // width >= height, height < 600 (a phone held sideways; 2026-10-08)
+   area: { min: { x: -4.8, y: -1, z: -12 }, max: { x: 4.8, y: 3, z: 0.5 } },
+   pitch: (35 * Math.PI) / 180, fov: 50,
+   yaws: [0], focus: FOCUS, margin: { top: 0.02, right: 0.02, bottom: 0.02, left: 0.02 }, padding: 8, shift: true,
+};
+const LANDSCAPE = {            // width >= height, height >= 600 (desktop, tablet)
    area: { min: { x: -4.8, y: -1, z: -11 }, max: { x: 4.8, y: 3, z: 0.5 } },
    pitch: (40 * Math.PI) / 180, fov: 50,
    yaws: [0], focus: FOCUS, margin: { top: 0.02, right: 0.02, bottom: 0.02, left: 0.02 }, padding: 8, shift: true,
@@ -316,18 +321,37 @@ const LANDSCAPE = {            // width >= height
   - **The runner's body everywhere.** `(1 − FOLLOW_X) · |x| + 0.35 ≤ area.x`: on the disc's rim (x 6.2) 4.69, at the knock's splash (x 6.35) **4.795**.
 
   The larger of the two, `max(3.6 + 3.8 · f, 6.55 − 6.2 · f)`, is smallest at f ≈ 0.295: `FOLLOW_X` 0.3 with `area.x` ±4.8 meets both. The start and finish pads (±4) and the disc (±6) are wider than a window that keeps the runner readable; on them the window holds the runner, the hub (±0.7) on the disc and the arch opening (±3.2) on the finish pad. Ahead, the next landing target ends at most 7.6 m in front of the runner (a jump platform's far edge), inside `area.min.z` (−11 / −22), and at most 0.5 m above `F.y`. Behind, the box needs only the runner's 0.35 m radius, so `area.max.z` is 0.5 (it was 2; trimming it brings the camera closer, below).
-- **Lag in the fit.** `CameraRig` eases with damping 8, so it trails a target moving at v by at most v / 8. F moves forward at most 6 m/s (0.75 m) and sideways at most 0.3 · 12 = 3.6 m/s while knocked (0.45 m; running on a block, 0.3 · (6 + 3.6) = 2.9 m/s); `groundY` steps by at most 0.5 m per landing. `LAG` covers these, and `focus` is its corners, so the window stays on screen while the camera catches up. On screen, checked for this README from every corner of `LAG`: with the runner at x 3.8 on a block, the block lane's far-left edge (x −3.6, 1.4–6.2 m ahead) is at x ≥ 33 px of 375 in portrait; the splash (x 6.35 ± 0.35, water at −2, below the box) is at x ≤ 356 of 375 in portrait and ≤ 1159 of 1280 on the laptop.
+- **Lag in the fit.** `CameraRig` eases with damping 8, so it trails a target moving at v by at most v / 8. F moves forward at most 6 m/s (0.75 m) and sideways at most 0.3 · 12 = 3.6 m/s while knocked (0.45 m; running on a block, 0.3 · (6 + 3.6) = 2.9 m/s); `groundY` steps by at most 0.5 m per landing. `LAG` covers these, and `focus` is its corners, so the window stays on screen while the camera catches up. On screen, checked for this README from every corner of `LAG`: with the runner at x 3.8 on a block, the block lane's far-left edge (x −3.6, 1.4–6.2 m ahead) is at x ≥ 34 px of 375 in portrait; the splash (x 6.35 ± 0.35, water at −2, below the box) is at x ≤ 342 of 375 in portrait and ≤ 1159 of 1280 on the laptop.
 - **Fitted views** (core `fitView`, run for this README; the same inputs as the core fixtures: shell HUD groups `{10, 10, 218, 52}` and `{w − 104, 10, w − 10, 54}`, joystick 132 px and Jump 72 px at 20 px from the bottom corners, both lifted by the cookie banner, the banner as an obstruction). "Window" is the window box on screen with the camera at rest; "gaps" are the closest px from its outline to the HUD, the joystick and Jump at rest. "Binds" is what stops the fit from coming closer, with the camera at the worst corner of `LAG` (2 % margins; 8 px padding for the rects). "Depth" is px per m along the course at the runner's feet. `camera.test.ts` pins the table (±0.5 px).
 
 | Screen (CSS px) | Pitch / fov | Distance | Lens shift | Window on screen | Runner | Ground px/m at the runner / far edge | Depth at the feet | A 2.6 m gap 4 m ahead | Gaps HUD / joystick / Jump | Binds |
 |---|---|---|---|---|---|---|---|---|---|---|
-| 375 × 812 | 45° / 60° | 23.90 m | (0, −0.013) | x 30–345, y 78–442 | 32.7 px tall, feet at y 411 | 29.4 / 17.8 (22 m ahead) | 20.8 px/m | 40 px | 24 / 218 / 278 | both side margins |
-| 375 × 812, 162 px banner | 45° / 60° | 23.90 m | (0, −0.013) | x 30–345, y 78–442 | 32.7 px | 29.4 / 17.8 | 20.8 px/m | 40 px | 24 / 56 / 116 | both side margins (the banner costs nothing) |
-| 812 × 375 | 40° / 50° | 9.63 m | (0.109, −0.381) | x 187–714, y 25–303 | 53.3 px, feet at (450, 259) | 41.7 / 22.3 (11 m ahead) | 26.9 px/m | 35 px | 54 / 81 / 74 | the joystick and Jump |
-| 812 × 375, 83 px banner | 40° / 50° | 12.59 m | (0, −0.176) | x 218–594, y 23–254 | 39.7 px | 31.9 / 19.1 | 20.5 px/m | 31 px | 54 / 66 / 138 | the top margin and the banner |
+| 375 × 812 | 36° / 60° | 23.62 m | (0, 0) | x 30–345, y 134–439 | 37.5 px tall, feet at y 406 | 29.8 / 17.0 (22 m ahead) | 17.5 px/m | 33 px | 80 / 221 / 281 | both side margins |
+| 375 × 812, 162 px banner | 36° / 60° | 23.62 m | (0, 0) | x 30–345, y 134–439 | 37.5 px | 29.8 / 17.0 | 17.5 px/m | 33 px | 80 / 59 / 119 | both side margins (the banner costs nothing) |
+| 812 × 375 (`PHONE_LANDSCAPE`) | 35° / 50° | 9.37 m | (0.101, −0.325) | x 180–714, y 34–295 | 58.1 px, feet at (447, 248) | 42.9 / 20.9 (12 m ahead) | 24.7 px/m | 30 px | 45 / 93 / 71 | the joystick and Jump |
+| 812 × 375, 83 px banner (`PHONE_LANDSCAPE`) | 35° / 50° | 11.46 m | (0, −0.138) | x 199–613, y 22–252 | 46.6 px | 35.1 / 18.9 | 20.2 px/m | 28 px | 38 / 51 / 134 | the top margin and the banner |
 | 1280 × 800 (no touch controls) | 40° / 50° | 10.58 m | (0, −0.308) | x 142–1138, y 52–609 | 102.6 px, feet at (640, 523) | 81.1 / 45.1 | 52.2 px/m | 71 px | 130 / – / – | both side margins |
 
-  Portrait is bound by the width: 9.6 m of course plus the 0.9 m lag across 375 px. The banner only moves the picture there (the same distance with and without it). It looks 22 m ahead (3.7 s at full speed), and the runner stands at mid-screen (feet at y 411 of 812). **The price of the full block lane is the portrait runner's size:** 39.6 → 32.7 px tall and 25 → 20.8 px of depth per m at its feet, so the 0.2 m edge grace is about 4 px on a phone (the `BlobShadow` on the support is the cue that matters, below). Trimming `area.max.z` from 2 to 0.5 won back 1.5 px of it (31.2 px with the old depth), and the banner row is now better than before (31.4 → 32.7 px). The phone in landscape is bound by the touch controls and looks 11 m ahead; the laptop by the width. The lag box costs about 23 px of each side in portrait (the window at rest stops at x 30 / 345, the margins are at 7.5 / 367.5): that is the price of a fit that holds while the camera catches up. Fixed `camera` for the first frame (`index.tsx`): the 1280 × 800 offset, `position: [0, 6.80, 8.10]`, `fov: 50`, `lookAt: [0, 0, 0]`; the Scene's rig takes over on mount.
+  Portrait is bound by the width: 9.6 m of course plus the 0.9 m lag across 375 px. The banner only moves the picture there (the same distance with and without it). It looks 22 m ahead (3.7 s at full speed), and the runner stands at mid-screen (feet at y 406 of 812). (Rows 1–4 are the phone views of 2026-10-08, "Phones: a bigger runner" below; the history in the rest of this paragraph is of the 45° portrait.) **The price of the full block lane is the portrait runner's size:** 39.6 → 32.7 px tall and 25 → 20.8 px of depth per m at its feet, so the 0.2 m edge grace is about 4 px on a phone (the `BlobShadow` on the support is the cue that matters, below). Trimming `area.max.z` from 2 to 0.5 won back 1.5 px of it (31.2 px with the old depth), and the banner row is now better than before (31.4 → 32.7 px). The phone in landscape is bound by the touch controls and looks 11 m ahead; the laptop by the width. The lag box costs about 23 px of each side in portrait (the window at rest stops at x 30 / 345, the margins are at 7.5 / 367.5): that is the price of a fit that holds while the camera catches up. Fixed `camera` for the first frame (`index.tsx`): the 1280 × 800 offset, `position: [0, 6.80, 8.10]`, `fov: 50`, `lookAt: [0, 0, 0]`; the Scene's rig takes over on mount.
+- **Phones: a bigger runner** (2026-10-08). The window's side extent (±4.8 m, the proofs above) and `FOLLOW_X`, `LAG`, `FOCUS` and `DAMPING` are unchanged; only the pitch and, sideways, the look-ahead:
+  - **Portrait at 36°** (was 45°). Upright the fit is bound by the window's width, so the runner's px per m at its feet cannot grow without narrowing the window; what a lower camera changes is how much of the 1.5 m runner stands up into the picture (about cos(pitch)). With the banner open at 360 × 740 the fit was bound by the height left above the lifted joystick, and a lower camera also draws the 22 m ahead shorter, so it comes much closer there.
+  - **`PHONE_LANDSCAPE`** for a landscape canvas under 600 px tall: 35° (was the desktop's 40°), 12 m ahead (was 11). Sideways the fit is bound by the height between the HUD and the controls or the banner, and the lower camera draws the course ahead shorter, so it comes closer. Desktop and tablets (`LANDSCAPE`, 600 px tall or more) are unchanged: the 1280 × 800 row, `index.tsx`'s first frame, the thumbnail and the OG card.
+  - **Runner on screen** (feet to head of 1.5 m standing at F, CSS px; `camera.test.ts` "phones" pins every row with the safe area GameShell measured on the production build; the browser read the same to 0.01 px; the posed GLB's silhouette in brackets):
+
+    | Screen | Banner | Before | After |
+    |---|---|---|---|
+    | 360 × 740 | open | 24.9 (28.2) | 35.8 (39.0) |
+    | 360 × 740 | closed | 31.2 (35.2) | 35.8 (39.0) |
+    | 390 × 844 | open / closed | 34.0 (38.4) | 39.0 (42.4) |
+    | 740 × 360 | open | 37.0 (40.6) | 43.3 (46.6) |
+    | 740 × 360 | closed | 46.5 (50.9) | 51.0 (54.8) |
+    | 844 × 390 | open | 41.7 (45.8) | 48.9 (52.6) |
+    | 844 × 390 | closed | 56.1 (61.4) | 62.4 (66.9) |
+    | 1280 × 800 | – | 102.6 (112.4) | unchanged |
+
+    The runner is 18–31 px wide (14.6–29 before).
+  - **The price is depth.** Px per m along the course at the runner's feet: 360 × 740 19.8 → 16.7 (banner open 16.0 → 16.7), 390 × 844 21.6 → 18.2, 375 × 812 20.8 → 17.5; a 2.6 m gap 4 m ahead 38–42 → 31–34 px. That is the banner row's depth before this change, which shipped; the `BlobShadow` on the support stays the cue for a landing (the 0.2 m edge grace is 3–4 px either way). Sideways 23.6 → 21.6 (740 × 360) and 28.3 → 26.3 (844 × 390).
+  - **Ahead.** The window still holds 22 m (portrait) or 12 m (phone landscape) ahead, more than the 7.6 m to the farthest landing target, and the screen shows more: on the playtest the course centre line was on screen below the HUD to 36–38 m ahead at 360 × 740 with the banner, about 60 m (the fog) at 390 × 844, and 14.5–15 m sideways at 740 × 360 with the banner (14–16 before). The sweeper's whole disc, the next blocks and the beam are in view before the runner reaches them (screenshots below). A lower camera passes under the arch's banner more easily, so a finish just past the line hides less of the cheer than before (`ARCH_FADE_PAST` unchanged).
 - **Frame order** needs no care: `useRunFrame` runs before `CameraRig` and every `useFrame` (core).
 - **Reading jumps.** The runner's `BlobShadow` (core) sits on the highest support under its centre (`groundBelow(x, z, ms)` in the rules, the blocks at their current x), or on the water. It is the main depth cue for a jump. A soft indigo ring under the feet marks the runner from far away.
 - **Looks only** (`useFrame`, `useGameTime()`): run cycle by distance, jump and landing squash, arms out and wobbling on the beam, flailing tumble when knocked or falling, splash and ripples, the checkpoint gate lighting up (green, flag pop) on activation, the runner cheering through the result delay (`resultDelayMs: 1200`): under the arch after a walked finish, behind the faded arch after a jump over the line (next bullet). Water: one plane with a scrolling canvas texture. Environment: background and fog `#bae6fd`, fog 45–110 m, `lighting: "day"`.
