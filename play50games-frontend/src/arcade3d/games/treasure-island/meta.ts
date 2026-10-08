@@ -27,7 +27,7 @@ export const treasureIslandMeta: ArcadeGameMeta = {
       unitLabel: "pts",
       display: "int",
    },
-   thumbnail: null,
+   thumbnail: "/images/3d/treasure-island.webp",
    accent: "#2dd4bf",
    owner: "claude",
 };

@@ -46,7 +46,8 @@ function buildGround(): BufferGeometry {
          const wob = r > 1.05 ? 1 + 0.03 * Math.sin(a * 5 + 1) : 1;
          positions.push(ISLAND.rx * r * wob * Math.cos(a), groundHeight(r), ISLAND.rz * r * wob * Math.sin(a));
          const n = speckle(i, j);
-         if (r < ISLAND.grass - 0.01) c.copy(grass).lerp(grassDark, n * 0.5);
+         // a soft per-ring shade only: per-vertex noise streaks along the long spokes near the centre
+         if (r < ISLAND.grass - 0.01) c.copy(grass).lerp(grassDark, 0.15 + 0.1 * Math.sin(i * 1.7) + n * (r > 0.5 ? 0.12 : 0));
          else if (r < ISLAND.grass + 0.01) c.copy(grass).lerp(sand, 0.5);
          else c.copy(sand).lerp(wet, Math.min(1, Math.max(0, (r - 0.9) / 0.12)) * 0.9 + n * 0.08);
          colors.push(c.r, c.g, c.b);
