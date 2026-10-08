@@ -147,13 +147,14 @@ function Countdown() {
  */
 function Hud({
    definition,
-   kind,
+   scoring,
    onPause,
    hidden,
    rootRef,
 }: {
    definition: GameDefinition;
-   kind: ArcadeGameMeta["scoring"]["kind"];
+   /** meta.scoring, passed whole: HudChips derives from its kind whether a score chip shows */
+   scoring: ArcadeGameMeta["scoring"];
    onPause: () => void;
    hidden: boolean;
    rootRef: RefObject<HTMLDivElement>;
@@ -169,7 +170,7 @@ function Hud({
    return (
       <div ref={rootRef} className={styles.hud} style={hidden ? { visibility: "hidden" } : undefined} aria-hidden={hidden || undefined}>
          <HudChips
-            kind={kind}
+            scoring={scoring}
             score={score}
             time={time}
             timed={timed}
@@ -493,7 +494,7 @@ export default function GameShell({ meta, definition, exitHref = "/3d" }: GameSh
                </div>
 
                {hudMounted && (
-                  <Hud definition={definition} kind={meta.scoring.kind} onPause={pause} hidden={!showHud} rootRef={hudRef} />
+                  <Hud definition={definition} scoring={meta.scoring} onPause={pause} hidden={!showHud} rootRef={hudRef} />
                )}
                {/* laid out (hidden) in every phase like the shell HUD, so the safe area knows its marked panels */}
                {hudMounted && definition.Hud && (

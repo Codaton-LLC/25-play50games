@@ -74,8 +74,8 @@ export const hudClock = (seconds: number) => {
 export const hudShowsScore = (kind: ScoringRules["kind"]): boolean => kind !== "time";
 
 export interface HudChipsProps {
-   /** meta.scoring.kind */
-   kind: ScoringRules["kind"];
+   /** meta.scoring as it is: the chips derive the kind themselves, so no caller passes a wrong one */
+   scoring: ScoringRules;
    score: number;
    /** whole seconds: left when `timed`, played otherwise */
    time: number;
@@ -87,11 +87,11 @@ export interface HudChipsProps {
 }
 
 /** The HUD's first group: score (points games only), time, lives and the game's stats. */
-export function HudChips({ kind, score, time, timed, lives, stats, hudStats }: HudChipsProps) {
+export function HudChips({ scoring, score, time, timed, lives, stats, hudStats }: HudChipsProps) {
    const low = timed && time <= 10;
    return (
       <div className={styles.hudGroup}>
-         {hudShowsScore(kind) && (
+         {hudShowsScore(scoring.kind) && (
             <span className={styles.chip} role="group" aria-label={`Score ${score}`}>
                <span className={styles.chipLabel}>Score</span>
                <span className={styles.chipValue}>{score.toLocaleString("en-US")}</span>
@@ -234,7 +234,7 @@ export function StartCard({ meta, definition, coarse, exitHref, leaderboard, onP
             <BestScoreBadge slug={meta.slug} />
          </div>
 
-         {/* sticky: pinned to the bottom of the card while the card scrolls */}
+         {/* sticky: pinned to the card's bottom, or to its top once the top 10 is scrolled up */}
          <div className={styles.startAction}>
             <FocusButton className={styles.primary} onClick={onPlay}>
                Play

@@ -129,7 +129,7 @@ describe("HUD chips", () => {
    const chips = (props: Partial<HudChipsProps> = {}) =>
       renderToStaticMarkup(
          createElement(HudChips, {
-            kind: "points",
+            scoring: robotCollectorMeta.scoring,
             score: 1250,
             time: 65,
             timed: true,
@@ -152,12 +152,12 @@ describe("HUD chips", () => {
    });
 
    it("has no score chip for time games: the clock (counting down or up), lives and stats stay", () => {
-      const timed = chips({ kind: "time", score: 0, time: 9, timed: true, lives: 2 });
+      const timed = chips({ scoring: escapeRoomMeta.scoring, score: 0, time: 9, timed: true, lives: 2 });
       expect(labels(timed)).toEqual(["Time", "Lives", "Found"]);
       expect(timed).not.toMatch(/Score/i);
       // the last ten seconds still warn
       expect(timed).toContain(styles.chipWarn);
-      const open = chips({ kind: "time", score: 0, time: 75, timed: false });
+      const open = chips({ scoring: obstacleRaceMeta.scoring, score: 0, time: 75, timed: false });
       expect(labels(open)).toEqual(["Played", "Found"]);
       expect(open).toContain('aria-label="75 seconds played"');
       expect(open).toContain(">1:15<");
@@ -170,6 +170,14 @@ describe("HUD chips", () => {
       expect(ARCADE_GAMES).toHaveLength(10);
       const hidden = ARCADE_GAMES.filter((meta) => !hudShowsScore(meta.scoring.kind)).map((meta) => meta.slug);
       expect(hidden.sort()).toEqual(["escape-room", "obstacle-race"]);
+   });
+
+   it("GameShell hands the game's own meta.scoring to the HUD, which hands it on to HudChips untouched", () => {
+      // no test renders GameShell (R3F canvas), so the call sites are pinned in its source
+      const shell = readFileSync(path.join(__dirname, "GameShell.tsx"), "utf8");
+      expect(shell).toMatch(/<Hud\s[^>]*\bscoring=\{meta\.scoring\}/);
+      expect(shell).toMatch(/<HudChips\s[^>]*\bscoring=\{scoring\}/);
+      expect(shell).not.toMatch(/\bkind=\{/);
    });
 
    it("formats the clock in whole seconds", () => {

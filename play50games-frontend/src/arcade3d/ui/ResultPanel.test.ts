@@ -143,8 +143,9 @@ describe("result card layout", () => {
       expect(bar).toContain("bottom: 0;");
       expect(bar).toContain("z-index: 1;");
       expect(bar).toContain("background: var(--bg);");
-      // short landscape screens: one row of buttons
-      const short = css.match(/@media \(max-height: 520px\) and \(min-width: 560px\) \{([\s\S]*)\}\s*$/)?.[1] ?? "";
+      // short landscape screens: one row of buttons. Only the block itself (it ends at the first
+      // `}` in column 0; inner rules are indented), wherever it sits in the file
+      const short = css.match(/@media \(max-height: 520px\) and \(min-width: 560px\) \{([\s\S]*?)\n\}/)?.[1] ?? "";
       expect(short.replace(/\s+/g, " ")).toMatch(/\.primary, \.secondary \{ flex-basis: 0; \}/);
    });
 });
