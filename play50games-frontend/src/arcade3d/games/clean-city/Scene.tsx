@@ -51,7 +51,7 @@ import { ASSETS, CLEANER_LANDMARKS } from "./assets";
 import { DAMPING, FOLLOW, FOV, LOOK_AT, REACH, VIEW } from "./camera";
 import { CityDecor, ParkDecor } from "./Decor";
 import { CLEANER_SCALE, createCleanerGait, gaitFrameDt, stepCleanerGait } from "./gait";
-import { localOffset, pickupPose, pickupSide, type LocalOffset } from "./pickup";
+import { createPickupMark, localOffset, notePickup, pickupPose, type LocalOffset, type PickupMark } from "./pickup";
 import { cheerWeight, reachWeight } from "./poseWeights";
 import { Beach, City, Park, PrimitiveRunner, RUNNER_RING, useLitterStandIns, type RunnerLimbs } from "./Primitives";
 import {
@@ -326,7 +326,7 @@ function Cleaner({ run }: { run: CleanRun }) {
    const standIn = useRef<Group>(null);
    const limbs = useRef<RunnerLimbs>({ legL: null, legR: null, armL: null, armR: null, bob: null });
    const [gait] = useState(createCleanerGait);
-   const fx = useRef({ collected: 0, map: 0, won: false, reachAt: -10, cheerAt: -10, side: 1 as 1 | -1, pieceX: 0, pieceZ: 0 });
+   const fx = useRef<PickupMark>(createPickupMark());
    const [scratch] = useState(createPose);
    const [local] = useState<LocalOffset>(() => ({ x: 0, z: 0 }));
    const pose = useHumanoidPose((p) => {
@@ -340,24 +340,9 @@ function Cleaner({ run }: { run: CleanRun }) {
       stepCleanerGait(gait, phase === "playing" ? Math.hypot(r.vx, r.vz) : 0, gaitFrameDt(store, time.delta));
       walkPose(gait.phase, gait.amount, p);
       blendPoses(p, idlePose(t, scratch), 1 - Math.min(1, gait.amount * 5), p, POSE_MASK.upper);
-      const mark = fx.current;
-      const won = phase === "over" && endReason === "win";
-      if (run.map > mark.map || (won && !mark.won)) {
-         // a map's 20th piece: the runner is already on the next start pad (or the run is won), so it cheers instead
-         mark.cheerAt = t;
-      } else if (run.collected > mark.collected) {
-         // this frame's step collected run.events.collected: stoop to where that piece lay, with the nearer hand
-         const slot = run.litter[run.events.collected];
-         if (slot) {
-            mark.reachAt = t;
-            mark.pieceX = slot.x;
-            mark.pieceZ = slot.z;
-            mark.side = pickupSide(localOffset(slot.x - r.x, slot.z - r.z, r.heading, local).x);
-         }
-      }
-      mark.collected = run.collected;
-      mark.map = run.map;
-      mark.won = won;
+      // a map's 20th piece or the win: a cheer; any other pickup: a stoop to where that piece lay (pickup.ts)
+      const mark = notePickup(fx.current, run, t, phase === "over" && endReason === "win", local);
+      const won = mark.won;
       const reach = reachWeight(t - mark.reachAt);
       const cheer = cheerWeight(t - mark.cheerAt, won);
       if (reach > 0.001) {
@@ -381,7 +366,8 @@ function Cleaner({ run }: { run: CleanRun }) {
       b.position.y = standIn.current
          ? won ? Math.abs(Math.sin(t * 7)) * 0.2 : Math.abs(Math.sin(gait.phase)) * 0.04 * gait.amount
          : gait.lift;
-      applyRunnerLimbs(pose, limbs.current);
+      // the stand-in's limbs only while it is drawn (HumanoidModel resolves the pose for cleaner.glb)
+      if (standIn.current) applyRunnerLimbs(pose, limbs.current);
    });
 
    return (

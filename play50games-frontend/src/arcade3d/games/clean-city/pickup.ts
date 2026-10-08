@@ -65,6 +65,60 @@ export function pickupSide(lx: number): 1 | -1 {
    return lx >= 0 ? 1 : -1;
 }
 
+/** What the cleaner's pose remembers between frames (Scene.tsx Cleaner): the last pickup and the last cheer. */
+export interface PickupMark {
+   /** run.collected, run.map and the won end as seen on the last frame */
+   collected: number;
+   map: number;
+   won: boolean;
+   /** game time (s) of the last pickup's stoop and of the last cheer (-10 = none) */
+   reachAt: number;
+   cheerAt: number;
+   /** the hand reaching for the last piece (pickupSide) and where that piece lay (world) */
+   side: 1 | -1;
+   pieceX: number;
+   pieceZ: number;
+}
+
+export function createPickupMark(): PickupMark {
+   return { collected: 0, map: 0, won: false, reachAt: -10, cheerAt: -10, side: 1, pieceX: 0, pieceZ: 0 };
+}
+
+/** The parts of rules.ts CleanRun notePickup reads. */
+export interface PickupRun {
+   map: number;
+   collected: number;
+   litter: readonly { x: number; z: number }[];
+   events: { collected: number };
+   runner: { x: number; z: number; heading: number };
+}
+
+/**
+ * One frame's bookkeeping (Scene.tsx Cleaner, after the frame's rules step): a new map (its 20th
+ * piece parked the runner on the next start pad) or the won end starts a cheer at `t` instead of a
+ * stoop; otherwise a new pickup starts a stoop at `t` towards the slot this frame's step collected
+ * (run.events.collected, not slot 0), with the nearer hand from the runner's heading (`local` is
+ * scratch). Then the counters are remembered. Mutates `mark`, allocates nothing.
+ */
+export function notePickup(mark: PickupMark, run: PickupRun, t: number, won: boolean, local: LocalOffset): PickupMark {
+   const r = run.runner;
+   if (run.map > mark.map || (won && !mark.won)) {
+      mark.cheerAt = t;
+   } else if (run.collected > mark.collected) {
+      const slot = run.litter[run.events.collected];
+      if (slot) {
+         mark.reachAt = t;
+         mark.pieceX = slot.x;
+         mark.pieceZ = slot.z;
+         mark.side = pickupSide(localOffset(slot.x - r.x, slot.z - r.z, r.heading, local).x);
+      }
+   }
+   mark.collected = run.collected;
+   mark.map = run.map;
+   mark.won = won;
+   return mark;
+}
+
 const upperLeg = (side: number) => (side > 0 ? BONE.upperLegL : BONE.upperLegR);
 const lowerLeg = (side: number) => (side > 0 ? BONE.lowerLegL : BONE.lowerLegR);
 const upperArm = (side: number) => (side > 0 ? BONE.upperArmL : BONE.upperArmR);

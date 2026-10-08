@@ -24,7 +24,8 @@ import {
 } from "@/arcade3d/core/rig";
 import { CLEANER_LANDMARKS } from "./assets";
 import { CLEANER_SCALE } from "./gait";
-import { PICKUP_AIM, REACH_DOWN, REACH_OUT, STOOP, localOffset, pickupPose, pickupSide } from "./pickup";
+import { PICKUP_AIM, REACH_DOWN, REACH_OUT, STOOP, createPickupMark, localOffset, notePickup, pickupPose, pickupSide, type PickupMark } from "./pickup";
+import { ITEMS_PER_MAP, MAP_COUNT, NONE, createRun, createStepInput, step, type CleanRun } from "./rules";
 
 const L = CLEANER_LANDMARKS;
 const J = humanoidJoints(L);
@@ -240,5 +241,98 @@ describe("clean-city pickup: the stoop on the core rig (pickup.ts)", () => {
       const before = copyPose(p, createPose());
       expect(pickupPose(p, 0.6, -1, -0.3, 0.6, scratch)).toBe(p);
       expect(Array.from(p.q)).not.toEqual(Array.from(before.q));
+   });
+});
+
+// Scene.tsx Cleaner's per-frame bookkeeping (notePickup) on a real seeded run: rules.ts createRun +
+// step with the runner put next to a piece, as the frame loop runs it (step, then notePickup).
+describe("clean-city pickup: the bookkeeping on a real run (pickup.ts notePickup)", () => {
+   const IDLE = createStepInput();
+
+   /** Puts the runner at rest at (x, z) facing `heading`, steps one 16 ms frame, and returns run.events.collected. */
+   function collectFrom(run: CleanRun, x: number, z: number, heading: number): number {
+      const r = run.runner;
+      r.x = x;
+      r.z = z;
+      r.vx = 0;
+      r.vz = 0;
+      r.heading = heading;
+      const got = step(run, 16, IDLE).collected;
+      // nothing pushed it (unless the map's 20th parked it on the next start pad): the side is judged from where it was put
+      if (!run.events.mapCleared) expect([r.x, r.z, r.heading]).toEqual([x, z, heading]);
+      return got;
+   }
+
+   it("a piece on the cleaner's left takes its left hand (1), on its right its right hand (-1), judged in its own frame (heading), and the piece read is the slot this step collected (not slot 0)", () => {
+      const cases: [dx: number, heading: number, side: 1 | -1][] = [
+         [0.4, 0, 1], // facing +z, the piece towards +x = its left
+         [-0.4, 0, -1],
+         [0.4, Math.PI, -1], // facing -z, the same world +x is its right
+         [-0.4, Math.PI, 1],
+      ];
+      for (const [k, [dx, heading, side]] of cases.entries()) {
+         const run = createRun(77);
+         const slotIndex = 3 + k;
+         const slot = run.litter[slotIndex];
+         const mark = createPickupMark();
+         const local = { x: 0, z: 0 };
+         expect(collectFrom(run, slot.x - dx, slot.z, heading)).toBe(slotIndex);
+         notePickup(mark, run, 2.5, false, local);
+         expect(mark.side).toBe(side);
+         expect([mark.pieceX, mark.pieceZ]).toEqual([slot.x, slot.z]);
+         expect([mark.pieceX, mark.pieceZ]).not.toEqual([run.litter[0].x, run.litter[0].z]);
+         expect([mark.reachAt, mark.cheerAt, mark.collected, mark.map, mark.won]).toEqual([2.5, -10, 1, 0, false]);
+         // the next frame without a pickup keeps the stoop where it started
+         expect(step(run, 16, IDLE).collected).toBe(NONE);
+         notePickup(mark, run, 2.6, false, local);
+         expect([mark.reachAt, mark.side, mark.pieceX, mark.pieceZ]).toEqual([2.5, side, slot.x, slot.z]);
+      }
+   });
+
+   it("over a whole run: every piece stoops to its own slot, each map's 20th piece cheers instead (reachAt unchanged), and the won end cheers once", () => {
+      const run = createRun(4242);
+      const mark: PickupMark = createPickupMark();
+      const local = { x: 0, z: 0 };
+      let t = 1;
+      let cheers = 0;
+      let stoops = 0;
+      for (let map = 0; map < MAP_COUNT; map++) {
+         // the slots are picked last first, so the slot index differs from the count and from slot 0
+         for (let i = ITEMS_PER_MAP - 1; i >= 0; i--) {
+            t += 0.5;
+            const slot = run.litter[i];
+            const sx = slot.x;
+            const sz = slot.z;
+            const before = { reachAt: mark.reachAt, cheerAt: mark.cheerAt };
+            // put on the piece's side towards the middle (clear of the walls), facing so the piece is on its left
+            const s = sx >= 0 ? 1 : -1;
+            expect(collectFrom(run, sx - 0.3 * s, sz, s > 0 ? 0 : Math.PI)).toBe(i);
+            notePickup(mark, run, t, run.ended === "win", local);
+            if (i > 0) {
+               stoops++;
+               expect([mark.reachAt, mark.cheerAt, mark.side, mark.pieceX, mark.pieceZ]).toEqual([t, before.cheerAt, 1, sx, sz]);
+            } else {
+               cheers++;
+               expect([mark.reachAt, mark.cheerAt]).toEqual([before.reachAt, t]);
+               expect(mark.map).toBe(run.map);
+            }
+         }
+      }
+      expect(run.ended).toBe("win");
+      expect([stoops, cheers, mark.collected, mark.won]).toEqual([57, 3, 60, true]);
+      // the won end cheers once: later frames of the over phase keep it
+      notePickup(mark, run, t + 1, true, local);
+      notePickup(mark, run, t + 2, true, local);
+      expect(mark.cheerAt).toBe(t);
+   });
+
+   it("a won end seen a frame after its pickup still cheers then, and only then", () => {
+      const run = createRun(9);
+      const mark = createPickupMark();
+      const local = { x: 0, z: 0 };
+      mark.reachAt = 3;
+      notePickup(mark, run, 4, true, local);
+      notePickup(mark, run, 5, true, local);
+      expect([mark.cheerAt, mark.reachAt, mark.won]).toEqual([4, 3, true]);
    });
 });
