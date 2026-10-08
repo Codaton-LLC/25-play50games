@@ -1,6 +1,6 @@
 ﻿# Penguin Ice Slide
 
-Owner: Codex. Slug: `penguin-slide`. Skill game 15, wave 1, complexity 3. Gate G0 design; no implementation in this task. Spec: 04 §15; asset ids: 05 §E.4. Units: metres, seconds, radians; rules use longitudinal distance s and lateral offset d, world y up. Core owns the shell and submission.
+Owner: Codex. Slug: `penguin-slide`. Skill game 15, wave 1, complexity 3. P-15 implementation; runtime review pending. Spec: 04 §15; asset ids: 05 §E.4. Units: metres, seconds, radians; rules use longitudinal distance s and lateral offset d, world y up. Core owns the shell and submission.
 
 ## Concept
 
@@ -134,5 +134,41 @@ Coral hazard silhouettes plus dark crack shape (not colour alone); fish show a s
 
 ## Status
 
-(empty until the build)
-
+```text
+TASK P-15 | build penguin-slide | branch codex/game-penguin-slide | allowed: play50games-frontend/src/arcade3d/games/penguin-slide/**, play50games-frontend/public/images/3d/penguin-slide.webp, tools/thumbs/inputs/penguin-slide.mjs
+HANDOFF P-15 — Penguin Ice Slide
+Branch: codex/game-penguin-slide; no branch changes, commits or pushes.
+Status: dev; implementation ready for Claude validation, Common DoD not yet verified.
+Files: games/penguin-slide/{index.tsx,meta.ts,rules.ts,rules.test.ts,assets.ts,assets.test.ts,Scene.tsx,Track.tsx,Primitives.tsx,camera.tsx,Hud.tsx,Hud.module.css,README.md}; tools/thumbs/inputs/penguin-slide.mjs.
+Administrative output: .handoff/P-15-penguin/HANDOFF.md, explicitly requested in the CLI instructions.
+Scope check: git status --porcelain lists only task files before this handoff; local main was not compared.
+[x] GameDefinition replaces placeholder; variable gate clock, snow lighting, Hop label, three instructions, 1200 ms result delay.
+[x] Pure seeded rules; 1/120 s substeps, event splitting, expiry precedence, one-contact crashes, three-crash loss, 180 s ceiling.
+[x] Six forms; three resident chunks; arc-length paths, linked split branches, tapered widths, reserved corridors, 16-attempt safe fallback.
+[x] Held steering and one-shot pressed impulses; jumpPressed only; touch-capability auto-hop always on, no toggle.
+[x] One useRunFrame -> rules -> store; fitted camera and static lens-shift rig; pause-safe visual motion, solid penguin, floor/bank clearance.
+[x] Shared/reused model assets; dynamic pools and primitives; measured flag floor offset; no manifest or GLB edits.
+[x] FX warmed; snow carving rate limited; at most two score popups; existing pickup/hit/jump audio, TODO(P-06) loop/cues.
+[x] Tests authored: 1,000-seed course validity/determinism/seams; fallback; scoring, gates, hops/spins, assist, collision, terminal conditions.
+[x] Real-store proof bots authored: 500 safe seeds at normal and forced 22 m/s; 200 seeds each safe/reward/crash/spam at 60/20 fps and random 4–300 ms raw frames, with pauses/countdown.
+[x] Real-GLB bounds/size and resting bank/slope-clearance tests authored; rules.test.ts 361 lines.
+[x] npx tsc --noEmit: PASS, final invocation exit 0.
+[x] Static source scan: no Math.random/Date.now in rules, elapsedTime, API/localStorage/submission, classic imports or other-game imports.
+[x] meta.scoring remains Claude's provisional data; thumbnail stays null; no credits or production access.
+[ ] npm run build and npx vitest run: deferred to Claude by explicit sandbox instructions; tests have NOT been executed here.
+[ ] Keyboard/touch/browser lifecycle, banner open/closed, 1280x800 / 390x844 / 844x390 screenshots: deferred, no screenshots produced.
+[ ] Draw calls <=50 target /55 cap, mid-phone p95, 10 Retries and 30/60/120/180 s memory checkpoints: unmeasured; no perf JSON produced.
+[ ] Hazard preview >=20 m and generation edge fully fogged across fit/pullback/splits: needs browser verification.
+[ ] Thumbnail capture: input script supplied; capture deferred. gamecheck/tools/perf skipped as instructed (not merged).
+Scoring: floor(actual arc-length s) + 10*fishCollected + sum(50*successfulRampSpins); gates add time, never points.
+Limit proof: s<=22t, t<=180; <=12 fish and <=100 trick points per 60 m chunk; score<=s+220*(floor(s/60)+1)<=18700.
+Rate proof: score<=102.667t+220<440+104t. Proposed paired server limits: max 18700, base 440, pps 104, duration 9000–182000 ms.
+Minimum proof: approved README's weakest third-crash bound >=9.87 s includes two complete 1 s tumbles; timeout >=30 s. Claude owns adopting the proposed 9000 ms minimum; current approval is 3000 ms.
+Bot measurements: pending vitest; no measured best score/duration claimed. capScore no-op assertions are authored. The approved analytic maximum intentionally overcounts unreachable simultaneous rewards; the skill's >=90% max bot criterion is not asserted.
+Decisions: outer-bank obstacles preserve both split corridors; smooth tapers stay below the 4 m/s steering reach at 22 m/s; split branch lengths solved to 60 m; primitive launch pads have raised side rails with a clear centre; HUD follows measured shell chips.
+Open questions:
+- Camera/fog: fixed camera-depth fog [25,56] can fog the penguin and 20 m preview when portrait/banner fitting increases distance. Review this in Claude's screenshots; should fog distances be offset by fitted player depth? Approved values were retained.
+- Claude: adopt 9000 ms minimum with the paired meta/server update after bot results? No server-owned files were changed.
+- P-06: confirm merged cue identifiers and loop API before replacing the explicit TODOs.
+Acceptance: awaiting Claude build/vitest/browser/perf results and any resulting fix round; do not promote beyond dev.
+```
