@@ -70,7 +70,8 @@ export function piecesOf(locals: readonly Matrix4[] | null | undefined): number 
  * (packed: the k-th shown copy fills instances k * pieces .. k * pieces + pieces - 1), then sets
  * each mesh's `count` and flags its matrices for upload. Targets whose mesh is null are skipped,
  * but `update` still runs once per copy. `matrix` and `piece` are the caller's scratch matrices.
- * Returns the number of copies shown.
+ * Returns the number of copies shown. `tint`: the pool's own scratch (createInstanceTint, kept for the
+ * pool's life, so a slot a tinted copy used is rewritten later); without it a fresh one is made per call.
  */
 export function writeDynamicInstances(
    targets: readonly InstanceTarget[],
@@ -78,7 +79,7 @@ export function writeDynamicInstances(
    update: InstanceUpdate,
    matrix: Matrix4,
    piece: Matrix4,
-   tint: InstanceTint = FALLBACK_TINT
+   tint: InstanceTint = createInstanceTint()
 ): number {
    let shown = 0;
    const color = tint.color;
@@ -114,9 +115,6 @@ export function writeDynamicInstances(
    }
    return shown;
 }
-
-/** Without a pool's own tint scratch (old callers): tints still work, sharing this one. */
-const FALLBACK_TINT = createInstanceTint();
 
 /** The shown copy `slot`'s colour in every target: each piece's colour times the tint. */
 function writeColors(targets: readonly InstanceTarget[], slot: number, tint: Color, scratch: Color): void {

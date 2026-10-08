@@ -25,7 +25,7 @@
 //   meshes with the same `update`.
 import { useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useFrame } from "@react-three/fiber";
-import { DynamicDrawUsage, InstancedMesh, Matrix4, type Color } from "three";
+import { DynamicDrawUsage, InstancedBufferAttribute, InstancedMesh, Matrix4, type Color } from "three";
 import { FRAME_PRIORITY } from "../frameLoop";
 import { createInstanceTint, piecesOf, writeDynamicInstances, type InstancePart, type InstanceTarget, type InstanceUpdate } from "./dynamicInstances";
 
@@ -39,6 +39,13 @@ export interface DynamicInstancedProps {
    /** without `parts`: the geometry and material(s) of the one InstancedMesh */
    children?: ReactNode;
    name?: string;
+   /**
+    * The pool sets per-copy tints (`update`'s `color`): its instance colours are allocated at mount, so
+    * the first tint costs no shader change mid-run. Leave it off for pools that never tint (no
+    * instanceColor at all, exactly as before); a pool that tints without it still works, with a
+    * one-time shader recompile at its first tint.
+    */
+   tinted?: boolean;
 }
 
 /**
@@ -50,30 +57,37 @@ export function releaseInstanceBuffers(mesh: InstancedMesh): void {
    InstancedMesh.prototype.dispose.call(mesh);
 }
 
-/** Ready for per-frame writes: nothing drawn before the first frame, a dynamic buffer, piece colours. */
-function prepare(mesh: InstancedMesh, capacity: number, pieces: number, colors: readonly Color[] | null | undefined): void {
+/**
+ * Ready for per-frame writes: nothing drawn before the first frame, a dynamic buffer, piece colours.
+ * A `tinted` pool gets its instanceColor now (white, or the piece colours), before its first draw,
+ * so the first tint does not change the shader mid-run.
+ */
+export function preparePoolMesh(mesh: InstancedMesh, capacity: number, pieces: number, colors: readonly Color[] | null | undefined, tinted = false): void {
    mesh.count = 0;
    mesh.instanceMatrix.setUsage(DynamicDrawUsage);
    if (colors && colors.length > 0) {
       for (let k = 0; k < capacity; k++) for (let j = 0; j < pieces; j++) mesh.setColorAt(k * pieces + j, colors[j % colors.length]);
       if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
+   } else if (tinted && !mesh.instanceColor) {
+      mesh.instanceColor = new InstancedBufferAttribute(new Float32Array(mesh.instanceMatrix.count * 3).fill(1), 3);
+      mesh.instanceColor.setUsage(DynamicDrawUsage);
    }
 }
 
-function PartMesh({ part, target, capacity }: { part: InstancePart; target: InstanceTarget; capacity: number }) {
+function PartMesh({ part, target, capacity, tinted }: { part: InstancePart; target: InstanceTarget; capacity: number; tinted: boolean }) {
    const ref = useRef<InstancedMesh>(null);
    const pieces = piecesOf(part.locals);
    useLayoutEffect(() => {
       const mesh = ref.current;
       if (!mesh) return;
-      prepare(mesh, capacity, pieces, part.colors);
+      preparePoolMesh(mesh, capacity, pieces, part.colors, tinted);
       target.mesh = mesh;
       return () => {
          if (target.mesh === mesh) target.mesh = null;
          // frees the instance buffers; the geometry and material belong to the caller (dispose={null})
          releaseInstanceBuffers(mesh);
       };
-   }, [part, target, capacity, pieces]);
+   }, [part, target, capacity, pieces, tinted]);
    return (
       <instancedMesh
          ref={ref}
@@ -84,17 +98,17 @@ function PartMesh({ part, target, capacity }: { part: InstancePart; target: Inst
    );
 }
 
-function ChildrenMesh({ target, capacity, name, children }: { target: InstanceTarget; capacity: number; name?: string; children?: ReactNode }) {
+function ChildrenMesh({ target, capacity, tinted, name, children }: { target: InstanceTarget; capacity: number; tinted: boolean; name?: string; children?: ReactNode }) {
    const ref = useRef<InstancedMesh>(null);
    useLayoutEffect(() => {
       const mesh = ref.current;
       if (!mesh) return;
-      prepare(mesh, capacity, 1, null);
+      preparePoolMesh(mesh, capacity, 1, null, tinted);
       target.mesh = mesh;
       return () => {
          if (target.mesh === mesh) target.mesh = null;
       };
-   }, [target, capacity]);
+   }, [target, capacity, tinted]);
    return (
       <instancedMesh ref={ref} args={[undefined, undefined, Math.max(1, capacity)]} frustumCulled={false} name={name}>
          {children}
@@ -103,7 +117,7 @@ function ChildrenMesh({ target, capacity, name, children }: { target: InstanceTa
 }
 
 /** A pool of `count` moving copies; `update` places (or hides) each one every frame. */
-export function DynamicInstanced({ count, update, parts, children, name }: DynamicInstancedProps) {
+export function DynamicInstanced({ count, update, parts, children, name, tinted = false }: DynamicInstancedProps) {
    const updateRef = useRef(update);
    updateRef.current = update;
    const capacity = count > 0 ? Math.floor(count) : 0;
@@ -123,7 +137,7 @@ export function DynamicInstanced({ count, update, parts, children, name }: Dynam
 
    if (!parts) {
       return (
-         <ChildrenMesh target={targets[0]} capacity={capacity} name={name}>
+         <ChildrenMesh target={targets[0]} capacity={capacity} tinted={tinted} name={name}>
             {children}
          </ChildrenMesh>
       );
@@ -131,7 +145,7 @@ export function DynamicInstanced({ count, update, parts, children, name }: Dynam
    return (
       <group name={name}>
          {parts.map((part, i) => (
-            <PartMesh key={i} part={part} target={targets[i]} capacity={capacity} />
+            <PartMesh key={i} part={part} target={targets[i]} capacity={capacity} tinted={tinted} />
          ))}
       </group>
    );

@@ -486,16 +486,18 @@ export interface DynamicInstancedModelProps {
     */
    fallbackParts?: readonly InstancePart[];
    name?: string;
+   /** set when `update` tints copies: the instance colours are allocated at mount (DynamicInstanced `tinted`) */
+   tinted?: boolean;
 }
 
-function DynamicFallback({ asset, count, update, fallbackParts, name }: DynamicInstancedModelProps) {
-   if (fallbackParts) return <DynamicInstanced count={count} update={update} parts={fallbackParts} name={name} />;
-   return <PrimitiveInstances asset={asset} count={count} update={update} name={name} />;
+function DynamicFallback({ asset, count, update, fallbackParts, name, tinted }: DynamicInstancedModelProps) {
+   if (fallbackParts) return <DynamicInstanced count={count} update={update} parts={fallbackParts} name={name} tinted={tinted} />;
+   return <PrimitiveInstances asset={asset} count={count} update={update} name={name} tinted={tinted} />;
 }
 
-function PrimitiveInstances({ asset, count, update, name }: Pick<DynamicInstancedModelProps, "asset" | "count" | "update" | "name">) {
+function PrimitiveInstances({ asset, count, update, name, tinted }: Pick<DynamicInstancedModelProps, "asset" | "count" | "update" | "name" | "tinted">) {
    const parts = usePrimitiveParts(asset);
-   return <DynamicInstanced count={count} update={update} parts={parts} name={name} />;
+   return <DynamicInstanced count={count} update={update} parts={parts} name={name} tinted={tinted} />;
 }
 
 function DynamicInstancedModelContent(props: DynamicInstancedModelProps) {
@@ -520,7 +522,7 @@ function DynamicInstancedModelContent(props: DynamicInstancedModelProps) {
    const parts = looked.parts;
    // rigged models are characters, not pooled props: they get the fallback too
    if (!parts || parts.length === 0) return <DynamicFallback {...props} />;
-   return <DynamicInstanced count={count} update={update} parts={parts} name={name} />;
+   return <DynamicInstanced count={count} update={update} parts={parts} name={name} tinted={props.tinted} />;
 }
 
 /**

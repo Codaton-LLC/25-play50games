@@ -1,6 +1,6 @@
 // Small rendering helpers every game needs. Owned by Claude.
 export { BlobShadow, type BlobShadowProps } from "./BlobShadow";
-export { DynamicInstanced, releaseInstanceBuffers, type DynamicInstancedProps } from "./DynamicInstanced";
+export { DynamicInstanced, preparePoolMesh, releaseInstanceBuffers, type DynamicInstancedProps } from "./DynamicInstanced";
 export {
    createInstanceTint,
    piecesOf,

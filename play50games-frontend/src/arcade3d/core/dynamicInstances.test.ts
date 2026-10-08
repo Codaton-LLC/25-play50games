@@ -18,7 +18,7 @@ import {
 } from "three";
 import type { ModelAsset } from "./types";
 import { FRAME_PRIORITY } from "./frameLoop";
-import { DynamicInstanced, createInstanceTint, piecesOf, releaseInstanceBuffers, writeDynamicInstances, type InstancePart, type InstanceTarget } from "./render";
+import { DynamicInstanced, createInstanceTint, piecesOf, preparePoolMesh, releaseInstanceBuffers, writeDynamicInstances, type InstancePart, type InstanceTarget } from "./render";
 import { DynamicInstancedModel } from "./assets";
 
 const { useGLTF, useFrame, frames, PROP, BROKEN, RIGGED, prop } = vi.hoisted(() => {
@@ -187,6 +187,21 @@ describe("per-copy tint", () => {
       expect(colorAt(plain, 1)).toEqual([1, 1, 1]);
       expect(colorAt(pieces, 3)).toEqual([0.5, 0.5, 0.5]);
       expect(plain.instanceColor!.version).toBeGreaterThan(version);
+   });
+
+   it("a `tinted` pool gets white instance colours at mount; others none (as before)", () => {
+      const tinted = new InstancedMesh(new BoxGeometry(), new MeshBasicMaterial(), 6);
+      preparePoolMesh(tinted, 3, 2, null, true);
+      expect(tinted.instanceColor).not.toBeNull();
+      expect(Array.from(tinted.instanceColor!.array)).toEqual(new Array(18).fill(1));
+      const plain = new InstancedMesh(new BoxGeometry(), new MeshBasicMaterial(), 6);
+      preparePoolMesh(plain, 3, 2, null);
+      expect(plain.instanceColor).toBeNull();
+      // a first tint then writes into the existing attribute (no new one: no shader change)
+      const attribute = tinted.instanceColor;
+      writeDynamicInstances([{ mesh: tinted, locals: [new Matrix4(), new Matrix4()] }], 3, (_i, _m, c) => void c.setRGB(1, 0, 0), new Matrix4(), new Matrix4(), createInstanceTint());
+      expect(tinted.instanceColor).toBe(attribute);
+      expect(colorAt(tinted, 0)).toEqual([1, 0, 0]);
    });
 
    it("allocates nothing per copy (the same colour object every call)", () => {
