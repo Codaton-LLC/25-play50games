@@ -7,7 +7,7 @@ export const escapeRoomMeta: ArcadeGameMeta = {
    tagline: "Find the items. Open the door.",
    description: "Search a small room for the key, the book and the battery, then unlock the door. Fastest escape wins.",
    order: 9,
-   status: "soon",
+   status: "live",
    difficulty: 2,
    orientation: "any",
    controls: {

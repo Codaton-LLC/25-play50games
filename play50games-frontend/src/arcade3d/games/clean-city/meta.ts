@@ -7,7 +7,7 @@ export const cleanCityMeta: ArcadeGameMeta = {
    tagline: "Tidy up the park, the city and the beach.",
    description: "Collect every piece of litter across three maps. Faster clean-ups earn a time bonus.",
    order: 8,
-   status: "soon",
+   status: "live",
    difficulty: 1,
    orientation: "any",
    controls: {
