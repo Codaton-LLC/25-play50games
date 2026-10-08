@@ -1,0 +1,20 @@
+{
+   "slug": "shopping-cart",
+   "universe": "play50-toy-world-premium",
+   "seed": 5050,
+   "assets": [
+      {
+         "id": "cart",
+         "kind": "prop",
+         "mode": "image",
+         "prompt": "Toy-like supermarket shopping cart: a solid basket made of smooth rounded light silver panels with a few large rectangular cut-outs (no thin wires), a red plastic push handle at the back, a small lower tray and four small chunky dark wheels. Premium stylised mobile-game look, friendly rounded proportions, soft bevelled edges, matte silver and matte red. Single object, centred, standing on its wheels, handle side facing the viewer at three-quarter view, symmetrical left to right. No groceries inside, no child seat flap, no logo, no base, no ground, no text. Clean game-ready low-poly topology, clean PBR textures without baked shadows.",
+         "concept": "tools/hyper3d/concepts/cart.png",
+         "tier": "Gen-2.5-Medium",
+         "qualityOverride": 3000,
+         "attempts": 1,
+         "target": "shopping-cart",
+         "budget": { "tris": 4000, "bytes": 300000 },
+         "textureSize": 512
+      }
+   ]
+}
