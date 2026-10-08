@@ -23,7 +23,7 @@ Claude-only file (decision D10). The work board and the effort ledger are update
 
 | Item | Value | Date |
 |---|---|---|
-| Hyper3D balance | **14 credits** after 34 generations (27 core + 5 tier 3 + 2 retries); charge confirmed **0.5 per Gen-2.5-Medium generation** (31 -> 17.5 after the 27 core). IDs in %USERPROFILE%\.play50\hyper3d\*-ids.txt | 2026-10-08 |
+| Hyper3D balance | **12.5 credits** (after the 3 shoppers, 2026-10-08); before that **14 credits** after 34 generations (27 core + 5 tier 3 + 2 retries); charge confirmed **0.5 per Gen-2.5-Medium generation** (31 -> 17.5 after the 27 core). IDs in %USERPROFILE%\.play50\hyper3d\*-ids.txt | 2026-10-08 |
 | Codex | Plus plan (the smallest: small tasks, one at a time) | 2026-10-08 |
 | Kimi | Pro plan | 2026-10-08 |
 | Antigravity | Pro plan | 2026-10-08 |
@@ -47,6 +47,19 @@ Known local issues: port 3100 is held by an old `next start` from `.claude/workt
 - **P-02 merged 2026-10-08** (`3eb92de`): 30 slugs, `status: "dev"`, collections, `NEXT_PUBLIC_ARCADE_PREVIEW`, 20 stubs, `arcade-games.json` v3 (20 disabled entries, provisional limits; no server upload needed until a new game goes live), `REUSED_ASSETS`, tools/thumbs + og. Checked: production flags = the same 10 cards, `/3d/treasure-island` 404; preview = 3 sections, dev routes 200 + noindex. Follow-ups: dev cards are not clickable in preview (the UI kit links only live cards: P-08), the `tools/og` arcade card still says "10 mini-games" (regenerate when the first new game goes live), chef/cleaner landmarks still in their game folders.
 - Core v3 (P-02, P-03, P-04, P-05, P-08) merged on 2026-10-08; P-06 (Kimi audio) waits for its quota, then P-07 (Kimi tools). After P-06 is merged, register `stopAllLoops` in core/loopControl.ts (one line, TODO(P-06)). Then core freeze v3.0 and the reference game treasure-island (P-14 design for the user's approval).
 - The 10 original games are unchanged (perf calls per game equal to the P-03 baseline after every merge).
+
+## Wave 1 (started 2026-10-08, after the user approved the treasure-island template)
+
+| Game | Owner | Mode | Design (G0) | Build (P-15) |
+|---|---|---|---|---|
+| treasure-island (reference) | Claude | agent | approved | **merged** `a02934b` (status dev); review: merge after fixes -> branch `claude/ti-followup` (pinned constants, tide clamp test, props after clamp, 200+ bot seeds, core `core/testing/botHarness.ts`) in progress |
+| pirate-cannons | Claude | agent | approved + fix round (`b630827`), merged | branch `claude/game-pirate-cannons` (worktree pc, port 3111) in progress |
+| penguin-slide | Codex | CLI | approved + fix round (`d1c03e1`), merged | branch `codex/game-penguin-slide` (p50-codex) running; Claude runs vitest/build/playtest after |
+| shopping-cart | Antigravity | copy-paste | approved after rework (`9151e02`), merged; 3 new faceless shoppers generated (1.5 credits) and rigged (`199124e`, merged) | branch `antigravity/game-shopping-cart` (port 3102): prompt given to the user |
+| luggage-rush | Cursor | copy-paste | approved + fix round (`8ff608f`), merged | branch `cursor/game-luggage-rush` (port 3103): prompt given to the user |
+| monster-kitchen | Kimi | CLI | not started (Kimi quota: P-06 first) | – |
+
+User decisions on wave 1 designs (2026-10-08): penguin 180 s ceiling + limits, touch auto-hop always on; shopping-cart 3 new faceless shoppers (A grandmother, B young woman, C man), win on entering checkout, pyramids stay toppled, 6 items from 10 kinds; luggage-rush max 7620 / pps 64, a hold before 70 s strikes at once; pirate-cannons relative drag + tap to fire again, 30° portrait camera. Local preview of treasure-island: `.claude/worktrees/ti-play`, `next start -p 3200 -H 0.0.0.0` (LAN 192.168.2.110).
 
 ## Work board (active branches)
 
