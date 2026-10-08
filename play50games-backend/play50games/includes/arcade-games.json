@@ -1,5 +1,5 @@
 {
-  "version": 2,
+  "version": 3,
   "games": {
     "robot-collector": {
       "title": "Robot Collector",
@@ -98,6 +98,206 @@
       "max_duration_ms": 300000,
       "time_base_ms": 300000,
       "enabled": true
+    },
+    "treasure-island": {
+      "title": "Treasure Island",
+      "kind": "points",
+      "max_score": 2850,
+      "min_duration_ms": 15000,
+      "max_duration_ms": 92000,
+      "base": 2850,
+      "max_pps": 2850,
+      "enabled": false
+    },
+    "museum-guard": {
+      "title": "Museum Guard",
+      "kind": "points",
+      "max_score": 3900,
+      "min_duration_ms": 10000,
+      "max_duration_ms": 92000,
+      "base": 3900,
+      "max_pps": 3900,
+      "enabled": false
+    },
+    "luggage-rush": {
+      "title": "Airport Luggage Rush",
+      "kind": "points",
+      "max_score": 7500,
+      "min_duration_ms": 10000,
+      "max_duration_ms": 122000,
+      "base": 7500,
+      "max_pps": 7500,
+      "enabled": false
+    },
+    "dino-egg-rescue": {
+      "title": "Dino Egg Rescue",
+      "kind": "points",
+      "max_score": 6000,
+      "min_duration_ms": 10000,
+      "max_duration_ms": 92000,
+      "base": 6000,
+      "max_pps": 6000,
+      "enabled": false
+    },
+    "delivery-drone": {
+      "title": "Delivery Drone",
+      "kind": "points",
+      "max_score": 6000,
+      "min_duration_ms": 10000,
+      "max_duration_ms": 200000,
+      "base": 6000,
+      "max_pps": 6000,
+      "enabled": false
+    },
+    "shopping-cart": {
+      "title": "Crazy Shopping Cart",
+      "kind": "points",
+      "max_score": 3000,
+      "min_duration_ms": 10000,
+      "max_duration_ms": 77000,
+      "base": 3000,
+      "max_pps": 3000,
+      "enabled": false
+    },
+    "snowball-battle": {
+      "title": "Snowball Battle",
+      "kind": "points",
+      "max_score": 4500,
+      "min_duration_ms": 10000,
+      "max_duration_ms": 92000,
+      "base": 4500,
+      "max_pps": 4500,
+      "enabled": false
+    },
+    "ghost-vacuum": {
+      "title": "Ghost Vacuum",
+      "kind": "points",
+      "max_score": 5250,
+      "min_duration_ms": 10000,
+      "max_duration_ms": 122000,
+      "base": 5250,
+      "max_pps": 5250,
+      "enabled": false
+    },
+    "construction-worker": {
+      "title": "Construction Worker",
+      "kind": "points",
+      "max_score": 9000,
+      "min_duration_ms": 20000,
+      "max_duration_ms": 152000,
+      "base": 9000,
+      "max_pps": 9000,
+      "enabled": false
+    },
+    "alien-farm": {
+      "title": "Alien Farm",
+      "kind": "points",
+      "max_score": 6000,
+      "min_duration_ms": 10000,
+      "max_duration_ms": 102000,
+      "base": 6000,
+      "max_pps": 6000,
+      "enabled": false
+    },
+    "mini-golf": {
+      "title": "Mini Golf 3D",
+      "kind": "points",
+      "max_score": 6750,
+      "min_duration_ms": 30000,
+      "max_duration_ms": 900000,
+      "base": 6750,
+      "max_pps": 6750,
+      "enabled": false
+    },
+    "robot-factory": {
+      "title": "Robot Factory Sorter",
+      "kind": "points",
+      "max_score": 6000,
+      "min_duration_ms": 10000,
+      "max_duration_ms": 92000,
+      "base": 6000,
+      "max_pps": 6000,
+      "enabled": false
+    },
+    "pirate-cannons": {
+      "title": "Pirate Cannon Battle",
+      "kind": "points",
+      "max_score": 9000,
+      "min_duration_ms": 10000,
+      "max_duration_ms": 92000,
+      "base": 9000,
+      "max_pps": 9000,
+      "enabled": false
+    },
+    "castle-defender": {
+      "title": "Castle Defender",
+      "kind": "points",
+      "max_score": 7500,
+      "min_duration_ms": 10000,
+      "max_duration_ms": 200000,
+      "base": 7500,
+      "max_pps": 7500,
+      "enabled": false
+    },
+    "penguin-slide": {
+      "title": "Penguin Ice Slide",
+      "kind": "points",
+      "max_score": 75000,
+      "min_duration_ms": 3000,
+      "max_duration_ms": 900000,
+      "base": 75000,
+      "max_pps": 75000,
+      "enabled": false
+    },
+    "space-repair": {
+      "title": "Space Repair Mission",
+      "kind": "points",
+      "max_score": 4500,
+      "min_duration_ms": 10000,
+      "max_duration_ms": 122000,
+      "base": 4500,
+      "max_pps": 4500,
+      "enabled": false
+    },
+    "monster-kitchen": {
+      "title": "Monster Kitchen",
+      "kind": "points",
+      "max_score": 6000,
+      "min_duration_ms": 10000,
+      "max_duration_ms": 92000,
+      "base": 6000,
+      "max_pps": 6000,
+      "enabled": false
+    },
+    "knight-arena": {
+      "title": "Knight Training Arena",
+      "kind": "points",
+      "max_score": 9000,
+      "min_duration_ms": 58000,
+      "max_duration_ms": 62000,
+      "base": 9000,
+      "max_pps": 9000,
+      "enabled": false
+    },
+    "zoo-escape": {
+      "title": "Zoo Escape",
+      "kind": "points",
+      "max_score": 4500,
+      "min_duration_ms": 20000,
+      "max_duration_ms": 200000,
+      "base": 4500,
+      "max_pps": 4500,
+      "enabled": false
+    },
+    "rocket-landing": {
+      "title": "Rocket Landing Challenge",
+      "kind": "points",
+      "max_score": 4500,
+      "min_duration_ms": 15000,
+      "max_duration_ms": 300000,
+      "base": 4500,
+      "max_pps": 4500,
+      "enabled": false
     }
   }
 }

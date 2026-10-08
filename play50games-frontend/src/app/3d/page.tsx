@@ -6,7 +6,7 @@ import Footer from "@/components/Footer/Footer";
 import SectionTabs from "@/components/Nav/SectionTabs";
 import ArcadeGrid from "@/arcade3d/ui/ArcadeGrid";
 import { ARCADE_ENABLED, ARCADE_LEADERBOARD } from "@/arcade3d/flags";
-import { ARCADE_GAMES, getLiveGames } from "@/arcade3d/registry";
+import { getLiveGames, getVisibleGames, getVisibleSections } from "@/arcade3d/registry";
 import { arcadeJsonLd, serializeJsonLd } from "@/lib/seo/jsonLd";
 import ArcadeScoreSync from "./ArcadeScoreSync";
 import ArcadePrivacyToggle from "./ArcadePrivacyToggle";
@@ -25,6 +25,7 @@ export const metadata: Metadata = ARCADE_ENABLED
      };
 
 function ComingSoon() {
+   const total = getVisibleGames().length;
    return (
       <section className={styles.soon} aria-labelledby="arcade-title">
          <p className={styles.eyebrow}>New collection</p>
@@ -32,7 +33,7 @@ function ComingSoon() {
             3D Arcade is coming soon
          </h1>
          <p className={styles.lead}>
-            Ten quick 3D mini-games for keyboard and touch are on the way. They open one at a time, and each one keeps
+            {total} quick 3D mini-games for keyboard and touch are on the way. They open one at a time, and each one keeps
             its own best score and leaderboard.
          </p>
          <Link href="/classic" className={styles.cta}>
@@ -44,7 +45,7 @@ function ComingSoon() {
 
 function ArcadeIntro() {
    const live = getLiveGames().length;
-   const total = ARCADE_GAMES.length;
+   const total = getVisibleGames().length;
    return (
       <section className={styles.intro} aria-labelledby="arcade-title">
          <h1 id="arcade-title" className={styles.title}>
@@ -60,6 +61,25 @@ function ArcadeIntro() {
             <li>{live > 0 ? `${live} playable now` : "First game coming soon"}</li>
          </ul>
       </section>
+   );
+}
+
+// One grid per collection; a single section (production today: the originals only) shows no heading,
+// so the page looks as it did before the expansion.
+function ArcadeSections() {
+   const sections = getVisibleSections();
+   if (sections.length === 1) return <ArcadeGrid games={sections[0].games} />;
+   return (
+      <>
+         {sections.map((section) => (
+            <section key={section.id} className={styles.section} aria-labelledby={`arcade-${section.id}`}>
+               <h2 id={`arcade-${section.id}`} className={styles.sectionTitle}>
+                  {section.title}
+               </h2>
+               <ArcadeGrid games={section.games} />
+            </section>
+         ))}
+      </>
    );
 }
 
@@ -79,7 +99,7 @@ export default function ArcadePage() {
             {ARCADE_ENABLED ? (
                <>
                   <ArcadeIntro />
-                  <ArcadeGrid games={ARCADE_GAMES} />
+                  <ArcadeSections />
                   {ARCADE_LEADERBOARD && <ArcadePrivacyToggle />}
                </>
             ) : (

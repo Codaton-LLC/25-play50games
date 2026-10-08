@@ -2,9 +2,11 @@ import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { ARCADE_SLUGS } from "@/arcade3d/types";
-import { getGameMeta } from "@/arcade3d/registry";
+import { ARCADE_GAMES, getGameMeta } from "@/arcade3d/registry";
 import { OG_IMAGE_HEIGHT, OG_IMAGE_WIDTH, OG_IMAGES, gameOgImagePath, ogImage } from "./ogImages";
+
+/** Games production can show ("live" / "soon"); a "dev" game gets its card and thumbnail before it leaves dev. */
+const SHOWN_SLUGS = ARCADE_GAMES.filter((game) => game.status !== "dev").map((game) => game.slug);
 
 const PUBLIC = fileURLToPath(new URL("../../../public", import.meta.url));
 
@@ -42,7 +44,7 @@ describe("Open Graph cards", () => {
       expect(buf.byteLength).toBeLessThanOrEqual(200 * 1024);
    });
 
-   it.each(ARCADE_SLUGS)("%s has its own 1200x630 card under 200 KB", (slug) => {
+   it.each(SHOWN_SLUGS)("%s has its own 1200x630 card under 200 KB", (slug) => {
       expect(gameOgImagePath(slug)).toBe(`/images/og/3d/${slug}.png`);
       const buf = publicFile(gameOgImagePath(slug));
       expect(pngSize(buf)).toEqual({ width: OG_IMAGE_WIDTH, height: OG_IMAGE_HEIGHT });
@@ -63,7 +65,7 @@ describe("Open Graph cards", () => {
 });
 
 describe("arcade thumbnails", () => {
-   it.each(ARCADE_SLUGS)("%s meta.thumbnail is a 640x360 WebP under 60 KB", (slug) => {
+   it.each(SHOWN_SLUGS)("%s meta.thumbnail is a 640x360 WebP under 60 KB", (slug) => {
       const thumbnail = getGameMeta(slug)?.thumbnail;
       expect(thumbnail).toBe(`/images/3d/${slug}.webp`);
       const buf = publicFile(thumbnail as string);

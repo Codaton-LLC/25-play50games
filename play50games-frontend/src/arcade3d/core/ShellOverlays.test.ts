@@ -167,7 +167,7 @@ describe("HUD chips", () => {
       expect(hudShowsScore(escapeRoomMeta.scoring.kind)).toBe(false);
       expect(hudShowsScore(obstacleRaceMeta.scoring.kind)).toBe(false);
       expect(hudShowsScore(robotCollectorMeta.scoring.kind)).toBe(true);
-      expect(ARCADE_GAMES).toHaveLength(10);
+      expect(ARCADE_GAMES).toHaveLength(30);
       const hidden = ARCADE_GAMES.filter((meta) => !hudShowsScore(meta.scoring.kind)).map((meta) => meta.slug);
       expect(hidden.sort()).toEqual(["escape-room", "obstacle-race"]);
    });

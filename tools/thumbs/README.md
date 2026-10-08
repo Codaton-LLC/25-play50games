@@ -57,6 +57,13 @@ Chrome is launched with a temporary profile and closed by the script itself
 failed games (99 = setup error, 130 = interrupted); a summary table (slug,
 ok/fail, KB, path) prints at the end.
 
+Any slug in `ARCADE_SLUGS` is accepted (read from `src/arcade3d/types.ts`; a
+`"dev"` game needs a preview build with `NEXT_PUBLIC_ARCADE_PREVIEW=1`); without
+`--slugs` the games with a script of their own are captured. A game's script is
+`inputs/<slug>.mjs` (default export: the step array; owned by the game's owner),
+else its entry in `inputs.mjs`, else a generic script (`scripts.mjs`, which
+`tools/perf` reuses through `loadInputScript`).
+
 Per-game input scripts live in `inputs.mjs` — one data entry per game, easy to
 tune (tap / hold / down / up / click-at-canvas-fraction / wait steps). The shot
 is taken right after the last step, so end a script on a held key (`down`) or a

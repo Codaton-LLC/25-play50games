@@ -9,7 +9,7 @@ import CollectionPanel from "@/components/Hub/CollectionPanel";
 import ArcadeTeaserStrip from "@/components/Hub/ArcadeTeaserStrip";
 import ClassicProgressBadge from "@/components/Hub/ClassicProgressBadge";
 import { ARCADE_ENABLED } from "@/arcade3d/flags";
-import { ARCADE_GAMES } from "@/arcade3d/registry";
+import { getVisibleGames } from "@/arcade3d/registry";
 import { hubJsonLd, serializeJsonLd } from "@/lib/seo/jsonLd";
 import { OG_IMAGES, ogImage } from "@/lib/seo/ogImages";
 import styles from "./page.module.css";
@@ -66,6 +66,7 @@ const STEPS = [
 ];
 
 export default function HubPage() {
+   const arcadeGames = getVisibleGames();
    return (
       <div className={styles.page}>
          <script
@@ -79,7 +80,7 @@ export default function HubPage() {
          <main>
             <HubHero
                title="Play50Games"
-               subtitle="50 classic brain games. 10 new 3D arcade worlds. One place to play."
+               subtitle={`50 classic brain games. ${arcadeGames.length} new 3D arcade worlds. One place to play.`}
                primaryCta={{ label: "Play Classic 50 Games", href: "/classic" }}
                secondaryCta={ARCADE_CTA}
             />
@@ -110,16 +111,16 @@ export default function HubPage() {
                      href={ARCADE_ENABLED ? "/3d" : "#arcade"}
                      ctaLabel={ARCADE_ENABLED ? "Enter the 3D Arcade" : "Coming soon"}
                      stats={[
-                        { label: "mini-games", value: "10" },
+                        { label: "mini-games", value: String(arcadeGames.length) },
                         { label: "leaderboard per game", value: "1" },
                         { label: "unlocks needed", value: "0" },
                      ]}
                   >
                      {ARCADE_ENABLED ? (
-                        <ArcadeTeaserStrip games={ARCADE_GAMES} />
+                        <ArcadeTeaserStrip games={arcadeGames} />
                      ) : (
                         <p className={styles.soon}>
-                           Ten 3D mini-games are on the way. They launch one at a
+                           {arcadeGames.length} 3D mini-games are on the way. They launch one at a
                            time, each with its own leaderboard.
                         </p>
                      )}

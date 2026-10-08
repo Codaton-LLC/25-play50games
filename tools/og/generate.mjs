@@ -184,6 +184,11 @@ async function writeCard(name, pixels) {
 }
 
 async function gameCard(game) {
+   // a game without its in-game thumbnail yet (a new "dev" game) gets no card: skip, do not fail
+   if (!existsSync(thumbPath(game.slug))) {
+      console.log(`3d/${game.slug}.png  skipped (no thumbnail yet)`);
+      return;
+   }
    const thumb = await roundedThumb(readThumb(game.slug));
    const layers = [
       { input: thumb, left: FRAME.x, top: FRAME.y },
