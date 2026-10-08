@@ -156,6 +156,13 @@ export interface ModelAsset {
 
 export type TouchControl = "joystick" | "jump" | "action" | "swipe" | "tap";
 
+/**
+ * The lights ShellStage sets up (core/README.md "Lighting presets"): day, indoor, night, and for
+ * the expansion worlds sunset (warm, low sun), snow (bright, cool, soft shadows) and space (one hard
+ * white sun, almost no fill).
+ */
+export type LightingPreset = "day" | "indoor" | "night" | "sunset" | "snow" | "space";
+
 export interface GameDefinition {
    slug: ArcadeSlug;
    /** rendered inside the <Canvas> */
@@ -180,9 +187,11 @@ export interface GameDefinition {
    environment?: {
       background: string;
       fog?: [color: string, near: number, far: number];
-      lighting: "day" | "indoor" | "night";
+      lighting: LightingPreset;
    };
    touchControls: TouchControl[];
+   /** Labels of the touch Jump / Action buttons (default "Jump" / "Action"), e.g. { action: "Throw" }. */
+   touchLabels?: { jump?: string; action?: string };
    hudStats?: Array<{ key: string; label: string; max?: number }>;
    /** short lines shown on the start screen */
    instructions: string[];

@@ -2,8 +2,10 @@
 
 // The <Canvas> part of GameShell: renderer settings, adaptive resolution, environment, run clock,
 // input latch, lazy Rapier physics and the game's Scene (remounted for every run via runId, with
-// a fresh useGameTime clock). Frame order: core/frameLoop.ts FRAME_PRIORITY.
-import { Suspense, lazy, useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+// a fresh useGameTime clock and a fresh effects layer, core/fx), the quality tier (core/quality.ts)
+// and, with ?perf=1 in the URL, the perf probe (core/perfProbe.tsx). Frame order: core/frameLoop.ts
+// FRAME_PRIORITY.
+import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Canvas, useFrame, type RootState } from "@react-three/fiber";
 import { PerformanceMonitor } from "@react-three/drei";
 import type { GameDefinition } from "./types";
@@ -12,6 +14,10 @@ import { FRAME_PRIORITY, advanceRunClock } from "./frameLoop";
 import { GameTimeProvider } from "./gameTime";
 import { InputLatch } from "./input";
 import CameraRig from "./CameraRig";
+import { QualityProvider, qualityFor } from "./quality";
+import { useCoarsePointer } from "./TouchControls";
+import { FxLayer } from "./fx/FxLayer";
+import PerfProbe, { perfProbeRequested } from "./perfProbe";
 
 /** Rapier (and its WASM) is a separate chunk, fetched only by games with `physics: true`. */
 const RapierPhysics = lazy(() => import("@react-three/rapier").then((mod) => ({ default: mod.Physics })));
@@ -64,6 +70,30 @@ function Lights({ preset }: { preset: Environment["lighting"] }) {
                <directionalLight position={[-4, 8, 2]} intensity={0.75} color="#c7d2fe" />
             </>
          );
+      case "sunset":
+         return (
+            <>
+               <ambientLight intensity={0.25} />
+               <hemisphereLight args={["#fed7aa", "#3b0764", 0.85]} />
+               <directionalLight position={[-8, 4, 3]} intensity={1.5} color="#fdba74" />
+            </>
+         );
+      case "snow":
+         return (
+            <>
+               <ambientLight intensity={0.35} />
+               <hemisphereLight args={["#f0f9ff", "#94a3b8", 1.05]} />
+               <directionalLight position={[4, 9, 3]} intensity={1.2} color="#e0f2fe" />
+            </>
+         );
+      case "space":
+         return (
+            <>
+               <ambientLight intensity={0.1} />
+               <hemisphereLight args={["#a5b4fc", "#020617", 0.35]} />
+               <directionalLight position={[6, 6, 8]} intensity={2} color="#ffffff" />
+            </>
+         );
       case "day":
       default:
          return (
@@ -106,9 +136,16 @@ export default function ShellStage({ definition, frameloop, onContextLost, label
    const runId = useArcadeStore((state) => state.runId);
    const [maxDpr, setMaxDpr] = useState(MAX_DPR);
    const declinesRef = useRef(0);
+   // the quality tier only goes down: every decline counts, inclines do not undo it
+   const [declines, setDeclines] = useState(0);
+   const coarsePointer = useCoarsePointer();
+   const quality = useMemo(() => qualityFor({ declines, coarsePointer }), [declines, coarsePointer]);
+   // ?perf=1, read once (ShellStage mounts on the client only)
+   const [perf] = useState(perfProbeRequested);
    const onDecline = useCallback(() => {
       declinesRef.current += 1;
       setMaxDpr(LOW_DPR);
+      setDeclines(declinesRef.current);
    }, []);
    const onIncline = useCallback(() => {
       if (declinesRef.current < MAX_DECLINES) setMaxDpr(MAX_DPR);
@@ -148,18 +185,24 @@ export default function ShellStage({ definition, frameloop, onContextLost, label
          role="img"
       >
          <PerformanceMonitor onDecline={onDecline} onIncline={onIncline} />
+         {perf && <PerfProbe />}
          <SceneEnvironment environment={environment} />
          <CameraRig camera={camera} />
          <InputLatch />
          <RunClock />
-         <Suspense fallback={null}>
-            <PhysicsGate enabled={!!physics}>
-               <GameTimeProvider key={runId}>
-                  <Scene />
-               </GameTimeProvider>
-            </PhysicsGate>
-            <ReadySignal />
-         </Suspense>
+         <QualityProvider value={quality}>
+            <Suspense fallback={null}>
+               <PhysicsGate enabled={!!physics}>
+                  <GameTimeProvider key={runId}>
+                     {/* mounts nothing until the Scene uses an effect (core/fx) */}
+                     <FxLayer>
+                        <Scene />
+                     </FxLayer>
+                  </GameTimeProvider>
+               </PhysicsGate>
+               <ReadySignal />
+            </Suspense>
+         </QualityProvider>
       </Canvas>
    );
 }

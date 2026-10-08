@@ -34,6 +34,7 @@ import ShellStage from "./ShellStage";
 import ErrorBoundary from "./ErrorBoundary";
 import { assetUrls, clearModelCache } from "./assets";
 import { initAudio, playSfx, toggleMuted, useMuted } from "./audio";
+import { loopsStopOn, stopShellLoops } from "./loopControl";
 import { trackArcade } from "./analytics";
 import { useLeaderboard } from "./useLeaderboard";
 import { FocusButton, HudButtons, HudChips, LeaderboardBlock, Overlay, StartCard } from "./ShellOverlays";
@@ -48,7 +49,7 @@ import {
    type SubmitResult,
 } from "./scores";
 import { formatDuration } from "./format";
-import { isPausable, isResultShown } from "./frameLoop";
+import { isPausable, isResultShown, pauseKeyAction } from "./frameLoop";
 import { createRunTickets } from "./runTicket";
 import { ARCADE_LEADERBOARD } from "../flags";
 import { useAuth } from "@/contexts/AuthContext";
@@ -227,6 +228,7 @@ export default function GameShell({ meta, definition, exitHref = "/3d" }: GameSh
    const [showLogin, setShowLogin] = useState(false);
    const [showRegister, setShowRegister] = useState(false);
    const wrongOrientation = useWrongOrientation(meta.orientation, coarse);
+   const muted = useMuted();
 
    const canvasWrapRef = useRef<HTMLDivElement>(null);
    const hudRef = useRef<HTMLDivElement>(null);
@@ -285,6 +287,13 @@ export default function GameShell({ meta, definition, exitHref = "/3d" }: GameSh
 
    // audio unlocks on the first gesture
    useEffect(() => initAudio(), []);
+
+   // looping sounds (core/loopControl.ts) fall silent when the game closes and when the player
+   // mutes. TODO(P-06): core/audio.ts registers its stopAllLoops with registerLoopStopper.
+   useEffect(() => () => stopShellLoops(), []);
+   useEffect(() => {
+      if (muted) stopShellLoops();
+   }, [muted]);
 
    // no pull-to-refresh / rubber-banding while the game is open
    useEffect(() => {
@@ -365,6 +374,8 @@ export default function GameShell({ meta, definition, exitHref = "/3d" }: GameSh
          // every new run (Play, Retry, Restart from pause or from the countdown) asks for its ticket
          if (state.phase === "countdown" && state.runId !== prev.runId) tickets.onRunStart(state.runId, slug);
          if (state.phase === prev.phase) return;
+         // a paused or ended run falls silent (TODO(P-06): audio's stopAllLoops is registered then)
+         if (loopsStopOn(prev.phase, state.phase)) stopShellLoops();
          if (state.phase === "playing" && prev.phase === "countdown") {
             playSfx("go");
             trackArcade("arcade_start", { game: slug, score: 0, duration_ms: 0 });
@@ -376,23 +387,22 @@ export default function GameShell({ meta, definition, exitHref = "/3d" }: GameSh
       });
    }, [definition, meta.slug, meta.scoring, exit, tickets]);
 
-   // Esc / P toggle pause
+   // Esc / P toggle pause; never behind the "Rotate your device" overlay (the run stays paused
+   // until the phone is turned back)
    useEffect(() => {
       const onKey = (event: KeyboardEvent) => {
          if (event.code !== "Escape" && event.code !== "KeyP") return;
          if (showLogin || showRegister || stageError || isEditable(event.target)) return;
          const state = arcadeStore.getState();
-         if (isPausable(state.phase)) {
-            event.preventDefault();
-            state.pause();
-         } else if (state.phase === "paused" && !contextLost) {
-            event.preventDefault();
-            state.resume();
-         }
+         const action = pauseKeyAction(state.phase, { contextLost, wrongOrientation });
+         if (!action) return;
+         event.preventDefault();
+         if (action === "pause") state.pause();
+         else state.resume();
       };
       window.addEventListener("keydown", onKey);
       return () => window.removeEventListener("keydown", onKey);
-   }, [showLogin, showRegister, stageError, contextLost]);
+   }, [showLogin, showRegister, stageError, contextLost, wrongOrientation]);
 
    // leaving the tab or the window pauses
    useEffect(() => {
@@ -517,7 +527,7 @@ export default function GameShell({ meta, definition, exitHref = "/3d" }: GameSh
                      </ErrorBoundary>
                   )}
                   {!stageFailed && (phase === "countdown" || phase === "playing") && (
-                     <TouchControls controls={definition.touchControls} />
+                     <TouchControls controls={definition.touchControls} labels={definition.touchLabels} />
                   )}
                   <TouchControlsProbe controls={definition.touchControls} probeRef={probeRef} />
                </div>

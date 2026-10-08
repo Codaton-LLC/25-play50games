@@ -180,6 +180,14 @@ function HoldButton({ button, label }: { button: TouchButton; label: string }) {
 
 export interface TouchControlsProps {
    controls: TouchControl[];
+   /** GameDefinition.touchLabels: the Jump / Action button texts (default "Jump" / "Action") */
+   labels?: { jump?: string; action?: string };
+}
+
+/** The touch buttons' texts: the game's labels (trimmed, non-empty) or "Jump" / "Action". */
+export function touchButtonLabels(labels?: TouchControlsProps["labels"]): { jump: string; action: string } {
+   const pick = (value: string | undefined, fallback: string) => (value && value.trim() ? value.trim() : fallback);
+   return { jump: pick(labels?.jump, "Jump"), action: pick(labels?.action, "Action") };
 }
 
 /**
@@ -205,8 +213,9 @@ export function TouchControlsProbe({ controls, probeRef }: TouchControlsProps & 
    );
 }
 
-export default function TouchControls({ controls }: TouchControlsProps) {
+export default function TouchControls({ controls, labels }: TouchControlsProps) {
    const coarse = useCoarsePointer();
+   const text = touchButtonLabels(labels);
    const joystick = controls.includes("joystick");
    const jump = controls.includes("jump");
    const action = controls.includes("action");
@@ -218,8 +227,8 @@ export default function TouchControls({ controls }: TouchControlsProps) {
          {joystick && <Joystick />}
          {(jump || action) && (
             <div className={styles.buttons}>
-               {action && <HoldButton button="action" label="Action" />}
-               {jump && <HoldButton button="jump" label="Jump" />}
+               {action && <HoldButton button="action" label={text.action} />}
+               {jump && <HoldButton button="jump" label={text.jump} />}
             </div>
          )}
       </div>
