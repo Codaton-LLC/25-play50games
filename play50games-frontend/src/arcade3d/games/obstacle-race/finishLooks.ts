@@ -1,7 +1,9 @@
 // Looks at the finish (Scene.tsx; the rules never read them): the arch fading while a runner who
 // jumped over the line cheers behind it, and the cheering runner's arm kept out of the arch's leg
-// when it finished hugging a post. Pure, allocation-free; finishLooks.test.ts checks both on the
-// real meshes and the real rules. README "Scene and camera".
+// when it finished hugging a post. Pure, allocation-free in the frame loop (fadeCopy runs once per
+// mount); finishLooks.test.ts checks both on the real meshes and the real rules, finishArch.test.ts
+// the fade copies. README "Scene and camera".
+import { FrontSide, type Material } from "three";
 import { POSE_MASK, aimArm, blendPoses, copyPose, type HumanoidPose } from "@/arcade3d/core/rig";
 import type { EndReason, RunPhase } from "@/arcade3d/core/types";
 import { ARCH, LINES } from "./rules";
@@ -19,6 +21,28 @@ export const ARCH_FADE_PAST = 0.6;
 /** The arch's target opacity: faded only through the result delay of a win that ended past the line. */
 export function archOpacity(phase: RunPhase, endReason: EndReason | null, runnerZ: number): number {
    return phase === "over" && endReason === "win" && -runnerZ > LINES.finish + ARCH_FADE_PAST ? ARCH_FADED : 1;
+}
+
+/**
+ * The arch mount's own copy of one of its materials, for the fade: transparent from the start (a
+ * material turning transparent in the cheer would build a new program there), fully opaque until
+ * archOpacity says otherwise, and drawn from the front only. The GLB's material is double-sided,
+ * and three.js draws a transparent double-sided material in two passes every frame (back faces,
+ * then front faces), flagging it for update before each pass, so its program is looked up again
+ * twice a frame and its uniforms uploaded in full: measured 2026-10-08 on a 4x CPU throttle,
+ * 0.5-0.65 ms and about 6 KB of allocations a frame averaged over a run (7-8 % of three.js's render
+ * time), plus a second draw call (README "Performance"). The follow camera only ever sees the
+ * arch's front (yaw 0, from +z) and the GLB is a closed solid wound outward (finishArch.test.ts),
+ * so its back faces never show: FrontSide draws the same picture in one pass, and the faded arch
+ * shows its near surface at ARCH_FADED (the two passes stacked the far one under it). The
+ * stand-in's banner plane faces +z too.
+ */
+export function fadeCopy<T extends Material>(material: T): T {
+   const copy = material.clone();
+   copy.transparent = true;
+   copy.opacity = 1;
+   copy.side = FrontSide;
+   return copy;
 }
 
 /**

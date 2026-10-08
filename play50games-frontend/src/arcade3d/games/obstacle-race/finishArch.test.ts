@@ -2,16 +2,17 @@
 // meshopt-decoded mesh, no turn, no offset (core <Model>). Collision is the rules' two post circles
 // (ARCH), never the mesh, so the drawn legs must stand on them and nothing else may hang in the
 // runner's way. README "Assets".
-import { statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { Box3, Vector3 } from "three";
+import { BackSide, Box3, DoubleSide, FrontSide, MeshStandardMaterial, Vector3, type Material } from "three";
 import { hasModel } from "@/arcade3d/core/modelManifest";
 import { readCharacterGlb } from "@/arcade3d/core/rig/robotGlb";
 import { PROP_BUDGET } from "@/arcade3d/core/sharedAssets";
 import type { ModelAsset } from "@/arcade3d/core/types";
 import { ARCH_GLB, ASSETS } from "./assets";
 import { LANDSCAPE, PORTRAIT } from "./camera";
+import { fadeCopy } from "./finishLooks";
 import { ARCH, RUNNER } from "./rules";
 
 const asset: ModelAsset = ASSETS.finishArch;
@@ -102,5 +103,79 @@ describe("obstacle-race finish arch GLB", () => {
       expect(banner.max.x - banner.min.x).toBeGreaterThan(3.9);
       expect(banner.max.z - banner.min.z).toBeLessThan(0.35);
       expect(Math.abs(banner.min.z + banner.max.z)).toBeLessThan(0.05);
+   });
+});
+
+/** three.js WebGLRenderer renderObject: a transparent double-sided material is drawn in two passes a frame. */
+const twoPass = (m: Material) => m.transparent && m.side === DoubleSide && !m.forceSinglePass;
+
+describe("obstacle-race finish arch: the fade copies draw in one pass", () => {
+   it("the GLB is a closed solid wound outward, so drawn front-sided it shows what double-sided showed", async () => {
+      const { cloud, indices } = await readCharacterGlb(asset.url);
+      // vertices welded by position (UV seams split them)
+      const weld = new Map<string, number>();
+      const id = (i: number) => {
+         const key = `${Math.round(cloud[i * 3] * 1e4)},${Math.round(cloud[i * 3 + 1] * 1e4)},${Math.round(cloud[i * 3 + 2] * 1e4)}`;
+         if (!weld.has(key)) weld.set(key, weld.size);
+         return weld.get(key)!;
+      };
+      // every edge is shared by exactly two triangles that run along it in opposite directions
+      // (closed, one consistent winding), and the signed volume is positive (that winding faces out)
+      const edges = new Map<string, { n: number; dir: number }>();
+      let volume = 0;
+      const a = new Vector3();
+      const b = new Vector3();
+      const c = new Vector3();
+      for (let t = 0; t < indices.length; t += 3) {
+         const [i, j, k] = [indices[t], indices[t + 1], indices[t + 2]];
+         a.fromArray(cloud, i * 3);
+         b.fromArray(cloud, j * 3);
+         c.fromArray(cloud, k * 3);
+         volume += a.dot(b.clone().cross(c)) / 6;
+         for (const [u, v] of [
+            [id(i), id(j)],
+            [id(j), id(k)],
+            [id(k), id(i)],
+         ]) {
+            const key = u < v ? `${u},${v}` : `${v},${u}`;
+            const edge = edges.get(key) ?? { n: 0, dir: 0 };
+            edge.n += 1;
+            edge.dir += u < v ? 1 : -1;
+            edges.set(key, edge);
+         }
+      }
+      expect(edges.size).toBeGreaterThan(1000);
+      for (const edge of edges.values()) {
+         expect(edge.n).toBe(2);
+         expect(edge.dir).toBe(0);
+      }
+      expect(volume).toBeGreaterThan(0.01);
+   });
+
+   it("fadeCopy: transparent, opaque until the fade, front-sided; the GLB's shared material untouched", () => {
+      // the GLB's material is double-sided: made transparent as it is, three.js would draw it twice a frame
+      const glb = readFileSync(path.join(process.cwd(), "public", asset.url));
+      const json = JSON.parse(glb.subarray(20, 20 + glb.readUInt32LE(12)).toString("utf8")) as { materials: Array<{ doubleSided?: boolean }> };
+      expect(json.materials.length).toBeGreaterThan(0);
+      expect(json.materials.every((m) => m.doubleSided === true)).toBe(true);
+      const naive = new MeshStandardMaterial({ side: DoubleSide }).clone();
+      naive.transparent = true;
+      expect(twoPass(naive)).toBe(true);
+      // the copies the Scene fades: one pass, whatever side the original had (the stand-in's are front and double)
+      for (const side of [FrontSide, BackSide, DoubleSide]) {
+         const original = new MeshStandardMaterial({ side, color: "#ff0000" });
+         const copy = fadeCopy(original);
+         expect(copy).not.toBe(original);
+         expect(copy.transparent).toBe(true);
+         expect(copy.opacity).toBe(1);
+         expect(copy.side).toBe(FrontSide);
+         expect(twoPass(copy)).toBe(false);
+         expect(copy.color.getHexString()).toBe("ff0000");
+         expect(original.side).toBe(side);
+         expect(original.transparent).toBe(false);
+      }
+      // and the Scene's FinishArch makes its copies with it
+      const scene = readFileSync(new URL("./Scene.tsx", import.meta.url), "utf8");
+      expect(scene).toMatch(/const c = fadeCopy\(m\);/);
    });
 });
