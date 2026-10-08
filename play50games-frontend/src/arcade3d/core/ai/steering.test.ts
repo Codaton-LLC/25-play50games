@@ -3,6 +3,18 @@ import { createRng } from "../math";
 import { arrive, flee, seek, separate, wander } from "./steering";
 const agent = () => ({ x: 0, y: 0, z: 0, vx: 1, vy: 0, vz: 0, yaw: 0 });
 describe("steering", () => {
+   it("gives every coincident agent a deterministic nonzero push", () => {
+      const neighbors = [agent(), agent(), agent()];
+      const out = { x: 0, y: 0, z: 0 }, repeat = { ...out };
+      for (const a of neighbors) {
+         separate(a, neighbors, 1, 2, out); separate(a, neighbors, 1, 2, repeat);
+         expect(Math.hypot(out.x, out.y, out.z)).toBeGreaterThan(0.1);
+         expect(out).toEqual(repeat);
+      }
+      const pair = neighbors.slice(0, 2);
+      separate(pair[0], pair, 1, 2, out); separate(pair[1], pair, 1, 2, repeat);
+      expect(out.x).toBe(-repeat.x); expect(out.z).toBeCloseTo(-repeat.z);
+   });
    it("seeks, arrives and flees with reused output", () => {
       const a = agent(), target = { x: 10, y: 0, z: 0 }, out = { x: 0, y: 0, z: 0 };
       expect(seek(a, target, 3, out)).toBe(out); expect(out.x).toBe(2);

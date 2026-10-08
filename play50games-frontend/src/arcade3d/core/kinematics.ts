@@ -61,14 +61,18 @@ export function substep(dt: number, maxStep: number, fn: (dt: number) => void): 
    for (let i = 0; i < n; i++) fn(dt / n);
    return n;
 }
-export interface FixedStepState { acc: number }
+export interface FixedStepState { acc: number; step?: number }
 /** Initialize once; retain state and callback between display frames. */
 export function createFixedStep(step: number): FixedStepState {
    if (!(step > 0) || !Number.isFinite(step)) throw new RangeError("Invalid fixed step");
-   return { acc: 0 };
+   return { acc: 0, step };
 }
 /** Run at most eight whole steps, dropping excess whole steps but retaining the remainder. */
-export function fixedStep(state: FixedStepState, dt: number, step: number, fn: (dt: number) => void): number {
+export function fixedStep(state: FixedStepState, dt: number, fn: (dt: number) => void): number;
+export function fixedStep(state: FixedStepState, dt: number, step: number, fn: (dt: number) => void): number;
+export function fixedStep(state: FixedStepState, dt: number, stepOrFn: number | ((dt: number) => void), callback?: (dt: number) => void): number {
+   const step = typeof stepOrFn === "number" ? stepOrFn : state.step ?? 0;
+   const fn = typeof stepOrFn === "function" ? stepOrFn : callback!;
    if (!(dt > 0) || !Number.isFinite(dt) || !(step > 0) || !Number.isFinite(step)) return 0;
    const total = state.acc + dt;
    const whole = Math.floor(total / step + 1e-10);
