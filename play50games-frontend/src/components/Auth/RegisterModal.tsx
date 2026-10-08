@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { XMarkIcon } from '@heroicons/react/24/outline';
+import styles from './AuthModal.module.css';
 
 interface RegisterModalProps {
   isOpen: boolean;
@@ -156,8 +157,8 @@ export default function RegisterModal({ isOpen, onClose, onRegister, onSwitchToL
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+    <div className={`modal-overlay ${styles.overlay}`} onClick={onClose}>
+      <div className={`modal-content ${styles.content}`} onClick={(e) => e.stopPropagation()}>
         <button className="modal-close" onClick={onClose}>
           <XMarkIcon style={{ width: 24, height: 24 }} />
         </button>

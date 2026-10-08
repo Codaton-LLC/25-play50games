@@ -1,0 +1,45 @@
+/* Login / Register modals, on top of the shared .modal-overlay / .modal-content look (globals.css).
+   The cookie banner (PrivacyConsent) is fixed to the bottom at z-index 1000, so the modal sits above
+   it; on short screens (landscape phones) the card can be taller than the window, so the overlay
+   scrolls and the card starts at the top: the title and the submit button can always be reached.
+   Each rule names the global class too, so it wins whatever order the stylesheets load in. */
+.overlay:global(.modal-overlay) {
+   z-index: 1001;
+   align-items: flex-start;
+   overflow-y: auto;
+   overscroll-behavior: contain;
+   -webkit-overflow-scrolling: touch;
+}
+
+.content:global(.modal-content) {
+   /* centred while it fits, top-aligned (never clipped) once it does not */
+   margin-block: auto;
+   flex-shrink: 0;
+}
+
+/* landscape phones: a tighter card, so the Login card fits the window whole */
+@media (max-height: 500px) {
+   .overlay:global(.modal-overlay) {
+      padding: 0.5rem 1rem;
+   }
+
+   .content:global(.modal-content) {
+      padding: 1.25rem 1.5rem;
+   }
+
+   .content:global(.modal-content) h2 {
+      margin-bottom: 0.75rem;
+   }
+
+   .content :global(.form-group) {
+      margin-bottom: 0.75rem;
+   }
+
+   .content :global(.form-group) label {
+      margin-bottom: 0.25rem;
+   }
+
+   .content :global(.form-group) input {
+      padding: 0.5rem 0.75rem;
+   }
+}
