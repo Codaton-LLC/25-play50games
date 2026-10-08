@@ -1,4 +1,4 @@
-// Expansion GLBs (sharedAssets EXPANSION_ASSETS, batches 1-3): listed in the manifest, within the
+// Expansion GLBs (sharedAssets EXPANSION_ASSETS, batches 1-3 and tier 3): listed in the manifest, within the
 // catalog's budgets, and drawn at the catalog's target size by their default fit, measured on the
 // real, meshopt-decoded meshes through core modelParts (what <Model> / <InstancedModel> draw).
 import { readFileSync, statSync } from "node:fs";
@@ -53,6 +53,12 @@ const TARGETS: Record<ExpansionAssetId, { x?: number; y?: number; z?: number }> 
    castleTower: { y: 6 },
    glowPod: { y: 1 },
    panda: { z: 1 },
+   // tier 3
+   bust: { y: 0.6 },
+   mushroom: { y: 0.5 },
+   plane: { z: 8 },
+   crab: { x: 0.35 },
+   gourd: { y: 0.6 },
 };
 
 /** Solid creatures optimized with the character profile (1024 px textures, up to 1.5 MB). */
@@ -85,7 +91,7 @@ function glbInfo(url: string): { bytes: number; meshes: number; primitives: numb
 
 describe("expansion GLBs", () => {
    it("every url is in the manifest, a plain prop (no rig, no humanoid)", () => {
-      expect(IDS).toHaveLength(22);
+      expect(IDS).toHaveLength(27);
       for (const id of IDS) {
          const asset = EXPANSION_ASSETS[id];
          expect(asset.id).toBe(id);
@@ -111,6 +117,7 @@ describe("expansion GLBs", () => {
       const caps: Record<ExpansionAssetId, number> = {
          chest: 4000, cannon: 4000, rock: 3000, fish: 1500, pineTree: 3000, penguin: 8000, ship: 5000, cart: 4000, suitcase: 2500, monster: 8000, cauldron: 3000,
          dino: 12000, drone: 3000, rocket: 3000, windmill: 4000, leafyTree: 3000, vacuum: 2500, dummy: 3000, goblin: 4500, castleTower: 4000, glowPod: 2000, panda: 10000,
+         bust: 3000, mushroom: 2000, plane: 4000, crab: 2000, gourd: 3000,
       };
       for (const id of IDS) expect(EXPANSION_ASSETS[id].budget.tris, id).toBeLessThanOrEqual(caps[id]);
    });
@@ -258,5 +265,26 @@ describe("expansion GLBs", () => {
       const trunk = tree.filter((p) => p.y > 0.2 && p.y < 0.6 && Math.hypot(p.x, p.z) < 0.6);
       expect(trunk.length).toBeGreaterThan(0);
       expect(Math.max(...trunk.map((p) => Math.hypot(p.x, p.z)))).toBeLessThan(r + 0.01);
+   });
+   it("v2 suitcase: only the trolley handle rises above the shell; tier 3 fronts face +z", async () => {
+      const suitcase = await drawn(EXPANSION_ASSETS.suitcase);
+      const shellTop = expansionPoint(EXPANSION_ASSETS.suitcase, EXPANSION_GLB_POINTS.suitcaseShellTop).y;
+      const above = suitcase.filter((p) => p.y > shellTop + 0.05);
+      expect(above.length).toBeGreaterThan(0);
+      expect(Math.max(...above.map((p) => Math.abs(p.x))), "the handle is narrower than the shell").toBeLessThan(0.15);
+      expect(Math.max(...above.map((p) => p.z)), "the handle stands at the back").toBeLessThan(0);
+
+      // the plane's nose (propeller) is the +z end, on the centre line; the wings spread along x
+      const plane = await drawn(EXPANSION_ASSETS.plane);
+      const nose = Math.max(...plane.map((p) => p.z));
+      for (const p of plane.filter((q) => q.z > nose - 0.3)) expect(Math.abs(p.x)).toBeLessThan(0.6);
+      const span = new Box3().setFromPoints(plane).getSize(new Vector3());
+      expect(span.x).toBeGreaterThan(span.z);
+
+      // the crab's eyes sit on the front of its shell: the upper part of the model leans to +z
+      const crab = await drawn(EXPANSION_ASSETS.crab);
+      const top = Math.max(...crab.map((p) => p.y));
+      const upper = crab.filter((q) => q.y > top * 0.7);
+      expect(upper.reduce((sum, p) => sum + p.z, 0) / upper.length).toBeGreaterThan(0.01);
    });
 });

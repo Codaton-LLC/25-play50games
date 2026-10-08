@@ -298,7 +298,13 @@ export type ExpansionAssetId =
    | "goblin"
    | "castleTower"
    | "glowPod"
-   | "panda";
+   | "panda"
+   // tier 3 (class E decor)
+   | "bust"
+   | "mushroom"
+   | "plane"
+   | "crab"
+   | "gourd";
 
 /**
  * The optimized GLBs' bounds in GLB units (x = width, y = height, z = depth, before rotationY),
@@ -308,13 +314,15 @@ export type ExpansionAssetId =
 export const EXPANSION_GLB_SIZE = {
    chest: { width: 1.8972, height: 1.634, depth: 1.5005 },
    cannon: { width: 1.3736, height: 1.4473, depth: 1.8975 },
-   rock: { width: 1.9001, height: 1.0708, depth: 1.8181 },
+   // v2 (2026-10-08, regenerated grey stone, same url)
+   rock: { width: 1.9011, height: 0.8989, depth: 1.857 },
    fish: { width: 0.6609, height: 1.1352, depth: 1.8988 },
    pineTree: { width: 1.3784, height: 1.9181, depth: 1.3535 },
    penguin: { width: 1.9003, height: 1.8671, depth: 1.2884 },
    ship: { width: 1.2975, height: 1.7119, depth: 1.8944 },
    cart: { width: 1.2879, height: 1.897, depth: 1.6085 },
-   suitcase: { width: 0.9811, height: 1.9003, depth: 0.5362 },
+   // v2 (2026-10-08, same url): the extended trolley handle is still there
+   suitcase: { width: 1.0493, height: 1.8981, depth: 0.5448 },
    monster: { width: 1.8973, height: 1.7788, depth: 1.2314 },
    cauldron: { width: 1.9041, height: 1.2522, depth: 1.6892 },
    // batch 2-3
@@ -329,6 +337,12 @@ export const EXPANSION_GLB_SIZE = {
    castleTower: { width: 1.3862, height: 1.91, depth: 1.4204 },
    glowPod: { width: 1.2724, height: 1.8995, depth: 1.0186 },
    panda: { width: 1.1989, height: 1.6446, depth: 1.8992 },
+   // tier 3
+   bust: { width: 1.2118, height: 1.9114, depth: 1.0072 },
+   mushroom: { width: 1.8782, height: 1.9016, depth: 1.8658 },
+   plane: { width: 1.9045, height: 0.8171, depth: 1.628 },
+   crab: { width: 1.9036, height: 1.3386, depth: 1.5298 },
+   gourd: { width: 1.7987, height: 1.8942, depth: 1.1177 },
 } as const satisfies Record<ExpansionAssetId, { width: number; height: number; depth: number }>;
 
 /** Points measured on the GLBs (GLB units, before the fit; `expansionPoint` maps them to metres). */
@@ -348,8 +362,11 @@ export const EXPANSION_GLB_POINTS = {
    cauldronInnerRim: { x: 0, y: 1.235, z: 0 },
    /** the cauldron's inner floor (the bottom of its interior) */
    cauldronInnerFloor: { x: 0, y: 0.263, z: 0 },
-   /** the top of the suitcase's hard shell; the extended trolley handle rises above it to y 1.90 */
-   suitcaseShellTop: { x: 0, y: 1.475, z: 0 },
+   /**
+    * The top of the suitcase's hard shell (v2: flat at 1.46-1.47 across it); the extended trolley handle
+    * rises above it to y 1.90 at its back (z -0.2), a short carry handle to 1.55 beside it.
+    */
+   suitcaseShellTop: { x: 0, y: 1.47, z: 0 },
    // batch 2-3
    /** the top of the dino's back at mid-body (the egg stack's base): flat within 1 cm from z -0.3 to 0, the frill rises from z 0.1 */
    dinoBackTop: { x: 0, y: 0.756, z: -0.1 },
@@ -444,7 +461,8 @@ export const EXPANSION_ASSETS: Record<ExpansionAssetId, ModelAsset> = {
    // and shorter than the catalog's: stretch x 0.88, z 1.18.
    cart: expansion("cart", "shopping-cart", { scale: 1 / EX.cart.height, stretch: [0.6 / (EX.cart.width / EX.cart.height), 1, 1 / (EX.cart.depth / EX.cart.height)], rotationY: Math.PI }, "box", "#e5e7eb", 4000),
    // upright, front +z: the shell 0.5 wide x 0.7 tall x 0.25 deep (the game lays it on the belt).
-   // The GLB has an extended trolley handle above the shell: drawn 0.90 m tall in all.
+   // The v2 GLB (regenerated without the handle in its prompt) still has an extended trolley handle
+   // above the shell at its back: drawn 0.90 m tall in all.
    suitcase: expansion("suitcase", "luggage-rush", {
       scale: 0.7 / EXPANSION_GLB_POINTS.suitcaseShellTop.y,
       stretch: [0.5 / (EX.suitcase.width * (0.7 / EXPANSION_GLB_POINTS.suitcaseShellTop.y)), 1, 0.25 / (EX.suitcase.depth * (0.7 / EXPANSION_GLB_POINTS.suitcaseShellTop.y))],
@@ -479,6 +497,18 @@ export const EXPANSION_ASSETS: Record<ExpansionAssetId, ModelAsset> = {
    glowPod: expansion("glowPod", "alien-farm", { scale: 1 / EX.glowPod.height }, "sphere", "#22d3ee", 2000),
    // 1.0 m long on all fours, faces +z
    panda: expansion("panda", "zoo-escape", { scale: 1 / EX.panda.depth }, "capsule", "#f8fafc", 10000, CHARACTER_BUDGET.bytes),
+
+   // tier 3 (class E decor, 2026-10-08)
+   // 0.6 m tall on its short round foot, face +z (a marble head and shoulders)
+   bust: expansion("bust", "museum-guard", { scale: 0.6 / EX.bust.height }, "capsule", "#f5f5f4", 3000),
+   // 0.5 m tall, cap 0.49 across
+   mushroom: expansion("mushroom", "shared", { scale: 0.5 / EX.mushroom.height }, "sphere", "#dc2626", 2000),
+   // 8 m long, nose (propeller) +z: a single-propeller toy plane, wingspan 9.4 m, 4.0 m tall on its wheels
+   plane: expansion("plane", "luggage-rush", { scale: 8 / EX.plane.depth }, "box", "#e0f2fe", 4000),
+   // 0.35 m wide across its claws, eyes +z
+   crab: expansion("crab", "treasure-island", { scale: 0.35 / EX.crab.width }, "sphere", "#ef4444", 2000),
+   // 0.6 m tall with its curled tendrils (they spread along x)
+   gourd: expansion("gourd", "alien-farm", { scale: 0.6 / EX.gourd.height }, "sphere", "#22d3ee", 3000),
 };
 
 /**
