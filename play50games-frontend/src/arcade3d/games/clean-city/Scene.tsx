@@ -12,7 +12,8 @@
 //   the runner; the rig eases toward it (it only snaps on mount), so the view does not jump.
 // - The runner of the rules is drawn as the cleaner (cleaner.glb, auto-rigged): its gait (gait.ts)
 //   keeps the planted foot still at every speed in straight-line travel (while it turns the foot
-//   swings with the body: README "The cleaner"); a reach on each pickup, a cheer on a map clear.
+//   swings with the body: README "The cleaner"); a stoop to each piece it picks up (pickup.ts: the
+//   nearer hand reaches for where the piece lay), a cheer on a map clear.
 // - Litter: one <DynamicInstancedModel> pool per kind (PER_KIND = 5 copies), the stand-in parts
 //   (useLitterStandIns) as its fallbackParts. Collected copies hide. Map props: one InstancedModel
 //   per kind, all three maps mounted, Worlds sets visible from run.map in a useFrame. The park and
@@ -30,6 +31,7 @@ import { DynamicInstancedModel } from "@/arcade3d/core/assets";
 import { BlobShadow, DynamicInstanced } from "@/arcade3d/core/render";
 import {
    BONE,
+   BONE_COUNT,
    HumanoidModel,
    POSE_MASK,
    blendPoses,
@@ -37,7 +39,7 @@ import {
    cheerPose,
    createPose,
    idlePose,
-   reachPose,
+   resolvePose,
    useHumanoidPose,
    walkPose,
    type HumanoidPose,
@@ -49,6 +51,7 @@ import { ASSETS, CLEANER_LANDMARKS } from "./assets";
 import { DAMPING, FOLLOW, FOV, LOOK_AT, REACH, VIEW } from "./camera";
 import { CityDecor, ParkDecor } from "./Decor";
 import { CLEANER_SCALE, createCleanerGait, gaitFrameDt, stepCleanerGait } from "./gait";
+import { createPickupMark, localOffset, notePickup, pickupPose, type LocalOffset, type PickupMark } from "./pickup";
 import { cheerWeight, reachWeight } from "./poseWeights";
 import { Beach, City, Park, PrimitiveRunner, RUNNER_RING, useLitterStandIns, type RunnerLimbs } from "./Primitives";
 import {
@@ -265,6 +268,10 @@ function Litter({ run, fx }: { run: CleanRun; fx: LitterFx }) {
 
 const LIMB_Q = new Quaternion();
 const LIMB_E = new Euler();
+const RESOLVED = new Float32Array(BONE_COUNT * 4);
+const ARM_Q = new Quaternion();
+const ARM_DIR = new Vector3();
+const DOWN = new Vector3(0, -1, 0);
 
 function boneEuler(pose: HumanoidPose, bone: number): Euler {
    const o = bone * 4;
@@ -272,9 +279,13 @@ function boneEuler(pose: HumanoidPose, bone: number): Euler {
    return LIMB_E.setFromQuaternion(LIMB_Q, "XYZ");
 }
 
-/** The stand-in is built arms-down. Hanging bones swing on x; a raised arm (drop 0) lifts from the side. */
+/**
+ * The stand-in is built arms-down. Hanging leg bones swing on x; each arm hangs along its arm's
+ * direction in the chest's frame (the rig's own, resolvePose: hanging, swinging, reaching down to a
+ * piece, up in the cheer), and the body leans forward with the stoop of a pickup.
+ */
 function applyRunnerLimbs(pose: HumanoidPose, limbs: RunnerLimbs): void {
-   const { legL, legR, armL, armR } = limbs;
+   const { legL, legR, armL, armR, bob } = limbs;
    if (legL) {
       const e = boneEuler(pose, BONE.upperLegL);
       legL.rotation.set(-e.x, 0, e.z);
@@ -283,22 +294,30 @@ function applyRunnerLimbs(pose: HumanoidPose, limbs: RunnerLimbs): void {
       const e = boneEuler(pose, BONE.upperLegR);
       legR.rotation.set(-e.x, 0, e.z);
    }
-   if (armL) poseArm(pose, BONE.upperArmL, pose.dropL, armL, 1);
-   if (armR) poseArm(pose, BONE.upperArmR, pose.dropR, armR, -1);
+   resolvePose(pose, CLEANER_LANDMARKS.armSpread, RESOLVED);
+   // the stand-in faces +z with its armL at -x: that is the character's right arm (its left is +x)
+   if (armL) poseArm(BONE.clavicleR, BONE.upperArmR, -1, armL);
+   if (armR) poseArm(BONE.clavicleL, BONE.upperArmL, 1, armR);
+   if (bob) bob.rotation.x = boneEuler(pose, BONE.spine).x + boneEuler(pose, BONE.chest).x * 0.5;
 }
 
-function poseArm(pose: HumanoidPose, bone: number, drop: number, arm: Group, side: number): void {
-   const e = boneEuler(pose, bone);
-   const raised = 1 - drop;
-   arm.rotation.set(-e.x * drop - 1.15 * raised, 0, side * 0.85 * raised);
+/** Points a stand-in arm (built hanging along -y) where the rig's upper arm points: clavicle x upper arm x (side, 0, 0). */
+function poseArm(clavicle: number, bone: number, side: number, arm: Group): void {
+   const c = clavicle * 4;
+   const u = bone * 4;
+   ARM_Q.set(RESOLVED[c], RESOLVED[c + 1], RESOLVED[c + 2], RESOLVED[c + 3]);
+   LIMB_Q.set(RESOLVED[u], RESOLVED[u + 1], RESOLVED[u + 2], RESOLVED[u + 3]);
+   ARM_DIR.set(side, 0, 0).applyQuaternion(LIMB_Q).applyQuaternion(ARM_Q);
+   arm.quaternion.setFromUnitVectors(DOWN, ARM_DIR);
 }
 
 /**
  * The cleaner (cleaner.glb, this game's character): idle when still, a walk or a run whose stride
- * keeps the planted foot still (gait.ts), a short reach on each pickup, and a cheer when a map is
- * cleared and on the win (poseWeights.ts: eased in, held, eased out quickly through level).
- * cleaner.glb (auto-rigged) takes the pose; the primitive, shown while it loads or if it fails,
- * moves with the same pose.
+ * keeps the planted foot still (gait.ts), a stoop down to each piece it picks up (pickup.ts: knees
+ * and back bent, the nearer hand reaching for where the piece lay, the soles on the floor), and a
+ * cheer when a map is cleared and on the win (poseWeights.ts: eased in, held, eased out quickly
+ * through level). cleaner.glb (auto-rigged) takes the pose; the primitive, shown while it loads or if
+ * it fails, moves with the same pose.
  */
 function Cleaner({ run }: { run: CleanRun }) {
    const time = useGameTime();
@@ -307,8 +326,9 @@ function Cleaner({ run }: { run: CleanRun }) {
    const standIn = useRef<Group>(null);
    const limbs = useRef<RunnerLimbs>({ legL: null, legR: null, armL: null, armR: null, bob: null });
    const [gait] = useState(createCleanerGait);
-   const fx = useRef({ collected: 0, map: 0, won: false, reachAt: -10, cheerAt: -10 });
+   const fx = useRef<PickupMark>(createPickupMark());
    const [scratch] = useState(createPose);
+   const [local] = useState<LocalOffset>(() => ({ x: 0, z: 0 }));
    const pose = useHumanoidPose((p) => {
       const t = time.now;
       const r = run.runner;
@@ -320,16 +340,15 @@ function Cleaner({ run }: { run: CleanRun }) {
       stepCleanerGait(gait, phase === "playing" ? Math.hypot(r.vx, r.vz) : 0, gaitFrameDt(store, time.delta));
       walkPose(gait.phase, gait.amount, p);
       blendPoses(p, idlePose(t, scratch), 1 - Math.min(1, gait.amount * 5), p, POSE_MASK.upper);
-      const mark = fx.current;
-      const won = phase === "over" && endReason === "win";
-      if (run.collected > mark.collected) mark.reachAt = t;
-      mark.collected = run.collected;
-      if (run.map > mark.map || (won && !mark.won)) mark.cheerAt = t;
-      mark.map = run.map;
-      mark.won = won;
+      // a map's 20th piece or the win: a cheer; any other pickup: a stoop to where that piece lay (pickup.ts)
+      const mark = notePickup(fx.current, run, t, phase === "over" && endReason === "win", local);
+      const won = mark.won;
       const reach = reachWeight(t - mark.reachAt);
       const cheer = cheerWeight(t - mark.cheerAt, won);
-      if (reach > 0.001) blendPoses(p, reachPose(1, 0.35, scratch), reach, p, POSE_MASK.arms);
+      if (reach > 0.001) {
+         localOffset(mark.pieceX - r.x, mark.pieceZ - r.z, r.heading, local);
+         pickupPose(p, reach, mark.side, local.x, local.z, scratch);
+      }
       if (cheer > 0.001) blendPoses(p, cheerPose(t, scratch), cheer, p);
       gait.lift = bodyLift(p, CLEANER_LANDMARKS) * CLEANER_SCALE;
    });
@@ -347,7 +366,8 @@ function Cleaner({ run }: { run: CleanRun }) {
       b.position.y = standIn.current
          ? won ? Math.abs(Math.sin(t * 7)) * 0.2 : Math.abs(Math.sin(gait.phase)) * 0.04 * gait.amount
          : gait.lift;
-      applyRunnerLimbs(pose, limbs.current);
+      // the stand-in's limbs only while it is drawn (HumanoidModel resolves the pose for cleaner.glb)
+      if (standIn.current) applyRunnerLimbs(pose, limbs.current);
    });
 
    return (

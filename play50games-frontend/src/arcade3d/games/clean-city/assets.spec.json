@@ -31,7 +31,7 @@
          "id": "bin",
          "kind": "prop",
          "mode": "text",
-         "prompt": "green public litter bin with a domed lid, a front opening and a short base, single isolated prop, no ground, game-ready low-poly",
+         "prompt": "green public litter bin with a flat lid, a short base, single isolated prop, no ground, game-ready low-poly",
          "concept": "tools/hyper3d/concepts/clean-city-bin.webp",
          "tier": "Gen-2.5-Medium",
          "qualityOverride": 1500,

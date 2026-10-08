@@ -2,15 +2,17 @@
 // measured CLEANER_LANDMARKS match what the heuristics find, its poses keep the feet on the floor,
 // the hands clear of the hips and the bearded head rigid (core/rig/characterChecks.ts); its scale
 // keeps it 0.95 tall. A new cleaner.glb must be re-measured. Then the game's own use of it on the
-// same mesh: the pickup reach and the cheer keep it above the floor, and through the gait (gait.ts)
+// same mesh: the pickup's stoop (pickup.ts) and the cheer keep it above the floor, the reaching hand
+// goes towards the piece and the head comes down, and through the gait (gait.ts)
 // the soles of the planted foot stay put at a walk and at the top-speed run (net over a stance;
 // within a walking stance they rock up to 2 cm, at a run under 4 mm).
 import { beforeAll, describe, expect, it } from "vitest";
 import { Vector3 } from "three";
-import { POSE_MASK, applyHumanoidPose, armsDownPose, blendPoses, bodyLift, cheerPose, createPose, idlePose, reachPose, walkPose } from "@/arcade3d/core/rig";
+import { POSE_MASK, applyHumanoidPose, armsDownPose, blendPoses, bodyLift, cheerPose, createPose, idlePose, walkPose } from "@/arcade3d/core/rig";
 import { describeCharacter, rigCharacter, type RiggedCharacter } from "@/arcade3d/core/rig/characterChecks";
 import { ASSETS, CLEANER_LANDMARKS } from "./assets";
 import { CLEANER_SCALE, createCleanerGait, stepCleanerGait } from "./gait";
+import { pickupPose, pickupSide } from "./pickup";
 
 const L = CLEANER_LANDMARKS;
 
@@ -72,14 +74,23 @@ describe("clean-city cleaner as the Scene drives it (cleaner.glb)", () => {
       return low;
    };
 
-   it("the pickup reach over a run, and the cheer, keep every vertex above the floor (the group raised by bodyLift)", () => {
+   it("the pickup (pickup.ts: the stoop to a piece ahead, beside or under it) at a stand, a walk and a run, and the cheer, keep every vertex above the floor (the group raised by bodyLift)", () => {
       const p = createPose();
       const scratch = createPose();
       for (let k = 0; k < 8; k++) {
-         for (const reach of [0.5, 1]) {
-            walkPose((k / 8) * Math.PI * 2, 1, p);
-            blendPoses(p, reachPose(1, 0.35, scratch), reach, p, POSE_MASK.arms);
-            expect(lowest(cleaner.posed(p, false)) + bodyLift(p, L), `phase ${k} reach ${reach}`).toBeGreaterThan(-0.005);
+         for (const amount of [0, 0.5, 1]) {
+            for (const [lx, lz] of [[0.35, 0.7], [-0.75, 0.15], [0.05, 0.05]] as const) {
+               for (const reach of [0.5, 1]) {
+                  walkPose((k / 8) * Math.PI * 2, amount, p);
+                  blendPoses(p, idlePose(1.3, scratch), 1 - Math.min(1, amount * 5), p, POSE_MASK.upper);
+                  pickupPose(p, reach, pickupSide(lx), lx, lz, scratch);
+                  const label = `phase ${k} amount ${amount} piece (${lx}, ${lz}) reach ${reach}`;
+                  const low = lowest(cleaner.posed(p, false)) + bodyLift(p, L);
+                  expect(low, label).toBeGreaterThan(-0.005);
+                  // at full weight it stands on the floor (the lowest sole vertex within 2.5 cm of it, GLB units)
+                  if (reach === 1) expect(low, label).toBeLessThan(0.05);
+               }
+            }
          }
          cheerPose(k * 0.3, p);
          expect(lowest(cleaner.posed(p, false)) + bodyLift(p, L), `cheer ${k}`).toBeGreaterThan(-0.005);
@@ -88,6 +99,46 @@ describe("clean-city cleaner as the Scene drives it (cleaner.glb)", () => {
             walkPose((k / 8) * Math.PI * 2, 0.6, p);
             blendPoses(p, cheerPose(k * 0.3, scratch), cheer, p);
             expect(lowest(cleaner.posed(p, false)) + bodyLift(p, L), `cheer ${k} at ${cheer}`).toBeGreaterThan(-0.005);
+         }
+      }
+   });
+
+   it("the pickup on the real mesh: the reaching hand (every vertex past the wrist) moves over 10 cm towards the piece and no higher, the other hand stays further from it, the head comes down over 10 cm (world units)", () => {
+      const rest = cleaner.glb.cloud;
+      const hand = (side: number) => {
+         const ids: number[] = [];
+         for (let i = 0; i < rest.length / 3; i++) if (side * rest[i * 3] > L.wristX) ids.push(i);
+         return ids;
+      };
+      const head: number[] = [];
+      for (let i = 0; i < rest.length / 3; i++) if (rest[i * 3 + 1] > 1.6) head.push(i);
+      const centroid = (world: Float32Array, ids: number[], lift: number) => {
+         const c = [0, 0, 0];
+         for (const i of ids) for (let a = 0; a < 3; a++) c[a] += world[i * 3 + a];
+         return [(c[0] / ids.length) * CLEANER_SCALE, (c[1] / ids.length + lift) * CLEANER_SCALE, (c[2] / ids.length) * CLEANER_SCALE];
+      };
+      const p = createPose();
+      const scratch = createPose();
+      for (const amount of [0, 0.5, 1]) {
+         for (const [lx, lz] of [[0, 0.8], [0.35, 0.7], [-0.35, 0.7], [0.75, 0.15], [-0.75, 0.15]] as const) {
+            const side = pickupSide(lx);
+            const label = `amount ${amount} piece (${lx}, ${lz})`;
+            const flat = (c: number[]) => Math.hypot(c[0] - lx, c[2] - lz);
+            idlePose(1.3, p);
+            const upright = cleaner.posed(p, false);
+            const near0 = centroid(upright, hand(side), bodyLift(p, L));
+            const head0 = centroid(upright, head, bodyLift(p, L));
+            walkPose(0.7, amount, p);
+            blendPoses(p, idlePose(1.3, scratch), 1 - Math.min(1, amount * 5), p, POSE_MASK.upper);
+            pickupPose(p, 1, side, lx, lz, scratch);
+            const world = cleaner.posed(p, false);
+            const lift = bodyLift(p, L);
+            const near = centroid(world, hand(side), lift);
+            const far = centroid(world, hand(-side), lift);
+            expect(flat(near0) - flat(near), label).toBeGreaterThan(0.1);
+            expect(near[1], label).toBeLessThanOrEqual(near0[1]);
+            expect(flat(near), label).toBeLessThan(flat(far));
+            expect(head0[1] - centroid(world, head, lift)[1], label).toBeGreaterThan(0.1);
          }
       }
    });

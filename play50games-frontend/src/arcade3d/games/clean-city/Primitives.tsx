@@ -13,7 +13,7 @@ import { InstancedModel } from "@/arcade3d/core/assets";
 import { Instanced, useCanvasTexture, type CanvasDraw, type InstancePart, type InstanceSpot } from "@/arcade3d/core/render";
 import type { ModelAsset } from "@/arcade3d/core/types";
 import { ASSETS } from "./assets";
-import { CITY_BUILDING, GLB_PROPS, PARK_TREE, type GlbKind } from "./propSpots";
+import { BASE_SETS, CITY_BUILDING, GLB_PROPS, PARK_TREE, type GlbKind } from "./propSpots";
 import { FLOOR_HALF, LITTER_KINDS, MAPS } from "./rules";
 
 // ---------- palette ----------
@@ -228,7 +228,11 @@ const GLB_FALLBACK: Record<GlbKind, ComponentType<PartsProps>> = {
    pole: UmbrellaParts,
 };
 
-/** Every GLB_PROPS entry of map `map`, and nothing else: its asset on its spots, its kind's primitive as the fallback. */
+/**
+ * Every GLB_PROPS entry of map `map`, and nothing else: its asset on its spots, its kind's primitive
+ * as the fallback. Then the bases of BASE_SETS (the palm planters, the umbrella stands), one
+ * <Instanced> per part, drawn under the GLB or its fallback alike.
+ */
 function GlbProps({ map }: { map: number }) {
    return (
       <>
@@ -236,6 +240,12 @@ function GlbProps({ map }: { map: number }) {
             const Fallback = GLB_FALLBACK[set.kind];
             return <Prop key={set.kind} asset={set.asset} spots={set.spots} fallback={<Fallback spots={set.spots} />} />;
          })}
+         {BASE_SETS.filter((set) => set.map === map).map(({ kind, part, spots }, i) => (
+            <Instanced key={`${kind}-base-${i}`} spots={spots} name={`${kind}-base`}>
+               <cylinderGeometry args={[part.radiusTop, part.radiusBottom, part.height, part.sides]} />
+               <meshStandardMaterial color={part.color} roughness={0.85} flatShading={part.sides <= 8} />
+            </Instanced>
+         ))}
       </>
    );
 }
