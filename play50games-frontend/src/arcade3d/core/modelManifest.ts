@@ -55,6 +55,20 @@ export const MODEL_MANIFEST: readonly string[] = [
    // clean-city's own character (2026-10-08): image-to-3D, Gen-2.5-Medium, static T-pose, 18k tris,
    // animated by the core auto-rig
    "/models/3d/clean-city/cleaner.glb",
+   // expansion batch 1 (2026-10-08): Rodin Gen-2.5-Medium (image-to-3D from concepts or
+   // text-to-3D, catalog §E.5), optimized with tools/hyper3d to the catalog's caps (1500-3000 tris;
+   // monster and penguin 8k with 1024 px textures); default fits in sharedAssets EXPANSION_ASSETS
+   "/models/3d/shared/chest.glb",
+   "/models/3d/shared/cannon.glb",
+   "/models/3d/shared/rock.glb",
+   "/models/3d/shared/fish.glb",
+   "/models/3d/shared/pineTree.glb",
+   "/models/3d/shared/penguin.glb",
+   "/models/3d/pirate-cannons/ship.glb",
+   "/models/3d/shopping-cart/cart.glb",
+   "/models/3d/luggage-rush/suitcase.glb",
+   "/models/3d/monster-kitchen/monster.glb",
+   "/models/3d/monster-kitchen/cauldron.glb",
 ];
 
 const LISTED: ReadonlySet<string> = new Set(MODEL_MANIFEST);

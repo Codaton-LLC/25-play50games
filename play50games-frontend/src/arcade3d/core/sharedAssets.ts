@@ -265,3 +265,126 @@ export const REUSED_ASSETS: Record<ReusedAssetId, ModelAsset> = {
    van: reused("van", "/models/3d/pigeon-crossing/van.glb", "box", "#e9edf3"),
    pigeon: reused("pigeon", "/models/3d/pigeon-crossing/pigeon.glb", "sphere", "#8192a9", CHARACTER_BUDGET),
 };
+
+/**
+ * Expansion batch 1 (2026-10-08): Hyper3D Rodin GLBs for the 20 expansion games, optimized with
+ * tools/hyper3d (docs/arcade-expansion/05-hyper3d-catalog.md §E.4 / §E.5). None of those games has a
+ * scene yet, so each entry carries a default fit: drawn as is, the model stands on y = 0 at the
+ * catalog's target size in metres, its front (the cannon's barrel, the ship's bow, the cart's
+ * handle) towards +z. A game spreads an entry to refit it (`{ ...EXPANSION_ASSETS.rock, scale }`)
+ * and derives that fit from EXPANSION_GLB_SIZE, never from copied numbers. Every optimized GLB is
+ * centred on x / z with its lowest point on y = 0, so no entry needs a yOffset.
+ */
+export type ExpansionAssetId =
+   | "chest"
+   | "cannon"
+   | "rock"
+   | "fish"
+   | "pineTree"
+   | "penguin"
+   | "ship"
+   | "cart"
+   | "suitcase"
+   | "monster"
+   | "cauldron";
+
+/**
+ * The optimized GLBs' bounds in GLB units (x = width, y = height, z = depth, before rotationY),
+ * measured 2026-10-08 (core/expansionAssets.test.ts checks them against the real meshes). Rodin
+ * scales the longest side to about 1.9.
+ */
+export const EXPANSION_GLB_SIZE = {
+   chest: { width: 1.8972, height: 1.634, depth: 1.5005 },
+   cannon: { width: 1.3736, height: 1.4473, depth: 1.8975 },
+   rock: { width: 1.9001, height: 1.0708, depth: 1.8181 },
+   fish: { width: 0.6609, height: 1.1352, depth: 1.8988 },
+   pineTree: { width: 1.3784, height: 1.9181, depth: 1.3535 },
+   penguin: { width: 1.9003, height: 1.8671, depth: 1.2884 },
+   ship: { width: 1.2975, height: 1.7119, depth: 1.8944 },
+   cart: { width: 1.2879, height: 1.897, depth: 1.6085 },
+   suitcase: { width: 0.9811, height: 1.9003, depth: 0.5362 },
+   monster: { width: 1.8973, height: 1.7788, depth: 1.2314 },
+   cauldron: { width: 1.9041, height: 1.2522, depth: 1.6892 },
+} as const satisfies Record<ExpansionAssetId, { width: number; height: number; depth: number }>;
+
+/** Points measured on the GLBs (GLB units, before the fit; `expansionPoint` maps them to metres). */
+export const EXPANSION_GLB_POINTS = {
+   /** the centre of the cannon's muzzle ring, on its front face (the barrel points +z, slightly up) */
+   cannonMuzzle: { x: 0, y: 1.036, z: 0.9488 },
+   /** the sloop's hull side top at midship (the deck edge); the keel is at y = 0 */
+   shipDeck: { x: 0, y: 0.495, z: 0 },
+   /**
+    * A waterline for the bob: 40 % of the midship side height, at the hull's widest band (the beam
+    * is greatest at y 0.2-0.4). A judgement, not a mesh feature: a game may sink it further.
+    */
+   shipWaterline: { x: 0, y: 0.2, z: 0 },
+   /** the middle of the red push bar (GLB -z, +z after rotationY π): where the runner's hands go */
+   cartHandle: { x: 0, y: 1.777, z: -0.7 },
+   /** the inner edge of the cauldron's rolled rim (radius 0.70 at its narrowest, y 1.1) */
+   cauldronInnerRim: { x: 0, y: 1.235, z: 0 },
+   /** the cauldron's inner floor (the bottom of its interior) */
+   cauldronInnerFloor: { x: 0, y: 0.263, z: 0 },
+   /** the top of the suitcase's hard shell; the extended trolley handle rises above it to y 1.90 */
+   suitcaseShellTop: { x: 0, y: 1.475, z: 0 },
+} as const;
+
+/** The cauldron's inner radius at its rim, GLB units (the liquid disc's radius × the fit's scale). */
+export const CAULDRON_INNER_RADIUS_GLB = 0.7;
+
+const EX = EXPANSION_GLB_SIZE;
+const expansion = (id: ExpansionAssetId, slug: string, fit: Pick<ModelAsset, "scale" | "stretch" | "rotationY">, fallback: ModelAsset["fallback"], fallbackColor: string, tris: number): ModelAsset => ({
+   id,
+   url: `/models/3d/${slug}/${id}.glb`,
+   ...fit,
+   fallback,
+   fallbackColor,
+   budget: { tris, bytes: PROP_BUDGET.bytes },
+});
+
+/**
+ * Default fits (budget = the catalog's tris cap, 300 KB). Where Rodin's proportions differ from the
+ * catalog's box the fit stretches the model to it (chest, cart, suitcase); a game that prefers the
+ * model's own proportions keeps `scale` and drops `stretch`.
+ */
+export const EXPANSION_ASSETS: Record<ExpansionAssetId, ModelAsset> = {
+   // 0.9 wide x 0.6 tall x 0.6 deep, lock plate +z. Rodin's chest is taller (1.63 / 1.90): the
+   // stretch flattens it by about a quarter.
+   chest: expansion("chest", "shared", { scale: 0.9 / EX.chest.width, stretch: [1, 0.6 / (EX.chest.height * (0.9 / EX.chest.width)), 0.6 / (EX.chest.depth * (0.9 / EX.chest.width))] }, "box", "#8b5a2b", 4000),
+   // 1.6 long, barrel +z
+   cannon: expansion("cannon", "shared", { scale: 1.6 / EX.cannon.depth }, "cylinder", "#b45309", 4000),
+   // a 1 m unit on its longest side (x); games vary scale / stretch / yaw per copy
+   rock: expansion("rock", "shared", { scale: 1 / EX.rock.width }, "sphere", "#78716c", 3000),
+   // 0.35 long, head +z
+   fish: expansion("fish", "shared", { scale: 0.35 / EX.fish.depth }, "capsule", "#f97316", 1500),
+   // 4 m tall
+   pineTree: expansion("pineTree", "shared", { scale: 4 / EX.pineTree.height }, "cylinder", "#166534", 3000),
+   // 0.8 m standing, faces +z (penguin-slide lays it on its belly in code)
+   penguin: expansion("penguin", "shared", { scale: 0.8 / EX.penguin.height }, "capsule", "#1f2937", 8000),
+   // the sloop: 6 m long, bow +z (dinghy x0.5, galleon x1.5 in the game)
+   ship: expansion("ship", "pirate-cannons", { scale: 6 / EX.ship.depth }, "box", "#92400e", 5000),
+   // 0.6 wide x 1.0 tall x 1.0 long, push handle +z (the GLB has it at -z). Rodin's cart is wider
+   // and shorter than the catalog's: stretch x 0.88, z 1.18.
+   cart: expansion("cart", "shopping-cart", { scale: 1 / EX.cart.height, stretch: [0.6 / (EX.cart.width / EX.cart.height), 1, 1 / (EX.cart.depth / EX.cart.height)], rotationY: Math.PI }, "box", "#e5e7eb", 4000),
+   // upright, front +z: the shell 0.5 wide x 0.7 tall x 0.25 deep (the game lays it on the belt).
+   // The GLB has an extended trolley handle above the shell: drawn 0.90 m tall in all.
+   suitcase: expansion("suitcase", "luggage-rush", {
+      scale: 0.7 / EXPANSION_GLB_POINTS.suitcaseShellTop.y,
+      stretch: [0.5 / (EX.suitcase.width * (0.7 / EXPANSION_GLB_POINTS.suitcaseShellTop.y)), 1, 0.25 / (EX.suitcase.depth * (0.7 / EXPANSION_GLB_POINTS.suitcaseShellTop.y))],
+   }, "box", "#d4d4d8", 2500),
+   // 1.4 m tall, faces +z
+   monster: expansion("monster", "monster-kitchen", { scale: 1.4 / EX.monster.height }, "capsule", "#ede9fe", 8000),
+   // 0.9 m wide across its side handles (x), the rim 0.81 across
+   cauldron: expansion("cauldron", "monster-kitchen", { scale: 0.9 / EX.cauldron.width }, "cylinder", "#334155", 3000),
+};
+
+/**
+ * A point measured on an expansion GLB (EXPANSION_GLB_POINTS, GLB units) where the asset's fit draws
+ * it, in metres relative to the model's origin: scale x stretch per GLB axis, then rotationY, then
+ * yOffset (the order <Model> applies them).
+ */
+export function expansionPoint(asset: Pick<ModelAsset, "scale" | "stretch" | "rotationY" | "yOffset">, p: { x: number; y: number; z: number }): { x: number; y: number; z: number } {
+   const s = asset.scale ?? 1, k = asset.stretch ?? [1, 1, 1], a = asset.rotationY ?? 0;
+   const x = p.x * s * k[0], y = p.y * s * k[1], z = p.z * s * k[2];
+   const c = Math.cos(a), sn = Math.sin(a);
+   return { x: x * c + z * sn, y: y + (asset.yOffset ?? 0), z: -x * sn + z * c };
+}
