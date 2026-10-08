@@ -22,7 +22,7 @@ Plan context: `docs/platform-plan.md` §3. If this file and the plan differ, thi
 | Files never edited | `includes/rest-api.php`. `functions.php` only gets guarded `require_once` lines (Claude) |
 | Prefixes | PHP functions `play50_arcade_*`, admin functions `play50_arcade_admin_*`, transients `p50a_*` |
 | Kill switch | `enabled:false` in `arcade-games.json`: that game's submit and leaderboard return 404 |
-| Run tokens | `POST /arcade/runs/start` issues a signed single-use ticket; a submit that carries `run_token` is verified (§7a). Enforcement switch `PLAY50_ARCADE_REQUIRE_RUN_TOKEN`, default **off**: tokenless submits (old clients) are accepted until it is turned on |
+| Run tokens | `POST /arcade/runs/start` issues a signed single-use ticket; a valid `run_token` on a submit is claimed once (§7a). Enforcement switch `PLAY50_ARCADE_REQUIRE_RUN_TOKEN`, default **off**: until it is turned on, tokenless submits (old clients) and submits whose ticket fails are accepted on the legacy path |
 
 Load order in `functions.php`, after the `rest-api.php` include:
 ```php
@@ -274,7 +274,7 @@ Body (`ArcadeSubmitBody`):
 | `slug` | string | `^[a-z0-9-]{1,40}$` |
 | `score` | int | Required for points games. Ignored for time games (may be missing) |
 | `duration_ms` | int | Required |
-| `run_token` | string | Optional while enforcement is off; required when it is on. The `run_token` from `POST /arcade/runs/start`, unchanged. Verified whenever present (§7a). Missing or `null` = tokenless |
+| `run_token` | string | Optional while enforcement is off; required when it is on. The `run_token` from `POST /arcade/runs/start`, unchanged. A valid ticket is claimed (single use); a failed one rejects only while enforcement is on (§7a). Missing or `null` = tokenless |
 
 "int" means a JSON integer (`is_int`) or a digit-only string up to 9 digits. Floats, negatives, booleans and `null` are `invalid_data`.
 
@@ -388,19 +388,20 @@ Design and threat model: [run-tokens.md](run-tokens.md). Tokens give replay/play
 
 **Enforcement switch.** `define('PLAY50_ARCADE_REQUIRE_RUN_TOKEN', true);` in `wp-config.php` (wins when defined; any value but `false`/`0`/`"0"`/`"false"` means on), else the option `play50_arcade_require_run_token` (`1`/`true` = on). Default **off**. `GET /arcade/games` reports it as `run_tokens.mode`.
 
-**Submit step 10c**, in this order (the first failure returns; rejections write nothing, so the ticket stays usable for a correct submit):
+**Submit step 10c**, in this order (the first failure decides; a failure writes nothing to the claims table, so the ticket stays usable for a correct submit). With enforcement **off**, a ticket failure never rejects an honest submit: a client could simply leave the ticket out, so a rejection would buy no security. The submit then continues on the legacy path under the unchanged rate, duration and score checks (already passed, steps 7-10), exactly like a tokenless one. A valid ticket is still claimed (single use) in both modes.
 
 | Check | Off (default) | On |
 |---|---|---|
 | `run_token` missing or `null` | Accepted on the legacy path; log `run_token tokenless <slug>` | `invalid_data` 400, `field: run_token`, `reason: required` |
-| Not exactly the ticket format | `reason: malformed` | same |
-| Claims table not ready (DB version ≠ 2) | Ticket ignored, legacy path; log `run_token not-ready <slug>` | `db_error` 500 |
-| Signature does not match this user, this slug and the ticket's own fields (another account, another game, a tampered time or nonce, a re-keyed site) | `reason: signature` | same |
-| `now_ms >= expires_ms` | `reason: expired` | same |
-| `duration_ms > now_ms − issued_ms + 1000` (`PLAY50_ARCADE_RUN_DURATION_SLACK_MS`; a backward server clock step lands here too) | `reason: elapsed`, `field: duration_ms` | same |
-| Claim: `INSERT IGNORE INTO {runs} (run_nonce, user_id, game_slug, issued_ms, expires_ms, used_ms)`; 0 rows → already used; `false` → `db_error` 500 | `reason: used` | same |
+| Not exactly the ticket format | Accepted on the legacy path; log `run_token malformed <slug> (optional, accepted)` | `reason: malformed` |
+| Claims table not ready (DB version ≠ 2) | Accepted on the legacy path; log `run_token not-ready <slug> (optional, accepted)` | `db_error` 500 |
+| Signature does not match this user, this slug and the ticket's own fields (another account, another game, a tampered time or nonce, a re-keyed site) | Accepted on the legacy path; log `run_token signature <slug> (optional, accepted)` | `reason: signature` |
+| `now_ms >= expires_ms` (a long pause, a late "Save to my account") | Accepted on the legacy path; log `run_token expired <slug> (optional, accepted)` | `reason: expired` |
+| `duration_ms > now_ms − issued_ms + 1000` (`PLAY50_ARCADE_RUN_DURATION_SLACK_MS`; a backward server clock step lands here too) | Accepted on the legacy path; log `run_token elapsed <slug> (optional, accepted)` | `reason: elapsed`, `field: duration_ms` |
+| Claim: `INSERT IGNORE INTO {runs} (run_nonce, user_id, game_slug, issued_ms, expires_ms, used_ms)`; 0 rows → already used | Accepted on the legacy path; log `run_token used <slug> (optional, accepted)` | `reason: used` |
+| Claim returns `false` (SQL error) | Accepted on the legacy path; log `run_token claim-error <slug> (optional, accepted)` | `db_error` 500 |
 
-Then the unchanged upsert (§9). The claim is one autocommitted statement before the upsert and is never undone: an upsert failure after it returns `db_error` and burns the ticket (the run stays saved on the device), and a "server has gone away" re-run of an applied claim reads as `used`. No transaction, no locking read. Every rejection logs `play50 arcade: run_token <reason> <slug>` (no user, IP, ticket or payload) and is `invalid_data` 400 with `field` and `reason`, never `unauthorized` (that would drop the JWT) or `forbidden`. Messages are fixed ("This run could not be verified. Play again to rank.").
+Then the unchanged upsert (§9). The claim is one autocommitted statement before the upsert and is never undone: an upsert failure after it returns `db_error` and burns the ticket (the run stays saved on the device), and a "server has gone away" re-run of an applied claim reads as `used` (rejected when on; accepted on the legacy path when off). No transaction, no locking read. With enforcement on, every rejection logs `play50 arcade: run_token <reason> <slug>` (no user, IP, ticket or payload) and is `invalid_data` 400 with `field` and `reason`, never `unauthorized` (that would drop the JWT) or `forbidden`; messages are fixed ("This run could not be verified. Play again to rank."). With it off, the same reasons appear in the log with the suffix ` (optional, accepted)`, which is the canary before switching on.
 
 The 3 s gap and the other submit limits run before step 10c, so a rejected ticket still spends submit budget and a rate-limited submit never touches its ticket.
 

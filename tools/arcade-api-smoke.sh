@@ -329,19 +329,25 @@ suite() {
       check 'start: ticket shape' 200 - '^\{"run_token":"r1\.[0-9]+\.[0-9]+\.[0-9a-f]{32}\.[0-9a-f]{64}"\}$' POST /arcade/runs/start jwt real "{\"slug\":\"$SLUG\"}"
       mint "$SLUG"
       local fresh=$ticket
-      check 'submit: malformed ticket' 400 invalid_data "${reason}malformed\"" POST /arcade/scores jwt real "$(run_with "$SLUG" "$OK_SCORE" "$OK_MS" 'r1.not-a-ticket')"; gap
-      check 'submit: ticket younger than the run' 400 invalid_data "${reason}elapsed\"" POST /arcade/scores jwt real "$(run_with "$SLUG" "$OK_SCORE" "$OK_MS" "$fresh")"; gap
+      local ok='"success"[[:space:]]*:[[:space:]]*true'
+      # bad CASE REASON BODY: required mode rejects with REASON; optional mode accepts on the legacy
+      # path (the server logs "run_token REASON SLUG (optional, accepted)")
+      bad() {
+         if [[ $token_mode == required ]]; then
+            check "submit: $1 rejected" 400 invalid_data "${reason}$2\"" POST /arcade/scores jwt real "$3"
+         else
+            check "submit: $1 accepted (optional)" 200 - "$ok" POST /arcade/scores jwt real "$3"
+         fi
+      }
+      bad 'malformed ticket' malformed "$(run_with "$SLUG" "$OK_SCORE" "$OK_MS" 'r1.not-a-ticket')"; gap
+      bad 'ticket younger than the run' elapsed "$(run_with "$SLUG" "$OK_SCORE" "$OK_MS" "$fresh")"; gap
       if [[ -n ${OTHER_SLUG:-} ]]; then
-         check 'submit: ticket of another game' 400 invalid_data "${reason}signature\"" POST /arcade/scores jwt real "$(run_with "$OTHER_SLUG" "$OK_SCORE" "$OK_MS" "$fresh")"; gap
+         bad 'ticket of another game' signature "$(run_with "$OTHER_SLUG" "$OK_SCORE" "$OK_MS" "$fresh")"; gap
       fi
       wait_for $((OK_MS / 1000 + 2))
-      check 'submit: aged ticket' 200 - '"success"[[:space:]]*:[[:space:]]*true' POST /arcade/scores jwt real "$(run_with "$SLUG" "$OK_SCORE" "$OK_MS" "$fresh")"; gap
-      check 'submit: replayed ticket' 400 invalid_data "${reason}used\"" POST /arcade/scores jwt real "$(run_with "$SLUG" "$OK_SCORE" "$OK_MS" "$fresh")"; gap
-      if [[ $token_mode == optional ]]; then
-         check 'submit: tokenless (old client) accepted' 200 - '"success"[[:space:]]*:[[:space:]]*true' POST /arcade/scores jwt real "$V"
-      else
-         check 'submit: tokenless rejected' 400 invalid_data "${reason}required\"" POST /arcade/scores jwt real "$V"
-      fi
+      check 'submit: aged ticket' 200 - "$ok" POST /arcade/scores jwt real "$(run_with "$SLUG" "$OK_SCORE" "$OK_MS" "$fresh")"; gap
+      bad 'replayed ticket' used "$(run_with "$SLUG" "$OK_SCORE" "$OK_MS" "$fresh")"; gap
+      bad 'tokenless (old client)' required "$V"
       ticket=""
       fresh=""
    fi

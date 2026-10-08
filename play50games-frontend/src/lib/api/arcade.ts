@@ -183,8 +183,9 @@ export interface MockArcadeOptions {
 }
 
 /**
- * In-memory stand-in for the WordPress API (dev only, and tests). Run tickets: issued per start,
- * accepted once for their own game; a missing ticket is fine unless `requireRunToken`.
+ * In-memory stand-in for the WordPress API (dev only, and tests). Run tickets: issued per start and
+ * claimed once for their own game. Like the server with enforcement off, a missing or failed ticket
+ * is accepted unless `requireRunToken`, which rejects it with the server's reason.
  */
 export function createMockArcadeClient(options: MockArcadeOptions = {}): ArcadeApiClient {
    const mockBest = new Map<ArcadeSlug, { score: number; duration_ms: number; plays: number; at: string }>();
@@ -203,13 +204,14 @@ export function createMockArcadeClient(options: MockArcadeOptions = {}): ArcadeA
          return { run_token };
       },
       async submit(body) {
+         // like the server: a valid ticket is claimed once; a failed one rejects only when required
          if (body.run_token === undefined) {
             if (options.requireRunToken) throw ticketError("required");
          } else {
             const ticket = tickets.get(body.run_token);
-            if (!ticket || ticket.slug !== body.slug) throw ticketError("signature");
-            if (ticket.used) throw ticketError("used");
-            ticket.used = true;
+            const failure = !ticket || ticket.slug !== body.slug ? "signature" : ticket.used ? "used" : null;
+            if (failure && options.requireRunToken) throw ticketError(failure);
+            if (ticket && !failure) ticket.used = true;
          }
          const prev = mockBest.get(body.slug);
          const isNewBest = !prev || body.score > prev.score;

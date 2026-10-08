@@ -203,6 +203,7 @@ class Fake_WPDB {
         return 0;
     }
     public function get_var($sql) {
+        $this->last_error = ''; // real wpdb::query() flushes the previous error
         $this->log[] = $sql;
         if (preg_match("/SHOW TABLES LIKE '([^']*)'/", $sql, $m) === 1) {
             $name = stripslashes(stripslashes($m[1])); // prepare() escaped esc_like()'s backslashes
@@ -218,6 +219,7 @@ class Fake_WPDB {
         return null;
     }
     public function get_row($sql, $output = null) {
+        $this->last_error = '';
         $this->log[] = $sql;
         if (preg_match("/FROM wp_play50_arcade_scores WHERE user_id = ([0-9]+) AND game_slug = '([^']*)'/", $sql, $m) === 1) {
             $key = $m[1] . '|' . $m[2];
@@ -225,7 +227,7 @@ class Fake_WPDB {
         }
         return null;
     }
-    public function get_results($sql, $output = null) { $this->log[] = $sql; return array(); }
+    public function get_results($sql, $output = null) { $this->log[] = $sql; $this->last_error = ''; return array(); }
     public function delete($table, $where, $format = null) {
         $this->log[] = 'DELETE ' . $table . ' ' . json_encode($where);
         if ($table === 'wp_play50_arcade_runs') {
@@ -405,6 +407,10 @@ ok($ok_count === 120, 'start: 120 per 10 minutes per IP');
 
 // ---------------------------------------------------------------- 3. submit: the happy path and replay
 
+// Sections 3-6 run with enforcement ON, where every ticket failure rejects. Section 7b checks that
+// the same failures fall back to the legacy path while enforcement is OFF.
+$GLOBALS['t_options']['play50_arcade_require_run_token'] = '1';
+
 $t = mint();
 advance(30000);
 $before = count($wpdb->log);
@@ -449,7 +455,7 @@ ok(reason_of(sub('', 30000)) === 'malformed', 'empty string -> malformed');
 ok(reason_of(sub(array($t), 30000)) === 'malformed', 'array -> malformed');
 ok(reason_of(sub(12345, 30000)) === 'malformed', 'number -> malformed');
 ok(reason_of(sub(str_repeat('a', 32), 30000)) === 'malformed', 'design-style 32 hex -> malformed');
-ok(code_of(sub(null, 30000)) === 'ok', 'null run_token = tokenless (enforcement off)');
+ok(reason_of(sub(null, 30000)) === 'required', 'null run_token = tokenless (enforcement on: required)');
 // none of the rejections above touched the ticket: it still submits once
 advance(3200);
 ok(code_of(sub($t, 30000)) === 'ok', 'rejections write nothing: the ticket still works');
@@ -543,6 +549,8 @@ ok(preg_match('/START TRANSACTION|FOR UPDATE|COMMIT|ROLLBACK/i', $all) !== 1, 'n
 
 // ---------------------------------------------------------------- 7. enforcement switch
 
+unset($GLOBALS['t_options']['play50_arcade_require_run_token']);
+
 $before_log = log_count('run_token tokenless robot-collector');
 $r = sub('__absent__');
 ok(code_of($r) === 'ok', 'OFF: tokenless (old client) accepted');
@@ -571,6 +579,87 @@ foreach (array('used', 'signature', 'expired', 'elapsed', 'malformed', 'required
     $e = play50_arcade_run_token_reject($reason, 'robot-collector');
     ok($e->code === 'invalid_data' && $e->data['status'] === 400 && $e->data['reason'] === $reason, "reject $reason: invalid_data 400");
 }
+// ---------------------------------------------------------------- 7b. enforcement OFF: ticket failures fall back
+
+/** Builds a failing ticket for $reason, submits it, returns the response (the fixture is reset after). */
+function failing_submit($reason) {
+    global $wpdb;
+    switch ($reason) {
+        case 'malformed':
+            return sub('r1.not-a-ticket', 30000);
+        case 'signature':
+            $t = mint('food-catcher');
+            advance(30000);
+            return sub($t, 30000);
+        case 'expired':
+            $t = mint();
+            $p = play50_arcade_run_token_parse($t);
+            $GLOBALS['t_now_ms'] = $p['expires_ms'];
+            return sub($t, 30000);
+        case 'elapsed':
+            $t = mint();
+            advance(5000);
+            return sub($t, 30000);
+        case 'used':
+            $t = mint();
+            advance(30000);
+            $first = sub($t, 30000);
+            ok(code_of($first) === 'ok', 'used fixture: the first submit is accepted');
+            advance(3200);
+            return sub($t, 30000);
+        case 'claim-error':
+            $t = mint();
+            advance(30000);
+            $wpdb->fail_claim = true;
+            $r = sub($t, 30000);
+            $wpdb->fail_claim = false;
+            return $r;
+    }
+    return null;
+}
+
+unset($GLOBALS['t_options']['play50_arcade_require_run_token']);
+foreach (array('malformed', 'signature', 'expired', 'elapsed', 'used', 'claim-error') as $reason) {
+    $line = 'play50 arcade: run_token ' . $reason . ' robot-collector (optional, accepted)';
+    $logged = log_count($line);
+    $plays_before = plays();
+    $r = failing_submit($reason);
+    // 'used' adds the fixture's own first play as well
+    $expected_plays = $plays_before + ($reason === 'used' ? 2 : 1);
+    ok(code_of($r) === 'ok' && $r->data['success'] === true, "OFF: $reason ticket -> accepted on the legacy path");
+    ok(plays() === $expected_plays, "OFF: $reason ticket -> one play recorded");
+    ok(log_count($line) === $logged + 1, "OFF: $reason -> logged '(optional, accepted)'");
+}
+// the legacy checks still apply to a submit whose ticket failed
+$t = mint();
+advance(5000);
+ok(code_of(sub($t, 30000, 'robot-collector', 7, 99999)) === 'invalid_data', 'OFF: bad score with a bad ticket still rejected (score check)');
+ok(code_of(sub('r1.not-a-ticket', 100)) === 'invalid_data', 'OFF: bad duration with a bad ticket still rejected (duration check)');
+fresh_limits();
+as_user(7);
+$body = array('slug' => 'robot-collector', 'score' => 100, 'duration_ms' => 30000, 'run_token' => 'r1.not-a-ticket');
+play50_arcade_submit(new WP_REST_Request('POST', '/x', $body));
+ok(code_of(play50_arcade_submit(new WP_REST_Request('POST', '/x', $body))) === 'rate_limited', 'OFF: rate limits still apply to a bad ticket');
+// a valid ticket is still claimed (single use) while enforcement is off
+$t = mint();
+advance(30000);
+ok(code_of(sub($t, 30000)) === 'ok', 'OFF: valid ticket accepted');
+ok(isset($wpdb->claims[play50_arcade_run_token_parse($t)['nonce']]), 'OFF: valid ticket is claimed');
+ok(code_of(sub(null, 30000)) === 'ok', 'OFF: null run_token = tokenless, accepted');
+
+// the same failures under ON reject with their reason
+$GLOBALS['t_options']['play50_arcade_require_run_token'] = '1';
+foreach (array('malformed', 'signature', 'expired', 'elapsed', 'used') as $reason) {
+    $plays_before = plays();
+    $r = failing_submit($reason);
+    $expected_plays = $plays_before + ($reason === 'used' ? 1 : 0);
+    ok(code_of($r) === 'invalid_data' && reason_of($r) === $reason && status_of($r) === 400, "ON: $reason ticket -> 400 $reason");
+    ok(plays() === $expected_plays, "ON: $reason ticket -> no play recorded");
+}
+$r = failing_submit('claim-error');
+ok(code_of($r) === 'db_error' && status_of($r) === 500, 'ON: claim error -> db_error');
+unset($GLOBALS['t_options']['play50_arcade_require_run_token']);
+
 ok(strpos(log_text(), 'r1.') === false && strpos(log_text(), 'jwt-u') === false, 'logs hold no ticket or JWT');
 
 // ---------------------------------------------------------------- 8. time game, ban, deleted user, gc
