@@ -15,6 +15,7 @@
 import type { ComponentType } from "react";
 import type { ArcadeGameMeta, ArcadeSlug } from "../types";
 import type { HumanoidLandmarks } from "./rig/humanoid";
+import type { MaterialOverride } from "./materials";
 
 export type RunPhase = "loading" | "ready" | "countdown" | "playing" | "paused" | "over";
 export type EndReason = "win" | "lose" | "timeup" | "quit";
@@ -119,6 +120,40 @@ export interface InputState {
    tapDown: { x: number; y: number } | null;
    /** normalised -1..1 canvas coordinates (x right = 1, y up = 1, like R3F) */
    pointer: { x: number; y: number; down: boolean };
+   /**
+    * The aim drag ("pull back to shoot"), filled only in a game that opts in with
+    * `GameDefinition.input.drag` (idle otherwise). Always present on the ref useInput() returns;
+    * optional in this type only so inputs built by hand before it existed still type-check.
+    */
+   drag?: AimDrag;
+   /**
+    * One frame: a digit key 1-9 (Digit or Numpad row) was newly pressed, else null (pile, upgrade
+    * and slot choices). Always present on the ref useInput() returns (see `drag`).
+    */
+   digit?: number | null;
+}
+
+/** InputState as useInput() delivers it: `drag` and `digit` are always there. */
+export type LiveInputState = InputState & { drag: AimDrag; digit: number | null };
+
+/**
+ * The aim-drag gesture (InputState.drag, opt-in per game with `input: { drag: true }`). The object
+ * is mutated in place: read its fields, do not keep it.
+ */
+export interface AimDrag {
+   /** held: a drag is in progress on the canvas (from the press on) */
+   active: boolean;
+   /** one frame: the drag ended (fire on this unless `cancelled`); its final values stay readable that frame */
+   released: boolean;
+   /** pointer coordinates (-1..1, y up, like `pointer`) where the drag started and where it is now */
+   start: { x: number; y: number };
+   current: { x: number; y: number };
+   /** 0..1: the drag length in screen px over AIM_DRAG_FULL_PX (160), clamped */
+   power: number;
+   /** screen angle (rad, y up, 0 = right) of start - current: "pull back to shoot" points forward */
+   angle: number;
+   /** on release: shorter than AIM_DRAG_MIN_PX (16), or a cancelled pointer = no shot */
+   cancelled: boolean;
 }
 
 export type PrimitiveFallback = "box" | "capsule" | "sphere" | "cylinder";
@@ -147,6 +182,13 @@ export interface ModelAsset {
     * "Characters: the auto-rig").
     */
    humanoid?: { landmarks?: Partial<HumanoidLandmarks> };
+   /**
+    * Draw this GLB with another look, e.g. a statue: "stone" | "bronze" | "gold" | "bone" or
+    * { color, roughness?, metalness?, emissive? }. Every mesh gets ONE shared material per look (no
+    * textures); honoured by <Model>, <InstancedModel>, <DynamicInstancedModel> and <HumanoidModel>
+    * (core/materials.ts). Spread an existing asset with a new id: `{ ...ROBOT, id: "robotGold", material: "gold" }`.
+    */
+   material?: MaterialOverride;
    /** logical name -> clip name in the GLB, e.g. { run: "Run" } */
    animations?: Record<string, string>;
    fallback: PrimitiveFallback;
@@ -192,6 +234,12 @@ export interface GameDefinition {
    touchControls: TouchControl[];
    /** Labels of the touch Jump / Action buttons (default "Jump" / "Action"), e.g. { action: "Throw" }. */
    touchLabels?: { jump?: string; action?: string };
+   /**
+    * Input options. `drag: true` opts in to the aim drag: a canvas drag then fills
+    * `InputState.drag` and is never reported as a swipe (taps and tapDowns as before). Off by
+    * default: swipes and taps behave exactly as without it.
+    */
+   input?: { drag?: boolean };
    hudStats?: Array<{ key: string; label: string; max?: number }>;
    /** short lines shown on the start screen */
    instructions: string[];

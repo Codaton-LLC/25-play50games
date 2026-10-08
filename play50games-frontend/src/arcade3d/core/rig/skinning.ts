@@ -13,12 +13,13 @@
 // - Templates are cached per loaded scene (WeakMap): a GLB that GameShell drops from the loader
 //   cache takes its template with it.
 // - Skinned meshes are not frustum culled: the bounds of a moving skeleton change every frame.
-import { Bone, BufferGeometry, Matrix4, Object3D, Quaternion, Skeleton, SkinnedMesh, Uint16BufferAttribute, Float32BufferAttribute, Vector3, type Mesh } from "three";
+import { Bone, BufferGeometry, Group, Matrix4, Object3D, Quaternion, Skeleton, SkinnedMesh, Uint16BufferAttribute, Float32BufferAttribute, Vector3, type Mesh } from "three";
 import { clone as cloneSkinned } from "three/examples/jsm/utils/SkeletonUtils.js";
 import type { ModelAsset } from "../types";
 import { BONE, BONE_COUNT, BONE_PARENT, HUMANOID_BONES, computeSkinWeights, estimateHumanoidLandmarks, humanoidJoints, type HumanoidLandmarks } from "./humanoid";
 import { bodyLift } from "./gait";
 import { armsDownPose, createPose, resolvePose, type HumanoidPose } from "./poses";
+import { anchorOffset, measureAnchors, type AnchorName, type HumanoidAnchors } from "./attachments";
 
 export type HumanoidOptions = NonNullable<ModelAsset["humanoid"]>;
 
@@ -27,6 +28,8 @@ export interface HumanoidTemplate {
    root: Object3D;
    /** the landmarks the rig was built from (explicit fields + estimates) */
    landmarks: HumanoidLandmarks;
+   /** where attachments sit (rig/attachments.ts), measured on the mesh */
+   anchors: HumanoidAnchors;
 }
 
 export interface HumanoidRig {
@@ -35,6 +38,8 @@ export interface HumanoidRig {
    /** its bones, HUMANOID_BONES order */
    bones: Bone[];
    landmarks: HumanoidLandmarks;
+   /** where attachments sit (rig/attachments.ts) */
+   anchors: HumanoidAnchors;
    /** the hips bone's bind position (y), the lift is added to it */
    hipsY: number;
 }
@@ -129,7 +134,7 @@ export function buildHumanoidTemplate(source: Object3D, options: HumanoidOptions
    root.updateMatrixWorld(true);
    const skeleton = new Skeleton(bones);
    for (const skin of skins) skin.bind(skeleton, skin.matrixWorld);
-   return { root, landmarks };
+   return { root, landmarks, anchors: measureAnchors(cloud, landmarks) };
 }
 
 const templates = new WeakMap<Object3D, Map<string, HumanoidTemplate | null>>();
@@ -155,7 +160,7 @@ export function cloneHumanoid(template: HumanoidTemplate): HumanoidRig {
       const index = HUMANOID_BONES.indexOf(object.name.slice(BONE_PREFIX.length) as (typeof HUMANOID_BONES)[number]);
       if (index >= 0) bones[index] = object as Bone;
    });
-   const rig: HumanoidRig = { root, bones, landmarks: template.landmarks, hipsY: bones[BONE.hips].position.y };
+   const rig: HumanoidRig = { root, bones, landmarks: template.landmarks, anchors: template.anchors, hipsY: bones[BONE.hips].position.y };
    applyHumanoidPose(rig, armsDownPose(createPose()));
    return rig;
 }
@@ -170,6 +175,23 @@ export function disposeHumanoid(rig: HumanoidRig): void {
       const skin = object as SkinnedMesh;
       if (skin.isSkinnedMesh) skin.skeleton.dispose();
    });
+}
+
+/**
+ * A new empty group placed on anchor `name`, relative to its bone (not parented: add it with
+ * `rig.bones[rig.anchors[name].bone].add(group)`, e.g. in a layout effect, and remove it with
+ * `group.removeFromParent()`). On the bone, its children follow it every frame through the scene
+ * graph (no per-frame work). `scale` is the asset's scale per axis (assetScale); the group undoes it
+ * so its children are in the model group's units (keep a character's scale uniform).
+ */
+export function createAnchorGroup(rig: HumanoidRig, name: AnchorName, scale: readonly [number, number, number] = [1, 1, 1]): Group {
+   const anchor = rig.anchors[name];
+   const group = new Group();
+   group.name = `anchor:${name}`;
+   const o = anchorOffset(anchor, rig.landmarks);
+   group.position.set(o.x, o.y, o.z);
+   group.scale.set(1 / (scale[0] || 1), 1 / (scale[1] || 1), 1 / (scale[2] || 1));
+   return group;
 }
 
 const RESOLVED = new Float32Array(BONE_COUNT * 4);

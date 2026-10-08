@@ -510,7 +510,7 @@ export default function GameShell({ meta, definition, exitHref = "/3d" }: GameSh
    return (
       <>
          <div className={styles.root} style={accentStyle}>
-            <InputProvider target={canvasWrapRef}>
+            <InputProvider target={canvasWrapRef} drag={!!definition.input?.drag}>
                <div ref={canvasWrapRef} className={styles.canvasWrap}>
                   {webgl === "ok" && (
                      <ErrorBoundary resetKey={stageKey} onError={onStageError}>

@@ -23,8 +23,13 @@
 //   frame, and the game's stand-in parts (or the asset's primitive) until the GLB exists.
 // - Applies asset.scale / stretch / rotationY / yOffset to the GLB. The fallback primitive ignores them:
 //   it is about 1 unit tall, standing on y = 0 at the group origin.
+// - asset.material ("stone" | "bronze" | "gold" | "bone" | { color, ... }) draws the GLB with one
+//   shared material per look (core/materials.ts), in <Model>, <InstancedModel>,
+//   <DynamicInstancedModel> and <HumanoidModel>. <Model tint> / <HumanoidModel tint> multiply the
+//   GLB's colours (one cached material per GLB material and tint). <DynamicInstancedModel> tints
+//   per copy from its update(i, matrix, color).
 // - Never call useGLTF.preload at module top level; GameShell clears the cache on unmount.
-import { Component, forwardRef, useEffect, useMemo, useRef, type ErrorInfo, type ReactNode } from "react";
+import { Component, forwardRef, useEffect, useLayoutEffect, useMemo, useRef, useState, type ErrorInfo, type ReactNode } from "react";
 import { useGLTF } from "@react-three/drei";
 import type { GroupProps } from "@react-three/fiber";
 import {
@@ -51,10 +56,12 @@ import { useInstanceMatrices, type InstanceSpot } from "./render/useInstanceMatr
 import { DynamicInstanced } from "./render/DynamicInstanced";
 import type { InstancePart, InstanceUpdate } from "./render/dynamicInstances";
 import { cloneHumanoid, disposeHumanoid, humanoidTemplate, type HumanoidRig } from "./rig/skinning";
+import { MATERIAL_CACHE, applyLook, lookMaterials, overrideKey, type LookUse, type MaterialOverride } from "./materials";
 
 export { SHARED_ASSETS, CHARACTER_BUDGET, PROP_BUDGET, type SharedAssetId } from "./sharedAssets";
 export { MODEL_MANIFEST, hasModel } from "./modelManifest";
 export type { InstancePart, InstanceUpdate } from "./render/dynamicInstances";
+export { MATERIAL_PRESETS, type MaterialOverride, type MaterialPreset } from "./materials";
 
 const DEFAULT_FALLBACK_COLOR = "#7dd3fc";
 const NO_CLIPS: AnimationClip[] = [];
@@ -180,8 +187,58 @@ export function assetScale(asset: Pick<ModelAsset, "scale" | "stretch">): [numbe
    return k ? [s * k[0], s * k[1], s * k[2]] : [s, s, s];
 }
 
-function ModelContent({ asset, fallback }: { asset: ModelAsset; fallback: ReactNode }) {
+const retainLooks = (looks: LookUse) => looks.forEach((material, key) => MATERIAL_CACHE.retain(key, material));
+const releaseLooks = (looks: LookUse) => looks.forEach((_material, key) => MATERIAL_CACHE.release(key));
+
+/**
+ * Gives a model's private clone (a <Model> scene, a humanoid rig) the asset's material override and
+ * the tint while mounted, and keeps those looks alive in MATERIAL_CACHE. All of it happens in a
+ * layout effect (before the first paint): the render never mutates the clone or the cache, and the
+ * cleanup restores the GLB's own materials and releases the looks, so a StrictMode replay or an
+ * abandoned render leaves nothing behind. Keyed by the override's value (overrideKey), so an inline
+ * `material: { color }` object does not re-apply every render. Core only (also <HumanoidModel>).
+ */
+export function useCloneLook(root: Object3D | null, override: MaterialOverride | undefined, tint: string | undefined): void {
+   const key = override ? overrideKey(override) : "";
+   const latest = useRef(override);
+   latest.current = override;
+   useLayoutEffect(() => {
+      if (!root || (!key && !tint)) return;
+      const looks = applyLook(root, latest.current, tint);
+      retainLooks(looks);
+      return () => {
+         applyLook(root, undefined, undefined); // the GLB's own materials again
+         releaseLooks(looks);
+      };
+   }, [root, key, tint]);
+}
+
+/**
+ * Instanced parts with the asset's material override (the GLB's own materials without one). The
+ * looked parts are built and retained in a layout effect; until then (the first, unpainted render)
+ * `ready` is false and the caller draws nothing.
+ */
+function useLookedParts<P extends { material: Material | Material[] }>(parts: P[] | null, override: MaterialOverride | undefined): { parts: P[] | null; ready: boolean } {
+   const key = override ? overrideKey(override) : "";
+   const latest = useRef(override);
+   latest.current = override;
+   const [looked, setLooked] = useState<{ from: P[]; key: string; parts: P[] } | null>(null);
+   useLayoutEffect(() => {
+      if (!parts || !key || !latest.current) return;
+      const looks: LookUse = new Map();
+      const override = latest.current;
+      const out = parts.map((part) => ({ ...part, material: lookMaterials(part.material, override, undefined, looks) }));
+      retainLooks(looks);
+      setLooked({ from: parts, key, parts: out });
+      return () => releaseLooks(looks);
+   }, [parts, key]);
+   if (!parts || !key) return { parts, ready: true };
+   return looked && looked.from === parts && looked.key === key ? { parts: looked.parts, ready: true } : { parts, ready: false };
+}
+
+function ModelContent({ asset, tint, fallback }: { asset: ModelAsset; tint?: string; fallback: ReactNode }) {
    const { scene } = useModel(asset);
+   useCloneLook(scene, asset.material, tint);
    if (!scene) return <>{fallback}</>;
    return (
       <primitive
@@ -214,8 +271,9 @@ export function useHumanoidRig(asset: ModelAsset): HumanoidRig | null {
 }
 
 /** <Model> of a humanoid asset: the auto-rigged character standing with its arms down (no animation). */
-function HumanoidStill({ asset, fallback }: { asset: ModelAsset; fallback: ReactNode }) {
+function HumanoidStill({ asset, tint, fallback }: { asset: ModelAsset; tint?: string; fallback: ReactNode }) {
    const rig = useHumanoidRig(asset);
+   useCloneLook(rig?.root ?? null, asset.material, tint);
    if (!rig) return <>{fallback}</>;
    return (
       <primitive
@@ -237,6 +295,12 @@ export interface ModelProps extends Omit<GroupProps, "children"> {
     * mounted only when needed, its hooks run in its own component, and refs inside it work.
     */
    fallback?: ReactNode;
+   /**
+    * Multiplies the GLB's colours by this colour (e.g. "#93c5fd"), on top of asset.material if set.
+    * One cached material per GLB material and tint: many copies in one tint share it. The fallback
+    * primitive is not tinted (it has its own colour).
+    */
+   tint?: string;
    /** extra children inside the model's group (e.g. a hit-box helper) */
    children?: ReactNode;
 }
@@ -245,12 +309,12 @@ export interface ModelProps extends Omit<GroupProps, "children"> {
  * Renders a GLB model, or its fallback when the GLB is missing. Suspends while a listed GLB loads.
  * A `humanoid` asset is auto-rigged and stands with its arms down (animate it with <HumanoidModel>).
  */
-export const Model = forwardRef<Group, ModelProps>(function Model({ asset, fallbackColor, fallback, children, ...group }, ref) {
+export const Model = forwardRef<Group, ModelProps>(function Model({ asset, fallbackColor, fallback, tint, children, ...group }, ref) {
    const stand = fallback ?? <FallbackPrimitive asset={asset} color={fallbackColor} />;
    return (
       <group ref={ref} {...group}>
          <ModelErrorBoundary key={asset.url} fallback={stand}>
-            {asset.humanoid ? <HumanoidStill asset={asset} fallback={stand} /> : <ModelContent asset={asset} fallback={stand} />}
+            {asset.humanoid ? <HumanoidStill asset={asset} tint={tint} fallback={stand} /> : <ModelContent asset={asset} tint={tint} fallback={stand} />}
          </ModelErrorBoundary>
          {children}
       </group>
@@ -309,10 +373,13 @@ function InstancedModelContent({ asset, spots, fallback }: InstancedModelProps) 
    const source = gltf?.scene ?? null;
    const rigged = !!asset.rigged;
    const { scale, stretch, rotationY, yOffset } = asset;
-   const parts = useMemo(
+   const glbParts = useMemo(
       () => (source && !rigged ? modelParts(source, { scale, stretch, rotationY, yOffset }) : null),
       [source, rigged, scale, stretch, rotationY, yOffset]
    );
+   const looked = useLookedParts(glbParts, asset.material);
+   if (!looked.ready) return null;
+   const parts = looked.parts;
    if (!source || parts?.length === 0) return <>{fallback}</>;
    if (!parts) {
       // rigged: one clone per spot (a skinned mesh cannot share one InstancedMesh)
@@ -405,6 +472,9 @@ export interface DynamicInstancedModelProps {
     * camera): write where copy `index` stands (its feet, like <Model position>) into `matrix`, which
     * arrives as the identity, and return false to hide it (an unused pool slot). The GLB's own
     * scale / rotationY / yOffset and mesh transforms are applied inside that placement.
+    * Per-copy tint: the third argument `color` arrives white; set it (`color.copy(BAG_RED)`, a
+    * prebuilt Color: no allocation) to multiply that copy's colours (GLB and stand-in parts alike).
+    * Callers that take two arguments are unchanged (no colours are written).
     */
    update: InstanceUpdate;
    /**
@@ -416,16 +486,18 @@ export interface DynamicInstancedModelProps {
     */
    fallbackParts?: readonly InstancePart[];
    name?: string;
+   /** set when `update` tints copies: the instance colours are allocated at mount (DynamicInstanced `tinted`) */
+   tinted?: boolean;
 }
 
-function DynamicFallback({ asset, count, update, fallbackParts, name }: DynamicInstancedModelProps) {
-   if (fallbackParts) return <DynamicInstanced count={count} update={update} parts={fallbackParts} name={name} />;
-   return <PrimitiveInstances asset={asset} count={count} update={update} name={name} />;
+function DynamicFallback({ asset, count, update, fallbackParts, name, tinted }: DynamicInstancedModelProps) {
+   if (fallbackParts) return <DynamicInstanced count={count} update={update} parts={fallbackParts} name={name} tinted={tinted} />;
+   return <PrimitiveInstances asset={asset} count={count} update={update} name={name} tinted={tinted} />;
 }
 
-function PrimitiveInstances({ asset, count, update, name }: Pick<DynamicInstancedModelProps, "asset" | "count" | "update" | "name">) {
+function PrimitiveInstances({ asset, count, update, name, tinted }: Pick<DynamicInstancedModelProps, "asset" | "count" | "update" | "name" | "tinted">) {
    const parts = usePrimitiveParts(asset);
-   return <DynamicInstanced count={count} update={update} parts={parts} name={name} />;
+   return <DynamicInstanced count={count} update={update} parts={parts} name={name} tinted={tinted} />;
 }
 
 function DynamicInstancedModelContent(props: DynamicInstancedModelProps) {
@@ -434,7 +506,7 @@ function DynamicInstancedModelContent(props: DynamicInstancedModelProps) {
    const source = gltf?.scene ?? null;
    const rigged = !!asset.rigged;
    const { scale, stretch, rotationY, yOffset } = asset;
-   const parts = useMemo<InstancePart[] | null>(
+   const glbParts = useMemo<InstancePart[] | null>(
       () =>
          source && !rigged
             ? modelParts(source, { scale, stretch, rotationY, yOffset }).map((part) => ({
@@ -445,9 +517,12 @@ function DynamicInstancedModelContent(props: DynamicInstancedModelProps) {
             : null,
       [source, rigged, scale, stretch, rotationY, yOffset]
    );
+   const looked = useLookedParts(glbParts, asset.material);
+   if (!looked.ready) return null;
+   const parts = looked.parts;
    // rigged models are characters, not pooled props: they get the fallback too
    if (!parts || parts.length === 0) return <DynamicFallback {...props} />;
-   return <DynamicInstanced count={count} update={update} parts={parts} name={name} />;
+   return <DynamicInstanced count={count} update={update} parts={parts} name={name} tinted={props.tinted} />;
 }
 
 /**

@@ -45,10 +45,12 @@ export {
    applyHumanoidPose,
    buildHumanoidTemplate,
    cloneHumanoid,
+   createAnchorGroup,
    disposeHumanoid,
    humanoidTemplate,
    type HumanoidOptions,
    type HumanoidRig,
    type HumanoidTemplate,
 } from "./skinning";
-export { HumanoidModel, useHumanoidPose, type HumanoidModelProps } from "./HumanoidModel";
+export { HumanoidModel, useHumanoidPose, type HumanoidAttachments, type HumanoidModelProps } from "./HumanoidModel";
+export { ANCHOR_NAMES, anchorOffset, measureAnchors, type AnchorName, type HumanoidAnchor, type HumanoidAnchors } from "./attachments";
