@@ -221,7 +221,8 @@ export function Goal() {
 
 // ---------- ball ----------
 
-function drawBall(ctx: CanvasRenderingContext2D, w: number, h: number) {
+/** The football's texture: white, with nine black pentagons (ball.test.ts draws it on a recording context). */
+export function drawBall(ctx: CanvasRenderingContext2D, w: number, h: number) {
    ctx.fillStyle = "#f8fafc";
    ctx.fillRect(0, 0, w, h);
    ctx.fillStyle = "#111827";
@@ -254,7 +255,7 @@ export function BallMesh({ map }: { map: Texture | null }) {
    );
 }
 
-/** The ball.glb fallback: BallMesh with black panels painted on a canvas. */
+/** The football Scene.tsx draws in the ball's spin group: BallMesh with black panels painted on a canvas. */
 export function BallPrimitive() {
    const map = useCanvasTexture(256, 128, drawBall);
    return <BallMesh map={map} />;

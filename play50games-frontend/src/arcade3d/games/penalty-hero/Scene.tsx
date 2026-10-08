@@ -5,8 +5,9 @@
 // loop mutates it and never calls setState. Visuals read it and animate with useGameTime().
 // The striker and the keeper GLBs are static T-poses: <HumanoidModel> (core/rig) rigs them in code
 // and useHumanoidPose drives their limbs from the same run-up / flight / hold progress the groups
-// animate (poses.ts: the kick, the ready stance, the dive). The ball GLB is a plain <Model> in the
-// ball's spin group, fitted to BallPrimitive (assets.ts). The primitives stay as the fallbacks.
+// animate (poses.ts: the kick, the ready stance, the dive). The ball is BallPrimitive, centred in the
+// ball's spin group (ball.test.ts): neither Hyper3D ball GLB had black panels (README "Models").
+// The other primitives stay as the characters' fallbacks.
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import {
@@ -22,7 +23,6 @@ import {
    type MeshBasicMaterial,
 } from "three";
 import CameraRig from "@/arcade3d/core/CameraRig";
-import { Model } from "@/arcade3d/core/assets";
 import { playSfx } from "@/arcade3d/core/audio";
 import { useGameTime } from "@/arcade3d/core/gameTime";
 import { useInput } from "@/arcade3d/core/input";
@@ -62,6 +62,7 @@ import {
    type StepInput,
    type ZoneId,
 } from "./rules";
+import { ZONE_IDLE_OPACITY, ZONE_PLANE_Z, zoneOpacity } from "./zones";
 
 const ZONE_H = 1.22;
 const RING_ON = new Color("#4ade80");
@@ -140,7 +141,10 @@ function Simulation({ run, scratch }: { run: ViewRun; scratch: Scratch }) {
    return null;
 }
 
-/** Zone tiles behind the reticle: the highlighted one is bright, the rest faint. */
+/**
+ * Zone tiles behind the reticle: the highlighted one is bright, the rest faint. The ball in the net is
+ * seen through them, so the highlight fades to faint over the end of the flight (zones.ts).
+ */
 function Zones({ run }: { run: RunState }) {
    const time = useGameTime();
    const mats = useRef<Array<MeshBasicMaterial | null>>([]);
@@ -157,17 +161,16 @@ function Zones({ run }: { run: RunState }) {
 
    useFrame(() => {
       const selected = zoneIndex(run.col, run.row);
+      const pulse = run.phase === "aim" ? 0.06 * Math.sin(time.now * 5) : 0;
       for (let i = 0; i < ZONES.length; i++) {
          const mat = mats.current[i];
          if (!mat) continue;
-         const on = i === selected;
-         const pulse = run.phase === "aim" ? 0.06 * Math.sin(time.now * 5) : 0;
-         mat.opacity = on ? 0.36 + pulse : 0.1;
+         mat.opacity = zoneOpacity(run.phase, run.phaseMs, i === selected, pulse);
       }
    });
 
    return (
-      <group name="zones" position={[0, 0, 0.02]}>
+      <group name="zones" position={[0, 0, ZONE_PLANE_Z]}>
          <lineSegments geometry={dividers}>
             <lineBasicMaterial color="#f8fafc" transparent opacity={0.55} depthWrite={false} />
          </lineSegments>
@@ -183,7 +186,7 @@ function Zones({ run }: { run: RunState }) {
                      }}
                      color="#f472b6"
                      transparent
-                     opacity={0.1}
+                     opacity={ZONE_IDLE_OPACITY}
                      depthWrite={false}
                   />
                </mesh>
@@ -281,7 +284,7 @@ function Ball({ run }: { run: RunState }) {
       <>
          <group ref={root} name="ball-root">
             <group ref={spin}>
-               <Model asset={ASSETS.ball} fallback={<BallPrimitive />} />
+               <BallPrimitive />
             </group>
          </group>
          <group ref={shadow}>
