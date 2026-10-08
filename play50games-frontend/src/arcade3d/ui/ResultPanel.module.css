@@ -1,3 +1,6 @@
+/* The overlay fills the box it is given (GameShell: above the cookie banner) and never scrolls; the
+   card is at most that tall and scrolls inside itself, so its frame stays whole and its action bar
+   can stay pinned on view (.actions). */
 .overlay {
    position: absolute;
    inset: 0;
@@ -6,19 +9,48 @@
    align-items: flex-start;
    justify-content: center;
    padding: 0.75rem;
-   overflow: auto;
+   overflow: hidden;
    background: color-mix(in srgb, var(--bg) 78%, transparent);
 }
 
 .card {
+   --card-pad-x: 1.05rem;
+   /* the action bar's own padding, taken out of the gaps above and below it */
+   --bar-pad: 0.75rem;
+
+   /* the containing block of absolutely positioned content (the top 10's visually hidden caption):
+      it scrolls and clips with the card */
+   position: relative;
    width: min(26rem, 100%);
+   max-height: 100%;
    margin-block: auto;
-   padding: 1.15rem 1.05rem 1.05rem;
+   /* no top / bottom padding: a scroll container's padding keeps a sticky bar that far off its
+      edges (Chrome, measured), so ::before / ::after stand in for it */
+   padding: 0 var(--card-pad-x);
+   overflow-y: auto;
+   overscroll-behavior: contain;
+   -webkit-overflow-scrolling: touch;
+   scrollbar-color: rgba(255, 255, 255, 0.25) transparent;
+   scrollbar-width: thin;
    border: 1px solid var(--stroke);
    border-radius: 1.25rem;
    background: var(--bg);
    color: var(--text);
    box-shadow: 0 18px 50px rgba(0, 0, 0, 0.45);
+}
+
+.card::before,
+.card::after {
+   content: "";
+   display: block;
+}
+
+.card::before {
+   height: 1.15rem;
+}
+
+.card::after {
+   height: 1.05rem;
 }
 
 .title {
@@ -70,11 +102,26 @@
    line-height: 1.45;
 }
 
+/* Log in / Save, Retry and Exit. Where the card scrolls (a landscape phone, a portrait phone under
+   the cookie banner, a short desktop window) the bar sticks to the card's bottom edge while its
+   place is further down, and to its top edge once the top 10 below it is scrolled up: always on
+   view. In place it sits exactly where the buttons sat before (1rem under the message). */
 .actions {
+   position: sticky;
+   top: 0;
+   bottom: 0;
+   z-index: 1;
    display: flex;
    flex-wrap: wrap;
    gap: 0.6rem;
-   margin-top: 1rem;
+   margin: calc(1rem - var(--bar-pad)) calc(-1 * var(--card-pad-x)) 0;
+   padding: var(--bar-pad) var(--card-pad-x);
+   background: var(--bg);
+}
+
+/* no top 10 below: the card's bottom gap stays 1.05rem under the buttons */
+.actions:last-child {
+   margin-bottom: calc(-1 * var(--bar-pad));
 }
 
 .primary,
@@ -118,7 +165,42 @@
 
 .extra {
    min-width: 0;
-   margin-top: 1rem;
+   margin-top: calc(1rem - var(--bar-pad));
    padding-top: 0.35rem;
    border-top: 1px solid var(--stroke);
+}
+
+/* short screens (landscape phones): tighter vertical spacing, so the title, the score and the
+   message still fit above the pinned buttons while the cookie banner is open (740 x 360: 275 px) */
+@media (max-height: 520px) {
+   .overlay {
+      padding: 0.5rem;
+   }
+
+   .card {
+      --bar-pad: 0.5rem;
+   }
+
+   .card::before,
+   .card::after {
+      height: 0.85rem;
+   }
+
+   .score {
+      margin-top: 0.4rem;
+      font-size: 1.8rem;
+   }
+}
+
+/* short, wide screens: height is what runs out, so the card is wider and its buttons share one
+   row (the bar is one button tall) */
+@media (max-height: 520px) and (min-width: 560px) {
+   .card {
+      width: min(34rem, 100%);
+   }
+
+   .primary,
+   .secondary {
+      flex-basis: 0;
+   }
 }

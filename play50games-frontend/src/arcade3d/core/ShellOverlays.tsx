@@ -6,52 +6,26 @@
 //   frame and buttons stay on screen. The mouse wheel over the backdrop beside it scrolls the panel.
 // - StartCard: back link, title, tagline, instructions, controls, best score, Play, top 10. On a
 //   short screen (a landscape phone, a portrait phone under the cookie banner) the card scrolls and
-//   Play stays pinned to its bottom, above the banner. It opens scrolled to the top (title first);
-//   Play takes the focus without scrolling the card (FocusButton, not autoFocus).
+//   Play stays pinned to its bottom, above the banner, or to its top once the top 10 is scrolled up,
+//   so Play is always on screen. It opens scrolled to the top (title first); Play takes the focus
+//   without scrolling the card (FocusButton, not autoFocus).
+// - HudChips: the HUD's score, time, lives and game stats. A time game has no score chip: its rank
+//   is the finish time, and a "Score 0" next to the running clock read as a score that never moves.
 // - HudButtons: the HUD's Mute and Pause. Pause is shown (and in the tab order) only while the run
 //   can be paused, so the start card's Play is the first focus and nothing is tabbable behind it.
 import { useRef, type ButtonHTMLAttributes, type ReactNode } from "react";
 import Link from "next/link";
 import { ArrowLeftIcon, PauseIcon, SpeakerWaveIcon, SpeakerXMarkIcon } from "@heroicons/react/24/solid";
-import type { ArcadeGameMeta } from "../types";
+import type { ArcadeGameMeta, ScoringRules } from "../types";
 import type { GameDefinition } from "./types";
 import type { LeaderboardState } from "./useLeaderboard";
 import { useInitialFocus } from "./overlayFocus";
+import { scrollPanelFromBackdrop } from "./overlayScroll";
 import BestScoreBadge from "../ui/BestScoreBadge";
 import LeaderboardTable from "../ui/LeaderboardTable";
 import styles from "./GameShell.module.css";
 
-export interface BackdropWheel {
-   target: unknown;
-   currentTarget: unknown;
-   deltaY: number;
-   /** WheelEvent.deltaMode: 0 pixels, 1 lines, 2 pages */
-   deltaMode: number;
-   ctrlKey: boolean;
-}
-
-export interface ScrollBox {
-   scrollHeight: number;
-   clientHeight: number;
-   scrollBy(options: ScrollToOptions): void;
-}
-
-/** px per wheel line (deltaMode 1, Firefox) */
-const WHEEL_LINE_PX = 16;
-
-/**
- * The wheel over the backdrop beside a panel scrolls the panel, as it scrolled the whole overlay
- * before the panel scrolled itself (a desktop start card with its top 10 is taller than the
- * screen). false, and nothing scrolls, when the wheel is over the panel (it scrolls natively),
- * zooms (ctrl), the overlay can scroll itself, or the panel has nothing to scroll.
- */
-export function scrollPanelFromBackdrop(event: BackdropWheel, overlay: ScrollBox, panel: ScrollBox | null): boolean {
-   if (!panel || event.ctrlKey || event.deltaY === 0 || event.target !== event.currentTarget) return false;
-   if (overlay.scrollHeight > overlay.clientHeight + 1 || panel.scrollHeight <= panel.clientHeight + 1) return false;
-   const unit = event.deltaMode === 1 ? WHEEL_LINE_PX : event.deltaMode === 2 ? panel.clientHeight : 1;
-   panel.scrollBy({ top: event.deltaY * unit });
-   return true;
-}
+export { scrollPanelFromBackdrop, type BackdropWheel, type ScrollBox } from "./overlayScroll";
 
 export function Overlay({
    children,
@@ -85,6 +59,75 @@ export function FocusButton(props: Omit<ButtonHTMLAttributes<HTMLButtonElement>,
    const ref = useRef<HTMLButtonElement>(null);
    useInitialFocus(ref);
    return <button {...props} ref={ref} type="button" />;
+}
+
+/** "1:05": whole seconds as minutes and seconds */
+export const hudClock = (seconds: number) => {
+   const total = Math.max(0, Math.ceil(seconds));
+   return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, "0")}`;
+};
+
+/**
+ * The HUD shows a score chip only for points games. A time game (escape-room, obstacle-race) is
+ * ranked by its finish time; its store score stays 0 all run, so its HUD is the clock and its stats.
+ */
+export const hudShowsScore = (kind: ScoringRules["kind"]): boolean => kind !== "time";
+
+export interface HudChipsProps {
+   /** meta.scoring.kind */
+   kind: ScoringRules["kind"];
+   score: number;
+   /** whole seconds: left when `timed`, played otherwise */
+   time: number;
+   /** the run has a time limit (GameDefinition.durationMs) */
+   timed: boolean;
+   lives: number | null;
+   stats: Record<string, number>;
+   hudStats?: GameDefinition["hudStats"];
+}
+
+/** The HUD's first group: score (points games only), time, lives and the game's stats. */
+export function HudChips({ kind, score, time, timed, lives, stats, hudStats }: HudChipsProps) {
+   const low = timed && time <= 10;
+   return (
+      <div className={styles.hudGroup}>
+         {hudShowsScore(kind) && (
+            <span className={styles.chip} role="group" aria-label={`Score ${score}`}>
+               <span className={styles.chipLabel}>Score</span>
+               <span className={styles.chipValue}>{score.toLocaleString("en-US")}</span>
+            </span>
+         )}
+         <span
+            className={`${styles.chip} ${low ? styles.chipWarn : ""}`}
+            role="group"
+            aria-label={timed ? `${time} seconds left` : `${time} seconds played`}
+         >
+            <span className={styles.chipLabel}>{timed ? "Time" : "Played"}</span>
+            <span className={styles.chipValue}>{hudClock(time)}</span>
+         </span>
+         {lives !== null && (
+            <span className={styles.chip} role="group" aria-label={`${lives} lives left`}>
+               <span className={styles.chipLabel}>Lives</span>
+               <span className={styles.chipValue} aria-hidden="true">
+                  {lives > 0 ? "♥".repeat(Math.min(lives, 5)) : "–"}
+                  {lives > 5 ? ` ${lives}` : ""}
+               </span>
+            </span>
+         )}
+         {hudStats?.map((stat) => {
+            const value = stats[stat.key] ?? 0;
+            return (
+               <span key={stat.key} className={styles.chip}>
+                  <span className={styles.chipLabel}>{stat.label}</span>
+                  <span className={styles.chipValue}>
+                     {value}
+                     {stat.max !== undefined ? `/${stat.max}` : ""}
+                  </span>
+               </span>
+            );
+         })}
+      </div>
+   );
 }
 
 export interface HudButtonsProps {

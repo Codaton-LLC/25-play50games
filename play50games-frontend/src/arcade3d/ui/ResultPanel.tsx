@@ -1,9 +1,17 @@
 "use client";
 
-import type { ReactNode } from "react";
+// The result card. Its overlay fills the box it is given (GameShell's .resultWrap ends above the
+// cookie banner) and never scrolls: the card is at most that tall and scrolls inside itself, so its
+// frame stays whole. Its actions (Log in / Save, Retry, Exit) sit in a bar that sticks to the card's
+// bottom edge while they would be below it and to its top edge once the top 10 is scrolled up, so
+// on any screen they are on view and tappable, never under the banner. Where everything fits the
+// card looks as before (short landscape screens get tighter spacing and one row of buttons). The
+// wheel over the backdrop scrolls the card (scrollPanelFromBackdrop).
+import { useRef, type ReactNode } from "react";
 import type { ScoringRules } from "../types";
 import type { SubmitStatus } from "../core/scores";
 import { formatScore } from "../core/format";
+import { scrollPanelFromBackdrop } from "../core/overlayScroll";
 import styles from "./ResultPanel.module.css";
 
 export interface ResultPanelProps {
@@ -98,10 +106,17 @@ export default function ResultPanel(props: ResultPanelProps) {
       children,
       rank,
    } = props;
+   const cardRef = useRef<HTMLDivElement>(null);
 
    return (
-      <div className={styles.overlay} role="dialog" aria-label={title} aria-modal="true">
-         <div className={styles.card}>
+      <div
+         className={styles.overlay}
+         role="dialog"
+         aria-label={title}
+         aria-modal="true"
+         onWheel={(event) => scrollPanelFromBackdrop(event, event.currentTarget, cardRef.current)}
+      >
+         <div ref={cardRef} className={styles.card}>
             <h2 className={styles.title}>{title}</h2>
             <p className={styles.score}>{resultScoreText(score, scoring, durationMs, status)}</p>
             {isNewBest ? <p className={styles.newBest}>New best!</p> : null}

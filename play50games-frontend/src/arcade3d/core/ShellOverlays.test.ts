@@ -9,19 +9,37 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 import type { ArcadeGameMeta } from "../types";
+import { ARCADE_GAMES } from "../registry";
 import { foodCatcherMeta } from "../games/food-catcher/meta";
+import { escapeRoomMeta } from "../games/escape-room/meta";
+import { obstacleRaceMeta } from "../games/obstacle-race/meta";
+import { robotCollectorMeta } from "../games/robot-collector/meta";
 import type { GameDefinition } from "./types";
 import type { LeaderboardState } from "./useLeaderboard";
 import { focusWithoutScroll } from "./overlayFocus";
 import {
    HudButtons,
+   HudChips,
    StartCard,
+   hudClock,
+   hudShowsScore,
    scrollPanelFromBackdrop,
    type BackdropWheel,
    type HudButtonsProps,
+   type HudChipsProps,
    type ScrollBox,
 } from "./ShellOverlays";
 import styles from "./GameShell.module.css";
+
+/** a CSS module's source without comments */
+const stylesheet = (file: string) => readFileSync(path.join(__dirname, file), "utf8").replace(/\/\*[\s\S]*?\*\//g, "");
+
+/** the declarations of `selector`'s first top-level rule, whitespace collapsed */
+const ruleIn = (css: string, selector: string) => {
+   const escaped = selector.replace(/[.:()]/g, (c) => `\\${c}`);
+   const found = css.match(new RegExp(`(?:^|\\n)${escaped}\\s*\\{([^}]*)\\}`));
+   return (found?.[1] ?? "").replace(/\s+/g, " ");
+};
 
 vi.mock("@/contexts/AuthContext", () => ({ useAuth: () => ({ user: null }) }));
 
@@ -82,11 +100,8 @@ describe("start card", () => {
 
    // the layout itself is measured in a browser; this guards the rules it rests on
    it("keeps the panel's scrolling rules in the stylesheet", () => {
-      const css = readFileSync(path.join(__dirname, "GameShell.module.css"), "utf8").replace(/\/\*[\s\S]*?\*\//g, "");
-      const rule = (selector: string) => {
-         const found = css.match(new RegExp(`(?:^|\\n)${selector.replace(".", "\\.")}\\s*\\{([^}]*)\\}`));
-         return (found?.[1] ?? "").replace(/\s+/g, " ");
-      };
+      const css = stylesheet("GameShell.module.css");
+      const rule = (selector: string) => ruleIn(css, selector);
       const panel = rule(".panel");
       expect(panel).toContain("max-height: 100%;");
       expect(panel).toContain("overflow-y: auto;");
@@ -94,6 +109,74 @@ describe("start card", () => {
       expect(panel).toContain("position: relative;");
       expect(rule(".startAction")).toContain("position: sticky;");
       expect(rule(".startAction")).toContain("bottom: 0;");
+   });
+
+   it("pins Play to the top edge too once the top 10 is scrolled up, flush with the card's edge", () => {
+      const css = stylesheet("GameShell.module.css");
+      expect(ruleIn(css, ".startAction")).toContain("top: 0;");
+      // a scroll container's padding would keep the pinned bar that far off the edge (Chrome):
+      // the start card has none on either sticky side; a box stands in for the top padding
+      const panel = ruleIn(css, ".startPanel");
+      expect(panel).toContain("padding-top: 0;");
+      expect(panel).toContain("padding-bottom: 0;");
+      const spacer = ruleIn(css, ".startPanel::before");
+      expect(spacer).toContain('content: "";');
+      expect(spacer).toContain("height: var(--panel-pad-y);");
+   });
+});
+
+describe("HUD chips", () => {
+   const chips = (props: Partial<HudChipsProps> = {}) =>
+      renderToStaticMarkup(
+         createElement(HudChips, {
+            kind: "points",
+            score: 1250,
+            time: 65,
+            timed: true,
+            lives: null,
+            stats: { found: 2 },
+            hudStats: [{ key: "found", label: "Found", max: 3 }],
+            ...props,
+         })
+      );
+   /** the chip labels, in order */
+   const labels = (html: string) => [...html.matchAll(new RegExp(`class="${styles.chipLabel}">([^<]*)<`, "g"))].map((m) => m[1]);
+
+   it("shows the score first for points games, then the clock and the stats", () => {
+      const html = chips();
+      expect(labels(html)).toEqual(["Score", "Time", "Found"]);
+      expect(html).toContain('aria-label="Score 1250"');
+      expect(html).toContain(">1,250<");
+      expect(html).toContain(">1:05<");
+      expect(html).toContain(">2/3<");
+   });
+
+   it("has no score chip for time games: the clock (counting down or up), lives and stats stay", () => {
+      const timed = chips({ kind: "time", score: 0, time: 9, timed: true, lives: 2 });
+      expect(labels(timed)).toEqual(["Time", "Lives", "Found"]);
+      expect(timed).not.toMatch(/Score/i);
+      // the last ten seconds still warn
+      expect(timed).toContain(styles.chipWarn);
+      const open = chips({ kind: "time", score: 0, time: 75, timed: false });
+      expect(labels(open)).toEqual(["Played", "Found"]);
+      expect(open).toContain('aria-label="75 seconds played"');
+      expect(open).toContain(">1:15<");
+   });
+
+   it("decides by meta.scoring.kind: escape-room and obstacle-race hide it, every points game keeps it", () => {
+      expect(hudShowsScore(escapeRoomMeta.scoring.kind)).toBe(false);
+      expect(hudShowsScore(obstacleRaceMeta.scoring.kind)).toBe(false);
+      expect(hudShowsScore(robotCollectorMeta.scoring.kind)).toBe(true);
+      expect(ARCADE_GAMES).toHaveLength(10);
+      const hidden = ARCADE_GAMES.filter((meta) => !hudShowsScore(meta.scoring.kind)).map((meta) => meta.slug);
+      expect(hidden.sort()).toEqual(["escape-room", "obstacle-race"]);
+   });
+
+   it("formats the clock in whole seconds", () => {
+      expect(hudClock(0)).toBe("0:00");
+      expect(hudClock(9)).toBe("0:09");
+      expect(hudClock(600)).toBe("10:00");
+      expect(hudClock(-3)).toBe("0:00");
    });
 });
 
