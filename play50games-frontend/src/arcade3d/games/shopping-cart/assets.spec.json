@@ -15,6 +15,42 @@
          "target": "shopping-cart",
          "budget": { "tris": 4000, "bytes": 300000 },
          "textureSize": 512
+      },
+      {
+         "id": "shopperA",
+         "kind": "character",
+         "mode": "text",
+         "prompt": "Stylized cartoon 3D game character: friendly elderly woman in a cozy lilac cardigan, grey trousers, comfortable flat shoes, short grey curls, warm face without distinct eyes (faceless stylized toy style). Full body, clean symmetrical T-pose: arms straight out to sides at shoulder height, palms down, legs slightly apart, standing upright, facing viewer. Clean game-ready low-poly topology, clean PBR textures without baked shadows.",
+         "tier": "Gen-2.5-Medium",
+         "qualityOverride": 18000,
+         "attempts": 1,
+         "target": "shopping-cart",
+         "budget": { "tris": 18000, "bytes": 1500000 },
+         "textureSize": 1024
+      },
+      {
+         "id": "shopperB",
+         "kind": "character",
+         "mode": "text",
+         "prompt": "Stylized cartoon 3D game character: young woman in a mint-green hoodie, dark joggers, white sneakers, hair tied back in a short ponytail, faceless stylized toy style. Full body, clean symmetrical T-pose: arms straight out to sides at shoulder height, palms down, legs slightly apart, standing upright, facing viewer. Clean game-ready low-poly topology, clean PBR textures without baked shadows.",
+         "tier": "Gen-2.5-Medium",
+         "qualityOverride": 18000,
+         "attempts": 1,
+         "target": "shopping-cart",
+         "budget": { "tris": 18000, "bytes": 1500000 },
+         "textureSize": 1024
+      },
+      {
+         "id": "shopperC",
+         "kind": "character",
+         "mode": "text",
+         "prompt": "Stylized cartoon 3D game character: friendly man in a bright orange polo shirt, khaki shorts, brown boat shoes, neat brown hair, faceless stylized toy style. Full body, clean symmetrical T-pose: arms straight out to sides at shoulder height, palms down, legs slightly apart, standing upright, facing viewer. Clean game-ready low-poly topology, clean PBR textures without baked shadows.",
+         "tier": "Gen-2.5-Medium",
+         "qualityOverride": 18000,
+         "attempts": 1,
+         "target": "shopping-cart",
+         "budget": { "tris": 18000, "bytes": 1500000 },
+         "textureSize": 1024
       }
    ]
 }
