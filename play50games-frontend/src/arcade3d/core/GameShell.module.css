@@ -169,8 +169,9 @@
    color: var(--muted);
 }
 
+/* the other device's controls, dimmed; 0.75 keeps the muted text above 4.5:1 contrast (0.6 was 3.9:1) */
 .controlDim {
-   opacity: 0.6;
+   opacity: 0.75;
 }
 
 .best {

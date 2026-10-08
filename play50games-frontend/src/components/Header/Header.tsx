@@ -35,17 +35,8 @@ export default function Header({
    const { user, isAuthenticated, logout } = useAuth();
    const pathname = usePathname();
    const [showUserMenu, setShowUserMenu] = useState(false);
-   const [isMobile, setIsMobile] = useState(false);
-
-   // Check if mobile
-   useEffect(() => {
-      const checkMobile = () => {
-         setIsMobile(window.innerWidth < 640);
-      };
-      checkMobile();
-      window.addEventListener("resize", checkMobile);
-      return () => window.removeEventListener("resize", checkMobile);
-   }, []);
+   // Phone vs desktop layout (below 640px) lives in Header.module.css media queries, so the
+   // server HTML already has the right layout and nothing jumps after hydration.
 
    // Close user menu when clicking outside
    useEffect(() => {
@@ -72,11 +63,10 @@ export default function Header({
       <header>
          {/* Header with Logo and User Profile */}
          <div
+            className={styles.bar}
             style={{
                display: "flex",
-               flexDirection: isMobile ? "column" : "row",
-               justifyContent: isMobile ? "center" : "space-between",
-               alignItems: isMobile ? "center" : "center",
+               alignItems: "center",
                marginBottom: showSubtitle ? "1rem" : "0",
                flexWrap: "wrap",
                gap: "1rem",
@@ -84,25 +74,23 @@ export default function Header({
          >
             {/* Logo on the left */}
             <div
+               className={styles.brand}
                style={{
                   display: "flex",
                   flexDirection: "column",
-                  alignItems: isMobile ? "center" : "flex-start",
-                  textAlign: isMobile ? "center" : "left",
                }}
             >
                <Link href="/" style={{ display: "inline-block" }}>
                   <Image
                      src="/images/logo/play50games.png"
                      alt="Play50Games"
-                     width={200}
-                     height={60}
-                     style={{
-                        height: "auto",
-                        width: "auto",
-                        maxHeight: "200px",
-                        objectFit: "contain",
-                     }}
+                     // the logo always renders 207 x 200 (589 x 568 source capped at 200 px tall);
+                     // a fixed box reserves that space before the image loads (no layout shift)
+                     width={207}
+                     height={200}
+                     // width-based srcset: a 1.75x phone gets the 384 px file instead of 640 px
+                     sizes="207px"
+                     style={{ objectFit: "contain" }}
                      priority
                   />
                </Link>
@@ -434,42 +422,38 @@ export default function Header({
                onShowLoginModal &&
                onShowRegisterModal && (
                   <div
+                     className={styles.guest}
                      style={{
                         display: "flex",
                         flexDirection: "column",
-                        alignItems: isMobile ? "center" : "flex-end",
                         gap: "0.75rem",
-                        width: isMobile ? "100%" : "auto",
                      }}
                   >
                      <div
+                        className={styles.guestRow}
                         style={{
                            display: "flex",
                            alignItems: "center",
                            gap: "0.5rem",
                            flexWrap: "wrap",
-                           justifyContent: isMobile ? "center" : "flex-end",
-                           width: isMobile ? "100%" : "auto",
                         }}
                      >
                         <span
+                           className={styles.guestText}
                            style={{
                               color: "var(--muted)",
                               fontSize: "14px",
-                              textAlign: isMobile ? "center" : "right",
                            }}
                         >
                            Login or register to save your progress
                         </span>
                      </div>
                      <div
-                        className="header-buttons-container"
+                        className={`header-buttons-container ${styles.guestButtons}`}
                         style={{
                            display: "flex",
                            gap: "0.5rem",
                            flexWrap: "wrap",
-                           width: isMobile ? "100%" : "auto",
-                           justifyContent: isMobile ? "center" : "flex-end",
                         }}
                      >
                         <Link
@@ -488,8 +472,6 @@ export default function Header({
                               display: "flex",
                               alignItems: "center",
                               gap: "6px",
-                              flex: isMobile ? "1" : "none",
-                              minWidth: isMobile ? "0" : "auto",
                            }}
                            onMouseEnter={(e) => {
                               e.currentTarget.style.backgroundColor =
@@ -523,8 +505,6 @@ export default function Header({
                               display: "flex",
                               alignItems: "center",
                               gap: "6px",
-                              flex: isMobile ? "1" : "none",
-                              minWidth: isMobile ? "0" : "auto",
                            }}
                            onMouseEnter={(e) => {
                               e.currentTarget.style.backgroundColor =
@@ -558,8 +538,6 @@ export default function Header({
                               display: "flex",
                               alignItems: "center",
                               gap: "6px",
-                              flex: isMobile ? "1" : "none",
-                              minWidth: isMobile ? "0" : "auto",
                            }}
                            onMouseEnter={(e) => {
                               e.currentTarget.style.backgroundColor =
@@ -595,8 +573,6 @@ export default function Header({
                               display: "flex",
                               alignItems: "center",
                               gap: "6px",
-                              flex: isMobile ? "1" : "none",
-                              minWidth: isMobile ? "0" : "auto",
                            }}
                            onMouseEnter={(e) => {
                               e.currentTarget.style.backgroundColor =
@@ -626,8 +602,6 @@ export default function Header({
                               fontSize: "14px",
                               transition: "all 0.2s ease",
                               borderRadius: "8px",
-                              flex: isMobile ? "1" : "none",
-                              minWidth: isMobile ? "0" : "auto",
                            }}
                            onMouseEnter={(e) => {
                               e.currentTarget.style.backgroundColor =
@@ -656,8 +630,6 @@ export default function Header({
                               fontSize: "14px",
                               transition: "all 0.2s ease",
                               borderRadius: "8px",
-                              flex: isMobile ? "1" : "none",
-                              minWidth: isMobile ? "0" : "auto",
                            }}
                            onMouseEnter={(e) => {
                               e.currentTarget.style.backgroundColor =

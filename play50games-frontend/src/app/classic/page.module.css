@@ -1,0 +1,9 @@
+/* Classic dashboard cards: the browser skips layout and paint of the cards that are off screen
+   (about 48 of the 50 on a phone), which was one 0.8 s main-thread task on the first render.
+   The cards already clip their content (overflow: hidden in globals.css), so nothing looks
+   different; "auto" remembers each card's real height once it has been shown. Cards are
+   347-449 px tall (about 400 px on average), hence the placeholder height. */
+.card {
+   content-visibility: auto;
+   contain-intrinsic-height: auto 400px;
+}

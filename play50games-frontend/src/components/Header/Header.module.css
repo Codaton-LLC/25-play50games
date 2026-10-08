@@ -1,3 +1,76 @@
+/* Logo row: logo left, guest actions right on desktop; stacked and centred on phones (< 640px).
+   Done in CSS (not a JS width check) so the server HTML already has the phone layout and
+   nothing shifts after hydration. */
+.bar {
+   flex-direction: row;
+   justify-content: space-between;
+}
+
+.brand {
+   align-items: flex-start;
+   text-align: left;
+}
+
+.guest {
+   align-items: flex-end;
+   width: auto;
+}
+
+.guestRow {
+   justify-content: flex-end;
+   width: auto;
+}
+
+.guestText {
+   text-align: right;
+}
+
+.guestButtons {
+   width: auto;
+   justify-content: flex-end;
+}
+
+.guestButtons > * {
+   flex: none;
+   min-width: auto;
+}
+
+@media (max-width: 639.98px) {
+   .bar {
+      flex-direction: column;
+      justify-content: center;
+   }
+
+   .brand {
+      align-items: center;
+      text-align: center;
+   }
+
+   .guest {
+      align-items: center;
+      width: 100%;
+   }
+
+   .guestRow {
+      justify-content: center;
+      width: 100%;
+   }
+
+   .guestText {
+      text-align: center;
+   }
+
+   .guestButtons {
+      width: 100%;
+      justify-content: center;
+   }
+
+   .guestButtons > * {
+      flex: 1;
+      min-width: 0;
+   }
+}
+
 /* Platform nav under the logo row. Left-aligned like the logo on desktop, centred on phones
    (same 640px breakpoint the header layout uses). */
 .platformNav {

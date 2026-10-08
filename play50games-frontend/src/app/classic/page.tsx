@@ -14,6 +14,7 @@ import Header from "@/components/Header/Header";
 import Footer from "@/components/Footer/Footer";
 import GamePreview from "@/components/GamePreview/GamePreview";
 import SectionTabs from "@/components/Nav/SectionTabs";
+import styles from "./page.module.css";
 import {
    TrophyIcon,
    CheckBadgeIcon,
@@ -26,6 +27,20 @@ import {
 } from "@heroicons/react/24/outline";
 
 type GameCategory = "all" | "logic" | "memory" | "speed" | "skill" | "final";
+
+type ProgressMap = Record<number, { completed: boolean }>;
+
+/** The progress poll runs every 2 s; keep the old map when nothing changed so the 50 cards
+ *  are not re-rendered for nothing. */
+function keepIfSame(prev: ProgressMap, next: ProgressMap): ProgressMap {
+   const keys = Object.keys(next);
+   if (keys.length !== Object.keys(prev).length) return next;
+   for (const key of keys) {
+      const id = Number(key);
+      if (!prev[id] || prev[id].completed !== next[id].completed) return next;
+   }
+   return prev;
+}
 
 export default function ClassicDashboardPage() {
    const { login, register } = useAuth();
@@ -63,7 +78,7 @@ export default function ClassicDashboardPage() {
                   };
                }
             );
-            setGameProgress(progressMap);
+            setGameProgress((prev) => keepIfSame(prev, progressMap));
          }
       };
 
@@ -106,7 +121,7 @@ export default function ClassicDashboardPage() {
       Object.entries(allProgress).forEach(([gameId, progress]) => {
          progressMap[parseInt(gameId)] = { completed: progress.completed };
       });
-      setGameProgress(progressMap);
+      setGameProgress((prev) => keepIfSame(prev, progressMap));
    };
 
    const [error, setError] = useState<string | null>(null);
@@ -225,24 +240,10 @@ export default function ClassicDashboardPage() {
       },
    };
 
-   if (loading) {
-      return (
-         <div
-            style={{
-               display: "flex",
-               justifyContent: "center",
-               alignItems: "center",
-               minHeight: "100vh",
-               width: "100%",
-            }}
-         >
-            <span className="loader"></span>
-         </div>
-      );
-   }
-
-   return (
-      <div className="home-page">
+   // Header, tabs and auth modals render at once (also in the server HTML) while the games load,
+   // so the logo paints early and stays put when the games arrive.
+   const shell = (
+      <>
          <Header
             showSubtitle={true}
             onShowLoginModal={() => setShowLoginModal(true)}
@@ -269,6 +270,31 @@ export default function ClassicDashboardPage() {
                setShowLoginModal(true);
             }}
          />
+      </>
+   );
+
+   if (loading) {
+      return (
+         <div className="home-page">
+            {shell}
+            <div
+               style={{
+                  display: "flex",
+                  justifyContent: "center",
+                  alignItems: "center",
+                  minHeight: "50vh",
+                  width: "100%",
+               }}
+            >
+               <span className="loader" role="status" aria-label="Loading games"></span>
+            </div>
+         </div>
+      );
+   }
+
+   return (
+      <div className="home-page">
+         {shell}
 
          {error && (
             <div
@@ -412,7 +438,7 @@ export default function ClassicDashboardPage() {
                                           <Link
                                              key={game.id}
                                              href={`/games/${game.id}`}
-                                             className={`game-card ${
+                                             className={`${styles.card} game-card ${
                                                 isCompleted ? "completed" : ""
                                              }`}
                                              style={{ textDecoration: "none" }}
@@ -478,7 +504,7 @@ export default function ClassicDashboardPage() {
                                        ) : (
                                           <div
                                              key={game.id}
-                                             className={`game-card locked ${
+                                             className={`${styles.card} game-card locked ${
                                                 isCompleted ? "completed" : ""
                                              }`}
                                           >
@@ -585,7 +611,7 @@ export default function ClassicDashboardPage() {
                                  <Link
                                     key={game.id}
                                     href={`/games/${game.id}`}
-                                    className={`game-card ${
+                                    className={`${styles.card} game-card ${
                                        isCompleted ? "completed" : ""
                                     } ${isFinalGame ? "final-game" : ""}`}
                                     style={{ textDecoration: "none" }}
@@ -653,7 +679,7 @@ export default function ClassicDashboardPage() {
                               ) : (
                                  <div
                                     key={game.id}
-                                    className={`game-card locked ${
+                                    className={`${styles.card} game-card locked ${
                                        isCompleted ? "completed" : ""
                                     } ${isFinalGame ? "final-game" : ""}`}
                                  >

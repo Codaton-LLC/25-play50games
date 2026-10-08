@@ -21,7 +21,7 @@ export default function ArcadeCard({ meta, best }: ArcadeCardProps) {
          </div>
          <div className={styles.copy}>
             <div className={styles.heading}>
-               <h3 className={styles.title}>{meta.title}</h3>
+               <h2 className={styles.title}>{meta.title}</h2>
                <span className={styles.dots} aria-label={`Difficulty ${meta.difficulty} of 3`}>
                   {[1, 2, 3].map((level) => (
                      <span

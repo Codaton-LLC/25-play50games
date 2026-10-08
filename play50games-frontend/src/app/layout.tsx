@@ -4,8 +4,19 @@ import "./globals.css";
 import { AuthProvider } from "@/contexts/AuthContext";
 import PrivacyConsent from "@/components/PrivacyConsent/PrivacyConsent";
 import { OG_IMAGES, ogImage } from "@/lib/seo/ogImages";
+import { getApiBase } from "@/lib/api/apiBase";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://play50games.com";
+
+function apiOrigin(): string | null {
+   try {
+      return new URL(getApiBase()).origin;
+   } catch {
+      return null;
+   }
+}
+
+const API_ORIGIN = apiOrigin();
 
 const DEFAULT_TITLE = "Play50Games – classic brain games and a 3D Arcade";
 const DEFAULT_DESCRIPTION =
@@ -44,9 +55,10 @@ export const metadata: Metadata = {
       telephone: false,
    },
    icons: {
-      icon: "/images/logo/favicon.png",
-      shortcut: "/images/logo/favicon.png",
-      apple: "/images/logo/favicon.png",
+      // small copies of favicon.png (536 x 598, 244 KB), which every page used to download
+      icon: "/images/logo/favicon-64.png",
+      shortcut: "/images/logo/favicon-64.png",
+      apple: "/images/logo/favicon-180.png",
    },
    openGraph: {
       type: "website",
@@ -89,18 +101,26 @@ export default function RootLayout({
 }) {
    return (
       <html lang="en" suppressHydrationWarning>
+         <head>
+            {/* warm the connection the first client request needs (WP API, CORS fetch) */}
+            {API_ORIGIN ? <link rel="preconnect" href={API_ORIGIN} crossOrigin="anonymous" /> : null}
+         </head>
          <body suppressHydrationWarning>
-            {/* Google Tag Manager */}
+            {/* Google Tag Manager: the standard snippet split in two. The dataLayer and the
+               gtm.js start event are set up right after hydration, as before, so every
+               dataLayer.push (e.g. the arcade events) is queued; gtm.js itself (117 KB) loads
+               once the page has finished loading and replays the queue. */}
             <Script
-               id="gtm-script"
+               id="gtm-init"
                strategy="afterInteractive"
                dangerouslySetInnerHTML={{
-                  __html: `(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
-new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
-j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
-'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
-})(window,document,'script','dataLayer','GTM-M8N7FT9M');`,
+                  __html: `window.dataLayer=window.dataLayer||[];window.dataLayer.push({'gtm.start':new Date().getTime(),event:'gtm.js'});`,
                }}
+            />
+            <Script
+               id="gtm-script"
+               strategy="lazyOnload"
+               src="https://www.googletagmanager.com/gtm.js?id=GTM-M8N7FT9M"
             />
             {/* Google Tag Manager (noscript) */}
             <noscript>
