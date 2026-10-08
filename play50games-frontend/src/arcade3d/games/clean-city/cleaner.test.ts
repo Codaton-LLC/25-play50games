@@ -3,7 +3,8 @@
 // the hands clear of the hips and the bearded head rigid (core/rig/characterChecks.ts); its scale
 // keeps it 0.95 tall. A new cleaner.glb must be re-measured. Then the game's own use of it on the
 // same mesh: the pickup reach and the cheer keep it above the floor, and through the gait (gait.ts)
-// the soles of the planted foot stay put at a walk and at the top-speed run.
+// the soles of the planted foot stay put at a walk and at the top-speed run (net over a stance;
+// within a walking stance they rock up to 2 cm, at a run under 4 mm).
 import { beforeAll, describe, expect, it } from "vitest";
 import { Vector3 } from "three";
 import { POSE_MASK, applyHumanoidPose, armsDownPose, blendPoses, bodyLift, cheerPose, createPose, idlePose, reachPose, walkPose } from "@/arcade3d/core/rig";
@@ -82,6 +83,12 @@ describe("clean-city cleaner as the Scene drives it (cleaner.glb)", () => {
          }
          cheerPose(k * 0.3, p);
          expect(lowest(cleaner.posed(p, false)) + bodyLift(p, L), `cheer ${k}`).toBeGreaterThan(-0.005);
+         // easing in and out (poseWeights.ts) the cheer is blended over the walk
+         for (const cheer of [0.25, 0.5, 0.75]) {
+            walkPose((k / 8) * Math.PI * 2, 0.6, p);
+            blendPoses(p, cheerPose(k * 0.3, scratch), cheer, p);
+            expect(lowest(cleaner.posed(p, false)) + bodyLift(p, L), `cheer ${k} at ${cheer}`).toBeGreaterThan(-0.005);
+         }
       }
    });
 
@@ -89,10 +96,12 @@ describe("clean-city cleaner as the Scene drives it (cleaner.glb)", () => {
     * stepCleanerGait at a steady `v` for half a second, then for a second more the real mesh's soles
     * (their vertices within 3.5 cm of the floor at rest) skinned 300 times a second: per stance of the
     * left foot (its lowest point within 2 mm of its own lowest and no higher than the right sole's
-    * over its own: the foot that carries the body) its sole's centroid's travel from touch-down to
-    * lift-off, over the body's travel meanwhile. 0 = it stays put, 1 = it slides with the body.
+    * over its own: the foot that carries the body): `net`, its sole's centroid's travel from
+    * touch-down to lift-off over the body's travel meanwhile (0 = it stays put, 1 = it slides with
+    * the body), and `maxDrift`, the farthest (world units) the centroid gets from its touch-down
+    * point within any stance.
     */
-   function soleSlide(v: number): number {
+   function soleSlide(v: number): { net: number; maxDrift: number } {
       const rest = cleaner.glb.cloud;
       const soles: [number[], number[]] = [[], []];
       for (let i = 0; i < rest.length / 3; i++) if (rest[i * 3 + 1] < 0.035) soles[rest[i * 3] > 0 ? 0 : 1].push(i);
@@ -127,24 +136,42 @@ describe("clean-city cleaner as the Scene drives it (cleaner.glb)", () => {
       const on = (i: number) => frames[i].low[0] - floor[0] < 0.002 && frames[i].low[0] - floor[0] <= frames[i].low[1] - floor[1] + 1e-6;
       let slide = 0;
       let body = 0;
+      let maxDrift = 0;
+      let drift = 0;
       let start = -1;
       for (let i = 0; i < frames.length; i++) {
-         if (on(i) && start < 0) start = i;
+         if (on(i) && start < 0) {
+            start = i;
+            drift = 0;
+         }
+         if (on(i)) drift = Math.max(drift, Math.abs(frames[i].z - frames[start].z));
          if (!on(i) && start >= 0) {
             if (start > 0 && i - 1 > start) {
                slide += Math.abs(frames[i - 1].z - frames[start].z);
                body += frames[i - 1].x - frames[start].x;
+               maxDrift = Math.max(maxDrift, drift);
             }
             start = -1;
          }
       }
       expect(body).toBeGreaterThan(0);
-      return slide / body;
+      return { net: slide / body, maxDrift };
    }
 
-   it("the planted sole stays put at a walk (1 and 2 u/s) and at a run (3.5 and 5 u/s): under 7 % of the ground covered in a stance", () => {
+   const SLIDE = new Map<number, { net: number; maxDrift: number }>();
+   const slideAt = (v: number) => {
+      if (!SLIDE.has(v)) SLIDE.set(v, soleSlide(v));
+      return SLIDE.get(v)!;
+   };
+
+   it("the planted sole stays put at a walk (1 and 2 u/s) and at a run (3.5 and 5 u/s): its net travel under 7 % of the ground covered in a stance", () => {
       for (const v of [1, 2, 3.5, 5]) {
-         expect(soleSlide(v), `v ${v}`).toBeLessThan(0.07);
+         expect(slideAt(v).net, `v ${v}`).toBeLessThan(0.07);
       }
+   });
+
+   it("within a stance the planted sole gets under 3 cm from where it touched down at a walk (1 and 2 u/s: it rocks forward, then back) and under 6 mm at a run (3.5 and 5 u/s)", () => {
+      for (const v of [1, 2]) expect(slideAt(v).maxDrift, `v ${v}`).toBeLessThan(0.03);
+      for (const v of [3.5, 5]) expect(slideAt(v).maxDrift, `v ${v}`).toBeLessThan(0.006);
    });
 });

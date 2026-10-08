@@ -2,7 +2,7 @@
 // how far its phase advances per frame. Pure, no three.js, so Scene.tsx and gait.test.ts /
 // cleaner.test.ts share it.
 //
-// The planted foot stays put at every speed the rules allow (README "The cleaner"):
+// The planted foot stays put at every speed the rules allow, in straight-line travel (README "The cleaner"):
 // - The phase advances by the distance over the stride (core gaitPhaseStep). At a walk (amount up to
 //   0.54) that stride is the walk's own, core walkStride with the cleaner's landmarks x its scale:
 //   the foot is planted from its forward reach to its backward reach, half the cycle. From 0.55 the
@@ -17,10 +17,17 @@
 //   and neither clamp of gaitPhaseStep bites: the legs beat at most about 5 strides a second
 //   (4.24 at 5 u/s), under CLEANER_MAX_CADENCE, and the stride is the walk's own from 0.05 u/s
 //   (CLEANER_MIN_STRIDE), where the legs barely move.
-// Measured on the real soles (cleaner.test.ts): the planted sole travels 3-6 % of the ground the
-// body covers in a stance, at every speed and from rest. The runner it replaced stepped at most 4
-// times a second over walkStride: its planted sole slid 23-24 % at a walk, 11-12 % at a run and
-// 33-38 % while speeding up (README "The cleaner").
+// - While playing, the phase steps by the play time the rules moved the runner (gaitFrameDt: core
+//   playedFrameDt, at most 1/20 s), not the animation clock's (up to 0.1 s): on a long frame the
+//   legs cover exactly the ground the body did.
+// Measured on the real soles (cleaner.test.ts), straight-line travel: the planted sole's net travel
+// from touch-down to lift-off is 3-6 % of the ground the body covers in a stance, at every speed
+// and from rest. At a walk it is not still within the stance: it rocks about 1-1.5 cm forward and
+// then 1.5-2.5 cm back (the walk's thigh sweeps unevenly, under 1 CSS px at the game camera); at a
+// run it moves under 3 mm. While the cleaner turns the planted foot swings with the body about its
+// centre (README "The cleaner"). The runner it replaced stepped at most 4 times a second over
+// walkStride: its planted sole slid 23-24 % at a walk, 11-12 % at a run and 33-38 % while speeding up.
+import { playedFrameDt } from "@/arcade3d/core/frameLoop";
 import { gaitPhaseStep, wrapPhase } from "@/arcade3d/core/rig";
 import { ASSETS, CLEANER_LANDMARKS } from "./assets";
 import { RUNNER } from "./rules";
@@ -86,6 +93,16 @@ export function createCleanerGait(): CleanerGait {
 export function cleanerPhaseStep(amount: number, speed: number, dt: number): number {
    const scale = CLEANER_SCALE * runStrideFactor(amount);
    return gaitPhaseStep(amount, CLEANER_LANDMARKS, scale, speed, dt, CLEANER_MAX_CADENCE, CLEANER_MIN_STRIDE);
+}
+
+/**
+ * The time (s) the gait steps by this frame. While playing: the play time the run clock counted
+ * (core playedFrameDt, what useRunFrame handed the rules, at most 1/20 s), so the phase advances by
+ * the ground the rules really moved the runner. Otherwise the animation clock's `animDelta`
+ * (useGameTime's delta: 0 while paused), so the amount still eases down after the end.
+ */
+export function gaitFrameDt(state: Parameters<typeof playedFrameDt>[0], animDelta: number): number {
+   return state.phase === "playing" ? playedFrameDt(state) : animDelta;
 }
 
 /** One frame of the gait at the cleaner's speed `speed` (u/s, this frame's) over `dt` (s). Allocation-free. */

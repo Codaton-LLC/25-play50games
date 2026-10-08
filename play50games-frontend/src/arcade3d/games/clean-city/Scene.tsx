@@ -11,7 +11,8 @@
 //   clear of the HUD, the map pill, the joystick and the cookie banner. A map change teleports
 //   the runner; the rig eases toward it (it only snaps on mount), so the view does not jump.
 // - The runner of the rules is drawn as the cleaner (cleaner.glb, auto-rigged): its gait (gait.ts)
-//   keeps the planted foot still at every speed; a reach on each pickup, a cheer on a map clear.
+//   keeps the planted foot still at every speed in straight-line travel (while it turns the foot
+//   swings with the body: README "The cleaner"); a reach on each pickup, a cheer on a map clear.
 // - Litter: one <DynamicInstancedModel> pool per kind (PER_KIND = 5 copies), the stand-in parts
 //   (useLitterStandIns) as its fallbackParts. Collected copies hide. Map props: one InstancedModel
 //   per kind, all three maps mounted, Worlds sets visible from run.map in a useFrame. The park and
@@ -47,7 +48,8 @@ import { useRunFrame } from "@/arcade3d/core/useRunFrame";
 import { ASSETS, CLEANER_LANDMARKS } from "./assets";
 import { DAMPING, FOLLOW, FOV, LOOK_AT, REACH, VIEW } from "./camera";
 import { CityDecor, ParkDecor } from "./Decor";
-import { CLEANER_SCALE, createCleanerGait, stepCleanerGait } from "./gait";
+import { CLEANER_SCALE, createCleanerGait, gaitFrameDt, stepCleanerGait } from "./gait";
+import { cheerWeight, reachWeight } from "./poseWeights";
 import { Beach, City, Park, PrimitiveRunner, RUNNER_RING, useLitterStandIns, type RunnerLimbs } from "./Primitives";
 import {
    ITEMS_PER_MAP,
@@ -261,8 +263,6 @@ function Litter({ run, fx }: { run: CleanRun; fx: LitterFx }) {
 
 // ---------- the cleaner ----------
 
-const REACH_S = 0.45;
-const CHEER_S = 1.15;
 const LIMB_Q = new Quaternion();
 const LIMB_E = new Euler();
 
@@ -296,8 +296,9 @@ function poseArm(pose: HumanoidPose, bone: number, drop: number, arm: Group, sid
 /**
  * The cleaner (cleaner.glb, this game's character): idle when still, a walk or a run whose stride
  * keeps the planted foot still (gait.ts), a short reach on each pickup, and a cheer when a map is
- * cleared and on the win. cleaner.glb (auto-rigged) takes the pose; the primitive, shown while it
- * loads or if it fails, moves with the same pose.
+ * cleared and on the win (poseWeights.ts: eased in, held, eased out quickly through level).
+ * cleaner.glb (auto-rigged) takes the pose; the primitive, shown while it loads or if it fails,
+ * moves with the same pose.
  */
 function Cleaner({ run }: { run: CleanRun }) {
    const time = useGameTime();
@@ -306,24 +307,28 @@ function Cleaner({ run }: { run: CleanRun }) {
    const standIn = useRef<Group>(null);
    const limbs = useRef<RunnerLimbs>({ legL: null, legR: null, armL: null, armR: null, bob: null });
    const [gait] = useState(createCleanerGait);
-   const fx = useRef({ collected: 0, map: 0, reachAt: -10, cheerAt: -10 });
+   const fx = useRef({ collected: 0, map: 0, won: false, reachAt: -10, cheerAt: -10 });
    const [scratch] = useState(createPose);
    const pose = useHumanoidPose((p) => {
       const t = time.now;
       const r = run.runner;
-      const { phase, endReason } = useArcadeStore.getState();
-      // the rules keep the last velocity once the run is over: the cleaner stops there
-      stepCleanerGait(gait, phase === "playing" ? Math.hypot(r.vx, r.vz) : 0, time.delta);
+      const store = useArcadeStore.getState();
+      const { phase, endReason } = store;
+      // the rules keep the last velocity once the run is over: the cleaner stops there. While playing
+      // the phase steps by the play time the rules moved the runner (FRAME_PRIORITY.pose runs after
+      // the simulation, so frameMs is this frame's), never the longer animation delta
+      stepCleanerGait(gait, phase === "playing" ? Math.hypot(r.vx, r.vz) : 0, gaitFrameDt(store, time.delta));
       walkPose(gait.phase, gait.amount, p);
       blendPoses(p, idlePose(t, scratch), 1 - Math.min(1, gait.amount * 5), p, POSE_MASK.upper);
       const mark = fx.current;
+      const won = phase === "over" && endReason === "win";
       if (run.collected > mark.collected) mark.reachAt = t;
       mark.collected = run.collected;
-      if (run.map > mark.map) mark.cheerAt = t;
+      if (run.map > mark.map || (won && !mark.won)) mark.cheerAt = t;
       mark.map = run.map;
-      const reach = Math.max(0, 1 - (t - mark.reachAt) / REACH_S);
-      const won = phase === "over" && endReason === "win";
-      const cheer = won ? 1 : Math.max(0, 1 - (t - mark.cheerAt) / CHEER_S);
+      mark.won = won;
+      const reach = reachWeight(t - mark.reachAt);
+      const cheer = cheerWeight(t - mark.cheerAt, won);
       if (reach > 0.001) blendPoses(p, reachPose(1, 0.35, scratch), reach, p, POSE_MASK.arms);
       if (cheer > 0.001) blendPoses(p, cheerPose(t, scratch), cheer, p);
       gait.lift = bodyLift(p, CLEANER_LANDMARKS) * CLEANER_SCALE;

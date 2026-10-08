@@ -4,6 +4,7 @@
 // amount follows the speed, and the planted ankle stays put through a stance at every speed (the
 // runner's old cap-4 gait slid). cleaner.test.ts checks the same on the real mesh's soles.
 import { describe, expect, it } from "vitest";
+import { MAX_ANIM_DT, clampFrameDt, playedFrameDt } from "@/arcade3d/core/frameLoop";
 import { bodyLift, createPose, footPoint, walkPose, walkStride, type HumanoidLandmarks } from "@/arcade3d/core/rig";
 import { RUNNER_LANDMARKS } from "@/arcade3d/core/sharedAssets";
 import { CLEANER_LANDMARKS } from "./assets";
@@ -15,6 +16,7 @@ import {
    RUN_STRIDE,
    cleanerPhaseStep,
    createCleanerGait,
+   gaitFrameDt,
    runStrideFactor,
    stepCleanerGait,
    type CleanerGait,
@@ -135,6 +137,47 @@ describe("clean-city stepCleanerGait (gait.ts)", () => {
          expect(gait.phase).toBeLessThan(TAU);
       }
    });
+
+   it("gaitFrameDt: while playing the gait steps by the play time the rules counted (at most 1/20 s), else by the animation clock", () => {
+      expect(gaitFrameDt({ phase: "playing", frameMs: 16 }, 0.016)).toBeCloseTo(0.016, 12);
+      // an 80 ms frame: the run clock counts 50 ms (MAX_FRAME_DT), the animation clock 80 ms
+      expect(gaitFrameDt({ phase: "playing", frameMs: clampFrameDt(0.08) * 1000 }, Math.min(0.08, MAX_ANIM_DT))).toBeCloseTo(0.05, 12);
+      expect(gaitFrameDt({ phase: "playing", frameMs: 0 }, 0.016)).toBe(0);
+      // after the end (and in the countdown) the amount eases down on the animation clock; paused it is 0
+      expect(gaitFrameDt({ phase: "over", frameMs: 0 }, 0.016)).toBe(0.016);
+      expect(gaitFrameDt({ phase: "countdown", frameMs: 0 }, 0.016)).toBe(0.016);
+      expect(gaitFrameDt({ phase: "paused", frameMs: 16 }, 0)).toBe(0);
+   });
+
+   it("at a sustained 10-20 fps the legs cover exactly the ground the rules moved the runner (the animation clock's delta would turn them 1.33-2 times as far: the foot skids 33-100 %)", () => {
+      /** Over 4 s at `fps`: the gait's phase advance (strides) x its stride, over the ground the rules covered. */
+      const cover = (fps: number, v: number, drive: (state: { phase: "playing"; frameMs: number }, animDelta: number) => number) => {
+         const frame = 1 / fps;
+         const gait = createCleanerGait();
+         let ground = 0;
+         let turned = 0;
+         for (let i = 0; i < 4 * fps; i++) {
+            // one frame as the canvas runs it: the run clock counts at most 1/20 s (useRunFrame moves
+            // the runner by that), the animation clock the whole frame up to 0.1 s
+            const state = { phase: "playing" as const, frameMs: clampFrameDt(frame) * 1000 };
+            ground += v * playedFrameDt(state);
+            const before = gait.phase;
+            stepCleanerGait(gait, v, drive(state, Math.min(frame, MAX_ANIM_DT)));
+            turned += (((gait.phase - before) % TAU) + TAU) % TAU;
+         }
+         // the amount is v / 5 from the first frame on (it follows the speed up at once)
+         const stride = walkStride(gait.amount, L) * CLEANER_SCALE * runStrideFactor(gait.amount);
+         return ((turned / TAU) * stride) / ground;
+      };
+      for (const fps of [10, 15, 20, 60]) {
+         for (const v of [1, 2.5, 5]) {
+            expect(cover(fps, v, gaitFrameDt), `${fps} fps v ${v}`).toBeCloseTo(1, 9);
+            const old = cover(fps, v, (_state, animDelta) => animDelta);
+            if (fps < 20) expect(old, `old drive ${fps} fps v ${v}`).toBeGreaterThan(1.3);
+            else expect(old, `old drive ${fps} fps v ${v}`).toBeCloseTo(1, 9);
+         }
+      }
+   });
 });
 
 type Step = (gait: CleanerGait, v: number, dt: number) => void;
@@ -150,10 +193,12 @@ const runnerStep = (l: HumanoidLandmarks, scale: number): Step => (g, v, dt) => 
  * Drives `step` at `speedAt(t)` and follows the left ankle on the floor plane as the Scene draws it
  * (the body carried along +z, the gait's pose lifted by bodyLift): per stance (the left foot carrying
  * the body, its sole on the floor (within ON_FLOOR) and no higher than the right one, over
- * consecutive steps, from the second stance on) the ankle's travel from touch-down to lift-off, over
- * the body's travel meanwhile. 0 = it stays put, 1 = it slides with the body.
+ * consecutive steps, from the second stance on): `net`, the ankle's travel from touch-down to
+ * lift-off over the body's travel meanwhile (0 = it stays put, 1 = it slides with the body), and
+ * `maxDrift`, the farthest (world units) the ankle gets from its touch-down point within any stance
+ * (the walk's foot rocks forward and back, which the net hides).
  */
-function stanceSlide(step: Step, l: HumanoidLandmarks, scale: number, speedAt: (t: number) => number, seconds: number, from = 0): number {
+function stances(step: Step, l: HumanoidLandmarks, scale: number, speedAt: (t: number) => number, seconds: number, from = 0): { net: number; maxDrift: number } {
    const gait = createCleanerGait();
    const p = createPose();
    const f = new Float64Array(4);
@@ -174,29 +219,54 @@ function stanceSlide(step: Step, l: HumanoidLandmarks, scale: number, speedAt: (
    const on =(i: number) => frames[i].sole < ON_FLOOR && frames[i].sole <= frames[i].other + 1e-9;
    let slide = 0;
    let body = 0;
+   let maxDrift = 0;
+   let drift = 0;
    let start = -1;
    for (let i = 0; i < frames.length; i++) {
-      if (on(i) && start < 0) start = i;
+      if (on(i) && start < 0) {
+         start = i;
+         drift = 0;
+      }
+      if (on(i)) drift = Math.max(drift, Math.abs(frames[i].z - frames[start].z));
       if (!on(i) && start >= 0) {
          if (start > 0 && i - 1 > start) {
             slide += Math.abs(frames[i - 1].z - frames[start].z);
             body += frames[i - 1].x - frames[start].x;
+            maxDrift = Math.max(maxDrift, drift);
          }
          start = -1;
       }
    }
    expect(body).toBeGreaterThan(0);
-   return slide / body;
+   return { net: slide / body, maxDrift };
 }
+
+const stanceSlide = (...args: Parameters<typeof stances>): number => stances(...args).net;
 
 describe("clean-city: the planted foot stays put (core footPoint, the cleaner's landmarks)", () => {
    const gaitStep: Step = (g, v, dt) => stepCleanerGait(g, v, dt);
    const steady = (v: number) => () => v;
    const fromRest = (v: number) => (t: number) => Math.min(v, RUNNER.accel * (t + PROBE_DT));
 
-   it("at every steady speed from the joystick's slowest (0.6 u/s) to the 5 u/s top speed, its ankle travels under 6 % of the ground covered in a stance", () => {
+   it("at every steady speed from the joystick's slowest (0.6 u/s) to the 5 u/s top speed, its ankle's net travel from touch-down to lift-off is under 6 % of the ground covered in a stance", () => {
       for (const v of [0.6, 1, 1.5, 2, 2.5, 2.75, 3, 3.5, 4, 4.5, 5]) {
          expect(stanceSlide(gaitStep, L, CLEANER_SCALE, steady(v), 2, 1), `v ${v}`).toBeLessThan(0.06);
+      }
+   });
+
+   it("within a stance the ankle gets under 2.5 cm from where it touched down at a walk (0.6-2.5 u/s: it rocks forward, then back), under 1 cm at 2.75 u/s and under 3 mm at a run (3-5 u/s)", () => {
+      let walkPeak = 0;
+      for (const v of [0.6, 1, 1.5, 2, 2.25, 2.5]) {
+         const { maxDrift } = stances(gaitStep, L, CLEANER_SCALE, steady(v), 2, 1);
+         expect(maxDrift, `v ${v}`).toBeLessThan(0.025);
+         walkPeak = Math.max(walkPeak, maxDrift);
+      }
+      // the rock the README documents (1.5-2.5 cm back at 2-2.7 u/s): a core re-timing of the walk's
+      // stance (or foot IK) would lower it, and the README with it
+      expect(walkPeak).toBeGreaterThan(0.012);
+      expect(stances(gaitStep, L, CLEANER_SCALE, steady(2.75), 2, 1).maxDrift).toBeLessThan(0.01);
+      for (const v of [3, 3.5, 4, 4.5, 5]) {
+         expect(stances(gaitStep, L, CLEANER_SCALE, steady(v), 2, 1).maxDrift, `v ${v}`).toBeLessThan(0.003);
       }
    });
 
