@@ -44,7 +44,7 @@ Owned by Claude. Games import from here and never edit it. If a game needs somet
 
 Cues: `pickup`, `hit`, `jump`, `win`, `lose`, `countdown`, `go`, `whoosh`, `splash`, `thud`, `chime`, `combo`, `buzz`, `boom`, `click`, `pop`, `zap`, `alarm` — every one under 0.6 s, synthesized (no audio files). `opts` is optional and backwards compatible: `pitch` (0.5–2) multiplies frequencies, `pan` (−1..1) plays through a `StereoPannerNode`, `volume` (0–1) scales the level.
 
-Loops for ongoing sounds (engines, water, machinery): `startLoop(name, opts?)` with `engine`, `rotor`, `vacuum`, `belt`, `surf`, `bubbling`, `slide`, `thrust`, `hum`, `ambient`. It returns a handle whose `set({ pitch, volume, pan })` ramps over 60 ms (no clicks); a loop started before the first gesture is a silent handle that starts when audio unlocks, and mute silences it at once through the master gain. At most 4 loops sound at once — starting a 5th stops the oldest. `stopAllLoops()` stops every loop (GameShell calls it on pause, mute and unmount).
+Loops for ongoing sounds (engines, water, machinery): `startLoop(name, opts?)` with `engine`, `rotor`, `vacuum`, `belt`, `surf`, `bubbling`, `slide`, `thrust`, `hum`, `ambient`. It returns a handle whose `set({ pitch, volume, pan })` ramps over 60 ms (no clicks); a loop started before the first gesture is a silent handle that starts when audio unlocks, and mute silences it at once through the master gain. At most 4 loops sound at once — starting a 5th stops the oldest. `stopAllLoops()` stops every loop; the shell stops every loop on pause, mute, run end and unmount (wired in P-03).
 
 ```ts
 import { playSfx, startLoop, stopAllLoops } from "@/arcade3d/core/audio";
@@ -56,7 +56,7 @@ engine.set({ pitch: 1.5 });                     // rev up: 60 ms ramp, no click
 const surf = startLoop("surf");                 // waves under a boat level
 surf.set({ pan: -0.3, volume: 0.4 });
 surf.stop();                                    // 60 ms fade out
-stopAllLoops();                                 // the shell, on pause/unmount
+stopAllLoops();                                 // the shell: pause, run end, unmount
 ```
 
 ## Input events

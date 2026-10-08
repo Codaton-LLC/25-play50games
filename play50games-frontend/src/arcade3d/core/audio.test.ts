@@ -7,8 +7,6 @@ import {
    clampVolume,
    createLoopRegistry,
    isAudioGesture,
-   rampValueAt,
-   wobbleGainAt,
    type LoopName,
    type LoopRegistryEntry,
 } from "./audio";
@@ -23,52 +21,51 @@ function setup(muted = false) {
 
    class FakeParam {
       value = 1;
-      events: [string, number][] = [];
-      setValueAtTime(v: number) { this.value = v; this.events.push(["set", v]); return this; }
-      exponentialRampToValueAtTime(v: number) { this.value = v; this.events.push(["exp", v]); return this; }
-      linearRampToValueAtTime(v: number) { this.value = v; this.events.push(["lin", v]); return this; }
-      cancelScheduledValues() { return this; }
+      /** every scheduled change: [kind, value, time] — the ramp-contract under test */
+      events: [string, number, number][] = [];
+      setValueAtTime(v: number, t: number) { this.value = v; this.events.push(["set", v, t]); return this; }
+      exponentialRampToValueAtTime(v: number, t: number) { this.value = v; this.events.push(["exp", v, t]); return this; }
+      linearRampToValueAtTime(v: number, t: number) { this.value = v; this.events.push(["lin", v, t]); return this; }
+      cancelScheduledValues(t: number) { this.events.push(["cancel", 0, t]); return this; }
    }
 
-   class FakeOscillator {
+   class FakeNode {
+      onended: ((event: Event) => void) | null = null;
+      disconnectCalls = 0;
+      connections: unknown[] = [];
+      connect(node: unknown) { this.connections.push(node); }
+      disconnect() { this.disconnectCalls++; }
+   }
+
+   class FakeOscillator extends FakeNode {
       type = "sine";
       frequency = new FakeParam();
       stopped = false;
-      constructor() { oscillators++; }
-      connect() {}
-      disconnect() {}
+      constructor() { super(); oscillators++; }
       start() {}
       stop() { this.stopped = true; }
    }
 
-   class FakeBufferSource {
+   class FakeBufferSource extends FakeNode {
       buffer: unknown = null;
       loop = false;
       stopped = false;
-      connect() {}
-      disconnect() {}
       start() {}
       stop() { this.stopped = true; }
    }
 
-   class FakeGain {
+   class FakeGain extends FakeNode {
       gain = new FakeParam();
-      connect() {}
-      disconnect() {}
    }
 
-   class FakePanner {
+   class FakePanner extends FakeNode {
       pan = new FakeParam();
-      connect() {}
-      disconnect() {}
    }
 
-   class FakeFilter {
+   class FakeFilter extends FakeNode {
       type = "lowpass";
       frequency = new FakeParam();
       Q = new FakeParam();
-      connect() {}
-      disconnect() {}
    }
 
    class FakeContext {
@@ -130,6 +127,14 @@ function setup(muted = false) {
 async function loadAudio() {
    vi.resetModules();
    return import("./audio");
+}
+
+async function boot() {
+   const env = setup();
+   const audio = await loadAudio();
+   audio.initAudio();
+   env.fire("pointerup");
+   return { env, audio };
 }
 
 afterEach(() => {
@@ -229,8 +234,8 @@ describe("initAudio", () => {
    });
 });
 
-describe("option clamps and envelope maths", () => {
-   it("clamps pitch, pan and volume to their ranges", () => {
+describe("option clamps", () => {
+   it("clamps pitch, pan and volume to their ranges, with a neutral fallback for NaN", () => {
       expect(clampPitch(0)).toBe(0.5);
       expect(clampPitch(5)).toBe(2);
       expect(clampPitch(1.5)).toBe(1.5);
@@ -238,21 +243,10 @@ describe("option clamps and envelope maths", () => {
       expect(clampPan(0.25)).toBe(0.25);
       expect(clampVolume(2)).toBe(1);
       expect(clampVolume(-2)).toBe(0);
-   });
-
-   it("keeps a loop wobble between base×(1−depth) and base", () => {
-      const base = 0.4;
-      const depth = 0.5;
-      const rate = 2; // 0.5 s period
-      expect(wobbleGainAt(base, depth, rate, 0)).toBeCloseTo(base * 0.75);
-      expect(wobbleGainAt(base, depth, rate, 0.125)).toBeCloseTo(base); // sin(π/2)
-      expect(wobbleGainAt(base, depth, rate, 0.375)).toBeCloseTo(base * 0.5); // sin(3π/2)
-   });
-
-   it("ramps linearly over the 60 ms loop ramp", () => {
-      expect(rampValueAt(0, 1, 0.06, 0)).toBe(0);
-      expect(rampValueAt(0, 1, 0.06, 0.03)).toBe(0.5);
-      expect(rampValueAt(0, 1, 0.06, 0.12)).toBe(1); // past the end: clamped
+      // NaN/Infinity would poison the AudioParam: they fall back to the neutral value instead
+      expect(clampPitch(NaN)).toBe(1);
+      expect(clampPan(Number.POSITIVE_INFINITY)).toBe(0);
+      expect(clampVolume(NaN)).toBe(1);
    });
 });
 
@@ -288,10 +282,7 @@ describe("createLoopRegistry", () => {
 
 describe("new cues", () => {
    it("plays every new cue after the first gesture", async () => {
-      const env = setup();
-      const audio = await loadAudio();
-      audio.initAudio();
-      env.fire("pointerup");
+      const { env, audio } = await boot();
       const names = ["whoosh", "splash", "thud", "chime", "combo", "buzz", "boom", "click", "pop", "zap", "alarm"] as const;
       for (const name of names) {
          const before = env.nodes();
@@ -301,10 +292,7 @@ describe("new cues", () => {
    });
 
    it("clamps out-of-range options instead of throwing", async () => {
-      const env = setup();
-      const audio = await loadAudio();
-      audio.initAudio();
-      env.fire("pointerup");
+      const { env, audio } = await boot();
       expect(() => audio.playSfx("pop", { pitch: 9, pan: -4, volume: 2 })).not.toThrow();
       expect(env.made[0].panners[0].pan.value).toBe(-1);
       const handle = audio.startLoop("hum", { pitch: 0, pan: 3, volume: -1 });
@@ -329,14 +317,23 @@ describe("loops", () => {
       expect(c.oscillators).toHaveLength(2); // sawtooth + wobble lfo
       expect(c.panners).toHaveLength(1);
       expect(c.panners[0].pan.value).toBeCloseTo(-0.4);
-      expect(c.gains[1].gain.value).toBeCloseTo(0.4 * 0.5 * 0.94, 5); // recipe × volume × (1 − depth/2)
+      // fade-in: the outer level gain ramps from silence to the handle volume over 60 ms
+      // (drop this fade-in and the assertion fails: the gain would start at the target)
+      expect(c.gains[1].gain.events).toEqual([["set", 0.0001, 0], ["lin", 0.5, 0.06]]);
+      // inner stage: recipe level × (1 − depth/2), the LFO swings ±depth/2 on top of it
+      expect(c.gains[2].gain.value).toBeCloseTo(0.4 * 0.94, 5);
+      expect(c.gains[3].gain.value).toBeCloseTo(0.4 * 0.06, 5);
+      // voice -> filter -> body -> level -> panner -> master: muting silences the whole chain
+      expect(c.oscillators[0].connections).toContain(c.filters[0]);
+      expect(c.filters[0].connections).toContain(c.gains[2]);
+      expect(c.gains[2].connections).toContain(c.gains[1]);
+      expect(c.gains[1].connections).toContain(c.panners[0]);
+      expect(c.panners[0].connections).toContain(c.gains[0]);
+      expect(c.gains[0].connections).toContain(c.destination);
    });
 
    it("starts a loop requested while the context was suspended once a gesture resumes it", async () => {
-      const env = setup();
-      const audio = await loadAudio();
-      audio.initAudio();
-      env.fire("pointerup");
+      const { env, audio } = await boot();
       env.made[0].state = "suspended";
       audio.startLoop("surf");
       expect(env.made[0].buffers).toHaveLength(0);
@@ -346,10 +343,7 @@ describe("loops", () => {
    });
 
    it("keeps at most 4 loops: the oldest stops", async () => {
-      const env = setup();
-      const audio = await loadAudio();
-      audio.initAudio();
-      env.fire("pointerup");
+      const { env, audio } = await boot();
       const names: LoopName[] = ["engine", "rotor", "vacuum", "belt", "surf"];
       names.forEach((name) => audio.startLoop(name));
       const c = env.made[0];
@@ -358,29 +352,96 @@ describe("loops", () => {
       expect(c.oscillators.filter((o) => o.stopped)).toHaveLength(2); // the evicted engine's pair
    });
 
-   it("set() ramps pitch, volume and pan; stop() fades out without clicks", async () => {
-      const env = setup();
-      const audio = await loadAudio();
-      audio.initAudio();
-      env.fire("pointerup");
-      const handle = audio.startLoop("surf", { volume: 0.4 });
-      handle.set({ pitch: 1.6, volume: 0.7, pan: 0.8 });
+   it("set() schedules 60 ms linear ramps on the level gain, voice and panner; stop() fades out", async () => {
+      const { env, audio } = await boot();
+      const handle = audio.startLoop("hum", { volume: 0.4 });
       const c = env.made[0];
-      expect(c.panners).toHaveLength(1);
-      expect(c.panners[0].pan.value).toBeCloseTo(0.8);
-      expect(c.filters[0].frequency.value).toBeCloseTo(480 * 1.6);
-      expect(c.gains[1].gain.value).toBeCloseTo(0.35 * 0.7 * 0.75, 5);
+      const level = c.gains[1];
+      c.currentTime = 1;
+      handle.set({ pitch: 1.6, volume: 0.7, pan: 0.8 });
+      expect(level.gain.events.at(-1)).toEqual(["lin", 0.7, 1.06]);
+      expect(c.oscillators[0].frequency.events.at(-1)).toEqual(["lin", 120 * 1.6, 1.06]);
+      expect(c.panners[0].pan.events.at(-1)).toEqual(["lin", 0.8, 1.06]);
+      // the clamps live in set(): without them these targets would be 99, 240·4 and −99
+      handle.set({ pitch: 99, pan: -99, volume: 99 });
+      expect(level.gain.events.at(-1)).toEqual(["lin", 1, 1.06]);
+      expect(c.oscillators[0].frequency.events.at(-1)).toEqual(["lin", 240, 1.06]);
+      expect(c.panners[0].pan.events.at(-1)).toEqual(["lin", -1, 1.06]);
+      c.currentTime = 2;
       handle.stop();
-      expect(c.gains[1].gain.value).toBeCloseTo(0.0001);
-      expect(c.buffers[0].stopped).toBe(true);
+      expect(level.gain.events.at(-1)).toEqual(["lin", 0.0001, 2.06]);
       expect(c.oscillators.every((o) => o.stopped)).toBe(true);
    });
 
+   it("scales the wobble LFO with the volume: set({volume:0}) silences the whole loop", async () => {
+      const { env, audio } = await boot();
+      const handle = audio.startLoop("surf"); // noise + lowpass + a slow wobble LFO
+      const c = env.made[0];
+      const level = c.gains[1];
+      expect(c.gains[2].gain.value).toBeCloseTo(0.35 * 0.75, 5); // body: recipe × (1 − depth/2)
+      expect(c.gains[3].gain.value).toBeCloseTo(0.35 * 0.25, 5); // lfoGain: ±depth/2 swing
+      handle.set({ volume: 0 });
+      // one outer ramp scales voice and wobble together; the inner stage stays untouched
+      expect(level.gain.events.at(-1)).toEqual(["lin", 0.0001, 0.06]);
+      expect(c.gains[2].gain.value).toBeCloseTo(0.35 * 0.75, 5);
+      expect(c.gains[3].gain.value).toBeCloseTo(0.35 * 0.25, 5);
+      handle.set({ pitch: 1.2 });
+      expect(c.filters[0].frequency.events.at(-1)).toEqual(["lin", 480 * 1.2, 0.06]);
+   });
+
+   it("retunes a filtered oscillator loop's fundamental and its filter on set({pitch})", async () => {
+      const { env, audio } = await boot();
+      const handle = audio.startLoop("engine"); // sawtooth voice through a lowpass
+      const c = env.made[0];
+      c.currentTime = 1;
+      handle.set({ pitch: 2 });
+      expect(c.oscillators[0].frequency.events.at(-1)).toEqual(["lin", 140, 1.06]); // 70 × 2
+      expect(c.filters[0].frequency.events.at(-1)).toEqual(["lin", 640, 1.06]); // 320 × 2
+   });
+
+   it("ignores set() after stop(): the fade-out owns the gains", async () => {
+      const { env, audio } = await boot();
+      const handle = audio.startLoop("surf");
+      handle.stop();
+      const scheduled = env.made[0].gains[1].gain.events.length;
+      env.made[0].currentTime = 1;
+      handle.set({ volume: 1, pitch: 2 }); // would cancel the fade-out and ramp back up
+      expect(env.made[0].gains[1].gain.events.length).toBe(scheduled);
+   });
+
+   it("treats a NaN option as not-set instead of poisoning the loop's params", async () => {
+      const { env, audio } = await boot();
+      const handle = audio.startLoop("hum");
+      expect(() => handle.set({ volume: NaN, pitch: NaN, pan: NaN })).not.toThrow();
+      expect(env.made[0].gains[1].gain.events.at(-1)).toEqual(["lin", 1, 0.06]); // fell back to 1, not NaN
+      env.made[0].currentTime = 1;
+      handle.set({ volume: 0.3 });
+      expect(env.made[0].gains[1].gain.events.at(-1)).toEqual(["lin", 0.3, 1.06]); // later sets still schedule
+   });
+
+   it("disconnects every node of a loop once its sources have ended", async () => {
+      const { env, audio } = await boot();
+      const handle = audio.startLoop("surf");
+      const c = env.made[0];
+      const nodes = [c.gains[1], c.gains[2], c.gains[3], c.filters[0], c.panners[0], c.buffers[0], c.oscillators[0]];
+      handle.stop();
+      expect(nodes.every((n) => n.disconnectCalls === 0)).toBe(true); // sources still fading
+      c.buffers[0].onended?.({} as Event);
+      c.oscillators[0].onended?.({} as Event); // the last source ends the loop
+      expect(nodes.every((n) => n.disconnectCalls > 0)).toBe(true);
+   });
+
+   it("disconnects a cue's per-call panner when the cue has ended", async () => {
+      const { env, audio } = await boot();
+      audio.playSfx("pop", { pan: 0.5 });
+      const osc = env.made[0].oscillators[env.made[0].oscillators.length - 1];
+      expect(env.made[0].panners[0].disconnectCalls).toBe(0);
+      osc.onended?.({} as Event);
+      expect(env.made[0].panners[0].disconnectCalls).toBe(1);
+   });
+
    it("mute silences loops at once through the master gain and restores them", async () => {
-      const env = setup();
-      const audio = await loadAudio();
-      audio.initAudio();
-      env.fire("pointerup");
+      const { env, audio } = await boot();
       audio.startLoop("hum");
       expect(env.made[0].oscillators.filter((o) => !o.stopped)).toHaveLength(1);
       audio.setMuted(true);
@@ -391,10 +452,7 @@ describe("loops", () => {
    });
 
    it("stopAllLoops stops every live loop for the shell", async () => {
-      const env = setup();
-      const audio = await loadAudio();
-      audio.initAudio();
-      env.fire("pointerup");
+      const { env, audio } = await boot();
       audio.startLoop("hum");
       audio.startLoop("surf");
       audio.stopAllLoops();
