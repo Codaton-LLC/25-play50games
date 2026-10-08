@@ -15,7 +15,7 @@ export const treasureIslandMeta: ArcadeGameMeta = {
    controls: {
       scheme: "joystick",
       keyboard: "WASD / arrows to move, hold E, Enter or Space to dig",
-      touch: "Joystick + hold Action to dig",
+      touch: "Joystick to move, hold Dig to dig",
    },
    scoring: {
       kind: "points",
