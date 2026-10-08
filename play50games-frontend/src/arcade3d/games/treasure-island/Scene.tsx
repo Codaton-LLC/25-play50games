@@ -33,7 +33,7 @@ import { useRunFrame } from "@/arcade3d/core/useRunFrame";
 import { ASSETS, EXPLORER_SCALE } from "./assets";
 import { DetectorRing } from "./Detector";
 import { IslandScene } from "./Island";
-import { groundAt, viewFor } from "./looks";
+import { PITCH, groundAt, viewFor } from "./looks";
 import { advancePhase, explorerPhaseStep, explorerPose, gaitAmount, type ExplorerLook } from "./poses";
 import { COLORS, ChestPrimitive, ExplorerHat, ExplorerPrimitive, GullPrimitive, useCoinParts } from "./Primitives";
 import {
@@ -281,11 +281,14 @@ function Gull({ run, island, marker }: { run: RunState; island: Island; marker: 
       if (!node.visible) return;
       const angle = (time.now / HINT.lapS) * Math.PI * 2;
       hover(time.now, 0.15, bob);
-      // it circles counter-clockwise seen from above, banked into the turn; it glides down to it
+      // it circles counter-clockwise seen from above, banked into the turn, glides down to it, and
+      // circles on the camera's line of sight through the spot (moved towards the camera by its
+      // height over tan(pitch)), so on screen it is right over the treasure, never off the top
+      const height = HINT.height + (1 - state.k) * 9;
       node.position.set(
          state.x + Math.cos(angle) * HINT.radius,
-         HINT.height + (1 - state.k) * 9 + bob.y,
-         state.z - Math.sin(angle) * HINT.radius
+         height + bob.y,
+         state.z + height / Math.tan(PITCH) - Math.sin(angle) * HINT.radius
       );
       node.rotation.set(0, angle + Math.PI, -0.45 + bob.roll);
    });

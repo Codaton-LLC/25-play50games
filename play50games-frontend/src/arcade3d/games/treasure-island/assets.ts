@@ -24,9 +24,9 @@ const PALM_XZ = PALM_SIZE.crown / PALM_GLB.width;
 export const UMBRELLA_GLB = { height: 1.902, canopyEdge: 1.175 } as const;
 export const UMBRELLA_HEIGHT = 2.8;
 
-/** pigeon.glb 0.99 x 1.903 x 1.744, head at +z: a 0.6 m long seagull. */
+/** pigeon.glb 0.99 x 1.903 x 1.744, head at +z: a 0.8 m long seagull (0.6 m read as a speck from 4.5 m up). */
 export const PIGEON_GLB_LENGTH = 1.744;
-export const GULL_LENGTH = 0.6;
+export const GULL_LENGTH = 0.8;
 
 /** crate.glb 1.880 x 1.335 x 1.810: 0.8 m across (0.57 m tall). */
 export const CRATE_GLB_WIDTH = 1.88;

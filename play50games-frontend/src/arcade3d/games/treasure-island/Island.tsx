@@ -87,7 +87,8 @@ function Sea({ run }: { run: RunState }) {
    useFrame(() => {
       const shore = shoreAt(run.time);
       if (sea.current) sea.current.position.y = waterLevel(shore);
-      foam.current?.scale.set(ISLAND.rx * shore, 1, ISLAND.rz * shore);
+      // the ring lies in its local x / y (turned flat about x): y is the world's z
+      foam.current?.scale.set(ISLAND.rx * shore, ISLAND.rz * shore, 1);
    });
    return (
       <group ref={sea} name="sea">
