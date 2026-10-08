@@ -70,7 +70,8 @@ function HumanoidContent({ asset, pose, applyLift, tint, attach, fallback }: Con
    const rig = useHumanoidRig(asset);
    useCloneLook(rig?.root ?? null, asset.material, tint);
    const [sx, sy, sz] = assetScale(asset);
-   // one group per used anchor, on this clone's bones (rebuilt with the rig or the scale)
+   // one group per used anchor (built here, parented to this clone's bones in a layout effect so
+   // a render React throws away, or a StrictMode effect replay, never leaves an orphan or a gap)
    const wanted = attach ? ANCHOR_NAMES.filter((name) => attach[name] != null).join(",") : "";
    const anchors = useMemo(() => {
       if (!rig || !wanted) return null;
@@ -78,12 +79,16 @@ function HumanoidContent({ asset, pose, applyLift, tint, attach, fallback }: Con
       for (const name of wanted.split(",") as AnchorName[]) groups[name] = createAnchorGroup(rig, name, [sx, sy, sz]);
       return groups;
    }, [rig, wanted, sx, sy, sz]);
-   useEffect(
-      () => () => {
-         if (anchors) for (const name of ANCHOR_NAMES) anchors[name]?.removeFromParent();
-      },
-      [anchors]
-   );
+   useLayoutEffect(() => {
+      if (!rig || !anchors) return;
+      for (const name of ANCHOR_NAMES) {
+         const group = anchors[name];
+         if (group) rig.bones[rig.anchors[name].bone].add(group);
+      }
+      return () => {
+         for (const name of ANCHOR_NAMES) anchors[name]?.removeFromParent();
+      };
+   }, [rig, anchors]);
    // posed before the first frame it is drawn in, then every frame
    useLayoutEffect(() => {
       if (rig) applyHumanoidPose(rig, pose, applyLift);

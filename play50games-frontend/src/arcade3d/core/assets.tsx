@@ -29,7 +29,7 @@
 //   GLB's colours (one cached material per GLB material and tint). <DynamicInstancedModel> tints
 //   per copy from its update(i, matrix, color).
 // - Never call useGLTF.preload at module top level; GameShell clears the cache on unmount.
-import { Component, forwardRef, useEffect, useMemo, useRef, type ErrorInfo, type ReactNode } from "react";
+import { Component, forwardRef, useEffect, useLayoutEffect, useMemo, useRef, useState, type ErrorInfo, type ReactNode } from "react";
 import { useGLTF } from "@react-three/drei";
 import type { GroupProps } from "@react-three/fiber";
 import {
@@ -56,7 +56,7 @@ import { useInstanceMatrices, type InstanceSpot } from "./render/useInstanceMatr
 import { DynamicInstanced } from "./render/DynamicInstanced";
 import type { InstancePart, InstanceUpdate } from "./render/dynamicInstances";
 import { cloneHumanoid, disposeHumanoid, humanoidTemplate, type HumanoidRig } from "./rig/skinning";
-import { MATERIAL_CACHE, applyLook, lookMaterials, type LookUse, type MaterialOverride } from "./materials";
+import { MATERIAL_CACHE, applyLook, lookMaterials, overrideKey, type LookUse, type MaterialOverride } from "./materials";
 
 export { SHARED_ASSETS, CHARACTER_BUDGET, PROP_BUDGET, type SharedAssetId } from "./sharedAssets";
 export { MODEL_MANIFEST, hasModel } from "./modelManifest";
@@ -187,45 +187,53 @@ export function assetScale(asset: Pick<ModelAsset, "scale" | "stretch">): [numbe
    return k ? [s * k[0], s * k[1], s * k[2]] : [s, s, s];
 }
 
-const NO_LOOKS: LookUse = new Map();
-
-/**
- * Keeps the looks (override / tint materials) a mounted model uses alive in MATERIAL_CACHE; the
- * last user unmounting disposes them. Core only.
- */
-export function useLookUse(looks: LookUse): void {
-   useEffect(() => {
-      if (looks.size === 0) return;
-      looks.forEach((material, key) => MATERIAL_CACHE.retain(key, material));
-      return () => looks.forEach((_material, key) => MATERIAL_CACHE.release(key));
-   }, [looks]);
-}
+const retainLooks = (looks: LookUse) => looks.forEach((material, key) => MATERIAL_CACHE.retain(key, material));
+const releaseLooks = (looks: LookUse) => looks.forEach((_material, key) => MATERIAL_CACHE.release(key));
 
 /**
  * Gives a model's private clone (a <Model> scene, a humanoid rig) the asset's material override and
- * the tint, and keeps those looks alive while mounted. Core only (also <HumanoidModel>).
+ * the tint while mounted, and keeps those looks alive in MATERIAL_CACHE. All of it happens in a
+ * layout effect (before the first paint): the render never mutates the clone or the cache, and the
+ * cleanup restores the GLB's own materials and releases the looks, so a StrictMode replay or an
+ * abandoned render leaves nothing behind. Keyed by the override's value (overrideKey), so an inline
+ * `material: { color }` object does not re-apply every render. Core only (also <HumanoidModel>).
  */
 export function useCloneLook(root: Object3D | null, override: MaterialOverride | undefined, tint: string | undefined): void {
-   const looks = useMemo(() => (root && (override || tint || LOOKED.has(root)) ? markLooked(root, applyLook(root, override, tint)) : NO_LOOKS), [root, override, tint]);
-   useLookUse(looks);
+   const key = override ? overrideKey(override) : "";
+   const latest = useRef(override);
+   latest.current = override;
+   useLayoutEffect(() => {
+      if (!root || (!key && !tint)) return;
+      const looks = applyLook(root, latest.current, tint);
+      retainLooks(looks);
+      return () => {
+         applyLook(root, undefined, undefined); // the GLB's own materials again
+         releaseLooks(looks);
+      };
+   }, [root, key, tint]);
 }
 
-/** Clones that were given a look once (a later render without one must restore their own materials). */
-const LOOKED = new WeakSet<Object3D>();
-function markLooked(root: Object3D, looks: LookUse): LookUse {
-   LOOKED.add(root);
-   return looks;
-}
-
-/** Instanced parts with the asset's material override (the GLB's own materials without one). */
-function useLookedParts<P extends { material: Material | Material[] }>(parts: P[] | null, override: MaterialOverride | undefined): P[] | null {
-   const looked = useMemo(() => {
-      if (!parts || !override) return { parts, looks: NO_LOOKS };
+/**
+ * Instanced parts with the asset's material override (the GLB's own materials without one). The
+ * looked parts are built and retained in a layout effect; until then (the first, unpainted render)
+ * `ready` is false and the caller draws nothing.
+ */
+function useLookedParts<P extends { material: Material | Material[] }>(parts: P[] | null, override: MaterialOverride | undefined): { parts: P[] | null; ready: boolean } {
+   const key = override ? overrideKey(override) : "";
+   const latest = useRef(override);
+   latest.current = override;
+   const [looked, setLooked] = useState<{ from: P[]; key: string; parts: P[] } | null>(null);
+   useLayoutEffect(() => {
+      if (!parts || !key || !latest.current) return;
       const looks: LookUse = new Map();
-      return { parts: parts.map((part) => ({ ...part, material: lookMaterials(part.material, override, undefined, looks) })), looks };
-   }, [parts, override]);
-   useLookUse(looked.looks);
-   return looked.parts;
+      const override = latest.current;
+      const out = parts.map((part) => ({ ...part, material: lookMaterials(part.material, override, undefined, looks) }));
+      retainLooks(looks);
+      setLooked({ from: parts, key, parts: out });
+      return () => releaseLooks(looks);
+   }, [parts, key]);
+   if (!parts || !key) return { parts, ready: true };
+   return looked && looked.from === parts && looked.key === key ? { parts: looked.parts, ready: true } : { parts, ready: false };
 }
 
 function ModelContent({ asset, tint, fallback }: { asset: ModelAsset; tint?: string; fallback: ReactNode }) {
@@ -369,7 +377,9 @@ function InstancedModelContent({ asset, spots, fallback }: InstancedModelProps) 
       () => (source && !rigged ? modelParts(source, { scale, stretch, rotationY, yOffset }) : null),
       [source, rigged, scale, stretch, rotationY, yOffset]
    );
-   const parts = useLookedParts(glbParts, asset.material);
+   const looked = useLookedParts(glbParts, asset.material);
+   if (!looked.ready) return null;
+   const parts = looked.parts;
    if (!source || parts?.length === 0) return <>{fallback}</>;
    if (!parts) {
       // rigged: one clone per spot (a skinned mesh cannot share one InstancedMesh)
@@ -505,7 +515,9 @@ function DynamicInstancedModelContent(props: DynamicInstancedModelProps) {
             : null,
       [source, rigged, scale, stretch, rotationY, yOffset]
    );
-   const parts = useLookedParts(glbParts, asset.material);
+   const looked = useLookedParts(glbParts, asset.material);
+   if (!looked.ready) return null;
+   const parts = looked.parts;
    // rigged models are characters, not pooled props: they get the fallback too
    if (!parts || parts.length === 0) return <DynamicFallback {...props} />;
    return <DynamicInstanced count={count} update={update} parts={parts} name={name} />;

@@ -178,10 +178,11 @@ export function disposeHumanoid(rig: HumanoidRig): void {
 }
 
 /**
- * A new empty group on the bone of anchor `name`, placed on the anchor: its children follow the
- * bone every frame through the scene graph (no per-frame work). `scale` is the asset's scale per
- * axis (assetScale); the group undoes it so its children are in the model group's units (keep a
- * character's scale uniform). Remove it with `group.removeFromParent()`.
+ * A new empty group placed on anchor `name`, relative to its bone (not parented: add it with
+ * `rig.bones[rig.anchors[name].bone].add(group)`, e.g. in a layout effect, and remove it with
+ * `group.removeFromParent()`). On the bone, its children follow it every frame through the scene
+ * graph (no per-frame work). `scale` is the asset's scale per axis (assetScale); the group undoes it
+ * so its children are in the model group's units (keep a character's scale uniform).
  */
 export function createAnchorGroup(rig: HumanoidRig, name: AnchorName, scale: readonly [number, number, number] = [1, 1, 1]): Group {
    const anchor = rig.anchors[name];
@@ -190,7 +191,6 @@ export function createAnchorGroup(rig: HumanoidRig, name: AnchorName, scale: rea
    const o = anchorOffset(anchor, rig.landmarks);
    group.position.set(o.x, o.y, o.z);
    group.scale.set(1 / (scale[0] || 1), 1 / (scale[1] || 1), 1 / (scale[2] || 1));
-   rig.bones[anchor.bone].add(group);
    return group;
 }
 

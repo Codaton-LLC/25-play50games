@@ -37,7 +37,11 @@ describe("attachment anchors on the shared runner", () => {
 
    beforeAll(async () => {
       character = await rigCharacter(RUNNER);
-      for (const name of ANCHOR_NAMES) groups[name] = createAnchorGroup(character.rig, name, [SCALE, SCALE, SCALE]);
+      for (const name of ANCHOR_NAMES) {
+         groups[name] = createAnchorGroup(character.rig, name, [SCALE, SCALE, SCALE]);
+         expect(groups[name].parent).toBeNull();
+         character.rig.bones[character.rig.anchors[name].bone].add(groups[name]);
+      }
       const cloud = character.glb.cloud;
       const a = character.rig.anchors;
       for (const name of ANCHOR_NAMES) {
