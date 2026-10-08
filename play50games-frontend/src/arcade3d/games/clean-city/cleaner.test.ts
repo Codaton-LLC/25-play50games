@@ -1,10 +1,15 @@
 // The auto-rig on the real cleaner (public/models/3d/clean-city/cleaner.glb, 2026-10-08): the
 // measured CLEANER_LANDMARKS match what the heuristics find, its poses keep the feet on the floor,
 // the hands clear of the hips and the bearded head rigid (core/rig/characterChecks.ts); its scale
-// keeps it 0.95 tall. A new cleaner.glb must be re-measured.
-import { describe, expect, it } from "vitest";
-import { describeCharacter } from "@/arcade3d/core/rig/characterChecks";
+// keeps it 0.95 tall. A new cleaner.glb must be re-measured. Then the game's own use of it on the
+// same mesh: the pickup reach and the cheer keep it above the floor, and through the gait (gait.ts)
+// the soles of the planted foot stay put at a walk and at the top-speed run.
+import { beforeAll, describe, expect, it } from "vitest";
+import { Vector3 } from "three";
+import { POSE_MASK, applyHumanoidPose, armsDownPose, blendPoses, bodyLift, cheerPose, createPose, idlePose, reachPose, walkPose } from "@/arcade3d/core/rig";
+import { describeCharacter, rigCharacter, type RiggedCharacter } from "@/arcade3d/core/rig/characterChecks";
 import { ASSETS, CLEANER_LANDMARKS } from "./assets";
+import { CLEANER_SCALE, createCleanerGait, stepCleanerGait } from "./gait";
 
 const L = CLEANER_LANDMARKS;
 
@@ -28,7 +33,118 @@ describe("clean-city cleaner.glb", () => {
       hipHalfWidth: 0.25,
    });
 
-   it("its scale draws it 0.95 tall, the shared runner's height in this game", () => {
-      expect(1.9022 * (ASSETS.cleaner.scale ?? 1)).toBeCloseTo(0.95, 3);
+   it("its scale draws it 0.95 tall (the shared runner it replaced: 0.95), the same everywhere the rules measure it", () => {
+      expect(CLEANER_SCALE).toBe(ASSETS.cleaner.scale);
+      expect(1.9022 * CLEANER_SCALE).toBeCloseTo(0.95, 3);
+   });
+
+   it("no cloth bridges the legs (hemY = crotchY: the vest ends at the hips; the cargo thighs are not a skirt)", () => {
+      expect(L.hemY).toBe(L.crotchY);
+   });
+});
+
+describe("clean-city cleaner.glb: the thick sleeves", () => {
+   let cleaner: RiggedCharacter;
+   beforeAll(async () => {
+      cleaner = await rigCharacter(ASSETS.cleaner);
+   });
+
+   it("with the arms down (and in the idle) nothing above the chest sticks out past |x| 0.39: the whole sleeve hangs with the arm (at the estimate's armRadius 0.067 its top stayed out at 0.47)", () => {
+      for (const pose of [armsDownPose(createPose()), idlePose(1.3, createPose())]) {
+         const world = cleaner.posed(pose);
+         let widest = 0;
+         for (let i = 0; i < world.length; i += 3) if (world[i + 1] > L.chestY) widest = Math.max(widest, Math.abs(world[i]));
+         expect(widest).toBeLessThan(0.39);
+      }
+   });
+});
+
+describe("clean-city cleaner as the Scene drives it (cleaner.glb)", () => {
+   let cleaner: RiggedCharacter;
+   beforeAll(async () => {
+      cleaner = await rigCharacter(ASSETS.cleaner);
+   });
+
+   const lowest = (world: Float32Array) => {
+      let low = Infinity;
+      for (let i = 1; i < world.length; i += 3) low = Math.min(low, world[i]);
+      return low;
+   };
+
+   it("the pickup reach over a run, and the cheer, keep every vertex above the floor (the group raised by bodyLift)", () => {
+      const p = createPose();
+      const scratch = createPose();
+      for (let k = 0; k < 8; k++) {
+         for (const reach of [0.5, 1]) {
+            walkPose((k / 8) * Math.PI * 2, 1, p);
+            blendPoses(p, reachPose(1, 0.35, scratch), reach, p, POSE_MASK.arms);
+            expect(lowest(cleaner.posed(p, false)) + bodyLift(p, L), `phase ${k} reach ${reach}`).toBeGreaterThan(-0.005);
+         }
+         cheerPose(k * 0.3, p);
+         expect(lowest(cleaner.posed(p, false)) + bodyLift(p, L), `cheer ${k}`).toBeGreaterThan(-0.005);
+      }
+   });
+
+   /**
+    * stepCleanerGait at a steady `v` for half a second, then for a second more the real mesh's soles
+    * (their vertices within 3.5 cm of the floor at rest) skinned 300 times a second: per stance of the
+    * left foot (its lowest point within 2 mm of its own lowest and no higher than the right sole's
+    * over its own: the foot that carries the body) its sole's centroid's travel from touch-down to
+    * lift-off, over the body's travel meanwhile. 0 = it stays put, 1 = it slides with the body.
+    */
+   function soleSlide(v: number): number {
+      const rest = cleaner.glb.cloud;
+      const soles: [number[], number[]] = [[], []];
+      for (let i = 0; i < rest.length / 3; i++) if (rest[i * 3 + 1] < 0.035) soles[rest[i * 3] > 0 ? 0 : 1].push(i);
+      const gait = createCleanerGait();
+      const pose = createPose();
+      const at = new Vector3();
+      const dt = 1 / 300;
+      let x = 0;
+      const frames: Array<{ x: number; z: number; low: number[] }> = [];
+      for (let f = 0; f < 450; f++) {
+         stepCleanerGait(gait, v, dt);
+         x += v * dt;
+         if (f < 150) continue;
+         walkPose(gait.phase, gait.amount, pose);
+         // only the soles' vertices, skinned like RiggedCharacter.posed does
+         applyHumanoidPose(cleaner.rig, pose, false);
+         cleaner.rig.root.updateMatrixWorld(true);
+         const lift = bodyLift(pose, L);
+         let z = 0;
+         const low = [Infinity, Infinity];
+         soles.forEach((ids, side) => {
+            for (const i of ids) {
+               cleaner.skin.applyBoneTransform(i, at.fromBufferAttribute(cleaner.position, i)).applyMatrix4(cleaner.skin.matrixWorld);
+               if (side === 0) z += at.z;
+               low[side] = Math.min(low[side], at.y + lift);
+            }
+         });
+         frames.push({ x, z: x + (z / soles[0].length) * CLEANER_SCALE, low });
+      }
+      // each sole over its own lowest (the right one sits 2 mm above the left in the mesh)
+      const floor = [0, 1].map((k) => Math.min(...frames.map((fr) => fr.low[k])));
+      const on = (i: number) => frames[i].low[0] - floor[0] < 0.002 && frames[i].low[0] - floor[0] <= frames[i].low[1] - floor[1] + 1e-6;
+      let slide = 0;
+      let body = 0;
+      let start = -1;
+      for (let i = 0; i < frames.length; i++) {
+         if (on(i) && start < 0) start = i;
+         if (!on(i) && start >= 0) {
+            if (start > 0 && i - 1 > start) {
+               slide += Math.abs(frames[i - 1].z - frames[start].z);
+               body += frames[i - 1].x - frames[start].x;
+            }
+            start = -1;
+         }
+      }
+      expect(body).toBeGreaterThan(0);
+      return slide / body;
+   }
+
+   it("the planted sole stays put at a walk (1 and 2 u/s) and at a run (3.5 and 5 u/s): under 7 % of the ground covered in a stance", () => {
+      for (const v of [1, 2, 3.5, 5]) {
+         expect(soleSlide(v), `v ${v}`).toBeLessThan(0.07);
+      }
    });
 });

@@ -86,12 +86,12 @@ const copies = () => GLB_PROPS.flatMap((set) => set.spots.map((spot) => ({ set, 
 const caches: MapCache[] = [];
 const cacheOf = (map: number): MapCache => (caches[map] ??= buildMapCache(map));
 
-/** The shared runner as Scene draws it: its GLB's top times assets.ts scale (0.95). */
+/** The runner as Scene draws it (the cleaner): its GLB's top times assets.ts scale (0.95). */
 async function runnerHeight(): Promise<number> {
-   const { cloud } = await readCharacterGlb(ASSETS.runner.url);
+   const { cloud } = await readCharacterGlb(ASSETS.cleaner.url);
    let top = 0;
    for (let i = 1; i < cloud.length; i += 3) top = Math.max(top, cloud[i]);
-   return top * (ASSETS.runner.scale ?? 1);
+   return top * (ASSETS.cleaner.scale ?? 1);
 }
 
 describe("clean-city obstacle props: the GLBs", () => {

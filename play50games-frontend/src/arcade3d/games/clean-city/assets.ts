@@ -122,7 +122,6 @@ export const ASSETS = {
    // <HumanoidModel asset={ASSETS.cleaner}> (auto-rigged) with PrimitiveRunner (0.90 tall, drawn
    // unscaled, in the orange vest) as its fallback. The scale draws the GLB 0.95 tall, and gait.ts's
    // stride and body lift use it too.
-   runner: { ...SHARED_ASSETS.runner, scale: 0.503 },
    cleaner: {
       id: "cleaner",
       url: "/models/3d/clean-city/cleaner.glb",
