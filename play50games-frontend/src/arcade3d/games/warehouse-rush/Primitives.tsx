@@ -18,7 +18,8 @@ import {
 } from "three";
 import { InstancedModel, useModel } from "@/arcade3d/core/assets";
 import { Instanced, useCanvasTexture, type CanvasDraw, type InstanceSpot } from "@/arcade3d/core/render";
-import { ASSETS, BOX } from "./assets";
+import { ASSETS, BOX, LID_LETTER } from "./assets";
+import { ARROW, ARROW_SHAPE, RING } from "./marker";
 import {
    ARENA,
    COLOURS,
@@ -472,7 +473,7 @@ export function RobotPrimitive() {
 // ---------- boxes ----------
 
 /** Height of the lid letter above the box's feet (just above the crate's 0.708 m lid). */
-export const LID_Y = BOX.height + 0.012;
+export const LID_Y = LID_LETTER.y;
 
 function drawLidLetter(ctx: CanvasRenderingContext2D, w: number, h: number, letter: string) {
    ctx.clearRect(0, 0, w, h);
@@ -551,7 +552,7 @@ export function useBoxLook(): BoxLook {
          (map) => new MeshBasicMaterial({ map, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2 })
       );
       const standIn = new BoxGeometry(BOX.width, BOX.height, BOX.depth).translate(0, BOX.height / 2, 0);
-      return { glb: !!base, bodies, letters, decal: new PlaneGeometry(0.56, 0.56), standIn };
+      return { glb: !!base, bodies, letters, decal: new PlaneGeometry(LID_LETTER.size, LID_LETTER.size), standIn };
    }, [scene, failed, planks, m0, m1, m2, m3]);
    useEffect(
       () => () => {
@@ -591,4 +592,78 @@ export function popupKind(delta: number): number {
    if (delta <= -20) return 1;
    if (delta < 0) return 2;
    return 3;
+}
+
+// ---------- order markers (README "Order markers") ----------
+
+/** The outline of every marker: the dark navy of the lid letters and the popups. */
+const MARKER_OUTLINE = "rgba(15, 23, 42, 0.95)";
+
+/** The arrow texture: the quad's aspect (marker.ts ARROW), 128 px wide. */
+export const ARROW_TEXTURE = { width: 128, height: Math.round((128 * ARROW.height) / ARROW.width) } as const;
+
+/**
+ * A bold down arrow (shaft and head) with a dark outline. The fill is white to light grey, so the
+ * material colour paints it in the order colour (lighter at the top) and the outline stays dark.
+ * The tip touches the bottom edge: the quad's anchor.
+ */
+export function drawArrow(ctx: CanvasRenderingContext2D, w: number, h: number) {
+   ctx.clearRect(0, 0, w, h);
+   const line = w * ARROW_SHAPE.line;
+   const pad = line / 2 + 2;
+   const shaft = w * ARROW_SHAPE.shaft;
+   const neck = h * ARROW_SHAPE.neck;
+   const cx = w / 2;
+   ctx.beginPath();
+   ctx.moveTo(cx - shaft, pad);
+   ctx.lineTo(cx + shaft, pad);
+   ctx.lineTo(cx + shaft, neck);
+   ctx.lineTo(w - pad, neck);
+   ctx.lineTo(cx, h - pad);
+   ctx.lineTo(pad, neck);
+   ctx.lineTo(cx - shaft, neck);
+   ctx.closePath();
+   ctx.lineJoin = "round";
+   ctx.lineWidth = line;
+   ctx.strokeStyle = MARKER_OUTLINE;
+   ctx.stroke();
+   const fill = ctx.createLinearGradient(0, pad, 0, h - pad);
+   fill.addColorStop(0, "#ffffff");
+   fill.addColorStop(1, "#cbd5e1");
+   ctx.fillStyle = fill;
+   ctx.fill();
+}
+
+/** A rounded rectangle path (no CanvasRenderingContext2D.roundRect: older Safari lacks it). */
+function roundedRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
+   ctx.moveTo(x + r, y);
+   ctx.arcTo(x + w, y, x + w, y + h, r);
+   ctx.arcTo(x + w, y + h, x, y + h, r);
+   ctx.arcTo(x, y + h, x, y, r);
+   ctx.arcTo(x, y, x + w, y, r);
+   ctx.closePath();
+}
+
+/** The floor frame texture: square, the whole frame (marker.ts RING). */
+export const RING_TEXTURE = 128;
+
+/**
+ * The floor frame around a marked pallet: a rounded square band with dark edges and a white
+ * middle (the material colour paints it), so it reads on the concrete in every order colour.
+ */
+export function drawRing(ctx: CanvasRenderingContext2D, w: number, h: number) {
+   ctx.clearRect(0, 0, w, h);
+   const px = w / (RING.half * 2);
+   const band = RING.band * px;
+   const edge = Math.max(2, 0.045 * px);
+   const radius = 0.3 * px;
+   const frame = (inset: number, width: number, fill: string) => {
+      ctx.beginPath();
+      roundedRect(ctx, inset, inset, w - inset * 2, h - inset * 2, Math.max(1, radius - inset));
+      roundedRect(ctx, inset + width, inset + width, w - (inset + width) * 2, h - (inset + width) * 2, Math.max(1, radius - inset - width));
+      ctx.fillStyle = fill;
+      ctx.fill("evenodd");
+   };
+   frame(1, band - 2, MARKER_OUTLINE);
+   frame(1 + edge, band - 2 - edge * 2, "#ffffff");
 }

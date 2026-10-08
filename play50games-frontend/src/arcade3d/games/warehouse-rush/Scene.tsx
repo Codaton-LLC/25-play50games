@@ -21,15 +21,14 @@
 //   with its speed and its arms go up under the carried box (useHumanoidPose in <Robot>).
 import { memo, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
-import { Color, Matrix4, Quaternion, Vector3, type Group, type Mesh, type MeshBasicMaterial, type Sprite, type SpriteMaterial } from "three";
+import { MeshBasicMaterial, PlaneGeometry, Vector3, type Camera, type Group, type Matrix4, type Mesh, type Sprite, type SpriteMaterial } from "three";
 import CameraRig from "@/arcade3d/core/CameraRig";
 import { useModel } from "@/arcade3d/core/assets";
 import { playSfx } from "@/arcade3d/core/audio";
-import type { AABB } from "@/arcade3d/core/collision";
 import { useGameTime } from "@/arcade3d/core/gameTime";
 import { useInput } from "@/arcade3d/core/input";
 import { inputToWorld, randomSeed, turnTowards } from "@/arcade3d/core/math";
-import { BlobShadow, DynamicInstanced, useCanvasTexture } from "@/arcade3d/core/render";
+import { BlobShadow, DynamicInstanced, useCanvasTexture, type InstancePart } from "@/arcade3d/core/render";
 import {
    HumanoidModel,
    POSE_MASK,
@@ -44,16 +43,36 @@ import {
 } from "@/arcade3d/core/rig";
 import { ROBOT_LANDMARKS } from "@/arcade3d/core/sharedAssets";
 import { useArcadeStore, type ArcadeStore } from "@/arcade3d/core/useArcadeStore";
-import { useFittedView, type FittedViewOptions } from "@/arcade3d/core/useFittedView";
+import { useFittedView } from "@/arcade3d/core/useFittedView";
 import { useRunFrame } from "@/arcade3d/core/useRunFrame";
-import { ASSETS, BOX } from "./assets";
+import { ASSETS } from "./assets";
+import { LOOK_AT, VIEW } from "./camera";
 import { WAREHOUSE_SCALE, warehousePhaseStep } from "./gait";
 import {
+   ARROW,
+   BOX_TURN_MAX,
+   RING,
+   arrowTipAt,
+   clearTipY,
+   easeOutBack,
+   marked,
+   ringOpacity,
+   ringScale,
+   robotAtPallet,
+   robotBehindArrow,
+   tuckStep,
+   type CameraAxes,
+} from "./marker";
+import {
+   ARROW_TEXTURE,
    COLORS,
    LID_Y,
    POPUP_DRAWS,
+   RING_TEXTURE,
    RobotPrimitive,
    Warehouse,
+   drawArrow,
+   drawRing,
    firstMesh,
    jitter,
    popupKind,
@@ -76,28 +95,7 @@ import {
    type WarehouseRun,
 } from "./rules";
 
-// ---------- camera (README "Scene and camera") ----------
-
-/** Camera tilt above the floor: a three-quarter top-down view (as robot-collector). */
-const PITCH = (56 * Math.PI) / 180;
-const LOOK_AT: [number, number, number] = [0, 0, 0];
-/** floor + walls; y up to 1.2 covers the racks (1.1) and the robot (1.2) */
-const WAREHOUSE: AABB = { min: { x: -10.4, y: 0, z: -6.4 }, max: { x: 10.4, y: 1.2, z: 6.4 } };
-/**
- * Static fitted camera: the whole warehouse on screen for the whole run, clear of the shell HUD,
- * the order panel, the joystick, the Action button and the cookie banner (8 px). A portrait phone
- * turns the camera so the 20 m side runs up the screen; the lens shift lets the floor sit off-centre
- * in the free space.
- */
-const VIEW: FittedViewOptions = {
-   area: WAREHOUSE,
-   pitch: PITCH,
-   yaws: [0, Math.PI / 2],
-   focus: [{ x: 0, y: 0, z: 0 }],
-   margin: { top: 0.02, bottom: 0.03, left: 0.02, right: 0.02 },
-   padding: 8,
-   shift: true,
-};
+// The static fitted camera (README "Scene and camera") is in camera.ts: VIEW, LOOK_AT.
 
 // ---------- looks (visual only, never read by the rules) ----------
 
@@ -116,11 +114,7 @@ const SHAKE_S = 0.4;
 const SQUASH_S = 0.22;
 const POPUP_S = 0.9;
 /** A small fixed turn per pallet's box, so the boxes do not look machine-placed. */
-const BOX_TURN = Array.from({ length: PALLET_COUNT }, (_v, i) => jitter(i + 7) * 0.09);
-/** Chevrons over the boxes of the order colour (while empty-handed): centre height, a lighter tint of the colour. */
-const CHEVRON_Y = PALLET_HEIGHT + BOX.height + 0.8;
-const CHEVRON_TINT = 0.35;
-const WHITE = new Color("#ffffff");
+const BOX_TURN = Array.from({ length: PALLET_COUNT }, (_v, i) => jitter(i + 7) * BOX_TURN_MAX);
 /** The pulsing border of the target zone: a square ring 0.22 m wide on the tile's edge. */
 const BORDER_OUT = ZONE.size / 2 - 0.04;
 const BORDER_IN = BORDER_OUT - 0.22;
@@ -128,9 +122,7 @@ const BORDER_IN = BORDER_OUT - 0.22;
 const clamp01 = (v: number) => (v < 0 ? 0 : v > 1 ? 1 : v);
 const lerp = (a: number, b: number, k: number) => a + (b - a) * k;
 const easeInOut = (k: number) => k * k * (3 - 2 * k);
-/** Overshoots a little, then settles: the refill pop-in. */
-const easeOutBack = (k: number) => 1 + 2.70158 * (k - 1) ** 3 + 1.70158 * (k - 1) ** 2;
-/** The refill pop-in of pallet i's box at time t: 0 before it starts, overshoots a little, then 1 (its chevron grows with it). */
+/** The refill pop-in of pallet i's box at time t: 0 before it starts, overshoots a little, then 1 (its markers grow with it). */
 const popOf = (fx: Fx, i: number, t: number) => easeOutBack(clamp01((t - fx.refillAt[i]) / POP_S));
 /** 0..1 of the robot's top speed (empty-handed). */
 const speed01 = (run: WarehouseRun) => Math.min(1, Math.hypot(run.robot.vx, run.robot.vz) / ROBOT.speed);
@@ -544,49 +536,144 @@ const Boxes = memo(function Boxes({ run, fx, yaw }: { run: WarehouseRun; fx: Fx;
    );
 });
 
-// ---------- chevrons, the target zone, popups ----------
+// ---------- order markers, the target zone, popups ----------
 
 const V = new Vector3();
-const Q = new Quaternion();
 const S = new Vector3();
-const UP = new Vector3(0, 1, 0);
-/** The cone points down. */
-const FLIP = new Quaternion().setFromAxisAngle(new Vector3(1, 0, 0), Math.PI);
+const AXIS = new Vector3();
+/** The arrows draw after the floor frames (both are transparent and depth tested, neither writes depth). */
+const ARROW_ORDER = 3;
+const AXES: CameraAxes = { px: 0, py: 0, pz: 0, ux: 0, uy: 1, uz: 0, fx: 0, fy: 0, fz: -1 };
+
+/** The camera's position, screen-up axis and view direction now (CameraRig placed it this frame). No allocation. */
+function readAxes(camera: Camera, out: CameraAxes): CameraAxes {
+   out.px = camera.position.x;
+   out.py = camera.position.y;
+   out.pz = camera.position.z;
+   AXIS.set(0, 1, 0).applyQuaternion(camera.quaternion);
+   out.ux = AXIS.x;
+   out.uy = AXIS.y;
+   out.uz = AXIS.z;
+   AXIS.set(0, 0, -1).applyQuaternion(camera.quaternion);
+   out.fx = AXIS.x;
+   out.fy = AXIS.y;
+   out.fz = AXIS.z;
+   return out;
+}
+
+interface MarkerLook {
+   arrow: MeshBasicMaterial;
+   ring: MeshBasicMaterial;
+   arrowParts: InstancePart[];
+   ringParts: InstancePart[];
+}
 
 /**
- * A bobbing chevron over every box of the order colour while the robot is empty-handed. It pops in
- * with its box (the starting boxes during the countdown, every refill), so it never hangs over an
- * empty pallet.
+ * The order markers (README "Order markers") on every pallet `marked()` says: a box of the order
+ * colour while the robot is empty-handed. A bold down arrow with a dark outline bounces over the
+ * box, always facing the camera (one quad per pallet turned by the camera's rotation), and a frame
+ * pulses on the floor around the pallet, both in the order colour (unlit, not tone mapped: the
+ * order panel's colour). They pop in with their box (the starting boxes during the countdown,
+ * every refill), so none ever hangs over an empty pallet. The arrow tucks away into its tip while
+ * the robot stands in that pallet's reach (an Action there picks the box anyway) or in the band just
+ * behind the box from the camera (`robotBehindArrow`): the arrow is nearer the camera and draws
+ * later, so it would cover the robot there. The floor frame stays. One draw call per kind for all four
+ * pallets; nothing is allocated per frame.
  */
-const Chevrons = memo(function Chevrons({ run, fx }: { run: WarehouseRun; fx: Fx }) {
+const OrderMarkers = memo(function OrderMarkers({ run, fx }: { run: WarehouseRun; fx: Fx }) {
    const time = useGameTime();
-   const material = useRef<MeshBasicMaterial>(null);
+   const camera = useThree((state) => state.camera);
+   const gl = useThree((state) => state.gl);
+   const arrowMap = useCanvasTexture(ARROW_TEXTURE.width, ARROW_TEXTURE.height, drawArrow);
+   const ringMap = useCanvasTexture(RING_TEXTURE, RING_TEXTURE, drawRing);
+   /** per pallet: 1 = the arrow shown, 0 = tucked away (eased over ARROW.tuckS) */
+   const [tuck] = useState(() => new Float32Array(PALLET_COUNT).fill(1));
    const shown = useRef(NONE);
+   const arrows = useRef<Group>(null);
 
-   const placeChevron = (i: number, m: Matrix4) => {
-      if (run.carrying !== NONE) return false;
-      const pallet = run.pallets[i];
-      if (pallet.box === NONE || pallet.box !== run.order) return false;
-      const t = time.now;
-      const pop = popOf(fx, i, t);
-      if (pop < 0.01) return false;
-      Q.setFromAxisAngle(UP, t * 2.4 + i).multiply(FLIP);
-      m.compose(V.set(pallet.x, CHEVRON_Y + Math.sin(t * 4.2 + i * 1.3) * 0.09, pallet.z), Q, S.setScalar(pop));
-   };
+   const look = useMemo<MarkerLook>(() => {
+      const arrow = new MeshBasicMaterial({ map: arrowMap, transparent: true, depthWrite: false, toneMapped: false, name: "order-arrow" });
+      const ring = new MeshBasicMaterial({ map: ringMap, transparent: true, depthWrite: false, toneMapped: false, name: "order-ring" });
+      // the arrow's anchor is its tip (the middle of the bottom edge); the frame lies flat
+      const arrowGeometry = new PlaneGeometry(ARROW.width, ARROW.height).translate(0, ARROW.height / 2, 0);
+      const ringGeometry = new PlaneGeometry(RING.half * 2, RING.half * 2).rotateX(-Math.PI / 2);
+      return {
+         arrow,
+         ring,
+         arrowParts: [{ geometry: arrowGeometry, material: arrow }],
+         ringParts: [{ geometry: ringGeometry, material: ring }],
+      };
+   }, [arrowMap, ringMap]);
+   useEffect(
+      () => () => {
+         look.arrow.dispose();
+         look.ring.dispose();
+         look.arrowParts[0].geometry.dispose();
+         look.ringParts[0].geometry.dispose();
+      },
+      [look]
+   );
 
-   useFrame(() => {
-      const mat = material.current;
-      if (mat && shown.current !== run.order && run.order !== NONE) {
-         mat.color.set(COLOURS[run.order].hex).lerp(WHITE, CHEVRON_TINT);
-         shown.current = run.order;
-      }
+   // both textures are uploaded at mount, so the first marker of a run uploads nothing
+   useEffect(() => {
+      gl.initTexture(arrowMap);
+      gl.initTexture(ringMap);
+   }, [gl, arrowMap, ringMap]);
+
+   useLayoutEffect(() => {
+      arrows.current?.traverse((object) => {
+         object.renderOrder = ARROW_ORDER;
+      });
    });
 
+   // the colour follows the order; the frame is brightest when the arrow taps down
+   useFrame(() => {
+      if (shown.current !== run.order && run.order !== NONE) {
+         look.arrow.color.set(COLOURS[run.order].hex);
+         look.ring.color.set(COLOURS[run.order].hex);
+         shown.current = run.order;
+      }
+      look.ring.opacity = ringOpacity(time.now);
+   });
+
+   const placeArrow = (i: number, m: Matrix4) => {
+      // the camera once per frame (the copies are placed in index order, 0 first)
+      if (i === 0) readAxes(camera, AXES);
+      const pallet = run.pallets[i];
+      // as low as this camera allows with the whole arrow above the box (follows the fit as it eases)
+      const clearY = clearTipY(AXES, pallet.x, pallet.z, BOX_TURN[i]);
+      // tucked away in the pallet's reach, and wherever it would be drawn over the robot (just behind
+      // the box from the camera: the arrow is nearer the camera and draws later)
+      const hidden = robotAtPallet(run, i) || robotBehindArrow(AXES, pallet.x, pallet.z, clearY, run.robot.x, run.robot.z);
+      const target = hidden ? 0 : 1;
+      if (!marked(run, i)) {
+         // a marker that appears beside or behind the robot (a refill landing there) starts tucked away
+         tuck[i] = target;
+         return false;
+      }
+      tuck[i] = tuckStep(tuck[i], target, time.delta);
+      const pop = popOf(fx, i, time.now);
+      const size = pop * easeInOut(tuck[i]);
+      if (size < 0.01) return false;
+      m.compose(V.set(pallet.x, arrowTipAt(clearY, time.now, pop), pallet.z), camera.quaternion, S.setScalar(size));
+   };
+
+   const placeRing = (i: number, m: Matrix4) => {
+      if (!marked(run, i)) return false;
+      const pop = popOf(fx, i, time.now);
+      if (pop < 0.01) return false;
+      const pallet = run.pallets[i];
+      const s = pop * ringScale(time.now);
+      m.makeScale(s, 1, s).setPosition(pallet.x, RING.y, pallet.z);
+   };
+
    return (
-      <DynamicInstanced count={PALLET_COUNT} update={placeChevron} name="chevrons">
-         <coneGeometry args={[0.3, 0.46, 4]} />
-         <meshBasicMaterial ref={material} />
-      </DynamicInstanced>
+      <>
+         <DynamicInstanced count={PALLET_COUNT} update={placeRing} parts={look.ringParts} name="order-rings" />
+         <group ref={arrows}>
+            <DynamicInstanced count={PALLET_COUNT} update={placeArrow} parts={look.arrowParts} name="order-arrows" />
+         </group>
+      </>
    );
 });
 
@@ -734,7 +821,7 @@ export default function Scene() {
          <Warehouse layout={run.layout} yaw={view.yaw} />
          <Robot run={run} fx={fx} />
          <Boxes run={run} fx={fx} yaw={view.yaw} />
-         <Chevrons run={run} fx={fx} />
+         <OrderMarkers run={run} fx={fx} />
          <TargetZone run={run} />
          <Popup fx={fx} />
       </>
