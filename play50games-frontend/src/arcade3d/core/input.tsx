@@ -9,6 +9,9 @@
 //    useRunFrame((_, dt) => { robot.position.x += input.current.moveX * SPEED * dt; });
 //    useRunFrame(() => { if (input.current.pressed.left) changeLane(-1); });   // discrete moves
 //    useRunFrame(() => { if (input.current.tapDown) flap(); });               // on touch, not release
+//    useRunFrame(() => { const d = input.current.drag; if (d.released && !d.cancelled) shoot(d); });
+//                                                     // aim drag: GameDefinition.input.drag = true
+//    useRunFrame(() => { if (input.current.digit) pick(input.current.digit); });   // keys 1-9
 //
 // Esc / P are not game input: GameShell handles them (pause).
 import {
@@ -21,7 +24,7 @@ import {
    type RefObject,
 } from "react";
 import { useFrame } from "@react-three/fiber";
-import type { InputState } from "./types";
+import type { LiveInputState } from "./types";
 import { arcadeStore } from "./useArcadeStore";
 import { FRAME_PRIORITY } from "./frameLoop";
 import { createCanvasPointers, createInputController, type InputController } from "./inputController";
@@ -30,8 +33,12 @@ import { createCanvasPointers, createInputController, type InputController } fro
 export { inputToWorld } from "./math";
 
 export {
+   AIM_DRAG_FULL_PX,
+   AIM_DRAG_MIN_PX,
    createCanvasPointers,
    createInputController,
+   idleDrag,
+   stepKeyboardAim,
    swipeDirection,
    SWIPE_MAX_MS,
    SWIPE_MIN_PX,
@@ -41,6 +48,8 @@ export {
    type CanvasPointerOptions,
    type CanvasPointers,
    type InputController,
+   type KeyboardAim,
+   type KeyboardAimOptions,
    type SwipeDirection,
    type TouchButton,
 } from "./inputController";
@@ -62,10 +71,13 @@ export interface InputProviderProps {
    children: ReactNode;
    /** element that receives swipes, taps, tapDowns and pointer moves (the canvas wrapper) */
    target?: RefObject<HTMLElement>;
+   /** aim-drag mode (GameDefinition.input.drag): canvas drags fill `drag` and are never swipes */
+   drag?: boolean;
 }
 
-export function InputProvider({ children, target }: InputProviderProps) {
+export function InputProvider({ children, target, drag = false }: InputProviderProps) {
    const [controller] = useState(createInputController);
+   useEffect(() => controller.setDragMode(drag), [controller, drag]);
 
    // keyboard, focus loss, phase changes
    useEffect(() => {
@@ -141,7 +153,7 @@ export function useInputController(): InputController {
 }
 
 /** The unified input ref. Read `.current` inside useRunFrame; it never triggers a re-render. */
-export function useInput(): MutableRefObject<InputState> {
+export function useInput(): MutableRefObject<LiveInputState> {
    return useInputController().state;
 }
 

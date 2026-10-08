@@ -1,10 +1,14 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import {
+   AIM_DRAG_FULL_PX,
+   AIM_DRAG_MIN_PX,
    SWIPE_MAX_MS,
    SWIPE_MIN_PX,
    TAP_MAX_MS,
+   TAP_MAX_PX,
    createCanvasPointers,
    createInputController,
+   stepKeyboardAim,
    swipeDirection,
    type CanvasPointerEvent,
    type CanvasPointers,
@@ -554,5 +558,234 @@ describe("release", () => {
       input.release();
       expect(input.state).toBe(ref);
       expect(ref.current).toBe(obj);
+   });
+});
+
+describe("aim drag (opt-in)", () => {
+   beforeEach(() => input.setDragMode(true));
+
+   it("is active from the press, follows the pointer and reports power and angle", () => {
+      input.pointerDown(0.2, -0.1, 300, 400, 0);
+      input.latch();
+      expect(state().drag).toMatchObject({ active: true, released: false, start: { x: 0.2, y: -0.1 }, current: { x: 0.2, y: -0.1 }, power: 0 });
+      expect(state().tapDown).toEqual({ x: 0.2, y: -0.1 });
+      // pulled down and to the left by 60 px each: start - current points up and right (45°)
+      input.pointerMove(0.1, -0.3, 240, 460, 50);
+      input.latch();
+      const d = state().drag;
+      expect(d.active).toBe(true);
+      expect(d.current).toEqual({ x: 0.1, y: -0.3 });
+      expect(d.power).toBeCloseTo(Math.hypot(60, 60) / AIM_DRAG_FULL_PX);
+      expect(d.angle).toBeCloseTo(Math.PI / 4);
+   });
+
+   it("measures the angle with y up: pulling straight down aims straight up", () => {
+      input.pointerDown(0, 0, 100, 100, 0);
+      input.pointerMove(0, -0.2, 100, 180, 40);
+      input.latch();
+      expect(state().drag.angle).toBeCloseTo(Math.PI / 2);
+      input.pointerMove(0.2, 0, 180, 100, 60); // pulled right: aims left
+      input.latch();
+      expect(Math.abs(state().drag.angle)).toBeCloseTo(Math.PI);
+   });
+
+   it("clamps the power at 1", () => {
+      input.pointerDown(0, 0, 100, 100, 0);
+      input.pointerMove(0, 0, 100 + AIM_DRAG_FULL_PX * 3, 100, 40);
+      input.latch();
+      expect(state().drag.power).toBe(1);
+   });
+
+   it("is released for exactly one frame, with its final values, and never swipes", () => {
+      input.pointerDown(0, 0, 100, 100, 0);
+      input.pointerMove(0, 0, 100, 100 + SWIPE_MIN_PX * 2, 30); // a swipe without drag mode
+      input.latch();
+      expect(state().swipe).toBeNull();
+      expect(state().pressed.down).toBe(false);
+      input.pointerUp(100, 180, 60);
+      input.latch();
+      expect(state().drag).toMatchObject({ active: false, released: true, cancelled: false });
+      expect(state().drag.power).toBeCloseTo(80 / AIM_DRAG_FULL_PX);
+      expect(state().drag.angle).toBeCloseTo(Math.PI / 2);
+      expect(state().swipe).toBeNull();
+      expect(state().tap).toBeNull();
+      input.latch();
+      expect(state().drag.released).toBe(false);
+      expect(state().drag.active).toBe(false);
+   });
+
+   it("a quick flick is a drag, not a swipe, on release too", () => {
+      input.pointerDown(0, 0, 100, 100, 0);
+      input.pointerUp(100 - SWIPE_MIN_PX - 20, 100, 80);
+      input.latch();
+      expect(state().swipe).toBeNull();
+      expect(state().pressed.left).toBe(false);
+      expect(state().drag).toMatchObject({ released: true, cancelled: false });
+   });
+
+   it("cancels a release shorter than AIM_DRAG_MIN_PX (a short press is still a tap)", () => {
+      expect(AIM_DRAG_MIN_PX).toBeGreaterThan(TAP_MAX_PX);
+      input.pointerDown(0.5, 0.5, 100, 100, 0);
+      input.pointerUp(110, 100, 100); // 10 px: under AIM_DRAG_MIN_PX and within TAP_MAX_PX
+      input.latch();
+      expect(state().drag).toMatchObject({ released: true, cancelled: true });
+      expect(state().tap).toEqual({ x: 0.5, y: 0.5 });
+      // at the threshold it counts
+      input.pointerDown(0, 0, 100, 100, 1000);
+      input.pointerUp(100 + AIM_DRAG_MIN_PX, 100, 1400);
+      input.latch();
+      expect(state().drag).toMatchObject({ released: true, cancelled: false });
+      expect(state().tap).toBeNull();
+   });
+
+   it("judges the release by where it ends, not by how far it went", () => {
+      input.pointerDown(0, 0, 100, 100, 0);
+      input.pointerMove(0, 0, 200, 100, 30);
+      input.pointerMove(0, 0, 105, 100, 60); // came back: the player gave up
+      input.pointerUp(105, 100, 90);
+      input.latch();
+      expect(state().drag).toMatchObject({ released: true, cancelled: true });
+   });
+
+   it("a press and release between two frames still reports the release once", () => {
+      input.pointerDown(0, 0, 100, 100, 0);
+      input.pointerMove(0, 0, 100, 150, 5);
+      input.pointerUp(100, 150, 10);
+      input.latch();
+      expect(state().drag).toMatchObject({ active: false, released: true, cancelled: false });
+      expect(state().drag.power).toBeCloseTo(50 / AIM_DRAG_FULL_PX);
+      input.latch();
+      expect(state().drag.released).toBe(false);
+   });
+
+   it("a pointer cancel ends the drag as cancelled; release() drops it without an event", () => {
+      input.pointerDown(0, 0, 100, 100, 0);
+      input.pointerMove(0, 0, 100, 200, 30);
+      input.pointerCancel();
+      input.latch();
+      expect(state().drag).toMatchObject({ released: true, cancelled: true });
+      input.pointerDown(0, 0, 100, 100, 100);
+      input.latch();
+      input.release();
+      input.latch();
+      expect(state().drag).toMatchObject({ active: false, released: false, power: 0 });
+   });
+
+   it("a phase change drops a pending release, not the drag in progress", () => {
+      input.pointerDown(0, 0, 100, 100, 0);
+      input.pointerUp(100, 200, 30);
+      input.clearEvents();
+      input.latch();
+      expect(state().drag.released).toBe(false);
+      input.pointerDown(0, 0, 100, 100, 100);
+      input.clearEvents();
+      input.latch();
+      expect(state().drag.active).toBe(true);
+   });
+
+   it("keeps one drag object for the session", () => {
+      const drag = state().drag;
+      input.pointerDown(0, 0, 0, 0, 0);
+      input.latch();
+      input.pointerUp(0, 50, 20);
+      input.latch();
+      expect(state().drag).toBe(drag);
+   });
+});
+
+describe("aim drag off (the default)", () => {
+   it("leaves drag idle and swipes exactly as before", () => {
+      const off = createInputController();
+      off.pointerDown(0, 0, 100, 100, 0);
+      off.pointerMove(0, 0, 100 + SWIPE_MIN_PX, 100, 30);
+      off.latch();
+      expect(off.state.current.swipe).toBe("right");
+      expect(off.state.current.drag).toMatchObject({ active: false, released: false, power: 0 });
+      off.pointerUp(200, 100, 60);
+      off.latch();
+      expect(off.state.current.drag.released).toBe(false);
+   });
+
+   it("switching the mode off mid-drag drops it", () => {
+      input.setDragMode(true);
+      input.pointerDown(0, 0, 100, 100, 0);
+      input.latch();
+      input.setDragMode(false);
+      input.latch();
+      expect(state().drag.active).toBe(false);
+      input.pointerUp(100, 200, 50);
+      input.latch();
+      expect(state().drag.released).toBe(false);
+   });
+});
+
+describe("keyboard aim fallback", () => {
+   it("turns with moveX (right = clockwise), powers with moveY (up = more), clamped", () => {
+      const aim = { angle: Math.PI / 2, power: 0.5 };
+      stepKeyboardAim(aim, { moveX: 1, moveY: 0 }, 0.5);
+      expect(aim.angle).toBeCloseTo(Math.PI / 2 - 0.8);
+      stepKeyboardAim(aim, { moveX: 0, moveY: -1 }, 0.25);
+      expect(aim.power).toBeCloseTo(0.7);
+      stepKeyboardAim(aim, { moveX: 0, moveY: -1 }, 5);
+      expect(aim.power).toBe(1);
+      stepKeyboardAim(aim, { moveX: 0, moveY: 1 }, 5);
+      expect(aim.power).toBe(0.1);
+      stepKeyboardAim(aim, { moveX: -1, moveY: 0 }, 10, { maxAngle: 2 });
+      expect(aim.angle).toBe(2);
+      stepKeyboardAim(aim, { moveX: 1, moveY: 0 }, 10, { minAngle: 0.2 });
+      expect(aim.angle).toBe(0.2);
+   });
+});
+
+describe("digit keys", () => {
+   it("sets digit 1-9 for one frame from the Digit and Numpad rows", () => {
+      expect(input.keyDown("Digit3")).toBe(true);
+      input.latch();
+      expect(state().digit).toBe(3);
+      input.latch();
+      expect(state().digit).toBeNull();
+      input.keyUp("Digit3");
+      input.keyDown("Numpad9");
+      input.latch();
+      expect(state().digit).toBe(9);
+   });
+
+   it("ignores 0, auto-repeat and a key still held", () => {
+      expect(input.keyDown("Digit0")).toBe(false);
+      input.latch();
+      expect(state().digit).toBeNull();
+      input.keyDown("Digit5");
+      input.latch();
+      input.keyDown("Digit5", true);
+      input.keyDown("Digit5");
+      input.latch();
+      expect(state().digit).toBeNull();
+   });
+
+   it("a tap between two frames is never lost; two in one frame: the latest", () => {
+      input.keyDown("Digit1");
+      input.keyUp("Digit1");
+      input.keyDown("Digit2");
+      input.keyUp("Digit2");
+      input.latch();
+      expect(state().digit).toBe(2);
+   });
+
+   it("is dropped by a phase change and by release()", () => {
+      input.keyDown("Digit4");
+      input.clearEvents();
+      input.latch();
+      expect(state().digit).toBeNull();
+      input.keyUp("Digit4");
+      input.keyDown("Digit4");
+      input.latch();
+      input.release();
+      expect(state().digit).toBeNull();
+   });
+
+   it("does not move or press anything else", () => {
+      input.keyDown("Digit7");
+      input.latch();
+      expect(state()).toMatchObject({ moveX: 0, moveY: 0, jumpPressed: false, actionPressed: false, swipe: null });
    });
 });
