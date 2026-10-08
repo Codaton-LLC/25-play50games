@@ -280,6 +280,21 @@ landingPoint(projectile, params, 0, landing);
 stepProjectile(projectile, 1 / 120, params); // repeat per simulation step
 ```
 
+## Testing helpers: botHarness
+
+`core/testing/botHarness.ts` is for vitest only (`botHarness.test.ts` fails if runtime code imports it); pure, no three.js or React. Score-limit bots (the arcade-score-limits skill asks for 200+ seeds per bot) reuse it instead of copying a path finder: `createGrid({ cell, halfX, halfZ })`, `freeGrid(grid, walkable)` (the game's own rule per node), `findPath` (Dijkstra, 8 neighbours, no cut corners; `[]` when walled off), `nearestFree`, `followPath` + `steer` (unit direction along the path, then straight at the goal), and `simulateRun(store, { durationMs, lives?, frame, step })`, which configures, starts and drives a fresh store exactly like the canvas (`advanceRunClock`, then `step(playedFrameDt, elapsedMs / 1000, store)` while playing) until the phase is `"over"`. `fixedFrames(ms)` / `randomFrames(seed, min?, max?)` make the frame lengths. `games/treasure-island/rules.test.ts` uses all of it.
+
+```ts
+const grid = createGrid({ cell: 0.25, halfX: 16, halfZ: 13 });
+const free = freeGrid(grid, (x, z) => insideArena(x, z) && clearance(level, x, z) >= RADIUS + 0.1);
+const follower = followPath(grid, free, p.x, p.z, goal.x, goal.z);
+const end = simulateRun(createArcadeStore(), { durationMs: DURATION_MS, frame: randomFrames(seed), step: (dt, time, store) => {
+   steer(grid, follower, p.x, p.z, input); // writes input.dirX / input.dirZ
+   stepGame(run, input, dt, time);           // the game's pure step + its store calls (addScore, end("win"))
+} });
+expect(withinServerLimits(end.score, end.elapsedMs)).toBe(true);
+```
+
 ## Path helper
 
 `createPath` copies control points and builds a Float64 arc-length table once. Open polylines clamp; closed polylines wrap both positive and negative distances. `smooth` selects uniform Catmull-Rom with `samples` intervals per segment (default 16); point/tangent queries operate on the sampled polyline. At a joint, tangent is the outgoing segment (incoming at an open endpoint); duplicate open endpoints use the last nonzero tangent; entirely coincident paths have zero tangent. Non-finite point distances select the start. Distances use all three axes. Empty paths are rejected; singleton paths stay fixed. `advance(state, ds)` mutates `{ path, s, position, overflow? }` without allocation, writing signed unconsumed open-path distance to `overflow`. `nearestS` chooses the first nearest segment on ties. `createPathGraph(segments, junctions)` copies outgoing index lists; `next(segment, choice)` returns null for unavailable choices. Junction lists have one row per segment. `advanceGraph(state, graph, choose, ds)` carries forward overflow into connected paths; `choose(endingSegmentIndex)` returns an outgoing path index. Missing links, reverse travel and zero-length cycles retain overflow. Riders retain optional `segment` identity, initialized with `indexOf` once when omitted; set it when entering a graph externally. Invalid junction entries are skipped using `choiceCount(segment)` to bound the row scan; legacy graphs without it stop at the first null.

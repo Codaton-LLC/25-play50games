@@ -487,7 +487,8 @@ function resolveProps(e: ExplorerState, island: Pick<Island, "circles" | "boxes"
  * One movement step. `dirX/dirZ` = the wanted direction (length <= 1, analog). Mutates `e`, allocates
  * nothing. Guarantee the proof uses: while the shoreline stands still (before TIDE.startS) a step
  * moves at most EXPLORER.maxSpeed * dt, whatever the input, the props or the clamp do. Later the
- * rising water may push the explorer inward on top of that (at most rx x the shore's rate).
+ * rising water may push the explorer inward on top of that (at most rx x the shore's rate), and a
+ * prop it is pushed against pushes it back out (not player movement: no time is gained by it).
  */
 export function stepExplorer(e: ExplorerState, island: Pick<Island, "circles" | "boxes">, dirX: number, dirZ: number, dt: number, shore: number): void {
    if (!(dt > 0)) return;
@@ -528,8 +529,12 @@ export function stepExplorer(e: ExplorerState, island: Pick<Island, "circles" | 
       e.x = fromX + (mx * maxMove) / moved;
       e.z = fromZ + (mz * maxMove) / moved;
    }
-   // the rising tide (only then can `from` lie beyond the new edge)
+   // the rising tide (only then can `from` lie beyond the new edge), and once it rises the props
+   // have the last word, so the water never leaves the explorer inside one (a squeeze between the
+   // two keeps it out of the prop, a little beyond the reach). Before TIDE.startS (shore 1) neither
+   // moves it, so the guard's bound holds.
    clampToShore(e, shore);
+   if (shore < 1) resolveProps(e, island);
    e.vx = (e.x - fromX) / dt;
    e.vz = (e.z - fromZ) / dt;
    if (Math.hypot(e.vx, e.vz) > 0.3) e.heading = turnTowards(e.heading, Math.atan2(e.vx, e.vz), 1 - Math.exp(-turnRate * dt));
@@ -679,10 +684,11 @@ export function stepRun(run: RunState, island: Island, input: StepInput, dt: num
    if (dig.active && !input.digHeld) dig.active = false;
 
    if (dig.active) {
-      // the feet are planted: no movement, only the rising water may push
+      // the feet are planted: no movement, only the rising water may push (never into a prop)
       e.vx = 0;
       e.vz = 0;
       clampToShore(e, shore);
+      if (shore < 1) resolveProps(e, island);
       dig.held += dt;
       if (dig.held >= DIG.holdS) {
          dig.active = false;
