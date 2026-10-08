@@ -289,7 +289,7 @@ export default function GameShell({ meta, definition, exitHref = "/3d" }: GameSh
    useEffect(() => initAudio(), []);
 
    // looping sounds (core/loopControl.ts) fall silent when the game closes and when the player
-   // mutes. TODO(P-06): core/audio.ts registers its stopAllLoops with registerLoopStopper.
+   // mutes. core/audio.ts registers its stopAllLoops with registerLoopStopper.
    useEffect(() => () => stopShellLoops(), []);
    useEffect(() => {
       if (muted) stopShellLoops();
@@ -374,7 +374,7 @@ export default function GameShell({ meta, definition, exitHref = "/3d" }: GameSh
          // every new run (Play, Retry, Restart from pause or from the countdown) asks for its ticket
          if (state.phase === "countdown" && state.runId !== prev.runId) tickets.onRunStart(state.runId, slug);
          if (state.phase === prev.phase) return;
-         // a paused or ended run falls silent (TODO(P-06): audio's stopAllLoops is registered then)
+         // a paused or ended run falls silent (audio's stopAllLoops is registered)
          if (loopsStopOn(prev.phase, state.phase)) stopShellLoops();
          if (state.phase === "playing" && prev.phase === "countdown") {
             playSfx("go");

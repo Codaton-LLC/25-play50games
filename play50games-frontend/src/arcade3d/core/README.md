@@ -486,7 +486,7 @@ touchLabels: { action: "Throw", jump: "Duck" },
 
 ## Loop control: `core/loopControl.ts`
 
-Looping sounds stop when a run pauses or ends, when the player mutes and when the game closes. GameShell calls `stopShellLoops()` at those moments (`loopsStopOn(prev, next)`: entering "paused" or "over"; the mute toggle; unmount). The audio module registers its stopper once (TODO(P-06): `registerLoopStopper(stopAllLoops)` in `audio.ts` when its loops land). Games never call these.
+Looping sounds stop when a run pauses or ends, when the player mutes and when the game closes. GameShell calls `stopShellLoops()` at those moments (`loopsStopOn(prev, next)`: entering "paused" or "over"; the mute toggle; unmount). The audio module registers its stopper once (`registerLoopStopper(stopAllLoops)` at the end of `audio.ts`). Games never call these.
 
 ```ts
 import { registerLoopStopper, stopShellLoops } from "./loopControl";

@@ -9,6 +9,7 @@
 //    import { playSfx } from "@/arcade3d/core/audio";
 //    playSfx("pickup");
 import { useSyncExternalStore } from "react";
+import { registerLoopStopper } from "./loopControl";
 
 export type SfxName =
    | "pickup" | "hit" | "jump" | "win" | "lose" | "countdown" | "go"
@@ -681,3 +682,6 @@ export function startLoop(name: LoopName, opts?: LoopOptions): LoopHandle {
 export function stopAllLoops(): void {
    loops.stopAll();
 }
+
+// GameShell silences loops through core/loopControl (pause, mute, run end, unmount).
+registerLoopStopper(stopAllLoops);

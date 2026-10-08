@@ -380,6 +380,9 @@ describe("loops", () => {
       const level = c.gains[1];
       expect(c.gains[2].gain.value).toBeCloseTo(0.35 * 0.75, 5); // body: recipe × (1 − depth/2)
       expect(c.gains[3].gain.value).toBeCloseTo(0.35 * 0.25, 5); // lfoGain: ±depth/2 swing
+      // the wobble drives the inner body stage, never the outer level the handle ramps
+      expect(c.gains[3].connections).toContain(c.gains[2].gain);
+      expect(c.gains[3].connections).not.toContain(level.gain);
       handle.set({ volume: 0 });
       // one outer ramp scales voice and wobble together; the inner stage stays untouched
       expect(level.gain.events.at(-1)).toEqual(["lin", 0.0001, 0.06]);
