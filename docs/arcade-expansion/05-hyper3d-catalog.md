@@ -240,6 +240,8 @@ Classes: **A** custom Hyper3D · **B** procedural in code · **C** shared librar
 
 ## E.5 Prompt library for every custom model
 
+**Ready to copy:** `11-chatgpt-concept-prompts.md` has all 18 concept prompts below already filled into the frame, with the file name for each image.
+
 Format per asset: header (id, path, class, tier, batch, mode, settings), **concept prompt** for ChatGPT (image-to-3D assets only; you paste it into ChatGPT and hand the image to Claude), **Rodin prompt** (sent with the concept, or alone for text-to-3D), **fit and checks**. Shared defaults: Gen-2.5-Medium, mesh Raw, PBR, GLB; characters `quality_override` 18000, props 1500 (3000 where noted). Never HighPack, never Extreme-High.
 
 **Concept prompt frame** (ChatGPT; the asset line is filled in below):

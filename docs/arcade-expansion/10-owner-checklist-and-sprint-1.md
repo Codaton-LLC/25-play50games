@@ -21,7 +21,7 @@
 | 4 | Sprint 1 | Paste P-00 into Codex, Antigravity and Kimi (Claude creates the branches first); paste each reply back to Claude | 20 min | you (copy-paste); agents work independently |
 | 5 | Sprint 1 | Paste P-01 into Antigravity; P-04 into Codex; P-06 into Kimi (Claude tells you when) | 10 min | you; agents independent |
 | 6 | Sprint 1 | ChatGPT: paste P-09 (style sheet v2), pick A/B/C, give the image to Claude in your local Claude Code | 30 min | **you personally** (taste) |
-| 7 | Sprint 1 | ChatGPT: P-10 for the 6 batch-1 concepts (chest, cannon, ship, cart, monster, penguin); approve or regenerate each | 60 min | **your approval** |
+| 7 | Sprint 1 | ChatGPT: the 6 batch-1 prompts from `11-chatgpt-concept-prompts.md` (chest, cannon, ship, cart, monster, penguin); approve or regenerate each; save as `%USERPROFILE%\.play50\concepts\expansion\<id>.png` | 60 min | **your approval** |
 | 8 | Sprint 1 end | Check the Vercel production `/3d` after P-02 merges: it must look exactly as before (10 games) | 5 min | your check |
 | 9 | Phase 2 | Write "po, gjenero batch 1" when Claude shows the batch table; approve each download ("ok") | 20 min | **your approval** (spend) |
 | 10 | Phase 3 | Approve the treasure-island design; playtest it on desktop and your phone with `?perf=1`; say "template approved" | 1.5 h | **your approval** |
@@ -56,7 +56,7 @@ Goal of the sprint: decisions taken, agents verified, core v3 mostly built, styl
 | N-09 | Audio cues and loops | **Kimi** | N-04 | **P-06** | merged after Claude's review and your listening check |
 | N-10 | Effects, quality, perf probe, env, presets, shell fixes (P1-B) | **Claude** | N-06 | **P-03** | merged; existing games unchanged; baseline numbers in the merge notes |
 | N-11 | Style sheet v2 | **You + ChatGPT** | N-01 (D1) | **P-09** | you picked A, B or C |
-| N-12 | Batch-1 concepts (chest, cannon, ship, cart, monster, penguin) | **You + ChatGPT** | N-11 | **P-10** (asset lines and palettes from 05 §E.5) | 6 approved images on your PC |
+| N-12 | Batch-1 concepts (chest, cannon, ship, cart, monster, penguin) | **You + ChatGPT** | N-11 | **P-10**, filled in: `11-chatgpt-concept-prompts.md` batch 1 | 6 approved images in `%USERPROFILE%\.play50\concepts\expansion\` |
 | N-13 | Collections UI | **Antigravity** | N-06 | **P-08** | merged; Claude wires the prop on `/3d` |
 | N-14 | `tools/gamecheck` + `tools/perf` + baseline | **Kimi** | N-10 | **P-07** | merged; `baseline.json` committed |
 | N-15 | Input, rig, render, kit, HUD (P1-D) → core freeze check | **Claude** | N-08, N-10 | **P-05** | merged; freeze checklist (07 §G.3) green |

@@ -12,7 +12,7 @@ description: Run one approved Hyper3D (Rodin) asset batch for the 3D Arcade thro
 - Raw files stay in the scratchpad or `tools/hyper3d/raw/` (gitignored).
 
 ## Inputs
-`docs/arcade-expansion/05-hyper3d-catalog.md`: §E.2 (what to validate), §E.3 (workflow), §E.5 (each asset's prompt, settings, fit and checks), §E.6 (the batch table); approved concept images; the dashboard balance the user reported.
+`docs/arcade-expansion/05-hyper3d-catalog.md`: §E.2 (what to validate), §E.3 (workflow), §E.5 (each asset's prompt, settings, fit and checks), §E.6 (the batch table); approved concept images in `%USERPROFILE%\.play50\concepts\expansion\<id>.png` (names in `docs/arcade-expansion/11-chatgpt-concept-prompts.md`); the dashboard balance the user reported.
 
 ## Steps
 1. Show the batch table (asset, mode, settings, expected credits incl. reserve) and the balance; stop if the balance does not cover it.

@@ -19,6 +19,7 @@
 | `08-prompt-library.md` | **I** Every copy-paste prompt, with owner, order and prerequisites | handing out work |
 | `09-roadmap-budget-qa.md` | **J** Roadmap, **K** budget and cost, **L** QA and release | tracking the program |
 | `10-owner-checklist-and-sprint-1.md` | **M** Your checklist, **N** first sprint (15 tasks + prompts) | today |
+| `11-chatgpt-concept-prompts.md` | the 18 ChatGPT concept prompts, filled in, with file names | making concept images |
 | `skills/<name>/SKILL.md` | starter project skills (H) | after approval, installed per agent |
 
 Tags used everywhere:
