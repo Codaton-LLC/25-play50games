@@ -11,5 +11,6 @@ export {
    type InstanceUpdate,
 } from "./dynamicInstances";
 export { Instanced, type InstancedProps } from "./Instanced";
+export { TrajectoryDots, dotOpacity, shownDots, type TrajectoryDotsProps } from "./TrajectoryDots";
 export { useCanvasTexture, type CanvasDraw } from "./useCanvasTexture";
 export { spotMatrix, useInstanceMatrices, type InstanceSpot } from "./useInstanceMatrices";
