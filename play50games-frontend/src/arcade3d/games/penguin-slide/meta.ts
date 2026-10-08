@@ -14,8 +14,8 @@ export const penguinSlideMeta: ArcadeGameMeta = {
    orientation: "any",
    controls: {
       scheme: "steer",
-      keyboard: "A / D or arrows to steer, Space to hop",
-      touch: "Joystick to steer + Jump to hop",
+      keyboard: "A / D or left / right to steer; Space to hop; steer in the air to spin",
+      touch: "Joystick left / right to steer and spin; tap Hop to hop; auto-hop assists cracks",
    },
    scoring: {
       kind: "points",

@@ -1,6 +1,6 @@
 ﻿# Penguin Ice Slide
 
-Owner: Codex. Slug: `penguin-slide`. Skill game 15, wave 1, complexity 3. Gate G0 design; no implementation in this task. Spec: 04 §15; asset ids: 05 §E.4. Units: metres, seconds, radians; rules use longitudinal distance s and lateral offset d, world y up. Core owns the shell and submission.
+Owner: Codex. Slug: `penguin-slide`. Skill game 15, wave 1, complexity 3. P-15 implementation; runtime review pending. Spec: 04 §15; asset ids: 05 §E.4. Units: metres, seconds, radians; rules use longitudinal distance s and lateral offset d, world y up. Core owns the shell and submission.
 
 ## Concept
 
@@ -63,7 +63,7 @@ Proof plan: assert ds<=22*dt for every step, chunk-wide reward budgets and non-r
 - `useFittedView`: fixed local area x=[-5,5], y=[0,4], forward=[-4,32], focus=[0,0,10]; pitch=25*pi/180, yaws=[0], padding=2, margin={top:0.11,bottom:0.08,left:0.03,right:0.03}, shift=true, fov=50. Refit only on canvas/safe-area changes, never speed or per frame. No `followFocus` or game `CameraRig follow`: the player does not translate longitudinally in this frame.
 - Scene owns camera `useFrame` at `FRAME_PRIORITY.camera`, after simulation; mutate preallocated vectors, camera position and lookAt directly using fixed fitted offset/focus. Apply speed pullback factor 1+0.2*(v/22), damping=6 with pause-safe game delta; snap on mount/rebase and keep distance >=fit. A static non-following CameraRig may own fitted lens shift only; it has no per-frame position writer. No per-frame React state or offset prop updates; custom camera pose is the sole frame writer before visuals/shake.
 - Cosmetic camera roll <=3 degrees; body/track bank <=12 degrees (`bank`, reference gravity 9.81). Disable camera roll and speed pullback for reduced motion. Penguin belly rotated 90 degrees, lifted from measured belly bounds to track+0.01; add air height and tangent orientation. No rig/T-pose requirements for this solid creature.
-- `environment`: background="#bae6fd", fog=["#bae6fd",25,56], lighting="snow". SkyDome, SnowFall count=300, ice/snow banks, pines, optional procedural arch cave and frozen-lake scenery have no rules colliders. Retain 3 slots: the next-slot end approaches 60 m ahead before recycle; full fog by camera depth 56 m conceals it, unlike [35,85]. Validate nearest edge depth >=56 m through curves/splits at both fit and maximum pullback; hazards retain >=20 m clear preview before fog begins. Fog adds no draw calls or resident geometry. No Rapier.
+- `environment`: snow lighting and sky background. Definition fog [25,56] is an initial value; ChaseCamera updates it after every fitted/damped pose. Three fog uses view-space depth: d is the penguin ground-origin depth, near=d+22 m, far=d+46 m. The player and 20 m preview remain clear across portrait/banner fits and pullback. At pitch 25 degrees a straight edge 60 m ahead adds about 54 m depth; a 20-degree curve retains about 51 m, past far. Browser QA must verify the nearest split/curve edge and preview silhouettes. No added geometry or draw calls.
 
 ## Core helpers used
 
@@ -134,5 +134,68 @@ Coral hazard silhouettes plus dark crack shape (not colour alone); fish show a s
 
 ## Status
 
-(empty until the build)
+```text
+TASK P-15 | build penguin-slide | branch codex/game-penguin-slide | allowed: play50games-frontend/src/arcade3d/games/penguin-slide/**, play50games-frontend/public/images/3d/penguin-slide.webp, tools/thumbs/inputs/penguin-slide.mjs
+HANDOFF P-15 — Penguin Ice Slide
+Branch: codex/game-penguin-slide; no branch changes, commits or pushes.
+Status: dev; implementation ready for Claude validation, Common DoD not yet verified.
+Files: games/penguin-slide/{index.tsx,meta.ts,rules.ts,rules.test.ts,assets.ts,assets.test.ts,Scene.tsx,Track.tsx,Primitives.tsx,camera.tsx,Hud.tsx,Hud.module.css,README.md}; tools/thumbs/inputs/penguin-slide.mjs.
+Administrative output: .handoff/P-15-penguin/HANDOFF.md, explicitly requested in the CLI instructions.
+Scope check: git status --porcelain lists only task files before this handoff; local main was not compared.
+[x] GameDefinition replaces placeholder; variable gate clock, snow lighting, Hop label, three instructions, 1200 ms result delay.
+[x] Pure seeded rules; 1/120 s substeps, event splitting, expiry precedence, one-contact crashes, three-crash loss, 180 s ceiling.
+[x] Six forms; three resident chunks; arc-length paths, linked split branches, tapered widths, reserved corridors, 16-attempt safe fallback.
+[x] Held steering and one-shot pressed impulses; jumpPressed only; touch-capability auto-hop always on, no toggle.
+[x] One useRunFrame -> rules -> store; fitted camera and static lens-shift rig; pause-safe visual motion, solid penguin, floor/bank clearance.
+[x] Shared/reused model assets; dynamic pools and primitives; measured flag floor offset; no manifest or GLB edits.
+[x] FX warmed; snow carving rate limited; at most two score popups; existing pickup/hit/jump audio, TODO(P-06) loop/cues.
+[x] Tests authored: 1,000-seed course validity/determinism/seams; fallback; scoring, gates, hops/spins, assist, collision, terminal conditions.
+[x] Real-store proof bots authored: 500 safe seeds at normal and forced 22 m/s; 200 seeds each safe/reward/crash/spam at 60/20 fps and random 4–300 ms raw frames, with pauses/countdown.
+[x] Real-GLB bounds/size and resting bank/slope-clearance tests authored; rules.test.ts 361 lines.
+[x] npx tsc --noEmit: PASS, final invocation exit 0.
+[x] Static source scan: no Math.random/Date.now in rules, elapsedTime, API/localStorage/submission, classic imports or other-game imports.
+[x] meta.scoring remains Claude's provisional data; thumbnail stays null; no credits or production access.
+[ ] npm run build and npx vitest run: deferred to Claude by explicit sandbox instructions; tests have NOT been executed here.
+[ ] Keyboard/touch/browser lifecycle, banner open/closed, 1280x800 / 390x844 / 844x390 screenshots: deferred, no screenshots produced.
+[ ] Draw calls <=50 target /55 cap, mid-phone p95, 10 Retries and 30/60/120/180 s memory checkpoints: unmeasured; no perf JSON produced.
+[ ] Hazard preview >=20 m and generation edge fully fogged across fit/pullback/splits: needs browser verification.
+[ ] Thumbnail capture: input script supplied; capture deferred. gamecheck/tools/perf skipped as instructed (not merged).
+Scoring: floor(actual arc-length s) + 10*fishCollected + sum(50*successfulRampSpins); gates add time, never points.
+Limit proof: s<=22t, t<=180; <=12 fish and <=100 trick points per 60 m chunk; score<=s+220*(floor(s/60)+1)<=18700.
+Rate proof: score<=102.667t+220<440+104t. Proposed paired server limits: max 18700, base 440, pps 104, duration 9000–182000 ms.
+Minimum proof: approved README's weakest third-crash bound >=9.87 s includes two complete 1 s tumbles; timeout >=30 s. Claude owns adopting the proposed 9000 ms minimum; current approval is 3000 ms.
+Bot measurements: pending vitest; no measured best score/duration claimed. capScore no-op assertions are authored. The approved analytic maximum intentionally overcounts unreachable simultaneous rewards; the skill's >=90% max bot criterion is not asserted.
+Decisions: outer-bank obstacles preserve both split corridors; smooth tapers stay below the 4 m/s steering reach at 22 m/s; split branch lengths solved to 60 m; primitive launch pads have raised side rails with a clear centre; HUD follows measured shell chips.
+Open questions:
+- Camera/fog: fix1 implements player view-depth d+[22,46]; portrait/banner and split-edge visual QA remains pending.
+- Claude: adopt 9000 ms minimum with the paired meta/server update after bot results? No server-owned files were changed.
+- P-06: confirm merged cue identifiers and loop API before replacing the explicit TODOs.
+Acceptance: awaiting Claude build/vitest/browser/perf results and any resulting fix round; do not promote beyond dev.
+```
 
+### P-15-fix1 status
+
+Current flag GLB scene bounds measured: minY=0, height=1.8968853950500488. Its 1.5 m fit needs zero lift. Gate miss fixture excludes hazards: the original missed lane hit an obstacle before the gate. Production gate rules are unchanged. Split endpoints use 9-decimal component tolerance.
+
+Bot budget: 100 normal and 50 forced-speed survival runs at 20 fps; 64 limits runs at 60 fps, 16 at 20 fps, 16 seeded random-frame runs. Four legal modes rotate evenly (16 each at 60 fps; four each in smaller sets). Rules keep 1/120 s substeps. Pauses/countdown, terminal limits and capScore checks remain. Every played frame contributes to a maximum travel-excess assertion, replacing millions of matcher calls with one per run. No shared harness import.
+
+Claude measured baseline: 1,000 survival runs cost 559 s and 800 limits runs cost 231 s. Run reduction alone predicts about 84+87=171 s, insufficient for the target. Removing per-frame matcher overhead is the additional optimization; whole-file under-60 s timing awaits Claude Vitest. Diagnostic benchmark and TypeScript validation are recorded in the fix1 handoff; no new Vitest timing is claimed here. Build and browser QA also remain pending.
+
+Diagnostic measured 150 survival runs in 21.33 s and the initial 300 limits runs in 60.36 s (81.69 s total, standalone Node assertions, not Vitest). Therefore final limits sampling is 96 runs: 64/16/16 across frame schedules, each balanced across four modes. Linear measured-cost estimate is about 19.3 s for limits, 40.6 s combined, leaving about 19 s for course/assets and Vitest overhead. The taper reachability proof also aggregates maxima over all 480,000 samples instead of allocating two matchers per sample. Final whole-file timing still requires Claude validation.
+
+
+### P-15-fix2 Status
+
+Implemented for Claude validation; build, Vitest, browser and headless results are pending. This section supersedes the fixed-centre generator and fix1 sampling notes above.
+
+- Real penguin and fallback turn local +z belly toward world -y, with local +y head down-track (world -z). Standing fit grows from 0.8 m to 1 m; centring, belly support and fallback scale together. Real-GLB tests cover orientation and slope/bank clearance.
+- Corridor entry/exit offsets persist between chunks. Ordinary chunks interpolate to seeded ?1.5 m over 60 m (at most 1 m per 20 m, 1.1 m/s at 22 m/s). Splits retain the incoming offset while their branch tapers open/merge. Track, banks and trees follow that offset; fish and gates mark it. Hazards sit toward the former line outside both swept safe corridors. A 0.25 m placement margin covers corridor movement over collision footprints. Fallback retains corridor endpoints and event budgets.
+- Ramp validation rejects obstacle circles intersecting its 3 m by 1.8 m footprint. Obstacle slots start at local 3 m, avoiding the old local-24 overlap. Tests cover 1,000 seeds with ramp coverage and a constructed invalid overlap.
+- Idle regression requires at least 45/50 seeds to end before 90 s. Safe bots retain zero-crash/180 s assertions at normal and forced 22 m/s. Gate tests cover inclusive ?1 m and misses at ?1.01 m.
+- Fog and sky horizon both use #e9fbff. One fogged 300 m snow-field plane, 0.8 m below the player and sloping downhill at the maximum 8% grade, surrounds the moving glacier below visible track slopes (one extra draw call).
+- Camera area narrows to x=?3.5, z=-22..4, y=0..2.5, with 0.5 m padding. Fish GLBs fit 0.6 m long; fallback fish enlarge proportionally. Expected penguin height: about 30 CSS px on 390x844 and 20 px on 844x390; nearby fish about 8?16 px. These are sizing estimates, not measured screenshots; Claude must verify HUD/banner variants and speed pullback.
+- Thumbnail adds zoom 1.6 around [0.5, 0.65]; recapture pending. Split gates draw both branches ahead of entry, then only the selected branch. Flag/post pools increase to 12.
+- Level writes require change. Yaw HUD writes use changed 10-degree bins. Final capScore uses penguinSlideMeta.scoring.
+- Runtime budget: 40 normal + 20 forced-speed survival runs; 32/8/8 limits runs across 60-fps/20-fps/random frames; 256 deterministic seeds across six forms. Existing 1,000-seed boundary/reachability checks remain, plus 1,000-seed ramp coverage. Under-60-second timing needs Claude measurement.
+
+Validation: TypeScript no-emit check passed during this round; final result is in the handoff. No Vitest/build/browser command, thumbnail capture, production access, commit/push or branch change.
