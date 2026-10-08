@@ -1,7 +1,7 @@
-// The auto-rig on the expansion batch 2-3 characters (sharedAssets EXPANSION_CHARACTERS, 2026-10-08):
+// The auto-rig on the expansion batch 2-3 characters and the shopping-cart shoppers (sharedAssets EXPANSION_CHARACTERS, 2026-10-08):
 // each GLB's committed landmarks match what the heuristics find (or the documented tolerance for a
 // field set by eye), its poses keep the feet on the floor, the hands clear of the body and the head
-// (with its helmet, hat or antennae) rigid (characterChecks.ts), and the default fit draws it at its
+// (with its helmet, hat, antennae or hair) rigid (characterChecks.ts), and the default fit draws it at its
 // target height on the real mesh. A new GLB must be re-measured.
 import { describe, expect, it } from "vitest";
 import { hasModel } from "../modelManifest";
@@ -12,6 +12,9 @@ import {
    EXPANSION_CHARACTER_HEIGHT,
    EXPANSION_CHARACTERS,
    KNIGHT_LANDMARKS,
+   SHOPPER_A_LANDMARKS,
+   SHOPPER_B_LANDMARKS,
+   SHOPPER_C_LANDMARKS,
    SNOW_KID_LANDMARKS,
    ZOO_KEEPER_LANDMARKS,
    type ExpansionCharacterId,
@@ -28,13 +31,16 @@ const LANDMARKS: Record<ExpansionCharacterId, HumanoidLandmarks> = {
    astronaut: ASTRONAUT_LANDMARKS,
    alien: ALIEN_LANDMARKS,
    keeper: ZOO_KEEPER_LANDMARKS,
+   shopperA: SHOPPER_A_LANDMARKS,
+   shopperB: SHOPPER_B_LANDMARKS,
+   shopperC: SHOPPER_C_LANDMARKS,
 };
 const lm = (id: ExpansionCharacterId) => LANDMARKS[id];
 const IDS = Object.keys(C) as ExpansionCharacterId[];
 
 describe("expansion characters: assets", () => {
    it("every character is listed, humanoid with a full committed landmark set, within the character budget", () => {
-      expect(IDS).toHaveLength(5);
+      expect(IDS).toHaveLength(8);
       for (const id of IDS) {
          expect(hasModel(C[id].url), C[id].url).toBe(true);
          expect(C[id].rigged).toBeFalsy();
@@ -44,7 +50,7 @@ describe("expansion characters: assets", () => {
       }
    });
 
-   it("the default fit draws each one at its target height on the real mesh (knight 1.75, snow kid 1.30, astronaut 1.75, alien 1.10, keeper 1.75 m), feet on y = 0", async () => {
+   it("the default fit draws each one at its target height on the real mesh (knight 1.75, snow kid 1.30, astronaut 1.75, alien 1.10, keeper 1.75, shoppers 1.55 / 1.62 / 1.75 m), feet on y = 0", async () => {
       for (const id of IDS) {
          const { cloud, indices } = await readCharacterGlb(C[id].url);
          let top = -Infinity;
@@ -118,6 +124,48 @@ describe("zoo-escape keeper.glb", () => {
       estimate: { tolerance: { armRadius: 0.05, hemY: 0.19 } },
       headFrom: lm("keeper").headY + lm("keeper").neckBlend + 0.005,
       hipHalfWidth: 0.28,
+   });
+});
+
+describe("shopping-cart shopperA.glb", () => {
+   describeCharacter("shopperA", {
+      asset: C.shopperA,
+      landmarks: lm("shopperA"),
+      height: 1.8981,
+      reach: 0.9046,
+      // the skirt is a hollow tube with no legs inside: the crotch and the knee are set by eye (seeded),
+      // and the cardigan sleeves' armRadius
+      estimate: { explicit: { crotchY: 0.7, kneeY: 0.33, armRadius: 0.09 } },
+      headFrom: lm("shopperA").headY + lm("shopperA").neckBlend + 0.005,
+      hipHalfWidth: 0.33, // the cardigan and its pockets reach |x| 0.32 at the hips; the hands hang at 0.37+
+      // the skirt, from its hem to the crotch, in front of the shins (their front is at about z 0.07)
+      apron: { hemY: 0.38, topY: 0.7, frontZ: 0.1 },
+   });
+});
+
+describe("shopping-cart shopperB.glb", () => {
+   describeCharacter("shopperB", {
+      asset: C.shopperB,
+      landmarks: lm("shopperB"),
+      height: 1.8975,
+      reach: 0.8881,
+      // the hoodie sleeves' armRadius, no hem (jeans), the head joint under the chin (the hair hides the neck)
+      estimate: { explicit: { armRadius: 0.095, hemY: 0.83, headY: 1.47, neckY: 1.41, neckBlend: 0.03 } },
+      headFrom: lm("shopperB").headY + lm("shopperB").neckBlend + 0.005,
+      hipHalfWidth: 0.27,
+   });
+});
+
+describe("shopping-cart shopperC.glb", () => {
+   describeCharacter("shopperC", {
+      asset: C.shopperC,
+      landmarks: lm("shopperC"),
+      height: 1.8969,
+      reach: 0.9073,
+      // the short sleeves' armRadius, no hem (chinos)
+      estimate: { explicit: { armRadius: 0.11, hemY: 0.751 } },
+      headFrom: lm("shopperC").headY + lm("shopperC").neckBlend + 0.005,
+      hipHalfWidth: 0.29,
    });
 });
 

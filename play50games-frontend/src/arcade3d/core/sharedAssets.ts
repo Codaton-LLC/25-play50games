@@ -532,7 +532,7 @@ export function expansionPoint(asset: Pick<ModelAsset, "scale" | "stretch" | "ro
  * stands each one on y = 0, facing +z, at its target height in metres; a game spreads the entry to
  * change the scale and derives it from EXPANSION_CHARACTER_GLB_HEIGHT.
  */
-export type ExpansionCharacterId = "knight" | "snowKid" | "astronaut" | "alien" | "keeper";
+export type ExpansionCharacterId = "knight" | "snowKid" | "astronaut" | "alien" | "keeper" | "shopperA" | "shopperB" | "shopperC";
 
 /** The T-pose GLBs' heights (GLB units; the arm span is the longest side, about 1.9). */
 export const EXPANSION_CHARACTER_GLB_HEIGHT = {
@@ -541,6 +541,9 @@ export const EXPANSION_CHARACTER_GLB_HEIGHT = {
    astronaut: 1.8231,
    alien: 1.8902,
    keeper: 1.8921,
+   shopperA: 1.8981,
+   shopperB: 1.8975,
+   shopperC: 1.8969,
 } as const satisfies Record<ExpansionCharacterId, number>;
 
 /** The default heights in metres (a game may refit: museum-guard's statue knight is 1.6 m in the catalog). */
@@ -550,6 +553,9 @@ export const EXPANSION_CHARACTER_HEIGHT = {
    astronaut: 1.75,
    alien: 1.1,
    keeper: 1.75,
+   shopperA: 1.55,
+   shopperB: 1.62,
+   shopperC: 1.75,
 } as const satisfies Record<ExpansionCharacterId, number>;
 
 /**
@@ -762,6 +768,147 @@ export const ZOO_KEEPER_LANDMARKS: HumanoidLandmarks = {
    neckBlend: 0.032,
 };
 
+/**
+ * The shopping-cart shoppers (expansion shoppers, 2026-10-08): faceless generic Rodin image-to-3D
+ * T-pose GLBs (concepts committed as tools/hyper3d/concepts/shopping-cart-shopperA|B|C.webp), here
+ * the height (about 1.90) is the longest side, not the arm span (reach about 0.90).
+ *
+ * shopperA, the elderly woman (GLB units: 1.898 tall, reach 0.905; curly grey hair, glasses, a lilac
+ * cardigan to y 0.80, a knee-length slate skirt from 0.80 down to its hem at 0.38, bare shins,
+ * loafers), measured 2026-10-08. The skirt is a hollow tube with no legs modelled inside, so the
+ * heuristics find the legs parting below the hem (crotch 0.316). The estimate's set but:
+ * - crotchY 0.70 (estimate 0.316), set by eye a hand below the cardigan's waistband (0.80): hips
+ *   (0.777) and the blends follow from it;
+ * - kneeY 0.33 (the estimate from the seeded crotch would be 0.389, on the hem): the knee bends on
+ *   the bare shin just below the hem, so the hem rides on the thigh;
+ * - armRadius 0.09 (estimate 0.074): the cardigan sleeves span y 1.20-1.38 about shoulderY 1.286
+ *   (shoulderX 0.316 and armSpread 0.214 are the estimate's with it);
+ * - hemY 0.38 (the estimate with these seeds): the skirt bridges the legs from its hem to the
+ *   crotch, so it is skirt-weighted (the hem follows the thighs, the waist the hips).
+ */
+export const SHOPPER_A_LANDMARKS: HumanoidLandmarks = {
+   shoulderY: 1.286,
+   shoulderX: 0.316,
+   shoulderZ: 0.037,
+   armRadius: 0.09,
+   clavicleX: 0.158,
+   elbowX: 0.522,
+   wristX: 0.728,
+   armSpread: 0.214,
+   crotchY: 0.7,
+   hipY: 0.777,
+   hipX: 0.188,
+   hipZ: 0.005,
+   kneeY: 0.33,
+   ankleY: 0.13,
+   toeZ: 0.315,
+   heelZ: -0.093,
+   legDepth: 0.062,
+   legOuterX: 0.249,
+   hemY: 0.38,
+   spineY: 0.93,
+   chestY: 1.082,
+   neckY: 1.431,
+   headY: 1.447,
+   spineZ: 0.057,
+   shoulderBlend: 0.054,
+   elbowBlend: 0.045,
+   hipBlend: 0.089,
+   kneeBlend: 0.067,
+   ankleBlend: 0.035,
+   crotchBlend: 0.113,
+   spineBlend: 0.046,
+   neckBlend: 0.008,
+};
+
+/**
+ * shopperB, the young woman (GLB units: 1.898 tall, reach 0.888; long hair in a ponytail, a mint
+ * hoodie with its hood down, jeans, trainers), measured 2026-10-08. The estimate's set but:
+ * - armRadius 0.095 (estimate 0.08): the puffy hoodie sleeves span y 1.21-1.38 about shoulderY
+ *   1.291 (shoulderX 0.258 the estimate's with it);
+ * - hemY = crotchY 0.83 (the estimate's 0.664 is the close inner thighs of the jeans);
+ * - headY 1.47, neckY 1.41, neckBlend 0.03 (estimate 1.569 / 1.451 / 0.059): the long hair hides
+ *   the neck's sides, so the estimate put the head joint at the cheeks; it sits at the top of the
+ *   neck under the chin, the face and the hair above it rigid.
+ */
+export const SHOPPER_B_LANDMARKS: HumanoidLandmarks = {
+   shoulderY: 1.291,
+   shoulderX: 0.258,
+   shoulderZ: 0.052,
+   armRadius: 0.095,
+   clavicleX: 0.129,
+   elbowX: 0.479,
+   wristX: 0.699,
+   armSpread: 0.179,
+   crotchY: 0.83,
+   hipY: 0.908,
+   hipX: 0.157,
+   hipZ: 0.027,
+   kneeY: 0.454,
+   ankleY: 0.149,
+   toeZ: 0.335,
+   heelZ: -0.061,
+   legDepth: 0.092,
+   legOuterX: 0.301,
+   hemY: 0.83,
+   spineY: 1.023,
+   chestY: 1.138,
+   neckY: 1.41,
+   headY: 1.47,
+   spineZ: 0.11,
+   shoulderBlend: 0.057,
+   elbowBlend: 0.048,
+   hipBlend: 0.091,
+   kneeBlend: 0.068,
+   ankleBlend: 0.054,
+   crotchBlend: 0.069,
+   spineBlend: 0.035,
+   neckBlend: 0.03,
+};
+
+/**
+ * shopperC, the man (GLB units: 1.897 tall, reach 0.907; an orange polo with short sleeves, a belt,
+ * beige chinos, loafers), measured 2026-10-08. The estimate's set but:
+ * - armRadius 0.11 (estimate 0.069): the short sleeves span y 1.19-1.40 about shoulderY 1.288, so
+ *   they hang with the arm instead of staying out as fins (shoulderX 0.305 and armSpread 0.147 are
+ *   the estimate's with it);
+ * - hemY = crotchY 0.751 (the estimate's 0.616 is the close inner thighs of the chinos).
+ */
+export const SHOPPER_C_LANDMARKS: HumanoidLandmarks = {
+   shoulderY: 1.288,
+   shoulderX: 0.305,
+   shoulderZ: -0.055,
+   armRadius: 0.11,
+   clavicleX: 0.152,
+   elbowX: 0.515,
+   wristX: 0.726,
+   armSpread: 0.147,
+   crotchY: 0.751,
+   hipY: 0.828,
+   hipX: 0.152,
+   hipZ: -0.04,
+   kneeY: 0.414,
+   ankleY: 0.129,
+   toeZ: 0.264,
+   heelZ: -0.147,
+   legDepth: 0.091,
+   legOuterX: 0.269,
+   hemY: 0.751,
+   spineY: 0.966,
+   chestY: 1.104,
+   neckY: 1.462,
+   headY: 1.51,
+   spineZ: 0.01,
+   shoulderBlend: 0.066,
+   elbowBlend: 0.055,
+   hipBlend: 0.083,
+   kneeBlend: 0.062,
+   ankleBlend: 0.05,
+   crotchBlend: 0.058,
+   spineBlend: 0.041,
+   neckBlend: 0.024,
+};
+
 const character = (id: ExpansionCharacterId, slug: string, landmarks: HumanoidLandmarks, fallbackColor: string): ModelAsset => ({
    id,
    url: `/models/3d/${slug}/${id}.glb`,
@@ -778,4 +925,7 @@ export const EXPANSION_CHARACTERS: Record<ExpansionCharacterId, ModelAsset> = {
    astronaut: character("astronaut", "space-repair", ASTRONAUT_LANDMARKS, "#f8fafc"),
    alien: character("alien", "alien-farm", ALIEN_LANDMARKS, "#4ade80"),
    keeper: character("keeper", "zoo-escape", ZOO_KEEPER_LANDMARKS, "#d6c29a"),
+   shopperA: character("shopperA", "shopping-cart", SHOPPER_A_LANDMARKS, "#a78bfa"),
+   shopperB: character("shopperB", "shopping-cart", SHOPPER_B_LANDMARKS, "#86efac"),
+   shopperC: character("shopperC", "shopping-cart", SHOPPER_C_LANDMARKS, "#f97316"),
 };

@@ -96,6 +96,11 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/space-repair/astronaut.glb",
    "/models/3d/alien-farm/alien.glb",
    "/models/3d/zoo-escape/keeper.glb",
+   // expansion shoppers (2026-10-08): shopping-cart's three faceless shoppers, image-to-3D T-pose
+   // humanoids, 18k tris, 1024 px, auto-rigged with their committed landmarks (EXPANSION_CHARACTERS)
+   "/models/3d/shopping-cart/shopperA.glb",
+   "/models/3d/shopping-cart/shopperB.glb",
+   "/models/3d/shopping-cart/shopperC.glb",
 ];
 
 const LISTED: ReadonlySet<string> = new Set(MODEL_MANIFEST);
