@@ -1,0 +1,56 @@
+{
+   "slug": "shopping-cart",
+   "universe": "play50-toy-world-premium",
+   "seed": 5050,
+   "assets": [
+      {
+         "id": "cart",
+         "kind": "prop",
+         "mode": "image",
+         "prompt": "Toy-like supermarket shopping cart: a solid basket made of smooth rounded light silver panels with a few large rectangular cut-outs (no thin wires), a red plastic push handle at the back, a small lower tray and four small chunky dark wheels. Premium stylised mobile-game look, friendly rounded proportions, soft bevelled edges, matte silver and matte red. Single object, centred, standing on its wheels, handle side facing the viewer at three-quarter view, symmetrical left to right. No groceries inside, no child seat flap, no logo, no base, no ground, no text. Clean game-ready low-poly topology, clean PBR textures without baked shadows.",
+         "concept": "tools/hyper3d/concepts/cart.png",
+         "tier": "Gen-2.5-Medium",
+         "qualityOverride": 3000,
+         "attempts": 1,
+         "target": "shopping-cart",
+         "budget": { "tris": 4000, "bytes": 300000 },
+         "textureSize": 512
+      },
+      {
+         "id": "shopperA",
+         "kind": "character",
+         "mode": "text",
+         "prompt": "Stylized cartoon 3D game character: friendly elderly woman in a cozy lilac cardigan, grey trousers, comfortable flat shoes, short grey curls, warm face without distinct eyes (faceless stylized toy style). Full body, clean symmetrical T-pose: arms straight out to sides at shoulder height, palms down, legs slightly apart, standing upright, facing viewer. Clean game-ready low-poly topology, clean PBR textures without baked shadows.",
+         "tier": "Gen-2.5-Medium",
+         "qualityOverride": 18000,
+         "attempts": 1,
+         "target": "shopping-cart",
+         "budget": { "tris": 18000, "bytes": 1500000 },
+         "textureSize": 1024
+      },
+      {
+         "id": "shopperB",
+         "kind": "character",
+         "mode": "text",
+         "prompt": "Stylized cartoon 3D game character: young woman in a mint-green hoodie, dark joggers, white sneakers, hair tied back in a short ponytail, faceless stylized toy style. Full body, clean symmetrical T-pose: arms straight out to sides at shoulder height, palms down, legs slightly apart, standing upright, facing viewer. Clean game-ready low-poly topology, clean PBR textures without baked shadows.",
+         "tier": "Gen-2.5-Medium",
+         "qualityOverride": 18000,
+         "attempts": 1,
+         "target": "shopping-cart",
+         "budget": { "tris": 18000, "bytes": 1500000 },
+         "textureSize": 1024
+      },
+      {
+         "id": "shopperC",
+         "kind": "character",
+         "mode": "text",
+         "prompt": "Stylized cartoon 3D game character: friendly man in a bright orange polo shirt, khaki shorts, brown boat shoes, neat brown hair, faceless stylized toy style. Full body, clean symmetrical T-pose: arms straight out to sides at shoulder height, palms down, legs slightly apart, standing upright, facing viewer. Clean game-ready low-poly topology, clean PBR textures without baked shadows.",
+         "tier": "Gen-2.5-Medium",
+         "qualityOverride": 18000,
+         "attempts": 1,
+         "target": "shopping-cart",
+         "budget": { "tris": 18000, "bytes": 1500000 },
+         "textureSize": 1024
+      }
+   ]
+}
