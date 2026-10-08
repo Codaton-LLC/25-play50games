@@ -323,6 +323,8 @@ Devices: **desktop** = a 2020+ laptop with integrated graphics in Chrome; **mid 
 
 Games read `useQuality()` only for cosmetic counts; rules never depend on the tier (scores stay fair).
 
+Deviation (P-03, 2026-10-08): the DPR column is informational (`useQuality().maxDpr`). ShellStage keeps its existing resolution (1.75, then 1 after a slow period), so phones where games are already live render exactly as before. Applying the mid-tier cap of 1.5 is a later decision, made together with a new perf baseline.
+
 ### 10.5 Measuring and diagnosing regressions
 
 1. **Perf probe** (`?perf=1`): `window.__arcadePerf = { calls, triangles, geometries, textures, programs, frames, p50, p95, max }`, sampled every frame, no allocation (generalises tower-climb's `__towerProbe` **[V]**).

@@ -12,7 +12,9 @@
 //   run starts), so a fit does not jump when the countdown begins.
 // - controls: the touch joystick and buttons where they sit while the run is played, including
 //   the lift above the cookie banner while it is open. Empty on desktop (no touch controls).
-// - obstructions: page UI over the bottom of the canvas (the cookie banner) while it is open.
+// - obstructions: what covers the bottom of the canvas: the cookie banner while it is open, and on
+//   phones without a home button the home-indicator strip (env(safe-area-inset-bottom), measured
+//   with a hidden probe), whichever is taller. insetBottom has the inset alone (px).
 // Updates live on resize, rotation, the banner opening/closing and HUD size changes.
 // useFittedView (core/useFittedView.ts) already avoids all three; most games never read this directly.
 import { createContext, useContext, useEffect, useRef, useState, useSyncExternalStore, type ReactNode, type RefObject } from "react";
@@ -28,8 +30,13 @@ export interface SafeArea {
    hud: ScreenRect[];
    /** touch controls (joystick, buttons); empty without touch controls */
    controls: ScreenRect[];
-   /** page UI over the canvas (the cookie banner strip at the bottom); empty when nothing covers it */
+   /**
+    * what covers the bottom of the canvas: the cookie banner strip, or the home-indicator inset
+    * (env(safe-area-inset-bottom)) when that is taller; empty when nothing covers it
+    */
    obstructions: ScreenRect[];
+   /** env(safe-area-inset-bottom) in CSS px (0 on desktop, absent in layouts built by hand) */
+   insetBottom?: number;
 }
 
 /**
@@ -38,7 +45,7 @@ export interface SafeArea {
  */
 export const SAFE_AREA_ATTR = "data-arcade-safe-area";
 
-const EMPTY: SafeArea = { width: 0, height: 0, hud: [], controls: [], obstructions: [] };
+const EMPTY: SafeArea = { width: 0, height: 0, hud: [], controls: [], obstructions: [], insetBottom: 0 };
 
 export interface SafeAreaStore {
    get(): SafeArea;
@@ -63,7 +70,8 @@ export function sameSafeArea(prev: SafeArea, next: SafeArea): boolean {
       near(prev.height, next.height) &&
       sameRects(prev.hud, next.hud) &&
       sameRects(prev.controls, next.controls) &&
-      sameRects(prev.obstructions ?? [], next.obstructions ?? [])
+      sameRects(prev.obstructions ?? [], next.obstructions ?? []) &&
+      near(prev.insetBottom ?? 0, next.insetBottom ?? 0)
    );
 }
 
@@ -158,6 +166,28 @@ export function bottomStrip(base: Pick<DOMRect, "top" | "width" | "height">, win
    return top < base.height ? [{ left: 0, top, right: base.width, bottom: base.height }] : [];
 }
 
+/**
+ * How much of the window's bottom is covered (px): the page UI there (the cookie banner) or the
+ * home-indicator inset, whichever is taller (the banner sits over the inset, not above it).
+ */
+export function bottomCover(bottomObstruction: number, insetBottom: number): number {
+   const a = bottomObstruction > 0 ? bottomObstruction : 0;
+   const b = insetBottom > 0 ? insetBottom : 0;
+   return Math.max(a, b);
+}
+
+/** A hidden element as tall as env(safe-area-inset-bottom): the inset in px, read by layout. */
+function createInsetProbe(): HTMLDivElement {
+   const probe = document.createElement("div");
+   probe.setAttribute("aria-hidden", "true");
+   probe.setAttribute("data-arcade-inset-probe", "");
+   probe.style.cssText =
+      "position:fixed;left:0;bottom:0;width:0;height:0;padding:0 0 env(safe-area-inset-bottom,0px) 0;" +
+      "visibility:hidden;pointer-events:none;";
+   document.body.appendChild(probe);
+   return probe;
+}
+
 const marked = (root: HTMLElement | null) => (root ? Array.from(root.querySelectorAll(`[${SAFE_AREA_ATTR}]`)) : []);
 
 export interface SafeAreaSources {
@@ -184,23 +214,34 @@ export function useSafeAreaTracker(
    const [observer, setObserver] = useState<ResizeObserver | null>(null);
    const sourcesRef = useRef(sources);
    sourcesRef.current = sources;
+   const insetProbeRef = useRef<HTMLDivElement | null>(null);
    const measureRef = useRef(() => {});
    measureRef.current = () => {
       const wrap = canvas.current;
       if (!wrap) return;
       const base = wrap.getBoundingClientRect();
       const { gameHud, bottomObstruction = 0 } = sourcesRef.current;
+      const insetBottom = insetProbeRef.current ? Math.round(insetProbeRef.current.getBoundingClientRect().height) : 0;
       store.set({
          width: base.width,
          height: base.height,
          hud: [...(hud.current ? rectsOf(base, hud.current.children) : []), ...rectsOf(base, marked(gameHud?.current ?? null))],
          controls: probe.current ? rectsOf(base, marked(probe.current)) : [],
-         obstructions: bottomStrip(base, window.innerHeight, bottomObstruction),
+         obstructions: bottomStrip(base, window.innerHeight, bottomCover(bottomObstruction, insetBottom)),
+         insetBottom,
       });
    };
 
    useEffect(() => {
-      if (typeof ResizeObserver === "undefined") return;
+      // the home-indicator inset changes only with the layout (rotation), measured with the rest
+      const insetProbe = typeof document !== "undefined" ? createInsetProbe() : null;
+      insetProbeRef.current = insetProbe;
+      measureRef.current();
+      const cleanupProbe = () => {
+         insetProbe?.remove();
+         if (insetProbeRef.current === insetProbe) insetProbeRef.current = null;
+      };
+      if (typeof ResizeObserver === "undefined") return cleanupProbe;
       const ro = new ResizeObserver(() => measureRef.current());
       setObserver(ro);
       const onResize = () => measureRef.current();
@@ -210,6 +251,7 @@ export function useSafeAreaTracker(
          ro.disconnect();
          window.removeEventListener("resize", onResize);
          window.removeEventListener("orientationchange", onResize);
+         cleanupProbe();
       };
    }, [measureRef]);
 

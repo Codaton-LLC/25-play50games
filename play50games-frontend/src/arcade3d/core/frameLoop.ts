@@ -90,6 +90,21 @@ export function isPausable(phase: RunPhase): phase is "countdown" | "playing" {
    return phase === "countdown" || phase === "playing";
 }
 
+/**
+ * What Esc / P do now: pause a pausable run, resume a paused one, or nothing. Nothing at all while
+ * the "Rotate your device" overlay is up (the run stays paused until the phone is turned back; a
+ * key must not resume it behind the overlay), and no resume after a lost WebGL context.
+ */
+export function pauseKeyAction(
+   phase: RunPhase,
+   blockers: { contextLost: boolean; wrongOrientation: boolean }
+): "pause" | "resume" | null {
+   if (blockers.wrongOrientation) return null;
+   if (isPausable(phase)) return "pause";
+   if (phase === "paused" && !blockers.contextLost) return "resume";
+   return null;
+}
+
 // ---------- result delay ----------
 
 /** GameDefinition.resultDelayMs when a game sets none: the scene stays on screen this long after a run. */

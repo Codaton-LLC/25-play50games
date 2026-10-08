@@ -7,6 +7,9 @@ import {
    SafeAreaProvider,
    createSafeAreaSelection,
    createSafeAreaStore,
+   bottomCover,
+   bottomStrip,
+   sameSafeArea,
    sameScreenRects,
    useSafeArea,
    type SafeArea,
@@ -86,5 +89,22 @@ describe("useSafeArea selection", () => {
       }
       expect(renderToString(createElement(Probe))).toContain("0:0");
       expect(renderToString(createElement(SafeAreaProvider, { store, children: createElement(Probe) }))).toContain("0:0");
+   });
+});
+
+describe("bottom safe-area inset (L12)", () => {
+   it("covers the taller of the banner and the home-indicator inset", () => {
+      expect(bottomCover(0, 0)).toBe(0);
+      expect(bottomCover(0, 34)).toBe(34);
+      expect(bottomCover(120, 34)).toBe(120);
+      expect(bottomCover(-5, Number.NaN)).toBe(0);
+      // the inset alone becomes an obstruction strip the camera fit avoids
+      expect(bottomStrip({ top: 0, width: 390, height: 844 }, 844, bottomCover(0, 34))).toEqual([rect(0, 810, 390, 844)]);
+   });
+
+   it("treats a changed inset as a new layout, and a missing one as 0", () => {
+      const a = layout(120, 600);
+      expect(sameSafeArea(a, { ...a, insetBottom: 0 })).toBe(true);
+      expect(sameSafeArea(a, { ...a, insetBottom: 34 })).toBe(false);
    });
 });

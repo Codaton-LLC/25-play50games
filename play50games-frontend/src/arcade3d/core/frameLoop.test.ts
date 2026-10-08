@@ -11,6 +11,7 @@ import {
    createGameTime,
    isPausable,
    isResultShown,
+   pauseKeyAction,
    playedFrameDt,
    resultDelayFor,
    runFramePriority,
@@ -129,6 +130,24 @@ describe("pausable phases", () => {
          expect(store.getState().phase).toBe(isPausable(phase) ? "paused" : phase);
          if (isPausable(phase)) expect(store.getState().pausedFrom).toBe(phase);
       }
+   });
+});
+
+describe("Esc / P", () => {
+   const free = { contextLost: false, wrongOrientation: false };
+   it("pauses a pausable run and resumes a paused one", () => {
+      expect(pauseKeyAction("playing", free)).toBe("pause");
+      expect(pauseKeyAction("countdown", free)).toBe("pause");
+      expect(pauseKeyAction("paused", free)).toBe("resume");
+      expect(pauseKeyAction("ready", free)).toBeNull();
+      expect(pauseKeyAction("over", free)).toBeNull();
+   });
+   it("does nothing behind the rotate overlay (L12)", () => {
+      const rotate = { contextLost: false, wrongOrientation: true };
+      for (const phase of ["countdown", "playing", "paused"] as const) expect(pauseKeyAction(phase, rotate)).toBeNull();
+   });
+   it("never resumes after a lost context", () => {
+      expect(pauseKeyAction("paused", { contextLost: true, wrongOrientation: false })).toBeNull();
    });
 });
 
