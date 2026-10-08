@@ -471,3 +471,90 @@ const inset = useSafeArea((area) => area.insetBottom ?? 0);   // e.g. lift a bot
 ```
 
 Esc / P (`pauseKeyAction` in `frameLoop.ts`) do nothing while the "Rotate your device" overlay is up: the run stays paused until the phone is turned back (before, Esc resumed it behind the overlay).
+
+## Aim drag, keyboard aim and digit keys (`input.tsx`)
+
+`GameDefinition.input = { drag: true }` opts a game in to the aim drag ("pull back to shoot"). Then a canvas drag fills `useInput().current.drag` (`AimDrag`): `active` while held (from the press), `start` / `current` (pointer coordinates, -1..1, y up), `power` = drag length / `AIM_DRAG_FULL_PX` (160 px) clamped to 1, `angle` = the screen angle (rad, y up, 0 = right) of start - current, and on the frame after the release `released` (one frame, with the final values) and `cancelled` (the release ended under `AIM_DRAG_MIN_PX`, 16 px, from the start, or the pointer was cancelled: no shot). In such a game a drag is **never** a swipe (no `swipe`, no `pressed` from the pointer); `tapDown` still starts every gesture and a press without travel is still a `tap`. Without the opt-in nothing changes: `drag` stays idle and swipes and taps behave exactly as before. `digit` is 1–9 for one frame on a new keydown of Digit1–9 / Numpad1–9 (pile, upgrade and slot choices), else null; it is latched like every one-frame event. `drag` and `digit` are always present on the ref; they are optional in `InputState` only so inputs built by hand in older tests still type-check (`useInput()` returns `LiveInputState`, where they are required).
+
+**Keyboard aim fallback** (every aim-drag game needs one): the arrows / WASD / joystick aim and Space (or the touch Jump) fires. `stepKeyboardAim(aim, input.current, dt, { turnRate, powerRate, minAngle, maxAngle, minPower })` turns `aim.angle` with `moveX` (right = clockwise) and sets `aim.power` with `moveY` (up = more); fire on `jumpPressed` exactly as on `drag.released`.
+
+```ts
+// definition: input: { drag: true }, touchControls: ["tap"]
+const aim = useRef({ angle: Math.PI / 2, power: 0.5 });
+useRunFrame((_, dt) => {
+   const { drag, jumpPressed, digit } = input.current;
+   if (drag.active) { aim.current.angle = drag.angle; aim.current.power = drag.power; }
+   else stepKeyboardAim(aim.current, input.current, dt);
+   if ((drag.released && !drag.cancelled) || jumpPressed) shoot(run, aim.current.angle, aim.current.power);
+   if (digit) pickPile(run, digit - 1);
+});
+```
+
+## Trajectory preview: `render/TrajectoryDots`
+
+`<TrajectoryDots projectile params count step groundY fraction radius endScale color opacity endOpacity visible>`: dots along `ballistics.trajectoryPoints` (one `InstancedMesh`, one draw call, no allocation per frame). `projectile` (`{ x, y, z, vx, vy, vz }`) and `params` are read every frame, so mutate them in place; `null` or `visible={false}` hides the dots. The arc stops on `groundY` (the last dot on the ground) or after `count` dots; dot i always fades from `opacity` to `endOpacity` and shrinks to `endScale` by i / count. `fraction` (0..1) shows only the start of the arc (a hint, not the landing spot). Pure helpers: `dotOpacity`, `shownDots`.
+
+```tsx
+const shot = useMemo(() => ({ x: 0, y: 1, z: 0, vx: 0, vy: 0, vz: 0 }), []);
+useRunFrame(() => aimShot(shot, aim.current));                  // writes shot.vx / vy / vz
+<TrajectoryDots projectile={shot} params={BALLISTICS} fraction={0.5} visible={aiming} />
+```
+
+## Material looks and tints (`materials.ts`)
+
+`ModelAsset.material` draws a GLB with another look: `"stone" | "bronze" | "gold" | "bone"` (`MATERIAL_PRESETS`) or `{ color, roughness?, metalness?, emissive? }`. Every mesh gets ONE shared `MeshStandardMaterial` per look (no textures, so a statue reads as one material), in `<Model>`, `<InstancedModel>`, `<DynamicInstancedModel>` and `<HumanoidModel>`. `<Model tint>` / `<HumanoidModel tint>` multiply the GLB's colours: one cached clone per GLB material and tint (textures shared); a tint on an override multiplies its colour. Per-copy tint in a moving pool: `update(i, matrix, color)` gets `color` white on every call; set it (`color.copy(PREBUILT)`, no allocation) and that copy's colours (GLB parts or stand-in pieces) are multiplied through `instanceColor`; a pool whose update never sets it writes no colours, so existing two-argument callers are unchanged. **Cache and disposal:** every look lives in one page-wide `MATERIAL_CACHE`, counted by the mounted models that use it; when the last one unmounts, the look is disposed after the commit (a microtask), so a Retry that remounts the scene keeps it. Keys are pure (`overrideKey`, `tintKey`). A metal preset is part-rough because the arcade's lights have no environment map. The fallback primitive is never tinted.
+
+```tsx
+export const GOLD_ROBOT: ModelAsset = { ...SHARED_ASSETS.robot, id: "robotGold", material: "gold" };
+<Model asset={STATUE} position={[0, PEDESTAL_TOP(1), 0]} />          // an asset with material: "stone"
+<HumanoidModel asset={KNIGHT} pose={pose} tint="#fca5a5" />
+<DynamicInstancedModel asset={ASSETS.suitcase} count={40}
+   update={(i, m, color) => { const b = run.bags[i]; if (!b.on) return false; m.makeTranslation(b.x, 0, b.z); color.copy(FLIGHT[b.flight]); }} />
+```
+
+## Attachments: `<HumanoidModel attach>` (`rig/attachments.ts`)
+
+`attach={{ head, chest, handL, handR }}` mounts elements on anchors measured once per character from its mesh and landmarks: `head` = the top of the head (head bone), `chest` = the back halfway between the chest joint and the shoulders, at the back surface (chest bone), `handL` / `handR` = the centre of each hand (lower-arm bone; the hand rides the forearm). The children are in the HumanoidModel group's units (the asset's scale is undone on the anchor; keep a character's scale uniform) and in the bone's T-pose frame: +y up, +z forward as it stands in the T-pose; for a hand the arm runs along +x (handL) / -x (handR) to the fingertips. They follow the bones through the scene graph (no per-frame work, no allocation) and are drawn on the rigged GLB only, never on the fallback. Checked on the real runner (`attachments.test.ts`): a hat, a tool in each hand and a pack on the back stay within 1 cm of the mesh through walk, run, carry, cheer and reach. Pure: `measureAnchors(cloud, landmarks)`, `anchorOffset`; three: `createAnchorGroup(rig, name, scale)`.
+
+```tsx
+<HumanoidModel asset={EXPLORER} pose={pose}
+   attach={{ head: <ExplorerHat />, chest: <VacuumPack />, handR: <Wrench /> }} />
+// ExplorerHat: origin on the crown, brim in xz. A tool for handR: its handle across the palm, along -x.
+```
+
+## Kit: `core/kit`
+
+Procedural props shared by several games (06 §F.3). Small, disposable, few draw calls each.
+
+- `<Conveyor path width speed tile lift color stripe frame>`: a belt strip along a `Path` with a scrolling chevron texture; it moves `speed` m per second of **play time**, exactly like riders `advance`d by `speed * dt` in `useRunFrame` (still during countdown, pause and result). 2 draw calls.
+- `<Fence path spacing height rails postSize railSize color railColor>`: posts every `spacing` m (both ends; a closed path closes the ring) and straight rails between them, instanced: 2 draw calls for any length (`fenceSpots`, pure).
+- `<Flashlight ref halfAngle range height color opacity light intensity>`: the group stands on the guard's feet with `rotation.y = yaw`; the lit floor sector and the additive beam are exactly `ai/vision` `inViewCone(origin, yaw, halfAngle, range, p)` (`fanPoints`, tested). `light` adds a SpotLight, decided once at mount and skipped on the "low" tier (a light recompiles every material: keep the number of flashlights fixed).
+- `<Pedestal width height color trim>`: one merged mesh; the exhibit stands at `PEDESTAL_TOP(height)`.
+- `<Gem size color spin bob glow phase>`: a flat-shaded icosahedron with an emissive glow and bright edges (edges skipped on "low"), spinning on the game clock.
+- `<Parcel size color tape label>`: a cardboard box with a tape band and a label; parcels of one look share one canvas texture and material (counted, disposed with the last one). Origin = bottom centre.
+
+```tsx
+import { Conveyor, Fence, Flashlight, Gem, Parcel, Pedestal, PEDESTAL_TOP } from "../../core/kit";
+<Conveyor path={BELT} width={1.2} speed={run.beltSpeed} />
+<Fence path={PEN} spacing={1.6} height={1.1} />
+<Flashlight ref={torch} halfAngle={GUARD_FOV / 2} range={GUARD_RANGE} />   // rules: inViewCone(..., GUARD_FOV / 2, GUARD_RANGE, ...)
+<Pedestal position={[2, 0, 0]} /> <Gem position={[2, PEDESTAL_TOP(1) + 0.4, 0]} />
+<Parcel position={[0, 0, 3]} size={[0.5, 0.35, 0.4]} />
+```
+
+## HUD: target markers and the timing ring (`core/hud`)
+
+`<TargetMarkers targets color size margin>` (inside the Scene): DOM arrows at the edge of the screen pointing to world targets that are off screen, behind the camera, or under the HUD, kept inside the safe area (`useSafeArea`: below the top HUD band, above the touch controls, the cookie banner and the home indicator). It projects with the scene's camera every frame and moves plain DOM nodes (no React render per frame); `targets` (`{ x, y, z, hidden?, color? }`) are read every frame; keep the array's length fixed. Arrows show only while playing or paused. Pure and tested: `markerBounds(area, margin)`, `placeMarker(ndcX, ndcY, behind, width, height, bounds, out)` (`hud/markerPlacement.ts`).
+
+`<TimingRing source value zones size perfectShare label …>` (plain DOM SVG, for `definition.Hud`): a needle over target arcs. `source()` is polled on every animation frame and only the needle's transform changes. Positions are fractions of a turn clockwise from the top. The game grades with the same pure math (`hud/timingMath.ts`: `needlePosition(t, period, "loop" | "pingpong")`, `judgeTiming(pos, zones, perfectShare)` → `"perfect" | "good" | "miss"`, `inZone`, `zoneProgress`, `arcPath`), so drawing and grading agree.
+
+```tsx
+<TargetMarkers targets={run.drops} color="#fbbf24" />                       // in the Scene
+const ZONES = [{ start: 0.62, end: 0.74 }];
+useRunFrame(() => { needle.current = needlePosition(time.play, 1.6); if (input.current.jumpPressed) grade(judgeTiming(needle.current, ZONES)); });
+<TimingRing source={() => needle.current} zones={ZONES} label="SPACE" />     // in definition.Hud
+```
+
+### Adoption (P-05)
+
+Nothing here changes an existing game: the aim drag is opt-in per definition, `digit` is new, `update`'s third argument and `tint` / `material` / `attach` are optional, and the kit and HUD pieces mount only where a game renders them. The new games adopt them as they land: aim-drag games (pirate-cannons, mini-golf, castle-defender, snowball-battle) set `input: { drag: true }` + `stepKeyboardAim` + `<TrajectoryDots>`; museum-guard uses `material` statues, `<Pedestal>` and `<Flashlight>` with its `inViewCone` rules; luggage-rush and robot-factory `<Conveyor>` + per-copy tint; zoo-escape, construction-worker and knight-arena `<Fence>`; treasure-island, construction-worker, snowball-battle, knight-arena and space-repair dress the runner with `attach`; delivery-drone `<Parcel>` + `<TargetMarkers>`; space-repair `<TimingRing>`; treasure-island `<Gem>`. Pile, upgrade and slot choices read `digit` (with a tap for touch).
