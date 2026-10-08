@@ -1,0 +1,31 @@
+{
+   "slug": "luggage-rush",
+   "universe": "play50-toy-world-premium",
+   "seed": 5050,
+   "assets": [
+      {
+         "id": "suitcase",
+         "kind": "prop",
+         "mode": "text",
+         "prompt": "Hard-shell travel suitcase, upright, rounded corners, two soft vertical ribs on the front, a top carry handle and two small wheels at the bottom. Premium stylised mobile-game look, soft bevelled edges, simple clean shape, matte light grey shell (#d4d4d8) with dark grey handle and wheels. Single object, centred, front facing the viewer, symmetrical. No stickers, no tags, no straps, no extended trolley handle, no base, no ground, no text. Clean game-ready low-poly topology, clean PBR texture without baked shadows.",
+         "tier": "Gen-2.5-Medium",
+         "qualityOverride": 1500,
+         "attempts": 1,
+         "target": "luggage-rush",
+         "budget": { "tris": 2500, "bytes": 300000 },
+         "textureSize": 512
+      },
+      {
+         "id": "plane",
+         "kind": "prop",
+         "mode": "text",
+         "prompt": "Chunky toy aeroplane with one propeller on the nose, rounded short fuselage, white with a soft blue tail and a blue stripe, small round windows. Premium stylised mobile-game look, friendly rounded proportions, soft bevelled edges, matte materials. Single object, centred, level, side three-quarter view, symmetrical. No airline logo, no text, no ground, no runway. Clean game-ready low-poly topology, clean PBR texture without baked shadows.",
+         "tier": "Gen-2.5-Medium",
+         "qualityOverride": 3000,
+         "attempts": 1,
+         "target": "luggage-rush",
+         "budget": { "tris": 5000, "bytes": 300000 },
+         "textureSize": 512
+      }
+   ]
+}
