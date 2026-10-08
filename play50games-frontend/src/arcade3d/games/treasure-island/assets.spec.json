@@ -1,0 +1,19 @@
+{
+   "slug": "treasure-island",
+   "universe": "play50-toy-world-premium",
+   "seed": 5050,
+   "assets": [
+      {
+         "id": "crab",
+         "kind": "prop",
+         "mode": "text",
+         "prompt": "Small cartoon beach crab with a round coral-red shell, two big friendly eyes on short stalks, two rounded claws raised, six short legs. Premium stylised mobile-game look, soft bevelled edges, matte coral red with a cream underside. Single object, centred, standing, facing the viewer, symmetrical. No sand, no ground, no text. Clean game-ready low-poly topology, clean PBR texture without baked shadows.",
+         "tier": "Gen-2.5-Medium",
+         "qualityOverride": 1500,
+         "attempts": 1,
+         "target": "treasure-island",
+         "budget": { "tris": 2000, "bytes": 300000 },
+         "textureSize": 512
+      }
+   ]
+}
