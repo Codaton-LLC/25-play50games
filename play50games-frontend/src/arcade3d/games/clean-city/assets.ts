@@ -59,6 +59,12 @@ const LITTER_SCALE = 0.5;
 const CLEANER_SCALE = 0.4994;
 /** pigeon-crossing's vehicle scales times this: a 4 m car next to the 0.95 runner. */
 const CAR_SIZE = 0.82;
+/**
+ * The bin's colour, GLB and stand-in alike (2026-10-08): dark slate. The flat-lid bin GLB is green
+ * and melted into the park's green lawn, so Primitives.tsx draws it in this colour (binLook.ts: its
+ * own material with the albedo map dropped, the normal and metal/roughness maps kept).
+ */
+export const BIN_COLOR = "#475569";
 
 /**
  * The cleaner's joints (GLB units: 1.898 x 1.902 x 0.430 T-pose, faces +z; 2026-10-08: a street
@@ -143,7 +149,7 @@ export const ASSETS = {
    bag: { ...prop("bag", "box", "#d6a46b"), scale: 0.421, stretch: [0.775, 1, 0.9] },
    // obstacle props (./assets.spec.json, group D): fitted to their obstacle squares (see above)
    bench: { ...prop("bench", "box", "#c4a574"), scale: 0.996, stretch: [1.2727, 1, 1] },
-   bin: { ...prop("bin", "cylinder", "#475569"), scale: 1.3684, stretch: [1, 0.481, 1.0038] },
+   bin: { ...prop("bin", "cylinder", BIN_COLOR), scale: 1.3684, stretch: [1, 0.481, 1.0038] },
    lamp: { ...prop("lamp", "cylinder", "#94a3b8"), scale: 1.3404, stretch: [1, 0.7852, 1] },
    palm: { ...prop("palm", "cylinder", "#15803d"), scale: 0.6734, stretch: [1, 1.3264, 1] },
    umbrella: { ...prop("umbrella", "cylinder", "#38bdf8"), scale: 0.8428 },

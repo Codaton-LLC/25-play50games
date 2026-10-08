@@ -2,17 +2,18 @@
 
 // Clean the City look: three outdoor grounds, the obstacle props and the litter stand-ins.
 // Decoration only. Positions come from rules.ts MAPS (the same squares the runner collides with,
-// propSpots.ts). Every obstacle is an <InstancedModel> (one draw call per GLB per map) whose
-// fallback is its primitive: bench, bin, lamp, palm and umbrella draw their group D GLBs fitted to
-// the squares (assets.ts), one per propSpots.ts GLB_PROPS entry, its asset and spots as listed
-// there (GlbProps); trees and buildings have no GLB and stay primitives. Litter stand-ins are the
+// propSpots.ts). Every obstacle is an <InstancedModel> (one draw call per GLB per map; the bin the
+// same through BinProp, in slate: binLook.ts) whose fallback is its primitive: bench, bin, lamp,
+// palm and umbrella draw their group D GLBs fitted to the squares (assets.ts), one per propSpots.ts
+// GLB_PROPS entry, its asset and spots as listed there (GlbProps); trees and buildings have no GLB and stay primitives. Litter stand-ins are the
 // fallbackParts of one <DynamicInstancedModel> pool per kind (Scene.tsx).
-import { memo, useEffect, useMemo, useState, type ComponentType, type MutableRefObject, type ReactNode } from "react";
-import { BoxGeometry, CapsuleGeometry, CylinderGeometry, MeshStandardMaterial, type BufferGeometry, type Group, type Material } from "three";
-import { InstancedModel } from "@/arcade3d/core/assets";
-import { Instanced, useCanvasTexture, type CanvasDraw, type InstancePart, type InstanceSpot } from "@/arcade3d/core/render";
+import { memo, useEffect, useMemo, useRef, useState, type ComponentType, type MutableRefObject, type ReactNode } from "react";
+import { BoxGeometry, CapsuleGeometry, CylinderGeometry, MeshStandardMaterial, type BufferGeometry, type Group, type InstancedMesh, type Material } from "three";
+import { InstancedModel, modelParts, useModel, type ModelPart } from "@/arcade3d/core/assets";
+import { Instanced, useCanvasTexture, useInstanceMatrices, type CanvasDraw, type InstancePart, type InstanceSpot } from "@/arcade3d/core/render";
 import type { ModelAsset } from "@/arcade3d/core/types";
-import { ASSETS } from "./assets";
+import { ASSETS, BIN_COLOR } from "./assets";
+import { disposeMaterials, slateMaterials } from "./binLook";
 import { BASE_SETS, CITY_BUILDING, GLB_PROPS, PARK_TREE, type GlbKind } from "./propSpots";
 import { FLOOR_HALF, LITTER_KINDS, MAPS } from "./rules";
 
@@ -26,7 +27,7 @@ const COLORS = {
    benchLeg: "#78716c",
    trunk: "#92400e",
    leaves: "#166534",
-   bin: "#475569",
+   bin: BIN_COLOR,
    binRim: "#94a3b8",
    facade: "#64748b",
    roof: "#334155",
@@ -122,6 +123,36 @@ function Prop({ asset, spots, fallback }: { asset: ModelAsset; spots: readonly I
          <InstancedModel asset={asset} spots={spots} fallback={fallback} />
       </group>
    );
+}
+
+/**
+ * The bins: like <Prop>, one InstancedMesh per GLB mesh for all `spots` (core modelParts places it
+ * as <InstancedModel> would), but drawn in slate (binLook.ts): <InstancedModel> draws the GLB's own
+ * cached material, and the bin GLB is green, lost on the park's lawn. The slate clones are made once
+ * per loaded GLB, before the first render (no needsUpdate, nothing per frame), and disposed of here;
+ * the geometry and textures stay the loader cache's. The primitive while the GLB is missing or broken.
+ */
+function BinProp({ spots, fallback }: { spots: readonly InstanceSpot[]; fallback: ReactNode }) {
+   const asset = ASSETS.bin;
+   const { scene } = useModel(asset);
+   const parts = useMemo(
+      () => (scene ? modelParts(scene, asset).map((part) => ({ ...part, material: slateMaterials(part.material) })) : null),
+      [scene, asset]
+   );
+   useEffect(() => () => parts?.forEach((part) => disposeMaterials(part.material)), [parts]);
+   if (spots.length === 0) return null;
+   return (
+      <group name={`prop-${asset.id}`}>
+         {parts && parts.length > 0 ? parts.map((part, i) => <BinPart key={i} part={part} spots={spots} />) : fallback}
+      </group>
+   );
+}
+
+function BinPart({ part, spots }: { part: ModelPart; spots: readonly InstanceSpot[] }) {
+   const mesh = useRef<InstancedMesh>(null);
+   useInstanceMatrices(mesh, spots, part.matrix);
+   // dispose={null}: the geometry belongs to the loader cache, the material to BinProp
+   return <instancedMesh ref={mesh} args={[part.geometry, part.material, spots.length]} dispose={null} />;
 }
 
 interface PartsProps {
@@ -230,14 +261,16 @@ const GLB_FALLBACK: Record<GlbKind, ComponentType<PartsProps>> = {
 
 /**
  * Every GLB_PROPS entry of map `map`, and nothing else: its asset on its spots, its kind's primitive
- * as the fallback. Then the bases of BASE_SETS (the palm planters, the umbrella stands), one
- * <Instanced> per part, drawn under the GLB or its fallback alike.
+ * as the fallback (the bin's asset is ASSETS.bin, drawn by BinProp in slate). Then the bases of
+ * BASE_SETS (the palm planters, the umbrella stands), one <Instanced> per part, drawn under the GLB
+ * or its fallback alike.
  */
 function GlbProps({ map }: { map: number }) {
    return (
       <>
          {GLB_PROPS.filter((set) => set.map === map).map((set) => {
             const Fallback = GLB_FALLBACK[set.kind];
+            if (set.kind === "bin") return <BinProp key={set.kind} spots={set.spots} fallback={<Fallback spots={set.spots} />} />;
             return <Prop key={set.kind} asset={set.asset} spots={set.spots} fallback={<Fallback spots={set.spots} />} />;
          })}
          {BASE_SETS.filter((set) => set.map === map).map(({ kind, part, spots }, i) => (
