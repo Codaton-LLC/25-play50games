@@ -6,7 +6,7 @@ Conventions, common testing criteria and the common Definition of Done are in `0
 
 ## 11. Mini Golf 3D (`mini-golf`): Claude · wave 2 · complexity 4
 
-**Director's call.** No physics engine: the ball is a deterministic circle on a course made of a few tile types (flat, ramp, bowl, gap, tunnel), integrated in fixed sub-steps in `rules.ts`. That keeps strokes reproducible and testable, and avoids Rapier's wasm download. Six holes per run (not nine) keep a session near 3 minutes; a seeded "course of the day" order adds variety.
+**Director's call.** Physics engine only if it pays (D6): by default the ball is a deterministic circle on a course made of a few tile types (flat, ramp, bowl, gap, tunnel), integrated in fixed sub-steps in `rules.ts`. That keeps strokes reproducible and testable; the owner may still choose Rapier at G0 if the design README shows it is clearly better (the limit proof then counts strokes, not physics). Six holes per run (not nine) keep a session near 3 minutes; a seeded "course of the day" order adds variety.
 
 1. **Concept.** Six bite-size toy holes with ramps, tunnels and a spinning windmill: drag, aim and sink it in as few strokes as possible.
 2. **Core loop.** Look at the hole → drag back from the ball (direction + power, preview to the first bounce) → release → watch it roll, bank and drop → next hole.

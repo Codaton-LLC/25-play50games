@@ -80,7 +80,7 @@ Generic procedural pieces used by two or more games live in core so games never 
 | Keyboard, mouse, touch | **extend** | `inputController.ts`, `input.tsx`, `TouchControls` | new aim-drag gesture (`InputState.drag`), digit keys (`InputState.digit`), keyboard aim fallback; Jump/Action labels per game (`touchLabels`) |
 | Camera | exists + **extend** | `useFittedView`, `CameraRig` | new `shake` impulse on `CameraRig`; first-person yaw mode (museum) is game-local |
 | Collision | exists + **extend** | `collision.ts` | new `kinematics.ts`: circle vs segment with restitution, moving segments, 2D rigid body step |
-| Physics | **decision: none** | – | custom pure kinematics; Rapier stays installed for a future game (D6) |
+| Physics | **as needed (D6)** | `ShellStage` `physics: true` (lazy Rapier), pure `core/kinematics` | scoring stays in pure `rules.ts`; Rapier for visual physics or justified movement; its download counts toward the game's load budget |
 | NPC behaviour | **new** | `core/ai/` | steering (seek, arrive, flee, wander, separate), vision (cone + line of sight), patrol (waypoint loops with pauses, investigate/return) |
 | Paths | **new** | `core/path.ts` | polyline and Catmull-Rom paths, arc-length sampling, conveyor advance, junction graphs |
 | Ballistics | **new** | `core/ballistics.ts` | launch solve, step with wind, trajectory points, landing point |

@@ -9,21 +9,22 @@ All effort numbers are estimates **[A]**; they are recalibrated after Phase 3 an
 | Phase | Goal | Parallel lanes | Exit gate |
 |---|---|---|---|
 | 0 Audit + kickoff | facts, decisions, CLI pilot | Claude (audit done), you (decisions, CLI installs), Claude P-26 on your PC (merge plan, status, skills, `p50-codex`, P-00 pilot through the CLIs), Antigravity P-00 + P-01 (pasted) | D1–D11 answered, pilot result known |
-| 1 Architecture | core v3 + tools | Claude P-02 → P-03 → P-05 ∥ Codex P-04 (from day 1) ∥ Kimi P-06 (from day 1), P-07 ∥ Antigravity P-08 ∥ Claude P-24 | core freeze v3.0 |
+| 1 Architecture | core v3 + tools | Claude P-02 → P-03 → P-05 ∥ Codex P-04 (from day 1) ∥ Kimi P-06 (from day 1), P-07 ∥ Cursor P-08 ∥ Claude P-24 | core freeze v3.0 |
 | 2 Visual foundation | style v2, batch 1 GLBs | ChatGPT P-09/P-10 → you approve → Claude P-11/12 | batch 1 in the manifest |
 | 3 Reference game | treasure-island | Claude P-15; owners write wave-1 designs (P-14) | template freeze |
-| 4 Wave 1 | 5 low-risk games | Claude pirate ∥ Codex penguin → luggage ∥ Antigravity shopping ∥ Kimi monster; batch 2 assets | wave-1 regression |
-| 5 Wave 2 | 7 games | Claude golf ∥ Codex drone → rocket ∥ Antigravity dino → knight ∥ Kimi robot-factory → ghost; batch 3 | wave-2 regression |
-| 6 Wave 3 | 7 advanced games | Claude zoo → snowball ∥ Codex castle ∥ Antigravity space → museum ∥ Kimi alien → construction | wave-3 regression |
+| 4 Wave 1 | 5 low-risk games | Claude pirate ∥ Codex penguin ∥ Antigravity shopping ∥ Kimi monster ∥ Cursor luggage; batch 2 assets | wave-1 regression |
+| 5 Wave 2 | 8 games | Claude golf ∥ Codex drone → rocket ∥ Antigravity dino → knight ∥ Kimi robot-factory → ghost ∥ Cursor construction; batch 3 | wave-2 regression |
+| 6 Wave 3 | 6 advanced games | Claude zoo ∥ Codex castle ∥ Antigravity space ∥ Kimi alien ∥ Cursor museum → snowball | wave-3 regression |
 | 7 Integration + optimisation | perf, polish, optional achievements | Claude P-19/P-20, owners fix, Antigravity QA | all 20 within budgets |
 | 8 Release | go-live one by one | Antigravity/Kimi P-21 → Claude P-22 → you upload | each game live |
 
 ```
 Phase:   0   1-----------   2------   3---------   4----------------   5------------------   6------------------   7------   8 →
-Claude   ✓   P-02 P-03 P-05 P-11/12   treasure     pirate  (reviews)   golf    (reviews)     zoo → snowball        P-19/20   P-22 ×20
-Codex        P-04                     P-14 ×2      penguin → luggage   drone → rocket        castle                fixes
-Antig.   P-01 P-08                    P-14         shopping            dino → knight         space → museum        P-18      P-21
-Kimi     P-01b P-06 P-07              P-14         monster             robot-fac → ghost     alien → construction  P-17a     P-21
+Claude   ✓   P-02 P-03 P-05 P-11/12   treasure     pirate  (reviews)   golf    (reviews)     zoo     (reviews)     P-19/20   P-22 ×20
+Codex        P-04                     P-14         penguin             drone → rocket        castle                fixes
+Antig.   P-01                         P-14         shopping            dino → knight         space                 P-18      P-21
+Kimi     P-01b P-06 P-07              P-14         monster             robot-fac → ghost     alien                 P-17a     P-21
+Cursor        P-08                    P-14         luggage             construction          museum → snowball     fixes
 ChatGPT       P-09 P-10 (batch 1)                  P-10 (batch 2)      P-10 (batch 3)
 You      D1–D11  approve style/concepts, "po, gjenero"   playtests ×5      playtests ×7           playtests ×7          phone     uploads ×20
 ```
@@ -80,7 +81,7 @@ You      D1–D11  approve style/concepts, "po, gjenero"   playtests ×5      pl
 
 ### Phase 4: Wave 1 (lowest risk)
 
-- **Games:** pirate-cannons (Claude), penguin-slide → luggage-rush (Codex), shopping-cart (Antigravity), monster-kitchen (Kimi).
+- **Games:** pirate-cannons (Claude), penguin-slide (Codex), shopping-cart (Antigravity), monster-kitchen (Kimi), luggage-rush (Cursor).
 - **Parallel lane:** concepts + batch 2 (leafyTree, dino, drone, rocket, windmill, vacuum, knight, dummy).
 - **Dependencies:** template freeze; batch 1.
 - **Effort:** build 48–72 agent-hours total; Claude reviews 11–13 h; you 5–7 h (5 playtests, batch 2 approvals).
@@ -92,9 +93,9 @@ You      D1–D11  approve style/concepts, "po, gjenero"   playtests ×5      pl
 
 ### Phase 5: Wave 2 (parallel production)
 
-- **Games:** mini-golf (Claude), delivery-drone → rocket-landing (Codex), dino-egg-rescue → knight-arena (Antigravity), robot-factory → ghost-vacuum (Kimi).
+- **Games:** mini-golf (Claude), delivery-drone → rocket-landing (Codex), dino-egg-rescue → knight-arena (Antigravity), robot-factory → ghost-vacuum (Kimi), construction-worker (Cursor; no new assets, so it moves up from wave 3).
 - **Parallel lane:** concepts + batch 3 (goblin, castleTower, snowKid, astronaut, alien, glowPod, panda, keeper); landmarks for the batch-3 humanoids.
-- **Effort:** build 82–124 agent-hours; Claude reviews 20 h; you 9–11 h.
+- **Effort:** build 94–142 agent-hours; Claude reviews 23 h; you 10–12 h.
 - **Prompts:** as wave 1.
 - **Acceptance gate:** wave-2 regression green.
 - **Risks:** golf physics tuning (time-box; the hole set can shrink to the 6 best of the 10 designed); drone city draw calls (chunking from day one).
@@ -102,8 +103,8 @@ You      D1–D11  approve style/concepts, "po, gjenero"   playtests ×5      pl
 
 ### Phase 6: Wave 3 (advanced games)
 
-- **Games:** zoo-escape → snowball-battle (Claude), castle-defender (Codex), space-repair → museum-guard (Antigravity), alien-farm → construction-worker (Kimi).
-- **Effort:** build 102–156 agent-hours; Claude reviews 24 h; you 11–13 h.
+- **Games:** zoo-escape (Claude), castle-defender (Codex), space-repair (Antigravity), alien-farm (Kimi), museum-guard → snowball-battle (Cursor).
+- **Effort:** build 90–138 agent-hours; Claude reviews 21 h; you 10–12 h.
 - **Acceptance gate:** wave-3 regression green; all 20 games merged as `dev`.
 - **Risks:** AI fairness (snowball, zoo) needs playtests with real players (your family/friends: a 10-minute session each); 40 goblins on mid phones (perf gate; fewer goblins per wave if needed).
 - **Your actions:** approve designs, playtest 7 games, invite 2–3 testers for the AI games.
@@ -127,16 +128,16 @@ You      D1–D11  approve style/concepts, "po, gjenero"   playtests ×5      pl
 
 ### K.1 Resource estimate (balanced scenario)
 
-| Resource | Claude | Codex | Antigravity | Kimi | ChatGPT | You |
-|---|---|---|---|---|---|---|
-| Core + tools | 30–40 h | 8–12 h | 5–8 h | 12–16 h | – | 1 h |
-| Games (build incl. fix rounds) | 82–126 h (5 games) | 62–94 h (5) | 52–78 h (5) | 52–78 h (5) | – | – |
-| Reviews / QA | 55–65 h (adversarial) | – | 18–24 h (visual QA) | 8–12 h (mechanical) | – | 30–35 h (playtests) |
-| Assets | 25–35 h | – | – | – | ≈ 27 concept images | 6–8 h |
-| Integration + release | 35–45 h | – | 8–10 h (audits) | 8–10 h (audits) | – | 12–15 h (uploads, checks) |
-| **Total** | **≈ 230–310 h** | **≈ 70–105 h** | **≈ 85–120 h** | **≈ 80–115 h** | – | **≈ 50–60 h** |
+| Resource | Claude | Codex | Antigravity | Kimi | Cursor | ChatGPT | You |
+|---|---|---|---|---|---|---|---|
+| Core + tools | 30–40 h | 8–12 h | 3 h (baseline) | 12–16 h | 5–8 h (UI kit) | – | 1 h |
+| Games (build incl. fix rounds) | 64–98 h (4 games) | 54–82 h (4) | 40–60 h (4) | 40–60 h (4) | 50–76 h (4) | – | – |
+| Reviews / QA | 55–65 h (adversarial) | – | 18–24 h (visual QA) | 8–12 h (mechanical) | – | – | 30–35 h (playtests) |
+| Assets | 25–35 h | – | – | – | – | ≈ 27 concept images | 6–8 h |
+| Integration + release | 35–45 h | – | 8–10 h (audits) | 8–10 h (audits) | – | – | 12–15 h (uploads, checks) |
+| **Total** | **≈ 210–285 h** | **≈ 62–94 h** | **≈ 69–97 h** | **≈ 68–98 h** | **≈ 55–84 h** | – | **≈ 50–60 h** |
 
-Program total ≈ 460–650 agent-hours (≈ 550 at midpoints). Hyper3D: 34 generations ≈ 17 credits at 0.5 (≈ 34 at 1.0). **Claude is the bottleneck**: the plan moves everything that is not core, assets or adversarial review away from it.
+Program total ≈ 460–650 agent-hours (≈ 550 at midpoints). Hyper3D: 34 generations ≈ 17 credits at 0.5 (≈ 34 at 1.0). **Claude is the bottleneck**: the plan moves everything that is not core, assets or adversarial review away from it. Codex is on the Plus plan, the smallest of the five: its tasks stay small and one at a time.
 
 ### K.2 Where the first 10 games spent their effort **[V]**
 
@@ -182,7 +183,7 @@ Program total ≈ 460–650 agent-hours (≈ 550 at midpoints). Hyper3D: 34 gene
 |---|---|---|---|
 | Games | 20 | 20 | 20 |
 | Hyper3D | tier 1 only (22 gens ≈ 11 credits); tier-2 heroes from the cut list (procedural goblin, castle tower, glowPod; runner-based keeper) | tier 1 + 2 (34 gens ≈ 17 credits) | + tier 3, 2 concept-backed retries for each hero (≈ 42 gens ≈ 21+ credits) |
-| Parallel game branches | 2 (Claude + one helper) | 4 | 4 + Cursor if credits return |
+| Parallel game branches | 2 (Claude + one helper) | 5 (one per builder, staggered) | 5 |
 | Reviews | Kimi mechanical + Claude spot review (1 h) | Kimi mechanical + Claude adversarial (2–4 h) | + a second Claude reviewer on AI and physics games |
 | QA | `tools/thumbs` screenshots + your phone | + Antigravity visual QA per game | + 2–3 outside playtesters per wave |
 | Extras | none | achievements-lite optional | achievements, music loops, tier-3 assets, trailer refresh |

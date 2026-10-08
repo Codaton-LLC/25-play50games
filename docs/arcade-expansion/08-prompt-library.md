@@ -40,7 +40,7 @@ Evidence: screenshot paths, perf JSON paths
 | Codex | **CLI** (`codex exec`), in its own worktree `C:\Users\grani\Documents\WORKSPACE\p50-codex` | Claude Code on your PC (P-25) |
 | Kimi | **CLI** (`kimi -p`), in `C:\Users\grani\Documents\WORKSPACE\p50-kimi` | Claude Code on your PC (P-25) |
 | Antigravity | **copy-paste** in the Antigravity app (its browser agent does the visual QA) | you |
-| Cursor (if it returns) | **copy-paste** in Cursor | you |
+| Cursor (Pro, back since 2026-10-08) | **copy-paste** in Cursor, worktree `C:\Users\grani\Documents\WORKSPACE\p50-cursor` | you |
 | ChatGPT | **copy-paste** (concept images, `11-chatgpt-concept-prompts.md`) | you |
 
 The prompts are the same in both modes. In CLI mode Claude appends this addendum and runs the agent; if a CLI run fails twice, that task falls back to copy-paste with the same prompt.
@@ -53,7 +53,7 @@ The prompts are the same in both modes. In CLI mode Claude appends this addendum
 
 | ID | Prompt | Agent | Branch | Phase | Prerequisites | Covers your category |
 |---|---|---|---|---|---|---|
-| P-00 | Agent capability probe (report only) | Codex, Antigravity, Kimi | `<agent>/probe` (no commits) | 0 | none | skills and tooling verification (10 §N, task N-04) |
+| P-00 | Agent capability probe (report only) | Codex, Kimi (CLI), Antigravity, Cursor (pasted) | `<agent>/probe` (no commits) | 0 | none | skills and tooling verification (10 §N, task N-04) |
 | P-01 | Runtime baseline audit (report only) | Antigravity | `antigravity/baseline-audit` (no commits) | 0 | none | repository audit (runtime), performance |
 | P-01b | Static audit re-check (report only, optional) | Kimi | `kimi/audit-recheck` (no commits) | 0 | none | repository audit |
 | P-02 | Core P1-A: registry for 30 | Claude | `claude/expansion-registry` | 1 | your decisions D2, D4, D5 | cross-game integration, shared framework |
@@ -62,7 +62,7 @@ The prompts are the same in both modes. In CLI mode Claude appends this addendum
 | P-05 | Core P1-D: input, rig, render, kit, HUD | Claude | `claude/expansion-input-rig` | 1 | P-03, P-04 merged | shared framework, mobile controls, animation |
 | P-06 | Audio cues and loops | Kimi | `kimi/core-audio` | 1 | none (one existing file) | audio integration |
 | P-07 | `tools/gamecheck` + `tools/perf` | Kimi | `kimi/tools-gamecheck-perf` | 1 | P-03 merged (perf probe) | automated testing, performance |
-| P-08 | UI kit: collections, loading card | Antigravity | `antigravity/ui-collections` | 1 | P-02 merged | shared UI components |
+| P-08 | UI kit: collections, loading card | Cursor | `cursor/ui-collections` | 1 | P-02 merged | shared UI components |
 | P-09 | Style sheet v2 | ChatGPT | – | 2 | D1 | asset preparation |
 | P-10 | Concept image (one per asset) | ChatGPT | – | 2 | P-09 picked | asset preparation |
 | P-11 | Hyper3D batch N | Claude (your PC) | `claude/assets-batch-<n>` | 2, 4, 5 | concepts approved + "po, gjenero" | asset preparation |
@@ -290,12 +290,12 @@ Do NOT: touch play50games-frontend or any other folder; run against production; 
 End with the HANDOFF block.
 ```
 
-## P-08 UI kit: collections and loading card (Antigravity)
+## P-08 UI kit: collections and loading card (Cursor)
 
 ```text
-[PLAY50 TASK P-08] Repo Codaton-LLC/25-play50games. Worktree: C:\Users\grani\Documents\WORKSPACE\p50-antigravity. Branch: antigravity/ui-collections (already created and checked out in your worktree by Claude; never create or switch branches).
+[PLAY50 TASK P-08] Repo Codaton-LLC/25-play50games. Worktree: C:\Users\grani\Documents\WORKSPACE\p50-cursor. Branch: cursor/ui-collections (already created and checked out in your worktree by Claude; never create or switch branches).
 FIRST, before reading or changing anything else, reply with exactly one line:
-"TASK P-08 | arcade UI collections | branch antigravity/ui-collections | allowed: play50games-frontend/src/arcade3d/ui/** (tsx + module.css + tests)"
+"TASK P-08 | arcade UI collections | branch cursor/ui-collections | allowed: play50games-frontend/src/arcade3d/ui/** (tsx + module.css + tests)"
 and check it against `git branch --show-current`. Stop if anything differs.
 Read only: AGENTS.md; play50games-frontend/src/arcade3d/ui/* (all files); play50games-frontend/src/arcade3d/types.ts (ArcadeGameMeta, ArcadeCollection); play50games-frontend/src/app/3d/page.tsx and page.module.css (how the grid is used); docs/arcade-expansion/02-production-matrix.md §C.1.
 Always: change only the allowed paths; never edit package.json, package-lock.json, or Claude-owned files (CLAUDE.md "Ownership") outside this task's allowed paths; never spend Hyper3D credits; never call, test against or upload to production (cms.play50.games, the live Vercel site); never commit secrets, .env*.local, node_modules, .next or tools/hyper3d/raw.
@@ -307,7 +307,7 @@ Build:
 2. ArcadeCard: show a small collection label; "New" badge for games with order > 10 and status "live" (prop-driven, no date logic); keep every existing state ("soon" not clickable, "live" link).
 3. A new display component ArcadeLoadingCard ({ meta }: thumbnail or accent gradient, title, a progress shimmer, reduced-motion safe) that Claude will wire into ArcadeGameMount.
 4. Tests: a small vitest for the filter logic (pure function) only.
-Check in your browser at 375px, 768px and 1280px with 30 games (use a local scratch page you do not commit that renders ArcadeGrid with the registry and NEXT_PUBLIC_ARCADE_PREVIEW=1): no horizontal overflow, focus visible, chips usable by keyboard, contrast ≥ 4.5:1. Attach screenshots.
+Check in a browser (Chrome device toolbar) at 375px, 768px and 1280px with 30 games (use a local scratch page you do not commit that renders ArcadeGrid with the registry and NEXT_PUBLIC_ARCADE_PREVIEW=1): no horizontal overflow, focus visible, chips usable by keyboard, contrast ≥ 4.5:1. Attach screenshots.
 Checks: `npm run build`, `npx tsc --noEmit`, `npx vitest run` pass; `git diff --name-only main...HEAD` lists only arcade3d/ui/**.
 Acceptance: without the `collections` prop the grid renders exactly as today; with it, sections and chips work by mouse, touch and keyboard at 375 / 768 / 1280 px; screenshots attached. Claude then replaces P-02's interim one-grid-per-section on /3d with one ArcadeGrid that has the prop.
 Do NOT: edit app/3d/page.tsx (Claude wires the prop), types, registry or any other folder.
@@ -421,14 +421,14 @@ End with the HANDOFF block.
 | Slug | Owner / worktree | Spec section | Core modules to use | Assets (batch) | Watch out for |
 |---|---|---|---|---|---|
 | treasure-island | Claude | 03 §1 | env, fx, attachments, material, quality | chest, rock (1) | it becomes the template: README sections, test budget |
-| museum-guard | Antigravity | 03 §2 | ai/vision, motion, material, kit Flashlight, audio pan | knight, dino, penguin (1–2) | drag-to-turn must not scroll the page; radar never hides the view |
-| luggage-rush | Codex | 03 §3 | path (PathGraph), per-copy tint, kit Conveyor | suitcase (1) | junction rule tested at the crossing line |
+| museum-guard | Cursor | 03 §2 | ai/vision, motion, material, kit Flashlight, audio pan | knight, dino, penguin (1–2) | drag-to-turn must not scroll the page; radar never hides the view |
+| luggage-rush | Cursor | 03 §3 | path (PathGraph), per-copy tint, kit Conveyor | suitcase (1) | junction rule tested at the crossing line |
 | dino-egg-rescue | Antigravity | 03 §4 | motion, path, fx | dino, leafyTree (2), rock (1) | egg stack on the back through the waddle |
 | delivery-drone | Codex | 03 §5 | ballistics, path, motion, TargetMarkers, startLoop | drone (2) | pendulum energy; city chunking for draw calls |
 | shopping-cart | Antigravity | 03 §6 | ai/patrol, fx, startLoop | cart (1) | runner hands on the handle; no tunnelling at 9 m/s |
-| snowball-battle | Claude | 03 §7 | ballistics, ai/steering, ai/vision, attachments | snowKid (3), pineTree (1) | AI fairness; throws never through forts |
+| snowball-battle | Cursor | 03 §7 | ballistics, ai/steering, ai/vision, attachments | snowKid (3), pineTree (1) | AI fairness; throws never through forts |
 | ghost-vacuum | Kimi | 03 §8 | ai/steering, ai/vision, attachments, kit Flashlight, startLoop | vacuum (2) | hose never through the body; ghosts cute |
-| construction-worker | Kimi | 03 §9 | kinematics (pendulum), attachments, digit keys, fx | none | swing energy never grows |
+| construction-worker | Cursor | 03 §9 | kinematics (pendulum), attachments, digit keys, fx | none | swing energy never grows |
 | alien-farm | Kimi | 03 §10 | path, env Starfield, per-copy tint, material | alien, glowPod (3) | audio-first timing works |
 | mini-golf | Claude | 04 §11 | kinematics, ballistics, aim-drag, TrajectoryDots, env Water | windmill (2) | frame-rate independence; every hole solvable |
 | robot-factory | Kimi | 04 §12 | path, kit Conveyor, per-copy tint, fx sparks | none | finished robot walks off cleanly |
@@ -588,15 +588,16 @@ Never: run two tasks of one agent at once; run an agent in the main checkout; pa
 ```text
 [PLAY50 TASK P-26] Kickoff of the 3D Arcade expansion. Local Claude Code on the user's PC, started in the main repository.
 Read: docs/arcade-expansion/README.md (§A.6), 10-owner-checklist-and-sprint-1.md (§M.3, §N), 07-agents-and-skills.md (§G.4), 08-prompt-library.md (§I.0, P-00, P-25).
-Inputs the user gives you in chat: answers to D1–D11 (D12 is approved), the Hyper3D balance and the charge shown for one Gen-2.5 Medium generation, which agents have usage this week.
+Inputs: the decisions, the Hyper3D balance (31 credits) and the agents' plans are already in docs/status.md (answered 2026-10-08); the user only confirms or corrects them.
 Do, in order, and report after each numbered step in one line:
+0. CLIs: install the Codex CLI (`npm install -g @openai/codex`) and the Kimi Code CLI (PowerShell: `irm https://code.kimi.com/kimi-code/install.ps1 | iex`; it needs Git for Windows, which is installed). Then ask the user to run `codex login` and `kimi login` in a PowerShell window and finish the browser sign-in; wait for their "done". Never see, store or pass their credentials.
 1. Plan on main: `git fetch origin`; check that `git diff --name-only origin/main...origin/claude/keen-thompson-7ve97l` lists only docs/arcade-expansion/** and CLAUDE.md; merge it into main with --no-ff from a Claude worktree; push main (docs only: Vercel builds nothing new).
-2. docs/status.md (new, Claude-only): the decisions with the user's answers and date, the Hyper3D balance and charge, agents available, the work board (Active branches: branch, agent, worktree, allowed paths, mode), the effort ledger (task, agent, mode, runs, hours, review rounds, credits). Commit to main (docs only).
+2. docs/status.md (already on main after step 1, Claude-only): confirm the decisions with the user, then fill the work board as you create branches; commit to main (docs only).
 3. Skills: copy docs/arcade-expansion/skills/* to .claude/skills/; commit.
 4. Worktrees: create C:\Users\grani\Documents\WORKSPACE\p50-codex (`git worktree add --detach <path> origin/main`), copy play50games-frontend/.env.local, run `npm ci` in play50games-frontend there; check that p50-kimi and p50-antigravity exist and are clean (stop and ask if not); append `.handoff/` to .git/info/exclude.
 5. CLIs: `codex --version` and `kimi --version` work and are logged in (the user did it); if not, stop and tell the user what is missing.
-6. Branches: codex/probe in p50-codex, kimi/probe in p50-kimi, antigravity/probe and antigravity/baseline-audit created as refs for p50-antigravity (check out antigravity/probe there).
+6. Branches: codex/probe in p50-codex, kimi/probe in p50-kimi, antigravity/probe (checked out) and antigravity/baseline-audit in p50-antigravity, cursor/probe (checked out) and cursor/ui-collections in p50-cursor (check that p50-cursor is clean first).
 7. Pilot: run P-00 for Codex and for Kimi with P-25 (report-only tasks: nothing to commit). Record in docs/status.md the exact command that worked for each, the run time, and every problem (Windows sandbox, hangs, prompts).
-8. Reply to the user with: the pilot result per agent (CLI ok / fall back to copy-paste), the filled-in P-00 and P-01 prompts to paste into Antigravity, and the next step of §M.3.
+8. Reply to the user (in Albanian, prompts in English) with: the pilot result per agent (CLI ok / fall back to copy-paste), the filled-in P-00 for Antigravity and for Cursor and P-01 for Antigravity, ready to paste, and the next step of §M.3.
 Do NOT: start P-02 or any core work before the user has seen the pilot result; spend Hyper3D credits; touch the main checkout's working tree or branches.
 ```

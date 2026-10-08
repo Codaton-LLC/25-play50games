@@ -1,6 +1,6 @@
 # 3D Arcade expansion: 20 new games (plan, awaiting approval)
 
-> Status: **proposal, 2026-10-08**. Nothing here is approved until the user signs off on the decisions in §A.6.
+> Status: **approved 2026-10-08** (your answers are in §A.6 and `docs/status.md`). Execution starts with `10-owner-checklist-and-sprint-1.md` §M.3.
 > It extends `docs/platform-plan.md` (still the source of truth for the platform) and never overrides its "never" rules.
 > Written from a full read of the repository at `main` = `422fdff` (2026-10-08).
 
@@ -40,7 +40,7 @@ The platform does not need a rebuild. The 3D core in `play50games-frontend/src/a
 | # | Decision | Why |
 |---|---|---|
 | 1 | Keep the stack exactly: Next 14.2, React 18.3, three ~0.170, R3F 8, drei 9, zustand 4, vitest 2 **[V]** `package-lock.json` (`package.json` ranges: next ^14, react ^18.2). No new runtime dependency. | R3F 9 / drei 10 need React 19 (CLAUDE.md). Everything new is small code in `core/`. |
-| 2 | **No Rapier for any of the 20.** Custom, deterministic, pure kinematics in `rules.ts` (golf ball, rocket lander, pendulum, ballistics). | Rapier is installed and wired (`ShellStage.tsx:17`) but **no shipped game uses it** **[V]** (`obstacle-race/index.tsx:20` `physics: false`). Pure rules are testable and make score-limit proofs possible. |
+| 2 | **Rapier where it pays (D6, your answer).** Scoring logic stays in pure, deterministic `rules.ts` (golf ball, rocket lander, pendulum, ballistics) so every score limit can be proven. Rapier (installed, lazy, `physics: true`) is used for visual physics (debris, toppling cans, a collapsing building) and for a game's movement only when its design README shows custom code would be clearly worse and the limit proof does not depend on exact physics; its download counts toward the game's load budget. | Rapier is installed and wired (`ShellStage.tsx:17`) but no shipped game uses it yet **[V]** (`obstacle-race/index.tsx:20` `physics: false`); pure rules keep score limits provable, Rapier adds feel where it is cheap to add. |
 | 3 | New status **`"dev"`**: the game exists on `main`, is hidden from `/3d`, the sitemap and its route on production, and is playable on preview builds with a new `NEXT_PUBLIC_ARCADE_PREVIEW=1` flag. | Merging 20 games-in-progress must stay safe for `main` (Vercel auto-deploy). Twenty "Soon" cards would look like vaporware. |
 | 4 | New `collection` on `ArcadeGameMeta`: `"originals"` (the 10 existing), `"adventure"` (games 1–10), `"skill"` (11–20). `/3d` shows sections with filter chips. | 30 cards in one flat grid do not scan; your brief already defines the two collections. |
 | 5 | One shared **effects + audio + quality** layer in core (`core/fx`, extended `audio.ts`, `core/quality.ts`, `core/perfProbe.tsx`). | Today every game draws its own pops and rings, there are only 7 synthesized sounds and no loops **[V]** (`audio.ts:12`), and only tower-climb has a draw-call probe **[V]** (`tower-climb/Scene.tsx:184-191`). |
@@ -49,7 +49,7 @@ The platform does not need a rebuild. The 3D core in `play50games-frontend/src/a
 | 8 | Non-humanoid heroes (dino, penguin, panda, monster, goblin, drone, rocket) are **solid models with procedural whole-body motion** (hop, waddle, squash, bank), like the pigeon. No skeletal animation for them in v1. | The auto-rig is humanoid-only (17 bones) **[V]** `core/README.md` "Limits"; the pigeon precedent passed review. A quadruped/tail rig is an optional later R&D item (E). |
 | 9 | Art direction **"Play50 toy world, premium edition"**: rounded friendly proportions **plus** matte/satin materials, restrained palettes, one accent per asset. | Your brief says "colourful toy world", but the repository records that the saturated toy prompts "looked clownish" and that you preferred the "premium mobile game" robot (CLAUDE.md, Hyper3D pipeline). The existing assets are the definitive reference, so the style block is rewritten (05, §E.1). **Needs your approval.** |
 | 10 | Every score is a **points** game with a server limit proven by a bot through the real store, as for the existing ten. | The server has the points model already (`arcade-api.php`); time games cannot reward pickups (the server recomputes the score from duration). |
-| 11 | Reference-game-first: **Treasure Island** (Claude) before any other agent starts a game. **Pirate Cannon Battle** (Claude) is the first wave-1 game because it proves aim-drag (reused by mini-golf) and ballistics (reused by snowball-battle, castle-defender, zoo-escape and delivery-drone). | Same pattern that made robot-collector the template; it is the cheapest way to stop 19 agents repeating 19 mistakes. |
+| 11 | Reference-game-first: **Treasure Island** (Claude) before any other builder starts a game. **Pirate Cannon Battle** (Claude) is the first wave-1 game because it proves aim-drag (reused by mini-golf) and ballistics (reused by snowball-battle, castle-defender, zoo-escape and delivery-drone). | Same pattern that made robot-collector the template; it is the cheapest way to stop 19 agents repeating 19 mistakes. |
 | 12 | Cost levers: a slim "game agent read set" (≈70 KB instead of ≈200 KB of mandatory docs), design README approved before code, test and README budgets, `tools/gamecheck` for every mechanical check, one adversarial review per game. | The current read order (CLAUDE.md 49 KB, skills.md 34 KB, platform-plan 32 KB, arcade-api 34 KB) **[V]** costs every agent session ~50k tokens before it reads a line of its game. |
 | 13 | Codex and Kimi through their CLIs, Antigravity, Cursor and ChatGPT by copy-paste (D12). | About 80 fewer copy-paste rounds for you; Claude reads only each run's HANDOFF file; Antigravity's value is its interactive browser. |
 
@@ -85,27 +85,27 @@ Phase 8  release: each game goes live one by one (your decision per game, existi
 | New games | 20 (10 Adventure, 10 Skill), all points-scored |
 | Hyper3D generations, core set | 19 tier 1 + 8 tier 2 = **27**, plus a retry reserve of 7 = **34** |
 | Credits at the project's recorded rate (0.5 per Gen-2.5 Medium generation, `docs/platform-plan.md` §4) | ≈ **17** (≈ 34 if a generation really costs 1.0) |
-| Estimated balance left | ≈ 25 of 45 if all ~40 earlier generations cost 0.5 **[A]** (the MCP has no balance tool **[V]** CLAUDE.md): **read it on the Hyper3D dashboard before batch 1** |
+| Hyper3D balance | **31 credits** (your dashboard, 2026-10-08); the charge per generation is confirmed by the balance after batch 1 |
 | Existing GLBs reused | 30 of the 39 in `public/models/3d` **[V]** (list in 05 §E.6) |
 | Assets made in code instead of Hyper3D | ≈ 60 (ghosts, eggs, gems, parcels, tracks, buildings, planets, conveyors, …) |
 | Agent effort | ≈ 550 agent-hours across all agents (range 460–650), recalibrated after the reference game (09 §K.1) |
 | Your time | ≈ 50–60 hours over the whole program, mostly decisions, playtests and uploads (09 §K.1) |
 
-### A.6 Decisions that need your approval (blocking)
+### A.6 Decisions (answered 2026-10-08)
 
-| ID | Decision | Recommendation |
+| ID | Decision | Your answer (2026-10-08) |
 |---|---|---|
-| D1 | Art direction "Play50 toy world, premium edition" (05 §E.1) | Approve |
-| D2 | The 20 slugs, titles and the two collections (02 §C.1) | Approve |
-| D3 | Gameplay changes vs your brief (marked "Director's call" in each spec), notably: Construction Worker becomes a crane game, Museum Guard is a look-to-freeze game, Robot Factory is an assembly line (not a second sorter), Alien Farm is a timing-harvest game | Approve, or name the ones to revert |
-| D4 | Owners: Claude 5 games, Codex 5, Antigravity 5, Kimi 5 (02 §C.2); Cursor takes over any unstarted game if its credits return | Approve |
-| D5 | `status: "dev"` + `NEXT_PUBLIC_ARCADE_PREVIEW` flag | Approve |
-| D6 | No Rapier; custom kinematics | Approve |
-| D7 | Hyper3D: tier 1 (19) for the reference game and waves 1–2, tier 2 (8) for wave 3, tier 3 (5) only if credits remain; every batch still approved by you in chat ("po, gjenero ...") | Approve after reading the dashboard balance |
-| D8 | New human characters: knight and astronaut wear helmets, the snow kid and the zookeeper get generic stylised faces (not yours) | Approve or say otherwise |
-| D9 | Bounded core tasks may be delegated (P1-C pure helpers to Codex, the audio cues to Kimi) with an explicit file list, Claude reviewing and merging | Approve |
-| D10 | Slim the agent read set: move CLAUDE.md's long "Where we are" log to `docs/status.md`, keep CLAUDE.md under ~15 KB | Approve |
-| D11 | Achievements-lite and music: postponed to Phase 7 | Approve |
-| D12 | Hand-off mode: Codex and Kimi run through their CLIs, driven by Claude Code on your PC (P-25); Codex moves to its own worktree `p50-codex`; Antigravity, Cursor and ChatGPT stay copy-paste (07 §G.4) | **Approved 2026-10-08** |
+| D1 | Art direction "Play50 toy world, premium edition" (05 §E.1) | **yes** |
+| D2 | The 20 slugs, titles and the two collections (02 §C.1) | **yes** |
+| D3 | Gameplay changes vs your brief ("Director's call" in each spec): Construction Worker is a crane game, Museum Guard look-to-freeze, Robot Factory an assembly line, Alien Farm timing-harvest, Treasure Island a detector hunt | **yes** |
+| D4 | Owners (02 §C.2) | **yes, and Cursor is back (Pro plan): five builders, 4 games each**: Claude 4, Codex 4, Antigravity 4, Kimi 4, Cursor 4 (+ the UI kit again) |
+| D5 | `status: "dev"` + `NEXT_PUBLIC_ARCADE_PREVIEW` flag | **yes** |
+| D6 | Physics | **Rapier allowed where it is needed** (A.2 #2) |
+| D7 | Hyper3D in batches (tier 1: 19, tier 2: 8, tier 3: 5 only if credits remain), every batch approved in chat | **yes**; balance **31 credits** |
+| D8 | New human characters | **your face** on the knight, the astronaut and the zookeeper (like the v2 characters); the snow kid is **a young you without a beard**; concepts made in ChatGPT with your face reference, never committed (05 §E.1) |
+| D9 | Bounded core tasks delegated (pure helpers to Codex, audio to Kimi), Claude reviews and merges | **yes** |
+| D10 | Slim the agent read set (`docs/status.md`, CLAUDE.md ≤ ~15 KB) | **yes** |
+| D11 | Achievements-lite and music postponed to Phase 7 | **yes** |
+| D12 | Codex and Kimi through their CLIs (P-25), Codex in its own worktree `p50-codex`; Antigravity, Cursor and ChatGPT copy-paste (07 §G.4) | **yes** |
 
 Non-blocking questions are listed in `10-owner-checklist-and-sprint-1.md` §M.0.

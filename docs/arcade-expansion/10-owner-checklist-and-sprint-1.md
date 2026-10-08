@@ -7,7 +7,7 @@
 1. Should new games appear as **"Soon" teaser cards** a few days before they go live, or stay hidden until live?
 2. Which **real phones** can you test on (model, Android/iOS)? One mid-range Android is the most useful.
 3. **Go-live order** for the 20: by wave (default), or do you want favourites first?
-4. Do you want to top up **Cursor** credits to add a fifth builder (shorter calendar, more review load on Claude)?
+4. ~~Cursor~~ answered: Cursor is back (Pro plan) as the fifth builder.
 5. Can 2–3 people (family, friends) playtest the AI games (snowball-battle, zoo-escape) for 10 minutes each in wave 3?
 6. Achievements-lite and music: interested for Phase 7 (D11), or never?
 
@@ -15,10 +15,10 @@
 
 | # | When | What you do | Time | Kind |
 |---|---|---|---|---|
-| 1 | now | Read `README.md` §A; answer D1–D11 in chat (e.g. "D1 po, D2 po, …") | 45 min | **you personally** |
-| 2 | now | Hyper3D dashboard: note the credit balance and the charge shown for one Gen-2.5 Medium generation; tell Claude | 10 min | **you personally** (account access) |
-| 3 | now | Tell Claude which agents have usage left this week (Codex, Antigravity, Kimi; Cursor?) | 5 min | you |
-| 3b | now | Install and log in the Codex CLI and the Kimi Code CLI on your PC (§M.3 step 2) | 20–30 min | **you personally** (accounts) |
+| 1 | done | Decisions D1–D12 answered (README §A.6) | – | done 2026-10-08 |
+| 2 | done | Hyper3D balance: 31 credits (the charge per generation is confirmed after batch 1) | – | done 2026-10-08 |
+| 3 | done | Agents this week: Codex (Plus), Kimi (Pro), Antigravity (Pro), Cursor (Pro) | – | done 2026-10-08 |
+| 3b | next | Claude installs the Codex and Kimi CLIs on your PC (P-26 step 0); you log in to each once in the browser window it opens | 10 min | **you personally** (accounts) |
 | 4 | Sprint 1 | Start Claude Code on your PC and paste P-26 (kickoff); it runs the Codex and Kimi probes itself; you paste P-00 into Antigravity and its reply back to Claude | 20 min | you start it; agents work independently |
 | 5 | Sprint 1 | Paste P-01 into Antigravity (Claude runs P-04 for Codex and P-06 for Kimi through the CLIs) | 5 min | you; agents independent |
 | 6 | Sprint 1 | ChatGPT: paste P-09 (style sheet v2), pick A/B/C, give the image to Claude in your local Claude Code | 30 min | **you personally** (taste) |
@@ -45,16 +45,16 @@
 
 | Step | Who | What exactly | Done when |
 |---|---|---|---|
-| 1 | you (here or on your PC) | Answer D1–D11 (README §A.6; D12 is already approved) in one message, e.g. "D1 po, D2 po, … D11 po". Add the Hyper3D balance and the charge shown for one Gen-2.5 Medium generation (dashboard), and which agents have usage this week. | your message is sent |
-| 2 | you (PC, PowerShell) | Install and log in the two CLIs: `npm install -g @openai/codex`, then `codex login`; Kimi Code CLI as its docs say, then `kimi login`. Check `codex --version` and `kimi --version`. Also log in again to Hyper3D if needed: `claude mcp login hyper3d-rodin`. | both versions print |
+| 1 | you | ✅ Done 2026-10-08: decisions answered, Hyper3D 31 credits, plans Codex Plus / Kimi Pro / Antigravity Pro / Cursor Pro (`docs/status.md`). | done |
+| 2 | Claude installs, you log in (PC) | In P-26 step 0 Claude installs the Codex CLI (`npm install -g @openai/codex`) and the Kimi Code CLI (PowerShell: `irm https://code.kimi.com/kimi-code/install.ps1 \| iex`). You then run `codex login` and `kimi login` in a PowerShell window and confirm in the browser. Hyper3D login if needed: `claude mcp login hyper3d-rodin`. | `codex --version` and `kimi --version` print |
 | 3 | you start, Claude works (PC) | Open Claude Code on your PC in the repository and paste **P-26** (08) together with your message from step 1. Claude merges the plan into main, writes `docs/status.md`, installs the skills, creates `WORKSPACE\p50-codex`, and runs the P-00 probe for Codex and Kimi through their CLIs. | Claude reports "CLI ok / copy-paste" per agent |
-| 4 | you (Antigravity app) | Paste the filled-in **P-00** and then **P-01** that Claude gives you; paste each HANDOFF back into Claude Code. | baseline report received |
+| 4 | you (Antigravity, Cursor) | Paste the filled-in **P-00** into Antigravity and into Cursor, then **P-01** into Antigravity; paste each HANDOFF back into Claude Code. | probes + baseline received |
 | 5 | Claude (PC) | **P-02** (registry for 30) itself; starts **P-04** (Codex) and **P-06** (Kimi) through the CLIs (P-25); reviews and merges them. | `/3d` on Vercel unchanged; 30 games in a preview build |
-| 6 | you (ChatGPT) | Style sheet (step 0 of `11-chatgpt-concept-prompts.md`), pick A/B/C; then the 6 batch-1 concepts; save them in `%USERPROFILE%\.play50\concepts\expansion\`. Runs in parallel with steps 5–7. | 6 images saved |
-| 7 | Claude (PC) | **P-03** (effects, quality, perf probe); then **P-07** (Kimi, CLI) and **P-08** (you paste into Antigravity); then **P-05**; core freeze check. | core freeze v3.0 green |
+| 6 | you (ChatGPT) | Style sheet (step 0 of `11-chatgpt-concept-prompts.md`), pick A/B/C; then the 6 batch-1 concepts (no human faces in batch 1); save them in `%USERPROFILE%\.play50\concepts\expansion\`. Runs in parallel with steps 5–7. | 6 images saved |
+| 7 | Claude (PC) | **P-03** (effects, quality, perf probe); then **P-07** (Kimi, CLI) and **P-08** (you paste into Cursor); then **P-05**; core freeze check. | core freeze v3.0 green |
 | 8 | you | Tell Claude "concepts batch 1 ready"; read the batch table and credit estimate; write "po, gjenero batch 1"; approve each result with "ok". | 11 GLBs in the manifest |
 | 9 | Claude, you | Reference game **treasure-island**: you approve its design, Claude builds it, you playtest on desktop and phone (`?perf=1`) and say "template approved". | template freeze |
-| 10 | everyone | Wave 1: pirate-cannons (Claude), penguin-slide then luggage-rush (Codex, CLI), shopping-cart (Antigravity, pasted), monster-kitchen (Kimi, CLI); concepts for batch 2 meanwhile. Then waves 2 and 3 the same way (09 §J). | wave regression green |
+| 10 | everyone | Wave 1: pirate-cannons (Claude), penguin-slide (Codex, CLI), shopping-cart (Antigravity, pasted), monster-kitchen (Kimi, CLI), luggage-rush (Cursor, pasted); concepts for batch 2 meanwhile (the human ones with your face reference). Then waves 2 and 3 the same way (09 §J). | wave regression green |
 | 11 | you + Claude | Go-live one game at a time, in the order you choose (09 §L.4). | each game live |
 
 ---
@@ -68,7 +68,7 @@ Goal of the sprint: decisions taken, agents verified, core v3 mostly built, styl
 | N-01 | Decisions D1–D11 | **You** | read README §A | – (reply in chat) | answers recorded by Claude in `docs/status.md` |
 | N-02 | Hyper3D balance and per-generation charge; check the MCP login on your PC (`claude mcp login hyper3d-rodin` if needed) | **You** | – | – | numbers in `docs/status.md` |
 | N-03 | Kickoff on your PC: plan merged to main, `docs/status.md` (decisions, work board, ledger), skills in `.claude/skills/`, the `p50-codex` worktree, probe branches, the CLI pilot | **Claude (your PC)** | N-01, CLIs installed | **P-26** | pilot result per agent reported to you |
-| N-04 | Capability probe of each helper | **Codex, Kimi** (CLI, run by Claude in P-26 step 7) · **Antigravity** (you paste) | N-03 | **P-00** (Antigravity worktree `C:\Users\grani\Documents\WORKSPACE\p50-antigravity`) | three probe reports; 07 §H.2 updated by Claude |
+| N-04 | Capability probe of each helper | **Codex, Kimi** (CLI, run by Claude in P-26 step 7) · **Antigravity, Cursor** (you paste) | N-03 | **P-00** (worktrees `…\WORKSPACE\p50-antigravity`, `…\WORKSPACE\p50-cursor`) | three probe reports; 07 §H.2 updated by Claude |
 | N-05 | Runtime baseline of the 10 games | **Antigravity** (you paste) | N-03 | **P-01** | baseline table + screenshots |
 | N-06 | Registry for 30 (P1-A) | **Claude** | N-01 (D2, D4, D5) | **P-02** | merged; production `/3d` unchanged; preview shows 30 |
 | N-07 | Slim the read set | **Claude** | N-01 (D10) | **P-24** | CLAUDE.md ≤ ~15 KB, `docs/status.md`, AGENTS.md read sets |
@@ -77,7 +77,7 @@ Goal of the sprint: decisions taken, agents verified, core v3 mostly built, styl
 | N-10 | Effects, quality, perf probe, env, presets, shell fixes (P1-B) | **Claude** | N-06 | **P-03** | merged; existing games unchanged; baseline numbers in the merge notes |
 | N-11 | Style sheet v2 | **You + ChatGPT** | N-01 (D1) | **P-09** | you picked A, B or C |
 | N-12 | Batch-1 concepts (chest, cannon, ship, cart, monster, penguin) | **You + ChatGPT** | N-11 | **P-10**, filled in: `11-chatgpt-concept-prompts.md` batch 1 | 6 approved images in `%USERPROFILE%\.play50\concepts\expansion\` |
-| N-13 | Collections UI | **Antigravity** (you paste) | N-06 | **P-08** | merged; Claude wires the prop on `/3d` |
+| N-13 | Collections UI | **Cursor** (you paste) | N-06 | **P-08** | merged; Claude wires the prop on `/3d` |
 | N-14 | `tools/gamecheck` + `tools/perf` + baseline | **Kimi** (CLI via P-25) | N-10 | **P-07** | merged; `baseline.json` committed |
 | N-15 | Input, rig, render, kit, HUD (P1-D) → core freeze check | **Claude** | N-08, N-10 | **P-05** | merged; freeze checklist (07 §G.3) green |
 

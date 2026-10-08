@@ -11,12 +11,12 @@
 | **Antigravity** (Google) | Worktree `…\p50-antigravity`, branches `antigravity/<pkg>` | one `getApiBase`, go-live audits (food-catcher, pigeon-crossing) | agent manager for parallel agents, built-in browser sub-agent (Chromium) with screenshots and recordings as "Artifacts", Gemini 3, CLI since v2.0 ([Thoughtworks Radar](https://www.thoughtworks.com/radar/tools/google-antigravity), [InfoWorld](https://www.infoworld.com/article/4096113/a-first-look-at-googles-new-antigravity-ide.html)) | no full game yet in this repo; whether its browser renders this R3F canvas is unverified | UI kit (collections), visual and mobile QA in a real browser, 5 games (visual, joystick-style) |
 | **Kimi** (Moonshot, Kimi Code) | Worktree `…\p50-kimi`, branches `kimi/<pkg>`; run through `kimi -p` by Claude on your PC (D12) | `tools/thumbs` (CDP capture), a go-live audit (it audited food-catcher instead of office-escape) | CLI agent with plan mode, `AGENTS.md`, skills, MCP, subagents, headless/CI ([kimi-cli](https://upd.dev/MoonshotAI/kimi-cli/src/1.47.0), [overview](https://innfactory.ai/en/ai-harness/kimi-code/)); code is sent to Moonshot's service **[W]** | followed the wrong target once: prompts must make it echo the slug and branch first | tooling (`tools/gamecheck`, `tools/perf`), first-pass mechanical reviews, audio cues, 5 games (tap/timing ones) |
 | **ChatGPT** (chat) | no repo access; you paste prompts and pass images to Claude | style sheets and every character concept | image generation | concept consistency drifts between chats: attach the approved style sheet every time | style sheet v2, all concept images |
-| **Cursor** | worktree `…\p50-cursor`, out of credits since 2026-10-07 | K1, K2, food-catcher, penalty-hero, clean-city | – | no credits | reserve: takes any unstarted game with the same prompt |
+| **Cursor** | worktree `…\p50-cursor`, branches `cursor/<pkg>`; back with a **Pro** plan since 2026-10-08; copy-paste in Cursor (D12) | K1, K2, food-catcher, penalty-hero, clean-city | IDE agent; print-mode CLI exists but has reported rough edges | test/README fixes in reviews (clean-city: 11) | the UI kit again (P-08, its own K2 code) and 4 games: luggage-rush, construction-worker, museum-guard, snowball-battle |
 | **You** | GitHub, Vercel, Plesk/WordPress, Hyper3D account, ChatGPT, phones | decisions, approvals, uploads | – | time | decisions, art approval, playtests, uploads, releases |
 
 ## G.2 Responsibility matrix
 
-R = does the work, A = approves / merges, C = consulted, Q = QA. Every merge to `main` is Claude's (A), after your playtest for games.
+R = does the work, A = approves / merges, C = consulted, Q = QA. Every merge to `main` is Claude's (A), after your playtest for games. Cursor (back 2026-10-08) is R for the UI kit and its 4 games, like the other builders for theirs. Plans: Codex Plus, Kimi Pro, Antigravity Pro, Cursor Pro.
 
 | Task | Claude | Codex | Antigravity | Kimi | ChatGPT | You | Why |
 |---|---|---|---|---|---|---|---|
@@ -26,12 +26,12 @@ R = does the work, A = approves / merges, C = consulted, Q = QA. Every merge to 
 | Core v3: registry, effects, audio wiring, input, rig, render | R / A | – | – | – | – | – | Claude-only files, highest blast radius |
 | Core v3: pure helpers (ballistics, path, ai, motion, kinematics) | A | R | – | – | – | – | well-specified, pure, test-heavy: Codex's strength; Claude reviews (D9) |
 | Core v3: synthesized audio cues and loops | A | – | – | R | – | Q (ears) | bounded leaf module, explicit file list (D9) |
-| Core gameplay of each game | A | R ×5 | R ×5 | R ×5 | – | Q | one owner per folder |
+| Core gameplay of each game | A (R ×4 own) | R ×4 | R ×4 | R ×4 | – | Q | one owner per folder; Cursor R ×4 |
 | 3D scene development | A | R | R | R | – | Q | same |
 | Physics and collision (game level) | A | R | R | R | – | – | built on core kinematics |
 | NPC behaviour (game level) | A | R | R | R | – | – | built on `core/ai` |
 | Shader and rendering optimisation | R | – | – | – | – | – | water, ghosts, ice, flames live in core |
-| UI/UX: collections on `/3d`, loading card, hub copy | A (+ page wiring R) | – | R (`arcade3d/ui/**`) | – | – | A | display-only kit; Antigravity can see it in its browser |
+| UI/UX: collections on `/3d`, loading card, hub copy | A (+ page wiring R) | – | Q (browser check) | – | – | A | Cursor R (`arcade3d/ui/**`, its own K2 kit); display-only |
 | Asset concepts | C | – | – | – | R | A | your taste decides |
 | Asset generation, import, optimisation, fitting | R (local MCP) | – | – | – | – | A (spend) | credits + MCP live on your PC |
 | Character landmarks and rig adoption | R | – | – | – | – | – | needs the rig expertise |
@@ -63,7 +63,7 @@ R = does the work, A = approves / merges, C = consulted, Q = QA. Every merge to 
 | `package.json`, lockfile, `next.config.js`, `tsconfig.json`, `vitest.config.mts` | Claude |
 | `arcade3d/{types,registry,loaders,flags}.ts`, `arcade3d/core/**`, `public/models/3d/**`, `app/3d/**`, `app/page.tsx` | Claude (P1-C helpers and audio delegated by explicit file list, D9) |
 | `arcade3d/games/<slug>/**`, `public/images/3d/<slug>.webp`, `tools/thumbs/inputs/<slug>.mjs` | that game's owner (02 §C.2) |
-| `arcade3d/ui/**` | Antigravity (collections task), then Claude |
+| `arcade3d/ui/**` | Cursor (collections task P-08, its own K2 kit), then Claude |
 | `tools/gamecheck/**`, `tools/perf/**` | Kimi |
 | `tools/hyper3d/**` (not `concepts/`) | Codex |
 | `tools/hyper3d/concepts/**`, `tools/thumbs/{capture,inputs}.mjs`, `tools/og/**` | Claude |
@@ -100,7 +100,7 @@ The **work board** (`docs/status.md` "Active branches", Claude the only writer) 
 | Can run in parallel | Must be sequential |
 |---|---|
 | P1-C (Codex) and the audio cues (Kimi) from day 1 ∥ P1-A then P1-B (Claude) ∥ `tools/gamecheck` + `tools/perf` (Kimi) ∥ style sheet + concepts (ChatGPT) ∥ collections UI (Antigravity) | P1-A before any game branch (types) |
-| Up to 4 game branches (one per agent) | Reference game before any other game starts building |
+| Up to 5 game branches (one per builder) | Reference game before any other game starts building |
 | Design READMEs of the next game while the current one builds | Asset batch N before the games that need its GLBs adopt them (they start on primitives) |
 | Concepts for batch N+1 while batch N is being fitted | Core changes needed by a running game: merged to `main` first, then the game merges `main` in |
 | Go-live audits of finished games | Backend JSON upload before the frontend `status: "live"` merge |
@@ -112,7 +112,7 @@ The **work board** (`docs/status.md` "Active branches", Claude the only writer) 
 | Codex | **CLI**: `codex exec --sandbox workspace-write` in `p50-codex` | official non-interactive mode; the sandbox writes only inside the worktree; its tasks (pure core helpers, rule-heavy games) are batch-shaped |
 | Kimi | **CLI**: `kimi -p` in `p50-kimi` | headless mode built for scripts and CI; its tasks (tools, mechanical reviews, audio, games) are batch-shaped; Claude passes the slug and branch, so the wrong-target mix-up cannot happen |
 | Antigravity | **copy-paste** in its app | its value is the interactive browser agent with screenshots and recordings; `agy -p` is reported to hang when another program starts it ([issue](https://github.com/google-antigravity/antigravity-cli/issues/318)) |
-| Cursor | **copy-paste** in Cursor, if its credits return | print mode has reported rough edges (does not exit, git, MCP approvals) |
+| Cursor | **copy-paste** in Cursor (Pro plan, back since 2026-10-08) | print mode has reported rough edges (does not exit, git, MCP approvals) |
 | ChatGPT | **copy-paste** | images are made in the chat |
 
 How CLI mode works (prompt P-25, run by Claude Code on your PC; this cloud session cannot reach your worktrees):
@@ -141,8 +141,8 @@ Rules: you install and log in each CLI once (Claude never sees credentials); no 
 | Agent | Recommendation | Why | Status |
 |---|---|---|---|
 | all | Node 24 + a local Chrome/Chromium for `tools/thumbs` / `tools/perf` | headless playtests | Node 24 is the project's version **[V]** |
-| you, for Codex | Codex CLI: `npm install -g @openai/codex`, then sign in once (`codex login`) | CLI mode (D12) | install command from OpenAI's docs **[W]**; check with `codex --version` |
-| you, for Kimi | Kimi Code CLI: install as its official docs say, then `kimi login` (device code) | CLI mode (D12) | **[W]**; check with `kimi --version` |
+| Claude installs, you sign in | Codex CLI: `npm install -g @openai/codex` (P-26 step 0), then you run `codex login` once | CLI mode (D12) | install command from OpenAI's docs **[W]**; check with `codex --version` |
+| Claude installs, you sign in | Kimi Code CLI: PowerShell `irm https://code.kimi.com/kimi-code/install.ps1 \| iex` (needs Git for Windows; P-26 step 0), then you run `kimi login` once (device code in the browser) | CLI mode (D12) | official Kimi Code docs **[W]** ([getting ready](https://www.kimi.com/en/help/kimi-code/preparation)); check with `kimi --version` |
 | Claude (your PC) | keep `hyper3d-rodin` logged in (`claude mcp login hyper3d-rodin` when it expires) | asset batches | **[V]** |
 | Codex | project skills folder: copy `docs/arcade-expansion/skills/*` to `.codex/skills/` | auto-loaded skills | path from **[W]**, verify in N-04 |
 | Kimi | load the same skills through its skills mechanism (or the prompt points to the SKILL.md path); optional `chrome-devtools` MCP for interactive debugging | its docs show MCP and skills **[W]** | verify in N-04 |

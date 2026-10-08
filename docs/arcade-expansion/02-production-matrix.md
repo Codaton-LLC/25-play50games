@@ -36,14 +36,14 @@ Columns: **Cx** complexity 1–5 · **Camera** · **Scheme** (control scheme, ne
 | # | Slug | Cx | Camera | Scheme | Hyper3D (A) | Reuse (D / C) | Core deps | Owner | Wave | Build | Rev | You |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
 | 1 | treasure-island | 2 | follow 3/4 | joystick | s:chest, s:rock | runner, palm, umbrella, coin, crate, pigeon (hint) | env water/sky, fx, attach (hat), quality | Claude | Ref | 16–24 | 4 | 2 |
-| 2 | museum-guard | 3 | first-person, fixed centre | look\* | (bust: tier 3, optional) | door, robot, bench; s:knight, s:dino, s:penguin | material override, ai/vision, motion, kit flashlight, fx, audio pan | Antigravity | 3 | 12–18 | 3 | 1.5 |
-| 3 | luggage-rush | 2 | fixed isometric | tap-target | suitcase | runner (decor) | path/conveyor, per-copy tint, kit conveyor, fx | Codex | 1 | 8–12 | 2 | 1 |
+| 2 | museum-guard | 3 | first-person, fixed centre | look\* | (bust: tier 3, optional) | door, robot, bench; s:knight, s:dino, s:penguin | material override, ai/vision, motion, kit flashlight, fx, audio pan | Cursor | 3 | 12–18 | 3 | 1.5 |
+| 3 | luggage-rush | 2 | fixed isometric | tap-target | suitcase | runner (decor) | path/conveyor, per-copy tint, kit conveyor, fx | Cursor | 1 | 8–12 | 2 | 1 |
 | 4 | dino-egg-rescue | 2 | follow 3/4 | joystick | s:dino | palm; s:rock, s:leafyTree | motion (waddle, squash), path, fx | Antigravity | 2 | 8–12 | 2 | 1 |
 | 5 | delivery-drone | 3 | high chase | flight\* | drone | car, taxi, van, pigeon, crate | path, target markers, audio loop, motion (bank, hover), fx | Codex | 2 | 12–18 | 3 | 1.5 |
 | 6 | shopping-cart | 2 | follow 3/4 | joystick | cart | runner, cleaner, chef, apple, banana, burger, tinCan, bottle, bag | patrol, fx, audio loop | Antigravity | 1 | 8–12 | 2 | 1 |
-| 7 | snowball-battle | 4 | follow high | joystick + tap-target | snowKid | s:pineTree | ballistics, steering, vision, attach, fx | Claude | 3 | 18–28 | 4 | 2 |
+| 7 | snowball-battle | 4 | follow high | joystick + tap-target | snowKid | s:pineTree | ballistics, steering, vision, attach, fx | Cursor | 3 | 18–28 | 4 | 2 |
 | 8 | ghost-vacuum | 3 | follow top-down | joystick | vacuum | runner, desk, chair, book, door | attach, steering, kit flashlight, audio loop, fx | Kimi | 2 | 12–18 | 3 | 1.5 |
-| 9 | construction-worker | 3 | fixed 3/4, slight follow | joystick + action + digit keys | – | runner, pallet, crate, van | attach (hard hat), kinematics (pendulum), fx | Kimi | 3 | 12–18 | 3 | 1.5 |
+| 9 | construction-worker | 3 | fixed 3/4, slight follow | joystick + action + digit keys | – | runner, pallet, crate, van | attach (hard hat), kinematics (pendulum), fx | Cursor | 2 | 12–18 | 3 | 1.5 |
 | 10 | alien-farm | 3 | follow 3/4, night | joystick | alien, glowPod | crate; s:rock | path, env starfield, fx, audio | Kimi | 3 | 12–18 | 3 | 1.5 |
 | 11 | mini-golf | 4 | per-hole fitted | aim-drag\* | windmill | checkpoint-flag; s:rock, s:leafyTree | aim-drag, trajectory dots, kinematics, env water | Claude | 2 | 18–28 | 4 | 2 |
 | 12 | robot-factory | 2 | fixed side 3/4 | tap-target | – | robot, battery, barrel, crate | path/conveyor, kit conveyor, fx sparks, per-copy tint | Kimi | 2 | 8–12 | 2 | 1 |
@@ -80,7 +80,7 @@ Scored 1 (worst) to 5 (best) on your nine criteria. "Simplicity", "cost", "risk"
 | museum-guard | 4 | 3 | 3 | 5 | 5 | 2 | 5 | 4 | 3 | **34** | 3 (needs knight, dino, penguin) |
 | zoo-escape | 4 | 2 | 4 | 4 | 3 | 2 | 4 | 5 | 2 | **30** | 3 (needs the AI kit) |
 | space-repair | 4 | 3 | 3 | 3 | 3 | 3 | 3 | 4 | 3 | **29** | 3 |
-| construction-worker | 3 | 3 | 3 | 4 | 4 | 3 | 3 | 3 | 3 | **29** | 3 |
+| construction-worker | 3 | 3 | 3 | 4 | 4 | 3 | 3 | 3 | 3 | **29** | 2 (no new assets) |
 | alien-farm | 4 | 3 | 3 | 2 | 2 | 3 | 4 | 3 | 3 | **27** | 3 |
 | snowball-battle | 4 | 2 | 3 | 3 | 3 | 2 | 3 | 5 | 2 | **27** | 3 |
 | castle-defender | 4 | 2 | 3 | 3 | 3 | 2 | 3 | 4 | 2 | **26** | 3 |
@@ -114,17 +114,17 @@ Every game is a **points** game. The real limits (`maxScore`, duration window, `
 
 ## C.5 Waves and the parallel rules
 
-| Step | Claude | Codex | Antigravity | Kimi |
-|---|---|---|---|---|
-| Phase 1 | core v3 (P-02, P-03, P-05) | pure helpers (P-04) | baseline audit (P-01), collections UI (P-08) | audio (P-06), `tools/gamecheck` + `tools/perf` (P-07) |
-| Phase 3 | **treasure-island** (reference) | design READMEs: penguin-slide, luggage-rush | design README: shopping-cart | design README: monster-kitchen |
-| Wave 1 | **pirate-cannons** | **penguin-slide** → **luggage-rush** | **shopping-cart** | **monster-kitchen** |
-| Wave 2 | **mini-golf** | **delivery-drone** → **rocket-landing** | **dino-egg-rescue** → **knight-arena** | **robot-factory** → **ghost-vacuum** |
-| Wave 3 | **zoo-escape** → **snowball-battle** | **castle-defender** | **space-repair** → **museum-guard** | **alien-farm** → **construction-worker** |
+| Step | Claude | Codex (CLI) | Antigravity | Kimi (CLI) | Cursor |
+|---|---|---|---|---|---|
+| Phase 1 | core v3 (P-02, P-03, P-05) | pure helpers (P-04) | baseline audit (P-01) | audio (P-06), `tools/gamecheck` + `tools/perf` (P-07) | collections UI (P-08) |
+| Phase 3 | **treasure-island** (reference) | design README: penguin-slide | design README: shopping-cart | design README: monster-kitchen | design README: luggage-rush |
+| Wave 1 | **pirate-cannons** | **penguin-slide** | **shopping-cart** | **monster-kitchen** | **luggage-rush** |
+| Wave 2 | **mini-golf** | **delivery-drone** → **rocket-landing** | **dino-egg-rescue** → **knight-arena** | **robot-factory** → **ghost-vacuum** | **construction-worker** |
+| Wave 3 | **zoo-escape** | **castle-defender** | **space-repair** | **alien-farm** | **museum-guard** → **snowball-battle** |
 
 Rules:
-1. One game per agent at a time; at most **four** game branches open at once (Claude's review throughput is the real bottleneck: ≈ 2–4 h per game).
+1. One game per agent at a time; at most **five** game branches open at once, one per builder, with starts staggered by a few days (Claude's review throughput is the real bottleneck: ≈ 2–4 h per game).
 2. While an agent builds game N, it may write only the design README (G0) of its game N+1.
 3. A game starts only when its core dependencies are merged and its tier of assets is generated (or it starts on primitives, which is always allowed: unlisted GLBs fall back by design **[V]** `core/modelManifest.ts`).
 4. Waves overlap: an agent that finishes early starts its next game; the wave boundary is a planning aid, not a barrier.
-5. Cursor (out of credits since 2026-10-07 **[V]**) can take over any game that has not started, with the same prompt.
+5. Cursor is back (Pro plan, 2026-10-08) and builds 4 games plus the UI kit, by copy-paste. Codex is on the Plus plan: if its limit runs out, Claude moves its unstarted game to the builder with the most room.

@@ -16,7 +16,9 @@ The existing assets are the reference (01 §B.5): friendly stylised shapes, but 
 - Each world adds 3–4 colours (listed in each game spec, field 11).
 - **Assets that are tinted in code** (suitcase, monster, goblin, snow kid's clothes via attachments) are generated with a **light neutral base** so a per-copy tint multiplies cleanly.
 
-**Never**: saturated candy colours, outlines, cel shading, realism, gore, real-looking weapons (cannons are cartoon, swords are wooden), text or logos on models, your face on any new character (D8).
+**Never**: saturated candy colours, outlines, cel shading, realism, gore, real-looking weapons (cannons are cartoon, swords are wooden), text or logos on models.
+
+**Faces (D8, your answer):** the human characters carry **your face**, like the v2 runner, chef, striker, keeper and cleaner: the knight (visor raised), the astronaut (clear visor) and the zookeeper; the snow kid is **a young you, about nine, without a beard**. ChatGPT gets your face reference (one of your existing concepts in `%USERPROFILE%\.play50\concepts\`) with each of these prompts. Those concept images never enter git. The alien and the creatures have no human face.
 
 ## E.2 What a prompt controls vs what must be validated
 
@@ -379,10 +381,10 @@ Ghost-hunting vacuum backpack unit: an upright rounded cylinder canister with a 
 - Fit and checks: 0.55 m tall on the runner's back (attachment offset measured against the runner's chest); hose connector point measured; ≤ 3k tris.
 
 #### knight (`/models/3d/shared/knight.glb`) · C · tier 1 · batch 2 · image-to-3D · 18000
-- Concept (humanoid frame) asset line: `young cartoon knight in rounded training armour, a closed round helmet with a T-shaped visor slit and a short yellow plume, a short blue tabard above the knee with a simple yellow star, armoured gloves and boots` · palette `soft steel #cbd5e1, blue #3b82f6, yellow #facc15`.
+- Concept (humanoid frame) asset line: `stylised cartoon knight with the face of the person in the face reference, in rounded training armour, a round helmet with the visor raised so the whole face is clearly visible, a short yellow plume, a short blue tabard above the knee with a simple yellow star, armoured gloves and boots` · palette `soft steel #cbd5e1, blue #3b82f6, yellow #facc15`.
 - Rodin prompt (sent with the concept):
 ```text
-Young cartoon knight in rounded training armour, closed round helmet with a T-shaped visor slit and a short yellow plume, short blue tabard ending above the knee with a simple yellow star, armoured gloves and boots, full body, clean T-pose with arms straight out level, legs slightly apart, facing forward, empty hands. Premium stylised mobile-game look, friendly rounded proportions, soft bevelled edges, matte soft steel, blue and yellow. Single character, centred. No sword, no shield, no cape, no base, no ground, no text. Clean game-ready topology, clean PBR textures without baked shadows.
+Stylised cartoon knight with the face from the concept image, in rounded training armour, a round helmet with the visor raised showing the face, a short yellow plume, short blue tabard ending above the knee with a simple yellow star, armoured gloves and boots, full body, clean T-pose with arms straight out level, legs slightly apart, facing forward, empty hands. Premium stylised mobile-game look, friendly rounded proportions, soft bevelled edges, matte soft steel, blue and yellow. Single character, centred. No sword, no shield, no cape, no base, no ground, no text. Clean game-ready topology, clean PBR textures without baked shadows.
 ```
 - Fit and checks: 1.6 m; landmarks measured (`KNIGHT_LANDMARKS`): tabard → `hemY` above the knee (skirt weights), helmet rigid (`headY` at the top of the neck), gauntlets in the arm band (`armRadius`); stone override reads as a statue in museum-guard.
 
@@ -409,18 +411,18 @@ Round stone castle tower with a flat crenellated top, two small arched windows, 
 - Fit and checks: 6 m tall; top platform height measured; ≤ 5k tris; procedural walls match its stone tone.
 
 #### snowKid (`/models/3d/snowball-battle/snowKid.glb`) · A · tier 2 · batch 3 · image-to-3D · 18000
-- Concept (humanoid frame) asset line: `cheerful stylised child of about nine, generic friendly face (not a real person), puffy winter jacket in light grey-white, dark snow trousers, mittens, chunky snow boots, short hair, no hat, no scarf` · palette `light grey jacket #e5e7eb, slate trousers #475569, warm boots #92400e`.
+- Concept (humanoid frame) asset line: `cheerful stylised boy of about nine who is a younger version of the person in the face reference (same face shape, eyes, eyebrows and hair, glasses if the reference wears them, no beard, no moustache), puffy winter jacket in light grey-white, dark snow trousers, mittens, chunky snow boots, no hat, no scarf` · palette `light grey jacket #e5e7eb, slate trousers #475569, warm boots #92400e`.
 - Rodin prompt:
 ```text
-Cheerful stylised child about nine years old with a generic friendly face, short hair, a puffy light grey-white winter jacket, dark slate snow trousers, mittens and chunky warm brown snow boots, full body, clean T-pose with arms straight out level, legs slightly apart, facing forward, empty hands. Premium stylised mobile-game look, friendly rounded proportions, soft shapes, matte fabric materials. Single character, centred. No hat, no scarf, no backpack, no snowball, no base, no ground, no text. Clean game-ready topology, clean PBR textures without baked shadows.
+Cheerful stylised boy about nine years old with the young face from the concept image (no beard), the same hair, a puffy light grey-white winter jacket, dark slate snow trousers, mittens and chunky warm brown snow boots, full body, clean T-pose with arms straight out level, legs slightly apart, facing forward, empty hands. Premium stylised mobile-game look, friendly rounded proportions, soft shapes, matte fabric materials. Single character, centred. No hat, no scarf, no backpack, no snowball, no base, no ground, no text. Clean game-ready topology, clean PBR textures without baked shadows.
 ```
 - Fit and checks: 1.25 m; puffy sleeves → widen `armRadius`; boots rigid (`ankleY` above the boot top); team beanies/scarves are attachments.
 
 #### astronaut (`/models/3d/space-repair/astronaut.glb`) · A · tier 2 · batch 3 · image-to-3D · 18000
-- Concept (humanoid frame) asset line: `chunky cartoon astronaut in a rounded white space suit with soft indigo panels, a round helmet with a dark gold-tinted visor that hides the face, padded gloves and boots, no backpack` · palette `white #f8fafc, indigo #6366f1, visor gold-dark #a16207`.
+- Concept (humanoid frame) asset line: `chunky cartoon astronaut with the face of the person in the face reference clearly visible through a clear round helmet visor, a rounded white space suit with soft indigo panels, padded gloves and boots, no backpack` · palette `white #f8fafc, indigo #6366f1, visor clear with a soft gold rim #a16207`.
 - Rodin prompt:
 ```text
-Chunky cartoon astronaut in a rounded white space suit with soft indigo panels on the chest and knees, a round helmet with a dark gold-tinted visor that hides the face, padded gloves and boots, full body, clean T-pose with arms straight out level, legs slightly apart, facing forward, empty hands. Premium stylised mobile-game look, friendly rounded proportions, soft bevelled edges, matte suit fabric, glossy-but-soft visor. Single character, centred. No backpack, no jetpack, no hoses, no flag patch, no base, no ground, no text. Clean game-ready topology, clean PBR textures without baked shadows.
+Chunky cartoon astronaut in a rounded white space suit with soft indigo panels on the chest and knees, a clear round helmet visor showing the stylised face from the concept image, padded gloves and boots, full body, clean T-pose with arms straight out level, legs slightly apart, facing forward, empty hands. Premium stylised mobile-game look, friendly rounded proportions, soft bevelled edges, matte suit fabric, glossy-but-soft visor. Single character, centred. No backpack, no jetpack, no hoses, no flag patch, no base, no ground, no text. Clean game-ready topology, clean PBR textures without baked shadows.
 ```
 - Fit and checks: 1.5 m; helmet rigid; bulky suit: check that arms hang clear of the torso (`armSpread`); jetpack is an attachment on the chest bone (back).
 
@@ -449,10 +451,10 @@ Chubby cartoon panda standing on all four short legs, round body, big round head
 - Fit and checks: 1.0 m long, faces +z; solid (waddle and sneak squash in code); ≤ 10k tris.
 
 #### keeper (`/models/3d/zoo-escape/keeper.glb`) · A · tier 2 · batch 3 · image-to-3D · 18000
-- Concept (humanoid frame) asset line: `friendly zookeeper adult with a generic stylised face (not a real person), a khaki short-sleeved shirt with pockets, khaki shorts, a wide-brim safari hat, brown boots, green neck scarf` · palette `khaki #d6c08a, olive scarf #4d7c0f, brown boots #78350f`.
+- Concept (humanoid frame) asset line: `friendly zookeeper with the face of the person in the face reference (the same stylised face, glasses and beard as the existing Play50 characters), a khaki short-sleeved shirt with pockets, khaki shorts, a wide-brim safari hat, brown boots, green neck scarf` · palette `khaki #d6c08a, olive scarf #4d7c0f, brown boots #78350f`.
 - Rodin prompt:
 ```text
-Friendly zookeeper adult with a generic stylised face, a khaki short-sleeved shirt with two chest pockets, khaki shorts, a short green neck scarf, a wide-brim safari hat and brown boots, full body, clean T-pose with arms straight out level, legs slightly apart, facing forward, empty hands. Premium stylised mobile-game look, friendly rounded proportions, soft shapes, matte fabric materials. Single character, centred. No flashlight, no keys, no backpack, no animals, no base, no ground, no text. Clean game-ready topology, clean PBR textures without baked shadows.
+Friendly zookeeper with the stylised face from the concept image, a khaki short-sleeved shirt with two chest pockets, khaki shorts, a short green neck scarf, a wide-brim safari hat and brown boots, full body, clean T-pose with arms straight out level, legs slightly apart, facing forward, empty hands. Premium stylised mobile-game look, friendly rounded proportions, soft shapes, matte fabric materials. Single character, centred. No flashlight, no keys, no backpack, no animals, no base, no ground, no text. Clean game-ready topology, clean PBR textures without baked shadows.
 ```
 - Fit and checks: 1.75 m; short sleeves → `armRadius` covers the sleeve; hat rigid on the head; flashlight is an attachment on the right forearm.
 
@@ -506,7 +508,7 @@ Alien spiral gourd: a twisted spiral-shaped gourd with soft ridges on a short st
 | Balanced (tier 1 + 2, 7 retries) | 34 | **17** | 34 |
 | High (+ tier 3, 10 retries) | 42 | 21 | 42 |
 
-Recorded spend so far ≈ 40 generations ≈ 20 credits at 0.5 **[V]** → about 25 left of 45 **[A]**. If the dashboard shows less than the balanced scenario needs, the **cut list** (in order): tier 3 → castleTower → dummy → glowPod → goblin → keeper → snowKid → alien → astronaut → panda. Every cut has a fallback below, so no game is blocked; the game's README records which one it uses.
+Balance on your dashboard: **31 credits** (2026-10-08). The balanced scenario needs ≈ 17 at 0.5 per generation; the balance after batch 1 (11 generations) confirms the real charge. If the dashboard shows less than the balanced scenario needs, the **cut list** (in order): tier 3 → castleTower → dummy → glowPod → goblin → keeper → snowKid → alien → astronaut → panda. Every cut has a fallback below, so no game is blocked; the game's README records which one it uses.
 
 | Cut asset | Fallback (no credits) |
 |---|---|

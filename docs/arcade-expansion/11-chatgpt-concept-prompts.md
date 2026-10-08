@@ -7,14 +7,15 @@ This file is the filled-in version of P-10 (`08-prompt-library.md`) for every im
 1. **Once, first:** run the style sheet prompt (step 0 below) and pick variation A, B or C. Keep that image: you attach it to **every** concept prompt.
 2. **For each asset:** open a ChatGPT chat, attach the chosen style sheet, paste the prompt, generate.
 3. **Check** the image against the asset's "Check before approving" line and the general rules below; regenerate until it passes (ChatGPT images cost no Hyper3D credits).
-4. **Save** the approved image on your PC as `%USERPROFILE%\.play50\concepts\expansion\<file>` (the exact file name is given with each prompt; `.png` or `.webp` both work).
-5. When a whole batch is saved, tell Claude Code **on your PC** (this cloud session cannot reach that folder or Hyper3D). Claude checks the images, shows you the batch with its credit estimate, and generates only after you write "po, gjenero batch N".
+4. **The four human characters** (knight, snowKid, astronaut, keeper) also need your **face reference**: attach one of your existing character concepts from `%USERPROFILE%\.play50\concepts\` next to the style sheet. These images show your face: they stay on your PC and are never committed.
+5. **Save** the approved image on your PC as `%USERPROFILE%\.play50\concepts\expansion\<file>` (the exact file name is given with each prompt; `.png` or `.webp` both work).
+6. When a whole batch is saved, tell Claude Code **on your PC** (this cloud session cannot reach that folder or Hyper3D). Claude checks the images, shows you the batch with its credit estimate, and generates only after you write "po, gjenero batch N".
 
 **General rules: regenerate the image if**
 - any part is cut off at the edge (feet, hands, ears, wheels, the top of the object);
 - there is more than one object, a shadow on the floor, a background scene, text or a logo;
 - it looks glossy, plastic or candy-saturated instead of matte with calm colours;
-- a face resembles a real person (all new characters get generic faces; none uses yours);
+- **faces (D8):** the knight, the astronaut and the zookeeper must clearly be you (as in your v2 characters: glasses, beard); the snow kid must clearly be a younger you, about nine, without a beard; the alien and the creatures must have no human face;
 - for the five humanoids (knight, snowKid, astronaut, alien, keeper): the arms are not level, an arm touches the body, or the legs are together.
 
 ## Step 0: style sheet (once)
@@ -121,11 +122,11 @@ Save the chosen variation as `%USERPROFILE%\.play50\concepts\expansion\style-v2.
 
 ### knight
 
-- File: `knight.png` · humanoid character (T-pose) · used by knight-arena, museum-guard · becomes `/models/3d/shared/knight.glb`
-- Check before approving (besides the general rules): clean T-pose; closed helmet (no face); the tabard ends above the knee; no sword, no shield, no cape.
+- File: `knight.png` · humanoid character (T-pose) · used by knight-arena, museum-guard · becomes `/models/3d/shared/knight.glb` · **shows your face: stays on your PC, never in git**
+- Check before approving (besides the general rules): clean T-pose; visor raised and your face clearly recognisable; the tabard ends above the knee; no sword, no shield, no cape.
 
 ```text
-(Attach the chosen style sheet.) Matching the attached style sheet: premium stylised mobile-game concept art. One single young cartoon knight in rounded training armour, a closed round helmet with a T-shaped visor slit and a short yellow plume, a short blue tabard above the knee with a simple yellow star, armoured gloves and boots, front view, the whole object visible from top to bottom, centred, on a plain light-grey background, soft even studio lighting, no shadow on the ground, no text, no logo, no other objects. Look: friendly rounded proportions, soft bevelled edges, simple clean shapes, matte to satin painted materials, restrained palette (soft steel #cbd5e1, blue #3b82f6, yellow #facc15). 1024x1024. Full body from head to feet in a clean T-pose: arms straight out to the sides at shoulder height, palms down, legs slightly apart, standing upright, facing the viewer, nothing touching or connecting the arms to the body, empty hands.
+(Attach the chosen style sheet AND your face reference: one of your existing character concepts from %USERPROFILE%\.play50\concepts\.) Matching the attached style sheet, and using the face of the person in the attached face reference: premium stylised mobile-game concept art. One single stylised cartoon knight with the face of the person in the face reference, in rounded training armour, a round helmet with the visor raised so the whole face is clearly visible, a short yellow plume, a short blue tabard above the knee with a simple yellow star, armoured gloves and boots, front view, the whole object visible from top to bottom, centred, on a plain light-grey background, soft even studio lighting, no shadow on the ground, no text, no logo, no other objects. Look: friendly rounded proportions, soft bevelled edges, simple clean shapes, matte to satin painted materials, restrained palette (soft steel #cbd5e1, blue #3b82f6, yellow #facc15). 1024x1024. Full body from head to feet in a clean T-pose: arms straight out to the sides at shoulder height, palms down, legs slightly apart, standing upright, facing the viewer, nothing touching or connecting the arms to the body, empty hands.
 ```
 
 ## Batch 3 (7 images)
@@ -141,20 +142,20 @@ Save the chosen variation as `%USERPROFILE%\.play50\concepts\expansion\style-v2.
 
 ### snowKid
 
-- File: `snowKid.png` · humanoid character (T-pose) · used by snowball-battle · becomes `/models/3d/snowball-battle/snowKid.glb`
-- Check before approving (besides the general rules): clean T-pose; a generic child face that resembles no real person; no hat, no scarf (added in code).
+- File: `snowKid.png` · humanoid character (T-pose) · used by snowball-battle · becomes `/models/3d/snowball-battle/snowKid.glb` · **shows your face: stays on your PC, never in git**
+- Check before approving (besides the general rules): clean T-pose; clearly a younger you (about nine), no beard and no moustache; no hat, no scarf (added in code).
 
 ```text
-(Attach the chosen style sheet.) Matching the attached style sheet: premium stylised mobile-game concept art. One single cheerful stylised child of about nine, generic friendly face (not a real person), puffy winter jacket in light grey-white, dark snow trousers, mittens, chunky snow boots, short hair, no hat, no scarf, front view, the whole object visible from top to bottom, centred, on a plain light-grey background, soft even studio lighting, no shadow on the ground, no text, no logo, no other objects. Look: friendly rounded proportions, soft bevelled edges, simple clean shapes, matte to satin painted materials, restrained palette (light grey jacket #e5e7eb, slate trousers #475569, warm boots #92400e). 1024x1024. Full body from head to feet in a clean T-pose: arms straight out to the sides at shoulder height, palms down, legs slightly apart, standing upright, facing the viewer, nothing touching or connecting the arms to the body, empty hands.
+(Attach the chosen style sheet AND your face reference: one of your existing character concepts from %USERPROFILE%\.play50\concepts\.) Matching the attached style sheet, and using the face of the person in the attached face reference: premium stylised mobile-game concept art. One single cheerful stylised boy of about nine who is a younger version of the person in the face reference (same face shape, eyes, eyebrows and hair, glasses if the reference wears them, no beard, no moustache), puffy winter jacket in light grey-white, dark snow trousers, mittens, chunky snow boots, no hat, no scarf, front view, the whole object visible from top to bottom, centred, on a plain light-grey background, soft even studio lighting, no shadow on the ground, no text, no logo, no other objects. Look: friendly rounded proportions, soft bevelled edges, simple clean shapes, matte to satin painted materials, restrained palette (light grey jacket #e5e7eb, slate trousers #475569, warm boots #92400e). 1024x1024. Full body from head to feet in a clean T-pose: arms straight out to the sides at shoulder height, palms down, legs slightly apart, standing upright, facing the viewer, nothing touching or connecting the arms to the body, empty hands.
 ```
 
 ### astronaut
 
-- File: `astronaut.png` · humanoid character (T-pose) · used by space-repair · becomes `/models/3d/space-repair/astronaut.glb`
-- Check before approving (besides the general rules): clean T-pose; the visor hides the face; no backpack or jetpack (added in code).
+- File: `astronaut.png` · humanoid character (T-pose) · used by space-repair · becomes `/models/3d/space-repair/astronaut.glb` · **shows your face: stays on your PC, never in git**
+- Check before approving (besides the general rules): clean T-pose; your face clearly visible through the clear visor; no backpack or jetpack (added in code).
 
 ```text
-(Attach the chosen style sheet.) Matching the attached style sheet: premium stylised mobile-game concept art. One single chunky cartoon astronaut in a rounded white space suit with soft indigo panels, a round helmet with a dark gold-tinted visor that hides the face, padded gloves and boots, no backpack, front view, the whole object visible from top to bottom, centred, on a plain light-grey background, soft even studio lighting, no shadow on the ground, no text, no logo, no other objects. Look: friendly rounded proportions, soft bevelled edges, simple clean shapes, matte to satin painted materials, restrained palette (white #f8fafc, indigo #6366f1, visor gold-dark #a16207). 1024x1024. Full body from head to feet in a clean T-pose: arms straight out to the sides at shoulder height, palms down, legs slightly apart, standing upright, facing the viewer, nothing touching or connecting the arms to the body, empty hands.
+(Attach the chosen style sheet AND your face reference: one of your existing character concepts from %USERPROFILE%\.play50\concepts\.) Matching the attached style sheet, and using the face of the person in the attached face reference: premium stylised mobile-game concept art. One single chunky cartoon astronaut with the face of the person in the face reference clearly visible through a clear round helmet visor, a rounded white space suit with soft indigo panels, padded gloves and boots, no backpack, front view, the whole object visible from top to bottom, centred, on a plain light-grey background, soft even studio lighting, no shadow on the ground, no text, no logo, no other objects. Look: friendly rounded proportions, soft bevelled edges, simple clean shapes, matte to satin painted materials, restrained palette (white #f8fafc, indigo #6366f1, visor clear with a soft gold rim #a16207). 1024x1024. Full body from head to feet in a clean T-pose: arms straight out to the sides at shoulder height, palms down, legs slightly apart, standing upright, facing the viewer, nothing touching or connecting the arms to the body, empty hands.
 ```
 
 ### alien
@@ -186,11 +187,11 @@ Save the chosen variation as `%USERPROFILE%\.play50\concepts\expansion\style-v2.
 
 ### keeper
 
-- File: `keeper.png` · humanoid character (T-pose) · used by zoo-escape · becomes `/models/3d/zoo-escape/keeper.glb`
-- Check before approving (besides the general rules): clean T-pose; a generic adult face that resembles no real person; no flashlight, keys or animals.
+- File: `keeper.png` · humanoid character (T-pose) · used by zoo-escape · becomes `/models/3d/zoo-escape/keeper.glb` · **shows your face: stays on your PC, never in git**
+- Check before approving (besides the general rules): clean T-pose; your face with glasses and beard like your other characters; no flashlight, keys or animals.
 
 ```text
-(Attach the chosen style sheet.) Matching the attached style sheet: premium stylised mobile-game concept art. One single friendly zookeeper adult with a generic stylised face (not a real person), a khaki short-sleeved shirt with pockets, khaki shorts, a wide-brim safari hat, brown boots, green neck scarf, front view, the whole object visible from top to bottom, centred, on a plain light-grey background, soft even studio lighting, no shadow on the ground, no text, no logo, no other objects. Look: friendly rounded proportions, soft bevelled edges, simple clean shapes, matte to satin painted materials, restrained palette (khaki #d6c08a, olive scarf #4d7c0f, brown boots #78350f). 1024x1024. Full body from head to feet in a clean T-pose: arms straight out to the sides at shoulder height, palms down, legs slightly apart, standing upright, facing the viewer, nothing touching or connecting the arms to the body, empty hands.
+(Attach the chosen style sheet AND your face reference: one of your existing character concepts from %USERPROFILE%\.play50\concepts\.) Matching the attached style sheet, and using the face of the person in the attached face reference: premium stylised mobile-game concept art. One single friendly zookeeper with the face of the person in the face reference (the same stylised face, glasses and beard as the existing Play50 characters), a khaki short-sleeved shirt with pockets, khaki shorts, a wide-brim safari hat, brown boots, green neck scarf, front view, the whole object visible from top to bottom, centred, on a plain light-grey background, soft even studio lighting, no shadow on the ground, no text, no logo, no other objects. Look: friendly rounded proportions, soft bevelled edges, simple clean shapes, matte to satin painted materials, restrained palette (khaki #d6c08a, olive scarf #4d7c0f, brown boots #78350f). 1024x1024. Full body from head to feet in a clean T-pose: arms straight out to the sides at shoulder height, palms down, legs slightly apart, standing upright, facing the viewer, nothing touching or connecting the arms to the body, empty hands.
 ```
 
 ## Progress checklist

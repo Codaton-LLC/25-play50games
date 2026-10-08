@@ -7,6 +7,7 @@ Part 2 (games 11–20) is `04-game-specs-skill.md`. Each spec is the input for t
 - **Runtime contract:** every game is a `GameDefinition` (`core/types.ts`) run by GameShell: phases, countdown, pause (Esc/P, hidden tab), result panel, score submission, Retry/Exit and the result delay come from core. A game ends its run with `end("win" | "lose" | "timeup")` and never touches localStorage or the API.
 - **Logic** lives in a pure, seeded `rules.ts` driven from one `useRunFrame`; visuals read the state in `useFrame` and animate with `useGameTime()`. Discrete moves read `input.pressed`; presses read `tapDown` (immediate) or `tap` (release), never both.
 - **Camera** uses `useFittedView` (+ `followFocus` for follow cameras) with `shift: true`, so the play area stays clear of the HUD, the touch controls and the cookie banner on every screen.
+- **Physics (D6)**: scoring logic stays in pure `rules.ts`; Rapier (`physics: true`, lazy) is welcome for visual physics (debris, toppling, collapse) and for movement only where the design README justifies it and the limit proof does not depend on it.
 - **Clocks**: a game with a fixed timer sets `durationMs` (the shell counts it down and ends with `"timeup"`). A game whose clock changes during play (time gates, penalties) keeps its own timer in `rules.ts`, sets no `durationMs`, shows it as a HUD stat and ends with `end("timeup")` itself.
 - **Poses**: `reachPose` raises an arm **sideways** (it reads as a wave); reaching, digging and pointing at something in front are game-local poses built with `aimArm` / `turnBone` in the game's `poses.ts` (penalty-hero pattern).
 - **Characters**: humanoids through `<HumanoidModel>` + `useHumanoidPose` + `walkStride` / `bodyLift` (never a T-pose, never feet through the floor). Non-humanoids through `<Model>` + `core/motion` (new, P1-C).
@@ -68,7 +69,7 @@ Part 2 (games 11–20) is `04-game-specs-skill.md`. Each spec is the input for t
 
 ---
 
-## 2. Museum Guard (`museum-guard`): Antigravity · wave 3 · complexity 3
+## 2. Museum Guard (`museum-guard`): Cursor · wave 3 · complexity 3
 
 **Director's call.** "Objects move when the player is not looking" works best as a **look-to-freeze** game from the guard's own eyes: you stand in the middle of a round gallery and sweep a flashlight. Exhibits caught in the beam freeze; holding the beam on one sends it back. A radar ring shows what is behind you. The exhibits are **other games' heroes rendered as statues** (knight in stone, dino skeleton in bone, penguin in bronze, robot in gold) through a material override: zero new Hyper3D generations and a fun cross-promotion of the arcade.
 
@@ -99,7 +100,7 @@ Part 2 (games 11–20) is `04-game-specs-skill.md`. Each spec is the input for t
 
 ---
 
-## 3. Airport Luggage Rush (`luggage-rush`): Codex · wave 1 · complexity 2
+## 3. Airport Luggage Rush (`luggage-rush`): Cursor · wave 1 · complexity 2
 
 **Director's call.** Sorting by tapping each suitcase is busywork. Make it a **routing puzzle in real time**: you flip conveyor switches and the suitcases follow the belts to their flight. One tap can route five bags, or misroute them, so attention and timing matter more than tapping speed. This also keeps it clearly different from Robot Factory (assembly, game 12).
 
@@ -226,7 +227,7 @@ Part 2 (games 11–20) is `04-game-specs-skill.md`. Each spec is the input for t
 
 ---
 
-## 7. Snowball Battle (`snowball-battle`): Claude · wave 3 · complexity 4
+## 7. Snowball Battle (`snowball-battle`): Cursor · wave 3 · complexity 4
 
 **Director's call.** Free aiming with a thumb is frustrating. Throws **auto-target** the rival nearest your aim direction; the skill is in timing (rivals telegraph and dodge), cover use and ammo (you scoop snowballs, max 3). Forts crumble, so the arena changes during the fight.
 
@@ -289,7 +290,7 @@ Part 2 (games 11–20) is `04-game-specs-skill.md`. Each spec is the input for t
 
 ---
 
-## 9. Construction Worker (`construction-worker`): Kimi · wave 3 · complexity 3
+## 9. Construction Worker (`construction-worker`): Cursor · wave 2 · complexity 3
 
 **Director's call.** Walking materials to a building is warehouse-rush again. The worker runs the **tower crane**: you choose the right material pile for the next blueprint step (the "collect in sequence" part) and swing it into the glowing slot, with the hook's pendulum making placement a timing skill. The worker character still appears on the ground (runner with a hard hat), cheering each floor.
 
