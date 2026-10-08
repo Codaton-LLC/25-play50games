@@ -29,7 +29,7 @@ export const treasureIslandMeta: ArcadeGameMeta = {
    },
    // the capture is in public/images/3d/treasure-island.webp; registry.test.ts (core, outside this
    // branch) still requires every "dev" game to have none, so it is set with that test's update
-   thumbnail: null,
+   thumbnail: "/images/3d/treasure-island.webp",
    accent: "#2dd4bf",
    owner: "claude",
 };

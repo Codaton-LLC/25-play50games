@@ -32,9 +32,10 @@ describe("registry for 30 games", () => {
       }
    });
 
-   it("puts the 20 new games in dev, 10 per collection, with no thumbnail yet", () => {
+   it("puts the 20 new games in dev, 10 per collection, each thumbnail null or its own webp", () => {
       const fresh = ARCADE_GAMES.slice(10);
-      expect(fresh.every((g) => g.status === "dev" && g.thumbnail === null)).toBe(true);
+      expect(fresh.every((g) => g.status === "dev")).toBe(true);
+      for (const g of fresh) expect([null, `/images/3d/${g.slug}.webp`]).toContain(g.thumbnail);
       expect(fresh.filter((g) => g.collection === "adventure")).toHaveLength(10);
       expect(fresh.filter((g) => g.collection === "skill")).toHaveLength(10);
       // five builders, four games each (decision D4)
