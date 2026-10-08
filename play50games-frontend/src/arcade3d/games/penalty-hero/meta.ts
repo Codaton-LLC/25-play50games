@@ -7,7 +7,7 @@ export const penaltyHeroMeta: ArcadeGameMeta = {
    tagline: "10 shots. Beat the keeper.",
    description: "Pick a corner and shoot. The keeper guesses a side. Score streaks for bonus points.",
    order: 5,
-   status: "soon",
+   status: "live",
    difficulty: 2,
    orientation: "portrait",
    controls: {

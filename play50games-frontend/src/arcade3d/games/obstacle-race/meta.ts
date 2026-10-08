@@ -7,7 +7,7 @@ export const obstacleRaceMeta: ArcadeGameMeta = {
    tagline: "Spinning bars, moving blocks, one finish line.",
    description: "Race through a physics obstacle course. Beat your best time and climb the leaderboard.",
    order: 10,
-   status: "soon",
+   status: "live",
    difficulty: 2,
    orientation: "any",
    controls: {
