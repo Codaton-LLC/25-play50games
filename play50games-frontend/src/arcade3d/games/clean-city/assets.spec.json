@@ -26,6 +26,71 @@
          "target": "clean-city",
          "budget": { "tris": 5000, "bytes": 300000 },
          "textureSize": 512
+      },
+      {
+         "id": "bin",
+         "kind": "prop",
+         "mode": "text",
+         "prompt": "green public litter bin with a domed lid, a front opening and a short base, single isolated prop, no ground, game-ready low-poly",
+         "concept": "tools/hyper3d/concepts/clean-city-bin.webp",
+         "tier": "Gen-2.5-Medium",
+         "qualityOverride": 1500,
+         "attempts": 1,
+         "target": "clean-city",
+         "budget": { "tris": 5000, "bytes": 300000 },
+         "textureSize": 512
+      },
+      {
+         "id": "bench",
+         "kind": "prop",
+         "mode": "text",
+         "prompt": "wooden park bench with green metal legs and a backrest, long and low, single isolated prop, no ground, game-ready low-poly",
+         "concept": "tools/hyper3d/concepts/clean-city-bench.webp",
+         "tier": "Gen-2.5-Medium",
+         "qualityOverride": 2000,
+         "attempts": 1,
+         "target": "clean-city",
+         "budget": { "tris": 5000, "bytes": 300000 },
+         "textureSize": 512
+      },
+      {
+         "id": "palm",
+         "kind": "prop",
+         "mode": "text",
+         "prompt": "small palm tree with a gently curved segmented trunk and a round crown of big bright green leaves, single isolated prop, no pot, no ground, game-ready low-poly",
+         "concept": "tools/hyper3d/concepts/clean-city-palm.webp",
+         "tier": "Gen-2.5-Medium",
+         "qualityOverride": 2500,
+         "attempts": 1,
+         "target": "clean-city",
+         "budget": { "tris": 5000, "bytes": 300000 },
+         "textureSize": 512
+      },
+      {
+         "id": "umbrella",
+         "kind": "prop",
+         "mode": "text",
+         "prompt": "open beach umbrella with red and white stripes on a straight thin white pole, single isolated prop, no sand, no ground, game-ready low-poly",
+         "concept": "tools/hyper3d/concepts/clean-city-umbrella.webp",
+         "tier": "Gen-2.5-Medium",
+         "qualityOverride": 1500,
+         "attempts": 1,
+         "target": "clean-city",
+         "budget": { "tris": 5000, "bytes": 300000 },
+         "textureSize": 512
+      },
+      {
+         "id": "lamp",
+         "kind": "prop",
+         "mode": "text",
+         "prompt": "street lamp post, dark green pole on a round base with a round warm yellow globe lantern on top, single isolated prop, no ground, game-ready low-poly",
+         "concept": "tools/hyper3d/concepts/clean-city-lamp.webp",
+         "tier": "Gen-2.5-Medium",
+         "qualityOverride": 1500,
+         "attempts": 1,
+         "target": "clean-city",
+         "budget": { "tris": 5000, "bytes": 300000 },
+         "textureSize": 512
       }
    ]
 }

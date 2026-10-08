@@ -42,6 +42,15 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/escape-room/book.glb",
    "/models/3d/escape-room/door.glb",
    "/models/3d/tower-climb/checkpoint-flag.glb",
+   // group D props (2026-10-07): image-to-3D from concepts (tools/hyper3d/concepts), Gen-2.5-Medium,
+   // 1000-3000 tris. finishArch.glb (listed above) is replaced in place by the single-arch v2.
+   "/models/3d/penalty-hero/ball.glb",
+   "/models/3d/shared/coin.glb",
+   "/models/3d/clean-city/bin.glb",
+   "/models/3d/clean-city/bench.glb",
+   "/models/3d/clean-city/palm.glb",
+   "/models/3d/clean-city/umbrella.glb",
+   "/models/3d/clean-city/lamp.glb",
 ];
 
 const LISTED: ReadonlySet<string> = new Set(MODEL_MANIFEST);
