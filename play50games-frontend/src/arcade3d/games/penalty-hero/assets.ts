@@ -1,11 +1,12 @@
 // Models used by Penalty Hero. Plain data, no three.js. Until a GLB is listed in
 // core/modelManifest.ts it is never fetched and the scene draws the fallback primitive.
-// The goal, net and pitch are always code primitives; the ball is a GLB (group D, 2026-10-07) fitted
-// to BallPrimitive's sphere, its fallback (ball.test.ts). Both characters are static T-pose
-// GLBs (group B, 2026-10-06): the core auto-rig animates them (Scene.tsx, poses.ts).
+// The goal, net, pitch and ball are code primitives: two Hyper3D ball GLBs (2026-10-07 and a
+// regeneration on 2026-10-08) both came out white to grey with no black panels, so the scene draws
+// BallPrimitive (README "Models"). Both characters are static T-pose GLBs (group B, 2026-10-06):
+// the core auto-rig animates them (Scene.tsx, poses.ts).
 import type { HumanoidLandmarks } from "@/arcade3d/core/rig/humanoid";
 import type { ModelAsset } from "@/arcade3d/core/types";
-import { CHARACTER_BUDGET, PROP_BUDGET } from "@/arcade3d/core/sharedAssets";
+import { CHARACTER_BUDGET } from "@/arcade3d/core/sharedAssets";
 
 /**
  * The striker's joints (GLB units: 1.90 x 1.88 x 0.39 T-pose, the arm span the longest side, faces
@@ -113,12 +114,6 @@ export const KEEPER_LANDMARKS: HumanoidLandmarks = {
 
 /** The football's radius (m): BallPrimitive's sphere, and rules.ts BALL_SPOT.y (it rests on the grass). */
 export const BALL_RADIUS = 0.11;
-/**
- * ball.glb's bounds (GLB units, measured on the optimized file: 1500 tris, 73 KB, floor pivot,
- * centred on x and z). Rodin made it about 3 % flat in y (an ellipsoid fit agrees), so the asset's
- * stretch rounds it.
- */
-export const BALL_GLB_SIZE = [1.8898, 1.8512, 1.9066] as const;
 
 export const ASSETS = {
    striker: {
@@ -144,18 +139,5 @@ export const ASSETS = {
       scale: 1.02,
       humanoid: { landmarks: KEEPER_LANDMARKS },
       budget: { ...CHARACTER_BUDGET },
-   },
-   ball: {
-      id: "ball",
-      url: "/models/3d/penalty-hero/ball.glb",
-      fallback: "sphere",
-      fallbackColor: "#f8fafc",
-      // BallPrimitive's sphere: 2 x BALL_RADIUS = 0.22 m across on every axis (the stretch makes the
-      // flat GLB round, so it does not wobble as it spins) and centred on the group origin, the
-      // pivot Scene.tsx spins the ball about: the floor pivot lowered by the radius.
-      scale: (2 * BALL_RADIUS) / BALL_GLB_SIZE[2],
-      stretch: [BALL_GLB_SIZE[2] / BALL_GLB_SIZE[0], BALL_GLB_SIZE[2] / BALL_GLB_SIZE[1], 1],
-      yOffset: -BALL_RADIUS,
-      budget: { ...PROP_BUDGET },
    },
 } satisfies Record<string, ModelAsset>;
