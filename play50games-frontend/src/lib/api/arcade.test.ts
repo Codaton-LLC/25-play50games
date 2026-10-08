@@ -91,18 +91,26 @@ describe("isRunToken", () => {
 describe("mock client run tickets", () => {
    const body = { slug: "robot-collector" as const, score: 100, duration_ms: 30000 };
 
-   it("issues a ticket and accepts it exactly once", async () => {
-      const mock = createMockArcadeClient();
+   it("issues a ticket and accepts it exactly once when tickets are required", async () => {
+      const mock = createMockArcadeClient({ requireRunToken: true });
       const { run_token } = await mock.startRun("robot-collector");
       await expect(mock.submit({ ...body, run_token })).resolves.toMatchObject({ success: true });
       await expect(mock.submit({ ...body, run_token })).rejects.toMatchObject({ code: "invalid_data", reason: "used" });
    });
 
-   it("rejects a ticket for another game or one it never issued", async () => {
-      const mock = createMockArcadeClient();
+   it("rejects a ticket for another game or one it never issued when tickets are required", async () => {
+      const mock = createMockArcadeClient({ requireRunToken: true });
       const { run_token } = await mock.startRun("food-catcher");
       await expect(mock.submit({ ...body, run_token })).rejects.toMatchObject({ reason: "signature" });
       await expect(mock.submit({ ...body, run_token: "mock.9.forged" })).rejects.toMatchObject({ reason: "signature" });
+   });
+
+   it("accepts a failed ticket when tickets are optional (like the server with enforcement off)", async () => {
+      const mock = createMockArcadeClient();
+      const { run_token } = await mock.startRun("robot-collector");
+      await expect(mock.submit({ ...body, run_token })).resolves.toMatchObject({ success: true, data: { plays: 1 } });
+      await expect(mock.submit({ ...body, run_token })).resolves.toMatchObject({ success: true, data: { plays: 2 } });
+      await expect(mock.submit({ ...body, run_token: "mock.9.forged" })).resolves.toMatchObject({ success: true });
    });
 
    it("accepts tokenless submits unless it requires tickets", async () => {

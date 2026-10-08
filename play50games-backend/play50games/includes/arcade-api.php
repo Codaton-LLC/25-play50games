@@ -644,10 +644,25 @@ if (!function_exists('play50_arcade_run_token_reject')) {
     }
 }
 
+if (!function_exists('play50_arcade_run_token_fallback')) {
+    /**
+     * Enforcement off: a ticket failure buys no security (a client can simply omit the ticket), so
+     * the submit continues on the legacy path under the unchanged score, duration and rate checks.
+     * Logs the reason and slug only.
+     */
+    function play50_arcade_run_token_fallback($reason, $slug) {
+        error_log('play50 arcade: run_token ' . $reason . ' ' . $slug . ' (optional, accepted)');
+        return true;
+    }
+}
+
 if (!function_exists('play50_arcade_verify_run_token')) {
     /**
      * Submit step 10c, after the score checks and before the upsert.
      * Order: presence -> format -> readiness -> signature -> expiry -> elapsed -> claim.
+     * Enforcement ON: every failure rejects (invalid_data 400 with a reason; db_error 500).
+     * Enforcement OFF: a valid ticket is still claimed (single use); any failure falls back to the
+     * legacy path and is logged "(optional, accepted)". An honest submit is never rejected for its ticket.
      * @return true (continue to the upsert) | WP_Error
      */
     function play50_arcade_verify_run_token($body, $uid, $slug, $duration_ms) {
@@ -662,28 +677,33 @@ if (!function_exists('play50_arcade_verify_run_token')) {
             return true;
         }
         if (play50_arcade_run_token_parse($token) === null) {
-            return play50_arcade_run_token_reject('malformed', $slug);
+            return $required
+                ? play50_arcade_run_token_reject('malformed', $slug)
+                : play50_arcade_run_token_fallback('malformed', $slug);
         }
         if (!play50_arcade_run_tokens_ready()) {
             if ($required) {
                 return play50_arcade_db_error('run tokens not ready');
             }
             // Enforcement off and no claims table: the legacy path, as for a tokenless submit.
-            error_log('play50 arcade: run_token not-ready ' . $slug);
-            return true;
+            return play50_arcade_run_token_fallback('not-ready', $slug);
         }
 
         $now_ms = play50_arcade_now_ms();
         $ticket = play50_arcade_run_token_check($token, $uid, $slug, $duration_ms, $now_ms);
         if (!is_array($ticket)) {
-            return play50_arcade_run_token_reject($ticket, $slug);
+            return $required
+                ? play50_arcade_run_token_reject($ticket, $slug)
+                : play50_arcade_run_token_fallback($ticket, $slug);
         }
         $claim = play50_arcade_run_token_claim($ticket, $uid, $slug, $now_ms);
         if (is_wp_error($claim)) {
-            return $claim;
+            return $required ? $claim : play50_arcade_run_token_fallback('claim-error', $slug);
         }
         if ($claim !== true) {
-            return play50_arcade_run_token_reject('used', $slug);
+            return $required
+                ? play50_arcade_run_token_reject('used', $slug)
+                : play50_arcade_run_token_fallback('used', $slug);
         }
         return true;
     }
@@ -970,7 +990,7 @@ if (!function_exists('play50_arcade_submit')) {
             }
         }
 
-        // 10c. Run token (§7a): verified when sent; required only while enforcement is on.
+        // 10c. Run token (§7a): a valid ticket is claimed; failures reject only while enforcement is on.
         $verdict = play50_arcade_verify_run_token($body, $uid, $slug, $duration_ms);
         if (is_wp_error($verdict)) {
             return $verdict;
