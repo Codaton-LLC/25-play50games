@@ -27,11 +27,14 @@
 // Obstacle props (group D, 2026-10-07, README "Obstacle props"): bench, bin, lamp, palm and umbrella
 // are fitted to the obstacle squares of rules.ts MAPS (the runner collides with those squares, never
 // with a mesh), centred on the square, feet on y = 0. Measured on the optimized GLBs (w x h x d; the
-// optimize step centres x and z): bench 1.893 x 0.842 x 0.803, bin 1.390 x 1.903 x 1.394, lamp 0.448 x
-// 1.900 x 0.432, palm 1.775 x 1.903 x 1.782, umbrella 1.780 x 1.902 x 1.737 (pole about 0.09 across,
-// canopy from y 1.17). Drawn (props.test.ts checks every one on the real mesh, as placed by propSpots.ts):
+// optimize step centres x and z): bench 1.893 x 0.842 x 0.803, bin 1.023 x 1.899 x 1.019 (2026-10-08:
+// the flat-lid regeneration, a lidded can with a lid handle on a base ring; the domed 1.390 x 1.903 x
+// 1.394 one read as a green ball at play size), lamp 0.448 x 1.900 x 0.432, palm 1.775 x 1.903 x 1.782,
+// umbrella 1.780 x 1.902 x 1.737 (pole about 0.09 across, canopy from y 1.17). Drawn (props.test.ts
+// checks every one on the real mesh, as placed by propSpots.ts):
 //   bench    2.40 x 0.84 x 0.80  the 2.4 x 0.8 square, the GLB's own height for that depth
-//   bin      1.40 x 1.25 x 1.40  the 1.4 square; lower than the GLB's 1.9 (a bin 1.3 x the runner)
+//   bin      1.40 x 1.25 x 1.40  the 1.4 square (scale 1.3684, depth stretched 1.0038 to the square);
+//                                lower than the GLB's 2.60 at that width (a bin 1.3 x the runner)
 //   lamp     0.60 x 2.00 x 0.58  the base (below 0.2) and the globe fill the 0.6 square, the post
 //                                between them narrows from 0.35 to about 0.12; lower than uniform (2.55)
 //   palm     1.20 x 1.70 x 1.20  the crown fills the 1.2 square from about 1.0 up, above the runner's
@@ -41,9 +44,10 @@
 //            one part the rules call visual (README obstacle table): it reaches 0.75 from the pole, where
 //            the runner's centre stops (0.25 + its radius 0.5), never over a litter spot, and its lowest
 //            edge (0.99) clears the runner's 0.95 head.
-// So from the camera the crown, the canopy and the globe mark where the runner stops; at the runner's
-// height it stops short of the palm trunk (0.33-0.57) and the pole (0.20-0.23), README "Obstacle
-// props" (props.test.ts BODY_GAP pins those gaps). A wider trunk base would be an asset change.
+// So from the camera the crown, the canopy and the globe mark where the runner stops. At the runner's
+// height the palm trunk and the pole alone left it 0.33-0.57 and 0.20-0.23 short, so each stands on
+// a primitive base that fills its square near the ground (propSpots.ts PROP_BASE: a wooden planter,
+// an umbrella stand; README "Obstacle props"; props.test.ts BODY_GAP and the coverage test).
 // No prop hides a litter piece: from every fitted camera, the middle of every litter spot near it
 // stays in view (props.test.ts casts the rays). The primitives in Primitives.tsx are the fallbacks.
 import type { HumanoidLandmarks } from "@/arcade3d/core/rig/humanoid";
@@ -139,7 +143,7 @@ export const ASSETS = {
    bag: { ...prop("bag", "box", "#d6a46b"), scale: 0.421, stretch: [0.775, 1, 0.9] },
    // obstacle props (./assets.spec.json, group D): fitted to their obstacle squares (see above)
    bench: { ...prop("bench", "box", "#c4a574"), scale: 0.996, stretch: [1.2727, 1, 1] },
-   bin: { ...prop("bin", "cylinder", "#475569"), scale: 1.0043, stretch: [1, 0.6541, 1] },
+   bin: { ...prop("bin", "cylinder", "#475569"), scale: 1.3684, stretch: [1, 0.481, 1.0038] },
    lamp: { ...prop("lamp", "cylinder", "#94a3b8"), scale: 1.3404, stretch: [1, 0.7852, 1] },
    palm: { ...prop("palm", "cylinder", "#15803d"), scale: 0.6734, stretch: [1, 1.3264, 1] },
    umbrella: { ...prop("umbrella", "cylinder", "#38bdf8"), scale: 0.8428 },

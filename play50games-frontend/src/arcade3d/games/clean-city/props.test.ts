@@ -1,12 +1,13 @@
 // Clean the City obstacle props (group D GLBs: bench, bin, lamp, palm, umbrella), each one as it is
 // drawn: the real mesh, assets.ts scale / stretch, propSpots.ts spot and turn (GLB_PROPS is what
-// Primitives.tsx GlbProps renders, entry by entry). Checked against the rules data (rules.ts MAPS
-// squares, the litter spots, the runner) and against the fitted cameras' view of every litter piece.
-// Collision never comes from a mesh: the squares are the truth.
+// Primitives.tsx GlbProps renders, entry by entry), with the primitive bases under the palms and the
+// umbrella poles (propSpots.ts BASE_SETS, also drawn entry by entry). Checked against the rules data
+// (rules.ts MAPS squares, the litter spots, the runner) and against the fitted cameras' view of every
+// litter piece. Collision never comes from a mesh: the squares are the truth.
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { Box3, Matrix4, Quaternion, Ray, Vector3 } from "three";
+import { Box3, CylinderGeometry, Matrix4, Quaternion, Ray, Vector3 } from "three";
 import { distanceToBoxXZ } from "@/arcade3d/core/collision";
 import { hasModel } from "@/arcade3d/core/modelManifest";
 import { spotMatrix, type InstanceSpot } from "@/arcade3d/core/render";
@@ -15,7 +16,7 @@ import type { ModelAsset } from "@/arcade3d/core/types";
 import { fitView } from "@/arcade3d/core/view";
 import { ASSETS, LITTER_DRAW } from "./assets";
 import { FOCUS, FOV, VIEW } from "./camera";
-import { GLB_PROPS, obstacleCentres, type GlbKind, type PropSet } from "./propSpots";
+import { BASE_SETS, GLB_PROPS, PROP_BASE, obstacleCentres, type BasePart, type GlbKind, type PropSet } from "./propSpots";
 import { MAPS, RUNNER, buildMapCache, spotX, spotZ, type MapCache } from "./rules";
 
 const UP = new Vector3(0, 1, 0);
@@ -32,16 +33,17 @@ const DRAWN: Record<string, readonly [number, number, number]> = {
 /** The middle of a drawn litter piece (they are 0.78-0.90 tall): the point that must stay in view. */
 const LITTER_MID = 0.4;
 /**
- * At the runner's height (every vertex below its head), the widest gap between a copy and any edge of
- * its square, measured on the real meshes plus about 0.01 (bench 0, bin 0.002, lamp 0.046, palm 0.570,
- * pole 0.231). The crown and the canopy span the square above the head; below it the palm trunk
- * (about 0.3 across, off the crown's centre) and the umbrella pole (0.07) leave ground the runner
- * cannot enter, while the lamp's base (0.55, below 0.2) nearly fills its square. These caps pin
- * today's shapes; they do not claim the square is filled.
+ * At the runner's height (every vertex below its head, the bases included), the widest gap between a
+ * copy and any edge of its square, measured on the real meshes plus about 0.01 (bench 0.0002, bin
+ * 0.00003, lamp 0.046, palm 0, pole 0). Below the head the palm trunk (about 0.3 across, off the crown's
+ * centre) and the umbrella pole (0.07) alone left 0.570 and 0.231 (the runner stopped that far short
+ * of them); their bases now meet every edge of the square, as the bench, the bin and the lamp's base do.
  */
-const BODY_GAP: Record<GlbKind, number> = { bench: 0.01, bin: 0.01, lamp: 0.05, palm: 0.58, pole: 0.24 };
-/** The palm's widest body-height gap (0.57, the GLB's -z side) never faces the camera (+z) or the floor's middle. */
+const BODY_GAP: Record<GlbKind, number> = { bench: 0.01, bin: 0.01, lamp: 0.05, palm: 0.01, pole: 0.01 };
+/** The palm's widest body-height gap (0.57 without its planter, the GLB's -z side) never faces the camera (+z) or the floor's middle. */
 const PALM_SHOWN_GAP = 0.45;
+/** How much of its square a base covers at the ground, at least (the octagonal planter 83 %, the round stand 78 %). */
+const BASE_COVER: Partial<Record<GlbKind, number>> = { palm: 0.8, pole: 0.75 };
 
 interface Mesh {
    cloud: Float32Array;
@@ -80,8 +82,53 @@ function obstacleAt(set: PropSet, spot: InstanceSpot) {
    return o!;
 }
 
-/** Every copy every GLB_PROPS entry draws, with its obstacle. */
-const copies = () => GLB_PROPS.flatMap((set) => set.spots.map((spot) => ({ set, spot, o: obstacleAt(set, spot) })));
+/** Every copy every GLB_PROPS entry draws, with its index in the entry and its obstacle. */
+const copies = () => GLB_PROPS.flatMap((set) => set.spots.map((spot, index) => ({ set, spot, index, o: obstacleAt(set, spot) })));
+
+const partGeometries = new Map<BasePart, CylinderGeometry>();
+/** A base part's geometry, as Primitives.tsx builds it (three's cylinderGeometry, centred on its spot). */
+const partGeometry = (part: BasePart): CylinderGeometry => {
+   if (!partGeometries.has(part)) partGeometries.set(part, new CylinderGeometry(part.radiusTop, part.radiusBottom, part.height, part.sides));
+   return partGeometries.get(part)!;
+};
+
+/** The base parts drawn under copy `index` of `set` (BASE_SETS, the entries Primitives.tsx draws), with their world matrices. */
+const basesOf = (set: PropSet, index: number) =>
+   BASE_SETS.filter((b) => b.map === set.map && b.kind === set.kind).map((b) => ({ part: b.part, spot: b.spots[index], matrix: spotMatrix(b.spots[index]) }));
+
+/** Every vertex of the bases under copy `index` of `set` (world space). */
+function basePoints(set: PropSet, index: number): Vector3[] {
+   const points: Vector3[] = [];
+   for (const { part, matrix } of basesOf(set, index)) {
+      const pos = partGeometry(part).getAttribute("position");
+      for (let i = 0; i < pos.count; i++) points.push(new Vector3().fromBufferAttribute(pos, i).applyMatrix4(matrix));
+   }
+   return points;
+}
+
+/** The bases' triangles under copy `index` of `set` (world space, three per triangle). */
+function baseTriangles(set: PropSet, index: number): Vector3[] {
+   const tri: Vector3[] = [];
+   for (const { part, matrix } of basesOf(set, index)) {
+      const geometry = partGeometry(part);
+      const pos = geometry.getAttribute("position");
+      const idx = geometry.getIndex()!;
+      for (let i = 0; i < idx.count; i++) tri.push(new Vector3().fromBufferAttribute(pos, idx.getX(i)).applyMatrix4(matrix));
+   }
+   return tri;
+}
+
+/** Is (x, z) inside the footprint of base part `part` drawn at `spot` (the regular polygon of its wider end)? */
+function inPart(part: BasePart, spot: InstanceSpot, x: number, z: number): boolean {
+   const r = Math.max(part.radiusBottom, part.radiusTop);
+   // three's cylinder puts its corners at angles 2πk / sides from +z, turned by the spot's rotY
+   const angle = Math.atan2(x - spot.x, z - spot.z) - (spot.rotY ?? 0);
+   const sector = (2 * Math.PI) / part.sides;
+   const within = ((angle % sector) + sector) % sector;
+   // the polygon's edge at that angle: apothem / cos(angle from the edge's middle)
+   const edge = (r * Math.cos(sector / 2)) / Math.cos(within - sector / 2);
+   return Math.hypot(x - spot.x, z - spot.z) <= edge + 1e-9;
+}
 
 const caches: MapCache[] = [];
 const cacheOf = (map: number): MapCache => (caches[map] ??= buildMapCache(map));
@@ -156,20 +203,20 @@ describe("clean-city obstacle props: the GLBs", () => {
 });
 
 describe("clean-city obstacle props: the squares the runner collides with", () => {
-   it("each copy stays inside its square and spans it (the umbrella canopy: past it only above the runner's head, only where its centre cannot go)", async () => {
+   it("each copy (its base included) stays inside its square and spans it (the umbrella canopy: past it only above the runner's head, only where its centre cannot go)", async () => {
       const head = await runnerHeight();
       expect(head).toBeGreaterThan(0.9);
-      for (const { set, spot, o } of copies()) {
+      for (const { set, spot, index, o } of copies()) {
          const label = `${set.asset.id} at (${o.x}, ${o.z})`;
-         const points = await drawnPoints(set.asset, spot);
+         const points = [...(await drawnPoints(set.asset, spot)), ...basePoints(set, index)];
          const box = new Box3().setFromPoints(points);
          const outside = points.filter((p) => Math.abs(p.x - o.x) > o.halfX + 1e-3 || Math.abs(p.z - o.z) > o.halfZ + 1e-3);
          if (set.kind !== "pole") {
             expect(outside.length, `${label}: points outside the square`).toBe(0);
             // seen from the camera the prop marks its square: the bench and the bin span it at every
-            // height, the lamp with its base (below 0.2) and its globe, the palm with its crown, which
-            // is above the runner's head. Between, the lamp post and the palm trunk are narrower
-            // (next test): the runner stops short of the trunk, never inside a drawn part.
+            // height, the lamp with its base (below 0.2) and its globe, the palm with its planter
+            // (below 0.25) and its crown (above the runner's head). Between, the lamp post and the
+            // palm trunk are narrower (next tests): the runner stops at a drawn part, never inside one.
             expect(box.max.x - box.min.x, `${label} x`).toBeGreaterThan(0.95 * 2 * o.halfX);
             expect(box.max.z - box.min.z, `${label} z`).toBeGreaterThan(0.95 * 2 * o.halfZ);
          } else {
@@ -187,15 +234,15 @@ describe("clean-city obstacle props: the squares the runner collides with", () =
       }
    });
 
-   it("at the runner's height, each copy leaves no more of its square empty than today's shape (BODY_GAP)", async () => {
+   it("at the runner's height, each copy (its base included) reaches every edge of its square within BODY_GAP: the runner, pushed into it, stops at a drawn part", async () => {
       const head = await runnerHeight();
-      for (const { set, spot, o } of copies()) {
+      for (const { set, spot, index, o } of copies()) {
          const label = `${set.asset.id} at (${o.x}, ${o.z}) rotY ${spot.rotY ?? 0}`;
          let minX = Infinity;
          let maxX = -Infinity;
          let minZ = Infinity;
          let maxZ = -Infinity;
-         for (const p of await drawnPoints(set.asset, spot)) {
+         for (const p of [...(await drawnPoints(set.asset, spot)), ...basePoints(set, index)]) {
             if (p.y >= head) continue;
             minX = Math.min(minX, p.x - o.x);
             maxX = Math.max(maxX, p.x - o.x);
@@ -211,10 +258,85 @@ describe("clean-city obstacle props: the squares the runner collides with", () =
       }
    });
 
+   it("the palms stand in an octagonal planter, the umbrella poles in a round stand with a sleeve: on y = 0, inside the square, low (under the crown and the canopy), one <Instanced> per part on every copy", async () => {
+      expect(Object.keys(PROP_BASE).sort()).toEqual(["palm", "pole"]);
+      expect(PROP_BASE.palm!.map((p) => p.sides)).toEqual([8, 8]);
+      // the umbrella's sleeve thickens the pole (0.07 in the GLB) to over 0.12 across, up to 0.6 or more
+      const sleeve = PROP_BASE.pole!.find((p) => p.y > 0);
+      expect(sleeve).toBeDefined();
+      expect(2 * Math.min(sleeve!.radiusTop, sleeve!.radiusBottom) * Math.cos(Math.PI / sleeve!.sides)).toBeGreaterThan(0.12);
+      expect(sleeve!.y + sleeve!.height).toBeGreaterThanOrEqual(0.6);
+      for (const set of GLB_PROPS) {
+         const parts = PROP_BASE[set.kind] ?? [];
+         const sets = BASE_SETS.filter((b) => b.map === set.map && b.kind === set.kind);
+         expect(sets.map((b) => b.part), `${set.kind} on map ${set.map}`).toEqual(parts);
+         for (const b of sets) {
+            expect(b.spots.length).toBe(set.spots.length);
+            b.spots.forEach((s, i) => {
+               expect([s.x, s.z]).toEqual([set.spots[i].x, set.spots[i].z]);
+               // centred (cylinderGeometry), the part's own turn on top of the copy's
+               expect(s.y).toBeCloseTo(b.part.y + b.part.height / 2, 12);
+               expect(s.rotY).toBeCloseTo((set.spots[i].rotY ?? 0) + b.part.turn, 12);
+            });
+         }
+         if (!parts.length) continue;
+         // the lowest part stands on the floor; every part ends under the crown / canopy (from 0.9 up)
+         expect(Math.min(...parts.map((p) => p.y))).toBe(0);
+         for (const p of parts) expect(p.y + p.height, set.kind).toBeLessThanOrEqual(0.7);
+         for (const { spot, index, o } of copies().filter((c) => c.set === set)) {
+            const box = new Box3().setFromPoints(basePoints(set, index));
+            expect(box.min.y, `${set.kind} at (${o.x}, ${o.z})`).toBeCloseTo(0, 6);
+            // the wider end spans the square along both axes
+            expect(box.max.x - box.min.x, `${set.kind} at (${o.x}, ${o.z}) x`).toBeGreaterThan(2 * o.halfX - 0.01);
+            expect(box.max.z - box.min.z, `${set.kind} at (${o.x}, ${o.z}) z`).toBeGreaterThan(2 * o.halfZ - 0.01);
+            expect(spot.y).toBe(0);
+         }
+      }
+   });
+
+   it("at the runner's height, the palm's and the pole's drawn footprint covers most of the square (with the trunk 84 %, the stand 78 %; the trunk and the pole alone 5 % and 2 %)", async () => {
+      const head = await runnerHeight();
+      const N = 61;
+      for (const { set, spot, index, o } of copies()) {
+         const want = BASE_COVER[set.kind];
+         if (want === undefined) continue;
+         // the GLB's triangles below the runner's head, seen from above
+         const { indices } = await meshOf(set.asset.url);
+         const points = await drawnPoints(set.asset, spot);
+         const tris: number[][] = [];
+         for (let t = 0; t < indices.length; t += 3) {
+            const [a, b, c] = [points[indices[t]], points[indices[t + 1]], points[indices[t + 2]]];
+            if (a.y < head && b.y < head && c.y < head) tris.push([a.x, a.z, b.x, b.z, c.x, c.z]);
+         }
+         const inTri = (x: number, z: number, [ax, az, bx, bz, cx, cz]: number[]) => {
+            const d1 = (x - bx) * (az - bz) - (ax - bx) * (z - bz);
+            const d2 = (x - cx) * (bz - cz) - (bx - cx) * (z - cz);
+            const d3 = (x - ax) * (cz - az) - (cx - ax) * (z - az);
+            return !((d1 < 0 || d2 < 0 || d3 < 0) && (d1 > 0 || d2 > 0 || d3 > 0));
+         };
+         const bases = basesOf(set, index);
+         let covered = 0;
+         let glbOnly = 0;
+         for (let i = 0; i < N; i++) {
+            for (let j = 0; j < N; j++) {
+               const x = o.x - o.halfX + ((i + 0.5) / N) * 2 * o.halfX;
+               const z = o.z - o.halfZ + ((j + 0.5) / N) * 2 * o.halfZ;
+               const glb = tris.some((t) => inTri(x, z, t));
+               if (glb) glbOnly++;
+               if (glb || bases.some((b) => inPart(b.part, b.spot, x, z))) covered++;
+            }
+         }
+         const label = `${set.kind} at (${o.x}, ${o.z})`;
+         expect(covered / (N * N), label).toBeGreaterThan(want);
+         // the reason for the base: the trunk / the pole alone cover little of it
+         expect(glbOnly / (N * N), label).toBeLessThan(0.1);
+      }
+   });
+
    it("no copy reaches within half a drawn litter piece of a litter spot on its map (seen from above)", async () => {
       const reach = LITTER_DRAW / 2;
-      for (const { set, spot, o } of copies()) {
-         const points = await drawnPoints(set.asset, spot);
+      for (const { set, spot, index, o } of copies()) {
+         const points = [...(await drawnPoints(set.asset, spot)), ...basePoints(set, index)];
          const box = new Box3().setFromPoints(points);
          const aabb = { min: { x: box.min.x, y: box.min.y, z: box.min.z }, max: { x: box.max.x, y: box.max.y, z: box.max.z } };
          let nearest = Infinity;
@@ -268,10 +390,12 @@ describe("clean-city obstacle props: litter stays in view", () => {
          const solids: { label: string; tri: Vector3[]; box: Box3 }[] = [];
          for (const set of GLB_PROPS.filter((s) => s.map === map)) {
             const { indices } = await meshOf(set.asset.url);
-            for (const spot of set.spots) {
+            for (let index = 0; index < set.spots.length; index++) {
+               const spot = set.spots[index];
                const points = await drawnPoints(set.asset, spot);
-               const tri = Array.from(indices, (i) => points[i]);
-               solids.push({ label: `${set.asset.id} at (${spot.x}, ${spot.z})`, tri, box: new Box3().setFromPoints(points) });
+               // the GLB and its base (the palm planters, the umbrella stands)
+               const tri = [...Array.from(indices, (i) => points[i]), ...baseTriangles(set, index)];
+               solids.push({ label: `${set.asset.id} at (${spot.x}, ${spot.z})`, tri, box: new Box3().setFromPoints(tri) });
             }
          }
          const blocked: string[] = [];

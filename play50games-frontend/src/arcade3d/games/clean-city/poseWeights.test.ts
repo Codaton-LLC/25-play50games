@@ -1,21 +1,37 @@
-// The cleaner's reach and cheer weights (poseWeights.ts), pure: their shape over time, and the cheer
+// The cleaner's pickup and cheer weights (poseWeights.ts), pure: their shape over time, and the cheer
 // built as the Scene builds it (core walkPose + idlePose + cheerPose, resolvePose on the cleaner's
 // landmarks) sweeps the arms through level quickly: both arms within 20° of the T-pose for under
 // 0.1 s per map clear (a linear fade over CHEER_S held them there for about 0.25 s).
 import { describe, expect, it } from "vitest";
 import { BONE, BONE_COUNT, POSE_MASK, blendPoses, cheerPose, createPose, idlePose, resolvePose, walkPose } from "@/arcade3d/core/rig";
 import { CLEANER_LANDMARKS } from "./assets";
-import { CHEER_IN_S, CHEER_OUT_S, CHEER_S, REACH_S, cheerWeight, reachWeight } from "./poseWeights";
+import { CHEER_IN_S, CHEER_OUT_S, CHEER_S, REACH_HOLD_S, REACH_IN_S, REACH_S, cheerWeight, reachWeight } from "./poseWeights";
 
 const DT = 1 / 600;
 
 describe("clean-city reachWeight (poseWeights.ts)", () => {
-   it("full at the pickup, linear down to 0 at REACH_S, 0 before any pickup", () => {
-      expect(reachWeight(0)).toBe(1);
-      expect(reachWeight(REACH_S / 2)).toBeCloseTo(0.5, 12);
+   it("eases in over REACH_IN_S, holds at 1 to REACH_HOLD_S, eases out to 0 at REACH_S (the pickup window); 0 before any pickup; no jump anywhere", () => {
+      expect(REACH_S).toBe(0.45);
+      expect(REACH_IN_S).toBeLessThan(REACH_HOLD_S);
+      expect(REACH_HOLD_S).toBeLessThan(REACH_S);
+      expect(reachWeight(0)).toBe(0);
+      expect(reachWeight(REACH_IN_S / 2)).toBeCloseTo(0.5, 12);
+      for (let s = REACH_IN_S; s <= REACH_HOLD_S; s += 0.01) expect(reachWeight(s), `${s.toFixed(2)} s`).toBe(1);
+      expect(reachWeight((REACH_HOLD_S + REACH_S) / 2)).toBeCloseTo(0.5, 12);
       expect(reachWeight(REACH_S)).toBe(0);
       expect(reachWeight(10)).toBe(0);
+      // before any pickup (the Scene's mark starts 10 s back) and for nonsense input
       expect(reachWeight(-1)).toBe(0);
+      expect(reachWeight(Number.NaN)).toBe(0);
+      let prev = 0;
+      let jump = 0;
+      for (let s = 0; s < REACH_S + 0.1; s += 0.001) {
+         const w = reachWeight(s);
+         jump = Math.max(jump, Math.abs(w - prev));
+         prev = w;
+      }
+      // the steepest smoothstep (1.5 / REACH_IN_S per s) moves at most 0.015 a millisecond: no one-frame snap into the stoop
+      expect(jump).toBeLessThan(0.016);
    });
 });
 
