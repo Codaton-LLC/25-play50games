@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { solveLaunch, stepProjectile, type Projectile } from "@/arcade3d/core/ballistics";
-import { advanceRunClock, playedFrameDt } from "@/arcade3d/core/frameLoop";
 import { withinServerLimits as fitsLimits, capScore as capToLimits } from "@/arcade3d/core/limits";
 import { createRng } from "@/arcade3d/core/math";
-import { createPath, pointAt, tangentAt } from "@/arcade3d/core/path";
+import { advance, createPath, pointAt, tangentAt } from "@/arcade3d/core/path";
+import { fixedFrames, randomFrames, simulateRun } from "@/arcade3d/core/testing/botHarness";
 import type { ScoringRules } from "@/arcade3d/types";
 import { createArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { AIM } from "./aim";
@@ -11,6 +11,7 @@ import {
    BARREL,
    BARREL_FLOATING,
    BARREL_FUSE,
+   BARREL_GONE,
    CHEST,
    DURATION_MS,
    ISLAND,
@@ -21,6 +22,7 @@ import {
    SEA,
    SHIPS,
    SHIP_ARRIVED,
+   SHIP_PENDING,
    SHIP_SAILING,
    SHIP_SUNK,
    SHIP_TYPES,
@@ -73,9 +75,14 @@ describe("plan", () => {
             expect(strength).toBeGreaterThanOrEqual(0.5 * w.wind);
             expect(strength).toBeLessThanOrEqual(w.wind);
             expect(Math.hypot(wind.x, wind.z)).toBeCloseTo(strength, 9);
-            const b = plan.barrels[wave];
-            expect(b.spawnAt).toBe(w.start + BARREL.delay);
-            expect([-22, -43, -52]).toContain(b.z);
+            const [lead, trail] = plan.barrels.slice(2 * wave, 2 * wave + 2);
+            for (const b of [lead, trail]) {
+               expect(b.spawnAt).toBe(w.start + BARREL.delay);
+               expect([-22, -43, -52]).toContain(b.z);
+            }
+            expect(trail.z).toBe(lead.z);
+            expect(lead.x - trail.x).toBe(4.5);
+            expect(trail.x).toBe(-18);
          });
          expect(plan.chest.spawnAt).toBeGreaterThanOrEqual(CHEST.minS);
          expect(plan.chest.spawnAt).toBeLessThanOrEqual(CHEST.maxS);
@@ -226,7 +233,8 @@ function dropBall(run: RunState, x: number, y: number, z: number, ticks: number)
    advanceRun(run, 0, 0, 0, true);
    run.reload = 0;
    run.tick(TICK);
-   const ball = run.balls.find((b) => b.active)!;
+   // the ball just fired: the active one of the newest shot
+   const ball = run.balls.filter((b) => b.active).sort((a, b) => run.shots[b.shot].id - run.shots[a.shot].id)[0];
    const t = ticks * TICK;
    Object.assign(ball.launch, { x, y: y + 0.5 * WORLD.gravity * t * t, z, vx: 0, vy: 0, vz: 0 });
    ball.params.wind.x = 0;
@@ -303,6 +311,93 @@ describe("hits", () => {
    });
 });
 
+describe("fire, reload, wind and the harbour", () => {
+   /** A run with nothing on the water: only the cannon. */
+   const empty = () => {
+      const run = createRun(1);
+      for (const s of run.ships) s.spawnAt = 1e9;
+      for (const b of run.barrels) b.spawnAt = 1e9;
+      run.chest.spawnAt = 1e9;
+      return run;
+   };
+
+   it("reloads in 1.2 s: fire held on every frame fires every 144 ticks", () => {
+      const run = empty();
+      const fired: number[] = [];
+      for (let f = 0; f < 120 * 4; f++) {
+         advanceRun(run, TICK, 0, 30 * DEG, true);
+         if (run.events.fired) fired.push(run.ticks);
+      }
+      expect(fired.length).toBe(4);
+      for (let i = 1; i < fired.length; i++) expect(Math.abs((fired[i] - fired[i - 1]) * TICK - 1.2)).toBeLessThanOrEqual(TICK + 1e-9);
+   });
+
+   it("a buffered fire keeps the aim of its press: a later drag does not move the shot", () => {
+      const run = empty();
+      advanceRun(run, TICK, 0, 20 * DEG, true); // shot 1
+      for (let k = 0; k < 60; k++) advanceRun(run, TICK, 0, 20 * DEG, false);
+      advanceRun(run, TICK, -30 * DEG, 5 * DEG, true); // buffered during the reload, aimed left and low
+      expect(run.buffered).toBe(true);
+      for (let k = 0; k < 120; k++) {
+         advanceRun(run, TICK, 40 * DEG, 30 * DEG, k % 2 === 0); // a new drag (and presses) while it waits
+         if (run.events.fired) break;
+      }
+      const ball = run.balls.find((b) => b.active && b.launch.vx !== 0)!;
+      expect(ball).toBeDefined();
+      const want = launchState(-30 * DEG, 5 * DEG, { x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0 });
+      for (const k of ["x", "y", "z", "vx", "vy", "vz"] as const) expect(ball.launch[k]).toBeCloseTo(want[k], 9);
+   });
+
+   it("launches each ball with the wind of its fire tick (and keeps it if the wind changes in flight)", () => {
+      const run = empty();
+      advanceRun(run, TICK, 0, 0, false); // the first wave's wind is set on the first tick
+      run.wind.x = 2.5;
+      run.wind.z = -1.5;
+      advanceRun(run, TICK, 0.2, 25 * DEG, true);
+      const ball = run.balls.find((b) => b.active)!;
+      expect(ball.params.wind).toEqual({ x: 2.5, z: -1.5 });
+      run.wind.x = -3;
+      run.wind.z = 0;
+      for (let k = 0; k < 120; k++) advanceRun(run, TICK, 0, 0, false);
+      const want = ballAt({ launch: ball.launch, params: { gravity: WORLD.gravity, wind: { x: 2.5, z: -1.5 } } }, ball.ticks * TICK, new Float32Array(6), { x: 0, y: 0, z: 0 });
+      expect(ball.x).toBeCloseTo(want.x, 6);
+      expect(ball.z).toBeCloseTo(want.z, 6);
+   });
+
+   it("a live ship costs a life when its centre crosses x +18, not before", () => {
+      const { run, ship } = staged("sloop", 17.99);
+      ship.speed = 0.6; // 5 mm a tick
+      run.tick(TICK);
+      expect(ship.rider.position.x).toBeLessThan(18);
+      expect(run.harbour).toBe(0);
+      run.tick(TICK);
+      run.tick(TICK);
+      expect(ship.rider.position.x).toBeGreaterThanOrEqual(18);
+      expect(ship.rider.position.x).toBeLessThan(18.01);
+      expect(ship.state).toBe(SHIP_ARRIVED);
+      expect(run.harbour).toBe(1);
+   });
+
+   it("keeps at most 8 ships on the water: a ninth waits for a slot", () => {
+      const run = createRun(1);
+      run.chest.spawnAt = 1e9;
+      for (const b of run.barrels) b.spawnAt = 1e9;
+      // nine ships due at once on the three lanes, three a lane spread out so the lane spawn is clear
+      const nine = run.ships.slice(0, 9);
+      for (const s of run.ships) s.spawnAt = 1e9;
+      nine.forEach((s, i) => {
+         s.spawnAt = 0;
+         s.lane = i % 3;
+         s.rider.path = createPath([{ x: -40, y: 0, z: LANES[s.lane] }, { x: 40, y: 0, z: LANES[s.lane] }]);
+         s.rider.s = 40 + 6 * Math.floor(i / 3);
+         s.rider.position.x = 6 * Math.floor(i / 3);
+         s.speed = 0;
+      });
+      run.tick(TICK);
+      expect(nine.filter((s) => s.state === SHIP_SAILING).length).toBe(8);
+   });
+});
+
 describe("scoring", () => {
    it("prices hits, sinks, chains (capped), the chest and the combo", () => {
       expect(shotBase(1, 0, false, false)).toBe(100);
@@ -330,6 +425,18 @@ describe("scoring", () => {
       const before = run.score;
       fire();
       expect(run.score - before).toBe(100);
+   });
+
+   it("resolves shots that stop on the same tick in fire order (a miss fired first resets, then the hit counts)", () => {
+      const { run, ship } = staged("galleon", 0);
+      const c = sphereCentre(ship, 1, { x: 0, y: 0, z: 0 });
+      dropBall(run, 0, -0.0005, 5, 2); // fired first: meets the water on the same tick as the hit
+      dropBall(run, c.x, c.y, c.z, 1);
+      run.tick(TICK);
+      expect(run.events.splashCount).toBe(1);
+      expect(run.events.hitCount).toBe(1);
+      expect(run.streak).toBe(1);
+      expect(run.score).toBe(100);
    });
 
    it("counts the streak in resolution order: a near shot fired after a far one resolves first", () => {
@@ -410,93 +517,141 @@ interface BotRun {
    ms: number;
    reason: string;
    shots: number;
+   /** scored shots with a chain bonus, and barrel pairs that went off */
+   chains: number;
+   pairs: number;
 }
 
-/** The oracle: leads the most advanced ship not already covered by balls in flight; a barrel when it would hit 2+ ships; the chest. */
-function botRun(seed: number, frame: () => number): BotRun {
+interface BotOptions {
+   frame: () => number;
+   /** press fire on every frame (a buffered press keeps the aim of its own frame) */
+   spam?: boolean;
+   /** never aim or fire */
+   idle?: boolean;
+   /** pause with this chance per frame, resume with 0.2 per paused frame (seeded) */
+   pauses?: number;
+}
+
+
+/**
+ * The oracle through core's simulateRun on the real store: leads the most advanced ship not already
+ * covered by balls in flight; a barrel pair when its blasts would reach 2+ ships; the chest.
+ */
+function botRun(seed: number, opts: BotOptions): BotRun {
    const store = createArcadeStore();
-   store.getState().configure({ durationMs: DURATION_MS, lives: LIVES });
-   store.getState().markReady();
-   store.getState().start();
    const run = createRun(seed);
    const incoming = new Map<number, number[]>();
+   const rng = createRng(seed ^ 0x5bd1);
    let aim = { yaw: 0, el: 10 * DEG };
    let shots = 0;
+   let chains = 0;
+   let blasts = 0;
    let idleUntil = 0;
    const at = { x: 0, y: 0, z: 0 };
-   while (store.getState().phase !== "over") {
-      advanceRunClock(store, frame());
-      const dt = playedFrameDt(store.getState());
-      if (dt === 0) continue;
-      let fire = false;
-      if (!run.buffered && run.reload <= dt && run.time >= idleUntil) {
-         const delay = Math.max(run.reload, 0) + TICK;
-         let best: { yaw: number; el: number; tf: number } | null = null;
-         let bestKey = -Infinity;
-         let target = -1;
-         const covered = (i: number) => (incoming.get(i) ?? []).filter((t) => t > run.time).length;
-         for (const s of run.ships) {
-            if (s.state !== SHIP_SAILING || covered(s.index) >= s.hp) continue;
-            const a = lead(run, (t, out) => shipAhead(s, t, out), delay);
-            if (!a) continue;
-            const key = s.rider.position.x + LANE_BONUS[s.lane] / 10;
-            if (key > bestKey) [best, bestKey, target] = [a, key, s.index];
-         }
-         for (const b of run.barrels) {
-            if (b.state !== BARREL_FLOATING) continue;
-            const a = lead(run, (t, out) => Object.assign(out, { x: b.x + BARREL.speed * t, y: BARREL.y, z: b.z }), delay);
-            if (!a) continue;
-            const near = run.ships.filter((s) => {
-               if (s.state !== SHIP_SAILING) return false;
-               shipAhead(s, delay + a.tf, at);
-               return Math.hypot(at.x - (b.x + BARREL.speed * (delay + a.tf)), at.z - b.z) < BARREL.radius;
+   const frame = opts.pauses
+      ? () => {
+           if (store.getState().phase === "paused" && rng() < 0.2) store.getState().resume();
+           return opts.frame();
+        }
+      : opts.frame;
+   const end = simulateRun(store, {
+      durationMs: DURATION_MS,
+      lives: LIVES,
+      frame,
+      step: (dt) => {
+         let fire = !!opts.spam;
+         if (!opts.idle && (opts.spam || !run.buffered) && run.reload <= dt && run.time >= idleUntil) {
+            const delay = Math.max(run.reload, 0) + TICK;
+            let best: { yaw: number; el: number; tf: number } | null = null;
+            let bestKey = -Infinity;
+            let target = -1;
+            const covered = (i: number) => (incoming.get(i) ?? []).filter((t) => t > run.time).length;
+            for (const s of run.ships) {
+               if (s.state !== SHIP_SAILING || covered(s.index) >= s.hp) continue;
+               const a = lead(run, (t, out) => shipAhead(s, t, out), delay);
+               if (!a) continue;
+               const key = s.rider.position.x + LANE_BONUS[s.lane] / 10;
+               if (key > bestKey) [best, bestKey, target] = [a, key, s.index];
+            }
+            run.barrels.forEach((b, i) => {
+               if (b.state !== BARREL_FLOATING) return;
+               const a = lead(run, (t, out) => Object.assign(out, { x: b.x + BARREL.speed * t, y: BARREL.y, z: b.z }), delay);
+               if (!a) return;
+               const u = delay + a.tf;
+               const pair = [b, run.barrels[i ^ 1]].filter((o) => o.state === BARREL_FLOATING);
+               const near = run.ships.filter((s) => {
+                  if (s.state !== SHIP_SAILING) return false;
+                  shipAhead(s, u, at);
+                  return pair.some((o) => Math.hypot(at.x - (o.x + BARREL.speed * u), at.z - o.z) < BARREL.radius);
+               });
+               if (near.length >= 2) [best, bestKey, target] = [a, 1e6, -1];
             });
-            if (near.length >= 2) [best, bestKey, target] = [a, 1e6, -1];
+            if (run.chest.state === 1) {
+               const c = run.chest;
+               const a = lead(run, (t, out) => Object.assign(out, { x: c.x + CHEST.speed * t, y: CHEST.y, z: c.z }), delay);
+               if (a && bestKey < 1e6) [best, bestKey, target] = [a, 1e5, -1];
+            }
+            if (best) {
+               aim = { yaw: best.yaw, el: best.el };
+               fire = true;
+               shots++;
+               if (target >= 0) incoming.set(target, [...(incoming.get(target) ?? []), run.time + delay + best.tf + 0.05]);
+            } else idleUntil = run.time + 0.1;
          }
-         if (run.chest.state === 1) {
-            const c = run.chest;
-            const a = lead(run, (t, out) => Object.assign(out, { x: c.x + CHEST.speed * t, y: CHEST.y, z: c.z }), delay);
-            if (a && bestKey < 1e6) [best, bestKey, target] = [a, 1e5, -1];
+         advanceRun(run, dt, aim.yaw, aim.el, fire);
+         const ev = run.events;
+         for (let i = 0; i < ev.scoreCount; i++) {
+            store.getState().addScore(ev.scores[i].points);
+            if (ev.scores[i].chain > 0) chains++;
          }
-         if (best) {
-            aim = { yaw: best.yaw, el: best.el };
-            fire = true;
-            shots++;
-            if (target >= 0) incoming.set(target, [...(incoming.get(target) ?? []), run.time + delay + best.tf + 0.05]);
-         } else idleUntil = run.time + 0.1;
-      }
-      advanceRun(run, dt, aim.yaw, aim.el, fire);
-      const ev = run.events;
-      const s = store.getState();
-      for (let i = 0; i < ev.scoreCount; i++) s.addScore(ev.scores[i].points);
-      for (let i = 0; i < ev.harbour; i++) store.getState().loseLife();
-   }
-   const s = store.getState();
-   expect(s.score).toBe(Math.min(run.score, s.score));
-   return { score: s.score, ms: s.elapsedMs, reason: s.endReason ?? "", shots };
+         blasts += ev.blastCount;
+         for (let i = 0; i < ev.harbour; i++) store.getState().loseLife();
+         if (opts.pauses && rng() < opts.pauses) store.getState().pause();
+      },
+   });
+   // the store never holds more than the rules scored (less when a shot resolves after the end)
+   expect(end.score).toBeLessThanOrEqual(run.score);
+   return { score: end.score, ms: end.elapsedMs, reason: end.endReason ?? "", shots, chains, pairs: blasts / 2 };
 }
 
-describe("limit proof: the oracle bot on the real store", () => {
-   const frames: Array<[string, (rng: () => number) => () => number]> = [
-      ["60 fps", () => () => 1 / 60],
-      ["20 fps", () => () => 1 / 20],
-      ["random 4-50 ms", (rng) => () => 0.004 + rng() * 0.046],
+describe("limit proof: bots on the real store (core simulateRun)", () => {
+   // seeds per bot: the store costs about 20 µs a frame, so the 144 Hz and random-frame bots run fewer
+   // to keep this file near 45 s (each bot's runs are its own seeds 11, 7930, ...)
+   const bots: Array<[string, (seed: number) => BotOptions, number, number]> = [
+      ["oracle 60 fps", () => ({ frame: fixedFrames(1000 / 60) }), 0.7, 100],
+      ["oracle 20 fps", () => ({ frame: fixedFrames(50) }), 0.7, 100],
+      ["oracle 144 Hz", () => ({ frame: fixedFrames(1000 / 144) }), 0.7, 30],
+      ["oracle random 4-50 ms", (seed) => ({ frame: randomFrames(seed) }), 0.7, 60],
+      ["oracle with pauses", (seed) => ({ frame: randomFrames(seed), pauses: 0.004 }), 0.7, 40],
+      ["fire-every-frame spam", (seed) => ({ frame: randomFrames(seed), spam: true }), 0, 100],
+      ["idle (store-driven)", () => ({ frame: fixedFrames(1000 / 60), idle: true }), 0, 100],
    ];
-   for (const [name, make] of frames) {
-      it(`stays within the proposed limits at ${name} (200 seeds)`, () => {
-         const rng = createRng(77);
-         let best: BotRun & { seed: number } = { score: -1, ms: 0, reason: "", shots: 0, seed: 0 };
+   for (const [name, make, floor, n] of bots) {
+      it(`${name}: every run within the proposed limits (${n} seeds)`, () => {
+         let best: BotRun & { seed: number } = { score: -1, ms: 0, reason: "", shots: 0, chains: 0, pairs: 0, seed: 0 };
          let worst = Infinity;
-         for (const seed of seeds(200, 11)) {
-            const r = botRun(seed, make(rng));
+         let earliest = Infinity;
+         let chains = 0;
+         let pairs = 0;
+         for (const seed of seeds(n, 11)) {
+            const r = botRun(seed, make(seed));
             expect(fitsLimits(r.score, r.ms, PROPOSED), `seed ${seed}: ${r.score} in ${r.ms} ms`).toBe(true);
             expect(capToLimits(r.score, r.ms, PROPOSED)).toBe(r.score);
             expect(r.score).toBeLessThanOrEqual(MAX_SCORE);
+            // a pair always goes off whole: blasts come in twos
+            expect(Number.isInteger(r.pairs)).toBe(true);
             if (r.score > best.score) best = { ...r, seed };
             worst = Math.min(worst, r.score);
+            earliest = Math.min(earliest, r.ms);
+            chains += r.chains;
+            pairs += r.pairs;
          }
-         console.log(`pirate-cannons bot ${name}: best ${best.score} (${((best.score / MAX_SCORE) * 100).toFixed(1)} %, seed ${best.seed}, ${best.reason}, ${best.shots} shots), worst ${worst}`);
-         expect(best.score).toBeGreaterThanOrEqual(0.7 * MAX_SCORE);
+         console.log(`pirate-cannons bot ${name}: best ${best.score} (${((best.score / MAX_SCORE) * 100).toFixed(1)} %, seed ${best.seed}, ${best.reason}, ${best.shots} shots), worst ${worst}, earliest end ${earliest} ms, pairs ${pairs}, chain shots ${chains}`);
+         expect(best.score).toBeGreaterThanOrEqual(floor * MAX_SCORE);
+         expect(earliest).toBeGreaterThanOrEqual(PROPOSED.minDurationMs);
+         if (make(1).idle) expect(best.score).toBe(0);
+         // barrel pairs go off in play (a pair always chains)
+         if (floor > 0) expect(pairs).toBeGreaterThan(0);
       });
    }
 
@@ -533,5 +688,105 @@ describe("limit proof: the oracle bot on the real store", () => {
          results.add(`${log.join(",")}|${run.score}`);
       }
       expect(results.size).toBe(1);
+   });
+});
+
+describe("reachability and chains in real waves", () => {
+   const REACH_SEEDS = 1000;
+   /** The longest run of 1/15 s samples (s) in which `ok()` holds, stopping once it reaches 1.5 s. */
+   const windowLength = (samples: () => boolean | null): number => {
+      let open = -1;
+      let longest = 0;
+      for (let k = 0; ; k++) {
+         const ok = samples();
+         if (ok === null) return longest;
+         if (ok && open < 0) open = k;
+         if (ok) longest = Math.max(longest, (k - open) / 15);
+         else open = -1;
+         if (longest >= 1.5) return longest;
+      }
+   };
+
+   it(`every ship has a window of 1.5 s or more with a lead shot inside the aim limits, clear of the island (${REACH_SEEDS} seeds, each ship alone on its course)`, () => {
+      // alone at its full speed in its wave's wind: the gap rule and slot waits only slow a ship on the
+      // same course (checked with the whole run below)
+      let shortest = Infinity;
+      for (const seed of seeds(REACH_SEEDS)) {
+         const run = createRun(seed);
+         for (const s of run.ships) {
+            run.wind.x = run.plan.waves[s.wave].wind.x;
+            run.wind.z = run.plan.waves[s.wave].wind.z;
+            s.current = s.speed;
+            const w = windowLength(() => {
+               if (s.rider.position.x >= SEA.harbourX) return null;
+               const ok = lead(run, (t, out) => shipAhead(s, t, out), TICK) !== null;
+               advance(s.rider, s.current / 15);
+               return ok;
+            });
+            shortest = Math.min(shortest, w);
+         }
+      }
+      expect(shortest).toBeGreaterThanOrEqual(1.5);
+   });
+
+   it("and in whole runs, with the gap rule and slot waits (100 seeds)", () => {
+      let shortest = Infinity;
+      for (const seed of seeds(100, 5)) {
+         const run = createRun(seed);
+         const open = new Array<number>(run.ships.length).fill(-1);
+         const longest = new Array<number>(run.ships.length).fill(0);
+         // past 90 s too (the rules run on), so the last ships of wave 5 sail their whole course
+         while (run.time < 200 && longest.some((l, i) => l < 1.5 && (run.ships[i].state === SHIP_PENDING || run.ships[i].state === SHIP_SAILING))) {
+            advanceRun(run, 1 / 15, 0, 0, false);
+            for (const s of run.ships) {
+               if (longest[s.index] >= 1.5) continue;
+               const ok = s.state === SHIP_SAILING && lead(run, (t, out) => shipAhead(s, t, out), TICK) !== null;
+               if (ok && open[s.index] < 0) open[s.index] = run.time;
+               if (open[s.index] >= 0) longest[s.index] = Math.max(longest[s.index], run.time - open[s.index]);
+               if (!ok) open[s.index] = -1;
+            }
+         }
+         for (const s of run.ships) shortest = Math.min(shortest, longest[s.index]);
+      }
+      expect(shortest).toBeGreaterThanOrEqual(1.5);
+   });
+
+   it("a shot at a real wave's barrel sets off its pair partner 0.15 s later: both go off in that one shot", () => {
+      let chained = 0;
+      for (const seed of seeds(40)) {
+         const run = createRun(seed);
+         idle(run, WAVES[1].start + BARREL.delay + 1);
+         const [leader, trailer] = run.barrels.slice(2, 4);
+         expect(leader.state).toBe(BARREL_FLOATING);
+         const a = lead(run, (t, out) => Object.assign(out, { x: trailer.x + BARREL.speed * t, y: BARREL.y, z: trailer.z }), TICK);
+         if (!a) continue;
+         let blasts = 0;
+         let fusedAt = -1;
+         let firstAt = -1;
+         advanceRun(run, 1 / 60, a.yaw, a.el, true);
+         for (let f = 0; f < 300 && blasts < 2; f++) {
+            advanceRun(run, 1 / 120, a.yaw, a.el, false);
+            if (run.events.blastCount > 0 && firstAt < 0) firstAt = run.time;
+            blasts += run.events.blastCount;
+            if (fusedAt < 0 && leader.state === BARREL_FUSE) fusedAt = run.time;
+         }
+         if (blasts === 0) continue; // a ship took the ball first
+         expect(blasts, `seed ${seed}`).toBe(2);
+         expect(fusedAt).toBe(firstAt);
+         expect(leader.state).toBe(BARREL_GONE);
+         expect(trailer.state).toBe(BARREL_GONE);
+         chained++;
+      }
+      expect(chained).toBeGreaterThanOrEqual(20);
+   });
+
+   it("a pair leaves together when its leader reaches x +18: no shot can take one barrel alone", () => {
+      const run = createRun(5);
+      idle(run, BARREL.delay + (18 - (-18 + 4.5)) / BARREL.speed - 0.05);
+      expect(run.barrels[0].state).toBe(BARREL_FLOATING);
+      expect(run.barrels[1].state).toBe(BARREL_FLOATING);
+      idle(run, 0.1);
+      expect(run.barrels[0].state).toBe(BARREL_GONE);
+      expect(run.barrels[1].state).toBe(BARREL_GONE);
    });
 });

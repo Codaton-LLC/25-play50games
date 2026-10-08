@@ -80,7 +80,7 @@ export const SEA = {
    spawnBowX: -20,
    /** the harbour buoy line: a live ship whose centre crosses it costs a life */
    harbourX: 18,
-   /** ships sail on past the buoys (fading) to here, then are gone */
+   /** ships sail on past the buoys (opaque, no fade) to here, then are gone */
    endX: 30,
    /** same-lane gap (m, stern to bow): closer than this, a ship matches the speed of the ship ahead */
    gap: 4,
@@ -109,8 +109,13 @@ export const WAVES: readonly WaveSpec[] = [
 export const SPAWN_JITTER = 1.5;
 export const SHIP_COUNT = WAVES.reduce((n, w) => n + w.types.length, 0);
 
-/** Powder barrels: one per wave, `delay` after its start, drifting +x; a hit blasts ships within `radius` + their sphere. */
-export const BARREL = { delay: 2, startX: -18, endX: 18, speed: 0.6, r: 0.6, y: 0.2, radius: 6, chainDelay: 0.15, offset: [3, -3, 3] } as const;
+/**
+ * Powder barrels: a pair per wave, `delay` after its start, the leader at `startX + pairGap` and the
+ * trailer at `startX` on the same line, drifting +x together; a hit blasts ships within `radius` +
+ * their sphere and sets off the other barrel of the pair (`pairGap` < `radius`: every pair chains).
+ * The pair leaves together when its leader reaches `endX`, so one shot always takes both (README proof).
+ */
+export const BARREL = { delay: 2, startX: -18, pairGap: 4.5, endX: 18, speed: 0.6, r: 0.6, y: 0.2, radius: 6, chainDelay: 0.15, offset: [3, -3, 3] } as const;
 /** The chest: once per run, spawned at a seeded time in [minS, maxS] on lane 40 or 55. */
 export const CHEST = { minS: 30, maxS: 60, startX: -18, endX: 18, speed: 1.6, r: 0.6, y: 0.25 } as const;
 
@@ -150,7 +155,8 @@ export interface Plan {
    seed: number;
    ships: ShipPlan[];
    waves: WavePlan[];
-   barrels: Array<{ spawnAt: number; lane: number; z: number }>;
+   /** two per wave: the leader (even index) then its trailer */
+   barrels: Array<{ spawnAt: number; lane: number; z: number; x: number }>;
    chest: { spawnAt: number; lane: number };
 }
 
@@ -179,7 +185,9 @@ export function generatePlan(seed: number): Plan {
       const strength = w.wind * (0.5 + 0.5 * rng());
       waves.push({ dir, strength, wind: { x: Math.cos(dir) * strength, z: -Math.sin(dir) * strength } });
       const lane = Math.floor(rng() * LANES.length);
-      barrels.push({ spawnAt: w.start + BARREL.delay, lane, z: LANES[lane] + BARREL.offset[lane] });
+      const z = LANES[lane] + BARREL.offset[lane];
+      barrels.push({ spawnAt: w.start + BARREL.delay, lane, z, x: BARREL.startX + BARREL.pairGap });
+      barrels.push({ spawnAt: w.start + BARREL.delay, lane, z, x: BARREL.startX });
    });
    const chest = { spawnAt: CHEST.minS + rng() * (CHEST.maxS - CHEST.minS), lane: 1 + Math.floor(rng() * 2) };
    return { seed, ships, waves, barrels, chest };
@@ -321,6 +329,8 @@ export interface Barrel {
    lane: number;
    x: number;
    z: number;
+   /** the pair's leader x minus this barrel's (0 for the leader): the pair leaves when the leader reaches BARREL.endX */
+   lag: number;
    fuseAt: number;
    shot: number;
 }
@@ -382,8 +392,10 @@ export interface RunState {
    wind: { x: number; z: number };
    aimYaw: number;
    aimEl: number;
-   /** a fire is waiting for the reload */
+   /** a fire is waiting for the reload, with the aim of its press (a later drag does not change it) */
    buffered: boolean;
+   bufYaw: number;
+   bufEl: number;
    reload: number;
    ships: Ship[];
    balls: Ball[];
@@ -436,6 +448,8 @@ export function createRun(seed: number): RunState {
       aimYaw: 0,
       aimEl: 0,
       buffered: false,
+      bufYaw: 0,
+      bufEl: 0,
       reload: 0,
       ships,
       balls: Array.from({ length: BALL_POOL }, () => ({
@@ -450,7 +464,7 @@ export function createRun(seed: number): RunState {
       })),
       shots: Array.from({ length: SHOT_POOL }, () => ({ active: false, id: 0, ballDone: false, damaged: 0, mask: 0, bonus: 0, barrel: false, chest: false, pending: 0, x: 0, y: 0, z: 0 })),
       nextShot: 1,
-      barrels: plan.barrels.map((b) => ({ state: BARREL_PENDING, spawnAt: b.spawnAt, lane: b.lane, x: BARREL.startX, z: b.z, fuseAt: 0, shot: -1 })),
+      barrels: plan.barrels.map((b, i) => ({ state: BARREL_PENDING, spawnAt: b.spawnAt, lane: b.lane, x: b.x, z: b.z, lag: i % 2 ? BARREL.pairGap : 0, fuseAt: 0, shot: -1 })),
       chest: { state: 0, spawnAt: plan.chest.spawnAt, lane: plan.chest.lane, x: CHEST.startX, z: LANES[plan.chest.lane] },
       streak: 0,
       score: 0,
@@ -497,14 +511,20 @@ function resetEvents(ev: Events): void {
 }
 
 /**
- * One frame: store the aim, buffer a fire, then run whole 1/120 s ticks (the leftover carries).
+ * One frame: store the aim, buffer a fire with this frame's aim (one at a time: a press while one
+ * waits is ignored, so the shot goes where the player released it), then run whole 1/120 s ticks
+ * (the leftover carries).
  * `dt` is useRunFrame's (≤ 1/20 s, so ≤ 6 ticks: fixedStep's cap of 8 never drops one).
  */
 export function advanceRun(run: RunState, dt: number, yaw: number, elevation: number, fire: boolean): void {
    resetEvents(run.events);
    run.aimYaw = yaw;
    run.aimEl = elevation;
-   if (fire) run.buffered = true;
+   if (fire && !run.buffered) {
+      run.buffered = true;
+      run.bufYaw = yaw;
+      run.bufEl = elevation;
+   }
    fixedStep(run.clock, dt, run.tick);
 }
 
@@ -556,7 +576,7 @@ function tick(run: RunState, step: number): void {
    stepShips(run, step);
    stepFloaters(run, step);
 
-   // fire: a buffered shot goes off when the reload is over, with the aim of this frame
+   // fire: a buffered shot goes off when the reload is over, with the aim of its press
    run.reload = Math.max(0, run.reload - step);
    if (run.buffered && run.reload <= 0) launchBall(run);
 
@@ -616,7 +636,7 @@ function stepFloaters(run: RunState, step: number): void {
       if (b.state === BARREL_PENDING && t >= b.spawnAt) b.state = BARREL_FLOATING;
       if (b.state !== BARREL_FLOATING) continue;
       b.x += BARREL.speed * step;
-      if (b.x >= BARREL.endX) b.state = BARREL_GONE;
+      if (b.x + b.lag >= BARREL.endX) b.state = BARREL_GONE;
    }
    const c = run.chest;
    if (c.state === 0 && t >= c.spawnAt) c.state = 1;
@@ -644,7 +664,7 @@ function launchBall(run: RunState): void {
    ball.active = true;
    ball.shot = run.shots.indexOf(shot);
    ball.ticks = 0;
-   launchState(run.aimYaw, run.aimEl, ball.launch);
+   launchState(run.bufYaw, run.bufEl, ball.launch);
    ball.params.wind.x = run.wind.x;
    ball.params.wind.z = run.wind.z;
    ball.x = ball.launch.x;
@@ -823,7 +843,7 @@ function resolveShots(run: RunState): void {
 
 /** Value ceiling of one ship: every HP hit at the combo, plus its lane bonus. */
 export const shipCeiling = (type: ShipType, lane: number) => POINTS.combo * (POINTS.hit * SHIPS[type].hp + LANE_BONUS[lane]);
-/** Chain ceiling of one barrel, and the chest's. */
+/** Chain ceiling of one barrel pair (a pair always goes off in one shot), and the chest's. */
 export const BARREL_CEILING = POINTS.combo * POINTS.chainMax;
 export const CHEST_CEILING = POINTS.combo * POINTS.chest;
 
@@ -840,6 +860,7 @@ export function ceilingAt(t: number): number {
       const hp = w.types.map((ty) => SHIPS[ty].hp).sort((a, b) => b - a);
       const bonus = w.lanes.map((l) => LANE_BONUS[l]).sort((a, b) => b - a);
       for (let i = 0; i < k; i++) total += POINTS.combo * (POINTS.hit * hp[i] + bonus[i]);
+      // one pair per wave: both barrels go off in one shot (pairGap < radius, they leave together)
       if (w.start + BARREL.delay <= t + 1e-9) total += BARREL_CEILING;
    }
    if (CHEST.minS <= t + 1e-9) total += CHEST_CEILING;
