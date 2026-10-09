@@ -29,5 +29,5 @@ export const alienFarmMeta: ArcadeGameMeta = {
    },
    thumbnail: null,
    accent: "#4ade80",
-   owner: "kimi",
+   owner: "codex",
 };
