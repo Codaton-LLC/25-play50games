@@ -258,7 +258,7 @@ describe("mini-golf frame-rate independence", () => {
             run.lastRest = { x: hole.tee.x, z: hole.tee.z, upper: run.ball.upper };
             let fired = false;
             for (let f = 0; f < 20000 && !run.over; f++) {
-               const go = !fired && run.holeTicks >= 120;
+               const go: boolean = !fired && run.holeTicks >= 120;
                advanceRun(run, frame(), 0.05, 0.62, go);
                fired ||= go;
                if (fired && run.phase !== "moving" && !run.pending.on) break;
