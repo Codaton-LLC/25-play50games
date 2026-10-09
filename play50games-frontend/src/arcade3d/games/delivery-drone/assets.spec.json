@@ -1,0 +1,21 @@
+﻿{
+   "slug": "delivery-drone",
+   "universe": "shared-cast",
+   "seed": 5050,
+   "assets": [
+      {
+         "id": "drone",
+         "kind": "prop",
+         "mode": "image",
+         "prompt": "Friendly delivery drone: a rounded white body with soft blue panels, four short arms ending in round rotor guard rings that are empty inside (no propeller blades), a small hook underneath, and a small glowing camera eye at the front. Premium stylised mobile-game look, soft bevelled edges, clean simple shapes, matte white and soft blue, slate details. Single object, centred, level, front facing the viewer, symmetrical. No propellers, no parcel, no logo, no base, no ground, no text. Clean game-ready low-poly topology, clean PBR textures without baked shadows.",
+         "concept": "tools/hyper3d/concepts/delivery-drone-drone.webp",
+         "tier": "Gen-2.5-Medium",
+         "qualityOverride": 3000,
+         "attempts": 1,
+         "target": "delivery-drone",
+         "budget": { "tris": 5000, "bytes": 300000 },
+         "textureSize": 512
+      }
+   ]
+}
+
