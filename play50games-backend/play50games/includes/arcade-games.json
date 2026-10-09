@@ -142,11 +142,11 @@
     "delivery-drone": {
       "title": "Delivery Drone",
       "kind": "points",
-      "max_score": 6000,
-      "min_duration_ms": 10000,
-      "max_duration_ms": 200000,
-      "base": 6000,
-      "max_pps": 6000,
+      "max_score": 3600,
+      "min_duration_ms": 20000,
+      "max_duration_ms": 182000,
+      "base": 300,
+      "max_pps": 75,
       "enabled": false
     },
     "shopping-cart": {
