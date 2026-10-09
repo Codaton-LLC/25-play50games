@@ -27,7 +27,7 @@ export const penguinSlideMeta: ArcadeGameMeta = {
       unitLabel: "pts",
       display: "int",
    },
-   thumbnail: null,
+   thumbnail: "/images/3d/penguin-slide.webp",
    accent: "#67e8f9",
    owner: "codex",
 };
