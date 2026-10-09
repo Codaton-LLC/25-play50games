@@ -292,11 +292,11 @@
     "rocket-landing": {
       "title": "Rocket Landing Challenge",
       "kind": "points",
-      "max_score": 4500,
-      "min_duration_ms": 15000,
-      "max_duration_ms": 300000,
-      "base": 4500,
-      "max_pps": 4500,
+      "max_score": 2800,
+      "min_duration_ms": 5000,
+      "max_duration_ms": 242000,
+      "base": 800,
+      "max_pps": 200,
       "enabled": false
     }
   }
