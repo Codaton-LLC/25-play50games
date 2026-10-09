@@ -1,19 +1,22 @@
-// Dino Egg Rescue rules: valley layout, dino kinematics, egg supply/spawns,
-// boulder gullies, mud pits, stack delivery, and scoring.
-// Pure and deterministic: no three.js, React, DOM, Math.random or Date.now.
-// Scene.tsx feeds it input, dt and play time; rules.test.ts tests it directly.
+// Pure, deterministic rules for Dino Egg Rescue (Adventure Game 14).
+// No Three.js, React or DOM imports. All gameplay numbers live here.
 
-import { clampToBounds, type AABB, type Vec3Like } from "@/arcade3d/core/collision";
-import { capScore as capToLimits, withinServerLimits as fitsLimits } from "@/arcade3d/core/limits";
-import { createRng, rngNext, turnTowards, type RngState } from "@/arcade3d/core/math";
-import { dinoEggRescueMeta } from "./meta";
+import type { AABB, Vec3Like } from "@/arcade3d/core/collision";
+import { rngNext, turnTowards, type RngState } from "@/arcade3d/core/math";
+import {
+   capScore as capToLimits,
+   withinServerLimits as fitsLimits,
+} from "@/arcade3d/core/limits";
+import dinoEggRescueMeta from "./meta";
 
-// ---------- tuning constants ----------
+// ---------- constants and layout ----------
 
 export const DURATION_MS = 90_000;
 export const RESULT_DELAY_MS = 1200;
 
 export const VALLEY = {
+   width: 30,
+   depth: 22,
    halfX: 15,
    halfZ: 11,
 } as const;
@@ -23,24 +26,6 @@ export const VALLEY_BOUNDS: AABB = {
    max: { x: 15, y: 0, z: 11 },
 };
 
-export const DINO = {
-   radius: 0.55,
-   length: 1.1,
-   height: 0.8,
-   baseSpeed: 5.0,
-   accel: 20.0,
-   brake: 25.0,
-   turnRate: 12.0,
-   dashSpeed: 8.0,
-   dashDuration: 0.4,
-   dashCooldown: 1.5,
-   stunDuration: 0.8,
-   graceDuration: 1.0,
-   startX: 11.0,
-   startZ: 7.5,
-   startFacing: -Math.PI / 2, // facing -x towards valley
-} as const;
-
 export const NEST = {
    x: 11.0,
    z: 7.5,
@@ -48,27 +33,43 @@ export const NEST = {
    deliveryRadius: 1.4,
 } as const;
 
+export const DINO = {
+   startX: 11.0,
+   startZ: 7.5,
+   startFacing: -Math.PI / 2, // -x towards valley
+   radius: 0.55,
+   baseSpeed: 5.0,
+   dashSpeed: 8.0,
+   accel: 20.0,
+   brake: 25.0,
+   turnRate: 12.0,
+   dashDuration: 0.4,
+   dashCooldown: 1.5,
+   stunDuration: 0.8,
+   graceDuration: 1.0,
+} as const;
+
 export const MUD = {
    radius: 1.6,
    speedMultiplier: 0.5,
    patches: [
-      { x: -11.5, z: -7.5 }, // M1 NW
-      { x: 11.5, z: 1.0 },   // M2 SE
-      { x: 6.5, z: 9.3 },    // M3 SE
+      { id: 1, x: -11.5, z: -7.5 },
+      { id: 2, x: 11.5, z: 1.0 },
+      { id: 3, x: 6.5, z: 9.3 },
    ] as const,
 } as const;
 
 export const TREES = {
    trunkRadius: 0.256,
    positions: [
-      { x: -13.5, z: -10.0 }, // T1
-      { x: -7.5, z: -9.8 },   // T2
-      { x: -13.8, z: -4.6 },  // T3
-      { x: 14.0, z: -2.5 },   // T4
-      { x: 14.2, z: 4.5 },    // T5
-      { x: 8.0, z: 4.5 },     // T6
-      { x: 14.0, z: 10.0 },   // T7
-      { x: 3.5, z: 10.2 },    // T8
+      { id: 1, x: -13.5, z: -10.0 },
+      { id: 2, x: -7.5, z: -9.8 },
+      { id: 3, x: -13.8, z: -4.6 },
+      { id: 4, x: 14.0, z: -2.5 },
+      { id: 5, x: 14.2, z: 4.5 },
+      { id: 6, x: 8.0, z: 4.5 },
+      { id: 7, x: 14.0, z: 10.0 },
+      { id: 8, x: 3.5, z: 10.2 },
    ] as const,
 } as const;
 
@@ -91,10 +92,10 @@ export const BOULDER_LANES: readonly BoulderLane[] = [
 
 export const BOULDERS = {
    radius: 0.5,
-   contactBandHalfWidth: 1.05, // 0.5 + 0.55
-   headwayS: 2.5,
+   contactBandHalfWidth: 1.05, // 0.5 (boulder) + 0.55 (dino)
    spawnIntervalStartS: 3.0,
    spawnIntervalEndS: 1.2,
+   headwayS: 2.5,
 } as const;
 
 export const EGGS = {
@@ -162,6 +163,7 @@ export function laneEdgeClearance(
 
 export interface DinoEntity {
    x: number;
+   y: number;
    z: number;
    vx: number;
    vz: number;
@@ -203,16 +205,18 @@ export interface StepInput {
    jumpPressed: boolean;
 }
 
+export interface EggDeliveredEvent {
+   regularCount: number;
+   goldenCount: number;
+   points: number;
+}
+
 export interface GameEvents {
    dashStarted: boolean;
    footstep: boolean;
    eggPicked: boolean;
    goldenPicked: boolean;
-   eggDelivered: {
-      regularCount: number;
-      goldenCount: number;
-      points: number;
-   } | null;
+   eggDelivered: EggDeliveredEvent | null;
    boulderHit: boolean;
    eggsScattered: number;
    goldenSpawned: boolean;
@@ -235,6 +239,9 @@ export interface DinoRunState {
    nextBoulderId: number;
    nextEggId: number;
    footstepAccumulator: number;
+   events: GameEvents;
+   eggDeliveredRecord: EggDeliveredEvent;
+   laneTelegraph: [boolean, boolean, boolean, boolean];
 }
 
 // ---------- valid ground placement ----------
@@ -250,19 +257,19 @@ export function isValidGroundSpot(x: number, z: number, margin = 0.3): boolean {
       return false;
    }
 
-   // 2. Outside nest zone
+   // 2. Clear of nest zone
    if (Math.hypot(x - NEST.x, z - NEST.z) < NEST.radius + margin) {
       return false;
    }
 
-   // 3. Outside mud pits
+   // 3. Clear of mud pits
    for (const mud of MUD.patches) {
       if (Math.hypot(x - mud.x, z - mud.z) < MUD.radius + margin) {
          return false;
       }
    }
 
-   // 4. Outside tree trunks
+   // 4. Clear of tree trunks
    for (const tree of TREES.positions) {
       if (Math.hypot(x - tree.x, z - tree.z) < TREES.trunkRadius + margin) {
          return false;
@@ -365,7 +372,8 @@ export function sampleGoldenEggSpot(
          return { x: candX, z: candZ };
       }
    }
-   return pushToValidGroundSpot({ x: dinoX - 4.0, z: dinoZ - 2.0 }, 0.4);
+   // Fallback: clamped spot around dino
+   return pushToValidGroundSpot({ x: dinoX + 4.0, z: dinoZ - 3.0 }, 0.4);
 }
 
 // ---------- factory ----------
@@ -374,6 +382,7 @@ export function createDinoRun(seed: number): DinoRunState {
    const rng: RngState = { s: (seed >>> 0) || 1 };
    const dino: DinoEntity = {
       x: DINO.startX,
+      y: 0,
       z: DINO.startZ,
       vx: 0,
       vz: 0,
@@ -417,6 +426,22 @@ export function createDinoRun(seed: number): DinoRunState {
       nextBoulderId: 1,
       nextEggId: EGGS.initialSupply + 1,
       footstepAccumulator: 0,
+      events: {
+         dashStarted: false,
+         footstep: false,
+         eggPicked: false,
+         goldenPicked: false,
+         eggDelivered: null,
+         boulderHit: false,
+         eggsScattered: 0,
+         goldenSpawned: false,
+      },
+      eggDeliveredRecord: {
+         regularCount: 0,
+         goldenCount: 0,
+         points: 0,
+      },
+      laneTelegraph: [false, false, false, false],
    };
 }
 
@@ -427,16 +452,15 @@ export function stepDinoRun(
    input: StepInput,
    dt: number
 ): GameEvents {
-   const events: GameEvents = {
-      dashStarted: false,
-      footstep: false,
-      eggPicked: false,
-      goldenPicked: false,
-      eggDelivered: null,
-      boulderHit: false,
-      eggsScattered: 0,
-      goldenSpawned: false,
-   };
+   const events = run.events;
+   events.dashStarted = false;
+   events.footstep = false;
+   events.eggPicked = false;
+   events.goldenPicked = false;
+   events.eggDelivered = null;
+   events.boulderHit = false;
+   events.eggsScattered = 0;
+   events.goldenSpawned = false;
 
    if (!(dt > 0)) return events;
    run.timeS += dt;
@@ -453,10 +477,10 @@ export function stepDinoRun(
       }
    }
 
-   // 2. Scheduled golden egg spawns (at 25, 50, 75 s)
+   // 2. Golden egg scheduled spawns at 25 s, 50 s, 75 s
    if (run.goldenSpawnIndex < EGGS.goldenSpawnTimes.length) {
-      const targetTime = EGGS.goldenSpawnTimes[run.goldenSpawnIndex];
-      if (t >= targetTime) {
+      const scheduledT = EGGS.goldenSpawnTimes[run.goldenSpawnIndex];
+      if (t >= scheduledT) {
          const spot = sampleGoldenEggSpot(rng, dino.x, dino.z);
          run.groundEggs.push({
             id: run.nextEggId++,
@@ -475,10 +499,12 @@ export function stepDinoRun(
    while (run.nextEggSpawnTick <= EGGS.totalSpawnTicks) {
       const tickTime = run.nextEggSpawnTick * 3.0;
       if (t >= tickTime) {
-         // Check active regular eggs on ground
-         const groundRegularCount = run.groundEggs.filter(
-            (e) => e.active && !e.isGolden
-         ).length;
+         // Check active regular eggs on ground without allocation
+         let groundRegularCount = 0;
+         for (let i = 0; i < run.groundEggs.length; i++) {
+            const e = run.groundEggs[i];
+            if (e.active && !e.isGolden) groundRegularCount++;
+         }
          if (groundRegularCount < EGGS.maxGroundEggs) {
             const spot = sampleEggSpot(rng, tickTime);
             run.groundEggs.push({
@@ -496,47 +522,91 @@ export function stepDinoRun(
       }
    }
 
-   // 4. Boulder spawning schedule
+   // 4. Boulder spawning schedule & 0.8 s telegraph
    const spawnInterval =
       BOULDERS.spawnIntervalStartS -
       ((BOULDERS.spawnIntervalStartS - BOULDERS.spawnIntervalEndS) * Math.min(90, t)) / 90;
 
-   if (t >= run.nextBoulderSpawnTime) {
-      run.nextBoulderSpawnTime += spawnInterval;
-
-      // Filter eligible lanes
-      const eligibleLanes: BoulderLane[] = [];
+   // Update 0.8 s lane entrance telegraph
+   const isTelegraphing = t >= run.nextBoulderSpawnTime - 0.8 && t < run.nextBoulderSpawnTime;
+   for (let i = 0; i < 4; i++) {
+      run.laneTelegraph[i] = false;
+   }
+   if (isTelegraphing) {
       for (const lane of BOULDER_LANES) {
          if (t >= lane.unlockS) {
             const lastSpawn = run.laneLastSpawnTime[lane.id - 1];
             if (t - lastSpawn >= BOULDERS.headwayS) {
-               eligibleLanes.push(lane);
+               run.laneTelegraph[lane.id - 1] = true;
+            }
+         }
+      }
+   }
+
+   if (t >= run.nextBoulderSpawnTime) {
+      run.nextBoulderSpawnTime += spawnInterval;
+
+      // Filter eligible lanes without allocation
+      let eligibleCount = 0;
+      let lane1Eligible = false;
+      let lane2Eligible = false;
+      let lane3Eligible = false;
+      let lane4Eligible = false;
+
+      for (const lane of BOULDER_LANES) {
+         if (t >= lane.unlockS) {
+            const lastSpawn = run.laneLastSpawnTime[lane.id - 1];
+            if (t - lastSpawn >= BOULDERS.headwayS) {
+               eligibleCount++;
+               if (lane.id === 1) lane1Eligible = true;
+               else if (lane.id === 2) lane2Eligible = true;
+               else if (lane.id === 3) lane3Eligible = true;
+               else if (lane.id === 4) lane4Eligible = true;
             }
          }
       }
 
-      if (eligibleLanes.length > 0) {
-         const chosenIndex = Math.floor(rngNext(rng) * eligibleLanes.length);
-         const chosenLane = eligibleLanes[chosenIndex];
-         run.laneLastSpawnTime[chosenLane.id - 1] = t;
+      if (eligibleCount > 0) {
+         let pick = Math.floor(rngNext(rng) * eligibleCount);
+         let chosenLane: BoulderLane | null = null;
+         if (lane1Eligible) {
+            if (pick === 0) chosenLane = BOULDER_LANES[0];
+            pick--;
+         }
+         if (!chosenLane && lane2Eligible) {
+            if (pick === 0) chosenLane = BOULDER_LANES[1];
+            pick--;
+         }
+         if (!chosenLane && lane3Eligible) {
+            if (pick === 0) chosenLane = BOULDER_LANES[2];
+            pick--;
+         }
+         if (!chosenLane && lane4Eligible) {
+            if (pick === 0) chosenLane = BOULDER_LANES[3];
+            pick--;
+         }
 
-         const dx = chosenLane.endX - chosenLane.startX;
-         const dz = chosenLane.endZ - chosenLane.startZ;
-         const len = Math.hypot(dx, dz);
-         const dirX = len > 1e-6 ? dx / len : 0;
-         const dirZ = len > 1e-6 ? dz / len : 1;
+         if (chosenLane) {
+            run.laneLastSpawnTime[chosenLane.id - 1] = t;
 
-         run.boulders.push({
-            id: run.nextBoulderId++,
-            laneId: chosenLane.id,
-            x: chosenLane.startX,
-            z: chosenLane.startZ,
-            speed: chosenLane.speed,
-            dirX,
-            dirZ,
-            rollAngle: 0,
-            active: true,
-         });
+            const dx = chosenLane.endX - chosenLane.startX;
+            const dz = chosenLane.endZ - chosenLane.startZ;
+            const len = Math.hypot(dx, dz);
+            const dirX = len > 1e-6 ? dx / len : 0;
+            const dirZ = len > 1e-6 ? dz / len : 1;
+
+            run.boulders.push({
+               id: run.nextBoulderId++,
+               laneId: chosenLane.id,
+               x: chosenLane.startX,
+               z: chosenLane.startZ,
+               speed: chosenLane.speed,
+               dirX,
+               dirZ,
+               rollAngle: 0,
+               active: true,
+            });
+         }
       }
    }
 
@@ -561,32 +631,35 @@ export function stepDinoRun(
       dino.stunTimer -= dt;
       if (dino.stunTimer <= 1e-6) {
          dino.stunTimer = 0;
-         dino.graceTimer = DINO.graceDuration; // 1.0 s grace after stun ends
+         dino.graceTimer = DINO.graceDuration; // 1.0 s grace after stun
       }
    } else if (dino.graceTimer > 0) {
-      dino.graceTimer = dino.graceTimer <= dt + 1e-6 ? 0 : dino.graceTimer - dt;
-   }
-   if (dino.dashCooldown > 0) {
-      dino.dashCooldown = dino.dashCooldown <= dt + 1e-6 ? 0 : dino.dashCooldown - dt;
-   }
-   if (dino.dashTimer > 0) {
-      dino.dashTimer = dino.dashTimer <= dt + 1e-6 ? 0 : dino.dashTimer - dt;
+      dino.graceTimer -= dt;
+      if (dino.graceTimer <= 1e-6) {
+         dino.graceTimer = 0;
+      }
    }
 
-   // 7. Dash initiation
-   const wantsDash = input.actionPressed || input.jumpPressed;
-   if (wantsDash && dino.dashCooldown <= 0 && dino.stunTimer <= 0) {
+   if (dino.dashCooldown > 0) {
+      dino.dashCooldown -= dt;
+      if (dino.dashCooldown <= 1e-6) dino.dashCooldown = 0;
+   }
+   if (dino.dashTimer > 0) {
+      dino.dashTimer -= dt;
+      if (dino.dashTimer <= 1e-6) dino.dashTimer = 0;
+   }
+
+   // 7. Dash trigger
+   const dashRequested = input.actionPressed || input.jumpPressed;
+   if (dashRequested && dino.stunTimer <= 0 && dino.dashCooldown <= 0) {
       dino.dashTimer = DINO.dashDuration;
       dino.dashCooldown = DINO.dashCooldown;
       events.dashStarted = true;
    }
 
-   // 8. Dino speed and kinematics
-   const isStunned = dino.stunTimer > 0;
+   // 8. Dino velocity integration and speed multipliers
    let speed = 0;
-
-   if (!isStunned) {
-      // Check mud
+   if (dino.stunTimer <= 0) {
       let inMud = false;
       for (const mud of MUD.patches) {
          if (Math.hypot(dino.x - mud.x, dino.z - mud.z) <= MUD.radius) {
@@ -641,7 +714,7 @@ export function stepDinoRun(
    dino.x += dino.vx * dt;
    dino.z += dino.vz * dt;
 
-   // Push out of tree trunks
+   // Tree obstacle push-out against 0.256 m trunk
    for (const tree of TREES.positions) {
       const dx = dino.x - tree.x;
       const dz = dino.z - tree.z;
@@ -655,13 +728,15 @@ export function stepDinoRun(
       }
    }
 
-   // Clamp to valley bounds
-   clampToBounds(
-      { x: dino.x, y: 0, z: dino.z },
-      VALLEY_BOUNDS,
-      DINO.radius,
-      dino as unknown as Vec3Like
-   );
+   // Clamp to valley bounds without allocation
+   const minX = VALLEY_BOUNDS.min.x + DINO.radius;
+   const maxX = VALLEY_BOUNDS.max.x - DINO.radius;
+   const minZ = VALLEY_BOUNDS.min.z + DINO.radius;
+   const maxZ = VALLEY_BOUNDS.max.z - DINO.radius;
+   if (dino.x < minX) dino.x = minX;
+   else if (dino.x > maxX) dino.x = maxX;
+   if (dino.z < minZ) dino.z = minZ;
+   else if (dino.z > maxZ) dino.z = maxZ;
 
    // 10. Footstep audio accumulator & waddle phase
    if (speed > 0.3) {
@@ -674,8 +749,8 @@ export function stepDinoRun(
    }
 
    // 11. Boulder collisions with dino
-   const isInvulnerable = dino.dashTimer > 0 || dino.graceTimer > 0 || dino.stunTimer > 0;
-   if (!isInvulnerable) {
+   const isInvulnerable = dino.dashTimer > 0 || dino.graceTimer > 0;
+   if (!isInvulnerable && dino.stunTimer <= 0) {
       for (const boulder of run.boulders) {
          if (!boulder.active) continue;
          const touchDist = BOULDERS.radius + DINO.radius; // 0.5 + 0.55 = 1.05
@@ -762,24 +837,36 @@ export function stepDinoRun(
       const goldCount = dino.carriedGolden ? 1 : 0;
       if (regCount > 0 || goldCount > 0) {
          const points =
-            EGGS.points.regular[regCount] + (goldCount > 0 ? EGGS.points.golden : 0);
+            EGGS.points.regular[regCount] + goldCount * EGGS.points.golden;
          run.score += points;
          run.deliveredRegularCount += regCount;
          run.deliveredGoldenCount += goldCount;
          dino.carriedEggs = [];
          dino.carriedGolden = false;
 
-         events.eggDelivered = {
-            regularCount: regCount,
-            goldenCount: goldCount,
-            points,
-         };
+         run.eggDeliveredRecord.regularCount = regCount;
+         run.eggDeliveredRecord.goldenCount = goldCount;
+         run.eggDeliveredRecord.points = points;
+         events.eggDelivered = run.eggDeliveredRecord;
       }
    }
 
-   // Clean up inactive boulders and despawned golden eggs
-   run.boulders = run.boulders.filter((b) => b.active);
-   run.groundEggs = run.groundEggs.filter((e) => e.active);
+   // Clean up inactive boulders and despawned golden eggs in-place (no array allocation)
+   let bWrite = 0;
+   for (let i = 0; i < run.boulders.length; i++) {
+      if (run.boulders[i].active) {
+         run.boulders[bWrite++] = run.boulders[i];
+      }
+   }
+   run.boulders.length = bWrite;
+
+   let eWrite = 0;
+   for (let i = 0; i < run.groundEggs.length; i++) {
+      if (run.groundEggs[i].active) {
+         run.groundEggs[eWrite++] = run.groundEggs[i];
+      }
+   }
+   run.groundEggs.length = eWrite;
 
    return events;
 }

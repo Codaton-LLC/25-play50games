@@ -9,7 +9,15 @@ import {
 
 export const ASSETS = {
    dino: EXPANSION_ASSETS.dino,
-   rock: EXPANSION_ASSETS.rock,
+   rock: {
+      ...EXPANSION_ASSETS.rock,
+      scale: 1.0,
+      stretch: [
+         1.0 / EXPANSION_GLB_SIZE.rock.width,
+         1.0 / EXPANSION_GLB_SIZE.rock.height,
+         1.0 / EXPANSION_GLB_SIZE.rock.depth,
+      ] as const,
+   },
    leafyTree: EXPANSION_ASSETS.leafyTree,
 } satisfies Record<string, ModelAsset>;
 

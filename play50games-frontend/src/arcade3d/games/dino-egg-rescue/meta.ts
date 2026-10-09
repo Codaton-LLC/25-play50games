@@ -31,3 +31,5 @@ export const dinoEggRescueMeta: ArcadeGameMeta = {
    accent: "#a3e635",
    owner: "antigravity",
 };
+
+export default dinoEggRescueMeta;
