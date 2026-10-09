@@ -33,7 +33,7 @@ All numbers live in `rules.ts` (`HALL`, `BELT`, `SPAWN`, `DIVERTERS`, `FLIGHTS`,
 
 ### Server limits and why they hold (the proof)
 
-| | provisional (02 §C.4, `meta.ts` now) | proposed (assets + limits PR) |
+| | provisional (02 §C.4, before) | set (`meta.ts` + `arcade-games.json`, merge PR) |
 |---|---|---|
 | `maxScore` | 7500 | **7620** |
 | duration | 10000–122000 ms | **10000–122000 ms** |
@@ -121,4 +121,4 @@ Each flight has a colour and a black tag symbol (circle, square, triangle, star)
 
 ## Status
 
-Playable on `cursor/game-luggage-rush` (status stays `dev`). `meta.scoring` is still the provisional 7500 / 7500 / 7500; the proof's limits are maxScore 7620, base 0, maxPointsPerSec 64 (Claude's limits PR). Projected from the live fit (banner open): 1280×800 is 35 px/m, diverter gaps from 121 px, tag 16 px, bag 25 px; 390×844 is 28 px/m, gaps from 96 px, tag 13 px, bag 20 px; 844×390 is 31 px/m, gaps from 96 px, tag 14 px, bag 22 px. `?perf=1` in this browser: 19 draw calls (max 21), about 5130 triangles, geometries 23 (a live run touched 25 and the next Retry was back to 23), p95 about 34 ms. The chevron scrolls at the base 1.35 m/s because `<Conveyor>` only reads `speed` on render. Audio is the belt loop plus click, chime, combo, buzz and thud.
+Playable on `cursor/game-luggage-rush` (status stays `dev`). `meta.scoring` and `arcade-games.json` carry the proven limits: maxScore 7620, 10000–122000 ms, base 0, maxPointsPerSec 64. Projected from the live fit (banner open): 1280×800 is 35 px/m, diverter gaps from 121 px, tag 16 px, bag 25 px; 390×844 is 28 px/m, gaps from 96 px, tag 13 px, bag 20 px; 844×390 is 31 px/m, gaps from 96 px, tag 14 px, bag 22 px. `?perf=1` in this browser: 19 draw calls (max 21), about 5130 triangles, geometries 23 (a live run touched 25 and the next Retry was back to 23), p95 about 34 ms. The chevron scrolls at the base 1.35 m/s because `<Conveyor>` only reads `speed` on render. Audio is the belt loop plus click, chime, combo, buzz and thud.

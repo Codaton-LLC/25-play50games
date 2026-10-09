@@ -30,10 +30,12 @@ import {
    placeBag,
    stepRun,
    travelTime,
+   PROPOSED_LIMITS,
    withinServerLimits,
    type RunState,
    type StepInput,
 } from "./rules";
+import { luggageRushMeta } from "./meta";
 
 const flip = (i = -1): StepInput => ({ flip: [i === 0, i === 1, i === 2, i === 3] });
 /** Tests that place bags themselves must not also roll the spawn clock. */
@@ -387,5 +389,11 @@ describe("luggage-rush scoring limit proof", () => {
             expect(capScore(done.score, done.elapsedMs)).toBe(done.score);
          }
       }
+   });
+});
+
+describe("server limits", () => {
+   it("meta.scoring is the proven set (7620 / 10000-122000 ms / base 0 / 64 pts/s)", () => {
+      expect(luggageRushMeta.scoring).toEqual(PROPOSED_LIMITS);
    });
 });

@@ -46,7 +46,7 @@ export const VIP_RIM = "#fde68a";
 
 export const SCORE = { bag: 20, comboStep: 0.25, comboCap: 3, vip: 2 } as const;
 
-/** Proposed server limits (user 2026-10-08). meta.ts stays on the provisional numbers until Claude's limits PR. */
+/** Server limits (user 2026-10-08), equal to meta.scoring and arcade-games.json (pinned in rules.test.ts). */
 export const PROPOSED_LIMITS: ScoringRules = {
    kind: "points",
    maxScore: 7620,
