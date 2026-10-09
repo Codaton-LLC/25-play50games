@@ -9,16 +9,16 @@ describe("measured rocket fit", () => {
    it("pins measured data, fit, bell and support extremes", () => {
       expect(hasModel(ASSETS.rocket.url)).toBe(true);
       expect(ROCKET_SCALE).toBeCloseTo(1.1606436, 6);
-      expect(SUPPORT).toEqual([[-0.6414, 0.0005], [0.6602, 0.0099]]);
+      expect(SUPPORT).toEqual([[-0.64138, 0.0005], [0.66023, 0.00989]]);
       expect(HULL_SKIN).toBe(0.012);
-      expect(MESH_HULL).toHaveLength(16);
+      expect(MESH_HULL).toHaveLength(32);
       expect(Math.max(...HULL.map((p) => Math.hypot(p[0], p[1] - 1.1)))).toBeLessThanOrEqual(1.35);
       expect(BELL.y).toBeCloseTo(0.150884, 5);
       expect(FEET_3D).toHaveLength(4);
       expect(Math.max(...FEET_3D.map((p) => Math.abs(p.y)))).toBe(0);
       const span = SUPPORT[1][0] - SUPPORT[0][0];
       expect(span).toBeCloseTo(1.3016, 4);
-      expect(span * Math.sin(Math.PI / 18) + 0.0094 * Math.cos(Math.PI / 18)).toBeCloseTo(0.23528, 4);
+      expect(span * Math.sin(Math.PI / 18) + (SUPPORT[1][1] - SUPPORT[0][1]) * Math.cos(Math.PI / 18)).toBeCloseTo(0.23528, 4);
    });
    it("covers every real mesh vertex, fits 2.2 metres, and validates support and radius", async () => {
       const { local, node } = await readCharacterGlb(ASSETS.rocket.url);

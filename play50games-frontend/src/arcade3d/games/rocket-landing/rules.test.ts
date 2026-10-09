@@ -271,9 +271,11 @@ describe("simulation and contacts", () => {
 describe("real-clock score limits", () => {
    it("full-knowledge feedback pilots finish the campaign in both assist modes", () => {
       let minimumFuel = Infinity, fastest = Infinity, slowest = 0, highest = 0;
+      const planetStats = PLANETS.map((p) => ({ name: p.name, minTime: Infinity, maxTime: 0, minFuel: Infinity, maxFuel: 0 }));
       for (const assist of [false, true]) for (let seed = 0; seed < 16; seed++) {
          const r = createRun(seed, assist), store = createArcadeStore();
          const controls = { rotate: 0, thrust: false };
+         const landed = PLANETS.map(() => false);
          let stage = 0, planet = -1, crashes = -1, pulse = 0;
          const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
          const result = simulateRun(store, {
@@ -284,38 +286,58 @@ describe("real-clock score limits", () => {
                const b = r.body, l = r.layouts[r.planet], g = PLANETS[r.planet].gravity;
                const px = padX(l, r.planet, r.attemptTime), pv = padVx(l, r.planet, r.attemptTime);
                if (r.planet === 4 && stage === 0 && b.y < 7.4 && Math.abs(b.vy) < 1.5) stage = 1;
-               if ((r.planet !== 4 || stage === 1) && Math.abs(b.x - px) < 0.3 && Math.abs(b.vx - pv) < 0.25 && Math.abs(b.angle) < 0.08) stage = 2;
+               // The descent from the 5.8 m holding point takes about 3.5 seconds.
+               const crossing = r.planet !== 4 || Math.abs(padX(l, 4, r.attemptTime + 3.5)) < 0.25;
+               if ((r.planet !== 4 || stage === 1) && crossing &&
+                  Math.abs(b.x - (r.planet === 4 ? 0 : px)) < 0.3 &&
+                  Math.abs(b.vx - (r.planet === 4 ? 0 : pv)) < 0.25 && Math.abs(b.angle) < 0.08) stage = 2;
                const shaft = l.spawnX < 0 ? -5.3 : 5.3;
-               const tx = r.planet === 4 && stage === 0 ? shaft : px;
-               const tv = r.planet === 4 && stage === 0 ? 0 : pv;
+               // Enter below the roof, brake over x=0, then intercept a pad crossing.
+               // Chasing the pad in low gravity saturates tilt and never settles.
+               const tx = r.planet === 4 ? (stage === 0 ? shaft : 0) : px;
+               const tv = r.planet === 4 ? 0 : pv;
                const targetY = stage === 2 ? 3.1 : r.planet === 4 ? (stage === 0 ? 7.2 : 5.8) : 8;
                const targetVy = stage === 2 ? -Math.min(2, 0.35 + Math.max(0, b.y - 3.1) * 0.5) : clamp((targetY - b.y) * 0.8, -3, 2);
                const ay = clamp(g + 3 * (targetVy - b.vy), 0, 12);
                const wind = r.planet === 3 ? 0.4 * Math.sin(2 * Math.PI * r.attemptTime / 8 + l.wind) : 0;
-               const ax = 0.8 * (tx - b.x) + 1.8 * (tv - b.vx) - wind;
+               const ax = (r.planet === 4 ? 0.15 : 0.8) * (tx - b.x) + (r.planet === 4 ? 1 : 1.8) * (tv - b.vx) - wind;
                const maxAngle = stage === 2 && b.y < 4.5 ? 0.1 : 0.45;
                const desiredAngle = clamp(-Math.atan2(ax, Math.max(g, ay)), -maxAngle, maxAngle);
                controls.rotate = clamp(-(8 * wrap(desiredAngle - b.angle) - 4 * b.omega) / 3, -1, 1);
+               // Keep deliberate asteroid steering outside the assist neutral zone.
+               if (r.planet === 4 && r.assist && Math.abs(controls.rotate) <= ENGINE.neutral) controls.rotate = (controls.rotate < 0 ? -1 : 1) * (ENGINE.neutral + 0.001);
                pulse += clamp(ay / (12 * Math.max(0.8, Math.cos(b.angle))), 0, 1);
                controls.thrust = pulse >= 1;
                if (controls.thrust) pulse -= 1;
                stepRun(r, controls, dt);
                if (r.events.award) {
+                  landed[r.planet] = true;
+                  const stats = planetStats[r.planet];
+                  stats.minTime = Math.min(stats.minTime, r.attemptTime); stats.maxTime = Math.max(stats.maxTime, r.attemptTime);
+                  stats.minFuel = Math.min(stats.minFuel, r.fuel); stats.maxFuel = Math.max(stats.maxFuel, r.fuel);
+                  if (r.planet === 4) {
+                     expect(r.attemptTime, `Asteroid time seed=${seed}, assist=${assist}`).toBeLessThan(40);
+                     expect(r.fuel, `Asteroid margin seed=${seed}, assist=${assist}`).toBeGreaterThan(50);
+                  }
                   minimumFuel = Math.min(minimumFuel, r.fuel);
                   s.getState().addScore(r.events.award);
-                  expect(r.fuel, `reserve seed=${seed}, assist=${assist}, planet=${r.planet}`).toBeGreaterThan(0);
+                  expect(r.fuel, `reserve seed=${seed}, assist=${assist}, planet=${PLANETS[r.planet].name}`).toBeGreaterThan(0);
                }
-               if (r.events.crash) s.getState().loseLife();
+               if (r.events.crash) {
+                  expect(r.planet === 4, `Asteroid crash seed=${seed}, assist=${assist}`).toBe(false);
+                  s.getState().loseLife();
+               }
                if (r.terminal) { s.getState().setScore(r.score); s.getState().end(r.terminal); }
                if (r.score > 800 + 200 * time + 1e-6) throw new Error("pilot exceeded score rate");
             },
          });
+         for (let p = 0; p < PLANETS.length; p++) expect(landed[p], `planet=${PLANETS[p].name}, seed=${seed}, assist=${assist}, end=${result.endReason}`).toBe(true);
          expect(result.endReason, `pilot seed=${seed}, assist=${assist}, completed=${r.completed}`).toBe("win");
          expect(withinServerLimits(result.score, result.elapsedMs, rocketLandingMeta.scoring)).toBe(true);
          expect(capScore(result.score, result.elapsedMs, rocketLandingMeta.scoring)).toBe(result.score);
          fastest = Math.min(fastest, result.elapsedMs); slowest = Math.max(slowest, result.elapsedMs); highest = Math.max(highest, result.score);
       }
-      console.info("rocket witnesses", { minimumFuel, fastest, slowest, highest });
+      console.info("rocket witnesses", { minimumFuel, fastest, slowest, highest, planetStats });
    }, 60000);
    it("adversarial idle, ceiling and rotation runs respect duration/rate caps", () => {
       for (let seed = 0; seed < 8; seed++) for (const kind of ["idle", "ceiling", "spam"] as const) {
