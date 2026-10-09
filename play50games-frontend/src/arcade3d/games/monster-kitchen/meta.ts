@@ -2,7 +2,9 @@ import type { ArcadeGameMeta } from "@/arcade3d/types";
 
 // Plain data only (server-safe). scoring must match WP includes/arcade-games.json.
 // Proposed limits (README.md "Server limits and why they hold"), proven in rules.test.ts;
-// Claude lands them in includes/arcade-games.json in the limits PR.
+// Claude lands them in includes/arcade-games.json in the limits PR. maxScore is provisional:
+// the measured oracle tops out at ~3,860 (see rules.test.ts), under 90% of the README's 4,900,
+// so the limits land at ~10% above the measured legit peak instead (README's contingency).
 export const monsterKitchenMeta: ArcadeGameMeta = {
    slug: "monster-kitchen",
    title: "Monster Kitchen",
@@ -20,7 +22,7 @@ export const monsterKitchenMeta: ArcadeGameMeta = {
    },
    scoring: {
       kind: "points",
-      maxScore: 4900,
+      maxScore: 4200,
       minDurationMs: 12000,
       maxDurationMs: 92000,
       base: 240,

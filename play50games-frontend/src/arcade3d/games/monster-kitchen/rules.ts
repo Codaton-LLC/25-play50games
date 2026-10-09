@@ -238,6 +238,23 @@ const KIND_COUNT = INGREDIENTS.kinds.length;
 
 const pickKind = (rng: { s: number }): IngredientKind => INGREDIENTS.kinds[Math.floor(rngNext(rng) * KIND_COUNT) % KIND_COUNT];
 
+/**
+ * The refill kind. A refill restocks a kind that is absent from the wheel (uniform among them,
+ * seeded), so a needed ingredient always comes back within one refill and an order can never
+ * soft-lock on a missing kind with every slot full; with a full wheel it draws a fresh seeded
+ * kind. Alloc-free; deterministic from the run's stream.
+ */
+function pickRefillKind(run: RunState): IngredientKind {
+   let pick: IngredientKind | null = null;
+   let n = 0;
+   for (const k of INGREDIENTS.kinds) {
+      if (run.slots.some((s) => s.kind === k)) continue;
+      n += 1;
+      if (Math.floor(rngNext(run.rng) * n) === 0) pick = k; // reservoir sample: uniform over the absent
+   }
+   return pick ?? pickKind(run.rng);
+}
+
 export function createRun(seed: number): RunState {
    const rng = { s: seed };
    // one of each kind on the wheel, shuffled
@@ -333,7 +350,7 @@ function earliestOrdering(run: RunState): Order | null {
 function launch(run: RunState, slot: number): boolean {
    const s = run.slots[slot];
    const time = run.time;
-   if (run.flight || time < run.burpUntil) {
+   if (run.flight || time < run.burpUntil - 1e-9) {
       run.events.tossBlocked = true;
       return false;
    }
@@ -431,9 +448,9 @@ export function stepRun(run: RunState, input: StepInput, dt: number, time: numbe
    }
 
    // spawns: the order appears when the walk-in ends
-   for (const w of [0, 1] as const) {
+   for (let w = 0; w < 2; w++) {
       const win = run.windows[w];
-      if (!win.order && time >= win.arriveAt - 1e-9) spawnOrder(run, w, win.arriveAt);
+      if (!win.order && time >= win.arriveAt - 1e-9) spawnOrder(run, w as 0 | 1, win.arriveAt);
    }
 
    // the drift: one slot each DRIFT.everyS from DRIFT.fromS, the direction seeded
@@ -446,7 +463,7 @@ export function stepRun(run: RunState, input: StepInput, dt: number, time: numbe
    }
 
    // refills
-   for (const s of run.slots) if (s.kind === null && time >= s.emptyUntil - 1e-9) s.kind = pickKind(run.rng);
+   for (const s of run.slots) if (s.kind === null && time >= s.emptyUntil - 1e-9) s.kind = pickRefillKind(run);
 
    // the landing
    if (run.flight && time >= run.flight.landAt - 1e-9) land(run);
@@ -466,7 +483,7 @@ export function stepRun(run: RunState, input: StepInput, dt: number, time: numbe
    }
 
    // the served monster walks off; the angry one storms off (Scene drops the life)
-   for (const w of [0, 1] as const) {
+   for (let w = 0; w < 2; w++) {
       const win = run.windows[w];
       const o = win.order;
       if (!o) continue;
