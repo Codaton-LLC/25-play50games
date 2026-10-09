@@ -12,7 +12,7 @@ const definition: GameDefinition = {
    camera: { position: [0, 14, 9], fov: 45, lookAt: [0, 0, 8] },
    environment: { lighting: "night", background: "#1e1b4b" },
    touchControls: ["joystick", "action"],
-   touchLabels: { action: "Vacuum" },
+   touchLabels: { action: "Vac" },
    hudStats: [{ key: "ghosts", label: "Ghosts", max: COUNT }], resultDelayMs: 1600,
    instructions: ["Explore the rooms: nearby desks reveal hidden ghosts.", "Aim the flashlight to stun; hold E, Enter or Space to vacuum.", "Touch: joystick moves and aims; held Vacuum assists nearby stunned targets."],
 };

@@ -37,7 +37,7 @@ export interface Ghost extends Body {
    id: number; room: number; ordinal: number; kind: "normal" | "gold" | "big"; mode: Mode;
    angle: number; exposure: number; stun: number; lit: boolean; progress: number; grace: number;
    baseX: number; baseZ: number; ax: number; az: number; hx: number; hz: number; p0: number;
-   homeX: number; homeZ: number; returnStage: number; admittedAt: number; caughtAt: number;
+   homeX: number; homeZ: number; returnStage: number; returnRoom: number; admittedAt: number; caughtAt: number;
 }
 export interface StepInput { dirX: number; dirZ: number; held: boolean; aim: boolean; aimYaw: number; coarse: boolean }
 export interface Run {
@@ -57,7 +57,7 @@ export function createRun(seed: number): Run {
       ghosts.push({ id, room, ordinal, kind: id === 5 || id === 8 || id === 11 ? "gold" : id === 9 || id === 10 ? "big" : "normal",
          x, y: 0, z, vx: 0, vy: 0, vz: 0, yaw: 0, angle: rng() * TAU, mode: "pending", exposure: 0, stun: 0, lit: false,
          progress: 0, grace: 0, baseX: x, baseZ: z, ax: x, az: z, hx: 0, hz: 0, p0: 0, homeX: x, homeZ: z,
-         returnStage: 0, admittedAt: -1, caughtAt: -1 });
+         returnStage: 0, returnRoom: room, admittedAt: -1, caughtAt: -1 });
    }
    const run: Run = { hunter: { x: 0, y: 0, z: 8, vx: 0, vy: 0, vz: 0, yaw: Math.PI }, ghosts, rng, elapsed: 0,
       caught: 0, gold: 0, extras: 0, session: 0, score: 0, won: false, ended: false,
@@ -158,12 +158,15 @@ function speed(g: Ghost, late: boolean, lit: boolean): number {
 function moveGhost(run: Run, g: Ghost, dt: number): void {
    const r = ROOMS[g.room], rad = radius(g), max = speed(g, run.elapsed >= 60, g.lit), f = run.scratch.force;
    if (g.returnStage) {
-      const x = g.returnStage === 1 ? r.doorX - r.side * (rad + 0.2) : r.doorX + r.side * (rad + 0.2);
-      const z = r.doorZ;
+      // Leave the current room before travelling along the unobstructed hall.
+      const via = g.returnStage <= 2 ? ROOMS[g.returnRoom] : r;
+      const roomSide = g.returnStage === 1 || g.returnStage === 4;
+      const x = via.doorX + via.side * (roomSide ? rad + 0.2 : -rad - 0.2);
+      const z = via.doorZ;
       const dx = x - g.x, dz = z - g.z, d = Math.hypot(dx, dz), travel = Math.min(d, max * dt);
       g.vx = d ? dx / d * max : 0; g.vz = d ? dz / d * max : 0;
       g.x += d ? dx / d * travel : 0; g.z += d ? dz / d * travel : 0;
-      if (d <= travel + EPS) g.returnStage = g.returnStage === 1 ? 2 : 0;
+      if (d <= travel + EPS) g.returnStage = g.returnStage === 4 ? 0 : g.returnStage + 1;
       return;
    }
    if (g.lit) flee(g, run.hunter, max, f); else wander(g, g, run.rng, max, GHOST.jitter, dt, f);
@@ -191,7 +194,13 @@ export function pullPosition(run: Run, g: Ghost): void {
 }
 function breakPull(run: Run, g: Ghost): void {
    g.mode = "wandering"; g.progress = 0; g.exposure = 0; g.grace = 0; g.vx = 0; g.vz = 0;
-   g.returnStage = inRoom(g) ? 0 : 1; run.events.breaks++;
+   g.returnStage = 0;
+   if (!inRoom(g)) {
+      const current = ROOMS.findIndex((r) => g.x * r.side > 3.1 && g.z * r.north > 0);
+      g.returnRoom = current < 0 ? g.room : current;
+      g.returnStage = current < 0 ? 3 : 1;
+   }
+   run.events.breaks++;
 }
 function capture(run: Run, g: Ghost): void {
    g.mode = "caught"; g.caughtAt = run.elapsed; g.x = run.hunter.x; g.z = run.hunter.z;

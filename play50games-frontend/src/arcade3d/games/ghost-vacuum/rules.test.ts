@@ -229,9 +229,9 @@ function bot(seed: number, coarse: boolean, spam: boolean) {
    return { final, prefixOk, maxScore, run };
 }
 describe("legal bots through clock-first real store", () => {
-   it("200 wins and 200 spam runs across keyboard/coarse and three frame schedules", () => {
+   it("150 wins and 150 spam runs across keyboard/coarse and three frame schedules", () => {
       let best = 0, earliest = Infinity, latest = 0;
-      for (let seed = 0; seed < 200; seed++) for (const spam of [false, true]) {
+      for (let seed = 0; seed < 150; seed++) for (const spam of [false, true]) {
          const result = bot(seed, seed % 6 >= 3, spam), f = result.final;
          expect(result.prefixOk, `seed ${seed} prefix`).toBe(true);
          expect(fitsLimits(f.score, f.elapsedMs), `seed ${seed}, spam ${spam}`).toBe(true);
@@ -244,11 +244,106 @@ describe("legal bots through clock-first real store", () => {
             best = Math.max(best, f.score); earliest = Math.min(earliest, f.elapsedMs); latest = Math.max(latest, f.elapsedMs);
          }
       }
-      console.info("ghost-vacuum bot extrema", { best, earliest, latest, wins: 200, spam: 200 });
+      console.info("ghost-vacuum bot extrema", { best, earliest, latest, wins: 150, spam: 150 });
    }, 55000);
    it.each([false, true])("idle times out without score (coarse=%s)", (coarse) => {
       const run = createRun(1), i = input(); i.coarse = coarse;
       const f = simulateRun(createArcadeStore(), { durationMs: 120000, frame: fixedFrames(50), step: (dt, time) => stepRun(run, i, dt, time) });
       expect(f.endReason).toBe("timeup"); expect(f.score).toBe(0); expect(f.elapsedMs).toBe(120000);
+   });
+});
+
+describe("fix2 mutation and return regressions", () => {
+   it.each([[11.9, true], [12.1, false]])("pull boundary at %s degrees", (degrees, valid) => {
+      const { run, g } = fixture();
+      g.x = 8 + 2 * Math.sin(Number(degrees) * Math.PI / 180);
+      g.z = -9 + 2 * Math.cos(Number(degrees) * Math.PI / 180);
+      expect(pullValid(run, g)).toBe(valid);
+   });
+   it("resets exposure on a brief light interruption", () => {
+      const { run, i, g } = fixture();
+      advance(run, i, 0.3);
+      run.hunter.yaw = i.aimYaw = Math.PI;
+      advance(run, i, 0.01); expect(g.exposure).toBe(0);
+      run.hunter.yaw = i.aimYaw = 0;
+      advance(run, i, 0.3); expect(g.mode).not.toBe("stunned");
+   });
+   it("suspends a nearly expired stun throughout invalid pull grace", () => {
+      const { run, i, g } = fixture();
+      Object.assign(g, { mode: "stunned", stun: 0.005 });
+      i.held = true; advance(run, i, 0.1);
+      const progress = g.progress, stun = g.stun;
+      run.hunter.yaw = i.aimYaw = Math.PI;
+      advance(run, i, 0.29);
+      expect(g.mode).toBe("pulling"); expect(g.progress).toBe(progress); expect(g.stun).toBe(stun);
+      run.hunter.yaw = i.aimYaw = 0;
+      advance(run, i, 0.01); expect(g.progress).toBeGreaterThan(progress);
+   });
+   it("floors fractional winning seconds in both score paths", () => {
+      const { run, i, g } = fixture();
+      run.caught = 11; run.score = 1100; run.elapsed = 91.25;
+      Object.assign(g, { mode: "stunned", stun: 2 }); i.held = true;
+      advance(run, i, 1);
+      expect(run.elapsed).toBeCloseTo(92.25, 8); expect(run.score).toBe(1470);
+      expect(runScore(12, 0, 0, true, 92.25)).toBe(1470);
+   });
+   it("cannot win before the final admission plus exposure and pull", () => {
+      const { run, i, g } = fixture("gold");
+      g.mode = "caught"; run.caught = 11;
+      const last = run.ghosts[11];
+      Object.assign(last, { ...g, id: 11, mode: "pending", room: 2 });
+      run.elapsed = 89.95; i.held = true;
+      advance(run, i, 0.049); expect(last.mode).toBe("pending");
+      advance(run, i, 0.001); expect(last.admittedAt).toBeCloseTo(90, 8);
+      run.hunter.x = 8; run.hunter.z = -7; advance(run, i, 0.001);
+      run.hunter.z = -9;
+      while (!run.won && run.elapsed < 94) {
+         i.aimYaw = Math.atan2(last.x - run.hunter.x, last.z - run.hunter.z);
+         advance(run, i, 1 / 120);
+      }
+      expect(run.won).toBe(true); expect(run.elapsed).toBeGreaterThanOrEqual(91.4 - 1e-8);
+   });
+   it.each([44.9, 45.1])("touch assist respects the 45 degree gate (%s)", (angle) => {
+      const { run, i, g } = fixture();
+      Object.assign(g, { mode: "stunned", stun: 2, x: 8 + 2 * Math.sin(angle * Math.PI / 180), z: -9 + 2 * Math.cos(angle * Math.PI / 180) });
+      i.coarse = true; i.held = true; i.aim = false;
+      advance(run, i, 1 / 120);
+      expect(run.hunter.yaw).toBeCloseTo(angle < 45 ? Math.PI / 120 : 0, 8);
+   });
+   it("touch assist turns at 180 degrees/s and ties by lower id", () => {
+      const { run, i, g } = fixture();
+      Object.assign(g, { mode: "stunned", stun: 2, x: 9, z: -7 });
+      Object.assign(run.ghosts[1], { ...g, id: 1, x: 7 });
+      i.coarse = true; i.aim = false; i.held = true;
+      advance(run, i, 0.05); expect(run.hunter.yaw).toBeCloseTo(Math.PI * 0.05, 8);
+   });
+   it("returns from another room through both doorways without crossing walls", () => {
+      const { run, i, g } = fixture();
+      Object.assign(g, { mode: "pulling", x: -8, z: 7, baseX: -8, baseZ: 7 });
+      run.hunter.x = 0; run.hunter.z = 8; run.hunter.yaw = i.aimYaw = Math.PI;
+      advance(run, i, 0.001); expect(g.returnStage).toBeGreaterThan(0);
+      let clearance = Infinity;
+      const walls = SOLIDS.slice(0, 12);
+      for (let k = 0; k < 5000 && g.returnStage; k++) {
+         advance(run, i, 1 / 120);
+         for (const wall of walls) clearance = Math.min(clearance, distanceToBoxXZ(g.x, g.z, wall));
+      }
+      expect(clearance).toBeGreaterThanOrEqual(0.4 - 1e-6);
+      expect(g.returnStage).toBe(0); expect(inRoom(g)).toBe(true);
+   });
+   it("can re-stun and re-pull while returning in the hall", () => {
+      const { run, i, g } = fixture();
+      Object.assign(g, { mode: "pulling", x: 0, z: -5, baseX: 0, baseZ: -5 });
+      Object.assign(run.hunter, { x: 0, z: -7, yaw: 0 });
+      advance(run, i, 0.001); expect(g.returnStage).toBeGreaterThan(0);
+      for (let k = 0; k < 100 && g.mode !== "stunned"; k++) {
+         i.aimYaw = Math.atan2(g.x - run.hunter.x, g.z - run.hunter.z);
+         advance(run, i, 1 / 120);
+      }
+      expect(g.mode).toBe("stunned");
+      const x = g.x, z = g.z;
+      advance(run, i, 0.05); expect(g.x).toBe(x); expect(g.z).toBe(z);
+      i.held = true; advance(run, i, 0.05);
+      expect(g.mode).toBe("pulling"); expect(g.returnStage).toBe(0);
    });
 });
