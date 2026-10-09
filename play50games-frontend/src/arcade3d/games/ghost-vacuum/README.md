@@ -103,4 +103,42 @@ Future game-local files: meta/index/rules/rules.test/assets/assets.test/Scene/Ma
 
 ## Status
 
-P-14-fix2 design revision only; implementation/runtime/browser validation remain with builder.
+```text
+TASK P-15 | build ghost-vacuum | branch codex/game-ghost-vacuum | allowed: play50games-frontend/src/arcade3d/games/ghost-vacuum/**, play50games-frontend/public/images/3d/ghost-vacuum.webp, tools/thumbs/inputs/ghost-vacuum.mjs
+HANDOFF P-15 — ghost-vacuum
+State: BLOCKED on measurements / external validation; initial implementation, NOT Common Definition of Done complete.
+Branch: codex/game-ghost-vacuum (verified). No branch creation/switch, commit or push.
+Status: dev; meta.ts, scoring and thumbnail:null unchanged.
+Files: game folder index.tsx plus rules/rules.test, Scene, Mansion, Ghosts, Vacuum, assets/assets.test, poses/poses.test, Primitives, camera, Hud/CSS Module, README Status; tools/thumbs/inputs/ghost-vacuum.mjs; this explicitly requested .handoff/P-15-ghost/HANDOFF.md.
+Implemented: seeded four-room permutation and finite 12-id releases; FIFO active caps; hidden reveal; acceleration/collision movement; core wander/flee/cone/LOS; continuous exposure; stun and concurrent pulls with global-phase tug-free rebasing, grace/release and bounded return waypoints; finite session/capture scoring and win; one rules-to-store frame hook; clock-first shell timer; fitted full follow camera; humanoid walk/aim/cheer, canister chest attachment, procedural hose, instanced ghosts/props/walls, markers, HUD, effects/audio, primitive fallbacks and local input script.
+Tests written (NOT executed): 1000 layout seeds and reachability; tuning/scoring pins; determinism; 20000 movement steps; exposure, cones, LOS, nozzle, tug rebasing, moving hunter, grace/release, concurrent capture, win/deadline; analytical prefix envelope; 200 legal bot wins required + 200 spam runs across six frame/input combinations, two idle runs, through simulateRun/createArcadeStore (advanceRunClock + playedFrameDt); real GLB sizes, floor poses and attachment alignment.
+Verified: node node_modules/typescript/bin/tsc --noEmit from play50games-frontend exited 0 after final code changes. git status --porcelain showed only task game files/input script before adding this requested handoff/README Status. Static forbidden-call scan found no Math.random/Date.now/localStorage/submitScore/clock.elapsedTime in the game.
+Not run, per explicit sandbox instructions: npm build, vitest, browser/keyboard/touch playtests, GLB decoding, tools/thumbs, gamecheck, tools/perf. No network, production access, Hyper3D calls or dependencies.
+Evidence: screenshots at 1280x800, 390x844 and 844x390 NOT produced; performance JSON NOT produced; thumbnail remains null. No measured draw-call, p95, resource-retry, safe-area or 24px claims.
+Scoring formula: 100*caught + 200*goldCaught + 50*extraInSessions + (won ? 10*floor(max(0,120-tWin)) : 0).
+Limit proof: 12 captures + 3 gold <=1800; at most 11 session extras <=550; capture prefixes <=2350. Last release >=90s plus 0.4s exposure and 1s pull implies win >=91.4s; time bonus <=280 and total <=2630. Prefix maxima <=400 before20s, <=700 before30s, <=2000 from30–90s and <=2350 thereafter fit 1720+10*t. Legal wins and120s timeout fit91000–122000ms. Bot extrema, capScore-no-op results and >=90% limit witness are UNVERIFIED.
+Acceptance checklist:
+[x] Correct existing branch, authorized scope, no commit/push/credits/production/API.
+[x] Definition, controls, fixed duration120000/result delay1600, HUD safe-area marker, dev metadata unchanged.
+[x] Pure seeded rules use named core helpers; one useRunFrame and game-time visuals.
+[x] Core fit receives all registered safe-area rectangles; >=4.5m half-window retained.
+[x] TypeScript check.
+[ ] Shared prop fits, full real-mesh character/canister/hose clearance, all fallback contracts validated.
+[ ] Complete approved visual finish and every mechanics/edge test.
+[ ] All vitest tests, 400 bot outcomes and <60s runtime; build.
+[ ] Keyboard/touch end-to-end, all three viewport/banner checks, shell lifecycle/accessibility.
+[ ] <=55 draw calls, <=150k triangles, p95<=33ms and Retry x10 resource stability.
+[ ] Screenshots, perf JSON and captured thumbnail.
+Known implementation follow-ups:
+- Desk/chair currently use shared assets' default fits. assets.test.ts records raw desk/chair/book/door bounds and checks required1.6m/0.6m widths; those fit assertions may fail until measured scales are supplied. No guessed measurements were used. Book/door models are declared but not rendered; decorative books/door leaves/candelabra/clock/painting remain.
+- Canister back-point alignment and sole tests exist; mesh-surface pack clearance, hose/nozzle non-intersection and posed >=0.30m silhouette tests remain. Hose is chest-local/static, and the primitive hunter does not animate limb gait yet.
+- Walls cut at hunter.z but lack the approved selective0.15-opacity occlusion fade.
+- Ghosts have body/eyes, illuminated/stun rings and progress diamonds; smile, gold crown, big double outline and a true progress ring remain. Host icon is steady; shimmer/shake and panned event/combo cues remain.
+- Return uses doorway hall-side/room-side points; exact saved crossing-base contract and hall re-stun/re-pull/jamb adversarial tests still need verification.
+- The bot harness has not been run: do not treat generated tests as feasibility evidence or a passing scoring proof. Full edge/mutation coverage and best-bot limit tightness remain.
+Open questions:
+1. Claude: run assets.test.ts and return raw desk/chair/book/door bounds so their exact approved fits can be completed without guessed dimensions.
+2. Claude: run rules/pose tests and return failures, bot score/duration extrema and total runtime; profile the400-run suite before claiming the60s budget.
+3. Claude: provide pose mesh-clearance and headless fit measurements (all safe rects, hunter/ghost>=24 CSSpx with banner open at both mobile sizes), then run build/all tests/local browser/perf/thumbs after fixes.
+4. User approval of the smiling ghost look remains pending the eventual completed playtest.
+```

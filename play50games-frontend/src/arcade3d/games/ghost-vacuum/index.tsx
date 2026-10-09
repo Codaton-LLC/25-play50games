@@ -1,16 +1,20 @@
 "use client";
 
-// Stub until the game is built. Owner: kimi. Replace PlaceholderScene with ./Scene.
 import type { GameDefinition } from "@/arcade3d/core/types";
-import { PlaceholderScene } from "@/arcade3d/core/PlaceholderScene";
+import Scene from "./Scene";
+import Hud from "./Hud";
+import { ASSETS } from "./assets";
+import { DURATION_MS, COUNT } from "./rules";
 
 const definition: GameDefinition = {
    slug: "ghost-vacuum",
-   Scene: PlaceholderScene,
-   assets: {},
-   camera: { position: [0, 6, 10], fov: 50, lookAt: [0, 0, 0] },
+   Scene, Hud, assets: ASSETS, durationMs: DURATION_MS,
+   camera: { position: [0, 14, 9], fov: 45, lookAt: [0, 0, 8] },
+   environment: { lighting: "night", background: "#1e1b4b" },
    touchControls: ["joystick", "action"],
-   instructions: ["Shine your light on a ghost to stun it.", "Hold Vacuum to suck it in."],
+   touchLabels: { action: "Vacuum" },
+   hudStats: [{ key: "ghosts", label: "Ghosts", max: COUNT }], resultDelayMs: 1600,
+   instructions: ["Explore the rooms: nearby desks reveal hidden ghosts.", "Aim the flashlight to stun; hold E, Enter or Space to vacuum.", "Touch: joystick moves and aims; held Vacuum assists nearby stunned targets."],
 };
 
 export default definition;
