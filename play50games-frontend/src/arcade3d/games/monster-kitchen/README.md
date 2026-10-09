@@ -120,6 +120,10 @@ Order icons carry three channels at once — colour, silhouette and a shape outl
 
 ## Risks and open questions
 
+### Decisions (user, 2026-10-09)
+
+- Approved: toss on `tap` (release); a toss launched before an order appeared never counts for it; the chef at the measured 1.82 m (CHEF_LANDMARKS now in core, REUSED_ASSETS.chef); mushrooms ARE in v1 as decor (EXPANSION_ASSETS.mushroom, already generated in tier 3, no new credits), instanced, scaled by useQuality().decor.
+
 Decisions for the user (this design's recommendation on each):
 
 - **Toss on `tap`, not `tapDown`** (changed from spec; the core input contract — see Controls). Recommendation: **accept** — `tapDown` fires before every swipe and would toss on every rotation; if P-15 playtesting feels the release latency, the alternative is a drag-to-aim opt-in, which this game does not want.
