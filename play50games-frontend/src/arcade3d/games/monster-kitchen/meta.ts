@@ -1,7 +1,8 @@
 import type { ArcadeGameMeta } from "@/arcade3d/types";
 
 // Plain data only (server-safe). scoring must match WP includes/arcade-games.json.
-// Provisional limits (docs/arcade-expansion/02 §C.4): set for real in the game's "assets + limits" PR.
+// Proposed limits (README.md "Server limits and why they hold"), proven in rules.test.ts;
+// Claude lands them in includes/arcade-games.json in the limits PR.
 export const monsterKitchenMeta: ArcadeGameMeta = {
    slug: "monster-kitchen",
    title: "Monster Kitchen",
@@ -14,16 +15,16 @@ export const monsterKitchenMeta: ArcadeGameMeta = {
    orientation: "any",
    controls: {
       scheme: "tap-target",
-      keyboard: "Left / right to turn the wheel, Space to toss, or click",
-      touch: "Swipe to turn the wheel, tap to toss",
+      keyboard: "Left / right to turn the wheel, Space or Enter to toss, or click an ingredient",
+      touch: "Swipe to turn the wheel, tap ◀ ▶ to turn one slot, tap an ingredient to toss",
    },
    scoring: {
       kind: "points",
-      maxScore: 6000,
-      minDurationMs: 10000,
+      maxScore: 4900,
+      minDurationMs: 12000,
       maxDurationMs: 92000,
-      base: 6000,
-      maxPointsPerSec: 6000,
+      base: 240,
+      maxPointsPerSec: 60,
       unitLabel: "pts",
       display: "int",
    },
