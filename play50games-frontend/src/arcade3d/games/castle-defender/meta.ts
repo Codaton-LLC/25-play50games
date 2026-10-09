@@ -1,7 +1,7 @@
 import type { ArcadeGameMeta } from "@/arcade3d/types";
 
 // Plain data only (server-safe). scoring must match WP includes/arcade-games.json.
-// Provisional limits (docs/arcade-expansion/02 §C.4): set for real in the game's "assets + limits" PR.
+// Limits proven in README.md "Score, limits and end" (design merge 2026-10-09).
 export const castleDefenderMeta: ArcadeGameMeta = {
    slug: "castle-defender",
    title: "Castle Defender",
@@ -14,16 +14,16 @@ export const castleDefenderMeta: ArcadeGameMeta = {
    orientation: "any",
    controls: {
       scheme: "tap-target",
-      keyboard: "Click to fire, E to drop a rock, 1 / 2 to upgrade",
-      touch: "Tap to fire, Action to drop a rock",
+      keyboard: "Click the field to fire; arrows / WASD aim, Space fires; E / Enter drops a rock; 1 / 2 chooses an upgrade",
+      touch: "Tap the field to fire, tap Rock to clear a ladder, tap an upgrade card to choose",
    },
    scoring: {
       kind: "points",
-      maxScore: 7500,
-      minDurationMs: 10000,
-      maxDurationMs: 200000,
-      base: 7500,
-      maxPointsPerSec: 7500,
+      maxScore: 3210,
+      minDurationMs: 39000,
+      maxDurationMs: 140000,
+      base: 160,
+      maxPointsPerSec: 25,
       unitLabel: "pts",
       display: "int",
    },

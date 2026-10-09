@@ -455,6 +455,16 @@ export const EXPANSION_GLB_SIZE = {
    gourd: { width: 1.7987, height: 1.8942, depth: 1.1177 },
 } as const satisfies Record<ExpansionAssetId, { width: number; height: number; depth: number }>;
 
+/**
+ * The bounds of reused GLBs (REUSED_ASSETS) in GLB units (x = width, y = height, z = depth, before
+ * rotationY), for games that fit them from a measured size instead of a runtime bounding box.
+ * Measured 2026-10-09 (core/expansionAssets.test.ts checks them against the real meshes).
+ */
+export const REUSED_GLB_SIZE = {
+   // escape-room door (raw bounds 1.19085 x 1.89286 x 0.26800); castle-defender draws it as its gate
+   door: { width: 1.1909, height: 1.8929, depth: 0.268 },
+} as const satisfies Partial<Record<ReusedAssetId, { width: number; height: number; depth: number }>>;
+
 /** Points measured on the GLBs (GLB units, before the fit; `expansionPoint` maps them to metres). */
 export const EXPANSION_GLB_POINTS = {
    /** the centre of the cannon's muzzle ring, on its front face (the barrel points +z, slightly up) */
