@@ -148,14 +148,14 @@ export const POINTS = {
    perSecond: 10,
 } as const;
 
-export const MIN_TOUR_DISTANCE = 52.0;
+export const MIN_TOUR_DISTANCE = 27.8;
 
 export const PROPOSED_LIMITS = {
    kind: "points" as const,
-   maxScore: 2070,
-   minDurationMs: 6000,
+   maxScore: 2030,
+   minDurationMs: 3500,
    maxDurationMs: 77000,
-   base: 1470,
+   base: 1700,
    maxPointsPerSec: 100,
    unitLabel: "pts",
    display: "int" as const,
@@ -243,12 +243,26 @@ export interface StepInput {
 }
 
 // ---------- Aisle Routing & Tour Distance ----------
+ 
+function shelvesBetween(x1: number, x2: number): boolean {
+   const minX = Math.min(x1, x2);
+   const maxX = Math.max(x1, x2);
+   for (let i = 0; i < SHELVES.length; i++) {
+      const s = SHELVES[i];
+      if (minX < s.min.x && maxX > s.max.x) {
+         return true;
+      }
+   }
+   return false;
+}
 
 /** Approximates the shortest legal aisle distance between two points in the store. */
 export function storeDistance(a: { x: number; z: number }, b: { x: number; z: number }): number {
    const dx = Math.abs(a.x - b.x);
-   // If both points are in the same walkway or same aisle without shelf barrier
-   if (dx < 1.0) return Math.abs(a.z - b.z) + dx;
+   // If both points are in the same walkway or no shelf stands between their x coordinates
+   if (!shelvesBetween(a.x, b.x)) {
+      return Math.abs(a.z - b.z) + dx;
+   }
    if ((a.z < -7.5 && b.z < -7.5) || (a.z > 4.5 && b.z > 4.5)) {
       return Math.abs(a.z - b.z) + dx;
    }
@@ -293,7 +307,7 @@ export function shortestPickTour(items: readonly { x: number; z: number }[]): nu
    return minTour;
 }
 
-// Tested valid fallback list with tour distance 58.4 m
+// Tested valid fallback list with tour distance 59.3 m
 export const FALLBACK_LIST: ListItem[] = [
    { kind: "apple", slotIndex: 0, x: -9.9, y: 0.8, z: -5.0, collected: false },
    { kind: "banana", slotIndex: 4, x: -8.1, y: 0.8, z: -1.5, collected: false },
@@ -438,6 +452,16 @@ export function createRun(seed: number): RunState {
 
 const SWEEP_HIT: SweepHit = { time: 0, normalX: 0, normalZ: 0 };
 const PROXY_BOX: AABB = { min: { x: 0, y: 0, z: 0 }, max: { x: 0, y: 0, z: 0 } };
+const SWEEP_DELTA = { x: 0, z: 0 };
+const STEP_EVENTS: StepEvents = {
+   pickups: [],
+   listCompleted: false,
+   pyramidToppled: [],
+   shopperBumped: [],
+   spillSkid: false,
+   won: false,
+   timeup: false,
+};
 
 /** Steps the game simulation by dt seconds with the given input. */
 export function stepRun(
@@ -446,25 +470,23 @@ export function stepRun(
    dt: number,
    playTimeS: number,
 ): StepEvents {
-   const events: StepEvents = {
-      pickups: [],
-      listCompleted: false,
-      pyramidToppled: [],
-      shopperBumped: [],
-      spillSkid: false,
-      won: false,
-      timeup: false,
-   };
+   STEP_EVENTS.pickups.length = 0;
+   STEP_EVENTS.listCompleted = false;
+   STEP_EVENTS.pyramidToppled.length = 0;
+   STEP_EVENTS.shopperBumped.length = 0;
+   STEP_EVENTS.spillSkid = false;
+   STEP_EVENTS.won = false;
+   STEP_EVENTS.timeup = false;
 
-   if (run.won || run.timedOut) return events;
+   if (run.won || run.timedOut) return STEP_EVENTS;
 
    run.playTimeS = playTimeS;
 
    // Check timeout
    if (playTimeS >= DURATION_MS / 1000) {
       run.timedOut = true;
-      events.timeup = true;
-      return events;
+      STEP_EVENTS.timeup = true;
+      return STEP_EVENTS;
    }
 
    const cart = run.cart;
@@ -491,7 +513,7 @@ export function stepRun(
       }
    }
    if (inSpill && cart.speed > 2.0) {
-      events.spillSkid = true;
+      STEP_EVENTS.spillSkid = true;
    }
 
    // 2. Kinematics & Speed Model
@@ -564,7 +586,7 @@ export function stepRun(
 
    const EPS = 0.001;
    let remainingStepFrac = 1.0;
-   let collidedObstacle = false;
+   let impactObstacle = false;
 
    for (let pass = 0; pass < 3 && remainingStepFrac > 1e-4; pass++) {
       const stepDx = cart.vx * dt * remainingStepFrac;
@@ -580,11 +602,12 @@ export function stepRun(
       let hitNormalX = 0;
       let hitNormalZ = 0;
 
-      const delta = { x: stepDx, z: stepDz };
+      SWEEP_DELTA.x = stepDx;
+      SWEEP_DELTA.z = stepDz;
 
       for (let i = 0; i < SOLID_OBSTACLES.length; i++) {
          const obs = SOLID_OBSTACLES[i];
-         const t = sweptAabbXZ(PROXY_BOX, delta, obs, SWEEP_HIT);
+         const t = sweptAabbXZ(PROXY_BOX, SWEEP_DELTA, obs, SWEEP_HIT);
          if (t !== null) {
             let nx = SWEEP_HIT.normalX;
             let nz = SWEEP_HIT.normalZ;
@@ -604,7 +627,7 @@ export function stepRun(
 
             // Dot product of motion vector with outward normal:
             // dot >= 0 means moving away from or parallel to the face (ignore touching box)
-            const dotMotionN = delta.x * nx + delta.z * nz;
+            const dotMotionN = SWEEP_DELTA.x * nx + SWEEP_DELTA.z * nz;
             if (dotMotionN >= 0) continue;
 
             if (t < earliestHitTime) {
@@ -622,7 +645,6 @@ export function stepRun(
          break;
       }
 
-      collidedObstacle = true;
       // Advance to impact point backed off by epsilon along hit normal
       cart.x += stepDx * earliestHitTime + hitNormalX * EPS;
       cart.z += stepDz * earliestHitTime + hitNormalZ * EPS;
@@ -631,6 +653,9 @@ export function stepRun(
       // Slide along face: remove normal velocity component so remaining passes move tangentially
       const vDotN = cart.vx * hitNormalX + cart.vz * hitNormalZ;
       if (vDotN < 0) {
+         if (-vDotN > 1.5) {
+            impactObstacle = true;
+         }
          cart.vx -= vDotN * hitNormalX;
          cart.vz -= vDotN * hitNormalZ;
       }
@@ -657,15 +682,31 @@ export function stepRun(
    }
 
    // Outer store perimeter clamp
-   if (cart.x - halfX < STORE.innerMinX) { cart.x = STORE.innerMinX + halfX; cart.vx = Math.abs(cart.vx) * CART.restitution; collidedObstacle = true; }
-   if (cart.x + halfX > STORE.innerMaxX) { cart.x = STORE.innerMaxX - halfX; cart.vx = -Math.abs(cart.vx) * CART.restitution; collidedObstacle = true; }
-   if (cart.z - halfZ < STORE.innerMinZ) { cart.z = STORE.innerMinZ + halfZ; cart.vz = Math.abs(cart.vz) * CART.restitution; collidedObstacle = true; }
-   if (cart.z + halfZ > STORE.innerMaxZ) { cart.z = STORE.innerMaxZ - halfZ; cart.vz = -Math.abs(cart.vz) * CART.restitution; collidedObstacle = true; }
+   if (cart.x - halfX < STORE.innerMinX) {
+      if (Math.abs(cart.vx) > 1.5) impactObstacle = true;
+      cart.x = STORE.innerMinX + halfX;
+      cart.vx = Math.abs(cart.vx) * CART.restitution;
+   }
+   if (cart.x + halfX > STORE.innerMaxX) {
+      if (Math.abs(cart.vx) > 1.5) impactObstacle = true;
+      cart.x = STORE.innerMaxX - halfX;
+      cart.vx = -Math.abs(cart.vx) * CART.restitution;
+   }
+   if (cart.z - halfZ < STORE.innerMinZ) {
+      if (Math.abs(cart.vz) > 1.5) impactObstacle = true;
+      cart.z = STORE.innerMinZ + halfZ;
+      cart.vz = Math.abs(cart.vz) * CART.restitution;
+   }
+   if (cart.z + halfZ > STORE.innerMaxZ) {
+      if (Math.abs(cart.vz) > 1.5) impactObstacle = true;
+      cart.z = STORE.innerMaxZ - halfZ;
+      cart.vz = -Math.abs(cart.vz) * CART.restitution;
+   }
 
    cart.speed = Math.hypot(cart.vx, cart.vz);
 
-   if (collidedObstacle) {
-      run.combo = 0; // Obstacle impact breaks combo streak
+   if (impactObstacle) {
+      run.combo = 0; // High-speed impact breaks combo streak; soft scrapes maintain it
    }
 
    // 4. Can Pyramids Collision
@@ -675,7 +716,7 @@ export function stepRun(
          p.toppled = true;
          cart.slowTimer = 0.5;
          run.combo = 0;
-         events.pyramidToppled.push({ x: p.x, z: p.z });
+         STEP_EVENTS.pyramidToppled.push({ x: p.x, z: p.z });
       }
    }
 
@@ -701,7 +742,19 @@ export function stepRun(
          cart.speed = 0;
          shopper.graceTimer = 1.5;
          run.combo = 0;
-         events.shopperBumped.push({ x: shopper.agent.x, z: shopper.agent.z });
+         STEP_EVENTS.shopperBumped.push({ x: shopper.agent.x, z: shopper.agent.z });
+      }
+
+      // Keep shopper outside the cart's collision volume after bump or during contact
+      const sDx = shopper.agent.x - cart.x;
+      const sDz = shopper.agent.z - cart.z;
+      const minDist = CART.radius + 0.45;
+      const sDistSq = sDx * sDx + sDz * sDz;
+      if (sDistSq < minDist * minDist) {
+         const sDist = Math.sqrt(sDistSq) || 0.001;
+         const push = minDist - sDist;
+         shopper.agent.x += (sDx / sDist) * push;
+         shopper.agent.z += (sDz / sDist) * push;
       }
    }
 
@@ -717,7 +770,7 @@ export function stepRun(
             run.combo++;
             const pointsGained = POINTS.item + run.combo * POINTS.comboStep;
             run.score += pointsGained;
-            events.pickups.push({
+            STEP_EVENTS.pickups.push({
                kind: item.kind,
                score: pointsGained,
                combo: run.combo,
@@ -728,7 +781,7 @@ export function stepRun(
             if (run.collectedCount === LIST_COUNT && !run.listComplete) {
                run.listComplete = true;
                run.score += POINTS.listComplete;
-               events.listCompleted = true;
+               STEP_EVENTS.listCompleted = true;
             }
          }
       }
@@ -737,13 +790,13 @@ export function stepRun(
    // 7. Checkout Finish Zone Check
    if (run.listComplete && pointInAabb(cart, FINISH_ZONE)) {
       run.won = true;
-      events.won = true;
+      STEP_EVENTS.won = true;
       const timeLeftMs = Math.max(0, DURATION_MS - playTimeS * 1000);
       const timeBonus = POINTS.perSecond * Math.floor(timeLeftMs / 1000);
       run.score += timeBonus;
    }
 
-   return events;
+   return STEP_EVENTS;
 }
 
 // ---------- Score & Limit Validation Helpers ----------

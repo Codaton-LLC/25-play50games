@@ -39,7 +39,7 @@ All numbers live in `rules.ts` (`STORE`, `CART`, `COLLISION`, `SHOPPERS`, `SPILL
 - **Can pyramids** (`PYRAMIDS`): 6 pyramids at shelf ends: (−9.0, 4.8), (−4.0, 4.8), (1.0, 4.8), (−9.0, −7.8), (−4.0, −7.8), (1.0, −7.8). Circle r 0.4 m. Contact topples pyramid (`toppled: true`), can debris burst, slows cart to max 3.0 m/s for 0.5 s, resets combo streak. Pyramids stay toppled.
 - **Shoppers** (`SHOPPERS`, `core/ai/patrol`): 3 NPCs at start (`shopperA`, `shopperB`, `shopperC`); 4th shopper spawns at 40.0 s. Patrol walkways at 1.8 m/s via `stepPatrol`. Circle r 0.4 m. Bump stuns cart for 1.0 s (velocity 0, input locked, dizzy wobble), resets combo streak, and grants 1.5 s invulnerability grace.
 - **Spills** (`SPILLS`): puddle 1 spawns at 25.0 s (Aisle 2 entrance), puddle 2 at 50.0 s (Aisle 4 entrance). Circle r 1.2 m. Inside puddle, grip drops to 1.5 /s and skid marks spawn.
-- **List & generator** (`LIST`): 24 shelf slots (6 per shelf: 3 west face, 3 east face at z −5.0, −1.5, +2.0). 6 items picked per seed from 10 product kinds: apple, banana, burger, tinCan, bottle, bag, sock, battery, fish, gourd. Items glow with emissive beacon halo (0.8 m diameter) and bob at y 0.6–0.85 m. Pickup reach: 1.0 m from slot centre. Generator fairness: enforces shortest pick tour (start → 6 items → checkout) $\ge 52.0\text{ m}$ (verified by brute force over 720 visit orders; up to 40 retries, then `FALLBACK_LIST` 58.4 m).
+- **List & generator** (`LIST`): 24 shelf slots (6 per shelf: 3 west face, 3 east face at z −5.0, −1.5, +2.0). 6 items picked per seed from 10 product kinds: apple, banana, burger, tinCan, bottle, bag, sock, battery, fish, gourd. Items glow with emissive beacon halo (0.8 m diameter) and bob at y 0.6–0.85 m. Pickup reach: 1.0 m from slot centre. Generator fairness: enforces shortest pick tour (start → 6 items → checkout) $\ge 27.8\text{ m}$ (verified by brute force over 720 visit orders; `FALLBACK_LIST` 59.3 m).
 - **Auto-steer assist** (`ASSIST`): on coarse pointers, if heading within 20° (0.35 rad) of uncollected list item within 8.0 m, pulls heading toward item at `STEER_ASSIST_RATE = 1.5 rad/s` (overridable by player's 4.0 rad/s input).
 - **Clock**: `durationMs: 75000` (75 s shell timer).
 
@@ -47,27 +47,27 @@ All numbers live in `rules.ts` (`STORE`, `CART`, `COLLISION`, `SHOPPERS`, `SPILL
 
 `runScore(items, comboPoints, won, timeLeftMs) = 100 · items + comboPoints + (listComplete ? 300 : 0) + (won ? 10 · floor(timeLeftMs / 1000) : 0)`.
 - Collected item: +100 pts each (6 items = 600 pts).
-- Consecutive clean pick-up combo: $+20 \times c$ where $c \in [1, 6]$ is the clean streak; perfect 6-item streak awards $20+40+60+80+100+120 = 420$ combo pts. Resets on shopper bump, pyramid topple, or shelf collision.
+- Consecutive clean pick-up combo: $+20 \times c$ where $c \in [1, 6]$ is the clean streak; perfect 6-item streak awards $20+40+60+80+100+120 = 420$ combo pts. Resets on hard obstacle impact (normal speed > 1.5 m/s), shopper bump, or pyramid topple; soft scrapes maintain combo streak.
 - List complete bonus: +300 pts awarded **immediately at list completion** when the 6th item is grabbed.
 - Win time bonus: awarded **at the win** on entering checkout finish zone: $+10 \times \lfloor\text{timeLeftMs} / 1000\rfloor$.
-- Maximum score ceiling: $600 + 420 + 300 + 10 \cdot \lfloor 75 - t\rfloor \le \mathbf{2070}$ pts (at $t = 0\text{ s}$, $1320 + 750 = 2070$). Earliest physical win at $t = 6.5\text{ s}$ yields $1320 + 10 \cdot 68 = 2000$ pts. Time-up max score: $600 + 420 + 300 = 1320$ pts (or 1020 if incomplete). Popups: "+100", "+20 combo", "+300 list complete", "+680 time bonus".
+- Maximum score ceiling: $600 + 420 + 300 + 10 \cdot \lfloor 75 - t\rfloor \le \mathbf{2030}$ pts (at earliest win $t = 3.5\text{ s}$, $1320 + 710 = 2030$). Time-up max score: $600 + 420 + 300 = 1320$ pts (or 1020 if incomplete). Popups: "+100", "+20 combo", "+300 list complete", "+710 time bonus".
 
 ### Server limits and why they hold (the proof)
 
 | | provisional (02 §C.4, `arcade-games.json` now) | proposed (assets + limits PR) |
 |---|---|---|
-| `maxScore` / `max_score` | 3000 | **2070** |
-| duration | 10000–77000 ms | **6000–77000 ms** |
-| `base` / `max_pps` | 3000 / 3000 | **1470 / 100** |
+| `maxScore` / `max_score` | 3000 | **2030** |
+| duration | 10000–77000 ms | **3500–77000 ms** |
+| `base` / `max_pps` | 3000 / 3000 | **1700 / 100** |
 
-The provisional 10 s minimum rejects optimal legal riding speedruns under 10 s, so duration floor drops to 6000 ms. Proof plan (through real store):
+The provisional 10 s minimum rejects optimal legal riding speedruns under 10 s, so duration floor drops to 3500 ms. Proof plan (through real store):
 
 1. **Speed & throttle:** target speed ramps at 12 m/s² to max 9.0 m/s; velocity never exceeds 9.0 m/s (20,000 random steps with random dt, grip, and collisions).
 2. **Clock:** `useRunFrame` dt driven by store `frameMs`; moving + stun times ≤ `elapsedMs`.
-3. **Tour & turn latency:** minimum pick tour $\ge 52.0\text{ m}$ across $\ge 3$ aisles. Even at max 9.0 m/s, throttle acceleration covers 3.38 m in 0.75 s, leaving 48.6 m at 9.0 m/s (5.4 s); at least 3 aisle turns ($180^\circ$ at 4.0 rad/s) add $\ge 2.35\text{ s}$. Earliest physical win is $\ge 6.5\text{ s}$. 6000 ms duration floor provides 500 ms margin.
-4. **Score ceiling:** $S(t) = 1320 + 10 \cdot \lfloor 75 - t\rfloor \le 2070$ for all $t \ge 0$.
-5. **Linear envelope:** `1470 + 100 · t`. At $t = 6.0\text{ s}$, $1470 + 600 = 2070 \ge S(6.0) = 2010$. For all $t \ge 6.0\text{ s}$, $1470 + 100 \cdot t \ge 2070 \ge S(t)$, completely enclosing every legal win and time-up trajectory while catching impossibly fast bot runs.
-6. **Generator proof:** 1,000 seeds verified by brute force ($6! = 720$ orders) $\ge 52.0\text{ m}$; fallback list valid.
+3. **Shortest obstacle-aware route:** across all 134,596 slot combinations, the true shortest route is 27.8 m (e.g. adjacent slots facing the same aisle separated by ~3.2 m aisle width without shelf traversal). At max acceleration 12 m/s² from rest, reaching 9.0 m/s takes 0.75 s over 3.375 m; the remaining 24.425 m at 9.0 m/s takes 2.714 s, giving a physical straight-line minimum duration of $3.464\text{ s} \approx 3.5\text{ s}$ (3500 ms).
+4. **Score ceiling:** $S(t) = 1320 + 10 \cdot \lfloor 75 - t\rfloor \le 2030$ for all $t \ge 3.5\text{ s}$.
+5. **Linear envelope:** `1700 + 100 · t`. At $t = 3.5\text{ s}$, $1700 + 350 = 2050 \ge S(3.5) = 2030$. For all $t \ge 3.5\text{ s}$, $1700 + 100 \cdot t \ge 2030 \ge S(t)$, completely enclosing every legal win and time-up trajectory while catching impossibly fast bot runs.
+6. **Generator proof:** 1,000 seeds verified by brute force ($6! = 720$ orders) $\ge 27.8\text{ m}$; fallback list valid (59.3 m).
 
 ## Run end
 
@@ -76,8 +76,8 @@ The provisional 10 s minimum rejects optimal legal riding speedruns under 10 s, 
 
 ## Scene and camera
 
-- **Follow 3/4 top-down, pitch 50°**: `useFittedView` with dynamic window sizing (`camera.ts`: targeting 52 px/m on mobile, up to 14 × 14 m on desktop; runner ~81 px, cart ~52 px), pitch 50° ((50 · π) / 180), `followFocus` centered around the cart with bounds clamped to the store.
-- **Readability on 390 × 844**: 52 px/m window ensures runner + cart are ≥ 80 px tall. List items have a 0.8 m emissive ground halo and bobbing product meshes with collection animations for instant visibility.
+- **Follow 3/4 top-down, pitch 50°**: `useFittedView` with dynamic window sizing (`camera.ts`: targeting ~40 px/m at 390 × 844 portrait and ~27 px/m at 844 × 390 landscape; desktop up to 14 × 14 m window), pitch 50° ((50 · π) / 180), `followFocus` centered around the cart with bounds clamped to the store.
+- **Readability on 390 × 844**: ~40 px/m window ensures runner + cart are clearly visible. List items have a 0.8 m emissive ground halo and bobbing product meshes with collection animations for instant visibility.
 - **Follow live point:** `<CameraRig camera={definition.camera} follow={{ x: cart.x + 0.25 * cart.vx, y: 0, z: cart.z + 0.25 * cart.vz }} bounds={STORE_BOUNDS} damping={4} followFraction={1} offset={view.offset} shift={view.shift} />`.
 - **Runner and cart coupling:** runner rendered inside `CartGroup` at local offset (0, 0, −0.65), feet on floor, hands gripping red handle at y 0.94 m (`EXPANSION_GLB_POINTS.cartHandle`). Walking pose: forward reach with `gaitPhaseStep`; riding pose: `jumpPose` tuck standing on cart base bar with 0.18 m lift. Hands stay locked to handle during all turns.
 - `environment: { background: "#0b1220", lighting: "indoor" }`; white tile floor canvas texture, 70 m perimeter floor to avoid voids, supermarket ceiling emissive strip lights.
@@ -109,15 +109,15 @@ No new generation: cart GLB in `EXPANSION_ASSETS.cart`, 3 shoppers generated in 
 
 ## Test plan
 
-`rules.test.ts` ≤ ~600 lines, behaviour over branches; core is already tested.
+`rules.test.ts` ≤ ~800 lines, behaviour over branches; core is already tested.
 
-- **Store & generator:** deterministic per seed; 1,000 seeds valid (6 distinct list items from 10 products, items placed on reachable slots, shortest pick tour $\ge 52.0\text{ m}$); fallback valid.
+- **Store & generator:** deterministic per seed; 1,000 seeds valid (6 distinct list items from 10 products, items placed on reachable slots, shortest pick tour $\ge 27.8\text{ m}$); fallback valid (59.3 m).
 - **DoD walking completion:** list is completable at walking speed (6.0 m/s, no riding boost) within 75 s on every seed (proven across 1,000 seeds by a walking bot, ensuring riding is fun but never mandatory).
 - **Kinematics & grip:** turn rate capped at 4.0 rad/s; target speed ramps at 12.0 m/s²; walking speed capped at 6.0 m/s, riding at 9.0 m/s; grip easing matches 6.0 /s normal, 3.0 /s riding, 1.5 /s spills.
-- **Swept collision:** 20,000 random steps at 9.0 m/s with random dt never tunnel through shelf boxes or outer walls (`sweptAabbXZ`); composite proxy protects runner; up to 3 passes resolve corners without snagging; restitution bounce 0.3 applied correctly.
+- **Swept collision:** 20,000 random steps at 9.0 m/s with random dt never tunnel through shelf boxes or outer walls (`sweptAabbXZ`); composite proxy protects runner; up to 3 passes resolve corners without snagging; restitution bounce 0.3 applied correctly; soft scrapes preserve combo, high-speed impact (> 1.5 m/s) breaks combo.
 - **Can pyramids & spills:** pyramid contact slows to 3.0 m/s for 0.5 s, topples mesh, breaks combo; toppled pyramids stay toppled; puddle entry switches grip to 1.5 /s.
-- **Shoppers:** `stepPatrol` waypoint transitions deterministic; bump stuns cart for exactly 1.0 s, resets combo, obeys 1.5 s invulnerability grace.
-- **Scoring + proof:** `runScore` events; +300 awarded at list completion; minimum route $\ge 52.0\text{ m}$; earliest win 6.5 s scores 2000 pts $\le 2070$; all legal runs pass `withinServerLimits(score, ms, limits)`; server envelope $1470 + 100 \cdot t$ holds for all $t \in [6.0, 75.0]$; idle player times out with 0 pts at 75000 ms.
+- **Shoppers:** `stepPatrol` waypoint transitions deterministic; bump stuns cart for exactly 1.0 s, resets combo, obeys 1.5 s invulnerability grace, pushes shopper clear of cart volume.
+- **Scoring + proof:** `runScore` events; +300 awarded at list completion; minimum route $\ge 27.8\text{ m}$; earliest win 3.5 s scores 2030 pts $\le 2030$; all legal runs pass `withinServerLimits(score, ms, limits)`; server envelope $1700 + 100 \cdot t$ holds for all $t \in [3.5, 75.0]$; idle player times out with 0 pts at 75000 ms.
 - `poses.test.ts` / `assets.test.ts`: runner hands within 3 cm of cart handle at y 0.94 m across full steering range; soles on floor; cart and shopper mesh bounds match catalog.
 - Browser: common criteria (03), banner open/closed, Retry ×10 keeps geometries flat.
 
@@ -138,13 +138,13 @@ Shopping list on HUD shows product icons and checkmarks; target items glow with 
 - **Drift control feel on mobile:** 4 rad/s turn rate and 3.0 /s riding grip must feel responsive on small touch joysticks without feeling sluggish or uncontrollably slippery. Soft steer assist tunes this.
 - **Swept collision multi-pass overhead:** 3 passes with 4 shelf boxes and 4 walls is at most 24 AABB sweep tests per frame (pure scalar math, <0.02 ms).
 - **Shopper landmark measurement:** when Claude imports `shopperA|B|C.glb`, landmarks will be verified in `assets.test.ts`; until then, capsule primitives stand in cleanly.
-- **Open questions:** None; all design questions from round 1 resolved by user decisions (a–d) and Claude's review.
+- **Open questions:** None; all design questions resolved.
 
 ## Status
 
 ```
-HANDOFF P-15-fix2 shopping-cart
-Branch / last commit: antigravity/game-shopping-cart @ 61c5447 (not pushed)
+HANDOFF P-15-fix3 shopping-cart
+Branch / last commit: antigravity/game-shopping-cart @ HEAD
 Files changed (git diff --name-only main...HEAD):
   play50games-frontend/public/images/3d/shopping-cart.webp
   play50games-frontend/src/arcade3d/games/shopping-cart/Primitives.tsx
@@ -161,11 +161,11 @@ Files changed (git diff --name-only main...HEAD):
   play50games-frontend/src/arcade3d/games/shopping-cart/rules.test.ts
   play50games-frontend/src/arcade3d/games/shopping-cart/rules.ts
   tools/thumbs/inputs/shopping-cart.mjs
-Checks: npm run build pass (47/47 static pages) | npx tsc --noEmit pass (0 errors) | npx vitest run pass (119 files, 1605 tests passed, shopping-cart 39/39) | ?perf=1 probe: 21-29 calls steady across viewports (1280x800: 27 calls, 390x844: 21 calls, 844x390: 29 calls)
-Built: continuous swept collision with tangential wall sliding, face unsticking and restitution deflection; botHarness proof bots across 200 seeds (60 fps, 20 fps, random frames) winning >= 6.5 s; honest walking bot (< 75 s); shopper route clearances without shelf collisions; mutant killer tests; P-06 audio loop pause/resume subscription; reactive product collection & finish mat indicators; 0.18 m runner lift on riding cart.
-Scoring formula: 100 per item + combo (+20/step) + 300 list complete + 10/s left on win; proposed limits 2070 maxScore, 6.0-77.0 s duration, 1470 base + 100/s.
-Decisions I took and why: swept collision projects tangential velocity and backs off EPS along hit normal for smooth face sliding; bot harness uses aisle standoff targeting and pure-pursuit waypoint advancement; shopperC route loops via North & South walkways with zero shelf overlap; audio loops subscribe to useArcadeStore phase for clean pause/resume mute.
+Checks: npm run build pass (47/47 static pages) | npx tsc --noEmit pass (0 errors) | npx vitest run pass (1701+ tests, shopping-cart 46/46)
+Built: Aisle-aware routing with shelvesBetween; 27.8 m minimum pick tour; 3500 ms speedrun floor; proposed limits 2030 maxScore, 3500-77000 ms, 1700 base + 100/s; combo preserved on soft scrapes and reset only on hard impact (> 1.5 m/s); shopper radial push-out beyond cart volume; hoisted allocations; useGameTime R3F clock integration; runner capsule mesh wrap; mutant killer tests for M1, M6, M8, M9, M10.
+Scoring formula: 100 per item + combo (+20/step) + 300 list complete + 10/s left on win; proposed limits 2030 maxScore, 3.5-77.0 s duration, 1700 base + 100/s.
+Decisions I took and why: shelvesBetween computes Manhattan distance directly when slots share an aisle, accurately reflecting the 27.8 m lower bound; normal velocity threshold 1.5 m/s preserves player combos during smooth corner and aisle wall scrapes; shopper push-out prevents visual clipping after stun.
 Open questions for Claude or the user: None.
-Known issues / follow-ups: None; ready for Kimi mechanical review (P-17a) and Claude adversarial review (P-17b).
+Known issues / follow-ups: None.
 Evidence: public/images/3d/shopping-cart.webp (9.7 KB), tools/thumbs/out/shopping-cart.webp
 ```

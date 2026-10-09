@@ -89,6 +89,9 @@ export default function Scene() {
       };
    }, [fx]);
 
+const WORLD_MOVE = { x: 0, y: 0, z: 0 };
+const STEP_INPUT: StepInput = { moveX: 0, moveY: 0, ride: false };
+
    // One useRunFrame driving pure rules and arcade store with frame dt and store time
    useRunFrame((_state, dt, time) => {
       const { phase } = useArcadeStore.getState();
@@ -97,14 +100,12 @@ export default function Scene() {
       const inp = input.current;
 
       // Screen-relative movement
-      const world = inputToWorld(inp.moveX, inp.moveY, view.yaw);
-      const stepInp: StepInput = {
-         moveX: world.x,
-         moveY: -world.z, // up in screen = north (-z in world)
-         ride: inp.jump,  // Space or touch Ride button
-      };
+      inputToWorld(inp.moveX, inp.moveY, view.yaw, WORLD_MOVE);
+      STEP_INPUT.moveX = WORLD_MOVE.x;
+      STEP_INPUT.moveY = -WORLD_MOVE.z; // up in screen = north (-z in world)
+      STEP_INPUT.ride = inp.jump;       // Space or touch Ride button
 
-      const events = stepRun(run, stepInp, dt, time);
+      const events = stepRun(run, STEP_INPUT, dt, time);
       const cart = run.cart;
 
       // Update camera follow target with velocity look-ahead
@@ -243,7 +244,16 @@ function CartRunner({ run }: { run: RunState }) {
 
          {/* Pusher runner standing behind the handle at +z = 0.85, facing forward (-z) */}
          <group ref={runnerRef} position={[0, 0, 0.85]} rotation={[0, Math.PI, 0]}>
-            <HumanoidModel asset={ASSETS.pusher} pose={pose} fallback={<capsuleGeometry args={[0.25, 0.9]} />} />
+            <HumanoidModel
+               asset={ASSETS.pusher}
+               pose={pose}
+               fallback={
+                  <mesh position={[0, 0.7, 0]}>
+                     <capsuleGeometry args={[0.25, 0.9]} />
+                     <meshStandardMaterial color="#f97316" />
+                  </mesh>
+               }
+            />
          </group>
 
          <BlobShadow radius={0.65} opacity={0.4} />
@@ -347,8 +357,9 @@ function ShelfItems({ items }: { items: RunState["list"] }) {
 function ShelfItem({ item, index }: { item: ListItem; index: number }) {
    const groupRef = useRef<Group>(null);
    const asset = ASSETS[item.kind as keyof typeof ASSETS] ?? ASSETS.apple;
+   const gameTime = useGameTime();
 
-   useFrame((state) => {
+   useFrame(() => {
       const g = groupRef.current;
       if (!g) return;
       if (item.collected) {
@@ -356,7 +367,7 @@ function ShelfItem({ item, index }: { item: ListItem; index: number }) {
          return;
       }
       g.visible = true;
-      const t = state.clock.getElapsedTime();
+      const t = gameTime.now;
       g.position.y = 0.72 + Math.sin(t * 3 + index) * 0.1;
       g.rotation.y = t * 1.5;
    });
@@ -506,13 +517,14 @@ const WALL_SPOTS = [
 
 function FinishMat({ run }: { run: RunState }) {
    const matRef = useRef<MeshStandardMaterial>(null);
+   const prevListCompleteRef = useRef<boolean | null>(null);
+
    useFrame(() => {
       if (!matRef.current) return;
-      const targetColor = run.listComplete ? "#22c55e" : "#cbd5e1";
-      const targetEmissive = run.listComplete ? "#16a34a" : "#000000";
-      if (matRef.current.color.getHexString() !== (run.listComplete ? "22c55e" : "cbd5e1")) {
-         matRef.current.color.set(targetColor);
-         matRef.current.emissive.set(targetEmissive);
+      if (prevListCompleteRef.current !== run.listComplete) {
+         prevListCompleteRef.current = run.listComplete;
+         matRef.current.color.set(run.listComplete ? "#22c55e" : "#cbd5e1");
+         matRef.current.emissive.set(run.listComplete ? "#16a34a" : "#000000");
       }
    });
 

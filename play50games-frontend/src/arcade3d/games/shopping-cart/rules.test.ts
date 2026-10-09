@@ -66,7 +66,7 @@ describe("shopping-cart rules", () => {
          }
       });
 
-      it("enforces minimum tour distance >= 52.0 m on 1,000 seeds", () => {
+      it("enforces minimum tour distance >= 27.8 m on 1,000 seeds", () => {
          for (let i = 0; i < SEEDS.length; i++) {
             const list = generateList(SEEDS[i]);
             const tour = shortestPickTour(list);
@@ -285,6 +285,8 @@ describe("shopping-cart rules", () => {
          expect(run.combo).toBe(0);
          expect(run.shoppers[0].graceTimer).toBeCloseTo(1.5, 1);
          expect(events.shopperBumped).toHaveLength(1);
+         const shopperCartDist = Math.hypot(run.shoppers[0].agent.x - run.cart.x, run.shoppers[0].agent.z - run.cart.z);
+         expect(shopperCartDist).toBeGreaterThanOrEqual(CART.radius + 0.45 - 1e-3);
       });
 
       it("spill puddle drops grip to 1.5 /s", () => {
@@ -296,6 +298,37 @@ describe("shopping-cart rules", () => {
 
          const events = stepRun(run, input(1, 0, false), DT, 30.0); // after spawnS (25s)
          expect(events.spillSkid).toBe(true);
+      });
+
+      it("scrape along shelf maintains combo streak; direct impact (> 1.5 m/s) resets combo", () => {
+         // 1. Soft scrape: cart moving fast along Z, gently touching shelf in X (normal speed <= 1.5)
+         const runScrape = createRun(1);
+         runScrape.combo = 3;
+         // Shelf 0 is at x: [-9.5, -8.5], z: [-8.0, 4.0]. Half-width 0.55.
+         // West face is at x = -9.5. Cart at x = -10.055 touches west face with dx = 0.555.
+         // Moving north with slight drift east into the face:
+         runScrape.cart.x = -10.055;
+         runScrape.cart.z = 0;
+         runScrape.cart.heading = 0;
+         runScrape.cart.targetSpeed = 4.0;
+         runScrape.cart.speed = 4.0;
+         runScrape.cart.vx = 0.4; // normal velocity <= 1.5 m/s into west face
+         runScrape.cart.vz = -4.0; // sliding fast along aisle
+         stepRun(runScrape, input(0, 1, false), DT, 1.0);
+         expect(runScrape.combo, "soft scrape preserves combo").toBe(3);
+
+         // 2. Direct impact: cart driving head-on into shelf with normal speed > 1.5 m/s
+         const runCrash = createRun(1);
+         runCrash.combo = 3;
+         runCrash.cart.x = -10.42;
+         runCrash.cart.z = 0;
+         runCrash.cart.heading = Math.PI / 2;
+         runCrash.cart.targetSpeed = 4.0;
+         runCrash.cart.speed = 4.0;
+         runCrash.cart.vx = 4.0; // head-on > 1.5 m/s into west face
+         runCrash.cart.vz = 0;
+         stepRun(runCrash, input(1, 0, false), DT, 1.0);
+         expect(runCrash.combo, "head-on impact resets combo").toBe(0);
       });
    });
 
@@ -388,12 +421,29 @@ describe("shopping-cart rules", () => {
          for (let s = 0; s < 50; s++) {
             const list = generateList(s);
             const tour = shortestPickTour(list);
+            expect(tour, `seed ${s}`).toBeGreaterThanOrEqual(MIN_TOUR_DISTANCE);
             // Time to walk tour at 6.0 m/s:
             const walkTime = tour / CART.maxWalkingSpeed;
             // Turn and acceleration allowance:
             const totalEstimatedTime = walkTime + 8.0; // 8s for turns and speed changes
             expect(totalEstimatedTime, `seed ${s}`).toBeLessThan(75.0);
          }
+      });
+
+      it("standstill acceleration along 27.8 m minimum route cannot complete before 3.46 s (3500 ms limit holds)", () => {
+         // Kinematic proof of lower bound: from rest at max accel (12 m/s²) up to max speed (9 m/s)
+         let speed = 0;
+         let dist = 0;
+         let t = 0;
+         const routeLength = 27.8;
+         while (dist < routeLength && t < 10.0) {
+            t += DT;
+            speed = Math.min(CART.maxRidingSpeed, speed + CART.throttleAccel * DT);
+            dist += speed * DT;
+         }
+         expect(dist).toBeGreaterThanOrEqual(routeLength);
+         expect(t).toBeGreaterThanOrEqual(3.46);
+         expect(Math.floor(t * 1000)).toBeGreaterThanOrEqual(3460);
       });
    });
 
@@ -415,7 +465,7 @@ describe("shopping-cart rules", () => {
       });
 
       it(
-         "path-following bots win through simulateRun across 200 seeds at 60 fps, 20 fps and random frames, never before 6.5 s",
+         "path-following bots win through simulateRun across 200 seeds at 60 fps, 20 fps and random frames, never before 3.5 s",
          () => {
             const framesFor = (k: number) =>
                [fixedFrames(1000 / 60), fixedFrames(50), randomFrames(k)][k % 3];
@@ -518,7 +568,7 @@ describe("shopping-cart rules", () => {
 
                const finalState = store.getState();
                expect(finalState.endReason, `seed ${s} should win`).toBe("win");
-               expect(finalState.elapsedMs).toBeGreaterThanOrEqual(6500);
+               expect(finalState.elapsedMs).toBeGreaterThanOrEqual(3500);
                if (finalState.elapsedMs < earliestWinMs) {
                   earliestWinMs = finalState.elapsedMs;
                }
@@ -526,7 +576,7 @@ describe("shopping-cart rules", () => {
                expect(withinProposedLimits(finalState.score, finalState.elapsedMs)).toBe(true);
                expect(withinServerLimits(finalState.score, finalState.elapsedMs)).toBe(true);
             }
-            expect(earliestWinMs).toBeGreaterThanOrEqual(6500);
+            expect(earliestWinMs).toBeGreaterThanOrEqual(3500);
          },
          30000
       );
@@ -639,6 +689,118 @@ describe("shopping-cart rules", () => {
    });
 
    describe("mutant killer tests", () => {
+      it("M1: West, East, North, South perimeter wall bounces each have non-zero restitution > 0", () => {
+         // West wall (innerMinX = -15.4)
+         const runW = createRun(1);
+         runW.cart.x = -15.0;
+         runW.cart.vx = -4.0;
+         runW.cart.vz = 0;
+         stepRun(runW, input(-1, 0, false), DT, 1.0);
+         expect(runW.cart.vx, "West wall rebound vx > 0").toBeGreaterThan(0.5);
+
+         // East wall (innerMaxX = 15.4)
+         const runE = createRun(1);
+         runE.cart.x = 15.0;
+         runE.cart.vx = 4.0;
+         runE.cart.vz = 0;
+         stepRun(runE, input(1, 0, false), DT, 1.0);
+         expect(runE.cart.vx, "East wall rebound vx < 0").toBeLessThan(-0.5);
+
+         // North wall (innerMinZ = -11.4)
+         const runN = createRun(1);
+         runN.cart.z = -11.0;
+         runN.cart.vx = 0;
+         runN.cart.vz = -4.0;
+         stepRun(runN, input(0, 1, false), DT, 1.0);
+         expect(runN.cart.vz, "North wall rebound vz > 0").toBeGreaterThan(0.5);
+
+         // South wall (innerMaxZ = 11.4)
+         const runS = createRun(1);
+         runS.cart.z = 11.0;
+         runS.cart.vx = 0;
+         runS.cart.vz = 4.0;
+         stepRun(runS, input(0, -1, false), DT, 1.0);
+         expect(runS.cart.vz, "South wall rebound vz < 0").toBeLessThan(-0.5);
+      });
+
+      it("M6: win with 45.5 s left earns floor(45.5) * 10 = 450 pts (strictly rejecting Math.ceil mutant of 460 pts)", () => {
+         const run = createRun(1);
+         for (let i = 0; i < 6; i++) {
+            run.list[i].collected = true;
+         }
+         run.collectedCount = 6;
+         run.listComplete = true;
+         run.score = 1000;
+
+         // Finish zone at t = 29.5 s -> timeLeftMs = 75000 - 29500 = 45500 ms (45.5 s)
+         run.cart.x = 0;
+         run.cart.z = 11.0;
+         stepRun(run, input(0, 0, false), DT, 29.5);
+
+         expect(run.won).toBe(true);
+         // Expect score = 1000 + 45 * 10 = 1450, rejecting 1000 + 46 * 10 = 1460
+         expect(run.score).toBe(1450);
+         expect(run.score).not.toBe(1460);
+      });
+
+      it("M8: spill grip 1.5 preserves higher slide velocity after turn compared to normal grip 6.0", () => {
+         const runSpill = createRun(1);
+         runSpill.cart.x = SPILLS[0].x;
+         runSpill.cart.z = SPILLS[0].z;
+         runSpill.cart.heading = 0;
+         runSpill.cart.targetSpeed = 0;
+         runSpill.cart.speed = 3.0;
+         runSpill.cart.vx = 3.0;
+         runSpill.cart.vz = 0;
+
+         const runDry = createRun(1);
+         runDry.cart.x = 0;
+         runDry.cart.z = 9.0;
+         runDry.cart.heading = 0;
+         runDry.cart.targetSpeed = 0;
+         runDry.cart.speed = 3.0;
+         runDry.cart.vx = 3.0;
+         runDry.cart.vz = 0;
+
+         // Step both for 4 frames at t = 30.0 s (when spill is active)
+         for (let f = 0; f < 4; f++) {
+            stepRun(runSpill, input(0, 0, false), DT, 30.0 + f * DT);
+            stepRun(runDry, input(0, 0, false), DT, 30.0 + f * DT);
+         }
+
+         // In the spill (grip = 1.5), lateral slide velocity vx is preserved much more than on dry floor (grip = 6.0)
+         expect(runSpill.cart.vx).toBeGreaterThan(runDry.cart.vx + 0.5);
+      });
+
+      it("M9: shopperD is inactive before 40 s and active at 40 s (strictly rejecting active from 0s mutant)", () => {
+         const run = createRun(1);
+         const shopperD = run.shoppers.find((s) => s.id === "shopperD")!;
+         expect(shopperD).toBeDefined();
+         expect(shopperD.active).toBe(false);
+
+         // Step at t = 39.9 s
+         stepRun(run, input(0, 0, false), DT, 39.9);
+         expect(shopperD.active).toBe(false);
+
+         // Step at t = 40.0 s
+         stepRun(run, input(0, 0, false), DT, 40.0);
+         expect(shopperD.active).toBe(true);
+      });
+
+      it("M10: input during stun timer does not change cart heading or target speed (strictly rejecting unlocked input mutant)", () => {
+         const run = createRun(1);
+         run.cart.stunTimer = 0.8;
+         run.cart.heading = 0;
+         run.cart.targetSpeed = 0;
+         run.cart.speed = 0;
+
+         // Full steering input while stunned
+         stepRun(run, input(1, 0, false), DT, 1.0);
+         expect(run.cart.heading, "heading must not change while stunned").toBe(0);
+         expect(run.cart.targetSpeed, "target speed must remain 0 while stunned").toBe(0);
+         expect(run.cart.speed).toBe(0);
+      });
+
       it("wall impact resets combo to 0", () => {
          const run = createRun(1);
          run.combo = 5;

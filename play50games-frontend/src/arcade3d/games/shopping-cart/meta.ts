@@ -2,6 +2,17 @@ import type { ArcadeGameMeta } from "@/arcade3d/types";
 
 // Plain data only (server-safe). scoring must match WP includes/arcade-games.json.
 // Provisional limits (docs/arcade-expansion/02 §C.4): set for real in the game's "assets + limits" PR.
+export const PROPOSED_LIMITS = {
+   kind: "points",
+   maxScore: 2030,
+   minDurationMs: 3500,
+   maxDurationMs: 77000,
+   base: 1700,
+   maxPointsPerSec: 100,
+   unitLabel: "pts",
+   display: "int",
+} as const;
+
 export const shoppingCartMeta: ArcadeGameMeta = {
    slug: "shopping-cart",
    title: "Crazy Shopping Cart",
