@@ -1,0 +1,39 @@
+{
+   "slug": "monster-kitchen",
+   "universe": "play50-toy-world-premium",
+   "seed": 5050,
+   "assets": [
+      {
+         "id": "monster",
+         "kind": "character",
+         "mode": "image",
+         "prompt": "Cute round blob monster: a soft pear-shaped body, two big friendly round eyes, a wide happy mouth with two small teeth, short stubby arms held slightly away from the body, two short feet, standing. Premium stylised mobile-game look, friendly rounded proportions, smooth soft shapes, matte pale lavender-white body with a lighter belly patch. Single character, centred, standing upright, facing the viewer, symmetrical. No horns, no hat, no clothes, no props, no base, no ground, no text. Clean game-ready topology, clean PBR textures without baked shadows.",
+         "tier": "Gen-2.5-Medium",
+         "qualityOverride": 18000,
+         "attempts": 1,
+         "target": "monster-kitchen",
+         "budget": { "tris": 8000, "bytes": 300000 },
+         "textureSize": 1024,
+         "imported": true,
+         "source": "EXPANSION_ASSETS.monster",
+         "glb": "/models/3d/monster-kitchen/monster.glb",
+         "note": "Already generated (expansion batch 1, 2026-10-08) and imported into core/modelManifest.ts. No generation requested — the prompt/tier/attempts fields are the historical record of the batch-1 run; do not run plan/gen for this asset. The character concept arrived via the user and is not committed to tools/hyper3d/concepts/."
+      },
+      {
+         "id": "cauldron",
+         "kind": "prop",
+         "mode": "text",
+         "prompt": "Round cartoon cauldron pot with a thick rolled rim, two small side handles and three short stubby legs, open top with an empty interior. Premium stylised mobile-game look, friendly rounded proportions, soft bevelled edges, matte dark charcoal iron with subtle warm highlights. Single object, centred, upright, symmetrical. No liquid, no smoke, no bubbles, no fire, no spoon, no base, no ground, no text. Clean game-ready low-poly topology, clean PBR texture without baked shadows.",
+         "tier": "Gen-2.5-Medium",
+         "qualityOverride": 1500,
+         "attempts": 1,
+         "target": "monster-kitchen",
+         "budget": { "tris": 3000, "bytes": 300000 },
+         "textureSize": 512,
+         "imported": true,
+         "source": "EXPANSION_ASSETS.cauldron",
+         "glb": "/models/3d/monster-kitchen/cauldron.glb",
+         "note": "Already generated (expansion batch 1, 2026-10-08, Rodin Gen-2.5-Medium like the rest of batch 1) and imported into core/modelManifest.ts. No generation requested — the prompt/tier/attempts fields are the historical record; do not run plan/gen for this asset."
+      }
+   ]
+}

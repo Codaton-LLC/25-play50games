@@ -52,7 +52,10 @@
 // stays in view (props.test.ts casts the rays). The primitives in Primitives.tsx are the fallbacks.
 import type { HumanoidLandmarks } from "@/arcade3d/core/rig/humanoid";
 import type { ModelAsset } from "@/arcade3d/core/types";
-import { CHARACTER_BUDGET, PROP_BUDGET, SHARED_ASSETS } from "@/arcade3d/core/sharedAssets";
+import { CLEANER_LANDMARKS, CHARACTER_BUDGET, PROP_BUDGET, SHARED_ASSETS } from "@/arcade3d/core/sharedAssets";
+
+// measured in this game, kept in core so other games reuse the character (REUSED_ASSETS)
+export { CLEANER_LANDMARKS };
 
 const LITTER_SCALE = 0.5;
 /** cleaner.glb is 1.9022 tall: 0.4994 draws it 0.95, the README's "about 1 unit" (the runner it replaced). */
@@ -66,58 +69,6 @@ const CAR_SIZE = 0.82;
  */
 export const BIN_COLOR = "#475569";
 
-/**
- * The cleaner's joints (GLB units: 1.898 x 1.902 x 0.430 T-pose, faces +z; 2026-10-08: a street
- * cleaner with a big head, glasses, a short beard over a shirt collar, an orange hi-vis vest that
- * ends above the hips, dark sleeves rolled to the elbow, work gloves, cargo trousers with reflective
- * bands over ankle boots), measured from cleaner.glb (core/README "Landmarks, and measuring a
- * character"; cleaner.test.ts). The estimate, except (set by eye in posed previews):
- * - armRadius 0.1 (estimate 0.067): the thick sleeve is 0.15-0.17 tall (y 1.28-1.46 at the
- *   shoulder); with the estimate its top and bottom stayed on the trunk and stuck out in spikes
- *   when the arms came down;
- * - neckY 1.466 / headY 1.49, neckBlend 0.012 (estimate 1.526 / 1.565 / 0.020): the beard reaches
- *   down to 1.505, just over the collar (1.46-1.48), so the head joint sits on the collar and the
- *   face, glasses, beard and hair turn as one (the estimate bent the beard with the neck);
- * - hemY = crotchY (estimate 0.634): nothing bridges the legs (the vest ends at 0.87); the close
- *   cargo thighs read as a hem, which would skirt-weight the thigh pockets;
- * - ankleY 0.19, ankleBlend 0.03 (estimate 0.173 / 0.047): the boot (under the trouser hem at
- *   about 0.13-0.16) stays rigid.
- * The soles are not flat: the heel 1-3 cm above the ball, the right sole 2 mm above the left.
- */
-export const CLEANER_LANDMARKS: HumanoidLandmarks = {
-   shoulderY: 1.364,
-   shoulderX: 0.271,
-   shoulderZ: -0.038,
-   armRadius: 0.1,
-   clavicleX: 0.135,
-   elbowX: 0.508,
-   wristX: 0.746,
-   armSpread: 0.108,
-   crotchY: 0.793,
-   hipY: 0.874,
-   hipX: 0.163,
-   hipZ: -0.061,
-   kneeY: 0.437,
-   ankleY: 0.19,
-   toeZ: 0.215,
-   heelZ: -0.175,
-   legDepth: 0.094,
-   legOuterX: 0.314,
-   hemY: 0.793,
-   spineY: 1.021,
-   chestY: 1.168,
-   neckY: 1.466,
-   headY: 1.49,
-   spineZ: -0.008,
-   shoulderBlend: 0.04,
-   elbowBlend: 0.033,
-   hipBlend: 0.087,
-   kneeBlend: 0.066,
-   ankleBlend: 0.03,
-   crotchBlend: 0.071,
-   spineBlend: 0.044,
-   neckBlend: 0.012,
-};
 
 const prop = (id: string, fallback: ModelAsset["fallback"], fallbackColor: string): ModelAsset => ({
    id,

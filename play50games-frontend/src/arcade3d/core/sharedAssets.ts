@@ -202,14 +202,117 @@ export const SHARED_ASSETS: Record<SharedAssetId, ModelAsset> = {
 export const COIN_GLB_SIZE = { width: 1.899, height: 1.861, depth: 0.492 } as const;
 
 /**
+ * The chef's joints (GLB units: 1.90 x 1.87 x 0.53 T-pose, faces +z; the v2 chef of 2026-10-07: a
+ * big head with glasses and a beard sitting right on a stand-up collar, a double-breasted jacket
+ * whose tunic skirt ends above the knees (front hem 0.543, sides 0.571, back 0.587), a belt,
+ * trousers over chunky shoes, a toque; short chibi legs: hips at 0.69 for 1.87), measured from
+ * chef.glb (core/README "Landmarks, and measuring a character"; chef.test.ts). The estimate, except
+ * (set by eye in posed previews):
+ * - neckY 1.25 / headY 1.27, neckBlend 0.012 (estimate 1.305 / 1.359 / 0.027): the beard reaches
+ *   down to the collar (1.25 at the front) and hides the neck, so the head joint sits on the collar
+ *   and the whole face, beard and toque turn rigidly (the estimate bent the beard with the neck);
+ * - hemY 0.545 (estimate 0.499): the tunic's front hem; the estimate's 0.499 is where the close
+ *   inner thighs touch below it, which would skirt-weight the bare thighs into a web.
+ * The right shoe's sole sits 9 mm above the left one's in the mesh (the soles are not flat: heels
+ * at 0.014, the balls at 0.000 / 0.009), so a planted right foot hovers up to 9 mm (chef.test.ts).
+ */
+export const CHEF_LANDMARKS: HumanoidLandmarks = {
+   shoulderY: 1.138,
+   shoulderX: 0.27,
+   shoulderZ: 0.021,
+   armRadius: 0.089,
+   clavicleX: 0.135,
+   elbowX: 0.508,
+   wristX: 0.746,
+   armSpread: 0.142,
+   crotchY: 0.623,
+   hipY: 0.691,
+   hipX: 0.134,
+   hipZ: 0.013,
+   kneeY: 0.346,
+   ankleY: 0.158,
+   toeZ: 0.258,
+   heelZ: -0.096,
+   legDepth: 0.105,
+   legOuterX: 0.227,
+   hemY: 0.545,
+   spineY: 0.825,
+   chestY: 0.959,
+   neckY: 1.25,
+   headY: 1.27,
+   spineZ: 0.06,
+   shoulderBlend: 0.053,
+   elbowBlend: 0.044,
+   hipBlend: 0.069,
+   kneeBlend: 0.052,
+   ankleBlend: 0.033,
+   crotchBlend: 0.053,
+   spineBlend: 0.04,
+   neckBlend: 0.012,
+};
+
+/**
+ * The cleaner's joints (GLB units: 1.898 x 1.902 x 0.430 T-pose, faces +z; 2026-10-08: a street
+ * cleaner with a big head, glasses, a short beard over a shirt collar, an orange hi-vis vest that
+ * ends above the hips, dark sleeves rolled to the elbow, work gloves, cargo trousers with reflective
+ * bands over ankle boots), measured from cleaner.glb (core/README "Landmarks, and measuring a
+ * character"; cleaner.test.ts). The estimate, except (set by eye in posed previews):
+ * - armRadius 0.1 (estimate 0.067): the thick sleeve is 0.15-0.17 tall (y 1.28-1.46 at the
+ *   shoulder); with the estimate its top and bottom stayed on the trunk and stuck out in spikes
+ *   when the arms came down;
+ * - neckY 1.466 / headY 1.49, neckBlend 0.012 (estimate 1.526 / 1.565 / 0.020): the beard reaches
+ *   down to 1.505, just over the collar (1.46-1.48), so the head joint sits on the collar and the
+ *   face, glasses, beard and hair turn as one (the estimate bent the beard with the neck);
+ * - hemY = crotchY (estimate 0.634): nothing bridges the legs (the vest ends at 0.87); the close
+ *   cargo thighs read as a hem, which would skirt-weight the thigh pockets;
+ * - ankleY 0.19, ankleBlend 0.03 (estimate 0.173 / 0.047): the boot (under the trouser hem at
+ *   about 0.13-0.16) stays rigid.
+ * The soles are not flat: the heel 1-3 cm above the ball, the right sole 2 mm above the left.
+ */
+export const CLEANER_LANDMARKS: HumanoidLandmarks = {
+   shoulderY: 1.364,
+   shoulderX: 0.271,
+   shoulderZ: -0.038,
+   armRadius: 0.1,
+   clavicleX: 0.135,
+   elbowX: 0.508,
+   wristX: 0.746,
+   armSpread: 0.108,
+   crotchY: 0.793,
+   hipY: 0.874,
+   hipX: 0.163,
+   hipZ: -0.061,
+   kneeY: 0.437,
+   ankleY: 0.19,
+   toeZ: 0.215,
+   heelZ: -0.175,
+   legDepth: 0.094,
+   legOuterX: 0.314,
+   hemY: 0.793,
+   spineY: 1.021,
+   chestY: 1.168,
+   neckY: 1.466,
+   headY: 1.49,
+   spineZ: -0.008,
+   shoulderBlend: 0.04,
+   elbowBlend: 0.033,
+   hipBlend: 0.087,
+   kneeBlend: 0.066,
+   ankleBlend: 0.03,
+   crotchBlend: 0.071,
+   spineBlend: 0.044,
+   neckBlend: 0.012,
+};
+
+/**
  * GLBs that live in an original game's folder and are reused by the expansion games
  * (docs/arcade-expansion/06 §F.1). The URLs stay where they are (thumbnails, tests and the manifest
  * keep working); a new game imports these aliases from core, never from another game's folder.
  * No scale: Rodin GLBs are about 1.9 units on their longest side, so each game fits the model from
  * its own measured size (spread the entry: `{ ...REUSED_ASSETS.palm, scale: 1.2 / 1.9 }`), as
  * office-escape and tower-climb do with the coin. The originals keep their own assets.ts entries.
- * chef and cleaner are T-pose characters: their landmarks (CHEF_LANDMARKS, CLEANER_LANDMARKS) still
- * live in food-catcher / clean-city and move to core in the first expansion game that animates them.
+ * chef and cleaner are T-pose characters: their measured landmarks (CHEF_LANDMARKS, CLEANER_LANDMARKS)
+ * live here and ride on their entries, so any game draws them with <HumanoidModel>.
  */
 export type ReusedAssetId =
    | "barrel"
@@ -247,8 +350,14 @@ export const REUSED_ASSETS: Record<ReusedAssetId, ModelAsset> = {
    apple: reused("apple", "/models/3d/food-catcher/apple.glb", "sphere", "#ef4444"),
    burger: reused("burger", "/models/3d/food-catcher/burger.glb", "cylinder", "#d97706"),
    sock: reused("sock", "/models/3d/food-catcher/sock.glb", "box", "#a78bfa"),
-   chef: reused("chef", "/models/3d/food-catcher/chef.glb", "capsule", "#f8fafc", CHARACTER_BUDGET),
-   cleaner: reused("cleaner", "/models/3d/clean-city/cleaner.glb", "capsule", "#f97316", CHARACTER_BUDGET),
+   chef: {
+      ...reused("chef", "/models/3d/food-catcher/chef.glb", "capsule", "#f8fafc", CHARACTER_BUDGET),
+      humanoid: { landmarks: CHEF_LANDMARKS },
+   },
+   cleaner: {
+      ...reused("cleaner", "/models/3d/clean-city/cleaner.glb", "capsule", "#f97316", CHARACTER_BUDGET),
+      humanoid: { landmarks: CLEANER_LANDMARKS },
+   },
    bottle: reused("bottle", "/models/3d/clean-city/bottle.glb", "cylinder", "#22c55e"),
    bag: reused("bag", "/models/3d/clean-city/bag.glb", "box", "#e2e8f0"),
    bench: reused("bench", "/models/3d/clean-city/bench.glb", "box", "#92400e"),
