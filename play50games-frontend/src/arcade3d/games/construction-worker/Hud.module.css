@@ -1,0 +1,27 @@
+.panel {
+   position: absolute;
+   top: 12px;
+   left: 50%;
+   transform: translateX(-50%);
+   z-index: 2;
+   padding: 6px 12px;
+   border-radius: 999px;
+   background: var(--card);
+   border: 1px solid var(--stroke);
+   color: var(--text, #f8fafc);
+   font-size: 14px;
+   letter-spacing: 0.02em;
+   pointer-events: none;
+}
+
+.name {
+   color: #fbbf24;
+   font-weight: 650;
+}
+
+/* The shell chips wrap to two rows on a narrow phone and cover a top-centred pill. */
+@media (max-width: 520px) {
+   .panel {
+      top: 112px;
+   }
+}
