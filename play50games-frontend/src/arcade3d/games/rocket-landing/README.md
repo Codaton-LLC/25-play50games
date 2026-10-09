@@ -19,6 +19,7 @@ Feather a chunky white toy rocket's engine, cancel drift and land upright on fiv
 
 - Fine pointers use jump or negative moveY; coarse pointers use the Thrust button only, joystick rotates only. Coarse-pointer auto-level is fixed per run, no toggle, same leaderboard.
 - Paired limits: maxScore2800, minDurationMs5000, maxDurationMs242000, base800, maxPointsPerSec200. Geometry below preserves these proofs; no backend/core change in this task.
+- Ceiling: touching the ceiling (y 20) stays a crash, like terrain, walls, pad sides and the asteroid roof; no soft ceiling. Every crash makes the rocket visibly explode: the rocket is hidden from the impact to the respawn, a bright additive flash (one sphere, 0.5 s) grows and fades at its centre, sparks fly from the contact point, sparkle, debris and smoke bursts from its centre (core `useFx`), a 0.6 camera shake and the core `boom` sound. Draw calls stay within budget (12 at the peak in the 844 x 390 playtest, budget 35); nothing is allocated per frame.
 
 ## Rules
 
@@ -126,7 +127,6 @@ Numeric relative speeds/tilt plus mint check/coral cross, outlined fuel bar and 
 No executed fuel witnesses, bot/phone/performance measurements exist at design gate. Joint fuel/clearance feasibility and real shell safe-area budgets are implementation acceptance gates; the analytical estimates above do not substitute for them. Hull projection, mesh splits and first-crash minimization need asset/adversarial tests.
 
 ## Open questions
-- Ceiling trap (user decision, Claude review 2026-10-09): on the asteroid (g 1) a 0.3 s thrust tap at spawn coasts about 5.9 m up, past the 4.9 m clearance, and crashes into the ceiling (Moon: a 0.4 s tap). Option: a soft ceiling (engine cut / clamp, no crash); the fastest loss would then be >= 3*1.119+2.4 = 5.76 s, so 5000 ms still holds. Builder default until decided: keep the crash.
 - Side-wall crash bound (Claude review): write and test the numbers: >= 1.15 m sideways travel needed after the hull swings to 1.35, about 0.8 m possible in 1 s with omega <= 0.75.
 
 - Approve the remaining design departures: normalized fuel scoring/lower later budgets/no pickups, y14 spawn under y20 ceiling, seeded3..6 m approach offsets, enlarged moving-pad amplitude and side-entry roof, and the single-view phone HUD layout. Controls, assist and paired limits were already decided on2026-10-09.
@@ -169,4 +169,9 @@ Added pure spawn projection tests at 844x390 with a 44 px HUD band, with and wit
 
 Direct replay of the 32 real-clock pilot campaigns: all won, 76.600 to 106.262 s, highest score 2330; gas-moon successful attempts 8.366 to 15.766 s, fuel 56.159 to 72.905 units. The gas-moon descent gate is 0.8 m / 0.5 m/s / 0.17 radians and its horizontal feedback gains are reduced to avoid wind-driven oscillation. Every gas-moon witness asserts at least 20 fuel units. Fuel budgets and scoring are unchanged. Replay body execution took 2.61 s; whole Vitest timing remains pending.
 
-Direct in-memory mutation diagnostics: baseline passed, mutant failed, restored baseline passed for M3 absolute drift, M5 rounded centre points, M8 half wind, M10 reserve divided by 100 at impact, and M11 0.5 m top-contact tolerance. New tests exercise both moving-pad drift directions, a 144.5 centre value floored to 144, wind amplitude at its crest, later-planet reserve at impact, slow pad-side overlap and top-edge contact. No mutant is retained. Build/Vitest intentionally deferred to Claude. Ceiling contact remains a crash pending the open user decision above. Thumbnail metadata and capture input are unchanged.
+Direct in-memory mutation diagnostics: baseline passed, mutant failed, restored baseline passed for M3 absolute drift, M5 rounded centre points, M8 half wind, M10 reserve divided by 100 at impact, and M11 0.5 m top-contact tolerance. New tests exercise both moving-pad drift directions, a 144.5 centre value floored to 144, wind amplitude at its crest, later-planet reserve at impact, slow pad-side overlap and top-edge contact. No mutant is retained. Build/Vitest intentionally deferred to Claude. Ceiling contact stays a crash (user decision 2026-10-09, see Decisions). Thumbnail metadata and capture input are unchanged.
+
+## Merge review (Claude, 2026-10-09)
+
+- **Explosion** on every crash, per the user decision above (Scene.tsx: `boom` point, hidden rocket root while `run.mode === "crashed"`, the flash mesh).
+- **Landscape camera with touch controls** (cameraMath.ts): fix 2 treated every rect as a full-width band, so on a touch phone in landscape the joystick and Thrust (beside the flight, not over it) cut the strip down to the gap above them and the rocket was drawn 3-4 px tall at 844 x 390 with the banner open. Now only rects that reach the centre column always cut a band; the side controls are avoided by the better of two fits: the box kept inside the clear column between them, or the controls the drawn box would reach added as bands (bands only grow, so the loop ends). Portrait phones, whose controls leave a thin centre column, take the band fit. `cameraMath.test.ts` pins it with the measured 844 x 390 rects (shell HUD, flight HUD, hidden award slot, joystick, Thrust, banner open and closed) over 40 seeded spawns and the widest boxes (rocket far from the pad, crashed beside it, low and high): rocket clear of every rect in 2D and >= 24 px tall.
