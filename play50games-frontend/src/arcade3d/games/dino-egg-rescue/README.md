@@ -161,27 +161,35 @@ Patched at merge: F1 nest + dino start moved SE to (11, 7.5), lane-segment clear
 ## Status
 
 ```text
-HANDOFF P-15 dino-egg-rescue
+TASK P-15-fix1 | build dino-egg-rescue fixes | branch antigravity/game-dino-egg-rescue | allowed: play50games-frontend/src/arcade3d/games/dino-egg-rescue/**, play50games-frontend/public/images/3d/dino-egg-rescue.webp, tools/thumbs/inputs/dino-egg-rescue.mjs
 Branch / last commit: antigravity/game-dino-egg-rescue @ HEAD (pushed)
 Files changed:
   play50games-frontend/public/images/3d/dino-egg-rescue.webp
-  play50games-frontend/src/arcade3d/games/dino-egg-rescue/Hud.module.css
-  play50games-frontend/src/arcade3d/games/dino-egg-rescue/Hud.tsx
-  play50games-frontend/src/arcade3d/games/dino-egg-rescue/Primitives.tsx
   play50games-frontend/src/arcade3d/games/dino-egg-rescue/README.md
   play50games-frontend/src/arcade3d/games/dino-egg-rescue/Scene.tsx
   play50games-frontend/src/arcade3d/games/dino-egg-rescue/Valley.tsx
   play50games-frontend/src/arcade3d/games/dino-egg-rescue/assets.test.ts
   play50games-frontend/src/arcade3d/games/dino-egg-rescue/assets.ts
   play50games-frontend/src/arcade3d/games/dino-egg-rescue/camera.ts
-  play50games-frontend/src/arcade3d/games/dino-egg-rescue/index.tsx
   play50games-frontend/src/arcade3d/games/dino-egg-rescue/meta.ts
   play50games-frontend/src/arcade3d/games/dino-egg-rescue/rules.test.ts
   play50games-frontend/src/arcade3d/games/dino-egg-rescue/rules.ts
-  tools/thumbs/inputs/dino-egg-rescue.mjs
-Checks: npm run build pass (47/47 static pages, flagged & preview) | npx tsc --noEmit pass (0 errors) | npx vitest run pass (1797/1797 tests in 135 files, dino-egg-rescue 27/27 tests) | thumbnail captured (tools/thumbs/capture.mjs: 8.5 KB, OK)
-Built: Complete Dino Egg Rescue gameplay end to end: pure deterministic rules with 33 egg supply cap, lost tick hoarding cap, golden eggs, mud scaling, stun & grace timers, headway-checked gully boulder roll; R3F Scene with single useRunFrame, CameraRig follow focus, waddle & squash motions, DynamicInstancedModel rocks, instanced leafy trees, TargetMarkers, Web Audio loops/SFX; high-contrast HUD panel with safe area marking; mutant killer tests with store-backed bot limit proof over 20 seeds.
-Scoring formula: 1 egg = 100 pts, 2 eggs = 240 pts, 3 eggs = 450 pts (150/egg max); golden egg = 300 pts flat. Server limits strictly hold: maxScore 6000 >= 5850 absolute ceiling (33 * 150 + 3 * 300), duration 88000-92000 ms, maxPointsPerSec 70 >= 66.48 pts/s.
-Decisions I took and why: Nest and dino start at SE (11.0, 7.5) for >= 2.0 m edge clearance from lane 1 contact band; dash speed scaled by stack and mud matching walking physics; post-stun grace of 1.0 s protects recovery from boulder barrage; leafyTree only with 0.256 m trunk radius; world dash cooldown ring around dino telegraphs readiness without relying on HUD.
-Evidence: play50games-frontend/public/images/3d/dino-egg-rescue.webp (8.5 KB), tools/thumbs/out/dino-egg-rescue.webp
+Checks: npm run build pass (47/47 static pages, flagged & preview) | npx tsc --noEmit pass (0 errors) | npx vitest run pass (1803/1803 tests in 135 files; dino-egg-rescue 33/33 tests in 3.29s) | thumbnail captured (tools/thumbs/capture.mjs: 13.0 KB, OK)
+Fixes applied:
+  1. Stale ground eggs: Fixed pool of 9 regular eggs + 1 golden egg updated per frame from run state; picked eggs disappear and new eggs appear instantly.
+  2. Camera follow: CameraRig follows run.dino directly at damping 4 with bounds VALLEY_BOUNDS; follows dino across the valley without lag.
+  3. Camera zoom & pixel sizes: Local window fit (11.0x15.0 m portrait, 16.0x11.0 m landscape) via viewFor. Measured on-screen sizes with cookie banner open: 390x844: dino 47.5 px, boulder 49.3 px, egg+disc 33.6 px (all >= 24 px target, +40% margin); 844x390: dino 38.0 px, boulder 39.4 px, egg+disc 26.9 px (all >= 24 px target, +12% margin).
+  4. Run clock integration: Single useRunFrame driving rules and store updates on the run clock; visuals animate in useFrame with useGameTime().
+  5. Zero allocations: Hoisted stepInp, preallocated Colors (.copy), in-place array compaction in rules (no .filter()), direct scalar clamping (no {x,y,z}).
+  6. Design items: Boulder warning TargetMarkers + 0.8 s lane telegraph warning visual; egg stack damped spring sway with spotted egg canvas texture; hum loop pitch and volume modulated by boulder proximity; golden straw nest material fix; rock GLB spherical fit (1.0 m diameter) rolling on profile.
+  7. Mutation results (all 6 mutants killed in tests):
+     - "lost tick deferred instead of lost": KILLED (lost tick permanently discarded, next spawn strictly at t = 6.0 s)
+     - "grace no longer invulnerable": KILLED (boulder hit during grace drops 0 eggs, 0 stun, grace preserved)
+     - "scatter clamp removed": KILLED (scattered eggs pushed >= 1.8 m from nest, out of mud, within valley bounds)
+     - "golden spawn radius 3-8 -> 10-15": KILLED (golden spawns strictly within [3.0, 8.0] m across 50 seeds)
+     - "r(t) frozen at 6": KILLED (spawn distance grows from ~6.3 m at t=3 to ~15.3 m at t=84, delta > 6.0 m)
+     - "rules time at half speed": KILLED (rules clock matches store run clock 1:1, delta < 50 ms / 1 frame over 90 s)
+     - Store-backed ceiling test: KILLED (proves 5850 <= 6000 ceiling, withinLimits(5850)=true, withinLimits(6001)=false)
+Open questions: None.
+Evidence: play50games-frontend/public/images/3d/dino-egg-rescue.webp (13.0 KB), tools/thumbs/out/dino-egg-rescue.webp
 ```

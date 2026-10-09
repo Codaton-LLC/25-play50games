@@ -1,78 +1,83 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useFrame } from "@react-three/fiber";
+import { useFrame, useThree } from "@react-three/fiber";
 import {
-   Group,
+   Color,
    Matrix4,
-   Mesh,
    Quaternion,
    Vector3,
+   type Group,
+   type Mesh,
+   type MeshStandardMaterial,
 } from "three";
-import { DynamicInstancedModel, Model } from "@/arcade3d/core/assets";
-import { playSfx, startLoop, useMuted } from "@/arcade3d/core/audio";
 import CameraRig from "@/arcade3d/core/CameraRig";
+import { DynamicInstancedModel, Model } from "@/arcade3d/core/assets";
+import { playSfx, startLoop, useMuted, type LoopHandle } from "@/arcade3d/core/audio";
 import { useFx } from "@/arcade3d/core/fx";
 import { useGameTime } from "@/arcade3d/core/gameTime";
-import { TargetMarkers, type MarkerTarget } from "@/arcade3d/core/hud/TargetMarkers";
-import { inputToWorld } from "@/arcade3d/core/math";
-import { squashStretch, waddle, type BodyOffset } from "@/arcade3d/core/motion";
-import { useFittedView } from "@/arcade3d/core/useFittedView";
+import { TargetMarkers, type MarkerTarget } from "@/arcade3d/core/hud";
 import { useInput } from "@/arcade3d/core/input";
+import { inputToWorld } from "@/arcade3d/core/math";
+import { spring, squashStretch, waddle, type BodyOffset, type SpringState } from "@/arcade3d/core/motion";
+import { useCanvasTexture } from "@/arcade3d/core/render";
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
-import { randomSeed } from "@/arcade3d/core/math";
+import { useFittedView } from "@/arcade3d/core/useFittedView";
+import { useRunFrame } from "@/arcade3d/core/useRunFrame";
 import { ASSETS, DINO_BACK_TOP_ANCHOR } from "./assets";
-import {
-   FOV,
-   FOLLOW_FOCUS_POINTS,
-   PITCH,
-   PLAY_AREA,
-   VALLEY_BOUNDS,
-   YAWS,
-} from "./camera";
-import { BoulderPrimitive, DinoPrimitive, useBoulderParts } from "./Primitives";
+import { VALLEY_BOUNDS, viewFor } from "./camera";
+import { DinoPrimitive, useBoulderParts } from "./Primitives";
 import {
    BOULDERS,
    DINO,
    NEST,
    createDinoRun,
    stepDinoRun,
+   type DinoRunState,
+   type GroundEgg,
    type StepInput,
 } from "./rules";
 import { Valley } from "./Valley";
 
-const MAX_BOULDERS = 12;
-const MAX_GROUND_EGGS = 16;
-const MARKER_COUNT = 10;
+const MAX_BOULDERS = 8;
+const REGULAR_EGG_POOL = 9;
+const MARKER_COUNT = 5;
 
-// Module-level reusable scratch objects (zero frame allocation)
+// Hoisted scratch variables for zero-allocation per-frame transforms
 const SCRATCH_POS = new Vector3();
-const SCRATCH_AXIS = new Vector3();
 const SCRATCH_QUAT = new Quaternion();
+const SCRATCH_AXIS = new Vector3();
 const SCRATCH_SCALE = new Vector3(1, 1, 1);
-const SCRATCH_INPUT = { x: 0, z: 0 };
-const DINO_OFFSET: BodyOffset = { y: 0, roll: 0, yaw: 0, squash: 1 };
 const DINO_SCALE = { x: 1, y: 1, z: 1 };
+const DINO_OFFSET: BodyOffset = { y: 0, roll: 0, yaw: 0, squash: 1 };
+const COLOR_READY = new Color("#38bdf8");
+const COLOR_COOLDOWN = new Color("#94a3b8");
 
-export default function DinoEggRescueScene() {
-   const [seed] = useState(randomSeed);
-   const [run] = useState(() => createDinoRun(seed));
+export default function Scene() {
+   const width = useThree((s) => s.size.width);
+   const height = useThree((s) => s.size.height);
+   const view = useFittedView(viewFor(width, height));
    const input = useInput();
    const fx = useFx();
    const time = useGameTime();
-
-   const phase = useArcadeStore((s) => s.phase);
    const muted = useMuted();
+   const phase = useArcadeStore((s) => s.phase);
 
-   // Camera fit
-   const view = useFittedView({
-      area: PLAY_AREA,
-      pitch: PITCH,
-      yaws: YAWS,
-      focus: FOLLOW_FOCUS_POINTS,
-      shift: true,
-      fov: FOV,
-   });
+   // Pure deterministic run state initialized once per run
+   const [run] = useState<DinoRunState>(() => createDinoRun(42));
+
+   // Hoisted scratch state for frame inputs & spring oscillation
+   const [scratch] = useState(() => ({
+      stepInp: {
+         moveX: 0,
+         moveY: 0,
+         actionPressed: false,
+         jumpPressed: false,
+      } as StepInput,
+      dir: { x: 0, z: 0 },
+      stackSpringX: { x: 0, v: 0 } as SpringState,
+      stackSpringZ: { x: 0, v: 0 } as SpringState,
+   }));
 
    // Fallback parts for boulder dynamic instancing
    const boulderParts = useBoulderParts();
@@ -82,14 +87,40 @@ export default function DinoEggRescueScene() {
       fx.warm("sparkle", "puff", "debris", "score");
    }, [fx]);
 
-   // Boulder rumble ambient loop
+   // Ambient rumble loop handle
+   const loopRef = useRef<LoopHandle | null>(null);
+
    useEffect(() => {
       if (phase !== "playing" || muted) return;
       const loop = startLoop("hum", { pitch: 0.6, volume: 0.25 });
+      loopRef.current = loop;
       return () => {
          loop.stop();
+         loopRef.current = null;
       };
    }, [phase, muted]);
+
+   // Spotted egg canvas texture shared across all regular eggs
+   const eggTexture = useCanvasTexture(128, 128, (ctx) => {
+      ctx.fillStyle = "#fef08a";
+      ctx.fillRect(0, 0, 128, 128);
+      ctx.fillStyle = "#ca8a04";
+      const spots = [
+         [22, 28, 6],
+         [52, 78, 8],
+         [92, 38, 6],
+         [108, 98, 7],
+         [72, 18, 5],
+         [32, 108, 6],
+         [82, 74, 9],
+         [18, 68, 7],
+      ];
+      for (const [x, y, r] of spots) {
+         ctx.beginPath();
+         ctx.arc(x, y, r, 0, Math.PI * 2);
+         ctx.fill();
+      }
+   });
 
    // TargetMarkers fixed targets array
    const markerTargets = useMemo<MarkerTarget[]>(() => {
@@ -100,29 +131,31 @@ export default function DinoEggRescueScene() {
       return arr;
    }, []);
 
-   // Refs for live visual groups
+   // Visual object refs
    const dinoGroupRef = useRef<Group>(null);
    const dashRingRef = useRef<Mesh>(null);
    const stunHaloRef = useRef<Group>(null);
    const graceHaloRef = useRef<Mesh>(null);
    const carriedStackRef = useRef<Group>(null);
+   const carriedEgg1Ref = useRef<Mesh>(null);
+   const carriedEgg2Ref = useRef<Mesh>(null);
+   const carriedEgg3Ref = useRef<Mesh>(null);
    const carriedGoldenRef = useRef<Group>(null);
 
-   // 1. One useRunFrame driving rules and store updates
-   useFrame((_state, delta) => {
-      if (phase !== "playing") return;
-      // Cap timestep
-      const dt = Math.min(1 / 20, Math.max(0.001, delta));
+   // Fixed pool of ground egg groups
+   const regularEggRefs = useRef<(Group | null)[]>([]);
+   const goldenEggRef = useRef<Group | null>(null);
 
+   // 1. ONE useRunFrame driving rules and store updates on the run clock
+   useRunFrame((_state, dt) => {
       const { moveX, moveY, jumpPressed, actionPressed } = input.current;
-      inputToWorld(moveX, moveY, view.yaw, SCRATCH_INPUT);
+      const { stepInp, dir } = scratch;
 
-      const stepInp: StepInput = {
-         moveX: SCRATCH_INPUT.x,
-         moveY: SCRATCH_INPUT.z,
-         actionPressed: !!actionPressed,
-         jumpPressed: !!jumpPressed,
-      };
+      inputToWorld(moveX, moveY, view.yaw, dir);
+      stepInp.moveX = dir.x;
+      stepInp.moveY = dir.z;
+      stepInp.actionPressed = !!actionPressed;
+      stepInp.jumpPressed = !!jumpPressed;
 
       const events = stepDinoRun(run, stepInp, dt);
 
@@ -160,10 +193,10 @@ export default function DinoEggRescueScene() {
          playSfx("chime", { pitch: 1.5 });
       }
       if (events.boulderHit) {
-         playSfx("hit", { pitch: 0.85 });
-         SCRATCH_POS.set(run.dino.x, 0.6, run.dino.z);
+         playSfx("hit");
+         fx.shake(0.25);
+         SCRATCH_POS.set(run.dino.x, 0.5, run.dino.z);
          fx.burst("debris", SCRATCH_POS, 20);
-         fx.shake(0.2);
       }
       if (events.eggDelivered) {
          const pts = events.eggDelivered.points;
@@ -188,8 +221,9 @@ export default function DinoEggRescueScene() {
       return true;
    };
 
-   // 3. Visual animation frame (waddle, spring, rings, markers)
+   // 3. Visual animation frame (waddle, spring, rings, markers, pools)
    useFrame(() => {
+      const dt = time.delta;
       const { dino } = run;
 
       // Dino group transform
@@ -215,89 +249,183 @@ export default function DinoEggRescueScene() {
          dashRingRef.current.position.set(dino.x, 0.03, dino.z);
          const ready = dino.dashCooldown <= 0;
          dashRingRef.current.visible = true;
-         const mat = dashRingRef.current.material as any;
+         const mat = dashRingRef.current.material as MeshStandardMaterial | undefined;
          if (mat) {
             mat.opacity = ready ? 0.75 : 0.25;
-            mat.color.set(ready ? "#38bdf8" : "#94a3b8");
+            mat.color.copy(ready ? COLOR_READY : COLOR_COOLDOWN);
          }
       }
 
-      // Stun halo
+      // Stun stars halo
       if (stunHaloRef.current) {
-         const stunned = dino.stunTimer > 0;
-         stunHaloRef.current.visible = stunned;
-         if (stunned) {
+         const isStunned = dino.stunTimer > 0;
+         stunHaloRef.current.visible = isStunned;
+         if (isStunned) {
             stunHaloRef.current.position.set(dino.x, 1.05, dino.z);
             stunHaloRef.current.rotation.y = time.now * 6;
          }
       }
 
-      // Grace halo
+      // Post-stun grace blinking shield halo
       if (graceHaloRef.current) {
          const inGrace = dino.graceTimer > 0;
-         graceHaloRef.current.visible = inGrace;
+         const blink = Math.sin(time.now * 16) > 0;
+         graceHaloRef.current.visible = inGrace && blink;
          if (inGrace) {
             graceHaloRef.current.position.set(dino.x, 0.45, dino.z);
-            const blink = Math.sin(time.now * 16) > 0;
-            graceHaloRef.current.visible = blink;
          }
       }
 
-      // Carried regular eggs stack visibility
+      // Egg stack spring sway on dino back
       if (carriedStackRef.current) {
-         const count = dino.carriedEggs.length;
-         for (let i = 0; i < 3; i++) {
-            const child = carriedStackRef.current.children[i];
-            if (child) child.visible = i < count;
-         }
+         const targetTiltX = -Math.max(-0.25, Math.min(0.25, dino.vx * 0.04));
+         const targetTiltZ = -Math.max(-0.25, Math.min(0.25, dino.vz * 0.04));
+         spring(scratch.stackSpringX, targetTiltX, 75, 12, dt);
+         spring(scratch.stackSpringZ, targetTiltZ, 75, 12, dt);
+         carriedStackRef.current.rotation.z = scratch.stackSpringX.x;
+         carriedStackRef.current.rotation.x = scratch.stackSpringZ.x;
+
+         const carriedCount = dino.carriedEggs.length;
+         if (carriedEgg1Ref.current) carriedEgg1Ref.current.visible = carriedCount >= 1;
+         if (carriedEgg2Ref.current) carriedEgg2Ref.current.visible = carriedCount >= 2;
+         if (carriedEgg3Ref.current) carriedEgg3Ref.current.visible = carriedCount >= 3;
       }
 
-      // Carried golden egg visibility
+      // Carried golden egg in mouth
       if (carriedGoldenRef.current) {
          carriedGoldenRef.current.visible = dino.carriedGolden;
       }
 
-      // Update TargetMarkers
-      // Marker 0: Nest (shows when carrying eggs)
-      const nestMarker = markerTargets[0];
-      if (nestMarker) {
-         nestMarker.x = NEST.x;
-         nestMarker.y = 0.5;
-         nestMarker.z = NEST.z;
-         nestMarker.color = "#facc15";
-         nestMarker.hidden =
-            dino.carriedEggs.length === 0 && !dino.carriedGolden;
+      // Update ground eggs pool (instant pick/spawn updates)
+      let regSlot = 0;
+      let goldenFound = false;
+      for (let i = 0; i < run.groundEggs.length; i++) {
+         const egg = run.groundEggs[i];
+         if (!egg.active) continue;
+         if (egg.isGolden) {
+            if (goldenEggRef.current) {
+               goldenEggRef.current.visible = true;
+               goldenEggRef.current.position.set(egg.x, 0, egg.z);
+               goldenFound = true;
+            }
+         } else {
+            if (regSlot < REGULAR_EGG_POOL && regularEggRefs.current[regSlot]) {
+               const g = regularEggRefs.current[regSlot]!;
+               g.visible = true;
+               g.position.set(egg.x, 0, egg.z);
+               regSlot++;
+            }
+         }
       }
-
-      // Markers 1..4: Nearest eggs when space available
-      let markerIdx = 1;
-      const canCarry = dino.carriedEggs.length < 3;
-      for (const egg of run.groundEggs) {
-         if (markerIdx >= MARKER_COUNT - 3) break;
-         const target = markerTargets[markerIdx];
-         if (target) {
-            target.x = egg.x;
-            target.y = 0.3;
-            target.z = egg.z;
-            target.color = egg.isGolden ? "#fbbf24" : "#a3e635";
-            target.hidden = !egg.active || (!canCarry && !egg.isGolden);
-            markerIdx++;
+      if (!goldenFound && goldenEggRef.current) {
+         goldenEggRef.current.visible = false;
+      }
+      for (let i = regSlot; i < REGULAR_EGG_POOL; i++) {
+         if (regularEggRefs.current[i]) {
+            regularEggRefs.current[i]!.visible = false;
          }
       }
 
-      // Hide remaining markers
-      for (let i = markerIdx; i < MARKER_COUNT; i++) {
-         const target = markerTargets[i];
-         if (target) target.hidden = true;
+      // Modulate boulder rumble hum loop by distance to nearest boulder
+      let minBoulderDist = 999;
+      for (let i = 0; i < run.boulders.length; i++) {
+         const b = run.boulders[i];
+         if (b.active) {
+            const d = Math.hypot(b.x - dino.x, b.z - dino.z);
+            if (d < minBoulderDist) minBoulderDist = d;
+         }
+      }
+      if (loopRef.current) {
+         const prox = Math.max(0, Math.min(1, (12 - minBoulderDist) / 9));
+         const volume = 0.15 + 0.35 * prox;
+         const pitch = 0.5 + 0.3 * prox;
+         loopRef.current.set({ volume, pitch });
+      }
+
+      // TargetMarkers: uncollected egg, golden egg, nest, and boulder warning arrows
+      // 1. Nearest uncollected egg marker
+      let nearestEggDist = 999;
+      let nearestEggX = 0;
+      let nearestEggZ = 0;
+      let foundEgg = false;
+      if (dino.carriedEggs.length < 3) {
+         for (let i = 0; i < run.groundEggs.length; i++) {
+            const e = run.groundEggs[i];
+            if (!e.active || e.isGolden) continue;
+            const d = Math.hypot(e.x - dino.x, e.z - dino.z);
+            if (d < nearestEggDist) {
+               nearestEggDist = d;
+               nearestEggX = e.x;
+               nearestEggZ = e.z;
+               foundEgg = true;
+            }
+         }
+      }
+      if (foundEgg) {
+         markerTargets[0].x = nearestEggX;
+         markerTargets[0].y = 0.2;
+         markerTargets[0].z = nearestEggZ;
+         markerTargets[0].hidden = false;
+         markerTargets[0].color = "#a3e635";
+      } else {
+         markerTargets[0].hidden = true;
+      }
+
+      // 2. Golden egg marker
+      let goldenTarget: GroundEgg | null = null;
+      for (let i = 0; i < run.groundEggs.length; i++) {
+         const e = run.groundEggs[i];
+         if (e.active && e.isGolden) {
+            goldenTarget = e;
+            break;
+         }
+      }
+      if (goldenTarget) {
+         markerTargets[1].x = goldenTarget.x;
+         markerTargets[1].y = 0.25;
+         markerTargets[1].z = goldenTarget.z;
+         markerTargets[1].hidden = false;
+         markerTargets[1].color = "#facc15";
+      } else {
+         markerTargets[1].hidden = true;
+      }
+
+      // 3. Nest marker (when carrying any egg)
+      if (dino.carriedEggs.length > 0 || dino.carriedGolden) {
+         markerTargets[2].x = NEST.x;
+         markerTargets[2].y = 0.3;
+         markerTargets[2].z = NEST.z;
+         markerTargets[2].hidden = false;
+         markerTargets[2].color = "#38bdf8";
+      } else {
+         markerTargets[2].hidden = true;
+      }
+
+      // 4 & 5. Boulder danger markers
+      let bMarker = 3;
+      for (let i = 0; i < run.boulders.length && bMarker < MARKER_COUNT; i++) {
+         const b = run.boulders[i];
+         if (b.active) {
+            markerTargets[bMarker].x = b.x;
+            markerTargets[bMarker].y = BOULDERS.radius;
+            markerTargets[bMarker].z = b.z;
+            markerTargets[bMarker].hidden = false;
+            markerTargets[bMarker].color = "#ef4444";
+            bMarker++;
+         }
+      }
+      while (bMarker < MARKER_COUNT) {
+         markerTargets[bMarker].hidden = true;
+         bMarker++;
       }
    });
 
    return (
       <group name="dino-egg-rescue-scene">
-         {/* Follow Camera */}
+         {/* CameraRig smoothly follows the baby dino at damping 4 */}
          <CameraRig
-            camera={{ position: [0, 16, 13.4], fov: FOV }}
-            follow={{ x: run.dino.x, y: 0, z: run.dino.z }}
+            camera={{ position: view.offset, lookAt: [0, 0, 0] }}
+            follow={run.dino}
             bounds={VALLEY_BOUNDS}
             damping={4}
             followFraction={1}
@@ -305,14 +433,14 @@ export default function DinoEggRescueScene() {
             shift={view.shift}
          />
 
-         {/* Valley Terrain, Mud, Trees, Nest, Volcano */}
-         <Valley />
+         {/* Valley Terrain, Mud, Trees, Nest, Volcano, 0.8 s lane telegraph */}
+         <Valley telegraphLanes={run.laneTelegraph} />
 
          {/* Dino Baby Model */}
          <group ref={dinoGroupRef} position={[DINO.startX, 0, DINO.startZ]}>
             <Model asset={ASSETS.dino} fallback={<DinoPrimitive />} />
 
-            {/* Egg stack on back anchored to DINO_BACK_TOP_ANCHOR */}
+            {/* Egg stack on back anchored to DINO_BACK_TOP_ANCHOR with spring sway */}
             <group
                ref={carriedStackRef}
                position={[
@@ -322,35 +450,63 @@ export default function DinoEggRescueScene() {
                ]}
             >
                {/* Egg 1 */}
-               <mesh position={[0, 0.12, 0]}>
-                  <sphereGeometry args={[0.18, 12, 12]} />
-                  <meshStandardMaterial color="#fef08a" roughness={0.5} />
+               <mesh
+                  ref={carriedEgg1Ref}
+                  position={[0, 0.12, 0]}
+                  scale={[1, 1.33, 1]}
+                  visible={false}
+               >
+                  <sphereGeometry args={[0.15, 14, 14]} />
+                  <meshStandardMaterial
+                     map={eggTexture}
+                     color="#ffffff"
+                     roughness={0.5}
+                  />
                </mesh>
                {/* Egg 2 */}
-               <mesh position={[0, 0.28, -0.06]}>
-                  <sphereGeometry args={[0.16, 12, 12]} />
-                  <meshStandardMaterial color="#fef08a" roughness={0.5} />
+               <mesh
+                  ref={carriedEgg2Ref}
+                  position={[0, 0.28, -0.06]}
+                  scale={[1, 1.33, 1]}
+                  visible={false}
+               >
+                  <sphereGeometry args={[0.14, 14, 14]} />
+                  <meshStandardMaterial
+                     map={eggTexture}
+                     color="#ffffff"
+                     roughness={0.5}
+                  />
                </mesh>
                {/* Egg 3 */}
-               <mesh position={[0, 0.42, -0.03]}>
-                  <sphereGeometry args={[0.14, 12, 12]} />
-                  <meshStandardMaterial color="#fef08a" roughness={0.5} />
+               <mesh
+                  ref={carriedEgg3Ref}
+                  position={[0, 0.42, -0.03]}
+                  scale={[1, 1.33, 1]}
+                  visible={false}
+               >
+                  <sphereGeometry args={[0.13, 14, 14]} />
+                  <meshStandardMaterial
+                     map={eggTexture}
+                     color="#ffffff"
+                     roughness={0.5}
+                  />
                </mesh>
             </group>
 
-            {/* Carried Golden Egg in mouth/front */}
+            {/* Carried Golden Egg in mouth */}
             <group
                ref={carriedGoldenRef}
                position={[0, 0.55, 0.48]}
                visible={false}
             >
-               <mesh>
-                  <sphereGeometry args={[0.18, 14, 14]} />
+               <mesh scale={[1, 1.33, 1]}>
+                  <sphereGeometry args={[0.16, 14, 14]} />
                   <meshStandardMaterial
                      color="#facc15"
                      emissive="#eab308"
                      emissiveIntensity={1.2}
                      roughness={0.2}
+                     metalness={0.6}
                   />
                </mesh>
             </group>
@@ -396,7 +552,7 @@ export default function DinoEggRescueScene() {
             </mesh>
          </group>
 
-         {/* Post-Stun Grace Halo (shield ring) */}
+         {/* Post-Stun Grace Halo (shield wireframe) */}
          <mesh
             ref={graceHaloRef}
             position={[DINO.startX, 0.45, DINO.startZ]}
@@ -408,7 +564,7 @@ export default function DinoEggRescueScene() {
                emissive="#38bdf8"
                emissiveIntensity={0.8}
                transparent
-               opacity={0.3}
+               opacity={0.35}
                wireframe
             />
          </mesh>
@@ -422,47 +578,69 @@ export default function DinoEggRescueScene() {
             name="boulders"
          />
 
-         {/* Ground Eggs with >= 24 px readability discs */}
-         {run.groundEggs.map((egg) => {
-            if (!egg.active) return null;
-            return (
-               <group key={egg.id} position={[egg.x, 0, egg.z]}>
-                  {/* Ground Glow Disc */}
-                  <mesh
-                     position={[0, 0.015, 0]}
-                     rotation={[-Math.PI / 2, 0, 0]}
-                  >
-                     <circleGeometry
-                        args={[egg.isGolden ? 0.6 : 0.5, 20]}
-                     />
-                     <meshStandardMaterial
-                        color={egg.isGolden ? "#facc15" : "#a3e635"}
-                        emissive={egg.isGolden ? "#eab308" : "#65a30d"}
-                        emissiveIntensity={egg.isGolden ? 1.5 : 0.8}
-                        transparent
-                        opacity={0.55}
-                     />
-                  </mesh>
+         {/* Regular Ground Eggs Fixed Pool */}
+         {Array.from({ length: REGULAR_EGG_POOL }).map((_, i) => (
+            <group
+               key={i}
+               ref={(el) => {
+                  regularEggRefs.current[i] = el;
+               }}
+               visible={false}
+            >
+               {/* Ground Glow Disc (>= 24 CSS px) */}
+               <mesh
+                  position={[0, 0.015, 0]}
+                  rotation={[-Math.PI / 2, 0, 0]}
+               >
+                  <circleGeometry args={[0.5, 20]} />
+                  <meshStandardMaterial
+                     color="#a3e635"
+                     emissive="#65a30d"
+                     emissiveIntensity={0.8}
+                     transparent
+                     opacity={0.55}
+                  />
+               </mesh>
+               {/* 3D Spotted Egg */}
+               <mesh position={[0, 0.18, 0]} scale={[1, 1.33, 1]}>
+                  <sphereGeometry args={[0.15, 16, 16]} />
+                  <meshStandardMaterial
+                     map={eggTexture}
+                     color="#ffffff"
+                     roughness={0.5}
+                  />
+               </mesh>
+            </group>
+         ))}
 
-                  {/* 3D Egg Geometry */}
-                  <mesh position={[0, egg.isGolden ? 0.2 : 0.16, 0]}>
-                     <sphereGeometry
-                        args={[
-                           egg.isGolden ? 0.2 : 0.16,
-                           14,
-                           14,
-                        ]}
-                     />
-                     <meshStandardMaterial
-                        color={egg.isGolden ? "#facc15" : "#fef08a"}
-                        emissive={egg.isGolden ? "#ca8a04" : "#000000"}
-                        emissiveIntensity={egg.isGolden ? 1.0 : 0}
-                        roughness={egg.isGolden ? 0.2 : 0.6}
-                     />
-                  </mesh>
-               </group>
-            );
-         })}
+         {/* Dedicated Golden Ground Egg */}
+         <group ref={goldenEggRef} visible={false}>
+            {/* Golden Ground Glow Disc (>= 24 CSS px) */}
+            <mesh
+               position={[0, 0.015, 0]}
+               rotation={[-Math.PI / 2, 0, 0]}
+            >
+               <circleGeometry args={[0.6, 24]} />
+               <meshStandardMaterial
+                  color="#facc15"
+                  emissive="#eab308"
+                  emissiveIntensity={1.5}
+                  transparent
+                  opacity={0.65}
+               />
+            </mesh>
+            {/* 3D Golden Egg */}
+            <mesh position={[0, 0.22, 0]} scale={[1, 1.33, 1]}>
+               <sphereGeometry args={[0.18, 16, 16]} />
+               <meshStandardMaterial
+                  color="#facc15"
+                  emissive="#eab308"
+                  emissiveIntensity={1.2}
+                  roughness={0.2}
+                  metalness={0.6}
+               />
+            </mesh>
+         </group>
 
          {/* Screen Edge Target Markers */}
          <TargetMarkers targets={markerTargets} color="#a3e635" />

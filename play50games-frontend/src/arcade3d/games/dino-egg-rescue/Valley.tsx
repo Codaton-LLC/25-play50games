@@ -1,6 +1,5 @@
 "use client";
 
-import { useMemo } from "react";
 import { InstancedModel } from "@/arcade3d/core/assets";
 import { Instanced, useCanvasTexture, type InstanceSpot } from "@/arcade3d/core/render";
 import { ASSETS } from "./assets";
@@ -15,18 +14,30 @@ const TREE_SPOTS: InstanceSpot[] = TREES.positions.map((t, idx) => ({
    scale: 1,
 }));
 
-export function Valley() {
-   // Procedural straw texture for nest
+export function Valley({ telegraphLanes }: { telegraphLanes?: readonly boolean[] }) {
+   // Warm golden straw texture for nest with criss-crossing straw strands
    const strawTexture = useCanvasTexture(128, 128, (ctx) => {
-      ctx.fillStyle = "#b45309";
+      ctx.fillStyle = "#eab308";
       ctx.fillRect(0, 0, 128, 128);
-      ctx.strokeStyle = "#fde047";
+      ctx.strokeStyle = "#fef08a";
       ctx.lineWidth = 2;
-      for (let i = 0; i < 70; i++) {
+      for (let i = 0; i < 90; i++) {
          const x1 = (i * 17) % 128;
          const y1 = (i * 31) % 128;
          const len = 15 + ((i * 7) % 25);
          const angle = ((i * 13) % 360) * (Math.PI / 180);
+         ctx.beginPath();
+         ctx.moveTo(x1, y1);
+         ctx.lineTo(x1 + Math.cos(angle) * len, y1 + Math.sin(angle) * len);
+         ctx.stroke();
+      }
+      ctx.strokeStyle = "#ca8a04";
+      ctx.lineWidth = 1.5;
+      for (let i = 0; i < 60; i++) {
+         const x1 = (i * 23 + 5) % 128;
+         const y1 = (i * 19 + 7) % 128;
+         const len = 12 + ((i * 9) % 20);
+         const angle = ((i * 27) % 360) * (Math.PI / 180);
          ctx.beginPath();
          ctx.moveTo(x1, y1);
          ctx.lineTo(x1 + Math.cos(angle) * len, y1 + Math.sin(angle) * len);
@@ -49,27 +60,47 @@ export function Valley() {
          </mesh>
 
          {/* Gully lane indicators on terrain */}
-         {BOULDER_LANES.map((lane) => {
+         {BOULDER_LANES.map((lane, idx) => {
             const midX = (lane.startX + lane.endX) / 2;
             const midZ = (lane.startZ + lane.endZ) / 2;
             const dx = lane.endX - lane.startX;
             const dz = lane.endZ - lane.startZ;
             const len = Math.hypot(dx, dz);
             const angle = Math.atan2(dz, dx);
+            const isTelegraphing = telegraphLanes?.[idx] ?? false;
+
             return (
-               <mesh
-                  key={lane.id}
-                  position={[midX, 0.002, midZ]}
-                  rotation={[-Math.PI / 2, 0, -angle]}
-               >
-                  <planeGeometry args={[len, 1.8]} />
-                  <meshStandardMaterial
-                     color="#713f12"
-                     roughness={0.95}
-                     transparent
-                     opacity={0.35}
-                  />
-               </mesh>
+               <group key={lane.id}>
+                  <mesh
+                     position={[midX, 0.002, midZ]}
+                     rotation={[-Math.PI / 2, 0, -angle]}
+                  >
+                     <planeGeometry args={[len, 1.8]} />
+                     <meshStandardMaterial
+                        color="#713f12"
+                        roughness={0.95}
+                        transparent
+                        opacity={0.35}
+                     />
+                  </mesh>
+
+                  {/* 0.8 s lane entrance warning telegraph */}
+                  {isTelegraphing && (
+                     <mesh
+                        position={[lane.startX, 0.03, lane.startZ]}
+                        rotation={[-Math.PI / 2, 0, 0]}
+                     >
+                        <circleGeometry args={[0.9, 20]} />
+                        <meshStandardMaterial
+                           color="#ef4444"
+                           emissive="#dc2626"
+                           emissiveIntensity={1.5}
+                           transparent
+                           opacity={0.7}
+                        />
+                     </mesh>
+                  )}
+               </group>
             );
          })}
 
@@ -106,13 +137,13 @@ export function Valley() {
 
          {/* Nest at SE (11, 7.5), outer radius 1.8 m */}
          <group position={[NEST.x, 0, NEST.z]}>
-            {/* Straw torus rim */}
-            <mesh position={[0, 0.25, 0]} rotation={[Math.PI / 2, 0, 0]}>
-               <torusGeometry args={[1.5, 0.35, 12, 24]} />
+            {/* Warm straw torus rim (color #ffffff so texture is not darkened) */}
+            <mesh position={[0, 0.22, 0]} rotation={[Math.PI / 2, 0, 0]}>
+               <torusGeometry args={[1.5, 0.28, 12, 28]} />
                <meshStandardMaterial
                   map={strawTexture}
-                  color="#d97706"
-                  roughness={0.85}
+                  color="#ffffff"
+                  roughness={0.7}
                />
             </mesh>
             {/* Straw floor inside nest */}
@@ -120,8 +151,8 @@ export function Valley() {
                <circleGeometry args={[1.4, 24]} />
                <meshStandardMaterial
                   map={strawTexture}
-                  color="#b45309"
-                  roughness={0.9}
+                  color="#ffffff"
+                  roughness={0.75}
                />
             </mesh>
             {/* Delivery contact rim indicator */}
