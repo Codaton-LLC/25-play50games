@@ -27,6 +27,7 @@ import Mansion from "./Mansion";
 import { hunterPose } from "./poses";
 import { HunterPrimitive } from "./Primitives";
 import Vacuum, { type VacuumHandle } from "./Vacuum";
+import { pickGhost, type AimRay } from "./aim";
 import { active, createRun, LIGHT, PULL, ROOMS, stepRun, type Run, type StepInput } from "./rules";
 
 function underRects(x: number, y: number, rects: readonly ScreenRect[] | undefined): boolean {
@@ -89,7 +90,7 @@ export default function Scene() {
    const [run] = useState(() => createRun(randomSeed()));
    const [scratch] = useState(() => ({
       step: { dirX: 0, dirZ: 0, held: false, aim: false, aimYaw: Math.PI, coarse: typeof window !== "undefined" && window.matchMedia("(pointer: coarse)").matches } as StepInput,
-      dir: { x: 0, z: 0 }, at: { x: 0, y: 0, z: 0 }, ray: new Raycaster(), floor: new Plane(new Vector3(0, 1, 0), -0.6), hit: new Vector3(),
+      dir: { x: 0, z: 0 }, at: { x: 0, y: 0, z: 0 }, ray: new Raycaster(), floor: new Plane(new Vector3(0, 1, 0), -0.6), hit: new Vector3(), aimRay: { ox: 0, oy: 0, oz: 0, dx: 0, dy: 0, dz: 0 } as AimRay,
       pointer: new Vector2(), pointerX: 0, pointerY: 0, moved: false, loop: null as LoopHandle | null, ambient: null as LoopHandle | null,
       loopOptions: { volume: 0, pitch: 0.8 }, ambientOptions: { volume: 0.08 }, sfxOptions: { pan: 0, volume: 0.35, pitch: 1 }, lastSecond: -1, projected: new Vector3(), hunterScreen: new Vector3(), metre: new Vector3(), placement: { visible: false, x: 0, y: 0, angle: 0 } as MarkerPlacement,
       targets: Array.from({ length: 12 }, () => ({ x: 0, y: 1, z: 0, hidden: true })),
@@ -130,7 +131,13 @@ export default function Scene() {
       if (s.aim && !blocked) {
          scratch.pointer.set(i.pointer.x, i.pointer.y);
          scratch.ray.setFromCamera(scratch.pointer, state.camera);
-         if (scratch.ray.ray.intersectPlane(scratch.floor, scratch.hit)) s.aimYaw = Math.atan2(scratch.hit.x - run.hunter.x, scratch.hit.z - run.hunter.z);
+         // A pointer over a drawn ghost aims at that ghost (its face sits ~0.4 m above
+         // the y0.6 plane, which skews close-range aim past the 12-degree pull cone).
+         const r = scratch.ray.ray, aimRay = scratch.aimRay;
+         aimRay.ox = r.origin.x; aimRay.oy = r.origin.y; aimRay.oz = r.origin.z; aimRay.dx = r.direction.x; aimRay.dy = r.direction.y; aimRay.dz = r.direction.z;
+         const picked = pickGhost(aimRay, run.ghosts);
+         if (picked >= 0) { const g = run.ghosts[picked], gx = g.mode === "pulling" ? g.baseX : g.x, gz = g.mode === "pulling" ? g.baseZ : g.z; s.aimYaw = Math.atan2(gx - run.hunter.x, gz - run.hunter.z); }
+         else if (r.intersectPlane(scratch.floor, scratch.hit)) s.aimYaw = Math.atan2(scratch.hit.x - run.hunter.x, scratch.hit.z - run.hunter.z);
       }
       stepRun(run, s, dt, elapsed);
       const store = useArcadeStore.getState(), e = run.events;

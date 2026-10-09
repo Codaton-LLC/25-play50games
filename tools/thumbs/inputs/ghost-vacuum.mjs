@@ -1,7 +1,8 @@
 export default [
-   { hold: "ArrowUp", ms: 750 },
-   { hold: "ArrowLeft", ms: 1850 },
-   { hold: "ArrowUp", ms: 3000 },
+   { zoom: 1.5, at: [0.5, 0.42] },
+   { hold: "ArrowUp", ms: 3300 },
+   { hold: "ArrowLeft", ms: 2300 },
+   { hold: "ArrowUp", ms: 250 },
    { down: "KeyE" },
-   { wait: 500 },
+   { wait: 600 },
 ];

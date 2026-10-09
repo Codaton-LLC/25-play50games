@@ -6,7 +6,7 @@ Owner Codex; slug `ghost-vacuum`; adventure spec 03 section 8; P-15-fix2 impleme
 
 - `meta.ts`: `controls: { scheme: "joystick", keyboard: "WASD / arrows to move, mouse to aim; hold E, Enter or Space to vacuum", touch: "Joystick to move and aim, hold Vacuum to catch stunned ghosts" }`. `GameDefinition` in `index.tsx`: `durationMs: 120000`, `resultDelayMs: 1600`, `touchControls: ["joystick", "action"]`, `touchLabels: { action: "Vac" }`.
 - Keyboard WASD/arrows move; mouse aims; hold E/Enter/Space to vacuum. Touch joystick moves/aims; hold72 CSS px Vac. Flashlight always on. Shell owns pause, phases, clock, submission, Retry/Exit and persistence.
-- Scene projects fine-pointer motion onto ghost-body plane y=0.6, ignoring HUD/controls; until real pointer movement, facing follows movement and retains direction when stopped. Rules receive world aim yaw/point, movement and hold (`action || jump`); rules never project pointers or read rig transforms.
+- Scene aims fine-pointer motion at the shown ghost whose drawn sheet the pointer ray crosses (`aim.ts` `pickGhost`, nearest along the ray; `aim.test.ts`), otherwise projects it onto ghost-body plane y=0.6, ignoring HUD/controls; until real pointer movement, facing follows movement and retains direction when stopped. Rules receive world aim yaw/point, movement and hold (`action || jump`); rules never project pointers or read rig transforms.
 - `inputToWorld` uses fitted yaw, normalized magnitude<=1. Coarse mode fixed at run start: held assist selects nearest eligible stunned/pulling ghost within4 m/45 degrees of movement-facing, ties lower id, turns<=180 degrees/s; movement remains manual. No instant capture or wider capture cone.
 
 ## Pure rules

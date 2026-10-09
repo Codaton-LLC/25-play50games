@@ -27,7 +27,7 @@ export const ghostVacuumMeta: ArcadeGameMeta = {
       unitLabel: "pts",
       display: "int",
    },
-   thumbnail: null,
+   thumbnail: "/images/3d/ghost-vacuum.webp",
    accent: "#a78bfa",
    owner: "codex",
 };
