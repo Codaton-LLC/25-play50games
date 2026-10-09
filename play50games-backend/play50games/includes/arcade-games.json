@@ -152,11 +152,11 @@
     "shopping-cart": {
       "title": "Crazy Shopping Cart",
       "kind": "points",
-      "max_score": 3000,
-      "min_duration_ms": 10000,
+      "max_score": 2030,
+      "min_duration_ms": 3500,
       "max_duration_ms": 77000,
-      "base": 3000,
-      "max_pps": 3000,
+      "base": 1700,
+      "max_pps": 100,
       "enabled": false
     },
     "snowball-battle": {
