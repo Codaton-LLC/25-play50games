@@ -3,7 +3,7 @@
 import { createFixedStep, fixedStep, stepPendulum2D, type FixedStepState, type Pendulum2D } from "@/arcade3d/core/kinematics";
 import { rngNext, type RngState } from "@/arcade3d/core/math";
 
-export const CLOCK_S = 150;
+export const CLOCK_S = 240;
 export const JIB_Y = 10;
 export const CABLE = 5.5;
 export const HOOK_BLOCK = 1.2;
@@ -141,6 +141,11 @@ export const CUE_CHEER = 32;
 export const CUE_WIN = 64;
 
 const scratch = { x: 0, z: 0, raw: 0 };
+const tick = { run: null as unknown as Run, rot: 0, radial: 0, gust: 0 };
+
+function onTick(h: number): void {
+   integrate(tick.run, tick.rot, tick.radial, tick.gust, h);
+}
 
 export function polar(radius: number, angle: number, out: { x: number; z: number }): { x: number; z: number } {
    out.x = radius * Math.sin(angle);
@@ -422,7 +427,6 @@ function onPlaced(run: Run, step: PlanStep, rating: number): void {
    }
    const next = PLAN[run.planIndex];
    if (next && next.building === step.building) return;
-   if (run.stability <= 0) return;
    run.score += BUILDING_BONUS;
    run.gained += BUILDING_BONUS;
    run.cheer = CHEER_S;
@@ -480,7 +484,11 @@ export function stepRun(run: Run, input: CraneInput, dt: number): void {
       run.towerTime += dt;
    }
    const gust = run.towerTime >= 0 && tower && run.towerTime % 7 < 1;
-   fixedStep(run.fixed, dt, (h) => integrate(run, input.rot, input.radial, gust ? 1 : 0, h));
+   tick.run = run;
+   tick.rot = input.rot;
+   tick.radial = input.radial;
+   tick.gust = gust ? 1 : 0;
+   fixedStep(run.fixed, dt, onTick);
    writeHook(run);
    if (run.cheer > 0) {
       run.cheer -= dt;

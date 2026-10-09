@@ -19,9 +19,9 @@ export const constructionWorkerMeta: ArcadeGameMeta = {
    },
    scoring: {
       kind: "points",
-      maxScore: 5800,
+      maxScore: 6100,
       minDurationMs: 9000,
-      maxDurationMs: 152000,
+      maxDurationMs: 242000,
       base: 0,
       maxPointsPerSec: 150,
       unitLabel: "pts",

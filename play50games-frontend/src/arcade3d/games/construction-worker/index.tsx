@@ -4,6 +4,7 @@ import type { GameDefinition } from "@/arcade3d/core/types";
 import Scene from "./Scene";
 import { Hud } from "./Hud";
 import { ASSETS } from "./assets";
+import { CLOCK_S } from "./rules";
 
 const definition: GameDefinition = {
    slug: "construction-worker",
@@ -20,6 +21,7 @@ const definition: GameDefinition = {
       { key: "building", label: "Building", max: 3 },
       { key: "swing", label: "Swing" },
    ],
+   durationMs: CLOCK_S * 1000,
    resultDelayMs: 1100,
    instructions: [
       "A / D rotates the crane, W / S runs the trolley. Arrows do the same.",
