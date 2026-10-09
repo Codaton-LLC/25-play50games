@@ -6,11 +6,11 @@ import { capScore, withinServerLimits } from "@/arcade3d/core/limits";
 import { fixedFrames, randomFrames, simulateRun } from "@/arcade3d/core/testing/botHarness";
 import { constructionWorkerMeta } from "./meta";
 import {
-   ACCEL_CAP, ANGLE_LIM, BOB_SPEED, BUILDING_BONUS, CABLE, CLOCK_S, COARSE_DAMPING, DAMPING,
+   ACCEL_CAP, ANGLE_LIM, BOB_SPEED, BUILDING_BONUS, CABLE, CLOCK_S, DAMPING,
    DROP_R, DROP_R_TOWER, DWELL_S, FLOOR, GRAVITY, HOOK_BLOCK, JIB_Y, MAX_OMEGA, MAX_VR, PICK_MAX_R,
    PICK_R, PIECE_H, PILE_A, PILE_R, PLAN, RADIUS_MAX, RADIUS_MIN, SLOT_A, SLOT_R, SWING_MAX,
    TIME_BONUS, clampSwing, createRun, dropRadius, pileUnder, pivotAccel, rateLanding, slotAt,
-   stepRun, swingEnergy, swingMagnitude, type CraneInput, type Run,
+   stepRun, swingEnergy, swingMagnitude, swingSpeed, type CraneInput, type Run,
 } from "./rules";
 
 const RULES = constructionWorkerMeta.scoring;
@@ -50,10 +50,9 @@ describe("construction-worker rules", () => {
       expect(CLOCK_S).toBe(240);
       expect(TIME_BONUS).toBe(5);
       expect(BUILDING_BONUS).toBe(500);
-      expect(BOB_SPEED).toBe(0.15);
+      expect(BOB_SPEED).toBe(0.4);
       expect(DWELL_S).toBe(0.25);
-      expect(DAMPING).toBe(0.55);
-      expect(COARSE_DAMPING).toBe(1.4);
+      expect(DAMPING).toBe(1.4);
       expect(RULES.maxScore).toBe(6100);
       expect(RULES.minDurationMs).toBe(9000);
       expect(RULES.maxDurationMs).toBe(242000);
@@ -145,6 +144,70 @@ describe("construction-worker rules", () => {
       expect(carry.carried).toBe(0);
    });
 
+   it("measures the pickup speed relative to the trolley: a moving trolley with a still bob picks, a fast swing does not", () => {
+      // The trolley sweeps the hook across pile 0 at 0.5 m/s: over the old absolute 0.15 and over 0.4.
+      const omega = 0.5 / 7;
+      const moving = createRun(1);
+      at(moving, PILE_A[0] - 0.012, 7);
+      moving.omega = omega;
+      const cruise = { ...ZERO, rot: omega / MAX_OMEGA };
+      stepRun(moving, { ...cruise, pick: 0 }, 1 / 60);
+      expect(moving.armed).toBe(0);
+      expect(Math.hypot(moving.bobVx, moving.bobVz)).toBeGreaterThan(0.45);
+      for (let n = 0; n < 17 && moving.carried < 0; n++) {
+         stepRun(moving, cruise, 1 / 60);
+         expect(swingSpeed(moving)).toBeLessThan(0.05);
+         expect(Math.hypot(moving.bobVx, moving.bobVz)).toBeGreaterThan(BOB_SPEED);
+      }
+      expect(moving.carried).toBe(0);
+
+      const swing = (v: number) => {
+         const run = createRun(2);
+         at(run, PILE_A[0], 7);
+         stepRun(run, { ...ZERO, pick: 0 }, 1 / 60);
+         let longest = 0;
+         for (let n = 0; n < 30 && run.carried < 0; n++) {
+            run.swing.x.x = 0;
+            run.swing.z.x = 0;
+            run.swing.x.v = v / CABLE;
+            run.swing.z.v = 0;
+            stepRun(run, ZERO, 1 / 60);
+            longest = Math.max(longest, run.dwell);
+         }
+         return { run, longest };
+      };
+      const fast = swing(0.42);
+      expect(fast.run.carried).toBe(-1);
+      expect(fast.longest).toBe(0);
+      const slow = swing(0.37);
+      expect(slow.run.carried).toBe(0);
+
+      // The hook swung back over the pile from beyond the gate: only r <= 7.8 can fail here.
+      const reach = (trolley: number) => {
+         const run = createRun(3);
+         at(run, PILE_A[0], trolley);
+         const hold = () => {
+            run.swing.x.x = 0;
+            run.swing.x.v = 0;
+            run.swing.z.x = Math.asin((PILE_R - trolley) / CABLE);
+            run.swing.z.v = 0;
+         };
+         hold();
+         stepRun(run, { ...ZERO, pick: 0 }, 1 / 60);
+         for (let n = 0; n < 30 && run.carried < 0; n++) {
+            hold();
+            stepRun(run, ZERO, 1 / 60);
+            expect(pileUnder(run)).toBe(0);
+            expect(swingSpeed(run)).toBeLessThan(BOB_SPEED);
+         }
+         return run;
+      };
+      expect(reach(7.75).carried).toBe(0);
+      const beyond = reach(7.9);
+      expect(beyond.carried).toBe(-1);
+      expect(beyond.dwell).toBe(0);
+   });
+
    it("does not grow swing energy at zero pivot acceleration, and a full jib start stays under 0.35", () => {
       const run = createRun(1);
       run.swing.x.x = 0.2;
@@ -183,6 +246,12 @@ describe("construction-worker rules", () => {
       clampSwing(wide.swing);
       expect(swingMagnitude(wide.swing)).toBeCloseTo(0.35, 5);
       expect(wide.swing.x.v).toBeLessThan(0.01);
+
+      const over = createRun(1);
+      over.swing.x.x = 0.3;
+      over.swing.z.x = 0.3;
+      stepRun(over, ZERO, 1 / 120);
+      expect(swingMagnitude(over.swing)).toBeLessThanOrEqual(SWING_MAX + 1e-9);
    });
 
    it("rates the predicted landing, opens the tower drop at 9.02, and a miss retries the same step", () => {
@@ -405,18 +474,13 @@ function ease(current: number, next: number, accel: number, dt: number): number 
 }
 
 /**
- * Store-backed bot. A fine pointer uses swing-damped proportional speeds and drops when the
- * predicted landing is inside 0.38 m. A coarse pointer (the touch assist) follows a stop curve
- * and drops inside 0.35 m, and while the tower gust is on it accelerates against the wind.
- * One reused command.
+ * Store-backed bots, one physics for every pointer. The damped driver uses swing-damped
+ * proportional speeds and drops when the predicted landing is inside 0.38 m. The stop-curve
+ * driver brakes on a stop curve, drops inside 0.35 m, and while the tower gust is on it
+ * accelerates against the wind. One reused command.
  */
 // kp radius, kd radius, kp angle, kd angle, swing damp, drop metres, max vr, max ω, radial accel, angular gain.
 const FINE_GAINS = [3.2, 3, 2.5, 1.8, 4, 0.38, 1.4, 0.4, 2, 4];
-
-function drive(run: Run, dt: number): CraneInput {
-   if (run.coarse) return driveCoarse(run, dt);
-   return driveFine(run, dt);
-}
 
 function landDist(run: Run, step: { slot: number; floor: number }): number {
    const fall = Math.max(0, run.hookY - PIECE_H - step.floor * FLOOR);
@@ -453,10 +517,10 @@ function driveFine(run: Run, dt: number): CraneInput {
    return CMD;
 }
 
-const COARSE = { radAcc: 3.5, angK: 4, stop: 0.8, dropDist: 0.35 };
+const STOP = { radAcc: 3.5, angK: 4, stop: 0.8, dropDist: 0.35 };
 
-function driveCoarse(run: Run, dt: number): CraneInput {
-   const p = COARSE;
+function driveStop(run: Run, dt: number): CraneInput {
+   const p = STOP;
    CMD.rot = 0;
    CMD.radial = 0;
    CMD.pick = -1;
@@ -507,9 +571,8 @@ function play(run: Run, input: CraneInput, dt: number, store: ReturnType<typeof 
    else if (run.phase === "timeup") store.getState().end("timeup");
 }
 
-function played(coarse: boolean, frame: () => number, maxFrames: number) {
+function played(drive: (run: Run, dt: number) => CraneInput, frame: () => number, maxFrames: number) {
    const run = createRun(7);
-   run.coarse = coarse;
    let houseMs = -1;
    let houseScore = -1;
    const end = simulateRun(createArcadeStore(), {
@@ -528,23 +591,23 @@ function played(coarse: boolean, frame: () => number, maxFrames: number) {
 }
 
 describe("construction-worker score ceiling", () => {
-   it("a damped driver wins on a fine pointer and on a coarse pointer, inside the proof", () => {
-      const fine = played(false, fixedFrames(1000 / 60), 20000);
-      expect(fine.end.endReason, `fine placed ${fine.run.planIndex}`).toBe("win");
+   it("a damped driver and a stop-curve driver win, inside the proof", () => {
+      const fine = played(driveFine, fixedFrames(1000 / 60), 20000);
+      expect(fine.end.endReason, `damped placed ${fine.run.planIndex}`).toBe("win");
       expect(fine.end.elapsedMs).toBeGreaterThanOrEqual(41560);
       expect(fine.end.elapsedMs).toBeLessThan(CLOCK_S * 1000);
-      expect(fine.end.score).toBe(4305);
+      expect(fine.end.score).toBe(4300);
       expect(fine.end.score).toBeLessThanOrEqual(6090);
       expect(fine.houseMs).toBeGreaterThanOrEqual(9900);
       expect(fine.houseScore).toBeLessThanOrEqual(1300);
       expect(withinServerLimits(fine.end.score, fine.end.elapsedMs, RULES)).toBe(true);
       expect(capScore(fine.end.score, fine.end.elapsedMs, RULES)).toBe(fine.end.score);
 
-      const coarse = played(true, fixedFrames(1000 / 60), 20000);
-      expect(coarse.end.endReason, `coarse placed ${coarse.run.planIndex}`).toBe("win");
+      const coarse = played(driveStop, fixedFrames(1000 / 60), 20000);
+      expect(coarse.end.endReason, `stop-curve placed ${coarse.run.planIndex}`).toBe("win");
       expect(coarse.end.elapsedMs).toBeGreaterThanOrEqual(41560);
       expect(coarse.end.elapsedMs).toBeLessThan(CLOCK_S * 1000);
-      expect(coarse.end.score).toBe(3105);
+      expect(coarse.end.score).toBe(3355);
       expect(coarse.end.score).toBeLessThanOrEqual(6090);
       expect(withinServerLimits(coarse.end.score, coarse.end.elapsedMs, RULES)).toBe(true);
       expect(capScore(coarse.end.score, coarse.end.elapsedMs, RULES)).toBe(coarse.end.score);
@@ -552,7 +615,7 @@ describe("construction-worker score ceiling", () => {
 
    it("stays inside the limits at 20 fps and with jitter, and an idle crane scores 0 at 240 s", () => {
       for (const frame of [fixedFrames(50), randomFrames(11, 0.004, 0.05)]) {
-         const done = played(false, frame, 16000);
+         const done = played(driveFine, frame, 16000);
          expect(done.end.score).toBeLessThanOrEqual(6090);
          if (done.end.endReason === "win") expect(done.end.elapsedMs).toBeGreaterThanOrEqual(41560);
          expect(withinServerLimits(done.end.score, done.end.elapsedMs, RULES)).toBe(true);

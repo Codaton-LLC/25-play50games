@@ -16,7 +16,6 @@ const definition: GameDefinition = {
    environment: { background: "#e7e5e4", fog: ["#e7e5e4", 100, 160], lighting: "day" },
    touchControls: ["joystick", "action", "tap"],
    hudStats: [
-      { key: "time", label: "Time" },
       { key: "stability", label: "Stability", max: 100 },
       { key: "building", label: "Building", max: 3 },
       { key: "swing", label: "Swing" },

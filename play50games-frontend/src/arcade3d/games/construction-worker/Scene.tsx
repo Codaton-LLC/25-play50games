@@ -47,11 +47,7 @@ function pileFromPointer(camera: Camera, pointer: { x: number; y: number }): num
 }
 
 export default function Scene() {
-   const [run] = useState(() => {
-      const next = createRun(randomSeed());
-      next.coarse = typeof matchMedia === "function" && matchMedia("(pointer: coarse)").matches;
-      return next;
-   });
+   const [run] = useState(() => createRun(randomSeed()));
    const width = useThree((s) => s.size.width);
    const height = useThree((s) => s.size.height);
    const camera = useThree((s) => s.camera);
@@ -93,7 +89,6 @@ export default function Scene() {
       const store = useArcadeStore.getState();
       if (run.gained) store.addScore(run.gained);
       const step = PLAN[run.planIndex];
-      store.setStat("time", Math.ceil(run.timeLeft));
       store.setStat("stability", Math.max(0, run.stability));
       store.setStat("building", (step?.building ?? 2) + 1);
       store.setStat("swing", Math.round(swingMagnitude(run.swing) * 5.5 * 10) / 10);

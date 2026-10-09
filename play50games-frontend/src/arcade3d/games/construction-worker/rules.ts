@@ -11,7 +11,8 @@ export const PIECE_H = 0.7;
 export const FLOOR = 0.75;
 export const PICK_R = 0.45;
 export const PICK_MAX_R = 7.8;
-export const BOB_SPEED = 0.15;
+/** Pickup: the swing's own bob speed (5.5 · |angular speed|, trolley motion excluded) must stay under this. */
+export const BOB_SPEED = 0.4;
 export const DWELL_S = 0.25;
 export const DROP_R = 8.9;
 export const DROP_R_TOWER = 9.02;
@@ -25,8 +26,8 @@ export const RAD_ACCEL = 5;
 export const ACCEL_CAP = 2;
 export const SWING_MAX = 0.35;
 export const GRAVITY = 9.81;
-export const DAMPING = 0.55;
-export const COARSE_DAMPING = 1.4;
+/** One swing damping for every pointer (user 2026-10-09). */
+export const DAMPING = 1.4;
 export const WIND = 3;
 export const LOCK_S = 1;
 export const WRONG_S = 1;
@@ -51,8 +52,7 @@ const COUNTS = [
    [4, 4, 4, 3, 1],
 ] as const;
 
-const PEND_FINE = { length: CABLE, gravity: GRAVITY, damping: DAMPING };
-const PEND_COARSE = { length: CABLE, gravity: GRAVITY, damping: COARSE_DAMPING };
+const PEND = { length: CABLE, gravity: GRAVITY, damping: DAMPING };
 
 export interface PlanStep {
    kind: number;
@@ -83,7 +83,6 @@ export interface Placed {
 export interface Run {
    windowStyle: 0 | 1;
    roofStyle: 0 | 1;
-   coarse: boolean;
    angle: number;
    radius: number;
    omega: number;
@@ -252,6 +251,11 @@ function writeHook(run: Run): void {
    run.bobVz = craneVz + CABLE * run.swing.z.v;
 }
 
+/** The bob's speed relative to the trolley: the swing alone, without the crane's own motion. */
+export function swingSpeed(run: Run): number {
+   return CABLE * Math.hypot(run.swing.x.v, run.swing.z.v);
+}
+
 export function pileUnder(run: Run): number {
    let best = -1;
    let bestD = PICK_R;
@@ -305,7 +309,6 @@ export function createRun(seed: number): Run {
    const run: Run = {
       windowStyle: rngNext(rng) < 0.5 ? 0 : 1,
       roofStyle: rngNext(rng) < 0.5 ? 0 : 1,
-      coarse: false,
       angle: 0,
       radius: RADIUS_MIN,
       omega: 0,
@@ -366,7 +369,7 @@ function integrate(run: Run, rot: number, radial: number, gust: number, dt: numb
    pivotAccel(run.angle, run.radius, run.omega, angAcc, radAcc, wind, scratch);
    run.rawAccel = Math.max(run.rawAccel, scratch.raw);
    run.cappedAccel = Math.max(run.cappedAccel, Math.hypot(scratch.x, scratch.z));
-   stepPendulum2D(run.swing, dt, run.coarse ? PEND_COARSE : PEND_FINE, scratch);
+   stepPendulum2D(run.swing, dt, PEND, scratch);
    clampSwing(run.swing);
 }
 
@@ -507,7 +510,7 @@ export function stepRun(run: Run, input: CraneInput, dt: number): void {
    if (run.phase !== "play") return;
    let picked = false;
    if (run.armed >= 0 && run.carried < 0 && run.lock <= 0) {
-      const held = run.radius <= PICK_MAX_R && pileUnder(run) === run.armed && Math.hypot(run.bobVx, run.bobVz) < BOB_SPEED;
+      const held = run.radius <= PICK_MAX_R && pileUnder(run) === run.armed && swingSpeed(run) < BOB_SPEED;
       run.dwell = held ? run.dwell + dt : 0;
       if (run.dwell >= DWELL_S && run.armed === current(run)?.kind) {
          run.carried = run.armed;

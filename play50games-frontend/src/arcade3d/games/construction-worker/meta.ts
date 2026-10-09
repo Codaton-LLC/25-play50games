@@ -27,7 +27,7 @@ export const constructionWorkerMeta: ArcadeGameMeta = {
       unitLabel: "pts",
       display: "int",
    },
-   thumbnail: null,
+   thumbnail: "/images/3d/construction-worker.webp",
    accent: "#fbbf24",
    owner: "cursor",
 };
