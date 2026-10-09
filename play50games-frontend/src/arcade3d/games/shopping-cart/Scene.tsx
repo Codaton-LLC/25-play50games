@@ -4,7 +4,7 @@
 // and renders the supermarket store, cart + runner, shoppers, products, hazards and camera.
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
-import { DoubleSide, Group, Matrix4, Vector3 } from "three";
+import { DoubleSide, Group, Matrix4, MeshStandardMaterial, Vector3 } from "three";
 import CameraRig from "@/arcade3d/core/CameraRig";
 import { Model } from "@/arcade3d/core/assets";
 import { playSfx, startLoop, type LoopHandle } from "@/arcade3d/core/audio";
@@ -35,6 +35,7 @@ import {
    STORE,
    createRun,
    stepRun,
+   type ListItem,
    type RunState,
    type StepInput,
 } from "./rules";
@@ -57,27 +58,42 @@ export default function Scene() {
       z: START_POS.z,
    });
 
-   // Cart rolling sound loop (P-06)
+   // Cart rolling sound loop (P-06) - sync with play/pause phases
    const rollLoop = useRef<LoopHandle | null>(null);
 
    useEffect(() => {
       fx.warm("sparkle", "puff", "confetti", "score");
-      const handle = startLoop("engine", { volume: 0, pitch: 0.8 });
-      rollLoop.current = handle;
+      let handle: LoopHandle | null = null;
+      const syncLoop = (phase: string) => {
+         if (phase === "playing") {
+            if (!handle) {
+               handle = startLoop("engine", { volume: 0, pitch: 0.8 });
+               rollLoop.current = handle;
+            }
+         } else {
+            if (handle) {
+               handle.stop();
+               handle = null;
+               rollLoop.current = null;
+            }
+         }
+      };
+
+      syncLoop(useArcadeStore.getState().phase);
+      const unsub = useArcadeStore.subscribe((state) => {
+         syncLoop(state.phase);
+      });
       return () => {
-         handle.stop();
+         unsub();
+         if (handle) handle.stop();
       };
    }, [fx]);
 
-   // One useRunFrame driving pure rules and arcade store
-   useRunFrame(() => {
+   // One useRunFrame driving pure rules and arcade store with frame dt and store time
+   useRunFrame((_state, dt, time) => {
       const { phase } = useArcadeStore.getState();
-      if (phase !== "playing") {
-         rollLoop.current?.set({ volume: 0 });
-         return;
-      }
+      if (phase !== "playing") return;
 
-      const dt = time.delta;
       const inp = input.current;
 
       // Screen-relative movement
@@ -88,7 +104,7 @@ export default function Scene() {
          ride: inp.jump,  // Space or touch Ride button
       };
 
-      const events = stepRun(run, stepInp, dt, time.now);
+      const events = stepRun(run, stepInp, dt, time);
       const cart = run.cart;
 
       // Update camera follow target with velocity look-ahead
@@ -168,7 +184,7 @@ export default function Scene() {
          <StoreEnvironment run={run} />
 
          {/* Cart + Pusher Runner Coupled Group */}
-         <CartRunner cart={run.cart} won={run.won} />
+         <CartRunner run={run} />
 
          {/* Shoppers */}
          {run.shoppers.map((shopper) => (
@@ -182,35 +198,42 @@ export default function Scene() {
          <InstancedCanPyramids pyramids={run.pyramids} />
 
          {/* Spills */}
-         <SpillsComponent playTimeS={run.playTimeS} />
+         <SpillsComponent run={run} />
       </group>
    );
 }
 
 // ---------- Cart & Runner Coupled Component ----------
 
-function CartRunner({ cart, won }: { cart: RunState["cart"]; won: boolean }) {
+function CartRunner({ run }: { run: RunState }) {
    const time = useGameTime();
    const groupRef = useRef<Group>(null);
+   const runnerRef = useRef<Group>(null);
    const [look] = useState<RunnerLook>(() => ({ amount: 0, phase: 0, riding: 0, cheer: 0 }));
    const [a] = useState(createPose);
    const [b] = useState(createPose);
 
    const pose = useHumanoidPose((p) => {
       const dt = time.delta;
+      const cart = run.cart;
       const speed = cart.speed;
       look.amount += (gaitAmount(speed) - look.amount) * (1 - Math.exp(-12 * dt));
       look.phase = advancePhase(look.phase, runnerPhaseStep(look.amount, speed, dt));
       look.riding += ((cart.riding ? 1 : 0) - look.riding) * (1 - Math.exp(-14 * dt));
-      look.cheer += ((won ? 1 : 0) - look.cheer) * (1 - Math.exp(-6 * dt));
+      look.cheer += ((run.won ? 1 : 0) - look.cheer) * (1 - Math.exp(-6 * dt));
       runnerPose(look, time.now, p, a, b);
    });
 
    useFrame(() => {
       const g = groupRef.current;
-      if (!g) return;
-      g.position.set(cart.x, 0, cart.z);
-      g.rotation.y = -cart.heading; // Orient along movement heading
+      if (g) {
+         g.position.set(run.cart.x, 0, run.cart.z);
+         g.rotation.y = -run.cart.heading; // Orient along movement heading
+      }
+      const r = runnerRef.current;
+      if (r) {
+         r.position.y = run.cart.riding ? 0.18 : 0;
+      }
    });
 
    return (
@@ -219,7 +242,7 @@ function CartRunner({ cart, won }: { cart: RunState["cart"]; won: boolean }) {
          <Model asset={ASSETS.cart} fallback={<CartPrimitive />} />
 
          {/* Pusher runner standing behind the handle at +z = 0.85, facing forward (-z) */}
-         <group position={[0, cart.riding ? 0.18 : 0, 0.85]} rotation={[0, Math.PI, 0]}>
+         <group ref={runnerRef} position={[0, 0, 0.85]} rotation={[0, Math.PI, 0]}>
             <HumanoidModel asset={ASSETS.pusher} pose={pose} fallback={<capsuleGeometry args={[0.25, 0.9]} />} />
          </group>
 
@@ -277,11 +300,13 @@ function ShelfItems({ items }: { items: RunState["list"] }) {
    const time = useGameTime();
 
    // Dynamic instancing for the 0.8 m floor glow halos (1 draw call)
+   // Lie flat on floor (rotate -pi/2 about x), radius 0.4 m (0.8 m across)
    const updateHalos = useMemo(
       () => (index: number, matrix: Matrix4) => {
          const item = items[index];
          if (!item || item.collected) return false;
-         matrix.makeTranslation(item.x, 0.02, item.z);
+         matrix.makeRotationX(-Math.PI / 2);
+         matrix.setPosition(item.x, 0.02, item.z);
       },
       [items]
    );
@@ -299,9 +324,9 @@ function ShelfItems({ items }: { items: RunState["list"] }) {
 
    return (
       <group>
-         {/* 1 draw call for all glowing 0.8 m halo rings */}
+         {/* 1 draw call for all glowing 0.8 m halo rings lying flat on floor */}
          <DynamicInstanced count={items.length} update={updateHalos}>
-            <ringGeometry args={[0.2, 0.8, 32]} />
+            <ringGeometry args={[0.15, 0.4, 32]} />
             <meshBasicMaterial color="#fb923c" transparent opacity={0.7} side={DoubleSide} />
          </DynamicInstanced>
 
@@ -311,18 +336,34 @@ function ShelfItems({ items }: { items: RunState["list"] }) {
             <meshStandardMaterial color="#fb923c" emissive="#fb923c" emissiveIntensity={0.6} roughness={0.3} />
          </DynamicInstanced>
 
-         {/* 3D Model items rotating above shelves */}
-         {items.map((item, i) => {
-            if (item.collected) return null;
-            const bob = Math.sin(time.now * 3 + i) * 0.1;
-            const asset = ASSETS[item.kind as keyof typeof ASSETS] ?? ASSETS.apple;
+         {/* 3D Model items rotating above shelves - driven dynamically via useFrame */}
+         {items.map((item, i) => (
+            <ShelfItem key={i} item={item} index={i} />
+         ))}
+      </group>
+   );
+}
 
-            return (
-               <group key={i} position={[item.x, 0.72 + bob, item.z]} rotation={[0, time.now * 1.5, 0]}>
-                  <Model asset={asset} fallback={<ProductPrimitive kind={item.kind} />} />
-               </group>
-            );
-         })}
+function ShelfItem({ item, index }: { item: ListItem; index: number }) {
+   const groupRef = useRef<Group>(null);
+   const asset = ASSETS[item.kind as keyof typeof ASSETS] ?? ASSETS.apple;
+
+   useFrame((state) => {
+      const g = groupRef.current;
+      if (!g) return;
+      if (item.collected) {
+         g.visible = false;
+         return;
+      }
+      g.visible = true;
+      const t = state.clock.getElapsedTime();
+      g.position.y = 0.72 + Math.sin(t * 3 + index) * 0.1;
+      g.rotation.y = t * 1.5;
+   });
+
+   return (
+      <group ref={groupRef} position={[item.x, 0.72, item.z]}>
+         <Model asset={asset} fallback={<ProductPrimitive kind={item.kind} />} />
       </group>
    );
 }
@@ -385,32 +426,41 @@ function InstancedCanPyramids({ pyramids }: { pyramids: RunState["pyramids"] }) 
 
 // ---------- Spills Component ----------
 
-function SpillsComponent({ playTimeS }: { playTimeS: number }) {
+function SpillsComponent({ run }: { run: RunState }) {
    return (
       <group>
-         {SPILLS.map((spill, i) => {
-            if (playTimeS < spill.spawnS) return null;
-            return (
-               <group key={i} position={[spill.x, 0.01, spill.z]}>
-                  {/* Slippery puddle */}
-                  <mesh rotation={[-Math.PI / 2, 0, 0]}>
-                     <circleGeometry args={[spill.radius, 24]} />
-                     <meshStandardMaterial
-                        color="#38bdf8"
-                        roughness={0.1}
-                        metalness={0.4}
-                        transparent
-                        opacity={0.75}
-                     />
-                  </mesh>
-                  {/* Warning Caution cone */}
-                  <mesh position={[0.8, 0.25, 0]}>
-                     <coneGeometry args={[0.15, 0.5, 8]} />
-                     <meshStandardMaterial color="#facc15" roughness={0.4} />
-                  </mesh>
-               </group>
-            );
-         })}
+         {SPILLS.map((spill, i) => (
+            <SpillItem key={i} spill={spill} run={run} />
+         ))}
+      </group>
+   );
+}
+
+function SpillItem({ spill, run }: { spill: (typeof SPILLS)[number]; run: RunState }) {
+   const groupRef = useRef<Group>(null);
+   useFrame(() => {
+      if (groupRef.current) {
+         groupRef.current.visible = run.playTimeS >= spill.spawnS;
+      }
+   });
+   return (
+      <group ref={groupRef} position={[spill.x, 0.01, spill.z]} visible={false}>
+         {/* Slippery puddle */}
+         <mesh rotation={[-Math.PI / 2, 0, 0]}>
+            <circleGeometry args={[spill.radius, 24]} />
+            <meshStandardMaterial
+               color="#38bdf8"
+               roughness={0.1}
+               metalness={0.4}
+               transparent
+               opacity={0.75}
+            />
+         </mesh>
+         {/* Warning Caution cone */}
+         <mesh position={[0.8, 0.25, 0]}>
+            <coneGeometry args={[0.15, 0.5, 8]} />
+            <meshStandardMaterial color="#facc15" roughness={0.4} />
+         </mesh>
       </group>
    );
 }
@@ -453,6 +503,31 @@ const WALL_SPOTS = [
    { x: -16, y: 1.9, z: 0, sx: 0.4, sy: 3.8, sz: 24 },
    { x: 16, y: 1.9, z: 0, sx: 0.4, sy: 3.8, sz: 24 },
 ];
+
+function FinishMat({ run }: { run: RunState }) {
+   const matRef = useRef<MeshStandardMaterial>(null);
+   useFrame(() => {
+      if (!matRef.current) return;
+      const targetColor = run.listComplete ? "#22c55e" : "#cbd5e1";
+      const targetEmissive = run.listComplete ? "#16a34a" : "#000000";
+      if (matRef.current.color.getHexString() !== (run.listComplete ? "22c55e" : "cbd5e1")) {
+         matRef.current.color.set(targetColor);
+         matRef.current.emissive.set(targetEmissive);
+      }
+   });
+
+   return (
+      <mesh position={[0, 0.015, 11.0]} rotation={[-Math.PI / 2, 0, 0]}>
+         <planeGeometry args={[9.0, 1.6]} />
+         <meshStandardMaterial
+            ref={matRef}
+            color={run.listComplete ? "#22c55e" : "#cbd5e1"}
+            emissive={run.listComplete ? "#16a34a" : "#000000"}
+            roughness={0.4}
+         />
+      </mesh>
+   );
+}
 
 function StoreEnvironment({ run }: { run: RunState }) {
    return (
@@ -529,14 +604,7 @@ function StoreEnvironment({ run }: { run: RunState }) {
          </Instanced>
 
          {/* Finish Zone Line Mat */}
-         <mesh position={[0, 0.015, 11.0]} rotation={[-Math.PI / 2, 0, 0]}>
-            <planeGeometry args={[9.0, 1.6]} />
-            <meshStandardMaterial
-               color={run.listComplete ? "#22c55e" : "#cbd5e1"}
-               emissive={run.listComplete ? "#16a34a" : "#000000"}
-               roughness={0.4}
-            />
-         </mesh>
+         <FinishMat run={run} />
 
          {/* Instanced Outer Walls (3.8 m tall): 1 draw call */}
          <Instanced spots={WALL_SPOTS}>

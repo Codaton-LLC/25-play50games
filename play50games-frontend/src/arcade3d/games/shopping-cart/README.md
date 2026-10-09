@@ -76,11 +76,11 @@ The provisional 10 s minimum rejects optimal legal riding speedruns under 10 s, 
 
 ## Scene and camera
 
-- **Follow 3/4 top-down, pitch 55°**: `useFittedView({ area: 14 × 14 m window, pitch: 55°, yaws: [0, π/2], focus: followFocus({ lookAt: [0, 0, 0], reach: WINDOW_BOX, fraction: 1, bounds: STORE_BOX }), margin: { top: 0.11, bottom: 0.07, left: 0.02, right: 0.02 }, padding: 8, shift: true })`.
-- **Readability on 390 × 844**: 14 m fitted window yields $\approx 28\text{ px/m}$; cart (1.0 m) is ~28 px, runner (1.56 m) is ~44 px. List items have a 0.8 m emissive halo (~22 px) and a 0.5 m billboard icon badge (~14 px) floating at y 0.6–0.85 m for instant visibility.
-- **Follow live point:** `<CameraRig camera={definition.camera} follow={{ x: cart.x + 0.25 * cart.vx, y: 0, z: cart.z + 0.25 * cart.vz }} bounds={STORE_BOX} damping={4} followFraction={1} offset={view.offset} shift={view.shift} />`.
-- **Runner and cart coupling:** runner rendered inside `CartGroup` at local offset (0, 0, −0.65), feet on floor, hands gripping red handle at y 0.94 m (`EXPANSION_GLB_POINTS.cartHandle`). Walking pose: `carryPose(0)` forward reach with `gaitPhaseStep`; riding pose: `jumpPose` tuck standing on cart base bar. Hands stay locked to handle during all turns.
-- `environment: { background: "#f8fafc", lighting: "indoor" }`; white tile floor canvas texture, supermarket ceiling emissive strip lights.
+- **Follow 3/4 top-down, pitch 50°**: `useFittedView` with dynamic window sizing (`camera.ts`: targeting 52 px/m on mobile, up to 14 × 14 m on desktop; runner ~81 px, cart ~52 px), pitch 50° ((50 · π) / 180), `followFocus` centered around the cart with bounds clamped to the store.
+- **Readability on 390 × 844**: 52 px/m window ensures runner + cart are ≥ 80 px tall. List items have a 0.8 m emissive ground halo and bobbing product meshes with collection animations for instant visibility.
+- **Follow live point:** `<CameraRig camera={definition.camera} follow={{ x: cart.x + 0.25 * cart.vx, y: 0, z: cart.z + 0.25 * cart.vz }} bounds={STORE_BOUNDS} damping={4} followFraction={1} offset={view.offset} shift={view.shift} />`.
+- **Runner and cart coupling:** runner rendered inside `CartGroup` at local offset (0, 0, −0.65), feet on floor, hands gripping red handle at y 0.94 m (`EXPANSION_GLB_POINTS.cartHandle`). Walking pose: forward reach with `gaitPhaseStep`; riding pose: `jumpPose` tuck standing on cart base bar with 0.18 m lift. Hands stay locked to handle during all turns.
+- `environment: { background: "#0b1220", lighting: "indoor" }`; white tile floor canvas texture, 70 m perimeter floor to avoid voids, supermarket ceiling emissive strip lights.
 
 ## Core helpers used
 
@@ -105,7 +105,7 @@ No new generation: cart GLB in `EXPANSION_ASSETS.cart`, 3 shoppers generated in 
 
 ## Files
 
-`meta.ts` (data, scoring) · `index.tsx` (`GameDefinition`) · `rules.ts` (store layout, kinematics, swept collision, shoppers, spills, pyramids, list, scoring; pure, seeded) · `rules.test.ts` · `poses.ts` (pure: `pushPose`, `ridePose`, runner blend) · `poses.test.ts` · `assets.ts` + `assets.test.ts` (fits and sizes on real meshes) · `Scene.tsx` (one `useRunFrame`, camera, cart, items, fx, audio) · `Store.tsx` (shelves, floor, freezer, fruit island, checkout, lighting) · `Cart.tsx` (cart GLB, runner humanoid model, wheels, hands anchor) · `Shoppers.tsx` (shopper humanoid models, NPC patrol rendering) · `Primitives.tsx` (stand-ins) · `assets.spec.json` · `README.md` · `public/images/3d/shopping-cart.webp` · `tools/thumbs/inputs/shopping-cart.mjs`.
+`meta.ts` (data, scoring) · `index.tsx` (`GameDefinition`) · `rules.ts` (store layout, kinematics, swept collision, shoppers, spills, pyramids, list, scoring; pure, seeded) · `rules.test.ts` (swept collision continuous proof, face unsticking, shopper routes, botHarness limit bots, mutant tests) · `poses.ts` (pure: `runnerPose`, `shopperPose`, runner/shopper blending) · `poses.test.ts` (height, handle reach, ride tuck, cadence) · `assets.ts` + `assets.test.ts` (manifest validation, product catalog, models) · `camera.ts` (fitted view options, follow sizing) · `Scene.tsx` (one `useRunFrame`, camera, cart, items, fx, audio loops) · `Primitives.tsx` (stand-ins) · `assets.spec.json` · `README.md` · `public/images/3d/shopping-cart.webp` · `tools/thumbs/inputs/shopping-cart.mjs`.
 
 ## Test plan
 
@@ -143,25 +143,28 @@ Shopping list on HUD shows product icons and checkmarks; target items glow with 
 ## Status
 
 ```
-HANDOFF P-15-fix1 shopping-cart
-Branch / last commit: antigravity/game-shopping-cart @ 67352ad (not pushed)
+HANDOFF P-15-fix2 shopping-cart
+Branch / last commit: antigravity/game-shopping-cart @ 61c5447 (not pushed)
 Files changed (git diff --name-only main...HEAD):
   play50games-frontend/public/images/3d/shopping-cart.webp
   play50games-frontend/src/arcade3d/games/shopping-cart/Primitives.tsx
   play50games-frontend/src/arcade3d/games/shopping-cart/README.md
   play50games-frontend/src/arcade3d/games/shopping-cart/Scene.tsx
+  play50games-frontend/src/arcade3d/games/shopping-cart/assets.spec.json
+  play50games-frontend/src/arcade3d/games/shopping-cart/assets.test.ts
   play50games-frontend/src/arcade3d/games/shopping-cart/assets.ts
   play50games-frontend/src/arcade3d/games/shopping-cart/camera.ts
   play50games-frontend/src/arcade3d/games/shopping-cart/index.tsx
   play50games-frontend/src/arcade3d/games/shopping-cart/meta.ts
+  play50games-frontend/src/arcade3d/games/shopping-cart/poses.test.ts
   play50games-frontend/src/arcade3d/games/shopping-cart/poses.ts
   play50games-frontend/src/arcade3d/games/shopping-cart/rules.test.ts
   play50games-frontend/src/arcade3d/games/shopping-cart/rules.ts
   tools/thumbs/inputs/shopping-cart.mjs
-Checks: npm run build pass (47/47 static pages) | npx tsc --noEmit pass (0 errors) | npx vitest run pass (112 files, 1528 tests passed, shopping-cart 19/19) | ?perf=1 probe: 21-29 calls steady across viewports (1280x800: 27 calls, 390x844: 21 calls, 844x390: 29 calls)
-Built: follow camera (~14 m window, CameraRig with velocity look-ahead); #0b1220 dark environment/fog and extended 70 m perimeter floor; 0.8 m emissive ground halos + floating badges on products; <Instanced> and <DynamicInstanced> meshes (21-29 steady draw calls); P-06 audio loops + SFX; botHarness proof bots.
+Checks: npm run build pass (47/47 static pages) | npx tsc --noEmit pass (0 errors) | npx vitest run pass (119 files, 1605 tests passed, shopping-cart 39/39) | ?perf=1 probe: 21-29 calls steady across viewports (1280x800: 27 calls, 390x844: 21 calls, 844x390: 29 calls)
+Built: continuous swept collision with tangential wall sliding, face unsticking and restitution deflection; botHarness proof bots across 200 seeds (60 fps, 20 fps, random frames) winning >= 6.5 s; honest walking bot (< 75 s); shopper route clearances without shelf collisions; mutant killer tests; P-06 audio loop pause/resume subscription; reactive product collection & finish mat indicators; 0.18 m runner lift on riding cart.
 Scoring formula: 100 per item + combo (+20/step) + 300 list complete + 10/s left on win; proposed limits 2070 maxScore, 6.0-77.0 s duration, 1470 base + 100/s.
-Decisions I took and why: fixed north/south heading calculation in rules.ts to drive north into aisles on ArrowUp; camera follows cart dynamically with followFraction 1 and shift offset; perimeter floor extends 70 m so no white void is visible at any canvas angle; thumbnail captured with crisp 640x360 webp at 9.7 KB framing the runner, cart, aisles, and score popups.
+Decisions I took and why: swept collision projects tangential velocity and backs off EPS along hit normal for smooth face sliding; bot harness uses aisle standoff targeting and pure-pursuit waypoint advancement; shopperC route loops via North & South walkways with zero shelf overlap; audio loops subscribe to useArcadeStore phase for clean pause/resume mute.
 Open questions for Claude or the user: None.
 Known issues / follow-ups: None; ready for Kimi mechanical review (P-17a) and Claude adversarial review (P-17b).
 Evidence: public/images/3d/shopping-cart.webp (9.7 KB), tools/thumbs/out/shopping-cart.webp

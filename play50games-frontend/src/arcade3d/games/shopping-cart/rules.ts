@@ -355,10 +355,10 @@ export function createShopperRoutes(): Record<string, Path> {
          { x: -10.0, y: 0, z: 6.0 },
       ], { closed: false }),
       shopperC: createPath([
-         { x: -1.5, y: 0, z: -6.5 },
-         { x: -1.5, y: 0, z: 3.5 },
-         { x: 3.5, y: 0, z: 3.5 },
-         { x: 3.5, y: 0, z: -6.5 },
+         { x: -1.5, y: 0, z: -8.6 },
+         { x: -1.5, y: 0, z: 5.6 },
+         { x: 3.5, y: 0, z: 5.6 },
+         { x: 3.5, y: 0, z: -8.6 },
       ], { closed: true }),
       shopperD: createPath([
          { x: 10.0, y: 0, z: -6.0 },
@@ -387,8 +387,8 @@ export function createShoppers(routes: Record<string, Path>): ShopperNPC[] {
       },
       {
          id: "shopperC",
-         agent: { x: -1.5, y: 0, z: -6.5, vx: 0, vy: 0, vz: 0, yaw: 0 },
-         patrolState: { index: 0, wait: 0, mode: "patrol", target: { x: -1.5, y: 0, z: 3.5 } },
+         agent: { x: -1.5, y: 0, z: -8.6, vx: 0, vy: 0, vz: 0, yaw: 0 },
+         patrolState: { index: 0, wait: 0, mode: "patrol", target: { x: -1.5, y: 0, z: 5.6 } },
          route: routes.shopperC,
          graceTimer: 0,
          active: true,
@@ -556,7 +556,13 @@ export function stepRun(
    cart.vz += (targetVz - cart.vz) * gripFactor;
    cart.speed = Math.hypot(cart.vx, cart.vz);
 
-   // 3. Continuous Swept Collision (up to 3 passes)
+   // 3. Continuous Swept Collision (up to 3 passes) with sliding and oriented proxy
+   const cosH = Math.abs(Math.cos(cart.heading));
+   const sinH = Math.abs(Math.sin(cart.heading));
+   const halfX = cosH * CART.proxyHalfX + sinH * CART.proxyHalfZ;
+   const halfZ = sinH * CART.proxyHalfX + cosH * CART.proxyHalfZ;
+
+   const EPS = 0.001;
    let remainingStepFrac = 1.0;
    let collidedObstacle = false;
 
@@ -565,11 +571,10 @@ export function stepRun(
       const stepDz = cart.vz * dt * remainingStepFrac;
       if (Math.abs(stepDx) < 1e-6 && Math.abs(stepDz) < 1e-6) break;
 
-      // Update proxy box around current cart pos
-      PROXY_BOX.min.x = cart.x - CART.proxyHalfX;
-      PROXY_BOX.max.x = cart.x + CART.proxyHalfX;
-      PROXY_BOX.min.z = cart.z - CART.proxyHalfZ;
-      PROXY_BOX.max.z = cart.z + CART.proxyHalfZ;
+      PROXY_BOX.min.x = cart.x - halfX;
+      PROXY_BOX.max.x = cart.x + halfX;
+      PROXY_BOX.min.z = cart.z - halfZ;
+      PROXY_BOX.max.z = cart.z + halfZ;
 
       let earliestHitTime = Infinity;
       let hitNormalX = 0;
@@ -580,10 +585,33 @@ export function stepRun(
       for (let i = 0; i < SOLID_OBSTACLES.length; i++) {
          const obs = SOLID_OBSTACLES[i];
          const t = sweptAabbXZ(PROXY_BOX, delta, obs, SWEEP_HIT);
-         if (t !== null && t < earliestHitTime) {
-            earliestHitTime = t;
-            hitNormalX = SWEEP_HIT.normalX;
-            hitNormalZ = SWEEP_HIT.normalZ;
+         if (t !== null) {
+            let nx = SWEEP_HIT.normalX;
+            let nz = SWEEP_HIT.normalZ;
+
+            if (t === 0 && nx === 0 && nz === 0) {
+               // Touching or overlapping at start: determine contact normal from minimal penetration
+               const overlapLeft = PROXY_BOX.max.x - obs.min.x;
+               const overlapRight = obs.max.x - PROXY_BOX.min.x;
+               const overlapTop = PROXY_BOX.max.z - obs.min.z;
+               const overlapBottom = obs.max.z - PROXY_BOX.min.z;
+               const minOverlap = Math.min(overlapLeft, overlapRight, overlapTop, overlapBottom);
+               if (minOverlap === overlapLeft) { nx = -1; nz = 0; }
+               else if (minOverlap === overlapRight) { nx = 1; nz = 0; }
+               else if (minOverlap === overlapTop) { nx = 0; nz = -1; }
+               else { nx = 0; nz = 1; }
+            }
+
+            // Dot product of motion vector with outward normal:
+            // dot >= 0 means moving away from or parallel to the face (ignore touching box)
+            const dotMotionN = delta.x * nx + delta.z * nz;
+            if (dotMotionN >= 0) continue;
+
+            if (t < earliestHitTime) {
+               earliestHitTime = t;
+               hitNormalX = nx;
+               hitNormalZ = nz;
+            }
          }
       }
 
@@ -595,30 +623,46 @@ export function stepRun(
       }
 
       collidedObstacle = true;
-      // Advance to impact point
-      cart.x += stepDx * earliestHitTime;
-      cart.z += stepDz * earliestHitTime;
+      // Advance to impact point backed off by epsilon along hit normal
+      cart.x += stepDx * earliestHitTime + hitNormalX * EPS;
+      cart.z += stepDz * earliestHitTime + hitNormalZ * EPS;
       remainingStepFrac *= (1 - earliestHitTime);
 
-      // Deflect velocity
-      if (hitNormalX !== 0) {
-         cart.vx = -CART.restitution * cart.vx;
-      }
-      if (hitNormalZ !== 0) {
-         cart.vz = -CART.restitution * cart.vz;
+      // Slide along face: remove normal velocity component so remaining passes move tangentially
+      const vDotN = cart.vx * hitNormalX + cart.vz * hitNormalZ;
+      if (vDotN < 0) {
+         cart.vx -= vDotN * hitNormalX;
+         cart.vz -= vDotN * hitNormalZ;
       }
    }
 
-   // Residual penetration push-out
+   // Residual box-obstacle penetration push-out
    for (let i = 0; i < SOLID_OBSTACLES.length; i++) {
-      resolveSphereAabb(cart, CART.radius, SOLID_OBSTACLES[i], cart);
+      const obs = SOLID_OBSTACLES[i];
+      const boxMinX = cart.x - halfX;
+      const boxMaxX = cart.x + halfX;
+      const boxMinZ = cart.z - halfZ;
+      const boxMaxZ = cart.z + halfZ;
+      if (boxMaxX > obs.min.x && boxMinX < obs.max.x && boxMaxZ > obs.min.z && boxMinZ < obs.max.z) {
+         const oL = boxMaxX - obs.min.x;
+         const oR = obs.max.x - boxMinX;
+         const oT = boxMaxZ - obs.min.z;
+         const oB = obs.max.z - boxMinZ;
+         const minO = Math.min(oL, oR, oT, oB);
+         if (minO === oL) cart.x -= oL + EPS;
+         else if (minO === oR) cart.x += oR + EPS;
+         else if (minO === oT) cart.z -= oT + EPS;
+         else cart.z += oB + EPS;
+      }
    }
 
    // Outer store perimeter clamp
-   if (cart.x < STORE.innerMinX) { cart.x = STORE.innerMinX; cart.vx = Math.abs(cart.vx) * CART.restitution; collidedObstacle = true; }
-   if (cart.x > STORE.innerMaxX) { cart.x = STORE.innerMaxX; cart.vx = -Math.abs(cart.vx) * CART.restitution; collidedObstacle = true; }
-   if (cart.z < STORE.innerMinZ) { cart.z = STORE.innerMinZ; cart.vz = Math.abs(cart.vz) * CART.restitution; collidedObstacle = true; }
-   if (cart.z > STORE.innerMaxZ) { cart.z = STORE.innerMaxZ; cart.vz = -Math.abs(cart.vz) * CART.restitution; collidedObstacle = true; }
+   if (cart.x - halfX < STORE.innerMinX) { cart.x = STORE.innerMinX + halfX; cart.vx = Math.abs(cart.vx) * CART.restitution; collidedObstacle = true; }
+   if (cart.x + halfX > STORE.innerMaxX) { cart.x = STORE.innerMaxX - halfX; cart.vx = -Math.abs(cart.vx) * CART.restitution; collidedObstacle = true; }
+   if (cart.z - halfZ < STORE.innerMinZ) { cart.z = STORE.innerMinZ + halfZ; cart.vz = Math.abs(cart.vz) * CART.restitution; collidedObstacle = true; }
+   if (cart.z + halfZ > STORE.innerMaxZ) { cart.z = STORE.innerMaxZ - halfZ; cart.vz = -Math.abs(cart.vz) * CART.restitution; collidedObstacle = true; }
+
+   cart.speed = Math.hypot(cart.vx, cart.vz);
 
    if (collidedObstacle) {
       run.combo = 0; // Obstacle impact breaks combo streak

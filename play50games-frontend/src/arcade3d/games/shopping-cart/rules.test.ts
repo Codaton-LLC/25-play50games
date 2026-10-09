@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { pointAt } from "@/arcade3d/core/path";
 import { createArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import {
    createGrid,
@@ -12,6 +13,7 @@ import {
 import { shoppingCartMeta } from "./meta";
 import {
    CART,
+   CHECKOUT_COUNTERS,
    DURATION_MS,
    FALLBACK_LIST,
    LIST_COUNT,
@@ -26,6 +28,7 @@ import {
    START_POS,
    STORE,
    createRun,
+   createShopperRoutes,
    generateList,
    runScore,
    shortestPickTour,
@@ -144,9 +147,111 @@ describe("shopping-cart rules", () => {
             }
          }
       });
+
+      describe("Blocker 1 regression: cart unstick from all obstacle face types", () => {
+         it("unstick from shelf side: drive east into shelf face, steer west, moves >= 1.0 m within 1 s", () => {
+            const run = createRun(1);
+            run.cart.x = -5.5;
+            run.cart.z = 0;
+            run.cart.heading = Math.PI / 2;
+            for (let f = 0; f < 30; f++) {
+               stepRun(run, input(1, 0, false), DT, f * DT);
+            }
+            const contactX = run.cart.x;
+            expect(contactX).toBeGreaterThan(-5.5);
+            for (let f = 0; f < 60; f++) {
+               stepRun(run, input(-1, 0, false), DT, 0.5 + f * DT);
+            }
+            const movedDistance = Math.abs(run.cart.x - contactX);
+            expect(movedDistance).toBeGreaterThanOrEqual(1.0);
+         });
+
+         it("unstick from shelf end: drive south into shelf end, steer north, moves >= 1.0 m within 1 s", () => {
+            const run = createRun(1);
+            run.cart.x = -4.0;
+            run.cart.z = -8.5;
+            run.cart.heading = Math.PI;
+            for (let f = 0; f < 30; f++) {
+               stepRun(run, input(0, -1, false), DT, f * DT);
+            }
+            const contactZ = run.cart.z;
+            expect(contactZ).toBeGreaterThan(-8.5);
+            for (let f = 0; f < 60; f++) {
+               stepRun(run, input(0, 1, false), DT, 0.5 + f * DT);
+            }
+            const movedDistance = Math.abs(run.cart.z - contactZ);
+            expect(movedDistance).toBeGreaterThanOrEqual(1.0);
+         });
+
+         it("unstick from corner: drive SE into shelf NW corner, steer NW, moves >= 1.0 m within 1 s", () => {
+            const run = createRun(1);
+            run.cart.x = -5.5;
+            run.cart.z = -8.5;
+            run.cart.heading = (3 * Math.PI) / 4;
+            for (let f = 0; f < 30; f++) {
+               stepRun(run, input(1, -1, false), DT, f * DT);
+            }
+            const contactX = run.cart.x;
+            const contactZ = run.cart.z;
+            for (let f = 0; f < 60; f++) {
+               stepRun(run, input(-1, 1, false), DT, 0.5 + f * DT);
+            }
+            const movedDistance = Math.hypot(run.cart.x - contactX, run.cart.z - contactZ);
+            expect(movedDistance).toBeGreaterThanOrEqual(1.0);
+         });
+
+         it("unstick from outer perimeter wall: drive west into wall, steer east, moves >= 1.0 m within 1 s", () => {
+            const run = createRun(1);
+            run.cart.x = -14.5;
+            run.cart.z = 0;
+            run.cart.heading = -Math.PI / 2;
+            for (let f = 0; f < 30; f++) {
+               stepRun(run, input(-1, 0, false), DT, f * DT);
+            }
+            const contactX = run.cart.x;
+            for (let f = 0; f < 60; f++) {
+               stepRun(run, input(1, 0, false), DT, 0.5 + f * DT);
+            }
+            const movedDistance = Math.abs(run.cart.x - contactX);
+            expect(movedDistance).toBeGreaterThanOrEqual(1.0);
+         });
+
+         it("unstick from checkout counter: drive south into counter face, steer north, moves >= 1.0 m within 1 s", () => {
+            const run = createRun(1);
+            run.cart.x = -3.6;
+            run.cart.z = 7.0;
+            run.cart.heading = Math.PI;
+            for (let f = 0; f < 30; f++) {
+               stepRun(run, input(0, -1, false), DT, f * DT);
+            }
+            const contactZ = run.cart.z;
+            for (let f = 0; f < 60; f++) {
+               stepRun(run, input(0, 1, false), DT, 0.5 + f * DT);
+            }
+            const movedDistance = Math.abs(run.cart.z - contactZ);
+            expect(movedDistance).toBeGreaterThanOrEqual(1.0);
+         });
+      });
    });
 
    describe("hazards: pyramids, shoppers, spills", () => {
+      it("no shopper route segment intersects any shelf AABB", () => {
+         const routes = createShopperRoutes();
+         for (const [id, path] of Object.entries(routes)) {
+            const step = 0.1;
+            for (let s = 0; s <= path.total; s += step) {
+               const pt = pointAt(path, s);
+               for (const shelf of SHELVES) {
+                  const inside =
+                     pt.x >= shelf.min.x &&
+                     pt.x <= shelf.max.x &&
+                     pt.z >= shelf.min.z &&
+                     pt.z <= shelf.max.z;
+                  expect(inside, `shopper route ${id} at s=${s} intersects shelf`).toBe(false);
+               }
+            }
+         }
+      });
       it("can pyramid topples on contact, slows cart, resets combo, and stays toppled", () => {
          const run = createRun(1);
          run.combo = 3;
@@ -298,10 +403,10 @@ describe("shopping-cart rules", () => {
          if (x < -15.2 || x > 15.2 || z < -11.2 || z > 11.2) return false;
          for (const obs of SOLID_OBSTACLES) {
             if (
-               x >= obs.min.x - 0.4 &&
-               x <= obs.max.x + 0.4 &&
-               z >= obs.min.z - 0.4 &&
-               z <= obs.max.z + 0.4
+               x >= obs.min.x - 0.45 &&
+               x <= obs.max.x + 0.45 &&
+               z >= obs.min.z - 0.45 &&
+               z <= obs.max.z + 0.45
             ) {
                return false;
             }
@@ -309,73 +414,208 @@ describe("shopping-cart rules", () => {
          return true;
       });
 
-      it("path-following bots win through simulateRun across 20 seeds at 60 fps, 20 fps and random frames, never before 6.5 s", () => {
-         const framesFor = (k: number) =>
-            [fixedFrames(1000 / 60), fixedFrames(50), randomFrames(k)][k % 3];
+      it(
+         "path-following bots win through simulateRun across 200 seeds at 60 fps, 20 fps and random frames, never before 6.5 s",
+         () => {
+            const framesFor = (k: number) =>
+               [fixedFrames(1000 / 60), fixedFrames(50), randomFrames(k)][k % 3];
 
-         for (let s = 0; s < 20; s++) {
-            const store = createArcadeStore();
-            const run = createRun(s);
-            const targets = [...run.list.map((it) => ({ x: it.x, z: it.z })), { x: 0, z: 11.0 }];
-            let targetIdx = 0;
-            let follower = followPath(
-               grid,
-               free,
-               run.cart.x,
-               run.cart.z,
-               targets[0].x,
-               targets[0].z
-            );
-            const steerDir = { dirX: 0, dirZ: 0 };
+            let earliestWinMs = Infinity;
 
-            simulateRun(store, {
-               durationMs: DURATION_MS,
-               frame: framesFor(s),
-               step: (dt, time, sStore) => {
-                  const currentTarget = targets[targetIdx];
-                  if (!currentTarget) return;
+            function getTarget(run: RunState): { x: number; z: number } {
+               if (run.collectedCount >= LIST_COUNT) {
+                  return run.cart.x < -1.5 ? { x: -2.0, z: 10.8 } : { x: 0.9, z: 10.8 };
+               }
+               let bestDist = Infinity;
+               let bestItem = run.list[0];
+               for (let i = 0; i < run.list.length; i++) {
+                  const it = run.list[i];
+                  if (!it.collected) {
+                     const d = Math.hypot(it.x - run.cart.x, it.z - run.cart.z);
+                     if (d < bestDist) {
+                        bestDist = d;
+                        bestItem = it;
+                     }
+                  }
+               }
+               const shelfCenters = [-9.0, -4.0, 1.0, 6.0];
+               let nearestCenter = shelfCenters[0];
+               let minCenterDist = Infinity;
+               for (const c of shelfCenters) {
+                  const dist = Math.abs(c - bestItem.x);
+                  if (dist < minCenterDist) {
+                     minCenterDist = dist;
+                     nearestCenter = c;
+                  }
+               }
+               const standoffX = bestItem.x < nearestCenter ? bestItem.x - 0.45 : bestItem.x + 0.45;
+               return { x: standoffX, z: bestItem.z };
+            }
 
-                  steer(grid, follower, run.cart.x, run.cart.z, steerDir, 0.7);
-                  const stepInp: StepInput = {
-                     moveX: steerDir.dirX,
-                     moveY: -steerDir.dirZ,
-                     ride: true,
-                  };
+            for (let s = 0; s < 200; s++) {
+               const store = createArcadeStore();
+               const run = createRun(s);
+               let target = getTarget(run);
+               let follower = followPath(
+                  grid,
+                  free,
+                  run.cart.x,
+                  run.cart.z,
+                  target.x,
+                  target.z
+               );
+               const steerDir = { dirX: 0, dirZ: 0 };
 
-                  const ev = stepRun(run, stepInp, dt, time);
-                  for (const p of ev.pickups) {
-                     sStore.getState().addScore(p.score);
-                     targetIdx++;
-                     if (targetIdx < targets.length) {
+               simulateRun(store, {
+                  durationMs: DURATION_MS,
+                  frame: framesFor(s),
+                  step: (dt, time, sStore) => {
+                     const currentTarget = getTarget(run);
+                     if (Math.hypot(currentTarget.x - follower.goalX, currentTarget.z - follower.goalZ) > 0.05) {
+                        target = currentTarget;
                         follower = followPath(
                            grid,
                            free,
                            run.cart.x,
                            run.cart.z,
-                           targets[targetIdx].x,
-                           targets[targetIdx].z
+                           target.x,
+                           target.z
                         );
                      }
-                  }
-                  if (ev.listCompleted) {
-                     sStore.getState().addScore(POINTS.listComplete);
-                  }
-                  if (ev.won) {
-                     sStore.getState().setScore(run.score);
-                     sStore.getState().end("win");
-                  } else if (ev.timeup) {
-                     sStore.getState().setScore(run.score);
-                     sStore.getState().end("timeup");
-                  }
-               },
-            });
 
-            const finalState = store.getState();
-            expect(finalState.elapsedMs).toBeGreaterThanOrEqual(6500);
-            expect(finalState.score).toBeLessThanOrEqual(PROPOSED_LIMITS.maxScore);
-            expect(withinProposedLimits(finalState.score, finalState.elapsedMs)).toBe(true);
-            expect(withinServerLimits(finalState.score, finalState.elapsedMs)).toBe(true);
+                     while (
+                        follower.k < follower.path.length - 1 &&
+                        (Math.hypot(grid.x(follower.path[follower.k]) - run.cart.x, grid.z(follower.path[follower.k]) - run.cart.z) < 1.0 ||
+                         Math.hypot(grid.x(follower.path[follower.k + 1]) - run.cart.x, grid.z(follower.path[follower.k + 1]) - run.cart.z) <
+                         Math.hypot(grid.x(follower.path[follower.k]) - run.cart.x, grid.z(follower.path[follower.k]) - run.cart.z))
+                     ) {
+                        follower.k++;
+                     }
+
+                     steer(grid, follower, run.cart.x, run.cart.z, steerDir, 0.7);
+                     const targetHeading = Math.atan2(steerDir.dirX, -steerDir.dirZ);
+                     const angleDiff = Math.abs(Math.atan2(Math.sin(targetHeading - run.cart.heading), Math.cos(targetHeading - run.cart.heading)));
+
+                     const stepInp: StepInput = {
+                        moveX: steerDir.dirX,
+                        moveY: -steerDir.dirZ,
+                        ride: angleDiff < 0.8,
+                     };
+
+                     const ev = stepRun(run, stepInp, dt, time);
+                     for (const p of ev.pickups) {
+                        sStore.getState().addScore(p.score);
+                     }
+                     if (ev.listCompleted) {
+                        sStore.getState().addScore(POINTS.listComplete);
+                     }
+                     if (ev.won) {
+                        sStore.getState().setScore(run.score);
+                        sStore.getState().end("win");
+                     }
+                  },
+               });
+
+               const finalState = store.getState();
+               expect(finalState.endReason, `seed ${s} should win`).toBe("win");
+               expect(finalState.elapsedMs).toBeGreaterThanOrEqual(6500);
+               if (finalState.elapsedMs < earliestWinMs) {
+                  earliestWinMs = finalState.elapsedMs;
+               }
+               expect(finalState.score).toBeLessThanOrEqual(PROPOSED_LIMITS.maxScore);
+               expect(withinProposedLimits(finalState.score, finalState.elapsedMs)).toBe(true);
+               expect(withinServerLimits(finalState.score, finalState.elapsedMs)).toBe(true);
+            }
+            expect(earliestWinMs).toBeGreaterThanOrEqual(6500);
+         },
+         30000
+      );
+
+      it("honest walking bot completes and wins within 75 s at walking speed (ride=false)", () => {
+         function getTarget(run: RunState): { x: number; z: number } {
+            if (run.collectedCount >= LIST_COUNT) {
+               return run.cart.x < -1.5 ? { x: -2.0, z: 10.8 } : { x: 0.9, z: 10.8 };
+            }
+            let bestDist = Infinity;
+            let bestItem = run.list[0];
+            for (let i = 0; i < run.list.length; i++) {
+               const it = run.list[i];
+               if (!it.collected) {
+                  const d = Math.hypot(it.x - run.cart.x, it.z - run.cart.z);
+                  if (d < bestDist) {
+                     bestDist = d;
+                     bestItem = it;
+                  }
+               }
+            }
+            const shelfCenters = [-9.0, -4.0, 1.0, 6.0];
+            let nearestCenter = shelfCenters[0];
+            let minCenterDist = Infinity;
+            for (const c of shelfCenters) {
+               const dist = Math.abs(c - bestItem.x);
+               if (dist < minCenterDist) {
+                  minCenterDist = dist;
+                  nearestCenter = c;
+               }
+            }
+            const standoffX = bestItem.x < nearestCenter ? bestItem.x - 0.45 : bestItem.x + 0.45;
+            return { x: standoffX, z: bestItem.z };
          }
+
+         const store = createArcadeStore();
+         const run = createRun(42);
+         let target = getTarget(run);
+         let follower = followPath(
+            grid,
+            free,
+            run.cart.x,
+            run.cart.z,
+            target.x,
+            target.z
+         );
+         const steerDir = { dirX: 0, dirZ: 0 };
+
+         simulateRun(store, {
+            durationMs: DURATION_MS,
+            frame: fixedFrames(1000 / 60),
+            step: (dt, time, sStore) => {
+               const currentTarget = getTarget(run);
+               if (Math.hypot(currentTarget.x - follower.goalX, currentTarget.z - follower.goalZ) > 0.05) {
+                  target = currentTarget;
+                  follower = followPath(
+                     grid,
+                     free,
+                     run.cart.x,
+                     run.cart.z,
+                     target.x,
+                     target.z
+                  );
+               }
+
+               steer(grid, follower, run.cart.x, run.cart.z, steerDir, 0.7);
+               const stepInp: StepInput = {
+                  moveX: steerDir.dirX,
+                  moveY: -steerDir.dirZ,
+                  ride: false,
+               };
+
+               const ev = stepRun(run, stepInp, dt, time);
+               for (const p of ev.pickups) {
+                  sStore.getState().addScore(p.score);
+               }
+               if (ev.listCompleted) {
+                  sStore.getState().addScore(POINTS.listComplete);
+               }
+               if (ev.won) {
+                  sStore.getState().setScore(run.score);
+                  sStore.getState().end("win");
+               }
+            },
+         });
+
+         const finalState = store.getState();
+         expect(finalState.endReason).toBe("win");
+         expect(finalState.elapsedMs).toBeLessThan(75000);
       });
 
       it("idle player times out with 0 score at 75 s using simulateRun", () => {
@@ -395,6 +635,55 @@ describe("shopping-cart rules", () => {
          expect(store.getState().score).toBe(0);
          expect(store.getState().phase).toBe("over");
          expect(withinServerLimits(0, 75000)).toBe(true);
+      });
+   });
+
+   describe("mutant killer tests", () => {
+      it("wall impact resets combo to 0", () => {
+         const run = createRun(1);
+         run.combo = 5;
+         run.cart.x = -15.0;
+         run.cart.z = 0;
+         run.cart.heading = -Math.PI / 2;
+         run.cart.targetSpeed = 6.0;
+         run.cart.speed = 6.0;
+         run.cart.vx = -6.0;
+         run.cart.vz = 0;
+
+         // Step into the west wall (innerMinX = -15.4)
+         stepRun(run, input(-1, 0, false), DT, 1.0);
+         expect(run.combo).toBe(0);
+      });
+
+      it("riding speed cap is 9 m/s, strictly rejecting 12 m/s mutant", () => {
+         const run = createRun(1);
+         // Place in open Aisle 1 at z = 6.0 and drive North
+         run.cart.x = -12.5;
+         run.cart.z = 6.0;
+         run.cart.heading = 0;
+         for (let f = 0; f < 120; f++) {
+            stepRun(run, input(0, 1, true), DT, f * DT);
+         }
+         expect(run.cart.targetSpeed).toBe(CART.maxRidingSpeed);
+         expect(run.cart.speed).toBeCloseTo(9.0, 0);
+         expect(run.cart.speed).toBeGreaterThan(8.5);
+         expect(run.cart.speed).toBeLessThan(9.05);
+         expect(run.cart.speed).toBeLessThan(10.0);
+      });
+
+      it("wall bounce reflects velocity with negative restitution, not positive", () => {
+         const run = createRun(1);
+         run.cart.x = STORE.innerMaxX - 0.1;
+         run.cart.z = 0;
+         run.cart.heading = Math.PI / 2;
+         run.cart.targetSpeed = 6.0;
+         run.cart.vx = 6.0;
+         run.cart.vz = 0;
+
+         // Step into east wall
+         stepRun(run, input(1, 0, false), DT, 1.0);
+         expect(run.cart.vx).toBeLessThan(0);
+         expect(run.cart.vx).toBeCloseTo(-6.0 * CART.restitution, 1);
       });
    });
 });
