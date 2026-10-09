@@ -12,6 +12,8 @@ import { ASSETS } from "./assets";
 import { CITY, PIGEON, ROUTE, WIND, type Run, type City } from "./rules";
 import { mergedBoxes, useBoxParts } from "./Primitives";
 
+import { ROOF_CAP, ROOFTOP_OVERLAY_Y } from "./visuals";
+
 const UP = new Vector3(0, 1, 0);
 const ONE = new Vector3(1, 1, 1);
 const WIND_TILT = new Quaternion().setFromAxisAngle(new Vector3(1, 0, 0), Math.PI / 2);
@@ -29,7 +31,7 @@ function CityChunks({ city }: { city: City }) {
       for (const b of city.buildings) {
          if (Math.floor(b.cell / 16) * 4 + Math.floor((b.cell % 8) / 2) !== i) continue;
          pieces.push([b.x, b.height / 2, b.z, 5, b.height, 5, BUILDING_COLORS[b.cell % 3]]);
-         pieces.push([b.x, b.height + 0.015, b.z, 5.04, 0.04, 5.04, "#64748b"]);
+         pieces.push([b.x, b.height + ROOF_CAP.centerY, b.z, 5.04, ROOF_CAP.thickness, 5.04, "#64748b"]);
          for (let y = 1; y < b.height; y += 2) for (let column = -1; column <= 1; column++) {
             pieces.push([b.x + column * 1.2, y, b.z + 2.51, 0.55, 0.7, 0.025, "#fef3c7"]);
             pieces.push([b.x + 2.51, y, b.z + column * 1.2, 0.025, 0.7, 0.55, "#bfdbfe"]);
@@ -88,14 +90,14 @@ function Pads({ run }: { run: Run }) {
    const [blue] = useState(() => new Color("#38bdf8"));
    useFrame(() => {
       const b = run.city.buildings[run.city.targets[Math.min(run.completed, 11)]];
-      if (active.current) { active.current.position.set(b.x, b.height + 0.03, b.z); active.current.visible = run.completed < 12; }
+      if (active.current) { active.current.position.set(b.x, b.height + ROOFTOP_OVERLAY_Y, b.z); active.current.visible = run.completed < 12; }
       if (beacon.current) { beacon.current.position.set(b.x, b.height + 1.4, b.z); beacon.current.scale.y = 1 + Math.sin(time.now * 3) * 0.08; beacon.current.visible = run.completed < 12; }
       if (loading.current) { loading.current.scale.setScalar(0.1 + run.loading / ROUTE.loading * 0.9); loading.current.visible = run.loading > 0; }
    });
    return <group name="delivery-pads">
       <DynamicInstanced count={12} tinted update={(i, m, color) => {
          const b = run.city.buildings[run.city.targets[i]];
-         m.makeRotationX(-Math.PI / 2).setPosition(b.x, b.height + 0.03, b.z); color.copy(i < run.completed ? mint : blue);
+         m.makeRotationX(-Math.PI / 2).setPosition(b.x, b.height + ROOFTOP_OVERLAY_Y, b.z); color.copy(i < run.completed ? mint : blue);
       }}><ringGeometry args={[1.05, 1.25, 32]} /><meshBasicMaterial color="white" /></DynamicInstanced>
       <mesh ref={active} rotation={[-Math.PI / 2, 0, 0]}><circleGeometry args={[0.9, 32]} /><meshBasicMaterial color="#38bdf8" transparent opacity={0.24} depthWrite={false} /></mesh>
       <mesh ref={beacon}><cylinderGeometry args={[0.09, 0.25, 2.5, 8]} /><meshBasicMaterial color="#38bdf8" transparent opacity={0.45} depthWrite={false} /></mesh>

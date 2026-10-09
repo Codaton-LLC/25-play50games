@@ -22,12 +22,12 @@ function stat(store: ArcadeStore, key: string, value: number): void {
 
 export default function Scene() {
    const width = useThree((s) => s.size.width), height = useThree((s) => s.size.height);
-   const fit = useMemo(() => viewFor(width, height), [width, height]);
+   const fit = useMemo(() => viewFor(width, height, typeof window !== "undefined" && window.matchMedia("(pointer: coarse)").matches), [width, height]);
    const view = useFittedView(fit);
    const input = useInput(), fx = useFx();
    const [run] = useState(() => createRun(randomSeed(), typeof window !== "undefined" && window.matchMedia("(pointer: coarse)").matches));
    const [reduced] = useState(() => typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
-   const [scratch] = useState(() => ({ dir: { x: 0, z: 0 }, step: { dirX: 0, dirZ: 0, drop: false }, focus: { x: 0, y: 3, z: 0 }, at: { x: 0, y: 0, z: 0 }, markers: [{ x: 0, y: 0.3, z: 0 }], feedbackUntil: 0, audio: { pitch: 0.8, volume: 0.25 } }));
+   const [scratch] = useState(() => ({ dir: { x: 0, z: 0 }, step: { dirX: 0, dirZ: 0, drop: false }, focus: { x: 0, y: 3, z: 0 }, at: { x: 0, y: 0, z: 0 }, markers: [{ x: 0, y: 0.3, z: 0, hidden: true }], feedbackUntil: 0, audio: { pitch: 0.8, volume: 0.25 } }));
    const phase = useArcadeStore((s) => s.phase), muted = useMuted();
    const loop = useRef<LoopHandle | null>(null);
    useEffect(() => fx.warm("sparkle", "puff", "confetti", "score"), [fx]);
@@ -44,6 +44,7 @@ export default function Scene() {
       if (e.score > 0) store.addScore(e.score);
       const target = run.attached || run.falling ? run.city.buildings[run.city.targets[Math.min(run.completed, 11)]] : null;
       scratch.markers[0].x = target?.x ?? 0; scratch.markers[0].y = target ? target.height + 0.5 : 0.5; scratch.markers[0].z = target?.z ?? 0;
+      scratch.markers[0].hidden = Math.hypot(d.x - scratch.markers[0].x, d.z - scratch.markers[0].z) <= 3;
       stat(store, "battery", Math.ceil(run.battery)); stat(store, "deliveries", run.completed);
       stat(store, "distance", Math.round(Math.hypot(d.x - scratch.markers[0].x, d.z - scratch.markers[0].z)));
       stat(store, "loading", Math.floor(run.loading / ROUTE.loading * 100)); stat(store, "carrying", run.attached || run.falling ? 1 : 0); stat(store, "fragile", run.fragile ? 1 : 0);

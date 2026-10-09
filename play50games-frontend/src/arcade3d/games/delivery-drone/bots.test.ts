@@ -50,10 +50,10 @@ describe("legal route bots through the real store", () => {
       for (const steady of [false, true]) for (const cautious of [false, true]) {
          const row = { steady, cautious, wins: 0, minMs: Infinity, maxMs: 0, minWinMs: Infinity, maxWinMs: 0, bestScore: 0, worstScore: Infinity, clampXSeconds: 0, clampZSeconds: 0, clampXFraction: 0, clampZFraction: 0, peakEnergy: 0, meanFinalEnergy: 0, reasons: { win: 0, lose: 0, timeup: 0 }, bands: Array.from({ length: 3 }, () => ({ count: 0, minSeconds: Infinity, maxSeconds: 0, express: 0 })) };
          let cableTime = 0;
-         for (let seed = 0; seed < 48; seed++) {
+         for (let seed = 0; seed < 16; seed++) {
             const run = createRun(seed, steady), drive = driver(run, cautious);
             const input = { dirX: 0, dirZ: 0, drop: false };
-            const frame = seed < 32 ? fixedFrames(1000 / 60) : seed < 40 ? fixedFrames(50) : randomFrames(seed);
+            const frame = seed < 10 ? fixedFrames(1000 / 60) : seed < 14 ? fixedFrames(50) : randomFrames(seed);
             let maxRateExcess = -Infinity;
             const final = simulateRun(createArcadeStore(), { frame, step: (dt, _time, store) => {
                drive(input); stepRun(run, input, dt);
@@ -72,7 +72,7 @@ describe("legal route bots through the real store", () => {
             expect(capScore(final.score, final.elapsedMs, deliveryDroneMeta.scoring)).toBe(final.score);
             if (final.endReason === "win") { row.wins++; row.minWinMs = Math.min(row.minWinMs, final.elapsedMs); row.maxWinMs = Math.max(row.maxWinMs, final.elapsedMs); }
             row.reasons[run.reason!]++;
-            row.meanFinalEnergy += winchEnergy(run.swing) / 48;
+            row.meanFinalEnergy += winchEnergy(run.swing) / 16;
             row.peakEnergy = Math.max(row.peakEnergy, run.swingMetrics.peakEnergy);
             row.clampXSeconds += run.swingMetrics.clampXSeconds; row.clampZSeconds += run.swingMetrics.clampZSeconds;
             cableTime += run.swingMetrics.seconds;

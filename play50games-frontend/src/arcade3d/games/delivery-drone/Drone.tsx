@@ -1,17 +1,20 @@
 "use client";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useFrame } from "@react-three/fiber";
-import { BufferGeometry, Float32BufferAttribute, LineBasicMaterial, MeshBasicMaterial, Matrix4, Quaternion, Vector3, type Group, type LineSegments, type Mesh } from "three";
+import { Color, BufferGeometry, Float32BufferAttribute, LineBasicMaterial, MeshBasicMaterial, Matrix4, Quaternion, Vector3, type Group, type LineSegments, type Mesh } from "three";
 import { Model } from "@/arcade3d/core/assets";
 import { useGameTime } from "@/arcade3d/core/gameTime";
 import { bank, hover, type BodyOffset } from "@/arcade3d/core/motion";
 import { Parcel } from "@/arcade3d/core/kit";
 import { DynamicInstanced, BlobShadow } from "@/arcade3d/core/render";
 import { ASSETS, BODY_OFFSET, ROTORS } from "./assets";
-import { DRONE, PARCEL, type Run } from "./rules";
+import { DRONE, PARCEL, WINCH, type Run } from "./rules";
+import { ROOFTOP_OVERLAY_Y } from "./visuals";
 import { DronePrimitive, mergedBoxes } from "./Primitives";
 
 const UP = new Vector3(0, 1, 0), ONE = new Vector3(1, 1, 1);
+const VALID_COLOR = new Color("#34d399"), NEUTRAL_COLOR = new Color("#f8fafc");
+const PARCEL_OUTLINE_HALF = 0.3;
 const EDGE_PAIRS = [0, 1, 1, 3, 3, 2, 2, 0, 4, 5, 5, 7, 7, 6, 6, 4, 0, 4, 1, 5, 2, 6, 3, 7];
 
 export default function Drone({ run, reduced }: { run: Run; reduced: boolean }) {
@@ -44,7 +47,7 @@ export default function Drone({ run, reduced }: { run: Run; reduced: boolean }) 
       root.current.rotation.y = d.heading;
       hover(time.now, reduced ? 0 : DRONE.bob, scratch.bob);
       // Bank about the measured hook: the cable's visual and logical anchors remain identical.
-      body.current.rotation.z = reduced ? 0 : bank(run.scratch.acc.x / 0.35, DRONE.bank) + scratch.bob.roll;
+      body.current.rotation.z = reduced ? 0 : bank(run.scratch.acc.x / (DRONE.accel * (run.attached ? WINCH.forcing : 1)), DRONE.bank) + scratch.bob.roll;
       silhouette.current.position.copy(root.current.position);
       silhouette.current.quaternion.copy(root.current.quaternion).multiply(body.current.quaternion);
       if (parcel.current) { parcel.current.visible = run.attached || run.falling; parcel.current.position.set(run.parcel.x, run.parcel.y - PARCEL.half, run.parcel.z); }
@@ -55,23 +58,23 @@ export default function Drone({ run, reduced }: { run: Run; reduced: boolean }) 
          values[3] = run.attached ? run.parcel.x : d.x; values[4] = run.attached ? run.parcel.y + PARCEL.half : d.y; values[5] = run.attached ? run.parcel.z : d.z;
          for (let k = 0; k < EDGE_PAIRS.length; k++) {
             const corner = EDGE_PAIRS[k], offset = 6 + k * 3;
-            values[offset] = run.parcel.x + (corner & 1 ? 0.22 : -0.22);
-            values[offset + 1] = run.parcel.y + (corner & 2 ? 0.22 : -0.22);
-            values[offset + 2] = run.parcel.z + (corner & 4 ? 0.22 : -0.22);
+            values[offset] = run.parcel.x + (corner & 1 ? PARCEL_OUTLINE_HALF : -PARCEL_OUTLINE_HALF);
+            values[offset + 1] = run.parcel.y + (corner & 2 ? PARCEL_OUTLINE_HALF : -PARCEL_OUTLINE_HALF);
+            values[offset + 2] = run.parcel.z + (corner & 4 ? PARCEL_OUTLINE_HALF : -PARCEL_OUTLINE_HALF);
          }
          positions.needsUpdate = true;
       }
       if (lines.current) lines.current.visible = run.attached || run.falling;
       if (cross.current) {
          cross.current.visible = run.attached && !run.reason;
-         cross.current.position.set(run.preview.x, run.preview.y + 0.04, run.preview.z);
+         cross.current.position.set(run.preview.x, run.preview.y + ROOFTOP_OVERLAY_Y, run.preview.z);
          cross.current.scale.setScalar(run.preview.valid ? 1.2 : 1);
          const material = (cross.current.children[0] as Mesh).material as import("three").MeshBasicMaterial;
-         material.color.set(run.preview.valid ? "#34d399" : "#f8fafc");
+         material.color.copy(run.preview.valid ? VALID_COLOR : NEUTRAL_COLOR);
          cross.current.children[1].visible = run.preview.valid;
          cross.current.children[2].visible = run.preview.valid;
       }
-      if (shadow.current) { shadow.current.visible = run.attached || run.falling; shadow.current.position.set(run.parcel.x, Math.max(0, run.preview.y) + 0.06, run.parcel.z); }
+      if (shadow.current) { shadow.current.visible = run.attached || run.falling; shadow.current.position.set(run.parcel.x, Math.max(0, run.preview.y) + ROOFTOP_OVERLAY_Y, run.parcel.z); }
    });
    return <group name="delivery-drone">
       <group ref={root}>

@@ -8,11 +8,15 @@ import { BOUNDS } from "./rules";
 
 export const FOV = 45;
 export const PITCH = Math.PI / 3;
-export function viewFor(width: number, height: number): FittedViewOptions {
+export function viewFor(width: number, height: number, coarse = false): FittedViewOptions {
    const portrait = width < height;
+   const phone = coarse || width < 600 || height < 500;
+   const x = phone ? (portrait ? 3.5 : 6) : (portrait ? 6 : 10);
+   const z = phone ? (portrait ? 3.5 : 2.25) : (portrait ? 6 : 4);
+   const y = phone ? 2 : 3;
    return {
-      area: { min: { x: portrait ? -6 : -10, y: -3, z: portrait ? -6 : -4 }, max: { x: portrait ? 6 : 10, y: 3, z: portrait ? 6 : 4 } },
-      pitch: PITCH, yaws: [0], fov: FOV, padding: 1, shift: true,
+      area: { min: { x: -x, y: -y, z: -z }, max: { x, y, z } },
+      pitch: PITCH, yaws: [0], fov: FOV, padding: phone ? 0.5 : 1, shift: true,
       focus: followFocus({ lookAt: [0, 0, 0], reach: { min: { x: -2, y: 0, z: -2 }, max: { x: 2, y: 0, z: 2 } }, fraction: 1, bounds: BOUNDS }),
       margin: { top: 0.10, bottom: 0.08, left: 0.03, right: 0.03 },
    };

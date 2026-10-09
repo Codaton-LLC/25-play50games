@@ -62,12 +62,13 @@ Approved provisional limits, applied to `meta.ts` in P-15: **maxScore 3600; dura
 - One yaw preserves screen-relative controls and makes rooftops/swing readable without camera turns; high pitch reveals pads, while bounded look-ahead shows upcoming towers. Changed from spec: yaw stays north-facing instead of rotating with flight, avoiding steering/camera feedback on touch. If portrait needs more room, fit distance changes rather than yaw.
 - Environment background `"#dbeafe"`, lighting `"day"`; game-local fog of matching colour uses current fitted distance d: near=d+10, far=d+40 (or larger), updated on resize/safe-area fit changes; no fixed 22–48. `SkyDome` matching horizon. Changed from spec: use the existing fixed day preset rather than a bespoke day→sunset light blend; this avoids a generic lighting system inside the game. Warm window colours suggest late afternoon.
 - Occlusion choice: retain opaque tower silhouettes; draw drone + cable + attached/falling parcel a second time after city geometry with `depthTest: false`, `depthWrite: false`, explicit render order. Batch simplified drone silhouette in one call and cable/outlined parcel in one call (~2 extra calls), sharing exact world transforms; no building fade. At 60° a 16 m tower still hides ≈9.2 m of street; pitch alone is insufficient. Use a high-contrast parcel outline in that batched geometry.
-- Phone sizing estimates (not screenshots), near pivot with banner/HUD/controls reserved by `useSafeArea`: portrait effective horizontal span ≈13.5 m including padding/margins. Landscape assumes 260 px safe height and projected vertical span ≈12.93 m (8×sin60°+6×cos60°+3 padding). P-15 checks actual safe rectangles/depth variation and tightens fit if minima fail.
+- Phone fit: coarse pointers or canvases narrower than 600 px / shorter than 500 px use x/z +/-3.5 m in portrait, x +/-6 / z +/-2.25 m in landscape, y +/-2 m, padding 0.5 CSS px. Desktop fit stays unchanged. HUD, controls and banner avoidance remain enabled. Nearby target pads remain in the fitted window; distant targets retain beacon/arrow guidance. Arrow hides at horizontal distance <=3 m.
+- Math uses actual `fitView`, fov 45 degrees, illustrative full-width safe bands. Pivot px/m = height / (2 * tan(22.5 degrees) * fitted distance). Parcel model/collider remains 0.4 m; depth-independent outline is 0.6 m. Claude re-measures actual safe rectangles and depth variation.
 
-| viewport / safe area | px/m | drone 0.9 m | parcel 0.4 m (+outline) | pad diameter 2.5 m |
-|---|---:|---:|---:|---:|
-| 390×844, banner open, ≈360 px safe width | 26.7 | 24 px | 11 px | 67 px |
-| 844×390, ≈260 px safe height | 20.1 | 18 px | 8 px | 50 px |
+| viewport / assumed safe bands | distance | px/m | drone 0.9 m | parcel outline 0.6 m | pad diameter 2.5 m |
+|---|---:|---:|---:|---:|---:|
+| 390x844, safe y=180..580 | 35.052 m | 29.07 | 26.16 px | 17.44 px | 72.66 px |
+| 844x390, safe y=80..300 | 21.080 m | 22.33 | 20.10 px | 13.40 px | 55.83 px |
 
 - Building colours `#e2e8f0` / `#cbd5e1` / `#94a3b8`, roofs `#64748b`, pad/beacon `#38bdf8`. Tower tops have coral hazard stripes. Drop prediction shows a dashed landing cross and r1.25 pad ring; parcel's vertical shadow remains distinct from the ballistic cross. Mint plus checkmark when prediction meets a valid pad/fragile threshold. Beacon and `TargetMarkers` target pad while carrying/falling, depot while empty/loading.
 
@@ -86,7 +87,7 @@ Approved provisional limits, applied to `meta.ts` in P-15: **maxScore 3600; dura
 | `leafyTree` / `EXPANSION_ASSETS.leafyTree` | C | 3 high, existing shared budget | 4 park trees; trunk/crown primitives, cosmetic only |
 | parcels, buildings, roofs, pads, beacons | B | parcel 0.4 cube; dimensions in Rules | core `Parcel`, batched boxes/planes, atlas windows/tape; no generation |
 
-Transform all `DRONE_ROTORS_GLB` centres through the same drone fit/body transform including fallback; never guess arm positions. Rotors r0.12, line radius0.015, landing overlays 0.03 above roofs, depot ring 0.02 above ground. Hook fit/parcel bottom-centre conversion tested against real GLB. Only drone belongs in `assets.spec.json`; it records the existing catalog recipe, never authorizes another generation. No shared/reused asset entries, raw files or manifest edits.
+Transform all `DRONE_ROTORS_GLB` centres through the same drone fit/body transform including fallback; never guess arm positions. Rotors r0.12, line radius0.015, landing overlays 0.06 above logical roofs (cap top 0.035; cap-derived clearance 0.025), depot ring 0.02 above ground. Hook fit/parcel bottom-centre conversion tested against real GLB. Only drone belongs in `assets.spec.json`; it records the existing catalog recipe, never authorizes another generation. No shared/reused asset entries, raw files or manifest edits.
 
 ## Files
 
@@ -101,7 +102,7 @@ Transform all `DRONE_ROTORS_GLB` centres through the same drone fit/body transfo
 - Pendulum: zero forcing energy `0.5×(vX²+vZ²+9.81/2×(angleX²+angleZ²))` non-increasing over 60 s at 1/120, both damping modes; vX/vZ here are angular speeds in rad/s, not flight velocity. 180 s worst alternating acceleration remains finite/in clamps. Validate release position/velocity, reset and outward clamp energy loss. Measure peak/final energy and per-axis seconds/fraction on the angle clamp in P-15 for normal routes and adversarial alternating input, both modes; not just NaN absence.
 - Drops: exact centre/rim/outside, side-wall first contact, lower roof vs target, upward/downward initial velocity, two-axis swing, analytic impact and preview agreement; 5 s timeout. Fragile 39/40, express 15/15.001, one award, missed target retry, forced pigeon release and simultaneous inputs.
 - Battery: cap100, +12 only on success, drain while loading/falling, warning re-arm, pause/over unchanged; expiry/landing/tower/ceiling ties, 12th completion and all reasons. Frame partitions at 60/20 fps/random yield same loading/clock accounting; analytic crossing fixtures use ≤1e−6 tolerance.
-- Score/proofs: all event values and finite/rate/duration inequalities above; real-store 48-seed expert/novice and 32-seed idle/spam/collision bots, aggregate invariant checks per run for runtime. Test both steady modes and raw long-frame clock behaviour; reset seed/state/pools on Retry.
+- Score/proofs: all event values and finite/rate/duration inequalities above; real-store 16-seed expert/novice and 16-seed idle/spam/collision bots, aggregate invariant checks per run for runtime. Test both steady modes and raw long-frame clock behaviour; reset seed/state/pools on Retry.
 - `assets.test.ts`: actual drone width/hook/DRONE_ROTORS_GLB rotor placement, fallback alignment, parcel line ending at top and bottom contact-plane conversion; shared fits/collider independence. No humanoids.
 - Build later: common 03 criteria; keyboard and 390×844 touch, Esc/P/tab, over/Retry/Exit, banner open/closed; screenshots 1280×800, 390×844, 844×390. Swing, arrows, pad prediction, fragile label readable; no z-fighting. npm build, tsc, vitest, gamecheck and thumbnail are build-stage checks, not executed for this design task.
 
@@ -128,7 +129,8 @@ Beacon, numeric distance and off-screen arrow guide the route. Predictive cross/
 - Approved: the spec departures (no boost, 12 deliveries win, 180 s ceiling, 4 s depot loading, fixed north camera, day lighting); steady winch automatic on coarse-pointer screens with no setting; top speed 9 m/s via drag 10/9; limits 3600 / 20000–182000 ms / base 300 + 75/s now, tightened after the bots run.
 
 - Risks: roof clamps can jerk the line; P-15 verifies anchor/clearance, visibility overlay, actual mesh splits and phone sizing. Reachability, novice/expert estimates and clamp occupancy require seeded measurements; none claimed here.
-- Approved choices above are implemented. Open validation questions are recorded in the HANDOFF; no additional user decision is requested.
+- Express-window user decision: Claude observed 2,303 bot deliveries, all express; slowest pickup-to-delivery was 11.8 s against the unchanged 15 s window. Keep 15 s, or tighten (for example to 10 s)? A change needs a limits re-proof and bot validation. No rule change in fix2.
+- Runtime validation remains with Claude.
 
 ## Status
 
@@ -160,3 +162,10 @@ Safety: no production calls, network, Hyper3D credits, generated assets, depende
 - Final bot counts: 192 route runs (48 seeds per expert/novice and damping combination: 32 at 60 fps, 8 at 20 fps, 8 random); 192 survival runs (32 seeds per idle/spam/collision and damping combination: 24 at 20 fps, 8 random). All per-run terminal limits and score-cap no-op assertions remain, with per-frame rate checks. The 1,000-layout-seed test and algebraic limit proof remain unchanged.
 - Measured cost on this sandbox: standalone Node/TypeScript-transpiled real-store workloads, using Node assertions rather than Vitest: route 34.81 s, final survival 12.61 s, sum 47.42 s (separate measurements, not full suite timing). Route wins: expert normal 47/48, novice normal 47/48, expert steady 48/48, novice steady 48/48; best expert scores 3501/3506, fastest expert wins 143.15/140.05 s. All checked terminal limits/rates and timing/score thresholds passed. Claude's original Vitest measurement was 140 s bots / 141 s whole game set. Full final Vitest cost and the under-60 s target remain to be measured by Claude; no final Vitest timing is claimed.
 - `npx tsc --noEmit` passed. `npm run build` attempted and blocked by sandbox worker creation (`spawn EPERM`). Vitest intentionally deferred per task instructions. No commit, push, branch switch, production access or protected-file edits.
+### P-15-fix2 status
+
+- Current counts supersede fix1: 64 route runs, 16 seeds per expert/novice and damping combination (10 at 60 fps, 4 at 20 fps, 2 random); 96 survival runs, 16 seeds per idle/spam/collision and damping combination (14 at legal 50 ms clock cap, 2 random). Terminal limit, per-frame rate, score-cap no-op, win timing and best-score assertions remain. Layout validation still covers 1,000 seeds; algebraic proof unchanged.
+- Claude measured fix1 route bots ~116 s and survival bots ~57 s (~120 s wall). Fix2 cuts route runs by two thirds and survival runs by half, with fewer fine/random frames. Claude measures final whole delivery-drone Vitest cost; under ~60 s is the acceptance target, not a claimed result.
+- Named cap dimensions derive all rooftop overlays; clearance test added. Pickup tests cover the 7/8 boundary. Same-seed pickup runs compare steady swing. Actual landing fixtures distinguish pickup/release clocks in both directions; reverse fixture deliberately separates timestamps beyond chronological play to catch the wrong clock.
+- Standalone Node assertions passed pickup, steady and both express fixtures. Late swing peaks: normal 0.0491414 rad, steady 0.0264285 rad. Local TypeScript check passed. Build/Vitest/screenshots deferred to Claude.
+- Portrait estimates exceed drone 24 px and outlined parcel 12 px under stated bands. Actual banner/HUD/control rectangles require Claude measurement.

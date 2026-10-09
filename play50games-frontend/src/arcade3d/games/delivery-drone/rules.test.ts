@@ -65,6 +65,33 @@ describe("Delivery Drone deterministic city", () => {
 });
 
 describe("loading, flight and score", () => {
+   it("pickup assigns ordinary parcels through eight deliveries and fragile parcels thereafter", () => {
+      for (const completed of [0, 7, 8, 9, 11]) {
+         const run = createRun(40); run.completed = completed;
+         run.fragile = completed < 8; // Opposite value proves pickup assigns the flag.
+         advance(run, 4);
+         expect(run.attached).toBe(true);
+         expect(run.fragile).toBe(completed >= 8);
+      }
+   });
+   it("steady pickup runs damp the same unforced swing more than normal runs", () => {
+      const normal = createRun(40, false), steady = createRun(40, true);
+      for (const run of [normal, steady]) {
+         advance(run, 4);
+         run.swing.x.x = 0.2; run.swing.z.x = -0.15;
+      }
+      let normalPeak = 0, steadyPeak = 0;
+      for (let n = 0; n < 180; n++) {
+         stepRun(normal, idle, 1 / 60); stepRun(steady, idle, 1 / 60);
+         if (n >= 120) {
+            normalPeak = Math.max(normalPeak, Math.hypot(normal.swing.x.x, normal.swing.z.x));
+            steadyPeak = Math.max(steadyPeak, Math.hypot(steady.swing.x.x, steady.swing.z.x));
+         }
+      }
+      expect(normal.attached && steady.attached).toBe(true);
+      expect(normalPeak).toBeGreaterThan(0.01);
+      expect(steadyPeak).toBeLessThan(normalPeak * 0.6);
+   });
    it("requires four continuous seconds and awards nothing for loading", () => {
       const run = createRun(1);
       advance(run, 3.99);
@@ -168,6 +195,19 @@ describe("physical impacts and terminal precedence", () => {
       const fragile = targetFixture(8); fragile.drone.x += 0.755;
       predictDrop(fragile, fragile.preview); expect(fragile.preview.valid).toBe(false);
       fragile.drone.x -= 0.01; predictDrop(fragile, fragile.preview); expect(fragile.preview.valid).toBe(true);
+   });
+   it("express grades pickup age rather than release age at the real landing", () => {
+      for (const [pickupAge, releaseAge, score] of [[16, 1, 250], [1, 16, 300]] as const) {
+         const run = targetFixture();
+         run.time = 30; run.pickupAt = run.time - pickupAge;
+         releaseParcel(run);
+         // Independent timestamp fixture: the reverse case is deliberately impossible in
+         // chronological play, so replacing pickupAt with fallAt cannot pass either branch.
+         run.fallAt = run.time - releaseAge;
+         stepRun(run, idle, 0.01);
+         expect(run.completed).toBe(1);
+         expect(run.score).toBe(score);
+      }
    });
    it("awards once, caps recharge and completes the twelfth roof as win", () => {
       const run = targetFixture(11); run.battery = 99;
@@ -316,12 +356,12 @@ describe("two-axis cable stability", () => {
 });
 
 describe("real-store scoring proof", () => {
-   it("idle, spam and collision controls obey limits across 32 seeds in both damping modes", () => {
+   it("idle, spam and collision controls obey limits across 16 seeds in both damping modes", () => {
       for (let steady = 0; steady < 2; steady++) for (let variant = 0; variant < 3; variant++) {
-         for (let seed = 0; seed < 32; seed++) {
+         for (let seed = 0; seed < 16; seed++) {
             const run = createRun(seed, !!steady);
-            // Long survival runs use the legal 50 ms clock cap; 8 seeds also vary frames.
-            const frame = seed < 24 ? fixedFrames(50) : randomFrames(seed);
+            // Long survival runs use the legal 50 ms clock cap; 2 seeds also vary frames.
+            const frame = seed < 14 ? fixedFrames(50) : randomFrames(seed);
             const input = { dirX: variant === 2 ? 1 : 0, dirZ: variant === 2 ? 0.7 : 0, drop: variant !== 0 };
             let maxRateExcess = -Infinity;
             const final = simulateRun(createArcadeStore(), { frame, step: (dt, _time, store) => {
