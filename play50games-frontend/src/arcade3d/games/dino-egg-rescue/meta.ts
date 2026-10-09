@@ -15,7 +15,7 @@ export const dinoEggRescueMeta: ArcadeGameMeta = {
    controls: {
       scheme: "joystick",
       keyboard: "WASD / arrows to move, Space or E to dash",
-      touch: "Joystick + Action to dash",
+      touch: "Joystick to move, tap Dash to dash",
    },
    scoring: {
       kind: "points",
@@ -27,7 +27,7 @@ export const dinoEggRescueMeta: ArcadeGameMeta = {
       unitLabel: "pts",
       display: "int",
    },
-   thumbnail: null,
+   thumbnail: "/images/3d/dino-egg-rescue.webp",
    accent: "#a3e635",
    owner: "antigravity",
 };
