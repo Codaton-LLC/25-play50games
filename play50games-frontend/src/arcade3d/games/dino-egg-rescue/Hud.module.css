@@ -1,0 +1,66 @@
+.panel {
+   position: absolute;
+   top: calc(env(safe-area-inset-top, 0px) + 58px);
+   left: calc(50% - 120px);
+   box-sizing: border-box;
+   width: 240px;
+   height: 44px;
+   pointer-events: none;
+   z-index: 10;
+}
+
+@media (min-width: 620px) {
+   .panel {
+      top: calc(env(safe-area-inset-top, 0px) + 10px);
+      left: auto;
+      right: calc(env(safe-area-inset-right, 0px) + 112px);
+   }
+}
+
+.pill {
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   gap: 8px;
+   box-sizing: border-box;
+   width: 100%;
+   height: 100%;
+   padding: 0 12px;
+   border: 1.5px solid rgba(163, 230, 53, 0.5);
+   border-radius: 999px;
+   background: rgba(20, 26, 12, 0.88);
+   -webkit-backdrop-filter: blur(6px);
+   backdrop-filter: blur(6px);
+   color: #f7fee7;
+   font-size: 14px;
+   font-weight: 700;
+   line-height: 1.2;
+   letter-spacing: 0.02em;
+}
+
+.eggCount {
+   color: #a3e635;
+}
+
+.goldenBadge {
+   display: inline-flex;
+   align-items: center;
+   gap: 2px;
+   color: #fde047;
+   font-size: 13px;
+}
+
+.dashBadge {
+   display: inline-flex;
+   align-items: center;
+   color: #38bdf8;
+   font-size: 12px;
+   padding: 2px 6px;
+   border-radius: 6px;
+   background: rgba(56, 189, 248, 0.15);
+}
+
+.dashWait {
+   color: #94a3b8;
+   font-size: 12px;
+}

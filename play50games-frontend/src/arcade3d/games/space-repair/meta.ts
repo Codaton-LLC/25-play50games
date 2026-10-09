@@ -29,5 +29,5 @@ export const spaceRepairMeta: ArcadeGameMeta = {
    },
    thumbnail: null,
    accent: "#818cf8",
-   owner: "antigravity",
+   owner: "codex",
 };
