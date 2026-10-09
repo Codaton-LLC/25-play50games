@@ -63,7 +63,7 @@ describe("legal route bots through the real store", () => {
                   const band = row.bands[Math.floor((run.completed - 1) / 4)];
                   const seconds = run.fallAt + run.impact.time - run.pickupAt;
                   band.count++; band.minSeconds = Math.min(band.minSeconds, seconds); band.maxSeconds = Math.max(band.maxSeconds, seconds);
-                  if (seconds <= 15) band.express++;
+                  if (seconds <= 10) band.express++;
                }
                if (run.reason) { s.setScore(run.score); s.end(run.reason); }
             } });
