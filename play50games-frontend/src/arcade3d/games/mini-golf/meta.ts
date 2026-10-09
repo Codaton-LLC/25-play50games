@@ -28,7 +28,7 @@ export const miniGolfMeta: ArcadeGameMeta = {
       unitLabel: "pts",
       display: "int",
    },
-   thumbnail: null,
+   thumbnail: "/images/3d/mini-golf.webp",
    accent: "#86efac",
    owner: "claude",
 };

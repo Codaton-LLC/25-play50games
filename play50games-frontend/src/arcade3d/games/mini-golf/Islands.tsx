@@ -242,11 +242,14 @@ function Turntable({ hole, run }: { hole: Hole; run: RunState }) {
                <meshStandardMaterial color={COLORS.plate} roughness={0.7} />
             </mesh>
          </group>
-         <group ref={bar} position-y={0.07}>
-            <mesh>
-               <boxGeometry args={[tt.half * 2, 0.09, 0.07]} />
-               <meshStandardMaterial color={COLORS.bar} roughness={0.5} />
-            </mesh>
+         {/* on the slope's plane: its top view turns as the rules' bar (within the slope's 1 % foreshortening) */}
+         <group rotation-x={-Math.atan(HILL_GRADE)}>
+            <group ref={bar} position-y={0.07}>
+               <mesh>
+                  <boxGeometry args={[tt.half * 2, 0.09, 0.07]} />
+                  <meshStandardMaterial color={COLORS.bar} roughness={0.5} />
+               </mesh>
+            </group>
          </group>
       </group>
    );
@@ -280,8 +283,8 @@ export function decorSpots(holes: readonly Hole[]): { trees: InstanceSpot[]; roc
       const b = hole.box;
       const z0 = holeZ(hole.index);
       const k = hole.index * 1.7;
-      trees.push({ x: b.x0 - 0.75, y: -0.3, z: z0 + b.z0 + 0.2, rotY: k, scale: 0.9 });
-      trees.push({ x: b.x0 - 0.65, y: -0.3, z: z0 + (b.z0 + b.z1) / 2 + 0.8, rotY: k + 2, scale: 1.05 });
+      trees.push({ x: b.x0 - 0.45, y: -0.28, z: z0 + b.z0 + 0.4, rotY: k, scale: 0.55 });
+      trees.push({ x: b.x0 - 0.45, y: -0.28, z: z0 + (b.z0 + b.z1) / 2 + 0.8, rotY: k + 2, scale: 0.65 });
       rocks.push({ x: (b.x0 + b.x1) / 2 + 0.4, y: -0.35, z: z0 + b.z0 - 0.55, rotY: k, scale: 0.7 });
       rocks.push({ x: b.x0 - 0.55, y: -0.35, z: z0 + b.z1 - 0.6, rotY: k + 1, scale: 0.55 });
       rocks.push({ x: b.x1 - 0.2, y: -0.35, z: z0 + b.z0 - 0.45, rotY: k + 3, scale: 0.45 });

@@ -11,6 +11,7 @@
 //   (the fly-over), cut with reduced motion.
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
+import { Vector3 } from "three";
 import CameraRig from "@/arcade3d/core/CameraRig";
 import { playSfx, startLoop, useMuted } from "@/arcade3d/core/audio";
 import { FRAME_PRIORITY } from "@/arcade3d/core/frameLoop";
@@ -23,11 +24,11 @@ import { useRunFrame } from "@/arcade3d/core/useRunFrame";
 import type { FittedView } from "@/arcade3d/core/view";
 import { createPuttAim, headingTo, resetPuttAim, stepPuttAim, worldHeading } from "./aim";
 import { GolfBall, type AimView } from "./Ball";
-import { HOLE_COUNT, type Hole } from "./course";
+import { HOLE_COUNT, heightAt, type Hole } from "./course";
 import { Decor, Island, Sea } from "./Islands";
 import { HUD_FEED } from "./hudFeed";
 import { FOLLOW_FRACTION, FOV, MIN_PX_PER_M, PITCH, fixedView, followView, holeFocus, holeZ, minPxPerMetre } from "./looks";
-import { BALL, previewLength } from "./physics";
+import { BALL, CUP, previewLength } from "./physics";
 import { TICK, advanceRun, createRun, currentHole, readiness, syncStore, type RunState } from "./rules";
 
 const panAt = (x: number) => Math.max(-0.8, Math.min(0.8, x / 2));
@@ -61,6 +62,35 @@ function HoleFit({ hole, onFit }: { hole: Hole; onFit: (fit: CamFit) => void }) 
    return null;
 }
 
+/** Development measurements only (?perf=1, like tower-climb's probe): the run, the camera's yaw and the drawn px of the ball and the cup, for the headless playtest. */
+function Probe({ run, scratch }: { run: RunState; scratch: { yaw: number; follow: boolean } }) {
+   const camera = useThree((s) => s.camera);
+   const size = useThree((s) => s.size);
+   const [probe] = useState(() => ({ run, yaw: 0, follow: false, ballPx: 0, cupPx: 0, ball: new Vector3(), right: new Vector3(), p: new Vector3() }));
+   useEffect(() => {
+      const w = window as typeof window & { __miniGolf?: typeof probe };
+      w.__miniGolf = probe;
+      return () => {
+         if (w.__miniGolf === probe) delete w.__miniGolf;
+      };
+   }, [probe]);
+   useFrame(() => {
+      probe.yaw = scratch.yaw;
+      probe.follow = scratch.follow;
+      const h = currentHole(run);
+      const z0 = holeZ(run.hole);
+      probe.right.setFromMatrixColumn(camera.matrixWorld, 0);
+      const px = (x: number, y: number, z: number, r: number) => {
+         probe.ball.set(x, y, z).project(camera);
+         probe.p.set(x, y, z).addScaledVector(probe.right, r).project(camera);
+         return (Math.hypot((probe.p.x - probe.ball.x) * size.width, (probe.p.y - probe.ball.y) * size.height) / 2) * 2;
+      };
+      probe.ballPx = px(run.ball.x, run.ball.y, z0 + run.ball.z, BALL.drawnRadius);
+      probe.cupPx = px(h.cup.x, heightAt(h, h.cup.x, h.cup.z) ?? 0, z0 + h.cup.z, CUP.drawnRadius);
+   });
+   return null;
+}
+
 export default function Scene() {
    const input = useInput();
    const fx = useFx();
@@ -73,6 +103,7 @@ export default function Scene() {
    const hole = useArcadeStore((s) => (s.stats.hole ?? 1) - 1);
    const camHole = useArcadeStore((s) => s.stats.camHole ?? 0);
    const reduced = useMemo(() => typeof window !== "undefined" && !!window.matchMedia?.("(prefers-reduced-motion: reduce)").matches, []);
+   const debug = useMemo(() => typeof window !== "undefined" && new URLSearchParams(window.location.search).has("perf"), []);
    const onFit = useCallback((f: CamFit) => setFit(f), []);
    scratch.yaw = fit?.view.yaw ?? 0;
    scratch.follow = fit?.follow ?? false;
@@ -207,6 +238,7 @@ export default function Scene() {
          ))}
          <Decor holes={holes} />
          <GolfBall run={run} aim={preview} />
+         {debug && <Probe run={run} scratch={scratch} />}
       </>
    );
 }
