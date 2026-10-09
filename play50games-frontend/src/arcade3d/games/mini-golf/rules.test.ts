@@ -201,24 +201,30 @@ describe("mini-golf ball", () => {
       expect(MOVING.bladeE).toBe(0.75);
    });
 
-   it("a moving-wall hit changes the speed by at most (1 + 0.75) |v_wall| (the bar's tip speed)", () => {
+   it("a moving-wall hit changes the speed by at most (1 + 0.75) |v_wall| (the bar's tip speed), and slow balls at the tip reach that bound", () => {
       const hole = buildHole(5, false);
       const rng = createRng(3);
       const tip = TURNTABLE.omega * TURNTABLE.half;
-      for (let i = 0; i < 4000; i++) {
+      let most = 0;
+      for (let i = 0; i < 8000; i++) {
          const b = createBall({ x: 0, z: 0 }, false);
-         const r = rng() * 0.85;
+         // half the balls are slow and near the bar's ends, where the wall moves fastest
+         const slow = i % 2 === 1;
+         const r = slow ? 0.7 + rng() * 0.15 : rng() * 0.85;
          const a = rng() * 2 * Math.PI;
          b.x = Math.cos(a) * r;
          b.z = TURNTABLE.z + Math.sin(a) * r;
-         b.vx = (rng() - 0.5) * 3;
-         b.vz = (rng() - 0.5) * 3;
+         b.vx = (rng() - 0.5) * (slow ? 0.1 : 3);
+         b.vz = (rng() - 0.5) * (slow ? 0.1 : 3);
          b.mode = "roll";
          const v0 = Math.hypot(b.vx, b.vz);
-         stepBall(hole, b, rng() * 10, 1 / 240, ev);
+         stepBall(hole, b, rng() * 10, 1 / 240, clearBallEvents(ev));
+         const gain = Math.hypot(b.vx, b.vz) - v0;
          // the literal 0.75 is the restitution the proof assumes; 0.02 = one sub-step of slope pull and friction
-         expect(Math.hypot(b.vx, b.vz)).toBeLessThanOrEqual(v0 + (1 + 0.75) * tip + 0.02);
+         expect(gain).toBeLessThanOrEqual((1 + 0.75) * tip + 0.02);
+         if (ev.movingHit) most = Math.max(most, gain / tip);
       }
+      expect(most).toBeGreaterThan(1.6);
    });
 
    it("mirrored holes give mirrored outcomes (within 1e-9)", () => {
@@ -465,10 +471,11 @@ describe("mini-golf pins from the review (each kills a mutation)", () => {
       throw new Error("no lip-out");
    });
 
-   it("a pipe gives back exactly the entry speed, after length / max(speed, 0.6)", () => {
+   it("every pipe gives back exactly the entry speed, after length / max(speed, 0.6)", () => {
       const hole = buildHole(4, false);
-      for (const v of [0.3, 2.0]) {
-         const b = createBall({ x: 0, z: 1.503 }, true);
+      for (const [i, v] of [[0, 0.3], [1, 0.3], [2, 0.3], [0, 2.0], [1, 2.0], [2, 2.0]]) {
+         const pipe = hole.pipes[i];
+         const b = createBall({ x: pipe.mouth.x, z: 1.503 }, true);
          b.vz = -v;
          b.mode = "roll";
          let entry = -1;
@@ -480,7 +487,7 @@ describe("mini-golf pins from the review (each kills a mutation)", () => {
          }
          expect(entry).toBeGreaterThan(v - 0.02);
          expect(Math.hypot(b.vx, b.vz)).toBeCloseTo(entry, 12);
-         expect(n / 240).toBeCloseTo(6.4 / Math.max(entry, 0.6), 1);
+         expect(n / 240).toBeCloseTo(pipe.length / Math.max(entry, 0.6), 1);
       }
    });
 
