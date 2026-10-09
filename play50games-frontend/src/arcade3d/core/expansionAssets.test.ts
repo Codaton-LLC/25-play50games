@@ -18,9 +18,12 @@ import {
    expansionPoint,
    LEAFY_TREE_TRUNK_RADIUS_GLB,
    PROP_BUDGET,
+   REUSED_ASSETS,
+   REUSED_GLB_SIZE,
    ROCKET_FEET_GLB,
    WINDMILL_TUNNEL_GLB,
    type ExpansionAssetId,
+   type ReusedAssetId,
 } from "./sharedAssets";
 import type { ModelAsset } from "./types";
 
@@ -317,5 +320,15 @@ describe("expansion GLBs", () => {
       const top = Math.max(...crab.map((p) => p.y));
       const upper = crab.filter((q) => q.y > top * 0.7);
       expect(upper.reduce((sum, p) => sum + p.z, 0) / upper.length).toBeGreaterThan(0.01);
+   });
+
+   it("REUSED_GLB_SIZE is the real reused meshes' bounds (within 0.005)", async () => {
+      for (const id of Object.keys(REUSED_GLB_SIZE) as (keyof typeof REUSED_GLB_SIZE & ReusedAssetId)[]) {
+         const size = new Box3().setFromPoints(await drawn({ url: REUSED_ASSETS[id].url })).getSize(new Vector3());
+         const glb = REUSED_GLB_SIZE[id];
+         expect(Math.abs(size.x - glb.width), `${id} width ${size.x}`).toBeLessThan(0.005);
+         expect(Math.abs(size.y - glb.height), `${id} height ${size.y}`).toBeLessThan(0.005);
+         expect(Math.abs(size.z - glb.depth), `${id} depth ${size.z}`).toBeLessThan(0.005);
+      }
    });
 });
