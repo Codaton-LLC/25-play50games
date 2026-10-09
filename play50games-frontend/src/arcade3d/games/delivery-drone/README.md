@@ -123,6 +123,10 @@ Beacon, numeric distance and off-screen arrow guide the route. Predictive cross/
 
 ## Risks and open questions
 
+### Decisions (user, 2026-10-09)
+
+- Approved: the spec departures (no boost, 12 deliveries win, 180 s ceiling, 4 s depot loading, fixed north camera, day lighting); steady winch automatic on coarse-pointer screens with no setting; top speed 9 m/s via drag 10/9; limits 3600 / 20000–182000 ms / base 300 + 75/s now, tightened after the bots run.
+
 - Risks: roof clamps can jerk the line; P-15 verifies anchor/clearance, visibility overlay, actual mesh splits and phone sizing. Reachability, novice/expert estimates and clamp occupancy require seeded measurements; none claimed here.
 - Open questions (user decides): approve departures no boost, twelve deliveries win, 180 s ceiling, 4 s loading, fixed north camera and day only? **Recommend yes** to all.
 - Open questions (user decides): automatic steady winch on touch/coarse pointers at mount with no setting? **Recommend yes**.
