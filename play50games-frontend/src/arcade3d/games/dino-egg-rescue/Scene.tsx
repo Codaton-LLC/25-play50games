@@ -30,6 +30,7 @@ import { DinoPrimitive, useBoulderParts } from "./Primitives";
 import {
    BOULDERS,
    DINO,
+   EGGS,
    NEST,
    createDinoRun,
    stepDinoRun,
@@ -592,7 +593,7 @@ export default function Scene() {
                   position={[0, 0.015, 0]}
                   rotation={[-Math.PI / 2, 0, 0]}
                >
-                  <circleGeometry args={[0.5, 20]} />
+                  <circleGeometry args={[EGGS.pickupRadius, 20]} />
                   <meshStandardMaterial
                      color="#a3e635"
                      emissive="#65a30d"
@@ -620,7 +621,7 @@ export default function Scene() {
                position={[0, 0.015, 0]}
                rotation={[-Math.PI / 2, 0, 0]}
             >
-               <circleGeometry args={[0.6, 24]} />
+               <circleGeometry args={[EGGS.goldenPickupRadius, 24]} />
                <meshStandardMaterial
                   color="#facc15"
                   emissive="#eab308"

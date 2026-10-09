@@ -80,20 +80,18 @@ The counting proof holds by strict upper bounds from user decisions D1:
 
 ## Scene and camera
 
-- **Camera & fit:** `GameDefinition.camera = { position: [0, 16, 13.4], fov: 45 }`. Follow 3/4 top-down view, pitch 50° ((50 · π) / 180), yaws [0]. `useFittedView` with area in metres (e.g. area box $11.0 \times 15.0\text{ m}$ in portrait, $16.0 \times 11.0\text{ m}$ in landscape). Follow live point `<CameraRig camera={definition.camera} follow={{ x: dino.x, y: 0, z: dino.z }} bounds={VALLEY_BOUNDS} damping={4} followFraction={1} offset={view.offset} shift={view.shift} />`; the fit's `focus` comes from `followFocus({ lookAt, reach, fraction: 1, bounds: VALLEY_BOUNDS })`, where `reach` and `bounds` are AABBs (`VALLEY_BOUNDS` = { min: { x: −15, y: 0, z: −11 }, max: { x: 15, y: 0, z: 11 } }), not tuples.
+- **Camera & fit:** `GameDefinition.camera = { position: [0, 16, 13.4], fov: 45 }`. Follow 3/4 top-down view, pitch 50° ((50 · π) / 180), yaws [0]. `useFittedView` with area in metres (see "Camera windows" below). Follow live point `<CameraRig camera={definition.camera} follow={{ x: dino.x, y: 0, z: dino.z }} bounds={VALLEY_BOUNDS} damping={4} followFraction={1} offset={view.offset} shift={view.shift} />`; the fit's `focus` comes from `followFocus({ lookAt, reach, fraction: 1, bounds: VALLEY_BOUNDS })`, where `reach` and `bounds` are AABBs (`VALLEY_BOUNDS` = { min: { x: −15, y: 0, z: −11 }, max: { x: 15, y: 0, z: 11 } }), not tuples.
 - **TargetMarkers:** `<TargetMarkers>` displays screen-edge guidance arrows pointing to nearest uncollected eggs when stack < 3, the nest when carrying ≥ 1 egg, and warning arrows for incoming boulders at spawn.
-- **Pixel readability table (banner open, fov 45°, pitch 50°):**
-  Projected size on screen $= \text{footprint} \cdot \sin(50^\circ) + \text{height} \cdot \cos(50^\circ)$ ($\sin(50^\circ) = 0.766, \cos(50^\circ) = 0.643$).
-  - Dino (1.1 m long, 0.8 m tall): projected $1.1 \cdot 0.766 + 0.8 \cdot 0.643 = 1.357\text{ m}$.
-  - Boulder (1.0 m diameter, 1.0 m tall): projected $1.0 \cdot 0.766 + 1.0 \cdot 0.643 = 1.409\text{ m}$ (width 1.0 m).
-  - Egg with ground glow disc (1.0 m diameter disc, 0.3 m tall egg): projected $1.0 \cdot 0.766 + 0.3 \cdot 0.643 = 0.959\text{ m}$ (disc width 1.0 m).
+- **Camera windows (`camera.ts` `viewFor`, pinned in `camera.test.ts`):** phones (shorter side < 600 CSS px) get a tight window: portrait 8.0 × 10.8 m at pitch 50°, landscape 10.6 × 7.4 m at pitch 60° (the short side is the valley's depth, so the steeper look keeps the far row from foreshortening). Larger screens keep 11 × 15 m / 16 × 11 m at pitch 50°. The egg glow discs are drawn at the pickup radii (0.6 m regular, 0.7 m golden; visual only, the rules are unchanged).
+- **Pixel readability, MEASURED** (Claude review 2026-10-09: headless Chrome, a bot playing a full 90 s run, about 98 samples per viewport; projected bounding box of the drawn dino mesh, of each egg's glow disc + egg and of each boulder, objects on screen only; phones with the cookie banner open). Shorter side of the box, min / median in CSS px:
 
-| Viewport | Clear Canvas Area | Effective px/m (centre row) | Dino (1.357 m) | Boulder (1.409 m) | Egg + Disc (0.959 m) | Target ≥ 24 px |
-|---|---|---|---|---|---|---|
-| 390 × 844 (portrait) | 390 × 540 CSS px | ~35 px/m | 47.5 px | 49.3 px | 33.6 px | PASS (+40 % margin) |
-| 844 × 390 (landscape) | 580 × 265 CSS px | ~28 px/m | 38.0 px | 39.4 px | 26.9 px | PASS (+12 % margin) |
+| Viewport | Dino | Egg + disc | Golden egg + disc | Boulder | Target |
+|---|---|---|---|---|---|
+| 1280 × 800 (keyboard) | 34.7 / 44.6 | 27.1 / 38.0 | 56.0 / 67.9 | 32.9 / 42.2 | ≥ 24 px: pass |
+| 390 × 844 (touch, banner) | 23.2 / 31.5 | 21.8 / 33.2 | 32.6 / 39.5 | 25.3 / 29.9 | ≥ 24 px: pass (2 / 160 egg samples below 24) |
+| 844 × 390 (touch, banner) | 20.3 / 25.5 | 21.4 / 31.4 | 26.5 / 34.0 | 24.2 / 27.7 | ≥ 24 px median: pass (16 / 133 egg samples below 24, the far row) |
 
-The px/m are centre-row averages. In landscape the far row is ~24 px/m sideways and ~13 px/m in depth (a far egg + disc ~24 × 17 px), so `<TargetMarkers>` also cover far eggs.
+The longer side is about 1.3× these (dino 39 / 33 px median on the phones). The dino's box is smallest when it heads straight away from the camera. Eggs and boulders near the screen edges can sit partly under the HUD, the touch buttons or the banner (on 844 × 390 about a quarter of the egg samples and a third of the boulder samples touch one of them); `<TargetMarkers>` point at off-screen eggs, the golden egg, the nest and boulders. (The earlier table here, 47.5 / 49.3 / 33.6 px and 38.0 / 39.4 / 26.9 px, was a prediction; the measured sizes at that window were about half of it.)
 
 - **Dino animation:** `core/motion` `waddle` (stride-matched body roll & head bob scaling with ground speed; no foot slip), `squashStretch` on dash burst.
 - `environment: { background: "#7c2d12", lighting: "sunset" }`; grass `#84cc16`, soil `#a16207`, volcano backdrop cone at NE with lava glow `#f97316`.
@@ -178,7 +176,7 @@ Checks: npm run build pass (47/47 static pages, flagged & preview) | npx tsc --n
 Fixes applied:
   1. Stale ground eggs: Fixed pool of 9 regular eggs + 1 golden egg updated per frame from run state; picked eggs disappear and new eggs appear instantly.
   2. Camera follow: CameraRig follows run.dino directly at damping 4 with bounds VALLEY_BOUNDS; follows dino across the valley without lag.
-  3. Camera zoom & pixel sizes: Local window fit (11.0x15.0 m portrait, 16.0x11.0 m landscape) via viewFor. Measured on-screen sizes with cookie banner open: 390x844: dino 47.5 px, boulder 49.3 px, egg+disc 33.6 px (all >= 24 px target, +40% margin); 844x390: dino 38.0 px, boulder 39.4 px, egg+disc 26.9 px (all >= 24 px target, +12% margin).
+  3. Camera zoom & pixel sizes: Local window fit (11.0x15.0 m portrait, 16.0x11.0 m landscape) via viewFor. Predicted (not measured) sizes 47.5 / 49.3 / 33.6 px and 38.0 / 39.4 / 26.9 px; the review measured about half of that and retuned the phone windows (see "Pixel readability, MEASURED").
   4. Run clock integration: Single useRunFrame driving rules and store updates on the run clock; visuals animate in useFrame with useGameTime().
   5. Zero allocations: Hoisted stepInp, preallocated Colors (.copy), in-place array compaction in rules (no .filter()), direct scalar clamping (no {x,y,z}).
   6. Design items: Boulder warning TargetMarkers + 0.8 s lane telegraph warning visual; egg stack damped spring sway with spotted egg canvas texture; hum loop pitch and volume modulated by boulder proximity; golden straw nest material fix; rock GLB spherical fit (1.0 m diameter) rolling on profile.
