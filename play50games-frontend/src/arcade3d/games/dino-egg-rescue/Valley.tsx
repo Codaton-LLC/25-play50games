@@ -1,5 +1,8 @@
 "use client";
 
+import { useRef } from "react";
+import { useFrame } from "@react-three/fiber";
+import type { Mesh } from "three";
 import { InstancedModel } from "@/arcade3d/core/assets";
 import { Instanced, useCanvasTexture, type InstanceSpot } from "@/arcade3d/core/render";
 import { ASSETS } from "./assets";
@@ -45,6 +48,15 @@ export function Valley({ telegraphLanes }: { telegraphLanes?: readonly boolean[]
       }
    });
 
+   // The rules mutate telegraphLanes in place every frame: read it in the frame loop, not in JSX.
+   const telegraphRefs = useRef<(Mesh | null)[]>([]);
+   useFrame(() => {
+      for (let i = 0; i < telegraphRefs.current.length; i++) {
+         const m = telegraphRefs.current[i];
+         if (m) m.visible = telegraphLanes?.[i] ?? false;
+      }
+   });
+
    return (
       <group name="valley">
          {/* Main valley terrain */}
@@ -67,7 +79,6 @@ export function Valley({ telegraphLanes }: { telegraphLanes?: readonly boolean[]
             const dz = lane.endZ - lane.startZ;
             const len = Math.hypot(dx, dz);
             const angle = Math.atan2(dz, dx);
-            const isTelegraphing = telegraphLanes?.[idx] ?? false;
 
             return (
                <group key={lane.id}>
@@ -85,8 +96,11 @@ export function Valley({ telegraphLanes }: { telegraphLanes?: readonly boolean[]
                   </mesh>
 
                   {/* 0.8 s lane entrance warning telegraph */}
-                  {isTelegraphing && (
-                     <mesh
+                  <mesh
+                        ref={(el) => {
+                           telegraphRefs.current[idx] = el;
+                        }}
+                        visible={false}
                         position={[lane.startX, 0.03, lane.startZ]}
                         rotation={[-Math.PI / 2, 0, 0]}
                      >
@@ -99,7 +113,6 @@ export function Valley({ telegraphLanes }: { telegraphLanes?: readonly boolean[]
                            opacity={0.7}
                         />
                      </mesh>
-                  )}
                </group>
             );
          })}

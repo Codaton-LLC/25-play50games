@@ -18,7 +18,7 @@ import { useFx } from "@/arcade3d/core/fx";
 import { useGameTime } from "@/arcade3d/core/gameTime";
 import { TargetMarkers, type MarkerTarget } from "@/arcade3d/core/hud";
 import { useInput } from "@/arcade3d/core/input";
-import { inputToWorld } from "@/arcade3d/core/math";
+import { inputToWorld, randomSeed } from "@/arcade3d/core/math";
 import { spring, squashStretch, waddle, type BodyOffset, type SpringState } from "@/arcade3d/core/motion";
 import { useCanvasTexture } from "@/arcade3d/core/render";
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
@@ -63,8 +63,8 @@ export default function Scene() {
    const muted = useMuted();
    const phase = useArcadeStore((s) => s.phase);
 
-   // Pure deterministic run state initialized once per run
-   const [run] = useState<DinoRunState>(() => createDinoRun(42));
+   // Pure deterministic run state, a fresh seed per run (the Scene remounts per run)
+   const [run] = useState<DinoRunState>(() => createDinoRun(randomSeed()));
 
    // Hoisted scratch state for frame inputs & spring oscillation
    const [scratch] = useState(() => ({

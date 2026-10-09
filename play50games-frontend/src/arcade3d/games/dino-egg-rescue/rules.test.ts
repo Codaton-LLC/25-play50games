@@ -562,6 +562,58 @@ describe("dino-egg-rescue rules", () => {
       });
    });
 
+   describe("review probes (stack cap, stun pickup, dash cooldown)", () => {
+      function quietRunAt(x: number, z: number) {
+         const run = createDinoRun(7);
+         run.groundEggs.length = 0;
+         run.boulders.length = 0;
+         run.nextBoulderSpawnTime = 1e9;
+         run.nextEggSpawnTick = EGGS.totalSpawnTicks + 1;
+         run.dino.x = x;
+         run.dino.z = z;
+         return run;
+      }
+      function eggAt(id: number, x: number, z: number) {
+         return { id, x, z, isGolden: false, active: true };
+      }
+
+      it("never carries more than 3 eggs: extra eggs in reach stay on the ground", () => {
+         const run = quietRunAt(-4, 0);
+         for (let i = 0; i < 5; i++) run.groundEggs.push(eggAt(100 + i, -4, 0.05 * i));
+         stepDinoRun(run, zeroInput, 1 / 60);
+         expect(run.dino.carriedEggs.length).toBe(EGGS.maxStack);
+         expect(run.groundEggs.filter((e) => e.active && !e.isGolden).length).toBe(2);
+         for (let i = 0; i < 30; i++) stepDinoRun(run, zeroInput, 1 / 60);
+         expect(run.dino.carriedEggs.length).toBe(3);
+      });
+
+      it("a stunned dino picks nothing up until the stun ends", () => {
+         const run = quietRunAt(-4, 0);
+         run.dino.stunTimer = 0.5;
+         run.groundEggs.push(eggAt(200, -4, 0));
+         for (let i = 0; i < 20; i++) stepDinoRun(run, zeroInput, 1 / 60);
+         expect(run.dino.carriedEggs.length).toBe(0);
+         expect(run.groundEggs.length).toBe(1);
+         for (let i = 0; i < 20; i++) stepDinoRun(run, zeroInput, 1 / 60);
+         expect(run.dino.carriedEggs).toEqual([200]);
+      });
+
+      it("dash respects its 1.5 s cooldown", () => {
+         const run = quietRunAt(-4, 0);
+         const dash: StepInput = { ...zeroInput, actionPressed: true };
+         expect(stepDinoRun(run, dash, 1 / 60).dashStarted).toBe(true);
+         let again = 0;
+         let t = 1 / 60;
+         while (t < DINO.dashCooldown - 0.05) {
+            if (stepDinoRun(run, dash, 1 / 60).dashStarted) again++;
+            t += 1 / 60;
+         }
+         expect(again).toBe(0);
+         for (let i = 0; i < 10; i++) if (stepDinoRun(run, dash, 1 / 60).dashStarted) again++;
+         expect(again).toBe(1);
+      });
+   });
+
    describe("scoring limit proof and bot harness", () => {
       it("scoring ceiling strictly proves max score <= 5850 <= 6000 and kills rules-time-at-half-speed", () => {
          const store = createArcadeStore();
