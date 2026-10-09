@@ -14,8 +14,8 @@ export const rocketLandingMeta: ArcadeGameMeta = {
    orientation: "any",
    controls: {
       scheme: "flight",
-      keyboard: "A / D to rotate, hold Space or W to thrust",
-      touch: "Joystick to rotate + hold Jump to thrust",
+      keyboard: "A / D or left / right to rotate; hold Space, W or up to thrust",
+      touch: "Joystick left / right to rotate; hold Thrust to fire; release joystick to auto-level",
    },
    scoring: {
       kind: "points",

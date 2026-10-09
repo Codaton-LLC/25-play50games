@@ -1,6 +1,6 @@
 # Rocket Landing Challenge
 
-Owner: Codex. Slug: `rocket-landing`. Skill game 20, wave 2, complexity 3. Gate G0 design for approval; no implementation or measured bot results. Spec: `docs/arcade-expansion/04-game-specs-skill.md` §20; asset ids: 05 §E.4. Units: metres, seconds, radians; x right, y up, z=0 gameplay plane. Positive theta tilts thrust toward -x, matching core kinematics.
+Owner: Codex. Slug: `rocket-landing`. Skill game 20, wave 2, complexity 3. P-15 implementation; runtime measurements pending Claude verification. Spec: `docs/arcade-expansion/04-game-specs-skill.md` §20; asset ids: 05 §E.4. Units: metres, seconds, radians; x right, y up, z=0 gameplay plane. Positive theta tilts thrust toward -x, matching core kinematics.
 
 ## Concept
 
@@ -39,9 +39,9 @@ All values below are named constants in pure `rules.ts` (`BODY`, `ENGINE`, `PLAN
 - **Attempt time t:** resets0; seeded wind phase and asteroid phase0/pi repeat on retries. Asteroid max |padVx|=pi/4<1. Its spawn x is seeded +/-[4.5,6] (padX(0)=0); roof rectangle x[-3,3], y[9,10] blocks descent over the pad. Enter via either side shaft x[3,8] or[-8,-3], lower centre below7.8, then steer underneath toward the moving pad. No pillars seal the lower chamber.
 - **Generator/corridor:** static planets reserve x[-8,8] above y0.5; asteroid reserves that lower chamber through y8.9 plus both side shafts outside the roof. Full hull radius<=1.35 gives side-centre lanes[4.35,6.65] and their negatives; upright rocket at centre y7.8 clears roof bottom by0.1. Pad swept span x[-4,4] stays inside the chamber; terrain<=0.5 leaves pad top2 clear. Validate hull-expanded routes, spawn/boundary clearance and approach offsets. After16 rejected candidates use flat terrain, static pad0/spawn+4.5, asteroid phase0/spawn+4.5 with the same roof. Fallback must satisfy all constraints, never bypass the cavern.
 - **Fuel feasibility:** thrust12 exceeds every gravity (1..5); even30-degree steering leaves vertical acceleration>=12*cos(30deg)-5=5.39. Symmetric30-degree powered transfer has horizontal acceleration6 (>=5.6 against gas wind), covering6 m in<=2.08 powered seconds before rotation/ramp allowance. Reserve <=3 powered seconds for transfer, <=2.5 for vertical braking and <=2 for hover/turn corrections: <=7.5 s/75 units versus minimum85. Asteroid's longer coast/under-roof route uses the low gravity1, pad speed<1 and >=1 s burn reserve. These are conservative control-budget targets, not executed trajectory evidence: future deterministic witness/controller tests must validate joint clearance, switching times and positive reserve for every seeded extreme in both assist modes; any failure blocks implementation acceptance, rather than silently tuning fuel.
-- **Rocket collision:** derive the convex XY hull from every projected GLB vertex after the exact2.2 m fit in `assets.test.ts`, including fins, all four feet and foot pads; commit the resulting vertices as constants in `assets.ts`/`rules.ts`. Expected width1.30*1.16=1.508 m (half0.754), not +/-0.5. Assert every transformed mesh vertex is covered within0.02 m and radius<=1.35; no accepted visual overhang. Fallback mesh fits the same hull/feet/bell; asset failures require explicit design retuning, never silent rescaling.
+- **Rocket collision:** derive the convex XY hull from every projected GLB vertex after the exact2.2 m fit in `assets.test.ts`, including fins, all four feet and foot pads; commit the resulting vertices as constants in `assets.ts`/`rules.ts`. Measured fitted width1.51094 m (half0.75547), with side-view landing supports x[-0.6414,0.6602]. Assert every transformed mesh vertex is covered within0.02 m and radius<=1.35; no accepted visual overhang. Fallback mesh fits the same hull/feet/bell; asset failures require explicit design retuning, never silent rescaling.
 - **Contact:** swept-AABB broad phase over rocket/pad motion, expanded for angular motion; candidate obstacles only. Subdivide maximum relative hull-point travel into <=0.025 m slices (<=0.12 m rocket travel/tick plus pad motion; about5-6 slices, not60), then12-step bisection only in the first crossing slice. Obstacles thickness>=0.4 m cannot be traversed in one1/120 tick. Test swept edge/vertex crossings and tangencies within each slice, including rotation, rather than relying solely on overlapping endpoints. Evaluate analytic pad/interpolated body at earliest contact; simultaneous hazard contact crashes.
-- **Landing:** first contact must be a foot against pad top, descending relative to it, every projected foot x within inclusive pad edges, and no body contact with a side/underside/hazard. Require strict abs(vy)<2, abs(vx-padVx)<1, abs(wrapped theta)<10*pi/180; equality crashes. No omega threshold: retain the spec's three gates. Freeze rules at impact; during the hold visually rotate/translate about the contacting foot onto the second foot (gap derived from the committed feet: about 0.26 m at 10 degrees, 1.508*sin10), with no score, collision or physics changes; do not require four simultaneous contacts. Contact must be strictly descending (relative vy < 0), so softness tops out at 199. An invalid first contact crashes once, never bounces into a valid landing.
+- **Landing:** first contact must be a foot against pad top, descending relative to it, every projected foot x within inclusive pad edges, and no body contact with a side/underside/hazard. Require strict abs(vy)<2, abs(vx-padVx)<1, abs(wrapped theta)<10*pi/180; equality crashes. No omega threshold: retain the spec's three gates. Freeze rules at impact; during the hold visually rotate/translate about the contacting foot onto the second foot (gap derived from the committed feet: about 0.24 m at 10 degrees: measured 1.3016 m support span*sin10 plus 0.0094*cos10), with no score, collision or physics changes; do not require four simultaneous contacts. Contact must be strictly descending (relative vy < 0), so softness tops out at 199. An invalid first contact crashes once, never bounces into a valid landing.
 - **Attempts/events:** initial lives3. Crash reduces lives by1, clears clean-run flag and freezes rules motion; with lives remaining, hold1.2 played seconds then reset pose/fuel on the same planet. Successful landing awards once, increments completed, then holds1.2 played seconds before spawning next planet. Held input may carry into the new attempt; it cannot act during a hold. Lives never refill; fuel refills only on spawn. Fuel-empty alone is not an end: coasting can still land or crash.
 - **Clock/order:** `durationMs: 240000`; shell timeout precedes the game callback. Within a tick fuel split, earliest contact, then award/life decrement, then transition; carry unconsumed tick time into the hold/next attempt. Clock continues through holds. Stop processing on end. HUD: Planet n/5, Lives n/3, Fuel rounded down, relative horizontal/vertical speed and tilt.
 - Changed from spec: 60 s is an expected campaign length, not a legal minimum; hard240 s timeout prevents indefinite flight. Lower starting fuel95/90/85 resolves progression's conflict with "100 per landing"; fuel score normalizes to that attempt's initial budget. Optional fuel-cell pickups are omitted to keep fuel/score finite. The asteroid combines moving pad and a side-entry cavern approach; seeded geometry cannot seal the route. Moving-pad vx is measured relatively because contact safety depends on drift against the pad.
@@ -94,7 +94,7 @@ No generation: rocket already imported. `assets.spec.json` records only the owne
 
 ## Files
 
-`meta.ts` (exact controls/limits, dev status) · `index.tsx` (definition, coarse-pointer assist fixed per run) · `rules.ts` (planets, fuel, integration, swept polygon/contact, attempts/score; pure) · `rules.test.ts` · `assets.ts` + `assets.test.ts` (measured GLB/bell/feet fits) · `Scene.tsx` (one run callback, fitted follow, model/fx/audio) · `Planet.tsx` (one terrain/pad/cavern, shared buffers) · `Primitives.tsx` (fallback rocket, engine cone) · `Hud.tsx` + `Hud.module.css` (gauges, safe-area registration, existing CSS vars) · `assets.spec.json` · `README.md` · `public/images/3d/rocket-landing.webp` · `tools/thumbs/inputs/rocket-landing.mjs`. This task writes only README/assets spec; future files require a build hand-off. No classic GameEngine/progressStorage imports.
+`meta.ts` (exact controls/limits, dev status) · `index.tsx` (definition, coarse-pointer assist fixed per run) · `rules.ts` (planets, fuel, integration, swept polygon/contact, attempts/score; pure) · `rules.test.ts` · `assets.ts` + `assets.test.ts` (measured GLB/bell/feet fits) · `Scene.tsx` (one run callback, fitted follow, model/fx/audio) · `Planet.tsx` (one terrain/pad/cavern, shared buffers) · `Primitives.tsx` (fallback rocket, engine cone) · `Hud.tsx` + `Hud.module.css` (gauges, safe-area registration, existing CSS vars) · `assets.spec.json` · `README.md` · `public/images/3d/rocket-landing.webp` · `tools/thumbs/inputs/rocket-landing.mjs`. P-15 implements the approved build in these files. No classic GameEngine/progressStorage imports.
 
 ## Test plan
 
@@ -133,4 +133,48 @@ No executed fuel witnesses, bot/phone/performance measurements exist at design g
 
 ## Status
 
-P-14-fix1 design revision only; implementation and measured acceptance pending Claude's build hand-off.
+```text
+TASK P-15 | build rocket-landing | branch codex/game-rocket-landing | allowed: play50games-frontend/src/arcade3d/games/rocket-landing/**, play50games-frontend/public/images/3d/rocket-landing.webp, tools/thumbs/inputs/rocket-landing.mjs
+HANDOFF P-15 — Rocket Landing Challenge
+Branch: codex/game-rocket-landing (verified before reading project files).
+Status: implementation written; runtime acceptance PENDING Claude checks. No commit or push.
+
+Built:
+- Pure seeded five-planet rules, 120 Hz fixed stepping, binary thrust, fuel-empty split, damping and fixed-per-run touch assistance.
+- Measured 16-vertex convex hull offset outward by 12 mm; swept hull edges, angular/pad-arc tolerance, <=25 mm contact slices, 12 bisections, first-contact grading and hazard priority.
+- Three campaign lives; same seeded retry; 1.2 s holds carry unused tick time; fifth landing wins, third crash loses; shell owns 240 s timeout.
+- Scene, fitted union-follow camera, GLB plus fitted primitive fallback, one reusable extruded terrain buffer, moving pad/cave, guide, markers, stars, flame, pooled effects and audio.
+- Compact registered 44 px flight HUD; numeric relative speeds/tilt, fuel meter, component awards; labels match keyboard and touch controls.
+- Rules tests: 1000 layout seeds, constants, strict gates, scoring sources, contacts/tangencies, fuel, frame partitions, transitions, pause/timeout order, real-store limits and 32 legal controller campaigns (both assist modes and frame schedules).
+- Real-GLB test decodes with readCharacterGlb and checks all 4877 vertices, hull coverage, support extremes, 2.2 m fit, bell and radius. These tests are written, NOT executed here.
+
+Files: games/rocket-landing/{index.tsx,meta.ts,README.md,rules.ts,rules.test.ts,assets.ts,assets.test.ts,Scene.tsx,camera.tsx,Planet.tsx,Primitives.tsx,Hud.tsx,Hud.module.css}; tools/thumbs/inputs/rocket-landing.mjs. assets.spec.json retained. This handoff is the explicitly requested .handoff/P-15-rocket/HANDOFF.md exception.
+
+Checks / acceptance:
+[x] Branch verified; no branch creation/switch; no commit/push.
+[x] TypeScript: node node_modules/typescript/bin/tsc --noEmit --incremental false passed, exit 0.
+[x] git status --porcelain scope inspected; only game files, input script and requested handoff.
+[x] Scoring unchanged; status dev; thumbnail null; no dependencies/core/manifest/GLB changes.
+[x] Source scan: no classic imports, rules Math.random/Date.now, localStorage, API submission or wall-clock animation.
+[ ] npm run build and npx vitest run: not run, per explicit sandbox instruction.
+[ ] GLB decoding/coverage and controller success/fuel reserve/test runtime: Claude execution required.
+[ ] Keyboard 1280x800, touch 390x844 and 844x390, cookie banner open/closed; shell phases, Retry/Exit, missing GLB fallback: Claude browser verification required.
+[ ] >=24 px rocket and readable pad, registered safe-area budgets, no hidden overlays: unmeasured.
+[ ] <=30 target / <=35 game-cap draw calls; p95 <=33 ms; resources flat over Retry x10: unmeasured.
+[ ] Screenshots at all three sizes and tools/perf JSON: not generated; sandbox prohibits browser/perf execution.
+[ ] tools/gamecheck and tools/perf: skipped as explicitly instructed. tools/thumbs input supplied; capture pending Claude.
+
+Scoring formula: floor(200*(1-abs(vy)/2)) + floor(150*(1-abs(bodyX-padX)/(width/2))) + floor(150*fuel/startFuel), each clamped to its component range; one award per planet. Clean fifth landing adds 300 only with no crashes; final setScore reconciles the total.
+Limit proof: five awards <=500 plus 300 =>2800; first contact needs >=10.65 m descent and downward acceleration <=17, so award n takes >=n*sqrt(21.3/17)+(n-1)*1.2 s. This bounds every partial/final score by 800+200*t. Side-wall travel requires >=1.15 m; damped |omega|<=0.75 yields <0.85 m sideways in the first second. Three upright Moon ceiling crashes plus two holds take about 5.3 s even with the contact skin/discrete-step allowance, above 5000 ms; timeout240000 <242000 ms. Bots use simulateRun (real advanceRunClock/playedFrameDt), check withinServerLimits and unchanged capScore. No measured bot scores/times/reserves are claimed.
+
+Decisions / corrections:
+- Landing supports corrected from the design estimate to x[-0.6414,+0.6602], y[0.0005,0.0099]. Span1.3016 m; 10-degree second-foot gap about0.235 m, replacing0.26 m in README. Whole fitted hull width1.51094 m remains separate from the foot span.
+- Ceiling remains a crash, as instructed. No fuel/scoring retuning.
+- Current useQuality exposes no coarsePointer field; pointer:coarse is captured once at run creation, independent of adaptive cosmetic quality.
+- Camera uses useFittedView for safe-area fit/lens shift and an allocation-free per-frame rescaling around the live rocket/pad union, including the eased aim. CameraRig is the only camera pose writer; expansion compensates its damping.
+
+Open questions / follow-up gates:
+- Claude must run the unexecuted controller witnesses and real mesh tests. Any controller/fuel failure blocks acceptance; do not silently tune the approved budgets. Report fastest/slowest win/loss, highest score and minimum fuel from actual execution.
+- Confirm actual shell/banner rectangles meet the short-landscape layout and >=24 px contract; the camera/HUD are unmeasured. Check fit during resize, transitions and maximum separation/tilt, and score popup placement.
+- Supply screenshots, perf JSON and local thumbnail capture, then send a fix round for any failing gate. No production/network calls or Hyper3D credits were used.
+```
