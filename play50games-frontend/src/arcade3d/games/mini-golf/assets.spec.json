@@ -1,0 +1,20 @@
+{
+   "slug": "mini-golf",
+   "universe": "play50-toy-world-premium",
+   "seed": 5050,
+   "assets": [
+      {
+         "id": "windmill",
+         "kind": "prop",
+         "mode": "image",
+         "prompt": "Mini-golf windmill: a small rounded tower with cream walls, a red cone roof, wooden trim, a round arched tunnel opening through the base from front to back, and a round wooden hub on the front where the blades would attach. Premium stylised mobile-game look, friendly rounded toy proportions, soft bevelled edges, matte painted materials. Single object, centred, upright, front facing the viewer, symmetrical left to right. No blades, no sails, no base, no ground, no grass, no text. Clean game-ready low-poly topology, clean PBR textures without baked shadows.",
+         "concept": "tools/hyper3d/concepts/mini-golf-windmill.png",
+         "tier": "Gen-2.5-Medium",
+         "qualityOverride": 3000,
+         "attempts": 1,
+         "target": "mini-golf",
+         "budget": { "tris": 4000, "bytes": 300000 },
+         "textureSize": 512
+      }
+   ]
+}
