@@ -202,11 +202,11 @@
     "mini-golf": {
       "title": "Mini Golf 3D",
       "kind": "points",
-      "max_score": 6750,
-      "min_duration_ms": 30000,
-      "max_duration_ms": 900000,
-      "base": 6750,
-      "max_pps": 6750,
+      "max_score": 4100,
+      "min_duration_ms": 15000,
+      "max_duration_ms": 602000,
+      "base": 1200,
+      "max_pps": 200,
       "enabled": false
     },
     "robot-factory": {
