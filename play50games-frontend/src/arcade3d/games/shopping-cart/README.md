@@ -143,14 +143,26 @@ Shopping list on HUD shows product icons and checkmarks; target items glow with 
 ## Status
 
 ```
-HANDOFF P-15 shopping-cart
-Branch / last commit: antigravity/game-shopping-cart (31729f1; not pushed)
-Files changed: play50games-frontend/src/arcade3d/games/shopping-cart/**, play50games-frontend/public/images/3d/shopping-cart.webp, tools/thumbs/inputs/shopping-cart.mjs
-Checks: npm run build pass (47/47 static pages) | npx tsc --noEmit pass (0 errors) | npx vitest run pass (109 files, 1474 tests passed, shopping-cart 19/19) | ?perf=1 probe: 84 calls / 87k tris at 1280x800 (p50 16.7 ms, p95 17.7 ms), 80 calls / 85k tris at 390x844 (p50 16.7 ms, p95 18.4 ms)
-Built: rules (seeded store, kinematics, continuous swept collision, shoppers, spills, can pyramids, list generator, scoring) + proof; Scene (14 m fitted view, CameraRig + velocity look-ahead, coupled cart + runner, instanced shelves/products, animated shoppers, spills, toppling pyramids); poses (runner walkPose with hands on handle, riding tuck, cheer); touch joystick + Ride button.
+HANDOFF P-15-fix1 shopping-cart
+Branch / last commit: antigravity/game-shopping-cart @ 67352ad (not pushed)
+Files changed (git diff --name-only main...HEAD):
+  play50games-frontend/public/images/3d/shopping-cart.webp
+  play50games-frontend/src/arcade3d/games/shopping-cart/Primitives.tsx
+  play50games-frontend/src/arcade3d/games/shopping-cart/README.md
+  play50games-frontend/src/arcade3d/games/shopping-cart/Scene.tsx
+  play50games-frontend/src/arcade3d/games/shopping-cart/assets.ts
+  play50games-frontend/src/arcade3d/games/shopping-cart/camera.ts
+  play50games-frontend/src/arcade3d/games/shopping-cart/index.tsx
+  play50games-frontend/src/arcade3d/games/shopping-cart/meta.ts
+  play50games-frontend/src/arcade3d/games/shopping-cart/poses.ts
+  play50games-frontend/src/arcade3d/games/shopping-cart/rules.test.ts
+  play50games-frontend/src/arcade3d/games/shopping-cart/rules.ts
+  tools/thumbs/inputs/shopping-cart.mjs
+Checks: npm run build pass (47/47 static pages) | npx tsc --noEmit pass (0 errors) | npx vitest run pass (112 files, 1528 tests passed, shopping-cart 19/19) | ?perf=1 probe: 21-29 calls steady across viewports (1280x800: 27 calls, 390x844: 21 calls, 844x390: 29 calls)
+Built: follow camera (~14 m window, CameraRig with velocity look-ahead); #0b1220 dark environment/fog and extended 70 m perimeter floor; 0.8 m emissive ground halos + floating badges on products; <Instanced> and <DynamicInstanced> meshes (21-29 steady draw calls); P-06 audio loops + SFX; botHarness proof bots.
 Scoring formula: 100 per item + combo (+20/step) + 300 list complete + 10/s left on win; proposed limits 2070 maxScore, 6.0-77.0 s duration, 1470 base + 100/s.
-Decisions I took and why: cart proxy box extends to z -0.8 to fully cover the runner pusher; live camera look-ahead uses cart + 0.25*v for smooth aisle anticipation; shoppers utilize core stepPatrol with 1.0s stun and 1.5s grace on bump; toppled pyramids remain toppled on the floor; list generation enforces minimum 52.0 m tour distance across 1,000 seeds.
-Open questions: None; provisional scoring preserved in meta.ts until assets + limits PR.
-Known issues / follow-ups: Audio loops will activate automatically when P-06 lands (SFX works today).
-Evidence: C:\Users\grani\AppData\Local\Temp\shopping-cart-1280x800.png and shopping-cart-390x844.png, tools/thumbs/out/shopping-cart.webp
+Decisions I took and why: fixed north/south heading calculation in rules.ts to drive north into aisles on ArrowUp; camera follows cart dynamically with followFraction 1 and shift offset; perimeter floor extends 70 m so no white void is visible at any canvas angle; thumbnail captured with crisp 640x360 webp at 9.7 KB framing the runner, cart, aisles, and score popups.
+Open questions for Claude or the user: None.
+Known issues / follow-ups: None; ready for Kimi mechanical review (P-17a) and Claude adversarial review (P-17b).
+Evidence: public/images/3d/shopping-cart.webp (9.7 KB), tools/thumbs/out/shopping-cart.webp
 ```
