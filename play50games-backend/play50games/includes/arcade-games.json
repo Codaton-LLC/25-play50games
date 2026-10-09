@@ -172,11 +172,11 @@
     "ghost-vacuum": {
       "title": "Ghost Vacuum",
       "kind": "points",
-      "max_score": 5250,
-      "min_duration_ms": 10000,
+      "max_score": 2630,
+      "min_duration_ms": 91000,
       "max_duration_ms": 122000,
-      "base": 5250,
-      "max_pps": 5250,
+      "base": 1720,
+      "max_pps": 10,
       "enabled": false
     },
     "construction-worker": {
