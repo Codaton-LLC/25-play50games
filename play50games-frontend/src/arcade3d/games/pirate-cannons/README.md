@@ -157,6 +157,7 @@ Wind as an arrow plus a number (m/s², one decimal) in the HUD and a streaming f
 
 ### Decisions (user, 2026-10-08)
 
+- 2026-10-09: the 36° landscape camera is approved (replaces the 14° of the design); the limits stay at max 10500, 19000–92000 ms, base 1500 + 110/s (no tightening to ~9.7k); applied to meta.ts and arcade-games.json (enabled false).
 1. **Aim: relative drag**, as designed: a drag adjusts the cannon from where it is, a tap fires the same aim again. Mini-golf keeps the slingshot.
 2. **Portrait camera: the steeper 30° view of the whole bay**, as designed; revisited after the first phone measurement (see "Small far ships in portrait").
 

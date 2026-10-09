@@ -126,6 +126,7 @@ Coral hazard silhouettes plus dark crack shape (not colour alone); fish show a s
 - The 180 s ceiling and limits (18700, 3000–182000 ms, base 440 / pps 104) are approved. Fix1 proposes tightening only the minimum to 9000 ms using the proof above.
 - Touch auto-hop over cracks is ALWAYS ON, no toggle; drop the ready-card assist checkbox because GameDefinition has no start-card slot.
 - The steer scheme is already registered in types.ts; nothing to ask or add.
+- 2026-10-09: the proven 9000 ms minimum is approved; limits max 18700, 9000–182000 ms, base 440 + 104/s applied to meta.ts and arcade-games.json (enabled false).
 
 ### Open questions
 
