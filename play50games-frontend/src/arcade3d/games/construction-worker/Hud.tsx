@@ -13,8 +13,10 @@ export function Hud() {
    const name = PIECE_NAME[Math.min(4, Math.max(0, piece - 1))] ?? "Slab";
    const site = BUILDING[Math.min(2, Math.max(0, building - 1))] ?? "House";
    return (
-      <div className={styles.panel} data-arcade-safe-area>
-         {site}: next <span className={styles.name}>{name}</span>
+      <div className={styles.slot} data-arcade-safe-area>
+         <p className={styles.pill}>
+            {site}: next <span className={styles.name}>{name}</span>
+         </p>
       </div>
    );
 }
