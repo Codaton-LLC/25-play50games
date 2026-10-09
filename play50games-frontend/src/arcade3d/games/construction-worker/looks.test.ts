@@ -25,7 +25,10 @@ describe("construction-worker camera", () => {
    it("stays readable with the cookie banner open", () => {
       const portrait = pxPerM(390, 844, 162);
       const wide = pxPerM(844, 390, 83);
-      expect(portrait, "portrait px/m").toBeGreaterThan(12);
-      expect(wide, "landscape px/m").toBeGreaterThan(8);
+      expect(viewFor(390, 844).area?.max.y).toBe(5.7);
+      expect(viewFor(390, 844).area?.min.z).toBeGreaterThan(4);
+      expect((viewFor(390, 844).area?.max.x ?? 0) - (viewFor(390, 844).area?.min.x ?? 0)).toBeLessThan(10);
+      expect(portrait, "portrait px/m").toBeGreaterThan(28);
+      expect(wide, "landscape px/m").toBeGreaterThan(20);
    });
 });

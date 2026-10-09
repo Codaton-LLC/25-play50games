@@ -52,7 +52,7 @@ function Worker({ run }: { run: Run }) {
       if (g) g.position.y = bodyLift(pose, RUNNER_LANDMARKS) * WORKER_SCALE;
    }, -0.05);
    return (
-      <group ref={group} position={[3.2, 0, -1]}>
+      <group ref={group} position={[2.6, 0, 5.35]}>
          <HumanoidModel
             asset={ASSETS.worker}
             pose={pose}
