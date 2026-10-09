@@ -1,4 +1,4 @@
-﻿# Delivery Drone
+# Delivery Drone
 
 Owner: Codex. Slug: `delivery-drone`. Adventure game 5, complexity 3. Approved design implemented in P-15; runtime acceptance awaits Claude's validation round. Spec: `docs/arcade-expansion/03-game-specs-adventure.md` §5; assets: 05 §E.4. Units: metres, seconds; x east, z south, y up. Gameplay tuning lives in pure `rules.ts` and its tests.
 
@@ -41,13 +41,13 @@ All constants are named groups (`CITY`, `DRONE`, `WINCH`, `PARCEL`, `BATTERY`, `
 
 ### Server limits and why they hold (the proof)
 
-Approved provisional limits, applied to `meta.ts` in P-15: **maxScore 3600; duration 20000–182000 ms; base 300; max_pps 75**. Claude owns the matching `arcade-games.json` update at merge. Bot results remain unmeasured; do not tighten these limits before validation.
+Approved provisional limits, applied to `meta.ts` in P-15: **maxScore 3600; duration 20000–182000 ms; base 300; max_pps 75**. Claude owns the matching `arcade-games.json` update at merge. Standalone fix1 bot checks retain these limits; full Vitest validation belongs to Claude.
 
 1. For n awards, n distinct parcels needed ≥4n s loading, non-overlapping and entirely in played time. Thus n≤floor(t/4), score≤300n≤75t≤300+75t, including every partial/live score. Travel/fall only tighten this bound; input spam cannot bypass loading or consume one parcel twice.
 2. Globally throttled damage count ≤1+floor(t) and continuous drain t imply B≥100−t−3(1+floor(t))≥97−4t, before nonnegative recharge. Consequently any battery loss requires t≥24.25 s, safely above 20 s. Grace and entry-only contacts tighten the bound. Win requires ≥48 s loading; ceiling is exactly 180 s. All terminal reasons lie within 20–182 s, with 2 s upper transport margin.
 3. Twelve unique target completions prove maxScore 3600 for all seeds, retries, steady modes and frame partitions; the generator cannot create extra targets. Equality need not be physically achievable; this is an intentionally conservative maximum, not a measured oracle score.
 4. Fix1 preserves all inequalities: flight/swing/camera/chunks/rotors add no awards; attached-wall misses only remove awards, add no damage and cannot shorten the loss bound. Loading remains 4 s, count twelve, ceiling 180 s. Keep limits pending bots; do not tighten from timing estimates.
-5. Through `createArcadeStore` + `simulateRun`, run oracle, spam and collision bots on 200 seeds each, rotating 60 fps, 20 fps and random 4–50 ms played frames; include 300 ms raw-frame stalls/countdown/pauses via clock tests. Oracle uses legal movement, loading, pendulum and release; pathfinding around towers and analytic impact timing grant knowledge, never teleportation or immunity. Assert `withinServerLimits` and `capScore` no-op on all terminal results; record best/worst durations, score and reasons. Both damping modes, fragile attempts, perfect zero-distance fixtures, idle 100 s expiry and adversarial corner-contact loss included. No bot measurements claimed before build.
+5. Through `createArcadeStore` + `simulateRun`, run expert/novice route bots on 48 seeds per controller/damping combination (32 at 60 fps, 8 at 20 fps, 8 random 4–50 ms), and idle/spam/collision bots on 32 seeds per control/damping combination (24 at 20 fps, 8 random frames); include 300 ms raw-frame stalls/countdown/pauses via clock tests. Oracle uses legal movement, loading, pendulum and release; pathfinding around towers and analytic impact timing grant knowledge, never teleportation or immunity. Assert `withinServerLimits` and `capScore` no-op on all terminal results; record best/worst durations, score and reasons. Both damping modes, fragile attempts, perfect zero-distance fixtures, idle 100 s expiry and adversarial corner-contact loss included. No bot measurements claimed before build.
 
 ## Run end
 
@@ -101,7 +101,7 @@ Transform all `DRONE_ROTORS_GLB` centres through the same drone fit/body transfo
 - Pendulum: zero forcing energy `0.5×(vX²+vZ²+9.81/2×(angleX²+angleZ²))` non-increasing over 60 s at 1/120, both damping modes; vX/vZ here are angular speeds in rad/s, not flight velocity. 180 s worst alternating acceleration remains finite/in clamps. Validate release position/velocity, reset and outward clamp energy loss. Measure peak/final energy and per-axis seconds/fraction on the angle clamp in P-15 for normal routes and adversarial alternating input, both modes; not just NaN absence.
 - Drops: exact centre/rim/outside, side-wall first contact, lower roof vs target, upward/downward initial velocity, two-axis swing, analytic impact and preview agreement; 5 s timeout. Fragile 39/40, express 15/15.001, one award, missed target retry, forced pigeon release and simultaneous inputs.
 - Battery: cap100, +12 only on success, drain while loading/falling, warning re-arm, pause/over unchanged; expiry/landing/tower/ceiling ties, 12th completion and all reasons. Frame partitions at 60/20 fps/random yield same loading/clock accounting; analytic crossing fixtures use ≤1e−6 tolerance.
-- Score/proofs: all event values and finite/rate/duration inequalities above; real-store 200-seed oracle/spam/collision bots, aggregate invariant checks per run for runtime. Test both steady modes and raw long-frame clock behaviour; reset seed/state/pools on Retry.
+- Score/proofs: all event values and finite/rate/duration inequalities above; real-store 48-seed expert/novice and 32-seed idle/spam/collision bots, aggregate invariant checks per run for runtime. Test both steady modes and raw long-frame clock behaviour; reset seed/state/pools on Retry.
 - `assets.test.ts`: actual drone width/hook/DRONE_ROTORS_GLB rotor placement, fallback alignment, parcel line ending at top and bottom contact-plane conversion; shared fits/collider independence. No humanoids.
 - Build later: common 03 criteria; keyboard and 390×844 touch, Esc/P/tab, over/Retry/Exit, banner open/closed; screenshots 1280×800, 390×844, 844×390. Swing, arrows, pad prediction, fragile label readable; no z-fighting. npm build, tsc, vitest, gamecheck and thumbnail are build-stage checks, not executed for this design task.
 
@@ -141,14 +141,22 @@ Files: delivery-drone/** (rules, scene, camera, city, drone, HUD, assets, tests,
 Checks passed: npx tsc --noEmit (exit 0); git status --porcelain scope check; forbidden source import/API/time/randomness scan.
 Checks deferred by task sandbox instructions: npm run build; npx vitest run; gamecheck; keyboard/touch browser playtests; perf capture; thumbnail capture.
 Written tests: 1,000 layout seeds; scoring/flight/loading/drop/battery/terminal fixtures; real GLB fits; real-store bots through botHarness.
-Bot counts planned, not run: oracle/novice/spam/collision/idle, 200 seeds each in both damping modes; 60 fps, 20 fps and random frames. Assertions retain legal wins <160 s expert / <175 s novice and best expert score >=3240.
+Fix1 bot counts: expert/novice, 48 seeds each in both damping modes (32 at 60 fps, 8 at 20 fps, 8 random frames), 192 route runs total. Idle/spam/collision, 32 seeds each in both damping modes (24 at 20 fps, 8 random frames), 192 survival runs total. Coarse survival frames retain the legal 50 ms clock cap and the rules substeps. Assertions retain legal wins <160 s expert / <175 s novice and best expert score >=3240.
 Bot reports: terminal reasons, score/duration extrema, per-distance-band delivery times, substep cable clamp seconds/fractions per axis, peak/final energy. No measured values claimed.
 Scoring: sum(150 + precision + express 50), successful pads only; fragile requires precision >=40; express <=15 s; twelve single-use awards, no terminal bonus.
 Limits: max 3600; duration 20000–182000 ms; base 300; 75 points/s. Proof: n parcels require 4n s loading, score <=300n<=75t; twelve awards cap 3600; battery >=97-4t gives loss >=24.25 s; win >=48 s; ceiling 180 s.
 Evidence: screenshots 1280x800 / 390x844 banner open / 844x390 and tools/perf JSON are pending; thumbnail null.
 Acceptance [x]: folder implementation; pure seeded rules/core helpers; keyboard/touch bindings in code; dev status; approved meta limits; TypeScript.
 Acceptance [ ]: executed tests/build/gamecheck; legal bot timing and score proof measurements; three-size playtests; real model fit results; fallback playtest; <=70 target / <=80 cap calls; mid-phone p95; Retry x10 GPU/heap stability; screenshot/perf evidence.
-Known limitations: runtime assertions and the route controller have not been executed; 60 s bot-test time budgets are unmeasured. Vehicle fits and phone readability require actual validation. Server catalog pairing belongs to Claude's merge.
+Known limitations: full Vitest game-suite duration remains pending Claude; standalone checks do not measure Vitest overhead. Vehicle fits and phone readability require actual validation. Server catalog pairing belongs to Claude's merge.
 Open questions: Claude, run the deferred checks, retain bot JSON logs, pair the approved server limits, and send any failures for the fix round. No user design questions remain.
 Safety: no production calls, network, Hyper3D credits, generated assets, dependencies, protected-file edits, secrets, commit or push.
 ```
+
+### P-15-fix1 validation
+
+- Fixed mesh bounds by using the existing meshopt-aware `readCharacterGlb` helper in Node; catalog keys `drone.width` and `leafyTree.height` are correct. Standalone decoded fits: drone 0.90002 m, car 1.60001 m, taxi 1.59290 m, van 1.99358 m, pigeon 0.60054 m, crate 0.79989 m, tree 3.00005 m. Cable-origin float assertion uses `toBeCloseTo`.
+- Wall fixture now overlaps the parcel by 0.05 m while the drone stays clear, instead of relying on exact tangency at 0.9 m. Standalone check passed detachment/miss, no falling parcel or drone hit, and drain-only battery. Production wall rules unchanged; the test also checks no repeat miss or score next frame.
+- Final bot counts: 192 route runs (48 seeds per expert/novice and damping combination: 32 at 60 fps, 8 at 20 fps, 8 random); 192 survival runs (32 seeds per idle/spam/collision and damping combination: 24 at 20 fps, 8 random). All per-run terminal limits and score-cap no-op assertions remain, with per-frame rate checks. The 1,000-layout-seed test and algebraic limit proof remain unchanged.
+- Measured cost on this sandbox: standalone Node/TypeScript-transpiled real-store workloads, using Node assertions rather than Vitest: route 34.81 s, final survival 12.61 s, sum 47.42 s (separate measurements, not full suite timing). Route wins: expert normal 47/48, novice normal 47/48, expert steady 48/48, novice steady 48/48; best expert scores 3501/3506, fastest expert wins 143.15/140.05 s. All checked terminal limits/rates and timing/score thresholds passed. Claude's original Vitest measurement was 140 s bots / 141 s whole game set. Full final Vitest cost and the under-60 s target remain to be measured by Claude; no final Vitest timing is claimed.
+- `npx tsc --noEmit` passed. `npm run build` attempted and blocked by sandbox worker creation (`spawn EPERM`). Vitest intentionally deferred per task instructions. No commit, push, branch switch, production access or protected-file edits.
