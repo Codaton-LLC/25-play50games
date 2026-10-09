@@ -19,7 +19,7 @@ describe("real GLB fits (run by Claude outside the meshopt-restricted sandbox)",
       expect(EXPANSION_GLB_SIZE.vacuum).toEqual({ width: 0.7937, height: 1.6149, depth: 1.1261 });
       expect(EXPANSION_GLB_POINTS.vacuumBack).toEqual({ x: 0, y: 0.75, z: -0.546 });
       expect(EXPANSION_GLB_POINTS.vacuumBack.y * VACUUM_SCALE + PACK_OFFSET[1]).toBeCloseTo(0, 10);
-      expect(-EXPANSION_GLB_POINTS.vacuumBack.z * VACUUM_SCALE + PACK_OFFSET[2]).toBeCloseTo(-0.01, 10);
+      expect(-EXPANSION_GLB_POINTS.vacuumBack.z * VACUUM_SCALE + PACK_OFFSET[2]).toBeCloseTo(-0.08, 10);
    });
    it("records the missing shared prop measurements and checks the required fits", async () => {
       const desk = await bounds(ASSETS.desk.url), chair = await bounds(ASSETS.chair.url);

@@ -3,7 +3,9 @@ import { EXPANSION_ASSETS, EXPANSION_GLB_SIZE, EXPANSION_GLB_POINTS, REUSED_ASSE
 
 export const HUNTER_SCALE = 1.56 / 1.886;
 export const VACUUM_SCALE = 0.55 / EXPANSION_GLB_SIZE.vacuum.height;
-export const PACK_OFFSET = [0, -EXPANSION_GLB_POINTS.vacuumBack.y * VACUUM_SCALE, EXPANSION_GLB_POINTS.vacuumBack.z * VACUUM_SCALE - 0.01] as const;
+/** The runner's upper back (shoulder blades, y ~1.40 GLB) sits 6.3 cm behind the mid-back strip the pack is aligned to, so the pack keeps this extra gap (measured on the posed mesh in poses.test.ts). */
+export const BACK_CLEARANCE = 0.07;
+export const PACK_OFFSET = [0, -EXPANSION_GLB_POINTS.vacuumBack.y * VACUUM_SCALE, EXPANSION_GLB_POINTS.vacuumBack.z * VACUUM_SCALE - 0.01 - BACK_CLEARANCE] as const;
 export const ASSETS = {
    hunter: { ...SHARED_ASSETS.runner, scale: HUNTER_SCALE, humanoid: { landmarks: RUNNER_LANDMARKS } },
    vacuum: { ...EXPANSION_ASSETS.vacuum, scale: VACUUM_SCALE, rotationY: Math.PI },

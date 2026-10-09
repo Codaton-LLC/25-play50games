@@ -43,8 +43,9 @@ describe("posed runner floor and vacuum attachment", () => {
          bone.localToWorld(surface.set(0, backY - L.chestY, backZ - L.spineZ)).multiplyScalar(HUNTER_SCALE);
          normal.set(0, 0, 1).transformDirection(bone.matrixWorld);
          point.sub(surface);
-         expect(point.dot(normal)).toBeCloseTo(-0.01, 6);
-         expect(point.length()).toBeLessThanOrEqual(0.010001);
+         // 1 cm skin + 7 cm for the upper back (shoulder blades) that bulges 6.3 cm behind this mid-back strip
+         expect(point.dot(normal)).toBeCloseTo(-0.08, 6);
+         expect(point.length()).toBeLessThanOrEqual(0.080001);
       }
       anchor.removeFromParent();
    });
@@ -66,7 +67,7 @@ describe("posed runner floor and vacuum attachment", () => {
             vertex.fromArray(world, i); chest.worldToLocal(vertex);
             const dx = size.width * scale / 2 - Math.abs(vertex.x);
             const dy = Math.min(vertex.y - PACK_OFFSET[1], PACK_OFFSET[1] + 0.55 - vertex.y);
-            const dz = Math.min(-0.01 - vertex.z, vertex.z + 0.01 + size.depth * scale);
+            const dz = Math.min(PACK_OFFSET[2] + EXPANSION_GLB_POINTS.vacuumBack.z * -VACUUM_SCALE - vertex.z, vertex.z - (PACK_OFFSET[2] - EXPANSION_GLB_POINTS.vacuumBack.z * VACUUM_SCALE) + size.depth * scale);
             if (dx > 0 && dy > 0 && dz > 0) packPenetration = Math.max(packPenetration, Math.min(dx, dy, dz));
             const arm = Math.abs(rest[i]) >= L.shoulderX && Math.abs(rest[i]) <= L.elbowX && Math.abs(rest[i + 1] - L.shoulderY) < L.armRadius * 2;
             const torso = Math.abs(rest[i]) < L.shoulderX && rest[i + 1] >= L.hipY && rest[i + 1] <= L.neckY;
