@@ -27,7 +27,7 @@ export const deliveryDroneMeta: ArcadeGameMeta = {
       unitLabel: "pts",
       display: "int",
    },
-   thumbnail: null,
+   thumbnail: "/images/3d/delivery-drone.webp",
    accent: "#38bdf8",
    owner: "codex",
 };

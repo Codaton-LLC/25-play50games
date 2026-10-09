@@ -29,7 +29,7 @@ export const shoppingCartMeta: ArcadeGameMeta = {
       touch: "Joystick to steer, hold Ride to ride",
    },
    scoring: { ...PROPOSED_LIMITS },
-   thumbnail: null,
+   thumbnail: "/images/3d/shopping-cart.webp",
    accent: "#fb923c",
    owner: "antigravity",
 };
