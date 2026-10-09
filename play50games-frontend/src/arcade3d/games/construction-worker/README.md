@@ -130,7 +130,7 @@ Playable. `status` stays `"dev"`. Thumbnail stays null.
 
 ```
 HANDOFF P-15 construction-worker
-branch: cursor/game-construction-worker
+branch: cursor/game-construction-worker (23851b3, pushed)
 status: dev (unchanged)
 scoring: unchanged, 5800 / 9000–152000 ms / base 0 / pps 150
 fog: 100–160 (was 28–55; the portrait camera is ~65 m out and the old fog hid the site)
