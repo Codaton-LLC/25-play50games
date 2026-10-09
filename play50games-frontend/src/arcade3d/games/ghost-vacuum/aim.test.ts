@@ -33,7 +33,7 @@ describe("pointer aim over a ghost body", () => {
       const { run, g, cam } = scene();
       expect(pickGhost(rayTo(cam, g.x + 0.75, 0.8, g.z), run.ghosts)).toBe(-1);
       expect(pickGhost(rayTo(cam, g.x + 0.45, 0.8, g.z), run.ghosts)).toBe(0);
-      expect(pickGhost(rayTo(cam, g.x, 2.2, g.z), run.ghosts)).toBe(-1);
+      expect(pickGhost(rayTo(cam, g.x, 2.6, g.z), run.ghosts)).toBe(-1); // floating ghost top ~1.9 m
       g.kind = "big";
       expect(pickGhost(rayTo(cam, g.x + 0.58, 0.8, g.z), run.ghosts)).toBe(0);
       g.kind = "normal"; g.mode = "hidden";

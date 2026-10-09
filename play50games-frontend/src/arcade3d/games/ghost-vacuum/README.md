@@ -119,3 +119,10 @@ Round2 changes:
 Verification in this sandbox: TypeScript noEmit passed before final documentation update. No vitest/build/browser/mesh decoding/thumb/performance execution, per task instruction. Scope checked with git status --porcelain only; metadata/scoring/backend/core/packages unchanged. No commit, push, branch operation, production/network access or credits.
 
 Claude acceptance remains: run all tests/build, mutation probes, mesh clearance assertions, suite <60s, actual >=27px/m landscape banner fit and >=24px hunter/ghost gate at all three viewports, marker overlap, local input playtests, shader/GLB visual check, audio pan/mute, reduced motion, draw-call/p95 and Retry x10 resources. No new screenshots, thumbnail or runtime measurements claimed.
+
+## Polish 2026-10-09 (user feedback, visual only)
+
+- Pull ring: its own camera-facing instanced draw (mint arc with a white core, dark outline track, soft glow; depthTest off, renderOrder 20), present only during a pull or the 0.28 s capture pop. Measured stroke: 14-18 px at 1280x800, 6.1-7.4 px at 390x844.
+- Suck-in (`suck.ts`, `suck.test.ts`): a pulling ghost is drawn in front of the posed nozzle mouth (Scene writes it at priority -0.05), shrinking to 0.1 at capture and stretched toward the mouth, never over the hunter's body; a swirl from the suction pool and the capture sparkle at the mouth. Rules, scoring and the logical pull path are unchanged.
+- Ghost model: Hyper3D `ghost.glb` (2500 tris, 59 KB) drawn with `<DynamicInstancedModel>` (per-copy tint: lilac-white, gold, x1.3 stunned/pulled); the procedural sheet + face are its fallback parts. Crown / exposure / double outline stay one additive instanced mesh. Ghosts float (`FLOAT`: frame base 0.35 m, bob +-0.06 m) over one instanced soft shadow pool. `aim.ts` uses the floating extent.
+- Draw calls: steady 22 after Retry (unchanged); peak 37 (was 34-35): +1 ring while pulling, +1 shadow pool. p95 ~17 ms (unchanged).

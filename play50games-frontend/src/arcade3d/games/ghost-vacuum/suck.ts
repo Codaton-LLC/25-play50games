@@ -4,6 +4,16 @@
 // the hunter's body, shrinking to SUCK.endScale and stretched towards the mouth, ending
 // exactly at the mouth at p = 1. Pure and allocation-free (out parameters).
 
+/**
+ * The floating ghost (user request 2026-10-09): every ghost hovers with its frame base FLOAT.hover
+ * above the floor and bobs by +-FLOAT.bob (visual only; rules radii unchanged). The Hyper3D GLB is
+ * 1.8972 GLB units tall with its floor pivot; it is drawn 1.35 m tall with its middle on the
+ * frame's body centre (SUCK.centreY), like the old procedural sheet.
+ */
+export const FLOAT = { hover: 0.35, bob: 0.06, glbHeight: 1.8972, height: 1.35 } as const;
+export const GHOST_GLB_SCALE = FLOAT.height / FLOAT.glbHeight;
+export const GHOST_GLB_Y_OFFSET = 0.8 - FLOAT.height / 2;
+
 export const SUCK = {
    /** Pull progress at which the final suck-in (shrink, stretch, slide into the mouth) starts. */
    inStart: 0.6,

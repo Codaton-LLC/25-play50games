@@ -1,18 +1,24 @@
 "use client";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useFrame } from "@react-three/fiber";
-import { AdditiveBlending, BufferAttribute, BufferGeometry, Color, DoubleSide, ConeGeometry, CylinderGeometry, InstancedBufferAttribute, InstancedMesh, Matrix4, MeshBasicMaterial, ShaderMaterial, SphereGeometry, TorusGeometry, Vector3 } from "three";
+import { AdditiveBlending, BufferAttribute, BufferGeometry, CircleGeometry, Color, DoubleSide, ConeGeometry, CylinderGeometry, InstancedBufferAttribute, InstancedMesh, Matrix4, MeshBasicMaterial, ShaderMaterial, SphereGeometry, TorusGeometry, Vector3 } from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
-import { DynamicInstanced } from "@/arcade3d/core/render";
+import { DynamicInstancedModel } from "@/arcade3d/core/assets";
+import { DynamicInstanced, type InstancePart } from "@/arcade3d/core/render";
 import { useGameTime } from "@/arcade3d/core/gameTime";
 import { useQuality } from "@/arcade3d/core/quality";
 import { active, type Run } from "./rules";
-import { createSuckLook, suckIn, suckLook, suckMatrix, SUCK, type SuckShared } from "./suck";
+import { ASSETS } from "./assets";
+import { createSuckLook, FLOAT, suckIn, suckLook, suckMatrix, SUCK, type SuckShared } from "./suck";
 
-const WHITE = new Color("#e0e7ff"), GOLD = new Color("#fde047");
+// Per-copy tints multiply the GLB texture (pale lilac): gold is pushed past 1 so it reads gold, not olive.
+const WHITE = new Color("#e0e7ff"), GOLD = new Color(1.6, 1.1, 0.12), CROWN = new Color("#fde047");
 export const GHOST_WIDTH = 1, GHOST_HEIGHT = 1.35;
-// Features share one instanced additive mesh: sheet, tail, crown, double outline and
-// stun outline. Eyes/smile share a dark draw. The pull progress ring is its own
+// The body is the Hyper3D ghost GLB as one instanced pool (<DynamicInstancedModel>, per-copy
+// tint: lilac-white, gold, brighter when stunned or pulled); the old procedural sheet + face
+// are its stand-in parts. Crown, exposure outline and big double outline share one instanced
+// additive mesh over either body. Ghosts float (FLOAT) over one instanced soft shadow pool.
+// The pull progress ring is its own
 // camera-facing instanced draw (only while a pull runs or a capture pops), drawn over
 // everything so it reads on any floor.
 function feature(g: BufferGeometry, kind: number): BufferGeometry {
@@ -55,9 +61,7 @@ export default function Ghosts({ run, shared }: { run: Run; shared: SuckShared }
    const [reduced] = useState(() => typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
    const resources = useMemo(() => {
       const pieces = [
-         feature(new SphereGeometry(0.5, 12, 10).scale(1, 0.95, 1).translate(0, 0.875, 0), 0),
-         feature(new CylinderGeometry(0.42, 0.38, 0.6, 12).translate(0, 0.3, 0), 0),
-         ...[-0.23, 0, 0.23].map((x) => feature(new ConeGeometry(0.12, 0.24, 4).translate(x, 1.4, 0), 1)),
+         ...[-0.23, 0, 0.23].map((x) => feature(new ConeGeometry(0.12, 0.24, 4).translate(x, 1.56, 0), 1)),
          feature(new TorusGeometry(0.54, 0.018, 4, 32).scale(1, 1.1, 1).translate(0, 0.8, 0), 2),
          feature(new TorusGeometry(0.59, 0.018, 4, 32).scale(1, 1.1, 1).translate(0, 0.8, 0), 3),
       ];
@@ -103,11 +107,11 @@ void main() {
          looks: Array.from({ length: 12 }, () => new Matrix4()), shown: new Array<boolean>(12).fill(false), look: createSuckLook(), cells: new Array<number>(16).fill(0),
          was: new Array<string>(12).fill(""), popAt: new Array<number>(12).fill(-1),
          pop: Array.from({ length: 12 }, () => new Vector3()), centre: Array.from({ length: 12 }, () => new Vector3()),
-         ringPos: new Vector3(), ringScale: new Vector3(),
+         ringPos: new Vector3(), ringScale: new Vector3(), tints: Array.from({ length: 12 }, () => new Color()), scales: new Array<number>(12).fill(1),
       };
    }, []);
    useEffect(() => () => { resources.geometry.dispose(); resources.material.dispose(); resources.ring.dispose(); resources.ringMaterial.dispose(); }, [resources]);
-   const bob = (i: number) => quality.tier === "low" || reduced ? 0 : Math.sin(time.now * Math.PI * 2 + i / 2) * 0.08;
+   const bob = (i: number) => quality.tier === "low" || reduced ? 0 : Math.sin(time.now * Math.PI * 1.4 + i / 2) * FLOAT.bob;
    // After the camera (-0.25) and Hunter's nozzle mouth (-0.05); before every visuals frame,
    // so the face pool (visuals) copies this frame's matrices.
    useFrame(({ camera }) => {
@@ -120,26 +124,27 @@ void main() {
          if (g.mode === "caught" && r.was[i] === "pulling") { r.popAt[i] = time.now; r.pop[i].copy(r.centre[i]); }
          r.was[i] = g.mode;
          if (!shown) { r.looks[i].makeScale(0, 0, 0); continue; }
-         const restY = 0.1 + bob(i) + SUCK.centreY * ks;
+         const base = FLOAT.hover + bob(i), restY = base + SUCK.centreY * ks;
          if (g.mode === "pulling") {
             suckLook(g.progress, g.x, g.z, ks, restY, run.hunter.x, run.hunter.z, shared.mouth, r.look);
             r.looks[i].fromArray(suckMatrix(r.look, r.cells));
-            r.centre[i].set(r.look.x, r.look.y, r.look.z);
+            r.centre[i].set(r.look.x, r.look.y, r.look.z); r.scales[i] = r.look.scale;
             if (best < 0 || g.progress > run.ghosts[best].progress) {
                best = i; shared.active = true; shared.p = g.progress; shared.cx = r.look.x; shared.cy = r.look.y; shared.cz = r.look.z; shared.scale = r.look.scale;
             }
          } else {
-            r.looks[i].makeScale(ks, ks, ks).setPosition(g.x, 0.1 + bob(i), g.z);
-            r.centre[i].set(g.x, restY, g.z);
+            r.looks[i].makeScale(ks, ks, ks).setPosition(g.x, base, g.z);
+            r.centre[i].set(g.x, restY, g.z); r.scales[i] = ks;
          }
       }
       const body = mesh.current, ringMesh = rings.current;
       if (body) {
          for (const g of run.ghosts) {
             body.setMatrixAt(g.id, r.looks[g.id]);
-            r.tint.copy(g.kind === "gold" ? GOLD : WHITE);
-            if (g.mode === "stunned" || g.mode === "pulling") r.tint.multiplyScalar(1.3);
-            body.setColorAt(g.id, r.tint);
+            const tint = r.tints[g.id].copy(g.kind === "gold" ? GOLD : WHITE);
+            if (g.mode === "stunned" || g.mode === "pulling") tint.multiplyScalar(1.3);
+            // The additive crown/outlines keep the plain gold (a tint past 1 would burn them white).
+            body.setColorAt(g.id, g.kind === "gold" ? r.tint.copy(CROWN).multiplyScalar(g.mode === "stunned" || g.mode === "pulling" ? 1.3 : 1) : tint);
             r.params.setXYZ(g.id, g.kind === "gold" ? 1 : g.kind === "big" ? 2 : 0, 0, g.lit || g.mode === "stunned" || g.mode === "pulling" ? 1 : 0);
          }
          body.instanceMatrix.needsUpdate = true;
@@ -167,22 +172,36 @@ void main() {
          ringMesh.instanceMatrix.needsUpdate = true; r.ringParams.needsUpdate = true;
       }
    }, -0.02);
-   const face = useMemo(() => {
-      const pieces = [
+   // Stand-in while the GLB is missing or broken: the old procedural sheet and its face.
+   const sheet = useMemo<InstancePart[]>(() => {
+      const bodyPieces = [new SphereGeometry(0.5, 12, 10).scale(1, 0.95, 1).translate(0, 0.875, 0), new CylinderGeometry(0.42, 0.38, 0.6, 12).translate(0, 0.3, 0)];
+      const facePieces = [
          ...[-0.14, 0.14].map((x) => new SphereGeometry(0.055, 8, 6).scale(1, 1.3, 0.6).translate(x, 0.96, 0.47)),
          new TorusGeometry(0.13, 0.018, 4, 12, Math.PI).rotateZ(Math.PI).translate(0, 0.81, 0.49),
       ];
-      const geometry = mergeGeometries(pieces)!;
-      for (const g of pieces) g.dispose();
-      return [{ geometry, material: new MeshBasicMaterial({ color: "#302348" }) }];
+      const body = mergeGeometries(bodyPieces)!, face = mergeGeometries(facePieces)!;
+      for (const g of [...bodyPieces, ...facePieces]) g.dispose();
+      return [
+         { geometry: body, material: new MeshBasicMaterial({ color: "white", transparent: true, opacity: 0.8, blending: AdditiveBlending, depthWrite: false }) },
+         { geometry: face, material: new MeshBasicMaterial({ color: "#302348" }) },
+      ];
    }, []);
-   useEffect(() => () => { face[0].geometry.dispose(); face[0].material.dispose(); }, [face]);
+   useEffect(() => () => { for (const part of sheet) { part.geometry.dispose(); (part.material as MeshBasicMaterial).dispose(); } }, [sheet]);
+   const shadow = useMemo(() => ({ geometry: new CircleGeometry(0.42, 20).rotateX(-Math.PI / 2), material: new MeshBasicMaterial({ color: "#0b0618", transparent: true, opacity: 0.32, depthWrite: false }) }), []);
+   useEffect(() => () => { shadow.geometry.dispose(); shadow.material.dispose(); }, [shadow]);
    return <group name="ghosts">
       <instancedMesh ref={mesh} args={[resources.geometry, resources.material, 12]} frustumCulled={false} />
-      <DynamicInstanced count={12} parts={face} update={(i, m) => {
+      <DynamicInstancedModel asset={ASSETS.ghost} count={12} fallbackParts={sheet} tinted update={(i, m, color) => {
          if (!resources.shown[i]) return false;
          m.copy(resources.looks[i]);
+         color.copy(resources.tints[i]);
       }} />
+      <DynamicInstanced count={12} update={(i, m) => {
+         // Soft ground shadow under the floating ghost (smaller as it rises or shrinks).
+         if (!resources.shown[i]) return false;
+         const c = resources.centre[i], size = resources.scales[i] * (1 - 0.35 * Math.min(1, Math.max(0, c.y - SUCK.centreY) / 1.2));
+         m.makeScale(size, 1, size).setPosition(c.x, 0.025, c.z);
+      }}><primitive object={shadow.geometry} attach="geometry" /><primitive object={shadow.material} attach="material" /></DynamicInstanced>
       <instancedMesh ref={rings} args={[resources.ring, resources.ringMaterial, 12]} frustumCulled={false} renderOrder={20} visible={false} />
    </group>;
 }

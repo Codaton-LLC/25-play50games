@@ -1,4 +1,5 @@
 import type { ModelAsset } from "@/arcade3d/core/types";
+import { GHOST_GLB_SCALE, GHOST_GLB_Y_OFFSET } from "./suck";
 import { EXPANSION_ASSETS, EXPANSION_GLB_SIZE, EXPANSION_GLB_POINTS, REUSED_ASSETS, RUNNER_LANDMARKS, SHARED_ASSETS } from "@/arcade3d/core/sharedAssets";
 
 export const HUNTER_SCALE = 1.56 / 1.886;
@@ -13,4 +14,6 @@ export const ASSETS = {
    chair: { ...SHARED_ASSETS.chair, scale: 0.6 / 1.21227, stretch: [1, 1, 0.6 / (1.23750 * (0.6 / 1.21227))] },
    book: { ...REUSED_ASSETS.book, scale: 0.25 / 1.89505, rotationY: -Math.PI / 2, yOffset: -0.125 },
    door: { ...REUSED_ASSETS.door, scale: 2.2 / 1.89286 },
+   /** Hyper3D sheet ghost (2500 tris, 59 KB): 1.35 m tall, middle on the frame's body centre y0.8. */
+   ghost: { id: "ghost", url: "/models/3d/ghost-vacuum/ghost.glb", scale: GHOST_GLB_SCALE, yOffset: GHOST_GLB_Y_OFFSET, fallback: "sphere", fallbackColor: "#e0e7ff", budget: { tris: 5000, bytes: 300000 } },
 } satisfies Record<string, ModelAsset>;

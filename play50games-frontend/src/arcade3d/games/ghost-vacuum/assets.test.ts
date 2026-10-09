@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { readCharacterGlb } from "@/arcade3d/core/rig/robotGlb";
 import { EXPANSION_GLB_POINTS, EXPANSION_GLB_SIZE } from "@/arcade3d/core/sharedAssets";
 import { ASSETS, HUNTER_SCALE, PACK_OFFSET, VACUUM_SCALE } from "./assets";
+import { FLOAT, SUCK } from "./suck";
 
 async function bounds(url: string) {
    const { cloud } = await readCharacterGlb(url);
@@ -32,5 +33,18 @@ describe("real GLB fits (run by Claude outside the meshopt-restricted sandbox)",
       // These declared assets remain upright; a lying book needs an x-rotated parent.
       expect(book.height * ASSETS.book.scale).toBeCloseTo(0.25, 2);
       expect(door.height * ASSETS.door.scale).toBeCloseTo(2.2, 2);
+   });
+   it("fits the Hyper3D ghost to the approved 1.35 m sheet, centred on the body centre, floating", async () => {
+      const ghost = await bounds(ASSETS.ghost.url), k = ASSETS.ghost.scale;
+      expect(ghost.height).toBeCloseTo(FLOAT.glbHeight, 3);
+      expect(ghost.min[1]).toBeCloseTo(0, 3); // floor pivot
+      expect(ghost.height * k).toBeCloseTo(1.35, 3);
+      // Middle of the drawn ghost on the frame's body centre (where the suck-in and ring aim).
+      expect(ghost.min[1] * k + ASSETS.ghost.yOffset + ghost.height * k / 2).toBeCloseTo(SUCK.centreY, 3);
+      // Arms out 1.29 m, body about 0.8 m: never wider than the old 1.0 m sheet by more than the arms.
+      expect(ghost.width * k).toBeLessThan(1.35);
+      expect(ghost.depth * k).toBeLessThan(0.8);
+      // Floating: the lowest drawn point clears the floor by at least 0.35 m at the bottom of the bob.
+      expect(FLOAT.hover - FLOAT.bob + ASSETS.ghost.yOffset + ghost.min[1] * k).toBeGreaterThanOrEqual(0.35);
    });
 });

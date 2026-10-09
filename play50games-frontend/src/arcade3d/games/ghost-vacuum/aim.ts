@@ -1,8 +1,9 @@
 import { active, type Ghost } from "./rules";
+import { FLOAT, GHOST_GLB_Y_OFFSET } from "./suck";
 
-// Drawn sheet (Ghosts.tsx): radius 0.5, from the 0.1 base to 0.1 + 1.45 (body,
-// tail and bob), all scaled by 1.2 for the big ghost.
-const RADIUS = 0.5, BASE = 0.1, HEIGHT = 1.45;
+// Drawn ghost (Ghosts.tsx): radius 0.5, floating: from the hover frame base (minus the bob)
+// plus the GLB's offset, 1.35 m tall plus the bob, scaled by 1.2 for the big ghost.
+const RADIUS = 0.5, BASE = FLOAT.hover - FLOAT.bob, HEIGHT = GHOST_GLB_Y_OFFSET + FLOAT.height + 2 * FLOAT.bob;
 export interface AimRay { ox: number; oy: number; oz: number; dx: number; dy: number; dz: number }
 const scaleOf = (g: Ghost) => g.kind === "big" ? 1.2 : 1;
 

@@ -17,6 +17,21 @@
             "bytes": 300000
          },
          "textureSize": 512
+      },
+      {
+         "id": "ghost",
+         "kind": "prop",
+         "mode": "text",
+         "prompt": "Cute friendly sheet ghost: a rounded body with three wavy tails at the bottom, two small raised arms, big dark oval eyes, a happy smile and rosy cheeks, pale lilac-white. Premium stylised mobile-game look, soft clean shapes. Single object, centred, upright, front facing the viewer. No base, no ground, no text. Clean game-ready low-poly topology, clean PBR texture without baked shadows.",
+         "tier": "Gen-2.5-Medium",
+         "qualityOverride": 2500,
+         "attempts": 1,
+         "target": "ghost-vacuum",
+         "budget": {
+            "tris": 5000,
+            "bytes": 300000
+         },
+         "textureSize": 512
       }
    ]
 }
