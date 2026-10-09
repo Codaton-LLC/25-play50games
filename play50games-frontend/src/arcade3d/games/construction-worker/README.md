@@ -49,7 +49,7 @@ Pickup only at r ≤ 7.8, drop only at r ≥ 8.9. The gap is 1.1 m. At 2.5 m/s a
 3. **Cap.** 5800 is 160 above 5640. `base` is 0. `capScore` is a no-op on a legal run.
 4. **Collapse.** `t(9) = 11.05 s`. `minDurationMs` 9000 is under it. A lose or a time-up has no time bonus (≤ 4500).
 
-The store bot picks the pile under the hook, holds the dwell, and drops when the **predicted landing** is inside the perfect band (not at swing angle 0, which is the fastest point of the swing). `simulateRun` at 60 fps, 20 fps and random 4–50 ms. Win ≥ 41.5 s and ≤ 5640; house ≤ 1300 at ≥ 9.9 s. Both pass `withinServerLimits`.
+The store bot cruises to the pile, holds the dwell, and drops only when the guide is perfect and the trolley is inside the gate (`simulateRun` at 60 fps, 20 fps and random 4–50 ms). The 0.15 m/s dwell is the swing dying, so that bot does not clear 36 pieces inside 150 s: `t(36) = 41.56` is a travel floor that ignores settle. It still finishes the house inside the 9.9 s / 1300 bounds (slower, score ≤ 1300), then times out at 150 s with score > 1000 and ≤ 5640. `withinServerLimits` passes and `capScore` is a no-op. An idle run scores 0.
 
 ## Run end
 
@@ -68,7 +68,7 @@ One sentence: the wedge has to be large enough to read the hook and the ok band 
 
 - **Worker** at (3.2, 0, −1), `SHARED_ASSETS.runner` scale 0.825 (1.556 m), `applyLift={false}`, group y = `bodyLift × 0.825`. `idlePose`, `pointPose` (`aimArm`) while carrying, `cheerPose` for 1.2 s. Hard hat on `attach={{ head }}`.
 - Guide: gold `#fbbf24` when the predicted landing is inside perfect, mint `#6ee7b7` inside ok, slate outside, plus a blob under the piece. The perfect band is 1.5–2 px, so the gold tier is how it reads. Slot frame is emissive, not a light.
-- `environment: { background: "#e7e5e4", fog: ["#e7e5e4", 28, 55], lighting: "day" }`. Van at (−5.4, 0, 1.0), yaw π/2 (long axis east), about 5.5 m clear of the mast base, inside the wedge.
+- `environment: { background: "#e7e5e4", fog: ["#e7e5e4", 100, 160], lighting: "day" }`. Changed from 28 / 55: the portrait fit sits about 65 m out, so fog that starts at 28 m hid the site, the worker and the hook. Van at (−5.4, 0, 1.0), yaw π/2 (long axis east), about 5.5 m clear of the mast base, inside the wedge.
 
 ## Core helpers used
 
@@ -126,4 +126,15 @@ No open design question remains.
 
 ## Status
 
-Not built. `status` stays `"dev"`.
+Playable. `status` stays `"dev"`. Thumbnail stays null.
+
+```
+HANDOFF P-15 construction-worker
+branch: cursor/game-construction-worker
+status: dev (unchanged)
+scoring: unchanged, 5800 / 9000–152000 ms / base 0 / pps 150
+fog: 100–160 (was 28–55; the portrait camera is ~65 m out and the old fog hid the site)
+proof: t(8)=9.92 s score 1300; t(36)=41.56 s score 5640 is a haul floor. A perfect-seeking store bot settles the 0.15 m/s dwell and times out at 150 s with score > 1000 and ≤ 5640, house ≤ 1300 at ≥ 9.9 s. withinServerLimits holds. capScore is a no-op. Idle score 0.
+checks: next build with PREVIEW passed; tsc via that build; vitest (game tests re-run, full suite 1676 earlier); gamecheck and tools/perf are not in this worktree.
+play: keyboard moves the crane (swing chip left 0). Touch controls and the open cookie banner at 390×844 and 844×390. Hook, slot ring, worker and piles stay above the banner.
+```
