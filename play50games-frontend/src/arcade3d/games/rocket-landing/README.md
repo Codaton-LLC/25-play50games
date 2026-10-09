@@ -140,21 +140,33 @@ P-15-fix1: hull and feedback pilot fixes written; Claude build/Vitest acceptance
 - The asteroid timeout was a pilot fault: low-gravity moving-target pursuit saturated steering and oscillated under the roof; assist also overrides small commands in its neutral zone. The revised test pilot enters below the roof through the side shaft, brakes at x=0 using lower gains, and descends for a predicted pad crossing. Deliberate asteroid steering stays outside the assist neutral zone. No level, physics, fuel, clock or scoring numbers changed.
 - Campaigns assert completion for every named planet. Asteroid crashes fail immediately; each asteroid witness requires <40 seconds and >50 fuel left. The test prints per-planet time/fuel ranges.
 
-Direct controller replay (temporary Node/TypeScript diagnostic, **not Vitest**): 16 seeds x both assist modes = 32 wins using the real simulateRun/store clock and fixed/random frame schedules. Campaign duration 77.717?132.088 s; highest score 2314; every campaign passed unchanged score/rate checks. Replay took about 4 s including diagnostics; the whole Vitest file's <60 s requirement remains for Claude to verify. No asteroid crashes.
+Direct controller replay (temporary Node/TypeScript diagnostic, **not Vitest**): 16 seeds x both assist modes = 32 wins using the real simulateRun/store clock and fixed/random frame schedules. Campaign duration 77.717–132.088 s; highest score 2314; every campaign passed unchanged score/rate checks. Replay took about 4 s including diagnostics; the whole Vitest file's <60 s requirement remains for Claude to verify. No asteroid crashes.
 
 These ranges are **successful-attempt time**, excluding transition holds and earlier retries; fuel is remaining units at impact, not percent. Direct replay measurements await independent Vitest confirmation.
 
 | Planet | Successful attempt (s) | Fuel left (units) |
 |---|---:|---:|
-| Moon | 13.891?22.360 | 69.231?81.333 |
-| Desert | 8.930?17.318 | 45.817?72.500 |
-| Ice | 8.324?17.644 | 20.911?60.492 |
-| Gas moon | 8.732?41.458 | 0.087?72.000 |
-| Asteroid | 31.501?31.978 | 58.579?59.048 |
+| Moon | 13.891–22.360 | 69.231–81.333 |
+| Desert | 8.930–17.318 | 45.817–72.500 |
+| Ice | 8.324–17.644 | 20.911–60.492 |
+| Gas moon | 8.732–41.458 | 0.087–72.000 |
+| Asteroid | 31.501–31.978 | 58.579–59.048 |
 
 Checks: direct mesh envelope/radius/support-gap assertions and controller replay passed. TypeScript --noEmit --incremental false passed. Build and Vitest intentionally not run under this task's sandbox instruction. P-15 browser/layout/performance acceptance remains pending Claude; this fix adds no rendering path.
 
 Open questions:
 - Claude: run the rocket-landing tests, whole frontend Vitest suite and build; confirm whole test file remains below about 60 seconds.
-- Gas moon seed=12/manual pilot retains only 0.086975 fuel units on its successful attempt. The asteroid has ample measured margin; the older gas-moon witness proves completion but does not establish comfortable reserve across all planets. Assess gas-moon pilot quality/margin in a follow-up; no approved budget was silently changed.
 - Carry forward P-15 browser/safe-area, missing-model fallback, screenshots, draw-call/frame/resource measurements and thumbnail capture acceptance.
+
+
+## P-15-fix2 review fixes
+
+The fix1 measurements above are historical; the replay below supersedes its pilot ranges.
+
+Live camera framing now uses the rocket/pad hull box and a conservative clear horizontal strip from all measured HUD, controls and banner rects. The level perspective fit reserves mesh depth and applies its lens shift each frame, without damping lag. The award slot is always measured (hidden outside the landed hold); its single-line text uses Fuel for the reserve component. HUD tick and guide share the published landingSafe stat. Dust originates at the feet; crash sparks use the closest hull/contact-surface pair.
+
+Added pure spawn projection tests at 844x390 with a 44 px HUD band, with and without a banner; direct projections give y=105.37 to 148.11 px (42.74 px tall) without the banner and y=101.06 to 130.67 px (29.61 px tall) with it. Browser acceptance with actual controls remains for Claude.
+
+Direct replay of the 32 real-clock pilot campaigns: all won, 76.600 to 106.262 s, highest score 2330; gas-moon successful attempts 8.366 to 15.766 s, fuel 56.159 to 72.905 units. The gas-moon descent gate is 0.8 m / 0.5 m/s / 0.17 radians and its horizontal feedback gains are reduced to avoid wind-driven oscillation. Every gas-moon witness asserts at least 20 fuel units. Fuel budgets and scoring are unchanged. Replay body execution took 2.61 s; whole Vitest timing remains pending.
+
+Direct in-memory mutation diagnostics: baseline passed, mutant failed, restored baseline passed for M3 absolute drift, M5 rounded centre points, M8 half wind, M10 reserve divided by 100 at impact, and M11 0.5 m top-contact tolerance. New tests exercise both moving-pad drift directions, a 144.5 centre value floored to 144, wind amplitude at its crest, later-planet reserve at impact, slow pad-side overlap and top-edge contact. No mutant is retained. Build/Vitest intentionally deferred to Claude. Ceiling contact remains a crash pending the open user decision above. Thumbnail metadata and capture input are unchanged.

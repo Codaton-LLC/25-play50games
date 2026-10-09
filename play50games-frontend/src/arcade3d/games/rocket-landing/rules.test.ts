@@ -5,7 +5,7 @@ import { capScore, withinServerLimits } from "@/arcade3d/core/limits";
 import { advanceRunClock, playedFrameDt } from "@/arcade3d/core/frameLoop";
 import { HULL, SUPPORT } from "./assets";
 import { rocketLandingMeta } from "./meta";
-import { BODY, CONTACT, DURATION_MS, ENGINE, PLANETS, TRANSITION, createRun, fallbackLayout, generateCampaign, isValidLayout, landingAward, landingSafe, padVx, padX, stepRun, wrap, type Run, type Controls } from "./rules";
+import { BODY, CONTACT, DURATION_MS, ENGINE, PLANETS, TRANSITION, createRun, crashContact, fallbackLayout, generateCampaign, isValidLayout, landingAward, landingSafe, padVx, padX, stepRun, wrap, type Run, type Controls } from "./rules";
 
 const idle: Controls = { rotate: 0, thrust: false };
 const fire: Controls = { rotate: 0, thrust: true };
@@ -68,12 +68,17 @@ describe("landing gates and awards", () => {
       r.body.x = 0;
       r.body.vx = Math.PI / 4;
       expect(landingSafe(r, 0)).toBe(true);
+      r.body.vx = Math.PI / 4 + 0.5;
+      expect(landingSafe(r, 0)).toBe(true);
+      r.body.vx = -0.5;
+      expect(landingSafe(r, 0)).toBe(false);
       r.body.vx = Math.PI / 4 + 1;
       expect(landingSafe(r, 0)).toBe(false);
    });
    it("floors every component, normalizes fuel and caps endpoints", () => {
       expect(landingAward(-0.001, 0, 6, 100, 100)).toEqual({ soft: 199, centre: 150, reserve: 150, total: 499 });
       expect(landingAward(-1, 1.5, 6, 50, 100)).toEqual({ soft: 100, centre: 75, reserve: 75, total: 250 });
+      expect(landingAward(-1, 0.11, 6, 50, 100).centre).toBe(144);
       expect(landingAward(-2, 3, 6, 0, 85).total).toBe(0);
       expect(landingAward(-0.01, 0, 4, 42.5, 85).reserve).toBe(75);
    });
@@ -90,6 +95,42 @@ function touchdown(r: Run, vy = -1): void {
 }
 
 describe("simulation and contacts", () => {
+   it("places crash feedback on the pad contact surface", () => {
+      const r = createRun(0, false);
+      touchdown(r, -3);
+      const at = { x: 0, y: 0, z: 0 };
+      crashContact(r, at);
+      expect(at.y).toBeCloseTo(2, 8);
+      expect(at.y).toBeLessThan(r.body.y);
+   });
+   it("pins gas-moon wind at its positive amplitude", () => {
+      const r = createRun(0, false);
+      r.planet = 3; r.layouts[3].wind = Math.PI / 2;
+      stepRun(r, idle, 1 / 120);
+      expect(r.body.vx).toBeCloseTo(0.4 / 120, 12);
+   });
+   it("normalizes reserve through impact on planets 2-4", () => {
+      for (const planet of [1, 2, 3]) {
+         const r = createRun(0, false);
+         r.planet = planet; r.fuel = PLANETS[planet].fuel * 0.5;
+         touchdown(r);
+         expect(r.mode).toBe("landed");
+         expect(r.award.reserve).toBe(75);
+      }
+   });
+   it("rejects slow side overlap even with safe feet and accepts the top skin", () => {
+      const side = createRun(0, false);
+      side.body.x = padX(side.layouts[0], 0, 0) + 3 - SUPPORT[1][0] - 0.02;
+      side.body.y = 2.9; side.body.vy = -0.1;
+      expect(landingSafe(side, 0)).toBe(true);
+      stepRun(side, idle, 1 / 120);
+      expect(side.mode).toBe("crashed");
+      const top = createRun(0, false);
+      top.body.x = padX(top.layouts[0], 0, 0) + 3 - SUPPORT[1][0] - 0.02;
+      top.body.y = 3.1; top.body.vy = -0.1;
+      stepRun(top, idle, 1 / 120);
+      expect(top.mode).toBe("landed");
+   });
    it("includes both support extremes and rejects an overhanging foot", () => {
       const r = createRun(0, false), px = padX(r.layouts[0], 0, 0);
       r.body.vy = -1;
@@ -289,8 +330,8 @@ describe("real-clock score limits", () => {
                // The descent from the 5.8 m holding point takes about 3.5 seconds.
                const crossing = r.planet !== 4 || Math.abs(padX(l, 4, r.attemptTime + 3.5)) < 0.25;
                if ((r.planet !== 4 || stage === 1) && crossing &&
-                  Math.abs(b.x - (r.planet === 4 ? 0 : px)) < 0.3 &&
-                  Math.abs(b.vx - (r.planet === 4 ? 0 : pv)) < 0.25 && Math.abs(b.angle) < 0.08) stage = 2;
+                  Math.abs(b.x - (r.planet === 4 ? 0 : px)) < (r.planet === 3 ? 0.8 : 0.3) &&
+                  Math.abs(b.vx - (r.planet === 4 ? 0 : pv)) < (r.planet === 3 ? 0.5 : 0.25) && Math.abs(b.angle) < (r.planet === 3 ? 0.17 : 0.08)) stage = 2;
                const shaft = l.spawnX < 0 ? -5.3 : 5.3;
                // Enter below the roof, brake over x=0, then intercept a pad crossing.
                // Chasing the pad in low gravity saturates tilt and never settles.
@@ -300,7 +341,8 @@ describe("real-clock score limits", () => {
                const targetVy = stage === 2 ? -Math.min(2, 0.35 + Math.max(0, b.y - 3.1) * 0.5) : clamp((targetY - b.y) * 0.8, -3, 2);
                const ay = clamp(g + 3 * (targetVy - b.vy), 0, 12);
                const wind = r.planet === 3 ? 0.4 * Math.sin(2 * Math.PI * r.attemptTime / 8 + l.wind) : 0;
-               const ax = (r.planet === 4 ? 0.15 : 0.8) * (tx - b.x) + (r.planet === 4 ? 1 : 1.8) * (tv - b.vx) - wind;
+               // Gentler gas-moon feedback avoids chasing each wind reversal while hovering.
+               const ax = (r.planet === 4 ? 0.15 : r.planet === 3 ? 0.4 : 0.8) * (tx - b.x) + (r.planet === 4 ? 1 : r.planet === 3 ? 1.2 : 1.8) * (tv - b.vx) - wind;
                const maxAngle = stage === 2 && b.y < 4.5 ? 0.1 : 0.45;
                const desiredAngle = clamp(-Math.atan2(ax, Math.max(g, ay)), -maxAngle, maxAngle);
                controls.rotate = clamp(-(8 * wrap(desiredAngle - b.angle) - 4 * b.omega) / 3, -1, 1);
@@ -315,6 +357,7 @@ describe("real-clock score limits", () => {
                   const stats = planetStats[r.planet];
                   stats.minTime = Math.min(stats.minTime, r.attemptTime); stats.maxTime = Math.max(stats.maxTime, r.attemptTime);
                   stats.minFuel = Math.min(stats.minFuel, r.fuel); stats.maxFuel = Math.max(stats.maxFuel, r.fuel);
+                  if (r.planet === 3) expect(r.fuel, `Gas moon reserve seed=${seed}, assist=${assist}`).toBeGreaterThanOrEqual(20);
                   if (r.planet === 4) {
                      expect(r.attemptTime, `Asteroid time seed=${seed}, assist=${assist}`).toBeLessThan(40);
                      expect(r.fuel, `Asteroid margin seed=${seed}, assist=${assist}`).toBeGreaterThan(50);

@@ -17,7 +17,7 @@ import { ASSETS, BELL, SUPPORT } from "./assets";
 import RocketCamera from "./camera";
 import Planet from "./Planet";
 import { RocketPrimitive } from "./Primitives";
-import { BODY, PLANETS, createRun, landingSafe, padVx, padX, stepRun } from "./rules";
+import { BODY, PLANETS, createRun, crashContact, landingSafe, padVx, padX, stepRun } from "./rules";
 
 const GOOD = new Color("#6ee7b7"), BAD = new Color("#fda4af");
 export default function Scene() {
@@ -51,9 +51,10 @@ export default function Scene() {
       scratch.controls.thrust = i.jump || (!run.assist && i.moveY < -0.5);
       stepRun(run, scratch.controls, dt);
       const store = useArcadeStore.getState(), b = run.body, ev = run.events;
-      scratch.at.x = b.x; scratch.at.y = b.y; scratch.at.z = 0.5;
+      scratch.at.x = b.x; scratch.at.y = b.y - BODY.centre; scratch.at.z = 0.5;
       if (ev.crash || ev.award) scratch.impactNow = time.now;
       if (ev.crash) {
+         crashContact(run, scratch.at);
          fx.burst("sparkle", scratch.at, 24); fx.shake(0.3); playSfx("boom"); store.loseLife();
       }
       if (ev.award) {
@@ -74,6 +75,8 @@ export default function Scene() {
          fx.burst("puff", scratch.at, 3); scratch.lastSmoke = time.play;
       }
       const stats = store.stats;
+      const safe = landingSafe(run, run.attemptTime) ? 1 : 0;
+      if (stats.landingSafe !== safe) store.setStat("landingSafe", safe);
       const fuel = Math.floor(100 * run.fuel / PLANETS[run.planet].fuel), vx = Math.round(10 * (b.vx - padVx(run.layouts[run.planet], run.planet, run.attemptTime))), vy = Math.round(10 * b.vy), tilt = Math.round(b.angle * 180 / Math.PI);
       if (stats.fuel !== fuel) store.setStat("fuel", fuel);
       if (stats.vx !== vx) store.setStat("vx", vx);
@@ -106,7 +109,7 @@ export default function Scene() {
       const position = guide.geometry.getAttribute("position"), distances = guide.geometry.getAttribute("lineDistance");
       position.setXYZ(0, b.x, b.y - BODY.centre, 1.1); position.setXYZ(1, b.x, 2.08, 1.1); position.needsUpdate = true;
       distances.setX(1, Math.abs(b.y - BODY.centre - 2.08)); distances.needsUpdate = true;
-      guide.material.color.copy(landingSafe(run, run.attemptTime) ? GOOD : BAD); guide.visible = run.mode === "flight";
+      guide.material.color.copy(useArcadeStore.getState().stats.landingSafe === 1 ? GOOD : BAD); guide.visible = run.mode === "flight";
       markers[0].x = padX(run.layouts[run.planet], run.planet, run.attemptTime);
    });
    return <>

@@ -198,6 +198,40 @@ function impact(r: Run, mask: number): void {
    }
    r.hold = TRANSITION; r.impactTime = r.simTime; r.powered = false;
 }
+// Nearest hull/surface pair at the resolved impact, for crash feedback only.
+export function crashContact(r: Run, out: { x: number; y: number; z: number }): void {
+   const b = r.body, c = Math.cos(b.angle), s = Math.sin(b.angle);
+   let nearest = Infinity;
+   const consider = (x: number, y: number, qx: number, qy: number) => {
+      const d = (x - qx) ** 2 + (y - qy) ** 2;
+      if (d < nearest) { nearest = d; out.x = qx; out.y = qy; }
+   };
+   const surfaces = (r.contactMask & 1 ? [r.pad] : []).concat(r.contactMask & 2 ? [...r.obstacles[r.planet], ...(r.planet === 4 ? [r.roof] : [])] : []);
+   for (const [hx, hy] of HULL) {
+      const x = b.x + c * hx - s * (hy - BODY.centre), y = b.y + s * hx + c * (hy - BODY.centre);
+      if (r.contactMask & 2) {
+         consider(x, y, WORLD.left, clamp(y, WORLD.bottom, WORLD.top));
+         consider(x, y, WORLD.right, clamp(y, WORLD.bottom, WORLD.top));
+         consider(x, y, clamp(x, WORLD.left, WORLD.right), WORLD.bottom);
+         consider(x, y, clamp(x, WORLD.left, WORLD.right), WORLD.top);
+      }
+      for (const surface of surfaces) for (let i = 0; i < surface.points.length; i++) {
+         const a = surface.points[i], q = surface.points[(i + 1) % surface.points.length];
+         const dx = q.x - a.x, dy = q.y - a.y;
+         const t = clamp(((x - a.x) * dx + (y - a.y) * dy) / (dx * dx + dy * dy), 0, 1);
+         consider(x, y, a.x + t * dx, a.y + t * dy);
+      }
+   }
+   // A pad/terrain corner can touch the middle of a hull edge.
+   for (const surface of surfaces) for (const q of surface.points) for (let i = 0; i < HULL.length; i++) {
+      const a = HULL[i], e = HULL[(i + 1) % HULL.length];
+      const ax = b.x + c * a[0] - s * (a[1] - BODY.centre), ay = b.y + s * a[0] + c * (a[1] - BODY.centre);
+      const dx = c * (e[0] - a[0]) - s * (e[1] - a[1]), dy = s * (e[0] - a[0]) + c * (e[1] - a[1]);
+      const t = clamp(((q.x - ax) * dx + (q.y - ay) * dy) / (dx * dx + dy * dy), 0, 1);
+      consider(ax + t * dx, ay + t * dy, q.x, q.y);
+   }
+   out.z = 0.5;
+}
 function flight(r: Run, dt: number, thrust: boolean): number {
    const b = r.body, p = PLANETS[r.planet], oldFuel = r.fuel;
    copy(r.previous, b);
