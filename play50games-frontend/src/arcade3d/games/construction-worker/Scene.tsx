@@ -9,7 +9,7 @@ import { useRunFrame } from "@/arcade3d/core/useRunFrame";
 import { useInput } from "@/arcade3d/core/input";
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { useFx } from "@/arcade3d/core/fx/FxLayer";
-import { playSfx, startLoop, type LoopHandle } from "@/arcade3d/core/audio";
+import { playSfx, startLoop, useMuted, type LoopHandle } from "@/arcade3d/core/audio";
 import { randomSeed } from "@/arcade3d/core/math";
 import { LOOK, viewFor } from "./looks";
 import { Crane } from "./Crane";
@@ -60,10 +60,21 @@ export default function Scene() {
    const fx = useFx();
    const loop = useRef<LoopHandle | null>(null);
    const click = useRef(0);
+   const command = useRef<CraneInput>({ rot: 0, radial: 0, pick: -1, actionPick: false, drop: false });
+   const phase = useArcadeStore((s) => s.phase);
+   const muted = useMuted();
 
    useEffect(() => {
       fx.warm("sparkle", "puff", "confetti", "score");
    }, [fx]);
+
+   useEffect(() => {
+      if (phase === "playing" && !muted) loop.current = startLoop("engine", { volume: 0.3 });
+      return () => {
+         loop.current?.stop();
+         loop.current = null;
+      };
+   }, [phase, muted]);
 
    useRunFrame((_state, dt) => {
       const live = input.current;
@@ -72,14 +83,13 @@ export default function Scene() {
       if (digit !== null && digit >= 1 && digit <= 5) pick = digit - 1;
       else if (live.tap) pick = pileFromPointer(camera, live.pointer);
       const carried = run.carried >= 0;
-      const command: CraneInput = {
-         rot: live.moveX,
-         radial: -live.moveY,
-         pick,
-         actionPick: live.actionPressed && !carried,
-         drop: (live.jumpPressed || live.actionPressed) && carried,
-      };
-      stepRun(run, command, dt);
+      const order = command.current;
+      order.rot = live.moveX;
+      order.radial = -live.moveY;
+      order.pick = pick;
+      order.actionPick = live.actionPressed && !carried;
+      order.drop = (live.jumpPressed || live.actionPressed) && carried;
+      stepRun(run, order, dt);
       const store = useArcadeStore.getState();
       if (run.gained) store.addScore(run.gained);
       const step = PLAN[run.planIndex];
@@ -90,9 +100,8 @@ export default function Scene() {
       store.setStat("piece", (step?.kind ?? 4) + 1);
       LOOK.y = 0.35 * roofHeight(run);
 
-      if (!loop.current) loop.current = startLoop("engine", { volume: 0.3 });
       const pace = Math.min(1, Math.abs(run.omega) / 0.9 + Math.abs(run.vr) / 2.5);
-      loop.current.set({ pitch: 0.85 + pace * 0.45, volume: 0.25 + pace * 0.1 });
+      loop.current?.set({ pitch: 0.85 + pace * 0.45, volume: 0.25 + pace * 0.1 });
       click.current += dt;
       if (click.current > 0.4 && swingMagnitude(run.swing) > 0.08) {
          click.current = 0;
