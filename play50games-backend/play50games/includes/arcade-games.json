@@ -182,9 +182,9 @@
     "construction-worker": {
       "title": "Construction Worker",
       "kind": "points",
-      "max_score": 5800,
+      "max_score": 6100,
       "min_duration_ms": 9000,
-      "max_duration_ms": 152000,
+      "max_duration_ms": 242000,
       "base": 0,
       "max_pps": 150,
       "enabled": false

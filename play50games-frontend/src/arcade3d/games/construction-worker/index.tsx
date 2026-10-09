@@ -1,16 +1,32 @@
 "use client";
 
-// Stub until the game is built. Owner: cursor. Replace PlaceholderScene with ./Scene.
 import type { GameDefinition } from "@/arcade3d/core/types";
-import { PlaceholderScene } from "@/arcade3d/core/PlaceholderScene";
+import Scene from "./Scene";
+import { Hud } from "./Hud";
+import { ASSETS } from "./assets";
+import { CLOCK_S } from "./rules";
 
 const definition: GameDefinition = {
    slug: "construction-worker",
-   Scene: PlaceholderScene,
-   assets: {},
-   camera: { position: [0, 6, 10], fov: 50, lookAt: [0, 0, 0] },
+   Scene,
+   Hud,
+   assets: ASSETS,
+   camera: { position: [8, 12, 18], fov: 42, lookAt: [0, 0.5, 5] },
+   // The fitted phone camera sits about 65 m out. Fog that starts at 28 m hides the whole site.
+   environment: { background: "#e7e5e4", fog: ["#e7e5e4", 100, 160], lighting: "day" },
    touchControls: ["joystick", "action", "tap"],
-   instructions: ["Pick the material the blueprint asks for.", "Swing it into the glowing slot and drop."],
+   hudStats: [
+      { key: "stability", label: "Stability", max: 100 },
+      { key: "building", label: "Building", max: 3 },
+      { key: "swing", label: "Swing" },
+   ],
+   durationMs: CLOCK_S * 1000,
+   resultDelayMs: 1100,
+   instructions: [
+      "A / D rotates the crane, W / S runs the trolley. Arrows do the same.",
+      "Press 1-5 or tap a pile while the hook is over it. Action picks too.",
+      "Space or Action drops when the guide turns gold.",
+   ],
 };
 
 export default definition;
