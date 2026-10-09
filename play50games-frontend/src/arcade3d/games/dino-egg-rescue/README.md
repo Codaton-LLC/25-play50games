@@ -161,14 +161,27 @@ Patched at merge: F1 nest + dino start moved SE to (11, 7.5), lane-segment clear
 ## Status
 
 ```text
-HANDOFF P-14-fix1 dino-egg-rescue
-Branch / last commit: antigravity/design-dino-egg-rescue @ HEAD (pushed)
+HANDOFF P-15 dino-egg-rescue
+Branch / last commit: antigravity/game-dino-egg-rescue @ HEAD (pushed)
 Files changed:
+  play50games-frontend/public/images/3d/dino-egg-rescue.webp
+  play50games-frontend/src/arcade3d/games/dino-egg-rescue/Hud.module.css
+  play50games-frontend/src/arcade3d/games/dino-egg-rescue/Hud.tsx
+  play50games-frontend/src/arcade3d/games/dino-egg-rescue/Primitives.tsx
   play50games-frontend/src/arcade3d/games/dino-egg-rescue/README.md
-  play50games-frontend/src/arcade3d/games/dino-egg-rescue/assets.spec.json
-Checks:
-  - Branch confirmed: antigravity/design-dino-egg-rescue
-  - Template matched: 14 sections from treasure-island/README.md, <= 180 lines
-  - assets.spec.json: valid empty assets array (0 custom GLBs owned)
-  - git status / git diff shows only the 2 allowed files
+  play50games-frontend/src/arcade3d/games/dino-egg-rescue/Scene.tsx
+  play50games-frontend/src/arcade3d/games/dino-egg-rescue/Valley.tsx
+  play50games-frontend/src/arcade3d/games/dino-egg-rescue/assets.test.ts
+  play50games-frontend/src/arcade3d/games/dino-egg-rescue/assets.ts
+  play50games-frontend/src/arcade3d/games/dino-egg-rescue/camera.ts
+  play50games-frontend/src/arcade3d/games/dino-egg-rescue/index.tsx
+  play50games-frontend/src/arcade3d/games/dino-egg-rescue/meta.ts
+  play50games-frontend/src/arcade3d/games/dino-egg-rescue/rules.test.ts
+  play50games-frontend/src/arcade3d/games/dino-egg-rescue/rules.ts
+  tools/thumbs/inputs/dino-egg-rescue.mjs
+Checks: npm run build pass (47/47 static pages, flagged & preview) | npx tsc --noEmit pass (0 errors) | npx vitest run pass (1797/1797 tests in 135 files, dino-egg-rescue 27/27 tests) | thumbnail captured (tools/thumbs/capture.mjs: 8.5 KB, OK)
+Built: Complete Dino Egg Rescue gameplay end to end: pure deterministic rules with 33 egg supply cap, lost tick hoarding cap, golden eggs, mud scaling, stun & grace timers, headway-checked gully boulder roll; R3F Scene with single useRunFrame, CameraRig follow focus, waddle & squash motions, DynamicInstancedModel rocks, instanced leafy trees, TargetMarkers, Web Audio loops/SFX; high-contrast HUD panel with safe area marking; mutant killer tests with store-backed bot limit proof over 20 seeds.
+Scoring formula: 1 egg = 100 pts, 2 eggs = 240 pts, 3 eggs = 450 pts (150/egg max); golden egg = 300 pts flat. Server limits strictly hold: maxScore 6000 >= 5850 absolute ceiling (33 * 150 + 3 * 300), duration 88000-92000 ms, maxPointsPerSec 70 >= 66.48 pts/s.
+Decisions I took and why: Nest and dino start at SE (11.0, 7.5) for >= 2.0 m edge clearance from lane 1 contact band; dash speed scaled by stack and mud matching walking physics; post-stun grace of 1.0 s protects recovery from boulder barrage; leafyTree only with 0.256 m trunk radius; world dash cooldown ring around dino telegraphs readiness without relying on HUD.
+Evidence: play50games-frontend/public/images/3d/dino-egg-rescue.webp (8.5 KB), tools/thumbs/out/dino-egg-rescue.webp
 ```
