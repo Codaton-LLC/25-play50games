@@ -1,0 +1,19 @@
+{
+   "slug": "ghost-vacuum",
+   "universe": "shared-cast",
+   "seed": 5050,
+   "assets": [
+      {
+         "id": "vacuum",
+         "kind": "prop",
+         "mode": "text",
+         "prompt": "Ghost-hunting vacuum backpack unit: an upright rounded cylinder canister with a flat back plate, two small round gauges and a glowing violet light strip on the front, a short hose connector at the bottom. Premium stylised mobile-game look, soft bevelled edges, simple clean shapes, matte white and slate grey with a violet glow strip. Single object, centred, upright, front facing the viewer, symmetrical. No shoulder straps, no hose, no nozzle, no base, no ground, no text, no logo. Clean game-ready low-poly topology, clean PBR texture without baked shadows.",
+         "tier": "Gen-2.5-Low",
+         "qualityOverride": 1500,
+         "attempts": 1,
+         "target": "ghost-vacuum",
+         "budget": { "tris": 3000, "bytes": 300000 },
+         "textureSize": 512
+      }
+   ]
+}
