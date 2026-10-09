@@ -44,7 +44,7 @@ export interface Run {
    hunter: Body; ghosts: Ghost[]; rng: () => number; elapsed: number; caught: number; gold: number;
    extras: number; session: number; score: number; won: boolean; ended: boolean;
    events: { captures: number[]; count: number; points: number; stun: number; pop: number; breaks: number; win: boolean };
-   scratch: { force: { x: number; y: number; z: number }; input: StepInput; tick: (dt: number) => void };
+   scratch: { logical: { x: number; y: number; z: number }; force: { x: number; y: number; z: number }; input: StepInput; tick: (dt: number) => void };
 }
 export function createRun(seed: number): Run {
    const rng = createRng(seed);
@@ -62,7 +62,7 @@ export function createRun(seed: number): Run {
    const run: Run = { hunter: { x: 0, y: 0, z: 8, vx: 0, vy: 0, vz: 0, yaw: Math.PI }, ghosts, rng, elapsed: 0,
       caught: 0, gold: 0, extras: 0, session: 0, score: 0, won: false, ended: false,
       events: { captures: new Array(COUNT).fill(-1), count: 0, points: 0, stun: 0, pop: 0, breaks: 0, win: false },
-      scratch: { force: { x: 0, y: 0, z: 0 }, input: { dirX: 0, dirZ: 0, held: false, aim: false, aimYaw: Math.PI, coarse: false }, tick: () => {} } };
+      scratch: { logical: { x: 0, y: 0, z: 0 }, force: { x: 0, y: 0, z: 0 }, input: { dirX: 0, dirZ: 0, held: false, aim: false, aimYaw: Math.PI, coarse: false }, tick: () => {} } };
    run.scratch.tick = (dt) => {
       let left = dt;
       while (left > EPS && !run.ended) {
@@ -80,9 +80,18 @@ export const exposureTime = (g: Ghost) => g.kind === "big" ? LIGHT.bigExposure :
 export function illuminated(run: Run, g: Ghost): boolean {
    return inViewCone(run.hunter, run.hunter.yaw, LIGHT.angle, LIGHT.range, g) && hasLineOfSightXZ(run.hunter, g, WALLS);
 }
+function logicalPosition(run: Run, g: Ghost) {
+   const point = run.scratch.logical;
+   point.x = g.mode === "pulling" ? g.baseX : g.x;
+   point.y = g.y;
+   point.z = g.mode === "pulling" ? g.baseZ : g.z;
+   return point;
+}
 export function pullValid(run: Run, g: Ghost): boolean {
-   const d = Math.hypot(g.x - run.hunter.x, g.z - run.hunter.z);
-   return d <= PULL.range + EPS && (d <= PULL.nozzle || (inViewCone(run.hunter, run.hunter.yaw, PULL.angle, PULL.range, g) && hasLineOfSightXZ(run.hunter, g, WALLS)));
+   // Tug is cosmetic: validity follows the untugged logical position.
+   const point = logicalPosition(run, g);
+   const d = Math.hypot(point.x - run.hunter.x, point.z - run.hunter.z);
+   return d <= PULL.range + EPS && (d <= PULL.nozzle || (inViewCone(run.hunter, run.hunter.yaw, PULL.angle, PULL.range, point) && hasLineOfSightXZ(run.hunter, point, WALLS)));
 }
 function admit(run: Run): void {
    let n = 0;
@@ -122,11 +131,16 @@ function moveHunter(run: Run, dt: number): void {
    let aim = i.aim ? i.aimYaw : tx || tz ? Math.atan2(tx, tz) : h.yaw;
    if (i.coarse && i.held) {
       let best: Ghost | null = null, distance = Infinity;
-      for (const g of run.ghosts) if ((g.mode === "stunned" || g.mode === "pulling") && inViewCone(h, aim, PULL.assistAngle, PULL.range, g) && hasLineOfSightXZ(h, g, WALLS)) {
-         const d = Math.hypot(g.x - h.x, g.z - h.z);
+      for (const g of run.ghosts) if (g.mode === "stunned" || g.mode === "pulling") {
+         const point = logicalPosition(run, g);
+         if (!inViewCone(h, aim, PULL.assistAngle, PULL.range, point) || !hasLineOfSightXZ(h, point, WALLS)) continue;
+         const d = Math.hypot(point.x - h.x, point.z - h.z);
          if (d < distance - EPS) { best = g; distance = d; }
       }
-      if (best) aim = boundedTurn(h.yaw, Math.atan2(best.x - h.x, best.z - h.z), PULL.assistTurn * dt);
+      if (best) {
+         const point = logicalPosition(run, best);
+         aim = boundedTurn(h.yaw, Math.atan2(point.x - h.x, point.z - h.z), PULL.assistTurn * dt);
+      }
    }
    h.yaw = boundedTurn(h.yaw, aim, HUNTER.turn * dt);
 }

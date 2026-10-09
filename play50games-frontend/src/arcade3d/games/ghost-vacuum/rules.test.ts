@@ -126,17 +126,27 @@ describe("movement, light and pull", () => {
       const { run, i, g } = fixture(); i.held = true; advance(run, i, 0.9); i.held = false; advance(run, i, 0.001);
       expect(g.mode).toBe("wandering"); expect(run.score).toBe(0);
    });
+   it("checks a pulling ghost against its tug-free logical position", () => {
+      const { run, g } = fixture();
+      Object.assign(g, { mode: "pulling", baseX: 8, baseZ: -8.3, x: 8.25, z: -8.3 });
+      expect(pullValid(run, g)).toBe(true);
+      // The rendered tug is outside 12 degrees, but must not interrupt the logical pull.
+      expect(Math.atan2(g.x - run.hunter.x, g.z - run.hunter.z)).toBeGreaterThan(PULL.angle);
+      g.baseX = 9;
+      expect(pullValid(run, g)).toBe(false);
+   });
    it("fresh global tug is independent of a rebased local fraction", () => {
       const { run, g } = fixture();
       Object.assign(g, { ax: 8, az: -7, hx: 8, hz: -9, p0: 0.2, progress: 0.35 }); pullPosition(run, g);
       expect(g.baseZ).toBeCloseTo(-7.375, 10);
       expect(g.x - g.baseX).toBeCloseTo(-0.25 * 0.65 * Math.sin(1.4 * Math.PI), 10);
    });
-   it("walking hunter rebases from tug-free base without drift", () => {
+   it.each([{ dirX: -1, dirZ: 0 }, { dirX: 0, dirZ: 1 }])("walking/backing hunter rebases from tug-free base without drift (%j)", (direction) => {
       const { run, i, g } = fixture();
-      Object.assign(run.hunter, { z: -5.5, yaw: Math.PI, vz: -4 });
+      Object.assign(run.hunter, { z: -5.5, yaw: Math.PI, vx: direction.dirX * 4, vz: direction.dirZ * 4 });
       Object.assign(g, { z: -8.5, baseZ: -8.5, mode: "stunned", stun: 2 });
-      i.aimYaw = Math.PI; i.dirZ = -1; i.held = true;
+      // Walk sideways or back away: crossing through the target instead requires a physical 180-degree turn.
+      i.aimYaw = Math.PI; i.dirX = direction.dirX; i.dirZ = direction.dirZ; i.held = true;
       let maxTug = 0;
       for (let k = 0; k < 120; k++) {
          i.aimYaw = Math.atan2(g.baseX - run.hunter.x, g.baseZ - run.hunter.z);
@@ -198,11 +208,13 @@ function bot(seed: number, coarse: boolean, spam: boolean) {
             i.dirX = 0; i.dirZ = 0; i.held = true;
             if (target >= 0) {
                const g = run.ghosts[target], h = run.hunter, r = ROOMS[g.room];
-               const x = g.mode === "hidden" ? r.x - r.side * 2 : g.x, z = g.mode === "hidden" ? r.z : g.z;
+               // Reveal must approach the host within 3m; a 1.3m standoff from the pop slot can miss it.
+               const x = g.mode === "hidden" ? r.x - r.side * 1.5 : g.mode === "pulling" ? g.baseX : g.x, z = g.mode === "hidden" ? r.z : g.mode === "pulling" ? g.baseZ : g.z;
                const d = Math.hypot(x - h.x, z - h.z);
                i.aimYaw = Math.atan2(x - h.x, z - h.z);
-               if (g.mode !== "pulling" && d > 1.3) {
-                  if (!path || time - planned > 0.8) { path = followPath(grid, free, h.x, h.z, x, z); planned = time; }
+               // Stay far enough away to track fleeing targets without circling them at close range.
+               if (g.mode !== "pulling" && (g.mode === "hidden" ? d > 0.7 : d > 2.5)) {
+                  if (!path || (time - planned > 0.8 && Math.hypot(path.goalX - x, path.goalZ - z) > 0.75)) { path = followPath(grid, free, h.x, h.z, x, z); planned = time; }
                   steer(grid, path, h.x, h.z, i, 0.2);
                } else if (coarse) { i.dirX = Math.sin(i.aimYaw) * 0.02; i.dirZ = Math.cos(i.aimYaw) * 0.02; }
             }
@@ -225,7 +237,9 @@ describe("legal bots through clock-first real store", () => {
          expect(fitsLimits(f.score, f.elapsedMs), `seed ${seed}, spam ${spam}`).toBe(true);
          expect(capScore(f.score, f.elapsedMs)).toBe(f.score);
          if (!spam) {
-            expect(f.endReason, `seed ${seed} feasibility`).toBe("win");
+            const uncaught = result.run.ghosts.filter((g) => g.mode !== "caught").map((g) => `${g.id}:${g.mode}`).join(", ");
+            if (f.endReason !== "win") console.info(`seed ${seed} catch times`, result.run.ghosts.map((g) => ({ id: g.id, caughtAt: g.caughtAt })));
+            expect(f.endReason, `seed ${seed} feasibility; uncaught [${uncaught}]`).toBe("win");
             expect(f.elapsedMs).toBeGreaterThanOrEqual(91400 - 1e-6);
             best = Math.max(best, f.score); earliest = Math.min(earliest, f.elapsedMs); latest = Math.max(latest, f.elapsedMs);
          }

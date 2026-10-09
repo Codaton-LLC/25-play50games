@@ -27,5 +27,10 @@ describe("real GLB fits (run by Claude outside the meshopt-restricted sandbox)",
       console.info("ghost-vacuum shared prop raw bounds", { desk, chair, book, door });
       expect(desk.width * (ASSETS.desk.scale ?? 1)).toBeCloseTo(1.6, 2);
       expect(chair.width * (ASSETS.chair.scale ?? 1)).toBeCloseTo(0.6, 2);
+      expect(desk.depth * ASSETS.desk.scale * ASSETS.desk.stretch[2]).toBeCloseTo(0.8, 2);
+      expect(chair.depth * ASSETS.chair.scale * ASSETS.chair.stretch[2]).toBeCloseTo(0.6, 2);
+      // These declared assets remain upright; a lying book needs an x-rotated parent.
+      expect(book.height * ASSETS.book.scale).toBeCloseTo(0.25, 2);
+      expect(door.height * ASSETS.door.scale).toBeCloseTo(2.2, 2);
    });
 });
