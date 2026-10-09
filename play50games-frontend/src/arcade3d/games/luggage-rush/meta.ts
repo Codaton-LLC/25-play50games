@@ -27,7 +27,7 @@ export const luggageRushMeta: ArcadeGameMeta = {
       unitLabel: "pts",
       display: "int",
    },
-   thumbnail: null,
+   thumbnail: "/images/3d/luggage-rush.webp",
    accent: "#60a5fa",
    owner: "cursor",
 };
