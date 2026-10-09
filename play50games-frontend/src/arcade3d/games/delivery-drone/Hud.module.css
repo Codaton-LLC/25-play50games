@@ -1,0 +1,28 @@
+.panel {
+   position: absolute;
+   top: 4.5rem;
+   left: 50%;
+   transform: translateX(-50%);
+   max-width: calc(100% - 1.5rem);
+   padding: 0.5rem 0.8rem;
+   border-radius: 0.75rem;
+   background: var(--card-bg, rgba(15, 23, 42, 0.9));
+   color: var(--text-primary, #f8fafc);
+   font-size: 0.8rem;
+   text-align: center;
+   pointer-events: none;
+}
+.battery, .low {
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   gap: 0.6rem;
+   font-weight: 700;
+}
+.low { color: #fb7185; }
+.panel progress { width: 5rem; height: 0.45rem; accent-color: #38bdf8; }
+.hint { opacity: 0.8; margin-top: 0.15rem; }
+@media (max-height: 520px) {
+   .panel { top: 3.25rem; padding: 0.25rem 0.6rem; font-size: 0.7rem; }
+   .hint { display: none; }
+}

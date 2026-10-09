@@ -1,0 +1,108 @@
+/* Power and the scorecard: one fixed 214 x 46 px panel bottom left, above the safe-area inset and
+   the cookie banner, marked data-arcade-safe-area (the camera fit keeps the course clear of it). */
+.panel {
+   position: absolute;
+   left: calc(env(safe-area-inset-left, 0px) + 12px);
+   bottom: calc(12px + env(safe-area-inset-bottom, 0px) + var(--arcade-bottom-obstruction, 0px));
+   box-sizing: border-box;
+   display: flex;
+   align-items: center;
+   gap: 8px;
+   width: 214px;
+   height: 46px;
+   padding: 0 10px;
+   border: 2px solid #86efac;
+   border-radius: 14px;
+   background: rgba(11, 16, 32, 0.72);
+   -webkit-backdrop-filter: blur(6px);
+   backdrop-filter: blur(6px);
+   color: #fff;
+   pointer-events: none;
+   font-weight: 800;
+}
+
+.power {
+   display: flex;
+   flex-direction: column;
+   gap: 3px;
+   width: 52px;
+   flex: none;
+}
+
+.caption {
+   font-size: 10px;
+   font-weight: 700;
+   letter-spacing: 0.08em;
+   opacity: 0.75;
+   text-transform: uppercase;
+}
+
+.bar {
+   position: relative;
+   height: 6px;
+   border-radius: 3px;
+   background: rgba(255, 255, 255, 0.2);
+   overflow: hidden;
+}
+
+.fill {
+   position: absolute;
+   inset: 0;
+   transform-origin: left center;
+   background: #86efac;
+}
+
+.value {
+   font-size: 13px;
+   line-height: 1;
+}
+
+.card {
+   display: grid;
+   grid-template-columns: repeat(6, 1fr);
+   gap: 3px;
+   flex: 1;
+}
+
+.cell {
+   display: flex;
+   flex-direction: column;
+   align-items: center;
+   gap: 1px;
+   padding: 2px 0;
+   border-radius: 6px;
+   background: rgba(255, 255, 255, 0.08);
+   font-size: 12px;
+   line-height: 1;
+}
+
+.cell small {
+   font-size: 9px;
+   font-weight: 600;
+   opacity: 0.7;
+}
+
+.current {
+   outline: 2px solid #86efac;
+}
+
+.under {
+   color: #86efac;
+}
+
+.over {
+   color: #fca5a5;
+}
+
+.clock {
+   position: absolute;
+   left: calc(env(safe-area-inset-left, 0px) + 12px);
+   bottom: calc(66px + env(safe-area-inset-bottom, 0px) + var(--arcade-bottom-obstruction, 0px));
+   padding: 4px 10px;
+   border-radius: 999px;
+   background: rgba(127, 29, 29, 0.85);
+   color: #fff;
+   font-size: 13px;
+   font-weight: 800;
+   pointer-events: none;
+}
