@@ -1,7 +1,8 @@
 import type { ArcadeGameMeta } from "@/arcade3d/types";
 
 // Plain data only (server-safe). scoring must match WP includes/arcade-games.json.
-// Provisional limits (docs/arcade-expansion/02 §C.4): set for real in the game's "assets + limits" PR.
+// Provisional limits (docs/arcade-expansion/02 §C.4): set for real in the game's "assets + limits" PR
+// (proposed in README.md "Server limits and why they hold": 10500, 19000-92000 ms, 1500 + 110/s).
 export const pirateCannonsMeta: ArcadeGameMeta = {
    slug: "pirate-cannons",
    title: "Pirate Cannon Battle",
@@ -14,20 +15,20 @@ export const pirateCannonsMeta: ArcadeGameMeta = {
    orientation: "any",
    controls: {
       scheme: "aim-drag",
-      keyboard: "Drag to aim, release to fire, or arrows + Space",
-      touch: "Drag to aim, release to fire",
+      keyboard: "Drag to aim, release to fire, click to fire again; or arrows + Space",
+      touch: "Drag to aim, release to fire, tap to fire again",
    },
    scoring: {
       kind: "points",
-      maxScore: 9000,
-      minDurationMs: 10000,
+      maxScore: 10500,
+      minDurationMs: 19000,
       maxDurationMs: 92000,
-      base: 9000,
-      maxPointsPerSec: 9000,
+      base: 1500,
+      maxPointsPerSec: 110,
       unitLabel: "pts",
       display: "int",
    },
-   thumbnail: null,
+   thumbnail: "/images/3d/pirate-cannons.webp",
    accent: "#f87171",
    owner: "claude",
 };

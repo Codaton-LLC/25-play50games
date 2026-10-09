@@ -522,6 +522,34 @@ useRunFrame((_, dt) => {
 });
 ```
 
+## Shared aim (`core/aim.ts`)
+
+The aim-and-release family (pirate-cannons, mini-golf, castle-defender, snowball-battle) shares one pure aim (no React / three, no allocation per call, deterministic). An `AxisAim` holds two values in the game's own units: **x grows with "right"** (→, a drag to the right), **y grows with "up"** (↑, a drag pulled down: pull back = more). Each axis has `AimAxisOptions { min, max, step, rate, dragGain }`; `AxisAimOptions` adds `holdDelay`.
+
+- `createAxisAim(x, y)`: the state (made once per run or mount).
+- `followRelativeDrag(aim, drag, w, h, o)`: relative drag: on its first frame the aim is stored, then `x = x0 + dragGain · px right`, `y = y0 + dragGain · px pulled down`, clamped; true while a drag is followed (its release frame included).
+- `stepAimKeys(aim, input, dt, o)`: each fresh `pressed` arrow nudges exactly one `step` from the value snapped to the grid; an arrow held past `holdDelay` sweeps at `rate` (an unsnapped sweep, so slow and fast frames both move) and the value snaps to the grid.
+- `stepAxisAim(aim, input, dt, w, h, o, triggers)`: the lob: drag, then keys only while no drag is followed; returns `aimFired`.
+- `aimFired(input, { release?, tap?, jump?, action? })`: `release` = `drag.released && !drag.cancelled` (a pull under 16 px only adjusts); `tap` fires the current aim (a short press gives a tap and a cancelled release on one frame: one fire); `jump` = Space / touch Jump; `action` = E / Enter.
+- `bufferFire(buf, fire, x, y)` + `createBufferedFire()`: the buffered-fire contract: a fire while not ready waits (one) with the aim of its press; later presses or drags do not move it; the rules launch `buf.x / buf.y` when ready and clear `pending`.
+- `createHoldTimer()` + `stepHold(h, down, dt)`: a charge meter's hold (hold Space, release to fire): true on the release frame, `h.held` = seconds held.
+- `snapTo(v, step)`, `clampTo(v, lo, hi)`.
+
+**Family tuning:** `AIM_DRAG_FULL_PX` 160 px (full power of a polar pull, `inputController.ts`), `AIM_DRAG_MIN_PX` 16 px (a shorter release is `cancelled`: no shot), `AIM_HOLD_DELAY_S` 0.25 s before a held arrow sweeps. A lob (yaw / elevation) uses the relative drag (pirate: 0.25° / 0.15° per px, 0.5° keys); a putt (direction + power) keeps core's polar `drag.angle` / `drag.power` and uses only the keys and triggers (mini-golf: 1° / 2 % keys).
+
+```ts
+// cannon: x = yaw ±45°, y = elevation 0-35°
+const LOB: AxisAimOptions = { holdDelay: AIM_HOLD_DELAY_S,
+   x: { min: -45 * DEG, max: 45 * DEG, step: 0.5 * DEG, rate: 0.45, dragGain: 0.25 * DEG },
+   y: { min: 0, max: 35 * DEG, step: 0.5 * DEG, rate: 0.35 * 35 * DEG, dragGain: 0.15 * DEG } };
+const fire = stepAxisAim(aim, input.current, dt, width, height, LOB, { release: true, tap: true, jump: true });
+// putt: x = direction (unlimited), y = power 0.1-1; the drag is core's polar pull
+const PUTT: AxisAimOptions = { holdDelay: AIM_HOLD_DELAY_S,
+   x: { min: -Infinity, max: Infinity, step: DEG, rate: 1.05, dragGain: 0 }, y: { min: 0.1, max: 1, step: 0.02, rate: 0.5, dragGain: 0 } };
+if (drag.active) { aim.x = screenToDirection(drag.angle); aim.y = Math.max(0.1, drag.power); } else stepAimKeys(aim, input.current, dt, PUTT);
+const putt = aimFired(input.current, { release: true, action: true }) || stepHold(charge, input.current.jump, dt);
+```
+
 ## Trajectory preview: `render/TrajectoryDots`
 
 `<TrajectoryDots projectile params count step groundY fraction radius endScale color opacity endOpacity visible>`: dots along `ballistics.trajectoryPoints` (one `InstancedMesh`, one draw call, no allocation per frame). `projectile` (`{ x, y, z, vx, vy, vz }`) and `params` are read every frame, so mutate them in place; `null` or `visible={false}` hides the dots. The arc stops on `groundY` (the last dot on the ground) or after `count` dots; the dots fade from `opacity` to `endOpacity` and shrink to `endScale` over the dots `fraction` allows (`shownDots(count, fraction)`), so a partial preview fades out fully. `fraction` (0..1) shows only the start of the arc (a hint, not the landing spot). Pure helpers: `dotOpacity`, `shownDots`.
