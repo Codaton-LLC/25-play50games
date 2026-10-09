@@ -8,6 +8,7 @@ import { readCharacterGlb } from "@/arcade3d/core/rig/robotGlb";
 import type { ModelAsset } from "@/arcade3d/core/types";
 import { ASSETS, TREE_HEIGHT, WINDMILL_CLEAR, WINDMILL_HUB } from "./assets";
 import { WINDMILL } from "./course";
+import { DECOR_TREE_HALF, DECOR_TREE_OUT, DECOR_TREE_SCALE } from "./looks";
 import { BALL, CUP } from "./physics";
 
 /** The GLB's vertices scaled by the asset's fit (no stretch or turn in these fits). */
@@ -62,5 +63,11 @@ describe("mini-golf models", () => {
       expect(flag.max.y).toBeLessThan(CUP.flagHeight * 1.01);
       const tree = new Box3().setFromPoints(await drawn(ASSETS.tree));
       expect(tree.max.y - tree.min.y).toBeCloseTo(TREE_HEIGHT, 2);
+   });
+
+   it("a decor tree's canopy (spot scale DECOR_TREE_SCALE) clears the rails by >= 0.1 m from DECOR_TREE_OUT", async () => {
+      const reach = Math.max(...(await drawn(ASSETS.tree)).map((p) => Math.hypot(p.x, p.z))) * DECOR_TREE_SCALE;
+      expect(reach).toBeLessThanOrEqual(DECOR_TREE_OUT - 0.1);
+      expect(reach).toBeLessThanOrEqual(DECOR_TREE_HALF * 1.25);
    });
 });

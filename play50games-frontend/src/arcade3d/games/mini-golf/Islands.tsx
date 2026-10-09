@@ -14,7 +14,7 @@ import { scaledCount, useQuality } from "@/arcade3d/core/quality";
 import { Instanced, type InstanceSpot } from "@/arcade3d/core/render";
 import { ASSETS } from "./assets";
 import { HILL_GRADE, RAMP, TIER_WALL_Z, TIER_Y, TURNTABLE, heightAt, type Hole } from "./course";
-import { COLORS, feltRects, holeZ, onFelt, type FeltRect } from "./looks";
+import { COLORS, decorSpots, feltRects, holeZ, onFelt, type FeltRect } from "./looks";
 import { CUP } from "./physics";
 import { FlagPrimitive, RockPrimitives, TreePrimitives } from "./Primitives";
 import { TICK_S, type RunState } from "./rules";
@@ -275,29 +275,13 @@ export function Island({ hole, run }: { hole: Hole; run: RunState }) {
 
 // ---------- decor ----------
 
-/** Trees and rocks on the islands' far (-z) end and -x side: never between a camera (at +z or +x) and the lane. */
-export function decorSpots(holes: readonly Hole[]): { trees: InstanceSpot[]; rocks: InstanceSpot[] } {
-   const trees: InstanceSpot[] = [];
-   const rocks: InstanceSpot[] = [];
-   for (const hole of holes) {
-      const b = hole.box;
-      const z0 = holeZ(hole.index);
-      const k = hole.index * 1.7;
-      trees.push({ x: b.x0 - 0.45, y: -0.28, z: z0 + b.z0 + 0.4, rotY: k, scale: 0.55 });
-      trees.push({ x: b.x0 - 0.45, y: -0.28, z: z0 + (b.z0 + b.z1) / 2 + 0.8, rotY: k + 2, scale: 0.65 });
-      rocks.push({ x: (b.x0 + b.x1) / 2 + 0.4, y: -0.35, z: z0 + b.z0 - 0.55, rotY: k, scale: 0.7 });
-      rocks.push({ x: b.x0 - 0.55, y: -0.35, z: z0 + b.z1 - 0.6, rotY: k + 1, scale: 0.55 });
-      rocks.push({ x: b.x1 - 0.2, y: -0.35, z: z0 + b.z0 - 0.45, rotY: k + 3, scale: 0.45 });
-   }
-   return { trees, rocks };
-}
-
-export function Decor({ holes }: { holes: readonly Hole[] }) {
+/** The mounted holes' trees and rocks, beside each hole as its camera sees it (`yaws[i]` for `holes[i]`). */
+export function Decor({ holes, yaws }: { holes: readonly Hole[]; yaws: readonly number[] }) {
    const { decor } = useQuality();
    const spots = useMemo(() => {
-      const all = decorSpots(holes);
+      const all = decorSpots(holes, yaws);
       return { trees: all.trees.slice(0, scaledCount(all.trees.length, decor)), rocks: all.rocks.slice(0, scaledCount(all.rocks.length, decor)) };
-   }, [holes, decor]);
+   }, [holes, yaws, decor]);
    return (
       <group name="decor">
          <InstancedModel asset={ASSETS.tree} spots={spots.trees} fallback={<TreePrimitives spots={spots.trees} />} />
