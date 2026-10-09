@@ -29,6 +29,7 @@ import { HunterPrimitive } from "./Primitives";
 import Vacuum, { type VacuumHandle } from "./Vacuum";
 import { pickGhost, type AimRay } from "./aim";
 import { active, createRun, LIGHT, PULL, ROOMS, stepRun, type Run, type StepInput } from "./rules";
+import { createSuckShared, type SuckShared } from "./suck";
 
 function underRects(x: number, y: number, rects: readonly ScreenRect[] | undefined): boolean {
    if (!rects) return false;
@@ -36,13 +37,13 @@ function underRects(x: number, y: number, rects: readonly ScreenRect[] | undefin
    return false;
 }
 
-function Hunter({ run }: { run: Run }) {
+function Hunter({ run, shared }: { run: Run; shared: SuckShared }) {
    const quality = useQuality();
    const [reduced] = useState(() => typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
    const time = useGameTime(), root = useRef<Group>(null), nozzle = useRef<Group>(null), torch = useRef<Group>(null), suction = useRef<Group>(null);
    const hose = useRef<VacuumHandle>(null);
    const [gait] = useState(() => ({ phase: 0 }));
-   const [beam] = useState(() => ({ origin: new Vector3(), tip: new Vector3(), yaw: 0 }));
+   const [beam] = useState(() => ({ origin: new Vector3(), tip: new Vector3(), yaw: 0, mouth: new Vector3(), ahead: new Vector3() }));
    const pose = useHumanoidPose((p) => {
       const playing = useArcadeStore.getState().phase === "playing";
       const h = run.hunter, v = playing ? Math.hypot(h.vx, h.vz) : 0, amount = Math.min(1, v / 4);
@@ -50,6 +51,23 @@ function Hunter({ run }: { run: Run }) {
       gait.phase = wrapPhase(gait.phase + sign * gaitPhaseStep(amount, RUNNER_LANDMARKS, HUNTER_SCALE, v, time.delta, 4));
       hunterPose(gait.phase, amount, run.won, time.now, p);
    });
+   // Nozzle mouth for the drawn suck-in (Ghosts.tsx, -0.02): after the camera and the pose
+   // driver; the bones are copied at visuals, so the hand is at most one frame of pose old.
+   useFrame(() => {
+      const m = shared.mouth;
+      if (root.current) { root.current.position.set(run.hunter.x, 0, run.hunter.z); root.current.rotation.y = run.hunter.yaw; }
+      if (nozzle.current) {
+         nozzle.current.updateWorldMatrix(true, false);
+         nozzle.current.localToWorld(beam.mouth.set(-0.23, 0, 0));
+         nozzle.current.localToWorld(beam.ahead.set(-0.33, 0, 0));
+         const dx = beam.ahead.x - beam.mouth.x, dz = beam.ahead.z - beam.mouth.z, d = Math.hypot(dx, dz);
+         m.x = beam.mouth.x; m.y = beam.mouth.y; m.z = beam.mouth.z;
+         if (d > 1e-6) { m.dirX = dx / d; m.dirZ = dz / d; } else { m.dirX = Math.sin(run.hunter.yaw); m.dirZ = Math.cos(run.hunter.yaw); }
+      } else {
+         m.dirX = Math.sin(run.hunter.yaw); m.dirZ = Math.cos(run.hunter.yaw);
+         m.x = run.hunter.x + m.dirX * 0.6; m.y = 0.9; m.z = run.hunter.z + m.dirZ * 0.6;
+      }
+   }, -0.05);
    useFrame(() => {
       if (root.current) { root.current.position.set(run.hunter.x, 0, run.hunter.z); root.current.rotation.y = run.hunter.yaw; }
       if (nozzle.current) {
@@ -75,6 +93,17 @@ function Hunter({ run }: { run: Run }) {
       <Flashlight ref={suction} halfAngle={PULL.angle} range={PULL.range} height={0} color="#c4b5fd" opacity={0.32} light={false} />
       <DynamicInstanced count={36} update={(i, m) => {
          if (!run.scratch.input.held || reduced || (quality.tier === "low" && i >= 12)) return false;
+         if (i < 12 && shared.active && shared.p > 0.3) {
+            // Swirl: a spiral from the drawn ghost into the nozzle mouth, tighter as it nears.
+            const mo = shared.mouth, t = (time.now * 2.2 + i / 12) % 1, spin = i * 2.4 + t * 9, rad = (1 - t) * (0.12 + 0.4 * shared.scale);
+            const ax = mo.x - shared.cx, az = mo.z - shared.cz, al = Math.hypot(ax, az) || 1, ux = -az / al, uz = ax / al;
+            const size = 0.035 * (1 - 0.6 * t);
+            m.makeScale(size, size, size).setPosition(
+               shared.cx + (mo.x - shared.cx) * t + ux * Math.cos(spin) * rad,
+               shared.cy + (mo.y - shared.cy) * t + Math.sin(spin) * rad,
+               shared.cz + (mo.z - shared.cz) * t + uz * Math.cos(spin) * rad);
+            return;
+         }
          const q = 1 - ((time.now * 1.4 + i / 36) % 1), distance = 0.15 + q * 3.6;
          const angle = beam.yaw + Math.sin(i * 2.4) * PULL.angle * q;
          const size = 0.025 + 0.015 * q;
@@ -88,6 +117,7 @@ export default function Scene() {
    const view = useFittedView(viewFor(width, height)), input = useInput(), fx = useFx();
    const safe = useSafeArea();
    const [run] = useState(() => createRun(randomSeed()));
+   const [shared] = useState(createSuckShared);
    const [scratch] = useState(() => ({
       step: { dirX: 0, dirZ: 0, held: false, aim: false, aimYaw: Math.PI, coarse: typeof window !== "undefined" && window.matchMedia("(pointer: coarse)").matches } as StepInput,
       dir: { x: 0, z: 0 }, at: { x: 0, y: 0, z: 0 }, ray: new Raycaster(), floor: new Plane(new Vector3(0, 1, 0), -0.6), hit: new Vector3(), aimRay: { ox: 0, oy: 0, oz: 0, dx: 0, dy: 0, dz: 0 } as AimRay,
@@ -168,7 +198,8 @@ export default function Scene() {
       } if (e.stun) playSfx("zap"); if (e.breaks) playSfx("hit");
       for (let n = 0; n < e.count; n++) {
          const g = run.ghosts[e.captures[n]];
-         scratch.at.x = g.x; scratch.at.y = 1.3; scratch.at.z = g.z;
+         // Rules capture at the hunter centre; the drawn ghost ends in the nozzle mouth.
+         scratch.at.x = shared.mouth.x; scratch.at.y = shared.mouth.y; scratch.at.z = shared.mouth.z;
          fx.burst("sparkle", scratch.at, 18);
          scratch.sfxOptions.pan = Math.sin(run.hunter.yaw - view.yaw);
          scratch.sfxOptions.pitch = 1 + Math.min(0.4, Math.max(0, run.session - 1, e.count - 1) * 0.1);
@@ -179,7 +210,7 @@ export default function Scene() {
    });
    return <>
       <CameraRig camera={{ position: view.offset, lookAt: [0, 0, 0] }} follow={run.hunter} followFraction={1} offset={view.offset} shift={view.shift} damping={4} />
-      <Mansion run={run} /><Ghosts run={run} /><Hunter run={run} />
+      <Mansion run={run} /><Ghosts run={run} shared={shared} /><Hunter run={run} shared={shared} />
       <TargetMarkers targets={scratch.targets} size={24} color="#c4b5fd" />
    </>;
 }
