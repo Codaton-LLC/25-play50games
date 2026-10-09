@@ -8,120 +8,121 @@ A toy building site in daylight. The player runs the tower crane: read the next 
 
 ## Controls
 
-`meta.ts` stays as the stub: `scheme: "joystick"`, `touchControls: ["joystick", "action", "tap"]`. No `touchLabels`. No `durationMs` (a wrong pile takes a second off the clock; Rules).
+`meta.ts` stays as the stub: `scheme: "joystick"`, `touchControls: ["joystick", "action", "tap"]`. No `touchLabels`. No `durationMs`.
 
 - `keyboard`: "A / D rotate, W / S trolley, Space drop, 1-5 pick a pile" (unchanged). Arrows hit the same axes as WASD.
 - `touch`: "Joystick, Action to drop, tap a pile" (unchanged).
-- Input: `moveX` rotates the jib (D / right = +). `moveY` drives the trolley (W / up = −1 = radius out). Drop on `jumpPressed || actionPressed`, and only when the trolley is inside the drop gate (a press outside it is ignored, not a miss). Piles: `digit` 1–5, or `tap` (release, not `tapDown`). `digit` 6–9 is ignored. Two boxes: the nearer centre wins. Esc / P pause (shell).
+- `moveX` rotates the jib (D / right = +). `moveY` drives the trolley (W / up = −1 = radius out). Drop is `jumpPressed || actionPressed`, and only while a piece is carried and the trolley is inside the drop gate (a press outside it is ignored, not a miss). While nothing is carried, Action over a pile is a pick (below). Piles: `digit` 1–5, a pile `tap` (release, not `tapDown`), or Action while the hook is over a pile. `digit` 6–9 is ignored. Esc / P pause (shell).
 
 ## Rules
 
-All numbers live in `rules.ts` (`SITE`, `CRANE`, `PENDULUM`, `DROP`, `STABLE`, `SCORE`, `WIND`, `CLOCK`) and are proven in `rules.test.ts`. The crane and the pendulum integrate only inside `fixedStep` (`createFixedStep(1/120)` once). `playedFrameDt` is at most 1/20 s, so a frame is at most 6 steps and never hits the 8-step discard.
+Numbers live in `rules.ts` and are proved in `rules.test.ts`. Crane and pendulum integrate only inside `fixedStep` (`createFixedStep(1/120)`). `playedFrameDt` ≤ 1/20 s, so a frame is at most 6 steps.
 
-- **Site:** ground of the fitted wedge, x ∈ [−8, 8], z ∈ [−2, 12]. Mast at the origin, angle 0 facing +z. Start trolley `(angle 0, radius 4.5)`.
-- **Crane:** polar `(angle, radius)`. Radius ∈ [4.5, 11]. Angle ∈ [−0.70, 0.70] (the yard arc; the jib does not spin a full circle). Max |ω| 0.9 rad/s, angular accel 1.8 rad/s². Trolley max 2.5 m/s, accel 5 m/s². Jib at y = 10. A step never exceeds `0.9 · dt` rad or `2.5 · dt` metres.
-- **Piles:** five, at radius 7, angles −0.45, −0.15, 0, 0.15, 0.45 (slab, pillar, wall, window, roof, keys 1–5). Chord 1.05 m between the 0.15 rad pairs and 2.10 m between the 0.30 rad pairs. Pickup radius is **0.45 m** (0.45 + 0.45 = 0.90 < 1.05, so the discs do not overlap). Changed from the 0.8 m radius, which overlapped the close pair. A pickup starts only when the trolley radius is ≤ **7.8**, the hook is inside that 0.45 m disc, and trolley speed < 0.15 m/s; the dwell is 0.25 s. No swing test on pickup. A carried piece blocks another pick.
-- **Wrong pile:** refused on the key or the tap, immediately, not at the end of a dwell. No piece, no stability loss, `timeLeft −= 1`, and pick/drop lock for 1 s. The clock keeps ticking during that lock, so the wrong pile costs about 2 s of clock and 1 s of play.
-- **Slots:** four xz points at radius 9.5, angles −0.45, −0.15, 0.15, 0.45. The blueprint walks them in angle order and wraps, so a step is 0.30 rad (0.33 s at 0.9 rad/s), which hides inside the 0.44 s radius leg. Floor step 0.75. House 2 floors (8 pieces: 2/2/2/1/1), shop 3 (12: 3/3/3/2/1), tower 4 (16: 4/4/4/3/1) of slab/pillar/wall/window/roof. Changed from spec: all three buildings use these same four points, not three plots in a row, so every haul has the same radius gate. A finished building stays through the 1.2 s cheer, then its pieces leave and the next building starts again at y = 0 on the same points. Stability resets to 100. Tower top is y = 3. The seed picks `windowStyle` and `roofStyle` (0 or 1) for the mesh only.
-- **Drop gate (trolley, not the hook):** a drop is accepted only at trolley radius ≥ **8.9** (house and shop) or ≥ **8.98** (tower). Inside that radius the press does nothing. Release adds the swing's horizontal velocity to the trolley's. Fall time is `sqrt(2 · height / 9.81)` (looks; the crane may already move). Landing offset is the horizontal distance from the slot centre. Perfect < 0.15, good < 0.35, ok < 0.6, else a miss (bounces, same step retries, piece leaves the hook). Tower multiplies the three bands by 0.8 (0.12 / 0.28 / 0.48).
-- **Pendulum:** `stepPendulum2D`, `{ length: 5.5, gravity: 9.81, damping: 0.55 }`. The pivot acceleration is the trolley's linear accel, plus the jib's tangential accel, plus centripetal `ω² · r` along the radius, plus wind. **Centripetal is included.** That xz vector is then scaled down to **2.5 m/s²** if it is longer (`a/g ≤ 0.25`, so the driven equilibrium is ≤ 0.25 rad). Changed from feeding the raw jib accel (1.8 rad/s² · 9.5 m ≈ 17 m/s², equilibrium ≈ 1.7 rad), which sat on the clamp at every start and stop. After both axes, if the angle's **magnitude** exceeds 0.35 rad, both axes scale down to 0.35 and the outward angular speed (along the angle vector) is zeroed. The clamp is on the magnitude, not per axis: per axis would let a diagonal reach 0.49 rad. It is a safety for the linear model, not the resting state. Small-angle offset ≈ `5.5 · angle`.
-- **Wind:** from the first tower piece, a gust every 7 s lasting 1.0 s adds 3 m/s² along +x, then the 2.5 m/s² cap still applies. Coarse pointers use damping 1.4 instead of 0.55. Tests use 0.55.
-- **Stability:** 100 at the start of each building. Perfect / good / ok / miss = 0 / −3 / −6 / −12. At ≤ 0 the building collapses (9th miss). Changed from spec (0 / −5 / −10 / −15): 12 and 16 ok placements at −10 exceed 100, and the DoD says a novice finishing on ok must not be forced to 0. All-ok leaves 52 / 28 / 4.
-- **Playability:** damping stays 0.55. A 0.35 rad swing takes ~4.6 s to fall under 0.1 rad, which over 36 pickups would pass 150 s. Changed from the previous draft: pickup does **not** require `|swing| < 0.1`. The settle wait is not on the haul. The drop is still the timing skill.
-- **Clock:** 150 s in `rules.ts`, a HUD stat. No `durationMs`. `end("timeup")` when `timeLeft` hits 0. That is at most 150 s of play, and sooner by every wrong pile. It is not exactly 150 s.
+- **Site:** the fitted wedge, x ∈ [−8, 8], z ∈ [−2, 12] (16 × 14). Changed from spec (30 × 24): the phone fit needs this box to keep the ok band ≥ 6 px. Mast at the origin, angle 0 facing +z. Start trolley `(angle 0, radius 4.5)`.
+- **Crane:** polar `(angle, radius)`. Radius ∈ [4.5, **9.6**]. Angle ∈ [−0.60, 0.60]. Changed from radius 11: a 0.35 rad swing is 1.9 m, and r 11 plus that swing left the wedge. Slots are at 9.5, so 9.6 still centres a drop, and the hook stays inside x ±8 and z ≤ 12. Max |ω| 0.9 rad/s, angular accel 1.8 rad/s². Trolley max 2.5 m/s, accel 5 m/s². Jib at y = 10. A step never exceeds `0.9 · dt` rad or `2.5 · dt` metres.
+- **Pickup:** the pile whose 0.45 m disc contains the hook xz is the candidate (centres 1.05 m apart for the close pair, 2.10 m for the wide pair; 0.45 + 0.45 = 0.90 < 1.05, so the discs do not overlap). Key 1–5, a pile tap, or Action while the hook is over a pile: the right pile starts a dwell; the wrong pile is refused at once. A correct key with the hook over no pile, or over a different pile, is ignored (not armed). The dwell is 0.25 s and must hold all three the whole time — trolley r ≤ **7.8**, hook inside that disc, bob horizontal speed < 0.15 m/s — or it restarts from zero. The proof counts on that 0.25 s; it cannot be skipped. A wrong key while carrying, or during the 1 s lock, is ignored and costs no extra second (spam must not burn the clock under the 9 s floor). No `|swing| < 0.1` test. On a phone the close piles are about 17 px apart in portrait and 10 px in landscape, so hovering plus Action is the primary touch path and the taps are secondary.
+- **Wrong pile:** on that key, tap or Action, immediately. No piece, no stability loss, `timeLeft −= 1`, pick/drop locked for 1 s. The clock keeps ticking during the lock.
+- **Slots:** four xz points at radius 9.5, angles −0.45, −0.15, 0.15, 0.45. Floor step 0.75. House 2 floors (8: 2/2/2/1/1), shop 3 (12: 3/3/3/2/1), tower 4 (16: 4/4/4/3/1) of slab/pillar/wall/window/roof. Changed from spec: all three use these same four points, not three plots. A finished building stays through the 1.2 s cheer. During the cheer, picks are allowed and drops are ignored; then the pieces leave and the next building starts at y = 0. Stability resets to 100. Tower top is y = 3. The seed picks `windowStyle` and `roofStyle` only.
+- **Drop:** accepted only at trolley r ≥ **8.9** (house, shop) or ≥ **9.02** (tower). 9.02 is the tower ok edge: slot r 9.5 minus the tower ok band 0.48. A press inside the gate does nothing. The landing point is hook xz plus (trolley velocity, including the jib's tangential `ω · r`, plus `5.5` times the pendulum's angular velocity) times `sqrt(2 · (hookBottomY − slotTopY) / 9.81)`. The rating is the horizontal distance from that point to the slot centre: perfect < 0.15, good < 0.35, ok < 0.6, else a miss (same step retries, piece leaves the hook). Tower bands × 0.8 (0.12 / 0.28 / 0.48).
+- **Hook:** the pendulum bob is the cable end. At rest the bob is at y = 4.5 (jib 10 − length 5.5); a swing raises it (`10 − 5.5 · cos`). The 1.2 m hook block sits above the bob, bottom flush with it (rest y 4.5..5.7). The carried piece hangs below the bob, top flush, height ≤ 0.70, so its bottom is ≥ 3.8 at rest. Slot tops are ≤ 3, so the piece clears the tower's top floor by ≥ 0.8 m, and a swing only adds clearance. The mast is at r 0 and the trolley never comes inside r 4.5, so the hook and the piece do not meet the crane. `hookBottomY` in the fall is the piece bottom.
+- **Pendulum:** `stepPendulum2D`, `{ length: 5.5, gravity: 9.81, damping: 0.55 }` (ζ ≈ 0.21, ω0 ≈ 1.336). Pivot acceleration is trolley linear accel, plus jib tangential, plus centripetal. **Centripetal is inward** (the pivot accelerates toward the mast), so the hook swings out. Wind adds after that. The xz vector is scaled down to **2.0 m/s²** if longer (`a/g ≤ 0.20`). A sustained 2.0 step overshoots to about 0.31 rad, under the clamp; 2.5 would reach about 0.39 and fire the clamp in normal play. The cap does not change the haul, so the proof is unchanged. After both axes, if the angle **magnitude** exceeds 0.35 rad, both axes scale down to 0.35 and the outward angular speed is zeroed. Magnitude, not per axis (a diagonal would otherwise reach 0.49). It is only the linear-model safety.
+- **Wind:** from the first tower piece, every 7 s for 1.0 s, +3 m/s² on +x, then the 2.0 cap. Coarse pointers use damping 1.4. Tests use 0.55.
+- **Stability:** 100 per building. Perfect / good / ok / miss = 0 / −3 / −6 / −12. The 9th miss collapses. Changed from spec (0 / −5 / −10 / −15) so all-ok leaves 52 / 28 / 4 and a novice is not forced to 0.
+- **Clock:** 150 s in `rules.ts`. No `durationMs`. `end("timeup")` when `timeLeft` hits 0: at most 150 s of play, sooner by every counted wrong pile.
 
 ## Scoring
 
-`points(rating) = 100 | 60 | 30 | 0`. `+500` when a building's last placed piece leaves stability > 0. A miss never places. On `end("win")` only, `+5 · floor(timeLeft)`. Live `addScore` for the piece and the building; the time bonus is in the same callback as `end("win")`. No streak points (a perfect streak only raises the chime pitch).
+`points = 100 | 60 | 30 | 0`. `+500` when a building's last placed piece leaves stability > 0. A miss never places. On `end("win")` only, `+5 · floor(timeLeft)`. No streak points.
 
 ### Server limits and why they hold (the proof)
 
-| | provisional (`meta.ts`, unchanged here) | proposed |
+| | provisional (`meta.ts`, unchanged here) | decided |
 |---|---|---|
 | `maxScore` | 9000 | **5800** |
 | duration | 20000–152000 ms | **9000–152000 ms** |
 | `base` / `max_pps` | 9000 / 9000 | **0 / 150** |
 
-The gates are on the trolley, so the hook and the throw cannot shorten the haul. Pickup only at r ≤ 7.8, drop only at r ≥ 8.9. The gap is 1.1 m. At 2.5 m/s that leg is 0.44 s. Out and back plus the 0.25 s dwell is **1.13 s** a piece. The opening 4.5 → 7.8 is 1.32 s, which is 0.88 s more than one return leg, paid once: `t(k) = 0.88 + 1.13 · k`. Angle steps are 0.30 rad and hide inside the leg. Tower's 8.98 gate is a longer haul; the ceiling uses 1.1 m for every piece.
+Pickup only at r ≤ 7.8, drop only at r ≥ 8.9. The gap is 1.1 m. At 2.5 m/s a leg is 0.44 s. Out, back and the 0.25 s dwell are **1.13 s** a piece. The opening 4.5 → 7.8 is 0.88 s extra, once: `t(k) = 0.88 + 1.13 · k`. Angle travel only adds time (a pile-to-slot turn can be ~0.9 rad); the bound ignores it. The tower's 9.02 gate is a longer haul; the ceiling uses 1.1 m for every piece.
 
-1. **House alone.** k = 8, t = 9.92 s, score = 800 + 500 = **1300** (no time bonus). 1300 / 9.92 = 131 pts/s. `150 · 9.92 = 1488 ≥ 1300`, and `150 · 9 = 1350 ≥ 1300`.
-2. **Win.** k = 36, t = 41.56 s. `floor(150 − 41.56) = 108` s left → 3600 + 1500 + 5 · 108 = **5640**. 5640 / 41.56 = 136 pts/s. `150 · 41.56 = 6234 ≥ 5640`. Shop's bonus at k = 20 is 3000 points at 23.5 s (128 pts/s), under the same chord.
-3. **Cap.** `maxScore` 5800 is 160 above 5640. `capScore` is a no-op on every legal run. `base` is 0 because the house burst is what sets pps, not a flat base.
-4. **Collapse.** Nine misses: `t(9) = 11.05 s`. `minDurationMs` 9000 is under that. A time-up is ≤ 150 s of play (≤ 152 s). A lose or a time-up has no time bonus, so it scores ≤ 35 · 100 + 2 · 500 = 4500.
+1. **House.** k = 8, t = 9.92 s, score = **1300**. `150 · 9.92 = 1488 ≥ 1300`, and `150 · 9 = 1350 ≥ 1300`.
+2. **Win.** k = 36, t = 41.56 s, `floor(150 − 41.56) = 108`, score = 3600 + 1500 + 540 = **5640**. `150 · 41.56 = 6234 ≥ 5640`. Shop at k = 20 is 3000 at 23.5 s.
+3. **Cap.** 5800 is 160 above 5640. `base` is 0. `capScore` is a no-op on a legal run.
+4. **Collapse.** `t(9) = 11.05 s`. `minDurationMs` 9000 is under it. A lose or a time-up has no time bonus (≤ 4500).
 
-The store bot (correct pile, trolley on the 7.8 / 8.9 gates, drop at swing angle 0) goes through `simulateRun` at 60 fps, 20 fps and random 4–50 ms frames. It must win at ≥ 41.5 s with score ≤ 5640, and the house must be ≤ 1300 at ≥ 9.9 s. Both pass `withinServerLimits`.
+The store bot picks the pile under the hook, holds the dwell, and drops when the **predicted landing** is inside the perfect band (not at swing angle 0, which is the fastest point of the swing). `simulateRun` at 60 fps, 20 fps and random 4–50 ms. Win ≥ 41.5 s and ≤ 5640; house ≤ 1300 at ≥ 9.9 s. Both pass `withinServerLimits`.
 
 ## Run end
 
-- `end("win")` on the frame the tower's last placed piece leaves stability > 0, time bonus included. `resultDelayMs: 1100`.
-- `end("lose")` when stability hits ≤ 0 after a drop. No building bonus, no time bonus.
-- `end("timeup")` when `timeLeft` hits 0. The shell has no `durationMs`. Points already scored stand. Same frame as a drop: the clock is applied first, so it is a time-up.
+- `end("win")` when the tower's last placed piece leaves stability > 0, time bonus included. `resultDelayMs: 1100`.
+- `end("lose")` when stability hits ≤ 0. No bonuses.
+- `end("timeup")` when `timeLeft` hits 0. Same frame as a drop: the clock is applied first.
 
 ## Scene and camera
 
-The fit is the yard wedge, not the 30 × 24 site. One sentence: the crane's working reach has to be large enough to read the hook and the ok band on a phone. `useFittedView({ area: x −8..8, y 0..4.5, z −2..12, pitch: 40°, yaws: [0.6, 0.6 + π/2], margin: { top: 0.10, bottom: 0.08, left: 0.02, right: 0.02 }, padding: 8, shift: true, fov: 42 })`. Portrait uses yaw 0.6; the short wide phone uses `0.6 + π/2`. Look-at xz is the wedge centre; look-at y is `0.35 · roofHeight` (roof ≤ 3). `<CameraRig follow={that point} followFraction={1} offset shift damping={6}>`, so ShellStage's static rig cannot pin `definition.camera`. The jib above y 4.5 may leave the top of the frame. The hook block is drawn **1.2 m** tall so it clears 12 px where the ok band clears 6 px.
-
-Projected with the banner open (390 × 844 cover 162 px, 844 × 390 cover 83 px):
+One sentence: the wedge has to be large enough to read the hook and the ok band on a phone. `useFittedView({ area: x −8..8, y 0..4.5, z −2..12, pitch: 40°, yaws: [0.6, 0.6 + π/2], margin: { top: 0.10, bottom: 0.08, left: 0.02, right: 0.02 }, padding: 8, shift: true, fov: 42 })`. Portrait yaw 0.6; a short wide phone uses `0.6 + π/2`. Look-at y is `0.35 · roofHeight` (roof ≤ 3). `<CameraRig follow={that point} followFraction={1} offset shift damping={6}>`. The jib above y 4.5 may leave the frame.
 
 | | px/m | hook 1.2 m | slot 1.2 m | worker 1.56 m | ok 0.6 m | perfect 0.15 m |
 |---|---|---|---|---|---|---|
-| 390 × 844 | 16 | 19 | 19 | 24 | 9 | 2 |
-| 844 × 390 | 10 | 12 | 12 | 16 | 6 | 1.5 |
+| 390 × 844, banner open | 16 | 19 | 19 | 24 | 9 | 2 |
+| 844 × 390, banner open | 10 | 12 | 12 | 16 | 6 | 1.5 |
 
-- **Worker** at (3.2, 0, −1), yaw toward +z, `SHARED_ASSETS.runner` scale 0.825 (1.556 m), `applyLift={false}`, group y = `bodyLift × 0.825`. `idlePose`, a game-local `pointPose` (`aimArm`) while a piece is on the hook, `cheerPose` for 1.2 s when a building completes. Hard hat on `attach={{ head }}` (`#fbbf24`).
-- Guide line, mint `#6ee7b7` inside the ok band, slate outside, plus a blob under the carried piece. Slot: emissive frame, not a light.
-- `environment: { background: "#e7e5e4", fog: ["#e7e5e4", 28, 55], lighting: "day" }`. The van sits behind the mast at (0, 0, −1.5), inside the wedge and outside the pickup discs.
+- **Worker** at (3.2, 0, −1), `SHARED_ASSETS.runner` scale 0.825 (1.556 m), `applyLift={false}`, group y = `bodyLift × 0.825`. `idlePose`, `pointPose` (`aimArm`) while carrying, `cheerPose` for 1.2 s. Hard hat on `attach={{ head }}`.
+- Guide: gold `#fbbf24` when the predicted landing is inside perfect, mint `#6ee7b7` inside ok, slate outside, plus a blob under the piece. The perfect band is 1.5–2 px, so the gold tier is how it reads. Slot frame is emissive, not a light.
+- `environment: { background: "#e7e5e4", fog: ["#e7e5e4", 28, 55], lighting: "day" }`. Van at (−5.4, 0, 1.0), yaw π/2 (long axis east), about 5.5 m clear of the mast base, inside the wedge.
 
 ## Core helpers used
 
-`GameDefinition` (`resultDelayMs`, no `durationMs`, `touchControls`, `hudStats` for time / stability / building / swing amplitude, `environment`), `useRunFrame`, `useGameTime`, `useInput` (`moveX`, `moveY`, `jumpPressed`, `actionPressed`, `digit`, `tap`), `useFittedView`, `CameraRig`, `useSafeArea` (through the fit), `useArcadeStore` (`addScore`, `setStat`, `end`), `core/kinematics` (`stepPendulum2D`, `createFixedStep`, `fixedStep`), `core/math` (`createRng`, `rngNext`, `randomSeed` in the Scene only), `core/limits` (`withinServerLimits`, `capScore`), `core/testing/botHarness` (`simulateRun`, `fixedFrames`, `randomFrames`; tests only), rig (`<HumanoidModel attach={{ head }}>`, `useHumanoidPose`, `idlePose`, `cheerPose`, `aimArm`, `bodyLift`, `RUNNER_LANDMARKS`), `core/kit` `Fence`, `core/fx` (`burst` sparkle / puff / confetti, `score`, `shake`, `warm`), `useCanvasTexture`, `<Instanced>` / `<DynamicInstanced>`, `BlobShadow`, `useQuality` + `scaledCount`, `SHARED_ASSETS.runner` / `SHARED_ASSETS.crate`, `REUSED_ASSETS.pallet` / `REUSED_ASSETS.van`, P-06 `playSfx` / `startLoop`. Not used: Rapier, `core/path`, `core/ai`, `Trail`. The polar crane step is game-local; the pendulum is not reimplemented.
+`GameDefinition` (`resultDelayMs`, no `durationMs`, `touchControls`, `hudStats` for time / stability / building / swing amplitude, `environment`), `useRunFrame`, `useGameTime`, `useInput` (`moveX`, `moveY`, `jumpPressed`, `actionPressed`, `digit`, `tap`), `useFittedView`, `CameraRig`, `useSafeArea`, `useArcadeStore` (`addScore`, `setStat`, `end`), `stepPendulum2D`, `createFixedStep`, `fixedStep`, `createRng`, `rngNext`, `randomSeed`, `withinServerLimits`, `capScore`, `simulateRun` / `fixedFrames` / `randomFrames` (tests), `<HumanoidModel attach={{ head }}>`, `useHumanoidPose`, `idlePose`, `cheerPose`, `aimArm`, `bodyLift`, `RUNNER_LANDMARKS`, `Fence`, `useFx`, `useCanvasTexture`, `<Instanced>`, `<DynamicInstanced>`, `BlobShadow`, `useQuality`, `SHARED_ASSETS.runner` / `crate`, `REUSED_ASSETS.pallet` / `van`, `playSfx`, `startLoop`. Not used: Rapier, `core/path`, `core/ai`, `Trail`.
 
 ## Assets
 
-No new generation. This game owns no GLB. `assets.spec.json` has an empty `assets` list. The catalog cement mixer (class E, P3) is out.
+No new generation. This game owns no GLB (`assets.spec.json` assets is empty). Cement mixer is out.
 
 | id | class / source | target in game | fallback |
 |---|---|---|---|
-| worker | D `SHARED_ASSETS.runner` 0.825 + B hat on `attach.head` | 1.556 m | capsule + hat |
-| pallet | D `REUSED_ASSETS.pallet`, instanced under the five piles | 1.2 × 0.15 × 0.8 | box |
-| crate | D `SHARED_ASSETS.crate`, instanced, 4 in the yard | 0.8 cube | box |
-| van | D `REUSED_ASSETS.van`, behind the mast | ~4.5 long | box |
-| procedural | B: mast and jib, cable, 1.2 m hook block, five piles, pieces, fence, ground, guide, slot frame, hard hat | | |
+| worker | D runner 0.825 + B hat | 1.556 m | capsule + hat |
+| pallet | D `REUSED_ASSETS.pallet` | 1.2 × 0.15 × 0.8 | box |
+| crate | D `SHARED_ASSETS.crate`, ×4 | 0.8 cube | box |
+| van | D `REUSED_ASSETS.van` | ~4.5 long, yaw π/2 | box |
+| procedural | B: mast, jib, cable, 1.2 m hook block, piles, pieces, fence, ground, guide, slot, hat | | |
 
-Van and extra crates drop out when `useQuality().decor` scales them to 0. The worker, piles, pieces and crane stay at every tier.
+Van and extra crates drop out on the low tier. Worker, piles, pieces and crane stay.
 
 ## Files
 
-`meta.ts` (scoring unchanged until Claude's limits PR) · `index.tsx` · `rules.ts` · `rules.test.ts` · `poses.ts` (`pointPose`; `poses.test.ts`) · `assets.ts` + `assets.test.ts` · `Scene.tsx` · `Crane.tsx` · `Site.tsx` · `Pieces.tsx` · `Primitives.tsx` · `assets.spec.json` · `README.md`. Thumbnail and the thumbs input belong to the build.
+`meta.ts` (scoring unchanged until Claude's limits PR) · `index.tsx` · `rules.ts` · `rules.test.ts` · `poses.ts` · `assets.ts` + tests · `Scene.tsx` · `Crane.tsx` · `Site.tsx` · `Pieces.tsx` · `Primitives.tsx` · `assets.spec.json` · `README.md`. Thumbnail and the thumbs input belong to the build.
 
 ## Test plan
 
-`rules.test.ts` ≤ ~600 lines. 20 seeds × three frame modes: style variants do not move slots.
+`rules.test.ts` ≤ ~600 lines. 20 seeds × three frame modes: styles do not move slots.
 
-- **Pins:** `CRANE`, `PENDULUM`, `DROP`, `STABLE`, `CLOCK`, the 7.8 / 8.9 / 8.98 gates, pickup radius 0.45.
-- **Energy:** with pivot acceleration 0, E after `stepPendulum2D` is ≤ E before. A scripted accel through `fixedStep` matches a 120 Hz reference within 1e-4. The 2.5 m/s² cap holds for a full-speed start (raw `ω²r` and `α · r` would exceed it). Magnitude clamp: a diagonal does not pass 0.35.
-- **Ratings and gates:** bands, including the tower's 0.8. A drop at r 8.89 does nothing; at 8.9 it resolves. Tower drop opens at 8.98. A miss retries the same step. Pickup discs of the 1.05 m pair do not overlap.
-- **Stability:** all-ok leaves 52 / 28 / 4; the 9th miss collapses; a wrong key refuses at once, subtracts 1 s, and does not start a dwell.
-- **Score:** `t(8) = 9.92` and 1300; `t(36) = 41.56` and 5640; `t(9)` collapse = 11.05; `withinServerLimits` and `capScore` on the store bot at 60 fps, 20 fps and random frames. An idle crane times out at 150 s with score 0.
-- `poses.test.ts`: soles within 1 cm; the hat within 1 cm of the head. `assets.test.ts`: worker height 1.556 m.
+- **Pins:** gates 7.8 / 8.9 / 9.02, pickup radius 0.45, accel cap 2.0, radius max 9.6.
+- **Dwell:** breaks and restarts if r, disc or bob speed fails; a wrong key while carrying or locked costs 0 s; a correct key off the pile does not arm.
+- **Energy:** E does not grow at zero pivot accel. The 2.0 cap holds for a full-speed jib start (raw `ω²r` and `α · r` exceed it) and that start stays under 0.35 rad.
+- **Landing:** the rating uses the predicted point, not the hook xz. Tower drop opens at 9.02. A miss retries the same step.
+- **Stability and score:** all-ok 52 / 28 / 4; 9th miss collapses; `t(8) = 9.92` / 1300; `t(36) = 41.56` / 5640; `t(9) = 11.05`; store bot as above; idle times out at 150 s with score 0.
+- **Visual:** soles and hat within 1 cm; worker height 1.556 m; the carried piece and the hook never intersect a building or the crane, including the tower's top floor.
 
 ## Performance
 
-Target **40** draw calls, cap **50** (the spec's estimate is ≈ 45; the hard cap is 150). Lattice 2, cable + hook 2, five piece kinds 5, carried 1, piles 5, fence 2, ground 1, van 1, pallets 1, crates 1, worker 2 + hat 1, guide 1, slot 1, blob 1, fx ≤ 3 → about 32. Lights: the `day` preset only. `fx.warm("sparkle", "puff", "confetti", "score")` on mount. No per-frame allocation.
+Target **40** draw calls, cap **50**. Lattice 2, cable + hook 2, five piece kinds 5, carried 1, piles 5, fence 2, ground 1, van 1, pallets 1, crates 1, worker 2 + hat 1, guide 1, slot 1, blob 1, fx ≤ 3 → about 32. `day` preset only. `fx.warm("sparkle", "puff", "confetti", "score")`.
 
-`startLoop("engine", { volume: 0.3 })` while playing; `set({ pitch })` from jib and trolley speed. Cable: `playSfx("click", { pitch: 0.6, volume: 0.2 })` at most every 0.4 s while `|angle| > 0.08`. Landing `thud` by rating (perfect 1.3, good 1.1, ok 0.9, miss 0.7); perfect also `chime`. Wrong pile `buzz`. Collapse `boom` plus `fx.shake(0.6)`.
+`startLoop("engine", { volume: 0.3 })` while playing; pitch follows jib and trolley speed. Cable `click` at most every 0.4 s while `|angle| > 0.08`. Pickup: `playSfx("pickup")` and a sparkle. Landing `thud` by rating (perfect 1.3, good 1.1, ok 0.9); perfect also `chime`. A miss is `playSfx("hit")` plus a coral `#fb7185` flash on the slot, not a thud. Wrong pile `buzz`. Collapse `boom` and `fx.shake(0.6)`.
 
 ## Accessibility
 
-The guide line is a shape and a colour. The swing amplitude (metres, `5.5 · |angle|`) is a HUD chip next to time, stability and the building. "Steady crane" raises damping on a coarse pointer. Pile boxes are at least 64 px; the 1.05 m pair can still overlap on a phone, and the nearer centre wins. The blueprint chip shows the piece name. `fx.shake` honours reduced motion.
+Guide colour is three tiers (gold / mint / slate), not the 1.5–2 px perfect band. Swing amplitude (`5.5 · |angle|`, metres) is a HUD chip with time, stability and the building. "Steady crane" raises damping on a coarse pointer. Blueprint shows the piece name. Pile taps are secondary to Action. `fx.shake` honours reduced motion.
 
 ## Risks and open questions
 
-- **Stability 0 / −3 / −6 / −12** instead of the spec's 0 / −5 / −10 / −15, so all-ok finishes (52 / 28 / 4). Recommend accept.
-- **One plot, fixed slot order, seed changes looks only** (`windowStyle`, `roofStyle`). A finished building stays for the cheer, then the plot clears and the next building starts at y = 0 on the same four points. Recommend accept.
-- **Cement mixer out** (no GLB this game owns). Recommend accept.
-- **Limits, now that the proof is redone:** `maxScore` 5800, duration 9000–152000 ms, base 0, pps 150. The old 72 s / 5490 / pps 80 figure counted a 2.5 m haul the trolley gates do not require, and a 15 s floor the 11 s collapse can beat. Recommend accept. Claude applies them; this branch does not edit `meta.ts`.
-- Pickup no longer waits for the swing to die. If a playtest still cannot finish on ok, the next lever is damping 1.0, not a pickup gate.
+### Decisions (user, 2026-10-09)
+
+- Stability is 0 / −3 / −6 / −12. All-ok finishes.
+- One plot, fixed slot order. The seed changes window and roof looks only.
+- No cement mixer.
+- Limits are maxScore 5800, duration 9000–152000 ms, base 0, pps 150. Claude writes them into `meta.ts` and `arcade-games.json` at merge. This branch does not.
+
+No open design question remains.
 
 ## Status
 
