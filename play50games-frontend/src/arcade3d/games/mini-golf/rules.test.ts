@@ -7,7 +7,7 @@ import { fixedFrames, randomFrames, simulateRun } from "@/arcade3d/core/testing/
 import { createArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { HILL_GRADE, HOLE_COUNT, PARS, PAR_TOTAL, RAMP, TURNTABLE, WINDMILL, buildHole, generateCourse, type Hole } from "./course";
 import { miniGolfMeta } from "./meta";
-import { BALL, CUP, MOVING, bladeChord, createBall, createBallEvents, launchBall, placeBall, previewLength, stepBall } from "./physics";
+import { BALL, CUP, MOVING, bladeChord, clearBallEvents, createBall, createBallEvents, placeBall, previewLength, stepBall } from "./physics";
 import { PICK_UP_OVER, RUN, TICK, advanceRun, canPutt, createRun, currentHole, holeScore, syncStore, type RunState } from "./rules";
 import { ACE_LINES, PAR_LINES, linePsi, playPutt, type LinePutt } from "./solver";
 
@@ -81,6 +81,7 @@ describe("mini-golf ball", () => {
    it("pins the tuning the proof rests on", () => {
       expect(BALL).toMatchObject({ radius: 0.06, friction: 0.9, vCap: 6, vMax: 4.5, restSpeed: 0.05 });
       expect(CUP).toMatchObject({ radius: 0.1, captureSpeed: 1.2, lipKeep: 0.85 });
+      expect(MOVING).toEqual({ bladeE: 0.75, barE: 0.75, barMu: 0.1 });
       expect(WINDMILL).toMatchObject({ tunnelHalf: 0.116, bladeZ: 0.8, hubY: 1.148, length: 1.1 });
       expect(TURNTABLE).toMatchObject({ half: 0.85, omega: 1.2 });
       expect(TICK).toMatchObject({ hz: 120, sub: 2, ready: 0.5, holeOut: 2.0, guard: 20 });
@@ -200,7 +201,7 @@ describe("mini-golf ball", () => {
       expect(MOVING.bladeE).toBe(0.75);
    });
 
-   it("a moving-wall hit changes the speed by at most (1 + e) |v_wall|", () => {
+   it("a moving-wall hit changes the speed by at most (1 + 0.75) |v_wall| (the bar's tip speed)", () => {
       const hole = buildHole(5, false);
       const rng = createRng(3);
       const tip = TURNTABLE.omega * TURNTABLE.half;
@@ -215,7 +216,8 @@ describe("mini-golf ball", () => {
          b.mode = "roll";
          const v0 = Math.hypot(b.vx, b.vz);
          stepBall(hole, b, rng() * 10, 1 / 240, ev);
-         expect(Math.hypot(b.vx, b.vz)).toBeLessThanOrEqual(v0 + (1 + MOVING.barE) * tip + 0.2);
+         // the literal 0.75 is the restitution the proof assumes; 0.02 = one sub-step of slope pull and friction
+         expect(Math.hypot(b.vx, b.vz)).toBeLessThanOrEqual(v0 + (1 + 0.75) * tip + 0.02);
       }
    });
 
@@ -400,4 +402,147 @@ describe("mini-golf scoring limit proof (README.md)", () => {
    });
 });
 
-void launchBall;
+describe("mini-golf pins from the review (each kills a mutation)", () => {
+   const lane = (index: number, hole?: Hole) => {
+      const run = createRun(3, Array.from({ length: HOLE_COUNT }, (_v, i) => (i === index && hole ? hole : buildHole(i, false))));
+      run.hole = index;
+      return run;
+   };
+   const set = (run: RunState, x: number, z: number) => {
+      placeBall(currentHole(run), run.ball, { x, z }, false);
+      run.lastRest = { x, z, upper: false };
+   };
+   /** One putt (world heading psi, power p), then 1/120 s frames until the stroke is over. */
+   const putt = (run: RunState, psi: number, p: number, maxS = 30) => {
+      const seen = { water: false, placedBack: false, endedAt: -1 };
+      while (!canPutt(run)) advanceRun(run, 1 / 120, 0, 0, false);
+      advanceRun(run, 1 / 120, psi, p, true);
+      const start = run.time;
+      for (let f = 0; f < maxS * 120 && (run.phase === "moving" || run.pending.on); f++) {
+         advanceRun(run, 1 / 120, 0, 0, false);
+         seen.water ||= run.events.water;
+         seen.placedBack ||= run.events.placedBack;
+         if (run.events.strokeEnded) seen.endedAt = run.time - start;
+      }
+      return seen;
+   };
+   const toward = (from: { x: number; z: number }, x: number, z: number) => Math.atan2(x - from.x, -(z - from.z));
+
+   it("the speed stays <= 6 m/s after bar hits at full speed (the clamp after the collisions)", () => {
+      const hole = buildHole(5, false);
+      const rng = createRng(11);
+      let hits = 0;
+      for (let i = 0; i < 6000; i++) {
+         const b = createBall({ x: 0, z: 0 }, false);
+         const r = rng() * 0.85;
+         const a = rng() * 2 * Math.PI;
+         b.x = Math.cos(a) * r;
+         b.z = TURNTABLE.z + Math.sin(a) * r;
+         const d = rng() * 2 * Math.PI;
+         b.vx = Math.cos(d) * BALL.vCap;
+         b.vz = Math.sin(d) * BALL.vCap;
+         b.mode = "roll";
+         stepBall(hole, b, rng() * 10, 1 / 240, clearBallEvents(ev));
+         if (ev.movingHit) hits++;
+         expect(Math.hypot(b.vx, b.vz)).toBeLessThanOrEqual(BALL.vCap + 1e-9);
+      }
+      expect(hits).toBeGreaterThan(100);
+   });
+
+   it("a lip-out keeps 0.85 of the speed", () => {
+      const hole = buildHole(3, false);
+      const b = createBall({ x: hole.cup.x + 0.03, z: hole.cup.z + 0.11 }, false);
+      b.vz = -2.0;
+      b.mode = "roll";
+      for (let n = 0; n < 60; n++) {
+         const before = Math.hypot(b.vx, b.vz) - 0.9 / 240; // this sub-step's friction
+         stepBall(hole, b, 0, 1 / 240, clearBallEvents(ev));
+         if (ev.lipOut) {
+            expect(Math.hypot(b.vx, b.vz)).toBeCloseTo(before * 0.85, 6);
+            return;
+         }
+      }
+      throw new Error("no lip-out");
+   });
+
+   it("a pipe gives back exactly the entry speed, after length / max(speed, 0.6)", () => {
+      const hole = buildHole(4, false);
+      for (const v of [0.3, 2.0]) {
+         const b = createBall({ x: 0, z: 1.503 }, true);
+         b.vz = -v;
+         b.mode = "roll";
+         let entry = -1;
+         let n = 0;
+         for (; n < 240 * 20; n++) {
+            stepBall(hole, b, 0, 1 / 240, clearBallEvents(ev));
+            if (ev.pipeIn) entry = Math.hypot(b.vx, b.vz);
+            if (ev.pipeOut) break;
+         }
+         expect(entry).toBeGreaterThan(v - 0.02);
+         expect(Math.hypot(b.vx, b.vz)).toBeCloseTo(entry, 12);
+         expect(n / 240).toBeCloseTo(6.4 / Math.max(entry, 0.6), 1);
+      }
+   });
+
+   it("water after a second stroke puts the ball back on the last rest point, not the tee", () => {
+      const run = lane(5); // hole 6: the tee is on the terrace, the first putt rests on the lower green
+      const hole = currentHole(run);
+      set(run, hole.tee.x, hole.tee.z);
+      putt(run, 0, 0.3);
+      expect(run.strokes).toBe(1);
+      const rest = { x: run.ball.x, z: run.ball.z };
+      expect(rest.z).toBeLessThan(-0.3);
+      const pond = hole.ponds[0];
+      const px = (pond.x0 + pond.x1) / 2;
+      const pz = (pond.z0 + pond.z1) / 2;
+      const d = Math.hypot(px - rest.x, pz - rest.z);
+      const seen = putt(run, toward(rest, px, pz), Math.sqrt(2 * BALL.friction * (d + 0.6)) / BALL.vMax);
+      expect(seen.water).toBe(true);
+      expect(run.strokes).toBe(3);
+      expect([run.ball.x, run.ball.z]).toEqual([rest.x, rest.z]);
+   });
+
+   it("a stroke still moving after 20 s ends at the last rest point, no penalty", () => {
+      // hole 6 with a rail across the 9 deg slope: a ball below it never rests (pull > friction) and never leaves
+      const base = buildHole(5, false);
+      const run = lane(5, { ...base, rails: [...base.rails, { a: { x: -1.2, z: 2.0 }, b: { x: 1.2, z: 2.0 }, e: 0.75, mu: 0.1, zone: 0, drawn: false }] });
+      set(run, 0, 2.5);
+      const seen = putt(run, Math.PI, 0.1, 25);
+      expect(seen.placedBack).toBe(true);
+      expect(seen.endedAt).toBeGreaterThanOrEqual(TICK.guard - 2 / 120);
+      expect(seen.endedAt).toBeLessThan(TICK.guard + 0.02);
+      expect(run.phase).toBe("aim");
+      expect(run.strokes).toBe(1);
+      expect([run.ball.x, run.ball.z]).toEqual([0, 2.5]);
+   });
+
+   it("a ball that rests inside the windmill's tunnel goes back to its entrance (0, 0.95)", () => {
+      const run = lane(3);
+      set(run, WINDMILL.entrance.x, WINDMILL.entrance.z);
+      // 0.95 m of flat felt to the tunnel's middle: v0^2 = 1.8 * 0.95; the blades are open at the start
+      const seen = putt(run, 0, Math.sqrt(1.8 * 0.95) / BALL.vMax);
+      expect(seen.placedBack).toBe(true);
+      expect(run.strokes).toBe(1);
+      expect([run.ball.x, run.ball.z]).toEqual([WINDMILL.entrance.x, WINDMILL.entrance.z]);
+      expect(run.lastRest).toMatchObject({ x: WINDMILL.entrance.x, z: WINDMILL.entrance.z });
+   });
+
+   it("a pick-up takes >= 1.5 s of ready gaps even when every putt splashes (4 putts on hole 3), over the largest capture bound 1.287 s", () => {
+      const run = lane(2);
+      const hole = currentHole(run);
+      set(run, hole.tee.x, hole.tee.z);
+      let putts = 0;
+      let splashes = 0;
+      let ready = 0;
+      while (run.card[2] < 0 && putts < 10) {
+         putts++;
+         if (putts > 1) ready += TICK.ready;
+         if (putt(run, 0, 0.7).water) splashes++;
+      }
+      expect(putts).toBe(4);
+      expect(splashes).toBe(4);
+      expect(run.card[2]).toBe(3 + PICK_UP_OVER);
+      expect(ready).toBe(1.5);
+      expect(ready).toBeGreaterThan((7.72 - CUP.radius) / BALL.vCap);
+   });
+});
