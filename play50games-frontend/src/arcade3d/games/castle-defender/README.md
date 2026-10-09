@@ -114,4 +114,69 @@ None for the user; builder gates (measured 24 px at 844x390 banner open, human-p
 - Restored from 6a54521: landing ring, Rock cooldown number, climb progress, rear-hit ring, +200 even with escapes (rule + test), exact control strings, thumbs input file, 24 s minimum wave departure.
 - Core REUSED_GLB_SIZE.door added; meta.ts and arcade-games.json carry the limits.
 
-Status: G0 design, merged pending the user's approval of the departures. Actual fit/performance/human success are builder acceptance gates.
+## Status
+
+```text
+TASK P-15 | build castle-defender | branch codex/game-castle-defender | allowed: play50games-frontend/src/arcade3d/games/castle-defender/**, play50games-frontend/public/images/3d/castle-defender.webp, tools/thumbs/inputs/castle-defender.mjs
+HANDOFF P-15 | castle-defender
+Branch: codex/game-castle-defender (confirmed before any project read).
+Status: implemented, pending Claude validation; meta.status remains "dev".
+Commits / push / branch changes: none.
+
+Files
+Game folder: index.tsx, rules.ts, rules.test.ts, assets.ts, assets.test.ts, camera.ts,
+Scene.tsx, Castle.tsx, Goblins.tsx, Cannon.tsx, Markers.tsx, Primitives.tsx,
+Hud.tsx, Hud.module.css, README.md.
+Thumbnail input: tools/thumbs/inputs/castle-defender.mjs.
+Handoff artifact: .handoff/P-15-castle/HANDOFF.md (explicit CLI instruction).
+meta.ts and assets.spec.json unchanged; thumbnail remains null.
+
+Acceptance checklist
+[x] Correct existing branch; no branch creation/switching, commit or push.
+[x] Scope checked with git status --porcelain; no main comparison.
+[x] GameDefinition, seeded pure rules, five finite waves, gate HP, directional shields,
+    buffered shots, ladder rocks, single-choice upgrades, 136s win / HP0 loss /139.9s safety.
+[x] One useRunFrame; rules then store; game-time visuals; fixed instance pools.
+[x] Approved fitted camera, persistent safe-area HUD, unmarked offers/banner,
+    40 core TargetMarker slots plus projected24px small-target and reticle circles.
+[x] Shared asset fits, solid-goblin motion, primitive and instanced fallbacks.
+[x] Audio, restartable [phase, muted] ambient loop, effects and1600ms result delay.
+[x] Rules tests authored: 1,000 generator seeds; 64 legal +64 human-paced +32 spam,
+    real-store clock, raw score envelope, terminal limits, capScore unchanged.
+[x] Asset tests authored: all six GLB fits through transformed accessor bounds,
+    solid goblin dimensions, cannon muzzle and core size constants; no decoder needed.
+[x] Direct TypeScript check passed: node node_modules/typescript/bin/tsc --noEmit --incremental false.
+[ ] Vitest execution, runtime <60s, >=61/64 human wins with >=20HP, best score >=2889.
+[ ] npm run build, full npx vitest run, gamecheck (Claude; sandbox instructions).
+[ ] Keyboard and touch browser runs, screenshots at1280x800 /390x844 banner open /844x390.
+[ ] Actual24px readability, ladder/offer/HUD clearance, mute/reduced-motion and Retry x10.
+[ ] Performance capture JSON, <=50 target draws (<=60 acceptance), p95/resource-flatness.
+[ ] Thumbnail capture from the provided local input script; no thumbnail generated here.
+
+Scoring formula and limit proof
+S =20*killed +200*cleared +(won ?2*gateHP :0).
+Exactly98 ids; five clear awards; additive repair caps HP at125.
+Maximum =98*20 +5*200 +2*125 =3210.
+Unrestricted kill/previous-clear prefixes:160,640,1240,1960,2760 at0,28,56,84,112s.
+Clear prefixes:360,840,1440,2160,2960 at24,52,80,108,136s.
+All prefixes fit160+25*t; final3210 <=3560 at136s.
+Wave1 can deal only40 damage. Earliest wave2 arrival >=39.428571s, above39000ms.
+Surviving schedules resolve before each24s clear and win136s, before139.9s safety.
+Existing limits3210 /39000-140000ms /base160 /25pps remain untouched.
+Bots assert every raw prefix and final server limit without capping; results are unmeasured.
+The bot test logs runtime, score/duration extrema, HP, losses and escaped-pack counts.
+
+Evidence
+TypeScript: direct compiler exited0. Static source scan: no forbidden runtime imports,
+Math.random / Date.now in rules, elapsedTime, persistence or score/API calls.
+Screenshots: not captured. Perf JSON: not captured. Vitest: not run.
+No production, network, Hyper3D or secret access; prohibited tools were not attempted.
+
+Open questions
+1. Claude: run the authored tests and report human feasibility / runtime / score extrema;
+   the 95% win gate has not been established, and may require a fix round.
+2. Approved camera hull max y2.3 versus climber soles y2.08 +body1.6 =head y3.68:
+   inspect cropping/readability before acceptance; is a taller fit hull intended?
+3. Claude: verify actual decoded GLB bounds against core mesh tests, then perform the
+   three-size browser, fallback, Retry and perf checks and local thumbnail capture.
+```

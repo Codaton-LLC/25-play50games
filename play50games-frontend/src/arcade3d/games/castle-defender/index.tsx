@@ -1,16 +1,28 @@
 "use client";
 
-// Stub until the game is built. Owner: codex. Replace PlaceholderScene with ./Scene.
 import type { GameDefinition } from "@/arcade3d/core/types";
-import { PlaceholderScene } from "@/arcade3d/core/PlaceholderScene";
+import Scene from "./Scene";
+import Hud from "./Hud";
+import { ASSETS } from "./assets";
+import { CAMERA } from "./camera";
+import { TUNING } from "./rules";
 
 const definition: GameDefinition = {
    slug: "castle-defender",
-   Scene: PlaceholderScene,
-   assets: {},
-   camera: { position: [0, 6, 10], fov: 50, lookAt: [0, 0, 0] },
+   Scene,
+   Hud,
+   assets: ASSETS,
+   camera: CAMERA,
+   environment: { background: "#dbeafe", lighting: "day" },
    touchControls: ["tap", "action"],
-   instructions: ["Tap the field to fire the cannon.", "Drop rocks on the ladders."],
+   touchLabels: { action: "Rock" },
+   hudStats: [],
+   resultDelayMs: TUNING.resultDelayMs,
+   instructions: [
+      "Click the field or aim with arrows / WASD and Space to fire. Hit shields from behind.",
+      "E / Enter or Rock clears an erected ladder. Rock reloads in 8 seconds.",
+      "Choose upgrades with 1 / 2 or tap a card; hold the gate through five waves.",
+   ],
 };
 
 export default definition;
