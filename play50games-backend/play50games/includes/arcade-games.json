@@ -133,10 +133,10 @@
       "title": "Dino Egg Rescue",
       "kind": "points",
       "max_score": 6000,
-      "min_duration_ms": 10000,
+      "min_duration_ms": 88000,
       "max_duration_ms": 92000,
-      "base": 6000,
-      "max_pps": 6000,
+      "base": 0,
+      "max_pps": 70,
       "enabled": false
     },
     "delivery-drone": {
