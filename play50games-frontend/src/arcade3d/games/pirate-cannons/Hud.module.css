@@ -1,0 +1,52 @@
+/* The wind vane: an arrow turned to the wind (screen up = out to sea) and its strength.
+   A fixed 112 x 44 px box marked data-arcade-safe-area (the camera fit keeps the bay clear of it),
+   bottom left, above the safe-area inset and the cookie banner. */
+.panel {
+   position: absolute;
+   left: calc(env(safe-area-inset-left, 0px) + 12px);
+   bottom: calc(12px + env(safe-area-inset-bottom, 0px) + var(--arcade-bottom-obstruction, 0px));
+   box-sizing: border-box;
+   width: 112px;
+   height: 44px;
+   pointer-events: none;
+}
+
+.pill {
+   display: flex;
+   align-items: center;
+   gap: 8px;
+   box-sizing: border-box;
+   width: 100%;
+   height: 100%;
+   padding: 0 12px;
+   border: 2px solid #f87171;
+   border-radius: 999px;
+   background: rgba(11, 16, 32, 0.72);
+   -webkit-backdrop-filter: blur(6px);
+   backdrop-filter: blur(6px);
+   color: #fff;
+   font-size: 14px;
+   font-weight: 800;
+   line-height: 1;
+}
+
+.arrow {
+   flex: none;
+   width: 22px;
+   height: 22px;
+   transition: transform 0.6s ease;
+}
+
+.label {
+   display: flex;
+   flex-direction: column;
+   gap: 2px;
+}
+
+.caption {
+   font-size: 10px;
+   font-weight: 700;
+   letter-spacing: 0.08em;
+   opacity: 0.75;
+   text-transform: uppercase;
+}

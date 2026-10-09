@@ -222,11 +222,11 @@
     "pirate-cannons": {
       "title": "Pirate Cannon Battle",
       "kind": "points",
-      "max_score": 9000,
-      "min_duration_ms": 10000,
+      "max_score": 10500,
+      "min_duration_ms": 19000,
       "max_duration_ms": 92000,
-      "base": 9000,
-      "max_pps": 9000,
+      "base": 1500,
+      "max_pps": 110,
       "enabled": false
     },
     "castle-defender": {
@@ -242,11 +242,11 @@
     "penguin-slide": {
       "title": "Penguin Ice Slide",
       "kind": "points",
-      "max_score": 75000,
-      "min_duration_ms": 3000,
-      "max_duration_ms": 900000,
-      "base": 75000,
-      "max_pps": 75000,
+      "max_score": 18700,
+      "min_duration_ms": 9000,
+      "max_duration_ms": 182000,
+      "base": 440,
+      "max_pps": 104,
       "enabled": false
     },
     "space-repair": {

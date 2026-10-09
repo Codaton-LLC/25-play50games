@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { FRAME_PRIORITY, MAX_FRAME_DT, advanceRunClock, playedFrameDt } from "@/arcade3d/core/frameLoop";
+import { MAX_FRAME_DT } from "@/arcade3d/core/frameLoop";
 import { createRng } from "@/arcade3d/core/math";
+import { createGrid, fixedFrames, followPath, freeGrid, randomFrames, simulateRun, steer, type PathFollower } from "@/arcade3d/core/testing/botHarness";
 import { createArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { treasureIslandMeta } from "./meta";
 import {
@@ -14,6 +15,7 @@ import {
    IDEAL_ROUTE,
    ISLAND,
    MIN_ROUTE,
+   PALM_TRUNK,
    POINTS,
    SPACING,
    START,
@@ -49,6 +51,8 @@ import {
 } from "./rules";
 
 const DT = 1 / 60;
+/** seeds per bot (the arcade-score-limits skill asks for 200+) */
+const BOT_SEEDS = 200;
 const SEEDS = Array.from({ length: 1000 }, (_v, i) => i);
 /** a few seeds like the Scene draws them (random 32-bit integers) */
 const BIG_SEEDS = [2 ** 32 - 1, 123456789, 987654321, 3141592653, 2718281828];
@@ -80,124 +84,26 @@ function holdDig(run: RunState, island: Island, seconds: number, time = 1, dt = 
    return t;
 }
 
-// ---------- a full-knowledge bot through the real store (test helper, not game code) ----------
+// ---------- bots through the real store (core/testing/botHarness: grid, path, run loop) ----------
 
-const CELL = 0.25;
-const HX = 16;
-const HZ = 13;
-const NX = Math.round((2 * HX) / CELL) + 1;
-const NZ = Math.round((2 * HZ) / CELL) + 1;
-const nodeX = (n: number) => -HX + Math.floor(n / NZ) * CELL;
-const nodeZ = (n: number) => -HZ + (n % NZ) * CELL;
-const nodeOf = (x: number, z: number) => Math.round((x + HX) / CELL) * NZ + Math.round((z + HZ) / CELL);
+const GRID = createGrid({ cell: 0.25, halfX: 16, halfZ: 13 });
+/** walkable for the bot: inside the full-tide reach and clear of every footprint, with small margins */
+const freeFor = (island: Island) => freeGrid(GRID, (x, z) => rho(x, z) <= reachRho(1) - 0.06 && clearance(island, x, z) >= EXPLORER.radius + 0.12);
 
-function freeGrid(island: Island): Uint8Array {
-   const free = new Uint8Array(NX * NZ);
-   for (let n = 0; n < NX * NZ; n++) {
-      const x = nodeX(n);
-      const z = nodeZ(n);
-      free[n] = rho(x, z) <= reachRho(1) - 0.06 && clearance(island, x, z) >= EXPLORER.radius + 0.12 ? 1 : 0;
-   }
-   return free;
-}
-
-/** Dijkstra (binary heap) over free nodes, 8 neighbours, no cut corners; the node path from -> to. */
-function findPath(free: Uint8Array, from: number, to: number): number[] {
-   const cost = new Float64Array(NX * NZ).fill(Infinity);
-   const prev = new Int32Array(NX * NZ).fill(-1);
-   const heap: Array<[number, number]> = [];
-   const push = (c: number, n: number) => {
-      heap.push([c, n]);
-      for (let i = heap.length - 1; i > 0; ) {
-         const p = (i - 1) >> 1;
-         if (heap[p][0] <= heap[i][0]) break;
-         [heap[p], heap[i]] = [heap[i], heap[p]];
-         i = p;
-      }
-   };
-   const pop = () => {
-      const top = heap[0];
-      const last = heap.pop()!;
-      if (heap.length) {
-         heap[0] = last;
-         for (let i = 0; ; ) {
-            const l = 2 * i + 1;
-            const r = l + 1;
-            let m = i;
-            if (l < heap.length && heap[l][0] < heap[m][0]) m = l;
-            if (r < heap.length && heap[r][0] < heap[m][0]) m = r;
-            if (m === i) break;
-            [heap[m], heap[i]] = [heap[i], heap[m]];
-            i = m;
-         }
-      }
-      return top;
-   };
-   cost[from] = 0;
-   push(0, from);
-   while (heap.length) {
-      const [c, n] = pop();
-      if (n === to) break;
-      if (c > cost[n]) continue;
-      const i = Math.floor(n / NZ);
-      const j = n % NZ;
-      for (const [di, dj, w] of [[1, 0, 1], [-1, 0, 1], [0, 1, 1], [0, -1, 1], [1, 1, Math.SQRT2], [1, -1, Math.SQRT2], [-1, 1, Math.SQRT2], [-1, -1, Math.SQRT2]]) {
-         const ni = i + di;
-         const nj = j + dj;
-         if (ni < 0 || nj < 0 || ni >= NX || nj >= NZ) continue;
-         const m = ni * NZ + nj;
-         if (!free[m] || !free[ni * NZ + j] || !free[i * NZ + nj]) continue;
-         if (c + w < cost[m]) {
-            cost[m] = c + w;
-            prev[m] = n;
-            push(cost[m], m);
-         }
-      }
-   }
-   const path: number[] = [];
-   for (let n = to; n >= 0; n = prev[n]) path.unshift(n);
-   return path[0] === from ? path : [];
-}
-
-function nearestFree(free: Uint8Array, x: number, z: number): number {
-   let best = nodeOf(x, z);
-   let bestD = Infinity;
-   for (let n = 0; n < NX * NZ; n++) {
-      if (!free[n]) continue;
-      const d = Math.hypot(nodeX(n) - x, nodeZ(n) - z);
-      if (d < bestD && d < 2) {
-         bestD = d;
-         best = n;
-      }
-   }
-   return best;
-}
-
-/** The order of the ideal route (centre to centre, best of 120). */
+/** The order of the ideal route (centre to centre, the first best of the 120). */
 function bestOrder(island: Island): number[] {
-   let best: number[] = [];
-   let bestLen = Infinity;
-   const go = (order: number[], left: number[], len: number, at: { x: number; z: number }) => {
-      if (len >= bestLen) return;
-      if (!left.length) {
-         bestLen = len;
-         best = order;
-         return;
-      }
-      for (const i of left) go([...order, i], left.filter((j) => j !== i), len + dist(at, island.treasures[i]), island.treasures[i]);
-   };
-   go([], [0, 1, 2, 3, 4], 0, START);
-   return best;
+   const perms = (xs: number[]): number[][] => (xs.length <= 1 ? [xs] : xs.flatMap((x, i) => perms(xs.filter((_v, j) => j !== i)).map((r) => [x, ...r])));
+   const length = (o: number[]) => o.reduce((sum, i, k) => sum + dist(k ? island.treasures[o[k - 1]] : START, island.treasures[i]), 0);
+   return perms([0, 1, 2, 3, 4]).reduce((a, b) => (length(b) < length(a) ? b : a));
 }
 
 type Driver = (run: RunState, step: StepInput) => void;
 
 /** Walks the grid path to each treasure in `order` and digs once its centre is in reach: never a false dig. */
 function pathBot(island: Island, order = bestOrder(island)): Driver {
-   const free = freeGrid(island);
+   const free = freeFor(island);
    let goal = -1;
-   let path: number[] = [];
-   let k = 0;
+   let follower: PathFollower | null = null;
    return (run, step) => {
       step.digPressed = false;
       const target = order.find((i) => !run.dug[i]);
@@ -214,18 +120,11 @@ function pathBot(island: Island, order = bestOrder(island)): Driver {
          step.digPressed = step.digHeld = true;
          return;
       }
-      if (goal !== target) {
+      if (goal !== target || !follower) {
          goal = target;
-         path = findPath(free, nearestFree(free, e.x, e.z), nearestFree(free, t.x, t.z));
-         k = 0;
+         follower = followPath(GRID, free, e.x, e.z, t.x, t.z);
       }
-      while (k < path.length - 1 && Math.hypot(nodeX(path[k]) - e.x, nodeZ(path[k]) - e.z) < 0.6) k++;
-      const last = k >= path.length - 1;
-      const dx = (last ? t.x : nodeX(path[k])) - e.x;
-      const dz = (last ? t.z : nodeZ(path[k])) - e.z;
-      const len = Math.hypot(dx, dz) || 1;
-      step.dirX = dx / len;
-      step.dirZ = dz / len;
+      steer(GRID, follower, e.x, e.z, step);
    };
 }
 
@@ -243,69 +142,57 @@ function spamBot(seed: number): Driver {
    };
 }
 
-interface Sim {
-   won: boolean;
-   elapsedMs: number;
-   score: number;
-   found: number;
-   /** the longest step over its dt before the tide (m/s) */
-   topSpeed: number;
-   walked: number;
-   digTime: number;
-   playTime: number;
-}
-
-/** One run on the real store, driven like ShellStage: advanceRunClock, then useRunFrame's dt; the Scene's store calls. */
-function simulate(island: Island, drive: Driver, frame: () => number): Sim {
-   const store = createArcadeStore();
-   store.getState().configure({ durationMs: DURATION_MS });
-   store.getState().markReady();
-   store.getState().start();
+/** One run on the real store (simulateRun drives it like ShellStage) with the Scene's store calls. */
+function simulate(island: Island, drive: Driver, frame: () => number) {
    const run = createRun(island);
    const step = input();
-   let topSpeed = 0;
-   let walked = 0;
-   let digTime = 0;
-   let playTime = 0;
-   while (store.getState().phase !== "over") {
-      advanceRunClock(store, frame());
-      const dt = playedFrameDt(store.getState());
-      if (dt === 0) continue;
-      drive(run, step);
-      const { x, z } = run.explorer;
-      stepRun(run, island, step, dt, store.getState().elapsedMs / 1000);
-      playTime += dt;
-      const moved = Math.hypot(run.explorer.x - x, run.explorer.z - z);
-      if (run.dig.active || run.events.found >= 0 || run.events.falseDig) {
-         digTime += dt;
-         // planted: only the rising water may push a digger
-         if (run.time < TIDE.startS) expect(moved).toBe(0);
-      }
-      walked += moved;
-      if (run.time < TIDE.startS) topSpeed = Math.max(topSpeed, moved / dt);
-      const ev = run.events;
-      if (ev.found < 0) continue;
-      const s = store.getState();
-      s.addScore(POINTS.find + (ev.foundClean ? POINTS.clean : 0));
-      s.setStat("treasures", run.found);
-      if (isWon(run)) {
-         s.setScore(runScore(run.found, run.cleanFinds, true, store.getState().timeLeftMs ?? 0));
-         s.end("win");
-      }
-   }
-   const s = store.getState();
-   return { won: s.endReason === "win", elapsedMs: s.elapsedMs, score: s.score, found: run.found, topSpeed, walked, digTime, playTime };
+   // topSpeed: the longest step over its dt before the tide (m/s); plantedMove: a digger's longest step before it (0 = planted)
+   const m = { topSpeed: 0, walked: 0, digTime: 0, playTime: 0, plantedMove: 0 };
+   const end = simulateRun(createArcadeStore(), {
+      durationMs: DURATION_MS,
+      frame,
+      step: (dt, time, store) => {
+         drive(run, step);
+         const { x, z } = run.explorer;
+         stepRun(run, island, step, dt, time);
+         m.playTime += dt;
+         const moved = Math.hypot(run.explorer.x - x, run.explorer.z - z);
+         if (run.dig.active || run.events.found >= 0 || run.events.falseDig) {
+            m.digTime += dt;
+            // planted: only the rising water may push a digger
+            if (run.time < TIDE.startS) m.plantedMove = Math.max(m.plantedMove, moved);
+         }
+         m.walked += moved;
+         if (run.time < TIDE.startS) m.topSpeed = Math.max(m.topSpeed, moved / dt);
+         const ev = run.events;
+         if (ev.found < 0) return;
+         const s = store.getState();
+         s.addScore(POINTS.find + (ev.foundClean ? POINTS.clean : 0));
+         s.setStat("treasures", run.found);
+         if (isWon(run)) {
+            s.setScore(runScore(run.found, run.cleanFinds, true, s.timeLeftMs ?? 0));
+            s.end("win");
+         }
+      },
+   });
+   return { won: end.endReason === "win", elapsedMs: end.elapsedMs, timeLeftMs: end.timeLeftMs ?? 0 /* may differ from DURATION_MS - elapsedMs in the last bits */, score: end.score, found: run.found, ...m };
 }
 
-const fixed = (ms: number) => () => ms / 1000;
-const randomFrames = (seed: number) => {
-   const rng = createRng(seed);
-   return () => 0.004 + rng() * 0.046;
-};
+/** 60 fps, 20 fps or seeded random 4-50 ms frames, by k. */
+const framesFor = (k: number) => [fixedFrames(1000 / 60), fixedFrames(50), randomFrames(k)][k % 3];
 
 // ---------- tests ----------
 
 describe("treasure-island islands", () => {
+   it("pins the tuning the islands, the band and the limit proof rest on", () => {
+      expect(SPACING).toEqual({ treasures: 6, fromStart: 7, fromProps: 1.5, maxRho: 0.72 });
+      expect(DIG).toEqual({ holdS: 0.6, reach: 0.9 });
+      expect(TIDE).toEqual({ startS: 70, endS: 90, finalShore: 0.75 });
+      expect(DETECTOR).toEqual({ range: 12, slowPeriod: 1.2, fastPeriod: 0.15 });
+      expect(IDEAL_ROUTE).toEqual({ min: 38, max: 56 });
+      expect([EXPLORER.radius, EXPLORER.maxSpeed, EXPLORER.wadeSpeed]).toEqual([0.4, 5, 3]);
+   });
+
    it("are deterministic per seed and differ between seeds", () => {
       expect(generateIsland(42)).toEqual(generateIsland(42));
       expect(generateIsland(42).treasures).not.toEqual(generateIsland(43).treasures);
@@ -475,10 +362,11 @@ describe("treasure-island detector", () => {
       // s = 0.5, period 0.675 s: 10 / 0.675 = 14.8 wraps
       expect(run.detector.strength).toBeCloseTo(0.5, 9);
       expect(beeps).toBe(14);
-      const far = runAt({ ...island, treasures: island.treasures.map(() => ({ x: 40, z: 0 })) }, 0, 0);
+      const farIsland = { ...island, treasures: island.treasures.map(() => ({ x: 40, z: 0 })) };
+      const far = runAt(farIsland, 0, 0);
       let farBeeps = 0;
       for (let f = 1; f <= 600; f++) {
-         stepRun(far, { ...island, treasures: island.treasures.map(() => ({ x: 40, z: 0 })) }, input(), DT, f * DT);
+         stepRun(far, farIsland, input(), DT, f * DT);
          if (far.events.beep) farBeeps++;
       }
       expect(farBeeps).toBe(0);
@@ -590,6 +478,33 @@ describe("treasure-island tide and hint", () => {
       expect(run.hint.target).toBe(run.detector.target);
    });
 
+   it("a wader digging (Dig re-pressed every frame) from 75 s stays within the reach of the rising tide", () => {
+      const island = FALLBACK_ISLAND;
+      const run = runAt(island, ISLAND.rx * reachRho(shoreAt(75)), 0);
+      for (let t = 75; t < TIDE.endS; t += DT) {
+         stepRun(run, island, input(0, 0, true, true), DT, t + DT);
+         expect(run.dig.active || run.events.found >= 0 || run.events.falseDig).toBe(true);
+         expect(rho(run.explorer.x, run.explorer.z)).toBeLessThanOrEqual(reachRho(shoreAt(t + DT)) + 1e-9);
+      }
+      expect(run.explorer.x).toBeCloseTo(ISLAND.rx * reachRho(TIDE.finalShore), 6);
+   });
+
+   it("the rising tide never pushes the explorer into a prop: seaward of the rowboat, the crates or a palm, standing or digging", () => {
+      // the final reach (rho 0.87) cuts through the rowboat and runs just south of the crates
+      const palm = { x: 0.2, z: -ISLAND.rz * reachRho(TIDE.finalShore) + 0.3, r: PALM_TRUNK };
+      const island: Island = { ...FALLBACK_ISLAND, circles: [...FALLBACK_ISLAND.circles, palm] };
+      for (const [x, z] of [[-10, 7.1], [-2.4, 9.95], [0, -ISLAND.rz * reachRho(shoreAt(80))]]) {
+         for (const dig of [false, true]) {
+            const run = runAt(island, x, z);
+            expect(clearance(island, x, z)).toBeGreaterThanOrEqual(EXPLORER.radius);
+            for (let t = TIDE.startS; t < TIDE.endS; t += DT) {
+               stepRun(run, island, input(0, 0, dig, dig), DT, t + DT);
+               expect(clearance(island, run.explorer.x, run.explorer.z)).toBeGreaterThanOrEqual(EXPLORER.radius - 1e-6);
+            }
+         }
+      }
+   });
+
    it("reports the tide turning once, at 70 s", () => {
       const run = createRun(FALLBACK_ISLAND);
       let turns = 0;
@@ -610,52 +525,13 @@ describe("treasure-island scoring", () => {
       expect(runScore(4, 4, false, 0)).toBe(1000);
    });
 
-   it("is the same run for the same island and inputs", () => {
-      const a = simulate(ISLANDS[3], pathBot(ISLANDS[3]), fixed(16));
-      const b = simulate(ISLANDS[3], pathBot(ISLANDS[3]), fixed(16));
-      expect(a).toEqual(b);
-   });
-
    it("an explorer that does not move scores 0 and times out at 90 s", () => {
-      const run = simulate(ISLANDS[0], () => {}, fixed(1000 / 60));
+      const run = simulate(ISLANDS[0], () => {}, fixedFrames(1000 / 60));
       expect(run).toMatchObject({ won: false, found: 0, score: 0, elapsedMs: DURATION_MS });
    });
 });
 
 describe("treasure-island scoring limit proof (README.md)", () => {
-   it("the clock counts every moment the explorer walks or digs: walking + digging time = elapsedMs", () => {
-      expect(FRAME_PRIORITY.clock).toBeLessThan(FRAME_PRIORITY.simulation);
-      const store = createArcadeStore();
-      store.getState().configure({ durationMs: DURATION_MS });
-      store.getState().markReady();
-      const rng = createRng(11);
-      for (const ending of ["timeup", "win", "restart", "win", "timeup", "restart"] as const) {
-         const { phase } = store.getState();
-         if (phase === "ready" || phase === "over") store.getState().start();
-         let played = 0;
-         const stopAtMs = 5_000 + rng() * 60_000;
-         while (store.getState().phase !== "over") {
-            const roll = rng();
-            if (roll < 0.01) store.getState().pause();
-            else if (roll < 0.03) store.getState().resume();
-            const before = store.getState().elapsedMs;
-            advanceRunClock(store, rng() < 0.1 ? 0.05 + rng() * 0.25 : 0.004 + rng() * 0.03);
-            const dt = playedFrameDt(store.getState());
-            if (dt > 0) {
-               played += dt;
-               expect(dt * 1000).toBeLessThanOrEqual(store.getState().elapsedMs - before + 1e-9);
-            }
-            if (ending !== "timeup" && store.getState().elapsedMs >= stopAtMs) break;
-         }
-         if (ending === "win") store.getState().end("win");
-         const { elapsedMs } = store.getState();
-         if (ending === "timeup") expect(elapsedMs).toBe(DURATION_MS);
-         expect(played).toBeLessThanOrEqual(elapsedMs / 1000 + 1e-9);
-         if (ending !== "timeup") expect(played).toBeCloseTo(elapsedMs / 1000, 9);
-         if (ending === "restart") store.getState().restart();
-      }
-   });
-
    it("MIN_ROUTE is 29.9 m and the earliest win 8.98 s; no leg is clipped by the reach", () => {
       expect(SPACING.fromStart).toBeGreaterThan(DIG.reach);
       expect(SPACING.treasures).toBeGreaterThan(2 * DIG.reach);
@@ -674,14 +550,16 @@ describe("treasure-island scoring limit proof (README.md)", () => {
       }
    });
 
-   it("full-knowledge bots win through the real store at 60 fps, 20 fps and random 4-50 ms frames, never before 8.98 s", () => {
-      const frames = [fixed(1000 / 60), fixed(50), randomFrames(5)];
-      ISLANDS.slice(0, 30).forEach((island, k) => {
-         const sim = simulate(island, pathBot(island), frames[k % 3]);
+   it("full-knowledge bots win through the real store on 200 seeds at 60 fps, 20 fps and random 4-50 ms frames, never before 8.98 s; the same run twice", { timeout: 60_000 }, () => {
+      ISLANDS.slice(0, BOT_SEEDS).forEach((island, k) => {
+         const sim = simulate(island, pathBot(island), framesFor(k));
+         // deterministic: the same island, inputs and frames give the same run
+         if (k < 3) expect(simulate(island, pathBot(island), framesFor(k))).toEqual(sim);
          expect(sim.won).toBe(true);
          expect(sim.found).toBe(TREASURE_COUNT);
-         expect(sim.score).toBe(runScore(5, 5, true, DURATION_MS - sim.elapsedMs));
-         expect(sim.topSpeed).toBeLessThanOrEqual(EXPLORER.maxSpeed + 1e-9);
+         expect(sim.score).toBe(runScore(5, 5, true, sim.timeLeftMs));
+         expect(sim.timeLeftMs).toBeCloseTo(DURATION_MS - sim.elapsedMs, 6);
+         expect([sim.topSpeed <= EXPLORER.maxSpeed + 1e-9, sim.plantedMove]).toEqual([true, 0]);
          expect(sim.playTime).toBeCloseTo(sim.elapsedMs / 1000, 9);
          expect(sim.digTime).toBeGreaterThanOrEqual(TREASURE_COUNT * DIG.holdS - 1e-9);
          expect(sim.walked).toBeGreaterThanOrEqual(shortestRoute(island.treasures, DIG.reach) - 1e-6);
@@ -690,10 +568,10 @@ describe("treasure-island scoring limit proof (README.md)", () => {
       });
    });
 
-   it("input spam and wandering never win early and never score above what the clock allows", () => {
-      ISLANDS.slice(0, 20).forEach((island, k) => {
+   it("input spam and wandering on 200 seeds never win early and never score above what the clock allows", { timeout: 60_000 }, () => {
+      ISLANDS.slice(0, BOT_SEEDS).forEach((island, k) => {
          const sim = simulate(island, spamBot(k), randomFrames(k));
-         expect(sim.topSpeed).toBeLessThanOrEqual(EXPLORER.maxSpeed + 1e-9);
+         expect([sim.topSpeed <= EXPLORER.maxSpeed + 1e-9, sim.plantedMove]).toEqual([true, 0]);
          expect(withinServerLimits(sim.score, sim.elapsedMs)).toBe(true);
          if (sim.won) expect(sim.elapsedMs).toBeGreaterThanOrEqual(EARLIEST_WIN_MS);
          else expect(sim.score).toBeLessThanOrEqual(4 * (POINTS.find + POINTS.clean));
@@ -718,7 +596,7 @@ describe("treasure-island scoring limit proof (README.md)", () => {
       // the margin: 480 ms (5 %) under the earliest win
       expect(Math.round(EARLIEST_WIN_MS) - treasureIslandMeta.scoring.minDurationMs).toBe(480);
       // the measured best bot (10.25-10.5 s, 2040) is within 90-100 % of maxScore and passes
-      const best = simulate(ISLANDS[94], pathBot(ISLANDS[94]), fixed(1000 / 60));
+      const best = simulate(ISLANDS[94], pathBot(ISLANDS[94]), fixedFrames(1000 / 60));
       expect(best.won).toBe(true);
       expect(best.score).toBeGreaterThanOrEqual(0.9 * treasureIslandMeta.scoring.maxScore);
       expect(withinServerLimits(best.score, best.elapsedMs)).toBe(true);

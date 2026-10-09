@@ -2,7 +2,7 @@
 // GameShell calls stopShellLoops() whenever a run must fall silent: it pauses, the player mutes,
 // the run ends, the game closes. The audio module registers its own stopper once:
 //
-//    registerLoopStopper(stopAllLoops);   // TODO(P-06): core/audio.ts, when its loops land
+//    registerLoopStopper(stopAllLoops);   // core/audio.ts does this at module load
 //
 // Pure (no React, no Web Audio), so the moments are tested in node (loopControl.test.ts).
 import type { RunPhase } from "./types";
