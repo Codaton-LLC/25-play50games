@@ -142,7 +142,7 @@ Boulder lanes telegraph with dust trail and shadow 0.8 s ahead of roll; carried 
 
 ```text
 HANDOFF P-14-fix1 dino-egg-rescue
-Branch / last commit: antigravity/design-dino-egg-rescue @ <sha> (pushed)
+Branch / last commit: antigravity/design-dino-egg-rescue @ HEAD (pushed)
 Files changed:
   play50games-frontend/src/arcade3d/games/dino-egg-rescue/README.md
   play50games-frontend/src/arcade3d/games/dino-egg-rescue/assets.spec.json
