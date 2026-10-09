@@ -1,7 +1,8 @@
 import type { ArcadeGameMeta } from "@/arcade3d/types";
 
 // Plain data only (server-safe). scoring must match WP includes/arcade-games.json.
-// Provisional limits (docs/arcade-expansion/02 §C.4): set for real in the game's "assets + limits" PR.
+// Limits proven in README.md "Server limits and why they hold" (bots in rules.test.ts); Claude copies them
+// to arcade-games.json.
 export const miniGolfMeta: ArcadeGameMeta = {
    slug: "mini-golf",
    title: "Mini Golf 3D",
@@ -14,16 +15,16 @@ export const miniGolfMeta: ArcadeGameMeta = {
    orientation: "any",
    controls: {
       scheme: "aim-drag",
-      keyboard: "Drag to aim and putt, or arrows + hold Space",
-      touch: "Drag to aim, release to putt",
+      keyboard: "Drag to aim and putt, or arrows to aim and hold Space, release to putt",
+      touch: "Pull back from anywhere, release to putt",
    },
    scoring: {
       kind: "points",
-      maxScore: 6750,
-      minDurationMs: 30000,
-      maxDurationMs: 900000,
-      base: 6750,
-      maxPointsPerSec: 6750,
+      maxScore: 4100,
+      minDurationMs: 15000,
+      maxDurationMs: 602000,
+      base: 1200,
+      maxPointsPerSec: 200,
       unitLabel: "pts",
       display: "int",
    },
