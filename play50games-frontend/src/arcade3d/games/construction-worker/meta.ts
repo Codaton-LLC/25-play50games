@@ -1,7 +1,7 @@
 import type { ArcadeGameMeta } from "@/arcade3d/types";
 
 // Plain data only (server-safe). scoring must match WP includes/arcade-games.json.
-// Provisional limits (docs/arcade-expansion/02 §C.4): set for real in the game's "assets + limits" PR.
+// Limits proven in README (design approved 2026-10-09).
 export const constructionWorkerMeta: ArcadeGameMeta = {
    slug: "construction-worker",
    title: "Construction Worker",
@@ -19,11 +19,11 @@ export const constructionWorkerMeta: ArcadeGameMeta = {
    },
    scoring: {
       kind: "points",
-      maxScore: 9000,
-      minDurationMs: 20000,
+      maxScore: 5800,
+      minDurationMs: 9000,
       maxDurationMs: 152000,
-      base: 9000,
-      maxPointsPerSec: 9000,
+      base: 0,
+      maxPointsPerSec: 150,
       unitLabel: "pts",
       display: "int",
    },

@@ -122,11 +122,11 @@
     "luggage-rush": {
       "title": "Airport Luggage Rush",
       "kind": "points",
-      "max_score": 7500,
+      "max_score": 7620,
       "min_duration_ms": 10000,
       "max_duration_ms": 122000,
-      "base": 7500,
-      "max_pps": 7500,
+      "base": 0,
+      "max_pps": 64,
       "enabled": false
     },
     "dino-egg-rescue": {
@@ -182,11 +182,11 @@
     "construction-worker": {
       "title": "Construction Worker",
       "kind": "points",
-      "max_score": 9000,
-      "min_duration_ms": 20000,
+      "max_score": 5800,
+      "min_duration_ms": 9000,
       "max_duration_ms": 152000,
-      "base": 9000,
-      "max_pps": 9000,
+      "base": 0,
+      "max_pps": 150,
       "enabled": false
     },
     "alien-farm": {
