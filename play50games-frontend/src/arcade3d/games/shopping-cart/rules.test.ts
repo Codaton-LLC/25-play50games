@@ -14,10 +14,12 @@ import { shoppingCartMeta } from "./meta";
 import {
    CART,
    CHECKOUT_COUNTERS,
+   CRASH_NORMAL_SPEED,
    DURATION_MS,
    FALLBACK_LIST,
    LIST_COUNT,
    MIN_TOUR_DISTANCE,
+   MIN_WIN_ROUTE_M,
    POINTS,
    PROPOSED_LIMITS,
    PYRAMID_RADIUS,
@@ -31,6 +33,7 @@ import {
    createShopperRoutes,
    generateList,
    runScore,
+   shelvesBetween,
    shortestPickTour,
    stepRun,
    storeDistance,
@@ -66,18 +69,56 @@ describe("shopping-cart rules", () => {
          }
       });
 
-      it("enforces minimum tour distance >= 27.8 m on 1,000 seeds", () => {
+      it("the design's 52 m tour gate holds on 1,000 seeds", () => {
+         expect(MIN_TOUR_DISTANCE).toBe(52);
          for (let i = 0; i < SEEDS.length; i++) {
             const list = generateList(SEEDS[i]);
             const tour = shortestPickTour(list);
-            expect(tour, `seed ${SEEDS[i]}`).toBeGreaterThanOrEqual(MIN_TOUR_DISTANCE);
+            expect(tour, `seed ${SEEDS[i]}`).toBeGreaterThanOrEqual(52);
          }
       });
 
-      it("fallback list is valid and satisfies minimum tour distance", () => {
+      it("fallback list is valid and its storeDistance tour is 73.9 m (>= 52 m)", () => {
          expect(FALLBACK_LIST).toHaveLength(6);
+         expect(new Set(FALLBACK_LIST.map((it) => it.kind)).size).toBe(6);
+         for (const it of FALLBACK_LIST) {
+            const slot = SHELF_SLOTS[it.slotIndex];
+            expect([it.x, it.z]).toEqual([slot.x, slot.z]);
+         }
          const tour = shortestPickTour(FALLBACK_LIST);
-         expect(tour).toBeGreaterThanOrEqual(MIN_TOUR_DISTANCE);
+         expect(tour).toBeCloseTo(73.9, 6);
+         expect(tour).toBeGreaterThanOrEqual(52);
+      });
+   });
+
+   describe("aisle routing (storeDistance, shelvesBetween)", () => {
+      it("shelvesBetween is true only when a whole shelf lies between the two x values", () => {
+         expect(shelvesBetween(-8.1, -4.9)).toBe(false); // one aisle, facing faces
+         expect(shelvesBetween(-9.9, -8.1)).toBe(true); // opposite faces of shelf 1
+         expect(shelvesBetween(-12, -9.9)).toBe(false); // west wall aisle
+         expect(shelvesBetween(-9.9, 6.9)).toBe(true); // across islands
+      });
+
+      it("facing slots across one aisle are the Manhattan distance apart", () => {
+         expect(storeDistance({ x: -8.1, z: -1.5 }, { x: -4.9, z: -1.5 })).toBeCloseTo(3.2, 9);
+         expect(storeDistance({ x: -3.1, z: -5.0 }, { x: 0.1, z: 2.0 })).toBeCloseTo(3.2 + 7.0, 9);
+      });
+
+      it("opposite faces of one shelf route round its nearer end", () => {
+         // -1.5 is 6.3 m from both walkways: 6.3 + 6.3 + 1.8
+         expect(storeDistance({ x: -9.9, z: -1.5 }, { x: -8.1, z: -1.5 })).toBeCloseTo(14.4, 9);
+         // -5.0 is nearer the north walkway (-7.8): 2.8 + 2.8 + 1.8
+         expect(storeDistance({ x: -9.9, z: -5.0 }, { x: -8.1, z: -5.0 })).toBeCloseTo(7.4, 9);
+         // 2.0 is nearer the south walkway (4.8): 2.8 + 2.8 + 1.8
+         expect(storeDistance({ x: 0.1, z: 2.0 }, { x: 1.9, z: 2.0 })).toBeCloseTo(7.4, 9);
+      });
+
+      it("across several islands goes round the shelves; walkway points stay Manhattan", () => {
+         expect(storeDistance({ x: -9.9, z: -5.0 }, { x: 6.9, z: -5.0 })).toBeCloseTo(2.8 + 2.8 + 16.8, 9);
+         expect(storeDistance({ x: -9.9, z: -5.0 }, { x: 6.9, z: 2.0 })).toBeCloseTo(2.8 + 9.8 + 16.8, 9);
+         // both south of the shelves (start -> checkout) and both north of them
+         expect(storeDistance({ x: START_POS.x, z: START_POS.z }, { x: 0, z: 10.5 })).toBeCloseTo(12 + 4.5, 9);
+         expect(storeDistance({ x: -12, z: -9 }, { x: 10, z: -8 })).toBeCloseTo(22 + 1, 9);
       });
    });
 
@@ -330,6 +371,44 @@ describe("shopping-cart rules", () => {
          stepRun(runCrash, input(1, 0, false), DT, 1.0);
          expect(runCrash.combo, "head-on impact resets combo").toBe(0);
       });
+
+      // A cart already moving at `speed` along `heading` with no input: targetSpeed is set so that
+      // after this frame's drag it equals `speed`, so grip leaves the velocity unchanged and the
+      // contact's normal speed is exactly `speed`.
+      function hitAt(x: number, z: number, heading: number, speed: number): RunState {
+         const run = createRun(1);
+         run.combo = 3;
+         run.cart.x = x;
+         run.cart.z = z;
+         run.cart.heading = heading;
+         run.cart.targetSpeed = speed + CART.dragDecel * DT;
+         run.cart.vx = Math.sin(heading) * speed;
+         run.cart.vz = -Math.cos(heading) * speed;
+         run.cart.speed = speed;
+         stepRun(run, input(0, 0, false), DT, 1.0);
+         return run;
+      }
+
+      it("only a real crash breaks the combo: 2.9 m/s into a shelf keeps it, 3.1 m/s breaks it", () => {
+         expect(CRASH_NORMAL_SPEED).toBe(3.0);
+         // heading east: proxy half x 0.8; shelf 1 west face at x -9.6
+         const soft = hitAt(-10.42, 0, Math.PI / 2, 2.9);
+         expect(soft.cart.vx, "the shelf stopped the cart").toBeCloseTo(0, 6);
+         expect(soft.combo, "2.9 m/s contact keeps the combo").toBe(3);
+         const hard = hitAt(-10.42, 0, Math.PI / 2, 3.1);
+         expect(hard.cart.vx).toBeCloseTo(0, 6);
+         expect(hard.combo, "3.1 m/s crash breaks the combo").toBe(0);
+      });
+
+      it("only a real crash into a wall breaks the combo: 2.9 m/s keeps it, 3.1 m/s breaks it", () => {
+         // heading west into the west wall (inner x -15.4), clear of every solid
+         const soft = hitAt(-14.62, 0, -Math.PI / 2, 2.9);
+         expect(soft.cart.vx, "bounced").toBeGreaterThan(0);
+         expect(soft.combo).toBe(3);
+         const hard = hitAt(-14.62, 0, -Math.PI / 2, 3.1);
+         expect(hard.cart.vx).toBeGreaterThan(0);
+         expect(hard.combo).toBe(0);
+      });
    });
 
    describe("scoring and events", () => {
@@ -430,20 +509,63 @@ describe("shopping-cart rules", () => {
          }
       });
 
-      it("standstill acceleration along 27.8 m minimum route cannot complete before 3.46 s (3500 ms limit holds)", () => {
-         // Kinematic proof of lower bound: from rest at max accel (12 m/s²) up to max speed (9 m/s)
-         let speed = 0;
-         let dist = 0;
-         let t = 0;
-         const routeLength = 27.8;
-         while (dist < routeLength && t < 10.0) {
-            t += DT;
-            speed = Math.min(CART.maxRidingSpeed, speed + CART.throttleAccel * DT);
-            dist += speed * DT;
+      it("kinematic part of the 3500 ms proof: no cart covers the 30.91 m win route in 3.5 s", () => {
+         expect(MIN_WIN_ROUTE_M).toBe(30.91);
+         const T = PROPOSED_LIMITS.minDurationMs / 1000;
+         const maxDt = 0.05; // the run clock's frame cap
+         // In a frame starting at t, targetSpeed <= 12 (t + dt) and |v| <= targetSpeed (grip is a convex
+         // step towards it; slides, rebounds and stuns only shrink it): |v| <= min(9, 12 t + 0.6).
+         const vMax = (t: number) => Math.min(CART.maxRidingSpeed, CART.throttleAccel * (t + maxDt));
+         const tCap = (CART.maxRidingSpeed - CART.throttleAccel * maxDt) / CART.throttleAccel; // 0.7 s
+         const envelope =
+            CART.throttleAccel * (tCap * tCap / 2 + maxDt * tCap) + CART.maxRidingSpeed * (T - tCap);
+         expect(envelope).toBeCloseTo(28.56, 9);
+         // the same bound with 20 fps frames (right-endpoint sum): 28.35 m
+         let frames = 0;
+         for (let k = 1; k <= Math.round(T / maxDt); k++) {
+            frames += Math.min(CART.maxRidingSpeed, CART.throttleAccel * k * maxDt) * maxDt;
          }
-         expect(dist).toBeGreaterThanOrEqual(routeLength);
-         expect(t).toBeGreaterThanOrEqual(3.46);
-         expect(Math.floor(t * 1000)).toBeGreaterThanOrEqual(3460);
+         expect(frames).toBeCloseTo(28.35, 9);
+         expect(frames).toBeLessThanOrEqual(envelope);
+         expect(envelope).toBeLessThan(MIN_WIN_ROUTE_M);
+         expect(vMax(0)).toBeCloseTo(0.6, 9);
+
+         // the real stepRun from rest, riding flat out in open floor, never beats the envelope
+         for (const dt of [1 / 60, 1 / 30, maxDt]) {
+            const run = createRun(1);
+            run.cart.x = -14.5;
+            run.cart.z = 10.5; // west end of the checkout row, heading east: 29 m of clear floor
+            run.cart.heading = Math.PI / 2;
+            let path = 0;
+            let t = 0;
+            while (t < T - 1e-9) {
+               const px = run.cart.x;
+               const pz = run.cart.z;
+               stepRun(run, input(1, 0, true), dt, t);
+               t += dt;
+               path += Math.hypot(run.cart.x - px, run.cart.z - pz);
+               expect(run.cart.speed, `dt ${dt} t ${t}`).toBeLessThanOrEqual(vMax(t - dt) + 1e-9);
+            }
+            expect(path, `dt ${dt}`).toBeLessThanOrEqual(envelope);
+         }
+      });
+
+      it("max score arithmetic: 2030 at the 3.5 s floor, inside 1700 + 100/s at every duration", () => {
+         const comboMax = POINTS.comboStep * (1 + 2 + 3 + 4 + 5 + 6); // 420
+         const timeUpMax = LIST_COUNT * POINTS.item + comboMax + POINTS.listComplete; // 1320
+         expect(timeUpMax).toBe(1320);
+         const best = (ms: number) => runScore(LIST_COUNT, comboMax, true, true, DURATION_MS - ms);
+         expect(best(PROPOSED_LIMITS.minDurationMs)).toBe(2030);
+         expect(PROPOSED_LIMITS.maxScore).toBe(2030);
+         for (let ms = PROPOSED_LIMITS.minDurationMs; ms <= DURATION_MS; ms += 50) {
+            const s = best(ms);
+            expect(s).toBeLessThanOrEqual(PROPOSED_LIMITS.maxScore);
+            expect(s).toBeLessThanOrEqual(PROPOSED_LIMITS.base + (PROPOSED_LIMITS.maxPointsPerSec * ms) / 1000);
+            expect(withinServerLimits(s, ms), `${ms} ms`).toBe(true);
+         }
+         expect(withinServerLimits(timeUpMax, DURATION_MS + 2000)).toBe(true);
+         expect(withinServerLimits(2030, 3499)).toBe(false);
+         expect(withinServerLimits(2031, 3500)).toBe(false);
       });
    });
 
@@ -689,38 +811,48 @@ describe("shopping-cart rules", () => {
    });
 
    describe("mutant killer tests", () => {
-      it("M1: West, East, North, South perimeter wall bounces each have non-zero restitution > 0", () => {
-         // West wall (innerMinX = -15.4)
-         const runW = createRun(1);
-         runW.cart.x = -15.0;
-         runW.cart.vx = -4.0;
-         runW.cart.vz = 0;
-         stepRun(runW, input(-1, 0, false), DT, 1.0);
-         expect(runW.cart.vx, "West wall rebound vx > 0").toBeGreaterThan(0.5);
+      describe("M1: every perimeter wall rebounds at exactly restitution x the impact speed", () => {
+         // No input and targetSpeed 0: grip eases the velocity by exp(-gripNormal * DT) before the
+         // wall clamp, so the rebound speed is 4 * exp(-6 * DT) * 0.3 (1.086 m/s); without
+         // restitution it would be 3.62 m/s, with none at all 0.
+         const impact = 4 * Math.exp(-CART.gripNormal * DT);
+         const rebound = impact * CART.restitution;
+         function wallHit(x: number, z: number, vx: number, vz: number): RunState {
+            const run = createRun(1);
+            run.cart.x = x;
+            run.cart.z = z;
+            run.cart.heading = 0; // proxy half extents 0.45 (x) and 0.8 (z)
+            run.cart.targetSpeed = 0;
+            run.cart.vx = vx;
+            run.cart.vz = vz;
+            run.cart.speed = Math.hypot(vx, vz);
+            stepRun(run, input(0, 0, false), DT, 1.0);
+            return run;
+         }
 
-         // East wall (innerMaxX = 15.4)
-         const runE = createRun(1);
-         runE.cart.x = 15.0;
-         runE.cart.vx = 4.0;
-         runE.cart.vz = 0;
-         stepRun(runE, input(1, 0, false), DT, 1.0);
-         expect(runE.cart.vx, "East wall rebound vx < 0").toBeLessThan(-0.5);
+         it("west wall (inner x -15.4)", () => {
+            const run = wallHit(-15.0, 0, -4, 0);
+            expect(run.cart.x).toBeCloseTo(STORE.innerMinX + CART.proxyHalfX, 9);
+            expect(run.cart.vx).toBeCloseTo(rebound, 6);
+         });
 
-         // North wall (innerMinZ = -11.4)
-         const runN = createRun(1);
-         runN.cart.z = -11.0;
-         runN.cart.vx = 0;
-         runN.cart.vz = -4.0;
-         stepRun(runN, input(0, 1, false), DT, 1.0);
-         expect(runN.cart.vz, "North wall rebound vz > 0").toBeGreaterThan(0.5);
+         it("east wall (inner x 15.4)", () => {
+            const run = wallHit(15.0, 8, 4, 0);
+            expect(run.cart.x).toBeCloseTo(STORE.innerMaxX - CART.proxyHalfX, 9);
+            expect(run.cart.vx).toBeCloseTo(-rebound, 6);
+         });
 
-         // South wall (innerMaxZ = 11.4)
-         const runS = createRun(1);
-         runS.cart.z = 11.0;
-         runS.cart.vx = 0;
-         runS.cart.vz = 4.0;
-         stepRun(runS, input(0, -1, false), DT, 1.0);
-         expect(runS.cart.vz, "South wall rebound vz < 0").toBeLessThan(-0.5);
+         it("north wall (inner z -11.4), west of the freezer row", () => {
+            const run = wallHit(-14.0, -11.0, 0, -4);
+            expect(run.cart.z).toBeCloseTo(STORE.innerMinZ + CART.proxyHalfZ, 9);
+            expect(run.cart.vz).toBeCloseTo(rebound, 6);
+         });
+
+         it("south wall (inner z 11.4)", () => {
+            const run = wallHit(-12.0, 11.0, 0, 4);
+            expect(run.cart.z).toBeCloseTo(STORE.innerMaxZ - CART.proxyHalfZ, 9);
+            expect(run.cart.vz).toBeCloseTo(-rebound, 6);
+         });
       });
 
       it("M6: win with 45.5 s left earns floor(45.5) * 10 = 450 pts (strictly rejecting Math.ceil mutant of 460 pts)", () => {
