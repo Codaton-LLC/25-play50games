@@ -98,9 +98,13 @@ Pools40 live/40 cosmetic death/8 projectile/4 crew/40 marker slots (one per gobl
 Audio boom0.35, thud0.25, pack hup pop pitch1.5/0.08, ladder hit, upgrade chime, wave go pitch0.6; shell end cues. Pan clamp(sin(bearing-yaw)). Optional ambient0.08 stops on pause/mute/cleanup, recreate only playing/unmuted; never reuse stopped handle.
 24 px readability,72 px Rock,>=44 px cards, complete keyboard. Types distinguished by shapes. Reduced motion removes hop/flail/shake/flashes/confetti, retains paths/projectiles/steady warnings; no>3 Hz flashes; audio optional.
 
+## Decisions (user, 2026-10-09)
+
+Approved: 1.6 m visual goblins (rules radius unchanged); a fixed 136 s surviving win with 5 finite waves (24 s minimum wave); one additive +25 HP repair; capped upgrade stacks; limits 3210 / 39000-140000 ms / base 160 / 25 pts/s.
+
 ## Open questions
 
-- User approval (departures):1.6 m visual goblins, finite waves/fixed136 s win, 24 s minimum wave, one additive+25 HP repair, capped upgrades, limits3210/39000/140000/base160/pps25.
+None for the user; builder gates (measured 24 px at 844x390 banner open, human-paced wins) stay acceptance checks.
 
 ## Merge review (Claude, 2026-10-09)
 
