@@ -1,7 +1,7 @@
 import type { ArcadeGameMeta } from "@/arcade3d/types";
 
 // Plain data only (server-safe). scoring must match WP includes/arcade-games.json.
-// Provisional limits (docs/arcade-expansion/02 §C.4): set for real in the game's "assets + limits" PR.
+// Approved P-15 provisional limits; Claude pairs the server catalog update at merge.
 export const deliveryDroneMeta: ArcadeGameMeta = {
    slug: "delivery-drone",
    title: "Delivery Drone",
@@ -14,16 +14,16 @@ export const deliveryDroneMeta: ArcadeGameMeta = {
    orientation: "any",
    controls: {
       scheme: "flight",
-      keyboard: "WASD / arrows to fly, Space or E to drop",
-      touch: "Joystick + Action to drop",
+      keyboard: "WASD / arrows to fly, Space, E or Enter to drop",
+      touch: "Joystick to fly, tap Drop to release; hover at the depot to reload",
    },
    scoring: {
       kind: "points",
-      maxScore: 6000,
-      minDurationMs: 10000,
-      maxDurationMs: 200000,
-      base: 6000,
-      maxPointsPerSec: 6000,
+      maxScore: 3600,
+      minDurationMs: 20000,
+      maxDurationMs: 182000,
+      base: 300,
+      maxPointsPerSec: 75,
       unitLabel: "pts",
       display: "int",
    },

@@ -1,6 +1,6 @@
 ﻿# Delivery Drone
 
-Owner: Codex. Slug: `delivery-drone`. Adventure game 5, complexity 3. Gate G0 design for approval; no implementation. Spec: `docs/arcade-expansion/03-game-specs-adventure.md` §5; assets: 05 §E.4. Units: metres, seconds; x east, z south, y up. Every tuning number below belongs in pure `rules.ts` and its tests.
+Owner: Codex. Slug: `delivery-drone`. Adventure game 5, complexity 3. Approved design implemented in P-15; runtime acceptance awaits Claude's validation round. Spec: `docs/arcade-expansion/03-game-specs-adventure.md` §5; assets: 05 §E.4. Units: metres, seconds; x east, z south, y up. Gameplay tuning lives in pure `rules.ts` and its tests.
 
 ## Concept
 
@@ -41,7 +41,7 @@ All constants are named groups (`CITY`, `DRONE`, `WINCH`, `PARCEL`, `BATTERY`, `
 
 ### Server limits and why they hold (the proof)
 
-Proposed paired limits for Claude's `meta.ts` / `arcade-games.json` update: **maxScore 3600; duration 20000–182000 ms; base 300; max_pps 75**. Provisional 02 §C.4/meta values were outside this task's permitted reads; no claim of their current numbers or change to them is made.
+Approved provisional limits, applied to `meta.ts` in P-15: **maxScore 3600; duration 20000–182000 ms; base 300; max_pps 75**. Claude owns the matching `arcade-games.json` update at merge. Bot results remain unmeasured; do not tighten these limits before validation.
 
 1. For n awards, n distinct parcels needed ≥4n s loading, non-overlapping and entirely in played time. Thus n≤floor(t/4), score≤300n≤75t≤300+75t, including every partial/live score. Travel/fall only tighten this bound; input spam cannot bypass loading or consume one parcel twice.
 2. Globally throttled damage count ≤1+floor(t) and continuous drain t imply B≥100−t−3(1+floor(t))≥97−4t, before nonnegative recharge. Consequently any battery loss requires t≥24.25 s, safely above 20 s. Grace and entry-only contacts tighten the bound. Win requires ≥48 s loading; ceiling is exactly 180 s. All terminal reasons lie within 20–182 s, with 2 s upper transport margin.
@@ -90,7 +90,7 @@ Transform all `DRONE_ROTORS_GLB` centres through the same drone fit/body transfo
 
 ## Files
 
-`meta.ts` (data/limits) · `index.tsx` (`GameDefinition`) · `rules.ts` (seeded city/route, flight, altitude, swing, loading/drop, battery, events/score; pure) · `rules.test.ts` · `assets.ts` + `assets.test.ts` (fits/hook) · `Scene.tsx` (one run loop, store events, camera, audio/fx) · `City.tsx` (chunk instance sets, traffic, birds) · `Drone.tsx` (body, rotors, line, parcel) · `Hud.tsx` + `Hud.module.css` (loading/status only; no steady checkbox or setting CSS) · `Primitives.tsx` (fallbacks) · `assets.spec.json` · `README.md` · future `public/images/3d/delivery-drone.webp` and `tools/thumbs/inputs/delivery-drone.mjs`. This task writes only README/spec plus the expressly requested administrative handoff.
+`meta.ts` (data/limits) · `index.tsx` (`GameDefinition`) · `rules.ts` (seeded city/route, flight, altitude, swing, loading/drop, battery, events/score; pure) · `rules.test.ts` + `bots.test.ts` · `assets.ts` + `assets.test.ts` (real GLB fits/hook) · `Scene.tsx` (one run loop, store events, camera, audio/fx) · `camera.tsx` (fit/fog) · `City.tsx` (16 chunks, instanced traffic/birds/props) · `Drone.tsx` (body, rotors, cable, parcel and visibility overlay) · `Hud.tsx` + `Hud.module.css` · `Primitives.tsx` · existing `assets.spec.json` · `README.md` · `tools/thumbs/inputs/delivery-drone.mjs`. Thumbnail remains null pending capture. Administrative handoff: `.handoff/P-15-drone/HANDOFF.md`.
 
 ## Test plan
 
@@ -128,12 +128,27 @@ Beacon, numeric distance and off-screen arrow guide the route. Predictive cross/
 - Approved: the spec departures (no boost, 12 deliveries win, 180 s ceiling, 4 s depot loading, fixed north camera, day lighting); steady winch automatic on coarse-pointer screens with no setting; top speed 9 m/s via drag 10/9; limits 3600 / 20000–182000 ms / base 300 + 75/s now, tightened after the bots run.
 
 - Risks: roof clamps can jerk the line; P-15 verifies anchor/clearance, visibility overlay, actual mesh splits and phone sizing. Reachability, novice/expert estimates and clamp occupancy require seeded measurements; none claimed here.
-- Open questions (user decides): approve departures no boost, twelve deliveries win, 180 s ceiling, 4 s loading, fixed north camera and day only? **Recommend yes** to all.
-- Open questions (user decides): automatic steady winch on touch/coarse pointers at mount with no setting? **Recommend yes**.
-- Open questions (user decides): top speed 9 m/s with drag 10/9 s⁻¹? **Recommend yes**, pending legal route timing checks.
-- Open questions (user decides): keep limits 3600 / 20–182 s / base300 / 75 points/s until bots run? **Recommend yes**; fix1 only tightens the proof, Claude owns paired meta/server edits after validation.
-- Open questions (Claude): confirm existing flight registration supports screen-relative axes plus Drop? Recommend reuse, no new core input. Catalog imports authoritative; no generation needed.
+- Approved choices above are implemented. Open validation questions are recorded in the HANDOFF; no additional user decision is requested.
 
 ## Status
 
-P-14-fix1 design revision only; proposed choices await user decisions. No implementation, production access, generation, commit or push. P-15 owns build/tests/bots/screenshots and measured acceptance.
+```text
+TASK P-15 | build delivery-drone | branch codex/game-delivery-drone | allowed: play50games-frontend/src/arcade3d/games/delivery-drone/**, play50games-frontend/public/images/3d/delivery-drone.webp, tools/thumbs/inputs/delivery-drone.mjs
+HANDOFF P-15
+State: implementation written; status dev; Common Definition of Done pending Claude runtime validation.
+Branch: codex/game-delivery-drone verified; no branch creation/switch, commit or push.
+Files: delivery-drone/** (rules, scene, camera, city, drone, HUD, assets, tests, README, meta/index); tools/thumbs/inputs/delivery-drone.mjs; explicitly authorized administrative HANDOFF.
+Checks passed: npx tsc --noEmit (exit 0); git status --porcelain scope check; forbidden source import/API/time/randomness scan.
+Checks deferred by task sandbox instructions: npm run build; npx vitest run; gamecheck; keyboard/touch browser playtests; perf capture; thumbnail capture.
+Written tests: 1,000 layout seeds; scoring/flight/loading/drop/battery/terminal fixtures; real GLB fits; real-store bots through botHarness.
+Bot counts planned, not run: oracle/novice/spam/collision/idle, 200 seeds each in both damping modes; 60 fps, 20 fps and random frames. Assertions retain legal wins <160 s expert / <175 s novice and best expert score >=3240.
+Bot reports: terminal reasons, score/duration extrema, per-distance-band delivery times, substep cable clamp seconds/fractions per axis, peak/final energy. No measured values claimed.
+Scoring: sum(150 + precision + express 50), successful pads only; fragile requires precision >=40; express <=15 s; twelve single-use awards, no terminal bonus.
+Limits: max 3600; duration 20000–182000 ms; base 300; 75 points/s. Proof: n parcels require 4n s loading, score <=300n<=75t; twelve awards cap 3600; battery >=97-4t gives loss >=24.25 s; win >=48 s; ceiling 180 s.
+Evidence: screenshots 1280x800 / 390x844 banner open / 844x390 and tools/perf JSON are pending; thumbnail null.
+Acceptance [x]: folder implementation; pure seeded rules/core helpers; keyboard/touch bindings in code; dev status; approved meta limits; TypeScript.
+Acceptance [ ]: executed tests/build/gamecheck; legal bot timing and score proof measurements; three-size playtests; real model fit results; fallback playtest; <=70 target / <=80 cap calls; mid-phone p95; Retry x10 GPU/heap stability; screenshot/perf evidence.
+Known limitations: runtime assertions and the route controller have not been executed; 60 s bot-test time budgets are unmeasured. Vehicle fits and phone readability require actual validation. Server catalog pairing belongs to Claude's merge.
+Open questions: Claude, run the deferred checks, retain bot JSON logs, pair the approved server limits, and send any failures for the fix round. No user design questions remain.
+Safety: no production calls, network, Hyper3D credits, generated assets, dependencies, protected-file edits, secrets, commit or push.
+```
