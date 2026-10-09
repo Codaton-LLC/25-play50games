@@ -27,7 +27,7 @@ export const rocketLandingMeta: ArcadeGameMeta = {
       unitLabel: "pts",
       display: "int",
    },
-   thumbnail: null,
+   thumbnail: "/images/3d/rocket-landing.webp",
    accent: "#fda4af",
    owner: "codex",
 };
