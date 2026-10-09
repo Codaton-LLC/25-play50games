@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { useFrame } from "@react-three/fiber";
-import { AdditiveBlending, BufferGeometry, Float32BufferAttribute, Line, LineDashedMaterial, Color, type Group, type Mesh } from "three";
+import { AdditiveBlending, BufferGeometry, Float32BufferAttribute, Line, LineDashedMaterial, Color, type Group, type Mesh, type MeshBasicMaterial } from "three";
 import { Model } from "@/arcade3d/core/assets";
 import { isMuted, playSfx, startLoop, useMuted, type LoopHandle } from "@/arcade3d/core/audio";
 import { Starfield } from "@/arcade3d/core/env";
@@ -19,14 +19,16 @@ import Planet from "./Planet";
 import { RocketPrimitive } from "./Primitives";
 import { BODY, PLANETS, createRun, crashContact, landingSafe, padVx, padX, stepRun } from "./rules";
 
+/** seconds the crash flash takes to grow and fade */
+const FLASH_SECONDS = 0.5;
 const GOOD = new Color("#6ee7b7"), BAD = new Color("#fda4af");
 export default function Scene() {
    const input = useInput(), time = useGameTime(), fx = useFx(), quality = useQuality();
    const phase = useArcadeStore((s) => s.phase), muted = useMuted();
-   const loop = useRef<LoopHandle | null>(null), root = useRef<Group>(null), flame = useRef<Mesh>(null);
+   const loop = useRef<LoopHandle | null>(null), root = useRef<Group>(null), flame = useRef<Mesh>(null), flash = useRef<Mesh>(null);
    const [run] = useState(() => createRun(randomSeed(), typeof window !== "undefined" && window.matchMedia("(pointer: coarse)").matches));
    const [reducedMotion] = useState(() => typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
-   const [scratch] = useState(() => ({ controls: { rotate: 0, thrust: false }, at: { x: 0, y: 0, z: 0 }, loopOptions: { volume: 0 }, lastSmoke: -1, lastWhoosh: -1, turning: false, impactNow: 0 }));
+   const [scratch] = useState(() => ({ controls: { rotate: 0, thrust: false }, at: { x: 0, y: 0, z: 0 }, boom: { x: 0, y: 0, z: 0.5 }, loopOptions: { volume: 0 }, lastSmoke: -1, lastWhoosh: -1, turning: false, impactNow: 0 }));
    const [markers] = useState(() => [{ x: 0, y: 2.08, z: 0 }]);
    const [guide] = useState(() => {
       const geometry = new BufferGeometry();
@@ -37,7 +39,7 @@ export default function Scene() {
       return line;
    });
    useEffect(() => {
-      fx.warm("puff", "sparkle", "confetti", "score");
+      fx.warm("puff", "sparkle", "confetti", "sparks", "debris", "smoke", "score");
       return () => { guide.geometry.dispose(); guide.material.dispose(); };
    }, [fx, guide]);
    useEffect(() => {
@@ -54,8 +56,13 @@ export default function Scene() {
       scratch.at.x = b.x; scratch.at.y = b.y - BODY.centre; scratch.at.z = 0.5;
       if (ev.crash || ev.award) scratch.impactNow = time.now;
       if (ev.crash) {
+         // The explosion (user decision 2026-10-09): the rocket blows up at its centre and is hidden
+         // until the respawn; sparks fly from the contact point, a flash grows and fades (useFrame).
+         scratch.boom.x = b.x; scratch.boom.y = b.y;
          crashContact(run, scratch.at);
-         fx.burst("sparkle", scratch.at, 24); fx.shake(0.3); playSfx("boom"); store.loseLife();
+         fx.burst("sparks", scratch.at, 28);
+         fx.burst("sparkle", scratch.boom, 28); fx.burst("debris", scratch.boom, 20); fx.burst("smoke", scratch.boom, 12);
+         fx.shake(0.6); playSfx("boom"); store.loseLife();
       }
       if (ev.award) {
          store.addScore(ev.award); playSfx("thud"); playSfx("chime"); fx.burst("puff", scratch.at, 16);
@@ -104,6 +111,18 @@ export default function Scene() {
             y = run.pivot.y - Math.sin(angle) * foot[0] - Math.cos(angle) * (foot[1] - BODY.centre);
          }
          g.position.set(x, y, 0); g.rotation.z = angle;
+         g.visible = run.mode !== "crashed";
+      }
+      const f = flash.current;
+      if (f) {
+         const k = (time.now - scratch.impactNow) / FLASH_SECONDS;
+         f.visible = run.mode === "crashed" && k >= 0 && k < 1;
+         if (f.visible) {
+            f.position.set(scratch.boom.x, scratch.boom.y, scratch.boom.z);
+            f.scale.setScalar(reducedMotion ? 1.6 : 0.5 + 2.3 * Math.sqrt(k));
+            // full brightness for the first third, then a linear fade
+            (f.material as MeshBasicMaterial).opacity = k < 1 / 3 ? 1 : 1.5 * (1 - k);
+         }
       }
       if (flame.current) { flame.current.visible = run.powered && phase === "playing"; flame.current.scale.y = reducedMotion ? 1 : 1 + 0.08 * Math.sin(time.now * 35); }
       const position = guide.geometry.getAttribute("position"), distances = guide.geometry.getAttribute("lineDistance");
@@ -126,6 +145,9 @@ export default function Scene() {
             </group>
          </group>
       </group>
+      <mesh ref={flash} visible={false} renderOrder={2}>
+         <sphereGeometry args={[0.6, 20, 14]} /><meshBasicMaterial color="#fed7aa" transparent opacity={0} blending={AdditiveBlending} depthWrite={false} fog={false} toneMapped={false} />
+      </mesh>
       <primitive object={guide} />
       <TargetMarkers targets={markers} color="#6ee7b7" />
    </>;
