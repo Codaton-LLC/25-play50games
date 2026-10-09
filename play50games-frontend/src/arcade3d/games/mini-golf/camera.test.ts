@@ -7,7 +7,7 @@ import { describe, expect, it } from "vitest";
 import type { FittedViewOptions } from "@/arcade3d/core/useFittedView";
 import { fitView, type FittedView, type ScreenRect } from "@/arcade3d/core/view";
 import { HOLE_COUNT, buildHole, type Hole } from "./course";
-import { DECOR_TREE_HALF, DECOR_TREE_OUT, FIXED_MIN_PX_PER_M, FOV, MIN_PX_PER_M, decorSpots, establishView, fixedView, followViews, holeArea, holeZ, minPxPerMetre, pickCamera } from "./looks";
+import { DECOR_TREE_HALF, FIXED_MIN_PX_PER_M, FOV, MIN_PX_PER_M, decorSpots, establishView, feltRects, fixedView, followViews, holeArea, holeZ, minPxPerMetre, pickCamera } from "./looks";
 import { BALL, CUP } from "./physics";
 
 /** The shell HUD strip, the game's power / scorecard panel (Hud.module.css) and the cookie banner. */
@@ -128,11 +128,12 @@ describe("mini-golf cameras", () => {
       }
    });
 
-   it("decor stands on the lateral sides only: no tree beyond the far rail or over the rails, at either yaw", () => {
+   it("decor stands on the lateral sides only: no tree beyond the far rail or over any felt, at either yaw", () => {
       for (let i = 0; i < HOLE_COUNT; i++) {
          for (const mirrored of [false, true]) {
             const hole = buildHole(i, mirrored);
             const b = hole.box;
+            const rects = feltRects(hole);
             for (const yaw of [0, Math.PI / 2]) {
                const { trees, rocks } = decorSpots([hole], [yaw]);
                for (const t of [...trees, ...rocks]) {
@@ -141,15 +142,15 @@ describe("mini-golf cameras", () => {
                   // depth towards the camera (+z at yaw 0, +x at PI / 2): never past the far rail
                   const far = yaw === 0 ? z - b.z0 : x - b.x0;
                   expect(far, `hole ${i + 1} yaw ${yaw}`).toBeGreaterThan(0);
-                  // outside the rail box (lateral)
-                  const lateral = yaw === 0 ? Math.max(b.x0 - x, x - b.x1) : Math.max(b.z0 - z, z - b.z1);
-                  expect(lateral, `hole ${i + 1} yaw ${yaw}`).toBeGreaterThan(0.4);
+                  // never on the felt, and the trees' canopies clear every felt rect (its rails) by >= 0.1 m
+                  const gap = Math.min(...rects.map((r) => Math.hypot(Math.max(r.x0 - x, 0, x - r.x1), Math.max(r.z0 - z, 0, z - r.z1))));
+                  expect(gap, `hole ${i + 1} yaw ${yaw}`).toBeGreaterThan(0.4);
+                  if (trees.includes(t)) expect(gap - DECOR_TREE_HALF, `hole ${i + 1} tree`).toBeGreaterThanOrEqual(0.1);
                }
-               for (const t of trees) {
-                  const gap = yaw === 0 ? Math.max(b.x0 - t.x, t.x - b.x1) : Math.max(b.z0 - (t.z - holeZ(i)), t.z - holeZ(i) - b.z1);
-                  expect(gap - DECOR_TREE_HALF, `hole ${i + 1} tree clears the rails`).toBeGreaterThanOrEqual(0.1);
-                  expect(gap).toBeCloseTo(DECOR_TREE_OUT, 9);
-               }
+               // beside the lane: level with the tee and the cup
+               const along = (p: { x: number; z: number }) => (yaw === 0 ? p.z : p.x);
+               expect(along({ x: trees[0].x, z: trees[0].z - holeZ(i) })).toBeCloseTo(along(hole.tee), 9);
+               expect(along({ x: trees[1].x, z: trees[1].z - holeZ(i) })).toBeCloseTo(along(hole.cup), 9);
             }
          }
       }

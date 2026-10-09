@@ -198,30 +198,41 @@ export const DECOR_TREE_OUT = 0.58;
 
 /**
  * Trees and rocks on each island's two lateral sides as its camera sees it (yaw 0: the camera at
- * +z, the sides are -x / +x; yaw PI / 2: the camera at +x, the sides are the -z / +z ends): never on
- * the far side (there a tree rises into the HUD at the top of the screen) and never between the
- * camera and the lane. `yaws[i]` belongs to `holes[i]` (0 if missing).
+ * +z, the sides are -x / +x; yaw PI / 2: the camera at +x, the sides are the -z / +z ends): one tree
+ * beside the tee's felt (level with the tee), one beside the cup's felt (level with the cup), each on
+ * a rock outcrop, so none stands beyond the far rail (there a tree rose into the HUD at the top of
+ * the screen) or between the camera and the lane, also on hole 2's dogleg. `yaws[i]` belongs to
+ * `holes[i]` (0 if missing).
  */
 export function decorSpots(holes: readonly Hole[], yaws: readonly number[] = []): { trees: DecorSpot[]; rocks: DecorSpot[] } {
    const trees: DecorSpot[] = [];
    const rocks: DecorSpot[] = [];
    holes.forEach((hole, i) => {
-      const b = hole.box;
+      const rects = feltRects(hole);
       const z0 = holeZ(hole.index);
       const k = hole.index * 1.7;
-      const xc = (b.x0 + b.x1) / 2;
-      const zc = (b.z0 + b.z1) / 2;
-      const hx = (b.x1 - b.x0) / 2;
-      const hz = (b.z1 - b.z0) / 2;
-      // lateral side s (-1 / +1) at `out` past the rails, `along` x the half depth towards the camera
       const lateralX = Math.abs(Math.cos(yaws[i] ?? 0)) > 0.5;
-      const at = (s: number, out: number, along: number) =>
-         lateralX ? { x: xc + s * (hx + out), z: z0 + zc + along * hz } : { x: xc + along * hx, z: z0 + zc + s * (hz + out) };
-      trees.push({ ...at(-1, DECOR_TREE_OUT, 0.15), y: -0.28, rotY: k, scale: DECOR_TREE_SCALE });
-      trees.push({ ...at(1, DECOR_TREE_OUT, -0.15), y: -0.28, rotY: k + 2, scale: DECOR_TREE_SCALE });
-      rocks.push({ ...at(1, 0.45, 0.45), y: -0.35, rotY: k, scale: 0.6 });
-      rocks.push({ ...at(-1, 0.45, -0.45), y: -0.35, rotY: k + 1, scale: 0.55 });
-      rocks.push({ ...at(-1, 0.45, 0.6), y: -0.35, rotY: k + 3, scale: 0.45 });
+      const rectAt = (p: { x: number; z: number }) => rects.find((r) => onFelt([r], p.x, p.z)) ?? rects[0];
+      // beside the felt rect holding p, on side s (-1 / +1), `out` past its edge, level with p
+      const beside = (p: { x: number; z: number }, s: number, out: number) => {
+         const r = rectAt(p);
+         return lateralX ? { x: s < 0 ? r.x0 - out : r.x1 + out, z: z0 + p.z } : { x: p.x, z: z0 + (s < 0 ? r.z0 - out : r.z1 + out) };
+      };
+      // the side asked for, or the other one when that lands on other felt (the dogleg's inner side)
+      const gap = (q: { x: number; z: number }) => Math.min(...rects.map((r) => Math.hypot(Math.max(r.x0 - q.x, 0, q.x - r.x1), Math.max(r.z0 - (q.z - z0), 0, q.z - z0 - r.z1))));
+      const pick = (p: { x: number; z: number }, s: number, out: number) => {
+         const a = beside(p, s, out);
+         return gap(a) >= out - 1e-9 ? a : beside(p, -s, out);
+      };
+      // yaw 0: the tee's tree on -x, the cup's on +x; yaw PI / 2: the tee's on its +z end, the cup's on -z
+      const teeSide = lateralX ? -1 : 1;
+      const tee = pick(hole.tee, teeSide, DECOR_TREE_OUT);
+      const cup = pick(hole.cup, -teeSide, DECOR_TREE_OUT);
+      trees.push({ ...tee, y: -0.28, rotY: k, scale: DECOR_TREE_SCALE });
+      trees.push({ ...cup, y: -0.28, rotY: k + 2, scale: DECOR_TREE_SCALE });
+      rocks.push({ ...tee, y: -0.62, rotY: k, scale: 0.7 });
+      rocks.push({ ...cup, y: -0.62, rotY: k + 1, scale: 0.7 });
+      rocks.push({ ...pick(hole.tee, -teeSide, 0.45), y: -0.35, rotY: k + 3, scale: 0.45 });
    });
    return { trees, rocks };
 }
