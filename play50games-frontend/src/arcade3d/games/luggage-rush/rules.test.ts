@@ -25,6 +25,8 @@ import {
    intervalAt,
    oracleCeiling,
    outgoing,
+   ROLL,
+   rollKind,
    placeBag,
    stepRun,
    travelTime,
@@ -229,6 +231,19 @@ describe("luggage-rush rules", () => {
       ride(run, 0.05, 3);
       expect(aliveCount(run)).toBeGreaterThan(before);
       expect(aliveCount(run)).toBeLessThanOrEqual(POOL);
+   });
+
+   it("pins the VIP and heavy roll rates", () => {
+      expect(ROLL.vip).toBe(0.12);
+      expect(ROLL.heavyLate).toBe(0.3);
+      expect(ROLL.heavyEarly).toBe(0.2);
+      expect(rollKind(50, 0.119)).toBe("vip");
+      expect(rollKind(50, 0.12)).toBe("heavy");
+      expect(rollKind(50, 0.299)).toBe("heavy");
+      expect(rollKind(50, 0.3)).toBe("normal");
+      expect(rollKind(30, 0.199)).toBe("heavy");
+      expect(rollKind(30, 0.2)).toBe("normal");
+      expect(rollKind(29.9, 0)).toBe("normal");
    });
 
    it("rolls VIP only from 50 s, heavy from 30 s, and never both", () => {

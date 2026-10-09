@@ -351,16 +351,30 @@ function entryBlocked(run: RunState): boolean {
    return false;
 }
 
+/** VIP from 50 s, heavy from 30 s. VIP and heavy never share a bag. */
+export const ROLL = { vip: 0.12, heavyLate: 0.3, heavyEarly: 0.2 } as const;
+
+/** One uniform roll at `time`. Before 30 s every roll is normal (the caller skips the roll). */
+export function rollKind(time: number, roll: number): "vip" | "heavy" | "normal" {
+   if (time >= 50) {
+      if (roll < ROLL.vip) return "vip";
+      if (roll < ROLL.heavyLate) return "heavy";
+      return "normal";
+   }
+   if (time >= 30 && roll < ROLL.heavyEarly) return "heavy";
+   return "normal";
+}
+
 function rollFlight(run: RunState, time: number): { flight: number; heavy: boolean; vip: boolean } {
    const span = time >= PHASE_D4 ? 4 : 3;
    const flight = Math.floor(rngNext(run.rng) * span);
    let heavy = false;
    let vip = false;
-   if (time >= 50) {
-      const roll = rngNext(run.rng);
-      if (roll < 0.12) vip = true;
-      else if (roll < 0.3) heavy = true;
-   } else if (time >= 30) heavy = rngNext(run.rng) < 0.2;
+   if (time >= 30) {
+      const kind = rollKind(time, rngNext(run.rng));
+      vip = kind === "vip";
+      heavy = kind === "heavy";
+   }
    return { flight, heavy, vip };
 }
 

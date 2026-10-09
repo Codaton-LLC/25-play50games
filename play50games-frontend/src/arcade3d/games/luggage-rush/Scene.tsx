@@ -2,10 +2,10 @@
 
 // One useRunFrame: input, then rules, then the store. Visuals only read the run.
 import { useEffect, useMemo, useState } from "react";
-import type { RootState } from "@react-three/fiber";
+import { useThree, type RootState } from "@react-three/fiber";
 import { Vector3 } from "three";
 import CameraRig from "@/arcade3d/core/CameraRig";
-import { playSfx } from "@/arcade3d/core/audio";
+import { playSfx, startLoop } from "@/arcade3d/core/audio";
 import { useFx } from "@/arcade3d/core/fx";
 import { useInput } from "@/arcade3d/core/input";
 import { randomSeed } from "@/arcade3d/core/math";
@@ -17,35 +17,44 @@ import { Belts } from "./Belts";
 import { Hall } from "./Hall";
 import {
    DIVERTER_AT,
-   HALL,
+   comboMult,
    createRun,
    diverterLocked,
    stepRun,
    type StepInput,
 } from "./rules";
 
-const LOOK: [number, number, number] = [(HALL.minX + HALL.maxX) / 2, 0, (HALL.minZ + HALL.maxZ) / 2];
+/** Belts only. The floor and handler past x 8.2 are outside the fit, so the camera can come in. */
+const AREA = {
+   min: { x: 0.4, y: 0, z: -0.6 },
+   max: { x: 8.2, y: 1.6, z: 14.8 },
+} as const;
+
+const LOOK: [number, number, number] = [(AREA.min.x + AREA.max.x) / 2, 0, (AREA.min.z + AREA.max.z) / 2];
 const FOCUS = { x: LOOK[0], y: LOOK[1], z: LOOK[2] };
 
-const VIEW: FittedViewOptions = {
-   area: {
-      min: { x: HALL.minX - 1.5, y: HALL.minY, z: HALL.minZ - 1.2 },
-      max: { x: HALL.maxX + 1.5, y: HALL.maxY, z: HALL.maxZ + 1.2 },
-   },
+const VIEW_BASE = {
+   area: AREA,
    pitch: (50 * Math.PI) / 180,
-   yaws: [0.55, 0.55 + Math.PI / 2],
    margin: { top: 0.1, bottom: 0.08, left: 0.02, right: 0.02 },
    padding: 8,
    shift: true as const,
    fov: 50,
-   // wide screens otherwise sit on the closest fit and the far chute kisses the edge
-   minDistance: 45,
    // a failed fit would sit at 500, past the canvas far plane (400), and draw nothing
    maxDistance: 90,
 };
 
+/** Portrait: yaw 0 lays the spine (world +z) on the screen's vertical. */
+const PORTRAIT: FittedViewOptions = { ...VIEW_BASE, yaws: [0] };
+/** Desktop landscape keeps the isometric. A short wide phone uses π/2 so the spine runs across the width. */
+const LANDSCAPE: FittedViewOptions = { ...VIEW_BASE, yaws: [0.55] };
+const WIDE: FittedViewOptions = { ...VIEW_BASE, yaws: [Math.PI / 2] };
+
 function FittedCamera() {
-   const view = useFittedView(VIEW);
+   const size = useThree((state) => state.size);
+   const portrait = size.height > size.width;
+   const wide = size.width / Math.max(1, size.height) > 1.9;
+   const view = useFittedView(portrait ? PORTRAIT : wide ? WIDE : LANDSCAPE);
    return (
       <CameraRig
          camera={{
@@ -90,11 +99,18 @@ export default function Scene() {
    const [run] = useState(() => createRun(randomSeed()));
    const input = useInput();
    const fx = useFx();
+   const phase = useArcadeStore((state) => state.phase);
    const scratch = useMemo(() => ({ v: new Vector3(), flip: { flip: [false, false, false, false] } as StepInput }), []);
 
    useEffect(() => {
       fx.warm("sparkle", "puff", "score");
    }, [fx]);
+
+   useEffect(() => {
+      if (phase !== "playing") return;
+      const belt = startLoop("belt", { volume: 0.35 });
+      return () => belt.stop();
+   }, [phase]);
 
    useRunFrame((state, dt, time) => {
       const { pressed, swipe, tapDown } = input.current;
@@ -120,18 +136,18 @@ export default function Scene() {
             store.addScore(event.points);
             fx.burst("sparkle", scratch.v, 12);
             fx.score(scratch.v, `+${event.points}`);
-            playSfx("pickup");
-            // TODO(P-06): playSfx("chime", { pitch: 0.9 + 0.15 * (event.points / 20 - 1) }) or "combo"
+            const mult = comboMult(run.streak < 1 ? 1 : run.streak);
+            playSfx(run.streak > 1 ? "combo" : "chime", { pitch: 0.9 + 0.15 * (mult - 1) });
          } else if (event.kind === "strike") {
             fx.burst("puff", scratch.v, 14);
-            playSfx("hit");
+            playSfx(event.overflow ? "thud" : "buzz");
             if (event.overflow) fx.shake(0.35);
-            // TODO(P-06): playSfx(event.overflow ? "thud" : "buzz")
+         } else if (event.kind === "flip") {
+            playSfx("click");
          }
-         // TODO(P-06): a diverter flip is playSfx("click"); startLoop("belt", { volume: 0.35 }) while playing
       }
       store.setStat("strikes", run.strikes);
-      store.setStat("combo", run.streak);
+      store.setStat("combo", comboMult(run.streak < 1 ? 1 : run.streak));
       if (run.lost) store.end("lose");
    });
 

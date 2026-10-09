@@ -10,7 +10,8 @@ export const HANDLER_SCALE = 0.825;
 export const PLANE_LENGTH = 3.2;
 
 export const ASSETS = {
-   suitcase: EXPANSION_ASSETS.suitcase,
+   // A near-white shell. The flight tint multiplies this colour; the GLB's own dark albedo turned yellow brown and red maroon.
+   suitcase: { ...EXPANSION_ASSETS.suitcase, material: { color: "#f8fafc", roughness: 0.4, metalness: 0.02 } },
    plane: { ...EXPANSION_ASSETS.plane, scale: PLANE_LENGTH / EXPANSION_GLB_SIZE.plane.depth },
    handler: { ...SHARED_ASSETS.runner, scale: HANDLER_SCALE, humanoid: { landmarks: RUNNER_LANDMARKS } },
 } satisfies Record<string, ModelAsset>;

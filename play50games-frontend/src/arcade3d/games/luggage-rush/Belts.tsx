@@ -8,8 +8,6 @@ import { Conveyor } from "@/arcade3d/core/kit";
 import { ChuteMouths } from "./Primitives";
 import { BELT, CHUTE_PATHS, DIVERTER_AT, OVERFLOW_PATH, SPINE_PATH, type RunState } from "./rules";
 
-const GATES = DIVERTER_AT.map((at) => ({ x: at.x + 4, y: at.y, z: at.z }));
-
 export function Belts({ run }: { run: RunState }) {
    return (
       <group name="belts">
@@ -18,7 +16,7 @@ export function Belts({ run }: { run: RunState }) {
             <Conveyor key={i} path={path} width={0.92} speed={BELT.base} color="#334155" stripe="#94a3b8" />
          ))}
          <Conveyor path={OVERFLOW_PATH} width={0.92} speed={BELT.base} color="#7f1d1d" stripe="#fecaca" />
-         <ChuteMouths gates={GATES} />
+         <ChuteMouths />
          <Arrows run={run} />
       </group>
    );

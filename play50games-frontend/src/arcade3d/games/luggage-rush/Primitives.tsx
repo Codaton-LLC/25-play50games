@@ -1,7 +1,6 @@
 // Stand-ins while a GLB is missing, and the chute-mouth shapes (one merged mesh).
-import { useMemo } from "react";
 import { BufferAttribute, BufferGeometry, DoubleSide } from "three";
-import { FLIGHTS, MOUTH_M } from "./rules";
+import { DIVERTER_AT, FLIGHTS, MOUTH_M } from "./rules";
 
 export function SuitcasePrimitive() {
    return (
@@ -30,12 +29,15 @@ export function HandlerPrimitive() {
    );
 }
 
-/** Four flight symbols, 0.9 m, standing at the gates. One draw call. */
-export function ChuteMouths({ gates }: { gates: ReadonlyArray<{ x: number; y: number; z: number }> }) {
-   const geometry = useMemo(() => mouthGeometry(gates), [gates]);
+/** Gates sit at the chute ends (spine x + 4 m). One geometry for the page, so Retry does not allocate another. */
+const GATES = DIVERTER_AT.map((at) => ({ x: at.x + 4, y: at.y, z: at.z }));
+const MOUTH_GEOMETRY = mouthGeometry(GATES);
+
+/** Four flight symbols, 0.9 m, lying flat on the chute ends so a pitched camera sees the shape. One draw call. */
+export function ChuteMouths() {
    return (
-      <mesh geometry={geometry}>
-         <meshStandardMaterial vertexColors side={DoubleSide} roughness={0.6} />
+      <mesh geometry={MOUTH_GEOMETRY} dispose={null}>
+         <meshStandardMaterial vertexColors side={DoubleSide} roughness={0.55} />
       </mesh>
    );
 }
@@ -51,16 +53,17 @@ function mouthGeometry(gates: ReadonlyArray<{ x: number; y: number; z: number }>
    gates.forEach((gate, flight) => {
       const color = FLIGHTS[flight].color;
       const r = MOUTH_M / 2;
-      const cx = gate.x + 0.15;
-      const cy = gate.y + 0.7;
+      // On the belt, just short of the chute end, in the x-z plane (a yaw-0.55 camera saw the old y-z shapes edge-on).
+      const cx = gate.x - 0.2;
+      const cy = gate.y + 0.06;
       const cz = gate.z;
       const ring = (count: number, radius: number, turn = 0) => {
          for (let i = 0; i < count; i++) {
             const a0 = turn + (i / count) * Math.PI * 2;
             const a1 = turn + ((i + 1) / count) * Math.PI * 2;
             push(cx, cy, cz, color);
-            push(cx, cy + Math.cos(a0) * radius, cz + Math.sin(a0) * radius, color);
-            push(cx, cy + Math.cos(a1) * radius, cz + Math.sin(a1) * radius, color);
+            push(cx + Math.cos(a0) * radius, cy, cz + Math.sin(a0) * radius, color);
+            push(cx + Math.cos(a1) * radius, cy, cz + Math.sin(a1) * radius, color);
          }
       };
       if (flight === 0) ring(16, r);
@@ -73,18 +76,18 @@ function mouthGeometry(gates: ReadonlyArray<{ x: number; y: number; z: number }>
             [-s, s],
          ];
          for (let i = 0; i < 4; i++) {
-            const [y0, z0] = corners[i];
-            const [y1, z1] = corners[(i + 1) % 4];
+            const [x0, z0] = corners[i];
+            const [x1, z1] = corners[(i + 1) % 4];
             push(cx, cy, cz, color);
-            push(cx, cy + y0, cz + z0, color);
-            push(cx, cy + y1, cz + z1, color);
+            push(cx + x0, cy, cz + z0, color);
+            push(cx + x1, cy, cz + z1, color);
          }
       } else if (flight === 2) {
          const tip = r;
          const base = r * 0.86;
-         push(cx, cy + tip, cz, color);
-         push(cx, cy - r * 0.55, cz - base, color);
-         push(cx, cy - r * 0.55, cz + base, color);
+         push(cx - tip, cy, cz, color);
+         push(cx + r * 0.55, cy, cz - base, color);
+         push(cx + r * 0.55, cy, cz + base, color);
       } else ring(5, r, -Math.PI / 2);
    });
    const geometry = new BufferGeometry();
