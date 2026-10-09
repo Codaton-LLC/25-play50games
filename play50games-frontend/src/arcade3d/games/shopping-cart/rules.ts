@@ -19,7 +19,7 @@ import { createPath, type Path } from "@/arcade3d/core/path";
 import { stepPatrol, type PatrolOptions, type PatrolState } from "@/arcade3d/core/ai/patrol";
 import type { Agent } from "@/arcade3d/core/ai/steering";
 import { PRODUCT_KINDS, type ProductKind } from "./assets";
-import { shoppingCartMeta } from "./meta";
+import { PROPOSED_LIMITS, shoppingCartMeta } from "./meta";
 
 export const DURATION_MS = 75_000;
 export const LIST_COUNT = 6;
@@ -148,18 +148,24 @@ export const POINTS = {
    perSecond: 10,
 } as const;
 
-export const MIN_TOUR_DISTANCE = 27.8;
+/** Design gate: every generated list's shortest `storeDistance` pick tour is at least 52 m. */
+export const MIN_TOUR_DISTANCE = 52;
 
-export const PROPOSED_LIMITS = {
-   kind: "points" as const,
-   maxScore: 2030,
-   minDurationMs: 3500,
-   maxDurationMs: 77000,
-   base: 1700,
-   maxPointsPerSec: 100,
-   unitLabel: "pts",
-   display: "int" as const,
-} as const;
+/**
+ * Normal speed (m/s) into a wall, shelf or counter that counts as a crash and breaks the combo.
+ * Grabbing an item usually scrapes a shelf at 1.5 to 3 m/s; only a real crash resets the streak.
+ */
+export const CRASH_NORMAL_SPEED = 3.0;
+
+/**
+ * Lower bound (m) on the cart-centre path of any win over every list the 52 m gate accepts:
+ * config space (solids inflated by the proxy's 0.45 m minimum half extent), 1 m reach discs,
+ * visibility-graph geodesics, Held-Karp over all 6-slot sets, minus the 0.05 m sampling allowance
+ * (README "Server limits", script fix3-bound2.mjs).
+ */
+export const MIN_WIN_ROUTE_M = 30.91;
+
+export { PROPOSED_LIMITS };
 
 /** Turns angle `from` towards `to` (radians) the short way round, clamped to maxRadians. */
 export function stepAngleTowards(from: number, to: number, maxRadians: number): number {
@@ -244,7 +250,7 @@ export interface StepInput {
 
 // ---------- Aisle Routing & Tour Distance ----------
  
-function shelvesBetween(x1: number, x2: number): boolean {
+export function shelvesBetween(x1: number, x2: number): boolean {
    const minX = Math.min(x1, x2);
    const maxX = Math.max(x1, x2);
    for (let i = 0; i < SHELVES.length; i++) {
@@ -307,7 +313,7 @@ export function shortestPickTour(items: readonly { x: number; z: number }[]): nu
    return minTour;
 }
 
-// Tested valid fallback list with tour distance 59.3 m
+// Fallback list (used only if 40 seeded attempts all fail the gate): storeDistance tour 73.9 m
 export const FALLBACK_LIST: ListItem[] = [
    { kind: "apple", slotIndex: 0, x: -9.9, y: 0.8, z: -5.0, collected: false },
    { kind: "banana", slotIndex: 4, x: -8.1, y: 0.8, z: -1.5, collected: false },
@@ -653,7 +659,7 @@ export function stepRun(
       // Slide along face: remove normal velocity component so remaining passes move tangentially
       const vDotN = cart.vx * hitNormalX + cart.vz * hitNormalZ;
       if (vDotN < 0) {
-         if (-vDotN > 1.5) {
+         if (-vDotN > CRASH_NORMAL_SPEED) {
             impactObstacle = true;
          }
          cart.vx -= vDotN * hitNormalX;
@@ -683,22 +689,22 @@ export function stepRun(
 
    // Outer store perimeter clamp
    if (cart.x - halfX < STORE.innerMinX) {
-      if (Math.abs(cart.vx) > 1.5) impactObstacle = true;
+      if (Math.abs(cart.vx) > CRASH_NORMAL_SPEED) impactObstacle = true;
       cart.x = STORE.innerMinX + halfX;
       cart.vx = Math.abs(cart.vx) * CART.restitution;
    }
    if (cart.x + halfX > STORE.innerMaxX) {
-      if (Math.abs(cart.vx) > 1.5) impactObstacle = true;
+      if (Math.abs(cart.vx) > CRASH_NORMAL_SPEED) impactObstacle = true;
       cart.x = STORE.innerMaxX - halfX;
       cart.vx = -Math.abs(cart.vx) * CART.restitution;
    }
    if (cart.z - halfZ < STORE.innerMinZ) {
-      if (Math.abs(cart.vz) > 1.5) impactObstacle = true;
+      if (Math.abs(cart.vz) > CRASH_NORMAL_SPEED) impactObstacle = true;
       cart.z = STORE.innerMinZ + halfZ;
       cart.vz = Math.abs(cart.vz) * CART.restitution;
    }
    if (cart.z + halfZ > STORE.innerMaxZ) {
-      if (Math.abs(cart.vz) > 1.5) impactObstacle = true;
+      if (Math.abs(cart.vz) > CRASH_NORMAL_SPEED) impactObstacle = true;
       cart.z = STORE.innerMaxZ - halfZ;
       cart.vz = -Math.abs(cart.vz) * CART.restitution;
    }
