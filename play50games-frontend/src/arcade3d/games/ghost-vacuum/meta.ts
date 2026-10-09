@@ -1,7 +1,7 @@
 import type { ArcadeGameMeta } from "@/arcade3d/types";
 
 // Plain data only (server-safe). scoring must match WP includes/arcade-games.json.
-// Provisional limits (docs/arcade-expansion/02 §C.4): set for real in the game's "assets + limits" PR.
+// Limits proven in README "Scoring" (design approved 2026-10-09).
 export const ghostVacuumMeta: ArcadeGameMeta = {
    slug: "ghost-vacuum",
    title: "Ghost Vacuum",
@@ -14,20 +14,20 @@ export const ghostVacuumMeta: ArcadeGameMeta = {
    orientation: "any",
    controls: {
       scheme: "joystick",
-      keyboard: "WASD to move, mouse to aim, hold E or Space to vacuum",
-      touch: "Joystick + hold Action to vacuum",
+      keyboard: "WASD / arrows to move, mouse to aim; hold E, Enter or Space to vacuum",
+      touch: "Joystick to move and aim, hold Vacuum to catch stunned ghosts",
    },
    scoring: {
       kind: "points",
-      maxScore: 5250,
-      minDurationMs: 10000,
+      maxScore: 2630,
+      minDurationMs: 91000,
       maxDurationMs: 122000,
-      base: 5250,
-      maxPointsPerSec: 5250,
+      base: 1720,
+      maxPointsPerSec: 10,
       unitLabel: "pts",
       display: "int",
    },
    thumbnail: null,
    accent: "#a78bfa",
-   owner: "kimi",
+   owner: "codex",
 };
