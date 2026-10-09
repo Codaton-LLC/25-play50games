@@ -1,0 +1,19 @@
+{
+   "slug": "rocket-landing",
+   "universe": "shared-cast",
+   "seed": 5050,
+   "assets": [
+      {
+         "id": "rocket",
+         "kind": "prop",
+         "mode": "image",
+         "prompt": "Chunky toy rocket standing upright, rounded nose cone, round porthole, wide red band, short rounded fins, engine bell and landing feet. Play50 toy world, friendly rounded proportions, matte white body, red band and slate engine. Single isolated centred vertical prop, no flame, smoke, pad, base, ground or text, clean game-ready low-poly topology and PBR textures without baked shadows.",
+         "tier": "Gen-2.5-Medium",
+         "qualityOverride": 3000,
+         "attempts": 1,
+         "target": "rocket-landing",
+         "budget": { "tris": 5000, "bytes": 300000 },
+         "textureSize": 512
+      }
+   ]
+}
