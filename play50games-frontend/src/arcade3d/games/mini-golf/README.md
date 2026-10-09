@@ -137,6 +137,10 @@ Dots preview plus a power ring and a percent; keyboard aim in 1° steps and powe
 
 ## Risks and open questions
 
+### Decisions (user, 2026-10-09)
+
+- Approved: 6 fixed holes mirrored by seed; the 10-minute run cap with a visible clock; fixed whole-hole cameras in portrait with a gentle follow in landscape on holes over 6 m; moving the shared aim code to `core/aim.ts` (Claude, its own core PR before the build).
+
 - **Tunnel mouth:** the ball's centre must pass within ±5.6 cm; the funnel guides it, but a novice playtest decides. Knob: scale the windmill 10 % (window ±7.9 cm), rules from the same fit.
 - **Hole 3 needs 81 % power** (tee already 1 m closer): a 30 px window on a phone; next knob: a shorter flat.
 - The solver's runtime in vitest (budget ≈ 10 s): fall back to the committed lines plus a coarse search.
