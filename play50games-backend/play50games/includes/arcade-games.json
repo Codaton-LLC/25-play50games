@@ -122,21 +122,21 @@
     "luggage-rush": {
       "title": "Airport Luggage Rush",
       "kind": "points",
-      "max_score": 7500,
+      "max_score": 7620,
       "min_duration_ms": 10000,
       "max_duration_ms": 122000,
-      "base": 7500,
-      "max_pps": 7500,
+      "base": 0,
+      "max_pps": 64,
       "enabled": false
     },
     "dino-egg-rescue": {
       "title": "Dino Egg Rescue",
       "kind": "points",
       "max_score": 6000,
-      "min_duration_ms": 10000,
+      "min_duration_ms": 88000,
       "max_duration_ms": 92000,
-      "base": 6000,
-      "max_pps": 6000,
+      "base": 0,
+      "max_pps": 70,
       "enabled": false
     },
     "delivery-drone": {
@@ -152,11 +152,11 @@
     "shopping-cart": {
       "title": "Crazy Shopping Cart",
       "kind": "points",
-      "max_score": 3000,
-      "min_duration_ms": 10000,
+      "max_score": 2030,
+      "min_duration_ms": 3500,
       "max_duration_ms": 77000,
-      "base": 3000,
-      "max_pps": 3000,
+      "base": 1700,
+      "max_pps": 100,
       "enabled": false
     },
     "snowball-battle": {
@@ -172,11 +172,11 @@
     "ghost-vacuum": {
       "title": "Ghost Vacuum",
       "kind": "points",
-      "max_score": 5250,
-      "min_duration_ms": 10000,
+      "max_score": 2630,
+      "min_duration_ms": 91000,
       "max_duration_ms": 122000,
-      "base": 5250,
-      "max_pps": 5250,
+      "base": 1720,
+      "max_pps": 10,
       "enabled": false
     },
     "construction-worker": {

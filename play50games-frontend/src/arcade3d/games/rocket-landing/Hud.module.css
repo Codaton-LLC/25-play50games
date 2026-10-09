@@ -1,0 +1,45 @@
+.wrap {
+   position: absolute;
+   inset: 0;
+   pointer-events: none;
+   color: var(--text-primary, #f8fafc);
+   font-size: 14px;
+   font-variant-numeric: tabular-nums;
+}
+.flight {
+   position: absolute;
+   left: 50%;
+   top: 62px;
+   transform: translateX(-50%);
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   gap: 12px;
+   min-height: 44px;
+   padding: 0 10px;
+   border: 1px solid var(--border-color, #475569);
+   background: var(--surface-color, #020617);
+   border-radius: 8px;
+   white-space: nowrap;
+}
+.good { color: #6ee7b7; }
+.warn { color: #fda4af; }
+.fuel { display: inline-flex; align-items: center; gap: 4px; }
+.fuel meter { width: 26px; height: 10px; border: 1px solid #f8fafc; }
+.award {
+   position: absolute;
+   top: 110px;
+   left: 50%;
+   transform: translateX(-50%);
+   padding: 6px 8px;
+   white-space: nowrap;
+   font-size: 13px;
+   background: #020617;
+}
+@media (max-width: 600px) {
+   .flight { width: calc(100% - 24px); gap: 4px; justify-content: space-between; }
+}
+@media (max-height: 520px) and (min-width: 601px) {
+   .flight { top: 48px; gap: 8px; }
+   .award { top: 94px; }
+}

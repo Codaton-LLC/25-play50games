@@ -440,7 +440,8 @@ export const EXPANSION_GLB_SIZE = {
    rocket: { width: 1.3018, height: 1.8955, depth: 1.2424 },
    windmill: { width: 1.3533, height: 1.8979, depth: 1.2987 },
    leafyTree: { width: 1.804, height: 1.9133, depth: 1.247 },
-   vacuum: { width: 0.7937, height: 1.6149, depth: 1.8963 },
+   // straps trimmed 2026-10-09 (same url): the pack and its canister only
+   vacuum: { width: 0.7937, height: 1.6149, depth: 1.1261 },
    dummy: { width: 0.7805, height: 1.8965, depth: 0.6395 },
    goblin: { width: 1.4028, height: 1.8957, depth: 0.7557 },
    castleTower: { width: 1.3862, height: 1.91, depth: 1.4204 },
@@ -493,10 +494,17 @@ export const EXPANSION_GLB_POINTS = {
    /** the castle tower's walkway inside the battlements (the cone roof fills the middle, radius < 0.45) */
    castleTowerPlatform: { x: 0, y: 1.374, z: 0 },
    /**
-    * The hose connector: the small block on top of the pack behind its carry handle (the handle runs along
-    * z 0.1-0.5 up to y 1.61). Rodin modelled no real connector; this is the nearest feature.
+    * The hose connector: the top of the small block on the pack behind its carry handle (the handle runs
+    * along z -0.29 to 0.12 up to y 1.61; the block spans z -0.49 to -0.25). Rodin modelled no real
+    * connector; this is the nearest feature. Re-measured 2026-10-09 after the strap trim re-centred z.
     */
-   vacuumHose: { x: 0, y: 1.52, z: -0.02 },
+   vacuumHose: { x: 0, y: 1.516, z: -0.4 },
+   /**
+    * The centre of the pack's back (the face that sits against a wearer's back, GLB -z): on the centre
+    * line, halfway up the body (y 0.05-1.45). The back is a shallow curve, 3 cm further back on the
+    * centre line than at x ±0.15; nothing lies more than 0.02 behind it (the two flat strap stubs).
+    */
+   vacuumBack: { x: 0, y: 0.75, z: -0.546 },
 } as const;
 
 /**
@@ -592,8 +600,10 @@ export const EXPANSION_ASSETS: Record<ExpansionAssetId, ModelAsset> = {
    windmill: expansion("windmill", "mini-golf", { scale: 2.2 / EX.windmill.height }, "cylinder", "#fde68a", 4000),
    // 3.5 m tall (the catalog says 3-4 m)
    leafyTree: expansion("leafyTree", "shared", { scale: 3.5 / EX.leafyTree.height }, "cylinder", "#65a30d", 3000),
-   // 0.55 m tall, the glowing canister +z, the back with its straps at -z (on a +z-facing runner's back:
-   // rotationY π). Rodin added shoulder straps that hang to the floor behind the pack (z -0.5 to -0.95).
+   // 0.55 m tall (to the top of its carry handle), 0.27 wide x 0.38 deep: the glowing canister +z, the back
+   // at -z (on a +z-facing runner's back: rotationY π; EXPANSION_GLB_POINTS.vacuumBack sits on the back).
+   // Rodin's shoulder straps, which hung to the floor behind the pack, were cut off the GLB 2026-10-09
+   // (two small flat stubs remain on the back, hidden against the wearer).
    vacuum: expansion("vacuum", "ghost-vacuum", { scale: 0.55 / EX.vacuum.height }, "box", "#e5e7eb", 2500),
    // 1.5 m on its base disc (the pivot at y = 0): a wooden mannequin standing on a red disc (r 0.32, its
    // centre 3 cm to -x), no post

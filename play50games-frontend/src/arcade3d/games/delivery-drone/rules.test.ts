@@ -113,10 +113,10 @@ describe("loading, flight and score", () => {
       expect(Math.abs(run.drone.z)).toBeLessThanOrEqual(29.5);
    });
    it("grades ordinary, fragile and express boundaries", () => {
-      expect(deliveryPoints(100, false, 15)).toBe(300);
-      expect(deliveryPoints(0, false, 15.001)).toBe(150);
+      expect(deliveryPoints(100, false, 10)).toBe(300);
+      expect(deliveryPoints(0, false, 10.001)).toBe(150);
       expect(deliveryPoints(39, true, 1)).toBe(0);
-      expect(deliveryPoints(40, true, 15)).toBe(240);
+      expect(deliveryPoints(40, true, 10)).toBe(240);
    });
    it("drops with actual two-axis cable velocity and shares preview with impact", () => {
       const run = createRun(12);
@@ -197,7 +197,7 @@ describe("physical impacts and terminal precedence", () => {
       fragile.drone.x -= 0.01; predictDrop(fragile, fragile.preview); expect(fragile.preview.valid).toBe(true);
    });
    it("express grades pickup age rather than release age at the real landing", () => {
-      for (const [pickupAge, releaseAge, score] of [[16, 1, 250], [1, 16, 300]] as const) {
+      for (const [pickupAge, releaseAge, score] of [[11, 1, 250], [1, 11, 300]] as const) {
          const run = targetFixture();
          run.time = 30; run.pickupAt = run.time - pickupAge;
          releaseParcel(run);

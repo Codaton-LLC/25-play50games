@@ -1,7 +1,18 @@
 import type { ArcadeGameMeta } from "@/arcade3d/types";
 
 // Plain data only (server-safe). scoring must match WP includes/arcade-games.json.
-// Provisional limits (docs/arcade-expansion/02 §C.4): set for real in the game's "assets + limits" PR.
+// Proven limits (README "Server limits and why they hold"); arcade-games.json carries the same values.
+export const PROPOSED_LIMITS = {
+   kind: "points",
+   maxScore: 2030,
+   minDurationMs: 3500,
+   maxDurationMs: 77000,
+   base: 1700,
+   maxPointsPerSec: 100,
+   unitLabel: "pts",
+   display: "int",
+} as const;
+
 export const shoppingCartMeta: ArcadeGameMeta = {
    slug: "shopping-cart",
    title: "Crazy Shopping Cart",
@@ -15,18 +26,9 @@ export const shoppingCartMeta: ArcadeGameMeta = {
    controls: {
       scheme: "joystick",
       keyboard: "WASD / arrows to steer, hold Space to ride",
-      touch: "Joystick + hold Jump to ride",
+      touch: "Joystick to steer, hold Ride to ride",
    },
-   scoring: {
-      kind: "points",
-      maxScore: 3000,
-      minDurationMs: 10000,
-      maxDurationMs: 77000,
-      base: 3000,
-      maxPointsPerSec: 3000,
-      unitLabel: "pts",
-      display: "int",
-   },
+   scoring: { ...PROPOSED_LIMITS },
    thumbnail: null,
    accent: "#fb923c",
    owner: "antigravity",
