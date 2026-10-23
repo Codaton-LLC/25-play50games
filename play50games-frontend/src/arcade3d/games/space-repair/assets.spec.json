@@ -1,0 +1,19 @@
+{
+   "slug": "space-repair",
+   "universe": "shared-cast",
+   "seed": 5050,
+   "assets": [
+      {
+         "id": "astronaut",
+         "kind": "character",
+         "mode": "text",
+         "prompt": "Friendly adult astronaut in a bulky white toy spacesuit with one indigo accent, round rigid helmet and compact backpack, Play50 toy world premium style, matte and satin materials, rounded readable silhouette, static humanoid T-pose facing forward, straight level arms, separate legs and visible boots, single isolated full-body character centered at the origin, no wrench or flame, no base, no ground, no text, clean game-ready low-poly topology; existing imported astronaut is reused and animated through the core auto-rig",
+         "tier": "Gen-2.5-Medium",
+         "qualityOverride": 18000,
+         "attempts": 1,
+         "target": "space-repair",
+         "budget": { "tris": 18000, "bytes": 1500000 },
+         "textureSize": 1024
+      }
+   ]
+}
