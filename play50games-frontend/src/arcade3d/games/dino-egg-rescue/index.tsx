@@ -1,16 +1,29 @@
 "use client";
 
-// Stub until the game is built. Owner: antigravity. Replace PlaceholderScene with ./Scene.
 import type { GameDefinition } from "@/arcade3d/core/types";
-import { PlaceholderScene } from "@/arcade3d/core/PlaceholderScene";
+import { ASSETS } from "./assets";
+import { FOV } from "./camera";
+import DinoHud from "./Hud";
+import { DURATION_MS, RESULT_DELAY_MS } from "./rules";
+import Scene from "./Scene";
 
 const definition: GameDefinition = {
    slug: "dino-egg-rescue",
-   Scene: PlaceholderScene,
-   assets: {},
-   camera: { position: [0, 6, 10], fov: 50, lookAt: [0, 0, 0] },
+   Scene,
+   Hud: DinoHud,
+   assets: ASSETS,
+   durationMs: DURATION_MS,
+   resultDelayMs: RESULT_DELAY_MS,
+   camera: { position: [0, 16, 13.4], fov: FOV, lookAt: [0, 0, 0] },
+   environment: { background: "#7c2d12", lighting: "sunset" },
    touchControls: ["joystick", "action"],
-   instructions: ["Pick up eggs and carry them to the nest.", "Dodge boulders and mud."],
+   touchLabels: { action: "Dash" },
+   hudStats: [{ key: "eggs", label: "Eggs Saved" }],
+   instructions: [
+      "Gather runaway eggs and carry them back to your nest in the South-East.",
+      "Each carried egg slows you down; dodge boulders and sticky mud pits!",
+      "WASD / Joystick to waddle, Space / E / tap Dash to dash.",
+   ],
 };
 
 export default definition;
