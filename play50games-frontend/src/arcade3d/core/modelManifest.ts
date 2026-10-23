@@ -77,6 +77,7 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/delivery-drone/drone.glb",
    "/models/3d/rocket-landing/rocket.glb",
    "/models/3d/mini-golf/windmill.glb",
+   "/models/3d/ghost-vacuum/ghost.glb",
    "/models/3d/ghost-vacuum/vacuum.glb",
    "/models/3d/knight-arena/dummy.glb",
    "/models/3d/castle-defender/goblin.glb",

@@ -1,7 +1,7 @@
 import type { ArcadeGameMeta } from "@/arcade3d/types";
 
 // Plain data only (server-safe). scoring must match WP includes/arcade-games.json.
-// Provisional limits (docs/arcade-expansion/02 §C.4): set for real in the game's "assets + limits" PR.
+// Limits proven in README "Scoring" (design approved 2026-10-09).
 export const dinoEggRescueMeta: ArcadeGameMeta = {
    slug: "dino-egg-rescue",
    title: "Dino Egg Rescue",
@@ -15,19 +15,21 @@ export const dinoEggRescueMeta: ArcadeGameMeta = {
    controls: {
       scheme: "joystick",
       keyboard: "WASD / arrows to move, Space or E to dash",
-      touch: "Joystick + Action to dash",
+      touch: "Joystick to move, tap Dash to dash",
    },
    scoring: {
       kind: "points",
       maxScore: 6000,
-      minDurationMs: 10000,
+      minDurationMs: 88000,
       maxDurationMs: 92000,
-      base: 6000,
-      maxPointsPerSec: 6000,
+      base: 0,
+      maxPointsPerSec: 70,
       unitLabel: "pts",
       display: "int",
    },
-   thumbnail: null,
+   thumbnail: "/images/3d/dino-egg-rescue.webp",
    accent: "#a3e635",
    owner: "antigravity",
 };
+
+export default dinoEggRescueMeta;

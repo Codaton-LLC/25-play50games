@@ -1,7 +1,7 @@
 import type { ArcadeGameMeta } from "@/arcade3d/types";
 
 // Plain data only (server-safe). scoring must match WP includes/arcade-games.json.
-// Provisional limits (docs/arcade-expansion/02 §C.4): set for real in the game's "assets + limits" PR.
+// Limits proven in README "Scoring" (design approved 2026-10-09).
 export const rocketLandingMeta: ArcadeGameMeta = {
    slug: "rocket-landing",
    title: "Rocket Landing Challenge",
@@ -14,20 +14,20 @@ export const rocketLandingMeta: ArcadeGameMeta = {
    orientation: "any",
    controls: {
       scheme: "flight",
-      keyboard: "A / D to rotate, hold Space or W to thrust",
-      touch: "Joystick to rotate + hold Jump to thrust",
+      keyboard: "A / D or left / right to rotate; hold Space, W or up to thrust",
+      touch: "Joystick left / right to rotate; hold Thrust to fire; release joystick to auto-level",
    },
    scoring: {
       kind: "points",
-      maxScore: 4500,
-      minDurationMs: 15000,
-      maxDurationMs: 300000,
-      base: 4500,
-      maxPointsPerSec: 4500,
+      maxScore: 2800,
+      minDurationMs: 5000,
+      maxDurationMs: 242000,
+      base: 800,
+      maxPointsPerSec: 200,
       unitLabel: "pts",
       display: "int",
    },
-   thumbnail: null,
+   thumbnail: "/images/3d/rocket-landing.webp",
    accent: "#fda4af",
    owner: "codex",
 };

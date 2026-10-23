@@ -1,0 +1,19 @@
+﻿{
+   "slug": "castle-defender",
+   "universe": "shared-cast",
+   "seed": 5050,
+   "assets": [
+      {
+         "id": "goblin",
+         "kind": "character",
+         "mode": "image",
+         "prompt": "Small round-bellied cartoon goblin raider: big pointy ears, a wide mischievous grin, a simple light leather tunic with a belt, short legs with bare feet, arms hanging down slightly away from the body, standing upright. Premium stylised mobile-game look, friendly rounded proportions, smooth simple shapes, matte pale green-grey skin and light tan tunic. Single character, centred, facing the viewer, symmetrical. No weapon, no helmet, no shield, no base, no ground, no text. Very simple low-poly game-ready topology for a crowd, clean PBR textures without baked shadows.",
+         "tier": "Gen-2.5-Medium",
+         "qualityOverride": 3000,
+         "attempts": 1,
+         "target": "castle-defender",
+         "budget": { "tris": 4500, "bytes": 300000 },
+         "textureSize": 512
+      }
+   ]
+}

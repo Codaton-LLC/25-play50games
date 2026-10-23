@@ -4,7 +4,7 @@
 import { readFileSync, statSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { Box3, BufferGeometry, Float32BufferAttribute, Group, Mesh, Vector3 } from "three";
+import { Box3, BufferGeometry, DoubleSide, Float32BufferAttribute, Group, Mesh, MeshBasicMaterial, Raycaster, Vector3 } from "three";
 import { modelParts } from "./assets";
 import { hasModel } from "./modelManifest";
 import { readCharacterGlb } from "./rig/robotGlb";
@@ -18,9 +18,12 @@ import {
    expansionPoint,
    LEAFY_TREE_TRUNK_RADIUS_GLB,
    PROP_BUDGET,
+   REUSED_ASSETS,
+   REUSED_GLB_SIZE,
    ROCKET_FEET_GLB,
    WINDMILL_TUNNEL_GLB,
    type ExpansionAssetId,
+   type ReusedAssetId,
 } from "./sharedAssets";
 import type { ModelAsset } from "./types";
 
@@ -79,6 +82,26 @@ async function drawn(asset: Pick<ModelAsset, "url" | "scale" | "stretch" | "rota
    for (let i = 0; i < local.length; i += 3) points.push(new Vector3(local[i], local[i + 1], local[i + 2]).applyMatrix4(parts[0].matrix));
    geometry.dispose();
    return points;
+}
+
+/** The first point where a ray (metres, model origin) meets the GLB as the asset's fit draws it, or null. */
+async function rayHit(asset: Pick<ModelAsset, "url" | "scale" | "stretch" | "rotationY" | "yOffset">, origin: Vector3, direction: Vector3): Promise<Vector3 | null> {
+   const { local, indices, node } = await readCharacterGlb(asset.url);
+   const geometry = new BufferGeometry();
+   geometry.setAttribute("position", new Float32BufferAttribute(local, 3));
+   geometry.setIndex(Array.from(indices));
+   const mesh = new Mesh(geometry, new MeshBasicMaterial({ side: DoubleSide }));
+   mesh.position.fromArray(node);
+   const root = new Group();
+   root.add(mesh);
+   const parts = modelParts(root, asset);
+   mesh.position.set(0, 0, 0);
+   mesh.matrixAutoUpdate = false;
+   mesh.matrix.copy(parts[0].matrix);
+   mesh.matrixWorld.copy(parts[0].matrix);
+   const hits = new Raycaster(origin, direction.clone().normalize()).intersectObject(mesh, false);
+   geometry.dispose();
+   return hits.length ? hits[0].point.clone() : null;
 }
 
 /** File size and mesh / primitive counts, read from the GLB's JSON chunk. */
@@ -259,6 +282,17 @@ describe("expansion GLBs", () => {
       // vacuum: the connector on top; the dummy's pivot at the base; the trunk circle covers the trunk
       const vacuum = await drawn(EXPANSION_ASSETS.vacuum);
       expect(near(vacuum, at("vacuum", P.vacuumHose))).toBeLessThan(0.02);
+      // (2026-10-09) the straps are gone: nothing lies more than 2 cm behind the pack's back, and the back
+      // point is where a ray from behind first meets the mesh, halfway up the body
+      const packBack = at("vacuum", P.vacuumBack);
+      expect(Math.min(...vacuum.map((p) => p.z)), "no strap behind the back").toBeGreaterThan(packBack.z - 0.02);
+      expect(near(vacuum, packBack)).toBeLessThan(0.025);
+      const hit = await rayHit(EXPANSION_ASSETS.vacuum, new Vector3(packBack.x, packBack.y, -2), new Vector3(0, 0, 1));
+      expect(hit, "a ray from behind meets the back").not.toBeNull();
+      expect(hit!.distanceTo(new Vector3(packBack.x, packBack.y, packBack.z))).toBeLessThan(0.005);
+      const packBox = new Box3().setFromPoints(vacuum);
+      expect(packBack.y / packBox.max.y).toBeGreaterThan(0.4);
+      expect(packBack.y / packBox.max.y).toBeLessThan(0.55);
       expect(at("dummy", P.dummyPivot).y).toBe(0);
       const tree = await drawn(EXPANSION_ASSETS.leafyTree);
       const r = LEAFY_TREE_TRUNK_RADIUS_GLB * (EXPANSION_ASSETS.leafyTree.scale ?? 1);
@@ -286,5 +320,15 @@ describe("expansion GLBs", () => {
       const top = Math.max(...crab.map((p) => p.y));
       const upper = crab.filter((q) => q.y > top * 0.7);
       expect(upper.reduce((sum, p) => sum + p.z, 0) / upper.length).toBeGreaterThan(0.01);
+   });
+
+   it("REUSED_GLB_SIZE is the real reused meshes' bounds (within 0.005)", async () => {
+      for (const id of Object.keys(REUSED_GLB_SIZE) as (keyof typeof REUSED_GLB_SIZE & ReusedAssetId)[]) {
+         const size = new Box3().setFromPoints(await drawn({ url: REUSED_ASSETS[id].url })).getSize(new Vector3());
+         const glb = REUSED_GLB_SIZE[id];
+         expect(Math.abs(size.x - glb.width), `${id} width ${size.x}`).toBeLessThan(0.005);
+         expect(Math.abs(size.y - glb.height), `${id} height ${size.y}`).toBeLessThan(0.005);
+         expect(Math.abs(size.z - glb.depth), `${id} depth ${size.z}`).toBeLessThan(0.005);
+      }
    });
 });
