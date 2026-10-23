@@ -1,0 +1,163 @@
+/* Monster Kitchen's DOM HUD. Dark glass panels over the cave scene; the game's accent #f472b6 via
+   var(--accent). Portrait stacks the order bubbles under the HUD chips; landscape moves them to a
+   right-hand column (the scene's +x side is empty there) so the P-15 "no overlap" rule holds
+   structurally at 390x844 and 844x390. Everything that covers the canvas is data-arcade-safe-area. */
+.hud {
+   position: absolute;
+   inset: 0;
+   pointer-events: none;
+   user-select: none;
+   -webkit-user-select: none;
+}
+
+.bubbles {
+   position: absolute;
+   top: 64px;
+   left: 12px;
+   right: 12px;
+   display: flex;
+   flex-direction: column;
+   align-items: flex-start;
+   gap: 8px;
+}
+
+.bubble {
+   min-width: 148px;
+   max-width: 240px;
+   padding: 6px 8px 7px;
+   border: 2px solid rgba(255, 255, 255, 0.28);
+   border-radius: 12px;
+   background: rgba(11, 16, 32, 0.66);
+   backdrop-filter: blur(2px);
+}
+
+.bubbleHead {
+   display: flex;
+   align-items: center;
+   gap: 6px;
+   margin-bottom: 4px;
+}
+
+.typeDot {
+   width: 10px;
+   height: 10px;
+   border-radius: 50%;
+   flex: none;
+}
+
+.status {
+   color: var(--text, #f8fafc);
+   font-size: 11px;
+   font-weight: 700;
+   letter-spacing: 0.02em;
+   margin-left: auto;
+}
+
+.icons {
+   display: flex;
+   gap: 3px;
+   flex-wrap: wrap;
+}
+
+.icons > span {
+   display: inline-flex;
+   border-radius: 50%;
+}
+
+.icons .done {
+   opacity: 0.38;
+   filter: saturate(0.4);
+}
+
+.icons .next {
+   outline: 2px solid var(--accent, #f472b6);
+   outline-offset: 1px;
+}
+
+.icons .pending {
+   opacity: 0.85;
+}
+
+.patience {
+   height: 5px;
+   margin-top: 6px;
+   border-radius: 3px;
+   background: rgba(255, 255, 255, 0.14);
+   overflow: hidden;
+}
+
+.patienceFill {
+   height: 100%;
+   border-radius: 3px;
+   transition: width 120ms linear, background 200ms linear;
+}
+
+.turn {
+   position: absolute;
+   bottom: calc(env(safe-area-inset-bottom, 0px) + var(--arcade-bottom-obstruction, 0px) + 24px);
+   width: 72px;
+   height: 72px;
+   min-width: 56px;
+   min-height: 56px;
+   border: 2px solid rgba(255, 255, 255, 0.35);
+   border-radius: 50%;
+   background: rgba(11, 16, 32, 0.6);
+   color: var(--text, #f8fafc);
+   font-size: 22px;
+   font-weight: 700;
+   pointer-events: auto;
+   touch-action: none;
+   cursor: pointer;
+   -webkit-tap-highlight-color: transparent;
+}
+
+.turn:active {
+   background: rgba(244, 114, 182, 0.45);
+   border-color: var(--accent, #f472b6);
+   transform: scale(0.94);
+}
+
+.turn:focus-visible {
+   outline: 3px solid var(--accent, #f472b6);
+   outline-offset: 3px;
+}
+
+.turnLeft {
+   left: calc(env(safe-area-inset-left, 0px) + 16px);
+}
+
+.turnRight {
+   right: calc(env(safe-area-inset-right, 0px) + 16px);
+}
+
+/* landscape phones: the banner and chips eat the top; keep the bubbles in a right-hand side column
+   over the scene's empty +x region */
+@media (orientation: landscape) {
+   .bubbles {
+      top: 72px;
+      left: auto;
+      right: 12px;
+      width: 158px;
+   }
+
+   .bubble {
+      min-width: 0;
+      width: 100%;
+   }
+
+   .turn {
+      bottom: calc(env(safe-area-inset-bottom, 0px) + var(--arcade-bottom-obstruction, 0px) + 16px);
+   }
+}
+
+/* short screens: tighter stack */
+@media (max-height: 520px) {
+   .bubbles {
+      top: 56px;
+      gap: 6px;
+   }
+
+   .bubble {
+      padding: 4px 6px 5px;
+   }
+}
