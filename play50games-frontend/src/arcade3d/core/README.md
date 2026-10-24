@@ -118,6 +118,7 @@ useRunFrame(() => {
 | Camera that fits the arena | `useFittedView({ area, pitch, yaws?, focus?, margin?, padding?, shift?, fov?, avoid? })` → `{ yaw, distance, offset, shift }`; pure `fitView` | `useFittedView.ts`, `view.ts` |
 | Follow camera | `<CameraRig follow={ref or {x,y,z}} followFraction bounds damping offset shift>`: snaps on mount and eases into later changes | `CameraRig.tsx` |
 | Fit range of a follow camera | `followFocus({ lookAt, reach, fraction, bounds })` → `focus` points, from the same math as `CameraRig` (`followAim`) | `view.ts` |
+| First-person fixed-eye camera | `<EyeRig position yaw pitch? fov? shift? shiftRate? turnRate?>` + `useEyeShift({ eyeY, band, pitch?, fov?, margin?, padding?, avoid? })` → `{ shift, fits, overflow }`; pure `fitEyeShift`, `setEyeRotation`, `stepEyeYaw` ("Fixed-eye cameras" below) | `EyeRig.tsx`, `useEyeShift.ts`, `view.ts` |
 | Where UI covers the canvas | `useSafeArea()` → `{ width, height, hud[], controls[], obstructions[] }` (px rects, live); `useSafeArea(selector, isEqual?)` re-renders only when the selection changes (`sameScreenRects` for rect lists) | `safeArea.tsx` |
 | Models | `<Model asset fallback={<MyPrimitive/>}>` (an element, not a component), `useModel`, `useModelFailed` (no clone), `SHARED_ASSETS` | `assets.tsx`, `sharedAssets.ts` |
 | Characters that walk (static T-pose GLBs) | `<HumanoidModel asset pose fallback>`, `useHumanoidPose(drive)`, `walkPose` / `idlePose` / `carryPose` / `cheerPose` / `jumpPose` / `reachPose` / `flailPose`, `blendPoses` + `POSE_MASK`, `turnBone` (a lean on top of a pose), `walkStride` (the phase's stride) / `gaitPhaseStep` (the phase step, cadence-capped), `bodyLift` (the body's height over its planted foot), `footPoint` ("Characters: the auto-rig") | `rig/` |
@@ -155,6 +156,22 @@ useRunFrame(() => {
 - The yaw is picked from `yaws` once per canvas size. The banner opening or closing and HUD panels change only the distance and the shift, so the camera never turns 90° in the middle of a run, and `inputToWorld(…, view.yaw)` keeps its meaning.
 - A follow camera: build `focus` with `followFocus` from the same `lookAt`, `followFraction` and `bounds` you give `CameraRig`.
 - The fov is the canvas camera's (`definition.camera.fov`). If the Scene's `CameraRig` sets another fov, pass the same `fov` to `useFittedView`.
+
+### Fixed-eye cameras: `EyeRig`, `useEyeShift`, `fitEyeShift`
+
+**When:** `CameraRig` + `useFittedView` for a camera that looks *at* the play area from outside and may move back until the area fits (top-down, follow cameras). `EyeRig` for a first-person eye that must stay where it is (a guard at a fixed post, a turret): the camera never moves back; what must stay visible is kept clear of the HUD and the controls by a lens shift only.
+
+```tsx
+const BAND: AABB = { min: { x: -1.5, y: 0, z: 5 }, max: { x: 1.5, y: 2.4, z: 6.4 } }; // module level, view frame
+const eye = useEyeShift({ fov: 70, eyeY: 1.6, band: BAND, padding: 8 });          // { shift, fits, overflow }
+<EyeRig position={[post.x, 1.6, post.z]} yaw={guard.yaw} fov={70} shift={eye.shift} turnRate={4} />
+```
+
+- `band` is in the eye's **view frame**: origin on the floor under the eye, +x right, +y up, +z forward, the yaw removed. One band serves every facing (the result does not depend on the yaw).
+- `fitEyeShift` (pure) projects the band outline once at shift 0. Each margin gives a per-axis shift interval; it tries (0, 0) clamped into them, then a grid inside them, and keeps the shift closest to (0, 0) that clears every `avoid` rect (grown by `padding`). With none: the least worst overflow (px) and `fits: false`; a band point at or nearer than the near plane (0.1): `fits: false`, `overflow: Infinity`. No distance search. A game with `fits: false` should narrow its band or widen its fov, not ignore it.
+- `useEyeShift` adds the live canvas size and `useSafeArea()` (`avoidHud`, `avoidControls`, `avoidObstructions`, all default true, like `useFittedView`). It refits only when the canvas size, the safe-area rects (`sameScreenRects`, half a px) or its own option values change; the result (and its `shift` array) keeps its identity while it is the same. `fov` defaults to the canvas camera's: pass EyeRig's `fov` when it sets another.
+- `EyeRig`: `position` a tuple or a ref to a live `{x, y, z}`; `yaw` / `pitch` numbers or refs, read every frame. `yaw` is a **facing** like `inViewCone` / `Flashlight` (0 = looks along +z, positive towards +x), not fitView's camera yaw; positive `pitch` looks down. Each frame at `FRAME_PRIORITY.camera` it sets the position and `rotation.set(-pitch, yaw + PI, 0, "YXZ")` (`setEyeRotation`), never `lookAt`, so it never rolls. `turnRate` (rad/s) turns the short way round across ±π without overshooting (`stepEyeYaw`); omitted, it copies `yaw`. `shift` eases in with `shiftRate` (1/s, default 8; the first write snaps) through `stepLensShift`, and the lens is cleared in a layout cleanup, so it survives Scene remounts like `CameraRig`'s. `fov` calls `updateProjectionMatrix` only when the camera's fov differs. dt is R3F's delta capped at 0.1 s, as in `CameraRig` (no frames run while paused). No allocation per frame.
+- The first pose is written in a mount layout effect, so no frame is drawn from `definition.camera`. The shell's static `CameraRig` writes the camera only in its mount effect (its frame callback does nothing without `follow` / `shift`); if that passive effect runs after `EyeRig`'s layout effect, `EyeRig`'s first frame puts the pose (and fov) back before anything renders. Do not also render a `CameraRig` in the same Scene.
 
 - `useSafeArea(selector, isEqual?)`: a Scene that needs one number (a top inset, a control's top) re-renders only when that number changes, not every time a HUD chip grows with the score. A selector that builds an object needs an `isEqual` (`sameScreenRects` for rect lists, `shallow` from `"zustand/shallow"` for plain objects).
 
