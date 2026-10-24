@@ -46,7 +46,14 @@
       "max_duration_ms": 1800000,
       "base": 0,
       "max_pps": 28,
-      "enabled": true
+      "enabled": true,
+      "levels": [
+        { "title": "Quiet Street", "max_score": 50000, "min_duration_ms": 3000, "max_duration_ms": 1800000, "base": 0, "max_pps": 28 },
+        { "title": "Main Road", "max_score": 75000, "min_duration_ms": 3000, "max_duration_ms": 1800000, "base": 0, "max_pps": 42 },
+        { "title": "City Crossing", "max_score": 100000, "min_duration_ms": 3000, "max_duration_ms": 1800000, "base": 0, "max_pps": 56 },
+        { "title": "Night Traffic", "max_score": 125000, "min_duration_ms": 3000, "max_duration_ms": 1800000, "base": 0, "max_pps": 70 },
+        { "title": "Rush Hour", "max_score": 150000, "min_duration_ms": 3000, "max_duration_ms": 1800000, "base": 0, "max_pps": 84 }
+      ]
     },
     "penalty-hero": {
       "title": "Penalty Hero",
