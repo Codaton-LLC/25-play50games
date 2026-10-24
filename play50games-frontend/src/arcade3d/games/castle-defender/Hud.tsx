@@ -5,6 +5,7 @@ import { useSafeArea } from "@/arcade3d/core/safeArea";
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import styles from "./Hud.module.css";
 import { placeCards, type CardPlacement } from "./layout";
+import { useCastleLevel } from "./useCastleLevel";
 import { comboMultiplier } from "./rules";
 
 const CARDS = [
@@ -16,6 +17,7 @@ const CARDS = [
 const samePlacement = (a: CardPlacement, b: CardPlacement) =>
    a.left === b.left && a.top === b.top && a.width === b.width && a.height === b.height && a.column === b.column;
 export default function Hud() {
+   const { config } = useCastleLevel();
    const stats = useArcadeStore(useShallow(({ stats: s }) => ({
       hp: s.hp ?? 100, maxHP: s.maxHP ?? 100, wave: s.wave ?? 1,
       reload: s.reload ?? 0, rock: s.rock ?? 0, climb: s.climb ?? 0,
@@ -31,7 +33,7 @@ export default function Hud() {
    };
    return <>
       <div className={styles.panel} data-arcade-safe-area>
-         <strong>Gate {stats.hp ?? 100}/{stats.maxHP ?? 100}</strong><strong>Wave {stats.wave ?? 1}/5</strong>
+         <strong>Gate {stats.hp ?? 100}/{stats.maxHP ?? 100}</strong><strong>Wave {stats.wave ?? 1}/{config.counts.length}</strong>
          {comboMultiplier(stats.combo) > 1 && <strong className={styles.combo}>Combo x{comboMultiplier(stats.combo)}</strong>}
          {stats.comboLost === 1 && <span role="status">Combo lost</span>}
          <span>Reload {((stats.reload ?? 0) / 10).toFixed(1)}s</span><span>Rock {((stats.rock ?? 0) / 10).toFixed(1)}s</span>

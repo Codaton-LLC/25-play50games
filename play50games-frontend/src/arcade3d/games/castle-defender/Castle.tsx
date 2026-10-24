@@ -7,13 +7,14 @@ import {
 } from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import { InstancedModel, Model } from "@/arcade3d/core/assets";
+import { useCastleLevel } from "./useCastleLevel";
 import { SkyDome } from "@/arcade3d/core/env";
 import { useGameTime } from "@/arcade3d/core/gameTime";
 import { Pedestal } from "@/arcade3d/core/kit";
 import { Instanced, useCanvasTexture, type CanvasDraw, type InstanceSpot } from "@/arcade3d/core/render";
 import { ASSETS } from "./assets";
 import { Decor } from "./Decor";
-import { COLORS, TOWERS, wallBlocks } from "./looks";
+import { COLORS, LEVEL_LOOKS, TOWERS, wallBlocks } from "./looks";
 import { GatePrimitive, TowerFallback } from "./Primitives";
 import type { CastleRun } from "./rules";
 import { Terrain } from "./Terrain";
@@ -148,6 +149,8 @@ function Cloth({
 }
 
 export function Castle({ run, reduced }: { run: CastleRun; reduced: boolean }) {
+   const { id } = useCastleLevel();
+   const sky = LEVEL_LOOKS[id];
    const gate = useRef<Group>(null);
    const banners = useRef<Group>(null);
    const amp = useRef(reduced ? 0 : 0.8);
@@ -164,7 +167,7 @@ export function Castle({ run, reduced }: { run: CastleRun; reduced: boolean }) {
    });
    return (
       <group>
-         <SkyDome top={COLORS.skyTop} bottom={COLORS.sky} offset={0.12} exponent={0.8} />
+         <SkyDome top={sky.top} bottom={sky.bottom} offset={0.12} exponent={0.8} />
          <Terrain reduced={reduced} />
          <Decor reduced={reduced} />
          <mesh geometry={wall.geometry} dispose={null} name="castle-wall">

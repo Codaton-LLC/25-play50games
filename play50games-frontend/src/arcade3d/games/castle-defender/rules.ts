@@ -1,3 +1,5 @@
+import type { LevelId, ScoringRules } from "@/arcade3d/types";
+import { LEVELS, type CastleLevel } from "./levels";
 import { bufferFire, clampTo, createAxisAim, createBufferedFire, stepAimKeys, type AxisAimInput } from "@/arcade3d/core/aim";
 import { landingPoint, launchForTime, trajectoryPoints, type Projectile } from "@/arcade3d/core/ballistics";
 import { circlesOverlapXZ } from "@/arcade3d/core/collision";
@@ -22,13 +24,28 @@ export const TYPES = {
 export type Kind = keyof typeof TYPES;
 export type Upgrade = "reload" | "splash" | "repair" | "double";
 export const UPGRADE_NAMES: readonly Upgrade[] = ["reload", "splash", "repair", "double"];
-export const COUNTS = [[8, 0, 0, 0], [10, 4, 0, 0], [10, 4, 6, 0], [10, 4, 6, 6], [12, 6, 6, 6]] as const;
+export const COUNTS = LEVELS[1].counts;
 export const STARTS = [0, 28, 56, 84, 112] as const;
-/** Proven ceiling B = 98 * 20 * 3 + 5 * 200 + 2 * 125. Pending Claude's meta/JSON update. */
+/** Level-1 compatibility limits: B = 98 * 20 * 3 + 5 * 200 + 2 * 125. */
 export const PROPOSED_LIMITS = {
    kind: "points", maxScore: 7130, minDurationMs: 39000, maxDurationMs: 140000,
    base: 480, maxPointsPerSec: 56, unitLabel: "pts", display: "int",
 } as const;
+/** Universal per-level ceilings: unique ids * 60 + waves * 200 + 250.
+ * Kill-prefix envelopes permit every wave's kills immediately at its start.
+ * README: Server limits and why they hold. Level 1 remains byte-for-byte limits.
+ */
+export const PROPOSED_LEVEL_LIMITS: Record<LevelId, ScoringRules> = {
+   1: PROPOSED_LIMITS,
+   /** L2: 102 ids, 5 clears; B <= 7370, prefix <= 600 + 60t. */
+   2: { ...PROPOSED_LIMITS, maxScore: 7370, minDurationMs: 33000, maxDurationMs: 138000, base: 600, maxPointsPerSec: 60 },
+   /** L3: 108 ids, 5 clears; B <= 7730, prefix <= 720 + 63t. */
+   3: { ...PROPOSED_LIMITS, maxScore: 7730, minDurationMs: 32000, maxDurationMs: 135000, base: 720, maxPointsPerSec: 63 },
+   /** L4: 140 ids, 6 clears; B <= 9850, prefix <= 720 + 69t. */
+   4: { ...PROPOSED_LIMITS, maxScore: 9850, minDurationMs: 31000, maxDurationMs: 159000, base: 720, maxPointsPerSec: 69 },
+   /** L5: 204 ids, 8 clears; B <= 14090, prefix <= 720 + 74t. */
+   5: { ...PROPOSED_LIMITS, maxScore: 14090, minDurationMs: 30000, maxDurationMs: 208000, base: 720, maxPointsPerSec: 74 },
+};
 export const AIM = {
    x: { min: -5, max: 5, step: 0.5, rate: 6, dragGain: 0 },
    y: { min: -2, max: 6, step: 0.5, rate: 6, dragGain: 0 }, holdDelay: 0.25,
@@ -43,7 +60,7 @@ export const CLIMB_OFFSETS = [-0.6, 0, 0.6] as const;
 export const LADDER = { half: 0.9, height: 2.8, climberScale: 1.25 } as const;
 const EPS = 1e-9;
 export interface Goblin extends RiderState {
-   id: number; wave: number; pack: number; lane: number; kind: Kind; crew: number;
+   speed: number; id: number; wave: number; pack: number; lane: number; kind: Kind; crew: number;
    spawn: number; lateral: number; initialS: number; hp: number;
    status: "waiting" | "ground" | "rail" | "climb" | "dead" | "escaped";
    x: number; y: number; z: number; resolvedAt: number;
@@ -61,20 +78,20 @@ export function createInput(): StepInput {
    };
 }
 
-export function generateArmy(seed: number): { goblins: Goblin[]; crews: Crew[] } {
+export function generateArmy(seed: number, level: CastleLevel = LEVELS[1]): { goblins: Goblin[]; crews: Crew[] } {
    const rng = { s: seed };
    const goblins: Goblin[] = [];
    const crews: Crew[] = [];
-   for (let wave = 0; wave < 5; wave++) {
+   for (let wave = 0; wave < level.counts.length; wave++) {
       const kinds: Kind[] = [];
-      for (let k = 0; k < 3; k++) for (let n = 0; n < COUNTS[wave][k]; n++) kinds.push((["walker", "shield", "runner"] as const)[k]);
+      for (let k = 0; k < 3; k++) for (let n = 0; n < level.counts[wave][k]; n++) kinds.push((["walker", "shield", "runner"] as const)[k]);
       for (let n = kinds.length - 1; n > 0; n--) {
          const j = Math.floor(rngNext(rng) * (n + 1));
          const a = kinds[n]; kinds[n] = kinds[j]; kinds[j] = a;
       }
       const packs: { kinds: Kind[]; crew: number }[] = [];
       for (let n = 0; n < kinds.length; n += 3) packs.push({ kinds: kinds.slice(n, n + 3), crew: -1 });
-      for (let n = 0; n < COUNTS[wave][3] / 3; n++) {
+      for (let n = 0; n < level.counts[wave][3] / 3; n++) {
          const id = crews.length;
          crews.push({ id, wave, lane: -1, erected: -1, destroyed: false });
          packs.push({ kinds: ["crew", "crew", "crew"], crew: id });
@@ -101,8 +118,8 @@ export function generateArmy(seed: number): { goblins: Goblin[]; crews: Crew[] }
             const s = n === leader ? 0.8 : 0;
             const position = pointAt(LANES[lane], s);
             goblins.push({ id: goblins.length, wave, pack: p, kind: pack.kinds[n], crew: pack.crew, lane,
-               spawn: STARTS[wave] + (packs.length === 1 ? 0 : 8 * p / (packs.length - 1)),
-               lateral, initialS: s, path: LANES[lane], s, position, hp: TYPES[pack.kinds[n]].hp,
+               spawn: wave * level.period + (packs.length === 1 ? 0 : 8 * p / (packs.length - 1)),
+               speed: TYPES[pack.kinds[n]].speed * level.speed, lateral, initialS: s, path: LANES[lane], s, position, hp: TYPES[pack.kinds[n]].hp,
                status: "waiting", x: position.x + lateral, y: 0, z: position.z, resolvedAt: -1 });
          }
       }
@@ -110,10 +127,12 @@ export function generateArmy(seed: number): { goblins: Goblin[]; crews: Crew[] }
    return { goblins, crews };
 }
 
-export function createRun(seed: number) {
-   const army = generateArmy(seed);
+export function createRun(seed: number, level: CastleLevel = LEVELS[1]) {
+   const army = generateArmy(seed, level);
    const run = {
-      ...army, waves: STARTS.map((_, wave) => army.goblins.filter((g) => g.wave === wave)),
+      ...army, config: level, starts: level.counts.map((_, wave) => wave * level.period),
+      safety: (level.counts.length - 1) * level.period + level.clearAt + 3.9,
+      waves: level.counts.map((_, wave) => army.goblins.filter((g) => g.wave === wave)),
       seed, rng: { s: seed ^ 0x93fca }, time: 0, wave: 0, hp: Number(TUNING.hp), maxHP: Number(TUNING.hp),
       killed: 0, cleared: 0, score: 0, combo: 0, comboLostAt: -10, end: null as "win" | "lose" | "timeup" | null,
       aim: createAxisAim(0, 2), fire: createBufferedFire(), ready: 0, shotId: 0,
@@ -135,12 +154,12 @@ export const comboMultiplier = (combo: number) => TUNING.comboMultipliers[Math.m
 export const runScore = (killPoints: number, clears: number, won: boolean, hp: number) => killPoints + TUNING.clear * clears + (won ? TUNING.bonus * hp : 0);
 export const flightTime = (x: number, z: number) => 0.6 + 0.4 * clampTo(Math.hypot(x - MUZZLE.x, z - MUZZLE.z) / 10, 0, 1);
 export function predict(g: Goblin, dt: number, out: { x: number; y: number; z: number }): void {
-   pointAt(g.path, g.s + TYPES[g.kind].speed * dt, out);
+   pointAt(g.path, g.s + g.speed * dt, out);
    out.x += g.lateral;
 }
 export function snapAim(run: CastleRun, x: number, z: number): void {
    let best = TUNING.snap ** 2, picked = -1;
-   for (const g of run.goblins) {
+   for (const g of run.waves[run.wave]) {
       if (g.status !== "ground") continue;
       let t = flightTime(x, z);
       for (let n = 0; n < 2; n++) { predict(g, t, run.target); t = flightTime(run.target.x, run.target.z); }
@@ -188,7 +207,7 @@ export function impact(run: CastleRun, x: number, z: number, balls = 1): void {
    const radius = splash(run);
    let hits = 0, kills = 0;
    run.target.x = x; run.target.z = z;
-   for (const g of run.goblins) {
+   for (const g of run.waves[run.wave]) {
       if (g.status !== "ground" || !circlesOverlapXZ(g, 0, run.target, radius)) continue;
       hits++;
       tangentAt(g.path, g.s, run.tangent);
@@ -226,7 +245,7 @@ export function threatenedCrew(run: CastleRun): number {
    for (const c of run.crews) {
       if (c.destroyed || c.erected < 0) continue;
       let living = false;
-      for (const g of run.goblins) if (g.crew === c.id && g.status === "climb") living = true;
+      for (const g of run.waves[run.wave]) if (g.crew === c.id && g.status === "climb") living = true;
       if (living && c.erected < earliest) { earliest = c.erected; id = c.id; }
    }
    return id;
@@ -236,7 +255,7 @@ function nextCrew(run: CastleRun): number {
    for (const c of run.crews) {
       if (c.wave !== run.wave || c.destroyed) continue;
       let at = -1;
-      for (const g of run.goblins) if (g.crew === c.id && g.status !== "dead" && g.status !== "escaped") at = Math.max(at, g.spawn + (8.8 - g.initialS) / 0.7);
+      for (const g of run.waves[run.wave]) if (g.crew === c.id && g.status !== "dead" && g.status !== "escaped") at = Math.max(at, g.spawn + (8.8 - g.initialS) / g.speed);
       if (at >= 0 && at < earliest) { earliest = at; id = c.id; }
    }
    return id;
@@ -289,7 +308,7 @@ function events(run: CastleRun): void {
       run.lastImpact.x = picked.tx; run.lastImpact.z = picked.tz;
    }
    if (run.rock.active && run.rock.impact <= run.time + EPS) {
-      for (const g of run.goblins) if (g.crew === run.rock.crew && g.status === "climb") kill(run, g);
+      for (const g of run.waves[run.wave]) if (g.crew === run.rock.crew && g.status === "climb") kill(run, g);
       run.crews[run.rock.crew].destroyed = true; run.rock.active = false; run.impacts++;
       run.lastImpact.x = LANE_X[run.crews[run.rock.crew].lane]; run.lastImpact.z = 2;
    }
@@ -300,37 +319,37 @@ function events(run: CastleRun): void {
    }
    let resolved = true;
    for (const g of wave) if (g.status !== "dead" && g.status !== "escaped") resolved = false;
-   if (resolved && run.wave < 4 && run.offered !== run.wave) offer(run);
-   if (run.cleared === run.wave && run.time >= STARTS[run.wave] + 24 - EPS) {
+   if (resolved && run.wave < Math.min(4, run.waves.length - 1) && run.offered !== run.wave) offer(run);
+   if (run.cleared === run.wave && run.time >= run.starts[run.wave] + run.config.clearAt - EPS) {
       run.cleared++; run.score += TUNING.clear;
-      if (run.wave === 4 && resolved) { run.score += TUNING.bonus * run.hp; run.end = "win"; return; }
+      if (run.wave === run.waves.length - 1 && resolved) { run.score += TUNING.bonus * run.hp; run.end = "win"; return; }
    }
-   if (run.wave < 4 && run.time >= STARTS[run.wave + 1] - EPS) {
-      if (run.chosen < 0) chooseUpgrade(run, 1);
+   if (run.wave < run.waves.length - 1 && run.time >= run.starts[run.wave + 1] - EPS) {
+      if (run.offer && run.chosen < 0) chooseUpgrade(run, 1);
       run.wave++; run.offer = false; run.fire.pending = false; run.rock.pending = false;
       run.aim.holdX = 0; run.aim.holdY = 0;
       events(run); // Spawn the next wave at its boundary even if this call still has dt left.
    }
-   if (run.time >= 139.9 - EPS) run.end = "timeup";
+   if (run.time >= run.safety - EPS) run.end = "timeup";
 }
 function advanceTime(run: CastleRun, dt: number): void {
    let left = dt;
    while (left > 1e-12 && !run.end) {
       const wave = run.waves[run.wave];
       let h = left;
-      h = boundary(h, run.time, 139.9); h = boundary(h, run.time, STARTS[run.wave] + 24);
-      if (run.wave < 4) h = boundary(h, run.time, STARTS[run.wave + 1]);
+      h = boundary(h, run.time, run.safety); h = boundary(h, run.time, run.starts[run.wave] + run.config.clearAt);
+      if (run.wave < run.waves.length - 1) h = boundary(h, run.time, run.starts[run.wave + 1]);
       if (run.fire.pending) h = boundary(h, run.time, run.ready);
       if (run.rock.active) h = boundary(h, run.time, run.rock.impact);
       if (run.rock.pending) h = boundary(h, run.time, run.rock.expires);
       for (const b of run.balls) if (b.active) h = boundary(h, run.time, b.impact);
       for (const g of wave) {
          if (g.status === "waiting") h = boundary(h, run.time, g.spawn);
-         if (g.status === "ground") h = boundary(h, run.time, run.time + (8.8 - g.s) / TYPES[g.kind].speed);
+         if (g.status === "ground") h = boundary(h, run.time, run.time + (8.8 - g.s) / g.speed);
          if (g.status === "climb") h = boundary(h, run.time, run.crews[g.crew].erected + 2);
       }
       for (const g of wave) {
-         if (g.status === "ground") { advance(g, TYPES[g.kind].speed * h); g.x = g.position.x + g.lateral; g.z = g.position.z; }
+         if (g.status === "ground") { advance(g, g.speed * h); g.x = g.position.x + g.lateral; g.z = g.position.z; }
          if (g.status === "climb") g.y = 0.08 + clampTo((run.time + h - run.crews[g.crew].erected) / 2, 0, 1) * 2;
       }
       run.time += h; left -= h; events(run);

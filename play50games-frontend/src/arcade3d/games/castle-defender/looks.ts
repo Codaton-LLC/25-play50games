@@ -1,3 +1,5 @@
+import type { LevelId } from "@/arcade3d/types";
+import type { LightingPreset } from "@/arcade3d/core/types";
 // Castle Defender's look. Pure data: palette, fog, the flat field, and every decorative
 // position. Gameplay places (wall front z 2.5, lanes, cannon, gate, towers) stay put.
 // No React, no three.js — the scene uploads these buffers.
@@ -77,6 +79,15 @@ export const COLORS = {
       crew: "#a78bfa",
    },
 } as const;
+
+/** Core lighting plus matching sky/fog; only scenery changes, never target rules. */
+export const LEVEL_LOOKS: Record<LevelId, { top: string; bottom: string; lighting: LightingPreset }> = {
+   1: { top: COLORS.skyTop, bottom: COLORS.sky, lighting: "sunset" },
+   2: { top: "#5f9ec2", bottom: "#d8edf0", lighting: "day" },
+   3: { top: COLORS.skyTop, bottom: COLORS.sky, lighting: "sunset" },
+   4: { top: "#081325", bottom: "#15243d", lighting: "night" },
+   5: { top: "#352c52", bottom: "#b96a57", lighting: "sunset" },
+};
 
 /**
  * The goblin GLB's average texture colour (its light green-grey base, catalog §14), for estimating the

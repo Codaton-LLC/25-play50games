@@ -1,3 +1,6 @@
+import { LEVEL_IDS } from "@/arcade3d/types";
+import { LEVEL_TITLES } from "./levels";
+import { PROPOSED_LEVEL_LIMITS } from "./rules";
 import type { ArcadeGameMeta } from "@/arcade3d/types";
 
 // Plain data only (server-safe). scoring must match WP includes/arcade-games.json.
@@ -27,6 +30,7 @@ export const castleDefenderMeta: ArcadeGameMeta = {
       unitLabel: "pts",
       display: "int",
    },
+   levels: LEVEL_IDS.map((id) => ({ id, title: LEVEL_TITLES[id], scoring: PROPOSED_LEVEL_LIMITS[id] })),
    thumbnail: null,
    accent: "#94a3b8",
    owner: "codex",

@@ -2,6 +2,58 @@
 
 Owner: Codex. Slug: castle-defender. P-16 difficulty/combo implementation; server-limit approval pending. Spec: 04 §14. Metres/seconds; x east, z toward wall, y up. Pure rules own tuning; no Rapier.
 
+## Levels (P-30 pilot, 2026-10-24)
+
+The shell owns selection, unlocks and the sum of level bests. Each finite level clears only on a win (no score-only clear target). All five share the same castle, three lanes, goblin GLB, HP, damage, cannon, rocks, combo rules and four upgrade offers. Configs are pure data in levels.ts; createRun captures its config and precomputes wave references/starts. No new frame-loop allocations or assets.
+
+| Level | Plan title | Waves / goblins | Speed | Start gap / clear offset | Win time | Pressure / lighting |
+|---|---|---:|---:|---:|---:|---|
+| 1 | Outer Wall | 5 / 98 | 1.00 | 28 / 24 s | 136 s | Today's exact game, sunset |
+| 2 | Main Gate | 5 / 102 | 1.02 | 27.5 / 23.5 s | 133.5 s | Shields in wave 1, runners in wave 2; natural core day preset |
+| 3 | Twin Towers | 5 / 108 | 1.04 | 27 / 23 s | 131 s | Runners from wave 1 split moving packs; tighter combo timing; sunset |
+| 4 | Night Siege | 6 / 140 | 1.07 | 26.5 / 22.5 s | 155 s | Extra mixed wave, more runners; core night preset and dark sky/fog |
+| 5 | Royal Defense | 8 / 204 | 1.10 | 26 / 22 s | 204 s | Sustained shield/runner/ladder mix, four-upgrade budget; dramatic core sunset and purple/amber sky |
+
+Plan adaptations: the plan's stationary-target tutorial and 3/4/5/6/8 waves become the built moving-goblin siege with 5/5/5/6/8 waves. Keeping today's five-wave Level 1 is binding; Level 2 therefore cannot regress to four easier waves. Existing combos and all four goblin types remain in Level 1; later levels bring their pressure earlier, increase speed, shorten gaps and add waves. The plan's per-shot attempts are represented by the built reload/flight and fixed wave windows, with the unchanged four-offer upgrade budget (no new ammunition cap or input mode). Nothing reduces target sizes/readability. These adaptations keep the existing assets and mechanics.
+
+## Server limits and why they hold
+
+All sources: one award per unique goblin id, at most 20 × 3 = 60 points; one 200-point clear per wave; one victory bonus 2 × gateHP, at most 250 after the single repair. Shots, upgrades, escapes and time give no points. A killing Double volley advances combo once and pays each victim once. Neither input spam nor frame rate can create extra ids, clears or repairs.
+
+For wave j (zero based), let N_i be its configured goblin count, p its period and c its clear offset. Permit ALL kills at x3 immediately at spawn-window start, even though legal shots are later: K_j = 60 × sum(N_0..N_j) + 200j at t = jp. The clear bound is C_j = K_j + 200 at t = jp+c, plus 250 on the final clear. B(t) is the maximum of these attained steps. Checking both endpoints for every wave proves B(t) <= base + pps × t everywhere: between endpoints the bound is constant and the envelope increases. levels.test.ts checks every endpoint. MaxScore is the exact universal ceiling, not a measured maximum plus a guessed margin. The newer PPS choices have about 3–5% headroom over the minimum rounded-up kill-prefix slope; Level 1's original limits stay untouched.
+
+| Level | Goblin / clear / HP sources | maxScore | min–max duration (ms) | base | pps |
+|---|---|---:|---:|---:|---:|
+| 1 | 98 × 60 + 5 × 200 + 250 | 7130 | 39000–140000 | 480 | 56 |
+| 2 | 102 × 60 + 5 × 200 + 250 | 7370 | 33000–138000 | 600 | 60 |
+| 3 | 108 × 60 + 5 × 200 + 250 | 7730 | 32000–135000 | 720 | 63 |
+| 4 | 140 × 60 + 6 × 200 + 250 | 9850 | 31000–159000 | 720 | 69 |
+| 5 | 204 × 60 + 8 × 200 + 250 | 14090 | 30000–208000 | 720 | 74 |
+
+### Level 1 — Outer Wall proof
+
+The unchanged wave totals are 8,14,20,26,30. Kill-prefix bounds are 480,1520,2920,4680,6680 at 0,28,56,84,112 s; clear bounds are 680,1720,3120,4880,7130 (last includes HP) at 24,52,80,108,136 s. All fit 480+56t. Wave 1 can inflict only 40 damage; wave 2's earliest arrival is 39.428571 s, so 39000 ms is safe. Latest possible crew resolution is 8+8.8/0.7+2 = 22.571429 s, before each 24 s clear. Safety 139.9 s plus <=50 ms clock overshoot stays below 140 s.
+
+### Level 2 — Main Gate proof
+
+Totals 10,16,20,26,30 give kill bounds 600,1760,3160,4920,6920; clear bounds 800,1960,3360,5120,7370. They fit 600+60t at period27.5/offset23.5. First-wave damage <=56 cannot lose. Even wave 2's fastest possible runner cannot arrive before 27.5+8/(1.2×1.02) = 34.035948 s; min33 s rounds down. Slowest crew resolves within 8+8.8/(0.7×1.02)+2 = 22.324930 s <23.5. Win133.5/safety137.4 plus50 ms <138 s.
+
+### Level 3 — Twin Towers proof
+
+Totals 12,18,20,26,32 give kill bounds 720,2000,3400,5160,7280; clear bounds 920,2200,3600,5360,7730. They fit 720+63t at period27/offset23. First-wave damage <=66. Earliest wave-2 runner >=33.410256 s >min32 s. Slowest crew resolves by22.087912 s <23. Win131/safety134.9 plus50 ms <135 s.
+
+### Level 4 — Night Siege proof
+
+Totals 12,18,20,26,32,32 give kill bounds 720,2000,3400,5160,7280,9400; clear bounds 920,2200,3600,5360,7480,9850. They fit 720+69t at period26.5/offset22.5. First-wave damage <=66. Earliest wave-2 runner >=32.730530 s >min31 s. Slowest crew resolves by21.748999 s <22.5. Win155/safety158.9 plus50 ms <159 s.
+
+### Level 5 — Royal Defense proof
+
+Totals 12,18,20,26,32,32,32,32 give kill bounds 720,2000,3400,5160,7280,9400,11520,13640; clear bounds 920,2200,3600,5360,7480,9600,11720,14090. They fit 720+74t at period26/offset22. First-wave damage <=66. Earliest wave-2 runner >=32.060606 s >min30 s. Slowest crew resolves by21.428572 s <22. Win204/safety207.9 plus50 ms <208 s. 14090/7130 = 1.9762, below the roughly3× guard.
+
+Timing fairness is identical at every level: cannon reload/flight, fire buffering, rock cooldown/buffer and the 2-second climb are device-independent. Touch gets only the existing 0.7 m spatial aim assistance. The rescue window remains 2-sqrt(6/9.81) = 1.217938113 s.
+
+The original implementation notes below describe Level 1; the level table above supplies all Level 2–5 parameter overrides. Historical verification notes remain dated.
+
 ## Concept and controls
 
 Defend the gate through five finite waves with splash cannon shots, ladder rocks and upgrades. Sunset lighting; the palette (warm grass, sandstone, deep blue and gold) is in "Camera, HUD and visuals".
@@ -45,7 +97,7 @@ A cannon shot that kills at least one goblin advances combo once BEFORE all its 
 
 Awards remain incremental through victory; the final HP bonus is added to the accumulated score. Loss/timeup retain earned points without the bonus. No direct shot, escape, time or upgrade points.
 
-PROPOSED_LIMITS in rules.ts is pending approval: maxScore7130, minDurationMs39000, maxDurationMs140000, base480, maxPointsPerSec56. meta.ts and arcade-games.json retain their matching OLD limits (3210 / 39000-140000 / 160 / 25), superseded-pending-approval. Claude must update both together at merge after approval; never ship the new scoring with the old server configuration.
+Level 1 PROPOSED_LIMITS and meta.scoring are 7130 / 39000–140000 / base480 / pps56. The five-level proposals are PROPOSED_LEVEL_LIMITS; Claude copies the levels into arcade-games.json at merge. The backend is outside this task.
 
 - Proven universal upper bound B = 98 unique ids * 20 * max multiplier3 + 5 clears * 200 + 2 * max HP125 = 7130. Warm-up/misses can only reduce this bound. A measured oracle maximum plus4% is not a proof that better legal play is impossible, so choose the proven7130 ceiling.
 - Permit every wave's kills instantly at its start, all at x3. Kill-prefix maxima including prior clears: 480,1520,2920,4680,6680 at t=0,28,56,84,112. Envelope480+56t: 480,2048,3616,5184,6752.
