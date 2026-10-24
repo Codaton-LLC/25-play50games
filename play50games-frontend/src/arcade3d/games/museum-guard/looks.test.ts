@@ -2,6 +2,9 @@ import { describe, expect, it } from "vitest";
 import { fitEyeShift } from "@/arcade3d/core/view";
 import {
    BAND,
+   bandRect,
+   barrierTopPoints,
+   viewDepth,
    BEAM_CLEAR_RAD,
    EYE_Y,
    FOV,
@@ -59,6 +62,22 @@ describe("museum-guard eye", () => {
                if (Math.abs(wrapAngle(ped.angle - yaw)) > BEAM_CLEAR_RAD) continue;
                const body = projectWorld(ped.x, 1.2, ped.z, width, height, yaw);
                expect(pointInRect(body, radar)).toBe(false);
+            }
+         }
+      }
+   });
+
+   it("keeps the rope barrier below the statue band from the eye at every yaw", () => {
+      const tops = barrierTopPoints();
+      for (const [width, height] of [...SIZES, [1280, 800] as const]) {
+         const band = bandRect(width, height);
+         for (let k = 0; k < 64; k += 1) {
+            const yaw = -Math.PI + (k / 64) * Math.PI * 2;
+            for (const p of tops) {
+               if (viewDepth(p.x, p.z, yaw) <= 0.1) continue;
+               const s = projectWorld(p.x, p.y, p.z, width, height, yaw);
+               // below the band's lowest edge (with a few px to spare), so it never covers it
+               expect(s.y).toBeGreaterThan(band.bottom + 4);
             }
          }
       }

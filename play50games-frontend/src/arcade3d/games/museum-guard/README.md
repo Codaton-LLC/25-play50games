@@ -127,26 +127,32 @@ Each statue has its own asset object (unique `id`, shared url) so a state swap d
 
 ## Performance
 
-Worst frame **27** draw calls (spec ≈ 40), cap **50**. The old "36" was this list mis-added.
+Worst frame **27** draw calls while playing (28 with the lose pulse), cap **50**. Itemised after the visual fix round (2026-10-24):
 
 | piece | calls |
 |---|---|
-| room (floor, wall, skylight) | 3 |
+| floor (canvas marble + gold inlays) | 1 |
+| wall (canvas panelling, 16 tiles round the room) | 1 |
+| ceiling + skylight (one canvas disc) | 1 |
 | pedestals, instanced | 1 |
-| paintings | 1 |
+| paintings + gilded frames (one merged mesh on a canvas atlas) | 1 |
+| sconces + picture-light bars (one merged mesh) | 1 |
+| lamp wall washes (one merged additive mesh) | 1 |
 | vases, instanced | 1 |
-| rope (`<Fence>` kit) | 2 |
+| barrier posts (brass, instanced) | 1 |
+| barrier rope (velvet tube) | 1 |
 | doors, instanced | 1 |
-| bench | 1 |
+| bench (not on low tier) | 1 |
 | statues (`<Model>`, one draw each) | 8 |
-| live flashlight (sheet + floor sector) | 2 |
-| flash cone (second flashlight, up for 1.2 s) | 2 |
+| live beam (soft floor pool) | 1 |
+| flash pool (up for 1.2 s) | 1 |
 | freeze rings, instanced | 1 |
-| dust motes | 1 |
-| blob shadows | 1 |
+| blob shadows, instanced | 1 |
+| dust motes (not on low tier) | 1 |
 | fx | ≤ 2 |
+| lose pulse (only after the run is lost) | 1 |
 
-One spot light, on the live flashlight only, mounted with the scene. `useFx().warm("sparkle", "confetti")` on mount; a freeze calls `burst("sparkle", position)` at that statue's centre. The win calls `burst("confetti", position)`. No per-frame allocation: one scratch cone query, a fixed array of 8, the drag aim object created once. Low tier hides bench and motes (25 during a flash) and the kit skips the spot.
+One spot light, on the live beam only (`SoftBeam light`), mounted with the scene. `useFx().warm("sparkle", "confetti")` on mount; a freeze calls `burst("sparkle", position)` at that statue's centre. The win calls `burst("confetti", position)`. No per-frame allocation: one scratch cone query, a fixed array of 8, the drag aim object created once. Low tier hides bench and motes (25 during a flash) and the kit skips the spot.
 
 ## Audio
 
@@ -207,7 +213,7 @@ All through `simulateRun` and the real store, seeds 1..N, 60 fps unless noted. R
 
 ### Draw calls
 
-Worst frame about 27, under the cap of 50, one spot light: room 3, pedestals 1, paintings 1, vases 1, rope 2, door 1, bench 1, statues 8, live beam 2, flash cone 2, freeze rings 1, shadows 1, motes 1, fx ≤ 2. Low tier drops the bench, the motes, and the spot. The lose pulse stays hidden while playing.
+Worst frame 27, under the cap of 50, one spot light (itemised in "Performance"; after the 2026-10-24 visual fix round: room 12 incl. doors and bench, statues 8, beam 1, flash 1, freeze rings 1, shadows 1, motes 1, fx ≤ 2). Low tier drops the bench, the motes, and the spot. The lose pulse stays hidden while playing.
 
 ### Open questions
 
@@ -249,3 +255,13 @@ The user approved this design and asked Claude to settle every open question wit
 - Played chip: hidden with the new core `clockChip: false`; the radar keeps its landscape spot below the row anyway.
 - Everything listed as decided stays (narrow beam, mover cap 3, two exits, inner lane, +50 beyond 2 m, hover, EyeRig, limits 2050 / 12000-92000 / 0 / 25).
 - Modern look: night museum with emissive statue glow, soft volumetric-looking beam cone, polished floor reflections faked with a darker gradient plane, subtle dust motes.
+
+## Visual fix round (2026-10-24)
+
+From the r4 headless playtest; gameplay, `rules.ts`, scoring and the camera rig are unchanged.
+
+1. **Barrier off the statue band.** The kit `<Fence>` at r 3.35 (0.72 m) projected over the band (slope (1.6 − 0.72) / 3.35 = 0.26 < the band's 1.6 / 5 = 0.32), so a white post sat mid-screen on a phone and the rails crossed the desktop view. It is now a brass-and-velvet ring at r 1.9: 10 posts 0.66 m + a 4.5 cm ball, a sagging velvet tube rope (`BARRIER`, `barrierRope`, `barrierTopPoints` in `looks.ts`). `looks.test.ts` projects every ball top and rope top from the eye at 64 yaws at 390×844, 844×390 and 1280×800 and requires each one in front of the eye to sit at least 4 px below the band's screen rect (`bandRect`; the lens shift moves both alike). It frames the bottom of the view instead.
+2. **Night-museum room.** Canvas textures (core `useCanvasTexture`) for a panelled plum wall with a gradient, wainscot, gold dado / skirting / cornice and pilasters (16 tiles, offset so each painting, sconce and door sits mid-panel; emissive-mapped so it reads at night), a polished dark marble floor (concentric courses, radial joints, a lavender sheen band, gold inlay rings on the statue lane and a compass medallion; roughness 0.22, metalness 0.35), and a coffered ceiling with a moonlit skylight that closes the old purple void above the wall. Six framed paintings with painted content (starry night, sunset, modern abstract, seascape, portrait, still life) in one atlas, gilded box frames, picture-light bars, eight wall sconces behind the pedestals and additive warm wall washes. Pedestals get a gold band and cap. Palette in `COLORS` (plum walls, gold trim, warm lamps, lavender beam). Statue emissive glow is unchanged.
+3. **Soft beam.** The kit `<Flashlight>` sheet runs from the lamp (at the eye) to the floor arc, so from the eye it is a full-height white strip, and its floor sector is a hard band. `Beam.tsx` `SoftBeam` draws only the same `inViewCone` sector on the floor with a canvas falloff (u across the cone, v along it: soft edges, fades in past the guard and out towards the range), additive, opacity 0.3 (flash 0.22), plus the one spot light (penumbra 0.7, decided once at mount, none on the low tier). Dust motes inside the live beam light up (vertex colours written in place, no allocation).
+4. Draw calls itemised above: 27 worst while playing, cap 50. No per-frame allocation added (motes write a fixed array; the beam geometry rebuilds only when the phase changes the half-angle, as before).
+

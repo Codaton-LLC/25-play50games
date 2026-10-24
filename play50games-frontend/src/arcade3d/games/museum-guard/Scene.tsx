@@ -11,7 +11,6 @@ import { useGameTime } from "@/arcade3d/core/gameTime";
 import { TargetMarkers } from "@/arcade3d/core/hud";
 import { useInput } from "@/arcade3d/core/input";
 import { EyeRig } from "@/arcade3d/core/EyeRig";
-import { Flashlight } from "@/arcade3d/core/kit";
 import { DynamicInstanced } from "@/arcade3d/core/render/DynamicInstanced";
 import { applyLook, MATERIAL_CACHE, type LookUse } from "@/arcade3d/core/materials";
 import { randomSeed } from "@/arcade3d/core/math";
@@ -23,6 +22,7 @@ import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { useEyeShift } from "@/arcade3d/core/useEyeShift";
 import { useRunFrame } from "@/arcade3d/core/useRunFrame";
 import { EXHIBIT_LOOK, statueAsset } from "./assets";
+import { SoftBeam } from "./Beam";
 import Gallery from "./Gallery";
 import { BAND, COLORS, EYE, EYE_Y, FOV, MARGIN, PADDING, radarRect } from "./looks";
 import { StatueFallback } from "./Primitives";
@@ -315,14 +315,14 @@ export default function Scene() {
    return (
       <>
          <EyeRig position={EYE} yaw={yawRef} fov={FOV} shift={eye.shift} />
-         <Gallery />
+         <Gallery yaw={yawRef} />
          {INDEXES.map((i) => (
             <StatueView key={`${run.seed}-${i}`} index={i} run={run} asset={statues[i]} />
          ))}
          <FloorMarks run={run} />
-         <Flashlight ref={beamRef} halfAngle={beamHalf(beamPhase, coarse)} range={BEAM.range} height={1.55} color={COLORS.beam} opacity={0.42} intensity={22} />
+         <SoftBeam ref={beamRef} halfAngle={beamHalf(beamPhase, coarse)} range={BEAM.range} height={1.55} color={COLORS.beam} opacity={0.3} light intensity={24} />
          <group ref={flashRef}>
-            <Flashlight halfAngle={FLASH.half} range={BEAM.range} height={1.55} color={COLORS.flash} opacity={0.3} light={false} />
+            <SoftBeam halfAngle={FLASH.half} range={BEAM.range} height={1.55} color={COLORS.flash} opacity={0.22} />
          </group>
          <mesh ref={pulse} rotation-x={-Math.PI / 2} position={[0, 0.04, 0]}>
             <ringGeometry args={[0.2, 0.5, 40]} />

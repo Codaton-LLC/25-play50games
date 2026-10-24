@@ -8,24 +8,35 @@ import { setEyeRotation } from "@/arcade3d/core/view";
 export const COLORS = {
    night: "#1e1b4b",
    accent: "#c4b5fd",
-   beam: "#ddd6fe",
-   flash: "#fef3c7",
+   beam: "#e9e3ff",
+   flash: "#fde9b8",
    sneak: "#fb7185",
    frozen: "#6ee7b7",
    alarm: "#fb7185",
    hud: "#f8fafc",
-   wall: "#14122c",
-   plinth: "#1c1838",
-   column: "#3b3566",
-   cap: "#c4b5fd",
-   rope: "#94a3b8",
-   ropeRail: "#e2e8f0",
+   // room: deep plum walls fading to near-black at the floor and cornice, gold trim, warm lamps
+   wallTop: "#120e26",
+   wallMid: "#2b2352",
+   wallLow: "#1a1536",
+   wallPanel: "rgba(205, 190, 255, 0.10)",
+   trim: "#d4a64a",
+   trimDark: "#6b4f1d",
+   floorCore: "#2a2450",
+   floorMid: "#15122c",
+   floorEdge: "#07060f",
+   ceiling: "#0b0a18",
+   skylight: "#b9a8ff",
+   sconce: "#ffcf8a",
+   lampGlow: "#ffb862",
+   velvet: "#8a1538",
+   brass: "#caa04e",
+   plinth: "#151229",
+   column: "#2c2650",
+   cap: "#d4a64a",
    still: "#64748b",
    door: "#a16207",
    bench: "#78716c",
    vase: "#b8834f",
-   painting: "#4c1d95",
-   paintingGlow: "#a78bfa",
    shadow: "#020617",
 } as const;
 
@@ -84,4 +95,75 @@ export function rectsOverlap(a: ScreenRect, b: ScreenRect): boolean {
 
 export function pointInRect(p: { x: number; y: number }, r: ScreenRect): boolean {
    return p.x >= r.left && p.x <= r.right && p.y >= r.top && p.y <= r.bottom;
+}
+
+/**
+ * The guard's brass-and-velvet barrier: a low ring close to the eye so that, from the fixed eye,
+ * every post and the sagging rope project below the far statue band at any yaw (looks.test.ts).
+ * Rule of thumb: (EYE_Y - top) / radius must stay above the band's lowest slope EYE_Y / BAND.min.z.
+ */
+export const BARRIER = {
+   radius: 1.9,
+   posts: 10,
+   /** post shaft height; the brass ball sits on top */
+   post: 0.66,
+   postRadius: 0.028,
+   ball: 0.045,
+   /** rope height at the posts, sag at mid-span, tube radius */
+   ropeY: 0.6,
+   sag: 0.12,
+   rope: 0.024,
+} as const;
+
+export function barrierPostAngle(i: number): number {
+   return ((i + 0.5) / BARRIER.posts) * Math.PI * 2;
+}
+
+/** Rope centre line, `perSpan` samples per span, closed (the last point equals the first). */
+export function barrierRope(perSpan = 12): Array<{ x: number; y: number; z: number }> {
+   const out: Array<{ x: number; y: number; z: number }> = [];
+   for (let i = 0; i < BARRIER.posts; i += 1) {
+      for (let k = 0; k < perSpan; k += 1) {
+         const f = k / perSpan;
+         const a = ((i + 0.5 + f) / BARRIER.posts) * Math.PI * 2;
+         out.push({ x: Math.sin(a) * BARRIER.radius, y: BARRIER.ropeY - BARRIER.sag * Math.sin(Math.PI * f), z: Math.cos(a) * BARRIER.radius });
+      }
+   }
+   out.push({ ...out[0] });
+   return out;
+}
+
+/** Top-most points of the barrier (ball tops, shaft tops, rope tops) for the eye-band test. */
+export function barrierTopPoints(): Array<{ x: number; y: number; z: number }> {
+   const pts: Array<{ x: number; y: number; z: number }> = [];
+   for (let i = 0; i < BARRIER.posts; i += 1) {
+      const a = barrierPostAngle(i);
+      const top = BARRIER.post + BARRIER.ball * 2;
+      for (const dr of [-BARRIER.ball, 0, BARRIER.ball]) {
+         const r = BARRIER.radius + dr;
+         pts.push({ x: Math.sin(a) * r, y: top, z: Math.cos(a) * r });
+      }
+   }
+   for (const p of barrierRope(40)) pts.push({ x: p.x, y: p.y + BARRIER.rope, z: p.z });
+   return pts;
+}
+
+/** Screen rect of the far band (yaw-free: the band turns with the eye). */
+export function bandRect(width: number, height: number): ScreenRect {
+   const r = { left: Infinity, top: Infinity, right: -Infinity, bottom: -Infinity };
+   for (const x of [BAND.min.x, BAND.max.x])
+      for (const y of [BAND.min.y, BAND.max.y])
+         for (const z of [BAND.min.z, BAND.max.z]) {
+            const p = projectWorld(x, y, z, width, height, 0);
+            r.left = Math.min(r.left, p.x);
+            r.right = Math.max(r.right, p.x);
+            r.top = Math.min(r.top, p.y);
+            r.bottom = Math.max(r.bottom, p.y);
+         }
+   return r;
+}
+
+/** Depth of a world point along the eye's view axis at `yaw` (m). */
+export function viewDepth(x: number, z: number, yaw: number): number {
+   return x * Math.sin(yaw) + z * Math.cos(yaw);
 }
