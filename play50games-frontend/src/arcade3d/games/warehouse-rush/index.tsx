@@ -49,8 +49,9 @@ const ENVIRONMENTS: Record<LevelId, LevelSpec["environment"]> = {
    1: undefined,
    2: { background: "#102433", lighting: "day" },
    3: { background: "#2a1810", lighting: "sunset" },
-   4: { background: "#070b14", fog: ["#070b14", 26, 52], lighting: "night" },
-   5: { background: "#2a0c14", fog: ["#3b1020", 22, 46], lighting: "sunset" },
+   // no fog: the portrait phone camera stands far enough back that fog hid the far zones
+   4: { background: "#070b14", lighting: "night" },
+   5: { background: "#2a0c14", lighting: "sunset" },
 };
 
 const definition: GameDefinition<WarehouseLevel> = {
@@ -82,12 +83,8 @@ const definition: GameDefinition<WarehouseLevel> = {
          environment: ENVIRONMENTS[id],
          durationMs: level.durationMs,
       };
-      if (level.orderMs > 0) {
-         spec.hudStats = [
-            { key: "delivered", label: "Delivered" },
-            { key: "left", label: "Order", max: level.orderMs / 1000 },
-         ];
-      }
+      // the order deadline counts down inside the order panel (Hud.tsx): a second chip would sit
+      // under the centred panel on phones
       return spec;
    }),
 };

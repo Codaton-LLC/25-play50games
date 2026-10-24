@@ -66,7 +66,14 @@
       "max_duration_ms": 63000,
       "base": 0,
       "max_pps": 29,
-      "enabled": true
+      "enabled": true,
+      "levels": [
+        { "title": "Training Depot", "max_score": 1700, "min_duration_ms": 57000, "max_duration_ms": 63000, "base": 0, "max_pps": 29 },
+        { "title": "Blue/Red Zones", "max_score": 2150, "min_duration_ms": 71250, "max_duration_ms": 78750, "base": 0, "max_pps": 29 },
+        { "title": "Multi-Aisle Warehouse", "max_score": 2550, "min_duration_ms": 85500, "max_duration_ms": 94500, "base": 0, "max_pps": 29 },
+        { "title": "Rush Shift", "max_score": 2950, "min_duration_ms": 99750, "max_duration_ms": 110250, "base": 0, "max_pps": 29 },
+        { "title": "Night Logistics", "max_score": 3400, "min_duration_ms": 114000, "max_duration_ms": 126000, "base": 0, "max_pps": 29 }
+      ]
     },
     "tower-climb": {
       "title": "Tower Climb",
