@@ -102,6 +102,19 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/shopping-cart/shopperA.glb",
    "/models/3d/shopping-cart/shopperB.glb",
    "/models/3d/shopping-cart/shopperC.glb",
+   // batch 5 (2026-10-24): text-to-3D, Gen-2.5-Medium, 1500-3000 tris, approved by the user in chat;
+   // downloaded and optimized, not adopted by any game yet (each game swaps its primitive in assets.ts)
+   "/models/3d/castle-defender/stoneWall.glb",
+   "/models/3d/castle-defender/siegeLadder.glb",
+   "/models/3d/knight-arena/sword.glb",
+   "/models/3d/knight-arena/shield.glb",
+   "/models/3d/alien-farm/ufo.glb",
+   "/models/3d/space-repair/stationModule.glb",
+   "/models/3d/shared/snowman.glb",
+   "/models/3d/dino-egg-rescue/volcano.glb",
+   "/models/3d/treasure-island/shovel.glb",
+   "/models/3d/zoo-escape/bamboo.glb",
+   "/models/3d/construction-worker/cementMixer.glb",
 ];
 
 const LISTED: ReadonlySet<string> = new Set(MODEL_MANIFEST);
