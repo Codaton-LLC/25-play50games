@@ -74,8 +74,8 @@ const Simulation = memo(function Simulation({ run, visual }: { run: TowerRun; vi
       }
       if (run.boostUntilMs >= 0 && run.timeMs % 80 < 20) {
          fxPos.set(run.player.x, run.player.y + 0.2, -0.12);
-         fx.burst("smoke", fxPos, 4);
-         fx.burst("sparks", fxPos, 3);
+         fx.burst("puff", fxPos, 2);
+         fx.burst("sparks", fxPos, 4);
       }
       if (events.hit) { store.setStat("fallen", 1); playSfx("hit"); }
       if (events.ended) store.end(events.ended);
@@ -183,7 +183,7 @@ const Tower = memo(function Tower({ run, parts }: { run: TowerRun; parts: TowerP
 const Runner = memo(function Runner({ run, visual, parts }: { run: TowerRun; visual: VisualState; parts: TowerParts }) {
    const time = useGameTime();
    const root = useRef<Group>(null), body = useRef<Group>(null), standIn = useRef<Group>(null), shadow = useRef<Group>(null);
-   const pack = useRef<Group>(null), drop = useRef<Group>(null);
+   const pack = useRef<Group>(null), drop = useRef<Group>(null), flame = useRef<Mesh>(null);
    const [gait] = useState(createRunnerGait);
    const [scratch] = useState(createPose);
    // FRAME_PRIORITY.pose: after the step moved the runner, before the useFrame below reads the lift
@@ -214,6 +214,7 @@ const Runner = memo(function Runner({ run, visual, parts }: { run: TowerRun; vis
       shadow.current.visible = run.player.grounded && !run.pendingLose;
       shadow.current.position.set(run.player.x, run.player.y + 0.012, 0);
       if (pack.current) pack.current.visible = run.boostUntilMs >= 0 && !run.pendingLose;
+      if (flame.current) flame.current.scale.set(1, 0.8 + 0.45 * Math.abs(Math.sin(time.now * 31)), 1);
       if (drop.current) {
          const age = run.rocketDropMs < 0 ? -1 : run.timeMs - run.rocketDropMs;
          const falling = age >= 0 && age < 900 && !run.pendingLose;
@@ -233,13 +234,18 @@ const Runner = memo(function Runner({ run, visual, parts }: { run: TowerRun; vis
                fallback={<group ref={standIn} renderOrder={RUNNER_ORDER}><RunnerPrimitive parts={parts} gait={gait} /></group>}>
                <primitive object={parts.depthReset} dispose={null} />
             </HumanoidModel>
-            {run.rocketCount > 0 && <group ref={pack} position={[0, 0.36, -0.14]} visible={false}>
+            {run.rocketCount > 0 && <group ref={pack} position={[0, 0.26, -0.16]} scale={1.8} visible={false}>
                <mesh geometry={parts.rocketPack} dispose={null}>
                   <meshStandardMaterial vertexColors roughness={0.42} />
                </mesh>
+               {/* the flame under the nozzle; its length flickers while the rocket burns */}
+               <mesh ref={flame} position={[0, -0.07, 0]} rotation={[Math.PI, 0, 0]}>
+                  <coneGeometry args={[0.045, 0.16, 10]} />
+                  <meshBasicMaterial color="#fdba74" toneMapped={false} />
+               </mesh>
             </group>}
          </group></group>
-         {run.rocketCount > 0 && <group ref={drop} visible={false}>
+         {run.rocketCount > 0 && <group ref={drop} scale={1.8} visible={false}>
             <mesh geometry={parts.rocketPack} dispose={null}>
                <meshStandardMaterial vertexColors roughness={0.42} />
             </mesh>

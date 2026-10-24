@@ -164,9 +164,12 @@ export function createTowerParts(): TowerParts {
             const a = i * Math.PI / 2;
             return local(Math.cos(a) * 0.1, 0.02 + i * 0.012, Math.sin(a) * 0.06, 0.09, 0.028, 0.05);
          })),
+         // a double "^" standing over the pad, facing the camera: reads as "up" from the side view
          part(springArrow, [
-            tilted(0, 0.13, 0.02, 0.1, 0.016, 0.014, 0.8),
-            tilted(0, 0.13, 0.02, 0.1, 0.016, 0.014, -0.8),
+            tilted(-0.075, 0.27, 0.05, 0.2, 0.045, 0.03, 0.75),
+            tilted(0.075, 0.27, 0.05, 0.2, 0.045, 0.03, -0.75),
+            tilted(-0.075, 0.4, 0.05, 0.2, 0.045, 0.03, 0.75),
+            tilted(0.075, 0.4, 0.05, 0.2, 0.045, 0.03, -0.75),
          ]),
       ],
       rocket: [
@@ -178,9 +181,12 @@ export function createTowerParts(): TowerParts {
          part(rocketFin, [local(0, 0.1, -0.09, 0.14, 0.05, 0.04)]),
          { geometry: box, material: nozzleMat, locals: [local(0, -0.01, 0, 0.05, 0.04, 0.05)] },
       ],
+      // a ">>" gust pointing +x (writeWind flips it for -x bands)
       wind: [part(windMat, [
-         tilted(0, 0, 0, 0.34, 0.03, 0.02, 0.5),
-         tilted(0.16, 0, 0, 0.2, 0.025, 0.016, -0.6),
+         tilted(-0.1, 0.09, 0, 0.26, 0.05, 0.03, -0.75),
+         tilted(-0.1, -0.09, 0, 0.26, 0.05, 0.03, 0.75),
+         tilted(0.12, 0.09, 0, 0.26, 0.05, 0.03, -0.75),
+         tilted(0.12, -0.09, 0, 0.26, 0.05, 0.03, 0.75),
       ])],
       rocketPack: pack,
       planes,

@@ -86,14 +86,19 @@ export function writeSpring(matrix: Matrix4, x: number, y: number, ageMs: number
    matrix.makeTranslation(x, y + (1 - sy) * 0.04, 0).scale(SPRING_SCALE);
 }
 
+// the pickup reads at phone size (about 0.5 m tall, the runner is 0.55 m); collision uses ROCKET.reach
+const ROCKET_SCALE = new Vector3(1.8, 1.8, 1.8);
+
 /** A slow spin. `false` hides a spent or empty slot. */
 export function writeRocket(matrix: Matrix4, x: number, y: number, spin: number, visible: boolean): boolean {
    if (!visible) return false;
-   matrix.makeRotationY(spin).setPosition(x, y, 0);
+   matrix.makeRotationY(spin).scale(ROCKET_SCALE).setPosition(x, y, 0);
    return true;
 }
 
+const WIND_SCALE = new Vector3(1.4, 1.4, 1.4);
+
 /** A chevron. `flip` points the gust to -x. */
 export function writeWind(matrix: Matrix4, x: number, y: number, flip: boolean): void {
-   matrix.makeRotationY(flip ? Math.PI : 0).setPosition(x, y, 0);
+   matrix.makeRotationY(flip ? Math.PI : 0).scale(WIND_SCALE).setPosition(x, y, 0);
 }
