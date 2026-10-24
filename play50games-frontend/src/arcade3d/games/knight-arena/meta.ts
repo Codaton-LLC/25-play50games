@@ -8,7 +8,7 @@ export const knightArenaMeta: ArcadeGameMeta = {
    tagline: "Strike on the beat.",
    description: "A young knight trains on the castle green: strike each target in the direction it shows, on the beat, and build the biggest combo.",
    order: 28,
-   status: "dev",
+   status: "live",
    collection: "skill",
    difficulty: 2,
    orientation: "any",
