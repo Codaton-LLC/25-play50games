@@ -1,6 +1,7 @@
 "use client";
 
 // Stand-ins for the snowman and a pine. Drawn only when the GLB is missing.
+import { BEANIE, SCARF } from "./looks";
 export const COLORS = {
    snow: "#f8fafc",
    shade: "#bfdbfe",
@@ -82,18 +83,18 @@ export function KidStandIn({ color }: { color: string }) {
 
 export function Beanie({ color }: { color: string }) {
    return (
-      <mesh position={[0, 0.06, 0]}>
-         <sphereGeometry args={[0.22, 10, 8]} />
-         <meshStandardMaterial color={color} roughness={0.55} />
+      <mesh position={[0, BEANIE.y, 0]} scale={[BEANIE.scaleXZ, BEANIE.scaleY, BEANIE.scaleXZ]}>
+         <sphereGeometry args={[BEANIE.radius, 12, 8]} />
+         <meshStandardMaterial color={color} roughness={0.5} />
       </mesh>
    );
 }
 
 export function Scarf({ color }: { color: string }) {
    return (
-      <mesh rotation={[Math.PI / 2, 0, 0.2]}>
-         <torusGeometry args={[0.16, 0.045, 6, 12]} />
-         <meshStandardMaterial color={color} roughness={0.55} />
+      <mesh position={[0, SCARF.y, SCARF.z]} rotation={[Math.PI / 2, 0, 0.15]}>
+         <torusGeometry args={[SCARF.radius, SCARF.tube, 8, 14]} />
+         <meshStandardMaterial color={color} roughness={0.5} />
       </mesh>
    );
 }

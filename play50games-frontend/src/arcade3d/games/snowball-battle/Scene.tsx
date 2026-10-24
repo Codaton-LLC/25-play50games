@@ -18,17 +18,10 @@ import { useFittedView } from "@/arcade3d/core/useFittedView";
 import { useRunFrame } from "@/arcade3d/core/useRunFrame";
 import { TEAM } from "./assets";
 import Balls from "./Balls";
+import { FIT, FOLLOW_Y, LOOK_AT } from "./camera";
 import Kids from "./Kids";
 import { createRun, pickTap, stepRun, type Run, type SimEvent, type StepInput } from "./rules";
 import Yard from "./Yard";
-
-const AREA = { min: { x: -3.1, y: 0, z: -2.5 }, max: { x: 3.1, y: 1.45, z: 2.5 } };
-const FOCUS = [{ x: 0, y: 0, z: 0 }];
-const YAWS = [0];
-const MARGIN = { top: 0.02, right: 0.02, bottom: 0.02, left: 0.02 };
-const PITCH = (52 * Math.PI) / 180;
-const LOOK_AT: [number, number, number] = [0, 0, 0];
-const FIT = { area: AREA, pitch: PITCH, yaws: YAWS, focus: FOCUS, fov: 45, margin: MARGIN, padding: 8, shift: true as const };
 
 const RAY = new Raycaster();
 const NDC = new Vector2();
@@ -62,8 +55,8 @@ function fillTaps(state: RootState, area: SafeArea, run: Run): void {
       body.live = false;
       arrow.live = false;
       if (!kid.present || !kid.alive) continue;
-      const behind = (kid.x - cam.x) * LOOK.x + (0.9 - cam.y) * LOOK.y + (kid.z - cam.z) * LOOK.z <= 0;
-      PROJ.set(kid.x, 0.9, kid.z).project(state.camera);
+      const behind = (kid.x - cam.x) * LOOK.x + (FOLLOW_Y - cam.y) * LOOK.y + (kid.z - cam.z) * LOOK.z <= 0;
+      PROJ.set(kid.x, FOLLOW_Y, kid.z).project(state.camera);
       body.x = ((PROJ.x + 1) / 2) * w;
       body.y = ((1 - PROJ.y) / 2) * h;
       body.live = !behind;
@@ -112,7 +105,7 @@ export default function Scene() {
    const run = useState(() => createRun(randomSeed(), coarse))[0];
    const step = useRef<StepInput>({ moveX: 0, moveY: 0, camYaw: 0, scoop: false, fire: false, tapId: -1, aimYaw: Math.PI }).current;
    const aim = useRef({ moved: false, px: 0, py: 0 }).current;
-   const follow = useRef({ x: 0, y: 0.9, z: 6.2 }).current;
+   const follow = useRef({ x: 0, y: FOLLOW_Y, z: 6.2 }).current;
    const fx = useFx();
    const fxRef = useRef(fx);
    fxRef.current = fx;
@@ -182,7 +175,7 @@ export default function Scene() {
          mark.hidden = !kid.present || !kid.alive;
       }
       follow.x = player.x;
-      follow.y = 0.9;
+      follow.y = FOLLOW_Y;
       follow.z = player.z;
       if (run.endReason === "win" && !won.current) {
          won.current = true;
@@ -199,7 +192,7 @@ export default function Scene() {
 
    useFrame(() => {
       follow.x = run.kids[0].x;
-      follow.y = 0.9;
+      follow.y = FOLLOW_Y;
       follow.z = run.kids[0].z;
    });
 
@@ -213,7 +206,7 @@ export default function Scene() {
             offset={view.offset}
             shift={view.shift}
          />
-         <Yard run={run} />
+         <Yard run={run} view={view} />
          <Kids run={run} />
          <Balls run={run} />
          <TargetMarkers targets={markers} />

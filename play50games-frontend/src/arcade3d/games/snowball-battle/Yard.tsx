@@ -1,20 +1,34 @@
 "use client";
 
-import { useMemo, useRef } from "react";
+import { useLayoutEffect, useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
-import { Object3D } from "three";
+import { Color, Object3D, type Group } from "three";
 import type { InstancedMesh } from "three";
+import type { FittedView } from "@/arcade3d/core/view";
 import { InstancedModel, Model } from "@/arcade3d/core/assets";
 import { SkyDome } from "@/arcade3d/core/env/SkyDome";
 import { SnowFall } from "@/arcade3d/core/env/SnowFall";
 import { Fence } from "@/arcade3d/core/kit/Fence";
 import { createPath } from "@/arcade3d/core/path";
 import { Instanced } from "@/arcade3d/core/render/Instanced";
+import type { InstanceSpot } from "@/arcade3d/core/render/useInstanceMatrices";
 import { BlobShadow } from "@/arcade3d/core/render/BlobShadow";
 import { useCanvasTexture } from "@/arcade3d/core/render/useCanvasTexture";
 import { ASSETS } from "./assets";
 import { COLORS, SnowmanStandIn, drawSnow } from "./Primitives";
-import { fortHeight, type Run } from "./rules";
+import {
+   FORT_BLOCKS,
+   FORT_ICICLES,
+   FORT_TONES,
+   ICICLE_COLOR,
+   bankSpots,
+   fortBlockScale,
+   fortVisualScale,
+   fortYaw,
+   pineSpots,
+   snowmanCovers,
+} from "./looks";
+import { FORT, type Run } from "./rules";
 
 const FENCE = createPath(
    [
@@ -26,45 +40,94 @@ const FENCE = createPath(
    { closed: true },
 );
 
+const TONES = FORT_TONES.map((hex) => new Color(hex));
+const ICICLE = new Color(ICICLE_COLOR);
+const BLOCK_COUNT = FORT.count * FORT_BLOCKS.length;
+const ICICLE_COUNT = FORT.count * FORT_ICICLES.length;
+
 function Forts({ run }: { run: Run }) {
-   const body = useRef<InstancedMesh>(null);
-   const cap = useRef<InstancedMesh>(null);
+   const blocks = useRef<InstancedMesh>(null);
+   const icicles = useRef<InstancedMesh>(null);
    const dummy = useMemo(() => new Object3D(), []);
-   useFrame(() => {
-      const a = body.current;
-      const b = cap.current;
-      if (!a || !b) return;
-      for (let i = 0; i < run.forts.length; i++) {
-         const fort = run.forts[i];
-         const h = Math.max(0.06, fortHeight(fort.hp));
-         dummy.position.set(fort.x, h / 2, fort.z);
-         dummy.scale.set(1, h, 1);
-         dummy.rotation.set(0, 0, 0);
-         dummy.updateMatrix();
-         a.setMatrixAt(i, dummy.matrix);
-         dummy.position.set(fort.x, h + 0.03, fort.z);
-         dummy.scale.set(1.08, 0.08, 1.08);
-         dummy.updateMatrix();
-         b.setMatrixAt(i, dummy.matrix);
+   useLayoutEffect(() => {
+      const body = blocks.current;
+      const ice = icicles.current;
+      if (body) {
+         for (let f = 0; f < FORT.count; f++) {
+            for (let b = 0; b < FORT_BLOCKS.length; b++) body.setColorAt(f * FORT_BLOCKS.length + b, TONES[FORT_BLOCKS[b].tone]);
+         }
+         if (body.instanceColor) body.instanceColor.needsUpdate = true;
       }
-      a.instanceMatrix.needsUpdate = true;
-      b.instanceMatrix.needsUpdate = true;
+      if (ice) {
+         for (let i = 0; i < ICICLE_COUNT; i++) ice.setColorAt(i, ICICLE);
+         if (ice.instanceColor) ice.instanceColor.needsUpdate = true;
+      }
+   }, []);
+   useFrame(() => {
+      const body = blocks.current;
+      const ice = icicles.current;
+      if (!body || !ice) return;
+      for (let f = 0; f < run.forts.length; f++) {
+         const fort = run.forts[f];
+         const yaw = fortYaw(fort.x, fort.z);
+         const c = Math.cos(yaw);
+         const s = Math.sin(yaw);
+         const wall = fort.hp > 0 ? fortVisualScale(fort.hp) : 0;
+         for (let b = 0; b < FORT_BLOCKS.length; b++) {
+            const block = FORT_BLOCKS[b];
+            const k = fortBlockScale(fort.hp, block.tier);
+            const i = f * FORT_BLOCKS.length + b;
+            if (k <= 0) {
+               dummy.position.set(0, -8, 0);
+               dummy.scale.set(0, 0, 0);
+               dummy.rotation.set(0, 0, 0);
+            } else {
+               dummy.position.set(fort.x + block.x * c + block.z * s, block.y * k, fort.z - block.x * s + block.z * c);
+               dummy.scale.set(block.r, block.r * block.sy * k, block.r);
+               dummy.rotation.set(0, 0, 0);
+            }
+            dummy.updateMatrix();
+            body.setMatrixAt(i, dummy.matrix);
+         }
+         const showIce = fort.hp >= 2 ? wall : 0;
+         for (let b = 0; b < FORT_ICICLES.length; b++) {
+            const spike = FORT_ICICLES[b];
+            const i = f * FORT_ICICLES.length + b;
+            if (showIce <= 0) {
+               dummy.position.set(0, -8, 0);
+               dummy.scale.set(0, 0, 0);
+               dummy.rotation.set(0, 0, 0);
+            } else {
+               dummy.position.set(
+                  fort.x + spike.x * c + spike.z * s,
+                  (spike.y - spike.len / 2) * showIce,
+                  fort.z - spike.x * s + spike.z * c,
+               );
+               dummy.scale.set(spike.r, spike.len * showIce, spike.r);
+               dummy.rotation.set(Math.PI, yaw, 0);
+            }
+            dummy.updateMatrix();
+            ice.setMatrixAt(i, dummy.matrix);
+         }
+      }
+      body.instanceMatrix.needsUpdate = true;
+      ice.instanceMatrix.needsUpdate = true;
    });
    return (
       <group>
-         <instancedMesh ref={body} args={[undefined, undefined, run.forts.length]} frustumCulled={false}>
-            <cylinderGeometry args={[0.9, 0.98, 1, 8]} />
-            <meshStandardMaterial color={COLORS.fort} roughness={0.82} />
+         <instancedMesh ref={blocks} args={[undefined, undefined, BLOCK_COUNT]} frustumCulled={false}>
+            <sphereGeometry args={[1, 8, 6]} />
+            <meshStandardMaterial color="#ffffff" roughness={0.78} emissive={COLORS.ice} emissiveIntensity={0.22} />
          </instancedMesh>
-         <instancedMesh ref={cap} args={[undefined, undefined, run.forts.length]} frustumCulled={false}>
-            <cylinderGeometry args={[0.9, 0.9, 1, 8]} />
-            <meshStandardMaterial color={COLORS.fortCap} roughness={0.7} emissive={COLORS.ice} emissiveIntensity={0.15} />
+         <instancedMesh ref={icicles} args={[undefined, undefined, ICICLE_COUNT]} frustumCulled={false}>
+            <coneGeometry args={[1, 1, 5]} />
+            <meshStandardMaterial color={ICICLE_COLOR} roughness={0.35} emissive={ICICLE_COLOR} emissiveIntensity={0.35} />
          </instancedMesh>
       </group>
    );
 }
 
-function PineFallback({ spots }: { spots: { x: number; y: number; z: number; rotY: number; scale: number }[] }) {
+function PineFallback({ spots }: { spots: InstanceSpot[] }) {
    return (
       <group>
          <Instanced spots={spots}>
@@ -79,12 +142,25 @@ function PineFallback({ spots }: { spots: { x: number; y: number; z: number; rot
    );
 }
 
-export default function Yard({ run }: { run: Run }) {
-   const snow = useCanvasTexture(512, 512, drawSnow);
-   const pines = useMemo(
-      () => run.pines.map((p) => ({ x: p.x, y: 0, z: p.z, rotY: p.rotY, scale: p.scale })),
-      [run],
+function Snowman({ run, view }: { run: Run; view: FittedView }) {
+   const ref = useRef<Group>(null);
+   useFrame((state) => {
+      const g = ref.current;
+      if (!g) return;
+      g.visible = !snowmanCovers(run, view, state.size.width, state.size.height);
+   });
+   return (
+      <group ref={ref}>
+         <Model asset={ASSETS.snowman} fallback={<SnowmanStandIn />} />
+         <BlobShadow radius={0.85} opacity={0.28} y={0.02} />
+      </group>
    );
+}
+
+export default function Yard({ run, view }: { run: Run; view: FittedView }) {
+   const snow = useCanvasTexture(512, 512, drawSnow);
+   const pines = useMemo(() => pineSpots(run.pines), [run]);
+   const banks = useMemo(() => bankSpots(run.pines), [run]);
    return (
       <group>
          <SkyDome top={COLORS.skyTop} bottom={COLORS.skyBottom} />
@@ -99,9 +175,14 @@ export default function Yard({ run }: { run: Run }) {
          </mesh>
          <Fence path={FENCE} spacing={1.7} height={1.1} color={COLORS.fence} railColor={COLORS.rail} />
          <Forts run={run} />
+         {banks.length > 0 && (
+            <Instanced spots={banks}>
+               <sphereGeometry args={[1, 8, 6]} />
+               <meshStandardMaterial color={COLORS.snow} roughness={0.9} emissive={COLORS.ice} emissiveIntensity={0.12} />
+            </Instanced>
+         )}
          <InstancedModel asset={ASSETS.pine} spots={pines} fallback={<PineFallback spots={pines} />} />
-         <Model asset={ASSETS.snowman} fallback={<SnowmanStandIn />} />
-         <BlobShadow radius={0.85} opacity={0.28} y={0.02} />
+         <Snowman run={run} view={view} />
       </group>
    );
 }
