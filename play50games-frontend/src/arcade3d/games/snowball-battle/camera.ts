@@ -1,16 +1,42 @@
-// Follow camera for snowball-battle. The fit is a window around the kid (yaw 0: the lens sits on
-// +z and looks toward −z), shared by Scene and the occlusion / readability tests.
+// Follow camera for snowball-battle. Yaw 0: the lens sits on +z and looks toward −z.
+// The window is per viewport (areaFor). Desktop is wide enough that the whole yard stays in
+// frame while the look-at is held inside AIM_CLAMP. Phones stop at the readability floors
+// (kid 40px, 0.50 m ball 14px, landing ring 24px). Shared by Scene and the tests.
 import { PerspectiveCamera, Vector3 } from "three";
+import type { AABB } from "@/arcade3d/core/collision";
 import type { FittedView, ScreenRect } from "@/arcade3d/core/view";
 import { fitView, setLensShift } from "@/arcade3d/core/view";
 
 export const FOV = 45;
-export const PITCH = (52 * Math.PI) / 180;
+/** Lower than the first fit (52°) so a wide window still leaves a 1.30 m kid at least 40px. */
+export const PITCH = (36 * Math.PI) / 180;
 /** CameraRig looks at the kid's chest, not the feet. */
 export const FOLLOW_Y = 0.9;
 export const LOOK_AT: [number, number, number] = [0, 0, 0];
 
-export const AREA = { min: { x: -1.42, y: 0, z: -0.94 }, max: { x: 1.42, y: 1.35, z: 0.94 } };
+/**
+ * Desktop look-at clamp. The follow window reaches 14 m sideways and 16 m north, so a look-at
+ * in this band keeps every yard corner on screen for the whole fight.
+ */
+export const AIM_CLAMP: AABB = {
+   min: { x: -2, y: 0, z: 6.8 },
+   max: { x: 2, y: 2, z: 7 },
+};
+
+/** Half-width, north depth and south depth of the follow window, metres, around the look-at. */
+export function windowFor(width: number, height: number): { hx: number; zn: number; zp: number } {
+   if (Math.min(width, height) >= 600) return { hx: 14, zn: 16, zp: 2.6 };
+   if (height >= width) return { hx: 4, zn: 12, zp: 2.2 };
+   return { hx: 6, zn: 3, zp: 1.8 };
+}
+
+export function areaFor(width: number, height: number): AABB {
+   const w = windowFor(width, height);
+   return { min: { x: -w.hx, y: 0, z: -w.zn }, max: { x: w.hx, y: 1.35, z: w.zp } };
+}
+
+/** Desktop window. Phones pass areaFor into the fit. */
+export const AREA = areaFor(1280, 800);
 
 const FOCUS = [{ x: 0, y: 0, z: 0 }];
 const YAWS = [0];
@@ -57,7 +83,16 @@ export function playBanner(width: number, height: number): number {
 }
 
 export function fitScreen(width: number, height: number, banner = playBanner(width, height)): FittedView {
-   return fitView({ ...FIT, width, height, avoid: playAvoid(width, height, banner) });
+   return fitView({ ...FIT, area: areaFor(width, height), width, height, avoid: playAvoid(width, height, banner) });
+}
+
+/** Where CameraRig aims on this screen. Desktop stays inside AIM_CLAMP so the yard does not scroll off. */
+export function aimAt(x: number, z: number, width: number, height: number): { x: number; z: number } {
+   if (Math.min(width, height) < 600) return { x, z };
+   return {
+      x: Math.min(AIM_CLAMP.max.x, Math.max(AIM_CLAMP.min.x, x)),
+      z: Math.min(AIM_CLAMP.max.z, Math.max(AIM_CLAMP.min.z, z)),
+   };
 }
 
 const POINT = new Vector3();

@@ -79,7 +79,7 @@ export const SCORE = {
 
 export const PINE = { count: 10, trunk: 0.3, gap: 2.2, bandX: 9.2, bandZ: 6.6 } as const;
 
-/** Proven limits. meta.scoring stays the provisional main values; Claude copies these at merge. */
+/** Proven limits. meta.scoring equals this block (190 pps, any-hit clear at 10.9 s). */
 export const PROPOSED_LIMITS: ScoringRules = {
    kind: "points",
    maxScore: 2550,

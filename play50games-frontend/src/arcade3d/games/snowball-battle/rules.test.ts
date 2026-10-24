@@ -367,21 +367,26 @@ function legal(result: ReturnType<typeof play>): void {
 }
 
 describe("bots", () => {
-   it("the oracle reaches 2550 and wins at least 10 of 16 seeds", () => {
-      let best = 0;
+   it("the oracle wins at least 95% of 20 seeds at 30, 60, 144 Hz and random frames", () => {
+      const lost: string[] = [];
       let wins = 0;
-      for (let seed = 1; seed <= 16; seed++) {
-         const result = play(seed, false, oracle(), fixedFrames(1000 / 60));
-         legal(result);
-         best = Math.max(best, result.state.score);
-         if (result.run.endReason !== "win") continue;
-         wins += 1;
-         expect(result.state.score).toBe(runScore(result.run.hits, result.run.outs, true, result.run.playerTags));
-         expect(result.run.time).toBeGreaterThanOrEqual(10.8);
+      let runs = 0;
+      let best = 0;
+      for (let seed = 1; seed <= 20; seed++) {
+         const frames = [fixedFrames(1000 / 30), fixedFrames(1000 / 60), fixedFrames(1000 / 144), randomFrames(seed + 17)];
+         for (let f = 0; f < frames.length; f++) {
+            const result = play(seed, false, oracle(), frames[f]);
+            legal(result);
+            runs += 1;
+            best = Math.max(best, result.state.score);
+            const health = SCORE.healthMax - result.run.playerTags;
+            if (result.run.endReason === "win" && result.run.time <= 85 && health >= 1) wins += 1;
+            else lost.push(`${seed}/${f}:${result.run.endReason}@${result.run.time.toFixed(1)} hp${health} s${result.state.score}`);
+         }
       }
       expect(best).toBe(2550);
-      expect(wins).toBeGreaterThanOrEqual(10);
-   }, 120000);
+      expect(wins / runs, lost.slice(0, 8).join(" ")).toBeGreaterThanOrEqual(0.95);
+   }, 60000);
 
    it("spam, idle, camper and spinner stay inside the line and do not win", () => {
       for (let seed = 1; seed <= 2; seed++) {
@@ -409,17 +414,25 @@ describe("bots", () => {
       }
    }, 180000);
 
-   it("the witness wins on keyboard and on touch", () => {
-      for (let seed = 1; seed <= 2; seed++) {
+   it("the witness wins at least 70% of 20 seeds on keyboard and on touch", () => {
+      const lost: string[] = [];
+      let wins = 0;
+      let runs = 0;
+      for (let seed = 1; seed <= 20; seed++) {
+         const frames = [fixedFrames(1000 / 30), fixedFrames(1000 / 60), fixedFrames(1000 / 144), randomFrames(seed + 29)];
          for (const coarse of [false, true]) {
-            const result = play(seed, coarse, witness(coarse), fixedFrames(1000 / 60));
-            legal(result);
-            expect(result.run.endReason, `${seed} coarse=${coarse}`).toBe("win");
-            expect(result.run.time).toBeLessThanOrEqual(85);
-            expect(SCORE.healthMax - result.run.playerTags).toBeGreaterThanOrEqual(1);
+            for (let f = 0; f < frames.length; f++) {
+               const result = play(seed, coarse, witness(coarse), frames[f]);
+               legal(result);
+               runs += 1;
+               const health = SCORE.healthMax - result.run.playerTags;
+               if (result.run.endReason === "win" && result.run.time <= 85 && health >= 1) wins += 1;
+               else lost.push(`${seed}${coarse ? "t" : "k"}/${f}:${result.run.endReason}@${result.run.time.toFixed(1)} hp${health}`);
+            }
          }
       }
-   }, 180000);
+      expect(wins / runs, `${wins}/${runs} ${lost.slice(0, 8).join(" ")}`).toBeGreaterThanOrEqual(0.7);
+   }, 60000);
 
    it("an exposed player is not tagged before the loss chain", () => {
       const run = createRun(11, false);

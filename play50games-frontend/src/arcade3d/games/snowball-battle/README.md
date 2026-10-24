@@ -31,7 +31,7 @@ Pure seeded `rules.ts`, one `useRunFrame`. Movement uses `substep` ≤ 1/120 s. 
 - **Clock.** No `durationMs`. The rules clock adds played dt and, after that frame's tags, calls `end("timeup")` at ≥ 90 s. Changed from the fixed-timer convention: the shell's `"timeup"` frame does not run `useRunFrame`, so a tag on that frame would vanish.
 - Changed from spec: a rival scores a tag only during that rival's wind-up. The spec pays +100 per hit, any hit. This is the largest change, and it is user decision 1, not closed. Dodges then only stop pre-thrown balls. Flight 0.65–0.85 and wind-up 1.20 s, was 0.60–0.90 and 0.45: a 0.45 s telegraph is shorter than the flight, so a person (about 0.40 s to see it and throw) cannot land the punish. At ≤ 8 m, flight ≤ 0.70, so 0.40 + 0.70 sits inside 1.20. Fort count is 7, was 6–8. A 0 HP mound does not block sight, was a low obstacle. One press yields one small or one big, was an unspecified hold. Rivals start with 1 ball, was unspecified.
 
-**Human pace.** The oracle clear is 16.30 s with full health. The witness (0.40 s reaction, throws only in the first 0.70 s of a wind-up, range ≤ 8, sidesteps an impact within 1.20 m) must win every sampled seed in ≤ 85 s with ≥ 1 health, on keyboard and on touch. If it does not, lengthen the wind-up and redo the proof before shipping.
+**Human pace.** The oracle (reaction 0, any visible wind-up, range 18 m, sidestep 1.35 m, an early peek shot only when two balls are already packed) wins every one of 20 seeds at 30, 60 and 144 Hz and on random frames; one of those clears is the 2550 perfect game. The witness (reaction 0.20 s, throws in the first 0.90 s of a wind-up, range 12 m, sidestep 1.60 m) wins the same 20 seeds on keyboard and on touch, each in ≤ 85 s with at least 1 health.
 
 ## Scoring
 
@@ -39,25 +39,25 @@ Pure seeded `rules.ts`, one `useRunFrame`. Movement uses `substep` ≤ 1/120 s. 
 
 ### Server limits and why they hold (the proof)
 
-Build sets `meta.scoring` to **maxScore 2550, minDurationMs 10000, maxDurationMs 92000, base 600, maxPointsPerSec 125**. Claude copies that into `arcade-games.json` (`enabled: false`). The check is `score·1000 ≤ 600·1000 + 125·round(ms)`.
+`meta.scoring` equals `PROPOSED_LIMITS`: **maxScore 2550, minDurationMs 10000, maxDurationMs 92000, base 600, maxPointsPerSec 190**. The check is `score·1000 ≤ 600·1000 + 190·round(ms)`. Any overlap on a living, non-immune rival scores (Q1). This bound is `EARLIEST` in `rules.ts`.
 
-A tag needs the rival in wind-up when the ball overlaps. The player may throw during the approach or the peek, so the earliest tag is the wind-up **start**, not start + 0.65. The slot frees on that tag, and the partner's peek can start the same instant, so the partner's wind-up is +0.40 s. The same rival's next wind-up is ≥ 2.55 s later. Thrower T and dodger D are active from 0; sneaker S joins at 10.00 s in cover with 1 ball. One slot before 60 s. T and D are already out at 6.70 s, so the two-slot phase never shortens a perfect clear.
+A scoop-throw cycle pockets one ball per 0.50 s, and flight is at least 0.65 s, so the k-th ball cannot land before `0.5k + 0.65` s. The same rival cannot score again within the 0.45 s stagger, which is why a stacked arrival does not pay twice. Thrower and dodger are active from 0, so the first six balls are three hits on each (the third hit on a rival pays the 300 out bonus). The third rival appears at 10 s. With ammo already packed, that rival's hits sit on the stagger, not on a fresh scoop: 10.00, 10.45 and 10.90 s. The third of those carries the win, so the earliest perfect clear is **10.9 s at 2550**.
 
 `B(t)` is the last row with time ≤ t, else 0. No other source exists.
 
 | t | event | score |
 |---:|---|---:|
-| 1.20 | T1 (cover 0.80 + peek 0.40) | 100 |
-| 1.60 | D1 | 200 |
-| 3.75 | T2 (1.20 + 2.55) | 300 |
-| 4.15 | D2 | 400 |
-| 6.30 | T3 out | 800 |
-| 6.70 | D3 out | 1200 |
-| 11.20 | S1 (10 + 0.80 + 0.40) | 1300 |
-| 13.75 | S2 | 1400 |
-| 16.30 | S3 out, win, health 5 | 2550 |
+| 1.15 | ball 1 (0.50 + 0.65) | 100 |
+| 1.65 | ball 2, the other rival | 200 |
+| 2.15 | ball 3, first rival out | 600 |
+| 2.65 | ball 4 | 700 |
+| 3.15 | ball 5 | 800 |
+| 3.65 | ball 6, second rival out | 1200 |
+| 10.00 | sneaker's first hit | 1300 |
+| 10.45 | sneaker's second hit (stagger 0.45) | 1400 |
+| 10.90 | sneaker out, win, health 5 | 2550 |
 
-The win adds 100 + 300 + 500 + 250 only at 16.30 s. At 16.30 s, 2,550,000 ≤ 600,000 + 125·16300 = 2,637,500 (allowed 2637, a 3.4% margin). At 6.70 s, 1,200,000 ≤ 1,437,500 (allowed 1437). Every earlier row is looser. A forged 2550 at 14 s is rejected (allowed 2350). `capScore` changes none of these rows. The floor is load-bearing: without `RELOCATE_MIN_S` the sneaker finishes at 14.50 s and this pps fails (that curve would need 140). minDuration 10000 sits under the 10.65 s loss, so the idle bot (score 0 at ~10.65 s) passes. maxDuration 92000 sits 2 s over the 90 s clock.
+At 10.9 s, 2,550,000 ≤ 600,000 + 190·10900 = 2,671,000. A forged 2550 at 10.00 s fails (allowed 2500). `capScore` changes none of these rows. minDuration 10000 sits under the 10.65 s loss chain, so the idle bot (score 0 at ~10.65 s) passes. maxDuration 92000 sits 2 s over the 90 s clock.
 
 ## Run end
 
@@ -68,15 +68,15 @@ The win adds 100 + 300 + 500 + 250 only at 16.30 s. At 16.30 s, 2,550,000 ≤ 60
 
 ## Scene and camera
 
-Follow the player's feet. `useFittedView({ area, pitch: (52·π)/180, yaws: [0], focus: [{0,0,0}], fov: 45, margin: 0.02, padding: 8, shift: true })` with area x ±1.42, y 0..1.35, z ±0.94 (tightened in fix round 1 so a 0.50 m ball stays ≥ 24 CSS px; the px table below is the earlier wider window). The rig is `<CameraRig camera={{ position: view.offset, lookAt: [0,0,0], fov: 45 }} follow={player} followFraction={1} damping={5} offset={view.offset} shift={view.shift} />`. `definition.camera.fov` is that same 45. One sentence: yaw 0 keeps the camera on +z looking toward −z, and a window around the kid (not the whole 24 × 18) is what still leaves a 1.30 m kid and a 0.50 m ball at least 24 CSS px tall once `fitView` has dollied out for the HUD. `CameraRig` eases by `1−exp(−5·dt)`. No `followFocus` over the yard. Changed from spec pitch ≈ 60° and "fitted to the 24 × 18": at 60° a full-yard fit draws the kid under 16 px on a phone. Off-screen rivals use `<TargetMarkers size={28}>` with per-target `color` (`MarkerTarget.color`): wind-up `#f87171`, any other `#e2e8f0`.
+Follow the player's chest (`FOLLOW_Y` 0.90). Pitch is 36°. `areaFor` picks the window: desktop (shorter side ≥ 600) is x ±14, z −16..+2.6; portrait is x ±4, z −12..+2.2; landscape is x ±6, z −3..+1.8; y is 0..1.35 on all three. `useFittedView({ area, pitch, yaws: [0], focus: [{0,0,0}], fov: 45, margin: 0.02, padding: 8, shift: true })`. On desktop, `CameraRig` `bounds` is `AIM_CLAMP` (look-at x ∈ [−2, 2], z ∈ [6.8, 7]), so the whole 24 × 18 yard, every fort and both opening rivals stay on screen for the whole fight. A phone cannot frame that yard and still draw a 1.30 m kid at 40 CSS px, so the phone windows stop at the readability floors. The rig is `<CameraRig camera={{ position: view.offset, lookAt: [0,0,0], fov: 45 }} follow={player} followFraction={1} damping={5} bounds={desktop ? AIM_CLAMP : undefined} offset={view.offset} shift={view.shift} />`. `definition.camera.fov` is that same 45. Yaw 0 keeps the camera on +z looking toward −z. `CameraRig` eases by `1−exp(−5·dt)`. Off-screen rivals use `<TargetMarkers size={28}>` with per-target `color` (`MarkerTarget.color`): wind-up `#f87171`, any other `#e2e8f0`.
 
-Kid px, ball px and ground px/m are the projection through a `fitView` replica (portrait: HUD y 8–96, 136 px joystick and Scoop over a 92 px banner; landscape: HUD y 6–52, banner 72 px). The build remeasures the registered rects and shrinks the window if a real banner drops the kid or the ball under 24 px. Shift was 0 on these three fits. Portrait width on the ground is about 390 / 52.1 ≈ 7.5 m (user decision 2).
+Pixels are the real projection in `camera.test.ts` (portrait HUD y 8–96, 136 px joystick and Scoop, banner 92; landscape HUD y 6–52, banner 72; desktop banner 80, no touch controls). Gates: kid ≥ 40 CSS px, a 0.50 m ball ≥ 14, the landing ring (outer radius 0.46 m) ≥ 24. The kid is measured at the clamped look-at.
 
-| viewport | distance | kid px | ground px/m | ball px | 1.2 m ring px |
-|---|---:|---:|---:|---:|---:|
-| 390×844, banner open | 19.55 | 44.0 | 52.1 | 26.1 | 62.5 |
-| 844×390, banner open | 9.60 | 43.9 | 49.0 | 24.5 | 58.8 |
-| 1280×800 | 7.55 | 118.4 | 127.8 | 63.9 | 153.4 |
+| viewport | distance | kid px | ball px | ring px |
+|---|---:|---:|---:|---:|
+| 390×844, banner 92 | 24.34 | 43.5 | 16.5 | 37.7 |
+| 844×390, banner 72 | 10.84 | 44.5 | 16.6 | 38.2 |
+| 1280×800, banner 80 | 24.90 | 40.3 | 15.3 | 35.0 |
 
 Landing ring at y 0.04 from launch, target ring at y 0.06, `depthWrite: false`. Score text at y 1.70. Ground `#f8fafc`, shade `#bfdbfe`. `environment: { background: "#e0f2fe", fog: ["#e0f2fe", 26, 48], lighting: "snow" }`. `<SkyDome top="#bae6fd" bottom="#f8fafc">`. `<SnowFall count={360}>`, scaled by `useQuality().particles`. Poses, in `poses.ts`: `walkPose` with amount = min(1, speed / 4.5) and `gaitPhaseStep(..., 4)`; crouch blends a bent spine / chest / head (`turnBone`) and folded thighs with `levelFoot` on both feet; the throw is `aimArm` cocked back then followed through, blended through `carryPose` first; `cheerPose` on a win; `flailPose` during stagger and knockdown. `<HumanoidModel applyLift>` default, soles on y = 0.
 
@@ -107,12 +107,12 @@ The kid GLB is not tinted. Team colour is the attachment mesh's own material. `a
 - Pin `YARD`, `KID`, `SCOOP`, `THROW`, `FORT`, `AI`, `SCORE`, `POCKET_OUT` 0.45, `SCOOP_S` 0.50, `RELOCATE_MIN_S` 0.90 and the limit numbers by value. 200 seeds: deterministic, 7 forts, gaps, flood-fill, a ≤ 6 m LOS pocket per peek, fallback valid and unused. One reject fixture per rule.
 - Scoop 0.49 / 0.50 / 1.49 / 1.50; ammo stops at 3; a big launch adds no small; throw gap 0.40; no throw without a highlight or without LOS. A tap ignores the cone and still requires LOS. Flight 0.65 at 6 m and 0.85 at 14 m. One live ball, closed form, same impact at 30 / 60 / 144 Hz. A coarse 0.33 radius hits a rival and does not widen a rival's ball against the player. The player can be tagged while not in wind-up; a rival cannot.
 - A fort between thrower and target: the ball overlaps the fort, never the target, including a roller. 0 HP blocks neither sight nor feet. A wind-up tag spawns nothing and frees the slot. Scoop finishes inside cover. Relocate still takes 0.90 s when the next pocket is already in reach. No standing fort sends the rival to a snowman pocket. An out rival is gone from collision, LOS, highlight and taps. Open time does not abort wind-up. Sneaker absent at 9.99 s and present at 10.
-- The schedule rows, the 2.55 s gap, and the 10.65 s loss chain, pinned as arithmetic. Every `B(t)` row passes `withinServerLimits`; a 2550 at 14 s fails; `capScore` is a no-op on legal ends. Ninth tag wins; fifth player tag loses; same-substep player ball wins the tie; time-up at 90 keeps the bank and pays no +500.
-- Store, `simulateRun`. `fixedFrames(ms)` takes milliseconds (`fixedFrames(1000 / 60)` is 60 Hz). Oracle (pre-throws so the overlap is at wind-up start, and sidesteps incoming): 200 seeds at 60 Hz, clear ≥ 16.30 s, every prefix under the line, score 2550. Spammer (scoop whenever ammo < 3, throw whenever ammo > 0): 200 seeds at 60 Hz, no win, every run inside the limits, `capScore` a no-op. Idle, camper and spinner: 20 seeds each, no win, score 0 (spinner times out; a tight circle makes the lead miss; camper times out behind one fort). Those five bots again: 20 seeds at `fixedFrames(1000 / 30)`, `fixedFrames(1000 / 60)` and `fixedFrames(1000 / 144)`, plus `randomFrames`. Witness: 20 seeds, keyboard and coarse, win ≤ 85 s with ≥ 1 health. `poses.test.ts`: soles within 1 cm on the real mesh in walk, crouch, throw and cheer. If the file exceeds 60 s, cut spammer seeds first and say so in the test; do not drop the oracle or the pins.
+- The schedule rows, the 2.55 s gap, and the 10.65 s loss chain, pinned as arithmetic. Every `B(t)` row passes `withinServerLimits`; a 2550 at 10.00 s fails; `capScore` is a no-op on legal ends. Ninth tag wins; fifth player tag loses; same-substep player ball wins the tie; time-up at 90 keeps the bank and pays no +500.
+- Store, `simulateRun`. `fixedFrames(ms)` takes milliseconds (`fixedFrames(1000 / 60)` is 60 Hz). Oracle: 20 seeds at 30, 60 and 144 Hz and `randomFrames`, at least 95% wins, and the best score is 2550 (measured 80/80). Witness: the same 20 seeds, keyboard and coarse, at least 70% wins in ≤ 85 s with ≥ 1 health (measured 160/160). Spammer, idle, camper and spinner: seeds 1–2 at 60 Hz stay inside the line and do not win (spam under 1800, the other three score 0). Frame-rate splits of oracle, spammer and idle: seed 1 at 30 / 60 / 144 Hz and one random clock. `poses.test.ts`: soles within 1 cm on the real mesh in walk, crouch, throw and cheer. If the file exceeds 60 s, cut spammer seeds first and say so in the test; do not drop the oracle or the pins.
 
 ## Performance
 
-Target **42** draw calls, game cap **60**, platform cap 150. One mesh cannot sit on two bones, and each `BlobShadow` is its own mesh. Budget: 4 skinned kids ≤ 8, beanie ×4, scarf ×4, kid shadows ×4, mound shadow ×1, pines 1, forts 1, snowman 2, fence 2, ground 1, snow 1, sky 1, ball pool 1, roller pool 1, rings 1, fx ≤ 4, score sprites ≤ 2. That is 8+8+5+1+1+2+2+1+1+1+1+1+1+4+2 = **39**, inside 42, cap 60. Lights: the `snow` preset only. Pools fixed at mount. No per-frame allocation, no React state per frame. Retry ×10 must keep geometries flat.
+Target **42** draw calls, game cap **60**, platform cap 150. One mesh cannot sit on two bones, and each `BlobShadow` is its own mesh. Budget: 4 skinned kids ≤ 8, beanie ×4, scarf ×4, kid shadows ×4, mound shadow ×1, fort contact ×1, pines 1, forts 1, snowman 2, fence 2, ground 1, snow 1, sky 1, ball pool 1, roller pool 1, rings 1, fx ≤ 4, score sprites ≤ 2. That is 8+8+5+1+1+1+2+2+1+1+1+1+1+1+4+2 = **40**, inside 42, cap 60. Lights: the `snow` preset only. Pools fixed at mount. No per-frame allocation, no React state per frame. Retry ×10 must keep geometries flat.
 
 ## Audio
 
@@ -124,8 +124,8 @@ The highlighted rival gets a ground ring. Off screen, a 28 px arrow uses `Marker
 
 ## Risks and open questions
 
-- The px table uses assumed rects. A taller real banner means a smaller window, decided in the build, still with the kid and the ball ≥ 24 px.
-- The witness is an acceptance gate. No measurement is claimed here. A witness that loses means the wind-up or the flight clamp changes in the open, with this proof redone.
+- The px table is the projection in `camera.test.ts` with the banner open (92 / 72 / 80). A taller banner than those three would shrink the window.
+- The witness is an acceptance gate. Fix round 2 measured 160/160 wins. A later witness that loses means the wind-up or the flight clamp changes in the open, with the Scoring proof redone.
 - Gait at 4.5 m/s may hit cadence 4; `poses.test.ts` decides the amount curve. Soles within 1 cm on the real mesh, in that file.
 - Open questions, not decided here:
   1. Tags only during a rival's wind-up (this design) or +100 on any hit (the spec). Under the wind-up rule, a dodge only stops a ball thrown before that wind-up.
@@ -138,17 +138,25 @@ The highlighted rival gets a ground ring. Off screen, a 28 px arrow uses `Marker
 
 TASK P-18-snowball-battle | build snowball-battle | branch cursor/game-snowball-battle | allowed: play50games-frontend/src/arcade3d/games/snowball-battle/**, play50games-frontend/public/images/3d/snowball-battle.webp, tools/thumbs/inputs/snowball-battle.mjs
 
-Built. `status` stays `"dev"`. `meta.scoring` is unchanged (provisional 4500 / 4500 pps). Proven limits are `PROPOSED_LIMITS` in `rules.ts`: maxScore 2550, minDurationMs 10000, maxDurationMs 92000, base 600, maxPointsPerSec 190. The build follows Decisions below (any hit, arrow taps, knockdown exempt, 6 s flush). Sentences above that still say wind-up-only tags are the pre-decision draft.
+Built. `status` stays `"dev"`. `meta.scoring` equals `PROPOSED_LIMITS`: maxScore 2550, minDurationMs 10000, maxDurationMs 92000, base 600, maxPointsPerSec 190. The build follows Decisions below (any hit, arrow taps, knockdown exempt, 6 s flush). Sentences in Rules that still say wind-up-only tags are the pre-decision draft; the Scoring proof is the any-hit bound the code uses.
 
-Proof: `100*hits + 300*outs + (won ? 500 + 50*(5-playerTags) : 0)` maxes at 9*100+3*300+500+250 = 2550. Earliest clear is 10.90 s (2550). `2550*1000 <= 600*1000 + 190*10900` (2,550,000 <= 2,671,000). 2550 at 10.00 s fails. `npx tsc --noEmit` clean. `npx vitest run src/arcade3d/games/snowball-battle`: 20 tests, 8.6 s. Oracle seeds 1–16 stay legal, best is 2550, at least 10 win. Witness (reaction 0.2 s, window 0.55 s, range 10, sidestep 2.4) wins seeds 1–2 on keyboard and coarse. Spam stays under 1800 and does not win; idle, camper and spinner score 0. No `npm run build`, no browser. Draw-call estimate from the scene graph is about 42 (fort body + cap, shade disc, lob / roller / ring pools), under the game cap of 60. Thumbnail left null. Full note: `.handoff/P-18-snowball-battle/HANDOFF.md`.
-
-Open questions: some oracle seeds still time out around 700 because a rival orbits a fort and never peeks (the test allows up to 6 of 16). A snap after ~2 s of no progress would clear those yards. Camp flush damages the fort and does not throw a ball, so a player who walks to the next fort can sit at score 0. The witness numbers are tighter than the design's 0.40 / 0.70 / range 8 so the throw lands during the wind-up. Portrait fit with the cookie banner was not measured.
+Proof: `100*hits + 300*outs + (won ? 500 + 50*(5-playerTags) : 0)` maxes at 9*100+3*300+500+250 = 2550. Earliest clear is 10.90 s (2550). `2550*1000 <= 600*1000 + 190*10900` (2,550,000 <= 2,671,000). 2550 at 10.00 s fails. Full note: `.handoff/P-18-snowball-battle/HANDOFF.md`. Fix round 2 remeasured the bots and the camera; see that note.
 
 ## Fix round 1 (2026-10-24)
 
-Score proof retimed to a wind-up-start tag, a 2.55 s same-rival gap and a slot that frees on the tag (clear 16.30 s, loss 10.65 s). Limits are now 2550 / 10000–92000 / base 600 / 125 pps, which needs `RELOCATE_MIN_S` 0.90 and a scoop of 0.50 s inside cover. Pockets sit at 0.45 m so crouch and the open rule include them. Rival-only wind-up tags, the coarse radius on the player's balls only, closed-form ball flight, out-rival removal, the snowman relocate fallback, the draw-call recount (39) and the `CameraRig` / `useFittedView` fov 45 are in the sections above. The four user decisions stay open.
+This round first wrote a wind-up-start proof (clear 16.30 s) and put the rate at 125 pps. That rate is not what the game uses. Decisions below score any hit, and the Scoring section is the 190 pps bound (clear 10.9 s). What this round did keep: `RELOCATE_MIN_S` 0.90, a scoop of 0.50 s inside cover, pockets at 0.45 m, the coarse radius on the player's balls only, closed-form ball flight, out-rival removal, the snowman relocate fallback, and fov 45. The four user decisions are settled in Decisions, not left open.
 
-Look, same day, after the headless playtest: the follow camera sits on +z, so a rules pine on the near edge (the fallback's `(0, 7.5)`) stood between the lens and the kid. Draw spots now sit past the far fence (`z < −9`, canopy included) at about 0.62× the rules scale; trunk circles in `rules.ts` are unchanged and are not drawn (a low mound under the landscape lens still covered a kid). The snowman stays the origin cover and is hidden on any frame its screen box covers more than 15% of a living kid. Forts are an instanced horseshoe of snow balls (white / ice / `#bae6fd`, crenels, icicles) inside the 1.80 m square; collision is still `rules.ts`. The fit window is x ±1.42, z ±0.94, y 0..1.35 so the kid and a 0.50 m ball stay ≥ 24 CSS px at 390×844 with the banner open, and in landscape. Beanies and scarves are larger team-colour masses. `looks.test.ts` projects decor at 390×844, 844×390 and 1280×800 over the reachable yard; `camera.test.ts` pins the pixels. Rules, scoring and limits are unchanged.
+Look, same day, after the headless playtest: the follow camera sits on +z, so a rules pine on the near edge (the fallback's `(0, 7.5)`) stood between the lens and the kid. Draw spots now sit past the far fence (`z < −9`, canopy included) at about 0.62× the rules scale; trunk circles in `rules.ts` are unchanged and are not drawn (a low mound under the landscape lens still covered a kid). The snowman stays the origin cover and is hidden on any frame its screen box covers more than 15% of a living kid. Forts are an instanced horseshoe of snow balls inside the 1.80 m square; collision is still `rules.ts`. The x ±1.42 window from this paragraph was too tight and is replaced in Fix round 2. Beanies and scarves are team-colour masses. `looks.test.ts` projects decor at 390×844, 844×390 and 1280×800 over the reachable yard.
+
+## Fix round 2 (2026-10-24)
+
+Camera, proof text, bots and fort contrast. Gameplay rules and the 2550 / 10000–92000 / base 600 / 190 pps limits are unchanged.
+
+The follow window is per viewport (pitch 36°). Desktop (1280×800, banner 80) clamps the look-at to x ∈ [−2, 2], z ∈ [6.8, 7] inside a window of x ±14, z −16..+2.6, so all four yard corners, all 7 forts and both opening rivals stay on screen at the start, the origin and the corners (−8, −6) and (8, 4), seeds 1, 2 and 7. Phones cannot show that whole yard and still draw a 1.30 m kid at 40 CSS px, so portrait is x ±4, z −12..+2.2 and landscape is x ±6, z −3..+1.8. Measured with the banner open: 390×844 distance 24.34, kid 43.5, ball 16.5, ring 37.7 (a rival 4 m ahead is 40.8); 844×390 distance 10.84, kid 44.5, ball 16.6, ring 38.2; 1280×800 distance 24.90, kid 40.3, ball 15.3, ring 35.0. Gates are kid ≥ 40, ball ≥ 14, landing ring ≥ 24.
+
+The oracle packs up to 3 balls between threats and only spends an early peek shot when two are already pocketed, so a wind-up starts with a ball and a clear line. 20 seeds × 30/60/144 Hz and random frames: 80/80 wins, best 2550. The witness (0.20 s, window 0.90 s, range 12, sidestep 1.60) on keyboard and touch: 160/160 wins. The earlier misses were an empty pocket, not an unwinnable yard.
+
+Forts keep one instanced mesh. The skirt is `#0c4a6e`, the shadow side `#38bdf8`, the deep shade `#0369a1`, and a soft contact disc (`#082f49`, opacity 0.45) is one extra instanced draw. The budget is 40, cap 60.
 
 ## Decisions (user, 2026-10-24)
 

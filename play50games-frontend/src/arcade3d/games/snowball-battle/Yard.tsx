@@ -18,10 +18,11 @@ import { ASSETS } from "./assets";
 import { COLORS, SnowmanStandIn, drawSnow } from "./Primitives";
 import {
    FORT_BLOCKS,
+   FORT_CONTACT,
    FORT_ICICLES,
-   FORT_TONES,
    ICICLE_COLOR,
    bankSpots,
+   fortBlockColor,
    fortBlockScale,
    fortVisualScale,
    fortYaw,
@@ -40,21 +41,23 @@ const FENCE = createPath(
    { closed: true },
 );
 
-const TONES = FORT_TONES.map((hex) => new Color(hex));
+const BLOCK_COLORS = FORT_BLOCKS.map((block) => new Color(fortBlockColor(block)));
 const ICICLE = new Color(ICICLE_COLOR);
 const BLOCK_COUNT = FORT.count * FORT_BLOCKS.length;
 const ICICLE_COUNT = FORT.count * FORT_ICICLES.length;
+const SHADOW_R = 1.2;
 
 function Forts({ run }: { run: Run }) {
    const blocks = useRef<InstancedMesh>(null);
    const icicles = useRef<InstancedMesh>(null);
+   const shadows = useRef<InstancedMesh>(null);
    const dummy = useMemo(() => new Object3D(), []);
    useLayoutEffect(() => {
       const body = blocks.current;
       const ice = icicles.current;
       if (body) {
          for (let f = 0; f < FORT.count; f++) {
-            for (let b = 0; b < FORT_BLOCKS.length; b++) body.setColorAt(f * FORT_BLOCKS.length + b, TONES[FORT_BLOCKS[b].tone]);
+            for (let b = 0; b < FORT_BLOCKS.length; b++) body.setColorAt(f * FORT_BLOCKS.length + b, BLOCK_COLORS[b]);
          }
          if (body.instanceColor) body.instanceColor.needsUpdate = true;
       }
@@ -66,7 +69,8 @@ function Forts({ run }: { run: Run }) {
    useFrame(() => {
       const body = blocks.current;
       const ice = icicles.current;
-      if (!body || !ice) return;
+      const shade = shadows.current;
+      if (!body || !ice || !shade) return;
       for (let f = 0; f < run.forts.length; f++) {
          const fort = run.forts[f];
          const yaw = fortYaw(fort.x, fort.z);
@@ -89,6 +93,11 @@ function Forts({ run }: { run: Run }) {
             dummy.updateMatrix();
             body.setMatrixAt(i, dummy.matrix);
          }
+         dummy.position.set(fort.x, 0.02, fort.z);
+         dummy.scale.set(SHADOW_R, SHADOW_R, 1);
+         dummy.rotation.set(-Math.PI / 2, 0, 0);
+         dummy.updateMatrix();
+         shade.setMatrixAt(f, dummy.matrix);
          const showIce = fort.hp >= 2 ? wall : 0;
          for (let b = 0; b < FORT_ICICLES.length; b++) {
             const spike = FORT_ICICLES[b];
@@ -112,12 +121,17 @@ function Forts({ run }: { run: Run }) {
       }
       body.instanceMatrix.needsUpdate = true;
       ice.instanceMatrix.needsUpdate = true;
+      shade.instanceMatrix.needsUpdate = true;
    });
    return (
       <group>
+         <instancedMesh ref={shadows} args={[undefined, undefined, FORT.count]} frustumCulled={false}>
+            <circleGeometry args={[1, 16]} />
+            <meshBasicMaterial color={FORT_CONTACT} transparent opacity={0.45} depthWrite={false} />
+         </instancedMesh>
          <instancedMesh ref={blocks} args={[undefined, undefined, BLOCK_COUNT]} frustumCulled={false}>
             <sphereGeometry args={[1, 8, 6]} />
-            <meshStandardMaterial color="#ffffff" roughness={0.78} emissive={COLORS.ice} emissiveIntensity={0.22} />
+            <meshStandardMaterial color="#ffffff" roughness={0.72} />
          </instancedMesh>
          <instancedMesh ref={icicles} args={[undefined, undefined, ICICLE_COUNT]} frustumCulled={false}>
             <coneGeometry args={[1, 1, 5]} />

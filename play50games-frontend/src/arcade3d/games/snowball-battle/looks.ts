@@ -19,8 +19,19 @@ export const BEANIE = { radius: 0.24, y: 0.02, scaleXZ: 1.05, scaleY: 0.75 } as 
 /** Team collar. The chest anchor is the back; +z walks the ring onto the front. */
 export const SCARF = { radius: 0.17, tube: 0.07, y: 0.04, z: 0.08 } as const;
 
-export const FORT_TONES = ["#f8fafc", "#e0f2fe", "#bae6fd"] as const;
+/** Lit snow, ice-blue shadow side, deeper shade. The skirt uses FORT_BASE so the mound reads on white snow. */
+export const FORT_LIT = "#f8fafc";
+export const FORT_SHADOW = "#38bdf8";
+export const FORT_SHADE = "#0369a1";
+export const FORT_BASE = "#0c4a6e";
+export const FORT_CONTACT = "#082f49";
+export const FORT_TONES = [FORT_LIT, FORT_SHADOW, FORT_SHADE] as const;
 export const ICICLE_COLOR = "#7dd3fc";
+
+/** Skirt blocks are the dark base band. Upper blocks keep their tone (white cap or ice-blue side). */
+export function fortBlockColor(block: FortBlock): string {
+   return block.tier === 0 ? FORT_BASE : FORT_TONES[block.tone];
+}
 
 export interface FortBlock {
    x: number;
@@ -58,9 +69,9 @@ export const FORT_BLOCKS: readonly FortBlock[] = [
    { x: -0.32, y: 0.46, z: -0.38, r: 0.22, sy: 0.9, tone: 1, tier: 1 },
    { x: 0, y: 0.5, z: -0.42, r: 0.24, sy: 0.9, tone: 0, tier: 1 },
    { x: 0.32, y: 0.46, z: -0.38, r: 0.22, sy: 0.9, tone: 2, tier: 1 },
-   { x: -0.48, y: 0.4, z: 0, r: 0.18, sy: 0.88, tone: 0, tier: 1 },
-   { x: 0.48, y: 0.4, z: 0, r: 0.18, sy: 0.88, tone: 1, tier: 1 },
-   { x: -0.3, y: 0.82, z: -0.36, r: 0.16, sy: 0.85, tone: 0, tier: 2 },
+   { x: -0.48, y: 0.4, z: 0, r: 0.18, sy: 0.88, tone: 1, tier: 1 },
+   { x: 0.48, y: 0.4, z: 0, r: 0.18, sy: 0.88, tone: 2, tier: 1 },
+   { x: -0.3, y: 0.82, z: -0.36, r: 0.16, sy: 0.85, tone: 2, tier: 2 },
    { x: 0, y: 0.96, z: -0.4, r: 0.18, sy: 0.85, tone: 1, tier: 2 },
    { x: 0.3, y: 0.78, z: -0.36, r: 0.15, sy: 0.85, tone: 2, tier: 2 },
    { x: 0, y: 1.2, z: -0.38, r: 0.13, sy: 0.8, tone: 0, tier: 2 },

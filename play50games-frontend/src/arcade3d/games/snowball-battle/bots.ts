@@ -60,6 +60,8 @@ interface BrainOpts {
    window: number;
    range: number;
    sidestep: number;
+   /** Throw near the end of a peek so the ball arrives during the wind-up. */
+   early: boolean;
 }
 
 function livingRivals(run: Run): Kid[] {
@@ -68,20 +70,33 @@ function livingRivals(run: Run): Kid[] {
    return out;
 }
 
-function standOf(rival: Kid, player: Kid): { x: number; z: number } {
-   let dx = rival.peekX - rival.destX;
-   let dz = rival.peekZ - rival.destZ;
-   let len = Math.hypot(dx, dz);
-   if (len < 0.2) { dx = player.x - rival.x; dz = player.z - rival.z; len = Math.hypot(dx, dz) || 1; }
-   dx /= len; dz /= len;
-   let x = rival.x + dx * 5.2;
-   let z = rival.z + dz * 5.2;
-   const od = Math.hypot(x, z);
-   if (od < 1.9) { x *= 1.9 / od; z *= 1.9 / od; }
-   return { x, z };
+function inYard(x: number, z: number): boolean {
+   return x >= -11.4 && x <= 11.4 && z >= -8.4 && z <= 8.4 && Math.hypot(x, z) > 1.7;
 }
 
-/** Oracle (reaction 0, any wind-up) and witness (0.40 s, first 0.70 s, range 8). */
+/** A spot about 5 m from the rival that can see them. Falls back to a sideways step. */
+function standOf(run: Run, rival: Kid, player: Kid): { x: number; z: number } {
+   let bestX = player.x;
+   let bestZ = player.z;
+   let best = Infinity;
+   let found = false;
+   for (let i = 0; i < 12; i++) {
+      const a = (i / 12) * Math.PI * 2;
+      const x = rival.x + Math.sin(a) * 5.1;
+      const z = rival.z + Math.cos(a) * 5.1;
+      if (!inYard(x, z)) continue;
+      if (!lineOfSight(run.forts, x, z, rival.x, rival.z)) continue;
+      const d = Math.hypot(x - player.x, z - player.z);
+      if (d < best) { best = d; bestX = x; bestZ = z; found = true; }
+   }
+   if (found) return { x: bestX, z: bestZ };
+   const dx = rival.x - player.x;
+   const dz = rival.z - player.z;
+   const len = Math.hypot(dx, dz) || 1;
+   return { x: player.x - (dz / len) * 2.4, z: player.z + (dx / len) * 2.4 };
+}
+
+/** Oracle (reaction 0, any wind-up, range 18) and witness (0.20 s, first 0.90 s, range 12). */
 export function fighter(opts: BrainOpts): (run: Run) => StepInput {
    const seen = [0, 0, 0, 0];
    return (run: Run) => {
@@ -90,8 +105,9 @@ export function fighter(opts: BrainOpts): (run: Run) => StepInput {
       let focus: Kid | null = null;
       for (let i = 0; i < rivals.length; i++) {
          const kid = rivals[i];
-         if (kid.state === "windup") { focus = kid; break; }
+         if (kid.state === "windup" && lineOfSight(run.forts, player.x, player.z, kid.x, kid.z)) { focus = kid; break; }
       }
+      if (!focus) for (let i = 0; i < rivals.length; i++) if (rivals[i].state === "windup") { focus = rivals[i]; break; }
       if (!focus) for (let i = 0; i < rivals.length; i++) if (rivals[i].state === "peek") { focus = rivals[i]; break; }
       if (!focus && rivals.length) {
          focus = rivals[0];
@@ -126,11 +142,12 @@ export function fighter(opts: BrainOpts): (run: Run) => StepInput {
       let throwId = -1;
       for (let i = 1; i < run.kids.length; i++) {
          const kid = run.kids[i];
-         if (!kid.present || !kid.alive || kid.state !== "windup") { seen[i] = 0; continue; }
+         const peekShot = opts.early && kid.state === "peek" && kid.timer <= 0.22 && player.ammo >= 2;
+         if (!kid.present || !kid.alive || (kid.state !== "windup" && !peekShot)) { seen[i] = 0; continue; }
          const see = lineOfSight(run.forts, player.x, player.z, kid.x, kid.z);
          if (!see) { seen[i] = 0; continue; }
          if (seen[i] <= 0) seen[i] = run.time;
-         const age = AI.windup - kid.timer;
+         const age = kid.state === "windup" ? AI.windup - kid.timer : opts.reaction;
          const dist = Math.hypot(kid.x - player.x, kid.z - player.z);
          if (run.time - seen[i] >= opts.reaction - 1e-4 && age <= opts.window + 1e-4 && dist <= opts.range && player.ammo > 0 && run.throwCd <= 0 && !run.scooping) {
             throwId = i;
@@ -139,30 +156,28 @@ export function fighter(opts: BrainOpts): (run: Run) => StepInput {
       }
       if (danger) return { moveX: sx, moveY: sz, camYaw: 0, scoop: false, fire: false, tapId: -1, aimYaw: aim };
       if (throwId > 0) {
+         const target = run.kids[throwId];
+         const shot = Math.atan2(target.x - player.x, target.z - player.z);
          return {
-            moveX: 0, moveY: 0, camYaw: 0, scoop: false, aimYaw: aim,
+            moveX: 0, moveY: 0, camYaw: 0, scoop: false, aimYaw: shot,
             fire: !opts.coarse, tapId: opts.coarse ? throwId : -1,
          };
       }
-      const urgent = rivals.some((kid) => kid.state === "peek" || kid.state === "windup");
-      let scoop = false;
-      if (!urgent && player.ammo < 2) {
-         if (run.scooping) scoop = run.scoopT < 0.55;
-         else scoop = true;
-      }
-      if (!focus) return zero(aim, scoop);
-      const stand = standOf(focus, player);
-      const see = lineOfSight(run.forts, player.x, player.z, focus.x, focus.z);
-      if (!see) {
-         const side = Math.hypot(player.x - focus.x, player.z - focus.z) || 1;
-         return toward(player.x, player.z, player.x + (focus.z - player.z) / side, player.z - (focus.x - player.x) / side, aim, scoop, false, -1);
-      }
-      return toward(player.x, player.z, stand.x, stand.z, aim, scoop, false, -1);
+      const seeFocus = focus ? lineOfSight(run.forts, player.x, player.z, focus.x, focus.z) : false;
+      const threat = rivals.some((kid) => kid.state === "peek" || kid.state === "windup");
+      const want = threat ? 1 : 3;
+      const packing = player.ammo < want && (!run.scooping || run.scoopT < 0.55);
+      if (!focus) return zero(aim, packing);
+      const stand = standOf(run, focus, player);
+      if (packing && (seeFocus || player.ammo < 1)) return zero(aim, true);
+      if (!seeFocus) return toward(player.x, player.z, stand.x, stand.z, aim, false, false, -1);
+      if (Math.hypot(player.x - stand.x, player.z - stand.z) < 1.2) return zero(aim, false);
+      return toward(player.x, player.z, stand.x, stand.z, aim, false, false, -1);
    };
 }
 
-export const oracle = () => fighter({ coarse: false, reaction: 0, window: AI.windup, range: 14, sidestep: 6 });
-export const witness = (coarse: boolean) => fighter({ coarse, reaction: 0.2, window: 0.55, range: 10, sidestep: 2.4 });
+export const oracle = () => fighter({ coarse: false, reaction: 0, window: AI.windup, range: 18, sidestep: 1.35, early: true });
+export const witness = (coarse: boolean) => fighter({ coarse, reaction: 0.2, window: 0.9, range: 12, sidestep: 1.6, early: false });
 
 export function exposed(run: Run): boolean {
    const player = run.kids[0];
@@ -177,7 +192,7 @@ export function exposed(run: Run): boolean {
 /** Park the player just off a rival's peek, on the open side, so the loss chain has line of sight. */
 export function exposePlayer(run: Run): void {
    const rival = run.kids[1];
-   const stand = standOf(rival, { ...run.kids[0], x: rival.x, z: rival.z - 1 });
+   const stand = standOf(run, rival, { ...run.kids[0], x: rival.x, z: rival.z - 1 });
    run.kids[0].x = stand.x;
    run.kids[0].z = stand.z;
    run.kids[0].vx = 0;

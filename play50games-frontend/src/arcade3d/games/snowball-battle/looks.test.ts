@@ -13,6 +13,10 @@ import {
    bankBox,
    bankSpots,
    coverFraction,
+   FORT_BASE,
+   FORT_LIT,
+   FORT_SHADOW,
+   fortBlockColor,
    fortBlockScale,
    kidBox,
    pineBox,
@@ -161,6 +165,10 @@ describe("snowball-battle looks", () => {
             expect(Math.abs(z - fort.z) + block.r).toBeLessThanOrEqual(FORT.half + 1e-6);
          }
       }
+      expect(FORT_BASE).not.toBe(FORT_LIT);
+      expect(FORT_SHADOW).not.toBe(FORT_LIT);
+      expect(fortBlockColor(FORT_BLOCKS[0])).toBe(FORT_BASE);
+      expect(FORT_BLOCKS.some((block) => block.tier > 0 && fortBlockColor(block) === FORT_SHADOW)).toBe(true);
       expect(fortBlockScale(3, 2)).toBe(1);
       expect(fortBlockScale(0, 2)).toBe(0);
       expect(fortBlockScale(0, 0)).toBeGreaterThan(0);

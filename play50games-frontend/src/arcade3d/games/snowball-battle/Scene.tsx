@@ -1,8 +1,8 @@
 "use client";
 
 // One simulation step per playing frame. Visuals read the run; they never call setState.
-import { useEffect, useRef, useState } from "react";
-import { useFrame, type RootState } from "@react-three/fiber";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useFrame, useThree, type RootState } from "@react-three/fiber";
 import { Raycaster, Vector2, Vector3 } from "three";
 import { aimFired } from "@/arcade3d/core/aim";
 import CameraRig from "@/arcade3d/core/CameraRig";
@@ -18,7 +18,7 @@ import { useFittedView } from "@/arcade3d/core/useFittedView";
 import { useRunFrame } from "@/arcade3d/core/useRunFrame";
 import { TEAM } from "./assets";
 import Balls from "./Balls";
-import { FIT, FOLLOW_Y, LOOK_AT } from "./camera";
+import { AIM_CLAMP, FIT, FOLLOW_Y, LOOK_AT, areaFor } from "./camera";
 import Kids from "./Kids";
 import { createRun, pickTap, stepRun, type Run, type SimEvent, type StepInput } from "./rules";
 import Yard from "./Yard";
@@ -96,7 +96,11 @@ function playEvent(fx: FxApi, e: SimEvent): void {
 }
 
 export default function Scene() {
-   const view = useFittedView(FIT);
+   const width = useThree((state) => state.size.width);
+   const height = useThree((state) => state.size.height);
+   const fit = useMemo(() => ({ ...FIT, area: areaFor(width, height) }), [width, height]);
+   const view = useFittedView(fit);
+   const desktop = Math.min(width, height) >= 600;
    const input = useInput();
    const area = useSafeArea();
    const areaRef = useRef(area);
@@ -203,6 +207,7 @@ export default function Scene() {
             follow={follow}
             followFraction={1}
             damping={5}
+            bounds={desktop ? AIM_CLAMP : undefined}
             offset={view.offset}
             shift={view.shift}
          />
