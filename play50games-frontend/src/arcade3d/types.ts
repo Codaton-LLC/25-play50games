@@ -91,6 +91,29 @@ export type ControlScheme =
    | "look"
    | "flight";
 
+/** The five levels every 3D game gets (docs/arcade-levels.md). Level 1 is today's game. */
+export const LEVEL_IDS = [1, 2, 3, 4, 5] as const;
+export type LevelId = (typeof LEVEL_IDS)[number];
+/** a level id as an object key (localStorage, the API's `levels` maps) */
+export type LevelKey = `${LevelId}`;
+
+/**
+ * One level's server-safe data. `scoring` must equal arcade-games.json games[slug].levels[id - 1]
+ * (registry.sync.test.ts). Every level shares the game's `kind`, `unitLabel` and `display`.
+ */
+export interface LevelMeta {
+   id: LevelId;
+   /** from the plan, e.g. "Open Office" */
+   title: string;
+   /** this level's server limits */
+   scoring: ScoringRules;
+   /**
+    * A run whose score reaches this clears the level (the plan's target score), at most
+    * `scoring.maxScore`. Omitted = only a win clears it. Level 5 needs none (nothing to unlock).
+    */
+   clearScore?: number;
+}
+
 export interface ArcadeGameMeta {
    slug: ArcadeSlug;
    title: string;
@@ -110,4 +133,9 @@ export interface ArcadeGameMeta {
    /** card accent colour */
    accent: string;
    owner: AgentOwner;
+   /**
+    * Omitted = one level (= `scoring`). When present: exactly 5, ids 1..5 in order, and
+    * `levels[0].scoring` deep-equals `scoring` (levelMetaProblems in levelMeta.ts).
+    */
+   levels?: readonly LevelMeta[];
 }
