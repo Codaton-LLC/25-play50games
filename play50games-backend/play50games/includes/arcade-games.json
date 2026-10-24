@@ -232,11 +232,11 @@
     "castle-defender": {
       "title": "Castle Defender",
       "kind": "points",
-      "max_score": 3210,
+      "max_score": 7130,
       "min_duration_ms": 39000,
       "max_duration_ms": 140000,
-      "base": 160,
-      "max_pps": 25,
+      "base": 480,
+      "max_pps": 56,
       "enabled": false
     },
     "penguin-slide": {
