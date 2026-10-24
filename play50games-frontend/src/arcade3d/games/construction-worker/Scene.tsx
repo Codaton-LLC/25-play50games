@@ -11,13 +11,28 @@ import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { useFx } from "@/arcade3d/core/fx/FxLayer";
 import { playSfx, startLoop, useMuted, type LoopHandle } from "@/arcade3d/core/audio";
 import { randomSeed } from "@/arcade3d/core/math";
-import { LOOK, viewFor } from "./looks";
+import { SkyDome } from "@/arcade3d/core/env";
+import { useStageLighting } from "@/arcade3d/core/lighting";
+import { COLORS, LOOK, viewFor } from "./looks";
 import { Crane } from "./Crane";
 import { Site } from "./Site";
 import { Pieces } from "./Pieces";
 import {
-   CUE_COLLAPSE, CUE_DROP, CUE_MISS, CUE_PICKUP, CUE_WIN, CUE_WRONG, PILE_A, PILE_R, PLAN,
-   createRun, roofHeight, stepRun, swingMagnitude, type CraneInput,
+   createRun,
+   CUE_COLLAPSE,
+   CUE_DROP,
+   CUE_MISS,
+   CUE_PICKUP,
+   CUE_WIN,
+   CUE_WRONG,
+   FLOOR,
+   PILE_A,
+   PILE_R,
+   PLAN,
+   roofHeight,
+   stepRun,
+   swingMagnitude,
+   type CraneInput,
 } from "./rules";
 
 const THUD = [1.3, 1.1, 0.9];
@@ -27,6 +42,7 @@ const ndc = new Vector2();
 const ground = new Plane(new Vector3(0, 1, 0), 0);
 const hit = new Vector3();
 const at = { x: 0, y: 0, z: 0 };
+const landPos = { x: 0, y: 0, z: 0 };
 
 function pileFromPointer(camera: Camera, pointer: { x: number; y: number }): number {
    ndc.set(pointer.x, pointer.y);
@@ -59,6 +75,9 @@ export default function Scene() {
    const command = useRef<CraneInput>({ rot: 0, radial: 0, pick: -1, actionPick: false, drop: false });
    const phase = useArcadeStore((s) => s.phase);
    const muted = useMuted();
+
+   // Core preset lighting and warm daylight construction mood
+   useStageLighting("day", 1, COLORS.skyBottom, COLORS.fog);
 
    useEffect(() => {
       fx.warm("sparkle", "puff", "confetti", "score");
@@ -113,6 +132,16 @@ export default function Scene() {
          playSfx("thud", { pitch: THUD[run.dropRating] ?? 1 });
          if (run.dropRating === 0) playSfx("chime", { pitch: 1 + Math.min(3, run.streak) * 0.06 });
          fx.score(at, `+${POINTS[run.dropRating] ?? 0}`);
+
+         // Juicy landing feedback: dust puff on every placement, short sparkle on perfect
+         const placedStep = PLAN[run.planIndex - 1];
+         landPos.x = run.landX;
+         landPos.y = (placedStep?.floor ?? 0) * FLOOR + 0.1;
+         landPos.z = run.landZ;
+         fx.burst("puff", landPos, 14);
+         if (run.dropRating === 0) {
+            fx.burst("sparkle", landPos, 18);
+         }
       }
       if (run.cue & CUE_MISS) playSfx("hit");
       if (run.cue & CUE_WRONG) playSfx("buzz");
@@ -137,6 +166,7 @@ export default function Scene() {
             shift={view.shift}
             damping={6}
          />
+         <SkyDome top={COLORS.skyTop} bottom={COLORS.skyBottom} />
          <Site run={run} />
          <Crane run={run} />
          <Pieces run={run} />
