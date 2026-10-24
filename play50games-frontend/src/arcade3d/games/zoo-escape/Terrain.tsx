@@ -11,6 +11,17 @@ import { COLORS } from "./looks";
 import { BRIDGE, MOAT, PROPS } from "./level";
 import { bridgePieces, useMerged } from "./Primitives";
 
+export const MEADOW_BLOTCH_ALPHA = 0.08;
+
+export const TERRAIN_LAYERS = {
+   outerGround: { y: -0.08, offsetFactor: 0, offsetUnits: 0 },
+   meadow: { y: 0, offsetFactor: -1, offsetUnits: -1 },
+   plaza: { y: 0.002, offsetFactor: -1, offsetUnits: -1 },
+   asphalt: { y: 0.003, offsetFactor: -1, offsetUnits: -1 },
+   paths: { y: 0.007, offsetFactor: -2, offsetUnits: -2 },
+   crosswalk: { y: 0.008, offsetFactor: -3, offsetUnits: -3 },
+   parkingLines: { y: 0.009, offsetFactor: -3, offsetUnits: -3 },
+} as const;
 const drawMeadow: CanvasDraw = (ctx, width, height) => {
    // Warm rich zoo lawn base
    ctx.fillStyle = COLORS.grass;
@@ -20,7 +31,7 @@ const drawMeadow: CanvasDraw = (ctx, width, height) => {
    const tones = [COLORS.grassSun, COLORS.grassShade, COLORS.grassDeep, COLORS.earth];
    for (let i = 0; i < 48; i++) {
       ctx.fillStyle = tones[i % tones.length];
-      ctx.globalAlpha = 0.22 + (i % 4) * 0.06;
+      ctx.globalAlpha = MEADOW_BLOTCH_ALPHA;
       ctx.beginPath();
       const cx = (i * 103) % width;
       const cy = (i * 67) % height;
@@ -136,7 +147,7 @@ export function Terrain({ reduced }: { reduced: boolean }) {
    return (
       <group name="zoo-terrain">
          {/* Vast outer zoo grounds: covers the entire viewport on all 3 screen sizes */}
-         <mesh rotation-x={-Math.PI / 2} position={[0, -0.02, -13]} name="outer-ground">
+         <mesh rotation-x={-Math.PI / 2} position={[0, TERRAIN_LAYERS.outerGround.y, -13]} name="outer-ground">
             <planeGeometry args={[160, 200]} />
             <meshStandardMaterial map={meadowTexture} roughness={0.95} />
          </mesh>
@@ -144,25 +155,25 @@ export function Terrain({ reduced }: { reduced: boolean }) {
          {/* Stage 0: Panda Enclosure lush lawn */}
          <mesh rotation-x={-Math.PI / 2} position={[0, 0, 9]} name="enclosure-meadow">
             <planeGeometry args={[14.4, 18.4]} />
-            <meshStandardMaterial map={meadowTexture} color="#ffffff" roughness={0.9} polygonOffset polygonOffsetFactor={1} polygonOffsetUnits={1} />
+            <meshStandardMaterial map={meadowTexture} color="#ffffff" roughness={0.9} polygonOffset polygonOffsetFactor={TERRAIN_LAYERS.meadow.offsetFactor} polygonOffsetUnits={TERRAIN_LAYERS.meadow.offsetUnits} />
          </mesh>
 
          {/* Stage 1: Visitor Plaza decorative stone paving */}
          <mesh rotation-x={-Math.PI / 2} position={[0, 0.002, -10]} name="visitor-plaza">
             <planeGeometry args={[18.4, 20.4]} />
-            <meshStandardMaterial map={plazaTexture} roughness={0.85} polygonOffset polygonOffsetFactor={1} polygonOffsetUnits={1} />
+            <meshStandardMaterial map={plazaTexture} roughness={0.85} polygonOffset polygonOffsetFactor={TERRAIN_LAYERS.plaza.offsetFactor} polygonOffsetUnits={TERRAIN_LAYERS.plaza.offsetUnits} />
          </mesh>
 
          {/* Stage 2: Parking Lot rich dark asphalt */}
          <mesh rotation-x={-Math.PI / 2} position={[0, 0.003, -31]} name="parking-asphalt">
             <planeGeometry args={[20.4, 22.4]} />
-            <meshStandardMaterial color={COLORS.asphalt} roughness={0.88} polygonOffset polygonOffsetFactor={1} polygonOffsetUnits={1} />
+            <meshStandardMaterial color={COLORS.asphalt} roughness={0.88} polygonOffset polygonOffsetFactor={TERRAIN_LAYERS.asphalt.offsetFactor} polygonOffsetUnits={TERRAIN_LAYERS.asphalt.offsetUnits} />
          </mesh>
 
          {/* Pedestrian path network */}
          <Instanced spots={TERRAIN_SPOTS.paths} name="zoo-paths">
             <boxGeometry args={[1, 0.01, 1]} />
-            <meshStandardMaterial color={COLORS.path} roughness={0.8} polygonOffset polygonOffsetFactor={-1} polygonOffsetUnits={-1} />
+            <meshStandardMaterial color={COLORS.path} roughness={0.8} polygonOffset polygonOffsetFactor={TERRAIN_LAYERS.paths.offsetFactor} polygonOffsetUnits={TERRAIN_LAYERS.paths.offsetUnits} />
          </Instanced>
 
          {/* Concrete curbs separating zones */}
@@ -174,13 +185,13 @@ export function Terrain({ reduced }: { reduced: boolean }) {
          {/* Parking lines */}
          <Instanced spots={TERRAIN_SPOTS.parkingLines} name="parking-lines">
             <boxGeometry args={[1, 0.01, 1]} />
-            <meshStandardMaterial color={COLORS.lines} roughness={0.7} polygonOffset polygonOffsetFactor={-2} polygonOffsetUnits={-2} />
+            <meshStandardMaterial color={COLORS.lines} roughness={0.7} polygonOffset polygonOffsetFactor={TERRAIN_LAYERS.parkingLines.offsetFactor} polygonOffsetUnits={TERRAIN_LAYERS.parkingLines.offsetUnits} />
          </Instanced>
 
          {/* Pedestrian zebra crosswalk */}
          <Instanced spots={TERRAIN_SPOTS.crosswalk} name="crosswalk">
             <boxGeometry args={[1, 0.01, 1]} />
-            <meshStandardMaterial color={COLORS.crosswalk} roughness={0.75} polygonOffset polygonOffsetFactor={-2} polygonOffsetUnits={-2} />
+            <meshStandardMaterial color={COLORS.crosswalk} roughness={0.75} polygonOffset polygonOffsetFactor={TERRAIN_LAYERS.crosswalk.offsetFactor} polygonOffsetUnits={TERRAIN_LAYERS.crosswalk.offsetUnits} />
          </Instanced>
 
          {/* Moat water */}

@@ -14,9 +14,9 @@ export const COLORS = {
    fogDusk: "#f4a582",
 
    // Ground & Zoo terrain
-   grass: "#52be6b",
-   grassSun: "#72cf82",
-   grassShade: "#3da556",
+   grass: "#368f4c",
+   grassSun: "#52be6b",
+   grassShade: "#2d7a40",
    grassDeep: "#246e38",
    earth: "#855938",
    earthDark: "#57351c",
@@ -70,7 +70,7 @@ export const COLORS = {
    boot: "#451a03",
 
    // UI & gameplay signals
-   cone: "#fde68a",
+   cone: "#ffea00",
    alert: "#f87171",
    accent: "#34d399",
    cloud: "#ffffff",

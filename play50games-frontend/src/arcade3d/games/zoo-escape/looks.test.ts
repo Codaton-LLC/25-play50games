@@ -4,6 +4,7 @@ import { fitView } from "@/arcade3d/core/view";
 import { FOV, PITCH, WINDOWS, screenKind, stageBounds, viewFor, windowHalf } from "./camera";
 import { STAGES, type StageIndex } from "./level";
 import { CLOUD_DRIFT, COLORS, DECOR, FOG, contrastRatio, decorOf, inPlayArea } from "./looks";
+import { MEADOW_BLOTCH_ALPHA, TERRAIN_LAYERS } from "./Terrain";
 import {
    bambooPieces,
    benchPieces,
@@ -67,7 +68,8 @@ describe("zoo-escape look and visual contract", () => {
       expect(contrastRatio(COLORS.black, COLORS.grass)).toBeGreaterThanOrEqual(3.5);
       expect(contrastRatio(COLORS.black, COLORS.paving)).toBeGreaterThanOrEqual(3.5);
 
-      // Flashlight cone (amber) stands out against lawn, paving, and asphalt
+      // Flashlight cone (amber/yellow) stands out against lawn, paving, and asphalt
+      expect(contrastRatio(COLORS.cone, COLORS.grass)).toBeGreaterThanOrEqual(3.0);
       expect(contrastRatio(COLORS.cone, COLORS.asphalt)).toBeGreaterThanOrEqual(3.5);
       expect(contrastRatio(COLORS.cone, COLORS.grassDeep)).toBeGreaterThanOrEqual(2.5);
 
@@ -187,5 +189,39 @@ describe("zoo-escape look and visual contract", () => {
          expect(col.count).toBe(pos.count);
          geo.dispose();
       }
+   });
+   it("pins the terrain layer order (y elevation and polygon offset) to prevent z-fighting across cameras", () => {
+      // Outer ground sits at y <= -0.08, well below stage grounds
+      expect(TERRAIN_LAYERS.outerGround.y).toBeLessThanOrEqual(-0.08);
+
+      // Base stage surfaces (meadow, plaza, asphalt) sit at y >= 0 with negative polygon offset (-1)
+      expect(TERRAIN_LAYERS.meadow.y).toBeGreaterThan(TERRAIN_LAYERS.outerGround.y);
+      expect(TERRAIN_LAYERS.plaza.y).toBeGreaterThanOrEqual(TERRAIN_LAYERS.meadow.y);
+      expect(TERRAIN_LAYERS.asphalt.y).toBeGreaterThanOrEqual(TERRAIN_LAYERS.meadow.y);
+
+      expect(TERRAIN_LAYERS.meadow.offsetFactor).toBe(-1);
+      expect(TERRAIN_LAYERS.meadow.offsetUnits).toBe(-1);
+      expect(TERRAIN_LAYERS.plaza.offsetFactor).toBe(-1);
+      expect(TERRAIN_LAYERS.plaza.offsetUnits).toBe(-1);
+      expect(TERRAIN_LAYERS.asphalt.offsetFactor).toBe(-1);
+      expect(TERRAIN_LAYERS.asphalt.offsetUnits).toBe(-1);
+
+      // Paths sit physically on top of stage surfaces and have a stronger negative offset (-2)
+      expect(TERRAIN_LAYERS.paths.y).toBeGreaterThan(TERRAIN_LAYERS.meadow.y);
+      expect(TERRAIN_LAYERS.paths.offsetFactor).toBe(-2);
+      expect(TERRAIN_LAYERS.paths.offsetUnits).toBe(-2);
+
+      // Overlay markings (lines and crosswalk) sit on top of paths and have the strongest offset (-3)
+      expect(TERRAIN_LAYERS.crosswalk.y).toBeGreaterThan(TERRAIN_LAYERS.paths.y);
+      expect(TERRAIN_LAYERS.parkingLines.y).toBeGreaterThan(TERRAIN_LAYERS.paths.y);
+      expect(TERRAIN_LAYERS.crosswalk.offsetFactor).toBe(-3);
+      expect(TERRAIN_LAYERS.crosswalk.offsetUnits).toBe(-3);
+      expect(TERRAIN_LAYERS.parkingLines.offsetFactor).toBe(-3);
+      expect(TERRAIN_LAYERS.parkingLines.offsetUnits).toBe(-3);
+   });
+
+   it("keeps outer-ground blotch alpha subtle (~0.08) to prevent dark splotches showing through", () => {
+      expect(MEADOW_BLOTCH_ALPHA).toBeLessThanOrEqual(0.1);
+      expect(MEADOW_BLOTCH_ALPHA).toBeGreaterThanOrEqual(0.06);
    });
 });
