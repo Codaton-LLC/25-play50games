@@ -1,16 +1,26 @@
 "use client";
 
-// Stub until the game is built. Owner: antigravity. Replace PlaceholderScene with ./Scene.
 import type { GameDefinition } from "@/arcade3d/core/types";
-import { PlaceholderScene } from "@/arcade3d/core/PlaceholderScene";
+import Scene from "./Scene";
+import Hud from "./Hud";
+import { ASSETS } from "./assets";
+import { CAMERA } from "./camera";
+import { COLORS } from "./palette";
+import { CLOCK } from "./rules";
 
 const definition: GameDefinition = {
    slug: "space-repair",
-   Scene: PlaceholderScene,
-   assets: {},
-   camera: { position: [0, 6, 10], fov: 50, lookAt: [0, 0, 0] },
+   Scene,
+   Hud,
+   assets: ASSETS,
+   camera: CAMERA,
+   environment: { background: COLORS.space, lighting: "space" },
    touchControls: ["joystick", "action"],
-   instructions: ["Fly to a sparking module.", "Press Repair when the ring lines up."],
+   touchLabels: { action: "Repair" },
+   clockChip: false,
+   hudStats: [],
+   resultDelayMs: CLOCK.resultDelayMs,
+   instructions: ["Thrust to a lit dock. Release to brake.", "Tap E, Enter or Space in the green repair arc.", "Keep station power above zero for 2 minutes."],
 };
 
 export default definition;
