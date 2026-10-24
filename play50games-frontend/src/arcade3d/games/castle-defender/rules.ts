@@ -317,6 +317,7 @@ export function stepRun(run: CastleRun, input: StepInput, dt: number): void {
    events(run);
    if (run.offer) chooseUpgrade(run, input.choice);
    else {
+      // Screen-relative axes equal world x / -z with the fixed VIEW.yaws: [0] (test-pinned).
       if (!input.coarse) stepAimKeys(run.aim, input, dt, AIM);
       if (input.point) {
          if (input.coarse) snapAim(run, input.x, input.z);

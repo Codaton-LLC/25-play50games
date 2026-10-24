@@ -36,7 +36,7 @@ One useRunFrame consumes played dt via substep<=1/120 s, splitting exact spawn/l
 - Offer opens as soon as all wave ids resolve for waves1-4 (usually20-21 s); keep +200 clear at24 s (24 s minimum wave), paid even with escapes, and fixed next start. Choose once, apply once; default left at next start. Clock continues. Slowest crew resolution8+8.8/0.7+2=22.571429<24. No wave5 offer. Surviving win136 s.
 - Upgrade pool: reload x0.8 max2 (0.8/0.64/0.512); splash x1.3 max2 (2/2.6/3.38); repair once +25 current/maxHP (max125); double once. Two distinct seeded eligible types sorted reload/splash/repair/double. Six capacities ensure two eligible cards at all four offers. No upgrade score.
 - Omit durationMs: shell chip shows played time; game HUD "Wave N/5". Pure rules safety end("timeup") at139.9 s (elapsedMs stays under maxDurationMs140000); test never fires on a surviving run. Event order: spawn, launch, movement/arrival/climb damage, impacts by id, kills, offers/clear/win, then safety. Damage beats same-time rescue; HP0 loses before awards. Freeze pause/over.
-- Human estimate (unmeasured): cadence1.2 s permits20 launches/24 s; finale roughly10 pack hits +4 shield repeats=14 shots/16.8 s. One timely rock helps; crews may erect<8 s apart, so SECOND crew must be handled by cannon before climbing. Reload/reload/splash/repair no-double route gives0.512/radius2.6/125 HP. Four escaped runners and two shields leave89 HP from full repair. Keyboard full sweep10/6+0.25=1.92 s; testing must establish feasibility.
+- Measured player profiles (Claude's adversarial review): 40 seeds × 3 inputs (keyboard, mouse tap, touch tap with snap) × 30/60/144 fps = 360 runs per profile. Design-like player: 360/360 wins, min HP 41. Naive: 360/360 wins, min HP 65. Sloppy (0.5 s reaction, 1.5 s between shots, 0.9 m error): 360/360 wins, 358/360 with >=20 HP. Casual (0.6 s reaction, 2 s between shots, 1.0 m error): 280/360 wins (78%). These are simulated player profiles; the existing rules.test.ts "human" bot uses exact prediction (an oracle).
 
 ## Score, limits and end
 
@@ -83,7 +83,7 @@ Confirmed existing helpers: launchForTime/landingPoint/trajectoryPoints; createP
 
 Future files: meta.ts/index.tsx/rules.ts/rules.test.ts/assets.ts/assets.test.ts/Scene.tsx/Castle.tsx/Goblins.tsx/Cannon.tsx/Hud.tsx/Hud.module.css/Primitives.tsx plus thumbnail public/images/3d/castle-defender.webp and tools/thumbs/inputs/castle-defender.mjs. This task writes no implementation.
 - rules.test.ts<=~600 lines, total game tests<60 s. Literal fixtures pin98 ids, starts, speeds/HP/damage, pack body gaps, radius/reload/repair125/score3210/limits160/25/39000/140000. Aggregate tick invariants; mutation checks, not self-derived expected bounds.
-- Start64 legal +64 human-paced +32 spam seeds; ONE frame schedule per seed. Distribute legal/human across keyboard/coarse and60 fps/20 fps/random4-50 ms (11/11/11/11/10/10). Scale ONLY from measured runtime; report counts/runtime/extrema/reasons/missed packs/HP.
+- Regression matrix: 20 legal +20 oracle human-paced +10 spam seeds; ONE frame schedule per seed. Legal/human cover keyboard/coarse and60 fps/20 fps/random4-50 ms (3–4 seeds per combination). Reduced from64/64/32 in fix1 to keep the suite below~60 s on the shared machine; preserve the >=95% win-with20HP gate (19/20). Report counts/runtime/extrema/reasons/missed packs/HP. The measured360-run player profiles above are separate review evidence.
 - Human bot reaction0.35 s, fire interval>=1.2, aim speed6, seeded error<=0.6, prioritize imminent damage, legal rock/card inputs. REQUIRE>=95% seeds win with>=20 HP on no-double route; revise tuning if not reached. Oracle also uses actual aim/inputs/flight, no teleport/immunity. Spam20 fps plus idle losses.
 - Test schedules/types/crew lanes/determinism/caps, lane length8.8 with leader travel8 m (s0.8 start), all resolutions<=22.571429; within-pack drawn body AABBs never intersect at spawn/march/arrival and radius2 covers the initial triangle. Independent packs may overtake without rule collision response. Pause/over immutable; no dt remainder loss.
 - Test early offer/all-resolved trigger,24 s award (+200 even with escapes), fixed next start/default/one pick, upgrade capacity/no-double. Test ballistic error<=1e-6 at0.6/1 s, radius inclusive/epsilon outside, shield front/back/coincident/rear snap, double pay-once.
@@ -104,7 +104,7 @@ Approved: 1.6 m visual goblins (rules radius unchanged); a fixed 136 s surviving
 
 ## Open questions
 
-None for the user; builder gates (measured 24 px at 844x390 banner open, human-paced wins) stay acceptance checks.
+Pending user decision: random tapping wins at 93–94% of the maximum score. Keep the score formula, limits, wave balance and meta.scoring unchanged in this fix round. Browser readability and performance gates remain with Claude.
 
 ## Merge review (Claude, 2026-10-09)
 

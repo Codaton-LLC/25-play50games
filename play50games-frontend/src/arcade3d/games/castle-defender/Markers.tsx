@@ -23,13 +23,18 @@ export function Markers({ run }: { run: CastleRun }) {
          if (i >= 40) { node.textContent = i === 40 ? "+" : "!"; node.style.textAlign = "center"; node.style.color = "#f8fafc"; node.style.lineHeight = "20px"; }
          layer.appendChild(node); return node;
       });
-      return { layer, nodes, x: new Int32Array(42).fill(-9999), y: new Int32Array(42).fill(-9999) };
+      return {
+         layer, nodes, x: new Int32Array(42).fill(-9999), y: new Int32Array(42).fill(-9999),
+         display: Array<string>(42).fill("none"), border: Array<string>(42).fill("#f8fafc"),
+      };
    }, []);
    useEffect(() => { gl.domElement.parentElement?.appendChild(dom.layer); return () => dom.layer.remove(); }, [dom, gl]);
    const place = (slot: number, x: number, y: number, z: number, visible: boolean) => {
       const node = dom.nodes[slot]; scratch.p.set(x, y, z).project(camera);
       const on = visible && Math.abs(scratch.p.x) <= 1 && Math.abs(scratch.p.y) <= 1 && scratch.p.z < 1;
-      node.style.display = on ? "block" : "none"; if (!on) return;
+      const display = on ? "block" : "none";
+      if (display !== dom.display[slot]) { node.style.display = display; dom.display[slot] = display; }
+      if (!on) return;
       const px = Math.round((scratch.p.x + 1) * size.width / 2), py = Math.round((1 - scratch.p.y) * size.height / 2);
       if (px !== dom.x[slot]) { node.style.left = pixels.x[px]; dom.x[slot] = px; }
       if (py !== dom.y[slot]) { node.style.top = pixels.y[py]; dom.y[slot] = py; }
@@ -52,7 +57,8 @@ export function Markers({ run }: { run: CastleRun }) {
       }
       place(40, run.aim.x, 0.04, -run.aim.y, on);
       const crew = threatenedCrew(run); place(41, crew >= 0 ? LANE_X[run.crews[crew].lane] : 0, 2.3, 2, on && crew >= 0);
-      dom.nodes[40].style.borderColor = run.ready <= run.time ? "#34d399" : "#f8fafc";
+      const border = run.ready <= run.time ? "#34d399" : "#f8fafc";
+      if (border !== dom.border[40]) { dom.nodes[40].style.borderColor = border; dom.border[40] = border; }
    });
    return <TargetMarkers targets={targets} size={24} color="#fbbf24" />;
 }

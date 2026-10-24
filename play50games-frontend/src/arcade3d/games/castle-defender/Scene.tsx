@@ -19,6 +19,14 @@ import { Markers } from "./Markers";
 import { STARTS, TUNING, createInput, createRun, stepRun, threatenedCrew, type CastleRun } from "./rules";
 
 const CLEAR_POINT = { x: 0, y: 0.3, z: -1.5 };
+const SHOT_SFX = { volume: 0.35 };
+const ROCK_SFX = { volume: 0.25 };
+const SPAWN_SFX = { pitch: 1.5, volume: 0.08 };
+const LADDER_SFX = { volume: 0.2 };
+const UPGRADE_SFX = { volume: 0.3 };
+const IMPACT_SFX = { volume: 0.25 };
+const DAMAGE_SFX = { volume: 0.25 };
+const WAVE_SFX = { pitch: 0.6, volume: 0.3 };
 
 function setStat(key: string, value: number): void {
    const store = useArcadeStore.getState(); if (store.stats[key] !== value) store.setStat(key, value);
@@ -29,7 +37,7 @@ function publish(run: CastleRun): void {
    setStat("rock", Math.ceil(Math.max(0, run.rock.ready - run.time) * 10));
    setStat("offer", run.offer ? 1 : 0); setStat("card1", run.cards[0]); setStat("card2", run.cards[1]);
    setStat("chosen", run.chosen + 1); setStat("banner", run.time - STARTS[run.wave] < TUNING.banner ? 1 : 0);
-   const c = threatenedCrew(run); setStat("climb", c >= 0 ? Math.min(100, Math.ceil((run.time - run.crews[c].erected) * 50)) : 0);
+   const c = threatenedCrew(run); setStat("climb", c >= 0 ? Math.min(100, Math.round((run.time - run.crews[c].erected) * 10) * 5) : 0);
    const s = useArcadeStore.getState(); if (s.level !== run.wave + 1) s.setLevel(run.wave + 1);
 }
 export default function Scene() {
@@ -45,6 +53,7 @@ export default function Scene() {
    }, [phase, muted]);
    useRunFrame((_state, dt) => {
       const i = input.current, s = useArcadeStore.getState();
+      // VIEW.yaws is pinned to [0]: stepAimKeys' screen axes already match world x / -z.
       command.coarse = preferences.coarse; command.moveX = i.moveX; command.moveY = i.moveY;
       command.pressed.left = i.pressed.left; command.pressed.right = i.pressed.right;
       command.pressed.up = i.pressed.up; command.pressed.down = i.pressed.down;
@@ -60,17 +69,17 @@ export default function Scene() {
       const erections = run.erections, upgrades = run.upgrades, spawns = run.spawns, cleared = run.cleared;
       const rockActive = run.rock.active;
       stepRun(run, command, dt); if (run.score !== score) s.addScore(run.score - score); publish(run);
-      if (run.launches !== launches) playSfx("boom", { volume: 0.35 });
-      if (run.drops !== drops) playSfx("whoosh", { volume: 0.25 });
-      if (run.spawns !== spawns) playSfx("pop", { pitch: 1.5, volume: 0.08 });
-      if (run.erections !== erections) playSfx("hit", { volume: 0.2 });
-      if (run.upgrades !== upgrades) playSfx("chime", { volume: 0.3 });
+      if (run.launches !== launches) playSfx("boom", SHOT_SFX);
+      if (run.drops !== drops) playSfx("whoosh", ROCK_SFX);
+      if (run.spawns !== spawns) playSfx("pop", SPAWN_SFX);
+      if (run.erections !== erections) playSfx("hit", LADDER_SFX);
+      if (run.upgrades !== upgrades) playSfx("chime", UPGRADE_SFX);
       if (run.cleared !== cleared) fx.score(CLEAR_POINT, "+200");
-      if (run.impacts !== impacts) { fx.burst("puff", run.lastImpact, 16); playSfx("thud", { volume: 0.25 }); }
+      if (run.impacts !== impacts) { fx.burst("puff", run.lastImpact, 16); playSfx("thud", IMPACT_SFX); }
       if (rockActive && !run.rock.active && run.crews[run.rock.crew].destroyed) fx.burst("debris", run.lastImpact, 12);
       if (run.killed !== killed) { scratch.score.set(run.lastImpact.x, 0.3, run.lastImpact.z); fx.score(scratch.score, "+20"); }
-      if (run.damageEvents !== damage) { fx.shake(0.15); fx.burst("debris", run.lastDamage, 12); playSfx("hit", { volume: 0.25 }); }
-      if (run.wave !== wave) playSfx("go", { pitch: 0.6, volume: 0.3 });
+      if (run.damageEvents !== damage) { fx.shake(0.15); fx.burst("debris", run.lastDamage, 12); playSfx("hit", DAMAGE_SFX); }
+      if (run.wave !== wave) playSfx("go", WAVE_SFX);
       if (run.end) {
          if (run.end === "win") { s.setScore(run.score); if (!preferences.reduced) fx.burst("confetti", FOCUS, 36); }
          if (run.end === "lose") fx.burst("debris", FOCUS, 16);

@@ -1,6 +1,7 @@
 "use client";
 
-import { useSafeArea } from "@/arcade3d/core/safeArea";
+import { useShallow } from "zustand/react/shallow";
+import { sameScreenRects, useSafeArea } from "@/arcade3d/core/safeArea";
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import styles from "./Hud.module.css";
 
@@ -11,13 +12,22 @@ const CARDS = [
    { icon: "●●", title: "Double shot", effect: "2 balls / reload" },
 ];
 export default function Hud() {
-   const stats = useArcadeStore((s) => s.stats), phase = useArcadeStore((s) => s.phase), area = useSafeArea();
-   const short = area.height > 0 && area.height <= 520;
+   const stats = useArcadeStore(useShallow(({ stats: s }) => ({
+      hp: s.hp ?? 100, maxHP: s.maxHP ?? 100, wave: s.wave ?? 1,
+      reload: s.reload ?? 0, rock: s.rock ?? 0, climb: s.climb ?? 0,
+      banner: s.banner, offer: s.offer, card1: s.card1 ?? 0, card2: s.card2 ?? 1, chosen: s.chosen ?? 0,
+   })));
+   const phase = useArcadeStore((s) => s.phase);
+   const areaWidth = useSafeArea((a) => a.width), areaHeight = useSafeArea((a) => a.height);
+   const obstructions = useSafeArea((a) => a.obstructions, sameScreenRects);
+   const controls = useSafeArea((a) => a.controls, sameScreenRects);
+   const hud = useSafeArea((a) => a.hud, sameScreenRects);
+   const short = areaHeight > 0 && areaHeight <= 520;
    const width = short ? 360 : 296, height = short ? 72 : 88;
-   let bottom = area.height || 844, top = 0, right = area.width || 390;
-   for (const r of area.obstructions) bottom = Math.min(bottom, r.top);
-   for (const r of area.controls) { bottom = Math.min(bottom, r.top); if (r.left > area.width / 2) right = Math.min(right, r.left - 8); }
-   for (const r of area.hud) top = Math.max(top, r.bottom + 8);
+   let bottom = areaHeight || 844, top = 0, right = areaWidth || 390;
+   for (const r of obstructions) bottom = Math.min(bottom, r.top);
+   for (const r of controls) { bottom = Math.min(bottom, r.top); if (r.left > areaWidth / 2) right = Math.min(right, r.left - 8); }
+   for (const r of hud) top = Math.max(top, r.bottom + 8);
    const left = Math.max(8, (right - width) / 2), y = Math.max(top, bottom - height - 12);
    const choose = (value: number) => {
       const s = useArcadeStore.getState();
