@@ -1,4 +1,5 @@
-import { execFileSync } from "node:child_process";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
 import { resolve } from "node:path";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 import { LEVEL_IDS, type LevelId } from "../../types";
@@ -135,12 +136,18 @@ describe("clean-city limits: analytic proof at every reachable time", () => {
 describe("clean-city per-level bot and store proofs", () => {
    type Report = { levels: { id: number; seeds: number; runs: number; storeRuns: number; humanRuns: number; wins: number; clears: number; best: number; honestBest: number; slowest: number; maxPasses: number }[]; runtimeMs: number };
    let report: Report;
-   beforeAll(() => {
-      report = JSON.parse(execFileSync(process.execPath, [resolve("src/arcade3d/games/clean-city/probe.cjs"), "200"], {
-         cwd: process.cwd(), encoding: "utf8", timeout: 55000,
+   beforeAll(async () => {
+      // one probe process per level, in parallel: a single serial process took 55-65 s
+      const run = promisify(execFile);
+      const parts = await Promise.all(LEVEL_IDS.map(async (id) => {
+         const { stdout } = await run(process.execPath, [resolve("src/arcade3d/games/clean-city/probe.cjs"), "200", String(id)], {
+            cwd: process.cwd(), encoding: "utf8", timeout: 170000,
+         });
+         return JSON.parse(stdout) as Report;
       }));
+      report = { levels: parts.flatMap((p) => p.levels), runtimeMs: Math.max(...parts.map((p) => p.runtimeMs)) };
       console.info(`clean-city store bot proof: ${JSON.stringify(report)}`);
-   }, 60000);
+   }, 180000);
    for (const id of LEVEL_IDS) it(`L${id}: 200 seeds, honest clears, 30/60/144 Hz oracle and adversarial limits`, () => {
       const row = report.levels[id - 1];
       expect(row.id).toBe(id); expect(row.seeds).toBe(200); expect(row.runs).toBe(1000); expect(row.storeRuns).toBe(15);

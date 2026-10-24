@@ -114,7 +114,7 @@ deterministic layouts, and all final duration windows.
 
 `levels.test.ts` covers declarations, live compatibility, monotone difficulty, score potential,
 matching, delivery, exact combo edges, slowing and pool reuse. `probe.cjs` is a test-only native
-runner used by that test: it transpiles the same TS rules/bots (installed TypeScript), avoiding
+runner used by that test (one process per level, run in parallel; `node probe.cjs 200 3` runs level 3 only): it transpiles the same TS rules/bots (installed TypeScript), avoiding
 Vite VM overhead. Like the pilot, large seeded sweeps use the pure run clock and smaller
 end-to-end cases use the real arcade store. For each level: 200 oracle seeds and 200 human seeds
 split over 30/60/144 Hz, plus 200 each greedy/spam/idle at the legal 20 Hz maximum-dt stress case;

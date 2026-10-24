@@ -73,7 +73,9 @@ function play(id, seed, kind, hz, realStore = false) {
    for (let i = 0; i < run.litter.length; i++) assert.equal(run.litter[i], refs[i + 3]);
    return { run, state };
 }
-for (let id = 1; id <= 5; id++) {
+// argv[3]: optional comma list of levels (the test runs one process per level, in parallel)
+const only = process.argv[3] ? process.argv[3].split(",").map(Number) : [1, 2, 3, 4, 5];
+for (const id of only) {
    let wins = 0, clears = 0, best = 0, honestBest = 0, slowest = 0, maxPasses = 0, runs = 0;
    for (let seed = 0; seed < seeds; seed++) {
       for (const [kind, hz] of [["oracle", [30, 60, 144][seed % 3]], ["human", [30, 60, 144][seed % 3]], ["greedy", 20], ["spam", 20], ["idle", 20]]) {
