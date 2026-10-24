@@ -57,6 +57,11 @@ export function levelInstructions(definition: GameDefinition, id: LevelId): stri
    return levelSpecFor(definition, id)?.instructions ?? definition.instructions;
 }
 
+/** The HUD's stat chips for one level. */
+export function levelHudStats(definition: GameDefinition, id: LevelId): GameDefinition["hudStats"] {
+   return levelSpecFor(definition, id)?.hudStats ?? definition.hudStats;
+}
+
 /** What useLevel() returns. */
 export interface ActiveLevel<C = unknown> {
    id: LevelId;

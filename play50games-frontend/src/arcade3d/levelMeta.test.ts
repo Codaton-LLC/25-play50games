@@ -7,6 +7,8 @@ import { withLevels } from "./core/testing/levelFixtures";
 import type { ArcadeGameMeta, ScoringRules } from "./types";
 
 const FIVE = withLevels(robotCollectorMeta);
+/** robot-collector as it was before its levels: a one-level game */
+const ONE: ArcadeGameMeta = { ...robotCollectorMeta, levels: undefined };
 
 const wire = (s: ScoringRules): Record<string, unknown> =>
    s.kind === "points"
@@ -23,14 +25,14 @@ const serverEntry = (meta: ArcadeGameMeta, withLevelsKey = !!meta.levels): Recor
 
 describe("level meta helpers", () => {
    it("a game without levels is one level made from meta.scoring", () => {
-      expect(levelsOf(robotCollectorMeta)).toEqual([{ id: 1, title: "Robot Collector", scoring: robotCollectorMeta.scoring }]);
-      expect(levelCount(robotCollectorMeta)).toBe(1);
-      expect(isLevelId(robotCollectorMeta, 1)).toBe(true);
-      expect(isLevelId(robotCollectorMeta, 2)).toBe(false);
-      expect(scoringFor(robotCollectorMeta, 1)).toBe(robotCollectorMeta.scoring);
-      expect(() => scoringFor(robotCollectorMeta, 3)).toThrow();
-      expect(maxTotal(robotCollectorMeta)).toBe(1470);
-      expect(levelMetaProblems(robotCollectorMeta)).toEqual([]);
+      expect(levelsOf(ONE)).toEqual([{ id: 1, title: "Robot Collector", scoring: ONE.scoring }]);
+      expect(levelCount(ONE)).toBe(1);
+      expect(isLevelId(ONE, 1)).toBe(true);
+      expect(isLevelId(ONE, 2)).toBe(false);
+      expect(scoringFor(ONE, 1)).toBe(ONE.scoring);
+      expect(() => scoringFor(ONE, 3)).toThrow();
+      expect(maxTotal(ONE)).toBe(1470);
+      expect(levelMetaProblems(ONE)).toEqual([]);
    });
 
    it("a five-level game has ids 1..5, per-level scoring and a summed maximum", () => {
@@ -63,8 +65,8 @@ describe("level meta helpers", () => {
 
 describe("registry sync with levels (arcade-games.json v4)", () => {
    it("a game without levels must have no `levels` key on the server", () => {
-      expect(serverSyncProblems(robotCollectorMeta, serverEntry(robotCollectorMeta))).toEqual([]);
-      expect(serverSyncProblems(robotCollectorMeta, serverEntry(FIVE))).toContain("the server has `levels`, meta.ts has none");
+      expect(serverSyncProblems(ONE, serverEntry(ONE))).toEqual([]);
+      expect(serverSyncProblems(ONE, serverEntry(FIVE))).toContain("the server has `levels`, meta.ts has none");
    });
 
    it("a five-level game matches level by level, and levels[0] the top level", () => {

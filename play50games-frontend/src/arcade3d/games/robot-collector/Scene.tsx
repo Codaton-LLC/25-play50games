@@ -20,9 +20,9 @@
 // - Levels: the picked level's config comes from useLevel() (wrapped once as useRobotLevel); the
 //   run is made from it with createRun, and the scene is keyed by the level so the start card's
 //   backdrop shows the level that is picked.
-import { useMemo, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { useFrame } from "@react-three/fiber";
-import type { Group, Mesh, MeshBasicMaterial, MeshStandardMaterial } from "three";
+import type { Group, Mesh, MeshStandardMaterial } from "three";
 import CameraRig from "@/arcade3d/core/CameraRig";
 import { Model } from "@/arcade3d/core/assets";
 import { playSfx } from "@/arcade3d/core/audio";
@@ -51,8 +51,8 @@ import { useRunFrame } from "@/arcade3d/core/useRunFrame";
 import { followFocus } from "@/arcade3d/core/view";
 import { ASSETS } from "./assets";
 import { ROBOT_SCALE, robotPhaseStep } from "./gait";
-import { CART_SIZE, type RobotLevel } from "./levels";
-import { BatteryPrimitive, COLORS, CartBox, HazardMarks, RobotPrimitive, WALL, Warehouse, useBatteryParts } from "./Primitives";
+import type { RobotLevel } from "./levels";
+import { BatteryPrimitive, COLORS, HazardMarks, RobotPrimitive, WALL, Warehouse, useBatteryParts } from "./Primitives";
 import {
    ARENA,
    BATTERY_POINTS,
@@ -124,7 +124,6 @@ function Robot({ run }: { run: Run }) {
    const standIn = useRef<Group>(null);
    const antenna = useRef<Group>(null);
    const panel = useRef<MeshStandardMaterial>(null);
-   const marker = useRef<MeshBasicMaterial>(null);
    const [gait] = useState<Gait>(() => ({ phase: 0, amount: 0, cheer: 0, lift: 0 }));
    const [scratch] = useState(createPose);
 
@@ -168,8 +167,6 @@ function Robot({ run }: { run: Run }) {
       body.rotation.x = fallback ? 0.16 * speed : 0;
       if (antenna.current) antenna.current.rotation.x = -0.3 * speed + Math.sin(t * 11) * 0.1 * speed;
       if (panel.current) panel.current.emissiveIntensity = 0.2 + (1.8 * progress.collected) / progress.taken.length;
-      // a cart's hit: the marker ring turns red while the robot is stunned (levels 3-5)
-      marker.current?.color.set(run.stun > 0 ? COLORS.stun : COLORS.robot);
    });
 
    return (
@@ -178,7 +175,7 @@ function Robot({ run }: { run: Run }) {
          {/* player marker: easy to spot on a small phone screen */}
          <mesh rotation-x={-Math.PI / 2} position-y={0.014}>
             <ringGeometry args={[0.6, 0.72, 32]} />
-            <meshBasicMaterial ref={marker} color={COLORS.robot} transparent opacity={0.75} depthWrite={false} />
+            <meshBasicMaterial color={COLORS.robot} transparent opacity={0.75} depthWrite={false} />
          </mesh>
          <group ref={rig}>
             {/* the group above carries the body's height (gait.lift), so the model does not add it again */}
@@ -282,37 +279,6 @@ function Batteries({ run }: { run: Run }) {
    );
 }
 
-// ---------- carts (levels 3-5) ----------
-
-/** The level's carts: crates riding their lanes. They move with the run's clock (rules.ts stepRun); this only draws them. */
-function Carts({ run }: { run: Run }) {
-   const groups = useRef<Array<Group | null>>([]);
-   useFrame(() => {
-      for (let i = 0; i < run.carts.length; i++) groups.current[i]?.position.set(run.carts[i].x, 0, run.carts[i].z);
-   });
-   if (run.carts.length === 0) return null;
-   return (
-      <group name="carts">
-         {run.carts.map((cart, i) => (
-            <group
-               key={i}
-               ref={(el) => {
-                  groups.current[i] = el;
-               }}
-               position={[cart.x, 0, cart.z]}
-            >
-               <BlobShadow radius={CART_SIZE * 0.75} />
-               <mesh rotation-x={-Math.PI / 2} position-y={0.02}>
-                  <ringGeometry args={[CART_SIZE * 0.75, CART_SIZE * 0.9, 4]} />
-                  <meshBasicMaterial color={COLORS.cart} transparent opacity={0.8} depthWrite={false} />
-               </mesh>
-               <Model asset={ASSETS.crate} fallback={<CartBox />} />
-            </group>
-         ))}
-      </group>
-   );
-}
-
 // ---------- the scene ----------
 
 /** The scene of one level: the Scene below remounts it when another level is picked on the start card. */
@@ -332,9 +298,7 @@ function LevelScene() {
    useRunFrame((_state, dt) => {
       const { moveX, moveY } = input.current;
       inputToWorld(moveX, moveY, view.yaw, dir);
-      const hits = run.hits;
       const got = stepRun(run, dir.x, dir.z, dt);
-      if (run.hits !== hits) playSfx("zap");
       if (got === 0) return;
       const store = useArcadeStore.getState();
       store.addScore(got * BATTERY_POINTS);
@@ -364,7 +328,6 @@ function LevelScene() {
          <HazardMarks level={config} />
          <Robot run={run} />
          <Batteries run={run} />
-         <Carts run={run} />
       </>
    );
 }

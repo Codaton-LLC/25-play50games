@@ -9,7 +9,14 @@
       "max_duration_ms": 62000,
       "base": 600,
       "max_pps": 120,
-      "enabled": true
+      "enabled": true,
+      "levels": [
+        { "title": "Training Bay", "max_score": 1470, "min_duration_ms": 12500, "max_duration_ms": 62000, "base": 600, "max_pps": 120 },
+        { "title": "Small Warehouse", "max_score": 1740, "min_duration_ms": 14900, "max_duration_ms": 72000, "base": 600, "max_pps": 120 },
+        { "title": "Conveyor Zone", "max_score": 2010, "min_duration_ms": 17400, "max_duration_ms": 82000, "base": 600, "max_pps": 120 },
+        { "title": "Dark Storage", "max_score": 2240, "min_duration_ms": 19900, "max_duration_ms": 87000, "base": 600, "max_pps": 120 },
+        { "title": "Mega Warehouse", "max_score": 2460, "min_duration_ms": 22300, "max_duration_ms": 92000, "base": 600, "max_pps": 120 }
+      ]
     },
     "food-catcher": {
       "title": "Food Catcher 3D",

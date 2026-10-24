@@ -219,6 +219,8 @@ export interface LevelSpec<C = unknown> {
    instructions?: string[];
    /** merged over definition.environment: { ...definition.environment, ...environment } */
    environment?: Partial<NonNullable<GameDefinition["environment"]>>;
+   /** replaces definition.hudStats for this level (e.g. its own battery count as the chip's max) */
+   hudStats?: GameDefinition["hudStats"];
    /** override definition.durationMs / lives / resultDelayMs for this level */
    durationMs?: number;
    lives?: number;

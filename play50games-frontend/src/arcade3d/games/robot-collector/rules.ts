@@ -21,18 +21,7 @@ import {
 import { capScore as capToLimits, withinServerLimits as fitsLimits } from "@/arcade3d/core/limits";
 import { createRng, turnTowards } from "@/arcade3d/core/math";
 import type { LevelId, ScoringRules } from "@/arcade3d/types";
-import {
-   CART_LANES,
-   CART_SIZE,
-   EXTRA_PROPS,
-   LEVELS,
-   SLOW_FACTOR,
-   SLOW_ZONES,
-   STUN_GRACE_S,
-   STUN_S,
-   type CartLane,
-   type RobotLevel,
-} from "./levels";
+import { BELTS, BELT_HALF_WIDTH, EXTRA_PROPS, LEVELS, SLOW_FACTOR, SLOW_ZONES, type Belt, type RobotLevel } from "./levels";
 import { robotCollectorMeta } from "./meta";
 
 // ---------- tuning ----------
@@ -263,12 +252,17 @@ function fallbackLayout(seed: number, level: RobotLevel): Layout {
 const PICKS_PER_BATTERY = 80;
 const LAYOUT_ATTEMPTS = 40;
 
+/** Level 1's batteries for one run (today's game; createRun uses levelLayout for every level). */
+export function generateLayout(seed: number): Layout {
+   return levelLayout(seed, LEVELS[1]);
+}
+
 /**
- * The batteries for one run (10 on level 1). Rejection sampling on the spawn grid: a layout that
- * breaks a spacing rule or the fairness limit is thrown away and the next one is drawn from the
- * same seed.
+ * The batteries for one run of a level (10 on level 1). Rejection sampling on the spawn grid: a
+ * layout that breaks a spacing rule or the fairness limit is thrown away and the next one is drawn
+ * from the same seed.
  */
-export function generateLayout(seed: number, level: RobotLevel = LEVELS[1]): Layout {
+export function levelLayout(seed: number, level: RobotLevel): Layout {
    const rng = createRng(seed);
    const points = spawnPoints(level);
    const count = batteryCount(level);
@@ -381,16 +375,14 @@ export function createRobot(): RobotState {
    return { x: ROBOT_START.x, y: 0, z: ROBOT_START.z, vx: 0, vz: 0, heading: Math.PI };
 }
 
-const NO_BOXES: readonly AABB[] = [];
-
 /**
  * One movement step. `dirX/dirZ` is the wanted direction (length <= 1, analog). Mutates `robot`,
  * allocates nothing (safe inside useRunFrame).
  * Guarantee used by the scoring proof: the robot never moves more than ROBOT.maxSpeed * dt in one
  * step, whatever the input, collisions or wall pushes do.
- * Level hazards (stepRun) enter only through the trailing arguments and can only hold the robot
- * back: `speedScale` (<= 1) lowers the speed it steers to, `movers` (the carts) push it out like
- * props do, and every push happens before the speed guard below.
+ * Level hazards (stepRun) enter only through the trailing arguments: `speedScale` (<= 1) lowers
+ * the speed it steers to, `driftX/driftZ` (a conveyor belt, units/s) move it along, and both act
+ * before the speed guard below, so neither can make it faster than maxSpeed.
  */
 export function stepRobot(
    robot: RobotState,
@@ -399,7 +391,8 @@ export function stepRobot(
    dt: number,
    obstacles: readonly AABB[] = OBSTACLES,
    speedScale = 1,
-   movers: readonly AABB[] = NO_BOXES
+   driftX = 0,
+   driftZ = 0
 ): void {
    if (!(dt > 0)) return;
    const { maxSpeed, accel, brake, radius, turnRate } = ROBOT;
@@ -426,12 +419,11 @@ export function stepRobot(
 
    const fromX = robot.x;
    const fromZ = robot.z;
-   robot.x += robot.vx * dt;
+   robot.x += (robot.vx + driftX) * dt;
    robot.y = 0;
-   robot.z += robot.vz * dt;
+   robot.z += (robot.vz + driftZ) * dt;
 
-   // carts, then crates and barrels push the robot out; the walls keep it inside
-   for (const box of movers) resolveSphereAabb(robot, radius, box, robot);
+   // crates and barrels push the robot out; the walls keep it inside
    for (const box of obstacles) resolveSphereAabb(robot, radius, box, robot);
    clampToBounds(robot, BOUNDS, radius, robot);
 
@@ -445,9 +437,10 @@ export function stepRobot(
       robot.z = fromZ + (mz * maxMove) / moved;
    }
 
-   // velocity = what really happened: pushing into a wall stops, sliding along it keeps going
-   robot.vx = (robot.x - fromX) / dt;
-   robot.vz = (robot.z - fromZ) / dt;
+   // velocity = what really happened: pushing into a wall stops, sliding along it keeps going.
+   // A belt's drift is not the robot's own: it is taken out again (0 without a belt).
+   robot.vx = (robot.x - fromX) / dt - driftX;
+   robot.vz = (robot.z - fromZ) / dt - driftZ;
 
    if (Math.hypot(robot.vx, robot.vz) > 0.3) {
       robot.heading = turnTowards(robot.heading, Math.atan2(robot.vx, robot.vz), 1 - Math.exp(-turnRate * dt));
@@ -501,22 +494,18 @@ export const isComplete = (progress: Progress) => progress.collected >= progress
 
 // ---------- hazards and one run ----------
 
-/** Where a cart is on its lane `time` seconds into the run (a pure function of the clock: it ping-pongs a -> b -> a). */
-export function cartAt(lane: CartLane, speed: number, time: number, out: { x: number; z: number }): void {
-   const length = Math.hypot(lane.bx - lane.ax, lane.bz - lane.az);
-   const along = length > 0 ? (time * speed) / length + lane.phase : 0;
-   const wrapped = ((along % 2) + 2) % 2;
-   const k = wrapped <= 1 ? wrapped : 2 - wrapped;
-   out.x = lane.ax + (lane.bx - lane.ax) * k;
-   out.z = lane.az + (lane.bz - lane.az) * k;
+/** The belt under the robot's centre (the first that holds it), or null. */
+export function beltUnder(level: RobotLevel, x: number, z: number): Belt | null {
+   for (let i = 0; i < level.belts; i++) {
+      const belt = BELTS[i];
+      const ux = belt.bx - belt.ax, uz = belt.bz - belt.az, length2 = ux * ux + uz * uz;
+      const k = Math.max(0, Math.min(1, ((x - belt.ax) * ux + (z - belt.az) * uz) / length2));
+      if (Math.hypot(x - belt.ax - ux * k, z - belt.az - uz * k) <= BELT_HALF_WIDTH) return belt;
+   }
+   return null;
 }
 
-export interface CartState {
-   x: number;
-   z: number;
-}
-
-/** Everything one run changes: the level's layout, the robot, the carts and the hazard timers. */
+/** Everything one run changes: the level's layout, the robot and the progress. */
 export interface Run {
    seed: number;
    level: RobotLevel;
@@ -524,108 +513,48 @@ export interface Run {
    layout: Layout;
    robot: RobotState;
    progress: Progress;
-   /** seconds of play so far: the carts' clock */
+   /** seconds of play so far */
    time: number;
-   /** the level's carts (x, z), moved by stepRun */
-   carts: CartState[];
-   /** the carts' collision boxes, moved with them */
-   cartBoxes: AABB[];
-   /** seconds of stun left (the robot cannot steer) and of safety after one */
-   stun: number;
-   grace: number;
-   /** the robot is in a slow zone this step (looks) */
+   /** the robot was in an oil patch / on a belt this step (looks) */
    slowed: boolean;
-   /** how many times a cart has stunned the robot (the Scene plays a sound on a change) */
-   hits: number;
+   belted: boolean;
 }
 
-function placeCarts(run: Run): void {
-   const { level, time } = run;
-   for (let i = 0; i < run.carts.length; i++) {
-      const cart = run.carts[i];
-      cartAt(CART_LANES[i], level.cartSpeed, time, cart);
-      const box = run.cartBoxes[i];
-      box.min.x = cart.x - CART_SIZE / 2;
-      box.max.x = cart.x + CART_SIZE / 2;
-      box.min.z = cart.z - CART_SIZE / 2;
-      box.max.z = cart.z + CART_SIZE / 2;
-   }
-}
-
-/** A run of `level` (default 1) for `seed`: a fresh layout, robot, progress and carts at time 0. */
+/** A run of `level` (default 1) for `seed`: a fresh layout, robot and progress at time 0. */
 export function createRun(seed: number, level: RobotLevel = LEVELS[1]): Run {
-   const carts: CartState[] = [];
-   const cartBoxes: AABB[] = [];
-   for (let i = 0; i < level.carts; i++) {
-      carts.push({ x: 0, z: 0 });
-      cartBoxes.push({ min: { x: 0, y: -10, z: 0 }, max: { x: 0, y: 10, z: 0 } });
-   }
-   const layout = generateLayout(seed, level);
-   const run: Run = {
-      seed,
-      level,
-      world: worldOf(level),
-      layout,
-      robot: createRobot(),
-      progress: createProgress(layout.batteries.length),
-      time: 0,
-      carts,
-      cartBoxes,
-      stun: 0,
-      grace: 0,
-      slowed: false,
-      hits: 0,
-   };
-   placeCarts(run);
-   return run;
+   const layout = levelLayout(seed, level);
+   return { seed, level, world: worldOf(level), layout, robot: createRobot(), progress: createProgress(layout.batteries.length), time: 0, slowed: false, belted: false };
 }
 
-function inSlowZone(run: Run): boolean {
-   const { robot } = run;
-   for (let i = 0; i < run.level.slowZones; i++) {
+function inSlowZone(level: RobotLevel, x: number, z: number): boolean {
+   for (let i = 0; i < level.slowZones; i++) {
       const zone = SLOW_ZONES[i];
-      if (Math.hypot(robot.x - zone.x, robot.z - zone.z) < zone.r) return true;
-   }
-   return false;
-}
-
-/** A cart is touching the robot (stepRobot has already pushed it out, so the gap is about 0). */
-const CART_TOUCH_GAP = 0.06;
-function touchesCart(run: Run): boolean {
-   for (const box of run.cartBoxes) {
-      if (distanceToBoxXZ(run.robot.x, run.robot.z, box) <= ROBOT.radius + CART_TOUCH_GAP) return true;
+      if (Math.hypot(x - zone.x, z - zone.z) < zone.r) return true;
    }
    return false;
 }
 
 /**
- * One frame of one run: the carts move, the robot steers (not while stunned, and at SLOW_FACTOR of
- * its speed in a slow zone), a cart's touch stuns it, batteries are collected. Returns how many
- * were collected this step. Allocates nothing. Hazards depend on game time only, never on the
- * input device, so touch and keyboard get the same windows.
+ * One frame of one run: the robot steers (at SLOW_FACTOR of its speed in an oil patch, drifted
+ * along a belt at the level's beltSpeed), then batteries are collected. Returns how many were
+ * collected this step. Allocates nothing. The hazards are fixed floor zones, the same for every
+ * input device, so touch and keyboard get the same timing.
  */
 export function stepRun(run: Run, dirX: number, dirZ: number, dt: number): number {
    if (!(dt > 0)) return 0;
+   const { level, robot } = run;
    run.time += dt;
-   placeCarts(run);
-
-   if (run.stun > 0) {
-      run.stun = Math.max(0, run.stun - dt);
-      if (run.stun === 0) run.grace = STUN_GRACE_S;
-      dirX = 0;
-      dirZ = 0;
-   } else if (run.grace > 0) {
-      run.grace = Math.max(0, run.grace - dt);
+   run.slowed = inSlowZone(level, robot.x, robot.z);
+   const belt = beltUnder(level, robot.x, robot.z);
+   run.belted = belt !== null;
+   let driftX = 0, driftZ = 0;
+   if (belt) {
+      const length = Math.hypot(belt.bx - belt.ax, belt.bz - belt.az);
+      driftX = ((belt.bx - belt.ax) / length) * level.beltSpeed;
+      driftZ = ((belt.bz - belt.az) / length) * level.beltSpeed;
    }
-
-   run.slowed = inSlowZone(run);
-   stepRobot(run.robot, dirX, dirZ, dt, run.world.obstacles, run.slowed ? SLOW_FACTOR : 1, run.cartBoxes);
-
-   if (run.stun === 0 && run.grace === 0 && touchesCart(run)) {
-      run.stun = STUN_S;
-      run.hits += 1;
-   }
-   return collectTouched(run.progress, run.layout, run.robot);
+   stepRobot(robot, dirX, dirZ, dt, run.world.obstacles, run.slowed ? SLOW_FACTOR : 1, driftX, driftZ);
+   return collectTouched(run.progress, run.layout, robot);
 }
 
 // ---------- scoring ----------
@@ -652,13 +581,13 @@ export function runScore(collected: number, won: boolean, timeLeftMs: number): n
 export const PROPOSED_LEVEL_LIMITS: Record<LevelId, ScoringRules> = {
    1: robotCollectorMeta.scoring,
    /** L2: 12 batteries, 70 s. Earliest win 77.6 / 5 = 15.52 s: 1200 + 10 * 54 = 1740. */
-   2: { kind: "points", maxScore: 1740, minDurationMs: 14900, maxDurationMs: 72500, base: 600, maxPointsPerSec: 120, unitLabel: "pts", display: "int" },
+   2: { ...robotCollectorMeta.scoring, maxScore: 1740, minDurationMs: 14900, maxDurationMs: 72000 },
    /** L3: 14 batteries, 80 s. Earliest win 90.4 / 5 = 18.08 s: 1400 + 10 * 61 = 2010. */
-   3: { kind: "points", maxScore: 2010, minDurationMs: 17400, maxDurationMs: 82500, base: 600, maxPointsPerSec: 120, unitLabel: "pts", display: "int" },
+   3: { ...robotCollectorMeta.scoring, maxScore: 2010, minDurationMs: 17400, maxDurationMs: 82000 },
    /** L4: 16 batteries, 85 s. Earliest win 103.2 / 5 = 20.64 s: 1600 + 10 * 64 = 2240. */
-   4: { kind: "points", maxScore: 2240, minDurationMs: 19900, maxDurationMs: 88000, base: 600, maxPointsPerSec: 120, unitLabel: "pts", display: "int" },
-   /** L5: 18 batteries, 90 s. Earliest win 116.0 / 5 = 23.2 s: 1800 + 10 * 66 = 2460. */
-   5: { kind: "points", maxScore: 2460, minDurationMs: 22300, maxDurationMs: 93000, base: 600, maxPointsPerSec: 120, unitLabel: "pts", display: "int" },
+   4: { ...robotCollectorMeta.scoring, maxScore: 2240, minDurationMs: 19900, maxDurationMs: 87000 },
+   /** L5: 18 batteries, 90 s. Earliest win 116 / 5 = 23.2 s: 1800 + 10 * 66 = 2460. */
+   5: { ...robotCollectorMeta.scoring, maxScore: 2460, minDurationMs: 22300, maxDurationMs: 92000 },
 };
 
 /** The server's check (core/limits.ts) with a level's limits (default: level 1's, meta.ts). */

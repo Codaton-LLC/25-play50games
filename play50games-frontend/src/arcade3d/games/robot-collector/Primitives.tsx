@@ -11,13 +11,16 @@ import {
    DoubleSide,
    MeshBasicMaterial,
    MeshStandardMaterial,
+   RepeatWrapping,
    RingGeometry,
    type Group,
 } from "three";
+import { useFrame } from "@react-three/fiber";
 import { InstancedModel } from "@/arcade3d/core/assets";
+import { useGameTime } from "@/arcade3d/core/gameTime";
 import { Instanced, useCanvasTexture } from "@/arcade3d/core/render";
 import { ASSETS } from "./assets";
-import { CART_LANES, CART_SIZE, SLOW_ZONES, type RobotLevel } from "./levels";
+import { BELTS, BELT_HALF_WIDTH, SLOW_ZONES, type Belt, type RobotLevel } from "./levels";
 import { ARENA, BARREL_RADIUS, CRATE_SIZE, ROBOT_START, type Prop } from "./rules";
 
 // ---------- look ----------
@@ -41,14 +44,11 @@ export const COLORS = {
    robotTip: "#fbbf24",
    battery: "#22c55e",
    batteryGlow: "#4ade80",
-   /** the robot's marker ring while a cart's hit has it stunned */
-   stun: "#f87171",
-   /** hazards: oil patches, the cart lanes and the carts themselves */
+   /** hazards: oil patches and conveyor belts */
    oil: "#1e1b4b",
    oilGlow: "#6d28d9",
-   lane: "#facc15",
-   cart: "#facc15",
-   cartStripe: "#111827",
+   belt: "#1f2937",
+   beltArrow: "#facc15",
 } as const;
 
 // ---------- the warehouse (static) ----------
@@ -158,20 +158,18 @@ function drawCrate(ctx: CanvasRenderingContext2D, w: number, h: number) {
    for (const [x, y] of [[0, 0], [w - c, 0], [0, h - c], [w - c, h - c]]) ctx.fillRect(x, y, c, c);
 }
 
-/** A cart: a yellow crate with black hazard stripes, so it never reads as a static crate. */
-function drawCart(ctx: CanvasRenderingContext2D, w: number, h: number) {
-   ctx.fillStyle = COLORS.cart;
+/** A belt's surface: dark rubber with yellow chevrons pointing along +u (the texture scrolls in Belts). */
+function drawBelt(ctx: CanvasRenderingContext2D, w: number, h: number) {
+   ctx.fillStyle = COLORS.belt;
    ctx.fillRect(0, 0, w, h);
-   ctx.strokeStyle = COLORS.cartStripe;
-   ctx.lineWidth = w * 0.16;
-   for (let k = -h; k < w + h; k += w * 0.36) {
-      ctx.beginPath();
-      ctx.moveTo(k, h);
-      ctx.lineTo(k + h, 0);
-      ctx.stroke();
-   }
-   ctx.lineWidth = w * 0.1;
-   ctx.strokeRect(w * 0.05, h * 0.05, w * 0.9, h * 0.9);
+   ctx.strokeStyle = COLORS.beltArrow;
+   ctx.lineWidth = h * 0.12;
+   ctx.lineJoin = "round";
+   ctx.beginPath();
+   ctx.moveTo(w * 0.3, h * 0.2);
+   ctx.lineTo(w * 0.65, h * 0.5);
+   ctx.lineTo(w * 0.3, h * 0.8);
+   ctx.stroke();
 }
 
 const WALL_SPOTS = (() => {
@@ -260,41 +258,18 @@ function BarrelStandIns({ spots }: { spots: PropSpots }) {
 
 // ---------- hazards (levels 2-5) ----------
 
-/** How wide a cart's lane is marked on the floor. */
-const LANE_WIDTH = CART_SIZE + 0.4;
-
 /**
- * The floor marks of a level's hazards, static: oil patches (a dark, glossy disc with a purple
- * glow, so it also reads in the dark) and a yellow strip under each cart lane. Basic materials
- * for the strips and the glow, so night and sunset lighting do not hide them. Two draw calls at
- * most; level 1 has none and renders nothing.
+ * The floor marks of a level's hazards: oil patches (a dark, glossy disc with a purple glow, so it
+ * also reads in the dark, one instanced draw call) and the conveyor belts (one strip each, its
+ * chevrons scrolling at the belt's speed). Level 1 has none and renders nothing.
  */
 export function HazardMarks({ level }: { level: RobotLevel }) {
-   const spots = useMemo(
-      () => ({
-         oil: SLOW_ZONES.slice(0, level.slowZones).map((zone) => ({ x: zone.x, y: 0.02, z: zone.z, sx: zone.r, sy: 1, sz: zone.r })),
-         lanes: CART_LANES.slice(0, level.carts).map((lane) => ({
-            x: (lane.ax + lane.bx) / 2,
-            y: 0.016,
-            z: (lane.az + lane.bz) / 2,
-            // lanes run along x or z: the strip reaches half a cart past each end
-            sx: Math.abs(lane.bx - lane.ax) + (lane.ax === lane.bx ? LANE_WIDTH : CART_SIZE),
-            sy: 1,
-            sz: Math.abs(lane.bz - lane.az) + (lane.az === lane.bz ? LANE_WIDTH : CART_SIZE),
-         })),
-      }),
-      [level]
-   );
+   const oil = useMemo(() => SLOW_ZONES.slice(0, level.slowZones).map((zone) => ({ x: zone.x, y: 0.02, z: zone.z, sx: zone.r, sy: 1, sz: zone.r })), [level]);
    return (
       <group name="hazard-marks">
-         {spots.lanes.length > 0 && (
-            <Instanced spots={spots.lanes}>
-               <boxGeometry args={[1, 0.01, 1]} />
-               <meshBasicMaterial color={COLORS.lane} transparent opacity={0.2} depthWrite={false} />
-            </Instanced>
-         )}
-         {spots.oil.length > 0 && (
-            <Instanced spots={spots.oil}>
+         {level.belts > 0 && <Belts belts={BELTS.slice(0, level.belts)} speed={level.beltSpeed} />}
+         {oil.length > 0 && (
+            <Instanced spots={oil}>
                <cylinderGeometry args={[1, 1, 0.02, 36]} />
                <meshStandardMaterial color={COLORS.oil} emissive={COLORS.oilGlow} emissiveIntensity={0.45} roughness={0.12} metalness={0.5} />
             </Instanced>
@@ -303,14 +278,38 @@ export function HazardMarks({ level }: { level: RobotLevel }) {
    );
 }
 
-/** Stand-in cart until the crate GLB is listed: a hazard-striped box (a moving thing, so not instanced). */
-export function CartBox() {
-   const texture = useCanvasTexture(128, 128, drawCart);
+/** One chevron per belt width along a belt. */
+const BELT_WIDTH = BELT_HALF_WIDTH * 2;
+
+function Belts({ belts, speed }: { belts: readonly Belt[]; speed: number }) {
+   const time = useGameTime();
+   const base = useCanvasTexture(128, 128, drawBelt);
+   const strips = useMemo(
+      () =>
+         belts.map((belt) => {
+            const length = Math.hypot(belt.bx - belt.ax, belt.bz - belt.az) + BELT_WIDTH;
+            const map = base.clone();
+            map.wrapS = RepeatWrapping;
+            map.repeat.set(length / BELT_WIDTH, 1);
+            map.needsUpdate = true;
+            // the plane's +x (the texture's u) points from a to b
+            return { belt, length, map, yaw: -Math.atan2(belt.bz - belt.az, belt.bx - belt.ax) };
+         }),
+      [belts, base]
+   );
+   useEffect(() => () => strips.forEach((strip) => strip.map.dispose()), [strips]);
+   useFrame(() => {
+      for (const strip of strips) strip.map.offset.x = -((time.now * speed) / BELT_WIDTH) % 1;
+   });
    return (
-      <mesh position-y={CART_SIZE / 2}>
-         <boxGeometry args={[CART_SIZE, CART_SIZE, CART_SIZE]} />
-         <meshStandardMaterial map={texture} roughness={0.7} />
-      </mesh>
+      <>
+         {strips.map(({ belt, length, map, yaw }, i) => (
+            <mesh key={i} position={[(belt.ax + belt.bx) / 2, 0.016, (belt.az + belt.bz) / 2]} rotation={[-Math.PI / 2, 0, yaw]}>
+               <planeGeometry args={[length, BELT_WIDTH]} />
+               <meshBasicMaterial map={map} transparent opacity={0.85} depthWrite={false} />
+            </mesh>
+         ))}
+      </>
    );
 }
 

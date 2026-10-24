@@ -6,6 +6,7 @@ import {
    definitionLevelProblems,
    isLevelCleared,
    levelEnvironment,
+   levelHudStats,
    levelInstructions,
    levelRunConfig,
    levelTotals,
@@ -17,7 +18,7 @@ import type { GameDefinition, LevelSpec } from "./types";
 import { robotCollectorMeta } from "../games/robot-collector/meta";
 import { obstacleRaceMeta } from "../games/obstacle-race/meta";
 import { withLevels } from "./testing/levelFixtures";
-import { LEVEL_IDS, type LevelId } from "../types";
+import { LEVEL_IDS, type ArcadeGameMeta, type LevelId } from "../types";
 
 let store: StoreApi<ArcadeStore>;
 const s = () => store.getState();
@@ -127,6 +128,8 @@ describe("store: levelId, selectLevel, menu", () => {
 });
 
 const FIVE = withLevels(robotCollectorMeta);
+/** robot-collector as it was before its levels: a one-level game */
+const ONE: ArcadeGameMeta = { ...robotCollectorMeta, levels: undefined };
 const FIVE_TIME = withLevels(obstacleRaceMeta);
 
 const spec = (id: LevelId, over: Partial<LevelSpec<{ n: number }>> = {}): LevelSpec<{ n: number }> => ({
@@ -143,8 +146,11 @@ const DEFINITION = {
    lives: 3,
    resultDelayMs: 800,
    environment: { background: "#101010", lighting: "day" },
+   hudStats: [{ key: "batteries", label: "Batteries", max: 10 }],
    levels: LEVEL_IDS.map((id) =>
-      id === 4 ? spec(id, { durationMs: 50000, lives: 1, environment: { lighting: "night" }, instructions: ["Watch the dark."] }) : spec(id)
+      id === 4
+         ? spec(id, { durationMs: 50000, lives: 1, environment: { lighting: "night" }, instructions: ["Watch the dark."], hudStats: [{ key: "batteries", label: "Batteries", max: 16 }] })
+         : spec(id)
    ),
 } as unknown as GameDefinition<{ n: number }>;
 
@@ -154,7 +160,7 @@ describe("level rules", () => {
    it("levels are active only with the flag on and five levels in meta.ts", () => {
       expect(levelsActive(FIVE, true)).toBe(true);
       expect(levelsActive(FIVE, false)).toBe(false);
-      expect(levelsActive(robotCollectorMeta, true)).toBe(false);
+      expect(levelsActive(ONE, true)).toBe(false);
       // the default reads NEXT_PUBLIC_ARCADE_LEVELS, off in tests
       expect(levelsActive(FIVE)).toBe(false);
    });
@@ -171,7 +177,7 @@ describe("level rules", () => {
       expect(isLevelCleared("timeup", 99999, FIVE_TIME.levels![0])).toBe(false);
    });
 
-   it("levelRunConfig / environment / instructions apply a level's overrides over the definition", () => {
+   it("levelRunConfig / environment / instructions / HUD stats apply a level's overrides over the definition", () => {
       expect(levelRunConfig(DEFINITION, 1)).toEqual({ durationMs: 60000, lives: 3, resultDelayMs: 800 });
       expect(levelRunConfig(DEFINITION, 4)).toEqual({ durationMs: 50000, lives: 1, resultDelayMs: 800 });
       expect(levelRunConfig(PLAIN, 1)).toEqual({ durationMs: 60000, lives: undefined, resultDelayMs: undefined });
@@ -179,23 +185,26 @@ describe("level rules", () => {
       expect(levelEnvironment(DEFINITION, 4)).toEqual({ background: "#101010", lighting: "night" });
       expect(levelInstructions(DEFINITION, 4)).toEqual(["Watch the dark."]);
       expect(levelInstructions(DEFINITION, 2)).toEqual(["Collect batteries."]);
+      expect(levelHudStats(DEFINITION, 4)).toEqual([{ key: "batteries", label: "Batteries", max: 16 }]);
+      expect(levelHudStats(DEFINITION, 2)).toBe(DEFINITION.hudStats);
+      expect(levelHudStats(PLAIN, 1)).toBeUndefined();
    });
 
    it("resolveActiveLevel gives the level's meta, spec and config; a plain game gives level 1 with no spec", () => {
       const l3 = resolveActiveLevel(FIVE, DEFINITION, 3);
       expect(l3).toMatchObject({ id: 3, meta: { id: 3, title: "Copy Room" }, config: { n: 30 } });
       expect(l3.spec?.description).toBe("Level 3");
-      const plain = resolveActiveLevel(robotCollectorMeta, PLAIN, 1);
-      expect(plain).toEqual({ id: 1, meta: { id: 1, title: "Robot Collector", scoring: robotCollectorMeta.scoring }, spec: null, config: undefined });
+      const plain = resolveActiveLevel(ONE, PLAIN, 1);
+      expect(plain).toEqual({ id: 1, meta: { id: 1, title: "Robot Collector", scoring: ONE.scoring }, spec: null, config: undefined });
       // an id the game does not have falls back to level 1
-      expect(resolveActiveLevel(robotCollectorMeta, PLAIN, 4).id).toBe(1);
+      expect(resolveActiveLevel(ONE, PLAIN, 4).id).toBe(1);
    });
 
    it("meta.levels and definition.levels must match", () => {
       expect(definitionLevelProblems(FIVE, DEFINITION)).toEqual([]);
-      expect(definitionLevelProblems(robotCollectorMeta, PLAIN)).toEqual([]);
+      expect(definitionLevelProblems(ONE, PLAIN)).toEqual([]);
       expect(definitionLevelProblems(FIVE, PLAIN)).toEqual(["meta.levels is set but definition.levels is not"]);
-      expect(definitionLevelProblems(robotCollectorMeta, DEFINITION)).toEqual(["definition.levels is set but meta.levels is not"]);
+      expect(definitionLevelProblems(ONE, DEFINITION)).toEqual(["definition.levels is set but meta.levels is not"]);
       const short = { ...DEFINITION, levels: DEFINITION.levels!.slice(0, 4) } as GameDefinition;
       expect(definitionLevelProblems(FIVE, short)[0]).toContain("level ids differ");
    });
@@ -222,6 +231,6 @@ describe("totals", () => {
       const levels: LocalLevels = { "1": entry(500, 30000), "2": entry(700, 40000) };
       expect(levelTotals(FIVE, levels, false)).toEqual({ best: 500, bestDurationMs: 30000 });
       expect(levelTotals(FIVE_TIME, { "1": entry(24000, 60000) }, false)).toEqual({ best: 24000, bestDurationMs: 60000 });
-      expect(levelTotals(robotCollectorMeta, { "1": entry(900, 45000) }, true)).toEqual({ best: 900, bestDurationMs: 45000 });
+      expect(levelTotals(ONE, { "1": entry(900, 45000) }, true)).toEqual({ best: 900, bestDurationMs: 45000 });
    });
 });

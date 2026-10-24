@@ -35,6 +35,7 @@ import type { GameDefinition, GameShellProps, RunState } from "./types";
 import { levelCount, levelMetaFor, scoringFor } from "../levelMeta";
 import {
    levelEnvironment,
+   levelHudStats,
    levelInstructions,
    levelRunConfig,
    levelSpecFor,
@@ -204,7 +205,7 @@ function Hud({
             timed={timed}
             lives={lives}
             stats={stats}
-            hudStats={definition.hudStats}
+            hudStats={levelHudStats(definition, level ?? 1)}
             clock={definition.clockChip !== false}
             level={level}
          />

@@ -6,6 +6,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
+import type { ArcadeGameMeta } from "@/arcade3d/types";
 import { describe, expect, it, vi } from "vitest";
 import type { LevelId } from "../types";
 import { robotCollectorMeta } from "../games/robot-collector/meta";
@@ -29,6 +30,8 @@ vi.mock("../registry", async (importOriginal) => {
 });
 
 const FIVE = withLevels(robotCollectorMeta);
+/** robot-collector as it was before its levels: a one-level game */
+const ONE: ArcadeGameMeta = { ...robotCollectorMeta, levels: undefined };
 const DEFINITION = { instructions: ["Collect every battery."] } as unknown as GameDefinition;
 const leaderboard = { enabled: false, data: null, loading: false, error: null, retry: () => {} } as unknown as LeaderboardState;
 
@@ -56,7 +59,7 @@ describe("the gate", () => {
       expect(levelUiEnabled(FIVE, null, true)).toBe(false);
       expect(levelUiEnabled(FIVE, false, true)).toBe(false);
       // a game without levels never shows it, flag on or not
-      expect(levelUiEnabled(robotCollectorMeta, true, true)).toBe(false);
+      expect(levelUiEnabled(ONE, true, true)).toBe(false);
       // the default reads NEXT_PUBLIC_ARCADE_LEVELS, which is off here
       expect(levelUiEnabled(FIVE, true)).toBe(false);
    });
