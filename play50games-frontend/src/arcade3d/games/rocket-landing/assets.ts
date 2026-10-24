@@ -1,7 +1,36 @@
-import { EXPANSION_ASSETS, EXPANSION_GLB_POINTS, EXPANSION_GLB_SIZE, ROCKET_FEET_GLB } from "@/arcade3d/core/sharedAssets";
+import type { ModelAsset } from "@/arcade3d/core/types";
+import { EXPANSION_ASSETS, EXPANSION_GLB_POINTS, EXPANSION_GLB_SIZE, PROP_BUDGET, ROCKET_FEET_GLB } from "@/arcade3d/core/sharedAssets";
 
 export const ROCKET_SCALE = 2.2 / EXPANSION_GLB_SIZE.rocket.height;
-export const ASSETS = { rocket: { ...EXPANSION_ASSETS.rocket, scale: ROCKET_SCALE } };
+
+/**
+ * The landing pad GLB measured on the real mesh (assets.test.ts decodes it): the slab stands on
+ * y = 0 and its deck tops out at deckTop (GLB units, the beacon cone above the centre is extra
+ * height). The fit draws the slab exactly into the old stand-in's box — 1 w x 0.4 h x 2 d with the
+ * deck top +0.2 above the group origin, matching the physics surface (WORLD.padY = 2); yOffset
+ * -0.2 puts the slab base at -0.2 like the old centred box. The runtime group scale.x =
+ * PLANETS[p].width stretches the drawn width as before, so x stays the authored 1.
+ */
+export const LANDING_PAD_GLB = { width: 1.8948084, deckTop: 0.2786218, height: 0.8244281, depth: 1.9048288 };
+const LANDING_PAD_SCALE = 0.4 / LANDING_PAD_GLB.deckTop;
+
+export const ASSETS = {
+   rocket: { ...EXPANSION_ASSETS.rocket, scale: ROCKET_SCALE },
+   landingPad: {
+      id: "landingPad",
+      url: "/models/3d/rocket-landing/landingPad.glb",
+      scale: LANDING_PAD_SCALE,
+      stretch: [
+         1 / (LANDING_PAD_GLB.width * LANDING_PAD_SCALE),
+         1,
+         2 / (LANDING_PAD_GLB.depth * LANDING_PAD_SCALE),
+      ] as const,
+      yOffset: -0.2,
+      fallback: "box",
+      fallbackColor: "#334155",
+      budget: { ...PROP_BUDGET },
+   },
+} satisfies Record<string, ModelAsset>;
 export const BELL = { x: EXPANSION_GLB_POINTS.rocketBell.x * ROCKET_SCALE, y: EXPANSION_GLB_POINTS.rocketBell.y * ROCKET_SCALE, z: EXPANSION_GLB_POINTS.rocketBell.z * ROCKET_SCALE };
 export const FEET_3D = ROCKET_FEET_GLB.map((p) => ({ x: p.x * ROCKET_SCALE, y: p.y * ROCKET_SCALE, z: p.z * ROCKET_SCALE }));
 export const SUPPORT = [[-0.64138, 0.0005], [0.66023, 0.00989]] as const;

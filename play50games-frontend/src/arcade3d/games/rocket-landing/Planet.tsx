@@ -3,6 +3,8 @@ import { useEffect, useState, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import { BufferGeometry, BufferAttribute, Color, type Group, type Mesh, type MeshStandardMaterial } from "three";
 import { PLANETS, padX, type Run } from "./rules";
+import { ASSETS } from "./assets";
+import { Model } from "@/arcade3d/core/assets";
 const COLORS = PLANETS.map((p) => new Color(p.color));
 
 export default function Planet({ run }: { run: Run }) {
@@ -37,9 +39,11 @@ export default function Planet({ run }: { run: Run }) {
    return <group>
       <mesh ref={ground} geometry={data.geometry} frustumCulled={false}><meshStandardMaterial color={PLANETS[0].color} roughness={1} /></mesh>
       <group ref={pad} position={[0, 1.8, 0]}>
-         <mesh><boxGeometry args={[1, 0.4, 2]} /><meshStandardMaterial color="#334155" roughness={0.65} /></mesh>
-         <mesh position={[0, 0.24, 0]}><boxGeometry args={[0.94, 0.025, 1.8]} /><meshStandardMaterial color="#34d399" emissive="#34d399" emissiveIntensity={0.4} depthWrite={false} /></mesh>
-         <mesh position={[0, 0.03, 1.025]}><boxGeometry args={[0.86, 0.075, 0.03]} /><meshBasicMaterial color="#f8fafc" /></mesh>
+         <Model asset={ASSETS.landingPad} fallback={<>
+            <mesh><boxGeometry args={[1, 0.4, 2]} /><meshStandardMaterial color="#334155" roughness={0.65} /></mesh>
+            <mesh position={[0, 0.24, 0]}><boxGeometry args={[0.94, 0.025, 1.8]} /><meshStandardMaterial color="#34d399" emissive="#34d399" emissiveIntensity={0.4} depthWrite={false} /></mesh>
+            <mesh position={[0, 0.03, 1.025]}><boxGeometry args={[0.86, 0.075, 0.03]} /><meshBasicMaterial color="#f8fafc" /></mesh>
+         </>} />
       </group>
       <mesh ref={roof} position={[0, 9.5, 0]} visible={false}><boxGeometry args={[6, 1, 3]} /><meshStandardMaterial color="#78716c" /></mesh>
       <mesh position={[-7, 12, -20]}><sphereGeometry args={[3, 16, 12]} /><meshStandardMaterial color="#475569" roughness={1} /></mesh>
