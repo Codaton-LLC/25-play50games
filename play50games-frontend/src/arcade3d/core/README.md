@@ -663,3 +663,65 @@ const plan = planPeriodic(problem, start, phase); // the solver bot replays it t
 // `stage` is the game's own state (1-based here); null = back to the environment
 useStageLighting(stage >= 3 ? "sunset" : null, 1.5, "#f4a582");
 ```
+
+## Levels (five per game)
+
+Design and the user's decisions: `docs/arcade-levels.md`. One base environment, five level configurations; level 1 is today's game. The core owns everything around the levels (picking, unlocking, scores, the UI); a game only declares its five configs and reads the picked one. Never build a level system inside a game folder.
+
+**Naming.** `levelId` (store) / `LevelId` = the level the player picked, 1..5. `RunState.level` / `setLevel()` keep their old meaning: the game's own stage or wave inside one run.
+
+**Switch.** `NEXT_PUBLIC_ARCADE_LEVELS` (`flags.ts` `ARCADE_LEVELS`, default off). The level UI shows only when `levelUiEnabled(meta, supported)` (`levels.ts`): the flag is on, `meta.levels` has five levels, and the server is known to support levels (`levelSupport.ts`: one cached `GET /arcade/games` read, `features.levels === true`; with the leaderboard off nothing is sent, so levels work locally). Otherwise every game plays level 1 and renders exactly as before levels: no tiles, no HUD chip, no extra result buttons, no `?level=`, no `level` in any request or analytics event. A game without `meta.levels` never shows any of it.
+
+### Declaring the five levels (a game's levels PR)
+
+```ts
+// games/<slug>/levels.ts: pure data, no React
+import type { LevelId } from "../../types";
+export interface CastleLevel { waves: number; speed: number; lanes: 3 | 4 | 5 }
+export const LEVELS: Record<LevelId, CastleLevel> = {
+   1: { waves: 3, speed: 1, lanes: 3 }, // today's game
+   2: { waves: 4, speed: 1.1, lanes: 3 },
+   3: { waves: 5, speed: 1.2, lanes: 4 },
+   4: { waves: 6, speed: 1.3, lanes: 4 },
+   5: { waves: 8, speed: 1.45, lanes: 5 },
+};
+
+// meta.ts (server-safe): titles, limits per level (level 1 = meta.scoring), clear targets
+levels: [
+   { id: 1, title: "Outer Wall", scoring: SCORING_L1, clearScore: 900 },
+   { id: 2, title: "Main Gate", scoring: SCORING_L2, clearScore: 1200 },
+   // ... 3, 4
+   { id: 5, title: "Royal Defense", scoring: SCORING_L5 }, // no clearScore: nothing to unlock
+],
+
+// index.tsx (GameDefinition<CastleLevel>): one spec per meta level, same ids in order
+levels: LEVEL_IDS.map((id) => ({
+   id,
+   description: DESCRIPTIONS[id], // one line under the tiles
+   config: LEVELS[id],
+   ...(id === 4 ? { environment: { lighting: "night", background: "#0b1020" } } : {}),
+   // optional: instructions (replace the game's), durationMs, lives, resultDelayMs
+})),
+
+// Scene / rules: read the config once per run (the Scene remounts per runId)
+export const useCastleLevel = () => useLevel<CastleLevel>();
+const { config } = useCastleLevel();
+const run = useMemo(() => createRun(seed, config), [runId]);
+```
+
+- `meta.levels` rules (`levelMetaProblems`, `levelMeta.ts`, run on every game by `registry.sync.test.ts`): exactly 5, ids 1..5 in order, `levels[0].scoring` deep-equals `meta.scoring`, the same `kind` / `unitLabel` / `display` on every level, `clearScore` within `1..maxScore`. `registry.sync.test.ts` also checks every level's limits against `arcade-games.json` `games[slug].levels[i]` (and that a game without `meta.levels` has no `levels` key there). `arcade-games.json` is Claude's: put the proposed limits in `rules.ts` (`PROPOSED_LEVEL_LIMITS`) and Claude copies them.
+- `definitionLevelProblems(meta, definition)` (`levels.ts`): `meta.levels` and `definition.levels` both present or both absent, same ids, a description each. Call it in the game's own test.
+- Score limits are proven per level (the arcade-score-limits skill, once per level). Rules stay pure: module constants that vary become `createRun(seed, level)` inputs.
+
+### What the core does
+
+- **Context:** GameShell provides `useLevel<C>()` → `{ id, meta: LevelMeta, spec: LevelSpec<C> | null, config: C }` (`level.tsx`) around the stage (R3F bridges it into the Canvas) and the game HUD. With levels off a converted game gets level 1's spec and config; a game without levels gets `spec: null, config: undefined`. It throws outside GameShell (wrap a component test in `LevelProvider` with `resolveActiveLevel(meta, definition, id)`).
+- **Store (`useArcadeStore.ts`):** `levelId` lives outside the run (`start()`/`restart()`/`configure()` keep it, `reset()` sets 1). `selectLevel(id, levelRunConfig(definition, id))` works in `"ready"` and `"over"` only (never mid-run) and applies the level's duration / lives / result delay without going back to `"loading"`. `menu()` takes `"over"` or `"paused"` back to `"ready"` (the tiles) with the same `runId`. `configure(config, levelId?)`.
+- **Per-level overrides (`levels.ts`):** `levelRunConfig`, `levelEnvironment` (`{ ...definition.environment, ...spec.environment }`, handed to `ShellStage` as `environment`), `levelInstructions`.
+- **Clearing and unlocking (`levels.ts`, `levelProgress.ts`):** `isLevelCleared(endReason, score, levelMeta)` = a win, or a score ≥ `clearScore`. Level 1 is always open; level n opens once level n-1 is cleared or when level n already has a score (another device); nothing locks again; the same for guests and accounts. Cleared also counts a stored best ≥ `clearScore` (server-synced bests) and any stored best of a time game (time games save finished runs only). The unlock is client-side; the server accepts any level within its limits.
+- **Local scores (`scores.ts`):** an entry keeps `levels: { "1".."5": { best, bestDurationMs, plays, lastPlayed, cleared } }`. `readLocalScores` runs every entry through `normalizeEntry` (no write): an entry from before levels becomes level 1 with the same best; unknown or malformed level data is dropped. `best` / `bestDurationMs` are the totals (`levelTotals`): **points games** the sum of the level bests; **time games** the summed best finishing time only once all 5 levels have one (`best` is then the sum of the level time scores, so higher stays better), else `best 0` / `bestDurationMs null` and the UI says "Finish all 5 levels to rank"; **levels off or a one-level game** level 1's best, the exact number stored before levels. `plays` counts all levels. `useBestScore(slug)` returns the normalized entry; `useLevelProgress(meta)` the tiles' data (`levelProgress`: per level best, time, plays, cleared, unlocked; total; cleared count).
+- **Submit:** `FinishedRun.level` (default 1) and `endReason`; the run is clamped to its level's limits (`scoringFor(meta, level)`). `SubmitResult.best` / `bestDurationMs` / `isNewBest` are the level's (for a one-level game identical to before), plus `level`, `total`, `totalDurationMs`, `newlyCleared`, `unlockedLevel`. Level 1 goes up byte-identical to before (no `level` key, no features read); levels 2-5 send `level` only when the server advertises `features.levels`, otherwise they stay on the device (`saved-local`). The response's `level_best_score` / `is_new_level_best` update the level; an older server's `best_score` counts as level 1's. `syncServerScores` takes the server's per-level bests (`me.levels`), or its one best as level 1, keeping levels and cleared flags only this device has. Run tickets are bound to the level (`startRun(slug, level)`; level 1 asks as before). `unrankedResult(slug, userId, level?)`.
+- **UI:** the start card's `LevelTiles` (radio group; arrows, Home/End and digits 1-5; locked / open / cleared with the best per level; the picked level's description or "Clear level n to unlock"; "Total … · n of 5 levels cleared"; Play disabled on a locked level; the level's instructions; the best badge gives way to the total); the HUD's "L3" chip (`HudChips level`); the result's "Level 3 · Copy Room", "Level 4 unlocked!", the total and Next level (primary, once the level is cleared and n < 5) / Retry / Levels (`menu()`) / Exit; the `/3d` card shows "Total … · n/5" (`levelCardText`).
+- **URL and last level (`levelUrl.ts`):** `/3d/<slug>?level=3`, read once when the start card first opens (`pickInitialLevel`: the requested level when unlocked, else the highest unlocked below it; without a request the last played level, else the first open level not cleared, else 5), rewritten with `history.replaceState` on every tile change (level 1 removes it). Canonical, OG and JSON-LD stay `/3d/<slug>`. Last played level: `localStorage` `play50games_3d_level:<slug>`.
+- **Analytics (`analytics.ts`):** `level` on `arcade_start`, `arcade_game_over` and `arcade_new_best` (a new best on that level) for games whose level UI is on; `arcade_level_cleared` `{ game, level, score, duration_ms }` on the first clear of a level by this user or guest.
+- Tests: `levels.test.ts` (store actions, rules, totals), `scores.levels.test.ts` (migration, per-level merge, unlocks, time totals, submit with and without `features.levels`, sync, `pickInitialLevel`, analytics), `ShellOverlays.levels.test.ts` (tiles, chip, result buttons, the gate), `levelUrl.test.ts`, `levelMeta.test.ts` (helpers, sync with levels); fixtures `testing/levelFixtures.ts` (`withLevels(meta)`).

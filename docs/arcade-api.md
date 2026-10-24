@@ -263,7 +263,7 @@ Response (all games, enabled or not):
 ```json
 { "games": { "robot-collector": { "title": "Robot Collector", "kind": "points", "max_score": 1470, "min_duration_ms": 12500, "max_duration_ms": 62000, "base": 600, "max_pps": 120, "time_base_ms": null, "enabled": false } }, "run_tokens": { "mode": "optional", "ready": true } }
 ```
-`run_tokens` (since run tokens; an older server has no such key): `mode` is `"required"` while the enforcement switch is on, else `"optional"`; `ready` is `true` once the claims table is installed (DB version 2). This is the read-only way to check a backend upload and the switch (cached up to 300 s).
+`run_tokens` (since run tokens; an older server has no such key): `mode` is `"required"` while the enforcement switch is on, else `"optional"`; `ready` is `true` once the claims table is installed (DB version 2). This is the read-only way to check a backend upload and the switch (cached up to 300 s). A server with levels adds `"features": { "levels": true }` and a `levels` array per game (§6.7); the client reads `features.levels` once per page load (`arcadeApi.games()`).
 Errors: `missing_api_key`, `invalid_api_key`. Cache-Control: `public, max-age=300` + `Vary: Origin` (rest-api.php reflects the Origin in `Access-Control-Allow-Origin` and removes core's `rest_send_cors_headers`, which would normally add it).
 
 ### 6.2 `POST /arcade/scores`
@@ -274,6 +274,7 @@ Body (`ArcadeSubmitBody`):
 | `slug` | string | `^[a-z0-9-]{1,40}$` |
 | `score` | int | Required for points games. Ignored for time games (may be missing) |
 | `duration_ms` | int | Required |
+| `level` | int | Levels only (§6.7): 2..5, sent only to a server whose `GET /arcade/games` has `features.levels: true`. Absent = level 1 (the client never sends `1`) |
 | `run_token` | string | Optional while enforcement is off; required when it is on. The `run_token` from `POST /arcade/runs/start`, unchanged. A valid ticket is claimed (single use); a failed one rejects only while enforcement is on (§7a). Missing or `null` = tokenless |
 
 "int" means a JSON integer (`is_int`) or a digit-only string up to 9 digits. Floats, negatives, booleans and `null` are `invalid_data`.
@@ -288,6 +289,7 @@ Response (`ArcadeSubmitResponse`):
 | `best_score`, `plays` | Row values after the upsert |
 | `is_new_best` | No previous row, or `score > previous best_score` (same rule as `mergeRun` in `scores.ts`) |
 | `rank` | Rank query (§9) with the row's `best_score` / `best_at` |
+| `level`, `level_best_score`, `is_new_level_best` | Levels only (§6.7): the level played, its best after the upsert, and whether this run raised it. `best_score` is then the game's total |
 
 Errors: every code in §4 except `rest_no_route`. Cache-Control: `private, no-store`.
 
@@ -323,6 +325,7 @@ Object keyed by slug (`Partial<Record<ArcadeSlug, ArcadeMeEntry>>`). One key per
 - `rank`: rank query, or `null` when the row is hidden (banned). A failed rank query is `db_error` 500, never `null`.
 - No rows → `{}`. A plain empty PHP array would encode as `[]`, but returning a top-level `stdClass` from the callback is unsafe: WP core's `?_fields` / `?_embed` handling treats the data as an array and fatals on PHP 8. So the callback returns the (possibly empty) array and a `rest_pre_echo_response` filter scoped to this route turns `array()` into `new stdClass()` right before encoding.
 - **No other top-level keys.** `syncServerScores()` treats every key as a slug.
+- Levels (§6.7): each entry's `best` is the game's total and it adds `levels: { "1": { best, best_duration_ms, plays, last_played }, ... }` (scored levels only).
 - Errors: `missing_api_key`, `invalid_api_key`, `unauthorized`, `db_error`. Cache-Control: `private, no-store`.
 
 ### 6.5 `GET /arcade/me/privacy` and `POST /arcade/me/privacy`
@@ -336,13 +339,24 @@ Object keyed by slug (`Partial<Record<ArcadeSlug, ArcadeMeEntry>>`). One key per
 
 ### 6.6 `POST /arcade/runs/start`
 
-Body: `{ "slug": "robot-collector" }` (only `slug` is read). Response, HTTP 200, `Cache-Control: private, no-store`, exactly:
+Body: `{ "slug": "robot-collector" }` (only `slug` is read; a server with levels also reads `level`, §6.7). Response, HTTP 200, `Cache-Control: private, no-store`, exactly:
 ```json
 { "run_token": "r1.1791000000000.1791000362000.7c9e5b30f0124ca3b6df90a12f348bd7.<64 hex>" }
 ```
 The ticket is opaque to the client (`isRunToken` only rejects junk). It never goes into a URL, storage, analytics or a log line.
 
 Order: API key → JWT/existing user (permission callback) → ban (`forbidden` 403) → slug format (`invalid_data` 400, `field: slug`) → known and enabled game (`not_found` 404) → start limits (§8, `rate_limited` 429) → claims table ready (else `db_error` 500: the client then submits without a ticket) → opportunistic cleanup → issue. Nothing is stored at issue. The route exists whatever the enforcement switch says. An older server answers `rest_no_route` 404, which the client treats as "no ticket".
+
+### 6.7 Levels: what the client sends and reads (frontend `claude/levels-core`)
+
+Design: `docs/arcade-levels.md` §4. The server side (validation, per-level limits, the totals table, level-bound tickets) is the `claude/levels-backend` PR; this section pins the client so both sides agree.
+
+- **Switch.** The client uses levels only with `NEXT_PUBLIC_ARCADE_LEVELS` on, for a game whose `meta.ts` has five levels, and plays levels 2-5 against the leaderboard only after `GET /arcade/games` answered `features.levels: true` (one read per page load; an error counts as "no" and is retried on the next need). With the flag off, or on a server without `features`, every request is exactly as before levels.
+- **Level 1 is unchanged.** `POST /arcade/scores` and `POST /arcade/runs/start` for level 1 carry no `level` key (byte-identical bodies), so they work on every server version.
+- **Levels 2-5.** `POST /arcade/scores` body `{ slug, score, duration_ms, level, run_token? }`; `POST /arcade/runs/start` body `{ slug, level }` (the ticket is bound to that level). Expected errors: `invalid_data` 400 with `field: "level"` for an unknown level (mapped to status `rejected`).
+- **Responses read.** Submit: `level_best_score` (the level's best; the client keeps the higher of it and its own), `is_new_level_best` (falls back to `is_new_best`), `best_score` (the total; the client recomputes its local total from the levels), `rank` (rank of the total). An older server without `level_best_score`: `best_score` is level 1's best, as before. `GET /arcade/me`: per-level bests from `levels`; an entry without `levels` is taken as level 1.
+- **Board value.** Points games: the sum of the level bests. Time games: the summed best finishing time of all 5 levels, ranked only once all 5 are finished (user decision 4; the stored column format is the backend PR's choice, the client shows per-level times and "Finish all 5 levels to rank" until then).
+- **Mock** (`createMockArcadeClient`, `NEXT_PUBLIC_ARCADE_API_MOCK=1`): behaves like a server with levels: `games()` returns `features.levels: true`, bests are kept per slug and level, `best_score` / the leaderboard / `me().best` are the sum, `me().levels` lists the levels, a level outside 1..5 is `invalid_data`, and a ticket only verifies for its own slug and level.
 
 ---
 

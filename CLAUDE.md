@@ -77,6 +77,7 @@ Decisions the user made (do not re-open them without asking):
 | `NEXT_PUBLIC_ARCADE_ENABLED` | No 3D tab, links, routes (`/3d/*` → 404) or sitemap entries |
 | `NEXT_PUBLIC_ARCADE_LEADERBOARD` | Scores stay in localStorage only (status `leaderboard-off`) |
 | `NEXT_PUBLIC_ARCADE_API_MOCK` | On = in-memory mock instead of WP (dev only) |
+| `NEXT_PUBLIC_ARCADE_LEVELS` | Every game plays level 1 exactly as before levels: no level tiles, HUD chip, Next level / Levels buttons, `?level=` or `level` in any request (`core/README.md` "Levels"). On: games with five `meta.levels` show the level UI once the server advertises `features.levels` |
 
 All default off, so merging to `main` is always safe. Read each flag with its literal key (Next inlines them at build time).
 
