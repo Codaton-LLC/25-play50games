@@ -567,13 +567,12 @@ export function maxPayAt(t: number): number {
 // ---------- the server limits ----------
 
 /**
- * The proposed server limits (README.md "Server limits and why they hold"), proven in rules.test.ts.
- * meta.scoring still mirrors the dev placeholder in includes/arcade-games.json; the limits PR lands
- * these numbers in both.
+ * The server limits (README.md "Server limits and why they hold"), proven in rules.test.ts.
+ * meta.scoring and includes/arcade-games.json carry the same values.
  */
 export const PROPOSED_LIMITS: ScoringRules = {
    ...monsterKitchenMeta.scoring,
-   maxScore: 4200,
+   maxScore: 4830,
    minDurationMs: 12000,
    maxDurationMs: 92000,
    base: 240,
