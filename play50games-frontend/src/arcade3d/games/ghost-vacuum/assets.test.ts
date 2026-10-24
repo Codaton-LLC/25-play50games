@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { readCharacterGlb } from "@/arcade3d/core/rig/robotGlb";
 import { EXPANSION_GLB_POINTS, EXPANSION_GLB_SIZE } from "@/arcade3d/core/sharedAssets";
-import { ASSETS, HUNTER_SCALE, PACK_OFFSET, VACUUM_SCALE } from "./assets";
+import { ASSETS, BACK_CLEARANCE, HUNTER_SCALE, PACK_OFFSET, VACUUM_SCALE } from "./assets";
 import { FLOAT, SUCK } from "./suck";
 
 async function bounds(url: string) {
@@ -11,16 +11,17 @@ async function bounds(url: string) {
    return { min, max, width: max[0] - min[0], height: max[1] - min[1], depth: max[2] - min[2] };
 }
 describe("real GLB fits (run by Claude outside the meshopt-restricted sandbox)", () => {
-   it("fits the runner to 1.56m and the strap-free vacuum to 0.55m", async () => {
-      const runner = await bounds(ASSETS.hunter.url), vacuum = await bounds(ASSETS.vacuum.url);
-      expect(runner.height * HUNTER_SCALE).toBeCloseTo(1.56, 2);
+   it("fits the hunter to 1.56m and the strap-free vacuum to 0.55m", async () => {
+      const hunter = await bounds(ASSETS.hunter.url), vacuum = await bounds(ASSETS.vacuum.url);
+      expect(hunter.height * HUNTER_SCALE).toBeCloseTo(1.56, 3);
+      expect(hunter.min[1]).toBeCloseTo(0, 4); // feet on y = 0
       expect(vacuum.height * VACUUM_SCALE).toBeCloseTo(0.55, 2);
       expect(vacuum.width * VACUUM_SCALE).toBeCloseTo(0.270, 2);
       expect(vacuum.depth * VACUUM_SCALE).toBeCloseTo(0.384, 2);
       expect(EXPANSION_GLB_SIZE.vacuum).toEqual({ width: 0.7937, height: 1.6149, depth: 1.1261 });
       expect(EXPANSION_GLB_POINTS.vacuumBack).toEqual({ x: 0, y: 0.75, z: -0.546 });
       expect(EXPANSION_GLB_POINTS.vacuumBack.y * VACUUM_SCALE + PACK_OFFSET[1]).toBeCloseTo(0, 10);
-      expect(-EXPANSION_GLB_POINTS.vacuumBack.z * VACUUM_SCALE + PACK_OFFSET[2]).toBeCloseTo(-0.08, 10);
+      expect(-EXPANSION_GLB_POINTS.vacuumBack.z * VACUUM_SCALE + PACK_OFFSET[2]).toBeCloseTo(-(0.01 + BACK_CLEARANCE), 10);
    });
    it("records the missing shared prop measurements and checks the required fits", async () => {
       const desk = await bounds(ASSETS.desk.url), chair = await bounds(ASSETS.chair.url);
