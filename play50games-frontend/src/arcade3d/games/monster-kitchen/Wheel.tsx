@@ -12,7 +12,7 @@ import { DynamicInstanced } from "@/arcade3d/core/render";
 import { useGameTime } from "@/arcade3d/core/gameTime";
 import { ASSETS } from "./assets";
 import { useEyeballParts, useSlimeParts } from "./Primitives";
-import { TOSS, WHEEL, slotPosition, tossArcPos, type IngredientKind, type RunState } from "./rules";
+import { TOSS, WHEEL, easeWheel, tossArcPos, type IngredientKind, type RunState } from "./rules";
 
 /** The drawn wheel's shared look: the eased index and the last dull wobble, written here and in the Scene. */
 export interface WheelLook {
@@ -70,10 +70,7 @@ export function Wheel({ run, look }: { run: RunState; look: WheelLook }) {
 
    useFrame(() => {
       // ease the drawn wheel toward the rules index: 0.18 s per slot, the short way round
-      const d = ((run.rotation - look.rot) % 8 + 12) % 8;
-      const short = d > 4 ? d - 8 : d;
-      const step = time.delta / WHEEL.rotateS;
-      look.rot += Math.abs(short) < step ? short : Math.sign(short) * step;
+      look.rot = easeWheel(look.rot, run.rotation, time.delta / WHEEL.rotateS);
       const g = root.current;
       if (!g) return;
       g.rotation.y = (look.rot * Math.PI) / 4;

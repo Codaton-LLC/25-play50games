@@ -27,6 +27,10 @@ const WALL = "#44403c";
 const TRIM = "#57534e";
 const COUNTER = "#78350f";
 const STOVE = "#292524";
+const ROCK = "#1c1917";
+/** The shelf over the left hatch: in front of the wall face (HATCH_Z), its top at SHELF.top. */
+const SHELF = { x: -2.35, z: HATCH_Z + 0.13, depth: 0.26, top: 2.47 };
+const JAR_H = 0.22;
 
 export function Kitchen() {
    const quality = useQuality();
@@ -77,7 +81,9 @@ export function Kitchen() {
       const count = scaledCount(8, quality.tier === "low" ? 0.5 : 1);
       const spots = [];
       for (let i = 0; i < count; i++) {
-         spots.push({ x: -3.05 + i * 0.22, y: 2.48, z: -1.78, scale: 0.9 + (i % 3) * 0.12 });
+         const scale = 0.9 + (i % 3) * 0.12;
+         // standing on the shelf, in front of the wall face
+         spots.push({ x: -3.05 + i * 0.22, y: SHELF.top + (JAR_H / 2) * scale, z: HATCH_Z + 0.12, scale });
       }
       return spots;
    }, [quality.tier]);
@@ -105,6 +111,16 @@ export function Kitchen() {
          <mesh geometry={wall} position-z={HATCH_Z}>
             <meshStandardMaterial color={WALL} roughness={0.9} />
          </mesh>
+         {/* the cave behind: a dark rock backdrop past the queue, and a rock band over the wall top, so
+             no flat background shows above the wall or through the hatch */}
+         <mesh position={[-0.7, 3.2, -3.4]}>
+            <planeGeometry args={[18, 6.4]} />
+            <meshStandardMaterial color={ROCK} roughness={1} />
+         </mesh>
+         <mesh position={[-0.72, 3.75, HATCH_Z - 0.09]}>
+            <boxGeometry args={[6.2, 1.7, 0.22]} />
+            <meshStandardMaterial color={ROCK} roughness={1} />
+         </mesh>
          {/* wall trim line along the top */}
          <mesh position={[-0.72, 2.92, HATCH_Z - 0.07]}>
             <boxGeometry args={[4.97, 0.08, 0.18]} />
@@ -126,13 +142,13 @@ export function Kitchen() {
             <meshStandardMaterial color="#fb923c" emissive="#f97316" emissiveIntensity={1.6} roughness={1} />
          </mesh>
          {/* the shelf over the left hatch */}
-         <mesh position={[-2.35, 2.44, HATCH_Z - 0.02]}>
-            <boxGeometry args={[1.7, 0.06, 0.34]} />
+         <mesh position={[SHELF.x, SHELF.top - 0.03, SHELF.z]}>
+            <boxGeometry args={[1.7, 0.06, SHELF.depth]} />
             <meshStandardMaterial color={COUNTER} roughness={0.7} />
          </mesh>
          {/* the jars, instanced, one label texture */}
          <Instanced spots={jarSpots} name="jars">
-            <cylinderGeometry args={[0.07, 0.075, 0.22, 12]} />
+            <cylinderGeometry args={[0.07, 0.075, JAR_H, 12]} />
             <meshStandardMaterial map={jarTexture} roughness={0.5} />
          </Instanced>
          {/* mushroom decor (shared GLB, instanced; primitive spots while it is missing) */}

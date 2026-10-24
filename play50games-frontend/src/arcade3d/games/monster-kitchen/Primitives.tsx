@@ -74,18 +74,18 @@ export function CauldronPrimitive() {
    );
 }
 
-/** The eyeball pool's parts: the white and the iris, two draws for all copies. */
+/** The eyeball pool's parts: the white (0.36 m across, >= 24 CSS px on a 390x844 phone) and the iris. */
 export function useEyeballParts(): readonly InstancePart[] {
    const parts = useMemo<InstancePart[]>(() => {
-      const irisLocal = new Matrix4().makeTranslation(0, 0.085, 0.062);
+      const irisLocal = new Matrix4().makeTranslation(0, 0.18, 0.13);
       return [
          {
-            geometry: new SphereGeometry(0.085, 16, 12),
+            geometry: new SphereGeometry(0.18, 16, 12),
             material: new MeshStandardMaterial({ color: "#f8fafc", roughness: 0.35 }),
-            locals: [new Matrix4().makeTranslation(0, 0.085, 0)],
+            locals: [new Matrix4().makeTranslation(0, 0.18, 0)],
          },
          {
-            geometry: new SphereGeometry(0.034, 10, 8),
+            geometry: new SphereGeometry(0.072, 10, 8),
             material: new MeshStandardMaterial({ color: "#0f172a", roughness: 0.3 }),
             locals: [irisLocal],
          },
@@ -103,14 +103,14 @@ export function useEyeballParts(): readonly InstancePart[] {
    return parts;
 }
 
-/** The slime cube pool's part: one wobbly green block for all copies. */
+/** The slime cube pool's part: one wobbly green block (0.34 m wide, >= 24 CSS px on a phone) for all copies. */
 export function useSlimeParts(): readonly InstancePart[] {
    const parts = useMemo<InstancePart[]>(
       () => [
          {
-            geometry: new BoxGeometry(0.15, 0.13, 0.15),
+            geometry: new BoxGeometry(0.34, 0.3, 0.34),
             material: new MeshStandardMaterial({ color: "#22c55e", roughness: 0.25 }),
-            locals: [new Matrix4().makeTranslation(0, 0.065, 0)],
+            locals: [new Matrix4().makeTranslation(0, 0.15, 0)],
          },
       ],
       [],

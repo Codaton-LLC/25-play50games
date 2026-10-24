@@ -8,6 +8,7 @@
 // windows, patience): README.md "Server limits and why they hold" has the proof, rules.test.ts checks it.
 import { capScore as capToLimits, withinServerLimits as fitsLimits } from "@/arcade3d/core/limits";
 import { rngNext } from "@/arcade3d/core/math";
+import type { ScoringRules } from "@/arcade3d/types";
 import { monsterKitchenMeta } from "./meta";
 
 // ---------- tuning ----------
@@ -218,6 +219,17 @@ export function slotPosition(slot: number, rotation: number, out: { x: number; y
    out.x = WHEEL.x + WHEEL.ringR * Math.sin(a);
    out.y = WHEEL.y;
    out.z = WHEEL.z + WHEEL.ringR * Math.cos(a);
+}
+
+/**
+ * The drawn wheel's easing (visual only; the Scene and the picking use the integer rotation): move
+ * the drawn index `drawn` (fractional, unbounded) at most `step` slots toward `target` (0..7), the
+ * short way round, landing exactly on it (mod 8) once within reach. A half turn goes forward.
+ */
+export function easeWheel(drawn: number, target: number, step: number): number {
+   const d = (((target - drawn) % WHEEL.slots) + WHEEL.slots) % WHEEL.slots;
+   const short = d > WHEEL.slots / 2 ? d - WHEEL.slots : d;
+   return Math.abs(short) <= step ? drawn + short : drawn + Math.sign(short) * step;
 }
 
 /** The centre front slot: ring position WHEEL.front. */
@@ -516,12 +528,26 @@ export function maxPayAt(t: number): number {
 
 // ---------- the server limits ----------
 
-/** The server's check (core/limits.ts) with this game's limits from meta.ts. */
+/**
+ * The proposed server limits (README.md "Server limits and why they hold"), proven in rules.test.ts.
+ * meta.scoring still mirrors the dev placeholder in includes/arcade-games.json; the limits PR lands
+ * these numbers in both.
+ */
+export const PROPOSED_LIMITS: ScoringRules = {
+   ...monsterKitchenMeta.scoring,
+   maxScore: 4200,
+   minDurationMs: 12000,
+   maxDurationMs: 92000,
+   base: 240,
+   maxPointsPerSec: 60,
+};
+
+/** The server's check (core/limits.ts) with this game's proposed limits. */
 export function withinServerLimits(score: number, durationMs: number): boolean {
-   return fitsLimits(score, durationMs, monsterKitchenMeta.scoring);
+   return fitsLimits(score, durationMs, PROPOSED_LIMITS);
 }
 
 /** Safety net only: the README proof shows real runs never reach it; rules.test.ts keeps it a no-op. */
 export function capScore(score: number, durationMs: number): number {
-   return capToLimits(score, durationMs, monsterKitchenMeta.scoring);
+   return capToLimits(score, durationMs, PROPOSED_LIMITS);
 }

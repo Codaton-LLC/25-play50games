@@ -46,7 +46,7 @@ function Bubble({ order }: { order: Order }) {
          <div className={styles.icons}>
             {order.kinds.map((kind, i) => (
                <span key={i} className={i < order.progress ? styles.done : i === order.progress ? styles.next : styles.pending}>
-                  <KindIcon kind={kind} size={22} />
+                  <KindIcon kind={kind} size={26} />
                </span>
             ))}
          </div>

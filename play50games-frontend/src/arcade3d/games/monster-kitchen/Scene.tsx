@@ -6,7 +6,7 @@
 // single fixed yaw: useFittedView keeps the whole set (the README's area) clear of the HUD, the touch
 // controls, the cookie banner and this game's own DOM Hud (its data-arcade-safe-area panels), with the
 // lens shift moving the picture instead of turning. Tap picking resolves against the rules index (the
-// integer rotation, never the eased disc): nearest slot centre on screen within a generous radius.
+// integer rotation, never the eased disc): nearest slot centre on screen within 48 CSS px.
 import { useEffect, useMemo, useState } from "react";
 import { useThree, type RootState } from "@react-three/fiber";
 import { Vector3 } from "three";
@@ -41,6 +41,8 @@ const AREA = {
    min: { x: -3.0, y: 0, z: -2.0 },
    max: { x: 1.6, y: 2.9, z: 0.9 },
 };
+/** A canvas tap picks the nearest wheel slot centre within this many CSS px. */
+const PICK_PX = 48;
 /** The fit's focus: the area's floor centre (what the camera looks at). */
 const FOCUS = { x: -0.7, y: 0, z: -0.55 };
 
@@ -82,6 +84,18 @@ export default function Scene() {
 
    useEffect(() => fx.warm("splash", "smoke", "confetti", "sparkle", "score"), [fx]);
 
+   // the Hud's shared mirrors outlive a run: no stale bubbles or queued ◀ ▶ presses on Retry
+   useEffect(() => {
+      const reset = () => {
+         hudOrders[0] = null;
+         hudOrders[1] = null;
+         hudButtons.left = 0;
+         hudButtons.right = 0;
+      };
+      reset();
+      return reset;
+   }, []);
+
    // the bubbling loop runs while the run does (the shell stops loops on pause/over/mute)
    useEffect(() => {
       let loop: LoopHandle | null = null;
@@ -106,15 +120,15 @@ export default function Scene() {
       [view],
    );
 
-   /** Nearest wheel slot to a canvas tap, by screen distance within a generous radius (rules index). */
+   /** Nearest wheel slot to a canvas tap, by screen distance within PICK_PX CSS px (rules index). */
    const pickSlot = (state: RootState, tap: { x: number; y: number } | null): number | null => {
       if (!tap) return null;
       let best = -1;
-      let bestD = 0.5;
+      let bestD = PICK_PX;
       for (let slot = 0; slot < WHEEL.slots; slot++) {
          slotPosition(slot, run.rotation, at);
-         ndc.set(at.x, at.y + 0.08, at.z).project(state.camera);
-         const d = Math.hypot(ndc.x - tap.x, ndc.y - tap.y);
+         ndc.set(at.x, at.y + 0.12, at.z).project(state.camera);
+         const d = Math.hypot(((ndc.x - tap.x) * width) / 2, ((ndc.y - tap.y) * height) / 2);
          if (d < bestD) {
             bestD = d;
             best = slot;

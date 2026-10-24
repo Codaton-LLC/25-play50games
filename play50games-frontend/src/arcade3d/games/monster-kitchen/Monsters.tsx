@@ -50,6 +50,7 @@ function Monster({ look, x }: { look: WindowLook; x: number }) {
       const order = look.cur;
       if (order) {
          g.visible = true;
+         b.scale.setScalar(1); // the exit shrinks the body: every new monster walks in full size
          let z = MONSTER_Z;
          if (order.phase === "ordering") {
             // walk in from the back, then wobble; the lean deepens as the patience drains

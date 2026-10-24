@@ -14,6 +14,7 @@ import {
    MAX_PAY,
    ORDERS,
    PATIENCE,
+   PROPOSED_LIMITS,
    SCORING,
    SERVE_CYCLE_MIN_S,
    TOSS,
@@ -21,6 +22,7 @@ import {
    capScore,
    centreSlot,
    createRun,
+   easeWheel,
    isFront,
    maxPayAt,
    orderPoints,
@@ -256,6 +258,42 @@ describe("monster-kitchen wheel", () => {
       expect(at.z).toBeCloseTo(WHEEL.z - WHEEL.ringR, 9);
    });
 
+   it("the drawn wheel eases onto run.rotation exactly and turns one slot the short way", () => {
+      const off = (v: number, target: number) => {
+         const d = (((v - target) % 8) + 8) % 8;
+         return Math.min(d, 8 - d);
+      };
+      const settle = (drawn: number, target: number) => {
+         let frames = 0;
+         while (frames < 600) {
+            const next = easeWheel(drawn, target, DT / WHEEL.rotateS);
+            if (next === drawn) break;
+            drawn = next;
+            frames += 1;
+         }
+         return { drawn, frames };
+      };
+      // already on target: it stays put (no spin at the start of a run)
+      for (let r = 0; r < 8; r++) expect(easeWheel(r, r, 0.1)).toBe(r);
+      expect(easeWheel(16, 0, 0.1)).toBe(16);
+      // from anywhere (fractional, unbounded, either sign) it lands exactly on the target mod 8, never the long way
+      for (const start of [0, 0.3, 2.5, 7.9, -3.2, 13.75, -17]) {
+         for (let target = 0; target < 8; target++) {
+            const { drawn, frames } = settle(start, target);
+            expect(off(drawn, target), `${start} -> ${target}`).toBeLessThan(1e-9);
+            expect(frames).toBeLessThanOrEqual(Math.ceil((4 * WHEEL.rotateS) / DT) + 1);
+         }
+      }
+      // a +1 / -1 key turns one slot that way (across the wrap too), in 0.18 s
+      for (const [from, to, dir] of [[0, 1, 1], [0, 7, -1], [7, 0, 1], [3, 2, -1]] as const) {
+         const first = easeWheel(from, to, DT / WHEEL.rotateS);
+         expect(Math.sign(first - from), `${from} -> ${to}`).toBe(dir);
+         const { drawn, frames } = settle(from, to);
+         expect(drawn - from).toBeCloseTo(dir, 9);
+         expect(frames).toBe(Math.ceil(WHEEL.rotateS / DT - 1e-9));
+      }
+   });
+
    it("a tossed slot is empty exactly INGREDIENTS.refillS, then refills with a seeded kind", () => {
       const run = createRun(11);
       stepTo(run, 0.5);
@@ -310,6 +348,47 @@ describe("monster-kitchen orders and scheduler", () => {
       step(run);
       expect(run.windows[1].order).not.toBeNull();
       expect(run.windows[1].order!.appearedAt).toBeCloseTo(70.8, 9);
+   });
+
+   it("each length band draws both of its lengths: 3 and 4 from 25 s, 4 and 5 from 50 s", () => {
+      const seen = new Map<number, Set<number>>([[3, new Set()], [4, new Set()], [5, new Set()]]);
+      for (const seed of SEEDS.slice(0, 100)) {
+         const run = createRun(seed);
+         for (let f = 1; f <= 90 * 20; f++) {
+            stepRun(run, input(), 1 / 20, f / 20);
+            for (const w of [0, 1] as const) {
+               const o = run.windows[w].order;
+               if (o && run.events.appeared & (1 << w)) seen.get(ORDERS.lenAt(o.appearedAt))!.add(o.kinds.length);
+            }
+         }
+      }
+      expect([...seen.get(3)!]).toEqual([3]);
+      expect([...seen.get(4)!].sort()).toEqual([3, 4]);
+      expect([...seen.get(5)!].sort()).toEqual([4, 5]);
+   });
+
+   it("an angry monster leaves 0.4 s after patience hits 0; the next order appears 1.2 s after it", () => {
+      const run = createRun(7);
+      stepTo(run, 0.5 + ORDERS.graceS + 0.1);
+      const order = run.windows[0].order!;
+      order.patience = 0.005; // runs out on the next frame
+      step(run);
+      expect(order.phase).toBe("angry");
+      const angryAt = order.phaseAt;
+      expect(angryAt).toBeCloseTo(run.time, 9);
+      stepTo(run, angryAt + PATIENCE.angryLeaveS - DT);
+      expect(run.windows[0].order).toBe(order);
+      expect(run.events.angryLeft).toBe(0);
+      step(run);
+      expect(run.events.angryLeft & 1).toBe(1);
+      expect(run.windows[0].order).toBeNull();
+      stepTo(run, angryAt + PATIENCE.angryLeaveS + ORDERS.walkInS - DT);
+      expect(run.windows[0].order).toBeNull();
+      step(run);
+      const next = run.windows[0].order!;
+      expect(next).not.toBeNull();
+      expect(next.id).not.toBe(order.id);
+      expect(next.appearedAt).toBeCloseTo(angryAt + 1.2, 9);
    });
 
    it("is deterministic per seed and the draws stay valid on 1,000 seeds", () => {
@@ -437,6 +516,20 @@ describe("monster-kitchen toss", () => {
       expect(order.patience).toBeCloseTo(PATIENCE.max - PATIENCE.penalty, 9);
    });
 
+   it("a toss launched before the appearance never counts, even when its kind is the order's first item", () => {
+      const run = createRun(5);
+      stepTo(run, 0.2);
+      step(run, input(0, null, true)); // launched before the order appears at 0.5
+      const flight = run.flight!;
+      stepTo(run, 0.5);
+      const order = run.windows[0].order!;
+      order.kinds[0] = flight.kind; // the very kind in the air
+      stepTo(run, flight.landAt);
+      expect(run.events.advanced).toBe(false);
+      expect(run.events.burped).toBe(true);
+      expect(order.progress).toBe(0);
+   });
+
    it("a toss launched after the appearance advances the earliest eligible order needing the kind", () => {
       const run = createRun(5);
       stepTo(run, 0.5);
@@ -494,6 +587,60 @@ describe("monster-kitchen toss", () => {
       expect(run.burpUntil).toBeCloseTo(landAt + TOSS.burpLockS, 9);
    });
 
+   it("with two orders a wrong landing restarts and penalizes only the earliest (either window)", () => {
+      for (const first of [0, 1] as const) {
+         const run = createRun(5);
+         stepTo(run, 0.5);
+         run.windows[1].arriveAt = 2.0;
+         stepTo(run, 2.0);
+         const a = run.windows[first].order!;
+         const b = run.windows[1 - first].order!;
+         a.appearedAt = 0.2; // the earliest (both past the grace)
+         b.appearedAt = 0.3;
+         const kind = run.slots[centreSlot(run.rotation)].kind!;
+         const other = INGREDIENTS.kinds.find((k) => k !== kind)!;
+         for (const o of [a, b]) {
+            o.kinds[0] = other;
+            o.kinds[1] = other;
+            o.progress = 1;
+            o.patience = 9;
+            o.type = "jolly";
+         }
+         step(run, input(0, null, true));
+         const landAt = run.flight!.landAt;
+         const pa = a.patience;
+         const pb = b.patience;
+         stepTo(run, landAt);
+         expect(run.events.burped).toBe(true);
+         expect(a.progress, `earliest in window ${first}`).toBe(0);
+         expect(b.progress, `later in window ${1 - first}`).toBe(1);
+         // the same drain on both over the flight; only the earliest takes the -3
+         expect(pa - a.patience - (pb - b.patience)).toBeCloseTo(PATIENCE.penalty, 6);
+      }
+   });
+
+   it("a tap on ring position 4 or 0 rotates instead of tossing (only the front 3 slots toss)", () => {
+      for (const pos of [4, 0]) {
+         const run = createRun(5);
+         stepTo(run, 0.5);
+         const slot = (((pos - run.rotation) % 8) + 8) % 8;
+         expect(ringPos(slot, run.rotation)).toBe(pos);
+         expect(run.slots[slot].kind).not.toBeNull();
+         step(run, input(0, slot, false));
+         expect(run.events.tossed, `ring position ${pos}`).toBe(false);
+         expect(run.flight).toBeNull();
+         expect(run.events.tapRotated).toBe(true);
+         expect(ringPos(slot, run.rotation)).toBe(WHEEL.front);
+      }
+      for (const pos of [5, 6, 7]) {
+         const run = createRun(5);
+         stepTo(run, 0.5);
+         const slot = (((pos - run.rotation) % 8) + 8) % 8;
+         step(run, input(0, slot, false));
+         expect(run.events.tossed, `ring position ${pos}`).toBe(true);
+      }
+   });
+
    it("a tap on an empty slot only wobbles; a tap off the front arc rotates it to the front", () => {
       const run = createRun(5);
       stepTo(run, 0.5);
@@ -508,6 +655,21 @@ describe("monster-kitchen toss", () => {
       step(run, input(0, back, false));
       expect(run.events.tapRotated).toBe(true);
       expect(ringPos(back, run.rotation)).toBe(WHEEL.front);
+   });
+
+   it("patience keeps draining while a toss is in flight after the grace", () => {
+      const run = createRun(5);
+      stepTo(run, 0.5 + ORDERS.graceS + 0.5);
+      const order = run.windows[0].order!;
+      order.type = "grumpy";
+      order.kinds[order.progress] = run.slots[centreSlot(run.rotation)].kind!;
+      const p0 = order.patience;
+      const t0 = run.time;
+      step(run, input(0, null, true));
+      expect(run.flight).not.toBeNull();
+      stepTo(run, run.flight!.landAt - DT);
+      expect(run.flight).not.toBeNull(); // still in the air
+      expect(order.patience).toBeCloseTo(p0 - PATIENCE.drains.grumpy * (run.time - t0), 6);
    });
 
    it("patience drains during flights (grace first)", () => {
@@ -543,8 +705,9 @@ describe("monster-kitchen patience and lives", () => {
 });
 
 describe("monster-kitchen scoring limit proof (README.md)", () => {
-   it("meta.scoring carries the proposed limits", () => {
-      expect(monsterKitchenMeta.scoring).toMatchObject({ kind: "points", maxScore: 4200, minDurationMs: 12000, maxDurationMs: 92000, base: 240, maxPointsPerSec: 60 });
+   it("PROPOSED_LIMITS carries the proposed limits (meta.scoring mirrors arcade-games.json until the limits PR)", () => {
+      expect(PROPOSED_LIMITS).toMatchObject({ kind: "points", maxScore: 4200, minDurationMs: 12000, maxDurationMs: 92000, base: 240, maxPointsPerSec: 60 });
+      expect(PROPOSED_LIMITS).toMatchObject({ kind: monsterKitchenMeta.scoring.kind, unitLabel: monsterKitchenMeta.scoring.unitLabel, display: monsterKitchenMeta.scoring.display });
    });
 
    it("the fastest legal schedule from the constants: <= 15 completions before 70 s, <= 23 total, B(90) <= 4680, B(t) <= 240 + 60 t", () => {
@@ -591,7 +754,7 @@ describe("monster-kitchen scoring limit proof (README.md)", () => {
          }
       }
       const best = Math.max(...scores);
-      expect(best).toBeGreaterThanOrEqual(0.9 * monsterKitchenMeta.scoring.maxScore); // the limit is not loose
+      expect(best).toBeGreaterThanOrEqual(0.9 * PROPOSED_LIMITS.maxScore); // the limit is not loose
    });
 
    it("spam, serve-then-spam and idle bots lose fast, never score, and stay inside the limits", { timeout: 120_000 }, () => {
@@ -602,7 +765,7 @@ describe("monster-kitchen scoring limit proof (README.md)", () => {
          // the restock refill can loop the centre kind back, so a lucky all-same first order
          // plates once (worst measured over the seeds: 145); spam never farms real points
          expect(pure.end.score).toBeLessThanOrEqual(150);
-         expect(pure.end.elapsedMs).toBeGreaterThanOrEqual(monsterKitchenMeta.scoring.minDurationMs);
+         expect(pure.end.elapsedMs).toBeGreaterThanOrEqual(PROPOSED_LIMITS.minDurationMs);
          expect(withinServerLimits(pure.end.score, pure.end.elapsedMs)).toBe(true);
          const served = simulate(seed, makeServeThenSpam(), framesFor(k + 2));
          expect(served.end.endReason).toBe("lose");
@@ -615,7 +778,7 @@ describe("monster-kitchen scoring limit proof (README.md)", () => {
    });
 
    it("capScore stays a no-op on the whole feasible window and the edges reject", () => {
-      const { maxScore, minDurationMs, maxDurationMs } = monsterKitchenMeta.scoring;
+      const { maxScore, minDurationMs, maxDurationMs } = PROPOSED_LIMITS;
       for (let t = minDurationMs; t <= maxDurationMs; t += 1000) {
          const plausible = Math.min(4680, 240 + (60 * t) / 1000, maxScore); // the proof ceiling, the rate cap B(t) <= 240 + 60 t, and maxScore
          expect(withinServerLimits(plausible, t)).toBe(true);

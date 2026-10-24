@@ -12,6 +12,7 @@ import {
    BURGER_GLB_LONGEST,
    CAULDRON_SCALE,
    CHEF_GLB_HEIGHT,
+   INGREDIENT_LONGEST,
    LIQUID_R,
    LIQUID_Y,
    MONSTER_HEAD_ANCHOR_GLB,
@@ -40,7 +41,7 @@ const longest = (b: Box3) => {
 };
 
 describe("monster-kitchen real GLB fits (assets.ts)", () => {
-   it("fits the six reused/shared ingredients to 0.32 m on their committed measured sizes", async () => {
+   it("fits the six reused/shared ingredients to INGREDIENT_LONGEST (0.36 m) on their committed measured sizes", async () => {
       for (const [asset, glbLongest, name] of [
          [ASSETS.apple, APPLE_GLB_LONGEST, "apple"],
          [ASSETS.burger, BURGER_GLB_LONGEST, "burger"],
@@ -50,7 +51,7 @@ describe("monster-kitchen real GLB fits (assets.ts)", () => {
       ] as const) {
          const size = longest(await bounds(asset.url));
          expect(size, name).toBeCloseTo(glbLongest, 2);
-         expect(size * (asset.scale ?? 1), name).toBeCloseTo(0.32, 2);
+         expect(size * (asset.scale ?? 1), name).toBeCloseTo(INGREDIENT_LONGEST, 2);
       }
       // the fish is an expansion asset with the manifest's default fit: 0.35 m long (z)
       const fish = (await bounds(ASSETS.fish.url)).getSize(new Vector3());

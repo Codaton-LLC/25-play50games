@@ -21,8 +21,9 @@ export const BANANA_GLB_LONGEST = 1.896;
 export const TIN_CAN_GLB_LONGEST = 1.8993;
 export const CHEF_GLB_HEIGHT = 1.8693;
 
-/** The longest side of an ingredient on the wheel (m); the readability budget reads 0.35 m ≈ 28-34 px. */
-export const INGREDIENT_LONGEST = 0.32;
+/** The longest side of a GLB ingredient on the wheel (m): with the fish's 0.35 m, the 0.36 m eyeball and
+ *  the 0.34 m slime cube, nothing on the wheel reads under ~24 CSS px on a 390x844 phone. */
+export const INGREDIENT_LONGEST = 0.36;
 /** The chef's drawn height (m), the food-catcher measurement (README "Decisions"). */
 export const CHEF_HEIGHT = 1.82;
 /** The stove drum's top (m): the cauldron stands on it, its rolled rim lands at ≈ 1.48 m. */
