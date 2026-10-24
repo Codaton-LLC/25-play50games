@@ -26,7 +26,14 @@
       "max_duration_ms": 93000,
       "base": 0,
       "max_pps": 28,
-      "enabled": true
+      "enabled": true,
+      "levels": [
+        { "title": "Fruit Catch", "max_score": 2500, "min_duration_ms": 9500, "max_duration_ms": 93000, "base": 0, "max_pps": 28 },
+        { "title": "Snack Catch", "max_score": 2400, "min_duration_ms": 8620, "max_duration_ms": 123000, "base": 0, "max_pps": 89 },
+        { "title": "Fast Food Mix", "max_score": 3150, "min_duration_ms": 7890, "max_duration_ms": 153000, "base": 0, "max_pps": 97 },
+        { "title": "Speed Kitchen", "max_score": 3910, "min_duration_ms": 7940, "max_duration_ms": 183000, "base": 0, "max_pps": 109 },
+        { "title": "Master Catch", "max_score": 4150, "min_duration_ms": 7270, "max_duration_ms": 183000, "base": 0, "max_pps": 99 }
+      ]
     },
     "office-escape": {
       "title": "Office Escape",
