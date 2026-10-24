@@ -168,7 +168,56 @@ Claude adds `fitEyeShift`, `useEyeShift` and `EyeRig` (signatures above) before 
 
 ## Status
 
-Design only. `status` stays `"dev"`. No thumbnail.
+TASK P-18-museum-guard | build museum-guard | branch cursor/game-museum-guard | allowed: play50games-frontend/src/arcade3d/games/museum-guard/**, play50games-frontend/public/images/3d/museum-guard.webp, tools/thumbs/inputs/museum-guard.mjs
+
+### Files
+
+- `rules.ts`, `rules.test.ts` — seeded sim, scoring, bots
+- `looks.ts`, `looks.test.ts` — palette, eye band, radar rects
+- `assets.ts`, `assets.test.ts` — GLB fits on the real meshes
+- `Scene.tsx`, `Gallery.tsx`, `Primitives.tsx`, `Hud.tsx`, `Hud.module.css`
+- `index.tsx`, `meta.ts` (controls text only; scoring and `status: "dev"` unchanged; thumbnail null)
+- `tools/thumbs/inputs/museum-guard.mjs`
+- `assets.spec.json` left as the bust recipe; the bust is not loaded
+
+### Acceptance
+
+- GameDefinition: Scene, Hud (`data-arcade-safe-area` radar), no `durationMs`, `clockChip: false`, `resultDelayMs: 1100`, `finalScore`, drag input, Flash label, night environment, eye camera.
+- Dawn calls `end("win")` at 90 s on the rules clock. Three alarms call `end("lose")`. No `submitScore`, API, or localStorage.
+- One `useRunFrame` steps the rules and the store. Visuals use `useGameTime()`. EyeRig yaw is a ref written each step.
+- Knight and robot are `<Model>` of humanoid assets (arms down) plus `hop`. No `<HumanoidModel>`.
+- `npx tsc --noEmit` passed. `npx vitest run src/arcade3d/games/museum-guard` passed: 25 tests, 9.3 s. `rules.test.ts` is 524 lines.
+- Not playtested in a browser. This run was told not to build or start a server.
+
+### Scoring and limits
+
+`runScore = 5 * min(90, floor(seconds)) + 50 * returns + (win ? 150 * alarms : 0)`. Ceiling 1950 (450 time + 21 returns + 450 dawn). A loss pays no dawn bonus. Whole seconds follow `floor(elapsed)`, so the store matches `finalScore`.
+
+`PROPOSED_LIMITS` (not written into `meta.ts`): maxScore 2050, minDurationMs 12000, maxDurationMs 92000, base 0, maxPointsPerSec 25. 1950 is 95.1% of 2050. The earliest designed loss is the penguin fixture at 13.79 s, so 12000 ms sits under it. `capScore` is a no-op on every bot run (`capScore(score) === score`).
+
+### Bots
+
+All through `simulateRun` and the real store, seeds 1..N, 60 fps unless noted. Reaction 0.22 s for the human; 0 for the sweeper.
+
+- Perfect sweeper, 10 seeds, keys: every run wins with `alarms === 3`, score ≤ 1950, best ≥ 1845, `finalScore` equals the store, inside the limits.
+- Human, 30 seeds, keys / hover / touch (drag capped at π rad/s): each mode wins at least 15, all inside the limits.
+- Camp (yaw locked on +π/2) and spin (`moveX = 1`, no flash), 30 seeds: lose before 40 s, 0 paid returns, score ≤ 200.
+- Idle and spam, 20 seeds: score < 1000 and inside the limits. Spam flashes every frame; the 10 s cooldown gates it.
+- Five seeds at 30 fps, 144 fps, and `randomFrames`: inside the limits.
+
+### Draw calls
+
+Worst frame about 27, under the cap of 50, one spot light: room 3, pedestals 1, paintings 1, vases 1, rope 2, door 1, bench 1, statues 8, live beam 2, flash cone 2, freeze rings 1, shadows 1, motes 1, fx ≤ 2. Low tier drops the bench, the motes, and the spot. The lose pulse stays hidden while playing.
+
+### Open questions
+
+- Pedestals are one instanced mesh (plinth, column, cap, vertex colours) so the 27-call budget holds. The kit `Pedestal` is one mesh per copy. Cap height is `PEDESTAL_TOP(0.8)`.
+- Bench scale is `2 / REUSED_GLB_SIZE.bench.width` (that size entry exists). Drawn width is 2 m.
+- Robot scale is the design literal `1.2 / 1.72`. The mesh is 1.7152 tall, so the drawn height is about 1.197 m. The test allows `toBeCloseTo(1.2, 2)`.
+- The spot still aims at `range * 0.75` on the floor, so a knight's head at 12° is outside it. Sneak and freeze read as emissive, not as the spot.
+- The penguin pixel check is a projection (portrait > 60 CSS px, landscape > 30, both ≥ 24 at 6 m). Claude's screenshots replace it.
+- The beam's half-angle is React state, updated only when the phase index changes (twice a run), because `<Flashlight>` rebuilds its geometry from the prop. That is the only `setState` from the frame loop.
+- The shell does not remount the scene on Retry, so the run is recreated when `runId` changes rather than in a one-shot `useState`.
 
 ## Fix round 1 (2026-10-24)
 
