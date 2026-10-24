@@ -167,7 +167,7 @@ export function Castle({ run, reduced }: { run: CastleRun; reduced: boolean }) {
    });
    return (
       <group>
-         <SkyDome top={sky.top} bottom={sky.bottom} offset={0.12} exponent={0.8} />
+         <SkyDome top={sky.skyTop} bottom={sky.sky} offset={0.12} exponent={0.8} />
          <Terrain reduced={reduced} />
          <Decor reduced={reduced} />
          <mesh geometry={wall.geometry} dispose={null} name="castle-wall">

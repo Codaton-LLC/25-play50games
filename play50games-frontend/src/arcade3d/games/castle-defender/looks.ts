@@ -1,10 +1,10 @@
-import type { LevelId } from "@/arcade3d/types";
-import type { LightingPreset } from "@/arcade3d/core/types";
 // Castle Defender's look. Pure data: palette, fog, the flat field, and every decorative
 // position. Gameplay places (wall front z 2.5, lanes, cannon, gate, towers) stay put.
 // No React, no three.js — the scene uploads these buffers.
 import { rngNext } from "@/arcade3d/core/math";
 import { CAMERA } from "./camera";
+import type { LightingPreset } from "@/arcade3d/core/types";
+import type { LevelId } from "@/arcade3d/types";
 
 /** The fitted view's far edge must stay unfogged. Fog is measured from this camera. */
 export const VIEW_CAMERA = { x: CAMERA.position[0], y: CAMERA.position[1], z: CAMERA.position[2] };
@@ -80,13 +80,13 @@ export const COLORS = {
    },
 } as const;
 
-/** Core lighting plus matching sky/fog; only scenery changes, never target rules. */
-export const LEVEL_LOOKS: Record<LevelId, { top: string; bottom: string; lighting: LightingPreset }> = {
-   1: { top: COLORS.skyTop, bottom: COLORS.sky, lighting: "sunset" },
-   2: { top: "#5f9ec2", bottom: "#d8edf0", lighting: "day" },
-   3: { top: COLORS.skyTop, bottom: COLORS.sky, lighting: "sunset" },
-   4: { top: "#081325", bottom: "#15243d", lighting: "night" },
-   5: { top: "#352c52", bottom: "#b96a57", lighting: "sunset" },
+/** Per level: the core lighting preset plus the sky dome and fog colours (scenery only). Level 1 is today's look. */
+export const LEVEL_LOOKS: Record<LevelId, { lighting: LightingPreset; skyTop: string; sky: string; fog: string }> = {
+   1: { lighting: "sunset", skyTop: COLORS.skyTop, sky: COLORS.sky, fog: COLORS.fog },
+   2: { lighting: "day", skyTop: "#5f9ec2", sky: "#d8edf0", fog: "#d8edf0" },
+   3: { lighting: "sunset", skyTop: "#2b2f5c", sky: "#f2a66b", fog: "#f2a66b" },
+   4: { lighting: "night", skyTop: "#081325", sky: "#15243d", fog: "#15243d" },
+   5: { lighting: "sunset", skyTop: "#352c52", sky: "#b96a57", fog: "#b96a57" },
 };
 
 /**

@@ -26,25 +26,26 @@ export type Upgrade = "reload" | "splash" | "repair" | "double";
 export const UPGRADE_NAMES: readonly Upgrade[] = ["reload", "splash", "repair", "double"];
 export const COUNTS = LEVELS[1].counts;
 export const STARTS = [0, 28, 56, 84, 112] as const;
-/** Level-1 compatibility limits: B = 98 * 20 * 3 + 5 * 200 + 2 * 125. */
+/** Level 1 (meta.scoring): proven ceiling B = 98 * 20 * 3 + 5 * 200 + 2 * 125. */
 export const PROPOSED_LIMITS = {
    kind: "points", maxScore: 7130, minDurationMs: 39000, maxDurationMs: 140000,
    base: 480, maxPointsPerSec: 56, unitLabel: "pts", display: "int",
 } as const;
-/** Universal per-level ceilings: unique ids * 60 + waves * 200 + 250.
- * Kill-prefix envelopes permit every wave's kills immediately at its start.
- * README: Server limits and why they hold. Level 1 remains byte-for-byte limits.
+/**
+ * Per-level limits (README "Server limits and why they hold"): maxScore = N goblins x 60 + waves x 200 + 250,
+ * base = 60 x wave-1 goblins, pps = the steepest kill/clear prefix slope + 3 %, rounded up.
  */
 export const PROPOSED_LEVEL_LIMITS: Record<LevelId, ScoringRules> = {
+   /** L1: today's limits, unchanged. */
    1: PROPOSED_LIMITS,
-   /** L2: 102 ids, 5 clears; B <= 7370, prefix <= 600 + 60t. */
-   2: { ...PROPOSED_LIMITS, maxScore: 7370, minDurationMs: 33000, maxDurationMs: 138000, base: 600, maxPointsPerSec: 60 },
-   /** L3: 108 ids, 5 clears; B <= 7730, prefix <= 720 + 63t. */
-   3: { ...PROPOSED_LIMITS, maxScore: 7730, minDurationMs: 32000, maxDurationMs: 135000, base: 720, maxPointsPerSec: 63 },
-   /** L4: 140 ids, 6 clears; B <= 9850, prefix <= 720 + 69t. */
-   4: { ...PROPOSED_LIMITS, maxScore: 9850, minDurationMs: 31000, maxDurationMs: 159000, base: 720, maxPointsPerSec: 69 },
-   /** L5: 204 ids, 8 clears; B <= 14090, prefix <= 720 + 74t. */
-   5: { ...PROPOSED_LIMITS, maxScore: 14090, minDurationMs: 30000, maxDurationMs: 208000, base: 720, maxPointsPerSec: 74 },
+   /** L2: 102 x 60 + 5 x 200 + 250; slope 58.52; first possible loss after 33.35 s; safety end 134.9 s. */
+   2: { ...PROPOSED_LIMITS, maxScore: 7370, minDurationMs: 33000, maxDurationMs: 135000, base: 600, maxPointsPerSec: 61 },
+   /** L3: 128 x 60 + 6 x 200 + 250; slope 63.08; first possible loss after 36.58 s; safety end 155.9 s. */
+   3: { ...PROPOSED_LIMITS, maxScore: 9130, minDurationMs: 36000, maxDurationMs: 156000, base: 480, maxPointsPerSec: 65 },
+   /** L4: 151 x 60 + 7 x 200 + 250; slope 63.92; first possible loss after 35.89 s; safety end 178.4 s. */
+   4: { ...PROPOSED_LIMITS, maxScore: 10710, minDurationMs: 35000, maxDurationMs: 178500, base: 480, maxPointsPerSec: 66 },
+   /** L5: 162 x 60 + 8 x 200 + 250; slope 60.80; first possible loss after 30.85 s; safety end 200.4 s. */
+   5: { ...PROPOSED_LIMITS, maxScore: 11570, minDurationMs: 30000, maxDurationMs: 200500, base: 480, maxPointsPerSec: 63 },
 };
 export const AIM = {
    x: { min: -5, max: 5, step: 0.5, rate: 6, dragGain: 0 },
