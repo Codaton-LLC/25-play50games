@@ -37,7 +37,13 @@ The **classic 50 2D games stay as they are**. Never change them for this plan.
 
 Decisions the user made (do not re-open them without asking):
 1. **5 levels per game.** Follow the plan's "Global level rule": 1 base environment + 5 level configurations (layout, spawns, objective count, hazards, speed, lighting, timing), not five unrelated maps. Claude builds the core level system first (design: `docs/arcade-levels.md`). Game authors then add their 5 level configs through it; never build a private level system inside a game folder.
-2. **Leaderboard:** ONE leaderboard per game = the SUM of the player's best score on each of its 5 levels. The score limits are proven per level (arcade-score-limits skill, one proof per level).
+2. **Leaderboard:** ONE leaderboard per game.
+   - **Points games:** the board value is the SUM of the player's best score on each of its 5 levels.
+   - **Time games:** the board ranks the TOTAL time, i.e. the sum of the best finishing times of all 5 levels. A player ranks only after finishing all 5.
+   - Score limits are proven per level (arcade-score-limits skill, one proof per level).
+   - Today's game becomes Level 1, and level n+1 unlocks when level n is cleared.
+   - Pilots: robot-collector, castle-defender, obstacle-race.
+   - Full design: `docs/arcade-levels.md`.
 3. **Order of work:**
    1. Finish snowball-battle, space-repair and alien-farm.
    2. Core level system + backend.
