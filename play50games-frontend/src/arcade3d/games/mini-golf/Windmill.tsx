@@ -6,7 +6,7 @@
 import { useEffect, useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
-import { BoxGeometry, Color, Float32BufferAttribute, type BufferGeometry, type Group } from "three";
+import { BoxGeometry, Color, CylinderGeometry, Float32BufferAttribute, type BufferGeometry, type Group } from "three";
 import { Model } from "@/arcade3d/core/assets";
 import { ASSETS, WINDMILL_HUB } from "./assets";
 import type { Hole } from "./course";
@@ -23,18 +23,34 @@ function painted(g: BufferGeometry, color: string): BufferGeometry {
    return g;
 }
 
-/** The four sails (pointing down = angle 0, along -y from the hub) and their spars. */
+/** The four sails (pointing down = angle 0, along -y from the hub), spars and central hub boss. */
 export function buildSails(length: number, halfWidth: number): BufferGeometry {
    const parts: BufferGeometry[] = [];
+   // 1. Center hub boss and brass cap
+   const hub = painted(new CylinderGeometry(0.12, 0.12, 0.06, 12).rotateX(Math.PI / 2), COLORS.spar);
+   const hubCap = painted(new CylinderGeometry(0.06, 0.08, 0.04, 12).rotateX(Math.PI / 2).translate(0, 0, 0.04), COLORS.gold);
+   parts.push(hub, hubCap);
+
+   // 2. Four sails with timber framing
    for (let k = 0; k < 4; k++) {
+      // Canvas sail cloth with bevelled depth
       const sail = painted(new BoxGeometry(halfWidth * 2, length - 0.2, 0.025), COLORS.blade);
       sail.translate(0, -(0.2 + (length - 0.2) / 2), 0);
       sail.rotateZ((k * Math.PI) / 2);
+
+      // Main structural timber spar
       const spar = painted(new BoxGeometry(0.05, length, 0.04), COLORS.spar);
       spar.translate(0, -length / 2, 0.02);
       spar.rotateZ((k * Math.PI) / 2);
-      parts.push(sail, spar);
+
+      // Outer end-cap weight
+      const tip = painted(new BoxGeometry(halfWidth * 2.05, 0.03, 0.035), COLORS.spar);
+      tip.translate(0, -length + 0.015, 0.005);
+      tip.rotateZ((k * Math.PI) / 2);
+
+      parts.push(sail, spar, tip);
    }
+
    const merged = mergeGeometries(parts)!;
    parts.forEach((p) => p.dispose());
    return merged;

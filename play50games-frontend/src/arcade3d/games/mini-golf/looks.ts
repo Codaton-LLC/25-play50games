@@ -238,28 +238,142 @@ export function decorSpots(holes: readonly Hole[], yaws: readonly number[] = [])
 }
 
 export const COLORS = {
-   sky: "#e0f2fe",
-   felt: "#4ade80",
+   // Sky and atmosphere (warm afternoon resort)
+   skyTop: "#0284c7",
+   sky: "#bae6fd",
+   skyBottom: "#fed7aa",
+   fog: "#bae6fd",
+   sun: "#fffbeb",
+
+   // Putting green turf
+   felt: "#22c55e",
    feltLow: "#16a34a",
-   feltSide: "#166534",
-   rail: "#a16207",
-   railTop: "#ca8a04",
-   water: "#38bdf8",
+   feltLight: "#4ade80",
+   feltDark: "#15803d",
+   feltSide: "#14532d",
+
+   // Sand hazards and bunkers
+   sand: "#fef3c7",
+   sandDark: "#fde68a",
+   sandRim: "#d97706",
+
+   // Rails and bumpers (warm polished teak/mahogany)
+   rail: "#92400e",
+   railTop: "#d97706",
+   railTrim: "#78350f",
+   curb: "#e2e8f0",
+   curbDark: "#94a3b8",
+
+   // Water and sea (crystal tropical lagoon)
+   water: "#0ea5e9",
    deep: "#0369a1",
-   rock: "#a8a29e",
-   rockDark: "#78716c",
+   foam: "#f0fdf4",
+
+   // Island rocks and cliffs
+   rock: "#94a3b8",
+   rockDark: "#64748b",
+   rockSun: "#cbd5e1",
+
+   // Cup and flag
    cup: "#0f172a",
-   rim: "#f8fafc",
+   rim: "#ffffff",
    ball: "#ffffff",
    flag: "#dc2626",
+   flagTrim: "#fef08a",
+   pole: "#f8fafc",
+
+   // Hole 5 Pipes (two-tone brass and royal blue)
    pipe: "#2563eb",
    pipeDark: "#1e3a8a",
-   plate: "#fef3c7",
-   bar: "#f97316",
-   blade: "#fff7ed",
-   spar: "#92400e",
+   pipeFlange: "#f59e0b",
+
+   // Hole 6 Turntable (polished brass and bumper orange)
+   plate: "#fef08a",
+   plateRim: "#d97706",
+   bar: "#ea580c",
+   barCap: "#f8fafc",
+
+   // Hole 4 Windmill (canvas sails and timber spars)
+   blade: "#fffbeb",
+   spar: "#78350f",
+
+   // Surrounding decor (palms, flowers, hills, clubhouse)
+   palmTrunk: "#78350f",
+   palmFrond: "#15803d",
+   palmFrondLight: "#22c55e",
+   flowerRed: "#f43f5e",
+   flowerOrange: "#f97316",
+   flowerYellow: "#eab308",
+   flowerWhite: "#ffffff",
+   flowerPurple: "#a855f7",
+   flowerFoliage: "#166534",
+   planter: "#b45309",
+   hillFar: "#86efac",
+   hillMid: "#6ee7b7",
+   clubhouseWall: "#f8fafc",
+   clubhouseRoof: "#b91c1c",
+   clubhouseTrim: "#92400e",
+   gold: "#f59e0b",
+
+   // UI and Aim markers
    dots: "#ffffff",
    ring: "#86efac",
-   ringWait: "#cbd5e1",
+   ringWait: "#94a3b8",
    accent: "#86efac",
 } as const;
+
+/** Surrounding decor outside the play area: flower beds, palms, pennants, distant hills, clubhouse silhouette. */
+export interface Surroundings {
+   flowers: DecorSpot[];
+   palms: DecorSpot[];
+   pennants: DecorSpot[];
+   hills: DecorSpot[];
+   clubhouse: DecorSpot[];
+}
+
+export const DISTANT_HILLS: readonly DecorSpot[] = [
+   // Background hills behind hole 5 (z -80 to -160, wide span)
+   { x: -55, y: -0.6, z: -125, rotY: 0.2, scale: 30 },
+   { x: -22, y: -0.5, z: -135, rotY: -0.3, scale: 35 },
+   { x: 22, y: -0.5, z: -132, rotY: 0.7, scale: 32 },
+   { x: 55, y: -0.6, z: -126, rotY: -0.1, scale: 28 },
+   // Lateral flank hills along the bay
+   { x: -52, y: -0.7, z: -25, rotY: 0.4, scale: 26 },
+   { x: -56, y: -0.6, z: -68, rotY: -0.2, scale: 28 },
+   { x: 52, y: -0.7, z: -25, rotY: -0.4, scale: 26 },
+   { x: 56, y: -0.6, z: -68, rotY: 0.2, scale: 28 },
+];
+
+export const CLUBHOUSE: DecorSpot = { x: 0, y: -0.1, z: -116, rotY: 0, scale: 3.2 };
+
+/** Extra resort surroundings for the mounted holes: flower beds, palms, flags on lateral fringes. */
+export function surroundingsSpots(holes: readonly Hole[], yaws: readonly number[] = []): Surroundings {
+   const flowers: DecorSpot[] = [];
+   const palms: DecorSpot[] = [];
+   const pennants: DecorSpot[] = [];
+   holes.forEach((hole, i) => {
+      const rects = feltRects(hole);
+      const z0 = holeZ(hole.index);
+      const k = hole.index * 2.3;
+      const lateralX = Math.abs(Math.cos(yaws[i] ?? 0)) > 0.5;
+      const rectAt = (p: { x: number; z: number }) => rects.find((r) => onFelt([r], p.x, p.z)) ?? rects[0];
+      const beside = (p: { x: number; z: number }, s: number, out: number) => {
+         const r = rectAt(p);
+         return lateralX ? { x: s < 0 ? r.x0 - out : r.x1 + out, z: z0 + p.z } : { x: p.x, z: z0 + (s < 0 ? r.z0 - out : r.z1 + out) };
+      };
+      const gap = (q: { x: number; z: number }) => Math.min(...rects.map((r) => Math.hypot(Math.max(r.x0 - q.x, 0, q.x - r.x1), Math.max(r.z0 - (q.z - z0), 0, q.z - z0 - r.z1))));
+      const pick = (p: { x: number; z: number }, s: number, out: number) => {
+         const a = beside(p, s, out);
+         return gap(a) >= out - 1e-9 ? a : beside(p, -s, out);
+      };
+      const teeSide = lateralX ? -1 : 1;
+      // Palms on island rock fringe (lateral side, well outside rails)
+      palms.push({ ...pick(hole.cup, -teeSide, DECOR_TREE_OUT + 0.38), y: -0.32, rotY: k + 1.2, scale: 0.45 });
+      // Low flower beds outside rails near tee and cup
+      flowers.push({ ...pick(hole.tee, -teeSide, 0.52), y: -0.08, rotY: k + 0.5, scale: 0.55 });
+      flowers.push({ ...pick(hole.cup, teeSide, 0.52), y: -0.08, rotY: k + 1.8, scale: 0.55 });
+      // Pennant marker on outer rock ledge
+      pennants.push({ ...pick(hole.tee, teeSide, DECOR_TREE_OUT + 0.25), y: -0.15, rotY: k + 2.5, scale: 0.5 });
+   });
+   return { flowers, palms, pennants, hills: [...DISTANT_HILLS], clubhouse: [CLUBHOUSE] };
+}

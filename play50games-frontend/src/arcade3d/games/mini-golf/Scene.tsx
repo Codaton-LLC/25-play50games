@@ -18,6 +18,7 @@ import { useFrame, useThree } from "@react-three/fiber";
 import { Vector3 } from "three";
 import CameraRig from "@/arcade3d/core/CameraRig";
 import { playSfx, startLoop, useMuted } from "@/arcade3d/core/audio";
+import { SkyDome } from "@/arcade3d/core/env";
 import { FRAME_PRIORITY } from "@/arcade3d/core/frameLoop";
 import { useFx } from "@/arcade3d/core/fx";
 import { TargetMarkers, type MarkerTarget } from "@/arcade3d/core/hud";
@@ -213,8 +214,12 @@ export default function Scene() {
       if (ev.railHit >= 0.3 && run.time - scratch.lastThud >= 0.06) {
          scratch.lastThud = run.time;
          playSfx("thud", { pitch: 1.4, volume: Math.min(1, 0.25 + ev.railHit / 3), pan: panAt(ev.railX) });
+         fx.burst("puff", at, 4);
       }
-      if (ev.movingHit) playSfx("thud", { pitch: 0.8 });
+      if (ev.movingHit) {
+         playSfx("thud", { pitch: 0.8 });
+         fx.burst("puff", at, 5);
+      }
       if (ev.lipOut) playSfx("click", { pitch: 1.8 });
       if (ev.pipeIn || ev.pipeOut) playSfx("whoosh", { pan: panAt(b.x) });
       if (ev.water) {
@@ -232,9 +237,10 @@ export default function Scene() {
          fx.score(at, `${holeName(par, s, ev.pickedUp)}${ev.holeScore > 0 ? ` +${ev.holeScore}` : ""}`, { color: s < par ? "#86efac" : "#fff7d6" });
          if (!ev.pickedUp) {
             playSfx("pop");
-            fx.burst("sparkle", at, 14);
+            fx.burst("sparkle", at, 20);
             if (s < par) playSfx("combo", { pitch: Math.min(1.6, 1 + 0.15 * (par - s)) });
             else if (s === par) playSfx("chime");
+            if (s <= par) fx.burst("confetti", at, 32);
          }
          if (s === 1) {
             playSfx("pickup");
@@ -297,6 +303,7 @@ export default function Scene() {
    }
    return (
       <>
+         <SkyDome top={COLORS.skyTop} bottom={COLORS.skyBottom} offset={0.12} exponent={0.85} />
          <HoleFit key={camHole} hole={shown} onFit={onFit} />
          {fit && (
             <CameraRig

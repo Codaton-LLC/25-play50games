@@ -18,7 +18,7 @@ const definition: GameDefinition = {
    assets: ASSETS,
    // only the first frame uses this: Scene's CameraRig (core useFittedView, looks.ts) fits each hole
    camera: { position: [0, 8, 6], fov: FOV, lookAt: [0, 0, 0] },
-   environment: { background: COLORS.sky, fog: [COLORS.sky, 30, 90], lighting: "day" },
+   environment: { background: COLORS.sky, fog: [COLORS.fog, 40, 130], lighting: "day" },
    input: { drag: true },
    touchControls: [],
    hudStats: [
