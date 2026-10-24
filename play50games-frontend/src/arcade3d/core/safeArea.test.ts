@@ -1,5 +1,7 @@
 // useSafeArea(selector): the memoised selection that keeps a Scene from re-rendering when only
 // unrelated rects change (e.g. a HUD chip that grows with the score), driven with the real store.
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { createElement } from "react";
 import { renderToString } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
@@ -89,6 +91,14 @@ describe("useSafeArea selection", () => {
       }
       expect(renderToString(createElement(Probe))).toContain("0:0");
       expect(renderToString(createElement(SafeAreaProvider, { store, children: createElement(Probe) }))).toContain("0:0");
+   });
+
+   it("GameShell renders the game HUD inside the provider (castle-defender's cards read an empty 0 x 0 area without it)", () => {
+      const shell = readFileSync(fileURLToPath(new URL("./GameShell.tsx", import.meta.url)), "utf8");
+      const hud = shell.indexOf("<definition.Hud />");
+      expect(hud).toBeGreaterThan(0);
+      const before = shell.slice(0, hud);
+      expect(before.lastIndexOf("<SafeAreaProvider store={safeArea}>")).toBeGreaterThan(before.lastIndexOf("</SafeAreaProvider>"));
    });
 });
 

@@ -10,8 +10,11 @@
 // - inputToWorld: joystick/WASD input -> a world direction for the camera's yaw. It lives in
 //   core/math.ts (pure, no three.js, so rules.ts can use it) and is re-exported here.
 // - setLensShift / stepLensShift / clearLensShift: a fitted `shift` on the camera (CameraRig).
+// - fitEyeShift: the lens shift that keeps a fixed eye's view band on screen (first-person
+//   cameras; useEyeShift + EyeRig). setEyeRotation / stepEyeYaw: EyeRig's pose math.
 // Yaw convention everywhere: radians around +y, 0 = camera on the +z side looking towards -z.
-import { PerspectiveCamera, Vector3 } from "three";
+// (EyeRig's yaw is a facing instead, like inViewCone: 0 = looks along +z, see setEyeRotation.)
+import { PerspectiveCamera, Vector3, type Euler } from "three";
 import type { AABB, Vec3Like } from "./collision";
 
 export { inputToWorld } from "./math";
@@ -377,4 +380,199 @@ export function followFocus({ lookAt = [0, 0, 0], reach, fraction = 1, bounds }:
    const hi = followAim(reach.max, lookAt, fraction, bounds, { x: 0, y: 0, z: 0 });
    const axis = (a: number, b: number) => (a === b ? [a] : [a, b]);
    return axis(lo.x, hi.x).flatMap((x) => axis(lo.y, hi.y).flatMap((y) => axis(lo.z, hi.z).map((z) => ({ x, y, z }))));
+}
+
+export interface EyeShiftOptions {
+   /** canvas size, CSS px */
+   width: number;
+   height: number;
+   /** vertical field of view, degrees */
+   fov: number;
+   /** eye height above the floor */
+   eyeY: number;
+   /** look down by this much, radians (negative looks up). Default 0 */
+   pitch?: number;
+   /**
+    * The box that must stay on screen, in the eye's view frame: origin on the floor under the eye,
+    * +x right, +y up, +z forward (the yaw taken out, so one band serves every facing).
+    */
+   band: AABB;
+   /** screen edges to keep clear */
+   margin?: ScreenMargin;
+   /** canvas rects nothing of the band may be drawn under: HUD, touch controls (useSafeArea) */
+   avoid?: readonly ScreenRect[];
+   /** grows every `avoid` rect by this many px. Default 0 */
+   padding?: number;
+   /** sample points per band edge. Default 12 */
+   steps?: number;
+}
+
+export interface EyeShift {
+   /** lens shift in NDC (x right, y up, 2 = the canvas): how far the picture moves (EyeRig `shift`) */
+   shift: [number, number];
+   /** the band is on screen, inside the margins and clear of every avoid rect */
+   fits: boolean;
+   /** worst px of the band outside the margins or under an avoid rect at `shift`; 0 if it fits, Infinity if a point is at or behind the near plane */
+   overflow: number;
+}
+
+/** The near plane of the canvas camera (ShellStage). A band point at or nearer than this cannot be framed. */
+export const EYE_NEAR = 0.1;
+
+/** How deep (px) a point lies inside a counter-clockwise convex polygon: its distance to the nearest edge; <= 0 outside. */
+function hullDepth(hull: number[], xy: Float64Array, x: number, y: number): number {
+   if (hull.length < 3) return 0;
+   let depth = Infinity;
+   for (let k = 0; k < hull.length; k++) {
+      const a = hull[k];
+      const b = hull[(k + 1) % hull.length];
+      const ex = xy[2 * b] - xy[2 * a];
+      const ey = xy[2 * b + 1] - xy[2 * a + 1];
+      const len = Math.hypot(ex, ey);
+      if (len === 0) continue;
+      const side = (ex * (y - xy[2 * a + 1]) - ey * (x - xy[2 * a])) / len;
+      if (side < depth) depth = side;
+   }
+   return depth === Infinity ? 0 : depth;
+}
+
+/**
+ * The lens shift that keeps a fixed eye's `band` on screen: inside the margins and clear of every
+ * `avoid` rect, closest to no shift. The eye never moves for it (no distance search); only the
+ * picture moves. The band is in the eye's yaw-free view frame, so the answer holds for every yaw.
+ * Projects the band outline once at shift 0; each margin gives a per-axis shift interval. Tries
+ * (0, 0) clamped into those intervals, then a grid inside them (SHIFT_GRID cells per axis), and
+ * keeps the clear shift closest to (0, 0). Without one it returns the candidate with the least
+ * overflow and fits = false (an axis whose interval is empty is centred in it). A band point at or
+ * nearer than the near plane: fits = false, shift [0, 0]. Runs on resize or a safe-area change.
+ */
+export function fitEyeShift(options: EyeShiftOptions): EyeShift {
+   const w = Math.max(1, options.width);
+   const h = Math.max(1, options.height);
+   const { band, eyeY, pitch = 0, margin = {}, avoid = [], padding = 0, steps = 12 } = options;
+   const cam = new PerspectiveCamera(options.fov, w / h, EYE_NEAR, 1000);
+   cam.position.set(0, eyeY, 0);
+   setEyeRotation(cam.rotation, 0, pitch);
+   cam.updateMatrixWorld();
+   const points = outline(band, Math.max(1, Math.round(steps)));
+   const n = points.length;
+   // projected outline in px from the canvas centre, y up (so hull depths are true px)
+   const xy = new Float64Array(n * 2);
+   const p = new Vector3();
+   const hx = w / 2;
+   const hy = h / 2;
+   let minX = Infinity;
+   let maxX = -Infinity;
+   let minY = Infinity;
+   let maxY = -Infinity;
+   for (let i = 0; i < n; i++) {
+      // facing +z, the eye's screen-right is world -x: the band's +x (right) maps to -x
+      p.copy(points[i]);
+      p.x = -p.x;
+      p.applyMatrix4(cam.matrixWorldInverse);
+      // written so NaN fails too: the depth along the view axis must lie past the near plane
+      if (!(-p.z > EYE_NEAR)) return { shift: [0, 0], fits: false, overflow: Infinity };
+      p.applyMatrix4(cam.projectionMatrix);
+      const x = p.x * hx;
+      const y = p.y * hy;
+      xy[2 * i] = x;
+      xy[2 * i + 1] = y;
+      if (x < minX) minX = x;
+      if (x > maxX) maxX = x;
+      if (y < minY) minY = y;
+      if (y > maxY) maxY = y;
+   }
+
+   // screen limits and avoid rects in the same px frame
+   const left = -hx + w * (margin.left ?? 0);
+   const right = hx - w * (margin.right ?? 0);
+   const top = hy - h * (margin.top ?? 0);
+   const bottom = -hy + h * (margin.bottom ?? 0);
+   const rects = avoid.map((r) => ({ x0: r.left - padding - hx, x1: r.right + padding - hx, y0: hy - r.bottom - padding, y1: hy - r.top + padding }));
+   const hull = rects.length > 0 ? hull2d(xy, n) : [];
+
+   /** Worst px of the band outside the margins or under an avoid rect with the picture moved by (dx, dy) px. */
+   const overflowAt = (dx: number, dy: number): number => {
+      let worst = Math.max(0, left - (minX + dx), maxX + dx - right, bottom - (minY + dy), maxY + dy - top);
+      for (const r of rects) {
+         for (let i = 0; i < n; i++) {
+            const x = xy[2 * i] + dx;
+            const y = xy[2 * i + 1] + dy;
+            if (x > r.x0 && x < r.x1 && y > r.y0 && y < r.y1) {
+               const depth = Math.min(x - r.x0, r.x1 - x, y - r.y0, r.y1 - y);
+               if (depth > worst) worst = depth;
+            }
+         }
+         // a rect the outline passes around (the band covers it): how deep its corners lie in the hull
+         for (const cx of [r.x0, r.x1]) {
+            for (const cy of [r.y0, r.y1]) {
+               const depth = hullDepth(hull, xy, cx - dx, cy - dy);
+               if (depth > worst) worst = depth;
+            }
+         }
+      }
+      return worst;
+   };
+
+   // the shifts (px) that keep every point inside the margins, per axis; an empty one is centred
+   const x0 = left - minX;
+   const x1 = right - maxX;
+   const y0 = bottom - minY;
+   const y1 = top - maxY;
+   const xs = x0 <= x1 ? [clamp(0, x0, x1)] : [(x0 + x1) / 2];
+   const ys = y0 <= y1 ? [clamp(0, y0, y1)] : [(y0 + y1) / 2];
+   for (let k = 0; k <= SHIFT_GRID; k++) {
+      if (x0 <= x1) xs.push(x0 + ((x1 - x0) * k) / SHIFT_GRID);
+      if (y0 <= y1) ys.push(y0 + ((y1 - y0) * k) / SHIFT_GRID);
+   }
+   const toShift = (dx: number, dy: number): [number, number] => [dx / hx, dy / hy];
+
+   const first = overflowAt(xs[0], ys[0]);
+   if (first <= 1e-6) return { shift: toShift(xs[0], ys[0]), fits: true, overflow: 0 };
+   let fit: [number, number] | null = null;
+   let fitDist = Infinity;
+   let least: [number, number] = [xs[0], ys[0]];
+   let leastOverflow = first;
+   let leastDist = (xs[0] / hx) ** 2 + (ys[0] / hy) ** 2;
+   for (const dx of xs) {
+      for (const dy of ys) {
+         // closeness to no shift, in NDC like the shift itself
+         const dist = (dx / hx) ** 2 + (dy / hy) ** 2;
+         const over = overflowAt(dx, dy);
+         if (over <= 1e-6) {
+            if (dist < fitDist) {
+               fit = [dx, dy];
+               fitDist = dist;
+            }
+         } else if (over < leastOverflow - 1e-9 || (Math.abs(over - leastOverflow) <= 1e-9 && dist < leastDist)) {
+            least = [dx, dy];
+            leastOverflow = over;
+            leastDist = dist;
+         }
+      }
+   }
+   if (fit) return { shift: toShift(fit[0], fit[1]), fits: true, overflow: 0 };
+   return { shift: toShift(least[0], least[1]), fits: false, overflow: leastOverflow };
+}
+
+/**
+ * EyeRig's camera rotation for a facing: yaw 0 looks along +z, positive yaw turns towards +x (like
+ * inViewCone and Flashlight); positive pitch looks down. Writes `rotation` (a camera's Euler) in
+ * place; never lookAt, so the camera never rolls. No allocation.
+ */
+export function setEyeRotation(rotation: Euler, yaw: number, pitch: number): Euler {
+   return rotation.set(-pitch, yaw + Math.PI, 0, "YXZ");
+}
+
+/**
+ * One frame of EyeRig's turn: from `current` towards `target` (radians) the short way round
+ * (across +-PI), at most `turnRate * dt`, never past it. No `turnRate`: the target itself.
+ */
+export function stepEyeYaw(current: number, target: number, turnRate: number | undefined, dt: number): number {
+   if (turnRate === undefined) return target;
+   let diff = (target - current) % (2 * Math.PI);
+   if (diff > Math.PI) diff -= 2 * Math.PI;
+   if (diff < -Math.PI) diff += 2 * Math.PI;
+   const max = Math.max(0, turnRate * dt);
+   return current + (diff > max ? max : diff < -max ? -max : diff);
 }
