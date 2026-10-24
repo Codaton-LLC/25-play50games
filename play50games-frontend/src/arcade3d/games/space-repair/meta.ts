@@ -13,9 +13,9 @@ export const spaceRepairMeta: ArcadeGameMeta = {
    difficulty: 2,
    orientation: "any",
    controls: {
-      scheme: "timing",
-      keyboard: "WASD to thrust, E or Space to repair on time",
-      touch: "Joystick + Action to repair",
+      scheme: "joystick",
+      keyboard: "WASD / arrows to thrust; release to brake; tap E, Enter or Space in the repair arc",
+      touch: "Joystick to thrust; release to brake; tap Repair in the repair arc",
    },
    scoring: {
       kind: "points",
