@@ -16,6 +16,7 @@
    pointer-events: none;
 }
 .hint { color: #cbd5e1; }
+.combo { font-size: 14px; color: #fde68a; }
 .offers { position: absolute; display: flex; gap: 8px; pointer-events: auto; }
 .card {
    box-sizing: border-box;
