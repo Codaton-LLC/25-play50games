@@ -37,7 +37,7 @@ foreach (array('/includes/arcade-api.php', '/wt-cpt/arcade-scores-admin.php') as
 
 ## 2. Table
 
-`{$wpdb->prefix}play50_arcade_scores`: one row per (user, game). Since DB version `'2'` a second table, `{$wpdb->prefix}play50_arcade_runs`, holds run-token claims (§7a); the install runs `dbDelta` on both and records the version only when `SHOW TABLES` finds both. The excerpt below is the version-1 install; `arcade-api.php` is the source.
+`{$wpdb->prefix}play50_arcade_scores`: one row per (user, game), the leaderboard. Since DB version `'2'` a second table, `{$wpdb->prefix}play50_arcade_runs`, holds run-token claims (§7a). Since DB version `'3'` a third, `{$wpdb->prefix}play50_arcade_level_scores`, holds the per-level bests, and the board row's `best_score` is the game's **total** (§14). The install runs `dbDelta` on all three and records the version only when `SHOW TABLES` finds all three (and, for `'3'`, after the one-time level-1 backfill, §14.2). The excerpt below is the version-1 install; `arcade-api.php` is the source.
 
 ```php
 define('PLAY50_ARCADE_DB_VERSION', '1'); // '2' since run tokens
@@ -156,7 +156,7 @@ Edited only by Claude ("assets + limits" PR). Must match each game's `meta.scori
 | `time_base_ms` | omitted (normalized to null) | required, > 0 |
 | `enabled` | `true` only for live games (only the game under test during prod tests) | same |
 
-`version` is informational (bump it when limits change). Version 2 (2026-10-07) tightened every game's limits to its proven maximum plus about 3–5% (each game's README "Server limits and why they hold").
+`version` is informational (bump it when limits change; `GET /arcade/games` reports it, a value outside 1–4 is logged and read like v4). Version 2 (2026-10-07) tightened every game's limits to its proven maximum plus about 3–5% (each game's README "Server limits and why they hold"). Version 4 (2026-10-24) adds the optional per-game `levels` array (§14.1); no game has one yet, so the limits are unchanged.
 
 ### Loader
 
@@ -197,8 +197,10 @@ array(
     'max_pps' => 120,            // 0 for time games
     'time_base_ms' => null,      // int for time games
     'enabled' => false,
+    'levels' => array(1 => array('title' => 'Robot Collector', 'max_score' => 1470, /* ... the limit keys */)),
 )
 ```
+`levels` (since v4 PHP) is always set internally: `[1 => limits]` for a one-level game, `[1..5 => title + limits]` for a game with valid `levels` (§14.1). `GET /arcade/games` leaves it out for a one-level game (its entry is exactly the pre-levels one) and sends it as a JSON array, level 1 first, for a game with levels.
 An entry is skipped when: slug fails `^[a-z0-9-]{1,40}$`, `kind` is unknown, `max_score <= 0`, `min >= max`, or a time game has no `time_base_ms > 0`. The static cache means `play50_arcade_games` filters must be added before the first call (plugin or theme load time).
 
 ---
@@ -263,7 +265,7 @@ Response (all games, enabled or not):
 ```json
 { "games": { "robot-collector": { "title": "Robot Collector", "kind": "points", "max_score": 1470, "min_duration_ms": 12500, "max_duration_ms": 62000, "base": 600, "max_pps": 120, "time_base_ms": null, "enabled": false } }, "run_tokens": { "mode": "optional", "ready": true } }
 ```
-`run_tokens` (since run tokens; an older server has no such key): `mode` is `"required"` while the enforcement switch is on, else `"optional"`; `ready` is `true` once the claims table is installed (DB version 2). This is the read-only way to check a backend upload and the switch (cached up to 300 s). A server with levels adds `"features": { "levels": true }` and a `levels` array per game (§6.7); the client reads `features.levels` once per page load (`arcadeApi.games()`).
+`run_tokens` (since run tokens; an older server has no such key): `mode` is `"required"` while the enforcement switch is on, else `"optional"`; `ready` is `true` once the claims table is installed (DB version 2). This is the read-only way to check a backend upload and the switch (cached up to 300 s). Since DB version 3 the response also has `"version"` (the JSON's, e.g. `4`) and `"features": { "levels": <bool> }`: `true` once the per-level table is installed and backfilled (DB version `'3'`), `false` while the migration has not run; a game with levels has a `levels` array (§14.1). The client reads `features.levels` once per page load (`arcadeApi.games()`) and plays levels 2-5 against the server only when it is `true`.
 Errors: `missing_api_key`, `invalid_api_key`. Cache-Control: `public, max-age=300` + `Vary: Origin` (rest-api.php reflects the Origin in `Access-Control-Allow-Origin` and removes core's `rest_send_cors_headers`, which would normally add it).
 
 ### 6.2 `POST /arcade/scores`
@@ -289,7 +291,7 @@ Response (`ArcadeSubmitResponse`):
 | `best_score`, `plays` | Row values after the upsert |
 | `is_new_best` | No previous row, or `score > previous best_score` (same rule as `mergeRun` in `scores.ts`) |
 | `rank` | Rank query (§9) with the row's `best_score` / `best_at` |
-| `level`, `level_best_score`, `is_new_level_best` | Levels only (§6.7): the level played, its best after the upsert, and whether this run raised it. `best_score` is then the game's total |
+| `level`, `level_best_score`, `is_new_level_best` | Games with levels only (§14.3), on every level including 1: the level played, its best after the upsert, and whether this run raised it. `best_score` is then the game's total, `plays` the plays over all levels, `is_new_best` = `is_new_level_best`; a time game whose player has not finished all 5 levels answers `best_score: 0`, `rank: null`. A one-level game's response has exactly the six keys above, with or without `level: 1` |
 
 Errors: every code in §4 except `rest_no_route`. Cache-Control: `private, no-store`.
 
@@ -325,7 +327,7 @@ Object keyed by slug (`Partial<Record<ArcadeSlug, ArcadeMeEntry>>`). One key per
 - `rank`: rank query, or `null` when the row is hidden (banned). A failed rank query is `db_error` 500, never `null`.
 - No rows → `{}`. A plain empty PHP array would encode as `[]`, but returning a top-level `stdClass` from the callback is unsafe: WP core's `?_fields` / `?_embed` handling treats the data as an array and fatals on PHP 8. So the callback returns the (possibly empty) array and a `rest_pre_echo_response` filter scoped to this route turns `array()` into `new stdClass()` right before encoding.
 - **No other top-level keys.** `syncServerScores()` treats every key as a slug.
-- Levels (§6.7): each entry's `best` is the game's total and it adds `levels: { "1": { best, best_duration_ms, plays, last_played }, ... }` (scored levels only).
+- Levels (§14.4): for a game with levels each entry's `best` is the game's total and it adds `levels: { "1": { best, best_duration_ms, plays, last_played }, ... }` (scored levels only). A time-game player who has not finished all 5 levels has no board row; their entry is `{ best: 0, best_duration_ms: null, plays: <all levels>, last_played, rank: null, levels }`. One-level games: entries exactly as before.
 - Errors: `missing_api_key`, `invalid_api_key`, `unauthorized`, `db_error`. Cache-Control: `private, no-store`.
 
 ### 6.5 `GET /arcade/me/privacy` and `POST /arcade/me/privacy`
@@ -345,17 +347,17 @@ Body: `{ "slug": "robot-collector" }` (only `slug` is read; a server with levels
 ```
 The ticket is opaque to the client (`isRunToken` only rejects junk). It never goes into a URL, storage, analytics or a log line.
 
-Order: API key → JWT/existing user (permission callback) → ban (`forbidden` 403) → slug format (`invalid_data` 400, `field: slug`) → known and enabled game (`not_found` 404) → start limits (§8, `rate_limited` 429) → claims table ready (else `db_error` 500: the client then submits without a ticket) → opportunistic cleanup → issue. Nothing is stored at issue. The route exists whatever the enforcement switch says. An older server answers `rest_no_route` 404, which the client treats as "no ticket".
+Order: API key → JWT/existing user (permission callback) → ban (`forbidden` 403) → slug format (`invalid_data` 400, `field: slug`) → known and enabled game (`not_found` 404) → start limits (§8, `rate_limited` 429) → `level` (absent = 1; unknown for this game → `invalid_data` 400 `field: level`; 2-5 before DB version 3 → `db_error` 500) → claims table ready (else `db_error` 500: the client then submits without a ticket) → opportunistic cleanup → issue (bound to the level, §14.5). Nothing is stored at issue. The route exists whatever the enforcement switch says. An older server answers `rest_no_route` 404, which the client treats as "no ticket".
 
 ### 6.7 Levels: what the client sends and reads (frontend `claude/levels-core`)
 
-Design: `docs/arcade-levels.md` §4. The server side (validation, per-level limits, the totals table, level-bound tickets) is the `claude/levels-backend` PR; this section pins the client so both sides agree.
+Design: `docs/arcade-levels.md` §4. The server side (validation, per-level limits, the totals table, level-bound tickets) is built in `claude/levels-backend` and specified in §14; this section pins the client so both sides agree.
 
 - **Switch.** The client uses levels only with `NEXT_PUBLIC_ARCADE_LEVELS` on, for a game whose `meta.ts` has five levels, and plays levels 2-5 against the leaderboard only after `GET /arcade/games` answered `features.levels: true` (one read per page load; an error counts as "no" and is retried on the next need). With the flag off, or on a server without `features`, every request is exactly as before levels.
 - **Level 1 is unchanged.** `POST /arcade/scores` and `POST /arcade/runs/start` for level 1 carry no `level` key (byte-identical bodies), so they work on every server version.
 - **Levels 2-5.** `POST /arcade/scores` body `{ slug, score, duration_ms, level, run_token? }`; `POST /arcade/runs/start` body `{ slug, level }` (the ticket is bound to that level). Expected errors: `invalid_data` 400 with `field: "level"` for an unknown level (mapped to status `rejected`).
 - **Responses read.** Submit: `level_best_score` (the level's best; the client keeps the higher of it and its own), `is_new_level_best` (falls back to `is_new_best`), `best_score` (the total; the client recomputes its local total from the levels), `rank` (rank of the total). An older server without `level_best_score`: `best_score` is level 1's best, as before. `GET /arcade/me`: per-level bests from `levels`; an entry without `levels` is taken as level 1.
-- **Board value.** Points games: the sum of the level bests. Time games: the summed best finishing time of all 5 levels, ranked only once all 5 are finished (user decision 4; the stored column format is the backend PR's choice, the client shows per-level times and "Finish all 5 levels to rank" until then).
+- **Board value.** Points games: the sum of the level bests. Time games: the summed best finishing time of all 5 levels, ranked only once all 5 are finished (user decision 4; stored as a time score of the summed time, §14.3; the client shows per-level times and "Finish all 5 levels to rank" until then).
 - **Mock** (`createMockArcadeClient`, `NEXT_PUBLIC_ARCADE_API_MOCK=1`): behaves like a server with levels: `games()` returns `features.levels: true`, bests are kept per slug and level, `best_score` / the leaderboard / `me().best` are the sum, `me().levels` lists the levels, a level outside 1..5 is `invalid_data`, and a ticket only verifies for its own slug and level.
 
 ---
@@ -373,12 +375,13 @@ The first failing step returns; later steps do not run.
 | 5 | `slug` is a string matching `^[a-z0-9-]{1,40}$` | `invalid_data` 400 |
 | 6 | `play50_arcade_game($slug)` exists and `enabled` | `not_found` 404 |
 | 7 | Rate limits (§8): gap → user → IP | `rate_limited` 429 |
+| 7b | `level`: absent = 1, else an int (as below) the game has (§14.3); 2-5 need DB version 3. Steps 8-10 then use **that level's** limits | `invalid_data` 400 `field: level` ("Unknown level."); `db_error` 500 |
 | 8 | `duration_ms` is an int | `invalid_data` 400 |
 | 9 | `min_duration_ms <= duration_ms <= max_duration_ms` | `invalid_data` 400 |
 | 10a | Points: `score` is an int, `0 <= score <= max_score`, plausible (below) | `invalid_data` 400 |
 | 10b | Time: compute `score` (below), ignore the client value | none |
 | 10c | Run token (§7a): verified when present; required only while enforcement is on | `invalid_data` 400 with `reason`; `db_error` 500 |
-| 11 | Read previous `best_score`, then upsert (§9) | `db_error` 500 |
+| 11 | Read previous `best_score`, then upsert (§9). Games with levels: the level upsert, then the total (§14.3) | `db_error` 500 |
 | 12 | Read the row back, rank it, clear the slug cache if `is_new_best`, respond | `db_error` 500 |
 
 Rate limits run before body validation, so invalid submits (steps 8-10) still use up the budget. That stops anyone from probing the limits for free.
@@ -510,6 +513,7 @@ if ($wpdb->query($sql) === false) { /* error_log($wpdb->last_error); return db_e
 - `hidden` is never touched by the upsert (banned users never reach it).
 - `is_new_best` comes from a `SELECT best_score` read just before the upsert. The 3 s gap makes a same-user race practically impossible, and the stored row stays correct either way.
 - The table name is interpolated only from `play50_arcade_table()`. Every value goes through `$wpdb->prepare`.
+- Since DB version 3 this statement is unchanged for a one-level game and is followed by the level-1 mirror (§14.3); a game with levels writes the board row from its level rows instead.
 
 ### Rank (competition ranking: equal score and equal `best_at` share a rank)
 
@@ -589,6 +593,9 @@ function play50_arcade_on_deleted_user($user_id) {
     if (play50_arcade_run_tokens_ready()) {
         $wpdb->delete(play50_arcade_runs_table(), array('user_id' => (int) $user_id), array('%d'));
     }
+    if (play50_arcade_levels_ready()) {
+        $wpdb->delete(play50_arcade_levels_table(), array('user_id' => (int) $user_id), array('%d'));
+    }
     play50_arcade_clear_cache();
 }
 ```
@@ -607,7 +614,7 @@ A JWT that still exists for a deleted user gets 401 (§5, step 4).
 | `play50_arcade_clear_cache($slug = null)` | void. One slug, or all when null |
 | `play50_arcade_public_name($uid)` | The public name string (§10) |
 
-Also public for a later admin readiness panel (call behind `function_exists()`): `play50_arcade_runs_table()`, `play50_arcade_run_tokens_ready()`, `play50_arcade_run_token_required()`.
+Also public for a later admin readiness panel (call behind `function_exists()`): `play50_arcade_runs_table()`, `play50_arcade_run_tokens_ready()`, `play50_arcade_run_token_required()`. Levels (call behind `function_exists()`; the admin page uses the first two): `play50_arcade_levels_table()`, `play50_arcade_level_count($game)`, `play50_arcade_levels_ready()`, `play50_arcade_recompute_total($uid, $slug, $game)`.
 
 Internal (do not call from the admin page): the other run-token helpers (`play50_arcade_now_ms`, `play50_arcade_run_token_*`, `play50_arcade_verify_run_token`, `play50_arcade_runs_gc`, `play50_arcade_start_run`), `play50_arcade_install`, `play50_arcade_maybe_install`, `play50_arcade_game`, `play50_arcade_normalize_game`, `play50_arcade_auth_user`, `play50_arcade_hit`, `play50_arcade_ip_hash`, `play50_arcade_limit_register`, `play50_arcade_on_deleted_user`, `play50_arcade_empty_me_object`, `play50_arcade_register_routes`, the route callbacks and the small `play50_arcade_*` helpers (parsing, errors, rank, top-50).
 
@@ -656,6 +663,7 @@ Before every upload: `php -l includes/arcade-api.php` and `php -l wt-cpt/arcade-
   Total from `SELECT COUNT(*) FROM {table} WHERE game_slug = %s`. Pagination via `paginate_links()`.
 - Call `cache_users($user_ids)` once per page. Columns: #, user (ID + `user_login` linked to `get_edit_user_link()`), public name, best score, best duration, last score, plays, best at, last played (UTC), status (hidden / banned), actions.
 - Markup: core admin classes (`wrap`, `widefat striped`, `button`, `notice`). Escape every output with `esc_html`, `esc_attr`, `esc_url`.
+- Levels (since DB v3, Claude takeover of this file in `claude/levels-backend`): the header also says whether the level table exists; for a game with levels a read-only **Per-level bests** table follows the board (one line per user with level rows, up to 200: each level's best score and time, plays, the total or, for a time game, the total time or "not ranked"). Players of a time game who have not finished all levels appear only there.
 
 ### Actions
 
@@ -663,8 +671,8 @@ Every action is a POST form to `admin_url('admin-post.php')` with a hidden `acti
 
 | `action` | POST fields | Nonce action | Effect | Notice |
 |---|---|---|---|---|
-| `play50_arcade_delete_row` | `row_id`, `game` | `play50_arcade_delete_row_{row_id}` | `DELETE` that row; `play50_arcade_clear_cache($game)` | `deleted` |
-| `play50_arcade_reset_game` | `game`, `confirm_slug` (must equal `game`, typed by the admin) | `play50_arcade_reset_game_{game}` | `DELETE ... WHERE game_slug = %s`; clear that slug | `reset` (+ `p50a_count`) |
+| `play50_arcade_delete_row` | `row_id`, `game` | `play50_arcade_delete_row_{row_id}` | `DELETE` that row and (DB v3) that user's level rows for the game; `play50_arcade_clear_cache($game)` | `deleted` |
+| `play50_arcade_reset_game` | `game`, `confirm_slug` (must equal `game`, typed by the admin) | `play50_arcade_reset_game_{game}` | `DELETE ... WHERE game_slug = %s` on the board and (DB v3) the level table; clear that slug | `reset` (+ `p50a_count` = board rows) |
 | `play50_arcade_ban_user` | `user_id`, `game` | `play50_arcade_ban_user_{user_id}` | Ban (§10) | `banned` |
 | `play50_arcade_unban_user` | `user_id`, `game` | `play50_arcade_unban_user_{user_id}` | Unban (§10) | `unbanned` |
 | `play50_arcade_clear_cache` | `game` (slug or `all`) | `play50_arcade_clear_cache` | `play50_arcade_clear_cache($game === 'all' ? null : $game)` | `cleared` |
@@ -721,8 +729,101 @@ printf 'header = "Authorization: Bearer %s"\n' "$JWT" |
 | Deleted user | Create a throwaway user in the site UI (the sign-up counts toward the 5/h register limit, so do this before `RUN_REGISTER=1`), log in, `read -rs JWT_DEL`, delete the user in wp-admin, submit with `Authorization: Bearer $JWT_DEL` | 401 `unauthorized`; the user's rows are gone from the admin list |
 | Upsert correctness | Submit a higher score, then a lower one (3 s apart) | `best_score` keeps the higher value, `best_at` / `best_duration_ms` belong to the higher run, `plays` +2, `last_score` = the lower one |
 
+### Levels cases (after the DB v3 upload, before `NEXT_PUBLIC_ARCADE_LEVELS`)
+
+Read-only first: `GET /arcade/games` shows `"version":4` and `"features":{"levels":true}`, and no game has `levels` yet. Then, as arcade-test on `$SLUG` (a one-level game), each 3 s apart:
+
+| Case | Body | Expected |
+|---|---|---|
+| No level | `$V` | 200, exactly the six keys `slug, score, best_score, is_new_best, plays, rank` |
+| Level 1 | `$V` + `"level":1` | 200, the same six keys |
+| Level 2 on a one-level game | `$V` + `"level":2` | 400 `invalid_data`, `data.field: "level"`, no play counted |
+| Level `"x"` | `$V` + `"level":"x"` | 400 `invalid_data`, `field: level` |
+| Start, level 2 | `POST /arcade/runs/start {"slug":"$SLUG","level":2}` | 400 `invalid_data`, `field: level` |
+| Start, level 1 | `{"slug":"$SLUG","level":1}` | 200 `{run_token}`; it verifies on a no-level submit |
+| Me | `GET /arcade/me` | entries exactly as before (no `levels` for one-level games) |
+
+Level-bound tickets on the wrong level and the totals need a game with levels: they are checked with the first pilot's JSON (docs/arcade-levels.md "Upload steps").
+
 ### Cleanup (always)
 1. Before launch (empty board): Admin → Arcade Scores → **Reset game** for `$SLUG` (and `$TIME_SLUG`), then **Clear cache** → all.
    Live board (real players, after Release 1): **never Reset game**, it deletes every player's scores. Select `$SLUG` (and `$TIME_SLUG`), **Delete** only the arcade-test rows, then **Clear cache** → all.
 2. `GET /arcade/leaderboard/$SLUG` shows no test rows.
 3. Before launch only: then turn the frontend flags on (plan §3 "5.4", step 5).
+
+---
+
+## 14. Levels: server side (DB version 3, `claude/levels-backend`)
+
+Design and user decisions: [arcade-levels.md](arcade-levels.md) §4 and "User decisions (2026-10-24)". Client side: §6.7. Harness: `tools/arcade-php-tests/run.php` section 9.
+
+### 14.1 `arcade-games.json` v4
+
+A game may have `levels`: a JSON list of **exactly 5** objects, each with the full limit set of the game's `kind` (`max_score`, `min_duration_ms`, `max_duration_ms`, and `base` + `max_pps` for points or `time_base_ms` for time; `title` optional, default "Level n"). `kind` and `enabled` are game-level only. `levels[0]` must equal the top-level limits, so a v3 server (which reads only the top level) sees level 1 and the JSON can go up before or after the PHP. Anything else (4 or 6 entries, an object instead of a list, a missing key, `min >= max`, `levels[0]` differing) is logged `play50 arcade: game <slug> levels ignored, served as one level (<reason>)` and the game keeps working with one level: levels 2-5 are then unknown levels, never checked against wrong limits. A game without `levels` is one level, exactly as before.
+
+### 14.2 Table and migration
+
+```sql
+CREATE TABLE {prefix}play50_arcade_level_scores (
+  id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  user_id bigint(20) unsigned NOT NULL,
+  game_slug varchar(40) NOT NULL,
+  level tinyint(3) unsigned NOT NULL,
+  best_score int(10) unsigned NOT NULL DEFAULT 0,
+  best_duration_ms int(10) unsigned DEFAULT NULL,
+  last_score int(10) unsigned NOT NULL DEFAULT 0,
+  plays int(10) unsigned NOT NULL DEFAULT 0,
+  best_at datetime NOT NULL,
+  last_played datetime NOT NULL,
+  PRIMARY KEY  (id),
+  UNIQUE KEY user_game_level (user_id,game_slug,level),
+  KEY game_level (game_slug,level,best_score)
+);
+```
+Columns mean what they mean on the board (§2), per level.
+
+`play50_arcade_install()` (on `init` while the option is not `'3'`): `dbDelta` the three tables; if `SHOW TABLES` misses one, log and set the 1-hour retry guard (`p50a_install_failed`) and stop. Then, only while the recorded version is not `'3'`, one backfill:
+
+```sql
+INSERT IGNORE INTO {level_scores} (user_id, game_slug, level, best_score, best_duration_ms, last_score, plays, best_at, last_played)
+SELECT user_id, game_slug, 1, best_score, best_duration_ms, last_score, plays, best_at, last_played FROM {scores}
+```
+A `false` result is logged, sets the retry guard and leaves the version at `'2'` (run tokens keep working: their readiness accepts `'2'` and `'3'`; levels stay off: `features.levels: false`, levels 2-5 answer `db_error`). Success writes the option `play50_arcade_level_counts = array()` (if missing) and then `play50_arcade_db_version = '3'`.
+
+Safety: the board table is never written by the migration (every total already equals its level-1 best, so no rank moves); the copy runs once because of the version option and is idempotent anyway (`INSERT IGNORE` on `user_game_level` never overwrites a level row, so two requests racing through it copy nothing twice); nothing is dropped or altered; a rollback to the old PHP ignores the new table and heals itself (the old PHP sees version `'3'` ≠ its `'2'`, re-runs its own install and records `'2'`, so run tokens keep working); uploading the new PHP again re-runs the backfill, which copies only rows still missing (`INSERT IGNORE`), and the level-1 mirror refreshes the rest on the next submit.
+
+### 14.3 Submit
+
+Step 7b validates `level` (absent = 1; `play50_arcade_int` and the game must have it). Steps 8-10 use `play50_arcade_game_level($game, $level)`, the game config with that level's limits. Step 10c verifies the ticket against the level (§14.5). Then `play50_arcade_sync_level_totals()` (§14.6), and the writes:
+
+- **One-level game** (or levels not ready): today's board upsert (§9), byte-identical, then the level-1 mirror (DB v3 only): `INSERT INTO {level_scores} ... SELECT s.user_id, s.game_slug, 1, s.best_score, ... FROM {scores} s LEFT JOIN (SELECT DISTINCT user_id FROM {level_scores} WHERE game_slug = %s AND level > 1) x ON x.user_id = s.user_id WHERE x.user_id IS NULL AND s.user_id = %d AND s.game_slug = %s ON DUPLICATE KEY UPDATE <every column> = VALUES(...)`. The board write already happened, so a failed mirror is logged (`db error (level mirror)`), not returned. Response: the six keys of §6.2.
+- **Game with levels** (DB v3): (a) the level upsert, the §9 statement on the level table keyed by `user_game_level`; (b) `play50_arcade_recompute_total()`: read the user's level rows for the game, compute the total in PHP (`play50_arcade_total_from_levels()`, pure) and **assign** it to the board row (`INSERT ... ON DUPLICATE KEY UPDATE best_score = VALUES(best_score), best_duration_ms = ..., last_score = ..., plays = ..., best_at = ..., last_played = ...`; `hidden` is kept, a new row gets `hidden = 1` for a banned user), or `DELETE` the board row when the user ranks nowhere. Assigned, never `GREATEST`, so removing a forged level row and recomputing lowers the total.
+
+Totals (`play50_arcade_total_from_levels`; rows of levels the game does not have are ignored):
+
+| | Points game | Time game with levels |
+|---|---|---|
+| `best_score` | sum of the level `best_score`s | `min(Σ max_score, max(0, intdiv(Σ time_base_ms − T, 10)))` with `T` = Σ `best_duration_ms` of the 5 levels |
+| ranked when | any level row exists | **all 5** levels have a row with a time; otherwise no board row (not on the leaderboard, `rank: null`) |
+| `best_duration_ms` | Σ of the levels' when none is null, else null | `T` (the total time) |
+| `plays` | Σ over the levels | same |
+| `best_at` | the latest level `best_at` (the total last rose then; tie-break as before) | same |
+| `last_score`, `last_played` | of the most recently played level | same |
+
+Why the time formula: user decision 4 ranks time games by the total time `T`, lower is better. The board columns, the rank query, the top-50 cache and every client rank "higher `best_score` first", so the stored value is the one-level time formula (§7) applied to `T` with a 5-level time base `Σ time_base_ms`: strictly decreasing in `T` (10 ms steps, like one level), never negative, and at most Σ `max_score`. The leaderboard's `duration_ms` is `T`. Example (harness): time bases 100 + 150 + 200 + 250 + 300 s = 1000 s, best times 60 + 100 + 150 + 200 + 250 s = 760 s → `best_score` = (1 000 000 − 760 000) / 10 = 24 000, `duration_ms` 760 000. It can differ from the sum of the five per-level time scores (the client's local `best`) only by the 10 ms rounding (≤ 4 points) and the per-level caps; the rank always follows `T`. A one-level time game keeps today's single-run time score.
+
+Response for a game with levels: `{ slug, score, best_score, is_new_best, plays, rank, level, level_best_score, is_new_level_best }`: `score` = this run (server-computed for time), `best_score` = the total (0 when not ranked), `plays` = all levels, `rank` = the total's rank or `null` when not ranked, `is_new_best` = `is_new_level_best` (a total of bests rises exactly when one best does). The slug cache is cleared on a new level best. Rate limits are unchanged (the 3 s gap is per user **and game**, not per level).
+
+### 14.4 Reads
+
+- `GET /arcade/leaderboard/<slug>`: unchanged shape and queries, `score` = the total (`duration_ms` = the summed time for time games). No `?level=`.
+- `GET /arcade/me`: §6.4. One extra query (`SELECT game_slug, level, best_score, best_duration_ms, plays, last_played FROM {level_scores} WHERE user_id = %d`) only when some game has levels.
+- `GET /arcade/games`: §6.1 (`version`, `features.levels`, `levels` arrays).
+
+### 14.5 Run tickets per level
+
+`POST /arcade/runs/start` reads `level` like the submit. The signed subject is `play50_arcade_run_token_subject($slug, $level)`: the slug for level 1, `"<slug>@<level>"` for 2-5 (`@` is outside the slug charset). The format (`r1.<issued>.<expires>.<nonce>.<sig>`), the key and the claim are unchanged; the claim row stores the plain slug. Level-1 tickets are byte-identical to the tickets before levels, so tickets issued before the upload still verify. Expiry = that level's `max_duration_ms` + 300 s. A level-3 ticket on a level-5 (or level-1) submit fails `signature`, handled by the enforcement switch as before (§7a).
+
+### 14.6 Level-count changes (`play50_arcade_sync_level_totals`)
+
+The option `play50_arcade_level_counts` (autoloaded, slug => level count the totals were computed for; missing = 1) is compared with the JSON on every submit, leaderboard and `me` request (no query when equal). When a game's count changed, `play50_arcade_resync_game()` runs once: coming from one level it first mirrors the game's board rows into level 1 (skipping users with a level 2-5 row), then recomputes every user's board row from the level rows, clears the slug cache and records the new count; an error leaves the count unrecorded, so a later request retries. Effects: a points game gaining levels keeps every total (= level 1); a **time game gaining levels drops every player off its board until they finish all 5** (their level-1 best stays, in `me` and the admin page); a game going back to one level gets level 1 as its board value. Logged `play50 arcade: totals of <slug> recomputed for <n> level(s)`.
