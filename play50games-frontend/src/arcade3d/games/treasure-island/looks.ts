@@ -1,9 +1,99 @@
 // Treasure Island looks that are worth a test: the ground and water heights (so the drawn shoreline
-// is the rules' shore(t)), the follow camera's window per screen, and where the decor crabs sit.
+// is the rules' shore(t)), the follow camera's window per screen, where the decor crabs sit,
+// and the surrounding decor outside the play area.
 // Pure: no three.js, no React. The rules stay flat (y = 0); only the drawing uses these heights.
 import type { AABB } from "@/arcade3d/core/collision";
 import type { FittedViewOptions } from "@/arcade3d/core/useFittedView";
-import { ISLAND, TIDE, clearance, rho, type Island } from "./rules";
+import { FIXED, ISLAND, TIDE, clearance, rho, type Island } from "./rules";
+
+// ---------- unified color palette ----------
+
+export const COLORS = {
+   // Sky & Atmosphere
+   skyTop: "#1e3a8a",
+   skyBottom: "#fdba74",
+   fog: "#fdba74",
+
+   // Ground & Island
+   sand: "#f5d8a0",
+   sandRipple: "#edd092",
+   sandSun: "#fae6be",
+   wetSand: "#c49a62",
+   grass: "#65a30d",
+   grassSun: "#84cc16",
+   grassDark: "#3f6212",
+   jungleEdge: "#4d7c0f",
+
+   // Tropical Sea & Reef
+   sea: "#14b8a6",
+   seaShallow: "#2dd4bf",
+   deep: "#0f766e",
+   deepLagoon: "#0d6e67",
+   oceanBed: "#042f2e",
+   underwaterSand: "#5fa8a3",
+   foam: "#f0fdfa",
+   surfFoam: "#e6fffa",
+
+   // Rocks
+   rock: "#78716c",
+   rockSun: "#a8a29e",
+   rockDark: "#44403c",
+
+   // Palms & Foliage
+   palm: "#4d7c0f",
+   palmLeafSun: "#65a30d",
+   palmTrunk: "#78350f",
+   palmRing: "#9a3412",
+   trunk: "#78350f",
+
+   // Wood & Props
+   wood: "#854d0e",
+   woodLight: "#b45309",
+   woodDark: "#5c2d12",
+   iron: "#334155",
+   deck: "#d97706",
+   deckPlank: "#b45309",
+   hull: "#9a3412",
+   hullTrim: "#fef08a",
+   boatTeal: "#0d9488",
+   boatCream: "#fef3c7",
+   rope: "#d97706",
+
+   // Towel & Umbrella
+   umbrellaRed: "#f43f5e",
+   umbrellaCream: "#fff7ed",
+   towelStripes: ["#f43f5e", "#fde68a", "#38bdf8", "#fde68a"] as const,
+
+   // Characters & Gear
+   hat: "#d4a373",
+   hatBand: "#451a03",
+   shirt: "#0f766e",
+   skin: "#f5c9a0",
+   shovelSteel: "#94a3b8",
+   shovelSteelDark: "#64748b",
+
+   // Treasure
+   gold: "#fbbf24",
+   goldShine: "#fef08a",
+   chest: "#8b5a2b",
+   chestWood: "#78350f",
+   chestIron: "#334155",
+   gemEmerald: "#34d399",
+   gemRuby: "#f43f5e",
+
+   // Fauna
+   gull: "#f8fafc",
+   gullWing: "#94a3b8",
+   gullBeak: "#f59e0b",
+   crab: "#ef4444",
+   crabDark: "#991b1b",
+   hole: "#452e1e",
+   holeEdge: "#714a2c",
+
+   // Shipwreck
+   wreckWood: "#3b2314",
+   wreckTrim: "#27160c",
+} as const;
 
 // ---------- ground and water ----------
 
@@ -96,4 +186,142 @@ export function crabAngles(island: Pick<Island, "circles" | "boxes">): number[] 
 /** The tide's progress 0..1 (looks: the water rises, the surf gets louder). */
 export function tideProgress(shore: number): number {
    return (1 - shore) / (1 - TIDE.finalShore);
+}
+
+// ---------- surroundings decor outside the play area ----------
+
+export interface OuterRockSpot {
+   x: number;
+   y: number;
+   z: number;
+   scale: number;
+   rotY: number;
+   surfRadius: number;
+}
+
+export interface OuterPalmSpot {
+   x: number;
+   y: number;
+   z: number;
+   scale: number;
+   rotY: number;
+}
+
+/** Outer rocks emerging from the turquoise shallows/open sea, each with a surf ring. */
+export const OUTER_ROCKS: readonly OuterRockSpot[] = [
+   // North reef (behind the island from the camera's view)
+   { x: -5, y: -0.1, z: -18, scale: 1.4, rotY: 0.5, surfRadius: 0.95 },
+   { x: 6, y: -0.15, z: -19, scale: 1.6, rotY: 1.2, surfRadius: 1.1 },
+   { x: 0, y: -0.1, z: -25, scale: 2.1, rotY: 2.1, surfRadius: 1.4 },
+   { x: -12, y: -0.12, z: -22, scale: 1.5, rotY: 0.8, surfRadius: 1.0 },
+   { x: 13, y: -0.1, z: -22, scale: 1.8, rotY: 1.7, surfRadius: 1.2 },
+   // Northwest reef (near shipwreck)
+   { x: -21, y: -0.1, z: -22, scale: 2.0, rotY: 0.3, surfRadius: 1.35 },
+   { x: -28, y: -0.12, z: -26, scale: 1.9, rotY: 1.1, surfRadius: 1.3 },
+   { x: -18, y: -0.15, z: -17, scale: 1.3, rotY: 2.4, surfRadius: 0.9 },
+   // Northeast reef
+   { x: 21, y: -0.1, z: -21, scale: 2.0, rotY: 0.9, surfRadius: 1.35 },
+   { x: 28, y: -0.12, z: -24, scale: 1.7, rotY: 1.5, surfRadius: 1.15 },
+   { x: 18, y: -0.15, z: -17, scale: 1.4, rotY: 2.8, surfRadius: 0.95 },
+   // Far East sea stacks
+   { x: 26, y: -0.1, z: -6, scale: 1.7, rotY: 0.4, surfRadius: 1.15 },
+   { x: 27, y: -0.12, z: 2, scale: 1.5, rotY: 1.8, surfRadius: 1.0 },
+   // Far West sea stacks
+   { x: -26, y: -0.1, z: -5, scale: 1.6, rotY: 1.9, surfRadius: 1.1 },
+   { x: -27, y: -0.12, z: 3, scale: 1.4, rotY: 0.6, surfRadius: 0.95 },
+];
+
+/** Outer palms standing on distant background islets/sandbars. */
+export const OUTER_PALMS: readonly OuterPalmSpot[] = [
+   // Far Northwest atoll
+   { x: -22, y: 0.05, z: -18, scale: 1.1, rotY: 0.4 },
+   { x: -24, y: 0.08, z: -16, scale: 0.9, rotY: 1.7 },
+   // Far Northeast atoll
+   { x: 22, y: 0.05, z: -18, scale: 1.05, rotY: 2.2 },
+   { x: 25, y: 0.08, z: -16, scale: 0.85, rotY: 0.8 },
+   // Far East atoll
+   { x: 26, y: 0.05, z: -2, scale: 1.0, rotY: 1.1 },
+   { x: 27, y: 0.06, z: 4, scale: 0.8, rotY: 2.5 },
+   // Far West atoll
+   { x: -26, y: 0.05, z: -1, scale: 1.0, rotY: 0.5 },
+   { x: -27, y: 0.06, z: 5, scale: 0.85, rotY: 1.9 },
+   // Far North islet
+   { x: -3, y: 0.05, z: -29, scale: 1.15, rotY: 1.3 },
+   { x: 3, y: 0.06, z: -30, scale: 0.95, rotY: 2.7 },
+];
+
+/** Distant pirate shipwreck silhouette on the northwest reef against the sunset horizon. */
+export const SHIPWRECK = {
+   x: -25,
+   y: -0.3,
+   z: -27,
+   scale: 1.2,
+   rotY: 0.5,
+   roll: -0.25,
+   pitch: 0.12,
+   radius: 4.5,
+} as const;
+
+/** A flock of gulls circling lazily over the ocean / shipwreck reef. */
+export const OUTER_BIRDS = {
+   count: 5,
+   centerX: -18,
+   centerZ: -23,
+   radiusX: 6.5,
+   radiusZ: 4.2,
+   y: 7.2,
+} as const;
+
+// ---------- play area and occlusion verification helpers ----------
+
+/** The maximum walkable boundary is rho 1.12 (the wading limit) plus the dock extension. */
+export const PLAY_LIMITS = {
+   maxRho: 1.12,
+   dockMinX: -FIXED.dock.hx - 0.2,
+   dockMaxX: FIXED.dock.hx + 0.2,
+   dockMinZ: FIXED.dock.fromZ - 0.2,
+   dockMaxZ: FIXED.dock.toZ + 0.2,
+} as const;
+
+/** Returns true if (x, z) is inside or too close to the playable area. */
+export function inPlayArea(x: number, z: number, margin = 0.5): boolean {
+   const r = rho(x, z);
+   if (r <= PLAY_LIMITS.maxRho + margin / Math.min(ISLAND.rx, ISLAND.rz)) return true;
+   if (
+      x >= PLAY_LIMITS.dockMinX - margin &&
+      x <= PLAY_LIMITS.dockMaxX + margin &&
+      z >= PLAY_LIMITS.dockMinZ - margin &&
+      z <= PLAY_LIMITS.dockMaxZ + margin
+   ) {
+      return true;
+   }
+   return false;
+}
+
+function channel(c: number): number {
+   const s = c / 255;
+   return s <= 0.04045 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
+}
+
+/** WCAG contrast of two #rrggbb colours. */
+export function contrastRatio(a: string, b: string): number {
+   const lum = (hex: string) => {
+      const n = Number.parseInt(hex.slice(1), 16);
+      return 0.2126 * channel((n >> 16) & 255) + 0.7152 * channel((n >> 8) & 255) + 0.0722 * channel(n & 255);
+   };
+   const hi = Math.max(lum(a), lum(b));
+   const lo = Math.min(lum(a), lum(b));
+   return (hi + 0.05) / (lo + 0.05);
+}
+
+/**
+ * 2D distance between a point (px, pz) and a line segment (x1, z1) -> (x2, z2).
+ */
+export function distanceToSegmentXZ(px: number, pz: number, x1: number, z1: number, x2: number, z2: number): number {
+   const dx = x2 - x1;
+   const dz = z2 - z1;
+   const lenSq = dx * dx + dz * dz;
+   if (lenSq < 1e-8) return Math.hypot(px - x1, pz - z1);
+   const t = Math.max(0, Math.min(1, ((px - x1) * dx + (pz - z1) * dz) / lenSq));
+   return Math.hypot(px - (x1 + t * dx), pz - (z1 + t * dz));
 }
