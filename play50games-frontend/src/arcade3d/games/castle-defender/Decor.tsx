@@ -42,6 +42,8 @@ export function Decor({ reduced }: { reduced: boolean }) {
          bird,
       };
    }, []);
+   // the primitives below carry no dispose={null}: R3F v8 applies a primitive's props to its object, so
+   // dispose={null} would overwrite geometry.dispose with null and this cleanup would throw on unmount
    useEffect(() => () => {
       for (const geometry of Object.values(geo)) geometry.dispose();
    }, [geo]);
@@ -81,58 +83,58 @@ export function Decor({ reduced }: { reduced: boolean }) {
       <group name="castle-decor">
          {trunks.length > 0 && (
             <Instanced spots={trunks} name="castle-trunks">
-               <primitive object={geo.trunk} attach="geometry" dispose={null} />
+               <primitive object={geo.trunk} attach="geometry" />
                <meshStandardMaterial color={COLORS.trunk} flatShading roughness={1} />
             </Instanced>
          )}
          {pinesA.length > 0 && (
             <Instanced spots={pinesA} name="castle-pine-a">
-               <primitive object={geo.pine} attach="geometry" dispose={null} />
+               <primitive object={geo.pine} attach="geometry" />
                <meshStandardMaterial color={COLORS.pineA} flatShading roughness={1} />
             </Instanced>
          )}
          {pinesB.length > 0 && (
             <Instanced spots={pinesB} name="castle-pine-b">
-               <primitive object={geo.pine} attach="geometry" dispose={null} />
+               <primitive object={geo.pine} attach="geometry" />
                <meshStandardMaterial color={COLORS.pineB} flatShading roughness={1} />
             </Instanced>
          )}
          {rounds.length > 0 && (
             <Instanced spots={rounds} name="castle-round">
-               <primitive object={geo.round} attach="geometry" dispose={null} />
+               <primitive object={geo.round} attach="geometry" />
                <meshStandardMaterial color={COLORS.round} flatShading roughness={1} />
             </Instanced>
          )}
          {rocks.length > 0 && (
             <Instanced spots={rocks} name="castle-rocks">
-               <primitive object={geo.rock} attach="geometry" dispose={null} />
+               <primitive object={geo.rock} attach="geometry" />
                <meshStandardMaterial color={COLORS.rock} flatShading roughness={1} />
             </Instanced>
          )}
          {flowersA.length > 0 && (
             <Instanced spots={flowersA} name="castle-flowers-a">
-               <primitive object={geo.flower} attach="geometry" dispose={null} />
+               <primitive object={geo.flower} attach="geometry" />
                <meshStandardMaterial color={COLORS.flowerA} flatShading roughness={0.7} />
             </Instanced>
          )}
          {flowersB.length > 0 && (
             <Instanced spots={flowersB} name="castle-flowers-b">
-               <primitive object={geo.flower} attach="geometry" dispose={null} />
+               <primitive object={geo.flower} attach="geometry" />
                <meshStandardMaterial color={COLORS.flowerB} flatShading roughness={0.7} />
             </Instanced>
          )}
          {tufts.length > 0 && (
             <Instanced spots={tufts} name="castle-tufts">
-               <primitive object={geo.tuft} attach="geometry" dispose={null} />
+               <primitive object={geo.tuft} attach="geometry" />
                <meshStandardMaterial color={COLORS.tuft} flatShading roughness={1} />
             </Instanced>
          )}
          <DynamicInstanced count={clouds.length} update={placeCloud} name="castle-clouds">
-            <primitive object={geo.cloud} attach="geometry" dispose={null} />
+            <primitive object={geo.cloud} attach="geometry" />
             <meshStandardMaterial color={COLORS.cloud} flatShading roughness={1} />
          </DynamicInstanced>
          <DynamicInstanced count={BIRDS.count} update={placeBird} name="castle-birds">
-            <primitive object={geo.bird} attach="geometry" dispose={null} />
+            <primitive object={geo.bird} attach="geometry" />
             <meshStandardMaterial color={COLORS.bird} flatShading roughness={1} />
          </DynamicInstanced>
       </group>

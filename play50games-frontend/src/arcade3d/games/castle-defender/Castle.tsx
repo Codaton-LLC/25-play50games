@@ -203,7 +203,7 @@ export function Castle({ run, reduced }: { run: CastleRun; reduced: boolean }) {
             <meshStandardMaterial color={COLORS.stone} flatShading roughness={0.95} />
          </Instanced>
          <Instanced spots={BALCONY} name="castle-balcony">
-            <primitive object={balcony} attach="geometry" dispose={null} />
+            <primitive object={balcony} attach="geometry" />
             <meshStandardMaterial color={COLORS.wood} roughness={0.8} />
          </Instanced>
          <Instanced spots={POLES} name="castle-poles">
