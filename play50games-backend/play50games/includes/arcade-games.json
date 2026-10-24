@@ -342,7 +342,14 @@
       "max_duration_ms": 62000,
       "base": 0,
       "max_pps": 200,
-      "enabled": true
+      "enabled": true,
+      "levels": [
+        { "title": "Basic Training", "max_score": 11600, "min_duration_ms": 58000, "max_duration_ms": 62000, "base": 0, "max_pps": 200 },
+        { "title": "Moving Targets", "max_score": 12100, "min_duration_ms": 58000, "max_duration_ms": 62000, "base": 0, "max_pps": 209 },
+        { "title": "Timed Course", "max_score": 13000, "min_duration_ms": 58000, "max_duration_ms": 62000, "base": 0, "max_pps": 225 },
+        { "title": "Combo Arena", "max_score": 13900, "min_duration_ms": 58000, "max_duration_ms": 62000, "base": 0, "max_pps": 240 },
+        { "title": "Royal Trial", "max_score": 15100, "min_duration_ms": 58000, "max_duration_ms": 62000, "base": 0, "max_pps": 261 }
+      ]
     },
     "zoo-escape": {
       "title": "Zoo Escape",
