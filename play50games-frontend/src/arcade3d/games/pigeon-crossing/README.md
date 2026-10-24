@@ -1,5 +1,7 @@
 # Pigeon Crossing
 
+Five levels are implemented; the historical design sections below describe protected Level 1 unless stated otherwise. Current configurations, proofs and verification are in Status.
+
 Owner: **Codex**. Slug: `pigeon-crossing`, game 4. Accent `#a78bfa`. Scene implementation on `codex/game-pigeon-crossing-scene`; **status stays `"soon"`**. The pure rules from step 1 are unchanged. Play and Retry remount cleanly (the core's instanced-mesh cleanup is fixed; Retry no longer opens Paused, see Known issues). Camera, stand-ins, HUD and the thumbnail are implemented; generated-model availability remains owned by the core manifest.
 
 | File | What it owns |
@@ -296,53 +298,82 @@ Game `Hud` (`Hud.tsx`, CSS Module, existing vars, `pointer-events: none`, not ma
 
 TASK P-51-levels-pigeon | 5 levels for pigeon-crossing | branch codex/levels-pigeon-crossing | allowed: play50games-frontend/src/arcade3d/games/pigeon-crossing/**
 
-Status: BLOCKED BEFORE IMPLEMENTATION (2026-10-24). Five levels are NOT implemented.
+Status: IMPLEMENTED; local TypeScript and all pigeon tests pass. Awaiting Claude's backend limits copy, flagged build and desktop/phone headless review. No commit or push.
 
-Branch verification: git branch --show-current returned codex/levels-pigeon-crossing. Initial git status --porcelain was empty. No branch creation/switch, reset/clean, deletion, commit, push, build, server or production access was performed.
+Branch verification: `git branch --show-current` returned `codex/levels-pigeon-crossing`. Scope checked with `git status --porcelain` only. No branch changes, reset/clean, file deletions, build, server, production requests or asset generation.
 
-Files changed:
-- .handoff/P-51-levels-pigeon/HANDOFF.md (explicit handoff exception in the task).
-- play50games-frontend/src/arcade3d/games/pigeon-crossing/README.md (this report in Status).
-All runtime code, metadata, assets and existing tests remain untouched; in particular rules.test.ts remains byte-identical.
+### Files
 
-Blocking acceptance question for Claude:
-The task incorporates docs/arcade-levels.md section 5 and the score-limit skill, requiring a best bot score >=90% of each level maxScore. The fixed live Level 1 limit is 50000, so the required demonstrated score is 45000. The existing game's README, Server limits and why they hold, records an exact earliest-arrival planner over 1020 seeds: best 40060, mean about 38400, minimum 36660. Its 48970 analytic ceiling deliberately ignores traffic waits; it is not a demonstrated attainable score. The recorded best is only 80.12% of 50000. The README explicitly rejects replacing the analytic cap with a statistical traffic cap.
+- Added `levels.ts`: pure typed five-level configs, section counts and clear targets.
+- Added `level.ts`: the single typed `useLevel` hook used by Scene and HUD.
+- Added `looks.ts`: core environment presets, including night L4 and sunset L5.
+- Added `levels.test.ts`: declarations, compatibility, difficulty, theoretical prefix proofs, seeded fairness, parking collision, input parity, real-store bots and full-duration score potential.
+- Updated `rules.ts`: captured level config, traffic parameters, longer road groups, parked vans in the existing pools, score multipliers and `PROPOSED_LEVEL_LIMITS`.
+- Updated `Scene.tsx`, `Hud.tsx`, `index.tsx`, `meta.ts`: core level integration, matching road markings, hints, per-level specs/hudStats, titles and clears.
+- Updated `README.md` Status with this handoff; wrote `.handoff/P-51-levels-pigeon/HANDOFF.md` (explicit task exception).
+- Existing `rules.test.ts`, `assets.test.ts`, `camera.test.ts`, `retry.test.ts` and all assets were never edited. `meta.scoring` remains 50000/3000/1800000/0/28.
 
-This is evidence of an unresolved acceptance mismatch, NOT a proof that a better seed/planner cannot reach 45000. I have not rerun that historical planner (the README says it was deleted). I cannot truthfully assert the required 90% check, lower Level 1's protected limits, or change Level 1 gameplay to meet it. Per AGENTS.md's stop-when-unsure instruction and CLI mode's no-answer constraint, implementation is deferred for Claude to reconcile this check. Recommended resolution: preserve Level 1's proven analytic limits and assess its bot's clear rate separately; explicitly allow the historical endless game's measured best to be below 90% of its analytic cap. No such exception has been assumed here.
+### Levels
 
-Five-level content table (source plan, NOT implemented):
+| L | Plan title | Clear objective / score | Traffic / new mechanic | Roads per 20 rows | Lighting | Row / street bonus |
+|---|---|---|---|---:|---|---|
+| 1 | Quiet Street | 3 sections / 90 | Today's live traffic, layout, timing and controls | 13 | Existing day | 10 / 100 |
+| 2 | Main Road | 4 sections / 180 | Parked van on left grass; extra convoy member, tier +1, speed x1.05 | 13 | Day | 15 / 150 |
+| 3 | City Crossing | 5 sections / 300 | Parked vans on both sides; mixed opposing convoys, tier +2, speed x1.10 | 13 | Sunset | 20 / 200 |
+| 4 | Night Traffic | 6 sections / 850 | Grass every 4 rows: longer crossings and less recovery; tier +3, speed x1.15 | 15 | Night | 25 / 250 |
+| 5 | Rush Hour | 8 sections / 1800 | Grass every 5 rows, all hazards together; tier +4, speed x1.20 | 16 | Dramatic sunset | 30 / 300 |
 
-| Level | Title | Sections | Hazards / new mechanic | Plan target | Lighting |
-|---|---|---:|---|---|---|
-| 1 | Quiet Street | 3 in plan; live game must override | Existing traffic and guaranteed clear windows, unchanged | Plan 60-75 s; live 30-minute cap must remain | Existing day |
-| 2 | Main Road | 4 | Static obstacle set; second obstacle and collectible line, adapted to existing assets | 75-90 s | Natural/day |
-| 3 | City Crossing | 5 | Combined obstacle types and moving hazards | 90-110 s | Dramatic, readable |
-| 4 | Night Traffic | 6 | Faster moving hazards; reduced recovery space | 100-120 s | Core night |
-| 5 | Rush Hour | 8 | Mixed hazards, minimal recovery; all mechanics and high-score pacing | Endless/high-score or 120 s | Core dramatic sunset |
+Content adaptation: a section is one grass-to-grass crossing, including the shortened final crossing of a street. The configured target is sections x grassEvery forward rows, converted by the normal street/row scoring formula. Reaching that score clears through the existing shell; the run continues until collision or timeup. The plan's collectible line becomes forward-row rewards; its static obstacles reuse parked van GLBs, with no new assets. The plan's short target times are guidance for clearing, not shortened scoring rounds. All five retain the 30-minute endless cap, so higher levels retain the full scoring opportunity and summed bests are not penalized by shorter rounds.
 
-These are source requirements, not final config choices. The built game is endless and already uses moving traffic; translating sections, collectibles and target times into its mechanics still needs implementation and verification. Do not interpret this table as approved shorter scoring rounds: harder levels must offer at least as many points as Level 1.
+Difficulty increases through nondecreasing road count, starting tier, speed multiplier, pack size, parked-edge hazard set and section target. Pack size stays within four existing slots. Traffic uses the same seeded draw order for L1; numeric horizon and forceFallback callers remain compatible. L1 keeps the original HUD label, instructions and look. L2-L5 name the internal stage chip Street to distinguish it from selected levelId.
 
-Per-level limits and proofs:
-- L1 EXISTING: maxScore 50000; minDurationMs 3000; maxDurationMs 1800000; base 0; maxPointsPerSec 28; kind points; pts/int. No change proposed.
-  Sources: +10 per new forward row, +100 per completed 20-row street. With n=20k+r, S=300k+10r; elapsedMs >=3050+550n. Therefore 28*(3050+550n)-1000*S=85400+8000k+5400r >0. At 1800000 ms n<=3267, S<=48970<50000. Traffic, pauses and backtracking only lower progress. Initial protected grass preview prevents a loss before 3000 ms. Existing README contains the full proof; it is not newly verified in this run.
-- L2: no proposed limits or proof; config and scoring sources not implemented.
-- L3: no proposed limits or proof; config and scoring sources not implemented.
-- L4: no proposed limits or proof; config and scoring sources not implemented.
-- L5: no proposed limits or proof; config and scoring sources not implemented.
-No PROPOSED_LEVEL_LIMITS export or meta.levels was added. Backend files remain Claude-owned and untouched.
+### Server limits and why they hold (one proof per level)
 
-Bot clear rates:
-- L1-L5: NOT MEASURED. No new clearScore values or human-paced/oracle bot have been implemented. Historical score measurements above are not clear-rate measurements.
+Score sources are only first surviving forward landings (ROW_POINTS=10) and a once-only LEVEL_BONUS=100 every ROWS_PER_LEVEL=20, multiplied by f. No points for parking, waiting, revisiting or lateral/backward hops. HOP_MS=550 and PREVIEW_MS=3050 are identical for all levels/devices. At n=20k+r new rows, raw S=f(300k+10r), with elapsed t>=3050+550n. Therefore the raw prefix bound is:
 
-Verification:
-- npx vitest run src/arcade3d/games/pigeon-crossing: FAILED AT STARTUP before collecting tests. esbuild: Cannot read directory ../../../..: Access is denied; could not resolve the absolute vitest.config.mts path. This is the sandbox config-loading failure anticipated by the task. Zero tests executed; no suite runtime or pass claim. An accidental duplicate invocation encountered the same startup limitation.
-- Existing test inventory by source inspection: 39 it() declarations in four files (rules 20, camera 11, assets 6, retry 2). This is not an executed test count.
-- npx tsc --noEmit: PASS, exit code 0, no diagnostics (approximately 2 minutes).
-- No new tests; mutation probe NOT RUN. No claim that the suite meets the 60-second gate.
-- No build or server run, as instructed. Claude's flagged build and desktop/phone headless playtest remain outstanding.
-- The requested pigeon-crossing/looks.ts is absent in this checkout. Current appearance is in Primitives.tsx, Scene.tsx and index.tsx; this alone was not treated as a blocker.
+`B_f(t) = f * (300 * floor(n/20) + 10 * (n % 20)), n=floor(max(0,t-3050)/550)`.
 
-Open questions / next action for Claude:
-1. Resolve the 90%-of-max bot acceptance mismatch for protected Level 1, without changing its gameplay or 50000/3000/1800000/0/28 limits.
-2. Resume the actual five-level implementation after that decision, copying robot-collector and castle-defender. All implementation, per-level proofs, 200-seed clear/fairness tests and mutation probes remain outstanding.
-3. Run Vitest in an environment that can load the existing config; then run the game suite and tsc, followed by Claude's flagged build and headless playtests. Copy reviewed proposed limits into arcade-games.json only after implementation.
+For pps=28f and base=0, integer slack is `pps*(3050+550n)-1000*S = f*(85400+8000k+5400r) > 0`. This proves every prefix before safety clamping, independent of seed, traffic, input spam, frame splits, pauses or backtracking. At 1800000 ms, n<=3267 and raw S<=48970f. capScore remains a no-op. These are safety caps, not attainment targets: Claude's binding endless-game exception removes the >=90%-of-maxScore oracle requirement.
+
+All limits below have kind points, unitLabel pts, display int, minDurationMs 3000, maxDurationMs 1800000 and base 0:
+
+| L | f | maxScore | maxPointsPerSec | Analytic raw ceiling | Per-level proof |
+|---|---:|---:|---:|---:|---|
+| 1 | 1 | 50000 | 28 | 48970 | S=300k+10r; original live proof/limits unchanged |
+| 2 | 1.5 | 75000 | 42 | 73455 | S=450k+15r; multiply L1 prefix slack by 1.5 |
+| 3 | 2 | 100000 | 56 | 97940 | S=600k+20r; multiply L1 prefix slack by 2 |
+| 4 | 2.5 | 125000 | 70 | 122425 | S=750k+25r; multiply L1 prefix slack by 2.5 |
+| 5 | 3 | 150000 | 84 | 146910 | S=900k+30r; multiply L1 prefix slack by 3 |
+
+The inherited live safety margins scale exactly: maxScore is about 2.10% above the no-traffic ceiling, and integer pps is about 2.67% above the asymptotic 300/11 rate. L5 max is exactly 3x L1. Initial row zero has no parked hazard, and no hop can begin before 3050 ms, so no legal loss precedes the 3000 ms minimum. The timer cuts off awards at 1800000 ms; result delay adds no submitted time. `rules.ts` exports all five PROPOSED_LEVEL_LIMITS and tests require equality with meta; Claude must copy them to arcade-games.json.
+
+Traffic fairness: L1-L3 retain a common [9000,12000) clear window within each road group. L4-L5 use [8000,12000) for their longer groups. Generated last-vehicle exit deadlines and headways are validated; fallback uses one deterministic car. With 350 ms reaction plus 50 ms per-hop slack, the longest L5 crossing needs 350+5*600=3350 ms <4000 ms. Centre grass remains safe despite parked vans. Fixed 40-lane/160-vehicle records and existing fitted GLBs are reused; new frame-loop code creates no arrays, objects or closures.
+
+### Bot clear rates and score potential
+
+The honest predictive bot reads the complete crossing, waits 350 ms after a fresh grass landing, queues at most one press after 350 ms in flight, and never changes hop/collision rules. Every measured frame goes through createArcadeStore, advanceRunClock and playedFrameDt. Raw score is compared with the unmodified scoring formula, both server bounds and capScore; the store's score must match.
+
+| L | Honest clears (seeds 0-199) | Latest clear at 20 Hz | 30-minute honest score (seed 7, 30 Hz) |
+|---|---|---:|---:|
+| 1 | 200/200 (100%) | 13250 ms | 31940 |
+| 2 | 200/200 (100%) | 20950 ms | 47910 |
+| 3 | 200/200 (100%) | 20750 ms | 64360 |
+| 4 | 200/200 (100%) | 35500 ms | 81100 |
+| 5 | 200/200 (100%) | 48800 ms | 101850 |
+
+For each level, honest, greedy forward, idle and random input-spam bots cover 200 seeds at 20 Hz. Seed 7 additionally covers all four bots at 30/60/144 Hz. Honest bots run until clearing (240 s guard); greedy/spam cover up to 20 s or collision; idle covers 4 s and never scores. Full-duration honest runs exercise all five caps separately. These simulations are finite coverage, supported by the all-prefix analytic proof above. The theoretical source ceiling grows with f; the demonstrated full-duration score of every higher level also exceeds L1's under the same bot/seed. Generator fairness and pool identity checks cover 200 seeds at stages 1-11 on all five levels. Existing L1 tests additionally retain their 1000-seed path/fallback checks.
+
+### Verification
+
+- `npx tsc --noEmit`: PASS, exit 0, no diagnostics (final code).
+- `npx vitest run src/arcade3d/games/pigeon-crossing`: CLI config startup fails in this sandbox: esbuild reports access denied resolving parent directories / vitest.config.mts. No claim that this CLI invocation passed.
+- Equivalent Vitest 2.1.9 in-memory config: PASS, 5 files / 53 tests, 51.45 s wall time (45.97 s tests), below 60 s. Includes all 39 unchanged existing tests and 14 new cases.
+- In-memory runner uses startVitest from vitest/node, filter `src/arcade3d/games/pigeon-crossing`, config:false, watch:false, maxWorkers/minWorkers:1, alias @ to process.cwd()+"/src", esbuild jsx automatic. It bypasses only config bundling; it runs the installed Vitest and real source/tests, not a custom assertion runner.
+- TDD: initial five-level declaration test failed before implementation (meta.levels absent), then passed.
+- Mutation probe: temporarily disabled the parked-van collision loop; the new full-footprint collision test failed (`Infinity` instead of contact at 3050). Restored in finally; the full 53-test run above passed afterward.
+- A diagnostic full-duration test initially caught floating-point store-clock drift: rules 486500 ms vs store 486499.99999989994 ms, identical scores. Harness tolerance is now 0.00001 ms, far below the submitted integer millisecond; no production timing change was made.
+- No full-project Vitest, build, server or browser playtest run. Build and desktop/phone playtests belong to Claude under the task's CLI instructions.
+
+### Open questions / Claude actions
+
+No unresolved game-design blocker. Before merge, Claude must copy the proposed five limits into the backend JSON, run the normal config/full-project checks, flagged build and headless playtest of all five levels on desktop and phone (especially parked-van readability and night lighting). Registry/backend parity is intentionally pending that Claude-owned JSON edit. Do not commit this handoff automatically; Claude reviews and commits.

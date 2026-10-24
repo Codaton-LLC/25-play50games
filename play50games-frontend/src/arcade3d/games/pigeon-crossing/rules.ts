@@ -1,7 +1,20 @@
 import { sweptAabbXZ, type AABB, type SweepHit } from "@/arcade3d/core/collision";
 import { capScore, withinServerLimits } from "@/arcade3d/core/limits";
 import { rngNext } from "@/arcade3d/core/math";
+import type { LevelId, ScoringRules } from "@/arcade3d/types";
 import { pigeonCrossingMeta } from "./meta";
+import { LEVELS, type PigeonLevel } from "./levels";
+
+/** L1: S=300k+10r, t>=3050+550(20k+r); S<=48970 at the 30-minute cap.
+ * L2-L5 multiply these bounds by 1.5/2/2.5/3. No other score sources.
+ * The caps are safety limits for endless games, not clear targets. */
+export const PROPOSED_LEVEL_LIMITS: Record<LevelId, ScoringRules> = {
+   1: pigeonCrossingMeta.scoring,
+   2: { ...pigeonCrossingMeta.scoring, maxScore: 75000, maxPointsPerSec: 42 },
+   3: { ...pigeonCrossingMeta.scoring, maxScore: 100000, maxPointsPerSec: 56 },
+   4: { ...pigeonCrossingMeta.scoring, maxScore: 125000, maxPointsPerSec: 70 },
+   5: { ...pigeonCrossingMeta.scoring, maxScore: 150000, maxPointsPerSec: 84 },
+};
 
 export const COLUMNS = 7;
 export const COLUMN_PITCH = 1.6;
@@ -61,6 +74,10 @@ export interface Lane {
    travelMs: number;
    startMs: number;
    fallback: boolean;
+   speedFactor?: number;
+   packExtra?: number;
+   clearFromMs?: number;
+   tierOffset?: number;
 }
 
 export interface Vehicle {
@@ -83,6 +100,7 @@ export interface StepEvents {
 }
 
 export interface PigeonRun {
+   config: PigeonLevel;
    seed: number;
    forceFallback: boolean;
    rng: { s: number };
@@ -119,6 +137,10 @@ export function isGrass(row: number): boolean {
    return row === ROWS_PER_LEVEL || (row >= 0 && row < ROWS_PER_LEVEL && row % 3 === 0);
 }
 
+export function isLevelGrass(row: number, config: PigeonLevel): boolean {
+   return row === ROWS_PER_LEVEL || (row >= 0 && row < ROWS_PER_LEVEL && row % config.grassEvery === 0);
+}
+
 export function levelSeedFor(seed: number, level: number): number {
    return (seed ^ Math.imul(level, LEVEL_SEED_MIX)) >>> 0;
 }
@@ -131,15 +153,18 @@ export function createStepInput(): StepInput {
    return { pressed: { up: false, down: false, left: false, right: false }, tap: null };
 }
 
-export function createRun(seed: number, horizonRows = 28, forceFallback = false): PigeonRun {
+export function createRun(seed: number, level: PigeonLevel | number = LEVELS[1], forceFallback = false): PigeonRun {
+   // Numeric horizon argument stays compatible with every existing Level 1 caller/test.
+   const config = typeof level === "number" ? LEVELS[1] : level;
+   const horizonRows = typeof level === "number" ? level : 28;
    const lanes: Lane[] = [];
    const vehicles: Vehicle[] = [];
    for (let slot = 0; slot < LANE_SLOTS; slot++) {
-      lanes.push({ slot, row: NONE, level: 0, localRow: 0, road: false, group: NONE, kind: 0, direction: 1, phaseMs: 0, speed: 0, packSize: 0, gap: 0, headwayMs: 0, travelMs: 0, startMs: 0, fallback: false });
+      lanes.push({ slot, row: NONE, level: 0, localRow: 0, road: false, group: NONE, kind: 0, direction: 1, phaseMs: 0, speed: 0, packSize: 0, gap: 0, headwayMs: 0, travelMs: 0, startMs: 0, fallback: false, speedFactor: config.speedFactor, packExtra: config.packExtra, clearFromMs: config.grassEvery > 3 ? 8000 : CLEAR_FROM_MS, tierOffset: config.tierOffset });
       for (let member = 0; member < VEHICLES_PER_LANE; member++) vehicles.push({ row: NONE, kind: 0, member, direction: 1, x: 0, z: 0, active: false });
    }
    const run: PigeonRun = {
-      seed: seed >>> 0, forceFallback, rng: { s: 0 }, lanes, vehicles,
+      config, seed: seed >>> 0, forceFallback, rng: { s: 0 }, lanes, vehicles,
       horizonMin: NONE, horizonMax: NONE, horizonBlocked: false,
       timeMs: 0, remainder: 0, poseMs: 0,
       player: { row: 0, col: 3, x: 0, y: 0, z: 0 },
@@ -195,8 +220,12 @@ function fillLane(run: PigeonRun, lane: Lane, row: number): void {
    lane.row = row;
    lane.level = Math.floor(row / ROWS_PER_LEVEL) + 1;
    lane.localRow = row % ROWS_PER_LEVEL;
-   lane.road = !isGrass(lane.localRow);
-   lane.group = lane.road ? Math.floor((lane.localRow - 1) / 3) : NONE;
+   lane.road = !isLevelGrass(lane.localRow, run.config);
+   lane.speedFactor = run.config.speedFactor;
+   lane.packExtra = run.config.packExtra;
+   lane.clearFromMs = run.config.grassEvery > 3 ? 8000 : CLEAR_FROM_MS;
+   lane.tierOffset = run.config.tierOffset;
+   lane.group = lane.road ? Math.floor((lane.localRow - 1) / run.config.grassEvery) : NONE;
    lane.kind = 0;
    lane.direction = 1;
    lane.phaseMs = 0;
@@ -208,25 +237,25 @@ function fillLane(run: PigeonRun, lane: Lane, row: number): void {
    lane.startMs = 0;
    lane.fallback = false;
    if (!lane.road) return;
-   const tier = Math.min(lane.level, TIER_CAP);
+   const tier = Math.min(lane.level + (lane.tierOffset ?? 0), TIER_CAP);
    const gap = 3 - 0.2 * (tier - 1);
-   const pack = 1 + Math.floor((tier - 1) / 3);
+   const pack = Math.min(4, 1 + Math.floor((tier - 1) / 3) + (lane.packExtra ?? 0));
    run.rng.s = levelSeedFor(run.seed, lane.level);
    // Replay the stable group/member draws. Filling order cannot change a group's phase.
    for (let group = 0; group <= lane.group; group++) {
       const phase = Math.floor(rngNext(run.rng) * CYCLE_MS);
       const direction = rngNext(run.rng) < 0.5 ? 1 : -1;
-      for (let road = 0; road < (group === 6 ? 1 : 2); road++) {
+      for (let road = 0; road < Math.min(run.config.grassEvery - 1, ROWS_PER_LEVEL - group * run.config.grassEvery - 1); road++) {
          const draw = Math.floor(rngNext(run.rng) * 7);
          const kind = draw < 4 ? 0 : draw < 6 ? 1 : 2;
          const type = VEHICLE_TYPES[kind];
-         const speed = Math.min(8, type.baseSpeed + 0.6 * (tier - 1));
+         const speed = Math.min(8, type.baseSpeed + 0.6 * (tier - 1)) * (lane.speedFactor ?? 1);
          // Round headway up to whole ms, preserving the minimum bumper gap.
          const headway = Math.ceil((3.8 + gap) * 1000 / speed);
          const travel = 2 * (COVER_INNER_X + type.length / 2) * 1000 / speed;
-         const maxStart = Math.floor(Math.min(2000, CLEAR_FROM_MS - travel - (pack - 1) * headway));
+         const maxStart = Math.floor(Math.min(2000, (lane.clearFromMs ?? CLEAR_FROM_MS) - travel - (pack - 1) * headway));
          const start = Math.floor(rngNext(run.rng) * (maxStart + 1));
-         if (group * 3 + 1 + road !== lane.localRow) continue;
+         if (group * run.config.grassEvery + 1 + road !== lane.localRow) continue;
          lane.kind = kind;
          lane.direction = road === 0 ? direction : -direction;
          lane.phaseMs = phase;
@@ -248,22 +277,22 @@ export function validateLane(lane: Lane): boolean {
    if (!Number.isInteger(lane.kind) || lane.kind < 0 || lane.kind >= VEHICLE_TYPES.length ||
       !Number.isInteger(lane.level) || lane.level < 1 || (lane.direction !== 1 && lane.direction !== -1) ||
       !Number.isInteger(lane.phaseMs) || lane.phaseMs < 0 || lane.phaseMs >= CYCLE_MS) return false;
-   const tier = Math.min(lane.level, TIER_CAP), type = VEHICLE_TYPES[lane.kind];
-   const speed = Math.min(8, type.baseSpeed + 0.6 * (tier - 1));
+   const tier = Math.min(lane.level + (lane.tierOffset ?? 0), TIER_CAP), type = VEHICLE_TYPES[lane.kind];
+   const speed = Math.min(8, type.baseSpeed + 0.6 * (tier - 1)) * (lane.speedFactor ?? 1);
    const gap = 3 - 0.2 * (tier - 1);
-   const pack = lane.fallback ? 1 : 1 + Math.floor((tier - 1) / 3);
+   const pack = lane.fallback ? 1 : Math.min(4, 1 + Math.floor((tier - 1) / 3) + (lane.packExtra ?? 0));
    const travel = 2 * (COVER_INNER_X + type.length / 2) * 1000 / speed;
    return lane.speed === speed && lane.gap === gap && lane.packSize === pack &&
       Number.isInteger(lane.headwayMs) && lane.headwayMs >= (3.8 + gap) * 1000 / speed &&
       lane.travelMs === travel && Number.isInteger(lane.startMs) && lane.startMs >= 0 && lane.startMs <= 2000 &&
-      lane.startMs + (pack - 1) * lane.headwayMs + travel <= CLEAR_FROM_MS &&
+      lane.startMs + (pack - 1) * lane.headwayMs + travel <= (lane.clearFromMs ?? CLEAR_FROM_MS) &&
       (!lane.fallback || (lane.kind === 0 && lane.startMs === 0));
 }
 
 export function applyFallback(lane: Lane): void {
-   const tier = Math.min(lane.level, TIER_CAP);
+   const tier = Math.min(lane.level + (lane.tierOffset ?? 0), TIER_CAP);
    lane.kind = 0;
-   lane.speed = Math.min(8, VEHICLE_TYPES[0].baseSpeed + 0.6 * (tier - 1));
+   lane.speed = Math.min(8, VEHICLE_TYPES[0].baseSpeed + 0.6 * (tier - 1)) * (lane.speedFactor ?? 1);
    lane.gap = 3 - 0.2 * (tier - 1);
    lane.packSize = 1;
    lane.headwayMs = Math.ceil((3.8 + lane.gap) * 1000 / lane.speed);
@@ -290,6 +319,13 @@ export function syncTraffic(run: PigeonRun, time: number): void {
          vehicle.z = lane.row === NONE ? 0 : -lane.row * ROW_PITCH;
          const age = phase - lane.startMs - member * lane.headwayMs;
          vehicle.active = lane.road && member < lane.packSize && age >= 0 && age < lane.travelMs;
+         if (lane.row !== NONE && !lane.road && lane.localRow > 0 && member < run.config.parkedEdges) {
+            vehicle.active = true;
+            vehicle.kind = 2;
+            vehicle.direction = member === 0 ? 1 : -1;
+            vehicle.x = columnX(member === 0 ? 0 : 6);
+            continue;
+         }
          vehicle.x = lane.direction * (-(COVER_INNER_X + type.length / 2) + lane.speed * Math.max(0, Math.min(age, lane.travelMs)) / 1000);
       }
    }
@@ -303,7 +339,24 @@ export function firstHit(run: PigeonRun, at: number, ms: number, fromX: number, 
    for (let side = 0; side < (fromRow === toRow ? 1 : 2); side++) {
       const row = side === 0 ? fromRow : toRow;
       const lane = laneFor(run, row);
-      if (!lane || !lane.road) continue;
+      if (!lane) continue;
+      if (!lane.road) {
+         if (lane.localRow === 0) continue;
+         for (let edge = 0; edge < run.config.parkedEdges; edge++) {
+            const vx = columnX(edge === 0 ? 0 : 6), vz = -row * ROW_PITCH;
+            pb.min.x = boxEdge(fromX - PIGEON.halfX); pb.max.x = boxEdge(fromX + PIGEON.halfX);
+            pb.min.z = boxEdge(fromZ - PIGEON.halfZ); pb.max.z = boxEdge(fromZ + PIGEON.halfZ);
+            vb.min.x = boxEdge(vx - VEHICLE_TYPES[2].length / 2); vb.max.x = boxEdge(vx + VEHICLE_TYPES[2].length / 2);
+            vb.min.z = boxEdge(vz - VEHICLE_TYPES[2].depth / 2); vb.max.z = boxEdge(vz + VEHICLE_TYPES[2].depth / 2);
+            delta.x = toX - fromX; delta.z = toZ - fromZ;
+            const hit = sweptAabbXZ(pb, delta, vb, run.scratch.hit);
+            if (hit !== null && at + ms * hit < earliest) {
+               earliest = at + ms * hit;
+               run.scratch.hitVehicle = lane.slot * VEHICLES_PER_LANE + edge;
+            }
+         }
+         continue;
+      }
       const type = VEHICLE_TYPES[lane.kind], spawn = COVER_INNER_X + type.length / 2;
       for (let cycle = Math.floor((at + lane.phaseMs) / CYCLE_MS); cycle <= Math.floor((at + ms + lane.phaseMs) / CYCLE_MS); cycle++) {
          for (let member = 0; member < lane.packSize; member++) {
@@ -384,7 +437,7 @@ function land(run: PigeonRun): void {
       run.queued = NONE;
       run.events.levelChanged = run.level;
    }
-   const nextScore = capScore(scoreFor(run.completed, run.furthest), run.timeMs, pigeonCrossingMeta.scoring);
+   const nextScore = capScore(scoreFor(run.completed, run.furthest) * run.config.pointsFactor, run.timeMs, PROPOSED_LEVEL_LIMITS[run.config.id]);
    run.events.delta += nextScore - run.score;
    run.score = nextScore;
    const queued = run.queued;
@@ -396,7 +449,7 @@ function finish(run: PigeonRun, reason: EndReason): void {
    run.ended = reason;
    run.queued = NONE;
    run.events.ended = reason;
-   run.ranked = withinServerLimits(run.score, run.timeMs, pigeonCrossingMeta.scoring);
+   run.ranked = withinServerLimits(run.score, run.timeMs, PROPOSED_LEVEL_LIMITS[run.config.id]);
 }
 
 /** dtMs is frameMs from useRunFrame (seconds * 1000); no wall-clock or held-axis input. */
@@ -413,8 +466,8 @@ export function step(run: PigeonRun, dtMs: number, input: StepInput): StepEvents
    let remaining = Math.floor(accumulated);
    run.remainder = accumulated - remaining;
    // Match RunClock's priority: its cap prevents the last simulation callback/award.
-   if (run.timeMs + remaining >= DURATION_MS) {
-      run.timeMs = DURATION_MS;
+   if (run.timeMs + remaining >= run.config.durationMs) {
+      run.timeMs = run.config.durationMs;
       finish(run, "timeup");
       return events;
    }
