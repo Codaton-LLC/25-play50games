@@ -156,11 +156,11 @@
     "museum-guard": {
       "title": "Museum Guard",
       "kind": "points",
-      "max_score": 3900,
-      "min_duration_ms": 10000,
+      "max_score": 2050,
+      "min_duration_ms": 12000,
       "max_duration_ms": 92000,
-      "base": 3900,
-      "max_pps": 3900,
+      "base": 0,
+      "max_pps": 25,
       "enabled": false
     },
     "luggage-rush": {
