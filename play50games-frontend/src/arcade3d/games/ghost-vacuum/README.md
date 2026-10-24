@@ -32,7 +32,7 @@ Seeded `rules.ts`, groups MANSION/HUNTER/GHOST/LIGHT/PULL/SCHEDULE/SCORE; no Rap
 
 `score=100*caught+200*goldCaught+50*extraInSessions+(won ? 10*floor(max(0,120-tWin)) : 0)`. Extras=sum(max(0,k-1)) over sessions. `addScore` once per capture, reconcile with `setScore`, then `end("win")` after twelfth; no finalScore override. Timeup120 s retains points/no bonus; no lose/health/penalties. Win cheer/confetti during1600 ms result delay, no further score.
 
-Existing main meta/JSON limits5250/10000-122000 ms/base5250/pps5250 are superseded. Proposed **maxScore2630, minDurationMs91000, maxDurationMs122000, base1720 (=2630-910), maxPps10**; Claude updates meta.ts and arcade-games.json at merge, enabled stays false until go-live.
+Limits **maxScore 2630, minDurationMs 91000, maxDurationMs 122000, base 1720 (=2630-910), maxPps 10** now live in `meta.ts` `scoring` and WP `includes/arcade-games.json` (the old dev placeholder 5250 / 10000-122000 / base 5250 / pps 5250 is superseded); `enabled` stays `false` until go-live.
 
 1. Twelve captures/three gold give<=1800; <=11 session extras give<=550, hence capture total<=2350 at every prefix. No survival/stun/hint awards or duplicate payment.
 2. Ghost11 cannot leave pending before90; pending/hidden cannot accumulate light. Sequential ordinary exposure0.4+valid pull1 implies tWin>=91.4 even with instant reveal, perfect aim and zero travel. Cap waiting, travel, acceleration and LOS only increase duration; this is a lower bound, not an attainability claim.

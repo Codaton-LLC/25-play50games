@@ -5,5 +5,5 @@ export default [
    { down: "Space" },
    { hold: "ArrowUp", ms: 400 },
    { wait: 300 },
-   { zoom: 1.4, at: [0.55, 0.55] },
+   { zoom: 1.5, at: [0.47, 0.44] },
 ];

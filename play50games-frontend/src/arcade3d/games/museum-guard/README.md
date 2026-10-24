@@ -16,7 +16,7 @@ A round gallery at night. The guard stands in the middle and sweeps a flashlight
 - Hover (fine pointers only, `useCoarsePointer()` false): `pointer` follows the mouse with no button held (`createCanvasPointers.move` calls `pointerMove` anyway). `|pointer.x| ≤ 0.15` is a dead zone. Outside it, turn at `sign(x) · π · (|x| − 0.15) / 0.85` rad/s. A fine pointer does not also turn from `drag`.
 - Touch: `followRelativeDrag` on yaw only (`min`/`max` ±Infinity, `dragGain = π / 140`, then wrap to (−π, π]). The simulation then caps that yaw change at π rad/s (`π · dt` per frame). A finger faster than 140 px/s does not spin the guard any faster; a 140 px/s drag is exactly the cap. While the drag returns true the keys do not turn. `drag: true` so a look-drag is never a swipe. The touch human bot slews at 140 px/s, so it sits on this cap and cannot be out-turned by a quicker drag.
 - Changed from spec: desktop mouse is this hover, not a button-drag. The spec's free mouse is `pointer.x`. Touch stays a drag because a finger has no hover.
-- Flash on `actionPressed || jumpPressed`, one press. Esc / P pause (shell). `hudStats`: alarms (max 3), flash cooldown, and Dawn (seconds left, 90 → 0). The shell also draws Score and Played in that same top-left row (no `durationMs`, so the clock chip reads Played, not Time). Hiding Played is an open question.
+- Flash on `actionPressed || jumpPressed`, one press. Esc / P pause (shell). `hudStats`: alarms (max 3), flash cooldown, and Dawn (seconds left, 90 → 0). `clockChip: false` hides the shell's Played chip (Dawn is the clock), so the top-left row is Score, Alarms, Flash and Dawn.
 
 ## Rules
 
@@ -43,13 +43,13 @@ Numbers live in `rules.ts` (`RING`, `BEAM`, `FLASH`, `TYPES`, `PHASES`, `SCORE`)
 
 ### Server limits and why they hold (the proof)
 
-| | provisional (`meta.ts`, 02 §C.4) | proposed (Claude's limits PR; not this branch) |
-|---|---|---|
-| `maxScore` | 3900 | **2050** |
-| duration | 10000–92000 ms | **12000–92000 ms** |
-| `base` / `max_pps` | 3900 / 3900 | **0 / 25** |
+| | `meta.scoring` = `arcade-games.json` |
+|---|---|
+| `maxScore` | **2050** |
+| duration | **12000–92000 ms** |
+| `base` / `max_pps` | **0 / 25** |
 
-`meta.ts` stays provisional until that PR. The two exits changed the shortest path (was 3.156 m) and the earliest lose. The ceiling is still 1950, and 12000 ms is still under the earliest lose, so these limits do not move. Proof plan: pure steps on one `fixedFrames(1000/60)` schedule per seed, then `simulateRun` for the store path.
+The two exits changed the shortest path (was 3.156 m) and the earliest lose. The ceiling is still 1950, and 12000 ms is still under the earliest lose, so these limits do not move. Proof plan: pure steps on one `fixedFrames(1000/60)` schedule per seed, then `simulateRun` for the store path.
 
 1. **Starts:** ≤ 6 / 7 / 8, gaps 4.2 / 3.6 / 3.2, none before 3.0 s, no dino before 30 s, ≤ one short path (< 5 m) at a time, ≤ the phase's sneaking cap. Frozen and returning are outside the cap.
 2. **Speed:** a step never exceeds `base · phase · dt`, except the penguin's 0.4 s coast at the speed it had. Returning is 3 m/s. r ≥ 5.2 always. Overlap is allowed.
@@ -60,7 +60,7 @@ Numbers live in `rules.ts` (`RING`, `BEAM`, `FLASH`, `TYPES`, `PHASES`, `SCORE`)
 
 ## Run end
 
-**PROPOSED, user decision pending.** The spec says dawn is `"timeup"` and that timeup counts as survival. The shell's timeup title is "Time's up!", `playSfx("win")` runs only for `endReason === "win"` (otherwise the lose sting), and the shell spawns no confetti. `durationMs` also ends the run inside `tick`, before `useRunFrame`, so the frame that crosses 90 s never awards its +5. The build follows this proposal so those three are fixed:
+**Decided (user, 2026-10-24).** The spec says dawn is `"timeup"` and that timeup counts as survival. The shell's timeup title is "Time's up!", `playSfx("win")` runs only for `endReason === "win"` (otherwise the lose sting), and the shell spawns no confetti. `durationMs` also ends the run inside `tick`, before `useRunFrame`, so the frame that crosses 90 s never awards its +5. The build follows this decision so those three are fixed:
 
 - No `durationMs`. The Dawn HUD stat is the clock (`setStat("dawn", secondsLeft)`).
 - On the first step that begins with `elapsedMs ≥ 90000` and alarms ≥ 1: award second 90, `addScore(150 · alarms)`, `fx.burst("confetti", { x: 0, y: 1.2, z: 2 })`, dawn chime, `end("win")`. Exhibits do not move on that step. `finalScore` uses `survived: true`. Ranked (points game). `resultDelayMs: 1100` so the confetti is seen. The shell then shows "You did it!" and plays the win sting over the dawn chime.
@@ -166,10 +166,6 @@ Radar shapes (square, circle, triangle, diamond), not colour alone; sneaking is 
 
 Decisions already made, so a build can start once the eye rig exists: narrower beam, mover cap 3, no bust, two exits, inner lane, +50 only beyond 2 m, hover on fine pointers, fixed eye, limits 2050 / 12000–92000 / 0 / 25. The px table is a projection, not a screenshot. Bench scale is measured at build time because `REUSED_GLB_SIZE` has the door and no bench. The spot misses the knight's head at 12°; the emissive glow is the statue read.
 
-**PROPOSED, user decision pending:** dawn calls `end("win")` with no `durationMs`, as written in Run end. The build uses that. Restoring the spec's `"timeup"` brings back "Time's up!", the lose sting, no confetti, and a lost +5 on the last frame.
-
-Open: the shell also shows a Played chip next to Dawn (Score, Played, Alarms, Flash, Dawn). Dawn already shows the clock. Claude may add a core option to hide Played; until that exists the landscape radar sits below the row.
-
 Claude adds `fitEyeShift`, `useEyeShift` and `EyeRig` (signatures above) before the build. The game does not copy them into its folder. `playedFrameDt` lives in `core/frameLoop`, and `simulateRun` is what the store bots call.
 
 ## Status
@@ -199,7 +195,7 @@ TASK P-18-museum-guard | build museum-guard | branch cursor/game-museum-guard | 
 
 `runScore = 5 * min(90, floor(seconds)) + 50 * returns + (win ? 150 * alarms : 0)`. Ceiling 1950 (450 time + 21 returns + 450 dawn). A loss pays no dawn bonus. Whole seconds follow `floor(elapsed)`, so the store matches `finalScore`.
 
-`PROPOSED_LIMITS` (not written into `meta.ts`): maxScore 2050, minDurationMs 12000, maxDurationMs 92000, base 0, maxPointsPerSec 25. 1950 is 95.1% of 2050. The earliest designed loss is the penguin fixture at 13.79 s, so 12000 ms sits under it. `capScore` is a no-op on every bot run (`capScore(score) === score`).
+`meta.scoring` and `arcade-games.json`: maxScore 2050, minDurationMs 12000, maxDurationMs 92000, base 0, maxPointsPerSec 25. 1950 is 95.1% of 2050. The earliest designed loss is the penguin fixture at 13.79 s, so 12000 ms sits under it. `capScore` is a no-op on every bot run (`capScore(score) === score`).
 
 ### Bots
 
@@ -229,7 +225,7 @@ Worst frame 27, under the cap of 50, one spot light (itemised in "Performance"; 
 
 1. Two exits at ±π/2; statues take the nearer one; neither cone covers both. +50 only when path remaining > 2 m as the return starts. On every seed, camp and spin lose before 25 s with no paid return and score ≤ 120.
 2. Dropped `fitView` / `CameraRig`. Fixed eye (0, 1.6, 0), rotation `yaw + π` at `FRAME_PRIORITY.camera`, easing on the angle inside `EyeRig` (the game copies yaw, no look-at lerp). Lens shift from `fitEyeShift` / `useEyeShift`. Claude adds that API; the game does not.
-3. **PROPOSED, user decision pending:** no `durationMs`, Dawn stat, `end("win")` at 90 s, `finalScore` from `runScore`. The build follows it.
+3. Decided (user, 2026-10-24): no `durationMs`, Dawn stat, `end("win")` at 90 s, `finalScore` from `runScore`. The build follows it.
 4. Landscape radar is 96 px at the top-left. `looks.test.ts` projects every pedestal and path box over 16 yaws against that rect with the banner open.
 5. Knight and robot are `<Model>` + `hop`. Material is spread onto the asset (`material: "stone"`, `scale: 1.6 / 1.884`). No `<HumanoidModel>`, no `poses.ts`.
 6. Inner lane at r = 5.2. Shortest path 2.842 m, point arrival 14.24 s, alarm at 13.79 s. Limits stay 2050 / 12000 / 92000 / 0 / 25; the proof is redone above.
@@ -244,14 +240,14 @@ Worst frame 27, under the cap of 50, one spot light (itemised in "Performance"; 
 3. Camp and spin lose before 40 s with 0 paid returns and score ≤ 200. Seeds with both dinos on one side's short pedestals alarm at about 24.6–26.4 s, so the round-1 bound (before 25 s, ≤ 120) does not hold.
 4. The human bot's worst turn is exit-to-exit 157.5° (phase-3 penguin, contact ≈ 1.06 s, ≈ 1.0 m left after the coast, 0.57 m outside the alarm). A 0.7 s hold still running on the first exit does not fit; the flash or a spent alarm covers it.
 5. Touch-drag yaw is capped at π rad/s, so the turn-rate claim and the touch human bot (140 px/s) are the same limit.
-6. The freeze effect is `sparkle`, and `burst` takes a position. Played stays visible next to Dawn unless Claude adds a hide option (open question). Knight and robot `<Model>` draws are still skinned (`HumanoidStill`); the saving is the pose driver, not four rigs.
+6. The freeze effect is `sparkle`, and `burst` takes a position. Played is hidden by `clockChip: false`. Knight and robot `<Model>` draws are still skinned (`HumanoidStill`); the saving is the pose driver, not four rigs.
 
 ## Decisions (user, 2026-10-24)
 
 The user approved this design and asked Claude to settle every open question with a modern, fair arcade feel in mind. These answers override the Open questions above; the build follows them.
 
 - **Core (Claude adds before the builds):** a points game that ends on `"timeup"` with a score above 0 plays the win cue and confetti like a finish, not the lose sting; `GameDefinition.clockChip: false` hides the shell's Played chip for games that show their own clock.
-- Dawn: `end("win")` at 90 s on the rules clock, no `durationMs` (as proposed).
+- Dawn: `end("win")` at 90 s on the rules clock, no `durationMs`.
 - Played chip: hidden with the new core `clockChip: false`; the radar keeps its landscape spot below the row anyway.
 - Everything listed as decided stays (narrow beam, mover cap 3, two exits, inner lane, +50 beyond 2 m, hover, EyeRig, limits 2050 / 12000-92000 / 0 / 25).
 - Modern look: night museum with emissive statue glow, soft volumetric-looking beam cone, polished floor reflections faked with a darker gradient plane, subtle dust motes.

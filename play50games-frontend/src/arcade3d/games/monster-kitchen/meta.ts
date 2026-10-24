@@ -1,11 +1,8 @@
 import type { ArcadeGameMeta } from "@/arcade3d/types";
 
-// Plain data only (server-safe). scoring must match WP includes/arcade-games.json (today's dev
-// placeholder). The proposed limits (README.md "Server limits and why they hold") are
-// rules.PROPOSED_LIMITS, proven in rules.test.ts; Claude lands them in includes/arcade-games.json
-// and here in the limits PR. Their maxScore is provisional: the measured oracle tops out at ~3,860
-// (see rules.test.ts), under 90% of the README's 4,900, so the limits land at ~10% above the
-// measured legit peak instead (README's contingency).
+// Plain data only (server-safe). scoring matches WP includes/arcade-games.json: the decided limits
+// (2026-10-24), same as rules.PROPOSED_LIMITS — maxScore 4830 = the proven seed-independent ceiling
+// 4680 × 1.03, rounded up to the nearest 10 (README.md "Server limits and why they hold").
 export const monsterKitchenMeta: ArcadeGameMeta = {
    slug: "monster-kitchen",
    title: "Monster Kitchen",
@@ -23,11 +20,11 @@ export const monsterKitchenMeta: ArcadeGameMeta = {
    },
    scoring: {
       kind: "points",
-      maxScore: 6000,
-      minDurationMs: 10000,
+      maxScore: 4830,
+      minDurationMs: 12000,
       maxDurationMs: 92000,
-      base: 6000,
-      maxPointsPerSec: 6000,
+      base: 240,
+      maxPointsPerSec: 60,
       unitLabel: "pts",
       display: "int",
    },

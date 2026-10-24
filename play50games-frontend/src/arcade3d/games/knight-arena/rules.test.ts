@@ -14,7 +14,6 @@ import {
    KNIGHT,
    perfectScore,
    POSTS,
-   PROPOSED_LIMITS,
    SCORING,
    solveOptimalSpinSchedule,
    SPIN,
@@ -22,7 +21,12 @@ import {
    stepRun,
    TARGETS,
    TIMING,
+   scoreCeiling,
 } from "./rules";
+import { capScore, withinServerLimits } from "../../core/limits";
+import { knightArenaMeta } from "./meta";
+
+const LIMITS = knightArenaMeta.scoring;
 
 function rngNormal(rng: () => number, mean = 0, std = 1): number {
    const u1 = Math.max(1e-9, rng());
@@ -32,19 +36,11 @@ function rngNormal(rng: () => number, mean = 0, std = 1): number {
 }
 
 function withinProposedLimits(finalState: ArcadeStore): boolean {
-   const dur = finalState.elapsedMs;
-   if (dur < PROPOSED_LIMITS.minDurationMs || dur > PROPOSED_LIMITS.maxDurationMs) return false;
-   if (finalState.score < 0 || finalState.score > PROPOSED_LIMITS.maxScore) return false;
-   const rateCap = PROPOSED_LIMITS.rateLimits.base + (dur / 1000) * PROPOSED_LIMITS.rateLimits.maxPointsPerSec;
-   return finalState.score <= rateCap;
+   return withinServerLimits(finalState.score, finalState.elapsedMs, LIMITS);
 }
 
 function capScoreWithLimits(score: number, durationMs: number): number {
-   if (durationMs < PROPOSED_LIMITS.minDurationMs || durationMs > PROPOSED_LIMITS.maxDurationMs) return 0;
-   const rateCap = Math.floor(
-      PROPOSED_LIMITS.rateLimits.base + (durationMs / 1000) * PROPOSED_LIMITS.rateLimits.maxPointsPerSec,
-   );
-   return Math.max(0, Math.min(score, PROPOSED_LIMITS.maxScore, rateCap));
+   return capScore(score, durationMs, LIMITS);
 }
 
 function runOracleOnStore(seed: number, frameMs: number): ArcadeStore {
@@ -289,6 +285,20 @@ describe("knight-arena rules and bot verification", () => {
       expect(rSpin.score).toBe(spinReals.length * 40 + 50);
    });
 
+   it("proves the server limits: map-independent ceiling 11090, 4 % margin, 60 s fixed run", () => {
+      expect(scoreCeiling()).toBe(11090);
+      expect(LIMITS.maxScore).toBe(Math.ceil((scoreCeiling() * 1.04) / 100) * 100);
+      expect(LIMITS.base).toBe(0);
+      // the rate line never binds inside the duration window
+      expect(LIMITS.maxPointsPerSec * (LIMITS.minDurationMs / 1000)).toBeGreaterThanOrEqual(LIMITS.maxScore);
+      expect(LIMITS.minDurationMs).toBeLessThan(BEAT.DURATION_MS);
+      expect(LIMITS.maxDurationMs).toBeGreaterThanOrEqual(BEAT.DURATION_MS + 50);
+      let best = 0;
+      for (let seed = 1; seed <= 1000; seed++) best = Math.max(best, perfectScore(createBeatMap(seed)));
+      expect(best).toBeLessThanOrEqual(scoreCeiling());
+      expect(best).toBeGreaterThanOrEqual(Math.ceil(LIMITS.maxScore * 0.9));
+   });
+
    it("verifies oracle, human, random mash, and adversarial bots on the real store across seeds and framerates", () => {
       // 1. Frame-rate independence across 20, 30, 60, 144 Hz on the 3 rotational seeds
       for (const seed of BEAT.MAP_SEEDS) {
@@ -298,7 +308,7 @@ describe("knight-arena rules and bot verification", () => {
             expect(res.phase).toBe("over");
             expect(res.endReason).toBe("timeup");
             expect(res.score).toBeGreaterThanOrEqual(Math.floor(pScore * 0.97));
-            expect(res.score).toBeLessThanOrEqual(PROPOSED_LIMITS.maxScore);
+            expect(res.score).toBeLessThanOrEqual(LIMITS.maxScore);
             expect(withinProposedLimits(res)).toBe(true);
             expect(capScoreWithLimits(res.score, res.elapsedMs)).toBe(res.score);
          }
