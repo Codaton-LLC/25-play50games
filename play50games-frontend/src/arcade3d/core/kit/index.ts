@@ -5,4 +5,4 @@ export { Flashlight, type FlashlightProps } from "./Flashlight";
 export { Gem, GEM_GEOMETRY_DETAIL, type GemProps } from "./Gem";
 export { Parcel, type ParcelProps } from "./Parcel";
 export { Pedestal, PEDESTAL_TOP, type PedestalProps } from "./Pedestal";
-export { beltData, fanPoints, fanSegments, fenceSpots, type BeltData, type FenceOptions, type FenceSpots } from "./kitGeometry";
+export { beltData, fanPoints, fanSegments, fenceSpots, occludedFanPoints, type BeltData, type FenceOptions, type FenceSpots } from "./kitGeometry";
