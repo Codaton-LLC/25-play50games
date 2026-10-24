@@ -63,7 +63,7 @@ describe("robot-factory tuning", () => {
          MAX_PARTS: 8, MIN_PART_GAP: 0.95, PERIOD: 1.6, HALF: 0.8, FIRST_S: 0.72, FAULTY_CHANCE: 0.18,
          FIRST_FAULT_MIN_T: 2.6, FAULT_MIN_INTERVAL: 3.5, FAULT_MIN_INTERVAL_LATE: 2.5, LATE_T: 60,
       });
-      expect(CLAW).toEqual({ WRONG_LOCKOUT: 2.1, SCRAP_LOCKOUT: 1.0, FAULT_LOCKOUT: 0.5, ZAP_LOCKOUT: 0.5, BOUNCE: 0.35 });
+      expect(CLAW).toEqual({ WRONG_LOCKOUT: 1.0, SCRAP_LOCKOUT: 1.0, FAULT_LOCKOUT: 0.5, ZAP_LOCKOUT: 0.5, BOUNCE: 0.35 });
       expect(SCORING).toEqual({ PART_BASE: 20, COMBO_STEP: 4, COMBO_MAX: 5, ROBOT_BONUS: 200 });
       expect(WALK.DURATION).toBe(0.7);
       expect([CRADLE.x, CRADLE.z, WALK.TO.x, SCRAP_BIN.z, BOARD.y, BOARD.z]).toEqual([1.35, -0.45, 2.4, 0.95, 1.45, -0.95]);
@@ -117,7 +117,7 @@ describe("robot-factory actions", () => {
       expect(run.events.slice(0, run.eventCount).map((e) => e.kind)).toEqual(["install", "robot"]);
    });
 
-   it("a wrong grab bounces the part, resets the combo and locks the claw for 2.10 s", () => {
+   it("a wrong grab bounces the part, resets the combo and blueprint step, and locks the claw for 1.00 s", () => {
       const run = quietRun(5);
       stepRun(run, input(true, false, wanted(run).uid), DT);
       const part = unwanted(run);
@@ -125,15 +125,17 @@ describe("robot-factory actions", () => {
       expect(part.active).toBe(true);
       expect(part.hop).toBeGreaterThan(0);
       expect(run.combo).toBe(0);
-      expect(run.lockout).toBeCloseTo(2.1, 9);
+      expect(run.stepIndex).toBe(0);
+      expect(run.lockout).toBeCloseTo(CLAW.WRONG_LOCKOUT, 9);
       const next = wanted(run);
-      stepRun(run, input(true, false, next.uid), 2.0);
+      stepRun(run, input(true, false, next.uid), CLAW.WRONG_LOCKOUT * 0.9);
       expect(next.active).toBe(true);
       next.passed = false;
       placeAt(next, 2.5);
-      stepRun(run, input(true, false, next.uid), 0.2);
+      stepRun(run, input(true, false, next.uid), CLAW.WRONG_LOCKOUT * 0.2);
       expect(next.active).toBe(false);
       expect(run.score).toBe(40);
+      expect(run.stepIndex).toBe(1);
    });
 
    it("a grabbed faulty part is consumed: one strike, combo 0, 0.50 s lockout; the 3rd strike loses", () => {

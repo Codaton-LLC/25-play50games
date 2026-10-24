@@ -144,6 +144,7 @@ export function noteEvent(look: Look, e: RunEvent, kind: number): void {
       claw.part.y = e.y;
       claw.part.z = e.z;
       look.bad = 0;
+      if (e.kind === "wrong") look.landed = 0;
       if (e.kind === "strike") launch(look, e, false);
    } else if (e.kind === "scrapFault" || e.kind === "scrapClean") {
       launch(look, e, false);

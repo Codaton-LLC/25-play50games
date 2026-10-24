@@ -67,11 +67,10 @@ export const STREAM = {
 
 export const CLAW = {
    /**
-    * s: a grab of a clean part the blueprint does not want. 2.10 s outlasts the 0.80 s half-period
-    * plus the needed part's whole 1.24 s dwell at the slowest belt (2.04 s), so grabbing everything
-    * costs the next needed part (README "Changed from spec": the designed 1.00 s did not).
+    * s: a grab of a clean part the blueprint does not want (Decision 2026-10-24: 1.0 s lockout;
+    * wrong grab drops part back and resets blueprint step to prevent spamming).
     */
-   WRONG_LOCKOUT: 2.1,
+   WRONG_LOCKOUT: 1.0,
    /** s: a clean part swept into the bin */
    SCRAP_LOCKOUT: 1.0,
    /** s: a faulty part grabbed (a strike) */
@@ -493,6 +492,7 @@ function grab(run: Run, part: Part): void {
    if (!isWanted(run, part)) {
       run.wrongGrabs++;
       run.combo = 0;
+      run.stepIndex = 0;
       part.hop = CLAW.BOUNCE;
       lock(run, CLAW.WRONG_LOCKOUT, "wrong");
       pushEvent(run, "wrong", part);
@@ -737,3 +737,4 @@ export function withinServerLimits(score: number, durationMs: number, rules: Sco
 export function capScore(score: number, durationMs: number, rules: ScoringRules = PROPOSED_LIMITS): number {
    return capToLimits(score, durationMs, rules);
 }
+
