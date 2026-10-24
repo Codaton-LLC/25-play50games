@@ -141,3 +141,29 @@ play: 390×844 and 844×390, cookie banner open. Blueprint is a dark pill under 
 ## Hyper3D batch 5 adoption
 
 - **Cement mixer (2026-10-24, Hyper3D batch 5):** `/models/3d/construction-worker/cementMixer.glb` (1500 tris) as decor beside the work zone at (-6.7, 6.4), yaw 0.9, 1.5 m tall (1.01 x 1.12 m footprint), behind the `decor` quality gate; `mixer.test.ts` keeps it outside the work area, the crane's wedge and every camera-to-target line. Static (one mesh). Adopted by Antigravity; finished by Claude after Antigravity's quota ran out.
+
+## Look (2026-10-24)
+
+Modern-look pass (visual-only, P-33):
+- **Cohesive palette (`looks.ts`):** Single `COLORS` palette driving all materials (warm daylight sky, rich construction yellow, industrial dark steel, warm sandy earth foundation, and 5 distinct material tones).
+- **Lighting & Atmosphere:** Warm daylight lighting preset via `useStageLighting("day", 1, COLORS.skyBottom, COLORS.fog)`, warm atmospheric fog (near 65m, far 140m), and two-tone `<SkyDome>` overhead. Contrast ratios verified in `looks.test.ts`.
+- **Surroundings & Decor (`Decor.tsx`):** Instanced construction site surroundings outside the work area (traffic cones, concrete jersey barriers with red reflectors, stacked pipe bundles, distant city skyline silhouettes, and drifting low-poly clouds). Verified in `looks.test.ts` to never intersect the work bounds or occlude the worker, hook, or building across all viewports (1280x800, 390x844, 844x390) and roof stages.
+- **Upgraded Stand-Ins:**
+  - Crane: Yellow lattice mast with dark collars and base plate; rotating truss jib with counterweight, operator cab with tinted windows, and apex tower; trolley carriage; and authentic pulley hook block with sheave and curved metallic hook (1.2m height preserved).
+  - Piles: 5 distinct supply stacks on timber pallets (precast slabs with spacers, blue steel I-beams, brick wall panels with strapping, glazing A-frame rack with window units, and roof truss caps).
+  - Pieces: Bevelled rounded boxes (`RoundedBoxGeometry`) for placed and carried pieces.
+  - Worker: Stylized construction hard hat with brim and ridge attached to head. Upgraded multi-tone fallbacks for Van and Worker.
+  - Ground: Rich procedural texture on site ground (warm sandy dirt, vehicle ruts, smooth concrete building pad, and safety hazard striping).
+- **Juicy Feedback:** Core FX dust puff on piece placement, plus sparkling burst on perfect placement (`Scene.tsx`).
+- **Draw-call estimate:**
+  - SkyDome: 1
+  - Site ground: 1
+  - Fence: 2
+  - Material piles: 5
+  - Worker + hat + shadow: 3
+  - Instanced decor (cones 1, barriers 1, pipes 1, skyline 1, clouds 1): 5
+  - Prop models (mixer 1, van 1, pallets 1, crates 1): 4
+  - Crane (mast 1, jib 1, trolley 1, cable 1, hook 1): 5
+  - Pieces & guides (placed pieces 1, carried 1, slot ring 1, guide ring 1, blob 1, flash 1): 6
+  - FX bursts (puff, sparkle, score): ≤ 3
+  - **Total estimated draw calls: ~34-37** (well below budget ≤ 60). Geometries and materials created once, disposed on unmount, 0 per-frame allocations.
