@@ -1,0 +1,30 @@
+/* KnightArenaHud panel. Portrait and desktop: centred under the shell's chip row. */
+.panel {
+   position: absolute;
+   top: 64px;
+   left: 50%;
+   transform: translateX(-50%);
+   display: flex;
+   flex-wrap: wrap;
+   justify-content: center;
+   align-items: center;
+   gap: 8px;
+   max-width: calc(100% - 24px);
+   pointer-events: auto;
+   z-index: 10;
+}
+
+/* Phone landscape: a centred panel sat in the middle of the short screen and pushed the fitted
+   arena against the left edge. A right-hand column under Mute / Pause leaves the centre free. */
+@media (orientation: landscape) and (max-height: 520px) {
+   .panel {
+      left: auto;
+      right: 12px;
+      transform: none;
+      flex-direction: column;
+      flex-wrap: nowrap;
+      align-items: flex-end;
+      gap: 6px;
+      max-width: 220px;
+   }
+}

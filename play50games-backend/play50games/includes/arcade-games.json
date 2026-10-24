@@ -323,11 +323,11 @@
     "knight-arena": {
       "title": "Knight Training Arena",
       "kind": "points",
-      "max_score": 9000,
+      "max_score": 11600,
       "min_duration_ms": 58000,
       "max_duration_ms": 62000,
-      "base": 9000,
-      "max_pps": 9000,
+      "base": 0,
+      "max_pps": 200,
       "enabled": false
     },
     "zoo-escape": {
