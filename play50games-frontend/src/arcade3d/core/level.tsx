@@ -8,8 +8,9 @@
 //    const { config } = useCastleLevel();
 //    const run = useMemo(() => createRun(seed, config), [runId]);
 // Frame loops read useArcadeStore.getState().levelId only if they really must.
-import { createContext, useContext, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import type { ActiveLevel } from "./levels";
+import { knownLevelSupport, serverSupportsLevels } from "./levelSupport";
 
 const LevelContext = createContext<ActiveLevel<unknown> | null>(null);
 
@@ -25,4 +26,23 @@ export function useLevel<C = unknown>(): ActiveLevel<C> {
    const level = useContext(LevelContext);
    if (!level) throw new Error("useLevel() must be used inside GameShell");
    return level as ActiveLevel<C>;
+}
+
+/**
+ * Whether the server lets levels 2-5 be played (levelSupport.ts): null while unknown, then a
+ * boolean. Asks only when `enabled` (the flag is on and the game has five levels).
+ */
+export function useLevelsSupported(enabled: boolean): boolean | null {
+   const [supported, setSupported] = useState<boolean | null>(() => (enabled ? knownLevelSupport() : null));
+   useEffect(() => {
+      if (!enabled) return;
+      let live = true;
+      serverSupportsLevels().then((value) => {
+         if (live) setSupported(value);
+      });
+      return () => {
+         live = false;
+      };
+   }, [enabled]);
+   return enabled ? supported : null;
 }

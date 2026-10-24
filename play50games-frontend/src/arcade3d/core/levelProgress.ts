@@ -112,3 +112,7 @@ export function levelTotalText(meta: ArcadeGameMeta, summary: LevelProgressSumma
 /** "2 of 5 levels cleared" */
 export const levelClearedText = (summary: LevelProgressSummary): string =>
    `${summary.cleared} of ${summary.levels.length} levels cleared`;
+
+/** The /3d card's line for a game whose levels are on: "Total 3,420 pts · 2/5". */
+export const levelCardText = (meta: ArcadeGameMeta, summary: LevelProgressSummary): string =>
+   `${levelTotalText(meta, summary)} · ${summary.cleared}/${summary.levels.length}`;

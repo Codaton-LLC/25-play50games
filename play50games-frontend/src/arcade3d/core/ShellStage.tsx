@@ -104,14 +104,16 @@ function PhysicsGate({ enabled, children }: { enabled: boolean; children: ReactN
 
 export interface ShellStageProps {
    definition: GameDefinition;
+   /** the picked level's environment (core/levels.ts levelEnvironment); default definition.environment */
+   environment?: GameDefinition["environment"];
    /** "demand" while paused (still redraws on resize), "never" after a lost context */
    frameloop: "always" | "demand" | "never";
    onContextLost: () => void;
    label: string;
 }
 
-export default function ShellStage({ definition, frameloop, onContextLost, label }: ShellStageProps) {
-   const { Scene, camera, environment, physics } = definition;
+export default function ShellStage({ definition, environment = definition.environment, frameloop, onContextLost, label }: ShellStageProps) {
+   const { Scene, camera, physics } = definition;
    const runId = useArcadeStore((state) => state.runId);
    const [maxDpr, setMaxDpr] = useState(MAX_DPR);
    const declinesRef = useRef(0);

@@ -15,6 +15,15 @@ export function levelsActive(meta: ArcadeGameMeta, enabled: boolean = ARCADE_LEV
    return enabled && levelCount(meta) === 5;
 }
 
+/**
+ * The shell shows the level UI (tiles, HUD chip, result buttons, `?level=`) and plays levels 2-5:
+ * levels active for the game, and the server known to support them (`supported` from
+ * levelSupport.ts; null = not known yet = not yet).
+ */
+export function levelUiEnabled(meta: ArcadeGameMeta, supported: boolean | null, enabled: boolean = ARCADE_LEVELS): boolean {
+   return levelsActive(meta, enabled) && supported === true;
+}
+
 /** A run clears its level by a win, or by reaching the level's clearScore (score-attack levels). */
 export function isLevelCleared(endReason: EndReason | null, score: number, level: LevelMeta): boolean {
    return endReason === "win" || (level.clearScore !== undefined && score >= level.clearScore);
