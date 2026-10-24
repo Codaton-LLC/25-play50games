@@ -136,7 +136,13 @@ The highlighted rival gets a ground ring. Off screen, a 28 px arrow uses `Marker
 
 ## Status
 
-G0 design only. Not built. `status` stays `"dev"`.
+TASK P-18-snowball-battle | build snowball-battle | branch cursor/game-snowball-battle | allowed: play50games-frontend/src/arcade3d/games/snowball-battle/**, play50games-frontend/public/images/3d/snowball-battle.webp, tools/thumbs/inputs/snowball-battle.mjs
+
+Built. `status` stays `"dev"`. `meta.scoring` is unchanged (provisional 4500 / 4500 pps). Proven limits are `PROPOSED_LIMITS` in `rules.ts`: maxScore 2550, minDurationMs 10000, maxDurationMs 92000, base 600, maxPointsPerSec 190. The build follows Decisions below (any hit, arrow taps, knockdown exempt, 6 s flush). Sentences above that still say wind-up-only tags are the pre-decision draft.
+
+Proof: `100*hits + 300*outs + (won ? 500 + 50*(5-playerTags) : 0)` maxes at 9*100+3*300+500+250 = 2550. Earliest clear is 10.90 s (2550). `2550*1000 <= 600*1000 + 190*10900` (2,550,000 <= 2,671,000). 2550 at 10.00 s fails. `npx tsc --noEmit` clean. `npx vitest run src/arcade3d/games/snowball-battle`: 20 tests, 8.6 s. Oracle seeds 1–16 stay legal, best is 2550, at least 10 win. Witness (reaction 0.2 s, window 0.55 s, range 10, sidestep 2.4) wins seeds 1–2 on keyboard and coarse. Spam stays under 1800 and does not win; idle, camper and spinner score 0. No `npm run build`, no browser. Draw-call estimate from the scene graph is about 42 (fort body + cap, shade disc, lob / roller / ring pools), under the game cap of 60. Thumbnail left null. Full note: `.handoff/P-18-snowball-battle/HANDOFF.md`.
+
+Open questions: some oracle seeds still time out around 700 because a rival orbits a fort and never peeks (the test allows up to 6 of 16). A snap after ~2 s of no progress would clear those yards. Camp flush damages the fort and does not throw a ball, so a player who walks to the next fort can sit at score 0. The witness numbers are tighter than the design's 0.40 / 0.70 / range 8 so the throw lands during the wind-up. Portrait fit with the cookie banner was not measured.
 
 ## Fix round 1 (2026-10-24)
 

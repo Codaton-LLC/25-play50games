@@ -14,8 +14,8 @@ export const snowballBattleMeta: ArcadeGameMeta = {
    orientation: "any",
    controls: {
       scheme: "joystick",
-      keyboard: "WASD to move, hold E to scoop, Space to throw",
-      touch: "Joystick, hold Action to scoop, tap a rival to throw",
+      keyboard: "WASD / arrows to move, mouse to aim; hold E or Enter to scoop, Space to throw",
+      touch: "Joystick to move, hold Scoop to pack a snowball, tap a rival to throw",
    },
    scoring: {
       kind: "points",
