@@ -12,6 +12,7 @@ const SCORING_L1: ScoringRules = {
    display: "int"
 };
 
+// Levels 2-5: rules.PROPOSED_LEVEL_LIMITS (proof in README.md "Server limits and why they hold").
 const levelScoring = (maxScore: number, minDurationMs: number, maxDurationMs: number, maxPointsPerSec: number, base = 0): ScoringRules => ({
    ...SCORING_L1,
    maxScore,
@@ -22,11 +23,11 @@ const levelScoring = (maxScore: number, minDurationMs: number, maxDurationMs: nu
 });
 
 const LEVELS: readonly LevelMeta[] = [
-   { id: 1, title: "Fruit Catch", scoring: SCORING_L1, clearScore: 260 },
-   { id: 2, title: "Snack Catch", scoring: levelScoring(510, 8620, 123000, 19) },
-   { id: 3, title: "Fast Food Mix", scoring: levelScoring(740, 7890, 153000, 22, 15) },
-   { id: 4, title: "Speed Kitchen", scoring: levelScoring(970, 7940, 183000, 27) },
-   { id: 5, title: "Master Catch", scoring: levelScoring(1340, 7270, 183000, 32) },
+   { id: 1, title: "Fruit Catch", scoring: SCORING_L1, clearScore: 600 },
+   { id: 2, title: "Snack Catch", scoring: levelScoring(2400, 8620, 123000, 89) },
+   { id: 3, title: "Fast Food Mix", scoring: levelScoring(3150, 7890, 153000, 97) },
+   { id: 4, title: "Speed Kitchen", scoring: levelScoring(3910, 7940, 183000, 109) },
+   { id: 5, title: "Master Catch", scoring: levelScoring(4150, 7270, 183000, 99) },
 ];
 
 export const foodCatcherMeta: ArcadeGameMeta = {

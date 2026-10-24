@@ -5,7 +5,7 @@ import { LEVEL_IDS } from "@/arcade3d/types";
 import definition from "./index";
 import { LEVELS } from "./levels";
 import { foodCatcherMeta } from "./meta";
-import { CHEF, CATCH_BOX, FALL_DISTANCE, PROPOSED_LEVEL_LIMITS, buildPlan, createRun, finalScore, overlapsCatchBox, step, withinServerLimits, type RunState, type StepInput } from "./rules";
+import { CHEF, CATCH_BOX, FALL_DISTANCE, PROPOSED_LEVEL_LIMITS, buildPlan, createRun, finalScore, overlapsCatchBox, step, timeBonus, withinServerLimits, type RunState, type StepInput } from "./rules";
 
 vi.mock("./Scene", () => ({ default: () => null }));
 vi.mock("./Hud", () => ({ default: () => null }));
@@ -66,7 +66,7 @@ describe("food-catcher level metadata", () => {
       expect(levelMetaProblems(foodCatcherMeta)).toEqual([]);
       expect(definitionLevelProblems(foodCatcherMeta, definition)).toEqual([]);
       for (const id of LEVEL_IDS) expect(scoringFor(foodCatcherMeta, id)).toEqual(PROPOSED_LEVEL_LIMITS[id]);
-      expect(foodCatcherMeta.levels?.[0].clearScore).toBe(260);
+      expect(foodCatcherMeta.levels?.[0].clearScore).toBe(600);
       expect(foodCatcherMeta.levels?.slice(1).every((level) => level.clearScore === undefined)).toBe(true);
       expect(PROPOSED_LEVEL_LIMITS[5].maxScore).toBeLessThanOrEqual(3 * foodCatcherMeta.scoring.maxScore);
       expect(foodCatcherMeta.scoring).toEqual({
@@ -106,9 +106,66 @@ describe("food-catcher level metadata", () => {
       expect(LEVELS[2].goldenEvery).toBeGreaterThan(0);
    });
 
+   it("adds 20 points per whole second left on a win (levels 2-5 only)", () => {
+      expect(LEVEL_IDS.map((id) => LEVELS[id].timeBonusPerSec)).toEqual([0, 20, 20, 20, 20]);
+      expect(timeBonus(LEVELS[2], 27_057)).toBe(20 * 92);
+      expect(timeBonus(LEVELS[2], 119_001)).toBe(0);
+      expect(timeBonus(LEVELS[2], 130_000)).toBe(0);
+      const run = createRun(3, LEVELS[2], { forceGood: true });
+      for (const spawn of run.plan) spawn.x = 0;
+      let before = 0;
+      while (!run.ended) {
+         before = run.score;
+         step(run, 50, { targetX: 0 });
+      }
+      expect(run.ended).toBe("win");
+      expect(run.score - before).toBe(20 + timeBonus(LEVELS[2], run.elapsedMs));
+      // standing still never clears, so it never gets the bonus
+      for (const id of [2, 3, 4, 5] as const) {
+         for (let seed = 1; seed <= 50; seed++) {
+            const idle = createRun(seed, LEVELS[id]);
+            while (!idle.ended) step(idle, 50, { dir: 0 });
+            expect(idle.ended).not.toBe("win");
+            expect(idle.score).toBeLessThan(20 * LEVELS[id].targetGood);
+         }
+      }
+   });
+
+   it("never clears a level by standing still (level 1: below clearScore; levels 2-5: drops cost lives)", () => {
+      const clearScore = foodCatcherMeta.levels?.[0].clearScore ?? 0;
+      for (const id of LEVEL_IDS) {
+         for (const x of [0, 1.5, 3.5]) {
+            for (let seed = 1; seed <= 200; seed++) {
+               const idle = createRun(seed, LEVELS[id]);
+               idle.chefX = x;
+               while (!idle.ended) step(idle, 50, { dir: 0 });
+               expect(idle.ended).not.toBe("win");
+               if (id === 1) expect(idle.score).toBeLessThan(clearScore);
+            }
+         }
+      }
+   }, 60_000);
+
+   it("costs a life for every fifth dropped good item on levels 2-5 only", () => {
+      const run = createRun(5, LEVELS[2], { forceGood: true });
+      for (const spawn of run.plan) spawn.x = 3.4;
+      const lives: number[] = [];
+      while (!run.ended) {
+         const ev = step(run, 50, { targetX: -3.5 });
+         if (ev.dropLives > 0) lives.push(run.drops);
+      }
+      expect(lives).toEqual([5, 10, 15]);
+      expect(run.ended).toBe("lose");
+      const l1 = createRun(5, LEVELS[1], { forceGood: true });
+      for (const spawn of l1.plan) spawn.x = 3.4;
+      while (!l1.ended) step(l1, 50, { targetX: -3.5 });
+      expect(l1.ended).toBe("timeup");
+      expect(l1.lives).toBe(3);
+   });
+
    it("caps extra golden points at the per-level objective allowance", () => {
       expect(LEVEL_IDS.map((id) => LEVELS[id].bonusLimit)).toEqual([0, 3, 5, 7, 12]);
-      const level = { ...LEVELS[2], targetGood: 2, goldenEvery: 1, bonusLimit: 1 };
+      const level = { ...LEVELS[2], targetGood: 2, goldenEvery: 1, bonusLimit: 1, timeBonusPerSec: 0 };
       const run = createRun(1, level, { forceGood: true });
       for (const spawn of run.plan) spawn.x = 0;
       while (!run.ended) step(run, 50, { targetX: 0 });
@@ -116,23 +173,27 @@ describe("food-catcher level metadata", () => {
       expect(run.score).toBe(30);
    });
 
-   it("is clearable by a movement-limited player in at least 90% of 200 seeds per level", () => {
+   it("is clearable by a movement-limited player in at least 90% of 200 seeds per level, whose best is >= 90% of maxScore", () => {
       const clearsByLevel: number[] = [];
       for (const id of [2, 3, 4, 5] as const) {
          let clears = 0;
+         let best = 0;
          const failures: Record<string, number> = {};
          for (let seed = 1; seed <= 200; seed++) {
             const run = playHuman(seed, id);
             const finished = finalScore(run.score, run.elapsedMs, PROPOSED_LEVEL_LIMITS[id]);
             expect(finished.score).toBe(run.score);
             expect(withinServerLimits(finished.score, finished.durationMs, PROPOSED_LEVEL_LIMITS[id])).toBe(true);
+            best = Math.max(best, finished.score);
             if (run.ended === "win") clears++;
             else failures[`${run.ended}:${run.lives}`] = (failures[`${run.ended}:${run.lives}`] ?? 0) + 1;
          }
          clearsByLevel.push(clears);
+         // honest play (no teleport, real junk, max chef speed): the limit is not loose
+         expect(best, `level ${id} honest best`).toBeGreaterThanOrEqual(0.9 * PROPOSED_LEVEL_LIMITS[id].maxScore);
          expect(clears, `level ${id} clears; failures ${JSON.stringify(failures)}`).toBeGreaterThanOrEqual(180);
       }
-      expect(clearsByLevel).toEqual([200, 200, 199, 198]);
+      expect(clearsByLevel).toEqual([200, 200, 199, 196]);
    }, 60_000);
 
    it("wins later levels on their good-catch objective; level 1 remains timed score attack", () => {
@@ -148,17 +209,28 @@ describe("food-catcher level metadata", () => {
       expect(level1.level.targetGood).toBe(0);
    });
 
+   it("clears level 1 (clearScore) for a movement-limited player on most seeds", () => {
+      const clearScore = foodCatcherMeta.levels?.[0].clearScore ?? 0;
+      let clears = 0;
+      for (let seed = 1; seed <= 200; seed++) {
+         const run = createRun(seed, LEVELS[1]);
+         while (!run.ended) step(run, 50, humanPacedInput(run));
+         if (run.score >= clearScore) clears++;
+      }
+      expect(clears).toBeGreaterThanOrEqual(0.6 * 200);
+   }, 60_000);
+
    it("uses core level specs for clocks, lighting, instructions and HUD maxima", () => {
       expect(LEVEL_IDS.map((id) => levelRunConfig(definition, id).durationMs)).toEqual([90_000, 120_000, 150_000, 180_000, 180_000]);
       expect(LEVEL_IDS.map((id) => levelHudStats(definition, id))).toEqual([
          [{ key: "combo", label: "Combo" }],
-         [{ key: "caught", label: "Food", max: 25 }, { key: "combo", label: "Combo" }],
-         [{ key: "caught", label: "Food", max: 35 }, { key: "combo", label: "Combo" }],
-         [{ key: "caught", label: "Food", max: 45 }, { key: "combo", label: "Combo" }],
-         [{ key: "caught", label: "Food", max: 60 }, { key: "combo", label: "Combo" }],
+         [{ key: "caught", label: "Food", max: 25 }, { key: "drops", label: "Drops", max: 5 }],
+         [{ key: "caught", label: "Food", max: 35 }, { key: "drops", label: "Drops", max: 5 }],
+         [{ key: "caught", label: "Food", max: 45 }, { key: "drops", label: "Drops", max: 5 }],
+         [{ key: "caught", label: "Food", max: 60 }, { key: "drops", label: "Drops", max: 5 }],
       ]);
       expect(LEVEL_IDS.map((id) => levelEnvironment(definition, id)?.lighting)).toEqual(["indoor", "day", "sunset", "night", "sunset"]);
       expect(levelInstructions(definition, 1)).toEqual(definition.instructions);
-      expect(levelInstructions(definition, 2)).toContain("Up to 3 golden snacks add +10 points; every 8th drop is golden.");
+      expect(levelInstructions(definition, 2)).toContain("Finish fast: +20 for every second left. Five in a row score double.");
    });
 });

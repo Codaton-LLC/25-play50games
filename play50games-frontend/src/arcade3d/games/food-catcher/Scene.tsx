@@ -23,10 +23,8 @@ import { HumanoidModel, createPose, useHumanoidPose } from "@/arcade3d/core/rig"
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { useFittedView, type FittedViewOptions } from "@/arcade3d/core/useFittedView";
 import { useRunFrame } from "@/arcade3d/core/useRunFrame";
-import type { LevelId } from "@/arcade3d/types";
 import { ASSETS } from "./assets";
 import type { FoodCatcherLevel } from "./levels";
-import { PROPOSED_LEVEL_LIMITS } from "./rules";
 import { chefPose, chefRootRoll, createChefGait, stepChefGait } from "./poses";
 import {
    ApplePrimitive,
@@ -77,7 +75,7 @@ interface Scratch {
    input: StepInput;
 }
 
-type ViewRun = RunState & { flashAt: number; flashX: number; levelStatSet: boolean };
+type ViewRun = RunState & { flashAt: number; flashX: number };
 
 export const useFoodCatcherLevel = () => useLevel<FoodCatcherLevel>();
 
@@ -92,7 +90,7 @@ function projectFingerX(pointerX: number, pointerY: number, camera: Camera, scra
    return origin.x + dir.x * t;
 }
 
-const Simulation = memo(function Simulation({ run, scratch, levelId }: { run: ViewRun; scratch: Scratch; levelId: LevelId }) {
+const Simulation = memo(function Simulation({ run, scratch }: { run: ViewRun; scratch: Scratch }) {
    const input = useInput();
    const camera = useThree((state) => state.camera);
    const time = useGameTime();
@@ -105,27 +103,24 @@ const Simulation = memo(function Simulation({ run, scratch, levelId }: { run: Vi
       stepInput.dir = moveX < -0.5 ? -1 : moveX > 0.5 ? 1 : 0;
       const ev = step(run, dt * 1000, stepInput);
       const store = useArcadeStore.getState();
-      if (!run.levelStatSet) {
-         store.setStat("foodLevel", levelId);
-         run.levelStatSet = true;
-      }
       if (ev.caught > 0 || ev.missed > 0 || ev.badCaught > 0 || ev.lifeLost || ev.ended) {
          store.setScore(run.score);
          store.setStat("combo", run.combo);
          store.setStat("caught", run.goodCaught);
+         if (run.level.dropsPerLife > 0) store.setStat("drops", run.drops % run.level.dropsPerLife);
       }
       if (ev.caught > 0) {
          run.flashAt = time.now;
          run.flashX = run.chefX;
          playSfx("pickup");
       }
-      if (ev.badCaught > 0) {
+      if (ev.badCaught > 0 || ev.dropLives > 0) {
          run.flashAt = time.now;
          run.flashX = run.chefX;
          playSfx("hit");
       }
-      for (let i = 0; i < ev.badCaught; i++) store.loseLife();
-       if (ev.ended) store.end(ev.ended);
+      for (let i = 0; i < ev.badCaught + ev.dropLives; i++) store.loseLife();
+      if (ev.ended) store.end(ev.ended);
    });
 
    return null;
@@ -245,15 +240,15 @@ const FallingItem = memo(function FallingItem({ index, run }: { index: number; r
                />
             </group>
          ))}
-          <group ref={ring} visible={false}>
+         <group ref={ring} visible={false}>
             <BadRing />
-          </group>
-          <group ref={bonusRing} visible={false}>
-             <mesh>
-                <ringGeometry args={[0.56, 0.64, 28]} />
-                <meshBasicMaterial color="#fbbf24" toneMapped={false} />
-             </mesh>
-          </group>
+         </group>
+         <group ref={bonusRing} visible={false}>
+            <mesh>
+               <ringGeometry args={[0.56, 0.64, 28]} />
+               <meshBasicMaterial color="#fbbf24" toneMapped={false} />
+            </mesh>
+         </group>
       </group>
    );
 });
@@ -301,8 +296,8 @@ function FittedCamera() {
 }
 
 function LevelScene() {
-   const { id, config } = useFoodCatcherLevel();
-   const [run] = useState<ViewRun>(() => Object.assign(createRun(randomSeed(), config), { flashAt: -10, flashX: 0, levelStatSet: false }));
+   const { config } = useFoodCatcherLevel();
+   const [run] = useState<ViewRun>(() => Object.assign(createRun(randomSeed(), config), { flashAt: -10, flashX: 0 }));
    const scratch = useMemo<Scratch>(
       () => ({ ray: new Raycaster(), ndc: new Vector2(), input: { targetX: null, dir: 0 } }),
       []
@@ -311,7 +306,7 @@ function LevelScene() {
 
    return (
       <>
-          <Simulation run={run} scratch={scratch} levelId={id} />
+         <Simulation run={run} scratch={scratch} />
          <FittedCamera />
          <Kitchen />
          <Chef run={run} />

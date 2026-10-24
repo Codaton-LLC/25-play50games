@@ -32,6 +32,7 @@ import {
    spawnTimes,
    splitDt,
    step,
+   timeBonus,
    withinServerLimits,
    type RunState,
    type StepInput,
@@ -58,7 +59,7 @@ function play(state: RunState, dt: number, inputFor: (state: RunState, dt: numbe
 
 /** Chef is already under whichever item crosses on the next frame. That is perfect play. */
 function perfectInput(state: RunState, dt: number): StepInput {
-   const next = Math.min(state.level.durationMs, state.elapsedMs + splitDt(state.carryMs, dt).wholeMs);
+   const next = Math.min(ROUND_MS, state.elapsedMs + splitDt(state.carryMs, dt).wholeMs);
    let x: number | null = null;
    let best = Infinity;
    for (let i = 0; i < state.items.length; i++) {
@@ -612,38 +613,57 @@ describe("per-level score-limit proofs", () => {
       }
    });
 
-   it("bounds every possible scoring prefix and keeps the oracle cap a no-op for 200 seeds per level", () => {
+   it("bounds every run by catch points plus the win's time bonus, seed-independently, and keeps the cap a no-op", () => {
       for (const id of LEVEL_IDS.slice(1)) {
          const level = LEVELS[id];
          const limits = PROPOSED_LEVEL_LIMITS[id];
+         // Spawn times and fall speeds do not depend on the seed (only x, kind and the bad roll do).
+         for (const seed of [1, 2, 99, 12345]) {
+            expect(buildPlan(seed, false, level).map((p) => [p.time, p.speed, p.bonus && !p.bad])).toEqual(
+               buildPlan(1, true, level).map((p) => [p.time, p.speed, p.bonus])
+            );
+         }
          const plan = buildPlan(1, true, level);
          const crossings = plan.map((spawn, index) => ({
             at: spawn.time + (FALL_DISTANCE / spawn.speed) * 1000,
             bonus: spawn.bonus,
             index,
          })).sort((a, b) => a.at - b.at || a.index - b.index);
-         let available = 0;
-         let bonusAvailable = 0;
-         let provenMax = 0;
-         let maxRate = 0;
-         let minRateHeadroom = Infinity;
-         for (const crossing of crossings) {
-            available++;
-            if (crossing.bonus) bonusAvailable++;
-            const catches = Math.min(level.targetGood, available);
-            const bonusAwards = Math.min(level.bonusLimit, bonusAvailable, catches);
-            const basePoints = catches < 5 ? GOOD_POINTS * catches : DOUBLE_POINTS * catches - 40;
-            const bound = basePoints + BONUS_POINTS * bonusAwards;
-            provenMax = Math.max(provenMax, bound);
-            maxRate = Math.max(maxRate, (bound * 1000) / crossing.at);
-            if (bound > 0) minRateHeadroom = Math.min(minRateHeadroom, (limits.base + limits.maxPointsPerSec * crossing.at / 1000) / bound - 1);
-            expect(bound * 1000).toBeLessThanOrEqual(limits.base * 1000 + limits.maxPointsPerSec * crossing.at);
+         // Before a win: c catches (all good, unbroken combo) and g golden among the first crossings.
+         let golden = 0;
+         let ceiling = 0;
+         let earliestWin = Infinity;
+         for (let n = 1; n <= crossings.length; n++) {
+            if (crossings[n - 1].bonus) golden++;
+            const at = crossings[n - 1].at;
+            const catches = Math.min(level.targetGood, n);
+            const goldenAwards = Math.min(level.bonusLimit, golden, catches);
+            const catchBound = (catches < COMBO_DOUBLE_AT ? GOOD_POINTS * catches : DOUBLE_POINTS * catches - 40) + BONUS_POINTS * goldenAwards;
+            // a win can come at the targetGood-th crossing at the earliest, and only adds its time bonus then
+            const bound = catchBound + (n >= level.targetGood ? timeBonus(level, Math.floor(at)) : 0);
+            if (n === level.targetGood) earliestWin = at;
+            ceiling = Math.max(ceiling, bound);
+            expect(bound * 1000, `L${id} crossing ${n}`).toBeLessThanOrEqual(limits.base * 1000 + limits.maxPointsPerSec * Math.floor(at));
          }
-         expect(limits.maxScore).toBeGreaterThanOrEqual(provenMax);
-         expect(limits.maxScore).toBeLessThanOrEqual(Math.ceil(provenMax * 1.05));
-         expect(limits.maxPointsPerSec).toBeGreaterThanOrEqual(Math.ceil(maxRate));
-         expect(minRateHeadroom).toBeGreaterThanOrEqual(0.03);
-         expect(minRateHeadroom).toBeLessThanOrEqual(0.052);
+         expect(limits.maxScore).toBeGreaterThanOrEqual(ceiling);
+         expect(limits.maxScore).toBe(Math.ceil((ceiling * 1.03) / 10) * 10);
+         expect(limits.base).toBe(0);
+         expect(limits.maxPointsPerSec).toBe(Math.ceil((limits.maxScore * 1000) / earliestWin));
+         expect(limits.minDurationMs).toBeLessThan(earliestWin);
+         // The earliest loss: three life events, each a caught junk item (never one of the first three
+         // spawns, never a golden one) or every 5th drop (any good item). k drop-lives + (3 - k) junk need
+         // 5k + 3 - k distinct crossings with 3 - k of them junk-able.
+         const all = crossings.map((c) => c.at);
+         const junkable = crossings.filter((c) => c.index >= 3 && !c.bonus).map((c) => c.at);
+         const per = level.dropsPerLife;
+         const earliestLoss = Math.min(
+            junkable[2],
+            Math.max(all[per + 2 - 1], junkable[1]),
+            Math.max(all[2 * per + 1 - 1], junkable[0]),
+            all[3 * per - 1],
+         );
+         expect(limits.minDurationMs).toBeLessThan(earliestLoss);
+         expect(limits.minDurationMs).toBeGreaterThanOrEqual(0.95 * earliestLoss);
 
          let best = 0;
          const nonOracleBots: ((run: RunState) => StepInput)[] = [
@@ -653,24 +673,28 @@ describe("per-level score-limit proofs", () => {
          ];
          for (let seed = 1; seed <= 200; seed++) {
             for (const dt of [1000 / 30, 1000 / 60, 1000 / 144]) {
+               // the bound-reaching oracle: every drop good and in the middle, the chef always under it
                const oracle = createRun(seed, level, { forceGood: true });
                for (const spawn of oracle.plan) spawn.x = 0;
                play(oracle, dt, perfectInput);
+               expect(oracle.ended).toBe("win");
+               expect(oracle.score).toBeLessThanOrEqual(ceiling);
                const oracleResult = finalScore(oracle.score, oracle.elapsedMs, limits);
                expect(oracleResult.score).toBe(oracle.score);
                expect(withinServerLimits(oracleResult.score, oracleResult.durationMs, limits)).toBe(true);
                best = Math.max(best, oracleResult.score);
             }
 
-            for (const inputFor of nonOracleBots) {
+            for (const [b, inputFor] of nonOracleBots.entries()) {
                const run = createRun(seed, level);
                play(run, DT, inputFor);
+               if (b === 0) expect(run.ended, "idle never clears").not.toBe("win");
                const result = finalScore(run.score, run.elapsedMs, limits);
                expect(result.score).toBe(run.score);
                expect(withinServerLimits(result.score, result.durationMs, limits)).toBe(true);
             }
          }
-         expect(best).toBeGreaterThanOrEqual(0.9 * limits.maxScore);
+         expect(best).toBeGreaterThanOrEqual(0.95 * limits.maxScore);
       }
-   }, 60_000);
+   }, 120_000);
 });

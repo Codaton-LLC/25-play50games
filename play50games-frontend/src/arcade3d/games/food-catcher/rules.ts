@@ -195,6 +195,8 @@ export interface StepEvents {
    /** Good items that crossed the box and were not caught. A dodged bad item is not a miss. */
    missed: number;
    badCaught: number;
+   /** lives lost this step to dropped good food (levels with dropsPerLife > 0) */
+   dropLives: number;
    lifeLost: boolean;
    ended: "win" | "lose" | "timeup" | null;
 }
@@ -217,6 +219,8 @@ export interface RunState {
    seed: number;
    level: FoodCatcherLevel;
    goodCaught: number;
+   /** good items that fell past the chef */
+   drops: number;
    /** Whole milliseconds of unpaused play. Never a fractional sum of frame dts. */
    elapsedMs: number;
    /** Unused fraction of a millisecond, in [0, 1). */
@@ -260,7 +264,7 @@ function makeItem(): Item {
 }
 
 function makeEvents(): StepEvents {
-   return { caught: 0, missed: 0, badCaught: 0, lifeLost: false, ended: null };
+   return { caught: 0, missed: 0, badCaught: 0, dropLives: 0, lifeLost: false, ended: null };
 }
 
 export function createRun(
@@ -277,6 +281,7 @@ export function createRun(
       seed,
       level,
       goodCaught: 0,
+      drops: 0,
       elapsedMs: 0,
       carryMs: 0,
       chefX: 0,
@@ -298,6 +303,7 @@ function clearEvents(events: StepEvents): void {
    events.caught = 0;
    events.missed = 0;
    events.badCaught = 0;
+   events.dropLives = 0;
    events.lifeLost = false;
    events.ended = null;
 }
@@ -370,6 +376,12 @@ function spawnDue(state: RunState): void {
    }
 }
 
+/** The win bonus of levels 2-5: timeBonusPerSec for every whole second left on the level clock. */
+export function timeBonus(level: FoodCatcherLevel, elapsedMs: number): number {
+   const secondsLeft = Math.floor(Math.max(0, level.durationMs - elapsedMs) / 1000);
+   return level.timeBonusPerSec * secondsLeft;
+}
+
 function endRun(state: RunState, reason: "win" | "lose" | "timeup"): void {
    if (state.ended) return;
    state.ended = reason;
@@ -395,13 +407,27 @@ function resolveCross(state: RunState, item: Item, yNow: number): void {
    if (!hit) {
       state.combo = 0;
       state.events.missed += 1;
+      state.drops += 1;
+      const perLife = state.level.dropsPerLife;
+      if (perLife > 0 && state.drops % perLife === 0) {
+         state.events.dropLives += 1;
+         state.events.lifeLost = true;
+         state.lives -= 1;
+         if (state.lives <= 0) {
+            state.lives = 0;
+            endRun(state, "lose");
+         }
+      }
       return;
    }
    state.combo += 1;
    state.goodCaught += 1;
-    state.score += catchPoints(state.combo) + (item.bonus ? BONUS_POINTS : 0);
+   state.score += catchPoints(state.combo) + (item.bonus ? BONUS_POINTS : 0);
    state.events.caught += 1;
-   if (state.level.targetGood > 0 && state.goodCaught >= state.level.targetGood) endRun(state, "win");
+   if (state.level.targetGood > 0 && state.goodCaught >= state.level.targetGood) {
+      state.score += timeBonus(state.level, state.elapsedMs);
+      endRun(state, "win");
+   }
 }
 
 /**
@@ -449,19 +475,27 @@ export function step(state: RunState, dtMs: number, input: StepInput = {}): Step
       resolveCross(state, item, itemY(item.bornMs, state.elapsedMs, item.speed));
    }
 
-    if (!state.ended && state.elapsedMs >= state.level.durationMs) endRun(state, "timeup");
+   if (!state.ended && state.elapsedMs >= state.level.durationMs) endRun(state, "timeup");
    return events;
 }
 
-/** Proposed per-level server limits; the event-prefix proof is in README.md and rules.test.ts. */
+/**
+ * Per-level server limits (README.md "Server limits and why they hold", proven in rules.test.ts).
+ * Levels 2-5: a run scores catch points (combo + golden) and, on a win, timeBonusPerSec x whole
+ * seconds left. Spawn times and fall speeds do not depend on the seed, so the objective's
+ * targetGood-th item crossing (tE) is the earliest possible win for every seed, and
+ * B = max catch points + golden + timeBonus(tE) is the ceiling. maxScore = B x 1.03 rounded up to
+ * 10; base 0 and pps = ceil(maxScore / tE), so every run (a win only comes at t >= tE) fits.
+ * minDurationMs: the fastest three-life loss minus ~4 %; maxDurationMs: the clock + 3 s.
+ */
 export const PROPOSED_LEVEL_LIMITS: Record<LevelId, ScoringRules> = {
    1: foodCatcherMeta.scoring,
-   /** L2: Bmax = 25 catches × combo rule + 3 × 10 golden points = 490; peak B(t)/t=18.110/s, 19/s = 4.9% margin. */
-   2: { ...foodCatcherMeta.scoring, maxScore: 510, minDurationMs: 8620, maxDurationMs: 123_000, maxPointsPerSec: 19 },
-   /** L3: Bmax = 35 catches × combo rule + 5 × 10 = 710; base 15 + 22/s leaves 3.5% at peak. */
-   3: { ...foodCatcherMeta.scoring, maxScore: 740, minDurationMs: 7890, maxDurationMs: 153_000, base: 15, maxPointsPerSec: 22 },
-   /** L4: Bmax = 45 catches × combo rule + 7 × 10 = 930; peak B(t)/t=25.713/s, 27/s = 5.0% margin. */
-   4: { ...foodCatcherMeta.scoring, maxScore: 970, minDurationMs: 7940, maxDurationMs: 183_000, maxPointsPerSec: 27 },
-   /** L5: Bmax = 60 catches × combo rule + 12 × 10 = 1280; peak B(t)/t=30.448/s, 32/s = 5.1% margin. */
-   5: { ...foodCatcherMeta.scoring, maxScore: 1340, minDurationMs: 7270, maxDurationMs: 183_000, maxPointsPerSec: 32 },
+   /** L2: tE 27.057 s; B = 490 catch (25 catches, 3 golden) + 20 x 92 s = 2330; pps 2400 / 27.057 s = 88.7 */
+   2: { ...foodCatcherMeta.scoring, maxScore: 2400, minDurationMs: 8620, maxDurationMs: 123_000, base: 0, maxPointsPerSec: 89 },
+   /** L3: tE 32.714 s; B = 710 catch (35 catches, 5 golden) + 20 x 117 s = 3050; pps 3150 / 32.714 s = 96.3 */
+   3: { ...foodCatcherMeta.scoring, maxScore: 3150, minDurationMs: 7890, maxDurationMs: 153_000, base: 0, maxPointsPerSec: 97 },
+   /** L4: tE 36.169 s; B = 930 catch (45 catches, 7 golden) + 20 x 143 s = 3790; pps 3910 / 36.169 s = 108.1 */
+   4: { ...foodCatcherMeta.scoring, maxScore: 3910, minDurationMs: 7940, maxDurationMs: 183_000, base: 0, maxPointsPerSec: 109 },
+   /** L5: tE 42.039 s; B = 1280 catch (60 catches, 12 golden) + 20 x 137 s = 4020; pps 4150 / 42.039 s = 98.7 */
+   5: { ...foodCatcherMeta.scoring, maxScore: 4150, minDurationMs: 7270, maxDurationMs: 183_000, base: 0, maxPointsPerSec: 99 },
 };
