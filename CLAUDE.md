@@ -37,7 +37,13 @@ The **classic 50 2D games stay as they are**. Never change them for this plan.
 
 Decisions the user made (do not re-open them without asking):
 1. **5 levels per game.** Follow the plan's "Global level rule": 1 base environment + 5 level configurations (layout, spawns, objective count, hazards, speed, lighting, timing), not five unrelated maps. Claude builds the core level system first (design: `docs/arcade-levels.md`). Game authors then add their 5 level configs through it; never build a private level system inside a game folder.
-2. **Leaderboard:** ONE leaderboard per game = the SUM of the player's best score on each of its 5 levels. The score limits are proven per level (arcade-score-limits skill, one proof per level).
+2. **Leaderboard:** ONE leaderboard per game.
+   - **Points games:** the board value is the SUM of the player's best score on each of its 5 levels.
+   - **Time games:** the board ranks the TOTAL time, i.e. the sum of the best finishing times of all 5 levels. A player ranks only after finishing all 5.
+   - Score limits are proven per level (arcade-score-limits skill, one proof per level).
+   - Today's game becomes Level 1, and level n+1 unlocks when level n is cleared.
+   - Pilots: robot-collector, castle-defender, obstacle-race.
+   - Full design: `docs/arcade-levels.md`.
 3. **Order of work:**
    1. Finish snowball-battle, space-repair and alien-farm.
    2. Core level system + backend.
@@ -47,6 +53,7 @@ Decisions the user made (do not re-open them without asking):
    6. Menu 2.
 4. **Modern look, Hyper3D first.** The user wants a polished, modern, premium mobile-game look and finds code-made objects ugly. Every visible, important object is a Hyper3D GLB. Only ground, terrain, water, sky, particles, markers/UI rings and moving parts (rotors, blades, lids) stay in code. A code stand-in is only a fallback until the GLB exists; it must still look deliberate (bevelled, 2-3 tones), never a raw grey box. Lighting from a core preset + fog/sky from core env, one COLORS palette per game, juicy feedback (fx bursts, shake, floating scores).
 5. **Menu 2 hero:** built as the spec says (turtle ninja with a coloured eye mask). The user accepted the trademark-resemblance risk Claude raised.
+   **Menu 2 quality bar (user, 2026-10-24):** the Color Shell Ninjas games must be advanced and realistic, NOT simple prototypes. The target is the user's concept boards in `docs/master-plan/menu2-targets/` (`sky-tower-jump.webp`, `crystal-cave-run.webp`): rich layered worlds (playable platforms plus non-colliding background islands/caves), Hyper3D props for every visible object, strong lighting per level (core presets + fog + emissive accents), VFX (waterfalls, glow, particles), juicy feedback. Desktop gets the full look; phones get a lighter quality tier, never a different game. **Every Menu 2 game opens with an intro** (5-8 s: camera fly-through of the level, the chosen ninja lands, title + level name; Skip button and any key/tap skips; shown in full the first time, short afterwards; it never counts toward the run clock). Before building the 50 games, one vertical-slice level (Sky Tower Jump L1) is built and shown to the user for sign-off.
 6. **Hyper3D credits:** the user buys more on another account and gives Claude access (re-login of the hyper3d-rodin MCP). Credits are still spent only after the user approves a batch in chat.
 7. **Fairness on one leaderboard:** the same timing windows for touch and keyboard. A device may only get help where its input is less precise (aim arcs), never with timing.
 8. **Points games that end on time** play the finish cue (core `endCue`). A game that shows its own clock sets `clockChip: false`.
@@ -71,6 +78,7 @@ Decisions the user made (do not re-open them without asking):
 | `NEXT_PUBLIC_ARCADE_ENABLED` | No 3D tab, links, routes (`/3d/*` → 404) or sitemap entries |
 | `NEXT_PUBLIC_ARCADE_LEADERBOARD` | Scores stay in localStorage only (status `leaderboard-off`) |
 | `NEXT_PUBLIC_ARCADE_API_MOCK` | On = in-memory mock instead of WP (dev only) |
+| `NEXT_PUBLIC_ARCADE_LEVELS` | Every game plays level 1 exactly as before levels: no level tiles, HUD chip, Next level / Levels buttons, `?level=` or `level` in any request (`core/README.md` "Levels"). On: games with five `meta.levels` show the level UI once the server advertises `features.levels` |
 
 All default off, so merging to `main` is always safe. Read each flag with its literal key (Next inlines them at build time).
 

@@ -11,7 +11,7 @@
 // Tickets live in memory only (never localStorage, sessionStorage or analytics), one context per
 // shell: reset() on unmount, so a new mount never inherits a ticket even when the store reuses a
 // numeric runId.
-import type { ArcadeSlug } from "../types";
+import type { ArcadeSlug, LevelId } from "../types";
 import type { RunPhase } from "./types";
 
 /** Analytics only: how the run's ticket turned out (no token, no ID). */
@@ -24,8 +24,8 @@ export interface RunTicketState {
 }
 
 export interface RunTicketDeps {
-   /** POST /arcade/runs/start */
-   startRun(slug: ArcadeSlug): Promise<{ run_token: string }>;
+   /** POST /arcade/runs/start (the ticket is bound to the level; level 1 = no level in the request) */
+   startRun(slug: ArcadeSlug, level?: LevelId): Promise<{ run_token: string }>;
    /** current store state (arcadeStore.getState) */
    getState(): RunTicketState;
    /** current logged-in user id, or null */
@@ -39,6 +39,7 @@ export interface RunTicketDeps {
 interface TicketContext {
    runId: number;
    slug: ArcadeSlug;
+   level: LevelId;
    userId: number | null;
    token: string | null;
    status: "pending" | TicketOutcome;
@@ -46,7 +47,7 @@ interface TicketContext {
 
 export interface RunTickets {
    /** a run entered its countdown: request its ticket once (repeat calls for the same run are no-ops) */
-   onRunStart(runId: number, slug: ArcadeSlug): void;
+   onRunStart(runId: number, slug: ArcadeSlug, level?: LevelId): void;
    /** the run's ticket for this user, if it was kept, and how it turned out */
    ticketFor(runId: number, userId: number | null): { token: string | null; outcome: TicketOutcome };
    /** drop the context (unmount); a late response is then discarded */
@@ -63,10 +64,11 @@ export function createRunTickets(deps: RunTicketDeps): RunTickets {
    let ctx: TicketContext | null = null;
 
    return {
-      onRunStart(runId, slug) {
-         if (ctx && ctx.runId === runId && ctx.slug === slug) return; // effect replay / resubscribe
+      onRunStart(runId, slug, level = 1) {
+         // effect replay / resubscribe
+         if (ctx && ctx.runId === runId && ctx.slug === slug && ctx.level === level) return;
          const userId = deps.getUserId();
-         const mine: TicketContext = { runId, slug, userId, token: null, status: "pending" };
+         const mine: TicketContext = { runId, slug, level, userId, token: null, status: "pending" };
          ctx = mine;
          if (!deps.enabled() || !userId || !deps.hasJwt()) {
             mine.status = "none";
@@ -74,7 +76,7 @@ export function createRunTickets(deps: RunTicketDeps): RunTickets {
          }
          let request: Promise<{ run_token: string }>;
          try {
-            request = deps.startRun(slug);
+            request = level === 1 ? deps.startRun(slug) : deps.startRun(slug, level);
          } catch {
             mine.status = "failed";
             return;

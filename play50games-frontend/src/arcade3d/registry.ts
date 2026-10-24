@@ -100,4 +100,6 @@ export function getVisibleSections(
    })).filter((section) => section.games.length > 0);
 }
 
+export { isLevelId, levelCount, levelMetaFor, levelMetaProblems, levelsOf, maxTotal, scoringFor } from "./levelMeta";
+
 export type { ArcadeGameMeta, ArcadeSlug };
