@@ -4,7 +4,7 @@ Owner: Cursor. Slug: `construction-worker`. Adventure game 9 (order 19), complex
 
 ## Concept
 
-A toy building site in daylight. The player runs the tower crane: read the next blueprint step, pick that material from the yard, and swing the hook over the glowing slot. The hook is a damped pendulum, so the drop is a timing skill. The worker (the shared runner in a procedural hard hat) stands in front of the piles and cheers each finished floor. Three buildings on one plot, then the clock. Accent `#fbbf24`.
+A toy building site in daylight. The player runs the tower crane: read the next blueprint step, pick that material from the yard, and swing the hook over the glowing slot. The hook is a damped pendulum, so the drop is a timing skill. The worker (clean-city's cleaner in his orange hi-vis vest, with a procedural yellow hard hat) stands in front of the piles and cheers each finished floor. Three buildings on one plot, then the clock. Accent `#fbbf24`.
 
 ## Controls
 
@@ -55,20 +55,20 @@ The proof uses only the radius gates (7.8 / 8.9) and the 0.25 s dwell, never the
 
 ## Scene and camera
 
-The fit is the work zone, not the 16 × 14 yard: x −4.8..4.8, y 0..5.7, z 4.8..10.2. y 5.7 is the hook block at rest (4.5 + 1.2), so the block stays under the chips. The mast above that, and the empty ground in front of the piles, may leave the frame. Pitch 40°, fov 42, padding 8, shift, margin `{ top: 0.10, bottom: 0.08, left: 0.02, right: 0.02 }`. Portrait yaw 0.6; a short wide phone uses `0.6 + π/2`. Look-at `(0, 0.35 · roofHeight, 7.5)`.
+The fit is the work zone, not the 16 × 14 yard: x −4.8..4.8, y 0..5.7, z 4.8..10.2. y 5.7 is the hook block at rest (4.5 + 1.2), so the block stays under the chips. The mast above that, and the empty ground in front of the piles, may leave the frame. Pitch 40°, fov 42, padding 8, shift, margin `{ top: 0.10, bottom: 0.08, left: 0.02, right: 0.02 }`. Portrait and desktop yaw 0.28 (was 0.6: on a 390 × 844 phone the mast top ran under the Mute / Pause buttons; at 0.28 it rises between the chips and the buttons); a short wide phone uses `π/2 + 0.1` (was `0.6 + π/2`: the counter-jib and cab sat under the buttons at 844 × 390). Look-at `(0, 0.35 · roofHeight, 7.5)`.
 
 | | px/m | hook 1.2 m | slot 1.2 m | worker 1.56 m | ok 0.6 m | perfect 0.15 m |
 |---|---|---|---|---|---|---|
 | 390 × 844, banner open | 29 | 35 | 35 | 46 | 18 | 4 |
 | 844 × 390, banner open | 22 | 26 | 26 | 34 | 13 | 3 |
 
-- **Worker** at (2.6, 0, 5.35), in front of the piles and inside the fit. `SHARED_ASSETS.runner` scale 0.825 (1.556 m), `applyLift={false}`, group y = `bodyLift × 0.825`. `idlePose`, `pointPose` (`aimArm`) while carrying, `cheerPose` for 1.2 s. Hard hat on `attach={{ head }}`.
+- **Worker** at (2.6, 0, 5.35), in front of the piles and inside the fit. `REUSED_ASSETS.cleaner` (clean-city's `cleaner.glb`, orange hi-vis vest, `CLEANER_LANDMARKS`, both from core: game folders never import each other) at `WORKER_SCALE` = 1.556 / 1.9022 = 0.818 (1.556 m, the runner's height here before 2026-10-24; a dedicated worker GLB comes with the next Hyper3D batch), `applyLift={false}`, group y = `bodyLift(pose, CLEANER_LANDMARKS) × WORKER_SCALE`. `idlePose`, `pointPose` (`aimArm`) while carrying, `cheerPose` for 1.2 s. Yellow hard hat on `attach={{ head }}` at `WORKER_HAT` (1.15×, its brim 9.6 cm under the crown, the dome 5 cm over it).
 - Guide: gold `#fbbf24` when the predicted landing is inside perfect, mint `#6ee7b7` inside ok, slate outside, plus a blob under the piece. The perfect band is 1.5–2 px, so the gold tier is how it reads. Slot frame is emissive, not a light.
 - `environment: { background: "#e7e5e4", fog: ["#e7e5e4", 100, 160], lighting: "day" }`. Changed from 28 / 55: fog that starts at 28 m hid the site. The portrait fit is about 37 m out, so 100–160 stays clear. Van at (−5.4, 0, 1.0), yaw π/2, sits outside the fitted work zone.
 
 ## Core helpers used
 
-`GameDefinition` (`durationMs`, `resultDelayMs`, `touchControls`, `hudStats` for stability / building / swing amplitude (the shell draws the clock), `environment`), `useRunFrame`, `useGameTime`, `useInput`, `useFittedView`, `CameraRig`, `useSafeArea`, `useArcadeStore`, `stepPendulum2D`, `createFixedStep`, `fixedStep`, `createRng`, `rngNext`, `withinServerLimits`, `capScore`, `simulateRun` / `fixedFrames` / `randomFrames` (tests), `<HumanoidModel>`, `useHumanoidPose`, `idlePose`, `cheerPose`, `aimArm`, `bodyLift`, `Fence` via `createPath` (`core/path`), `useFx`, `useCanvasTexture`, `<Instanced>`, `<DynamicInstanced>`, `BlobShadow`, `useQuality`, `SHARED_ASSETS.runner` / `crate`, `REUSED_ASSETS.pallet` / `van`, `playSfx`, `startLoop`, `useMuted`. Not used: Rapier, `core/ai`, `Trail`.
+`GameDefinition` (`durationMs`, `resultDelayMs`, `touchControls`, `hudStats` for stability / building / swing amplitude (the shell draws the clock), `environment`), `useRunFrame`, `useGameTime`, `useInput`, `useFittedView`, `CameraRig`, `useSafeArea`, `useArcadeStore`, `stepPendulum2D`, `createFixedStep`, `fixedStep`, `createRng`, `rngNext`, `withinServerLimits`, `capScore`, `simulateRun` / `fixedFrames` / `randomFrames` (tests), `<HumanoidModel>`, `useHumanoidPose`, `idlePose`, `cheerPose`, `aimArm`, `bodyLift`, `Fence` via `createPath` (`core/path`), `useFx`, `useCanvasTexture`, `<Instanced>`, `<DynamicInstanced>`, `BlobShadow`, `useQuality`, `SHARED_ASSETS.crate`, `REUSED_ASSETS.cleaner` / `pallet` / `van`, `CLEANER_LANDMARKS`, `playSfx`, `startLoop`, `useMuted`. Not used: Rapier, `core/ai`, `Trail`.
 
 ## Assets
 
@@ -76,7 +76,7 @@ No new generation. This game owns no GLB (`assets.spec.json` assets is empty). C
 
 | id | class / source | target in game | fallback |
 |---|---|---|---|
-| worker | D runner 0.825 + B hat | 1.556 m | capsule + hat |
+| worker | reused cleaner 0.818 + B hat | 1.556 m | capsule + hat |
 | pallet | D `REUSED_ASSETS.pallet` | 1.2 × 0.15 × 0.8 | box |
 | crate | D `SHARED_ASSETS.crate`, ×4 | 0.8 cube | box |
 | van | D `REUSED_ASSETS.van` | ~4.5 long, yaw π/2 | box |
@@ -97,7 +97,7 @@ Van and extra crates drop out on the low tier. Worker, piles, pieces and crane s
 - **Energy:** E does not grow at zero pivot accel. The 2.0 cap holds for a full-speed jib start (raw `ω²r` and `α · r` exceed it) and that start stays under 0.35 rad.
 - **Landing:** the rating uses the predicted point, not the hook xz. Tower drop opens at 9.02. A miss retries the same step.
 - **Stability and score:** all-ok 52 / 28 / 4 and each building's +500; a placed good at stability 3 collapses; `t(8) = 9.92` / 1300; `t(36) = 41.56` / 6090; `t(9) = 11.05`; win pays `5 · floor(10.9)` = 50; cheer allows a pick and ignores a drop; the damped and stop-curve store bots win; idle times out at 240 s with score 0.
-- **Visual:** soles and hat within 1 cm; worker height 1.556 m; the carried piece and the hook never intersect a building or the crane, including the tower's top floor.
+- **Visual:** soles and hat within 1 cm; worker height 1.556 m; the hat's dome covers the cleaner's crown (2–6 cm over it, `assets.test.ts`); the carried piece and the hook never intersect a building or the crane, including the tower's top floor.
 
 ## Performance
 
@@ -140,7 +140,7 @@ play: 390×844 and 844×390, cookie banner open. Blueprint is a dark pill under 
 
 ## Hyper3D batch 5 adoption
 
-- **Cement mixer (2026-10-24, Hyper3D batch 5):** `/models/3d/construction-worker/cementMixer.glb` (1500 tris) as decor beside the work zone at (-6.7, 6.4), yaw 0.9, 1.5 m tall (1.01 x 1.12 m footprint), behind the `decor` quality gate; `mixer.test.ts` keeps it outside the work area, the crane's wedge and every camera-to-target line. Static (one mesh). Adopted by Antigravity; finished by Claude after Antigravity's quota ran out.
+- **Cement mixer (2026-10-24, Hyper3D batch 5):** `/models/3d/construction-worker/cementMixer.glb` (1500 tris) as decor beside the work zone at (-6.6, 6.0) (was (-6.7, 6.4): moved in so it stays in the portrait frame at yaw 0.28), yaw 0.9, 1.5 m tall (1.01 x 1.12 m footprint), behind the `decor` quality gate; `mixer.test.ts` keeps it outside the work area, the crane's wedge and every camera-to-target line. Static (one mesh). Adopted by Antigravity; finished by Claude after Antigravity's quota ran out.
 
 ## Look (2026-10-24)
 

@@ -7,7 +7,7 @@ import { judgeTiming, needlePosition, type TimingZone } from "@/arcade3d/core/hu
 export const STATION = { edge: 10, moduleRadius: 4.2, serviceRadius: 6, dock: 0.6, moduleInradius: 0.65, moduleSides: 12, hubInradius: 1.2, hubSides: 16 } as const;
 export const SUIT = { radius: 0.45, thrust: 6, brake: 3, speed: 7, deadZone: 0.12, dockSpeed: 1, restitution: 0.5, wobble: 0.5, rearm: 0.05, turn: 8 } as const;
 export const BREAKS = { times: [6, 12, 18, 24, 30, 36, 40, 44, 48, 52, 56, 60, 64, 68, 72, 76, 80, 83, 86, 89, 92, 95, 98, 101, 104, 107, 110, 113, 116, 119], drain: 1 } as const;
-export const REPAIR = { hits: [1, 1, 2, 1, 1, 2, 1, 3], periods: [1.2, 1, 0.8], fine: [60, 45, 35], coarse: [90, 75, 60], perfectShare: 1 / 3, lock: 0.5, centre: 0.5, jitter: 0.05 } as const;
+export const REPAIR = { hits: [1, 1, 2, 1, 1, 2, 1, 3], periods: [1.2, 1, 0.8], fine: [60, 45, 35], coarse: [60, 45, 35], arcs: [60, 45, 35], perfectShare: 1 / 3, lock: 0.5, centre: 0.5, jitter: 0.05 } as const;
 export const DEBRIS = { radius: 7.6, bodyRadius: 0.25, points: 32, count: 4, speeds: [1, 1.2, 1.4], impulse: 2, cooldown: 1, jitter: 0.025 } as const;
 export const CELL = { milestones: [4, 12, 20], offset: 1.3, delay: 0.35, lifetime: 8, radius: 2, power: 25 } as const;
 export const SCORE = { repair: 100, perfect: 50, power: 2 } as const;

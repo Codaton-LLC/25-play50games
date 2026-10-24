@@ -115,8 +115,10 @@ describe("seed, station and controller", () => {
 });
 
 describe("repair generations, timing and power", () => {
-   it("snapshots stage periods and literal fine/coarse arc widths", () => {
-      for (const coarse of [false, true]) for (const [time, period, width] of [[6, 1.2, coarse ? 90 : 60], [40, 1, coarse ? 75 : 45], [80, 0.8, coarse ? 60 : 35]]) {
+   it("snapshots stage periods and pins equal arc widths on both touch and keyboard", () => {
+      expect(REPAIR.fine).toEqual([60, 45, 35]);
+      expect(REPAIR.coarse).toEqual([60, 45, 35]);
+      for (const coarse of [false, true]) for (const [time, period, width] of [[6, 1.2, 60], [40, 1, 45], [80, 0.8, 35]]) {
          const r = createRun(1, coarse); r.time = time - 0.001; r.ticket = BREAKS.times.filter((t) => t < time).length;
          stepRun(r, idle, 0.001); const id = ((r.direction * (r.ticket - 1)) % 8 + 8) % 8, m = r.modules[id];
          expect(m.period).toBe(period); expect((m.zones[0].end - m.zones[0].start) * 360).toBeCloseTo(width, 9);
