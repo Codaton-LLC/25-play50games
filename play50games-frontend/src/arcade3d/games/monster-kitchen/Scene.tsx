@@ -5,8 +5,8 @@
 // loop); every visual reads the run state in useFrame and animates with useGameTime(). The camera is a
 // single fixed yaw: useFittedView keeps the whole set (the README's area) clear of the HUD, the touch
 // controls, the cookie banner and this game's own DOM Hud (its data-arcade-safe-area panels), with the
-// lens shift moving the picture instead of turning. Tap picking resolves against the rules index (the
-// integer rotation, never the eased disc): nearest slot centre on screen within 48 CSS px.
+// lens shift moving the picture instead of turning. Tap picking measures the drawn (eased) wheel, so a
+// tap takes the ingredient under the finger even mid-turn: nearest slot centre within 48 CSS px.
 import { useEffect, useMemo, useState } from "react";
 import { useThree, type RootState } from "@react-three/fiber";
 import { Vector3 } from "three";
@@ -21,7 +21,7 @@ import { useFittedView } from "@/arcade3d/core/useFittedView";
 import { useRunFrame } from "@/arcade3d/core/useRunFrame";
 import { Cauldron } from "./Cauldron";
 import { Chef } from "./Chef";
-import { hudButtons, hudHand, hudOrders } from "./Hud";
+import { hudButtons, hudOrders, publishHand } from "./Hud";
 import { HATCH_X, HATCH_Z, Kitchen } from "./Kitchen";
 import { Monsters, type WindowLook } from "./Monsters";
 import { Wheel } from "./Wheel";
@@ -30,8 +30,8 @@ import {
    WHEEL,
    centreSlot,
    createRun,
+   drawnSlotPosition,
    isNeeded,
-   slotPosition,
    stepRun,
    type RunState,
    type StepInput,
@@ -93,10 +93,7 @@ export default function Scene() {
          hudOrders[1] = null;
          hudButtons.left = 0;
          hudButtons.right = 0;
-         hudHand.kind = null;
-         hudHand.needed = false;
-         hudHand.flying = null;
-         hudHand.locked = false;
+         publishHand(null, false, null, false);
       };
       reset();
       return reset;
@@ -126,13 +123,17 @@ export default function Scene() {
       [view],
    );
 
-   /** Nearest wheel slot to a canvas tap, by screen distance within PICK_PX CSS px (rules index). */
+   /**
+    * Nearest wheel slot to a canvas tap, by screen distance within PICK_PX CSS px, measured on the DRAWN
+    * (eased) wheel: mid-turn the finger picks the ingredient it is on, never the one the rules already
+    * moved under it. The rules then toss it (front arc) or turn it to the front.
+    */
    const pickSlot = (state: RootState, tap: { x: number; y: number } | null): number | null => {
       if (!tap) return null;
       let best = -1;
       let bestD = PICK_PX;
       for (let slot = 0; slot < WHEEL.slots; slot++) {
-         slotPosition(slot, run.rotation, at);
+         drawnSlotPosition(slot, look.rot, at);
          ndc.set(at.x, at.y + 0.12, at.z).project(state.camera);
          const d = Math.hypot(((ndc.x - tap.x) * width) / 2, ((ndc.y - tap.y) * height) / 2);
          if (d < bestD) {
@@ -177,10 +178,7 @@ export default function Scene() {
 
       // the hand card: what Space / Enter tosses now (the centre slot under the selector ring)
       const front = run.slots[centreSlot(run.rotation)].kind;
-      hudHand.kind = front;
-      hudHand.needed = isNeeded(run, front);
-      hudHand.flying = run.flight ? run.flight.kind : null;
-      hudHand.locked = run.time < run.burpUntil;
+      publishHand(front, isNeeded(run, front), run.flight ? run.flight.kind : null, run.time < run.burpUntil);
 
       at.x = 0;
       at.y = 1.55;

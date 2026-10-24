@@ -222,6 +222,17 @@ export function slotPosition(slot: number, rotation: number, out: { x: number; y
 }
 
 /**
+ * Where slot k is DRAWN on the eased wheel (`rot` fractional, the Scene's look.rot), world m. Picking
+ * uses it so a tap lands on the ingredient under the finger even mid-turn. Writes into `out`.
+ */
+export function drawnSlotPosition(slot: number, rot: number, out: { x: number; y: number; z: number }): void {
+   const a = ((slot + rot - WHEEL.front) * Math.PI) / 4;
+   out.x = WHEEL.x + WHEEL.ringR * Math.sin(a);
+   out.y = WHEEL.y;
+   out.z = WHEEL.z + WHEEL.ringR * Math.cos(a);
+}
+
+/**
  * The drawn wheel's easing (visual only; the Scene and the picking use the integer rotation): move
  * the drawn index `drawn` (fractional, unbounded) at most `step` slots toward `target` (0..7), the
  * short way round, landing exactly on it (mod 8) once within reach. A half turn goes forward.
@@ -366,15 +377,21 @@ function earliestOrdering(run: RunState): Order | null {
 }
 
 /**
- * Would a toss of `kind` launched now advance an order? True when an ordering monster's next needed
- * ingredient is `kind` (a launch now is after every active order appeared). The Scene shows it on the
- * selector ring and the HUD hand card; the landing still decides.
+ * Would a toss of `kind` launched now advance an order? True when an ordering monster needs `kind`
+ * next AND is still ordering when the toss lands: its patience, drained after the grace through the
+ * 0.55 s flight, stays above 0 (a monster about to storm off would make the toss burp). A launch now
+ * is after every active order appeared, so the eligibility cut never rejects it. The Scene shows this
+ * on the selector ring and the HUD hand card; the landing still decides.
  */
 export function isNeeded(run: RunState, kind: IngredientKind | null): boolean {
    if (kind === null) return false;
+   const landAt = run.time + TOSS.flightS;
    for (const w of run.windows) {
       const o = w.order;
-      if (o && o.phase === "ordering" && o.kinds[o.progress] === kind) return true;
+      if (!o || o.phase !== "ordering" || o.kinds[o.progress] !== kind) continue;
+      const drainFrom = Math.max(run.time, o.appearedAt + ORDERS.graceS);
+      const left = o.patience - PATIENCE.drains[o.type] * Math.max(0, landAt - drainFrom);
+      if (left > 1e-6) return true;
    }
    return false;
 }
