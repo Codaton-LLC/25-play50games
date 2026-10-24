@@ -63,7 +63,6 @@ void main() {
 }
 `;
 
-const BALCONY: InstanceSpot[] = TOWERS.map((tower) => ({ x: tower.x, y: 4.32, z: tower.z }));
 const RINGS: InstanceSpot[] = TOWERS.flatMap((tower) => [
    { x: tower.x, y: 1.35, z: tower.z },
    { x: tower.x, y: 3.05, z: tower.z },
@@ -100,32 +99,6 @@ function useWallGeometry(): { geometry: BufferGeometry; map: ReturnType<typeof u
    }, []);
    useEffect(() => () => geometry.dispose(), [geometry]);
    return { geometry, map };
-}
-
-function useBalconyGeometry(): BufferGeometry {
-   const geometry = useMemo(() => {
-      const parts: BufferGeometry[] = [];
-      const posts = 10;
-      const radius = 2.5;
-      for (let i = 0; i < posts; i++) {
-         const a = (i / posts) * Math.PI * 2;
-         const mid = ((i + 0.5) / posts) * Math.PI * 2;
-         const plank = new BoxGeometry(0.82, 0.08, 0.3);
-         // the plank's long axis (x) runs along the ring's tangent, not out from the tower like a spike
-         plank.rotateY(Math.PI / 2 - mid);
-         plank.translate(Math.cos(mid) * radius, 0, Math.sin(mid) * radius);
-         parts.push(plank);
-         const post = new BoxGeometry(0.08, 0.36, 0.08);
-         post.translate(Math.cos(a) * (radius + 0.02), 0.18, Math.sin(a) * (radius + 0.02));
-         parts.push(post);
-      }
-      const merged = mergeGeometries(parts, false);
-      for (const part of parts) if (part !== merged) part.dispose();
-      if (!merged) throw new Error("castle look: balcony");
-      return merged;
-   }, []);
-   useEffect(() => () => geometry.dispose(), [geometry]);
-   return geometry;
 }
 
 function useClothMaterial(color: string, trim: string, phase: number, amp: { current: number }) {
@@ -181,7 +154,6 @@ export function Castle({ run, reduced }: { run: CastleRun; reduced: boolean }) {
    const time = useGameTime();
    const endedAt = useRef(-1);
    const wall = useWallGeometry();
-   const balcony = useBalconyGeometry();
    useFrame(() => {
       if (run.end && endedAt.current < 0) endedAt.current = time.now;
       const won = run.end === "win" ? Math.min(1, (time.now - endedAt.current) / 0.4) : 0;
@@ -202,10 +174,6 @@ export function Castle({ run, reduced }: { run: CastleRun; reduced: boolean }) {
          <Instanced spots={RINGS} name="castle-rings">
             <torusGeometry args={[2.22, 0.09, 5, 14]} />
             <meshStandardMaterial color={COLORS.stone} flatShading roughness={0.95} />
-         </Instanced>
-         <Instanced spots={BALCONY} name="castle-balcony">
-            <primitive object={balcony} attach="geometry" />
-            <meshStandardMaterial color={COLORS.wood} roughness={0.8} />
          </Instanced>
          <Instanced spots={POLES} name="castle-poles">
             <cylinderGeometry args={[0.045, 0.055, 1, 6]} />
