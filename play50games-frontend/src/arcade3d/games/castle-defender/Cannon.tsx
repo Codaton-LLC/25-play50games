@@ -68,8 +68,8 @@ export function Cannon({ run, reduced }: { run: CastleRun; reduced: boolean }) {
       </group>
       <DynamicInstanced count={8} update={ball}><sphereGeometry args={[0.125, 10, 8]} /><meshStandardMaterial color="#334155" /></DynamicInstanced>
       <DynamicInstancedModel asset={ASSETS.rock} count={1} update={rock} />
-      <DynamicInstanced count={4} update={ladder} parts={parts} />
-      <DynamicInstanced count={4} update={progress}><boxGeometry args={[2 * LADDER.half, 0.1, 0.12]} /><meshBasicMaterial color="#fbbf24" /></DynamicInstanced>
+      <DynamicInstanced count={run.crews.length} update={ladder} parts={parts} />
+      <DynamicInstanced count={run.crews.length} update={progress}><boxGeometry args={[2 * LADDER.half, 0.1, 0.12]} /><meshBasicMaterial color="#fbbf24" /></DynamicInstanced>
       <group ref={ring}>
          <mesh rotation={[-Math.PI / 2, 0, 0]} renderOrder={3}><ringGeometry args={[0.97, 1, 48]} /><meshBasicMaterial color="#f8fafc" transparent opacity={0.7} depthWrite={false} /></mesh>
       </group>

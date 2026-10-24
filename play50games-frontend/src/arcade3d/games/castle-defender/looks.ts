@@ -3,6 +3,8 @@
 // No React, no three.js — the scene uploads these buffers.
 import { rngNext } from "@/arcade3d/core/math";
 import { CAMERA } from "./camera";
+import type { LightingPreset } from "@/arcade3d/core/types";
+import type { LevelId } from "@/arcade3d/types";
 
 /** The fitted view's far edge must stay unfogged. Fog is measured from this camera. */
 export const VIEW_CAMERA = { x: CAMERA.position[0], y: CAMERA.position[1], z: CAMERA.position[2] };
@@ -77,6 +79,28 @@ export const COLORS = {
       crew: "#a78bfa",
    },
 } as const;
+
+/**
+ * Per level: the core lighting preset plus the sky dome and fog colours (scenery only). Level 1 is today's look.
+ * Optional, scenery only: `ground` multiplies the meadow, hills and lane colours (omitted = white, unchanged);
+ * `torches` is the intensity of two warm point lights over the gate lanterns (omitted = none).
+ */
+export interface LevelLook {
+   lighting: LightingPreset;
+   skyTop: string;
+   sky: string;
+   fog: string;
+   ground?: string;
+   torches?: number;
+}
+
+export const LEVEL_LOOKS: Record<LevelId, LevelLook> = {
+   1: { lighting: "sunset", skyTop: COLORS.skyTop, sky: COLORS.sky, fog: COLORS.fog },
+   2: { lighting: "indoor", skyTop: "#5f9ec2", sky: "#d8edf0", fog: "#d8edf0", ground: "#dfe2d2" },
+   3: { lighting: "sunset", skyTop: "#2b2f5c", sky: "#f2a66b", fog: "#f2a66b" },
+   4: { lighting: "night", skyTop: "#040814", sky: "#0b1426", fog: "#0b1426", ground: "#9aa4bb", torches: 8 },
+   5: { lighting: "sunset", skyTop: "#352c52", sky: "#b96a57", fog: "#b96a57" },
+};
 
 /**
  * The goblin GLB's average texture colour (its light green-grey base, catalog §14), for estimating the

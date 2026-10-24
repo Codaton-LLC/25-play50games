@@ -16,7 +16,8 @@ import { Castle } from "./Castle";
 import { Cannon } from "./Cannon";
 import { Goblins } from "./Goblins";
 import { Markers } from "./Markers";
-import { STARTS, TUNING, createInput, createRun, stepRun, threatenedCrew, type CastleRun } from "./rules";
+import { useCastleLevel } from "./useCastleLevel";
+import { TUNING, createInput, createRun, stepRun, threatenedCrew, type CastleRun } from "./rules";
 
 const CLEAR_POINT = { x: 0, y: 0.3, z: -1.5 };
 const SHOT_SFX = { volume: 0.35 };
@@ -40,12 +41,13 @@ function publish(run: CastleRun): void {
    setStat("reload", Math.ceil(Math.max(0, run.ready - run.time) * 10));
    setStat("rock", Math.ceil(Math.max(0, run.rock.ready - run.time) * 10));
    setStat("offer", run.offer ? 1 : 0); setStat("card1", run.cards[0]); setStat("card2", run.cards[1]);
-   setStat("chosen", run.chosen + 1); setStat("banner", run.time - STARTS[run.wave] < TUNING.banner ? 1 : 0);
+   setStat("chosen", run.chosen + 1); setStat("banner", run.time - run.starts[run.wave] < TUNING.banner ? 1 : 0);
    const c = threatenedCrew(run); setStat("climb", c >= 0 ? Math.min(100, Math.round((run.time - run.crews[c].erected) * 10) * 5) : 0);
    const s = useArcadeStore.getState(); if (s.level !== run.wave + 1) s.setLevel(run.wave + 1);
 }
 export default function Scene() {
-   const [run] = useState(() => createRun(randomSeed())), [command] = useState(createInput);
+   const { config } = useCastleLevel();
+   const [run] = useState(() => createRun(randomSeed(), config)), [command] = useState(createInput);
    const input = useInput(), fx = useFx(), view = useFittedView(VIEW), { camera } = useThree();
    const phase = useArcadeStore((s) => s.phase), muted = useMuted();
    const [preferences] = useState(() => ({ coarse: typeof window !== "undefined" && window.matchMedia("(pointer: coarse)").matches, reduced: typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches }));

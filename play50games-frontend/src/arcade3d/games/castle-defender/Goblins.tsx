@@ -18,10 +18,9 @@ const TINT = {
    crew: new Color(COLORS.goblin.crew),
 };
 
-const WAVE_IDS = [0, 8, 22, 42, 68];
 export function visibleGoblin(run: CastleRun, slot: number): Goblin | undefined {
-   // IDs for each wave occupy one contiguous segment, with at most30 in the40-slot pool.
-   const g = run.goblins[WAVE_IDS[run.wave] + slot];
+   // Each level shares the same 40-slot pool; waves contain at most 32 bodies.
+   const g = run.waves[run.wave][slot];
    return g?.wave === run.wave ? g : undefined;
 }
 export function Goblins({ run, reduced }: { run: CastleRun; reduced: boolean }) {
@@ -29,7 +28,7 @@ export function Goblins({ run, reduced }: { run: CastleRun; reduced: boolean }) 
    const scratch = useMemo(() => ({
       p: new Vector3(), q: new Quaternion(), scale: new Vector3(), axis: new Vector3(0, 1, 0),
       motion: { y: 0, roll: 0, yaw: 0, squash: 1 }, stretch: { x: 1, y: 1, z: 1 },
-      hp: new Float64Array(98).fill(-1), until: new Float64Array(98),
+      hp: new Float64Array(run.goblins.length).fill(-1), until: new Float64Array(run.goblins.length),
    }), []);
    function place(i: number, m: Matrix4, tint: Color) {
       const g = visibleGoblin(run, i);

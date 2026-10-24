@@ -244,7 +244,14 @@
       "max_duration_ms": 140000,
       "base": 480,
       "max_pps": 56,
-      "enabled": false
+      "enabled": false,
+      "levels": [
+        { "title": "Outer Wall", "max_score": 7130, "min_duration_ms": 39000, "max_duration_ms": 140000, "base": 480, "max_pps": 56 },
+        { "title": "Main Gate", "max_score": 7370, "min_duration_ms": 33000, "max_duration_ms": 135000, "base": 600, "max_pps": 61 },
+        { "title": "Twin Towers", "max_score": 9130, "min_duration_ms": 36000, "max_duration_ms": 156000, "base": 480, "max_pps": 65 },
+        { "title": "Night Siege", "max_score": 10710, "min_duration_ms": 35000, "max_duration_ms": 178500, "base": 480, "max_pps": 66 },
+        { "title": "Royal Defense", "max_score": 11570, "min_duration_ms": 30000, "max_duration_ms": 200500, "base": 480, "max_pps": 63 }
+      ]
     },
     "penguin-slide": {
       "title": "Penguin Ice Slide",

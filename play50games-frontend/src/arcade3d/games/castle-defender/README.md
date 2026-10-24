@@ -2,6 +2,52 @@
 
 Owner: Codex. Slug: castle-defender. P-16 difficulty/combo implementation; server-limit approval pending. Spec: 04 §14. Metres/seconds; x east, z toward wall, y up. Pure rules own tuning; no Rapier.
 
+## Levels (P-30 pilot, 2026-10-24)
+
+Five levels through the core level system (`core/README.md` "Levels"): `levels.ts` holds the pure `CastleLevel` configs, `createRun(seed, level)` takes one, Scene/Hud read it with `useCastleLevel()` (= `useLevel<CastleLevel>()`), `index.tsx` declares the five `LevelSpec`s (description, config, environment from `looks.ts` `LEVEL_LOOKS`), `meta.ts` the titles and limits. Level 1 is today's game unchanged (rules.test.ts passes unchanged; levels.test.ts pins its config, starts, safety end, look and start card). Same castle, lanes, assets, cannon, rocks, HP, damage, combo and the four upgrade offers on every level; only the waves, a speed factor on every goblin, the gap between wave starts and the clear time change, plus the sky, the core lighting preset and two scenery-only looks (`LevelLook.ground` tint on the meadow/hills/lanes, `LevelLook.torches` point lights). A level clears on a **win** (every wave survived, gate HP > 0); there is no `clearScore`.
+
+| Level | Title | Waves / goblins | Speed | Start gap / clear | Win at | What changes | Lighting |
+|---|---|---:|---:|---:|---:|---|---|
+| 1 | Outer Wall | 5 / 98 | 1.00 | 28 / 24 s | 136 s | today's game | sunset (today's sky) |
+| 2 | Main Gate | 5 / 102 | 1.05 | 27 / 23 s | 131 s | shields from wave 1, runners from wave 2 | indoor preset (warm, no glare on the pale stone), blue sky, ground x #dfe2d2 |
+| 3 | Twin Towers | 6 / 128 | 1.08 | 26 / 22 s | 152 s | a sixth full siege wave | sunset, deeper dusk sky |
+| 4 | Night Siege | 7 / 151 | 1.10 | 25.5 / 21.5 s | 174.5 s | seven waves, an extra ladder crew in wave 6 | night, dark sky, moonlit ground x #9aa4bb, two warm torch lights over the gate lanterns |
+| 5 | Royal Defense | 8 / 162 | 1.14 | 25 / 21.5 s | 196.5 s | eight waves, every kind from wave 2, ladders from wave 4 | sunset, purple-crimson sky |
+
+Plan adaptation (GAME 24): the plan's 3/4/5/6/8 waves of stationary-then-moving targets become 5/5/6/7/8 waves of the built moving-goblin siege, because level 1 must stay today's five waves. "Longer distance / moving / faster targets" map to the speed factor and the earlier shields and runners; "strict attempt limit" stays the unchanged reload, flight and four-offer upgrade budget (no new mechanic, no new asset, no target made smaller). Difficulty is monotone by construction (goblins, waves and speed rise; gaps and clear times never grow: levels.test.ts) and measured: the human-paced bot wins 100 / 98 / 98 / 98.5 / 96.5 % of 200 seeds on levels 1-5 (rules.levels.test.ts asserts >= 90 %), and its mean gate HP at a win falls 101 / 87 / 80 / 73 / 78 (level 5's extra two waves are lighter, so its losses are the late waves). Timing is identical on touch and keyboard on every level (reload, flight, rock cooldown and the 2 s climb; touch keeps only the 0.7 m aim snap): levels.test.ts runs the fairness check per level.
+
+Each wave keeps the old invariants: at most 40 bodies (goblin and marker pools), crews in triples and at most 3 (one ladder per lane), the slowest goblin (spawned at 8 s, 8.8 m at 0.7 x speed, plus the 2 s climb) resolved before the clear, and wave 1 unable to break the gate. The rules safety end is the last clear + 3.9 s (level 1: 139.9 s as before).
+
+## Server limits and why they hold
+
+All score sources: one award per unique goblin id, at most 20 x 3 = 60 points (x3 = the top combo); one 200-point clear per wave; one victory bonus 2 x gate HP, at most 250 after the single repair. Shots, upgrades, escapes and time give no points. A Double volley advances combo once and pays each victim once; neither input spam nor frame rate creates ids, clears or repairs.
+
+Proof per level, with N_j goblins in wave j, start gap p and clear time c: allow ALL of wave j's kills at x3 at its start, K_j = 60 (N_0 + ... + N_j) + 200 j at t = j p, and its clear C_j = K_j + 200 (+ 250 on the last wave) at t = j p + c. B(t) is a step function that only rises at these points, so B(t) <= base + pps t everywhere once it holds at every step (the envelope rises in between). base = 60 N_0 (wave 1's kills at t = 0); pps = the steepest step slope (K_j - base) / (j p) or (C_j - base) / (j p + c), plus 3 %, rounded up (level 1 keeps its original 56); maxScore = the exact ceiling 60 N + 200 waves + 250, not a measured maximum. minDurationMs: wave 1 deals at most 40-56 damage, so a run can end only after a wave-2 goblin arrives, at the earliest p + 8 m / (fastest wave-2 type x speed), rounded down. maxDurationMs: the safety end plus one 50 ms frame, rounded up. levels.test.ts checks every step, the formulas and the window per level; rules.levels.test.ts runs the bots.
+
+| Level | maxScore = 60 N + 200 W + 250 | base | steepest slope | pps | earliest end | minDurationMs | safety end | maxDurationMs |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| 1 | 98, 5: 7130 | 480 | 55.36 | 56 | 28 + 8/0.7 = 39.43 s | 39000 | 139.9 s | 140000 |
+| 2 | 102, 5: 7370 | 600 | 58.52 | 61 | 27 + 8/(1.2 x 1.05) = 33.35 s | 33000 | 134.9 s | 135000 |
+| 3 | 128, 6: 9130 | 480 | 63.08 | 65 | 26 + 8/(0.7 x 1.08) = 36.58 s | 36000 | 155.9 s | 156000 |
+| 4 | 151, 7: 10710 | 480 | 63.92 | 66 | 25.5 + 8/(0.7 x 1.1) = 35.89 s | 35000 | 178.4 s | 178500 |
+| 5 | 162, 8: 11570 | 480 | 60.80 | 63 | 25 + 8/(1.2 x 1.14) = 30.85 s | 30000 | 200.4 s | 200500 |
+
+Level 5's maxScore is 1.62 x level 1's (decision 3 guard: <= ~3 x). The limits are in `rules.ts` `PROPOSED_LEVEL_LIMITS` (level 1 = `PROPOSED_LIMITS` = `meta.scoring`), in `meta.ts` `levels` and in `arcade-games.json` `levels` (registry.sync.test.ts).
+
+Bots (rules.levels.test.ts: the rules.test.ts profiles plus input spam): per level a 200-seed human sweep and 30 oracle, 30 random, 6 spam and 6 idle seeds at 30/60/144 Hz on the pure rules loop (the same bot and frame lengths; the store tick is ~80 % of a run's cost), checking every raw prefix against base + pps t, no safety end and `withinServerLimits`; plus 12 runs per level (oracle, human, spam, idle at 30/60/144 Hz) through `createArcadeStore()` checking the final store score and `capScore`. Level 1 also keeps its 480-run real-store matrix in rules.test.ts.
+
+| Level | human wins / 200 | human mean | oracle best (of maxScore) | random / spam / idle wins |
+|---|---:|---:|---:|---|
+| 1 | 200 | 6386 | 6840 (95.9 %) | 0 / 0 / 0 |
+| 2 | 196 | 6318 | 7220 (98.0 %) | 0 / 0 / 0 |
+| 3 | 196 | 7950 | 8840 (96.8 %) | 0 / 0 / 0 |
+| 4 | 197 | 9424 | 10420 (97.3 %) | 0 / 0 / 0 |
+| 5 | 193 | 10263 | 11280 (97.5 %) | 0 / 0 / 0 |
+
+Mutation probes (each broke a test, then restored): ignore the level speed; win after wave 5 hard-coded; a touch-only shorter reload; uncapped upgrade offers; a fixed 139.9 s safety end; L3 maxScore loosened; L4 pps below the slope; L5 minDuration above the earliest end; meta L4 limit different from the proposal; level 1 speed changed; L4 slower than L3; L5 clear before its slowest crew; L5 at speed 1.3 (human wins 117 / 200 < 180); L2 pps below the bots' scores.
+
+The original implementation notes below describe level 1 (the five-wave numbers); the level table above gives levels 2-5.
+
 ## Concept and controls
 
 Defend the gate through five finite waves with splash cannon shots, ladder rocks and upgrades. Sunset lighting; the palette (warm grass, sandstone, deep blue and gold) is in "Camera, HUD and visuals".
@@ -35,7 +81,7 @@ One useRunFrame consumes played dt analytically, splitting exact spawn/launch/ar
 - Rock snapshots crew id, falls y3 to0 with zero velocity/gravity9.81, flight sqrt(6/9.81)=0.7820619. Impact kills remaining climbers on that ladder (20 * current combo multiplier each) and destroys it; no transfer. Two-second climb leaves1.2179381 s after erection to press; later impacts cannot rescue.
 - Offer opens as soon as all wave ids resolve for waves1-4 (usually20-21 s); keep +200 clear at24 s (24 s minimum wave), paid even with escapes, and fixed next start. Choose once, apply once; default left at next start. Clock continues. Slowest crew resolution8+8.8/0.7+2=22.571429<24. No wave5 offer. Surviving win136 s.
 - Upgrade pool: reload x0.85 max2 (1.1/0.935/0.79475); splash x1.25 max2 (1.2/1.5/1.875); repair once +25 current/maxHP (max125); double once. Two distinct seeded eligible types sorted reload/splash/repair/double. Six capacities ensure two eligible cards at all four offers. No upgrade score.
-- Omit durationMs: shell chip shows played time; game HUD "Wave N/5". Pure rules safety end("timeup") at139.9 s (elapsedMs stays under maxDurationMs140000); test never fires on a surviving run. Event order: spawn, launch, movement/arrival/climb damage, impacts by id, kills, offers/clear/win, then safety. Damage beats same-time rescue; HP0 loses before awards. Freeze pause/over.
+- Omit durationMs: shell chip shows played time; game HUD "Wave N/M" (M = the level's waves). Pure rules safety end("timeup") at139.9 s (elapsedMs stays under maxDurationMs140000); test never fires on a surviving run. Event order: spawn, launch, movement/arrival/climb damage, impacts by id, kills, offers/clear/win, then safety. Damage beats same-time rescue; HP0 loses before awards. Freeze pause/over.
 - Historical pre-P-16 playtests found random/naive play too strong. Those results are superseded by the measured matrix in Fix round 2 below.
 
 ## Score, limits and end
@@ -45,7 +91,7 @@ A cannon shot that kills at least one goblin advances combo once BEFORE all its 
 
 Awards remain incremental through victory; the final HP bonus is added to the accumulated score. Loss/timeup retain earned points without the bonus. No direct shot, escape, time or upgrade points.
 
-PROPOSED_LIMITS in rules.ts is pending approval: maxScore7130, minDurationMs39000, maxDurationMs140000, base480, maxPointsPerSec56. meta.ts and arcade-games.json retain their matching OLD limits (3210 / 39000-140000 / 160 / 25), superseded-pending-approval. Claude must update both together at merge after approval; never ship the new scoring with the old server configuration.
+Level 1 PROPOSED_LIMITS and meta.scoring are 7130 / 39000–140000 / base480 / pps56. The five-level proposals are PROPOSED_LEVEL_LIMITS; Claude copies the levels into arcade-games.json at merge. The backend is outside this task.
 
 - Proven universal upper bound B = 98 unique ids * 20 * max multiplier3 + 5 clears * 200 + 2 * max HP125 = 7130. Warm-up/misses can only reduce this bound. A measured oracle maximum plus4% is not a proof that better legal play is impossible, so choose the proven7130 ceiling.
 - Permit every wave's kills instantly at its start, all at x3. Kill-prefix maxima including prior clears: 480,1520,2920,4680,6680 at t=0,28,56,84,112. Envelope480+56t: 480,2048,3616,5184,6752.
@@ -110,7 +156,7 @@ Approved: 1.6 m visual goblins (rules radius unchanged); a fixed 136 s surviving
 
 ## Open questions
 
-Approve PROPOSED_LIMITS, then Claude updates meta.ts and arcade-games.json together at merge. Full Vitest/build, browser readability (including combo safe area), keyboard play and performance remain with Claude.
+Levels (2026-10-24, Claude took over P-30 from Codex): the five levels' limits are in meta.ts `levels` and arcade-games.json `levels` (castle stays `enabled: false`). Playtested headless (flagged build, all five levels); fixes: level 2 no longer washes out (indoor preset + ground tint instead of day), level 4 reads as night (dark sky, moonlit ground, warm torchlight at the gate; goblins stay readable). Open: the user's go-ahead on the level content and limits.
 
 ## Merge review (Claude, 2026-10-09)
 

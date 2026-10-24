@@ -29,7 +29,7 @@ function coloredGeometry(data: ColoredMesh): BufferGeometry {
 }
 
 /** Flat meadow at y 0, low hills beyond it, a cobbled strip on each lane, and the far-left river. */
-export function Terrain({ reduced }: { reduced: boolean }) {
+export function Terrain({ reduced, ground = "#ffffff" }: { reduced: boolean; ground?: string }) {
    const hills = useMemo(() => coloredGeometry(hillMesh()), []);
    const roads = useMemo(() => coloredGeometry(roadMesh()), []);
    const meadow = useCanvasTexture(512, 512, drawMeadow);
@@ -46,13 +46,13 @@ export function Terrain({ reduced }: { reduced: boolean }) {
       <group name="castle-terrain">
          <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, -1.6]} name="castle-meadow">
             <planeGeometry args={[16, 15]} />
-            <meshStandardMaterial map={meadow} roughness={1} polygonOffset polygonOffsetFactor={1} polygonOffsetUnits={1} />
+            <meshStandardMaterial map={meadow} color={ground} roughness={1} polygonOffset polygonOffsetFactor={1} polygonOffsetUnits={1} />
          </mesh>
          <mesh geometry={hills} dispose={null} name="castle-hills">
-            <meshStandardMaterial vertexColors flatShading roughness={1} />
+            <meshStandardMaterial vertexColors color={ground} flatShading roughness={1} />
          </mesh>
          <mesh geometry={roads} dispose={null} name="castle-roads">
-            <meshStandardMaterial vertexColors roughness={1} polygonOffset polygonOffsetFactor={-1} polygonOffsetUnits={-1} />
+            <meshStandardMaterial vertexColors color={ground} roughness={1} polygonOffset polygonOffsetFactor={-1} polygonOffsetUnits={-1} />
          </mesh>
          <Water
             size={[WATER.width, WATER.depth]}
