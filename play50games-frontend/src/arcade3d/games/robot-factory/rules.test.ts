@@ -146,8 +146,8 @@ describe("robot-factory actions", () => {
          expect(bad.active).toBe(false);
          expect(run.strikes).toBe(k);
          if (k < 3) {
-            expect(run.lockout).toBeCloseTo(0.5, 9);
-            stepRun(run, NO_INPUT, 0.5);
+            expect(run.lockout).toBeCloseTo(CLAW.FAULT_LOCKOUT, 9);
+            stepRun(run, NO_INPUT, CLAW.FAULT_LOCKOUT);
             stepRun(run, input(true, false, bad.uid), DT);
             expect(run.strikes).toBe(k);
          }
@@ -165,7 +165,7 @@ describe("robot-factory actions", () => {
       const clean = wanted(run);
       stepRun(run, input(false, true, clean.uid), DT);
       expect([clean.active, run.combo, run.cleanScraps]).toEqual([false, 0, 1]);
-      expect(run.lockout).toBeCloseTo(1.0, 9);
+      expect(run.lockout).toBeCloseTo(CLAW.SCRAP_LOCKOUT, 9);
    });
 
    it("ignores presses during a lockout and when nothing is in the grab zone", () => {
@@ -199,7 +199,7 @@ describe("robot-factory actions", () => {
       placePart(run, KIND.arm, 0, 3.69, true);
       stepRun(run, NO_INPUT, DT);
       expect(run.combo).toBe(0);
-      expect(run.lockout).toBeCloseTo(0.5 - 0, 1);
+      expect(run.lockout).toBeCloseTo(CLAW.ZAP_LOCKOUT, 1);
       expect(run.strikes).toBe(0);
       const run2 = quietRun(5);
       stepRun(run2, input(true, false, wanted(run2).uid), DT);
@@ -478,7 +478,7 @@ describe("robot-factory scoring limit proof", () => {
             const { end } = playStore(bot, seed, randomFrames(seed + 1300, 0.016, 0.05));
             scores.push(end.score);
             if (end.endReason === "win") wins++;
-            expect(end.score).toBeLessThanOrEqual(cap * PERFECT);
+            expect(end.score, `seed ${seed}`).toBeLessThanOrEqual(cap * PERFECT);
             expect(end.elapsedMs).toBeGreaterThanOrEqual(EARLIEST_LOSS_S * 1000);
             expect(withinServerLimits(end.score, end.elapsedMs)).toBe(true);
             expect(capScore(end.score, end.elapsedMs)).toBe(end.score);
