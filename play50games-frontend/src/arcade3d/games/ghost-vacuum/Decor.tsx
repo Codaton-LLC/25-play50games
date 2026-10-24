@@ -29,6 +29,7 @@ function asSpots(list: readonly DecorSpot[]): InstanceSpot[] {
 /**
  * Surroundings strictly OUTSIDE the mansion play area:
  * garden hedges, gravestones, bare trees, distant hills, and the moon.
+ * The south band towards the camera is filled with visible lawn, path and low decor.
  */
 export default function Decor() {
    const quality = useQuality();
@@ -95,14 +96,18 @@ export default function Decor() {
 
    return (
       <group name="ghost-decor">
-         {/* Exterior estate grounds (lawn and approach path outside the mansion) */}
-         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.015, -5]} name="estate-lawn">
-            <planeGeometry args={[95, 95]} />
-            <meshStandardMaterial color={COLORS.lawn} roughness={1} />
+         {/* Exterior estate grounds (lawn, front terrace border and approach path outside the mansion) */}
+         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.015, 0]} name="estate-lawn">
+            <planeGeometry args={[120, 120]} />
+            <meshStandardMaterial color={COLORS.lawn} roughness={0.95} />
          </mesh>
-         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.012, 16.5]} name="estate-path">
-            <planeGeometry args={[5, 13]} />
-            <meshStandardMaterial color={COLORS.path} roughness={0.9} />
+         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.013, 10.6]} name="estate-terrace">
+            <planeGeometry args={[28.4, 1.2]} />
+            <meshStandardMaterial color={COLORS.pathBorder} roughness={0.9} />
+         </mesh>
+         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.011, 17]} name="estate-path">
+            <planeGeometry args={[5, 14]} />
+            <meshStandardMaterial color={COLORS.path} roughness={0.88} />
          </mesh>
 
          {/* Garden Hedges */}

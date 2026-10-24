@@ -1,10 +1,11 @@
 // Ghost Vacuum surroundings decor verification:
 // Checks that every decor spot lies strictly outside the mansion play area,
-// and does not occlude the hunter or ghosts from the fitted camera at 1280x800, 390x844 and 844x390.
+// ensures ghosts keep >= 3:1 contrast against the floor (night readability),
+// and verifies that no decor occludes the hunter or ghosts from the fitted camera at 1280x800, 390x844 and 844x390.
 import { describe, expect, it } from "vitest";
 import { fitView } from "@/arcade3d/core/view";
 import { viewFor } from "./camera";
-import { COLORS, DECOR, decorOf, inMansion, MANSION_BOUNDS, type DecorSpot } from "./looks";
+import { COLORS, contrastRatio, DECOR, decorOf, inMansion, MANSION_BOUNDS, type DecorSpot } from "./looks";
 import { MANSION, ROOMS } from "./rules";
 
 interface BoundingBox {
@@ -160,6 +161,28 @@ describe("ghost-vacuum decor: bounds and surroundings", () => {
       const hexPattern = /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/;
       for (const [key, color] of Object.entries(COLORS)) {
          expect(color, `COLORS.${key}`).toMatch(hexPattern);
+      }
+   });
+
+   it("ensures ghosts keep >= 3:1 contrast against the floor for night readability", () => {
+      // Normal ghost against readable floor base
+      expect(contrastRatio(COLORS.ghost, COLORS.floor)).toBeGreaterThanOrEqual(3.0);
+      // Gold ghost against readable floor base
+      expect(contrastRatio(COLORS.ghostGold, COLORS.floor)).toBeGreaterThanOrEqual(3.0);
+      // Big ghost against readable floor base
+      expect(contrastRatio(COLORS.ghostBig, COLORS.floor)).toBeGreaterThanOrEqual(3.0);
+   });
+
+   it("populates the south garden band below the mansion with low decor outside the house bounds", () => {
+      const southHedges = DECOR.filter((s) => s.kind === "hedge" && s.z > MANSION_BOUNDS.z1);
+      const southGraves = DECOR.filter((s) => s.kind === "gravestone" && s.z > MANSION_BOUNDS.z1);
+      expect(southHedges.length).toBeGreaterThanOrEqual(10);
+      expect(southGraves.length).toBeGreaterThanOrEqual(6);
+
+      // Verify all south decor is low (y + sy <= 1.0m) and strictly outside house bounds
+      for (const s of [...southHedges, ...southGraves]) {
+         expect(s.z).toBeGreaterThan(MANSION_BOUNDS.z1);
+         expect(s.y + s.sy).toBeLessThanOrEqual(1.0);
       }
    });
 });

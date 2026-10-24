@@ -10,35 +10,34 @@ export const COLORS = {
    fog: "#171836",
    moon: "#fef08a",
    moonHalo: "#fef9c3",
-   lawn: "#161b2b",
-   path: "#2d2a45",
+   lawn: "#2a4235",
+   lawnBorder: "#345242",
+   path: "#57516d",
+   pathBorder: "#413b54",
    hillFar: "#12142f",
    hillNear: "#1b1d3d",
 
    // Exterior Decor
-   hedge: "#1e352f",
-   hedgeTop: "#2a483e",
+   hedge: "#1e382d",
+   hedgeTop: "#2d5242",
    treeTrunk: "#291b22",
    treeBranch: "#1c1217",
-   gravestone: "#64748b",
-   gravestoneDark: "#475569",
+   gravestone: "#7b8b9e",
+   gravestoneDark: "#556475",
 
    // Mansion Interior: Cosy-Spooky Victorian Haunted House
-   floor: "#784e2d",
-   floorDark: "#52331b",
-   carpet: "#831843",
+   floor: "#966341",
+   floorDark: "#6b442b",
    carpetGold: "#d97706",
-   wall: "#4c3a5e",
-   wallBase: "#2b1e36",
-   wallFaded: "#4c3a5e",
+   wall: "#8e7ca4",
+   wallBase: "#3d2b4e",
+   wallFaded: "#8e7ca4",
 
    // Props & Ornaments
    woodDesk: "#52331b",
    woodTrim: "#7c4e2b",
    chairSeat: "#831843",
    chairWood: "#3d2413",
-   doorWood: "#4a2e1b",
-   doorPanel: "#351f11",
    brass: "#d97706",
    candleWax: "#fef3c7",
    candleFlame: "#fde047",
@@ -65,6 +64,26 @@ export const COLORS = {
    beamTorch: "#fde68a",
    beamSuction: "#c4b5fd",
 } as const;
+
+function channel(c: number): number {
+   const s = c / 255;
+   return s <= 0.04045 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
+}
+
+/** WCAG contrast ratio between two #rrggbb colors. */
+export function contrastRatio(a: string, b: string): number {
+   const lum = (hex: string) => {
+      const n = Number.parseInt(hex.slice(1), 16);
+      return (
+         0.2126 * channel((n >> 16) & 255) +
+         0.7152 * channel((n >> 8) & 255) +
+         0.0722 * channel(n & 255)
+      );
+   };
+   const hi = Math.max(lum(a), lum(b));
+   const lo = Math.min(lum(a), lum(b));
+   return (hi + 0.05) / (lo + 0.05);
+}
 
 /** Play area bounds (the mansion walls: x [-14, 14], z [-10, 10]). */
 export const MANSION_BOUNDS = {
@@ -99,11 +118,13 @@ export interface DecorSpot {
 /**
  * Decor spots strictly OUTSIDE the mansion play bounds.
  * Bare trees, gravestones, hedges, distant hills, and the moon.
+ * South garden band is populated with low hedges and gravestones outside the house bounds,
+ * keeping the central approach clear and ensuring no sightline to the house interior is blocked.
  */
 function buildDecorSpots(): DecorSpot[] {
    const spots: DecorSpot[] = [];
 
-   // --- Garden Hedges (framing the estate perimeter) ---
+   // --- Garden Hedges (framing the estate perimeter and south approach garden) ---
    // West perimeter row (x = -16.8)
    for (let z = -10; z <= 10; z += 2.5) {
       spots.push({ kind: "hedge", x: -16.8, y: 0.35, z, rotY: 0, sx: 0.9, sy: 0.7, sz: 2.3, tone: 0 });
@@ -116,9 +137,13 @@ function buildDecorSpots(): DecorSpot[] {
    for (let x = -15.5; x <= 15.5; x += 2.6) {
       spots.push({ kind: "hedge", x, y: 0.35, z: -12.8, rotY: Math.PI / 2, sx: 0.9, sy: 0.7, sz: 2.4, tone: 1 });
    }
-   // South garden hedges (z = 14.2), leaving the central path (|x| <= 3.8) clear for the approach
-   for (const x of [-14.5, -12, -9.5, -7, -4.5, 4.5, 7, 9.5, 12, 14.5]) {
-      spots.push({ kind: "hedge", x, y: 0.35, z: 14.2, rotY: Math.PI / 2, sx: 0.9, sy: 0.7, sz: 2.3, tone: 0 });
+   // South front terrace hedges (z = 11.2, low height 0.5m, framing the front terrace, path |x| <= 3.4 clear)
+   for (const x of [-13.5, -11.1, -8.7, -6.3, -4.1, 4.1, 6.3, 8.7, 11.1, 13.5]) {
+      spots.push({ kind: "hedge", x, y: 0.25, z: 11.2, rotY: Math.PI / 2, sx: 0.85, sy: 0.5, sz: 2.2, tone: 0 });
+   }
+   // South garden perimeter hedges (z = 14.2, low height 0.5m, framing the front lawn)
+   for (const x of [-13.5, -11.1, -8.7, -6.3, -4.1, 4.1, 6.3, 8.7, 11.1, 13.5]) {
+      spots.push({ kind: "hedge", x, y: 0.25, z: 14.2, rotY: Math.PI / 2, sx: 0.85, sy: 0.5, sz: 2.2, tone: 1 });
    }
 
    // --- Spooky Gravestones (old gothic cemetery plots) ---
@@ -147,6 +172,20 @@ function buildDecorSpots(): DecorSpot[] {
    ];
    for (const [x, z, rotY, tone] of neGraves) {
       spots.push({ kind: "gravestone", x, y: 0, z, rotY, sx: 0.7, sy: 0.85, sz: 0.25, tone });
+   }
+   // South garden cemetery plots (low tombstones between hedge rows, z = 12.7, y = 0, height 0.65m)
+   const southGraves: Array<[number, number, number, number]> = [
+      [-12.0, 12.7, 0.1, 0],
+      [-9.5, 12.7, -0.2, 1],
+      [-7.0, 12.7, 0.15, 0],
+      [-4.8, 12.7, -0.1, 1],
+      [4.8, 12.7, 0.1, 1],
+      [7.0, 12.7, -0.15, 0],
+      [9.5, 12.7, 0.2, 1],
+      [12.0, 12.7, -0.1, 0],
+   ];
+   for (const [x, z, rotY, tone] of southGraves) {
+      spots.push({ kind: "gravestone", x, y: 0, z, rotY, sx: 0.65, sy: 0.65, sz: 0.22, tone });
    }
 
    // --- Bare Spooky Trees (twisted silhouettes) ---

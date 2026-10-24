@@ -18,7 +18,7 @@ import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js
 import { DynamicInstancedModel, InstancedModel, Model } from "@/arcade3d/core/assets";
 import { useQuality } from "@/arcade3d/core/quality";
 import { useGameTime } from "@/arcade3d/core/gameTime";
-import { DynamicInstanced, Instanced } from "@/arcade3d/core/render";
+import { DynamicInstanced } from "@/arcade3d/core/render";
 import { ASSETS } from "./assets";
 import { COLORS } from "./looks";
 import { active, ROOMS, WALLS, type Run } from "./rules";
@@ -147,24 +147,15 @@ export default function Mansion({ run }: { run: Run }) {
       // 5. Picture frame
       const frameOuter = new BoxGeometry(0.86, 0.66, 0.06);
 
-      // 6. Panelled door fallback
-      const doorLeaf = new BoxGeometry(0.12, 2.2, 1.3).translate(0, 1.1, 0);
-      const doorMoulding = new BoxGeometry(0.13, 0.85, 0.45).translate(0, 1.5, 0);
-      const doorMouldingLower = new BoxGeometry(0.13, 0.85, 0.45).translate(0, 0.6, 0);
-      const doorFallback = mergeGeometries([doorLeaf, doorMoulding, doorMouldingLower]);
-      doorLeaf.dispose();
-      doorMoulding.dispose();
-      doorMouldingLower.dispose();
-
-      // 7. Bevelled book fallback (cover + pages)
+      // 6. Bevelled book fallback (cover + pages)
       const bookCover = new BoxGeometry(0.22, 0.06, 0.26);
       const bookPages = new BoxGeometry(0.19, 0.04, 0.23).translate(0.01, 0, 0);
 
-      // 8. Cut gem reveal icon (outer gem + bright inner core)
+      // 7. Cut gem reveal icon (outer gem + bright inner core)
       const gemOuter = new OctahedronGeometry(0.15, 0);
       const gemCore = new OctahedronGeometry(0.075, 0);
 
-      // 9. Warm lamp pool on floor
+      // 8. Warm lamp pool on floor
       const lampPool = new CircleGeometry(2.3, 24).rotateX(-Math.PI / 2);
 
       return {
@@ -173,7 +164,6 @@ export default function Mansion({ run }: { run: Run }) {
          flame,
          clockFrame: clockFrame!,
          frameOuter,
-         doorFallback: doorFallback!,
          bookCover,
          bookPages,
          gemOuter,
@@ -186,58 +176,27 @@ export default function Mansion({ run }: { run: Run }) {
       for (const geometry of Object.values(propsGeo)) geometry.dispose();
    }, [propsGeo]);
 
-   // Room rug spots under each desk
-   const roomRugSpots = useMemo(
-      () =>
-         ROOMS.map((r) => ({
-            x: r.x,
-            y: 0.006,
-            z: r.z,
-            rotY: 0,
-            sx: 1,
-            sy: 1,
-            sz: 1,
-         })),
-      []
-   );
-
    return (
       <group name="mansion">
-         {/* Spooky cool moonlit interior fill */}
-         <ambientLight intensity={0.65} color="#c7d2fe" />
+         {/* Spooky cool moonlit interior fill with high ghost readability */}
+         <ambientLight intensity={0.82} color="#c7d2fe" />
 
-         {/* 1. Floor: Rich Victorian polished chestnut wood */}
-         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]} name="mansion-floor">
+         {/* 1. Floor: Readable warm Victorian oak parquet base (>= 3:1 contrast against ghosts) */}
+         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]} name="mansion-floor-border">
             <planeGeometry args={[28, 20]} />
+            <meshStandardMaterial color={COLORS.floorDark} roughness={0.82} />
+         </mesh>
+         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.003, 0]} name="mansion-floor-main">
+            <planeGeometry args={[27.6, 19.6]} />
             <meshStandardMaterial color={COLORS.floor} roughness={0.78} />
          </mesh>
 
-         {/* Central Hall Grand Carpet Runner (rich burgundy with golden border) */}
-         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.005, 0]} name="hall-carpet-border">
-            <planeGeometry args={[3.6, 19.4]} />
-            <meshStandardMaterial color={COLORS.carpetGold} roughness={0.85} />
-         </mesh>
-         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.007, 0]} name="hall-carpet-runner">
-            <planeGeometry args={[3.2, 19.0]} />
-            <meshStandardMaterial color={COLORS.carpet} roughness={0.9} />
-         </mesh>
-
-         {/* Room Rugs under the desks */}
-         <Instanced spots={roomRugSpots} name="room-rugs-border">
-            <planeGeometry args={[3.5, 2.5]} />
-            <meshStandardMaterial color={COLORS.carpetGold} roughness={0.85} />
-         </Instanced>
-         <Instanced spots={roomRugSpots.map((s) => ({ ...s, y: 0.008 }))} name="room-rugs-main">
-            <planeGeometry args={[3.2, 2.2]} />
-            <meshStandardMaterial color={COLORS.carpet} roughness={0.9} />
-         </Instanced>
-
-         {/* 2. Warm Lamp Light Pools on the floor under the room candelabras */}
+         {/* 2. Warm Lamp Light Pools under room candelabras (accents on the readable floor) */}
          <DynamicInstanced
             count={4}
             update={(i, m) => {
                const r = ROOMS[i];
-               m.makeScale(1, 1, 1).setPosition(r.x, 0.012, r.z + 0.3);
+               m.makeScale(1, 1, 1).setPosition(r.x, 0.008, r.z + 0.3);
             }}
             name="warm-lamp-pools"
          >
@@ -252,7 +211,7 @@ export default function Mansion({ run }: { run: Run }) {
             />
          </DynamicInstanced>
 
-         {/* 3. Mansion Walls (gothic dusty plum wallpaper) */}
+         {/* 3. Mansion Walls (Victorian lilac-plum wallpaper, as bright as main) */}
          <DynamicInstanced count={WALLS.length * 2} update={(i, m) => wall(i, m, false)} name="walls-solid">
             <boxGeometry />
             <meshStandardMaterial color={COLORS.wall} roughness={0.75} />
@@ -296,20 +255,9 @@ export default function Mansion({ run }: { run: Run }) {
             />
          ))}
 
-         {/* 6. Doors & Hidden Ghost Reveal Icons */}
+         {/* 6. Hidden Ghost Reveal Icons in room doorways */}
          {ROOMS.map((r, i) => (
             <group key={i}>
-               <Model
-                  asset={ASSETS.door}
-                  position={[r.doorX + r.side * 0.3, 0, r.doorZ - r.north * 1.8]}
-                  rotation={[0, Math.PI / 2, 0]}
-                  fallback={
-                     <mesh position={[0, 0, 0]}>
-                        <primitive object={propsGeo.doorFallback} attach="geometry" />
-                        <meshStandardMaterial color={COLORS.doorWood} roughness={0.8} />
-                     </mesh>
-                  }
-               />
                <group
                   position={[r.x, 1.6, r.z]}
                   ref={(node) => {
