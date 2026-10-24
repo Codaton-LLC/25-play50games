@@ -38,10 +38,10 @@ describe("registry for 30 games", () => {
       for (const g of fresh) expect([null, `/images/3d/${g.slug}.webp`]).toContain(g.thumbnail);
       expect(fresh.filter((g) => g.collection === "adventure")).toHaveLength(10);
       expect(fresh.filter((g) => g.collection === "skill")).toHaveLength(10);
-      // five builders, four games each (decision D4); ghost-vacuum moved from Kimi to Codex (user, 2026-10-09)
+      // five builders, four games each (decision D4); ghost-vacuum, alien-farm (from Kimi) and space-repair (from Antigravity) moved to Codex (user, 2026-10-09)
       const perOwner: Record<string, number> = {};
       for (const g of fresh) perOwner[g.owner] = (perOwner[g.owner] ?? 0) + 1;
-      expect(perOwner).toEqual({ claude: 4, codex: 5, antigravity: 4, cursor: 4, kimi: 3 });
+      expect(perOwner).toEqual({ claude: 4, codex: 7, antigravity: 3, cursor: 4, kimi: 2 });
    });
 });
 
