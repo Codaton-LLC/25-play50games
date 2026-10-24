@@ -37,7 +37,7 @@ Five levels through the core level system (`core/README.md` "Levels"): `levels.t
 | 1 | Training Bay | 10 (5) | 60 s | 0 | 0 | - | indoor (today's) |
 | 2 | Small Warehouse | 12 (6) | 70 s | 4 | 3 | - | day |
 | 3 | Conveyor Zone | 14 (7) | 80 s | 7 | 3 | 2 (1.6 u/s) | sunset |
-| 4 | Dark Storage | 16 (8) | 85 s | 10 | 4 | 3 (2.0 u/s) | night |
+| 4 | Dark Storage | 16 (8) | 85 s | 10 | 4 | 3 (2.0 u/s) | night, a cool lamp rides over the robot (`RobotLevel.lamp`) |
 | 5 | Mega Warehouse | 18 (9) | 90 s | 12 | 5 | 4 (2.4 u/s) | sunset, dark red |
 
 Plan adaptation (GAME 02): the plan's 6/8/10/12/15 batteries become 10/12/14/16/18 because level 1 must stay today's 10; "more travel distance" is the per-wave fairness band (16-19 units of ideal route per wave, level 1: 80-95) over more waves, "workstations / conveyor zone" are the conveyor belts, "stricter timing" is less clock per wave (12 / 11.7 / 11.4 / 10.6 / 10 s). Hazards: **oil patches** cap the robot's own speed at 0.55 x; **conveyor belts** (fixed floor strips with scrolling chevrons) drift the robot along them at the level's belt speed, at most half the robot's top speed, so it can always drive off or upstream. Both are fixed floor zones: the same for touch and keyboard. The extra crates and barrels reuse the crate/barrel GLBs (no new asset). Antigravity's WIP had moving carts that stun the robot; they were replaced by belts: a stunned robot was snow-ploughed along the cart's lane and even the path-finding oracle lost 25-50 % of seeds on levels 3-5.

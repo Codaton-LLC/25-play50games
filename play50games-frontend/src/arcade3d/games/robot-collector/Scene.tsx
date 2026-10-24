@@ -117,7 +117,7 @@ interface Gait {
    lift: number;
 }
 
-function Robot({ run }: { run: Run }) {
+function Robot({ run, lamp }: { run: Run; lamp?: number }) {
    const time = useGameTime();
    const root = useRef<Group>(null);
    const rig = useRef<Group>(null);
@@ -177,6 +177,8 @@ function Robot({ run }: { run: Run }) {
             <ringGeometry args={[0.6, 0.72, 32]} />
             <meshBasicMaterial color={COLORS.robot} transparent opacity={0.75} depthWrite={false} />
          </mesh>
+         {/* a night level's lamp (RobotLevel.lamp): lights the dark-grey robot and a small pool around it */}
+         {lamp ? <pointLight position={[0, 2.1, 0.4]} color={COLORS.lamp} intensity={lamp} distance={4.5} decay={1.4} /> : null}
          <group ref={rig}>
             {/* the group above carries the body's height (gait.lift), so the model does not add it again */}
             <HumanoidModel
@@ -326,7 +328,7 @@ function LevelScene() {
          />
          <Warehouse props={run.world.props} />
          <HazardMarks level={config} />
-         <Robot run={run} />
+         <Robot run={run} lamp={config.lamp} />
          <Batteries run={run} />
       </>
    );

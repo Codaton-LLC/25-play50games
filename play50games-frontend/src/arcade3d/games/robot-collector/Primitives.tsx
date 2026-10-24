@@ -42,6 +42,8 @@ export const COLORS = {
    robotDark: "#0f172a",
    robotEye: "#67e8f9",
    robotTip: "#fbbf24",
+   /** RobotLevel.lamp: the cool light over the robot on a night level */
+   lamp: "#cfefff",
    battery: "#22c55e",
    batteryGlow: "#4ade80",
    /** hazards: oil patches and conveyor belts */

@@ -83,6 +83,8 @@ describe("robot-collector levels: declarations", () => {
          expect(levelInstructions(definition, id)[0]).toBe(`Collect all ${batteryCount(LEVELS[id])} batteries before the clock runs out.`);
       }
       expect(LEVEL_IDS.map((id) => levelEnvironment(definition, id)!.lighting)).toEqual(["indoor", "day", "sunset", "night", "sunset"]);
+      // the robot's lamp only on the night level (looks only; level 1 has none)
+      expect(LEVEL_IDS.map((id) => LEVELS[id].lamp ?? 0)).toEqual([0, 0, 0, 5, 0]);
    });
 });
 

@@ -39,6 +39,11 @@ export interface RobotLevel {
    belts: number;
    /** units per second the belts drift the robot (0 with no belts) */
    beltSpeed: number;
+   /**
+    * Looks only: a cool point light that rides above the robot (its intensity), so the robot reads on
+    * the dark floor of a night level. Omitted = no lamp (level 1 and the lit levels).
+    */
+   lamp?: number;
    /** hand-placed layout for a seed that cannot produce a valid one (omitted = rules.ts FALLBACK_SPOTS, level 1) */
    fallback?: ReadonlyArray<readonly [number, number]>;
 }
@@ -106,6 +111,6 @@ export const LEVELS: Record<LevelId, RobotLevel> = {
    1: { waves: 5, durationMs: 60_000, extraProps: 0, slowZones: 0, belts: 0, beltSpeed: 0 },
    2: { waves: 6, durationMs: 70_000, extraProps: 4, slowZones: 3, belts: 0, beltSpeed: 0, fallback: FALLBACKS[2] },
    3: { waves: 7, durationMs: 80_000, extraProps: 7, slowZones: 3, belts: 2, beltSpeed: 1.6, fallback: FALLBACKS[3] },
-   4: { waves: 8, durationMs: 85_000, extraProps: 10, slowZones: 4, belts: 3, beltSpeed: 2, fallback: FALLBACKS[4] },
+   4: { waves: 8, durationMs: 85_000, extraProps: 10, slowZones: 4, belts: 3, beltSpeed: 2, lamp: 5, fallback: FALLBACKS[4] },
    5: { waves: 9, durationMs: 90_000, extraProps: 12, slowZones: 5, belts: 4, beltSpeed: 2.4, fallback: FALLBACKS[5] },
 };
