@@ -91,8 +91,12 @@ function capVelocity(b: CircleBodyXZ): void {
    if (speed > SUIT.speed) { b.vx *= SUIT.speed / speed; b.vz *= SUIT.speed / speed; }
 }
 export function resolveContacts(r: Run): boolean {
-   const b = r.body, hit = r.contact;
+   const b = r.body, hit = r.contact, limit = STATION.edge - b.radius;
    let touched = false;
+   if (b.x > limit) { b.x = limit; if (b.vx > 0) b.vx *= -SUIT.restitution; touched = true; }
+   if (b.x < -limit) { b.x = -limit; if (b.vx < 0) b.vx *= -SUIT.restitution; touched = true; }
+   if (b.z > limit) { b.z = limit; if (b.vz > 0) b.vz *= -SUIT.restitution; touched = true; }
+   if (b.z < -limit) { b.z = -limit; if (b.vz < 0) b.vz *= -SUIT.restitution; touched = true; }
    for (let pass = 0; pass < 4; pass++) {
       let changed = false;
       for (let solid = 0; solid < SOLIDS.length; solid++) {
@@ -104,23 +108,23 @@ export function resolveContacts(r: Run): boolean {
             const dx = e.b.x - e.a.x, dz = e.b.z - e.a.z, len = Math.hypot(dx, dz);
             const signed = (dx * (b.z - e.a.z) - dz * (b.x - e.a.x)) / len;
             if (signed > 0) inside = false;
-            if (-signed < nearest) { nearest = -signed; nx = -dz / len; nz = dx / len; }
+            const ex = -dz / len, ez = dx / len, depth = -signed + b.radius + EPS;
+            // An interior exit must also fit inside the arena (the wing-side gap is too narrow).
+            if (-signed < nearest && Math.abs(b.x + ex * depth) <= limit && Math.abs(b.z + ez * depth) <= limit) { nearest = -signed; nx = ex; nz = ez; }
          }
          if (inside) {
             hit.nx = nx; hit.nz = nz; hit.depth = nearest + b.radius + EPS; hit.vx = 0; hit.vz = 0;
             resolveCircleSegmentXZ(b, hit, SUIT.restitution, 0); changed = true; touched = true;
          }
          for (const e of poly) if (circleSegmentXZ(b, e, hit) && hit.depth > EPS) {
+            if (Math.abs(b.x + hit.nx * hit.depth) > limit || Math.abs(b.z + hit.nz * hit.depth) > limit) {
+               hit.nx = nx; hit.nz = nz; hit.depth = nearest + b.radius + EPS;
+            }
             resolveCircleSegmentXZ(b, hit, SUIT.restitution, 0); changed = true; touched = true;
          }
       }
       if (!changed) break;
    }
-   const limit = STATION.edge - b.radius;
-   if (b.x > limit) { b.x = limit; if (b.vx > 0) b.vx *= -SUIT.restitution; touched = true; }
-   if (b.x < -limit) { b.x = -limit; if (b.vx < 0) b.vx *= -SUIT.restitution; touched = true; }
-   if (b.z > limit) { b.z = limit; if (b.vz > 0) b.vz *= -SUIT.restitution; touched = true; }
-   if (b.z < -limit) { b.z = -limit; if (b.vz < 0) b.vz *= -SUIT.restitution; touched = true; }
    capVelocity(b);
    return touched;
 }

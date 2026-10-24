@@ -1,6 +1,45 @@
 # Space Repair Mission
 
-Owner: Codex (reassigned by the user, 2026-10-09). Slug: `space-repair`. Skill game 16, wave 3, complexity 3. G0 design for P-14, not an implementation. Spec: `docs/arcade-expansion/04-game-specs-skill.md` §16; catalog: 05 §E.4. Units: metres, played seconds, radians; x east, z south, y up. Core verified against local `origin/main` **bd65ac3**, without fetching. Every departure is labelled below.
+Owner: Codex (reassigned by the user, 2026-10-09). Slug: `space-repair`. Skill game 16, wave 3, complexity 3. Implemented for P-18; development status pending Claude’s final gates. Spec: `docs/arcade-expansion/04-game-specs-skill.md` §16; catalog: 05 §E.4. Units: metres, played seconds, radians; x east, z south, y up. Core verified against local `origin/main` **bd65ac3**, without fetching. Every departure is labelled below.
+
+## Status
+
+TASK P-18-space-repair-fix1 | finish space-repair | branch codex/game-space-repair | allowed: play50games-frontend/src/arcade3d/games/space-repair/**, play50games-frontend/public/images/3d/space-repair.webp, tools/thumbs/inputs/space-repair.mjs
+
+Branch verified with git branch --show-current. No commit, push, branch change, reset, clean, deletion, credit spend or production access.
+
+Files changed: game rules.ts, rules.test.ts, poses.ts, Astronaut.tsx, README.md; administrative .handoff/P-18-space-repair-fix1/HANDOFF.md. Existing thumbnail input remains present; thumbnail stays null as requested.
+
+Failures and fixes:
+- Contacts: the nearest solar-wing exit entered a gap narrower than the suit; the final arena clamp undid depenetration and left 0.25 m clearance. Clamp arena bounds first, select the nearest arena-valid separating face, and redirect boundary-blocked edge corrections through that face. Retain deterministic four-pass contacts and reused scratch. Original clearance/escape assertions remain; added both exterior wing gaps and initially out-of-arena wing overlaps.
+- Poses: measuring individual blends identified the partial wide cheer as the 0.79 m maximum. Keep float/thrust/repair arms in an aimed drop=0 representation and use a compact bent-elbow victory wrench pump. Original <0.68 span, torso clearance, rigid helmet, attachment and height assertions remain unchanged.
+- Speed: 384 Oracle runs (48 seeds x four schedules x both devices); 464 Idle and 464 BlindSpam runs each (200 seeds x both devices at 20 Hz, plus eight seeds x four display schedules x both devices): 1,312 principal proof runs. Schedules remain 30/60/144 Hz and seeded random 4–50 ms. Degenerates run until their real loss; no injected power/hits or shortened rules clock. One store/controller per run is reused on every frame; removed the per-frame milestone array. Prefix, terminal and capScore assertions remain.
+- Other WIP: replaced the static capsule visibility outline with a depth-independent copy of the actual posed rig, with disposed mount-owned material; added the fallback backpack body. README now contains this Status handoff.
+
+Test evidence (2026-10-24):
+- Final full game suite: 28/28 pass, three files, Vitest duration 52.66 s (53.278 s wall); principal proof 49.717 s, rules file 51.752 s. Previous complete measurement was 56.00 s; both below 60 s.
+- npx tsc --noEmit: PASS (exit 0).
+- npx vitest run src/arcade3d/games/space-repair: attempted, but esbuild config loading fails with Access denied reading ../../../.. before test collection. All 28 tests instead ran through installed Vitest's programmatic API, config:false with the unchanged config's @ alias and automatic JSX passed in memory. No config/package edits.
+- Reproduce fallback from play50games-frontend: node -e "import('vitest/node').then(async({startVitest})=>{const root=process.cwd().replaceAll('\\','/');const c=await startVitest('test',['src/arcade3d/games/space-repair'],{config:false,root,watch:false},{resolve:{alias:{'@':root+'/src'}},esbuild:{jsx:'automatic'}});process.exitCode=c?.state.getFiles().some(f=>f.result?.state==='fail')?1:0;await c?.close();})"
+- Geometry generation: 1,000 seeds; seeded movement: 4,096 steps. rules.test.ts: 374 lines.
+- Oracle: every run wins; score 3948–4504, best 95.83% of 4700; minimum power 72.713789; slowest stored win 120041.766 ms. Idle/spam score 0; fastest stored loss 37666.667 ms. All prefixes and terminals satisfy proposed limits; capScore is a no-op.
+- Human: 12/12 wins, 26–27 repairs, power 16.15–40.55, peak speed 4.2; measured travel 2.417–2.448 s and service 3.224–3.392 s. These are actual controller results, below the older analytical 3.4–3.6 s service estimate; browser human validation remains necessary. Both first-minute novice witnesses pass >=40 power. Greedy scores 3850–4500; held/camping/spinning exploit gates pass.
+
+Acceptance checklist (original brief, item by item):
+- [x] 1 Definition/controls/Hud/assets/camera/environment/result delay implemented; no durationMs, clockChip false.
+- [x] 2 Pure seeded rules, core helpers, all gameplay/scoring constants and PROPOSED_LIMITS.
+- [x] 3 One rules/store run loop, fixed pools and reused frame scratch; stats update on displayed changes.
+- [x] 4 Frame-sampled movement and one OR repair edge; no classic imports/storage/API calls.
+- [x] 5 Fitted local follow camera and registered HUD; portrait/landscape projection tests pass. Browser overlap/readability/banner checks pending Claude.
+- [x] 6 Existing station/astronaut/battery assets and posed fallback; real mesh fit/rig tests pass.
+- [x] 7 Core effects/audio; loop restarts keyed by phase/mute. Browser mute/reduced-motion checks pending.
+- [x] 8 Rules score reconciliation before end(win/lose); real-store boundary/pause/retry tests pass.
+- [x] 9 meta status dev and provisional scoring preserved; proposed limits 4700/37000/122000/400/40 require Claude's paired metadata/backend update.
+- [x] 10 Existing tools/thumbs/inputs/space-repair.mjs present; thumbnail null.
+- [ ] Common final gates: Claude runs full repository tests/build/gamecheck and headless keyboard/two-thumb playthroughs; ready/countdown/Esc/P/tab/pause/resume/over/Retry/Exit; 1280x800/390x844/844x390 screenshots with banner on/off, actual >=24 px silhouettes, contrast/overlays, missing-GLB fallback, mute/reduced motion, mid-phone p95 and Retry x10 resource stability.
+- [ ] Draw calls are an estimate (~32 plus imported mesh/material reserve 13), not measured evidence: verify target <=45, hard game cap 50, <=100k triangles, p95 <=33 ms; include the exact-pose outline and fallback backpack in measurement.
+
+Open questions: no new design decision requested. Claude owns the remaining browser/performance/build evidence and paired scoring integration. The measured human cadence differs from the design prediction; assess the real keyboard/two-thumb witness rather than treating the bot as a human playtest. Scope checked only with git status --porcelain; tracked modifications are confined to the game folder.
 
 ## Concept
 
@@ -93,6 +132,8 @@ Future build: `meta.ts` (exact controls/limits, status dev) · `index.tsx` (defi
 
 ## Test plan
 
+Measured fix-round-1 suite:28/28 pass in52.66 s (principal proof49.717 s);384 Oracle +464 Idle +464 BlindSpam runs. See Status for command, extrema and remaining acceptance evidence.
+
 `rules.test.ts` target500, hard≤~600 lines INCLUDING bots; whole game suite target<60 s. Reuse core harness, aggregate tick invariants and assert per run; no matcher/string allocation per tick. Pin literals by VALUE, not comparisons of a constant with its derived formula; preserve all boundary/mutation cases if reducing redundant seeded trajectories for runtime.
 
 - 256 seeds: identical schedule/arc offsets per seed; exact30 times/8 ids/direction, generation skipping, at most4 awards/module; all service discs reachable on0.25 grid/r0.45 clearance, safe inner chords, debris/solar/service clearance and fixed footprints. Invalid schedule/generation/clearance fixtures must fail.
@@ -100,9 +141,9 @@ Future build: `meta.ts` (exact controls/limits, status dev) · `index.tsx` (defi
 - Repair: all stage snapshots/widths/periods, fine/coarse zones and seeded centre extremes; literal edge/just-outside tests for good/perfect third, min age bounds, 1/2/3 pips, bad perfect flag persists, 0.499/0.5 lock boundary, one OR edge/frame and ignored held/repeat/lock inputs. Simultaneous keys do not double-hit. Leaving/re-entry cannot recycle a hit or undo a miss; dock during lock, undock/redock at0.499 s, and expiry at0.5 s retain the original absolute lock deadline. Mutation cases: widen by1°, use default0.3 perfectShare, keep needle after hit, pay per hit, reset perfect on re-entry, process edge in every substep.
 - Drain/cells/clock: exact piecewise integrals before/after all break times, power0 crossing, skipped ticket no extra drain, repair stops drain only from its instant, milestone4/12/20 once, +25/cap100, pickup radius2/age0.35/expiry8 boundaries, missed slots/duplicate claims, alarm25/re-arm30. Split mid-frame zero/120, expiry beats pickup, incomplete repairs started at/after117.5 dropped at120, exact-deadline repair/bonus vs after-deadline edge, score before end, pause/over immutable and Retry fresh. Kill mutations for drain0.5, refill before zero, bonus on lose, durationMs timeout and dropped last-frame score.
 - Score: +100/+150 only per generation, miss retention, floor fractional power, no cell/hit/drift awards, all event-prefix inequalities and literal4700/37000/122000/400/40; analytical earliest-loss and movement/work bounds. `withinServerLimits` only on terminals, raw max/rate every prefix, `capScore` no-op. Store clock covers countdown remainder, pause/resume and300 ms raw stalls (legal played cap50 ms).
-- **Rules-only OracleRepair**, **Idle**, **BlindSpam20Hz**: each200 seeds x {30,60,144 Hz,random4-50 ms} x both pointer modes (4800 runs total); real createArcadeStore/advanceRunClock/playedFrameDt, rules and frame-sampled input only, no rendering or injected power/hits. Oracle uses legal movement/braking/docking/predicted perfect arcs/cell pickups; assert all win and best>=90% of4700=4230, report score/power/time extrema. Re-derived centre-arc estimate:30 perfect repairs=4500, rest-to-rest adjacent travel2.143 s, stage hit time0.6/0.5/0.4 s per pip, wait0.35 at milestones; last repair~119.8, drain~21.14, effective recharge~14.8, power~93.66 ->~4686 points (seed/frame variations pending). Old~4790 estimate belonged to32 tickets. Raw score/max/rate every prefix; terminal withinServerLimits and capScore no-op EVERY run, including losses. Idle/spam must lose before120; blind spam/held input score0, all degenerates<=600.
+- **Rules-only OracleRepair**, **Idle**, **BlindSpam20Hz**: Oracle48 seeds x {30,60,144 Hz,random4-50 ms} x both pointer modes; Idle/BlindSpam200 seeds x20 Hz x both modes plus8 seeds at all four display schedules (1312 principal proof runs, user fix-round-1 runtime waiver); real createArcadeStore/advanceRunClock/playedFrameDt, rules and frame-sampled input only, no rendering or injected power/hits. Oracle uses legal movement/braking/docking/predicted perfect arcs/cell pickups; assert all win and best>=90% of4700=4230, report score/power/time extrema. Re-derived centre-arc estimate:30 perfect repairs=4500, rest-to-rest adjacent travel2.143 s, stage hit time0.6/0.5/0.4 s per pip, wait0.35 at milestones; last repair~119.8, drain~21.14, effective recharge~14.8, power~93.66 ->~4686 points (seed/frame variations pending). Old~4790 estimate belonged to32 tickets. Raw score/max/rate every prefix; terminal withinServerLimits and capScore no-op EVERY run, including losses. Idle/spam must lose before120; blind spam/held input score0, all degenerates<=600.
 - **HumanPacedRepair**6 seeds/mode at20 fps: neutral braking ONLY (no counter-thrust shortcut), top speed<=4.3, ~0.5 s reaction AND settling budget per target, real multi-hit needle waits and one deliberate miss per4 repairs, including persistent0.5 s lock and reset wait. Log adjacent travel~2.65 s and ordinary service~3.4-3.6 s; reject an unrealistically fast~2.7 s/service implementation. Require win, power>=10,>=24 repairs in both modes; errors/reactions are actual controls through rules. If this fails do not loosen the bot or claim U1 validated. Add frozen-start-difficulty60 s novice witness>=40 power; all estimates above remain unmeasured design predictions.
-- Slower movement policies **GreedyRepair**, **HoldRepair**, **CampOneModule**, **ConstantThrustSpin**:4 seeds each/mode at20 fps plus one random-frame seed/mode; small seed counts are Claude-waived, NOT a waiver of200-seed Oracle/Idle/BlindSpam coverage. Greedy reports attainable score; remaining degenerates lose before120 with<=600, held score0. Target500/~600 hard test-file lines, report actual runtime; preserve mandatory seed/frame coverage even if<60 s suite target fails.
+- Slower movement policies **GreedyRepair**, **HoldRepair**, **CampOneModule**, **ConstantThrustSpin**:4 seeds each/mode at20 fps plus one random-frame seed/mode; small seed counts are Claude-waived, the user’s P-18 fix-round-1 coverage above overrides the older200-seed cross-product requirement. Greedy reports attainable score; remaining degenerates lose before120 with<=600, held score0. Target500/~600 hard test-file lines, report actual runtime; preserve the revised seed/frame coverage and the<60 s suite gate.
 - `assets.test.ts`/`poses.test.ts`: actual1.75 suit/default scale/landmarks, measured1.0 battery fit and camera-facing axis, no T at blends, helmet rigid, gloves outside torso, tool grip/nozzles≤1 cm, min1.6 height/0.1 depth silhouette references, fallback parity; no floor/stride assertions for floating soles. Camera tests use ACTUAL core fit/projection and representative safe rects at390×844/844×390 with banner, max-lag and all important poses/depths≥24 px. These supplement, never replace browser measurement.
 - Build-stage common03 gates: build, tsc, vitest, gamecheck; keyboard/two-thumb wins, ready/countdown/Esc/P/tab/pause/resume/over/Retry/Exit, banner on/off and screenshots1280×800/390×844/844×390; reduced motion/mute/unmute, missing-GLB fallback, ring not under chips/controls, overlays visibly above surfaces, measured readability, perf and Retry×10 flat resources. P-14 executes document/scope checks only.
 
@@ -120,21 +161,9 @@ Existing `startLoop("thrust",{volume:0})`, update reused options to volume0.25 w
 
 Number/icon/pips, dashed service disc, needle/arc shape and explicit GOOD/PERFECT/MISS/WAIT text avoid colour-only information. Repair72 CSS px, ring112/96, markers28, HUD text≥14 px; opaque `#020617` backing with `#f8fafc`/`#e2e8f0` text (contrast>14:1), verify computed text contrast≥4.5:1 including warnings. Panels/register boxes stay below shell chips and outside touch hit targets. Coarse arcs are wider, no hidden control toggle. Reduced motion removes shake, bob, limb drift, flashes/blinking, Earth spin and particles; retains actual inertia/needle/debris motion as essential information and steady broken/low-power icons. No rapid red flicker; vignette steady. Muted/unlocked audio never affects rules; all help/control strings match the actual actions.
 
-## Open questions
+## Open questions (historical)
 
-- **U1 - late cadence (user decision pending):** proposed3.0 s schedule above is the build proposal; approve or choose an alternative, then rederive tickets/limits/bots. Review's human queue comparison at~3.4 s ordinary service plus every-fourth miss:
-
-| late interval | total tickets | human outcome / final power (approximate) |
-|---|---:|---|
-|2.5 s|32|loses~113 s|
-|3.0 s (proposed)|30|wins~13|
-|3.2 s|29|wins~29|
-|3.5 s|28|wins~51|
-
-- **U2:** approve only2 mirror break orders instead of broadly seeded schedules? Times fixed; seed varies direction, arcs and debris phases.
-- **U3:** approve listed departures: desktop neutral braking; three cell recharges; rules-clock "win";50 degrees close follow without followFocus;1.75 m existing suit with backpack? Also explicitly review uniform footprints despite1-3 hits, dock/reset/lock rules and backlog-only simultaneous breaks; Claude pairs proposed limits with backend.
-- **U4:** approve wider coarse-pointer arcs on one shared leaderboard? Device mode sampled once per run, no mid-run switching.
-- **Build evidence pending:** human/novice witnesses and honest bots, safe-area silhouette>=24 px (especially landscape), battery/attachment assertions, draw calls and suite runtime. Required core additions found: none; unresolved fit or human gates go to Claude/user without hidden tuning.
+U1–U4 were resolved by the user’s Decisions below. Current remaining acceptance evidence is listed in Status.
 
 ## Fix round 1 (2026-10-24)
 

@@ -1,14 +1,29 @@
 "use client";
-import { useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useFrame } from "@react-three/fiber";
-import { AdditiveBlending, type Group, type Mesh } from "three";
-import { HumanoidModel, createPose, useHumanoidPose } from "@/arcade3d/core/rig";
+import { AdditiveBlending, MeshBasicMaterial, type Group, type Mesh } from "three";
+import { HumanoidModel, applyHumanoidPose, createPose, useHumanoidPose, type HumanoidPose } from "@/arcade3d/core/rig";
 import { useGameTime } from "@/arcade3d/core/gameTime";
 import { Instanced } from "@/arcade3d/core/render";
-import { ASSETS } from "./assets";
+import { ModelErrorBoundary, useHumanoidRig } from "@/arcade3d/core/assets";
+import { ASSETS, SUIT_SCALE } from "./assets";
 import { COLORS } from "./palette";
 import { floatPose } from "./poses";
 import type { Run } from "./rules";
+
+function SuitOutline({ pose }: { pose: HumanoidPose }) {
+   const rig = useHumanoidRig(ASSETS.astronaut);
+   const material = useMemo(() => new MeshBasicMaterial({ color: COLORS.rim, wireframe: true, transparent: true, opacity: 0.08, depthTest: false, depthWrite: false }), []);
+   useLayoutEffect(() => {
+      rig?.root.traverse((object) => {
+         const mesh = object as Mesh;
+         if (mesh.isMesh) { mesh.material = material; mesh.renderOrder = 8; }
+      });
+   }, [rig, material]);
+   useEffect(() => () => material.dispose(), [material]);
+   useFrame(() => { if (rig) applyHumanoidPose(rig, pose, false); });
+   return rig ? <primitive object={rig.root} scale={SUIT_SCALE} dispose={null} /> : null;
+}
 
 function Wrench() {
    return <group rotation-z={Math.PI / 2}>
@@ -43,11 +58,12 @@ function SuitFallback({ run, reduced }: { run: Run; reduced: boolean }) {
       <group position={[-0.34, 1.04, 0.11]} rotation-x={-0.8}>
          <mesh><capsuleGeometry args={[0.1, 0.34, 3, 8]} /><meshStandardMaterial color={COLORS.hull} /></mesh><group position={[0, -0.19, 0]}><Wrench /></group>
       </group>
+      <mesh position={[0, 1.05, -0.22]}><boxGeometry args={[0.4, 0.48, 0.2]} /><meshStandardMaterial color={COLORS.panel} roughness={0.4} /></mesh>
       <group position={[0, 1.1, -0.25]}><Jets run={run} reduced={reduced} /></group>
    </group>;
 }
 export default function Astronaut({ run, reduced }: { run: Run; reduced: boolean }) {
-   const root = useRef<Group>(null), outline = useRef<Mesh>(null), time = useGameTime();
+   const root = useRef<Group>(null), time = useGameTime();
    const [scratch] = useState(createPose);
    const [motion] = useState(() => ({ thrust: 0, reach: 0 }));
    const pose = useHumanoidPose((p) => {
@@ -62,13 +78,10 @@ export default function Astronaut({ run, reduced }: { run: Run; reduced: boolean
          root.current.rotation.y = run.yaw;
          root.current.rotation.z = run.terminal === "lose" ? 0.22 : 0;
       }
-      if (outline.current) outline.current.visible = true;
    });
    return <group ref={root}>
       <HumanoidModel asset={ASSETS.astronaut} pose={pose} applyLift={false} fallback={<SuitFallback run={run} reduced={reduced} />}
          attach={{ chest: <Jets run={run} reduced={reduced} />, handR: <Wrench /> }} />
-      <mesh ref={outline} position={[0, 0.95, -0.02]} renderOrder={8}>
-         <capsuleGeometry args={[0.32, 1.05, 4, 12]} /><meshBasicMaterial color={COLORS.rim} wireframe transparent opacity={0.08} depthTest={false} depthWrite={false} />
-      </mesh>
+      <ModelErrorBoundary fallback={null}><SuitOutline pose={pose} /></ModelErrorBoundary>
    </group>;
 }

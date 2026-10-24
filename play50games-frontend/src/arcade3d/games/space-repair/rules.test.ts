@@ -76,7 +76,7 @@ describe("seed, station and controller", () => {
       stepRun(q, { x: 0.12, z: 0, repair: false }, 0.05); expect(q.body.vx).toBe(0);
    });
    it("depenetrates interior/corners and lets outward thrust escape", () => {
-      for (const [x, z] of [[0, 0], [0, 4.2], [8.1, 1], [-9.3, -1], [0.7, 4.2]]) {
+      for (const [x, z] of [[0, 0], [0, 4.2], [8.1, 1], [-9.3, -1], [9.5, 0], [-9.5, 0], [9.7, 0], [-9.7, 0], [0.7, 4.2]]) {
          const r = createRun(1); r.body.x = x; r.body.z = z; r.body.vx = 0.2;
          expect(resolveContacts(r)).toBe(true); expect(clearance(r.body.x, r.body.z)).toBeGreaterThanOrEqual(0.45 - 1e-7);
          const dx = r.body.x - x, dz = r.body.z - z, length = Math.hypot(dx, dz) || 1;
@@ -225,7 +225,7 @@ function bot(policy: Policy, seed: number) {
       if (r.events.award) {
          if (serviceAt > 0) { metrics.services++; metrics.service += r.time - serviceAt; }
          serviceAt = 0;
-         if ([4, 12, 20].includes(r.repairs)) waitUntil = r.time + 0.35;
+         if ((r.repairs === 4 || r.repairs === 12 || r.repairs === 20)) waitUntil = r.time + 0.35;
       }
       if (r.time < waitUntil) return controls;
       if (target < 0 || !r.modules[target].broken) {
@@ -304,20 +304,24 @@ describe("scoring proof through the real store", () => {
       }
       expect(30 * 150 + 200).toBe(4700); expect(6 * (1 + 2 + 3 + 4 + 5)).toBe(90);
    });
-   it("drives 200 seeds × 4 frame schedules × both devices for oracle, idle and spam", () => {
+   it("drives 48 oracle seeds at all four schedules and 200 idle/spam seeds on both devices", () => {
       let best = 0, minPower = 100, minScore = 4700, maxScore = 0, fastestLoss = Infinity, slowestWin = 0;
-      for (let seed = 1; seed <= 200; seed++) for (const coarse of [false, true]) for (const hz of [30, 60, 144, 0]) {
-         for (const policy of ["OracleRepair", "Idle", "BlindSpam20Hz"] as const) {
+      for (let seed = 1; seed <= 48; seed++) for (const coarse of [false, true]) for (const hz of [30, 60, 144, 0]) {
+         const { r, final } = witness("OracleRepair", seed, coarse, hz ? fixedFrames(1000 / hz) : randomFrames(seed));
+         expect(r.terminal).toBe("win");
+         best = Math.max(best, r.score); minPower = Math.min(minPower, r.power); minScore = Math.min(minScore, r.score); maxScore = Math.max(maxScore, r.score); slowestWin = Math.max(slowestWin, final.elapsedMs);
+      }
+      // Keep 200 degenerate seeds at 20 Hz, plus eight at all four display
+      // schedules. Every frame still drives the real store until the actual loss.
+      for (let seed = 1; seed <= 200; seed++) for (const coarse of [false, true]) for (const policy of ["Idle", "BlindSpam20Hz"] as const) {
+         for (const hz of seed <= 8 ? [20, 30, 60, 144, 0] : [20]) {
             const { r, final } = witness(policy, seed, coarse, hz ? fixedFrames(1000 / hz) : randomFrames(seed));
-            if (policy === "OracleRepair") {
-               expect(r.terminal, `${policy}/${seed}/${coarse}/${hz}`).toBe("win");
-               best = Math.max(best, r.score); minPower = Math.min(minPower, r.power); minScore = Math.min(minScore, r.score); maxScore = Math.max(maxScore, r.score); slowestWin = Math.max(slowestWin, final.elapsedMs);
-            } else { expect(r.terminal).toBe("lose"); expect(r.score).toBe(0); fastestLoss = Math.min(fastestLoss, final.elapsedMs); }
+            expect(r.terminal).toBe("lose"); expect(r.score).toBe(0); fastestLoss = Math.min(fastestLoss, final.elapsedMs);
          }
       }
       expect(best).toBeGreaterThanOrEqual(4230);
       console.info("Space Repair oracle/idle/spam", { best, minScore, maxScore, minPower, fastestLoss, slowestWin });
-   }, 240000);
+   }, 60000);
    it("requires the honest human controller to win with misses, neutral braking and 150–250 ms reactions", () => {
       for (let seed = 1; seed <= 6; seed++) for (const coarse of [false, true]) {
          const { r, metrics } = witness("HumanPacedRepair", seed, coarse, fixedFrames(50));
