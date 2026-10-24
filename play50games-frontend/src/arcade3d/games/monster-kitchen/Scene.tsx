@@ -19,6 +19,7 @@ import { randomSeed } from "@/arcade3d/core/math";
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { useFittedView } from "@/arcade3d/core/useFittedView";
 import { useRunFrame } from "@/arcade3d/core/useRunFrame";
+import { useKitchenLevel } from "./useKitchenLevel";
 import { Cauldron } from "./Cauldron";
 import { Chef } from "./Chef";
 import { hudButtons, hudOrders, publishHand } from "./Hud";
@@ -58,6 +59,7 @@ interface Look {
 }
 
 export default function Scene() {
+   const { config } = useKitchenLevel();
    const width = useThree((s) => s.size.width);
    const height = useThree((s) => s.size.height);
    const view = useFittedView({
@@ -73,8 +75,8 @@ export default function Scene() {
    const fx = useFx();
    const time = useGameTime();
 
-   // one run per mount (GameShell remounts the Scene on start and retry)
-   const [run] = useState<RunState>(() => createRun(randomSeed()));
+   // one run per mount (GameShell remounts the Scene on start, retry and a new level)
+   const [run] = useState<RunState>(() => createRun(randomSeed(), config));
    const [step] = useState<StepInput>(() => ({ rotate: 0, tapSlot: null, tossCentre: false }));
    const [at] = useState(() => ({ x: 0, y: 0, z: 0 }));
    const [ndc] = useState(() => new Vector3());
