@@ -1,6 +1,5 @@
-// Pirate Cannon Battle looks worth a test: the fixed camera's fit per screen and the palette. Pure:
-// no three.js, no React. The camera stands behind the cannon looking out to sea, so the lanes'
-// depth reads as distance.
+// Pirate Cannon Battle looks: camera fitting, unified Caribbean palette, decor placements,
+// and safety boundaries. Pure: no three.js or React runtime here.
 import type { AABB } from "@/arcade3d/core/collision";
 import type { FittedViewOptions } from "@/arcade3d/core/useFittedView";
 
@@ -8,17 +7,16 @@ const DEG = Math.PI / 180;
 
 /** The canvas camera's fov (definition.camera.fov). */
 export const FOV = 50;
+
 /**
- * The tilt. A low eye (the design's 14° for landscape) cannot show the cannon: the
- * 38 m near lane fills a landscape screen from right above the fort, so the cannon fell under it, and
- * the 40 m of lanes folded into a strip a tenth of the screen tall. 30° shows the cannon at the
- * bottom and spreads the lanes up the screen; landscape goes to 36° (the lanes take a third of the
- * screen, the cannon two thirds down), portrait keeps the decided 30°.
+ * The camera pitch. 30° shows the cannon at the bottom and spreads the lanes up the screen;
+ * landscape goes to 36° (lanes take a third of screen, cannon two thirds down), portrait keeps 30°.
  */
 export const PITCH = { landscape: 36 * DEG, portrait: 30 * DEG } as const;
 
-/** The three lanes (with their zig-zags and spheres) and the cannon (its muzzle is inside, z -0.8, y 3): what must stay on screen. */
+/** The three lanes (with zig-zags and hit spheres) and the cannon: what must stay on screen. */
 export const SEA_BOX: AABB = { min: { x: -19, y: 0, z: -60 }, max: { x: 19, y: 6, z: 0 } };
+
 /** The point the camera looks at: the box's floor centre (useFittedView's default focus). */
 export const SEA_FOCUS: [number, number, number] = [0, 0, -30];
 
@@ -32,31 +30,199 @@ export function viewFor(width: number, height: number): FittedViewOptions {
    return width >= height ? VIEWS.landscape : VIEWS.portrait;
 }
 
+/**
+ * Unified Caribbean palette. 2-3 tones per object from this one table,
+ * providing sunny warm golden light, tropical turquoise waters, and high readability.
+ */
 export const COLORS = {
-   /** the sky: the canvas background and the fog (index.tsx environment), one colour so the fogged far sea meets it */
+   /** the sky: the canvas background and the fog, one colour so the far horizon meets it */
+   skyTop: "#0284c7",
    sky: "#bae6fd",
+   fog: "#bae6fd",
+   cloud: "#ffffff",
+   cloudShade: "#e0f2fe",
+
+   /** Sea and water: luminous turquoise shallows and rich deep ocean */
    sea: "#0ea5e9",
-   /** the flat open sea beyond the wave plane (about the wave plane's far tone) */
-   farSea: "#3fb4e6",
+   farSea: "#0284c7",
    deep: "#0369a1",
+   foam: "#f0fdfa",
+   surf: "#f0fdfa",
+
+   /** Sand, islets, and coastal geology */
    sand: "#fde68a",
-   stone: "#a8a29e",
-   stoneDark: "#78716c",
+   sandWet: "#d4b46a",
+   cliff: "#8c7b64",
+   cliffTop: "#4d7c0f",
+   grass: "#65a30d",
+   rock: "#78716c",
+   rockDark: "#57534e",
+
+   /** Fort masonry and gun platform */
+   stone: "#e7dfd5",
+   stoneTrim: "#d6c8b4",
+   stoneDark: "#8c7b64",
+   stoneBase: "#6b5d4d",
+   parapetCoping: "#f5ede3",
+   woodDeck: "#9a5b28",
+   deckPlank: "#7c3f15",
+
+   /** Palms and tropical flora */
+   palm: "#4d7c0f",
+   palmDark: "#365314",
+   trunk: "#a16207",
+   trunkDark: "#78350f",
+   coconut: "#713f12",
+
+   /** Ships, props, and gameplay elements */
+   wood: "#92400e",
+   woodLight: "#b45309",
    sail: "#f8fafc",
    coral: "#fca5a5",
    accent: "#f87171",
-   wood: "#92400e",
-   ball: "#1f2937",
-   dots: "#fef3c7",
-   ring: "#fde68a",
+   ball: "#1e293b",
+   dots: "#fde047",
+   ring: "#fde047",
    buoyRed: "#ef4444",
    buoyWhite: "#f8fafc",
    flag: "#f87171",
-   palm: "#4d7c0f",
-   trunk: "#a16207",
-   barrel: "#b91c1c",
-   chest: "#8b5a2b",
+   barrel: "#dc2626",
+   barrelWood: "#78350f",
+   barrelBand: "#1e293b",
+   chest: "#854d0e",
+   chestGold: "#eab308",
+   bronze: "#d97706",
+   iron: "#1e293b",
+   bird: "#ffffff",
+   birdWing: "#cbd5e1",
+   beacon: "#fef08a",
 } as const;
 
 /** The fort: the platform (top y = rules CANNON.platformY) and its parapet along the sea side, kept under the lowest shot. */
 export const FORT = { halfX: 2.8, front: -1.9, back: 3.2, bottom: -1, parapetTop: 2.55, parapetDepth: 0.4 } as const;
+
+/**
+ * Play area bounds (including ship spawn hulls at x -24.5, harbour crossing past x +18 to +21,
+ * galleon zig-zag lane margins z -58 to -22, and cannon fort at x ±3, z -2 to 3.2).
+ * Every decor spot must be strictly OUTSIDE this bounding volume.
+ */
+export const PLAY_BOUNDS = {
+   x0: -26.0,
+   x1: 23.0,
+   z0: -62.0,
+   z1: 3.5,
+   y0: -1.0,
+   y1: 8.0,
+} as const;
+
+/** Returns true if a given (x, z) point is within the active play bounds (grown by optional margin). */
+export function inPlayArea(x: number, z: number, margin = 0): boolean {
+   return (
+      x >= PLAY_BOUNDS.x0 - margin &&
+      x <= PLAY_BOUNDS.x1 + margin &&
+      z >= PLAY_BOUNDS.z0 - margin &&
+      z <= PLAY_BOUNDS.z1 + margin
+   );
+}
+
+export interface DecorSpot {
+   x: number;
+   y: number;
+   z: number;
+   rotY?: number;
+   sx?: number;
+   sy?: number;
+   sz?: number;
+}
+
+/** Distant cliffs, headlands, and background island ridges framing the cove. All at z <= -75. */
+export const CLIFF_SPOTS: readonly DecorSpot[] = [
+   { x: -46, y: 0, z: -92, rotY: 0.35, sx: 20, sy: 16, sz: 16 },
+   { x: -62, y: 0, z: -80, rotY: 0.62, sx: 18, sy: 20, sz: 18 },
+   { x: -38, y: 0, z: -112, rotY: -0.2, sx: 24, sy: 14, sz: 18 },
+   { x: 48, y: 0, z: -88, rotY: -0.42, sx: 19, sy: 17, sz: 16 },
+   { x: 62, y: 0, z: -76, rotY: -0.68, sx: 17, sy: 19, sz: 18 },
+   { x: 38, y: 0, z: -108, rotY: 0.25, sx: 22, sy: 15, sz: 17 },
+   { x: -12, y: 0, z: -138, rotY: 0.1, sx: 36, sy: 12, sz: 22 },
+   { x: 20, y: 0, z: -145, rotY: -0.15, sx: 32, sy: 11, sz: 20 },
+] as const;
+
+/** Distant cliffside citadel perched on the high left headland overlooking the Caribbean approaches. */
+export const DISTANT_FORT_SPOT: DecorSpot = { x: -46, y: 15.5, z: -92, rotY: 0.35, sx: 1, sy: 1, sz: 1 };
+
+/** Sandy islets with palm groves and reef rocks, strictly flanking the bay outside the lanes. */
+export const ISLET_SPOTS: readonly DecorSpot[] = [
+   { x: -35, y: 0, z: -38, rotY: 0.2, sx: 4.8, sy: 1.1, sz: 4.4 },
+   { x: -31, y: 0, z: -15, rotY: 0.8, sx: 3.4, sy: 0.85, sz: 3.2 },
+   { x: 34, y: 0, z: -42, rotY: -0.4, sx: 4.2, sy: 0.95, sz: 3.8 },
+   { x: 31, y: 0, z: -18, rotY: 0.5, sx: 3.2, sy: 0.8, sz: 3.0 },
+] as const;
+
+/** Breaking surf and foam rings around outer islets and reef boulders. */
+export const SURF_SPOTS: readonly DecorSpot[] = [
+   { x: -35, y: 0.03, z: -38, sx: 5.6, sy: 1, sz: 5.2 },
+   { x: -31, y: 0.03, z: -15, sx: 4.0, sy: 1, sz: 3.8 },
+   { x: 34, y: 0.03, z: -42, sx: 5.0, sy: 1, sz: 4.6 },
+   { x: 31, y: 0.03, z: -18, sx: 3.8, sy: 1, sz: 3.6 },
+   { x: -38, y: 0.03, z: -44, sx: 2.4, sy: 1, sz: 2.4 },
+   { x: 36, y: 0.03, z: -48, sx: 2.4, sy: 1, sz: 2.4 },
+] as const;
+
+/** Low-poly reef boulders scattered around outer islets and headlands. */
+export const ROCK_SPOTS: readonly DecorSpot[] = [
+   { x: -38, y: 0, z: -41, rotY: 0.4, sx: 1.3, sy: 1.4, sz: 1.2 },
+   { x: -32, y: 0, z: -43, rotY: 1.1, sx: 1.0, sy: 1.1, sz: 0.9 },
+   { x: -33, y: 0, z: -18, rotY: 2.1, sx: 1.2, sy: 1.3, sz: 1.1 },
+   { x: -29, y: 0, z: -12, rotY: 0.7, sx: 0.9, sy: 1.0, sz: 0.8 },
+   { x: 36, y: 0, z: -46, rotY: 0.5, sx: 1.4, sy: 1.4, sz: 1.2 },
+   { x: 31, y: 0, z: -46, rotY: 1.8, sx: 1.0, sy: 1.1, sz: 0.9 },
+   { x: 33, y: 0, z: -15, rotY: 2.5, sx: 1.1, sy: 1.1, sz: 1.0 },
+   { x: 29, y: 0, z: -22, rotY: 0.3, sx: 0.8, sy: 0.9, sz: 0.8 },
+   { x: -46, y: 0, z: -78, rotY: 1.4, sx: 2.4, sy: 2.6, sz: 2.0 },
+   { x: 44, y: 0, z: -76, rotY: 0.9, sx: 2.2, sy: 2.4, sz: 1.9 },
+] as const;
+
+/** Coconut palms on outer islets. */
+export const PALM_DECOR_SPOTS: readonly DecorSpot[] = [
+   { x: -35.5, y: 1.0, z: -38.5, rotY: 0.6, sx: 1.0, sy: 1.05, sz: 1.0 },
+   { x: -33.8, y: 0.85, z: -37.2, rotY: 2.2, sx: 0.85, sy: 0.9, sz: 0.85 },
+   { x: 33.5, y: 0.9, z: -42.5, rotY: 1.4, sx: 0.95, sy: 1.0, sz: 0.95 },
+   { x: 34.8, y: 0.8, z: -41.0, rotY: 3.1, sx: 0.8, sy: 0.85, sz: 0.8 },
+] as const;
+
+/** Cumulus clouds high in the sky, drifting gently across the bay. */
+export const CLOUDS: readonly DecorSpot[] = [
+   { x: -48, y: 34, z: -95, sx: 14, sy: 5.5, sz: 9 },
+   { x: -16, y: 36, z: -125, sx: 18, sy: 6.5, sz: 11 },
+   { x: 22, y: 33, z: -105, sx: 15, sy: 5.8, sz: 10 },
+   { x: 52, y: 35, z: -90, sx: 13, sy: 5.2, sz: 8.5 },
+   { x: -2, y: 38, z: -140, sx: 20, sy: 7.0, sz: 12 },
+] as const;
+
+export const CLOUD_DRIFT = 2.4;
+
+/** Tropical seagulls flock configuration. Circling over the distant cliffs. */
+export const BIRDS = {
+   count: 5,
+   centerX: -32,
+   centerZ: -78,
+   radiusX: 7.0,
+   radiusZ: 4.5,
+   y: 16.5,
+} as const;
+
+function channel(c: number): number {
+   const s = c / 255;
+   return s <= 0.04045 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
+}
+
+/** WCAG contrast of two #rrggbb colours. */
+export function contrastRatio(a: string, b: string): number {
+   const lum = (hex: string) => {
+      const n = Number.parseInt(hex.slice(1), 16);
+      return 0.2126 * channel((n >> 16) & 255) + 0.7152 * channel((n >> 8) & 255) + 0.0722 * channel(n & 255);
+   };
+   const hi = Math.max(lum(a), lum(b));
+   const lo = Math.min(lum(a), lum(b));
+   return (hi + 0.05) / (lo + 0.05);
+}
