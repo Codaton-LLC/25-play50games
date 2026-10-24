@@ -161,6 +161,32 @@ Wind as an arrow plus a number (m/s², one decimal) in the HUD and a streaming f
 1. **Aim: relative drag**, as designed: a drag adjusts the cannon from where it is, a tap fires the same aim again. Mini-golf keeps the slingshot.
 2. **Portrait camera: the steeper 30° view of the whole bay**, as designed; revisited after the first phone measurement (see "Small far ships in portrait").
 
+## Look (2026-10-24)
+
+Modern-look pass (CLAUDE.md decision 4):
+- **Lighting & Atmosphere**: core `day` preset crossfade (`useStageLighting`), `<SkyDome>` with Caribbean azure top (`#0284c7`) fading into horizon sky (`#bae6fd`), fog matched to horizon. Luminous turquoise water with vertex waves, white foam crests, and shoreline surf.
+- **Stand-ins & Procedural Props**: Every code-made object is multi-toned from the unified `COLORS` palette, bevelled/rounded:
+  - Fort: stone seawall foundation, limestone ramparts, bevelled coping merlons (`FORT.parapetTop` 2.55 preserved), wooden gun deck, bronze turntable ring, and swallowtail wind flag.
+  - Harbour: stone mole with coping and wooden pilings, banded lighthouse with glowing beacon room, alternating red/white channel buoys.
+  - Island: rules lathe mound with wet-sand rim and breaking surf ring.
+  - Stand-in ship: crafted wooden hull with prow wedge, gunwales, yardarms, crow's nest, and billowing sails.
+  - Stand-in props: coopered powder barrels with black iron hoops, arched wooden treasure chest with gold hasp, cast-iron cannonballs, jewel crest HP pips, segmented palms.
+- **Surroundings outside the play area (`Decor.tsx`)**:
+  - Distant faceted headland cliffs with green turf tops ($z \le -75$), distant cliffside citadel ($z = -92$).
+  - Outer sandy islets with palm groves, reef boulders, and breaking surf rings flanking the bay ($x \le -28$ and $x \ge +28$).
+  - Circling seagulls in the distance ($z = -78$, paused on reduced motion).
+  - High-altitude drifting cumulus clouds ($y \ge 34, z \le -85$, paused on reduced motion).
+  - No gap or void at any screen size; 100% clear of all rays between camera and play area (`decor.test.ts` checks every spot against `PLAY_BOUNDS`).
+- **Juicy feedback**: rich muzzle smoke + sparks on firing, wood-splinter bursts (`debris`) + sparks on hits, foam splashes on water misses, sand puffs on island hits, multi-effect barrel explosions (smoke, sparks, debris).
+- **Draw calls**: Budget $\le 60$. Estimated baseline **39 - 43**, peak with active fx bursts **45 - 50** calls:
+  - Environment (SkyDome 1, Water 1, far sea 1): 3
+  - Fort & Platform (base/ramparts 1, moulding 1, gun deck 1, merlons 1, flagpole/flag 2, turntable/reload rings 2): 8
+  - Cannon & Projectiles (cannon 1, dots 1, landing ring 1, cannonballs 1): 4
+  - Bay rules props (island mound 1, wet sand/surf rings 2, island palms 2, buoys 2, mole & lighthouse 5): 12
+  - Ships & Floaters (ships 1, pennants 1, sails 1, pips 1, barrels 1, chest 1, flotsam 1): 7
+  - Surroundings / Decor (cliffs 2, citadel 1, islets 1, surf rings 1, reef rocks 1, palm trunks/crowns 2, clouds 1, gulls 1): 10
+  - FX pools (when active): ~5-7
+
 ## Status
 
 ```text
