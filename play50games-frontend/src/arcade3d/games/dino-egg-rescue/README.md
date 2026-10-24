@@ -119,6 +119,35 @@ Fits in `assets.ts`, checked in `assets.test.ts` (the volcano on the real decode
 - **Changed from spec:** pitch 50° vs 55° (boosts screen height by 15 %); boulder speed 3.6–5.2 m/s vs 3–6 m/s and dropped single bounce (pure ground roll); ferns dropped; draw-call cap met at 50 (target 35, cap 50); tree trunk radius 0.256 m from `LEAFY_TREE_TRUNK_RADIUS_GLB = 0.14` vs 0.35 m; palms dropped (D4: `leafyTree` only).
 - `assets.spec.json` lists the volcano (batch 5, text-to-3D 2026-10-24); the GLB itself came with the batch commit.
 
+## Look (2026-10-24)
+
+Modern-look pass (P-34) aligning with CLAUDE.md decision 4 (polished premium mobile-game look):
+1. **Unified Palette (`looks.ts`)**: Single `COLORS` prehistoric sunset palette spanning sky, lush jungle terrain, faceted volcanic rock, warm golden nest straw, and high-readability dino/egg tones.
+2. **Lighting, Fog & Sky**: Core `<SkyDome>` with twilight-to-sunset gradient (`#312e81` to `#ea580c`), sunset directional lighting preset with warm ground bounce, and linear fog (`near: 52, far: 105`) starting beyond the furthest valley corner distance (49.1 m) so the playfield remains crisp while distant ridges fade into soft evening haze.
+3. **Terrain & Prehistoric Ridges (`Valley.tsx`)**: Valley floor rendered with organic canvas texture (mossy grass, dappled sunlit and shaded jungle patches). Low-poly perimeter knolls and ridges (`valleyRidgeMesh`) enclose the valley: strictly 0 height across the play area (`|x| <= 15.2, |z| <= 11.2`) and rising gently outside into multi-toned rocky bluffs.
+4. **Rich Hazard & Nest Detailing**: Mud pits enhanced with dried soil rims, glossy reflective mud pools (`roughness: 0.3`), and low-poly bubbling blisters. Gully lanes feature worn earthen trench beds with telegraph warning indicators. The nest features woven golden straw with braided rim and glowing delivery contact ring.
+5. **Surroundings Decor (`Decor.tsx`)**: 46 static instanced decor spots (ferns, palms, volcanic boulders, distant volcano silhouette peaks) and dynamic sunset clouds + circling pterosaurs outside the playfield. Zero occlusion of any valley position from any fitted camera (1280x800, 390x844, 844x390) proven geometrically and verified by `looks.test.ts`.
+6. **Polished Code-Made Stand-ins (`Primitives.tsx`)**: Every fallback stand-in upgraded to deliberate, multi-toned, bevelled/rounded shapes: baby dino with vibrant skin, pale belly patch, coral frills, and friendly glossy eyes; leafy tree with segmented bark trunk and layered flat-shaded canopy; faceted low-poly volcanic basalt boulders; ridged volcanic peak cone.
+7. **Juicy Feedback**: Added dust puffs on dino footsteps (`events.footstep`), sparkle bursts on egg rescues and pickups, score popups, screen shake and debris bursts on boulder impacts.
+
+### Draw-call estimate (budget <= 60)
+
+| Component | Draw calls | Notes |
+|---|---|---|
+| `<SkyDome>` | 1 | Background gradient dome |
+| Valley terrain & ridges (`Valley.tsx`) | 3 | Meadow plane (1), low-poly perimeter ridges (1), soil ring (1) |
+| Gully lanes & telegraphs | 4–8 | 4 earthen trench planes, telegraph discs active 0.8 s before roll |
+| Mud pits (3 patches) | 9 | Outer dried rim (3), glossy wet pool (3), bubbling blisters (3) |
+| Nest | 3 | Straw torus rim (1), straw bed (1), glowing delivery ring (1) |
+| Leafy trees | 1 | `<InstancedModel>` for 8 trees |
+| Volcano backdrop | 2 | GLB model / fallback (1) + glowing lava crater (1) |
+| Decor (`Decor.tsx`) | 10 | Ferns (2), palm trunks (1), palm fronds (2), rocks (2), volcano silhouettes (1), clouds (1), pterosaurs (1) |
+| Baby dino (`Scene.tsx`) | 2–6 | Dino model (1), carried eggs 0–3 (0–3), golden egg (0–1), dash ring (1), stun/grace halos (0–2) |
+| Boulders | 1 | `<DynamicInstancedModel>` rock pool |
+| Ground eggs | 2–10 | Active regular eggs (glow disc + egg, 2–8), golden egg (0–2) |
+| FX particles (`core/fx`) | 0–3 | Sparkle, puff, debris pools (mounted once on use) |
+| **Total typical frame** | **~38–48** | **Strictly within budget (<= 60 draw calls)** |
+
 ## Files
 
 `meta.ts` (data, scoring) · `index.tsx` (`GameDefinition`) · `rules.ts` (valley layout, dino kinematics, egg supply/spawns, boulder gullies, mud pits, stack delivery, scoring; pure, seeded) · `rules.test.ts` (tuning pins, seed validity, boulder lanes, botHarness limit bots) · `assets.ts` + `assets.test.ts` (manifest validation, models) · `camera.ts` (fitted view options, follow sizing) · `Scene.tsx` (one `useRunFrame`, camera, dino, eggs, boulders, nest, fx, audio loops) · `Valley.tsx` (ground, mud pits, trees, volcano backdrop) · `Primitives.tsx` (stand-ins) · `assets.spec.json` · `README.md` · `public/images/3d/dino-egg-rescue.webp` · `tools/thumbs/inputs/dino-egg-rescue.mjs`.
