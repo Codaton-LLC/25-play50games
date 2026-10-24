@@ -6,6 +6,8 @@
 
 import { capScore as capToLimits, withinServerLimits as fitsLimits } from "@/arcade3d/core/limits";
 import { createRng } from "@/arcade3d/core/math";
+import type { LevelId, ScoringRules } from "@/arcade3d/types";
+import { LEVELS, type FoodCatcherLevel } from "./levels";
 import { foodCatcherMeta } from "./meta";
 
 export { createRng };
@@ -33,6 +35,7 @@ export const SPAWN_X = { min: -3.4, max: 3.4 } as const;
 
 export const GOOD_POINTS = 10;
 export const DOUBLE_POINTS = 20;
+export const BONUS_POINTS = 10;
 /** The catch that makes the combo this big, and every catch after it, scores double. */
 export const COMBO_DOUBLE_AT = 5;
 
@@ -63,16 +66,16 @@ function stepRow(t: number): (typeof STEPS)[number] {
 }
 
 /** Min gap for a wait that starts at t (integer ms). */
-export function gapForWaitStart(t: number): number {
-   return stepRow(t).gap;
+export function gapForWaitStart(t: number, level: FoodCatcherLevel = LEVELS[1]): number {
+   return Math.max(250, Math.round(stepRow(t).gap * level.gapFactor));
 }
 
-export function speedForSpawn(spawnMs: number): number {
-   return stepRow(spawnMs).speed;
+export function speedForSpawn(spawnMs: number, level: FoodCatcherLevel = LEVELS[1]): number {
+   return stepRow(spawnMs).speed * level.speedFactor;
 }
 
-export function badChanceForSpawn(spawnMs: number): number {
-   return stepRow(spawnMs).badChance;
+export function badChanceForSpawn(spawnMs: number, level: FoodCatcherLevel = LEVELS[1]): number {
+   return Math.min(0.95, stepRow(spawnMs).badChance + level.badChanceBoost);
 }
 
 /**
@@ -80,11 +83,11 @@ export function badChanceForSpawn(spawnMs: number): number {
  * The gap is the step that contains the start of the wait. A spawn is kept only when
  * its time is under `roundMs`.
  */
-export function spawnTimes(roundMs = ROUND_MS): number[] {
+export function spawnTimes(roundMs = ROUND_MS, level: FoodCatcherLevel = LEVELS[1]): number[] {
    const times: number[] = [];
    let t = 0;
    for (;;) {
-      const next = t + gapForWaitStart(t);
+      const next = t + gapForWaitStart(t, level);
       if (next >= roundMs) break;
       times.push(next);
       t = next;
@@ -120,13 +123,21 @@ export function catchPoints(comboAfter: number): number {
  * Clamp submitted by the shell, via core/limits.ts: min(score, 2500, floor(28 * roundedSeconds)).
  * The returned durationMs is the caller's value; the budget uses GameShell's rounded milliseconds.
  */
-export function finalScore(score: number, durationMs: number): { score: number; durationMs: number } {
-   return { score: capToLimits(score, durationMs, foodCatcherMeta.scoring), durationMs };
+export function finalScore(
+   score: number,
+   durationMs: number,
+   limits: ScoringRules = foodCatcherMeta.scoring
+): { score: number; durationMs: number } {
+   return { score: capToLimits(score, durationMs, limits), durationMs };
 }
 
-/** The server's check (core/limits.ts) with this game's limits from meta.ts. */
-export function withinServerLimits(score: number, durationMs: number): boolean {
-   return fitsLimits(score, durationMs, foodCatcherMeta.scoring);
+/** The server's check (core/limits.ts) with a level's limits (default: the live level 1 limits). */
+export function withinServerLimits(
+   score: number,
+   durationMs: number,
+   limits: ScoringRules = foodCatcherMeta.scoring
+): boolean {
+   return fitsLimits(score, durationMs, limits);
 }
 
 export interface DtSplit {
@@ -161,6 +172,7 @@ export interface SpawnDef {
    time: number;
    speed: number;
    bad: boolean;
+   bonus: boolean;
    kind: ItemKind;
    x: number;
 }
@@ -168,6 +180,7 @@ export interface SpawnDef {
 export interface Item {
    active: boolean;
    bad: boolean;
+   bonus: boolean;
    kind: ItemKind;
    x: number;
    speed: number;
@@ -183,7 +196,7 @@ export interface StepEvents {
    missed: number;
    badCaught: number;
    lifeLost: boolean;
-   ended: "lose" | "timeup" | null;
+   ended: "win" | "lose" | "timeup" | null;
 }
 
 export interface StepInput {
@@ -202,6 +215,8 @@ export interface RunOptions {
 
 export interface RunState {
    seed: number;
+   level: FoodCatcherLevel;
+   goodCaught: number;
    /** Whole milliseconds of unpaused play. Never a fractional sum of frame dts. */
    elapsedMs: number;
    /** Unused fraction of a millisecond, in [0, 1). */
@@ -220,37 +235,46 @@ export interface RunState {
    events: StepEvents;
 }
 
-export function buildPlan(seed: number, forceGood = false): SpawnDef[] {
-   const times = spawnTimes(ROUND_MS);
+export function buildPlan(seed: number, forceGood = false, level: FoodCatcherLevel = LEVELS[1]): SpawnDef[] {
+   const times = spawnTimes(level.durationMs, level);
    const rng = createRng(seed);
    const plan: SpawnDef[] = [];
    for (let i = 0; i < times.length; i++) {
       const time = times[i];
-      // The first three spawns skip the bad roll. forceGood skips it for the rest too.
-      const bad = i >= 3 && !forceGood && rng() < badChanceForSpawn(time);
+      const bonus = level.goldenEvery > 0 && (i + 1) % level.goldenEvery === 0;
+      // The first three spawns and each golden snack skip the bad roll. forceGood skips it too.
+      const bad = !bonus && i >= 3 && !forceGood && rng() < badChanceForSpawn(time, level);
       const kind = bad
          ? BAD_KINDS[Math.floor(rng() * BAD_KINDS.length)]
          : GOOD_KINDS[Math.floor(rng() * GOOD_KINDS.length)];
       const x = SPAWN_X.min + rng() * (SPAWN_X.max - SPAWN_X.min);
-      plan.push({ time, speed: speedForSpawn(time), bad, kind, x });
+      plan.push({ time, speed: speedForSpawn(time, level), bad, bonus, kind, x });
    }
    return plan;
 }
 
 function makeItem(): Item {
-   return { active: false, bad: false, kind: "apple", x: 0, speed: 0, bornMs: 0, spawnIndex: -1 };
+   return { active: false, bad: false, bonus: false, kind: "apple", x: 0, speed: 0, bornMs: 0, spawnIndex: -1 };
 }
 
 function makeEvents(): StepEvents {
    return { caught: 0, missed: 0, badCaught: 0, lifeLost: false, ended: null };
 }
 
-export function createRun(seed: number, options: RunOptions = {}): RunState {
+export function createRun(
+   seed: number,
+   levelOrOptions: FoodCatcherLevel | RunOptions = LEVELS[1],
+   levelOptions: RunOptions = {}
+): RunState {
+   const level = "durationMs" in levelOrOptions ? levelOrOptions : LEVELS[1];
+   const options = "durationMs" in levelOrOptions ? levelOptions : levelOrOptions;
    const maxAlive = options.maxAlive ?? MAX_ALIVE;
    const items: Item[] = [];
    for (let i = 0; i < maxAlive; i++) items.push(makeItem());
    return {
       seed,
+      level,
+      goodCaught: 0,
       elapsedMs: 0,
       carryMs: 0,
       chefX: 0,
@@ -260,7 +284,7 @@ export function createRun(seed: number, options: RunOptions = {}): RunState {
       lives: LIVES,
       ended: null,
       nextSpawn: 0,
-      plan: buildPlan(seed, options.forceGood === true),
+      plan: buildPlan(seed, options.forceGood === true, level),
       items,
       alive: 0,
       maxAlive,
@@ -333,6 +357,7 @@ function spawnDue(state: RunState): void {
       if (!slot) continue;
       slot.active = true;
       slot.bad = def.bad;
+      slot.bonus = def.bonus;
       slot.kind = def.kind;
       slot.x = def.x;
       slot.speed = def.speed;
@@ -343,7 +368,7 @@ function spawnDue(state: RunState): void {
    }
 }
 
-function endRun(state: RunState, reason: "lose" | "timeup"): void {
+function endRun(state: RunState, reason: "win" | "lose" | "timeup"): void {
    if (state.ended) return;
    state.ended = reason;
    state.events.ended = reason;
@@ -371,8 +396,10 @@ function resolveCross(state: RunState, item: Item, yNow: number): void {
       return;
    }
    state.combo += 1;
-   state.score += catchPoints(state.combo);
+   state.goodCaught += 1;
+   state.score += catchPoints(state.combo) + (item.bonus ? BONUS_POINTS : 0);
    state.events.caught += 1;
+   if (state.level.targetGood > 0 && state.goodCaught >= state.level.targetGood) endRun(state, "win");
 }
 
 /**
@@ -388,8 +415,8 @@ export function step(state: RunState, dtMs: number, input: StepInput = {}): Step
    const split = splitDt(state.carryMs, dtMs, SPLIT);
    let whole = split.wholeMs;
    let carry = split.carryMs;
-   if (prev + whole >= ROUND_MS) {
-      whole = ROUND_MS - prev;
+   if (prev + whole >= state.level.durationMs) {
+      whole = state.level.durationMs - prev;
       carry = 0;
    }
    state.carryMs = carry;
@@ -420,6 +447,19 @@ export function step(state: RunState, dtMs: number, input: StepInput = {}): Step
       resolveCross(state, item, itemY(item.bornMs, state.elapsedMs, item.speed));
    }
 
-   if (!state.ended && state.elapsedMs >= ROUND_MS) endRun(state, "timeup");
+    if (!state.ended && state.elapsedMs >= state.level.durationMs) endRun(state, "timeup");
    return events;
 }
+
+/** Proposed per-level server limits; proofs live in README.md and levels.test.ts. */
+export const PROPOSED_LEVEL_LIMITS: Record<LevelId, ScoringRules> = {
+   1: foodCatcherMeta.scoring,
+   /** L2: 25 catches = 460 combo points + 30 golden points = 490; 4.1% score margin. */
+   2: { ...foodCatcherMeta.scoring, maxScore: 510, minDurationMs: 8620, maxDurationMs: 123_000, maxPointsPerSec: 19 },
+   /** L3: 35 catches = 660 combo points + 50 golden points = 710; 4.2% score margin. */
+   3: { ...foodCatcherMeta.scoring, maxScore: 740, minDurationMs: 7840, maxDurationMs: 153_000, maxPointsPerSec: 23 },
+   /** L4: 45 catches = 860 combo points + 70 golden points = 930; 4.3% score margin. */
+   4: { ...foodCatcherMeta.scoring, maxScore: 970, minDurationMs: 7060, maxDurationMs: 183_000, maxPointsPerSec: 27 },
+   /** L5: 60 catches = 1160 combo points + 120 golden points = 1280; 4.7% score margin. */
+   5: { ...foodCatcherMeta.scoring, maxScore: 1340, minDurationMs: 6450, maxDurationMs: 183_000, maxPointsPerSec: 32 },
+};
