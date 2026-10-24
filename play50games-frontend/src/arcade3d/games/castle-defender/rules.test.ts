@@ -8,7 +8,7 @@ import { launchForTime, landingPoint } from "@/arcade3d/core/ballistics";
 import { MUZZLE } from "./assets";
 import { VIEW } from "./camera";
 import { castleDefenderMeta } from "./meta";
-import { AIM, BALLISTICS, COUNTS, LANES, LANE_X, ROCK_FLIGHT, STARTS, TUNING, TYPES, chooseUpgrade, createInput, createRun, flightTime, generateArmy, impact, predict, reload, runScore, snapAim, splash, stepRun, threatenedCrew, type CastleRun } from "./rules";
+import { AIM, BALLISTICS, CLIMB_OFFSETS, COUNTS, LANES, LANE_X, ROCK_FLIGHT, STARTS, TUNING, TYPES, chooseUpgrade, createInput, createRun, flightTime, generateArmy, impact, predict, reload, runScore, snapAim, splash, stepRun, threatenedCrew, type CastleRun } from "./rules";
 
 const idle = createInput();
 const advanceTo = (run: CastleRun, at: number) => stepRun(run, idle, at - run.time);
@@ -189,7 +189,7 @@ function erectedFixture() {
    let rail = 0;
    for (const g of run.goblins) if (g.crew === c.id) {
       g.status = "climb"; g.hp = 1; g.y = 0.08; g.z = 2;
-      g.x = LANE_X[c.lane] + (rail++ % 2 ? 0.45 : -0.45);
+      g.x = LANE_X[c.lane] + CLIMB_OFFSETS[rail++ % 3];
    }
    return run;
 }
@@ -268,6 +268,22 @@ describe("ladders, rocks and terminal boundaries", () => {
       stepRun(run, idle, 0.05); expect(run.crews[0].erected).toBe(-1);
       stepRun(run, idle, 0.05); expect(run.crews[0].erected).toBeCloseTo(90.1, 8);
       expect(members.every((g) => g.status === "climb" && g.z === 2 && g.y >= 0.08)).toBe(true);
+      expect(members.map((g) => Math.round((g.x - LANE_X[run.crews[0].lane]) * 100) / 100)).toEqual([-0.6, 0, 0.6]);
+   });
+   it("never stacks two climbers of a crew on one x, in any seeded full run", () => {
+      for (let seed = 0; seed < 40; seed++) {
+         const run = createRun(seed), crews = new Set<number>();
+         while (!run.end) {
+            run.hp = 100; stepRun(run, idle, 0.5);
+            for (const c of run.crews) if (c.erected >= 0 && !crews.has(c.id)) {
+               crews.add(c.id);
+               const xs = run.goblins.filter((g) => g.crew === c.id && g.status === "climb").map((g) => g.x);
+               expect(xs).toHaveLength(3); expect(new Set(xs.map((x) => x.toFixed(3))).size).toBe(3);
+               for (const x of xs) expect(Math.abs(x - LANE_X[c.lane])).toBeLessThanOrEqual(0.6 + 1e-9);
+            }
+         }
+         expect(crews.size).toBe(4);
+      }
    });
    it("accepts a buffered rock at erection and never transfers its snapshot", () => {
       const run = erectedFixture(), i = createInput(); run.crews[0].erected = -1;

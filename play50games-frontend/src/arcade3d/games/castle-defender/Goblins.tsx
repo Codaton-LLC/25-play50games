@@ -8,7 +8,7 @@ import { hop, squashStretch } from "@/arcade3d/core/motion";
 import { DynamicInstanced } from "@/arcade3d/core/render";
 import { ASSETS } from "./assets";
 import { GOBLIN_TINTS, useGoblinParts } from "./Primitives";
-import type { CastleRun, Goblin } from "./rules";
+import { LADDER, type CastleRun, type Goblin } from "./rules";
 
 const WAVE_IDS = [0, 8, 22, 42, 68];
 export function visibleGoblin(run: CastleRun, slot: number): Goblin | undefined {
@@ -27,7 +27,8 @@ export function Goblins({ run, reduced }: { run: CastleRun; reduced: boolean }) 
       if (dead && (reduced || age >= 0.35)) return false;
       hop(reduced || dead || g.status === "climb" ? 0 : time.now * Math.PI * 4 + g.id, 0.06, scratch.motion);
       squashStretch(scratch.motion.squash, scratch.stretch);
-      const shrink = dead ? Math.max(0, 1 - age / 0.35) : 1;
+      // climbers are drawn larger so they stay readable on a landscape phone (no hit box: rocks hit the crew)
+      const shrink = (dead ? Math.max(0, 1 - age / 0.35) : 1) * (g.status === "climb" ? LADDER.climberScale : 1);
       scratch.p.set(g.x, g.y + scratch.motion.y, g.z);
       scratch.q.setFromAxisAngle(scratch.axis, dead ? age * 12 : 0);
       scratch.scale.set(scratch.stretch.x * shrink, scratch.stretch.y * shrink, scratch.stretch.z * shrink);

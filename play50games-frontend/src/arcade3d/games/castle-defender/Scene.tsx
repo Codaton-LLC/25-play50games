@@ -27,6 +27,9 @@ const UPGRADE_SFX = { volume: 0.3 };
 const IMPACT_SFX = { volume: 0.25 };
 const DAMAGE_SFX = { volume: 0.25 };
 const WAVE_SFX = { pitch: 0.6, volume: 0.3 };
+const WIN_SFX = { pitch: 1.5, volume: 0.35 };
+// win confetti from the wall top: over both banners and the cannon, in front of the camera
+const CONFETTI = [{ x: -4.4, y: 2.6, z: 2.6 }, { x: 0, y: 3, z: 2.4 }, { x: 4.4, y: 2.6, z: 2.6 }];
 
 function setStat(key: string, value: number): void {
    const store = useArcadeStore.getState(); if (store.stats[key] !== value) store.setStat(key, value);
@@ -81,13 +84,16 @@ export default function Scene() {
       if (run.damageEvents !== damage) { fx.shake(0.15); fx.burst("debris", run.lastDamage, 12); playSfx("hit", DAMAGE_SFX); }
       if (run.wave !== wave) playSfx("go", WAVE_SFX);
       if (run.end) {
-         if (run.end === "win") { s.setScore(run.score); if (!preferences.reduced) fx.burst("confetti", FOCUS, 36); }
+         if (run.end === "win") {
+            s.setScore(run.score); playSfx("chime", WIN_SFX);
+            if (!preferences.reduced) for (const p of CONFETTI) fx.burst("confetti", p, 42);
+         }
          if (run.end === "lose") fx.burst("debris", FOCUS, 16);
          s.end(run.end);
       }
    });
    return <>
       <CameraRig camera={CAMERA} follow={FOCUS} offset={view.offset} shift={view.shift} damping={5} />
-      <Castle run={run} /><Goblins run={run} reduced={preferences.reduced} /><Cannon run={run} reduced={preferences.reduced} /><Markers run={run} />
+      <Castle run={run} reduced={preferences.reduced} /><Goblins run={run} reduced={preferences.reduced} /><Cannon run={run} reduced={preferences.reduced} /><Markers run={run} />
    </>;
 }

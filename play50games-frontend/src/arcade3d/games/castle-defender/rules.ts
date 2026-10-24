@@ -32,6 +32,10 @@ export const BALLISTICS = { gravity: TUNING.gravity };
 export const ROCK_FLIGHT = Math.sqrt(6 / TUNING.gravity);
 export const LANES = [-3, 0, 3].map((x) => createPath([{ x, y: 0, z: -6.8 }, { x, y: 0, z: 2 }]));
 export const LANE_X = [-3, 0, 3] as const;
+/** where the three climbers of a crew stand on their ladder (visual only: rocks hit the whole crew) */
+export const CLIMB_OFFSETS = [-0.6, 0, 0.6] as const;
+/** drawn ladder (half width between the rails, height from y 0.08) and climber scale: visuals only */
+export const LADDER = { half: 0.9, height: 2.8, climberScale: 1.25 } as const;
 const EPS = 1e-9;
 export interface Goblin extends RiderState {
    id: number; wave: number; pack: number; lane: number; kind: Kind; crew: number;
@@ -249,7 +253,7 @@ function events(run: CastleRun): void {
          run.erections++;
          let n = 0;
          for (const g of run.goblins) if (g.crew === c.id && g.status === "rail") {
-            g.status = "climb"; g.x = LANE_X[c.lane] + (n++ % 2 ? 0.45 : -0.45); g.z = 2; g.y = 0.08;
+            g.status = "climb"; g.x = LANE_X[c.lane] + CLIMB_OFFSETS[n++ % 3]; g.z = 2; g.y = 0.08;
          }
       }
    }
