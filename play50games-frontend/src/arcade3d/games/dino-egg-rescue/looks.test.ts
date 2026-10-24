@@ -193,7 +193,7 @@ describe("dino-egg-rescue look (modern-look pass & fixes)", () => {
       // North, West, and East exterior: knolls rise into surrounding cliffs
       expect(ridgeHeight(-20, 0)).toBeGreaterThan(0.5);
       expect(ridgeHeight(20, 0)).toBeGreaterThan(0.5);
-      expect(ridgeHeight(0, -18)).toBeGreaterThan(0.5);
+      expect(ridgeHeight(0, -22)).toBeGreaterThan(0.5);
 
       const mesh = valleyRidgeMesh();
       expect(mesh.triangles).toBeGreaterThan(100);
@@ -203,6 +203,40 @@ describe("dino-egg-rescue look (modern-look pass & fixes)", () => {
       for (let i = 0; i < mesh.positions.length; i += 3) {
          const z = mesh.positions[i + 2];
          expect(z).toBeLessThanOrEqual(VALLEY_FIELD.z1 + 1e-4);
+      }
+   });
+
+   it("asserts ridgeHeight is 0 for every point of the soil ring and play area, and every ridge cell vertex inside radius 17.5 has height 0", () => {
+      // 1. Soil path ring (inner radius 14.5, outer radius 17.5) has height strictly 0
+      for (let r = 14.5; r <= 17.5 + 1e-4; r += 0.25) {
+         for (let step = 0; step < 64; step++) {
+            const angle = (step / 64) * Math.PI * 2;
+            const x = Math.cos(angle) * r;
+            const z = Math.sin(angle) * r;
+            expect(ridgeHeight(x, z), `soil ring at (${x.toFixed(2)}, ${z.toFixed(2)})`).toBe(0);
+         }
+      }
+
+      // 2. Playable valley area (x in [-15, 15], z in [-11, 11]) has height strictly 0
+      for (let x = -15; x <= 15; x += 0.5) {
+         for (let z = -11; z <= 11; z += 0.5) {
+            expect(ridgeHeight(x, z), `play area at (${x}, ${z})`).toBe(0);
+         }
+      }
+
+      // 3. Every ridge cell vertex inside radius 17.5 has height strictly 0
+      const mesh = valleyRidgeMesh();
+      for (let i = 0; i < mesh.positions.length; i += 3) {
+         const vx = mesh.positions[i];
+         const vy = mesh.positions[i + 1];
+         const vz = mesh.positions[i + 2];
+         const radius = Math.hypot(vx, vz);
+         if (radius <= 17.5) {
+            expect(
+               vy,
+               `ridge vertex at (${vx.toFixed(2)}, ${vz.toFixed(2)}) inside radius 17.5 must be flat`
+            ).toBe(0);
+         }
       }
    });
 

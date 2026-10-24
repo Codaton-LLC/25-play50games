@@ -7,7 +7,11 @@ import { rngNext } from "@/arcade3d/core/math";
 export const VALLEY_FIELD = { x0: -15, x1: 15, z0: -11, z1: 11 } as const;
 
 /** Hills and perimeter ridges stay flat through here (height 0), then rise outside. */
-export const VALLEY_FLAT = { x0: -15.3, x1: 15.3, z0: -11.3, z1: 11.3 } as const;
+export const SOIL_OUTER_RADIUS = 17.5;
+export const RIDGE_FLAT_MARGIN = 0.5;
+
+/** Hills and perimeter ridges stay flat through here (height 0), then rise outside. Aligned with 2m ridge grid. */
+export const VALLEY_FLAT = { x0: -18, x1: 18, z0: -19, z1: 11 } as const;
 
 /** Main volcano backdrop position outside valley bounds at NE. */
 export const MAIN_VOLCANO = { x: 16, y: 0, z: -13, radius: 5.5 } as const;
@@ -41,7 +45,7 @@ export const COLORS = {
    grassSun: "#84cc16",
    grassShade: "#4d7c0f",
    grassDeep: "#365314",
-   soil: "#78350f",
+   soil: "#a16207",
    soilWarm: "#92400e",
 
    // Perimeter Rock & Knolls
@@ -227,6 +231,10 @@ const RIDGE_DARK = rgbOf(COLORS.ridgeRockDark);
  * Ridge height: strictly 0 inside the valley flat zone, rising outside into gentle prehistoric cliffs.
  */
 export function ridgeHeight(x: number, z: number): number {
+   // Soil path ring runs out to radius 17.5: return 0 within radius 17.5 + margin
+   if (x * x + z * z <= (SOIL_OUTER_RADIUS + RIDGE_FLAT_MARGIN) ** 2) {
+      return 0;
+   }
    if (
       x >= VALLEY_FLAT.x0 &&
       x <= VALLEY_FLAT.x1 &&
@@ -244,7 +252,7 @@ export function ridgeHeight(x: number, z: number): number {
    const dz = Math.max(0, VALLEY_FLAT.z0 - z, z - VALLEY_FLAT.z1);
    const dist = Math.hypot(dx, dz);
    const roll = 0.4 + 0.6 * (0.5 + 0.5 * Math.sin(x * 0.28) * Math.cos(z * 0.22));
-   const rise = Math.min(1, dist / 6.5);
+   const rise = Math.min(1, dist / 3.5);
    return Math.min(4.2, rise * rise * (0.6 + 3.2 * roll));
 }
 

@@ -131,11 +131,18 @@ export function Valley({ telegraphLanes }: { telegraphLanes?: readonly boolean[]
 
          {/* Surrounding low-poly prehistoric ridges */}
          <mesh geometry={ridges} dispose={null} name="valley-ridges">
-            <meshStandardMaterial vertexColors flatShading roughness={1} />
+            <meshStandardMaterial
+               vertexColors
+               flatShading
+               roughness={1}
+               polygonOffset
+               polygonOffsetFactor={1}
+               polygonOffsetUnits={1}
+            />
          </mesh>
 
          {/* Soil path boundary ring */}
-         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.005, 0]}>
+         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.001, 0]}>
             <ringGeometry args={[14.5, 17.5, 32]} />
             <meshStandardMaterial color={COLORS.soil} roughness={0.9} />
          </mesh>
