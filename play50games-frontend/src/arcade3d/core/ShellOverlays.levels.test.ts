@@ -211,3 +211,23 @@ describe("result panel with levels", () => {
       expect(html.match(/<button[^>]*class="([^"]*)"[^>]*>Retry</)![1]).toBe(panel().match(/<button[^>]*class="([^"]*)"[^>]*>Retry</)![1]);
    });
 });
+
+describe("tile row fit", () => {
+   it("five tiles share the desktop card without a scrollbar; a phone row scrolls with its tiles clear of the card edge", () => {
+      const css = readFileSync(path.join(__dirname, "LevelTiles.module.css"), "utf8");
+      const row = /\.row \{[^}]*\}/.exec(css)![0];
+      expect(row).toContain("overflow-x: auto");
+      expect(row).toContain("scroll-padding-inline: var(--panel-pad-x");
+      const desktop = /@media \(min-width: 640px\) \{([\s\S]*?)\n\}/.exec(css)![1];
+      const tile = /\.tile \{[^}]*\}/.exec(desktop)![0];
+      expect(tile).toContain("flex: 1 1 0");
+      expect(tile).toContain("min-width: 0");
+      // the desktop card: 520 px wide, 1 px border, 28 px padding, up to 12 px of scrollbar
+      const content = 520 - 2 - 2 * 28 - 12;
+      const gap = Number(/gap: (\d+)px/.exec(desktop)![1]);
+      const pad = Number(/padding: (\d+)px/.exec(tile)![1]);
+      const textWidth = (content - 4 * gap) / 5 - 2 * pad - 2;
+      // "Warehouse", the longest word of any level title, at 12 px bold is about 62 px
+      expect(textWidth).toBeGreaterThanOrEqual(64);
+   });
+});
