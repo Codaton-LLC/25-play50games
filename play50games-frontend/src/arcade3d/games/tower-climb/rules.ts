@@ -41,7 +41,12 @@ export const V_SPRING = Math.sqrt(2 * G * SPRING.apex);
  */
 export const ROCKET = {
    lift: 0.7, speed: 4, durationMs: 1600, gain: 6.4, reach: 0.42,
-   minHeight: 32, gap: 18, landLow: 5.25, landHigh: 6.95,
+   minHeight: 32, gap: 18,
+   /**
+    * Heights above the slab. `landLow` stays above the loss line of a grab at the jump apex
+    * (0.8 + gain − 2). `landHigh` stays under a grab near the slab (burnout ≈ gain).
+    */
+   landLow: 5.4, landHigh: 6.3,
 } as const;
 /** Side gusts, level 5. The route's centres stay inside ±(1 + travel) = 1.4, outside `xInner`. */
 export const WIND = { xInner: 1.62, speed: 1.5, y0: 36, gap: 26, band: 8 } as const;
@@ -63,11 +68,11 @@ export const PROPOSED_LEVEL_LIMITS: Record<LevelId, ScoringRules> = {
    1: { kind: "points", maxScore: 19000, minDurationMs: 3000, maxDurationMs: 1800000, base: 0, maxPointsPerSec: 11, unitLabel: "pts", display: "int" },
    /** L2: same jumps. Wider and faster slabs do not add height. */
    2: { kind: "points", maxScore: 19000, minDurationMs: 3000, maxDurationMs: 1800000, base: 0, maxPointsPerSec: 11, unitLabel: "pts", display: "int" },
-   /** L3: 8 springs, first at 16 m, 12 m apart, +3 m in 0.775 s. Envelope peak 12.43 pts/s; ceiling 18585. */
+   /** L3: 8 springs, first at 16 m, 12 m apart, +3 m in 0.775 s. Envelope peak 12.46 pts/s; ceiling 18585. */
    3: { kind: "points", maxScore: 19350, minDurationMs: 3000, maxDurationMs: 1800000, base: 0, maxPointsPerSec: 13, unitLabel: "pts", display: "int" },
-   /** L4: 12 springs and 5 rockets (+7.1 m from the slab in 1.86 s). Envelope peak 17.53 pts/s; ceiling 19065. */
-   4: { kind: "points", maxScore: 19850, minDurationMs: 3000, maxDurationMs: 1800000, base: 0, maxPointsPerSec: 19, unitLabel: "pts", display: "int" },
-   /** L5: 16 springs, 8 rockets, wind (no extra height). Envelope peak 17.85 pts/s; ceiling 19390. */
+   /** L4: 12 springs and 5 rockets (+7.1 m from the slab in 1.86 s). Envelope peak 17.25 pts/s; ceiling 19065. */
+   4: { kind: "points", maxScore: 19850, minDurationMs: 3000, maxDurationMs: 1800000, base: 0, maxPointsPerSec: 18, unitLabel: "pts", display: "int" },
+   /** L5: 16 springs, 8 rockets, wind (no extra height). Envelope peak 17.69 pts/s; ceiling 19365. */
    5: { kind: "points", maxScore: 20200, minDurationMs: 3000, maxDurationMs: 1800000, base: 0, maxPointsPerSec: 19, unitLabel: "pts", display: "int" },
 };
 
@@ -300,17 +305,27 @@ function springLanding(data: Tower, index: number, level: TowerLevel): number {
    return best;
 }
 
-/** A static slab or checkpoint in the rocket's safe window, within 1.2 m of the launch x. */
+/**
+ * A static slab or checkpoint the straight-up burnout can still land on.
+ * The runner may steer for the whole burn and the fall; 1.2 m is inside that reach,
+ * and the top stays under a low grab and above the loss line of a high grab.
+ */
 function rocketLanding(data: Tower, index: number): number {
    const y = data.heights[index] / 1000, x = data.xs[index] / 1000;
    const low = y + ROCKET.landLow, high = y + ROCKET.landHigh;
+   const burn = ROCKET.durationMs / 1000;
    let best = NONE;
    for (let j = index + 1; j < DESCRIPTORS; j++) {
       const py = data.heights[j] / 1000;
       if (py < low) continue;
       if (py > high) break;
       if (data.kinds[j] === MOVING) continue;
-      if (Math.abs(data.xs[j] / 1000 - x) > 1.2) continue;
+      const rise = py - y, dx = Math.abs(data.xs[j] / 1000 - x);
+      if (dx > 1.2) continue;
+      const drop = ROCKET.gain - rise;
+      if (drop <= 0.05) continue;
+      const fallT = Math.sqrt((2 * drop) / G);
+      if (V_RUN * (burn + fallT) < dx + ROCKET.reach + 0.05) continue;
       best = j;
    }
    return best;
@@ -454,14 +469,15 @@ const MOVE_HALF_MS = MOVING_SLAB.periodMs / 2, MOVE_SPAN = 2 * MOVING_SLAB.trave
 export function slabX(slab: SlabSlot, ms: number): number {
    if (slab.kind !== MOVING) return slab.baseX;
    const t = slab.frozenAtMs >= 0 ? slab.frozenAtMs : ms;
+   const period = slab.periodMs ?? 0, travel = slab.travel ?? 0;
    // Level 1 leaves travel/period at 0: the original formula, same operations.
-   if (!(slab.periodMs > 0) || !(slab.travel > 0)) {
+   if (!(period > 0) || !(travel > 0)) {
       const phase = ((t + slab.phaseMs) % MOVING_SLAB.periodMs) / MOVE_HALF_MS;
       return slab.baseX + (phase <= 1 ? MOVE_SPAN * phase - MOVING_SLAB.travel : MOVING_SLAB.travel - MOVE_SPAN * (phase - 1));
    }
-   const half = slab.periodMs / 2, span = 2 * slab.travel;
-   const phase = ((t + slab.phaseMs) % slab.periodMs) / half;
-   return slab.baseX + (phase <= 1 ? span * phase - slab.travel : slab.travel - span * (phase - 1));
+   const half = period / 2, span = 2 * travel;
+   const phase = ((t + slab.phaseMs) % period) / half;
+   return slab.baseX + (phase <= 1 ? span * phase - travel : travel - span * (phase - 1));
 }
 
 export function landingTime(rise: number, vy = V_JUMP): number {
@@ -656,9 +672,9 @@ function onSpring(run: TowerRun, index: number, x: number): boolean {
 function launchSpring(run: TowerRun, index: number, at: number, to: number): void {
    const p = run.player, rest = (to - at) / 1000, vx = stepVx(run);
    p.vy = V_SPRING; p.grounded = false; p.groundIndex = index;
-   p.contactA = p.contactB = NONE; p.permission = false; run.coyoteUntilMs = NONE;
+   run.contactA = run.contactB = NONE; run.permission = false; run.coyoteUntilMs = NONE;
    run.flight.atMs = at; run.flight.y = p.y; run.flight.vy = V_SPRING;
-   run.events.sprung = index; run.springMs = to; run.springPad = index;
+   run.events.sprung = index; run.springMs = to; run.springPad = index; run.boostAim = NONE;
    p.x = clampX(p.x + vx * rest);
    p.y = p.y + V_SPRING * rest - G * rest * rest / 2;
    p.vy = V_SPRING - G * rest;
@@ -670,7 +686,7 @@ function flyBoost(run: TowerRun, from: number, to: number, startX: number): void
    const dur = (end - from) / 1000, vx = stepVx(run);
    p.x = clampX(startX + vx * dur);
    p.y = p.y + ROCKET.speed * dur;
-   p.grounded = false; p.contactA = p.contactB = NONE; p.permission = false;
+   p.grounded = false; run.contactA = run.contactB = NONE; run.permission = false; run.coyoteUntilMs = NONE;
    if (to < until) {
       p.vy = ROCKET.speed; run.flight.atMs = to; run.flight.y = p.y; run.flight.vy = ROCKET.speed;
       return;
@@ -688,7 +704,8 @@ function tryRocket(run: TowerRun, ms: number): void {
       const dx = p.x - rx, dy = p.y + COIN.playerLift - ry;
       if (dx * dx + dy * dy > ROCKET.reach * ROCKET.reach) continue;
       run.rocketTaken[i] = 1; run.boostUntilMs = ms + ROCKET.durationMs; run.boostAim = run.rocketTarget[i];
-      run.events.rocket = i; p.vy = ROCKET.speed; p.grounded = false; p.contactA = p.contactB = NONE;
+      run.events.rocket = i; p.vy = ROCKET.speed; p.grounded = false;
+      run.contactA = run.contactB = NONE; run.permission = false; run.coyoteUntilMs = NONE;
       return;
    }
 }
@@ -736,6 +753,7 @@ function integrate(run: TowerRun): void {
          if (run.springCount > 0 && onSpring(run, index, p.x)) launchSpring(run, index, at, to);
          else {
             p.vy = 0; p.grounded = true; p.groundIndex = index; run.permission = true; run.coyoteUntilMs = NONE;
+            run.boostAim = NONE;
             // Geometry uses the exact crossing; notifications use its containing slice's integer end.
             updateContacts(run, at, true, to);
             run.events.landed = run.contactA; checkpoint(run, index);

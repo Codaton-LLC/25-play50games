@@ -11,7 +11,7 @@ describe("tower-climb fallback resources and the runner stand-in", () => {
          expect([parts.slab.length, parts.moving.length, parts.ledge.length, parts.intact.length,
             parts.cracked.length, parts.coin.length, parts.flag.length, parts.tower.length]).toEqual([2, 2, 2, 2, 2, 1, 2, 2]);
          // left and right arrow decals on the moving slab (both sides of the deck)
-         const arrows = parts.moving[1].locals;
+         const arrows = parts.moving[1].locals ?? [];
          expect(arrows.some(m => m.elements[12] < -0.2)).toBe(true);
          expect(arrows.some(m => m.elements[12] > 0.2)).toBe(true);
          let geometries = 0, materials = 0;
@@ -87,5 +87,7 @@ describe("tower-climb fallback resources and the runner stand-in", () => {
       expect(limbs.armL).toBeLessThan(-1);
       gait.air = 0; gait.cheer = 1; standInLimbs(gait, limbs);
       expect(limbs.raise).toBeGreaterThan(2);
+      gait.cheer = 0; gait.fly = 1; standInLimbs(gait, limbs);
+      expect(limbs.armL).toBeGreaterThan(1); expect(limbs.armR).toBeGreaterThan(1);
    });
 });

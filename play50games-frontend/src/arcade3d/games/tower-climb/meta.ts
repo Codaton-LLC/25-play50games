@@ -21,7 +21,7 @@ const LEVELS: readonly LevelMeta[] = [
    { id: 1, title: "Training Tower", scoring: SCORING_L1, clearScore: 500 },
    { id: 2, title: "Stone Tower", scoring: scoring(19000, 11), clearScore: 800 },
    { id: 3, title: "Clock Tower", scoring: scoring(19350, 13), clearScore: 1200 },
-   { id: 4, title: "Storm Tower", scoring: scoring(19850, 19), clearScore: 1700 },
+   { id: 4, title: "Storm Tower", scoring: scoring(19850, 18), clearScore: 1700 },
    { id: 5, title: "Sky Tower", scoring: scoring(20200, 19) },
 ];
 

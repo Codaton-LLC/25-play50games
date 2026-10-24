@@ -228,9 +228,17 @@ describe("tower-climb rockets and wind", () => {
             expect(parent % 16).not.toBe(0);
             expect(run.tower.kinds[target]).not.toBe(MOVING);
             const rise = run.tower.heights[target] / 1000 - run.tower.heights[parent] / 1000;
+            const dx = Math.abs(run.tower.xs[target] - run.tower.xs[parent]) / 1000;
             expect(rise).toBeGreaterThanOrEqual(ROCKET.landLow);
             expect(rise).toBeLessThanOrEqual(ROCKET.landHigh);
-            expect(Math.abs(run.tower.xs[target] - run.tower.xs[parent]) / 1000).toBeLessThanOrEqual(1.2);
+            expect(dx).toBeLessThanOrEqual(1.2);
+            // a grab near the slab still flies past this top; the burn plus the fall covers dx
+            const drop = ROCKET.gain - rise;
+            expect(drop).toBeGreaterThan(0.05);
+            const fallT = Math.sqrt((2 * drop) / G);
+            expect(V_RUN * (ROCKET.durationMs / 1000 + fallT)).toBeGreaterThanOrEqual(dx + ROCKET.reach + 0.05);
+            // a grab at the 0.8 m jump apex still has this top above the loss line
+            expect(rise).toBeGreaterThanOrEqual(0.8 + ROCKET.gain - 2 + 0.15);
             for (let s = 0; s < run.springCount; s++) expect(run.springParent[s]).not.toBe(parent);
          }
       }
@@ -247,11 +255,14 @@ describe("tower-climb rockets and wind", () => {
       expect(run.boostUntilMs).toBe(NONE);
       run.player.grounded = false; run.player.y = y + 0.45; run.player.vy = 1;
       run.flight.atMs = run.timeMs; run.flight.y = run.player.y; run.flight.vy = 1;
-      step(run, 20, idle);
-      expect(run.boostUntilMs).toBeGreaterThan(run.timeMs);
+      // 1 ms steps, so the collecting step does not also fly part of the burn
+      let guard = 0;
+      while (run.boostUntilMs < 0 && guard++ < 40) step(run, 1, idle);
+      expect(run.boostUntilMs).toBe(run.timeMs + ROCKET.durationMs);
       const startY = run.player.y, until = run.boostUntilMs;
       while (run.timeMs < until && !run.ended) step(run, 50, { moveX: 1, jumpEdge: false });
-      expect(run.rocketDropY - startY).toBeCloseTo(ROCKET.gain, 1);
+      expect(run.rocketDropY - startY).toBeCloseTo(ROCKET.gain, 2);
+      expect(run.rocketDropMs).toBe(until);
       expect(run.boostUntilMs).toBe(NONE);
       expect(run.player.x).toBeGreaterThan(x);
       const before = run.player.vy;
@@ -330,11 +341,10 @@ function levelClimb(run: TowerRun, out: StepInput): void {
    out.jumpEdge = false; out.moveX = 0;
    if (!run.holdUnlocked || run.pendingLose || run.ended) return;
    let index = p.groundIndex + 1;
-   if (!p.grounded && run.boostAim >= 0 && p.y > run.tower.heights[run.boostAim] / 1000 - 0.3) index = run.boostAim;
-   else if (!p.grounded && run.springPad >= 0) {
-      let target = NONE;
-      for (let i = 0; i < run.springCount; i++) if (run.springParent[i] === run.springPad) target = run.springTarget[i];
-      if (target >= 0 && p.y > run.tower.heights[target] / 1000 - 0.15) index = target;
+   // Steer at the rocket's landing for the whole burn and the fall. A later jump has cleared boostAim.
+   if (!p.grounded && run.boostAim >= 0) index = run.boostAim;
+   else if (!p.grounded && run.flight.vy > V_JUMP && run.springPad >= 0) {
+      for (let i = 0; i < run.springCount; i++) if (run.springParent[i] === run.springPad) { index = run.springTarget[i]; break; }
    }
    if (index < 1 || index >= run.tower.heights.length) return;
    steer(run, index, out);
@@ -351,7 +361,7 @@ describe("tower-climb honest climbs", () => {
    });
 
    it("reaches each level's height target", () => {
-      const seeds = [1, 5050];
+      const seeds = [1, 2, 3, 7, 11, 42, 100, 5050];
       const cleared: Record<number, number> = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
       for (const id of LEVEL_IDS) for (const seed of seeds) {
          const run = createRun(seed, LEVELS[id]);
