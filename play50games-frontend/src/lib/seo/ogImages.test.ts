@@ -5,8 +5,8 @@ import { describe, expect, it } from "vitest";
 import { ARCADE_GAMES, getGameMeta } from "@/arcade3d/registry";
 import { OG_IMAGE_HEIGHT, OG_IMAGE_WIDTH, OG_IMAGES, gameOgImagePath, ogImage } from "./ogImages";
 
-/** Games production can show ("live" / "soon"); a "dev" game gets its card and thumbnail before it leaves dev. */
-const SHOWN_SLUGS = ARCADE_GAMES.filter((game) => game.status !== "dev").map((game) => game.slug);
+/** Every registered game, including "dev" ones: a dev game gets its card and thumbnail before it leaves dev. */
+const SHOWN_SLUGS = ARCADE_GAMES.map((game) => game.slug);
 
 const PUBLIC = fileURLToPath(new URL("../../../public", import.meta.url));
 
