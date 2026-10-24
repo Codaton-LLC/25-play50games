@@ -1,0 +1,19 @@
+{
+   "slug": "snowball-battle",
+   "universe": "shared-cast",
+   "seed": 5050,
+   "assets": [
+      {
+         "id": "snowKid",
+         "kind": "character",
+         "mode": "image",
+         "prompt": "Cheerful stylised boy about nine years old with the young face from the concept image (no beard), the same hair, a puffy light grey-white winter jacket, dark slate snow trousers, mittens and chunky warm brown snow boots, full body, clean T-pose with arms straight out level, legs slightly apart, facing forward, empty hands. Premium stylised mobile-game look, friendly rounded proportions, soft shapes, matte fabric materials. Single character, centred. No hat, no scarf, no backpack, no snowball, no base, no ground, no text. Clean game-ready topology, clean PBR textures without baked shadows.",
+         "tier": "Gen-2.5-Medium",
+         "qualityOverride": 18000,
+         "attempts": 1,
+         "target": "snowball-battle",
+         "budget": { "tris": 20000, "bytes": 1500000 },
+         "textureSize": 1024
+      }
+   ]
+}
