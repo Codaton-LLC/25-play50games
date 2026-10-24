@@ -21,14 +21,16 @@ import { useFittedView } from "@/arcade3d/core/useFittedView";
 import { useRunFrame } from "@/arcade3d/core/useRunFrame";
 import { Cauldron } from "./Cauldron";
 import { Chef } from "./Chef";
-import { hudButtons, hudOrders } from "./Hud";
+import { hudButtons, hudHand, hudOrders } from "./Hud";
 import { HATCH_X, HATCH_Z, Kitchen } from "./Kitchen";
 import { Monsters, type WindowLook } from "./Monsters";
 import { Wheel } from "./Wheel";
 import {
    ORDERS,
    WHEEL,
+   centreSlot,
    createRun,
+   isNeeded,
    slotPosition,
    stepRun,
    type RunState,
@@ -91,6 +93,10 @@ export default function Scene() {
          hudOrders[1] = null;
          hudButtons.left = 0;
          hudButtons.right = 0;
+         hudHand.kind = null;
+         hudHand.needed = false;
+         hudHand.flying = null;
+         hudHand.locked = false;
       };
       reset();
       return reset;
@@ -168,6 +174,13 @@ export default function Scene() {
             hudOrders[w] = null;
          }
       }
+
+      // the hand card: what Space / Enter tosses now (the centre slot under the selector ring)
+      const front = run.slots[centreSlot(run.rotation)].kind;
+      hudHand.kind = front;
+      hudHand.needed = isNeeded(run, front);
+      hudHand.flying = run.flight ? run.flight.kind : null;
+      hudHand.locked = run.time < run.burpUntil;
 
       at.x = 0;
       at.y = 1.55;

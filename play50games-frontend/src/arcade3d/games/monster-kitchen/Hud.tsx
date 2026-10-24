@@ -2,10 +2,12 @@
 // so the camera fit keeps them clear — portrait stacks them under the HUD chips, landscape keeps them
 // in a right-hand column over the empty +x region) and the game-local ◀ ▶ wheel buttons, 72 px like
 // the shell's touch buttons. The Scene writes hudOrders and consumes hudButtons every frame; this
-// layer re-renders at 10 Hz (patience bars read smoothly through CSS transitions).
+// layer re-renders at 10 Hz (patience bars read smoothly through CSS transitions). The hand card
+// between the ◀ ▶ buttons names what Space / Enter tosses (the centre front slot, under the selector
+// ring on the wheel), whether an order needs it, and what is in the air.
 import { useEffect, useState } from "react";
-import { KindIcon, TYPE_TINT } from "./Primitives";
-import { PATIENCE, type Order } from "./rules";
+import { KIND_LABEL, KindIcon, TYPE_TINT } from "./Primitives";
+import { PATIENCE, type IngredientKind, type Order } from "./rules";
 import styles from "./Hud.module.css";
 
 /** Presses of the ◀ ▶ buttons since the Scene last read them (cleared there each frame). */
@@ -13,6 +15,63 @@ export const hudButtons = { left: 0, right: 0 };
 
 /** Live refs to the two windows' orders, written by the Scene's useRunFrame every frame. */
 export const hudOrders: Array<Order | null> = [null, null];
+
+/** What the hand card shows, written by the Scene's useRunFrame every frame. */
+export const hudHand: {
+   /** the centre front slot's kind (what Space / Enter tosses), null when it is empty */
+   kind: IngredientKind | null;
+   /** an ordering monster needs `kind` next */
+   needed: boolean;
+   /** the ingredient in the air, or null */
+   flying: IngredientKind | null;
+   /** the burp lock holds */
+   locked: boolean;
+} = { kind: null, needed: false, flying: null, locked: false };
+
+function Hand() {
+   const { kind, needed, flying, locked } = hudHand;
+   if (flying) {
+      return (
+         <div className={`${styles.hand} ${styles.handBusy}`}>
+            <KindIcon kind={flying} size={30} />
+            <span className={styles.handText}>
+               <span className={styles.handLabel}>Throwing</span>
+               <span className={styles.handName}>{KIND_LABEL[flying]}</span>
+            </span>
+         </div>
+      );
+   }
+   if (locked) {
+      return (
+         <div className={`${styles.hand} ${styles.handBusy}`}>
+            <span className={styles.handText}>
+               <span className={styles.handLabel}>Burp!</span>
+               <span className={styles.handName}>Wait…</span>
+            </span>
+         </div>
+      );
+   }
+   if (!kind) {
+      return (
+         <div className={`${styles.hand} ${styles.handBusy}`}>
+            <span className={styles.handText}>
+               <span className={styles.handLabel}>In front</span>
+               <span className={styles.handName}>Empty</span>
+            </span>
+         </div>
+      );
+   }
+   return (
+      <div className={`${styles.hand} ${needed ? styles.handYes : styles.handNo}`}>
+         <KindIcon kind={kind} size={34} />
+         <span className={styles.handText}>
+            <span className={styles.handLabel}>In front</span>
+            <span className={styles.handName}>{KIND_LABEL[kind]}</span>
+            <span className={styles.handTag}>{needed ? "✓ Needed" : "✗ Not needed"}</span>
+         </span>
+      </div>
+   );
+}
 
 type Mood = "happy" | "ok" | "worried" | "angry" | "served";
 
@@ -83,6 +142,9 @@ export default function Hud() {
          <div className={styles.bubbles} data-arcade-safe-area>
             {hudOrders[0] && <Bubble order={hudOrders[0]} />}
             {hudOrders[1] && <Bubble order={hudOrders[1]} />}
+         </div>
+         <div className={styles.handSlot} data-arcade-safe-area aria-live="polite">
+            <Hand />
          </div>
          <button type="button" className={`${styles.turn} ${styles.turnLeft}`} data-arcade-safe-area aria-label="Turn the wheel left" {...press(-1)}>
             ◀

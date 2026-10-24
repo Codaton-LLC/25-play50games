@@ -232,6 +232,13 @@ export function easeWheel(drawn: number, target: number, step: number): number {
    return Math.abs(short) <= step ? drawn + short : drawn + Math.sign(short) * step;
 }
 
+/** Ingredient scale by the drawn distance from the front centre (slots): 1.3 there, 1 at the side slots, 0.85 behind. */
+export function frontScale(slot: number, rot: number): number {
+   const pos = (((slot + rot - WHEEL.front) % WHEEL.slots) + WHEEL.slots) % WHEEL.slots;
+   const d = Math.min(pos, WHEEL.slots - pos);
+   return d <= 1 ? 1.3 - 0.3 * d : Math.max(0.85, 1 - 0.3 * (d - 1));
+}
+
 /** The centre front slot: ring position WHEEL.front. */
 export const centreSlot = (rotation: number) => ((WHEEL.front - rotation) % WHEEL.slots + WHEEL.slots) % WHEEL.slots;
 
@@ -356,6 +363,20 @@ function earliestOrdering(run: RunState): Order | null {
       if (!best || o.appearedAt < best.appearedAt || (o.appearedAt === best.appearedAt && o.id < best.id)) best = o;
    }
    return best;
+}
+
+/**
+ * Would a toss of `kind` launched now advance an order? True when an ordering monster's next needed
+ * ingredient is `kind` (a launch now is after every active order appeared). The Scene shows it on the
+ * selector ring and the HUD hand card; the landing still decides.
+ */
+export function isNeeded(run: RunState, kind: IngredientKind | null): boolean {
+   if (kind === null) return false;
+   for (const w of run.windows) {
+      const o = w.order;
+      if (o && o.phase === "ordering" && o.kinds[o.progress] === kind) return true;
+   }
+   return false;
 }
 
 /** Launch a toss from `slot` at the current play time. Returns false when it cannot fly. */

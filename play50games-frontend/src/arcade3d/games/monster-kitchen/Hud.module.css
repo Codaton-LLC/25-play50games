@@ -130,6 +130,72 @@
    right: calc(env(safe-area-inset-right, 0px) + 16px);
 }
 
+/* the hand card: what Space / Enter tosses (the centre slot under the selector ring), centred between
+   the ◀ ▶ buttons; green when an order needs it, red when it would burp. Not colour alone: the tag
+   says "✓ Needed" / "✗ Not needed". */
+.handSlot {
+   position: absolute;
+   left: 50%;
+   bottom: calc(env(safe-area-inset-bottom, 0px) + var(--arcade-bottom-obstruction, 0px) + 28px);
+   transform: translateX(-50%);
+   max-width: calc(100% - 2 * (16px + 72px + 10px));
+}
+
+.hand {
+   display: flex;
+   align-items: center;
+   gap: 8px;
+   min-height: 56px;
+   padding: 6px 12px 6px 8px;
+   border: 3px solid rgba(255, 255, 255, 0.3);
+   border-radius: 16px;
+   background: rgba(11, 16, 32, 0.78);
+   color: var(--text, #f8fafc);
+   white-space: nowrap;
+   transition: border-color 120ms linear, background 120ms linear;
+}
+
+.handYes {
+   border-color: #4ade80;
+   background: rgba(20, 83, 45, 0.82);
+}
+
+.handNo {
+   border-color: #f87171;
+   background: rgba(69, 10, 10, 0.78);
+}
+
+.handBusy {
+   opacity: 0.8;
+}
+
+.handText {
+   display: flex;
+   flex-direction: column;
+   line-height: 1.1;
+   overflow: hidden;
+}
+
+.handLabel {
+   font-size: 10px;
+   font-weight: 700;
+   letter-spacing: 0.06em;
+   text-transform: uppercase;
+   color: #cbd5e1;
+}
+
+.handName {
+   font-size: 16px;
+   font-weight: 800;
+   overflow: hidden;
+   text-overflow: ellipsis;
+}
+
+.handTag {
+   font-size: 12px;
+   font-weight: 700;
+}
+
 /* landscape phones: the banner and chips eat the top; keep the bubbles in a right-hand side column
    over the scene's empty +x region */
 @media (orientation: landscape) {
@@ -147,6 +213,10 @@
 
    .turn {
       bottom: calc(env(safe-area-inset-bottom, 0px) + var(--arcade-bottom-obstruction, 0px) + 16px);
+   }
+
+   .handSlot {
+      bottom: calc(env(safe-area-inset-bottom, 0px) + var(--arcade-bottom-obstruction, 0px) + 20px);
    }
 }
 

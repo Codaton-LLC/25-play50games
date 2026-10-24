@@ -23,7 +23,9 @@ import {
    centreSlot,
    createRun,
    easeWheel,
+   frontScale,
    isFront,
+   isNeeded,
    maxPayAt,
    orderPoints,
    ringPos,
@@ -331,6 +333,73 @@ describe("monster-kitchen wheel", () => {
       expect(all.some((d) => d === 1)).toBe(true);
       expect(all.some((d) => d === -1)).toBe(true);
       expect(all.every((d) => d === 1 || d === -1)).toBe(true);
+   });
+});
+
+describe("monster-kitchen selector (what is in hand)", () => {
+   it("isNeeded predicts the landing: green = advances an order, red = burps", () => {
+      let right = 0;
+      let wrong = 0;
+      for (let seed = 1; seed <= 60; seed++) {
+         const run = createRun(seed);
+         const input: StepInput = { rotate: 0, tapSlot: null, tossCentre: false };
+         let t = 0;
+         // wait for the first order (and its grace) to be up
+         while (t < 1) {
+            t += DT;
+            stepRun(run, input, DT, t);
+         }
+         // turn until the centre slot holds a kind; odd seeds look for a needed one, even ones for a wrong one
+         const wantNeeded = seed % 2 === 1;
+         let found = false;
+         for (let r = 0; r < 8 && !found; r++) {
+            const kind = run.slots[centreSlot(run.rotation)].kind;
+            if (kind !== null && isNeeded(run, kind) === wantNeeded) found = true;
+            else {
+               input.rotate = 1;
+               t += DT;
+               stepRun(run, input, DT, t);
+               input.rotate = 0;
+            }
+         }
+         if (!found) continue;
+         const predicted = isNeeded(run, run.slots[centreSlot(run.rotation)].kind);
+         input.tossCentre = true;
+         t += DT;
+         stepRun(run, input, DT, t);
+         input.tossCentre = false;
+         expect(run.flight).not.toBeNull();
+         let landed: "right" | "wrong" | null = null;
+         while (landed === null && t < 5) {
+            t += DT;
+            stepRun(run, input, DT, t);
+            landed = run.events.landed;
+         }
+         expect(landed).toBe(predicted ? "right" : "wrong");
+         if (predicted) right += 1;
+         else wrong += 1;
+      }
+      expect(right).toBeGreaterThan(10);
+      expect(wrong).toBeGreaterThan(10);
+      expect(isNeeded(createRun(1), null)).toBe(false);
+   });
+
+   it("the front centre ingredient swells and never touches its neighbours", () => {
+      const centre = centreSlot(0);
+      expect(frontScale(centre, 0)).toBeCloseTo(1.3, 9);
+      expect(frontScale((centre + 1) % 8, 0)).toBeCloseTo(1, 9);
+      expect(frontScale((centre + 4) % 8, 0)).toBeCloseTo(0.85, 9);
+      // mid-ease: continuous and symmetric
+      expect(frontScale(centre, 0.5)).toBeCloseTo(1.15, 9);
+      expect(frontScale(centre, -0.5)).toBeCloseTo(1.15, 9);
+      // neighbouring items (0.36 m wide at scale 1) keep a gap at every drawn rotation
+      const gap = 2 * WHEEL.ringR * Math.sin(Math.PI / 8);
+      for (let rot = 0; rot < 8; rot += 0.05) {
+         for (let k = 0; k < 8; k++) {
+            const half = (0.36 / 2) * (frontScale(k, rot) + frontScale((k + 1) % 8, rot));
+            expect(half).toBeLessThan(gap);
+         }
+      }
    });
 });
 
