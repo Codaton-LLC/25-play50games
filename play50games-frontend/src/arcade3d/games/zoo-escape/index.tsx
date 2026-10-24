@@ -9,6 +9,7 @@ import Hud from "./Hud";
 import { ASSETS } from "./assets";
 import { FOV } from "./camera";
 import { CATCH, SNACK_COUNT, STATS, TOSS } from "./rules";
+import { COLORS, FOG } from "./looks";
 
 const definition: GameDefinition = {
    slug: "zoo-escape",
@@ -17,7 +18,7 @@ const definition: GameDefinition = {
    assets: ASSETS,
    // only the first frame uses this: Scene's CameraRig (useFittedView, camera.ts viewFor) follows the panda
    camera: { position: [0, 12, 6], fov: FOV, lookAt: [0, 0, 0] },
-   environment: { background: "#bae6fd", fog: ["#bae6fd", 30, 70], lighting: "day" },
+   environment: { background: COLORS.fogDay, fog: [COLORS.fogDay, FOG.day.near, FOG.day.far], lighting: "day" },
    touchControls: ["joystick", "jump", "action"],
    touchLabels: { jump: "Sneak", action: "Toss" },
    hudStats: [

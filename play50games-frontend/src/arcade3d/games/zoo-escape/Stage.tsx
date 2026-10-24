@@ -1,34 +1,82 @@
 "use client";
 
-// The world: ground, moat and bridge, fences and gates (with their drop bars), every prop (GLBs
-// instanced, procedural kiosks and tower), bushes, the hide outline, lamp glows at dusk, snacks and
-// bamboo bundles. Everything static is built once; moving pieces read the run in frame callbacks.
+// The world: terrain, fences and gates (with their drop bars), every prop (GLBs
+// instanced, procedural kiosks and tower), bushes, the hide outline, lamp glows at dusk,
+// snacks and bamboo bundles, sky dome and outer surroundings.
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useFrame } from "@react-three/fiber";
-import { AdditiveBlending, BoxGeometry, CircleGeometry, Color, Matrix4, MeshBasicMaterial, Quaternion, Vector3, type InstancedMesh, type Mesh } from "three";
+import {
+   AdditiveBlending,
+   BoxGeometry,
+   CircleGeometry,
+   Color,
+   Matrix4,
+   MeshBasicMaterial,
+   Quaternion,
+   Vector3,
+   type InstancedMesh,
+   type Mesh,
+} from "three";
 import { InstancedModel } from "@/arcade3d/core/assets";
-import { Water } from "@/arcade3d/core/env";
+import { SkyDome } from "@/arcade3d/core/env";
 import { useGameTime } from "@/arcade3d/core/gameTime";
 import { fenceSpots } from "@/arcade3d/core/kit";
 import { createPath } from "@/arcade3d/core/path";
 import { DynamicInstanced, Instanced, useCanvasTexture, useInstanceMatrices, type InstanceSpot } from "@/arcade3d/core/render";
 import { ASSETS, BAMBOO_CLUMP, BAMBOO_GLB, BAMBOO_THICKET, BAMBOO_UNIT } from "./assets";
-import { BRIDGE, BUSHES, FENCES, LAMPS, MOAT, PROPS, STAGES, STAGE_KEEPERS, TOWER } from "./level";
+import { BUSHES, FENCES, LAMPS, PROPS, STAGES, STAGE_KEEPERS, TOWER } from "./level";
+import { COLORS } from "./looks";
 import {
-   COLORS, bambooPieces, benchPieces, binPieces, bridgePieces, bundlePieces, carPieces, gatePieces, kioskPieces, lampPieces, palmPieces, rockPieces, snackPieces, towerPieces, treePieces, bushPieces, useMerged, type Piece,
+   bambooPieces,
+   benchPieces,
+   binPieces,
+   bundlePieces,
+   carPieces,
+   gatePieces,
+   kioskPieces,
+   lampPieces,
+   palmPieces,
+   rockPieces,
+   snackPieces,
+   towerPieces,
+   treePieces,
+   bushPieces,
+   useMerged,
+   type Piece,
 } from "./Primitives";
 import { TOSS, type RunState } from "./rules";
+import { Terrain } from "./Terrain";
+import { Decor } from "./Decor";
 
 const BAMBOO_TALL = BAMBOO_GLB.height * BAMBOO_UNIT;
-const spotsOf = (kind: string, map: (p: (typeof PROPS)[number]) => InstanceSpot) => PROPS.filter((p) => p.kind === kind).map(map);
-const centre = (p: (typeof PROPS)[number]) => ({ x: (p.box.min.x + p.box.max.x) / 2, y: 0, z: (p.box.min.z + p.box.max.z) / 2 });
+const spotsOf = (kind: string, map: (p: (typeof PROPS)[number]) => InstanceSpot) =>
+   PROPS.filter((p) => p.kind === kind).map(map);
+const centre = (p: (typeof PROPS)[number]) => ({
+   x: (p.box.min.x + p.box.max.x) / 2,
+   y: 0,
+   z: (p.box.min.z + p.box.max.z) / 2,
+});
 
 const SPOTS = {
    rock: spotsOf("rock", (p) => ({ ...centre(p), rotY: p.yaw, sx: p.size, sy: p.size * 1.5, sz: p.size })),
    bamboo: [
-      ...spotsOf("bamboo", (p) => ({ ...centre(p), rotY: p.yaw, sx: BAMBOO_CLUMP.width, sy: BAMBOO_CLUMP.height / BAMBOO_TALL, sz: BAMBOO_CLUMP.width })),
+      ...spotsOf("bamboo", (p) => ({
+         ...centre(p),
+         rotY: p.yaw,
+         sx: BAMBOO_CLUMP.width,
+         sy: BAMBOO_CLUMP.height / BAMBOO_TALL,
+         sz: BAMBOO_CLUMP.width,
+      })),
       // stage 1's hiding spots are bamboo thickets (Decisions: the bamboo GLB as the hiding clumps)
-      ...BUSHES.filter((b) => b.stage === 0).map((b, i) => ({ x: (b.box.min.x + b.box.max.x) / 2, y: 0, z: (b.box.min.z + b.box.max.z) / 2, rotY: i * 1.3, sx: BAMBOO_THICKET.width, sy: BAMBOO_THICKET.height / BAMBOO_TALL, sz: BAMBOO_THICKET.width })),
+      ...BUSHES.filter((b) => b.stage === 0).map((b, i) => ({
+         x: (b.box.min.x + b.box.max.x) / 2,
+         y: 0,
+         z: (b.box.min.z + b.box.max.z) / 2,
+         rotY: i * 1.3,
+         sx: BAMBOO_THICKET.width,
+         sy: BAMBOO_THICKET.height / BAMBOO_TALL,
+         sz: BAMBOO_THICKET.width,
+      })),
    ],
    bench: spotsOf("bench", (p) => ({ ...centre(p), rotY: p.yaw })),
    bin: spotsOf("bin", (p) => ({ ...centre(p) })),
@@ -36,67 +84,75 @@ const SPOTS = {
    palm: spotsOf("palm", (p) => ({ ...centre(p), rotY: p.yaw })),
    car: spotsOf("car", (p) => ({ ...centre(p), rotY: p.yaw })),
    tree: spotsOf("trunk", (p) => ({ ...centre(p), rotY: p.yaw })),
-   kiosk: spotsOf("kiosk", (p) => ({ ...centre(p), sx: p.box.max.x - p.box.min.x, sy: 2.6, sz: p.box.max.z - p.box.min.z })),
-   awning: spotsOf("kiosk", (p) => ({ ...centre(p), y: 2.62, sx: p.box.max.x - p.box.min.x + 0.5, sy: 0.12, sz: p.box.max.z - p.box.min.z + 0.5 })),
-   bush: BUSHES.filter((b) => b.stage > 0).map((b, i) => ({ x: (b.box.min.x + b.box.max.x) / 2, y: 0, z: (b.box.min.z + b.box.max.z) / 2, rotY: i * 0.9, sx: (b.box.max.x - b.box.min.x) + 0.5, sy: 1.0, sz: (b.box.max.z - b.box.min.z) + 0.5 })),
-   gate: STAGES.map((s) => ({ x: (s.gate.x0 + s.gate.x1) / 2, y: 0, z: s.gate.z, sx: s.gate.x1 - s.gate.x0, sy: 1, sz: 1 })),
-   banks: MOAT.flatMap((m) => [m.min.z, m.max.z].map((z) => ({ x: (m.min.x + m.max.x) / 2, y: 0.04, z, sx: m.max.x - m.min.x, sy: 0.12, sz: 0.3 }))),
-   paths: [
-      { x: 4, y: 0.006, z: -3.5, sx: 2.2, sy: 1, sz: 7 },
-      { x: -0.5, y: 0.006, z: -8, sx: 11, sy: 1, sz: 2.2 },
-      { x: -0.5, y: 0.006, z: -12.5, sx: 2.2, sy: 1, sz: 9 },
-      { x: -2.8, y: 0.006, z: -17.5, sx: 7, sy: 1, sz: 2.2 },
-      { x: -5, y: 0.006, z: -19, sx: 2.2, sy: 1, sz: 3 },
-      { x: 0, y: 0.006, z: 0.35, sx: 9, sy: 1, sz: 0.5 },
-   ] as InstanceSpot[],
-   lines: [
-      ...PROPS.filter((p) => p.kind === "car").flatMap((p) => [-1.25, 1.25].map((dx) => ({ x: centre(p).x + dx, y: 0.008, z: centre(p).z, sx: 0.1, sy: 1, sz: 4.6 }))),
-      ...Array.from({ length: 8 }, (_, i) => ({ x: -8.5 + i * 2.4, y: 0.008, z: -31.5, sx: 1.1, sy: 1, sz: 0.12 })),
-   ] as InstanceSpot[],
+   kiosk: spotsOf("kiosk", (p) => ({
+      ...centre(p),
+      sx: p.box.max.x - p.box.min.x,
+      sy: 2.6,
+      sz: p.box.max.z - p.box.min.z,
+   })),
+   awning: spotsOf("kiosk", (p) => ({
+      ...centre(p),
+      y: 2.62,
+      sx: p.box.max.x - p.box.min.x + 0.5,
+      sy: 0.12,
+      sz: p.box.max.z - p.box.min.z + 0.5,
+   })),
+   bush: BUSHES.filter((b) => b.stage > 0).map((b, i) => ({
+      x: (b.box.min.x + b.box.max.x) / 2,
+      y: 0,
+      z: (b.box.min.z + b.box.max.z) / 2,
+      rotY: i * 0.9,
+      sx: b.box.max.x - b.box.min.x + 0.5,
+      sy: 1.0,
+      sz: b.box.max.z - b.box.min.z + 0.5,
+   })),
+   gate: STAGES.map((s) => ({
+      x: (s.gate.x0 + s.gate.x1) / 2,
+      y: 0,
+      z: s.gate.z,
+      sx: s.gate.x1 - s.gate.x0,
+      sy: 1,
+      sz: 1,
+   })),
    fence: (() => {
-      const posts: InstanceSpot[] = [], rails: InstanceSpot[] = [];
+      const posts: InstanceSpot[] = [],
+         rails: InstanceSpot[] = [];
       for (const [x0, z0, x1, z1] of FENCES) {
-         const f = fenceSpots(createPath([{ x: x0, y: 0, z: z0 }, { x: x1, y: 0, z: z1 }]), { spacing: 2, height: 1.1, postSize: 0.14, railSize: 0.07 });
-         posts.push(...f.posts); rails.push(...f.rails);
+         const f = fenceSpots(
+            createPath([
+               { x: x0, y: 0, z: z0 },
+               { x: x1, y: 0, z: z1 },
+            ]),
+            { spacing: 2, height: 1.1, postSize: 0.14, railSize: 0.07 }
+         );
+         posts.push(...f.posts);
+         rails.push(...f.rails);
       }
       return { posts, rails };
    })(),
 };
 
-function Merged({ spots, build, name, emissive }: { spots: readonly InstanceSpot[]; build: () => ReturnType<typeof rockPieces>; name: string; emissive?: boolean }) {
+function Merged({
+   spots,
+   build,
+   name,
+   emissive,
+}: {
+   spots: readonly InstanceSpot[];
+   build: () => ReturnType<typeof rockPieces>;
+   name: string;
+   emissive?: boolean;
+}) {
    const geometry = useMerged(build);
    return (
       <Instanced spots={spots} name={name}>
          <primitive object={geometry} attach="geometry" />
-         {emissive ? <meshBasicMaterial vertexColors toneMapped={false} /> : <meshStandardMaterial vertexColors roughness={0.75} />}
+         {emissive ? (
+            <meshBasicMaterial vertexColors toneMapped={false} />
+         ) : (
+            <meshStandardMaterial vertexColors roughness={0.75} flatShading />
+         )}
       </Instanced>
-   );
-}
-
-function Ground() {
-   return (
-      <group name="ground">
-         <mesh rotation-x={-Math.PI / 2} position={[0, -0.01, -13]}>
-            <planeGeometry args={[90, 130]} />
-            <meshStandardMaterial color={COLORS.outer} roughness={1} />
-         </mesh>
-         <mesh rotation-x={-Math.PI / 2} position={[0, 0, -1]}>
-            <planeGeometry args={[18.4, 38.4]} />
-            <meshStandardMaterial color={COLORS.grass} roughness={0.95} />
-         </mesh>
-         <mesh rotation-x={-Math.PI / 2} position={[0, 0.003, -32]}>
-            <planeGeometry args={[20.4, 24.4]} />
-            <meshStandardMaterial color={COLORS.asphalt} roughness={0.9} />
-         </mesh>
-         <Instanced spots={SPOTS.paths} name="paths">
-            <boxGeometry args={[1, 0.01, 1]} />
-            <meshStandardMaterial color={COLORS.paving} roughness={0.9} />
-         </Instanced>
-         <Instanced spots={SPOTS.lines} name="parking-lines">
-            <boxGeometry args={[1, 0.01, 1]} />
-            <meshStandardMaterial color={COLORS.lines} roughness={0.8} />
-         </Instanced>
-      </group>
    );
 }
 
@@ -160,11 +216,25 @@ function LampGlows({ dusk }: { dusk: boolean }) {
       <group name="lamp-glows">
          <instancedMesh ref={heads} args={[undefined, undefined, spots.length]} visible={false} name="lamp-heads">
             <sphereGeometry args={[0.42, 14, 10]} />
-            <meshBasicMaterial color={COLORS.lampGlow} transparent opacity={0} blending={AdditiveBlending} depthWrite={false} toneMapped={false} />
+            <meshBasicMaterial
+               color={COLORS.lampGlow}
+               transparent
+               opacity={0}
+               blending={AdditiveBlending}
+               depthWrite={false}
+               toneMapped={false}
+            />
          </instancedMesh>
          <instancedMesh ref={halos} args={[undefined, undefined, halo.length]} visible={false} name="lamp-halos">
             <primitive object={haloGeometry} attach="geometry" />
-            <meshBasicMaterial color={COLORS.lampGlow} transparent opacity={0} blending={AdditiveBlending} depthWrite={false} toneMapped={false} />
+            <meshBasicMaterial
+               color={COLORS.lampGlow}
+               transparent
+               opacity={0}
+               blending={AdditiveBlending}
+               depthWrite={false}
+               toneMapped={false}
+            />
          </instancedMesh>
       </group>
    );
@@ -180,7 +250,12 @@ const CORAL = new Color(COLORS.alert);
 /** The drop bars: raised beside the west post until the gate closes, then they swing down across the opening. */
 function DropBars({ run }: { run: RunState }) {
    const time = useGameTime();
-   const geometry = useMerged(() => Array.from({ length: 6 }, (_, i): Piece => [new BoxGeometry(1 / 6, 0.16, 0.16).translate(-0.5 + (i + 0.5) / 6, 0, 0), i % 2 ? COLORS.white : COLORS.alert]));
+   const geometry = useMerged(() =>
+      Array.from({ length: 6 }, (_, i): Piece => [
+         new BoxGeometry(1 / 6, 0.16, 0.16).translate(-0.5 + (i + 0.5) / 6, 0, 0),
+         i % 2 ? COLORS.white : COLORS.alert,
+      ])
+   );
    const [fell] = useState(() => STAGES.map(() => -1));
    const update = (i: number, m: Matrix4) => {
       const g = STAGES[i].gate;
@@ -215,7 +290,8 @@ function HideOutline({ run }: { run: RunState }) {
       let near = false;
       for (const i of STAGE_KEEPERS[run.stage]) {
          const a = run.keepers[i].agent;
-         const dx = Math.max(b.min.x - a.x, 0, a.x - b.max.x), dz = Math.max(b.min.z - a.z, 0, a.z - b.max.z);
+         const dx = Math.max(b.min.x - a.x, 0, a.x - b.max.x),
+            dz = Math.max(b.min.z - a.z, 0, a.z - b.max.z);
          if (Math.hypot(dx, dz) <= 1.5) near = true;
       }
       m.position.set((b.min.x + b.max.x) / 2, 0.03, (b.min.z + b.max.z) / 2);
@@ -248,7 +324,14 @@ function ExitBeacon({ run }: { run: RunState }) {
    return (
       <mesh ref={mesh} rotation-x={-Math.PI / 2} renderOrder={2} name="exit-beacon">
          <ringGeometry args={[0.7, 1, 40]} />
-         <meshBasicMaterial color={COLORS.accent} transparent opacity={0.6} blending={AdditiveBlending} depthWrite={false} toneMapped={false} />
+         <meshBasicMaterial
+            color={COLORS.accent}
+            transparent
+            opacity={0.6}
+            blending={AdditiveBlending}
+            depthWrite={false}
+            toneMapped={false}
+         />
       </mesh>
    );
 }
@@ -282,7 +365,15 @@ function Pickups({ run }: { run: RunState }) {
       if (!t.active) return false;
       const k = Math.min(TOSS.flight, t.t);
       Q.setFromAxisAngle(V.set(1, 0, 0), k * 12);
-      m.compose(V.set(t.from.x + t.v.x * k, Math.max(0, t.from.y + t.v.y * k - 0.5 * TOSS.gravity * k * k), t.from.z + t.v.z * k), Q, S.set(1, 1, 1));
+      m.compose(
+         V.set(
+            t.from.x + t.v.x * k,
+            Math.max(0, t.from.y + t.v.y * k - 0.5 * TOSS.gravity * k * k),
+            t.from.z + t.v.z * k
+         ),
+         Q,
+         S.set(1, 1, 1)
+      );
    };
    return (
       <group name="pickups">
@@ -292,7 +383,14 @@ function Pickups({ run }: { run: RunState }) {
          </DynamicInstanced>
          <DynamicInstanced count={run.snacks.length} update={placeGlow} name="snack-glows">
             <circleGeometry args={[1, 24]} />
-            <meshBasicMaterial color={COLORS.cone} transparent opacity={0.45} blending={AdditiveBlending} depthWrite={false} toneMapped={false} />
+            <meshBasicMaterial
+               color={COLORS.cone}
+               transparent
+               opacity={0.45}
+               blending={AdditiveBlending}
+               depthWrite={false}
+               toneMapped={false}
+            />
          </DynamicInstanced>
          <DynamicInstanced count={3} update={placeBundle} name="bundles">
             <primitive object={bundle} attach="geometry" />
@@ -302,37 +400,77 @@ function Pickups({ run }: { run: RunState }) {
    );
 }
 
-export default function Stage({ run, dusk }: { run: RunState; dusk: boolean }) {
+export default function Stage({ run, dusk, reduced = false }: { run: RunState; dusk: boolean; reduced?: boolean }) {
    const tower = useMerged(towerPieces);
-   const bridge = useMerged(bridgePieces);
 
    return (
       <group name="zoo">
-         <Ground />
-         <Water size={[14, 2]} position={[0, 0.02, 4]} color={COLORS.water} deep={COLORS.deep} amplitude={0.05} wavelength={2.5} foamEdge={0.12} />
-         <Instanced spots={SPOTS.banks} name="moat-banks">
-            <boxGeometry args={[1, 1, 1]} />
-            <meshStandardMaterial color={COLORS.rock} roughness={0.9} />
-         </Instanced>
-         <mesh geometry={bridge} position={[(BRIDGE.x0 + BRIDGE.x1) / 2, 0, (BRIDGE.z0 + BRIDGE.z1) / 2]} name="bridge">
-            <meshStandardMaterial vertexColors roughness={0.8} />
-         </mesh>
+         {/* Gradient sky dome around camera: warm bright afternoon into dusk */}
+         <SkyDome
+            top={dusk ? COLORS.skyDuskTop : COLORS.skyTop}
+            bottom={dusk ? COLORS.skyDuskBottom : COLORS.skyBottom}
+            offset={0.05}
+            exponent={0.7}
+         />
+
+         {/* Rich zoo ground: lawn with canvas texture, paved plaza, asphalt, water moat */}
+         <Terrain reduced={reduced} />
+
+         {/* Surroundings outside play area: hedges, parkland trees, signposts, distant hills, clouds */}
+         <Decor reduced={reduced} />
+
          <Fences />
          <DropBars run={run} />
-         <InstancedModel asset={ASSETS.rock} spots={SPOTS.rock} fallback={<Merged spots={SPOTS.rock} build={rockPieces} name="rocks" />} />
-         <InstancedModel asset={ASSETS.bamboo} spots={SPOTS.bamboo} fallback={<Merged spots={SPOTS.bamboo} build={bambooPieces} name="bamboo" />} />
-         <InstancedModel asset={ASSETS.bench} spots={SPOTS.bench} fallback={<Merged spots={SPOTS.bench} build={benchPieces} name="benches" />} />
-         <InstancedModel asset={ASSETS.bin} spots={SPOTS.bin} fallback={<Merged spots={SPOTS.bin} build={binPieces} name="bins" />} />
-         <InstancedModel asset={ASSETS.lamp} spots={SPOTS.lamp} fallback={<Merged spots={SPOTS.lamp} build={lampPieces} name="lamps" />} />
-         <InstancedModel asset={ASSETS.palm} spots={SPOTS.palm} fallback={<Merged spots={SPOTS.palm} build={palmPieces} name="palms" />} />
-         <InstancedModel asset={ASSETS.car} spots={SPOTS.car} fallback={<Merged spots={SPOTS.car} build={carPieces} name="cars" />} />
-         <InstancedModel asset={ASSETS.leafyTree} spots={SPOTS.tree} fallback={<Merged spots={SPOTS.tree} build={treePieces} name="trees" />} />
+
+         <InstancedModel
+            asset={ASSETS.rock}
+            spots={SPOTS.rock}
+            fallback={<Merged spots={SPOTS.rock} build={rockPieces} name="rocks" />}
+         />
+         <InstancedModel
+            asset={ASSETS.bamboo}
+            spots={SPOTS.bamboo}
+            fallback={<Merged spots={SPOTS.bamboo} build={bambooPieces} name="bamboo" />}
+         />
+         <InstancedModel
+            asset={ASSETS.bench}
+            spots={SPOTS.bench}
+            fallback={<Merged spots={SPOTS.bench} build={benchPieces} name="benches" />}
+         />
+         <InstancedModel
+            asset={ASSETS.bin}
+            spots={SPOTS.bin}
+            fallback={<Merged spots={SPOTS.bin} build={binPieces} name="bins" />}
+         />
+         <InstancedModel
+            asset={ASSETS.lamp}
+            spots={SPOTS.lamp}
+            fallback={<Merged spots={SPOTS.lamp} build={lampPieces} name="lamps" />}
+         />
+         <InstancedModel
+            asset={ASSETS.palm}
+            spots={SPOTS.palm}
+            fallback={<Merged spots={SPOTS.palm} build={palmPieces} name="palms" />}
+         />
+         <InstancedModel
+            asset={ASSETS.car}
+            spots={SPOTS.car}
+            fallback={<Merged spots={SPOTS.car} build={carPieces} name="cars" />}
+         />
+         <InstancedModel
+            asset={ASSETS.leafyTree}
+            spots={SPOTS.tree}
+            fallback={<Merged spots={SPOTS.tree} build={treePieces} name="trees" />}
+         />
+
          <Merged spots={SPOTS.kiosk} build={kioskPieces} name="kiosks" />
          <Awnings />
          <Merged spots={SPOTS.bush} build={bushPieces} name="bushes" />
+
          <mesh geometry={tower} position={[TOWER.x, 0, TOWER.z]} rotation-y={-Math.PI / 2} name="tower">
             <meshStandardMaterial vertexColors roughness={0.6} />
          </mesh>
+
          <LampGlows dusk={dusk} />
          <HideOutline run={run} />
          <ExitBeacon run={run} />
