@@ -46,6 +46,27 @@ if (!function_exists("play50_arcade_admin_table_exists")) {
    }
 }
 
+if (!function_exists("play50_arcade_admin_levels_table")) {
+   /** The per-level bests table (Arcade API DB version 3) when it is installed, else "". */
+   function play50_arcade_admin_levels_table() {
+      if (!function_exists("play50_arcade_levels_table")) {
+         return "";
+      }
+      $levels = play50_arcade_levels_table();
+      return play50_arcade_admin_table_exists($levels) ? $levels : "";
+   }
+}
+
+if (!function_exists("play50_arcade_admin_level_count")) {
+   /** 1, or the number of levels a configured game has (arcade-games.json v4 `levels`). */
+   function play50_arcade_admin_level_count($config) {
+      if (function_exists("play50_arcade_level_count") && is_array($config) && empty($config["admin_orphan"])) {
+         return (int) play50_arcade_level_count($config);
+      }
+      return 1;
+   }
+}
+
 if (!function_exists("play50_arcade_admin_redirect")) {
    function play50_arcade_admin_redirect($notice, $game = "", $count = null) {
       $notices = array("deleted", "reset", "banned", "unbanned", "cleared", "error");
@@ -158,7 +179,8 @@ if (!function_exists("play50_arcade_admin_render")) {
       $exists = play50_arcade_admin_table_exists($table);
       echo '<div class="wrap"><h1>' . esc_html("Arcade Scores") . '</h1>';
       play50_arcade_admin_notice();
-      echo '<p>' . esc_html("DB version: " . (string) get_option("play50_arcade_db_version", "not installed") . " · Table: " . ($exists ? "exists" : "not installed")) . '</p>';
+      $levels_table = play50_arcade_admin_levels_table();
+      echo '<p>' . esc_html("DB version: " . (string) get_option("play50_arcade_db_version", "not installed") . " · Table: " . ($exists ? "exists" : "not installed") . " · Level table: " . ($levels_table !== "" ? "exists" : "not installed")) . '</p>';
       if (!$exists) {
          echo '<div class="notice notice-warning"><p>' . esc_html("The Arcade Scores table does not exist yet. The Arcade API must install it before scores can be managed.") . '</p></div></div>';
          return;
@@ -297,9 +319,13 @@ if (!function_exists("play50_arcade_admin_render")) {
          remove_filter("paginate_links", $strip_notice);
          echo wp_kses_post($links);
       }
+      $level_count = isset($games[$game]) ? play50_arcade_admin_level_count($games[$game]) : 1;
+      if ($level_count > 1 && $levels_table !== "") {
+         play50_arcade_admin_render_levels($levels_table, $game, $games[$game], $level_count);
+      }
       echo '<h2>' . esc_html("Reset selected game") . '</h2>';
       play50_arcade_admin_form_start("play50_arcade_reset_game", "play50_arcade_reset_game_" . $game, $game);
-      echo '<p><label for="p50a-confirm-slug">' . esc_html("Type " . $game . " to delete all its score rows: ") . '</label>';
+      echo '<p><label for="p50a-confirm-slug">' . esc_html("Type " . $game . " to delete all its score rows and per-level bests: ") . '</label>';
       echo '<input id="p50a-confirm-slug" name="confirm_slug" type="text" autocomplete="off" required> ';
       echo '<button class="button" type="submit" onclick="' . esc_attr("return confirm('Delete every score row for the selected game? This cannot be undone.');") . '">' . esc_html("Reset game") . '</button></p></form>';
       echo '<h2>' . esc_html("Leaderboard cache") . '</h2>';
@@ -309,6 +335,80 @@ if (!function_exists("play50_arcade_admin_render")) {
          echo '<p><button class="button" type="submit">' . esc_html($label) . '</button></p></form>';
       }
       echo '</div>';
+   }
+}
+
+if (!function_exists("play50_arcade_admin_render_levels")) {
+   /**
+    * Read-only per-level bests of a game with levels: one line per user with any level row (up to
+    * 200 users). A time game ranks only players who finished every level; the others show
+    * "not ranked" here and have no board row above.
+    */
+   function play50_arcade_admin_render_levels($levels_table, $game, $config, $level_count) {
+      global $wpdb;
+      $rows = $wpdb->get_results($wpdb->prepare(
+         "SELECT user_id, level, best_score, best_duration_ms, plays FROM {$levels_table}
+         WHERE game_slug = %s AND level BETWEEN %d AND %d ORDER BY user_id ASC, level ASC LIMIT %d",
+         $game, 1, $level_count, 200 * $level_count
+      ));
+      echo '<h2>' . esc_html("Per-level bests") . '</h2>';
+      if ($wpdb->last_error !== "" || !is_array($rows)) {
+         echo '<div class="notice notice-error"><p>' . esc_html("Could not read the per-level bests.") . '</p></div>';
+         return;
+      }
+      $is_time = isset($config["kind"]) && $config["kind"] === "time";
+      $users = array();
+      foreach ($rows as $row) {
+         $uid = absint($row->user_id);
+         if (!isset($users[$uid])) {
+            $users[$uid] = array("levels" => array(), "plays" => 0, "sum" => 0);
+         }
+         $users[$uid]["levels"][absint($row->level)] = $row;
+         $users[$uid]["plays"] += absint($row->plays);
+         $users[$uid]["sum"] += absint($row->best_score);
+      }
+      uasort($users, function ($a, $b) {
+         return $b["sum"] - $a["sum"];
+      });
+      $text = $is_time
+         ? "Best time (time score) per level. The leaderboard ranks the sum of the best times, only for players who finished every level."
+         : "Best score (its time) per level. The leaderboard total is the sum of the level bests.";
+      echo '<p>' . esc_html($text) . '</p>';
+      echo '<table class="widefat striped"><thead><tr><th scope="col">' . esc_html("User") . '</th>';
+      for ($n = 1; $n <= $level_count; $n++) {
+         echo '<th scope="col">' . esc_html("Level " . $n) . '</th>';
+      }
+      echo '<th scope="col">' . esc_html("Plays") . '</th><th scope="col">' . esc_html($is_time ? "Total time" : "Total") . '</th></tr></thead><tbody>';
+      foreach ($users as $uid => $info) {
+         $user = get_userdata($uid);
+         echo '<tr><td>' . esc_html($user ? $user->display_name . " (#" . $uid . ")" : "Deleted user #" . $uid) . '</td>';
+         $all_times = true;
+         $sum_ms = 0;
+         for ($n = 1; $n <= $level_count; $n++) {
+            if (!isset($info["levels"][$n])) {
+               $all_times = false;
+               echo '<td>' . esc_html("—") . '</td>';
+               continue;
+            }
+            $row = $info["levels"][$n];
+            $ms = $row->best_duration_ms === null ? null : absint($row->best_duration_ms);
+            if ($ms === null) {
+               $all_times = false;
+            } else {
+               $sum_ms += $ms;
+            }
+            $cell = $is_time
+               ? play50_arcade_admin_duration($ms) . " (" . absint($row->best_score) . ")"
+               : absint($row->best_score) . " (" . play50_arcade_admin_duration($ms) . ")";
+            echo '<td>' . esc_html($cell) . '</td>';
+         }
+         $total = $is_time ? ($all_times ? play50_arcade_admin_duration($sum_ms) : "not ranked") : (string) $info["sum"];
+         echo '<td>' . esc_html((string) $info["plays"]) . '</td><td>' . esc_html($total) . '</td></tr>';
+      }
+      if (empty($users)) {
+         echo '<tr><td colspan="' . esc_attr($level_count + 3) . '">' . esc_html("No level scores for this game.") . '</td></tr>';
+      }
+      echo '</tbody></table>';
    }
 }
 
@@ -325,9 +425,19 @@ if (!function_exists("play50_arcade_admin_delete_row")) {
       if ($row_id < 1) {
          play50_arcade_admin_redirect("error", $game);
       }
+      $row_user = $wpdb->get_var($wpdb->prepare("SELECT user_id FROM {$table} WHERE id = %d AND game_slug = %s", $row_id, $game));
       $deleted = $wpdb->query($wpdb->prepare("DELETE FROM {$table} WHERE id = %d AND game_slug = %s", $row_id, $game));
       if ($deleted === false || $deleted < 1) {
          play50_arcade_admin_redirect("error", $game);
+      }
+      // The board row is that user's total: their per-level bests for the game go with it.
+      $levels_table = play50_arcade_admin_levels_table();
+      if ($levels_table !== "" && $row_user !== null) {
+         $levels_deleted = $wpdb->query($wpdb->prepare("DELETE FROM {$levels_table} WHERE user_id = %d AND game_slug = %s", absint($row_user), $game));
+         if ($levels_deleted === false) {
+            play50_arcade_clear_cache($game);
+            play50_arcade_admin_redirect("error", $game);
+         }
       }
       play50_arcade_clear_cache($game);
       play50_arcade_admin_redirect("deleted", $game);
@@ -351,6 +461,15 @@ if (!function_exists("play50_arcade_admin_reset_game")) {
       $deleted = $wpdb->query($wpdb->prepare("DELETE FROM {$table} WHERE game_slug = %s", $game));
       if ($deleted === false) {
          play50_arcade_admin_redirect("error", $game);
+      }
+      // The per-level bests too, or the next level submit would rebuild the totals from them.
+      $levels_table = play50_arcade_admin_levels_table();
+      if ($levels_table !== "") {
+         $levels_deleted = $wpdb->query($wpdb->prepare("DELETE FROM {$levels_table} WHERE game_slug = %s", $game));
+         if ($levels_deleted === false) {
+            play50_arcade_clear_cache($game);
+            play50_arcade_admin_redirect("error", $game);
+         }
       }
       play50_arcade_clear_cache($game);
       play50_arcade_admin_redirect("reset", $game, $deleted);
