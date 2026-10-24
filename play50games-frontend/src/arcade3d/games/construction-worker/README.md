@@ -137,3 +137,7 @@ clock: 240 s. Bot wins: damped 207.2 s score 4300; stop-curve 204.0 s score 3355
 proof: t(36)=41.56 s score 6090. House ≤ 1300 at ≥ 9.9 s. Lose/timeup ≤ 4500.
 play: 390×844 and 844×390, cookie banner open. Blueprint is a dark pill under the chips. Worker, piles and the slot ring stay above the banner.
 ```
+
+## Hyper3D batch 5 adoption
+
+- **Cement mixer (2026-10-24, Hyper3D batch 5):** `/models/3d/construction-worker/cementMixer.glb` (1500 tris) as decor beside the work zone at (-6.7, 6.4), yaw 0.9, 1.5 m tall (1.01 x 1.12 m footprint), behind the `decor` quality gate; `mixer.test.ts` keeps it outside the work area, the crane's wedge and every camera-to-target line. Static (one mesh). Adopted by Antigravity; finished by Claude after Antigravity's quota ran out.

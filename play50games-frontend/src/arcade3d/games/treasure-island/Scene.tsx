@@ -9,7 +9,7 @@
 // - visuals (useFrame / useHumanoidPose) only read the run state and animate with useGameTime();
 // - the camera: useFittedView keeps a window around the explorer clear of the HUD, the joystick and
 //   the cookie banner (looks.ts viewFor), CameraRig follows the explorer fully;
-// - models: <HumanoidModel> (auto-rig, a hat on its head anchor), <Model>, <InstancedModel> and
+// - models: <HumanoidModel> (auto-rig, a hat on its head anchor, the shovel on its back and right-hand anchors), <Model>, <InstancedModel> and
 //   <DynamicInstancedModel> with this game's primitives as fallbacks.
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
@@ -36,6 +36,7 @@ import { IslandScene } from "./Island";
 import { PITCH, groundAt, viewFor } from "./looks";
 import { advancePhase, explorerPhaseStep, explorerPose, gaitAmount, type ExplorerLook } from "./poses";
 import { COLORS, ChestPrimitive, ExplorerHat, ExplorerPrimitive, GullPrimitive, useCoinParts } from "./Primitives";
+import { ExplorerShovel } from "./Shovel";
 import {
    HINT,
    POINTS,
@@ -119,7 +120,11 @@ function Explorer({ run }: { run: RunState }) {
                asset={ASSETS.explorer}
                pose={pose}
                applyLift={false}
-               attach={{ head: <ExplorerHat /> }}
+               attach={{
+                  head: <ExplorerHat />,
+                  chest: <ExplorerShovel mode="back" run={run} look={look} />,
+                  handR: <ExplorerShovel mode="hand" run={run} look={look} />,
+               }}
                fallback={
                   <group ref={standIn}>
                      <ExplorerPrimitive />
