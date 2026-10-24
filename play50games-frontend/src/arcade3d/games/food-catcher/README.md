@@ -1,6 +1,6 @@
 # Food Catcher 3D
 
-Owner: Cursor. Slug: `food-catcher`. The scene plays on top of `rules.ts`. Status stays `"soon"` until Claude reviews it.
+Owner: Cursor. Slug: `food-catcher`. The scene plays on top of `rules.ts`. Status is `"live"`; Level 1 keeps today's production behavior and limits.
 
 | File | What it owns |
 |---|---|
@@ -51,6 +51,8 @@ Good items: apple, banana, burger. Bad items: sock, tin can. Banana and the tin 
 One spawn stream. The clock starts at 0 when the run enters `playing`. A wait starts at 0 and again after every spawn. The wait length is the min gap of the step that contains the start of the wait. The next spawn time is that start plus the gap, and a spawn is emitted only when that time is under 90 s. Each spawn then rolls good or bad with the step's chance. The step is chosen from the spawn's own timestamp. Fall speed is fixed when the item spawns; a later step does not speed items that are already in the air.
 
 The first 3 spawns skip the roll and are always good.
+
+For levels 2–5, every `goldenEvery`th spawn is a guaranteed golden snack only through the level's `bonusLimit`; later multiples use the regular good/junk roll. This keeps the bonus count bounded by the objective for the score proof.
 
 | Elapsed | Min gap between spawns | Fall speed | Chance a spawn is bad |
 |---|---|---|---|
@@ -145,6 +147,38 @@ Measured with throwaway bots (deleted, nothing committed): perfect all-good play
 
 `finalScore` returns `{ score: min(score, 2500, floor(28 * duration_s)), durationMs }`, with `duration_s = durationMs / 1000`, so the floor is `floor(28 * durationMs / 1000)` (core `capScore`, on the whole milliseconds GameShell submits). `index.tsx` wires it as `finalScore: (s) => finalScore(s.score, s.elapsedMs)` with the shell store's score and play time. A full clear submits duration 90000. A three-life loss submits the cross time of the third caught bad item, at earliest 9950. On either legal run the clamp does not change the awarded total.
 
+## Levels
+
+The core owns level selection, unlocks, and the one leaderboard total. These configs reuse the same kitchen, chef, food/junk assets, controls, and catch rules. Level 1's timing, scoring, spawn table, life count, layout, and score limits are unchanged. Later levels add density, speed, junk probability, and the golden-snack mechanic.
+
+| Level | Title | Objective / clear | Timer | Config deltas | Lighting |
+|---|---|---|---:|---|---|
+| 1 | Fruit Catch | Today's 90 s score attack; clear at 260 points (15 uninterrupted catches) | 90 s | Baseline schedule, 3 lives | Indoor |
+| 2 | Snack Catch | Catch 25 good items | 120 s | Gap ×0.90, fall speed ×1.08, junk +0.04; every 8th drop is golden, first 3 awards | Day |
+| 3 | Fast Food Mix | Catch 35 good items | 150 s | Gap ×0.82, speed ×1.18, junk +0.07; first 5 golden awards, combo + golden rule | Sunset |
+| 4 | Speed Kitchen | Catch 45 good items | 180 s | Gap ×0.74, speed ×1.32, junk +0.10; first 7 golden awards | Night |
+| 5 | Master Catch | Catch 60 good items | 180 s | Gap ×0.68, speed ×1.48, junk +0.12; first 12 golden awards | Dramatic sunset |
+
+`bonusLimit` caps the number of golden drops marked for +10 points: subsequent multiples of `goldenEvery` are ordinary drops. This keeps the catch objective and score ceiling aligned even if the player misses ordinary food. Difficulty rises monotonically in objective count, spawn density, fall speed, and junk chance. The levels add no assets or separate maps. L2–L5 clear on their catch objective; a win is recorded by the existing `end("win")` path.
+
+## Server limits and why they hold
+
+Each later level has one score window. Let `c(t) = min(targetGood, items crossed by t)` and `g(t) = min(bonusLimit, marked golden items crossed by t, c(t))`. The all-good, unbroken-combo upper bound is:
+
+`B(t) = 10 × min(c(t), 4) + 20 × max(c(t) - 4, 0) + 10 × g(t)`.
+
+Missed good items reset combo, and caught junk awards no points, so both reduce this bound. The crossing schedule is derived from `STEPS.gap/speed`, `LEVELS.gapFactor/speedFactor`, `SPAWN_Y - CATCH_BOX.top = 4.4`, and the 50 ms frame grid. The test checks every crossing prefix; between crossings `B(t)` is constant, so the ratio only decreases. The peak rate below is `max B(t)/t`.
+
+| Level | Bmax proof | Peak B(t)/t | Proposed limits (`base`, pps, max score) | Max-score / pps margin | Duration limits |
+|---|---|---:|---|---:|---|
+| 1 | Today's existing proof: 2,420 max at 90 s | Existing 28/s proof | 0, 28/s, 2,500 | 3.3% / 4.1% | 9,500–93,000 ms, unchanged |
+| 2 | 25 catches: 460 combo + 3×10 golden = 490 | 18.110/s | 0, 19/s, 510 | 4.1% / 4.9% | 8,620–123,000 ms |
+| 3 | 35 catches: 660 combo + 5×10 = 710 | 21.703/s | 15, 22/s, 740 | 4.2% / 3.5% (base-inclusive) | 7,890–153,000 ms |
+| 4 | 45 catches: 860 combo + 7×10 = 930 | 25.713/s | 0, 27/s, 970 | 4.3% / 5.0% | 7,940–183,000 ms |
+| 5 | 60 catches: 1,160 combo + 12×10 = 1,280 | 30.448/s | 0, 32/s, 1,340 | 4.7% / 5.1% | 7,270–183,000 ms |
+
+The fastest possible three-life losses are 9,026 / 8,235 / 8,299 / 7,570 ms for L2–L5. The corresponding minimum-duration limits are 4.5% / 4.2% / 4.3% / 4.0% lower. Maximum durations add 1.7–2.5% to each level timer. L5's max score is 1,340, only 0.54× Level 1's 2,500 cap (well below the 3× guard).
+
 ## Camera and scene layout
 
 The play rectangle that must stay on screen is x in [-4.2, 4.2] and y in [0, 6.5] (z [-0.9, 1.05] covers the depth of the chef and the counter edge). Its center is `(0, 3.25)`. The camera looks straight at it from `+z` (pitch 0, yaw 0) with fov 40. It does not follow the chef.
@@ -238,3 +272,62 @@ Scene writes the combo with `setStat("combo", combo)`. The small `Hud` draws a 2
 - Portrait letterbox: the play rectangle is 8.4 wide and 6.5 tall, so on a portrait phone the fit is bound by the width and the rectangle fills only about a third of the screen height (375×812, measured: camera z ≈ 26, the view spans y -6.2 to 12.7, about 43 px per unit). The taller wall and the cabinet fill the rest with kitchen, but the items stay small (about 36 px across). A taller play area for portrait would change the fall distance and the score proof, so it is not done here.
 - `skills.md` still lists a strawberry prop for this game. This spec does not generate one.
 - Shared banana and tin can stay on the shared spec (seed 5050). This game only places them, and it does not regenerate them.
+
+## Status
+
+TASK P-39-levels-food | 5 levels for food-catcher | branch opencode/levels-food-catcher | allowed: play50games-frontend/src/arcade3d/games/food-catcher/**
+
+### Files
+
+- `play50games-frontend/src/arcade3d/games/food-catcher/README.md` — level table, score bounds/proofs, and status.
+- `play50games-frontend/src/arcade3d/games/food-catcher/Scene.tsx` — active level config reaches `createRun` through `useLevel`; per-level caught stat and selected-level safety cap.
+- `play50games-frontend/src/arcade3d/games/food-catcher/index.tsx` — five `LevelSpec`s, HUD maxima, durations, instructions, and core lighting presets.
+- `play50games-frontend/src/arcade3d/games/food-catcher/levels.ts` — pure level configs, including objective, timer, density/speed/junk deltas, and bounded golden awards.
+- `play50games-frontend/src/arcade3d/games/food-catcher/levels.test.ts` — metadata/config checks, monotone difficulty, golden cap, and 200-seed human-paced clear test.
+- `play50games-frontend/src/arcade3d/games/food-catcher/meta.ts` — five titles/limits; Level 1 `meta.scoring` unchanged.
+- `play50games-frontend/src/arcade3d/games/food-catcher/rules.ts` — `createRun(seed, level)` behavior, level objective wins, golden award cap, and proposed level limits.
+- `play50games-frontend/src/arcade3d/games/food-catcher/rules.test.ts` — per-level `B(t)` / duration proofs, 200-seed bot checks, frame-rate variants, and cap no-op checks.
+- `.handoff/P-39-levels-food/HANDOFF.md` — full handoff.
+
+`looks.ts` is not present in this folder; existing `Primitives.tsx` / `poses.ts` and assets remain shared across levels.
+
+### Five levels
+
+| Level | Title | Objective / clear | Timer | Deltas | Lighting | Human-paced bot clears |
+|---|---|---|---:|---|---|---:|
+| 1 | Fruit Catch | Today's score attack; 260 points clears | 90 s | Exact current schedule, scoring, lives, layout, and controls | Indoor | Existing Level 1 regression tests pass |
+| 2 | Snack Catch | 25 good catches | 120 s | Gap ×0.90; speed ×1.08; junk +0.04; first 3 golden snacks | Day | 200/200 (100%) |
+| 3 | Fast Food Mix | 35 good catches | 150 s | Gap ×0.82; speed ×1.18; junk +0.07; first 5 golden snacks; combo + golden rule | Sunset | 199/200 (99.5%) |
+| 4 | Speed Kitchen | 45 good catches | 180 s | Gap ×0.74; speed ×1.32; junk +0.10; first 7 golden snacks | Night | 200/200 (100%) |
+| 5 | Master Catch | 60 good catches | 180 s | Gap ×0.68; speed ×1.48; junk +0.12; first 12 golden snacks | Dramatic sunset | 198/200 (99%) |
+
+One kitchen, current assets and controls for all levels. Difficulty increases monotonically in catch target, spawn density, speed, and junk chance. Golden snack awards are capped to the first `bonusLimit` marked drops so misses cannot raise the score ceiling.
+
+### Proposed limits and proofs
+
+`B(t) = 10 × min(c(t), 4) + 20 × max(c(t) - 4, 0) + 10 × g(t)`, where `c(t)` is the lesser of the objective and crossed drops, and `g(t)` is the lesser of `c(t)`, crossed marked golden drops, and `bonusLimit`. This assumes every crossed item is good, caught, and keeps an unbroken combo. Tests check each continuous crossing prefix; missed food and caught junk can only reduce the score.
+
+| Level | `base` | `maxPointsPerSec` | `maxScore` | Duration window (ms) | Proven `Bmax` | Peak `B(t)/t` and rate margin |
+|---|---:|---:|---:|---:|---:|---|
+| 1 | 0 | 28 | 2,500 | 9,500–93,000 | 2,420 (existing proof) | Existing 28/s proof |
+| 2 | 0 | 19 | 510 | 8,620–123,000 | 490 = 460 combo + 3×10 | 18.110/s; 4.9% |
+| 3 | 15 | 22 | 740 | 7,890–153,000 | 710 = 660 combo + 5×10 | 21.703/s; 3.5% including base |
+| 4 | 0 | 27 | 970 | 7,940–183,000 | 930 = 860 combo + 7×10 | 25.713/s; 5.0% |
+| 5 | 0 | 32 | 1,340 | 7,270–183,000 | 1,280 = 1,160 combo + 12×10 | 30.448/s; 5.1% |
+
+Fastest theoretical three-life losses are 9,026 / 8,235 / 8,299 / 7,570 ms for Levels 2–5; minimum-duration margins are 4.5% / 4.2% / 4.3% / 4.0%. Max-duration windows add 1.7–2.5% to each timer. Level 5's cap is 0.54× Level 1's and below the 3× guard.
+
+### Verification
+
+- `npx tsc --noEmit` — passed.
+- `npx vitest run src/arcade3d/games/food-catcher` — 57/57 tests passed, 43.62 s (under 60 s).
+- `npm run build` — passed (regular build).
+- Mutation probe: temporarily lowered Level 2 `maxScore` to 489; the new proof test failed as expected (`489 < Bmax 490`); restored 510.
+- Human-paced test uses 50 ms steps, max-speed-limited movement and visible-item junk avoidance. Every run's score remains within its level limits and `finalScore` is a no-op.
+- Limit bot test: 200 seeds per level; oracle at 30/60/144 Hz plus idle, input-spam, and bad-chasing bots at 50 ms; all runs remain within limits with no clamp.
+
+### Open questions / next gate
+
+- No level-content questions remain. `arcade-games.json` was not changed; Claude copies these proposed limits at merge.
+- Claude's flagged build and headless desktop/phone playtest of all five levels remain the merge gate. The bot proof runs directly against deterministic game rules; the shell/store integration remains for that flagged playtest.
+- No production site/network was used. No commit or branch change was made.

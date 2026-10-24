@@ -226,7 +226,7 @@ export interface RunState {
    score: number;
    combo: number;
    lives: number;
-   ended: "lose" | "timeup" | null;
+   ended: "win" | "lose" | "timeup" | null;
    nextSpawn: number;
    plan: SpawnDef[];
    items: Item[];
@@ -241,7 +241,9 @@ export function buildPlan(seed: number, forceGood = false, level: FoodCatcherLev
    const plan: SpawnDef[] = [];
    for (let i = 0; i < times.length; i++) {
       const time = times[i];
-      const bonus = level.goldenEvery > 0 && (i + 1) % level.goldenEvery === 0;
+      const bonus = level.goldenEvery > 0
+          && (i + 1) % level.goldenEvery === 0
+          && (i + 1) / level.goldenEvery <= level.bonusLimit;
       // The first three spawns and each golden snack skip the bad roll. forceGood skips it too.
       const bad = !bonus && i >= 3 && !forceGood && rng() < badChanceForSpawn(time, level);
       const kind = bad
@@ -397,7 +399,7 @@ function resolveCross(state: RunState, item: Item, yNow: number): void {
    }
    state.combo += 1;
    state.goodCaught += 1;
-   state.score += catchPoints(state.combo) + (item.bonus ? BONUS_POINTS : 0);
+    state.score += catchPoints(state.combo) + (item.bonus ? BONUS_POINTS : 0);
    state.events.caught += 1;
    if (state.level.targetGood > 0 && state.goodCaught >= state.level.targetGood) endRun(state, "win");
 }
@@ -451,15 +453,15 @@ export function step(state: RunState, dtMs: number, input: StepInput = {}): Step
    return events;
 }
 
-/** Proposed per-level server limits; proofs live in README.md and levels.test.ts. */
+/** Proposed per-level server limits; the event-prefix proof is in README.md and rules.test.ts. */
 export const PROPOSED_LEVEL_LIMITS: Record<LevelId, ScoringRules> = {
    1: foodCatcherMeta.scoring,
-   /** L2: 25 catches = 460 combo points + 30 golden points = 490; 4.1% score margin. */
+   /** L2: Bmax = 25 catches × combo rule + 3 × 10 golden points = 490; peak B(t)/t=18.110/s, 19/s = 4.9% margin. */
    2: { ...foodCatcherMeta.scoring, maxScore: 510, minDurationMs: 8620, maxDurationMs: 123_000, maxPointsPerSec: 19 },
-   /** L3: 35 catches = 660 combo points + 50 golden points = 710; 4.2% score margin. */
-   3: { ...foodCatcherMeta.scoring, maxScore: 740, minDurationMs: 7840, maxDurationMs: 153_000, maxPointsPerSec: 23 },
-   /** L4: 45 catches = 860 combo points + 70 golden points = 930; 4.3% score margin. */
-   4: { ...foodCatcherMeta.scoring, maxScore: 970, minDurationMs: 7060, maxDurationMs: 183_000, maxPointsPerSec: 27 },
-   /** L5: 60 catches = 1160 combo points + 120 golden points = 1280; 4.7% score margin. */
-   5: { ...foodCatcherMeta.scoring, maxScore: 1340, minDurationMs: 6450, maxDurationMs: 183_000, maxPointsPerSec: 32 },
+   /** L3: Bmax = 35 catches × combo rule + 5 × 10 = 710; base 15 + 22/s leaves 3.5% at peak. */
+   3: { ...foodCatcherMeta.scoring, maxScore: 740, minDurationMs: 7890, maxDurationMs: 153_000, base: 15, maxPointsPerSec: 22 },
+   /** L4: Bmax = 45 catches × combo rule + 7 × 10 = 930; peak B(t)/t=25.713/s, 27/s = 5.0% margin. */
+   4: { ...foodCatcherMeta.scoring, maxScore: 970, minDurationMs: 7940, maxDurationMs: 183_000, maxPointsPerSec: 27 },
+   /** L5: Bmax = 60 catches × combo rule + 12 × 10 = 1280; peak B(t)/t=30.448/s, 32/s = 5.1% margin. */
+   5: { ...foodCatcherMeta.scoring, maxScore: 1340, minDurationMs: 7270, maxDurationMs: 183_000, maxPointsPerSec: 32 },
 };
