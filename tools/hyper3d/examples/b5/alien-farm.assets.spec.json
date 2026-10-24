@@ -1,0 +1,22 @@
+{
+   "slug": "alien-farm",
+   "universe": "shared-cast",
+   "seed": 2410,
+   "assets": [
+      {
+         "id": "ufo",
+         "kind": "prop",
+         "mode": "text",
+         "prompt": "Friendly flying saucer, smooth silver-lilac hull, glass dome on top, ring of round lights around the rim, flat underside, no beam, stylised premium mobile game asset, clean PBR materials, no baked shadows, single solid object, chunky solid shapes, no thin wires or strands, centred on a plain background",
+         "tier": "Gen-2.5-Medium",
+         "qualityOverride": 3000,
+         "attempts": 1,
+         "target": "alien-farm",
+         "budget": {
+            "tris": 5000,
+            "bytes": 300000
+         },
+         "textureSize": 512
+      }
+   ]
+}

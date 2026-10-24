@@ -1,0 +1,22 @@
+{
+   "slug": "treasure-island",
+   "universe": "shared-cast",
+   "seed": 2410,
+   "assets": [
+      {
+         "id": "shovel",
+         "kind": "prop",
+         "mode": "text",
+         "prompt": "Small digging shovel, wooden handle with a D-grip, rounded steel blade, lying flat, stylised premium mobile game asset, clean PBR materials, no baked shadows, single solid object, chunky solid shapes, no thin wires or strands, centred on a plain background",
+         "tier": "Gen-2.5-Medium",
+         "qualityOverride": 1500,
+         "attempts": 1,
+         "target": "treasure-island",
+         "budget": {
+            "tris": 5000,
+            "bytes": 300000
+         },
+         "textureSize": 512
+      }
+   ]
+}

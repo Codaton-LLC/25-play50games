@@ -1,0 +1,37 @@
+{
+   "slug": "knight-arena",
+   "universe": "shared-cast",
+   "seed": 2410,
+   "assets": [
+      {
+         "id": "sword",
+         "kind": "prop",
+         "mode": "text",
+         "prompt": "Knight's arming sword, straight broad steel blade, gold cross guard, blue leather grip, round gold pommel, lying flat, stylised premium mobile game asset, clean PBR materials, no baked shadows, single solid object, chunky solid shapes, no thin wires or strands, centred on a plain background",
+         "tier": "Gen-2.5-Medium",
+         "qualityOverride": 1500,
+         "attempts": 1,
+         "target": "knight-arena",
+         "budget": {
+            "tris": 5000,
+            "bytes": 300000
+         },
+         "textureSize": 512
+      },
+      {
+         "id": "shield",
+         "kind": "prop",
+         "mode": "text",
+         "prompt": "Heater-shaped knight shield, blue face with a gold lion emblem, gold rim, wooden back, slightly curved, stylised premium mobile game asset, clean PBR materials, no baked shadows, single solid object, chunky solid shapes, no thin wires or strands, centred on a plain background",
+         "tier": "Gen-2.5-Medium",
+         "qualityOverride": 1500,
+         "attempts": 1,
+         "target": "knight-arena",
+         "budget": {
+            "tris": 5000,
+            "bytes": 300000
+         },
+         "textureSize": 512
+      }
+   ]
+}

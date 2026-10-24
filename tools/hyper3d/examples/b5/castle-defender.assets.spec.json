@@ -1,0 +1,37 @@
+{
+   "slug": "castle-defender",
+   "universe": "shared-cast",
+   "seed": 2410,
+   "assets": [
+      {
+         "id": "stoneWall",
+         "kind": "prop",
+         "mode": "text",
+         "prompt": "Straight medieval castle wall segment, 4 m long, light warm grey stone blocks with soft bevels, crenellations (merlons) along the top, flat back, both ends cut straight so copies tile side by side, stylised premium mobile game asset, clean PBR materials, no baked shadows, single solid object, chunky solid shapes, no thin wires or strands, centred on a plain background",
+         "tier": "Gen-2.5-Medium",
+         "qualityOverride": 3000,
+         "attempts": 1,
+         "target": "castle-defender",
+         "budget": {
+            "tris": 5000,
+            "bytes": 300000
+         },
+         "textureSize": 512
+      },
+      {
+         "id": "siegeLadder",
+         "kind": "prop",
+         "mode": "text",
+         "prompt": "Wooden siege ladder, two thick rails and six chunky rungs, rope lashings, standing upright, 2.8 m tall, stylised premium mobile game asset, clean PBR materials, no baked shadows, single solid object, chunky solid shapes, no thin wires or strands, centred on a plain background",
+         "tier": "Gen-2.5-Medium",
+         "qualityOverride": 1500,
+         "attempts": 1,
+         "target": "castle-defender",
+         "budget": {
+            "tris": 5000,
+            "bytes": 300000
+         },
+         "textureSize": 512
+      }
+   ]
+}
