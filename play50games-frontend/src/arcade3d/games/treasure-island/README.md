@@ -145,3 +145,7 @@ Known issues / follow-ups: audio TODO(P-06); 844 x 390 explorer 28 px.
 Follow-up (claude/ti-followup): tuning pins, tide clamp tests, props resolved after the tide clamp, 200-seed bots, bot harness moved to core/testing/botHarness.ts, rules.test.ts 605 lines.
 Evidence: %USERPROFILE%/.play50/treasure-island/*.png and *-report.json
 ```
+
+## Hyper3D batch 5 adoption
+
+- **Shovel (2026-10-24, Hyper3D batch 5):** `/models/3d/treasure-island/shovel.glb` (1500 tris) in the explorer's hands while digging (thrusting with the dig progress) and riding the back while walking (`Shovel.tsx`, `held.ts`), fitted ~0.95 m from the measured bounds; the stick-and-blade primitive is the fallback; `shovel.test.ts` checks the grip at the hand, the blade on the sand in the dig and the back clearance through idle / walk / run. Adopted by Antigravity; finished by Claude after Antigravity's quota ran out.

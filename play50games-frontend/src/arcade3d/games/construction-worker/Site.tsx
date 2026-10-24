@@ -12,7 +12,7 @@ import { HumanoidModel, useHumanoidPose, bodyLift } from "@/arcade3d/core/rig";
 import { RUNNER_LANDMARKS } from "@/arcade3d/core/sharedAssets";
 import { useGameTime } from "@/arcade3d/core/gameTime";
 import { useQuality } from "@/arcade3d/core/quality";
-import { ASSETS, WORKER_SCALE } from "./assets";
+import { ASSETS, MIXER, MIXER_HEIGHT, WORKER_SCALE } from "./assets";
 import { workerPose } from "./poses";
 import { PILE_A, PILE_R, type Run } from "./rules";
 import { drawPad, groundGeo, pileGeo, pileMats } from "./Primitives";
@@ -96,6 +96,22 @@ function VanFallback() {
    );
 }
 
+/** The mixer's stand-in: an orange drum on a yellow frame, MIXER_HEIGHT tall. */
+function MixerFallback() {
+   return (
+      <group>
+         <mesh position={[0, MIXER_HEIGHT * 0.2, 0]}>
+            <boxGeometry args={[0.9, MIXER_HEIGHT * 0.4, 1]} />
+            <meshStandardMaterial color="#facc15" />
+         </mesh>
+         <mesh position={[0, MIXER_HEIGHT * 0.62, 0]} rotation={[0.5, 0, 0]}>
+            <cylinderGeometry args={[0.45, 0.4, MIXER_HEIGHT * 0.6, 12]} />
+            <meshStandardMaterial color="#f97316" />
+         </mesh>
+      </group>
+   );
+}
+
 /** Ground, fence, piles, the worker, and the props that drop out on the low tier. */
 export function Site({ run }: { run: Run }) {
    const pad = useCanvasTexture(128, 128, drawPad);
@@ -110,6 +126,12 @@ export function Site({ run }: { run: Run }) {
             <mesh key={i} geometry={pileGeo} material={pileMats[i]} position={[p.x, 0.25, p.z]} dispose={null} />
          ))}
          <Worker run={run} />
+         {/* beside the work zone: outside the work area, the crane's wedge and every camera-to-target line (mixer.test.ts) */}
+         {decor && (
+            <group position={[MIXER.x, 0, MIXER.z]} rotation={[0, MIXER.yaw, 0]}>
+               <Model asset={ASSETS.cementMixer} fallback={<MixerFallback />} />
+            </group>
+         )}
          {decor && (
             <group position={[-5.4, 0, 1]} rotation={[0, Math.PI / 2, 0]}>
                <Model asset={ASSETS.van} fallback={<VanFallback />} />
