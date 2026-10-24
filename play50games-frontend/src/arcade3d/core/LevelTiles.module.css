@@ -1,5 +1,7 @@
-/* The start card's level picker (LevelTiles.tsx). The row scrolls sideways inside the card on a
-   narrow screen; every tile is at least 44 px tall; a long title wraps to two lines. */
+/* The start card's level picker (LevelTiles.tsx). On a wide card (desktop) the five tiles share the
+   row and fit without a scrollbar; on a narrow screen the row scrolls sideways inside the card, its
+   first and last tile snapped clear of the card edge; every tile is at least 44 px tall; a long
+   title wraps to two lines. */
 .levels {
    margin-top: 16px;
 }
@@ -12,6 +14,8 @@
    overflow-x: auto;
    overscroll-behavior-x: contain;
    scroll-snap-type: x proximity;
+   /* snapping a tile to "start" would otherwise pull it flush against the card's edge */
+   scroll-padding-inline: var(--panel-pad-x, 20px);
    scrollbar-width: thin;
    -webkit-overflow-scrolling: touch;
 }
@@ -32,6 +36,20 @@
    text-align: left;
    cursor: pointer;
    scroll-snap-align: start;
+}
+
+/* the desktop card (GameShell.module.css: 520 px, 28 px padding) holds five tiles side by side:
+   they shrink to an equal share instead of overflowing it */
+@media (min-width: 640px) {
+   .row {
+      gap: 6px;
+   }
+
+   .tile {
+      flex: 1 1 0;
+      min-width: 0;
+      padding: 8px;
+   }
 }
 
 .tile:hover {
