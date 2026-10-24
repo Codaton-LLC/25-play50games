@@ -18,7 +18,8 @@ const knightArena: GameDefinition = {
       lighting: "sunset",
       fog: ["#3b2038", 16, 42],
    },
-   touchControls: ["joystick", "action", "swipe"],
+   // strikes come from swipes (input.pressed); no joystick, which only covered the arena
+   touchControls: ["action", "swipe"],
    touchLabels: {
       action: "Spin",
    },

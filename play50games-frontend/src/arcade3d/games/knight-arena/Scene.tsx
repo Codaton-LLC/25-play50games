@@ -339,13 +339,17 @@ export function KnightArenaHud(): React.ReactElement {
       <div
          data-arcade-safe-area
          style={{
+            // below the shell's chip row (on a 390 px phone the chips span the whole top line)
             position: "absolute",
-            top: 12,
+            top: 64,
             left: "50%",
             transform: "translateX(-50%)",
             display: "flex",
+            flexWrap: "wrap",
+            justifyContent: "center",
+            maxWidth: "calc(100% - 24px)",
             alignItems: "center",
-            gap: 10,
+            gap: 8,
             pointerEvents: "auto",
             zIndex: 10,
          }}
