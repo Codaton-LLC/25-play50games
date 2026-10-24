@@ -1,15 +1,50 @@
 "use client";
 
-// Robot Factory Sorter: the GameDefinition GameShell runs. The game keeps its own 90 s shift clock
-// (rules.ts, the "Time" stat; clockChip off) and ends with a win at 5 robots or more; a 3rd grabbed
-// faulty part (3 lives) ends it at once.
-import type { GameDefinition } from "@/arcade3d/core/types";
+// Robot Factory Sorter: the GameDefinition GameShell runs. The game keeps its own shift clock
+// (rules.ts, the "Time" stat; clockChip off) and ends with a win at the level's robot quota;
+// a 3rd grabbed faulty part (3 lives) ends it at once.
+// Levels: one LevelSpec per meta.ts level, built from levels.ts. Lighting stays the indoor bay
+// on every level (no per-level environment: the shell preset is one value). Level 1's spec adds
+// nothing, so the start card and the HUD are today's.
+import type { GameDefinition, LevelSpec } from "@/arcade3d/core/types";
+import { LEVEL_IDS, type LevelId } from "@/arcade3d/types";
 import Scene, { CAMERA } from "./Scene";
 import { ASSETS } from "./assets";
+import { LEVELS, type FactoryLevel } from "./levels";
 import { COLORS } from "./palette";
 import { SCORING, SHIFT } from "./rules";
 
-const definition: GameDefinition = {
+const BASE_LINES = [
+   "Grab the ringed part the blueprint wants next: tap it, or Space.",
+   "Swipe down on a sparking faulty part (or S / Down) to scrap it. Grabbing one is a strike.",
+];
+
+/** Start-card lines for levels 2-5. Level 1 keeps definition.instructions. */
+function instructionsFor(level: FactoryLevel): string[] {
+   const lines = [...BASE_LINES];
+   if (level.sorter) {
+      lines.push("The line is sorting flat out: match the blueprint into the cradle, scrap every spark into the bin.");
+   }
+   lines.push(`Build ${level.winQuota} robots in the ${level.duration} s shift. Clean grabs build a combo.`);
+   return lines;
+}
+
+/** One line under the level tiles. */
+const DESCRIPTIONS: Record<LevelId, string> = {
+   1: "Build 5 robots in 90 seconds. Grab the blueprint part, scrap the sparks.",
+   2: "120 seconds, a faster belt, the feeder joins sooner. Build 6 robots.",
+   3: "The feeder joins early and more parts are faulty. Build 7 robots in 120 seconds.",
+   4: "Fast sort: top belt speed and faults packed closer. Build 9 robots on the same bay.",
+   5: "Overdrive: a part every 1.4 seconds, one in four faulty. Build 11 robots.",
+};
+
+const hudFor = (level: FactoryLevel): LevelSpec<FactoryLevel>["hudStats"] => [
+   { key: "robots", label: "Robots", max: level.winQuota },
+   { key: "combo", label: "Combo", max: SCORING.COMBO_MAX },
+   { key: "time", label: "Time" },
+];
+
+const definition: GameDefinition<FactoryLevel> = {
    slug: "robot-factory",
    Scene,
    assets: ASSETS,
@@ -25,10 +60,20 @@ const definition: GameDefinition = {
       { key: "time", label: "Time" },
    ],
    instructions: [
-      "Grab the ringed part the blueprint wants next: tap it, or Space.",
-      "Swipe down on a sparking faulty part (or S / Down) to scrap it. Grabbing one is a strike.",
+      ...BASE_LINES,
       `Build ${SHIFT.WIN_QUOTA} robots in the ${SHIFT.DURATION} s shift. Clean grabs build a combo.`,
    ],
+   levels: LEVEL_IDS.map((id): LevelSpec<FactoryLevel> => {
+      const level = LEVELS[id];
+      if (id === 1) return { id, description: DESCRIPTIONS[id], config: level };
+      return {
+         id,
+         description: DESCRIPTIONS[id],
+         config: level,
+         instructions: instructionsFor(level),
+         hudStats: hudFor(level),
+      };
+   }),
 };
 
 export default definition;

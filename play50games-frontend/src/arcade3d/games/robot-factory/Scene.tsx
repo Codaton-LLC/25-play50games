@@ -4,6 +4,7 @@
 // then the store, fx and sound. Everything else only reads the run (Bay, Parts, Robot, board).
 import { useEffect, useMemo, useState } from "react";
 import { useFrame, type RootState } from "@react-three/fiber";
+import { useLevel } from "@/arcade3d/core/level";
 import { Vector3 } from "three";
 import CameraRig from "@/arcade3d/core/CameraRig";
 import { playSfx, startLoop, useMuted, type LoopHandle } from "@/arcade3d/core/audio";
@@ -21,7 +22,10 @@ import { createLook, noteEvent, stepLook, CRADLE_TOP } from "./look";
 import { COLORS } from "./palette";
 import { Parts } from "./Parts";
 import { Robot } from "./Robot";
-import { BELT, CRADLE, SCRAP_BIN, beltSpeed, createRun, createShown, inZone, stepRun, syncStore, type FrameInput, type Run } from "./rules";
+import type { FactoryLevel } from "./levels";
+import { CRADLE, SCRAP_BIN, beltSpeed, createRun, createShown, inZone, stepRun, syncStore, type FrameInput, type Run } from "./rules";
+
+export const useFactoryLevel = () => useLevel<FactoryLevel>();
 
 const DEG = Math.PI / 180;
 export const CAMERA = { position: [0, 7.2, 8.5] as [number, number, number], fov: 40, lookAt: [0, 0.75, 0.1] as [number, number, number] };
@@ -74,8 +78,8 @@ function FittedCamera() {
    return <CameraRig camera={{ position, fov: CAMERA.fov, lookAt: CAMERA.lookAt }} offset={view.offset} shift={view.shift} damping={5} />;
 }
 
-export default function Scene() {
-   const [run] = useState(() => createRun(randomSeed()));
+function LevelScene({ config }: { config: FactoryLevel }) {
+   const [run] = useState(() => createRun(randomSeed(), config));
    const [look] = useState(createLook);
    const [scratch] = useState(() => ({
       v: new Vector3(),
@@ -83,7 +87,7 @@ export default function Scene() {
       input: { grab: false, scrap: false, target: -1 } as FrameInput,
       locked: -1,
       shown: createShown(),
-      speed: beltSpeed(0),
+      speed: beltSpeed(0, config),
       sparkClock: 0,
       cheered: false,
    }));
@@ -100,7 +104,7 @@ export default function Scene() {
    useEffect(() => {
       if (phase !== "playing" || muted) return;
       const belt = startLoop("belt", { volume: 0.22 });
-      belt.set({ pitch: 0.95 + (0.15 * (beltSpeed(run.robot) - BELT.V0)) / (BELT.V_MAX - BELT.V0) });
+      belt.set({ pitch: beltPitch(beltSpeed(run.robot, run.level), run.level) });
       loop.current = belt;
       return () => {
          belt.stop();
@@ -160,10 +164,10 @@ export default function Scene() {
             playSfx("thud", { volume: 0.25, pitch: 0.7 });
          }
       }
-      const v = beltSpeed(run.robot);
+      const v = beltSpeed(run.robot, run.level);
       if (v !== scratch.speed) {
          scratch.speed = v;
-         loop.current?.set({ pitch: 0.95 + (0.15 * (v - BELT.V0)) / (BELT.V_MAX - BELT.V0) });
+         loop.current?.set({ pitch: beltPitch(v, run.level) });
       }
       if (run.over && run.outcome === "win" && !scratch.cheered) {
          scratch.cheered = true;
@@ -202,4 +206,14 @@ export default function Scene() {
          <Robot run={run} />
       </>
    );
+}
+
+/** Belt-loop pitch from the level's own speed range (level 1: 1.45 → 2.60, the old formula). */
+function beltPitch(speed: number, level: FactoryLevel): number {
+   return 0.95 + (0.15 * (speed - level.v0)) / (level.vMax - level.v0);
+}
+
+export default function Scene() {
+   const { id, config } = useFactoryLevel();
+   return <LevelScene key={id} config={config} />;
 }

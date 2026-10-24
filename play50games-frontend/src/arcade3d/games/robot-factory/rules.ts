@@ -1,10 +1,13 @@
 // Robot Factory Sorter: the pure, seeded rules (README "Rules", "Scoring", "Run end"). No three.js,
 // React or DOM, no Math.random / Date.now. Scene.tsx calls stepRun once per useRunFrame and turns
 // run.events into store calls, fx and sound; rules.test.ts drives the same step through the store.
-import type { ScoringRules } from "@/arcade3d/types";
+// Levels: createRun(seed) is today's shift; createRun(seed, level) reads levels.ts. The module
+// constants below stay level 1, so the existing tests keep calling them.
+import type { LevelId, ScoringRules } from "@/arcade3d/types";
 import { capScore as capToLimits, withinServerLimits as fitsLimits } from "@/arcade3d/core/limits";
 import { rngNext, type RngState } from "@/arcade3d/core/math";
 import { createPath, pointAt } from "@/arcade3d/core/path";
+import { LEVELS, type FactoryLevel } from "./levels";
 
 // ---------- tuning (every gameplay number lives here) ----------
 
@@ -127,10 +130,10 @@ export function blueprintSize(r: number): number {
    return r <= 1 ? 3 : r <= 4 ? 4 : 5;
 }
 
-/** m/s after r completed robots. */
-export function beltSpeed(r: number): number {
-   if (r <= 0) return BELT.V0;
-   return Math.min(BELT.V_MAX, BELT.V1 * Math.pow(BELT.GROWTH, r - 1));
+/** m/s after r completed robots. Defaults to level 1 (BELT.V0 / V1 / GROWTH / V_MAX). */
+export function beltSpeed(r: number, level: FactoryLevel = LEVELS[1]): number {
+   if (r <= 0) return level.v0;
+   return Math.min(level.vMax, level.v1 * Math.pow(level.growth, r - 1));
 }
 
 /** Points for an installed part with `combo` clean installs before it. */
@@ -198,6 +201,8 @@ export const NO_INPUT: Readonly<FrameInput> = { grab: false, scrap: false, targe
 
 export interface Run {
    seed: number;
+   /** the shift this run plays (level 1 when createRun is called with a seed only) */
+   level: FactoryLevel;
    rng: RngState;
    t: number;
    over: boolean;
@@ -250,7 +255,7 @@ function blankEvent(): RunEvent {
    return { kind: "spawn", x: 0, y: 0, z: 0, points: 0, uid: -1, part: 0, shape: 0, colour: 0, slot: 0, needed: false, faulty: false, t: 0 };
 }
 
-export function createRun(seed: number): Run {
+export function createRun(seed: number, level: FactoryLevel = LEVELS[1]): Run {
    const s = seed >>> 0;
    let total = 0;
    const robotStart = new Int16Array(MAX_ROBOTS + 1);
@@ -280,6 +285,7 @@ export function createRun(seed: number): Run {
    }
    const run: Run = {
       seed: s,
+      level,
       rng: { s },
       t: 0,
       over: false,
@@ -441,12 +447,13 @@ function spawnOther(run: Run, slotT: number, v: number): void {
    const pick = rngNext(run.rng);
    const roll = rngNext(run.rng);
    const pair = run.allowed[Math.min(run.allowedCount - 1, Math.floor(pick * run.allowedCount))];
+   const level = run.level;
    const late = slotT >= STREAM.LATE_T;
-   const gap = late ? STREAM.FAULT_MIN_INTERVAL_LATE : STREAM.FAULT_MIN_INTERVAL;
-   const faulty = roll < STREAM.FAULTY_CHANCE && slotT >= STREAM.FIRST_FAULT_MIN_T && slotT - run.lastFaultT >= gap;
+   const gap = late ? STREAM.FAULT_MIN_INTERVAL_LATE : level.faultMinInterval;
+   const faulty = roll < level.faultyChance && slotT >= STREAM.FIRST_FAULT_MIN_T && slotT - run.lastFaultT >= gap;
    if (faulty) run.lastFaultT = slotT;
    let feeder = false;
-   if (slotT >= BELT.FEEDER_T) feeder = run.lateOthers++ % 2 === 0;
+   if (slotT >= level.feederT) feeder = run.lateOthers++ % 2 === 0;
    spawnPart(run, slotT, pair >> 2, pair & 3, faulty, false, feeder, -1, v * (run.t - slotT));
 }
 
@@ -560,12 +567,13 @@ function advanceParts(run: Run, ds: number, dt: number): void {
 /**
  * One frame of play: the press (against what the player saw), then the belts, then the spawn
  * lattice, then the clock. `dt` is useRunFrame's played time; the last step is clamped to the
- * shift's 90 s. Events of this frame are in run.events[0 .. eventCount).
+ * shift (level 1: 90 s). Events of this frame are in run.events[0 .. eventCount).
  */
 export function stepRun(run: Run, input: Readonly<FrameInput>, dt: number): void {
    run.eventCount = 0;
    if (run.over) return;
-   const step = Math.min(dt, SHIFT.DURATION - run.t);
+   const level = run.level;
+   const step = Math.min(dt, level.duration - run.t);
    if (!(step > 0)) {
       finish(run);
       return;
@@ -584,12 +592,12 @@ export function stepRun(run: Run, input: Readonly<FrameInput>, dt: number): void
    }
    if (run.over) return;
 
-   const v = beltSpeed(run.robot);
+   const v = beltSpeed(run.robot, level);
    advanceParts(run, v * step, step);
    run.t += step;
-   // at most one slot of each kind per frame (dt <= 0.05 s < HALF), in time order
-   const needT = run.neededSlot * STREAM.PERIOD;
-   const otherT = run.otherSlot * STREAM.PERIOD + STREAM.HALF;
+   // at most one slot of each kind per frame (dt <= 0.05 s < half, and half is at least 0.7), in time order
+   const needT = run.neededSlot * level.period;
+   const otherT = run.otherSlot * level.period + level.half;
    if (otherT <= needT) {
       if (otherT <= run.t + 1e-9) {
          spawnOther(run, otherT, v);
@@ -609,18 +617,18 @@ export function stepRun(run: Run, input: Readonly<FrameInput>, dt: number): void
          run.otherSlot++;
       }
    }
-   if (run.t >= SHIFT.DURATION - 1e-9) finish(run);
+   if (run.t >= level.duration - 1e-9) finish(run);
 }
 
 function finish(run: Run): void {
    if (run.over) return;
-   run.t = SHIFT.DURATION;
+   run.t = run.level.duration;
    run.over = true;
-   run.outcome = run.robot >= SHIFT.WIN_QUOTA ? "win" : "lose";
+   run.outcome = run.robot >= run.level.winQuota ? "win" : "lose";
 }
 
 /** Seconds left on the shift clock. */
-export const timeLeft = (run: Run): number => Math.max(0, SHIFT.DURATION - run.t);
+export const timeLeft = (run: Run): number => Math.max(0, run.level.duration - run.t);
 
 /** The store calls a frame makes (the arcade store's actions; rules.test.ts passes a createArcadeStore()). */
 export interface StoreActions {
@@ -707,18 +715,26 @@ export function robotsFor(m: number): number {
    return r;
 }
 
-/** The most needed parts that can reach the grab zone by time t (s): the lattice at V_MAX. */
-export function maxInstalls(t: number): number {
-   const first = (BELT.GRAB_MIN - STREAM.FIRST_S) / BELT.V0;
+/** The most needed parts that can reach the grab zone by time t (s): the lattice at the level's top speed. */
+export function maxInstalls(t: number, level: FactoryLevel = LEVELS[1]): number {
+   const first = (BELT.GRAB_MIN - STREAM.FIRST_S) / level.v0;
    if (t < first) return 0;
-   const travel = BELT.GRAB_MIN / BELT.V_MAX;
-   return 1 + Math.max(0, Math.floor((t - travel) / STREAM.PERIOD + 1e-9));
+   const travel = BELT.GRAB_MIN / level.vMax;
+   return 1 + Math.max(0, Math.floor((t - travel) / level.period + 1e-9));
 }
 
-/** The 3rd faulty part never reaches the claw before this (s): the earliest a run can end. */
+/**
+ * The 3rd faulty part never reaches the claw before this (s): the earliest a run can end.
+ * Level 1 is the module constant below (rules.test.ts pins 10.331).
+ */
+export function earliestLossS(level: FactoryLevel = LEVELS[1]): number {
+   return STREAM.FIRST_FAULT_MIN_T + 2 * level.faultMinInterval + BELT.GRAB_MIN / level.vMax;
+}
+
+/** Level 1's earliest loss (s). Kept as its own constant so the existing proof stays literal. */
 export const EARLIEST_LOSS_S = STREAM.FIRST_FAULT_MIN_T + 2 * STREAM.FAULT_MIN_INTERVAL + BELT.GRAB_MIN / BELT.V_MAX;
 
-/** Proposed tight limits (Claude sets meta.ts + arcade-games.json at go-live). */
+/** Proposed tight limits for level 1 (Claude sets meta.scoring + arcade-games.json at merge). */
 export const PROPOSED_LIMITS: ScoringRules = {
    kind: "points",
    maxScore: 4750,
@@ -728,6 +744,29 @@ export const PROPOSED_LIMITS: ScoringRules = {
    maxPointsPerSec: 52,
    unitLabel: "pts",
    display: "int",
+};
+
+const proposed = (
+   maxScore: number,
+   minDurationMs: number,
+   maxDurationMs: number,
+   maxPointsPerSec: number,
+): ScoringRules => ({ ...PROPOSED_LIMITS, maxScore, minDurationMs, maxDurationMs, maxPointsPerSec });
+
+/**
+ * One proof per level (README "Levels"). Level 1 is PROPOSED_LIMITS. Claude copies levels 2-5 into
+ * meta.ts (already there) and arcade-games.json at merge; level 1's meta.scoring stays the
+ * provisional 6000 set until that copy.
+ * - L2/L3: M(120) = 75, R = 16, perfectScore = 6140. Same period and V_MAX as L1, so B(t) <= 50 t + 264.
+ * - L4: same 6140 (V_MAX 3.0 does not reach the next lattice part by 120 s). Earliest loss 8.833 s.
+ * - L5: period 1.4 → M(120) = 86, R = 18, perfectScore = 6980. Rate 80/1.4 = 57.14 <= 60.
+ */
+export const PROPOSED_LEVEL_LIMITS: Record<LevelId, ScoringRules> = {
+   1: PROPOSED_LIMITS,
+   2: proposed(6370, 10_000, 122_000, 52),
+   3: proposed(6370, 10_000, 122_000, 52),
+   4: proposed(6370, 8_500, 122_000, 52),
+   5: proposed(7260, 8_500, 122_000, 60),
 };
 
 export function withinServerLimits(score: number, durationMs: number, rules: ScoringRules = PROPOSED_LIMITS): boolean {

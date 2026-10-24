@@ -146,7 +146,7 @@ export function Bay({ run, look }: { run: Run; look: Look }) {
          <mesh geometry={bay} name="bay-static">
             <meshStandardMaterial vertexColors roughness={0.62} metalness={0.25} />
          </mesh>
-         <Belts />
+         <Belts run={run} />
          <Lights run={run} look={look} />
          <Claw look={look} />
          <Sweeper look={look} />
@@ -180,10 +180,10 @@ function Floor() {
    );
 }
 
-function Belts() {
+function Belts({ run }: { run: Run }) {
    // the Conveyors read their speed from props: re-render only when the robot count (a HUD stat) changes
    const robots = useArcadeStore((state) => state.stats.robots ?? 0);
-   const speed = beltSpeed(robots);
+   const speed = beltSpeed(robots, run.level);
    return (
       <group name="belts">
          <Conveyor path={MAIN_BELT} width={BELT.WIDTH} speed={speed} color={COLORS.belt} stripe={COLORS.beltStripe} frameColor={COLORS.beltFrame} />
@@ -232,7 +232,7 @@ function Lights({ run, look }: { run: Run; look: Look }) {
          const l = LIGHTS[i];
          const c = s.c;
          if (l.role === "rim" || l.role === "board") c.copy(s.rim).multiplyScalar(pulse);
-         else if (l.role === "feeder") c.copy(run.t >= BELT.FEEDER_T ? s.rim : s.dim);
+         else if (l.role === "feeder") c.copy(run.t >= run.level.feederT ? s.rim : s.dim);
          else if (l.role === "zone") {
             if (locked) c.copy(s.bad).multiplyScalar(0.75 + 0.25 * Math.sin(now * 18));
             else if (look.good < 0.35) c.lerpColors(s.good, s.rim, look.good / 0.35);

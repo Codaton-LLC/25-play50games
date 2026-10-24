@@ -88,6 +88,31 @@ Live: `addScore(20 + 4 · c_i)` on each installed part and `addScore(200)` on ea
 4. **Completed-robot bound `R(M)`:** blueprints require `3, 3, 4, 4, 4, 5, 5, ...` parts (cumulative thresholds `3, 6, 10, 14, 18, 23, 28, 33, 38, 43, 48, 53, 58`). For every `M >= 0`, `5 · R(M) <= M + 7`, so `200 · R(M) <= 40 · M + 280`; at `M = 56`, `R(56) = 12` robots (`53 <= 56 < 58`).
 5. **Maximum score & rate envelope `B(t)`:** at `t = 90.0` s (`M = 56, R = 12`), `perfectBot` reaches the exact bound `score = 40 · 56 - 60 + 200 · 12 = 2180 + 2400 = 4580` (`96.4 %` of `maxScore = 4750`, `>= 90 %`). At any time `t >= 0`, `B(t) <= (40 · M(t) - 60) + (40 · M(t) + 280) = 80 · M(t) + 220 <= 80 · (t + 0.8692) / 1.60 + 220 = 50 · t + 263.46 < 50 · t + 264 <= 300 + 52 · t`. Thus `capScore` is a no-op on every run.
 
+## Levels
+
+One bay, five shifts (`levels.ts`). Level 1 is the shift above, unchanged. A level clears on a win (the robot quota). The shell clock stays off (`clockChip: false`, no `durationMs`): each level's clock is `level.duration`. Lighting stays `indoor` on every level. `PROPOSED_LEVEL_LIMITS` in `rules.ts` is the proof; `meta.scoring` (level 1) stays the provisional 6000 set until Claude copies it. Levels 2-5 in `meta.ts` already use their proposed limits.
+
+| Level | Plan name | What changes from the previous level | Quota | Clock | Ceiling `M`, `R`, score | Proposed limits |
+|---|---|---|---|---|---|---|
+| 1 | Basic Sort | today's game | 5 | 90 s | 56, 12, **4580** | 4750 / 10000–92000 / 300 + 52/s |
+| 2 | Shape Sort | `v1` 1.60 → 1.75, growth 1.04 → 1.05, feeder at 45 s | 6 | 120 s | 75, 16, **6140** | 6370 / 10000–122000 / 300 + 52/s |
+| 3 | Color + Shape | feeder at 35 s, faulty chance 0.18 → 0.22 | 7 | 120 s | 75, 16, **6140** | 6370 / 10000–122000 / 300 + 52/s |
+| 4 | Fast Factory | plan sorter: `vMax` 2.6 → 3.0, fault gap 3.5 → 2.8 s | 9 | 120 s | 75, 16, **6140** | 6370 / 8500–122000 / 300 + 52/s |
+| 5 | Overdrive | plan sorter: period 1.6 → 1.4 s, half 0.8 → 0.7, faulty chance 0.25 | 11 | 120 s | 86, 18, **6980** | 7260 / 8500–122000 / 300 + 60/s |
+
+`M(t) = 0` before the first part reaches the zone, else `1 + floor((t - GRAB_MIN / vMax) / period)`. `5 R <= M + 7` still, so `B(t) <= 80 M(t) + 220`. With travel `T = 1.9 / vMax` and period `P`, `M(t) <= (t - T) / P + 1`, so `B(t) <= (80 / P) t + 300 - 80 T / P`.
+
+- **L1** (above): `P = 1.6`, `vMax = 2.6`, `B <= 50 t + 264 <= 300 + 52 t`. Earliest loss `2.6 + 2 · 3.5 + 1.9 / 2.6 = 10.331 s`.
+- **L2 and L3** keep `P` and `vMax`, so the same rate holds out to 120 s. `M(120) = 75`, `R = 16`, `perfectScore = 6140` (`96.4 %` of 6370). Feeder time and fault chance do not raise `M(t)`: a distractor still cannot match the current or next blueprint. Earliest loss stays 10.331 s.
+- **L4** raises `vMax` to 3.0. Travel falls to `1.9 / 3 = 0.633 s`, and the rate constant rises to `50 t + 268.3`, still under `300 + 52 t` (checked every 10 ms). The extra speed does not reach a 76th part by 120 s, so the ceiling stays 6140. Earliest loss `2.6 + 2 · 2.8 + 1.9 / 3 = 8.833 s`, so `minDurationMs` is 8500 (333 ms under, inside 5 %).
+- **L5** shortens the lattice to 1.4 s. `80 / 1.4 = 57.14`, and `B(t) <= 57.14 t + 263.8 <= 300 + 60 t` (60 is 5 % over 57.14). `M(120) = 86`, `R = 18`, `perfectScore = 6980` (`96.1 %` of 7260, and `6980 <= 3 · 4580`). `half · v0 = 0.7 · 1.45 = 1.015 >= 0.95`. Earliest loss is 8.833 s again (same fault gap and top speed as L4).
+
+A missed part is replaced within `period + 1.9 / 1.45` s: 2.91 s on levels 1-4 and 2.71 s on level 5, both under 4 s. The grab zone is 1.8 m, so at 3.0 m/s a part dwells 0.60 s. `WRONG_LOCKOUT` stays 1.0 s on every level (the 2026-10-24 decision): 1.0 s still outlasts that dwell, so the backlog's 2.1 → 2.4 step is not applied.
+
+**Plan sorter (levels 4-5), adapted to the built bay.** The plan's coloured bins, parallel stations and walking robot are not in the rules. The cradle is the match and the scrap bin is the reject; "sort N parts" is the robot quota (20 / 28 / 38 / 50 parts → 6 / 7 / 9 / 11 robots; level 1 stays 5). Plan timers of 150-210 s are cut to 120 s so the ceiling stays provable. Same assets, same input timing for touch and keyboard.
+
+The oracle (30 seeds, 30 / 60 / 144 Hz) hits each ceiling exactly. A human-paced bot (200 seeds, the same 150-250 ms bot as level 1) won 200 / 200 on every level (mean 4452 / 6069 / 6064 / 6009 / 6754). Idle scored 0 and never cleared.
+
 ## Run end
 
 - **Shift clock (`SHIFT_DURATION = 90.0` s):** `durationMs` is **omitted** on `GameDefinition`; `rules.ts` runs the 90 s clock itself (HUD stat `"Time"`, `"90s"` → `"0s"`) and ends at `90.0` s with `end("win")` when `robotsCompleted >= 5` (`WIN_QUOTA = 5`, `resultDelayMs: 1400` for the final walk-off + `cheerPose`) or `end("lose")` when `robotsCompleted < 5`. Grabbing a 3rd faulty part ends immediately with `"lose"` via `loseLife()`.
@@ -134,7 +159,7 @@ Zero Class E assets (`05-hyper3d-catalog.md` §E.4 game 12: `0` dedicated GLBs).
 
 ## Files
 
-`meta.ts` (metadata, scoring) · `index.tsx` (`GameDefinition`) · `rules.ts` (paths, fixed-lattice stream generator, blueprints, grab/scrap/exit resolution, walk-off state, shift clock, scoring; pure, seeded) · `rules.test.ts` · `poses.ts` (pure: `robotWalkOffPose(t, out)` blending `walkPose` + `reachPose` wave, `cradleBuildPose(stepCount, out)`; tested in `poses.test.ts` via `rigCharacter`) · `assets.ts` + `assets.test.ts` (fits and bounding-box checks on the real GLBs) · `Scene.tsx` (single `useRunFrame`, camera, `tapDown` target lock + `tap` / `pressed.down` dispatch, fx, audio) · `Bay.tsx` (`Conveyor` belts, overhead gantry + claw, sweeper arm, assembly cradle, scrap bin, exit door) · `PartsAndRobot.tsx` (`DynamicInstancedModel` / `DynamicInstanced` belt parts, needed-part highlight ring, cradle stack, rigged walking robot) · `BlueprintBoard.tsx` (back-wall blueprint screen at `(0, 1.45, -0.95)`, 5 slot silhouettes + checkmarks, strike LEDs) · `assets.spec.json` · `README.md` · `public/images/3d/robot-factory.webp` · `tools/thumbs/inputs/robot-factory.mjs`.
+`meta.ts` (metadata, scoring, five level titles and limits) · `index.tsx` (`GameDefinition`, level specs) · `levels.ts` (the five shift configs) · `levels.test.ts` · `rules.ts` (paths, fixed-lattice stream generator, blueprints, grab/scrap/exit resolution, walk-off state, shift clock, scoring; pure, seeded) · `rules.test.ts` · `poses.ts` (pure: `robotWalkOffPose(t, out)` blending `walkPose` + `reachPose` wave, `cradleBuildPose(stepCount, out)`; tested in `poses.test.ts` via `rigCharacter`) · `assets.ts` + `assets.test.ts` (fits and bounding-box checks on the real GLBs) · `Scene.tsx` (single `useRunFrame`, camera, `tapDown` target lock + `tap` / `pressed.down` dispatch, fx, audio) · `Bay.tsx` (`Conveyor` belts, overhead gantry + claw, sweeper arm, assembly cradle, scrap bin, exit door) · `PartsAndRobot.tsx` (`DynamicInstancedModel` / `DynamicInstanced` belt parts, needed-part highlight ring, cradle stack, rigged walking robot) · `BlueprintBoard.tsx` (back-wall blueprint screen at `(0, 1.45, -0.95)`, 5 slot silhouettes + checkmarks, strike LEDs) · `assets.spec.json` · `README.md` · `public/images/3d/robot-factory.webp` · `tools/thumbs/inputs/robot-factory.mjs`.
 
 ## Test plan
 
