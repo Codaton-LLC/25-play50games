@@ -18,6 +18,9 @@ import {
 } from "@/arcade3d/core/rig";
 import { readCharacterGlb } from "@/arcade3d/core/rig/robotGlb";
 import { ALIEN_HEIGHT, ALIEN_SCALE, ASSETS } from "./assets";
+import { BED_SURFACE, cropScale } from "./looks";
+
+const SCALE = { xz: 1, y: 1 };
 import {
    ALIEN_LANDMARKS,
    alienWalkPose,
@@ -182,13 +185,14 @@ describe("alien-farm poses", () => {
                   return p;
                });
 
-               // Crop sits on raised bed (y = 0.08) at (0, 0.08, dist), scaled in height by h (and radial width by max(0.75, h))
-               const radialScale = Math.max(0.75, h);
+               // the crop as Crops.tsx draws it: on the bed soil (BED_SURFACE), height x h, width x max(0.75, h)
+               cropScale((h - 0.5) / 0.5, SCALE);
+               const radialScale = SCALE.xz;
                let minDist = Infinity;
                for (let ci = 0; ci < basePts.length; ci += 4) {
                   const cp = basePts[ci];
                   const cx = cp.x * radialScale;
-                  const cy = 0.08 + cp.y * h;
+                  const cy = BED_SURFACE + cp.y * SCALE.y;
                   const cz = dist + cp.z * radialScale;
                   for (let hi = 0; hi < handPts.length; hi += 2) {
                      const hp = handPts[hi];

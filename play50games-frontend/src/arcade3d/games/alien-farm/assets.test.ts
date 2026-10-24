@@ -5,18 +5,8 @@ import { describe, expect, it } from "vitest";
 import { modelParts } from "@/arcade3d/core/assets";
 import { hasModel } from "@/arcade3d/core/modelManifest";
 import { readCharacterGlb } from "@/arcade3d/core/rig/robotGlb";
-import type { ModelAsset } from "@/arcade3d/types";
-import {
-   ALIEN_HEIGHT,
-   ASSETS,
-   CRATE_WIDTH,
-   GLOW_POD_HEIGHT,
-   GLOW_POD_WIDTH,
-   GOURD_HEIGHT,
-   GOURD_WIDTH,
-   ROCK_WIDTH,
-   UFO_DIAMETER,
-} from "./assets";
+import type { ModelAsset } from "@/arcade3d/core/types";
+import { ALIEN_HEIGHT, ASSETS, CRATE_WIDTH, CROP_HEIGHT, ROCK_WIDTH, UFO_DIAMETER, UFO_GLB_SIZE } from "./assets";
 
 const PUBLIC_DIR = path.resolve(__dirname, "../../../../public");
 
@@ -63,8 +53,8 @@ describe("alien-farm assets", () => {
 
    it("fits glowPod and gourd crops inside 1.1 m width and 1.0 m mature height with emissive tints", async () => {
       for (const [spec, maxW, maxH, emissive] of [
-         [ASSETS.glowPod, GLOW_POD_WIDTH, GLOW_POD_HEIGHT, "#052e16"],
-         [ASSETS.gourd, GOURD_WIDTH, GOURD_HEIGHT, "#083344"],
+         [ASSETS.glowPod, 1.1, CROP_HEIGHT, "#052e16"],
+         [ASSETS.gourd, 1.1, CROP_HEIGHT, "#083344"],
       ] as const) {
          const { box, size, tris } = await measureAsset(spec);
          expect(tris).toBeLessThanOrEqual(spec.budget!.tris);
@@ -85,6 +75,8 @@ describe("alien-farm assets", () => {
       expect(crate.size.x).toBeCloseTo(CRATE_WIDTH, 2);
 
       const ufo = await measureAsset(ASSETS.ufo);
+      expect(ufo.size.y / ASSETS.ufo.scale).toBeCloseTo(UFO_GLB_SIZE.height, 2);
+      expect(ufo.size.x / ASSETS.ufo.scale).toBeCloseTo(UFO_GLB_SIZE.width, 2);
       expect(ufo.tris).toBeLessThanOrEqual(ASSETS.ufo.budget!.tris);
       expect(Math.max(ufo.size.x, ufo.size.z)).toBeCloseTo(UFO_DIAMETER, 2);
       expect(ufo.box.min.y).toBeCloseTo(0, 2);
