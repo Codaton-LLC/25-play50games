@@ -141,3 +141,14 @@ G0 design only. Not built. `status` stays `"dev"`.
 ## Fix round 1 (2026-10-24)
 
 Score proof retimed to a wind-up-start tag, a 2.55 s same-rival gap and a slot that frees on the tag (clear 16.30 s, loss 10.65 s). Limits are now 2550 / 10000–92000 / base 600 / 125 pps, which needs `RELOCATE_MIN_S` 0.90 and a scoop of 0.50 s inside cover. Pockets sit at 0.45 m so crouch and the open rule include them. Rival-only wind-up tags, the coarse radius on the player's balls only, closed-form ball flight, out-rival removal, the snowman relocate fallback, the draw-call recount (39) and the `CameraRig` / `useFittedView` fov 45 are in the sections above. The four user decisions stay open.
+
+## Decisions (user, 2026-10-24)
+
+The user approved this design and asked Claude to settle every open question with a modern, fair arcade feel in mind. These answers override the Open questions above; the build follows them.
+
+- **Core (Claude adds before the builds):** a points game that ends on `"timeup"` with a score above 0 plays the win cue and confetti like a finish, not the lose sting; `GameDefinition.clockChip: false` hides the shell's Played chip for games that show their own clock.
+- Q1: +100 on ANY hit (the spec); a dodge avoids any ball in flight. Simpler and more fun to read.
+- Q2: keep `yaws: [0]`; a tap on an off-screen rival's edge arrow throws at that rival.
+- Q3: a knocked-down rival is exempt from the 2 s open rule.
+- Q4: a camper's fort is flushed after 6 s (a rival volley on it), so camping never wins.
+- Modern look: the new snowman GLB (`/models/3d/shared/snowman.glb`) as yard decor; soft snow lighting, falling snow (core env SnowFall), puff bursts on hits.

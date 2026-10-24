@@ -155,3 +155,17 @@ Design only (G0). Nothing built.
 ## Fix round 1 (2026-10-24)
 
 Independent review, 13 items, all applied above: (1) the map box replaces the per-stage clamp, fences and gate posts block, the drop bar falls at 1.2 m past the line; (2) gate-entry safety band, solver from every band cell; (3) solver masks over 8 sub-samples per step, source and destination; (4) a keeper's own bush is not its blocker; (5) `setScore(liveScore)` on every event, before `timeup` / `lose`; (6) proof text: respawn ≤ 1.5 m forward, oracle ≤ 43 s, live ≤ 114/s; limits conditional, fallback formula; (7) camera bounds shrink south and sides only, north 3 m past the gate, next-stage keepers mounted within window + 1 m; (8) ≤ 3 skinned keepers, merged torch, instanced rings / bubbles, ≈ 54 calls; (9) keeper readable size = 0.9 m disc + ring (Q6); (10) Changed-from-spec line for `followFocus`; (11) novice proxy ≥ 50 %, rusher ≤ 20 %; (12) return speed, investigation kinds and waits, bundles hidden and searchlight meter reset on a catch, one bush box for vision / outline / search; (13) per-keeper masks shifted and OR-ed, cycles 27 / 24 / 18 s, oracle by earliest arrival + best snack order. Motion calls take their `out`. Core additions re-ranked (C5 > C1 > C3 > C4 > C2 > C6, `clockChip`).
+
+## Decisions (user, 2026-10-24)
+
+The user approved this design and asked Claude to settle every open question with a modern, fair arcade feel in mind. These answers override the Open questions above; the build follows them.
+
+- **Core (Claude adds before the builds):** a points game that ends on `"timeup"` with a score above 0 plays the win cue and confetti like a finish, not the lose sting; `GameDefinition.clockChip: false` hides the shell's Played chip for games that show their own clock.
+- Q1 panda 1.15 m: yes.
+- Q2 catch time: one value for every device, 1.35 s.
+- Q3 dusk in stage 3: yes, through the core C2 change (Claude adds it).
+- Q4 core: Claude adds C5, C1, C3 and C2 before the build; C4 and C6 stay optional.
+- Q5 keepers reset behind the opaque caught card: accepted.
+- Q6 keepers stay 1.75 m with the 0.9 m ground disc + meter ring as their 24 px read.
+- Q7 at most 3 skinned keepers (performance).
+- Modern look: the new bamboo GLB (`/models/3d/zoo-escape/bamboo.glb`) as the hiding clumps; warm-to-dusk sky, lamp glows, flashlight cones.

@@ -189,3 +189,13 @@ Next gate: G0 review -> P-29 implementation.
 5. **Closed-form proof & proposed limits:** fixed `perfectScore(M, R) = 40 · M - 60 + 200 · R` (`M >= 5`), max `2180 + 2400 = 4580`, `B(t) <= 80 · M(t) + 220 <= 50 · t + 264 <= 300 + 52 · t`, proposed tight limits `4750 / 10000–92000 / 300 + 52/s` with margin table.
 6. **`tapDown` target lock & CSS px radius:** target part is locked on `tapDown` within `28 CSS px` (`56 px >= 44 px`), grabbed on `tap`, and scrapped on `pressed.down` for that locked part.
 7. **Portrait fog, core APIs, audio, bounds, walk-off, spec diffs & open questions:** moved fog start to `[24, 42]` (beyond `20.3 m` portrait `fitView`); fixed `lighting: "indoor"`, `fx.shake(0.3)`, throttled `fx.burst("sparks", ...)`, `Vector3.project(camera)`, `pointAt`/`advance`, `CameraRig camera={definition.camera}`, single `loseLife()` end, `startLoop("belt")` + valid `playSfx` cues; placed exit door `(2.40, 0, -0.45)` and blueprint screen `(0, 1.45, -0.95)` inside `area`; `0.70 s` walk-off clears cradle before `0.73 s` with visual-only claw lift; added `<= 40` draw-call target, belt needed-part highlight, 30/60/144 Hz + random bot tests (`< 60 s`), and open questions A/B/C.
+
+## Decisions (user, 2026-10-24)
+
+The user approved this design and asked Claude to settle every open question with a modern, fair arcade feel in mind. These answers override the Open questions above; the build follows them.
+
+- **Core (Claude adds before the builds):** a points game that ends on `"timeup"` with a score above 0 plays the win cue and confetti like a finish, not the lose sting; `GameDefinition.clockChip: false` hides the shell's Played chip for games that show their own clock.
+- A: quota win on the game's own 90 s clock (`end("win")` at >= 5 robots, `end("lose")` below), Played chip hidden with core `clockChip: false`.
+- B: the 1.00 s claw lockout + combo reset on a wrong grab is enough.
+- C: Claude adds `SHARED_GLB_SIZE` (robot, battery, crate) and `REUSED_GLB_SIZE.barrel` to core/sharedAssets.ts before the build.
+- Modern look: clean factory with rim-lit conveyors, emissive status lights, sparks on assembly, confetti on each finished robot.

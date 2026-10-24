@@ -138,3 +138,14 @@ Ripe = open ring/check, perfect band = two ticks/bright outline, missed = crosse
 - Replaced loose24800 cap with finite16-table exhaustive harvest/score-proof plan,4% rounded candidate and>=90% legal-oracle gate; retained duration99000..102000/base200/rate250. No certified H*, numeric replacement or executed bot results at this design stage; D remains pending if refinement fails.
 - Added meaningful arrival/metronome opponents,256 seeds/bot/mode at30/60/144 Hz, hidden-neighbour human routing, missed-cycle/pre-start/negative-path tests; clarified camera/markers/skirt and caller-scaled stars.
 - Disclosed1.3 m character departure, planned spine/hip lean and leaf-rim contact tests, crop-squash screenshot gate and reuse-only assets note. A-D remain user decisions. README/assets only; no implementation, build or runtime-test claim. Administrative handoff: `.handoff/P-14-alien-fix1/HANDOFF.md`.
+
+## Decisions (user, 2026-10-24)
+
+The user approved this design and asked Claude to settle every open question with a modern, fair arcade feel in mind. These answers override the Open questions above; the build follows them.
+
+- **Core (Claude adds before the builds):** a points game that ends on `"timeup"` with a score above 0 plays the win cue and confetti like a finish, not the lose sting; `GameDefinition.clockChip: false` hides the shell's Played chip for games that show their own clock.
+- A: a pure time-up score attack (the spec): no shipment win/lose; deliveries keep paying and a shipment of 16 gives a bonus banner, never a "lose". The timeup end plays the finish cue (core fix).
+- B: keep the missed-cycle lock, but the 0.60 s cooldown applies only to presses OUTSIDE a window (a correct press never locks you).
+- C: the 6x6 portrait window with arrows / hum routing to off-screen plots: accepted.
+- D: if the proof or the legal oracle cannot reach 90 % of the derived limit, a documented looser limit is allowed (certificate, best bot, ratio and reason in the README).
+- Modern look: the new flying saucer GLB (`/models/3d/alien-farm/ufo.glb`) for the saucer; purple dusk sky, emissive glowPods pulsing, soft beam cone.

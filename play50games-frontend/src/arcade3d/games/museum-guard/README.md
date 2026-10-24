@@ -190,3 +190,13 @@ Design only. `status` stays `"dev"`. No thumbnail.
 4. The human bot's worst turn is exit-to-exit 157.5° (phase-3 penguin, contact ≈ 1.06 s, ≈ 1.0 m left after the coast, 0.57 m outside the alarm). A 0.7 s hold still running on the first exit does not fit; the flash or a spent alarm covers it.
 5. Touch-drag yaw is capped at π rad/s, so the turn-rate claim and the touch human bot (140 px/s) are the same limit.
 6. The freeze effect is `sparkle`, and `burst` takes a position. Played stays visible next to Dawn unless Claude adds a hide option (open question). Knight and robot `<Model>` draws are still skinned (`HumanoidStill`); the saving is the pose driver, not four rigs.
+
+## Decisions (user, 2026-10-24)
+
+The user approved this design and asked Claude to settle every open question with a modern, fair arcade feel in mind. These answers override the Open questions above; the build follows them.
+
+- **Core (Claude adds before the builds):** a points game that ends on `"timeup"` with a score above 0 plays the win cue and confetti like a finish, not the lose sting; `GameDefinition.clockChip: false` hides the shell's Played chip for games that show their own clock.
+- Dawn: `end("win")` at 90 s on the rules clock, no `durationMs` (as proposed).
+- Played chip: hidden with the new core `clockChip: false`; the radar keeps its landscape spot below the row anyway.
+- Everything listed as decided stays (narrow beam, mover cap 3, two exits, inner lane, +50 beyond 2 m, hover, EyeRig, limits 2050 / 12000-92000 / 0 / 25).
+- Modern look: night museum with emissive statue glow, soft volumetric-looking beam cone, polished floor reflections faked with a darker gradient plane, subtle dust motes.

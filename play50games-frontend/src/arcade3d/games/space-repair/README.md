@@ -148,3 +148,14 @@ Number/icon/pips, dashed service disc, needle/arc shape and explicit GOOD/PERFEC
 8. Labelled uniform module footprint versus size-based hit count as Changed from spec.
 9. Cited/assert known1.02 x 1.90 x 1.01 battery dimensions; asset recipe now describes existing visor/face/backpack and forbids regeneration.
 10. Added useCoarsePointer to verified helpers; collected U1-U4 as pending user decisions. Documentation/spec only; no build/runtime results claimed.
+
+## Decisions (user, 2026-10-24)
+
+The user approved this design and asked Claude to settle every open question with a modern, fair arcade feel in mind. These answers override the Open questions above; the build follows them.
+
+- **Core (Claude adds before the builds):** a points game that ends on `"timeup"` with a score above 0 plays the win cue and confetti like a finish, not the lose sting; `GameDefinition.clockChip: false` hides the shell's Played chip for games that show their own clock.
+- U1 late cadence: 3.0 s (as proposed).
+- U2 two mirror break orders: approved.
+- U3 listed departures: approved (desktop neutral braking, three recharges, rules-clock win, 50 deg close follow, the 1.75 m suit with backpack, uniform footprints, dock/reset/lock rules, backlog-only simultaneous breaks).
+- U4 wider coarse-pointer arcs on the shared leaderboard: approved (aiming precision differs by input, not timing); device mode sampled once per run.
+- Modern look: the new station module GLB (`/models/3d/space-repair/stationModule.glb`) for the modules; Earth rim light, star parallax, jetpack flame fx, sparks on repairs.
