@@ -1,5 +1,5 @@
 {
-  "version": 4,
+  "version": 5,
   "games": {
     "robot-collector": {
       "title": "Robot Collector",
@@ -26,7 +26,14 @@
       "max_duration_ms": 93000,
       "base": 0,
       "max_pps": 28,
-      "enabled": true
+      "enabled": true,
+      "levels": [
+        { "title": "Fruit Catch", "max_score": 2500, "min_duration_ms": 9500, "max_duration_ms": 93000, "base": 0, "max_pps": 28 },
+        { "title": "Snack Catch", "max_score": 2400, "min_duration_ms": 8620, "max_duration_ms": 123000, "base": 0, "max_pps": 89 },
+        { "title": "Fast Food Mix", "max_score": 3150, "min_duration_ms": 7890, "max_duration_ms": 153000, "base": 0, "max_pps": 97 },
+        { "title": "Speed Kitchen", "max_score": 3910, "min_duration_ms": 7940, "max_duration_ms": 183000, "base": 0, "max_pps": 109 },
+        { "title": "Master Catch", "max_score": 4150, "min_duration_ms": 7270, "max_duration_ms": 183000, "base": 0, "max_pps": 99 }
+      ]
     },
     "office-escape": {
       "title": "Office Escape",
@@ -76,7 +83,14 @@
       "max_duration_ms": 1800000,
       "base": 0,
       "max_pps": 11,
-      "enabled": true
+      "enabled": true,
+      "levels": [
+        { "title": "Training Tower", "max_score": 19000, "min_duration_ms": 3000, "max_duration_ms": 1800000, "base": 0, "max_pps": 11 },
+        { "title": "Stone Tower", "max_score": 19000, "min_duration_ms": 3000, "max_duration_ms": 1800000, "base": 0, "max_pps": 11 },
+        { "title": "Clock Tower", "max_score": 19350, "min_duration_ms": 3000, "max_duration_ms": 1800000, "base": 0, "max_pps": 13 },
+        { "title": "Storm Tower", "max_score": 19850, "min_duration_ms": 3000, "max_duration_ms": 1800000, "base": 0, "max_pps": 18 },
+        { "title": "Sky Tower", "max_score": 20200, "min_duration_ms": 3000, "max_duration_ms": 1800000, "base": 0, "max_pps": 19 }
+      ]
     },
     "clean-city": {
       "title": "Clean the City",
@@ -91,8 +105,8 @@
     "escape-room": {
       "title": "Tiny Escape Room",
       "kind": "time",
-      "max_score": 58370,
-      "min_duration_ms": 16300,
+      "max_score": 58634,
+      "min_duration_ms": 13654,
       "max_duration_ms": 600000,
       "time_base_ms": 600000,
       "enabled": true
@@ -161,7 +175,7 @@
       "max_duration_ms": 92000,
       "base": 0,
       "max_pps": 25,
-      "enabled": false
+      "enabled": true
     },
     "luggage-rush": {
       "title": "Airport Luggage Rush",
@@ -281,7 +295,7 @@
       "max_duration_ms": 140000,
       "base": 480,
       "max_pps": 56,
-      "enabled": false,
+      "enabled": true,
       "levels": [
         { "title": "Outer Wall", "max_score": 7130, "min_duration_ms": 39000, "max_duration_ms": 140000, "base": 480, "max_pps": 56 },
         { "title": "Main Gate", "max_score": 7370, "min_duration_ms": 33000, "max_duration_ms": 135000, "base": 600, "max_pps": 61 },
@@ -328,7 +342,7 @@
       "max_duration_ms": 62000,
       "base": 0,
       "max_pps": 200,
-      "enabled": false
+      "enabled": true
     },
     "zoo-escape": {
       "title": "Zoo Escape",

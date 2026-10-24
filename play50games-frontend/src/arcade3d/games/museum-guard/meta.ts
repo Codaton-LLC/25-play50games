@@ -8,7 +8,7 @@ export const museumGuardMeta: ArcadeGameMeta = {
    tagline: "Statues only move when you look away.",
    description: "You are the night guard of a toy museum whose statues sneak off their pedestals whenever your flashlight looks away.",
    order: 12,
-   status: "dev",
+   status: "live",
    collection: "adventure",
    difficulty: 2,
    orientation: "any",
