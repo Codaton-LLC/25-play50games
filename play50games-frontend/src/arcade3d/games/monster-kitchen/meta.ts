@@ -31,7 +31,7 @@ export const monsterKitchenMeta: ArcadeGameMeta = {
       unitLabel: "pts",
       display: "int",
    },
-   thumbnail: null,
+   thumbnail: "/images/3d/monster-kitchen.webp",
    accent: "#f472b6",
    owner: "kimi",
 };

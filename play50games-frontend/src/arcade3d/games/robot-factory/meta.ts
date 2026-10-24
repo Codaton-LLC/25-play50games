@@ -27,7 +27,7 @@ export const robotFactoryMeta: ArcadeGameMeta = {
       unitLabel: "pts",
       display: "int",
    },
-   thumbnail: null,
+   thumbnail: "/images/3d/robot-factory.webp",
    accent: "#7dd3fc",
    owner: "kimi",
 };

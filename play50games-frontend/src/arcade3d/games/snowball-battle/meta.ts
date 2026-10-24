@@ -27,7 +27,7 @@ export const snowballBattleMeta: ArcadeGameMeta = {
       unitLabel: "pts",
       display: "int",
    },
-   thumbnail: null,
+   thumbnail: "/images/3d/snowball-battle.webp",
    accent: "#bae6fd",
    owner: "cursor",
 };

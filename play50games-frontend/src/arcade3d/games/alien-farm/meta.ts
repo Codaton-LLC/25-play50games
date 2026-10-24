@@ -27,7 +27,7 @@ export const alienFarmMeta: ArcadeGameMeta = {
       unitLabel: "pts",
       display: "int",
    },
-   thumbnail: null,
+   thumbnail: "/images/3d/alien-farm.webp",
    accent: "#4ade80",
    owner: "codex",
 };

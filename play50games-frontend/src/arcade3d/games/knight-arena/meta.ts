@@ -27,7 +27,7 @@ export const knightArenaMeta: ArcadeGameMeta = {
       unitLabel: "pts",
       display: "int",
    },
-   thumbnail: null,
+   thumbnail: "/images/3d/knight-arena.webp",
    accent: "#facc15",
    owner: "antigravity",
 };

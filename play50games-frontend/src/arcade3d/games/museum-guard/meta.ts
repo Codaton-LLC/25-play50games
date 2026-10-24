@@ -27,7 +27,7 @@ export const museumGuardMeta: ArcadeGameMeta = {
       unitLabel: "pts",
       display: "int",
    },
-   thumbnail: null,
+   thumbnail: "/images/3d/museum-guard.webp",
    accent: "#c4b5fd",
    owner: "cursor",
 };
