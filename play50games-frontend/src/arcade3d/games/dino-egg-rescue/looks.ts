@@ -235,6 +235,8 @@ export function ridgeHeight(x: number, z: number): number {
    ) {
       return 0;
    }
+   // Foreground South (z > 11.0) stays strictly flat so nothing rises between camera and valley
+   if (z > VALLEY_FIELD.z1) return 0;
    // Main volcano location stays flat on the terrain mesh (the volcano GLB sits there)
    if (nearMainVolcano(x, z, 0.5)) return 0;
 
@@ -259,7 +261,7 @@ export function valleyRidgeMesh(): ColoredMesh {
    const x0 = -26;
    const x1 = 26;
    const z0 = -25;
-   const z1 = 16;
+   const z1 = 11.0;
    const step = 2.0;
 
    const push = (
@@ -404,10 +406,10 @@ function buildDecor(): DecorSpot[] {
 
    // 5. Sunset clouds in the upper sky
    const clouds: Array<[number, number, number, number]> = [
-      [-14, 17.5, -20, 1.1],
-      [-3, 19.0, -23, 1.3],
-      [8, 17.0, -19, 1.0],
-      [18, 18.5, -22, 1.2],
+      [-14, 22.0, -28, 1.1],
+      [-3, 24.0, -32, 1.3],
+      [8, 22.0, -27, 1.0],
+      [18, 23.5, -30, 1.2],
    ];
    for (const [x, y, z, s] of clouds) {
       spots.push({

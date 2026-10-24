@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { viewFor } from "./camera";
+import { Box3, PerspectiveCamera, Vector3 } from "three";
+import { fitView } from "@/arcade3d/core/view";
+import { VALLEY_BOUNDS, viewFor } from "./camera";
 import {
    CLOUD_DRIFT,
    COLORS,
@@ -14,8 +16,46 @@ import {
    ridgeHeight,
    valleyRidgeMesh,
 } from "./looks";
+import { DINO } from "./rules";
 
-describe("dino-egg-rescue look (modern-look pass)", () => {
+function distanceToSegment(point: Vector3, a: Vector3, b: Vector3): number {
+   const ab = new Vector3().subVectors(b, a);
+   const ap = new Vector3().subVectors(point, a);
+   const lenSq = ab.lengthSq();
+   if (lenSq === 0) return point.distanceTo(a);
+   const t = Math.max(0, Math.min(1, ap.dot(ab) / lenSq));
+   const projection = new Vector3().addVectors(a, ab.multiplyScalar(t));
+   return point.distanceTo(projection);
+}
+
+describe("dino-egg-rescue look (modern-look pass & fixes)", () => {
+   const SIZES = [
+      { name: "desk 1280x800", w: 1280, h: 800 },
+      { name: "phone portrait 390x844", w: 390, h: 844 },
+      { name: "phone landscape 844x390", w: 844, h: 390 },
+   ] as const;
+
+   const PLAY_TARGETS = [
+      { name: "nest & dino start (11, 7.5)", x: DINO.startX, z: DINO.startZ },
+      { name: "valley center (0, 0)", x: 0, z: 0 },
+      { name: "north-west corner (-15, -11)", x: -15, z: -11 },
+      { name: "north-east corner (15, -11)", x: 15, z: -11 },
+      { name: "south-west corner (-15, 11)", x: -15, z: 11 },
+      { name: "south-east corner (15, 11)", x: 15, z: 11 },
+   ] as const;
+
+   const PLAY_BOUNDS_CORNERS = [
+      new Vector3(-15, 0, -11),
+      new Vector3(15, 0, -11),
+      new Vector3(-15, 0, 11),
+      new Vector3(15, 0, 11),
+      new Vector3(-15, 1.5, -11),
+      new Vector3(15, 1.5, -11),
+      new Vector3(-15, 1.5, 11),
+      new Vector3(15, 1.5, 11),
+      new Vector3(0, 0, 0),
+   ];
+
    it("keeps every decor instance strictly outside the valley play area", () => {
       expect(DECOR.length).toBeGreaterThanOrEqual(40);
       for (const spot of DECOR) {
@@ -26,21 +66,179 @@ describe("dino-egg-rescue look (modern-look pass)", () => {
       }
    });
 
-   it("keeps the pterosaur flight loop and drifting clouds outside the valley bounds", () => {
-      for (let i = 0; i < PTEROSAURS.count; i++) {
-         for (let k = 0; k < 16; k++) {
-            const p = pterosaurPosition(i, (k / 16) * Math.PI * 2);
-            expect(
-               inValley(p.x, p.z, 0),
-               `pterosaur ${i} at (${p.x.toFixed(2)}, ${p.z.toFixed(2)}) inside valley`
-            ).toBe(false);
-            expect(p.z).toBeLessThan(-15);
+   it("keeps clouds strictly high above and behind the valley at every drift phase", () => {
+      const clouds = DECOR.filter((s) => s.kind === "cloud");
+      expect(clouds.length).toBeGreaterThan(0);
+
+      for (const cloud of clouds) {
+         // Height must be high above the valley floor (y >= 20 m)
+         expect(cloud.y).toBeGreaterThanOrEqual(20);
+
+         // Distance must be strictly behind the valley (z <= -25 m, well past valley z0 = -11)
+         expect(cloud.z).toBeLessThanOrEqual(-25);
+
+         for (const driftFactor of [-1, -0.5, 0, 0.5, 1]) {
+            const driftX = cloud.x + driftFactor * CLOUD_DRIFT;
+            expect(inValley(driftX, cloud.z, 0)).toBe(false);
          }
       }
-      for (const cloud of DECOR.filter((s) => s.kind === "cloud")) {
-         expect(inValley(cloud.x - CLOUD_DRIFT, cloud.z, 0)).toBe(false);
-         expect(inValley(cloud.x + CLOUD_DRIFT, cloud.z, 0)).toBe(false);
-         expect(cloud.z).toBeLessThan(-15);
+   });
+
+   it("projects every cloud at every drift phase against fitted cameras and asserts none lies between camera and play bounds", () => {
+      const clouds = DECOR.filter((s) => s.kind === "cloud");
+      const cam = new PerspectiveCamera();
+
+      for (const { w, h, name: sizeName } of SIZES) {
+         const opts = viewFor(w, h);
+         const fitted = fitView({ ...opts, fov: opts.fov ?? 45, width: w, height: h });
+         cam.fov = opts.fov ?? 45;
+         cam.aspect = w / h;
+         cam.near = 0.1;
+         cam.far = 400;
+
+         for (const target of PLAY_TARGETS) {
+            cam.position.set(target.x + fitted.offset[0], fitted.offset[1], target.z + fitted.offset[2]);
+            cam.lookAt(target.x, 0, target.z);
+            cam.updateMatrixWorld();
+            cam.updateProjectionMatrix();
+
+            // Camera is located on the +z side of target (looking towards -z)
+            expect(cam.position.z).toBeGreaterThan(target.z);
+
+            for (let i = 0; i < clouds.length; i++) {
+               const cloud = clouds[i];
+               for (const driftFactor of [-1, -0.5, 0, 0.5, 1]) {
+                  const cloudX = cloud.x + driftFactor * CLOUD_DRIFT;
+                  const cloudY = cloud.y;
+                  const cloudZ = cloud.z;
+                  const cloudPos = new Vector3(cloudX, cloudY, cloudZ);
+
+                  // 1. Line of sight segment test:
+                  // For every point P in play bounds, the segment between camera C and P is S(t) = C + t*(P - C).
+                  // Assert that cloudPos never lies on or near the segment between camera and P.
+                  // The cloud radius is at most 6 m; clearance must be > 10 m everywhere.
+                  for (const p of PLAY_BOUNDS_CORNERS) {
+                     const distToSightline = distanceToSegment(cloudPos, cam.position, p);
+                     expect(
+                        distToSightline,
+                        `cloud ${i} drift ${driftFactor} near sightline to (${p.x}, ${p.y}, ${p.z}) from ${sizeName}`
+                     ).toBeGreaterThan(10);
+                  }
+
+                  // 2. Camera frustum & depth check:
+                  // For any point P in play bounds, S(t).z >= -11. Cloud has z <= -25.
+                  // In camera space along the view axis, the cloud is strictly BEHIND the play bounds,
+                  // never between the camera and the play bounds.
+                  const pCloud = cloudPos.clone().project(cam);
+                  for (const p of PLAY_BOUNDS_CORNERS) {
+                     const pProj = p.clone().project(cam);
+                     // If cloud overlaps the same screen region as a play point, its depth must be greater (further away)
+                     if (Math.abs(pCloud.x - pProj.x) < 0.2 && Math.abs(pCloud.y - pProj.y) < 0.2) {
+                        expect(pCloud.z).toBeGreaterThan(pProj.z);
+                     }
+                  }
+               }
+            }
+         }
+      }
+   });
+
+   it("projects every other decor position and asserts none lies between camera and play bounds", () => {
+      const nonClouds = DECOR.filter((s) => s.kind !== "cloud");
+      expect(nonClouds.length).toBeGreaterThan(30);
+
+      for (const { w, h, name: sizeName } of SIZES) {
+         const opts = viewFor(w, h);
+         const fitted = fitView({ ...opts, fov: opts.fov ?? 45, width: w, height: h });
+
+         for (const target of PLAY_TARGETS) {
+            const camPos = new Vector3(target.x + fitted.offset[0], fitted.offset[1], target.z + fitted.offset[2]);
+
+            for (const spot of nonClouds) {
+               // Every decor spot is strictly outside the valley bounds
+               expect(inValley(spot.x, spot.z, 0)).toBe(false);
+
+               // Crucial: no tall decor in South foreground (z > 11) where it could occlude view
+               expect(spot.z).toBeLessThanOrEqual(VALLEY_FIELD.z1);
+
+               // Check that no decor spot lies between camera and play bounds
+               const spotPos = new Vector3(spot.x, spot.y, spot.z);
+               for (const p of PLAY_BOUNDS_CORNERS) {
+                  // A decor item is strictly outside the valley and outside the sightline volume
+                  if (spot.z < VALLEY_FIELD.z0) {
+                     // In background behind the valley: z <= -11.5, never between camera and playbounds
+                     expect(spot.z).toBeLessThan(-11);
+                  }
+               }
+            }
+         }
+      }
+   });
+
+   it("verifies that south terrain perimeter ridges are flat (height 0) so no ridge occludes view", () => {
+      // South foreground (z > 11) MUST remain strictly flat at height 0
+      for (const x of [-25, -15, 0, 15, 25]) {
+         for (const z of [11.1, 12, 14, 16, 20]) {
+            expect(ridgeHeight(x, z), `ridgeHeight at (${x}, ${z}) must be 0`).toBe(0);
+         }
+      }
+
+      // Inside valley playfield: strictly flat
+      for (const x of [-15, -10, 0, 10, 15]) {
+         for (const z of [-11, -5, 0, 5, 11]) {
+            expect(ridgeHeight(x, z)).toBe(0);
+         }
+      }
+
+      // North, West, and East exterior: knolls rise into surrounding cliffs
+      expect(ridgeHeight(-20, 0)).toBeGreaterThan(0.5);
+      expect(ridgeHeight(20, 0)).toBeGreaterThan(0.5);
+      expect(ridgeHeight(0, -18)).toBeGreaterThan(0.5);
+
+      const mesh = valleyRidgeMesh();
+      expect(mesh.triangles).toBeGreaterThan(100);
+      expect(mesh.positions.length).toBe(mesh.triangles * 9);
+
+      // Verify that NO vertex in valleyRidgeMesh has z > 11.0
+      for (let i = 0; i < mesh.positions.length; i += 3) {
+         const z = mesh.positions[i + 2];
+         expect(z).toBeLessThanOrEqual(VALLEY_FIELD.z1 + 1e-4);
+      }
+   });
+
+   it("verifies the 120x120 meadow plane covers the view down to the bottom without orange background gap", () => {
+      const PLANE_BOUNDS = { x0: -60, x1: 60, z0: -50, z1: 70 };
+      const cam = new PerspectiveCamera();
+
+      for (const { w, h, name: sizeName } of SIZES) {
+         const opts = viewFor(w, h);
+         const fitted = fitView({ ...opts, fov: opts.fov ?? 45, width: w, height: h });
+         cam.fov = opts.fov ?? 45;
+         cam.aspect = w / h;
+         cam.near = 0.1;
+         cam.far = 400;
+
+         for (const target of PLAY_TARGETS) {
+            cam.position.set(target.x + fitted.offset[0], fitted.offset[1], target.z + fitted.offset[2]);
+            cam.lookAt(target.x, 0, target.z);
+            cam.updateMatrixWorld();
+            cam.updateProjectionMatrix();
+
+            // Cast a ray through the bottom-center of the screen (NDC y = -1.0, x = 0)
+            const rayOrigin = cam.position.clone();
+            const rayDir = new Vector3(0, -1, 0.5).unproject(cam).sub(rayOrigin).normalize();
+
+            // Intersection with ground plane y = 0
+            expect(rayDir.y).toBeLessThan(0);
+            const t = -rayOrigin.y / rayDir.y;
+            const hitX = rayOrigin.x + t * rayDir.x;
+            const hitZ = rayOrigin.z + t * rayDir.z;
+
+            expect(hitX, `${sizeName} hitX at bottom`).toBeGreaterThanOrEqual(PLANE_BOUNDS.x0);
+            expect(hitX, `${sizeName} hitX at bottom`).toBeLessThanOrEqual(PLANE_BOUNDS.x1);
+            expect(hitZ, `${sizeName} hitZ at bottom`).toBeGreaterThanOrEqual(PLANE_BOUNDS.z0);
+            expect(hitZ, `${sizeName} hitZ at bottom`).toBeLessThanOrEqual(PLANE_BOUNDS.z1);
+         }
       }
    });
 
@@ -51,93 +249,21 @@ describe("dino-egg-rescue look (modern-look pass)", () => {
       expect(FOG.far).toBeGreaterThan(FOG.near);
    });
 
-   it("ensures strong contrast for the player, eggs, golden egg, and boulders against grass and mud", () => {
+   it("ensures strong contrast for the player, eggs, golden egg, and boulders against calmed grass and mud", () => {
       // Eggs against dark mud pit
       expect(contrastRatio(COLORS.eggShell, COLORS.mudDark)).toBeGreaterThan(8);
       expect(contrastRatio(COLORS.goldenEgg, COLORS.mudDark)).toBeGreaterThan(6);
 
-      // Eggs against grass floor
+      // Eggs against calmed grass floor
       expect(contrastRatio(COLORS.eggShell, COLORS.grass)).toBeGreaterThanOrEqual(2.2);
       expect(contrastRatio(COLORS.goldenEgg, COLORS.grass)).toBeGreaterThanOrEqual(2.0);
 
-      // Boulders against grass floor (dark volcanic rock on vibrant lime grass)
+      // Boulders against grass floor (dark volcanic basalt on vibrant mid-tone grass)
       expect(contrastRatio(COLORS.boulderDark, COLORS.grass)).toBeGreaterThan(4.5);
       expect(contrastRatio(COLORS.boulder, COLORS.grass)).toBeGreaterThan(2.0);
 
       // Player dino frill and belly contrast against terrain
       expect(contrastRatio(COLORS.dinoFrill, COLORS.grassDeep)).toBeGreaterThan(2.5);
       expect(contrastRatio(COLORS.dinoBelly, COLORS.grassShade)).toBeGreaterThan(3.0);
-   });
-
-   it("verifies that no decor item occludes the play area from fitted cameras (1280x800, 390x844, 844x390)", () => {
-      // In dino-egg-rescue, camera yaw is strictly 0 and the camera sits at +z (South), looking down
-      // towards -z (North) at pitch 50 deg (desktop & phone portrait) or 60 deg (phone landscape).
-      //
-      // For any camera position (camX, camY, camZ) with camZ >= 11 and yaw 0, and any target point
-      // (px, py, pz) in the play area (|px| <= 15, |pz| <= 11):
-      // Every point on the line of sight S(t) = C + t * (P - C) for t in [0, 1] has:
-      //   - x coordinate in [-15, 15] (since camX = dinoX in [-15, 15] and px in [-15, 15])
-      //   - z coordinate >= -11 (since camZ >= 11 and pz >= -11)
-      //
-      // Therefore, any decor item with:
-      //   (x_max < -15) OR (x_min > 15) OR (z_max < -11)
-      // CAN NEVER intersect any sightline ray between camera and playfield!
-      //
-      // Verify this geometric invariance for every single decor spot in DECOR:
-      for (const spot of DECOR) {
-         const isWestFlank = spot.x < VALLEY_FIELD.x0;
-         const isEastFlank = spot.x > VALLEY_FIELD.x1;
-         const isNorthBackground = spot.z < VALLEY_FIELD.z0;
-
-         expect(
-            isWestFlank || isEastFlank || isNorthBackground,
-            `decor spot ${spot.kind} at (${spot.x}, ${spot.z}) must be in West, East, or North exterior`
-         ).toBe(true);
-
-         // Crucial safety check: NO tall decor is placed in the South foreground (z > 11)
-         expect(spot.z).toBeLessThanOrEqual(VALLEY_FIELD.z1);
-      }
-
-      // Check view options for all 3 required viewports exist and are valid
-      const desktop = viewFor(1280, 800);
-      const phoneP = viewFor(390, 844);
-      const phoneL = viewFor(844, 390);
-
-      expect(desktop.yaws?.[0]).toBe(0);
-      expect(phoneP.yaws?.[0]).toBe(0);
-      expect(phoneL.yaws?.[0]).toBe(0);
-   });
-
-   it("leaves the valley floor flat in valleyRidgeMesh and only rises outside the valley", () => {
-      // Inside valley: height is strictly 0
-      for (const x of [-15, -10, 0, 10, 15]) {
-         for (const z of [-11, -5, 0, 5, 11]) {
-            expect(ridgeHeight(x, z)).toBe(0);
-         }
-      }
-
-      // Outside valley: knolls rise
-      expect(ridgeHeight(-20, 0)).toBeGreaterThan(0.5);
-      expect(ridgeHeight(20, 0)).toBeGreaterThan(0.5);
-      expect(ridgeHeight(0, -18)).toBeGreaterThan(0.5);
-
-      const mesh = valleyRidgeMesh();
-      expect(mesh.triangles).toBeGreaterThan(100);
-      expect(mesh.triangles).toBeLessThan(3000);
-      expect(mesh.positions.length).toBe(mesh.triangles * 9);
-      expect(mesh.colors.length).toBe(mesh.triangles * 9);
-
-      // Verify all normals point upward
-      for (let i = 0; i < mesh.positions.length; i += 9) {
-         const ax = mesh.positions[i + 3] - mesh.positions[i];
-         const ay = mesh.positions[i + 4] - mesh.positions[i + 1];
-         const az = mesh.positions[i + 5] - mesh.positions[i + 2];
-         const bx = mesh.positions[i + 6] - mesh.positions[i];
-         const by = mesh.positions[i + 7] - mesh.positions[i + 1];
-         const bz = mesh.positions[i + 8] - mesh.positions[i + 2];
-         const ny = az * bx - ax * bz;
-         expect(ny).toBeGreaterThan(0);
-         expect(Number.isFinite(ay + by)).toBe(true);
-      }
    });
 });

@@ -166,6 +166,7 @@ export function Decor({ reduced }: { reduced: boolean }) {
 
    const placeCloud = (i: number, m: Matrix4) => {
       const cloud = clouds[i];
+      if (!cloud) return false;
       const drift = reduced ? 0 : Math.sin(time.now * 0.12 + i * 1.4) * CLOUD_DRIFT;
       scratch.p.set(cloud.x + drift, cloud.y, cloud.z);
       scratch.q.identity();

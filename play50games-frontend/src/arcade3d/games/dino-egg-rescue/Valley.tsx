@@ -37,22 +37,24 @@ function coloredGeometry(data: ColoredMesh): BufferGeometry {
 }
 
 const drawValleyMeadow: CanvasDraw = (ctx, width, height) => {
-   // Lush prehistoric mossy grass base
+   // Lush prehistoric mossy grass base (clean, calm mid-tone)
    ctx.fillStyle = COLORS.grass;
    ctx.fillRect(0, 0, width, height);
 
-   // Sunlit & deep shaded dappled patches
-   const tones = [COLORS.grassSun, COLORS.grassShade, COLORS.grassDeep, COLORS.soilWarm];
-   for (let i = 0; i < 48; i++) {
+   // Subtle, soft, low-contrast mottling (soft sunlit and soft shaded greens)
+   // Keep alpha very low (0.05) so the playfield stays calm and uniform,
+   // letting eggs, nest and dinosaurs pop with high readability.
+   const tones = [COLORS.grassSun, COLORS.grassShade];
+   for (let i = 0; i < 14; i++) {
       ctx.fillStyle = tones[i % tones.length];
-      ctx.globalAlpha = 0.22 + (i % 4) * 0.07;
+      ctx.globalAlpha = 0.05;
       ctx.beginPath();
       ctx.ellipse(
-         (i * 103) % width,
-         (i * 57) % height,
-         24 + (i * 19) % 65,
-         14 + (i * 13) % 35,
-         ((i * 23) % 60) * 0.02,
+         (i * 137) % width,
+         (i * 89) % height,
+         35 + (i * 17) % 45,
+         20 + (i * 11) % 25,
+         ((i * 31) % 60) * 0.02,
          0,
          Math.PI * 2
       );
@@ -96,7 +98,7 @@ export function Valley({ telegraphLanes }: { telegraphLanes?: readonly boolean[]
    const meadowTexture = useCanvasTexture(512, 512, drawValleyMeadow);
    useEffect(() => {
       meadowTexture.wrapS = meadowTexture.wrapT = RepeatWrapping;
-      meadowTexture.repeat.set(4, 4);
+      meadowTexture.repeat.set(8, 8);
       meadowTexture.needsUpdate = true;
    }, [meadowTexture]);
 
@@ -116,8 +118,8 @@ export function Valley({ telegraphLanes }: { telegraphLanes?: readonly boolean[]
    return (
       <group name="valley">
          {/* Main valley terrain meadow plane */}
-         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.01, 0]}>
-            <planeGeometry args={[VALLEY.halfX * 2 + 10, VALLEY.halfZ * 2 + 10]} />
+         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.01, 10]}>
+            <planeGeometry args={[120, 120]} />
             <meshStandardMaterial
                map={meadowTexture}
                roughness={0.8}
