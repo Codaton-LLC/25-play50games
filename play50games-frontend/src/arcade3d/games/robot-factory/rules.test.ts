@@ -462,16 +462,19 @@ describe("robot-factory scoring limit proof", () => {
       expect(total / 200).toBeGreaterThan(0.6 * PERFECT);
    });
 
-   it("grabbing everything (blueprint-blind) earns at most 40 % of the oracle", () => {
+   // 1.00 s lockout + blueprint step reset (user, 2026-10-24): measured blind max 696 (15.2 %), 0 / 150 wins.
+   it("grabbing everything (blueprint-blind) earns at most 20 % of the oracle and never wins", () => {
       for (let seed = 1; seed <= 150; seed++) {
          const { end } = playStore(blindBot, seed, randomFrames(seed + 900, 0.016, 0.05));
-         expect(end.score, `seed ${seed}`).toBeLessThanOrEqual(0.4 * PERFECT);
+         expect(end.score, `seed ${seed}`).toBeLessThanOrEqual(0.2 * PERFECT);
+         expect(end.endReason, `seed ${seed}`).not.toBe("win");
          expect(withinServerLimits(end.score, end.elapsedMs)).toBe(true);
       }
    });
 
-   it("spam, mash and idle bots score low, rarely survive, and never end inside 10.331 s", () => {
-      for (const [bot, cap, maxWins, seeds] of [[spamGrabBot, 0.4, 25, 200], [mashBot, 0.4, 15, 200], [spamScrapBot, 0, 0, 100], [idleBot, 0, 0, 100]] as const) {
+   // measured: spam grab max 500 (10.9 %), mash max 1108 (24.2 %), neither wins a seed.
+   it("spam, mash and idle bots score low, never win, and never end inside 10.331 s", () => {
+      for (const [bot, cap, maxWins, seeds] of [[spamGrabBot, 0.12, 0, 200], [mashBot, 0.3, 0, 200], [spamScrapBot, 0, 0, 100], [idleBot, 0, 0, 100]] as const) {
          const scores: number[] = [];
          let wins = 0;
          for (let seed = 1; seed <= seeds; seed++) {
