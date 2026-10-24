@@ -68,13 +68,21 @@ export const COLORS = {
    rock: "#b5a48e",
    pennant: "#fb923c",
    shieldWood: "#b45309",
+   // per-copy tints MULTIPLY the goblin GLB's own green-grey texture: light values keep the bodies
+   // readable (dark ones drew near-black silhouettes in the playtest) while the hue still tells the types
    goblin: {
-      walker: "#3f6212",
-      shield: "#1e3a5f",
-      runner: "#9a3412",
-      crew: "#4c1d95",
+      walker: "#65a30d",
+      shield: "#60a5fa",
+      runner: "#fb923c",
+      crew: "#a78bfa",
    },
 } as const;
+
+/**
+ * The goblin GLB's average texture colour (its light green-grey base, catalog §14), for estimating the
+ * DRAWN colour of a tinted copy: drawn = tint x base, per channel.
+ */
+export const GOBLIN_GLB_BASE = "#a6b08f";
 
 /** Linear fog. `near` is past the far field edge for VIEW_CAMERA, so the meadow stays crisp. */
 export const FOG = { near: 46, far: 86 } as const;

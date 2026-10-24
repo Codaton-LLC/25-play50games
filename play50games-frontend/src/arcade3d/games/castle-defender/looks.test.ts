@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-   BIRDS, COLORS, CLOUD_DRIFT, DECOR, FIELD, FOG, LANES, ROAD, WATER,
+   BIRDS, COLORS, GOBLIN_GLB_BASE, CLOUD_DRIFT, DECOR, FIELD, FOG, LANES, ROAD, WATER,
    birdPosition, blockFrontZ, contrastRatio, farFieldDistance, hillHeight, hillMesh, inField, roadMesh, wallBlocks,
 } from "./looks";
 
@@ -31,11 +31,18 @@ describe("castle look", () => {
       expect(WATER.x + WATER.width / 2).toBeLessThan(FIELD.x0);
    });
 
-   it("contrasts each goblin tint with the grass", () => {
+   it("contrasts each goblin's DRAWN colour (tint x the GLB's base) with the grass, never near-black", () => {
       expect(contrastRatio("#000000", "#ffffff")).toBeCloseTo(21, 0);
       expect(contrastRatio(COLORS.grass, COLORS.grass)).toBeCloseTo(1, 5);
+      const drawn = (tint: string) => {
+         const ch = (hex: string, i: number) => parseInt(hex.slice(1 + 2 * i, 3 + 2 * i), 16);
+         return "#" + [0, 1, 2].map((i) => Math.round((ch(tint, i) * ch(GOBLIN_GLB_BASE, i)) / 255).toString(16).padStart(2, "0")).join("");
+      };
       for (const tint of Object.values(COLORS.goblin)) {
-         expect(contrastRatio(tint, COLORS.grass), tint).toBeGreaterThanOrEqual(3);
+         // readable against the meadow...
+         expect(contrastRatio(drawn(tint), COLORS.grass), tint).toBeGreaterThanOrEqual(3);
+         // ...but a coloured body, not the black silhouette the first look drew (#3f6212 drew 0.046)
+         expect(contrastRatio(drawn(tint), "#000000"), tint).toBeGreaterThanOrEqual(2.5);
       }
    });
 
