@@ -14,8 +14,8 @@ export const museumGuardMeta: ArcadeGameMeta = {
    orientation: "any",
    controls: {
       scheme: "look",
-      keyboard: "Mouse or A / D to turn the flashlight, Space to flash",
-      touch: "Drag to turn the flashlight, Action to flash",
+      keyboard: "Move the mouse left or right, or hold A / D or the arrows, to turn; Space or E flashes",
+      touch: "Drag to turn, Flash to burst",
    },
    scoring: {
       kind: "points",

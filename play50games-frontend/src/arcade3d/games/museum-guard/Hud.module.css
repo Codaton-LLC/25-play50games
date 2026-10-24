@@ -1,0 +1,31 @@
+.radar {
+   position: absolute;
+   z-index: 2;
+   left: 12px;
+   bottom: calc(12px + env(safe-area-inset-bottom, 0px) + var(--arcade-bottom-obstruction, 0px));
+   width: 132px;
+   height: 132px;
+   padding: 6px;
+   border-radius: 16px;
+   background: rgba(15, 23, 42, 0.92);
+   border: 1px solid rgba(196, 181, 253, 0.45);
+   box-shadow: 0 10px 28px rgba(2, 6, 23, 0.45);
+   pointer-events: none;
+}
+
+.radar svg {
+   display: block;
+   width: 100%;
+   height: 100%;
+}
+
+@media (orientation: landscape) {
+   .radar {
+      top: 60px;
+      bottom: auto;
+      width: 96px;
+      height: 96px;
+      padding: 4px;
+      border-radius: 14px;
+   }
+}

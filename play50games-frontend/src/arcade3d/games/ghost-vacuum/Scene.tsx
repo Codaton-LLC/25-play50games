@@ -13,14 +13,13 @@ import { Flashlight } from "@/arcade3d/core/kit";
 import { inputToWorld, randomSeed } from "@/arcade3d/core/math";
 import { BlobShadow, DynamicInstanced } from "@/arcade3d/core/render";
 import { HumanoidModel, gaitPhaseStep, useHumanoidPose, wrapPhase } from "@/arcade3d/core/rig";
-import { RUNNER_LANDMARKS } from "@/arcade3d/core/sharedAssets";
 import { useQuality } from "@/arcade3d/core/quality";
 import { useSafeArea } from "@/arcade3d/core/safeArea";
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { useFittedView } from "@/arcade3d/core/useFittedView";
 import { useRunFrame } from "@/arcade3d/core/useRunFrame";
 import type { ScreenRect } from "@/arcade3d/core/view";
-import { ASSETS, HUNTER_SCALE } from "./assets";
+import { ASSETS, HUNTER_LANDMARKS, HUNTER_SCALE } from "./assets";
 import { viewFor } from "./camera";
 import Ghosts from "./Ghosts";
 import Mansion from "./Mansion";
@@ -48,7 +47,7 @@ function Hunter({ run, shared }: { run: Run; shared: SuckShared }) {
       const playing = useArcadeStore.getState().phase === "playing";
       const h = run.hunter, v = playing ? Math.hypot(h.vx, h.vz) : 0, amount = Math.min(1, v / 4);
       const sign = h.vx * Math.sin(h.yaw) + h.vz * Math.cos(h.yaw) < -0.01 ? -1 : 1;
-      gait.phase = wrapPhase(gait.phase + sign * gaitPhaseStep(amount, RUNNER_LANDMARKS, HUNTER_SCALE, v, time.delta, 4));
+      gait.phase = wrapPhase(gait.phase + sign * gaitPhaseStep(amount, HUNTER_LANDMARKS, HUNTER_SCALE, v, time.delta, 4));
       hunterPose(gait.phase, amount, run.won, time.now, p);
    });
    // Nozzle mouth for the drawn suck-in (Ghosts.tsx, -0.02): after the camera and the pose

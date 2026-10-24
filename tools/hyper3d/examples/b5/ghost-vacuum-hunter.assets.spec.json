@@ -1,0 +1,23 @@
+{
+   "slug": "ghost-vacuum",
+   "universe": "shared-cast",
+   "seed": 2410,
+   "assets": [
+      {
+         "id": "hunter",
+         "kind": "character",
+         "mode": "image",
+         "concept": "tools/hyper3d/concepts/ghost-vacuum-hunter.png",
+         "prompt": "Ghost hunter in a clean T-pose: mint-green jumpsuit, charcoal panels, violet accents, utility belt, knee pads, headset, black boots. The concept shows the user's face and stays outside git (%USERPROFILE%/.play50/concepts/expansion/ghostHunter.png).",
+         "tier": "Gen-2.5-Medium",
+         "qualityOverride": 18000,
+         "attempts": 1,
+         "target": "ghost-vacuum",
+         "budget": {
+            "tris": 20000,
+            "bytes": 1500000
+         },
+         "textureSize": 1024
+      }
+   ]
+}

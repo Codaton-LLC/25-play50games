@@ -27,6 +27,30 @@ Cursor and Codex are pointed here via `AGENTS.md`. Agents: **Claude** (most work
 2. **3D Arcade** = 10 React Three Fiber mini-games with Hyper3D (Rodin) models. No unlock chain, no certificate, no coupling to classic progress.
 3. Each 3D game has its **own score** (local best for everyone) and its **own WP leaderboard** (logged-in users only, public name "First L.", opt-out).
 
+## Master plan and standing decisions (2026-10-24) — every agent follows these
+
+The user's roadmap is **100 3D games x 5 levels = 500 levels**, in `docs/master-plan/`:
+- `PLAY50_ALL_100_GAMES_500_LEVELS_FULL.md`: **Menu 1**, 50 mixed games. Games 1-30 are the 30 games in `arcade3d/games/`; 31-50 are new (Firefighter Rescue ... Postman 3D). Each game has its Hyper3D prompts and 5 level specs.
+- `PLAY50_MENU_2_50_COLOR_SHELL_NINJAS_FULL.md`: **Menu 2**, 50 "Color Shell Ninjas" games. One character family with five coloured heroes: Riko red Dash, Nami blue Double Jump, Kiro green Shield, Zuno yellow Magnet, Vexa purple Phase. One base mesh and rig, with the colours changed by material.
+
+The **classic 50 2D games stay as they are**. Never change them for this plan.
+
+Decisions the user made (do not re-open them without asking):
+1. **5 levels per game.** Follow the plan's "Global level rule": 1 base environment + 5 level configurations (layout, spawns, objective count, hazards, speed, lighting, timing), not five unrelated maps. Claude builds the core level system first (design: `docs/arcade-levels.md`). Game authors then add their 5 level configs through it; never build a private level system inside a game folder.
+2. **Leaderboard:** ONE leaderboard per game = the SUM of the player's best score on each of its 5 levels. The score limits are proven per level (arcade-score-limits skill, one proof per level).
+3. **Order of work:**
+   1. Finish snowball-battle, space-repair and alien-farm.
+   2. Core level system + backend.
+   3. 5 levels for the existing 30 games.
+   4. Modern-look pass on the existing games.
+   5. The 20 new Menu 1 games.
+   6. Menu 2.
+4. **Modern look, Hyper3D first.** The user wants a polished, modern, premium mobile-game look and finds code-made objects ugly. Every visible, important object is a Hyper3D GLB. Only ground, terrain, water, sky, particles, markers/UI rings and moving parts (rotors, blades, lids) stay in code. A code stand-in is only a fallback until the GLB exists; it must still look deliberate (bevelled, 2-3 tones), never a raw grey box. Lighting from a core preset + fog/sky from core env, one COLORS palette per game, juicy feedback (fx bursts, shake, floating scores).
+5. **Menu 2 hero:** built as the spec says (turtle ninja with a coloured eye mask). The user accepted the trademark-resemblance risk Claude raised.
+6. **Hyper3D credits:** the user buys more on another account and gives Claude access (re-login of the hyper3d-rodin MCP). Credits are still spent only after the user approves a batch in chat.
+7. **Fairness on one leaderboard:** the same timing windows for touch and keyboard. A device may only get help where its input is less precise (aim arcs), never with timing.
+8. **Points games that end on time** play the finish cue (core `endCue`). A game that shows its own clock sets `clockChip: false`.
+
 ## Routes
 
 | Route | Purpose | Status |
@@ -185,7 +209,7 @@ Last update 2026-10-08 (Release 2 batch: `claude/golive-batch` merged, office-es
 
 **Release 1 runbook** (✅ DONE 2026-10-06; reuse for Release 2 and backend changes; user does the server/Vercel steps; Claude verifies): ✅ backup (Plesk) → set `JWT_AUTH_SECRET_KEY` in the server `wp-config.php` from `%USERPROFILE%\.play50\jwt-secret.txt` (everyone logs in once) → upload `functions.php` + `includes/arcade-games.json` (robot-collector enabled) → user creates a test account on the live site and saves its JWT to a local file (never in chat) → Claude runs the curl suite (`docs/arcade-api.md` §13) → wp-admin "Arcade Scores" → Reset game → Vercel env `NEXT_PUBLIC_ARCADE_ENABLED=1`, `NEXT_PUBLIC_ARCADE_LEADERBOARD=1`, plus `NEXT_PUBLIC_SITE_URL=https://25-play50games.vercel.app` → Redeploy → Claude verifies live.
 
-**Workflow with the other agents:** Claude hands out ready-to-paste prompts (in Albanian chat, prompt text in English) and keeps the main work (core, backend, reviews, merges, assets). Codex works in the MAIN checkout `C:UsersgraniDocumentsWORKSPACE-play50games` (branches `codex/<pkg>`) — Claude never switches branches or edits files there. Cursor is out of credits since 2026-10-07 (worktree `C:UsersgraniDocumentsWORKSPACEp50-cursor`, branches `cursor/<pkg>`; its game folders are maintained by Claude meanwhile). Antigravity (Google) replaced it: worktree `C:UsersgraniDocumentsWORKSPACEp50-antigravity`, branches `antigravity/<pkg>`. Kimi: worktree `C:UsersgraniDocumentsWORKSPACEp50-kimi`, branches `kimi/<pkg>`. Claude creates each helper's branch in its worktree before a task (copies `.env.local`; helpers run `npm ci` themselves, no node_modules junction there) and gives only well-bounded tasks that do not overlap a running Claude workflow. Claude works in its own worktrees under `.claude/worktrees/` and merges to `main` after review (designs, rules and games are reviewed adversarially, incl. mutation probes on tests; games are playtested in headless Chrome over CDP because the Claude browser pane is hidden and R3F stays at Loading there). A local preview runs with `NEXT_PUBLIC_ARCADE_ENABLED=1 NEXT_PUBLIC_ARCADE_API_MOCK=1 NEXT_PUBLIC_ARCADE_LEADERBOARD=1 npx next build` then `npx next start -p 3100` from a Claude worktree.
+**Workflow with the other agents (2026-10-24):** Claude drives the helpers through their CLIs on this PC (Codex `codex exec` in `WORKSPACE\p50-codex`, Kimi `kimi -p` in `p50-kimi`, Cursor's agent CLI with grok-4.7 in `p50-cursor`, Antigravity `agy` in `p50-antigravity` with Gemini 4 Argon / Flash or Claude models). Claude creates each helper's branch (`codex/`, `kimi/`, `cursor/`, `antigravity/<pkg>`) and writes its brief to `.handoff/<task>/prompt.md`; the helper writes `.handoff/<task>/HANDOFF.md`. Claude reviews, playtests in headless Chrome over CDP, fixes and merges to `main`; when a helper runs out of quota Claude takes the task over and marks it on the live agent board. Claude also works in `.claude/worktrees/` and through its own subagents. A local preview: `NEXT_PUBLIC_ARCADE_ENABLED=1 NEXT_PUBLIC_ARCADE_API_MOCK=1 NEXT_PUBLIC_ARCADE_LEADERBOARD=1 NEXT_PUBLIC_ARCADE_PREVIEW=1 npx next build`, then `npx next start -p <port>` from a worktree (the machine has 16 GB: one build at a time).
 
 ## Working agreements
 
