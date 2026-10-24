@@ -118,6 +118,7 @@ export const MODEL_MANIFEST: readonly string[] = [
    // ghost-vacuum hunter (2026-10-24): image-to-3D from the user's own concept (their face, kept outside git),
    // Gen-2.5-Medium, 18k tris, static T-pose for the core auto-rig
    "/models/3d/ghost-vacuum/hunter.glb",
+   "/models/3d/ghost-vacuum/candelabra.glb",
 ];
 
 const LISTED: ReadonlySet<string> = new Set(MODEL_MANIFEST);

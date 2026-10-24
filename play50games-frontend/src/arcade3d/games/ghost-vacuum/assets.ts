@@ -1,5 +1,6 @@
 import type { ModelAsset } from "@/arcade3d/core/types";
 import { GHOST_GLB_SCALE, GHOST_GLB_Y_OFFSET } from "./suck";
+import { COLORS } from "./looks";
 import type { HumanoidLandmarks } from "@/arcade3d/core/rig/humanoid";
 import { CHARACTER_BUDGET, EXPANSION_ASSETS, EXPANSION_GLB_SIZE, EXPANSION_GLB_POINTS, REUSED_ASSETS, SHARED_ASSETS } from "@/arcade3d/core/sharedAssets";
 
@@ -56,6 +57,15 @@ export const HUNTER_LANDMARKS: HumanoidLandmarks = {
 };
 export const VACUUM_SCALE = 0.55 / EXPANSION_GLB_SIZE.vacuum.height;
 /**
+ * candelabra.glb measured bounds (GLB units, root space, 2026-10-25, the assets.test.ts recipe):
+ * 1.51181 w x 1.89846 h x 0.67328 d, base at y = 0, centred in x/z. The generation bakes in the
+ * three wax candles and small solid flame shapes (spec: "three thick candles with small solid
+ * flame shapes"), so the drawn 0.68 m height matches the whole old composition it replaced on
+ * the desks (brass 0.38 + wax 0.22 + flames, Mansion.tsx); the procedural wax stalks and
+ * flickering flames were dropped with the swap.
+ */
+export const CANDELABRA_SCALE = 0.68 / 1.89846;
+/**
  * The hunter's back is flat from the waist to the shoulders (the chest anchor's strip, z -0.204 GLB), but
  * the belt pouches behind the hips (y 0.90-1.03 GLB, x +-0.11) stick out 3.2 cm (drawn) behind it, inside
  * the pack's footprint: the pack keeps this extra gap so its box clears them (poses.test.ts measures the
@@ -73,4 +83,6 @@ export const ASSETS = {
    door: { ...REUSED_ASSETS.door, scale: 2.2 / 1.89286 },
    /** Hyper3D sheet ghost (2500 tris, 59 KB): 1.35 m tall, middle on the frame's body centre y0.8. */
    ghost: { id: "ghost", url: "/models/3d/ghost-vacuum/ghost.glb", scale: GHOST_GLB_SCALE, yOffset: GHOST_GLB_Y_OFFSET, fallback: "sphere", fallbackColor: "#e0e7ff", budget: { tris: 5000, bytes: 300000 } },
+   /** Hyper3D three-armed candelabra (1500 tris, 110 KB), candles and flame shapes baked in; 0.68 m tall on the desks. */
+   candelabra: { id: "candelabra", url: "/models/3d/ghost-vacuum/candelabra.glb", scale: CANDELABRA_SCALE, fallback: "cylinder", fallbackColor: COLORS.brass, budget: { tris: 5000, bytes: 300000 } },
 } satisfies Record<string, ModelAsset>;

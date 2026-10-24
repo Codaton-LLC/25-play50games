@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { readCharacterGlb } from "@/arcade3d/core/rig/robotGlb";
 import { EXPANSION_GLB_POINTS, EXPANSION_GLB_SIZE } from "@/arcade3d/core/sharedAssets";
+import { hasModel } from "@/arcade3d/core/modelManifest";
 import { ASSETS, BACK_CLEARANCE, HUNTER_SCALE, PACK_OFFSET, VACUUM_SCALE } from "./assets";
 import { FLOAT, SUCK } from "./suck";
 
@@ -34,6 +35,18 @@ describe("real GLB fits (run by Claude outside the meshopt-restricted sandbox)",
       // These declared assets remain upright; a lying book needs an x-rotated parent.
       expect(book.height * ASSETS.book.scale).toBeCloseTo(0.25, 2);
       expect(door.height * ASSETS.door.scale).toBeCloseTo(2.2, 2);
+   });
+   it("fits the Hyper3D candelabra to the old brass + wax + flames composition on the desks", async () => {
+      const candelabra = await bounds(ASSETS.candelabra.url), k = ASSETS.candelabra.scale ?? 1;
+      // Measured GLB bounds (root space): candles and small flame shapes are baked in.
+      expect(candelabra.width).toBeCloseTo(1.51181, 4);
+      expect(candelabra.height).toBeCloseTo(1.89846, 4);
+      expect(candelabra.depth).toBeCloseTo(0.67328, 4);
+      expect(candelabra.min[1]).toBeCloseTo(0, 4); // base at y=0, stands on the desk
+      // Drawn 0.68 m tall: the old brass (0.38) + wax stalks (0.22) + flames on the desks.
+      expect(candelabra.height * k).toBeCloseTo(0.68, 2);
+      expect(candelabra.width * k).toBeCloseTo(0.54, 2);
+      expect(hasModel(ASSETS.candelabra.url)).toBe(true);
    });
    it("fits the Hyper3D ghost to the approved 1.35 m sheet, centred on the body centre, floating", async () => {
       const ghost = await bounds(ASSETS.ghost.url), k = ASSETS.ghost.scale;
