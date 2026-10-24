@@ -3,6 +3,8 @@
 import type { InputState, RunPhase } from "@/arcade3d/core/types";
 import { capScore, withinServerLimits } from "@/arcade3d/core/limits";
 import { rngNext } from "@/arcade3d/core/math";
+import type { LevelId, ScoringRules } from "@/arcade3d/types";
+import { LEVELS, type TowerLevel } from "./levels";
 import { towerClimbMeta } from "./meta";
 
 export const NONE = -1;
@@ -23,9 +25,51 @@ export const COIN = { radius: 0.3, lift: 0.3, pickupReach: 0.52, playerLift: 0.2
 export const FLAG = { height: 0.8, halfWidth: 0.2 } as const;
 export const POOLS = { slabs: 32, spurs: 16, coins: 4, flags: 4, sections: 8 } as const;
 export const WEIGHTS = { static: 8, moving: 2, absent: 1, present: 1 } as const;
+/**
+ * A spring pad. Apex is 3 m (`vy = sqrt(2 g h)`), so a normal 0.8 m jump is unchanged.
+ * Pads sit on ordinary static slabs from level 3, at least `minHeight` up and `gap` apart,
+ * and only where a required platform is inside the descending arc and above the loss line
+ * (apex − 2 m). `half` is the pad's half-width: the slab's edges still hold a normal landing.
+ */
+export const SPRING = { apex: 3, half: 0.26, minRise: 1.2, maxRise: 2.8, minHeight: 16, gap: 12 } as const;
+export const V_SPRING = Math.sqrt(2 * G * SPRING.apex);
+/**
+ * A rocket pickup, level 4+. `gain` is the powered climb (4 m/s × 1.6 s). The pickup floats
+ * `lift` above a static slab, so the scored rise from that slab is lift + gain.
+ * `landLow` / `landHigh` are heights above the slab where a static or checkpoint landing
+ * stays above the loss line (burnout − 2 m) and below the burnout.
+ */
+export const ROCKET = {
+   lift: 0.7, speed: 4, durationMs: 1600, gain: 6.4, reach: 0.42,
+   minHeight: 32, gap: 18, landLow: 5.25, landHigh: 6.95,
+} as const;
+/** Side gusts, level 5. The route's centres stay inside ±(1 + travel) = 1.4, outside `xInner`. */
+export const WIND = { xInner: 1.62, speed: 1.5, y0: 36, gap: 26, band: 8 } as const;
+export const SPRING_CAP = 16, ROCKET_CAP = 8, WIND_CAP = 6;
 const DESCRIPTORS = BLOCKS * STEPS_PER_BLOCK + 1;
 const SPUR_CAP = BLOCKS * 8;
 const RULES = towerClimbMeta.scoring;
+const NO_I16 = new Int16Array(0);
+const NO_U8 = new Uint8Array(0);
+
+/**
+ * Per-level server limits. Level 1 equals `meta.scoring` (19000 / 11 pts/s).
+ * Levels 2–5: README "Levels". Claude copies these into arcade-games.json.
+ * L2 matches L1: nothing raises the climb rate. L3–L5 cover the spring and rocket envelope
+ * (rules.test levels: the steepest prefix plus about 5%, the 30-minute ceiling plus about 4%).
+ */
+export const PROPOSED_LEVEL_LIMITS: Record<LevelId, ScoringRules> = {
+   /** L1: today's proof. Steepest 10.421 pts/s, 30-minute ceiling 18320. */
+   1: { kind: "points", maxScore: 19000, minDurationMs: 3000, maxDurationMs: 1800000, base: 0, maxPointsPerSec: 11, unitLabel: "pts", display: "int" },
+   /** L2: same jumps. Wider and faster slabs do not add height. */
+   2: { kind: "points", maxScore: 19000, minDurationMs: 3000, maxDurationMs: 1800000, base: 0, maxPointsPerSec: 11, unitLabel: "pts", display: "int" },
+   /** L3: 8 springs, first at 16 m, 12 m apart, +3 m in 0.775 s. Envelope peak 12.43 pts/s; ceiling 18585. */
+   3: { kind: "points", maxScore: 19350, minDurationMs: 3000, maxDurationMs: 1800000, base: 0, maxPointsPerSec: 13, unitLabel: "pts", display: "int" },
+   /** L4: 12 springs and 5 rockets (+7.1 m from the slab in 1.86 s). Envelope peak 17.53 pts/s; ceiling 19065. */
+   4: { kind: "points", maxScore: 19850, minDurationMs: 3000, maxDurationMs: 1800000, base: 0, maxPointsPerSec: 19, unitLabel: "pts", display: "int" },
+   /** L5: 16 springs, 8 rockets, wind (no extra height). Envelope peak 17.85 pts/s; ceiling 19390. */
+   5: { kind: "points", maxScore: 20200, minDurationMs: 3000, maxDurationMs: 1800000, base: 0, maxPointsPerSec: 19, unitLabel: "pts", display: "int" },
+};
 
 /** Millimetre tables are immutable except for each spur/reward's one-way lifecycle. */
 export interface Tower {
@@ -97,6 +141,58 @@ export function generateTower(seed: number): Tower {
    return data;
 }
 
+/**
+ * Levels 2–5. The same draws as `generateTower` (so heights, xs and kinds match level 1);
+ * only the moving period and the spur weight change. Springs and rockets are a third stream,
+ * applied in `placeFeatures`, so they never move a slab, a coin or a spur.
+ */
+function generateLevelTower(seed: number, level: TowerLevel): Tower {
+   const rng = { s: seed >>> 0 }, deco = { s: (seed ^ 0x9e3779b9) >>> 0 };
+   const data: Tower = {
+      seed: seed >>> 0, heights: new Int32Array(DESCRIPTORS), xs: new Int16Array(DESCRIPTORS),
+      kinds: new Uint8Array(DESCRIPTORS), phases: new Uint16Array(DESCRIPTORS),
+      spurForParent: new Int16Array(DESCRIPTORS).fill(NONE), spurParents: new Uint16Array(SPUR_CAP),
+      spurXs: new Int16Array(SPUR_CAP), spurCount: 0, warnStarts: new Int32Array(SPUR_CAP).fill(NONE),
+      collapseTimes: new Int32Array(SPUR_CAP).fill(NONE), coinXs: new Int16Array(REWARD_BANDS + 1),
+      flagXs: new Int16Array(REWARD_BANDS + 1), coinTaken: new Uint8Array(REWARD_BANDS + 1),
+      flagSeen: new Uint8Array(REWARD_BANDS + 1), decoration: new Uint32Array(BLOCKS),
+   };
+   data.kinds[0] = CHECKPOINT;
+   let height = 0, previousX = 0;
+   for (let pair = 0; pair < BLOCKS * 8; pair++) {
+      const choice = Math.floor(rngNext(rng) * 3), firstRise = 450 + choice * 50;
+      for (let half = 0; half < 2; half++) {
+         const index = pair * 2 + half + 1;
+         height += half === 0 ? firstRise : 1000 - firstRise;
+         const checkpoint = index % STEPS_PER_BLOCK === 0;
+         const low = Math.max(-1000, previousX - 1000), high = Math.min(1000, previousX + 1000);
+         const x = checkpoint ? 0 : low + 100 * Math.floor(rngNext(rng) * ((high - low) / 100 + 1));
+         const kind = index <= 2 || checkpoint ? STATIC : Math.floor(rngNext(rng) * 10) < WEIGHTS.static ? STATIC : MOVING;
+         data.heights[index] = height; data.xs[index] = x;
+         data.kinds[index] = checkpoint ? CHECKPOINT : kind;
+         data.phases[index] = kind === MOVING ? Math.floor(rngNext(rng) * level.periodMs) : 0;
+         previousX = x;
+      }
+   }
+   for (let first = 1; first < DESCRIPTORS; first += 2) {
+      const present = Math.floor(rngNext(rng) * level.spurTotal) < level.spurPresent;
+      const parent = data.kinds[first] === STATIC ? first : data.kinds[first + 1] === STATIC ? first + 1 : NONE;
+      if (!present || parent === NONE) continue;
+      const px = data.xs[parent], side = px === 0 ? (Math.floor(rngNext(rng) * 2) === 0 ? -1 : 1) : -Math.sign(px);
+      const x = px + side * 1200;
+      if (Math.abs(x) > 700 || Math.abs(x - data.xs[parent + 1]) > 1000) continue;
+      const id = data.spurCount++;
+      data.spurForParent[parent] = id; data.spurParents[id] = parent; data.spurXs[id] = x;
+   }
+   for (let band = 1; band <= REWARD_BANDS; band++) {
+      const nextX = data.xs[band * STEPS_PER_BLOCK + 1];
+      const side = nextX === 0 ? (Math.floor(rngNext(rng) * 2) === 0 ? -1 : 1) : -Math.sign(nextX);
+      data.coinXs[band] = side * 1500; data.flagXs[band] = side * 1900;
+   }
+   for (let block = 0; block < BLOCKS; block++) data.decoration[block] = Math.floor(rngNext(deco) * 0x100000000);
+   return data;
+}
+
 /** The construction contract, including full visible prop extents and every permanent link. */
 export function validateTower(data: Tower): boolean {
    if (data.heights.length !== DESCRIPTORS || data.spurCount > SPUR_CAP || data.kinds[0] !== CHECKPOINT) return false;
@@ -131,6 +227,8 @@ export function validateTower(data: Tower): boolean {
 export interface SlabSlot {
    id: number; index: number; baseX: number; y: number; width: number; kind: number;
    phaseMs: number; active: boolean; frozenAtMs: number;
+   /** 0 or omitted on level 1: slabX uses MOVING_SLAB. Set for levels 2–5. */
+   travel?: number; periodMs?: number;
 }
 export interface SpurSlot extends SlabSlot {
    spurIndex: number; parentIndex: number; state: number; warnStartMs: number; deadlineMs: number; collapseMs: number;
@@ -143,6 +241,10 @@ export interface Loss { atMs: number; x: number; footY: number; vy: number }
 export interface StepEvents {
    jumped: boolean; landed: number; coin: number; checkpoint: number; warned: number; collapsed: number;
    hit: boolean; delta: number; height: number; ended: "lose" | "timeup" | null;
+   /** Platform index of a spring launch, or NONE. */
+   sprung: number;
+   /** Rocket slot that was picked up this step, or NONE. */
+   rocket: number;
 }
 export interface TowerRun {
    seed: number; tower: Tower;
@@ -158,6 +260,14 @@ export interface TowerRun {
    firstSlab: number; nextSlab: number; firstSpur: number; nextSpur: number; nextCoin: number;
    events: StepEvents;
    scratch: { landing: number; landingMs: number; pendingA: number; pendingB: number };
+   /** Level 1 keeps today's motion and the live scoring object (`RULES`). */
+   warningMs: number; motionTravel: number; motionPeriod: number; fireworks: boolean;
+   limits: ScoringRules; windCount: number;
+   springCount: number; springParent: Int16Array; springTarget: Int16Array;
+   springMs: number; springPad: number;
+   rocketCount: number; rocketParent: Int16Array; rocketTarget: Int16Array; rocketTaken: Uint8Array;
+   boostUntilMs: number; boostAim: number;
+   rocketDropMs: number; rocketDropX: number; rocketDropY: number;
 }
 
 export function createStepInput(): StepInput { return { moveX: 0, jumpEdge: false }; }
@@ -169,12 +279,79 @@ export function readStepInput(input: InputState, out: StepInput): StepInput {
    return out;
 }
 
-function emptySlab(): SlabSlot {
-   return { id: NONE, index: NONE, baseX: 0, y: 0, width: 1.4, kind: STATIC, phaseMs: 0, active: false, frozenAtMs: NONE };
+function platformTravel(level: TowerLevel, index: number, kind: number): number {
+   if (kind !== MOVING) return 0;
+   return index % 16 === 1 ? MOVING_SLAB.travel : level.movingTravel;
 }
 
-export function createRun(seed: number): TowerRun {
-   const data = generateTower(seed);
+/** Highest required platform a 3 m spring can land on without dropping through the loss line. */
+function springLanding(data: Tower, index: number, level: TowerLevel): number {
+   const y = data.heights[index] / 1000, x = data.xs[index] / 1000;
+   let best = NONE;
+   for (let j = index + 1; j < DESCRIPTORS; j++) {
+      const rise = data.heights[j] / 1000 - y;
+      if (rise < SPRING.minRise) continue;
+      if (rise > SPRING.maxRise) break;
+      const dx = Math.abs(data.xs[j] / 1000 - x) + platformTravel(level, j, data.kinds[j]);
+      const t = landingTime(rise, V_SPRING);
+      if (!(V_RUN * t >= dx + 0.05)) continue;
+      best = j;
+   }
+   return best;
+}
+
+/** A static slab or checkpoint in the rocket's safe window, within 1.2 m of the launch x. */
+function rocketLanding(data: Tower, index: number): number {
+   const y = data.heights[index] / 1000, x = data.xs[index] / 1000;
+   const low = y + ROCKET.landLow, high = y + ROCKET.landHigh;
+   let best = NONE;
+   for (let j = index + 1; j < DESCRIPTORS; j++) {
+      const py = data.heights[j] / 1000;
+      if (py < low) continue;
+      if (py > high) break;
+      if (data.kinds[j] === MOVING) continue;
+      if (Math.abs(data.xs[j] / 1000 - x) > 1.2) continue;
+      best = j;
+   }
+   return best;
+}
+
+/** Seeded pads and pickups on the third rng stream. Level 1 places nothing and allocates nothing. */
+function placeFeatures(run: TowerRun, level: TowerLevel): void {
+   run.springCount = 0; run.rocketCount = 0; run.windCount = level.winds;
+   if (level.springs === 0 && level.rockets === 0) return;
+   const data = run.tower, rng = { s: (data.seed ^ 0x51ed5eed) >>> 0 };
+   const springParent = new Int16Array(SPRING_CAP), springTarget = new Int16Array(SPRING_CAP);
+   const rocketParent = new Int16Array(ROCKET_CAP), rocketTarget = new Int16Array(ROCKET_CAP);
+   const rocketTaken = new Uint8Array(ROCKET_CAP);
+   let springs = 0, rockets = 0, lastSpring = -1000, lastRocket = -1000;
+   for (let index = 3; index < DESCRIPTORS && (springs < level.springs || rockets < level.rockets); index++) {
+      if (data.kinds[index] !== STATIC || data.spurForParent[index] !== NONE) continue;
+      const y = data.heights[index] / 1000;
+      let placed = false;
+      if (springs < level.springs && y >= SPRING.minHeight && y >= lastSpring + SPRING.gap && Math.floor(rngNext(rng) * 2) === 0) {
+         const target = springLanding(data, index, level);
+         if (target >= 0) {
+            springParent[springs] = index; springTarget[springs] = target; springs++; lastSpring = y; placed = true;
+         }
+      }
+      if (!placed && rockets < level.rockets && y >= ROCKET.minHeight && y >= lastRocket + ROCKET.gap && Math.floor(rngNext(rng) * 2) === 0) {
+         const target = rocketLanding(data, index);
+         if (target >= 0) {
+            rocketParent[rockets] = index; rocketTarget[rockets] = target; rockets++; lastRocket = y;
+         }
+      }
+   }
+   run.springParent = springParent; run.springTarget = springTarget; run.springCount = springs;
+   run.rocketParent = rocketParent; run.rocketTarget = rocketTarget; run.rocketTaken = rocketTaken; run.rocketCount = rockets;
+}
+
+function emptySlab(): SlabSlot {
+   return { id: NONE, index: NONE, baseX: 0, y: 0, width: 1.4, kind: STATIC, phaseMs: 0, active: false, frozenAtMs: NONE, travel: 0, periodMs: 0 };
+}
+
+export function createRun(seed: number, level: TowerLevel = LEVELS[1]): TowerRun {
+   const data = level.id === 1 ? generateTower(seed) : generateLevelTower(seed, level);
    const run: TowerRun = {
       seed: seed >>> 0, tower: data, slabs: Array.from({ length: 32 }, emptySlab),
       spurs: Array.from({ length: 16 }, () => ({ ...emptySlab(), width: 0.8, spurIndex: NONE, parentIndex: NONE,
@@ -190,9 +367,15 @@ export function createRun(seed: number): TowerRun {
       loss: { atMs: NONE, x: 0, footY: 0, vy: 0 }, pendingLose: false, ended: null, ranked: false,
       firstSlab: 0, nextSlab: 0, firstSpur: 0, nextSpur: 0, nextCoin: 1,
       events: { jumped: false, landed: NONE, coin: NONE, checkpoint: NONE, warned: NONE, collapsed: NONE,
-         hit: false, delta: 0, height: NONE, ended: null },
+         hit: false, delta: 0, height: NONE, ended: null, sprung: NONE, rocket: NONE },
       scratch: { landing: NONE, landingMs: Infinity, pendingA: NONE, pendingB: NONE },
+      warningMs: level.warningMs, motionTravel: level.movingTravel, motionPeriod: level.periodMs,
+      fireworks: level.fireworks, limits: level.id === 1 ? RULES : PROPOSED_LEVEL_LIMITS[level.id],
+      windCount: level.winds, springCount: 0, springParent: NO_I16, springTarget: NO_I16,
+      springMs: NONE, springPad: NONE, rocketCount: 0, rocketParent: NO_I16, rocketTarget: NO_I16,
+      rocketTaken: NO_U8, boostUntilMs: NONE, boostAim: NONE, rocketDropMs: NONE, rocketDropX: 0, rocketDropY: 0,
    };
+   placeFeatures(run, level);
    fillPools(run);
    return run;
 }
@@ -215,6 +398,14 @@ export function fillPools(run: TowerRun): boolean {
       slot.id = index * 2; slot.index = index; slot.baseX = data.xs[index] / 1000;
       slot.y = data.heights[index] / 1000; slot.width = data.kinds[index] === CHECKPOINT ? 4.4 : 1.4;
       slot.kind = data.kinds[index]; slot.phaseMs = data.phases[index]; slot.frozenAtMs = NONE; slot.active = true;
+      slot.travel = 0; slot.periodMs = 0;
+      if (run.motionTravel !== MOVING_SLAB.travel || run.motionPeriod !== MOVING_SLAB.periodMs) {
+         if (data.kinds[index] === MOVING) {
+            slot.periodMs = run.motionPeriod;
+            // The slab just above a checkpoint keeps ±0.20 m so coin and flag clearance stays the level-1 proof.
+            slot.travel = index % 16 === 1 ? MOVING_SLAB.travel : run.motionTravel;
+         }
+      }
       run.nextSlab++;
    }
    while (run.firstSpur < run.nextSpur && data.heights[data.spurParents[run.firstSpur]] / 1000 < low) {
@@ -228,7 +419,7 @@ export function fillPools(run: TowerRun): boolean {
       slot.id = parent * 2 + 1; slot.index = parent; slot.spurIndex = index; slot.parentIndex = parent;
       slot.baseX = data.spurXs[index] / 1000; slot.y = data.heights[parent] / 1000;
       slot.phaseMs = 0; slot.frozenAtMs = NONE; slot.active = true;
-      slot.warnStartMs = data.warnStarts[index]; slot.deadlineMs = slot.warnStartMs < 0 ? NONE : slot.warnStartMs + SPUR.warningMs;
+      slot.warnStartMs = data.warnStarts[index]; slot.deadlineMs = slot.warnStartMs < 0 ? NONE : slot.warnStartMs + run.warningMs;
       slot.collapseMs = data.collapseTimes[index]; slot.state = slot.collapseMs >= 0 ? FALLING : slot.warnStartMs >= 0 ? WARNING : INTACT;
       run.nextSpur++;
    }
@@ -263,8 +454,14 @@ const MOVE_HALF_MS = MOVING_SLAB.periodMs / 2, MOVE_SPAN = 2 * MOVING_SLAB.trave
 export function slabX(slab: SlabSlot, ms: number): number {
    if (slab.kind !== MOVING) return slab.baseX;
    const t = slab.frozenAtMs >= 0 ? slab.frozenAtMs : ms;
-   const phase = ((t + slab.phaseMs) % MOVING_SLAB.periodMs) / MOVE_HALF_MS;
-   return slab.baseX + (phase <= 1 ? MOVE_SPAN * phase - MOVING_SLAB.travel : MOVING_SLAB.travel - MOVE_SPAN * (phase - 1));
+   // Level 1 leaves travel/period at 0: the original formula, same operations.
+   if (!(slab.periodMs > 0) || !(slab.travel > 0)) {
+      const phase = ((t + slab.phaseMs) % MOVING_SLAB.periodMs) / MOVE_HALF_MS;
+      return slab.baseX + (phase <= 1 ? MOVE_SPAN * phase - MOVING_SLAB.travel : MOVING_SLAB.travel - MOVE_SPAN * (phase - 1));
+   }
+   const half = slab.periodMs / 2, span = 2 * slab.travel;
+   const phase = ((t + slab.phaseMs) % slab.periodMs) / half;
+   return slab.baseX + (phase <= 1 ? span * phase - slab.travel : slab.travel - span * (phase - 1));
 }
 
 export function landingTime(rise: number, vy = V_JUMP): number {
@@ -284,7 +481,7 @@ function collidable(spur: SpurSlot, ms: number): boolean {
 
 function warnContact(run: TowerRun, slot: SpurSlot, ms: number): void {
    if (slot.state !== INTACT) return;
-   slot.state = WARNING; slot.warnStartMs = ms; slot.deadlineMs = ms + SPUR.warningMs;
+   slot.state = WARNING; slot.warnStartMs = ms; slot.deadlineMs = ms + run.warningMs;
    run.tower.warnStarts[slot.spurIndex] = ms;
    run.events.warned = slot.id;
 }
@@ -361,7 +558,9 @@ function findLanding(run: TowerRun, from: number, to: number, startX: number, en
    for (let index = topAtOrBelow(run.tower, peak); index >= 0 && run.tower.heights[index] / 1000 >= endY - 1e-12; index--) {
       const top = run.tower.heights[index] / 1000, ms = crossingMs(run, top);
       if (!Number.isFinite(ms) || ms < from - 1e-8 || ms > to + 1e-8) continue;
-      const at = Math.max(from, Math.min(to, ms)), x = clampX(startX + run.player.vx * (at - from) / 1000);
+      const at = Math.max(from, Math.min(to, ms));
+      const vx = run.windCount > 0 ? run.player.vx + windVx(run) : run.player.vx;
+      const x = clampX(startX + vx * (at - from) / 1000);
       const required = run.slabs[index % 32], spurIndex = run.tower.spurForParent[index];
       const spur = spurIndex >= 0 ? run.spurs[spurIndex % 16] : null;
       const a = required.active && required.index === index && overlaps(x, required, at);
@@ -394,7 +593,9 @@ function latchLoss(run: TowerRun, ms: number): void {
 
 function finish(run: TowerRun, reason: "lose" | "timeup"): void {
    run.ended = reason; run.events.ended = reason;
-   run.ranked = withinServerLimits(run.score, run.timeMs, RULES);
+   run.ranked = run.limits === RULES
+      ? withinServerLimits(run.score, run.timeMs, RULES)
+      : withinServerLimits(run.score, run.timeMs, run.limits);
 }
 
 function checkpoint(run: TowerRun, index: number): void {
@@ -417,16 +618,98 @@ function awards(run: TowerRun, ms: number): void {
       run.collectedCoins++; run.events.coin = coin.id;
    }
    run.rawScore = run.metres * HEIGHT_POINTS + run.collectedCoins * COIN_POINTS;
-   const next = capScore(run.rawScore, ms, RULES);
+   const next = run.limits === RULES ? capScore(run.rawScore, ms, RULES) : capScore(run.rawScore, ms, run.limits);
    run.events.delta += next - run.score; run.score = next;
+}
+
+function windVx(run: TowerRun): number {
+   const n = run.windCount;
+   if (n === 0) return 0;
+   const x = run.player.x, y = run.player.y;
+   for (let i = 0; i < n; i++) {
+      const y0 = WIND.y0 + i * WIND.gap;
+      if (y < y0 || y >= y0 + WIND.band) continue;
+      const side = i % 2 === 0 ? 1 : -1;
+      if (side > 0) { if (x > WIND.xInner && x < X_BOUND) return WIND.speed; }
+      else if (x < -WIND.xInner && x > -X_BOUND) return -WIND.speed;
+   }
+   return 0;
+}
+
+function stepVx(run: TowerRun): number {
+   return run.windCount > 0 ? run.player.vx + windVx(run) : run.player.vx;
+}
+
+function springAt(run: TowerRun, index: number): number {
+   const n = run.springCount;
+   for (let i = 0; i < n; i++) if (run.springParent[i] === index) return i;
+   return NONE;
+}
+
+function onSpring(run: TowerRun, index: number, x: number): boolean {
+   if (springAt(run, index) < 0) return false;
+   const pad = run.tower.xs[index] / 1000, reach = SPRING.half + RUNNER.halfWidth;
+   return x > pad - reach && x < pad + reach;
+}
+
+/** Descending landing on a pad: the same arc, launched at V_SPRING from the pad top. */
+function launchSpring(run: TowerRun, index: number, at: number, to: number): void {
+   const p = run.player, rest = (to - at) / 1000, vx = stepVx(run);
+   p.vy = V_SPRING; p.grounded = false; p.groundIndex = index;
+   p.contactA = p.contactB = NONE; p.permission = false; run.coyoteUntilMs = NONE;
+   run.flight.atMs = at; run.flight.y = p.y; run.flight.vy = V_SPRING;
+   run.events.sprung = index; run.springMs = to; run.springPad = index;
+   p.x = clampX(p.x + vx * rest);
+   p.y = p.y + V_SPRING * rest - G * rest * rest / 2;
+   p.vy = V_SPRING - G * rest;
+}
+
+/** Constant 4 m/s up until boostUntilMs, then a normal fall (vy 0) from the burnout point. */
+function flyBoost(run: TowerRun, from: number, to: number, startX: number): void {
+   const p = run.player, until = run.boostUntilMs, end = to < until ? to : until;
+   const dur = (end - from) / 1000, vx = stepVx(run);
+   p.x = clampX(startX + vx * dur);
+   p.y = p.y + ROCKET.speed * dur;
+   p.grounded = false; p.contactA = p.contactB = NONE; p.permission = false;
+   if (to < until) {
+      p.vy = ROCKET.speed; run.flight.atMs = to; run.flight.y = p.y; run.flight.vy = ROCKET.speed;
+      return;
+   }
+   p.vy = 0; run.flight.atMs = end; run.flight.y = p.y; run.flight.vy = 0;
+   run.boostUntilMs = NONE; run.rocketDropMs = end; run.rocketDropX = p.x; run.rocketDropY = p.y;
+}
+
+function tryRocket(run: TowerRun, ms: number): void {
+   const p = run.player, n = run.rocketCount;
+   for (let i = 0; i < n; i++) {
+      if (run.rocketTaken[i] !== 0) continue;
+      const parent = run.rocketParent[i];
+      const ry = run.tower.heights[parent] / 1000 + ROCKET.lift, rx = run.tower.xs[parent] / 1000;
+      const dx = p.x - rx, dy = p.y + COIN.playerLift - ry;
+      if (dx * dx + dy * dy > ROCKET.reach * ROCKET.reach) continue;
+      run.rocketTaken[i] = 1; run.boostUntilMs = ms + ROCKET.durationMs; run.boostAim = run.rocketTarget[i];
+      run.events.rocket = i; p.vy = ROCKET.speed; p.grounded = false; p.contactA = p.contactB = NONE;
+      return;
+   }
+}
+
+function finishMs(run: TowerRun, to: number): void {
+   const p = run.player;
+   if (p.y > run.maxHeight) run.maxHeight = p.y;
+   run.viewBottomY = run.maxHeight - 2; run.cameraTarget.y = run.maxHeight + 1;
+   fillPools(run);
+   if (run.rocketCount > 0 && !p.grounded && run.boostUntilMs < 0 && !run.pendingLose) tryRocket(run, to);
+   awards(run, to);
 }
 
 /** One analytic ms, including the exact landing/loss and its remaining grounded motion once. */
 function integrate(run: TowerRun): void {
    const p = run.player, from = run.timeMs, to = from + 1, startX = p.x;
-   if (!run.holdUnlocked) { p.x = clampX(startX + p.vx / 1000); return; }
+   if (!run.holdUnlocked) { p.x = clampX(startX + stepVx(run) / 1000); return; }
+   if (run.boostUntilMs >= 0 && from < run.boostUntilMs) { flyBoost(run, from, to, startX); finishMs(run, to); return; }
+   const vx = stepVx(run);
    if (p.grounded) {
-      p.x = clampX(startX + p.vx / 1000 + carry(run, from, to));
+      p.x = clampX(startX + vx / 1000 + carry(run, from, to));
       updateContacts(run, to, true);
    } else {
       const endY = arcY(run, to), apexMs = run.flight.atMs + run.flight.vy / G * 1000;
@@ -441,7 +724,7 @@ function integrate(run: TowerRun): void {
       const lossMs = endY < run.viewBottomY ? crossingMs(run, run.viewBottomY) : Infinity;
       if (Number.isFinite(lossMs) && lossMs >= from - 1e-8 && lossMs <= to && lossMs < run.scratch.landingMs) {
          const at = Math.max(from, lossMs);
-         p.x = clampX(startX + p.vx * (at - from) / 1000); p.y = run.viewBottomY;
+         p.x = clampX(startX + vx * (at - from) / 1000); p.y = run.viewBottomY;
          p.vy = run.flight.vy - G * (at - run.flight.atMs) / 1000;
          awards(run, at); latchLoss(run, at);
          run.scratch.pendingA = run.scratch.pendingB = NONE;
@@ -449,27 +732,28 @@ function integrate(run: TowerRun): void {
       }
       if (run.scratch.landing !== NONE) {
          const index = run.scratch.landing, at = run.scratch.landingMs;
-         p.x = clampX(startX + p.vx * (at - from) / 1000); p.y = run.tower.heights[index] / 1000; p.vy = 0;
-         p.grounded = true; p.groundIndex = index; run.permission = true; run.coyoteUntilMs = NONE;
-         // Geometry uses the exact crossing; notifications use its containing slice's integer end.
-         updateContacts(run, at, true, to);
-         run.events.landed = run.contactA; checkpoint(run, index);
-         p.x = clampX(p.x + p.vx * (to - at) / 1000 + carry(run, at, to));
-         updateContacts(run, to, true);
+         p.x = clampX(startX + vx * (at - from) / 1000); p.y = run.tower.heights[index] / 1000;
+         if (run.springCount > 0 && onSpring(run, index, p.x)) launchSpring(run, index, at, to);
+         else {
+            p.vy = 0; p.grounded = true; p.groundIndex = index; run.permission = true; run.coyoteUntilMs = NONE;
+            // Geometry uses the exact crossing; notifications use its containing slice's integer end.
+            updateContacts(run, at, true, to);
+            run.events.landed = run.contactA; checkpoint(run, index);
+            p.x = clampX(p.x + vx * (to - at) / 1000 + carry(run, at, to));
+            updateContacts(run, to, true);
+         }
       } else {
-         p.x = clampX(startX + p.vx / 1000); p.y = endY; p.vy = endVy;
+         p.x = clampX(startX + vx / 1000); p.y = endY; p.vy = endVy;
       }
       run.scratch.pendingA = run.scratch.pendingB = NONE;
    }
-   if (p.y > run.maxHeight) run.maxHeight = p.y;
-   run.viewBottomY = run.maxHeight - 2; run.cameraTarget.y = run.maxHeight + 1;
-   fillPools(run);
-   awards(run, to);
+   finishMs(run, to);
 }
 
 function resetEvents(events: StepEvents): void {
    events.jumped = events.hit = false;
    events.landed = events.coin = events.checkpoint = events.warned = events.collapsed = events.height = NONE;
+   events.sprung = events.rocket = NONE;
    events.delta = 0; events.ended = null;
 }
 

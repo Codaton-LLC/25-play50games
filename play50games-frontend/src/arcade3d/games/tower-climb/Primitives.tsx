@@ -30,6 +30,10 @@ export interface TowerParts {
    slab: InstancePart[]; moving: InstancePart[]; ledge: InstancePart[];
    intact: InstancePart[]; cracked: InstancePart[]; coin: InstancePart[];
    flag: InstancePart[]; tower: InstancePart[];
+   /** Spring pad, rocket pickup and wind chevron. Level 1 draws none of them. */
+   spring: InstancePart[]; rocket: InstancePart[]; wind: InstancePart[];
+   /** One bevelled rocket (body, fin, nozzle) for the runner's back and the drop. */
+   rocketPack: BufferGeometry;
    /** [0] clips below the danger line (viewBottomY), [1] above the column top; Scene moves them every frame */
    planes: Plane[];
    /** the stand-in's rigid pieces: trunk (torso, head, cap), one leg (pivot at the hip), one arm (pivot at the shoulder) */
@@ -95,13 +99,26 @@ export function createTowerParts(): TowerParts {
    const pole = new CylinderGeometry(0.025, 0.025, 0.8, 8);
    const material = (color: string) => new MeshStandardMaterial({ color, roughness: 0.82 });
    const slabMat = material(COLORS.slab), trimMat = material("#e6f1ed"), movingMat = material(COLORS.moving);
+   const arrowMat = material("#fff3b0");
    const ledgeMat = material(COLORS.ledge), intactMat = material(COLORS.spur), crackedMat = material(COLORS.cracked);
    const crackMat = material("#542a32"), goldMat = material(COLORS.coin), poleMat = material("#c6d6df");
    const panelMat = material(COLORS.tower), ribMat = material("#41677a");
    const planes = [new Plane(new Vector3(0, 1, 0), 2), new Plane(new Vector3(0, -1, 0), 4)];
    // Slabs and spurs are drawn while their top is in the column (visuals.ts): their bodies stop at the
    // danger line. Coins and flags are drawn only whole inside it, so clipping the shared gold/trim is moot.
-   for (const clipped of [panelMat, ribMat, slabMat, movingMat, ledgeMat, intactMat, crackedMat, trimMat, goldMat, crackMat]) {
+   const limeMat = material("#c6f54a"), coilMat = material("#facc15"), springArrow = material("#f8fafc");
+   const rocketBody = material("#e8eef2"), rocketFin = material("#fb7185");
+   const nozzleMat = new MeshBasicMaterial({ color: "#fb923c" });
+   const windMat = material("#7dd3fc");
+   const pack = merged(add => {
+      add(new BoxGeometry(0.09, 0.06, 0.09), 0, 0.03, 0, "#d7dee6");
+      add(new BoxGeometry(0.11, 0.1, 0.11), 0, 0.1, 0, "#f4f7fb");
+      add(new BoxGeometry(0.07, 0.05, 0.07), 0, 0.17, 0, "#c5d0da");
+      add(new BoxGeometry(0.15, 0.035, 0.04), 0, 0.08, -0.07, "#fb7185");
+      add(new BoxGeometry(0.045, 0.03, 0.045), 0, 0.0, 0, "#fb923c");
+   });
+   for (const clipped of [panelMat, ribMat, slabMat, movingMat, ledgeMat, intactMat, crackedMat, trimMat, goldMat, crackMat,
+      arrowMat, limeMat, coilMat, springArrow, rocketBody, rocketFin, nozzleMat, windMat]) {
       clipped.clippingPlanes = planes;
    }
    const part = (mat: Material, locals: Matrix4[]): InstancePart => ({ geometry: box, material: mat, locals });
@@ -119,9 +136,15 @@ export function createTowerParts(): TowerParts {
    const coinLocal = new Matrix4().makeRotationX(Math.PI / 2);
    return {
       slab: [part(slabMat, body(1.4)), part(trimMat, [local(0, -0.018, 0.305, 1.25, 0.028, 0.012)])],
-      moving: [part(movingMat, body(1.4)), part(trimMat, [
-         tilted(-0.18, -0.08, 0.306, 0.16, 0.028, 0.015, -0.4),
-         tilted(0.18, -0.08, 0.306, 0.16, 0.028, 0.015, 0.4),
+      moving: [part(movingMat, body(1.4)), part(arrowMat, [
+         // left arrow
+         local(-0.38, -0.02, 0.312, 0.26, 0.02, 0.02),
+         tilted(-0.54, 0.02, 0.312, 0.14, 0.018, 0.016, 0.7),
+         tilted(-0.54, -0.06, 0.312, 0.14, 0.018, 0.016, -0.7),
+         // right arrow
+         local(0.38, -0.02, 0.312, 0.26, 0.02, 0.02),
+         tilted(0.54, 0.02, 0.312, 0.14, 0.018, 0.016, -0.7),
+         tilted(0.54, -0.06, 0.312, 0.14, 0.018, 0.016, 0.7),
       ])],
       ledge: [part(ledgeMat, body(4.4)), part(goldMat, [local(0, -0.02, 0.306, 4.2, 0.028, 0.012)])],
       intact: [part(intactMat, body(0.8)), part(trimMat, [local(0, -0.022, 0.306, 0.7, 0.022, 0.012)])],
@@ -135,11 +158,36 @@ export function createTowerParts(): TowerParts {
       tower: [part(panelMat, [local(0, 4, 0, 4.6, 8, 0.08)]),
          part(ribMat, [local(-2.24, 4, 0.065, 0.1, 8, 0.05), local(2.24, 4, 0.065, 0.1, 8, 0.05),
             local(0, 2, 0.065, 4.5, 0.045, 0.05), local(0, 6, 0.065, 4.5, 0.045, 0.05)])],
+      spring: [
+         { geometry: disc, material: limeMat, locals: [new Matrix4().makeTranslation(0, 0.07, 0).scale(new Vector3(0.85, 0.45, 0.85))] },
+         part(coilMat, [0, 1, 2, 3].map(i => {
+            const a = i * Math.PI / 2;
+            return local(Math.cos(a) * 0.1, 0.02 + i * 0.012, Math.sin(a) * 0.06, 0.09, 0.028, 0.05);
+         })),
+         part(springArrow, [
+            tilted(0, 0.13, 0.02, 0.1, 0.016, 0.014, 0.8),
+            tilted(0, 0.13, 0.02, 0.1, 0.016, 0.014, -0.8),
+         ]),
+      ],
+      rocket: [
+         part(rocketBody, [
+            local(0, 0.05, 0, 0.1, 0.08, 0.1),
+            local(0, 0.14, 0, 0.12, 0.12, 0.12),
+            local(0, 0.24, 0, 0.08, 0.08, 0.08),
+         ]),
+         part(rocketFin, [local(0, 0.1, -0.09, 0.14, 0.05, 0.04)]),
+         { geometry: box, material: nozzleMat, locals: [local(0, -0.01, 0, 0.05, 0.04, 0.05)] },
+      ],
+      wind: [part(windMat, [
+         tilted(0, 0, 0, 0.34, 0.03, 0.02, 0.5),
+         tilted(0.16, 0, 0, 0.2, 0.025, 0.016, -0.6),
+      ])],
+      rocketPack: pack,
       planes,
       runnerTrunk: runner.trunk, runnerLeg: runner.leg, runnerArm: runner.arm, runnerMaterial, depthReset,
-      geometries: [box, disc, pole, runner.trunk, runner.leg, runner.arm, resetGeometry],
-      materials: [slabMat, trimMat, movingMat, ledgeMat, intactMat, crackedMat, crackMat, goldMat, poleMat, panelMat, ribMat,
-         runnerMaterial, resetMaterial],
+      geometries: [box, disc, pole, runner.trunk, runner.leg, runner.arm, resetGeometry, pack],
+      materials: [slabMat, trimMat, movingMat, arrowMat, ledgeMat, intactMat, crackedMat, crackMat, goldMat, poleMat, panelMat, ribMat,
+         limeMat, coilMat, springArrow, rocketBody, rocketFin, nozzleMat, windMat, runnerMaterial, resetMaterial],
    };
 }
 
@@ -164,6 +212,8 @@ export function standInLimbs(g: RunnerGait, out: { legL: number; legR: number; a
    out.legR = walkLegR + (tuckLeg - walkLegR) * g.air;
    out.armL = walkArmL + (tuckArm - walkArmL) * g.air;
    out.armR = walkArmR + (tuckArm - walkArmR) * g.air;
+   // positive is back (negative is forward/up): a burning rocket pulls both arms behind the body
+   if (g.fly > 0) { out.armL = 1.15 * g.fly; out.armR = 1.15 * g.fly; }
    // arms out and up in a V (about z) for the cheer
    out.raise = 2.5 * g.cheer;
    return out;

@@ -72,3 +72,28 @@ export function writeSection(run: TowerRun, slot: SectionSlot, matrix: Matrix4):
 export function runnerFootY(run: TowerRun, visual: VisualState, phase: RunPhase, now: number): number {
    return run.pendingLose ? lossFall(run.loss, posedMs(run, visual, phase, now)) : run.player.y;
 }
+
+const SPRING_SCALE = new Vector3(1, 1, 1);
+
+/** Squash on launch, then stretch back. `ageMs` is ms since the pad fired; negative is idle. */
+export function writeSpring(matrix: Matrix4, x: number, y: number, ageMs: number): void {
+   let sy = 1;
+   if (ageMs >= 0 && ageMs < 180) {
+      const u = ageMs / 180;
+      sy = u < 0.35 ? 1 - 0.35 * (u / 0.35) : 0.65 + 0.35 * ((u - 0.35) / 0.65);
+   }
+   SPRING_SCALE.set(1, sy, 1);
+   matrix.makeTranslation(x, y + (1 - sy) * 0.04, 0).scale(SPRING_SCALE);
+}
+
+/** A slow spin. `false` hides a spent or empty slot. */
+export function writeRocket(matrix: Matrix4, x: number, y: number, spin: number, visible: boolean): boolean {
+   if (!visible) return false;
+   matrix.makeRotationY(spin).setPosition(x, y, 0);
+   return true;
+}
+
+/** A chevron. `flip` points the gust to -x. */
+export function writeWind(matrix: Matrix4, x: number, y: number, flip: boolean): void {
+   matrix.makeRotationY(flip ? Math.PI : 0).setPosition(x, y, 0);
+}

@@ -149,6 +149,8 @@ Raw score is `10 * floor(maxHeight) + 25 * collectedCoins`, integer `pts`. For e
 
 ### Server limits and why they hold (the proof)
 
+This proof is **level 1** (today's game). Levels 2–5 are in [Levels](#levels). A spring or a rocket changes the climb rate, so levels 3–5 do not use this 11 pts/s bound. Level 2 keeps it: nothing there adds height.
+
 Metadata and WP config (tightened 2026-10-07 from `maxScore: 50000`, `maxPointsPerSec: 100`, which accepted about 10 times the honest rate): `kind: "points"`, `maxScore: 19000`, `base: 0`, `maxPointsPerSec: 11`, `minDurationMs: 3000`, `maxDurationMs: 1800000`, `unitLabel: "pts"`, `display: "int"`. Server checks integer score, `score <= 19000`, duration D in [3000, 1800000] ms and `score * 1000 <= 11 * D`.
 
 1. **Counted clock and short start.** `dt = frameMs / 1000` includes the counted play remainder of the countdown-transition frame: there is no untimed simulation frame. Pause advances neither clock. Integer rules time is ≤ cumulative counted dt. Let D be GameShell's `Math.round(elapsedMs)` and t = D/1000; rounding down costs at most 0.5 ms. Retain **50 ms only as conservative slack**, not a core behaviour or test premise. After the 350 ms hold, climbing time U is bounded by `U <= max(0, t + 0.0505 - 0.350) = max(0, t - 0.2995)`. Actual core timing has the tighter bound `max(0, t - 0.3495)`. An early fall freezes awards and defers its result until integer rules time ≥3000, which implies submitted D ≥3000. Time-up has D =1800000. Quit does not submit. The core result delay starts after `end()`: GameShell has already submitted, `elapsedMs` no longer advances and score changes are ignored, so the delay changes neither S nor D.
@@ -164,6 +166,45 @@ Margins: 11 pts/s is 6.1% above the steepest honest S/t (10.369 at M = 8), 5.6% 
 
 Measured with a throwaway smart bot (not committed; it buffers a jump every frame, aims each landing at `slabX` at the arrival time and takes coins in flight): 64 full 30-minute runs (16 seeds × 8.3 / 16.7 / 50 / random 1–50 ms frames) and 3 seeds at 1 ms frames all ended in time-up with **18310** (1396 m, 174 coins); 4800 runs of 60 s (600 seeds × 4 frame patterns, with and without 5% input noise) never broke the analytic bound and never fell. Best ratio 10.3622 pts/s at 10133 ms (analytic 10126 ms for 105). The test's centre-landing bot is slower: 583.67 pts/min = 9.73 pts/s.
 5. **Core safety net and terminal duration.** Import `capScore(score, durationMs, rules)` and `withinServerLimits(score, durationMs, rules)` from `core/limits.ts`; pass raw store `elapsedMs`, which those helpers round like GameShell. No local cap implementation or `finalScore` override. Tests require the cap to be a no-op on every reachable award/terminal result and every terminal result to pass `withinServerLimits`; a clamp must not hide broken physics/density. Exercise countdown carry, duration rounding and carried rules remainder against the real store. The proof's extra 50 ms remains slack only. An idle runner stays on the start checkpoint and times out at 1800000 ms with **0 points**.
+
+## Levels
+
+Five levels of this same tower (`levels.ts`, `meta.ts`). Level 1 is the game above, bit for bit: `generateTower`, the ±0.20 m slab, the 800 ms spur warning and the 11 pts/s proof. The plan's height targets are the clear scores (10 points per metre). The plan's 90–150 s timers are not used: the earliest climb to 170 m is about 218 s and to 250 m about 322 s, so every level keeps the 30-minute cap. A level clears when the run ends at or above `clearScore` (a fall or time-up). Level 5 has nothing to unlock. The permanent route from slab to slab stays climbable without any spring or rocket.
+
+| Level | What changes | Clear | Light | Limits (max / pts per s) |
+|---|---|---|---|---|
+| 1 Training Tower | today's tower | 50 m (500) | day | 19000 / 11 |
+| 2 Stone Tower | slabs ±0.40 m (the one after a checkpoint stays ±0.20 m), period 1800 ms, more spurs (2/3), warning 760 ms, checkpoint fireworks | 80 m (800) | day | 19000 / 11 |
+| 3 Clock Tower | period 1600 ms, spurs 3/4, warning 740 ms, 8 spring pads | 120 m (1200) | sunset | 19350 / 13 |
+| 4 Storm Tower | period 1400 ms, spurs 4/5, warning 730 ms, 12 springs, 5 rockets | 170 m (1700) | night | 19850 / 19 |
+| 5 Sky Tower | period 1200 ms, spurs 5/6, warning 720 ms, 16 springs, 8 rockets, side wind | no clear | sunset | 20200 / 19 |
+
+Every warning is at least 720 ms. The flight onto the next slab is at most 665 ms and the walk back off a spur is 713 ms, so a shorter warning would let a spur vanish under a jump that the level-1 proof still counts.
+
+The slab just above each checkpoint stays at ±0.20 m on every level. Coins sit at ±1.5 m and flags at ±1.9 m, and the clearance proof uses 0.90 m of motion. A ±0.40 m slab there would sweep through the coin. Other moving slabs do use ±0.40 m. Their worst centre gap is 1.0 + 0.40 + 0.40 = 1.80 m. The earliest sideways reach on a 0.55 m rise is 3 × 0.6236 = 1.87 m, so the link still fits.
+
+### Spring pad (levels 3–5)
+
+A lime ring with a coil, on an ordinary static slab that has no spur. Never on a checkpoint, a moving slab or a spur. Landing on it while descending, with the footprint over the pad (half-width 0.26 m plus the runner's 0.22 m), launches straight up at `vy = sqrt(2 × 10 × 3) = 7.746 m/s`. The apex is 3.0 m. The edges of the slab still take a normal landing, so the route does not require the pad. Horizontal control is unchanged. The loss line sits 2 m under the best height, so a pad is placed only when a required platform is 1.2–2.8 m above it and inside `V_RUN × landingTime(rise, V_SPRING)`. Pads start at 16 m and sit at least 12 m apart. A launch scores the new height once, the same as any other metre.
+
+### Rocket (levels 4–5)
+
+A pickup 0.7 m above an ordinary static slab (not a checkpoint, not a pad). Touching it (reach 0.42 m, so standing on the slab does not collect it) flies the runner straight up at 4 m/s for 1.6 s, about 6.4 m, then the rocket drops and the runner falls with the usual one-way landing. It is placed only when a static slab or a checkpoint sits 5.25–6.95 m above the slab and within 1.2 m of its x, which is above the loss line (burnout is 7.1 m up, the line is 2 m under that) and below the burnout. First pickup at 32 m, then at least 18 m apart. The worn rocket is a code stand-in (two tones, a fin, a nozzle glow) in `assets.ts` as `rocket`, with a manifest-less url so nothing is fetched until a GLB exists.
+
+### Wind (level 5 only)
+
+Six bands, 8 m tall, from 36 m, 26 m apart, outside |x| = 1.62 m, pushing outward at 1.5 m/s. Every required centre stays inside ±1.40 m, so the centre-to-centre route never enters a band. Walking out to a slab's edge can. Wind adds no height.
+
+### Per-level limits
+
+Same duration window and base 0 as level 1. The envelope climbs at the level-1 pair rate, then replaces a boost's metres with the boost's own time (a spring's 3 m in 0.775 s, a rocket's 7.1 m from the slab in about 1.86 s) and keeps one extra score-metre per rocket. Coins are counted as early as the height allows. The 50.5 ms slack is the same one as level 1.
+
+- **Level 2.** Jump speed is still 4. Wider slabs do not add height. The level-1 proof applies unchanged: steepest 10.421 pts/s, 30-minute ceiling 18320. Limits stay 19000 / 11.
+- **Level 3.** Eight springs, first at 16 m, 12 m apart. Steepest about 12.43 pts/s. 13 is 4.6% over that. Ceiling about 18585, and 19350 is about 4% over it.
+- **Level 4.** Twelve springs and five rockets. Steepest about 17.5 pts/s. 18 would be under a 3% margin, so the limit is 19 (about 8% over, the same kind of gap as level 1's sustained 10.189 under 11). Ceiling about 19065. maxScore 19850.
+- **Level 5.** Sixteen springs and eight rockets. Wind adds no points. Steepest about 17.8 pts/s, so 19 again. Ceiling about 19390. maxScore 20200, under 3 × 19000.
+
+`levels.test.ts` recomputes the envelope and the route. Claude copies `PROPOSED_LEVEL_LIMITS` into `arcade-games.json`.
 
 ## Scene and camera
 
