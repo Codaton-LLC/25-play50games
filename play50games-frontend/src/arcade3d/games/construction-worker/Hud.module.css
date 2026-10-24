@@ -7,13 +7,15 @@
    top: calc(env(safe-area-inset-top, 0px) + 108px);
    left: calc(env(safe-area-inset-left, 0px) + 12px);
    box-sizing: border-box;
-   width: 200px;
-   height: 36px;
+   width: 210px;
+   height: 46px;
    pointer-events: none;
 }
 
 .pill {
    display: flex;
+   flex-direction: column;
+   gap: 2px;
    align-items: center;
    justify-content: center;
    box-sizing: border-box;
@@ -21,7 +23,7 @@
    height: 100%;
    margin: 0;
    padding: 0 12px;
-   border-radius: 999px;
+   border-radius: 16px;
    background: rgba(15, 23, 42, 0.85);
    border: 1px solid rgba(248, 250, 252, 0.18);
    color: #f8fafc;
@@ -35,4 +37,10 @@
    margin-left: 0.3em;
    color: #fbbf24;
    font-weight: 650;
+}
+
+/* The drop hint on its own line: one 14 px line overflowed the 210 px box. */
+.tip {
+   color: #cbd5e1;
+   font-size: 12px;
 }
