@@ -1,4 +1,4 @@
 import { describe } from "vitest";
-import { matrixRows } from "./matrixBot";
+import { matrixRows } from "./testing/matrixBot";
 
 describe("real-store difficulty matrix", () => matrixRows("human"));

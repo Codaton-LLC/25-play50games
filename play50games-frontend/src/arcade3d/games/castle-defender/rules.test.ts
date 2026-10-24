@@ -5,7 +5,7 @@ import { launchForTime, landingPoint } from "@/arcade3d/core/ballistics";
 import { MUZZLE } from "./assets";
 import { VIEW } from "./camera";
 import { AIM, BALLISTICS, PROPOSED_LIMITS, comboMultiplier, CLIMB_OFFSETS, COUNTS, LANES, LANE_X, ROCK_FLIGHT, STARTS, TUNING, TYPES, chooseUpgrade, createInput, createRun, flightTime, generateArmy, impact, predict, reload, runScore, snapAim, splash, stepRun, threatenedCrew, type CastleRun } from "./rules";
-import { bot } from "./matrixBot";
+import { bot } from "./testing/matrixBot";
 
 const idle = createInput();
 const advanceTo = (run: CastleRun, at: number) => stepRun(run, idle, at - run.time);

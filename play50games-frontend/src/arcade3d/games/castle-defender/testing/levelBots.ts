@@ -13,9 +13,9 @@ import { capScore, withinServerLimits } from "@/arcade3d/core/limits";
 import { createRng } from "@/arcade3d/core/math";
 import { fixedFrames, simulateRun } from "@/arcade3d/core/testing/botHarness";
 import { createArcadeStore } from "@/arcade3d/core/useArcadeStore";
-import { LEVELS } from "./levels";
-import { castleDefenderMeta as meta } from "./meta";
-import { PROPOSED_LEVEL_LIMITS, createInput, createRun, flightTime, predict, reload, splash, stepRun, threatenedCrew, type CastleRun } from "./rules";
+import { LEVELS } from "../levels";
+import { castleDefenderMeta as meta } from "../meta";
+import { PROPOSED_LEVEL_LIMITS, createInput, createRun, flightTime, predict, reload, splash, stepRun, threatenedCrew, type CastleRun } from "../rules";
 
 // The rules.test.ts bot profiles plus input spam; honest inputs only: no direct kills or score writes.
 type Profile = "random" | "human" | "oracle" | "idle" | "spam";

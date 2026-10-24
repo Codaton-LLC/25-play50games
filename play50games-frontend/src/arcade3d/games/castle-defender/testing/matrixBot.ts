@@ -6,7 +6,7 @@ import { capScore, withinServerLimits } from "@/arcade3d/core/limits";
 import { createRng } from "@/arcade3d/core/math";
 import { fixedFrames, simulateRun } from "@/arcade3d/core/testing/botHarness";
 import { createArcadeStore } from "@/arcade3d/core/useArcadeStore";
-import { PROPOSED_LIMITS, TYPES, createInput, createRun, flightTime, predict, reload, splash, stepRun, threatenedCrew, type CastleRun } from "./rules";
+import { PROPOSED_LIMITS, TYPES, createInput, createRun, flightTime, predict, reload, splash, stepRun, threatenedCrew, type CastleRun } from "../rules";
 
 // All profiles drive the actual inputs, clock, store, reload and projectile flight.
 export type Profile = "random" | "human" | "oracle" | "idle";
