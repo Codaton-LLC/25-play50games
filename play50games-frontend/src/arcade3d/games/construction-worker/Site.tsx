@@ -18,10 +18,9 @@ import { useCanvasTexture } from "@/arcade3d/core/render/useCanvasTexture";
 import { Fence } from "@/arcade3d/core/kit";
 import { createPath } from "@/arcade3d/core/path";
 import { bodyLift, HumanoidModel, useHumanoidPose } from "@/arcade3d/core/rig";
-import { RUNNER_LANDMARKS } from "@/arcade3d/core/sharedAssets";
 import { useGameTime } from "@/arcade3d/core/gameTime";
 import { useQuality } from "@/arcade3d/core/quality";
-import { ASSETS, MIXER, MIXER_HEIGHT, WORKER_SCALE } from "./assets";
+import { ASSETS, MIXER, MIXER_HEIGHT, WORKER_HAT, WORKER_LANDMARKS, WORKER_SCALE } from "./assets";
 import { COLORS } from "./looks";
 import { workerPose } from "./poses";
 import { PILE_A, PILE_R, type Run } from "./rules";
@@ -81,7 +80,7 @@ function Worker({ run }: { run: Run }) {
    const group = useRef<Group>(null);
    useFrame(() => {
       const g = group.current;
-      if (g) g.position.y = bodyLift(pose, RUNNER_LANDMARKS) * WORKER_SCALE;
+      if (g) g.position.y = bodyLift(pose, WORKER_LANDMARKS) * WORKER_SCALE;
    }, -0.05);
 
    return (
@@ -93,7 +92,7 @@ function Worker({ run }: { run: Run }) {
             fallback={<WorkerFallback />}
             attach={{
                head: (
-                  <mesh geometry={hatGeo} material={hatMat} position={[0, 0.04, 0]} dispose={null} />
+                  <mesh geometry={hatGeo} material={hatMat} position={[0, WORKER_HAT.y, WORKER_HAT.z]} scale={WORKER_HAT.scale} dispose={null} />
                ),
             }}
          />

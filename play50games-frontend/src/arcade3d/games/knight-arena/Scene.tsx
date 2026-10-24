@@ -21,6 +21,7 @@ import { useRunFrame } from "../../core/useRunFrame";
 import { Arena } from "./Arena";
 import { ASSETS } from "./assets";
 import { Dummies } from "./Dummies";
+import styles from "./Hud.module.css";
 import {
    guardPose,
    lungeStepOffset,
@@ -336,24 +337,8 @@ export function KnightArenaHud(): React.ReactElement {
    );
 
    return (
-      <div
-         data-arcade-safe-area
-         style={{
-            // below the shell's chip row (on a 390 px phone the chips span the whole top line)
-            position: "absolute",
-            top: 64,
-            left: "50%",
-            transform: "translateX(-50%)",
-            display: "flex",
-            flexWrap: "wrap",
-            justifyContent: "center",
-            maxWidth: "calc(100% - 24px)",
-            alignItems: "center",
-            gap: 8,
-            pointerEvents: "auto",
-            zIndex: 10,
-         }}
-      >
+      // below the shell's chip row; a right-hand column in phone landscape (Hud.module.css)
+      <div data-arcade-safe-area className={styles.panel}>
          <span
             style={{
                padding: "4px 10px",

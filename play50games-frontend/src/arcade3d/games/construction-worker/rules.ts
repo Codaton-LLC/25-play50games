@@ -279,16 +279,25 @@ function buildingNow(run: Run): number {
    return current(run)?.building ?? 2;
 }
 
-function predict(run: Run, step: PlanStep): number {
+export function predictLanding(run: Readonly<Run>, step: PlanStep, out: { x: number; z: number }): number {
    const slotTop = step.floor * FLOOR;
    const bottom = run.hookY - PIECE_H;
    const fall = Math.max(0, bottom - slotTop);
    const t = Math.sqrt((2 * fall) / GRAVITY);
    const sx = SLOT_R * Math.sin(SLOT_A[step.slot]);
    const sz = SLOT_R * Math.cos(SLOT_A[step.slot]);
-   run.landX = run.hookX + run.bobVx * t;
-   run.landZ = run.hookZ + run.bobVz * t;
-   return Math.hypot(run.landX - sx, run.landZ - sz);
+   out.x = run.hookX + run.bobVx * t;
+   out.z = run.hookZ + run.bobVz * t;
+   return Math.hypot(out.x - sx, out.z - sz);
+}
+
+const landing = { x: 0, z: 0 };
+
+function predict(run: Run, step: PlanStep): number {
+   const dist = predictLanding(run, step, landing);
+   run.landX = landing.x;
+   run.landZ = landing.z;
+   return dist;
 }
 
 function refreshGuide(run: Run): void {

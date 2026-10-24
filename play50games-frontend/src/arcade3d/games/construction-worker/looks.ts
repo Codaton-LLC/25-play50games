@@ -6,7 +6,12 @@ import type { FittedViewOptions } from "@/arcade3d/core/useFittedView";
 
 export const PITCH = (40 * Math.PI) / 180;
 export const FOV = 42;
-export const YAW = 0.6;
+/* Portrait / desktop yaw. 0.28 (was 0.6) puts the mast between the shell chips and the
+   Mute / Pause buttons on a 390 x 844 phone; at 0.6 its top ran under the buttons. */
+export const YAW = 0.28;
+/* Short wide phone: a quarter turn plus 0.1 (was 0.6 + PI / 2), so the counter-jib and cab
+   stay clear of the Mute / Pause buttons at 844 x 390. */
+export const WIDE_YAW = Math.PI / 2 + 0.1;
 
 /* Work zone: piles (r 7, z ≥ 6.3), slots (r 9.5, x ≤ 4.3, z ≤ 9.4), the hook
    block (rest top 5.7) and the worker at (2.6, 0, 5.35). The empty yard in
@@ -17,9 +22,9 @@ export const MARGIN = { top: 0.1, bottom: 0.08, left: 0.02, right: 0.02 };
 const BASE = { area: AREA, pitch: PITCH, focus: FOCUS, margin: MARGIN, padding: 8, shift: true as const, fov: FOV };
 
 const PORTRAIT: FittedViewOptions = { ...BASE, yaws: [YAW] };
-const WIDE: FittedViewOptions = { ...BASE, yaws: [YAW + Math.PI / 2] };
+const WIDE: FittedViewOptions = { ...BASE, yaws: [WIDE_YAW] };
 
-/** Portrait and desktop use yaw 0.6. A short wide phone (width / height > 1.9) turns a quarter turn. */
+/** Portrait and desktop use YAW. A short wide phone (width / height > 1.9) uses WIDE_YAW. */
 export function viewFor(width: number, height: number): FittedViewOptions {
    return width / Math.max(1, height) > 1.9 ? WIDE : PORTRAIT;
 }

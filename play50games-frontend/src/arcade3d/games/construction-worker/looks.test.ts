@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { Vector3 } from "three";
 import { fitView } from "@/arcade3d/core/view";
-import { COLORS, contrastRatio, DECOR, FOV, LOOK, viewFor, YAW } from "./looks";
+import { COLORS, contrastRatio, DECOR, FOV, LOOK, viewFor, WIDE_YAW, YAW } from "./looks";
 import { ANGLE_LIM, JIB_Y, PILE_A, PILE_R, RADIUS_MAX, RADIUS_MIN, SLOT_A, SLOT_R } from "./rules";
 
 function pxPerM(width: number, height: number, banner: number): number {
@@ -73,10 +73,10 @@ function wedgeDistance(x: number, z: number): number {
 }
 
 describe("construction-worker camera", () => {
-   it("keeps yaw 0.6 until the phone is short and wide", () => {
+   it("keeps YAW until the phone is short and wide", () => {
       expect(viewFor(390, 844).yaws).toEqual([YAW]);
       expect(viewFor(1280, 800).yaws).toEqual([YAW]);
-      expect(viewFor(844, 390).yaws?.[0]).toBeCloseTo(YAW + Math.PI / 2, 5);
+      expect(viewFor(844, 390).yaws?.[0]).toBeCloseTo(WIDE_YAW, 5);
       expect(viewFor(390, 844)).toBe(viewFor(391, 800));
    });
 
