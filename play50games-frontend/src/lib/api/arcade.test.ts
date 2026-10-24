@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 // The real client, pointed at a fake host; fetch is stubbed, so no request leaves the test.
-vi.mock("@/arcade3d/flags", () => ({ ARCADE_ENABLED: true, ARCADE_LEADERBOARD: true, ARCADE_API_MOCK: false }));
+vi.mock("@/arcade3d/flags", () => ({ ARCADE_ENABLED: true, ARCADE_LEADERBOARD: true, ARCADE_API_MOCK: false, ARCADE_LEVELS: false }));
 vi.mock("./apiBase", () => ({ getApiBase: () => "https://wp.test/wp-json/play50/v1" }));
 
 import { arcadeApi, ArcadeApiError, createMockArcadeClient, isRunToken } from "./arcade";

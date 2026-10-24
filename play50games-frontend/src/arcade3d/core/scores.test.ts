@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const flags = vi.hoisted(() => ({ ARCADE_ENABLED: true, ARCADE_LEADERBOARD: false, ARCADE_API_MOCK: false }));
+const flags = vi.hoisted(() => ({ ARCADE_ENABLED: true, ARCADE_LEADERBOARD: false, ARCADE_API_MOCK: false, ARCADE_LEVELS: false }));
 vi.mock("../flags", () => flags);
 
 const api = vi.hoisted(() => ({ submit: vi.fn(), leaderboard: vi.fn(), me: vi.fn(), setPrivacy: vi.fn() }));

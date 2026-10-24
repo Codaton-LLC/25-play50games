@@ -16,6 +16,16 @@ const SYNC_INTERVAL_MS = 5 * 60 * 1000;
 export const scoresKey = (userId: number | null): string =>
    userId ? `play50games_3d_scores:u${userId}` : "play50games_3d_scores:guest";
 
+/** One level's local best (docs/arcade-levels.md §3.1). */
+export interface LocalLevelEntry {
+   best: number;
+   bestDurationMs: number | null;
+   plays: number;
+   lastPlayed: string;
+   /** a run on this level was a win or reached its clearScore */
+   cleared: boolean;
+}
+
 export interface LocalScoreEntry {
    best: number;
    bestDurationMs: number | null;
