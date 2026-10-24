@@ -19,15 +19,29 @@ import { useRunFrame } from "@/arcade3d/core/useRunFrame";
 import { useFittedView } from "@/arcade3d/core/useFittedView";
 import { ASSETS, BELLY_LIFT, BELLY_ROTATION_Y, bellyClearance } from "./assets";
 import { ChaseCamera, VIEW, useReducedMotion } from "./camera";
+import { Decor } from "./Decor";
+import { COLORS } from "./looks";
 import { PenguinPrimitive } from "./Primitives";
+import { Terrain } from "./Terrain";
 import Track from "./Track";
 import { penguinSlideMeta as meta } from "./meta";
 import { airHeight, chunkAt, createRun, landingSpins, runScore, safeCentre, sampleTrack, stepRun, worldAt, type Run } from "./rules";
 
 function Penguin({ run, reduced }: { run: Run; reduced: boolean }) {
-   const root = useRef<Group>(null), body = useRef<Group>(null), fallback = useRef<Group>(null), shadow = useRef<Group>(null);
+   const root = useRef<Group>(null);
+   const body = useRef<Group>(null);
+   const fallback = useRef<Group>(null);
+   const shadow = useRef<Group>(null);
    const time = useGameTime();
-   const look = useMemo(() => ({ roll: { x: 0, v: 0 }, motion: { y: 0, roll: 0, yaw: 0, squash: 1 }, scale: { x: 1, y: 1, z: 1 }, point: { x: 0, y: 0, z: 0 }, tangent: { x: 0, y: 0, z: 0 }, endAt: -1 }), []);
+   const look = useMemo(() => ({
+      roll: { x: 0, v: 0 },
+      motion: { y: 0, roll: 0, yaw: 0, squash: 1 },
+      scale: { x: 1, y: 1, z: 1 },
+      point: { x: 0, y: 0, z: 0 },
+      tangent: { x: 0, y: 0, z: 0 },
+      endAt: -1,
+   }), []);
+
    useFrame(() => {
       if (!root.current || !body.current) return;
       if (run.end && look.endAt < 0) look.endAt = time.now;
@@ -38,36 +52,77 @@ function Penguin({ run, reduced }: { run: Run; reduced: boolean }) {
       const c = chunkAt(run, run.s);
       sampleTrack(c, run.s - c.index * 60, run.d, look.point, look.tangent, run.branch);
       const grade = -look.tangent.y / (Math.hypot(look.tangent.x, look.tangent.z) || 1);
-      root.current.position.set(run.d, airHeight(run) + look.motion.y + bellyClearance(grade, roll, Boolean(fallback.current)), 0);
+      root.current.position.set(
+         run.d,
+         airHeight(run) + look.motion.y + bellyClearance(grade, roll, Boolean(fallback.current)),
+         0
+      );
       if (shadow.current) {
          shadow.current.position.set(run.d, 0, 0);
          shadow.current.scale.setScalar(1 / (1 + airHeight(run) * 0.3));
       }
-      root.current.rotation.set(0, -run.yaw * Math.PI / 180, roll);
+      root.current.rotation.set(0, (-run.yaw * Math.PI) / 180, roll);
       body.current.position.y = fallback.current ? 0.3475 : BELLY_LIFT;
-      body.current.rotation.set(-Math.PI / 2 - Math.atan(grade) + (tumble && !reduced ? (1 - run.tumble + ending) * Math.PI * 2 : 0), 0, 0);
+      body.current.rotation.set(
+         -Math.PI / 2 - Math.atan(grade) + (tumble && !reduced ? (1 - run.tumble + ending) * Math.PI * 2 : 0),
+         0,
+         0
+      );
       squashStretch(look.motion.squash, look.scale);
       body.current.scale.set(look.scale.x, look.scale.y, look.scale.z);
    });
-   return <><group ref={shadow}><BlobShadow radius={0.42} y={0.012} /></group><group ref={root} name="penguin">
-      <group ref={body} rotation={[-Math.PI / 2, 0, 0]} position={[0, BELLY_LIFT, 0]}>
-         <group position={[0, -0.5, 0]} rotation={[0, BELLY_ROTATION_Y, 0]}><Model asset={ASSETS.penguin} fallback={<group ref={fallback} scale={1.25}><PenguinPrimitive /></group>} /></group>
-      </group>
-   </group></>;
+
+   return (
+      <>
+         <group ref={shadow}>
+            <BlobShadow radius={0.42} y={0.012} />
+         </group>
+         <group ref={root} name="penguin">
+            <group ref={body} rotation={[-Math.PI / 2, 0, 0]} position={[0, BELLY_LIFT, 0]}>
+               <group position={[0, -0.5, 0]} rotation={[0, BELLY_ROTATION_Y, 0]}>
+                  <Model
+                     asset={ASSETS.penguin}
+                     fallback={
+                        <group ref={fallback} scale={1.25}>
+                           <PenguinPrimitive />
+                        </group>
+                     }
+                  />
+               </group>
+            </group>
+         </group>
+      </>
+   );
 }
 
 export default function Scene() {
-   const input = useInput(), fx = useFx(), time = useGameTime();
+   const input = useInput();
+   const fx = useFx();
+   const time = useGameTime();
    const view = useFittedView(VIEW);
    const reduced = useReducedMotion();
    const [run] = useState(() => createRun(randomSeed(), typeof navigator !== "undefined" && navigator.maxTouchPoints > 0));
-   const [scratch] = useState(() => ({ input: { steer: 0, left: false, right: false, jump: false }, direction: { x: 0, z: 0 }, at: { x: 0, y: 0.2, z: 0 }, snowAt: 0, scoreAt: 0, fishPending: 0, popupA: -1, popupB: -1, options: { color: "#fb923c" } }));
+   const [scratch] = useState(() => ({
+      input: { steer: 0, left: false, right: false, jump: false },
+      direction: { x: 0, z: 0 },
+      at: { x: 0, y: 0.2, z: 0 },
+      sprayPoint: { x: 0, y: 0.05, z: 0.35 },
+      snowAt: 0,
+      scoreAt: 0,
+      fishPending: 0,
+      popupA: -1,
+      popupB: -1,
+      options: { color: COLORS.fishBody },
+   }));
    const [marker] = useState(() => [{ x: 0, y: 1.5, z: -20, hidden: false }]);
+
    useEffect(() => {
-      fx.warm("sparkle", "snow", "splash", "score");
+      fx.warm("sparkle", "snow", "splash", "score", "puff", "confetti");
       const store = useArcadeStore.getState();
       store.setStat("assist", Number(run.assist));
-      store.setStat("time", 30); store.setStat("distance", 0); store.setStat("crashes", 0);
+      store.setStat("time", 30);
+      store.setStat("distance", 0);
+      store.setStat("crashes", 0);
    }, [fx, run]);
 
    const popup = (text: string): boolean => {
@@ -85,6 +140,7 @@ export default function Scene() {
       scratch.input.right = input.current.pressed.right;
       scratch.input.jump = input.current.jumpPressed;
       stepRun(run, scratch.input, dt);
+
       const store = useArcadeStore.getState();
       store.addScore(run.events.score);
       store.setStat("time", Math.ceil(run.remaining));
@@ -97,23 +153,69 @@ export default function Scene() {
       if (store.stats.yaw !== yaw) store.setStat("yaw", yaw);
       const level = 1 + Math.floor(Math.min(run.elapsed / 120, 1) * 3);
       if (store.level !== level) store.setLevel(level);
-      scratch.at.x = run.d; scratch.at.y = airHeight(run) + 0.3; scratch.at.z = 0;
+
+      scratch.at.x = run.d;
+      scratch.at.y = airHeight(run) + 0.3;
+      scratch.at.z = 0;
+
+      // Fish pickup sparkles & score popup
       if (run.events.fish) {
          scratch.fishPending += run.events.fish;
-         fx.burst("sparkle", scratch.at, 8); playSfx("pickup");
+         fx.burst("sparkle", scratch.at, 12);
+         playSfx("pickup");
       }
-      if (run.events.spins) popup(run.events.spins === 2 ? "+100 double" : "+50 spin");
-      if (scratch.fishPending && (time.play - scratch.scoreAt >= 0.2 || run.end) && (time.now >= scratch.popupA || time.now >= scratch.popupB) && popup(`+${scratch.fishPending * 10}`)) {
-         scratch.fishPending = 0; scratch.scoreAt = time.play;
+      if (run.events.spins) {
+         popup(run.events.spins === 2 ? "+100 double" : "+50 spin");
+         fx.burst("confetti", scratch.at, 16);
       }
-      if (run.events.gate) { fx.burst("sparkle", scratch.at, 18); popup("+8 s"); playSfx("pickup"); }
-      if (run.events.hop) playSfx("jump");
-      if (run.events.crash) { fx.burst("splash", scratch.at, 18); fx.shake(0.25); playSfx("hit"); }
-      if (!reduced && Math.abs(run.steer) > 0.5 && time.play - scratch.snowAt >= 0.1 && !run.tumble) {
-         fx.burst("snow", scratch.at, 3); scratch.snowAt = time.play;
+      if (
+         scratch.fishPending &&
+         (time.play - scratch.scoreAt >= 0.2 || run.end) &&
+         (time.now >= scratch.popupA || time.now >= scratch.popupB) &&
+         popup(`+${scratch.fishPending * 10}`)
+      ) {
+         scratch.fishPending = 0;
+         scratch.scoreAt = time.play;
       }
+
+      // Gate passing burst
+      if (run.events.gate) {
+         fx.burst("sparkle", scratch.at, 20);
+         popup("+8 s");
+         playSfx("pickup");
+      }
+
+      // Hop & ramp launches
+      if (run.events.hop) {
+         if (run.rampAir) fx.burst("puff", scratch.at, 8);
+         playSfx("jump");
+      }
+
+      // Crash splash & camera shake
+      if (run.events.crash) {
+         fx.burst("splash", scratch.at, 22);
+         fx.shake(0.25);
+         playSfx("hit");
+      }
+
+      // Continuous snow spray behind sliding belly at speed
+      if (!reduced && run.speed > 4 && !run.tumble && airHeight(run) < 0.08) {
+         const sprayInterval = Math.abs(run.steer) > 0.35 ? 0.06 : 0.12;
+         if (time.play - scratch.snowAt >= sprayInterval) {
+            scratch.sprayPoint.x = run.d;
+            scratch.sprayPoint.y = 0.04;
+            scratch.sprayPoint.z = 0.35;
+            const sprayCount = Math.abs(run.steer) > 0.35 ? 4 : 2;
+            fx.burst("snow", scratch.sprayPoint, sprayCount);
+            scratch.snowAt = time.play;
+         }
+      }
+
       // TODO(P-06): startLoop("slide") and the new carve/ramp/gate cues after that API merges.
-      if (run.end) { store.setScore(capScore(runScore(run), store.elapsedMs, meta.scoring)); store.end(run.end); }
+      if (run.end) {
+         store.setScore(capScore(runScore(run), store.elapsedMs, meta.scoring));
+         store.end(run.end);
+      }
    });
 
    useFrame(() => {
@@ -123,15 +225,17 @@ export default function Scene() {
       marker[0].y += 1.5;
       marker[0].hidden = run.end !== null || run.gateS >= (run.chunks[2].index + 1) * 60;
    });
-   return <>
-      <ChaseCamera run={run} reduced={reduced} view={view} />
-      <SkyDome top="#8ed7f2" bottom="#e9fbff" />
-      <SnowFall count={reduced ? 60 : 300} area={[24, 16, 70]} />
-      <mesh name="snow-field" rotation={[-Math.PI / 2 - Math.atan(0.08), 0, 0]} position={[0, -0.8, 0]}>
-         <planeGeometry args={[300, 300]} /><meshStandardMaterial color="#e9fbff" roughness={1} />
-      </mesh>
-      <Track run={run} />
-      <Penguin run={run} reduced={reduced} />
-      <TargetMarkers targets={marker} color="#34d399" />
-   </>;
+
+   return (
+      <>
+         <ChaseCamera run={run} reduced={reduced} view={view} />
+         <SkyDome top={COLORS.skyTop} bottom={COLORS.skyBottom} />
+         <SnowFall count={reduced ? 60 : 300} area={[28, 16, 70]} />
+         <Terrain reduced={reduced} />
+         <Decor reduced={reduced} />
+         <Track run={run} />
+         <Penguin run={run} reduced={reduced} />
+         <TargetMarkers targets={marker} color={COLORS.gateRing} />
+      </>
+   );
 }
