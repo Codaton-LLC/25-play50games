@@ -27,7 +27,7 @@ export const spaceRepairMeta: ArcadeGameMeta = {
       unitLabel: "pts",
       display: "int",
    },
-   thumbnail: null,
+   thumbnail: "/images/3d/space-repair.webp",
    accent: "#818cf8",
    owner: "codex",
 };

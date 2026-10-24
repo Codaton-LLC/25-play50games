@@ -1,7 +1,7 @@
 import type { ArcadeGameMeta } from "@/arcade3d/types";
 
 // Plain data only (server-safe). scoring must match WP includes/arcade-games.json.
-// Provisional limits (docs/arcade-expansion/02 §C.4): set for real in the game's "assets + limits" PR.
+// Proven limits: README "Server limits and why they hold" and the rules.test.ts bots.
 export const knightArenaMeta: ArcadeGameMeta = {
    slug: "knight-arena",
    title: "Knight Training Arena",
@@ -19,15 +19,15 @@ export const knightArenaMeta: ArcadeGameMeta = {
    },
    scoring: {
       kind: "points",
-      maxScore: 9000,
+      maxScore: 11600,
       minDurationMs: 58000,
       maxDurationMs: 62000,
-      base: 9000,
-      maxPointsPerSec: 9000,
+      base: 0,
+      maxPointsPerSec: 200,
       unitLabel: "pts",
       display: "int",
    },
-   thumbnail: null,
+   thumbnail: "/images/3d/knight-arena.webp",
    accent: "#facc15",
    owner: "antigravity",
 };

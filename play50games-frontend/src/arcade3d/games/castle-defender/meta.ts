@@ -38,7 +38,7 @@ export const castleDefenderMeta: ArcadeGameMeta = {
       { id: 4, title: "Night Siege", scoring: { ...SCORING, maxScore: 10710, minDurationMs: 35000, maxDurationMs: 178500, base: 480, maxPointsPerSec: 66 } },
       { id: 5, title: "Royal Defense", scoring: { ...SCORING, maxScore: 11570, minDurationMs: 30000, maxDurationMs: 200500, base: 480, maxPointsPerSec: 63 } },
    ],
-   thumbnail: null,
+   thumbnail: "/images/3d/castle-defender.webp",
    accent: "#94a3b8",
    owner: "codex",
 };

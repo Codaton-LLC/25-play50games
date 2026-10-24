@@ -14,6 +14,7 @@ import {
 import CameraRig from "@/arcade3d/core/CameraRig";
 import { DynamicInstancedModel, Model } from "@/arcade3d/core/assets";
 import { playSfx, startLoop, useMuted, type LoopHandle } from "@/arcade3d/core/audio";
+import { SkyDome } from "@/arcade3d/core/env";
 import { useFx } from "@/arcade3d/core/fx";
 import { useGameTime } from "@/arcade3d/core/gameTime";
 import { TargetMarkers, type MarkerTarget } from "@/arcade3d/core/hud";
@@ -26,6 +27,8 @@ import { useFittedView } from "@/arcade3d/core/useFittedView";
 import { useRunFrame } from "@/arcade3d/core/useRunFrame";
 import { ASSETS, DINO_BACK_TOP_ANCHOR } from "./assets";
 import { VALLEY_BOUNDS, viewFor } from "./camera";
+import { Decor } from "./Decor";
+import { COLORS } from "./looks";
 import { DinoPrimitive, useBoulderParts } from "./Primitives";
 import {
    BOULDERS,
@@ -51,8 +54,8 @@ const SCRATCH_AXIS = new Vector3();
 const SCRATCH_SCALE = new Vector3(1, 1, 1);
 const DINO_SCALE = { x: 1, y: 1, z: 1 };
 const DINO_OFFSET: BodyOffset = { y: 0, roll: 0, yaw: 0, squash: 1 };
-const COLOR_READY = new Color("#38bdf8");
-const COLOR_COOLDOWN = new Color("#94a3b8");
+const COLOR_READY = new Color(COLORS.dashReady);
+const COLOR_COOLDOWN = new Color(COLORS.dashCooldown);
 
 export default function Scene() {
    const width = useThree((s) => s.size.width);
@@ -63,6 +66,11 @@ export default function Scene() {
    const time = useGameTime();
    const muted = useMuted();
    const phase = useArcadeStore((s) => s.phase);
+
+   const [preferences] = useState(() => ({
+      coarse: typeof window !== "undefined" && window.matchMedia("(pointer: coarse)").matches,
+      reduced: typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+   }));
 
    // Pure deterministic run state, a fresh seed per run (the Scene remounts per run)
    const [run] = useState<DinoRunState>(() => createDinoRun(randomSeed()));
@@ -103,9 +111,9 @@ export default function Scene() {
 
    // Spotted egg canvas texture shared across all regular eggs
    const eggTexture = useCanvasTexture(128, 128, (ctx) => {
-      ctx.fillStyle = "#fef08a";
+      ctx.fillStyle = COLORS.eggShell;
       ctx.fillRect(0, 0, 128, 128);
-      ctx.fillStyle = "#ca8a04";
+      ctx.fillStyle = COLORS.eggSpots;
       const spots = [
          [22, 28, 6],
          [52, 78, 8],
@@ -127,7 +135,7 @@ export default function Scene() {
    const markerTargets = useMemo<MarkerTarget[]>(() => {
       const arr: MarkerTarget[] = [];
       for (let i = 0; i < MARKER_COUNT; i++) {
-         arr.push({ x: 0, y: 0, z: 0, hidden: true, color: "#a3e635" });
+         arr.push({ x: 0, y: 0, z: 0, hidden: true, color: COLORS.eggGlow });
       }
       return arr;
    }, []);
@@ -171,14 +179,17 @@ export default function Scene() {
          run.deliveredRegularCount + run.deliveredGoldenCount
       );
 
-      // Sound & particle feedback
+      // Sound & particle feedback (juicy prehistoric feel)
       if (events.dashStarted) {
          playSfx("whoosh", { pitch: 1.1 });
          SCRATCH_POS.set(run.dino.x, 0.4, run.dino.z);
-         fx.burst("puff", SCRATCH_POS, 12);
+         fx.burst("puff", SCRATCH_POS, 14);
       }
       if (events.footstep) {
          playSfx("thud", { volume: 0.35, pitch: 1.3 });
+         // Cute little dust puff on dino stomp
+         SCRATCH_POS.set(run.dino.x, 0.05, run.dino.z);
+         fx.burst("puff", SCRATCH_POS, 4);
       }
       if (events.eggPicked) {
          playSfx("pickup", { pitch: 1.2 });
@@ -204,8 +215,8 @@ export default function Scene() {
          const pitch = 1.0 + events.eggDelivered.regularCount * 0.2;
          playSfx("chime", { pitch });
          SCRATCH_POS.set(NEST.x, 1.2, NEST.z);
-         fx.score(SCRATCH_POS, `+${pts}`, { color: "#facc15" });
-         fx.burst("sparkle", SCRATCH_POS, 26);
+         fx.score(SCRATCH_POS, `+${pts}`, { color: COLORS.goldenEgg });
+         fx.burst("sparkle", SCRATCH_POS, 28);
       }
    });
 
@@ -367,7 +378,7 @@ export default function Scene() {
          markerTargets[0].y = 0.2;
          markerTargets[0].z = nearestEggZ;
          markerTargets[0].hidden = false;
-         markerTargets[0].color = "#a3e635";
+         markerTargets[0].color = COLORS.eggGlow;
       } else {
          markerTargets[0].hidden = true;
       }
@@ -386,7 +397,7 @@ export default function Scene() {
          markerTargets[1].y = 0.25;
          markerTargets[1].z = goldenTarget.z;
          markerTargets[1].hidden = false;
-         markerTargets[1].color = "#facc15";
+         markerTargets[1].color = COLORS.goldenEgg;
       } else {
          markerTargets[1].hidden = true;
       }
@@ -397,7 +408,7 @@ export default function Scene() {
          markerTargets[2].y = 0.3;
          markerTargets[2].z = NEST.z;
          markerTargets[2].hidden = false;
-         markerTargets[2].color = "#38bdf8";
+         markerTargets[2].color = COLORS.dashReady;
       } else {
          markerTargets[2].hidden = true;
       }
@@ -411,7 +422,7 @@ export default function Scene() {
             markerTargets[bMarker].y = BOULDERS.radius;
             markerTargets[bMarker].z = b.z;
             markerTargets[bMarker].hidden = false;
-            markerTargets[bMarker].color = "#ef4444";
+            markerTargets[bMarker].color = COLORS.telegraphWarn;
             bMarker++;
          }
       }
@@ -423,6 +434,14 @@ export default function Scene() {
 
    return (
       <group name="dino-egg-rescue-scene">
+         {/* SkyDome gradient: deep sunset twilight into glowing orange horizon */}
+         <SkyDome
+            top={COLORS.skyTop}
+            bottom={COLORS.skyBottom}
+            exponent={0.7}
+            offset={0.05}
+         />
+
          {/* CameraRig smoothly follows the baby dino at damping 4 */}
          <CameraRig
             camera={{ position: view.offset, lookAt: [0, 0, 0] }}
@@ -436,6 +455,9 @@ export default function Scene() {
 
          {/* Valley Terrain, Mud, Trees, Nest, Volcano, 0.8 s lane telegraph */}
          <Valley telegraphLanes={run.laneTelegraph} />
+
+         {/* Prehistoric Jungle Surroundings Decor outside play bounds */}
+         <Decor reduced={preferences.reduced} />
 
          {/* Dino Baby Model */}
          <group ref={dinoGroupRef} position={[DINO.startX, 0, DINO.startZ]}>
@@ -503,8 +525,8 @@ export default function Scene() {
                <mesh scale={[1, 1.33, 1]}>
                   <sphereGeometry args={[0.16, 14, 14]} />
                   <meshStandardMaterial
-                     color="#facc15"
-                     emissive="#eab308"
+                     color={COLORS.goldenEgg}
+                     emissive={COLORS.goldenEggCore}
                      emissiveIntensity={1.2}
                      roughness={0.2}
                      metalness={0.6}
@@ -521,8 +543,8 @@ export default function Scene() {
          >
             <ringGeometry args={[0.82, 0.9, 32]} />
             <meshStandardMaterial
-               color="#38bdf8"
-               emissive="#0284c7"
+               color={COLORS.dashReady}
+               emissive={COLORS.dashReady}
                emissiveIntensity={0.6}
                transparent
                opacity={0.7}
@@ -537,19 +559,31 @@ export default function Scene() {
          >
             <mesh position={[0.3, 0, 0]}>
                <coneGeometry args={[0.08, 0.16, 6]} />
-               <meshStandardMaterial color="#fde047" emissive="#eab308" />
+               <meshStandardMaterial
+                  color={COLORS.stunStar}
+                  emissive={COLORS.goldenEggCore}
+               />
             </mesh>
             <mesh position={[-0.3, 0, 0]}>
                <coneGeometry args={[0.08, 0.16, 6]} />
-               <meshStandardMaterial color="#fde047" emissive="#eab308" />
+               <meshStandardMaterial
+                  color={COLORS.stunStar}
+                  emissive={COLORS.goldenEggCore}
+               />
             </mesh>
             <mesh position={[0, 0, 0.3]}>
                <coneGeometry args={[0.08, 0.16, 6]} />
-               <meshStandardMaterial color="#fde047" emissive="#eab308" />
+               <meshStandardMaterial
+                  color={COLORS.stunStar}
+                  emissive={COLORS.goldenEggCore}
+               />
             </mesh>
             <mesh position={[0, 0, -0.3]}>
                <coneGeometry args={[0.08, 0.16, 6]} />
-               <meshStandardMaterial color="#fde047" emissive="#eab308" />
+               <meshStandardMaterial
+                  color={COLORS.stunStar}
+                  emissive={COLORS.goldenEggCore}
+               />
             </mesh>
          </group>
 
@@ -561,8 +595,8 @@ export default function Scene() {
          >
             <sphereGeometry args={[0.85, 16, 16]} />
             <meshStandardMaterial
-               color="#38bdf8"
-               emissive="#38bdf8"
+               color={COLORS.graceShield}
+               emissive={COLORS.graceShield}
                emissiveIntensity={0.8}
                transparent
                opacity={0.35}
@@ -595,8 +629,8 @@ export default function Scene() {
                >
                   <circleGeometry args={[EGGS.pickupRadius, 20]} />
                   <meshStandardMaterial
-                     color="#a3e635"
-                     emissive="#65a30d"
+                     color={COLORS.eggGlow}
+                     emissive={COLORS.eggGlowCore}
                      emissiveIntensity={0.8}
                      transparent
                      opacity={0.55}
@@ -623,8 +657,8 @@ export default function Scene() {
             >
                <circleGeometry args={[EGGS.goldenPickupRadius, 24]} />
                <meshStandardMaterial
-                  color="#facc15"
-                  emissive="#eab308"
+                  color={COLORS.goldenEgg}
+                  emissive={COLORS.goldenEggCore}
                   emissiveIntensity={1.5}
                   transparent
                   opacity={0.65}
@@ -634,8 +668,8 @@ export default function Scene() {
             <mesh position={[0, 0.22, 0]} scale={[1, 1.33, 1]}>
                <sphereGeometry args={[0.18, 16, 16]} />
                <meshStandardMaterial
-                  color="#facc15"
-                  emissive="#eab308"
+                  color={COLORS.goldenEgg}
+                  emissive={COLORS.goldenEggCore}
                   emissiveIntensity={1.2}
                   roughness={0.2}
                   metalness={0.6}
@@ -644,7 +678,7 @@ export default function Scene() {
          </group>
 
          {/* Screen Edge Target Markers */}
-         <TargetMarkers targets={markerTargets} color="#a3e635" />
+         <TargetMarkers targets={markerTargets} color={COLORS.eggGlow} />
       </group>
    );
 }

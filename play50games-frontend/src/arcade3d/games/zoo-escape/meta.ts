@@ -29,7 +29,7 @@ export const zooEscapeMeta: ArcadeGameMeta = {
       unitLabel: "pts",
       display: "int",
    },
-   thumbnail: null,
+   thumbnail: "/images/3d/zoo-escape.webp",
    accent: "#34d399",
    owner: "claude",
 };

@@ -16,7 +16,7 @@ A young knight trains on the castle green at sunset. The knight stands at the ce
 
 ## Rules
 
-All numbers live in `rules.ts` (`ARENA`, `KNIGHT`, `TARGETS`, `BEAT`, `TIMING`, `COMBO`, `SPIN`, `SCORING`, `PROPOSED_LIMITS`) and are proven in `rules.test.ts`.
+All numbers live in `rules.ts` (`ARENA`, `KNIGHT`, `TARGETS`, `BEAT`, `TIMING`, `COMBO`, `SPIN`, `SCORING`, `scoreCeiling`) and are proven in `rules.test.ts`.
 
 - **Arena** (`ARENA`): octagonal ring radius 3.5 m enclosed by `<Fence path={RING_PATH}>` (`core/kit`, `RING_PATH = createPath(OCTAGON_POINTS, { closed: true })`), surrounded by green grass `#557a3a`, two backdrop towers (`EXPANSION_ASSETS.castleTower`, 6 m tall at (−4.2, −3.5) and (4.2, −3.5)), and four leafy trees (`EXPANSION_ASSETS.leafyTree`, 3.5 m tall).
 - **Knight & reach** (`KNIGHT`, `poses.ts`): `EXPANSION_CHARACTERS.knight` (1.75 m tall including helmet plume, scale $1.75 / 1.884 = 0.929$, auto-rigged with `KNIGHT_LANDMARKS` from `core/sharedAssets`). Stands at (0, 0, 0). Carries a 0.85 m sword (`ASSETS.sword`, `/models/3d/knight-arena/sword.glb`) in `attach.handR` ($0.15\text{ m}$ hilt + $0.70\text{ m}$ blade ahead of wrist) and a 0.55 m heater shield (`ASSETS.shield`, `/models/3d/knight-arena/shield.glb`) in `attach.handL`.
@@ -52,7 +52,19 @@ All numbers live in `rules.ts` (`ARENA`, `KNIGHT`, `TARGETS`, `BEAT`, `TIMING`, 
 - Real target hit: $20 \times \text{combo}$ on-beat ($\le 110\text{ ms}$), $10 \times \text{combo}$ off-beat ($110\text{–}200\text{ ms}$).
 - Tomato decoy struck: $-50\text{ pts}$ (`run.score = Math.max(0, run.score - 50)`), resets combo to $\times 1$.
 - Spin attack: $20 \times \text{combo}$ per cleared active real target $+ 50\text{ pts}$ spin bonus (when $\ge 1$ target cleared).
-- **Server limits (`PROPOSED_LIMITS` in `rules.ts`)**: `meta.ts` stays at provisional `9000 / 58000–62000 / 9000 / 9000` on branch; `PROPOSED_LIMITS` exports proven `maxScore = 11600` (`ceil100(11090 * 1.04)`), `minDurationMs = 58000`, `maxDurationMs = 62000`, `base = 0`, `maxPointsPerSec = 200` (`ceil(11600 / 58)`).
+
+### Server limits and why they hold
+
+`meta.scoring` = `arcade-games.json`: **maxScore 11600, 58000–62000 ms, base 0, maxPointsPerSec 200**. The server rejects a run when `score > maxScore`, `score · 1000 > base · 1000 + pps · durationMs` or the duration is outside the window (`core/limits.ts`).
+
+1. **Score sources** (all in `rules.ts`): a real hit pays `SCORING.ON_BEAT_PTS` (20) × combo on-beat, 10 × combo off-beat; a spin pays `SCORING.SPIN_HIT_PTS` (20) × combo per cleared slot plus `SPIN_BONUS_PTS` (50) once; a tomato only subtracts (−50). Combo is `comboForStreak(k)` = 1 / 2 / 3 / 4 for the k-th consecutive real hit (`COMBO.STEP_HITS` 8, `MAX_MULTIPLIER` 4). Every real slot is one cue and can be scored once (hit, spin-cleared or expired).
+2. **Hit ceiling:** every map has exactly `BEAT.MAX_HIT_SLOTS` = 140 real slots (1000-seed invariant test). The best case is all 140 on-beat in one unbroken streak: 20 · (8·1 + 8·2 + 8·3 + 116·4) = 20 · 512 = **10240**. A spin-cleared slot pays the same 20 × combo, so spins add nothing over this except the bonus.
+3. **Spin bonus ceiling:** a spin needs the meter at `SPIN.MAX_METER` 100 and resets it to 0; the best charge is `ON_BEAT_CHARGE` 15 per hit, so ⌈100 / 15⌉ = 7 charging hits per spin, and the bonus needs ≥ 1 cleared slot, which charges nothing. So each paid spin uses ≥ 8 of the 140 slots: ≤ ⌊140 / 8⌋ = 17 spins, 17 · 50 = **850**.
+4. **Ceiling:** B ≤ 10240 + 850 = **11090** for any map and any input (`scoreCeiling()`, tested). The exact DP optimum (`solveOptimalSpinSchedule`) over seeds 1–1000 is 10990–11090; the three shipping maps (101 / 202 / 303) are 11040 each.
+5. **Chosen numbers:** `maxScore` = ⌈11090 · 1.04 / 100⌉ · 100 = **11600** (4.6 % over the ceiling; the exact optimum 11090 is 95.6 % of it). `base 0`, `pps 200`: 200 · 58 s = 11600 ≥ maxScore, so the rate line never binds anywhere in the window and needs no time-shaped proof. 
+6. **Duration:** the run has no win or lose end; it always ends on the shell's `durationMs` 60000 (`BEAT.DURATION_MS`) timeup. The played clock overshoots by at most one frame (dt ≤ 1/20 s), so a ranked run is 60000–60050 ms, inside **58000–62000 ms** with 2 s each side.
+7. **Bots** (`rules.test.ts`, real store through `simulateRun`): the DP oracle on the 3 shipping maps at 20 / 30 / 60 / 144 Hz and on 200 more seeds at 60 Hz reaches ≥ 97 % of that map's optimum (≥ 10708 on the shipping maps, ≥ 92 % of maxScore) and every run passes `withinServerLimits` with `capScore` a no-op; a human bot (150–250 ms reaction, N(0, 50 ms) jitter, 92 % hits, 4 % decoys) 8450 in the build hand-off; a random 4-direction masher ≤ 15 % of the oracle (310 in the hand-off); a decoy-hitter stays below the oracle and inside the limits.
+
 
 ## Scene and camera
 
@@ -79,7 +91,7 @@ All numbers live in `rules.ts` (`ARENA`, `KNIGHT`, `TARGETS`, `BEAT`, `TIMING`, 
 ## Decisions (user, 2026-10-24)
 
 - Q1 timeup sting: fixed in core.
-- Q2 limits: approved as proposed (`PROPOSED_LIMITS` in `rules.ts`: `maxScore=11600`, `58–62 s`, `base=0`, `maxPointsPerSec=200`).
+- Q2 limits: approved (`maxScore=11600`, `58–62 s`, `base=0`, `maxPointsPerSec=200`), now in `meta.ts` and `arcade-games.json`.
 - Q3 timing window: ONE window for every device, $\pm 110\text{ ms}$ (judged at frame midpoint $t - dt/2$).
 - Q4 knight height: 1.75 m.
 - Q5 doubles: only same-direction near + far pairs (one strike clears both) on every device; no half-beat pairs.
@@ -93,6 +105,6 @@ TASK P-18-knight-arena | build knight-arena | branch antigravity/game-knight-are
 STATUS: DONE
 FILES: play50games-frontend/src/arcade3d/games/knight-arena/{README.md,index.tsx,assets.ts,assets.test.ts,poses.ts,poses.test.ts,rules.ts,rules.test.ts,Primitives.tsx,Arena.tsx,Dummies.tsx,Scene.tsx}, tools/thumbs/inputs/knight-arena.mjs, .handoff/P-18-knight-arena/HANDOFF.md
 TESTS: 11 passed / 0 failed (assets.test.ts: 3, poses.test.ts: 4, rules.test.ts: 4 covering 1,000-seed schedule invariants, timing/combo/shield/double/tomato/spin rules, and 200-seed real-store oracle/human/random/adversarial bots across 20/30/60/144 Hz)
-PROPOSED_LIMITS: maxScore=11600, minDurationMs=58000, maxDurationMs=62000, base=0, maxPointsPerSec=200 (oracle=11090, human=8450, random=310)
+LIMITS (in meta.ts + arcade-games.json): maxScore=11600, minDurationMs=58000, maxDurationMs=62000, base=0, maxPointsPerSec=200 (oracle=11090, human=8450, random=310)
 BLOCKERS: none
 ```

@@ -854,8 +854,11 @@ describe("monster-kitchen patience and lives", () => {
 });
 
 describe("monster-kitchen scoring limit proof (README.md)", () => {
-   it("PROPOSED_LIMITS carries the proposed limits (meta.scoring mirrors arcade-games.json until the limits PR)", () => {
-      expect(PROPOSED_LIMITS).toMatchObject({ kind: "points", maxScore: 4200, minDurationMs: 12000, maxDurationMs: 92000, base: 240, maxPointsPerSec: 60 });
+   it("PROPOSED_LIMITS carries the decided limits (meta.scoring = arcade-games.json)", () => {
+      // maxScore: the proven seed-independent ceiling 4680 x 1.03, rounded up to the nearest 10
+      // (README.md "Server limits and why they hold", decided 2026-10-24)
+      const maxScore = Math.ceil((4680 * 1.03) / 10) * 10;
+      expect(PROPOSED_LIMITS).toMatchObject({ kind: "points", maxScore, minDurationMs: 12000, maxDurationMs: 92000, base: 240, maxPointsPerSec: 60 });
       expect(PROPOSED_LIMITS).toMatchObject({ kind: monsterKitchenMeta.scoring.kind, unitLabel: monsterKitchenMeta.scoring.unitLabel, display: monsterKitchenMeta.scoring.display });
    });
 
@@ -903,7 +906,9 @@ describe("monster-kitchen scoring limit proof (README.md)", () => {
          }
       }
       const best = Math.max(...scores);
-      expect(best).toBeGreaterThanOrEqual(0.9 * PROPOSED_LIMITS.maxScore); // the limit is not loose
+      // the limit is not loose: the oracle reaches ~80 % of the proven seed-independent ceiling
+      // 4680 (README.md "Server limits and why they hold"); the measured peak is ~3,860
+      expect(best).toBeGreaterThanOrEqual(0.8 * 4680);
    });
 
    it("spam, serve-then-spam and idle bots lose fast, never score, and stay inside the limits", { timeout: 120_000 }, () => {

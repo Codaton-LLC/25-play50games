@@ -1,7 +1,7 @@
 import type { ArcadeGameMeta } from "@/arcade3d/types";
 
 // Plain data only (server-safe). scoring must match WP includes/arcade-games.json.
-// Provisional limits (docs/arcade-expansion/02 §C.4): set for real in the game's "assets + limits" PR.
+// Proven limits: README "Server limits and why they hold" and the rules.test.ts bots.
 export const museumGuardMeta: ArcadeGameMeta = {
    slug: "museum-guard",
    title: "Museum Guard",
@@ -19,15 +19,15 @@ export const museumGuardMeta: ArcadeGameMeta = {
    },
    scoring: {
       kind: "points",
-      maxScore: 3900,
-      minDurationMs: 10000,
+      maxScore: 2050,
+      minDurationMs: 12000,
       maxDurationMs: 92000,
-      base: 3900,
-      maxPointsPerSec: 3900,
+      base: 0,
+      maxPointsPerSec: 25,
       unitLabel: "pts",
       display: "int",
    },
-   thumbnail: null,
+   thumbnail: "/images/3d/museum-guard.webp",
    accent: "#c4b5fd",
    owner: "cursor",
 };
