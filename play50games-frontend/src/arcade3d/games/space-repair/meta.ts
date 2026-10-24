@@ -1,7 +1,7 @@
 import type { ArcadeGameMeta } from "@/arcade3d/types";
 
 // Plain data only (server-safe). scoring must match WP includes/arcade-games.json.
-// Provisional limits (docs/arcade-expansion/02 §C.4): set for real in the game's "assets + limits" PR.
+// Proven limits (README "Server limits and why they hold"; rules.ts PROPOSED_LIMITS).
 export const spaceRepairMeta: ArcadeGameMeta = {
    slug: "space-repair",
    title: "Space Repair Mission",
@@ -19,11 +19,11 @@ export const spaceRepairMeta: ArcadeGameMeta = {
    },
    scoring: {
       kind: "points",
-      maxScore: 4500,
-      minDurationMs: 10000,
+      maxScore: 4700,
+      minDurationMs: 37000,
       maxDurationMs: 122000,
-      base: 4500,
-      maxPointsPerSec: 4500,
+      base: 400,
+      maxPointsPerSec: 40,
       unitLabel: "pts",
       display: "int",
    },

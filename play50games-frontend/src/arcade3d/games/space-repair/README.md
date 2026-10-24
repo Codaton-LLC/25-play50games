@@ -188,3 +188,9 @@ The user approved this design and asked Claude to settle every open question wit
 - U3 listed departures: approved (desktop neutral braking, three recharges, rules-clock win, 50 deg close follow, the 1.75 m suit with backpack, uniform footprints, dock/reset/lock rules, backlog-only simultaneous breaks).
 - U4 wider coarse-pointer arcs on the shared leaderboard: approved (aiming precision differs by input, not timing); device mode sampled once per run.
 - Modern look: the new station module GLB (`/models/3d/space-repair/stationModule.glb`) for the modules; Earth rim light, star parallax, jetpack flame fx, sparks on repairs.
+
+## Claude merge review (2026-10-24)
+
+- Limits verified (arcade-score-limits): the ticket-count envelope in "Server limits" holds (30 tickets x 150 + 200 = 4700; every prefix under 400 + 40 t; earliest loss 37.67 s; win at exactly 120 s); the oracle's best 4504 = 95.8 % of maxScore. Copied into `meta.scoring` and `arcade-games.json` (`enabled: false`, status `dev`); `rules.test.ts` pins meta = `PROPOSED_LIMITS`. Mutation probes (perfect AND, miss clears perfect, bonus floor) are caught; a "never lose" mutation hangs the suite instead of failing (bots loop without a frame cap): add a frame/time cap to the degenerate-bot loops.
+- Playtest (headless, 1280 x 800 / 390 x 844 banner open / 844 x 390): 20-22 draw calls, p95 17 ms on desktop, no console errors, HUD and ring clear of the banner and controls, suit 40-60 CSS px. Fixed: the depth-independent wireframe outline washed the whole suit out to a pale ghost; it is now an x-ray drawn only where something in front hides the suit (`depthFunc: GreaterDepth`, opacity 0.22).
+- Open (Codex): in 844 x 390 a TargetMarkers arrow can sit on the suit; the user should confirm U4 (coarse arcs 90/75/60 vs 60/45/35 degrees widen a TIMING window, which standing decision 7 forbids; alien-farm dropped its touch widening for this reason).

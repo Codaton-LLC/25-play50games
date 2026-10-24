@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useFrame } from "@react-three/fiber";
-import { AdditiveBlending, MeshBasicMaterial, type Group, type Mesh } from "three";
+import { AdditiveBlending, GreaterDepth, MeshBasicMaterial, type Group, type Mesh } from "three";
 import { HumanoidModel, applyHumanoidPose, createPose, useHumanoidPose, type HumanoidPose } from "@/arcade3d/core/rig";
 import { useGameTime } from "@/arcade3d/core/gameTime";
 import { Instanced } from "@/arcade3d/core/render";
@@ -11,9 +11,11 @@ import { COLORS } from "./palette";
 import { floatPose } from "./poses";
 import type { Run } from "./rules";
 
+// Shown only where something in front hides the suit (depthFunc GreaterDepth): an x-ray silhouette.
+// The first build drew a depth-independent wireframe over the whole suit, which washed it out.
 function SuitOutline({ pose }: { pose: HumanoidPose }) {
    const rig = useHumanoidRig(ASSETS.astronaut);
-   const material = useMemo(() => new MeshBasicMaterial({ color: COLORS.rim, wireframe: true, transparent: true, opacity: 0.08, depthTest: false, depthWrite: false }), []);
+   const material = useMemo(() => new MeshBasicMaterial({ color: COLORS.rim, transparent: true, opacity: 0.22, depthFunc: GreaterDepth, depthWrite: false }), []);
    useLayoutEffect(() => {
       rig?.root.traverse((object) => {
          const mesh = object as Mesh;

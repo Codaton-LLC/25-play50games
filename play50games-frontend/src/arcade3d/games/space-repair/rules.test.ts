@@ -5,6 +5,7 @@ import { capScore, withinServerLimits } from "@/arcade3d/core/limits";
 import { createGrid, findPath, fixedFrames, freeGrid, randomFrames, simulateRun } from "@/arcade3d/core/testing/botHarness";
 import { judgeTiming } from "@/arcade3d/core/hud/timingMath";
 import { rngNext } from "@/arcade3d/core/math";
+import { spaceRepairMeta } from "./meta";
 import { createRun, stepRun, BREAKS, CELL, CLOCK, DEBRIS, MODULES, PROPOSED_LIMITS, REPAIR, SCORE, STATION, SUIT, clearance, needle, resolveContacts, stageAt, type Controls, type Run } from "./rules";
 
 const idle = { x: 0, z: 0, repair: false };
@@ -14,6 +15,8 @@ describe("space repair contract", () => {
       expect(CLOCK.duration).toBe(120);
       expect(SUIT).toMatchObject({ thrust: 6, brake: 3, speed: 7, radius: 0.45, deadZone: 0.12 });
       expect(PROPOSED_LIMITS).toEqual({ kind: "points", maxScore: 4700, minDurationMs: 37000, maxDurationMs: 122000, base: 400, maxPointsPerSec: 40, unitLabel: "pts", display: "int" });
+      // the proven limits are the game's limits (arcade-games.json via registry.sync.test.ts)
+      expect(spaceRepairMeta.scoring).toEqual(PROPOSED_LIMITS);
    });
    it("repeats a seeded run and loses no earlier than 37 2/3 seconds", () => {
       const a = createRun(12, false), b = createRun(12, false);
