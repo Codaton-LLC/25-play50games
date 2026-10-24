@@ -25,7 +25,7 @@ A prehistoric valley at sunset. A clumsy baby dino (`EXPANSION_ASSETS.dino`) gat
 
 All numbers live in `rules.ts` (`VALLEY`, `DINO`, `EGGS`, `BOULDERS`, `TREES`, `MUD`, `NEST`, `SCORING`) and are proven in `rules.test.ts`.
 
-- **Valley** (`VALLEY`): 30 × 22 m (x ±15, z ±11). Outer perimeter clamped via `clampToBounds`. Ground is grass `#84cc16` and soil `#a16207`; volcano backdrop outside bounds at NE ((16, −13), procedural cone with glowing crater `#f97316`). Dino starts at the nest centre (11.0, 7.5) facing −x (towards the valley).
+- **Valley** (`VALLEY`): 30 × 22 m (x ±15, z ±11). Outer perimeter clamped via `clampToBounds`. Ground is grass `#84cc16` and soil `#a16207`; volcano backdrop GLB outside bounds at NE ((16, −13), 8 m tall / 5.5 m base radius, glowing crater disc `#f97316`). Dino starts at the nest centre (11.0, 7.5) facing −x (towards the valley).
 - **Nest** (`NEST`): centred South-East at (11.0, 7.5) (merge review F1: the old SW spot (−11, 7.5) lay 0.11 m from lane 3's centre line), radius 1.8 m with delivery contact zone r 1.4 m. Procedural torus with straw canvas texture. Entering contact zone deposits all carried eggs instantly.
 - **Dino kinematics & integration** (`DINO`, `EXPANSION_ASSETS.dino`): 1.1 m long, 0.8 m tall, faces +z. Collision circle r 0.55 m. Base speed 5.0 m/s, accel 20 m/s², brake 25 m/s², turn rate 12 rad/s (`turnTowards`). Integration order: integrate velocity ($p + v \cdot dt$), resolve tree collisions (`resolveSphereAabb` circle push-out against trunks), then clamp to valley bounds.
 - **Egg carry & speed stacking** (`EGGS`, D1, D2): carry up to 3 eggs on back, anchored to `expansionPoint(EXPANSION_ASSETS.dino, EXPANSION_GLB_POINTS.dinoBackTop)` (the point is in GLB units, { x: 0, y: 0.756, z: −0.1 }; with the dino fit (scale 1.1 / 1.8939, stretch y 0.937, no yOffset) it is ~(0, 0.41, −0.06) m) with damped spring (`core/motion` `spring`). Speed multiplier (walk & dash): 0 eggs × 1.0 (5.0 m/s walk / 8.0 m/s dash), 1 egg × 0.85 (4.25 / 6.8 m/s), 2 eggs × 0.72 (3.60 / 5.76 m/s), 3 eggs × 0.60 (3.00 / 4.80 m/s).
@@ -94,7 +94,7 @@ The counting proof holds by strict upper bounds from user decisions D1:
 The longer side is about 1.3× these (dino 39 / 33 px median on the phones). The dino's box is smallest when it heads straight away from the camera. Eggs and boulders near the screen edges can sit partly under the HUD, the touch buttons or the banner (on 844 × 390 about a quarter of the egg samples and a third of the boulder samples touch one of them); `<TargetMarkers>` point at off-screen eggs, the golden egg, the nest and boulders. (The earlier table here, 47.5 / 49.3 / 33.6 px and 38.0 / 39.4 / 26.9 px, was a prediction; the measured sizes at that window were about half of it.)
 
 - **Dino animation:** `core/motion` `waddle` (stride-matched body roll & head bob scaling with ground speed; no foot slip), `squashStretch` on dash burst.
-- `environment: { background: "#7c2d12", lighting: "sunset" }`; grass `#84cc16`, soil `#a16207`, volcano backdrop cone at NE with lava glow `#f97316`.
+- `environment: { background: "#7c2d12", lighting: "sunset" }`; grass `#84cc16`, soil `#a16207`, volcano backdrop GLB at NE with lava glow `#f97316`.
 
 ## Core helpers used
 
@@ -102,20 +102,22 @@ The longer side is about 1.3× these (dino 39 / 33 px median on the phones). The
 
 ## Assets
 
-No new generation: every GLB is shared. Fits in `assets.ts`, checked in `assets.test.ts`.
+Fits in `assets.ts`, checked in `assets.test.ts` (the volcano on the real decoded mesh).
 
 | id | class / source | target in game | rules footprint | fallback |
 |---|---|---|---|---|
 | dino | C (A) `EXPANSION_ASSETS.dino` (`shared/dino.glb`) | 1.1 m long, 0.8 m tall | circle r 0.55 | capsule |
 | boulders | C (A) `EXPANSION_ASSETS.rock` (`shared/rock.glb`) pool | 1.0 m spherical fit, rolls on profile | circle r 0.5 | sphere |
 | leafyTree | C (A) `EXPANSION_ASSETS.leafyTree` (`shared/leafyTree.glb`) | 3.5 m tall | trunk circle r 0.256 | cylinder + cone |
+| volcano | A, game-owned GLB (`dino-egg-rescue/volcano.glb`, batch 5) | 8 m tall, 5.5 m base radius at (16, −13) | none (backdrop, outside valley bounds) | procedural cone (pre-GLB primitive) |
 | eggs | B procedural ellipsoids (canvas spots) | 0.4 × 0.3 m + 1.0 m glow disc | circle r 0.3 (pickup r 0.6) | sphere |
 | goldenEgg | B procedural ellipsoid (gold glow) | 0.45 × 0.35 m + 1.2 m glow disc | circle r 0.35 (pickup r 0.7) | sphere |
 | nest | B procedural torus + straw texture | 3.6 m diameter | delivery circle r 1.4 | cylinder |
-| procedural | B: valley terrain, mud decal discs, volcano backdrop cone, gully tracks | | | |
+| procedural | B: valley terrain, mud decal discs, gully tracks | | | |
 
+- **Volcano GLB fit:** Rodin normalised the GLB wider than tall (measured on the real mesh: height 0.8426, footprint radius 1.0029 = max radial vertex, floor pivot), so `scale = 5.5 / 1.0029` takes the footprint and `stretch y = 8.0 / (0.8426 · scale)` restores the old cone's 8 m height; the lava glow disc (r 1.2) sits on the GLB crater rim at y 7.85 (opening r 1.25). Adopted in P-17.
 - **Changed from spec:** pitch 50° vs 55° (boosts screen height by 15 %); boulder speed 3.6–5.2 m/s vs 3–6 m/s and dropped single bounce (pure ground roll); ferns dropped; draw-call cap met at 50 (target 35, cap 50); tree trunk radius 0.256 m from `LEAFY_TREE_TRUNK_RADIUS_GLB = 0.14` vs 0.35 m; palms dropped (D4: `leafyTree` only).
-- `assets.spec.json` lists `"assets": []` because this game owns zero custom GLBs.
+- `assets.spec.json` lists the volcano (batch 5, text-to-3D 2026-10-24); the GLB itself came with the batch commit.
 
 ## Files
 
