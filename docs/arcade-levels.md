@@ -494,3 +494,12 @@ entry in `arcade-games.json` for **dev** games (Claude re-derives it at review; 
 - Q5 Helpers editing their own game's `levels` in `arcade-games.json` for dev games (§6.3): allowed, or Claude only?
 - Q6 Pilots: robot-collector, castle-defender, obstacle-race. Swap any?
 - Q7 Should guests see levels 2–5 locked like everyone, or should levels need a login? Recommended: same rules for guests.
+
+## User decisions (2026-10-24) — these override the open questions above
+
+1. **Live games:** today's game becomes **Level 1**, so migrated bests stay fair. Levels 2-5 are harder variants of the same base environment.
+2. **Unlock:** level n+1 unlocks when level n is **cleared** (a win, or reaching its `clearScore`). The same rule applies to guests and logged-in players.
+3. **Points games:** the leaderboard total is the plain SUM of the best score on each level. The "level 5 max <= ~3x level 1" guard applies.
+4. **Time games (escape-room, obstacle-race and any future time game):** NOT a sum of time scores. The board ranks the **total time = the sum of the player's best finishing time on each of the 5 levels**, lower is better. A player appears on the time board only once all 5 levels have a finishing time. Until then the game shows their per-level times and a "Finish all 5 levels to rank" note. Backend: for `kind: "time"` the materialised board value is the summed time (or the existing time-score formula applied to the summed time with a 5-level `timeBaseMs`, whichever keeps "higher is better" in the existing columns); a partial set is stored per level but is not ranked.
+5. **Pilots:** robot-collector (live points game), castle-defender (dev, wave-based) and obstacle-race (live time game).
+6. **`arcade-games.json` stays Claude-only.** Helpers put their per-level `PROPOSED_LEVEL_LIMITS` in rules.ts and Claude copies them into the JSON at merge.
