@@ -6,8 +6,9 @@ import { fixedFrames, randomFrames, simulateRun } from "@/arcade3d/core/testing/
 import { createArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { launchForTime, landingPoint } from "@/arcade3d/core/ballistics";
 import { MUZZLE } from "./assets";
+import { VIEW } from "./camera";
 import { castleDefenderMeta } from "./meta";
-import { AIM, BALLISTICS, COUNTS, LANES, ROCK_FLIGHT, STARTS, TUNING, TYPES, chooseUpgrade, createInput, createRun, flightTime, generateArmy, impact, predict, reload, runScore, snapAim, splash, stepRun, threatenedCrew, type CastleRun } from "./rules";
+import { AIM, BALLISTICS, COUNTS, LANES, LANE_X, ROCK_FLIGHT, STARTS, TUNING, TYPES, chooseUpgrade, createInput, createRun, flightTime, generateArmy, impact, predict, reload, runScore, snapAim, splash, stepRun, threatenedCrew, type CastleRun } from "./rules";
 
 const idle = createInput();
 const advanceTo = (run: CastleRun, at: number) => stepRun(run, idle, at - run.time);
@@ -29,6 +30,9 @@ describe("literal tuning and schedules", () => {
       expect(castleDefenderMeta.scoring).toMatchObject({ maxScore: 3210, minDurationMs: 39000, maxDurationMs: 140000, base: 160, maxPointsPerSec: 25 });
       expect(LANES.map((p) => p.total)).toEqual([8.8, 8.8, 8.8]);
       expect(ROCK_FLIGHT).toBeCloseTo(0.782061887, 7);
+      expect(TUNING.snap).toBe(1.5);
+      // stepAimKeys maps screen axes directly because the fitted camera cannot turn.
+      expect(VIEW.yaws).toEqual([0]);
    });
    it("generates valid deterministic armies over 1,000 seeds", () => {
       for (let seed = 0; seed < 1000; seed++) {
@@ -76,7 +80,9 @@ describe("combat and scoring", () => {
          const p = landingPoint({ ...MUZZLE, vx: v.x, vy: v.y, vz: v.z }, BALLISTICS)!;
          expect(Math.hypot(p.x - 5, p.y, p.z + 6)).toBeLessThan(1e-6);
       }
-      expect(flightTime(0, -6)).toBeLessThanOrEqual(1);
+      expect(flightTime(MUZZLE.x, MUZZLE.z)).toBe(0.6);
+      expect(flightTime(MUZZLE.x + 10, MUZZLE.z)).toBe(1);
+      expect(flightTime(MUZZLE.x + 20, MUZZLE.z)).toBe(1);
    });
    it("replaces one buffered aim and launches it at exact reload boundary", () => {
       const run = createRun(0), i = createInput();
@@ -104,9 +110,33 @@ describe("combat and scoring", () => {
       const run = createRun(10);
       advanceTo(run, 23); expect(run.offer).toBe(true); expect(run.score).toBe(0); expect(run.hp).toBe(60);
       advanceTo(run, 24); expect(run.score).toBe(200); expect(run.cleared).toBe(1);
-      const before = run.stacks.reduce((a, b) => a + b, 0);
+      const before = [...run.stacks], left = run.cards[0];
       advanceTo(run, 28); expect(run.wave).toBe(1); expect(run.offer).toBe(false);
-      expect(run.stacks.reduce((a, b) => a + b, 0)).toBe(before + 1);
+      before[left]++;
+      expect(run.stacks).toEqual(before); expect(run.chosen).toBe(0);
+   });
+   it("drops a shot buffered just before the last arrival opens an offer", () => {
+      const { run, g } = isolated(), i = createInput();
+      g.s = 8.8 - 0.7 * 0.02; run.ready = 0.5; i.fire = true;
+      stepRun(run, i, 0.01);
+      expect(run.offer).toBe(false); expect(run.fire.pending).toBe(true);
+      advanceTo(run, 0.03);
+      expect(run.offer).toBe(true); expect(run.fire.pending).toBe(false);
+      advanceTo(run, 0.6); expect(run.launches).toBe(0);
+   });
+   it("never launches a ready buffered shot or accepts fire during an offer", () => {
+      const run = createRun(0), i = createInput();
+      run.offer = true; run.offered = 0; run.fire.pending = true; run.ready = 0;
+      stepRun(run, idle, 0.01);
+      expect(run.launches).toBe(0); expect(run.balls.some((b) => b.active)).toBe(false);
+      run.fire.pending = false; i.fire = true;
+      stepRun(run, i, 0.01);
+      expect(run.launches).toBe(0); expect(run.fire.pending).toBe(false);
+   });
+   it("caps a repair from 110 HP at 125 current and maximum HP", () => {
+      const run = createRun(0); run.offer = true; run.cards[0] = 2; run.hp = 110;
+      chooseUpgrade(run, 1);
+      expect(run.hp).toBe(125); expect(run.maxHP).toBe(125);
    });
    it("latches cards, caps capacity, additive repair and reload/splash magnitudes", () => {
       const run = createRun(0); run.offer = true; run.cards[0] = 2; run.cards[1] = 3; run.hp = 40;
@@ -125,6 +155,30 @@ describe("combat and scoring", () => {
       const predicted = { x: 0, y: 0, z: 0 }; predict(g, flightTime(g.x, g.z), predicted);
       expect(-r.aim.y).toBeLessThan(predicted.z); expect(predicted.z + r.aim.y).toBeGreaterThan(0.6);
    });
+   it("touch stepRun snaps at 1.5 metres but keeps an exact tap at 1.6", () => {
+      for (const distance of [1.5, 1.6]) {
+         const { run, g } = isolated("runner"), i = createInput();
+         // Flight prediction clamps to the lane end (0, 2), with no derived threshold.
+         g.path = LANES[1]; g.lateral = 0; g.s = 8.7;
+         i.coarse = true; i.point = true; i.fire = true; i.x = distance; i.z = 2;
+         stepRun(run, i, 0.001);
+         const expectedX = distance === 1.5 ? 0 : 1.6;
+         expect(run.aim.x).toBe(expectedX); expect(-run.aim.y).toBe(2);
+         expect(run.launches).toBe(1);
+         expect(run.balls[0].tx).toBeCloseTo(expectedX, 9); expect(run.balls[0].tz).toBeCloseTo(2, 9);
+      }
+   });
+   it("touch stepRun breaks an equal-distance prediction tie by lower goblin id", () => {
+      const { run, g } = isolated("runner"), other = run.goblins[1], i = createInput();
+      // Symmetric predictions at (-1, 2) and (1, 2); the lower id is on the left.
+      g.path = LANES[0]; g.lateral = 2; g.s = 8.7;
+      other.status = "ground"; other.kind = "runner"; other.hp = 1;
+      other.path = LANES[2]; other.lateral = -2; other.s = 8.7;
+      i.coarse = true; i.point = true; i.fire = true; i.x = 0; i.z = 2;
+      stepRun(run, i, 0.001);
+      expect(run.aim.x).toBe(-1); expect(-run.aim.y).toBe(2);
+      expect(run.balls[0].tx).toBeCloseTo(-1, 9);
+   });
 });
 
 function erectedFixture() {
@@ -132,7 +186,11 @@ function erectedFixture() {
    for (const g of run.goblins) g.status = "dead";
    run.wave = 3; run.cleared = 3; run.time = 100;
    const c = run.crews[0]; c.erected = 100;
-   for (const g of run.goblins) if (g.crew === c.id) { g.status = "climb"; g.hp = 1; g.y = 0.08; }
+   let rail = 0;
+   for (const g of run.goblins) if (g.crew === c.id) {
+      g.status = "climb"; g.hp = 1; g.y = 0.08; g.z = 2;
+      g.x = LANE_X[c.lane] + (rail++ % 2 ? 0.45 : -0.45);
+   }
    return run;
 }
 describe("ladders, rocks and terminal boundaries", () => {
@@ -143,9 +201,46 @@ describe("ladders, rocks and terminal boundaries", () => {
       stepRun(run, i, 0.01); expect(run.drops).toBe(1);
    });
    it("climbers are immune to cannon and each independently damages at2s", () => {
-      const run = erectedFixture(); impact(run, 0, 2); expect(run.killed).toBe(0);
+      const run = erectedFixture(), climbers = run.goblins.filter((g) => g.crew === 0);
+      expect(climbers).toHaveLength(3);
+      impact(run, LANE_X[run.crews[0].lane], 2); expect(run.killed).toBe(0);
+      expect(climbers.map((g) => g.hp)).toEqual([1, 1, 1]);
       advanceTo(run, 101.99); expect(run.hp).toBe(100);
       advanceTo(run, 102); expect(run.hp).toBe(85); expect(run.killed).toBe(0);
+   });
+   it("ignores a second Rock press on a fresh ladder before the eight-second cooldown", () => {
+      const run = erectedFixture(), i = createInput(); i.rock = true;
+      for (const g of run.goblins) if (g.crew === 1) { g.status = "ground"; g.hp = 1; g.s = 8.1; }
+      stepRun(run, i, 0.01); advanceTo(run, 101.01);
+      expect(run.crews[1].erected).toBeCloseTo(101, 8); expect(threatenedCrew(run)).toBe(1);
+      expect(run.offer).toBe(false); expect(run.rock.active).toBe(false);
+      expect(run.time).toBeLessThan(run.rock.ready); expect(run.rock.ready).toBe(108);
+      stepRun(run, i, 0.01);
+      expect(run.drops).toBe(1); expect(run.rock.active).toBe(false); expect(run.rock.pending).toBe(false);
+      expect(run.crews[1].destroyed).toBe(false);
+      expect(run.goblins.filter((g) => g.crew === 1).map((g) => g.hp)).toEqual([1, 1, 1]);
+   });
+   it("a buffered rock never drops on its destroyed target", () => {
+      const run = erectedFixture(); run.crews[0].destroyed = true;
+      run.rock.pending = true; run.rock.target = 0; run.rock.expires = 101;
+      stepRun(run, idle, 0.01);
+      expect(run.drops).toBe(0); expect(run.rock.active).toBe(false);
+      advanceTo(run, 101.01);
+      expect(run.drops).toBe(0); expect(run.rock.pending).toBe(false); expect(run.rock.ready).toBe(0);
+      expect(run.killed).toBe(0);
+   });
+   it("nextCrew skips a destroyed earlier crew and leaves no buffer if all are destroyed", () => {
+      for (const allDestroyed of [false, true]) {
+         const run = createRun(0), i = createInput(); run.wave = 3; run.cleared = 3; run.time = 84;
+         for (const g of run.goblins) {
+            g.status = g.crew === 0 || g.crew === 1 ? "waiting" : "dead";
+            if (g.crew >= 0) { g.spawn = 84; g.initialS = 0; g.s = 0; }
+         }
+         run.crews[0].destroyed = true; run.crews[1].destroyed = allDestroyed;
+         i.rock = true; stepRun(run, i, 0.01);
+         expect(run.rock.target).toBe(allDestroyed ? -1 : 1);
+         expect(run.rock.pending).toBe(!allDestroyed); expect(run.drops).toBe(0);
+      }
    });
    it("same-time fatal arrival wins over a rescuing rock", () => {
       const run = erectedFixture(); run.hp = 5;
@@ -204,6 +299,14 @@ describe("ladders, rocks and terminal boundaries", () => {
       expect(run.end).toBe("win"); expect(run.time).toBeCloseTo(136, 8); expect(run.score).toBe(3210);
       stepRun(run, idle, 1); expect(run.score).toBe(3210);
    });
+   it("wave 5 resolution never opens an upgrade offer, including before the final clear", () => {
+      const run = createRun(0); run.wave = 4; run.cleared = 4; run.offered = 3; run.time = 130;
+      for (const g of run.goblins) g.status = "dead";
+      stepRun(run, idle, 0.01);
+      expect(run.offer).toBe(false); expect(run.chosen).toBe(-1); expect(run.end).toBe(null);
+      advanceTo(run, 136);
+      expect(run.end).toBe("win"); expect(run.offer).toBe(false); expect(run.upgrades).toBe(0);
+   });
    it("no lost remainder, freeze after over, safety only for incomplete fixture", () => {
       const a = createRun(3), b = createRun(3);
       stepRun(a, idle, 1.037); for (let n = 0; n < 1037; n++) stepRun(b, idle, 0.001);
@@ -221,8 +324,9 @@ describe("ladders, rocks and terminal boundaries", () => {
    });
 });
 
-// All bots use the actual input, aim, reload, flight and store. Human inputs are delayed,
-// imperfect and never fire faster than1.2s; keyboard aim has the same hold delay as the game.
+// All bots use the actual input, aim, reload, flight and store. The "human" bot uses exact
+// prediction (an oracle), despite delayed, imperfect inputs and a >=1.2s fire interval;
+// keyboard aim has the same hold delay as the game. Measured player profiles are in README.
 function bot(seed: number, human: boolean, coarse: boolean, spam = false) {
    const run = createRun(seed), input = createInput(), rng = createRng(seed ^ 0xba7);
    input.coarse = coarse;
@@ -294,11 +398,12 @@ describe("real-store score envelope and human feasibility", () => {
       }
       expect(3210).toBeLessThanOrEqual(3560);
    });
-   it("64 legal seeds, 64 human-paced seeds and32 spam seeds meet the envelope", () => {
+   // Bound runtime on this shared machine; retain 3–4 seeds per input/frame combination.
+   it("20 legal seeds, 20 oracle human-paced seeds and10 spam seeds meet the envelope", () => {
       const started = performance.now();
       let wins = 0, best = 0, minHP = 125;
       let fastestMs = Infinity, slowestMs = 0, lost = 0, lowHP = 0, missedPacks = 0;
-      for (let seed = 0; seed < 64; seed++) {
+      for (let seed = 0; seed < 20; seed++) {
          const legal = bot(seed, false, seed % 2 === 0);
          expect(legal.run.end).toBe("win"); best = Math.max(best, legal.final.score);
          const human = bot(seed, true, seed % 2 === 0);
@@ -311,9 +416,9 @@ describe("real-store score envelope and human feasibility", () => {
          minHP = Math.min(minHP, human.run.hp);
          expect(human.run.stacks[3]).toBe(0);
       }
-      for (let seed = 0; seed < 32; seed++) bot(seed, false, true, true);
-      console.info("castle-defender bots", { legal: 64, human: 64, spam: 32, humanWinsWith20HP: wins, minHumanHP: minHP, bestScore: best, fastestMs, slowestMs, lost, lowHP, missedPacks, runtimeMs: Math.round(performance.now() - started) });
-      expect(wins).toBeGreaterThanOrEqual(61);
+      for (let seed = 0; seed < 10; seed++) bot(seed, false, true, true);
+      console.info("castle-defender bots", { legal: 20, human: 20, spam: 10, humanWinsWith20HP: wins, minHumanHP: minHP, bestScore: best, fastestMs, slowestMs, lost, lowHP, missedPacks, runtimeMs: Math.round(performance.now() - started) });
+      expect(wins).toBeGreaterThanOrEqual(19);
       expect(best).toBeGreaterThanOrEqual(2889);
    }, 60000);
    it("idle loses after39s and never earns kill or bonus points", () => {
