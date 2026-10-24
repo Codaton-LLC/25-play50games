@@ -291,3 +291,58 @@ Game `Hud` (`Hud.tsx`, CSS Module, existing vars, `pointer-events: none`, not ma
 - Pure tests now cover fitted measurements, the full-frustum horizon, steady 40-row following, eased refit unions, coarse/fine gates, real vertex/hull parity, folded width, every vehicle piece under side cover and crash grounding. In-place generator/pool tests remain from step 1. Live popping checks during crossings/resize and eventual GLB animation still need the browser flow after core cleanup is fixed.
 - **Retry after a long run started paused (fixed 2026-10-07, `claude/flag-and-retry-fix`).** Found in the group C playtest, the same with the stand-in vehicles. Cause, traced in headless Chrome: CameraRig places a follow camera at its target in its mount effect, a passive effect, and after the Retry remount R3F drew one frame before passive effects flushed. In that frame `StreetCamera`'s clock-priority check measured the shared camera still at the last run's pigeon (z -80 after row 49) for the new run on row 0: rows 0..62 do not fit the 40-slot ring, so it set reason `"pool"` and paused the countdown. The rig snapped the camera right after, so Resume played normally. Any Retry after row 28 (1280 × 800) or 22 (375 × 812) did it. Fix in `Scene.tsx`: `StreetCamera` sets `placed` in its own passive mount effect, which React runs after the rig's (children first), and both frame checks leave the pools alone until then. The fitted-view gate (`gate.reason`, from the target camera) still pauses at once, and the Simulation's pre-step fill check is unchanged. `step()` cannot move the pigeon meanwhile: the countdown is running and the ring stays blocked. `retry.test.ts` covers it (mutation-probed). Headless Chrome: Retry after levels 3 and 4 goes countdown → playing at level 1 at 1280 × 800 (GLBs and stand-ins) and 375 × 812 touch, and the next hop moves. A 700 × 340 fine-pointer window still pauses with "Make the window larger", and Resume works at 1280 × 800. 812 × 375 now passes the size gate live (the table above was measured on the fallback with the banner). The core rig's passive placement is generic: every follow-camera game draws that first Retry frame from the old camera. Only this game paused on it.
 - Fairness windows and tier saturation are intentional. Faster/denser progression stops at tier 10; raising limits, shortening hops, changing row count/bonus or removing preview invalidates the proof and needs fresh review.
+
+## Status
+
+TASK P-51-levels-pigeon | 5 levels for pigeon-crossing | branch codex/levels-pigeon-crossing | allowed: play50games-frontend/src/arcade3d/games/pigeon-crossing/**
+
+Status: BLOCKED BEFORE IMPLEMENTATION (2026-10-24). Five levels are NOT implemented.
+
+Branch verification: git branch --show-current returned codex/levels-pigeon-crossing. Initial git status --porcelain was empty. No branch creation/switch, reset/clean, deletion, commit, push, build, server or production access was performed.
+
+Files changed:
+- .handoff/P-51-levels-pigeon/HANDOFF.md (explicit handoff exception in the task).
+- play50games-frontend/src/arcade3d/games/pigeon-crossing/README.md (this report in Status).
+All runtime code, metadata, assets and existing tests remain untouched; in particular rules.test.ts remains byte-identical.
+
+Blocking acceptance question for Claude:
+The task incorporates docs/arcade-levels.md section 5 and the score-limit skill, requiring a best bot score >=90% of each level maxScore. The fixed live Level 1 limit is 50000, so the required demonstrated score is 45000. The existing game's README, Server limits and why they hold, records an exact earliest-arrival planner over 1020 seeds: best 40060, mean about 38400, minimum 36660. Its 48970 analytic ceiling deliberately ignores traffic waits; it is not a demonstrated attainable score. The recorded best is only 80.12% of 50000. The README explicitly rejects replacing the analytic cap with a statistical traffic cap.
+
+This is evidence of an unresolved acceptance mismatch, NOT a proof that a better seed/planner cannot reach 45000. I have not rerun that historical planner (the README says it was deleted). I cannot truthfully assert the required 90% check, lower Level 1's protected limits, or change Level 1 gameplay to meet it. Per AGENTS.md's stop-when-unsure instruction and CLI mode's no-answer constraint, implementation is deferred for Claude to reconcile this check. Recommended resolution: preserve Level 1's proven analytic limits and assess its bot's clear rate separately; explicitly allow the historical endless game's measured best to be below 90% of its analytic cap. No such exception has been assumed here.
+
+Five-level content table (source plan, NOT implemented):
+
+| Level | Title | Sections | Hazards / new mechanic | Plan target | Lighting |
+|---|---|---:|---|---|---|
+| 1 | Quiet Street | 3 in plan; live game must override | Existing traffic and guaranteed clear windows, unchanged | Plan 60-75 s; live 30-minute cap must remain | Existing day |
+| 2 | Main Road | 4 | Static obstacle set; second obstacle and collectible line, adapted to existing assets | 75-90 s | Natural/day |
+| 3 | City Crossing | 5 | Combined obstacle types and moving hazards | 90-110 s | Dramatic, readable |
+| 4 | Night Traffic | 6 | Faster moving hazards; reduced recovery space | 100-120 s | Core night |
+| 5 | Rush Hour | 8 | Mixed hazards, minimal recovery; all mechanics and high-score pacing | Endless/high-score or 120 s | Core dramatic sunset |
+
+These are source requirements, not final config choices. The built game is endless and already uses moving traffic; translating sections, collectibles and target times into its mechanics still needs implementation and verification. Do not interpret this table as approved shorter scoring rounds: harder levels must offer at least as many points as Level 1.
+
+Per-level limits and proofs:
+- L1 EXISTING: maxScore 50000; minDurationMs 3000; maxDurationMs 1800000; base 0; maxPointsPerSec 28; kind points; pts/int. No change proposed.
+  Sources: +10 per new forward row, +100 per completed 20-row street. With n=20k+r, S=300k+10r; elapsedMs >=3050+550n. Therefore 28*(3050+550n)-1000*S=85400+8000k+5400r >0. At 1800000 ms n<=3267, S<=48970<50000. Traffic, pauses and backtracking only lower progress. Initial protected grass preview prevents a loss before 3000 ms. Existing README contains the full proof; it is not newly verified in this run.
+- L2: no proposed limits or proof; config and scoring sources not implemented.
+- L3: no proposed limits or proof; config and scoring sources not implemented.
+- L4: no proposed limits or proof; config and scoring sources not implemented.
+- L5: no proposed limits or proof; config and scoring sources not implemented.
+No PROPOSED_LEVEL_LIMITS export or meta.levels was added. Backend files remain Claude-owned and untouched.
+
+Bot clear rates:
+- L1-L5: NOT MEASURED. No new clearScore values or human-paced/oracle bot have been implemented. Historical score measurements above are not clear-rate measurements.
+
+Verification:
+- npx vitest run src/arcade3d/games/pigeon-crossing: FAILED AT STARTUP before collecting tests. esbuild: Cannot read directory ../../../..: Access is denied; could not resolve the absolute vitest.config.mts path. This is the sandbox config-loading failure anticipated by the task. Zero tests executed; no suite runtime or pass claim. An accidental duplicate invocation encountered the same startup limitation.
+- Existing test inventory by source inspection: 39 it() declarations in four files (rules 20, camera 11, assets 6, retry 2). This is not an executed test count.
+- npx tsc --noEmit: PASS, exit code 0, no diagnostics (approximately 2 minutes).
+- No new tests; mutation probe NOT RUN. No claim that the suite meets the 60-second gate.
+- No build or server run, as instructed. Claude's flagged build and desktop/phone headless playtest remain outstanding.
+- The requested pigeon-crossing/looks.ts is absent in this checkout. Current appearance is in Primitives.tsx, Scene.tsx and index.tsx; this alone was not treated as a blocker.
+
+Open questions / next action for Claude:
+1. Resolve the 90%-of-max bot acceptance mismatch for protected Level 1, without changing its gameplay or 50000/3000/1800000/0/28 limits.
+2. Resume the actual five-level implementation after that decision, copying robot-collector and castle-defender. All implementation, per-level proofs, 200-seed clear/fairness tests and mutation probes remain outstanding.
+3. Run Vitest in an environment that can load the existing config; then run the game suite and tsc, followed by Claude's flagged build and headless playtests. Copy reviewed proposed limits into arcade-games.json only after implementation.
