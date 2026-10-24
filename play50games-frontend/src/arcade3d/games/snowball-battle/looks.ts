@@ -15,9 +15,9 @@ export const COVER_LIMIT = 0.15;
 export const BANK = { height: 0.2, radius: 0.42 } as const;
 
 /** Team hat, metres, in the head anchor (scale is undone). Wide and short so the colour reads. */
-export const BEANIE = { radius: 0.34, y: 0.02, scaleXZ: 1.15, scaleY: 0.7 } as const;
+export const BEANIE = { radius: 0.24, y: 0.02, scaleXZ: 1.05, scaleY: 0.75 } as const;
 /** Team collar. The chest anchor is the back; +z walks the ring onto the front. */
-export const SCARF = { radius: 0.3, tube: 0.16, y: 0.04, z: 0.16 } as const;
+export const SCARF = { radius: 0.17, tube: 0.07, y: 0.04, z: 0.08 } as const;
 
 export const FORT_TONES = ["#f8fafc", "#e0f2fe", "#bae6fd"] as const;
 export const ICICLE_COLOR = "#7dd3fc";

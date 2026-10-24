@@ -162,11 +162,11 @@
     "snowball-battle": {
       "title": "Snowball Battle",
       "kind": "points",
-      "max_score": 4500,
+      "max_score": 2550,
       "min_duration_ms": 10000,
       "max_duration_ms": 92000,
-      "base": 4500,
-      "max_pps": 4500,
+      "base": 600,
+      "max_pps": 190,
       "enabled": false
     },
     "ghost-vacuum": {

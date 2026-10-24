@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { capScore, withinServerLimits } from "@/arcade3d/core/limits";
 import { fixedFrames, randomFrames, simulateRun } from "@/arcade3d/core/testing/botHarness";
 import { createArcadeStore } from "@/arcade3d/core/useArcadeStore";
+import { snowballBattleMeta } from "./meta";
 import { camperInput, exposePlayer, idleInput, oracle, spammerInput, spinnerInput, witness } from "./bots";
 import {
    AI, CAMP_FLUSH_S, EARLIEST, FORT, KID, PINE, POCKET_OUT, PROPOSED_LIMITS, RELOCATE_MIN_S,
@@ -105,6 +106,8 @@ describe("pins", () => {
       expect(PROPOSED_LIMITS.maxDurationMs).toBe(92000);
       expect(PROPOSED_LIMITS.base).toBe(600);
       expect(PROPOSED_LIMITS.maxPointsPerSec).toBe(190);
+      // the proven limits are the game's limits (arcade-games.json via registry.sync.test.ts)
+      expect(snowballBattleMeta.scoring).toEqual(PROPOSED_LIMITS);
    });
 
    it("pins the chain and the any-hit bound as arithmetic", () => {
