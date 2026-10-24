@@ -52,7 +52,28 @@ Grid 0.4 m, step 0.25 s, sneak moves; per keeper a mask from its undisturbed pat
 
 ## Files
 
-`meta.ts` · `index.tsx` · `level.ts` · `rules.ts` · `camera.ts` · `poses.ts` · `assets.ts` · `Scene.tsx` · `Stage.tsx` · `Keepers.tsx` · `Primitives.tsx` · `Hud.tsx` + `Hud.module.css` · `testkit.ts` (test-only: grids, masks, oracle, bound) · tests `rules` / `fairness` / `camera` / `poses` / `assets` · `assets.spec.json` · `tools/thumbs/inputs/zoo-escape.mjs`.
+`meta.ts` · `index.tsx` · `level.ts` · `rules.ts` · `camera.ts` · `poses.ts` · `assets.ts` · `looks.ts` · `Decor.tsx` · `Terrain.tsx` · `Scene.tsx` · `Stage.tsx` · `Keepers.tsx` · `Primitives.tsx` · `Hud.tsx` + `Hud.module.css` · `testkit.ts` (test-only: grids, masks, oracle, bound) · tests `rules` / `fairness` / `camera` / `poses` / `assets` / `looks` · `assets.spec.json` · `tools/thumbs/inputs/zoo-escape.mjs`.
+
+## Look (2026-10-24)
+
+Modern-look pass (TASK P-36-look-zoo):
+- **Atmosphere & Sky**: Added `<SkyDome>` with two-tone gradient (`skyTop` deep azure `#0284c7`, `skyBottom` warm afternoon horizon `#bae6fd`, transitioning to dusk twilight `#311042` and orange horizon `#f97316` via `useStageLighting`). Fog near 45 / far 95 (dusk 40 / 85) keeps all play area elements completely crisp and un-fogged while softening the horizon.
+- **Palette**: Unified all colors into a single palette in `looks.ts` (`COLORS`). Enclosure, plaza, and parking have distinct materials with high contrast so panda (white/black), keepers (khaki/boots), cones (amber/coral), and exit indicators (mint) remain easily readable.
+- **Terrain**: Replaced flat planes with `Terrain.tsx` featuring canvas-textured organic meadow grass (`useCanvasTexture` with sun/shade/earth mottling), stone-paved visitor plaza, dark asphalt parking lot with white stalls and amber zebra crosswalk, concrete perimeter curbs, water moat with stone boulder banks, and arched timber footbridge. The outer ground extends 160 × 200 m, ensuring no void/gap below the scene across all aspect ratios (1280×800, 390×844, 844×390).
+- **Decor outside play area**: Added `Decor.tsx` with instanced manicured box hedges, parkland trees (deciduous and pines), directional zoo signposts, distant rolling hills, and gently drifting sky clouds (respecting reduced motion and `useQuality().decor`). All decor sits strictly outside the play bounds with proven zero occlusion of panda or keepers from the fitted camera (`looks.test.ts`).
+- **Stand-ins**: Every code-made fallback was upgraded to 2-3 tones with deliberate bevels/rounded features (panda with snout, rounded ears and paws; keeper with safari hat and dark band; faceted rocks; segmented bamboo culms with nodes; slatted benches; hooded waste bins; fluted lantern posts; multi-tone cars with bumpers and headlights; searchlight tower with visor and struts; heavy timber gates).
+- **Juicy feedback**: Added dust puff core fx burst on catch (`fx.burst("puff", at, 18)`).
+- **Draw call estimate**:
+  - SkyDome: 1
+  - Terrain (ground planes 4, paths 1, curbs 1, lines 1, crosswalk 1, moat 1, banks 1, bridge 1): 11
+  - Fences & gates (posts 1, rails 1, gates 1, drop bars 1): 4
+  - GLB props / stand-ins (rocks 1, bamboo 1, benches 1, bins 1, lamps 1, palms 1, cars 1, trees 1, kiosks 1, awnings 1, bushes 1, tower 1): 12
+  - Decor outside (hedges 1, trees 1, pines 1, signposts 1, hills 1, clouds 1): 6
+  - Keepers & searchlight (3 keepers + 3 torches + 3 cones + searchlight): 10
+  - Overlays (discs 1, meter rings 1, meter fills 1, bubbles 2): 5
+  - Panda (mesh 1, shadow 1): 2
+  - Visual cues (outline 1, beacon 1, lamp glows 2, snacks 1, snack-glows 1, bundles 1): 7
+  - Total typical playing: **52–56 draw calls**, well within the ≤ 60 budget (tested with zero per-frame allocations).
 
 ## Changed from design
 

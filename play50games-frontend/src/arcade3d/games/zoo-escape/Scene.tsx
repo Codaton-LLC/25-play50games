@@ -33,7 +33,7 @@ import { CLOCK, STATS, TOSS, applyToStore, createRun, stepRun, type RunState, ty
 /** The panda's waddle: one swing per 0.55 m. */
 const STEP_M = 0.55;
 const CROUCH = 0.82;
-const DUSK_SKY = "#f4a582";
+const DUSK_SKY = COLORS.fogDusk;
 
 function PandaPrimitive() {
    const geometry = useMerged(pandaPieces);
@@ -103,6 +103,7 @@ export default function Scene() {
    const phase = useArcadeStore((s) => s.phase);
    const level = useArcadeStore((s) => s.level);
    const muted = useMuted();
+   const [reduced] = useState(() => typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
    const [run] = useState(() => createRun(randomSeed()));
    const [scratch] = useState(() => ({
       step: { dirX: 0, dirZ: 0, sneak: false, toss: false } as StepInput,
@@ -201,6 +202,8 @@ export default function Scene() {
       if (e.bar >= 0) playSfx("thud", scratch.steps);
       if (e.stage >= 0) playSfx("chime");
       if (e.caught) {
+         at.x = p.x; at.y = 0.5; at.z = p.z;
+         fx.burst("puff", at, 18);
          playSfx("hit");
          playSfx("alarm", scratch.steps);
          fx.shake(0.3);
@@ -215,7 +218,7 @@ export default function Scene() {
    return (
       <>
          <CameraRig camera={{ position: view.offset, lookAt: [0, 0, 0] }} follow={scratch.aim} followFraction={1} bounds={bounds} offset={view.offset} shift={view.shift} damping={5} />
-         <Stage run={run} dusk={dusk} />
+         <Stage run={run} dusk={dusk} reduced={reduced} />
          <Panda run={run} />
          <Keepers run={run} slots={scratch.slots} />
          <TargetMarkers targets={markers} size={26} />
