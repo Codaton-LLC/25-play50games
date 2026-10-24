@@ -17,12 +17,14 @@ import { playSfx } from "@/arcade3d/core/audio";
 import type { AABB } from "@/arcade3d/core/collision";
 import { useGameTime } from "@/arcade3d/core/gameTime";
 import { useInput } from "@/arcade3d/core/input";
+import { useLevel } from "@/arcade3d/core/level";
 import { randomSeed } from "@/arcade3d/core/math";
 import { HumanoidModel, createPose, useHumanoidPose } from "@/arcade3d/core/rig";
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { useFittedView, type FittedViewOptions } from "@/arcade3d/core/useFittedView";
 import { useRunFrame } from "@/arcade3d/core/useRunFrame";
 import { ASSETS } from "./assets";
+import type { FoodCatcherLevel } from "./levels";
 import { chefPose, chefRootRoll, createChefGait, stepChefGait } from "./poses";
 import {
    ApplePrimitive,
@@ -75,6 +77,8 @@ interface Scratch {
 
 type ViewRun = RunState & { flashAt: number; flashX: number };
 
+export const useFoodCatcherLevel = () => useLevel<FoodCatcherLevel>();
+
 function projectFingerX(pointerX: number, pointerY: number, camera: Camera, scratch: Scratch): number | null {
    scratch.ndc.set(pointerX, pointerY);
    scratch.ray.setFromCamera(scratch.ndc, camera);
@@ -102,20 +106,21 @@ const Simulation = memo(function Simulation({ run, scratch }: { run: ViewRun; sc
       if (ev.caught > 0 || ev.missed > 0 || ev.badCaught > 0 || ev.lifeLost || ev.ended) {
          store.setScore(run.score);
          store.setStat("combo", run.combo);
+         store.setStat("caught", run.goodCaught);
+         if (run.level.dropsPerLife > 0) store.setStat("drops", run.drops % run.level.dropsPerLife);
       }
       if (ev.caught > 0) {
          run.flashAt = time.now;
          run.flashX = run.chefX;
          playSfx("pickup");
       }
-      if (ev.badCaught > 0) {
+      if (ev.badCaught > 0 || ev.dropLives > 0) {
          run.flashAt = time.now;
          run.flashX = run.chefX;
          playSfx("hit");
       }
-      for (let i = 0; i < ev.badCaught; i++) store.loseLife();
-      if (ev.ended === "timeup") store.end("timeup");
-      else if (ev.ended === "lose" && useArcadeStore.getState().phase !== "over") store.end("lose");
+      for (let i = 0; i < ev.badCaught + ev.dropLives; i++) store.loseLife();
+      if (ev.ended) store.end(ev.ended);
    });
 
    return null;
@@ -185,6 +190,7 @@ const FallingItem = memo(function FallingItem({ index, run }: { index: number; r
    const root = useRef<Group>(null);
    const shown = useRef<Array<Group | null>>([]);
    const ring = useRef<Group>(null);
+   const bonusRing = useRef<Group>(null);
 
    useFrame(() => {
       const g = root.current;
@@ -203,6 +209,7 @@ const FallingItem = memo(function FallingItem({ index, run }: { index: number; r
          if (child) child.visible = KINDS[k] === item.kind;
       }
       if (ring.current) ring.current.visible = item.bad;
+      if (bonusRing.current) bonusRing.current.visible = item.bonus && !item.bad;
    });
 
    return (
@@ -235,6 +242,12 @@ const FallingItem = memo(function FallingItem({ index, run }: { index: number; r
          ))}
          <group ref={ring} visible={false}>
             <BadRing />
+         </group>
+         <group ref={bonusRing} visible={false}>
+            <mesh>
+               <ringGeometry args={[0.56, 0.64, 28]} />
+               <meshBasicMaterial color="#fbbf24" toneMapped={false} />
+            </mesh>
          </group>
       </group>
    );
@@ -282,8 +295,9 @@ function FittedCamera() {
    );
 }
 
-export default function Scene() {
-   const [run] = useState<ViewRun>(() => Object.assign(createRun(randomSeed()), { flashAt: -10, flashX: 0 }));
+function LevelScene() {
+   const { config } = useFoodCatcherLevel();
+   const [run] = useState<ViewRun>(() => Object.assign(createRun(randomSeed(), config), { flashAt: -10, flashX: 0 }));
    const scratch = useMemo<Scratch>(
       () => ({ ray: new Raycaster(), ndc: new Vector2(), input: { targetX: null, dir: 0 } }),
       []
@@ -302,4 +316,9 @@ export default function Scene() {
          <CatchFlash run={run} />
       </>
    );
+}
+
+export default function Scene() {
+   const { id } = useFoodCatcherLevel();
+   return <LevelScene key={id} />;
 }

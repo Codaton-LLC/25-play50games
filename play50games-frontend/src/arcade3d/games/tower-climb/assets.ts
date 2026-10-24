@@ -33,4 +33,10 @@ export const ASSETS: Record<string, ModelAsset> = {
       id: "checkpoint-flag", url: "/models/3d/tower-climb/checkpoint-flag.glb",
       scale: 0.8 / 1.9, fallback: "box", fallbackColor: "#ffd35d", budget: PROP_BUDGET,
    },
+   // No GLB yet: the url is absent from the model manifest, so nothing is fetched.
+   // The world pickup uses this asset with the bevelled fallback parts; Claude swaps the file in later.
+   rocket: {
+      id: "rocket", url: "/models/3d/tower-climb/rocket.glb", scale: 1,
+      fallback: "box", fallbackColor: "#e8eef2", budget: PROP_BUDGET,
+   },
 };
