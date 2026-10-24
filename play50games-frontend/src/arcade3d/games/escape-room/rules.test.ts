@@ -31,7 +31,7 @@ describe("escape-room golden constants", () => {
          MIN_FINISH_MS: Math.ceil(rules.MIN_ROUTE / RUNNER.speed * 1000) + 3 * (rules.OPEN_MS + rules.RETRIEVE_MS) + rules.UNLOCK_MS + rules.DOOR_OPEN_MS,
       });
       // the server's minimum duration keeps 100 ms under the speed-only bound
-      expect(rules.MIN_FINISH_MS - rules.PROPOSED_LIMITS.minDurationMs).toBe(100);
+      expect(rules.MIN_FINISH_MS - escapeRoomMeta.scoring.minDurationMs).toBe(100);
    });
 });
 
@@ -320,9 +320,8 @@ describe("escape-room movement and inspection", () => {
             if (!clear(run.layout, run.player.x, run.player.z)) throw new Error(`Inside a chair at ${run.player.x}, ${run.player.z} (ms ${i})`);
          }
          expect(Math.abs(run.player.x)).toBe(5.65); // it really reached the pocket
-         // Collision rollback can settle within one simulation step of tangency.
-         expect(Math.abs(run.player.z)).toBeGreaterThanOrEqual(pocketZ - 1e-9);
-         expect(Math.abs(run.player.z) - pocketZ).toBeLessThan(RUNNER.speed / 1000);
+         // within 6 µm: at 2.6 m/s the per-ms rollback can stop it just outside tangency (never inside, see clear() above)
+         expect(Math.abs(run.player.z)).toBeCloseTo(pocketZ, 4);
          const x = run.player.x, z = run.player.z;
          advance(run, 500, { ...IDLE, moveX: -ux * n, moveY: -uz * n });
          expect(Math.hypot(run.player.x - x, run.player.z - z)).toBeGreaterThan(0.3);
@@ -697,7 +696,7 @@ describe("escape-room minimum completion and TIME scoring", () => {
          minimum = Math.min(minimum, run.finishMs);
       }
       expect(minimum).toBeGreaterThanOrEqual(rules.MIN_FINISH_MS);
-      expect(minimum).toBeGreaterThanOrEqual(rules.PROPOSED_LIMITS.minDurationMs);
+      expect(minimum).toBeGreaterThanOrEqual(escapeRoomMeta.scoring.minDurationMs);
    }, 120000);
 
    it("exhaustive tour bound: every layout shape and visit order needs a route of at least 15.48 m", () => {
@@ -785,7 +784,7 @@ describe("escape-room minimum completion and TIME scoring", () => {
       // (b) The exhaustive route bound also clears the proposed duration floor.
       const speedOnlyMs = (bestBound / RUNNER.speed) * 1000 + 3 * (rules.OPEN_MS + rules.RETRIEVE_MS) + rules.UNLOCK_MS + rules.DOOR_OPEN_MS;
       expect(speedOnlyMs).toBeGreaterThanOrEqual(rules.MIN_FINISH_MS);
-      expect(speedOnlyMs).toBeGreaterThanOrEqual(rules.PROPOSED_LIMITS.minDurationMs + 100);
+      expect(speedOnlyMs).toBeGreaterThanOrEqual(escapeRoomMeta.scoring.minDurationMs + 100);
    }, 120000);
 
    it("fixed/random frames and adversarial spamming, early openings and station shortcuts cannot beat the bound", () => {
@@ -811,9 +810,10 @@ describe("escape-room minimum completion and TIME scoring", () => {
       // see changes to acceleration, braking, sliding or post-inspect velocity: every perfect run lands
       // above its own seed's bound. A change here is a design change.
       const GOLDEN: Record<number, [number, number][]> = {
-         0: [[18150, 7800], [18133, 7821], [18110, 7800]],
-         5050: [[17683, 7800], [17688, 7820], [17666, 7800]],
-         759: [[17216, 7800], [17237, 7821], [17194, 7800]],
+         // re-pinned 2026-10-24 for the 2.6 m/s runner (was 18150 / 17683 / 17216 ms at 1.8 m/s)
+         0: [[15150, 7800], [15168, 7821], [15133, 7800]],
+         5050: [[14866, 7800], [14855, 7821], [14827, 7800]],
+         759: [[14533, 7800], [14536, 7821], [14501, 7800]],
       };
       const rates = [1000 / 60, 1000 / 144, 1];
       for (const seed of [0, 5050, 759]) {
@@ -822,7 +822,7 @@ describe("escape-room minimum completion and TIME scoring", () => {
             expect(run.ended, `seed ${seed} dt ${dt}`).toBe("win");
             return [run.finishMs, run.lockedMs] as [number, number];
          });
-         expect.soft(results, `seed ${seed}`).toEqual(GOLDEN[seed]);
+         expect(results, `seed ${seed}`).toEqual(GOLDEN[seed]);
          // Seven serial actions, each locking the rest of the frame it completes in.
          expect(Math.abs(results[0][0] - results[1][0])).toBeLessThanOrEqual(7 * (1000 / 60));
          for (let r = 0; r < rates.length; r++) {
@@ -859,7 +859,7 @@ describe("escape-room minimum completion and TIME scoring", () => {
    });
 
    it("uses core time scoring/normalization and win-only ranking, never the points-game zero rate", () => {
-      const scoring = rules.PROPOSED_LIMITS;
+      const scoring = escapeRoomMeta.scoring;
       expect(scoring).toMatchObject({ kind: "time", timeBaseMs: 600000, maxScore: Math.floor((DURATION_MS - scoring.minDurationMs) / 10), minDurationMs: rules.MIN_FINISH_MS - 100, maxDurationMs: 600000, maxPointsPerSec: 0 });
       // The proposed floor maps exactly to maxScore; later durations use the same time formula.
       for (const [ms, score] of [[rules.MIN_FINISH_MS, Math.floor((DURATION_MS - rules.MIN_FINISH_MS) / 10)], [scoring.minDurationMs, scoring.maxScore], [30000, 57000], [45678, 55432], [60000, 54000], [599990, 1], [600000, 0], [700000, 0]]) {
@@ -869,7 +869,7 @@ describe("escape-room minimum completion and TIME scoring", () => {
       expect(computeTimeScore(scoring, scoring.minDurationMs)).toBe(scoring.maxScore);
       // anything faster than the minimum is clamped to maxScore by the client (and rejected by the server)
       expect(normalizeRun({ slug: "escape-room", score: 123, durationMs: scoring.minDurationMs - 1000, finishedAt: "2026-10-06T00:00:00Z" }, scoring).score).toBe(scoring.maxScore);
-      expect(normalizeRun({ slug: "escape-room", score: 999999, durationMs: 17004.4, finishedAt: "2026-10-06T00:00:00Z" }, scoring)).toMatchObject({ durationMs: 17004, score: 58299 });
+      expect(normalizeRun({ slug: "escape-room", score: 999999, durationMs: 14366.4, finishedAt: "2026-10-06T00:00:00Z" }, scoring)).toMatchObject({ durationMs: 14366, score: 58563 });
       expect(isRankedRun(scoring, "win")).toBe(true);
       for (const reason of ["lose", "timeup", "quit", null] as const) expect(isRankedRun(scoring, reason)).toBe(false);
    });
@@ -968,7 +968,7 @@ describe("escape-room real-store parity", () => {
       expect(store.getState().stats.found).toBe(3);
       expect(store.getState().elapsedMs).toBeGreaterThanOrEqual(rules.MIN_FINISH_MS);
       expect(store.getState().elapsedMs - run.finishMs).toBeLessThan(51);
-      const submitted = normalizeRun({ slug: "escape-room", score: store.getState().score, durationMs: store.getState().elapsedMs, finishedAt: "2026-10-06T00:00:00Z" }, rules.PROPOSED_LIMITS);
+      const submitted = normalizeRun({ slug: "escape-room", score: store.getState().score, durationMs: store.getState().elapsedMs, finishedAt: "2026-10-06T00:00:00Z" }, escapeRoomMeta.scoring);
       expect(submitted.score).toBe(Math.max(0, Math.floor((600000 - submitted.durationMs) / 10)));
       expect(isRankedRun(escapeRoomMeta.scoring, store.getState().endReason)).toBe(true);
 

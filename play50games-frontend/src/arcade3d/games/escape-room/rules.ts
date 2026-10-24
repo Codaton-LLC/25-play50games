@@ -27,22 +27,11 @@ export const DOOR_POSITION = { x: 0, z: -4.2 } as const;
 /**
  * README proof: the shortest route over every layout and visit order (start, the three item stations'
  * reach circles, the door's), 15.48396 m, rounded down. With the speed cap and the 7800 ms of actions
- * a win needs at least 13754 ms (acceleration and obstacles only add time).
+ * a win needs at least 13754 ms (acceleration and obstacles only add time); meta.scoring's
+ * minDurationMs (13654) is 100 ms below it.
  */
 export const MIN_ROUTE = 15.48;
 export const MIN_FINISH_MS = Math.ceil(MIN_ROUTE / RUNNER.speed * 1000) + 3 * (OPEN_MS + RETRIEVE_MS) + UNLOCK_MS + DOOR_OPEN_MS;
-/** Proposed for Claude to copy into meta.scoring and the backend together at merge. */
-export const PROPOSED_LIMITS = {
-   kind: "time",
-   timeBaseMs: DURATION_MS,
-   minDurationMs: MIN_FINISH_MS - 100,
-   maxDurationMs: DURATION_MS,
-   maxScore: Math.floor((DURATION_MS - (MIN_FINISH_MS - 100)) / 10),
-   base: 0,
-   maxPointsPerSec: 0,
-   unitLabel: "time",
-   display: "time",
-} as const;
 const EDGE_EPS = 1e-9;
 
 // Tall ground boxes make the core sphere push horizontal, as in the reference games.
