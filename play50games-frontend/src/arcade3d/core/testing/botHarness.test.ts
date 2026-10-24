@@ -62,6 +62,7 @@ describe("botHarness simulateRun", () => {
       expect(() => simulateRun(createArcadeStore(), { frame: fixedFrames(16), step: () => {}, maxFrames: 100 })).toThrow();
    });
 
+   // only real imports count: a comment that names core/testing/periodic (zoo-escape's testkit) is fine
    it("is imported by tests only, never by runtime code", () => {
       const root = path.resolve(__dirname, "../../..");
       const offenders: string[] = [];
@@ -69,7 +70,7 @@ describe("botHarness simulateRun", () => {
          for (const name of readdirSync(dir)) {
             const file = path.join(dir, name);
             if (statSync(file).isDirectory()) walk(file);
-            else if (/\.(ts|tsx)$/.test(name) && !/\.test\.ts$/.test(name) && !file.includes(`${path.sep}testing${path.sep}`) && /testing\/botHarness/.test(readFileSync(file, "utf8"))) offenders.push(file);
+            else if (/\.(ts|tsx)$/.test(name) && !/\.test\.ts$/.test(name) && !file.includes(`${path.sep}testing${path.sep}`) && /from\s+["'][^"']*testing\/(botHarness|periodic)["']/.test(readFileSync(file, "utf8"))) offenders.push(file);
          }
       };
       walk(root);

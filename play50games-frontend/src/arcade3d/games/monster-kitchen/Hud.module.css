@@ -130,6 +130,84 @@
    right: calc(env(safe-area-inset-right, 0px) + 16px);
 }
 
+/* the hand card: what Space / Enter tosses (the centre slot under the selector ring), centred between
+   the ◀ ▶ buttons; green when an order needs it, red when it would burp. Not colour alone: the tag
+   says "✓ Needed" / "✗ Not needed". */
+.handSlot {
+   position: absolute;
+   left: 50%;
+   bottom: calc(env(safe-area-inset-bottom, 0px) + var(--arcade-bottom-obstruction, 0px) + 28px);
+   transform: translateX(-50%);
+   /* a fixed width: the card's states never resize the safe area (no camera refit per toss) */
+   width: min(210px, calc(100% - 2 * (16px + 72px + 10px)));
+}
+
+.handHint {
+   margin: 4px 0 0;
+   font-size: 10px;
+   line-height: 1.25;
+   text-align: center;
+   color: #e2e8f0;
+   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+}
+
+.hand {
+   display: flex;
+   align-items: center;
+   gap: 8px;
+   min-height: 56px;
+   box-sizing: border-box;
+   width: 100%;
+   padding: 6px 12px 6px 8px;
+   border: 3px solid rgba(255, 255, 255, 0.3);
+   border-radius: 16px;
+   background: rgba(11, 16, 32, 0.78);
+   color: var(--text, #f8fafc);
+   white-space: nowrap;
+   transition: border-color 120ms linear, background 120ms linear;
+}
+
+.handYes {
+   border-color: #4ade80;
+   background: rgb(20, 83, 45);
+}
+
+.handNo {
+   border-color: #f87171;
+   background: rgb(69, 10, 10);
+}
+
+.handBusy {
+   opacity: 0.8;
+}
+
+.handText {
+   display: flex;
+   flex-direction: column;
+   line-height: 1.1;
+   overflow: hidden;
+}
+
+.handLabel {
+   font-size: 10px;
+   font-weight: 700;
+   letter-spacing: 0.06em;
+   text-transform: uppercase;
+   color: #f1f5f9;
+}
+
+.handName {
+   font-size: 16px;
+   font-weight: 800;
+   overflow: hidden;
+   text-overflow: ellipsis;
+}
+
+.handTag {
+   font-size: 12px;
+   font-weight: 700;
+}
+
 /* landscape phones: the banner and chips eat the top; keep the bubbles in a right-hand side column
    over the scene's empty +x region */
 @media (orientation: landscape) {
@@ -147,6 +225,10 @@
 
    .turn {
       bottom: calc(env(safe-area-inset-bottom, 0px) + var(--arcade-bottom-obstruction, 0px) + 16px);
+   }
+
+   .handSlot {
+      bottom: calc(env(safe-area-inset-bottom, 0px) + var(--arcade-bottom-obstruction, 0px) + 20px);
    }
 }
 

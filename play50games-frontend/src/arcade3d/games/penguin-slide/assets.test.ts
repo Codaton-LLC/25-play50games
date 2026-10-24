@@ -1,9 +1,11 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { Box3, Matrix4, Quaternion, Vector3 } from "three";
+import { Box3, BufferGeometry, Float32BufferAttribute, Group, Matrix4, Mesh, Quaternion, Vector3 } from "three";
 import { describe, expect, it } from "vitest";
+import { modelParts } from "@/arcade3d/core/assets";
+import { readCharacterGlb } from "@/arcade3d/core/rig/robotGlb";
 import { EXPANSION_GLB_SIZE } from "@/arcade3d/core/sharedAssets";
-import { ASSETS, BELLY_LIFT, BELLY_ROTATION_Y, FLAG_BOUNDS, PENGUIN_SCALE, bellyClearance } from "./assets";
+import { ASSETS, BELLY_LIFT, BELLY_ROTATION_Y, FLAG_BOUNDS, PENGUIN_SCALE, SNOWMAN_GLB, SNOWMAN_SCALE, bellyClearance } from "./assets";
 
 interface Glb {
    accessors: Array<{ min: number[]; max: number[] }>;
@@ -78,5 +80,38 @@ describe("penguin-slide real GLB fits", () => {
       expect(box.min.y).toBeCloseTo(FLAG_BOUNDS.minY, 5);
       expect(box.getSize(new Vector3()).y * ASSETS.flag.scale).toBeCloseTo(1.5, 5);
       expect(box.min.y * ASSETS.flag.scale + ASSETS.flag.yOffset).toBeCloseTo(0, 5);
+   });
+
+   it("fits the snowman GLB to the old obstacle: 1.4 m tall, 0.5 m base, base on y = 0, face +z", async () => {
+      // decode the real meshopt-decoded mesh and draw it through core modelParts (what the pool draws)
+      const { local, node } = await readCharacterGlb(ASSETS.snowman.url);
+      const geometry = new BufferGeometry();
+      geometry.setAttribute("position", new Float32BufferAttribute(local, 3));
+      const mesh = new Mesh(geometry);
+      mesh.position.fromArray(node);
+      const root = new Group();
+      root.add(mesh);
+      const parts = modelParts(root, ASSETS.snowman);
+      expect(parts).toHaveLength(1);
+      const points: Vector3[] = [];
+      for (let i = 0; i < local.length; i += 3)
+         points.push(new Vector3(local[i], local[i + 1], local[i + 2]).applyMatrix4(parts[0].matrix));
+      geometry.dispose();
+      const box = new Box3().setFromPoints(points);
+      // within 3 % of the replaced primitive (README: diameter 1 / height 1.4; old head top 1.35)
+      const height = box.max.y - box.min.y;
+      expect(height).toBeCloseTo(SNOWMAN_GLB.height * SNOWMAN_SCALE, 3);
+      expect(height).toBeGreaterThan(1.4 * 0.97);
+      expect(height).toBeLessThan(1.4 * 1.03);
+      // the base ball stays on the rules' 0.5 m collision circle
+      let base = 0;
+      for (const p of points) if (p.y < 0.45) base = Math.max(base, Math.hypot(p.x, p.z));
+      expect(base).toBeGreaterThan(0.5 * 0.97);
+      expect(base).toBeLessThan(0.5 * 1.03);
+      expect(box.min.y).toBeCloseTo(0, 3);
+      // no rotationY: the carrot nose stays at +z, facing up the track toward the camera like before
+      let nose: Vector3 | null = null;
+      for (const p of points) if (p.y > 0.9 && (!nose || p.z > nose.z)) nose = p;
+      expect(nose!.z).toBeGreaterThan(0.4);
    });
 });

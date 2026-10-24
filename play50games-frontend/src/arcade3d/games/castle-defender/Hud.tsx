@@ -5,10 +5,11 @@ import { useSafeArea } from "@/arcade3d/core/safeArea";
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import styles from "./Hud.module.css";
 import { placeCards, type CardPlacement } from "./layout";
+import { comboMultiplier } from "./rules";
 
 const CARDS = [
-   { icon: "↻", title: "Quick reload", effect: "Reload ×0.8" },
-   { icon: "◎", title: "Wide splash", effect: "Radius ×1.3" },
+   { icon: "↻", title: "Quick reload", effect: "Reload ×0.85" },
+   { icon: "◎", title: "Wide splash", effect: "Radius ×1.25" },
    { icon: "+", title: "Repair gate", effect: "+25 HP / max125" },
    { icon: "●●", title: "Double shot", effect: "2 balls / reload" },
 ];
@@ -18,6 +19,7 @@ export default function Hud() {
    const stats = useArcadeStore(useShallow(({ stats: s }) => ({
       hp: s.hp ?? 100, maxHP: s.maxHP ?? 100, wave: s.wave ?? 1,
       reload: s.reload ?? 0, rock: s.rock ?? 0, climb: s.climb ?? 0,
+      combo: s.combo ?? 0, comboLost: s.comboLost ?? 0,
       banner: s.banner, offer: s.offer, card1: s.card1 ?? 0, card2: s.card2 ?? 1, chosen: s.chosen ?? 0,
    })));
    const phase = useArcadeStore((s) => s.phase);
@@ -30,6 +32,8 @@ export default function Hud() {
    return <>
       <div className={styles.panel} data-arcade-safe-area>
          <strong>Gate {stats.hp ?? 100}/{stats.maxHP ?? 100}</strong><strong>Wave {stats.wave ?? 1}/5</strong>
+         {comboMultiplier(stats.combo) > 1 && <strong className={styles.combo}>Combo x{comboMultiplier(stats.combo)}</strong>}
+         {stats.comboLost === 1 && <span role="status">Combo lost</span>}
          <span>Reload {((stats.reload ?? 0) / 10).toFixed(1)}s</span><span>Rock {((stats.rock ?? 0) / 10).toFixed(1)}s</span>
          <span className={styles.hint}>Hit shields from behind</span>
          <span>Ladder {stats.climb ?? 0}%</span>

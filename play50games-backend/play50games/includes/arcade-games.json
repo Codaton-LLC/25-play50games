@@ -1,5 +1,5 @@
 {
-  "version": 3,
+  "version": 4,
   "games": {
     "robot-collector": {
       "title": "Robot Collector",
@@ -192,11 +192,11 @@
     "alien-farm": {
       "title": "Alien Farm",
       "kind": "points",
-      "max_score": 6000,
-      "min_duration_ms": 10000,
+      "max_score": 12900,
+      "min_duration_ms": 99000,
       "max_duration_ms": 102000,
-      "base": 6000,
-      "max_pps": 6000,
+      "base": 200,
+      "max_pps": 250,
       "enabled": false
     },
     "mini-golf": {
@@ -232,11 +232,11 @@
     "castle-defender": {
       "title": "Castle Defender",
       "kind": "points",
-      "max_score": 3210,
+      "max_score": 7130,
       "min_duration_ms": 39000,
       "max_duration_ms": 140000,
-      "base": 160,
-      "max_pps": 25,
+      "base": 480,
+      "max_pps": 56,
       "enabled": false
     },
     "penguin-slide": {

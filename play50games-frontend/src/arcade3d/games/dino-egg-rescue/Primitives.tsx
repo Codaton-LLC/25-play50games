@@ -90,3 +90,16 @@ export function useBoulderParts(): InstancePart[] {
       return [{ geometry: geom, material: mat }];
    }, []);
 }
+
+/**
+ * Fallback volcano backdrop cone (the pre-GLB primitive): 5.5 m radius, 8 m tall at (16, -13).
+ * Drawn by <Model fallback> while the volcano GLB is missing or broken.
+ */
+export function VolcanoConePrimitive() {
+   return (
+      <mesh position={[0, 4.0, 0]}>
+         <coneGeometry args={[5.5, 8.0, 16, 1, true]} />
+         <meshStandardMaterial color="#292524" roughness={0.9} />
+      </mesh>
+   );
+}

@@ -6,7 +6,7 @@
 import { useEffect, useMemo, type RefObject } from "react";
 import { CylinderGeometry, LatheGeometry, Matrix4, MeshStandardMaterial, SphereGeometry, Vector2, type Group } from "three";
 import { Instanced, type InstancePart, type InstanceSpot } from "@/arcade3d/core/render";
-import { COIN_SIZE, CRATE_SIZE, CRAB_WIDTH, PALM_SIZE, UMBRELLA_HEIGHT } from "./assets";
+import { COIN_SIZE, CRATE_SIZE, CRAB_WIDTH, PALM_SIZE, SHOVEL_LENGTH, UMBRELLA_HEIGHT } from "./assets";
 
 export const COLORS = {
    sand: "#f2d7a6",
@@ -79,10 +79,36 @@ export function ExplorerHat() {
    );
 }
 
-/** The stand-in explorer (1.55 m): body capsule, head, and the hat. */
+/**
+ * The shovel's stand-in (SHOVEL_LENGTH tall, the GLB's frame: the blade's edge on the origin, up the
+ * shaft to the grip): a steel blade, a wooden stick and a cross grip.
+ */
+export function ShovelPrimitive() {
+   return (
+      <group name="shovel-primitive">
+         <mesh position-y={0.19}>
+            <boxGeometry args={[0.3, 0.38, 0.03]} />
+            <meshStandardMaterial color="#94a3b8" metalness={0.5} roughness={0.5} />
+         </mesh>
+         <mesh position-y={SHOVEL_LENGTH * 0.62}>
+            <cylinderGeometry args={[0.022, 0.022, SHOVEL_LENGTH * 0.76, 8]} />
+            <meshStandardMaterial color={COLORS.woodLight} roughness={0.85} />
+         </mesh>
+         <mesh position-y={SHOVEL_LENGTH - 0.025} rotation-z={Math.PI / 2}>
+            <cylinderGeometry args={[0.025, 0.025, 0.2, 8]} />
+            <meshStandardMaterial color={COLORS.wood} roughness={0.85} />
+         </mesh>
+      </group>
+   );
+}
+
+/** The stand-in explorer (1.55 m): body capsule, head, the hat, and the shovel on its back. */
 export function ExplorerPrimitive({ body }: { body?: RefObject<Group> }) {
    return (
       <group ref={body}>
+         <group position={[0, 0.5, -0.3]} rotation={[0, 0, 0.5]}>
+            <ShovelPrimitive />
+         </group>
          <mesh position-y={0.62}>
             <capsuleGeometry args={[0.24, 0.62, 6, 14]} />
             <meshStandardMaterial color={COLORS.shirt} roughness={0.7} />

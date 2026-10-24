@@ -3,10 +3,10 @@
 import { useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import type { Mesh } from "three";
-import { InstancedModel } from "@/arcade3d/core/assets";
+import { InstancedModel, Model } from "@/arcade3d/core/assets";
 import { Instanced, useCanvasTexture, type InstanceSpot } from "@/arcade3d/core/render";
 import { ASSETS } from "./assets";
-import { TreePrimitive } from "./Primitives";
+import { TreePrimitive, VolcanoConePrimitive } from "./Primitives";
 import { BOULDER_LANES, MUD, NEST, TREES, VALLEY } from "./rules";
 
 const TREE_SPOTS: InstanceSpot[] = TREES.positions.map((t, idx) => ({
@@ -129,16 +129,12 @@ export function Valley({ telegraphLanes }: { telegraphLanes?: readonly boolean[]
             </mesh>
          ))}
 
-         {/* Volcano backdrop cone in NE outside valley bounds at (16, -13) */}
+         {/* Volcano backdrop GLB in NE outside valley bounds at (16, -13); fallback: the old cone */}
          <group position={[16, 0, -13]}>
-            {/* Mountain cone */}
-            <mesh position={[0, 4.0, 0]}>
-               <coneGeometry args={[5.5, 8.0, 16, 1, true]} />
-               <meshStandardMaterial color="#292524" roughness={0.9} />
-            </mesh>
-            {/* Glowing lava crater */}
-            <mesh position={[0, 7.8, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-               <circleGeometry args={[1.4, 16]} />
+            <Model asset={ASSETS.volcano} fallback={<VolcanoConePrimitive />} />
+            {/* Glowing lava crater on the GLB crater rim (top at 8.0 m, opening r 1.25 m) */}
+            <mesh position={[0, 7.85, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+               <circleGeometry args={[1.2, 16]} />
                <meshStandardMaterial
                   color="#ea580c"
                   emissive="#f97316"

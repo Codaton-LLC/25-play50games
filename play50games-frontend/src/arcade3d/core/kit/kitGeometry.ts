@@ -1,6 +1,8 @@
 // The pure geometry behind core/kit (no React, no WebGL; three only for the spot type): the belt
-// strip of a <Conveyor>, the posts and rails of a <Fence> and the light fan of a <Flashlight>.
-// Tested in kit.test.ts.
+// strip of a <Conveyor>, the posts and rails of a <Fence> and the light fan of a <Flashlight>
+// (open, or clipped by blockers). Tested in kit.test.ts and occludedFan.test.ts.
+import type { Box } from "../ai/vision";
+import type { Vec3Like } from "../collision";
 import type { InstanceSpot } from "../render/useInstanceMatrices";
 import { pointAt, tangentAt, type Path } from "../path";
 
@@ -140,4 +142,68 @@ export function fanPoints(halfAngle: number, range: number, height: number, segm
 /** Segments for a fan: about one per 6 degrees, 4..48. */
 export function fanSegments(halfAngle: number): number {
    return Math.max(4, Math.min(48, Math.ceil((2 * halfAngle) / (Math.PI / 30))));
+}
+
+/**
+ * The fan of fanPoints clipped by blockers: each of the `segments` + 1 rays (from -halfAngle to
+ * +halfAngle around `yaw`, as inViewCone) stops at min(range, its first entry into a blocker), by
+ * the closed-slab rule of ai/vision hasLineOfSightXZ (touching an edge or a corner blocks). A box
+ * that contains the origin (edges included) is skipped: a guard standing in a bush still sees out.
+ * Writes into `out` (at least (segments + 2) * 3 floats) the layout of fanPoints in the fan's own
+ * frame (relative to the origin, facing +z): the apex (0, 0, 0), then the clipped ends (y = 0).
+ * A floor point is lit exactly when inViewCone and hasLineOfSightXZ (origin's box excluded) is true,
+ * up to the chords between neighbouring rays. Allocates nothing; returns `out`.
+ */
+export function occludedFanPoints(
+   origin: Vec3Like,
+   yaw: number,
+   halfAngle: number,
+   range: number,
+   blockers: readonly Box[],
+   segments: number,
+   out: Float32Array
+): Float32Array {
+   const n = Math.max(1, Math.floor(segments));
+   if (out.length < (n + 2) * 3) throw new RangeError("occludedFanPoints: out is too short");
+   const ox = origin.x;
+   const oz = origin.z;
+   // non-finite origins fail closed, as hasLineOfSightXZ
+   const reach = Number.isFinite(ox) && Number.isFinite(oz) && range > 0 ? range : 0;
+   out[0] = 0;
+   out[1] = 0;
+   out[2] = 0;
+   for (let i = 0; i <= n; i++) {
+      const a = -halfAngle + (2 * halfAngle * i) / n;
+      const dx = Math.sin(yaw + a);
+      const dz = Math.cos(yaw + a);
+      let length = reach;
+      for (let b = 0; b < blockers.length && length > 0; b++) {
+         const box = blockers[b];
+         if (ox >= box.min.x && ox <= box.max.x && oz >= box.min.z && oz <= box.max.z) continue;
+         let lo = 0;
+         let hi = length;
+         if (dx === 0) {
+            if (ox < box.min.x || ox > box.max.x) continue;
+         } else {
+            const t0 = (box.min.x - ox) / dx;
+            const t1 = (box.max.x - ox) / dx;
+            lo = Math.max(lo, Math.min(t0, t1));
+            hi = Math.min(hi, Math.max(t0, t1));
+         }
+         if (dz === 0) {
+            if (oz < box.min.z || oz > box.max.z) continue;
+         } else {
+            const t0 = (box.min.z - oz) / dz;
+            const t1 = (box.max.z - oz) / dz;
+            lo = Math.max(lo, Math.min(t0, t1));
+            hi = Math.min(hi, Math.max(t0, t1));
+         }
+         if (lo <= hi) length = lo;
+      }
+      const o = (i + 1) * 3;
+      out[o] = Math.sin(a) * length;
+      out[o + 1] = 0;
+      out[o + 2] = Math.cos(a) * length;
+   }
+   return out;
 }

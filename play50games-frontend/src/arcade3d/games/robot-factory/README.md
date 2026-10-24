@@ -40,7 +40,7 @@ All numbers live in `rules.ts` (`BELT`, `STREAM`, `BLUEPRINT`, `CLAW`, `SCORING`
 - **Seeded stream generator (`STREAM`):**
    - Pool cap `MAX_PARTS_ON_BELT = 8`, minimum spacing `MIN_PART_GAP = 0.95` m (`|s_equiv(a) - s_equiv(b)| >= 0.95` m at spawn).
    - **Fixed needed-part lattice (`NEEDED_SPAWN_PERIOD = 1.60` s) & `< 4 s` fairness guarantee:**
-     - At `t = 0` (`m = 1`), needed part `1` (matching robot `0` step `0`) is pre-placed on `MAIN_BELT` at `s_1 = 0.72` m (entering `GRAB_MIN = 1.90` m at `t_1 = (1.90 - 0.72) / 1.45 = 0.8138` s) and one non-needed distractor is pre-placed at `s_2 = 0.00` m.
+     - At `t = 0` (`m = 1`), needed part `1` (matching robot `0` step `0`) is pre-placed on `MAIN_BELT` at `s_1 = 0.72` m (entering `GRAB_MIN = 1.90` m at `t_1 = (1.90 - 0.72) / 1.45 = 0.8138` s) (build: no pre-placed distractor, it sat 0.72 m behind part 1, under the 0.95 m gap; the first non-needed part spawns on the lattice at 0.80 s).
      - Every needed-part slot `m >= 2` (`1`-indexed) spawns on `MAIN_BELT` (`s = 0`) on the fixed lattice `t_spawn(m) = (m - 1) · 1.60` s (`1.60, 3.20, ..., 88.00` s), with **exactly one** non-needed slot at `(m - 1) · 1.60 + 0.80` s (`0.80` s half-period = `>= 1.16` m `>= 0.95` m at `v >= 1.45` m/s; from `t >= 60` s the `+0.80` s non-needed slot alternates onto `FEEDER_BELT`).
      - If a needed part is missed (`s_equiv > 3.70` m) or scrapped, the very next lattice slot (`<= 1.60` s later) re-spawns that step's needed part instead of advancing the blueprint stream cursor. Even at the slowest belt speed `1.45` m/s (`1.90 / 1.45 = 1.310` s to `GRAB_MIN`), the player never waits more than `1.60 + 1.310 = 2.910` s (`< 4.0` s) for the next needed part to enter the grab zone.
    - **Non-needed part disjointness rule (preserves `M(t)`):** no non-needed part (clean distractor or faulty part) ever matches `(kind, colour)` of **any** step in the **current or next** blueprint (`r` or `r + 1`; at most `10` of the `16` `(kind, colour)` pairs are excluded). Thus a distractor or bounced wrong part can never become a valid needed part when `stepIndex` or `robotsCompleted` advances.
@@ -49,11 +49,11 @@ All numbers live in `rules.ts` (`BELT`, `STREAM`, `BLUEPRINT`, `CLAW`, `SCORING`
    - While `clawLockout > 0`, grab and scrap inputs are ignored (`clawLockout = max(0, clawLockout - dt)`).
    - **Grab (`grabTriggered`) with target part in `[1.90, 3.70]` m:**
      1. **Needed & non-faulty:** part is removed from the belt; the claw's `0.14` s lift to the assembly cradle `(1.35, 0.35, -0.45)` is **visual only (`0` s logic busy time)**. Increments `partsInstalled`, awards `partPoints(comboSteps) = 20 + 4 · min(5, comboSteps)`, then sets `comboSteps = min(5, comboSteps + 1)`. If this completes the blueprint (`stepIndex + 1 == N`), awards `ROBOT_BONUS = 200`, increments `robotsCompleted`, immediately activates the next blueprint (`0` s logic lockout), and starts the finished robot's `0.70` s walk-off from `(1.35, 0, -0.45)` to the exit door `(2.40, 0, -0.45)` — clearing the cradle footprint within `0.30` s and finishing at `0.70` s, before the next blueprint's first needed part can ever land (`>= 0.73` s after completion).
-     2. **Wrong kind/colour (non-faulty):** claw clanks, part bounces on the belt, `comboSteps = 0`, `clawLockout = WRONG_LOCKOUT = 1.00` s (no strike; `1.00` s exceeds both the `0.80` s lattice half-period and the `0.73` s high-speed dwell so a blueprint-blind bot misses needed parts).
+     2. **Wrong kind/colour (non-faulty):** claw clanks, part bounces on the belt, `comboSteps = 0`, `clawLockout = WRONG_LOCKOUT = 2.10` s (no strike). **Build change:** the designed `1.00` s did not stop a blueprint-blind grabber (measured 77 % of the oracle): the wrong part is grabbed as it enters the zone, `0.80` s before the next needed part, which then stays in the zone for `0.69`–`1.24` s. `2.10` s outlasts `0.80 + 1.24` s, so grabbing everything costs the next needed part (31 %). See Open question 1.
      3. **Faulty part:** part short-circuits on the claw (`fx.burst("sparks", pos, 14)` + `fx.shake(0.3)`) and is **consumed (removed from the belt into the scrap bin, so one faulty part can never cause two strikes)**; `strikes += 1`, `comboSteps = 0`, `clawLockout = 0.50` s, and `loseLife()` is called once (at `3` strikes `loseLife()` reaches `0` lives and calls `end("lose")` automatically — `Scene.tsx` never calls `end("lose")` a second time).
    - **Scrap (`scrapTriggered`) with target part in `[1.90, 3.70]` m:**
      1. **Faulty part:** sweeper knocks the part off the belt into the front scrap bin `(0.00, 0.20, 0.95)`, preserving `comboSteps` with `0` s lockout (`faultsScrapped += 1`).
-     2. **Non-faulty part:** part is swept into the scrap bin, `comboSteps = 0`, `clawLockout = WRONG_LOCKOUT = 1.00` s (no strike; if it was the needed part, the next lattice slot `<= 1.60` s later replaces it).
+     2. **Non-faulty part:** part is swept into the scrap bin, `comboSteps = 0`, `clawLockout = SCRAP_LOCKOUT = 1.00` s (no strike; if it was the needed part, the next lattice slot `<= 1.60` s later replaces it).
    - **Belt exit (`s_equiv > 3.70` m):**
      - An unscrapped **faulty** part crossing `3.70` m triggers a belt-sensor zap: `comboSteps = 0` and `clawLockout = max(clawLockout, 0.50)` s (no strike).
      - An ungrabbed **needed** part crossing `3.70` m resets `comboSteps = 0` and is replaced at the next needed-part lattice slot (`<= 1.60` s).
@@ -163,32 +163,62 @@ Uses `core/audio` (`playSfx`, `startLoop`): `startLoop("belt", { volume: 0.22 })
 
 Every part's role is redundant across **three channels**: (1) distinct 3D silhouette (`barrel`/`crate` torso, `battery` cell, `dome`/`box`/`antenna` head, `claw`/`wrench`/`drill` arm), (2) high-contrast colour (`#7dd3fc`, `#fbbf24`, `#f87171`, `#a3e635`), and (3) matching slot position + shape icon on the blueprint board (`1..5` left-to-right with checkmarks). **The currently needed part is highlighted on the belt** with a pulsing cyan selection ring under the part (`#7dd3fc`). Faulty parts combine throttled `"sparks"` bursts, an orange/red blink, and a floating red `!` chevron badge (`>= 24 px`). Slower first robot (`1.45` m/s). Keyboard (`Space` + `S`/`Down`) and touch/mouse (`tapDown`/`tap` + swipe down) have full parity; `fx.shake` respects `prefers-reduced-motion`.
 
-## Risks and open questions
+## Build notes (P-18, 2026-10-24)
 
-- **Open questions (user / Claude decisions — not decided here):**
-   1. **A — Quota win vs spec's `timeup`:** keep the game's own 90 s clock with `end("win")` at `robotsCompleted >= 5` and `end("lose")` below 5 (note: without `durationMs`, GameShell shows a `"Played"` chip next to the game's `"Time"` HUD stat), or use `durationMs: 90000` with `"timeup"` as the normal end (like `dino-egg-rescue`)?
-   2. **B — Wrong-grab penalty strength:** is the `1.00 s` `clawLockout` (+ `comboSteps = 0`) on a wrong grab / clean scrap sufficient alone, or should wrong grabs also carry a stronger penalty?
-   3. **C — Measured GLB size constants:** add `SHARED_GLB_SIZE` (`robot`, `battery`, `crate`) and `REUSED_GLB_SIZE.barrel` to `core/sharedAssets.ts`, or keep those fits local in `robot-factory/assets.ts`?
+- Files: `rules.ts` (+ `syncStore`, the store calls Scene and the bot tests share), `look.ts` (claw / flyer / cradle looks, pure), `Scene.tsx`, `Bay.tsx` (static bay merged into one mesh, belts, all emissive strips and lamps in one instanced mesh, claw, sweeper, door), `Parts.tsx` (one pool per silhouette for belt, flyers and the cradle build; rings, "!" badges, belt shadows), `Robot.tsx`, `BlueprintBoard.tsx` (one canvas, redrawn on change), `partShapes.ts`, `palette.ts`, `poses.ts`, `assets.ts`; tests `rules.test.ts`, `assets.test.ts`, `poses.test.ts`.
+- Changed from the design: wrong-grab lockout `2.10` s (above); no pre-placed distractor (above); each `(kind, colour)` pair has one silhouette (`SHAPE_OF`), so the blueprint icon is the part; the walk-off uses `walkPose` amount 0.5 (0.75 lets the feet fly) with a 3.2 /s cadence cap; on a win the robot cheers beside the door; GLB torso / cell parts use a white satin shell (`PART_SHELL`) so the tint reads true.
 
 ## Status
 
 ```text
-HANDOFF P-14 (Gate G0 design)
-Branch: antigravity/design-robot-factory
-Files changed: play50games-frontend/src/arcade3d/games/robot-factory/README.md, play50games-frontend/src/arcade3d/games/robot-factory/assets.spec.json
-Scoring formula: sum(20 + 4 * c_i) + 200 * R (perfect: 40 * M - 60 + 200 * R); proven max 4580; proposed limits 4750, 10.0-92.0 s, 300 + 52/s (provisional 6000, 10.0-92.0 s, 6000 + 6000/s).
-Next gate: G0 review -> P-29 implementation.
+TASK P-18-robot-factory | build robot-factory | branch claude/game-robot-factory | allowed: play50games-frontend/src/arcade3d/games/robot-factory/**, play50games-frontend/public/images/3d/robot-factory.webp, tools/thumbs/inputs/robot-factory.mjs
+
+Branch check: `git branch --show-current` = claude/game-robot-factory. Built by Claude (Kimi ran out of quota before writing code).
+
+Files (all new unless noted), in play50games-frontend/src/arcade3d/games/robot-factory/:
+- index.tsx (replaced the stub), rules.ts, rules.test.ts, assets.ts, assets.test.ts, poses.ts, poses.test.ts
+- Scene.tsx, Bay.tsx, Parts.tsx, Robot.tsx, BlueprintBoard.tsx, look.ts, partShapes.ts, palette.ts
+- README.md (build notes, open questions, Status); meta.ts and assets.spec.json unchanged
+- tools/thumbs/inputs/robot-factory.mjs; thumbnail left null (no browser run)
+
+Acceptance checklist:
+- [x] GameDefinition: Scene, assets, lives 3, resultDelayMs 1400, clockChip false, no durationMs (own 90 s clock), camera, environment (indoor, fog 24-42), touchControls tap + swipe, hudStats Robots / Combo / Time, 3 instruction lines. No touch buttons, so no touchLabels.
+- [x] rules.ts pure and seeded (rngNext only), every gameplay number there; PROPOSED_LIMITS exported; the store calls live in syncStore (shared by Scene and the bot tests).
+- [x] Scene: run state via useState, one useRunFrame (input -> stepRun -> syncStore -> fx / sfx), visuals read the run in useFrame with useGameTime; no setState or allocation in frame callbacks (belt speed re-renders from the "robots" store stat); pools updated in the frame loop, no JSX map over run state.
+- [x] Input: tapDown locks the grab-zone part within 28 CSS px (Vector3.project), tap grabs it, pressed.down (S / Down / swipe down) scraps it; Space / E / Enter grab the part nearest the claw. No double action.
+- [x] Camera: useFittedView (README area, pitch 38 deg, yaw 0, shift) + static CameraRig at focus + offset.
+- [x] Models: robot (HumanoidModel + useHumanoidPose, walkPose by stride + cadence cap, bodyLift on the group, wave via reachPose on the right arm, cheerPose on a win), barrel / crate / battery as tinted DynamicInstancedModel pools fitted from SHARED_GLB_SIZE / REUSED_GLB_SIZE.barrel, door from REUSED_GLB_SIZE.door; every one has a procedural fallback. Size tests on the real meshes (assets.test.ts) and soles-on-floor tests through the walk-off and the cheer (poses.test.ts, rigCharacter).
+- [x] Look: one COLORS palette, SkyDome, rim-lit conveyors (emissive strips), grab-zone rails that flash green on a fit and pulse coral during a lockout, gantry beacons, cradle progress LEDs, door glow, sparks on every part fitted to the cradle, confetti + "+200 ROBOT!" per finished robot, camera shake on strikes, floating scores, eased claw dip / carry, sweeper, lifting exit door, "!" badges and blinking tint on faulty parts.
+- [x] Audio: belt loop restarted on [phase, muted], pitch per belt speed; cues per event as in the README.
+- [x] end("win" | "lose") only; no submitScore / API / localStorage. Status stays "dev"; meta.scoring unchanged (provisional).
+- [x] `npx tsc --noEmit` clean; `npx vitest run src/arcade3d/games/robot-factory`: 3 files, 31 tests, all pass, about 42 s.
+- [ ] Not run here (low-memory machine, by instruction): npm run build, dev server, browser playtest, screenshots, perf probe, tools/gamecheck, thumbnail capture.
+
+Scoring and limit proof (README "Server limits and why they hold"):
+- score = sum over installed parts of (20 + 4 * min(5, combo)) + 200 per robot; perfect = 40 M - 60 + 200 R (M >= 5).
+- Only needed-lattice parts can be installed (distractors never share a (kind, colour) pair with the current or next blueprint: tested over 1,000 seeds), at most one per 1.60 s slot reaching the zone at <= 2.60 m/s: M(t) <= floor((t - 0.731) / 1.60) + 1, M(90) = 56; R(56) = 12; 5 R <= M + 7.
+- B(t) <= 80 M(t) + 220 <= 50 t + 264 <= 300 + 52 t for every t (checked every 10 ms over 0-90 s); max 4580.
+- Earliest end: 3 strikes need 3 distinct faulty parts (consumed on grab), the 3rd cannot reach the claw before 2.6 + 2 x 3.5 + 1.9 / 2.6 = 10.331 s.
+- Proposed limits: maxScore 4750, minDurationMs 10000, maxDurationMs 92000, base 300, maxPointsPerSec 52 (provisional on main: 6000 / 10000-92000 / 6000 / 6000).
+
+Bot results (real store via simulateRun = advanceRunClock + playedFrameDt):
+- Oracle, 200 seeds (30 / 60 / 144 Hz fixed and random 4-50 ms frames): wins every seed, exactly 56 parts, 12 robots, 4580 (96.4 % of 4750), capScore a no-op.
+- Human-like (reaction 150-250 ms, 8 % slow 400-600 ms, 6 % mis-aim onto a neighbour, 5 % of faults overlooked), 200 seeds: 200 / 200 wins, median 4480 (97.8 % of the oracle; test bounds: >= 196 wins, mean > 60 %).
+- Blueprint-blind (grabs every clean part, scraps every fault), 150 seeds: median 1428 (31 %), max 1704 (37 %); test bound <= 40 %.
+- Spam grab (Space every frame), 200 seeds: median about 1080 (24 %), max about 1660 (36 %), survives the shift on about 8 % of seeds; mash (grab / scrap alternating): median about 800 (18 %), wins about 2.5 %; spam scrap and idle: 0 points, lose. Every run ends >= 10.331 s and passes withinServerLimits.
+
+Draw calls (estimate, not measured): sky 1, floor 1, static bay 1, belts 4, emissive lights 1, claw 3, sweeper 2, door 1, board 1, part pools 1 per shape on screen (usually 5-7 of 9), rings 1, badges 1, belt shadows 1, robot 2 while shown, fx pools 2-4, score sprites 1-3 => about 30-38 in play, worst case about 45 with all 9 shapes, the robot and 8 score popups at once (README target 40, hard cap 150). One extra light (a cyan point light over the belt).
+
+Open questions:
+1. WRONG_LOCKOUT is 2.10 s, not the decided 1.00 s (Decision B). The design's claim that 1.00 s holds a blueprint-blind grabber under 50 % is false: the wrong part is grabbed when it enters the zone, 0.80 s before the next needed part, and the needed part then stays grabbable for its whole 0.69-1.24 s dwell, so with 1.00 s a grab-everything bot installs every needed part and scores about 3550 (77 % of the oracle; measured over 60 seeds). 2.10 s outlasts 0.80 s + the longest dwell, so grabbing everything costs the next needed part (31 %). A clean scrap keeps 1.00 s. Keep 2.10 s, or go back to 1.00 s and accept a 77 % blind bot (then the README's blind test must be loosened)?
+2. The pre-placed distractor at s = 0.00 was dropped: it sat 0.72 m behind needed part 1, under the 0.95 m minimum gap. The first non-needed part now spawns on the lattice at 0.80 s.
+3. Each (kind, colour) pair has exactly one silhouette (e.g. sky torso = barrel, amber torso = crate), so a part matching kind and colour also matches the blueprint icon's shape. The design allowed any variant per pair.
+4. The human-like bot wins 100 % at about 98 % of the oracle: the ring under the wanted part makes the game easy for an attentive player. Fine for a "difficulty 1" skill game, or should the belt start faster?
+5. Spam-grab survives the 90 s shift (5 robots) on about 8 % of seeds; faults are the only threat to it. Acceptable, or raise FAULTY_CHANCE / lower the quota pressure?
+6. The robot cheers on the floor beside the door on a win (not on the cradle, where the next build's parts stand).
+7. Needs Claude's playtest: the fit at 390 x 844 / 844 x 390 with the banner open (README's numbers, not re-measured), draw calls in ?perf=1, the thumbnail, and whether the GLB parts read well with the white satin shell + tint (the GLBs' own textures are replaced by PART_SHELL so the four colours read true).
+No core change needed.
 ```
-
-## Fix round 1 (2026-10-24)
-
-1. **Faulty part consumed on strike:** grabbing a faulty part removes it from the belt into the scrap bin so one part can never cause multiple strikes; added test that 3 strikes require 3 distinct faulty parts (`>= 10.331 s`).
-2. **Fixed needed-part lattice (`1.60 s`):** needed part `m` spawns at `(m - 1) · 1.60 s` with one non-needed slot at `+0.80 s` and missed/scrapped replacement at the next lattice slot (`<= 1.60 s`, `< 4 s` rule holds), so `perfectBot` installs all 56 parts (`12` robots, `4580` pts = `96.4 %` of `4750`).
-3. **Non-needed part disjointness:** no non-needed part ever matches any step `(kind, colour)` of the current or next blueprint (tested across 1,000 seeds), preserving `M(t)`.
-4. **Wrong-grab lockout `1.00 s` & `blindBot`:** increased wrong-grab / clean-scrap lockout to `1.00 s` and added `blindBot` test (`<= 50 %` of `perfectBot` or fails quota over 200 seeds).
-5. **Closed-form proof & proposed limits:** fixed `perfectScore(M, R) = 40 · M - 60 + 200 · R` (`M >= 5`), max `2180 + 2400 = 4580`, `B(t) <= 80 · M(t) + 220 <= 50 · t + 264 <= 300 + 52 · t`, proposed tight limits `4750 / 10000–92000 / 300 + 52/s` with margin table.
-6. **`tapDown` target lock & CSS px radius:** target part is locked on `tapDown` within `28 CSS px` (`56 px >= 44 px`), grabbed on `tap`, and scrapped on `pressed.down` for that locked part.
-7. **Portrait fog, core APIs, audio, bounds, walk-off, spec diffs & open questions:** moved fog start to `[24, 42]` (beyond `20.3 m` portrait `fitView`); fixed `lighting: "indoor"`, `fx.shake(0.3)`, throttled `fx.burst("sparks", ...)`, `Vector3.project(camera)`, `pointAt`/`advance`, `CameraRig camera={definition.camera}`, single `loseLife()` end, `startLoop("belt")` + valid `playSfx` cues; placed exit door `(2.40, 0, -0.45)` and blueprint screen `(0, 1.45, -0.95)` inside `area`; `0.70 s` walk-off clears cradle before `0.73 s` with visual-only claw lift; added `<= 40` draw-call target, belt needed-part highlight, 30/60/144 Hz + random bot tests (`< 60 s`), and open questions A/B/C.
 
 ## Decisions (user, 2026-10-24)
 

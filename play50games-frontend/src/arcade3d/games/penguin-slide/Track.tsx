@@ -151,7 +151,7 @@ export default function Track({ run }: { run: Run }) {
       <DynamicInstancedModel name="pine-banks" asset={ASSETS.pine} count={30} update={tree} fallbackParts={pineParts} />
       <DynamicInstancedModel name="time-flags" asset={ASSETS.flag} count={12} update={flag} fallbackParts={flagParts} />
       <DynamicInstanced count={15} update={(i, m) => obstacle("ice", i, m)} parts={iceParts} name="ice-blocks" />
-      <DynamicInstanced count={15} update={(i, m) => obstacle("snowman", i, m)} parts={snowmanParts} name="snowmen" />
+      <DynamicInstancedModel asset={ASSETS.snowman} count={15} update={(i, m) => obstacle("snowman", i, m)} fallbackParts={snowmanParts} name="snowmen" />
       <DynamicInstanced count={15} update={(i, m) => obstacle("crack", i, m)} parts={crackParts} name="cracks" />
       <DynamicInstanced count={3} update={ramp} parts={rampParts} name="spin-ramps" />
       <DynamicInstanced count={12} update={gatePost} name="gate-posts"><boxGeometry args={[1, 1, 1]} /><meshStandardMaterial color="#6ee7b7" emissive="#34d399" emissiveIntensity={0.3} /></DynamicInstanced>

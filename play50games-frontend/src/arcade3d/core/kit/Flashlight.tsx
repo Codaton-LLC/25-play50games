@@ -16,11 +16,17 @@
 // - `light` adds a real SpotLight (shadows off) with the same angle and range. A light changes
 //   every material's shader, so it is decided once at mount: skipped on the "low" quality tier;
 //   keep the number of flashlights fixed for the whole run.
-import { forwardRef, useEffect, useMemo, useState } from "react";
-import type { GroupProps } from "@react-three/fiber";
+// - `blockers` clips the floor sector and the beam each frame (occludedFanPoints) from the group's
+//   world position and yaw, so the lit floor is inViewCone and hasLineOfSightXZ (the box the guard
+//   stands in excluded). It runs in a plain useFrame: move the group in useRunFrame or at a priority
+//   below FRAME_PRIORITY.visuals, or the clip shows the previous frame's pose. The group and its
+//   parents must only move and turn about y (no scale, tilt or roll). The SpotLight is not clipped.
+import { forwardRef, useCallback, useEffect, useMemo, useRef, useState, type ForwardedRef } from "react";
+import { useFrame, type GroupProps } from "@react-three/fiber";
 import { AdditiveBlending, BufferAttribute, BufferGeometry, DoubleSide, Object3D, type Group } from "three";
+import type { Box } from "../ai/vision";
 import { useQuality } from "../quality";
-import { fanPoints, fanSegments } from "./kitGeometry";
+import { fanPoints, fanSegments, occludedFanPoints } from "./kitGeometry";
 
 export interface FlashlightProps extends Omit<GroupProps, "children"> {
    /** half the cone's opening, rad (inViewCone's halfAngle); at most PI / 2 */
@@ -36,9 +42,14 @@ export interface FlashlightProps extends Omit<GroupProps, "children"> {
    light?: boolean;
    /** the SpotLight's intensity (default 18) */
    intensity?: number;
+   /** XZ boxes that stop the light (ai/vision Box); read every frame. Omitted: the open fan */
+   blockers?: readonly Box[];
 }
 
-function fanGeometries(halfAngle: number, range: number, height: number) {
+const FLOOR_Y = 0.015;
+
+// fanGeometries, clipFan and unclipFan are exported for occludedFan.test.ts
+export function fanGeometries(halfAngle: number, range: number, height: number) {
    const half = Math.min(Math.PI / 2, Math.max(0, halfAngle));
    const n = fanSegments(half);
    const pts = fanPoints(half, range, height, n);
@@ -58,7 +69,7 @@ function fanGeometries(halfAngle: number, range: number, height: number) {
    const floor = new BufferGeometry();
    const floorPos = new Float32Array(pts);
    floorPos[1] = 0;
-   for (let i = 0; i < n + 2; i++) floorPos[i * 3 + 1] = 0.015;
+   for (let i = 0; i < n + 2; i++) floorPos[i * 3 + 1] = FLOOR_Y;
    const floorCol = new Float32Array((n + 2) * 4);
    floorCol.set([1, 1, 1, 0.9], 0);
    for (let i = 1; i < n + 2; i++) floorCol.set([1, 1, 1, 0.35], i * 4);
@@ -66,11 +77,61 @@ function fanGeometries(halfAngle: number, range: number, height: number) {
    floor.setAttribute("color", new BufferAttribute(floorCol, 4));
    floor.setIndex(beamIndex);
    floor.computeBoundingSphere();
-   return { beam, floor };
+   return { beam, floor, pts, n, half, clip: new Float32Array(pts.length), origin: { x: 0, y: 0, z: 0 }, clipped: false };
+}
+
+export type FanGeometries = ReturnType<typeof fanGeometries>;
+
+/** Writes the clipped fan into both position buffers (the beam's apex stays at the lamp). */
+export function clipFan(geo: FanGeometries, range: number, height: number, blockers: readonly Box[], m: ArrayLike<number>) {
+   geo.origin.x = m[12];
+   geo.origin.y = m[13];
+   geo.origin.z = m[14];
+   // the group's local +z in world space: (sin yaw, ., cos yaw)
+   occludedFanPoints(geo.origin, Math.atan2(m[8], m[10]), geo.half, range, blockers, geo.n, geo.clip);
+   const beam = geo.beam.attributes.position as BufferAttribute;
+   const floor = geo.floor.attributes.position as BufferAttribute;
+   const bp = beam.array as Float32Array;
+   const fp = floor.array as Float32Array;
+   for (let i = 1; i < geo.n + 2; i++) {
+      const o = i * 3;
+      bp[o] = fp[o] = geo.clip[o];
+      bp[o + 2] = fp[o + 2] = geo.clip[o + 2];
+   }
+   beam.needsUpdate = true;
+   floor.needsUpdate = true;
+   if (!geo.clipped) {
+      // fixed bounds for any clip: no computeBoundingSphere per frame
+      geo.clipped = true;
+      for (const g of [geo.beam, geo.floor]) {
+         g.boundingSphere!.center.set(0, 0, 0);
+         g.boundingSphere!.radius = Math.max(range, height);
+      }
+   }
+}
+
+/** Back to the open fan (blockers removed). */
+export function unclipFan(geo: FanGeometries) {
+   geo.clipped = false;
+   for (const g of [geo.beam, geo.floor]) {
+      const attr = g.attributes.position as BufferAttribute;
+      const arr = attr.array as Float32Array;
+      for (let i = 1; i < geo.n + 2; i++) {
+         arr[i * 3] = geo.pts[i * 3];
+         arr[i * 3 + 2] = geo.pts[i * 3 + 2];
+      }
+      attr.needsUpdate = true;
+      g.computeBoundingSphere();
+   }
+}
+
+function setRef<T>(ref: ForwardedRef<T>, value: T | null) {
+   if (typeof ref === "function") ref(value);
+   else if (ref) ref.current = value;
 }
 
 export const Flashlight = forwardRef<Group, FlashlightProps>(function Flashlight(
-   { halfAngle, range, height = 1.3, color = "#fef3c7", opacity = 0.35, light = true, intensity = 18, ...group },
+   { halfAngle, range, height = 1.3, color = "#fef3c7", opacity = 0.35, light = true, intensity = 18, blockers, ...group },
    ref
 ) {
    const quality = useQuality();
@@ -85,8 +146,24 @@ export const Flashlight = forwardRef<Group, FlashlightProps>(function Flashlight
       [geo]
    );
    const target = useMemo(() => new Object3D(), []);
+   const self = useRef<Group | null>(null);
+   const groupRef = useCallback(
+      (g: Group | null) => {
+         self.current = g;
+         setRef(ref, g);
+      },
+      [ref]
+   );
+   useFrame(() => {
+      const g = self.current;
+      if (!g) return;
+      if (blockers) {
+         g.updateWorldMatrix(true, false);
+         clipFan(geo, range, height, blockers, g.matrixWorld.elements);
+      } else if (geo.clipped) unclipFan(geo);
+   });
    return (
-      <group ref={ref} {...group} name="kit-flashlight">
+      <group ref={groupRef} {...group} name="kit-flashlight">
          <mesh geometry={geo.beam} renderOrder={2}>
             <meshBasicMaterial color={color} vertexColors transparent opacity={opacity} blending={AdditiveBlending} depthWrite={false} side={DoubleSide} toneMapped={false} fog={false} />
          </mesh>

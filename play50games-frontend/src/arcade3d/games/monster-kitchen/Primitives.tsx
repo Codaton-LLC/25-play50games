@@ -179,6 +179,18 @@ export function Headgear({ type }: { type: MonsterType }) {
 
 // ---------- the DOM order icons: colour + silhouette + an outline ring ----------
 
+/** The ingredient names on the HUD hand card. */
+export const KIND_LABEL: Record<IngredientKind, string> = {
+   apple: "Apple",
+   banana: "Banana",
+   burger: "Burger",
+   sock: "Sock",
+   tinCan: "Tin can",
+   fish: "Fish",
+   eyeball: "Eyeball",
+   slime: "Slime cube",
+};
+
 export function KindIcon({ kind, size = 22 }: { kind: IngredientKind; size?: number }) {
    const ring = KIND_COLOR[kind];
    return (

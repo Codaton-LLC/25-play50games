@@ -13,7 +13,7 @@
 //   every plain useFrame wherever it is mounted, so a visual never draws the previous frame's state
 //   or camera. A custom useRunFrame priority must lie in (FRAME_PRIORITY.gameTime, 0] = (-0.75, 0].
 import type { ComponentType } from "react";
-import type { ArcadeGameMeta, ArcadeSlug } from "../types";
+import type { ArcadeGameMeta, ArcadeSlug, LevelId } from "../types";
 import type { HumanoidLandmarks } from "./rig/humanoid";
 import type { MaterialOverride } from "./materials";
 
@@ -205,7 +205,27 @@ export type TouchControl = "joystick" | "jump" | "action" | "swipe" | "tap";
  */
 export type LightingPreset = "day" | "indoor" | "night" | "sunset" | "snow" | "space";
 
-export interface GameDefinition {
+/**
+ * One level's runtime data (docs/arcade-levels.md §1.3; core/README.md "Levels"). The Scene and
+ * the rules read `config` through useLevel(); the shell applies the overrides.
+ */
+export interface LevelSpec<C = unknown> {
+   id: LevelId;
+   /** one line on the start card under the level tiles, e.g. "5 obstacle clusters, wide gaps" */
+   description: string;
+   /** the game's typed level data (layout, spawn counts, speeds...); pure, from the game's levels.ts */
+   config: C;
+   /** replaces definition.instructions on the start card for this level (only when it adds a mechanic) */
+   instructions?: string[];
+   /** merged over definition.environment: { ...definition.environment, ...environment } */
+   environment?: Partial<NonNullable<GameDefinition["environment"]>>;
+   /** override definition.durationMs / lives / resultDelayMs for this level */
+   durationMs?: number;
+   lives?: number;
+   resultDelayMs?: number;
+}
+
+export interface GameDefinition<C = unknown> {
    slug: ArcadeSlug;
    /** rendered inside the <Canvas> */
    Scene: ComponentType;
@@ -258,6 +278,11 @@ export interface GameDefinition {
    clockChip?: boolean;
    /** override how the final score/duration is computed (default: store score + elapsedMs) */
    finalScore?(state: RunState): { score: number; durationMs: number };
+   /**
+    * Omitted = one level (useLevel() gives config undefined). When present: one spec per
+    * meta.levels entry, same ids in the same order (definitionLevelProblems in core/levels.ts).
+    */
+   levels?: readonly LevelSpec<C>[];
 }
 
 export interface GameShellProps {

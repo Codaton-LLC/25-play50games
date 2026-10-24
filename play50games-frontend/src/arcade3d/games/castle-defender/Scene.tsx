@@ -36,6 +36,7 @@ function setStat(key: string, value: number): void {
 }
 function publish(run: CastleRun): void {
    setStat("hp", run.hp); setStat("maxHP", run.maxHP); setStat("wave", run.wave + 1);
+   setStat("combo", run.combo); setStat("comboLost", run.time - run.comboLostAt < TUNING.comboLostDuration ? 1 : 0);
    setStat("reload", Math.ceil(Math.max(0, run.ready - run.time) * 10));
    setStat("rock", Math.ceil(Math.max(0, run.rock.ready - run.time) * 10));
    setStat("offer", run.offer ? 1 : 0); setStat("card1", run.cards[0]); setStat("card2", run.cards[1]);

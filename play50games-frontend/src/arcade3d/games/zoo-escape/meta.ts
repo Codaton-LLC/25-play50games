@@ -1,7 +1,9 @@
 import type { ArcadeGameMeta } from "@/arcade3d/types";
 
 // Plain data only (server-safe). scoring must match WP includes/arcade-games.json.
-// Provisional limits (docs/arcade-expansion/02 §C.4): set for real in the game's "assets + limits" PR.
+// Provisional limits (docs/arcade-expansion/02 §C.4): the proven ones are PROPOSED_LIMITS in
+// rules.ts (README "Server limits and why they hold"); Claude copies them here and into
+// arcade-games.json in the go-live PR.
 export const zooEscapeMeta: ArcadeGameMeta = {
    slug: "zoo-escape",
    title: "Zoo Escape",
@@ -14,8 +16,8 @@ export const zooEscapeMeta: ArcadeGameMeta = {
    orientation: "any",
    controls: {
       scheme: "joystick",
-      keyboard: "WASD to move, hold Space to sneak, E to toss a snack",
-      touch: "Joystick, hold Jump to sneak, Action to toss",
+      keyboard: "WASD / arrows to move, hold Space to sneak, E or Enter to toss bamboo",
+      touch: "Joystick to move, hold Sneak to sneak, Toss to throw bamboo",
    },
    scoring: {
       kind: "points",

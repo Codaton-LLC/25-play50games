@@ -329,6 +329,8 @@ const end = simulateRun(createArcadeStore(), { durationMs: DURATION_MS, frame: r
 expect(withinServerLimits(end.score, end.elapsedMs)).toBe(true);
 ```
 
+Next to it, `core/testing/periodic.ts` (also tests only) is the **periodic solver** (C5) for grids whose blocked cells repeat with a period (patrols, sweeps): see "Expansion core 2".
+
 ## Path helper
 
 `createPath` copies control points and builds a Float64 arc-length table once. Open polylines clamp; closed polylines wrap both positive and negative distances. `smooth` selects uniform Catmull-Rom with `samples` intervals per segment (default 16); point/tangent queries operate on the sampled polyline. At a joint, tangent is the outgoing segment (incoming at an open endpoint); duplicate open endpoints use the last nonzero tangent; entirely coincident paths have zero tangent. Non-finite point distances select the start. Distances use all three axes. Empty paths are rejected; singleton paths stay fixed. `advance(state, ds)` mutates `{ path, s, position, overflow? }` without allocation, writing signed unconsumed open-path distance to `overflow`. `nearestS` chooses the first nearest segment on ties. `createPathGraph(segments, junctions)` copies outgoing index lists; `next(segment, choice)` returns null for unavailable choices. Junction lists have one row per segment. `advanceGraph(state, graph, choose, ds)` carries forward overflow into connected paths; `choose(endingSegmentIndex)` returns an outgoing path index. Missing links, reverse travel and zero-length cycles retain overflow. Riders retain optional `segment` identity, initialized with `indexOf` once when omitted; set it when entering a graph externally. Invalid junction entries are skipped using `choiceCount(segment)` to bound the row scan; legacy graphs without it stop at the first null.
@@ -485,7 +487,7 @@ import { SkyDome, SnowFall, Starfield, Water } from "../../core/env";
 
 ## Lighting presets
 
-`environment.lighting` (`LightingPreset` in `types.ts`): `day`, `indoor`, `night`, plus `sunset` (a warm, low sun from the side, a purple ground bounce), `snow` (bright, cool, soft) and `space` (one hard white sun, almost no fill). Each is an ambient + hemisphere + one directional light, like the first three; no shadows.
+`environment.lighting` (`LightingPreset` in `types.ts`, values in `LIGHTING_PRESETS`, `core/lighting.ts`): `day`, `indoor`, `night`, plus `sunset` (a warm, low sun from the side, a purple ground bounce), `snow` (bright, cool, soft) and `space` (one hard white sun, almost no fill). Each is an ambient + hemisphere + one directional light, like the first three; no shadows.
 
 ```ts
 environment: { background: "#1e1b4b", fog: ["#1e1b4b", 30, 90], lighting: "sunset" },
@@ -606,6 +608,7 @@ Procedural props shared by several games (06 §F.3). Small, disposable, few draw
 - `<Conveyor path width speed tile lift color stripe frame>`: a belt strip along a `Path` with a scrolling chevron texture; it moves `speed` m per second of **play time**, exactly like riders `advance`d by `speed * dt` in `useRunFrame` (still during countdown, pause and result). 2 draw calls.
 - `<Fence path spacing height rails postSize railSize color railColor>`: posts every `spacing` m (both ends; a closed path closes the ring) and straight rails between them, instanced: 2 draw calls for any length (`fenceSpots`, pure).
 - `<Flashlight ref halfAngle range height color opacity light intensity>`: the group stands on the guard's feet with `rotation.y = yaw`; the lit floor sector and the additive beam are exactly `ai/vision` `inViewCone(origin, yaw, halfAngle, range, p)` (`fanPoints`, tested). `light` adds a SpotLight, decided once at mount and skipped on the "low" tier. Mounting or unmounting a Flashlight with a light mid-run changes the scene's spot-light count, which recompiles every lit material (a hitch): mount all flashlights with the scene and keep them (hide one with `visible={false}` on its parent only if you accept the same recompile, or pass `light={false}`).
+- `<Flashlight blockers={boxes}>` (occluded fan, C1): the floor sector and the beam stop at the first blocker, so the lit floor is exactly `inViewCone ∧ hasLineOfSightXZ(origin, p, blockers without the box the guard stands in)`. Each frame (plain `useFrame`) it reads the group's world position and yaw from `matrixWorld` and writes `occludedFanPoints` into the existing position buffers (`needsUpdate`, no allocation); the bounding sphere is fixed once at radius `range`. Move the group in `useRunFrame` or at a priority below `FRAME_PRIORITY.visuals` (e.g. `FRAME_PRIORITY.pose`), or the clip shows the previous frame's pose; the group and its parents only move and turn about y (no scale or tilt). `blockers` is read every frame (keep one array and mutate it if it changes); without it the Flashlight is the open fan as before. The SpotLight is not clipped. Pure: `occludedFanPoints(origin, yaw, halfAngle, range, blockers, segments, out)` (`kitGeometry.ts`): per ray an exact XZ slab test with `hasLineOfSightXZ`'s closed rule (touching an edge or corner stops the ray), skipping any box that contains the origin (edges included), ray length = min(range, first entry); writes `fanPoints`' layout into `out` (≥ (segments + 2) × 3 floats; apex (0, 0, 0), then the ray ends at y = 0, in the fan's own frame facing +z) and returns it; a non-finite origin or a range ≤ 0 draws nothing. Tested in `kit/occludedFan.test.ts` (20,000 random points against the vision helpers, the oracle length of every ray, edge cases, mutation-probed).
 - `<Pedestal width height color trim>`: one merged mesh; the exhibit stands at `PEDESTAL_TOP(height)`.
 - `<Gem size color spin bob glow phase>`: a flat-shaded icosahedron with an emissive glow and bright edges (edges skipped on "low"), spinning on the game clock.
 - `<Parcel size color tape label>`: a cardboard box with a tape band and a label; parcels of one look share one canvas texture and material (counted, disposed with the last one). Origin = bottom centre.
@@ -640,5 +643,85 @@ Nothing here changes an existing game: the aim drag is opt-in per definition, `d
 
 - **End cue:** `endCue(kind, endReason, score)` (`frameLoop.ts`) picks the shell's end sound. A win plays "win"; a points game that runs out its clock with a score above 0 (a score attack reaching its end) also plays "win"; every other end plays "lose". Before this, every `"timeup"` played the lose sting.
 - **`GameDefinition.clockChip: false`** hides the shell's Time / Played chip, for games that show their own clock (museum-guard's Dawn, robot-factory's 90 s).
+- **Occluded flashlight fan (C1, zoo-escape; museum-guard may reuse it):** `<Flashlight blockers>` and the pure `occludedFanPoints` (`kit/kitGeometry.ts`) clip the drawn cone by the vision blockers, the guard's own box excluded ("Kit: `core/kit`").
 - **`SHARED_GLB_SIZE`** (robot, battery, crate) and **`REUSED_GLB_SIZE.barrel`**: raw GLB bounds for games that fit these meshes to their own sizes (robot-factory), checked against the meshes in `expansionAssets.test.ts`.
+- **Periodic solver (C5, `core/testing/periodic.ts`, tests only):** fairness proofs and bots on a grid whose blocked cells repeat every `period` steps. Cells are `y * width + x`; a mask is a `Uint8Array` of cells × phases, phase-major (`mask[phase * cells + cell]`, 1 = blocked). `periodicMask(cells, phases)` (all free), `shiftMask(mask, cells, phases, steps, out?)` (the pattern started `steps` phases ahead: `out[p] = mask[(p + steps) mod phases]`), `orMasks(out, ...masks)` (`out |= mask`, returns `out`). A problem is `{ grid: { width, height }, period, blocked, goal, moves? }`: `goal` = cell list (any phase) or `(cell) => boolean`, `moves` = offsets besides waiting (default `NEIGHBOURS_4`; add e.g. `[2, 0]` hops; the solver checks only the source and destination, so a hop over a wall is the caller's rule). A step from phase p needs its source free at p and its destination free at p + 1; waiting is always allowed. `solvePeriodic(problem)` → winning table (same layout, 1 = a safe route to a goal from this cell at this phase), `solvePeriodicSteps(problem)` → fewest steps per state (-1 = none), both one backward BFS (iterative, ≈ 0.25 s for 120 × 120 × 108 in node); `earliestArrival(problem, start, phase)` → fewest steps forward (0 on a free goal, -1 = never); `planPeriodic(problem, start, phase, steps?)` → one `[dx, dy]` per step (`[0, 0]` = wait) along winning states, `[]` on a free goal, `null` when the start is not winning (pass `steps` to plan many starts on one solve).
 
+```ts
+const keeper = periodicMask(cells, 108); // fill per keeper from its patrol, then:
+const blocked = orMasks(periodicMask(cells, 108), shiftMask(keeperA, cells, 108, 18 * k), keeperB);
+const problem = { grid: { width, height }, period: 108, blocked, goal: gateCells };
+const win = solvePeriodic(problem);
+expect(startCells.every((c) => range(108).every((p) => win[p * cells + c] === 1))).toBe(true);
+const plan = planPeriodic(problem, start, phase); // the solver bot replays it through the real rules
+```
+
+- **Stage lighting crossfade (C2, `core/lighting.ts`):** `useStageLighting(preset: LightingPreset | null, fadeS = 1, background?, fog?)` inside a Scene fades ShellStage's lights to `preset` over `fadeS` seconds of game time (`useGameTime`: stops while paused) whenever its arguments change: the ambient intensity, the hemisphere sky / ground colours and intensity, the directional light's colour, intensity and position, the scene background colour and the fog colour. ShellStage keeps ONE ambient + hemisphere + directional light for every preset (no shader recompile), copies the values in place at `FRAME_PRIORITY.visuals` only while a fade runs (pre-allocated `Color` / `Vector3`, no per-frame allocation). The background defaults to the preset's `background` in `LIGHTING_PRESETS`, the fog colour to the background; `null` (or the environment's own preset with no colours) fades back to the game's `environment` exactly. The request lives while the calling component is mounted: its unmount (Retry, Scene remount) resets the stage to `environment.lighting` at once. Fog near / far never change, and a game without `environment.fog` gets no fog. Games that never call the hook render exactly as before. Pure parts for tests: `LIGHTING_PRESETS`, `lightingSpec(name)`, `lightingPreset(name, out?, background?, fog?)`, `lerpLighting(from, to, k, out)`, `copyLighting`, and the crossfade state `createStageLighting` / `setStageEnvironment` / `requestStageLighting(state, preset, fadeS, now, background?, fog?)` / `stepStageLighting(state, now)` / `resetStageLighting`.
+
+```tsx
+// zoo-escape: environment { background: "#bae6fd", fog: ["#bae6fd", 30, 70], lighting: "day" }
+// `stage` is the game's own state (1-based here); null = back to the environment
+useStageLighting(stage >= 3 ? "sunset" : null, 1.5, "#f4a582");
+```
+
+## Levels (five per game)
+
+Design and the user's decisions: `docs/arcade-levels.md`. One base environment, five level configurations; level 1 is today's game. The core owns everything around the levels (picking, unlocking, scores, the UI); a game only declares its five configs and reads the picked one. Never build a level system inside a game folder.
+
+**Naming.** `levelId` (store) / `LevelId` = the level the player picked, 1..5. `RunState.level` / `setLevel()` keep their old meaning: the game's own stage or wave inside one run.
+
+**Switch.** `NEXT_PUBLIC_ARCADE_LEVELS` (`flags.ts` `ARCADE_LEVELS`, default off). The level UI shows only when `levelUiEnabled(meta, supported)` (`levels.ts`): the flag is on, `meta.levels` has five levels, and the server is known to support levels (`levelSupport.ts`: one cached `GET /arcade/games` read, `features.levels === true`; with the leaderboard off nothing is sent, so levels work locally). Otherwise every game plays level 1 and renders exactly as before levels: no tiles, no HUD chip, no extra result buttons, no `?level=`, no `level` in any request or analytics event. A game without `meta.levels` never shows any of it.
+
+### Declaring the five levels (a game's levels PR)
+
+```ts
+// games/<slug>/levels.ts: pure data, no React
+import type { LevelId } from "../../types";
+export interface CastleLevel { waves: number; speed: number; lanes: 3 | 4 | 5 }
+export const LEVELS: Record<LevelId, CastleLevel> = {
+   1: { waves: 3, speed: 1, lanes: 3 }, // today's game
+   2: { waves: 4, speed: 1.1, lanes: 3 },
+   3: { waves: 5, speed: 1.2, lanes: 4 },
+   4: { waves: 6, speed: 1.3, lanes: 4 },
+   5: { waves: 8, speed: 1.45, lanes: 5 },
+};
+
+// meta.ts (server-safe): titles, limits per level (level 1 = meta.scoring), clear targets
+levels: [
+   { id: 1, title: "Outer Wall", scoring: SCORING_L1, clearScore: 900 },
+   { id: 2, title: "Main Gate", scoring: SCORING_L2, clearScore: 1200 },
+   // ... 3, 4
+   { id: 5, title: "Royal Defense", scoring: SCORING_L5 }, // no clearScore: nothing to unlock
+],
+
+// index.tsx (GameDefinition<CastleLevel>): one spec per meta level, same ids in order
+levels: LEVEL_IDS.map((id) => ({
+   id,
+   description: DESCRIPTIONS[id], // one line under the tiles
+   config: LEVELS[id],
+   ...(id === 4 ? { environment: { lighting: "night", background: "#0b1020" } } : {}),
+   // optional: instructions (replace the game's), durationMs, lives, resultDelayMs
+})),
+
+// Scene / rules: read the config once per run (the Scene remounts per runId)
+export const useCastleLevel = () => useLevel<CastleLevel>();
+const { config } = useCastleLevel();
+const run = useMemo(() => createRun(seed, config), [runId]);
+```
+
+- `meta.levels` rules (`levelMetaProblems`, `levelMeta.ts`, run on every game by `registry.sync.test.ts`): exactly 5, ids 1..5 in order, `levels[0].scoring` deep-equals `meta.scoring`, the same `kind` / `unitLabel` / `display` on every level, `clearScore` within `1..maxScore`. `registry.sync.test.ts` also checks every level's limits against `arcade-games.json` `games[slug].levels[i]` (and that a game without `meta.levels` has no `levels` key there). `arcade-games.json` is Claude's: put the proposed limits in `rules.ts` (`PROPOSED_LEVEL_LIMITS`) and Claude copies them.
+- `definitionLevelProblems(meta, definition)` (`levels.ts`): `meta.levels` and `definition.levels` both present or both absent, same ids, a description each. Call it in the game's own test.
+- Score limits are proven per level (the arcade-score-limits skill, once per level). Rules stay pure: module constants that vary become `createRun(seed, level)` inputs.
+
+### What the core does
+
+- **Context:** GameShell provides `useLevel<C>()` → `{ id, meta: LevelMeta, spec: LevelSpec<C> | null, config: C }` (`level.tsx`) around the stage (R3F bridges it into the Canvas) and the game HUD. With levels off a converted game gets level 1's spec and config; a game without levels gets `spec: null, config: undefined`. It throws outside GameShell (wrap a component test in `LevelProvider` with `resolveActiveLevel(meta, definition, id)`).
+- **Store (`useArcadeStore.ts`):** `levelId` lives outside the run (`start()`/`restart()`/`configure()` keep it, `reset()` sets 1). `selectLevel(id, levelRunConfig(definition, id))` works in `"ready"` and `"over"` only (never mid-run) and applies the level's duration / lives / result delay without going back to `"loading"`. `menu()` takes `"over"` or `"paused"` back to `"ready"` (the tiles) with the same `runId`. `configure(config, levelId?)`.
+- **Per-level overrides (`levels.ts`):** `levelRunConfig`, `levelEnvironment` (`{ ...definition.environment, ...spec.environment }`, handed to `ShellStage` as `environment`), `levelInstructions`.
+- **Clearing and unlocking (`levels.ts`, `levelProgress.ts`):** `isLevelCleared(endReason, score, levelMeta)` = a win, or a score ≥ `clearScore`. Level 1 is always open; level n opens once level n-1 is cleared or when level n already has a score (another device); nothing locks again; the same for guests and accounts. Cleared also counts a stored best ≥ `clearScore` (server-synced bests) and any stored best of a time game (time games save finished runs only). The unlock is client-side; the server accepts any level within its limits.
+- **Local scores (`scores.ts`):** an entry keeps `levels: { "1".."5": { best, bestDurationMs, plays, lastPlayed, cleared } }`. `readLocalScores` runs every entry through `normalizeEntry` (no write): an entry from before levels becomes level 1 with the same best; unknown or malformed level data is dropped. `best` / `bestDurationMs` are the totals (`levelTotals`): **points games** the sum of the level bests; **time games** the summed best finishing time only once all 5 levels have one (`best` is then the sum of the level time scores, so higher stays better), else `best 0` / `bestDurationMs null` and the UI says "Finish all 5 levels to rank"; **levels off or a one-level game** level 1's best, the exact number stored before levels. `plays` counts all levels. `useBestScore(slug)` returns the normalized entry; `useLevelProgress(meta)` the tiles' data (`levelProgress`: per level best, time, plays, cleared, unlocked; total; cleared count).
+- **Submit:** `FinishedRun.level` (default 1) and `endReason`; the run is clamped to its level's limits (`scoringFor(meta, level)`). `SubmitResult.best` / `bestDurationMs` / `isNewBest` are the level's (for a one-level game identical to before), plus `level`, `total`, `totalDurationMs`, `newlyCleared`, `unlockedLevel`. Level 1 goes up byte-identical to before (no `level` key, no features read); levels 2-5 send `level` only when the server advertises `features.levels`, otherwise they stay on the device (`saved-local`). The response's `level_best_score` / `is_new_level_best` update the level; an older server's `best_score` counts as level 1's. `syncServerScores` takes the server's per-level bests (`me.levels`), or its one best as level 1, keeping levels and cleared flags only this device has. Run tickets are bound to the level (`startRun(slug, level)`; level 1 asks as before). `unrankedResult(slug, userId, level?)`.
+- **UI:** the start card's `LevelTiles` (radio group; arrows, Home/End and digits 1-5; locked / open / cleared with the best per level; the picked level's description or "Clear level n to unlock"; "Total … · n of 5 levels cleared"; Play disabled on a locked level; the level's instructions; the best badge gives way to the total); the HUD's "L3" chip (`HudChips level`); the result's "Level 3 · Copy Room", "Level 4 unlocked!", the total and Next level (primary, once the level is cleared and n < 5) / Retry / Levels (`menu()`) / Exit; the `/3d` card shows "Total … · n/5" (`levelCardText`).
+- **URL and last level (`levelUrl.ts`):** `/3d/<slug>?level=3`, read once when the start card first opens (`pickInitialLevel`: the requested level when unlocked, else the highest unlocked below it; without a request the last played level, else the first open level not cleared, else 5), rewritten with `history.replaceState` on every tile change (level 1 removes it). Canonical, OG and JSON-LD stay `/3d/<slug>`. Last played level: `localStorage` `play50games_3d_level:<slug>`.
+- **Analytics (`analytics.ts`):** `level` on `arcade_start`, `arcade_game_over` and `arcade_new_best` (a new best on that level) for games whose level UI is on; `arcade_level_cleared` `{ game, level, score, duration_ms }` on the first clear of a level by this user or guest.
+- Tests: `levels.test.ts` (store actions, rules, totals), `scores.levels.test.ts` (migration, per-level merge, unlocks, time totals, submit with and without `features.levels`, sync, `pickInitialLevel`, analytics), `ShellOverlays.levels.test.ts` (tiles, chip, result buttons, the gate), `levelUrl.test.ts`, `levelMeta.test.ts` (helpers, sync with levels); fixtures `testing/levelFixtures.ts` (`withLevels(meta)`).

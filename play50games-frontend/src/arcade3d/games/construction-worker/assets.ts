@@ -1,9 +1,20 @@
-// Shared runner, reused pallet and van, shared crate. This game owns no GLB.
+// Shared runner, reused pallet and van, shared crate, and one GLB of its own: the cement mixer (batch 5,
+// already in the manifest), site decor.
 import type { ModelAsset } from "@/arcade3d/core/types";
-import { REUSED_ASSETS, SHARED_ASSETS } from "@/arcade3d/core/sharedAssets";
+import { PROP_BUDGET, REUSED_ASSETS, SHARED_ASSETS } from "@/arcade3d/core/sharedAssets";
 
 /** Office-escape's runner scale: 0.825 draws the mesh 1.556 m tall. */
 export const WORKER_SCALE = 0.825;
+
+/**
+ * cementMixer.glb (batch 5, Hyper3D, 1500 tris) 1.285 x 1.910 x 1.420, floor pivot, centred on x / z: an
+ * orange drum on a yellow frame. Drawn 1.5 m tall (1.01 x 1.12 m on the ground), turned by MIXER.yaw.
+ */
+export const MIXER_GLB = { width: 1.285, height: 1.9095, depth: 1.4202 } as const;
+export const MIXER_HEIGHT = 1.5;
+const MIXER_SCALE = MIXER_HEIGHT / MIXER_GLB.height;
+/** Where it stands on the site (m): beside the work zone on the -x side, outside the crane's wedge. */
+export const MIXER = { x: -6.7, z: 6.4, yaw: 0.9 } as const;
 
 export const ASSETS = {
    worker: { ...SHARED_ASSETS.runner, scale: WORKER_SCALE },
@@ -12,4 +23,12 @@ export const ASSETS = {
    crate: { ...SHARED_ASSETS.crate, scale: 0.8 / 1.88 },
    // pigeon van is 1.17 x 1.04 x 1.89; ~4.5 m along its long axis
    van: { ...REUSED_ASSETS.van, scale: 4.5 / 1.89 },
+   cementMixer: {
+      id: "cementMixer",
+      url: "/models/3d/construction-worker/cementMixer.glb",
+      scale: MIXER_SCALE,
+      fallback: "cylinder",
+      fallbackColor: "#f97316",
+      budget: { ...PROP_BUDGET },
+   },
 } satisfies Record<string, ModelAsset>;

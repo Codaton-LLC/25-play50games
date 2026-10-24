@@ -1,11 +1,11 @@
 // Models used by Treasure Island. Plain data, no three.js: index.tsx hands them to GameShell (which
 // frees the GLBs when the game closes), Scene.tsx / Island.tsx draw them. No GLB of its own but the
-// crab (assets.spec.json, already generated): the rest is shared (SHARED_ASSETS), reused from the
+// crab (assets.spec.json, already generated) and the shovel (batch 5, already in the manifest): the rest is shared (SHARED_ASSETS), reused from the
 // original games (REUSED_ASSETS) or from the expansion batch (EXPANSION_ASSETS). Every fit is derived
 // from measured GLB bounds (GLB units, w x h x d, the optimize step centres x and z, feet on y = 0)
 // and checked on the real meshes in assets.test.ts.
 import type { ModelAsset } from "@/arcade3d/core/types";
-import { COIN_GLB_SIZE, EXPANSION_ASSETS, EXPANSION_GLB_SIZE, REUSED_ASSETS, RUNNER_LANDMARKS, SHARED_ASSETS } from "@/arcade3d/core/sharedAssets";
+import { COIN_GLB_SIZE, EXPANSION_ASSETS, EXPANSION_GLB_SIZE, PROP_BUDGET, REUSED_ASSETS, RUNNER_LANDMARKS, SHARED_ASSETS } from "@/arcade3d/core/sharedAssets";
 
 /** The runner is 1.886 tall (T-pose): 0.825 draws it 1.556 m, office-escape's explorer height. */
 export const EXPLORER_SCALE = 0.825;
@@ -39,6 +39,18 @@ const COIN_SCALE = COIN_SIZE / COIN_GLB_SIZE.width;
 /** The crab: 0.5 m across its claws (the default fit's 0.35 is 9 px on a phone). */
 export const CRAB_WIDTH = 0.5;
 
+/**
+ * shovel.glb (batch 5, Hyper3D, 1500 tris) 0.817 x 1.904 x 0.255, optimized with its floor pivot at the
+ * blade's edge (y 0) and centred on x / z. It stands UPRIGHT (not lying flat), the blade up to y 0.85
+ * (0.82 wide, dished: the cup faces +z), the shaft at x 0 from y 0.85 to 1.55, the D-grip above it
+ * (x -0.23..0.17, y 1.6..1.9). Drawn 0.95 m long: blade 0.41 wide, the hand's grasp on the shaft 0.77 m up.
+ */
+export const SHOVEL_GLB = { width: 0.8171, height: 1.9039, depth: 0.2548, bladeTop: 0.85, grasp: 1.55 } as const;
+export const SHOVEL_LENGTH = 0.95;
+const SHOVEL_SCALE = SHOVEL_LENGTH / SHOVEL_GLB.height;
+/** Where the hand closes on the shaft, up from the blade's edge (m): just under the D-grip. */
+export const SHOVEL_GRASP = SHOVEL_GLB.grasp * SHOVEL_SCALE;
+
 export const ASSETS = {
    explorer: { ...SHARED_ASSETS.runner, scale: EXPLORER_SCALE, humanoid: { landmarks: RUNNER_LANDMARKS } },
    chest: EXPANSION_ASSETS.chest,
@@ -49,6 +61,14 @@ export const ASSETS = {
    coin: { ...SHARED_ASSETS.coin, scale: COIN_SCALE, yOffset: (-COIN_SCALE * COIN_GLB_SIZE.height) / 2 },
    gull: { ...REUSED_ASSETS.pigeon, id: "gull", scale: GULL_LENGTH / PIGEON_GLB_LENGTH, material: { color: "#f8fafc", roughness: 0.7 } },
    crab: { ...EXPANSION_ASSETS.crab, scale: CRAB_WIDTH / EXPANSION_GLB_SIZE.crab.width },
+   shovel: {
+      id: "shovel",
+      url: "/models/3d/treasure-island/shovel.glb",
+      scale: SHOVEL_SCALE,
+      fallback: "cylinder",
+      fallbackColor: "#94a3b8",
+      budget: { ...PROP_BUDGET },
+   },
 } satisfies Record<string, ModelAsset>;
 
 /** Where a palm's footprint centre (its trunk base) is drawn from the model's origin, rotated by `yaw`. */

@@ -11,18 +11,24 @@
 //   without scrolling the card (FocusButton, not autoFocus).
 // - HudChips: the HUD's score, time, lives and game stats. A time game has no score chip: its rank
 //   is the finish time, and a "Score 0" next to the running clock read as a score that never moves.
+// - Levels (only when GameShell passes `levels`: the flag is on, the game has five levels and the
+//   server supports them): the start card shows the level tiles (LevelTiles) with the total in
+//   place of the best-score badge, the picked level's instructions, and Play disabled on a locked
+//   level; the HUD gets an "L3" chip. Without `levels` both render exactly as before levels.
 // - HudButtons: the HUD's Mute and Pause. Pause is shown (and in the tab order) only while the run
 //   can be paused, so the start card's Play is the first focus and nothing is tabbable behind it.
 import { useRef, type ButtonHTMLAttributes, type ReactNode } from "react";
 import Link from "next/link";
 import { ArrowLeftIcon, PauseIcon, SpeakerWaveIcon, SpeakerXMarkIcon } from "@heroicons/react/24/solid";
-import type { ArcadeGameMeta, ScoringRules } from "../types";
+import type { ArcadeGameMeta, LevelId, ScoringRules } from "../types";
 import type { GameDefinition } from "./types";
 import type { LeaderboardState } from "./useLeaderboard";
 import { useInitialFocus } from "./overlayFocus";
 import { scrollPanelFromBackdrop } from "./overlayScroll";
 import BestScoreBadge from "../ui/BestScoreBadge";
 import LeaderboardTable from "../ui/LeaderboardTable";
+import LevelTiles from "./LevelTiles";
+import type { LevelProgressSummary } from "./levelProgress";
 import styles from "./GameShell.module.css";
 
 export { scrollPanelFromBackdrop, type BackdropWheel, type ScrollBox } from "./overlayScroll";
@@ -86,13 +92,21 @@ export interface HudChipsProps {
    hudStats?: GameDefinition["hudStats"];
    /** false hides the Time / Played chip (GameDefinition.clockChip) */
    clock?: boolean;
+   /** the picked level, shown as an "L3" chip first; null / omitted = no chip (levels off) */
+   level?: LevelId | null;
 }
 
 /** The HUD's first group: score (points games only), time, lives and the game's stats. */
-export function HudChips({ scoring, score, time, timed, lives, stats, hudStats, clock = true }: HudChipsProps) {
+export function HudChips({ scoring, score, time, timed, lives, stats, hudStats, clock = true, level = null }: HudChipsProps) {
    const low = timed && time <= 10;
    return (
       <div className={styles.hudGroup}>
+         {level !== null && (
+            <span className={styles.chip} role="group" aria-label={`Level ${level}`}>
+               <span className={styles.chipLabel}>Level</span>
+               <span className={styles.chipValue}>L{level}</span>
+            </span>
+         )}
          {hudShowsScore(scoring.kind) && (
             <span className={styles.chip} role="group" aria-label={`Score ${score}`}>
                <span className={styles.chipLabel}>Score</span>
@@ -197,6 +211,17 @@ export function LeaderboardBlock({ leaderboard, meta }: { leaderboard: Leaderboa
    );
 }
 
+/** The start card's level picker (GameShell passes it only while the level UI is on). */
+export interface StartCardLevels {
+   progress: LevelProgressSummary;
+   selected: LevelId;
+   /** the picked level's LevelSpec.description */
+   description?: string;
+   /** the picked level's instructions (LevelSpec.instructions ?? definition.instructions) */
+   instructions: string[];
+   onSelect: (id: LevelId) => void;
+}
+
 export interface StartCardProps {
    meta: ArcadeGameMeta;
    definition: GameDefinition;
@@ -204,9 +229,14 @@ export interface StartCardProps {
    exitHref: string;
    leaderboard: LeaderboardState;
    onPlay: () => void;
+   /** omitted = no level UI (levels off or a one-level game): the card is exactly as before levels */
+   levels?: StartCardLevels;
 }
 
-export function StartCard({ meta, definition, coarse, exitHref, leaderboard, onPlay }: StartCardProps) {
+export function StartCard({ meta, definition, coarse, exitHref, leaderboard, onPlay, levels }: StartCardProps) {
+   const instructions = levels ? levels.instructions : definition.instructions;
+   const picked = levels?.progress.levels.find((level) => level.id === levels.selected);
+   const locked = !!levels && !picked?.unlocked;
    return (
       <Overlay label={`${meta.title}: start`} panelClassName={styles.startPanel}>
          <Link href={exitHref} className={styles.backLink}>
@@ -215,9 +245,19 @@ export function StartCard({ meta, definition, coarse, exitHref, leaderboard, onP
          <h1 className={styles.title}>{meta.title}</h1>
          <p className={styles.tagline}>{meta.tagline}</p>
 
-         {definition.instructions.length > 0 && (
+         {levels && (
+            <LevelTiles
+               meta={meta}
+               progress={levels.progress}
+               selected={levels.selected}
+               description={levels.description}
+               onSelect={levels.onSelect}
+            />
+         )}
+
+         {instructions.length > 0 && (
             <ul className={styles.instructions}>
-               {definition.instructions.map((line) => (
+               {instructions.map((line) => (
                   <li key={line}>{line}</li>
                ))}
             </ul>
@@ -234,13 +274,21 @@ export function StartCard({ meta, definition, coarse, exitHref, leaderboard, onP
             </div>
          </dl>
 
-         <div className={styles.best}>
-            <BestScoreBadge slug={meta.slug} />
-         </div>
+         {/* with levels the tiles show the bests and the total instead */}
+         {!levels && (
+            <div className={styles.best}>
+               <BestScoreBadge slug={meta.slug} />
+            </div>
+         )}
 
          {/* sticky: pinned to the card's bottom, or to its top once the top 10 is scrolled up */}
          <div className={styles.startAction}>
-            <FocusButton className={styles.primary} onClick={onPlay}>
+            <FocusButton
+               className={styles.primary}
+               onClick={onPlay}
+               disabled={locked}
+               aria-label={levels ? (locked ? `Level ${levels.selected} is locked` : `Play level ${levels.selected}`) : undefined}
+            >
                Play
             </FocusButton>
          </div>

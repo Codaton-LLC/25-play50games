@@ -1,4 +1,4 @@
-﻿# Penguin Ice Slide
+# Penguin Ice Slide
 
 Owner: Codex. Slug: `penguin-slide`. Skill game 15, wave 1, complexity 3. P-15 implementation; runtime review pending. Spec: 04 §15; asset ids: 05 §E.4. Units: metres, seconds, radians; rules use longitudinal distance s and lateral offset d, world y up. Core owns the shell and submission.
 
@@ -79,7 +79,10 @@ No generation and no game-owned GLBs; `assets.spec.json` has an empty assets arr
 | fish | C (A), EXPANSION_ASSETS.fish | 0.35 m long; pickup circle 0.55 | orange ellipsoid + tail |
 | pine trees | C (A), EXPANSION_ASSETS.pineTree | 3–5 m tall, no collision | stacked cones + trunk |
 | gate flags | D, REUSED_ASSETS.checkpointFlag | 1.5 m tall, material override blue #38bdf8, no collision | pole + blue triangle |
-| track, ice blocks, snowmen, gates | B, procedural | track widths above; ice diameter 1.2/height 1; snowman diameter 1/height 1.4; gate posts 2.4 tall | code |
+| snowmen | A, shared GLB (`shared/snowman.glb`, batch 5) via `<DynamicInstancedModel>` pool of 15 | height 1.37, base ball diameter 0.98; collision circle 0.5 unchanged | two spheres + carrot (the old primitive) |
+| track, ice blocks, gates | B, procedural | track widths above; ice diameter 1.2/height 1; gate posts 2.4 tall | code |
+
+- **Snowman GLB fit (P-17):** the GLB (measured: height 1.9034, base ball radius 0.6828, floor pivot, carrot nose at +z) is drawn at scale 0.72: height 1.37 (within 3 % of the old 1.4 m stand-in) and base ball radius 0.49 on the rules' 0.5 m collision circle. No `rotationY` — the GLB nose points +z like the old primitive, so the face looks up the track toward the camera. The pool keeps the same per-copy `update` matrices; the draw calls drop from 2 primitive parts to 1 GLB mesh.
 
 Penguin <=8k tris/1024 texture, fish <=1.5k/512; pine shared budget verified without editing shared assets. Track uses canvas ice texture; snow banks, crack dark discs/coral borders, ramp slopes, split islands, arches, lake plane and speed lines are procedural, non-generated. Ice fresnel uses opaque shader approximation to avoid transparent sorting through banks.
 

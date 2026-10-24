@@ -1,0 +1,105 @@
+/* The start card's level picker (LevelTiles.tsx). The row scrolls sideways inside the card on a
+   narrow screen; every tile is at least 44 px tall and wide enough for a two-word title. */
+.levels {
+   margin-top: 16px;
+}
+
+.row {
+   display: flex;
+   gap: 8px;
+   margin: 0 calc(-1 * var(--panel-pad-x, 20px));
+   padding: 2px var(--panel-pad-x, 20px) 6px;
+   overflow-x: auto;
+   overscroll-behavior-x: contain;
+   scroll-snap-type: x proximity;
+   scrollbar-width: thin;
+   -webkit-overflow-scrolling: touch;
+}
+
+.tile {
+   display: flex;
+   flex: 1 0 92px;
+   flex-direction: column;
+   gap: 2px;
+   min-width: 92px;
+   min-height: 44px;
+   padding: 8px 10px;
+   border: 1px solid var(--stroke);
+   border-radius: 12px;
+   background: var(--card);
+   color: var(--text);
+   font: inherit;
+   text-align: left;
+   cursor: pointer;
+   scroll-snap-align: start;
+}
+
+.tile:hover {
+   border-color: var(--muted);
+}
+
+.tile:focus-visible {
+   outline: 2px solid var(--accent);
+   outline-offset: 2px;
+}
+
+.selected {
+   border-color: var(--game-accent, var(--accent));
+   box-shadow: inset 0 0 0 1px var(--game-accent, var(--accent));
+}
+
+.tile[data-state="locked"] {
+   color: var(--muted);
+}
+
+.top {
+   display: flex;
+   align-items: center;
+   justify-content: space-between;
+}
+
+.number {
+   font-size: 18px;
+   font-weight: 800;
+   font-variant-numeric: tabular-nums;
+}
+
+.icon {
+   width: 16px;
+   height: 16px;
+}
+
+.tile[data-state="cleared"] .icon {
+   color: var(--game-accent, var(--accent));
+}
+
+.title {
+   overflow: hidden;
+   font-size: 12px;
+   font-weight: 700;
+   line-height: 1.2;
+   text-overflow: ellipsis;
+   white-space: nowrap;
+}
+
+.best {
+   color: var(--muted);
+   font-size: 12px;
+   font-variant-numeric: tabular-nums;
+}
+
+.description {
+   min-height: 1.4em;
+   margin: 8px 0 0;
+   color: var(--muted);
+   font-size: 14px;
+   line-height: 1.4;
+}
+
+.total {
+   margin: 6px 0 0;
+   color: var(--text);
+   font-size: 14px;
+   font-weight: 700;
+   font-variant-numeric: tabular-nums;
+}
