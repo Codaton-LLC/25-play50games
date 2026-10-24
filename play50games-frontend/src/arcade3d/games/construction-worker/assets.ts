@@ -29,7 +29,7 @@ export const MIXER_GLB = { width: 1.285, height: 1.9095, depth: 1.4202 } as cons
 export const MIXER_HEIGHT = 1.5;
 const MIXER_SCALE = MIXER_HEIGHT / MIXER_GLB.height;
 /** Where it stands on the site (m): beside the work zone on the -x side, outside the crane's wedge. */
-export const MIXER = { x: -6.7, z: 6.4, yaw: 0.9 } as const;
+export const MIXER = { x: -6.6, z: 6.0, yaw: 0.9 } as const;
 
 export const ASSETS = {
    worker: { ...REUSED_ASSETS.cleaner, scale: WORKER_SCALE },

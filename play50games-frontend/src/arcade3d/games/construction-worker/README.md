@@ -55,7 +55,7 @@ The proof uses only the radius gates (7.8 / 8.9) and the 0.25 s dwell, never the
 
 ## Scene and camera
 
-The fit is the work zone, not the 16 × 14 yard: x −4.8..4.8, y 0..5.7, z 4.8..10.2. y 5.7 is the hook block at rest (4.5 + 1.2), so the block stays under the chips. The mast above that, and the empty ground in front of the piles, may leave the frame. Pitch 40°, fov 42, padding 8, shift, margin `{ top: 0.10, bottom: 0.08, left: 0.02, right: 0.02 }`. Portrait yaw 0.6; a short wide phone uses `0.6 + π/2`. Look-at `(0, 0.35 · roofHeight, 7.5)`.
+The fit is the work zone, not the 16 × 14 yard: x −4.8..4.8, y 0..5.7, z 4.8..10.2. y 5.7 is the hook block at rest (4.5 + 1.2), so the block stays under the chips. The mast above that, and the empty ground in front of the piles, may leave the frame. Pitch 40°, fov 42, padding 8, shift, margin `{ top: 0.10, bottom: 0.08, left: 0.02, right: 0.02 }`. Portrait and desktop yaw 0.28 (was 0.6: on a 390 × 844 phone the mast top ran under the Mute / Pause buttons; at 0.28 it rises between the chips and the buttons); a short wide phone uses `π/2 + 0.1` (was `0.6 + π/2`: the counter-jib and cab sat under the buttons at 844 × 390). Look-at `(0, 0.35 · roofHeight, 7.5)`.
 
 | | px/m | hook 1.2 m | slot 1.2 m | worker 1.56 m | ok 0.6 m | perfect 0.15 m |
 |---|---|---|---|---|---|---|
@@ -140,7 +140,7 @@ play: 390×844 and 844×390, cookie banner open. Blueprint is a dark pill under 
 
 ## Hyper3D batch 5 adoption
 
-- **Cement mixer (2026-10-24, Hyper3D batch 5):** `/models/3d/construction-worker/cementMixer.glb` (1500 tris) as decor beside the work zone at (-6.7, 6.4), yaw 0.9, 1.5 m tall (1.01 x 1.12 m footprint), behind the `decor` quality gate; `mixer.test.ts` keeps it outside the work area, the crane's wedge and every camera-to-target line. Static (one mesh). Adopted by Antigravity; finished by Claude after Antigravity's quota ran out.
+- **Cement mixer (2026-10-24, Hyper3D batch 5):** `/models/3d/construction-worker/cementMixer.glb` (1500 tris) as decor beside the work zone at (-6.6, 6.0) (was (-6.7, 6.4): moved in so it stays in the portrait frame at yaw 0.28), yaw 0.9, 1.5 m tall (1.01 x 1.12 m footprint), behind the `decor` quality gate; `mixer.test.ts` keeps it outside the work area, the crane's wedge and every camera-to-target line. Static (one mesh). Adopted by Antigravity; finished by Claude after Antigravity's quota ran out.
 
 ## Look (2026-10-24)
 

@@ -15,7 +15,10 @@ export function Hud() {
    return (
       <div className={styles.slot} data-arcade-safe-area>
          <p className={styles.pill}>
-            {site}: next <span className={styles.name}>{name}</span> · Drop when the ring turns gold
+            <span>
+               {site}: next <span className={styles.name}>{name}</span>
+            </span>
+            <span className={styles.tip}>Drop when the ring turns gold</span>
          </p>
       </div>
    );
