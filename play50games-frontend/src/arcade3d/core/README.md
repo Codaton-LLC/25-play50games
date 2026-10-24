@@ -329,6 +329,8 @@ const end = simulateRun(createArcadeStore(), { durationMs: DURATION_MS, frame: r
 expect(withinServerLimits(end.score, end.elapsedMs)).toBe(true);
 ```
 
+Next to it, `core/testing/periodic.ts` (also tests only) is the **periodic solver** (C5) for grids whose blocked cells repeat with a period (patrols, sweeps): see "Expansion core 2".
+
 ## Path helper
 
 `createPath` copies control points and builds a Float64 arc-length table once. Open polylines clamp; closed polylines wrap both positive and negative distances. `smooth` selects uniform Catmull-Rom with `samples` intervals per segment (default 16); point/tangent queries operate on the sampled polyline. At a joint, tangent is the outgoing segment (incoming at an open endpoint); duplicate open endpoints use the last nonzero tangent; entirely coincident paths have zero tangent. Non-finite point distances select the start. Distances use all three axes. Empty paths are rejected; singleton paths stay fixed. `advance(state, ds)` mutates `{ path, s, position, overflow? }` without allocation, writing signed unconsumed open-path distance to `overflow`. `nearestS` chooses the first nearest segment on ties. `createPathGraph(segments, junctions)` copies outgoing index lists; `next(segment, choice)` returns null for unavailable choices. Junction lists have one row per segment. `advanceGraph(state, graph, choose, ds)` carries forward overflow into connected paths; `choose(endingSegmentIndex)` returns an outgoing path index. Missing links, reverse travel and zero-length cycles retain overflow. Riders retain optional `segment` identity, initialized with `indexOf` once when omitted; set it when entering a graph externally. Invalid junction entries are skipped using `choiceCount(segment)` to bound the row scan; legacy graphs without it stop at the first null.
@@ -485,7 +487,7 @@ import { SkyDome, SnowFall, Starfield, Water } from "../../core/env";
 
 ## Lighting presets
 
-`environment.lighting` (`LightingPreset` in `types.ts`): `day`, `indoor`, `night`, plus `sunset` (a warm, low sun from the side, a purple ground bounce), `snow` (bright, cool, soft) and `space` (one hard white sun, almost no fill). Each is an ambient + hemisphere + one directional light, like the first three; no shadows.
+`environment.lighting` (`LightingPreset` in `types.ts`, values in `LIGHTING_PRESETS`, `core/lighting.ts`): `day`, `indoor`, `night`, plus `sunset` (a warm, low sun from the side, a purple ground bounce), `snow` (bright, cool, soft) and `space` (one hard white sun, almost no fill). Each is an ambient + hemisphere + one directional light, like the first three; no shadows.
 
 ```ts
 environment: { background: "#1e1b4b", fog: ["#1e1b4b", 30, 90], lighting: "sunset" },
@@ -641,4 +643,21 @@ Nothing here changes an existing game: the aim drag is opt-in per definition, `d
 - **End cue:** `endCue(kind, endReason, score)` (`frameLoop.ts`) picks the shell's end sound. A win plays "win"; a points game that runs out its clock with a score above 0 (a score attack reaching its end) also plays "win"; every other end plays "lose". Before this, every `"timeup"` played the lose sting.
 - **`GameDefinition.clockChip: false`** hides the shell's Time / Played chip, for games that show their own clock (museum-guard's Dawn, robot-factory's 90 s).
 - **`SHARED_GLB_SIZE`** (robot, battery, crate) and **`REUSED_GLB_SIZE.barrel`**: raw GLB bounds for games that fit these meshes to their own sizes (robot-factory), checked against the meshes in `expansionAssets.test.ts`.
+- **Periodic solver (C5, `core/testing/periodic.ts`, tests only):** fairness proofs and bots on a grid whose blocked cells repeat every `period` steps. Cells are `y * width + x`; a mask is a `Uint8Array` of cells × phases, phase-major (`mask[phase * cells + cell]`, 1 = blocked). `periodicMask(cells, phases)` (all free), `shiftMask(mask, cells, phases, steps, out?)` (the pattern started `steps` phases ahead: `out[p] = mask[(p + steps) mod phases]`), `orMasks(out, ...masks)` (`out |= mask`, returns `out`). A problem is `{ grid: { width, height }, period, blocked, goal, moves? }`: `goal` = cell list (any phase) or `(cell) => boolean`, `moves` = offsets besides waiting (default `NEIGHBOURS_4`; add e.g. `[2, 0]` hops; the solver checks only the source and destination, so a hop over a wall is the caller's rule). A step from phase p needs its source free at p and its destination free at p + 1; waiting is always allowed. `solvePeriodic(problem)` → winning table (same layout, 1 = a safe route to a goal from this cell at this phase), `solvePeriodicSteps(problem)` → fewest steps per state (-1 = none), both one backward BFS (iterative, ≈ 0.25 s for 120 × 120 × 108 in node); `earliestArrival(problem, start, phase)` → fewest steps forward (0 on a free goal, -1 = never); `planPeriodic(problem, start, phase, steps?)` → one `[dx, dy]` per step (`[0, 0]` = wait) along winning states, `[]` on a free goal, `null` when the start is not winning (pass `steps` to plan many starts on one solve).
 
+```ts
+const keeper = periodicMask(cells, 108); // fill per keeper from its patrol, then:
+const blocked = orMasks(periodicMask(cells, 108), shiftMask(keeperA, cells, 108, 18 * k), keeperB);
+const problem = { grid: { width, height }, period: 108, blocked, goal: gateCells };
+const win = solvePeriodic(problem);
+expect(startCells.every((c) => range(108).every((p) => win[p * cells + c] === 1))).toBe(true);
+const plan = planPeriodic(problem, start, phase); // the solver bot replays it through the real rules
+```
+
+- **Stage lighting crossfade (C2, `core/lighting.ts`):** `useStageLighting(preset: LightingPreset | null, fadeS = 1, background?, fog?)` inside a Scene fades ShellStage's lights to `preset` over `fadeS` seconds of game time (`useGameTime`: stops while paused) whenever its arguments change: the ambient intensity, the hemisphere sky / ground colours and intensity, the directional light's colour, intensity and position, the scene background colour and the fog colour. ShellStage keeps ONE ambient + hemisphere + directional light for every preset (no shader recompile), copies the values in place at `FRAME_PRIORITY.visuals` only while a fade runs (pre-allocated `Color` / `Vector3`, no per-frame allocation). The background defaults to the preset's `background` in `LIGHTING_PRESETS`, the fog colour to the background; `null` (or the environment's own preset with no colours) fades back to the game's `environment` exactly. The request lives while the calling component is mounted: its unmount (Retry, Scene remount) resets the stage to `environment.lighting` at once. Fog near / far never change, and a game without `environment.fog` gets no fog. Games that never call the hook render exactly as before. Pure parts for tests: `LIGHTING_PRESETS`, `lightingSpec(name)`, `lightingPreset(name, out?, background?, fog?)`, `lerpLighting(from, to, k, out)`, `copyLighting`, and the crossfade state `createStageLighting` / `setStageEnvironment` / `requestStageLighting(state, preset, fadeS, now, background?, fog?)` / `stepStageLighting(state, now)` / `resetStageLighting`.
+
+```tsx
+// zoo-escape: environment { background: "#bae6fd", fog: ["#bae6fd", 30, 70], lighting: "day" }
+// `stage` is the game's own state (1-based here); null = back to the environment
+useStageLighting(stage >= 3 ? "sunset" : null, 1.5, "#f4a582");
+```
