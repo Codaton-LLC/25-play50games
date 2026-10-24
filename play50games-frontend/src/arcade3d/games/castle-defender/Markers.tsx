@@ -6,7 +6,7 @@ import { Vector3 } from "three";
 import { TargetMarkers, type MarkerTarget } from "@/arcade3d/core/hud";
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { visibleGoblin } from "./Goblins";
-import { threatenedCrew, type CastleRun } from "./rules";
+import { LADDER, threatenedCrew, type CastleRun } from "./rules";
 
 const LANE_X = [-3, 0, 3];
 export function Markers({ run }: { run: CastleRun }) {
@@ -29,13 +29,13 @@ export function Markers({ run }: { run: CastleRun }) {
       };
    }, []);
    useEffect(() => { gl.domElement.parentElement?.appendChild(dom.layer); return () => dom.layer.remove(); }, [dom, gl]);
-   const place = (slot: number, x: number, y: number, z: number, visible: boolean) => {
+   const place = (slot: number, x: number, y: number, z: number, visible: boolean, lift = 0) => {
       const node = dom.nodes[slot]; scratch.p.set(x, y, z).project(camera);
       const on = visible && Math.abs(scratch.p.x) <= 1 && Math.abs(scratch.p.y) <= 1 && scratch.p.z < 1;
       const display = on ? "block" : "none";
       if (display !== dom.display[slot]) { node.style.display = display; dom.display[slot] = display; }
       if (!on) return;
-      const px = Math.round((scratch.p.x + 1) * size.width / 2), py = Math.round((1 - scratch.p.y) * size.height / 2);
+      const px = Math.round((scratch.p.x + 1) * size.width / 2), py = Math.max(12, Math.round((1 - scratch.p.y) * size.height / 2) - lift);
       if (px !== dom.x[slot]) { node.style.left = pixels.x[px]; dom.x[slot] = px; }
       if (py !== dom.y[slot]) { node.style.top = pixels.y[py]; dom.y[slot] = py; }
    };
@@ -46,9 +46,10 @@ export function Markers({ run }: { run: CastleRun }) {
          const living = !!g && g.status !== "dead" && g.status !== "waiting" && g.status !== "escaped";
          t.hidden = !living; let small = false;
          if (g && living) {
-            t.x = g.x; t.y = g.y + 0.8; t.z = g.z; let lo = Infinity, hi = -Infinity;
+            const k0 = g.status === "climb" ? LADDER.climberScale : 1;
+            t.x = g.x; t.y = g.y + 0.8 * k0; t.z = g.z; let lo = Infinity, hi = -Infinity;
             for (let k = 0; k < 8; k++) {
-               scratch.corner.set(g.x + (k & 1 ? 0.592 : -0.592), g.y + (k & 2 ? 1.6 : 0), g.z + (k & 4 ? 0.3189095 : -0.3189095)).project(camera);
+               scratch.corner.set(g.x + (k & 1 ? 0.592 : -0.592) * k0, g.y + (k & 2 ? 1.6 * k0 : 0), g.z + (k & 4 ? 0.3189095 : -0.3189095) * k0).project(camera);
                const py = (1 - scratch.corner.y) * size.height / 2; lo = Math.min(lo, py); hi = Math.max(hi, py);
             }
             small = hi - lo < 24 || g.z < -4.5;
@@ -56,7 +57,10 @@ export function Markers({ run }: { run: CastleRun }) {
          place(i, t.x, t.y, t.z, on && living && small);
       }
       place(40, run.aim.x, 0.04, -run.aim.y, on);
-      const crew = threatenedCrew(run); place(41, crew >= 0 ? LANE_X[run.crews[crew].lane] : 0, 2.3, 2, on && crew >= 0);
+      // the "!" sits above the ladder and its highest climber (centre 24 px over their top), never on them
+      const crew = threatenedCrew(run); let top = 0.08 + LADDER.height + 0.15;
+      if (crew >= 0) for (const g of run.goblins) if (g.crew === crew && g.status === "climb") top = Math.max(top, g.y + 1.6 * LADDER.climberScale);
+      place(41, crew >= 0 ? LANE_X[run.crews[crew].lane] : 0, top, 2, on && crew >= 0, 24);
       const border = run.ready <= run.time ? "#34d399" : "#f8fafc";
       if (border !== dom.border[40]) { dom.nodes[40].style.borderColor = border; dom.border[40] = border; }
    });

@@ -49,8 +49,23 @@
    font-size: 20px;
    pointer-events: none;
 }
+.victory {
+   position: absolute;
+   top: 34%;
+   left: 50%;
+   transform: translateX(-50%);
+   padding: 10px 22px;
+   border: 3px solid #fbbf24;
+   border-radius: 14px;
+   background: #0f172a;
+   color: #fde68a;
+   font-size: 28px;
+   font-weight: 800;
+   white-space: nowrap;
+   pointer-events: none;
+}
 @media (max-height: 520px) {
    .panel { top: 55px; padding: 5px 10px; }
    .wave { top: 108px; }
-   .card { width: 176px; height: 72px; }
+   .victory { top: 28%; font-size: 22px; }
 }

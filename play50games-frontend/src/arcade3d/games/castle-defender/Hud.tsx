@@ -1,9 +1,10 @@
 "use client";
 
 import { useShallow } from "zustand/react/shallow";
-import { sameScreenRects, useSafeArea } from "@/arcade3d/core/safeArea";
+import { useSafeArea } from "@/arcade3d/core/safeArea";
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import styles from "./Hud.module.css";
+import { placeCards, type CardPlacement } from "./layout";
 
 const CARDS = [
    { icon: "↻", title: "Quick reload", effect: "Reload ×0.8" },
@@ -11,6 +12,8 @@ const CARDS = [
    { icon: "+", title: "Repair gate", effect: "+25 HP / max125" },
    { icon: "●●", title: "Double shot", effect: "2 balls / reload" },
 ];
+const samePlacement = (a: CardPlacement, b: CardPlacement) =>
+   a.left === b.left && a.top === b.top && a.width === b.width && a.height === b.height && a.column === b.column;
 export default function Hud() {
    const stats = useArcadeStore(useShallow(({ stats: s }) => ({
       hp: s.hp ?? 100, maxHP: s.maxHP ?? 100, wave: s.wave ?? 1,
@@ -18,17 +21,8 @@ export default function Hud() {
       banner: s.banner, offer: s.offer, card1: s.card1 ?? 0, card2: s.card2 ?? 1, chosen: s.chosen ?? 0,
    })));
    const phase = useArcadeStore((s) => s.phase);
-   const areaWidth = useSafeArea((a) => a.width), areaHeight = useSafeArea((a) => a.height);
-   const obstructions = useSafeArea((a) => a.obstructions, sameScreenRects);
-   const controls = useSafeArea((a) => a.controls, sameScreenRects);
-   const hud = useSafeArea((a) => a.hud, sameScreenRects);
-   const short = areaHeight > 0 && areaHeight <= 520;
-   const width = short ? 360 : 296, height = short ? 72 : 88;
-   let bottom = areaHeight || 844, top = 0, right = areaWidth || 390;
-   for (const r of obstructions) bottom = Math.min(bottom, r.top);
-   for (const r of controls) { bottom = Math.min(bottom, r.top); if (r.left > areaWidth / 2) right = Math.min(right, r.left - 8); }
-   for (const r of hud) top = Math.max(top, r.bottom + 8);
-   const left = Math.max(8, (right - width) / 2), y = Math.max(top, bottom - height - 12);
+   const place = useSafeArea(placeCards, samePlacement);
+   const ending = useArcadeStore((s) => (s.phase === "over" ? s.endReason : null));
    const choose = (value: number) => {
       const s = useArcadeStore.getState();
       if (s.phase === "playing" && s.stats.offer === 1 && !(s.stats.pick > 0)) s.setStat("pick", value);
@@ -41,10 +35,11 @@ export default function Hud() {
          <span>Ladder {stats.climb ?? 0}%</span>
       </div>
       {phase === "playing" && stats.banner === 1 && <div className={styles.wave}>Wave {stats.wave ?? 1}</div>}
-      {phase === "playing" && stats.offer === 1 && <div className={styles.offers} style={{ left, top: y }} aria-label="Choose one upgrade">
+      {ending === "win" && <div className={styles.victory} role="status">Gate held!</div>}
+      {phase === "playing" && stats.offer === 1 && <div className={styles.offers} style={{ left: place.left, top: place.top, flexDirection: place.column ? "column" : "row" }} aria-label="Choose one upgrade">
          {[0, 1].map((slot) => {
             const card = CARDS[stats[slot ? "card2" : "card1"] ?? slot], selected = stats.chosen === slot + 1;
-            return <button key={slot} type="button" className={`${styles.card} ${selected ? styles.selected : ""}`} onPointerDown={(e) => e.stopPropagation()} onClick={(e) => { e.stopPropagation(); choose(slot + 1); }} aria-pressed={selected} disabled={(stats.chosen ?? 0) > 0}>
+            return <button key={slot} type="button" className={`${styles.card} ${selected ? styles.selected : ""}`} style={{ width: place.width, height: place.height }} onPointerDown={(e) => e.stopPropagation()} onClick={(e) => { e.stopPropagation(); choose(slot + 1); }} aria-pressed={selected} disabled={(stats.chosen ?? 0) > 0}>
                <strong>{card.icon} {card.title}</strong><small>{card.effect}</small><span>{slot + 1} · {selected ? "Selected" : "Choose"}</span>
             </button>;
          })}

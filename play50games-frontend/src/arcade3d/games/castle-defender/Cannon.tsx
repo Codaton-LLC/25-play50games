@@ -9,14 +9,15 @@ import { DynamicInstanced, type InstancePart } from "@/arcade3d/core/render";
 import { BoxGeometry, MeshStandardMaterial } from "three";
 import { useEffect } from "react";
 import { ASSETS } from "./assets";
-import { LANE_X, ROCK_FLIGHT, TUNING, splash, type CastleRun } from "./rules";
+import { LADDER, LANE_X, ROCK_FLIGHT, TUNING, splash, type CastleRun } from "./rules";
 
 export function Cannon({ run, reduced }: { run: CastleRun; reduced: boolean }) {
    const time = useGameTime(), ring = useRef<Group>(null), rear = useRef<Mesh>(null);
    const parts = useMemo<InstancePart[]>(() => [{ geometry: new BoxGeometry(1, 1, 1), material: new MeshStandardMaterial({ color: "#92400e" }), locals: [
-      new Matrix4().makeScale(0.1, 2, 0.1).setPosition(-0.55, 1.08, 0),
-      new Matrix4().makeScale(0.1, 2, 0.1).setPosition(0.55, 1.08, 0),
-      ...Array.from({ length: 7 }, (_, n) => new Matrix4().makeScale(1.2, 0.07, 0.1).setPosition(0, 0.2 + n * 0.28, 0)),
+      // wide, thick rails so a ladder reads >= 24 CSS px on a landscape phone (LADDER in rules.ts)
+      new Matrix4().makeScale(0.18, LADDER.height, 0.16).setPosition(-LADDER.half, 0.08 + LADDER.height / 2, 0),
+      new Matrix4().makeScale(0.18, LADDER.height, 0.16).setPosition(LADDER.half, 0.08 + LADDER.height / 2, 0),
+      ...Array.from({ length: 9 }, (_, n) => new Matrix4().makeScale(2 * LADDER.half, 0.1, 0.12).setPosition(0, 0.3 + n * 0.3, 0)),
    ] }], []);
    useEffect(() => () => { parts[0].geometry.dispose(); (parts[0].material as MeshStandardMaterial).dispose(); }, [parts]);
    useFrame(() => {
@@ -41,13 +42,13 @@ export function Cannon({ run, reduced }: { run: CastleRun; reduced: boolean }) {
    function progress(i: number, m: Matrix4) {
       const c = run.crews[i]; if (c.erected < 0 || c.destroyed || c.wave !== run.wave || run.time >= c.erected + TUNING.climb) return false;
       const fraction = Math.max(0.001, Math.min(1, (run.time - c.erected) / TUNING.climb));
-      m.makeScale(fraction, 1, 1).setPosition(LANE_X[c.lane] - (1 - fraction) * 0.6, 2.23, 2);
+      m.makeScale(fraction, 1, 1).setPosition(LANE_X[c.lane] - (1 - fraction) * LADDER.half, 0.08 + LADDER.height + 0.15, 2);
    }
    return <group>
       <DynamicInstanced count={8} update={ball}><sphereGeometry args={[0.125, 10, 8]} /><meshStandardMaterial color="#334155" /></DynamicInstanced>
       <DynamicInstancedModel asset={ASSETS.rock} count={1} update={rock} />
       <DynamicInstanced count={4} update={ladder} parts={parts} />
-      <DynamicInstanced count={4} update={progress}><boxGeometry args={[1.2, 0.08, 0.12]} /><meshBasicMaterial color="#fbbf24" /></DynamicInstanced>
+      <DynamicInstanced count={4} update={progress}><boxGeometry args={[2 * LADDER.half, 0.1, 0.12]} /><meshBasicMaterial color="#fbbf24" /></DynamicInstanced>
       <group ref={ring}>
          <mesh rotation={[-Math.PI / 2, 0, 0]} renderOrder={3}><ringGeometry args={[0.97, 1, 48]} /><meshBasicMaterial color="#f8fafc" transparent opacity={0.7} depthWrite={false} /></mesh>
       </group>

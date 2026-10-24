@@ -34,7 +34,7 @@ function TreeFallback({ spots }: { spots: readonly InstanceSpot[] }) {
    </group>;
 }
 
-export function Castle({ run }: { run: CastleRun }) {
+export function Castle({ run, reduced }: { run: CastleRun; reduced: boolean }) {
    const gate = useRef<Group>(null), banners = useRef<Group>(null), time = useGameTime();
    const endedAt = useRef(-1);
    const quality = useQuality();
@@ -42,7 +42,12 @@ export function Castle({ run }: { run: CastleRun }) {
    useFrame(() => {
       if (run.end && endedAt.current < 0) endedAt.current = time.now;
       if (gate.current) gate.current.rotation.x = run.end === "lose" ? Math.min(1.2, (time.now - endedAt.current) * 0.8) : 0;
-      if (banners.current) banners.current.rotation.z = Math.sin(time.now * 1.4) * 0.035;
+      if (banners.current) {
+         // a win raises the wall banners and makes them wave (reduced motion: raised, still)
+         const won = run.end === "win" ? Math.min(1, (time.now - endedAt.current) / 0.4) : 0;
+         for (const flag of banners.current.children) flag.scale.setScalar(1 + 0.8 * won);
+         banners.current.rotation.z = reduced && won ? 0 : Math.sin(time.now * (1.4 + 6 * won)) * (0.035 + 0.08 * won);
+      }
    });
    return <group>
       <SkyDome top="#93c5fd" bottom="#dbeafe" />
