@@ -134,3 +134,47 @@ Claude acceptance remains: run all tests/build, mutation probes, mesh clearance 
 - **Scale**: `HUNTER_SCALE = 1.56 / 1.8997` (the measured GLB height; its arm span, 1.748, is shorter) = 0.8212, so the hunter stays 1.56 m tall, the runner's height before.
 - **Pack**: the chest anchor sits on the flat upper back (z -0.204 GLB); the belt pouches behind the hips stick out 3.2 cm (drawn) inside the pack's footprint, so `BACK_CLEARANCE` is 0.035 (the runner needed 0.07 for its shoulder blades): the pack's back face is 4.5 cm off the upper back and its box clears the pouches through walk, run, aim and cheer. `HOSE_ROUTE` is unchanged (26 cm clear of the torso and upper arm).
 - **Tests on the real mesh**: `hunter.test.ts` (core `describeCharacter`: height and reach, landmarks vs. the estimate, bind pose, arms down, planted foot through a walk, head rigid; plus the drawn 1.56 m and the sleeves hanging with the arms), `poses.test.ts` (sole within 1 cm through idle / walk / run / aim / cheer by the landmarks and by the lowest posed boot vertex, the aimed hands at least 10 cm off the torso, the pack aligned with the independently measured back and clear of the posed body, the hose clear), `assets.test.ts` (1.56 m, feet on y = 0).
+
+## Look (2026-10-24)
+
+Visual-only modern-look pass giving Ghost Vacuum a polished, premium mobile-game aesthetic (CLAUDE.md Decision 4):
+- **Cohesive Palette (`looks.ts`)**: single `COLORS` palette driving all code-made and environment elements; atmospheric night sky, deep spooky greens, weathered stone, polished chestnut wood floors, rich burgundy carpets with gold borders, and Victorian plum walls.
+- **Mansion Interior**:
+  - Polished chestnut floorboards with a grand burgundy carpet runner and gold borders running through the central hall.
+  - Ornate Victorian rugs under the desks in all four rooms.
+  - Warm lamp light pools on the floor beneath each room's candelabra (`DynamicInstanced`), providing cosy warm pools that contrast with the cool moonlit night.
+  - Ornate brass candelabras with ivory candle wax and gently flickering warm flames.
+  - Victorian wall clock with bevelled brass casing, ivory dial, and black hands.
+  - Baroque gilded oil painting frame on the library wall with atmospheric canvas artwork.
+  - Deliberate 2-3 tone stand-in fallbacks: panelled wooden door with brass hardware, leather-bound books with parchment pages, and mahogany armchairs with velvet cushions.
+  - Faceted crystal reveal icon with a bright glowing core and gentle pulse.
+- **Code-made Stand-ins (`Primitives.tsx`)**:
+  - Vacuum pack: rounded cylinder canister in violet, dark mounting chassis, and a brass-bezel pressure meter dial.
+  - Hunter primitive: rounded boots with soles, mint jumpsuit with charcoal utility harness, belt with brass buckle, knee pads, and visor headset.
+- **Lighting & Environment**:
+  - Night preset lighting with cool moonlit blue fill and directional moonlight.
+  - Deep atmospheric night fog (`[#171836, 25, 75]`) in `index.tsx`.
+  - Core `<SkyDome>` gradient overhead (`#0b0d1e` to `#1e1b4b`).
+- **Surroundings Outside Play Area (`Decor.tsx`)**:
+  - Perimeter garden hedges framing the estate grounds.
+  - Gothic cemetery plots with weathered stone gravestones.
+  - Gnarled bare trees with twisted silhouette branches behind and flanking the mansion.
+  - Glowing 3D moon with soft halo hanging in the midnight sky.
+  - Distant rolling night hills grounding the estate on the horizon.
+  - Exterior estate lawn and front cobblestone entrance path.
+  - Zero play area occlusion verified across 1280x800, 390x844, and 844x390 viewports (`decorSpots.test.ts`).
+- **Juicy Feedback**:
+  - `fx.shake(0.12)` camera shake on ghost capture and `fx.shake(0.25)` on win.
+  - Spooky smoke puff (`fx.burst("puff")`) on hidden ghost reveal.
+  - Sparkle burst on ghost stun.
+- **Draw-call Estimate (Peak <= 46, Budget <= 60)**:
+  - Mansion architecture (floor, hall runner, room rugs, solid/faded walls, warm light pools): ~7
+  - Interior props (desks, chairs, books, doors, candelabras, clock, painting, icons): ~9
+  - Hunter & equipment (humanoid model / primitive, pack, nozzle, flashlight & suction cones, suction stream): ~5
+  - Ghost pool (ghost bodies, crown/outlines, ground shadows, pull rings): ~4
+  - Surroundings decor (hedges, gravestones, bare trees, hills, moon, lawn, path): ~8
+  - Environment & FX (sky dome, sparkles, score popups, confetti): ~5
+  - Target markers HUD: ~1
+  - **Total estimated draw calls**: ~39 steady, ~46 peak (well within the <= 60 budget).
+  - Geometries and materials created once in `useMemo` and cleanly disposed on unmount; zero per-frame allocations. No `dispose={null}` on primitive geometry attachments.
+

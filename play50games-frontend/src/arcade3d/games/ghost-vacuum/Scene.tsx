@@ -4,6 +4,7 @@ import { useFrame, useThree } from "@react-three/fiber";
 import { Plane, Raycaster, Vector2, Vector3, type Group } from "three";
 import CameraRig from "@/arcade3d/core/CameraRig";
 import { isMuted, playSfx, startLoop, type LoopHandle } from "@/arcade3d/core/audio";
+import { SkyDome } from "@/arcade3d/core/env";
 import { useFx } from "@/arcade3d/core/fx";
 import { useGameTime } from "@/arcade3d/core/gameTime";
 import { TargetMarkers } from "@/arcade3d/core/hud";
@@ -21,7 +22,9 @@ import { useRunFrame } from "@/arcade3d/core/useRunFrame";
 import type { ScreenRect } from "@/arcade3d/core/view";
 import { ASSETS, HUNTER_LANDMARKS, HUNTER_SCALE } from "./assets";
 import { viewFor } from "./camera";
+import Decor from "./Decor";
 import Ghosts from "./Ghosts";
+import { COLORS } from "./looks";
 import Mansion from "./Mansion";
 import { hunterPose } from "./poses";
 import { HunterPrimitive } from "./Primitives";
@@ -85,11 +88,12 @@ function Hunter({ run, shared }: { run: Run; shared: SuckShared }) {
       <group ref={root} name="hunter"><BlobShadow radius={0.4} y={0.03} />
          <HumanoidModel asset={ASSETS.hunter} pose={pose} fallback={<HunterPrimitive />}
             attach={{ chest: <Vacuum ref={hose} nozzle={nozzle} />, handR: <group ref={nozzle}>
-               <mesh position={[-0.1, 0, 0]} rotation={[0, 0, Math.PI / 2]}><cylinderGeometry args={[0.09, 0.055, 0.25, 10]} /><meshStandardMaterial color="#c4b5fd" /></mesh>
+               <mesh position={[-0.1, 0, 0]} rotation={[0, 0, Math.PI / 2]}><cylinderGeometry args={[0.09, 0.055, 0.25, 10]} /><meshStandardMaterial color={COLORS.hunterAccent} roughness={0.6} /></mesh>
+               <mesh position={[-0.22, 0, 0]} rotation={[0, 0, Math.PI / 2]}><cylinderGeometry args={[0.095, 0.09, 0.04, 10]} /><meshStandardMaterial color={COLORS.brass} metalness={0.7} roughness={0.3} /></mesh>
             </group> }} />
       </group>
-      <Flashlight ref={torch} halfAngle={LIGHT.angle} range={LIGHT.range} height={0} color="#fde68a" opacity={0.16} light />
-      <Flashlight ref={suction} halfAngle={PULL.angle} range={PULL.range} height={0} color="#c4b5fd" opacity={0.32} light={false} />
+      <Flashlight ref={torch} halfAngle={LIGHT.angle} range={LIGHT.range} height={0} color={COLORS.beamTorch} opacity={0.18} light />
+      <Flashlight ref={suction} halfAngle={PULL.angle} range={PULL.range} height={0} color={COLORS.beamSuction} opacity={0.32} light={false} />
       <DynamicInstanced count={36} update={(i, m) => {
          if (!run.scratch.input.held || reduced || (quality.tier === "low" && i >= 12)) return false;
          if (i < 12 && shared.active && shared.p > 0.3) {
@@ -107,7 +111,7 @@ function Hunter({ run, shared }: { run: Run; shared: SuckShared }) {
          const angle = beam.yaw + Math.sin(i * 2.4) * PULL.angle * q;
          const size = 0.025 + 0.015 * q;
          m.makeScale(size, size, size).setPosition(beam.origin.x + Math.sin(angle) * distance, beam.origin.y * (1 - q) + 0.6 * q, beam.origin.z + Math.cos(angle) * distance);
-      }}><sphereGeometry args={[1, 4, 3]} /><meshBasicMaterial color="#ddd6fe" transparent opacity={0.8} depthWrite={false} /></DynamicInstanced>
+      }}><sphereGeometry args={[1, 4, 3]} /><meshBasicMaterial color={COLORS.beamSuction} transparent opacity={0.8} depthWrite={false} /></DynamicInstanced>
    </>;
 }
 
@@ -143,7 +147,7 @@ export default function Scene() {
       }
    }, -0.01);
    useEffect(() => {
-      fx.warm("sparkle", "confetti", "score");
+      fx.warm("sparkle", "confetti", "score", "puff", "sparks");
       return useArcadeStore.subscribe((state, previous) => {
          if (state.phase !== previous.phase || state.phase !== "playing" || isMuted()) { scratch.loop = null; scratch.ambient = null; }
       });
@@ -191,25 +195,39 @@ export default function Scene() {
          let nearest = Infinity;
          for (const g of run.ghosts) if (active(g) && g.mode !== "hidden") {
             const d = Math.hypot(g.x - run.hunter.x, g.z - run.hunter.z);
-            if (d < nearest) { nearest = d; scratch.sfxOptions.pan = Math.sin(Math.atan2(g.x - run.hunter.x, g.z - run.hunter.z) - view.yaw); }
+            if (d < nearest) {
+               nearest = d;
+               scratch.sfxOptions.pan = Math.sin(Math.atan2(g.x - run.hunter.x, g.z - run.hunter.z) - view.yaw);
+               scratch.at.x = g.x; scratch.at.y = 1.0; scratch.at.z = g.z;
+            }
          }
-         scratch.sfxOptions.pitch = 1; playSfx("pop", scratch.sfxOptions);
-      } if (e.stun) playSfx("zap"); if (e.breaks) playSfx("hit");
+         scratch.sfxOptions.pitch = 1;
+         playSfx("pop", scratch.sfxOptions);
+         fx.burst("puff", scratch.at, 14);
+      }
+      if (e.stun) {
+         playSfx("zap");
+         fx.burst("sparkle", { x: run.hunter.x + Math.sin(run.hunter.yaw) * 2.5, y: 0.9, z: run.hunter.z + Math.cos(run.hunter.yaw) * 2.5 }, 8);
+      }
+      if (e.breaks) playSfx("hit");
       for (let n = 0; n < e.count; n++) {
          const g = run.ghosts[e.captures[n]];
          // Rules capture at the hunter centre; the drawn ghost ends in the nozzle mouth.
          scratch.at.x = shared.mouth.x; scratch.at.y = shared.mouth.y; scratch.at.z = shared.mouth.z;
-         fx.burst("sparkle", scratch.at, 18);
+         fx.burst("sparkle", scratch.at, 20);
+         fx.shake(0.12);
          scratch.sfxOptions.pan = Math.sin(run.hunter.yaw - view.yaw);
          scratch.sfxOptions.pitch = 1 + Math.min(0.4, Math.max(0, run.session - 1, e.count - 1) * 0.1);
          playSfx("pickup", scratch.sfxOptions);
       }
       if (e.count) { scratch.at.x = run.hunter.x; scratch.at.z = run.hunter.z; scratch.at.y = 1.9; fx.score(scratch.at, `+${e.points}`); }
-      if (e.win) { store.setScore(run.score); fx.burst("confetti", scratch.at, 40); store.end("win"); }
+      if (e.win) { store.setScore(run.score); fx.burst("confetti", scratch.at, 50); fx.shake(0.25); store.end("win"); }
    });
    return <>
       <CameraRig camera={{ position: view.offset, lookAt: [0, 0, 0] }} follow={run.hunter} followFraction={1} offset={view.offset} shift={view.shift} damping={4} />
+      <SkyDome top={COLORS.skyTop} bottom={COLORS.skyBottom} />
+      <Decor />
       <Mansion run={run} /><Ghosts run={run} shared={shared} /><Hunter run={run} shared={shared} />
-      <TargetMarkers targets={scratch.targets} size={24} color="#c4b5fd" />
+      <TargetMarkers targets={scratch.targets} size={24} color={COLORS.hunterAccent} />
    </>;
 }
