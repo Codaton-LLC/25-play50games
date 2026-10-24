@@ -37,9 +37,11 @@ One score source: order completions, `100 · FACTOR[len] + 5 · patienceLeft` (r
 
 | | provisional (02 §C.4, `meta.ts` = `arcade-games.json`, `enabled: false`) | proposed (assets + limits PR) |
 |---|---|---|
-| `maxScore` / `max_score` | 6000 | **4900** |
+| `maxScore` / `max_score` | 6000 | **4200** |
 | duration | 10000–92000 ms | **12000–92000 ms** |
 | `base` / `max_pps` | 6000 / 6000 | **240 / 60** |
+
+> **Open: limits (go-live audit, 2026-10-24).** `rules.ts` `PROPOSED_LIMITS.maxScore` is **4200**, not 4900: the measured oracle topped out at ~3,860 (`meta.ts` note; `rules.test.ts` asserts ≥ 0.9 · `maxScore`), under 90 % of 4900, so the limit was set ~10 % above the measured legit peak instead of ceiling × 1.03. The seed-independent ceiling proven below stays **4680 — larger than 4200**, so the proof no longer shows a legal run never exceeds `maxScore`; it only bounds one by 4,680, and a run scoring 4,201–4,680 (the oracle says none does) would fail `withinServerLimits`. Code and limits left unchanged on purpose; Claude to decide: re-derive the ceiling to ≤ 4,200 or raise `maxScore`.
 
 Proof plan (robot-collector's structure, through the real store):
 
@@ -49,7 +51,7 @@ Proof plan (robot-collector's structure, through the real store):
 4. **Min duration:** a spam-of-wrongs run ends `"lose"` fastest, and **patience drain makes it faster than the toss cadence alone**. Earliest anger of one monster: wrong landings at +0 / +1.75 / +3.5 s after its order (a toss may be launched during the previous walk-in so it lands as the order appears; the burp lock 1.2 + flight 0.55 sets the 1.75 s spacing; a pre-launched toss cannot advance the order but still burps and takes −3) give −9, and the drain after the 1.5 s grace (grumpy 1.3/s, the fastest) removes the last point exactly at the third landing → angry ≥ order + **3.5 s** (≥ +3.55 s for the first monster, whose pre-toss cannot launch before the run starts). Then leave 0.4 + walk-in 0.8 to the next monster, first order at 0.5 s: pure spam angers at ≥ 4.05 / 8.75 / 13.45 and ends ≥ **13.85 s**; serving one order first (complete ≥ 2.15, so the next order is ≥ 4.95) ends ≥ **13.55 s** — the fastest legal `"lose"`. → **minDuration 12000 ms** (~12 % margin). Natural anger (drain alone) is slower: ≥ 1.5 + 10/1.3 ≈ 9.2 s per monster.
 5. **Every seed:** the scheduler only permutes types, kinds and drift, all inside the bounds above (checked on 1,000 seeds).
 
-Measured at the build: an oracle bot with minimal rotations (≤ 3 per ingredient, into the front-3 arc) through the real store, 200+ seeds at 60 fps, 20 fps and random 4–50 ms frames, plus spam, wrong-only and idle bots; expected oracle ≈ 4000–4400 (tips decay with cook time). If the measured oracle is under 90 % of 4900, the limits PR tightens `maxScore` to ~ceiling × 1.03. `capScore` stays a no-op on every run (tests).
+Measured at the build: an oracle bot with minimal rotations (≤ 3 per ingredient, into the front-3 arc) through the real store, 200+ seeds at 60 fps, 20 fps and random 4–50 ms frames, plus spam, wrong-only and idle bots; the oracle **topped out at ~3,860** (under 90 % of 4900), so `PROPOSED_LIMITS.maxScore` is **4200** (~10 % above the measured peak) rather than ceiling × 1.03 — see "Open: limits" above. `capScore` stays a no-op on every run (tests).
 
 ## Run end
 
@@ -88,7 +90,7 @@ No new generation: every GLB is in `core/modelManifest.ts`. Fits in `assets.ts`,
 | procedural | B: eyeball (sphere + iris), slime cube (rounded box), lazy Susan disc + rim, stove drum, counter, hatch + frame, shelves + instanced jars, cave walls, liquid disc (r = `CAULDRON_INNER_RADIUS_GLB` × scale ≈ 0.331, at `cauldronInnerRim` height − 0.03), bubbles, steam column, horns / party hat / top hat per type, order icons | | | |
 
 - Three monster **types**: jolly (lilac `#a78bfa`, party hat), greedy (green `#4ade80`, top hat), grumpy (pink `#f472b6`, horns) — tint × pale base, headgear as children of the monster group at a measured head anchor (game-local constant in `assets.ts`, verified on the real mesh in `assets.test.ts`).
-- `assets.spec.json` lists only `monster` and `cauldron` — both are **already generated and imported** (`EXPANSION_ASSETS.monster` / `.cauldron`, `/models/3d/monster-kitchen/*.glb`, expansion batch 1) and are marked `imported` in the spec (no generation requested); everything else is shared/reused. The catalog's mushroom decor (E.4, P3) is deferred — open question below.
+- `assets.spec.json` lists only `monster` and `cauldron` — both are **already generated and imported** (`EXPANSION_ASSETS.monster` / `.cauldron`, `/models/3d/monster-kitchen/*.glb`, expansion batch 1) and are marked `imported` in the spec (no generation requested); everything else is shared/reused. The catalog's mushroom decor (E.4, P3) **is in the build** — `Kitchen.tsx` draws five instanced spots, `scaledCount(5, quality.decor)`; `assets.test.ts` pins the 0.5 m fit.
 
 ## Files
 
@@ -130,13 +132,13 @@ Decisions for the user (this design's recommendation on each):
 - **Toss on `tap`, not `tapDown`** (changed from spec; the core input contract — see Controls). Recommendation: **accept** — `tapDown` fires before every swipe and would toss on every rotation; if P-15 playtesting feels the release latency, the alternative is a drag-to-aim opt-in, which this game does not want.
 - **Launch-before-appearance rule** (an order accepts only tosses launched after it appeared; earlier ones are ignored/burped — see Rules). Recommendation: **accept** — it closes the pre-toss exploit that made 4900 beatable (~5310); the pre-toss stays legal as a self-harming burp.
 - **Chef height 1.82 m** (the food-catcher measurement) instead of the eyeballed ~1.6 m. Recommendation: **accept** — measured beats guessed; the counter reach is re-checked against it at the build.
-- **Mushroom decor out of v1** (catalog E.4 P3, `EXPANSION_ASSETS.mushroom`). Recommendation: **keep out** — the draw-call estimate is already ≈ 36–39 of the 40 cap; add as shelf decor later if the probe shows room.
+- **Mushroom decor — superseded, IN v1** (catalog E.4 P3, `EXPANSION_ASSETS.mushroom`; the user approved it in the 2026-10-09 decisions above). It ships as five instanced spots in `Kitchen.tsx` (`scaledCount(5, quality.decor)`); the draw-call headroom concern stands for any further decor.
 - **Spam-to-lose runs are accepted** (score 0, over in ≥ ~13.6 s) with the corrected `minDuration` 12000 ms. Recommendation: **accept** — the alternative feel-guard (penalties cannot drop patience below 1 s) makes spam free and complicates the proof.
 
 Standing risks:
 
-- **Chef landmarks (needs Claude before the build):** `REUSED_ASSETS.chef` is a T-pose humanoid and `CHEF_LANDMARKS` still lives in `games/food-catcher/assets.ts`; games may not import each other, so per the `sharedAssets.ts` note this game is the one that gets them moved to core. Request: Claude moves `CHEF_LANDMARKS` to core (food-catcher adopts) before or with this build — Claude's action, none here.
-- **maxScore 4900** assumes the measured oracle lands ≥ 90 % of it; the limits PR tightens to ~ceiling × 1.03 if not.
+- **Chef landmarks — resolved:** `CHEF_LANDMARKS` now lives in `core/sharedAssets.ts` (on the core chef asset, `humanoid: { landmarks: CHEF_LANDMARKS }`) and food-catcher re-exports it from there — no game-to-game import, nothing needed before the build.
+- **maxScore 4200** (not 4900): the measured oracle peaked at ~3,860, under 90 % of 4900, so the limit sits ~10 % above the measured legit peak. The proven ceiling (4,680) is **higher** than 4,200 — see "Open: limits" above; Claude to decide.
 - Numbers marked [A] in the spec (patience 10, drains, grace 1.5, penalty 3, flight 0.55, burp 1.2, refill 0.9, drift 6 s, lengths) are tuning starting points; the proof is re-run before the limits PR if any move.
 - Headgear anchors and the monster tints are tuned on the real mesh during the build; a tint that muddies the pale base is swapped for a `material`-override colour (the treasure-island seagull pattern).
 - Audio: P-06 may ship real `burp` / chirp / grumble cues; the fallback map adopts them by rename.
