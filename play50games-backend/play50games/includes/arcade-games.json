@@ -1,5 +1,5 @@
 {
-  "version": 4,
+  "version": 5,
   "games": {
     "robot-collector": {
       "title": "Robot Collector",
@@ -161,7 +161,7 @@
       "max_duration_ms": 92000,
       "base": 0,
       "max_pps": 25,
-      "enabled": false
+      "enabled": true
     },
     "luggage-rush": {
       "title": "Airport Luggage Rush",
@@ -281,7 +281,7 @@
       "max_duration_ms": 140000,
       "base": 480,
       "max_pps": 56,
-      "enabled": false,
+      "enabled": true,
       "levels": [
         { "title": "Outer Wall", "max_score": 7130, "min_duration_ms": 39000, "max_duration_ms": 140000, "base": 480, "max_pps": 56 },
         { "title": "Main Gate", "max_score": 7370, "min_duration_ms": 33000, "max_duration_ms": 135000, "base": 600, "max_pps": 61 },
@@ -328,7 +328,7 @@
       "max_duration_ms": 62000,
       "base": 0,
       "max_pps": 200,
-      "enabled": false
+      "enabled": true
     },
     "zoo-escape": {
       "title": "Zoo Escape",
