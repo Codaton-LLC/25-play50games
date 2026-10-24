@@ -1,5 +1,5 @@
 /* The start card's level picker (LevelTiles.tsx). The row scrolls sideways inside the card on a
-   narrow screen; every tile is at least 44 px tall and wide enough for a two-word title. */
+   narrow screen; every tile is at least 44 px tall; a long title wraps to two lines. */
 .levels {
    margin-top: 16px;
 }
@@ -73,16 +73,27 @@
    color: var(--game-accent, var(--accent));
 }
 
+/* a long title ("Royal Defense") wraps to a second line instead of being cut; a third line is
+   clamped. Titles of one line keep the tile as before; .best stays on the tile's last line. */
 .title {
+   display: -webkit-box;
    overflow: hidden;
    font-size: 12px;
    font-weight: 700;
    line-height: 1.2;
-   text-overflow: ellipsis;
-   white-space: nowrap;
+   overflow-wrap: break-word;
+   -webkit-box-orient: vertical;
+   -webkit-line-clamp: 2;
+   line-clamp: 2;
+}
+
+/* a title with a word too long for the narrow tile ("Championship") gets a smaller size, not a split word */
+.title[data-long] {
+   font-size: 10px;
 }
 
 .best {
+   margin-top: auto;
    color: var(--muted);
    font-size: 12px;
    font-variant-numeric: tabular-nums;

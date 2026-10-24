@@ -7,7 +7,8 @@ Owner: Claude. Slug: `robot-collector`. Game 1 of the 3D Arcade and the **refere
 | `meta.ts` | Card data and `scoring` (must equal `arcade-games.json`). Plain data, server-safe. |
 | `index.tsx` | The `GameDefinition` GameShell runs: Scene, assets, timer, camera, HUD stats, instructions. |
 | `rules.ts` | Everything that decides the outcome: map, seeded layouts, movement, pickups, scoring. Pure, no three.js/React/DOM/`Math.random`. |
-| `rules.test.ts` | Vitest for `rules.ts`, including the scoring-limit proof below. |
+| `rules.test.ts` | Vitest for `rules.ts`, including the scoring-limit proof below (level 1). |
+| `levels.ts` / `levels.test.ts` / `rules.levels.test.ts` | The five level configs (pure data) / their declarations, worlds and per-level limit proofs / the bot sweeps per level (see "Levels"). |
 | `Scene.tsx` | The frame loop, the camera and the moving things: feeds input + dt into `rules.ts`, draws the result, reports to the store. |
 | `Primitives.tsx` | Warehouse-only look: floor, walls, crates, barrels, the stand-in robot and battery. |
 | `assets.ts` / `assets.spec.json` | Models used (`ModelAsset`s) / the Hyper3D spec for models only this game generates. |
@@ -26,6 +27,55 @@ Owner: Claude. Slug: `robot-collector`. Game 1 of the 3D Arcade and the **refere
     - `<Model asset fallback={<OwnPrimitive/>}>` for every model, and `<InstancedModel asset spots fallback={<Instanced …/>}>` for repeated props (the `Crates` / `Barrels` pattern at the end of `Primitives.tsx`).
 - **Do not copy:** the rest of `Primitives.tsx` (canvas-drawn textures, the warehouse, the robot and battery stand-ins) or the battery pop, beam and ring effects. They are decoration for this game.
 - **Everything generic comes from `core/`** (`core/README.md`): frame order, game time, camera fit and follow range, lens shift, safe area, input mapping, instanced props, blob shadows, canvas textures, seeded RNG, server limits. Games do not import from each other. If something generic is missing, ask Claude to add it to the core.
+
+## Levels (P-31 pilot, 2026-10-24)
+
+Five levels through the core level system (`core/README.md` "Levels"): `levels.ts` holds the pure `RobotLevel` configs, `createRun(seed, level)` / `stepRun` play one, Scene reads it with `useRobotLevel()` (= `useLevel<RobotLevel>()`), `index.tsx` declares the five `LevelSpec`s (description, config, instructions, environment, `durationMs`, and `hudStats` with the level's battery count: the core `LevelSpec.hudStats` / `levelHudStats` added for this), `meta.ts` the titles and limits. **Level 1 is today's live game unchanged**: every level-1 function keeps its old signature and result (`generateLayout(seed)`, `stepRobot` with no hazard arguments, `createProgress()`), rules.test.ts passes unchanged, and levels.test.ts pins level 1's limits, layouts, warehouse, clock, HUD and start card. A level clears on a **win** (every battery before the clock runs out); there is no `clearScore`.
+
+| Level | Title | Batteries (waves) | Clock | Extra props | Oil | Belts (speed) | Lighting |
+|---|---|---:|---:|---:|---:|---|---|
+| 1 | Training Bay | 10 (5) | 60 s | 0 | 0 | - | indoor (today's) |
+| 2 | Small Warehouse | 12 (6) | 70 s | 4 | 3 | - | day |
+| 3 | Conveyor Zone | 14 (7) | 80 s | 7 | 3 | 2 (1.6 u/s) | sunset |
+| 4 | Dark Storage | 16 (8) | 85 s | 10 | 4 | 3 (2.0 u/s) | night, a cool lamp rides over the robot (`RobotLevel.lamp`) |
+| 5 | Mega Warehouse | 18 (9) | 90 s | 12 | 5 | 4 (2.4 u/s) | sunset, dark red |
+
+Plan adaptation (GAME 02): the plan's 6/8/10/12/15 batteries become 10/12/14/16/18 because level 1 must stay today's 10; "more travel distance" is the per-wave fairness band (16-19 units of ideal route per wave, level 1: 80-95) over more waves, "workstations / conveyor zone" are the conveyor belts, "stricter timing" is less clock per wave (12 / 11.7 / 11.4 / 10.6 / 10 s). Hazards: **oil patches** cap the robot's own speed at 0.55 x; **conveyor belts** (fixed floor strips with scrolling chevrons) drift the robot along them at the level's belt speed, at most half the robot's top speed, so it can always drive off or upstream. Both are fixed floor zones: the same for touch and keyboard. The extra crates and barrels reuse the crate/barrel GLBs (no new asset). Antigravity's WIP had moving carts that stun the robot; they were replaced by belts: a stunned robot was snow-ploughed along the cart's lane and even the path-finding oracle lost 25-50 % of seeds on levels 3-5.
+
+Every level's warehouse is open (levels.test.ts): no prop near the start, belts clear of every prop and wall, every spawn point reachable; 300 seeds per level give valid layouts (no fallback), and each level has a tested hand-placed fallback.
+
+### Server limits per level (the proof)
+
+The level-1 proof below holds for every level with the level's numbers, because nothing a level adds can move the robot faster than `ROBOT.maxSpeed`: oil lowers the speed it steers to, a belt's drift is added before `stepRobot`'s speed guard (and taken out of the robot's own velocity again), extra props only block. So with N batteries in N/2 waves and a fairness band of at least 16 units per wave:
+
+- every real route is at least 16 x waves - 0.8 - (N - 1) x 1.6 units (`fairnessMinRoute`: no leg is clipped by the reach, checked on 300 seeds per level), so no win comes before that / 5 s;
+- a win at t scores 100 N + 10 floor(clock - t), largest at the earliest win: maxScore;
+- before a win, k batteries need at least 3.2 + 3.4 (k - 1) units, so 100 k <= 600 + 120 t for every k <= 32: base 600 and 120 pts/s (level 1's) hold on every level;
+- minDurationMs is the earliest win minus about 4 % (level 1: 3.5 %), maxDurationMs the clock + 2 s (level 1's margin).
+
+| Level | Earliest win | maxScore = 100 N + 10 floor(clock - earliest) | minDurationMs | maxDurationMs | base / pps |
+|---|---:|---:|---:|---:|---:|
+| 1 | 64.8 / 5 = 12.96 s | 1000 + 470 = 1470 | 12500 | 62000 | 600 / 120 |
+| 2 | 77.6 / 5 = 15.52 s | 1200 + 540 = 1740 | 14900 | 72000 | 600 / 120 |
+| 3 | 90.4 / 5 = 18.08 s | 1400 + 610 = 2010 | 17400 | 82000 | 600 / 120 |
+| 4 | 103.2 / 5 = 20.64 s | 1600 + 640 = 2240 | 19900 | 87000 | 600 / 120 |
+| 5 | 116 / 5 = 23.2 s | 1800 + 660 = 2460 | 22300 | 92000 | 600 / 120 |
+
+Level 5's maxScore is 1.67 x level 1's (<= ~3 x guard). The limits are `rules.ts` `PROPOSED_LEVEL_LIMITS`, `meta.ts` `levels` and `arcade-games.json` `levels` (registry.sync.test.ts); levels.test.ts checks every formula, every win time from the earliest to the clock and every prefix.
+
+Bots (rules.levels.test.ts): per level a 200-seed human-paced sweep (0.35 s reaction to every new target, then a grid path to the nearest active battery around the static props; it ignores oil and belts), 30 oracle seeds (no reaction delay), 6 input-spam and 3 idle seeds at 30/60/144 Hz on the pure rules loop, all inside the limits; plus 9 runs per level through `createArcadeStore()` scoring exactly like Scene.tsx (capScore a no-op).
+
+| Level | human wins / 200 | human mean | human slowest win | oracle best (of maxScore) | spam / idle wins |
+|---|---:|---:|---:|---:|---|
+| 1 | 200 | 1370 | 25.0 s of 60 | 1420 (96.6 %) | 0 / 0 |
+| 2 | 200 | 1593 | 35.2 s of 70 | 1670 (96.0 %) | 0 / 0 |
+| 3 | 200 | 1811 | 44.6 s of 80 | 1910 (95.0 %) | 0 / 0 |
+| 4 | 193 | 1948 | 53.4 s of 85 | 2090 (93.3 %) | 0 / 0 |
+| 5 | 195 | 2080 | 69.8 s of 90 | 2290 (93.1 %) | 0 / 0 |
+
+Mutation probes (each broke a test, then restored): belt drift kept in the robot's velocity; speed guard loosened; layouts ignoring the level's battery count; L3 maxScore loosened; L5 minDuration above the earliest win; L5 belts slower than L4; an L5 prop on a belt; an L5 belt as fast as the robot; L5 clock 55 s (clear rate); meta L2 limit different from the proposal; an extra prop on level 1; the HUD max fixed at 10; oil ignored.
+
+The sections below describe level 1 (the 10-battery numbers).
 
 ## Concept
 

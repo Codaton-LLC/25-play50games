@@ -29,6 +29,10 @@ function isEditable(target: EventTarget | null): boolean {
    return target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.tagName === "SELECT" || target.isContentEditable;
 }
 
+/** A word longer than a narrow tile holds at the normal size (LevelTiles.module.css `.title[data-long]`). */
+export const LONG_WORD = 11;
+export const hasLongWord = (title: string): boolean => title.split(/\s+/).some((word) => word.length >= LONG_WORD);
+
 /** The unlock hint of a locked level: "Clear level 2 to unlock". */
 export const unlockHint = (id: LevelId): string => `Clear level ${id - 1} to unlock`;
 
@@ -95,7 +99,9 @@ export default function LevelTiles({ meta, progress, selected, description, onSe
                         {state === "cleared" ? <CheckIcon className={styles.icon} aria-hidden="true" /> : null}
                         {state === "locked" ? <LockClosedIcon className={styles.icon} aria-hidden="true" /> : null}
                      </span>
-                     <span className={styles.title}>{level.title}</span>
+                     <span className={styles.title} data-long={hasLongWord(level.title) ? "" : undefined}>
+                        {level.title}
+                     </span>
                      <span className={styles.best}>{levelBestText(level, scoring)}</span>
                   </button>
                );
