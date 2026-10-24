@@ -5,7 +5,7 @@ Owner: Codex. Slug: castle-defender. G0 design revision only. Spec: 04 §14. Met
 ## Concept and controls
 
 Defend the gate through five finite waves with splash cannon shots, ladder rocks and upgrades. Day lighting; grass #65a30d, stone #a8a29e, banners #3b82f6, accent #94a3b8.
-- meta: scheme tap-target; touchControls tap/action; action label Rock. `controls.keyboard` exactly "Click the field to fire; arrows / WASD aim, Space fires; E / Enter drops a rock; 1 / 2 chooses an upgrade"; `controls.touch` exactly "Tap the field to fire, tap Rock to clear a ladder, tap an upgrade card to choose". Instructions and HUD: "Hit shields from behind".
+- meta: scheme tap-target; touchControls tap/action; action label Rock. `controls.keyboard` exactly "Click the field to fire; arrows / WASD aim, Space fires; E / Enter drops a rock; 1 / 2 chooses an upgrade"; `controls.touch` exactly "Tap the field to fire, tap Rock to clear a ladder, tap an upgrade card to choose". Instructions and HUD: "Hit shields from behind". Start-card instructions: `KEYBOARD_INSTRUCTIONS`, or `TOUCH_INSTRUCTIONS` on a coarse pointer (index.tsx getter).
 - Fire reads tapDown only, Space jumpPressed, Rock actionPressed; one request/frame, field wins simultaneous Space. Ignore pressed aim nudges on coarse pointers: swipes must not both fire and nudge. Pointer motion does not fire; held fire does not repeat. Shell owns pause/hidden-tab/Retry/Exit.
 - createAxisAim + stepAimKeys: x[-5,5], axis y[-2,6] maps z=-y, step0.5, rate6, holdDelay0.25, dragGain0. Initial axis(0,2) means world reticle(0,0.04,-2), mid-field, not wall.
 - Fine tap sets exact aim. Coarse snap within1.5 m to nearest living ground goblin predicted at impact, ties lower id; shield snap is0.65 m BEHIND predicted centre along path tangent, still within splash. Recompute flight prediction twice, clamp field; no automatic shots or ladder targeting.
@@ -28,7 +28,7 @@ One useRunFrame consumes played dt via substep<=1/120 s, splitting exact spawn/l
 
 - Exactly98 single-use ids; starts0,28,56,84,112. Packs<=3, crews indivisible triples; seeded-shuffle ordinary types then packs. Pack j spawns8*j/(packCount-1), lone pack0; cyclic lane(j+seedOffset)%3. Crew lane first unused cyclic lane in pack order. Seed affects order, not counts/timing/speeds. Pool40; no carry-over.
 - Non-overlapping triangle: fastest member leads at lateral0/s0.8 (ties id), side bodies lateral+/-0.65 and0.8 m behind. Rules centres and drawn centres match, including rear offset at spawn; side arrivals delayed0.8/speed. Side gap1.3>body width1.184; rear gap0.8>depth0.637819 and cannot shrink within a pack. Base radius2 covers the initial triangle including shield rear aim; mixed-speed members may later separate beyond one splash. No rule collision response.
-- Crew ladder1.2 wide; erection when last surviving member arrives. Climbers move onto the ladder rails when it goes up (cosmetic). Simultaneous2 s climb y0 to2, climb progress shown per ladder; cannon immunity begins individually at arrival; surviving members independently damage/escape at top. Empty crew never erects. Threatened ladder greatest climb fraction, then smallest crew id.
+- Crew ladder drawn 1.8 wide x 2.8 tall with thick rails (`LADDER`, visual only); erection when last surviving member arrives. Climbers move onto the ladder at lane x -0.6 / 0 / +0.6 (`CLIMB_OFFSETS`, three distinct spots, cosmetic: rocks hit the whole crew, cannon cannot) and are drawn at scale 1.25. Simultaneous2 s climb y0 to2, climb progress shown per ladder; cannon immunity begins individually at arrival; surviving members independently damage/escape at top. Empty crew never erects. Threatened ladder greatest climb fraction, then smallest crew id.
 - Cannon reload0.8, ready at0; gravity9.81, wind0, target y0. T=0.6+0.4*clamp(horizontal muzzle-target distance/10,0,1), range[0.6,1]. launchForTime from transformed measured muzzle; landingPoint/trajectoryPoints give analytic flight, exact impactT. Radius2/damage1, no falloff/friendly fire/shot score. Queue launches immediately at reload end.
 - Double emits two same-point/same-time balls, id order, one reload; corpses paid once. Reload upgrades bottom at0.512; flight<=1 gives<=4 balls plus1 rock. Projectile pool8.
 - Rock initially ready; accepted drop starts8 s cooldown. No erected ladder: buffer one press up to1 s, target next nonempty crew by predicted erection then id; accept at erection only before expiry, otherwise expire without consumption. No cooldown bypass.
@@ -36,7 +36,7 @@ One useRunFrame consumes played dt via substep<=1/120 s, splitting exact spawn/l
 - Offer opens as soon as all wave ids resolve for waves1-4 (usually20-21 s); keep +200 clear at24 s (24 s minimum wave), paid even with escapes, and fixed next start. Choose once, apply once; default left at next start. Clock continues. Slowest crew resolution8+8.8/0.7+2=22.571429<24. No wave5 offer. Surviving win136 s.
 - Upgrade pool: reload x0.8 max2 (0.8/0.64/0.512); splash x1.3 max2 (2/2.6/3.38); repair once +25 current/maxHP (max125); double once. Two distinct seeded eligible types sorted reload/splash/repair/double. Six capacities ensure two eligible cards at all four offers. No upgrade score.
 - Omit durationMs: shell chip shows played time; game HUD "Wave N/5". Pure rules safety end("timeup") at139.9 s (elapsedMs stays under maxDurationMs140000); test never fires on a surviving run. Event order: spawn, launch, movement/arrival/climb damage, impacts by id, kills, offers/clear/win, then safety. Damage beats same-time rescue; HP0 loses before awards. Freeze pause/over.
-- Human estimate (unmeasured): cadence1.2 s permits20 launches/24 s; finale roughly10 pack hits +4 shield repeats=14 shots/16.8 s. One timely rock helps; crews may erect<8 s apart, so SECOND crew must be handled by cannon before climbing. Reload/reload/splash/repair no-double route gives0.512/radius2.6/125 HP. Four escaped runners and two shields leave89 HP from full repair. Keyboard full sweep10/6+0.25=1.92 s; testing must establish feasibility.
+- Measured player profiles (Claude's adversarial review): 40 seeds × 3 inputs (keyboard, mouse tap, touch tap with snap) × 30/60/144 fps = 360 runs per profile. Design-like player: 360/360 wins, min HP 41. Naive: 360/360 wins, min HP 65. Sloppy (0.5 s reaction, 1.5 s between shots, 0.9 m error): 360/360 wins, 358/360 with >=20 HP. Casual (0.6 s reaction, 2 s between shots, 1.0 m error): 280/360 wins (78%). These are simulated player profiles; the existing rules.test.ts "human" bot uses exact prediction (an oracle).
 
 ## Score, limits and end
 
@@ -45,7 +45,7 @@ runScore=20*killed+200*cleared+(won?2*gateHP:0). addScore once per unique kill/c
 - Every wave-prefix bound permitting instant kills is160,640,1240,1960,2760 at starts0,28,56,84,112; envelope160+25t is160,860,1560,2260,2960 and increases between events.
 - Clear-prefix maxima360,840,1440,2160,2960 at24,52,80,108,136 are<=760,1460,2160,2860,3560. Final HP bonus<=250 gives3210<=3560. Real flight only delays kills; no capScore-hidden excess.
 - Wave1 total damage<=8*5=40 cannot destroy100 HP. Wave2 has no runners: earliest further arrival28+8/0.7=39.428571 s; rear delay only increases it. Therefore min39000 safely rounds down; exact fastest loss approximately45 s. Every surviving run wins136<139.9 safety; played duration excludes countdown/pause/results.
-- Lose atHP0; win fifth clear136 after score/bonus. Safety139.9 only for broken/incomplete schedule. resultDelayMs1600, frozen score; banners/confetti win, gate tilt/dust lose; shell owns result/persistence/API.
+- Lose atHP0; win fifth clear136 after score/bonus. Safety139.9 only for broken/incomplete schedule. resultDelayMs1600, frozen score; win: three confetti bursts from the wall top, a chime over the shell's win cue, the wall banners grow and wave, and a "Gate held!" HUD banner through the delay; lose: gate tilt/dust; shell owns result/persistence/API.
 
 ## Camera, HUD and visuals
 
@@ -64,9 +64,9 @@ runScore=20*killed+200*cleared+(won?2*gateHP:0). addScore once per unique kill/c
 |844x390 open|36|near 2|23.39|24.68|16.2x22.3|24 (marker, ladder icon)|
 
 - Only the persistent HUD (health, wave, reload, shield hint) uses data-arcade-safe-area. The transient upgrade cards and "Wave N" banner overlay UNMARKED (combat idle, all ids resolved while they show), so the camera never refits per wave. Core fits shell chips, Rock, banner/home rectangles; no game-side free-rectangle substitute. Health/wave/reload>=14 px; "Hit shields from behind" visible; short "Wave N" banner at each start.
-- Banner open portrait: two144x88 CSS px cards side by side,8 gap, bottom free strip ABOVE banner/control reserve. Landscape: two176x72 cards,8 gap, centred strip ABOVE bottom banner and LEFT of right72 px Rock reserve. Position from measured safe rectangles BELOW shell chips; move strip vertically if required. Must clear all shell chips/Rock in both orientations.
+- Upgrade cards: `layout.ts` `placeCards(area)` (pure, `layout.test.ts` over 1280x800, 390x844, 360x740, 844x390, banner open/closed) puts two 144x88 cards (176x72 on a short landscape canvas) side by side at the lowest spot nearest the centre that clears every shell chip, the HUD panel, the Rock button and the banner by 10 px; else the other row size, else the cards stacked. Cards stay >= 72 px tall.
 - Full-card buttons: icon, title, numeric effect, visible "1"/"2" key hint, focus outline. Opaque #0f172a with #f8fafc (>17:1), secondary #cbd5e1 (>12:1); selected #1d4ed8 with white (>6:1). All text>=4.5:1; targets>=44 px, Rock72 px.
-- Wall visual1.2 high except towers; field-side ladders z2 remain visible; threatened crew steady outlined24 px icon. Landing ring previews splash radius and reload readiness; Rock shows its numeric cooldown; a rear-hit ring flashes once on a rear-shield hit to teach it. Goblin hop0.06 at2 Hz; shield shape/runner pennant distinguish types. Death flail spin0.35 s cosmetic; ladder destruction splinters; dust rings, wave banners. No resurrection.
+- Wall visual1.2 high except towers; field-side ladders z2 remain visible; threatened crew steady outlined24 px "!" icon drawn 24 px above the top of its ladder and highest climber, never on them. Landing ring previews splash radius and reload readiness; Rock shows its numeric cooldown; a rear-hit ring flashes once on a rear-shield hit to teach it. Goblin hop0.06 at2 Hz; shield shape/runner pennant distinguish types. Death flail spin0.35 s cosmetic; ladder destruction splinters; dust rings, wave banners. No resurrection.
 - Ground0, road/river0.015, reticle0.04, dust0.06, ladder0.08..2.08, score subject+0.3; translucent depthWrite false with render order. Background #dbeafe/day hemisphere+directional preset, blob shadows; no extra lights/Rapier.
 
 ## Helpers and assets
@@ -83,7 +83,7 @@ Confirmed existing helpers: launchForTime/landingPoint/trajectoryPoints; createP
 
 Future files: meta.ts/index.tsx/rules.ts/rules.test.ts/assets.ts/assets.test.ts/Scene.tsx/Castle.tsx/Goblins.tsx/Cannon.tsx/Hud.tsx/Hud.module.css/Primitives.tsx plus thumbnail public/images/3d/castle-defender.webp and tools/thumbs/inputs/castle-defender.mjs. This task writes no implementation.
 - rules.test.ts<=~600 lines, total game tests<60 s. Literal fixtures pin98 ids, starts, speeds/HP/damage, pack body gaps, radius/reload/repair125/score3210/limits160/25/39000/140000. Aggregate tick invariants; mutation checks, not self-derived expected bounds.
-- Start64 legal +64 human-paced +32 spam seeds; ONE frame schedule per seed. Distribute legal/human across keyboard/coarse and60 fps/20 fps/random4-50 ms (11/11/11/11/10/10). Scale ONLY from measured runtime; report counts/runtime/extrema/reasons/missed packs/HP.
+- Regression matrix: 20 legal +20 oracle human-paced +10 spam seeds; ONE frame schedule per seed. Legal/human cover keyboard/coarse and60 fps/20 fps/random4-50 ms (3–4 seeds per combination). Reduced from64/64/32 in fix1 to keep the suite below~60 s on the shared machine; preserve the >=95% win-with20HP gate (19/20). Report counts/runtime/extrema/reasons/missed packs/HP. The measured360-run player profiles above are separate review evidence.
 - Human bot reaction0.35 s, fire interval>=1.2, aim speed6, seeded error<=0.6, prioritize imminent damage, legal rock/card inputs. REQUIRE>=95% seeds win with>=20 HP on no-double route; revise tuning if not reached. Oracle also uses actual aim/inputs/flight, no teleport/immunity. Spam20 fps plus idle losses.
 - Test schedules/types/crew lanes/determinism/caps, lane length8.8 with leader travel8 m (s0.8 start), all resolutions<=22.571429; within-pack drawn body AABBs never intersect at spawn/march/arrival and radius2 covers the initial triangle. Independent packs may overtake without rule collision response. Pause/over immutable; no dt remainder loss.
 - Test early offer/all-resolved trigger,24 s award (+200 even with escapes), fixed next start/default/one pick, upgrade capacity/no-double. Test ballistic error<=1e-6 at0.6/1 s, radius inclusive/epsilon outside, shield front/back/coincident/rear snap, double pay-once.
@@ -104,7 +104,7 @@ Approved: 1.6 m visual goblins (rules radius unchanged); a fixed 136 s surviving
 
 ## Open questions
 
-None for the user; builder gates (measured 24 px at 844x390 banner open, human-paced wins) stay acceptance checks.
+Pending user decision: random tapping wins at 93–94% of the maximum score. Keep the score formula, limits, wave balance and meta.scoring unchanged in this fix round. Browser readability and performance gates remain with Claude.
 
 ## Merge review (Claude, 2026-10-09)
 
@@ -114,4 +114,69 @@ None for the user; builder gates (measured 24 px at 844x390 banner open, human-p
 - Restored from 6a54521: landing ring, Rock cooldown number, climb progress, rear-hit ring, +200 even with escapes (rule + test), exact control strings, thumbs input file, 24 s minimum wave departure.
 - Core REUSED_GLB_SIZE.door added; meta.ts and arcade-games.json carry the limits.
 
-Status: G0 design, merged pending the user's approval of the departures. Actual fit/performance/human success are builder acceptance gates.
+## Status
+
+```text
+TASK P-15 | build castle-defender | branch codex/game-castle-defender | allowed: play50games-frontend/src/arcade3d/games/castle-defender/**, play50games-frontend/public/images/3d/castle-defender.webp, tools/thumbs/inputs/castle-defender.mjs
+HANDOFF P-15 | castle-defender
+Branch: codex/game-castle-defender (confirmed before any project read).
+Status: implemented, pending Claude validation; meta.status remains "dev".
+Commits / push / branch changes: none.
+
+Files
+Game folder: index.tsx, rules.ts, rules.test.ts, assets.ts, assets.test.ts, camera.ts,
+Scene.tsx, Castle.tsx, Goblins.tsx, Cannon.tsx, Markers.tsx, Primitives.tsx,
+Hud.tsx, Hud.module.css, README.md.
+Thumbnail input: tools/thumbs/inputs/castle-defender.mjs.
+Handoff artifact: .handoff/P-15-castle/HANDOFF.md (explicit CLI instruction).
+meta.ts and assets.spec.json unchanged; thumbnail remains null.
+
+Acceptance checklist
+[x] Correct existing branch; no branch creation/switching, commit or push.
+[x] Scope checked with git status --porcelain; no main comparison.
+[x] GameDefinition, seeded pure rules, five finite waves, gate HP, directional shields,
+    buffered shots, ladder rocks, single-choice upgrades, 136s win / HP0 loss /139.9s safety.
+[x] One useRunFrame; rules then store; game-time visuals; fixed instance pools.
+[x] Approved fitted camera, persistent safe-area HUD, unmarked offers/banner,
+    40 core TargetMarker slots plus projected24px small-target and reticle circles.
+[x] Shared asset fits, solid-goblin motion, primitive and instanced fallbacks.
+[x] Audio, restartable [phase, muted] ambient loop, effects and1600ms result delay.
+[x] Rules tests authored: 1,000 generator seeds; 64 legal +64 human-paced +32 spam,
+    real-store clock, raw score envelope, terminal limits, capScore unchanged.
+[x] Asset tests authored: all six GLB fits through transformed accessor bounds,
+    solid goblin dimensions, cannon muzzle and core size constants; no decoder needed.
+[x] Direct TypeScript check passed: node node_modules/typescript/bin/tsc --noEmit --incremental false.
+[ ] Vitest execution, runtime <60s, >=61/64 human wins with >=20HP, best score >=2889.
+[ ] npm run build, full npx vitest run, gamecheck (Claude; sandbox instructions).
+[ ] Keyboard and touch browser runs, screenshots at1280x800 /390x844 banner open /844x390.
+[ ] Actual24px readability, ladder/offer/HUD clearance, mute/reduced-motion and Retry x10.
+[ ] Performance capture JSON, <=50 target draws (<=60 acceptance), p95/resource-flatness.
+[ ] Thumbnail capture from the provided local input script; no thumbnail generated here.
+
+Scoring formula and limit proof
+S =20*killed +200*cleared +(won ?2*gateHP :0).
+Exactly98 ids; five clear awards; additive repair caps HP at125.
+Maximum =98*20 +5*200 +2*125 =3210.
+Unrestricted kill/previous-clear prefixes:160,640,1240,1960,2760 at0,28,56,84,112s.
+Clear prefixes:360,840,1440,2160,2960 at24,52,80,108,136s.
+All prefixes fit160+25*t; final3210 <=3560 at136s.
+Wave1 can deal only40 damage. Earliest wave2 arrival >=39.428571s, above39000ms.
+Surviving schedules resolve before each24s clear and win136s, before139.9s safety.
+Existing limits3210 /39000-140000ms /base160 /25pps remain untouched.
+Bots assert every raw prefix and final server limit without capping; results are unmeasured.
+The bot test logs runtime, score/duration extrema, HP, losses and escaped-pack counts.
+
+Evidence
+TypeScript: direct compiler exited0. Static source scan: no forbidden runtime imports,
+Math.random / Date.now in rules, elapsedTime, persistence or score/API calls.
+Screenshots: not captured. Perf JSON: not captured. Vitest: not run.
+No production, network, Hyper3D or secret access; prohibited tools were not attempted.
+
+Open questions
+1. Claude: run the authored tests and report human feasibility / runtime / score extrema;
+   the 95% win gate has not been established, and may require a fix round.
+2. Approved camera hull max y2.3 versus climber soles y2.08 +body1.6 =head y3.68:
+   inspect cropping/readability before acceptance; is a taller fit hull intended?
+3. Claude: verify actual decoded GLB bounds against core mesh tests, then perform the
+   three-size browser, fallback, Retry and perf checks and local thumbnail capture.
+```
