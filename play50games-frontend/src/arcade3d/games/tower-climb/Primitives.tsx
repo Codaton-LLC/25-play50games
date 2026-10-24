@@ -109,7 +109,7 @@ export function createTowerParts(): TowerParts {
    const limeMat = material("#c6f54a"), coilMat = material("#facc15"), springArrow = material("#f8fafc");
    const rocketBody = material("#e8eef2"), rocketFin = material("#fb7185");
    const nozzleMat = new MeshBasicMaterial({ color: "#fb923c" });
-   const windMat = material("#7dd3fc");
+   const windMat = material("#bae6fd");
    const pack = merged(add => {
       add(new BoxGeometry(0.09, 0.06, 0.09), 0, 0.03, 0, "#d7dee6");
       add(new BoxGeometry(0.11, 0.1, 0.11), 0, 0.1, 0, "#f4f7fb");
@@ -164,12 +164,13 @@ export function createTowerParts(): TowerParts {
             const a = i * Math.PI / 2;
             return local(Math.cos(a) * 0.1, 0.02 + i * 0.012, Math.sin(a) * 0.06, 0.09, 0.028, 0.05);
          })),
-         // a double "^" standing over the pad, facing the camera: reads as "up" from the side view
+         // a double "^" standing on the pad, facing the camera: reads as "up" from the side view. Its top
+         // stays at 0.24 m, under the 0.29 m clearance to the next slab.
          part(springArrow, [
-            tilted(-0.075, 0.27, 0.05, 0.2, 0.045, 0.03, 0.75),
-            tilted(0.075, 0.27, 0.05, 0.2, 0.045, 0.03, -0.75),
-            tilted(-0.075, 0.4, 0.05, 0.2, 0.045, 0.03, 0.75),
-            tilted(0.075, 0.4, 0.05, 0.2, 0.045, 0.03, -0.75),
+            tilted(-0.06, 0.1, 0.12, 0.16, 0.04, 0.03, 0.75),
+            tilted(0.06, 0.1, 0.12, 0.16, 0.04, 0.03, -0.75),
+            tilted(-0.06, 0.19, 0.12, 0.16, 0.04, 0.03, 0.75),
+            tilted(0.06, 0.19, 0.12, 0.16, 0.04, 0.03, -0.75),
          ]),
       ],
       rocket: [

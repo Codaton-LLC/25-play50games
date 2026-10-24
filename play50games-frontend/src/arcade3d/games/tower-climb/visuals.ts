@@ -96,7 +96,7 @@ export function writeRocket(matrix: Matrix4, x: number, y: number, spin: number,
    return true;
 }
 
-const WIND_SCALE = new Vector3(1.4, 1.4, 1.4);
+const WIND_SCALE = new Vector3(1.7, 1.7, 1.7);
 
 /** A chevron. `flip` points the gust to -x. */
 export function writeWind(matrix: Matrix4, x: number, y: number, flip: boolean): void {

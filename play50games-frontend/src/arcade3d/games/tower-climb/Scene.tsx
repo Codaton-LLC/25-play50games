@@ -44,7 +44,7 @@ const Simulation = memo(function Simulation({ run, visual }: { run: TowerRun; vi
    const fx = useFx();
    const [controls] = useState(createStepInput);
    const [fxPos] = useState(() => new Vector3());
-   useEffect(() => { fx.warm("puff", "sparks", "confetti", "smoke"); }, [fx]);
+   useEffect(() => { fx.warm("puff", "sparks", "confetti"); }, [fx]);
    useRunFrame((_state, dt) => {
       const events = step(run, dt * 1000, readStepInput(input.current, controls));
       const store = useArcadeStore.getState();
@@ -74,8 +74,7 @@ const Simulation = memo(function Simulation({ run, visual }: { run: TowerRun; vi
       }
       if (run.boostUntilMs >= 0 && run.timeMs % 80 < 20) {
          fxPos.set(run.player.x, run.player.y + 0.2, -0.12);
-         fx.burst("puff", fxPos, 2);
-         fx.burst("sparks", fxPos, 4);
+         fx.burst("sparks", fxPos, 5);
       }
       if (events.hit) { store.setStat("fallen", 1); playSfx("hit"); }
       if (events.ended) store.end(events.ended);
@@ -151,7 +150,8 @@ const WindGusts = memo(function WindGusts({ run, parts }: { run: TowerRun; parts
    const update = useCallback((i: number, matrix: Matrix4) => {
       if (i >= run.windCount) return false;
       const side = i % 2 === 0 ? 1 : -1;
-      const y = WIND.y0 + i * WIND.gap + WIND.band * 0.5;
+      // 5.5 m into the band: clear of the checkpoint coins and flags at multiples of 8 m
+      const y = WIND.y0 + i * WIND.gap + 5.5;
       if (y < run.viewBottomY || y > run.maxHeight + 6) return false;
       writeWind(matrix, side * (WIND.xInner + 0.12), y, side < 0);
    }, [run]);
@@ -234,7 +234,7 @@ const Runner = memo(function Runner({ run, visual, parts }: { run: TowerRun; vis
                fallback={<group ref={standIn} renderOrder={RUNNER_ORDER}><RunnerPrimitive parts={parts} gait={gait} /></group>}>
                <primitive object={parts.depthReset} dispose={null} />
             </HumanoidModel>
-            {run.rocketCount > 0 && <group ref={pack} position={[0, 0.26, -0.16]} scale={1.8} visible={false}>
+            {run.rocketCount > 0 && <group ref={pack} position={[0, 0.18, -0.16]} scale={1.3} visible={false}>
                <mesh geometry={parts.rocketPack} dispose={null}>
                   <meshStandardMaterial vertexColors roughness={0.42} />
                </mesh>
@@ -245,7 +245,7 @@ const Runner = memo(function Runner({ run, visual, parts }: { run: TowerRun; vis
                </mesh>
             </group>}
          </group></group>
-         {run.rocketCount > 0 && <group ref={drop} scale={1.8} visible={false}>
+         {run.rocketCount > 0 && <group ref={drop} scale={1.3} visible={false}>
             <mesh geometry={parts.rocketPack} dispose={null}>
                <meshStandardMaterial vertexColors roughness={0.42} />
             </mesh>
