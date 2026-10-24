@@ -1,6 +1,6 @@
 # 3D Arcade: five levels per game (design)
 
-Status: design, 2026-10-24, nothing built. Owner: Claude (core, backend, limits); game owners (level content).
+Status: 2026-10-24. Frontend core + shell on `main` (behind `NEXT_PUBLIC_ARCADE_LEVELS`); backend built in `claude/levels-backend` (not uploaded yet: see "Upload steps" at the end; server contract in `docs/arcade-api.md` §14). No game has levels yet. Owner: Claude (core, backend, limits); game owners (level content).
 Source of the level content: the user's master plan `PLAY50_ALL_100_GAMES_500_LEVELS_FULL.md` (not in git), "Global level rule":
 **1 base environment + 5 level configurations**. Levels vary layout, spawns, objective count, hazards, speed, lighting
 and timing, never the whole map or the controls.
@@ -503,3 +503,37 @@ entry in `arcade-games.json` for **dev** games (Claude re-derives it at review; 
 4. **Time games (escape-room, obstacle-race and any future time game):** NOT a sum of time scores. The board ranks the **total time = the sum of the player's best finishing time on each of the 5 levels**, lower is better. A player appears on the time board only once all 5 levels have a finishing time. Until then the game shows their per-level times and a "Finish all 5 levels to rank" note. Backend: for `kind: "time"` the materialised board value is the summed time (or the existing time-score formula applied to the summed time with a 5-level `timeBaseMs`, whichever keeps "higher is better" in the existing columns); a partial set is stored per level but is not ranked.
 5. **Pilots:** robot-collector (live points game), castle-defender (dev, wave-based) and obstacle-race (live time game).
 6. **`arcade-games.json` stays Claude-only.** Helpers put their per-level `PROPOSED_LEVEL_LIMITS` in rules.ts and Claude copies them into the JSON at merge.
+
+## Backend as built (`claude/levels-backend`, 2026-10-24)
+
+Contract: `docs/arcade-api.md` §14 (and §6.1–6.7, §7, §12, §13); tickets: `docs/run-tokens.md` §13. Where it differs from §4 above:
+
+- **Time games** follow user decision 4: the board ranks the summed best time `T` of all 5 levels, and only players who finished all 5 have a board row. Stored "higher is better" as `best_score = min(Σ max_score, max(0, intdiv(Σ time_base_ms − T, 10)))` (the one-level time formula on `T` with the summed time base), `best_duration_ms = T`.
+- The total is computed in PHP from the user's level rows and **assigned** to the board row (`play50_arcade_recompute_total`), instead of one `INSERT ... SELECT SUM(...)`; `best_at` = the latest level best, `plays` = all levels.
+- `level` is validated at step **7b**, after the rate limits (like every other body field, so probing costs budget), not 6b.
+- A one-level game keeps today's board statement byte for byte and also mirrors its board row into level 1, so the level table is always exact. `GET /arcade/games` serves a one-level game exactly as before (no `levels` key), and its submit response keeps the six old keys even with `level: 1`.
+- **Level-count changes** are handled on the server: the option `play50_arcade_level_counts` records the count each game's totals were computed for; when the JSON changes it, the next request recomputes that game once (§14.6). So when a time game gets its 5 levels, its current players leave the board until they finish all 5 (their level-1 best stays in `me` and the admin page).
+- `features.levels` is `true` only once the DB v3 migration ran. Not built: `levels_scored` on leaderboard entries (§4.4, optional), the admin per-level delete, and `tools/arcade-api-smoke.sh --only levels` (the curl cases are in `docs/arcade-api.md` §13 "Levels cases").
+
+## Upload steps (the user uploads; Claude checks read-only)
+
+The 10 live games keep working at every step: old frontends send no `level`, which is level 1, and level 1 behaves exactly as before.
+
+1. **Backup.** Plesk: database dump + the theme folder `wp-content/themes/play50games/`. Note the time.
+2. **Check locally (done on the branch, redo if anything changed):** `php -l play50games-backend/play50games/includes/arcade-api.php`, `php -l play50games-backend/play50games/wt-cpt/arcade-scores-admin.php`, `php tools/arcade-php-tests/run.php` (+ `constant-on`, `constant-off`), and the JSON check from `docs/arcade-api.md` §11.
+3. **Upload the PHP first, both files together:**
+   - `play50games-backend/play50games/includes/arcade-api.php` → server `wp-content/themes/play50games/includes/arcade-api.php`
+   - `play50games-backend/play50games/wt-cpt/arcade-scores-admin.php` → server `wp-content/themes/play50games/wt-cpt/arcade-scores-admin.php`
+
+   Nothing else: no `functions.php`, no `rest-api.php`. The first request after the upload migrates (DB v3): creates `{prefix}play50_arcade_level_scores`, copies every score row to level 1 once (one `INSERT IGNORE ... SELECT`), records DB version 3. The leaderboard rows are not touched.
+4. **Then upload the JSON:** `play50games-backend/play50games/includes/arcade-games.json` (version 4, no `levels` yet, limits unchanged) → server `wp-content/themes/play50games/includes/arcade-games.json`. (Either order is safe; PHP first keeps one change at a time.)
+5. **Claude checks, read-only** (no writes, no test submits unless the user says so):
+   - `GET /wp-json/play50/v1/arcade/games?_=<n>` shows `"version":4`, `"features":{"levels":true}`, `"run_tokens":{"mode":"optional","ready":true}`, and every game exactly as before (no `levels` key).
+   - `GET /arcade/leaderboard/robot-collector?_=<n>` (and the other live games): the same entries and scores as before the upload.
+   - wp-admin → Arcade Scores (the user, or Claude with the user's OK): header "DB version: 3 · Table: exists · Level table: exists"; the board rows unchanged.
+   - `features.levels: false` means the migration has not run or failed: the PHP error log has `play50 arcade: table install failed` or `level backfill failed`; the site keeps working as before (level 1 only) and the install retries hourly.
+   - With the user's OK only: the "Levels cases" curl table in `docs/arcade-api.md` §13 as the arcade-test user, then delete only the arcade-test rows (never Reset game on a live board).
+6. **Only then** set `NEXT_PUBLIC_ARCADE_LEVELS=1` (Vercel, Preview first, Production when the pilots are live, §6.4) and redeploy. Until a game has levels in `meta.ts` and in the server JSON, the flag changes nothing visible.
+7. **Each pilot later:** Claude's limits commit adds that game's `levels` to `arcade-games.json` → the user uploads the JSON **before** the game's frontend merge (exactly like a go-live) → Claude checks `GET /arcade/games` shows its 5 `levels` → merge. For a **time** game (obstacle-race), uploading its levels takes its current players off the board until they finish all 5 levels (user decision 4); announce it.
+
+Rollback: re-upload the previous `arcade-api.php` (and admin page) from the backup. The old file ignores the level table, re-records DB version 2 on its first request and keeps run tokens working; the level table can stay. Re-uploading the new file later re-runs the backfill, which only adds missing level-1 rows.
