@@ -13,7 +13,7 @@
 //   <DynamicInstancedModel> with this game's primitives as fallbacks.
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
-import { CircleGeometry, Matrix4, MeshStandardMaterial, Quaternion, Vector3, type Group } from "three";
+import { CircleGeometry, Matrix4, MeshStandardMaterial, Quaternion, RingGeometry, Vector3, type Group } from "three";
 import CameraRig from "@/arcade3d/core/CameraRig";
 import { DynamicInstancedModel, Model } from "@/arcade3d/core/assets";
 import { playSfx } from "@/arcade3d/core/audio";
@@ -33,9 +33,9 @@ import { useRunFrame } from "@/arcade3d/core/useRunFrame";
 import { ASSETS, EXPLORER_SCALE } from "./assets";
 import { DetectorRing } from "./Detector";
 import { IslandScene } from "./Island";
-import { PITCH, groundAt, viewFor } from "./looks";
+import { COLORS, PITCH, groundAt, viewFor } from "./looks";
 import { advancePhase, explorerPhaseStep, explorerPose, gaitAmount, type ExplorerLook } from "./poses";
-import { COLORS, ChestPrimitive, ExplorerHat, ExplorerPrimitive, GullPrimitive, useCoinParts } from "./Primitives";
+import { ChestPrimitive, ExplorerHat, ExplorerPrimitive, GullPrimitive, useCoinParts } from "./Primitives";
 import { ExplorerShovel } from "./Shovel";
 import {
    HINT,
@@ -142,7 +142,7 @@ const RISE_S = 0.55;
 const clamp01 = (v: number) => (v < 0 ? 0 : v > 1 ? 1 : v);
 /** Overshoots a little, then settles: the pop of a find. */
 const easeOutBack = (k: number) => 1 + 2.70158 * (k - 1) ** 3 + 1.70158 * (k - 1) ** 2;
-const GEM_COLORS = ["#34d399", "#f43f5e"];
+const GEM_COLORS = [COLORS.gemEmerald, COLORS.gemRuby];
 const COIN_POOL = 10;
 const COINS_PER_PILE = 5;
 /** Coins in a pile: x, z offsets (m), the level in the stack and the yaw: four stacked, one beside. */
@@ -166,10 +166,17 @@ const UP = new Vector3(0, 1, 0);
 function useHoleParts(): readonly InstancePart[] {
    const parts = useMemo<InstancePart[]>(() => {
       const disc = new Matrix4().makeRotationX(-Math.PI / 2);
+      const inner = new CircleGeometry(0.38, 20);
+      const outer = new RingGeometry(0.36, 0.54, 24);
       return [
          {
-            geometry: new CircleGeometry(0.42, 20),
+            geometry: inner,
             material: new MeshStandardMaterial({ color: COLORS.hole, roughness: 1 }),
+            locals: [disc],
+         },
+         {
+            geometry: outer,
+            material: new MeshStandardMaterial({ color: COLORS.wetSand, roughness: 0.95 }),
             locals: [disc],
          },
       ];
@@ -319,6 +326,7 @@ export default function Scene() {
       step: { dirX: 0, dirZ: 0, digHeld: false, digPressed: false } as StepInput,
       dir: { x: 0, z: 0 },
       at: { x: 0, y: 0, z: 0 },
+      lastDigPuff: 0,
    }));
    const [reveals] = useState<Reveals>(() => ({
       at: new Array<number>(TREASURE_COUNT).fill(-1),
@@ -329,7 +337,7 @@ export default function Scene() {
    }));
    const [marker] = useState<MarkerTarget[]>(() => [{ x: 0, y: 0.3, z: 0, hidden: true }]);
 
-   useEffect(() => fx.warm("sparkle", "puff", "confetti", "score"), [fx]);
+   useEffect(() => fx.warm("sparkle", "puff", "confetti", "debris", "sparks", "score"), [fx]);
 
    // the game: move or dig, detector, tide, hint, score, end. Only while "playing", before every visual.
    useRunFrame((_state, dt, time) => {
@@ -349,9 +357,16 @@ export default function Scene() {
       at.z = e.z;
       // TODO(P-06): one detector beep per pulse: if (ev.beep) playSfx("click", { pitch: 0.8 + 0.8 * s, volume: 0.3 + 0.4 * s })
       // TODO(P-06): a "thud" every 0.2 s of a held dig; ev.tide: playSfx("whoosh") and the surf loop to 0.5
-      if (ev.digStarted) fx.burst("puff", at, 5);
+      if (ev.digStarted) {
+         fx.burst("puff", at, 6);
+         scratch.lastDigPuff = time;
+      } else if (run.dig.active && time - scratch.lastDigPuff >= 0.22) {
+         fx.burst("puff", at, 3);
+         scratch.lastDigPuff = time;
+      }
       if (ev.falseDig) {
-         fx.burst("puff", at, 14);
+         fx.burst("puff", at, 16);
+         fx.burst("debris", at, 8);
          playSfx("hit"); // TODO(P-06): at a low volume
       }
       if (ev.found < 0) return;
@@ -364,10 +379,11 @@ export default function Scene() {
       at.x = t.x;
       at.y = 0.4;
       at.z = t.z;
-      fx.burst("sparkle", at, ev.foundType === "chest" ? 30 : 18);
+      fx.burst("sparkle", at, ev.foundType === "chest" ? 36 : 22);
+      if (ev.foundClean) fx.burst("sparks", at, 10);
       at.y = 1.3;
       fx.score(at, ev.foundClean ? `+${POINTS.find + POINTS.clean} clean` : `+${POINTS.find}`, { color: ev.foundClean ? "#fde68a" : "#fff7d6" });
-      if (ev.foundType === "chest") fx.shake(0.18);
+      fx.shake(ev.foundType === "chest" ? 0.22 : 0.08);
       playSfx("pickup"); // TODO(P-06): + "chime" when clean
       const store = useArcadeStore.getState();
       store.addScore(POINTS.find + (ev.foundClean ? POINTS.clean : 0));
@@ -377,7 +393,9 @@ export default function Scene() {
          const { timeLeftMs, elapsedMs } = useArcadeStore.getState();
          store.setScore(capScore(runScore(run.found, run.cleanFinds, true, timeLeftMs ?? 0), elapsedMs));
          at.y = 1;
-         fx.burst("confetti", at, 40);
+         fx.burst("confetti", at, 45);
+         fx.burst("sparkle", at, 30);
+         fx.shake(0.24);
          store.end("win");
       }
    });
