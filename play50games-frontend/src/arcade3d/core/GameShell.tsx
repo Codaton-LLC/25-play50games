@@ -362,6 +362,11 @@ export default function GameShell({ meta, definition, exitHref = "/3d" }: GameSh
                   plays: 0,
                   rank: null,
                   status: "config-error",
+                  level: run.level ?? 1,
+                  total: run.score,
+                  totalDurationMs: null,
+                  newlyCleared: false,
+                  unlockedLevel: null,
                };
                setOutcome((current) => (current && current.runId === runId ? { ...current, result, saving: false } : current));
             });

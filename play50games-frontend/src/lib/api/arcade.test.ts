@@ -128,3 +128,59 @@ describe("mock client run tickets", () => {
       expect(a.run_token).not.toBe(b.run_token);
    });
 });
+
+describe("levels on the wire", () => {
+   it("startRun sends { slug } for level 1 and { slug, level } for levels 2-5", async () => {
+      reply(200, { run_token: TOKEN });
+      reply(200, { run_token: TOKEN });
+      reply(200, { run_token: TOKEN });
+      await arcadeApi.startRun("robot-collector");
+      await arcadeApi.startRun("robot-collector", 1);
+      await arcadeApi.startRun("robot-collector", 3);
+      expect(fetchMock.mock.calls.map((call) => call[1].body)).toEqual([
+         '{"slug":"robot-collector"}',
+         '{"slug":"robot-collector"}',
+         '{"slug":"robot-collector","level":3}',
+      ]);
+   });
+
+   it("games() reads GET /arcade/games with its features", async () => {
+      reply(200, { games: {}, features: { levels: true } });
+      await expect(arcadeApi.games()).resolves.toMatchObject({ features: { levels: true } });
+      expect(fetchMock.mock.calls[0][0]).toBe("https://wp.test/wp-json/play50/v1/arcade/games");
+   });
+});
+
+describe("mock client levels", () => {
+   const body = { slug: "robot-collector" as const, score: 100, duration_ms: 30000 };
+
+   it("advertises features.levels", async () => {
+      await expect(createMockArcadeClient().games()).resolves.toMatchObject({ features: { levels: true } });
+   });
+
+   it("keeps a best per level and ranks the sum of the level bests", async () => {
+      const mock = createMockArcadeClient();
+      await expect(mock.submit({ ...body, score: 400 })).resolves.toMatchObject({
+         data: { best_score: 400, level: 1, level_best_score: 400, is_new_level_best: true },
+      });
+      await expect(mock.submit({ ...body, score: 300, level: 2 })).resolves.toMatchObject({
+         data: { best_score: 700, level: 2, level_best_score: 300, is_new_best: true, plays: 2 },
+      });
+      // a worse level-1 run: the level best and the total stand
+      await expect(mock.submit({ ...body, score: 100 })).resolves.toMatchObject({
+         data: { best_score: 700, level_best_score: 400, is_new_level_best: false, plays: 3 },
+      });
+      const board = await mock.leaderboard("robot-collector");
+      expect(board.me).toMatchObject({ best_score: 700 });
+      const me = await mock.me();
+      expect(me["robot-collector"]).toMatchObject({ best: 700, plays: 3, levels: { "1": { best: 400, plays: 2 }, "2": { best: 300, plays: 1 } } });
+   });
+
+   it("rejects an unknown level and a ticket for another level", async () => {
+      const mock = createMockArcadeClient({ requireRunToken: true });
+      await expect(mock.submit({ ...body, level: 6 as never })).rejects.toMatchObject({ code: "invalid_data" });
+      const { run_token } = await mock.startRun("robot-collector", 3);
+      await expect(mock.submit({ ...body, level: 5, run_token })).rejects.toMatchObject({ reason: "signature" });
+      await expect(mock.submit({ ...body, level: 3, run_token })).resolves.toMatchObject({ success: true });
+   });
+});
