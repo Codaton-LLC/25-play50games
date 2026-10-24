@@ -8,7 +8,7 @@ A young knight trains on the castle green at sunset. The knight stands at the ce
 
 ## Controls
 
-`meta.ts`: `controls.scheme = "timing"`. `GameDefinition` (`index.tsx`): `touchControls: ["joystick", "action", "swipe"]`, `touchLabels: { action: "Spin" }`.
+`meta.ts`: `controls.scheme = "timing"`. `GameDefinition` (`index.tsx`): `touchControls: ["action", "swipe"]` (no joystick: strikes are swipes, and the stick covered the arena on phones), `touchLabels: { action: "Spin" }`.
 
 - `keyboard`: "Arrows / WASD to strike, Space to spin"
 - `touch`: "Swipe to strike, Action to spin"
