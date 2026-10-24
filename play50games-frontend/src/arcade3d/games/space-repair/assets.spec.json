@@ -7,7 +7,7 @@
          "id": "astronaut",
          "kind": "character",
          "mode": "text",
-         "prompt": "Friendly adult astronaut in a bulky white toy spacesuit with one indigo accent, round rigid helmet and compact backpack, Play50 toy world premium style, matte and satin materials, rounded readable silhouette, static humanoid T-pose facing forward, straight level arms, separate legs and visible boots, single isolated full-body character centered at the origin, no wrench or flame, no base, no ground, no text, clean game-ready low-poly topology; existing imported astronaut is reused and animated through the core auto-rig",
+         "prompt": "EXISTING GLB DESCRIPTION ONLY; reused asset, never queued for regeneration. Catalog prompt requested no backpack and the user's face through the visor; the existing GLB has a backpack. Preserve its actual face through the visor and backpack. Friendly adult astronaut in a bulky white toy spacesuit with one indigo accent, round rigid helmet and compact backpack, Play50 toy world premium style, matte and satin materials, rounded readable silhouette, static humanoid T-pose facing forward, straight level arms, separate legs and visible boots, single isolated full-body character centered at the origin, no wrench or flame, no base, no ground, no text, clean game-ready low-poly topology; existing imported astronaut is reused and animated through the core auto-rig",
          "tier": "Gen-2.5-Medium",
          "qualityOverride": 18000,
          "attempts": 1,
