@@ -13,6 +13,8 @@ import { REUSED_ASSETS } from "./core/sharedAssets";
 import { hasModel } from "./core/modelManifest";
 
 const ORIGINALS = ARCADE_SLUGS.slice(0, 10);
+/** Expansion games the user took live (go-live batch 1, 2026-10-24). */
+const GONE_LIVE = ["museum-guard", "knight-arena", "castle-defender"];
 
 describe("registry for 30 games", () => {
    it("has 30 slugs, each with one meta, a unique order and a loader", () => {
@@ -32,9 +34,10 @@ describe("registry for 30 games", () => {
       }
    });
 
-   it("puts the 20 new games in dev, 10 per collection, each thumbnail null or its own webp", () => {
+   it("puts the 20 new games in dev (except the ones gone live), 10 per collection, each thumbnail null or its own webp", () => {
       const fresh = ARCADE_GAMES.slice(10);
-      expect(fresh.every((g) => g.status === "dev")).toBe(true);
+      expect(fresh.filter((g) => g.status !== "dev").map((g) => g.slug).sort()).toEqual([...GONE_LIVE].sort());
+      expect(fresh.every((g) => g.status === "dev" || g.status === "live")).toBe(true);
       for (const g of fresh) expect([null, `/images/3d/${g.slug}.webp`]).toContain(g.thumbnail);
       expect(fresh.filter((g) => g.collection === "adventure")).toHaveLength(10);
       expect(fresh.filter((g) => g.collection === "skill")).toHaveLength(10);
@@ -46,13 +49,16 @@ describe("registry for 30 games", () => {
 });
 
 describe("visibility of dev games", () => {
-   it("without the preview flag shows exactly the ten originals", () => {
-      expect(getVisibleGames(false).map((g) => g.slug)).toEqual(ORIGINALS);
+   it("without the preview flag shows the ten originals plus the expansion games gone live", () => {
+      const shown = ARCADE_GAMES.filter((g) => ORIGINALS.includes(g.slug) || GONE_LIVE.includes(g.slug)).map((g) => g.slug);
+      expect(getVisibleGames(false).map((g) => g.slug)).toEqual(shown);
       expect(isGameVisible(getGameMeta("treasure-island")!, false)).toBe(false);
       expect(isGameVisible(getGameMeta("robot-collector")!, false)).toBe(true);
+      for (const slug of GONE_LIVE) expect(isGameVisible(getGameMeta(slug)!, false)).toBe(true);
       const sections = getVisibleSections(false);
-      expect(sections.map((s) => s.id)).toEqual(["originals"]);
+      expect(sections[0].id).toBe("originals");
       expect(sections[0].games).toHaveLength(10);
+      expect(sections.reduce((n, s) => n + s.games.length, 0)).toBe(shown.length);
    });
 
    it("with the preview flag shows all 30 in three sections", () => {

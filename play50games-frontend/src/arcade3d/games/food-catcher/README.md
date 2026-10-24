@@ -1,6 +1,6 @@
 # Food Catcher 3D
 
-Owner: Cursor. Slug: `food-catcher`. The scene plays on top of `rules.ts`. Status stays `"soon"` until Claude reviews it.
+Owner: Cursor. Slug: `food-catcher`. The scene plays on top of `rules.ts`. Status is `"live"`; Level 1 keeps today's production behavior and limits.
 
 | File | What it owns |
 |---|---|
@@ -51,6 +51,8 @@ Good items: apple, banana, burger. Bad items: sock, tin can. Banana and the tin 
 One spawn stream. The clock starts at 0 when the run enters `playing`. A wait starts at 0 and again after every spawn. The wait length is the min gap of the step that contains the start of the wait. The next spawn time is that start plus the gap, and a spawn is emitted only when that time is under 90 s. Each spawn then rolls good or bad with the step's chance. The step is chosen from the spawn's own timestamp. Fall speed is fixed when the item spawns; a later step does not speed items that are already in the air.
 
 The first 3 spawns skip the roll and are always good.
+
+For levels 2–5, every `goldenEvery`th spawn is a guaranteed golden snack only through the level's `bonusLimit`; later multiples use the regular good/junk roll. This keeps the bonus count bounded by the objective for the score proof.
 
 | Elapsed | Min gap between spawns | Fall speed | Chance a spawn is bad |
 |---|---|---|---|
@@ -145,6 +147,40 @@ Measured with throwaway bots (deleted, nothing committed): perfect all-good play
 
 `finalScore` returns `{ score: min(score, 2500, floor(28 * duration_s)), durationMs }`, with `duration_s = durationMs / 1000`, so the floor is `floor(28 * durationMs / 1000)` (core `capScore`, on the whole milliseconds GameShell submits). `index.tsx` wires it as `finalScore: (s) => finalScore(s.score, s.elapsedMs)` with the shell store's score and play time. A full clear submits duration 90000. A three-life loss submits the cross time of the third caught bad item, at earliest 9950. On either legal run the clamp does not change the awarded total.
 
+## Levels
+
+The core owns level selection, unlocks, and the one leaderboard total (the sum of the level bests). All five levels reuse the same kitchen, chef, food/junk assets, controls, and catch rules. **Level 1 is today's live game unchanged** (timing, scoring, spawn table, lives, limits; every level-1 test in `rules.test.ts` is unchanged). Levels 2-5 are objective runs: catch `targetGood` good items before the clock runs out (`end("win")`), with denser, faster drops, more junk, golden snacks, and one new rule.
+
+| Level | Title | Objective / clear | Timer | Config deltas | Lighting |
+|---|---|---|---:|---|---|
+| 1 | Fruit Catch | Today's 90 s score attack; clears at **600** points (`clearScore`; an idle chef tops out near 440) | 90 s | Baseline schedule, 3 lives | Indoor |
+| 2 | Snack Catch | Catch 25 good items (win) | 120 s | Gap ×0.90, fall speed ×1.08, junk +0.04; every 8th drop golden (first 3) | Day |
+| 3 | Fast Food Mix | Catch 35 | 150 s | Gap ×0.82, speed ×1.18, junk +0.07; every 7th golden (first 5) | Sunset |
+| 4 | Speed Kitchen | Catch 45 | 180 s | Gap ×0.74, speed ×1.32, junk +0.10; every 6th golden (first 7) | Night |
+| 5 | Master Catch | Catch 60 | 180 s | Gap ×0.68, speed ×1.48, junk +0.12; every 5th golden (first 12) | Dramatic sunset |
+
+Levels 2-5 rules (`levels.ts`):
+- **Time bonus** (`timeBonusPerSec` 20): a win adds 20 points per whole second left (`timeBonus`). Without it a cleared level could only score its fixed catch total (490-1,280, below level 1's 2,500), every winner would tie, and the harder levels would weigh least in the sum. With it a faster, cleaner clear scores more (the plan's "better time" replay goal) and the level maxima rise 2,400 / 3,150 / 3,910 / 4,150 (level 5 = 1.66 × level 1, inside the 3 × guard).
+- **Drops cost lives** (`dropsPerLife` 5, the plan's "new rule"): every 5th good item that falls past the chef costs a life (HUD chip "Drops n/5"). Without it a chef standing still caught enough of the ~200+ drops to clear level 2 on ~3 % of seeds; now standing still never clears (`levels.test.ts`, 600 idle runs per level).
+- **Golden snacks:** every `goldenEvery`th drop up to `bonusLimit` is a guaranteed good item with a gold ring, +10 when caught; later multiples are ordinary drops, so the golden count is bounded.
+
+A movement-limited bot (50 ms reaction, max chef speed, real junk) clears 200 / 200 / 199 / 196 of 200 seeds on levels 2-5, and reaches level 1's clear score on ≥ 60 %.
+
+## Server limits and why they hold
+
+Level 1: the proof above, unchanged (2,500 / 9.5-93 s / base 0 / 28 pps).
+
+Levels 2-5. Spawn times (`STEPS.gap × gapFactor`, integer ms) and fall speeds (`STEPS.speed × speedFactor`, by spawn time) do not depend on the seed; the seed only sets x, kind and the junk roll. So the item crossings (spawn + 4.4 / speed) are the same for every seed, and a win (the `targetGood`-th good catch) comes at the `targetGood`-th crossing `tE` at the earliest. Before a win a run scores at most `10 × min(c, 4) + 20 × max(c − 4, 0) + 10 × g` (all good, unbroken combo, `g` golden ≤ `bonusLimit`); a win adds `20 × floor((clock − t) / 1000)`, largest at `tE`. Misses, junk and drops only lower the score. `B` = that maximum at `tE`; `maxScore = ceil(1.03 B / 10) × 10`; `base 0`, `pps = ceil(maxScore / tE)` (a win never comes before `tE`, and before a win the catch rate is ≤ 32/s). The earliest loss is three life events: three junk items (never one of the first three spawns or a golden one), or 5 drops per life; the test takes the earliest of the four combinations. `minDurationMs` is that minus ~4 %, `maxDurationMs` the clock + 3 s.
+
+| Level | `tE` | `B` = catch + golden + time bonus | maxScore | base / pps | Duration window (ms) |
+|---|---:|---|---:|---|---|
+| 2 | 27.057 s | 460 + 30 + 20 × 92 = 2,330 | 2,400 | 0 / 89 | 8,620-123,000 |
+| 3 | 32.714 s | 660 + 50 + 20 × 117 = 3,050 | 3,150 | 0 / 97 | 7,890-153,000 |
+| 4 | 36.169 s | 860 + 70 + 20 × 143 = 3,790 | 3,910 | 0 / 109 | 7,940-183,000 |
+| 5 | 42.039 s | 1,160 + 120 + 20 × 137 = 4,020 | 4,150 | 0 / 99 | 7,270-183,000 |
+
+`rules.test.ts` "per-level score-limit proofs" recomputes every number above from the rules (seed independence on 4 seeds, every crossing prefix against `base + pps × t`, the earliest loss), runs the bound-reaching oracle (all good, centred, at 30 / 60 / 144 Hz, 200 seeds; ≥ 95 % of `maxScore`) and idle / spam / junk-chasing bots, and checks `withinServerLimits` with `capScore` a no-op on every run. The honest movement-limited bot in `levels.test.ts` reaches ≥ 90 % of each level's `maxScore` (best 2,330 / 3,030 / 3,750 / 3,940 measured).
+
 ## Camera and scene layout
 
 The play rectangle that must stay on screen is x in [-4.2, 4.2] and y in [0, 6.5] (z [-0.9, 1.05] covers the depth of the chef and the counter edge). Its center is `(0, 3.25)`. The camera looks straight at it from `+z` (pitch 0, yaw 0) with fov 40. It does not follow the chef.
@@ -238,3 +274,7 @@ Scene writes the combo with `setStat("combo", combo)`. The small `Hud` draws a 2
 - Portrait letterbox: the play rectangle is 8.4 wide and 6.5 tall, so on a portrait phone the fit is bound by the width and the rectangle fills only about a third of the screen height (375×812, measured: camera z ≈ 26, the view spans y -6.2 to 12.7, about 43 px per unit). The taller wall and the cabinet fill the rest with kitchen, but the items stay small (about 36 px across). A taller play area for portrait would change the fall distance and the score proof, so it is not done here.
 - `skills.md` still lists a strawberry prop for this game. This spec does not generate one.
 - Shared banana and tin can stay on the shared spec (seed 5050). This game only places them, and it does not regenerate them.
+
+## Status
+
+Levels: OpenCode (P-39, `opencode/levels-food-catcher`); Claude review 2026-10-24 replaced the score design (time bonus, drops cost lives, level-1 clear 600, level-aware cap via the store's `levelId`), re-derived the limits and put them in `arcade-games.json`. Live game: the JSON `levels` must be on the server before the frontend merge.
