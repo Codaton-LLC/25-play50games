@@ -80,12 +80,25 @@ export const COLORS = {
    },
 } as const;
 
-/** Per level: the core lighting preset plus the sky dome and fog colours (scenery only). Level 1 is today's look. */
-export const LEVEL_LOOKS: Record<LevelId, { lighting: LightingPreset; skyTop: string; sky: string; fog: string }> = {
+/**
+ * Per level: the core lighting preset plus the sky dome and fog colours (scenery only). Level 1 is today's look.
+ * Optional, scenery only: `ground` multiplies the meadow, hills and lane colours (omitted = white, unchanged);
+ * `torches` is the intensity of two warm point lights over the gate lanterns (omitted = none).
+ */
+export interface LevelLook {
+   lighting: LightingPreset;
+   skyTop: string;
+   sky: string;
+   fog: string;
+   ground?: string;
+   torches?: number;
+}
+
+export const LEVEL_LOOKS: Record<LevelId, LevelLook> = {
    1: { lighting: "sunset", skyTop: COLORS.skyTop, sky: COLORS.sky, fog: COLORS.fog },
-   2: { lighting: "day", skyTop: "#5f9ec2", sky: "#d8edf0", fog: "#d8edf0" },
+   2: { lighting: "indoor", skyTop: "#5f9ec2", sky: "#d8edf0", fog: "#d8edf0", ground: "#dfe2d2" },
    3: { lighting: "sunset", skyTop: "#2b2f5c", sky: "#f2a66b", fog: "#f2a66b" },
-   4: { lighting: "night", skyTop: "#081325", sky: "#15243d", fog: "#15243d" },
+   4: { lighting: "night", skyTop: "#040814", sky: "#0b1426", fog: "#0b1426", ground: "#9aa4bb", torches: 8 },
    5: { lighting: "sunset", skyTop: "#352c52", sky: "#b96a57", fog: "#b96a57" },
 };
 

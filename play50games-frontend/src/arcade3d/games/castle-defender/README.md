@@ -4,14 +4,14 @@ Owner: Codex. Slug: castle-defender. P-16 difficulty/combo implementation; serve
 
 ## Levels (P-30 pilot, 2026-10-24)
 
-Five levels through the core level system (`core/README.md` "Levels"): `levels.ts` holds the pure `CastleLevel` configs, `createRun(seed, level)` takes one, Scene/Hud read it with `useCastleLevel()` (= `useLevel<CastleLevel>()`), `index.tsx` declares the five `LevelSpec`s (description, config, environment from `looks.ts` `LEVEL_LOOKS`), `meta.ts` the titles and limits. Level 1 is today's game unchanged (rules.test.ts passes unchanged; levels.test.ts pins its config, starts, safety end, look and start card). Same castle, lanes, assets, cannon, rocks, HP, damage, combo and the four upgrade offers on every level; only the waves, a speed factor on every goblin, the gap between wave starts and the clear time change, plus the sky and the core lighting preset. A level clears on a **win** (every wave survived, gate HP > 0); there is no `clearScore`.
+Five levels through the core level system (`core/README.md` "Levels"): `levels.ts` holds the pure `CastleLevel` configs, `createRun(seed, level)` takes one, Scene/Hud read it with `useCastleLevel()` (= `useLevel<CastleLevel>()`), `index.tsx` declares the five `LevelSpec`s (description, config, environment from `looks.ts` `LEVEL_LOOKS`), `meta.ts` the titles and limits. Level 1 is today's game unchanged (rules.test.ts passes unchanged; levels.test.ts pins its config, starts, safety end, look and start card). Same castle, lanes, assets, cannon, rocks, HP, damage, combo and the four upgrade offers on every level; only the waves, a speed factor on every goblin, the gap between wave starts and the clear time change, plus the sky, the core lighting preset and two scenery-only looks (`LevelLook.ground` tint on the meadow/hills/lanes, `LevelLook.torches` point lights). A level clears on a **win** (every wave survived, gate HP > 0); there is no `clearScore`.
 
 | Level | Title | Waves / goblins | Speed | Start gap / clear | Win at | What changes | Lighting |
 |---|---|---:|---:|---:|---:|---|---|
 | 1 | Outer Wall | 5 / 98 | 1.00 | 28 / 24 s | 136 s | today's game | sunset (today's sky) |
-| 2 | Main Gate | 5 / 102 | 1.05 | 27 / 23 s | 131 s | shields from wave 1, runners from wave 2 | day, blue sky |
+| 2 | Main Gate | 5 / 102 | 1.05 | 27 / 23 s | 131 s | shields from wave 1, runners from wave 2 | indoor preset (warm, no glare on the pale stone), blue sky, ground x #dfe2d2 |
 | 3 | Twin Towers | 6 / 128 | 1.08 | 26 / 22 s | 152 s | a sixth full siege wave | sunset, deeper dusk sky |
-| 4 | Night Siege | 7 / 151 | 1.10 | 25.5 / 21.5 s | 174.5 s | seven waves, an extra ladder crew in wave 6 | night |
+| 4 | Night Siege | 7 / 151 | 1.10 | 25.5 / 21.5 s | 174.5 s | seven waves, an extra ladder crew in wave 6 | night, dark sky, moonlit ground x #9aa4bb, two warm torch lights over the gate lanterns |
 | 5 | Royal Defense | 8 / 162 | 1.14 | 25 / 21.5 s | 196.5 s | eight waves, every kind from wave 2, ladders from wave 4 | sunset, purple-crimson sky |
 
 Plan adaptation (GAME 24): the plan's 3/4/5/6/8 waves of stationary-then-moving targets become 5/5/6/7/8 waves of the built moving-goblin siege, because level 1 must stay today's five waves. "Longer distance / moving / faster targets" map to the speed factor and the earlier shields and runners; "strict attempt limit" stays the unchanged reload, flight and four-offer upgrade budget (no new mechanic, no new asset, no target made smaller). Difficulty is monotone by construction (goblins, waves and speed rise; gaps and clear times never grow: levels.test.ts) and measured: the human-paced bot wins 100 / 98 / 98 / 98.5 / 96.5 % of 200 seeds on levels 1-5 (rules.levels.test.ts asserts >= 90 %), and its mean gate HP at a win falls 101 / 87 / 80 / 73 / 78 (level 5's extra two waves are lighter, so its losses are the late waves). Timing is identical on touch and keyboard on every level (reload, flight, rock cooldown and the 2 s climb; touch keeps only the 0.7 m aim snap): levels.test.ts runs the fairness check per level.
@@ -156,7 +156,7 @@ Approved: 1.6 m visual goblins (rules radius unchanged); a fixed 136 s surviving
 
 ## Open questions
 
-Levels (2026-10-24, Claude took over P-30 from Codex): the five levels' limits are in meta.ts `levels` and arcade-games.json `levels` (castle stays `enabled: false`). Open: the flagged build and a headless playtest of all five levels (night readability of the goblins and markers on level 4, the sky colours), then the user's go-ahead on the level content and limits.
+Levels (2026-10-24, Claude took over P-30 from Codex): the five levels' limits are in meta.ts `levels` and arcade-games.json `levels` (castle stays `enabled: false`). Playtested headless (flagged build, all five levels); fixes: level 2 no longer washes out (indoor preset + ground tint instead of day), level 4 reads as night (dark sky, moonlit ground, warm torchlight at the gate; goblins stay readable). Open: the user's go-ahead on the level content and limits.
 
 ## Merge review (Claude, 2026-10-09)
 

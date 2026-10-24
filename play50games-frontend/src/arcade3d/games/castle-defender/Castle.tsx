@@ -75,6 +75,8 @@ const POLES: InstanceSpot[] = [
    { x: 6.5, y: 6.3, z: 3.15, sy: 0.9 },
 ];
 const LANTERNS: InstanceSpot[] = [-4.8, -2.4, 2.4, 4.8].map((x) => ({ x, y: 0.82, z: 2.32 }));
+/** where a night level's two torch lights hang: in front of the wall, between the lantern pairs */
+const TORCHES = [[-3.6, 1], [3.6, 1]] as const;
 
 function useWallGeometry(): { geometry: BufferGeometry; map: ReturnType<typeof useCanvasTexture> } {
    const map = useCanvasTexture(256, 256, drawBricks);
@@ -168,7 +170,7 @@ export function Castle({ run, reduced }: { run: CastleRun; reduced: boolean }) {
    return (
       <group>
          <SkyDome top={sky.skyTop} bottom={sky.sky} offset={0.12} exponent={0.8} />
-         <Terrain reduced={reduced} />
+         <Terrain reduced={reduced} ground={sky.ground} />
          <Decor reduced={reduced} />
          <mesh geometry={wall.geometry} dispose={null} name="castle-wall">
             <meshStandardMaterial map={wall.map} vertexColors roughness={0.94} />
@@ -186,6 +188,8 @@ export function Castle({ run, reduced }: { run: CastleRun; reduced: boolean }) {
             <sphereGeometry args={[0.12, 8, 6]} />
             <meshStandardMaterial color={COLORS.lanternBody} emissive={COLORS.lantern} emissiveIntensity={0.85} roughness={0.45} />
          </Instanced>
+         {/* a night level's torchlight (LevelLook.torches): warm pools on the near lanes from the gate lanterns */}
+         {sky.torches ? TORCHES.map(([x, z]) => <pointLight key={x} position={[x, 2.2, z]} color={COLORS.lantern} intensity={sky.torches} distance={11} decay={1.3} />) : null}
          <group ref={gate} position={[0, 0, 2.51]}>
             <Model asset={ASSETS.gate} fallback={<GatePrimitive />} />
          </group>

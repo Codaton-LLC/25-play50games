@@ -6,6 +6,7 @@ import { LEVEL_IDS } from "@/arcade3d/types";
 import { levelMetaProblems, scoringFor } from "@/arcade3d/levelMeta";
 import { definitionLevelProblems, levelEnvironment, levelInstructions, levelRunConfig } from "@/arcade3d/core/levels";
 import { LEVELS } from "./levels";
+import { LEVEL_LOOKS } from "./looks";
 import { castleDefenderMeta as meta } from "./meta";
 import definition from "./index";
 import { visibleGoblin } from "./Goblins";
@@ -48,7 +49,11 @@ describe("castle-defender levels: declarations", () => {
          expect(levelRunConfig(definition, id)).toEqual(levelRunConfig(definition, 1));
          expect(levelInstructions(definition, id)).toEqual(definition.instructions);
       }
-      expect(LEVEL_IDS.map((id) => levelEnvironment(definition, id)!.lighting)).toEqual(["sunset", "day", "sunset", "night", "sunset"]);
+      expect(LEVEL_IDS.map((id) => levelEnvironment(definition, id)!.lighting)).toEqual(["sunset", "indoor", "sunset", "night", "sunset"]);
+      // scenery only: level 1 keeps today's untinted ground and no torches; the night level has its torchlight
+      expect(LEVEL_LOOKS[1].ground).toBeUndefined();
+      expect(LEVEL_LOOKS[1].torches).toBeUndefined();
+      expect(LEVEL_LOOKS[4].torches).toBeGreaterThan(0);
    });
 });
 
