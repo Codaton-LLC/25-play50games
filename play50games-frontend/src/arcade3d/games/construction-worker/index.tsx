@@ -4,6 +4,7 @@ import type { GameDefinition } from "@/arcade3d/core/types";
 import Scene from "./Scene";
 import { Hud } from "./Hud";
 import { ASSETS } from "./assets";
+import { COLORS } from "./looks";
 import { CLOCK_S } from "./rules";
 
 const definition: GameDefinition = {
@@ -12,8 +13,7 @@ const definition: GameDefinition = {
    Hud,
    assets: ASSETS,
    camera: { position: [8, 12, 18], fov: 42, lookAt: [0, 0.5, 5] },
-   // The fitted phone camera sits about 65 m out. Fog that starts at 28 m hides the whole site.
-   environment: { background: "#e7e5e4", fog: ["#e7e5e4", 100, 160], lighting: "day" },
+   environment: { background: COLORS.skyBottom, fog: [COLORS.fog, 65, 140], lighting: "day" },
    touchControls: ["joystick", "action", "tap"],
    hudStats: [
       { key: "stability", label: "Stability", max: 100 },

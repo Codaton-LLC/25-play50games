@@ -2,7 +2,7 @@
    "slug": "alien-farm",
    "universe": "shared-cast",
    "seed": 5050,
-   "_note": "REUSE ONLY / INVENTORY, NOT A GENERATION JOB. Reuse existing alien, glowPod and gourd GLBs. Alien and glowPod are existing image-to-3D models. mode=text, prompts, tiers, qualityOverride and attempts are legacy descriptive schema fields, not instructions to generate. Exclude every entry from generation queues; never invoke smoke/gen or spend credits for this spec. Missing models use README procedural fallbacks; do not regenerate or replace them.",
+   "_note": "REUSE ONLY / INVENTORY, NOT A GENERATION JOB. Reuse existing alien, glowPod and gourd GLBs; the saucer is the existing alien-farm/ufo.glb (Claude, 2026-10-24, in the manifest; not an entry because the schema only describes generation jobs). Alien and glowPod are existing image-to-3D models. mode=text, prompts, tiers, qualityOverride and attempts are legacy descriptive schema fields, not instructions to generate. Exclude every entry from generation queues; never invoke smoke/gen or spend credits for this spec. Missing models use README procedural fallbacks; do not regenerate or replace them.",
    "assets": [
       {
          "id": "alien",
