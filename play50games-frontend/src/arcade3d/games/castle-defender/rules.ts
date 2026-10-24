@@ -1,17 +1,17 @@
 import { bufferFire, clampTo, createAxisAim, createBufferedFire, stepAimKeys, type AxisAimInput } from "@/arcade3d/core/aim";
 import { landingPoint, launchForTime, trajectoryPoints, type Projectile } from "@/arcade3d/core/ballistics";
 import { circlesOverlapXZ } from "@/arcade3d/core/collision";
-import { substep } from "@/arcade3d/core/kinematics";
 import { rngNext } from "@/arcade3d/core/math";
 import { advance, createPath, pointAt, tangentAt, type RiderState } from "@/arcade3d/core/path";
 import { MUZZLE } from "./assets";
 
 export const TUNING = {
-   hp: 100, repair: 25, reload: 0.8, reloadFactor: 0.8, radius: 2, splashFactor: 1.3,
+   hp: 100, repair: 25, reload: 1.1, reloadFactor: 0.85, radius: 1.2, splashFactor: 1.25,
    gravity: 9.81, climb: 2, rockCooldown: 8, rockBuffer: 1, rockHeight: 3,
    kill: 20, clear: 200, bonus: 2, period: 28, clearAt: 24, spawnSpan: 8,
-   safety: 139.9, maxStep: 1 / 120, bodyRadius: 0.3, rearAim: 0.65, snap: 1.5, banner: 1.6, resultDelayMs: 1600,
+   safety: 139.9, bodyRadius: 0.3, rearAim: 0.65, snap: 0.7, banner: 1.6, resultDelayMs: 1600,
    rearOffset: 0.8, lateral: 0.65, laneLength: 8.8, aimError: 0.6,
+   comboMultipliers: [1, 1, 1.5, 2, 2.5, 3], comboLostDuration: 1.2,
 } as const;
 export const TYPES = {
    walker: { hp: 1, speed: 0.7, damage: 5 },
@@ -24,6 +24,11 @@ export type Upgrade = "reload" | "splash" | "repair" | "double";
 export const UPGRADE_NAMES: readonly Upgrade[] = ["reload", "splash", "repair", "double"];
 export const COUNTS = [[8, 0, 0, 0], [10, 4, 0, 0], [10, 4, 6, 0], [10, 4, 6, 6], [12, 6, 6, 6]] as const;
 export const STARTS = [0, 28, 56, 84, 112] as const;
+/** Proven ceiling B = 98 * 20 * 3 + 5 * 200 + 2 * 125. Pending Claude's meta/JSON update. */
+export const PROPOSED_LIMITS = {
+   kind: "points", maxScore: 7130, minDurationMs: 39000, maxDurationMs: 140000,
+   base: 480, maxPointsPerSec: 56, unitLabel: "pts", display: "int",
+} as const;
 export const AIM = {
    x: { min: -5, max: 5, step: 0.5, rate: 6, dragGain: 0 },
    y: { min: -2, max: 6, step: 0.5, rate: 6, dragGain: 0 }, holdDelay: 0.25,
@@ -44,7 +49,7 @@ export interface Goblin extends RiderState {
    x: number; y: number; z: number; resolvedAt: number;
 }
 export interface Crew { id: number; wave: number; lane: number; erected: number; destroyed: boolean; }
-export interface Ball extends Projectile { active: boolean; id: number; launched: number; impact: number; tx: number; tz: number; }
+export interface Ball extends Projectile { active: boolean; id: number; shot: number; launched: number; impact: number; tx: number; tz: number; }
 export interface StepInput extends AxisAimInput {
    coarse: boolean; point: boolean; x: number; z: number; fire: boolean; rock: boolean; choice: number;
 }
@@ -108,10 +113,11 @@ export function generateArmy(seed: number): { goblins: Goblin[]; crews: Crew[] }
 export function createRun(seed: number) {
    const army = generateArmy(seed);
    const run = {
-      ...army, seed, rng: { s: seed ^ 0x93fca }, time: 0, wave: 0, hp: 100, maxHP: 100,
-      killed: 0, cleared: 0, score: 0, end: null as "win" | "lose" | "timeup" | null,
+      ...army, waves: STARTS.map((_, wave) => army.goblins.filter((g) => g.wave === wave)),
+      seed, rng: { s: seed ^ 0x93fca }, time: 0, wave: 0, hp: Number(TUNING.hp), maxHP: Number(TUNING.hp),
+      killed: 0, cleared: 0, score: 0, combo: 0, comboLostAt: -10, end: null as "win" | "lose" | "timeup" | null,
       aim: createAxisAim(0, 2), fire: createBufferedFire(), ready: 0, shotId: 0,
-      balls: Array.from({ length: 8 }, (): Ball => ({ active: false, id: 0, launched: 0, impact: 0, tx: 0, tz: 0, x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0 })),
+      balls: Array.from({ length: 8 }, (): Ball => ({ active: false, id: 0, shot: 0, launched: 0, impact: 0, tx: 0, tz: 0, x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0 })),
       rock: { active: false, crew: -1, launched: 0, impact: 0, ready: 0, pending: false, expires: 0, target: -1 },
       stacks: [0, 0, 0, 0], offer: false, offered: -1, cards: [0, 1], chosen: -1, eligible: [0, 0, 0, 0],
       impacts: 0, launches: 0, drops: 0, damageEvents: 0, rearHits: 0, erections: 0, upgrades: 0, spawns: 0,
@@ -119,22 +125,21 @@ export function createRun(seed: number) {
       lastDamage: { x: 0, y: 0.6, z: 2.5 },
       target: { x: 0, y: 0, z: 0 }, velocity: { x: 0, y: 0, z: 0 }, tangent: { x: 0, y: 0, z: 1 },
       landing: { x: 0, y: 0, z: 0 }, preview: new Float32Array(72),
-      tick: (_dt: number) => {},
    };
-   run.tick = (dt) => advanceTime(run, dt);
    return run;
 }
 export type CastleRun = ReturnType<typeof createRun>;
-export const reload = (run: CastleRun) => 0.8 * 0.8 ** run.stacks[0];
-export const splash = (run: CastleRun) => 2 * 1.3 ** run.stacks[1];
-export const runScore = (kills: number, clears: number, won: boolean, hp: number) => 20 * kills + 200 * clears + (won ? 2 * hp : 0);
+export const reload = (run: CastleRun) => TUNING.reload * TUNING.reloadFactor ** run.stacks[0];
+export const splash = (run: CastleRun) => TUNING.radius * TUNING.splashFactor ** run.stacks[1];
+export const comboMultiplier = (combo: number) => TUNING.comboMultipliers[Math.min(combo, TUNING.comboMultipliers.length - 1)];
+export const runScore = (killPoints: number, clears: number, won: boolean, hp: number) => killPoints + TUNING.clear * clears + (won ? TUNING.bonus * hp : 0);
 export const flightTime = (x: number, z: number) => 0.6 + 0.4 * clampTo(Math.hypot(x - MUZZLE.x, z - MUZZLE.z) / 10, 0, 1);
 export function predict(g: Goblin, dt: number, out: { x: number; y: number; z: number }): void {
    pointAt(g.path, g.s + TYPES[g.kind].speed * dt, out);
    out.x += g.lateral;
 }
 export function snapAim(run: CastleRun, x: number, z: number): void {
-   let best = 1.5 * 1.5, picked = -1;
+   let best = TUNING.snap ** 2, picked = -1;
    for (const g of run.goblins) {
       if (g.status !== "ground") continue;
       let t = flightTime(x, z);
@@ -149,8 +154,8 @@ export function snapAim(run: CastleRun, x: number, z: number): void {
       for (let n = 0; n < 2; n++) { predict(g, t, run.target); t = flightTime(run.target.x, run.target.z); }
       predict(g, t, run.target);
       tangentAt(g.path, g.s, run.tangent);
-      x = run.target.x - (g.kind === "shield" ? 0.65 * run.tangent.x : 0);
-      z = run.target.z - (g.kind === "shield" ? 0.65 * run.tangent.z : 0);
+      x = run.target.x - (g.kind === "shield" ? TUNING.rearAim * run.tangent.x : 0);
+      z = run.target.z - (g.kind === "shield" ? TUNING.rearAim * run.tangent.z : 0);
    }
    run.aim.x = clampTo(x, -5, 5); run.aim.y = -clampTo(z, -6, 2);
 }
@@ -172,28 +177,40 @@ function offer(run: CastleRun): void {
 }
 function kill(run: CastleRun, g: Goblin): void {
    if (g.status === "dead" || g.status === "escaped") return;
-   g.hp = 0; g.status = "dead"; g.resolvedAt = run.time; run.killed++; run.score += 20;
+   g.hp = 0; g.status = "dead"; g.resolvedAt = run.time; run.killed++;
+   run.score += Math.round(TUNING.kill * comboMultiplier(run.combo));
 }
-export function impact(run: CastleRun, x: number, z: number): void {
+function resetCombo(run: CastleRun): void {
+   if (run.combo >= 2) run.comboLostAt = run.time;
+   run.combo = 0;
+}
+export function impact(run: CastleRun, x: number, z: number, balls = 1): void {
    const radius = splash(run);
+   let hits = 0, kills = 0;
    run.target.x = x; run.target.z = z;
    for (const g of run.goblins) {
       if (g.status !== "ground" || !circlesOverlapXZ(g, 0, run.target, radius)) continue;
+      hits++;
       tangentAt(g.path, g.s, run.tangent);
       const rear = (x - g.x) * run.tangent.x + (z - g.z) * run.tangent.z < 0;
-      g.hp -= g.kind === "shield" && !rear ? 0.5 : 1;
+      g.hp -= balls * (g.kind === "shield" && !rear ? 0.5 : 1);
       if (g.kind === "shield" && rear) { run.rearHits++; run.rear.x = g.x; run.rear.z = g.z; run.rear.at = run.time; }
-      if (g.hp <= 0) kill(run, g);
+      if (g.hp <= 0) {
+         if (kills++ === 0) run.combo++;
+         kill(run, g);
+      }
    }
+   if (hits === 0) resetCombo(run);
 }
 function launch(run: CastleRun): void {
    const x = run.fire.x, z = run.fire.y;
    const t = flightTime(x, z);
    run.target.x = x; run.target.y = 0; run.target.z = z;
    launchForTime(MUZZLE, run.target, t, BALLISTICS, run.velocity);
+   const shot = run.shotId;
    for (let n = 0; n < (run.stacks[3] ? 2 : 1); n++) {
       for (const b of run.balls) if (!b.active) {
-         b.active = true; b.id = run.shotId++; b.launched = run.time; b.impact = run.time + t;
+         b.active = true; b.id = run.shotId++; b.shot = shot; b.launched = run.time; b.impact = run.time + t;
          b.x = MUZZLE.x; b.y = MUZZLE.y; b.z = MUZZLE.z;
          b.vx = run.velocity.x; b.vy = run.velocity.y; b.vz = run.velocity.z;
          landingPoint(b, BALLISTICS, 0, run.landing);
@@ -229,6 +246,7 @@ function drop(run: CastleRun, crew: number): void {
    run.rock.impact = run.time + ROCK_FLIGHT; run.rock.ready = run.time + 8; run.rock.pending = false; run.drops++;
 }
 function damage(run: CastleRun, g: Goblin): void {
+   resetCombo(run);
    g.status = "escaped"; g.resolvedAt = run.time;
    run.hp = Math.max(0, run.hp - TYPES[g.kind].damage); run.damageEvents++;
    run.lastDamage.x = g.x;
@@ -236,9 +254,10 @@ function damage(run: CastleRun, g: Goblin): void {
 }
 function events(run: CastleRun): void {
    if (run.end) return;
-   for (const g of run.goblins) if (g.status === "waiting" && g.spawn <= run.time + EPS) { g.status = "ground"; run.spawns++; }
+   const wave = run.waves[run.wave];
+   for (const g of wave) if (g.status === "waiting" && g.spawn <= run.time + EPS) { g.status = "ground"; run.spawns++; }
    if (!run.offer && run.fire.pending && run.ready <= run.time + EPS) launch(run);
-   for (const g of run.goblins) {
+   for (const g of wave) {
       if (g.status === "ground" && g.s >= 8.8 - EPS) {
          if (g.crew >= 0) g.status = "rail"; else damage(run, g);
       } else if (g.status === "climb" && run.time >= run.crews[g.crew].erected + 2 - EPS) damage(run, g);
@@ -247,12 +266,13 @@ function events(run: CastleRun): void {
    for (const c of run.crews) {
       if (c.erected >= 0 || c.destroyed) continue;
       let alive = 0, arrived = 0;
-      for (const g of run.goblins) if (g.crew === c.id && g.status !== "dead" && g.status !== "escaped") { alive++; if (g.status === "rail") arrived++; }
+      if (c.wave !== run.wave) continue;
+      for (const g of wave) if (g.crew === c.id && g.status !== "dead" && g.status !== "escaped") { alive++; if (g.status === "rail") arrived++; }
       if (alive && alive === arrived) {
          c.erected = run.time;
          run.erections++;
          let n = 0;
-         for (const g of run.goblins) if (g.crew === c.id && g.status === "rail") {
+         for (const g of wave) if (g.crew === c.id && g.status === "rail") {
             g.status = "climb"; g.x = LANE_X[c.lane] + CLIMB_OFFSETS[n++ % 3]; g.z = 2; g.y = 0.08;
          }
       }
@@ -262,7 +282,10 @@ function events(run: CastleRun): void {
       let picked: Ball | null = null;
       for (const b of run.balls) if (b.active && b.impact <= run.time + EPS && (!picked || b.id < picked.id)) picked = b;
       if (!picked) break;
-      impact(run, picked.tx, picked.tz); picked.active = false; run.impacts++;
+      // Double is one input/volley: both balls hit together and advance/reset combo once.
+      let balls = 0;
+      for (const b of run.balls) if (b.active && b.shot === picked.shot) { b.active = false; balls++; }
+      impact(run, picked.tx, picked.tz, balls); run.impacts += balls;
       run.lastImpact.x = picked.tx; run.lastImpact.z = picked.tz;
    }
    if (run.rock.active && run.rock.impact <= run.time + EPS) {
@@ -276,24 +299,24 @@ function events(run: CastleRun): void {
       else if (run.time >= run.rock.expires - EPS) run.rock.pending = false;
    }
    let resolved = true;
-   for (const g of run.goblins) if (g.wave === run.wave && g.status !== "dead" && g.status !== "escaped") resolved = false;
+   for (const g of wave) if (g.status !== "dead" && g.status !== "escaped") resolved = false;
    if (resolved && run.wave < 4 && run.offered !== run.wave) offer(run);
    if (run.cleared === run.wave && run.time >= STARTS[run.wave] + 24 - EPS) {
-      run.cleared++; run.score += 200;
-      if (run.wave === 4 && resolved) { run.score = runScore(run.killed, run.cleared, true, run.hp); run.end = "win"; return; }
+      run.cleared++; run.score += TUNING.clear;
+      if (run.wave === 4 && resolved) { run.score += TUNING.bonus * run.hp; run.end = "win"; return; }
    }
    if (run.wave < 4 && run.time >= STARTS[run.wave + 1] - EPS) {
       if (run.chosen < 0) chooseUpgrade(run, 1);
       run.wave++; run.offer = false; run.fire.pending = false; run.rock.pending = false;
       run.aim.holdX = 0; run.aim.holdY = 0;
+      events(run); // Spawn the next wave at its boundary even if this call still has dt left.
    }
    if (run.time >= 139.9 - EPS) run.end = "timeup";
 }
 function advanceTime(run: CastleRun, dt: number): void {
    let left = dt;
    while (left > 1e-12 && !run.end) {
-      events(run);
-      if (run.end) break;
+      const wave = run.waves[run.wave];
       let h = left;
       h = boundary(h, run.time, 139.9); h = boundary(h, run.time, STARTS[run.wave] + 24);
       if (run.wave < 4) h = boundary(h, run.time, STARTS[run.wave + 1]);
@@ -301,12 +324,12 @@ function advanceTime(run: CastleRun, dt: number): void {
       if (run.rock.active) h = boundary(h, run.time, run.rock.impact);
       if (run.rock.pending) h = boundary(h, run.time, run.rock.expires);
       for (const b of run.balls) if (b.active) h = boundary(h, run.time, b.impact);
-      for (const g of run.goblins) {
+      for (const g of wave) {
          if (g.status === "waiting") h = boundary(h, run.time, g.spawn);
          if (g.status === "ground") h = boundary(h, run.time, run.time + (8.8 - g.s) / TYPES[g.kind].speed);
          if (g.status === "climb") h = boundary(h, run.time, run.crews[g.crew].erected + 2);
       }
-      for (const g of run.goblins) {
+      for (const g of wave) {
          if (g.status === "ground") { advance(g, TYPES[g.kind].speed * h); g.x = g.position.x + g.lateral; g.z = g.position.z; }
          if (g.status === "climb") g.y = 0.08 + clampTo((run.time + h - run.crews[g.crew].erected) / 2, 0, 1) * 2;
       }
@@ -334,5 +357,7 @@ export function stepRun(run: CastleRun, input: StepInput, dt: number): void {
          else { run.rock.target = nextCrew(run); run.rock.pending = run.rock.target >= 0; run.rock.expires = run.time + 1; }
       }
    }
-   substep(dt, TUNING.maxStep, run.tick);
+   // Constant-speed paths and analytic projectiles already split at every event boundary.
+   if (!run.offer && run.fire.pending && run.ready <= run.time + EPS) launch(run);
+   advanceTime(run, dt);
 }

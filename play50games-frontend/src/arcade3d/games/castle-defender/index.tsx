@@ -5,6 +5,7 @@ import Scene from "./Scene";
 import Hud from "./Hud";
 import { ASSETS } from "./assets";
 import { CAMERA } from "./camera";
+import { COLORS, FOG } from "./looks";
 import { TUNING } from "./rules";
 
 export const KEYBOARD_INSTRUCTIONS = [
@@ -25,7 +26,7 @@ const definition: GameDefinition = {
    Hud,
    assets: ASSETS,
    camera: CAMERA,
-   environment: { background: "#dbeafe", lighting: "day" },
+   environment: { background: COLORS.sky, fog: [COLORS.fog, FOG.near, FOG.far], lighting: "sunset" },
    touchControls: ["tap", "action"],
    touchLabels: { action: "Rock" },
    hudStats: [],

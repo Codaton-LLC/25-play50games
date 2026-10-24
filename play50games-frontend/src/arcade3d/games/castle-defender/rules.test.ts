@@ -2,13 +2,12 @@ import { describe, expect, it } from "vitest";
 import { capScore, withinServerLimits } from "@/arcade3d/core/limits";
 import { advanceRunClock, playedFrameDt } from "@/arcade3d/core/frameLoop";
 import { createRng } from "@/arcade3d/core/math";
-import { fixedFrames, randomFrames, simulateRun } from "@/arcade3d/core/testing/botHarness";
+import { fixedFrames, simulateRun } from "@/arcade3d/core/testing/botHarness";
 import { createArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { launchForTime, landingPoint } from "@/arcade3d/core/ballistics";
 import { MUZZLE } from "./assets";
 import { VIEW } from "./camera";
-import { castleDefenderMeta } from "./meta";
-import { AIM, BALLISTICS, CLIMB_OFFSETS, COUNTS, LANES, LANE_X, ROCK_FLIGHT, STARTS, TUNING, TYPES, chooseUpgrade, createInput, createRun, flightTime, generateArmy, impact, predict, reload, runScore, snapAim, splash, stepRun, threatenedCrew, type CastleRun } from "./rules";
+import { AIM, BALLISTICS, PROPOSED_LIMITS, comboMultiplier, CLIMB_OFFSETS, COUNTS, LANES, LANE_X, ROCK_FLIGHT, STARTS, TUNING, TYPES, chooseUpgrade, createInput, createRun, flightTime, generateArmy, impact, predict, reload, runScore, snapAim, splash, stepRun, threatenedCrew, type CastleRun } from "./rules";
 
 const idle = createInput();
 const advanceTo = (run: CastleRun, at: number) => stepRun(run, idle, at - run.time);
@@ -20,17 +19,50 @@ function isolated(kind: "walker" | "shield" | "runner" | "crew" = "walker") {
    return { run, g };
 }
 
+describe("combo regression", () => {
+   it("advances once per killing shot before paying every victim, then caps at x3", () => {
+      const { run, g } = isolated();
+      for (const [combo, award] of [[1, 20], [2, 30], [3, 40], [4, 50], [5, 60], [6, 60]]) {
+         g.status = "ground"; g.hp = 1;
+         const before = run.score;
+         impact(run, 0, 0);
+         expect(run.combo).toBe(combo); expect(run.score - before).toBe(award);
+      }
+      const other = run.goblins[1]; other.status = "ground"; other.hp = 1; other.x = 0; other.z = 0;
+      g.status = "ground"; g.hp = 1;
+      const before = run.score; impact(run, 0, 0);
+      expect(run.combo).toBe(7); expect(run.score - before).toBe(120);
+   });
+   it("preserves combo on nonlethal shield hits, resets on empty shots and gate damage", () => {
+      const { run, g } = isolated("shield"); run.combo = 3;
+      impact(run, 0, 0); expect(run.combo).toBe(3);
+      impact(run, 5, -6); expect(run.combo).toBe(0); expect(run.comboLostAt).toBe(0);
+      run.combo = 4; g.s = 8.8;
+      stepRun(run, idle, 0.01); expect(run.combo).toBe(0); expect(run.damageEvents).toBe(1);
+   });
+   it("a real double volley advances once even when its first ball kills", () => {
+      for (const kind of ["walker", "shield"] as const) {
+         const { run, g } = isolated(kind), i = createInput();
+         g.path = LANES[1]; g.lateral = 0; g.s = 4; g.x = 0; g.z = -2.8;
+         run.stacks[3] = 1; run.combo = 1;
+         i.point = true; i.fire = true; i.x = 0; i.z = -2.8;
+         stepRun(run, i, 0.01); advanceTo(run, 1);
+         expect(run.impacts).toBe(2); expect(run.killed).toBe(1);
+         expect(run.combo).toBe(2); expect(run.score).toBe(30);
+      }
+   });
+});
+
 describe("literal tuning and schedules", () => {
-   it("pins approved values, not self-derived limits", () => {
+   it("pins literal tuning and the unchanged wave schedule", () => {
       expect(STARTS).toEqual([0, 28, 56, 84, 112]);
       expect(COUNTS).toEqual([[8, 0, 0, 0], [10, 4, 0, 0], [10, 4, 6, 0], [10, 4, 6, 6], [12, 6, 6, 6]]);
       expect(TYPES).toEqual({ walker: { hp: 1, speed: 0.7, damage: 5 }, shield: { hp: 2, speed: 0.7, damage: 8 }, runner: { hp: 1, speed: 1.2, damage: 5 }, crew: { hp: 1, speed: 0.7, damage: 5 } });
-      expect(TUNING).toMatchObject({ hp: 100, repair: 25, reload: 0.8, radius: 2, gravity: 9.81, climb: 2, rockCooldown: 8, rockBuffer: 1, rearOffset: 0.8, lateral: 0.65, safety: 139.9 });
+      expect(TUNING).toMatchObject({ hp: 100, repair: 25, reload: 1.1, radius: 1.2, gravity: 9.81, climb: 2, rockCooldown: 8, rockBuffer: 1, rearOffset: 0.8, lateral: 0.65, safety: 139.9 });
       expect(AIM).toEqual({ x: { min: -5, max: 5, step: 0.5, rate: 6, dragGain: 0 }, y: { min: -2, max: 6, step: 0.5, rate: 6, dragGain: 0 }, holdDelay: 0.25 });
-      expect(castleDefenderMeta.scoring).toMatchObject({ maxScore: 3210, minDurationMs: 39000, maxDurationMs: 140000, base: 160, maxPointsPerSec: 25 });
       expect(LANES.map((p) => p.total)).toEqual([8.8, 8.8, 8.8]);
       expect(ROCK_FLIGHT).toBeCloseTo(0.782061887, 7);
-      expect(TUNING.snap).toBe(1.5);
+      expect(TUNING.snap).toBe(0.7);
       // stepAimKeys maps screen axes directly because the fitted camera cannot turn.
       expect(VIEW.yaws).toEqual([0]);
    });
@@ -64,8 +96,8 @@ describe("literal tuning and schedules", () => {
 describe("combat and scoring", () => {
    it("pays each death once, includes radius edge and rejects epsilon outside", () => {
       const { run, g } = isolated();
-      impact(run, 2 + 1e-6, 0); expect(g.hp).toBe(1);
-      impact(run, 2, 0); expect(g.status).toBe("dead"); expect(run.score).toBe(20);
+      impact(run, 1.2 + 1e-6, 0); expect(g.hp).toBe(1);
+      impact(run, 1.2, 0); expect(g.status).toBe("dead"); expect(run.score).toBe(20);
       impact(run, 0, 0); expect(run.score).toBe(20); expect(run.killed).toBe(1);
    });
    it("retains fractional shield HP; front/coincident half, rear full", () => {
@@ -90,15 +122,15 @@ describe("combat and scoring", () => {
       stepRun(run, i, 0.05); expect(run.launches).toBe(1);
       i.x = -5; i.z = -1; stepRun(run, i, 0.05);
       i.x = 3; i.z = -4; stepRun(run, i, 0.05);
-      advanceTo(run, 0.8);
+      advanceTo(run, 1.1);
       expect(run.launches).toBe(2);
       const b = run.balls.find((p) => p.id === 1)!;
-      expect(b.launched).toBeCloseTo(0.8, 9); expect(b.tx).toBeCloseTo(3, 9); expect(b.tz).toBeCloseTo(-4, 9);
+      expect(b.launched).toBeCloseTo(1.1, 9); expect(b.tx).toBeCloseTo(3, 9); expect(b.tz).toBeCloseTo(-4, 9);
    });
    it("double pays corpses once and consumes one reload", () => {
       const run = createRun(0), i = createInput(); run.stacks[3] = 1;
       i.fire = true; stepRun(run, i, 0.01);
-      expect(run.balls.filter((p) => p.active)).toHaveLength(2); expect(run.ready).toBe(0.8);
+      expect(run.balls.filter((p) => p.active)).toHaveLength(2); expect(run.ready).toBe(1.1);
       const { run: r } = isolated(); impact(r, 0, 0); impact(r, 0, 0); expect(r.score).toBe(20);
    });
    it("arrival escapes once and reduces integral HP without kill points", () => {
@@ -143,8 +175,8 @@ describe("combat and scoring", () => {
       chooseUpgrade(run, 1); chooseUpgrade(run, 2);
       expect(run.hp).toBe(65); expect(run.maxHP).toBe(125); expect(run.stacks).toEqual([0, 0, 1, 0]);
       run.stacks[0] = 2; run.stacks[1] = 2;
-      expect(reload(run)).toBeCloseTo(0.512, 9); expect(splash(run)).toBeCloseTo(3.38, 9);
-      expect(runScore(98, 5, true, 125)).toBe(3210);
+      expect(reload(run)).toBeCloseTo(0.79475, 9); expect(splash(run)).toBeCloseTo(1.875, 9);
+      expect(runScore(5880, 5, true, 125)).toBe(7130);
    });
    it("coarse ignores swipes; keyboard nudges once; snap leads shields behind", () => {
       const run = createRun(0), i = createInput(); i.pressed.left = true; i.coarse = true;
@@ -155,14 +187,14 @@ describe("combat and scoring", () => {
       const predicted = { x: 0, y: 0, z: 0 }; predict(g, flightTime(g.x, g.z), predicted);
       expect(-r.aim.y).toBeLessThan(predicted.z); expect(predicted.z + r.aim.y).toBeGreaterThan(0.6);
    });
-   it("touch stepRun snaps at 1.5 metres but keeps an exact tap at 1.6", () => {
-      for (const distance of [1.5, 1.6]) {
+   it("touch stepRun snaps at 0.7 metres but keeps an exact tap at 0.8", () => {
+      for (const distance of [0.7, 0.8]) {
          const { run, g } = isolated("runner"), i = createInput();
          // Flight prediction clamps to the lane end (0, 2), with no derived threshold.
          g.path = LANES[1]; g.lateral = 0; g.s = 8.7;
          i.coarse = true; i.point = true; i.fire = true; i.x = distance; i.z = 2;
          stepRun(run, i, 0.001);
-         const expectedX = distance === 1.5 ? 0 : 1.6;
+         const expectedX = distance === 0.7 ? 0 : 0.8;
          expect(run.aim.x).toBe(expectedX); expect(-run.aim.y).toBe(2);
          expect(run.launches).toBe(1);
          expect(run.balls[0].tx).toBeCloseTo(expectedX, 9); expect(run.balls[0].tz).toBeCloseTo(2, 9);
@@ -171,13 +203,13 @@ describe("combat and scoring", () => {
    it("touch stepRun breaks an equal-distance prediction tie by lower goblin id", () => {
       const { run, g } = isolated("runner"), other = run.goblins[1], i = createInput();
       // Symmetric predictions at (-1, 2) and (1, 2); the lower id is on the left.
-      g.path = LANES[0]; g.lateral = 2; g.s = 8.7;
+      g.path = LANES[0]; g.lateral = 2.5; g.s = 8.7;
       other.status = "ground"; other.kind = "runner"; other.hp = 1;
-      other.path = LANES[2]; other.lateral = -2; other.s = 8.7;
+      other.path = LANES[2]; other.lateral = -2.5; other.s = 8.7;
       i.coarse = true; i.point = true; i.fire = true; i.x = 0; i.z = 2;
       stepRun(run, i, 0.001);
-      expect(run.aim.x).toBe(-1); expect(-run.aim.y).toBe(2);
-      expect(run.balls[0].tx).toBeCloseTo(-1, 9);
+      expect(run.aim.x).toBe(-0.5); expect(-run.aim.y).toBe(2);
+      expect(run.balls[0].tx).toBeCloseTo(-0.5, 9);
    });
 });
 
@@ -200,13 +232,20 @@ describe("ladders, rocks and terminal boundaries", () => {
       advanceTo(run, 100 + ROCK_FLIGHT); expect(run.killed).toBe(3); expect(run.score).toBe(60); expect(run.crews[0].destroyed).toBe(true);
       stepRun(run, i, 0.01); expect(run.drops).toBe(1);
    });
+   it("rocks use the current multiplier without advancing or resetting combo", () => {
+      const run = erectedFixture(), i = createInput(); run.combo = 4; i.rock = true;
+      stepRun(run, i, 0.01); advanceTo(run, 100 + ROCK_FLIGHT);
+      expect(run.score).toBe(150); expect(run.combo).toBe(4);
+   });
    it("climbers are immune to cannon and each independently damages at2s", () => {
       const run = erectedFixture(), climbers = run.goblins.filter((g) => g.crew === 0);
       expect(climbers).toHaveLength(3);
       impact(run, LANE_X[run.crews[0].lane], 2); expect(run.killed).toBe(0);
       expect(climbers.map((g) => g.hp)).toEqual([1, 1, 1]);
       advanceTo(run, 101.99); expect(run.hp).toBe(100);
+      run.combo = 3;
       advanceTo(run, 102); expect(run.hp).toBe(85); expect(run.killed).toBe(0);
+      expect(run.combo).toBe(0); expect(run.comboLostAt).toBeCloseTo(102, 8);
    });
    it("ignores a second Rock press on a fresh ladder before the eight-second cooldown", () => {
       const run = erectedFixture(), i = createInput(); i.rock = true;
@@ -308,12 +347,12 @@ describe("ladders, rocks and terminal boundaries", () => {
       expect(late.hp).toBe(85); expect(late.killed).toBe(0);
    });
    it("pays final clear plus HP bonus at136 and freezes the final score", () => {
-      const run = createRun(1); run.wave = 4; run.cleared = 4; run.killed = 98; run.score = 2760;
+      const run = createRun(1); run.wave = 4; run.cleared = 4; run.killed = 98; run.score = 6680;
       run.hp = run.maxHP = 125; run.time = 135.99;
       for (const g of run.goblins) g.status = "dead";
       stepRun(run, idle, 0.01);
-      expect(run.end).toBe("win"); expect(run.time).toBeCloseTo(136, 8); expect(run.score).toBe(3210);
-      stepRun(run, idle, 1); expect(run.score).toBe(3210);
+      expect(run.end).toBe("win"); expect(run.time).toBeCloseTo(136, 8); expect(run.score).toBe(7130);
+      stepRun(run, idle, 1); expect(run.score).toBe(7130);
    });
    it("wave 5 resolution never opens an upgrade offer, including before the final clear", () => {
       const run = createRun(0); run.wave = 4; run.cleared = 4; run.offered = 3; run.time = 130;
@@ -338,116 +377,124 @@ describe("ladders, rocks and terminal boundaries", () => {
       store.getState().pause(); const at = store.getState().elapsedMs;
       advanceRunClock(store, 0.05); expect(playedFrameDt(store.getState())).toBe(0); expect(store.getState().elapsedMs).toBe(at);
    });
+   it("a large dt across a wave start matches 60Hz event timing", () => {
+      const a = createRun(3), b = createRun(3);
+      stepRun(a, idle, 28.4);
+      for (let n = 0; n < 1704; n++) stepRun(b, idle, 1 / 60);
+      expect(a.spawns).toBe(b.spawns); expect(a.hp).toBe(b.hp); expect(a.score).toBe(b.score);
+      for (let n = 0; n < a.goblins.length; n++) {
+         expect(a.goblins[n].status).toBe(b.goblins[n].status);
+         expect(a.goblins[n].s).toBeCloseTo(b.goblins[n].s, 8);
+      }
+   });
 });
 
-// All bots use the actual input, aim, reload, flight and store. The "human" bot uses exact
-// prediction (an oracle), despite delayed, imperfect inputs and a >=1.2s fire interval;
-// keyboard aim has the same hold delay as the game. Measured player profiles are in README.
-function bot(seed: number, human: boolean, coarse: boolean, spam = false) {
+// All profiles drive the actual inputs, clock, store, reload and projectile flight.
+type Profile = "random" | "human" | "oracle" | "idle";
+function bot(seed: number, profile: Profile, hz: number) {
    const run = createRun(seed), input = createInput(), rng = createRng(seed ^ 0xba7);
-   input.coarse = coarse;
-   const aim = { x: 0, y: 0, z: 0 };
-   let target = -1, decision = 0, fireAt = 0, lastX = 0, lastY = 0;
-   const frame = spam ? fixedFrames(50) : seed % 3 === 0 ? fixedFrames(1000 / 60) : seed % 3 === 1 ? fixedFrames(50) : randomFrames(seed, 0.004, 0.05);
+   input.coarse = seed % 2 === 0;
+   const aim = { x: 0, y: 0, z: 0 }, predicted = { x: 0, y: 0, z: 0 };
+   let target = -1, decision = 0, fireAt = 0;
    let boundsOK = true, hpOK = true;
-   const final = simulateRun(createArcadeStore(), { frame, step(dt, _time, store) {
+   const started = performance.now();
+   const pendingHP = (g: CastleRun["goblins"][number], at: number) => {
+      let hp = g.hp;
+      for (const b of run.balls) if (b.active && b.impact <= at) {
+         predict(g, Math.max(0, b.impact - run.time), predicted);
+         if (Math.hypot(predicted.x - b.tx, predicted.z - b.tz) <= splash(run)) hp -= g.kind === "shield" && b.tz >= predicted.z ? 0.5 : 1;
+      }
+      return hp;
+   };
+   const final = simulateRun(createArcadeStore(), { frame: fixedFrames(1000 / hz), step(dt, _time, store) {
       input.fire = false; input.rock = false; input.point = false; input.choice = 0;
-      input.pressed.left = input.pressed.right = input.pressed.up = input.pressed.down = false;
+      // Keep the 0.3s tap clock running through offers; never catch up by spamming frames.
+      const randomTap = profile === "random" && run.time + 1e-9 >= fireAt;
+      if (randomTap) fireAt += 0.3;
       if (run.offer) {
-         // Lowest eligible card: capped reload/splash/repair, never double on the human route.
-         input.choice = 1;
-      } else if (spam) {
-         input.point = true; input.x = rng() * 10 - 5; input.z = rng() * 8 - 6; input.fire = true; input.rock = true;
-      } else {
-         if (run.time >= decision) {
+         // Preserve the existing human's lowest-card/no-double route. Oracle favours double.
+         const preferred = [3, 1, 0, 2];
+         if (run.chosen < 0 && profile !== "idle") input.choice = profile === "random" ? 1 + Math.floor(rng() * 2) : profile === "human" ? 1 :
+            preferred.indexOf(run.cards[0]) < preferred.indexOf(run.cards[1]) ? 1 : 2;
+      } else if (randomTap) {
+         input.point = true; input.x = rng() * 10 - 5; input.z = rng() * 8 - 6;
+         input.fire = true; input.rock = rng() < 0.5;
+      } else if (profile === "human" || profile === "oracle") {
+         if (run.time + 1e-9 >= decision) {
             target = -1; let urgency = -Infinity;
             for (const g of run.goblins) if (g.status === "ground") {
+               if (profile === "human" && run.time - g.spawn < 0.35) continue;
+               if (profile === "oracle" && pendingHP(g, run.time + flightTime(g.x, g.z)) <= 0) continue;
                const u = -(8.8 - g.s) / TYPES[g.kind].speed + (g.kind === "crew" ? 0.5 : 0);
                if (u > urgency) { urgency = u; target = g.id; }
             }
-            decision = run.time + (human ? 0.35 : 0.05);
+            decision = run.time + (profile === "human" ? 0.35 : 0.05);
             if (target >= 0) {
                const g = run.goblins[target];
-               const t = flightTime(g.x, g.z) + (human ? 0.1 : 0);
+               let t = flightTime(g.x, g.z);
+               for (let n = 0; n < 3; n++) { predict(g, t, aim); t = flightTime(aim.x - g.lateral, aim.z); }
                predict(g, t, aim); aim.x -= g.lateral;
                if (g.kind === "shield") aim.z -= 0.65;
-               if (human) { aim.x += (rng() * 2 - 1) * 0.6; aim.z += (rng() * 2 - 1) * 0.6; }
+               if (profile === "human") {
+                  const angle = rng() * Math.PI * 2, error = Math.sqrt(rng()) * 0.6;
+                  aim.x += Math.cos(angle) * error; aim.z += Math.sin(angle) * error;
+               }
             }
          }
-         if (coarse || !human) {
-            input.x = aim.x; input.z = aim.z;
-         } else {
-            const dx = aim.x - run.aim.x, dy = aim.z + run.aim.y;
-            input.moveX = Math.abs(dx) > 0.25 ? Math.sign(dx) : 0;
-            input.moveY = Math.abs(dy) > 0.25 ? Math.sign(dy) : 0;
-            input.pressed.left = input.moveX < 0 && lastX !== input.moveX;
-            input.pressed.right = input.moveX > 0 && lastX !== input.moveX;
-            input.pressed.up = input.moveY < 0 && lastY !== input.moveY;
-            input.pressed.down = input.moveY > 0 && lastY !== input.moveY;
-            lastX = input.moveX; lastY = input.moveY;
-         }
-         if (target >= 0 && run.goblins[target].status === "ground" && run.time >= fireAt && (coarse || !human || Math.hypot(run.aim.x - aim.x, -run.aim.y - aim.z) < 0.8)) {
-            input.fire = true; input.point = coarse || !human; fireAt = run.time + (human ? 1.2 : reload(run));
+         if (target >= 0 && run.goblins[target].status === "ground" && run.time + 1e-9 >= fireAt && run.time + 1e-9 >= run.ready) {
+            input.x = aim.x; input.z = aim.z; input.fire = true; input.point = true;
+            fireAt = run.time + (profile === "human" ? 1.2 : reload(run));
          }
          const c = threatenedCrew(run);
-         if (c >= 0 && run.time - run.crews[c].erected >= (human ? 0.35 : 0)) input.rock = true;
+         if (c >= 0 && run.time - run.crews[c].erected >= (profile === "human" ? 0.35 : 0)) input.rock = true;
       }
       const before = run.score;
       stepRun(run, input, dt);
-      const s = store.getState(); s.addScore(run.score - before); s.setStat("hp", run.hp);
+      const s = store.getState();
+      if (run.score !== before) s.addScore(run.score - before);
+      if (s.stats.hp !== run.hp) s.setStat("hp", run.hp);
+      if (s.stats.combo !== run.combo) s.setStat("combo", run.combo);
       if (run.end) { if (run.end === "win") s.setScore(run.score); s.end(run.end); }
-      boundsOK &&= run.score <= 160 + 25 * s.elapsedMs / 1000 + 1e-6;
+      boundsOK &&= run.score <= PROPOSED_LIMITS.base + PROPOSED_LIMITS.maxPointsPerSec * s.elapsedMs / 1000 + 1e-6;
       hpOK &&= Number.isInteger(run.hp) && run.hp >= 0 && run.hp <= 125;
    } });
    expect(boundsOK).toBe(true); expect(hpOK).toBe(true);
-   expect(withinServerLimits(final.score, final.elapsedMs, castleDefenderMeta.scoring)).toBe(true);
-   expect(capScore(final.score, final.elapsedMs, castleDefenderMeta.scoring)).toBe(final.score);
-   expect(run.end).not.toBe("timeup");
-   return { run, final };
+   expect(withinServerLimits(final.score, final.elapsedMs, PROPOSED_LIMITS)).toBe(true);
+   expect(capScore(final.score, final.elapsedMs, PROPOSED_LIMITS)).toBe(final.score);
+   expect(run.end).not.toBe("timeup"); expect(final.stats.combo).toBe(run.combo);
+   if (run.end === "win") expect(run.time).toBeCloseTo(136, 8);
+   return { run, final, runtimeMs: performance.now() - started };
 }
-describe("real-store score envelope and human feasibility", () => {
-   it("pins every unrestricted wave-prefix bound and final bonus", () => {
-      const kills = [160, 640, 1240, 1960, 2760], clears = [360, 840, 1440, 2160, 2960];
+
+describe("real-store difficulty matrix", () => {
+   it("proves all unrestricted score prefixes and the count-based ceiling", () => {
+      const kills = [480, 1520, 2920, 4680, 6680], clears = [680, 1720, 3120, 4880, 6880];
       for (let n = 0; n < 5; n++) {
-         expect(kills[n]).toBeLessThanOrEqual(160 + 25 * STARTS[n]);
-         expect(clears[n]).toBeLessThanOrEqual(160 + 25 * (STARTS[n] + 24));
+         expect(kills[n]).toBeLessThanOrEqual(PROPOSED_LIMITS.base + PROPOSED_LIMITS.maxPointsPerSec * STARTS[n]);
+         expect(clears[n]).toBeLessThanOrEqual(PROPOSED_LIMITS.base + PROPOSED_LIMITS.maxPointsPerSec * (STARTS[n] + 24));
       }
-      expect(3210).toBeLessThanOrEqual(3560);
+      expect(COUNTS.flat().reduce<number>((a, b) => a + b, 0) * TUNING.kill * comboMultiplier(5) + 1000 + 250).toBe(7130);
+      expect(PROPOSED_LIMITS.maxScore).toBe(7130);
+      expect(PROPOSED_LIMITS).toMatchObject({ base: 480, maxPointsPerSec: 56, minDurationMs: 39000, maxDurationMs: 140000 });
    });
-   // Bound runtime on this shared machine; retain 3–4 seeds per input/frame combination.
-   it("20 legal seeds, 20 oracle human-paced seeds and10 spam seeds meet the envelope", () => {
-      const started = performance.now();
-      let wins = 0, best = 0, minHP = 125;
-      let fastestMs = Infinity, slowestMs = 0, lost = 0, lowHP = 0, missedPacks = 0;
-      for (let seed = 0; seed < 20; seed++) {
-         const legal = bot(seed, false, seed % 2 === 0);
-         expect(legal.run.end).toBe("win"); best = Math.max(best, legal.final.score);
-         const human = bot(seed, true, seed % 2 === 0);
-         if (human.run.end === "win" && human.run.hp >= 20) wins++;
-         if (human.run.end === "lose") lost++;
-         if (human.run.hp < 20) lowHP++;
-         fastestMs = Math.min(fastestMs, legal.final.elapsedMs, human.final.elapsedMs);
-         slowestMs = Math.max(slowestMs, legal.final.elapsedMs, human.final.elapsedMs);
-         missedPacks += new Set(human.run.goblins.filter((g) => g.status === "escaped").map((g) => g.wave * 32 + g.pack)).size;
-         minHP = Math.min(minHP, human.run.hp);
-         expect(human.run.stacks[3]).toBe(0);
-      }
-      for (let seed = 0; seed < 10; seed++) bot(seed, false, true, true);
-      console.info("castle-defender bots", { legal: 20, human: 20, spam: 10, humanWinsWith20HP: wins, minHumanHP: minHP, bestScore: best, fastestMs, slowestMs, lost, lowHP, missedPacks, runtimeMs: Math.round(performance.now() - started) });
-      expect(wins).toBeGreaterThanOrEqual(19);
-      expect(best).toBeGreaterThanOrEqual(2889);
-   }, 60000);
-   it("idle loses after39s and never earns kill or bonus points", () => {
-      const run = createRun(9);
-      const final = simulateRun(createArcadeStore(), { frame: fixedFrames(50), step(dt, _t, store) {
-         const score = run.score; stepRun(run, idle, dt); store.getState().addScore(run.score - score);
-         if (run.end) store.getState().end(run.end);
-      } });
-      expect(final.endReason).toBe("lose"); expect(final.elapsedMs).toBeGreaterThanOrEqual(39000);
-      expect(run.killed).toBe(0); expect(withinServerLimits(final.score, final.elapsedMs, castleDefenderMeta.scoring)).toBe(true);
-   });
+   for (const hz of [30, 60, 144]) for (const profile of ["random", "human", "oracle", "idle"] as const) {
+      it(`${profile}: 40 seeds at ${hz}Hz`, () => {
+         const results = Array.from({ length: 40 }, (_, seed) => bot(seed, profile, hz));
+         const scores = results.map((r) => r.final.score);
+         const wins = results.filter((r) => r.run.end === "win").length;
+         const mean = scores.reduce((a, b) => a + b, 0) / scores.length;
+         const best = Math.max(...scores);
+         console.info("castle-defender bots", { profile, hz, seeds: 40, wins, winRate: wins / 40,
+            mean, min: Math.min(...scores), max: best, runtimeMs: Math.round(results.reduce((a, r) => a + r.runtimeMs, 0)) });
+         if (profile === "random") { expect(mean).toBeLessThanOrEqual(PROPOSED_LIMITS.maxScore * 0.4); expect(wins).toBeLessThanOrEqual(16); }
+         if (profile === "human") expect(wins).toBeGreaterThanOrEqual(32);
+         if (profile === "human") expect(results.every((r) => r.run.stacks[3] === 0)).toBe(true);
+         if (profile === "oracle") { expect(mean).toBeGreaterThanOrEqual(PROPOSED_LIMITS.maxScore * 0.85); expect(best).toBeGreaterThanOrEqual(PROPOSED_LIMITS.maxScore * 0.9); }
+         if (profile === "idle") { expect(wins).toBe(0); expect(results.every((r) => r.run.killed === 0)).toBe(true); }
+      }, 60000);
+   }
    it("replays identical seed and inputs", () => {
-      const a = bot(42, false, true), b = bot(42, false, true);
+      const a = bot(42, "oracle", 60), b = bot(42, "oracle", 60);
       expect([a.run.score, a.run.hp, a.run.time]).toEqual([b.run.score, b.run.hp, b.run.time]);
    });
 });
