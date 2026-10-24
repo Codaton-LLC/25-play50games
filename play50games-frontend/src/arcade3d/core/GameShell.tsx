@@ -543,7 +543,10 @@ export default function GameShell({ meta, definition, exitHref = "/3d" }: GameSh
                      style={showHud ? undefined : { visibility: "hidden" }}
                      aria-hidden={!showHud || undefined}
                   >
-                     <definition.Hud />
+                     {/* the game HUD reads useSafeArea() too (e.g. to keep its panels clear of the controls and banner) */}
+                     <SafeAreaProvider store={safeArea}>
+                        <definition.Hud />
+                     </SafeAreaProvider>
                   </div>
                )}
 
