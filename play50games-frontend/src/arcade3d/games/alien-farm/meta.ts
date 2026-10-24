@@ -14,8 +14,8 @@ export const alienFarmMeta: ArcadeGameMeta = {
    orientation: "any",
    controls: {
       scheme: "joystick",
-      keyboard: "WASD to move, E or Space to harvest",
-      touch: "Joystick + Action to harvest",
+      keyboard: "WASD / arrows to move; press E, Enter or Space to harvest at peak glow; enter the beam to deliver",
+      touch: "Joystick to move; tap Harvest at peak glow; enter the beam to deliver",
    },
    scoring: {
       kind: "points",
