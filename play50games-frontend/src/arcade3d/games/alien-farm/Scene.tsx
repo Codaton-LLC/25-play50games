@@ -169,10 +169,13 @@ export default function Scene() {
          at.x = plot.x;
          at.y = 0.5;
          at.z = plot.z;
-         fx.burst("puff", at, 8);
+         // the mistimed press bursts the crop (rules.press): a coral pop, the spores land, a short daze
+         fx.burst("puff", at, 18);
          at.y = 1.4;
-         fx.score(at, run.time < cyclePeak(plot, cycleIndex(plot, run.time)) ? "too early" : "too late", { color: COLORS.coral });
-         playSfx("hit", { volume: 0.15 });
+         fx.score(at, run.time < cyclePeak(plot, cycleIndex(plot, run.time)) ? "burst! too early" : "burst! too late", { color: COLORS.coral });
+         playSfx("hit", { volume: 0.25 });
+         playSfx("thud", { volume: 0.2, pitch: 0.8 });
+         fx.shake(0.05);
       } else if (ev.refused) playSfx("click", { volume: 0.12, pitch: 0.7 });
       if (ev.delivered > 0) {
          at.x = f.x;
@@ -192,7 +195,7 @@ export default function Scene() {
       }
       if (ev.bursts) {
          for (let i = 0; i < PLOT_COUNT; i++) {
-            if (!(ev.bursts & (1 << i))) continue;
+            if (!(ev.bursts & (1 << i)) || i === ev.missed) continue;
             at.x = run.plots[i].x;
             at.y = 0.4;
             at.z = run.plots[i].z;

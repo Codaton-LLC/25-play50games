@@ -106,6 +106,8 @@ export const HARVEST = {
    channelS: 0.3,
    /** a press that does not start a harvest (early, late, nothing ripe, full basket, cooling) */
    cooldownS: 0.6,
+   /** a mistimed press bursts the crop in the farmer's face: planted (no movement) this long */
+   burstStunS: 2,
    capacity: 4,
 } as const;
 
@@ -193,7 +195,7 @@ export function stageAt(plot: Plot, t: number): Stage {
    if (t < plot.activateAt) return "locked";
    const k = cycleIndex(plot, t);
    if (k < 0) return "waiting";
-   if (plot.picked === k) return "spent";
+   if (plot.picked === k || plot.missed === k) return "spent";
    const b = cycleStart(plot, k), p = cyclePeak(plot, k), w = halfWindow(p);
    if (t < b + plot.cycleS * CYCLE.growFrac) return "sprout";
    if (t < p - w) return "growing";
@@ -295,6 +297,8 @@ export interface RunState {
    cargoCount: number;
    channel: Channel;
    cooldownUntil: number;
+   /** a burst's spores stagger the farmer until then (no movement) */
+   stunUntil: number;
    harvested: number;
    perfects: number;
    delivered: number;
@@ -349,6 +353,7 @@ export function createRun(seed: number): RunState {
       cargoCount: 0,
       channel: { active: false, plot: -1, cycle: -1, perfect: false, start: 0, end: 0 },
       cooldownUntil: 0,
+      stunUntil: 0,
       harvested: 0,
       perfects: 0,
       delivered: 0,
@@ -405,11 +410,20 @@ function press(run: RunState, t: number): void {
    const plot = run.plots[id];
    const k = cycleIndex(plot, t);
    if (stage !== "ripe") {
-      // sprout, growing or overripe: this cycle's chance is gone
+      // sprout, growing or overripe: the mistimed press bursts the crop at once (README "Press"):
+      // this cycle is lost and its spores land now, around the farmer
       plot.missed = k;
+      plot.burst = k;
+      plot.sporeFrom = t;
+      plot.sporeTo = t + SPORES.lifeS;
       run.streak = 0;
       run.cooldownUntil = t + HARVEST.cooldownS;
+      run.stunUntil = t + HARVEST.burstStunS;
+      const f0 = run.farmer;
+      f0.vx = 0;
+      f0.vz = 0;
       ev.missed = id;
+      ev.bursts |= 1 << id;
       return;
    }
    const c = run.channel;
@@ -507,7 +521,7 @@ export const topSpeed = (cargo: number, spores: boolean): number => FARMER.speed
 function moveFarmer(run: RunState, h: number, t: number): void {
    const f = run.farmer;
    f.inSpore = inSpores(run, f.x, f.z, t);
-   if (run.channel.active) {
+   if (run.channel.active || t <= run.stunUntil) {
       f.vx = 0;
       f.vz = 0;
       return;

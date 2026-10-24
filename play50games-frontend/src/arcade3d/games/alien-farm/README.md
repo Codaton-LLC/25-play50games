@@ -8,7 +8,7 @@ A mint alien tends nine moonlit plots, reads their rising pulse, plucks at peak 
 
 ## Controls
 
-`meta.ts`: `scheme: "joystick"`, keyboard "WASD / arrows to move; press E, Enter or Space to harvest at peak glow; enter the beam to deliver", touch "Joystick to move; tap Harvest at peak glow; enter the beam to deliver". `index.tsx`: `touchControls: ["joystick", "action"]`, `touchLabels: { action: "Harvest" }`.
+`meta.ts`: `scheme: "joystick"`, keyboard "WASD / arrows to move; press E, Enter or Space to harvest at peak glow; enter the beam to deliver", touch "Joystick to move; tap Pick at peak glow; enter the beam to deliver". `index.tsx`: `touchControls: ["joystick", "action"]`, `touchLabels: { action: "Pick" }` ("Harvest" wrapped to two lines in the round button).
 
 - `moveX/moveY` → `inputToWorld(…, view.yaw)` (one yaw, 0), magnitude clamped to 1. A press is `actionPressed || jumpPressed`, read once at the start of the played frame: simultaneous keys are one attempt, held keys never repeat. No canvas tap, drag or swipe action.
 - The same timing windows for touch and keyboard (standing decision 7): the design's coarse-pointer perfect widening (0.35 s) is **dropped**; perfect is ±0.25 s for everyone.
@@ -22,10 +22,10 @@ Groups: `FARM`, `FARMER`, `PLOTS`, `OFFSET_TABLES`, `CYCLE`, `HARVEST`, `SHIP`, 
 - **Activation and crops:** ids 0, 2, 4, 6, 8 from 0 s, 1 and 7 from 20 s (glowPods, C = 6 s), 3 and 5 from 40 s (gourds, C = 8 s). A locked bed shows a dim seed mound.
 - **Seed:** `createRng(seed)` draws the offset table `floor(16 rng())`, then the route direction, then s0 = 64 rng(). Table t holds nine ticks `T[t][i] = (t + 5i + 3 floor(i/3)) mod 16` (frozen literals), delta = T/8 s; cycle k of plot i starts at `b = activateAt + delta + kC`.
 - **Growth:** peak p = b + C/2; half window w = 0.90 (p < 40), 0.75 (p < 70), else 0.60. Sprout [b, b + 0.2C), growing, ripe [p − w, p + w] (endpoints ripe), overripe until the burst at b + 0.85C, spent until the next cycle. Perfect = |press − p| ≤ 0.25.
-- **Press (Decision B):** a press that starts a harvest never cools the tool. Every other press sets the cooldown to press + 0.60, including a press while cooling (repeated taps keep it cooling). Target = the nearest plot within 0.90 m (centre distance, inclusive; ties lower id) whose current cycle is not picked, missed or burst. Pressing in sprout, growing or overripe **locks that cycle** (missed, streak reset, coral "too early / too late"). A locked crop is no target. A full basket, nothing in reach or a waiting bed only cools (a full basket never harms a crop). A press during the 0.30 s pick is ignored.
+- **Press (Decision B):** a press that starts a harvest never cools the tool. Every other press sets the cooldown to press + 0.60, including a press while cooling (repeated taps keep it cooling). Target = the nearest plot within 0.90 m (centre distance, inclusive; ties lower id) whose current cycle is not picked, missed or burst. Pressing in sprout, growing or overripe **bursts that crop at once** (`missed`, the stage turns spent, its spore zone lands now around the farmer, streak reset, coral "burst! too early / too late" with a puff, a thud and a small shake) and **dazes the farmer for `HARVEST.burstStunS` = 2 s** (planted, no movement, a dizzy sway of chest and head). That cycle never bursts again. A burst crop is no target. This is the anti-spam rule (2026-10-24 fix): a blind press costs the crop and 2 s, so pressing without reading the pulse scores far below an honest player; the timing windows stay the same for touch and keyboard. A full basket, nothing in reach or a waiting bed only cools (a full basket never harms a crop). A press during the 0.30 s pick is ignored.
 - **Pick:** the farmer stops, faces the crop and stays planted 0.30 s; the crop (and its perfect flag) is reserved, so it cannot burst. At completion it joins the basket and pays 50 (100 perfect). A pick still running at time-up is not paid.
 - **Saucer:** closed polyline (−9,−7) → (9,−7) → (9,7) → (−9,7), 64 m, speed 2 / 2.5 / 3 m/s before 40 / 70 / after; its position is the exact integral (`shipDistance`), independent of frame splits. Beam: farmer centre within 2 m (inclusive) of the ship's XZ unloads **all** crops at once for 25 n², each crop once. Every bed centre is ≥ 3 m from the route, so a harvester in reach (≤ 0.9) is never in the beam.
-- **Spores:** every unpicked cycle (missed or ignored) bursts once at b + 0.85C into a 2 m zone for 5 s; it slows, never blocks.
+- **Spores:** every ignored cycle bursts once at b + 0.85C (a mistimed press bursts it earlier, at the press) into a 2 m zone for 5 s; it slows, never blocks.
 - **Order per frame:** the press at the frame's start, then equal steps ≤ 1/120 s: pick completion (the planted farmer moves only for the rest of that step), movement, ship, bursts, beam loading. `feedStore` pushes points live (`addScore`) and the HUD stats (Delivered, Basket n/4, Perfect).
 - **Shipment banner:** the delivery that reaches 16 crops shows "Shipment of 16!" with confetti. No points, never a "lose".
 
@@ -35,10 +35,10 @@ Groups: `FARM`, `FARMER`, `PLOTS`, `OFFSET_TABLES`, `CYCLE`, `HARVEST`, `SHIP`, 
 
 ### Server limits and why they hold (the proof)
 
-`PROPOSED_LIMITS` in `rules.ts`: **maxScore 12900, minDurationMs 99000, maxDurationMs 102000, base 200, maxPointsPerSec 250**. `meta.scoring` keeps the provisional main values (maxScore 6000) until Claude's go-live PR; note the oracle already scores above 6000.
+`PROPOSED_LIMITS` in `rules.ts`: **maxScore 12900, minDurationMs 99000, maxDurationMs 102000, base 200, maxPointsPerSec 250**, copied into `meta.scoring` and `arcade-games.json` (2026-10-24, re-verified after the burst rule: a burst and the daze only remove picks or add time, so the relaxation below still bounds every run; the bots below re-ran through the real rules).
 
 1. **Per-crop ceiling.** A crop pays ≤ 100 at its pick and its load pays 25 n² = 25 n per crop ≤ 100 (n ≤ 4). So score ≤ Σ(150 + 50 [perfect]) over the picks.
-2. **Relaxation (`bound.ts`).** Nodes = (plot, cycle) ripe windows inside the run (a pick must complete by 100 s). From a press at t on plot i the next press on j is ≥ max(open_j, t + 0.30 + max(0, d(i,j) − 1.8)/4.5) (planted 0.30 s, then from within 0.90 m of i to within 0.90 m of j at ≤ 4.5 m/s); the first press ≥ max(open_j, max(0, d(start, j) − 0.9)/4.5). Relaxed away (each can only add time): acceleration, carry and spore slowdowns, deliveries and the ship, frame quantisation. Exact for the relaxation and independent of s0 and direction.
+2. **Relaxation (`bound.ts`).** Nodes = (plot, cycle) ripe windows inside the run (a pick must complete by 100 s). From a press at t on plot i the next press on j is ≥ max(open_j, t + 0.30 + max(0, d(i,j) − 1.8)/4.5) (planted 0.30 s, then from within 0.90 m of i to within 0.90 m of j at ≤ 4.5 m/s); the first press ≥ max(open_j, max(0, d(start, j) − 0.9)/4.5). Relaxed away (each can only add time): acceleration, carry and spore slowdowns, the 2 s burst daze, deliveries and the ship, frame quantisation. Exact for the relaxation and independent of s0 and direction.
 3. **Exhaustive label search** (earliest time per (last node, previous node) state, Pareto on score; the previous node is kept only while it could be reached again inside its window: a → b → a needs two gaps ≥ 71/90 s, possible only in a 1.8 s window; three gaps never fit). Outward-safe: every gap is rounded down by 1e-9 and windows widened by 1e-9. Cross-checked by brute force over all chains on 16 s horizons (4 tables, both weightings).
 4. **Certificate:** per table S = 12250, 12100, 11950, 11950, 12050, 12050, 11700, 12050, 12050, 12400, 12400, 10800, 11350, 11350, 11800, 11800, so **S\* = 12400** (the harvest count alone: H\* = 71, which 200 H\* = 14200 would over-cover). maxScore = 100 ceil(1.04 S\* / 100) = 12900 (4.0 % margin).
 5. **Rate:** first pick completes ≥ 2.40 s (earliest window opens at 2.1); different-plot presses ≥ 71/90 s apart (closest beds 4 m); same plot ≥ 4.2 s. Every prefix with H picks scores ≤ 200 H ≤ 200 + 250 (2.40 + (H − 1) 71/90) for H = 1..124 (smallest margin 258.33); 125 picks need more than 100 s. The run lasts exactly 100000 ms of play (shell timer), inside 99000..102000.
@@ -53,7 +53,7 @@ The shell's 100 s timer ends the run (`"timeup"`); core `endCue` plays the finis
 - Full follow, one yaw: `useFittedView(VIEW)` with `area` x/z ±3, y 0..1.6, pitch 50°, fov 45, margins 0.02, padding 8, `shift: true`; `<CameraRig follow={run.farmer} followFraction={1} damping={5} offset shift>` (a live target). Decision C: in portrait, neighbour beds 5 m away in x can sit off screen; core `TargetMarkers` arrows (beam when carrying, the next ripe/opening crop when the basket has room, gold while ripe) and the hum lead to them. They never steer or press.
 - Overlays: bed soil top 0.10, channels 0.02, beam ring 0.04, cooldown ring 0.05, pulse rings 0.12, spore discs 0.14; additive overlays never write depth. Crops stand on the soil; score labels float at 1.5 m (crops ≤ 1.1) and 1.75 m (farmer 1.3).
 - Pulse language: the outer ring dims by stage (coral when locked), an inner disc fills towards the peak (`ringFill`), and both turn gold inside the perfect band; ripe crops pulse in brightness and bob (steady in reduced motion). The cooldown is a coral ring at the farmer's feet that shrinks as it ends.
-- Environment: `lighting: "night"`, background `#120a2e`, fog 28–75 m, core `SkyDome` (purple dusk) and `Starfield` (600, scaled by quality), a moon at (−20, 18, −35), a crater rim lathe at r 15.5–20.5. No extra lights, shadows or bloom.
+- Environment: `lighting: "sunset"` (2026-10-24 playtest: "night" read near-black on desktop), background `#120a2e`, fog 28–75 m, core `SkyDome` (purple dusk) and `Starfield` (600, scaled by quality), a moon at (−20, 18, −35), a crater rim lathe at r 15.5–20.5. No extra lights, shadows or bloom.
 
 ## Assets
 
@@ -80,14 +80,14 @@ Existing GLBs only, no Hyper3D credits. Fits from measured bounds, checked on th
 | bot | runs | score | gate |
 |---|---|---|---|
 | oracle (`planner.ts`: plans each basket by search on the real schedule and route) | 32 | 5450–7275 | ≥ 45 % of maxScore (D) |
-| human-paced (arrow only, 0.20 s re-aim, press −0.16..+0.23 s off the peak, 0.35 s pause) | 32 | 2575–4375 | ≥ 2000, below the oracle |
-| slower human (0.25 s, −0.20..+0.29 s, 0.45 s) | 16 | 2500–3875 | ≥ 1500 |
+| human-paced (arrow only, 0.20 s re-aim, press −0.16..+0.23 s off the peak, 0.35 s pause) | 32 | 2400–4300 | ≥ 2000, below the oracle |
+| slower human (0.25 s, −0.20..+0.29 s, 0.45 s) | 16 | 2275–3875 | ≥ 1500 |
 | idle / hold Harvest | 16 / 16 | 0 / 0 | 0 |
 | camp one plot, perfect presses | 16 | 400 | ≤ 400 (basket full, never delivers) |
 | spin by a bed, random presses | 16 | ≤ 400 | ≤ 400 |
 | 5 Hz orbit spam | 16 | 0 | ≤ 125 |
-| 0.61 s metronome | 16 | 800–2200 | < 0.5 x oracle |
-| arrive and press once, pulse-blind | 16 | 1950–3400 | < 0.6 x oracle; the design's < 1600 gate **fails** (`it.fails`, open question 1) |
+| 0.61 s metronome | 32 | 50–1500 (mean 703) | max < human min; mean < 0.3 x human mean |
+| arrive and press once, pulse-blind | 32 | 150–2100 (mean 1286) | max < human min; mean < 0.45 x human mean (3391); max < 0.35 x oracle |
 
 ## Performance
 
@@ -115,7 +115,7 @@ The HANDOFF (`.handoff/P-18-alien-farm/HANDOFF.md`):
 
 TASK P-18-alien-farm | build alien-farm | branch claude/game-alien-farm | allowed: play50games-frontend/src/arcade3d/games/alien-farm/**, play50games-frontend/public/images/3d/alien-farm.webp, tools/thumbs/inputs/alien-farm.mjs
 
-**Result:** playable end to end (ready → countdown → 100 s play → timeup → cheer → result) on GLBs or primitives; status `dev`; Claude takeover of Antigravity's WIP (rules.ts rewritten: the WIP did not compile and its tests crashed; assets.ts / tests fixed; poses.ts kept, its real-mesh tests pass). `npx tsc --noEmit` clean; `npx vitest run src/arcade3d/games/alien-farm`: 3 files, 33 tests (1 `it.fails` documenting a design gate), ~25 s. Not run here (instructions): `npm run build`, a server, a browser, the perf probe, screenshots, the thumbnail.
+**Result:** playable end to end (ready → countdown → 100 s play → timeup → cheer → result) on GLBs or primitives; status `dev`; Claude takeover of Antigravity's WIP (rules.ts rewritten: the WIP did not compile and its tests crashed; assets.ts / tests fixed; poses.ts kept, its real-mesh tests pass). `npx tsc --noEmit` clean; `npx vitest run src/arcade3d/games/alien-farm`: 3 files, 33 tests (no `it.fails`), ~25 s. Not run here (instructions): `npm run build`, a server, a browser, the perf probe, screenshots, the thumbnail.
 
 **Files** (game folder): new `Scene.tsx`, `Farm.tsx`, `Crops.tsx`, `Saucer.tsx`, `Farmer.tsx`, `Primitives.tsx`, `looks.ts`, `bound.ts`, `bots.ts`, `planner.ts`; rewritten `rules.ts`, `rules.test.ts`, `index.tsx`, `assets.ts`, `README.md`; fixed `assets.test.ts`, `poses.test.ts`, `assets.spec.json` (note only); kept `poses.ts`, `meta.ts` (scoring untouched). Plus `tools/thumbs/inputs/alien-farm.mjs`. Thumbnail left null.
 
@@ -139,12 +139,12 @@ TASK P-18-alien-farm | build alien-farm | branch claude/game-alien-farm | allowe
 **Draw calls (estimate):** about 30, peak ≈ 33 (target 45, cap 150). No extra lights.
 
 **Open questions**
-1. **Design gate failed:** the pulse-blind arrive-and-press bot scores 1950–3400 (design: < 1600) and overlaps the human-paced bot (2575–4375): ripe windows are 20–30 % of a cycle and a mistimed press only costs that cycle and 0.6 s. Options: narrower windows, a miss also bursting the crop into spores at once, or a longer cooldown after a lock. Kept as `it.fails` until decided.
+1. **Resolved (2026-10-24):** a mistimed press now bursts the crop at once and dazes the farmer 2 s. Pulse-blind bots: arrive-and-press 150–2100 (mean 1286), metronome 50–1500, both below every honest human-paced run (2400–4300, mean 3391). The design's absolute "< 1600" gate is replaced by these relative gates (an unlucky honest run and a lucky blind run no longer overlap). Tried and dropped: the daze alone at 0.8–1.6 s (still overlapped), ruining the next cycle too (no gain).
 2. **Tightness (Decision D):** the oracle reaches 56 % of maxScore. A delivery-aware certificate (ship-position enclosure over continuous s0) could tighten it; not attempted.
-3. **meta.scoring (6000) is below real scores** (oracle up to 7275, human up to 4375 is fine): copy PROPOSED_LIMITS into meta + arcade-games.json before anyone plays it with the leaderboard.
+3. **Done:** PROPOSED_LIMITS copied into meta.scoring and arcade-games.json (still `enabled: false`, status `dev`). The production JSON is uploaded by the user, never by an agent.
 4. Coarse-pointer perfect widening (0.35 s) dropped per standing decision 7 (same windows for touch and keyboard).
 5. Crops scaled uniformly (glowPod 0.67 m wide, gourd 0.95 m) instead of the design's 1.1 m squash; growth 0.5 → 1.0 tall, width ≥ 0.75 of it.
 6. One hum loop (nearest crop) instead of three.
 7. Bot coverage 32 seeds per bot instead of 256 x 2 modes x 3 rates, to keep the suite near 25 s.
-8. Lighting "night" plus emissive crops: may read dark on a phone; check in the browser (useStageLighting or a lighter preset if so).
+8. **Done (playtest 2026-10-24):** "night" read near-black, now "sunset". The ufo GLB is fully metallic (no environment map in the arcade) and rendered as a black disc: it now draws with one material override (silver-lavender, metalness 0.3), losing its texture; a re-export with metallicFactor ≈ 0.3 would keep the texture. Waiting beds had a grey ring that read as coral on the plum soil; it now takes the crop's colour, so coral means only a burst.
 9. Core needs: none.

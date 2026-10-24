@@ -68,7 +68,7 @@ describe("constants (pinned by value)", () => {
       expect(OFFSET_TABLES[0]).toEqual([0, 5, 10, 2, 7, 12, 4, 9, 14]);
       expect(OFFSET_TABLES[15]).toEqual([15, 4, 9, 1, 6, 11, 3, 8, 13]);
       expect(CYCLE).toEqual({ tickS: 0.125, growFrac: 0.2, peakFrac: 0.5, burstFrac: 0.85, halfEarly: 0.9, halfMid: 0.75, halfLate: 0.6, midAt: 40, lateAt: 70 });
-      expect(HARVEST).toEqual({ reach: 0.9, perfectHalf: 0.25, channelS: 0.3, cooldownS: 0.6, capacity: 4 });
+      expect(HARVEST).toEqual({ reach: 0.9, perfectHalf: 0.25, channelS: 0.3, cooldownS: 0.6, burstStunS: 2, capacity: 4 });
       expect(FARMER.speeds).toEqual([4.5, 4.14, 3.78, 3.42, 3.06]);
       expect([FARMER.accel, FARMER.brake, FARMER.radius, FARMER.startX, FARMER.startZ]).toEqual([24, 30, 0.4, 0, 6]);
       expect(FARM.bounds).toEqual({ min: { x: -10.1, y: 0, z: -8.1 }, max: { x: 10.1, y: 0, z: 8.1 } });
@@ -78,9 +78,9 @@ describe("constants (pinned by value)", () => {
       expect([DURATION_MS, MAX_STEP_S]).toEqual([100000, 1 / 120]);
    });
 
-   it("proposed limits, and meta keeps the provisional main values", () => {
+   it("proven limits, copied into meta (and arcade-games.json via registry.sync)", () => {
       expect(PROPOSED_LIMITS).toEqual({ kind: "points", maxScore: 12900, minDurationMs: 99000, maxDurationMs: 102000, base: 200, maxPointsPerSec: 250, unitLabel: "pts", display: "int" });
-      expect(alienFarmMeta.scoring.maxScore).toBe(6000);
+      expect(alienFarmMeta.scoring).toEqual(PROPOSED_LIMITS);
       expect(alienFarmMeta.status).toBe("dev");
    });
 });
@@ -207,12 +207,16 @@ describe("presses, picks and the basket", () => {
       expect(edge.channel.active).toBe(true);
    });
 
-   it("an early press locks that cycle, resets the streak and cools; the locked crop is no target", () => {
+   it("an early press bursts that crop, resets the streak and cools; the burst crop is no target", () => {
       const r = at(b + 1.0, 0, 0.5);
       r.streak = 3;
       stepRun(r, PRESS, DT);
       expect(r.plots[4].missed).toBe(0);
       expect(r.events.missed).toBe(4);
+      expect(r.events.bursts).toBe(1 << 4);
+      expect(stageAt(r.plots[4], r.time)).toBe("spent");
+      expect([r.plots[4].sporeFrom, r.plots[4].sporeTo]).toEqual([b + 1.0, b + 1.0 + SPORES.lifeS]);
+      expect(r.farmer.inSpore).toBe(true);
       expect(r.streak).toBe(0);
       expect(r.cooldownUntil).toBeCloseTo(b + 1.6, 9);
       r.time = p;
@@ -223,10 +227,34 @@ describe("presses, picks and the basket", () => {
       expect(r.events.refused).toBe(true);
       expect(r.streak).toBe(2);
       expect(r.score).toBe(0);
-      // an overripe press locks too
+      // an overripe press bursts too
       const late = at(p + 0.95, 0, 0.5);
       stepRun(late, PRESS, DT);
       expect(late.plots[4].missed).toBe(0);
+      expect(late.events.bursts).toBe(1 << 4);
+      expect(stageAt(late.plots[4], late.time)).toBe("spent");
+   });
+
+   it("a burst dazes the farmer for 2 s (no movement), never bursts the same cycle twice", () => {
+      const r = at(b + 1.0, 0, 0.5);
+      r.farmer.vx = 3;
+      const go: StepInput = { dirX: 1, dirZ: 0, press: true };
+      stepRun(r, go, DT);
+      expect(r.stunUntil).toBeCloseTo(b + 1.0 + HARVEST.burstStunS, 9);
+      expect([r.farmer.x, r.farmer.vx]).toEqual([0, 0]);
+      let bursts = 0;
+      const n = Math.floor((HARVEST.burstStunS - 0.02) / DT);
+      for (let i = 0; i < n; i++) bursts |= stepRun(r, { ...go, press: false }, DT).bursts;
+      expect(r.farmer.x).toBe(0);
+      for (let i = 0; i < 30; i++) bursts |= stepRun(r, { ...go, press: false }, DT).bursts;
+      expect(r.farmer.x).toBeGreaterThan(0.3);
+      // the cycle's own burst time (b + 5.1) passes without a second burst
+      while (r.time < cycleBurst(r.plots[4], 0) + 0.1) bursts |= stepRun(r, NONE, DT).bursts;
+      expect(bursts).toBe(0);
+      // a correct press never dazes
+      const ok = at(p, 0, 0.5);
+      stepRun(ok, PRESS, DT);
+      expect(ok.stunUntil).toBe(0);
    });
 
    it("cooldown: blocked at 0.599 (and refreshed), open at 0.600; a correct press never cools", () => {
@@ -451,6 +479,7 @@ function runBot(name: string, make: (seed: number) => Bot, seeds: number[]): Res
 }
 const max = (rs: Result[]) => Math.max(...rs.map((r) => r.score));
 const min = (rs: Result[]) => Math.min(...rs.map((r) => r.score));
+const mean = (rs: Result[]) => Math.round(rs.reduce((a, r) => a + r.score, 0) / rs.length);
 
 describe("bots (every table, both routes, 30 / 60 / 144 Hz and random frames)", () => {
    it("the oracle scores well inside every limit", () => {
@@ -480,19 +509,17 @@ describe("bots (every table, both routes, 30 / 60 / 144 Hz and random frames)", 
       expect(max(runBot("spam", () => orbitSpamBot(), seeds))).toBeLessThanOrEqual(125);
    }, 60000);
 
-   it("pulse-blind players (arrive-and-press, a 0.61 s metronome) stay under half the oracle", () => {
-      const seeds = PAIR_SEEDS.slice(0, 16);
+   it("pulse-blind players (arrive-and-press, a 0.61 s metronome) score clearly below an honest human", () => {
       const oracle = max(results.get("oracle") ?? runBot("oracle", () => oracleBot(), PAIR_SEEDS));
-      const metro = runBot("metronome", () => metronomeBot(), seeds);
-      expect(max(metro)).toBeLessThan(0.5 * oracle);
-      const arrive = runBot("arrive", () => arriveBot(), seeds);
-      expect(max(arrive)).toBeLessThan(0.6 * oracle);
-      console.info(`metronome ${min(metro)}..${max(metro)}, arrive ${min(arrive)}..${max(arrive)}`);
+      const human = results.get("human") ?? runBot("human", (s) => humanBot(s), PAIR_SEEDS);
+      const metro = runBot("metronome", () => metronomeBot(), PAIR_SEEDS);
+      const arrive = runBot("arrive", () => arriveBot(), PAIR_SEEDS);
+      console.info(`metronome ${min(metro)}..${max(metro)} (mean ${mean(metro)}), arrive ${min(arrive)}..${max(arrive)} (mean ${mean(arrive)}) vs human ${min(human)}..${max(human)} (mean ${mean(human)})`);
+      // a mistimed press bursts the crop and dazes the farmer (README "Press"): blind presses cost time
+      expect(max(arrive)).toBeLessThan(min(human));
+      expect(mean(arrive)).toBeLessThan(0.45 * mean(human));
+      expect(max(metro)).toBeLessThan(min(human));
+      expect(mean(metro)).toBeLessThan(0.3 * mean(human));
+      expect(max(arrive)).toBeLessThan(0.35 * oracle);
    }, 60000);
-
-   // README gate "arriveAndPress < 1600": NOT met by this design (ripe windows are 30 % of a cycle,
-   // so presses on arrival hit often). Kept as a known failure for the design review (HANDOFF).
-   it.fails("README gate: an arrive-and-press player scores under 1600", () => {
-      expect(max(results.get("arrive") ?? runBot("arrive", () => arriveBot(), PAIR_SEEDS.slice(0, 8)))).toBeLessThan(1600);
-   });
 });

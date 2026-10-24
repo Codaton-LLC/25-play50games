@@ -1,7 +1,7 @@
 import type { ArcadeGameMeta } from "@/arcade3d/types";
 
 // Plain data only (server-safe). scoring must match WP includes/arcade-games.json.
-// Provisional limits (docs/arcade-expansion/02 §C.4): set for real in the game's "assets + limits" PR.
+// Proven limits (README "Server limits and why they hold"; rules.ts PROPOSED_LIMITS).
 export const alienFarmMeta: ArcadeGameMeta = {
    slug: "alien-farm",
    title: "Alien Farm",
@@ -15,15 +15,15 @@ export const alienFarmMeta: ArcadeGameMeta = {
    controls: {
       scheme: "joystick",
       keyboard: "WASD / arrows to move; press E, Enter or Space to harvest at peak glow; enter the beam to deliver",
-      touch: "Joystick to move; tap Harvest at peak glow; enter the beam to deliver",
+      touch: "Joystick to move; tap Pick at peak glow; enter the beam to deliver",
    },
    scoring: {
       kind: "points",
-      maxScore: 6000,
-      minDurationMs: 10000,
+      maxScore: 12900,
+      minDurationMs: 99000,
       maxDurationMs: 102000,
-      base: 6000,
-      maxPointsPerSec: 6000,
+      base: 200,
+      maxPointsPerSec: 250,
       unitLabel: "pts",
       display: "int",
    },

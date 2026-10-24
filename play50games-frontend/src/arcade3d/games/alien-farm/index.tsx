@@ -17,9 +17,9 @@ const definition: GameDefinition = {
    // only the first frame uses this: the Scene's CameraRig (core useFittedView) fits a 6 x 6 m
    // window around the farmer clear of the HUD, the joystick and the cookie banner, and follows it
    camera: { position: [0, 14, 12], fov: FOV, lookAt: [0, 0, 0] },
-   environment: { background: COLORS.background, fog: [COLORS.fog, 28, 75], lighting: "night" },
+   environment: { background: COLORS.background, fog: [COLORS.fog, 28, 75], lighting: "sunset" },
    touchControls: ["joystick", "action"],
-   touchLabels: { action: "Harvest" },
+   touchLabels: { action: "Pick" },
    hudStats: HUD_STATS,
    resultDelayMs: RESULT_DELAY_MS,
    instructions: [

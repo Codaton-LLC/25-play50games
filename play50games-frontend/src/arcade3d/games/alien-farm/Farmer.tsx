@@ -1,7 +1,7 @@
 "use client";
 
 // The alien farmer: the Hyper3D alien through the core auto-rig (walk by distance over its own
-// stride, the basket on the left arm, the lean-and-pluck during a pick, a cheer or a shrug after
+// stride, the basket on the left arm, the lean-and-pluck during a pick, a dizzy sway after a burst, a cheer or a shrug after
 // time-up), with the basket and a blob shadow. Reads the run state; never writes it.
 import { useRef, useState } from "react";
 import { useFrame } from "@react-three/fiber";
@@ -39,7 +39,7 @@ export function Farmer({ run }: { run: RunState }) {
    const root = useRef<Group>(null);
    const body = useRef<Group>(null);
    const standIn = useRef<Group>(null);
-   const [look] = useState(() => ({ amount: 0, phase: 0, pick: 0, end: 0, lift: 0, ground: 0 }));
+   const [look] = useState(() => ({ amount: 0, phase: 0, pick: 0, daze: 0, end: 0, lift: 0, ground: 0 }));
    const [a] = useState(createPose);
    const [b] = useState(createPose);
 
@@ -51,6 +51,7 @@ export function Farmer({ run }: { run: RunState }) {
       look.amount = ease(look.amount, Math.min(1, v / FARMER.speeds[0]) * 0.85, 12, dt);
       look.phase = wrapPhase(look.phase + alienPhaseStep(look.amount, v, dt));
       look.pick = ease(look.pick, run.channel.active ? 1 : 0, 30, dt);
+      look.daze = ease(look.daze, phase === "playing" && run.time < run.stunUntil ? 1 : 0, 10, dt);
       look.end = ease(look.end, phase === "over" ? 1 : 0, 6, dt);
       alienWalkPose(look.phase, look.amount, p);
       blendPoses(p, idlePose(time.now, a), 1 - Math.min(1, look.amount * 5), p, POSE_MASK.upper);
@@ -61,6 +62,12 @@ export function Farmer({ run }: { run: RunState }) {
          const d = Math.hypot(plot.x - f.x, plot.z - f.z);
          harvestPose(c.active ? run.time - c.start : 0, d, 0.5 + 0.5 * growthAt(plot, run.time), b);
          blendPoses(p, b, look.pick, p);
+      }
+      if (look.daze > 0.01) {
+         // spores in the face: a dizzy sway of the chest and head while planted (feet stay down)
+         const sway = Math.sin(time.now * 7) * look.daze;
+         turnBone(p, BONE.chest, -0.12 * look.daze, 0, 0.12 * sway);
+         turnBone(p, BONE.head, 0, 0.25 * sway, -0.15 * sway);
       }
       if (look.end > 0.01) {
          if (score > 0) blendPoses(p, cheerPose(time.now, b), look.end, p, POSE_MASK.arms);

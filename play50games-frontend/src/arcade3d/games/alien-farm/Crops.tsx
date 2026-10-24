@@ -125,7 +125,10 @@ export function Crops({ run, reducedMotion }: { run: RunState; reducedMotion: bo
       if (stage === "locked") return false;
       const k = cycleIndex(plot, t);
       const base = plot.kind === "glowPod" ? TINT.mint : TINT.cyan;
-      if (stage === "waiting" || stage === "spent" || plot.missed === k) color.copy(plot.missed === k ? TINT.coral : TINT.dim).multiplyScalar(0.45);
+      // a burst (missed) bed is coral; a waiting or spent bed keeps a faint ring of its crop's colour
+      // (a grey ring added onto the plum soil read as coral under the sunset light)
+      if (plot.missed === k) color.copy(TINT.coral).multiplyScalar(0.6);
+      else if (stage === "waiting" || stage === "spent") color.copy(base).multiplyScalar(0.22);
       else if (stage === "ripe") {
          const perfect = Math.abs(t - cyclePeak(plot, k)) <= HARVEST.perfectHalf;
          const pulse = reducedMotion ? 0.65 : 0.25 + 0.5 * (0.5 + 0.5 * Math.sin(time.now * 10));

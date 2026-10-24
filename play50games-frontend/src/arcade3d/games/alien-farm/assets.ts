@@ -48,6 +48,9 @@ export const ASSETS = {
       scale: UFO_SCALE,
       fallback: "sphere",
       fallbackColor: "#94a3b8",
+      // the GLB is fully metallic (metallicFactor 1) and the arcade has no environment map, so its
+      // own material renders black on the night stage: one lit silver-lavender look instead
+      material: { color: "#c7cbe8", roughness: 0.42, metalness: 0.3, emissive: "#2e1065" },
       budget: { tris: 3000, bytes: 300 * 1024 },
    },
 } satisfies Record<string, ModelAsset>;
