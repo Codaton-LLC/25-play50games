@@ -1,75 +1,159 @@
 "use client";
 
-// The moonlit crater farm: dusk sky, stars and moon (core/env), the soil out to the horizon, a low
-// crater rim, nine raised beds with glowing irrigation channels, purple rocks and crates. Static:
-// every repeated piece is instanced (about 10 draw calls for the whole set).
+// The moonlit crater farm: dusk sky, starry field, two moons, low-poly distant hills,
+// flat soil disc out to the horizon, purple-teal beds with soft furrows, and surroundings decor.
 import { useEffect, useMemo } from "react";
-import { LatheGeometry, Vector2 } from "three";
+import {
+   CylinderGeometry,
+   LatheGeometry,
+   Vector2,
+} from "three";
 import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
-import { InstancedModel } from "@/arcade3d/core/assets";
+import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import { SkyDome, Starfield } from "@/arcade3d/core/env";
 import { scaledCount, useQuality } from "@/arcade3d/core/quality";
 import { Instanced, type InstanceSpot } from "@/arcade3d/core/render";
-import { ASSETS } from "./assets";
-import { COLORS, HEIGHTS } from "./looks";
-import { CratePrimitives, RockPrimitives } from "./Primitives";
+import { Decor } from "./Decor";
+import {
+   COLORS,
+   HEIGHTS,
+   coloredGeometry,
+   hillMesh,
+} from "./looks";
 import { FARM, PLOTS } from "./rules";
 
 const BED_SPOTS: InstanceSpot[] = PLOTS.map((p) => ({ x: p.x, y: 0, z: p.z }));
-/** Channels between neighbouring beds (x runs and z runs), drawn as thin glowing strips. */
+
+/** Channels between neighbouring beds (x runs and z runs), drawn as thin glowing conduits. */
 const CHANNELS: InstanceSpot[] = [
-   ...[-4, 0, 4].flatMap((z) => [-2.5, 2.5].map((x) => ({ x, y: HEIGHTS.channel, z, sx: 3.0, sy: 1, sz: 0.12 }))),
-   ...[-5, 0, 5].flatMap((x) => [-2, 2].map((z) => ({ x, y: HEIGHTS.channel, z, sx: 0.12, sy: 1, sz: 2.2 }))),
-];
-const ROCKS: InstanceSpot[] = [-7, 0, 7].flatMap((z, i) => [-12, 12].map((x, j) => ({ x, y: 0, z, rotY: i * 1.3 + j * 2.1, scale: 0.85 + 0.15 * ((i + j) % 2) })));
-const CRATES: InstanceSpot[] = [
-   { x: -11.8, y: 0, z: 8.8, rotY: 0.2 },
-   { x: -10.8, y: 0, z: 9.2, rotY: -0.4 },
-   { x: -11.8, y: 0, z: 7.8, rotY: 0.9 },
+   ...[-4, 0, 4].flatMap((z) =>
+      [-2.5, 2.5].map((x) => ({ x, y: HEIGHTS.channel, z, sx: 3.0, sy: 1, sz: 0.14 }))
+   ),
+   ...[-5, 0, 5].flatMap((x) =>
+      [-2, 2].map((z) => ({ x, y: HEIGHTS.channel, z, sx: 0.14, sy: 1, sz: 2.2 }))
+   ),
 ];
 
 function Beds() {
    const geo = useMemo(() => {
       const s = FARM.bedHalf * 2;
+      // 1. Bed planter frame
+      const frame = new RoundedBoxGeometry(s, 0.1, s, 2, 0.05).translate(0, 0.05, 0);
+
+      // 2. Inner soil bed slab
+      const soil = new RoundedBoxGeometry(s - 0.24, 0.04, s - 0.24, 2, 0.02).translate(
+         0,
+         0.08,
+         0
+      );
+
+      // 3. Soft furrows: 3 parallel rounded ridges along z in each bed
+      const f1 = new CylinderGeometry(0.11, 0.11, s - 0.28, 8)
+         .rotateX(Math.PI / 2)
+         .scale(1, 0.25, 1)
+         .translate(-0.38, 0.1, 0);
+      const f2 = new CylinderGeometry(0.11, 0.11, s - 0.28, 8)
+         .rotateX(Math.PI / 2)
+         .scale(1, 0.25, 1)
+         .translate(0, 0.1, 0);
+      const f3 = new CylinderGeometry(0.11, 0.11, s - 0.28, 8)
+         .rotateX(Math.PI / 2)
+         .scale(1, 0.25, 1)
+         .translate(0.38, 0.1, 0);
+
+      const furrows = mergeGeometries([f1, f2, f3]);
+      f1.dispose();
+      f2.dispose();
+      f3.dispose();
+      if (!furrows) throw new Error("alien-farm look: furrows");
+
+      // 4. Glowing irrigation channel conduit
+      const channel = new RoundedBoxGeometry(1, 0.024, 1, 1, 0.005);
+
       return {
-         body: new RoundedBoxGeometry(s, FARM.bedTopY * 2, s, 2, 0.06).translate(0, 0, 0),
-         top: new RoundedBoxGeometry(s - 0.24, 0.04, s - 0.24, 1, 0.02).translate(0, FARM.bedTopY + 0.001, 0),
-         channel: new RoundedBoxGeometry(1, 0.02, 1, 1, 0.005),
+         frame,
+         soil,
+         furrows,
+         channel,
       };
    }, []);
+
    useEffect(() => () => Object.values(geo).forEach((g) => g.dispose()), [geo]);
+
    return (
       <group name="beds">
-         <Instanced spots={BED_SPOTS} name="bed-body">
-            <primitive object={geo.body} attach="geometry" />
-            <meshStandardMaterial color={COLORS.bed} roughness={0.9} />
+         {/* Planter frame in rich purple */}
+         <Instanced spots={BED_SPOTS} name="bed-frame">
+            <primitive object={geo.frame} attach="geometry" />
+            <meshStandardMaterial color={COLORS.bed} roughness={0.85} />
          </Instanced>
-         <Instanced spots={BED_SPOTS} name="bed-soil">
-            <primitive object={geo.top} attach="geometry" />
-            <meshStandardMaterial color={COLORS.bedTop} roughness={1} />
+
+         {/* Soil bed base in purple-teal soil */}
+         <Instanced spots={BED_SPOTS} name="bed-soil-base">
+            <primitive object={geo.soil} attach="geometry" />
+            <meshStandardMaterial color={COLORS.bedSoil} roughness={0.95} />
          </Instanced>
+
+         {/* Soft furrow ridges in vibrant alien teal */}
+         <Instanced spots={BED_SPOTS} name="bed-furrows">
+            <primitive object={geo.furrows} attach="geometry" />
+            <meshStandardMaterial color={COLORS.furrowRidge} roughness={0.8} />
+         </Instanced>
+
+         {/* Glowing irrigation channels linking the plots */}
          <Instanced spots={CHANNELS} name="channels">
             <primitive object={geo.channel} attach="geometry" />
-            <meshStandardMaterial color={COLORS.soilDark} emissive={COLORS.channel} emissiveIntensity={0.35} roughness={0.4} />
+            <meshStandardMaterial
+               color={COLORS.soilDark}
+               emissive={COLORS.channel}
+               emissiveIntensity={0.45}
+               roughness={0.4}
+            />
          </Instanced>
       </group>
    );
 }
 
 function Ground() {
-   // a low crater rim (lathe) around the 26 x 20 farm; the soil disc runs to the fogged horizon
+   // A low crater rim (lathe) around the 26 x 20 farm; the soil disc runs to the fogged horizon
    const rim = useMemo(
-      () => new LatheGeometry([new Vector2(15.5, -0.01), new Vector2(16.5, 0.45), new Vector2(17.4, 0.7), new Vector2(18.6, 0.4), new Vector2(20.5, -0.01)], 64),
-      [],
+      () =>
+         new LatheGeometry(
+            [
+               new Vector2(15.5, -0.01),
+               new Vector2(16.5, 0.45),
+               new Vector2(17.4, 0.7),
+               new Vector2(18.6, 0.4),
+               new Vector2(20.5, -0.01),
+            ],
+            64
+         ),
+      []
    );
-   useEffect(() => () => rim.dispose(), [rim]);
+
+   // Distant hills mesh: low-poly rolling terrain outside the farm
+   const hills = useMemo(() => coloredGeometry(hillMesh()), []);
+
+   useEffect(() => () => {
+      rim.dispose();
+      hills.dispose();
+   }, [rim, hills]);
+
    return (
       <group name="ground">
-         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]}>
+         {/* Wide ground soil disc extending out to radius 90 to prevent any void below the scene */}
+         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]} name="soil-plane">
             <circleGeometry args={[90, 48]} />
             <meshStandardMaterial color={COLORS.soil} roughness={1} />
          </mesh>
-         <mesh geometry={rim} scale={[1, 1, 0.82]}>
+
+         {/* Distant low-poly alien hills */}
+         <mesh geometry={hills} name="distant-hills">
+            <meshStandardMaterial vertexColors flatShading roughness={0.95} />
+         </mesh>
+
+         {/* Low crater rim encircling the farm */}
+         <mesh geometry={rim} scale={[1, 1, 0.82]} name="crater-rim">
             <meshStandardMaterial color={COLORS.rim} roughness={0.95} />
          </mesh>
       </group>
@@ -78,18 +162,29 @@ function Ground() {
 
 export function FarmScene() {
    const { particles } = useQuality();
+
    return (
       <group name="farm">
+         {/* Whimsical sunset sky dome */}
          <SkyDome top={COLORS.skyTop} bottom={COLORS.skyBottom} offset={-0.02} exponent={0.7} />
-         <Starfield count={scaledCount(600, particles)} seed={21} upperOnly size={2} />
-         <mesh position={[-20, 18, -35]}>
-            <sphereGeometry args={[6, 32, 20]} />
+         <Starfield count={scaledCount(700, particles)} seed={21} upperOnly size={2} />
+
+         {/* Two moons glowing against the dusk sky */}
+         {/* Primary Moon: large lavender/violet sister world */}
+         <mesh position={[-20, 18, -35]} name="moon-primary">
+            <sphereGeometry args={[6.2, 32, 20]} />
             <meshBasicMaterial color={COLORS.moon} fog={false} />
          </mesh>
+
+         {/* Secondary Moon: glowing cyan/teal minor moon */}
+         <mesh position={[18, 14, -34]} name="moon-minor">
+            <sphereGeometry args={[2.4, 24, 16]} />
+            <meshBasicMaterial color={COLORS.moonMinor} fog={false} />
+         </mesh>
+
          <Ground />
          <Beds />
-         <InstancedModel asset={ASSETS.rock} spots={ROCKS} fallback={<RockPrimitives spots={ROCKS} />} />
-         <InstancedModel asset={ASSETS.crate} spots={CRATES} fallback={<CratePrimitives spots={CRATES} />} />
+         <Decor />
       </group>
    );
 }

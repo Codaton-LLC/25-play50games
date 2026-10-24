@@ -89,6 +89,36 @@ Existing GLBs only, no Hyper3D credits. Fits from measured bounds, checked on th
 | 0.61 s metronome | 32 | 50–1500 (mean 703) | max < human min; mean < 0.3 x human mean |
 | arrive and press once, pulse-blind | 32 | 150–2100 (mean 1286) | max < human min; mean < 0.45 x human mean (3391); max < 0.35 x oracle |
 
+## Look (2026-10-24)
+
+Modern-look pass (Task P-86): polished premium mobile-game aesthetic, visual-only.
+- **Lighting & Atmosphere:** core `"sunset"` lighting preset (`useStageLighting` crossfade), linear purple dusk fog (`FOG.near = 32`, `FOG.far = 85`), gradient `SkyDome` (`#09041e` overhead to `#4c1d95` at sunset horizon), and `Starfield` (700 stars).
+- **Two Moons:** large cratered lavender primary moon (`[-20, 18, -35]`, radius 6.2, `#e9d5ff`) and a smaller glowing cyan/teal sister moon (`[18, 14, -34]`, radius 2.4, `#67e8f9`), both `fog={false}`.
+- **Purple-Teal Furrowed Beds:** rounded plum planter frames (`COLORS.bed` `#3b0764`), dark purple-teal soil base (`COLORS.bedSoil` `#1e1b4b`), and 3 parallel soft rounded furrow ridges (`COLORS.furrowRidge` `#0d9488`), linked by glowing bioluminescent cyan irrigation channels (`COLORS.channel` `#22d3ee`).
+- **Surroundings & Decor outside play area (`Decor.tsx`):**
+  - Strange rock spires: tapering hexagonal crystal/rock columns with faceted crystal tips (`COLORS.spire` `#581c87` / `COLORS.spireTip` `#c084fc`), instanced in the north background and flanks.
+  - Glowing alien plants: curved stalks with bioluminescent bulbous caps (`COLORS.plantCap` `#2dd4bf` / `plantGlow` `#a7f3d0`), instanced outside the perimeter.
+  - Silo: futuristic storage silo with rounded dome cap, hopper ring and glowing conduit pipe (`COLORS.siloBody` `#cbd5e1` / `siloGlow` `#38bdf8`) in the northwest background (`[-14, 0, -12.5]`).
+  - Distant hills: procedurally triangulated low-poly rolling ridge mesh outside the farm (`hillMesh()`), flat-shaded with 4 tones from `COLORS`.
+  - Zero occlusion: all decor is strictly outside `PLAY_BOUNDS` (`[-10.5, 10.5] x [-8.5, 8.5]`) and behind or to the flanks of all lines of sight from the camera to the farmer, crops, and UFO route at 1280x800, 390x844, and 844x390 (`looks.test.ts`).
+  - Seamless ground: wide soil plane extends to radius 90, guaranteeing no sky/void shows below the scene.
+- **Code-made stand-ins:**
+  - Alien farmer: bevelled boots with sole trim (`RoundedBoxGeometry`), blue overalls with bib and strap buttons, cream shirt collar and cuffs, large glossy eyes, and cute glowing mint antennae.
+  - Woven basket: dual-tone with darker rim trim (`COLORS.basketDark`).
+  - Saucer: multi-tone lathe hull with dark undercarriage rim, glowing beam emitter, and glowing canopy dome.
+  - Crops: fluted glowing bulbs and spiral gourds over styled leaves with dark undersides.
+  - Rocks & crates: faceted alien crystal clusters (flat-shaded low-poly) and reinforced banded crates.
+- **Juicy feedback:** 26-particle glow sparkle burst on perfect pick with rising chime, gold score popups, camera shake on streaks; existing burst puffs/thuds and delivery bursts preserved.
+- **Draw-call budget estimate (<= 60):**
+  - Farm & sky: 9 (SkyDome 1, Starfield 1, primary moon 1, minor moon 1, soil plane 1, distant hills 1, crater rim 1, bed frames 1, bed soil & furrows 2, channels 1)
+  - Decor: 5 (rock spires 1, plant stalks 1, plant caps 1, silo structure 1, silo conduit 1; rocks & crates via InstancedModel 2)
+  - Crops: 7 (glowPod pool 2, gourd pool 2, timing rings 1, timing fills 1, seed mounds 1, spore discs 1, cooldown ring 1)
+  - Saucer: 3 (model 1, beam cone 1, beam ring 1)
+  - Farmer: 3 (alien humanoid model 1, basket 1, shadow 1)
+  - Target markers: 0 (pure DOM)
+  - Active FX & score popups: ~4-6 when active
+  - Total estimated draw calls: ~34-38 (comfortably below the 60 budget limit). All geometries and materials created once and disposed on unmount; no `dispose={null}` on primitives.
+
 ## Performance
 
 Target ≤ 45 draw calls. Estimate: farm 10 (sky, stars, moon, ground, rim, bed bodies, bed soil, channels, rocks, crates), crops 7 (two pools, rings, fills, seeds, spores, cooldown), saucer 3 (GLB, beam, ring), farmer 3 (skinned GLB, shadow, basket), fx ≤ 7 (sparkle, puff, confetti, ≤ 4 score sprites): about 30, peak ≈ 33. No extra lights; pools fixed; no allocation, `setState` or `Color.set` in frame callbacks (one cached `Color` set per pool); geometry built once per mount and disposed. Not measured in a browser yet.
