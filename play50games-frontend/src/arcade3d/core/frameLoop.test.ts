@@ -9,6 +9,7 @@ import {
    advanceRunClock,
    clampFrameDt,
    createGameTime,
+   endCue,
    isPausable,
    isResultShown,
    pauseKeyAction,
@@ -359,5 +360,17 @@ describe("result delay", () => {
          advanceRunClock(store, 0.016);
          expect(playedFrameDt(store.getState())).toBe(0);
       }
+   });
+});
+
+describe("end cue", () => {
+   it("a win, or a points game running out its clock with a score, finishes; everything else loses", () => {
+      expect(endCue("points", "win", 0)).toBe("win");
+      expect(endCue("time", "win", 1200)).toBe("win");
+      expect(endCue("points", "timeup", 840)).toBe("win");
+      expect(endCue("points", "timeup", 0)).toBe("lose");
+      expect(endCue("time", "timeup", 0)).toBe("lose");
+      expect(endCue("points", "lose", 900)).toBe("lose");
+      expect(endCue("points", null, 0)).toBe("lose");
    });
 });

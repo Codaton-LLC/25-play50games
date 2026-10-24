@@ -163,6 +163,12 @@ describe("HUD chips", () => {
       expect(open).toContain(">1:15<");
    });
 
+   it("clockChip: false hides the Time / Played chip and keeps the rest (games with their own clock)", () => {
+      expect(labels(chips({ clock: false }))).toEqual(["Score", "Found"]);
+      expect(labels(chips({ timed: false, clock: false }))).toEqual(["Score", "Found"]);
+      expect(labels(chips({ clock: true }))).toEqual(["Score", "Time", "Found"]);
+   });
+
    it("decides by meta.scoring.kind: escape-room and obstacle-race hide it, every points game keeps it", () => {
       expect(hudShowsScore(escapeRoomMeta.scoring.kind)).toBe(false);
       expect(hudShowsScore(obstacleRaceMeta.scoring.kind)).toBe(false);

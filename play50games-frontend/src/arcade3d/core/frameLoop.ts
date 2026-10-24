@@ -176,3 +176,14 @@ export function advanceGameTime(time: GameTime, phase: RunPhase, delta: number, 
    time.now += step;
    time.play = elapsedMs / 1000;
 }
+
+/**
+ * The shell's end cue. A win plays "win"; a points game that simply runs out of time with a score
+ * (a score attack reaching its end) is a finish too, so it also plays "win"; every other end
+ * ("lose", a time game's "timeup", a scoreless "timeup") plays "lose".
+ */
+export function endCue(kind: "points" | "time", endReason: string | null, score: number): "win" | "lose" {
+   if (endReason === "win") return "win";
+   if (endReason === "timeup" && kind === "points" && score > 0) return "win";
+   return "lose";
+}

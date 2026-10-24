@@ -463,7 +463,19 @@ export const EXPANSION_GLB_SIZE = {
 export const REUSED_GLB_SIZE = {
    // escape-room door (raw bounds 1.19085 x 1.89286 x 0.26800); castle-defender draws it as its gate
    door: { width: 1.1909, height: 1.8929, depth: 0.268 },
+   // robot-collector barrel; robot-factory tints it as a torso part
+   barrel: { width: 1.7352, height: 1.8977, depth: 1.7368 },
 } as const satisfies Partial<Record<ReusedAssetId, { width: number; height: number; depth: number }>>;
+
+/**
+ * The shared GLBs' raw bounds (GLB units, before any scale), for games that fit them to a size of their
+ * own (robot-factory's finished robot and torso parts). Checked against the meshes in expansionAssets.test.ts.
+ */
+export const SHARED_GLB_SIZE = {
+   robot: { width: 1.8998, height: 1.7152, depth: 0.6019 },
+   battery: { width: 1.0231, height: 1.8954, depth: 1.0102 },
+   crate: { width: 1.8797, height: 1.3351, depth: 1.8107 },
+} as const;
 
 /** Points measured on the GLBs (GLB units, before the fit; `expansionPoint` maps them to metres). */
 export const EXPANSION_GLB_POINTS = {

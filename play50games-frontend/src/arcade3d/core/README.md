@@ -635,3 +635,10 @@ useRunFrame(() => { needle.current = needlePosition(time.play, 1.6); if (input.c
 ### Adoption (P-05)
 
 Nothing here changes an existing game: the aim drag is opt-in per definition, `digit` is new, `update`'s third argument and `tint` / `material` / `attach` are optional, and the kit and HUD pieces mount only where a game renders them. The new games adopt them as they land: aim-drag games (pirate-cannons, mini-golf, castle-defender, snowball-battle) set `input: { drag: true }` + `stepKeyboardAim` + `<TrajectoryDots>`; museum-guard uses `material` statues, `<Pedestal>` and `<Flashlight>` with its `inViewCone` rules; luggage-rush and robot-factory `<Conveyor>` + per-copy tint; zoo-escape, construction-worker and knight-arena `<Fence>`; treasure-island, construction-worker, snowball-battle, knight-arena and space-repair dress the runner with `attach`; delivery-drone `<Parcel>` + `<TargetMarkers>`; space-repair `<TimingRing>`; treasure-island `<Gem>`. Pile, upgrade and slot choices read `digit` (with a tap for touch).
+
+## Expansion core 2 (2026-10-24)
+
+- **End cue:** `endCue(kind, endReason, score)` (`frameLoop.ts`) picks the shell's end sound. A win plays "win"; a points game that runs out its clock with a score above 0 (a score attack reaching its end) also plays "win"; every other end plays "lose". Before this, every `"timeup"` played the lose sting.
+- **`GameDefinition.clockChip: false`** hides the shell's Time / Played chip, for games that show their own clock (museum-guard's Dawn, robot-factory's 90 s).
+- **`SHARED_GLB_SIZE`** (robot, battery, crate) and **`REUSED_GLB_SIZE.barrel`**: raw GLB bounds for games that fit these meshes to their own sizes (robot-factory), checked against the meshes in `expansionAssets.test.ts`.
+

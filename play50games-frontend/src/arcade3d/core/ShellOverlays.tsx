@@ -84,10 +84,12 @@ export interface HudChipsProps {
    lives: number | null;
    stats: Record<string, number>;
    hudStats?: GameDefinition["hudStats"];
+   /** false hides the Time / Played chip (GameDefinition.clockChip) */
+   clock?: boolean;
 }
 
 /** The HUD's first group: score (points games only), time, lives and the game's stats. */
-export function HudChips({ scoring, score, time, timed, lives, stats, hudStats }: HudChipsProps) {
+export function HudChips({ scoring, score, time, timed, lives, stats, hudStats, clock = true }: HudChipsProps) {
    const low = timed && time <= 10;
    return (
       <div className={styles.hudGroup}>
@@ -97,14 +99,16 @@ export function HudChips({ scoring, score, time, timed, lives, stats, hudStats }
                <span className={styles.chipValue}>{score.toLocaleString("en-US")}</span>
             </span>
          )}
-         <span
-            className={`${styles.chip} ${low ? styles.chipWarn : ""}`}
-            role="group"
-            aria-label={timed ? `${time} seconds left` : `${time} seconds played`}
-         >
-            <span className={styles.chipLabel}>{timed ? "Time" : "Played"}</span>
-            <span className={styles.chipValue}>{hudClock(time)}</span>
-         </span>
+         {clock && (
+            <span
+               className={`${styles.chip} ${low ? styles.chipWarn : ""}`}
+               role="group"
+               aria-label={timed ? `${time} seconds left` : `${time} seconds played`}
+            >
+               <span className={styles.chipLabel}>{timed ? "Time" : "Played"}</span>
+               <span className={styles.chipValue}>{hudClock(time)}</span>
+            </span>
+         )}
          {lives !== null && (
             <span className={styles.chip} role="group" aria-label={`${lives} lives left`}>
                <span className={styles.chipLabel}>Lives</span>

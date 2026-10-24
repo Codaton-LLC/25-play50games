@@ -49,7 +49,7 @@ import {
    type SubmitResult,
 } from "./scores";
 import { formatDuration } from "./format";
-import { isPausable, isResultShown, pauseKeyAction } from "./frameLoop";
+import { endCue, isPausable, isResultShown, pauseKeyAction } from "./frameLoop";
 import { createRunTickets } from "./runTicket";
 import { ARCADE_LEADERBOARD } from "../flags";
 import { useAuth } from "@/contexts/AuthContext";
@@ -181,6 +181,7 @@ function Hud({
             lives={lives}
             stats={stats}
             hudStats={definition.hudStats}
+            clock={definition.clockChip !== false}
          />
          <HudButtons hidden={hidden} canPause={canPause} muted={muted} onToggleMute={toggleMuted} onPause={onPause} />
       </div>
@@ -332,7 +333,8 @@ export default function GameShell({ meta, definition, exitHref = "/3d" }: GameSh
          const userId = userRef.current?.id ?? null;
          // frozen at the end: a ticket that arrives later is too late for this run
          const ticket = tickets.ticketFor(runId, userId);
-         playSfx(state.endReason === "win" ? "win" : "lose");
+         // a points game that runs out its clock with a score finished, it did not lose (frameLoop endCue)
+         playSfx(endCue(scoring.kind, state.endReason, state.score));
          trackArcade("arcade_game_over", { game: slug, score: run.score, duration_ms: run.durationMs, ticket: ticket.outcome });
 
          if (!ranked) {

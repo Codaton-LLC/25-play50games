@@ -250,6 +250,12 @@ export interface GameDefinition {
     * The score is submitted at the end of the run either way; "quit" exits at once.
     */
    resultDelayMs?: number;
+   /**
+    * false hides the shell's HUD clock chip (Time / Played). For a game that shows its own clock
+    * in a hudStat or its Hud (museum-guard's Dawn, robot-factory's own 90 s), so the HUD does not
+    * show two clocks. Default true.
+    */
+   clockChip?: boolean;
    /** override how the final score/duration is computed (default: store score + elapsedMs) */
    finalScore?(state: RunState): { score: number; durationMs: number };
 }
