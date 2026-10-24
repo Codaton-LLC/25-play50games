@@ -175,7 +175,14 @@
       "max_duration_ms": 92000,
       "base": 0,
       "max_pps": 25,
-      "enabled": true
+      "enabled": true,
+      "levels": [
+        { "title": "Main Hall", "max_score": 2050, "min_duration_ms": 12000, "max_duration_ms": 92000, "base": 0, "max_pps": 25 },
+        { "title": "Ancient Wing", "max_score": 2290, "min_duration_ms": 12000, "max_duration_ms": 107000, "base": 0, "max_pps": 25 },
+        { "title": "Art Wing", "max_score": 2520, "min_duration_ms": 12000, "max_duration_ms": 122000, "base": 0, "max_pps": 25 },
+        { "title": "Science Wing", "max_score": 2630, "min_duration_ms": 12000, "max_duration_ms": 122000, "base": 0, "max_pps": 25 },
+        { "title": "Full Museum Night", "max_score": 2870, "min_duration_ms": 11000, "max_duration_ms": 137000, "base": 0, "max_pps": 25 }
+      ]
     },
     "luggage-rush": {
       "title": "Airport Luggage Rush",
