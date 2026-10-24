@@ -70,3 +70,9 @@
    .wave { top: 108px; }
    .victory { top: 28%; font-size: 22px; }
 }
+/* Phone landscape: the one-row panel ran across the short screen (to x ~594) and pushed the fitted
+   field down to ~20 px goblins with the banner open. A narrow left column leaves the field's band
+   free, so the fit comes ~30 % closer (goblins >= 24 CSS px; README "Scene and camera"). */
+@media (max-height: 520px) and (orientation: landscape) {
+   .panel { flex-direction: column; flex-wrap: nowrap; gap: 1px; max-width: 180px; font-size: 13px; line-height: 1.3; }
+}

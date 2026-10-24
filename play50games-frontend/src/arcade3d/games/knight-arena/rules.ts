@@ -395,16 +395,17 @@ export function perfectScore(map: BeatMap): number {
    return solveOptimalSpinSchedule(map).maxScore;
 }
 
-const MAX_SEED_PERFECT_SCORE = Math.max(...BEAT.MAP_SEEDS.map((s) => perfectScore(createBeatMap(s))));
-const PROVEN_MAX_SCORE = Math.ceil((MAX_SEED_PERFECT_SCORE * 1.04) / 100) * 100;
-
-/** Proven server score limits for `knight-arena` (Q2 Decision). */
-export const PROPOSED_LIMITS = {
-   maxScore: PROVEN_MAX_SCORE,
-   minDurationMs: 58_000,
-   maxDurationMs: 62_000,
-   rateLimits: { base: 0, maxPointsPerSec: Math.ceil(PROVEN_MAX_SCORE / 58) },
-} as const;
+/**
+ * Map-independent score ceiling (README "Server limits and why they hold"): every one of the
+ * MAX_HIT_SLOTS real slots on-beat at the best combo, plus SPIN_BONUS_PTS for each spin a run can
+ * charge (a spin needs ceil(100 / 15) = 7 charging hits and clears at least 1 slot that charges nothing).
+ */
+export function scoreCeiling(): number {
+   let hits = 0;
+   for (let s = 1; s <= BEAT.MAX_HIT_SLOTS; s++) hits += SCORING.ON_BEAT_PTS * comboForStreak(s);
+   const perSpin = Math.ceil(SPIN.MAX_METER / SPIN.ON_BEAT_CHARGE) + 1;
+   return hits + Math.floor(BEAT.MAX_HIT_SLOTS / perSpin) * SCORING.SPIN_BONUS_PTS;
+}
 
 export interface RunInput { strikeDir: StrikeDir | null; spin: boolean; }
 

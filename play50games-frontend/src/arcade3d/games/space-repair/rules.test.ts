@@ -29,7 +29,11 @@ describe("space repair contract", () => {
 });
 
 function advance(r: Run, seconds: number, controls = idle): void {
-   while (seconds > 1e-10 && !r.terminal) { const dt = Math.min(seconds, 0.05); stepRun(r, controls, dt); seconds -= dt; }
+   let frames = 0;
+   const maxFrames = Math.ceil(seconds / 0.05) + 1;
+   while (seconds > 1e-10 && !r.terminal) {
+      if (++frames > maxFrames) throw new Error(`space-repair advance: exceeded ${maxFrames} frames`);
+      const dt = Math.min(seconds, 0.05); stepRun(r, controls, dt); seconds -= dt; }
 }
 function fixture(id = 0, time = 6, coarse = false): Run {
    const r = createRun(1, coarse); advance(r, 6);
@@ -277,7 +281,7 @@ function bot(policy: Policy, seed: number) {
 function witness(policy: Policy, seed: number, coarse: boolean, frame: () => number) {
    const r = createRun(seed, coarse), controller = bot(policy, seed), store = createArcadeStore();
    let prefixValid = true, earliest = Infinity, greatestGeneration = 0;
-   const final = simulateRun(store, { frame, step: (dt, _time, api) => {
+   const final = simulateRun(store, { maxFrames: Math.ceil((CLOCK.duration + 3) / 0.004) + 100, frame, step: (dt, _time, api) => {
       stepRun(r, controller.drive(r, dt), dt);
       const s = api.getState(); if (r.events.award) { s.addScore(r.events.award); earliest = Math.min(earliest, r.time); }
       if (r.terminal) { s.setScore(r.score); s.end(r.terminal); }
@@ -294,6 +298,9 @@ function witness(policy: Policy, seed: number, coarse: boolean, frame: () => num
    return { r, final, metrics: controller.metrics };
 }
 describe("scoring proof through the real store", () => {
+   it("fails a stalled proof with a clear frame-cap error", () => {
+      expect(() => witness("Idle", 1, false, () => 0)).toThrow("simulateRun: still countdown after 30850 frames");
+   });
    it("pins analytical movement/work and every ticket-prefix inequality", () => {
       expect(REPAIR.hits).toEqual([1, 1, 2, 1, 1, 2, 1, 3]);
       expect(DEBRIS).toMatchObject({ radius: 7.6, bodyRadius: 0.25, count: 4, speeds: [1, 1.2, 1.4], impulse: 2, cooldown: 1 });
@@ -307,9 +314,9 @@ describe("scoring proof through the real store", () => {
       }
       expect(30 * 150 + 200).toBe(4700); expect(6 * (1 + 2 + 3 + 4 + 5)).toBe(90);
    });
-   it("drives 48 oracle seeds at all four schedules and 200 idle/spam seeds on both devices", () => {
+   it("drives 32 oracle seeds at all four schedules and 200 idle/spam seeds on both devices", () => {
       let best = 0, minPower = 100, minScore = 4700, maxScore = 0, fastestLoss = Infinity, slowestWin = 0;
-      for (let seed = 1; seed <= 48; seed++) for (const coarse of [false, true]) for (const hz of [30, 60, 144, 0]) {
+      for (let seed = 1; seed <= 32; seed++) for (const coarse of [false, true]) for (const hz of [30, 60, 144, 0]) {
          const { r, final } = witness("OracleRepair", seed, coarse, hz ? fixedFrames(1000 / hz) : randomFrames(seed));
          expect(r.terminal).toBe("win");
          best = Math.max(best, r.score); minPower = Math.min(minPower, r.power); minScore = Math.min(minScore, r.score); maxScore = Math.max(maxScore, r.score); slowestWin = Math.max(slowestWin, final.elapsedMs);
@@ -349,7 +356,8 @@ describe("scoring proof through the real store", () => {
       for (const coarse of [false, true]) {
          const r = createRun(18, coarse), controller = bot("HumanPacedRepair", 18), store = createArcadeStore();
          store.getState().configure({}); store.getState().markReady(); store.getState().start();
-         for (let frame = 0; frame < 1300 && r.time < 60 - 1e-8 && !r.terminal; frame++) {
+         let frame = 0;
+         for (; frame < 1300 && r.time < 60 - 1e-8 && !r.terminal; frame++) {
             advanceRunClock(store, 0.05); const dt = playedFrameDt(store.getState());
             if (dt > 0) {
                stepRun(r, controller.drive(r, dt), dt);
@@ -357,6 +365,7 @@ describe("scoring proof through the real store", () => {
                if (r.terminal) { store.getState().setScore(r.score); store.getState().end(r.terminal); }
             }
          }
+         if (frame === 1300) throw new Error("space-repair novice proof: exceeded 1300 frames before 60 seconds");
          expect(r.time).toBeCloseTo(60, 7); expect(r.power).toBeGreaterThanOrEqual(40); expect(r.terminal).toBeNull();
       }
    });

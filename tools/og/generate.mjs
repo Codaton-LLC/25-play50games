@@ -2,7 +2,7 @@
 // Sharp is a tool dependency only. Do not add it to play50games-frontend.
 // Run from the repo root: node tools/og/generate.mjs
 // Game cards are built from the in-game thumbnails (public/images/3d/<slug>.webp, tools/thumbs).
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import sharp from "sharp";
@@ -19,18 +19,54 @@ const MUTED = "rgba(255,255,255,0.70)";
 const FONT = "Segoe UI, Arial, sans-serif";
 const MAX_BYTES = 200 * 1024;
 
-const GAMES = [
-   { slug: "robot-collector", title: "Robot Collector" },
-   { slug: "food-catcher", title: "Food Catcher 3D" },
-   { slug: "office-escape", title: "Office Escape" },
-   { slug: "pigeon-crossing", title: "Pigeon Crossing" },
-   { slug: "penalty-hero", title: "Penalty Hero" },
-   { slug: "warehouse-rush", title: "Warehouse Rush" },
-   { slug: "tower-climb", title: "Tower Climb" },
-   { slug: "clean-city", title: "Clean the City" },
-   { slug: "escape-room", title: "Tiny Escape Room" },
-   { slug: "obstacle-race", title: "Obstacle Race" },
-];
+// Card titles, keyed by slug. Every slug with a thumbnail in public/images/3d gets a card;
+// an unknown slug fails loudly so a new game is added here when its thumbnail lands.
+const TITLES = {
+   "robot-collector": "Robot Collector",
+   "food-catcher": "Food Catcher 3D",
+   "office-escape": "Office Escape",
+   "pigeon-crossing": "Pigeon Crossing",
+   "penalty-hero": "Penalty Hero",
+   "warehouse-rush": "Warehouse Rush",
+   "tower-climb": "Tower Climb",
+   "clean-city": "Clean the City",
+   "escape-room": "Tiny Escape Room",
+   "obstacle-race": "Obstacle Race",
+   "treasure-island": "Treasure Island",
+   "museum-guard": "Museum Guard",
+   "luggage-rush": "Airport Luggage Rush",
+   "dino-egg-rescue": "Dino Egg Rescue",
+   "delivery-drone": "Delivery Drone",
+   "shopping-cart": "Crazy Shopping Cart",
+   "snowball-battle": "Snowball Battle",
+   "ghost-vacuum": "Ghost Vacuum",
+   "construction-worker": "Construction Worker",
+   "alien-farm": "Alien Farm",
+   "mini-golf": "Mini Golf 3D",
+   "robot-factory": "Robot Factory Sorter",
+   "pirate-cannons": "Pirate Cannon Battle",
+   "castle-defender": "Castle Defender",
+   "penguin-slide": "Penguin Ice Slide",
+   "space-repair": "Space Repair Mission",
+   "monster-kitchen": "Monster Kitchen",
+   "knight-arena": "Knight Training Arena",
+   "zoo-escape": "Zoo Escape",
+   "rocket-landing": "Rocket Landing Challenge",
+};
+
+/** One entry per thumbnail in public/images/3d, in filename order. */
+function gameSlugs() {
+   return readdirSync(path.join(ROOT, "play50games-frontend/public/images/3d"))
+      .filter((file) => file.endsWith(".webp"))
+      .map((file) => file.replace(/\.webp$/, ""))
+      .sort();
+}
+
+const GAMES = gameSlugs().map((slug) => {
+   const title = TITLES[slug];
+   if (!title) throw new Error(`No card title for ${slug}: add it to TITLES in generate.mjs`);
+   return { slug, title };
+});
 
 const FRAME = { x: 48, y: 48, w: 534, h: 534, r: 28 };
 
