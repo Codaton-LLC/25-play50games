@@ -82,6 +82,29 @@
    font-weight: 700;
 }
 
+/* levels: "Level 3 · Copy Room" under the title, the unlock note and the game's total */
+.level {
+   margin: 0.35rem 0 0;
+   color: var(--muted);
+   font-size: 0.9rem;
+   font-weight: 700;
+}
+
+.unlocked {
+   margin: 0.45rem 0 0;
+   color: var(--accent);
+   font-size: 0.95rem;
+   font-weight: 700;
+}
+
+.total {
+   margin: 0.45rem 0 0;
+   color: var(--text);
+   font-size: 0.95rem;
+   font-weight: 700;
+   font-variant-numeric: tabular-nums;
+}
+
 .best,
 .rank {
    margin: 0.45rem 0 0;

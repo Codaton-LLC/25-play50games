@@ -14,3 +14,10 @@ export const ARCADE_API_MOCK = on(process.env.NEXT_PUBLIC_ARCADE_API_MOCK);
 
 /** Shows "dev" games on /3d and serves their routes (preview builds only, never on Vercel production). */
 export const ARCADE_PREVIEW = on(process.env.NEXT_PUBLIC_ARCADE_PREVIEW);
+
+/**
+ * The five-level system (docs/arcade-levels.md). Off = every game plays and looks exactly as before:
+ * level 1 only, no level tiles, no HUD level chip, no `level` in any request. Games without
+ * `meta.levels` never show the level UI, even with the flag on.
+ */
+export const ARCADE_LEVELS = on(process.env.NEXT_PUBLIC_ARCADE_LEVELS);

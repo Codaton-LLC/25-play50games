@@ -213,6 +213,17 @@
    background: #a5e3fd;
 }
 
+/* Play on a locked level (the level tiles) */
+.primary:disabled {
+   background: var(--accent);
+   opacity: 0.45;
+   cursor: not-allowed;
+}
+
+.primary:disabled:active {
+   transform: none;
+}
+
 .secondary {
    border: 1px solid var(--stroke);
    background: rgba(255, 255, 255, 0.04);

@@ -12,9 +12,15 @@
 // the cookie banner and scroll inside their card with the buttons pinned on view; they open
 // scrolled to the top and focus their first button without scrolling (overlayFocus.ts, never
 // autoFocus). Time games show no score chip in the HUD (ShellOverlays.tsx HudChips).
+// Levels (core/README.md "Levels"): the shell provides the picked level to the Scene and the game
+// HUD (LevelProvider / useLevel) and applies its run config, environment and instructions. The
+// level UI (start-card tiles, HUD chip, Next level / Levels on the result, `?level=`, the analytics
+// `level`) shows only when levelUiEnabled: the NEXT_PUBLIC_ARCADE_LEVELS flag, five levels in
+// meta.ts and a server that supports them. Otherwise every game plays level 1, exactly as before.
 import {
    useCallback,
    useEffect,
+   useMemo,
    useRef,
    useState,
    useSyncExternalStore,
@@ -24,8 +30,22 @@ import {
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useProgress } from "@react-three/drei";
-import type { ArcadeGameMeta } from "../types";
+import type { ArcadeGameMeta, LevelId } from "../types";
 import type { GameDefinition, GameShellProps, RunState } from "./types";
+import { levelCount, levelMetaFor, scoringFor } from "../levelMeta";
+import {
+   levelEnvironment,
+   levelInstructions,
+   levelRunConfig,
+   levelSpecFor,
+   levelUiEnabled,
+   levelsActive,
+   resolveActiveLevel,
+} from "./levels";
+import { levelProgress, levelTotalText, pickInitialLevel } from "./levelProgress";
+import { LevelProvider, useLevelsSupported } from "./level";
+import { parseLevelParam, readLastLevel, writeLastLevel, writeLevelToUrl } from "./levelUrl";
+import { useLevelProgress } from "./useBestScore";
 import { arcadeStore, useArcadeStore } from "./useArcadeStore";
 import { InputProvider } from "./input";
 import TouchControls, { TouchControlsProbe, useBottomObstruction, useCoarsePointer } from "./TouchControls";
@@ -42,6 +62,7 @@ import { focusWithoutScroll } from "./overlayFocus";
 import {
    isRankedRun,
    normalizeRun,
+   readLocalScores,
    saveRunToAccount,
    submitScore,
    unrankedResult,
@@ -152,6 +173,7 @@ function Countdown() {
 function Hud({
    definition,
    scoring,
+   level,
    onPause,
    hidden,
    rootRef,
@@ -159,6 +181,8 @@ function Hud({
    definition: GameDefinition;
    /** meta.scoring, passed whole: HudChips derives from its kind whether a score chip shows */
    scoring: ArcadeGameMeta["scoring"];
+   /** the picked level while the level UI is on, else null (no chip) */
+   level: LevelId | null;
    onPause: () => void;
    hidden: boolean;
    rootRef: RefObject<HTMLDivElement>;
@@ -182,6 +206,7 @@ function Hud({
             stats={stats}
             hudStats={definition.hudStats}
             clock={definition.clockChip !== false}
+            level={level}
          />
          <HudButtons hidden={hidden} canPause={canPause} muted={muted} onToggleMute={toggleMuted} onPause={onPause} />
       </div>
@@ -220,6 +245,18 @@ export default function GameShell({ meta, definition, exitHref = "/3d" }: GameSh
    const resultShown = useArcadeStore(isResultShown);
    const leaderboard = useLeaderboard(meta.slug, { refreshKey: user?.id ?? null });
 
+   // levels: the UI is on only for a five-level game with the flag on and a server that knows levels
+   const levelsSupported = useLevelsSupported(levelsActive(meta));
+   const levelsOn = levelUiEnabled(meta, levelsSupported);
+   const storeLevelId = useArcadeStore((s) => s.levelId);
+   const levelId: LevelId = levelsOn ? storeLevelId : 1;
+   const progress = useLevelProgress(meta, levelsOn);
+   const activeLevel = useMemo(() => resolveActiveLevel(meta, definition, levelId), [meta, definition, levelId]);
+   const environment = useMemo(() => levelEnvironment(definition, levelId), [definition, levelId]);
+   const levelsOnRef = useRef(levelsOn);
+   levelsOnRef.current = levelsOn;
+   const levelPickedRef = useRef(false);
+
    const [webgl, setWebgl] = useState<WebGLSupport>("checking");
    const [contextLost, setContextLost] = useState(false);
    const [stageKey, setStageKey] = useState(0);
@@ -245,7 +282,7 @@ export default function GameShell({ meta, definition, exitHref = "/3d" }: GameSh
    // one ticket context per shell mount (core/runTicket.ts); requests never block the countdown
    const [tickets] = useState(() =>
       createRunTickets({
-         startRun: (slug) => arcadeApi.startRun(slug),
+         startRun: (slug, level) => (level && level !== 1 ? arcadeApi.startRun(slug, level) : arcadeApi.startRun(slug)),
          getState: () => arcadeStore.getState(),
          getUserId: () => userRef.current?.id ?? null,
          hasJwt: () => !!getJwtToken(),
@@ -269,16 +306,35 @@ export default function GameShell({ meta, definition, exitHref = "/3d" }: GameSh
       bottomObstruction,
    });
 
-   // run config; reset() on unmount so the next game starts clean (safe to run twice)
+   // run config (level 1's: the start card picks the level once it opens); reset() on unmount so
+   // the next game starts clean (safe to run twice)
    useEffect(() => {
-      arcadeStore.getState().configure({
-         durationMs: definition.durationMs,
-         lives: definition.lives,
-         resultDelayMs: definition.resultDelayMs,
-      });
+      arcadeStore.getState().configure(levelRunConfig(definition, 1), 1);
       submittedRunRef.current = null;
+      levelPickedRef.current = false;
       return () => arcadeStore.getState().reset();
    }, [definition]);
+
+   // picks a level on the start card: its run config, the URL and the last played level
+   const chooseLevel = useCallback(
+      (id: LevelId) => {
+         arcadeStore.getState().selectLevel(id, levelRunConfig(definition, id));
+         writeLevelToUrl(id);
+         writeLastLevel(meta.slug, id);
+      },
+      [definition, meta.slug]
+   );
+
+   // the first time the start card opens with the level UI on: ?level=n, else the last played
+   // level, else the first open level not cleared (pickInitialLevel; locked or junk falls back)
+   useEffect(() => {
+      if (!levelsOn || phase !== "ready" || levelPickedRef.current) return;
+      levelPickedRef.current = true;
+      const stored = levelProgress(meta, readLocalScores(userRef.current?.id ?? null)[meta.slug], true);
+      const id = pickInitialLevel(stored.levels, parseLevelParam(window.location.search), readLastLevel(meta.slug));
+      arcadeStore.getState().selectLevel(id, levelRunConfig(definition, id));
+      writeLevelToUrl(id);
+   }, [levelsOn, phase, meta, definition]);
 
    // free loaded GLBs when the game closes (R3F disposes the renderer and its scene)
    useEffect(() => {
@@ -309,9 +365,12 @@ export default function GameShell({ meta, definition, exitHref = "/3d" }: GameSh
    // run lifecycle: start analytics, the end of a run (score submit), the next run
    useEffect(() => {
       const slug = meta.slug;
-      const scoring = meta.scoring;
+      /** the level a run is played on (1 unless the level UI is on) */
+      const runLevel = (state: { levelId: LevelId }): LevelId => (levelsOnRef.current ? state.levelId : 1);
+      /** the analytics `level`, only for a game whose level UI is on */
+      const levelField = (level: LevelId) => (levelsOnRef.current ? { level } : {});
 
-      const finishRun = (state: RunState) => {
+      const finishRun = (state: RunState & { levelId: LevelId }) => {
          if (submittedRunRef.current === state.runId) return;
          submittedRunRef.current = state.runId;
 
@@ -319,11 +378,20 @@ export default function GameShell({ meta, definition, exitHref = "/3d" }: GameSh
             exit();
             return;
          }
+         const level = runLevel(state);
+         const scoring = scoringFor(meta, level);
          const final = definition.finalScore
             ? definition.finalScore(state)
             : { score: state.score, durationMs: state.elapsedMs };
          const normalized = normalizeRun(
-            { slug, score: final.score, durationMs: final.durationMs, finishedAt: new Date().toISOString() },
+            {
+               slug,
+               score: final.score,
+               durationMs: final.durationMs,
+               finishedAt: new Date().toISOString(),
+               level,
+               endReason: state.endReason,
+            },
             scoring
          );
          // time games: only a win has a finish time; a lost or timed-out run scores 0 and is not saved
@@ -335,10 +403,16 @@ export default function GameShell({ meta, definition, exitHref = "/3d" }: GameSh
          const ticket = tickets.ticketFor(runId, userId);
          // a points game that runs out its clock with a score finished, it did not lose (frameLoop endCue)
          playSfx(endCue(scoring.kind, state.endReason, state.score));
-         trackArcade("arcade_game_over", { game: slug, score: run.score, duration_ms: run.durationMs, ticket: ticket.outcome });
+         trackArcade("arcade_game_over", {
+            game: slug,
+            score: run.score,
+            duration_ms: run.durationMs,
+            ticket: ticket.outcome,
+            ...levelField(level),
+         });
 
          if (!ranked) {
-            setOutcome({ runId, run, result: unrankedResult(slug, userId), saving: false, userId, runToken: null });
+            setOutcome({ runId, run, result: unrankedResult(slug, userId, level), saving: false, userId, runToken: null });
             return;
          }
          setOutcome({ runId, run, result: null, saving: true, userId, runToken: ticket.token });
@@ -348,7 +422,10 @@ export default function GameShell({ meta, definition, exitHref = "/3d" }: GameSh
             .then((result) => {
                setOutcome((current) => (current && current.runId === runId ? { ...current, result, saving: false } : current));
                if (result.isNewBest) {
-                  trackArcade("arcade_new_best", { game: slug, score: result.score, duration_ms: run.durationMs });
+                  trackArcade("arcade_new_best", { game: slug, score: result.score, duration_ms: run.durationMs, ...levelField(level) });
+               }
+               if (result.newlyCleared && levelsOnRef.current) {
+                  trackArcade("arcade_level_cleared", { game: slug, score: result.score, duration_ms: run.durationMs, level });
                }
                if (result.status === "synced") retryLeaderboardRef.current();
             })
@@ -362,6 +439,11 @@ export default function GameShell({ meta, definition, exitHref = "/3d" }: GameSh
                   plays: 0,
                   rank: null,
                   status: "config-error",
+                  level,
+                  total: run.score,
+                  totalDurationMs: null,
+                  newlyCleared: false,
+                  unlockedLevel: null,
                };
                setOutcome((current) => (current && current.runId === runId ? { ...current, result, saving: false } : current));
             });
@@ -370,24 +452,24 @@ export default function GameShell({ meta, definition, exitHref = "/3d" }: GameSh
       // the store may already be over (e.g. a fast remount); handle it once
       const now = arcadeStore.getState();
       if (now.phase === "over") finishRun(now);
-      if (now.phase === "countdown") tickets.onRunStart(now.runId, slug);
+      if (now.phase === "countdown") tickets.onRunStart(now.runId, slug, runLevel(now));
 
       return arcadeStore.subscribe((state, prev) => {
          // every new run (Play, Retry, Restart from pause or from the countdown) asks for its ticket
-         if (state.phase === "countdown" && state.runId !== prev.runId) tickets.onRunStart(state.runId, slug);
+         if (state.phase === "countdown" && state.runId !== prev.runId) tickets.onRunStart(state.runId, slug, runLevel(state));
          if (state.phase === prev.phase) return;
          // a paused or ended run falls silent (audio's stopAllLoops is registered)
          if (loopsStopOn(prev.phase, state.phase)) stopShellLoops();
          if (state.phase === "playing" && prev.phase === "countdown") {
             playSfx("go");
-            trackArcade("arcade_start", { game: slug, score: 0, duration_ms: 0 });
+            trackArcade("arcade_start", { game: slug, score: 0, duration_ms: 0, ...levelField(runLevel(state)) });
             // keys must drive the game, not a focused button
             if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
          }
          if (state.phase === "countdown" && (prev.phase === "over" || prev.phase === "ready")) setOutcome(null);
          if (state.phase === "over") finishRun(state);
       });
-   }, [definition, meta.slug, meta.scoring, exit, tickets]);
+   }, [definition, meta, exit, tickets]);
 
    // Esc / P toggle pause; never behind the "Rotate your device" overlay (the run stays paused
    // until the phone is turned back)
@@ -445,11 +527,7 @@ export default function GameShell({ meta, definition, exitHref = "/3d" }: GameSh
    const retryStage = () => {
       setStageError(null);
       setStageKey((key) => key + 1);
-      arcadeStore.getState().configure({
-         durationMs: definition.durationMs,
-         lives: definition.lives,
-         resultDelayMs: definition.resultDelayMs,
-      });
+      arcadeStore.getState().configure(levelRunConfig(definition, levelId), levelId);
    };
 
    const saveToAccount = () => {
@@ -508,6 +586,11 @@ export default function GameShell({ meta, definition, exitHref = "/3d" }: GameSh
    const canSaveToAccount =
       !!user && !!getJwtToken() && (outcome?.userId == null || outcome.userId === user.id);
    const frameloop = contextLost ? "never" : phase === "paused" ? "demand" : "always";
+   // the result's level: the level the shown run was played on
+   const resultLevel: LevelId = outcome?.run.level ?? levelId;
+   const resultScoring = scoringFor(meta, resultLevel);
+   const nextLevel = levelsOn && resultLevel < levelCount(meta) ? ((resultLevel + 1) as LevelId) : null;
+   const canPlayNext = nextLevel !== null && !!progress.levels[resultLevel - 1]?.cleared;
 
    return (
       <>
@@ -518,13 +601,17 @@ export default function GameShell({ meta, definition, exitHref = "/3d" }: GameSh
                      <ErrorBoundary resetKey={stageKey} onError={onStageError}>
                         {/* the Canvas bridges this context, so Scenes can read useSafeArea() */}
                         <SafeAreaProvider store={safeArea}>
-                           <ShellStage
-                              key={stageKey}
-                              definition={definition}
-                              frameloop={frameloop}
-                              onContextLost={onContextLost}
-                              label={`${meta.title} game view`}
-                           />
+                           {/* the Canvas bridges this one too: Scenes read useLevel() */}
+                           <LevelProvider value={activeLevel}>
+                              <ShellStage
+                                 key={stageKey}
+                                 definition={definition}
+                                 environment={environment}
+                                 frameloop={frameloop}
+                                 onContextLost={onContextLost}
+                                 label={`${meta.title} game view`}
+                              />
+                           </LevelProvider>
                         </SafeAreaProvider>
                      </ErrorBoundary>
                   )}
@@ -535,7 +622,14 @@ export default function GameShell({ meta, definition, exitHref = "/3d" }: GameSh
                </div>
 
                {hudMounted && (
-                  <Hud definition={definition} scoring={meta.scoring} onPause={pause} hidden={!showHud} rootRef={hudRef} />
+                  <Hud
+                     definition={definition}
+                     scoring={meta.scoring}
+                     level={levelsOn ? levelId : null}
+                     onPause={pause}
+                     hidden={!showHud}
+                     rootRef={hudRef}
+                  />
                )}
                {/* laid out (hidden) in every phase like the shell HUD, so the safe area knows its marked panels */}
                {hudMounted && definition.Hud && (
@@ -547,7 +641,9 @@ export default function GameShell({ meta, definition, exitHref = "/3d" }: GameSh
                   >
                      {/* the game HUD reads useSafeArea() too (e.g. to keep its panels clear of the controls and banner) */}
                      <SafeAreaProvider store={safeArea}>
-                        <definition.Hud />
+                        <LevelProvider value={activeLevel}>
+                           <definition.Hud />
+                        </LevelProvider>
                      </SafeAreaProvider>
                   </div>
                )}
@@ -561,7 +657,21 @@ export default function GameShell({ meta, definition, exitHref = "/3d" }: GameSh
                      coarse={coarse}
                      exitHref={exitHref}
                      leaderboard={leaderboard}
-                     onPlay={() => arcadeStore.getState().start()}
+                     onPlay={() => {
+                        if (levelsOn) writeLastLevel(meta.slug, levelId);
+                        arcadeStore.getState().start();
+                     }}
+                     levels={
+                        levelsOn
+                           ? {
+                                progress,
+                                selected: levelId,
+                                description: levelSpecFor(definition, levelId)?.description,
+                                instructions: levelInstructions(definition, levelId),
+                                onSelect: chooseLevel,
+                             }
+                           : undefined
+                     }
                   />
                )}
 
@@ -598,9 +708,25 @@ export default function GameShell({ meta, definition, exitHref = "/3d" }: GameSh
                            rank={result?.rank ?? null}
                            isNewBest={result?.isNewBest ?? false}
                            status={outcome.saving ? null : result?.status ?? null}
-                           scoring={meta.scoring}
+                           scoring={resultScoring}
                            onRetry={() => arcadeStore.getState().restart()}
                            onExit={exit}
+                           level={
+                              levelsOn
+                                 ? { id: resultLevel, title: levelMetaFor(meta, resultLevel).title, count: levelCount(meta) }
+                                 : undefined
+                           }
+                           totalText={levelsOn ? levelTotalText(meta, progress) : undefined}
+                           unlockedLevel={levelsOn ? (result?.unlockedLevel ?? null) : null}
+                           onNextLevel={
+                              canPlayNext
+                                 ? () => {
+                                      chooseLevel(nextLevel!);
+                                      arcadeStore.getState().restart();
+                                   }
+                                 : undefined
+                           }
+                           onLevels={levelsOn ? () => arcadeStore.getState().menu() : undefined}
                            onLogin={loginRequired && !canSaveToAccount ? () => setShowLogin(true) : undefined}
                            onSaveToAccount={
                               loginRequired && canSaveToAccount && !outcome.saving ? saveToAccount : undefined

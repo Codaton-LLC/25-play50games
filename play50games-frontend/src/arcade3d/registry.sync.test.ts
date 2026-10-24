@@ -2,9 +2,12 @@ import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { ARCADE_GAMES } from "./registry";
+import { levelMetaProblems } from "./levelMeta";
+import { serverSyncProblems } from "./levelSync";
 import { ARCADE_SLUGS } from "./types";
 
-// The server limits live in the WordPress theme; they must match every game's meta.scoring.
+// The server limits live in the WordPress theme; they must match every game's meta.scoring and,
+// for a game with five levels, every meta.levels[i].scoring (arcade-games.json v4 `levels`).
 const WP_JSON = path.resolve(__dirname, "../../../play50games-backend/play50games/includes/arcade-games.json");
 const wp = JSON.parse(fs.readFileSync(WP_JSON, "utf8")) as {
    version: number;
@@ -22,19 +25,9 @@ describe("arcade registry", () => {
    });
 
    for (const game of ARCADE_GAMES) {
-      it(`${game.slug}: scoring matches arcade-games.json`, () => {
-         const s = game.scoring;
+      it(`${game.slug}: scoring (and levels) match arcade-games.json`, () => {
          const server = wp.games[game.slug];
-         expect(server.kind).toBe(s.kind);
-         expect(server.max_score).toBe(s.maxScore);
-         expect(server.min_duration_ms).toBe(s.minDurationMs);
-         expect(server.max_duration_ms).toBe(s.maxDurationMs);
-         if (s.kind === "points") {
-            expect(server.base).toBe(s.base);
-            expect(server.max_pps).toBe(s.maxPointsPerSec);
-         } else {
-            expect(server.time_base_ms).toBe(s.timeBaseMs);
-         }
+         expect(serverSyncProblems(game, server)).toEqual([]);
          if (game.status === "live") expect(server.enabled).toBe(true);
       });
 
@@ -45,6 +38,13 @@ describe("arcade registry", () => {
             // the best possible time score must fit under maxScore
             expect(Math.floor((s.timeBaseMs! - s.minDurationMs) / 10)).toBeLessThanOrEqual(s.maxScore);
             expect(s.display).toBe("time");
+         }
+         expect(levelMetaProblems(game)).toEqual([]);
+         for (const level of game.levels ?? []) {
+            const ls = level.scoring;
+            if (ls.kind === "time") {
+               expect(Math.floor((ls.timeBaseMs! - ls.minDurationMs) / 10)).toBeLessThanOrEqual(ls.maxScore);
+            }
          }
       });
    }

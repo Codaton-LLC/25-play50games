@@ -7,8 +7,12 @@
 // on any screen they are on view and tappable, never under the banner. Where everything fits the
 // card looks as before (short landscape screens get tighter spacing and one row of buttons). The
 // wheel over the backdrop scrolls the card (scrollPanelFromBackdrop).
+// Levels (only when GameShell passes `level`): "Level 3 · Copy Room" over the score, the best is the
+// level's, "Level 4 unlocked!" on a first clear, the game's total, and the bar gains Next level
+// (primary, once the level is cleared and a next one exists) and Levels (back to the tiles). Without
+// `level` the card is exactly as before levels.
 import { useRef, type ReactNode } from "react";
-import type { ScoringRules } from "../types";
+import type { LevelId, ScoringRules } from "../types";
 import type { SubmitStatus } from "../core/scores";
 import { formatScore } from "../core/format";
 import { scrollPanelFromBackdrop } from "../core/overlayScroll";
@@ -34,6 +38,16 @@ export interface ResultPanelProps {
    /** e.g. the leaderboard */
    children?: ReactNode;
    rank?: number | null;
+   /** the level played (levels on only): shown as "Level 3 · Copy Room" */
+   level?: { id: LevelId; title: string; count: number };
+   /** the game's total after this run, e.g. "Total 3,420 pts" (levels on only) */
+   totalText?: string;
+   /** the level this run unlocked: "Level 4 unlocked!" */
+   unlockedLevel?: LevelId | null;
+   /** shown once the level is cleared and a next level exists */
+   onNextLevel?: () => void;
+   /** back to the start card's level tiles */
+   onLevels?: () => void;
 }
 
 /** The big figure. An unranked time run has no finish time, so it must not show the clock. */
@@ -107,6 +121,11 @@ export default function ResultPanel(props: ResultPanelProps) {
       onSaveToAccount,
       children,
       rank,
+      level,
+      totalText,
+      unlockedLevel,
+      onNextLevel,
+      onLevels,
    } = props;
    const cardRef = useRef<HTMLDivElement>(null);
 
@@ -120,9 +139,16 @@ export default function ResultPanel(props: ResultPanelProps) {
       >
          <div ref={cardRef} className={styles.card}>
             <h2 className={styles.title}>{title}</h2>
+            {level ? (
+               <p className={styles.level}>
+                  Level {level.id} · {level.title}
+               </p>
+            ) : null}
             <p className={styles.score}>{resultScoreText(score, scoring, durationMs, status)}</p>
             {isNewBest ? <p className={styles.newBest}>New best!</p> : null}
             <p className={styles.best}>{resultBestText(best, scoring, durationMs, bestDurationMs, isNewBest)}</p>
+            {unlockedLevel ? <p className={styles.unlocked}>Level {unlockedLevel} unlocked!</p> : null}
+            {totalText ? <p className={styles.total}>{totalText}</p> : null}
             {rank != null ? <p className={styles.rank}>Rank #{rank}</p> : null}
             <p className={styles.message} aria-live="polite" data-status={status ?? "saving"}>
                {submitMessage(status, rank)}
@@ -138,9 +164,19 @@ export default function ResultPanel(props: ResultPanelProps) {
                      Save this score to my account
                   </button>
                ) : null}
-               <button type="button" className={styles.primary} onClick={onRetry}>
+               {onNextLevel ? (
+                  <button type="button" className={styles.primary} onClick={onNextLevel}>
+                     Next level
+                  </button>
+               ) : null}
+               <button type="button" className={onNextLevel ? styles.secondary : styles.primary} onClick={onRetry}>
                   Retry
                </button>
+               {onLevels ? (
+                  <button type="button" className={styles.secondary} onClick={onLevels}>
+                     Levels
+                  </button>
+               ) : null}
                <button type="button" className={styles.secondary} onClick={onExit}>
                   Exit
                </button>

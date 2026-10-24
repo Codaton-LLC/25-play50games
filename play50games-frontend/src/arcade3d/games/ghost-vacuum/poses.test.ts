@@ -1,28 +1,70 @@
+// The hunter as the Scene draws it (hunter.glb, auto-rigged with HUNTER_LANDMARKS; HumanoidModel
+// applies bodyLift): hunterPose keeps a sole on the floor, the aimed hands stay off the torso, and the
+// vacuum pack (chest anchor, PACK_OFFSET) and hose (HOSE_ROUTE to the right hand) stay clear of the
+// posed body. Everything is measured on the real mesh, independently of PACK_OFFSET where it can be.
 import { beforeAll, describe, expect, it } from "vitest";
 import { CatmullRomCurve3, Vector3 } from "three";
 import { createAnchorGroup, createPose, soleHeight } from "@/arcade3d/core/rig";
 import { rigCharacter, type RiggedCharacter } from "@/arcade3d/core/rig/characterChecks";
-import { EXPANSION_GLB_POINTS, EXPANSION_GLB_SIZE, RUNNER_LANDMARKS } from "@/arcade3d/core/sharedAssets";
-import { ASSETS, HUNTER_SCALE, PACK_OFFSET, VACUUM_SCALE } from "./assets";
+import { EXPANSION_GLB_POINTS, EXPANSION_GLB_SIZE } from "@/arcade3d/core/sharedAssets";
+import { ASSETS, BACK_CLEARANCE, HUNTER_LANDMARKS, HUNTER_SCALE, PACK_OFFSET, VACUUM_SCALE } from "./assets";
 import { hunterPose } from "./poses";
 import { BONE } from "@/arcade3d/core/rig/humanoid";
 import { HOSE_RADIUS, HOSE_ROUTE } from "./Vacuum";
 
-describe("posed runner floor and vacuum attachment", () => {
+const L = HUNTER_LANDMARKS;
+/** idle (amount 0), walk, run; the aim is always on; and the win's cheer */
+const AMOUNTS = [0, 0.3, 0.6, 1];
+
+describe("posed hunter floor, hands and vacuum attachment (hunter.glb)", () => {
    let character: RiggedCharacter;
    beforeAll(async () => { character = await rigCharacter(ASSETS.hunter); });
-   it("keeps the planted sole within 1cm through walking, aiming and cheering", () => {
+
+   it("keeps the planted sole within 1cm through idle, walking, running, aiming and cheering (the landmarks' sole points)", () => {
       let worst = 0;
-      for (const amount of [0, 0.3, 0.6, 1]) for (const cheer of [false, true]) for (let k = 0; k < 24; k++) {
+      for (const amount of AMOUNTS) for (const cheer of [false, true]) for (let k = 0; k < 24; k++) {
          const p = createPose(); hunterPose(k / 24 * Math.PI * 2, amount, cheer, k / 24, p);
          // Match the sole landmarks that HumanoidModel uses for bodyLift.
-         const floor = Math.min(soleHeight(p, RUNNER_LANDMARKS, 1), soleHeight(p, RUNNER_LANDMARKS, -1)) * HUNTER_SCALE;
+         const floor = Math.min(soleHeight(p, L, 1), soleHeight(p, L, -1)) * HUNTER_SCALE;
          worst = Math.max(worst, Math.abs(floor));
       }
       expect(worst).toBeLessThanOrEqual(0.01);
    });
-   it("aligns the measured canister back with the independently measured runner back surface", () => {
-      const L = RUNNER_LANDMARKS, backY = (L.chestY + L.shoulderY) / 2;
+
+   it("on the real mesh as drawn (bodyLift applied, metres): the lowest boot vertex is within 1 cm of the floor and never below it", () => {
+      for (const amount of AMOUNTS) for (const cheer of [false, true]) for (let k = 0; k < 16; k++) {
+         const p = createPose(); hunterPose(k / 16 * Math.PI * 2, amount, cheer, k / 16, p);
+         const world = character.posed(p);
+         let low = Infinity;
+         for (let i = 1; i < world.length; i += 3) low = Math.min(low, world[i]);
+         const label = `amount ${amount} cheer ${cheer} phase ${k}`;
+         expect(low * HUNTER_SCALE, label).toBeGreaterThan(-0.005);
+         expect(low * HUNTER_SCALE, label).toBeLessThan(0.01);
+      }
+   });
+
+   it("the aimed hands (every vertex past the wrist) stay at least 10 cm off the torso through idle, walk and run", () => {
+      const rest = character.glb.cloud;
+      const hands: number[] = [], torso: number[] = [];
+      for (let i = 0; i < rest.length / 3; i++) {
+         const x = Math.abs(rest[i * 3]), y = rest[i * 3 + 1];
+         if (x > L.wristX) hands.push(i);
+         else if (x < L.shoulderX && y >= L.hipY && y <= L.neckY) torso.push(i);
+      }
+      let gap = Infinity;
+      for (const amount of AMOUNTS) for (let k = 0; k < 8; k++) {
+         const p = createPose(); hunterPose(k / 8 * Math.PI * 2, amount, false, 0, p);
+         const w = character.posed(p);
+         for (const h of hands) for (const t of torso) {
+            gap = Math.min(gap, Math.hypot(w[h * 3] - w[t * 3], w[h * 3 + 1] - w[t * 3 + 1], w[h * 3 + 2] - w[t * 3 + 2]));
+         }
+      }
+      console.info("ghost-vacuum hunter hand-torso gap (m)", gap * HUNTER_SCALE);
+      expect(gap * HUNTER_SCALE).toBeGreaterThan(0.1);
+   });
+
+   it("aligns the measured canister back with the independently measured hunter back surface", () => {
+      const backY = (L.chestY + L.shoulderY) / 2;
       let backZ = Infinity;
       const cloud = character.glb.cloud;
       for (let i = 0; i < cloud.length; i += 3) {
@@ -39,17 +81,18 @@ describe("posed runner floor and vacuum attachment", () => {
          const pose = createPose(); hunterPose(k / 12 * Math.PI * 2, 1, cheer, k / 12, pose); character.posed(pose);
          point.set(-EXPANSION_GLB_POINTS.vacuumBack.x * scale, EXPANSION_GLB_POINTS.vacuumBack.y * scale, -EXPANSION_GLB_POINTS.vacuumBack.z * scale).add(new Vector3(...PACK_OFFSET));
          anchor.localToWorld(point).multiplyScalar(HUNTER_SCALE);
-         // Compute this independently from mesh vertices and runner joints, never PACK_OFFSET.
+         // Compute this independently from mesh vertices and hunter joints, never PACK_OFFSET.
          bone.localToWorld(surface.set(0, backY - L.chestY, backZ - L.spineZ)).multiplyScalar(HUNTER_SCALE);
          normal.set(0, 0, 1).transformDirection(bone.matrixWorld);
          point.sub(surface);
-         // 1 cm skin + 7 cm for the upper back (shoulder blades) that bulges 6.3 cm behind this mid-back strip
-         expect(point.dot(normal)).toBeCloseTo(-0.08, 6);
-         expect(point.length()).toBeLessThanOrEqual(0.080001);
+         // 1 cm skin + BACK_CLEARANCE for the belt pouches that stick out behind this upper-back strip
+         expect(point.dot(normal)).toBeCloseTo(-(0.01 + BACK_CLEARANCE), 6);
+         expect(point.length()).toBeLessThanOrEqual(0.01 + BACK_CLEARANCE + 1e-6);
       }
       anchor.removeFromParent();
    });
-   it("keeps the canister and hose clear of the posed torso and upper arm", () => {
+
+   it("keeps the canister and hose clear of the posed body, torso and upper arm", () => {
       const chest = createAnchorGroup(character.rig, "chest", [HUNTER_SCALE, HUNTER_SCALE, HUNTER_SCALE]);
       const hand = createAnchorGroup(character.rig, "handR", [HUNTER_SCALE, HUNTER_SCALE, HUNTER_SCALE]);
       character.rig.bones[character.rig.anchors.chest.bone].add(chest);
@@ -58,9 +101,9 @@ describe("posed runner floor and vacuum attachment", () => {
       const point = new Vector3(), vertex = new Vector3();
       const size = EXPANSION_GLB_SIZE.vacuum, scale = 0.55 / size.height;
       let hoseGap = Infinity, packPenetration = 0;
-      for (const cheer of [false, true]) for (let k = 0; k < 8; k++) {
-         const pose = createPose(); hunterPose(k / 8 * Math.PI * 2, 1, cheer, k / 8, pose);
-         const world = character.posed(pose), rest = character.glb.cloud, L = RUNNER_LANDMARKS;
+      for (const amount of [0, 0.5, 1]) for (const cheer of [false, true]) for (let k = 0; k < 8; k++) {
+         const pose = createPose(); hunterPose(k / 8 * Math.PI * 2, amount, cheer, k / 8, pose);
+         const world = character.posed(pose), rest = character.glb.cloud;
          hand.localToWorld(point.set(0, 0, 0)); chest.worldToLocal(point); curve.points[4].copy(point);
          const samples = Array.from({ length: 25 }, (_, j) => curve.getPoint(0.15 + j / 24 * 0.7));
          for (let i = 0; i < world.length; i += 3) {
@@ -74,6 +117,7 @@ describe("posed runner floor and vacuum attachment", () => {
             if (arm || torso) for (const sample of samples) hoseGap = Math.min(hoseGap, vertex.distanceTo(sample) - HOSE_RADIUS);
          }
       }
+      console.info("ghost-vacuum hunter pack/hose", { packPenetration, hoseGap });
       expect(packPenetration).toBeLessThanOrEqual(0.005);
       expect(hoseGap).toBeGreaterThanOrEqual(0.005);
       chest.removeFromParent(); hand.removeFromParent();

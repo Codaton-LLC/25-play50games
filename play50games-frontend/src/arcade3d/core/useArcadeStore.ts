@@ -11,8 +11,14 @@
 // After the run: tick() counts rendered time into overMs until it reaches config.resultDelayMs
 // (GameDefinition.resultDelayMs via configure()), then stops; GameShell shows the result panel once
 // it is there (isResultShown in core/frameLoop.ts).
+// Levels (core/README.md "Levels"): `levelId` is the level the player picked (1..5), owned by the
+// shell. It is not part of a run (start()/restart()/configure() keep it, reset() sets 1) and only
+// changes between runs: selectLevel() works in "ready" and "over" only. menu() takes an ended or
+// paused run back to "ready" (the level tiles) without a new runId. Not to be confused with
+// RunState.level, the game's own stage or wave inside one run.
 import { createStore, type StoreApi } from "zustand/vanilla";
 import { useStore } from "zustand";
+import type { LevelId } from "../types";
 import type { EndReason, RunActions, RunPhase, RunState } from "./types";
 import { isPausable, resultDelayFor } from "./frameLoop";
 
@@ -54,8 +60,21 @@ export interface ArcadeStore extends RunState, RunActions {
     */
    overMs: number;
    config: RunConfig;
-   /** GameShell: set the game's timer, lives and result delay, back to "loading" (keeps runId) */
-   configure(config: Partial<RunConfig>): void;
+   /** the level the player picked (1 for a game without levels); see selectLevel */
+   levelId: LevelId;
+   /**
+    * GameShell: set the game's timer, lives and result delay, back to "loading" (keeps runId).
+    * `levelId`, when given, becomes the picked level (the mount picks the level and its config at once).
+    */
+   configure(config: Partial<RunConfig>, levelId?: LevelId): void;
+   /**
+    * GameShell: pick a level and its run config (levelRunConfig in core/levels.ts) without going
+    * back to "loading". Only in "ready" (the start card) and "over" (the result's Next level, then
+    * restart()); ignored in every other phase, so the level never changes mid-run.
+    */
+   selectLevel(levelId: LevelId, config: Partial<RunConfig>): void;
+   /** GameShell: "over" or "paused" -> "ready" (back to the level tiles), a fresh run state, same runId */
+   menu(): void;
    /** GameShell: the scene finished loading ("loading" -> "ready") */
    markReady(): void;
    /** GameShell clock, once per frame: advances the countdown, elapsedMs and timeLeftMs; sets frameMs */
@@ -88,6 +107,15 @@ function initialData() {
       runId: 0,
       pausedFrom: null,
       config: NO_CONFIG,
+      levelId: 1 as LevelId,
+   };
+}
+
+function resolveConfig(config: Partial<RunConfig>): RunConfig {
+   return {
+      durationMs: config.durationMs ?? null,
+      lives: config.lives ?? null,
+      resultDelayMs: resultDelayFor({ resultDelayMs: config.resultDelayMs }),
    };
 }
 
@@ -134,13 +162,28 @@ export function createArcadeStore(): StoreApi<ArcadeStore> {
       return {
          ...initialData(),
 
-         configure(config) {
-            const next: RunConfig = {
-               durationMs: config.durationMs ?? null,
-               lives: config.lives ?? null,
-               resultDelayMs: resultDelayFor({ resultDelayMs: config.resultDelayMs }),
-            };
-            set({ ...freshRun(next), config: next, phase: "loading", pausedFrom: null });
+         configure(config, levelId) {
+            const next = resolveConfig(config);
+            set({ ...freshRun(next), config: next, phase: "loading", pausedFrom: null, ...(levelId ? { levelId } : {}) });
+         },
+
+         selectLevel(levelId, config) {
+            const s = get();
+            const next = resolveConfig(config);
+            if (s.phase === "ready") {
+               // the start card: the HUD's time and lives show the new level's at once
+               set({ ...freshRun(next), config: next, levelId });
+            } else if (s.phase === "over") {
+               // the result stays on screen (restart() follows): keep the panel shown under the new delay
+               const shown = s.overMs >= s.config.resultDelayMs;
+               set({ config: next, levelId, overMs: shown ? next.resultDelayMs : Math.min(s.overMs, next.resultDelayMs) });
+            }
+         },
+
+         menu() {
+            const { phase, config } = get();
+            if (phase !== "over" && phase !== "paused") return;
+            set({ ...freshRun(config), phase: "ready", pausedFrom: null });
          },
 
          markReady() {

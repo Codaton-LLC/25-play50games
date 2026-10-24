@@ -3,6 +3,8 @@ import type { CSSProperties } from "react";
 import { ARCADE_COLLECTIONS, type ArcadeGameMeta } from "../types";
 import type { LocalScoreEntry } from "../core/scores";
 import { formatScore } from "../core/format";
+import { levelsActive } from "../core/levels";
+import { levelCardText, levelProgress } from "../core/levelProgress";
 import styles from "./ArcadeCard.module.css";
 
 function collectionLabel(meta: ArcadeGameMeta): string {
@@ -44,7 +46,10 @@ export default function ArcadeCard({ meta, best }: ArcadeCardProps) {
             </div>
             <p className={styles.tagline}>{meta.tagline}</p>
             <p className={styles.best}>
-               {best ? (
+               {best && levelsActive(meta) ? (
+                  // five levels with the levels flag on: the total and how many levels are cleared
+                  levelCardText(meta, levelProgress(meta, best))
+               ) : best ? (
                   <>
                      <span className={styles.bestLabel}>Best</span>{" "}
                      {formatScore(best.best, meta.scoring, best.bestDurationMs)}

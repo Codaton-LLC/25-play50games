@@ -161,4 +161,19 @@ describe("createRunTickets", () => {
       const fresh = setup();
       expect(fresh.tickets.ticketFor(1, 7)).toEqual({ token: null, outcome: "none" });
    });
+
+   it("binds the ticket to the level: level 1 asks as before, a new level is a new request", async () => {
+      const { env, pending, startRun, tickets } = setup();
+      tickets.onRunStart(1, "robot-collector", 1);
+      expect(startRun).toHaveBeenLastCalledWith("robot-collector");
+      tickets.onRunStart(1, "robot-collector", 1);
+      expect(startRun).toHaveBeenCalledTimes(1);
+      tickets.onRunStart(2, "robot-collector", 3);
+      expect(startRun).toHaveBeenLastCalledWith("robot-collector", 3);
+      env.state = { runId: 2, phase: "countdown", pausedFrom: null };
+      pending[1].resolve("t-3");
+      await flush();
+      env.state = { runId: 2, phase: "over", pausedFrom: null };
+      expect(tickets.ticketFor(2, 7)).toEqual({ token: "t-3", outcome: "ok" });
+   });
 });
