@@ -1,0 +1,39 @@
+{
+   "slug": "zoo-escape",
+   "universe": "play50-toy-world-premium",
+   "seed": 5050,
+   "assets": [
+      {
+         "id": "panda",
+         "kind": "character",
+         "mode": "image",
+         "prompt": "Chubby cartoon panda standing on all four short legs, round body, big round head with black eye patches and round black ears, a cheeky friendly smile, black legs and shoulders, warm white body. Premium stylised mobile-game look, friendly rounded proportions, smooth soft shapes, matte fur-like painted material without fine fur strands. Single character, centred, standing on all fours, facing the viewer at three-quarter view, symmetrical. No bamboo, no props, no base, no ground, no text. Clean game-ready topology, clean PBR textures without baked shadows.",
+         "tier": "Gen-2.5-Medium",
+         "qualityOverride": 18000,
+         "attempts": 1,
+         "target": "zoo-escape",
+         "budget": { "tris": 10000, "bytes": 1500000 },
+         "textureSize": 1024,
+         "imported": true,
+         "source": "EXPANSION_ASSETS.panda",
+         "glb": "/models/3d/zoo-escape/panda.glb",
+         "note": "Already generated (expansion batch 3) and imported into core/modelManifest.ts; solid creature (not humanoid), drawn with <Model> + core/motion. No generation requested: the prompt/tier/attempts fields are the historical record (05 §E.5). The game refits it to 1.15 m long from EXPANSION_GLB_SIZE.panda (README Assets)."
+      },
+      {
+         "id": "keeper",
+         "kind": "character",
+         "mode": "image",
+         "prompt": "Friendly zookeeper with the stylised face from the concept image, a khaki short-sleeved shirt with two chest pockets, khaki shorts, a short green neck scarf, a wide-brim safari hat and brown boots, full body, clean T-pose with arms straight out level, legs slightly apart, facing forward, empty hands. Premium stylised mobile-game look, friendly rounded proportions, soft shapes, matte fabric materials. Single character, centred. No flashlight, no keys, no backpack, no animals, no base, no ground, no text. Clean game-ready topology, clean PBR textures without baked shadows.",
+         "tier": "Gen-2.5-Medium",
+         "qualityOverride": 18000,
+         "attempts": 1,
+         "target": "zoo-escape",
+         "budget": { "tris": 18000, "bytes": 1500000 },
+         "textureSize": 1024,
+         "imported": true,
+         "source": "EXPANSION_CHARACTERS.keeper",
+         "glb": "/models/3d/zoo-escape/keeper.glb",
+         "note": "Already generated (expansion batch 3) and imported into core/modelManifest.ts; auto-rigged with ZOO_KEEPER_LANDMARKS (core/sharedAssets.ts), default 1.75 m. No generation requested. The concept shows the user's face (D8) and is never committed to tools/hyper3d/concepts/."
+      }
+   ]
+}
