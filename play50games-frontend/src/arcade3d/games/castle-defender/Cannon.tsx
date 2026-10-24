@@ -1,18 +1,22 @@
 "use client";
 
-import { useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
-import { Matrix4, type Mesh, type Group } from "three";
-import { DynamicInstancedModel } from "@/arcade3d/core/assets";
+import { BoxGeometry, Matrix4, MeshStandardMaterial, type Group, type Mesh } from "three";
+import { DynamicInstancedModel, Model } from "@/arcade3d/core/assets";
+import { useFx } from "@/arcade3d/core/fx";
 import { useGameTime } from "@/arcade3d/core/gameTime";
+import { spring } from "@/arcade3d/core/motion";
 import { DynamicInstanced, type InstancePart } from "@/arcade3d/core/render";
-import { BoxGeometry, MeshStandardMaterial } from "three";
-import { useEffect } from "react";
-import { ASSETS } from "./assets";
+import { ASSETS, MUZZLE } from "./assets";
+import { CannonPrimitive } from "./Primitives";
 import { LADDER, LANE_X, ROCK_FLIGHT, TUNING, splash, type CastleRun } from "./rules";
 
 export function Cannon({ run, reduced }: { run: CastleRun; reduced: boolean }) {
-   const time = useGameTime(), ring = useRef<Group>(null), rear = useRef<Mesh>(null);
+   const time = useGameTime(), ring = useRef<Group>(null), rear = useRef<Mesh>(null), body = useRef<Group>(null);
+   const fx = useFx();
+   const recoil = useRef({ x: 0, v: 0 });
+   const fired = useRef(-1);
    const parts = useMemo<InstancePart[]>(() => [{ geometry: new BoxGeometry(1, 1, 1), material: new MeshStandardMaterial({ color: "#92400e" }), locals: [
       // wide, thick rails so a ladder reads >= 24 CSS px on a landscape phone (LADDER in rules.ts)
       new Matrix4().makeScale(0.18, LADDER.height, 0.16).setPosition(-LADDER.half, 0.08 + LADDER.height / 2, 0),
@@ -21,6 +25,20 @@ export function Cannon({ run, reduced }: { run: CastleRun; reduced: boolean }) {
    ] }], []);
    useEffect(() => () => { parts[0].geometry.dispose(); (parts[0].material as MeshStandardMaterial).dispose(); }, [parts]);
    useFrame(() => {
+      if (fired.current < 0) fired.current = run.launches;
+      else if (run.launches !== fired.current) {
+         fired.current = run.launches;
+         if (!reduced) {
+            recoil.current.x = 0.16;
+            recoil.current.v = 0;
+            fx.burst("puff", MUZZLE, 8);
+         }
+      }
+      if (reduced) {
+         recoil.current.x = 0;
+         recoil.current.v = 0;
+      } else spring(recoil.current, 0, 90, -1, time.delta);
+      if (body.current) body.current.position.set(0, 1.2, 3 + recoil.current.x);
       if (ring.current) { ring.current.position.set(run.aim.x, 0.04, -run.aim.y); ring.current.scale.setScalar(splash(run)); }
       if (rear.current) { rear.current.visible = !reduced && run.time - run.rear.at < 0.5; rear.current.position.set(run.rear.x, 0.07, run.rear.z - 0.4); }
    });
@@ -45,6 +63,9 @@ export function Cannon({ run, reduced }: { run: CastleRun; reduced: boolean }) {
       m.makeScale(fraction, 1, 1).setPosition(LANE_X[c.lane] - (1 - fraction) * LADDER.half, 0.08 + LADDER.height + 0.15, 2);
    }
    return <group>
+      <group ref={body} position={[0, 1.2, 3]}>
+         <Model asset={ASSETS.cannon} fallback={<CannonPrimitive />} />
+      </group>
       <DynamicInstanced count={8} update={ball}><sphereGeometry args={[0.125, 10, 8]} /><meshStandardMaterial color="#334155" /></DynamicInstanced>
       <DynamicInstancedModel asset={ASSETS.rock} count={1} update={rock} />
       <DynamicInstanced count={4} update={ladder} parts={parts} />
