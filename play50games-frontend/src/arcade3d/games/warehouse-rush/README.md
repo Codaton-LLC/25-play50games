@@ -2,12 +2,40 @@
 
 Owner: Claude. Slug: `warehouse-rush`. Game 6 of the 3D Arcade: the first carry-and-drop game and the first game with an Action button. Status stays `"soon"` until the game is reviewed. **This file is the design.** `rules.ts` and `rules.test.ts` implement its rules and proof; `Scene.tsx`, `Primitives.tsx`, `Hud.tsx` and `assets.ts` build the playable game on them (browser results under "Test plan"). The limits in `meta.ts` were tightened on 2026-10-07 to the proven maximum plus one delivery (proof below).
 
+## Status
+
+TASK P-50-levels-warehouse | 5 levels for warehouse-rush | branch cursor/levels-warehouse-rush | allowed: play50games-frontend/src/arcade3d/games/warehouse-rush/**
+
+Touched only this folder: `levels.ts`, `useWarehouseLevel.ts`, `levels.test.ts`, `rules.levels.test.ts` (new), and `rules.ts`, `meta.ts`, `index.tsx`, `Scene.tsx`, `Primitives.tsx`, `README.md`. `rules.test.ts` was not edited. No backend file, no change to level 1's scoring numbers, no new GLB.
+
+Level 1 is today's live game (60 s, four pallets, four zones, no hazards). Levels 2–5 are the same warehouse. Plan GAME 06's names and mechanics are kept; its 120–210 s clocks were shortened so level 1 stays 60 s and level 5 stays within 3× level 1. The game never wins, so levels 1–4 clear by `clearScore`. Level 5 unlocks nothing.
+
+| Level | Title | Clock | New pressure | Lighting | Clear |
+|---|---|---|---|---|---|
+| 1 | Training Depot | 60 s | none (today's game) | indoor `#0b1220` | 600 |
+| 2 | Blue/Red Zones | 75 s | 3 slow lanes, ×0.72, off the \|z\| = 3.4 legs | day | 700 |
+| 3 | Multi-Aisle Warehouse | 90 s | 2 extra shelves in the side gates | sunset | 850 |
+| 4 | Rush Shift | 105 s | 1 forklift (2.2 m/s), 16 s order deadline, lamp | night | 950 |
+| 5 | Night Logistics | 120 s | 2 forklifts (3.1 m/s), 12 s deadline, lamp | sunset | none |
+
+`PROPOSED_LEVEL_LIMITS`: level 1 is the live 1700 / 57000 / 63000 / base 0 / 29. Levels 2–5 are 2150 / 71250 / 78750, 2550 / 85500 / 94500, 2950 / 99750 / 110250, 3400 / 114000 / 126000, same base and 29 pts/s. Ceilings are 33 / 42 / 50 / 58 / 67 deliveries (1650, 2100, 2500, 2900, 3350) plus one delivery. Level 5's 3400 is 2.0× 1700. `scoreBoundFor` is the live earliest-delivery search extended to that clock. Lanes only slow the robot, shelves and forklifts only lengthen paths, and an expired order only subtracts 20, so the ceiling still upper-bounds levels 2–5. Claude copies levels 2–5 into `arcade-games.json`.
+
+Human bot, 200 seeds, 30 fps, 0.35 s reaction: clears 200/200, 200/200, 199/200, 199/200, and level 5 200/200 at or above 950. Best / mean / p10: 750/680/650, 900/807/750, 1050/956/900, 1200/1045/1000, 1300/1143/1050. Oracle bests 1100, 1350, 1650, 1750, 1950 (about 57–65% of maxScore; the live drill's 1300–1450 against 1650 is the same gap, so the ceiling was not lowered). Spam and idle never clear. One store run per level stays inside the limits and `capScore` is a no-op.
+
+Tests: mutation of `SLOW_FACTOR` to 1 failed the pinned 0.72 check, then restored. `npx tsc --noEmit` passed. `npx vitest run src/arcade3d/games/warehouse-rush`: 96 passed, wall 201 s (gait 4 tests / 15 ms, levels 16 / 688 ms, marker 17 / 46 s, rules.levels 10 / 107 s, rules 49 / 191 s). The folder was already over 60 s before this task; those tests were not edited.
+
+Open: registry sync fails until Claude copies the new limits into `arcade-games.json`. Headless playtest of all five levels is Claude's flagged build. Forklifts and lane paint are code stand-ins; extra shelves reuse `shelfRack`. The same text is in `.handoff/P-50-levels-warehouse/HANDOFF.md`.
+
 | File | What it owns |
 |---|---|
 | `meta.ts` | Card data and `scoring` (must equal `arcade-games.json`). Plain data, server-safe. Only `thumbnail` changed with the build. |
 | `index.tsx` | The `GameDefinition` GameShell runs: Scene, `Hud`, assets, `durationMs: 60000`, camera, environment, `touchControls: ["joystick", "action"]`, `hudStats`, instructions, `finalScore` (safety net). |
-| `rules.ts` | Everything that decides the outcome: the warehouse map, the seeded layout and streams, robot movement with the carry speed, pallets and refills, orders, Action handling, scoring, the proof constants. Pure: no three.js, React, DOM, `Math.random` or `Date.now`. |
-| `rules.test.ts` | Vitest for `rules.ts`, including the fairness checks and the scoring-limit proof below. |
+| `rules.ts` | Everything that decides the outcome: the warehouse map, the seeded layout and streams, robot movement with the carry speed, pallets and refills, orders, Action handling, scoring, the proof constants, and the per-level ceilings (`PROPOSED_LEVEL_LIMITS`). Pure: no three.js, React, DOM, `Math.random` or `Date.now`. |
+| `rules.test.ts` | Vitest for `rules.ts`, including the fairness checks and the level-1 scoring-limit proof below. Byte-identical to the live game's tests. |
+| `levels.ts` | The five level configs (clock, lanes, extra shelves, forklifts, order deadline). Pure data. |
+| `levels.test.ts` | Declarations, level 1 = today's game, monotone difficulty, open warehouses, the limit proof per level, hazard rules. |
+| `rules.levels.test.ts` | Human / oracle / spam / idle bots per level, plus one store run per level. |
+| `useWarehouseLevel.ts` | `useLevel` typed to `WarehouseLevel`. |
 | `Scene.tsx` | The frame loop and the moving things: maps input with the view's yaw, calls `rules.ts`, makes the next run when the store starts it and publishes its first order (and again on mount), mirrors the run into the store, draws the robot, boxes, the order markers, the target zone and popups, places the static fitted camera. |
 | `camera.ts` | The static fitted camera's settings (`PITCH`, `FOV`, `LOOK_AT`, `WAREHOUSE`, `VIEW`): plain data, shared by `Scene.tsx`, `index.tsx` and `marker.test.ts`. |
 | `marker.ts` / `marker.test.ts` | The order markers (looks only, "Order markers"): which pallets show them, how high the arrow floats for the camera (`clearTipY`), its bounce and tuck, the floor frame's pulse / their vitest, which projects the markers through every fitted camera. Pure, no three.js. |
@@ -155,7 +183,7 @@ Scene never calls `addScore`, so the HUD can never drift from the rules. Sounds:
 
 `score = right ? score + 50 : max(0, score − 20)` after each delivery. The score is always a multiple of 10. Examples: 14 right deliveries, then 2 wrong ones: 700 − 40 = **660**. Two wrong ones first, then 14 right: 0, 0, then **700** (the floor ate the penalties). The HUD shows Score and Delivered (right deliveries only). GameShell submits the store's score with `elapsedMs`, which is exactly 60000 at the time-up (core).
 
-`index.tsx` sets `finalScore: (s) => ({ score: capScore(s.score, s.elapsedMs), durationMs: s.elapsedMs })`. That is `min(score, 1700, floor(29 · round(e) / 1000))`, the robot-collector safety net, and the tests prove it never changes a reachable score.
+`index.tsx` sets `finalScore` to `capScore` with that level's `PROPOSED_LEVEL_LIMITS` (level 1 is `meta.scoring`: `min(score, 1700, floor(29 · round(e) / 1000))`). The tests prove it never changes a reachable score.
 
 ### Server limits and why they hold (the proof)
 
@@ -198,6 +226,46 @@ Scene never calls `addScore`, so the HUD can never drift from the rules. Sounds:
 9. **The integer check** at `duration_ms` = 60000: 1650 · 1000 = 1,650,000 ≤ 1700 · 1000 and ≤ 29 · 60000 = 1,740,000. ✓ Inside the window the bound stays under the line at every t: by 57 s at most 1600 ≤ 1653, by 58.4745 s at most 1650 ≤ 1695, and the first 1700 would come only at 60.268 s.
 
 Margins: `maxScore` 1700 is the proven 1650 plus one delivery (+3.0%). The bound is 268 ms (one cycle's slack) away from allowing a 34th delivery, and extremely improbable luck (repeated same-colour orders on the right pallets) is not excluded by the rules, so the limit does not go below 1650. An acceleration argument is not used: pushes from corner grazes can make a step longer than |v| · dt (the speed guard test shows it). The best a forger can post drops from 3000 to 1700, at a claimed 58621 ms or more (the 29/s line).
+
+### Five levels
+
+Level 1 is the live game above: same warehouse, same 60 s clock, same limits. Levels 2–5 are the same floor with more time and one new pressure each. Nothing raises the speed caps, so the straight-line search (`scoreBoundFor`) is still an upper bound: lanes only slow the robot, shelves and forklifts only lengthen paths, and an expired order only subtracts 20. `base` stays 0 and `maxPointsPerSec` stays 29, because at each level's own clock `maxScore · 1000 ≤ 29 · durationMs`, and from `minDurationMs` through the clock the bound stays under both `maxScore` and `29 · t` (`levels.test.ts`).
+
+| Level | Title | Clock | What is new | Clear | Limits (max / min ms / max ms) |
+|---|---|---|---|---|---|
+| 1 | Training Depot | 60 s | today's game | 600 | 1700 / 57000 / 63000 |
+| 2 | Blue/Red Zones | 75 s | three slow lanes (×0.72), off the \|z\| = 3.4 legs | 700 | 2150 / 71250 / 78750 |
+| 3 | Multi-Aisle Warehouse | 90 s | two extra shelves in the side gates | 850 | 2550 / 85500 / 94500 |
+| 4 | Rush Shift | 105 s | one forklift, 16 s order deadline, night | 950 | 2950 / 99750 / 110250 |
+| 5 | Night Logistics | 120 s | two faster forklifts, 12 s deadline, sunset | none | 3400 / 114000 / 126000 |
+
+All five use `base` 0 and `maxPointsPerSec` 29. Claude copies levels 2–5 into `arcade-games.json` at merge. Level 5's 3400 is 2.0× level 1, under the 3× guard (5100).
+
+**Per-level ceiling.** `scoreBoundFor(durationMs)` is the same search as step 8, extended to that clock. `maxScore` is that ceiling plus one delivery:
+
+| Level | Deliveries by the clock | Ceiling | maxScore |
+|---|---|---|---|
+| 1 | 33 | 1650 | 1700 |
+| 2 | 42 | 2100 | 2150 |
+| 3 | 50 | 2500 | 2550 |
+| 4 | 58 | 2900 | 2950 |
+| 5 | 67 | 3350 | 3400 |
+
+The ±5% window is the server's jitter around the one honest duration (the shell ends the run at the clock). Integer check at each clock: 2150 · 1000 ≤ 29 · 75000, 2550 · 1000 ≤ 29 · 90000, 2950 · 1000 ≤ 29 · 105000, 3400 · 1000 ≤ 29 · 120000. A run cannot outscore the ceiling by playing the hazards: a lane's scale is 0.72 and only inside the painted rects (the fast side-pallet loop at \|z\| = 3.4 is open floor), a forklift reverses instead of pushing the robot, and a missed deadline calls the same −20 as a wrong zone.
+
+**Clearing.** This game never wins, so levels 1–4 set `clearScore` and the shell unlocks the next level on `timeup` once the score reaches it. The numbers sit under the human bot's 10th percentile (below). Level 5 unlocks nothing, so it has no `clearScore`.
+
+**What the bots score** (`rules.levels.test.ts`, 200 seeds, 30 fps, 0.35 s reaction, full speed, paths around racks, shelves and the forklifts):
+
+| Level | Human clears | Human best / mean / p10 | Oracle best |
+|---|---|---|---|
+| 1 | 200/200 at 600 | 750 / 680 / 650 | 1100 |
+| 2 | 200/200 at 700 | 900 / 807 / 750 | 1350 |
+| 3 | 199/200 at 850 | 1050 / 956 / 900 | 1650 |
+| 4 | 199/200 at 950 | 1200 / 1045 / 1000 | 1750 |
+| 5 | 200/200 at ≥ 950 | 1300 / 1143 / 1050 | 1950 |
+
+Idle never scores. Spam never clears. The oracle paints the nearest legal delivery; it does not reach 90% of `maxScore` (about 57–65%). That gap is the same one level 1 already documents: the forced-luck drill scores 1300–1450 against a 1650 ceiling, because real cycles are about 2.1 s and the bound is 1.79 s. The ceiling is not lowered to the drill.
 
 ### What real play scores (design prototype)
 
