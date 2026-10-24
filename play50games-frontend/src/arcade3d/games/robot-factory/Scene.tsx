@@ -3,7 +3,7 @@
 // One useRunFrame: the press (locked on tapDown, fired on tap / swipe down / keys), then rules.ts,
 // then the store, fx and sound. Everything else only reads the run (Bay, Parts, Robot, board).
 import { useEffect, useMemo, useState } from "react";
-import { useFrame, type RootState } from "@react-three/fiber";
+import { useFrame, useThree, type RootState } from "@react-three/fiber";
 import { useLevel } from "@/arcade3d/core/level";
 import { Vector3 } from "three";
 import CameraRig from "@/arcade3d/core/CameraRig";
@@ -14,10 +14,11 @@ import { useInput } from "@/arcade3d/core/input";
 import { randomSeed } from "@/arcade3d/core/math";
 import { useQuality } from "@/arcade3d/core/quality";
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
-import { useFittedView, type FittedViewOptions } from "@/arcade3d/core/useFittedView";
+import { useFittedView } from "@/arcade3d/core/useFittedView";
 import { useRunFrame } from "@/arcade3d/core/useRunFrame";
 import { Bay } from "./Bay";
 import { BlueprintBoard } from "./BlueprintBoard";
+import { CAMERA, FOCUS, viewFor } from "./camera";
 import { createLook, noteEvent, stepLook, CRADLE_TOP } from "./look";
 import { COLORS } from "./palette";
 import { Parts } from "./Parts";
@@ -27,20 +28,8 @@ import { CRADLE, SCRAP_BIN, beltSpeed, createRun, createShown, inZone, stepRun, 
 
 export const useFactoryLevel = () => useLevel<FactoryLevel>();
 
-const DEG = Math.PI / 180;
-export const CAMERA = { position: [0, 7.2, 8.5] as [number, number, number], fov: 40, lookAt: [0, 0.75, 0.1] as [number, number, number] };
-const FOCUS = { x: CAMERA.lookAt[0], y: CAMERA.lookAt[1], z: CAMERA.lookAt[2] };
-const VIEW: FittedViewOptions = {
-   area: { min: { x: -3.0, y: 0, z: -1.1 }, max: { x: 3.0, y: 1.95, z: 1.3 } },
-   focus: [FOCUS],
-   pitch: 38 * DEG,
-   yaws: [0],
-   fov: CAMERA.fov,
-   padding: 6,
-   margin: { top: 0.02, bottom: 0.02, left: 0.02, right: 0.02 },
-   shift: true,
-   maxDistance: 80,
-};
+export { CAMERA } from "./camera";
+
 /** A press locks the grab-zone part within this many CSS px of its centre (a 56 px target). */
 export const TAP_HIT_RADIUS_PX = 28;
 /** The part's centre above its feet, for the press projection. */
@@ -70,7 +59,9 @@ function lockPart(state: RootState, run: Run, press: { x: number; y: number }, v
 }
 
 function FittedCamera() {
-   const view = useFittedView(VIEW);
+   const width = useThree((state) => state.size.width);
+   const height = useThree((state) => state.size.height);
+   const view = useFittedView(viewFor(width, height));
    const position = useMemo<[number, number, number]>(
       () => [FOCUS.x + view.offset[0], FOCUS.y + view.offset[1], FOCUS.z + view.offset[2]],
       [view.offset]

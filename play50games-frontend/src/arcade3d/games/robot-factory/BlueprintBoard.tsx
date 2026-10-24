@@ -10,6 +10,7 @@ import { MeshBasicMaterial, PlaneGeometry, type CanvasTexture } from "three";
 import { useCanvasTexture } from "@/arcade3d/core/render";
 import { COLORS } from "./palette";
 import { BOARD, SHAPE_OF, SHIFT, blueprintSize, type Run } from "./rules";
+import { getSlotX } from "./camera";
 
 const W = 1024;
 const H = 336;
@@ -153,15 +154,13 @@ export function BlueprintBoard({ run }: { run: Run }) {
          ctx.fillText("CLAW JAMMED", w - 150, 39);
          ctx.textAlign = "left";
       }
-      const slotW = 168;
-      const gap = 22;
-      const total = size * slotW + (size - 1) * gap;
-      const x0 = (w - total) / 2;
       const y0 = 80;
       const sh = 232;
       for (let i = 0; i < size; i++) {
          const g = base + i;
-         const x = x0 + i * (slotW + gap);
+         const slot = getSlotX(size, i);
+         const x = slot.x;
+         const slotW = slot.w;
          const done = i < r.stepIndex;
          const current = i === r.stepIndex;
          roundRect(ctx, x, y0, slotW, sh, 18);
@@ -172,7 +171,8 @@ export function BlueprintBoard({ run }: { run: Run }) {
          ctx.stroke();
          const shape = SHAPE_OF[r.stepKind[g]][r.stepColour[g]];
          ctx.globalAlpha = done ? 0.45 : 1;
-         drawShapeIcon(ctx, shape, x + slotW / 2, y0 + sh / 2 + 6, 128, COLORS.parts[r.stepColour[g]]);
+         const iconU = size === 5 ? 112 : 128;
+         drawShapeIcon(ctx, shape, x + slotW / 2, y0 + sh / 2 + 6, iconU, COLORS.parts[r.stepColour[g]]);
          ctx.globalAlpha = 1;
          ctx.fillStyle = "rgba(224,242,254,0.7)";
          ctx.font = "700 22px system-ui, sans-serif";
