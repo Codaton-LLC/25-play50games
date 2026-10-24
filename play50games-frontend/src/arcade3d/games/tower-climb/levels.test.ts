@@ -360,24 +360,32 @@ describe("tower-climb honest climbs", () => {
       expect(isLevelCleared("lose", run.score, meta.levels![0])).toBe(false);
    });
 
-   it("reaches each level's height target", () => {
-      const seeds = [1, 2, 3, 7, 11, 42, 100, 5050];
+   it("reaches each level's height target on 40 seeds (50 / 16.7 / jittered frames), inside the limits on every frame", () => {
+      const seeds = [1, 2, 3, 7, 11, 42, 100, 5050, ...Array.from({ length: 32 }, (_v, i) => 7919 * (i + 1))];
       const cleared: Record<number, number> = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
       for (const id of LEVEL_IDS) for (const seed of seeds) {
          const run = createRun(seed, LEVELS[id]);
          const controls = createStepInput();
          const goal = CLEAR_M[id];
          const limit = timeAt(goal) * 3 * 1000;
+         const limits = PROPOSED_LEVEL_LIMITS[id];
+         let k = 0;
          while (!run.ended && run.metres < goal && run.timeMs < limit) {
             levelClimb(run, controls);
-            step(run, 50, controls);
+            const dt = seed % 3 === 0 ? 50 : seed % 3 === 1 ? 16.7 : 4 + ((k++ * 2654435761) >>> 0) % 46;
+            step(run, dt, controls);
+            // a fall on this frame would submit this score at this time (or later): it must pass
+            if (run.score * 1000 > limits.maxPointsPerSec * Math.max(run.timeMs, limits.minDurationMs) || run.score > limits.maxScore) {
+               throw new Error(`level ${id} seed ${seed}: ${run.score} at ${run.timeMs} ms breaks the limits`);
+            }
          }
          if (run.metres >= goal) cleared[id]++;
          else throw new Error(`level ${id} seed ${seed} reached ${run.metres}m in ${run.timeMs}ms (${run.ended})`);
+         expect(run.ended).toBeNull();
          const level = meta.levels![id - 1];
          if (level.clearScore !== undefined) expect(isLevelCleared("lose", run.score, level)).toBe(true);
          else          expect(isLevelCleared("lose", run.score, level)).toBe(false);
       }
       for (const id of LEVEL_IDS) expect(cleared[id]).toBe(seeds.length);
-   });
+   }, 60_000);
 });

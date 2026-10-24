@@ -204,7 +204,7 @@ Same duration window and base 0 as level 1. The envelope climbs at the level-1 p
 - **Level 4.** Twelve springs and five rockets. Steepest 17.25 pts/s. 18 is 4.3% over that. Ceiling 19065. maxScore 19850 is 4.1% over it.
 - **Level 5.** Sixteen springs and eight rockets. Wind adds no points. Steepest 17.69 pts/s. 18 is only 1.8% over that, so the limit is 19 (7.4% over: `max_pps` is an integer). Ceiling 19365. maxScore 20200 is 4.3% over it, and under 3 × 19000.
 
-`levels.test.ts` recomputes the envelope and the route. Claude copies `PROPOSED_LEVEL_LIMITS` into `arcade-games.json`.
+`levels.test.ts` recomputes the envelope and the route, and an honest steering bot (springs and rockets used where it lands on them) reaches each level's clear height on 40 seeds at 50 / 16.7 / jittered frames without a fall, inside the level's limits on every frame. Claude's review sweep (2026-10-24, not committed): 150 seeds × 3 frame patterns × 360 s per level, no fall, no frame outside the limits, steepest observed 12.2 pts/s (L5); 30-minute runs score 13.5k (L1) to 14.5k (L5), the boosts adding about what the envelope allows. The limits are in `arcade-games.json` (`levels`).
 
 ## Scene and camera
 

@@ -76,7 +76,14 @@
       "max_duration_ms": 1800000,
       "base": 0,
       "max_pps": 11,
-      "enabled": true
+      "enabled": true,
+      "levels": [
+        { "title": "Training Tower", "max_score": 19000, "min_duration_ms": 3000, "max_duration_ms": 1800000, "base": 0, "max_pps": 11 },
+        { "title": "Stone Tower", "max_score": 19000, "min_duration_ms": 3000, "max_duration_ms": 1800000, "base": 0, "max_pps": 11 },
+        { "title": "Clock Tower", "max_score": 19350, "min_duration_ms": 3000, "max_duration_ms": 1800000, "base": 0, "max_pps": 13 },
+        { "title": "Storm Tower", "max_score": 19850, "min_duration_ms": 3000, "max_duration_ms": 1800000, "base": 0, "max_pps": 18 },
+        { "title": "Sky Tower", "max_score": 20200, "min_duration_ms": 3000, "max_duration_ms": 1800000, "base": 0, "max_pps": 19 }
+      ]
     },
     "clean-city": {
       "title": "Clean the City",
