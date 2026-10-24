@@ -465,6 +465,13 @@ export const REUSED_GLB_SIZE = {
    door: { width: 1.1909, height: 1.8929, depth: 0.268 },
    // robot-collector barrel; robot-factory tints it as a torso part
    barrel: { width: 1.7352, height: 1.8977, depth: 1.7368 },
+   // clean-city / pigeon-crossing props reused by zoo-escape (C3); the car is the raw GLB (pigeon-crossing
+   // draws it 1.11 x 1.14 x 2.66 m with its own stretch)
+   bench: { width: 1.8931, height: 0.8419, depth: 0.8031 },
+   bin: { width: 1.0231, height: 1.899, depth: 1.0192 },
+   lamp: { width: 0.4476, height: 1.9002, depth: 0.4324 },
+   palm: { width: 1.7753, height: 1.9033, depth: 1.7818 },
+   car: { width: 0.9074, height: 0.8145, depth: 1.9 },
 } as const satisfies Partial<Record<ReusedAssetId, { width: number; height: number; depth: number }>>;
 
 /**
