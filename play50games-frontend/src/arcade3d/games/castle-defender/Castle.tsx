@@ -111,7 +111,8 @@ function useBalconyGeometry(): BufferGeometry {
          const a = (i / posts) * Math.PI * 2;
          const mid = ((i + 0.5) / posts) * Math.PI * 2;
          const plank = new BoxGeometry(0.82, 0.08, 0.3);
-         plank.rotateY(-mid);
+         // the plank's long axis (x) runs along the ring's tangent, not out from the tower like a spike
+         plank.rotateY(Math.PI / 2 - mid);
          plank.translate(Math.cos(mid) * radius, 0, Math.sin(mid) * radius);
          parts.push(plank);
          const post = new BoxGeometry(0.08, 0.36, 0.08);
