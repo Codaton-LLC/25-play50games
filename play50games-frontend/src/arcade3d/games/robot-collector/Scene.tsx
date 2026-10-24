@@ -17,15 +17,19 @@
 // - Models: <Model asset fallback={…}> draws the GLB once it is in core/modelManifest.ts and this
 //   game's own primitive until then. The robot is a static T-pose GLB: <HumanoidModel> (core/rig)
 //   rigs it in code and useHumanoidPose drives its limbs (idle, walk/run by speed, a cheer on a win).
-import { useRef, useState } from "react";
+// - Levels: the picked level's config comes from useLevel() (wrapped once as useRobotLevel); the
+//   run is made from it with createRun, and the scene is keyed by the level so the start card's
+//   backdrop shows the level that is picked.
+import { useMemo, useRef, useState } from "react";
 import { useFrame } from "@react-three/fiber";
-import type { Group, Mesh, MeshStandardMaterial } from "three";
+import type { Group, Mesh, MeshBasicMaterial, MeshStandardMaterial } from "three";
 import CameraRig from "@/arcade3d/core/CameraRig";
 import { Model } from "@/arcade3d/core/assets";
 import { playSfx } from "@/arcade3d/core/audio";
 import type { AABB } from "@/arcade3d/core/collision";
 import { useGameTime } from "@/arcade3d/core/gameTime";
 import { useInput } from "@/arcade3d/core/input";
+import { useLevel } from "@/arcade3d/core/level";
 import { inputToWorld, randomSeed } from "@/arcade3d/core/math";
 import { BlobShadow } from "@/arcade3d/core/render";
 import {
@@ -47,25 +51,23 @@ import { useRunFrame } from "@/arcade3d/core/useRunFrame";
 import { followFocus } from "@/arcade3d/core/view";
 import { ASSETS } from "./assets";
 import { ROBOT_SCALE, robotPhaseStep } from "./gait";
-import { BatteryPrimitive, COLORS, RobotPrimitive, WALL, Warehouse, useBatteryParts } from "./Primitives";
+import { CART_SIZE, type RobotLevel } from "./levels";
+import { BatteryPrimitive, COLORS, CartBox, HazardMarks, RobotPrimitive, WALL, Warehouse, useBatteryParts } from "./Primitives";
 import {
    ARENA,
-   BATTERY_COUNT,
    BATTERY_POINTS,
    ROBOT,
    capScore,
-   collectTouched,
-   createProgress,
-   createRobot,
-   generateLayout,
+   createRun,
    isActive,
    isComplete,
    runScore,
-   stepRobot,
-   type Layout,
-   type Progress,
-   type RobotState,
+   stepRun,
+   type Run,
 } from "./rules";
+
+/** The picked level's config (levels.ts); level 1 when levels are off. */
+export const useRobotLevel = () => useLevel<RobotLevel>();
 
 // ---------- camera ----------
 
@@ -100,15 +102,6 @@ const VIEW: FittedViewOptions = {
    shift: true,
 };
 
-// ---------- run state ----------
-
-interface RunData {
-   robot: RobotState;
-   progress: Progress;
-   /** scratch for inputToWorld (no allocation per frame) */
-   dir: { x: number; z: number };
-}
-
 // ---------- the robot ----------
 
 /** The robot GLB's joints (core/sharedAssets) and its scale here: its height over its feet (its stride: gait.ts). */
@@ -124,13 +117,14 @@ interface Gait {
    lift: number;
 }
 
-function Robot({ run }: { run: RunData }) {
+function Robot({ run }: { run: Run }) {
    const time = useGameTime();
    const root = useRef<Group>(null);
    const rig = useRef<Group>(null);
    const standIn = useRef<Group>(null);
    const antenna = useRef<Group>(null);
    const panel = useRef<MeshStandardMaterial>(null);
+   const marker = useRef<MeshBasicMaterial>(null);
    const [gait] = useState<Gait>(() => ({ phase: 0, amount: 0, cheer: 0, lift: 0 }));
    const [scratch] = useState(createPose);
 
@@ -173,7 +167,9 @@ function Robot({ run }: { run: RunData }) {
       else body.position.y = gait.lift;
       body.rotation.x = fallback ? 0.16 * speed : 0;
       if (antenna.current) antenna.current.rotation.x = -0.3 * speed + Math.sin(t * 11) * 0.1 * speed;
-      if (panel.current) panel.current.emissiveIntensity = 0.2 + (1.8 * progress.collected) / BATTERY_COUNT;
+      if (panel.current) panel.current.emissiveIntensity = 0.2 + (1.8 * progress.collected) / progress.taken.length;
+      // a cart's hit: the marker ring turns red while the robot is stunned (levels 3-5)
+      marker.current?.color.set(run.stun > 0 ? COLORS.stun : COLORS.robot);
    });
 
    return (
@@ -182,7 +178,7 @@ function Robot({ run }: { run: RunData }) {
          {/* player marker: easy to spot on a small phone screen */}
          <mesh rotation-x={-Math.PI / 2} position-y={0.014}>
             <ringGeometry args={[0.6, 0.72, 32]} />
-            <meshBasicMaterial color={COLORS.robot} transparent opacity={0.75} depthWrite={false} />
+            <meshBasicMaterial ref={marker} color={COLORS.robot} transparent opacity={0.75} depthWrite={false} />
          </mesh>
          <group ref={rig}>
             {/* the group above carries the body's height (gait.lift), so the model does not add it again */}
@@ -209,17 +205,18 @@ const clamp01 = (v: number) => (v < 0 ? 0 : v > 1 ? 1 : v);
 /** Overshoots a little, then settles: a "pop" for batteries that appear. */
 const easeOutBack = (k: number) => 1 + 2.70158 * (k - 1) ** 3 + 1.70158 * (k - 1) ** 2;
 
-function Batteries({ run, layout }: { run: RunData; layout: Layout }) {
+function Batteries({ run }: { run: Run }) {
    const time = useGameTime();
    const parts = useBatteryParts();
+   const { layout } = run;
    const slots = useRef<Array<Group | null>>([]);
    const bobs = useRef<Array<Group | null>>([]);
    const ring = useRef<Mesh>(null);
    // visual bookkeeping only (the rules own the real state); times are time.now values
    const [fx] = useState(() => ({
       wave: -1,
-      appearedAt: new Array<number>(BATTERY_COUNT).fill(0),
-      shownTaken: new Array<boolean>(BATTERY_COUNT).fill(false),
+      appearedAt: new Array<number>(layout.batteries.length).fill(0),
+      shownTaken: new Array<boolean>(layout.batteries.length).fill(false),
       ringAt: -10,
    }));
 
@@ -285,26 +282,59 @@ function Batteries({ run, layout }: { run: RunData; layout: Layout }) {
    );
 }
 
+// ---------- carts (levels 3-5) ----------
+
+/** The level's carts: crates riding their lanes. They move with the run's clock (rules.ts stepRun); this only draws them. */
+function Carts({ run }: { run: Run }) {
+   const groups = useRef<Array<Group | null>>([]);
+   useFrame(() => {
+      for (let i = 0; i < run.carts.length; i++) groups.current[i]?.position.set(run.carts[i].x, 0, run.carts[i].z);
+   });
+   if (run.carts.length === 0) return null;
+   return (
+      <group name="carts">
+         {run.carts.map((cart, i) => (
+            <group
+               key={i}
+               ref={(el) => {
+                  groups.current[i] = el;
+               }}
+               position={[cart.x, 0, cart.z]}
+            >
+               <BlobShadow radius={CART_SIZE * 0.75} />
+               <mesh rotation-x={-Math.PI / 2} position-y={0.02}>
+                  <ringGeometry args={[CART_SIZE * 0.75, CART_SIZE * 0.9, 4]} />
+                  <meshBasicMaterial color={COLORS.cart} transparent opacity={0.8} depthWrite={false} />
+               </mesh>
+               <Model asset={ASSETS.crate} fallback={<CartBox />} />
+            </group>
+         ))}
+      </group>
+   );
+}
+
 // ---------- the scene ----------
 
-export default function Scene() {
+/** The scene of one level: the Scene below remounts it when another level is picked on the start card. */
+function LevelScene() {
    const view = useFittedView(VIEW);
    const input = useInput();
+   const { config, meta } = useRobotLevel();
    // a new seed every run: GameShell remounts the Scene (and its game time) on start and retry
-   const [layout] = useState(() => generateLayout(randomSeed()));
-   const [run] = useState<RunData>(() => {
-      const robot = createRobot();
-      robot.heading = view.yaw; // face the camera on the start pad
-      return { robot, progress: createProgress(), dir: { x: 0, z: 0 } };
+   const [dir] = useState({ x: 0, z: 0 });
+   const [run] = useState<Run>(() => {
+      const next = createRun(randomSeed(), config);
+      next.robot.heading = view.yaw; // face the camera on the start pad
+      return next;
    });
 
    // the game: move, collect, score, end. Runs only while "playing", before every visual.
    useRunFrame((_state, dt) => {
       const { moveX, moveY } = input.current;
-      inputToWorld(moveX, moveY, view.yaw, run.dir);
-      stepRobot(run.robot, run.dir.x, run.dir.z, dt);
-
-      const got = collectTouched(run.progress, layout, run.robot);
+      inputToWorld(moveX, moveY, view.yaw, dir);
+      const hits = run.hits;
+      const got = stepRun(run, dir.x, dir.z, dt);
+      if (run.hits !== hits) playSfx("zap");
       if (got === 0) return;
       const store = useArcadeStore.getState();
       store.addScore(got * BATTERY_POINTS);
@@ -314,7 +344,7 @@ export default function Scene() {
       if (isComplete(run.progress)) {
          // the run clock ticked before this callback, so timeLeftMs/elapsedMs are this frame's
          const { timeLeftMs, elapsedMs } = useArcadeStore.getState();
-         store.setScore(capScore(runScore(BATTERY_COUNT, true, timeLeftMs ?? 0), elapsedMs));
+         store.setScore(capScore(runScore(run.progress.taken.length, true, timeLeftMs ?? 0), elapsedMs, meta.scoring));
          store.end("win");
       }
    });
@@ -330,9 +360,17 @@ export default function Scene() {
             shift={view.shift}
             damping={4}
          />
-         <Warehouse />
+         <Warehouse props={run.world.props} />
+         <HazardMarks level={config} />
          <Robot run={run} />
-         <Batteries run={run} layout={layout} />
+         <Batteries run={run} />
+         <Carts run={run} />
       </>
    );
 }
+
+export default function Scene() {
+   const { id } = useRobotLevel();
+   return <LevelScene key={id} />;
+}
+

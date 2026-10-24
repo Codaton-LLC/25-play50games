@@ -17,7 +17,8 @@ import {
 import { InstancedModel } from "@/arcade3d/core/assets";
 import { Instanced, useCanvasTexture } from "@/arcade3d/core/render";
 import { ASSETS } from "./assets";
-import { ARENA, BARREL_RADIUS, CRATE_SIZE, PROPS, ROBOT_START } from "./rules";
+import { CART_LANES, CART_SIZE, SLOW_ZONES, type RobotLevel } from "./levels";
+import { ARENA, BARREL_RADIUS, CRATE_SIZE, ROBOT_START, type Prop } from "./rules";
 
 // ---------- look ----------
 
@@ -40,6 +41,14 @@ export const COLORS = {
    robotTip: "#fbbf24",
    battery: "#22c55e",
    batteryGlow: "#4ade80",
+   /** the robot's marker ring while a cart's hit has it stunned */
+   stun: "#f87171",
+   /** hazards: oil patches, the cart lanes and the carts themselves */
+   oil: "#1e1b4b",
+   oilGlow: "#6d28d9",
+   lane: "#facc15",
+   cart: "#facc15",
+   cartStripe: "#111827",
 } as const;
 
 // ---------- the warehouse (static) ----------
@@ -47,21 +56,34 @@ export const COLORS = {
 /** Small fixed wobble per prop, so the crates do not look machine-placed (deterministic). */
 const jitter = (i: number, amount: number) => Math.sin(i * 12.9898 + 4.1414) * amount;
 
-/** Where each crate stands (its feet); a stacked crate is a second, slightly smaller one on top (looks only). */
-const CRATE_SPOTS = PROPS.flatMap((prop, i) => {
-   if (prop.kind !== "crate") return [];
-   const base = { x: prop.x, y: 0, z: prop.z, rotY: jitter(i, 0.05), scale: 1 };
-   if (prop.stack !== 2) return [base];
-   return [base, { x: prop.x + jitter(i + 3, 0.06), y: CRATE_SIZE, z: prop.z, rotY: jitter(i + 7, 0.35), scale: 0.88 }];
-});
-/** The stand-in box is centred on its spot, so it is lifted by half its height. */
-const CRATE_BOX_SPOTS = CRATE_SPOTS.map((spot) => ({ ...spot, y: spot.y + (CRATE_SIZE * spot.scale) / 2 }));
-const BARREL_SPOTS = PROPS.filter((prop) => prop.kind === "barrel").map((b, i) => ({ x: b.x, y: 0, z: b.z, rotY: jitter(i, 1) }));
 const BARREL_HEIGHT = 1;
 /** heights of the two ridges */
 const BARREL_RINGS = [0.33, 0.67];
 
-function drawFloor(ctx: CanvasRenderingContext2D, w: number, h: number) {
+/** Where every prop stands, for the instanced crates and barrels (one set per level; level 1: the original 18 props). */
+function propSpots(props: readonly Prop[]) {
+   /** Where each crate stands (its feet); a stacked crate is a second, slightly smaller one on top (looks only). */
+   const crates = props.flatMap((prop, i) => {
+      if (prop.kind !== "crate") return [];
+      const base = { x: prop.x, y: 0, z: prop.z, rotY: jitter(i, 0.05), scale: 1 };
+      if (prop.stack !== 2) return [base];
+      return [base, { x: prop.x + jitter(i + 3, 0.06), y: CRATE_SIZE, z: prop.z, rotY: jitter(i + 7, 0.35), scale: 0.88 }];
+   });
+   /** The stand-in box is centred on its spot, so it is lifted by half its height. */
+   const crateBoxes = crates.map((spot) => ({ ...spot, y: spot.y + (CRATE_SIZE * spot.scale) / 2 }));
+   const barrels = props.filter((prop) => prop.kind === "barrel").map((b, i) => ({ x: b.x, y: 0, z: b.z, rotY: jitter(i, 1) }));
+   return {
+      crates,
+      crateBoxes,
+      barrels,
+      barrelBodies: barrels.map((b) => ({ x: b.x, y: BARREL_HEIGHT / 2, z: b.z })),
+      barrelRings: barrels.flatMap((b) => BARREL_RINGS.map((y) => ({ x: b.x, y, z: b.z }))),
+   };
+}
+
+type PropSpots = ReturnType<typeof propSpots>;
+
+function drawFloor(ctx: CanvasRenderingContext2D, w: number, h: number, props: readonly Prop[]) {
    const s = w / (ARENA.halfX * 2); // px per unit
    const u = (x: number) => (x + ARENA.halfX) * s;
    const v = (z: number) => (z + ARENA.halfZ) * s;
@@ -87,7 +109,7 @@ function drawFloor(ctx: CanvasRenderingContext2D, w: number, h: number) {
 
    // soft contact shadows under every prop (baked: the props never move)
    ctx.fillStyle = "rgba(2, 6, 23, 0.14)";
-   for (const prop of PROPS) {
+   for (const prop of props) {
       for (const grow of [0.45, 0.3, 0.16]) {
          ctx.beginPath();
          if (prop.kind === "crate") {
@@ -136,6 +158,22 @@ function drawCrate(ctx: CanvasRenderingContext2D, w: number, h: number) {
    for (const [x, y] of [[0, 0], [w - c, 0], [0, h - c], [w - c, h - c]]) ctx.fillRect(x, y, c, c);
 }
 
+/** A cart: a yellow crate with black hazard stripes, so it never reads as a static crate. */
+function drawCart(ctx: CanvasRenderingContext2D, w: number, h: number) {
+   ctx.fillStyle = COLORS.cart;
+   ctx.fillRect(0, 0, w, h);
+   ctx.strokeStyle = COLORS.cartStripe;
+   ctx.lineWidth = w * 0.16;
+   for (let k = -h; k < w + h; k += w * 0.36) {
+      ctx.beginPath();
+      ctx.moveTo(k, h);
+      ctx.lineTo(k + h, 0);
+      ctx.stroke();
+   }
+   ctx.lineWidth = w * 0.1;
+   ctx.strokeRect(w * 0.05, h * 0.05, w * 0.9, h * 0.9);
+}
+
 const WALL_SPOTS = (() => {
    const t = WALL.thickness;
    const longX = ARENA.halfX * 2 + t * 2;
@@ -149,9 +187,11 @@ const WALL_SPOTS = (() => {
 })();
 const TRIM_SPOTS = WALL_SPOTS.map((spot) => ({ ...spot, y: WALL.height + 0.04, sx: spot.sx + 0.06, sy: 0.08, sz: spot.sz + 0.06 }));
 
-/** Floor, slab, walls, crates and barrels: everything that never moves. */
-export function Warehouse() {
-   const floor = useCanvasTexture(768, 512, drawFloor);
+/** Floor, slab, walls, crates and barrels: everything that never moves. `props` = the level's (rules.ts worldOf). */
+export function Warehouse({ props }: { props: readonly Prop[] }) {
+   const spots = useMemo(() => propSpots(props), [props]);
+   const draw = useMemo(() => (ctx: CanvasRenderingContext2D, w: number, h: number) => drawFloor(ctx, w, h, props), [props]);
+   const floor = useCanvasTexture(768, 512, draw);
 
    return (
       <group name="warehouse">
@@ -172,52 +212,105 @@ export function Warehouse() {
             <boxGeometry />
             <meshStandardMaterial color={COLORS.trim} roughness={0.5} />
          </Instanced>
-         <Crates />
-         <Barrels />
+         <Crates spots={spots} />
+         <Barrels spots={spots} />
       </group>
    );
 }
 
 /** All crates: instanced (one draw call per mesh, whatever the count), the GLB once it exists. */
-function Crates() {
-   return <InstancedModel asset={ASSETS.crate} spots={CRATE_SPOTS} fallback={<CrateBoxes />} />;
+function Crates({ spots }: { spots: PropSpots }) {
+   return <InstancedModel asset={ASSETS.crate} spots={spots.crates} fallback={<CrateBoxes spots={spots.crateBoxes} />} />;
 }
 
 /** Stand-in crates: one InstancedMesh of boxes with a canvas-drawn plank texture. */
-function CrateBoxes() {
+function CrateBoxes({ spots }: { spots: PropSpots["crateBoxes"] }) {
    const texture = useCanvasTexture(128, 128, drawCrate);
    return (
-      <Instanced spots={CRATE_BOX_SPOTS}>
+      <Instanced spots={spots}>
          <boxGeometry args={[CRATE_SIZE, CRATE_SIZE, CRATE_SIZE]} />
          <meshStandardMaterial map={texture} roughness={0.85} />
       </Instanced>
    );
 }
 
-const BARREL_BODY_SPOTS = BARREL_SPOTS.map((b) => ({ x: b.x, y: BARREL_HEIGHT / 2, z: b.z }));
-const BARREL_RING_SPOTS = BARREL_SPOTS.flatMap((b) => BARREL_RINGS.map((y) => ({ x: b.x, y, z: b.z })));
-
 /** All barrels: instanced, the GLB once it exists. */
-function Barrels() {
-   return <InstancedModel asset={ASSETS.barrel} spots={BARREL_SPOTS} fallback={<BarrelStandIns />} />;
+function Barrels({ spots }: { spots: PropSpots }) {
+   return <InstancedModel asset={ASSETS.barrel} spots={spots.barrels} fallback={<BarrelStandIns spots={spots} />} />;
 }
 
 /** Stand-in barrels: two InstancedMeshes (body with a lighter lid, ridges). */
-function BarrelStandIns() {
+function BarrelStandIns({ spots }: { spots: PropSpots }) {
    return (
       <>
-         <Instanced spots={BARREL_BODY_SPOTS}>
+         <Instanced spots={spots.barrelBodies}>
             <cylinderGeometry args={[BARREL_RADIUS * 0.94, BARREL_RADIUS * 0.94, BARREL_HEIGHT, 20]} />
             {/* cylinder material groups: 0 = side, 1 = top, 2 = bottom */}
             <meshStandardMaterial attach="material-0" color={COLORS.barrel} roughness={0.35} metalness={0.2} />
             <meshStandardMaterial attach="material-1" color={COLORS.barrelLid} roughness={0.4} metalness={0.2} />
             <meshStandardMaterial attach="material-2" color={COLORS.barrel} />
          </Instanced>
-         <Instanced spots={BARREL_RING_SPOTS}>
+         <Instanced spots={spots.barrelRings}>
             <cylinderGeometry args={[BARREL_RADIUS, BARREL_RADIUS, 0.07, 20]} />
             <meshStandardMaterial color={COLORS.barrelRing} roughness={0.3} metalness={0.3} />
          </Instanced>
       </>
+   );
+}
+
+// ---------- hazards (levels 2-5) ----------
+
+/** How wide a cart's lane is marked on the floor. */
+const LANE_WIDTH = CART_SIZE + 0.4;
+
+/**
+ * The floor marks of a level's hazards, static: oil patches (a dark, glossy disc with a purple
+ * glow, so it also reads in the dark) and a yellow strip under each cart lane. Basic materials
+ * for the strips and the glow, so night and sunset lighting do not hide them. Two draw calls at
+ * most; level 1 has none and renders nothing.
+ */
+export function HazardMarks({ level }: { level: RobotLevel }) {
+   const spots = useMemo(
+      () => ({
+         oil: SLOW_ZONES.slice(0, level.slowZones).map((zone) => ({ x: zone.x, y: 0.02, z: zone.z, sx: zone.r, sy: 1, sz: zone.r })),
+         lanes: CART_LANES.slice(0, level.carts).map((lane) => ({
+            x: (lane.ax + lane.bx) / 2,
+            y: 0.016,
+            z: (lane.az + lane.bz) / 2,
+            // lanes run along x or z: the strip reaches half a cart past each end
+            sx: Math.abs(lane.bx - lane.ax) + (lane.ax === lane.bx ? LANE_WIDTH : CART_SIZE),
+            sy: 1,
+            sz: Math.abs(lane.bz - lane.az) + (lane.az === lane.bz ? LANE_WIDTH : CART_SIZE),
+         })),
+      }),
+      [level]
+   );
+   return (
+      <group name="hazard-marks">
+         {spots.lanes.length > 0 && (
+            <Instanced spots={spots.lanes}>
+               <boxGeometry args={[1, 0.01, 1]} />
+               <meshBasicMaterial color={COLORS.lane} transparent opacity={0.2} depthWrite={false} />
+            </Instanced>
+         )}
+         {spots.oil.length > 0 && (
+            <Instanced spots={spots.oil}>
+               <cylinderGeometry args={[1, 1, 0.02, 36]} />
+               <meshStandardMaterial color={COLORS.oil} emissive={COLORS.oilGlow} emissiveIntensity={0.45} roughness={0.12} metalness={0.5} />
+            </Instanced>
+         )}
+      </group>
+   );
+}
+
+/** Stand-in cart until the crate GLB is listed: a hazard-striped box (a moving thing, so not instanced). */
+export function CartBox() {
+   const texture = useCanvasTexture(128, 128, drawCart);
+   return (
+      <mesh position-y={CART_SIZE / 2}>
+         <boxGeometry args={[CART_SIZE, CART_SIZE, CART_SIZE]} />
+         <meshStandardMaterial map={texture} roughness={0.7} />
+      </mesh>
    );
 }
 
