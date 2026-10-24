@@ -1,7 +1,10 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { useFrame } from "@react-three/fiber";
-import type { Group } from "three";
+import { Vector3, type Group } from "three";
+import { useSafeArea } from "@/arcade3d/core/safeArea";
+import { markerBounds, placeMarker } from "@/arcade3d/core/hud/markerPlacement";
+import { markerHitsSuit, MARKER_SIZE } from "./markerVisibility";
 import { useMuted, playSfx, startLoop, type LoopHandle } from "@/arcade3d/core/audio";
 import { Starfield } from "@/arcade3d/core/env";
 import { useFx } from "@/arcade3d/core/fx";
@@ -20,6 +23,7 @@ import { CLOCK, createRun, MODULES, REPAIR, stageAt, stepRun } from "./rules";
 import Station from "./Station";
 
 export default function Scene() {
+   const area = useSafeArea();
    const input = useInput(), time = useGameTime(), fx = useFx(), quality = useQuality();
    const phase = useArcadeStore((s) => s.phase), muted = useMuted();
    const loop = useRef<LoopHandle | null>(null), stars = useRef<Group>(null);
@@ -27,6 +31,8 @@ export default function Scene() {
    const [reduced] = useState(() => typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
    const [markers] = useState(() => Array.from({ length: 11 }, () => ({ x: 0, y: 1.3, z: 0, hidden: true, color: COLORS.accent as string })));
    const [scratch] = useState(() => ({
+      project: new Vector3(), suit: { left: 0, right: 0, top: 0, bottom: 0 },
+      placement: { visible: false, x: 0, y: 0, angle: 0 },
       controls: { x: 0, z: 0, repair: false }, direction: { x: 0, z: 0 }, at: { x: 0, y: 1.3, z: 0 },
       loop: { volume: 0, pitch: 1 }, sound: { volume: 0.12, pan: 0 }, scoreOptions: { color: COLORS.mint },
       contactSound: { volume: 0.25 }, lapSound: { volume: 0.15 },
@@ -100,12 +106,29 @@ export default function Scene() {
          store.setStat("powerBonus", run.bonus); store.setScore(run.score); store.end(run.terminal);
       }
    });
-   useFrame(() => {
+   useFrame(({ camera, size }) => {
       if (stars.current && !reduced) stars.current.position.set(run.body.x * 0.05, 0, run.body.z * 0.05);
+      camera.updateMatrixWorld();
+      const { project, suit, placement } = scratch;
+      suit.left = suit.top = Infinity; suit.right = suit.bottom = -Infinity;
+      // Enclose all suit headings, reaching arms, bobbing and the fallback model.
+      for (let corner = 0; corner < 8; corner++) {
+         project.set(run.body.x + (corner & 1 ? 1.1 : -1.1), corner & 2 ? 2.4 : 0.1, run.body.z + (corner & 4 ? 1.1 : -1.1)).project(camera);
+         const x = (project.x + 1) * size.width / 2, y = (1 - project.y) * size.height / 2;
+         suit.left = Math.min(suit.left, x); suit.right = Math.max(suit.right, x);
+         suit.top = Math.min(suit.top, y); suit.bottom = Math.max(suit.bottom, y);
+      }
+      const bounds = markerBounds({ ...area, width: size.width, height: size.height });
       for (let j = 0; j < 11; j++) {
          const marker = markers[j];
          if (j < 8) { marker.x = MODULES[j].dx; marker.z = MODULES[j].dz; marker.hidden = !run.modules[j].broken; }
          else { const c = run.cells[j - 8]; marker.x = c.x; marker.z = c.z; marker.hidden = !c.active; marker.color = COLORS.gold; }
+         if (!marker.hidden) {
+            project.set(marker.x, marker.y, marker.z).applyMatrix4(camera.matrixWorldInverse);
+            const behind = project.z > 0; project.applyMatrix4(camera.projectionMatrix);
+            placeMarker(project.x, project.y, behind, size.width, size.height, bounds, placement);
+            marker.hidden = placement.visible && markerHitsSuit(placement, suit);
+         }
       }
    });
    return <>
@@ -113,6 +136,6 @@ export default function Scene() {
       <group ref={stars}><Starfield count={quality.tier === "low" ? 200 : 600} seed={1818} /></group>
       <Station run={run} reduced={reduced} />
       <Astronaut run={run} reduced={reduced} />
-      <TargetMarkers targets={markers} size={28} color={COLORS.accent} />
+      <TargetMarkers targets={markers} size={MARKER_SIZE} color={COLORS.accent} />
    </>;
 }
