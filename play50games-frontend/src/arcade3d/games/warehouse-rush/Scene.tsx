@@ -48,6 +48,8 @@ import { useRunFrame } from "@/arcade3d/core/useRunFrame";
 import { ASSETS } from "./assets";
 import { LOOK_AT, VIEW } from "./camera";
 import { WAREHOUSE_SCALE, warehousePhaseStep } from "./gait";
+import { LEVELS } from "./levels";
+import { useWarehouseLevel } from "./useWarehouseLevel";
 import {
    ARROW,
    BOX_TURN_MAX,
@@ -195,6 +197,8 @@ interface Published {
    carry: number;
    drops: number;
    delta: number;
+   /** whole seconds left on the order deadline; -1 until the level has one */
+   left: number;
 }
 
 /** Sends only what changed since the last publish. delta before drops: the HUD keys its flash on drops. */
@@ -225,6 +229,13 @@ function publish(run: WarehouseRun, pub: Published): void {
       pub.drops = run.drops;
       store.setStat("drops", run.drops);
    }
+   if (run.config.orderMs > 0) {
+      const left = Math.max(0, Math.ceil((run.config.orderMs - run.orderIdleMs) / 1000));
+      if (left !== pub.left) {
+         pub.left = left;
+         store.setStat("left", left);
+      }
+   }
 }
 
 // ---------- the game ----------
@@ -243,6 +254,7 @@ const Simulation = memo(function Simulation({ run, fx, pub, yaw }: { run: Wareho
       scratch.input.moveY = scratch.dir.z;
       scratch.input.actionPressed = now.actionPressed || now.jumpPressed;
       const carried = run.carrying;
+      const misses = run.misses;
       const ev = step(run, dt * 1000, scratch.input);
       const t = time.now;
 
@@ -271,7 +283,7 @@ const Simulation = memo(function Simulation({ run, fx, pub, yaw }: { run: Wareho
          fx.popupKind = popupKind(ev.delta);
          fx.popupZone = ev.zone;
          playSfx(ev.delivered ? "pickup" : "hit");
-      }
+      } else if (run.misses !== misses) playSfx("hit");
 
       publish(run, pub);
       // never reached in the game (the store's clock ends the run first), harmless if it is
@@ -290,7 +302,7 @@ const Simulation = memo(function Simulation({ run, fx, pub, yaw }: { run: Wareho
 const RING_ORDER = 1;
 const OVER_RING = 2;
 
-const Robot = memo(function Robot({ run, fx }: { run: WarehouseRun; fx: Fx }) {
+const Robot = memo(function Robot({ run, fx, lamp }: { run: WarehouseRun; fx: Fx; lamp?: number }) {
    const time = useGameTime();
    const root = useRef<Group>(null);
    const body = useRef<Group>(null);
@@ -349,6 +361,7 @@ const Robot = memo(function Robot({ run, fx }: { run: WarehouseRun; fx: Fx }) {
    return (
       <group ref={root} name="robot">
          <BlobShadow radius={0.55} />
+         {lamp ? <pointLight position={[0, 2.4, 0]} intensity={lamp} distance={10} color="#e0f2fe" /> : null}
          {/* player marker: drawn over the floor, the pallets and the racks (no depth test), so the
              robot is easy to find on a phone, also behind a rack; the robot and the boxes draw over it */}
          <mesh rotation-x={-Math.PI / 2} position-y={0.02} renderOrder={RING_ORDER} name="robot-ring">
@@ -775,31 +788,40 @@ const nextRun: { runId: number; run: WarehouseRun | null } = { runId: -1, run: n
 
 function prepareNextRun(state: ArcadeStore, prev: ArcadeStore): void {
    if (state.runId === prev.runId || state.phase !== "countdown") return;
-   const run = createRun(randomSeed());
+   const run = createRun(randomSeed(), LEVELS[state.levelId]);
    nextRun.runId = state.runId;
    nextRun.run = run;
    state.setStat("order", run.order);
    state.setStat("carry", 0);
+   if (run.config.orderMs > 0) state.setStat("left", run.config.orderMs / 1000);
 }
 
 /** This Scene's run: the one prepared for its runId, or a new one (a new seed every run). */
-function takeRun(): WarehouseRun {
+function takeRun(level: (typeof LEVELS)[1]): WarehouseRun {
    const { runId } = useArcadeStore.getState();
-   return nextRun.run && nextRun.runId === runId ? nextRun.run : createRun(randomSeed());
+   if (nextRun.run && nextRun.runId === runId && nextRun.run.config.id === level.id) return nextRun.run;
+   return createRun(randomSeed(), level);
 }
 
 // ---------- the scene ----------
 
 export default function Scene() {
+   const { id } = useWarehouseLevel();
+   return <LevelScene key={id} />;
+}
+
+/** One level's scene. Remounts when the start card picks another level, and on every run. */
+function LevelScene() {
    const view = useFittedView(VIEW);
+   const { config } = useWarehouseLevel();
    // GameShell remounts the Scene (and its game time) on start, retry and restart
    const [run] = useState(() => {
-      const r = takeRun();
+      const r = takeRun(config);
       r.robot.heading = view.yaw; // face the camera on the start pad (heading is looks only)
       return r;
    });
    const [fx] = useState(createFx);
-   const [pub] = useState<Published>(() => ({ score: 0, delivered: 0, order: NONE, carry: 0, drops: 0, delta: 0 }));
+   const [pub] = useState<Published>(() => ({ score: 0, delivered: 0, order: NONE, carry: 0, drops: 0, delta: 0, left: -1 }));
 
    // mount: publish this run's first order (a no-op when prepareNextRun already did; it also covers
    // the Scene of the loading and ready screens) and seed the publish cache
@@ -808,7 +830,8 @@ export default function Scene() {
       const store = useArcadeStore.getState();
       store.setStat("order", run.order);
       store.setStat("carry", 0);
-      Object.assign(pub, { score: 0, delivered: 0, order: run.order, carry: 0, drops: 0, delta: 0 });
+      if (run.config.orderMs > 0) store.setStat("left", run.config.orderMs / 1000);
+      Object.assign(pub, { score: 0, delivered: 0, order: run.order, carry: 0, drops: 0, delta: 0, left: run.config.orderMs > 0 ? run.config.orderMs / 1000 : -1 });
    }, [run, pub]);
 
    // the next start, retry or restart: make that run now (see nextRun)
@@ -818,8 +841,8 @@ export default function Scene() {
       <>
          <Simulation run={run} fx={fx} pub={pub} yaw={view.yaw} />
          <CameraRig camera={{ position: view.offset, lookAt: LOOK_AT }} offset={view.offset} shift={view.shift} />
-         <Warehouse layout={run.layout} yaw={view.yaw} />
-         <Robot run={run} fx={fx} />
+         <Warehouse layout={run.layout} yaw={view.yaw} level={config} run={run} />
+         <Robot run={run} fx={fx} lamp={config.lamp} />
          <Boxes run={run} fx={fx} yaw={view.yaw} />
          <OrderMarkers run={run} fx={fx} />
          <TargetZone run={run} />
