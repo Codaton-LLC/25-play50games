@@ -7,7 +7,8 @@ Owner: Claude. Slug: `obstacle-race`. Game 10 of the 3D Arcade: the only time tr
 | `meta.ts` | Card data and `scoring` (must equal `arcade-games.json`). Plain data, server-safe. Unchanged by the build except `thumbnail` (and the 2026-10-07 limits: `maxScore` 28150, `minDurationMs` 18500) (`/images/3d/obstacle-race.webp`, 640 × 360, rendered from the game). |
 | `index.tsx` | The `GameDefinition`: Scene, assets, `physics: false` (the debris layer missed its cut line; `true` returns with it), no `durationMs` (the rules own the 300 s cap, so the shell shows "Played" counting up), camera, environment, `touchControls: ["joystick", "jump"]`, `hudStats`, instructions, `resultDelayMs`, `finalScore` (rules.ts: the exact finish ms). |
 | `camera.ts` | The follow-camera constants (`FOLLOW_X`, `LAG`, `FOCUS`, the `PORTRAIT` / `LANDSCAPE` views, `viewFor`) and `followPoint`. Pure. |
-| `rules.ts` | Everything that decides the outcome: the fixed course as data, the integer-ms clock and its 300 s cap, kinematic movement with closed-form jumps, collisions, the moving obstacles as functions of rules time, the bar knock, checkpoints, falls and respawns, the finish, the proof constants. Pure: no three.js, React, DOM, Rapier, `Math.random` or `Date.now`. |
+| `rules.ts` | Everything that decides the outcome: the fixed course as data (`COURSE`, and `buildCourse(level)` for the levels), the integer-ms clock and its 300 s cap, kinematic movement with closed-form jumps, collisions, the moving obstacles as functions of rules time (per-course `ObstacleTiming`), the bar knock, checkpoints, falls and respawns, the finish, the proof constants, and the per-level server limits (`PROPOSED_LEVEL_LIMITS`). Pure: no three.js, React, DOM, Rapier, `Math.random` or `Date.now`. |
+| `levels.ts` | The five level configs (`ObstacleLevel`: jumps, blocks, the obstacle speeds, the pad half width; docs/arcade-levels.md §6.3). Pure data; level 1 is today's course. Titles live in `meta.ts`, descriptions in `index.tsx`. |
 | `rules.test.ts` | Vitest for `rules.ts`: the golden constants, course checks, movement, obstacles, checkpoints, the minimum-time proof driven through the real store clock, and "nothing flows back" from the debris layer. |
 | `camera.test.ts` | The fit table below, from core `fitView` with the fixture rects; the runner, every section's full width and the next landing target inside the window. |
 | `runner.test.ts` | The real runner.glb on the core rig: `ASSETS.runner` draws it `RUNNER.height` (1.50 m) tall, and its soles stay on the floor in the run and the cheer (`bodyLift` on the group) and clear of it in the jump. |
@@ -279,6 +280,42 @@ Measured with a throwaway probe using the test's `speedrunBot` (deleted): 188 wi
 ### What real play will score (measured)
 
 The speedrun bot in `rules.test.ts` runs the real `step` with lookahead jumps. It passes the hub on its left, takes timed bar jumps, jumps to each platform at the first frame that lands well, waits on the edge for the blocks, and corrects the beam's slide. It finishes without a fall in **22.45 s at 60 fps** (pinned ± 0.5 s; score 27754). It takes 22.45 s at 144 fps and 20.60 s at 30 fps, because frame timing changes how long it waits for the blocks. The straight line from rest is 19.4 s. The bot's 20.60 s at 30 fps is about what frame-perfect jumps and block timing can do, so a very good human run is about 21–24 s (score about 27600–27900). A first good run with one or two falls takes 45–70 s. Every fall costs 1.2–1.7 s plus the way back.
+
+## Levels
+
+Five levels (docs/arcade-levels.md; the pilot for the 30-game rollout). `levels.ts` holds the configs; `rules.ts buildCourse(level)` builds a level's course from the same shape as `COURSE` — the fixed head (start pad, bridges, sweeper disc), then the level's jump platforms, a checkpoint pad, its moving blocks, another checkpoint pad, the 20 m beam and the finish pad. The runner, the jump, the obstacle sizes and the beam length never change; a level sets only its obstacle speeds (`ObstacleTiming`: the bar's omega, the blocks' wave period and travel, the beam's slide amplitude) and the course's counts and pad width. **Level 1 is today's game bit for bit**: `buildCourse(LEVELS[1])` deep-equals `COURSE` and its limits equal `meta.scoring` (pinned by `levels.test.ts`), so every existing test is the level-1 proof. With the levels flag off the core hands level 1's config, so the game plays exactly as before (no tiles, no chip, level-1 totals).
+
+| Level | Title | Jumps | Blocks | Bar ω | Block wave | Beam slide | Pads ±x | Finish line | Lighting |
+|---|---|---|---|---|---|---|---|---|---|
+| 1 | Training Course | 5 | 5 | 1.1 | 4.0 s / ±2.4 m | 1.8 m/s | 3.0 | 116 m | day (today's) |
+| 2 | Moving Blocks | 6 | 6 | 1.1 | 4.0 s / ±2.4 m | 1.8 m/s | 3.0 | 124.8 m | day |
+| 3 | Bridge Run | 6 | 7 | 1.25 | 3.5 s / ±2.4 m | 2.0 m/s | 3.0 | 128.6 m | day |
+| 4 | Spinner Arena | 7 | 7 | 1.4 | 3.2 s / ±2.4 m | 2.2 m/s | 2.6 | 133.6 m | night |
+| 5 | Championship Course | 7 | 8 | 1.55 | 3.0 s / ±2.4 m | 2.4 m/s | 2.4 | 137.4 m | sunset |
+
+Difficulty is monotone (pinned): counts and speeds never decrease, the blocks' wave never slows, the pads never widen, and the finish line strictly increases. The beam's wave stays 3.2 s at every level; only its amplitude varies, and the bar's geometry (reach, thickness, height) is fixed — only omega changes. The block phases continue level 1's rhythm (`blockPhase`), so a level's blocks are the same obstacle, repeated.
+
+**Per-level server limits.** Each level is its own scoring window (docs/arcade-levels.md §5): the proof of "Server limits and why they hold" holds unchanged on every course (p moves at most `V_RUN`·1 ms = 6 mm per counted ms; a respawn never lands ahead of the activation point), so the floor is `minFinishMsFor(course) = ceil(finishLine·1000/6)` and the window's lower edge sits 3–5 % under it. `maxScore` is exactly the time-score formula at `minDurationMs` (`floor((timeBaseMs − minDurationMs)/10)`); `maxDurationMs` and `timeBaseMs` are `DURATION_MS` (300000) for all levels. `PROPOSED_LEVEL_LIMITS` (rules.ts) is what Claude copies into `arcade-games.json` at merge — until then `registry.sync.test.ts` fails on this game's entry ("levels: server has none, meta.ts has 5"), which is expected.
+
+| Level | Floor (ms) | Margin | minDurationMs | maxScore |
+|---|---|---|---|---|
+| 1 | 19334 | 834 (4.3 %) | 18500 | 28150 |
+| 2 | 20800 | 900 (4.3 %) | 19900 | 28010 |
+| 3 | 21434 | 954 (4.4 %) | 20480 | 27952 |
+| 4 | 22267 | 967 (4.3 %) | 21300 | 27870 |
+| 5 | 22900 | 1050 (4.6 %) | 21850 | 27815 |
+
+**Measured on the levels bot** (`levels.test.ts`, rules.test.ts's speedrun bot generalized per course — the same route past the hub, timed bar jumps with the stick held through the arc, lookahead jumps, block-edge waits and beam correction; 60 / 30 / 144 fps + 4 random-frame seeds per level): every run of every level won with 0 knocks and 0 falls, each finish inside its window and above its floor.
+
+| Level | Wins | Best (ms) | Median (ms) | Score at best |
+|---|---|---|---|---|
+| 1 | 7/7 | 20584 | 20631 | 27941 |
+| 2 | 7/7 | 22762 | 24080 | 27723 |
+| 3 | 7/7 | 24547 | 24833 | 27545 |
+| 4 | 7/7 | 26339 | 26583 | 27366 |
+| 5 | 7/7 | 26402 | 26407 | 27359 |
+
+Cheap bots (straight, masher, random ×2 seeds, greedy ×1, at 60 fps and random frames, 45 s cap) never post a win outside the window on any level — any win they do find lies above the floor, so no unskilled input reaches a time the proof says is impossible; the idle bot (2 seeds per level) never leaves the start line and never wins. Frame-rate independence is pinned per level: identical frame lists give bit-identical runs, and `COYOTE_MS`/`BUFFER_MS`/`V_RUN`/`MAX_STEP_MS` are level-independent constants.
 
 ## Scene and camera
 
@@ -557,3 +594,15 @@ The go-live audit could not get a repeatable frame rate (one 4× CPU capture 49.
 - **Forged submissions.** The proof covers honest clients: none can finish under 19334 ms. A forged POST can still claim any duration from 18500 ms (the 2026-10-07 `minDurationMs`, up from 15000); the rest is Phase 5 (run tokens). A fixed, seedless course makes a server-side replay of an input log possible later.
 - **Catalog.** `skills.md` lists this game's universe as `playground` and its obstacles as "Rapier colliders". This design uses `shared-cast` / 5050 and primitives with rules collision (Rapier only mirrors them for the debris). Claude updates the catalog in the assets PR; this branch edits only this folder.
 - **Inherited from the core:** the bottom safe-area inset (`env(safe-area-inset-bottom)`) is not reported, and the cookie banner is found by a 1 s poll, so the camera eases to its new fit up to a second after the banner opens or closes.
+
+
+## Status (2026-10-24, branch `kimi/levels-obstacle-race`)
+
+The 5-levels system is built and proven; this game is the pilot for the rollout (docs/arcade-levels.md §6.3). **Files changed** (all under `src/arcade3d/games/obstacle-race/`): `rules.ts` (`ObstacleTiming`/`TIMING_L1`, per-course timing threaded through `step` via optional trailing params defaulting to level 1, `blockPhase` for blocks past B5, `ObstacleLevel`, `buildCourse`, `minFinishMsFor`, `PROPOSED_LEVEL_LIMITS`; `Course` gains `timing?`, `ObstacleRun` gains `timing`; the purity import list is unchanged, pinned by rules.test.ts), `levels.ts` (new, the five configs), `meta.ts` (`levels` with titles + the proposed limits), `index.tsx` (`GameDefinition<ObstacleLevel>` with the five specs, night/sunset environments on 4/5), `Scene.tsx` (`useLevel` + `createRun(buildCourse(config))`; every read of the course/timing now goes through `run.course`/`run.timing`), `Primitives.tsx` (the COURSE-derived spot arrays became the pure `spotsOf(course)`, memoized per course; `CourseStatic`/`Gates`/`BalanceBeam` take a `course` prop), `finishLooks.ts` (optional trailing `finishLine` param on `archOpacity`/`postArmWeight`/`clearPostArm`), `levels.test.ts` (new, the per-level proof), this README. One deliberate deviation from the task brief: `beamSlide` keeps its single-argument signature (rules.test.ts maps it bare, so a trailing param would break the frozen test); the timed variant is `beamSlideOf(ms, timing)`.
+
+**Per-level limits** (`PROPOSED_LEVEL_LIMITS`, floors = `minFinishMsFor`): L1 18500/28150 (today's live limits), L2 19900/28010, L3 20480/27952, L4 21300/27870, L5 21850/27815; `maxDurationMs` = `timeBaseMs` = 300000 everywhere; every floor keeps ≥ 3 % and ≥ 800 ms above the window's lower edge. **Proofs** (levels.test.ts, 39 tests): level 1 deep-equals `COURSE`; every level's course passes the sanity checks (joins, lines, jump shares ≤ 0.65 of `jumpReach`, no skip pair within `skipReach` with the 5.4 m margin ≥ 0.39, a pillar under every platform); difficulty is monotone; `computeTimeScore(limits, minDurationMs) === maxScore`; the speedrun bot won **7/7 patterns per level** (60/30/144 fps + 4 random-frame seeds) with 0 knocks and 0 falls, best/median 20584/20631, 22762/24080, 24547/24833, 26339/26583, 26402/26407 ms — each inside its window and scoring ≥ 90 % of its maxScore; cheap bots (straight, masher, random ×2, greedy, 60 fps + random frames) never win outside the window; the idle bot never wins; identical inputs are frame-rate independent; the store hand-off (`finalScore` submits the exact finish ms, only a win is ranked) holds per level. **Test counts and runtime**: the folder suite is 129 tests in 6 files, 17 s wall on a quiet machine (levels.test.ts alone 14 s; rules.test.ts unchanged at 58 tests).
+
+**Open questions.**
+(a) `src/arcade3d/registry.sync.test.ts` fails until Claude copies `PROPOSED_LEVEL_LIMITS` into this game's `levels` in `arcade-games.json` (expected at merge; the failure reads "levels: server has none, meta.ts has 5").
+(b) The L4/L5 lighting presets were chosen as `night` / `sunset` with plain dark backgrounds (`#0f172a` / `#431f30`, fog 40–100); the user can re-pick.
+(c) L2 keeps L1's obstacle speeds (the plan's "static obstacle set"): its difficulty is the longer course only.

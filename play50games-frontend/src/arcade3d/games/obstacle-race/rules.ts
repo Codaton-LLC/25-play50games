@@ -63,8 +63,34 @@ export const KNOCK = { vx: 12, vy: 8 } as const;
 export const BLOCK = { width: 2.4, depth: 2.2, height: 0.6, travel: 2.4, periodMs: 4000 } as const;
 /** Phase of each block's wave (fraction of a period), B1 … B5. */
 export const BLOCK_PHASES: readonly number[] = [0, 0.5, 0.25, 0.75, 0.5];
+
+/**
+ * The phase of block k's wave: BLOCK_PHASES for the first five (level 1, pinned); later blocks
+ * continue the same rhythm — even k step 0.25 starting at 0.25, odd k step 0.25 starting at 0.5
+ * (k = 1 → 0.5, k = 2 → 0.25, k = 3 → 0.75, k = 4 → 0.5, matching level 1).
+ */
+export function blockPhase(k: number): number {
+   if (k < BLOCK_PHASES.length) return BLOCK_PHASES[k];
+   return k % 2 === 0 ? (k / 2) * 0.25 : 0.5 + ((k - 1) / 2) * 0.25;
+}
 /** The balance beam: 20 × 1.0, top 0; slides a standing runner along x at up to 1.8 m/s (3.2 s wave). */
 export const BEAM = { length: 20, width: 1, thickness: 0.4, slide: 1.8, periodMs: 3200, tiltDeg: 10 } as const;
+
+/**
+ * The obstacle speeds one course can vary (README "Levels"): the bar's omega, the blocks' wave
+ * period and travel, and the beam's slide amplitude. The beam's wave period (BEAM.periodMs) and
+ * the bar's geometry stay fixed for every level. TIMING_L1 is today's game; every timing-taking
+ * function defaults to it, so a call without a timing is a level-1 call.
+ */
+export interface ObstacleTiming {
+   barOmega: number;
+   blockPeriodMs: number;
+   blockTravel: number;
+   beamSlide: number;
+}
+
+/** Level 1's timing, exactly the module constants of today's game. */
+export const TIMING_L1: ObstacleTiming = { barOmega: BAR.omega, blockPeriodMs: BLOCK.periodMs, blockTravel: BLOCK.travel, beamSlide: BEAM.slide };
 /** Jump platforms: 2.4 × 2.4 tops, this thick, on square pillars down to the water. */
 export const PLATFORM = { size: 2.4, thickness: 0.3, pillar: 0.8 } as const;
 /** The finish arch: its two posts are solid circles; the rest is looks. */
@@ -210,6 +236,8 @@ export interface Course {
    /** checkpoint 0 is the start line (the first spawn), then 1, 2, 3, in order */
    readonly checkpoints: readonly Line[];
    readonly finish: Line;
+   /** the obstacle speeds; TIMING_L1 (the defaults) when omitted (tests' own courses) */
+   readonly timing?: ObstacleTiming;
 }
 
 // Course builders: COURSE and FLAT below, and the tests' own small courses. Ranges are in p.
@@ -307,6 +335,7 @@ export const COURSE: Course = {
       { line: LINES.cp3, support: 16 },
    ],
    finish: { line: LINES.finish, support: 18 },
+   timing: TIMING_L1,
 };
 
 /**
@@ -327,6 +356,149 @@ export const FLAT: Course = {
    finish: { line: LINES.finish, support: 0 },
 };
 
+// ---------- levels (docs/arcade-levels.md §5-6.3; levels.ts holds the five configs) ----------
+
+/**
+ * One level's course parameters (levels.ts): how many jump platforms and moving blocks, the
+ * obstacle speeds, and the checkpoint pads' half width. Everything else — the runner, the jump,
+ * the fixed head (start pad, bridges, disc), the block and platform sizes, the 20 m beam, the
+ * finish pad — is level-independent (rules.ts constants).
+ */
+export interface ObstacleLevel {
+   jumps: number;
+   blocks: number;
+   barOmega: number;
+   blockPeriodMs: number;
+   blockTravel: number;
+   beamSlide: number;
+   padHalfX: number;
+}
+
+/** Snap a computed coordinate to its decimal value: every course coordinate has at most 2 decimals. */
+const dec = (v: number): number => Math.round(v * 1e9) / 1e9;
+
+/** Jump platforms: J1 at p 36.4, the pitch 4.8 to J2 then 5.0; x centres and tops cycle with the index mod 5. */
+const PLATFORM_X = [0, -1.3, 0.5, 1.5, 0] as const;
+const PLATFORM_TOP = [0.5, 1.0, 1.5, 1.0, 0.5] as const;
+/** A checkpoint pad's length on the course (p). */
+const PAD_LEN = 6;
+/** The gap from a pad's end to the first block, and from the last block to the next pad (m). */
+const BLOCK_GAP = 1.6;
+/** The finish pad is 8.4 m long; the finish line is 2.4 m onto it. */
+const FINISH_LEN = 8.4;
+const FINISH_IN = 2.4;
+
+/**
+ * Builds a level's course: the fixed head, then `level.jumps` platforms, a checkpoint pad,
+ * `level.blocks` moving blocks, a checkpoint pad, the 20 m beam and the finish pad. The geometry
+ * is the same shape as COURSE (level 1): platform pitch, pad and block sizes and gaps come from
+ * the same constants, so buildCourse(LEVELS[1]) deep-equals COURSE (levels.test.ts). Support
+ * indices: 0 start, 1 bridge A, 2 disc, 3 bridge B, 4 CP1, 5..4+jumps platforms, 5+jumps CP2,
+ * then the blocks, then CP3, the beam and the finish. The finish line moves with the level:
+ * 116 / 124.8 / 128.6 / 133.6 / 137.4 m for levels 1..5.
+ */
+export function buildCourse(level: ObstacleLevel): Course {
+   const padX = level.padHalfX;
+   const supports: Support[] = [
+      boxSupport("start", "pad", -4, 8, -4, 4, 0, WATER_Y),
+      boxSupport("bridge A", "bridge", 8, 13, -1.5, 1.5, 0, WATER_Y),
+      discSupport("disc", DISC.x, DISC.p, DISC.radius, DISC.top, WATER_Y),
+      boxSupport("bridge B", "bridge", 23, 28, -1.5, 1.5, 0, WATER_Y),
+      boxSupport("CP1", "pad", 28, 34, -padX, padX, 0, WATER_Y),
+   ];
+   const pillars: Solid[] = [];
+   let lastPlatformMinP = 36.4;
+   for (let k = 0; k < level.jumps; k++) {
+      const minP = dec(36.4 + (k === 0 ? 0 : 4.8 + (k - 1) * 5.0));
+      const p = platform(`J${k + 1}`, minP, dec(minP + PLATFORM.size), PLATFORM_X[k % 5], PLATFORM_TOP[k % 5]);
+      supports.push(p);
+      pillars.push(pillar(p));
+      lastPlatformMinP = minP;
+   }
+   const cp2Start = dec(lastPlatformMinP + PLATFORM.size + 2.4);
+   const cp2 = supports.push(boxSupport("CP2", "pad", cp2Start, dec(cp2Start + PAD_LEN), -padX, padX, 0, WATER_Y)) - 1;
+   const blocksStart = dec(cp2Start + PAD_LEN + BLOCK_GAP);
+   for (let k = 0; k < level.blocks; k++) {
+      const minP = dec(blocksStart + k * (BLOCK.depth + BLOCK_GAP));
+      supports.push(block(k, minP, dec(minP + BLOCK.depth)));
+   }
+   const cp3Start = dec(blocksStart + level.blocks * (BLOCK.depth + BLOCK_GAP));
+   const cp3 = supports.push(boxSupport("CP3", "pad", cp3Start, dec(cp3Start + PAD_LEN), -padX, padX, 0, WATER_Y)) - 1;
+   const beam = supports.push(boxSupport("beam", "beam", dec(cp3Start + PAD_LEN), dec(cp3Start + PAD_LEN + BEAM.length), -BEAM.width / 2, BEAM.width / 2, 0, -BEAM.thickness)) - 1;
+   const finishStart = dec(cp3Start + PAD_LEN + BEAM.length);
+   const finish = supports.push(boxSupport("finish", "pad", finishStart, dec(finishStart + FINISH_LEN), -4, 4, 0, WATER_Y)) - 1;
+   const finishLine = dec(cp3Start + PAD_LEN + BEAM.length + FINISH_IN);
+   return {
+      name: "course",
+      supports,
+      solids: [
+         ...pillars,
+         circleSolid("hub", DISC.x, DISC.p, HUB.radius, DISC.top, DISC.top + HUB.height),
+         circleSolid("post L", -ARCH.postX, finishLine, ARCH.postRadius, 0, ARCH.height),
+         circleSolid("post R", ARCH.postX, finishLine, ARCH.postRadius, 0, ARCH.height),
+      ],
+      sweeper: 2,
+      checkpoints: [
+         { line: LINES.start, support: 0 },
+         { line: LINES.cp1, support: 4 },
+         { line: dec(cp2Start + 1), support: cp2 },
+         { line: dec(cp3Start + 1), support: cp3 },
+      ],
+      finish: { line: finishLine, support: finish },
+      timing: { barOmega: level.barOmega, blockPeriodMs: level.blockPeriodMs, blockTravel: level.blockTravel, beamSlide: level.beamSlide },
+   };
+}
+
+/**
+ * A level's proven minimum finish time: the earliest ms a run can stand at the finish line
+ * (earliestMs, README "Server limits and why they hold"). Floors: 19334 / 20800 / 21434 /
+ * 22267 / 22900 ms for levels 1..5.
+ */
+export function minFinishMsFor(course: Course): number {
+   return earliestMs(course.finish.line);
+}
+
+/** A level id, declared locally: rules.ts may import only core/collision and core types (rules.test.ts pins it). */
+export type LevelNum = 1 | 2 | 3 | 4 | 5;
+
+/**
+ * One level's server limits: exactly the nine ScoringRules fields (arcade3d/types.ts), declared
+ * locally so rules.ts imports nothing game-side. kind/unitLabel/display are the game's (a time
+ * game); base and maxPointsPerSec are a points game's knobs (0); timeBaseMs and maxDurationMs are
+ * DURATION_MS for every level; the margin sits on minDurationMs, below the proven floor
+ * minFinishMsFor.
+ */
+export interface LevelLimits {
+   kind: "time";
+   maxScore: number;
+   minDurationMs: number;
+   maxDurationMs: number;
+   base: number;
+   maxPointsPerSec: number;
+   timeBaseMs: number;
+   unitLabel: string;
+   display: "time";
+}
+
+/**
+ * The per-level server limits proposed for this game (docs/arcade-levels.md §5): what Claude
+ * copies into arcade-games.json at merge (registry.sync.test.ts then pins them). Every level's
+ * maxScore is exactly the time-score formula at its minDurationMs. Level 1 equals meta.scoring
+ * bit for bit — it is today's live game.
+ */
+export const PROPOSED_LEVEL_LIMITS: Record<LevelNum, LevelLimits> = {
+   /** L1: the live limits; floor ceil(116·1000/6) = 19334, margin 834 ms (4.3 %). */
+   1: { kind: "time", maxScore: 28150, minDurationMs: 18500, maxDurationMs: DURATION_MS, base: 0, maxPointsPerSec: 0, timeBaseMs: DURATION_MS, unitLabel: "time", display: "time" },
+   /** L2: floor ceil(124.8·1000/6) = 20800, margin 900 ms (4.3 %). */
+   2: { kind: "time", maxScore: 28010, minDurationMs: 19900, maxDurationMs: DURATION_MS, base: 0, maxPointsPerSec: 0, timeBaseMs: DURATION_MS, unitLabel: "time", display: "time" },
+   /** L3: floor ceil(128.6·1000/6) = 21434, margin 954 ms (4.4 %). */
+   3: { kind: "time", maxScore: 27952, minDurationMs: 20480, maxDurationMs: DURATION_MS, base: 0, maxPointsPerSec: 0, timeBaseMs: DURATION_MS, unitLabel: "time", display: "time" },
+   /** L4: floor ceil(133.6·1000/6) = 22267, margin 967 ms (4.3 %). */
+   4: { kind: "time", maxScore: 27870, minDurationMs: 21300, maxDurationMs: DURATION_MS, base: 0, maxPointsPerSec: 0, timeBaseMs: DURATION_MS, unitLabel: "time", display: "time" },
+   /** L5: floor ceil(137.4·1000/6) = 22900, margin 1050 ms (4.6 %). */
+   5: { kind: "time", maxScore: 27815, minDurationMs: 21850, maxDurationMs: DURATION_MS, base: 0, maxPointsPerSec: 0, timeBaseMs: DURATION_MS, unitLabel: "time", display: "time" },
+};
+
 // ---------- obstacles: pure functions of rules ms ----------
 
 /**
@@ -342,31 +514,40 @@ export function wave(ms: number, periodMs: number, phase: number): number {
 }
 
 /** The bar's angle (rad) at rules ms `ms` (the Scene feeds −countdownMs during the countdown). */
-export function barAngle(ms: number): number {
-   return (BAR.omega * ms) / 1000;
+export function barAngle(ms: number, timing: ObstacleTiming = TIMING_L1): number {
+   return (timing.barOmega * ms) / 1000;
 }
 
 /** Block k's centre x at rules ms `ms`. */
-export function blockX(k: number, ms: number): number {
-   return BLOCK.travel * wave(ms, BLOCK.periodMs, BLOCK_PHASES[k]);
+export function blockX(k: number, ms: number, timing: ObstacleTiming = TIMING_L1): number {
+   return timing.blockTravel * wave(ms, timing.blockPeriodMs, blockPhase(k));
 }
 
-/** The beam's slide (m/s along x) at rules ms `ms`; the Scene tilts the beam in phase with it. */
+/**
+ * The beam's slide (m/s along x) at rules ms `ms`; the Scene tilts the beam in phase with it.
+ * Level 1's slide (BEAM.slide). Single-argument on purpose: rules.test.ts maps this function
+ * directly, so the timed variant is a separate function, beamSlideOf.
+ */
 export function beamSlide(ms: number): number {
    return BEAM.slide * wave(ms, BEAM.periodMs, 0);
+}
+
+/** The beam's slide at rules ms `ms` for a timing: the amplitude varies per level; the wave period BEAM.periodMs stays fixed. */
+export function beamSlideOf(ms: number, timing: ObstacleTiming): number {
+   return timing.beamSlide * wave(ms, BEAM.periodMs, 0);
 }
 
 // ---------- geometry ----------
 
 /** Horizontal distance from (x, z) to the support's footprint at rules ms `ms` (0 over it). */
-export function supportDistance(s: Support, x: number, z: number, ms: number): number {
+export function supportDistance(s: Support, x: number, z: number, ms: number, timing: ObstacleTiming = TIMING_L1): number {
    const p = -z;
    if (s.kind === "disc") {
       const dx = x - s.cx;
       const dp = p - s.cp;
       return Math.max(0, Math.sqrt(dx * dx + dp * dp) - s.radius);
    }
-   const ox = s.block === NONE ? 0 : blockX(s.block, ms);
+   const ox = s.block === NONE ? 0 : blockX(s.block, ms, timing);
    const dx = Math.max(s.minX + ox - x, 0, x - (s.maxX + ox));
    const dp = Math.max(s.minP - p, 0, p - s.maxP);
    return dx === 0 ? dp : dp === 0 ? dx : Math.sqrt(dx * dx + dp * dp);
@@ -386,20 +567,20 @@ export function solidDistance(o: Solid, x: number, z: number): number {
 }
 
 /** Is the centre (x, z) over the support, edge grace included? */
-export function onSupport(s: Support, x: number, z: number, ms: number): boolean {
-   return supportDistance(s, x, z, ms) <= FOOT + EDGE_EPS;
+export function onSupport(s: Support, x: number, z: number, ms: number, timing: ObstacleTiming = TIMING_L1): boolean {
+   return supportDistance(s, x, z, ms, timing) <= FOOT + EDGE_EPS;
 }
 
 /**
  * The support a grounded runner at height `top` stands on: `prefer` (its current one) while the
  * centre is still over it, else the first one at the same height in course order (a join), else NONE.
  */
-export function supportUnder(course: Course, x: number, z: number, top: number, ms: number, prefer = NONE): number {
+export function supportUnder(course: Course, x: number, z: number, top: number, ms: number, prefer = NONE, timing: ObstacleTiming = TIMING_L1): number {
    const supports = course.supports;
-   if (prefer !== NONE && supports[prefer].top === top && onSupport(supports[prefer], x, z, ms)) return prefer;
+   if (prefer !== NONE && supports[prefer].top === top && onSupport(supports[prefer], x, z, ms, timing)) return prefer;
    for (let i = 0; i < supports.length; i++) {
       const s = supports[i];
-      if (i !== prefer && s.top === top && onSupport(s, x, z, ms)) return i;
+      if (i !== prefer && s.top === top && onSupport(s, x, z, ms, timing)) return i;
    }
    return NONE;
 }
@@ -408,12 +589,12 @@ export function supportUnder(course: Course, x: number, z: number, top: number, 
  * The top a shadow sits on: the highest support at or below the feet whose footprint (grace
  * included) holds the centre, the blocks at their x for `ms`; the water when there is none.
  */
-export function groundBelow(course: Course, x: number, z: number, feetY: number, ms: number): number {
+export function groundBelow(course: Course, x: number, z: number, feetY: number, ms: number, timing: ObstacleTiming = TIMING_L1): number {
    let best = WATER_Y;
    const supports = course.supports;
    for (let i = 0; i < supports.length; i++) {
       const s = supports[i];
-      if (s.top > best && s.top <= feetY + EDGE_EPS && onSupport(s, x, z, ms)) best = s.top;
+      if (s.top > best && s.top <= feetY + EDGE_EPS && onSupport(s, x, z, ms, timing)) best = s.top;
    }
    return best;
 }
@@ -446,10 +627,10 @@ export function insideStatic(course: Course, x: number, z: number, feetY: number
  * count, with the edge slack: at KNOCK_STOP_X the circle touches the disc, though 6.35 − 6 is
  * 0.34999999999999964 in floats.
  */
-export function overlapsTop(course: Course, x: number, z: number, ms: number): boolean {
+export function overlapsTop(course: Course, x: number, z: number, ms: number, timing: ObstacleTiming = TIMING_L1): boolean {
    const supports = course.supports;
    for (let i = 0; i < supports.length; i++) {
-      if (supportDistance(supports[i], x, z, ms) < RUNNER.radius - EDGE_EPS) return true;
+      if (supportDistance(supports[i], x, z, ms, timing) < RUNNER.radius - EDGE_EPS) return true;
    }
    return false;
 }
@@ -459,11 +640,11 @@ export function overlapsTop(course: Course, x: number, z: number, ms: number): b
  * (feet below the bar's top, strictly; head above its bottom) and the circle overlaps the bar's
  * rectangle in the bar's rotating frame (tangency counts). False on a course without a sweeper.
  */
-export function barHits(course: Course, x: number, z: number, feetY: number, ms: number): boolean {
+export function barHits(course: Course, x: number, z: number, feetY: number, ms: number, timing: ObstacleTiming = TIMING_L1): boolean {
    if (course.sweeper === NONE) return false;
    const disc = course.supports[course.sweeper];
    if (!(feetY < disc.top + BAR.top && feetY + RUNNER.height > disc.top + BAR.bottom)) return false;
-   const a = barAngle(ms);
+   const a = barAngle(ms, timing);
    const c = Math.cos(a);
    const s = Math.sin(a);
    const dx = x - disc.cx;
@@ -541,6 +722,8 @@ export interface StepEvents {
 
 export interface ObstacleRun {
    course: Course;
+   /** the course's obstacle speeds (the level's timing) */
+   timing: ObstacleTiming;
    /** rules time: whole ms of play since "Go" */
    simMs: number;
    /** fraction of a ms carried to the next step, [0, 1) */
@@ -596,6 +779,7 @@ export function createRun(course: Course = COURSE, options: RunOptions = {}): Ob
    const top = course.supports[start.support].top;
    return {
       course,
+      timing: course.timing ?? TIMING_L1,
       simMs: 0,
       remainder: 0,
       stepMs: 0,
@@ -753,8 +937,8 @@ function pushOutOfCircle(r: Runner, cx: number, cz: number, radius: number): voi
    r.z = cz + dz * k;
 }
 
-function blockBox(s: Support, ms: number): AABB {
-   const ox = blockX(s.block, ms);
+function blockBox(s: Support, ms: number, timing: ObstacleTiming): AABB {
+   const ox = blockX(s.block, ms, timing);
    SCRATCH_BOX.min.x = s.minX + ox;
    SCRATCH_BOX.max.x = s.maxX + ox;
    SCRATCH_BOX.min.z = -s.maxP;
@@ -763,7 +947,7 @@ function blockBox(s: Support, ms: number): AABB {
 }
 
 /** Step 6: push the circle out of every solid whose span overlaps the runner's (feet below its top, head above its bottom). */
-function sideCollisions(course: Course, r: Runner, ms: number): void {
+function sideCollisions(course: Course, r: Runner, ms: number, timing: ObstacleTiming): void {
    const feet = r.y;
    const head = r.y + RUNNER.height;
    const supports = course.supports;
@@ -771,7 +955,7 @@ function sideCollisions(course: Course, r: Runner, ms: number): void {
       const s = supports[i];
       if (!(feet < s.top && head > s.bottom)) continue;
       if (s.kind === "disc") pushOutOfCircle(r, s.cx, -s.cp, s.radius);
-      else pushOutOfBox(r, s.block === NONE ? s.box : blockBox(s, ms));
+      else pushOutOfBox(r, s.block === NONE ? s.box : blockBox(s, ms, timing));
    }
    const solids = course.solids;
    for (let i = 0; i < solids.length; i++) {
@@ -787,14 +971,14 @@ function sideCollisions(course: Course, r: Runner, ms: number): void {
  * centre over it. The feet must end below the top, so a jump on the flat lands at take-off + 681:
  * at + 680 (AIR_MS) they are exactly at the top.
  */
-function landingSupport(course: Course, x: number, z: number, yOld: number, yNew: number, ms: number): number {
+function landingSupport(course: Course, x: number, z: number, yOld: number, yNew: number, ms: number, timing: ObstacleTiming): number {
    let best = NONE;
    const supports = course.supports;
    for (let i = 0; i < supports.length; i++) {
       const s = supports[i];
       if (!(yOld >= s.top && s.top > yNew)) continue;
       if (best !== NONE && supports[best].top >= s.top) continue;
-      if (onSupport(s, x, z, ms)) best = i;
+      if (onSupport(s, x, z, ms, timing)) best = i;
    }
    return best;
 }
@@ -812,7 +996,7 @@ function runMs(run: ObstacleRun, mx: number, mz: number): void {
    let carry = r.carryX;
    if (r.grounded) {
       const s = course.supports[r.support];
-      carry = s.kind === "block" ? blockX(s.block, ms) - blockX(s.block, ms - 1) : s.kind === "beam" ? beamSlide(ms) / 1000 : 0;
+      carry = s.kind === "block" ? blockX(s.block, ms, run.timing) - blockX(s.block, ms - 1, run.timing) : s.kind === "beam" ? beamSlideOf(ms, run.timing) / 1000 : 0;
       r.carryX = carry;
    }
 
@@ -854,7 +1038,7 @@ function runMs(run: ObstacleRun, mx: number, mz: number): void {
 
    // 5. vertical: the arc, a landing, or a walk-off
    if (r.grounded) {
-      const s = supportUnder(course, r.x, r.z, r.y, ms, r.support);
+      const s = supportUnder(course, r.x, r.z, r.y, ms, r.support, run.timing);
       if (s === NONE) {
          // walked off: gravity runs from this ms, coyote time starts
          startArc(r, ms, r.y, 0);
@@ -868,7 +1052,7 @@ function runMs(run: ObstacleRun, mx: number, mz: number): void {
       const yNew = arcY(r, ms);
       r.y = yNew;
       if (yNew < yOld) {
-         const s = landingSupport(course, r.x, r.z, yOld, yNew, ms);
+         const s = landingSupport(course, r.x, r.z, yOld, yNew, ms, run.timing);
          if (s !== NONE) {
             const top = course.supports[s].top;
             r.y = top;
@@ -883,7 +1067,7 @@ function runMs(run: ObstacleRun, mx: number, mz: number): void {
    }
 
    // 6. side collisions
-   sideCollisions(course, r, ms);
+   sideCollisions(course, r, ms, run.timing);
 
    // 7. progress guard: the non-carry step (input + push-outs) is at most MAX_MOVE
    if (run.guard) {
@@ -905,7 +1089,7 @@ function runMs(run: ObstacleRun, mx: number, mz: number): void {
    if (p > run.maxP) run.maxP = p;
 
    // 8. the bar
-   if (barHits(course, r.x, r.z, r.y, ms)) {
+   if (barHits(course, r.x, r.z, r.y, ms, run.timing)) {
       knock(run, ms);
       return;
    }
@@ -966,7 +1150,7 @@ function knockedMs(run: ObstacleRun): void {
       let x = r.x + (r.knockDir * KNOCK.vx) / 1000;
       if (r.knockDir * x >= KNOCK_STOP_X) x = r.knockDir * KNOCK_STOP_X;
       r.x = x;
-      if (r.knockDir * x >= KNOCK_STOP_X || !overlapsTop(run.course, r.x, r.z, ms)) r.knockDir = 0;
+      if (r.knockDir * x >= KNOCK_STOP_X || !overlapsTop(run.course, r.x, r.z, ms, run.timing)) r.knockDir = 0;
    }
    r.y = arcY(r, ms);
    if (r.y < KILL_Y) lose(run);

@@ -7,11 +7,21 @@
 // No durationMs: the shell shows "Played" counting up, and rules.ts ends the run at 300000 ms
 // ("timeup", unranked). A win submits the exact finish ms (finalScore), never the frame's end.
 import type { GameDefinition } from "@/arcade3d/core/types";
+import { LEVEL_IDS, type LevelId } from "../../types";
 import { ASSETS } from "./assets";
-import { STAT, finalScore } from "./rules";
+import { LEVELS } from "./levels";
+import { STAT, finalScore, type ObstacleLevel } from "./rules";
 import Scene from "./Scene";
 
-const definition: GameDefinition = {
+const LEVEL_DESCRIPTIONS: Record<LevelId, string> = {
+   1: "The classic course: five platforms, five blocks, one beam.",
+   2: "A longer course: six platforms and six blocks.",
+   3: "Seven blocks and a faster bar, blocks and beam.",
+   4: "Night run: seven platforms, faster hazards, narrower pads.",
+   5: "Championship: eight blocks at full speed on narrow pads.",
+};
+
+const definition: GameDefinition<ObstacleLevel> = {
    slug: "obstacle-race",
    Scene,
    assets: ASSETS,
@@ -33,6 +43,16 @@ const definition: GameDefinition = {
    // the runner cheers under the arch before the result panel
    resultDelayMs: 1200,
    finalScore,
+   // five levels (docs/arcade-levels.md; README "Levels"): level 1 is today's course; the levels
+   // flag off makes the core hand level 1's config, so the game is unchanged. No durationMs
+   // override: rules.ts owns the 300 s cap for every level.
+   levels: LEVEL_IDS.map((id) => ({
+      id,
+      description: LEVEL_DESCRIPTIONS[id],
+      config: LEVELS[id],
+      ...(id === 4 ? { environment: { lighting: "night", background: "#0f172a", fog: ["#0f172a", 40, 100] as [string, number, number] } } : {}),
+      ...(id === 5 ? { environment: { lighting: "sunset", background: "#431f30", fog: ["#431f30", 40, 100] as [string, number, number] } } : {}),
+   })),
 };
 
 export default definition;

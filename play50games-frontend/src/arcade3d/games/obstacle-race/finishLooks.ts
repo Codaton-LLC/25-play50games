@@ -19,8 +19,8 @@ export const ARCH_FADED = 0.3;
 export const ARCH_FADE_PAST = 0.6;
 
 /** The arch's target opacity: faded only through the result delay of a win that ended past the line. */
-export function archOpacity(phase: RunPhase, endReason: EndReason | null, runnerZ: number): number {
-   return phase === "over" && endReason === "win" && -runnerZ > LINES.finish + ARCH_FADE_PAST ? ARCH_FADED : 1;
+export function archOpacity(phase: RunPhase, endReason: EndReason | null, runnerZ: number, finishLine: number = LINES.finish): number {
+   return phase === "over" && endReason === "win" && -runnerZ > finishLine + ARCH_FADE_PAST ? ARCH_FADED : 1;
 }
 
 /**
@@ -63,9 +63,9 @@ const clamp01 = (v: number) => (v < 0 ? 0 : v > 1 ? 1 : v);
  * so the character's L points along world (x, z) = (-cos yaw, sin yaw)). 0 when the runner is
  * clear of the posts or that arm points away from the post.
  */
-export function postArmWeight(side: 1 | -1, x: number, z: number, yaw: number): number {
+export function postArmWeight(side: 1 | -1, x: number, z: number, yaw: number, finishLine: number = LINES.finish): number {
    const dx = (x < 0 ? -ARCH.postX : ARCH.postX) - x;
-   const dz = -LINES.finish - z;
+   const dz = -finishLine - z;
    const d = Math.hypot(dx, dz);
    const edge = clamp01((POST_ARM_REACH - d) / POST_ARM_RAMP);
    if (edge === 0) return 0;
@@ -109,9 +109,9 @@ function aimAwayFromPost(out: HumanoidPose, side: 1 | -1, postSide: number, yaw:
  * keeps its hand out of the arch's leg (found in review: the V put it 0.24 m deep). `scratch` is
  * overwritten. No-op when the runner is clear of the posts.
  */
-export function clearPostArm(p: HumanoidPose, x: number, z: number, yaw: number, t: number, k: number, scratch: HumanoidPose): HumanoidPose {
-   reaim(p, 1, x, yaw, t, postArmWeight(1, x, z, yaw) * k, scratch);
-   reaim(p, -1, x, yaw, t, postArmWeight(-1, x, z, yaw) * k, scratch);
+export function clearPostArm(p: HumanoidPose, x: number, z: number, yaw: number, t: number, k: number, scratch: HumanoidPose, finishLine: number = LINES.finish): HumanoidPose {
+   reaim(p, 1, x, yaw, t, postArmWeight(1, x, z, yaw, finishLine) * k, scratch);
+   reaim(p, -1, x, yaw, t, postArmWeight(-1, x, z, yaw, finishLine) * k, scratch);
    return p;
 }
 

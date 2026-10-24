@@ -3,9 +3,11 @@
 // Obstacle Race look: the inflatable course on its pool, the sweeper, the blocks, the beam, the
 // checkpoint gates, the stand-in finish arch and the stand-in runner. Decoration for this game only
 // (README "What a new game copies from here": copy the patterns in Scene.tsx, not this file).
-// Every size comes from rules.ts (COURSE, BAR, BLOCK, BEAM, PLATFORM, ARCH), so what is drawn is what
-// the rules collide with. Nothing here moves by itself: Scene.tsx turns the bar, slides the blocks,
-// tilts the beam, lights the gates and swings the runner's joints.
+// Every size comes from rules.ts (the course object, BAR, BLOCK, BEAM, PLATFORM, ARCH), so what is
+// drawn is what the rules collide with. The static spots are computed per course by spotsOf
+// (levels: every course of the game is drawn from its own data). Nothing here moves by itself:
+// Scene.tsx turns the bar, slides the blocks, tilts the beam, lights the gates and swings the
+// runner's joints.
 //
 // Draw calls: static repeats are one InstancedMesh each (pad bodies, tops, rims, pillars, slabs,
 // lines, posts, lane-rope floats); the five blocks are one vertex-coloured mesh in one
@@ -32,7 +34,7 @@ import {
 } from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import { useCanvasTexture, useInstanceMatrices, type InstanceSpot } from "@/arcade3d/core/render";
-import { ARCH, BAR, BEAM, BLOCK, COURSE, DISC, HUB, LINES, PLATFORM, WATER_Y, type Support } from "./rules";
+import { ARCH, BAR, BEAM, BLOCK, DISC, HUB, PLATFORM, WATER_Y, type Course, type Support } from "./rules";
 
 // ---------- look ----------
 
@@ -96,10 +98,8 @@ function boxSpot(minX: number, maxX: number, minP: number, maxP: number, bottom:
    return { x: (minX + maxX) / 2, y: (bottom + top) / 2, z: -(minP + maxP) / 2, sx: maxX - minX, sy: top - bottom, sz: maxP - minP };
 }
 
-const SUPPORTS = COURSE.supports;
-const byKind = (...kinds: Support["kind"][]) => SUPPORTS.filter((s) => kinds.includes(s.kind));
-const CHECKPOINT_PADS = new Set(COURSE.checkpoints.slice(1).map((c) => c.support));
-const FINISH_PAD = COURSE.finish.support;
+const SUPPORTS = (course: Course): readonly Support[] => course.supports;
+const byKind = (course: Course, ...kinds: Support["kind"][]): Support[] => course.supports.filter((s) => kinds.includes(s.kind));
 
 /** Static copies of one geometry with a colour per copy (instanceColor; the material is white). */
 function ColoredInstances({
@@ -270,63 +270,99 @@ export function LaneRopes() {
 
 // ---------- the static course ----------
 
-const PADS = byKind("pad", "bridge");
-const PAD_BODY_SPOTS = PADS.map((s) => boxSpot(s.minX, s.maxX, s.minP, s.maxP, UNDER, -SKIN));
-const PAD_TOP_SPOTS = PADS.filter((s) => !CHECKPOINT_PADS.has(SUPPORTS.indexOf(s)) && SUPPORTS.indexOf(s) !== FINISH_PAD).map((s) =>
-   boxSpot(s.minX, s.maxX, s.minP, s.maxP, -SKIN, 0)
-);
-const CHECKPOINT_TOP_SPOTS = [...CHECKPOINT_PADS].map((i) => {
-   const s = SUPPORTS[i];
-   return boxSpot(s.minX, s.maxX, s.minP, s.maxP, -SKIN, 0);
-});
-const FINISH_TOP_SPOTS = [boxSpot(SUPPORTS[FINISH_PAD].minX, SUPPORTS[FINISH_PAD].maxX, SUPPORTS[FINISH_PAD].minP, SUPPORTS[FINISH_PAD].maxP, -SKIN, 0)];
+/** Every instanced-mesh spot of one course (pure; Scene.tsx memoizes it per course). */
+export interface CourseSpots {
+   padBodies: InstanceSpot[];
+   padTops: InstanceSpot[];
+   checkpointTops: InstanceSpot[];
+   finishTop: InstanceSpot[];
+   rims: InstanceSpot[];
+   slabs: InstanceSpot[];
+   cushions: InstanceSpot[];
+   pillars: InstanceSpot[];
+   rails: InstanceSpot[];
+   lines: InstanceSpot[];
+   gateLines: number[];
+   gatePosts: InstanceSpot[];
+   finishSupport: Support;
+}
 
 /** Inflatable tubes along the pads' and bridges' edges, just under the top (never under the feet). */
 const RIM_R = 0.22;
 const RIM_Y = -0.12 - RIM_R;
-const RIM_SPOTS: InstanceSpot[] = (() => {
-   const spots: InstanceSpot[] = [];
-   for (const s of PADS) {
+const CUSHION = 0.08;
+
+/** The static spots of one course: pads, rims, platforms, pillars, beam posts, rails, lines and gate posts. */
+export function spotsOf(course: Course): CourseSpots {
+   const supports = SUPPORTS(course);
+   const pads = byKind(course, "pad", "bridge");
+   const checkpointPads = course.checkpoints.slice(1).map((c) => c.support);
+   const checkpointSet = new Set(checkpointPads);
+   const finishSupport = supports[course.finish.support];
+   const padBodies = pads.map((s) => boxSpot(s.minX, s.maxX, s.minP, s.maxP, UNDER, -SKIN));
+   const padTops = pads
+      .filter((s) => !checkpointSet.has(supports.indexOf(s)) && s !== finishSupport)
+      .map((s) => boxSpot(s.minX, s.maxX, s.minP, s.maxP, -SKIN, 0));
+   const checkpointTops = checkpointPads.map((i) => {
+      const s = supports[i];
+      return boxSpot(s.minX, s.maxX, s.minP, s.maxP, -SKIN, 0);
+   });
+   const finishTop = [boxSpot(finishSupport.minX, finishSupport.maxX, finishSupport.minP, finishSupport.maxP, -SKIN, 0)];
+   const rims: InstanceSpot[] = [];
+   for (const s of pads) {
       const len = s.maxP - s.minP;
       const zc = -(s.minP + s.maxP) / 2;
-      for (const x of [s.minX, s.maxX]) spots.push({ x, y: RIM_Y, z: zc, sx: RIM_R, sy: RIM_R, sz: len });
+      for (const x of [s.minX, s.maxX]) rims.push({ x, y: RIM_Y, z: zc, sx: RIM_R, sy: RIM_R, sz: len });
       if (s.kind === "pad") {
          const wid = s.maxX - s.minX;
-         for (const p of [s.minP, s.maxP]) spots.push({ x: (s.minX + s.maxX) / 2, y: RIM_Y, z: -p, rotY: Math.PI / 2, sx: RIM_R, sy: RIM_R, sz: wid });
+         for (const p of [s.minP, s.maxP]) rims.push({ x: (s.minX + s.maxX) / 2, y: RIM_Y, z: -p, rotY: Math.PI / 2, sx: RIM_R, sy: RIM_R, sz: wid });
       }
    }
-   return spots;
-})();
+   const platforms = byKind(course, "platform");
+   const slabs = platforms.map((s) => boxSpot(s.minX, s.maxX, s.minP, s.maxP, s.top - PLATFORM.thickness, s.top - CUSHION));
+   const cushions = platforms.map((s) => boxSpot(s.minX, s.maxX, s.minP, s.maxP, s.top - CUSHION, s.top));
+   const pillarSpots = course.solids.filter((o) => o.shape === "box").map((o) => boxSpot(o.minX, o.maxX, o.minP, o.maxP, UNDER, o.top));
+   // under the beam: four posts inside its footprint, down to the water
+   const beam = supports.find((s) => s.kind === "beam") as Support;
+   const beamPosts: InstanceSpot[] = [0.12, 0.37, 0.63, 0.88].map((k) => ({
+      x: 0,
+      y: (UNDER + -BEAM.thickness) / 2,
+      z: -(beam.minP + k * (beam.maxP - beam.minP)),
+      sx: 0.2,
+      sy: -BEAM.thickness - UNDER,
+      sz: 0.2,
+   }));
+   // rails under each block row (looks only): the track the block slides on
+   const rails = byKind(course, "block").flatMap((s) =>
+      [s.minP + 0.45, s.maxP - 0.45].map((p) => ({ x: 0, y: -0.85, z: -p, rotY: Math.PI / 2, sx: 0.07, sy: 0.07, sz: 2 * (BLOCK.travel + BLOCK.width / 2) + 1 }))
+   );
+   // painted lines: the start line and the three checkpoint lines (white)
+   const lines = course.checkpoints.map((c) => {
+      const s = supports[c.support];
+      return { x: 0, y: 0.004, z: -c.line, sx: s.maxX - s.minX - 0.3, sy: 1, sz: LINE_DEPTH };
+   });
+   const gateLines = course.checkpoints.slice(1).map((c) => c.line);
+   const gatePosts: InstanceSpot[] = gateLines.flatMap((line) =>
+      [-GATE.postX, GATE.postX].map((x) => ({ x, y: (WATER_Y + GATE.height) / 2, z: -line, sx: 2 * GATE.postRadius, sy: GATE.height - WATER_Y, sz: 2 * GATE.postRadius }))
+   );
+   return {
+      padBodies,
+      padTops,
+      checkpointTops,
+      finishTop,
+      rims,
+      slabs,
+      cushions,
+      pillars: [...pillarSpots, ...beamPosts],
+      rails,
+      lines,
+      gateLines,
+      gatePosts,
+      finishSupport,
+   };
+}
 
-const PLATFORMS = byKind("platform");
-const CUSHION = 0.08;
-const SLAB_SPOTS = PLATFORMS.map((s) => boxSpot(s.minX, s.maxX, s.minP, s.maxP, s.top - PLATFORM.thickness, s.top - CUSHION));
-const CUSHION_SPOTS = PLATFORMS.map((s) => boxSpot(s.minX, s.maxX, s.minP, s.maxP, s.top - CUSHION, s.top));
-const PILLAR_SPOTS = COURSE.solids.filter((o) => o.shape === "box").map((o) => boxSpot(o.minX, o.maxX, o.minP, o.maxP, UNDER, o.top));
-
-/** Under the beam: four posts inside its footprint, down to the water. */
-const BEAM_SUPPORT = SUPPORTS.find((s) => s.kind === "beam") as Support;
-const BEAM_POST_SPOTS: InstanceSpot[] = [0.12, 0.37, 0.63, 0.88].map((k) => ({
-   x: 0,
-   y: (UNDER + -BEAM.thickness) / 2,
-   z: -(BEAM_SUPPORT.minP + k * (BEAM_SUPPORT.maxP - BEAM_SUPPORT.minP)),
-   sx: 0.2,
-   sy: -BEAM.thickness - UNDER,
-   sz: 0.2,
-}));
-
-/** Rails under each block row (looks only): the track the block slides on. */
-const BLOCK_ROWS = byKind("block");
-const RAIL_SPOTS: InstanceSpot[] = BLOCK_ROWS.flatMap((s) =>
-   [s.minP + 0.45, s.maxP - 0.45].map((p) => ({ x: 0, y: -0.85, z: -p, rotY: Math.PI / 2, sx: 0.07, sy: 0.07, sz: 2 * (BLOCK.travel + BLOCK.width / 2) + 1 }))
-);
-
-/** Painted lines: the start line and the three checkpoint lines (white), the finish line (checkered). */
 const LINE_DEPTH = 0.35;
-const LINE_SPOTS: InstanceSpot[] = COURSE.checkpoints.map((c) => {
-   const s = SUPPORTS[c.support];
-   return { x: 0, y: 0.004, z: -c.line, sx: s.maxX - s.minX - 0.3, sy: 1, sz: LINE_DEPTH };
-});
 
 function useCourseParts() {
    return useDisposable(() => {
@@ -359,37 +395,36 @@ function useSpots(spots: readonly InstanceSpot[]): RefObject<InstancedMesh> {
    return ref;
 }
 
-const PILLARS_AND_POSTS = [...PILLAR_SPOTS, ...BEAM_POST_SPOTS];
-
 /** Everything of the course that never moves: pads, bridges, rims, platforms, pillars, posts, rails, lines, the disc, the hub. */
-export function CourseStatic() {
+export function CourseStatic({ course }: { course: Course }) {
    const p = useCourseParts();
+   const spots = useMemo(() => spotsOf(course), [course]);
    const checker = useCanvasTexture(512, 64, drawChecker);
    const discTop = useCanvasTexture(512, 512, drawDiscTop);
-   const padBodies = useSpots(PAD_BODY_SPOTS);
-   const padTops = useSpots(PAD_TOP_SPOTS);
-   const checkpointTops = useSpots(CHECKPOINT_TOP_SPOTS);
-   const finishTop = useSpots(FINISH_TOP_SPOTS);
-   const rims = useSpots(RIM_SPOTS);
-   const slabs = useSpots(SLAB_SPOTS);
-   const cushions = useSpots(CUSHION_SPOTS);
-   const pillars = useSpots(PILLARS_AND_POSTS);
-   const rails = useSpots(RAIL_SPOTS);
-   const lines = useSpots(LINE_SPOTS);
-   const finishLine = SUPPORTS[COURSE.finish.support];
+   const padBodies = useSpots(spots.padBodies);
+   const padTops = useSpots(spots.padTops);
+   const checkpointTops = useSpots(spots.checkpointTops);
+   const finishTop = useSpots(spots.finishTop);
+   const rims = useSpots(spots.rims);
+   const slabs = useSpots(spots.slabs);
+   const cushions = useSpots(spots.cushions);
+   const pillars = useSpots(spots.pillars);
+   const rails = useSpots(spots.rails);
+   const lines = useSpots(spots.lines);
+   const finishLine = spots.finishSupport;
    return (
       <group name="course">
-         <instancedMesh ref={padBodies} args={[p.box, p.padSide, PAD_BODY_SPOTS.length]} name="pad-bodies" />
-         <instancedMesh ref={padTops} args={[p.box, p.padTop, PAD_TOP_SPOTS.length]} name="pad-tops" />
-         <instancedMesh ref={checkpointTops} args={[p.box, p.checkpointTop, CHECKPOINT_TOP_SPOTS.length]} name="checkpoint-tops" />
-         <instancedMesh ref={finishTop} args={[p.box, p.finishTop, FINISH_TOP_SPOTS.length]} name="finish-top" />
-         <instancedMesh ref={rims} args={[p.tube, p.rim, RIM_SPOTS.length]} name="rims" />
-         <instancedMesh ref={slabs} args={[p.box, p.slab, SLAB_SPOTS.length]} name="platform-slabs" />
-         <instancedMesh ref={cushions} args={[p.box, p.cushion, CUSHION_SPOTS.length]} name="platform-cushions" />
-         <instancedMesh ref={pillars} args={[p.box, p.pillar, PILLARS_AND_POSTS.length]} name="pillars" />
-         <instancedMesh ref={rails} args={[p.tube, p.rail, RAIL_SPOTS.length]} name="rails" />
-         <instancedMesh ref={lines} args={[p.flat, p.line, LINE_SPOTS.length]} name="lines" />
-         <mesh position={[0, 0.005, -LINES.finish]} rotation-x={-Math.PI / 2}>
+         <instancedMesh ref={padBodies} args={[p.box, p.padSide, spots.padBodies.length]} name="pad-bodies" />
+         <instancedMesh ref={padTops} args={[p.box, p.padTop, spots.padTops.length]} name="pad-tops" />
+         <instancedMesh ref={checkpointTops} args={[p.box, p.checkpointTop, spots.checkpointTops.length]} name="checkpoint-tops" />
+         <instancedMesh ref={finishTop} args={[p.box, p.finishTop, spots.finishTop.length]} name="finish-top" />
+         <instancedMesh ref={rims} args={[p.tube, p.rim, spots.rims.length]} name="rims" />
+         <instancedMesh ref={slabs} args={[p.box, p.slab, spots.slabs.length]} name="platform-slabs" />
+         <instancedMesh ref={cushions} args={[p.box, p.cushion, spots.cushions.length]} name="platform-cushions" />
+         <instancedMesh ref={pillars} args={[p.box, p.pillar, spots.pillars.length]} name="pillars" />
+         <instancedMesh ref={rails} args={[p.tube, p.rail, spots.rails.length]} name="rails" />
+         <instancedMesh ref={lines} args={[p.flat, p.line, spots.lines.length]} name="lines" />
+         <mesh position={[0, 0.005, -course.finish.line]} rotation-x={-Math.PI / 2}>
             <planeGeometry args={[finishLine.maxX - finishLine.minX - 0.3, 0.9]} />
             <meshBasicMaterial map={checker} polygonOffset polygonOffsetFactor={-2} polygonOffsetUnits={-2} />
          </mesh>
@@ -476,8 +511,8 @@ export function useBlockMesh(): { geometry: BufferGeometry; material: MeshStanda
 // ---------- the balance beam ----------
 
 /** The beam: its group's origin is the top centre line, so Scene.tsx tilts it round the walking line. */
-export function BalanceBeam({ beam }: { beam: RefObject<Group> }) {
-   const s = BEAM_SUPPORT;
+export function BalanceBeam({ beam, course }: { beam: RefObject<Group>; course: Course }) {
+   const s = useMemo(() => course.supports.find((x) => x.kind === "beam") as Support, [course]);
    const length = s.maxP - s.minP;
    return (
       <group ref={beam} position={[0, 0, -(s.minP + s.maxP) / 2]} name="beam">
@@ -497,11 +532,6 @@ export function BalanceBeam({ beam }: { beam: RefObject<Group> }) {
 
 export const GATE = { postX: 3.3, height: 2.9, postRadius: 0.12 } as const;
 
-const GATE_LINES = COURSE.checkpoints.slice(1).map((c) => c.line);
-const GATE_POST_SPOTS: InstanceSpot[] = GATE_LINES.flatMap((line) =>
-   [-GATE.postX, GATE.postX].map((x) => ({ x, y: (WATER_Y + GATE.height) / 2, z: -line, sx: 2 * GATE.postRadius, sy: GATE.height - WATER_Y, sz: 2 * GATE.postRadius }))
-);
-
 /** What Scene.tsx animates on a gate: its banner material (colour) and its flag (pop). */
 export interface GateRig {
    banner: MeshStandardMaterial;
@@ -509,7 +539,8 @@ export interface GateRig {
 }
 
 /** The three gates: posts (one draw call), and per gate a banner and a flag Scene.tsx colours and pops. */
-export function Gates({ rigs }: { rigs: GateRig[] }) {
+export function Gates({ rigs, course }: { rigs: GateRig[]; course: Course }) {
+   const spots = useMemo(() => spotsOf(course), [course]);
    const res = useDisposable(() => ({
       post: new CylinderGeometry(0.5, 0.5, 1, 12),
       postMat: new MeshStandardMaterial({ color: COLORS.post, roughness: 0.5 }),
@@ -518,11 +549,11 @@ export function Gates({ rigs }: { rigs: GateRig[] }) {
       pole: new CylinderGeometry(0.03, 0.03, 0.9, 6),
       poleMat: new MeshStandardMaterial({ color: "#475569" }),
    }));
-   const posts = useSpots(GATE_POST_SPOTS);
+   const posts = useSpots(spots.gatePosts);
    return (
       <group name="gates">
-         <instancedMesh ref={posts} args={[res.post, res.postMat, GATE_POST_SPOTS.length]} />
-         {GATE_LINES.map((line, k) => (
+         <instancedMesh ref={posts} args={[res.post, res.postMat, spots.gatePosts.length]} />
+         {spots.gateLines.map((line, k) => (
             <group key={line} position={[0, GATE.height, -line]}>
                <mesh geometry={res.beam} material={rigs[k].banner} />
                <group
@@ -541,7 +572,7 @@ export function Gates({ rigs }: { rigs: GateRig[] }) {
 }
 
 export function createGateRigs(): GateRig[] {
-   return GATE_LINES.map(() => ({
+   return [1, 2, 3].map(() => ({
       banner: new MeshStandardMaterial({ color: COLORS.accent, roughness: 0.4, side: DoubleSide, emissive: new Color(COLORS.accent), emissiveIntensity: 0.15 }),
       flag: null,
    }));

@@ -24,7 +24,7 @@
 // - The finish arch is the group D GLB fitted to the rules' ARCH (assets.ts), with
 //   FinishArchPrimitive as its fallback. It fades while a runner who jumped over the line cheers
 //   behind it, and a runner cheering by a post keeps that arm out of its leg (finishLooks.ts).
-import { memo, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { memo, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { flushSync, useFrame, useThree } from "@react-three/fiber";
 import { Color, type Group, type Material, type Matrix4, type Mesh, type MeshStandardMaterial, type Texture } from "three";
 import { Model } from "@/arcade3d/core/assets";
@@ -32,6 +32,7 @@ import CameraRig from "@/arcade3d/core/CameraRig";
 import { playSfx } from "@/arcade3d/core/audio";
 import { useGameTime } from "@/arcade3d/core/gameTime";
 import { useInput } from "@/arcade3d/core/input";
+import { useLevel } from "@/arcade3d/core/level";
 import { inputToWorld, turnTowards } from "@/arcade3d/core/math";
 import { BlobShadow, DynamicInstanced } from "@/arcade3d/core/render";
 import {
@@ -78,8 +79,6 @@ import {
 import {
    APEX_HEIGHT,
    BEAM,
-   COURSE,
-   LINES,
    LOST_MS,
    NONE,
    RUNNER,
@@ -88,12 +87,14 @@ import {
    V_RUN,
    WATER_Y,
    barAngle,
-   beamSlide,
+   beamSlideOf,
    blockX,
+   buildCourse,
    createRun,
    createStepInput,
    groundBelow,
    step,
+   type ObstacleLevel,
    type ObstacleRun,
 } from "./rules";
 
@@ -339,25 +340,24 @@ const Water = memo(function Water() {
    return <Pool water={water} />;
 });
 
-const Sweeper = memo(function Sweeper({ fx }: { fx: Fx }) {
+const Sweeper = memo(function Sweeper({ run, fx }: { run: ObstacleRun; fx: Fx }) {
    const bar = useRef<Group>(null);
    useFrame(() => {
-      if (bar.current) bar.current.rotation.y = barAngle(fx.obstacleMs);
+      if (bar.current) bar.current.rotation.y = barAngle(fx.obstacleMs, run.timing);
    });
    return <SweeperBar bar={bar} />;
 });
 
-const BLOCKS = COURSE.supports.filter((s) => s.kind === "block");
-
-const Blocks = memo(function Blocks({ fx }: { fx: Fx }) {
+const Blocks = memo(function Blocks({ run, fx }: { run: ObstacleRun; fx: Fx }) {
    const block = useBlockMesh();
+   const blocks = useMemo(() => run.course.supports.filter((s) => s.kind === "block"), [run.course]);
    const place = (i: number, m: Matrix4) => {
-      const s = BLOCKS[i];
-      m.makeTranslation(blockX(s.block, fx.obstacleMs), 0, -(s.minP + s.maxP) / 2);
+      const s = blocks[i];
+      m.makeTranslation(blockX(s.block, fx.obstacleMs, run.timing), 0, -(s.minP + s.maxP) / 2);
    };
    // the children form (one mesh): core DynamicInstanced's `parts` form throws on unmount (README "Known issues")
    return (
-      <DynamicInstanced count={BLOCKS.length} update={place} name="blocks">
+      <DynamicInstanced count={blocks.length} update={place} name="blocks">
          <primitive object={block.geometry} attach="geometry" />
          <primitive object={block.material} attach="material" />
       </DynamicInstanced>
@@ -366,13 +366,13 @@ const Blocks = memo(function Blocks({ fx }: { fx: Fx }) {
 
 const TILT = (BEAM.tiltDeg * Math.PI) / 180;
 
-const Beam = memo(function Beam({ fx }: { fx: Fx }) {
+const Beam = memo(function Beam({ run, fx }: { run: ObstacleRun; fx: Fx }) {
    const beam = useRef<Group>(null);
    useFrame(() => {
       // in phase with the slide: the side the runner is pushed towards dips
-      if (beam.current) beam.current.rotation.z = (-TILT * beamSlide(fx.obstacleMs)) / BEAM.slide;
+      if (beam.current) beam.current.rotation.z = (-TILT * beamSlideOf(fx.obstacleMs, run.timing)) / run.timing.beamSlide;
    });
-   return <BalanceBeam beam={beam} />;
+   return <BalanceBeam beam={beam} course={run.course} />;
 });
 
 const ACCENT = new Color(COLORS.accent);
@@ -405,7 +405,7 @@ const CheckpointGates = memo(function CheckpointGates({ run, fx }: { run: Obstac
          }
       }
    });
-   return <Gates rigs={rigs} />;
+   return <Gates rigs={rigs} course={run.course} />;
 });
 
 // ---------- the finish arch ----------
@@ -455,7 +455,7 @@ const FinishArch = memo(function FinishArch({ run }: { run: ObstacleRun }) {
 
    useFrame(() => {
       const { phase, endReason } = useArcadeStore.getState();
-      const target = archOpacity(phase, endReason, run.runner.z);
+      const target = archOpacity(phase, endReason, run.runner.z, run.course.finish.line);
       if (fade.opacity === target) return;
       fade.opacity += (target - fade.opacity) * (1 - Math.exp(-8 * time.delta));
       if (Math.abs(target - fade.opacity) < 0.002) fade.opacity = target;
@@ -463,7 +463,7 @@ const FinishArch = memo(function FinishArch({ run }: { run: ObstacleRun }) {
    });
 
    // the GLB fitted to rules.ts ARCH (legs on the posts, assets.ts); the stand-in if it is missing or broken
-   return <Model ref={arch} asset={ASSETS.finishArch} position={[0, 0, -LINES.finish]} fallback={<FinishArchPrimitive />} />;
+   return <Model ref={arch} asset={ASSETS.finishArch} position={[0, 0, -run.course.finish.line]} fallback={<FinishArchPrimitive />} />;
 });
 
 // ---------- the runner ----------
@@ -497,7 +497,7 @@ interface Gait {
 /** Is the grounded runner on the balance beam? */
 const onBeamOf = (run: ObstacleRun) => {
    const r = run.runner;
-   return r.grounded && r.support !== NONE && COURSE.supports[r.support].kind === "beam";
+   return r.grounded && r.support !== NONE && run.course.supports[r.support].kind === "beam";
 };
 
 const Runner = memo(function Runner({ run, fx }: { run: ObstacleRun; fx: Fx }) {
@@ -571,7 +571,7 @@ const Runner = memo(function Runner({ run, fx }: { run: ObstacleRun; fx: Fx }) {
       if (gait.cheer > 0.001) {
          blendPoses(p, cheerPose(t, scratch), gait.cheer, p);
          // finished hugging a post: the arm on its side up and back (−z), out of the arch's leg
-         clearPostArm(p, r.x, r.z, fx.yaw, t, gait.cheer, scratch);
+         clearPostArm(p, r.x, r.z, fx.yaw, t, gait.cheer, scratch, run.course.finish.line);
       }
       if (gait.slump > 0.001) {
          // hanging arms, the head and the shoulders dropped
@@ -618,7 +618,7 @@ const Runner = memo(function Runner({ run, fx }: { run: ObstacleRun; fx: Fx }) {
       g.scale.setScalar(scale);
 
       // the shadow and the indigo marker sit on the highest support under the centre (or the water)
-      const ground = groundBelow(COURSE, r.x, r.z, r.y, fx.obstacleMs);
+      const ground = groundBelow(run.course, r.x, r.z, r.y, fx.obstacleMs, run.timing);
       sh.visible = r.state !== "lost";
       sh.position.set(r.x, ground, r.z);
       const above = Math.max(0, r.y - ground);
@@ -638,7 +638,7 @@ const Runner = memo(function Runner({ run, fx }: { run: ObstacleRun; fx: Fx }) {
          fx.roll = 0;
          s.rotation.set(0, 0, 0);
          const onBeam = onBeamOf(run);
-         const wobble = onBeam ? Math.sin(t * 7) * 6 * DEG + (beamSlide(fx.obstacleMs) / BEAM.slide) * -5 * DEG : 0;
+         const wobble = onBeam ? Math.sin(t * 7) * 6 * DEG + (beamSlideOf(fx.obstacleMs, run.timing) / run.timing.beamSlide) * -5 * DEG : 0;
          // the stand-in leans and slumps as a whole and bobs per step; the GLB leans and slumps in
          // its spine (pose) and rises and falls with its planted foot (the pose's bodyLift)
          b.rotation.set(fallback ? -fx.lean + (slumped ? 0.25 : 0) : 0, 0, wobble);
@@ -672,8 +672,8 @@ const Runner = memo(function Runner({ run, fx }: { run: ObstacleRun; fx: Fx }) {
             // towards its front (yaw 0) or its back (yaw π), world −z both ways)
             const w = Math.sin(t * 10) * 0.25;
             const back = Math.PI - 0.84 * Math.cos(fx.yaw);
-            const kL = postArmWeight(1, r.x, r.z, fx.yaw);
-            const kR = postArmWeight(-1, r.x, r.z, fx.yaw);
+            const kL = postArmWeight(1, r.x, r.z, fx.yaw, run.course.finish.line);
+            const kR = postArmWeight(-1, r.x, r.z, fx.yaw, run.course.finish.line);
             shoulderL.rotation.set(mix(2.9 + w, back + 0.3 * w, kL), 0, mix(-0.35, 0, kL));
             shoulderR.rotation.set(mix(2.9 - w, back - 0.3 * w, kR), 0, mix(0.35, 0, kR));
             elbowL.rotation.set(0.3, 0, 0);
@@ -800,8 +800,10 @@ const Effects = memo(function Effects({ fx }: { fx: Fx }) {
 
 export default function Scene() {
    // GameShell remounts the Scene (and its game time) on start and retry: a fresh run every time.
-   // One fixed course, no seed (README "Fixed course").
-   const [run] = useState(() => createRun());
+   // The level config comes from the shell (useLevel); with the levels flag off the core hands
+   // level 1's config, which builds the course of today's game bit for bit (README "Levels").
+   const { config } = useLevel<ObstacleLevel>();
+   const [run] = useState(() => createRun(buildCourse(config)));
    const [fx] = useState(createFx);
    const [follow] = useState<Follow>(() => ({ ...followPoint(run, { x: 0, y: 0, z: 0 }), hold: false }));
    const gl = useThree((state) => state.gl);
@@ -833,10 +835,10 @@ export default function Scene() {
          <FollowCamera run={run} follow={follow} />
          <Water />
          <LaneRopes />
-         <CourseStatic />
-         <Sweeper fx={fx} />
-         <Blocks fx={fx} />
-         <Beam fx={fx} />
+         <CourseStatic course={run.course} />
+         <Sweeper run={run} fx={fx} />
+         <Blocks run={run} fx={fx} />
+         <Beam run={run} fx={fx} />
          <CheckpointGates run={run} fx={fx} />
          <FinishArch run={run} />
          <Runner run={run} fx={fx} />
