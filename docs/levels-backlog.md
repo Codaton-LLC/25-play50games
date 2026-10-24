@@ -382,3 +382,165 @@ ordering is demanded.
   `EARLIEST_LOSS_S` (spine of the closed-form proof), monster-kitchen `PATIENCE.drains.grumpy` /
   `DRIFT` (feed both ceiling and spam-lose bound), snowball-battle L4 windup 1.0 (threatens the
   witness gate and minDurationMs), knight-arena attempt limits (break the 58–62 s window proof).
+
+
+---
+
+## Part 3 (P-57)
+
+Same legend and risk definition as Parts 1-2. All 6 games here are dev games (`status: "dev"`,
+no live bests; the `enabled` flag lives server-side in WP `arcade-games.json`). Line cites are
+inside `play50games-frontend/src/arcade3d/games/<slug>/`.
+
+## shopping-cart (plan GAME 16 — Crazy Shopping Cart)
+
+| Level | Plan says (name · objective · hazards · timer · lighting) | Fits built game? | Concrete config (rules.ts constant: current → proposed) | Scoring-limit risk |
+|---|---|---|---|---|
+| 1 | Mini Market · collect 5 listed products, reach checkout · open area, no hazards · 90 s · bright | yes (adapt — built is 6 items/75 s, one fixed 32×24 store, win = all 6 + `FINISH_ZONE` entry, :67-70, :797-803) | today's config stays L1: `DURATION_MS 75_000` (:24), `LIST_COUNT 6` (:25); plan's 5-item/90 s is *easier*, dropped — levels must escalate | low — today's config is exactly the proven one (2030 / 3500–77000 / 1700+100t, meta.ts:5-14; proof needs `MIN_WIN_ROUTE_M 30.91` :166 + `MIN_TOUR_DISTANCE 52` :152) |
+| 2 | Fresh Food · collect 7 · more spread targets · 120 s · natural | yes (adapt) | `LIST_COUNT → 7` (:25); `DURATION_MS → 100_000` (120 s breaks proven `maxDurationMs 77000`); spread = seeded slot draw already (`SHELF_SLOTS` 24, :81-110); "natural" lighting **no support** — `lighting: "indoor"` hardcoded (index.tsx:15) | medium — more items lengthen `shortestPickTour` (:282-314) → the 2030 ceiling and `MIN_TOUR_DISTANCE` re-derived per level |
+| 3 | Household Aisles · collect 9 · moving hazards · 150 s · dramatic | yes (adapt) | `LIST_COUNT → 9`; moving hazards already = patrolling shoppers (:741-764): 4th shopper active at 20 s instead of 40 (:732, :422); `SPILLS` spawn 25/50 s → 15/35 (:139-142); dramatic lighting **no support** | medium — shoppers/spills cost time (lower scores, ceiling intact), but 150 s ≫ 77 s cap → per-level `maxDurationMs` mandatory |
+| 4 | Superstore · collect 12 · target matching / resource pressure · 150 s · strong contrast | partially — "listed products" matching IS the core loop (`generateList`, :327-363); "resource pressure" = shorter clock; 12 items stress the 24-slot pool | `LIST_COUNT → 12`; `DURATION_MS → 60_000` (pressure); `PYRAMIDS` 6 → 8 (:128-137) for chokepoints; contrast lighting **no support** | medium-high — 12-item tour distance and earliest-win move together; the 1700+100t envelope re-proven |
+| 5 | Closing-Time Rush · collect 15 · max density · 180 s · cinematic | partially — 15 items near the 24-slot limit; "6 sub-zones" **no support** (fixed `SOLID_OBSTACLES`, :73-78) | `LIST_COUNT → 15`; `DURATION_MS → 180_000`; `SPILLS` → 3 puddles; cinematic env **no support** (index.tsx:15) | medium — ceiling rises with items+combo but the time bonus shrinks with the clock; per-level limits mandatory at 180 s |
+
+Notes: Level 1 = today's game — yes (dev, meta.ts:22); the built 6-item/75 s run is the only fully
+proven config, so it stays L1 and the plan's smaller L1 is dropped. The plan's "2–6 sub-zones" are
+free as extra `SOLID_OBSTACLES` AABBs (:44-78) — no new mechanic, but they change routes → tour
+proof. No new GLB (cart/3 shoppers/10 products exist, assets.ts:17-38). Per-level lighting needs the
+core environment override (Parts 1-2 gap). Effort **M** — all five levels are `LIST_COUNT` /
+`DURATION_MS` / shopper / spill constant sets plus a per-level ceiling re-proof; no new systems.
+
+## rocket-landing (plan GAME 30)
+
+| Level | Plan says (name · objective · hazards · timer · lighting) | Fits built game? | Concrete config (rules.ts constant: current → proposed) | Scoring-limit risk |
+|---|---|---|---|---|
+| 1 | Moon Pad · 2 controlled landings · wide route, low hazard · 120 s · bright | yes — the built `PLANETS` table (:11-17) already escalates; L1 = planets 1-2 (Moon g1.6, Desert g3.7); win-on-2nd needs a campaign-length param | per-level planet subset via `createRun(seed, level)` (:71); max = 2·500+300 = 1300; `DURATION_MS 240_000` (:5) → 120_000 | low — per-award 500 cap + ≥1.119 s min flight (README "Server limits") recompute trivially per subset |
+| 2 | Wide Crater · 3 landings · tighter turns · 150 s · natural | yes — planets 1-3 (adds Ice g5); fuel budgets 100/100/95 are the built-in resource ramp | subset 1-3; `DURATION_MS → 150_000`; natural lighting **no support** (`lighting: "space"` hardcoded, index.tsx:13) | low — maxScore → 1800+300; envelope 800+200t re-proven (fastest clear = n·1.119+(n−1)·1.2 s, `TRANSITION` :9) |
+| 3 | Mars Ridge · 4 landings · moving obstacles · 180 s · dramatic | yes — planet 4 wind (`ax = 0.4·sin(2πt/8)`, :243-245) and planet 5 moving pad (:37-38) = the plan's "moving obstacles"; dramatic lighting **no support** | subset 1-4; wind `0.4 → 0.6` (:245); pad amplitude `2 → 3` (:38); `DURATION_MS → 180_000` | low-medium — moving pad adds `padVx` to the `|vx−padVx|<1` contact gate (:8); award-timing proof unchanged, fairness re-checked |
+| 4 | Asteroid Base · 5 landings · resource/time pressure · 180 s · strong contrast | yes — today's full campaign: fuel 100→85 (:11-17), asteroid g1 + roof cavern (:10) | today's game as-is; `DURATION_MS` → 180_000 (5 awards ≥ 9.4 s ≪ 180 s); contrast lighting **no support** | low — today's config is the proven one (2800 / 5000–242000 / 800 / 200, meta.ts:20-29) |
+| 5 | Precision Landing · 6 landings · dense route + precision · 180–240 s · cinematic | partially — only 5 planets exist; a 6th needs a new `PLANETS` entry (gravity/fuel/terrain recipe, no GLB); precision = tighter `CONTACT` gates | `CONTACT.vy 2 → 1.5`, `|theta| π/18 → π/24` (:8); or 5 planets with clean bonus `300 → 450` (:191-194); cinematic env **no support** | medium — tighter gates don't change the award clamps (:168-174) but make 500-per-planet rarer → per-level bot re-proof |
+
+Notes: Level 1 = today's game? **Recommend re-ordering** (dev, meta.ts:11): the built 5-planet
+campaign sits in the plan's L4-L5 territory, so slice it — L1 = planets 1-2, L4 = today's game,
+L5 = tightened contact gates (or a 6th planet). Best fit of all 22 games: every plan hazard
+(tighter turns, wind, moving pad, fuel pressure) already exists as a `PLANETS` mechanic. New
+mechanics: none strictly — the plan's "fuel pickup" was explicitly omitted (README) and should stay
+out (it would break the reserve-scoring balance). No new GLB (rocket + feet only, assets.ts:4-6;
+pads/terrain procedural). Effort **S** — per-level `PLANETS` subsets + `DURATION_MS`; the scoring
+proof is a 3-line closed form per level.
+
+## treasure-island (plan GAME 11)
+
+| Level | Plan says (name · objective · hazards · timer · lighting) | Fits built game? | Concrete config (rules.ts constant: current → proposed) | Scoring-limit risk |
+|---|---|---|---|---|
+| 1 | Starter Beach · find 2 objectives + final chest · none · 180 s · bright | adapt — built is find-5-treasures/90 s with a detector; no clue→chest chain; "2 objectives" = `TREASURE_COUNT → 2` | `TREASURE_COUNT 5 → 2` (:17); `DURATION_MS 90_000 → 150_000` (:16; 180 s needs per-level limits — proven `maxDurationMs 92000`); 150 s keeps headroom for the tide (`TIDE.startS 70`, :51) | medium — `MIN_ROUTE = 38 − 0.9 − 4·1.8 = 29.9` (:437) and EARLIEST_WIN 8.98 s (:440) re-derive per count; maxScore 2060 recomputed |
+| 2 | Palm Grove · 3 objectives · one blocked path · 210 s · natural | partially — count ✓; blocked path **no support** (open island, props are pass-around AABBs) | `TREASURE_COUNT → 3`; `DURATION_MS → 150_000`; blocked path: new mechanic (a rock wall is decor, no lock logic); natural lighting **no support** (sunset hardcoded, index.tsx:20) | medium — as L1; blocked-path rewrites `IDEAL_ROUTE.min 38` if it detours |
+| 3 | Rocky Cove · 4 · branching/locked paths · 240 s · dramatic | partially — seeded branching placement exists (`SPACING.treasures 6`, :57); locked paths **no support** | `TREASURE_COUNT → 4`; `TIDE.startS 70 → 55` (:51) = the pressure knob; dramatic lighting **no support** | medium — proof cites `TIDE.startS = 70` (README "Server limits"); earlier tide re-opens the earliest-win bound |
+| 4 | Jungle Interior · 5 · randomized positions · 240 s · stronger contrast | yes — seeded randomization exists (:265-291); today's config is essentially this level | today's config kept: `TREASURE_COUNT 5` (:17); `TIDE.startS → 60`, `finalShore 0.75 → 0.65` (:51); contrast lighting **no support** | medium — full proof (MIN_ROUTE, 8.98 s vs `minDurationMs 8500`) re-proven; 2060 recomputed |
+| 5 | Pirate Peak · 6 objectives + final chest · full-map route · 300 s · cinematic | partially — 6 treasures ✓; the "final chest after clues" climax has no mechanic (win = Nth dig, :656); larger island needs camera re-fit | `TREASURE_COUNT → 6`; `SPACING.treasures 6 → 5` (:57); `ISLAND.rx 14 → 17` (:20-29) — camera fit re-checked; chest climax: new mechanic | medium-high — bigger island + tighter spacing re-run the `IDEAL_ROUTE.min` bound; 300 s needs per-level limits |
+
+Notes: Level 1 = today's game? Dev (meta.ts:11), no bests — recommend re-ordering as in
+construction-worker (P2): built 5-treasure/90 s is mid-plan (≈L4); make L1 a 3-treasure/150 s
+truncated config and let today's config land on L4. New mechanics: the clue→map-piece→final-chest
+chain (the plan's core loop — built win is just the Nth dig), locked/blocked paths, a walkable rope
+bridge (plan GLB + new collision code). "Map piece" can reuse the coin GLB — no new GLB strictly
+required (chest/palm/rock/shovel exist, assets.ts:54-72). Effort **M** (constants + tide + per-level
+proofs); **L** if the clue-chain/chest climax is demanded.
+
+## dino-egg-rescue (plan GAME 14)
+
+| Level | Plan says (name · objective · hazards · timer · lighting) | Fits built game? | Concrete config (rules.ts constant: current → proposed) | Scoring-limit risk |
+|---|---|---|---|---|
+| 1 | Green Valley · recover 3 eggs to matching nests · simple path · 120 s · bright | partially — built is ONE nest, pure time-attack, no win state (README "Run end"); "matching nests" = destination matching **no support** | today's 90 s game stays L1: `DURATION_MS 90_000` (:14), 4 boulder lanes (:86-91), `maxStack 3` (:101); plan's 3-egg/120 s quota: no win-state support | low as-is — proof is for exactly today: supply ≤ 33 × ≤150 + 3 golden × 300 = 5850 ≤ 6000 (meta.ts:20-29, README:60-74) |
+| 2 | Fern Forest · 4 eggs · more travel · 150 s · natural | adapt — "more travel" = earlier lanes + wider scatter | `BOULDERS.unlockS [0,0,30,60] → [0,15,30,45]` (:86-91); spawn-interval lerp faster (:526-528); `DURATION_MS → 120_000` (150 s impossible — see risk); natural lighting **no support** (sunset hardcoded, index.tsx:19-23) | high — `minDurationMs 88000` / `maxDurationMs 92000` are pinned to the 90 s clock (meta.ts:23-24); ANY duration change breaks both, plus the supply proof re-runs |
+| 3 | Riverbank · 5 eggs · multiple workstations · 180 s · dramatic | partially — "workstations" **no support** (one nest, :29-34); pressure via mud/boulders only | `MUD` 3 → 5 patches (:52-60); lane speeds `[3.6..5.2] → +0.5 each` (:86-91); `DURATION_MS → 120_000`; dramatic lighting **no support** | high — the supply envelope (`totalSpawnTicks 29`, :106-109) and 5850 bound re-derived per level |
+| 4 | Volcanic Pass · 6 eggs · parallel objectives · 180 s · stronger contrast | partially — parallel ≈ all 4 lanes from 0 s + golden overlap; nest matching **no support** | `BOULDERS.unlockS → [0,0,0,15]`; `goldenSpawnTimes [25,50,75] → [20,40,60]` (:110); `DURATION_MS → 120_000`; contrast lighting **no support** | high — earlier goldens push achievable scores toward 5850; rate bound 66.48 ≤ 70 pts/s has little headroom |
+| 5 | Dino Sanctuary · 8 eggs · full workload · 210 s · cinematic | partially — full workload = today's knobs maxed; `maxStack 3 → 4` needs a 4th `stackMultipliers` entry (:101-104); 8-egg quota win: **no support** | `initialSupply 4 → 6`, `totalSpawnTicks 29 → 35` (:106-109); `maxStack → 4`; `DURATION_MS → 120_000`; cinematic lighting **no support** | high — supply ≤ 33 is the spine of the 5850 proof; more supply/ticks breaks it → full re-proof |
+
+Notes: Level 1 = today's game — yes (dev, meta.ts:11); built 90 s config stays L1 and plan timers
+(120–210 s) must compress to ≤ ~120 s because the duration limits are pinned to 90 s. New mechanics:
+nest matching (the plan's "matching nest" core — built has one nest), an egg-counted win condition
+(runs end only by timeup, README "Run end"), multi-zone maps. No new GLB (dino/rock/tree/volcano
+exist, assets.ts:22-43). Effort **M** if levels are hazard/supply constant sets with per-level
+limits; **L** if nest-matching or a quota win is demanded (both are new end-condition code).
+
+## zoo-escape (plan GAME 29)
+
+| Level | Plan says (name · objective · hazards · timer · lighting) | Fits built game? | Concrete config (rules.ts constant: current → proposed) | Scoring-limit risk |
+|---|---|---|---|---|
+| 1 | Small Enclosure · reach 2 stealth checkpoints, escape · low hazard · 90 s · bright | yes (adapt) — gates ARE the checkpoints (win = cross gate 3, :519); a 2-checkpoint level = 2-stage subset (needs `STAGE` slice plumbing) | per-level stage subset in `createRun(seed, level)` (:250; STAGES level.ts:50-54): L1 = stages 1-2; `CLOCK 180 → 90` (:35); keepers 1/1 (`STAGE_KEEPERS`, level.ts:238) | medium — score bound `B = 1000 + 50k + 10·(180 − L(k)/3.2)` (rules.ts:45-54, README:36) is clock-dependent → re-derived per level; note `PROPOSED_LIMITS 3290` is proven but meta still holds provisional 4500 (meta.ts:22-31) — swap at go-live |
+| 2 | Safari Zone · 3 checkpoints · low-medium · 120 s · natural | yes | 2-stage subset, keepers 1/2; `CLOCK → 120`; `TOSS.bundles 2 → 3` (:33); natural lighting **no support** (day hardcoded, index.tsx:21) | medium — fewer reachable snacks lower k → per-level maxScore |
+| 3 | Bird Garden · 4 checkpoints · medium · 150 s · dramatic | yes — today's 3 stages ≈ 4 checkpoints (3 gates + exit line) | today's map; keepers 1/2/2, `VISION.range [7,7,9] → [6,6,8]` (:29); `CYCLES [27,24,18] → [24,21,16]` (level.ts:26); `CLOCK → 150`; dramatic = stage-3 dusk exists but only as a runtime flag (`useStageLighting`, Scene.tsx:125) | medium — keeper/vision changes touch fairness, not the score bound (catches are only −100/−5 s, :34); clock re-derived |
+| 4 | Central Zoo · 5 checkpoints · high · 180 s · strong contrast | yes | today's map; keepers 2/3/3, `SUSPICION.catchS 1.35 → 1.1` (:32), `HEARING.walk 3.0 → 3.6` (:30); searchlight `period 9 → 6` (:36); `CLOCK → 180` = today's | low-medium — today's 180 s / 3-stage config is the certified one (oracle 3040 = 92.4 %, README:39; limits 3290 / 5000–182000 / 163) |
+| 5 | Night Escape · 6 checkpoints · high/mixed · high-score challenge · cinematic night | partially — "night" exists only as stage-3 dusk (Scene.tsx:125); 6 checkpoints > 3 built gates; high-score = today's escape + all 12 snacks | today's map + `SEARCHLIGHT.range 14 → 16` (:36), `CYCLES → [20,18,14]`; night-all-stages needs a per-level lighting param (today it's a runtime dusk flag); cinematic **no support** | medium — faster cycles lower the clear time; B(k) re-derived; easier snacks can raise maxScore → re-proof |
+
+Notes: Level 1 = today's game? Dev (meta.ts:13) — recommend slicing: today's 3-stage/180 s campaign
+is plan L4-L5 territory; L1-L3 are stage-count subsets (the win check at rules.ts:519 assumes stage
+3, so slicing needs plumbing). Second-best mechanic fit of Part 3: checkpoints (gates), hiding (13
+bushes), lures (bamboo toss), one-way locked paths (drop bars) all exist. No new GLB (panda/keeper/
+bamboo owned; the rest procedural, assets.ts:26-37). Night-all-levels needs the core per-level
+lighting override. Effort **M** — stage subsets + `CLOCK`/`KEEPERS`/`CYCLES`/`VISION` constant sets
++ per-level `B(k)` re-derivation.
+
+## ghost-vacuum (plan GAME 18)
+
+| Level | Plan says (name · objective · hazards · timer · lighting) | Fits built game? | Concrete config (rules.ts constant: current → proposed) | Scoring-limit risk |
+|---|---|---|---|---|
+| 1 | Living Room · capture 4 ghosts · none · 180 s · bright | yes (adapt) — count scaling IS the built-in win (`caught === COUNT`, :257-260); "bright" contradicts the night mechanic — keep night | `COUNT 12 → 4` (:9) with `SCHEDULE` sliced to the first 4 releases (:16); `DURATION_MS 120_000 → 180_000` (:8) | low — per-level max = 4 captures ≤ 4·300 + bonus; envelope 1720+10t re-derived (the proof is a per-COUNT closed form, README "Scoring and proof" :31-40) |
+| 2 | Library · capture 6 · one blocked path · 210 s · natural | partially — count ✓ (`COUNT → 6`); blocked path **no support** (`WALLS`/`FURNITURE` fixed consts, :27-32) | `COUNT → 6` + schedule slice; `DURATION_MS → 180_000`; active cap `elapsed<40 ? 3 : 6` (:99) → `<25 ? 2 : 4`; blocked path: new mechanic (or a furniture wall) | low-medium — fewer early ghosts raise min-duration; `minDurationMs 91000` was pinned to gold ghost 11 @90 s (:16) — slicing the schedule changes it |
+| 3 | Kitchen · capture 8 · branching/locked paths · 240 s · dramatic | partially — 4 rooms + hallways already branch (:21-26); locked doors **no support** | `COUNT → 8`; `DURATION_MS → 200_000`; ghost speeds `wander/flee +20 %` (:12); late-switch `60 → 45` (:159 — hardcoded, needs a param); dramatic lighting **no support** | low-medium — per-level max recomputed from the schedule; tWin lower bound re-derived |
+| 4 | Attic · capture 10 · randomized positions · 240 s · stronger contrast | yes — seeded room permutation + wander angles exist (:50-58) | `COUNT → 10`; `DURATION_MS → 220_000`; `LIGHT.exposure 0.4 → 0.5` (:13); active cap → `<30 ? 3 : 6` (:99); contrast lighting **no support** (night hardcoded, index.tsx:17-21) | low-medium — longer exposure slows captures → lowers achievable score; min-duration bound re-checked |
+| 5 | Whole Mansion · capture 12 · full-map route + time pressure · 300 s · cinematic | yes — today's game IS the plan's L5 | today's config kept: `COUNT 12`, full `SCHEDULE` (:16), `DURATION_MS 120_000` (plan's 300 s ≫ proven `maxDurationMs 122000` — a longer clock needs a new envelope); cinematic **no support** | low — today's config is the proven one (2630 / 91000–122000 / 1720 / 10, meta.ts:20-29) |
+
+Notes: Level 1 = today's game? Dev (meta.ts:11) — recommend re-ordering: the built 12-ghost/120 s
+game is the plan's L5; L1-L4 are `COUNT`/`SCHEDULE`/`DURATION_MS` slices (4/6/8/10). Cleanest
+count-scaling of Part 3. Plan's "blocked/locked paths" have no support (fixed walls; doors are
+visual). The plan's "capture orb" GLB is unnecessary (payment is direct, :205-212). No new GLB
+(hunter/ghost GLBs owned, assets.ts:66-76). Effort **M** — `createRun(seed, level)` plumbing +
+COUNT/SCHEDULE slices + per-level closed-form limits; the two hardcoded phase switches (:99, :159)
+need parameterization.
+
+---
+
+## Summary (Parts 1-3 — all 22 games)
+
+| Game (part) | Effort | Needs new GLB? | Risk | Suggested agent |
+|---|---|---|---|---|
+| office-escape (P1) | L | no | high — gap/speed constants break the fairness proof | Codex / Cursor |
+| clean-city (P1) | L | no | high — proof chain rewritten per level | Codex / Cursor |
+| escape-room (P1) | L | no | high — new layout/pool architecture every level | Codex / Cursor |
+| luggage-rush (P1) | M | no | high — durations exceed the 122 s cap | Cursor |
+| delivery-drone (P1) | M | no | low-medium | OpenCode |
+| mini-golf (P1) | M | no | high — solver proof per hole set | Cursor |
+| pirate-cannons (P1) | M | no | medium | OpenCode |
+| penguin-slide (P1) | L | no | high — speed/ceiling proof is global | Codex / Cursor |
+| museum-guard (P2) | M | no | medium-high | Cursor |
+| knight-arena (P2) | M | no | medium | OpenCode |
+| monster-kitchen (P2) | M | no | high — tightly-coupled 4830 proof | Cursor |
+| robot-factory (P2) | M | no | high — lattice period is the proof spine | Cursor |
+| space-repair (P2) | M | no | medium | OpenCode |
+| snowball-battle (P2) | M | no | high (L4) — witness gate + min-duration | Cursor |
+| alien-farm (P2) | M | no | high — 100 s duration limits pinned | Cursor |
+| construction-worker (P2) | M | no | medium | OpenCode |
+| shopping-cart (P3) | M | no | medium — tour-distance ceiling re-proof per level | OpenCode |
+| rocket-landing (P3) | S | no | low — closed-form limits, planets slice 1:1 | OpenCode |
+| treasure-island (P3) | M | no (map piece reuses coin GLB) | medium | OpenCode |
+| dino-egg-rescue (P3) | M | no | high — duration limits pinned to the 90 s clock | Cursor |
+| zoo-escape (P3) | M | no | medium | OpenCode |
+| ghost-vacuum (P3) | M | no | low-medium | OpenCode |
+
+Cross-cutting takeaways:
+
+- **No game needs a new GLB.** Every plan prop has a built or reused stand-in; the only candidates
+  (treasure-island map piece, ghost-vacuum capture orb, rocket fuel pickup) are either reusable or
+  explicitly omitted mechanics.
+- **New mechanics the plans want but the code lacks (recurring across all 22):** moving hazards
+  (4 games), attempt/shot limits (3), counted-objective win conditions (5), multi-zone layouts (5),
+  per-level lighting/environment override (all 22 — build once in core before per-game level work,
+  as flagged in Part 1).
+- **Effort distribution:** 1 × S (rocket-landing), 14 × M, 7 × L (all in Part 1). Recommended split:
+  Codex/Cursor take the 7 L-effort / high-risk games plus the 4 medium-high ones (11 games);
+  OpenCode takes the 11 low/medium constant-parameterization games.
+- **Level-1 ordering:** every dev game keeps (or re-orders around) today's built config — the only
+  exceptions already recommended are construction-worker and rocket-landing (built game ≈ plan L5,
+  use truncated configs for L1-L4) and treasure-island / ghost-vacuum / zoo-escape (built game ≈
+  plan L4-L5, slice counts/stages down for the early levels).
