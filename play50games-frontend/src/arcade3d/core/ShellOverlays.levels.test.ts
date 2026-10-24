@@ -14,7 +14,7 @@ import { obstacleRaceMeta } from "../games/obstacle-race/meta";
 import type { GameDefinition } from "./types";
 import type { LeaderboardState } from "./useLeaderboard";
 import { HudChips, StartCard, type StartCardLevels } from "./ShellOverlays";
-import LevelTiles, { unlockHint } from "./LevelTiles";
+import LevelTiles, { hasLongWord, unlockHint } from "./LevelTiles";
 import ResultPanel, { type ResultPanelProps } from "../ui/ResultPanel";
 import { levelUiEnabled } from "./levels";
 import { levelCardText, levelProgress } from "./levelProgress";
@@ -128,6 +128,24 @@ describe("start card with levels", () => {
       expect(html).toContain("Finish all 5 levels to rank · 1 of 5 levels cleared");
       expect(levelCardText(race, progress)).toBe("Finish all 5 levels to rank · 1/5");
       expect(levelCardText(FIVE, PROGRESS)).toBe("Total 870 pts · 1/5");
+   });
+});
+
+describe("tile titles", () => {
+   it("a long title wraps (never cut with an ellipsis); a word too long for the tile gets the smaller size", () => {
+      const css = readFileSync(path.join(__dirname, "LevelTiles.module.css"), "utf8");
+      const title = /\.title \{[^}]*\}/.exec(css)![0];
+      expect(title).not.toContain("nowrap");
+      expect(title).not.toContain("ellipsis");
+      expect(title).toContain("-webkit-line-clamp: 2");
+      expect(hasLongWord("Royal Defense")).toBe(false);
+      expect(hasLongWord("Championship Course")).toBe(true);
+      const race = withLevels(obstacleRaceMeta);
+      const named = { ...race, levels: race.levels!.map((l, i) => (i === 4 ? { ...l, title: "Championship Course" } : l)) };
+      const progress = levelProgress(named, normalizeEntry("obstacle-race", null, true), true);
+      const html = renderToStaticMarkup(createElement(LevelTiles, { meta: named, progress, selected: 1, onSelect: () => {} }));
+      expect(html).toMatch(/data-long=""[^>]*>Championship Course</);
+      expect(html.match(/data-long/g)).toHaveLength(1);
    });
 });
 

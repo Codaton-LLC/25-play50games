@@ -81,10 +81,15 @@
    font-size: 12px;
    font-weight: 700;
    line-height: 1.2;
-   overflow-wrap: anywhere;
+   overflow-wrap: break-word;
    -webkit-box-orient: vertical;
    -webkit-line-clamp: 2;
    line-clamp: 2;
+}
+
+/* a title with a word too long for the narrow tile ("Championship") gets a smaller size, not a split word */
+.title[data-long] {
+   font-size: 10px;
 }
 
 .best {
