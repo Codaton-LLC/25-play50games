@@ -252,11 +252,11 @@
     "space-repair": {
       "title": "Space Repair Mission",
       "kind": "points",
-      "max_score": 4500,
-      "min_duration_ms": 10000,
+      "max_score": 4700,
+      "min_duration_ms": 37000,
       "max_duration_ms": 122000,
-      "base": 4500,
-      "max_pps": 4500,
+      "base": 400,
+      "max_pps": 40,
       "enabled": false
     },
     "monster-kitchen": {
