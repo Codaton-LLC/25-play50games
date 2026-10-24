@@ -244,6 +244,11 @@ function Cup({ hole }: { hole: Hole }) {
             <ringGeometry args={[CUP.drawnRadius - 0.005, CUP.drawnRadius + 0.03, 32]} />
             <meshStandardMaterial color={COLORS.rim} roughness={0.3} metalness={0.2} />
          </mesh>
+         {/* the hole as seen from above: the felt is not cut, so the dark disc sits on it (as before the look pass) */}
+         <mesh rotation-x={-Math.PI / 2} position-y={0.002}>
+            <circleGeometry args={[CUP.drawnRadius, 24]} />
+            <meshBasicMaterial color={COLORS.cup} />
+         </mesh>
          {/* Recessed dark interior cup liner */}
          <mesh position-y={-0.03}>
             <cylinderGeometry args={[CUP.drawnRadius - 0.004, CUP.drawnRadius - 0.004, 0.06, 24, 1, true]} />

@@ -16,10 +16,22 @@ import {
    Color,
    type BufferGeometry,
 } from "three";
-import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
+import { mergeGeometries as mergeIndexed } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import { Instanced, type InstanceSpot } from "@/arcade3d/core/render";
 import { COLORS } from "./looks";
 import { CUP } from "./physics";
+
+/**
+ * mergeGeometries needs every part indexed or none: polyhedra (icosahedron, dodecahedron) are
+ * non-indexed, so mixed lists are merged non-indexed (a failed merge would draw a plain box).
+ */
+function mergeGeometries(parts: BufferGeometry[]): BufferGeometry | null {
+   if (parts.every((p) => p.index) || parts.every((p) => !p.index)) return mergeIndexed(parts);
+   const flat = parts.map((p) => (p.index ? p.toNonIndexed() : p));
+   const merged = mergeIndexed(flat);
+   flat.forEach((g, k) => { if (g !== parts[k]) g.dispose(); });
+   return merged;
+}
 
 function paintGeometry(geometry: BufferGeometry, hex: string): BufferGeometry {
    const c = new Color(hex);
