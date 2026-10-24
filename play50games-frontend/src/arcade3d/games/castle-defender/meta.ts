@@ -20,7 +20,7 @@ export const castleDefenderMeta: ArcadeGameMeta = {
    tagline: "Hold the wall.",
    description: "Hold the castle wall against waves of bumbling cartoon goblins: tap to fire the wall cannon, drop rocks on ladders and keep the gate standing.",
    order: 24,
-   status: "dev",
+   status: "live",
    collection: "skill",
    difficulty: 3,
    orientation: "any",
