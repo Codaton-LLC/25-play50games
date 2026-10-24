@@ -7,7 +7,16 @@ import type { Mesh } from "three";
 import { DynamicInstanced } from "@/arcade3d/core/render/DynamicInstanced";
 import { FLOOR, PLAN, SLOT_A, SLOT_R, type Run } from "./rules";
 import {
-   GUIDE_COLOR, KIND_COLOR, KIND_SCALE, blobGeo, flashMat, guideMat, pieceGeo, pieceMat, ringGeo, slotMat,
+   blobGeo,
+   flashMat,
+   GUIDE_COLOR,
+   guideMat,
+   KIND_COLOR,
+   KIND_SCALE,
+   pieceGeo,
+   pieceMat,
+   ringGeo,
+   slotMat,
 } from "./Primitives";
 
 const pos = new Vector3();
@@ -41,7 +50,9 @@ export function Pieces({ run }: { run: Run }) {
             mesh.scale.set(size[0], size[1], size[2]);
             mesh.position.set(run.hookX, run.hookY - size[1] / 2, run.hookZ);
             const mat = mesh.material;
-            if (!Array.isArray(mat) && mat && "color" in mat) (mat as { color: Color }).color.copy(KIND_COLOR[run.carried]);
+            if (!Array.isArray(mat) && mat && "color" in mat) {
+               (mat as { color: Color }).color.copy(KIND_COLOR[run.carried]);
+            }
          }
       }
       const show = !!step && run.carried >= 0;
@@ -69,8 +80,13 @@ export function Pieces({ run }: { run: Run }) {
    });
 
    return (
-      <group>
-         <DynamicInstanced count={16} tinted parts={parts} update={(index, matrix, color) => {
+      <group name="construction-pieces">
+         <DynamicInstanced
+            count={16}
+            tinted
+            parts={parts}
+            name="placed-pieces"
+            update={(index, matrix, color) => {
                const piece = run.pieces[index];
                if (!piece?.on) return false;
                const size = KIND_SCALE[piece.kind];
@@ -81,13 +97,13 @@ export function Pieces({ run }: { run: Run }) {
                color.copy(KIND_COLOR[piece.kind]);
             }}
          />
-         <mesh ref={carried} geometry={pieceGeo} dispose={null}>
-            <meshStandardMaterial color="#ffffff" roughness={0.7} />
+         <mesh ref={carried} geometry={pieceGeo} dispose={null} name="carried-piece">
+            <meshStandardMaterial color="#ffffff" roughness={0.65} />
          </mesh>
-         <mesh ref={ring} geometry={ringGeo} material={slotMat} rotation-x={-Math.PI / 2} dispose={null} />
-         <mesh ref={guide} geometry={ringGeo} material={guideMat} rotation-x={-Math.PI / 2} dispose={null} />
-         <mesh ref={blob} geometry={blobGeo} material={guideMat} rotation-x={-Math.PI / 2} dispose={null} />
-         <mesh ref={flash} geometry={ringGeo} material={flashMat} rotation-x={-Math.PI / 2} dispose={null} />
+         <mesh ref={ring} geometry={ringGeo} material={slotMat} rotation-x={-Math.PI / 2} dispose={null} name="slot-ring" />
+         <mesh ref={guide} geometry={ringGeo} material={guideMat} rotation-x={-Math.PI / 2} dispose={null} name="guide-ring" />
+         <mesh ref={blob} geometry={blobGeo} material={guideMat} rotation-x={-Math.PI / 2} dispose={null} name="guide-blob" />
+         <mesh ref={flash} geometry={ringGeo} material={flashMat} rotation-x={-Math.PI / 2} dispose={null} name="miss-flash" />
       </group>
    );
 }
