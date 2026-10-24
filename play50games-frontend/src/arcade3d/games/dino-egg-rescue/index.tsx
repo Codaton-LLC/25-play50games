@@ -4,6 +4,7 @@ import type { GameDefinition } from "@/arcade3d/core/types";
 import { ASSETS } from "./assets";
 import { FOV } from "./camera";
 import DinoHud from "./Hud";
+import { COLORS, FOG } from "./looks";
 import { DURATION_MS, RESULT_DELAY_MS } from "./rules";
 import Scene from "./Scene";
 
@@ -15,7 +16,11 @@ const definition: GameDefinition = {
    durationMs: DURATION_MS,
    resultDelayMs: RESULT_DELAY_MS,
    camera: { position: [0, 16, 13.4], fov: FOV, lookAt: [0, 0, 0] },
-   environment: { background: "#7c2d12", lighting: "sunset" },
+   environment: {
+      background: COLORS.skyBottom,
+      lighting: "sunset",
+      fog: [COLORS.fog, FOG.near, FOG.far],
+   },
    touchControls: ["joystick", "action"],
    touchLabels: { action: "Dash" },
    hudStats: [{ key: "eggs", label: "Eggs Saved" }],

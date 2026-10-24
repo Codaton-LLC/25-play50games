@@ -1,11 +1,22 @@
 "use client";
 
-import { useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
-import type { Mesh } from "three";
+import {
+   BufferAttribute,
+   BufferGeometry,
+   RepeatWrapping,
+   type Mesh,
+} from "three";
 import { InstancedModel, Model } from "@/arcade3d/core/assets";
-import { Instanced, useCanvasTexture, type InstanceSpot } from "@/arcade3d/core/render";
+import {
+   Instanced,
+   useCanvasTexture,
+   type CanvasDraw,
+   type InstanceSpot,
+} from "@/arcade3d/core/render";
 import { ASSETS } from "./assets";
+import { COLORS, valleyRidgeMesh, type ColoredMesh } from "./looks";
 import { TreePrimitive, VolcanoConePrimitive } from "./Primitives";
 import { BOULDER_LANES, MUD, NEST, TREES, VALLEY } from "./rules";
 
@@ -17,12 +28,45 @@ const TREE_SPOTS: InstanceSpot[] = TREES.positions.map((t, idx) => ({
    scale: 1,
 }));
 
+function coloredGeometry(data: ColoredMesh): BufferGeometry {
+   const geometry = new BufferGeometry();
+   geometry.setAttribute("position", new BufferAttribute(data.positions, 3));
+   geometry.setAttribute("color", new BufferAttribute(data.colors, 3));
+   geometry.computeVertexNormals();
+   return geometry;
+}
+
+const drawValleyMeadow: CanvasDraw = (ctx, width, height) => {
+   // Lush prehistoric mossy grass base
+   ctx.fillStyle = COLORS.grass;
+   ctx.fillRect(0, 0, width, height);
+
+   // Sunlit & deep shaded dappled patches
+   const tones = [COLORS.grassSun, COLORS.grassShade, COLORS.grassDeep, COLORS.soilWarm];
+   for (let i = 0; i < 48; i++) {
+      ctx.fillStyle = tones[i % tones.length];
+      ctx.globalAlpha = 0.22 + (i % 4) * 0.07;
+      ctx.beginPath();
+      ctx.ellipse(
+         (i * 103) % width,
+         (i * 57) % height,
+         24 + (i * 19) % 65,
+         14 + (i * 13) % 35,
+         ((i * 23) % 60) * 0.02,
+         0,
+         Math.PI * 2
+      );
+      ctx.fill();
+   }
+   ctx.globalAlpha = 1;
+};
+
 export function Valley({ telegraphLanes }: { telegraphLanes?: readonly boolean[] }) {
-   // Warm golden straw texture for nest with criss-crossing straw strands
+   // Warm golden straw texture for nest with woven criss-crossing fibres
    const strawTexture = useCanvasTexture(128, 128, (ctx) => {
-      ctx.fillStyle = "#eab308";
+      ctx.fillStyle = COLORS.straw;
       ctx.fillRect(0, 0, 128, 128);
-      ctx.strokeStyle = "#fef08a";
+      ctx.strokeStyle = COLORS.strawLight;
       ctx.lineWidth = 2;
       for (let i = 0; i < 90; i++) {
          const x1 = (i * 17) % 128;
@@ -34,7 +78,7 @@ export function Valley({ telegraphLanes }: { telegraphLanes?: readonly boolean[]
          ctx.lineTo(x1 + Math.cos(angle) * len, y1 + Math.sin(angle) * len);
          ctx.stroke();
       }
-      ctx.strokeStyle = "#ca8a04";
+      ctx.strokeStyle = COLORS.strawDark;
       ctx.lineWidth = 1.5;
       for (let i = 0; i < 60; i++) {
          const x1 = (i * 23 + 5) % 128;
@@ -48,7 +92,19 @@ export function Valley({ telegraphLanes }: { telegraphLanes?: readonly boolean[]
       }
    });
 
-   // The rules mutate telegraphLanes in place every frame: read it in the frame loop, not in JSX.
+   // Valley floor organic meadow texture
+   const meadowTexture = useCanvasTexture(512, 512, drawValleyMeadow);
+   useEffect(() => {
+      meadowTexture.wrapS = meadowTexture.wrapT = RepeatWrapping;
+      meadowTexture.repeat.set(4, 4);
+      meadowTexture.needsUpdate = true;
+   }, [meadowTexture]);
+
+   // Low-poly surrounding ridges (stay flat inside valley, rise outside)
+   const ridges = useMemo(() => coloredGeometry(valleyRidgeMesh()), []);
+   useEffect(() => () => ridges.dispose(), [ridges]);
+
+   // Telegraph warning markers read in frame loop (state mutated in place)
    const telegraphRefs = useRef<(Mesh | null)[]>([]);
    useFrame(() => {
       for (let i = 0; i < telegraphRefs.current.length; i++) {
@@ -59,19 +115,30 @@ export function Valley({ telegraphLanes }: { telegraphLanes?: readonly boolean[]
 
    return (
       <group name="valley">
-         {/* Main valley terrain */}
+         {/* Main valley terrain meadow plane */}
          <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.01, 0]}>
-            <planeGeometry args={[VALLEY.halfX * 2 + 8, VALLEY.halfZ * 2 + 8]} />
-            <meshStandardMaterial color="#84cc16" roughness={0.8} />
+            <planeGeometry args={[VALLEY.halfX * 2 + 10, VALLEY.halfZ * 2 + 10]} />
+            <meshStandardMaterial
+               map={meadowTexture}
+               roughness={0.8}
+               polygonOffset
+               polygonOffsetFactor={1}
+               polygonOffsetUnits={1}
+            />
          </mesh>
 
-         {/* Soil path patches / borders */}
+         {/* Surrounding low-poly prehistoric ridges */}
+         <mesh geometry={ridges} dispose={null} name="valley-ridges">
+            <meshStandardMaterial vertexColors flatShading roughness={1} />
+         </mesh>
+
+         {/* Soil path boundary ring */}
          <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.005, 0]}>
-            <ringGeometry args={[14.5, 18.0, 32]} />
-            <meshStandardMaterial color="#a16207" roughness={0.9} />
+            <ringGeometry args={[14.5, 17.5, 32]} />
+            <meshStandardMaterial color={COLORS.soil} roughness={0.9} />
          </mesh>
 
-         {/* Gully lane indicators on terrain */}
+         {/* Gully lane tracks on terrain */}
          {BOULDER_LANES.map((lane, idx) => {
             const midX = (lane.startX + lane.endX) / 2;
             const midZ = (lane.startZ + lane.endZ) / 2;
@@ -82,62 +149,76 @@ export function Valley({ telegraphLanes }: { telegraphLanes?: readonly boolean[]
 
             return (
                <group key={lane.id}>
+                  {/* Worn earthen trench */}
                   <mesh
                      position={[midX, 0.002, midZ]}
                      rotation={[-Math.PI / 2, 0, -angle]}
                   >
                      <planeGeometry args={[len, 1.8]} />
                      <meshStandardMaterial
-                        color="#713f12"
+                        color={COLORS.gullyBed}
                         roughness={0.95}
                         transparent
-                        opacity={0.35}
+                        opacity={0.4}
                      />
                   </mesh>
 
                   {/* 0.8 s lane entrance warning telegraph */}
                   <mesh
-                        ref={(el) => {
-                           telegraphRefs.current[idx] = el;
-                        }}
-                        visible={false}
-                        position={[lane.startX, 0.03, lane.startZ]}
-                        rotation={[-Math.PI / 2, 0, 0]}
-                     >
-                        <circleGeometry args={[0.9, 20]} />
-                        <meshStandardMaterial
-                           color="#ef4444"
-                           emissive="#dc2626"
-                           emissiveIntensity={1.5}
-                           transparent
-                           opacity={0.7}
-                        />
-                     </mesh>
+                     ref={(el) => {
+                        telegraphRefs.current[idx] = el;
+                     }}
+                     visible={false}
+                     position={[lane.startX, 0.03, lane.startZ]}
+                     rotation={[-Math.PI / 2, 0, 0]}
+                  >
+                     <circleGeometry args={[0.95, 24]} />
+                     <meshStandardMaterial
+                        color={COLORS.telegraphWarn}
+                        emissive={COLORS.telegraphGlow}
+                        emissiveIntensity={1.8}
+                        transparent
+                        opacity={0.75}
+                     />
+                  </mesh>
                </group>
             );
          })}
 
-         {/* 3 Mud pits */}
+         {/* 3 Mud pits (layered: dried rim, glossy wet mud pool, bubbling blisters) */}
          {MUD.patches.map((mud, idx) => (
-            <mesh
-               key={idx}
-               position={[mud.x, 0.008, mud.z]}
-               rotation={[-Math.PI / 2, 0, 0]}
-            >
-               <circleGeometry args={[MUD.radius, 24]} />
-               <meshStandardMaterial color="#582f0e" roughness={0.95} />
-            </mesh>
+            <group key={idx} position={[mud.x, 0, mud.z]}>
+               {/* Dried earthy rim */}
+               <mesh position={[0, 0.005, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+                  <ringGeometry args={[MUD.radius * 0.85, MUD.radius * 1.08, 28]} />
+                  <meshStandardMaterial color={COLORS.mudRim} roughness={0.95} />
+               </mesh>
+               {/* Wet glossy mud center */}
+               <mesh position={[0, 0.008, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+                  <circleGeometry args={[MUD.radius, 28]} />
+                  <meshStandardMaterial color={COLORS.mudDark} roughness={0.3} />
+               </mesh>
+               {/* Low-poly bubbling blisters */}
+               <mesh position={[0.3, 0.04, 0.4]} scale={[1, 0.4, 1]}>
+                  <sphereGeometry args={[0.22, 8, 8]} />
+                  <meshStandardMaterial color={COLORS.mudBubble} roughness={0.35} />
+               </mesh>
+               <mesh position={[-0.4, 0.03, -0.3]} scale={[1, 0.35, 1]}>
+                  <sphereGeometry args={[0.18, 8, 8]} />
+                  <meshStandardMaterial color={COLORS.mudBubble} roughness={0.35} />
+               </mesh>
+            </group>
          ))}
 
-         {/* Volcano backdrop GLB in NE outside valley bounds at (16, -13); fallback: the old cone */}
+         {/* Volcano backdrop GLB in NE outside valley bounds at (16, -13) */}
          <group position={[16, 0, -13]}>
             <Model asset={ASSETS.volcano} fallback={<VolcanoConePrimitive />} />
-            {/* Glowing lava crater on the GLB crater rim (top at 8.0 m, opening r 1.25 m) */}
+            {/* Glowing lava crater on the GLB crater rim */}
             <mesh position={[0, 7.85, 0]} rotation={[-Math.PI / 2, 0, 0]}>
                <circleGeometry args={[1.2, 16]} />
                <meshStandardMaterial
-                  color="#ea580c"
-                  emissive="#f97316"
+                  color={COLORS.lavaGlow}
+                  emissive={COLORS.lavaCore}
                   emissiveIntensity={2.5}
                   roughness={0.3}
                />
@@ -146,7 +227,7 @@ export function Valley({ telegraphLanes }: { telegraphLanes?: readonly boolean[]
 
          {/* Nest at SE (11, 7.5), outer radius 1.8 m */}
          <group position={[NEST.x, 0, NEST.z]}>
-            {/* Warm straw torus rim (color #ffffff so texture is not darkened) */}
+            {/* Warm straw torus rim */}
             <mesh position={[0, 0.22, 0]} rotation={[Math.PI / 2, 0, 0]}>
                <torusGeometry args={[1.5, 0.28, 12, 28]} />
                <meshStandardMaterial
@@ -166,13 +247,13 @@ export function Valley({ telegraphLanes }: { telegraphLanes?: readonly boolean[]
             </mesh>
             {/* Delivery contact rim indicator */}
             <mesh position={[0, 0.03, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-               <ringGeometry args={[1.35, 1.45, 24]} />
+               <ringGeometry args={[1.35, 1.45, 28]} />
                <meshStandardMaterial
-                  color="#facc15"
-                  emissive="#eab308"
+                  color={COLORS.nestRing}
+                  emissive={COLORS.straw}
                   emissiveIntensity={0.8}
                   transparent
-                  opacity={0.6}
+                  opacity={0.65}
                />
             </mesh>
          </group>
