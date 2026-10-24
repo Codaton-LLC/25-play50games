@@ -21,6 +21,14 @@
    gap: 8px;
 }
 
+/* narrow portrait: with the level chip the shell's five chips wrap to a second row (to ~100 px),
+   which covered the first bubble; start the bubbles under that row */
+@media (orientation: portrait) and (max-width: 440px) {
+   .bubbles {
+      top: 112px;
+   }
+}
+
 .bubble {
    min-width: 148px;
    max-width: 240px;
