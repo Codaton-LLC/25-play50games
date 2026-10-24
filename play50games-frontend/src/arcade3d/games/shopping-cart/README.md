@@ -123,6 +123,51 @@ No new generation: cart GLB in `EXPANSION_ASSETS.cart`, 3 shoppers generated in 
 - `poses.test.ts` / `assets.test.ts`: runner hands within 3 cm of cart handle at y 0.94 m across full steering range; soles on floor; cart and shopper mesh bounds match catalog.
 - Browser: common criteria (03), banner open/closed, Retry ×10 keeps geometries flat.
 
+## Look (2026-10-24)
+
+Modern visual pass replacing raw stand-in boxes with a polished, vibrant, premium mobile supermarket aesthetic:
+
+1. **Palette & Styling (`looks.ts`)**:
+   - Single unified `COLORS` palette driving all materials, fixtures, and stand-in primitives.
+   - Every code-made stand-in has 2–3 distinct tones and deliberate bevelled/rounded shapes:
+     - `CartPrimitive`: chrome wire basket, red protective top bumper rim, front child seat flap, ergonomic cylindrical red handle with mounting brackets, and 4 castor wheels with dark tires and silver hubs.
+     - `ShopperPrimitive`: stylized 3-tone casual NPC with shoes, trousers, cardigan/hoodie/polo tops (`shopperA` lilac, `shopperB` mint, `shopperC` orange), skin-tone heads, hair volume, and handheld shopping baskets.
+     - `ProductPrimitive`: multi-tone stylized models for all 10 products (apple with stem and leaf, banana bunch, layered sesame burger, tin can with label band, beverage bottle with cap, paper grocery bag with handles, athletic sock with purple cuff, green battery with silver terminal, cartoon fish with fins, bottle gourd).
+     - `ShelfUnitPrimitive`: white retail gondola with dark base kickplate, shelf edge channels, and bright orange top department banners.
+
+2. **Supermarket Environment & Lighting (`Scene.tsx`)**:
+   - Core `indoor` lighting preset with balanced ambient and directional fills.
+   - Tuned linear fog (`FOG.near = 48`, `FOG.far = 96`) so the entire 32 × 24 m store interior is crisp, saturated, and unfogged, while distant concourse elements fade smoothly into the `#0b1220` background.
+   - Core `<SkyDome>` with rich navy gradient (`#0b1220` to `#1e293b`).
+   - Clean, high-gloss floor tiles via procedural canvas texture (`useCanvasTexture`, 512×512) with subtle grout lines and sheen variation (`roughness: 0.18`, `metalness: 0.06`), repeated across the 32 × 24 m interior.
+   - Extended 120 × 120 m concourse floor plane (`#070b14`) ensuring no sky or void shows below the scene at any viewport ratio (1280×800, 390×844, 844×390).
+   - Commercial fixtures: glass reach-in freezer cabinets with cyan LED glow strip (`#38bdf8`), tiered wooden produce island with fresh greens and crate rows, modern checkout counters with conveyor belts and green POS monitors, and interactive exit line mat.
+
+3. **Surroundings Outside Play Area (`Decor.tsx`)**:
+   - Rich perimeter decor strictly outside the play area (`x ∈ [-16, 16], z ∈ [-12, 12]`): outer wall shelving / pallet racks, sliding glass entrance/exit doors, promotional sign totems, shopping cart return corrals, customer service kiosks, and high warm ceiling light panels.
+   - Verified zero occlusion from fitted camera to play area objects across 1280×800, 390×844, and 844×390 in `looks.test.ts`.
+
+4. **Juicy Feedback**:
+   - Uses core `useFx()`: `sparkle` on pickups, `puff` on collisions and puddle drift skids, `debris` on pyramid topples, `confetti` on list completion and checkout win, and camera shake.
+
+5. **Draw Call Estimate**:
+   - Total estimated draw calls: **48–51 calls** (well under the budget cap of 60):
+     - SkyDome: 1
+     - Floor (concourse + supermarket tiles): 2
+     - Walls & fascia: 2
+     - Shelves (bodies, kickplates, banners, signs): 4
+     - Fruit island: 3
+     - Freezer row (cabinets, glass doors, LED strip): 3
+     - Checkout counters & registers: 2
+     - Finish zone mat: 1
+     - Exterior decor (shelving, doors, signs, corrals, kiosks, lights): 8
+     - Cart & runner (cart model, shadow, humanoid runner): 3
+     - Shoppers (3 humanoids + 3 shadows): 6
+     - Shelf items (halos, badges, models): 8
+     - Pyramids & spills: 4
+     - Core FX particles & text (when active): 2–4
+   - All geometries and materials created once and disposed on unmount with zero per-frame allocations.
+
 ## Performance
 
 Target **55** draw calls, cap **70**; triangles ≤ 120k with every GLB (runner 18k, shoppers 3 × 18k, cart 4k, instanced shelves 4, instanced products 6, can pyramids 2, checkout 2, floor 1, decals 1, fx pools ≤ 3). Lights: `indoor` preset only (no extra dynamic lights). Pools warmed at mount (`fx.warm("sparkle", "debris", "confetti", "score")`). No per-frame allocation.

@@ -4,21 +4,24 @@
 // and renders the supermarket store, cart + runner, shoppers, products, hazards and camera.
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
-import { DoubleSide, Group, Matrix4, MeshStandardMaterial, Vector3 } from "three";
+import { DoubleSide, Group, Matrix4, MeshStandardMaterial, RepeatWrapping } from "three";
 import CameraRig from "@/arcade3d/core/CameraRig";
 import { Model } from "@/arcade3d/core/assets";
 import { playSfx, startLoop, type LoopHandle } from "@/arcade3d/core/audio";
+import { SkyDome } from "@/arcade3d/core/env";
 import { useFx } from "@/arcade3d/core/fx";
 import { useGameTime } from "@/arcade3d/core/gameTime";
 import { useInput } from "@/arcade3d/core/input";
 import { inputToWorld, randomSeed } from "@/arcade3d/core/math";
-import { BlobShadow, DynamicInstanced, Instanced } from "@/arcade3d/core/render";
+import { BlobShadow, DynamicInstanced, Instanced, useCanvasTexture, type CanvasDraw } from "@/arcade3d/core/render";
 import { HumanoidModel, createPose, useHumanoidPose } from "@/arcade3d/core/rig";
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { useFittedView } from "@/arcade3d/core/useFittedView";
 import { useRunFrame } from "@/arcade3d/core/useRunFrame";
 import { ASSETS } from "./assets";
-import { PITCH, STORE_BOUNDS, viewFor } from "./camera";
+import { STORE_BOUNDS, viewFor } from "./camera";
+import { Decor } from "./Decor";
+import { COLORS, FLOOR } from "./looks";
 import {
    CartPrimitive,
    ProductPrimitive,
@@ -44,7 +47,6 @@ export default function Scene() {
    const width = useThree((s) => s.size.width);
    const height = useThree((s) => s.size.height);
    const view = useFittedView(viewFor(width, height));
-   const time = useGameTime();
    const input = useInput();
    const fx = useFx();
 
@@ -62,7 +64,7 @@ export default function Scene() {
    const rollLoop = useRef<LoopHandle | null>(null);
 
    useEffect(() => {
-      fx.warm("sparkle", "puff", "confetti", "score");
+      fx.warm("sparkle", "puff", "debris", "confetti", "score");
       let handle: LoopHandle | null = null;
       const syncLoop = (phase: string) => {
          if (phase === "playing") {
@@ -89,8 +91,8 @@ export default function Scene() {
       };
    }, [fx]);
 
-const WORLD_MOVE = { x: 0, y: 0, z: 0 };
-const STEP_INPUT: StepInput = { moveX: 0, moveY: 0, ride: false };
+   const WORLD_MOVE = { x: 0, y: 0, z: 0 };
+   const STEP_INPUT: StepInput = { moveX: 0, moveY: 0, ride: false };
 
    // One useRunFrame driving pure rules and arcade store with frame dt and store time
    useRunFrame((_state, dt, time) => {
@@ -131,7 +133,7 @@ const STEP_INPUT: StepInput = { moveX: 0, moveY: 0, ride: false };
          if (p.combo > 1) {
             playSfx("chime", { pitch: 1.0 + Math.min(0.5, p.combo * 0.1) });
          }
-         fx.burst("sparkle", { x: p.x, y: 0.8, z: p.z }, 16);
+         fx.burst("sparkle", { x: p.x, y: 0.8, z: p.z }, 18);
          fx.score({ x: p.x, y: 1.2, z: p.z }, `+${p.score}`);
       }
 
@@ -139,27 +141,32 @@ const STEP_INPUT: StepInput = { moveX: 0, moveY: 0, ride: false };
          useArcadeStore.getState().addScore(300);
          playSfx("chime", { pitch: 1.3 });
          fx.score({ x: cart.x, y: 1.5, z: cart.z }, "+300 Complete!");
+         fx.burst("confetti", { x: cart.x, y: 1.2, z: cart.z }, 24);
       }
 
       for (const pyr of events.pyramidToppled) {
          playSfx("thud");
          fx.burst("puff", { x: pyr.x, y: 0.4, z: pyr.z }, 16);
+         fx.burst("debris", { x: pyr.x, y: 0.3, z: pyr.z }, 12);
+         fx.shake(0.15);
       }
 
       for (const bump of events.shopperBumped) {
          playSfx("thud");
          fx.shake(0.4);
-         fx.burst("puff", { x: bump.x, y: 1.2, z: bump.z }, 12);
+         fx.burst("puff", { x: bump.x, y: 1.2, z: bump.z }, 16);
       }
 
       if (events.spillSkid) {
          playSfx("splash", { volume: 0.4 });
+         fx.burst("puff", { x: cart.x, y: 0.1, z: cart.z }, 8);
       }
 
       if (events.won) {
          rollLoop.current?.set({ volume: 0 });
          playSfx("win");
-         fx.burst("confetti", { x: cart.x, y: 1.0, z: cart.z }, 30);
+         fx.burst("confetti", { x: cart.x, y: 1.0, z: cart.z }, 36);
+         fx.shake(0.25);
          useArcadeStore.getState().setScore(run.score);
          useArcadeStore.getState().end("win");
       } else if (events.timeup) {
@@ -180,6 +187,12 @@ const STEP_INPUT: StepInput = { moveX: 0, moveY: 0, ride: false };
             offset={view.offset}
             shift={view.shift}
          />
+
+         {/* Sky Dome from core env */}
+         <SkyDome top={COLORS.skyTop} bottom={COLORS.skyBottom} />
+
+         {/* Instanced Decor strictly outside play area */}
+         <Decor />
 
          {/* Supermarket Interior Environment (floor, walls, shelves, fixtures) */}
          <StoreEnvironment run={run} />
@@ -250,7 +263,7 @@ function CartRunner({ run }: { run: RunState }) {
                fallback={
                   <mesh position={[0, 0.7, 0]}>
                      <capsuleGeometry args={[0.25, 0.9]} />
-                     <meshStandardMaterial color="#f97316" />
+                     <meshStandardMaterial color={COLORS.cartRed} />
                   </mesh>
                }
             />
@@ -294,7 +307,7 @@ function ShopperComponent({ shopper }: { shopper: RunState["shoppers"][0] }) {
    });
 
    const fallbackColor =
-      shopper.id === "shopperA" ? "#c084fc" : shopper.id === "shopperB" ? "#86efac" : "#fb923c";
+      shopper.id === "shopperA" ? COLORS.shopperA : shopper.id === "shopperB" ? COLORS.shopperB : COLORS.shopperC;
 
    return (
       <group ref={groupRef}>
@@ -310,7 +323,6 @@ function ShelfItems({ items }: { items: RunState["list"] }) {
    const time = useGameTime();
 
    // Dynamic instancing for the 0.8 m floor glow halos (1 draw call)
-   // Lie flat on floor (rotate -pi/2 about x), radius 0.4 m (0.8 m across)
    const updateHalos = useMemo(
       () => (index: number, matrix: Matrix4) => {
          const item = items[index];
@@ -337,16 +349,16 @@ function ShelfItems({ items }: { items: RunState["list"] }) {
          {/* 1 draw call for all glowing 0.8 m halo rings lying flat on floor */}
          <DynamicInstanced count={items.length} update={updateHalos}>
             <ringGeometry args={[0.15, 0.4, 32]} />
-            <meshBasicMaterial color="#fb923c" transparent opacity={0.7} side={DoubleSide} />
+            <meshBasicMaterial color={COLORS.halo} transparent opacity={0.7} side={DoubleSide} />
          </DynamicInstanced>
 
          {/* 1 draw call for all floating beacon badges */}
          <DynamicInstanced count={items.length} update={updateBadges}>
             <octahedronGeometry args={[0.22, 0]} />
-            <meshStandardMaterial color="#fb923c" emissive="#fb923c" emissiveIntensity={0.6} roughness={0.3} />
+            <meshStandardMaterial color={COLORS.badge} emissive={COLORS.badge} emissiveIntensity={0.6} roughness={0.3} />
          </DynamicInstanced>
 
-         {/* 3D Model items rotating above shelves - driven dynamically via useFrame */}
+         {/* 3D Model items rotating above shelves */}
          {items.map((item, i) => (
             <ShelfItem key={i} item={item} index={i} />
          ))}
@@ -423,13 +435,13 @@ function InstancedCanPyramids({ pyramids }: { pyramids: RunState["pyramids"] }) 
    return (
       <group>
          <DynamicInstanced count={18} update={updateBaseCans}>
-            <cylinderGeometry args={[0.08, 0.08, 0.2, 10]} />
-            <meshStandardMaterial color="#cbd5e1" metalness={0.7} />
+            <cylinderGeometry args={[0.08, 0.08, 0.2, 12]} />
+            <meshStandardMaterial color={COLORS.canSilver} metalness={0.75} roughness={0.25} />
          </DynamicInstanced>
 
          <DynamicInstanced count={6} update={updateTopCans}>
-            <cylinderGeometry args={[0.08, 0.08, 0.2, 10]} />
-            <meshStandardMaterial color="#fb923c" metalness={0.7} />
+            <cylinderGeometry args={[0.08, 0.08, 0.2, 12]} />
+            <meshStandardMaterial color={COLORS.canGold} metalness={0.75} roughness={0.25} />
          </DynamicInstanced>
       </group>
    );
@@ -456,27 +468,70 @@ function SpillItem({ spill, run }: { spill: (typeof SPILLS)[number]; run: RunSta
    });
    return (
       <group ref={groupRef} position={[spill.x, 0.01, spill.z]} visible={false}>
-         {/* Slippery puddle */}
+         {/* Slippery glossy puddle */}
          <mesh rotation={[-Math.PI / 2, 0, 0]}>
             <circleGeometry args={[spill.radius, 24]} />
             <meshStandardMaterial
-               color="#38bdf8"
-               roughness={0.1}
-               metalness={0.4}
+               color={COLORS.spillWater}
+               roughness={0.12}
+               metalness={0.3}
                transparent
-               opacity={0.75}
+               opacity={0.8}
             />
          </mesh>
          {/* Warning Caution cone */}
-         <mesh position={[0.8, 0.25, 0]}>
-            <coneGeometry args={[0.15, 0.5, 8]} />
-            <meshStandardMaterial color="#facc15" roughness={0.4} />
-         </mesh>
+         <group position={[0.8, 0, 0]}>
+            <mesh position={[0, 0.25, 0]}>
+               <coneGeometry args={[0.15, 0.5, 8]} />
+               <meshStandardMaterial color={COLORS.coneYellow} roughness={0.35} />
+            </mesh>
+            <mesh position={[0, 0.18, 0]}>
+               <cylinderGeometry args={[0.1, 0.12, 0.06, 8]} />
+               <meshStandardMaterial color={COLORS.coneBlack} roughness={0.6} />
+            </mesh>
+         </group>
       </group>
    );
 }
 
-// ---------- Store Environment (Instanced Shelves, Counters, Outer Bounds) ----------
+// ---------- Store Environment & Floor Tiles ----------
+
+const drawSupermarketFloor: CanvasDraw = (ctx, width, height) => {
+   // Base grout tone
+   ctx.fillStyle = COLORS.floorGrout;
+   ctx.fillRect(0, 0, width, height);
+
+   // 4x4 tile grid on 512x512 canvas -> 128x128 px tiles with 3px clean grout
+   const tiles = 4;
+   const tileSize = width / tiles;
+   const grout = 3;
+
+   for (let ty = 0; ty < tiles; ty++) {
+      for (let tx = 0; tx < tiles; tx++) {
+         const x = tx * tileSize + grout;
+         const y = ty * tileSize + grout;
+         const s = tileSize - grout * 2;
+
+         // Subtle tile-to-tile tonal variation
+         const isAlt = (tx + ty) % 2 === 0;
+         ctx.fillStyle = isAlt ? COLORS.floorTile : COLORS.floorAccent;
+         ctx.fillRect(x, y, s, s);
+
+         // Soft diagonal gloss gradient
+         const grad = ctx.createLinearGradient(x, y, x + s, y + s);
+         grad.addColorStop(0, "rgba(255, 255, 255, 0.45)");
+         grad.addColorStop(0.5, "rgba(255, 255, 255, 0.05)");
+         grad.addColorStop(1, "rgba(241, 245, 249, 0.2)");
+         ctx.fillStyle = grad;
+         ctx.fillRect(x, y, s, s);
+
+         // Crisp bevel border highlight
+         ctx.strokeStyle = "rgba(255, 255, 255, 0.6)";
+         ctx.lineWidth = 1;
+         ctx.strokeRect(x + 0.5, y + 0.5, s - 1, s - 1);
+      }
+   }
+};
 
 const SHELF_SPOTS = SHELVES.map((s) => ({
    x: (s.min.x + s.max.x) / 2,
@@ -496,6 +551,12 @@ const SHELF_BANNER_SPOTS = SHELVES.map((s) => ({
    z: (s.min.z + s.max.z) / 2,
 }));
 
+const SHELF_SIGN_SPOTS = SHELVES.map((s) => ({
+   x: (s.min.x + s.max.x) / 2,
+   y: 2.25,
+   z: (s.min.z + s.max.z) / 2,
+}));
+
 const COUNTER_SPOTS = CHECKOUT_COUNTERS.map((c) => ({
    x: (c.min.x + c.max.x) / 2,
    y: 0.5,
@@ -509,10 +570,17 @@ const REGISTER_SPOTS = CHECKOUT_COUNTERS.map((c) => ({
 }));
 
 const WALL_SPOTS = [
-   { x: 0, y: 1.9, z: -12, sx: 32, sy: 3.8, sz: 0.4 },
-   { x: 0, y: 1.9, z: 12, sx: 32, sy: 3.8, sz: 0.4 },
-   { x: -16, y: 1.9, z: 0, sx: 0.4, sy: 3.8, sz: 24 },
-   { x: 16, y: 1.9, z: 0, sx: 0.4, sy: 3.8, sz: 24 },
+   { x: 0, y: 2.0, z: -12, sx: 32, sy: 4.0, sz: 0.4 },
+   { x: 0, y: 2.0, z: 12, sx: 32, sy: 4.0, sz: 0.4 },
+   { x: -16, y: 2.0, z: 0, sx: 0.4, sy: 4.0, sz: 24 },
+   { x: 16, y: 2.0, z: 0, sx: 0.4, sy: 4.0, sz: 24 },
+];
+
+const WALL_FASCIA_SPOTS = [
+   { x: 0, y: 3.75, z: -11.95, sx: 32, sy: 0.5, sz: 0.45 },
+   { x: 0, y: 3.75, z: 11.95, sx: 32, sy: 0.5, sz: 0.45 },
+   { x: -15.95, y: 3.75, z: 0, sx: 0.45, sy: 0.5, sz: 24 },
+   { x: 15.95, y: 3.75, z: 0, sx: 0.45, sy: 0.5, sz: 24 },
 ];
 
 function FinishMat({ run }: { run: RunState }) {
@@ -523,8 +591,8 @@ function FinishMat({ run }: { run: RunState }) {
       if (!matRef.current) return;
       if (prevListCompleteRef.current !== run.listComplete) {
          prevListCompleteRef.current = run.listComplete;
-         matRef.current.color.set(run.listComplete ? "#22c55e" : "#cbd5e1");
-         matRef.current.emissive.set(run.listComplete ? "#16a34a" : "#000000");
+         matRef.current.color.set(run.listComplete ? COLORS.finishGreen : COLORS.finishInactive);
+         matRef.current.emissive.set(run.listComplete ? COLORS.finishGreenGlow : "#000000");
       }
    });
 
@@ -533,46 +601,63 @@ function FinishMat({ run }: { run: RunState }) {
          <planeGeometry args={[9.0, 1.6]} />
          <meshStandardMaterial
             ref={matRef}
-            color={run.listComplete ? "#22c55e" : "#cbd5e1"}
-            emissive={run.listComplete ? "#16a34a" : "#000000"}
-            roughness={0.4}
+            color={run.listComplete ? COLORS.finishGreen : COLORS.finishInactive}
+            emissive={run.listComplete ? COLORS.finishGreenGlow : "#000000"}
+            roughness={0.3}
          />
       </mesh>
    );
 }
 
 function StoreEnvironment({ run }: { run: RunState }) {
+   const floorTexture = useCanvasTexture(512, 512, drawSupermarketFloor);
+
+   useEffect(() => {
+      floorTexture.wrapS = floorTexture.wrapT = RepeatWrapping;
+      floorTexture.repeat.set(16, 12);
+      floorTexture.needsUpdate = true;
+   }, [floorTexture]);
+
    return (
-      <group>
-         {/* Extended dark perimeter floor to prevent any white edge beyond the store */}
-         <mesh position={[0, -0.01, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-            <planeGeometry args={[70, 70]} />
-            <meshStandardMaterial color="#0b1220" roughness={0.9} />
+      <group name="supermarket-environment">
+         {/* Extended dark concourse floor to prevent any void/sky at edge of view */}
+         <mesh position={[0, FLOOR.concourseY, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+            <planeGeometry args={[FLOOR.concourseWidth, FLOOR.concourseDepth]} />
+            <meshStandardMaterial color={COLORS.concourseFloor} roughness={0.9} />
          </mesh>
 
-         {/* Store floor plane with supermarket tiles */}
+         {/* Supermarket glossy tiled floor plane */}
          <mesh position={[0, 0, 0]} rotation={[-Math.PI / 2, 0, 0]}>
             <planeGeometry args={[STORE.width, STORE.depth]} />
-            <meshStandardMaterial color="#f1f5f9" roughness={0.3} metalness={0.1} />
+            <meshStandardMaterial
+               map={floorTexture}
+               roughness={0.18}
+               metalness={0.06}
+            />
          </mesh>
 
-         {/* Instanced 4 Shelf Island Blocks: 3 draw calls total */}
-         <Instanced spots={SHELF_SPOTS}>
-            <boxGeometry args={[1.2, 2.0, 12.0]} />
-            <meshStandardMaterial color="#f8fafc" roughness={0.5} metalness={0.2} />
+         {/* Instanced 4 Aisle Shelf Blocks: 4 draw calls total */}
+         <Instanced spots={SHELF_SPOTS} name="shelves-body">
+            <boxGeometry args={[1.2, 1.8, 12.0]} />
+            <meshStandardMaterial color={COLORS.shelfBody} roughness={0.4} metalness={0.15} />
          </Instanced>
 
-         <Instanced spots={SHELF_TRIM_SPOTS}>
+         <Instanced spots={SHELF_TRIM_SPOTS} name="shelves-base">
             <boxGeometry args={[1.25, 0.2, 12.05]} />
-            <meshStandardMaterial color="#64748b" roughness={0.8} />
+            <meshStandardMaterial color={COLORS.shelfBase} roughness={0.7} />
          </Instanced>
 
-         <Instanced spots={SHELF_BANNER_SPOTS}>
-            <boxGeometry args={[1.22, 0.1, 12.0]} />
-            <meshStandardMaterial color="#fb923c" roughness={0.4} />
+         <Instanced spots={SHELF_BANNER_SPOTS} name="shelves-banner">
+            <boxGeometry args={[1.22, 0.12, 12.0]} />
+            <meshStandardMaterial color={COLORS.shelfBanner} roughness={0.35} />
          </Instanced>
 
-         {/* Fruit Island Display */}
+         <Instanced spots={SHELF_SIGN_SPOTS} name="shelves-signs">
+            <boxGeometry args={[1.15, 0.25, 2.4]} />
+            <meshStandardMaterial color={COLORS.wallFascia} roughness={0.4} />
+         </Instanced>
+
+         {/* Fruit Island Produce Display */}
          <group
             position={[
                (FRUIT_ISLAND.min.x + FRUIT_ISLAND.max.x) / 2,
@@ -580,48 +665,80 @@ function StoreEnvironment({ run }: { run: RunState }) {
                (FRUIT_ISLAND.min.z + FRUIT_ISLAND.max.z) / 2,
             ]}
          >
+            {/* Timber display island stand */}
             <mesh position={[0, 0.45, 0]}>
                <boxGeometry args={[3.0, 0.9, 6.0]} />
-               <meshStandardMaterial color="#a16207" roughness={0.8} />
+               <meshStandardMaterial color={COLORS.produceWood} roughness={0.7} />
             </mesh>
-            <mesh position={[0, 0.95, 0]}>
-               <boxGeometry args={[2.8, 0.1, 5.8]} />
-               <meshStandardMaterial color="#84cc16" roughness={0.6} />
+            {/* Fresh leafy display bed */}
+            <mesh position={[0, 0.92, 0]}>
+               <boxGeometry args={[2.85, 0.1, 5.85]} />
+               <meshStandardMaterial color={COLORS.produceGreen} roughness={0.6} />
+            </mesh>
+            {/* Produce crates */}
+            <mesh position={[0, 1.02, 0]}>
+               <boxGeometry args={[2.7, 0.12, 5.7]} />
+               <meshStandardMaterial color={COLORS.produceCrate} roughness={0.6} />
             </mesh>
          </group>
 
          {/* Freezer Row along North wall */}
          <group position={[0, 0, (FREEZER_ROW.min.z + FREEZER_ROW.max.z) / 2]}>
+            {/* Commercial freezer cabinet body */}
             <mesh position={[0, 1.0, 0]}>
                <boxGeometry args={[24.0, 2.0, 1.2]} />
+               <meshStandardMaterial color={COLORS.freezerBody} roughness={0.3} metalness={0.4} />
+            </mesh>
+            {/* Glass reach-in doors with cyan tint */}
+            <mesh position={[0, 1.0, 0.58]}>
+               <boxGeometry args={[23.8, 1.6, 0.05]} />
                <meshStandardMaterial
-                  color="#bae6fd"
-                  roughness={0.2}
-                  metalness={0.5}
+                  color={COLORS.freezerGlass}
+                  roughness={0.12}
                   transparent
-                  opacity={0.9}
+                  opacity={0.85}
+               />
+            </mesh>
+            {/* Cyan LED interior illumination banner */}
+            <mesh position={[0, 1.9, 0.5]}>
+               <boxGeometry args={[24.0, 0.15, 0.2]} />
+               <meshStandardMaterial
+                  color={COLORS.freezerGlow}
+                  emissive={COLORS.freezerGlow}
+                  emissiveIntensity={0.8}
+                  roughness={0.3}
                />
             </mesh>
          </group>
 
          {/* Instanced Checkout Counters: 2 draw calls total */}
-         <Instanced spots={COUNTER_SPOTS}>
+         <Instanced spots={COUNTER_SPOTS} name="checkout-counters">
             <boxGeometry args={[0.8, 1.0, 1.8]} />
-            <meshStandardMaterial color="#334155" roughness={0.5} />
+            <meshStandardMaterial color={COLORS.checkoutBody} roughness={0.5} />
          </Instanced>
 
-         <Instanced spots={REGISTER_SPOTS}>
+         <Instanced spots={REGISTER_SPOTS} name="checkout-registers">
             <boxGeometry args={[0.3, 0.25, 0.1]} />
-            <meshStandardMaterial color="#22c55e" emissive="#15803d" roughness={0.3} />
+            <meshStandardMaterial
+               color={COLORS.registerScreen}
+               emissive={COLORS.registerScreen}
+               emissiveIntensity={0.6}
+               roughness={0.3}
+            />
          </Instanced>
 
          {/* Finish Zone Line Mat */}
          <FinishMat run={run} />
 
-         {/* Instanced Outer Walls (3.8 m tall): 1 draw call */}
-         <Instanced spots={WALL_SPOTS}>
+         {/* Instanced Outer Walls (4.0 m tall) and Upper Fascia: 2 draw calls */}
+         <Instanced spots={WALL_SPOTS} name="outer-walls">
             <boxGeometry args={[1, 1, 1]} />
-            <meshStandardMaterial color="#1e293b" roughness={0.7} />
+            <meshStandardMaterial color={COLORS.wall} roughness={0.65} />
+         </Instanced>
+
+         <Instanced spots={WALL_FASCIA_SPOTS} name="outer-walls-fascia">
+            <boxGeometry args={[1, 1, 1]} />
+            <meshStandardMaterial color={COLORS.wallBanner} roughness={0.4} />
          </Instanced>
       </group>
    );
