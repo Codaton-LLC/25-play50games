@@ -1,12 +1,15 @@
 // Zoo Escape's fits on the real, meshopt-decoded GLBs (through core modelParts, what <Model> /
 // <InstancedModel> draw): every model is in the manifest and drawn at the README's size.
 import { describe, expect, it } from "vitest";
+import { existsSync } from "node:fs";
+import { resolve } from "node:path";
 import { Box3, BufferGeometry, Float32BufferAttribute, Group, Mesh, Vector3 } from "three";
 import { modelParts } from "@/arcade3d/core/assets";
 import { hasModel } from "@/arcade3d/core/modelManifest";
 import { readCharacterGlb } from "@/arcade3d/core/rig/robotGlb";
 import type { ModelAsset } from "@/arcade3d/core/types";
-import { ASSETS, BAMBOO_GLB, BRIDGE_GLB, BRIDGE_Y_OFFSET, BUSH_GLB, KEEPER_SCALE, KIOSK_GLB, PANDA_LENGTH, PROP_SIZE, SNACK_GLB, TOWER_GLB } from "./assets";
+import { ASSETS, BAMBOO_GLB, BRIDGE_GLB, BRIDGE_Y_OFFSET, BUSH_GLB, KEEPER_SCALE, KIOSK_GLB, PANDA_LENGTH, PROP_SIZE, SNACK_GLB, TOWER_GLB, ZOO_ROCK_SPOTS, ZOO_ROCKS_DRAWN, ZOO_ROCKS_GLB, ZOO_ROCKS_WIDTH } from "./assets";
+import { DECOR, inPlayArea } from "./looks";
 
 async function drawnBox(asset: ModelAsset): Promise<Box3> {
    const { local, node } = await readCharacterGlb(asset.url);
@@ -142,5 +145,28 @@ describe("adopted batch-5 prop GLBs", () => {
       expect((unit.max.x - unit.min.x) * 1.6).toBeCloseTo(1.0, 3);
       expect((unit.max.z - unit.min.z) * 1.6).toBeLessThan(1.0);
       expect((unit.max.y - unit.min.y) * 1.6).toBeCloseTo(0.29, 2);
+   });
+
+   it("fits the boulder cluster outside the stages and clear of the park trees", async () => {
+      expect(existsSync(resolve("public", ASSETS.zooRocks.url.slice(1)))).toBe(true);
+      expect(hasModel(ASSETS.zooRocks.url)).toBe(true);
+      const raw = await rawBox(ASSETS.zooRocks);
+      expect(raw.min.y).toBeCloseTo(0, 2);
+      expect(raw.max.x - raw.min.x).toBeCloseTo(ZOO_ROCKS_GLB.width, 2);
+      expect(raw.max.y - raw.min.y).toBeCloseTo(ZOO_ROCKS_GLB.height, 2);
+      const drawn = await drawnBox(ASSETS.zooRocks);
+      expect(drawn.min.y).toBeCloseTo(0, 2);
+      expect(drawn.max.x - drawn.min.x).toBeCloseTo(ZOO_ROCKS_WIDTH, 2);
+      expect(drawn.max.z - drawn.min.z).toBeCloseTo(ZOO_ROCKS_DRAWN.depth, 2);
+      expect(drawn.max.y - drawn.min.y).toBeCloseTo(ZOO_ROCKS_DRAWN.height, 2);
+      const rockR = Math.max(ZOO_ROCKS_DRAWN.width, ZOO_ROCKS_DRAWN.depth) / 2;
+      for (const spot of ZOO_ROCK_SPOTS) {
+         expect(inPlayArea(spot.x, spot.z, rockR)).toBe(false);
+         for (const decor of DECOR) {
+            const reach = decor.kind === "pine" ? 1.25 * decor.sx : decor.kind === "tree" ? 1.4 * decor.sx : Math.hypot(decor.sx, decor.sz) / 2;
+            if (decor.kind !== "tree" && decor.kind !== "pine" && decor.kind !== "hedge") continue;
+            expect(Math.hypot(spot.x - decor.x, spot.z - decor.z)).toBeGreaterThan(rockR + reach);
+         }
+      }
    });
 });

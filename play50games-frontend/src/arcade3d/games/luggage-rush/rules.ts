@@ -1,18 +1,21 @@
 // Airport Luggage Rush rules. Pure and seeded: no three.js, React, DOM, Math.random or Date.now.
 // One stepRun from the Scene's useRunFrame. The belt is a core/path graph; a diverter is read
 // only when a bag's step overflows the segment end (the crossing line).
-import type { ScoringRules } from "@/arcade3d/types";
+import type { LevelId, ScoringRules } from "@/arcade3d/types";
 import { capScore as capToLimits, withinServerLimits as fitsLimits } from "@/arcade3d/core/limits";
 import { rngNext, type RngState } from "@/arcade3d/core/math";
 import { advanceGraph, createPath, createPathGraph, type Path, type RiderState } from "@/arcade3d/core/path";
+import { LEVELS, type LuggageLevel } from "./levels";
 
-export const DURATION_MS = 120_000;
+/** Level 1's clock. The other levels carry their own on `LuggageLevel.durationMs`. */
+export const DURATION_MS = LEVELS[1].durationMs;
 export const RESULT_DELAY_MS = 900;
 export const POOL = 40;
 export const GAP = 1.1;
 export const STRIKE_LIMIT = 3;
-export const PHASE_D3 = 40;
-export const PHASE_D4 = 70;
+/** Level 1's phase locks. A run reads `run.config` so later levels can open the chutes sooner. */
+export const PHASE_D3 = LEVELS[1].phaseD3;
+export const PHASE_D4 = LEVELS[1].phaseD4;
 export const SHORTEST_M = 8.4;
 export const TAG_M = 0.45;
 export const MOUTH_M = 0.9;
@@ -30,10 +33,11 @@ export const HALL = {
    spawnZ: 0,
 } as const;
 
-export const BELT = { base: 1.35, step: 1.03, heavy: 0.7 } as const;
-const SPEED_AT = [15, 30, 45, 60, 75, 90, 105] as const;
+/** Level 1's belt. `step` and `heavy` are the same on every level; `base` comes from the level. */
+export const BELT = { base: LEVELS[1].beltBase, step: 1.03, heavy: 0.7 } as const;
 
-export const SPAWN = { start: 2.2, end: 0.9, rampS: 120 } as const;
+/** Level 1's spawn ramp. Later levels pass their own start, end and ramp into `intervalAt`. */
+export const SPAWN = { start: LEVELS[1].spawnStart, end: LEVELS[1].spawnEnd, rampS: LEVELS[1].spawnRampS } as const;
 
 /** 0 red circle, 1 blue square, 2 green triangle, 3 yellow star. VIP is not a fifth colour. */
 export const FLIGHTS = [
@@ -46,7 +50,7 @@ export const VIP_RIM = "#fde68a";
 
 export const SCORE = { bag: 20, comboStep: 0.25, comboCap: 3, vip: 2 } as const;
 
-/** Server limits (user 2026-10-08), equal to meta.scoring and arcade-games.json (pinned in rules.test.ts). */
+/** Level 1 server limits (user 2026-10-08), equal to meta.scoring and arcade-games.json (pinned in rules.test.ts). */
 export const PROPOSED_LIMITS: ScoringRules = {
    kind: "points",
    maxScore: 7620,
@@ -56,6 +60,25 @@ export const PROPOSED_LIMITS: ScoringRules = {
    maxPointsPerSec: 64,
    unitLabel: "pts",
    display: "int",
+};
+
+/**
+ * One proven limit set per level (README "Levels"). Level 1 is `PROPOSED_LIMITS`.
+ * Each later ceiling is the all-VIP shortest-chute oracle plus about 4%, and the points-per-second
+ * line is about 4% over that oracle's steepest chord. The earliest three-strike lose sets
+ * `minDurationMs` (a faster belt lands the third chute under 10 s). `maxDurationMs` is the clock
+ * plus the same 2 s cushion as level 1.
+ */
+export const PROPOSED_LEVEL_LIMITS: Record<LevelId, ScoringRules> = {
+   1: PROPOSED_LIMITS,
+   /** L2: 111 bags, 11580. Peak chord 77.49. Earliest lose 9.976 s. */
+   2: { ...PROPOSED_LIMITS, maxScore: 12050, minDurationMs: 9500, maxDurationMs: 152_000, maxPointsPerSec: 81 },
+   /** L3: 157 bags, 17040. Peak chord 94.73. Earliest lose 9.974 s. */
+   3: { ...PROPOSED_LIMITS, maxScore: 17730, minDurationMs: 9500, maxDurationMs: 182_000, maxPointsPerSec: 99 },
+   /** L4: 163 bags, 17760. Peak chord 98.91. Earliest lose 9.900 s. */
+   4: { ...PROPOSED_LIMITS, maxScore: 18480, minDurationMs: 9400, maxDurationMs: 182_000, maxPointsPerSec: 103 },
+   /** L5: 192 bags, 21240. Peak chord 106.23. Earliest lose 9.793 s. 22090 is 2.90× level 1's 7620. */
+   5: { ...PROPOSED_LIMITS, maxScore: 22090, minDurationMs: 9400, maxDurationMs: 202_000, maxPointsPerSec: 111 },
 };
 
 const Y = HALL.beltY;
@@ -151,6 +174,8 @@ export interface StepInput {
 
 export interface RunState {
    rng: RngState;
+   /** this run's level constants (a copy; stepping never writes it) */
+   config: LuggageLevel;
    /** D1..D4, each 0 or 1. Start on 0. */
    choices: [number, number, number, number];
    bags: Bag[];
@@ -173,11 +198,12 @@ function blankBag(): Bag {
    return { alive: false, tumble: 0, segment: 0, s: 0, flight: 0, vip: false, heavy: false, born: 0, x: X, y: Y, z: HALL.spawnZ };
 }
 
-export function createRun(seed: number): RunState {
+export function createRun(seed: number, level: LuggageLevel = LEVELS[1]): RunState {
    const bags: Bag[] = [];
    for (let i = 0; i < POOL; i++) bags.push(blankBag());
    return {
       rng: { s: seed >>> 0 },
+      config: { ...level },
       choices: [0, 0, 0, 0],
       bags,
       order: bags.map((_, i) => i),
@@ -193,31 +219,42 @@ export function createRun(seed: number): RunState {
    };
 }
 
-export function beltSpeed(t: number): number {
-   let steps = 0;
-   for (let i = 0; i < SPEED_AT.length; i++) if (t >= SPEED_AT[i]) steps++;
-   return BELT.base * BELT.step ** steps;
+/** Last ×1.03 step that still falls inside the clock. Level 1 is 105 s (15 × 7). */
+export function speedUntil(level: LuggageLevel = LEVELS[1]): number {
+   const horizon = level.durationMs / 1000;
+   return level.speedEvery * Math.floor((horizon - 1) / level.speedEvery);
 }
 
-export function intervalAt(t: number): number {
-   const u = t < SPAWN.rampS ? t : SPAWN.rampS;
-   return SPAWN.start - (SPAWN.start - SPAWN.end) * (u / SPAWN.rampS);
+export function beltSpeed(t: number, level: LuggageLevel = LEVELS[1]): number {
+   const until = speedUntil(level);
+   const every = level.speedEvery;
+   let steps = 0;
+   for (let at = every; at <= until + 1e-12; at += every) if (t >= at) steps++;
+   return level.beltBase * BELT.step ** steps;
+}
+
+export function intervalAt(t: number, level: LuggageLevel = LEVELS[1]): number {
+   const ramp = level.spawnRampS;
+   const u = t < ramp ? t : ramp;
+   return level.spawnStart - (level.spawnStart - level.spawnEnd) * (u / ramp);
 }
 
 /** Seconds to ride `distance` metres starting at time `t0`, at the normal belt speed. */
-export function travelTime(distance: number, t0: number): number {
+export function travelTime(distance: number, t0: number, level: LuggageLevel = LEVELS[1]): number {
    let t = t0;
    let left = distance;
-   for (let guard = 0; left > 1e-9 && guard < 16; guard++) {
-      const v = beltSpeed(t);
+   const until = speedUntil(level);
+   const every = level.speedEvery;
+   for (let guard = 0; left > 1e-9 && guard < 24; guard++) {
+      const v = beltSpeed(t, level);
       let next = Infinity;
-      for (let i = 0; i < SPEED_AT.length; i++) if (SPEED_AT[i] > t + 1e-12 && SPEED_AT[i] < next) next = SPEED_AT[i];
+      for (let at = every; at <= until + 1e-12; at += every) if (at > t + 1e-12 && at < next) next = at;
       const dt = Math.min(left / v, next - t);
       left -= v * dt;
       t += dt;
       if (!(next < Infinity)) break;
    }
-   if (left > 1e-6) t += left / beltSpeed(t);
+   if (left > 1e-6) t += left / beltSpeed(t, level);
    return t - t0;
 }
 
@@ -231,19 +268,20 @@ export function deliveryPoints(streak: number, vip: boolean): number {
    return SCORE.bag * comboMult(streak) * (vip ? SCORE.vip : 1);
 }
 
-export function diverterLocked(index: number, time: number): boolean {
-   if (index === 2) return time < PHASE_D3;
-   if (index === 3) return time < PHASE_D4;
+export function diverterLocked(index: number, time: number, level: LuggageLevel = LEVELS[1]): boolean {
+   if (index === 2) return time < level.phaseD3;
+   if (index === 3) return time < level.phaseD4;
    return false;
 }
 
 /** The segment a bag on `segment` will enter under the current choices. -1 at a gate or a dead end. */
 export function outgoing(run: RunState, segment: number): number {
    const c = run.choices;
+   const { phaseD3, phaseD4 } = run.config;
    if (segment === SEG.entry) return c[0] === 0 ? SEG.chuteR : SEG.mid;
    if (segment === SEG.mid) return c[1] === 0 ? SEG.chuteB : SEG.toD3;
-   if (segment === SEG.toD3) return run.time < PHASE_D3 || c[2] === 0 ? SEG.chuteG : SEG.hold;
-   if (segment === SEG.hold) return run.time >= PHASE_D4 && c[3] === 1 ? SEG.overflow : SEG.chuteY;
+   if (segment === SEG.toD3) return run.time < phaseD3 || c[2] === 0 ? SEG.chuteG : SEG.hold;
+   if (segment === SEG.hold) return run.time >= phaseD4 && c[3] === 1 ? SEG.overflow : SEG.chuteY;
    return -1;
 }
 
@@ -355,10 +393,10 @@ function entryBlocked(run: RunState): boolean {
 export const ROLL = { vip: 0.12, heavyLate: 0.3, heavyEarly: 0.2 } as const;
 
 /** One uniform roll at `time`. Before 30 s every roll is normal (the caller skips the roll). */
-export function rollKind(time: number, roll: number): "vip" | "heavy" | "normal" {
+export function rollKind(time: number, roll: number, heavyLate: number = ROLL.heavyLate): "vip" | "heavy" | "normal" {
    if (time >= 50) {
       if (roll < ROLL.vip) return "vip";
-      if (roll < ROLL.heavyLate) return "heavy";
+      if (roll < heavyLate) return "heavy";
       return "normal";
    }
    if (time >= 30 && roll < ROLL.heavyEarly) return "heavy";
@@ -366,12 +404,12 @@ export function rollKind(time: number, roll: number): "vip" | "heavy" | "normal"
 }
 
 function rollFlight(run: RunState, time: number): { flight: number; heavy: boolean; vip: boolean } {
-   const span = time >= PHASE_D4 ? 4 : 3;
+   const span = time >= run.config.phaseD4 ? 4 : 3;
    const flight = Math.floor(rngNext(run.rng) * span);
    let heavy = false;
    let vip = false;
    if (time >= 30) {
-      const kind = rollKind(time, rngNext(run.rng));
+      const kind = rollKind(time, rngNext(run.rng), run.config.heavyLate);
       vip = kind === "vip";
       heavy = kind === "heavy";
    }
@@ -382,7 +420,7 @@ function trySpawn(run: RunState, time: number): void {
    if (time < run.nextSpawn || entryBlocked(run)) return;
    const rolled = rollFlight(run, time);
    if (placeBag(run, rolled.flight, rolled.heavy, rolled.vip) < 0) return;
-   run.nextSpawn = time + intervalAt(time);
+   run.nextSpawn = time + intervalAt(time, run.config);
 }
 
 let ACTIVE: RunState | null = null;
@@ -393,7 +431,7 @@ function choose(ending: number): number {
    if (!run) return -1;
    const next = outgoing(run, ending);
    // Before 70 s the hold is not a belt: stop on the D3 line so the bag can strike there.
-   if (ending === SEG.toD3 && next === SEG.hold && run.time < PHASE_D4) return -1;
+   if (ending === SEG.toD3 && next === SEG.hold && run.time < run.config.phaseD4) return -1;
    return next;
 }
 
@@ -414,7 +452,7 @@ function moveBag(run: RunState, bag: Bag, ds: number): void {
    bag.y = rider.position.y;
    bag.z = rider.position.z;
    if (!((rider.overflow ?? 0) > 1e-8)) return;
-   if (bag.segment === SEG.toD3 && run.time < PHASE_D4 && run.choices[2] === 1 && run.time >= PHASE_D3) {
+   if (bag.segment === SEG.toD3 && run.time < run.config.phaseD4 && run.choices[2] === 1 && run.time >= run.config.phaseD3) {
       strike(run, bag, false);
       return;
    }
@@ -428,7 +466,7 @@ function moveBag(run: RunState, bag: Bag, ds: number): void {
 }
 
 function stepBags(run: RunState, dt: number): void {
-   const speed = beltSpeed(run.time);
+   const speed = beltSpeed(run.time, run.config);
    const order = run.order;
    let n = 0;
    for (let i = 0; i < POOL; i++) if (run.bags[i].alive) order[n++] = i;
@@ -458,7 +496,7 @@ export function stepRun(run: RunState, input: StepInput, dt: number, time: numbe
    run.time = time;
    if (run.lost || !(dt > 0)) return;
    for (let i = 0; i < 4; i++) {
-      if (!input.flip[i] || diverterLocked(i, time)) continue;
+      if (!input.flip[i] || diverterLocked(i, time, run.config)) continue;
       run.choices[i] = run.choices[i] === 0 ? 1 : 0;
       const at = DIVERTER_AT[i];
       pushEvent(run, { kind: "flip", points: 0, x: at.x, y: at.y, z: at.z, overflow: false, flight: -1, diverter: i });
@@ -481,7 +519,7 @@ export function aliveCount(run: RunState): number {
  * Analytic ceiling: every bag takes the 8.4 m chute, never strikes, and every spawn at or after
  * 50 s is VIP. 77 bags, 7500 points; the 78th arrives after 120 s.
  */
-export function oracleCeiling(limit = 120): { bags: number; score: number; peak: number; last: number; missed: number } {
+export function oracleCeiling(limit = DURATION_MS / 1000, level: LuggageLevel = LEVELS[1]): { bags: number; score: number; peak: number; last: number; missed: number } {
    let t = 0;
    let streak = 0;
    let score = 0;
@@ -489,8 +527,8 @@ export function oracleCeiling(limit = 120): { bags: number; score: number; peak:
    let peak = 0;
    let last = 0;
    let missed = 0;
-   for (let i = 0; i < 200; i++) {
-      const arrive = t + travelTime(SHORTEST_M, t);
+   for (let i = 0; i < 400; i++) {
+      const arrive = t + travelTime(SHORTEST_M, t, level);
       if (arrive > limit) {
          missed = arrive;
          break;
@@ -501,15 +539,15 @@ export function oracleCeiling(limit = 120): { bags: number; score: number; peak:
       const chord = score / arrive;
       if (chord > peak) peak = chord;
       last = arrive;
-      t += intervalAt(t);
+      t += intervalAt(t, level);
    }
    return { bags, score, peak, last, missed };
 }
 
-export function withinServerLimits(score: number, durationMs: number): boolean {
-   return fitsLimits(score, durationMs, PROPOSED_LIMITS);
+export function withinServerLimits(score: number, durationMs: number, limits: ScoringRules = PROPOSED_LIMITS): boolean {
+   return fitsLimits(score, durationMs, limits);
 }
 
-export function capScore(score: number, durationMs: number): number {
-   return capToLimits(score, durationMs, PROPOSED_LIMITS);
+export function capScore(score: number, durationMs: number, limits: ScoringRules = PROPOSED_LIMITS): number {
+   return capToLimits(score, durationMs, limits);
 }

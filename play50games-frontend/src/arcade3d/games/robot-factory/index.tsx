@@ -11,7 +11,7 @@ import { LEVEL_IDS, type LevelId } from "@/arcade3d/types";
 import Scene, { CAMERA } from "./Scene";
 import { ASSETS } from "./assets";
 import { LEVELS, type FactoryLevel } from "./levels";
-import { COLORS } from "./palette";
+import { COLORS } from "./looks";
 import { SCORING, SHIFT } from "./rules";
 
 const BASE_LINES = [

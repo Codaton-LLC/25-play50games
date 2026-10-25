@@ -47,6 +47,18 @@ export const BEACON_LIGHTS = [
    { x: 0.48, y: 0.22, z: 0.92 },
 ] as const;
 
+/** A beacon's radius and height (pad units: the deck is 1 wide before the planet's width stretch). */
+export const BEACON_SIZE = { top: 0.025, bottom: 0.03, height: 0.04 } as const;
+
+/**
+ * The beacons ride in the pad group, whose scale.x is the planet's pad width (4-6), so they would
+ * be drawn 4-6 times wider than deep: thin floating bars. Each beacon cancels that stretch with
+ * this x scale, so it stays a small round light; its position still follows the rim.
+ */
+export function beaconScaleX(padWidth: number): number {
+   return padWidth > 0 ? 1 / padWidth : 1;
+}
+
 /**
  * The rocket touchdown footprint on the pad's top surface (local coordinates).
  * The deck sits at y = 0.2, extending horizontally where the rocket touches down.

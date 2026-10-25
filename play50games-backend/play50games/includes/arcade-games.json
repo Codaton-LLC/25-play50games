@@ -234,7 +234,14 @@
       "max_duration_ms": 122000,
       "base": 0,
       "max_pps": 64,
-      "enabled": false
+      "enabled": false,
+      "levels": [
+        { "title": "Training Belt", "max_score": 7620, "min_duration_ms": 10000, "max_duration_ms": 122000, "base": 0, "max_pps": 64 },
+        { "title": "Two Destinations", "max_score": 12050, "min_duration_ms": 9500, "max_duration_ms": 152000, "base": 0, "max_pps": 81 },
+        { "title": "Four Destinations", "max_score": 17730, "min_duration_ms": 9500, "max_duration_ms": 182000, "base": 0, "max_pps": 99 },
+        { "title": "Rush Hour", "max_score": 18480, "min_duration_ms": 9400, "max_duration_ms": 182000, "base": 0, "max_pps": 103 },
+        { "title": "International Hub", "max_score": 22090, "min_duration_ms": 9400, "max_duration_ms": 202000, "base": 0, "max_pps": 111 }
+      ]
     },
     "dino-egg-rescue": {
       "title": "Dino Egg Rescue",

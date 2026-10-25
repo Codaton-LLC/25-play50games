@@ -9,7 +9,7 @@ import { scaledCount, useQuality } from "@/arcade3d/core/quality";
 import { useGameTime } from "@/arcade3d/core/gameTime";
 import { hover, type BodyOffset } from "@/arcade3d/core/motion";
 import { advance, createPath, tangentAt } from "@/arcade3d/core/path";
-import { ASSETS } from "./assets";
+import { ASSETS, BRICK_FALLBACK, BRICK_HEIGHT, BRICK_SPOTS, GLASS_FALLBACK, GLASS_HEIGHT, GLASS_SPOTS, SKYLINE_FOOTPRINT } from "./assets";
 import { CITY, ROUTE, type Run, type City } from "./rules";
 import { mergedBoxes, useMergedPart } from "./Primitives";
 import { COLORS, GROUND_PLANE, PARK } from "./looks";
@@ -518,6 +518,28 @@ export default function CityScene({ run, reduced }: { run: Run; reduced: boolean
                <Instanced spots={treeFallback}>
                   <coneGeometry args={[0.9, 3, 8]} />
                   <meshStandardMaterial color={COLORS.treeFoliageA} roughness={0.9} />
+               </Instanced>
+            }
+         />
+
+         {/* Brick and glass towers in the gap between the z -37 and z -48 skyline rows. */}
+         <InstancedModel
+            asset={ASSETS.brick}
+            spots={BRICK_SPOTS}
+            fallback={
+               <Instanced spots={BRICK_FALLBACK}>
+                  <boxGeometry args={[SKYLINE_FOOTPRINT, BRICK_HEIGHT, SKYLINE_FOOTPRINT]} />
+                  <meshStandardMaterial color="#9a3412" roughness={0.85} />
+               </Instanced>
+            }
+         />
+         <InstancedModel
+            asset={ASSETS.glass}
+            spots={GLASS_SPOTS}
+            fallback={
+               <Instanced spots={GLASS_FALLBACK}>
+                  <boxGeometry args={[SKYLINE_FOOTPRINT, GLASS_HEIGHT, SKYLINE_FOOTPRINT]} />
+                  <meshStandardMaterial color="#7dd3fc" roughness={0.3} metalness={0.4} />
                </Instanced>
             }
          />
