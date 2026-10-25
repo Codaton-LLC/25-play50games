@@ -178,6 +178,9 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/hotel-bellboy-rush/lobbyPlanterR.glb",
    "/models/3d/shared/sofa.glb",
    "/models/3d/shared/travellerNpc.glb",
+   // penalty-hero finalTrophy (2026-10-25): the final's presentation cup (text-to-3D batch, optimized);
+   // level 4-5 decor behind the goal, placed in games/penalty-hero/assets.ts
+   "/models/3d/penalty-hero/finalTrophy.glb",
 ];
 
 const LISTED: ReadonlySet<string> = new Set(MODEL_MANIFEST);
