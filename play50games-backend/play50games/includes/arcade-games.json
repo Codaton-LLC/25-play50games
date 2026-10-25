@@ -637,12 +637,19 @@
     "hotel-bellboy-rush": {
       "title": "Hotel Bellboy Rush",
       "kind": "points",
-      "max_score": 3000,
-      "min_duration_ms": 10000,
-      "max_duration_ms": 300000,
-      "base": 3000,
-      "max_pps": 3000,
-      "enabled": false
+      "max_score": 910,
+      "min_duration_ms": 2000,
+      "max_duration_ms": 122000,
+      "base": 360,
+      "max_pps": 58,
+      "enabled": false,
+      "levels": [
+        { "title": "Lobby Floor", "max_score": 910, "min_duration_ms": 2000, "max_duration_ms": 122000, "base": 360, "max_pps": 58 },
+        { "title": "3-Floor Hotel", "max_score": 1250, "min_duration_ms": 2000, "max_duration_ms": 152000, "base": 600, "max_pps": 33 },
+        { "title": "Luxury Hotel", "max_score": 1575, "min_duration_ms": 2000, "max_duration_ms": 182000, "base": 840, "max_pps": 23 },
+        { "title": "Business Hotel", "max_score": 1745, "min_duration_ms": 2000, "max_duration_ms": 182000, "base": 1080, "max_pps": 15 },
+        { "title": "Grand Hotel", "max_score": 2100, "min_duration_ms": 2000, "max_duration_ms": 212000, "base": 1440, "max_pps": 9 }
+      ]
     },
     "wizard-potion-lab": {
       "title": "Wizard Potion Lab",
