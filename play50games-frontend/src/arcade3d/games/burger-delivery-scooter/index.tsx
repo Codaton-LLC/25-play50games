@@ -1,16 +1,26 @@
 "use client";
-
-// Stub until the game is built. Owner: claude. Replace PlaceholderScene with ./Scene.
-import type { GameDefinition } from "@/arcade3d/core/types";
-import { PlaceholderScene } from "@/arcade3d/core/PlaceholderScene";
-
-const definition: GameDefinition = {
-   slug: "burger-delivery-scooter",
-   Scene: PlaceholderScene,
-   assets: {},
-   camera: { position: [0, 6, 10], fov: 50, lookAt: [0, 0, 0] },
-   touchControls: ["joystick", "jump"],
-   instructions: ["Stop at the counter to take an order.", "Stop on the door pad before the quality drops."],
+import type { GameDefinition } from "../../core/types";
+import { LEVEL_IDS } from "../../types";
+import { ASSETS } from "./assets";
+import { LEVELS, LEVEL_LINES, type BurgerLevel } from "./levels";
+import { CAMERA, environment } from "./looks";
+import Scene from "./Scene";
+import Hud from "./Hud";
+const instructions = [
+   "Stop on the pink ring at the burger shop to load, then stop inside the green door ring for 0.45 seconds.",
+   "Up accelerates, Down brakes or reverses, Left / Right steer. Space / Hop clears barriers.",
+   "Hits and dark wet patches spoil quality. Three spoiled orders end the run.",
+   "Each drop: quality points +40 within 25 seconds. Win: +4 per full second left.",
+];
+const stats = (c: BurgerLevel) => [{ key: "orders", label: "Orders", max: c.orders }, { key: "quality", label: "Quality", max: 100 }];
+const definition: GameDefinition<BurgerLevel> = {
+   slug: "burger-delivery-scooter", Scene, Hud, assets: ASSETS, resultDelayMs: 900,
+   durationMs: LEVELS[1].durationMs, lives: 3, camera: CAMERA, environment: environment(LEVELS[1]),
+   touchControls: ["joystick", "jump"], touchLabels: { jump: "Hop" },
+   instructions, hudStats: stats(LEVELS[1]),
+   levels: LEVEL_IDS.map((id) => ({ id, description: LEVEL_LINES[id - 1], config: LEVELS[id],
+      durationMs: LEVELS[id].durationMs, environment: environment(LEVELS[id]),
+      instructions: [...instructions, "Deliver all " + LEVELS[id].orders + " orders with average quality at least " + LEVELS[id].qualityMin + "."],
+      hudStats: stats(LEVELS[id]) })),
 };
-
 export default definition;
