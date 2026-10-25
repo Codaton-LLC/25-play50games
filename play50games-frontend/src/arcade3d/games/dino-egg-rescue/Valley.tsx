@@ -18,7 +18,8 @@ import {
 import { ASSETS } from "./assets";
 import { COLORS, valleyRidgeMesh, type ColoredMesh } from "./looks";
 import { TreePrimitive, VolcanoConePrimitive } from "./Primitives";
-import { BOULDER_LANES, MUD, NEST, TREES, VALLEY } from "./rules";
+import { BOULDER_LANES, MUD, NEST, TREES, VALLEY, mudFor } from "./rules";
+import { useDinoLevel } from "./useDinoLevel";
 
 const TREE_SPOTS: InstanceSpot[] = TREES.positions.map((t, idx) => ({
    x: t.x,
@@ -64,6 +65,7 @@ const drawValleyMeadow: CanvasDraw = (ctx, width, height) => {
 };
 
 export function Valley({ telegraphLanes }: { telegraphLanes?: readonly boolean[] }) {
+   const mudPatches = mudFor(useDinoLevel().config);
    // Warm golden straw texture for nest with woven criss-crossing fibres
    const strawTexture = useCanvasTexture(128, 128, (ctx) => {
       ctx.fillStyle = COLORS.straw;
@@ -194,9 +196,9 @@ export function Valley({ telegraphLanes }: { telegraphLanes?: readonly boolean[]
             );
          })}
 
-         {/* 3 Mud pits (layered: dried rim, glossy wet mud pool, bubbling blisters) */}
-         {MUD.patches.map((mud, idx) => (
-            <group key={idx} position={[mud.x, 0, mud.z]}>
+         {/* Mud pits: 3 on level 1, 5 from the riverbank on (layered rim, pool, blisters) */}
+         {mudPatches.map((mud) => (
+            <group key={mud.id} position={[mud.x, 0, mud.z]}>
                {/* Dried earthy rim */}
                <mesh position={[0, 0.005, 0]} rotation={[-Math.PI / 2, 0, 0]}>
                   <ringGeometry args={[MUD.radius * 0.85, MUD.radius * 1.08, 28]} />

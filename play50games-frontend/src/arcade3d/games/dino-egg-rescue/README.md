@@ -73,15 +73,49 @@ The counting proof holds by strict upper bounds from user decisions D1:
 5. **Duration:** every completed run ends exclusively by shell `"timeup"` at `elapsedMs = 90000` (no early win or lose; quit discards run), falling strictly within 88000–92000 ms.
 6. **Linear envelope:** $5850 / 88.0\text{ s} = 66.48\text{ pts/s} \le 70\text{ pts/s}$ (`maxPointsPerSec`). $0 + 70 \cdot t \ge 6000 \ge 5850$ holds for all $t \ge 85.8\text{ s}$.
 
+## Levels
+
+One valley, five configurations (`levels.ts`). Level 1 is today's 90 s game. There is no win: a level clears when the score reaches `clearScore` (levels 1–4 unlock the next; level 5's target only marks the tile). Per-level lighting is not supported — every level keeps the built sunset. Nest matching and an egg-counted win are not built.
+
+Plan timers of 120–210 s are compressed to 120 s on levels 2–5. Each of those clocks has its own duration window, ±2 s around the clock, the same margin as level 1's 88–92 s around 90 s.
+
+| Level | Title | What changes from the previous level | Clear | Limits (max / duration / base / pps) |
+|---|---|---|---|---|
+| 1 | Green Valley | today's game: 90 s, unlocks 0/0/30/60 s, speeds 3.6–5.2, ramp 90 s, 3 mud pits, goldens 25/50/75, supply 4+29, stack 3 | 1500 | 6000 / 88000–92000 / 0 / 70 |
+| 2 | Fern Forest | unlocks 0/15/30/45, boulder ramp reaches 1.2 s at 60 s, clock 120 s | 2000 | 6100 / 118000–122000 / 0 / 52 |
+| 3 | Riverbank | two more mud pits, every lane +0.5 m/s | 2000 | 6100 / 118000–122000 / 0 / 52 |
+| 4 | Volcanic Pass | unlocks 0/0/0/15, goldens at 20/40/60 | 2000 | 6100 / 118000–122000 / 0 / 52 |
+| 5 | Dino Sanctuary | supply 6+35, stack 4 at ×0.50, a 4-egg delivery pays 600 | 2500 | 7300 / 118000–122000 / 0 / 62 |
+
+Open time of each lane `(clock − unlock)` never falls, and lane speeds never fall. Level 2's second lane unlocks later than level 1's (15 s vs 0 s) but the longer clock keeps it open longer (105 s vs 90 s).
+
+### Per-level proofs
+
+The best regular delivery is 150 pts per egg on every level: a 3-stack pays 450, and level 5's 4-stack pays 600. Both 33 and 41 partition into those stacks, so the per-egg maximum is a legal packing.
+
+| Level | Supply | Golden | Ceiling B | maxScore | margin | Rate at the minimum duration |
+|---|---|---|---|---|---|---|
+| 1 | 4+29 = 33 | 3 × 300 | 33×150+900 = **5850** | 6000 | 2.6% | 5850/88 s = 66.48 ≤ 70 |
+| 2 | 33 | 900 | **5850** | 6100 | 4.3% | 5850/118 s = 49.58 ≤ 52 |
+| 3 | 33 | 900 | **5850** | 6100 | 4.3% | 49.58 ≤ 52 |
+| 4 | 33 | 900 | **5850** | 6100 | 4.3% | 49.58 ≤ 52 |
+| 5 | 6+35 = 41 | 900 | 41×150+900 = **7050** | 7300 | 3.5% | 7050/118 s = 59.75 ≤ 62 |
+
+Level 4's earlier goldens do not add a fourth golden, so B stays 5850. On the 120 s clock the rate check has room (49.58 vs 52); the old 66.48 ≤ 70 pinch was the 90 s window. Level 5's `maxScore` is 7300, under 3 × level 1's 6000. Levels 2–5 offer at least level 1's ceiling (the same 5850, with 30 s more to collect it; level 5 offers 7050).
+
+A run still ends only on `"timeup"`, so the played duration is the level clock. `minDurationMs` / `maxDurationMs` are that clock ± 2 s. `0 + pps × t` at `minDurationMs` is above both B and `maxScore`.
+
+Crossing stays fair on the fastest rocks with a full stack and no mud (mud is off every lane): level 5 walks at 5.0 × 0.50 = 2.5 m/s, so the 2.1 m band takes 0.84 s, and a 4.1 m/s boulder passes in 0.51 s. 1.35 s ≤ the 2.5 s headway. Keyboard Space/E and the touch Dash button are the same `actionPressed || jumpPressed` edge.
+
 ## Run end
 
-- `"timeup"` by shell at 90 s (`durationMs: 90000`). Result delay `resultDelayMs: 1200` to show nest celebration.
-- No early win or lose condition (pure time-attack endurance collect).
+- `"timeup"` by shell at the level clock (level 1: 90 s, `durationMs: 90000`; levels 2–5: 120 s). Result delay `resultDelayMs: 1200` to show nest celebration.
+- No early win or lose condition (pure time-attack endurance collect). A level is cleared by reaching its `clearScore`.
 
 ## Scene and camera
 
 - **Camera & fit:** `GameDefinition.camera = { position: [0, 16, 13.4], fov: 45 }`. Follow 3/4 top-down view, pitch 50° ((50 · π) / 180), yaws [0]. `useFittedView` with area in metres (see "Camera windows" below). Follow live point `<CameraRig camera={definition.camera} follow={{ x: dino.x, y: 0, z: dino.z }} bounds={VALLEY_BOUNDS} damping={4} followFraction={1} offset={view.offset} shift={view.shift} />`; the fit's `focus` comes from `followFocus({ lookAt, reach, fraction: 1, bounds: VALLEY_BOUNDS })`, where `reach` and `bounds` are AABBs (`VALLEY_BOUNDS` = { min: { x: −15, y: 0, z: −11 }, max: { x: 15, y: 0, z: 11 } }), not tuples.
-- **TargetMarkers:** `<TargetMarkers>` displays screen-edge guidance arrows pointing to nearest uncollected eggs when stack < 3, the nest when carrying ≥ 1 egg, and warning arrows for incoming boulders at spawn.
+- **TargetMarkers:** `<TargetMarkers>` displays screen-edge guidance arrows pointing to nearest uncollected eggs when the stack is under `maxStack` (3, or 4 on level 5), the nest when carrying ≥ 1 egg, and warning arrows for incoming boulders at spawn.
 - **Camera windows (`camera.ts` `viewFor`, pinned in `camera.test.ts`):** phones (shorter side < 600 CSS px) get a tight window: portrait 8.0 × 10.8 m at pitch 50°, landscape 10.6 × 7.4 m at pitch 60° (the short side is the valley's depth, so the steeper look keeps the far row from foreshortening). Larger screens keep 11 × 15 m / 16 × 11 m at pitch 50°. The egg glow discs are drawn at the pickup radii (0.6 m regular, 0.7 m golden; visual only, the rules are unchanged).
 - **Pixel readability, MEASURED** (Claude review 2026-10-09: headless Chrome, a bot playing a full 90 s run, about 98 samples per viewport; projected bounding box of the drawn dino mesh, of each egg's glow disc + egg and of each boulder, objects on screen only; phones with the cookie banner open). Shorter side of the box, min / median in CSS px:
 

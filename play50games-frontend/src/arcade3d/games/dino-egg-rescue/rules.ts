@@ -7,6 +7,8 @@ import {
    capScore as capToLimits,
    withinServerLimits as fitsLimits,
 } from "@/arcade3d/core/limits";
+import type { LevelId, ScoringRules } from "@/arcade3d/types";
+import { EXTRA_MUD, LEVELS, type DinoLevel } from "./levels";
 import dinoEggRescueMeta from "./meta";
 
 // ---------- constants and layout ----------
@@ -116,6 +118,42 @@ export const EGGS = {
    },
 } as const;
 
+/** Today's three pits, or those plus EXTRA_MUD when the level asks for five. Stable arrays, no per-frame copy. */
+const MUD_FIVE: readonly { id: number; x: number; z: number }[] = [...MUD.patches, ...EXTRA_MUD];
+
+export function mudFor(level: DinoLevel): readonly { id: number; x: number; z: number }[] {
+   return level.mudPatches <= MUD.patches.length ? MUD.patches : MUD_FIVE;
+}
+
+/** The four gullies with this level's speeds and unlock times. Geometry stays BOULDER_LANES. */
+export function lanesFor(level: DinoLevel): BoulderLane[] {
+   const lanes: BoulderLane[] = [];
+   for (let i = 0; i < BOULDER_LANES.length; i++) {
+      const lane = BOULDER_LANES[i];
+      lanes.push({
+         id: lane.id,
+         startX: lane.startX,
+         startZ: lane.startZ,
+         endX: lane.endX,
+         endZ: lane.endZ,
+         speed: level.speeds[i],
+         unlockS: level.unlocks[i],
+      });
+   }
+   return lanes;
+}
+
+/**
+ * Boulder gap at time t: 3.0 s at t = 0, 1.2 s once t reaches rampS.
+ * Level 1's ramp is 90, so this is the formula that used to be inlined with a hardcoded 90.
+ */
+export function boulderIntervalAt(t: number, rampS: number): number {
+   return (
+      BOULDERS.spawnIntervalStartS -
+      ((BOULDERS.spawnIntervalStartS - BOULDERS.spawnIntervalEndS) * Math.min(rampS, t)) / rampS
+   );
+}
+
 // ---------- geometry and clearance helpers ----------
 
 /** 2D point-to-segment distance on XZ plane. */
@@ -224,6 +262,10 @@ export interface GameEvents {
 
 export interface DinoRunState {
    seed: number;
+   /** The level this run was built from. Level 1 matches the module constants. */
+   level: DinoLevel;
+   lanes: readonly BoulderLane[];
+   mud: readonly { x: number; z: number }[];
    rng: RngState;
    timeS: number;
    dino: DinoEntity;
@@ -246,7 +288,12 @@ export interface DinoRunState {
 
 // ---------- valid ground placement ----------
 
-export function isValidGroundSpot(x: number, z: number, margin = 0.3): boolean {
+export function isValidGroundSpot(
+   x: number,
+   z: number,
+   margin = 0.3,
+   patches: readonly { x: number; z: number }[] = MUD.patches
+): boolean {
    // 1. In bounds
    if (
       x < VALLEY_BOUNDS.min.x + margin ||
@@ -263,7 +310,7 @@ export function isValidGroundSpot(x: number, z: number, margin = 0.3): boolean {
    }
 
    // 3. Clear of mud pits
-   for (const mud of MUD.patches) {
+   for (const mud of patches) {
       if (Math.hypot(x - mud.x, z - mud.z) < MUD.radius + margin) {
          return false;
       }
@@ -282,7 +329,8 @@ export function isValidGroundSpot(x: number, z: number, margin = 0.3): boolean {
 /** Pushes or clamps an invalid spot into the nearest valid free ground spot. */
 export function pushToValidGroundSpot(
    p: { x: number; z: number },
-   margin = 0.3
+   margin = 0.3,
+   patches: readonly { x: number; z: number }[] = MUD.patches
 ): { x: number; z: number } {
    let x = Math.max(
       VALLEY_BOUNDS.min.x + margin,
@@ -303,7 +351,7 @@ export function pushToValidGroundSpot(
    }
 
    // Push out of mud pits
-   for (const mud of MUD.patches) {
+   for (const mud of patches) {
       const dist = Math.hypot(x - mud.x, z - mud.z);
       const minDist = MUD.radius + margin;
       if (dist < minDist) {
@@ -339,7 +387,8 @@ export function pushToValidGroundSpot(
 /** Samples a valid regular egg spot at time t around the nest. */
 export function sampleEggSpot(
    rng: RngState,
-   t: number
+   t: number,
+   patches: readonly { x: number; z: number }[] = MUD.patches
 ): { x: number; z: number } {
    const baseR = 6.0 + (10.0 * t) / 90.0;
    for (let attempt = 0; attempt < 64; attempt++) {
@@ -349,37 +398,39 @@ export function sampleEggSpot(
       const angle = Math.PI * 0.65 + rngNext(rng) * Math.PI * 0.9;
       const candX = NEST.x + Math.cos(angle) * r;
       const candZ = NEST.z + Math.sin(angle) * r;
-      if (isValidGroundSpot(candX, candZ, 0.4)) {
+      if (isValidGroundSpot(candX, candZ, 0.4, patches)) {
          return { x: candX, z: candZ };
       }
    }
    // Fallback: guaranteed valid spot clamped
-   return pushToValidGroundSpot({ x: NEST.x - baseR, z: NEST.z - baseR * 0.5 }, 0.4);
+   return pushToValidGroundSpot({ x: NEST.x - baseR, z: NEST.z - baseR * 0.5 }, 0.4, patches);
 }
 
 /** Samples a valid golden egg spot within 8 m of the dino. */
 export function sampleGoldenEggSpot(
    rng: RngState,
    dinoX: number,
-   dinoZ: number
+   dinoZ: number,
+   patches: readonly { x: number; z: number }[] = MUD.patches
 ): { x: number; z: number } {
    for (let attempt = 0; attempt < 64; attempt++) {
       const r = 3.0 + rngNext(rng) * 5.0; // 3 to 8 m
       const angle = rngNext(rng) * Math.PI * 2;
       const candX = dinoX + Math.cos(angle) * r;
       const candZ = dinoZ + Math.sin(angle) * r;
-      if (isValidGroundSpot(candX, candZ, 0.4)) {
+      if (isValidGroundSpot(candX, candZ, 0.4, patches)) {
          return { x: candX, z: candZ };
       }
    }
    // Fallback: clamped spot around dino
-   return pushToValidGroundSpot({ x: dinoX + 4.0, z: dinoZ - 3.0 }, 0.4);
+   return pushToValidGroundSpot({ x: dinoX + 4.0, z: dinoZ - 3.0 }, 0.4, patches);
 }
 
 // ---------- factory ----------
 
-export function createDinoRun(seed: number): DinoRunState {
+export function createDinoRun(seed: number, level: DinoLevel = LEVELS[1]): DinoRunState {
    const rng: RngState = { s: (seed >>> 0) || 1 };
+   const mud = mudFor(level);
    const dino: DinoEntity = {
       x: DINO.startX,
       y: 0,
@@ -396,10 +447,10 @@ export function createDinoRun(seed: number): DinoRunState {
       carriedGolden: false,
    };
 
-   // 4 initial regular eggs at t = 0
+   // initial regular eggs at t = 0 (level 1: 4)
    const groundEggs: GroundEgg[] = [];
-   for (let i = 0; i < EGGS.initialSupply; i++) {
-      const pt = sampleEggSpot(rng, 0);
+   for (let i = 0; i < level.initialSupply; i++) {
+      const pt = sampleEggSpot(rng, 0, mud);
       groundEggs.push({
          id: i + 1,
          x: pt.x,
@@ -411,6 +462,9 @@ export function createDinoRun(seed: number): DinoRunState {
 
    return {
       seed,
+      level,
+      lanes: lanesFor(level),
+      mud,
       rng,
       timeS: 0,
       dino,
@@ -424,7 +478,7 @@ export function createDinoRun(seed: number): DinoRunState {
       nextBoulderSpawnTime: 0.5,
       laneLastSpawnTime: [-99, -99, -99, -99],
       nextBoulderId: 1,
-      nextEggId: EGGS.initialSupply + 1,
+      nextEggId: level.initialSupply + 1,
       footstepAccumulator: 0,
       events: {
          dashStarted: false,
@@ -444,6 +498,9 @@ export function createDinoRun(seed: number): DinoRunState {
       laneTelegraph: [false, false, false, false],
    };
 }
+
+/** Same run factory, the name the level system uses. Defaults to today's game (level 1). */
+export const createRun = createDinoRun;
 
 // ---------- simulation step ----------
 
@@ -477,11 +534,12 @@ export function stepDinoRun(
       }
    }
 
-   // 2. Golden egg scheduled spawns at 25 s, 50 s, 75 s
-   if (run.goldenSpawnIndex < EGGS.goldenSpawnTimes.length) {
-      const scheduledT = EGGS.goldenSpawnTimes[run.goldenSpawnIndex];
+   // 2. Golden egg scheduled spawns (level 1: 25 s, 50 s, 75 s)
+   const goldenTimes = run.level.goldenSpawnTimes;
+   if (run.goldenSpawnIndex < goldenTimes.length) {
+      const scheduledT = goldenTimes[run.goldenSpawnIndex];
       if (t >= scheduledT) {
-         const spot = sampleGoldenEggSpot(rng, dino.x, dino.z);
+         const spot = sampleGoldenEggSpot(rng, dino.x, dino.z, run.mud);
          run.groundEggs.push({
             id: run.nextEggId++,
             x: spot.x,
@@ -495,8 +553,8 @@ export function stepDinoRun(
       }
    }
 
-   // 3. Regular egg spawn ticks at t = 3k (k = 1..29)
-   while (run.nextEggSpawnTick <= EGGS.totalSpawnTicks) {
+   // 3. Regular egg spawn ticks at t = 3k (level 1: k = 1..29)
+   while (run.nextEggSpawnTick <= run.level.totalSpawnTicks) {
       const tickTime = run.nextEggSpawnTick * 3.0;
       if (t >= tickTime) {
          // Check active regular eggs on ground without allocation
@@ -506,7 +564,7 @@ export function stepDinoRun(
             if (e.active && !e.isGolden) groundRegularCount++;
          }
          if (groundRegularCount < EGGS.maxGroundEggs) {
-            const spot = sampleEggSpot(rng, tickTime);
+            const spot = sampleEggSpot(rng, tickTime, run.mud);
             run.groundEggs.push({
                id: run.nextEggId++,
                x: spot.x,
@@ -523,9 +581,8 @@ export function stepDinoRun(
    }
 
    // 4. Boulder spawning schedule & 0.8 s telegraph
-   const spawnInterval =
-      BOULDERS.spawnIntervalStartS -
-      ((BOULDERS.spawnIntervalStartS - BOULDERS.spawnIntervalEndS) * Math.min(90, t)) / 90;
+   const spawnInterval = boulderIntervalAt(t, run.level.spawnRampS);
+   const lanes = run.lanes;
 
    // Update 0.8 s lane entrance telegraph
    const isTelegraphing = t >= run.nextBoulderSpawnTime - 0.8 && t < run.nextBoulderSpawnTime;
@@ -533,7 +590,7 @@ export function stepDinoRun(
       run.laneTelegraph[i] = false;
    }
    if (isTelegraphing) {
-      for (const lane of BOULDER_LANES) {
+      for (const lane of lanes) {
          if (t >= lane.unlockS) {
             const lastSpawn = run.laneLastSpawnTime[lane.id - 1];
             if (t - lastSpawn >= BOULDERS.headwayS) {
@@ -553,7 +610,7 @@ export function stepDinoRun(
       let lane3Eligible = false;
       let lane4Eligible = false;
 
-      for (const lane of BOULDER_LANES) {
+      for (const lane of lanes) {
          if (t >= lane.unlockS) {
             const lastSpawn = run.laneLastSpawnTime[lane.id - 1];
             if (t - lastSpawn >= BOULDERS.headwayS) {
@@ -570,19 +627,19 @@ export function stepDinoRun(
          let pick = Math.floor(rngNext(rng) * eligibleCount);
          let chosenLane: BoulderLane | null = null;
          if (lane1Eligible) {
-            if (pick === 0) chosenLane = BOULDER_LANES[0];
+            if (pick === 0) chosenLane = lanes[0];
             pick--;
          }
          if (!chosenLane && lane2Eligible) {
-            if (pick === 0) chosenLane = BOULDER_LANES[1];
+            if (pick === 0) chosenLane = lanes[1];
             pick--;
          }
          if (!chosenLane && lane3Eligible) {
-            if (pick === 0) chosenLane = BOULDER_LANES[2];
+            if (pick === 0) chosenLane = lanes[2];
             pick--;
          }
          if (!chosenLane && lane4Eligible) {
-            if (pick === 0) chosenLane = BOULDER_LANES[3];
+            if (pick === 0) chosenLane = lanes[3];
             pick--;
          }
 
@@ -617,7 +674,7 @@ export function stepDinoRun(
       boulder.z += boulder.dirZ * boulder.speed * dt;
       boulder.rollAngle += (boulder.speed * dt) / BOULDERS.radius;
 
-      const lane = BOULDER_LANES[boulder.laneId - 1];
+      const lane = lanes[boulder.laneId - 1];
       const remainingDist = Math.hypot(lane.endX - boulder.x, lane.endZ - boulder.z);
       const totalDist = Math.hypot(lane.endX - lane.startX, lane.endZ - lane.startZ);
       const progressDist = Math.hypot(boulder.x - lane.startX, boulder.z - lane.startZ);
@@ -661,14 +718,14 @@ export function stepDinoRun(
    let speed = 0;
    if (dino.stunTimer <= 0) {
       let inMud = false;
-      for (const mud of MUD.patches) {
+      for (const mud of run.mud) {
          if (Math.hypot(dino.x - mud.x, dino.z - mud.z) <= MUD.radius) {
             inMud = true;
             break;
          }
       }
       const mudMult = inMud ? MUD.speedMultiplier : 1.0;
-      const stackMult = EGGS.stackMultipliers[dino.carriedEggs.length];
+      const stackMult = run.level.stackMultipliers[dino.carriedEggs.length];
       const isDashing = dino.dashTimer > 0;
       const maxAllowedSpeed =
          (isDashing ? DINO.dashSpeed : DINO.baseSpeed) * stackMult * mudMult;
@@ -776,7 +833,7 @@ export function stepDinoRun(
                   const angle = dino.heading + (Math.PI * 2 * eggIdx) / totalToScatter;
                   const candX = dino.x + Math.cos(angle) * EGGS.scatterDistance;
                   const candZ = dino.z + Math.sin(angle) * EGGS.scatterDistance;
-                  const valid = pushToValidGroundSpot({ x: candX, z: candZ }, 0.4);
+                  const valid = pushToValidGroundSpot({ x: candX, z: candZ }, 0.4, run.mud);
                   run.groundEggs.push({
                      id: regId,
                      x: valid.x,
@@ -790,7 +847,7 @@ export function stepDinoRun(
                   const angle = dino.heading + (Math.PI * 2 * eggIdx) / totalToScatter;
                   const candX = dino.x + Math.cos(angle) * EGGS.scatterDistance;
                   const candZ = dino.z + Math.sin(angle) * EGGS.scatterDistance;
-                  const valid = pushToValidGroundSpot({ x: candX, z: candZ }, 0.4);
+                  const valid = pushToValidGroundSpot({ x: candX, z: candZ }, 0.4, run.mud);
                   run.groundEggs.push({
                      id: run.nextEggId++,
                      x: valid.x,
@@ -819,7 +876,7 @@ export function stepDinoRun(
                }
             }
          } else {
-            if (dino.carriedEggs.length < EGGS.maxStack) {
+            if (dino.carriedEggs.length < run.level.maxStack) {
                if (Math.hypot(dino.x - egg.x, dino.z - egg.z) <= EGGS.pickupRadius) {
                   egg.active = false;
                   dino.carriedEggs.push(egg.id);
@@ -837,7 +894,7 @@ export function stepDinoRun(
       const goldCount = dino.carriedGolden ? 1 : 0;
       if (regCount > 0 || goldCount > 0) {
          const points =
-            EGGS.points.regular[regCount] + goldCount * EGGS.points.golden;
+            run.level.deliveryPoints[regCount] + goldCount * EGGS.points.golden;
          run.score += points;
          run.deliveredRegularCount += regCount;
          run.deliveredGoldenCount += goldCount;
@@ -872,6 +929,46 @@ export function stepDinoRun(
 }
 
 // ---------- scoring limits helpers ----------
+
+/** Regular eggs a perfect run can be offered: the start pile plus every spawn tick. */
+export function regularSupply(level: DinoLevel): number {
+   return level.initialSupply + level.totalSpawnTicks;
+}
+
+/** Best points per regular egg. Level 1's 3-stack is 150; level 5's 4-stack is 600 / 4 = 150. */
+export function maxPointsPerEgg(level: DinoLevel): number {
+   let best = 0;
+   for (let n = 1; n < level.deliveryPoints.length; n++) {
+      const per = level.deliveryPoints[n] / n;
+      if (per > best) best = per;
+   }
+   return best;
+}
+
+/**
+ * Supply ceiling: every regular egg delivered at the best per-egg tier, plus every golden.
+ * A run cannot score more than this. 33 and 41 both partition into stacks of 3 (and 4 on
+ * level 5), so the per-egg maximum is reachable in whole deliveries.
+ */
+export function scoreCeiling(level: DinoLevel): number {
+   return regularSupply(level) * maxPointsPerEgg(level) + level.goldenSpawnTimes.length * EGGS.points.golden;
+}
+
+/**
+ * Limits proposed per level (README "Levels"). Level 1 is meta.scoring, already proven for
+ * today's 90 s clock. Levels 2-5 are 120 s, so both duration bounds move with the clock
+ * (±2 s, the same margin as level 1's 88–92 s around 90 s). Claude copies these into
+ * arcade-games.json and meta.levels.
+ * L2–L4: 33 × 150 + 3 × 300 = 5850. 5850 × 1.043 → 6100. 5850 / 118 s = 49.58 ≤ 52.
+ * L5: 41 × 150 + 3 × 300 = 7050. 7050 × 1.035 → 7300. 7050 / 118 s = 59.75 ≤ 62.
+ */
+export const PROPOSED_LEVEL_LIMITS: Record<LevelId, ScoringRules> = {
+   1: dinoEggRescueMeta.scoring,
+   2: { ...dinoEggRescueMeta.scoring, maxScore: 6100, minDurationMs: 118_000, maxDurationMs: 122_000, maxPointsPerSec: 52 },
+   3: { ...dinoEggRescueMeta.scoring, maxScore: 6100, minDurationMs: 118_000, maxDurationMs: 122_000, maxPointsPerSec: 52 },
+   4: { ...dinoEggRescueMeta.scoring, maxScore: 6100, minDurationMs: 118_000, maxDurationMs: 122_000, maxPointsPerSec: 52 },
+   5: { ...dinoEggRescueMeta.scoring, maxScore: 7300, minDurationMs: 118_000, maxDurationMs: 122_000, maxPointsPerSec: 62 },
+};
 
 export function withinLimits(score: number, elapsedMs: number): boolean {
    return fitsLimits(score, elapsedMs, dinoEggRescueMeta.scoring);
