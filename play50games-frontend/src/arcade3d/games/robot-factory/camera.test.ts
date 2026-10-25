@@ -70,6 +70,8 @@ describe("robot-factory camera fits and sizes (>= 24 CSS px)", () => {
             const lip = new Vector3(bin.x, SORTER.BIN_H, SORTER.BIN_Z).project(cam);
             const binPx = Math.abs((lip.y - foot.y) * 0.5 * height);
             sorterLabelEnds(i, bottom, top);
+            // the plate sits in front of the bin's front face, not inside the steel body
+            expect(Math.min(bottom.z, top.z), `label ${i} in front of the bin`).toBeGreaterThan(SORTER.BIN_Z + SORTER.BIN_D / 2);
             const low = new Vector3(bottom.x, bottom.y, bottom.z).project(cam);
             const high = new Vector3(top.x, top.y, top.z).project(cam);
             const labelPx = Math.hypot((high.x - low.x) * 0.5 * width, (high.y - low.y) * 0.5 * height);

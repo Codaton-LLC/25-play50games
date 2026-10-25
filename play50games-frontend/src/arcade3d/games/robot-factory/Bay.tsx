@@ -44,7 +44,7 @@ const box = (w: number, h: number, d: number, x: number, y: number, z: number, c
 };
 const cyl = (r: number, h: number, x: number, y: number, z: number, color: string, top = r) => tone(new CylinderGeometry(top, r, h, 28).translate(x, y, z), color);
 
-function buildBay(decor: boolean): BufferGeometry {
+function buildBay(decor: boolean, sorter: boolean): BufferGeometry {
    const p: BufferGeometry[] = [
       // work platform with a lighter edge
       box(6.7, 0.05, 2.9, 0, 0.025, 0.05, COLORS.platformEdge),
@@ -68,18 +68,23 @@ function buildBay(decor: boolean): BufferGeometry {
       cyl(0.42, 0.12, CRADLE.x, 0.06, CRADLE.z, COLORS.steelDark),
       cyl(0.36, 0.1, CRADLE.x, 0.17, CRADLE.z, COLORS.steelMid),
       cyl(0.34, 0.02, CRADLE.x, CRADLE_TOP - 0.01, CRADLE.z, COLORS.steel),
-      // the scrap bin: an open box in front of the claw
-      box(0.94, 0.04, 0.44, SCRAP_BIN.x, 0.06, 1.0, COLORS.bin),
-      box(0.94, 0.4, 0.04, SCRAP_BIN.x, 0.24, 1.2, COLORS.bin),
-      box(0.94, 0.3, 0.04, SCRAP_BIN.x, 0.19, 0.8, COLORS.bin),
-      box(0.04, 0.4, 0.44, SCRAP_BIN.x - 0.45, 0.24, 1.0, COLORS.bin),
-      box(0.04, 0.4, 0.44, SCRAP_BIN.x + 0.45, 0.24, 1.0, COLORS.bin),
-      box(0.96, 0.04, 0.05, SCRAP_BIN.x, 0.44, 1.21, COLORS.hazard),
       // the exit door's frame
       box(0.14, 2.0, 0.12, DOOR_X, 1.0, WALK.TO.z - DOOR.width / 2 - 0.07, COLORS.steelDark),
       box(0.14, 2.0, 0.12, DOOR_X, 1.0, WALK.TO.z + DOOR.width / 2 + 0.07, COLORS.steelDark),
       box(0.14, 0.12, DOOR.width + 0.26, DOOR_X, 1.96, WALK.TO.z, COLORS.steelDark),
    ];
+   if (!sorter) {
+      // the scrap bin: an open box in front of the claw. The sorter levels put their four bins here
+      // instead (SortBins), so the scrap bin would stand in front of bins 2 and 3 and hide their plates.
+      p.push(
+         box(0.94, 0.04, 0.44, SCRAP_BIN.x, 0.06, 1.0, COLORS.bin),
+         box(0.94, 0.4, 0.04, SCRAP_BIN.x, 0.24, 1.2, COLORS.bin),
+         box(0.94, 0.3, 0.04, SCRAP_BIN.x, 0.19, 0.8, COLORS.bin),
+         box(0.04, 0.4, 0.44, SCRAP_BIN.x - 0.45, 0.24, 1.0, COLORS.bin),
+         box(0.04, 0.4, 0.44, SCRAP_BIN.x + 0.45, 0.24, 1.0, COLORS.bin),
+         box(0.96, 0.04, 0.05, SCRAP_BIN.x, 0.44, 1.21, COLORS.hazard),
+      );
+   }
    for (const x of [-2.5, -1.25, 1.25, 2.5]) {
       p.push(box(0.08, 0.5, 0.08, x, 0.31, BELT.Z - 0.36, COLORS.steelDark));
       p.push(box(0.08, 0.5, 0.08, x, 0.31, BELT.Z + 0.36, COLORS.steelDark));
@@ -137,7 +142,8 @@ const LIGHTS = buildLights();
 export function Bay({ run, look }: { run: Run; look: Look }) {
    const quality = useQuality();
    const decor = quality.tier !== "low";
-   const bay = useMemo(() => buildBay(decor), [decor]);
+   const sorter = run.level.sorter;
+   const bay = useMemo(() => buildBay(decor, sorter), [decor, sorter]);
    useEffect(() => () => bay.dispose(), [bay]);
    return (
       <group name="bay">
@@ -215,12 +221,14 @@ function Lights({ run, look }: { run: Run; look: Look }) {
       if (!inst) return;
       LIGHTS.forEach((l, i) => {
          s.q.setFromAxisAngle(s.up, l.yaw);
-         inst.setMatrixAt(i, s.m.compose(s.p.set(l.x, l.y, l.z), s.q, s.sc.set(l.sx, l.sy, l.sz)));
+         // the scrap bin's warning strip goes with the bin (not on the sorter levels)
+         const hide = l.role === "warn" && run.level.sorter ? 0 : 1;
+         inst.setMatrixAt(i, s.m.compose(s.p.set(l.x, l.y, l.z), s.q, s.sc.set(l.sx * hide, l.sy * hide, l.sz * hide)));
          inst.setColorAt(i, s.rim);
       });
       inst.instanceMatrix.needsUpdate = true;
       if (inst.instanceColor) inst.instanceColor.needsUpdate = true;
-   }, [s]);
+   }, [s, run.level.sorter]);
    useFrame(() => {
       const inst = mesh.current;
       if (!inst) return;

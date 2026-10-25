@@ -171,7 +171,8 @@ export function sorterLabelEnds(i: number, bottom: { x: number; y: number; z: nu
    const center = sortBinCenter(i);
    const hh = SORTER.LABEL_H / 2;
    const cy = SORTER.BIN_H * 0.62;
-   const cz = SORTER.BIN_Z + SORTER.BIN_D * 0.5 - 0.02;
+   // just in front of the steel front face (inside it, the plate was hidden by the bin body)
+   const cz = SORTER.BIN_Z + SORTER.BIN_D * 0.5 + 0.012;
    bottom.x = center.x;
    bottom.y = cy - hh;
    bottom.z = cz;
