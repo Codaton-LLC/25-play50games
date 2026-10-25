@@ -1,0 +1,30 @@
+.fare {
+   position: absolute;
+   top: 74px;
+   right: 12px;
+   display: flex;
+   flex-direction: column;
+   gap: 4px;
+   min-width: 132px;
+   padding: 8px 10px;
+   border: 1px solid var(--stroke);
+   border-radius: 12px;
+   background: var(--card);
+   color: #f8fafc;
+   font-size: 13px;
+   line-height: 1.2;
+   pointer-events: none;
+}
+
+.track {
+   height: 8px;
+   border-radius: 999px;
+   background: #1e293b;
+   overflow: hidden;
+}
+
+.fill {
+   height: 100%;
+   border-radius: inherit;
+   background: #facc15;
+}
