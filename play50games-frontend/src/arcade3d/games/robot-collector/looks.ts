@@ -14,9 +14,9 @@ export const COLORS = {
    fog: "#0b1220",
 
    // Floor & Ground (sci-fi recycling yard / robotics lab)
-   floor: "#1a2234",
-   floorTileAlt: "#222c42",
-   floorLine: "#334155",
+   floor: "#3d4a60",
+   floorTileAlt: "#46546c",
+   floorLine: "#7a8aa3",
    lightStrip: "#06b6d4",
    lightStripGlow: "#22d3ee",
    floorTrim: "#f59e0b",
@@ -110,7 +110,7 @@ export const LEVEL_LOOKS: Record<LevelId, LevelLook> = {
 };
 
 /** Linear fog: starts past the perimeter wall so the lab floor remains crisp and high-contrast. */
-export const FOG = { near: 35, far: 80 } as const;
+export const FOG = { near: 60, far: 120 } as const;
 
 // ---------- Play Area & Bounds ----------
 
