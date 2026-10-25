@@ -19,7 +19,6 @@ import { createPath, type Path } from "@/arcade3d/core/path";
 import { stepPatrol, type PatrolOptions, type PatrolState } from "@/arcade3d/core/ai/patrol";
 import type { Agent } from "@/arcade3d/core/ai/steering";
 import type { LevelId } from "@/arcade3d/types";
-import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { PRODUCT_KINDS, type ProductKind } from "./assets";
 import { LEVELS, type ShoppingCartLevel } from "./levels";
 import { PROPOSED_LEVEL_LIMITS, PROPOSED_LIMITS, shoppingCartMeta } from "./meta";
@@ -282,6 +281,21 @@ export function storeDistance(a: { x: number; z: number }, b: { x: number; z: nu
    return Math.min(northWay, southWay);
 }
 
+/** Minimum spanning tree (Prim, storeDistance) over start, the items and checkout: a lower bound on shortestPickTour. */
+export function spanningTreeLength(items: readonly { x: number; z: number }[]): number {
+   const pts = [{ x: START_POS.x, z: START_POS.z }, ...items, { x: 0, z: 10.5 }];
+   const best = pts.map(() => Infinity), used = pts.map(() => false);
+   best[0] = 0;
+   let total = 0;
+   for (let k = 0; k < pts.length; k++) {
+      let u = -1;
+      for (let i = 0; i < pts.length; i++) if (!used[i] && (u < 0 || best[i] < best[u])) u = i;
+      used[u] = true; total += best[u];
+      for (let i = 0; i < pts.length; i++) if (!used[i]) best[i] = Math.min(best[i], storeDistance(pts[u], pts[i]));
+   }
+   return total;
+}
+
 /** Calculates the shortest route visiting all items from start to checkout. */
 export function shortestPickTour(items: readonly { x: number; z: number }[]): number {
    const start = { x: START_POS.x, z: START_POS.z };
@@ -403,8 +417,10 @@ export function generateList(
          collected: false,
       }));
 
-      const tourLen = shortestPickTour(items);
-      if (tourLen >= minTourDistance) {
+      // Long lists (levels 4-5): the start -> items -> checkout path is a spanning tree, so its length
+      // is at least the minimum spanning tree's; when that already clears the gate the exact
+      // Held-Karp tour (2^n states) is skipped. Same accept decision, far less work at run start.
+      if ((count > 8 && spanningTreeLength(items) >= minTourDistance) || shortestPickTour(items) >= minTourDistance) {
          return items;
       }
    }
@@ -478,16 +494,8 @@ export function createShoppers(routes: Record<string, Path>, shopperDActiveS = 4
 
 // ---------- Run Creation & Simulation ----------
 
-export function createRun(seed: number, level?: ShoppingCartLevel): RunState {
-   let activeLevel = level;
-   if (!activeLevel) {
-      try {
-         const picked = useArcadeStore.getState?.()?.levelId;
-         activeLevel = LEVELS[(picked ?? 1) as LevelId] ?? LEVELS[1];
-      } catch {
-         activeLevel = LEVELS[1];
-      }
-   }
+/** Pure: the Scene passes the picked level's config (useLevel); omitted = level 1 (today's game). */
+export function createRun(seed: number, activeLevel: ShoppingCartLevel = LEVELS[1]): RunState {
    const routes = createShopperRoutes();
    return {
       seed,
