@@ -1,8 +1,14 @@
-import { Box3, Vector3 } from "three";
+import { Box3, BufferGeometry, Float32BufferAttribute, Group, Mesh, Vector3 } from "three";
+import { existsSync } from "node:fs";
+import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
+import { modelParts } from "@/arcade3d/core/assets";
+import { hasModel } from "@/arcade3d/core/modelManifest";
 import { readCharacterGlb } from "@/arcade3d/core/rig/robotGlb";
+import type { ModelAsset } from "@/arcade3d/core/types";
 import { EXPANSION_GLB_SIZE } from "@/arcade3d/core/sharedAssets";
-import { ASSETS, BODY_OFFSET, DRONE_HOOK, DRONE_SCALE, ROTORS } from "./assets";
+import { ASSETS, BODY_OFFSET, BRICK_GLB, BRICK_HEIGHT, BRICK_SPOTS, DRONE_HOOK, DRONE_SCALE, GLASS_GLB, GLASS_HEIGHT, GLASS_SPOTS, ROTORS, SKYLINE_FOOTPRINT, SKYLINE_Z } from "./assets";
+import { OUTER_BUILDING_SPOTS, PLAY_BOUNDS } from "./looks";
 
 /** Decode the real meshopt vertices in root space, without textures, fetch or a DOM. */
 async function bounds(url: string): Promise<Box3> {
@@ -46,5 +52,55 @@ describe("real GLB fits and the logical hook", () => {
          const size = (await bounds(asset.url)).getSize(new Vector3());
          expect(Math.abs(size[axis] * asset.scale - intended)).toBeLessThan(tolerance);
       }
+   });
+});
+
+async function fitted(asset: ModelAsset): Promise<Box3> {
+   const { local, node } = await readCharacterGlb(asset.url);
+   const geometry = new BufferGeometry();
+   geometry.setAttribute("position", new Float32BufferAttribute(local, 3));
+   const mesh = new Mesh(geometry);
+   mesh.position.fromArray(node);
+   const root = new Group();
+   root.add(mesh);
+   const parts = modelParts(root, asset);
+   expect(parts).toHaveLength(1);
+   const box = new Box3();
+   const v = new Vector3();
+   for (let i = 0; i < local.length; i += 3) box.expandByPoint(v.set(local[i], local[i + 1], local[i + 2]).applyMatrix4(parts[0].matrix));
+   geometry.dispose();
+   return box;
+}
+
+describe("delivery-drone skyline variety", () => {
+   it("fits the brick and glass towers into the gap north of the play box", async () => {
+      for (const asset of [ASSETS.brick, ASSETS.glass]) {
+         expect(existsSync(resolve("public", asset.url.slice(1)))).toBe(true);
+         expect(hasModel(asset.url)).toBe(true);
+      }
+      const brick = await fitted(ASSETS.brick);
+      const glass = await fitted(ASSETS.glass);
+      expect(brick.min.y).toBeCloseTo(0, 2);
+      expect(glass.min.y).toBeCloseTo(0, 2);
+      expect(brick.max.y - brick.min.y).toBeCloseTo(BRICK_HEIGHT, 2);
+      expect(glass.max.y - glass.min.y).toBeCloseTo(GLASS_HEIGHT, 2);
+      expect(brick.max.x - brick.min.x).toBeCloseTo(SKYLINE_FOOTPRINT, 2);
+      expect(brick.max.z - brick.min.z).toBeCloseTo(SKYLINE_FOOTPRINT, 2);
+      expect(glass.max.x - glass.min.x).toBeCloseTo(SKYLINE_FOOTPRINT, 2);
+      expect(glass.max.z - glass.min.z).toBeCloseTo(SKYLINE_FOOTPRINT, 2);
+      const rawBrick = await bounds(ASSETS.brick.url);
+      const rawGlass = await bounds(ASSETS.glass.url);
+      expect(rawBrick.getSize(new Vector3()).y).toBeCloseTo(BRICK_GLB.height, 2);
+      expect(rawGlass.getSize(new Vector3()).y).toBeCloseTo(GLASS_GLB.height, 2);
+      const half = SKYLINE_FOOTPRINT / 2;
+      for (const spot of [...BRICK_SPOTS, ...GLASS_SPOTS]) {
+         expect(spot.z + half).toBeLessThan(PLAY_BOUNDS.min.z);
+         const mine = { minX: spot.x - half, maxX: spot.x + half, minZ: spot.z - half, maxZ: spot.z + half };
+         for (const other of OUTER_BUILDING_SPOTS) {
+            const hit = mine.minX < other.x + other.w / 2 && mine.maxX > other.x - other.w / 2 && mine.minZ < other.z + other.d / 2 && mine.maxZ > other.z - other.d / 2;
+            expect(hit, `${spot.x},${spot.z} vs ${other.x},${other.z}`).toBe(false);
+         }
+      }
+      expect(SKYLINE_Z).toBe(-42.25);
    });
 });
