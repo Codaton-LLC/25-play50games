@@ -140,6 +140,18 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/treasure-island/beachRocks.glb",
    "/models/3d/penguin-slide/iceArch.glb",
    "/models/3d/mini-golf/golfCastle.glb",
+   // Menu 1 beach-lifeguard (2026-10-25): the ready menu1-beach-lifeguard GLBs, copied as optimized.
+   // No surfboard (surfboard / surfboardV2 / surfboardLong are a disc, broken or square) and no alertBuoy
+   // (the alert stays the spec's code torus); fits in games/beach-lifeguard/assets.ts
+   "/models/3d/beach-lifeguard/charLifeguard.glb",
+   "/models/3d/beach-lifeguard/lifeguardTower.glb",
+   "/models/3d/beach-lifeguard/rescueFloat.glb",
+   "/models/3d/beach-lifeguard/beachChair.glb",
+   "/models/3d/beach-lifeguard/beachCooler.glb",
+   "/models/3d/beach-lifeguard/beachgoerNpc.glb",
+   "/models/3d/beach-lifeguard/beachHut.glb",
+   "/models/3d/beach-lifeguard/sandcastle.glb",
+   "/models/3d/beach-lifeguard/rescueJetSki.glb",
 ];
 
 const LISTED: ReadonlySet<string> = new Set(MODEL_MANIFEST);
