@@ -597,12 +597,19 @@
     "burger-delivery-scooter": {
       "title": "Burger Delivery Scooter",
       "kind": "points",
-      "max_score": 3000,
-      "min_duration_ms": 10000,
-      "max_duration_ms": 300000,
-      "base": 3000,
-      "max_pps": 3000,
-      "enabled": false
+      "max_score": 810,
+      "min_duration_ms": 4000,
+      "max_duration_ms": 120000,
+      "base": 420,
+      "max_pps": 15,
+      "enabled": false,
+      "levels": [
+        { "title": "Neighborhood", "max_score": 810, "min_duration_ms": 4000, "max_duration_ms": 120000, "base": 420, "max_pps": 15 },
+        { "title": "City Center", "max_score": 1000, "min_duration_ms": 4000, "max_duration_ms": 150000, "base": 560, "max_pps": 10 },
+        { "title": "Park District", "max_score": 1230, "min_duration_ms": 4000, "max_duration_ms": 180000, "base": 700, "max_pps": 10 },
+        { "title": "Rainy City", "max_score": 1270, "min_duration_ms": 4000, "max_duration_ms": 180000, "base": 840, "max_pps": 6 },
+        { "title": "Night Delivery", "max_score": 1580, "min_duration_ms": 4000, "max_duration_ms": 210000, "base": 1120, "max_pps": 5 }
+      ]
     },
     "beach-lifeguard": {
       "title": "Beach Lifeguard",
