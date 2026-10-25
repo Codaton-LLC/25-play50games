@@ -167,6 +167,9 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/hotel-bellboy-rush/lobbyPlanterR.glb",
    "/models/3d/shared/sofa.glb",
    "/models/3d/shared/travellerNpc.glb",
+   // office-escape exec decor (2026-10-25): batch 5 extra GLB, adopted as corridor decor drawn only
+   // on levels 4-5 (games/office-escape/assets.ts, Scene.tsx)
+   "/models/3d/office-escape/execDesk.glb",
 ];
 
 const LISTED: ReadonlySet<string> = new Set(MODEL_MANIFEST);
