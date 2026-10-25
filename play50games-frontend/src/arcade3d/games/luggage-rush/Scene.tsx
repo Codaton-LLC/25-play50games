@@ -6,6 +6,7 @@ import { useThree, type RootState } from "@react-three/fiber";
 import { Vector3 } from "three";
 import CameraRig from "@/arcade3d/core/CameraRig";
 import { playSfx, startLoop } from "@/arcade3d/core/audio";
+import { SkyDome } from "@/arcade3d/core/env";
 import { useFx } from "@/arcade3d/core/fx";
 import { useInput } from "@/arcade3d/core/input";
 import { randomSeed } from "@/arcade3d/core/math";
@@ -15,6 +16,8 @@ import { useRunFrame } from "@/arcade3d/core/useRunFrame";
 import { Bags } from "./Bags";
 import { Belts } from "./Belts";
 import { Hall } from "./Hall";
+import type { LuggageLevel } from "./levels";
+import { COLORS } from "./looks";
 import {
    DIVERTER_AT,
    comboMult,
@@ -23,6 +26,7 @@ import {
    stepRun,
    type StepInput,
 } from "./rules";
+import { useLuggageLevel } from "./useLuggageLevel";
 
 /** Belts only. The floor and handler past x 8.2 are outside the fit, so the camera can come in. */
 const AREA = {
@@ -72,7 +76,7 @@ function FittedCamera() {
 }
 
 /** Nearest unlocked diverter whose 64 px box contains the pointer. -1 if none. */
-function pickDiverter(state: RootState, tap: { x: number; y: number }, time: number, v: Vector3): number {
+function pickDiverter(state: RootState, tap: { x: number; y: number }, time: number, v: Vector3, level: LuggageLevel): number {
    const w = state.size.width;
    const h = state.size.height;
    const tx = (tap.x * 0.5 + 0.5) * w;
@@ -80,7 +84,7 @@ function pickDiverter(state: RootState, tap: { x: number; y: number }, time: num
    let best = -1;
    let bestD = Infinity;
    for (let i = 0; i < 4; i++) {
-      if (diverterLocked(i, time)) continue;
+      if (diverterLocked(i, time, level)) continue;
       const at = DIVERTER_AT[i];
       v.set(at.x, at.y + 0.55, at.z).project(state.camera);
       if (!(v.z >= -1 && v.z <= 1)) continue;
@@ -96,7 +100,8 @@ function pickDiverter(state: RootState, tap: { x: number; y: number }, time: num
 }
 
 export default function Scene() {
-   const [run] = useState(() => createRun(randomSeed()));
+   const { config } = useLuggageLevel();
+   const [run] = useState(() => createRun(randomSeed(), config));
    const input = useInput();
    const fx = useFx();
    const phase = useArcadeStore((state) => state.phase);
@@ -124,7 +129,7 @@ export default function Scene() {
          if (pressed.up) flip[3] = true;
       }
       if (tapDown) {
-         const hit = pickDiverter(state, tapDown, time, scratch.v);
+         const hit = pickDiverter(state, tapDown, time, scratch.v, config);
          if (hit >= 0) flip[hit] = true;
       }
       stepRun(run, scratch.flip, dt, time);
@@ -134,14 +139,15 @@ export default function Scene() {
          scratch.v.set(event.x, event.y + 0.4, event.z);
          if (event.kind === "deliver") {
             store.addScore(event.points);
-            fx.burst("sparkle", scratch.v, 12);
+            fx.burst("sparkle", scratch.v, 14);
             fx.score(scratch.v, `+${event.points}`);
             const mult = comboMult(run.streak < 1 ? 1 : run.streak);
             playSfx(run.streak > 1 ? "combo" : "chime", { pitch: 0.9 + 0.15 * (mult - 1) });
          } else if (event.kind === "strike") {
             fx.burst("puff", scratch.v, 14);
             playSfx(event.overflow ? "thud" : "buzz");
-            if (event.overflow) fx.shake(0.35);
+            // small shake on wrong chute, larger shake on overflow
+            fx.shake(event.overflow ? 0.35 : 0.15);
          } else if (event.kind === "flip") {
             playSfx("click");
          }
@@ -153,6 +159,7 @@ export default function Scene() {
 
    return (
       <>
+         <SkyDome top={COLORS.skyTop} bottom={COLORS.skyBottom} />
          <FittedCamera />
          <Hall />
          <Belts run={run} />

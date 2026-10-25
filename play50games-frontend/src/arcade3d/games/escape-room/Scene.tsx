@@ -25,8 +25,6 @@ import {
    reachPose,
    useHumanoidPose,
    walkPose,
-   walkStride,
-   wrapPhase,
    type HumanoidLandmarks,
    type HumanoidPose,
 } from "@/arcade3d/core/rig";
@@ -34,13 +32,15 @@ import { RUNNER_LANDMARKS } from "@/arcade3d/core/sharedAssets";
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { useFittedView, type FittedViewOptions } from "@/arcade3d/core/useFittedView";
 import { useRunFrame } from "@/arcade3d/core/useRunFrame";
+import { useLevel } from "@/arcade3d/core/level";
+import type { EscapeLevel } from "./levels";
 import { RUNNER_ASSET, RUNNER_SCALE } from "./assets";
 import { PrimitiveRunner, Room, createMoving, type RunnerLimbs } from "./Primitives";
+import { gaitFrameDt, stepRunnerGait } from "./gait";
 import { groundRingScale } from "./marker";
 import { BADGE_LOOK, BADGE_PX, MARKER_PX, badgeShowsLoot, hitsBillboard, screenSpriteSize } from "./picker";
 import { armDirection, legDirection, reachSide, type Dir3 } from "./standIn";
 import {
-   DOOR_ID,
    DOOR_POSITION,
    NONE,
    RUNNER,
@@ -86,7 +86,7 @@ const TMP = new Vector3();
 const WORLD_UP = new Vector3(0, 1, 0);
 
 function anchorOf(run: EscapeRun, id: number): { x: number; z: number } {
-   return id === DOOR_ID ? DOOR_POSITION : run.layout.stations[id];
+   return id === run.layout.stations.length ? DOOR_POSITION : run.layout.stations[id];
 }
 
 /** Camera-facing square at the anchor. Writes BADGE and the billboard axes. Returns the world side. */
@@ -113,8 +113,11 @@ const Simulation = memo(function Simulation({ run, yaw }: { run: EscapeRun; yaw:
    useLayoutEffect(() => {
       const store = useArcadeStore.getState();
       store.setStat("found", 0);
+      store.setStat("searched", 0);
       store.setStat("mask", 0);
       store.setStat("hint", 0);
+      store.setStat("nextItem", run.order[0]);
+      store.setStat("exitReady", run.exitReady ? 1 : 0);
    }, []);
 
    useRunFrame((_state, dt) => {
@@ -154,6 +157,13 @@ const Simulation = memo(function Simulation({ run, yaw }: { run: EscapeRun; yaw:
          store.setStat("mask", run.foundMask);
          playSfx("pickup");
       }
+      if (ev.opened !== NONE || ev.found !== NONE) {
+         let searched = 0;
+         for (let i = 0; i < run.stations.length; i++) if (run.stations[i].phase !== "closed") searched++;
+         store.setStat("searched", searched);
+         store.setStat("nextItem", run.order[run.found] ?? -1);
+         store.setStat("exitReady", run.exitReady ? 1 : 0);
+      }
       let hint = 0;
       if (run.message === "locked") hint = 1;
       else if (run.message === "empty") hint = 2;
@@ -164,7 +174,10 @@ const Simulation = memo(function Simulation({ run, yaw }: { run: EscapeRun; yaw:
          scratch.hint = hint;
          store.setStat("hint", hint);
       }
-      if (ev.ended === "win") store.end("win");
+      if (ev.ended === "win") {
+         if (run.level.id !== 1) store.setStat("finishMs", run.finishMs);
+         store.end("win");
+      }
       else if (ev.ended === "timeup") store.end("timeup");
    });
 
@@ -209,9 +222,8 @@ function Badge({ run }: { run: EscapeRun }) {
 
 /** runner.glb's measured joints (the complete set on the shared asset), in GLB units. */
 const RUNNER_LEGS: HumanoidLandmarks = RUNNER_LANDMARKS;
-// RUNNER_ASSET (1.40 m) and RUNNER_SCALE come from assets.ts: the stride and the lift are in
-// world units through the scale the runner is drawn at (assets.test.ts pins both).
-const MIN_STRIDE = 0.1;
+// RUNNER_ASSET (1.40 m) and RUNNER_SCALE come from assets.ts: the stride (gait.ts) and the lift are
+// in world units through the scale the runner is drawn at (assets.test.ts pins both).
 const DOWN = new Vector3(0, -1, 0);
 const LIMB_DIR: Dir3 = { x: 0, y: -1, z: 0 };
 const LIMB_V = new Vector3();
@@ -254,14 +266,13 @@ function Runner({ run }: { run: EscapeRun }) {
       const player = run.player;
       const v = Math.hypot(player.vx, player.vz);
       const g = gait.current;
-      g.amount += (Math.min(1, v / RUNNER.speed) - g.amount) * (1 - Math.exp(-12 * dt));
-      const stride = Math.max(MIN_STRIDE, walkStride(g.amount, RUNNER_LEGS) * RUNNER_SCALE);
-      g.phase = wrapPhase(g.phase + (v * dt / stride) * Math.PI * 2);
+      // the planted foot stays put at every speed up to 2.6 m/s (gait.ts), stepped by the play time
+      stepRunnerGait(g, v, gaitFrameDt(useArcadeStore.getState(), dt));
       if (v > RUNNER.speed * 0.2) g.heading = Math.atan2(player.vx, player.vz);
       const acting = run.action.kind !== "none";
       if (acting) {
          const id = run.action.target;
-         const target = id === DOOR_ID ? DOOR_POSITION : run.layout.stations[id];
+         const target = id === run.layout.stations.length ? DOOR_POSITION : run.layout.stations[id];
          // the arm on the target's side (rig L = +x local), for the stand-in and for runner.glb alike
          g.side = reachSide(g.heading, target.x - player.x, target.z - player.z);
       }
@@ -323,9 +334,10 @@ function Runner({ run }: { run: EscapeRun }) {
 }
 
 export default function Scene() {
+   const { config } = useLevel<EscapeLevel>();
    const view = useFittedView(VIEW);
-   const [run] = useState(() => createRun(randomSeed()));
-   const [moving] = useState(() => ({ current: createMoving() }));
+   const [run] = useState(() => createRun(randomSeed(), config));
+   const [moving] = useState(() => ({ current: createMoving(run.stations.length, run.items.length) }));
    const position = useMemo<[number, number, number]>(() => [
       ROOM_FOCUS[0] + view.offset[0],
       ROOM_FOCUS[1] + view.offset[1],

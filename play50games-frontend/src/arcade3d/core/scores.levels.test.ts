@@ -96,7 +96,7 @@ describe("lazy migration", () => {
    });
 
    it("keeps the best number as it was for a one-level game and with the flag off", () => {
-      expect(normalizeEntry("food-catcher", OLD_ENTRY)).toMatchObject({ best: 900, bestDurationMs: 45000, levels: { "1": { best: 900, cleared: false } } });
+      expect(normalizeEntry("zoo-escape", OLD_ENTRY)).toMatchObject({ best: 900, bestDurationMs: 45000, levels: { "1": { best: 900, cleared: false } } });
       flags.ARCADE_LEVELS = false;
       const stored = { ...OLD_ENTRY, levels: { "1": { ...OLD_ENTRY, cleared: true }, "2": { ...OLD_ENTRY, best: 1200, cleared: false } } };
       expect(normalizeEntry("robot-collector", stored)).toMatchObject({ best: 900, bestDurationMs: 45000 });

@@ -1,47 +1,154 @@
 "use client";
-import { useEffect, useState, useRef } from "react";
+
+import { useEffect, useState, useRef, useMemo } from "react";
 import { useFrame } from "@react-three/fiber";
-import { BufferGeometry, BufferAttribute, Color, type Group, type Mesh, type MeshStandardMaterial } from "three";
-import { PLANETS, padX, type Run } from "./rules";
-const COLORS = PLANETS.map((p) => new Color(p.color));
+import { BufferGeometry, type Group, type Mesh } from "three";
+import { useStageLighting } from "@/arcade3d/core/lighting";
+import { ModelErrorBoundary, assetScale, useModel } from "@/arcade3d/core/assets";
+import { PLANETS, WORLD, padX, type Run } from "./rules";
+import { ASSETS, BEACON_LIGHTS, BEACON_SIZE, beaconScaleX, flattenLandingPadCone } from "./assets";
+import { COLORS, PLANET_LOOKS, buildCavernRoofGeometry, buildTerrainMesh } from "./looks";
+
+function FallbackPad() {
+   return (
+      <group name="fallback-pad">
+         {/* Base slab with chamfered look */}
+         <mesh position={[0, 0, 0]}>
+            <boxGeometry args={[1, 0.4, 2]} />
+            <meshStandardMaterial color={COLORS.padMetal} roughness={0.7} />
+         </mesh>
+         {/* Upper deck surface */}
+         <mesh position={[0, 0.205, 0]}>
+            <boxGeometry args={[0.94, 0.02, 1.84]} />
+            <meshStandardMaterial color={COLORS.padDeck} roughness={0.6} />
+         </mesh>
+         {/* Glowing landing target rim */}
+         <mesh position={[0, 0.215, 0]}>
+            <boxGeometry args={[0.88, 0.01, 1.7]} />
+            <meshStandardMaterial
+               color={COLORS.padGlow}
+               emissive={COLORS.padGlow}
+               emissiveIntensity={0.8}
+               depthWrite={false}
+            />
+         </mesh>
+         {/* Front edge stripe */}
+         <mesh position={[0, 0.03, 1.025]}>
+            <boxGeometry args={[0.86, 0.075, 0.03]} />
+            <meshBasicMaterial color={COLORS.padStripe} />
+         </mesh>
+      </group>
+   );
+}
+
+function LandingPadModel() {
+   const { scene } = useModel(ASSETS.landingPad);
+   const prepared = useMemo(() => {
+      if (!scene) return null;
+      const clone = scene.clone(true);
+      clone.traverse((obj) => {
+         const mesh = obj as Mesh;
+         if (mesh.isMesh && mesh.geometry) {
+            mesh.geometry = mesh.geometry.clone();
+            flattenLandingPadCone(mesh.geometry, mesh.position.y);
+            mesh.geometry.computeVertexNormals();
+         }
+      });
+      return clone;
+   }, [scene]);
+
+   if (!prepared) return <FallbackPad />;
+   return (
+      <primitive
+         object={prepared}
+         scale={assetScale(ASSETS.landingPad)}
+         position-y={ASSETS.landingPad.yOffset ?? 0}
+      />
+   );
+}
+
+/** The planet's lighting preset, background and fog, crossfaded over 1 s on a planet change (Scene,
+ *  inside GameShell: Planet itself stays renderable on its own for beacons.test.ts). */
+export function PlanetLighting({ run }: { run: Run }) {
+   const look = PLANET_LOOKS[run.planet] ?? PLANET_LOOKS[0];
+   useStageLighting(look.lighting, 1.0, look.skyBottom, look.fog);
+   return null;
+}
 
 export default function Planet({ run }: { run: Run }) {
-   const pad = useRef<Group>(null), roof = useRef<Mesh>(null), ground = useRef<Mesh>(null);
-   const [data] = useState(() => {
-      const geometry = new BufferGeometry(), position = new BufferAttribute(new Float32Array(12 * 18 * 3), 3), normal = new BufferAttribute(new Float32Array(12 * 18 * 3), 3);
-      geometry.setAttribute("position", position);
-      geometry.setAttribute("normal", normal);
-      return { geometry, position, normal, planet: -1 };
-   });
+   const pad = useRef<Group>(null);
+   const roof = useRef<Mesh>(null);
+   const beacons = useRef<(Mesh | null)[]>([]);
+   const ground = useRef<Mesh>(null);
+
+
+   const [data] = useState(() => ({
+      geometry: new BufferGeometry(),
+      planet: -1,
+   }));
+
    useEffect(() => () => data.geometry.dispose(), [data]);
+
+   const roofGeometry = useMemo(() => buildCavernRoofGeometry(), []);
+   useEffect(() => () => roofGeometry.dispose(), [roofGeometry]);
+
    useFrame(() => {
-      if (pad.current) { pad.current.position.x = padX(run.layouts[run.planet], run.planet, run.attemptTime); pad.current.scale.x = PLANETS[run.planet].width; }
-      if (roof.current) roof.current.visible = run.planet === 4;
+      if (pad.current) {
+         pad.current.position.x = padX(
+            run.layouts[run.planet],
+            run.planet,
+            run.attemptTime,
+            run.level?.padAmplitude
+         );
+         pad.current.scale.x = PLANETS[run.planet].width;
+         // the rim beacons cancel the pad's width stretch (beacons.test.ts)
+         for (const b of beacons.current) if (b) b.scale.x = beaconScaleX(PLANETS[run.planet].width);
+      }
+      if (roof.current) {
+         roof.current.visible = run.planet === 4;
+      }
       if (data.planet === run.planet) return;
       data.planet = run.planet;
       const terrain = run.layouts[run.planet].terrain;
-      for (let i = 0; i < 12; i++) {
-         const x0 = -10 + i * 20 / 12, x1 = -10 + (i + 1) * 20 / 12, n = i * 18;
-         data.position.setXYZ(n, x0, -2, 1.5); data.position.setXYZ(n + 1, x1, -2, 1.5); data.position.setXYZ(n + 2, x1, terrain[i + 1], 1.5);
-         data.position.setXYZ(n + 3, x0, -2, 1.5); data.position.setXYZ(n + 4, x1, terrain[i + 1], 1.5); data.position.setXYZ(n + 5, x0, terrain[i], 1.5);
-         data.position.setXYZ(n + 6, x0, -2, -1.5); data.position.setXYZ(n + 7, x1, terrain[i + 1], -1.5); data.position.setXYZ(n + 8, x1, -2, -1.5);
-         data.position.setXYZ(n + 9, x0, -2, -1.5); data.position.setXYZ(n + 10, x0, terrain[i], -1.5); data.position.setXYZ(n + 11, x1, terrain[i + 1], -1.5);
-         data.position.setXYZ(n + 12, x0, terrain[i], 1.5); data.position.setXYZ(n + 13, x1, terrain[i + 1], 1.5); data.position.setXYZ(n + 14, x1, terrain[i + 1], -1.5);
-         data.position.setXYZ(n + 15, x0, terrain[i], 1.5); data.position.setXYZ(n + 16, x1, terrain[i + 1], -1.5); data.position.setXYZ(n + 17, x0, terrain[i], -1.5);
-         const slope = (terrain[i + 1] - terrain[i]) / (x1 - x0), length = Math.hypot(slope, 1);
-         for (let v = 0; v < 18; v++) data.normal.setXYZ(n + v, v >= 12 ? -slope / length : 0, v >= 12 ? 1 / length : 0, v < 6 ? 1 : v < 12 ? -1 : 0);
-      }
-      data.position.needsUpdate = true; data.normal.needsUpdate = true;
-      if (ground.current) (ground.current.material as MeshStandardMaterial).color.copy(COLORS[run.planet]);
+      buildTerrainMesh(terrain, run.planet, data.geometry);
    });
-   return <group>
-      <mesh ref={ground} geometry={data.geometry} frustumCulled={false}><meshStandardMaterial color={PLANETS[0].color} roughness={1} /></mesh>
-      <group ref={pad} position={[0, 1.8, 0]}>
-         <mesh><boxGeometry args={[1, 0.4, 2]} /><meshStandardMaterial color="#334155" roughness={0.65} /></mesh>
-         <mesh position={[0, 0.24, 0]}><boxGeometry args={[0.94, 0.025, 1.8]} /><meshStandardMaterial color="#34d399" emissive="#34d399" emissiveIntensity={0.4} depthWrite={false} /></mesh>
-         <mesh position={[0, 0.03, 1.025]}><boxGeometry args={[0.86, 0.075, 0.03]} /><meshBasicMaterial color="#f8fafc" /></mesh>
+
+   return (
+      <group name="rocket-planet-stage">
+         {/* Wide seamless terrain covering the entire view at all screen sizes */}
+         <mesh ref={ground} geometry={data.geometry} frustumCulled={false} name="planet-terrain">
+            <meshStandardMaterial vertexColors roughness={1} flatShading />
+         </mesh>
+
+         {/* Landing pad with Hyper3D GLB model + glowing beacon zone + point light */}
+         <group ref={pad} position={[0, WORLD.padY - WORLD.padThickness / 2, 0]} name="landing-pad-group">
+            <ModelErrorBoundary fallback={<FallbackPad />}>
+               <LandingPadModel />
+            </ModelErrorBoundary>
+            {/* Glowing target zone on pad surface */}
+            <mesh position={[0, 0.205, 0]} name="pad-glow-zone">
+               <boxGeometry args={[0.92, 0.015, 1.76]} />
+               <meshStandardMaterial
+                  color={COLORS.padGlow}
+                  emissive={COLORS.padGlow}
+                  emissiveIntensity={0.8}
+                  depthWrite={false}
+               />
+            </mesh>
+            {/* Pad landing illumination */}
+            <pointLight position={[0, 0.45, 0]} color={COLORS.padBeacon} intensity={1.5} distance={7} />
+            {BEACON_LIGHTS.map((b, i) => (
+               <mesh key={i} ref={(m) => { beacons.current[i] = m; }} position={[b.x, b.y, b.z]} scale-x={beaconScaleX(PLANETS[run.planet].width)}>
+                  <cylinderGeometry args={[BEACON_SIZE.top, BEACON_SIZE.bottom, BEACON_SIZE.height, 12]} />
+                  <meshStandardMaterial color="#34d399" emissive="#34d399" emissiveIntensity={0.8} />
+               </mesh>
+            ))}
+         </group>
+
+         {/* Sculpted cavern roof slab (Asteroid planet 4) matching exact collision AABB */}
+         <mesh ref={roof} geometry={roofGeometry} visible={false} position={[0, 0, 0]} name="cavern-roof-hazard">
+            <meshStandardMaterial vertexColors roughness={0.9} flatShading />
+         </mesh>
       </group>
-      <mesh ref={roof} position={[0, 9.5, 0]} visible={false}><boxGeometry args={[6, 1, 3]} /><meshStandardMaterial color="#78716c" /></mesh>
-      <mesh position={[-7, 12, -20]}><sphereGeometry args={[3, 16, 12]} /><meshStandardMaterial color="#475569" roughness={1} /></mesh>
-   </group>;
+   );
 }

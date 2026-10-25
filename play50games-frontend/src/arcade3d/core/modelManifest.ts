@@ -118,6 +118,28 @@ export const MODEL_MANIFEST: readonly string[] = [
    // ghost-vacuum hunter (2026-10-24): image-to-3D from the user's own concept (their face, kept outside git),
    // Gen-2.5-Medium, 18k tris, static T-pose for the core auto-rig
    "/models/3d/ghost-vacuum/hunter.glb",
+   "/models/3d/ghost-vacuum/candelabra.glb",
+   "/models/3d/rocket-landing/landingPad.glb",
+   // zoo-escape props (2026-10-25): batch 5 part A adoptions, Gen-2.5-Medium, 1500-3000 tris,
+   // optimized with tools/hyper3d (kiosk and tower bake in their canopy / platform railing)
+   "/models/3d/zoo-escape/zooKiosk.glb",
+   "/models/3d/zoo-escape/leafyBush.glb",
+   "/models/3d/zoo-escape/woodenFootbridge.glb",
+   "/models/3d/zoo-escape/searchlightTower.glb",
+   "/models/3d/zoo-escape/bambooSnack.glb",
+   // P-121 dev adoptions (2026-10-25): V2 replacements and Group D variety whose QA verdict
+   // starts with OK. Optimized GLBs copied in; not re-optimized. Live games are untouched.
+   "/models/3d/shopping-cart/supermarketShelfV2.glb",
+   "/models/3d/shopping-cart/bakeryStand.glb",
+   "/models/3d/pirate-cannons/lighthouseV2.glb",
+   "/models/3d/delivery-drone/cityBrickApartment.glb",
+   "/models/3d/delivery-drone/cityGlassOffice.glb",
+   "/models/3d/luggage-rush/duffelBag.glb",
+   "/models/3d/luggage-rush/hardCaseTeal.glb",
+   "/models/3d/zoo-escape/zooRocks.glb",
+   "/models/3d/treasure-island/beachRocks.glb",
+   "/models/3d/penguin-slide/iceArch.glb",
+   "/models/3d/mini-golf/golfCastle.glb",
 ];
 
 const LISTED: ReadonlySet<string> = new Set(MODEL_MANIFEST);

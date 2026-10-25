@@ -9,7 +9,7 @@ import { rngNext } from "@/arcade3d/core/math";
 export const DURATION_MS = 600000;
 export const MAX_STEP_MS = 50;
 export const ARENA = { halfX: 6, halfZ: 5 } as const;
-export const RUNNER = { radius: 0.35, speed: 1.8, accel: 6, brake: 8 } as const;
+export const RUNNER = { radius: 0.35, speed: 2.6, accel: 8.5, brake: 11 } as const;
 export const START = { x: 0, z: 4 } as const;
 export const INSPECT_REACH = 1;
 export const OPEN_MS = 1100;
@@ -27,10 +27,64 @@ export const DOOR_POSITION = { x: 0, z: -4.2 } as const;
 /**
  * README proof: the shortest route over every layout and visit order (start, the three item stations'
  * reach circles, the door's), 15.48396 m, rounded down. With the speed cap and the 7800 ms of actions
- * a win needs at least 16400 ms (the start from rest after each action, left out here, adds ~0.6 s).
+ * a win needs at least 13754 ms (acceleration and obstacles only add time); meta.scoring's
+ * minDurationMs (13654) is 100 ms below it.
  */
 export const MIN_ROUTE = 15.48;
 export const MIN_FINISH_MS = Math.ceil(MIN_ROUTE / RUNNER.speed * 1000) + 3 * (OPEN_MS + RETRIEVE_MS) + UNLOCK_MS + DOOR_OPEN_MS;
+/** Only variable level data; kept here so the frozen pure-import contract stays intact. */
+export interface EscapeLevel {
+   id: 1 | 2 | 3 | 4 | 5;
+   items: number;
+   containers: number;
+   durationMs: number;
+   ordered: boolean;
+   shuffledOrder: boolean;
+   returnSwitch: boolean;
+}
+export const DEFAULT_LEVEL: EscapeLevel = {
+   id: 1, items: 3, containers: 4, durationMs: DURATION_MS,
+   ordered: false, shuffledOrder: false, returnSwitch: false,
+};
+/** L1 keeps its exhaustive tour proof. L2-5 use serial actions + start/exit displacement.
+ * Bounds ignore furniture, acceleration and clue travel, so all can only add time.
+ */
+export const PROPOSED_LEVEL_LIMITS = {
+   1: { kind: "time", maxScore: 58634, minDurationMs: 13654, maxDurationMs: 600000, timeBaseMs: 600000, base: 0, maxPointsPerSec: 0, unitLabel: "time", display: "time" },
+   2: { kind: "time", maxScore: 60775, minDurationMs: 12250, maxDurationMs: 210000, timeBaseMs: 620000, base: 0, maxPointsPerSec: 0, unitLabel: "time", display: "time" },
+   3: { kind: "time", maxScore: 62585, minDurationMs: 14150, maxDurationMs: 240000, timeBaseMs: 640000, base: 0, maxPointsPerSec: 0, unitLabel: "time", display: "time" },
+   4: { kind: "time", maxScore: 64480, minDurationMs: 15200, maxDurationMs: 240000, timeBaseMs: 660000, base: 0, maxPointsPerSec: 0, unitLabel: "time", display: "time" },
+   5: { kind: "time", maxScore: 67180, minDurationMs: 18200, maxDurationMs: 300000, timeBaseMs: 690000, base: 0, maxPointsPerSec: 0, unitLabel: "time", display: "time" },
+} as const;
+
+/** More searchable branches in the same room; all centre-facing anchors stay clear. */
+function levelLayout(seed: number, level: EscapeLevel): Layout {
+   const layout = allocateLayout(seed);
+   layout.stations.length = 0;
+   layout.obstacles.length = 0;
+   const rng = { s: seed >>> 0 };
+   for (let id = 0; id < level.containers; id++) {
+      const s: LayoutStation = {
+         id, kind: id === 0 ? "drawer" : id === 2 ? "under-desk" : "cupboard",
+         x: (id % 2 ? 1 : -1) * (3.5 + (level.shuffledOrder ? Math.floor(rngNext(rng) * 3) * 0.1 : 0)),
+         z: [-3, -1, 1, 3][Math.floor(id / 2)],
+         item: id < level.items ? id : NONE, bounds: groundBox(0, 0, 0, 0),
+      };
+      positionBox(s);
+      layout.stations.push(s);
+      layout.obstacles.push(s.bounds);
+   }
+   for (let i = layout.stations.length - 1; i > 0; i--) {
+      const j = Math.floor(rngNext(rng) * (i + 1));
+      const item = layout.stations[i].item;
+      layout.stations[i].item = layout.stations[j].item;
+      layout.stations[j].item = item;
+   }
+   // The blocked central route: the existing chair assets mark this collision strip.
+   layout.obstacles.push(groundBox(-1.2, 1.2, -0.4, 0.4));
+   return layout;
+}
+
 const EDGE_EPS = 1e-9;
 
 // Tall ground boxes make the core sphere push horizontal, as in the reference games.
@@ -162,8 +216,8 @@ export function isWalkable(layout: Layout, x: number, z: number): boolean {
 
 /** Reach is the anchor's circle, independent of furniture/model size or visual badge projection. */
 export function inReach(layout: Layout, id: number, x: number, z: number): boolean {
-   if (!Number.isInteger(id) || id < 0 || id > DOOR_ID || !Number.isFinite(x) || !Number.isFinite(z)) return false;
-   const p = id === DOOR_ID ? DOOR_POSITION : layout.stations[id];
+   if (!Number.isInteger(id) || id < 0 || id > layout.stations.length || !Number.isFinite(x) || !Number.isFinite(z)) return false;
+   const p = id === layout.stations.length ? DOOR_POSITION : layout.stations[id];
    const dx = x - p.x, dz = z - p.z;
    return dx * dx + dz * dz <= INSPECT_REACH * INSPECT_REACH + EDGE_EPS;
 }
@@ -194,6 +248,9 @@ export interface StepEvents {
 
 export interface EscapeRun {
    seed: number;
+   level: EscapeLevel;
+   order: number[];
+   exitReady: boolean;
    layout: Layout;
    simMs: number;
    remainder: number;
@@ -202,7 +259,7 @@ export interface EscapeRun {
    player: Vec3Like & { vx: number; vz: number };
    stations: { phase: StationPhase; progressMs: number }[];
    items: { id: number; station: number; visible: boolean; found: boolean }[];
-   action: { kind: "none" | "open" | "retrieve" | "door"; target: number; remainingMs: number; progressMs: number };
+   action: { kind: "none" | "open" | "retrieve" | "door" | "reset"; target: number; remainingMs: number; progressMs: number };
    door: { phase: "locked" | "unlocking" | "opening" | "open"; progressMs: number };
    found: number;
    foundMask: number;
@@ -213,10 +270,12 @@ export interface EscapeRun {
 }
 
 /** Optional layout injection is for the fallback/adversarial tests; caller data is never retained. */
-export function createRun(seed: number, options: { layout?: Layout } = {}): EscapeRun {
-   const source = options.layout ?? generateLayout(seed);
-   const layout = allocateLayout(seed);
-   if (isValidLayout(source)) {
+export function createRun(seed: number, options: { layout?: Layout } | EscapeLevel = {}): EscapeRun {
+   const level = "id" in options ? options : DEFAULT_LEVEL;
+   const custom = level.id !== 1;
+   const source = ("layout" in options ? options.layout : undefined) ?? generateLayout(seed);
+   const layout = custom ? levelLayout(seed, level) : allocateLayout(seed);
+   if (!custom && isValidLayout(source)) {
       layout.fallback = source.fallback;
       for (let i = 0; i < 4; i++) {
          layout.stations[i].x = source.stations[i].x;
@@ -224,13 +283,21 @@ export function createRun(seed: number, options: { layout?: Layout } = {}): Esca
          layout.stations[i].item = source.stations[i].item;
          positionBox(layout.stations[i]);
       }
-   } else fillFallback(layout);
-   if (!isValidLayout(layout)) throw new Error("Invalid escape-room fallback");
-   const items = ITEM_NAMES.map((_name, id) => ({ id, station: layout.stations.findIndex((s) => s.item === id), visible: false, found: false }));
+   } else if (!custom) fillFallback(layout);
+   if (!custom && !isValidLayout(layout)) throw new Error("Invalid escape-room fallback");
+   const items = Array.from({ length: level.items }, (_name, id) => ({ id, station: layout.stations.findIndex((s) => s.item === id), visible: false, found: false }));
+   const order = items.map((item) => item.id);
+   if (level.shuffledOrder) {
+      const rng = { s: (seed ^ 0x9e3779b9) >>> 0 };
+      for (let i = order.length - 1; i > 0; i--) {
+         const j = Math.floor(rngNext(rng) * (i + 1));
+         const item = order[i]; order[i] = order[j]; order[j] = item;
+      }
+   }
    return {
-      seed: seed >>> 0, layout, simMs: 0, remainder: 0, stepMs: 0, lockedMs: 0,
+      seed: seed >>> 0, level, order, exitReady: !level.returnSwitch, layout, simMs: 0, remainder: 0, stepMs: 0, lockedMs: 0,
       player: { x: START.x, y: 0, z: START.z, vx: 0, vz: 0 },
-      stations: STATION_ANCHORS.map(() => ({ phase: "closed", progressMs: 0 })), items,
+      stations: layout.stations.map(() => ({ phase: "closed", progressMs: 0 })), items,
       action: { kind: "none", target: NONE, remainingMs: 0, progressMs: 0 },
       door: { phase: "locked", progressMs: 0 }, found: 0, foundMask: 0, message: "none",
       finishMs: NONE, ended: null,
@@ -242,13 +309,14 @@ export function createRun(seed: number, options: { layout?: Layout } = {}): Esca
 export function targetInReach(run: EscapeRun): number {
    if (run.ended || run.action.kind !== "none") return NONE;
    let target = NONE, distance = Infinity;
-   for (let id = 0; id <= DOOR_ID; id++) {
-      if (id !== DOOR_ID) {
+   for (let id = 0; id <= run.layout.stations.length; id++) {
+      if (id !== run.layout.stations.length) {
          const phase = run.stations[id].phase;
-         if (phase !== "closed" && !(phase === "open" && run.layout.stations[id].item !== NONE)) continue;
+         if (phase !== "closed" && !(phase === "open" && run.layout.stations[id].item !== NONE)
+            && !(id === 0 && run.found === run.level.items && !run.exitReady)) continue;
       } else if (run.door.phase === "open") continue;
       if (!inReach(run.layout, id, run.player.x, run.player.z)) continue;
-      const p = id === DOOR_ID ? DOOR_POSITION : run.layout.stations[id];
+      const p = id === run.layout.stations.length ? DOOR_POSITION : run.layout.stations[id];
       const d = (run.player.x - p.x) ** 2 + (run.player.z - p.z) ** 2;
       if (d < distance) { distance = d; target = id; }
    }
@@ -270,20 +338,31 @@ function beginInspect(run: EscapeRun, input: StepInput): void {
       ? input.tappedTarget : input.actionPressed ? targetInReach(run) : NONE;
    if (!inReach(run.layout, id, run.player.x, run.player.z)) return;
    let duration: number;
-   if (id === DOOR_ID) {
+   if (id === run.layout.stations.length) {
       if (run.door.phase === "open") return;
       run.events.inspected = id;
-      if (run.foundMask !== ALL_ITEMS) { run.message = "locked"; return; }
+      if (run.found !== run.level.items || !run.exitReady) { run.message = "locked"; return; }
+      if (run.level.id !== 1) {
+         for (let i = 0; i < run.stations.length; i++) {
+            if (run.stations[i].phase === "closed") { run.message = "locked"; return; }
+         }
+      }
       run.action.kind = "door";
       run.door.phase = "unlocking";
       duration = UNLOCK_MS + DOOR_OPEN_MS;
    } else {
       const s = run.stations[id];
-      if (s.phase === "closed") {
+      if (id === 0 && run.found === run.level.items && !run.exitReady) {
+         run.action.kind = "reset";
+         duration = OPEN_MS;
+      } else if (s.phase === "closed") {
          run.action.kind = "open";
          s.phase = "opening";
          duration = OPEN_MS;
       } else if (s.phase === "open" && run.layout.stations[id].item !== NONE) {
+         if (run.level.ordered && run.layout.stations[id].item !== run.order[run.found]) {
+            run.message = "locked"; return;
+         }
          run.action.kind = "retrieve";
          s.phase = "retrieving";
          duration = RETRIEVE_MS;
@@ -319,7 +398,10 @@ function tickAction(run: EscapeRun): void {
       const s = run.stations[id], item = run.layout.stations[id].item;
       s.progressMs = action.progressMs;
       if (action.remainingMs === 0) {
-         if (action.kind === "open") {
+         if (action.kind === "reset") {
+            run.exitReady = true;
+            run.events.opened = id;
+         } else if (action.kind === "open") {
             s.phase = "open";
             run.events.opened = id;
             if (item === NONE) run.message = "empty";
@@ -391,9 +473,9 @@ export function step(run: EscapeRun, dtMs: number, input: StepInput): StepEvents
    run.remainder += Math.min(dtMs, MAX_STEP_MS);
    const whole = Math.floor(run.remainder);
    run.remainder -= whole;
-   if (run.simMs + whole >= DURATION_MS) {
-      run.stepMs = DURATION_MS - run.simMs;
-      run.simMs = DURATION_MS;
+   if (run.simMs + whole >= run.level.durationMs) {
+      run.stepMs = run.level.durationMs - run.simMs;
+      run.simMs = run.level.durationMs;
       run.remainder = 0;
       run.ended = "timeup";
       ev.ended = "timeup";

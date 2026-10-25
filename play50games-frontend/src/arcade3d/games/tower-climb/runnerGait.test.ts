@@ -117,4 +117,19 @@ describe("tower-climb runner gait (looks only)", () => {
       expect(headings[0]).toBeGreaterThan(0); expect(headings.some(h => Math.abs(h) < 0.3)).toBe(true);
       expect(headings[29]).toBeCloseTo(-Math.PI / 2, 2);
    });
+
+   it("tucks on a spring launch and raises the flying pose while a rocket burns", () => {
+      const run = createRun(5050), gait = createRunnerGait();
+      run.holdUnlocked = true; run.player.grounded = false; run.player.vy = 7.7;
+      for (let i = 0; i < 24; i++) stepRunnerGait(gait, run, true, DT, NONE);
+      expect(gait.tuck).toBeGreaterThan(0.6);
+      expect(gait.fly).toBe(0);
+      const jump = createRunnerGait();
+      run.player.vy = 4;
+      for (let i = 0; i < 24; i++) stepRunnerGait(jump, run, true, DT, NONE);
+      expect(gait.tuck).toBeGreaterThan(jump.tuck);
+      run.boostUntilMs = run.timeMs + 1000;
+      stepRunnerGait(gait, run, true, DT, NONE);
+      expect(gait.fly).toBe(1);
+   });
 });

@@ -51,7 +51,7 @@ All world distances are metres; gameplay times are integer milliseconds.
 |---|---|
 | Floor / player bounds | 12 × 10; `x ∈ [-6, 6]`, `z ∈ [-5, 5]`; runner centre `|x| ≤ 5.65`, `|z| ≤ 4.65`. |
 | Runner | Circle radius 0.35, visible height 1.4; start `(0, 0, 4)`. Add a 24 CSS px location marker for small landscape views. |
-| Movement | Maximum 1.8 m/s, acceleration 6 m/s², braking 8 m/s². Final displacement, including collision correction, never exceeds `1.8 * dt`. |
+| Movement | Maximum 2.6 m/s, acceleration 8.5 m/s², braking 11 m/s² (raised 2026-10-24 from 1.8 / 6 / 8: the user found the room too slow; a light jog). Final displacement, including collision correction, never exceeds `2.6 * dt`. |
 | Station anchors | `(-4, -3)`, `(4, -3)`, `(-4, 3)`, `(4, 3)` in x/z; each coordinate jitter is -0.25, 0 or +0.25. |
 | Station bodies | Centre at `(anchor.x + sign(anchor.x) * 1.0, anchor.z)`; collision footprint 1.2 × 1.4, visual height ≤ 1.4. |
 | Furniture | Two shared desks at stations 0/2; primitive cupboards at 1/3; two shared chairs at `(±5, 0)` with 0.8 × 0.8 collision footprints. |
@@ -110,14 +110,14 @@ Rules decide when an action finishes. Visual opening progress reads its rules ti
 
 ## Scoring
 
-This is a **TIME game**. The metadata/API contract is `kind: "time"`, `timeBaseMs: 600000`, `maxScore: 58370`, `minDurationMs: 16300`, `maxDurationMs: 600000`, `base: 0`, `maxPointsPerSec: 0`, display/unit label `"time"` (tightened 2026-10-07 from `maxScore: 60000`, `minDurationMs: 15000`, which accepted 58500 at 15000 ms, about 2 s faster than any possible win). Do not apply the points-game rate inequality with those zero fields.
+This is a **TIME game**. The metadata/API contract is `kind: "time"`, `timeBaseMs: 600000`, `maxScore: 58634`, `minDurationMs: 13654`, `maxDurationMs: 600000`, `base: 0`, `maxPointsPerSec: 0`, display/unit label `"time"` (re-derived 2026-10-24 for the 2.6 m/s runner from `maxScore: 58370`, `minDurationMs: 16300` at 1.8 m/s, which a faster runner would break; those were tightened 2026-10-07 from `maxScore: 60000`, `minDurationMs: 15000`). Do not apply the points-game rate inequality with those zero fields.
 
 The server computes `score = max(0, floor((600000 - durationMs) / 10))`. The shell uses `elapsedMs`, rounds the submitted duration in `normalizeRun`, computes the same formula and clamps to the metadata maximum. Items add **no points**. Show elapsed/remaining time and Found in the shell; fastest escape is the result, not an item score. Do not override `finalScore`, call an API or save scores from this game. Only `end("win")` is ranked through `isRankedRun`; lose/time-up/quit are unranked and cannot improve a best or add a leaderboard play.
 
 | Submitted winning duration | Computed score |
 |---|---|
-| 16300 ms (the server's minimum: its best score, = `maxScore`) | 58370 |
-| 17004 ms (the fastest possible win) | 58299 |
+| 13654 ms (the server's minimum: its best score, = `maxScore`) | 58634 |
+| 14366 ms (the fastest possible win) | 58563 |
 | 30000 ms | 57000 |
 | 45678 ms | 55432 |
 | 60000 ms | 54000 |
@@ -129,16 +129,16 @@ An idle run ends at 600000 ms with `"timeup"`, an unranked result with score 0; 
 
 The proof assumes a speedrunner knows the seed, skips the empty container, chooses the best order and holds perfect movement. Ignoring obstacles only makes the lower bound faster.
 
-1. **Speed:** after diagonal normalization, velocity integration, collision correction and floor clamping, the net displacement is at most 1.8 m per simulated second. Inspection freezes movement. Acceleration/braking and furniture can only lengthen a route.
+1. **Speed:** after diagonal normalization, velocity integration, collision correction and floor clamping, the net displacement is at most 2.6 m per simulated second (`RUNNER.speed`). Inspection freezes movement. Acceleration/braking and furniture can only lengthen a route.
 2. **Clock:** core counts every playable frame, including the countdown-transition remainder, before simulation. The carried-remainder integer-ms clock can lag by less than 1 ms and never lead. Thus simulated play is no longer than `elapsedMs`; there is no untimed-frame assumption or wall-clock contribution. Pause changes neither clock nor motion. Submitted duration is the shell's rounded elapsed time.
 3. **Distance (exhaustive tour bound).** The old bound (each leg centre to centre minus both radii, 13.5 m) is weak: one reach circle has a single touch point serving two legs. The test enumerates the whole layout space instead: 4 choices of the empty station × 3^6 jitters of the three needed stations = 2916 route shapes (the empty station's jitter only moves furniture), each with all 6 visit orders. The route runs from the start (0, 4), touches the reach circles (radius 1) of the three item stations, then the door's. Choosing the touch points is a convex problem: a coordinate descent finds them (a real route, an upper bound) and the problem's dual gives a certified lower bound (for any unit vectors u_i, `sum |q_i+1 − q_i| >= sum u_i · (q_i+1 − q_i)`, minimised over the disks in closed form); the two agree within 1e-6 on every case. Obstacles are ignored, a relaxation, so the minimum is a lower bound: **15.48396 m** (`MIN_ROUTE` = 15.48), for empty station 2 and the order 3, 1, 0 with jitters (3.75, 2.75), (3.75, −2.75), (−3.75, −3.25), and its mirror image (empty 3, order 2, 0, 1); legs 3.372, 4.378, 5.841 and 1.893 m. These straight lines never come within 0.35 m of furniture, so walls and chairs cannot shorten it. The best layout is rare (about 105 seeds in 300000): the best route per layout is 15.73 m at the 1st percentile, 16.85 m at the median, 18.23 m at worst. Opening containers in advance, revisiting or taking the empty station cannot shorten this necessary route.
 4. **Actions:** three openings and three pickups take `3 * (1100 + 900) = 6000 ms`; the door adds 1800 ms. All are serial, movement-locked and require fresh input. Locked-door inspections cannot precharge its timer. The non-walking time is at least **7800 ms**.
-5. **Earliest win:** `15.48 / 1.8 * 1000 + 7800 = 16400 ms` (`MIN_FINISH_MS`; the exact route gives 16402 ms). The server's minimum duration 16300 ms is **100 ms below** it. Rounding cannot lower it below 16400 integer ms: elapsed time is at least 16400 before rounding. No artificial start hold or final-duration clamp is needed. Optional and not used for the limit: every one of the 4 legs also starts from rest (accepting an action zeroes the velocity, the frame lock stops all movement, and the velocity change is capped at 6 m/s²), which adds about 148 ms per leg, so the true earliest win is about **17000 ms**; the 16300 ms minimum stays safe even if acceleration is retuned later.
-6. **Score and maximum duration:** the fastest possible win (17004 ms in the real `step()`, below) yields at most **58299**, and anything at or after the 16300 ms minimum at most **58370 = `maxScore`** (= floor((600000 − 16300) / 10), the server formula's own value, so it adds no extra cap). The formula decreases for every later win. The core's 600000 ms time-up prevents a winning duration above the upper bound, and non-wins are unranked. Consequently every ranked run satisfies both duration limits and the score cap. A 50 ms stress-frame variation only delays actions within counted time; it is not free time deducted from this proof.
+5. **Earliest win:** `ceil(15.48 / 2.6 * 1000) + 7800 = 5954 + 7800 = 13754 ms` (`MIN_FINISH_MS`; the exact route gives 13755 ms). The server's minimum duration 13654 ms is **100 ms below** it. Rounding cannot lower it below 13754 integer ms: elapsed time is at least 13754 before rounding. No artificial start hold or final-duration clamp is needed. Optional and not used for the limit: every one of the 4 legs also starts from rest (accepting an action zeroes the velocity, the frame lock stops all movement, and the velocity change is capped at 8.5 m/s²), which adds 2.6 / (2 × 8.5) = 153 ms per leg, so the true earliest win is about **14366 ms**; the 13654 ms minimum stays safe even if acceleration is retuned later.
+6. **Score and maximum duration:** the fastest possible win (14366 ms in the real `step()`, below) yields at most **58563**, and anything at or after the 13654 ms minimum at most **58634 = `maxScore`** (= floor((600000 − 13654) / 10), the server formula's own value, so it adds no extra cap). The formula decreases for every later win. The core's 600000 ms time-up prevents a winning duration above the upper bound, and non-wins are unranked. Consequently every ranked run satisfies both duration limits and the score cap. A 50 ms stress-frame variation only delays actions within counted time; it is not free time deducted from this proof.
 
-Margins: `minDurationMs` 16300 is 704 ms (4.1%) below the fastest possible win (17004 ms), 700 ms below the bound with the start from rest (17000 ms) and 102 ms below the speed-only bound (16402 ms). `maxScore` 58370 is 71 points (0.12%) above the best honest score 58299. `maxDurationMs` and `timeBaseMs` stay 600000 (honest wins can finish up to 599999 ms; a time-up at 600000 is unranked). The best a forger can post drops from 58500 at 15000 ms to 58370 at 16300 ms.
+Margins: `minDurationMs` 13654 is 712 ms (5.0%) below the fastest possible win (14366 ms) and 100 ms below the speed-only bound (13754 ms). `maxScore` 58634 is 71 points (0.12%) above the best honest score 58563. `maxDurationMs` and `timeBaseMs` stay 600000 (honest wins can finish up to 599999 ms; a time-up at 600000 is unranked). The 1.8 m/s limits (16300 ms / 58370) would have rejected honest wins between 14366 and 16300 ms, so the server JSON must carry the new limits before this runner ships.
 
-Measured (throwaway probe, deleted): a seed-aware bot that takes the best route through the best layout and presses inspect on every frame finishes in **17004 ms** at 1 ms frames (lockedMs 7800), 17033 ms at 60 Hz, 17036 ms at 144 Hz and 17066 ms at 30 Hz; frame sizes from 0.5 to 33.3 ms all came out at 17004 ms or later. The existing golden bot finishes in 17.2–18.2 s. A real player cannot do better: they do not know which container is empty and cannot press inspect every millisecond.
+Measured (throwaway probe, deleted, 2026-10-24): a seed-aware bot that steers straight at the optimal touch points of the best layout (seeds 1507, 3123, 3608) and presses inspect on every frame finishes in **14366 ms** at 1 ms frames, 14400 ms at 60 Hz, 14404 ms at 144 Hz and 14400 ms at 30 Hz (the analytic 5955 + 4 × 153 + 7800 = 14367 ms). At 1.8 m/s the old probe measured 17004 ms. The golden bot (`rules.test.ts`) finishes in 14.5–15.2 s. A real player cannot do better: they do not know which container is empty and cannot press inspect every millisecond.
 
 ## Scene and camera
 
@@ -208,10 +208,10 @@ Allocate run state, four station/box records, three loot records, fixed wall/cha
 
 1. Follow the reference's pure-function/Vitest style. Same seed yields identical station jitter and item permutation; 1000 unsigned seeds plus 0, 5050 and `0xffffffff` have exactly one of each item and one empty station. Invalid layout exercises the explicit zero-jitter fallback.
 2. For all 1000 layouts, inflate collision boxes by 0.35 m and flood-fill free centres on a 0.25 m grid from the start; reach every station and the door. A scripted axis-route bot opens/takes three items and opens the exit before time-up, including each container type and each item permutation. Verify moving panels never alter the route.
-3. Enumerate all six required-item orders for every route shape (2916 shapes, 17496 cases): coordinate descent for the touch points and the dual's certified lower bound, assert they agree within 1e-6, the minimum is 15.48396 m and the certified bound ≥ `MIN_ROUTE` (15.48), so the earliest completion is ≥ `MIN_FINISH_MS` (16400 ms) ≥ 16300 + 100. Adversarial inputs may choose any inspect order, open early, revisit and attempt locked-door precharging; none win before the analytic bound. Test 20,000 movement steps against `1.8 * simulatedDt`, including diagonals, corners and collision correction.
+3. Enumerate all six required-item orders for every route shape (2916 shapes, 17496 cases): coordinate descent for the touch points and the dual's certified lower bound, assert they agree within 1e-6, the minimum is 15.48396 m and the certified bound ≥ `MIN_ROUTE` (15.48), so the earliest completion is ≥ `MIN_FINISH_MS` (13754 ms) ≥ 13654 + 100. Adversarial inputs may choose any inspect order, open early, revisit and attempt locked-door precharging; none win before the analytic bound. Test 20,000 movement steps against `RUNNER.speed * simulatedDt`, including diagonals, corners and collision correction.
 4. Drive the real `createArcadeStore`, `advanceRunClock` and `playedFrameDt` across countdown transitions, 4–300 ms raw frames, fractional-ms frames, pauses, wins, time-ups and restarts. Assert consumed integer play ms never exceed counted `elapsedMs` and remainder stays in [0, 1); no lost per-frame fractions, forced 1 ms step or uncounted movement. Compare 60 Hz / 144 Hz action completion within one counted frame. There is no test expecting an untimed countdown frame.
 5. Assert exact action totals 1100 / 900 / 1800 ms with serial movement locks; fresh-edge requirement, empty containers, wrong/collected IDs, busy-edge drop, range 0.999/1.0/1.001 m and nearest-ID selection. Found initializes once, updates exactly three times, and a completed door emits win once.
-6. Check `computeTimeScore`, `normalizeRun` and `isRankedRun` against the table, rounding boundaries and `maxScore: 58370` (= the score at the 16300 ms minimum; a faster duration is clamped to it); every generated winning route stays within 16300–600000 ms and at or after `MIN_FINISH_MS`. An idle run and door completion at time-up are unranked, score 0 and cause no best/save/submit. Do not apply points-only `withinServerLimits` with a time game's zero rate.
+6. Check `computeTimeScore`, `normalizeRun` and `isRankedRun` against the table, rounding boundaries and `maxScore: 58634` (= the score at the 13654 ms minimum; a faster duration is clamped to it); every generated winning route stays within 13654–600000 ms and at or after `MIN_FINISH_MS`. An idle run and door completion at time-up are unranked, score 0 and cause no best/save/submit. Do not apply points-only `withinServerLimits` with a time game's zero rate.
 7. Fixed pool lengths/identities remain unchanged after 600 s, all interactions and restart cleanup. Step preserves the seed and required layout; generation never occurs during a frame. Assert pause freezes each action and elapsed movement, and restart clears events/stat/message/picker state.
 
 ### Camera/picker tests and browser plan
@@ -227,8 +227,114 @@ Allocate run state, four station/box records, three loot records, fixed wall/cha
 
 - The scene is playable and status stays `"soon"`. The camera table is still the math target for `fitView`; the live fit uses `useSafeArea` on top of those same options. Rules and `rules.test.ts` belong to Codex and were not edited here.
 - Inspect uses `input.tap` (release, not a drag), never `tapDown`. A missed tap passes an invalid target so it does not fall through to the E / Enter nearest-object key.
-- The runner is `<HumanoidModel asset={RUNNER_ASSET}>` (runner.glb, auto-rigged, 1.40 m): idle, a walk whose stride matches the speed, a reach with the arm on the target's side while opening or inspecting, and both arms up in a waving V on the win, with the runner's own measured joints. `PrimitiveRunner` is the fallback while it loads or if it fails and points each arm and leg along its rig bone from the same pose (`standIn.ts`; L = the runner's left = +x, as in the rig). Key, book and door are the group C GLBs (Assets); desk, chair and battery the shared models.
+- The runner is `<HumanoidModel asset={RUNNER_ASSET}>` (runner.glb, auto-rigged, 1.40 m): idle, a walk and at top speed a run whose stride keeps the planted foot still (`gait.ts`: walkStride at a walk, the measured contact stride `RUN_STRIDE` at a run, stepped by the run clock's play time; net ankle travel under 6 % of the ground per stance at steady speeds up to 2.6 m/s, `gait.test.ts`; the old plain-walkStride gait skidded about 45 % at the run; the walk-to-run switch near 1.4 m/s still slides about 18 % in walkPose itself, a core matter), a reach with the arm on the target's side while opening or inspecting, and both arms up in a waving V on the win, with the runner's own measured joints. `PrimitiveRunner` is the fallback while it loads or if it fails and points each arm and leg along its rig bone from the same pose (`standIn.ts`; L = the runner's left = +x, as in the rig). Key, book and door are the group C GLBs (Assets); desk, chair and battery the shared models.
 - Opened loot is always in the camera's view: the cupboard roof leaves the graph while it opens (its door swings outward), the drawer slides out past the desk's edge, and the under-desk box slides out from under the desk top first and only then lifts its lid on the back edge, behind the loot (`desk.ts`; `look.test.ts` casts rays from both fitted cameras over every jitter, with the desk as a solid box up to its 0.54 m top). The 44 px badge of an opened, filled container (the "take" badge) turns see-through (`BADGE_LOOK`, `badgeShowsLoot` in `picker.ts`): at about 20 px per metre on a phone it is wider than the whole station, and the loot sits right under it.
 - Still open in the core: the cookie banner is found by a 1 s poll, and `env(safe-area-inset-bottom)` is not reported. The live fit uses `useSafeArea`, so a banner or inset change can lag; that measurement stays in `core/`.
 - Every model is a GLB scaled in `assets.ts` (desk, chair, battery, runner, key, book, door). Mesh size never changes reach or collisions. Measured draw calls (`renderer.info.render.calls`): 36 in the furnished room and 39 with a container open before the runner GLB; 30 in the closed room with every GLB (2026-10-07, desktop and phone).
 - The catalogue's older escape-room row calls the universe `office` and proposes a console. This requested spec uses `shared-cast` seed 5050 and omits the console for the single office. Claude can reconcile the owned catalogue during the asset review; this branch does not edit `skills.md`, the scoring metadata, API rules or core files (`meta.ts` only gets its control texts and thumbnail).
+
+## Levels (five per game)
+
+The sections above are the original L1 release notes. L1 is the live 2.6 m/s game, unchanged. All levels use the existing
+core level system, one room and the same assets. Only a win clears. The leaderboard ranks the
+SUM of all five best finishing times, lower first, only after all five are completed.
+
+| Level | Title | Containers / items | Added mechanic / plan adaptation | Timer / lighting |
+|---|---|---|---|---|
+| 1 | Office | 4 / 3 | Original room, layout RNG, actions, movement and scoring | 600 s / indoor |
+| 2 | Workshop | 5 / 3 | Search every container to complete the exit circuit; three reused chairs block the centre, adding a route branch | 210 s / indoor |
+| 3 | Laboratory | 6 / 4 | Ordered clue retrieval; wrong-order items stay locked | 240 s / sunset |
+| 4 | Cabin | 7 / 4 | Seeded clue-order permutation and station x variation, another decoy | 240 s / night |
+| 5 | Mini Spaceship | 8 / 5 | Full-room search and clue chain; return to the first drawer for a fresh 1100 ms exit-power action | 300 s / space |
+
+The plan's larger 5/7/9/12 areas become searchable branches inside the existing cutaway room.
+Additional items reuse the key/battery GLBs as Spare key/Power cell. No new models, private level
+picker, storage, API or room/camera system. L1 supersedes the plan's tutorial count and clock.
+`space` is the existing cinematic core lighting preset for L5; L4 uses `night`.
+The config drives Found maxima, checklist, Next clue, Searched count and the final return hint.
+All input uses the same reach, locks and timing windows, independent of keyboard or touch.
+
+### Per-level server limits and why they hold
+
+`PROPOSED_LEVEL_LIMITS` in rules.ts equals `meta.levels[*].scoring` and the `levels` array of
+`escape-room` in `arcade-games.json` (`registry.sync.test.ts` checks both).
+Only completed exits are ranked. Items award no points. For each level:
+`S(t) = max(0, floor((timeBaseMs - t) / 10))`.
+The cap is a safety limit: the points-game 90%-of-cap oracle check does not apply.
+The board ranks total time; the larger time bases below keep harder-level score potential at
+least L1's, without increasing their play clocks or changing time-board ordering.
+
+| Level | minDurationMs | timeBaseMs | maxDurationMs | maxScore | Earliest bound / margin |
+|---|---:|---:|---:|---:|---|
+| 1 | 13654 | 600000 | 600000 | 58634 | 13754 / 100 ms (approved live proof) |
+| 2 | 12250 | 620000 | 210000 | 60775 | 12770 / 520 ms (4.07%) |
+| 3 | 14150 | 640000 | 240000 | 62585 | 14770 / 620 ms (4.20%) |
+| 4 | 15200 | 660000 | 240000 | 64480 | 15870 / 670 ms (4.22%) |
+| 5 | 18200 | 690000 | 300000 | 67180 | 18970 / 770 ms (4.06%) |
+
+Every row: kind/time, base/0, maxPointsPerSec/0, unitLabel/time, display/time.
+Each cap equals `floor((timeBaseMs-minDurationMs)/10)`. L5 is 1.146 times L1, below 3x.
+
+**L1:** the unchanged exhaustive 2916-shape/six-order proof gives at least 15.48 m.
+`ceil(15.48/2.6*1000) + 3*(1100+900) + 1800 = 13754 ms`.
+The existing golden timing, clock, collision, layout and 1000-seed speedrun tests remain unchanged.
+
+**L2:** five opens, three separate retrieves, exit:
+`5*1100 + 3*900 + 1800 = 10000 ms` of serial stationary actions.
+The start (0,4) and exit anchor (0,-4.2), reach 1, require at least 7.2 m of net travel:
+`ceil(7.2/2.6*1000) = 2770 ms`. Total at least **12770 ms**.
+
+**L3:** six opens, four retrieves and exit:
+`6*1100 + 4*900 + 1800 + 2770 = 14770 ms`.
+The clue gate cannot skip an inventory bit or overlap actions, even when meshes are reused.
+
+**L4:** seven opens, four retrieves and exit:
+`7*1100 + 4*900 + 1800 + 2770 = 15870 ms`.
+Position and clue randomization do not change mandatory action counts, start, exit or speed.
+
+**L5:** eight opens, five retrieves, exit, one final power action:
+`8*1100 + 5*900 + 1800 + 1100 + 2770 = 18970 ms`.
+Power cannot be restored before collecting all five items; early door inspections grant no progress.
+
+**Shared proof:** travel and actions cannot overlap. The net movement guard bounds displacement
+including collision corrections by 2.6 m/s. Obstacles, acceleration, turns and fresh action edges
+only add time. Integer simulated ms never exceed counted core play ms; pause supplies no played
+dt. Time-up preempts a tied action. Every level moves with the same one-ms integration as L1
+(same controls and collision on every level).
+L2-L5 publish exact integer finishMs before end(win), following obstacle-race; L1 retains its
+existing frame-end duration. Raw winning time scores are checked before normalization/clamping.
+
+**Constructive solvability for every seed:** new anchors face inward at x=+-3.5 (L4-L5 up to
++-3.7), z=-3,-1,1,3. Bodies start 0.4 m outward, leaving the 0.35 m runner clear at each anchor.
+The centre blocker is x=[-1.2,1.2], z=[-0.4,0.4]. x=2.5 is a clear north/south route; at each
+station z, walk horizontally to its anchor and back. Those lanes miss all other bodies and the
+blocker. At z=-4.2 walk from x=2.5 to the exit. Items occur once, clue order is a permutation,
+and all pools are allocated at createRun. The seed sample verifies this construction in motion.
+
+### Tests (`levels.test.ts`)
+
+- **Level 1 is today's game:** 24 seeded traces (a winning route bot plus input noise at 30/60/144 Hz
+  and ragged frames) hash every frame's full state bit-exact; the expected hashes were recorded from
+  `rules.ts` on `origin/main` before levels, and both `createRun(seed)` and `createRun(seed, LEVELS[1])`
+  must reproduce them. `rules.test.ts` is unchanged.
+- **Every level setting reaches the simulation** (each place a setting is read was mutation-probed
+  until a test failed): container and item counts, clue order and shuffle, anchor jitter, exit
+  power, "search every container" gate, the level clock, the centre blocker, the per-level Found
+  maximum, instructions, lighting and the submitted finish time.
+- **Bots, per level, through the real store and counted clock:** a blind honest bot (sees only what
+  the game shows: opened loot and the HUD's Next clue; sweeps the containers, 85 % stick, 200 ms
+  per interaction) on 200 seeds, and a layout-aware oracle (full stick, no reaction) on 50 seeds,
+  plus 60/144 Hz replays; 200 input mashers; idle and remote-tap spam never clear.
+
+| Level | Blind honest bot clears | Blind finish range | Oracle fastest | minDurationMs |
+|---|---:|---:|---:|---:|
+| 1 Office | 200/200 | 30.1-32.6 s | 20.0 s | 13654 |
+| 2 Workshop | 200/200 | 29.9-29.9 s | 24.9 s | 12250 |
+| 3 Laboratory | 200/200 | 33.5-50.2 s | 29.7 s | 14150 |
+| 4 Cabin | 200/200 | 38.2-56.0 s | 32.7 s | 15200 |
+| 5 Mini Spaceship | 200/200 | 44.7-65.6 s | 41.7 s | 18200 |
+
+Every win of every bot lies inside its level's window and under its cap (checked on the submitted
+time: L1 the frame-end elapsed time, L2-L5 `finishMs`). Each level's clock (600 / 210 / 240 / 240 /
+300 s) leaves the slowest blind run with at least 3.5x headroom. Only a win clears (no `clearScore`),
+so idle play never clears.

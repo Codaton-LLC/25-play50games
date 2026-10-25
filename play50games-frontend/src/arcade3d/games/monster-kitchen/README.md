@@ -27,7 +27,37 @@ All numbers live in `rules.ts` (`WHEEL`, `INGREDIENTS`, `TOSS`, `ORDERS`, `PATIE
 - **Patience** (`PATIENCE`): max **10**. Drain per second by type — jolly **1.0**, greedy **1.15**, grumpy **1.3**; wrong toss −3 (clamped at 0). At 0 the monster leaves **angry** after **0.4 s** (`loseLife()`, `lives: 3`).
 - **Serve** (`SERVE`): first order appears at **0.5 s**. On completion the monster eats, dances and tips for **2.0 s**, then the next steps up after **0.8 s** (walk-in). The second window opens at **70 s**: its first monster walks in then (order at 70.8); each window then cycles independently.
 - **Scoring** (`SCORING`): on completion, `orderPoints = round(100 · FACTOR[len]) + round(5 · patienceLeft)`, `FACTOR = {3: 1.0, 4: 1.4, 5: 1.9}` → 100 / 140 / 190 plus a tip ≤ 50. Single `addScore` per completion; `finalScore` is not overridden.
-- **Clock:** `durationMs: 90000` (fixed timer; the shell ends with `"timeup"`).
+- **Clock:** `durationMs: 90000` (fixed timer; the shell ends with `"timeup"`). Level 1 keeps this clock. Levels 2–5 pass a `KitchenLevel` into `createRun(seed, level)` and override the clock, the second hatch, the length bands, the drift and the patience (see Levels). The constants above stay the level-1 values.
+
+## Levels
+
+One cave kitchen, five configurations (`levels.ts`, `docs/arcade-levels.md` §6.3). Level 1 is today's game. There is no win: a level clears when the score reaches `clearScore` (level 5 included, so the feast can show as cleared). The plan's walking multi-zone chef was not built; each later level turns one pressure knob the game already has, and the shift gets longer so the level offers more points than level 1. Lighting is a core preset on the level spec (level 4 `night`, level 5 `sunset`).
+
+| Level | Title | What changes from the level before | Clock | Clear | Limits (max / min–max ms / base / pps) |
+|---|---|---|---|---|---|
+| 1 | Snack Bar | today's game | 90 s | 2000 | **4830 / 12–92 s / 240 / 60** |
+| 2 | Monster Café | second hatch at 48 s; orders lengthen from 18 s / 40 s; drift from 42 s | 100 s | 2600 | **6300 / 12–102 s / 240 / 62** |
+| 3 | Busy Kitchen | hatch at 36 s; lengths from 14 s / 32 s; drift every 5 s from 28 s; drains 1.05 / 1.20 / 1.35 | 108 s | 3000 | **7640 / 12–110 s / 240 / 70** |
+| 4 | Dinner Rush | hatch at 28 s; lengths from 10 s / 24 s; drift every 4.5 s from 20 s; penalty 4; drains 1.10 / 1.28 / 1.45; night | 114 s | 3200 | **8470 / 11–116 s / 240 / 74** |
+| 5 | Grand Feast | hatch at 18 s; lengths from 8 s / 16 s; drift every 4 s from 12 s; drains 1.15 / 1.35 / 1.55; sunset | 120 s | 3600 | **9600 / 11–122 s / 240 / 79** |
+
+Level 5's maxScore 9600 is 1.99× level 1's 4830 (the 3× guard). Every level's maxScore is at least level 1's.
+
+### Per-level proof
+
+The ceiling is `fastestSchedule` in `rules.ts`: one shared pot, always the earliest-ready hatch, always the longest band length (150 / 190 / 240 with a full patience bar). A longer order pays more per second both alone (150/4.45, 190/5.00, 240/5.55) and while the other hatch fills the 2.8 s eat-and-walk gap, and `scheduleCeiling(level, false)` (shortest legal orders) scores less on every level. The landing has to fall inside the clock; the last order shortens only if the long one would miss it. Rotations are free and the ingredient is always in hand, so a real cook scores less. `maxScore = ceil(ceiling × 1.03 / 10) × 10`, `pps = ceil(slope × 1.03)` with base 240, and `maxDurationMs = clock + 2 s`.
+
+| Level | Ceiling | Slope | maxScore | pps | Oracle best (24 seeds) | Oracle / ceiling | Human clear (200 seeds) |
+|---|---|---|---|---|---|---|---|
+| 1 | 4250 (the README's looser 4680 still holds) | under 60 | 4830 (unchanged) | 60 | 3875 | 91% | 200/200, min 2369 |
+| 2 | 6110 | 59.47 | 6300 | 62 | 5316 | 87% | 200/200, min 3339 |
+| 3 | 7410 | 67.55 | 7640 | 70 | 6436 | 87% | 200/200, min 3891 |
+| 4 | 8220 | 71.25 | 8470 | 74 | 7115 | 87% | 199/200, min 1012 |
+| 5 | 9320 | 76.53 | 9600 | 79 | 7884 | 85% | 199/200, min 1477 |
+
+`B(t) = 240 + pps·t` holds at every landing of the schedule (`levels.test.ts`). The oracle does not reach 90% of `maxScore`: that bar sits under the schedule ceiling, because the ceiling prices every order at maximum length and a full tip. The test requires 80% of the ceiling, the same bar as level 1's 3860-vs-4680 proof. Spam (40 seeds) scores 0 and never clears; the fastest spam-lose is 15.1 s on levels 1–3, 12.1 s on level 4 and 12.0 s on level 5, all above `minDurationMs` (11 s on levels 4–5, where penalty 4 shortens the chain). Idle scores 0 and never clears.
+
+Touch and keyboard share one path: Space (`tossCentre`) and a tap on the centre slot launch the same ingredient, and the human bot's turn interval is `WHEEL.rotateS` (0.18 s) for both.
 
 ## Scoring
 
@@ -94,7 +124,7 @@ No new generation: every GLB is in `core/modelManifest.ts`. Fits in `assets.ts`,
 
 ## Files
 
-`meta.ts` (data; scoring provisional until the limits PR) · `index.tsx` (`GameDefinition`) · `rules.ts` (wheel, ingredients, toss, orders, patience, scheduler, drift, scoring; pure, seeded) · `rules.test.ts` · `poses.ts` (pure: chef `reachThrowPose`, cheer blend) · `poses.test.ts` (on the real chef via `rigCharacter`) · `assets.ts` + `assets.test.ts` (fits, liquid disc, head anchor, chef scale) · `Scene.tsx` (one `useRunFrame`, camera, fx, audio) · `Kitchen.tsx` (counter, stove, hatch, shelves, jars, walls) · `Wheel.tsx` (lazy Susan, slots, ingredient pools, toss arcs) · `Cauldron.tsx` (GLB, liquid, bubbles, steam) · `Monsters.tsx` (monsters, tint, headgear, queue) · `Chef.tsx` (humanoid, poses) · `Hud.tsx` (order bubbles, patience bars, the game-local ◀ ▶ buttons) · `Primitives.tsx` (stand-ins, eyeball, slime, headgear, icons) · `assets.spec.json` · `README.md` · `public/images/3d/monster-kitchen.webp` · `tools/thumbs/inputs/monster-kitchen.mjs`.
+`meta.ts` (data; five level limits) · `index.tsx` (`GameDefinition`, level specs) · `levels.ts` · `levels.test.ts` · `useKitchenLevel.ts` · `rules.ts` (wheel, ingredients, toss, orders, patience, scheduler, drift, scoring; pure, seeded) · `rules.test.ts` · `poses.ts` (pure: chef `reachThrowPose`, cheer blend) · `poses.test.ts` (on the real chef via `rigCharacter`) · `assets.ts` + `assets.test.ts` (fits, liquid disc, head anchor, chef scale) · `Scene.tsx` (one `useRunFrame`, camera, fx, audio) · `Kitchen.tsx` (counter, stove, hatch, shelves, jars, walls) · `Wheel.tsx` (lazy Susan, slots, ingredient pools, toss arcs) · `Cauldron.tsx` (GLB, liquid, bubbles, steam) · `Monsters.tsx` (monsters, tint, headgear, queue) · `Chef.tsx` (humanoid, poses) · `Hud.tsx` (order bubbles, patience bars, the game-local ◀ ▶ buttons) · `Primitives.tsx` (stand-ins, eyeball, slime, headgear, icons) · `assets.spec.json` · `README.md` · `public/images/3d/monster-kitchen.webp` · `tools/thumbs/inputs/monster-kitchen.mjs`.
 
 ## Test plan
 
@@ -145,4 +175,28 @@ Standing risks:
 
 ## Status
 
-(empty until the build)
+TASK P-72-levels-monster | 5 levels for monster-kitchen | branch cursor/levels-monster-kitchen | allowed: play50games-frontend/src/arcade3d/games/monster-kitchen/**
+
+Five levels are in. Level 1 plays as today's game (same constants, same 4830/12000/92000/240/60 limits). Levels 2–5 are harder shifts of the same kitchen. No new GLBs. `rules.test.ts` was not edited. `npx tsc --noEmit` passed. The monster-kitchen suite is 62 tests in 32 s. Claude copies `PROPOSED_LEVEL_LIMITS` into `arcade-games.json` at merge; until then `registry.sync.test.ts` fails for this slug.
+
+### Files
+
+`levels.ts`, `rules.ts` (`createRun(seed, level)` and `PROPOSED_LEVEL_LIMITS`), `meta.ts`, `index.tsx`, `useKitchenLevel.ts`, `Scene.tsx`, `Hud.tsx`, `levels.test.ts`, this README. Not edited: `rules.test.ts`, assets, poses, the backend.
+
+### Bot clear rates and limits
+
+| Lv | Ceiling | Oracle best / ceiling | Human clear (200) | Spam fastest lose | Limits |
+|---|---|---|---|---|---|
+| 1 Snack Bar | 4250 (under the published 4680) | 3875 / 91% | 200/200, min 2369 | 15076 ms | 4830 / 12–92 s / 240 / 60 |
+| 2 Monster Café | 6110 | 5316 / 87% | 200/200, min 3339 | 15076 ms | 6300 / 12–102 s / 240 / 62 |
+| 3 Busy Kitchen | 7410 | 6436 / 87% | 200/200, min 3891 | 15076 ms | 7640 / 12–110 s / 240 / 70 |
+| 4 Dinner Rush | 8220 | 7115 / 87% | 199/200, min 1012 | 12117 ms | 8470 / 11–116 s / 240 / 74 |
+| 5 Grand Feast | 9320 | 7884 / 85% | 199/200, min 1477 | 12007 ms | 9600 / 11–122 s / 240 / 79 |
+
+Spam and idle score 0 and never clear. The oracle never loses on 24 seeds. 90% of `maxScore` is not asserted: that bar sits under the schedule ceiling. The test requires 80% of the ceiling, the same bar as level 1. Level 5 maxScore is 1.99× level 1.
+
+Mutation probe: level 2 `windowBAtS` set to 80 failed the monotone test (`expected 80 to be less than 70`), then restored to 48.
+
+### Open
+
+`arcade-games.json` is Claude's. Level 4–5 `minDurationMs` is 11000 because the spam sample reached 12.0 s. No headless playtest in this run. There is no `looks.ts`; lighting is the level spec (`night` on level 4, `sunset` on level 5). The same text is in `.handoff/P-72-levels-monster/HANDOFF.md`.

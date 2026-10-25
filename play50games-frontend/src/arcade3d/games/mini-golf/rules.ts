@@ -4,8 +4,9 @@
 // React, DOM, Math.random or Date.now. Scene.tsx calls advanceRun once per frame and syncStore for
 // the store; rules.test.ts drives the same two functions through the real store.
 import { createFixedStep, fixedStep, type FixedStepState } from "@/arcade3d/core/kinematics";
-import { HOLE_COUNT, WINDMILL, generateCourse, type Hole, type P2 } from "./course";
-import { BALL, clearBallEvents, createBall, createBallEvents, inTunnel, launchBall, placeBall, stepBall, type Ball, type BallEvents } from "./physics";
+import { LEVELS, LEVEL_LIMITS, type MiniGolfLevel } from "./levels";
+import { WINDMILL, generateCourse, type Hole, type P2 } from "./course";
+import { BALL, CUP, clearBallEvents, createBall, createBallEvents, inTunnel, launchBall, placeBall, stepBall, type Ball, type BallEvents } from "./physics";
 
 /** Timing (README "Fixed tick", "Hole out", "Run cap"). */
 export const TICK = {
@@ -54,13 +55,15 @@ export interface RunEvents extends BallEvents {
    /** the next hole opened (index), -1 = none */
    holeOpened: number;
    win: boolean;
+   lose: boolean;
    timeup: boolean;
 }
 
 export interface RunState {
    seed: number;
+   config: MiniGolfLevel;
    course: Hole[];
-   /** index of the hole being played (0-5) */
+   /** index in the captured course */
    hole: number;
    ball: Ball;
    phase: RunPhase;
@@ -69,6 +72,7 @@ export interface RunState {
    card: number[];
    cardScores: number[];
    total: number;
+   pickups: number;
    /** play time (s), the sum of the frames' dt */
    time: number;
    /** ticks since the current hole opened (the windmill's and the bar's clock) */
@@ -105,6 +109,7 @@ function clearEvents(ev: RunEvents): RunEvents {
    ev.pickedUp = false;
    ev.holeOpened = -1;
    ev.win = false;
+   ev.lose = false;
    ev.timeup = false;
    return ev;
 }
@@ -117,18 +122,30 @@ export const canPutt = (run: RunState): boolean => run.phase === "aim" && run.re
 /** 0..1: how far the ready ring has filled. */
 export const readiness = (run: RunState): number => (run.phase === "aim" ? Math.min(1, run.readyTicks / READY_TICKS) : 0);
 
-export function createRun(seed: number, course: Hole[] = generateCourse(seed)): RunState {
+export function createRun(seed: number, level: MiniGolfLevel | Hole[] = LEVELS[1]): RunState {
+   const config = Array.isArray(level) ? LEVELS[1] : level;
+   const course = Array.isArray(level) ? level : generateCourse(seed, config.holes);
+   // Preserve the original course data exactly; level overrides belong only to harder variants.
+   if (!Array.isArray(level)) for (const hole of course) {
+      if (config.vMax !== BALL.vMax) hole.vMax = config.vMax;
+      if (config.cupRadius !== CUP.radius) hole.cupRadius = config.cupRadius;
+      if (config.captureSpeed !== CUP.captureSpeed) hole.captureSpeed = config.captureSpeed;
+      if (hole.windmill) hole.windmill.omega = 2 * Math.PI / config.windmillPeriod * hole.sx;
+      if (hole.turntable) hole.turntable.omega = config.turntableOmega * hole.sx;
+   }
    const first = course[0];
    const run: RunState = {
       seed,
+      config,
       course,
       hole: 0,
       ball: createBall(first.tee, first.terrain === "tiers"),
       phase: "aim",
       strokes: 0,
-      card: new Array<number>(HOLE_COUNT).fill(-1),
-      cardScores: new Array<number>(HOLE_COUNT).fill(-1),
+      card: new Array<number>(course.length).fill(-1),
+      cardScores: new Array<number>(course.length).fill(-1),
       total: 0,
+      pickups: 0,
       time: 0,
       holeTicks: 0,
       readyTicks: READY_TICKS,
@@ -164,7 +181,7 @@ export function advanceRun(run: RunState, dt: number, psi: number, power: number
       run.pending.power = Math.max(POWER_MIN, Math.min(1, power));
    }
    fixedStep(run.clock, dt, run.tick);
-   if (!run.over && run.time >= RUN.capS) {
+   if (!run.over && run.time >= run.config.capS) {
       run.over = true;
       run.phase = "done";
       run.events.timeup = true;
@@ -180,7 +197,7 @@ function tick(run: RunState): void {
       run.strokes += 1;
       run.strokeTicks = 0;
       run.puttTick = run.holeTicks;
-      launchBall(run.ball, run.pending.psi, BALL.vMax * run.pending.power);
+      launchBall(run.ball, run.pending.psi, run.config.vMax * run.pending.power);
       run.phase = "moving";
       ev.putt = run.pending.power;
    }
@@ -233,7 +250,7 @@ function endStroke(run: RunState, hole: Hole): void {
 
 function strokeOver(run: RunState, hole: Hole): void {
    run.events.strokeEnded = true;
-   const cap = hole.par + PICK_UP_OVER;
+   const cap = hole.par + run.config.pickUpOver;
    if (run.strokes >= cap) {
       run.strokes = cap;
       holeOut(run, hole, true);
@@ -245,6 +262,7 @@ function strokeOver(run: RunState, hole: Hole): void {
 
 function holeOut(run: RunState, hole: Hole, pickedUp: boolean): void {
    const ev = run.events;
+   if (pickedUp) run.pickups++;
    const score = holeScore(hole.par, run.strokes);
    run.card[run.hole] = run.strokes;
    run.cardScores[run.hole] = score;
@@ -253,11 +271,12 @@ function holeOut(run: RunState, hole: Hole, pickedUp: boolean): void {
    ev.holeStrokes = run.strokes;
    ev.holeScore = score;
    ev.pickedUp = pickedUp;
-   if (run.hole === HOLE_COUNT - 1) {
+   if (run.hole === run.course.length - 1) {
       run.over = true;
-      run.won = true;
+      run.won = !run.config.requireAllCups || run.pickups === 0;
       run.phase = "done";
-      ev.win = true;
+      ev.win = run.won;
+      if (!run.won) ev.lose = true;
       return;
    }
    run.phase = "holeOut";
@@ -298,8 +317,9 @@ export function syncStore(run: RunState, store: StoreActions): void {
    store.setStat("hole", run.hole + 1);
    store.setStat("par", hole.par);
    store.setStat("strokes", run.strokes);
-   if (run.time >= RUN.warnAt) store.setStat("timeLeft", Math.max(0, Math.ceil(RUN.capS - run.time)));
+   if (run.time >= run.config.capS * 0.9) store.setStat("timeLeft", Math.max(0, Math.ceil(run.config.capS - run.time)));
    if (ev.win) store.end("win");
+   else if (ev.lose) store.end("lose");
    else if (ev.timeup) store.end("timeup");
 }
 
@@ -309,3 +329,5 @@ export function ballPoint(run: RunState, out: P2): P2 {
    out.z = run.ball.z;
    return out;
 }
+
+export const PROPOSED_LEVEL_LIMITS = LEVEL_LIMITS;

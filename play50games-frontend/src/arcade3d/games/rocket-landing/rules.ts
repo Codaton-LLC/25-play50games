@@ -1,6 +1,61 @@
 import { createRng } from "@/arcade3d/core/math";
 import { createFixedStep, fixedStep, stepRigidBody2D, type RigidBody2D, type RigidBodyForces, type FixedStepState } from "@/arcade3d/core/kinematics";
+import type { LevelId, ScoringRules } from "@/arcade3d/types";
 import { HULL, HULL_SKIN, SUPPORT } from "./assets";
+import { LEVELS, type RocketLevel } from "./levels";
+
+export const PROPOSED_LEVEL_LIMITS: Record<LevelId, ScoringRules> = {
+   1: {
+      kind: "points",
+      maxScore: 2800,
+      minDurationMs: 5000,
+      maxDurationMs: 242000,
+      base: 800,
+      maxPointsPerSec: 200,
+      unitLabel: "pts",
+      display: "int",
+   },
+   2: {
+      kind: "points",
+      maxScore: 3000,
+      minDurationMs: 5000,
+      maxDurationMs: 242000,
+      base: 1000,
+      maxPointsPerSec: 200,
+      unitLabel: "pts",
+      display: "int",
+   },
+   3: {
+      kind: "points",
+      maxScore: 3200,
+      minDurationMs: 5000,
+      maxDurationMs: 242000,
+      base: 1200,
+      maxPointsPerSec: 200,
+      unitLabel: "pts",
+      display: "int",
+   },
+   4: {
+      kind: "points",
+      maxScore: 3400,
+      minDurationMs: 5000,
+      maxDurationMs: 242000,
+      base: 1400,
+      maxPointsPerSec: 200,
+      unitLabel: "pts",
+      display: "int",
+   },
+   5: {
+      kind: "points",
+      maxScore: 3600,
+      minDurationMs: 5000,
+      maxDurationMs: 242000,
+      base: 1600,
+      maxPointsPerSec: 200,
+      unitLabel: "pts",
+      display: "int",
+   },
+};
 
 export const DURATION_MS = 240000;
 export const BODY = { centre: 1.1, radius: 1.35, speed: 12, omega: 1.5, spawnY: 14 } as const;
@@ -19,7 +74,7 @@ const STEP = 1 / 120;
 const TAU = 2 * Math.PI;
 const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
 export const wrap = (v: number) => v >= -Math.PI && v < Math.PI ? v : ((v + Math.PI) % TAU + TAU) % TAU - Math.PI;
-export interface Layout { pad: number; spawnX: number; phase: number; wind: number; terrain: number[]; fallback: boolean }
+export interface Layout { pad: number; spawnX: number; phase: number; wind: number; terrain: number[]; fallback: boolean; padAmplitude?: number }
 export interface Controls { rotate: number; thrust: boolean }
 export interface Award { soft: number; centre: number; reserve: number; total: number }
 interface Point { x: number; y: number }
@@ -33,10 +88,17 @@ export interface Run {
    score: number; awards: number[]; award: Award; events: { award: number; crash: boolean; spawn: boolean; lowFuel: boolean };
    lowFuel: boolean; obstacles: Polygon[][]; pad: Polygon; roof: Polygon; a: Point[]; b: Point[]; quad: Point[];
    contactMask: number; contactSlices: number; sweepSkin: number; pivot: Point;
+   level: RocketLevel;
 }
-export function padX(l: Layout, p: number, t: number): number { return p === 4 ? 2 * Math.sin(TAU * t / 16 + l.phase) : l.pad; }
-export function padVx(l: Layout, p: number, t: number): number { return p === 4 ? Math.PI / 4 * Math.cos(TAU * t / 16 + l.phase) : 0; }
-export function fallbackLayout(p: number): Layout { return { pad: 0, spawnX: 4.5, phase: 0, wind: 0, terrain: new Array<number>(13).fill(0), fallback: true }; }
+export function padX(l: Layout, p: number, t: number, padAmp?: number): number {
+   const amp = padAmp ?? l.padAmplitude ?? (p === 4 ? 2 : 0);
+   return p === 4 ? amp * Math.sin(TAU * t / 16 + l.phase) : l.pad;
+}
+export function padVx(l: Layout, p: number, t: number, padAmp?: number): number {
+   const amp = padAmp ?? l.padAmplitude ?? (p === 4 ? 2 : 0);
+   return p === 4 ? amp * (Math.PI / 8) * Math.cos(TAU * t / 16 + l.phase) : 0;
+}
+export function fallbackLayout(p: number, padAmp?: number): Layout { return { pad: 0, spawnX: 4.5, phase: 0, wind: 0, terrain: new Array<number>(13).fill(0), fallback: true, padAmplitude: padAmp }; }
 export function isValidLayout(l: Layout, p: number): boolean {
    const offset = Math.abs(l.spawnX - padX(l, p, 0));
    return l.terrain.length === 13 && l.terrain.every((v) => Number.isFinite(v) && v >= -0.5 && v <= 0.5) &&
@@ -44,16 +106,16 @@ export function isValidLayout(l: Layout, p: number): boolean {
       offset >= (p === 4 ? 4.5 : 3) && offset <= 6 && Number.isFinite(l.wind) &&
       (l.phase === 0 || l.phase === Math.PI);
 }
-export function generateCampaign(seed: number): Layout[] {
+export function generateCampaign(seed: number, padAmp: number = 2): Layout[] {
    const rng = createRng(seed);
    return PLANETS.map((_, p) => {
       for (let n = 0; n < 16; n++) {
          const pad = p === 4 ? 0 : rng() * 2 - 1;
          const spawnX = pad + (rng() < 0.5 ? -1 : 1) * ((p === 4 ? 4.5 : 3) + rng() * (p === 4 ? 1.5 : 3));
-         const l = { pad, spawnX, phase: rng() < 0.5 ? 0 : Math.PI, wind: rng() * TAU, terrain: Array.from({ length: 13 }, () => rng() - 0.5), fallback: false };
+         const l: Layout = { pad, spawnX, phase: rng() < 0.5 ? 0 : Math.PI, wind: rng() * TAU, terrain: Array.from({ length: 13 }, () => rng() - 0.5), fallback: false, padAmplitude: padAmp };
          if (isValidLayout(l, p)) return l;
       }
-      return fallbackLayout(p);
+      return fallbackLayout(p, padAmp);
    });
 }
 const body = (): RigidBody2D => ({ x: 0, y: 0, angle: 0, vx: 0, vy: 0, omega: 0 });
@@ -63,13 +125,13 @@ function polygon(a: Point[]): Polygon {
 }
 function rect(x0: number, x1: number, y0: number, y1: number): Polygon { return polygon([{ x: x0, y: y0 }, { x: x1, y: y0 }, { x: x1, y: y1 }, { x: x0, y: y1 }]); }
 function movePad(r: Run, t: number): void {
-   const x = padX(r.layouts[r.planet], r.planet, t), w = PLANETS[r.planet].width / 2;
+   const x = padX(r.layouts[r.planet], r.planet, t, r.level?.padAmplitude), w = PLANETS[r.planet].width / 2;
    r.pad.minX = x - w; r.pad.maxX = x + w;
    r.pad.points[0].x = r.pad.points[3].x = x - w;
    r.pad.points[1].x = r.pad.points[2].x = x + w;
 }
-export function createRun(seed: number, assist: boolean): Run {
-   const layouts = generateCampaign(seed);
+export function createRun(seed: number, assist: boolean = false, level: RocketLevel = LEVELS[1]): Run {
+   const layouts = generateCampaign(seed, level.padAmplitude);
    const r: Run = {
       layouts, body: body(), previous: body(), next: body(), probe: body(), clock: createFixedStep(STEP), tick: () => {},
       controls: { rotate: 0, thrust: false }, forces: { thrust: 0, torque: 0, gravity: 0 }, assist,
@@ -82,6 +144,7 @@ export function createRun(seed: number, assist: boolean): Run {
       })),
       pad: rect(-3, 3, 1.6, 2), roof: rect(-3, 3, 9, 10), a: points(HULL.length), b: points(HULL.length), quad: points(4),
       contactMask: 0, contactSlices: 0, sweepSkin: 0, pivot: { x: 0, y: 0 },
+      level,
    };
    r.tick = (dt) => tick(r, dt);
    spawn(r);
@@ -140,7 +203,7 @@ function sweptObstacle(r: Run, o: Polygon, minX: number, maxX: number, minY: num
 }
 function sweep(r: Run, a: RigidBody2D, b: RigidBody2D, ta: number, tb: number): number {
    // Covers the rotation arc outside its chord and the analytic moving-pad arc.
-   r.sweepSkin = BODY.radius * (1 - Math.cos(wrap(b.angle - a.angle) / 2)) + (r.planet === 4 ? 2 * (1 - Math.cos(Math.PI * (tb - ta) / 16)) : 0) + 1e-8;
+   r.sweepSkin = BODY.radius * (1 - Math.cos(wrap(b.angle - a.angle) / 2)) + (r.planet === 4 ? (r.level?.padAmplitude ?? 2) * (1 - Math.cos(Math.PI * (tb - ta) / 16)) : 0) + 1e-8;
    transform(r.a, a); transform(r.b, b);
    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
    for (let i = 0; i < HULL.length; i++) {
@@ -152,13 +215,15 @@ function sweep(r: Run, a: RigidBody2D, b: RigidBody2D, ta: number, tb: number): 
    for (let i = 0; ! (mask & 2) && i < obstacles.length; i++) if (sweptObstacle(r, obstacles[i], minX, maxX, minY, maxY, 0)) mask |= 2;
    if (r.planet === 4 && sweptObstacle(r, r.roof, minX, maxX, minY, maxY, 0)) mask |= 2;
    movePad(r, tb);
-   const dx = padX(r.layouts[r.planet], r.planet, tb) - padX(r.layouts[r.planet], r.planet, ta);
+   const dx = padX(r.layouts[r.planet], r.planet, tb, r.level?.padAmplitude) - padX(r.layouts[r.planet], r.planet, ta, r.level?.padAmplitude);
    if (sweptObstacle(r, r.pad, minX, maxX, minY, maxY, dx)) mask |= 1;
    return mask;
 }
 export function landingSafe(r: Run, t: number): boolean {
-   const b = r.body, l = r.layouts[r.planet], half = PLANETS[r.planet].width / 2, px = padX(l, r.planet, t);
-   if (!(b.vy < 0 && Math.abs(b.vy) < CONTACT.vy && Math.abs(b.vx - padVx(l, r.planet, t)) < CONTACT.vx && Math.abs(wrap(b.angle)) < CONTACT.angle)) return false;
+   const b = r.body, l = r.layouts[r.planet], half = PLANETS[r.planet].width / 2, px = padX(l, r.planet, t, r.level?.padAmplitude);
+   const vyGate = r.level?.contactVy ?? CONTACT.vy;
+   const angleGate = r.level?.contactAngle ?? CONTACT.angle;
+   if (!(b.vy < 0 && Math.abs(b.vy) < vyGate && Math.abs(b.vx - padVx(l, r.planet, t, r.level?.padAmplitude)) < CONTACT.vx && Math.abs(wrap(b.angle)) < angleGate)) return false;
    for (let i = 0; i < SUPPORT.length; i++) {
       const x = b.x + Math.cos(b.angle) * SUPPORT[i][0] - Math.sin(b.angle) * (SUPPORT[i][1] - BODY.centre);
       if (x < px - half - 1e-9 || x > px + half + 1e-9) return false;
@@ -183,13 +248,15 @@ function impact(r: Run, mask: number): void {
    const top = Math.abs(lowest - WORLD.padY) <= CONTACT.skin + 0.018;
    if (mask === 1 && top && landingSafe(r, r.attemptTime)) {
       const p = PLANETS[r.planet];
-      const award = landingAward(b.vy, b.x - padX(r.layouts[r.planet], r.planet, r.attemptTime), p.width, r.fuel, p.fuel, r.award);
+      const award = landingAward(b.vy, b.x - padX(r.layouts[r.planet], r.planet, r.attemptTime, r.level?.padAmplitude), p.width, r.fuel, p.fuel, r.award);
       r.awards[r.planet] = award.total; r.score += award.total; r.events.award += award.total; r.completed++;
       r.mode = "landed";
       r.pivot.x = b.x + c * SUPPORT[foot][0] - s * (SUPPORT[foot][1] - BODY.centre);
       r.pivot.y = WORLD.padY;
-      if (r.completed === 5) {
-         if (!r.crashes) { r.score += 300; r.events.award += 300; }
+      const targetPlanets = r.level?.planets ?? 5;
+      const cleanBonus = r.level?.cleanBonus ?? 300;
+      if (r.completed === targetPlanets) {
+         if (!r.crashes) { r.score += cleanBonus; r.events.award += cleanBonus; }
          r.terminal = "win";
       }
    } else {
@@ -241,7 +308,8 @@ function flight(r: Run, dt: number, thrust: boolean): number {
    r.forces.torque = r.assist && Math.abs(rotate) <= ENGINE.neutral ? clamp(-ENGINE.assist * wrap(b.angle) - ENGINE.damping * b.omega, -3, 3) : -ENGINE.torque * rotate - ENGINE.damping * b.omega;
    stepRigidBody2D(b, dt, r.forces);
    if (r.planet === 3) {
-      const wind = 0.4 * Math.sin(TAU * r.attemptTime / 8 + r.layouts[3].wind);
+      const windAmp = r.level?.windAmplitude ?? 0.4;
+      const wind = windAmp * Math.sin(TAU * r.attemptTime / 8 + r.layouts[3].wind);
       b.vx += wind * dt; b.x += wind * dt * dt;
    }
    const speed = Math.hypot(b.vx, b.vy);

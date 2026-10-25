@@ -24,6 +24,15 @@ const FLAG_SCALE = 1.5 / FLAG_BOUNDS.height;
 export const SNOWMAN_GLB = { height: 1.9034, baseRadius: 0.6828 };
 export const SNOWMAN_SCALE = 0.72;
 
+/**
+ * iceArch.glb (Group D, QA "OK"). 2.2 m across, placed ICE_ARCH_LATERAL metres off the
+ * corridor centre so the span stays outside the widest half-width (COURSE.width = 3.5).
+ */
+export const ICE_ARCH_GLB = { width: 1.9039, height: 1.1863, depth: 0.9293 } as const;
+export const ICE_ARCH_WIDTH = 2.2;
+export const ICE_ARCH_LATERAL = 8;
+const ICE_ARCH_SCALE = ICE_ARCH_WIDTH / ICE_ARCH_GLB.width;
+
 export const ASSETS = {
    penguin: { ...EXPANSION_ASSETS.penguin, scale: PENGUIN_SCALE },
    fish: { ...EXPANSION_ASSETS.fish, scale: 0.6 / EXPANSION_GLB_SIZE.fish.depth },
@@ -35,6 +44,14 @@ export const ASSETS = {
       scale: SNOWMAN_SCALE,
       fallback: "sphere",
       fallbackColor: "#fff5ed",
+      budget: { ...PROP_BUDGET },
+   },
+   iceArch: {
+      id: "iceArch",
+      url: "/models/3d/penguin-slide/iceArch.glb",
+      scale: ICE_ARCH_SCALE,
+      fallback: "box",
+      fallbackColor: "#e0f2fe",
       budget: { ...PROP_BUDGET },
    },
 } satisfies Record<string, ModelAsset>;

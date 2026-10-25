@@ -1,7 +1,94 @@
-import { EXPANSION_ASSETS, EXPANSION_GLB_POINTS, EXPANSION_GLB_SIZE, ROCKET_FEET_GLB } from "@/arcade3d/core/sharedAssets";
+import type { BufferGeometry } from "three";
+import type { ModelAsset } from "@/arcade3d/core/types";
+import { EXPANSION_ASSETS, EXPANSION_GLB_POINTS, EXPANSION_GLB_SIZE, PROP_BUDGET, ROCKET_FEET_GLB } from "@/arcade3d/core/sharedAssets";
 
 export const ROCKET_SCALE = 2.2 / EXPANSION_GLB_SIZE.rocket.height;
-export const ASSETS = { rocket: { ...EXPANSION_ASSETS.rocket, scale: ROCKET_SCALE } };
+
+/**
+ * The landing pad GLB measured on the real mesh (assets.test.ts decodes it): the slab stands on
+ * y = 0 and its deck tops out at deckTop (GLB units). The GLB mesh originally included a central
+ * beacon cone poking up through the touchdown zone; flattenLandingPadCone flattens that cone down
+ * to deckTop so the landing surface stays completely flat and level at +0.2 above the group origin,
+ * matching the physics surface (WORLD.padY = 2) with yOffset -0.2. Small beacon lights on the pad
+ * rim mark the landing zone boundaries without obstructing touchdown. The runtime group scale.x =
+ * PLANETS[p].width stretches the drawn width as before, so x stays the authored 1.
+ */
+export const LANDING_PAD_GLB = { width: 1.8948084, deckTop: 0.2786218, height: 0.8244281, depth: 1.9048288 };
+export const LANDING_PAD_NODE_Y = 0.4109845757484436;
+const LANDING_PAD_SCALE = 0.4 / LANDING_PAD_GLB.deckTop;
+
+/**
+ * Flattens any vertex of the landing pad mesh that rises above the deck slab surface
+ * (the central beacon cone that would otherwise poke through the landing rocket) down to the
+ * deck level, ensuring the entire top surface matches the physics landing surface (padY = 2).
+ */
+export function flattenLandingPadCone(geometry: BufferGeometry, nodeY = LANDING_PAD_NODE_Y): void {
+   const position = geometry.getAttribute("position");
+   if (!position) return;
+   const effectiveNodeY = nodeY !== 0 ? nodeY : LANDING_PAD_NODE_Y;
+   const deckThreshold = LANDING_PAD_GLB.deckTop - effectiveNodeY;
+   for (let i = 0; i < position.count; i++) {
+      if (position.getY(i) > deckThreshold) {
+         position.setY(i, deckThreshold);
+      }
+   }
+   position.needsUpdate = true;
+}
+
+/**
+ * Small beacon lights placed on the rim corners of the pad to mark the landing zone boundaries.
+ * Placed outside the touchdown footprint so they never intersect the landing surface or the rocket feet.
+ * Scaled with pad.scale.x at runtime so they always stay on the outer rim on every planet.
+ */
+export const BEACON_LIGHTS = [
+   { x: -0.48, y: 0.22, z: -0.92 },
+   { x: 0.48, y: 0.22, z: -0.92 },
+   { x: -0.48, y: 0.22, z: 0.92 },
+   { x: 0.48, y: 0.22, z: 0.92 },
+] as const;
+
+/** A beacon's radius and height (pad units: the deck is 1 wide before the planet's width stretch). */
+export const BEACON_SIZE = { top: 0.025, bottom: 0.03, height: 0.04 } as const;
+
+/**
+ * The beacons ride in the pad group, whose scale.x is the planet's pad width (4-6), so they would
+ * be drawn 4-6 times wider than deep: thin floating bars. Each beacon cancels that stretch with
+ * this x scale, so it stays a small round light; its position still follows the rim.
+ */
+export function beaconScaleX(padWidth: number): number {
+   return padWidth > 0 ? 1 / padWidth : 1;
+}
+
+/**
+ * The rocket touchdown footprint on the pad's top surface (local coordinates).
+ * The deck sits at y = 0.2, extending horizontally where the rocket touches down.
+ * Beacon geometry must not intersect this surface area.
+ */
+export const PAD_DECK_FOOTPRINT = {
+   minX: -0.42,
+   maxX: 0.42,
+   minZ: -0.85,
+   maxZ: 0.85,
+   y: 0.2,
+} as const;
+
+export const ASSETS = {
+   rocket: { ...EXPANSION_ASSETS.rocket, scale: ROCKET_SCALE },
+   landingPad: {
+      id: "landingPad",
+      url: "/models/3d/rocket-landing/landingPad.glb",
+      scale: LANDING_PAD_SCALE,
+      stretch: [
+         1 / (LANDING_PAD_GLB.width * LANDING_PAD_SCALE),
+         1,
+         2 / (LANDING_PAD_GLB.depth * LANDING_PAD_SCALE),
+      ] as const,
+      yOffset: -0.2,
+      fallback: "box",
+      fallbackColor: "#334155",
+      budget: { ...PROP_BUDGET },
+   },
+} satisfies Record<string, ModelAsset>;
 export const BELL = { x: EXPANSION_GLB_POINTS.rocketBell.x * ROCKET_SCALE, y: EXPANSION_GLB_POINTS.rocketBell.y * ROCKET_SCALE, z: EXPANSION_GLB_POINTS.rocketBell.z * ROCKET_SCALE };
 export const FEET_3D = ROCKET_FEET_GLB.map((p) => ({ x: p.x * ROCKET_SCALE, y: p.y * ROCKET_SCALE, z: p.z * ROCKET_SCALE }));
 export const SUPPORT = [[-0.64138, 0.0005], [0.66023, 0.00989]] as const;

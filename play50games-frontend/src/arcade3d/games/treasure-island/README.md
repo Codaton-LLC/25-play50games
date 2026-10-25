@@ -52,6 +52,26 @@ The provisional 15 s minimum would reject a legal (lucky or perfect) win under 1
 
 Tighter, not used: acceleration from rest at the start and after each dig (5 × 0.104 s) gives 9.50 s and 2050, but breaks if `accel` changes. **Measured:** a full-knowledge bot (optimal order, grid path around props, never false-digs) on the real store, 300 seeds each at 60 fps, 20 fps and random 4–50 ms frames: best 10.38 / 10.45 / 10.48 s, all **2040** (99 % of 2060; seed 94), slowest 12.3 s; in the browser 10.25–13.3 s, 1960–2040. Margins: min duration 480 ms under the proven 8.98 s and 1.9 s under the best bot; max 2 s over the 90 s clock. Spam bots and an idle explorer pass too; `capScore` is a no-op on every run (tests). In `rules.test.ts` (the arcade-score-limits skill asks for 200+ per bot): the path bot on 200 seeds (60 fps, 20 fps and random 4–50 ms frames in turn, three of them run twice for determinism) and the spam bot on 200 seeds (random 4–50 ms frames).
 
+## Levels
+
+Five configurations of this island (`levels.ts`). Level 1 is today's game (the numbers above). The backlog's re-order (today's game as level 4, a 2-treasure / 150 s beach as level 1) is **not** applied: `rules.test.ts` pins `meta.scoring` to 2060 / 8500–92000 and cannot be edited, and `levels[0]` has to equal that window. A 150 s clock does not fit it. Plan names stay in plan order. The plan's clue → map piece → chest, blocked paths and rope bridge are not built (a win is still the Nth dig). Sunset stays (`lighting: "sunset"` is not a per-level override). The plan's lower final shore is not used: the dock start is at rho 0.836, and a final shore under ~0.72 drowns it, so the flood fill rejects every island. The clock stays 90 s on every level.
+
+| Level | Title | Treasures | Tide | Layout | clearScore | maxScore | min ms | base |
+|---|---|---|---|---|---|---|---|---|
+| 1 | Starter Beach | 5 | 70 → 90 s, shore 0.75 | spacing 6, 14 × 11, route 38–56 | 1250 | 2060 | 8500 | 1250 |
+| 2 | Palm Grove | 5 | 60 → 80 s, shore 0.75 | same island as level 1 | 1250 | 2060 | 8500 | 1250 |
+| 3 | Rocky Cove | 6 | 55 → 75 s, shore 0.75 | spacing 6, 14 × 11, route 40–56 | 1500 | 2300 | 9100 | 1500 |
+| 4 | Jungle Interior | 6 | 50 → 70 s, shore 0.75 | same spots as level 3 | 1500 | 2300 | 9100 | 1500 |
+| 5 | Pirate Peak | 6 | 45 → 65 s, shore 0.75 | spacing 5, 17 × 11, route 37–56 | 1500 | 2300 | 8500 | 1500 |
+
+`maxDurationMs` is 92000 on every level (the clock + 2 s). `maxPointsPerSec` is 100. Level 5 / level 1 maxScore = 2300 / 2060 ≈ 1.12 (under 3×). A clean win scores at least 250 per treasure, which is `clearScore`; an idle explorer scores 0.
+
+The same proof as level 1, per count and route floor. Travel after the dig reach: `routeMin − 0.9 − (n − 1) · 1.8`. Earliest win = that distance / 5 m/s + n · 0.6 s. The ceiling is n · 250 + 10 · floor((90 s − earliest) / 1 s). min duration is 95 % of the earliest win, rounded down to 100 ms.
+
+- **Level 1 and 2.** Route floor 38 m → 29.9 m → 8.98 s → 1250 + 10 · floor(81.02) = **2060**, min 8500. Level 2 generates the same spots (only the tide clock changes) and the earliest win is before 60 s, so the tide does not open the bound. `PROPOSED_LEVEL_LIMITS[1]` equals `meta.scoring`.
+- **Level 3 and 4.** Six treasures, route floor 40 m (measured accepted routes start at 40.3 m) → 30.1 m → 9.62 s → 1500 + 10 · floor(80.38) = **2300**, min 9100. Level 4 uses the same band; its tide starts at 50 s, still after 9.62 s. 9.62 s ≥ 10 · 90 / 110 = 8.18 s, so 100 pts/s still holds.
+- **Level 5.** Route floor 37 m (measured accepted routes start at 37.6 m) on the 17 m island → 27.1 m → 9.02 s → 1500 + 10 · floor(80.98) = **2300**, min 8500. The follow camera is the same window around the explorer (`viewFor` does not take the island size); the ground mesh uses the level ellipse.
+
 ## Run end
 
 - `end("win")` on the frame the 5th dig resolves (score as above). `resultDelayMs: 1600`: the last reveal (often the chest), confetti and `cheerPose` are seen.
@@ -149,3 +169,14 @@ Evidence: %USERPROFILE%/.play50/treasure-island/*.png and *-report.json
 ## Hyper3D batch 5 adoption
 
 - **Shovel (2026-10-24, Hyper3D batch 5):** `/models/3d/treasure-island/shovel.glb` (1500 tris) in the explorer's hands while digging (thrusting with the dig progress) and riding the back while walking (`Shovel.tsx`, `held.ts`), fitted ~0.95 m from the measured bounds; the stick-and-blade primitive is the fallback; `shovel.test.ts` checks the grip at the hand, the blade on the sand in the dig and the back clearance through idle / walk / run. Adopted by Antigravity; finished by Claude after Antigravity's quota ran out.
+
+
+## Look (2026-10-24)
+
+Modern-look pass (CLAUDE.md Decision 4) on `antigravity/look-treasure-island`:
+- **Palette & Lighting:** Unified `COLORS` palette in `looks.ts` providing warm tropical sunset lighting and high-contrast readability for the explorer, detector signal, dig spots and treasures at every screen size.
+- **Lush Ground & Water:** Enhanced lathe island ground with subtle wind ripples on the dry sand, organic scalloped jungle edges at the grass boundary, glistening wet shoreline sand, and turquoise shallows. Expanded water plane (180 × 180 m) with double-layered shore foam and an underlying seabed floor plane (180 × 180 m) ensuring zero sky/void shows below the scene or at screen edges across 1280×800, 390×844 and 844×390.
+- **Deliberate Code Stand-ins:** Upgraded all visible primitives to multi-tone bevelled shapes (tiered tropical palm fronds and ringed trunks, faceted boulders with sunlit highlights, plank-framed crates with dark iron corner brackets, teak and brass striped umbrella, mahogany chest with black iron straps and gold lock, aerodynamic gull with slate wingtips and golden beak, steel/wood/d-grip shovel, and two-tone rowboat with gunwale rim).
+- **Surroundings Decor (`Decor.tsx`):** Instanced outer reef rocks with white surf rings, distant atoll palms, a dramatic pirate shipwreck silhouette on the northwest horizon, and circling seabirds over the open sea. Kept strictly outside the play area (`rho > 1.5`), guaranteed and tested to never occlude the explorer or any treasure from the fitted camera at 1280×800, 390×844 and 844×390 (`looks.test.ts`).
+- **Juicy Feedback:** Shovel sand puffs during held digging, dust & debris bursts on false digs, sparkling bursts and camera shake on treasure finds (extra sparks on clean finds), and confetti/sparkle/shake on a win using core `useFx()`. Extra fx pools warmed on mount.
+- **Draw-call Estimate:** SkyDome 1, Water 1, Seabed 1, Ground 1, Shore foam 2, Palms 2, Rocks 1, Crates 2, Umbrella 2, Towel 2, Rowboat 3, Dock 2, Crabs 1, Outer rocks & surf 2, Outer palms 2, Shipwreck & surf 2, Outer gulls 1, Explorer + hat 3, Shovel 1, Blob shadow 1, Detector ring 1, Treasures & holes 5, Hint gull 1, Target markers 1, Fx bursts/scores ~2–4. Total draw calls: **38–44** (well within budget ≤ 60). No per-frame allocations; geometries and materials created once and disposed on unmount.
