@@ -12,8 +12,8 @@ export const COLORS = {
    floorWoodJoint: "#5c3a21",
 
    // Extended foundation/corridor floor outside the room
-   floorSub: "#1c1917",
-   floorSubBorder: "#292524",
+   floorSub: "#6b5b4a",
+   floorSubBorder: "#7c6a56",
 
    // Architectural trim and room walls
    skirting: "#5c2e0b",

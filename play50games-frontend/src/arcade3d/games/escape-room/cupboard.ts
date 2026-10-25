@@ -63,9 +63,10 @@ export function createCupboardShell(toward: 1 | -1): CupboardShell {
    const handleGeo = new BoxGeometry(0.04, 0.16, 0.04);
    const handleMat = new MeshStandardMaterial({ color: COLORS.cupboardHandle, metalness: 0.6, roughness: 0.35 });
    const handle = new Mesh(handleGeo, handleMat);
-   handle.position.set(0.04, 0, doorSpan * 0.8);
+   handle.position.set(toward * 0.04, 0, doorSpan * 0.8);
    handle.name = "cupboard-handle";
    add(handle, hinge);
+   root.add(hinge);
 
    return {
       root,
