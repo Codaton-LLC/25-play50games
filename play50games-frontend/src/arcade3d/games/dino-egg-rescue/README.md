@@ -144,6 +144,7 @@ Fits in `assets.ts`, checked in `assets.test.ts` (the volcano on the real decode
 | boulders | C (A) `EXPANSION_ASSETS.rock` (`shared/rock.glb`) pool | 1.0 m spherical fit, rolls on profile | circle r 0.5 | sphere |
 | leafyTree | C (A) `EXPANSION_ASSETS.leafyTree` (`shared/leafyTree.glb`) | 3.5 m tall | trunk circle r 0.256 | cylinder + cone |
 | volcano | A, game-owned GLB (`dino-egg-rescue/volcano.glb`, batch 5) | 8 m tall, 5.5 m base radius at (16, −13) | none (backdrop, outside valley bounds) | procedural cone (pre-GLB primitive) |
+| lavaRock | batch-5 companion GLB (`dino-egg-rescue/lavaRock.glb`) | 1.8 m across boulder cluster, spots 0.9–1.25×, levels 4–5 only | none (decor, outside valley bounds) | squashed icosahedron |
 | eggs | B procedural ellipsoids (canvas spots) | 0.4 × 0.3 m + 1.0 m glow disc | circle r 0.3 (pickup r 0.6) | sphere |
 | goldenEgg | B procedural ellipsoid (gold glow) | 0.45 × 0.35 m + 1.2 m glow disc | circle r 0.35 (pickup r 0.7) | sphere |
 | nest | B procedural torus + straw texture | 3.6 m diameter | delivery circle r 1.4 | cylinder |
