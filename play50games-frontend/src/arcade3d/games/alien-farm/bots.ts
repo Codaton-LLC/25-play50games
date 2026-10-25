@@ -26,7 +26,7 @@ export type Bot = (run: RunState, input: StepInput) => void;
 const P = { x: 0, y: 0, z: 0 };
 /** The ship's position at a future play time (the rules' own route and speed schedule). */
 export function shipAt(run: RunState, t: number): { x: number; z: number } {
-   pointAt(SHIP_PATH, run.ship.s0 + run.ship.dir * shipDistance(t), P);
+   pointAt(SHIP_PATH, run.ship.s0 + run.ship.dir * shipDistance(t, run.level?.shipSpeeds ?? SHIP.speeds), P);
    return P;
 }
 
@@ -71,14 +71,19 @@ interface Choice {
 }
 
 /** The next pickable windows of a plot from t: current and next cycle. */
-function windows(plot: Plot, t: number, cb: (k: number, open: number, close: number, peak: number) => void): void {
-   if (t >= DURATION_S) return;
+function windows(
+   plot: Plot,
+   t: number,
+   cb: (k: number, open: number, close: number, peak: number) => void,
+   deadline = DURATION_S,
+): void {
+   if (t >= deadline) return;
    const k0 = Math.max(0, cycleIndex(plot, Math.max(t, plot.b0)));
    for (let k = k0; k < k0 + 2; k++) {
       if (plot.picked === k || plot.missed === k) continue;
-      const peak = cyclePeak(plot, k), w = halfWindow(peak);
+      const peak = cyclePeak(plot, k), w = halfWindow(peak, plot.halfLate);
       if (peak + w < t) continue;
-      cb(k, peak - w, Math.min(peak + w, DURATION_S - HARVEST.channelS - 0.06), peak);
+      cb(k, peak - w, Math.min(peak + w, deadline - HARVEST.channelS - 0.06), peak);
    }
 }
 
@@ -96,6 +101,8 @@ export function greedyBot(opts: { lookahead?: boolean } = {}): Bot {
    const pick = (run: RunState, x: number, z: number, t: number, cargo: number, depth: number): Choice | null => {
       let best: Choice | null = null, bestRate = -Infinity;
       const v = topSpeed(cargo, false);
+      const cap = run.level?.capacity ?? HARVEST.capacity;
+      const dur = (run.level?.durationMs ?? 100_000) / 1000;
       for (const plot of run.plots) {
          if (t < plot.activateAt - 8) continue;
          const d = Math.max(0, Math.hypot(plot.x - x, plot.z - z) - 0.75);
@@ -111,10 +118,10 @@ export function greedyBot(opts: { lookahead?: boolean } = {}): Bot {
             if (press > close - 0.03) return;
             let end = press + HARVEST.channelS;
             let value = pts;
-            if (cargo + 1 >= HARVEST.capacity) {
+            if (cargo + 1 >= cap) {
                // the basket is full after this one: count the trip to the beam
-               const [ti] = intercept(run, plot.x, plot.z, end, topSpeed(HARVEST.capacity, false));
-               if (ti > DURATION_S - 0.1) return;
+               const [ti] = intercept(run, plot.x, plot.z, end, topSpeed(cap, false));
+               if (ti > dur - 0.1) return;
                end = ti;
             } else if (depth === 0 && opts.lookahead !== false) {
                const next = pick(run, plot.x, plot.z, end, cargo + 1, 1);
@@ -128,7 +135,7 @@ export function greedyBot(opts: { lookahead?: boolean } = {}): Bot {
                bestRate = rate;
                best = { plot: plot.id, cycle: k, press, value: pts };
             }
-         });
+         }, dur);
       }
       return best;
    };
@@ -140,12 +147,13 @@ export function greedyBot(opts: { lookahead?: boolean } = {}): Bot {
          input.dirZ = 0;
          return;
       }
-      const left = DURATION_S - t;
+      const durationS = (run.level?.durationMs ?? 100_000) / 1000;
+      const left = durationS - t;
       if (run.cargoCount > 0 && !deliver) {
          const [ti, sx, sz] = intercept(run, f.x, f.z, t, topSpeed(run.cargoCount, false));
          // full basket, or the last load before the timer
-         const last = !pick(run, f.x, f.z, t, run.cargoCount, 1) || ti > DURATION_S - 2.5 - (HARVEST.capacity - run.cargoCount) * 1.6;
-         if ((run.cargoCount >= HARVEST.capacity || last) && ti < DURATION_S - 0.1) deliver = [ti, sx, sz];
+         const last = !pick(run, f.x, f.z, t, run.cargoCount, 1) || ti > durationS - 2.5 - ((run.level?.capacity ?? HARVEST.capacity) - run.cargoCount) * 1.6;
+         if ((run.cargoCount >= (run.level?.capacity ?? HARVEST.capacity) || last) && ti < durationS - 0.1) deliver = [ti, sx, sz];
       }
       if (deliver) {
          if (run.cargoCount === 0 || t > deliver[0] + 3) deliver = null;
@@ -173,7 +181,7 @@ export function greedyBot(opts: { lookahead?: boolean } = {}): Bot {
       steerTo(run, goal.x, goal.z, input);
       const inReach = Math.hypot(plot.x - f.x, plot.z - f.z) <= HARVEST.reach - 0.02;
       const k = cycleIndex(plot, t);
-      const peak = cyclePeak(plot, k), w = halfWindow(peak);
+      const peak = cyclePeak(plot, k), w = halfWindow(peak, run.level?.halfLate);
       if (inReach && k === plan.cycle && t >= plan.press && t >= peak - w && t <= peak + w && t >= run.cooldownUntil) {
          input.press = true;
          plan = null;
@@ -206,8 +214,9 @@ export function humanBot(seed: number, opts: { react?: number; jitter?: number; 
       }
       if (t >= nextLook) {
          nextLook = t + react;
-         const late = DURATION_S - t < 9 && run.cargoCount > 0;
-         if (run.cargoCount >= HARVEST.capacity || late) {
+         const durationS = (run.level?.durationMs ?? 100_000) / 1000;
+         const late = durationS - t < 9 && run.cargoCount > 0;
+         if (run.cargoCount >= (run.level?.capacity ?? HARVEST.capacity) || late) {
             aimPlot = -1;
             steerTo(run, run.ship.x, run.ship.z, input, 0.5);
          } else {
@@ -288,7 +297,7 @@ export function arriveBot(): Bot {
    return (run, input) => {
       input.press = false;
       const f = run.farmer, t = run.time;
-      if (run.cargoCount >= HARVEST.capacity) {
+      if (run.cargoCount >= (run.level?.capacity ?? HARVEST.capacity)) {
          steerTo(run, run.ship.x, run.ship.z, input, 0.5);
          return;
       }
@@ -325,7 +334,7 @@ export function metronomeBot(period = 0.61): Bot {
    const route = [0, 1, 2, 5, 8, 7, 6, 3, 4];
    return (run, input) => {
       const t = run.time;
-      if (run.cargoCount >= HARVEST.capacity) steerTo(run, run.ship.x, run.ship.z, input, 0.5);
+      if (run.cargoCount >= (run.level?.capacity ?? HARVEST.capacity)) steerTo(run, run.ship.x, run.ship.z, input, 0.5);
       else {
          const p = run.plots[route[leg % route.length]];
          if (steerTo(run, p.x, p.z, input) < 0.3) leg++;
