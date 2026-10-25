@@ -34,9 +34,11 @@ import {
    SORT_BINS,
    sorterBeltDistance,
    sorterMaxSorts,
+   sorterSpeed,
    sorterTimeToCover,
    stepRun,
    syncStore,
+   timeLeft,
    withinServerLimits,
    type FrameInput,
    type Part,
@@ -492,4 +494,164 @@ describe("robot-factory sorter rules", () => {
          }
       }
    }, 180000);
+});
+
+// Gate review: every level knob must reach the simulation, not only the declarations and the proof
+// helpers. Each test runs the real stepRun on a level whose knob differs from level 1, so replacing
+// a `level.<knob>` read in rules.ts with the level-1 value fails here (call sites mutation-probed).
+describe("robot-factory levels: the simulation reads every level knob", () => {
+   interface Spawn { t: number; needed: boolean; faulty: boolean; feeder: boolean }
+
+   /** Spawn events of a perfect-bot shift (it scraps faults, so the shift is not cut short by strikes). */
+   function spawns(level: FactoryLevel, seed: number, until = level.duration): Spawn[] {
+      const run = createRun(seed, level);
+      const out: Spawn[] = [];
+      while (!run.over && run.t < until) {
+         stepRun(run, perfectBot(run), 1 / 60);
+         for (let i = 0; i < run.eventCount; i++) {
+            const e = run.events[i];
+            if (e.kind !== "spawn") continue;
+            const part = run.parts.find((p) => p.uid === e.uid);
+            if (part) out.push({ t: part.spawnT, needed: part.needed, faulty: part.faulty, feeder: part.feeder });
+         }
+      }
+      return out;
+   }
+
+   /** Metres the first part rides in one frame after `robots` completed robots. */
+   function frameTravel(level: FactoryLevel, robots: number): number {
+      const run = createRun(3, level);
+      run.robot = robots;
+      const part = run.parts.find((p) => p.active)!;
+      const s0 = part.s;
+      stepRun(run, NO_INPUT, 1 / 60);
+      return part.s - s0;
+   }
+
+   it("belt speed: v0, v1, growth and vMax set how far a part rides each frame", () => {
+      const knobs: FactoryLevel = { ...LEVELS[1], v0: 1.1, v1: 1.3, growth: 1.2, vMax: 1.8 };
+      expect(frameTravel(knobs, 0)).toBeCloseTo(1.1 / 60, 9);
+      expect(frameTravel(knobs, 1)).toBeCloseTo(1.3 / 60, 9);
+      expect(frameTravel(knobs, 2)).toBeCloseTo((1.3 * 1.2) / 60, 9);
+      expect(frameTravel(knobs, 9)).toBeCloseTo(1.8 / 60, 9);
+      for (const id of LEVEL_IDS) {
+         if (LEVELS[id].sorter) continue;
+         for (const r of [0, 1, 3, 12]) expect(frameTravel(LEVELS[id], r)).toBeCloseTo(beltSpeed(r, LEVELS[id]) / 60, 9);
+      }
+      expect(beltSpeed(3, LEVELS[2])).toBeGreaterThan(beltSpeed(3, LEVELS[1]));
+   });
+
+   it("period and half set the spawn lattice", () => {
+      const knobs: FactoryLevel = { ...LEVELS[1], period: 2.2, half: 1.0 };
+      const list = spawns(knobs, 5, 30).filter((s) => s.t > 0);
+      expect(list.length).toBeGreaterThan(15);
+      for (const s of list) {
+         const k = s.needed ? s.t / 2.2 : (s.t - 1.0) / 2.2;
+         expect(Math.abs(k - Math.round(k)), `${s.needed ? "needed" : "other"} at ${s.t}`).toBeLessThan(1e-6);
+      }
+      const l5 = spawns({ ...LEVELS[5], sorter: false }, 5, 30).filter((s) => s.t > 0 && s.needed);
+      for (const s of l5) expect(Math.abs(s.t / 1.4 - Math.round(s.t / 1.4))).toBeLessThan(1e-6);
+   });
+
+   it("faultyChance: 0 never spawns a fault, 1 spawns one whenever the gap allows", () => {
+      for (const seed of [1, 2, 3]) {
+         expect(spawns({ ...LEVELS[1], faultyChance: 0 }, seed).some((s) => s.faulty)).toBe(false);
+         expect(spawns({ ...LEVELS[1], faultyChance: 1 }, seed, 40).filter((s) => s.faulty).length).toBeGreaterThan(5);
+      }
+      let l1 = 0;
+      let l3 = 0;
+      for (let seed = 1; seed <= 60; seed++) {
+         l1 += spawns(LEVELS[1], seed, 60).filter((s) => s.faulty).length;
+         l3 += spawns(LEVELS[3], seed, 60).filter((s) => s.faulty).length;
+      }
+      expect(l3).toBeGreaterThan(l1);
+   });
+
+   it("faultMinInterval sets the early gap between faults", () => {
+      const level: FactoryLevel = { ...LEVELS[1], faultyChance: 1, faultMinInterval: 9 };
+      const faults = spawns(level, 4, STREAM.LATE_T).filter((s) => s.faulty && s.t < STREAM.LATE_T).map((s) => s.t);
+      expect(faults.length).toBeGreaterThan(3);
+      for (let i = 1; i < faults.length; i++) expect(faults[i] - faults[i - 1]).toBeGreaterThanOrEqual(9 - 1e-6);
+      const l4 = spawns({ ...LEVELS[4], sorter: false, faultyChance: 1 }, 4, STREAM.LATE_T).filter((s) => s.faulty).map((s) => s.t);
+      expect(Math.min(...l4.slice(1).map((t, i) => t - l4[i]))).toBeLessThan(LEVELS[1].faultMinInterval - 1e-6);
+   });
+
+   it("feederT sets when the feeder belt starts carrying parts", () => {
+      const early = spawns({ ...LEVELS[1], feederT: 5 }, 6, 40).filter((s) => s.feeder);
+      expect(early.length).toBeGreaterThan(5);
+      expect(Math.min(...early.map((s) => s.t))).toBeGreaterThanOrEqual(5);
+      expect(spawns({ ...LEVELS[1], feederT: 1000 }, 6).some((s) => s.feeder)).toBe(false);
+      const l3 = spawns(LEVELS[3], 6, 60).filter((s) => s.feeder);
+      expect(Math.min(...l3.map((s) => s.t))).toBeGreaterThanOrEqual(LEVELS[3].feederT);
+      expect(Math.min(...l3.map((s) => s.t))).toBeLessThan(LEVELS[1].feederT);
+   });
+
+   it("winQuota decides the assembly outcome, and the clock is the level's duration", () => {
+      const finish = (level: FactoryLevel) => {
+         const run = createRun(8, level);
+         expect(timeLeft(run)).toBe(level.duration);
+         while (!run.over) stepRun(run, perfectBot(run), 1 / 60);
+         return run;
+      };
+      const base = finish(LEVELS[1]);
+      expect(base.outcome).toBe("win");
+      expect(finish({ ...LEVELS[1], winQuota: base.robot + 1 }).outcome).toBe("lose");
+      expect(finish({ ...LEVELS[1], winQuota: base.robot }).outcome).toBe("win");
+      expect(timeLeft(createRun(1, LEVELS[2]))).toBe(120);
+   });
+
+   it("sorterSpeed (the belt the scene draws) integrates to the belt distance the rules move", () => {
+      for (const id of [4, 5] as LevelId[]) {
+         const level = LEVELS[id];
+         expect(sorterSpeed(0, level)).toBeCloseTo(level.sortV0, 9);
+         expect(sorterSpeed(level.duration, level)).toBeCloseTo(level.sortV1, 9);
+         let sum = 0;
+         const n = 2400;
+         for (let i = 0; i < n; i++) sum += sorterSpeed(((i + 0.5) / n) * level.duration, level) * (level.duration / n);
+         expect(sum).toBeCloseTo(sorterBeltDistance(0, level.duration, level), 6);
+      }
+   });
+});
+
+describe("robot-factory levels: the proof helpers follow the level knobs", () => {
+   // duration 90.35 puts the last lattice slot just after vMax's travel time, so a wrong vMax changes the bound
+   const knobs: FactoryLevel = { ...LEVELS[1], duration: 90.35, v0: 1.6, v1: 1.8, vMax: 3.1, period: 1.3, half: 0.65, faultMinInterval: 5 };
+
+   it("maxInstalls bounds the perfect bot on a level with its own v0, vMax and period, and is reached", () => {
+      let best = 0;
+      for (let seed = 1; seed <= 20; seed++) {
+         const run = createRun(seed, knobs);
+         while (!run.over) stepRun(run, perfectBot(run), 1 / 60);
+         expect(run.partsInstalled, `seed ${seed}`).toBeLessThanOrEqual(maxInstalls(knobs.duration, knobs));
+         best = Math.max(best, run.partsInstalled);
+      }
+      expect(best).toBe(maxInstalls(knobs.duration, knobs));
+      expect(maxInstalls(knobs.duration, knobs)).not.toBe(maxInstalls(knobs.duration, LEVELS[1]));
+      // the first part needs (GRAB_MIN - FIRST_S) / v0 to reach the zone: the level's v0, not level 1's
+      const first = (BELT.GRAB_MIN - STREAM.FIRST_S) / knobs.v0;
+      expect(first).toBeLessThan((BELT.GRAB_MIN - STREAM.FIRST_S) / LEVELS[1].v0);
+      expect(maxInstalls(first + 1e-6, knobs)).toBe(1);
+      const run = createRun(2, knobs);
+      while (run.t < first - 1 / 60) stepRun(run, NO_INPUT, 1 / 60);
+      expect(run.parts.some((p) => inZone(p))).toBe(false);
+      stepRun(run, NO_INPUT, 2 / 60);
+      expect(run.parts.some((p) => inZone(p))).toBe(true);
+   });
+
+   it("earliestLossS bounds the fastest loss (grab every fault the moment it enters) on a level with its own gap and vMax", () => {
+      const level: FactoryLevel = { ...knobs, faultyChance: 1 };
+      const grabFaults = (run: Run): FrameInput => {
+         const fault = run.parts.find((p) => inZone(p) && p.faulty);
+         return fault && run.lockout <= 0 ? input(true, false, fault.uid) : NO_INPUT;
+      };
+      let soonest = Infinity;
+      for (let seed = 1; seed <= 30; seed++) {
+         const run = createRun(seed, level);
+         while (!run.over) stepRun(run, grabFaults(run), 1 / 60);
+         if (run.outcome === "lose" && run.t < level.duration) soonest = Math.min(soonest, run.t);
+      }
+      expect(soonest).toBeGreaterThanOrEqual(earliestLossS(level) - 1e-6);
+      expect(soonest).toBeLessThan(earliestLossS(level) + 2);
+      expect(earliestLossS(level)).toBeGreaterThan(earliestLossS(LEVELS[1]) + 2);
+   });
 });

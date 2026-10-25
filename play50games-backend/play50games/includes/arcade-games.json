@@ -282,7 +282,14 @@
       "max_duration_ms": 92000,
       "base": 6000,
       "max_pps": 6000,
-      "enabled": false
+      "enabled": false,
+      "levels": [
+        { "title": "Basic Sort", "max_score": 6000, "min_duration_ms": 10000, "max_duration_ms": 92000, "base": 6000, "max_pps": 6000 },
+        { "title": "Shape Sort", "max_score": 6370, "min_duration_ms": 10000, "max_duration_ms": 122000, "base": 300, "max_pps": 52 },
+        { "title": "Color + Shape", "max_score": 6370, "min_duration_ms": 10000, "max_duration_ms": 122000, "base": 300, "max_pps": 52 },
+        { "title": "Fast Factory", "max_score": 5640, "min_duration_ms": 13300, "max_duration_ms": 122000, "base": 120, "max_pps": 62 },
+        { "title": "Overdrive", "max_score": 6310, "min_duration_ms": 11800, "max_duration_ms": 122000, "base": 120, "max_pps": 70 }
+      ]
     },
     "pirate-cannons": {
       "title": "Pirate Cannon Battle",
