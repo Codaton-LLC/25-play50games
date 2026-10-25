@@ -222,16 +222,16 @@ export default function TypingSprint({
             ];
          case 6: // Level 7: Mixed case
             return [
-               "JavaScript",
-               "TypeScript",
-               "React",
-               "NodeJS",
-               "Python",
-               "Java",
-               "CSharp",
-               "GoLang",
-               "Swift",
-               "Kotlin",
+               "BlueSky",
+               "GreenTree",
+               "HappyDay",
+               "SunFlower",
+               "MoonLight",
+               "StarFish",
+               "RainBow",
+               "SnowBall",
+               "FireWork",
+               "WaterFall",
             ];
          case 7: // Level 8: No spaces (concatenated)
             return [
@@ -310,10 +310,10 @@ export default function TypingSprint({
             ];
          case 14: // Level 15: Master challenge (very difficult)
             return [
-               "Supercalifragilisticexpialidocious",
+               "Antidisestablishmentarianism",
                "Pneumonoultramicroscopicsilicovolcanoconiosis",
                "The quick brown fox jumps over the lazy dog quickly",
-               "JavaScript TypeScript React NodeJS Python Java CSharp",
+               "Bright Green Mountains Reflect Under Calm Blue Skies",
             ];
          default:
             return ["default", "word", "list"];
