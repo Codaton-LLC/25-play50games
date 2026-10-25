@@ -36,53 +36,9 @@ import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js
 import { useCanvasTexture, useInstanceMatrices, type InstanceSpot } from "@/arcade3d/core/render";
 import { ARCH, BAR, BEAM, BLOCK, DISC, HUB, PLATFORM, WATER_Y, type Course, type Support } from "./rules";
 
-// ---------- look ----------
+import { COLORS } from "./looks";
 
-export const COLORS = {
-   sky: "#bae6fd",
-   water: "#38bdf8",
-   deck: "#e2e8f0",
-   coping: "#f8fafc",
-   padSide: "#3b82f6",
-   padTop: "#e0f2fe",
-   checkpointTop: "#c7d2fe",
-   finishTop: "#bbf7d0",
-   rim: "#fbbf24",
-   discSide: "#ef4444",
-   discStripeA: "#fff1f2",
-   discStripeB: "#fecaca",
-   hub: "#facc15",
-   hubCap: "#f97316",
-   barRed: "#ef4444",
-   barWhite: "#ffffff",
-   slab: "#16a34a",
-   cushion: "#86efac",
-   pillar: "#e2e8f0",
-   block: "#f59e0b",
-   blockTop: "#fcd34d",
-   rail: "#94a3b8",
-   beam: "#a855f7",
-   beamTop: "#c4b5fd",
-   line: "#ffffff",
-   accent: "#6366f1",
-   reached: "#22c55e",
-   post: "#f8fafc",
-   archLeg: "#ef4444",
-   archTop: "#facc15",
-   ropeA: "#ef4444",
-   ropeB: "#ffffff",
-   ropeC: "#2563eb",
-   splash: "#e0f2fe",
-   hoodie: "#f97316",
-   hood: "#ea580c",
-   pants: "#1e293b",
-   shoes: "#f8fafc",
-   skin: "#f5c9a3",
-   hair: "#3f2a1d",
-   band: "#14b8a6",
-   pack: "#1d4ed8",
-   eye: "#0f172a",
-} as const;
+export { COLORS };
 
 /** How far below the water the course's bodies reach (m): the pool hides the cut. */
 const UNDER = WATER_Y - 0.4;
@@ -243,7 +199,11 @@ export function Pool({ water }: { water: RefObject<MeshStandardMaterial> }) {
             <group key={side}>
                <mesh position={[side * (POOL.halfWidth + 6), WATER_Y + 0.4, zMid]}>
                   <boxGeometry args={[12, 1.2, length]} />
-                  <meshStandardMaterial color={COLORS.deck} roughness={0.8} />
+                  <meshStandardMaterial color={COLORS.deck} roughness={0.7} />
+               </mesh>
+               <mesh position={[side * (POOL.halfWidth + 0.6), WATER_Y + 1.02, zMid]}>
+                  <boxGeometry args={[0.4, 0.06, length]} />
+                  <meshStandardMaterial color={COLORS.deckEdge} roughness={0.7} />
                </mesh>
                <mesh position={[side * (POOL.halfWidth + 0.25), WATER_Y + 1.05, zMid]}>
                   <boxGeometry args={[0.5, 0.1, length]} />
@@ -370,18 +330,24 @@ function useCourseParts() {
       // a unit tube along z (radius 1, length 1)
       const tube = new CylinderGeometry(1, 1, 1, 14, 1, false).rotateX(Math.PI / 2);
       const flat = new PlaneGeometry(1, 1).rotateX(-Math.PI / 2);
+      const pCollar = tintedBox(1, 1, -0.5, -0.15, COLORS.pillarCollar);
+      const pShaft = tintedBox(1, 1, -0.15, 0.5, COLORS.pillar);
+      const pillarGeo = mergeGeometries([pCollar, pShaft]);
+      pCollar.dispose();
+      pShaft.dispose();
       return {
          box,
          tube,
          flat,
-         padSide: new MeshStandardMaterial({ color: COLORS.padSide, roughness: 0.45 }),
-         padTop: new MeshStandardMaterial({ color: COLORS.padTop, roughness: 0.55 }),
-         checkpointTop: new MeshStandardMaterial({ color: COLORS.checkpointTop, roughness: 0.55 }),
-         finishTop: new MeshStandardMaterial({ color: COLORS.finishTop, roughness: 0.55 }),
-         rim: new MeshStandardMaterial({ color: COLORS.rim, roughness: 0.4 }),
-         slab: new MeshStandardMaterial({ color: COLORS.slab, roughness: 0.45 }),
-         cushion: new MeshStandardMaterial({ color: COLORS.cushion, roughness: 0.5 }),
-         pillar: new MeshStandardMaterial({ color: COLORS.pillar, roughness: 0.6 }),
+         pillarGeo: pillarGeo ?? box,
+         padSide: new MeshStandardMaterial({ color: COLORS.padSide, roughness: 0.35 }),
+         padTop: new MeshStandardMaterial({ color: COLORS.padTop, roughness: 0.45 }),
+         checkpointTop: new MeshStandardMaterial({ color: COLORS.checkpointTop, roughness: 0.45 }),
+         finishTop: new MeshStandardMaterial({ color: COLORS.finishTop, roughness: 0.45 }),
+         rim: new MeshStandardMaterial({ color: COLORS.rim, roughness: 0.35 }),
+         slab: new MeshStandardMaterial({ color: COLORS.slab, roughness: 0.4 }),
+         cushion: new MeshStandardMaterial({ color: COLORS.cushion, roughness: 0.45 }),
+         pillar: new MeshStandardMaterial({ color: "#ffffff", vertexColors: true, roughness: 0.55 }),
          rail: new MeshStandardMaterial({ color: COLORS.rail, roughness: 0.4, metalness: 0.3 }),
          line: new MeshBasicMaterial({ color: COLORS.line, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 }),
       };
@@ -421,7 +387,7 @@ export function CourseStatic({ course }: { course: Course }) {
          <instancedMesh ref={rims} args={[p.tube, p.rim, spots.rims.length]} name="rims" />
          <instancedMesh ref={slabs} args={[p.box, p.slab, spots.slabs.length]} name="platform-slabs" />
          <instancedMesh ref={cushions} args={[p.box, p.cushion, spots.cushions.length]} name="platform-cushions" />
-         <instancedMesh ref={pillars} args={[p.box, p.pillar, spots.pillars.length]} name="pillars" />
+         <instancedMesh ref={pillars} args={[p.pillarGeo, p.pillar, spots.pillars.length]} name="pillars" />
          <instancedMesh ref={rails} args={[p.tube, p.rail, spots.rails.length]} name="rails" />
          <instancedMesh ref={lines} args={[p.flat, p.line, spots.lines.length]} name="lines" />
          <mesh position={[0, 0.005, -course.finish.line]} rotation-x={-Math.PI / 2}>
@@ -499,12 +465,14 @@ function tintedBox(width: number, depth: number, y0: number, y1: number, color: 
  */
 export function useBlockMesh(): { geometry: BufferGeometry; material: MeshStandardMaterial } {
    return useDisposable(() => {
-      const body = tintedBox(BLOCK.width, BLOCK.depth, -BLOCK.height, -CUSHION, COLORS.block);
+      const body = tintedBox(BLOCK.width, BLOCK.depth, -BLOCK.height, -0.22, COLORS.block);
+      const trim = tintedBox(BLOCK.width, BLOCK.depth, -0.22, -CUSHION, COLORS.blockTrim);
       const top = tintedBox(BLOCK.width, BLOCK.depth, -CUSHION, 0, COLORS.blockTop);
-      const geometry = mergeGeometries([body, top]);
+      const geometry = mergeGeometries([body, trim, top]);
       body.dispose();
+      trim.dispose();
       top.dispose();
-      return { geometry, material: new MeshStandardMaterial({ color: "#ffffff", vertexColors: true, roughness: 0.5 }) };
+      return { geometry: geometry ?? new BoxGeometry(BLOCK.width, BLOCK.height, BLOCK.depth), material: new MeshStandardMaterial({ color: "#ffffff", vertexColors: true, roughness: 0.5 }) };
    });
 }
 
@@ -524,6 +492,12 @@ export function BalanceBeam({ beam, course }: { beam: RefObject<Group>; course: 
             <boxGeometry args={[BEAM.width, 0.06, length]} />
             <meshStandardMaterial color={COLORS.beamTop} roughness={0.5} />
          </mesh>
+         {[-1, 1].map((side) => (
+            <mesh key={side} position={[0, -BEAM.thickness / 2, side * (length / 2)]}>
+               <capsuleGeometry args={[BEAM.width / 2, 0.04, 4, 8]} />
+               <meshStandardMaterial color={COLORS.beamCap} roughness={0.4} />
+            </mesh>
+         ))}
       </group>
    );
 }
@@ -588,10 +562,16 @@ export function FinishArchPrimitive() {
    return (
       <group name="finish-arch-primitive">
          {[-1, 1].map((side) => (
-            <mesh key={side} position={[side * ARCH.postX, legHeight / 2, 0]}>
-               <cylinderGeometry args={[ARCH.postRadius, ARCH.postRadius + 0.05, legHeight, 20]} />
-               <meshStandardMaterial color={COLORS.archLeg} roughness={0.35} />
-            </mesh>
+            <group key={side} position={[side * ARCH.postX, 0, 0]}>
+               <mesh position-y={legHeight / 2}>
+                  <cylinderGeometry args={[ARCH.postRadius, ARCH.postRadius + 0.05, legHeight, 20]} />
+                  <meshStandardMaterial color={COLORS.archLeg} roughness={0.35} />
+               </mesh>
+               <mesh position-y={0.18} rotation-x={Math.PI / 2}>
+                  <torusGeometry args={[ARCH.postRadius + 0.06, 0.08, 8, 20]} />
+                  <meshStandardMaterial color={COLORS.archCap} roughness={0.4} />
+               </mesh>
+            </group>
          ))}
          <mesh position-y={topY} rotation-z={Math.PI / 2}>
             <capsuleGeometry args={[0.42, ARCH.width - 0.84, 8, 20]} />

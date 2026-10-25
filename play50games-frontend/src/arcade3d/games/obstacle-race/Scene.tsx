@@ -27,6 +27,11 @@
 import { memo, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { flushSync, useFrame, useThree } from "@react-three/fiber";
 import { Color, type Group, type Material, type Matrix4, type Mesh, type MeshStandardMaterial, type Texture } from "three";
+import { SkyDome } from "@/arcade3d/core/env";
+import { useFx, type FxApi } from "@/arcade3d/core/fx";
+import { LEVEL_LOOKS } from "./looks";
+import { Terrain } from "./Terrain";
+import { Decor } from "./Decor";
 import { Model } from "@/arcade3d/core/assets";
 import CameraRig from "@/arcade3d/core/CameraRig";
 import { playSfx } from "@/arcade3d/core/audio";
@@ -174,7 +179,7 @@ const REAIM_PRIORITY = -0.2;
 // ---------- the game ----------
 
 /** Feeds dt and input into rules.step() and reports what happened. Renders nothing. */
-const Simulation = memo(function Simulation({ run, fx, follow }: { run: ObstacleRun; fx: Fx; follow: Follow }) {
+const Simulation = memo(function Simulation({ run, fx, follow, coreFx }: { run: ObstacleRun; fx: Fx; follow: Follow; coreFx: FxApi }) {
    const input = useInput();
    const time = useGameTime();
    const [scratch] = useState(() => ({ step: createStepInput(), dir: { x: 0, z: 0 } }));
@@ -194,18 +199,23 @@ const Simulation = memo(function Simulation({ run, fx, follow }: { run: Obstacle
       if (ev.jumped) {
          fx.jumpAt = t;
          playSfx("jump");
+         coreFx.burst("sparkle", { x: r.x, y: r.y + 0.2, z: r.z }, 8);
       }
       if (ev.landed) fx.landAt = t;
       if (ev.knocked) {
          fx.knockAt = t;
          fx.flung = true;
          playSfx("hit");
+         coreFx.shake(0.2);
       }
       if (ev.lost) {
          fx.lostAt = t;
          fx.lostX = r.x;
          fx.lostZ = r.z;
-         if (!fx.flung) playSfx("hit");
+         if (!fx.flung) {
+            playSfx("hit");
+            coreFx.shake(0.15);
+         }
       }
       if (ev.respawned) {
          fx.spawnAt = t;
@@ -221,12 +231,14 @@ const Simulation = memo(function Simulation({ run, fx, follow }: { run: Obstacle
          fx.gateAt[ev.checkpoint] = t;
          useArcadeStore.getState().setStat(STAT.checkpoint, ev.checkpoint);
          playSfx("pickup");
+         coreFx.burst("sparkle", { x: r.x, y: r.y + 1.2, z: r.z }, 16);
       }
       if (ev.finished) {
          // the exact finish ms first: finalScore submits it (README "Scoring")
          const store = useArcadeStore.getState();
          store.setStat(STAT.finishMs, run.finishMs);
          store.end("win");
+         coreFx.burst("confetti", { x: 0, y: 3.2, z: -run.course.finish.line }, 28);
       } else if (ev.timeup) {
          useArcadeStore.getState().end("timeup");
       }
@@ -802,10 +814,17 @@ export default function Scene() {
    // GameShell remounts the Scene (and its game time) on start and retry: a fresh run every time.
    // The level config comes from the shell (useLevel); with the levels flag off the core hands
    // level 1's config, which builds the course of today's game bit for bit (README "Levels").
-   const { config } = useLevel<ObstacleLevel>();
+   const { config, id: levelId } = useLevel<ObstacleLevel>();
+   const levelLook = LEVEL_LOOKS[levelId ?? 1];
    const [run] = useState(() => createRun(buildCourse(config)));
    const [fx] = useState(createFx);
    const [follow] = useState<Follow>(() => ({ ...followPoint(run, { x: 0, y: 0, z: 0 }), hold: false }));
+   const coreFx = useFx();
+   const [reduced] = useState(() => typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+
+   useEffect(() => {
+      coreFx.warm("sparkle", "confetti");
+   }, [coreFx]);
    const gl = useThree((state) => state.gl);
    const scene = useThree((state) => state.scene);
    const camera = useThree((state) => state.camera);
@@ -830,7 +849,10 @@ export default function Scene() {
 
    return (
       <>
-         <Simulation run={run} fx={fx} follow={follow} />
+         <SkyDome top={levelLook.skyTop} bottom={levelLook.skyBottom} offset={0.05} exponent={0.65} />
+         <Simulation run={run} fx={fx} follow={follow} coreFx={coreFx} />
+         <Terrain />
+         <Decor reduced={reduced} />
          <VisualClock run={run} fx={fx} />
          <FollowCamera run={run} follow={follow} />
          <Water />

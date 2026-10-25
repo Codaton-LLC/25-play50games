@@ -606,3 +606,41 @@ The 5-levels system is built and proven; this game is the pilot for the rollout 
 (a) `src/arcade3d/registry.sync.test.ts` fails until Claude copies `PROPOSED_LEVEL_LIMITS` into this game's `levels` in `arcade-games.json` (expected at merge; the failure reads "levels: server has none, meta.ts has 5").
 (b) The L4/L5 lighting presets were chosen as `night` / `sunset` with plain dark backgrounds (`#0f172a` / `#431f30`, fog 40–100); the user can re-pick.
 (c) L2 keeps L1's obstacle speeds (the plan's "static obstacle set"): its difficulty is the longer course only.
+
+
+## Look (2026-10-25, task P-123-look-obstacle)
+
+Visual-only modern-look pass on obstacle-race (CLAUDE.md decision 4). Every code-made object is polished with deliberate rounded/beveled shapes and multi-tone palettes, set in a bright sunny outdoor obstacle course stadium.
+
+### What changed
+- **Single palette:** Unified `COLORS` in `looks.ts` serves all course elements, terrain, decor, and level looks.
+- **Multi-tone deliberate stand-ins:**
+  - **Moving blocks:** 3 tones (amber body, dark amber rim trim, bright yellow safety cushion) merged into one vertex-colored buffer geometry (1 draw call).
+  - **Platform & beam pillars:** 2-tone aquatic buoy pylons with royal blue foundation collars and white shafts with vertex colors (1 draw call).
+  - **Balance beam:** Violet molded beam with lilac top cushion and rounded capsule end-caps (3 tones, no raw square cuts).
+  - **Pool border:** Modern aquatic center styling with bright white coping curb (`#ffffff`), deck edge grout line (`#e2e8f0`), and tiled deck.
+  - **Finish arch primitive:** Inflatable legs accented with golden base collar rings.
+- **Environment & Sky:** Core `<SkyDome>` with smooth gradient following camera, integrated with `LEVEL_LOOKS` for all 5 level presets (bright sunny day for L1–L3, night stadium for L4, sunset for L5).
+- **Stadium terrain:** `<Terrain>` renders a full-coverage turf plane ($x \in [-180, 180]$, $z \in [-300, 120]$) with alternating mowing stripes and rolling perimeter hills ($y$ up to 14m), leaving the pool hole open. Fully covers the viewport below the horizon with zero void or sky gaps at 1280×800, 390×844, and 844×390.
+- **Instanced surroundings:** `<Decor>` outside the play area ($|x| \ge 28$, or $z \ge 46$, $z \le -170$): 3-tier stepped bleachers, 4-color spectator crowd, stadium flags, low-poly pine and round trees on the hills, and drifting clouds. Zero occlusion of runner, obstacles, or beam verified by test.
+- **Juicy feedback:** Integrated core `useFx()` for particle sparkles on clean jumps and checkpoint gates, camera shake on knock fling and water falls, and confetti burst under the finish arch on a win.
+- **Budget & hygiene:** Geometries created once in `useMemo` and disposed on unmount. No per-frame allocations. No `dispose={null}` on any primitive.
+
+### Draw-call estimate (Total: ~48–52 calls <= 60 budget)
+| Component | Draw calls | Notes |
+|---|---|---|
+| Sky & Terrain | 2 | 1 SkyDome + 1 Terrain (turf + perimeter hills, vertex-colored) |
+| Decor | 11 | 1 stands + 4 crowd variants + 2 flags (poles, pennants) + 3 trees (trunks, pines, rounds) + 1 clouds |
+| Pool & Deck | 7 | 1 water plane + 4 deck/edge boxes + 2 coping curbs |
+| Lane ropes | 1 | 1 InstancedMesh (all float beads) |
+| Course static | 13 | 10 InstancedMeshes (pads, tops, rims, slabs, cushions, 2-tone pillars, rails, lines) + 1 finish checker + 2 sweeper disc drum & torus |
+| Sweeper | 4 | 1 hub cylinder + 1 hub cap dome + 1 bar box + 1 collar + 2 tip caps |
+| Moving blocks | 1 | 1 DynamicInstanced (all 5 blocks in 1 call, 3-tone vertex colors) |
+| Balance beam | 4 | 1 beam body + 1 beam top + 2 end caps |
+| Checkpoint gates | 5 | 1 InstancedMesh gate posts + 3 banner/flag groups |
+| Finish arch | 3 | GLB (or primitive fallback: 2 legs + 1 top tube + 1 banner) |
+| Runner & FX | 4–6 | 1 HumanoidModel GLB + 1 blob shadow + 1 target marker + 1 splash drops pool + 0–2 active rings |
+| **Total** | **~48–52** | **Budget: $\le 60$** |
+
+### Test suite
+Added `looks.test.ts` (8 tests): play bounds clearance, zero camera-to-obstacle occlusion at 1280×800 / 390×844 / 844×390, ground coverage without void at all three sizes, WCAG contrast verification, terrain mesh validity, and level look configurations. Total suite: 137 tests in 7 files passing.
