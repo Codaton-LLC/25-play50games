@@ -1,4 +1,6 @@
 "use client";
+import { useLevel } from "@/arcade3d/core/level";
+import type { SpaceRepairLevel } from "./levels";
 import { useEffect, useRef, useState } from "react";
 import { useFrame } from "@react-three/fiber";
 import { Vector3, type Group } from "three";
@@ -19,7 +21,7 @@ import Astronaut from "./Astronaut";
 import RepairCamera from "./camera";
 import { liveHud } from "./liveHud";
 import { COLORS } from "./palette";
-import { CLOCK, createRun, MODULES, REPAIR, stageAt, stepRun } from "./rules";
+import { createRun, MODULES, REPAIR, stageAt, stepRun } from "./rules";
 import Station from "./Station";
 
 export default function Scene() {
@@ -27,7 +29,8 @@ export default function Scene() {
    const input = useInput(), time = useGameTime(), fx = useFx(), quality = useQuality();
    const phase = useArcadeStore((s) => s.phase), muted = useMuted();
    const loop = useRef<LoopHandle | null>(null), stars = useRef<Group>(null);
-   const [run] = useState(() => createRun(randomSeed(), typeof window !== "undefined" && window.matchMedia("(pointer: coarse)").matches));
+   const { config } = useLevel<SpaceRepairLevel>();
+   const [run] = useState(() => createRun(randomSeed(), config, typeof window !== "undefined" && window.matchMedia("(pointer: coarse)").matches));
    const [reduced] = useState(() => typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
    const [markers] = useState(() => Array.from({ length: 11 }, () => ({ x: 0, y: 1.3, z: 0, hidden: true, color: COLORS.accent as string })));
    const [scratch] = useState(() => ({
@@ -90,7 +93,7 @@ export default function Scene() {
       scratch.loop.pitch = 0.9 + 0.3 * Math.hypot(run.body.vx, run.body.vz) / 7;
       loop.current?.set(scratch.loop);
       const stats = store.stats, docked = run.docked, module = docked < 0 ? null : run.modules[docked];
-      const power = Math.floor(run.power), remaining = Math.ceil(CLOCK.duration - run.time), waiting = module && run.time < module.lockUntil ? 1 : 0;
+      const power = Math.floor(run.power), remaining = Math.ceil(run.level.duration - run.time), waiting = module && run.time < module.lockUntil ? 1 : 0;
       if (stats.power !== power) store.setStat("power", power);
       if (stats.remaining !== remaining) store.setStat("remaining", remaining);
       if (stats.repairs !== run.repairs) store.setStat("repairs", run.repairs);

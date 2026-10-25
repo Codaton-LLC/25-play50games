@@ -378,7 +378,14 @@
       "max_duration_ms": 122000,
       "base": 400,
       "max_pps": 40,
-      "enabled": false
+      "enabled": false,
+      "levels": [
+        { "title": "Docking Bay", "max_score": 4700, "min_duration_ms": 37000, "max_duration_ms": 122000, "base": 400, "max_pps": 40 },
+        { "title": "Power Wing", "max_score": 4700, "min_duration_ms": 37000, "max_duration_ms": 122000, "base": 400, "max_pps": 40 },
+        { "title": "Comms Wing", "max_score": 4700, "min_duration_ms": 37000, "max_duration_ms": 122000, "base": 400, "max_pps": 40 },
+        { "title": "External Platform", "max_score": 4700, "min_duration_ms": 37000, "max_duration_ms": 122000, "base": 400, "max_pps": 40 },
+        { "title": "Station Emergency", "max_score": 4700, "min_duration_ms": 37000, "max_duration_ms": 122000, "base": 400, "max_pps": 40 }
+      ]
     },
     "monster-kitchen": {
       "title": "Monster Kitchen",
