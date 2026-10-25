@@ -40,12 +40,16 @@
    content: "✓ ";
 }
 
+/* Levels 2-5: more items and two status lines. Narrow screens keep it clear of the touch
+   joystick (bottom-left, about 170 px wide incl. its 20 px margin). */
 .expanded {
-   width: min(260px, calc(100vw - 40px));
+   width: min(260px, calc(100vw - 190px));
    height: 76px;
 }
 .expanded .pill {
    flex-wrap: wrap;
+   align-content: center;
+   gap: 2px 8px;
    white-space: normal;
    line-height: 1.25;
    border-radius: 16px;
