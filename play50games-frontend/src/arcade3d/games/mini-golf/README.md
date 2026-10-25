@@ -166,6 +166,29 @@ HANDOFF (build, 2026-10-09, branch `claude/game-mini-golf`, status `dev`):
 - **Known issues:** hole 1's thumbnail shot is plain (the quick capture reaches hole 1 only); sloped rails are drawn as short stepped boards; a first headless desktop run showed p50 33 ms on holes 4–6, not reproduced in the final run (p95 16.8 ms).
 - **Unverified:** real phones; `node tools/gamecheck` (not in this repo); a novice playtest of the tunnel mouth and hole 3's 81 % power.
 
+## Look (2026-10-24)
+
+Modern-look visual pass on mini-golf (P-63): a polished, premium mobile-game look with a warm afternoon coastal resort setting.
+
+- **Lighting & Atmosphere:** core `<SkyDome>` with an azure to warm golden horizon gradient (`#0284c7` to `#fed7aa`), paired with `day` lighting and soft coastal distance fog (`#bae6fd`, 40–130 m). High visual contrast ensures the white ball, red flag and aiming dots pop crisp and clear at all device sizes.
+- **Putting Green Turf:** rich emerald fairway turf with subtle alternating mowing bands and gentle checkerboard texture, finished with crisp stone retaining curbs (`#e2e8f0`) and deep green skirts.
+- **Wooden Bumpers & Rails:** chamfered golden teak top caps (`#d97706`), warm polished mahogany bumper faces (`#92400e`), and dark underside shadow trim (`#78350f`) drawn in a single instanced draw call with vertex colors.
+- **Hazards & Obstacles:** warm golden sand bunker framing around ponds, realistic water with gentle foam crests, rustic wooden trestle support beams under the hole 3 ramp jump gap, two-tone brass collar flanges on hole 5 pipes, and a bevelled brass turntable plate with white protective rubber bumper caps on the spinning obstacle bar.
+- **Regulation Cups & Flags:** 3D recessed cup with dark interior liner, floor and metallic lip ring; tapered fiberglass flagstick with brass ball finial and bevelled pennant flag.
+- **Surroundings Outside Play Area:** instanced low-poly flower bed planters, tropical resort palms, course pennants, distant rolling coastal hills, and a scenic clubhouse pavilion silhouette across the bay. All decor spots sit strictly outside the play bounds of every hole and never occlude the ball, cup or aim path from the camera at 1280x800, 390x844 or 844x390.
+- **Sea & Ground Coverage:** calm crystal sea plane expanded to 260 x 320 m at y = -1.3, verified to completely cover the entire screen view with zero edge gaps or sky void at all three resolutions.
+- **Juicy Feedback:** subtle particle puffs on bumper/rail bounces (`ev.railHit >= 0.3`, `ev.movingHit`), sparkle bursts on every hole sink, and celebratory confetti on birdie/eagle/albatross/ace hole-outs.
+- **Draw Call Estimate (Target <= 60):**
+  - SkyDome: 1
+  - Expanded sea plane: 1
+  - Distant hills: 1
+  - Clubhouse silhouette: 1
+  - Two mounted islands (felt: 2, bases: 2, rails: 1, ponds/gap: 2, cups: 2, flags: 2, obstacle props: 2–3): 11–13
+  - Instanced decor (trees: 1, rocks: 1, palms: 1, flowers: 1, pennants: 1): 5
+  - Ball, blob shadow, power ring, trajectory dots: 4
+  - Pooled particle FX & score popups: 2–4
+  - **Total estimated draw calls: ~28–34** (well within budget cap <= 60). No per-frame allocations; all geometries and materials disposed on unmount.
+
 
 ## Levels (P-72)
 

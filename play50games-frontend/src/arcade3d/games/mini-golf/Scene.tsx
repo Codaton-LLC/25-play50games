@@ -18,6 +18,7 @@ import { useFrame, useThree } from "@react-three/fiber";
 import { Vector3 } from "three";
 import CameraRig from "@/arcade3d/core/CameraRig";
 import { playSfx, startLoop, useMuted } from "@/arcade3d/core/audio";
+import { SkyDome } from "@/arcade3d/core/env";
 import { FRAME_PRIORITY } from "@/arcade3d/core/frameLoop";
 import { useFx } from "@/arcade3d/core/fx";
 import { TargetMarkers, type MarkerTarget } from "@/arcade3d/core/hud";
@@ -33,7 +34,7 @@ import { useMiniGolfLevel } from "./level";
 import { heightAt, type Hole } from "./course";
 import { Decor, Island, Sea } from "./Islands";
 import { HUD_FEED } from "./hudFeed";
-import { COLORS, ESTABLISH_S, FOLLOW_FRACTION, FOV, PITCH, establishView, fixedView, followViews, holeFocus, holeZ, minPxPerMetre, pickCamera } from "./looks";
+import { COLORS, ESTABLISH_S, FOLLOW_FRACTION, FOV, LIGHTING_THEMES, PITCH, establishView, fixedView, followViews, holeFocus, holeZ, minPxPerMetre, pickCamera } from "./looks";
 import { BALL, CUP, previewLength } from "./physics";
 import { TICK, advanceRun, createRun, currentHole, readiness, syncStore, type RunState } from "./rules";
 
@@ -119,7 +120,9 @@ export default function Scene() {
    const input = useInput();
    const fx = useFx();
    // a new course every run: GameShell remounts the Scene (and its game time) on start and retry
-   const { config } = useMiniGolfLevel();
+   const { id, spec, config } = useMiniGolfLevel();
+   const lighting = spec?.environment?.lighting ?? (id === 4 ? "night" : id === 3 || id === 5 ? "sunset" : "day");
+   const theme = LIGHTING_THEMES[lighting] ?? LIGHTING_THEMES.day;
    const [run] = useState(() => createRun(randomSeed(), config));
    const [aim] = useState(createPuttAim);
    const [preview] = useState<AimView>(() => ({ on: false, dx: 0, dz: -1, length: 0, power: 0.5 }));
@@ -215,8 +218,12 @@ export default function Scene() {
       if (ev.railHit >= 0.3 && run.time - scratch.lastThud >= 0.06) {
          scratch.lastThud = run.time;
          playSfx("thud", { pitch: 1.4, volume: Math.min(1, 0.25 + ev.railHit / 3), pan: panAt(ev.railX) });
+         fx.burst("puff", at, 4);
       }
-      if (ev.movingHit) playSfx("thud", { pitch: 0.8 });
+      if (ev.movingHit) {
+         playSfx("thud", { pitch: 0.8 });
+         fx.burst("puff", at, 5);
+      }
       if (ev.lipOut) playSfx("click", { pitch: 1.8 });
       if (ev.pipeIn || ev.pipeOut) playSfx("whoosh", { pan: panAt(b.x) });
       if (ev.water) {
@@ -234,9 +241,10 @@ export default function Scene() {
          fx.score(at, `${holeName(par, s, ev.pickedUp)}${ev.holeScore > 0 ? ` +${ev.holeScore}` : ""}`, { color: s < par ? "#86efac" : "#fff7d6" });
          if (!ev.pickedUp) {
             playSfx("pop");
-            fx.burst("sparkle", at, 14);
+            fx.burst("sparkle", at, 20);
             if (s < par) playSfx("combo", { pitch: Math.min(1.6, 1 + 0.15 * (par - s)) });
             else if (s === par) playSfx("chime");
+            if (s <= par) fx.burst("confetti", at, 32);
          }
          if (s === 1) {
             playSfx("pickup");
@@ -299,6 +307,7 @@ export default function Scene() {
    }
    return (
       <>
+         <SkyDome top={theme.skyTop} bottom={theme.skyBottom} offset={0.12} exponent={0.85} />
          <HoleFit key={camHole} hole={shown} onFit={onFit} />
          {fit && (
             <CameraRig
@@ -310,11 +319,11 @@ export default function Scene() {
                damping={3}
             />
          )}
-         <Sea />
+         <Sea theme={theme} />
          {holes.map((h) => (
             <Island key={h.index} hole={h} run={run} />
          ))}
-         <Decor holes={holes} yaws={holeYaws} />
+         <Decor holes={holes} yaws={holeYaws} theme={theme} />
          <GolfBall run={run} aim={preview} />
          <TargetMarkers targets={cup} color={COLORS.accent} />
          {debug && <Probe run={run} scratch={scratch} />}
