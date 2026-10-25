@@ -127,6 +127,19 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/zoo-escape/woodenFootbridge.glb",
    "/models/3d/zoo-escape/searchlightTower.glb",
    "/models/3d/zoo-escape/bambooSnack.glb",
+   // P-121 dev adoptions (2026-10-25): V2 replacements and Group D variety whose QA verdict
+   // starts with OK. Optimized GLBs copied in; not re-optimized. Live games are untouched.
+   "/models/3d/shopping-cart/supermarketShelfV2.glb",
+   "/models/3d/shopping-cart/bakeryStand.glb",
+   "/models/3d/pirate-cannons/lighthouseV2.glb",
+   "/models/3d/delivery-drone/cityBrickApartment.glb",
+   "/models/3d/delivery-drone/cityGlassOffice.glb",
+   "/models/3d/luggage-rush/duffelBag.glb",
+   "/models/3d/luggage-rush/hardCaseTeal.glb",
+   "/models/3d/zoo-escape/zooRocks.glb",
+   "/models/3d/treasure-island/beachRocks.glb",
+   "/models/3d/penguin-slide/iceArch.glb",
+   "/models/3d/mini-golf/golfCastle.glb",
 ];
 
 const LISTED: ReadonlySet<string> = new Set(MODEL_MANIFEST);
