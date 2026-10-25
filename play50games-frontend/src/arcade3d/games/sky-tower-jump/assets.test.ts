@@ -1,0 +1,159 @@
+// The Menu 2 GLBs as Sky Tower Jump draws them: listed in the manifest, within budget, GLB_SIZE equal
+// to the real (meshopt-decoded) meshes, the platform tops where the Scene puts the rules' tops, the
+// hero's drawn height, the in-engine mask fitted to the real head, and the definition's levels.
+import { statSync } from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { describe, expect, it } from "vitest";
+import { hasModel } from "@/arcade3d/core/modelManifest";
+import { readCharacterGlb } from "@/arcade3d/core/rig/robotGlb";
+import { definitionLevelProblems } from "@/arcade3d/core/levels";
+import { ASSETS, GLB_SIZE, HERO_DRAWN_HEIGHT, HERO_SCALE } from "./assets";
+import { EYES, MASK, fitMaskBand, headAngle, knotPoint, maskBandMesh } from "./mask";
+import { skyTowerJumpMeta } from "./meta";
+import definition from "./index";
+import { cameraGoal, introKeyframes, playCamera } from "./camera";
+import { COURSE } from "./rules";
+
+const PUBLIC = fileURLToPath(new URL("../../../../public", import.meta.url));
+
+function bounds(cloud: Float32Array) {
+   const min = [Infinity, Infinity, Infinity];
+   const max = [-Infinity, -Infinity, -Infinity];
+   for (let i = 0; i < cloud.length; i += 3) {
+      for (let k = 0; k < 3; k++) {
+         min[k] = Math.min(min[k], cloud[i + k]);
+         max[k] = Math.max(max[k], cloud[i + k]);
+      }
+   }
+   return { min, max, size: max.map((v, k) => v - min[k]) };
+}
+
+/** The highest vertex within `r` of (x, z): the walkable top there. */
+function topAt(cloud: Float32Array, x: number, z: number, r = 0.12): number {
+   let best = -Infinity;
+   for (let i = 0; i < cloud.length; i += 3) if (Math.abs(cloud[i] - x) < r && Math.abs(cloud[i + 2] - z) < r) best = Math.max(best, cloud[i + 1]);
+   return best;
+}
+
+describe("sky-tower-jump models", () => {
+   for (const [key, asset] of Object.entries(ASSETS)) {
+      it(`${key}: listed, on disk, within its byte budget`, () => {
+         expect(hasModel(asset.url), asset.url).toBe(true);
+         const bytes = statSync(path.join(PUBLIC, asset.url)).size;
+         expect(bytes).toBeLessThanOrEqual(asset.budget.bytes);
+      });
+   }
+
+   for (const [key, size] of Object.entries(GLB_SIZE)) {
+      it(`${key}: GLB_SIZE is the real mesh (feet on 0, centred)`, async () => {
+         const asset = ASSETS[key];
+         const { cloud } = await readCharacterGlb(asset.url);
+         const b = bounds(cloud);
+         expect(b.size[0]).toBeCloseTo(size.x, 2);
+         expect(b.size[1]).toBeCloseTo(size.y, 2);
+         expect(b.size[2]).toBeCloseTo(size.z, 2);
+         expect(b.min[1]).toBeCloseTo(0, 2);
+         expect(Math.abs(b.max[0] + b.min[0])).toBeLessThan(0.02);
+         if ("top" in size) {
+            // the walkable top, sampled around the middle (a pad's pool sits lower than its rim)
+            // (the bridge's deck runs between its rails along z = 0)
+            const t = key === "bouncePad" ? Math.max(topAt(cloud, 0.6, 0.6), topAt(cloud, -0.6, -0.6)) : key === "plankBridge" ? topAt(cloud, 0.3, 0, 0.06) : topAt(cloud, 0.45, -0.3);
+            expect(t).toBeGreaterThan(size.top - 0.08);
+            expect(t).toBeLessThan(size.top + 0.08);
+         }
+      });
+   }
+
+   it("draws the hero 1.45 m tall", () => {
+      expect(GLB_SIZE.hero.y * HERO_SCALE).toBeCloseTo(HERO_DRAWN_HEIGHT, 6);
+      expect(ASSETS.hero.scale).toBe(HERO_SCALE);
+   });
+});
+
+describe("the in-engine mask (QA: the hero GLB has none)", () => {
+   it("hugs the real head: outside every head vertex of its band, within 6 cm of the head all round", async () => {
+      const { cloud } = await readCharacterGlb(ASSETS.hero.url);
+      const radii = fitMaskBand(cloud);
+      expect(radii).toHaveLength(MASK.rows * MASK.segments);
+      const step = (Math.PI * 2) / MASK.segments;
+      const rowH = (MASK.yTop - MASK.yBottom) / (MASK.rows - 1);
+      let inside = 0;
+      let checked = 0;
+      for (let i = 0; i < cloud.length; i += 3) {
+         const x = cloud[i];
+         const y = cloud[i + 1];
+         const z = cloud[i + 2];
+         if (y < MASK.yBottom || y > MASK.yTop) continue;
+         const r = Math.hypot(x, z - MASK.cz);
+         if (r > MASK.maxR) continue;
+         const row = Math.round((y - MASK.yBottom) / rowH);
+         const seg = Math.round(headAngle(x, z, MASK.cz) / step) % MASK.segments;
+         checked++;
+         if (r > radii[row * MASK.segments + seg] + 1e-6) inside++;
+      }
+      expect(checked).toBeGreaterThan(200);
+      // no head vertex pokes through the band (the band is drawn at the cell radius)
+      expect(inside).toBe(0);
+      for (const r of radii) {
+         expect(r).toBeGreaterThan(0.15);
+         expect(r).toBeLessThan(MASK.maxR + MASK.gap + 0.01);
+      }
+   });
+
+   it("cuts the eye holes where the eyes bulge (about ±45° from the front)", async () => {
+      const { cloud } = await readCharacterGlb(ASSETS.hero.url);
+      // the eyes are the head's outermost bulges at eye height on each side of the front
+      let best = [0, 0];
+      let angle = [0, 0];
+      for (let i = 0; i < cloud.length; i += 3) {
+         const x = cloud[i];
+         const y = cloud[i + 1];
+         const z = cloud[i + 2];
+         if (Math.abs(y - EYES.y) > 0.04 || z < MASK.cz) continue;
+         const r = Math.hypot(x, z - MASK.cz);
+         if (r > MASK.maxR) continue;
+         const side = x > 0 ? 0 : 1;
+         if (r > best[side]) {
+            best[side] = r;
+            angle[side] = Math.abs(Math.atan2(x, z - MASK.cz));
+         }
+      }
+      expect(Math.abs(angle[0] - EYES.angle)).toBeLessThan(0.35);
+      expect(Math.abs(angle[1] - EYES.angle)).toBeLessThan(0.35);
+   });
+
+   it("builds a closed band and puts the knot at the back", async () => {
+      const { cloud } = await readCharacterGlb(ASSETS.hero.url);
+      const radii = fitMaskBand(cloud);
+      const m = maskBandMesh(radii);
+      expect(m.positions.length).toBe(MASK.rows * (MASK.segments + 1) * 3);
+      expect(m.indices.length).toBe((MASK.rows - 1) * MASK.segments * 6);
+      const k = knotPoint(radii);
+      expect(k.z).toBeLessThan(MASK.cz - 0.15);
+      expect(k.y).toBeGreaterThan(MASK.yBottom);
+   });
+});
+
+describe("definition and camera", () => {
+   it("has five levels matching meta, the intro on, its own clock", () => {
+      expect(definitionLevelProblems(skyTowerJumpMeta, definition)).toEqual([]);
+      expect(definition.intro).toBe(true);
+      expect(definition.clockChip).toBe(false);
+      expect(skyTowerJumpMeta.status).toBe("dev");
+      expect(skyTowerJumpMeta.levels!.map((l) => l.title)).toEqual(["Training Sky", "Cloud Steps", "Moving Platforms", "Storm Heights", "Infinite Tower"]);
+   });
+
+   it("the intro ends on the follow camera's start pose, and flies from the gate down", () => {
+      const play = playCamera(COURSE, 1.6);
+      const g = cameraGoal(0, 0, 1.5, COURSE.supports[1].cx, COURSE.supports[1].top, COURSE.supports[1].cz, 1.6, { px: 0, py: 0, pz: 0, lx: 0, ly: 0, lz: 0 });
+      expect(play.position).toEqual([g.px, g.py, g.pz]);
+      const keys = introKeyframes(COURSE);
+      expect(keys[0].position[1]).toBeGreaterThan(COURSE.supports[COURSE.goal].top);
+      // descending: each shot no higher than the one before
+      for (let i = 1; i < keys.length; i++) expect(keys[i].position[1]).toBeLessThanOrEqual(keys[i - 1].position[1]);
+      // the camera stays behind the hero at the same distance whatever the look-ahead
+      const far = cameraGoal(0, 10, -20, 6, 14, -30, 1.6, { px: 0, py: 0, pz: 0, lx: 0, ly: 0, lz: 0 });
+      expect(far.pz).toBeCloseTo(-20 + 5.6, 6);
+   });
+});

@@ -278,6 +278,13 @@ export interface GameDefinition<C = unknown> {
     * show two clocks. Default true.
     */
    clockChip?: boolean;
+   /**
+    * true: Play on the start card first plays the opt-in intro (core/intro, README "Game intro
+    * (opt-in)": fly-through, hero landing, title + level name, Skip), then starts the run. The run
+    * stays in "ready" (no clock) while it plays. The Scene draws it with useShellIntro() + <GameIntro>.
+    * Retry and Next level start at once. Default false.
+    */
+   intro?: boolean;
    /** override how the final score/duration is computed (default: store score + elapsedMs) */
    finalScore?(state: RunState): { score: number; durationMs: number };
    /**

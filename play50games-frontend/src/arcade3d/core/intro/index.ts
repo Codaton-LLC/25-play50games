@@ -2,6 +2,7 @@
 export { GameIntro, type GameIntroProps } from "./GameIntro";
 export { GameIntroOverlay, type GameIntroOverlayProps } from "./GameIntroOverlay";
 export { useGameIntro, type GameIntroApi, type UseGameIntroOptions } from "./useGameIntro";
+export { IntroContext, ShellIntroDriver, introLevelName, useShellIntro, type ShellIntroDriverProps, type ShellIntroState } from "./ShellIntro";
 export {
    FULL_INTRO,
    SHORT_INTRO,

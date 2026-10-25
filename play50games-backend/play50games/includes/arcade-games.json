@@ -426,6 +426,52 @@
       "base": 800,
       "max_pps": 200,
       "enabled": false
+    },
+    "sky-tower-jump": {
+      "title": "Sky Tower Jump",
+      "kind": "time",
+      "max_score": 7850,
+      "min_duration_ms": 11500,
+      "max_duration_ms": 90000,
+      "time_base_ms": 90000,
+      "enabled": false,
+      "levels": [
+        {
+          "title": "Training Sky",
+          "max_score": 7850,
+          "min_duration_ms": 11500,
+          "max_duration_ms": 90000,
+          "time_base_ms": 90000
+        },
+        {
+          "title": "Cloud Steps",
+          "max_score": 7850,
+          "min_duration_ms": 11500,
+          "max_duration_ms": 90000,
+          "time_base_ms": 90000
+        },
+        {
+          "title": "Moving Platforms",
+          "max_score": 7850,
+          "min_duration_ms": 11500,
+          "max_duration_ms": 90000,
+          "time_base_ms": 90000
+        },
+        {
+          "title": "Storm Heights",
+          "max_score": 7850,
+          "min_duration_ms": 11500,
+          "max_duration_ms": 90000,
+          "time_base_ms": 90000
+        },
+        {
+          "title": "Infinite Tower",
+          "max_score": 7850,
+          "min_duration_ms": 11500,
+          "max_duration_ms": 90000,
+          "time_base_ms": 90000
+        }
+      ]
     }
   }
 }

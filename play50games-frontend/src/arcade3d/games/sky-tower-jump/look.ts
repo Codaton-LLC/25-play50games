@@ -1,0 +1,222 @@
+"use client";
+
+// Sky Tower Jump's look: one palette, the drawn textures (clouds, glows, the mask fabric, the
+// waterfall, the pad arrow) and the billboard shader shared by clouds and glows. Textures are drawn
+// once per mount on a canvas (no image files) and disposed with their component.
+import { CanvasTexture, Color, ShaderMaterial, AdditiveBlending, NormalBlending, SRGBColorSpace, type Texture } from "three";
+import { EYES, MASK } from "./mask";
+
+export const COLORS = {
+   skyTop: "#1658c9",
+   skyMid: "#4f9cf0",
+   skyBottom: "#cfeaff",
+   fog: "#b9dcfa",
+   background: "#8cc4f5",
+   sun: "#fff0d2",
+   rim: "#cfe8ff",
+   cloud: "#ffffff",
+   cloudShade: "#b9cde6",
+   mask: "#ef4444",
+   maskDark: "#b91c1c",
+   orbGlow: "#ffd76a",
+   padGlow: "#4cc9ff",
+   beaconIdle: "#5ad1ff",
+   beaconLit: "#ffd257",
+   portal: "#8fe3ff",
+   rockTop: "#a88b66",
+   rockMid: "#c9b08a",
+   rockBottom: "#7d6a55",
+   water: "#bfe9ff",
+} as const;
+
+function canvas(w: number, h: number): [HTMLCanvasElement, CanvasRenderingContext2D] {
+   const c = document.createElement("canvas");
+   c.width = w;
+   c.height = h;
+   return [c, c.getContext("2d")!];
+}
+
+function finish(c: HTMLCanvasElement, srgb = true): CanvasTexture {
+   const t = new CanvasTexture(c);
+   if (srgb) t.colorSpace = SRGBColorSpace;
+   t.needsUpdate = true;
+   return t;
+}
+
+/** A soft cumulus puff: white top, a blue-grey belly, feathered edges. Seeded by `variant`. */
+export function cloudTexture(variant: number): CanvasTexture {
+   const [c, g] = canvas(256, 160);
+   let s = 1234 + variant * 977;
+   const rnd = () => ((s = (s * 16807) % 2147483647) / 2147483647);
+   const blobs: Array<[number, number, number]> = [];
+   for (let i = 0; i < 11; i++) {
+      const x = 64 + rnd() * 128;
+      const y = 92 + (rnd() - 0.5) * 24 - Math.sin(((x - 64) / 128) * Math.PI) * 26;
+      blobs.push([x, y, 20 + rnd() * 22]);
+   }
+   // belly shade first, then the lit tops slightly higher
+   for (const [x, y, r] of blobs) {
+      const grad = g.createRadialGradient(x, y + 8, r * 0.2, x, y + 8, r);
+      grad.addColorStop(0, "rgba(185,205,230,0.95)");
+      grad.addColorStop(1, "rgba(185,205,230,0)");
+      g.fillStyle = grad;
+      g.beginPath();
+      g.arc(x, y + 8, r, 0, Math.PI * 2);
+      g.fill();
+   }
+   for (const [x, y, r] of blobs) {
+      const grad = g.createRadialGradient(x - r * 0.15, y - r * 0.25, r * 0.1, x, y, r * 0.95);
+      grad.addColorStop(0, "rgba(255,255,255,1)");
+      grad.addColorStop(0.6, "rgba(250,252,255,0.85)");
+      grad.addColorStop(1, "rgba(240,246,255,0)");
+      g.fillStyle = grad;
+      g.beginPath();
+      g.arc(x, y, r * 0.95, 0, Math.PI * 2);
+      g.fill();
+   }
+   return finish(c);
+}
+
+/** A round soft glow (white; tinted by the material). */
+export function glowTexture(): CanvasTexture {
+   const [c, g] = canvas(128, 128);
+   const grad = g.createRadialGradient(64, 64, 0, 64, 64, 64);
+   grad.addColorStop(0, "rgba(255,255,255,1)");
+   grad.addColorStop(0.25, "rgba(255,255,255,0.55)");
+   grad.addColorStop(0.6, "rgba(255,255,255,0.12)");
+   grad.addColorStop(1, "rgba(255,255,255,0)");
+   g.fillStyle = grad;
+   g.fillRect(0, 0, 128, 128);
+   return finish(c, false);
+}
+
+/** The pad's up arrow (white on transparent; tinted additive). */
+export function arrowTexture(): CanvasTexture {
+   const [c, g] = canvas(128, 128);
+   g.fillStyle = "rgba(255,255,255,1)";
+   g.shadowColor = "rgba(255,255,255,0.9)";
+   g.shadowBlur = 10;
+   g.beginPath();
+   g.moveTo(64, 14);
+   g.lineTo(110, 62);
+   g.lineTo(82, 62);
+   g.lineTo(82, 112);
+   g.lineTo(46, 112);
+   g.lineTo(46, 62);
+   g.lineTo(18, 62);
+   g.closePath();
+   g.fill();
+   return finish(c, false);
+}
+
+/**
+ * The mask fabric: red with a darker hem and a faint weave, the two eye holes transparent (alphaTest).
+ * u = angle / 2π around the head (0 = front), v = 0 bottom .. 1 top of the band.
+ */
+export function maskTexture(): CanvasTexture {
+   const W = 512;
+   const H = 64;
+   const [c, g] = canvas(W, H);
+   const grad = g.createLinearGradient(0, 0, 0, H);
+   grad.addColorStop(0, COLORS.maskDark);
+   grad.addColorStop(0.18, COLORS.mask);
+   grad.addColorStop(0.82, COLORS.mask);
+   grad.addColorStop(1, COLORS.maskDark);
+   g.fillStyle = grad;
+   g.fillRect(0, 0, W, H);
+   g.globalAlpha = 0.08;
+   g.fillStyle = "#000";
+   for (let x = 0; x < W; x += 4) g.fillRect(x, 0, 1, H);
+   g.globalAlpha = 1;
+   // eye holes: an ellipse at ±EYES.angle, EYES.y (canvas y grows downwards = v from the top)
+   const band = MASK.yTop - MASK.yBottom;
+   const v = (EYES.y - MASK.yBottom) / band;
+   const ry = (EYES.radius / band) * H;
+   const rx = (EYES.radius / (2 * Math.PI * 0.24)) * W * 1.15;
+   g.globalCompositeOperation = "destination-out";
+   for (const a of [EYES.angle, Math.PI * 2 - EYES.angle]) {
+      const u = a / (Math.PI * 2);
+      g.beginPath();
+      g.ellipse(u * W, (1 - v) * H, rx, ry, 0, 0, Math.PI * 2);
+      g.fill();
+   }
+   g.globalCompositeOperation = "source-over";
+   return finish(c);
+}
+
+/** Falling water: soft vertical streaks, tiled down the strip (scrolled in the shader). */
+export function waterfallTexture(): CanvasTexture {
+   const [c, g] = canvas(64, 256);
+   g.fillStyle = "rgba(200,235,255,0.55)";
+   g.fillRect(0, 0, 64, 256);
+   let s = 99;
+   const rnd = () => ((s = (s * 16807) % 2147483647) / 2147483647);
+   for (let i = 0; i < 40; i++) {
+      const x = rnd() * 64;
+      const w = 1 + rnd() * 4;
+      const y = rnd() * 256;
+      const h = 30 + rnd() * 120;
+      g.fillStyle = `rgba(255,255,255,${0.35 + rnd() * 0.5})`;
+      g.fillRect(x, y, w, h);
+      g.fillRect(x, y - 256, w, h);
+   }
+   const t = finish(c);
+   return t;
+}
+
+/** The billboard shader for instanced quads (clouds, glows): per-instance centre + size + shade, fogged. */
+export function billboardMaterial(map: Texture, additive: boolean, fog: { color: string; near: number; far: number }, opacity = 1): ShaderMaterial {
+   return new ShaderMaterial({
+      uniforms: {
+         uMap: { value: map },
+         uOpacity: { value: opacity },
+         uTint: { value: new Color("#ffffff") },
+         uShade: { value: new Color(COLORS.cloudShade) },
+         uFogColor: { value: new Color(fog.color) },
+         uFogNear: { value: fog.near },
+         uFogFar: { value: fog.far },
+         uAspect: { value: 1.6 },
+      },
+      vertexShader: /* glsl */ `
+         attribute vec4 aSpot;   // centre xyz, size
+         attribute vec3 aTint;   // instance colour
+         uniform float uAspect;
+         varying vec2 vUv;
+         varying vec3 vTint;
+         varying float vFogDepth;
+         void main() {
+            vec4 mv = viewMatrix * vec4(aSpot.xyz, 1.0);
+            mv.xy += position.xy * aSpot.w * vec2(uAspect, 1.0);
+            vUv = uv;
+            vTint = aTint;
+            vFogDepth = -mv.z;
+            gl_Position = projectionMatrix * mv;
+         }
+      `,
+      fragmentShader: /* glsl */ `
+         uniform sampler2D uMap;
+         uniform float uOpacity;
+         uniform vec3 uFogColor;
+         uniform float uFogNear;
+         uniform float uFogFar;
+         varying vec2 vUv;
+         varying vec3 vTint;
+         varying float vFogDepth;
+         void main() {
+            vec4 tex = texture2D(uMap, vUv);
+            float fog = smoothstep(uFogNear, uFogFar, vFogDepth);
+            vec3 col = mix(tex.rgb * vTint, uFogColor, fog * ${additive ? "0.0" : "0.45"});
+            // feather the quad's border so no cloud ever shows a straight edge
+            float edge = smoothstep(0.0, 0.18, vUv.x) * smoothstep(1.0, 0.82, vUv.x) * smoothstep(0.0, 0.2, vUv.y) * smoothstep(1.0, 0.8, vUv.y);
+            float a = tex.a * edge * uOpacity * ${additive ? "(1.0 - fog)" : "1.0"};
+            if (a < 0.004) discard;
+            gl_FragColor = vec4(col, a);
+            #include <colorspace_fragment>
+         }
+      `,
+      transparent: true,
+      depthWrite: false,
+      blending: additive ? AdditiveBlending : NormalBlending,
+      fog: false,
+   });
+}

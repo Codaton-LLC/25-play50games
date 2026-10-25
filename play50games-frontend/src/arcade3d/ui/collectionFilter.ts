@@ -1,6 +1,6 @@
 import type { ArcadeCollection, ArcadeGameMeta } from "../types";
 
-export const COLLECTION_FILTERS = ["all", "originals", "adventure", "skill"] as const;
+export const COLLECTION_FILTERS = ["all", "originals", "adventure", "skill", "ninjas"] as const;
 
 export type CollectionFilter = (typeof COLLECTION_FILTERS)[number];
 
@@ -25,7 +25,7 @@ export function collectionIdOf(game: ArcadeGameMeta): ArcadeCollection {
 }
 
 export function storedCollectionFilter(value: string | null): CollectionFilter {
-   if (value === "all" || value === "originals" || value === "adventure" || value === "skill") return value;
+   if ((COLLECTION_FILTERS as readonly string[]).includes(value ?? "")) return value as CollectionFilter;
    return "all";
 }
 

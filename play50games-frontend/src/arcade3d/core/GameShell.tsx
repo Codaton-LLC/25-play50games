@@ -52,6 +52,7 @@ import { InputProvider } from "./input";
 import TouchControls, { TouchControlsProbe, useBottomObstruction, useCoarsePointer } from "./TouchControls";
 import { SafeAreaProvider, createSafeAreaStore, useSafeAreaTracker } from "./safeArea";
 import ShellStage from "./ShellStage";
+import { IntroContext, ShellIntroDriver, introLevelName, type ShellIntroState } from "./intro/ShellIntro";
 import ErrorBoundary from "./ErrorBoundary";
 import { assetUrls, clearModelCache } from "./assets";
 import { initAudio, playSfx, toggleMuted, useMuted } from "./audio";
@@ -291,6 +292,19 @@ export default function GameShell({ meta, definition, exitHref = "/3d" }: GameSh
       })
    );
    useEffect(() => () => tickets.reset(), [tickets]);
+
+   // the opt-in intro (definition.intro): Play mounts the driver; its onDone starts the run
+   const [introOn, setIntroOn] = useState(false);
+   const [introState, setIntroState] = useState<ShellIntroState | null>(null);
+   const introHero = useRef(0);
+   const finishIntro = useCallback(() => {
+      setIntroOn(false);
+      if (arcadeStore.getState().phase === "ready") arcadeStore.getState().start();
+   }, []);
+   useEffect(() => {
+      // an intro never outlives the start card (exit, a stage error, a level reconfigure)
+      if (phase !== "ready") setIntroOn(false);
+   }, [phase]);
 
    const pause = useCallback(() => arcadeStore.getState().pause(), []);
    const exit = useCallback(() => router.push(exitHref), [router, exitHref]);
@@ -604,6 +618,7 @@ export default function GameShell({ meta, definition, exitHref = "/3d" }: GameSh
                         <SafeAreaProvider store={safeArea}>
                            {/* the Canvas bridges this one too: Scenes read useLevel() */}
                            <LevelProvider value={activeLevel}>
+                              <IntroContext.Provider value={introOn ? introState : null}>
                               <ShellStage
                                  key={stageKey}
                                  definition={definition}
@@ -612,6 +627,7 @@ export default function GameShell({ meta, definition, exitHref = "/3d" }: GameSh
                                  onContextLost={onContextLost}
                                  label={`${meta.title} game view`}
                               />
+                              </IntroContext.Provider>
                            </LevelProvider>
                         </SafeAreaProvider>
                      </ErrorBoundary>
@@ -651,7 +667,19 @@ export default function GameShell({ meta, definition, exitHref = "/3d" }: GameSh
 
                {!stageFailed && (phase === "loading" || webgl === "checking") && <LoadingOverlay title={meta.title} />}
 
-               {!stageFailed && phase === "ready" && webgl === "ok" && (
+               {!stageFailed && phase === "ready" && webgl === "ok" && introOn && (
+                  <ShellIntroDriver
+                     slug={meta.slug}
+                     level={levelId}
+                     title={meta.title}
+                     levelName={introLevelName(meta, levelId)}
+                     hero={introHero}
+                     onState={setIntroState}
+                     onDone={finishIntro}
+                  />
+               )}
+
+               {!stageFailed && phase === "ready" && webgl === "ok" && !introOn && (
                   <StartCard
                      meta={meta}
                      definition={definition}
@@ -660,7 +688,10 @@ export default function GameShell({ meta, definition, exitHref = "/3d" }: GameSh
                      leaderboard={leaderboard}
                      onPlay={() => {
                         if (levelsOn) writeLastLevel(meta.slug, levelId);
-                        arcadeStore.getState().start();
+                        if (definition.intro) {
+                           introHero.current = 0;
+                           setIntroOn(true);
+                        } else arcadeStore.getState().start();
                      }}
                      levels={
                         levelsOn

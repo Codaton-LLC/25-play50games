@@ -33,6 +33,7 @@ import { monsterKitchenMeta } from "./games/monster-kitchen/meta";
 import { knightArenaMeta } from "./games/knight-arena/meta";
 import { zooEscapeMeta } from "./games/zoo-escape/meta";
 import { rocketLandingMeta } from "./games/rocket-landing/meta";
+import { skyTowerJumpMeta } from "./games/sky-tower-jump/meta";
 
 export const ARCADE_GAMES: ArcadeGameMeta[] = [
    robotCollectorMeta,
@@ -65,6 +66,7 @@ export const ARCADE_GAMES: ArcadeGameMeta[] = [
    knightArenaMeta,
    zooEscapeMeta,
    rocketLandingMeta,
+   skyTowerJumpMeta,
 ].sort((a, b) => a.order - b.order);
 
 export function getGameMeta(slug: string): ArcadeGameMeta | undefined {

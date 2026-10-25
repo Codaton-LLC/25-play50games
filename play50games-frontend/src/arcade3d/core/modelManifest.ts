@@ -119,6 +119,23 @@ export const MODEL_MANIFEST: readonly string[] = [
    // Gen-2.5-Medium, 18k tris, static T-pose for the core auto-rig
    "/models/3d/ghost-vacuum/hunter.glb",
    "/models/3d/ghost-vacuum/candelabra.glb",
+   // Menu 2 vertical slice (2026-10-25, Sky Tower Jump L1): text-to-3D props (1500-3000 tris, 512 px webp)
+   // and the hero (image-to-3D, 18k tris, 1024 px) from ~/.play50/hyper3d/ready/menu2, already
+   // optimized by tools/hyper3d. menu2/ = shared by the Color Shell Ninjas games.
+   "/models/3d/menu2/m2Hero.glb",
+   "/models/3d/menu2/islandA.glb",
+   "/models/3d/menu2/islandB.glb",
+   "/models/3d/menu2/islandC.glb",
+   "/models/3d/menu2/islandD.glb",
+   "/models/3d/menu2/bouncePad.glb",
+   "/models/3d/menu2/checkpointBeacon.glb",
+   "/models/3d/menu2/movingBlock.glb",
+   "/models/3d/menu2/plankBridge.glb",
+   "/models/3d/menu2/skyFortressGate.glb",
+   "/models/3d/menu2/stoneTower.glb",
+   "/models/3d/menu2/woodenLadder.glb",
+   "/models/3d/menu2/scoreOrb.glb",
+   "/models/3d/sky-tower-jump/skyPlatform.glb",
 ];
 
 const LISTED: ReadonlySet<string> = new Set(MODEL_MANIFEST);
