@@ -332,7 +332,14 @@
       "max_duration_ms": 92000,
       "base": 240,
       "max_pps": 60,
-      "enabled": false
+      "enabled": false,
+      "levels": [
+        { "title": "Snack Bar", "max_score": 4830, "min_duration_ms": 12000, "max_duration_ms": 92000, "base": 240, "max_pps": 60 },
+        { "title": "Monster Caf\u00e9", "max_score": 6300, "min_duration_ms": 12000, "max_duration_ms": 102000, "base": 240, "max_pps": 62 },
+        { "title": "Busy Kitchen", "max_score": 7640, "min_duration_ms": 12000, "max_duration_ms": 110000, "base": 240, "max_pps": 70 },
+        { "title": "Dinner Rush", "max_score": 8470, "min_duration_ms": 11000, "max_duration_ms": 116000, "base": 240, "max_pps": 74 },
+        { "title": "Grand Feast", "max_score": 9600, "min_duration_ms": 11000, "max_duration_ms": 122000, "base": 240, "max_pps": 79 }
+      ]
     },
     "knight-arena": {
       "title": "Knight Training Arena",

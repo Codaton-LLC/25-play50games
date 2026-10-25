@@ -39,7 +39,6 @@ export const COLORS = {
    chairSeat: "#831843",
    chairWood: "#3d2413",
    brass: "#d97706",
-   candleWax: "#fef3c7",
    candleFlame: "#fde047",
    lampPool: "#f59e0b",
    clockFace: "#fef3c7",

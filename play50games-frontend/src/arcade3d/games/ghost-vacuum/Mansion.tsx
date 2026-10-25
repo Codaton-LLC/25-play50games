@@ -10,6 +10,7 @@ import {
    DoubleSide,
    Group,
    Matrix4,
+   MeshStandardMaterial,
    OctahedronGeometry,
    PlaneGeometry,
    TorusGeometry,
@@ -18,7 +19,7 @@ import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js
 import { DynamicInstancedModel, InstancedModel, Model } from "@/arcade3d/core/assets";
 import { useQuality } from "@/arcade3d/core/quality";
 import { useGameTime } from "@/arcade3d/core/gameTime";
-import { DynamicInstanced } from "@/arcade3d/core/render";
+import { DynamicInstanced, type InstancePart } from "@/arcade3d/core/render";
 import { ASSETS } from "./assets";
 import { COLORS } from "./looks";
 import { active, ROOMS, WALLS, type Run } from "./rules";
@@ -129,39 +130,29 @@ export default function Mansion({ run }: { run: Run }) {
       cupM.dispose();
       cupR.dispose();
 
-      // 2. Ivory candle wax stalks
-      const candle = new CylinderGeometry(0.024, 0.024, 0.22, 6);
-      candle.translate(0, 0.11, 0);
-
-      // 3. Glowing candle flame
-      const flame = new OctahedronGeometry(0.038, 0);
-      flame.scale(0.8, 1.4, 0.8);
-
-      // 4. Wall clock case & dial
+      // 2. Wall clock case & dial
       const clockCase = new CylinderGeometry(0.24, 0.24, 0.07, 24).translate(0, 0, 0);
       const clockBezel = new TorusGeometry(0.23, 0.015, 6, 24);
       const clockFrame = mergeGeometries([clockCase, clockBezel]);
       clockCase.dispose();
       clockBezel.dispose();
 
-      // 5. Picture frame
+      // 3. Picture frame
       const frameOuter = new BoxGeometry(0.86, 0.66, 0.06);
 
-      // 6. Bevelled book fallback (cover + pages)
+      // 4. Bevelled book fallback (cover + pages)
       const bookCover = new BoxGeometry(0.22, 0.06, 0.26);
       const bookPages = new BoxGeometry(0.19, 0.04, 0.23).translate(0.01, 0, 0);
 
-      // 7. Cut gem reveal icon (outer gem + bright inner core)
+      // 5. Cut gem reveal icon (outer gem + bright inner core)
       const gemOuter = new OctahedronGeometry(0.15, 0);
       const gemCore = new OctahedronGeometry(0.075, 0);
 
-      // 8. Warm lamp pool on floor
+      // 6. Warm lamp pool on floor
       const lampPool = new CircleGeometry(2.3, 24).rotateX(-Math.PI / 2);
 
       return {
          candelabraBrass: candelabraBrass!,
-         candle,
-         flame,
          clockFrame: clockFrame!,
          frameOuter,
          bookCover,
@@ -175,6 +166,15 @@ export default function Mansion({ run }: { run: Run }) {
    useEffect(() => () => {
       for (const geometry of Object.values(propsGeo)) geometry.dispose();
    }, [propsGeo]);
+
+   // The brass stand-in rides the same pool update as the GLB (fallbackParts are not scaled by asset.scale).
+   const candelabraParts = useMemo<readonly InstancePart[]>(() => [{
+      geometry: propsGeo.candelabraBrass,
+      material: new MeshStandardMaterial({ color: COLORS.brass, metalness: 0.65, roughness: 0.35 }),
+   }], [propsGeo]);
+   useEffect(() => () => {
+      for (const part of candelabraParts) (part.material as MeshStandardMaterial).dispose();
+   }, [candelabraParts]);
 
    return (
       <group name="mansion">
@@ -277,53 +277,17 @@ export default function Mansion({ run }: { run: Run }) {
             </group>
          ))}
 
-         {/* 7. Ornate Brass Candelabras on the 4 desks */}
-         <DynamicInstanced
+         {/* 7. Ornate candelabras on the 4 desks (Hyper3D GLB; candles and flame shapes are baked in) */}
+         <DynamicInstancedModel
+            asset={ASSETS.candelabra}
             count={4}
             update={(i, m) => {
                const r = ROOMS[i];
                m.makeTranslation(r.x, 0.6, r.z + 0.3);
             }}
+            fallbackParts={candelabraParts}
             name="candelabra-brass-stands"
-         >
-            <primitive object={propsGeo.candelabraBrass} attach="geometry" />
-            <meshStandardMaterial color={COLORS.brass} metalness={0.65} roughness={0.35} />
-         </DynamicInstanced>
-
-         {/* Ivory Candle Stalks (3 per candelabra) */}
-         <DynamicInstanced
-            count={12}
-            update={(i, m) => {
-               const r = ROOMS[Math.floor(i / 3)];
-               const slot = (i % 3) - 1;
-               const yOff = i % 3 === 1 ? 0.05 : 0;
-               m.makeTranslation(r.x + slot * 0.14, 0.91 + yOff, r.z + 0.3);
-            }}
-            name="candle-wax-stalks"
-         >
-            <primitive object={propsGeo.candle} attach="geometry" />
-            <meshStandardMaterial color={COLORS.candleWax} roughness={0.9} />
-         </DynamicInstanced>
-
-         {/* Glowing Candle Flames (3 per candelabra with subtle flicker) */}
-         <DynamicInstanced
-            count={12}
-            update={(i, m) => {
-               const r = ROOMS[Math.floor(i / 3)];
-               const slot = (i % 3) - 1;
-               const yOff = i % 3 === 1 ? 0.05 : 0;
-               const flicker = !reduced ? 1 + Math.sin(time.now * 12 + i * 1.7) * 0.12 : 1;
-               m.makeScale(flicker, flicker * 1.1, flicker).setPosition(
-                  r.x + slot * 0.14,
-                  1.18 + yOff,
-                  r.z + 0.3
-               );
-            }}
-            name="candle-flames"
-         >
-            <primitive object={propsGeo.flame} attach="geometry" />
-            <meshBasicMaterial color={COLORS.candleFlame} />
-         </DynamicInstanced>
+         />
 
          {/* 8. Ornate Victorian Wall Clock on North Hall Wall */}
          <group position={[0, 1.5, -9.75]} rotation={[Math.PI / 2, 0, 0]} name="hall-clock">
