@@ -49,6 +49,22 @@ Approved provisional limits, applied to `meta.ts` in P-15: **maxScore 3600; dura
 4. Fix1 preserves all inequalities: flight/swing/camera/chunks/rotors add no awards; attached-wall misses only remove awards, add no damage and cannot shorten the loss bound. Loading remains 4 s, count twelve, ceiling 180 s. Keep limits pending bots; do not tighten from timing estimates.
 5. Through `createArcadeStore` + `simulateRun`, run expert/novice route bots on 48 seeds per controller/damping combination (32 at 60 fps, 8 at 20 fps, 8 random 4–50 ms), and idle/spam/collision bots on 32 seeds per control/damping combination (24 at 20 fps, 8 random frames); include 300 ms raw-frame stalls/countdown/pauses via clock tests. Oracle uses legal movement, loading, pendulum and release; pathfinding around towers and analytic impact timing grant knowledge, never teleportation or immunity. Assert `withinServerLimits` and `capScore` no-op on all terminal results; record best/worst durations, score and reasons. Both damping modes, fragile attempts, perfect zero-distance fixtures, idle 100 s expiry and adversarial corner-contact loss included. No bot measurements claimed before build.
 
+### Levels
+
+Level 1 is today's 12-delivery route, so the tests and the approved limits stay put. Levels 2–5 are the same city with more drops and the plan's hazard knobs (tighter pads, earlier and stronger wind, more pigeons, fragile cargo, a faster drain). The plan's 3-drop tutorial is not level 1: that would make every later level worth fewer points than today, and it would break the tests that pin `ROUTE.count` at 12. Night lighting and colliding traffic are not built (fog, sky and `lighting: "day"` are fixed; only pigeons collide), so level 5 stays in daylight. Loading stays 4 s, the express window stays 10 s and the depot disc stays 1.5 m on every level, for keyboard and touch alike. A level clears on a win, or at its `clearScore`.
+
+One perfect drop is `DELIVERY_CAP` = 150 + 100 + 50 = 300 (`ROUTE.base`, `ROUTE.precision`, `ROUTE.expressPoints`). n drops need n × `ROUTE.loading` = 4n seconds of depot time, so the score is at most 300n = 75t. That is inside `base 300 + 75 × t` on every level, and `maxScore` is 300 × the delivery count. The earliest empty battery, before any recharge, is `(battery − BATTERY.damage) / (drain + BATTERY.damage)` (`earliestLossSeconds`). It stays above 20 s, so `minDurationMs` stays 20000. `maxDurationMs` is the ceiling plus 2 s.
+
+| Level | Title | Drops | Ceiling | Towers | Pad | Wind | Pigeons | Fragile | Drain | maxScore | clearScore |
+|---|---|---:|---:|---:|---:|---|---|---|---:|---:|---:|
+| 1 | Training Rooftop | 12 | 180 s | 8 | 1.25 | 1.5 from 60 s | 2 / 4 / 6 at 60 / 120 s | from drop 9, precision 40 | 1 | 3600 | 1200 |
+| 2 | Residential Blocks | 13 | 200 s | 9 | 1.125 | 1.5 from 45 s | 2 / 4 / 6 at 45 / 110 s | from drop 9, precision 40 | 1 | 3900 | 2000 |
+| 3 | Downtown | 14 | 220 s | 10 | 1.125 | 2 from 30 s | 3 / 5 / 8 at 30 / 80 s | from drop 8, precision 40 | 1 | 4200 | 2000 |
+| 4 | Windy Towers | 15 | 240 s | 10 | 1.00 | 2.5 from 30 s | 3 / 6 / 8 at 30 / 70 s | from drop 6, precision 50 | 1.25, battery 160 | 4500 | 1200 |
+| 5 | Night Delivery | 16 | 270 s | 11 | 1.00 | 2.5 from 20 s | 4 / 6 / 8 at 20 / 60 s | from drop 5, precision 50 | 1.5, battery 230 | 4800 | 1400 |
+
+Level 1's loss bound is 24.25 s, the same `97 − 4t` proof as above. Level 4's bound is 157 / 4.25 = 36.94 s. Level 5's bound is 227 / 4.5 = 50.44 s. Level 5's maxScore 4800 is 1.33 × level 1, inside the 3× guard. `clearScore` sits under the worst score the cautious route bot posted on seeds 0–99 of that level (1334, 2140, 2131, 1340, 1592), so a bad city still unlocks the next one. It does not rise with the level: wind and a faster drain make the worst city score less, and the unlock has to stay reachable. The human route bot is what `rules.levels.test.ts` measures; those clear rates are the ones in the handoff.
+
 ## Run end
 
 - `end("lose")` when battery reaches 0, including drain or tower damage; falling parcels grant nothing after that instant.
