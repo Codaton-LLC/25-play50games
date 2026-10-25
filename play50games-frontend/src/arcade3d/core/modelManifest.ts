@@ -153,6 +153,9 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/hotel-bellboy-rush/lobbyPlanterR.glb",
    "/models/3d/shared/sofa.glb",
    "/models/3d/shared/travellerNpc.glb",
+   // shopping-cart props (2026-10-25): batch 5 part A adoptions, Gen-2.5-Medium, 1500-3000 tris,
+   // optimized GLBs copied in, not re-optimized; the floor scrubber is level 4-5 decor only
+   "/models/3d/shopping-cart/floorScrubber.glb",
 ];
 
 const LISTED: ReadonlySet<string> = new Set(MODEL_MANIFEST);

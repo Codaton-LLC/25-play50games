@@ -52,6 +52,30 @@ export const BAKERY_SPOTS = [
 /** Fallback boxes are centred, so they sit half their height above the stall's feet. */
 export const BAKERY_FALLBACK_SPOTS = BAKERY_SPOTS.map((s) => ({ ...s, y: BAKERY_HEIGHT / 2 }));
 
+/**
+ * floorScrubber.glb (batch 5, Hyper3D 2026-10-25): a walk-behind floor scrubber, feet on y = 0,
+ * centred on x/z. Measured on the mesh (assets.test.ts). Drawn 1.35 m tall - a real cleaning
+ * machine next to the 1.75 m runner - so it reads as parked gear, not a gameplay obstacle.
+ */
+export const SCRUBBER_GLB = { width: 1.0345, height: 1.9021, depth: 1.796 } as const;
+export const SCRUBBER_HEIGHT = 1.35;
+const SCRUBBER_SCALE = SCRUBBER_HEIGHT / SCRUBBER_GLB.height;
+export const SCRUBBER_DRAWN = {
+   width: SCRUBBER_GLB.width * SCRUBBER_SCALE,
+   height: SCRUBBER_HEIGHT,
+   depth: SCRUBBER_GLB.depth * SCRUBBER_SCALE,
+} as const;
+/**
+ * Parked on the north apron with the bakery stalls (z = -17.4), outside PLAY_BOUNDS.
+ * Shown on levels 4 (Superstore) and 5 (Closing-Time Rush) only - the after-hours cleaning crew.
+ */
+export const SCRUBBER_SPOTS = [
+   { x: -9, y: 0, z: -17.4, rotY: 0.35 },
+   { x: 9, y: 0, z: -17.4, rotY: Math.PI - 0.3 },
+   { x: 13.5, y: 0, z: -17.2, rotY: 2.4 },
+] as const;
+export const SCRUBBER_FALLBACK_SPOTS = SCRUBBER_SPOTS.map((s) => ({ ...s, y: SCRUBBER_HEIGHT / 2 }));
+
 export const ASSETS = {
    cart: EXPANSION_ASSETS.cart,
    pusher: {
@@ -88,6 +112,14 @@ export const ASSETS = {
       scale: BAKERY_SCALE,
       fallback: "box",
       fallbackColor: "#fde68a",
+      budget: { ...PROP_BUDGET },
+   },
+   scrubber: {
+      id: "scrubber",
+      url: "/models/3d/shopping-cart/floorScrubber.glb",
+      scale: SCRUBBER_SCALE,
+      fallback: "box",
+      fallbackColor: "#14b8a6",
       budget: { ...PROP_BUDGET },
    },
 } satisfies Record<string, ModelAsset>;
