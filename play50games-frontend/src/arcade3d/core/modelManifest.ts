@@ -140,6 +140,31 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/treasure-island/beachRocks.glb",
    "/models/3d/penguin-slide/iceArch.glb",
    "/models/3d/mini-golf/golfCastle.glb",
+   // Menu 1 burger-delivery-scooter (2026-10-25): the ready menu1-burger-delivery-scooter GLBs (V2 box and
+   // food; burgerShopI = the text-free shop), copied as optimized; fits in games/burger-delivery-scooter/assets.ts.
+   "/models/3d/burger-delivery-scooter/charScooterRider.glb",
+   "/models/3d/burger-delivery-scooter/deliveryScooter.glb",
+   "/models/3d/burger-delivery-scooter/deliveryBoxV2.glb",
+   "/models/3d/burger-delivery-scooter/burgerBag.glb",
+   "/models/3d/burger-delivery-scooter/foodBoxV2.glb",
+   "/models/3d/burger-delivery-scooter/restaurantCounter.glb",
+   "/models/3d/burger-delivery-scooter/burgerShopI.glb",
+   "/models/3d/burger-delivery-scooter/roadBarrier.glb",
+   "/models/3d/shared/trafficCone.glb",
+   // Menu 1 bee-garden (2026-10-25): the ready menu1-bee-garden GLBs (branchV2, not branch), copied as
+   // optimized; fits measured in games/bee-garden/assets.ts. The garden mushroom is shared decor.
+   "/models/3d/bee-garden/bee.glb",
+   "/models/3d/bee-garden/beehive.glb",
+   "/models/3d/bee-garden/flowerA.glb",
+   "/models/3d/bee-garden/flowerB.glb",
+   "/models/3d/bee-garden/flowerC.glb",
+   "/models/3d/bee-garden/nectarOrb.glb",
+   "/models/3d/bee-garden/bigLeaf.glb",
+   "/models/3d/bee-garden/branchV2.glb",
+   "/models/3d/bee-garden/spiderWeb.glb",
+   "/models/3d/bee-garden/vegetablePlanter.glb",
+   "/models/3d/bee-garden/wateringCan.glb",
+   "/models/3d/shared/gardenMushroom.glb",
    // hotel-bellboy-rush (2026-10-25): the Hyper3D ready set (menu1-hotel-bellboy-rush/, ledger OK or
    // adopted as the spec says), optimized GLBs copied in, not re-optimized; the bellboy is a static
    // T-pose for the core auto-rig. sofa and travellerNpc are the shared ready set (also for 31 / 44).
