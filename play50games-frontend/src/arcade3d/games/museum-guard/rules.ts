@@ -2,7 +2,6 @@
 // Pure and seeded. No three.js, React, DOM, Math.random or Date.now.
 // One step = one played frame (the clock has already added dt). The Scene calls stepGame.
 import { inViewCone } from "@/arcade3d/core/ai";
-import type { ScoringRules } from "@/arcade3d/types";
 import type { RunState } from "@/arcade3d/core/types";
 import { rngNext, type RngState } from "@/arcade3d/core/math";
 
@@ -71,21 +70,6 @@ export const SCORE = {
 
 /** Three short penguins the shipping roster never deals (it has two). Alarm geometry only. */
 export const FIXTURE_STARTS = [3, 7.2, 11.4] as const;
-
-/**
- * Proposed server limits (Claude copies these into meta.ts and arcade-games.json at go-live).
- * meta.scoring on this branch stays the provisional 3900 / 3900.
- */
-export const PROPOSED_LIMITS: ScoringRules = {
-   kind: "points",
-   maxScore: 2050,
-   minDurationMs: 12000,
-   maxDurationMs: 92000,
-   base: 0,
-   maxPointsPerSec: 25,
-   unitLabel: "pts",
-   display: "int",
-};
 
 const ORIGIN = { x: 0, y: 0, z: 0 };
 const scratch = { x: 0, y: 0, z: 0 };

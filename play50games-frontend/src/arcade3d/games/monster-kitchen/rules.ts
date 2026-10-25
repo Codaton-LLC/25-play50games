@@ -8,7 +8,8 @@
 // windows, patience): README.md "Server limits and why they hold" has the proof, rules.test.ts checks it.
 import { capScore as capToLimits, withinServerLimits as fitsLimits } from "@/arcade3d/core/limits";
 import { rngNext } from "@/arcade3d/core/math";
-import type { ScoringRules } from "@/arcade3d/types";
+import type { LevelId, ScoringRules } from "@/arcade3d/types";
+import { LEVELS, type KitchenLevel } from "./levels";
 import { monsterKitchenMeta } from "./meta";
 
 // ---------- tuning ----------
@@ -195,6 +196,8 @@ export interface RunState {
    burpUntil: number;
    /** the next drift event at this play time */
    driftNextAt: number;
+   /** this run's level. Level 1 matches the module constants above. Copied so a run cannot mutate LEVELS. */
+   config: KitchenLevel;
    nextOrderId: number;
    completions: number;
    /** play time of the last step (s) */
@@ -285,7 +288,22 @@ function pickRefillKind(run: RunState): IngredientKind {
    return pick ?? pickKind(run.rng);
 }
 
-export function createRun(seed: number): RunState {
+/**
+ * Seeded order length for an arrival at `at`. Level 1 (len3Until 25, len4Until 50) is ORDERS.lenPick.
+ * One rng draw `r`, the same call the level-1 scheduler has always made.
+ */
+export function levelOrderLen(level: KitchenLevel, at: number, r: number): number {
+   if (at < level.len3Until) return 3;
+   if (at < level.len4Until) return 3 + (r < 0.5 ? 1 : 0);
+   return 4 + (r < 0.5 ? 1 : 0);
+}
+
+/** The longest order the band at `at` allows: 3, then 4, then 5. Level 1 is ORDERS.lenAt. */
+export function maxOrderLen(level: KitchenLevel, at: number): 3 | 4 | 5 {
+   return at < level.len3Until ? 3 : at < level.len4Until ? 4 : 5;
+}
+
+export function createRun(seed: number, level: KitchenLevel = LEVELS[1]): RunState {
    const rng = { s: seed };
    // one of each kind on the wheel, shuffled
    const layout = [...INGREDIENTS.kinds];
@@ -300,11 +318,12 @@ export function createRun(seed: number): RunState {
       slots: layout.map((kind) => ({ kind, emptyUntil: 0 })),
       windows: [
          { order: null, arriveAt: ORDERS.firstAtS },
-         { order: null, arriveAt: ORDERS.windowBAtS + ORDERS.walkInS },
+         { order: null, arriveAt: level.windowBAtS + ORDERS.walkInS },
       ],
       flight: null,
       burpUntil: 0,
-      driftNextAt: DRIFT.fromS,
+      driftNextAt: level.driftFromS,
+      config: { ...level, drains: { ...level.drains } },
       nextOrderId: 1,
       completions: 0,
       time: 0,
@@ -340,7 +359,7 @@ function pickType(rng: { s: number }): MonsterType {
 
 function spawnOrder(run: RunState, w: 0 | 1, at: number): void {
    const t = pickType(run.rng);
-   const len = ORDERS.lenPick(at, rngNext(run.rng));
+   const len = levelOrderLen(run.config, at, rngNext(run.rng));
    const kinds: IngredientKind[] = [];
    for (let i = 0; i < len; i++) kinds.push(pickKind(run.rng));
    run.windows[w].order = {
@@ -390,7 +409,7 @@ export function isNeeded(run: RunState, kind: IngredientKind | null): boolean {
       const o = w.order;
       if (!o || o.phase !== "ordering" || o.kinds[o.progress] !== kind) continue;
       const drainFrom = Math.max(run.time, o.appearedAt + ORDERS.graceS);
-      const left = o.patience - PATIENCE.drains[o.type] * Math.max(0, landAt - drainFrom);
+      const left = o.patience - run.config.drains[o.type] * Math.max(0, landAt - drainFrom);
       if (left > 1e-6) return true;
    }
    return false;
@@ -448,7 +467,7 @@ function land(run: RunState): void {
    const victim = earliestOrdering(run);
    if (victim) {
       victim.progress = 0;
-      victim.patience = Math.max(0, victim.patience - PATIENCE.penalty);
+      victim.patience = Math.max(0, victim.patience - run.config.penalty);
    }
 }
 
@@ -503,11 +522,12 @@ export function stepRun(run: RunState, input: StepInput, dt: number, time: numbe
       if (!win.order && time >= win.arriveAt - 1e-9) spawnOrder(run, w as 0 | 1, win.arriveAt);
    }
 
-   // the drift: one slot each DRIFT.everyS from DRIFT.fromS, the direction seeded
+   // the drift: one slot each config.driftEveryS from config.driftFromS, the direction seeded.
+   // Level 1's pair is DRIFT (50 s, every 6 s).
    while (time >= run.driftNextAt - 1e-9) {
       const dir = rngNext(run.rng) < 0.5 ? 1 : -1;
       run.rotation = normalize(run.rotation + dir);
-      run.driftNextAt += DRIFT.everyS;
+      run.driftNextAt += run.config.driftEveryS;
       ev.rotated = dir;
       ev.drifted = true;
    }
@@ -523,7 +543,7 @@ export function stepRun(run: RunState, input: StepInput, dt: number, time: numbe
       const o = w.order;
       if (!o || o.phase !== "ordering") continue;
       if (o.patience > 0 && time > o.appearedAt + ORDERS.graceS) {
-         o.patience = Math.max(0, o.patience - PATIENCE.drains[o.type] * dt);
+         o.patience = Math.max(0, o.patience - run.config.drains[o.type] * dt);
       }
       if (o.patience <= 0 && o.phase === "ordering") {
          o.phase = "angry";
@@ -564,20 +584,116 @@ export function maxPayAt(t: number): number {
    return Math.round(100 * SCORING.FACTOR[ORDERS.lenAt(t) as 3 | 4 | 5]) + SCORING.perPatience * PATIENCE.max;
 }
 
+/** The most an order of this length pays: full patience, the FACTOR for that length. 150 / 190 / 240. */
+export function payForLen(len: 3 | 4 | 5): number {
+   return Math.round(100 * SCORING.FACTOR[len]) + SCORING.perPatience * PATIENCE.max;
+}
+
+export interface ScheduleStop {
+   window: 0 | 1;
+   arrive: number;
+   land: number;
+   len: 3 | 4 | 5;
+   pay: number;
+}
+
+/**
+ * The shared-pot schedule that maximises the score: always cook the earliest-ready hatch at the
+ * longest band length (a longer order pays more per second both alone and while the other hatch
+ * fills the eat-and-walk gap; levels.test.ts checks the short-order schedule scores less). A
+ * completion scores at the landing, which has to fall inside the clock; the last order shortens
+ * to the longest length that still lands in time. The next order in that hatch appears at
+ * landing + eat + walk-in. Rotations are free here, every order keeps a full patience bar, and
+ * the needed ingredient is always in hand: a real run scores less. Seed-independent.
+ */
+export function fastestSchedule(level: KitchenLevel, longest = true): ScheduleStop[] {
+   const clock = level.durationMs / 1000;
+   const windows: [{ arrive: number }, { arrive: number }] = [
+      { arrive: ORDERS.firstAtS },
+      { arrive: level.windowBAtS + ORDERS.walkInS },
+   ];
+   let potFree = 0;
+   const out: ScheduleStop[] = [];
+   for (let guard = 0; guard < 80; guard++) {
+      const w: 0 | 1 = windows[0].arrive <= windows[1].arrive ? 0 : 1;
+      const win = windows[w];
+      if (win.arrive > clock) break;
+      const start = Math.max(win.arrive, potFree);
+      const hi = maxOrderLen(level, win.arrive);
+      const lo: 3 | 4 | 5 = hi === 3 ? 3 : hi === 4 ? 3 : 4;
+      let len: 3 | 4 | 5 = longest ? hi : lo;
+      let land = start + TOSS.flightS * len;
+      if (land > clock + 1e-9) {
+         let fit = 0;
+         for (let L = hi; L >= lo; L--) {
+            if (start + TOSS.flightS * L <= clock + 1e-9) { fit = L; break; }
+         }
+         if (fit === 0) break;
+         len = fit as 3 | 4 | 5;
+         land = start + TOSS.flightS * len;
+      }
+      out.push({ window: w, arrive: win.arrive, land, len, pay: payForLen(len) });
+      potFree = land;
+      win.arrive = land + ORDERS.eatS + ORDERS.walkInS;
+   }
+   return out;
+}
+
+/** Sum of the schedule's pays: the seed-independent ceiling of that level. */
+export function scheduleCeiling(level: KitchenLevel, longest = true): number {
+   let total = 0;
+   for (const stop of fastestSchedule(level, longest)) total += stop.pay;
+   return total;
+}
+
+/**
+ * Steepest (score − base) / landing-time along the max-length schedule. base 240 is one full
+ * 5-item order, which covers the first (always 3-item) completion on its own.
+ */
+export function scheduleSlope(level: KitchenLevel, base = 240): number {
+   let running = 0;
+   let slope = 0;
+   for (const stop of fastestSchedule(level)) {
+      running += stop.pay;
+      if (stop.land > 0) slope = Math.max(slope, (running - base) / stop.land);
+   }
+   return slope;
+}
+
 // ---------- the server limits ----------
 
 /**
- * The proposed server limits (README.md "Server limits and why they hold"), proven in rules.test.ts.
- * meta.scoring still mirrors the dev placeholder in includes/arcade-games.json; the limits PR lands
- * these numbers in both.
+ * The server limits (README.md "Server limits and why they hold"), proven in rules.test.ts.
+ * meta.scoring and includes/arcade-games.json carry the same values.
  */
 export const PROPOSED_LIMITS: ScoringRules = {
    ...monsterKitchenMeta.scoring,
-   maxScore: 4200,
+   maxScore: 4830,
    minDurationMs: 12000,
    maxDurationMs: 92000,
    base: 240,
    maxPointsPerSec: 60,
+};
+
+/**
+ * Per-level limits (README "Levels"). Level 1 is today's PROPOSED_LIMITS. Levels 2-5:
+ * maxScore = ceil(schedule ceiling × 1.03 / 10) × 10, pps = ceil(schedule slope × 1.03),
+ * maxDurationMs = the clock + 2 s (the same margin as level 1's 92 s). minDurationMs is 12 s
+ * while the patience rules match level 1, and 11 s on the dinner rush and the feast, where a
+ * wrong toss costs 4 and the fastest measured spam-lose is just over 12 s (levels.test.ts).
+ * Claude copies levels 2-5 into arcade-games.json.
+ */
+export const PROPOSED_LEVEL_LIMITS: Record<LevelId, ScoringRules> = {
+   /** L1: today's limits, ceiling 4680 in the README (the tight schedule is 4250, under it). */
+   1: PROPOSED_LIMITS,
+   /** L2: ceiling 6110, slope 59.47. Second hatch at 48 s, 100 s clock. */
+   2: { ...PROPOSED_LIMITS, maxScore: 6300, minDurationMs: 12000, maxDurationMs: 102000, base: 240, maxPointsPerSec: 62 },
+   /** L3: ceiling 7410, slope 67.55. Drift every 5 s from 28 s, 108 s clock. */
+   3: { ...PROPOSED_LIMITS, maxScore: 7640, minDurationMs: 12000, maxDurationMs: 110000, base: 240, maxPointsPerSec: 70 },
+   /** L4: ceiling 8220, slope 71.25. Penalty 4, grumpy drain 1.45, 114 s clock. Spam-lose measured 12.1 s. */
+   4: { ...PROPOSED_LIMITS, maxScore: 8470, minDurationMs: 11000, maxDurationMs: 116000, base: 240, maxPointsPerSec: 74 },
+   /** L5: ceiling 9320, slope 76.53. Every knob, 120 s clock. 9320 × 1.03 → 9600 ≤ 3 × 4830. Spam-lose measured 12.0 s. */
+   5: { ...PROPOSED_LIMITS, maxScore: 9600, minDurationMs: 11000, maxDurationMs: 122000, base: 240, maxPointsPerSec: 79 },
 };
 
 /** The server's check (core/limits.ts) with this game's proposed limits. */

@@ -27,7 +27,37 @@ All numbers live in `rules.ts` (`WHEEL`, `INGREDIENTS`, `TOSS`, `ORDERS`, `PATIE
 - **Patience** (`PATIENCE`): max **10**. Drain per second by type — jolly **1.0**, greedy **1.15**, grumpy **1.3**; wrong toss −3 (clamped at 0). At 0 the monster leaves **angry** after **0.4 s** (`loseLife()`, `lives: 3`).
 - **Serve** (`SERVE`): first order appears at **0.5 s**. On completion the monster eats, dances and tips for **2.0 s**, then the next steps up after **0.8 s** (walk-in). The second window opens at **70 s**: its first monster walks in then (order at 70.8); each window then cycles independently.
 - **Scoring** (`SCORING`): on completion, `orderPoints = round(100 · FACTOR[len]) + round(5 · patienceLeft)`, `FACTOR = {3: 1.0, 4: 1.4, 5: 1.9}` → 100 / 140 / 190 plus a tip ≤ 50. Single `addScore` per completion; `finalScore` is not overridden.
-- **Clock:** `durationMs: 90000` (fixed timer; the shell ends with `"timeup"`).
+- **Clock:** `durationMs: 90000` (fixed timer; the shell ends with `"timeup"`). Level 1 keeps this clock. Levels 2–5 pass a `KitchenLevel` into `createRun(seed, level)` and override the clock, the second hatch, the length bands, the drift and the patience (see Levels). The constants above stay the level-1 values.
+
+## Levels
+
+One cave kitchen, five configurations (`levels.ts`, `docs/arcade-levels.md` §6.3). Level 1 is today's game. There is no win: a level clears when the score reaches `clearScore` (level 5 included, so the feast can show as cleared). The plan's walking multi-zone chef was not built; each later level turns one pressure knob the game already has, and the shift gets longer so the level offers more points than level 1. Lighting is a core preset on the level spec (level 4 `night`, level 5 `sunset`).
+
+| Level | Title | What changes from the level before | Clock | Clear | Limits (max / min–max ms / base / pps) |
+|---|---|---|---|---|---|
+| 1 | Snack Bar | today's game | 90 s | 2000 | **4830 / 12–92 s / 240 / 60** |
+| 2 | Monster Café | second hatch at 48 s; orders lengthen from 18 s / 40 s; drift from 42 s | 100 s | 2600 | **6300 / 12–102 s / 240 / 62** |
+| 3 | Busy Kitchen | hatch at 36 s; lengths from 14 s / 32 s; drift every 5 s from 28 s; drains 1.05 / 1.20 / 1.35 | 108 s | 3000 | **7640 / 12–110 s / 240 / 70** |
+| 4 | Dinner Rush | hatch at 28 s; lengths from 10 s / 24 s; drift every 4.5 s from 20 s; penalty 4; drains 1.10 / 1.28 / 1.45; night | 114 s | 3200 | **8470 / 11–116 s / 240 / 74** |
+| 5 | Grand Feast | hatch at 18 s; lengths from 8 s / 16 s; drift every 4 s from 12 s; drains 1.15 / 1.35 / 1.55; sunset | 120 s | 3600 | **9600 / 11–122 s / 240 / 79** |
+
+Level 5's maxScore 9600 is 1.99× level 1's 4830 (the 3× guard). Every level's maxScore is at least level 1's.
+
+### Per-level proof
+
+The ceiling is `fastestSchedule` in `rules.ts`: one shared pot, always the earliest-ready hatch, always the longest band length (150 / 190 / 240 with a full patience bar). A longer order pays more per second both alone (150/4.45, 190/5.00, 240/5.55) and while the other hatch fills the 2.8 s eat-and-walk gap, and `scheduleCeiling(level, false)` (shortest legal orders) scores less on every level. The landing has to fall inside the clock; the last order shortens only if the long one would miss it. Rotations are free and the ingredient is always in hand, so a real cook scores less. `maxScore = ceil(ceiling × 1.03 / 10) × 10`, `pps = ceil(slope × 1.03)` with base 240, and `maxDurationMs = clock + 2 s`.
+
+| Level | Ceiling | Slope | maxScore | pps | Oracle best (24 seeds) | Oracle / ceiling | Human clear (200 seeds) |
+|---|---|---|---|---|---|---|---|
+| 1 | 4250 (the README's looser 4680 still holds) | under 60 | 4830 (unchanged) | 60 | 3875 | 91% | 200/200, min 2369 |
+| 2 | 6110 | 59.47 | 6300 | 62 | 5316 | 87% | 200/200, min 3339 |
+| 3 | 7410 | 67.55 | 7640 | 70 | 6436 | 87% | 200/200, min 3891 |
+| 4 | 8220 | 71.25 | 8470 | 74 | 7115 | 87% | 199/200, min 1012 |
+| 5 | 9320 | 76.53 | 9600 | 79 | 7884 | 85% | 199/200, min 1477 |
+
+`B(t) = 240 + pps·t` holds at every landing of the schedule (`levels.test.ts`). The oracle does not reach 90% of `maxScore`: that bar sits under the schedule ceiling, because the ceiling prices every order at maximum length and a full tip. The test requires 80% of the ceiling, the same bar as level 1's 3860-vs-4680 proof. Spam (40 seeds) scores 0 and never clears; the fastest spam-lose is 15.1 s on levels 1–3, 12.1 s on level 4 and 12.0 s on level 5, all above `minDurationMs` (11 s on levels 4–5, where penalty 4 shortens the chain). Idle scores 0 and never clears.
+
+Touch and keyboard share one path: Space (`tossCentre`) and a tap on the centre slot launch the same ingredient, and the human bot's turn interval is `WHEEL.rotateS` (0.18 s) for both.
 
 ## Scoring
 
@@ -35,11 +65,13 @@ One score source: order completions, `100 · FACTOR[len] + 5 · patienceLeft` (r
 
 ### Server limits and why they hold (the proof)
 
-| | provisional (02 §C.4, `meta.ts` = `arcade-games.json`, `enabled: false`) | proposed (assets + limits PR) |
+| | provisional (02 §C.4, `meta.ts` = `arcade-games.json`, `enabled: false`) | decided (2026-10-24, this PR) |
 |---|---|---|
-| `maxScore` / `max_score` | 6000 | **4900** |
+| `maxScore` / `max_score` | 6000 | **4830** |
 | duration | 10000–92000 ms | **12000–92000 ms** |
 | `base` / `max_pps` | 6000 / 6000 | **240 / 60** |
+
+> **Limits (decided 2026-10-24): 4830 / 12-92 s / base 240 / pps 60 — proven ceiling 4680 + 3 % margin.** `rules.ts` `PROPOSED_LIMITS.maxScore` is **4830** = ceil(4680 · 1.03) rounded up to the nearest 10. The seed-independent ceiling proven below is **4680 — smaller than 4830**, so the proof shows a legal run never exceeds `maxScore` (unlike the earlier 4200 proposal, which the ceiling invalidated).
 
 Proof plan (robot-collector's structure, through the real store):
 
@@ -49,7 +81,7 @@ Proof plan (robot-collector's structure, through the real store):
 4. **Min duration:** a spam-of-wrongs run ends `"lose"` fastest, and **patience drain makes it faster than the toss cadence alone**. Earliest anger of one monster: wrong landings at +0 / +1.75 / +3.5 s after its order (a toss may be launched during the previous walk-in so it lands as the order appears; the burp lock 1.2 + flight 0.55 sets the 1.75 s spacing; a pre-launched toss cannot advance the order but still burps and takes −3) give −9, and the drain after the 1.5 s grace (grumpy 1.3/s, the fastest) removes the last point exactly at the third landing → angry ≥ order + **3.5 s** (≥ +3.55 s for the first monster, whose pre-toss cannot launch before the run starts). Then leave 0.4 + walk-in 0.8 to the next monster, first order at 0.5 s: pure spam angers at ≥ 4.05 / 8.75 / 13.45 and ends ≥ **13.85 s**; serving one order first (complete ≥ 2.15, so the next order is ≥ 4.95) ends ≥ **13.55 s** — the fastest legal `"lose"`. → **minDuration 12000 ms** (~12 % margin). Natural anger (drain alone) is slower: ≥ 1.5 + 10/1.3 ≈ 9.2 s per monster.
 5. **Every seed:** the scheduler only permutes types, kinds and drift, all inside the bounds above (checked on 1,000 seeds).
 
-Measured at the build: an oracle bot with minimal rotations (≤ 3 per ingredient, into the front-3 arc) through the real store, 200+ seeds at 60 fps, 20 fps and random 4–50 ms frames, plus spam, wrong-only and idle bots; expected oracle ≈ 4000–4400 (tips decay with cook time). If the measured oracle is under 90 % of 4900, the limits PR tightens `maxScore` to ~ceiling × 1.03. `capScore` stays a no-op on every run (tests).
+Measured at the build: an oracle bot with minimal rotations (≤ 3 per ingredient, into the front-3 arc) through the real store, 200+ seeds at 60 fps, 20 fps and random 4–50 ms frames, plus spam, wrong-only and idle bots; the oracle **topped out at ~3,860**, well under `maxScore` 4830 (= ceiling 4680 × 1.03, rounded up to the nearest 10 — see "Limits" above). `capScore` stays a no-op on every run (tests).
 
 ## Run end
 
@@ -88,11 +120,11 @@ No new generation: every GLB is in `core/modelManifest.ts`. Fits in `assets.ts`,
 | procedural | B: eyeball (sphere + iris), slime cube (rounded box), lazy Susan disc + rim, stove drum, counter, hatch + frame, shelves + instanced jars, cave walls, liquid disc (r = `CAULDRON_INNER_RADIUS_GLB` × scale ≈ 0.331, at `cauldronInnerRim` height − 0.03), bubbles, steam column, horns / party hat / top hat per type, order icons | | | |
 
 - Three monster **types**: jolly (lilac `#a78bfa`, party hat), greedy (green `#4ade80`, top hat), grumpy (pink `#f472b6`, horns) — tint × pale base, headgear as children of the monster group at a measured head anchor (game-local constant in `assets.ts`, verified on the real mesh in `assets.test.ts`).
-- `assets.spec.json` lists only `monster` and `cauldron` — both are **already generated and imported** (`EXPANSION_ASSETS.monster` / `.cauldron`, `/models/3d/monster-kitchen/*.glb`, expansion batch 1) and are marked `imported` in the spec (no generation requested); everything else is shared/reused. The catalog's mushroom decor (E.4, P3) is deferred — open question below.
+- `assets.spec.json` lists only `monster` and `cauldron` — both are **already generated and imported** (`EXPANSION_ASSETS.monster` / `.cauldron`, `/models/3d/monster-kitchen/*.glb`, expansion batch 1) and are marked `imported` in the spec (no generation requested); everything else is shared/reused. The catalog's mushroom decor (E.4, P3) **is in the build** — `Kitchen.tsx` draws five instanced spots, `scaledCount(5, quality.decor)`; `assets.test.ts` pins the 0.5 m fit.
 
 ## Files
 
-`meta.ts` (data; scoring provisional until the limits PR) · `index.tsx` (`GameDefinition`) · `rules.ts` (wheel, ingredients, toss, orders, patience, scheduler, drift, scoring; pure, seeded) · `rules.test.ts` · `poses.ts` (pure: chef `reachThrowPose`, cheer blend) · `poses.test.ts` (on the real chef via `rigCharacter`) · `assets.ts` + `assets.test.ts` (fits, liquid disc, head anchor, chef scale) · `Scene.tsx` (one `useRunFrame`, camera, fx, audio) · `Kitchen.tsx` (counter, stove, hatch, shelves, jars, walls) · `Wheel.tsx` (lazy Susan, slots, ingredient pools, toss arcs) · `Cauldron.tsx` (GLB, liquid, bubbles, steam) · `Monsters.tsx` (monsters, tint, headgear, queue) · `Chef.tsx` (humanoid, poses) · `Hud.tsx` (order bubbles, patience bars, the game-local ◀ ▶ buttons) · `Primitives.tsx` (stand-ins, eyeball, slime, headgear, icons) · `assets.spec.json` · `README.md` · `public/images/3d/monster-kitchen.webp` · `tools/thumbs/inputs/monster-kitchen.mjs`.
+`meta.ts` (data; five level limits) · `index.tsx` (`GameDefinition`, level specs) · `levels.ts` · `levels.test.ts` · `useKitchenLevel.ts` · `rules.ts` (wheel, ingredients, toss, orders, patience, scheduler, drift, scoring; pure, seeded) · `rules.test.ts` · `poses.ts` (pure: chef `reachThrowPose`, cheer blend) · `poses.test.ts` (on the real chef via `rigCharacter`) · `assets.ts` + `assets.test.ts` (fits, liquid disc, head anchor, chef scale) · `Scene.tsx` (one `useRunFrame`, camera, fx, audio) · `Kitchen.tsx` (counter, stove, hatch, shelves, jars, walls) · `Wheel.tsx` (lazy Susan, slots, ingredient pools, toss arcs) · `Cauldron.tsx` (GLB, liquid, bubbles, steam) · `Monsters.tsx` (monsters, tint, headgear, queue) · `Chef.tsx` (humanoid, poses) · `Hud.tsx` (order bubbles, patience bars, the game-local ◀ ▶ buttons) · `Primitives.tsx` (stand-ins, eyeball, slime, headgear, icons) · `assets.spec.json` · `README.md` · `public/images/3d/monster-kitchen.webp` · `tools/thumbs/inputs/monster-kitchen.mjs`.
 
 ## Test plan
 
@@ -103,7 +135,7 @@ No new generation: every GLB is in `core/modelManifest.ts`. Fits in `assets.ts`,
 - **Orders / scheduler:** deterministic per seed; the length table by arrival; kinds ⊆ the 8; the second window's first order at 70.8; a queued monster steps up only when its window frees; first order at 0.5 s.
 - **Toss:** one in flight (a second toss in the same flight or a burp is ignored); resolution at +0.55 s; **eligibility by launch time — a toss launched before an order appeared never advances it (it burps: −3 on the earliest-arrived order), a toss launched after it advances the earliest eligible order needing the kind**; a wrong kind restarts that order, −3 patience and locks 1.2 s; an empty slot cannot be tossed; patience drains during flights.
 - **Patience / lives:** drains 1.0 / 1.15 / 1.3 after the 1.5 s grace; angry at 0; the third angry ends `"lose"`; grace pauses drain but not penalties.
-- **Scoring + proof:** `orderPoints` events; the completion recurrence — `a_0 = 0.5`, `a_{i+1} ≥ a_i + 0.8 + 0.55·len_i + 2.0`, `c_i ≥ a_i + 0.55·len_i + 2.0`, `len_i` from the arrival table (3 below 25 s, 3–4 at 25–50 s, 4–5 from 50 s) — checked on 1,000 seeds: ≤ 15 completions before 70 s, ≤ 23 completions, **B(90) ≤ 4680**; `B(t) ≤ 240 + 60·t` at every completion time; every run passes `withinServerLimits`, `capScore` a no-op; the oracle bot (200+ seeds, 60 fps, 20 fps and random 4–50 ms frames in turn, three run twice for determinism) reaches ≥ 90 % of `maxScore`; spam, wrong-only and idle bots never exceed any limit; the earliest-`lose` recurrence — serve-then-spam ≥ 13.55 s, pure spam ≥ 13.85 s (wrong landings at order +0 / +1.75 / +3.5 on a grumpy, drain after the 1.5 s grace) — and the spam bots lose at ≥ 12.0 s; an idle run times out with 0 at 90000 ms.
+- **Scoring + proof:** `orderPoints` events; the completion recurrence — `a_0 = 0.5`, `a_{i+1} ≥ a_i + 0.8 + 0.55·len_i + 2.0`, `c_i ≥ a_i + 0.55·len_i + 2.0`, `len_i` from the arrival table (3 below 25 s, 3–4 at 25–50 s, 4–5 from 50 s) — checked on 1,000 seeds: ≤ 15 completions before 70 s, ≤ 23 completions, **B(90) ≤ 4680**; `B(t) ≤ 240 + 60·t` at every completion time; every run passes `withinServerLimits`, `capScore` a no-op; the oracle bot (200+ seeds, 60 fps, 20 fps and random 4–50 ms frames in turn, three run twice for determinism) reaches ~80 % of the proven 4680 ceiling (measured peak ~3,860 — `maxScore` 4830 is ceiling × 1.03, so headroom for player skill, not a loose cap); spam, wrong-only and idle bots never exceed any limit; the earliest-`lose` recurrence — serve-then-spam ≥ 13.55 s, pure spam ≥ 13.85 s (wrong landings at order +0 / +1.75 / +3.5 on a grumpy, drain after the 1.5 s grace) — and the spam bots lose at ≥ 12.0 s; an idle run times out with 0 at 90000 ms.
 - `poses.test.ts` / `assets.test.ts`: the chef's reach reads over the wheel's back arc — in `reachThrowPose` the posed hand passes within 15 cm of the back-slot ring (≈ (−2, 0.9, −0.7)) and never intersects the wheel disc; hands never cross the T reach through the reach blend; soles within 1 cm of the floor in idle, reach and cheer; every monster fully visible from the fitted camera (screenshot assert at 1280 × 800, 390 × 844, 844 × 390); the liquid disc sits inside the measured rim; the head anchor is on the head through the wobble; fitted sizes from the table.
 - Browser (headless CDP, flags + mock): the common criteria (03), banner open and closed, Retry ×10 keeps `geometries` flat; screenshots at 1280 × 800, 390 × 844 and 844 × 390: the order bubble never overlaps the HUD or the touch controls (P-15) — landscape keeps the bubbles in the side column — and nothing important sits under the HUD.
 
@@ -130,17 +162,41 @@ Decisions for the user (this design's recommendation on each):
 - **Toss on `tap`, not `tapDown`** (changed from spec; the core input contract — see Controls). Recommendation: **accept** — `tapDown` fires before every swipe and would toss on every rotation; if P-15 playtesting feels the release latency, the alternative is a drag-to-aim opt-in, which this game does not want.
 - **Launch-before-appearance rule** (an order accepts only tosses launched after it appeared; earlier ones are ignored/burped — see Rules). Recommendation: **accept** — it closes the pre-toss exploit that made 4900 beatable (~5310); the pre-toss stays legal as a self-harming burp.
 - **Chef height 1.82 m** (the food-catcher measurement) instead of the eyeballed ~1.6 m. Recommendation: **accept** — measured beats guessed; the counter reach is re-checked against it at the build.
-- **Mushroom decor out of v1** (catalog E.4 P3, `EXPANSION_ASSETS.mushroom`). Recommendation: **keep out** — the draw-call estimate is already ≈ 36–39 of the 40 cap; add as shelf decor later if the probe shows room.
+- **Mushroom decor — superseded, IN v1** (catalog E.4 P3, `EXPANSION_ASSETS.mushroom`; the user approved it in the 2026-10-09 decisions above). It ships as five instanced spots in `Kitchen.tsx` (`scaledCount(5, quality.decor)`); the draw-call headroom concern stands for any further decor.
 - **Spam-to-lose runs are accepted** (score 0, over in ≥ ~13.6 s) with the corrected `minDuration` 12000 ms. Recommendation: **accept** — the alternative feel-guard (penalties cannot drop patience below 1 s) makes spam free and complicates the proof.
 
 Standing risks:
 
-- **Chef landmarks (needs Claude before the build):** `REUSED_ASSETS.chef` is a T-pose humanoid and `CHEF_LANDMARKS` still lives in `games/food-catcher/assets.ts`; games may not import each other, so per the `sharedAssets.ts` note this game is the one that gets them moved to core. Request: Claude moves `CHEF_LANDMARKS` to core (food-catcher adopts) before or with this build — Claude's action, none here.
-- **maxScore 4900** assumes the measured oracle lands ≥ 90 % of it; the limits PR tightens to ~ceiling × 1.03 if not.
+- **Chef landmarks — resolved:** `CHEF_LANDMARKS` now lives in `core/sharedAssets.ts` (on the core chef asset, `humanoid: { landmarks: CHEF_LANDMARKS }`) and food-catcher re-exports it from there — no game-to-game import, nothing needed before the build.
+- **maxScore 4830** (decided 2026-10-24): the proven seed-independent ceiling 4680 × 1.03, rounded up to the nearest 10. The measured oracle peaked at ~3,860 — well under the limit — and the ceiling below the limit keeps the proof meaningful (a legal run cannot exceed `maxScore`).
 - Numbers marked [A] in the spec (patience 10, drains, grace 1.5, penalty 3, flight 0.55, burp 1.2, refill 0.9, drift 6 s, lengths) are tuning starting points; the proof is re-run before the limits PR if any move.
 - Headgear anchors and the monster tints are tuned on the real mesh during the build; a tint that muddies the pale base is swapped for a `material`-override colour (the treasure-island seagull pattern).
 - Audio: P-06 may ship real `burp` / chirp / grumble cues; the fallback map adopts them by rename.
 
 ## Status
 
-(empty until the build)
+TASK P-72-levels-monster | 5 levels for monster-kitchen | branch cursor/levels-monster-kitchen | allowed: play50games-frontend/src/arcade3d/games/monster-kitchen/**
+
+Five levels are in. Level 1 plays as today's game (same constants, same 4830/12000/92000/240/60 limits). Levels 2–5 are harder shifts of the same kitchen. No new GLBs. `rules.test.ts` was not edited. `npx tsc --noEmit` passed. The monster-kitchen suite is 62 tests in 32 s. Claude copies `PROPOSED_LEVEL_LIMITS` into `arcade-games.json` at merge; until then `registry.sync.test.ts` fails for this slug.
+
+### Files
+
+`levels.ts`, `rules.ts` (`createRun(seed, level)` and `PROPOSED_LEVEL_LIMITS`), `meta.ts`, `index.tsx`, `useKitchenLevel.ts`, `Scene.tsx`, `Hud.tsx`, `levels.test.ts`, this README. Not edited: `rules.test.ts`, assets, poses, the backend.
+
+### Bot clear rates and limits
+
+| Lv | Ceiling | Oracle best / ceiling | Human clear (200) | Spam fastest lose | Limits |
+|---|---|---|---|---|---|
+| 1 Snack Bar | 4250 (under the published 4680) | 3875 / 91% | 200/200, min 2369 | 15076 ms | 4830 / 12–92 s / 240 / 60 |
+| 2 Monster Café | 6110 | 5316 / 87% | 200/200, min 3339 | 15076 ms | 6300 / 12–102 s / 240 / 62 |
+| 3 Busy Kitchen | 7410 | 6436 / 87% | 200/200, min 3891 | 15076 ms | 7640 / 12–110 s / 240 / 70 |
+| 4 Dinner Rush | 8220 | 7115 / 87% | 199/200, min 1012 | 12117 ms | 8470 / 11–116 s / 240 / 74 |
+| 5 Grand Feast | 9320 | 7884 / 85% | 199/200, min 1477 | 12007 ms | 9600 / 11–122 s / 240 / 79 |
+
+Spam and idle score 0 and never clear. The oracle never loses on 24 seeds. 90% of `maxScore` is not asserted: that bar sits under the schedule ceiling. The test requires 80% of the ceiling, the same bar as level 1. Level 5 maxScore is 1.99× level 1.
+
+Mutation probe: level 2 `windowBAtS` set to 80 failed the monotone test (`expected 80 to be less than 70`), then restored to 48.
+
+### Open
+
+`arcade-games.json` is Claude's. Level 4–5 `minDurationMs` is 11000 because the spam sample reached 12.0 s. No headless playtest in this run. There is no `looks.ts`; lighting is the level spec (`night` on level 4, `sunset` on level 5). The same text is in `.handoff/P-72-levels-monster/HANDOFF.md`.

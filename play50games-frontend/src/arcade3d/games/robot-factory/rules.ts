@@ -1,10 +1,13 @@
 // Robot Factory Sorter: the pure, seeded rules (README "Rules", "Scoring", "Run end"). No three.js,
 // React or DOM, no Math.random / Date.now. Scene.tsx calls stepRun once per useRunFrame and turns
 // run.events into store calls, fx and sound; rules.test.ts drives the same step through the store.
-import type { ScoringRules } from "@/arcade3d/types";
+// Levels: createRun(seed) is today's shift; createRun(seed, level) reads levels.ts. The module
+// constants below stay level 1, so the existing tests keep calling them.
+import type { LevelId, ScoringRules } from "@/arcade3d/types";
 import { capScore as capToLimits, withinServerLimits as fitsLimits } from "@/arcade3d/core/limits";
 import { rngNext, type RngState } from "@/arcade3d/core/math";
 import { createPath, pointAt } from "@/arcade3d/core/path";
+import { LEVELS, type FactoryLevel } from "./levels";
 
 // ---------- tuning (every gameplay number lives here) ----------
 
@@ -67,11 +70,10 @@ export const STREAM = {
 
 export const CLAW = {
    /**
-    * s: a grab of a clean part the blueprint does not want. 2.10 s outlasts the 0.80 s half-period
-    * plus the needed part's whole 1.24 s dwell at the slowest belt (2.04 s), so grabbing everything
-    * costs the next needed part (README "Changed from spec": the designed 1.00 s did not).
+    * s: a grab of a clean part the blueprint does not want (Decision 2026-10-24: 1.0 s lockout;
+    * wrong grab drops part back and resets blueprint step to prevent spamming).
     */
-   WRONG_LOCKOUT: 2.1,
+   WRONG_LOCKOUT: 1.0,
    /** s: a clean part swept into the bin */
    SCRAP_LOCKOUT: 1.0,
    /** s: a faulty part grabbed (a strike) */
@@ -87,6 +89,31 @@ export const SCORING = {
    COMBO_STEP: 4,
    COMBO_MAX: 5,
    ROBOT_BONUS: 200,
+} as const;
+
+/**
+ * Levels 4-5 (the plan's sorter). Parts are released so the gap on the belt stays GAP metres,
+ * and the belt speed rises from sortV0 to sortV1, so the arrival rate rises with it.
+ * A part that would reach the grab zone in the last ACT_MARGIN seconds is not released:
+ * every frame rate then has a frame left to sort the ones that do arrive.
+ */
+export const SORTER = {
+   BINS: 4,
+   /** m: one part in the 1.8 m grab zone at a time (zone width is 1.8) */
+   GAP: 1.95,
+   ACT_MARGIN: 0.15,
+   /** points taken for a drop in the wrong bin (the score never goes below 0) */
+   WRONG_COST: 10,
+   /** wrong bins that end the shift. Honest play stays under it; a blind bin does not. */
+   WRONG_LIMIT: 12,
+   BIN_W: 0.52,
+   BIN_H: 0.6,
+   BIN_D: 0.4,
+   BIN_GAP: 0.08,
+   BIN_Z: 0.98,
+   LABEL_W: 0.46,
+   /** m: the plate stands upright on the bin's front face, facing the camera */
+   LABEL_H: 0.46,
 } as const;
 
 /** The finished robot's walk from the cradle to the exit door (visual; the next blueprint is live at once). */
@@ -119,6 +146,41 @@ export const SHAPE_OF: readonly (readonly number[])[] = [
 /** Part sizes (m, the tallest side): torso 0.50, the rest 0.45. */
 export const SHAPE_SIZE = [0.5, 0.5, 0.45, 0.45, 0.45, 0.45, 0.45, 0.45, 0.45] as const;
 
+/** One bin per row: colour plus the silhouette of that (kind, colour) pair. Index 0 is the left bin, key 1. */
+export const SORT_BINS: readonly { kind: number; colour: number; shape: number }[] = [
+   { kind: KIND.torso, colour: 0, shape: SHAPE_OF[KIND.torso][0] },
+   { kind: KIND.cell, colour: 1, shape: SHAPE_OF[KIND.cell][1] },
+   { kind: KIND.head, colour: 2, shape: SHAPE_OF[KIND.head][2] },
+   { kind: KIND.arm, colour: 3, shape: SHAPE_OF[KIND.arm][3] },
+];
+
+/** The bin's mouth, where a sorted part lands. `i` is 0..3 from the player's left. */
+export function sortBinCenter(i: number, out: { x: number; y: number; z: number } = { x: 0, y: 0, z: 0 }): { x: number; y: number; z: number } {
+   const pitch = SORTER.BIN_W + SORTER.BIN_GAP;
+   out.x = (i - (SORTER.BINS - 1) / 2) * pitch;
+   out.y = SORTER.BIN_H * 0.62;
+   out.z = SORTER.BIN_Z;
+   return out;
+}
+
+/**
+ * World ends of bin i's label plate (the tilted face that carries the colour, icon and digit).
+ * Bottom is the lower edge, top the upper edge. Shared by the mesh and the phone-size test.
+ */
+export function sorterLabelEnds(i: number, bottom: { x: number; y: number; z: number }, top: { x: number; y: number; z: number }): void {
+   const center = sortBinCenter(i);
+   const hh = SORTER.LABEL_H / 2;
+   const cy = SORTER.BIN_H * 0.62;
+   // just in front of the steel front face (inside it, the plate was hidden by the bin body)
+   const cz = SORTER.BIN_Z + SORTER.BIN_D * 0.5 + 0.012;
+   bottom.x = center.x;
+   bottom.y = cy - hh;
+   bottom.z = cz;
+   top.x = center.x;
+   top.y = cy + hh;
+   top.z = cz;
+}
+
 const PLAN_3 = [KIND.torso, KIND.cell, KIND.head];
 const PLAN_4 = [KIND.torso, KIND.cell, KIND.head, KIND.arm];
 const PLAN_5 = [KIND.torso, KIND.cell, KIND.head, KIND.arm, KIND.arm];
@@ -128,10 +190,10 @@ export function blueprintSize(r: number): number {
    return r <= 1 ? 3 : r <= 4 ? 4 : 5;
 }
 
-/** m/s after r completed robots. */
-export function beltSpeed(r: number): number {
-   if (r <= 0) return BELT.V0;
-   return Math.min(BELT.V_MAX, BELT.V1 * Math.pow(BELT.GROWTH, r - 1));
+/** m/s after r completed robots. Defaults to level 1 (BELT.V0 / V1 / GROWTH / V_MAX). */
+export function beltSpeed(r: number, level: FactoryLevel = LEVELS[1]): number {
+   if (r <= 0) return level.v0;
+   return Math.min(level.vMax, level.v1 * Math.pow(level.growth, r - 1));
 }
 
 /** Points for an installed part with `combo` clean installs before it. */
@@ -168,7 +230,7 @@ export interface Part {
    z: number;
 }
 
-export type EventKind = "spawn" | "install" | "robot" | "wrong" | "strike" | "scrapFault" | "scrapClean" | "missed" | "zap" | "drop";
+export type EventKind = "spawn" | "install" | "robot" | "wrong" | "strike" | "scrapFault" | "scrapClean" | "missed" | "zap" | "drop" | "sort" | "misbin";
 
 export interface RunEvent {
    kind: EventKind;
@@ -193,12 +255,19 @@ export interface FrameInput {
    scrap: boolean;
    /** the part locked by the press (uid), or -1: the grab-zone part nearest the claw */
    target: number;
+   /**
+    * Sorter levels: the bin to drop the grab-zone part into (0..3), or -1 / omitted.
+    * Assembly levels ignore it. Keyboard digits and a bin tap both set this on the same frame.
+    */
+   bin?: number;
 }
 
 export const NO_INPUT: Readonly<FrameInput> = { grab: false, scrap: false, target: -1 };
 
 export interface Run {
    seed: number;
+   /** the shift this run plays (level 1 when createRun is called with a seed only) */
+   level: FactoryLevel;
    rng: RngState;
    t: number;
    over: boolean;
@@ -234,6 +303,10 @@ export interface Run {
    allowedCount: number;
    /** s since the last robot was completed (Infinity before the first) */
    walkT: number;
+   /** sorter: arc length the belt has advanced since t = 0 */
+   beltTravel: number;
+   /** sorter: belt travel at which the next part appears at s = 0 */
+   nextSpawnTravel: number;
    events: RunEvent[];
    eventCount: number;
 }
@@ -251,7 +324,7 @@ function blankEvent(): RunEvent {
    return { kind: "spawn", x: 0, y: 0, z: 0, points: 0, uid: -1, part: 0, shape: 0, colour: 0, slot: 0, needed: false, faulty: false, t: 0 };
 }
 
-export function createRun(seed: number): Run {
+export function createRun(seed: number, level: FactoryLevel = LEVELS[1]): Run {
    const s = seed >>> 0;
    let total = 0;
    const robotStart = new Int16Array(MAX_ROBOTS + 1);
@@ -281,6 +354,7 @@ export function createRun(seed: number): Run {
    }
    const run: Run = {
       seed: s,
+      level,
       rng: { s },
       t: 0,
       over: false,
@@ -310,14 +384,28 @@ export function createRun(seed: number): Run {
       allowed: new Int8Array(16),
       allowedCount: 0,
       walkT: Infinity,
+      beltTravel: 0,
+      nextSpawnTravel: 0,
       events: Array.from({ length: EVENT_CAP }, blankEvent),
       eventCount: 0,
    };
    rebuildAllowed(run);
-   // needed part 1 is already on the belt when play starts
-   spawnPart(run, 0, stepKind[0], stepColour[0], false, true, false, 0, STREAM.FIRST_S);
+   if (level.sorter) {
+      // the first part is already on the belt; the next one spawns once the gap has opened
+      run.nextSpawnTravel = SORTER.GAP - STREAM.FIRST_S;
+      const bin = sorterRoll(run);
+      const spec = SORT_BINS[bin];
+      spawnPart(run, 0, spec.kind, spec.colour, false, true, false, bin, STREAM.FIRST_S);
+   } else {
+      // needed part 1 is already on the belt when play starts
+      spawnPart(run, 0, stepKind[0], stepColour[0], false, true, false, 0, STREAM.FIRST_S);
+   }
    run.eventCount = 0;
    return run;
+}
+
+function sorterRoll(run: Run): number {
+   return Math.min(SORTER.BINS - 1, Math.floor(rngNext(run.rng) * SORTER.BINS));
 }
 
 // ---------- queries ----------
@@ -331,8 +419,9 @@ export function inZone(part: Part): boolean {
    return part.active && !part.passed && part.sEq >= BELT.GRAB_MIN && part.sEq <= BELT.GRAB_MAX;
 }
 
-/** Would grabbing this part install it now (the belt's highlight ring)? */
+/** Would grabbing this part install it now (the belt's highlight ring)? Sorter parts are not blueprint steps. */
 export function isWanted(run: Run, part: Part): boolean {
+   if (run.level.sorter) return false;
    return part.active && !part.faulty && part.kind === currentKind(run) && part.colour === currentColour(run);
 }
 
@@ -442,12 +531,13 @@ function spawnOther(run: Run, slotT: number, v: number): void {
    const pick = rngNext(run.rng);
    const roll = rngNext(run.rng);
    const pair = run.allowed[Math.min(run.allowedCount - 1, Math.floor(pick * run.allowedCount))];
+   const level = run.level;
    const late = slotT >= STREAM.LATE_T;
-   const gap = late ? STREAM.FAULT_MIN_INTERVAL_LATE : STREAM.FAULT_MIN_INTERVAL;
-   const faulty = roll < STREAM.FAULTY_CHANCE && slotT >= STREAM.FIRST_FAULT_MIN_T && slotT - run.lastFaultT >= gap;
+   const gap = late ? STREAM.FAULT_MIN_INTERVAL_LATE : level.faultMinInterval;
+   const faulty = roll < level.faultyChance && slotT >= STREAM.FIRST_FAULT_MIN_T && slotT - run.lastFaultT >= gap;
    if (faulty) run.lastFaultT = slotT;
    let feeder = false;
-   if (slotT >= BELT.FEEDER_T) feeder = run.lateOthers++ % 2 === 0;
+   if (slotT >= level.feederT) feeder = run.lateOthers++ % 2 === 0;
    spawnPart(run, slotT, pair >> 2, pair & 3, faulty, false, feeder, -1, v * (run.t - slotT));
 }
 
@@ -493,6 +583,7 @@ function grab(run: Run, part: Part): void {
    if (!isWanted(run, part)) {
       run.wrongGrabs++;
       run.combo = 0;
+      run.stepIndex = 0;
       part.hop = CLAW.BOUNCE;
       lock(run, CLAW.WRONG_LOCKOUT, "wrong");
       pushEvent(run, "wrong", part);
@@ -540,7 +631,11 @@ function advanceParts(run: Run, ds: number, dt: number): void {
       placeOn(p, s);
       if (!p.passed && p.sEq > BELT.GRAB_MAX) {
          p.passed = true;
-         if (p.faulty) {
+         if (run.level.sorter) {
+            run.combo = 0;
+            run.neededMissed++;
+            pushEvent(run, "missed", p);
+         } else if (p.faulty) {
             run.combo = 0;
             lock(run, CLAW.ZAP_LOCKOUT, "zap");
             pushEvent(run, "zap", p);
@@ -557,17 +652,126 @@ function advanceParts(run: Run, ds: number, dt: number): void {
    }
 }
 
+/** m/s of the sorter belt at time t (linear from sortV0 to sortV1). */
+export function sorterSpeed(t: number, level: FactoryLevel): number {
+   const u = Math.min(1, Math.max(0, t / level.duration));
+   return level.sortV0 + (level.sortV1 - level.sortV0) * u;
+}
+
+/** Arc length the sorter belt covers from t0 to t1 (the integral of sorterSpeed). */
+export function sorterBeltDistance(t0: number, t1: number, level: FactoryLevel): number {
+   const span = level.duration;
+   const a = level.sortV0;
+   const b = (level.sortV1 - level.sortV0) / span;
+   const u0 = Math.min(span, Math.max(0, t0));
+   const u1 = Math.min(span, Math.max(0, t1));
+   return a * (u1 - u0) + 0.5 * b * (u1 * u1 - u0 * u0);
+}
+
+/** Time (s) at which the sorter belt has covered `distance` metres since t = 0. */
+export function sorterTimeToCover(distance: number, level: FactoryLevel): number {
+   if (distance <= 0) return 0;
+   const a = level.sortV0;
+   const b = (level.sortV1 - level.sortV0) / level.duration;
+   const disc = a * a + 2 * b * distance;
+   return (-a + Math.sqrt(disc)) / b;
+}
+
+/**
+ * How many sorter parts can be dropped by time t: each one that reaches the grab zone at least
+ * ACT_MARGIN before the shift ends. That margin is longer than a frame, so 30 Hz and 144 Hz
+ * sort the same set.
+ */
+export function sorterMaxSorts(t: number, level: FactoryLevel): number {
+   if (!level.sorter || t <= 0) return 0;
+   const deadline = Math.min(t, level.duration - SORTER.ACT_MARGIN);
+   if (deadline < 0) return 0;
+   let count = 0;
+   const first = sorterTimeToCover(BELT.GRAB_MIN - STREAM.FIRST_S, level);
+   if (first <= deadline) count++;
+   let spawnTravel = SORTER.GAP - STREAM.FIRST_S;
+   for (let guard = 0; guard < 400; guard++) {
+      const spawnT = sorterTimeToCover(spawnTravel, level);
+      const enterT = sorterTimeToCover(spawnTravel + BELT.GRAB_MIN, level);
+      if (!(spawnT < level.duration) || !(enterT <= deadline)) break;
+      count++;
+      spawnTravel += SORTER.GAP;
+   }
+   return count;
+}
+
+function sortInto(run: Run, part: Part, bin: number): void {
+   const spec = SORT_BINS[bin];
+   const match = part.kind === spec.kind && part.colour === spec.colour;
+   part.active = false;
+   if (match) {
+      const points = partPoints(run.combo);
+      run.combo = Math.min(SCORING.COMBO_MAX, run.combo + 1);
+      run.score += points;
+      run.partsInstalled++;
+      pushEvent(run, "sort", part, points, bin);
+      return;
+   }
+   run.wrongGrabs++;
+   run.combo = 0;
+   const cost = Math.min(SORTER.WRONG_COST, run.score);
+   run.score -= cost;
+   lock(run, CLAW.WRONG_LOCKOUT, "wrong");
+   pushEvent(run, "misbin", part, -cost, bin);
+   if (run.wrongGrabs >= SORTER.WRONG_LIMIT) {
+      run.over = true;
+      run.outcome = "lose";
+   }
+}
+
+/** One sorter frame. Input is the bin chosen this frame (keyboard digit or a bin tap — same moment). */
+function stepSorter(run: Run, input: Readonly<FrameInput>, step: number): void {
+   const level = run.level;
+   run.lockout = Math.max(0, run.lockout - step);
+   if (run.lockout === 0) run.lockoutKind = "none";
+   const bin = input.bin ?? -1;
+   if (run.lockout <= 0 && bin >= 0 && bin < SORTER.BINS) {
+      const part = pickTarget(run, -1);
+      if (part) sortInto(run, part, bin);
+   }
+   const t0 = run.t;
+   const t1 = t0 + step;
+   const ds = sorterBeltDistance(t0, t1, level);
+   advanceParts(run, ds, step);
+   run.t = t1;
+   run.beltTravel += ds;
+   // the fastest belt still needs > 0.5 s to open GAP metres, so one frame (≤ 0.05 s) releases at most one part
+   if (run.beltTravel + 1e-9 >= run.nextSpawnTravel) {
+      const enterT = sorterTimeToCover(run.nextSpawnTravel + BELT.GRAB_MIN, level);
+      const spawnT = sorterTimeToCover(run.nextSpawnTravel, level);
+      if (spawnT < level.duration && enterT <= level.duration - SORTER.ACT_MARGIN) {
+         const overshoot = run.beltTravel - run.nextSpawnTravel;
+         const rolled = sorterRoll(run);
+         const spec = SORT_BINS[rolled];
+         spawnPart(run, run.t, spec.kind, spec.colour, false, true, false, rolled, Math.max(0, overshoot));
+         run.nextSpawnTravel += SORTER.GAP;
+      }
+   }
+   if (run.t >= level.duration - 1e-9) finish(run);
+}
+
 /**
  * One frame of play: the press (against what the player saw), then the belts, then the spawn
  * lattice, then the clock. `dt` is useRunFrame's played time; the last step is clamped to the
- * shift's 90 s. Events of this frame are in run.events[0 .. eventCount).
+ * shift (level 1: 90 s). Events of this frame are in run.events[0 .. eventCount).
+ * Sorter levels take the bin path and return; the assembly body below is level 1-3.
  */
 export function stepRun(run: Run, input: Readonly<FrameInput>, dt: number): void {
    run.eventCount = 0;
    if (run.over) return;
-   const step = Math.min(dt, SHIFT.DURATION - run.t);
+   const level = run.level;
+   const step = Math.min(dt, level.duration - run.t);
    if (!(step > 0)) {
       finish(run);
+      return;
+   }
+   if (level.sorter) {
+      stepSorter(run, input, step);
       return;
    }
    run.lockout = Math.max(0, run.lockout - step);
@@ -584,12 +788,12 @@ export function stepRun(run: Run, input: Readonly<FrameInput>, dt: number): void
    }
    if (run.over) return;
 
-   const v = beltSpeed(run.robot);
+   const v = beltSpeed(run.robot, level);
    advanceParts(run, v * step, step);
    run.t += step;
-   // at most one slot of each kind per frame (dt <= 0.05 s < HALF), in time order
-   const needT = run.neededSlot * STREAM.PERIOD;
-   const otherT = run.otherSlot * STREAM.PERIOD + STREAM.HALF;
+   // at most one slot of each kind per frame (dt <= 0.05 s < half, and half is at least 0.7), in time order
+   const needT = run.neededSlot * level.period;
+   const otherT = run.otherSlot * level.period + level.half;
    if (otherT <= needT) {
       if (otherT <= run.t + 1e-9) {
          spawnOther(run, otherT, v);
@@ -609,18 +813,20 @@ export function stepRun(run: Run, input: Readonly<FrameInput>, dt: number): void
          run.otherSlot++;
       }
    }
-   if (run.t >= SHIFT.DURATION - 1e-9) finish(run);
+   if (run.t >= level.duration - 1e-9) finish(run);
 }
 
 function finish(run: Run): void {
    if (run.over) return;
-   run.t = SHIFT.DURATION;
+   const level = run.level;
+   run.t = level.duration;
    run.over = true;
-   run.outcome = run.robot >= SHIFT.WIN_QUOTA ? "win" : "lose";
+   const cleared = level.sorter ? run.partsInstalled >= level.sortQuota : run.robot >= level.winQuota;
+   run.outcome = cleared ? "win" : "lose";
 }
 
 /** Seconds left on the shift clock. */
-export const timeLeft = (run: Run): number => Math.max(0, SHIFT.DURATION - run.t);
+export const timeLeft = (run: Run): number => Math.max(0, run.level.duration - run.t);
 
 /** The store calls a frame makes (the arcade store's actions; rules.test.ts passes a createArcadeStore()). */
 export interface StoreActions {
@@ -648,10 +854,16 @@ export const createShown = (): ShownStats => ({ robots: -1, combo: -1, time: -1 
 export function syncStore(run: Run, store: StoreActions, shown: ShownStats): void {
    for (let i = 0; i < run.eventCount; i++) {
       const e = run.events[i];
-      if (e.kind === "install" || e.kind === "robot") store.addScore(e.points);
-      else if (e.kind === "strike") store.loseLife();
+      if (e.kind === "install" || e.kind === "robot" || e.kind === "sort" || e.kind === "misbin") {
+         if (e.points !== 0) store.addScore(e.points);
+      } else if (e.kind === "strike") store.loseLife();
    }
-   if (shown.robots !== run.robot) {
+   if (run.level.sorter) {
+      if (shown.robots !== run.partsInstalled) {
+         shown.robots = run.partsInstalled;
+         store.setStat("sorted", run.partsInstalled);
+      }
+   } else if (shown.robots !== run.robot) {
       shown.robots = run.robot;
       store.setStat("robots", run.robot);
       store.setLevel(run.robot + 1);
@@ -707,18 +919,36 @@ export function robotsFor(m: number): number {
    return r;
 }
 
-/** The most needed parts that can reach the grab zone by time t (s): the lattice at V_MAX. */
-export function maxInstalls(t: number): number {
-   const first = (BELT.GRAB_MIN - STREAM.FIRST_S) / BELT.V0;
+/** The most needed parts that can reach the grab zone by time t (s): the lattice at the level's top speed. */
+export function maxInstalls(t: number, level: FactoryLevel = LEVELS[1]): number {
+   const first = (BELT.GRAB_MIN - STREAM.FIRST_S) / level.v0;
    if (t < first) return 0;
-   const travel = BELT.GRAB_MIN / BELT.V_MAX;
-   return 1 + Math.max(0, Math.floor((t - travel) / STREAM.PERIOD + 1e-9));
+   const travel = BELT.GRAB_MIN / level.vMax;
+   return 1 + Math.max(0, Math.floor((t - travel) / level.period + 1e-9));
 }
 
-/** The 3rd faulty part never reaches the claw before this (s): the earliest a run can end. */
+/**
+ * The 3rd faulty part never reaches the claw before this (s): the earliest a run can end.
+ * Level 1 is the module constant below (rules.test.ts pins 10.331).
+ */
+/** When sorter part `index` (0-based) reaches the grab zone, if it is released at all. */
+export function sorterPartEnter(index: number, level: FactoryLevel): number {
+   const distance = index === 0
+      ? BELT.GRAB_MIN - STREAM.FIRST_S
+      : SORTER.GAP - STREAM.FIRST_S + (index - 1) * SORTER.GAP + BELT.GRAB_MIN;
+   return sorterTimeToCover(distance, level);
+}
+
+export function earliestLossS(level: FactoryLevel = LEVELS[1]): number {
+   // twelve wrong bins, each taken the moment it enters: the soonest a sorter run can end
+   if (level.sorter) return sorterPartEnter(SORTER.WRONG_LIMIT - 1, level);
+   return STREAM.FIRST_FAULT_MIN_T + 2 * level.faultMinInterval + BELT.GRAB_MIN / level.vMax;
+}
+
+/** Level 1's earliest loss (s). Kept as its own constant so the existing proof stays literal. */
 export const EARLIEST_LOSS_S = STREAM.FIRST_FAULT_MIN_T + 2 * STREAM.FAULT_MIN_INTERVAL + BELT.GRAB_MIN / BELT.V_MAX;
 
-/** Proposed tight limits (Claude sets meta.ts + arcade-games.json at go-live). */
+/** Proposed tight limits for level 1 (Claude sets meta.scoring + arcade-games.json at merge). */
 export const PROPOSED_LIMITS: ScoringRules = {
    kind: "points",
    maxScore: 4750,
@@ -730,6 +960,30 @@ export const PROPOSED_LIMITS: ScoringRules = {
    display: "int",
 };
 
+const proposed = (
+   maxScore: number,
+   minDurationMs: number,
+   maxDurationMs: number,
+   maxPointsPerSec: number,
+   base = PROPOSED_LIMITS.base,
+): ScoringRules => ({ ...PROPOSED_LIMITS, maxScore, minDurationMs, maxDurationMs, base, maxPointsPerSec });
+
+/**
+ * One proof per level (README "Levels"). Level 1 is PROPOSED_LIMITS. Claude copies levels 2-5 into
+ * meta.ts (already there) and arcade-games.json at merge; level 1's meta.scoring stays the
+ * provisional 6000 set until that copy.
+ * - L2/L3: M(120) = 75, R = 16, perfectScore = 6140. Same period and V_MAX as L1, so B(t) <= 50 t + 264.
+ * - L4 sorter: 137 sorts, perfectScore = 5420. Peak rate 2.90/1.95*40 = 59.5 <= 62. The shift is the only end (120 s).
+ * - L5 sorter: 153 sorts, perfectScore = 6060. Peak rate 3.25/1.95*40 = 66.7 <= 70.
+ */
+export const PROPOSED_LEVEL_LIMITS: Record<LevelId, ScoringRules> = {
+   1: PROPOSED_LIMITS,
+   2: proposed(6370, 10_000, 122_000, 52),
+   3: proposed(6370, 10_000, 122_000, 52),
+   4: proposed(5640, 13_300, 122_000, 62, 120),
+   5: proposed(6310, 11_800, 122_000, 70, 120),
+};
+
 export function withinServerLimits(score: number, durationMs: number, rules: ScoringRules = PROPOSED_LIMITS): boolean {
    return fitsLimits(score, durationMs, rules);
 }
@@ -737,3 +991,4 @@ export function withinServerLimits(score: number, durationMs: number, rules: Sco
 export function capScore(score: number, durationMs: number, rules: ScoringRules = PROPOSED_LIMITS): number {
    return capToLimits(score, durationMs, rules);
 }
+

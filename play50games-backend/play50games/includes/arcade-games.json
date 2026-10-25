@@ -1,5 +1,5 @@
 {
-  "version": 4,
+  "version": 5,
   "games": {
     "robot-collector": {
       "title": "Robot Collector",
@@ -26,7 +26,14 @@
       "max_duration_ms": 93000,
       "base": 0,
       "max_pps": 28,
-      "enabled": true
+      "enabled": true,
+      "levels": [
+        { "title": "Fruit Catch", "max_score": 2500, "min_duration_ms": 9500, "max_duration_ms": 93000, "base": 0, "max_pps": 28 },
+        { "title": "Snack Catch", "max_score": 2400, "min_duration_ms": 8620, "max_duration_ms": 123000, "base": 0, "max_pps": 89 },
+        { "title": "Fast Food Mix", "max_score": 3150, "min_duration_ms": 7890, "max_duration_ms": 153000, "base": 0, "max_pps": 97 },
+        { "title": "Speed Kitchen", "max_score": 3910, "min_duration_ms": 7940, "max_duration_ms": 183000, "base": 0, "max_pps": 109 },
+        { "title": "Master Catch", "max_score": 4150, "min_duration_ms": 7270, "max_duration_ms": 183000, "base": 0, "max_pps": 99 }
+      ]
     },
     "office-escape": {
       "title": "Office Escape",
@@ -76,7 +83,14 @@
       "max_duration_ms": 1800000,
       "base": 0,
       "max_pps": 11,
-      "enabled": true
+      "enabled": true,
+      "levels": [
+        { "title": "Training Tower", "max_score": 19000, "min_duration_ms": 3000, "max_duration_ms": 1800000, "base": 0, "max_pps": 11 },
+        { "title": "Stone Tower", "max_score": 19000, "min_duration_ms": 3000, "max_duration_ms": 1800000, "base": 0, "max_pps": 11 },
+        { "title": "Clock Tower", "max_score": 19350, "min_duration_ms": 3000, "max_duration_ms": 1800000, "base": 0, "max_pps": 13 },
+        { "title": "Storm Tower", "max_score": 19850, "min_duration_ms": 3000, "max_duration_ms": 1800000, "base": 0, "max_pps": 18 },
+        { "title": "Sky Tower", "max_score": 20200, "min_duration_ms": 3000, "max_duration_ms": 1800000, "base": 0, "max_pps": 19 }
+      ]
     },
     "clean-city": {
       "title": "Clean the City",
@@ -156,12 +170,12 @@
     "museum-guard": {
       "title": "Museum Guard",
       "kind": "points",
-      "max_score": 3900,
-      "min_duration_ms": 10000,
+      "max_score": 2050,
+      "min_duration_ms": 12000,
       "max_duration_ms": 92000,
-      "base": 3900,
-      "max_pps": 3900,
-      "enabled": false
+      "base": 0,
+      "max_pps": 25,
+      "enabled": true
     },
     "luggage-rush": {
       "title": "Airport Luggage Rush",
@@ -211,7 +225,14 @@
       "max_duration_ms": 92000,
       "base": 600,
       "max_pps": 190,
-      "enabled": false
+      "enabled": false,
+      "levels": [
+        { "title": "Snow Yard", "max_score": 2550, "min_duration_ms": 10000, "max_duration_ms": 92000, "base": 600, "max_pps": 190 },
+        { "title": "Frozen Park", "max_score": 2550, "min_duration_ms": 10000, "max_duration_ms": 92000, "base": 600, "max_pps": 190 },
+        { "title": "Snow Fort", "max_score": 2550, "min_duration_ms": 8000, "max_duration_ms": 92000, "base": 600, "max_pps": 230 },
+        { "title": "Ice Village", "max_score": 2550, "min_duration_ms": 8000, "max_duration_ms": 92000, "base": 600, "max_pps": 230 },
+        { "title": "Championship Arena", "max_score": 2550, "min_duration_ms": 5000, "max_duration_ms": 92000, "base": 600, "max_pps": 348 }
+      ]
     },
     "ghost-vacuum": {
       "title": "Ghost Vacuum",
@@ -261,7 +282,14 @@
       "max_duration_ms": 92000,
       "base": 6000,
       "max_pps": 6000,
-      "enabled": false
+      "enabled": false,
+      "levels": [
+        { "title": "Basic Sort", "max_score": 6000, "min_duration_ms": 10000, "max_duration_ms": 92000, "base": 6000, "max_pps": 6000 },
+        { "title": "Shape Sort", "max_score": 6370, "min_duration_ms": 10000, "max_duration_ms": 122000, "base": 300, "max_pps": 52 },
+        { "title": "Color + Shape", "max_score": 6370, "min_duration_ms": 10000, "max_duration_ms": 122000, "base": 300, "max_pps": 52 },
+        { "title": "Fast Factory", "max_score": 5640, "min_duration_ms": 13300, "max_duration_ms": 122000, "base": 120, "max_pps": 62 },
+        { "title": "Overdrive", "max_score": 6310, "min_duration_ms": 11800, "max_duration_ms": 122000, "base": 120, "max_pps": 70 }
+      ]
     },
     "pirate-cannons": {
       "title": "Pirate Cannon Battle",
@@ -281,7 +309,7 @@
       "max_duration_ms": 140000,
       "base": 480,
       "max_pps": 56,
-      "enabled": false,
+      "enabled": true,
       "levels": [
         { "title": "Outer Wall", "max_score": 7130, "min_duration_ms": 39000, "max_duration_ms": 140000, "base": 480, "max_pps": 56 },
         { "title": "Main Gate", "max_score": 7370, "min_duration_ms": 33000, "max_duration_ms": 135000, "base": 600, "max_pps": 61 },
@@ -298,7 +326,14 @@
       "max_duration_ms": 182000,
       "base": 440,
       "max_pps": 104,
-      "enabled": false
+      "enabled": false,
+      "levels": [
+        { "title": "Snow Hill", "max_score": 18700, "min_duration_ms": 9000, "max_duration_ms": 182000, "base": 440, "max_pps": 104 },
+        { "title": "Ice Cave", "max_score": 18700, "min_duration_ms": 9000, "max_duration_ms": 182000, "base": 440, "max_pps": 104 },
+        { "title": "Frozen Lake", "max_score": 18700, "min_duration_ms": 9000, "max_duration_ms": 182000, "base": 440, "max_pps": 104 },
+        { "title": "Aurora Run", "max_score": 18700, "min_duration_ms": 9000, "max_duration_ms": 182000, "base": 440, "max_pps": 104 },
+        { "title": "Glacier Sprint", "max_score": 18700, "min_duration_ms": 9000, "max_duration_ms": 182000, "base": 440, "max_pps": 104 }
+      ]
     },
     "space-repair": {
       "title": "Space Repair Mission",
@@ -313,22 +348,29 @@
     "monster-kitchen": {
       "title": "Monster Kitchen",
       "kind": "points",
-      "max_score": 6000,
-      "min_duration_ms": 10000,
+      "max_score": 4830,
+      "min_duration_ms": 12000,
       "max_duration_ms": 92000,
-      "base": 6000,
-      "max_pps": 6000,
-      "enabled": false
+      "base": 240,
+      "max_pps": 60,
+      "enabled": false,
+      "levels": [
+        { "title": "Snack Bar", "max_score": 4830, "min_duration_ms": 12000, "max_duration_ms": 92000, "base": 240, "max_pps": 60 },
+        { "title": "Monster Caf\u00e9", "max_score": 6300, "min_duration_ms": 12000, "max_duration_ms": 102000, "base": 240, "max_pps": 62 },
+        { "title": "Busy Kitchen", "max_score": 7640, "min_duration_ms": 12000, "max_duration_ms": 110000, "base": 240, "max_pps": 70 },
+        { "title": "Dinner Rush", "max_score": 8470, "min_duration_ms": 11000, "max_duration_ms": 116000, "base": 240, "max_pps": 74 },
+        { "title": "Grand Feast", "max_score": 9600, "min_duration_ms": 11000, "max_duration_ms": 122000, "base": 240, "max_pps": 79 }
+      ]
     },
     "knight-arena": {
       "title": "Knight Training Arena",
       "kind": "points",
-      "max_score": 9000,
+      "max_score": 11600,
       "min_duration_ms": 58000,
       "max_duration_ms": 62000,
-      "base": 9000,
-      "max_pps": 9000,
-      "enabled": false
+      "base": 0,
+      "max_pps": 200,
+      "enabled": true
     },
     "zoo-escape": {
       "title": "Zoo Escape",

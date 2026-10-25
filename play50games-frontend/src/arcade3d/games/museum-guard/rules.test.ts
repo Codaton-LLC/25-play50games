@@ -2,14 +2,16 @@ import { describe, expect, it } from "vitest";
 import { createArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { capScore, withinServerLimits } from "@/arcade3d/core/limits";
 import { fixedFrames, randomFrames, simulateRun } from "@/arcade3d/core/testing/botHarness";
+import { museumGuardMeta } from "./meta";
 import {
-   BEAM, COAST, EXITS, FIXTURE_STARTS, FLASH, PHASES, PROPOSED_LIMITS, RING, SCORE, TURN_RATE, TYPES,
+   BEAM, COAST, EXITS, FIXTURE_STARTS, FLASH, PHASES, RING, SCORE, TURN_RATE, TYPES,
    beamHalf, bothExitsInCone, centreRadius, createFixture, createRun, finalScore, footHeight, inPedestalSquare,
    makePedestal, phaseIndex, pointOnPath, runScore, stepGame, wrapAngle,
    type Exhibit, type GuardInput, type Run,
 } from "./rules";
 
 const DT = 1 / 60;
+const LIMITS = museumGuardMeta.scoring;
 const ZERO: GuardInput = { moveX: 0, pointerX: null, dragYaw: null, coarse: false, flash: false };
 
 function input(partial: Partial<GuardInput> = {}): GuardInput {
@@ -434,7 +436,7 @@ function play(seed: number, hands: Hands | "camp" | "spin" | "idle" | "spam", fr
          }
          stepGame(run, live, dt, time, store.getState());
          const ms = store.getState().elapsedMs;
-         if (run.score * 1000 > PROPOSED_LIMITS.base * 1000 + PROPOSED_LIMITS.maxPointsPerSec * ms) legal = false;
+         if (run.score * 1000 > LIMITS.base * 1000 + LIMITS.maxPointsPerSec * ms) legal = false;
          if (run.score > SCORE.ceiling) legal = false;
       },
    });
@@ -442,11 +444,11 @@ function play(seed: number, hands: Hands | "camp" | "spin" | "idle" | "spam", fr
 }
 
 function limitsHold(score: number, ms: number): boolean {
-   return withinServerLimits(score, ms, PROPOSED_LIMITS) && capScore(score, ms, PROPOSED_LIMITS) === score && score <= 1950;
+   return withinServerLimits(score, ms, LIMITS) && capScore(score, ms, LIMITS) === score && score <= 1950;
 }
 
 describe("museum-guard bots", () => {
-   it("lets a perfect sweeper keep every alarm and clear 90% of the proposed max", () => {
+   it("lets a perfect sweeper keep every alarm and clear 90% of the server max", () => {
       let best = 0;
       for (let seed = 1; seed <= 10; seed++) {
          const { run, end, legal } = play(seed, "keys", fixedFrames(1000 / 60), 0);
@@ -457,7 +459,7 @@ describe("museum-guard bots", () => {
          expect(finalScore(end).score).toBe(end.score);
          if (end.score > best) best = end.score;
       }
-      expect(best).toBeGreaterThanOrEqual(Math.ceil(PROPOSED_LIMITS.maxScore * 0.9));
+      expect(best).toBeGreaterThanOrEqual(Math.ceil(LIMITS.maxScore * 0.9));
       expect(best).toBeLessThanOrEqual(1950);
    });
 
@@ -488,7 +490,7 @@ describe("museum-guard bots", () => {
       }
    });
 
-   it("keeps idle, spam and uneven frames inside the proposed limits", () => {
+   it("keeps idle, spam and uneven frames inside the server limits", () => {
       for (let seed = 1; seed <= 20; seed++) {
          for (const hands of ["idle", "spam"] as const) {
             const { end, legal } = play(seed, hands);

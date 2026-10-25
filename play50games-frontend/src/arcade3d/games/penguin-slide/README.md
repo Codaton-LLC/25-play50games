@@ -52,6 +52,24 @@ With v0=8 and a<=0.26, ignoring carve/crash slowdown gives s(t)<=8t+0.13t² (sem
 
 Proof plan: assert ds<=22*dt for every step, chunk-wide reward budgets and non-replay IDs across recycling/splits; drive fastest-reward and earliest-loss bots via `createArcadeStore`, `advanceRunClock`, `playedFrameDt` at 60/20 fps and random 4–300 ms raw frames (store clamp respected), including pause/countdown boundaries. Check every terminal result with `withinServerLimits`, and capScore unchanged. Report measured best score/duration after build; analytic maximum intentionally overcounts unreachable simultaneous rewards. Claude must update both meta.scoring and arcade-games.json together before submission can go live.
 
+## Levels
+
+One glacier, five configurations (`levels.ts`, read through `useSlideLevel`; `createRun(seed, assist, level)`). Level 1 is today's game exactly: the 2 + floor(3 q) obstacle ramp over 120 s, the uniform pick of the six forms, the 30 s starting clock (levels.test.ts replays it against today's `createRun` and `generateChunk`). The slide is endless (no win), so the plan's "reach the finish and collect N fish" is a score target (`meta.ts` `clearScore`). Not built (no support): moving obstacles (L3-4), a finish line or fish-count objective, per-level lighting (the look stays the snow day on every level).
+
+| Level | Title | Obstacles per chunk (cap 5) | Forms (straight, curve, s-bend, ramp, narrow, split) | Start clock | Clear | Limits |
+|---|---|---|---|---|---|---|
+| 1 | Snow Hill | 2, +3 by 120 s | 1, 1, 1, 1, 1, 1 | 30 s | 3000 | 18700 / 9000–182000 ms / base 440 / 104 pps |
+| 2 | Ice Cave | 3, +2 by 100 s | 1, 1, 1, 1, 1.5, 1 | 40 s | 3500 | same |
+| 3 | Frozen Lake | 3, +2 by 75 s | 0.5, 1.5, 1.5, 1, 1.5, 1 | 45 s | 4000 | same |
+| 4 | Aurora Run | 4, +1 by 60 s | 0.5, 1.5, 1.5, 1.5, 1.5, 1.5 | 50 s | 4500 | same |
+| 5 | Glacier Sprint | 4, +1 by 30 s | 0.25, 1.5, 1.5, 1.5, 1.5, 1.5 | 60 s | — | same |
+
+Difficulty only rises: at every moment of a run a level has at least the obstacles of the level before, no more straights, at least the clock (tests). The speed cap, the 12 m spacing, the reserved corridor (`validChunk`), the fish budget, the gates and the 180 s ceiling are the same everywhere, so every level stays fair and solvable. A harder level starts with more clock, so it offers at least level 1's points; every level has the same cap, so level 5 is 1× level 1.
+
+**Proof per level.** The proof above uses only: s ≤ 22 t (the 22 m/s cap), t ≤ 180 s, at most 12 fish and one ramp (≤ 100) per chunk touched, and the first obstacle 3 m into a chunk with 12 m spacing (first contact ≥ 59.05 m, three contacts ≥ 83.05 m, ramp + two contacts ≥ 71.05 m). A level changes the obstacle count (≤ 5 per chunk, still 12 m apart from 3 m in; more obstacles cannot bring a contact earlier than the first slot), the form mix (every form already counted: ≤ 1 ramp per chunk) and the starting clock (≥ 30 s, so a time-up is no earlier). So for every level: score ≤ 3960 + 8040 + 6700 = 18700, score ≤ 102.667 t + 220 < 440 + 104 t, loss ≥ 9.87 s, time-up ≥ 30 s, end ≤ 180 s: **18700 / 9000–182000 ms / 440 / 104** on all five (`PROPOSED_LEVEL_LIMITS`). levels.test.ts checks the proof's inputs on 300 seeds × 3 times per level, and runs the human-paced, crash, spam and idle bots through the real store at 60, 20 Hz and random frames with the line checked on every frame.
+
+**Bots.** Human-paced bot (looks 0.35 s ahead, reacts 0.25 s late, wanders ±0.35 m): 60/60 seeds clear on every level, no crashes, median 9700–9860 (the analytic cap overcounts, as on level 1). Idle: at most 2352 on 1500 seeds (any level), under level 1's 3000 target. A sloppy bot (0.45 s late, ±1.6 m) loses 22 / 46 / 54 / 60 / 60 of 60 runs on levels 1-5.
+
 ## Run end
 
 - `end("lose")` immediately on third crash; `end("timeup")` when remaining hits zero or elapsed reaches 180 s. No `"win"`. Gate at exact expiry cannot rescue the run.
@@ -88,7 +106,7 @@ Penguin <=8k tris/1024 texture, fish <=1.5k/512; pine shared budget verified wit
 
 ## Files
 
-`meta.ts` (controls, scoring, dev status) · `index.tsx` (definition, always-on touch assist capability) · `rules.ts` (seeded chunks, speed, steering, hop/spin, collisions, gates, clock, scoring) · `rules.test.ts` · `assets.ts` + `assets.test.ts` (fits/belly clearance) · `Scene.tsx` (one run callback, camera, penguin, fx/audio) · `Track.tsx` (three reusable chunk slots and instances) · `Primitives.tsx` (fallbacks and procedural props) · `Hud.tsx` + `Hud.module.css` (assist/clock labels using existing CSS vars, data-arcade-safe-area) · `assets.spec.json` · `README.md` · `public/images/3d/penguin-slide.webp` · `tools/thumbs/inputs/penguin-slide.mjs`. No poses.ts needed for a solid model; no classic engine/progressStorage imports.
+`meta.ts` (controls, scoring, dev status) · `index.tsx` (definition, always-on touch assist capability) · `rules.ts` (seeded chunks, speed, steering, hop/spin, collisions, gates, clock, scoring) · `rules.test.ts` · `levels.ts` + `levels.test.ts` + `useSlideLevel.ts` (five levels) · `assets.ts` + `assets.test.ts` (fits/belly clearance) · `Scene.tsx` (one run callback, camera, penguin, fx/audio) · `Track.tsx` (three reusable chunk slots and instances) · `Primitives.tsx` (fallbacks and procedural props) · `Hud.tsx` + `Hud.module.css` (assist/clock labels using existing CSS vars, data-arcade-safe-area) · `assets.spec.json` · `README.md` · `public/images/3d/penguin-slide.webp` · `tools/thumbs/inputs/penguin-slide.mjs`. No poses.ts needed for a solid model; no classic engine/progressStorage imports.
 
 ## Test plan
 
@@ -203,3 +221,67 @@ Implemented for Claude validation; build, Vitest, browser and headless results a
 - Runtime budget: 40 normal + 20 forced-speed survival runs; 32/8/8 limits runs across 60-fps/20-fps/random frames; 256 deterministic seeds across six forms. Existing 1,000-seed boundary/reachability checks remain, plus 1,000-seed ramp coverage. Under-60-second timing needs Claude measurement.
 
 Validation: TypeScript no-emit check passed during this round; final result is in the handoff. No Vitest/build/browser command, thumbnail capture, production access, commit/push or branch change.
+
+## Look (2026-10-24)
+
+Modern-look visual polish pass following CLAUDE.md Decision 4:
+- **Palette & Lighting:** Unified `COLORS` palette in `looks.ts` providing 2-3 deliberate tones for every visual element. Core lighting preset `"snow"` with seamless fog blending into the sky horizon (`#e0f2fe`) and a vibrant daylight arctic gradient `SkyDome` (`#38bdf8` to `#e0f2fe`).
+- **Glossy Arctic Ice Track:** Refreshed canvas ice texture with caustic gradients, crystalline fracture lines, and fine specular micro-cracks. Track material updated with glossy sheen (`roughness={0.22}`, `metalness={0.06}`) and high-contrast vertex-colored snow banks.
+- **Expansive Arctic Terrain:** Replaced the flat plain quad with `<Terrain>`: an expansive rolling low-poly snowfield (`360 m x 400 m`) with vertex-colored snow shading (sunlit crests, soft snow, cool shadow depressions) flanking the track corridor, backed by a deep continuous ground plane (`600 m x 600 m`). Tested and guaranteed to eliminate any horizon gaps or voids across all screen aspect ratios (1280x800, 390x844, 844x390).
+- **Instanced Surroundings (`<Decor>`):** Scenic arctic landscape outside the active play bounds:
+  - Faceted ice spires (`<Instanced>`, `COLORS.spireBody`)
+  - Soft rolling snow drifts (`<Instanced>`, `COLORS.snowSoft`)
+  - Arctic slate rocks with snowy caps (`<Instanced>`, 2 tones: `COLORS.rockFace` + `COLORS.rockSnow`)
+  - Distant majestic glacier ridges (`<Instanced>`, `COLORS.glacierIce`)
+  - Horizon mountain peaks with snow caps (`<Instanced>`, 2 tones: `COLORS.mountainRock` + `COLORS.mountainPeak`)
+  - Drifting high arctic clouds (`<DynamicInstanced>`, `COLORS.cloud`, animated on pause-safe game clock)
+  - All decor spots mathematically verified in `decor.test.ts` to lie strictly outside `PLAY_BOUNDS` and never occlude the play area from the fitted camera at 1280x800, 390x844, and 844x390.
+- **Code-Made Stand-in Polish:**
+  - Faceted crystalline ice block obstacle with deep internal refraction and vivid coral warning spurs (`COLORS.iceBlock`, `COLORS.iceBlockShade`, `COLORS.iceBlockCoral`) for immediate hazard readability.
+  - 3-tone crevasse crack: deep black void abyss, sharp cyan ice lip, and coral hazard rim (`COLORS.crackAbyss`, `COLORS.crackIceLip`, `COLORS.crackCoralRim`).
+  - Bevelled kicker launch ramp with directional chevrons on runway and frosted side rails.
+  - Pylon gate posts with glowing mint indicator rings and snow-capped footings.
+  - Refined penguin, fish, pine, and flag fallbacks with 2-3 harmonious tones.
+- **Juicy Feedback (Core FX only):**
+  - Continuous snow spray behind the sliding penguin belly when cruising at speed.
+  - Responsive carving spray when steering sharply.
+  - Sparkling pickup bursts on fish collection.
+  - Launch puff bursts on ramp launches and confetti celebration on spin trick landings.
+  - Splash burst and camera shake on obstacle collision.
+
+### Draw-Call Estimate
+
+| Component | Draw Calls | Notes |
+|---|---|---|
+| `SkyDome` | 1 | Single background sphere |
+| `SnowFall` | 1 | Point particle system |
+| `Terrain` (rolling snowfield + ground base) | 2 | Low-poly vertex-colored mesh + backing plane |
+| Track glacier (3 chunk meshes) | 3 | Static mesh per resident chunk slot |
+| Fish trails pool (`<DynamicInstancedModel>`) | 1 | Shared GLB or multi-piece fallback |
+| Pine banks pool (`<DynamicInstancedModel>`) | 2 | Shared GLB or 2-draw-call primitive fallback |
+| Time flags pool (`<DynamicInstancedModel>`) | 1 | Shared GLB |
+| Ice blocks obstacle pool (`<DynamicInstanced>`) | 2 | Faceted body + coral warning facets |
+| Snowmen obstacle pool (`<DynamicInstancedModel>`) | 1 | Shared snowman GLB |
+| Crevasse cracks pool (`<DynamicInstanced>`) | 2 | Deep abyss + ice lip / coral rim |
+| Spin kicker ramps pool (`<DynamicInstanced>`) | 2 | Runway wedge + frosted guide rails |
+| Gate posts pool (`<DynamicInstanced>`) | 2 | Pylon body + glowing mint indicator ring |
+| Penguin model / fallback + `BlobShadow` | 2–4 | Model GLB / multi-part primitive + shadow |
+| Decor ice spires (`<Instanced>`) | 1 | Faceted crystalline obelisks |
+| Decor snow drifts (`<Instanced>`) | 1 | Soft rolling snow mounds |
+| Decor arctic rocks (`<Instanced>`) | 2 | Slate base + snow cap |
+| Decor distant glaciers (`<Instanced>`) | 1 | Far-distance glacier ridges |
+| Decor horizon mountains (`<Instanced>`) | 2 | Distant alpine rock + snow peaks |
+| Decor drifting clouds (`<DynamicInstanced>`) | 1 | High arctic clouds |
+| Active FX pools & score sprites | 4–6 | Sparkle, snow, puff, confetti, splash, score |
+| **Total Estimated Draw Calls** | **34–40** | **Well below 60 cap (and 50 target)** |
+
+## Ground and scenery perf (2026-10-25, `claude/penguin-terrain-perf`)
+
+- **Ground** (`ground.ts` `fillStrip`, drawn by `Terrain.tsx`): one strip per generated chunk (25 rows × 15 columns, ±58 m across the corridor), in the track's own world coordinates under the same transform as the track (`trackFrame`). A strip is refilled in place only when the run generates a new chunk (every 60 m); a frame only moves one group. No per-frame allocation, no `computeVertexNormals` (the material is flat-shaded). The surface is the one `createTerrainSampler` describes (flat 0.35 m under the track within 5.2 m of the corridor, then 0.05 m/m down, a world-anchored roll that only dips); on a split chunk the lower branch sets the height. The old view-space grid was rebuilt from scratch every 0.4 m of travel (about every frame at speed).
+- **Side scenery** (`Decor.tsx` `placeScenery`): every drift, spire and rock spot of `looks.ts` keeps its lateral offset and is laid along the track every 75 m in 3 copies (`SCENERY`), on the snow, turned with the track. A copy keeps its track distance as the penguin slides past (it scrolls like the trees) and is recycled one period ahead once it is 15 m behind. Fixed pools (`DynamicInstanced`, rock + snow cap as two parts of one pool), scratch objects only. Glaciers, mountains and clouds stay on the horizon (they are far enough not to scroll).
+- Tests: `ground.test.ts` (window and recycling of every copy, a drawn rock comes nearer by the distance slid, the pool covers the stretch ahead after any distance, scenery on the snow and beside the corridor, strips under the track and refilled in place, the snow right under the penguin through the track transform).
+- Perf (flagged build, headless Chrome, `__arcadePerf` over 600 samples): desk p95 16.8 ms, max 21 ms (was 16.8 / 33); p390 at 4× CPU p95 17.6 ms, max 75 ms (was 18.2 / 67); land p95 16.8 ms, max 37 ms; 30-39 draw calls.
+
+## Horizon line fix (2026-10-25, `claude/penguin-horizon-line`)
+
+A thin grey line sometimes crossed the snow on the right horizon (desk). Causes and fixes: the backing plane was tilted up 0.06 m/m ahead while the glacier falls, so it poked through the far snow (now flat, 40 m down, unlit fog colour, `BASE_PLANE_Y`); the ground ended at ±58 m, inside the fog's far end (camera.tsx sets it to the penguin's depth + 46 m), so its edge showed (now ±160 m); and a wide quad could be drawn in two tones split along its diagonal, with the roll bending it (now one tone per quad, and the roll fades out 25 m outside the corridor). Tests in `ground.test.ts`; no line in 30 desk frames, land and p390 after the fix.

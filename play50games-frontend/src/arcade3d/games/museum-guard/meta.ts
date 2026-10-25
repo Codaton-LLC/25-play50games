@@ -1,14 +1,14 @@
 import type { ArcadeGameMeta } from "@/arcade3d/types";
 
 // Plain data only (server-safe). scoring must match WP includes/arcade-games.json.
-// Provisional limits (docs/arcade-expansion/02 §C.4): set for real in the game's "assets + limits" PR.
+// Proven limits: README "Server limits and why they hold" and the rules.test.ts bots.
 export const museumGuardMeta: ArcadeGameMeta = {
    slug: "museum-guard",
    title: "Museum Guard",
    tagline: "Statues only move when you look away.",
    description: "You are the night guard of a toy museum whose statues sneak off their pedestals whenever your flashlight looks away.",
    order: 12,
-   status: "dev",
+   status: "live",
    collection: "adventure",
    difficulty: 2,
    orientation: "any",
@@ -19,11 +19,11 @@ export const museumGuardMeta: ArcadeGameMeta = {
    },
    scoring: {
       kind: "points",
-      maxScore: 3900,
-      minDurationMs: 10000,
+      maxScore: 2050,
+      minDurationMs: 12000,
       maxDurationMs: 92000,
-      base: 3900,
-      maxPointsPerSec: 3900,
+      base: 0,
+      maxPointsPerSec: 25,
       unitLabel: "pts",
       display: "int",
    },

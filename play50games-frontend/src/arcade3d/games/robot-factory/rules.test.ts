@@ -63,7 +63,7 @@ describe("robot-factory tuning", () => {
          MAX_PARTS: 8, MIN_PART_GAP: 0.95, PERIOD: 1.6, HALF: 0.8, FIRST_S: 0.72, FAULTY_CHANCE: 0.18,
          FIRST_FAULT_MIN_T: 2.6, FAULT_MIN_INTERVAL: 3.5, FAULT_MIN_INTERVAL_LATE: 2.5, LATE_T: 60,
       });
-      expect(CLAW).toEqual({ WRONG_LOCKOUT: 2.1, SCRAP_LOCKOUT: 1.0, FAULT_LOCKOUT: 0.5, ZAP_LOCKOUT: 0.5, BOUNCE: 0.35 });
+      expect(CLAW).toEqual({ WRONG_LOCKOUT: 1.0, SCRAP_LOCKOUT: 1.0, FAULT_LOCKOUT: 0.5, ZAP_LOCKOUT: 0.5, BOUNCE: 0.35 });
       expect(SCORING).toEqual({ PART_BASE: 20, COMBO_STEP: 4, COMBO_MAX: 5, ROBOT_BONUS: 200 });
       expect(WALK.DURATION).toBe(0.7);
       expect([CRADLE.x, CRADLE.z, WALK.TO.x, SCRAP_BIN.z, BOARD.y, BOARD.z]).toEqual([1.35, -0.45, 2.4, 0.95, 1.45, -0.95]);
@@ -117,7 +117,7 @@ describe("robot-factory actions", () => {
       expect(run.events.slice(0, run.eventCount).map((e) => e.kind)).toEqual(["install", "robot"]);
    });
 
-   it("a wrong grab bounces the part, resets the combo and locks the claw for 2.10 s", () => {
+   it("a wrong grab bounces the part, resets the combo and blueprint step, and locks the claw for 1.00 s", () => {
       const run = quietRun(5);
       stepRun(run, input(true, false, wanted(run).uid), DT);
       const part = unwanted(run);
@@ -125,15 +125,17 @@ describe("robot-factory actions", () => {
       expect(part.active).toBe(true);
       expect(part.hop).toBeGreaterThan(0);
       expect(run.combo).toBe(0);
-      expect(run.lockout).toBeCloseTo(2.1, 9);
+      expect(run.stepIndex).toBe(0);
+      expect(run.lockout).toBeCloseTo(CLAW.WRONG_LOCKOUT, 9);
       const next = wanted(run);
-      stepRun(run, input(true, false, next.uid), 2.0);
+      stepRun(run, input(true, false, next.uid), CLAW.WRONG_LOCKOUT * 0.9);
       expect(next.active).toBe(true);
       next.passed = false;
       placeAt(next, 2.5);
-      stepRun(run, input(true, false, next.uid), 0.2);
+      stepRun(run, input(true, false, next.uid), CLAW.WRONG_LOCKOUT * 0.2);
       expect(next.active).toBe(false);
       expect(run.score).toBe(40);
+      expect(run.stepIndex).toBe(1);
    });
 
    it("a grabbed faulty part is consumed: one strike, combo 0, 0.50 s lockout; the 3rd strike loses", () => {
@@ -144,8 +146,8 @@ describe("robot-factory actions", () => {
          expect(bad.active).toBe(false);
          expect(run.strikes).toBe(k);
          if (k < 3) {
-            expect(run.lockout).toBeCloseTo(0.5, 9);
-            stepRun(run, NO_INPUT, 0.5);
+            expect(run.lockout).toBeCloseTo(CLAW.FAULT_LOCKOUT, 9);
+            stepRun(run, NO_INPUT, CLAW.FAULT_LOCKOUT);
             stepRun(run, input(true, false, bad.uid), DT);
             expect(run.strikes).toBe(k);
          }
@@ -163,7 +165,7 @@ describe("robot-factory actions", () => {
       const clean = wanted(run);
       stepRun(run, input(false, true, clean.uid), DT);
       expect([clean.active, run.combo, run.cleanScraps]).toEqual([false, 0, 1]);
-      expect(run.lockout).toBeCloseTo(1.0, 9);
+      expect(run.lockout).toBeCloseTo(CLAW.SCRAP_LOCKOUT, 9);
    });
 
    it("ignores presses during a lockout and when nothing is in the grab zone", () => {
@@ -197,7 +199,7 @@ describe("robot-factory actions", () => {
       placePart(run, KIND.arm, 0, 3.69, true);
       stepRun(run, NO_INPUT, DT);
       expect(run.combo).toBe(0);
-      expect(run.lockout).toBeCloseTo(0.5 - 0, 1);
+      expect(run.lockout).toBeCloseTo(CLAW.ZAP_LOCKOUT, 1);
       expect(run.strikes).toBe(0);
       const run2 = quietRun(5);
       stepRun(run2, input(true, false, wanted(run2).uid), DT);
@@ -460,23 +462,26 @@ describe("robot-factory scoring limit proof", () => {
       expect(total / 200).toBeGreaterThan(0.6 * PERFECT);
    });
 
-   it("grabbing everything (blueprint-blind) earns at most 40 % of the oracle", () => {
+   // 1.00 s lockout + blueprint step reset (user, 2026-10-24): measured blind max 696 (15.2 %), 0 / 150 wins.
+   it("grabbing everything (blueprint-blind) earns at most 20 % of the oracle and never wins", () => {
       for (let seed = 1; seed <= 150; seed++) {
          const { end } = playStore(blindBot, seed, randomFrames(seed + 900, 0.016, 0.05));
-         expect(end.score, `seed ${seed}`).toBeLessThanOrEqual(0.4 * PERFECT);
+         expect(end.score, `seed ${seed}`).toBeLessThanOrEqual(0.2 * PERFECT);
+         expect(end.endReason, `seed ${seed}`).not.toBe("win");
          expect(withinServerLimits(end.score, end.elapsedMs)).toBe(true);
       }
    });
 
-   it("spam, mash and idle bots score low, rarely survive, and never end inside 10.331 s", () => {
-      for (const [bot, cap, maxWins, seeds] of [[spamGrabBot, 0.4, 25, 200], [mashBot, 0.4, 15, 200], [spamScrapBot, 0, 0, 100], [idleBot, 0, 0, 100]] as const) {
+   // measured: spam grab max 500 (10.9 %), mash max 1108 (24.2 %), neither wins a seed.
+   it("spam, mash and idle bots score low, never win, and never end inside 10.331 s", () => {
+      for (const [bot, cap, maxWins, seeds] of [[spamGrabBot, 0.12, 0, 200], [mashBot, 0.3, 0, 200], [spamScrapBot, 0, 0, 100], [idleBot, 0, 0, 100]] as const) {
          const scores: number[] = [];
          let wins = 0;
          for (let seed = 1; seed <= seeds; seed++) {
             const { end } = playStore(bot, seed, randomFrames(seed + 1300, 0.016, 0.05));
             scores.push(end.score);
             if (end.endReason === "win") wins++;
-            expect(end.score).toBeLessThanOrEqual(cap * PERFECT);
+            expect(end.score, `seed ${seed}`).toBeLessThanOrEqual(cap * PERFECT);
             expect(end.elapsedMs).toBeGreaterThanOrEqual(EARLIEST_LOSS_S * 1000);
             expect(withinServerLimits(end.score, end.elapsedMs)).toBe(true);
             expect(capScore(end.score, end.elapsedMs)).toBe(end.score);
@@ -485,6 +490,22 @@ describe("robot-factory scoring limit proof", () => {
          expect(scores[seeds / 2]).toBeLessThanOrEqual(0.3 * PERFECT);
          expect(wins).toBeLessThanOrEqual(maxWins);
       }
+   });
+});
+
+describe("robot-factory level 1 ignores sorter bins", () => {
+   it("a bin press does not change the assembly shift", () => {
+      const left = createRun(4);
+      const right = createRun(4);
+      for (let i = 0; i < 90; i++) {
+         const bin = i % 4;
+         stepRun(left, { grab: false, scrap: false, target: -1, bin }, 1 / 60);
+         stepRun(right, { grab: false, scrap: false, target: -1 }, 1 / 60);
+      }
+      expect(left.score).toBe(right.score);
+      expect(left.partsInstalled).toBe(right.partsInstalled);
+      expect(left.robot).toBe(right.robot);
+      expect(left.parts.map((part) => part.sEq)).toEqual(right.parts.map((part) => part.sEq));
    });
 });
 
