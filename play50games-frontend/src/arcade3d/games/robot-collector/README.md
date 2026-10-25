@@ -9,8 +9,10 @@ Owner: Claude. Slug: `robot-collector`. Game 1 of the 3D Arcade and the **refere
 | `rules.ts` | Everything that decides the outcome: map, seeded layouts, movement, pickups, scoring. Pure, no three.js/React/DOM/`Math.random`. |
 | `rules.test.ts` | Vitest for `rules.ts`, including the scoring-limit proof below (level 1). |
 | `levels.ts` / `levels.test.ts` / `rules.levels.test.ts` | The five level configs (pure data) / their declarations, worlds and per-level limit proofs / the bot sweeps per level (see "Levels"). |
+| `looks.ts` / `decor.test.ts` | The unified COLORS palette, level atmospheric themes, fog, surroundings decor layout, and occlusion verification tests. |
+| `Decor.tsx` | Instanced surroundings outside the play area (lab walls, screens, pipes, idle droids, charging stations, crates). |
 | `Scene.tsx` | The frame loop, the camera and the moving things: feeds input + dt into `rules.ts`, draws the result, reports to the store. |
-| `Primitives.tsx` | Warehouse-only look: floor, walls, crates, barrels, the stand-in robot and battery. |
+| `Primitives.tsx` | Warehouse-only look: panelled floor with light strips, plinth, outer ground, walls, crates, barrels, stand-in robot and battery. |
 | `assets.ts` / `assets.spec.json` | Models used (`ModelAsset`s) / the Hyper3D spec for models only this game generates. |
 
 ### What a new game copies from here
@@ -171,6 +173,33 @@ So 1470 is 1.4% above the best measured run, the 12.5 s minimum is 15% under the
   - A teal marker ring sits under the robot.
 - No shadow maps. Each moving object gets a `BlobShadow` (core), and the static props have baked contact shadows in the floor texture (`useCanvasTexture`, core).
 - Measured with primitives (production build, headless Chrome on a GTX 1660 Ti, 1280 × 800 and 375 × 812 / 812 × 375 touch emulation, with and without the banner): **28–29 draw calls**, 4.7k triangles, 2 textures, 60 fps. Walls, crates and barrels are instanced (`<Instanced>`, `<InstancedModel>`, core), so all crates are one draw call and all barrels four (side, lid, bottom, ridges). The battery meshes share geometries and materials.
+
+## Look (2026-10-25)
+
+Visual-only modern-look pass giving robot-collector a polished premium mobile-game look:
+- **Palette & Lighting:** Unified `COLORS` palette in `looks.ts` for a clean sci-fi robotics lab / recycling yard. Integrated core `<SkyDome>` with atmospheric gradient (`#070d1e` → `#131f37`), linear fog (`FOG.near` 35, `far` 80), and lighting presets (`indoor`, `day`, `sunset`, `night`).
+- **Floor & Panelled Ground:** Multi-panelled composite floor with soft glowing cyan LED light strips, radial charging pad at start, hazard perimeter markings, and baked contact shadows. Extended outer yard ground plane (80 × 70) ensures full view coverage with no sky or void at screen edges on desktop (1280×800) and mobile (390×844 portrait, 844×390 landscape).
+- **Deliberate Code Stand-Ins:**
+  - Robot: rounded drive pods with hubcaps, capsule torso, recessed chest plate with dynamic battery charge gauge, dome head with bevelled visor and dual glowing digital eyes, golden antenna tip.
+  - Batteries: multi-tone radiant power cell with cathode base, emerald energy core, luminescent status band, and chamfered anode contact tip.
+  - Crates & Barrels: deliberate sci-fi cargo container texture with reinforced frame, hazard stencils and corner plates; dual-tone coolant drum with ribbed containment rings and pressure valve.
+- **Surroundings Outside Play Area (`<Decor>`):** Instanced lab walls, emissive diagnostic screens, overhead conduit pipes, docked idle maintenance droids, stacked cargo crates, wall charging stations, and ground cable trays. Tested to ensure zero overlap with the play area and zero occlusion from fitted camera at 1280×800, 390×844, and 844×390.
+- **Juicy Feedback:** Integrated core `useFx` sparkle burst (`fx.burst("sparkle", pos, 16)`) and floating score (`fx.score(pos, "+100")`) on battery pickup; subtle camera shake (`fx.shake(0.06)`) on collision against obstacles or perimeter barriers. Pre-warmed on mount.
+- **Draw Call Estimate (total <= 60 budget):**
+  - SkyDome: 1
+  - Warehouse inner floor: 1
+  - Outer ground apron: 1
+  - Plinth diorama base: 1
+  - Perimeter barriers (instanced): 1
+  - Barrier trim (instanced): 1
+  - Crates (`<InstancedModel>`): 1
+  - Barrels (`<InstancedModel>`): 2–3
+  - Robot (`<HumanoidModel>` / stand-in + shadow + ring + lamp): 3–4
+  - Batteries (glow + beam + ring + model): 4
+  - Level hazards (oil + belts): 1–3
+  - Instanced Decor surroundings (walls, screens, pipes, idle bots, stations, crates, ducts): 8
+  - FxLayer (when active): 1–2
+  **Total draw calls:** ~26–32 draw calls (well under the 60 budget). No per-frame allocations; all geometries and materials disposed on unmount.
 
 ## Assets
 

@@ -1,32 +1,20 @@
 "use client";
 
 // Robot Collector scene: feeds input + dt into rules.ts every frame and draws the result.
-// Game logic lives in rules.ts (pure, tested); the warehouse look lives in Primitives.tsx.
-// This file is the part to copy for a new game:
-// - Run state is a plain object created once per run (GameShell remounts Scene for every run).
-//   The frame loop mutates it; nothing in the loop calls setState or allocates.
-// - useRunFrame changes the game: only while "playing", dt = the play time the run clock counted,
-//   and it runs before every useFrame (core FRAME_PRIORITY), so visuals draw this frame's state
-//   wherever they are mounted.
-// - Visuals (useFrame) only read the run state and animate with useGameTime() (it stops while
-//   paused), never with state.clock.elapsedTime (GameShell's pause resets it).
-// - The store is the only way out: addScore / setStat / end(reason). GameShell does the rest.
-// - Camera: useFittedView keeps the warehouse on screen and clear of the HUD, the touch controls
-//   and the cookie banner (moving the picture with a lens shift when it must); followFocus ties
-//   its follow range to CameraRig's; inputToWorld turns input with the yaw.
-// - Models: <Model asset fallback={…}> draws the GLB once it is in core/modelManifest.ts and this
-//   game's own primitive until then. The robot is a static T-pose GLB: <HumanoidModel> (core/rig)
-//   rigs it in code and useHumanoidPose drives its limbs (idle, walk/run by speed, a cheer on a win).
-// - Levels: the picked level's config comes from useLevel() (wrapped once as useRobotLevel); the
-//   run is made from it with createRun, and the scene is keyed by the level so the start card's
-//   backdrop shows the level that is picked.
-import { useRef, useState } from "react";
+// Modern look (2026-10-25):
+// - Sky dome + atmospheric gradient from core/env
+// - Sci-fi robotics yard lighting & fog from looks.ts
+// - Instanced surroundings decor outside the play area via <Decor />
+// - Juicy feedback via core/fx: sparkle burst & floating score on pickup, subtle shake on collision
+import { useEffect, useRef, useState } from "react";
 import { useFrame } from "@react-three/fiber";
 import type { Group, Mesh, MeshStandardMaterial } from "three";
 import CameraRig from "@/arcade3d/core/CameraRig";
 import { Model } from "@/arcade3d/core/assets";
 import { playSfx } from "@/arcade3d/core/audio";
 import type { AABB } from "@/arcade3d/core/collision";
+import { SkyDome } from "@/arcade3d/core/env";
+import { useFx } from "@/arcade3d/core/fx";
 import { useGameTime } from "@/arcade3d/core/gameTime";
 import { useInput } from "@/arcade3d/core/input";
 import { useLevel } from "@/arcade3d/core/level";
@@ -50,9 +38,11 @@ import { useFittedView, type FittedViewOptions } from "@/arcade3d/core/useFitted
 import { useRunFrame } from "@/arcade3d/core/useRunFrame";
 import { followFocus } from "@/arcade3d/core/view";
 import { ASSETS } from "./assets";
+import { Decor } from "./Decor";
 import { ROBOT_SCALE, robotPhaseStep } from "./gait";
 import type { RobotLevel } from "./levels";
-import { BatteryPrimitive, COLORS, HazardMarks, RobotPrimitive, WALL, Warehouse, useBatteryParts } from "./Primitives";
+import { COLORS, FOG, LEVEL_LOOKS } from "./looks";
+import { BatteryPrimitive, HazardMarks, RobotPrimitive, WALL, Warehouse, useBatteryParts } from "./Primitives";
 import {
    ARENA,
    BATTERY_POINTS,
@@ -84,14 +74,7 @@ const WAREHOUSE: AABB = {
    min: { x: -(ARENA.halfX + WALL.thickness), y: 0, z: -(ARENA.halfZ + WALL.thickness) },
    max: { x: ARENA.halfX + WALL.thickness, y: WALL.height, z: ARENA.halfZ + WALL.thickness },
 };
-/**
- * ...from every point the follow camera can look at (followFocus, with the same LOOK_AT and FOLLOW
- * as the CameraRig below), inside the screen margins (room for the HUD on top) and 8 px clear of
- * the HUD, the touch controls and the cookie banner. `shift` lets the picture move on screen, so
- * the warehouse sits above a joystick the banner lifts instead of shrinking. Landscape screens
- * look across the long side; a portrait phone turns the camera a quarter turn so the 24-unit side
- * runs up the screen.
- */
+
 const VIEW: FittedViewOptions = {
    area: WAREHOUSE,
    pitch: PITCH,
@@ -127,26 +110,21 @@ function Robot({ run, lamp }: { run: Run; lamp?: number }) {
    const [gait] = useState<Gait>(() => ({ phase: 0, amount: 0, cheer: 0, lift: 0 }));
    const [scratch] = useState(createPose);
 
-   // the GLB robot's limbs (core/rig): idle -> walk -> run with its speed, arms up on a win. The
-   // phase advances by the distance driven over the walk's own stride, so the planted foot stays put.
-   // FRAME_PRIORITY.pose: after useRunFrame moved the robot, before the useFrame below reads the lift.
+   // the GLB robot's limbs (core/rig): idle -> walk -> run with its speed, arms up on a win.
    const pose = useHumanoidPose((p) => {
       const dt = time.delta;
       const { phase, endReason } = useArcadeStore.getState();
       const v = phase === "playing" ? Math.hypot(run.robot.vx, run.robot.vz) : 0;
       gait.amount += (Math.min(1, v / ROBOT.maxSpeed) - gait.amount) * (1 - Math.exp(-12 * dt));
-      // the walk's own stride (the planted foot stays put), at most ROBOT_MAX_CADENCE strides a second (gait.ts)
       gait.phase = wrapPhase(gait.phase + robotPhaseStep(gait.amount, v, dt));
       gait.cheer += ((phase === "over" && endReason === "win" ? 1 : 0) - gait.cheer) * (1 - Math.exp(-8 * dt));
       walkPose(gait.phase, gait.amount, p);
-      // nearly still: the idle's breath and glance in the upper body (the legs keep the walk's)
       blendPoses(p, idlePose(time.now, scratch), 1 - Math.min(1, gait.amount * 5), p, POSE_MASK.upper);
       if (gait.cheer > 0.001) blendPoses(p, cheerPose(time.now, scratch), gait.cheer, p);
       gait.lift = bodyLift(p, LEGS) * SCALE;
    });
 
-   // looks only: follows the simulated robot. The GLB rises and falls with its planted foot (the
-   // walk leans its own spine); the stand-in bobs and leans with the speed as before.
+   // looks only: follows the simulated robot.
    useFrame(() => {
       const g = root.current;
       const body = rig.current;
@@ -166,7 +144,7 @@ function Robot({ run, lamp }: { run: Run; lamp?: number }) {
       else body.position.y = gait.lift;
       body.rotation.x = fallback ? 0.16 * speed : 0;
       if (antenna.current) antenna.current.rotation.x = -0.3 * speed + Math.sin(t * 11) * 0.1 * speed;
-      if (panel.current) panel.current.emissiveIntensity = 0.2 + (1.8 * progress.collected) / progress.taken.length;
+      if (panel.current) panel.current.emissiveIntensity = 0.25 + (1.8 * progress.collected) / progress.taken.length;
    });
 
    return (
@@ -175,12 +153,11 @@ function Robot({ run, lamp }: { run: Run; lamp?: number }) {
          {/* player marker: easy to spot on a small phone screen */}
          <mesh rotation-x={-Math.PI / 2} position-y={0.014}>
             <ringGeometry args={[0.6, 0.72, 32]} />
-            <meshBasicMaterial color={COLORS.robot} transparent opacity={0.75} depthWrite={false} />
+            <meshBasicMaterial color={COLORS.robot} transparent opacity={0.8} depthWrite={false} />
          </mesh>
-         {/* a night level's lamp (RobotLevel.lamp): lights the dark-grey robot and a small pool around it */}
+         {/* night level lamp */}
          {lamp ? <pointLight position={[0, 2.1, 0.4]} color={COLORS.lamp} intensity={lamp} distance={4.5} decay={1.4} /> : null}
          <group ref={rig}>
-            {/* the group above carries the body's height (gait.lift), so the model does not add it again */}
             <HumanoidModel
                asset={ASSETS.robot}
                pose={pose}
@@ -201,7 +178,6 @@ function Robot({ run, lamp }: { run: Run; lamp?: number }) {
 const POP_S = 0.45;
 const RING_S = 0.5;
 const clamp01 = (v: number) => (v < 0 ? 0 : v > 1 ? 1 : v);
-/** Overshoots a little, then settles: a "pop" for batteries that appear. */
 const easeOutBack = (k: number) => 1 + 2.70158 * (k - 1) ** 3 + 1.70158 * (k - 1) ** 2;
 
 function Batteries({ run }: { run: Run }) {
@@ -211,7 +187,6 @@ function Batteries({ run }: { run: Run }) {
    const slots = useRef<Array<Group | null>>([]);
    const bobs = useRef<Array<Group | null>>([]);
    const ring = useRef<Mesh>(null);
-   // visual bookkeeping only (the rules own the real state); times are time.now values
    const [fx] = useState(() => ({
       wave: -1,
       appearedAt: new Array<number>(layout.batteries.length).fill(0),
@@ -245,7 +220,6 @@ function Batteries({ run }: { run: Run }) {
       }
 
       parts.glowMat.opacity = 0.36 + Math.sin(t * 4) * 0.1;
-      // pickup flash: a ring that grows and fades where the battery was
       const k = (t - fx.ringAt) / RING_S;
       if (ring.current) {
          ring.current.visible = k >= 0 && k < 1;
@@ -283,32 +257,62 @@ function Batteries({ run }: { run: Run }) {
 
 // ---------- the scene ----------
 
-/** The scene of one level: the Scene below remounts it when another level is picked on the start card. */
+/** The scene of one level: remounted when another level is picked. */
 function LevelScene() {
    const view = useFittedView(VIEW);
    const input = useInput();
-   const { config, meta } = useRobotLevel();
-   // a new seed every run: GameShell remounts the Scene (and its game time) on start and retry
+   const fx = useFx();
+   const time = useGameTime();
+   const { config, meta, id } = useRobotLevel();
+   const levelLook = LEVEL_LOOKS[id] ?? LEVEL_LOOKS[1];
+   const hitCooldown = useRef(0);
+
+   // Pre-warm particle & score pools on mount so the first pickup doesn't stutter
+   useEffect(() => {
+      fx.warm("sparkle", "score");
+   }, [fx]);
+
    const [dir] = useState({ x: 0, z: 0 });
    const [run] = useState<Run>(() => {
       const next = createRun(randomSeed(), config);
-      next.robot.heading = view.yaw; // face the camera on the start pad
+      next.robot.heading = view.yaw;
       return next;
    });
 
-   // the game: move, collect, score, end. Runs only while "playing", before every visual.
+   // Movement, collision, pickups, juicy feedback, scoring
    useRunFrame((_state, dt) => {
       const { moveX, moveY } = input.current;
       inputToWorld(moveX, moveY, view.yaw, dir);
+
+      const prevX = run.robot.x;
+      const prevZ = run.robot.z;
       const got = stepRun(run, dir.x, dir.z, dt);
+
+      // Subtle feedback on collision when driving hard against obstacle/wall
+      const wantedSpeed = Math.hypot(dir.x, dir.z);
+      if (wantedSpeed > 0.4 && time.now - hitCooldown.current > 0.35) {
+         const movedDist = Math.hypot(run.robot.x - prevX, run.robot.z - prevZ);
+         if (movedDist < wantedSpeed * ROBOT.maxSpeed * dt * 0.35) {
+            hitCooldown.current = time.now;
+            fx.shake(0.06);
+         }
+      }
+
       if (got === 0) return;
       const store = useArcadeStore.getState();
       store.addScore(got * BATTERY_POINTS);
       store.setStat("batteries", run.progress.collected);
       playSfx("pickup");
 
+      // Juicy feedback: sparkle burst + floating score over pickup spot
+      const lastIndex = run.progress.taken.lastIndexOf(true);
+      if (lastIndex >= 0 && lastIndex < run.layout.batteries.length) {
+         const b = run.layout.batteries[lastIndex];
+         fx.burst("sparkle", { x: b.x, y: 0.5, z: b.z }, 16);
+         fx.score({ x: b.x, y: 0.8, z: b.z }, "+100", { color: COLORS.batteryGlow });
+      }
+
       if (isComplete(run.progress)) {
-         // the run clock ticked before this callback, so timeLeftMs/elapsedMs are this frame's
          const { timeLeftMs, elapsedMs } = useArcadeStore.getState();
          store.setScore(capScore(runScore(run.progress.taken.length, true, timeLeftMs ?? 0), elapsedMs, meta.scoring));
          store.end("win");
@@ -317,7 +321,12 @@ function LevelScene() {
 
    return (
       <>
-         {/* the camera reads run.robot, which useRunFrame already moved this frame */}
+         {/* Atmospheric gradient sky dome from core/env */}
+         <SkyDome top={levelLook.skyTop} bottom={levelLook.skyBottom} offset={0.08} exponent={0.75} />
+         {/* Atmospheric linear fog past arena bounds */}
+         <fog attach="fog" args={[levelLook.fog, FOG.near, FOG.far]} />
+
+         {/* Camera follow & fitted safe-area framing */}
          <CameraRig
             camera={{ position: view.offset, lookAt: LOOK_AT }}
             follow={run.robot}
@@ -326,9 +335,20 @@ function LevelScene() {
             shift={view.shift}
             damping={4}
          />
+
+         {/* Warehouse: diorama slab, floor with light strips, walls and props */}
          <Warehouse props={run.world.props} />
+
+         {/* Level hazards: oil patches and scrolling conveyor belts */}
          <HazardMarks level={config} />
+
+         {/* Instanced surroundings outside the play area */}
+         <Decor />
+
+         {/* The robot character (GLB via auto-rig or deliberate stand-in) */}
          <Robot run={run} lamp={config.lamp} />
+
+         {/* Energy batteries */}
          <Batteries run={run} />
       </>
    );
@@ -338,4 +358,3 @@ export default function Scene() {
    const { id } = useRobotLevel();
    return <LevelScene key={id} />;
 }
-

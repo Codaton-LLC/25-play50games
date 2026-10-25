@@ -1,8 +1,9 @@
 "use client";
 
-// Robot Collector stand-ins and decoration: the warehouse, the primitive robot and battery.
-// Warehouse-specific: a new game draws its own look and does NOT copy this file (the reusable
-// pattern is in Scene.tsx; the helpers it uses come from core/render and core/assets).
+// Robot Collector stand-ins and decoration: the sci-fi robotics warehouse,
+// the deliberate primitive robot, and the modern energy battery cell.
+// Modern look (2026-10-25): bevelled shapes, 2-3 tones per object from COLORS in looks.ts,
+// panelled floor with light strips, outer ground plane covering all viewport sizes.
 import { useEffect, useMemo, type RefObject } from "react";
 import {
    AdditiveBlending,
@@ -21,57 +22,28 @@ import { useGameTime } from "@/arcade3d/core/gameTime";
 import { Instanced, useCanvasTexture } from "@/arcade3d/core/render";
 import { ASSETS } from "./assets";
 import { BELTS, BELT_HALF_WIDTH, SLOW_ZONES, type Belt, type RobotLevel } from "./levels";
+import { COLORS, WALL_HEIGHT, WALL_THICKNESS } from "./looks";
 import { ARENA, BARREL_RADIUS, CRATE_SIZE, ROBOT_START, type Prop } from "./rules";
 
-// ---------- look ----------
+// Re-export COLORS and WALL for backwards compatibility
+export { COLORS };
+export const WALL = { thickness: WALL_THICKNESS, height: WALL_HEIGHT } as const;
 
-/** Walls stand just outside the floor (the collision bounds are ARENA in rules.ts). */
-export const WALL = { thickness: 0.4, height: 0.9 } as const;
+// ---------- Warehouse (static) ----------
 
-export const COLORS = {
-   floor: "#56698a",
-   plinth: "#1b2538",
-   wall: "#8ea0b8",
-   trim: "#facc15",
-   crate: "#d98a2b",
-   barrel: "#2f6fe4",
-   barrelRing: "#7cb4fb",
-   barrelLid: "#a9cdfc",
-   robot: "#2dd4bf",
-   robotHead: "#f1f5f9",
-   robotDark: "#0f172a",
-   robotEye: "#67e8f9",
-   robotTip: "#fbbf24",
-   /** RobotLevel.lamp: the cool light over the robot on a night level */
-   lamp: "#cfefff",
-   battery: "#22c55e",
-   batteryGlow: "#4ade80",
-   /** hazards: oil patches and conveyor belts */
-   oil: "#1e1b4b",
-   oilGlow: "#6d28d9",
-   belt: "#1f2937",
-   beltArrow: "#facc15",
-} as const;
-
-// ---------- the warehouse (static) ----------
-
-/** Small fixed wobble per prop, so the crates do not look machine-placed (deterministic). */
+/** Small fixed wobble per prop so crates and barrels look human-staged. */
 const jitter = (i: number, amount: number) => Math.sin(i * 12.9898 + 4.1414) * amount;
 
 const BARREL_HEIGHT = 1;
-/** heights of the two ridges */
-const BARREL_RINGS = [0.33, 0.67];
+const BARREL_RINGS = [0.32, 0.68];
 
-/** Where every prop stands, for the instanced crates and barrels (one set per level; level 1: the original 18 props). */
 function propSpots(props: readonly Prop[]) {
-   /** Where each crate stands (its feet); a stacked crate is a second, slightly smaller one on top (looks only). */
    const crates = props.flatMap((prop, i) => {
       if (prop.kind !== "crate") return [];
       const base = { x: prop.x, y: 0, z: prop.z, rotY: jitter(i, 0.05), scale: 1 };
       if (prop.stack !== 2) return [base];
       return [base, { x: prop.x + jitter(i + 3, 0.06), y: CRATE_SIZE, z: prop.z, rotY: jitter(i + 7, 0.35), scale: 0.88 }];
    });
-   /** The stand-in box is centred on its spot, so it is lifted by half its height. */
    const crateBoxes = crates.map((spot) => ({ ...spot, y: spot.y + (CRATE_SIZE * spot.scale) / 2 }));
    const barrels = props.filter((prop) => prop.kind === "barrel").map((b, i) => ({ x: b.x, y: 0, z: b.z, rotY: jitter(i, 1) }));
    return {
@@ -80,21 +52,39 @@ function propSpots(props: readonly Prop[]) {
       barrels,
       barrelBodies: barrels.map((b) => ({ x: b.x, y: BARREL_HEIGHT / 2, z: b.z })),
       barrelRings: barrels.flatMap((b) => BARREL_RINGS.map((y) => ({ x: b.x, y, z: b.z }))),
+      barrelCaps: barrels.map((b) => ({ x: b.x, y: BARREL_HEIGHT + 0.02, z: b.z })),
    };
 }
 
 type PropSpots = ReturnType<typeof propSpots>;
 
+/** Modern sci-fi robotics lab floor: modular composite panels, light strips, charging pad, contact shadows. */
 function drawFloor(ctx: CanvasRenderingContext2D, w: number, h: number, props: readonly Prop[]) {
-   const s = w / (ARENA.halfX * 2); // px per unit
-   const u = (x: number) => (x + ARENA.halfX) * s;
-   const v = (z: number) => (z + ARENA.halfZ) * s;
+   const sx = w / (ARENA.halfX * 2);
+   const sz = h / (ARENA.halfZ * 2);
+   const u = (x: number) => (x + ARENA.halfX) * sx;
+   const v = (z: number) => (z + ARENA.halfZ) * sz;
 
+   // 1. Base dark tech-slate floor
    ctx.fillStyle = COLORS.floor;
    ctx.fillRect(0, 0, w, h);
 
-   // 2 x 2 unit concrete tiles
-   ctx.strokeStyle = "rgba(255, 255, 255, 0.07)";
+   // 2. Alternating modular panels (2 x 2 units)
+   const tileW = 2 * sx;
+   const tileH = 2 * sz;
+   for (let x = -ARENA.halfX; x < ARENA.halfX; x += 2) {
+      for (let z = -ARENA.halfZ; z < ARENA.halfZ; z += 2) {
+         const col = Math.floor((x + ARENA.halfX) / 2);
+         const row = Math.floor((z + ARENA.halfZ) / 2);
+         if ((col + row) % 2 === 0) {
+            ctx.fillStyle = COLORS.floorTileAlt;
+            ctx.fillRect(u(x) + 2, v(z) + 2, tileW - 4, tileH - 4);
+         }
+      }
+   }
+
+   // 3. Panel seam grid lines
+   ctx.strokeStyle = "rgba(148, 163, 184, 0.12)";
    ctx.lineWidth = 2;
    for (let x = -ARENA.halfX + 2; x < ARENA.halfX; x += 2) {
       ctx.beginPath();
@@ -109,68 +99,161 @@ function drawFloor(ctx: CanvasRenderingContext2D, w: number, h: number, props: r
       ctx.stroke();
    }
 
-   // soft contact shadows under every prop (baked: the props never move)
-   ctx.fillStyle = "rgba(2, 6, 23, 0.14)";
+   // 4. Subtle rivet dots at tile corners
+   ctx.fillStyle = "rgba(203, 213, 225, 0.22)";
+   for (let x = -ARENA.halfX + 2; x < ARENA.halfX; x += 2) {
+      for (let z = -ARENA.halfZ + 2; z < ARENA.halfZ; z += 2) {
+         ctx.beginPath();
+         ctx.arc(u(x), v(z), 2.5, 0, Math.PI * 2);
+         ctx.fill();
+      }
+   }
+
+   // 5. Embedded soft cyan LED light strips along main transit tracks
+   const stripZ = [-3.8, 3.8];
+   for (const szVal of stripZ) {
+      // Glow halo
+      ctx.strokeStyle = "rgba(6, 182, 212, 0.15)";
+      ctx.lineWidth = 14;
+      ctx.beginPath();
+      ctx.moveTo(u(-ARENA.halfX + 1.2), v(szVal));
+      ctx.lineTo(u(ARENA.halfX - 1.2), v(szVal));
+      ctx.stroke();
+      // Core bright light strip
+      ctx.strokeStyle = COLORS.lightStrip;
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(u(-ARENA.halfX + 1.2), v(szVal));
+      ctx.lineTo(u(ARENA.halfX - 1.2), v(szVal));
+      ctx.stroke();
+   }
+
+   // 6. Baked soft contact ambient occlusion under static props
+   ctx.fillStyle = "rgba(2, 6, 23, 0.28)";
    for (const prop of props) {
-      for (const grow of [0.45, 0.3, 0.16]) {
+      for (const grow of [0.42, 0.26, 0.12]) {
          ctx.beginPath();
          if (prop.kind === "crate") {
             const half = CRATE_SIZE / 2 + grow;
-            ctx.rect(u(prop.x - half), v(prop.z - half), half * 2 * s, half * 2 * s);
+            ctx.rect(u(prop.x - half), v(prop.z - half), half * 2 * sx, half * 2 * sz);
          } else {
-            ctx.arc(u(prop.x), v(prop.z), (BARREL_RADIUS + grow) * s, 0, Math.PI * 2);
+            ctx.arc(u(prop.x), v(prop.z), (BARREL_RADIUS + grow) * sx, 0, Math.PI * 2);
          }
          ctx.fill();
       }
    }
 
-   // yellow safety line along the walls
-   ctx.strokeStyle = COLORS.trim;
-   ctx.lineWidth = 0.14 * s;
-   ctx.strokeRect(0.5 * s, 0.5 * s, w - s, h - s);
+   // 7. Safety hazard border along walls (alternating amber/dark chevrons)
+   ctx.strokeStyle = COLORS.floorTrim;
+   ctx.lineWidth = 0.18 * sx;
+   ctx.strokeRect(0.4 * sx, 0.4 * sz, w - 0.8 * sx, h - 0.8 * sz);
 
-   // charging pad where the robot starts
-   ctx.strokeStyle = COLORS.robot;
-   ctx.lineWidth = 0.1 * s;
+   // 8. Robot start charging pad: concentric tech circles & radial ticks
+   const startX = u(ROBOT_START.x);
+   const startZ = v(ROBOT_START.z);
+   const padRadius = 1.1 * sx;
+
+   ctx.fillStyle = COLORS.startPadGlow;
    ctx.beginPath();
-   ctx.arc(u(ROBOT_START.x), v(ROBOT_START.z), 0.95 * s, 0, Math.PI * 2);
-   ctx.stroke();
-   ctx.fillStyle = "rgba(45, 212, 191, 0.18)";
+   ctx.arc(startX, startZ, padRadius, 0, Math.PI * 2);
    ctx.fill();
+
+   ctx.strokeStyle = COLORS.startPadRing;
+   ctx.lineWidth = 0.09 * sx;
+   ctx.beginPath();
+   ctx.arc(startX, startZ, padRadius * 0.9, 0, Math.PI * 2);
+   ctx.stroke();
+
+   ctx.lineWidth = 0.04 * sx;
+   ctx.beginPath();
+   ctx.arc(startX, startZ, padRadius * 0.55, 0, Math.PI * 2);
+   ctx.stroke();
+
+   // Radial tick marks
+   for (let a = 0; a < Math.PI * 2; a += Math.PI / 4) {
+      ctx.beginPath();
+      ctx.moveTo(startX + Math.cos(a) * padRadius * 0.65, startZ + Math.sin(a) * padRadius * 0.65);
+      ctx.lineTo(startX + Math.cos(a) * padRadius * 0.85, startZ + Math.sin(a) * padRadius * 0.85);
+      ctx.stroke();
+   }
 }
 
+/** Outer ground texture: dark industrial yard apron. */
+function drawOuterGround(ctx: CanvasRenderingContext2D, w: number, h: number) {
+   ctx.fillStyle = COLORS.outerFloor;
+   ctx.fillRect(0, 0, w, h);
+   ctx.strokeStyle = COLORS.outerFloorGrid;
+   ctx.lineWidth = 2;
+   const step = 64;
+   for (let x = 0; x < w; x += step) {
+      ctx.beginPath();
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x, h);
+      ctx.stroke();
+   }
+   for (let y = 0; y < h; y += step) {
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(w, y);
+      ctx.stroke();
+   }
+}
+
+/** Deliberate sci-fi shipping container texture for crate stand-in. */
 function drawCrate(ctx: CanvasRenderingContext2D, w: number, h: number) {
+   // Main container body
    ctx.fillStyle = COLORS.crate;
    ctx.fillRect(0, 0, w, h);
-   // planks
-   ctx.fillStyle = "rgba(120, 53, 15, 0.35)";
-   for (let y = h / 4; y < h; y += h / 4) ctx.fillRect(0, y - 2, w, 4);
-   // frame and diagonal brace
-   ctx.strokeStyle = "#9a4d12";
+
+   // Reinforced perimeter frame
+   ctx.strokeStyle = COLORS.crateFrame;
    ctx.lineWidth = w * 0.12;
    ctx.strokeRect(w * 0.06, h * 0.06, w * 0.88, h * 0.88);
-   ctx.lineWidth = w * 0.1;
+
+   // Horizontal reinforcement ribs
+   ctx.fillStyle = "rgba(180, 83, 9, 0.4)";
+   for (let y = h / 4; y < h; y += h / 4) {
+      ctx.fillRect(w * 0.1, y - 3, w * 0.8, 6);
+   }
+
+   // Diagonal brace
+   ctx.lineWidth = w * 0.08;
    ctx.beginPath();
-   ctx.moveTo(w * 0.12, h * 0.88);
-   ctx.lineTo(w * 0.88, h * 0.12);
+   ctx.moveTo(w * 0.14, h * 0.86);
+   ctx.lineTo(w * 0.86, h * 0.14);
    ctx.stroke();
-   // metal corners
-   ctx.fillStyle = "#cbd5e1";
-   const c = w * 0.16;
-   for (const [x, y] of [[0, 0], [w - c, 0], [0, h - c], [w - c, h - c]]) ctx.fillRect(x, y, c, c);
+
+   // Steel corner gussets with hex bolts
+   ctx.fillStyle = COLORS.crateMetal;
+   const c = w * 0.18;
+   for (const [x, y] of [[0, 0], [w - c, 0], [0, h - c], [w - c, h - c]]) {
+      ctx.fillRect(x, y, c, c);
+   }
+
+   // Central stencil identification label
+   ctx.fillStyle = "rgba(254, 240, 138, 0.85)";
+   ctx.fillRect(w * 0.35, h * 0.44, w * 0.3, h * 0.12);
 }
 
-/** A belt's surface: dark rubber with yellow chevrons pointing along +u (the texture scrolls in Belts). */
+/** Conveyor belt surface: dark industrial rubber with illuminated chevron arrows. */
 function drawBelt(ctx: CanvasRenderingContext2D, w: number, h: number) {
    ctx.fillStyle = COLORS.belt;
    ctx.fillRect(0, 0, w, h);
+
+   // Metallic guide edge rails
+   ctx.fillStyle = COLORS.beltGuide;
+   ctx.fillRect(0, 0, w, h * 0.08);
+   ctx.fillRect(0, h * 0.92, w, h * 0.08);
+
+   // Glowing direction chevron
    ctx.strokeStyle = COLORS.beltArrow;
-   ctx.lineWidth = h * 0.12;
+   ctx.lineWidth = h * 0.14;
    ctx.lineJoin = "round";
+   ctx.lineCap = "round";
    ctx.beginPath();
-   ctx.moveTo(w * 0.3, h * 0.2);
-   ctx.lineTo(w * 0.65, h * 0.5);
-   ctx.lineTo(w * 0.3, h * 0.8);
+   ctx.moveTo(w * 0.28, h * 0.24);
+   ctx.lineTo(w * 0.68, h * 0.5);
+   ctx.lineTo(w * 0.28, h * 0.76);
    ctx.stroke();
 }
 
@@ -185,33 +268,61 @@ const WALL_SPOTS = (() => {
       { x: ARENA.halfX + t / 2, y: WALL.height / 2, z: 0, sx: t, sy: WALL.height, sz: longZ },
    ];
 })();
-const TRIM_SPOTS = WALL_SPOTS.map((spot) => ({ ...spot, y: WALL.height + 0.04, sx: spot.sx + 0.06, sy: 0.08, sz: spot.sz + 0.06 }));
 
-/** Floor, slab, walls, crates and barrels: everything that never moves. `props` = the level's (rules.ts worldOf). */
+const TRIM_SPOTS = WALL_SPOTS.map((spot) => ({
+   ...spot,
+   y: WALL.height + 0.04,
+   sx: spot.sx + 0.08,
+   sy: 0.08,
+   sz: spot.sz + 0.08,
+}));
+
+/** Warehouse floor, diorama plinth, outer ground, perimeter barriers, crates and barrels. */
 export function Warehouse({ props }: { props: readonly Prop[] }) {
    const spots = useMemo(() => propSpots(props), [props]);
    const draw = useMemo(() => (ctx: CanvasRenderingContext2D, w: number, h: number) => drawFloor(ctx, w, h, props), [props]);
-   const floor = useCanvasTexture(768, 512, draw);
+   const floor = useCanvasTexture(1024, 1024, draw);
+   const outerDraw = useMemo(() => (ctx: CanvasRenderingContext2D, w: number, h: number) => drawOuterGround(ctx, w, h), []);
+   const outerFloor = useCanvasTexture(512, 512, outerDraw);
+
+   useEffect(() => {
+      outerFloor.wrapS = outerFloor.wrapT = RepeatWrapping;
+      outerFloor.repeat.set(8, 7);
+      outerFloor.needsUpdate = true;
+   }, [outerFloor]);
 
    return (
       <group name="warehouse">
-         <mesh rotation-x={-Math.PI / 2}>
+         {/* Extended outer ground apron: covers the entire viewport at all orientations (no void at bottom) */}
+         <mesh rotation-x={-Math.PI / 2} position={[0, -0.27, 0]} name="outer-ground">
+            <planeGeometry args={[80, 70]} />
+            <meshStandardMaterial map={outerFloor} roughness={0.95} />
+         </mesh>
+
+         {/* Diorama base plinth */}
+         <mesh position-y={-0.26} name="plinth">
+            <boxGeometry args={[(ARENA.halfX + WALL.thickness) * 2 + 0.4, 0.5, (ARENA.halfZ + WALL.thickness) * 2 + 0.4]} />
+            <meshStandardMaterial color={COLORS.plinth} roughness={0.88} />
+         </mesh>
+
+         {/* Panelled playfield floor */}
+         <mesh rotation-x={-Math.PI / 2} name="playfield-floor">
             <planeGeometry args={[ARENA.halfX * 2, ARENA.halfZ * 2]} />
-            <meshStandardMaterial map={floor} roughness={0.92} />
+            <meshStandardMaterial map={floor} roughness={0.9} />
          </mesh>
-         {/* the slab the diorama stands on */}
-         <mesh position-y={-0.26}>
-            <boxGeometry args={[(ARENA.halfX + WALL.thickness) * 2 + 0.3, 0.5, (ARENA.halfZ + WALL.thickness) * 2 + 0.3]} />
-            <meshStandardMaterial color={COLORS.plinth} roughness={0.9} />
-         </mesh>
-         <Instanced spots={WALL_SPOTS}>
+
+         {/* Perimeter barrier walls */}
+         <Instanced spots={WALL_SPOTS} name="perimeter-walls">
             <boxGeometry />
-            <meshStandardMaterial color={COLORS.wall} roughness={0.7} />
+            <meshStandardMaterial color={COLORS.wall} roughness={0.65} metalness={0.25} />
          </Instanced>
-         <Instanced spots={TRIM_SPOTS}>
+
+         {/* Barrier illuminated safety trim */}
+         <Instanced spots={TRIM_SPOTS} name="wall-trim">
             <boxGeometry />
-            <meshStandardMaterial color={COLORS.trim} roughness={0.5} />
+            <meshStandardMaterial color={COLORS.wallTrim} roughness={0.45} metalness={0.3} />
          </Instanced>
+
          <Crates spots={spots} />
          <Barrels spots={spots} />
       </group>
@@ -223,13 +334,13 @@ function Crates({ spots }: { spots: PropSpots }) {
    return <InstancedModel asset={ASSETS.crate} spots={spots.crates} fallback={<CrateBoxes spots={spots.crateBoxes} />} />;
 }
 
-/** Stand-in crates: one InstancedMesh of boxes with a canvas-drawn plank texture. */
+/** Stand-in crates: one InstancedMesh of containers with crisp cargo container textures. */
 function CrateBoxes({ spots }: { spots: PropSpots["crateBoxes"] }) {
-   const texture = useCanvasTexture(128, 128, drawCrate);
+   const texture = useCanvasTexture(256, 256, drawCrate);
    return (
-      <Instanced spots={spots}>
+      <Instanced spots={spots} name="crate-stand-ins">
          <boxGeometry args={[CRATE_SIZE, CRATE_SIZE, CRATE_SIZE]} />
-         <meshStandardMaterial map={texture} roughness={0.85} />
+         <meshStandardMaterial map={texture} roughness={0.78} metalness={0.2} />
       </Instanced>
    );
 }
@@ -239,48 +350,64 @@ function Barrels({ spots }: { spots: PropSpots }) {
    return <InstancedModel asset={ASSETS.barrel} spots={spots.barrels} fallback={<BarrelStandIns spots={spots} />} />;
 }
 
-/** Stand-in barrels: two InstancedMeshes (body with a lighter lid, ridges). */
+/** Stand-in barrels: high-tech dual-tone coolant/energy drum with ribbed rings, lid and valve. */
 function BarrelStandIns({ spots }: { spots: PropSpots }) {
    return (
       <>
-         <Instanced spots={spots.barrelBodies}>
-            <cylinderGeometry args={[BARREL_RADIUS * 0.94, BARREL_RADIUS * 0.94, BARREL_HEIGHT, 20]} />
-            {/* cylinder material groups: 0 = side, 1 = top, 2 = bottom */}
-            <meshStandardMaterial attach="material-0" color={COLORS.barrel} roughness={0.35} metalness={0.2} />
-            <meshStandardMaterial attach="material-1" color={COLORS.barrelLid} roughness={0.4} metalness={0.2} />
-            <meshStandardMaterial attach="material-2" color={COLORS.barrel} />
+         <Instanced spots={spots.barrelBodies} name="barrel-bodies">
+            <cylinderGeometry args={[BARREL_RADIUS * 0.95, BARREL_RADIUS * 0.95, BARREL_HEIGHT, 24]} />
+            <meshStandardMaterial attach="material-0" color={COLORS.barrel} roughness={0.35} metalness={0.35} />
+            <meshStandardMaterial attach="material-1" color={COLORS.barrelLid} roughness={0.4} metalness={0.3} />
+            <meshStandardMaterial attach="material-2" color={COLORS.barrelDark} roughness={0.5} />
          </Instanced>
-         <Instanced spots={spots.barrelRings}>
-            <cylinderGeometry args={[BARREL_RADIUS, BARREL_RADIUS, 0.07, 20]} />
-            <meshStandardMaterial color={COLORS.barrelRing} roughness={0.3} metalness={0.3} />
+         <Instanced spots={spots.barrelRings} name="barrel-rings">
+            <cylinderGeometry args={[BARREL_RADIUS, BARREL_RADIUS, 0.08, 24]} />
+            <meshStandardMaterial color={COLORS.barrelRing} roughness={0.3} metalness={0.4} />
+         </Instanced>
+         <Instanced spots={spots.barrelCaps} name="barrel-valves">
+            <cylinderGeometry args={[BARREL_RADIUS * 0.28, BARREL_RADIUS * 0.28, 0.04, 16]} />
+            <meshStandardMaterial color={COLORS.barrelGlow} emissive={COLORS.barrelGlow} emissiveIntensity={0.6} roughness={0.3} />
          </Instanced>
       </>
    );
 }
 
-// ---------- hazards (levels 2-5) ----------
+// ---------- Hazards (levels 2-5) ----------
 
-/**
- * The floor marks of a level's hazards: oil patches (a dark, glossy disc with a purple glow, so it
- * also reads in the dark, one instanced draw call) and the conveyor belts (one strip each, its
- * chevrons scrolling at the belt's speed). Level 1 has none and renders nothing.
- */
+/** Oil patches with luminescent violet glow and conveyor belts with scrolling illuminated chevrons. */
 export function HazardMarks({ level }: { level: RobotLevel }) {
-   const oil = useMemo(() => SLOW_ZONES.slice(0, level.slowZones).map((zone) => ({ x: zone.x, y: 0.02, z: zone.z, sx: zone.r, sy: 1, sz: zone.r })), [level]);
+   const oil = useMemo(
+      () =>
+         SLOW_ZONES.slice(0, level.slowZones).map((zone) => ({
+            x: zone.x,
+            y: 0.02,
+            z: zone.z,
+            sx: zone.r,
+            sy: 1,
+            sz: zone.r,
+         })),
+      [level]
+   );
+
    return (
       <group name="hazard-marks">
          {level.belts > 0 && <Belts belts={BELTS.slice(0, level.belts)} speed={level.beltSpeed} />}
          {oil.length > 0 && (
-            <Instanced spots={oil}>
-               <cylinderGeometry args={[1, 1, 0.02, 36]} />
-               <meshStandardMaterial color={COLORS.oil} emissive={COLORS.oilGlow} emissiveIntensity={0.45} roughness={0.12} metalness={0.5} />
+            <Instanced spots={oil} name="oil-patches">
+               <cylinderGeometry args={[1, 1, 0.025, 36]} />
+               <meshStandardMaterial
+                  color={COLORS.oil}
+                  emissive={COLORS.oilGlow}
+                  emissiveIntensity={0.65}
+                  roughness={0.08}
+                  metalness={0.65}
+               />
             </Instanced>
          )}
       </group>
    );
 }
 
-/** One chevron per belt width along a belt. */
 const BELT_WIDTH = BELT_HALF_WIDTH * 2;
 
 function Belts({ belts, speed }: { belts: readonly Belt[]; speed: number }) {
@@ -294,30 +421,36 @@ function Belts({ belts, speed }: { belts: readonly Belt[]; speed: number }) {
             map.wrapS = RepeatWrapping;
             map.repeat.set(length / BELT_WIDTH, 1);
             map.needsUpdate = true;
-            // the plane's +x (the texture's u) points from a to b
             return { belt, length, map, yaw: -Math.atan2(belt.bz - belt.az, belt.bx - belt.ax) };
          }),
       [belts, base]
    );
+
    useEffect(() => () => strips.forEach((strip) => strip.map.dispose()), [strips]);
+
    useFrame(() => {
       for (const strip of strips) strip.map.offset.x = -((time.now * speed) / BELT_WIDTH) % 1;
    });
+
    return (
       <>
          {strips.map(({ belt, length, map, yaw }, i) => (
             <mesh key={i} position={[(belt.ax + belt.bx) / 2, 0.016, (belt.az + belt.bz) / 2]} rotation={[-Math.PI / 2, 0, yaw]}>
                <planeGeometry args={[length, BELT_WIDTH]} />
-               <meshBasicMaterial map={map} transparent opacity={0.85} depthWrite={false} />
+               <meshBasicMaterial map={map} transparent opacity={0.92} depthWrite={false} />
             </mesh>
          ))}
       </>
    );
 }
 
-// ---------- the robot ----------
+// ---------- Robot Stand-In ----------
 
-/** Stand-in robot until robot.glb exists: capsule body, round head, visor with two glowing eyes. */
+/**
+ * Deliberate, rounded, premium sci-fi robot stand-in until robot.glb loads.
+ * Features 2-3 harmonious tones from COLORS, chamfered wheels, bevelled chest plate,
+ * glowing battery readout panel, curved visor and golden antenna.
+ */
 export function RobotPrimitive({
    antenna,
    panel,
@@ -326,94 +459,165 @@ export function RobotPrimitive({
    panel: RefObject<MeshStandardMaterial>;
 }) {
    return (
-      <group>
+      <group name="robot-stand-in">
+         {/* Drive chassis & tread pods */}
          {[-0.36, 0.36].map((x) => (
-            <mesh key={x} position={[x, 0.17, 0]} rotation-z={Math.PI / 2}>
-               <cylinderGeometry args={[0.17, 0.17, 0.14, 16]} />
-               <meshStandardMaterial color={COLORS.robotDark} roughness={0.7} />
-            </mesh>
+            <group key={x} position={[x, 0.17, 0]}>
+               <mesh rotation-z={Math.PI / 2}>
+                  <cylinderGeometry args={[0.17, 0.17, 0.16, 18]} />
+                  <meshStandardMaterial color={COLORS.robotDark} roughness={0.65} metalness={0.4} />
+               </mesh>
+               {/* Wheel hubcaps */}
+               <mesh position-x={x > 0 ? 0.09 : -0.09} rotation-z={Math.PI / 2}>
+                  <cylinderGeometry args={[0.08, 0.08, 0.02, 16]} />
+                  <meshStandardMaterial color={COLORS.robot} roughness={0.35} />
+               </mesh>
+            </group>
          ))}
+
+         {/* Torso capsule body */}
          <mesh position-y={0.58}>
-            <capsuleGeometry args={[0.34, 0.3, 6, 16]} />
-            <meshStandardMaterial color={COLORS.robot} roughness={0.4} />
+            <capsuleGeometry args={[0.34, 0.32, 6, 18]} />
+            <meshStandardMaterial color={COLORS.robot} roughness={0.35} metalness={0.15} />
          </mesh>
-         {/* charge meter on the chest: glows brighter with every battery */}
-         <mesh position={[0, 0.56, 0.32]} rotation-x={Math.PI / 2}>
-            <cylinderGeometry args={[0.13, 0.13, 0.05, 16]} />
-            <meshStandardMaterial ref={panel} color="#bbf7d0" emissive={COLORS.batteryGlow} emissiveIntensity={0.2} />
+
+         {/* Recessed chest gauge plate */}
+         <mesh position={[0, 0.56, 0.31]} rotation-x={Math.PI / 2}>
+            <cylinderGeometry args={[0.16, 0.16, 0.04, 18]} />
+            <meshStandardMaterial color={COLORS.robotDark} roughness={0.5} />
          </mesh>
-         <mesh position-y={1.12} scale={[1.15, 0.86, 1]}>
-            <sphereGeometry args={[0.3, 20, 14]} />
-            <meshStandardMaterial color={COLORS.robotHead} roughness={0.35} />
+
+         {/* Dynamic charge meter: glows brighter with every collected battery */}
+         <mesh position={[0, 0.56, 0.33]} rotation-x={Math.PI / 2}>
+            <cylinderGeometry args={[0.12, 0.12, 0.04, 18]} />
+            <meshStandardMaterial ref={panel} color="#bbf7d0" emissive={COLORS.batteryGlow} emissiveIntensity={0.25} />
          </mesh>
-         <mesh position={[0, 1.13, 0.15]} scale={[1.1, 0.58, 0.62]}>
-            <sphereGeometry args={[0.24, 20, 12]} />
-            <meshStandardMaterial color={COLORS.robotDark} roughness={0.2} />
+
+         {/* Neck metallic collar ring */}
+         <mesh position-y={0.9}>
+            <cylinderGeometry args={[0.22, 0.24, 0.08, 18]} />
+            <meshStandardMaterial color={COLORS.robotChassis} roughness={0.45} metalness={0.5} />
          </mesh>
+
+         {/* Dome head */}
+         <mesh position-y={1.12} scale={[1.15, 0.88, 1]}>
+            <sphereGeometry args={[0.3, 22, 16]} />
+            <meshStandardMaterial color={COLORS.robotHead} roughness={0.3} />
+         </mesh>
+
+         {/* Visor bezel frame */}
+         <mesh position={[0, 1.13, 0.14]} scale={[1.16, 0.62, 0.64]}>
+            <sphereGeometry args={[0.24, 20, 14]} />
+            <meshStandardMaterial color={COLORS.robotDark} roughness={0.2} metalness={0.3} />
+         </mesh>
+
+         {/* Dual glowing cyan digital eyes */}
          {[-0.1, 0.1].map((x) => (
-            <mesh key={x} position={[x, 1.14, 0.3]}>
-               <sphereGeometry args={[0.055, 12, 8]} />
-               <meshStandardMaterial color={COLORS.robotEye} emissive={COLORS.robotEye} emissiveIntensity={2.2} />
+            <mesh key={x} position={[x, 1.14, 0.31]}>
+               <sphereGeometry args={[0.055, 14, 10]} />
+               <meshStandardMaterial color={COLORS.robotEye} emissive={COLORS.robotEye} emissiveIntensity={2.5} />
             </mesh>
          ))}
-         <group ref={antenna} position-y={1.34}>
+
+         {/* Dynamic antenna stalk with golden glowing tip */}
+         <group ref={antenna} position-y={1.35}>
             <mesh position-y={0.12}>
-               <cylinderGeometry args={[0.022, 0.022, 0.24, 8]} />
-               <meshStandardMaterial color={COLORS.robotDark} />
+               <cylinderGeometry args={[0.022, 0.025, 0.24, 10]} />
+               <meshStandardMaterial color={COLORS.robotDark} roughness={0.4} metalness={0.6} />
             </mesh>
             <mesh position-y={0.27}>
-               <sphereGeometry args={[0.065, 12, 8]} />
-               <meshStandardMaterial color={COLORS.robotTip} emissive={COLORS.robotTip} emissiveIntensity={1.4} />
+               <sphereGeometry args={[0.065, 14, 10]} />
+               <meshStandardMaterial color={COLORS.robotTip} emissive={COLORS.robotTip} emissiveIntensity={1.8} />
             </mesh>
          </group>
       </group>
    );
 }
 
-// ---------- batteries ----------
+// ---------- Batteries ----------
 
 /** Geometries and materials shared by every battery (created once per run, disposed with it). */
 export function useBatteryParts() {
    const parts = useMemo(
       () => ({
-         body: new CylinderGeometry(0.28, 0.28, 0.58, 20),
-         band: new CylinderGeometry(0.288, 0.288, 0.12, 20),
-         cap: new CylinderGeometry(0.11, 0.11, 0.11, 12),
-         base: new CylinderGeometry(0.295, 0.295, 0.07, 20),
+         body: new CylinderGeometry(0.28, 0.28, 0.58, 24),
+         band: new CylinderGeometry(0.288, 0.288, 0.12, 24),
+         cap: new CylinderGeometry(0.12, 0.12, 0.12, 16),
+         base: new CylinderGeometry(0.295, 0.295, 0.08, 24),
+         tipButton: new CylinderGeometry(0.06, 0.06, 0.04, 12),
          glow: new CircleGeometry(0.85, 32),
          beam: new CylinderGeometry(0.2, 0.38, 3.2, 16, 1, true),
          ring: new RingGeometry(0.42, 0.62, 32),
-         bodyMat: new MeshStandardMaterial({ color: COLORS.battery, emissive: "#16a34a", emissiveIntensity: 0.9, roughness: 0.35 }),
-         bandMat: new MeshStandardMaterial({ color: "#f0fdf4", emissive: "#bbf7d0", emissiveIntensity: 0.25, roughness: 0.5 }),
-         capMat: new MeshStandardMaterial({ color: "#e2e8f0", metalness: 0.6, roughness: 0.3 }),
-         baseMat: new MeshStandardMaterial({ color: "#14532d", roughness: 0.6 }),
-         glowMat: new MeshBasicMaterial({ color: COLORS.batteryGlow, transparent: true, opacity: 0.3, blending: AdditiveBlending, depthWrite: false }),
+         bodyMat: new MeshStandardMaterial({
+            color: COLORS.battery,
+            emissive: COLORS.batteryDark,
+            emissiveIntensity: 0.95,
+            roughness: 0.3,
+         }),
+         bandMat: new MeshStandardMaterial({
+            color: COLORS.batteryBand,
+            emissive: "#bbf7d0",
+            emissiveIntensity: 0.3,
+            roughness: 0.45,
+         }),
+         capMat: new MeshStandardMaterial({
+            color: COLORS.batteryCap,
+            metalness: 0.75,
+            roughness: 0.25,
+         }),
+         baseMat: new MeshStandardMaterial({
+            color: "#14532d",
+            metalness: 0.4,
+            roughness: 0.5,
+         }),
+         tipMat: new MeshStandardMaterial({
+            color: COLORS.batteryTip,
+            emissive: COLORS.batteryTip,
+            emissiveIntensity: 0.8,
+            metalness: 0.8,
+            roughness: 0.2,
+         }),
+         glowMat: new MeshBasicMaterial({
+            color: COLORS.batteryGlow,
+            transparent: true,
+            opacity: 0.32,
+            blending: AdditiveBlending,
+            depthWrite: false,
+         }),
          beamMat: new MeshBasicMaterial({
             color: "#86efac",
             transparent: true,
-            opacity: 0.2,
+            opacity: 0.22,
             blending: AdditiveBlending,
             depthWrite: false,
             side: DoubleSide,
          }),
-         ringMat: new MeshBasicMaterial({ color: "#bbf7d0", transparent: true, opacity: 0, blending: AdditiveBlending, depthWrite: false }),
+         ringMat: new MeshBasicMaterial({
+            color: "#bbf7d0",
+            transparent: true,
+            opacity: 0,
+            blending: AdditiveBlending,
+            depthWrite: false,
+         }),
       }),
       []
    );
+
    useEffect(() => () => Object.values(parts).forEach((part) => part.dispose()), [parts]);
    return parts;
 }
 
 export type BatteryParts = ReturnType<typeof useBatteryParts>;
 
-/** Stand-in battery until battery.glb exists: glowing green cell, white label band, metal tip. */
+/** Stand-in battery: radiant green energy cell with metallic contacts and status band. */
 export function BatteryPrimitive({ parts }: { parts: BatteryParts }) {
    return (
-      <>
-         <mesh geometry={parts.base} material={parts.baseMat} position-y={0.035} />
+      <group name="battery-stand-in">
+         <mesh geometry={parts.base} material={parts.baseMat} position-y={0.04} />
          <mesh geometry={parts.body} material={parts.bodyMat} position-y={0.36} />
          <mesh geometry={parts.band} material={parts.bandMat} position-y={0.37} />
-         <mesh geometry={parts.cap} material={parts.capMat} position-y={0.705} />
-      </>
+         <mesh geometry={parts.cap} material={parts.capMat} position-y={0.71} />
+         <mesh geometry={parts.tipButton} material={parts.tipMat} position-y={0.79} />
+      </group>
    );
 }
