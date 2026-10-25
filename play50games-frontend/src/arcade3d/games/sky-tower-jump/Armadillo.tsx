@@ -87,7 +87,8 @@ function useLooks() {
 
 function useShapes() {
    const shapes = useMemo(() => {
-      const back = (r: number, t0: number, t1: number) => new SphereGeometry(r, 28, 6, Math.PI * 0.5, Math.PI, t0, t1 - t0);
+      // three's sphere: phi = π/2 faces +z (the front), π..2π is the back (z < 0); the shell wraps a little past the sides
+      const back = (r: number, t0: number, t1: number) => new SphereGeometry(r, 28, 6, Math.PI * 0.85, Math.PI * 1.3, t0, t1 - t0);
       return {
          torso: new CapsuleGeometry(0.25, 0.2, 8, 18),
          belly: new SphereGeometry(0.2, 18, 12),
@@ -101,7 +102,7 @@ function useShapes() {
          lines: [1, 2, 3, 4].map((i) => back(0.372 + i * 0.012, 0.35 + i * 0.36 - 0.012, 0.35 + i * 0.36 + 0.018)),
          headCap: new SphereGeometry(0.235, 24, 10, 0, Math.PI * 2, 0, 1.05),
          helmetRim: new TorusGeometry(0.236, 0.026, 8, 30),
-         visor: new SphereGeometry(0.27, 24, 8, -1.05 + Math.PI / 2 - Math.PI / 2, 2.1, 1.12, 0.5),
+         visor: new SphereGeometry(0.27, 24, 8, Math.PI / 2 - 1.05, 2.1, 1.12, 0.5),
          tailSeg: new SphereGeometry(1, 14, 10),
          ballBand: new TorusGeometry(1, 0.06, 6, 30),
       };
