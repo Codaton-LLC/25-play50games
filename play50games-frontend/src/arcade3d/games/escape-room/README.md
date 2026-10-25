@@ -233,10 +233,9 @@ Allocate run state, four station/box records, three loot records, fixed wall/cha
 - Every model is a GLB scaled in `assets.ts` (desk, chair, battery, runner, key, book, door). Mesh size never changes reach or collisions. Measured draw calls (`renderer.info.render.calls`): 36 in the furnished room and 39 with a container open before the runner GLB; 30 in the closed room with every GLB (2026-10-07, desktop and phone).
 - The catalogue's older escape-room row calls the universe `office` and proposes a console. This requested spec uses `shared-cast` seed 5050 and omits the console for the single office. Claude can reconcile the owned catalogue during the asset review; this branch does not edit `skills.md`, the scoring metadata, API rules or core files (`meta.ts` only gets its control texts and thumbnail).
 
-## Levels (P-68)
+## Levels (five per game)
 
-The sections above retain the original L1 release notes, including historical status wording.
-Current status is in the handoff below. L1 is the live 2.6 m/s game. All levels use the existing
+The sections above are the original L1 release notes. L1 is the live 2.6 m/s game, unchanged. All levels use the existing
 core level system, one room and the same assets. Only a win clears. The leaderboard ranks the
 SUM of all five best finishing times, lower first, only after all five are completed.
 
@@ -257,7 +256,8 @@ All input uses the same reach, locks and timing windows, independent of keyboard
 
 ### Per-level server limits and why they hold
 
-`PROPOSED_LEVEL_LIMITS` in rules.ts is the handoff for Claude's backend JSON update.
+`PROPOSED_LEVEL_LIMITS` in rules.ts equals `meta.levels[*].scoring` and the `levels` array of
+`escape-room` in `arcade-games.json` (`registry.sync.test.ts` checks both).
 Only completed exits are ranked. Items award no points. For each level:
 `S(t) = max(0, floor((timeBaseMs - t) / 10))`.
 The cap is a safety limit: the points-game 90%-of-cap oracle check does not apply.
@@ -299,9 +299,8 @@ Power cannot be restored before collecting all five items; early door inspection
 **Shared proof:** travel and actions cannot overlap. The net movement guard bounds displacement
 including collision corrections by 2.6 m/s. Obstacles, acceleration, turns and fresh action edges
 only add time. Integer simulated ms never exceed counted core play ms; pause supplies no played
-dt. Time-up preempts a tied action. L1 retains exact one-ms motion integration. L2-L5 integrate
-free movement once per counted frame (at most 50 ms/0.13 m), with the same displacement cap and
-blocked-position rollback. Every solid is at least 0.8 m across, so none can be crossed in a frame.
+dt. Time-up preempts a tied action. Every level moves with the same one-ms integration as L1
+(same controls and collision on every level).
 L2-L5 publish exact integer finishMs before end(win), following obstacle-race; L1 retains its
 existing frame-end duration. Raw winning time scores are checked before normalization/clamping.
 
@@ -312,130 +311,30 @@ station z, walk horizontally to its anchor and back. Those lanes miss all other 
 blocker. At z=-4.2 walk from x=2.5 to the exit. Items occur once, clue order is a permutation,
 and all pools are allocated at createRun. The seed sample verifies this construction in motion.
 
-### Verification commands
+### Tests (`levels.test.ts`)
 
-From play50games-frontend: `npx tsc --noEmit` and `npx vitest run src/arcade3d/games/escape-room`.
-The managed Windows sandbox denies esbuild parent-directory access when loading vitest.config.mts.
-`node src/arcade3d/games/escape-room/verify.mjs` runs the same Vitest suites with the installed
-TypeScript transpiler, Node environment, alias and automatic JSX; an optional argument filters
-test names. It changes no shared config or dependency. Claude runs the flagged build and desktop/
-phone headless playtests; this task explicitly forbids a build or server.
+- **Level 1 is today's game:** 24 seeded traces (a winning route bot plus input noise at 30/60/144 Hz
+  and ragged frames) hash every frame's full state bit-exact; the expected hashes were recorded from
+  `rules.ts` on `origin/main` before levels, and both `createRun(seed)` and `createRun(seed, LEVELS[1])`
+  must reproduce them. `rules.test.ts` is unchanged.
+- **Every level setting reaches the simulation** (each place a setting is read was mutation-probed
+  until a test failed): container and item counts, clue order and shuffle, anchor jitter, exit
+  power, "search every container" gate, the level clock, the centre blocker, the per-level Found
+  maximum, instructions, lighting and the submitted finish time.
+- **Bots, per level, through the real store and counted clock:** a blind honest bot (sees only what
+  the game shows: opened loot and the HUD's Next clue; sweeps the containers, 85 % stick, 200 ms
+  per interaction) on 200 seeds, and a layout-aware oracle (full stick, no reaction) on 50 seeds,
+  plus 60/144 Hz replays; 200 input mashers; idle and remote-tap spam never clear.
 
+| Level | Blind honest bot clears | Blind finish range | Oracle fastest | minDurationMs |
+|---|---:|---:|---:|---:|
+| 1 Office | 200/200 | 30.1-32.6 s | 20.0 s | 13654 |
+| 2 Workshop | 200/200 | 29.9-29.9 s | 24.9 s | 12250 |
+| 3 Laboratory | 200/200 | 33.5-50.2 s | 29.7 s | 14150 |
+| 4 Cabin | 200/200 | 38.2-56.0 s | 32.7 s | 15200 |
+| 5 Mini Spaceship | 200/200 | 44.7-65.6 s | 41.7 s | 18200 |
 
-## Status
-
-TASK P-68-levels-escape | 5 levels for escape-room | branch codex/levels-escape-room | allowed: play50games-frontend/src/arcade3d/games/escape-room/**
-
-Ready for Claude review. Branch verified at start: codex/levels-escape-room. No branch changes,
-commits, pushes, resets, cleans, deletions, build, server or production requests were performed.
-
-Files (all under play50games-frontend/src/arcade3d/games/escape-room/):
-- Added levels.ts: five pure configs and plan titles/item labels.
-- Added levels.test.ts: 29 declaration, proof, seeded bot, fairness and regression tests.
-- Added verify.mjs: sandbox Vitest runner using installed TypeScript instead of esbuild's denied config loader.
-- Updated rules.ts: createRun(seed, level), dynamic pools/door ID, seeded higher-level layouts,
-  blocked route, ordered clues, final return-power action, per-level timers and PROPOSED_LEVEL_LIMITS.
-- Updated Scene.tsx, Primitives.tsx, picker.ts: useLevel, dynamic visual pools, repeated existing
-  models, same logical/tap targets, event-driven HUD stats and higher-level exact finish timestamps.
-- Updated index.tsx, meta.ts: existing core LevelSpec/meta.levels shape, per-level HUD maxima,
-  instructions, environments/timers. meta.scoring L1 remains 58634/13654/600000/600000.
-- Updated Hud.tsx, Hud.module.css: configurable checklist, searched count, next clue and power hint.
-  The expanded panel applies only to L2-L5; L1 keeps its original panel.
-- Updated README.md: Levels table, five limit proofs, verification and this Status handoff.
-- Also wrote this explicitly requested artifact: .handoff/P-68-levels-escape/HANDOFF.md.
-Existing rules.test.ts and every other existing test file were left unchanged.
-
-| Level | Plan title | Containers/items | Mechanic / adaptation | Timer / core lighting |
-|---|---|---|---|---|
-| 1 | Office | 4/3 | Original live game, layout/RNG, 2.6 m/s movement and limits preserved | 600 s / indoor |
-| 2 | Workshop | 5/3 | Blocked centre with reused chairs; search every container for the exit circuit | 210 s / indoor |
-| 3 | Laboratory | 6/4 | Ordered retrieval clue chain | 240 s / sunset |
-| 4 | Cabin | 7/4 | Seeded clue permutation and x-position variation, more decoys | 240 s / night |
-| 5 | Mini Spaceship | 8/5 | Full-room search and ordered clues, then return to the first drawer to restore power | 300 s / space |
-
-The plan's multiple areas are adapted to searchable branches in the same room, as requested.
-No new assets: Spare key and Power cell reuse key/battery models. L5 uses the existing space
-preset for its cinematic spaceship mood. Progress clears on win, never an artificial score target.
-The core owns unlocks and the leaderboard SUM OF FIVE BEST FINISHING TIMES, lower first,
-with ranking only after all five levels have finishing times. No private totals or score storage.
-
-Proposed limits for Claude to copy into backend JSON (minDurationMs/timeBaseMs/maxDurationMs/maxScore):
-
-| Level | minDurationMs | timeBaseMs | maxDurationMs | maxScore | Earliest proof bound / margin |
-|---|---:|---:|---:|---:|---|
-| 1 | 13654 | 600000 | 600000 | 58634 | 13754 / 100 ms, existing approved live bound |
-| 2 | 12250 | 620000 | 210000 | 60775 | 12770 / 520 ms, 4.07% |
-| 3 | 14150 | 640000 | 240000 | 62585 | 14770 / 620 ms, 4.20% |
-| 4 | 15200 | 660000 | 240000 | 64480 | 15870 / 670 ms, 4.22% |
-| 5 | 18200 | 690000 | 300000 | 67180 | 18970 / 770 ms, 4.06% |
-
-All rows: kind="time", base=0, maxPointsPerSec=0, unitLabel="time", display="time".
-S(t)=max(0,floor((timeBaseMs-t)/10)); each cap equals the formula at minDurationMs.
-L5 cap/L1 cap = 1.146, below 3x. Every harder level offers at least L1's score potential.
-Time bases differ from play timers deliberately: score potential stays comparable while the
-actual board ranks total elapsed time. The 90%-of-maxScore points oracle rule does not apply.
-
-Proofs:
-- L1: unchanged exhaustive 2916-shape/six-order route bound 15.48 m, divided by 2.6 m/s,
-  plus 3*(1100+900)+1800 serial action ms: ceil(15.48/2.6*1000)+7800=13754 ms.
-- All new levels: start (0,4) to exit reach circle centred (0,-4.2), radius 1, forces >=7.2 m,
-  i.e. ceil(7.2/2.6*1000)=2770 ms. Movement cannot overlap any action.
-- L2: 5 opens*1100 + 3 retrieves*900 + exit1800 + travel2770 = 12770 ms.
-- L3: 6*1100 + 4*900 + 1800 + 2770 = 14770 ms.
-- L4: 7*1100 + 4*900 + 1800 + 2770 = 15870 ms.
-- L5: 8*1100 + 5*900 + 1800 + final power1100 + 2770 = 18970 ms.
-Clue order, obstacles, acceleration, turns, decoys and return travel can only increase these bounds.
-Fresh action edges, no overlap, item bitmasks and exit-power gating prevent precharging or skips.
-Raw winning formula scores are tested before any normalizer cap. No points-rate inequality is used.
-
-Geometry/clock proof: x=+-2.5 corridors bypass the centre blocker; horizontal branches at
-z=-3,-1,1,3 reach every anchor. Bodies start 0.4 m outward from each anchor, outside runner
-radius 0.35. Every item is present once and order is a permutation, for every generated seed.
-Net movement including collision correction stays <=2.6 m/s; simulated ms never lead the counted
-core clock; time-up preempts ties. L1 keeps exact one-ms integration. L2-L5 integrate free motion
-once per counted frame (<=50 ms/0.13 m), preserving the displacement cap and blocked rollback;
-solids are >=0.8 m thick so no frame can traverse one. Action timers still use exact integer ms.
-L2-L5 submit the exact finishMs like obstacle-race; L1 retains its live frame-end scoring.
-
-Bot results (final run):
-
-| Level | Human-paced seed-aware oracle clears | 30 Hz winning duration range |
-|---|---:|---:|
-| 1 | 200/200 (100%) | 22233-31533 ms |
-| 2 | 200/200 (100%) | 27833-38600 ms |
-| 3 | 200/200 (100%) | 33200-46267 ms |
-| 4 | 200/200 (100%) | 36433-53500 ms |
-| 5 | 200/200 (100%) | 46233-67367 ms |
-
-This is one seed-aware witness with honest pacing, not separate independent bot implementations:
-85% stick speed and 200 ms reaction per interaction; no teleports, real collision and core clock.
-Main sample: seeds 0-199 at 30 Hz, alternating keyboard/tap. Additional seeds 0 and 1 at BOTH
-60 and 144 Hz clear every level (four extra clears per level). This is not a full 200-seed matrix
-at every frame rate. Keyboard/touch action-window equality is checked directly on every level.
-Each level also runs 200 seeded input mashers with speed/collision/early-win assertions;
-idle/remote spam cannot clear and the timer wins ties. L1 retains its unchanged 1000-seed oracle,
-exhaustive layout/tour proof, frame/pause/restart, collision and adversarial tests.
-Difficulty tests pin nondecreasing items, increasing containers, nondecreasing decoys/mechanics,
-and per-level score-potential/3x guards. No bot in the tested trajectories exceeded the limits.
-
-Verification:
-- npx tsc --noEmit: PASS (exit 0, final code).
-- Standard npx vitest run src/arcade3d/games/escape-room: config startup blocked by sandbox:
-  esbuild reports parent-directory Access is denied and cannot resolve vitest.config.mts.
-- Fallback node src/arcade3d/games/escape-room/verify.mjs: PASS, 7 files / 85 tests,
-  54.83 s wall (45.71 s tests), below the 60 s whole-folder budget.
-  Counts: rules30 + levels29 + look6 + assets7 + gait5 + standIn5 + picker3 = 85.
-- Mutation probe: temporarily disabled ordered retrieval; the new locked-clue regression FAILED
-  (expected found=0, received1, exit1). Restored rules.ts byte-for-byte in finally; final full
-  suite passes including that regression.
-- git status --porcelain: only this game's files changed (plus the requested handoff artifact).
-- No build/server/headless playtest run, per explicit task restrictions. No commit or push.
-
-Open questions / Claude follow-up:
-- No unresolved content question. Review the documented same-room area adaptation and the
-  human-paced oracle's frame-rate sample breadth above.
-- Copy PROPOSED_LEVEL_LIMITS into arcade-games.json, including all five level rows, before merge.
-  Backend JSON/core/docs/dependency files were not edited; registry sync is expected to need that update.
-- Claude runs the flagged build and headless desktop/phone playtests for all five levels,
-  especially the expanded checklist safe-area fit, dense cupboard visibility, and night/space lighting.
-- Final review/commit remains Claude's responsibility; this work is uncommitted.
+Every win of every bot lies inside its level's window and under its cap (checked on the submitted
+time: L1 the frame-end elapsed time, L2-L5 `finishMs`). Each level's clock (600 / 210 / 240 / 240 /
+300 s) leaves the slowest blind run with at least 3.5x headroom. Only a win clears (no `clearScore`),
+so idle play never clears.

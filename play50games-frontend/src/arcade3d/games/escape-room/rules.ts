@@ -422,22 +422,22 @@ function tickAction(run: EscapeRun): void {
 }
 
 /**
- * One slice of circle/AABB movement (L1 exactly one ms), with the README's net speed guard and blocked-position rollback.
+ * One ms of circle/AABB movement, with the README's net speed guard and blocked-position rollback.
  * The rollback check runs on every moved ms: the wall clamp alone can pull the runner back into a
  * chair's radius at the chair/side-wall corner, so "nothing was pushed" does not mean "clear".
  */
-function movePlayer(run: EscapeRun, mx: number, mz: number, ms = 1): void {
+function movePlayer(run: EscapeRun, mx: number, mz: number): void {
    const p = run.player;
    if (mx === 0 && mz === 0 && p.vx === 0 && p.vz === 0) return;
    const fromX = p.x, fromZ = p.z;
    let dvx = mx * RUNNER.speed - p.vx, dvz = mz * RUNNER.speed - p.vz;
    const dv = Math.hypot(dvx, dvz);
-   const maxDv = (Math.hypot(mx, mz) > 0.01 ? RUNNER.accel : RUNNER.brake) / 1000 * ms;
+   const maxDv = (Math.hypot(mx, mz) > 0.01 ? RUNNER.accel : RUNNER.brake) / 1000;
    if (dv > maxDv) { dvx *= maxDv / dv; dvz *= maxDv / dv; }
    p.vx += dvx;
    p.vz += dvz;
-   p.x += p.vx / 1000 * ms;
-   p.z += p.vz / 1000 * ms;
+   p.x += p.vx / 1000;
+   p.z += p.vz / 1000;
    p.y = 0;
    for (let i = 0; i < run.layout.obstacles.length; i++) {
       const b = run.layout.obstacles[i];
@@ -449,14 +449,14 @@ function movePlayer(run: EscapeRun, mx: number, mz: number, ms = 1): void {
    }
    clampToBounds(p, BOUNDS, RUNNER.radius, p);
    const dx = p.x - fromX, dz = p.z - fromZ, moved = Math.hypot(dx, dz);
-   const maxMove = RUNNER.speed / 1000 * ms;
+   const maxMove = RUNNER.speed / 1000;
    if (moved > maxMove) {
       p.x = fromX + dx * maxMove / moved;
       p.z = fromZ + dz * maxMove / moved;
    }
    if (!isWalkable(run.layout, p.x, p.z)) { p.x = fromX; p.z = fromZ; }
-   p.vx = (p.x - fromX) * 1000 / ms;
-   p.vz = (p.z - fromZ) * 1000 / ms;
+   p.vx = (p.x - fromX) * 1000;
+   p.vz = (p.z - fromZ) * 1000;
 }
 
 /**
@@ -487,15 +487,6 @@ export function step(run: EscapeRun, dtMs: number, input: StepInput): StepEvents
    let mz = Number.isFinite(input.moveY) ? input.moveY : 0;
    const len = Math.hypot(mx, mz);
    if (len > 1) { mx /= len; mz /= len; }
-   // Higher levels integrate free movement once per counted frame (<= 0.13 m).
-   // Every solid is >= 0.8 m thick: this cannot cross one in a frame. The net speed
-   // guard and blocked rollback apply unchanged. L1 keeps its exact 1 ms integration.
-   if (!locked && run.level.id !== 1 && whole > 0) {
-      run.simMs += whole;
-      run.stepMs = whole;
-      movePlayer(run, mx, mz, whole);
-      return ev;
-   }
    for (let i = 0; i < whole; i++) {
       run.simMs++;
       run.stepMs++;
