@@ -58,6 +58,44 @@ The two exits changed the shortest path (was 3.156 m) and the earliest lose. The
 5. **Dawn:** 21 paid returns + 3 alarms = 1950 at 90 s (21.7 pts/s). A paid return needs the hold to finish with more than 2 m left, so the earliest is a knight frozen on its pedestal: start 3.0 + hold 0.7 = 3.7 s, score 65 (17.6 pts/s). Catching a short statue only inside the last 2 m pays 0. Every prefix stays ≤ 25 pts/s and ≤ 1950. `capScore` is a no-op. 2050 is 100 over the ceiling. The fixture lose scores 5 · 13 = 65. A real seed with no turning scores only the seconds until the third alarm.
 6. **Human bot:** reaction 0.22 s (inside 0.15–0.25), turn at π rad/s toward the sneaking statue with the least time left, hold until returning, flash when two sneaks would arrive within 2.2 s and one is inside 45°. The worst turn is exit to exit, 157.5°, not 112.5° off the start yaw. A phase-3 penguin (1.25 m/s) on a short pedestal of the other exit, at the slow end of the reaction band (0.25 s): contact is 0.25 + (157.5 − 12) / 180 ≈ 1.06 s, because the 12° cone means the turn is 145.5°. It has covered ≈ 1.32 m by then; the 0.5 m coast leaves ≈ 1.0 m of path, 0.57 m outside the alarm radius, and inside the 2 m line, so that catch pays no +50. A 0.7 s hold still running on the first exit does not fit. Contact would land near 1.8 s and the coast would finish inside the alarm radius. Only the flash, or a spent alarm, covers that penguin. Keyboard, hover (`pointer.x` at ±1) and touch (a 140 px/s drag, the π rad/s cap) each win ≥ 50 % of 30 seeds at 60 fps. A perfect sweeper on 10 seeds survives with all 3 alarms and scores ≤ 1950. On every seed, a camp bot (yaw locked on `+π/2`, no flash) and a spin bot (yaw += π rad/s, no flash) lose before 40 s with 0 paid returns and score ≤ 200. The camp feeds the far exit. On seeds where both dinos sit on the short pedestals of one side (a dino never starts before 30 s, and never from a path under 4 m) its third alarm is about 24.6–26.4 s, so "before 25 s, score ≤ 120" does not hold. 5 × 39 = 195, and ≤ 200 covers a loss before 40 s. A spin never holds 0.7 s. Five more seeds use `randomFrames` (4–50 ms) for the limit only.
 
+### Levels (five configurations, one proof each)
+
+Level 1 is the proof above, unchanged. Levels 2–5 use the same ring, the same doors, the same flash (1.2 s / 10 s) and the same turn cap (π rad/s). `createRun(seed)` is level 1. A level clears on a **win** (an alarm left at dawn). There is no `clearScore`. The leaderboard value is the sum of the five level bests, so each later ceiling is higher than 1950, and level 5's maxScore is 1.40× level 1's.
+
+The plan's rooms, blocked paths, locked paths, free pedestal shuffling and a walking patrol are not in this build (`docs/level-briefs/museum-guard.md`). "More thieves" is more departures and, from level 4, three sneaks at once plus a faster roster. "Faster patrols" is the phase speed. "Darker" is a narrower beam plus the core lighting preset. Phase-0 speed stays ×1 on every level, so the short-penguin chain is still the earliest lose.
+
+| Level | Title | Dawn | Departures | Speed | Cap | Gap | Beam ° | Roster k/r/p/d | What changes | Lighting |
+|---|---|---:|---|---|---|---|---|---|---|---|
+| 1 | Main Hall | 90 s | 6+7+8 | 1 / 1.15 / 1.25 | 2/3/3 | 4.2 / 3.6 / 3.2 | 16/14/12 | 2/2/2/2 | today's game | night `#1e1b4b` |
+| 2 | Ancient Wing | 105 s | 7+8+9 | 1 / 1.18 / 1.30 | 2/3/3 | 4.2 / 3.4 / 3.0 | 16/14/12 | 2/2/2/2 | longer night, one more departure each phase | night, darker room `#16142f` |
+| 3 | Art Wing | 120 s | 8+9+10 | 1 / 1.22 / 1.35 | 2/3/3 | 4.2 / 3.2 / 2.8 | 16/13/11 | 2/2/2/2 | narrower beam, tighter late gaps | night `#100e24` |
+| 4 | Science Wing | 120 s | 8+10+11 | 1 / 1.28 / 1.40 | 3/3/3 | 4.0 / 3.0 / 2.6 | 15/13/11 | 1/2/3/2 | three sneaks from the start, three penguins | night `#0b1026` (dusk/night) |
+| 5 | Full Museum Night | 135 s | 9+11+12 | 1 / 1.32 / 1.45 | 3/3/3 | 3.8 / 2.8 / 2.5 | 14/12/10 | 1/1/3/3 | narrowest beam, fastest patrols, most departures | space `#020617` (dramatic) |
+
+Per level, `B(t) = 5·floor(min(t, dawn)) + 50·(departures whose 0.7 s hold has finished by t) + (t ≥ dawn ? 450 : 0)`. Departures are placed as early as the gaps allow (the beam never blocks one, the cap never binds). Every one of those holds finishes before dawn, so `B(dawn)` is the ceiling `5·dawn + 50·departures + 450`. `levels.test.ts` checks `B` at every whole second and at every hold instant: `B(t) ≤ 25t` (base 0). `maxScore` is that ceiling plus about 5% (level 1 stays 2050). The earliest lose is three short penguins, one at a time, at phase-0 speed ×1: `earliestLoseS` = 13.79 s on levels 1–3 (gap 4.2), 13.39 s on level 4 (gap 4.0), 12.99 s on level 5 (gap 3.8). `minDurationMs` sits about 1–2 s under that. `maxDurationMs` is dawn + 2 s, the same slack level 1 uses for a frame that stops at 90050 ms. Touch and keys share the 0.7 s hold, the 1.2 s flash, the 10 s cooldown and the π rad/s turn on every level. A coarse pointer still gets the wider beam (×1.2, clamped at 17°), which is aim help, not a timing change.
+
+| Level | Ceiling | maxScore | minDurationMs | maxDurationMs | base | pps | Earliest lose |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| 1 | 1950 | 2050 | 12000 | 92000 | 0 | 25 | 13.79 s |
+| 2 | 2175 | 2290 | 12000 | 107000 | 0 | 25 | 13.79 s |
+| 3 | 2400 | 2520 | 12000 | 122000 | 0 | 25 | 13.79 s |
+| 4 | 2500 | 2630 | 12000 | 122000 | 0 | 25 | 13.39 s |
+| 5 | 2725 | 2870 | 11000 | 137000 | 0 | 25 | 12.99 s |
+
+These are `rules.ts` `PROPOSED_LEVEL_LIMITS` (level 1 = `PROPOSED_LIMITS` = `meta.scoring`) and `meta.ts` `levels`. Claude copies them into `arcade-games.json` at merge.
+
+Bots (`levels.bot1.test.ts` … `levels.bot5.test.ts`, the rules.test.ts sweeper, reaction 0.22 s, pure loop at 30 Hz; `stepGame` still slices each frame to 1/60). The oracle is the same sweeper with reaction 0. Idle, camp and spin never win. A 60 Hz store run checks `finalScore` and `capScore`. One oracle seed each at 60 Hz and 144 Hz stays inside the limits.
+
+| Level | Human wins / 200 (keys) | Human best | Oracle wins / 20 | Oracle best | of maxScore | Hover / touch wins / 20 |
+|---|---:|---:|---:|---:|---:|---|
+| 1 | 200 | 1950 | 20 | 1950 | 95.1% | 20 / 20 |
+| 2 | 200 | 2175 | 20 | 2175 | 95.0% | 20 / 20 |
+| 3 | 200 | 2400 | 20 | 2400 | 95.2% | 20 / 20 |
+| 4 | 200 | 2500 | 20 | 2500 | 95.1% | 20 / 20 |
+| 5 | 200 | 2725 | 20 | 2725 | 95.0% | 20 / 20 |
+
+The human best on every level is the ceiling: this sweeper catches every departure with more than 2 m left and keeps all 3 alarms. It already does that on today's level 1 (the 50% bar in rules.test.ts is the old floor, not the measured rate). Cap 4 was not used. The game README says a fourth mover at the late speed is not recoverable after a 0.2 s reaction.
+
 ## Run end
 
 **Decided (user, 2026-10-24).** The spec says dawn is `"timeup"` and that timeup counts as survival. The shell's timeup title is "Time's up!", `playSfx("win")` runs only for `endReason === "win"` (otherwise the lose sting), and the shell spawns no confetti. `durationMs` also ends the run inside `tick`, before `useRunFrame`, so the frame that crosses 90 s never awards its +5. The build follows this decision so those three are fixed:
@@ -169,6 +207,49 @@ Decisions already made, so a build can start once the eye rig exists: narrower b
 Claude adds `fitEyeShift`, `useEyeShift` and `EyeRig` (signatures above) before the build. The game does not copy them into its folder. `playedFrameDt` lives in `core/frameLoop`, and `simulateRun` is what the store bots call.
 
 ## Status
+
+TASK P-69-levels-museum | 5 levels for museum-guard | branch cursor/levels-museum-guard | allowed: play50games-frontend/src/arcade3d/games/museum-guard/**
+
+Five levels on the built flashlight gallery. Level 1 is today's 8-pedestal, 90 s night (limits 2050 / 12000 / 92000 / 0 / 25). Levels 2–5 raise departures, late speed, beam narrowness and, from level 4, the opening cap and the penguin count. Same assets, same ring, same flash and turn timings. A level clears on a win. Proposed limits are in `rules.ts` `PROPOSED_LEVEL_LIMITS` for Claude to copy into `arcade-games.json`.
+
+| Level | Title | Dawn | Departures | Ceiling | maxScore | min–max ms | Human / 200 | Oracle best |
+|---|---|---:|---|---:|---:|---|---:|---:|
+| 1 | Main Hall | 90 s | 21 | 1950 | 2050 | 12000–92000 | 200 | 1950 |
+| 2 | Ancient Wing | 105 s | 24 | 2175 | 2290 | 12000–107000 | 200 | 2175 |
+| 3 | Art Wing | 120 s | 27 | 2400 | 2520 | 12000–122000 | 200 | 2400 |
+| 4 | Science Wing | 120 s | 29 | 2500 | 2630 | 12000–122000 | 200 | 2500 |
+| 5 | Full Museum Night | 135 s | 32 | 2725 | 2870 | 11000–137000 | 200 | 2725 |
+
+`npx tsc --noEmit` passed. `npx vitest run src/arcade3d/games/museum-guard`: 49 tests, 38.5 s wall. `rules.test.ts` was not edited. Mutation: level 2's departures set equal to level 1's made the monotone test fail (`expected 21 to be greater than 21`), then restored. No `npm run build`, no server, no browser playtest.
+
+### Limits and proofs
+
+`B(t) = 5·floor(min(t, dawn)) + 50·(departures whose 0.7 s hold has finished) + (t ≥ dawn ? 450 : 0)`, with departures as early as the gaps allow. `B(dawn)` is the ceiling. Every whole second and every hold instant stays `≤ 25t` (base 0). `maxScore` is the ceiling plus about 5%; level 1 stays 2050. Earliest lose is three short penguins at phase-0 speed ×1: 13.79 s (levels 1–3), 13.39 s (level 4), 12.99 s (level 5). `maxDurationMs` is dawn + 2 s. Level 5 maxScore 2870 is 1.40× level 1. pps stays 25 on every level. Full table: "Levels (five configurations, one proof each)" above.
+
+### Bots
+
+Keys, 200 seeds, 30 Hz, reaction 0.22 s: 200/200 wins on every level, best equal to the ceiling. Oracle (reaction 0), 20 seeds: 20/20, best equal to the ceiling (95.0–95.2% of maxScore). Hover and touch, 20 seeds: 20/20 on every level. Idle, camp and spin, 4 seeds each: never win. One store run per level at 60 Hz: `finalScore` matches the store and `capScore` is a no-op. One oracle seed each at 60 Hz and 144 Hz stays inside the limits.
+
+### Files
+
+- `levels.ts` — `MuseumLevel` and `LEVELS`
+- `useMuseumLevel.ts` — `useLevel` wrapper
+- `rules.ts` — `createRun(seed, level)`, per-level ceiling / earliest lose / bound, `PROPOSED_LEVEL_LIMITS`
+- `levels.test.ts` — declarations, monotone difficulty, the limit proof, touch/keys timings
+- `levels.bot1.test.ts` … `levels.bot5.test.ts`, `testing/levelBots.ts`, `levels.bots.test.ts` — bot sweeps
+- `meta.ts` — five `levels` (level 1 scoring unchanged)
+- `index.tsx` — descriptions, instructions, night / space environments
+- `Scene.tsx`, `Hud.tsx` — read the level config
+- `README.md` — this status and the per-level proof
+
+### Open questions
+
+- The plan's 6 / 10 / 12 pedestals, blocked paths, locked paths, free-position randomization and a walking patrol were not built. A 6-pedestal ring would put a statue on a door and reopen the 2.842 m / 6.926 m path proof. The ring stays 8.
+- Lighting stays a night hall. Levels 2–3 only darken the room. Level 4 uses the night preset (dusk/night). Level 5 uses `space` as the dramatic preset. A bright Main Hall would wash out the flashlight.
+- The honest sweeper clears 200/200 seeds on every level, including today's level 1, and its best is the ceiling. One short path at a time plus the flash is solvable for perfect aim. A fourth concurrent sneak was left out on purpose.
+- `registry.sync.test.ts` will fail until Claude copies `PROPOSED_LEVEL_LIMITS` into `arcade-games.json`. This branch does not edit that file.
+
+### Previous build
 
 TASK P-18-museum-guard | build museum-guard | branch cursor/game-museum-guard | allowed: play50games-frontend/src/arcade3d/games/museum-guard/**, play50games-frontend/public/images/3d/museum-guard.webp, tools/thumbs/inputs/museum-guard.mjs
 

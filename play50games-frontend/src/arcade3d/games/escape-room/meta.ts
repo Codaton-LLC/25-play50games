@@ -1,3 +1,6 @@
+import { LEVEL_IDS } from "@/arcade3d/types";
+import { LEVEL_TITLES } from "./levels";
+import { PROPOSED_LEVEL_LIMITS } from "./rules";
 import type { ArcadeGameMeta } from "@/arcade3d/types";
 
 // Plain data only (server-safe). scoring must match WP includes/arcade-games.json.
@@ -26,6 +29,7 @@ export const escapeRoomMeta: ArcadeGameMeta = {
       unitLabel: "time",
       display: "time"
    },
+   levels: LEVEL_IDS.map((id) => ({ id, title: LEVEL_TITLES[id - 1], scoring: PROPOSED_LEVEL_LIMITS[id] })),
    thumbnail: "/images/3d/escape-room.webp",
    accent: "#eab308",
    owner: "codex"

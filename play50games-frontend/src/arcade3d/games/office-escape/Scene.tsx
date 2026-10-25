@@ -26,6 +26,8 @@ import { playSfx } from "@/arcade3d/core/audio";
 import { useGameTime } from "@/arcade3d/core/gameTime";
 import { useInput } from "@/arcade3d/core/input";
 import { randomSeed } from "@/arcade3d/core/math";
+import { capScore as capToLimits } from "@/arcade3d/core/limits";
+import { useOfficeLevel } from "./useOfficeLevel";
 import { BlobShadow } from "@/arcade3d/core/render";
 import {
    BONE,
@@ -73,7 +75,7 @@ import {
    NO_OBSTACLE,
    OBSTACLE_TYPES,
    ROW_SLOTS,
-   capScore,
+   obstacleOffset,
    createRun,
    readInput,
    speedAt,
@@ -158,6 +160,7 @@ function showCopies(slot: PropSlot, count: number): void {
 const Simulation = memo(function Simulation({ run, fx }: { run: OfficeRun; fx: Fx }) {
    const input = useInput();
    const time = useGameTime();
+   const { meta: { scoring } } = useOfficeLevel();
 
    useRunFrame((_state, dt) => {
       const ev = step(run, dt * 1000, readInput(run.edges, input.current, run.input));
@@ -177,7 +180,7 @@ const Simulation = memo(function Simulation({ run, fx }: { run: OfficeRun; fx: F
          fx.stageAt = time.now;
       }
       // elapsedMs is this frame's: the run clock ticks before useRunFrame
-      if (ev.scoreChanged || ev.ended) store.setScore(capScore(run.score, store.elapsedMs));
+      if (ev.scoreChanged || ev.ended) store.setScore(capToLimits(run.score, store.elapsedMs, scoring));
       if (ev.ended === "lose") {
          fx.crashAt = time.now;
          fx.hitRow = ev.hitRow;
@@ -290,7 +293,7 @@ const Obstacles = memo(function Obstacles({ run, fx, standIns }: { run: OfficeRu
             const knocked = crashK >= 0 && row.index === fx.hitRow && lane === fx.hitLane;
             const tilt = knocked ? -0.2 * Math.exp(-crashK * 3.5) * Math.sin(crashK * 16) : 0;
             Q.setFromEuler(E.set(tilt, jitter(row.index, lane) * TURNS[type], 0));
-            P.compose(V.set(LANES[lane] / 1000, 0, z), Q, ONE);
+            P.compose(V.set((LANES[lane] + obstacleOffset(run, row, type)) / 1000, 0, z), Q, ONE);
             writeCopy(slots[type], counts[type], P);
             counts[type] += 1;
             if (shadowMesh) shadowMesh.setMatrixAt(shadows++, M.multiplyMatrices(P, SHADOW_LOCALS[type]));
@@ -429,7 +432,7 @@ const Runner = memo(function Runner({ run, fx }: { run: OfficeRun; fx: Fx }) {
       const dt = time.delta;
       const ease = 1 - Math.exp(-14 * dt);
       const moving = run.distance > 0 && !run.over;
-      const speed = speedAt(run.simMs);
+      const speed = speedAt(run.simMs, run.level);
       const phase = ((run.distance % STRIDE_MM) / STRIDE_MM) * Math.PI * 2;
       const grounded = run.jumpMs < 0;
       const { phase: runPhase, endReason } = useArcadeStore.getState();
@@ -469,7 +472,7 @@ const Runner = memo(function Runner({ run, fx }: { run: OfficeRun; fx: Fx }) {
       const x = run.x / 1000;
       const feet = run.feet / 1000;
       const moving = run.distance > 0 && !run.over;
-      const speed = speedAt(run.simMs);
+      const speed = speedAt(run.simMs, run.level);
       const p = ((run.distance % STRIDE_MM) / STRIDE_MM) * Math.PI * 2;
       const { phase, endReason } = useArcadeStore.getState();
       const { hipL, hipR, kneeL, kneeR, shoulderL, shoulderR, elbowL, elbowR, head, tails } = rig;
@@ -589,7 +592,8 @@ const Runner = memo(function Runner({ run, fx }: { run: OfficeRun; fx: Fx }) {
 export default function Scene() {
    // a new seed every run: GameShell remounts the Scene (and its game time) on start and retry.
    // createRun fills the first 74 m of rows and 72 m of coins, so the corridor is set during the countdown.
-   const [run] = useState(() => createRun(randomSeed()));
+   const { config } = useOfficeLevel();
+   const [run] = useState(() => createRun(randomSeed(), config));
    const [fx] = useState(createFx);
    const standIns = useStandIns();
 
