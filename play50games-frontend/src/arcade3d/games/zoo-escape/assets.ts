@@ -48,8 +48,13 @@ export const TOWER_STRETCH = [1.6 / (TOWER_GLB.width * TOWER_SCALE), 1, 1.6 / (T
 
 /** bambooSnack.glb raw bounds, measured on the mesh: a flat spread pile, not an upright bundle. */
 export const SNACK_GLB = { width: 1.84126, height: 0.54056, depth: 1.7951 } as const;
-/** Fitted to the stand-in's 0.42 m unit height; the snack pool draws it x1.6 (0.67 m tall, wide pile). */
-export const SNACK_UNIT = 0.42 / SNACK_GLB.height;
+/**
+ * The pile is wide and flat, so it is fitted by its width: the snack pool draws it x1.6, 1.0 m across
+ * (about the 0.8 m eating reach plus a little) and 0.29 m tall. Fitted by the stand-in's 0.42 m height
+ * it drew 2.3 m across and covered the keepers' feet and the snack glow (review 2026-10-25).
+ */
+export const SNACK_DRAWN_WIDTH = 1.0;
+export const SNACK_UNIT = SNACK_DRAWN_WIDTH / 1.6 / SNACK_GLB.width;
 
 const R = REUSED_GLB_SIZE;
 

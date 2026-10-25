@@ -132,14 +132,15 @@ describe("adopted batch-5 prop GLBs", () => {
       expect(drawn.max.y).toBeGreaterThan(4.3);
    });
 
-   it("measures the bambooSnack GLB and draws it at the 0.42 snack unit (0.67 at the pool's x1.6)", async () => {
+   it("measures the bambooSnack GLB and draws it 1.0 m across at the pool's x1.6", async () => {
       const raw = await rawBox(ASSETS.snack);
       expect(raw.min.y).toBeCloseTo(0, 3);
       expect(raw.max.x - raw.min.x).toBeCloseTo(SNACK_GLB.width, 3);
       expect(raw.max.y).toBeCloseTo(SNACK_GLB.height, 3);
       expect(raw.max.z - raw.min.z).toBeCloseTo(SNACK_GLB.depth, 3);
       const unit = await drawnBox(ASSETS.snack);
-      expect(unit.max.y - unit.min.y).toBeCloseTo(0.42, 3);
-      expect((unit.max.y - unit.min.y) * 1.6).toBeCloseTo(0.67, 2);
+      expect((unit.max.x - unit.min.x) * 1.6).toBeCloseTo(1.0, 3);
+      expect((unit.max.z - unit.min.z) * 1.6).toBeLessThan(1.0);
+      expect((unit.max.y - unit.min.y) * 1.6).toBeCloseTo(0.29, 2);
    });
 });
