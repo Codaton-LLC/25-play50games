@@ -140,6 +140,18 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/treasure-island/beachRocks.glb",
    "/models/3d/penguin-slide/iceArch.glb",
    "/models/3d/mini-golf/golfCastle.glb",
+   // aquarium-cleaner (2026-10-25): menu1 ready set + shared coralI, optimized, character 18k tris
+   "/models/3d/aquarium-cleaner/charDiver.glb",
+   "/models/3d/aquarium-cleaner/aquariumScrubber.glb",
+   "/models/3d/aquarium-cleaner/plasticBottle.glb",
+   "/models/3d/aquarium-cleaner/tropicalFish.glb",
+   "/models/3d/aquarium-cleaner/aquariumCastle.glb",
+   "/models/3d/aquarium-cleaner/aquariumRock.glb",
+   "/models/3d/aquarium-cleaner/filterMachineV3.glb",
+   "/models/3d/aquarium-cleaner/scubaTank.glb",
+   "/models/3d/aquarium-cleaner/shark.glb",
+   "/models/3d/aquarium-cleaner/trashBasket.glb",
+   "/models/3d/aquarium-cleaner/coralI.glb",
 ];
 
 const LISTED: ReadonlySet<string> = new Set(MODEL_MANIFEST);
