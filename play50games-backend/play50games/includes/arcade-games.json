@@ -43,7 +43,14 @@
       "max_duration_ms": 1800000,
       "base": 0,
       "max_pps": 85,
-      "enabled": true
+      "enabled": true,
+      "levels": [
+        { "title": "Open Office", "max_score": 152500, "min_duration_ms": 4800, "max_duration_ms": 1800000, "base": 0, "max_pps": 85 },
+        { "title": "Meeting Floor", "max_score": 170500, "min_duration_ms": 4800, "max_duration_ms": 1800000, "base": 0, "max_pps": 95 },
+        { "title": "Copy Room", "max_score": 189000, "min_duration_ms": 4800, "max_duration_ms": 1800000, "base": 0, "max_pps": 106 },
+        { "title": "Executive Floor", "max_score": 208000, "min_duration_ms": 4800, "max_duration_ms": 1800000, "base": 0, "max_pps": 116 },
+        { "title": "After-Hours Office", "max_score": 228000, "min_duration_ms": 4800, "max_duration_ms": 1800000, "base": 0, "max_pps": 128 }
+      ]
     },
     "pigeon-crossing": {
       "title": "Pigeon Crossing",
