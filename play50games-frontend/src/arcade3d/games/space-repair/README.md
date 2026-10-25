@@ -194,3 +194,64 @@ The user approved this design and asked Claude to settle every open question wit
 - Limits verified (arcade-score-limits): the ticket-count envelope in "Server limits" holds (30 tickets x 150 + 200 = 4700; every prefix under 400 + 40 t; earliest loss 37.67 s; win at exactly 120 s); the oracle's best 4504 = 95.8 % of maxScore. Copied into `meta.scoring` and `arcade-games.json` (`enabled: false`, status `dev`); `rules.test.ts` pins meta = `PROPOSED_LIMITS`. Mutation probes (perfect AND, miss clears perfect, bonus floor) are caught; a "never lose" mutation hangs the suite instead of failing (bots loop without a frame cap): add a frame/time cap to the degenerate-bot loops.
 - Playtest (headless, 1280 x 800 / 390 x 844 banner open / 844 x 390): 20-22 draw calls, p95 17 ms on desktop, no console errors, HUD and ring clear of the banner and controls, suit 40-60 CSS px. Fixed: the depth-independent wireframe outline washed the whole suit out to a pale ghost; it is now an x-ray drawn only where something in front hides the suit (`depthFunc: GreaterDepth`, opacity 0.22).
 - Open (Codex): in 844 x 390 a TargetMarkers arrow can sit on the suit.
+
+
+## Five levels (P-59)
+
+The core level selector, unlocks and sum-of-level-bests leaderboard are used directly.
+All eight modules and the same assets remain present. The plan's named wings describe
+configurations of the existing station; no runner route, return objective or new layout is added.
+The later Claude decision supersedes the backlog's shorter L2 schedule: all five levels retain
+all 30 repair tickets and 120 seconds, so every level offers the same 4,700-point ceiling.
+
+| Level | Title | Debris speed by stage (m/s) | Repair arcs by stage (degrees) | Miss lock (s) | Clear |
+|---|---|---|---|---|---|
+| 1 | Docking Bay | 1 / 1.2 / 1.4 | 60 / 45 / 35 | 0.50 | Win or 2,400 points |
+| 2 | Power Wing | 1.2 / 1.4 / 1.6 | 59 / 44 / 34 | 0.52 | Win or 2,400 points |
+| 3 | Comms Wing | 1.4 / 1.7 / 2.0 | 58 / 43 / 33 | 0.54 | Win or 2,400 points |
+| 4 | External Platform | 1.6 / 1.9 / 2.3 | 57 / 42 / 32 | 0.56 | Win or 2,400 points |
+| 5 | Station Emergency | 1.8 / 2.2 / 2.6 | 56 / 41 / 31 | 0.60 | Win or 2,400 points |
+
+Periods stay 1.2 / 1 / 0.8 seconds throughout. Difficulty increases in every stage:
+faster moving debris, narrower timing windows and longer recovery from a miss.
+Touch and keyboard use the exact same arc array and periods. The rules clock owns
+the finish and bonus, as before; no shell duration override can cut off its final step.
+HUD remaining time reads the selected config. Space lighting is retained on every level;
+the plan's different lighting moods are not implemented in this task.
+
+### Server limits and why they hold: per-level proofs
+
+For each level the only score sources are a completed repair (100), its all-perfect
+bonus (50), and the terminal surviving-power bonus (2 times floor(power), at most 200).
+Cells add power, never points; hits before completion, collisions and skipped tickets add
+no points. A repair generation consumes one issued ticket and pays once. Let N(t) be the
+number of schedule entries at or before t. Before the finish, B(t) = 150 N(t); at 120 s,
+B(120) = 150 * 30 + 200 = 4,700. For every one of the 30 schedule boundaries,
+150 N(t) <= 400 + 40 t (checked independently for every level). Between boundaries
+the left side is constant and the right side increases. At the finish 4,700 <= 5,200.
+This envelope does not assume player speed, perfect reaction or any minimum work time;
+faster debris or narrower arcs cannot invalidate it.
+
+Earliest loss: leaving every broken module unrepaired maximizes power drain. The first
+five six-second intervals drain 6 * (1 + 2 + 3 + 4 + 5) = 90 power by 36 s. Six
+broken modules then drain the remaining 10 in 10/6 s, giving 37 2/3 s. Repairs and
+cells can only delay loss. Debris has no direct power penalty. Winning is exactly 120 s.
+The unchanged window [37,000, 122,000] ms includes the earliest loss and at most 50 ms
+of store-frame reconciliation; result-delay time is excluded. The original approved
+exact combinatorial ceiling remains 4,700 without additional ceiling padding; duration
+margins are 666.67 ms early and 2 s late. The same base/pps margin is retained.
+
+| Proof | Tickets / finish | Per-source ceiling | maxScore | min/max duration ms | base / pps | Why the level changes preserve the bound |
+|---|---|---|---|---|---|---|
+| L1 Docking Bay | 30 / 120 s | 3,000 + 1,500 + 200 | 4,700 | 37,000 / 122,000 | 400 / 40 | Exact original engine, constants and limits; frozen-engine replay test |
+| L2 Power Wing | 30 / 120 s | 3,000 + 1,500 + 200 | 4,700 | 37,000 / 122,000 | 400 / 40 | Same N(t), power drain, score events and deadline; smaller arcs only restrict hits |
+| L3 Comms Wing | 30 / 120 s | 3,000 + 1,500 + 200 | 4,700 | 37,000 / 122,000 | 400 / 40 | Same independent ticket envelope and earliest-loss calculation; debris adds no points/drain |
+| L4 External Platform | 30 / 120 s | 3,000 + 1,500 + 200 | 4,700 | 37,000 / 122,000 | 400 / 40 | Narrower arcs and longer locks cannot generate tickets or extra awards |
+| L5 Station Emergency | 30 / 120 s | 3,000 + 1,500 + 200 | 4,700 | 37,000 / 122,000 | 400 / 40 | Same N(t) and finish bonus; longest lock and fastest debris never increase score sources |
+
+Fair service discs remain outside the entire debris collision envelope:
+7.6 cos(pi/32) - 6 - 0.6 - 0.45 - 0.25 > 0.06 m, independently of debris speed.
+No frame-loop allocation was added: the level config is captured once at run creation.
+The test-only today.rules.fixture.ts freezes the pre-task engine; replay hashes compare
+all serialized simulation state every frame, excluding only the new config and callback.
+The original rules.test.ts stays byte-identical.
