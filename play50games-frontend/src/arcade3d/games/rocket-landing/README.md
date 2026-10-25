@@ -6,6 +6,66 @@ Owner: Codex. Slug: `rocket-landing`. Skill game 20, wave 2, complexity 3. P-15 
 
 Feather a chunky white toy rocket's engine, cancel drift and land upright on five alien worlds. Three lives cover the whole campaign; a crash repeats the current planet. Different gravity, narrowing pads, wind and a moving pad make each landing a new control problem. Accent `#fda4af`.
 
+## Levels (P-59 levels, 2026-10-25)
+
+Five levels through the core level system (`core/README.md` "Levels"): `levels.ts` holds the pure `RocketLevel` configs, `createRun(seed, assist, level)` / `stepRun` play one, Scene reads it with `useRocketLevel()` (= `useLevel<RocketLevel>()`), `index.tsx` declares the five `LevelSpec`s (description, config, instructions, `durationMs`, and `hudStats` with the level's planet count), and `meta.ts` declares the titles and limits. **Level 1 is the 2-planet slice (Moon + Desert)**: existing `rules.test.ts` passes unchanged for Level 1 (with default fallback to Level 4's 5-planet campaign for legacy tests), and `levels.test.ts` pins contracts, replay fidelity, monotonicity, limits, and honest pilot vs idle bot.
+
+| Level | Title | Planets | Clock | Wind | Pad Amp | Contact vy | Contact angle | Clean bonus | Clear score |
+|---|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| 1 | Moon Pad | 2 (Moon, Desert) | 120 s | 0.4 | 2.0 | 2.0 m/s | 10.0° (π/18) | 300 | 800 |
+| 2 | Wide Crater | 3 (adds Ice) | 150 s | 0.4 | 2.0 | 2.0 m/s | 10.0° (π/18) | 300 | 1200 |
+| 3 | Mars Ridge | 4 (adds Gas moon) | 180 s | 0.6 | 3.0 | 2.0 m/s | 10.0° (π/18) | 300 | 1600 |
+| 4 | Asteroid Base | 5 (adds Asteroid) | 180 s | 0.4 | 2.0 | 2.0 m/s | 10.0° (π/18) | 300 | 2000 |
+| 5 | Precision Landing | 5 (precision gates) | 180 s | 0.4 | 2.0 | 1.5 m/s | 7.5° (π/24) | 450 | 2000 |
+
+Plan adaptation (GAME 30 — Rocket Landing Challenge):
+- **Level 1 (Moon Pad)**: 2 planets (Moon g1.6, Desert g3.7). Starting fuel 100 on both. Introduction to feathering thrust and horizontal cancellation.
+- **Level 2 (Wide Crater)**: 3 planets (adds Ice g5.0 with starting fuel 95). Higher gravity requires precise deceleration.
+- **Level 3 (Mars Ridge)**: 4 planets (adds Gas moon g2.5). Wind amplitude increased from 0.4 to 0.6 m/s²; pad oscillation amplitude increased from 2.0 to 3.0 m.
+- **Level 4 (Asteroid Base)**: Today's full 5-planet campaign as-is (adds Asteroid cavern with moving pad and roof slab obstacle).
+- **Level 5 (Precision Landing)**: Full 5-planet campaign with strict contact gates (`contactVy` tightened from 2.0 to 1.5 m/s; `contactAngle` tightened from 10.0° to 7.5°). Clean landing bonus increased from 300 to 450 points.
+
+### Server limits per level (the proof)
+
+For each level with N planets, landing award per planet is at most 500 (200 softness + 150 centering + 150 fuel reserve).
+1. **Max Score**: maxScore = N * 500 + cleanBonus.
+   - L1: 2 * 500 + 300 = 1300
+   - L2: 3 * 500 + 300 = 1800
+   - L3: 4 * 500 + 300 = 2300
+   - L4: 5 * 500 + 300 = 2800
+   - L5: 5 * 500 + 450 = 2950 (monotonic, 2950 <= 3 * 1300 = 3900)
+2. **Min Duration**: Spawn centre 14 to upright contact centre 3.1 drops 10.9 m; rotated hull radius 1.35 m requires centre drop >= 10.65 m. With max downward acceleration g + 12 <= 17 m/s², minimum flight time per planet is sqrt(2 * 10.65 / 17) >= 1.119 s. Between planets, transition hold is 1.2 s.
+   - For N planets, minimum flight time is t_win >= N * 1.119 + (N - 1) * 1.2.
+   - L1: 2 * 1.119 + 1.2 = 3.438 s -> minDurationMs = 2200 ms
+   - L2: 3 * 1.119 + 2.4 = 5.757 s -> minDurationMs = 3400 ms
+   - L3: 4 * 1.119 + 3.6 = 8.076 s -> minDurationMs = 4600 ms
+   - L4: 5 * 1.119 + 4.8 = 10.395 s (on cavern route, actual t_win >= 14.0 s) -> minDurationMs = 5000 ms
+   - L5: Same 5 planets -> minDurationMs = 5000 ms
+3. **Max Points Per Second**: With base = 800 and maxPointsPerSec = 200, for all N:
+   maxScore <= base + maxPointsPerSec * t_win.
+   - L1: 1300 <= 800 + 200 * 3.438 = 1487.6 (holds)
+   - L2: 1800 <= 800 + 200 * 5.757 = 1951.4 (holds)
+   - L3: 2300 <= 800 + 200 * 8.076 = 2415.2 (holds)
+   - L4: 2800 <= 800 + 200 * 10.395 = 2879.0 (holds; with cavern t >= 14 s, 800 + 2800 = 3600 >= 2800)
+   - L5: 2950 <= 800 + 200 * 14.0 = 3600 (holds)
+4. **Max Duration**: durationMs + 2000 ms margin for result processing.
+
+| Level | maxScore | minDurationMs | maxDurationMs | base | maxPointsPerSec | clearScore |
+|---|---:|---:|---:|---:|---:|---:|
+| 1 | 1300 | 2200 | 122000 | 800 | 200 | 800 |
+| 2 | 1800 | 3400 | 152000 | 800 | 200 | 1200 |
+| 3 | 2300 | 4600 | 182000 | 800 | 200 | 1600 |
+| 4 | 2800 | 5000 | 182000 | 800 | 200 | 2000 |
+| 5 | 2950 | 5000 | 182000 | 800 | 200 | 2000 |
+
+### Honest bot vs idle bot results (levels.test.ts)
+
+- **Level 1**: 16/16 seeds clear (100%), 16/16 reach clearScore 800 (100%). Idle bot: 0% clears, score 0.
+- **Level 2**: 16/16 seeds clear (100%), 16/16 reach clearScore 1200 (100%). Idle bot: 0% clears, score 0.
+- **Level 3**: 16/16 seeds clear (100%), 16/16 reach clearScore 1600 (100%). Idle bot: 0% clears, score 0.
+- **Level 4**: 16/16 seeds clear (100%), 16/16 reach clearScore 2000 (100%). Idle bot: 0% clears, score 0.
+- **Level 5**: 16/16 seeds clear (100%), 16/16 reach clearScore 2000 (100%). Idle bot: 0% clears, score 0.
+
 ## Controls
 
 `meta.ts`: `scheme: "flight"`; `index.tsx` GameDefinition fields: `touchControls: ["joystick", "jump"]`, `touchLabels: { jump: "Thrust" }`.

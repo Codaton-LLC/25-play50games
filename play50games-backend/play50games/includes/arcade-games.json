@@ -11,11 +11,46 @@
       "max_pps": 120,
       "enabled": true,
       "levels": [
-        { "title": "Training Bay", "max_score": 1470, "min_duration_ms": 12500, "max_duration_ms": 62000, "base": 600, "max_pps": 120 },
-        { "title": "Small Warehouse", "max_score": 1740, "min_duration_ms": 14900, "max_duration_ms": 72000, "base": 600, "max_pps": 120 },
-        { "title": "Conveyor Zone", "max_score": 2010, "min_duration_ms": 17400, "max_duration_ms": 82000, "base": 600, "max_pps": 120 },
-        { "title": "Dark Storage", "max_score": 2240, "min_duration_ms": 19900, "max_duration_ms": 87000, "base": 600, "max_pps": 120 },
-        { "title": "Mega Warehouse", "max_score": 2460, "min_duration_ms": 22300, "max_duration_ms": 92000, "base": 600, "max_pps": 120 }
+        {
+          "title": "Training Bay",
+          "max_score": 1470,
+          "min_duration_ms": 12500,
+          "max_duration_ms": 62000,
+          "base": 600,
+          "max_pps": 120
+        },
+        {
+          "title": "Small Warehouse",
+          "max_score": 1740,
+          "min_duration_ms": 14900,
+          "max_duration_ms": 72000,
+          "base": 600,
+          "max_pps": 120
+        },
+        {
+          "title": "Conveyor Zone",
+          "max_score": 2010,
+          "min_duration_ms": 17400,
+          "max_duration_ms": 82000,
+          "base": 600,
+          "max_pps": 120
+        },
+        {
+          "title": "Dark Storage",
+          "max_score": 2240,
+          "min_duration_ms": 19900,
+          "max_duration_ms": 87000,
+          "base": 600,
+          "max_pps": 120
+        },
+        {
+          "title": "Mega Warehouse",
+          "max_score": 2460,
+          "min_duration_ms": 22300,
+          "max_duration_ms": 92000,
+          "base": 600,
+          "max_pps": 120
+        }
       ]
     },
     "food-catcher": {
@@ -28,11 +63,46 @@
       "max_pps": 28,
       "enabled": true,
       "levels": [
-        { "title": "Fruit Catch", "max_score": 2500, "min_duration_ms": 9500, "max_duration_ms": 93000, "base": 0, "max_pps": 28 },
-        { "title": "Snack Catch", "max_score": 2400, "min_duration_ms": 8620, "max_duration_ms": 123000, "base": 0, "max_pps": 89 },
-        { "title": "Fast Food Mix", "max_score": 3150, "min_duration_ms": 7890, "max_duration_ms": 153000, "base": 0, "max_pps": 97 },
-        { "title": "Speed Kitchen", "max_score": 3910, "min_duration_ms": 7940, "max_duration_ms": 183000, "base": 0, "max_pps": 109 },
-        { "title": "Master Catch", "max_score": 4150, "min_duration_ms": 7270, "max_duration_ms": 183000, "base": 0, "max_pps": 99 }
+        {
+          "title": "Fruit Catch",
+          "max_score": 2500,
+          "min_duration_ms": 9500,
+          "max_duration_ms": 93000,
+          "base": 0,
+          "max_pps": 28
+        },
+        {
+          "title": "Snack Catch",
+          "max_score": 2400,
+          "min_duration_ms": 8620,
+          "max_duration_ms": 123000,
+          "base": 0,
+          "max_pps": 89
+        },
+        {
+          "title": "Fast Food Mix",
+          "max_score": 3150,
+          "min_duration_ms": 7890,
+          "max_duration_ms": 153000,
+          "base": 0,
+          "max_pps": 97
+        },
+        {
+          "title": "Speed Kitchen",
+          "max_score": 3910,
+          "min_duration_ms": 7940,
+          "max_duration_ms": 183000,
+          "base": 0,
+          "max_pps": 109
+        },
+        {
+          "title": "Master Catch",
+          "max_score": 4150,
+          "min_duration_ms": 7270,
+          "max_duration_ms": 183000,
+          "base": 0,
+          "max_pps": 99
+        }
       ]
     },
     "office-escape": {
@@ -85,11 +155,46 @@
       "max_pps": 11,
       "enabled": true,
       "levels": [
-        { "title": "Training Tower", "max_score": 19000, "min_duration_ms": 3000, "max_duration_ms": 1800000, "base": 0, "max_pps": 11 },
-        { "title": "Stone Tower", "max_score": 19000, "min_duration_ms": 3000, "max_duration_ms": 1800000, "base": 0, "max_pps": 11 },
-        { "title": "Clock Tower", "max_score": 19350, "min_duration_ms": 3000, "max_duration_ms": 1800000, "base": 0, "max_pps": 13 },
-        { "title": "Storm Tower", "max_score": 19850, "min_duration_ms": 3000, "max_duration_ms": 1800000, "base": 0, "max_pps": 18 },
-        { "title": "Sky Tower", "max_score": 20200, "min_duration_ms": 3000, "max_duration_ms": 1800000, "base": 0, "max_pps": 19 }
+        {
+          "title": "Training Tower",
+          "max_score": 19000,
+          "min_duration_ms": 3000,
+          "max_duration_ms": 1800000,
+          "base": 0,
+          "max_pps": 11
+        },
+        {
+          "title": "Stone Tower",
+          "max_score": 19000,
+          "min_duration_ms": 3000,
+          "max_duration_ms": 1800000,
+          "base": 0,
+          "max_pps": 11
+        },
+        {
+          "title": "Clock Tower",
+          "max_score": 19350,
+          "min_duration_ms": 3000,
+          "max_duration_ms": 1800000,
+          "base": 0,
+          "max_pps": 13
+        },
+        {
+          "title": "Storm Tower",
+          "max_score": 19850,
+          "min_duration_ms": 3000,
+          "max_duration_ms": 1800000,
+          "base": 0,
+          "max_pps": 18
+        },
+        {
+          "title": "Sky Tower",
+          "max_score": 20200,
+          "min_duration_ms": 3000,
+          "max_duration_ms": 1800000,
+          "base": 0,
+          "max_pps": 19
+        }
       ]
     },
     "clean-city": {
@@ -227,11 +332,46 @@
       "max_pps": 190,
       "enabled": false,
       "levels": [
-        { "title": "Snow Yard", "max_score": 2550, "min_duration_ms": 10000, "max_duration_ms": 92000, "base": 600, "max_pps": 190 },
-        { "title": "Frozen Park", "max_score": 2550, "min_duration_ms": 10000, "max_duration_ms": 92000, "base": 600, "max_pps": 190 },
-        { "title": "Snow Fort", "max_score": 2550, "min_duration_ms": 8000, "max_duration_ms": 92000, "base": 600, "max_pps": 230 },
-        { "title": "Ice Village", "max_score": 2550, "min_duration_ms": 8000, "max_duration_ms": 92000, "base": 600, "max_pps": 230 },
-        { "title": "Championship Arena", "max_score": 2550, "min_duration_ms": 5000, "max_duration_ms": 92000, "base": 600, "max_pps": 348 }
+        {
+          "title": "Snow Yard",
+          "max_score": 2550,
+          "min_duration_ms": 10000,
+          "max_duration_ms": 92000,
+          "base": 600,
+          "max_pps": 190
+        },
+        {
+          "title": "Frozen Park",
+          "max_score": 2550,
+          "min_duration_ms": 10000,
+          "max_duration_ms": 92000,
+          "base": 600,
+          "max_pps": 190
+        },
+        {
+          "title": "Snow Fort",
+          "max_score": 2550,
+          "min_duration_ms": 8000,
+          "max_duration_ms": 92000,
+          "base": 600,
+          "max_pps": 230
+        },
+        {
+          "title": "Ice Village",
+          "max_score": 2550,
+          "min_duration_ms": 8000,
+          "max_duration_ms": 92000,
+          "base": 600,
+          "max_pps": 230
+        },
+        {
+          "title": "Championship Arena",
+          "max_score": 2550,
+          "min_duration_ms": 5000,
+          "max_duration_ms": 92000,
+          "base": 600,
+          "max_pps": 348
+        }
       ]
     },
     "ghost-vacuum": {
@@ -304,11 +444,46 @@
       "max_pps": 56,
       "enabled": true,
       "levels": [
-        { "title": "Outer Wall", "max_score": 7130, "min_duration_ms": 39000, "max_duration_ms": 140000, "base": 480, "max_pps": 56 },
-        { "title": "Main Gate", "max_score": 7370, "min_duration_ms": 33000, "max_duration_ms": 135000, "base": 600, "max_pps": 61 },
-        { "title": "Twin Towers", "max_score": 9130, "min_duration_ms": 36000, "max_duration_ms": 156000, "base": 480, "max_pps": 65 },
-        { "title": "Night Siege", "max_score": 10710, "min_duration_ms": 35000, "max_duration_ms": 178500, "base": 480, "max_pps": 66 },
-        { "title": "Royal Defense", "max_score": 11570, "min_duration_ms": 30000, "max_duration_ms": 200500, "base": 480, "max_pps": 63 }
+        {
+          "title": "Outer Wall",
+          "max_score": 7130,
+          "min_duration_ms": 39000,
+          "max_duration_ms": 140000,
+          "base": 480,
+          "max_pps": 56
+        },
+        {
+          "title": "Main Gate",
+          "max_score": 7370,
+          "min_duration_ms": 33000,
+          "max_duration_ms": 135000,
+          "base": 600,
+          "max_pps": 61
+        },
+        {
+          "title": "Twin Towers",
+          "max_score": 9130,
+          "min_duration_ms": 36000,
+          "max_duration_ms": 156000,
+          "base": 480,
+          "max_pps": 65
+        },
+        {
+          "title": "Night Siege",
+          "max_score": 10710,
+          "min_duration_ms": 35000,
+          "max_duration_ms": 178500,
+          "base": 480,
+          "max_pps": 66
+        },
+        {
+          "title": "Royal Defense",
+          "max_score": 11570,
+          "min_duration_ms": 30000,
+          "max_duration_ms": 200500,
+          "base": 480,
+          "max_pps": 63
+        }
       ]
     },
     "penguin-slide": {
@@ -321,11 +496,46 @@
       "max_pps": 104,
       "enabled": false,
       "levels": [
-        { "title": "Snow Hill", "max_score": 18700, "min_duration_ms": 9000, "max_duration_ms": 182000, "base": 440, "max_pps": 104 },
-        { "title": "Ice Cave", "max_score": 18700, "min_duration_ms": 9000, "max_duration_ms": 182000, "base": 440, "max_pps": 104 },
-        { "title": "Frozen Lake", "max_score": 18700, "min_duration_ms": 9000, "max_duration_ms": 182000, "base": 440, "max_pps": 104 },
-        { "title": "Aurora Run", "max_score": 18700, "min_duration_ms": 9000, "max_duration_ms": 182000, "base": 440, "max_pps": 104 },
-        { "title": "Glacier Sprint", "max_score": 18700, "min_duration_ms": 9000, "max_duration_ms": 182000, "base": 440, "max_pps": 104 }
+        {
+          "title": "Snow Hill",
+          "max_score": 18700,
+          "min_duration_ms": 9000,
+          "max_duration_ms": 182000,
+          "base": 440,
+          "max_pps": 104
+        },
+        {
+          "title": "Ice Cave",
+          "max_score": 18700,
+          "min_duration_ms": 9000,
+          "max_duration_ms": 182000,
+          "base": 440,
+          "max_pps": 104
+        },
+        {
+          "title": "Frozen Lake",
+          "max_score": 18700,
+          "min_duration_ms": 9000,
+          "max_duration_ms": 182000,
+          "base": 440,
+          "max_pps": 104
+        },
+        {
+          "title": "Aurora Run",
+          "max_score": 18700,
+          "min_duration_ms": 9000,
+          "max_duration_ms": 182000,
+          "base": 440,
+          "max_pps": 104
+        },
+        {
+          "title": "Glacier Sprint",
+          "max_score": 18700,
+          "min_duration_ms": 9000,
+          "max_duration_ms": 182000,
+          "base": 440,
+          "max_pps": 104
+        }
       ]
     },
     "space-repair": {
@@ -348,11 +558,46 @@
       "max_pps": 60,
       "enabled": false,
       "levels": [
-        { "title": "Snack Bar", "max_score": 4830, "min_duration_ms": 12000, "max_duration_ms": 92000, "base": 240, "max_pps": 60 },
-        { "title": "Monster Caf\u00e9", "max_score": 6300, "min_duration_ms": 12000, "max_duration_ms": 102000, "base": 240, "max_pps": 62 },
-        { "title": "Busy Kitchen", "max_score": 7640, "min_duration_ms": 12000, "max_duration_ms": 110000, "base": 240, "max_pps": 70 },
-        { "title": "Dinner Rush", "max_score": 8470, "min_duration_ms": 11000, "max_duration_ms": 116000, "base": 240, "max_pps": 74 },
-        { "title": "Grand Feast", "max_score": 9600, "min_duration_ms": 11000, "max_duration_ms": 122000, "base": 240, "max_pps": 79 }
+        {
+          "title": "Snack Bar",
+          "max_score": 4830,
+          "min_duration_ms": 12000,
+          "max_duration_ms": 92000,
+          "base": 240,
+          "max_pps": 60
+        },
+        {
+          "title": "Monster Café",
+          "max_score": 6300,
+          "min_duration_ms": 12000,
+          "max_duration_ms": 102000,
+          "base": 240,
+          "max_pps": 62
+        },
+        {
+          "title": "Busy Kitchen",
+          "max_score": 7640,
+          "min_duration_ms": 12000,
+          "max_duration_ms": 110000,
+          "base": 240,
+          "max_pps": 70
+        },
+        {
+          "title": "Dinner Rush",
+          "max_score": 8470,
+          "min_duration_ms": 11000,
+          "max_duration_ms": 116000,
+          "base": 240,
+          "max_pps": 74
+        },
+        {
+          "title": "Grand Feast",
+          "max_score": 9600,
+          "min_duration_ms": 11000,
+          "max_duration_ms": 122000,
+          "base": 240,
+          "max_pps": 79
+        }
       ]
     },
     "knight-arena": {
@@ -378,12 +623,54 @@
     "rocket-landing": {
       "title": "Rocket Landing Challenge",
       "kind": "points",
-      "max_score": 2800,
-      "min_duration_ms": 5000,
-      "max_duration_ms": 242000,
+      "max_score": 1300,
+      "min_duration_ms": 2200,
+      "max_duration_ms": 122000,
       "base": 800,
       "max_pps": 200,
-      "enabled": false
+      "enabled": false,
+      "levels": [
+        {
+          "title": "Moon Pad",
+          "max_score": 1300,
+          "min_duration_ms": 2200,
+          "max_duration_ms": 122000,
+          "base": 800,
+          "max_pps": 200
+        },
+        {
+          "title": "Wide Crater",
+          "max_score": 1800,
+          "min_duration_ms": 3400,
+          "max_duration_ms": 152000,
+          "base": 800,
+          "max_pps": 200
+        },
+        {
+          "title": "Mars Ridge",
+          "max_score": 2300,
+          "min_duration_ms": 4600,
+          "max_duration_ms": 182000,
+          "base": 800,
+          "max_pps": 200
+        },
+        {
+          "title": "Asteroid Base",
+          "max_score": 2800,
+          "min_duration_ms": 5000,
+          "max_duration_ms": 182000,
+          "base": 800,
+          "max_pps": 200
+        },
+        {
+          "title": "Precision Landing",
+          "max_score": 2950,
+          "min_duration_ms": 5000,
+          "max_duration_ms": 182000,
+          "base": 800,
+          "max_pps": 200
+        }
+      ]
     }
   }
 }
