@@ -165,7 +165,14 @@
       "max_duration_ms": 92000,
       "base": 1250,
       "max_pps": 100,
-      "enabled": false
+      "enabled": false,
+      "levels": [
+        { "title": "Starter Beach", "max_score": 2060, "min_duration_ms": 8500, "max_duration_ms": 92000, "base": 1250, "max_pps": 100 },
+        { "title": "Palm Grove", "max_score": 2060, "min_duration_ms": 8500, "max_duration_ms": 92000, "base": 1250, "max_pps": 100 },
+        { "title": "Rocky Cove", "max_score": 2300, "min_duration_ms": 9100, "max_duration_ms": 92000, "base": 1500, "max_pps": 100 },
+        { "title": "Jungle Interior", "max_score": 2300, "min_duration_ms": 9100, "max_duration_ms": 92000, "base": 1500, "max_pps": 100 },
+        { "title": "Pirate Peak", "max_score": 2300, "min_duration_ms": 8500, "max_duration_ms": 92000, "base": 1500, "max_pps": 100 }
+      ]
     },
     "museum-guard": {
       "title": "Museum Guard",
@@ -229,7 +236,14 @@
       "max_duration_ms": 77000,
       "base": 1700,
       "max_pps": 100,
-      "enabled": false
+      "enabled": false,
+      "levels": [
+        { "title": "Mini Market", "max_score": 2030, "min_duration_ms": 3500, "max_duration_ms": 77000, "base": 1700, "max_pps": 100 },
+        { "title": "Fresh Food", "max_score": 2520, "min_duration_ms": 3500, "max_duration_ms": 102000, "base": 2200, "max_pps": 100 },
+        { "title": "Household Aisles", "max_score": 3560, "min_duration_ms": 3500, "max_duration_ms": 152000, "base": 3250, "max_pps": 100 },
+        { "title": "Superstore", "max_score": 4520, "min_duration_ms": 3500, "max_duration_ms": 152000, "base": 4200, "max_pps": 100 },
+        { "title": "Closing-Time Rush", "max_score": 5960, "min_duration_ms": 3500, "max_duration_ms": 182000, "base": 5650, "max_pps": 100 }
+      ]
     },
     "snowball-battle": {
       "title": "Snowball Battle",
@@ -290,7 +304,14 @@
       "max_duration_ms": 102000,
       "base": 200,
       "max_pps": 250,
-      "enabled": false
+      "enabled": false,
+      "levels": [
+        { "title": "Starter Plot", "max_score": 12900, "min_duration_ms": 99000, "max_duration_ms": 102000, "base": 200, "max_pps": 250 },
+        { "title": "Crystal Farm", "max_score": 20600, "min_duration_ms": 148000, "max_duration_ms": 153000, "base": 200, "max_pps": 250 },
+        { "title": "Glow Marsh", "max_score": 26900, "min_duration_ms": 178000, "max_duration_ms": 183000, "base": 200, "max_pps": 260 },
+        { "title": "Meteor Field", "max_score": 22100, "min_duration_ms": 178000, "max_duration_ms": 183000, "base": 200, "max_pps": 260 },
+        { "title": "Grand Alien Harvest", "max_score": 30500, "min_duration_ms": 208000, "max_duration_ms": 213000, "base": 200, "max_pps": 260 }
+      ]
     },
     "mini-golf": {
       "title": "Mini Golf 3D",
@@ -378,7 +399,14 @@
       "max_duration_ms": 122000,
       "base": 400,
       "max_pps": 40,
-      "enabled": false
+      "enabled": false,
+      "levels": [
+        { "title": "Docking Bay", "max_score": 4700, "min_duration_ms": 37000, "max_duration_ms": 122000, "base": 400, "max_pps": 40 },
+        { "title": "Power Wing", "max_score": 4700, "min_duration_ms": 37000, "max_duration_ms": 122000, "base": 400, "max_pps": 40 },
+        { "title": "Comms Wing", "max_score": 4700, "min_duration_ms": 37000, "max_duration_ms": 122000, "base": 400, "max_pps": 40 },
+        { "title": "External Platform", "max_score": 4700, "min_duration_ms": 37000, "max_duration_ms": 122000, "base": 400, "max_pps": 40 },
+        { "title": "Station Emergency", "max_score": 4700, "min_duration_ms": 37000, "max_duration_ms": 122000, "base": 400, "max_pps": 40 }
+      ]
     },
     "monster-kitchen": {
       "title": "Monster Kitchen",
@@ -432,7 +460,14 @@
       "max_duration_ms": 242000,
       "base": 800,
       "max_pps": 200,
-      "enabled": false
+      "enabled": false,
+      "levels": [
+        { "title": "Five Worlds", "max_score": 2800, "min_duration_ms": 5000, "max_duration_ms": 242000, "base": 800, "max_pps": 200 },
+        { "title": "Breezy Approach", "max_score": 3000, "min_duration_ms": 5000, "max_duration_ms": 242000, "base": 1000, "max_pps": 200 },
+        { "title": "Turbulent Orbit", "max_score": 3200, "min_duration_ms": 5000, "max_duration_ms": 242000, "base": 1200, "max_pps": 200 },
+        { "title": "High Winds & Cavern", "max_score": 3400, "min_duration_ms": 5000, "max_duration_ms": 242000, "base": 1400, "max_pps": 200 },
+        { "title": "Precision Landing", "max_score": 3600, "min_duration_ms": 5000, "max_duration_ms": 242000, "base": 1600, "max_pps": 200 }
+      ]
     }
   }
 }

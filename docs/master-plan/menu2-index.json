@@ -27,8 +27,8 @@
   },
   {
     "n": 3,
-    "slug": "turtle-sewer-escape",
-    "title": "Turtle Sewer Escape",
+    "slug": "flooded-ruins-escape",
+    "title": "Flooded Ruins Escape",
     "genre": "Vertical escape",
     "levels": [
       "Drain Entry",
@@ -144,15 +144,15 @@
   },
   {
     "n": 12,
-    "slug": "turtle-tunnel-run",
-    "title": "Turtle Tunnel Run",
+    "slug": "mine-tunnel-run",
+    "title": "Mine Tunnel Run",
     "genre": "Tunnel runner",
     "levels": [
       "Dry Tunnel",
       "Pipe Zone",
       "Water Gaps",
       "Fast Tunnel",
-      "Sewer Sprint"
+      "Deep Mine Sprint"
     ]
   },
   {
