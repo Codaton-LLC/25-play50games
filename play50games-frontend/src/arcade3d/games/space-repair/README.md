@@ -195,6 +195,27 @@ The user approved this design and asked Claude to settle every open question wit
 - Playtest (headless, 1280 x 800 / 390 x 844 banner open / 844 x 390): 20-22 draw calls, p95 17 ms on desktop, no console errors, HUD and ring clear of the banner and controls, suit 40-60 CSS px. Fixed: the depth-independent wireframe outline washed the whole suit out to a pale ghost; it is now an x-ray drawn only where something in front hides the suit (`depthFunc: GreaterDepth`, opacity 0.22).
 - Open (Codex): in 844 x 390 a TargetMarkers arrow can sit on the suit.
 
+## Look (2026-10-25)
+
+Visual-only modern-look pass for P-113:
+- **Palette and tones:** unified into `looks.ts` `COLORS` with deliberate multi-tone sci-fi styling across all visible code-made stand-ins (central docking hub, pressurized struts, solar wings, battery cells, wrench tool, fallback module and astronaut). No raw grey boxes.
+- **Lighting and environment:** core `space` lighting preset with deep space fog `[COLORS.fog, 55, 140]` (Earth sits inside the near distance, so the fog does not grey it out) and `<SkyDome>` from `core/env`. Earth is main's planet: sphere radius 12 at `[0, −25, −12]`, rim radius 12.15 at opacity 0.065. The canvas map keeps the cloud bands.
+- **Station, not a floor:** core plus truss arms and dock ports only. The full-screen light deck and the navy perimeter ring (cyan blocks) were removed in the 2026-10-25 visual gate: they hid Earth and the stars and read as a warehouse floor. Hub and truss metal is `#1e293b`. Earth is main's planet (sphere r12 at [0, −25, −12]). Stars stay 600 / 220 / 120 by quality tier. `HULL_GROUND` in `looks.ts` is only the camera-test envelope; it is not drawn.
+- **Surroundings outside play area:** `Decor.tsx` with instanced low-poly asteroid belt (tones A/B), distant station modules and solar wings, orbital communication satellites, and deep cosmic nebula clouds. All decor strictly outside the play arena bounds `[-10, 10]`, with zero line-of-sight occlusion to modules, service discs, or the player from the fitted camera.
+- **Juicy feedback:** camera shake on a miss (`fx.shake(0.12)`), spark bursts and sparkles on hits and awards (scaled up for perfect repairs: 24 sparks, 16 sparkles, shake 0.12), and light starfield counts on phones (`600` on high tier, reduced to `220` on mid tier and `120` on low tier).
+- **Resource discipline:** all geometries and materials allocated once and disposed on unmount. No `dispose={null}` on any `<primitive attach="geometry">` (preserving R3F v8 disposal). Zero per-frame allocations.
+
+### Draw-call budget estimate
+
+| Component | Draw calls | Notes |
+|---|---:|---|
+| Astronaut | 5–7 | HumanoidModel suit, jet nozzles & flame instances, wrench, x-ray outline |
+| Station | 15–18 | Instanced modules, multi-tone hub & struts, solar wings, labels decal, dynamic rings/docks/pips/debris, battery cell, Earth & rim |
+| Decor | 6–7 | Asteroid field (tones A & B), distant modules & solar wings, satellites, nebula dust |
+| Sky & Environment | 2 | SkyDome, Starfield |
+| FX & Popups | 6–8 | Warmed particle pools (puff, sparks, sparkle, confetti) and score sprites |
+| **Total** | **≤33** | The visual gate measured 36 with the deck. Removing the deck, perimeter ring and beacons drops 3 calls. Cap 40 |
+
 
 ## Five levels
 
