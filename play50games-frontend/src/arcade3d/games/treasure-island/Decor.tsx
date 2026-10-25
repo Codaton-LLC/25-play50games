@@ -16,10 +16,12 @@ import {
    Vector3,
 } from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
+import { InstancedModel } from "@/arcade3d/core/assets";
 import { useGameTime } from "@/arcade3d/core/gameTime";
 import { useQuality, scaledCount } from "@/arcade3d/core/quality";
 import { DynamicInstanced, Instanced, type InstanceSpot } from "@/arcade3d/core/render";
 import { COLORS, OUTER_BIRDS, OUTER_PALMS, OUTER_ROCKS, SHIPWRECK } from "./looks";
+import { ASSETS } from "./assets";
 
 export function Decor({ reduced = false }: { reduced?: boolean }) {
    const quality = useQuality();
@@ -166,10 +168,16 @@ export function Decor({ reduced = false }: { reduced?: boolean }) {
       <group name="island-decor">
          {/* Outer Rocks & Breaking Surf */}
          {rockSpots.length > 0 && (
-            <Instanced spots={rockSpots} name="outer-rocks">
-               <primitive object={geo.rock} attach="geometry" />
-               <meshStandardMaterial color={COLORS.rock} roughness={0.9} flatShading />
-            </Instanced>
+            <InstancedModel
+               asset={ASSETS.beachRocks}
+               spots={rockSpots}
+               fallback={
+                  <Instanced spots={rockSpots} name="outer-rocks">
+                     <primitive object={geo.rock} attach="geometry" />
+                     <meshStandardMaterial color={COLORS.rock} roughness={0.9} flatShading />
+                  </Instanced>
+               }
+            />
          )}
          {surfSpots.length > 0 && (
             <Instanced spots={surfSpots} name="outer-surf-rings">

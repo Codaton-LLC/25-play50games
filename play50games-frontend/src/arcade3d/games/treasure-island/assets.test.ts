@@ -3,12 +3,14 @@
 // trunk base and the umbrella's pole sit on their rules footprints; the canopy clears the hatted
 // explorer; the coin lies flat at its centre.
 import { describe, expect, it } from "vitest";
+import { existsSync } from "node:fs";
+import { resolve } from "node:path";
 import { Box3, BufferGeometry, Float32BufferAttribute, Group, Matrix4, Mesh, Vector3 } from "three";
 import { modelParts } from "@/arcade3d/core/assets";
 import { hasModel } from "@/arcade3d/core/modelManifest";
 import { readCharacterGlb } from "@/arcade3d/core/rig/robotGlb";
 import type { ModelAsset } from "@/arcade3d/core/types";
-import { ASSETS, COIN_SIZE, CRAB_WIDTH, CRATE_SIZE, GULL_LENGTH, PALM_SIZE, UMBRELLA_HEIGHT, palmBaseOffset } from "./assets";
+import { ASSETS, BEACH_ROCKS_GLB, BEACH_ROCKS_WIDTH, COIN_SIZE, CRAB_WIDTH, CRATE_SIZE, GULL_LENGTH, PALM_SIZE, UMBRELLA_HEIGHT, palmBaseOffset } from "./assets";
 import { HAT } from "./Primitives";
 import { PITCH } from "./looks";
 import { PALM_TRUNK, SIGHT, UMBRELLA_CIRCLE } from "./rules";
@@ -90,5 +92,18 @@ describe("treasure-island models", () => {
       expect(SIGHT.umbrella.near).toBeLessThanOrEqual(Math.min(...canopy.map((p) => p.y)) / t + 0.01);
       expect(SIGHT.umbrella.far).toBeGreaterThanOrEqual(UMBRELLA_HEIGHT / t - 0.01);
       expect(SIGHT.umbrella.r).toBeGreaterThanOrEqual(Math.max(...canopy.map((p) => Math.hypot(p.x, p.z))) - 0.01);
+   });
+
+   it("fits the outer-reef rock cluster to the old 1.4 m unit", async () => {
+      expect(existsSync(resolve("public", ASSETS.beachRocks.url.slice(1)))).toBe(true);
+      expect(hasModel(ASSETS.beachRocks.url)).toBe(true);
+      const points = await drawn(ASSETS.beachRocks);
+      const box = new Box3().setFromPoints(points);
+      expect(box.min.y).toBeCloseTo(0, 2);
+      expect(box.max.x - box.min.x).toBeCloseTo(BEACH_ROCKS_WIDTH, 2);
+      const raw = new Box3().setFromPoints(await drawn({ ...ASSETS.beachRocks, scale: 1 }));
+      expect(raw.max.x - raw.min.x).toBeCloseTo(BEACH_ROCKS_GLB.width, 2);
+      expect(raw.max.y - raw.min.y).toBeCloseTo(BEACH_ROCKS_GLB.height, 2);
+      expect((box.max.y - box.min.y) / BEACH_ROCKS_WIDTH).toBeCloseTo(BEACH_ROCKS_GLB.height / BEACH_ROCKS_GLB.width, 2);
    });
 });
