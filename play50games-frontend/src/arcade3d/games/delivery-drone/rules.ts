@@ -1,9 +1,11 @@
+import type { LevelId, ScoringRules } from "@/arcade3d/types";
 import { aabbFromCenter, clampToBounds, distanceToBoxXZ, resolveSphereAabb, sweptAabbXZ, type AABB, type SweepHit } from "@/arcade3d/core/collision";
 import { landingPoint, type Projectile } from "@/arcade3d/core/ballistics";
 import { circleSegmentXZ, stepPendulum2D, substep, type Pendulum2D } from "@/arcade3d/core/kinematics";
 import { createRng, turnTowards } from "@/arcade3d/core/math";
 import { spring } from "@/arcade3d/core/motion";
 import { createPath, pointAt, tangentAt, type Path } from "@/arcade3d/core/path";
+import { LEVELS, type DroneLevel } from "./levels";
 
 export const CITY = { half: 30, cells: 8, pitch: 7.5, footprint: 5, roofs: [2, 5, 8], towerHeight: 16, towers: 8, clearance: 1, grid: 0.5, attempts: 32 } as const;
 export const DRONE = { radius: 0.5, speed: 9, accel: 10, drag: 10 / 9, turn: 10, ceiling: 11, altitude: 3, clearance: 2.6, stiffness: 36, restitution: 0.2, bank: 0.35, bob: 0.04, lookahead: 0.22, lookaheadMax: 2 } as const;
@@ -15,6 +17,37 @@ export const WIND = { from: 60, size: 8, accel: 1.5 } as const;
 export const PIGEON = { count: 6, initialCount: 2, middleCount: 4, middleFrom: 60, finalFrom: 120, speed: 3, radius: 0.3, heightTolerance: 0.6, rearm: 0.2 } as const;
 export const BALLISTICS = { gravity: WINCH.gravity };
 export const BOUNDS: AABB = { min: { x: -30, y: -100, z: -30 }, max: { x: 30, y: 100, z: 30 } };
+/** One perfect drop: base + full precision + express. The route ceiling is this times the delivery count. */
+export const DELIVERY_CAP = ROUTE.base + ROUTE.precision + ROUTE.expressPoints;
+/**
+ * Earliest a run can reach an empty battery, from the README bound: one damage tick per second
+ * (`1 + floor(t) <= 1 + t`) plus continuous drain. Recharge only pushes a real loss later.
+ */
+export function earliestLossSeconds(level: DroneLevel = LEVELS[1]): number {
+   return (level.battery - BATTERY.damage) / (level.drain + BATTERY.damage);
+}
+/** Level 1 (meta.scoring): 12 perfect drops, the battery bound above, ceiling 180 s plus 2 s. */
+export const PROPOSED_LIMITS: ScoringRules = {
+   kind: "points", maxScore: 3600, minDurationMs: 20000, maxDurationMs: 182000,
+   base: 300, maxPointsPerSec: 75, unitLabel: "pts", display: "int",
+};
+/**
+ * Per-level limits (README "Levels"). maxScore = deliveries x 300. base 300 and 75/s hold on every
+ * level because n drops need 4n seconds of loading, so the score is at most 75 per played second.
+ * maxDurationMs = ceiling x 1000 + 2 s. minDurationMs stays 20 s: every level's earliest loss is later.
+ */
+export const PROPOSED_LEVEL_LIMITS: Record<LevelId, ScoringRules> = {
+   /** L1: today's limits, unchanged. */
+   1: PROPOSED_LIMITS,
+   /** L2: 13 x 300 = 3900. Loss bound 24.25 s. Ceiling 200 s. */
+   2: { ...PROPOSED_LIMITS, maxScore: 3900, maxDurationMs: 202000 },
+   /** L3: 14 x 300 = 4200. Loss bound 24.25 s. Ceiling 220 s. */
+   3: { ...PROPOSED_LIMITS, maxScore: 4200, maxDurationMs: 222000 },
+   /** L4: 15 x 300 = 4500. Battery 160 at 1.25/s, loss bound 36.94 s. Ceiling 240 s. */
+   4: { ...PROPOSED_LIMITS, maxScore: 4500, maxDurationMs: 242000 },
+   /** L5: 16 x 300 = 4800. Battery 230 at 1.5/s, loss bound 50.44 s. Ceiling 270 s. */
+   5: { ...PROPOSED_LIMITS, maxScore: 4800, maxDurationMs: 272000 },
+};
 const ZERO = { x: 0, y: 0, z: 0 };
 const DRONE_HALF = { x: DRONE.radius, y: DRONE.radius, z: DRONE.radius };
 const PARCEL_HALF = { x: PARCEL.half, y: PARCEL.half, z: PARCEL.half };
@@ -26,7 +59,7 @@ export interface Impact { x: number; y: number; z: number; time: number; buildin
 export interface Bird { x: number; y: number; z: number; yaw: number; touching: boolean }
 export interface Events { score: number; pickup: boolean; release: boolean; miss: boolean; hit: boolean; delivery: boolean; warning: boolean }
 export interface Run {
-   city: City; time: number; score: number; battery: number; completed: number; loading: number; pickupAt: number;
+   city: City; level: DroneLevel; time: number; score: number; battery: number; completed: number; loading: number; pickupAt: number;
    attached: boolean; falling: boolean; fragile: boolean; steady: boolean; warningArmed: boolean;
    reason: "win" | "lose" | "timeup" | null;
    drone: { x: number; y: number; z: number; vx: number; vz: number; heading: number };
@@ -42,7 +75,12 @@ function impact(): Impact { return { ...ZERO, time: PARCEL.lifetime, building: -
 function shuffle<T>(values: T[], rng: () => number): void {
    for (let i = values.length - 1; i > 0; i--) { const j = Math.floor(rng() * (i + 1)); const value = values[i]; values[i] = values[j]; values[j] = value; }
 }
-function makeCity(seed: number, literal = false): City {
+function bandOf(n: number, bands: readonly [number, number, number]): number {
+   if (n < bands[0]) return 0;
+   if (n < bands[0] + bands[1]) return 1;
+   return 2;
+}
+function makeCity(seed: number, literal = false, level: DroneLevel = LEVELS[1]): City {
    const rng = createRng(seed);
    const buildings: Building[] = [];
    for (let row = 0; row < CITY.cells; row++) for (let col = 0; col < CITY.cells; col++) {
@@ -55,48 +93,48 @@ function makeCity(seed: number, literal = false): City {
    for (let band = 0; band < 3; band++) {
       const choices = buildings.map((b, i) => ({ i, d: Math.hypot(b.x, b.z) })).filter(({ d }) => d >= [10, 18, 25][band] && d < [18, 25, 35.001][band]).map(({ i }) => i);
       if (!literal) shuffle(choices, rng);
-      targets.push(...choices.slice(0, 4));
+      targets.push(...choices.slice(0, level.bands[band]));
    }
    const towers = buildings.map((_b, i) => i).filter((i) => !targets.includes(i) && distanceToBoxXZ(0, 0, buildings[i].box) >= 3 && targets.every((t) => distanceToBoxXZ(buildings[t].x, buildings[t].z, buildings[i].box) >= 3));
    if (!literal) shuffle(towers, rng);
-   for (const i of towers.slice(0, CITY.towers)) { buildings[i].tower = true; buildings[i].height = CITY.towerHeight; buildings[i].box.max.y = CITY.towerHeight; }
+   for (const i of towers.slice(0, level.towers)) { buildings[i].tower = true; buildings[i].height = CITY.towerHeight; buildings[i].box.max.y = CITY.towerHeight; }
    const birds: Path[] = [], birdOffsets: number[] = [];
-   for (let i = 0; i < PIGEON.count; i++) {
-      // All loops lie on street centre lines, >= 3.75 m from every roof centre.
-      const side = i % 2 ? 30 : 22.5, y = 4 + rng() * 6;
+   for (let i = 0; i < level.pigeons; i++) {
+      // Street-centre loops, >= 3.75 m from every roof centre. The first six are today's paths.
+      const side = i < 6 ? (i % 2 ? 30 : 22.5) : (i % 2 ? 15 : 7.5), y = 4 + rng() * 6;
       birds.push(createPath([{ x: -side, y, z: -30 }, { x: side, y, z: -30 }, { x: side, y, z: 30 }, { x: -side, y, z: 30 }], { closed: true }));
       birdOffsets.push(rng() * birds[i].total);
    }
    const winds: WindZone[] = [];
    for (let i = 0; i < 2; i++) {
       const direction = Math.floor(rng() * 4);
-      winds.push({ x: (i ? 1 : -1) * 15, z: (Math.floor(rng() * 5) - 2) * 7.5, ax: direction < 2 ? (direction ? -1 : 1) * WIND.accel : 0, az: direction >= 2 ? (direction === 3 ? -1 : 1) * WIND.accel : 0 });
+      winds.push({ x: (i ? 1 : -1) * 15, z: (Math.floor(rng() * 5) - 2) * 7.5, ax: direction < 2 ? (direction ? -1 : 1) * level.windAccel : 0, az: direction >= 2 ? (direction === 3 ? -1 : 1) * level.windAccel : 0 });
    }
    const cells = new Array<number>(64).fill(-1);
    for (let i = 0; i < buildings.length; i++) cells[buildings[i].cell] = i;
-   return { buildings, cells, towers: towers.slice(0, CITY.towers), targets, birds, birdOffsets, winds, fallback: literal };
+   return { buildings, cells, towers: towers.slice(0, level.towers), targets, birds, birdOffsets, winds, fallback: literal };
 }
 export function clearAt(city: City, x: number, z: number, clearance: number = CITY.clearance): boolean {
    if (Math.abs(x) > CITY.half - clearance || Math.abs(z) > CITY.half - clearance) return false;
    for (const i of city.towers) { const b = city.buildings[i]; if (x >= b.box.min.x - clearance && x <= b.box.max.x + clearance && z >= b.box.min.z - clearance && z <= b.box.max.z + clearance) return false; }
    return true;
 }
-export function isValidCity(city: City): boolean {
-   if (city.buildings.length !== 60 || new Set(city.buildings.map((b) => b.cell)).size !== 60 || city.winds.length !== 2 || city.birds.length !== 6) return false;
+export function isValidCity(city: City, level: DroneLevel = LEVELS[1]): boolean {
+   if (city.buildings.length !== 60 || new Set(city.buildings.map((b) => b.cell)).size !== 60 || city.winds.length !== 2 || city.birds.length !== level.pigeons) return false;
    for (const b of city.buildings) {
       if (!Number.isFinite(b.x + b.z + b.height) || Math.abs(b.x) > 26.25 || Math.abs(b.z) > 26.25) return false;
       if (b.tower ? b.height !== CITY.towerHeight : b.height !== 2 && b.height !== 5 && b.height !== 8) return false;
       if (b.box.min.x !== b.x - 2.5 || b.box.max.x !== b.x + 2.5 || b.box.min.z !== b.z - 2.5 || b.box.max.z !== b.z + 2.5 || b.box.max.y !== b.height) return false;
    }
-   if (city.targets.length !== ROUTE.count || new Set(city.targets).size !== ROUTE.count || city.buildings.filter((b) => b.tower).length !== CITY.towers) return false;
+   if (city.targets.length !== level.count || new Set(city.targets).size !== level.count || city.buildings.filter((b) => b.tower).length !== level.towers) return false;
    for (let n = 0; n < city.targets.length; n++) {
       const b = city.buildings[city.targets[n]];
       if (!b || b.tower) return false;
-      const d = Math.hypot(b.x, b.z), band = Math.floor(n / 4);
+      const d = Math.hypot(b.x, b.z), band = bandOf(n, level.bands);
       if (d < [10, 18, 25][band] || d >= [18, 25, 35.001][band]) return false;
       for (const t of city.buildings) if (t.tower && (distanceToBoxXZ(b.x, b.z, t.box) < 3 || distanceToBoxXZ(0, 0, t.box) < 3)) return false;
    }
-   for (const w of city.winds) if (!Number.isFinite(w.x + w.z + w.ax + w.az) || Math.hypot(Math.max(0, Math.abs(w.x) - 4), Math.max(0, Math.abs(w.z) - 4)) < 3 || Math.hypot(w.ax, w.az) !== WIND.accel || w.ax !== 0 && w.az !== 0) return false;
+   for (const w of city.winds) if (!Number.isFinite(w.x + w.z + w.ax + w.az) || Math.hypot(Math.max(0, Math.abs(w.x) - 4), Math.max(0, Math.abs(w.z) - 4)) < 3 || Math.hypot(w.ax, w.az) !== level.windAccel || w.ax !== 0 && w.az !== 0) return false;
    const safe = [{ x: 0, z: 0, vx: 0, vz: 0, radius: 3 }, ...city.targets.map((i) => ({ x: city.buildings[i].x, z: city.buildings[i].z, vx: 0, vz: 0, radius: 3 }))];
    for (const path of city.birds) {
       if (!path.closed || !(path.total > 0)) return false;
@@ -120,14 +158,15 @@ export function isValidCity(city: City): boolean {
       return !!seen[Math.round((b.z + CITY.half) / CITY.grid) * side + Math.round((b.x + CITY.half) / CITY.grid)];
    });
 }
-export function generateCity(seed: number, accept: (city: City) => boolean = isValidCity): City {
-   for (let attempt = 0; attempt < CITY.attempts; attempt++) { const city = makeCity(seed + attempt * 104729); if (accept(city)) return city; }
-   return makeCity(5050, true);
+export function generateCity(seed: number, accept: (city: City) => boolean = isValidCity, level: DroneLevel = LEVELS[1]): City {
+   const check = accept === isValidCity ? (city: City) => isValidCity(city, level) : accept;
+   for (let attempt = 0; attempt < CITY.attempts; attempt++) { const city = makeCity(seed + attempt * 104729, false, level); if (check(city)) return city; }
+   return makeCity(5050, true, level);
 }
-export function createRun(seed: number, steady = false): Run {
-   const city = generateCity(seed);
+export function createRun(seed: number, steady = false, level: DroneLevel = LEVELS[1]): Run {
+   const city = generateCity(seed, undefined, level);
    const run: Run = {
-      city, time: 0, score: 0, battery: BATTERY.initial, completed: 0, loading: 0, pickupAt: 0,
+      city, level, time: 0, score: 0, battery: level.battery, completed: 0, loading: 0, pickupAt: 0,
       attached: false, falling: false, fragile: false, steady, warningArmed: true, reason: null,
       drone: { x: 0, y: 3, z: 0, vx: 0, vz: 0, heading: 0 }, altitude: { x: 3, v: 0 },
       swing: { x: { x: 0, v: 0 }, z: { x: 0, v: 0 } }, fall: { ...ZERO, vx: 0, vy: 0, vz: 0 }, fallAt: 0,
@@ -154,8 +193,8 @@ export function roofAt(city: City, x: number, z: number, reach = CITY.clearance)
    }
    return roof;
 }
-export function deliveryPoints(precision: number, fragile: boolean, elapsed: number): number {
-   if (fragile && precision < PARCEL.fragilePrecision) return 0;
+export function deliveryPoints(precision: number, fragile: boolean, elapsed: number, fragilePrecision: number = PARCEL.fragilePrecision): number {
+   if (fragile && precision < fragilePrecision) return 0;
    return ROUTE.base + Math.max(0, Math.min(100, precision)) + (elapsed <= ROUTE.express ? ROUTE.expressPoints : 0);
 }
 export function releaseState(run: Run, out: Projectile): void {
@@ -205,8 +244,8 @@ export function predictProjectile(run: Run, p: Projectile, out: Impact): void {
    flightAt(p, out.time, out); out.y -= PARCEL.half;
    const b = run.city.buildings[run.city.targets[run.completed]];
    const distance = b ? Math.hypot(out.x - b.x, out.z - b.z) : Infinity;
-   out.precision = Math.max(0, Math.min(100, Math.floor(100 * (1 - distance / ROUTE.padRadius))));
-   out.valid = !!b && out.roof && out.building === run.city.targets[run.completed] && distance <= ROUTE.padRadius && (!run.fragile || out.precision >= PARCEL.fragilePrecision);
+   out.precision = Math.max(0, Math.min(100, Math.floor(100 * (1 - distance / run.level.padRadius))));
+   out.valid = !!b && out.roof && out.building === run.city.targets[run.completed] && distance <= run.level.padRadius && (!run.fragile || out.precision >= run.level.fragilePrecision);
 }
 export function predictDrop(run: Run, out: Impact): void {
    releaseState(run, run.scratch.projectile);
@@ -231,17 +270,17 @@ function miss(run: Run): void {
 function land(run: Run): void {
    run.falling = false;
    if (!run.impact.valid) { miss(run); return; }
-   const points = deliveryPoints(run.impact.precision, run.fragile, run.time - run.pickupAt);
+   const points = deliveryPoints(run.impact.precision, run.fragile, run.time - run.pickupAt, run.level.fragilePrecision);
    run.score += points; run.events.score += points; run.events.delivery = true;
-   run.battery = Math.min(BATTERY.initial, run.battery + BATTERY.recharge);
+   run.battery = Math.min(run.level.battery, run.battery + BATTERY.recharge);
    run.completed++; run.loading = 0;
-   if (run.completed === ROUTE.count) run.reason = "win";
+   if (run.completed === run.level.count) run.reason = "win";
 }
 function acceleration(run: Run, time: number, out: { x: number; z: number }): void {
    let x = run.input.dirX, z = run.input.dirZ;
    const magnitude = Math.hypot(x, z); if (magnitude > 1) { x /= magnitude; z /= magnitude; }
    out.x = x * DRONE.accel; out.z = z * DRONE.accel;
-   if (time >= WIND.from) for (const w of run.city.winds) if (run.drone.x >= w.x - 4 && run.drone.x < w.x + 4 && run.drone.z >= w.z - 4 && run.drone.z < w.z + 4) { out.x += w.ax; out.z += w.az; }
+   if (time >= run.level.windFrom) for (const w of run.city.winds) if (run.drone.x >= w.x - 4 && run.drone.x < w.x + 4 && run.drone.z >= w.z - 4 && run.drone.z < w.z + 4) { out.x += w.ax; out.z += w.az; }
    const force = Math.hypot(out.x, out.z);
    if (force > DRONE.accel) { out.x *= DRONE.accel / force; out.z *= DRONE.accel / force; }
 }
@@ -371,7 +410,8 @@ export function stepWinch(swing: Pendulum2D, steady: boolean, dt: number, accele
    }
 }
 function birds(run: Run, dt: number): void {
-   const count = run.time < PIGEON.middleFrom ? PIGEON.initialCount : run.time < PIGEON.finalFrom ? PIGEON.middleCount : PIGEON.count;
+   const level = run.level;
+   const count = run.time < level.pigeonMiddleFrom ? level.pigeonInitial : run.time < level.pigeonFinalFrom ? level.pigeonMiddle : level.pigeons;
    const s = run.scratch, d = run.drone;
    for (let i = 0; i < run.birds.length; i++) {
       const bird = run.birds[i];
@@ -402,12 +442,19 @@ function advanceSlice(run: Run, requested: number): void {
       const loading = !run.attached && !run.falling && Math.hypot(run.drone.x, run.drone.z) <= ROUTE.pickupRadius && Math.hypot(run.drone.vx, run.drone.vz) <= ROUTE.pickupSpeed;
       const loadIn = loading ? Math.max(0, ROUTE.loading - run.loading) : Infinity;
       const landingIn = run.falling ? Math.max(0, run.fallAt + run.impact.time - run.time) : Infinity;
-      let dt = Math.min(remaining, run.battery / BATTERY.drain, ROUTE.ceiling - run.time, loadIn, landingIn);
-      if (run.time < PIGEON.middleFrom) dt = Math.min(dt, PIGEON.middleFrom - run.time);
-      else if (run.time < PIGEON.finalFrom) dt = Math.min(dt, PIGEON.finalFrom - run.time);
+      const level = run.level;
+      // A step can land an ulp short of a split. The gap then rounds to 0 and the
+      // slice stops forever, so close anything already within a nanosecond.
+      if (run.time < level.pigeonMiddleFrom && level.pigeonMiddleFrom - run.time <= 1e-9) run.time = level.pigeonMiddleFrom;
+      else if (run.time < level.pigeonFinalFrom && level.pigeonFinalFrom - run.time <= 1e-9) run.time = level.pigeonFinalFrom;
+      if (run.time < level.windFrom && level.windFrom - run.time <= 1e-9) run.time = level.windFrom;
+      let dt = Math.min(remaining, run.battery / level.drain, level.ceiling - run.time, loadIn, landingIn);
+      if (run.time < level.pigeonMiddleFrom) dt = Math.min(dt, level.pigeonMiddleFrom - run.time);
+      else if (run.time < level.pigeonFinalFrom) dt = Math.min(dt, level.pigeonFinalFrom - run.time);
+      if (run.time < level.windFrom) dt = Math.min(dt, level.windFrom - run.time);
       dt = physicalBoundary(run, dt);
       if (dt > 1e-12) {
-         run.time += dt; run.battery = Math.max(0, run.battery - dt * BATTERY.drain);
+         run.time += dt; run.battery = Math.max(0, run.battery - dt * level.drain);
          move(run, dt); birds(run, dt);
          if (loading && !run.attached && !run.falling && Math.hypot(run.drone.x, run.drone.z) <= ROUTE.pickupRadius && Math.hypot(run.drone.vx, run.drone.vz) <= ROUTE.pickupSpeed) run.loading += dt;
          else if (!run.attached && !run.falling) run.loading = 0;
@@ -415,10 +462,10 @@ function advanceSlice(run: Run, requested: number): void {
       }
       // Expiry and ceiling precede any award at the same instant.
       if (run.battery <= 1e-9) { run.battery = 0; run.reason = "lose"; }
-      else if (run.time >= ROUTE.ceiling - 1e-9) { run.time = ROUTE.ceiling; run.reason = "timeup"; }
+      else if (run.time >= level.ceiling - 1e-9) { run.time = level.ceiling; run.reason = "timeup"; }
       else if (run.falling && run.time >= run.fallAt + run.impact.time - 1e-9) land(run);
       else if (run.loading >= ROUTE.loading - 1e-9 && !run.attached && !run.falling) {
-         run.loading = 0; run.attached = true; run.pickupAt = run.time; run.fragile = run.completed >= PARCEL.fragileFrom;
+         run.loading = 0; run.attached = true; run.pickupAt = run.time; run.fragile = run.completed >= level.fragileFrom;
          run.swing.x.x = run.swing.x.v = run.swing.z.x = run.swing.z.v = 0; run.events.pickup = true;
       } else if (dt <= 1e-12) break;
       warning(run);
