@@ -121,7 +121,14 @@
       "max_duration_ms": 250000,
       "base": 1000,
       "max_pps": 100,
-      "enabled": true
+      "enabled": true,
+      "levels": [
+        { "title": "Pocket Park", "max_score": 4940, "min_duration_ms": 43000, "max_duration_ms": 250000, "base": 1000, "max_pps": 100 },
+        { "title": "City Square", "max_score": 6365, "min_duration_ms": 40200, "max_duration_ms": 245000, "base": 1000, "max_pps": 135 },
+        { "title": "Shopping Street", "max_score": 7230, "min_duration_ms": 42200, "max_duration_ms": 240000, "base": 1000, "max_pps": 150 },
+        { "title": "River Walk", "max_score": 8100, "min_duration_ms": 42800, "max_duration_ms": 235000, "base": 1000, "max_pps": 170 },
+        { "title": "Festival Cleanup", "max_score": 10060, "min_duration_ms": 42100, "max_duration_ms": 230000, "base": 1000, "max_pps": 215 }
+      ]
     },
     "escape-room": {
       "title": "Tiny Escape Room",
