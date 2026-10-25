@@ -1,7 +1,32 @@
-import type { ArcadeGameMeta } from "@/arcade3d/types";
+import type { ArcadeGameMeta, LevelMeta, ScoringRules } from "@/arcade3d/types";
 
 // Plain data only (server-safe). scoring must match WP includes/arcade-games.json.
 // Limits proven in README "Scoring" (design approved 2026-10-09).
+const CLEAR = [1500, 1600, 1700, 1800] as const;
+
+const SCORING: ScoringRules = {
+   kind: "points",
+   maxScore: 2630,
+   minDurationMs: 91000,
+   maxDurationMs: 122000,
+   base: 1720,
+   maxPointsPerSec: 10,
+   unitLabel: "pts",
+   display: "int",
+};
+
+/** Levels 2-5 add gold ghosts: maxScore 2030 + 200 x gold, base maxScore - 910 (rules.ts PROPOSED_LEVEL_LIMITS, README "Levels"). */
+const withGold = (gold: number): ScoringRules => ({ ...SCORING, maxScore: 2030 + 200 * gold, base: 2030 + 200 * gold - 910 });
+
+// A level clears on a win (all twelve ghosts) or at its score target; level 5 has nothing to unlock.
+const LEVELS: readonly LevelMeta[] = [
+   { id: 1, title: "Living Room", scoring: SCORING, clearScore: CLEAR[0] },
+   { id: 2, title: "Library", scoring: withGold(4), clearScore: CLEAR[1] },
+   { id: 3, title: "Kitchen", scoring: withGold(5), clearScore: CLEAR[2] },
+   { id: 4, title: "Attic", scoring: withGold(6), clearScore: CLEAR[3] },
+   { id: 5, title: "Whole Mansion", scoring: withGold(7) },
+];
+
 export const ghostVacuumMeta: ArcadeGameMeta = {
    slug: "ghost-vacuum",
    title: "Ghost Vacuum",
@@ -17,16 +42,8 @@ export const ghostVacuumMeta: ArcadeGameMeta = {
       keyboard: "WASD / arrows to move, mouse to aim; hold E, Enter or Space to vacuum",
       touch: "Joystick to move and aim, hold Vacuum to catch stunned ghosts",
    },
-   scoring: {
-      kind: "points",
-      maxScore: 2630,
-      minDurationMs: 91000,
-      maxDurationMs: 122000,
-      base: 1720,
-      maxPointsPerSec: 10,
-      unitLabel: "pts",
-      display: "int",
-   },
+   scoring: SCORING,
+   levels: LEVELS,
    thumbnail: "/images/3d/ghost-vacuum.webp",
    accent: "#a78bfa",
    owner: "codex",

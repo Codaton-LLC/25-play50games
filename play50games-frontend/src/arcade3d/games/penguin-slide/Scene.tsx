@@ -25,6 +25,7 @@ import { PenguinPrimitive } from "./Primitives";
 import { Terrain } from "./Terrain";
 import Track from "./Track";
 import { penguinSlideMeta as meta } from "./meta";
+import { useSlideLevel } from "./useSlideLevel";
 import { airHeight, chunkAt, createRun, landingSpins, runScore, safeCentre, sampleTrack, stepRun, worldAt, type Run } from "./rules";
 
 function Penguin({ run, reduced }: { run: Run; reduced: boolean }) {
@@ -95,13 +96,14 @@ function Penguin({ run, reduced }: { run: Run; reduced: boolean }) {
    );
 }
 
-export default function Scene() {
+function LevelScene() {
+   const { config } = useSlideLevel();
    const input = useInput();
    const fx = useFx();
    const time = useGameTime();
    const view = useFittedView(VIEW);
    const reduced = useReducedMotion();
-   const [run] = useState(() => createRun(randomSeed(), typeof navigator !== "undefined" && navigator.maxTouchPoints > 0));
+   const [run] = useState(() => createRun(randomSeed(), typeof navigator !== "undefined" && navigator.maxTouchPoints > 0, config));
    const [scratch] = useState(() => ({
       input: { steer: 0, left: false, right: false, jump: false },
       direction: { x: 0, z: 0 },
@@ -120,7 +122,7 @@ export default function Scene() {
       fx.warm("sparkle", "snow", "splash", "score", "puff", "confetti");
       const store = useArcadeStore.getState();
       store.setStat("assist", Number(run.assist));
-      store.setStat("time", 30);
+      store.setStat("time", Math.ceil(run.remaining));
       store.setStat("distance", 0);
       store.setStat("crashes", 0);
    }, [fx, run]);
@@ -232,10 +234,16 @@ export default function Scene() {
          <SkyDome top={COLORS.skyTop} bottom={COLORS.skyBottom} />
          <SnowFall count={reduced ? 60 : 300} area={[28, 16, 70]} />
          <Terrain run={run} reduced={reduced} />
-         <Decor reduced={reduced} />
+         <Decor run={run} reduced={reduced} />
          <Track run={run} />
          <Penguin run={run} reduced={reduced} />
          <TargetMarkers targets={marker} color={COLORS.gateRing} />
       </>
    );
+}
+
+/** Remounts when another level is picked, so the course and the clock are that level's. */
+export default function Scene() {
+   const { id } = useSlideLevel();
+   return <LevelScene key={id} />;
 }

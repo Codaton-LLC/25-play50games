@@ -17,7 +17,9 @@ import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { useFittedView } from "@/arcade3d/core/useFittedView";
 import { useRunFrame } from "@/arcade3d/core/useRunFrame";
 import { Crops } from "./Crops";
+import { useLevel } from "@/arcade3d/core/level";
 import { FarmScene } from "./Farm";
+import type { AlienFarmLevel } from "./levels";
 import { Farmer } from "./Farmer";
 import { COLORS, VIEW } from "./looks";
 import { Saucer } from "./Saucer";
@@ -84,7 +86,7 @@ function useFarmSound(run: RunState) {
       let pitch = 0.6, volume = 0, pan = 0;
       if (best >= 0) {
          const plot = run.plots[best];
-         const k = cycleIndex(plot, t), p = cyclePeak(plot, k), w = halfWindow(p);
+         const k = cycleIndex(plot, t), p = cyclePeak(plot, k), w = halfWindow(p, plot.halfLate);
          const q = Math.min(1, Math.max(0, (t - (p - 1.5)) / 1.5));
          if (t >= p - 1.5 && t <= p + w) {
             pitch = 0.6 + 1.2 * q;
@@ -111,7 +113,8 @@ export default function Scene() {
    const fx = useFx();
 
    // a fresh seed per run: GameShell remounts the Scene on start and retry
-   const [run] = useState(() => createRun(randomSeed()));
+   const { config } = useLevel<AlienFarmLevel>();
+   const [run] = useState(() => createRun(randomSeed(), config));
    const [reducedMotion] = useState(prefersReducedMotion);
    const [scratch] = useState(() => ({
       step: { dirX: 0, dirZ: 0, press: false } as StepInput,

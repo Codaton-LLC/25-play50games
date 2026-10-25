@@ -139,7 +139,7 @@ export function BlueprintBoard({ run }: { run: Run }) {
       ctx.fillText(`ROBOT ${r.robot + 1}`, 30, 38);
       ctx.fillStyle = "rgba(224,242,254,0.6)";
       ctx.font = "600 24px system-ui, sans-serif";
-      ctx.fillText(r.robot >= SHIFT.WIN_QUOTA ? "QUOTA MET" : `QUOTA ${r.robot}/${SHIFT.WIN_QUOTA}`, 210, 39);
+      ctx.fillText(r.robot >= r.level.winQuota ? "QUOTA MET" : `QUOTA ${r.robot}/${r.level.winQuota}`, 210, 39);
       // strike lamps
       for (let k = 0; k < SHIFT.LIVES; k++) {
          ctx.beginPath();

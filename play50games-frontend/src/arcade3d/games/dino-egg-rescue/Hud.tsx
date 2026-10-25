@@ -2,8 +2,10 @@
 
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import styles from "./Hud.module.css";
+import { useDinoLevel } from "./useDinoLevel";
 
 export default function DinoHud() {
+   const maxStack = useDinoLevel().config.maxStack;
    const carried = useArcadeStore((s) => s.stats.carried ?? 0);
    const golden = useArcadeStore((s) => (s.stats.golden ?? 0) > 0);
    const dashReady = useArcadeStore((s) => (s.stats.dash ?? 1) > 0);
@@ -17,7 +19,7 @@ export default function DinoHud() {
       >
          <div className={styles.pill} aria-hidden="true">
             <span>
-               Eggs: <span className={styles.eggCount}>{carried}/3</span>
+               Eggs: <span className={styles.eggCount}>{carried}/{maxStack}</span>
             </span>
             {golden && <span className={styles.goldenBadge}>⭐ Gold</span>}
             <span className={dashReady ? styles.dashBadge : styles.dashWait}>

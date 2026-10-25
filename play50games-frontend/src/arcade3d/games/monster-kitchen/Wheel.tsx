@@ -1,3 +1,5 @@
+"use client";
+
 // The lazy Susan and the eight ingredient slots. The rules index (run.rotation, an integer mod 8) is
 // the truth the Scene picks against; the drawn disc eases toward it (0.18 s per slot, shortest way
 // round), and every ingredient pool places its copies on the eased ring: one copy per slot holding its
@@ -14,8 +16,20 @@ import { DynamicInstancedModel } from "@/arcade3d/core/assets";
 import { DynamicInstanced } from "@/arcade3d/core/render";
 import { useGameTime } from "@/arcade3d/core/gameTime";
 import { ASSETS } from "./assets";
+import { COLORS } from "./looks";
 import { useEyeballParts, useSlimeParts } from "./Primitives";
-import { TOSS, WHEEL, centreSlot, drawnSlotPosition, easeWheel, frontScale, isNeeded, tossArcPos, type IngredientKind, type RunState } from "./rules";
+import {
+   TOSS,
+   WHEEL,
+   centreSlot,
+   drawnSlotPosition,
+   easeWheel,
+   frontScale,
+   isNeeded,
+   tossArcPos,
+   type IngredientKind,
+   type RunState,
+} from "./rules";
 
 /** The drawn wheel's shared look: the eased index and the last dull wobble, written here and in the Scene. */
 export interface WheelLook {
@@ -30,13 +44,13 @@ const Q = new Quaternion();
 const V = new Vector3();
 const SCALED = new Vector3(1, 1, 1);
 const SPOT = { x: 0, y: 0, z: 0 };
-const YES = new Color("#4ade80");
-const NO = new Color("#f87171");
-const IDLE = new Color("#cbd5e1");
+const YES = new Color(COLORS.yes);
+const NO = new Color(COLORS.no);
+const IDLE = new Color(COLORS.idle);
+
 /** the selector's height over the counter (ring) and its spot, rewritten each frame */
 const SELECT_Y = WHEEL.y + 0.035;
 const SELECT = { x: WHEEL.x, y: WHEEL.y, z: WHEEL.z + WHEEL.ringR };
-
 
 const GLB_KINDS = ["apple", "banana", "burger", "sock", "tinCan", "fish"] as const satisfies readonly IngredientKind[];
 
@@ -115,23 +129,65 @@ export function Wheel({ run, look }: { run: RunState; look: WheelLook }) {
    return (
       <group name="wheel-and-ingredients">
          <group ref={root} position={[WHEEL.x, WHEEL.y, WHEEL.z]}>
+            {/* Rich polished wood turntable disc */}
             <mesh>
-               <cylinderGeometry args={[WHEEL.discR, WHEEL.discR, 0.05, 28]} />
-               <meshStandardMaterial color="#a16207" roughness={0.55} />
+               <cylinderGeometry args={[WHEEL.discR, WHEEL.discR, 0.05, 32]} />
+               <meshStandardMaterial
+                  color={COLORS.wheelWood}
+                  roughness={0.45}
+                  metalness={0.06}
+               />
             </mesh>
-            <mesh rotation-x={Math.PI / 2} position-y={0.01}>
-               <torusGeometry args={[WHEEL.discR - 0.01, 0.035, 10, 32]} />
-               <meshStandardMaterial color="#854d0e" roughness={0.6} />
+            {/* Polished copper/brass bevel rim */}
+            <mesh rotation-x={Math.PI / 2} position-y={0.012}>
+               <torusGeometry args={[WHEEL.discR - 0.008, 0.028, 12, 36]} />
+               <meshStandardMaterial
+                  color={COLORS.copperHighlight}
+                  metalness={0.82}
+                  roughness={0.25}
+               />
+            </mesh>
+            {/* Inlaid radial brass ring */}
+            <mesh rotation-x={-Math.PI / 2} position-y={0.026}>
+               <ringGeometry args={[0.68, 0.72, 32]} />
+               <meshStandardMaterial
+                  color={COLORS.wheelBrass}
+                  metalness={0.75}
+                  roughness={0.3}
+               />
+            </mesh>
+            {/* Central brass pivot medallion */}
+            <mesh position-y={0.03}>
+               <cylinderGeometry args={[0.16, 0.18, 0.035, 24]} />
+               <meshStandardMaterial
+                  color={COLORS.brass}
+                  metalness={0.85}
+                  roughness={0.25}
+               />
             </mesh>
          </group>
-         <mesh ref={ring} name="selector-ring" rotation-x={-Math.PI / 2} position={[SELECT.x, SELECT_Y, SELECT.z]} renderOrder={1}>
+
+         <mesh
+            ref={ring}
+            name="selector-ring"
+            rotation-x={-Math.PI / 2}
+            position={[SELECT.x, SELECT_Y, SELECT.z]}
+            renderOrder={1}
+         >
             <ringGeometry args={[0.2, 0.27, 32]} />
-            <meshBasicMaterial color="#cbd5e1" transparent opacity={0.95} depthWrite={false} />
+            <meshBasicMaterial color={COLORS.idle} transparent opacity={0.95} depthWrite={false} />
          </mesh>
-         <mesh ref={arrow} name="selector-arrow" rotation-x={Math.PI} position={[SELECT.x, SELECT_Y + 0.62, SELECT.z]}>
-            <coneGeometry args={[0.08, 0.16, 12]} />
-            <meshBasicMaterial color="#cbd5e1" />
+
+         <mesh
+            ref={arrow}
+            name="selector-arrow"
+            rotation-x={Math.PI}
+            position={[SELECT.x, SELECT_Y + 0.62, SELECT.z]}
+         >
+            <coneGeometry args={[0.08, 0.16, 14]} />
+            <meshBasicMaterial color={COLORS.idle} />
          </mesh>
+
          {GLB_KINDS.map((kind) => (
             <DynamicInstancedModel
                key={kind}
@@ -141,8 +197,18 @@ export function Wheel({ run, look }: { run: RunState; look: WheelLook }) {
                name={`ingredient-${kind}`}
             />
          ))}
-         <DynamicInstanced count={WHEEL.slots + 1} update={(i, m) => placeCopy(run, look, "eyeball", i, m)} parts={eyeballParts} name="ingredient-eyeball" />
-         <DynamicInstanced count={WHEEL.slots + 1} update={(i, m) => placeCopy(run, look, "slime", i, m)} parts={slimeParts} name="ingredient-slime" />
+         <DynamicInstanced
+            count={WHEEL.slots + 1}
+            update={(i, m) => placeCopy(run, look, "eyeball", i, m)}
+            parts={eyeballParts}
+            name="ingredient-eyeball"
+         />
+         <DynamicInstanced
+            count={WHEEL.slots + 1}
+            update={(i, m) => placeCopy(run, look, "slime", i, m)}
+            parts={slimeParts}
+            name="ingredient-slime"
+         />
       </group>
    );
 }
