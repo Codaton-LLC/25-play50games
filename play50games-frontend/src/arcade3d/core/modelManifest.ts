@@ -138,6 +138,7 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/luggage-rush/hardCaseTeal.glb",
    "/models/3d/zoo-escape/zooRocks.glb",
    "/models/3d/treasure-island/beachRocks.glb",
+   "/models/3d/treasure-island/jungleTotem.glb",
    "/models/3d/penguin-slide/iceArch.glb",
    "/models/3d/mini-golf/golfCastle.glb",
    // hotel-bellboy-rush (2026-10-25): the Hyper3D ready set (menu1-hotel-bellboy-rush/, ledger OK or

@@ -21,9 +21,9 @@ import { useGameTime } from "@/arcade3d/core/gameTime";
 import { useQuality, scaledCount } from "@/arcade3d/core/quality";
 import { DynamicInstanced, Instanced, type InstanceSpot } from "@/arcade3d/core/render";
 import { COLORS, OUTER_BIRDS, OUTER_PALMS, OUTER_ROCKS, SHIPWRECK } from "./looks";
-import { ASSETS } from "./assets";
+import { ASSETS, TOTEM_SPOTS } from "./assets";
 
-export function Decor({ reduced = false }: { reduced?: boolean }) {
+export function Decor({ reduced = false, levelId }: { reduced?: boolean; levelId?: number }) {
    const quality = useQuality();
    const time = useGameTime();
 
@@ -82,6 +82,8 @@ export function Decor({ reduced = false }: { reduced?: boolean }) {
       const wreckSurf = new RingGeometry(1.8, 4.2, 28);
       wreckSurf.rotateX(-Math.PI / 2);
 
+      const totem = new CylinderGeometry(0.35, 0.35, 2.2, 8).translate(0, 1.1, 0);
+
       return {
          palmTrunk: palmTrunk ?? new CylinderGeometry(0.16, 0.26, 2.6, 6),
          palmCrown: palmCrown ?? new ConeGeometry(1.2, 0.8, 6),
@@ -90,6 +92,7 @@ export function Decor({ reduced = false }: { reduced?: boolean }) {
          bird: bird ?? new BoxGeometry(0.5, 0.1, 0.3),
          wreck: wreck ?? new BoxGeometry(2.5, 2.0, 7.0),
          wreckSurf,
+         totem,
       };
    }, []);
 
@@ -138,6 +141,13 @@ export function Decor({ reduced = false }: { reduced?: boolean }) {
          scale: p.scale,
       }));
    }, [palms]);
+
+   const isJungle = levelId === 4 || levelId === 5;
+
+   const totemSpots = useMemo<InstanceSpot[]>(() => {
+      if (!isJungle) return [];
+      return TOTEM_SPOTS.map((t) => ({ ...t }));
+   }, [isJungle]);
 
    // Scratch objects for bird flock updates (zero per-frame allocations)
    const scratch = useMemo(
@@ -198,6 +208,20 @@ export function Decor({ reduced = false }: { reduced?: boolean }) {
                   <meshStandardMaterial color={COLORS.palm} roughness={0.8} flatShading />
                </Instanced>
             </>
+         )}
+
+         {/* Jungle Totems on distant atolls (levels 4 & 5 only) */}
+         {totemSpots.length > 0 && (
+            <InstancedModel
+               asset={ASSETS.jungleTotem}
+               spots={totemSpots}
+               fallback={
+                  <Instanced spots={totemSpots} name="outer-totems">
+                     <primitive object={geo.totem} attach="geometry" />
+                     <meshStandardMaterial color={COLORS.woodDark} roughness={0.9} />
+                  </Instanced>
+               }
+            />
          )}
 
          {/* Pirate Shipwreck Silhouette on the Far Reef */}
