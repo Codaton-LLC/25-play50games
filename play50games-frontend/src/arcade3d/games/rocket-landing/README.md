@@ -169,6 +169,32 @@ Target **<=30 draw calls**, hard game cap35, platform cap150. Budget: rocket<=5,
 
 Reuse terrain13-vertex top buffers and cavern geometry, one canvas texture, one rocket/pad and fixed scratch matrices/contact buffers. Warm fx kinds once; engine smoke <=8 bursts/s, <=24 particles per burst before quality scaling; touchdown puff16, crash sparks24/debris12, perfect confetti24 (soft>=190,centre>=140), maximum2 score sprites. No new resources or React renders per frame; HUD writes only changed displayed values. Quality reduces stars/fx/backdrop, never collision/pad/guide. Dispose mount-owned resources; perf probe mid-phone p95 target<=33 ms, worst calls<=35, GPU counts flat at30/60/120/240 s and Retryx10 after warm-up. All measurements pending build.
 
+## Look (2026-10-25)
+
+P-114-look-rocket modern-look pass on rocket-landing:
+- **Palette & looks (`looks.ts`)**: Single unified `COLORS` palette providing 2-3 deliberate tones per object. Defined rich visual specifications for all 5 planetary worlds: Moon (monochrome lunar basalt and crater dust), Desert (terracotta sand dunes and canyon rock), Ice (bright cyan glacial ice and frozen spires), Gas moon / Jungle (vibrant emerald alien flora and spore bulbs), and Asteroid / Lava (dark volcanic basalt with glowing magma fissures).
+- **Atmosphere & Stage Lighting**: Seamless `useStageLighting` crossfade per planet (fading lighting preset, background, and fog over 1 s on stage transition). Core `<SkyDome>` with planetary atmospheric gradients. Added cool rim directional light (`position={[-4, 8, -6]}`) illuminating rocket and landing pad silhouette edges against deep space.
+- **Surroundings & Instanced Decor (`Decor.tsx`)**: Themed instanced decor (`<Instanced>`) strictly outside the play area (`PLAY_AREA = { x: [-10.5, 10.5], y: [-1.2, 20.5], z: [-2.6, 2.6] }`), including distant low-poly mountain ridges, surface boulders, and planet-specific props (ice crystals, alien mushrooms, desert spires, basalt columns). Themed celestial body (moon/gas giant with rings) in the distant background sky (`z <= -24`). Micro-satellite drifters via `<DynamicInstanced>`. Tested to ensure zero occlusion of the rocket, pad, or hazards from fitted cameras at 1280x800, 390x844, and 844x390.
+- **Wide Seamless Terrain (`Planet.tsx`)**: Built a wide faceted terrain mesh with 3-tone vertex coloring (sunlit surface, mid cliff, deep bedrock) covering `x: [-40, 40]`, `z: [-16, 8]`, and dropping down to bedrock floor at `y = -14`. Matches the play area `terrain[0..12]` heights byte-for-byte while ensuring zero void or background sky shows below or beside the ground at any viewport size (1280x800, 390x844, 844x390).
+- **Cavern Roof Hazard (`Planet.tsx`)**: Replaced raw grey box with a sculpted volcanic cavern arch slab featuring bevelled edges, underside crags, and a glowing magma fissure vein while preserving the exact physical collision bounding box `[-3, 3] x [9, 10] x [-1.5, 1.5]`.
+- **Landing Pad Glow & Fallback (`Planet.tsx`, `Primitives.tsx`)**: Added a glowing emerald touchdown border (`#10b981`) and pad landing light (`#34d399`, intensity 1.5, distance 7) illuminating the rocket feet on descent. Overhauled `FallbackPad` and `RocketPrimitive` with bevelled shapes, metallic porthole ring, porthole glass glow, red accent band, and dark thruster/struts in 2-3 tones from `COLORS`.
+- **Juicy Feedback**: Added celebratory dust puff and sparkle bursts on touchdown from landing feet, plus dual-layer engine flame plume (bright core + outer plasma cone).
+- **Resource Disposal**: Geometries and materials created once and disposed on unmount. No `dispose={null}` on primitives.
+
+### Draw-Call Estimate
+- SkyDome: 1
+- Starfield: 1
+- Celestial Moon / Ring: 1-2
+- Scenery Decor (Peaks, Rocks, Themed Props): 3
+- Drifter Satellites: 1
+- Wide Terrain (Play Area + Flanks + Skirt): 1 (vertex colored)
+- Cavern Roof (Asteroid planet 4): 1
+- Landing Pad (Hyper3D GLB + Glow Rim + Beacons): 3-4
+- Rocket (Hyper3D GLB + Dual-layer Flame): 3-4
+- Effects (Core FxLayer active bursts, flash): 4-6
+- UI / Guide Line / Markers: 1-2
+**Total: ~18-24 draw calls idle, ~26-32 peak action** (well below budget <= 60).
+
 ## Audio
 
 `startLoop("thrust", {volume:0})` on entry to playing; handle `.set({volume:powered ? 0.35 : 0})`, recreate after shell pause/mute stopper on resume/unmute without stacking. Rotation `whoosh` volume0.1 at input onset, cooldown0.3 s; touchdown `thud` then `chime`, crash `boom` plus coral hit feedback, low fuel `alarm` on crossing20% of initial budget once/attempt. Use only these existing cue names; no new core keys. Shell owns win/lose cues; mute retains all visual information.
