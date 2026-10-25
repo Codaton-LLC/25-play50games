@@ -48,15 +48,37 @@ An oracle that never strikes, sends each bag down the 8.4 m chute, and is allowe
 5. **Earliest lose:** three wrong trips that strike at the chute end (8.4 m at 1.35 m/s), spawns at 0, 2.2 and 4.376 s, third strike at **10.60 s** ≥ 10.5 s. Striking at chute entry instead is the rejected 7.64 s case. The hold cannot beat this: D3 stays locked until 40 s, and the path to that crossing is 11.2 m.
 6. **Ceiling:** the oracle scores 7500, under the 7620 cap; every prefix passes `withinServerLimits` at base 0 and 64 pts/s (peak 62.82); `capScore` is a no-op on legal runs. Measured in the build: that bot on the store at 60 fps, 20 fps and random 4–50 ms frames.
 
+## Levels
+
+Level 1 is the game above, unchanged. Levels 2–5 are the same hall and the same four chutes. A level only changes the clock, the belt's starting speed, how fast bags appear, when D3 and D4 unlock, how often the belt steps ×1.03, and how many late bags are heavy. The plan's extra zones, a fifth flight and parallel objectives are not in the built game (one belt graph, four chute mouths), so they are not in the levels. Lighting is a core preset on top of this hall's fog: level 1 indoor, then day, sunset, night, space.
+
+The plan's level 5 is 210 s. With this ramp held at 120 s (a longer ramp would be an easier spawn), 210 s scores an all-VIP oracle of 23520 and a 4% cap of 24470, which is 3.21× level 1's 7620. The clock is 200 s so the cap stays at 2.90×. The decision-3 guard holds.
+
+A run still ends on three strikes or the clock. There is no `end("win")`, so each level's `clearScore` is the unlock target (level 5's target marks the shift cleared and unlocks nothing). The honest bot below reached every target on all 200 seeds; an idle run never did (best idle score 120–290).
+
+| Level | Title | Clock | What is harder than the level before | Clear | Oracle | Limits (max / duration / base / pts/s) |
+|---|---|---|---|---|---|---|
+| 1 | Training Belt | 120 s | today's game | 3600 | 77 bags, 7500, peak 62.82 | 7620 / 10000–122000 / 0 / 64 |
+| 2 | Two Destinations | 150 s | belt 1.50, chutes at 36 s and 64 s, heavy 0.32 | 5400 | 111 bags, 11580, peak 77.49 | 12050 / 9500–152000 / 0 / 81 |
+| 3 | Four Destinations | 180 s | spawn falls to 0.80 s, chutes at 30 s and 55 s, heavy 0.36 | 7800 | 157 bags, 17040, peak 94.73 | 17730 / 9500–182000 / 0 / 99 |
+| 4 | Rush Hour | 180 s | belt 1.52, spawn 0.76 s, a step every 10 s, chutes at 26 s and 48 s, heavy 0.40 | 8200 | 163 bags, 17760, peak 98.91 | 18480 / 9400–182000 / 0 / 103 |
+| 5 | International Hub | 200 s | belt 1.55, spawn 0.75 s, chutes at 22 s and 42 s, heavy 0.44 | 9800 | 192 bags, 21240, peak 106.23 | 22090 / 9400–202000 / 0 / 111 |
+
+The oracle is the same one as level 1: every bag takes the 8.4 m chute, none of them strike, and every bag spawned at or after 50 s is VIP. Heavy bags and the 1.1 m gap only delay a spawn, so they score less. On every level the tightest normal spacing (`beltSpeed × interval`) stays above 1.1 m, so that schedule does not bunch. `maxScore` is about 4% over the oracle (level 1 keeps its approved 7620, one VIP bag over 7500). `maxPointsPerSec` is about 4% over the steepest chord, and `0 + pps × clock` still covers `maxScore`. `maxDurationMs` is the clock plus the same 2 s cushion as level 1.
+
+The earliest legal lose is still three wrong bags striking at the chute end. A faster belt pulls that under 10 s, so levels 2–5 lower `minDurationMs` to just under the simulated third strike (margin under 0.8 s). Level 1 stays at 10000 ms.
+
+Honest bot (set each diverter for the nearest bag, at most one flip per diverter every 0.25 s), 200 seeds at 30/60/144 Hz, through `stepRun`: every seed survived the clock. Worst scores 4140 / 6300 / 9120 / 9600 / 11400, all above the clear targets. Means 4498 / 6780 / 9695 / 10244 / 12161. The forced-VIP oracle on those frames scored 7500 / 11580 / 16920 / 17640 / 21120, each at least 90% of that level's `maxScore` and never over it. Idle and a flip-every-frame mash died on three strikes and never cleared. The same bots through `createArcadeStore` at 30, 60 and 144 Hz stayed inside the limits, and `capScore` was a no-op.
+
 ## Run end
 
 - `end("lose")` on the frame the third strike resolves. `resultDelayMs: 900` so the tumble is seen. Points game: the score so far is ranked.
-- `"timeup"` by the shell at 120 s: bags still on the belts do not score. Also ranked. No `"win"`. A strike on the time-up frame is a time-up (the clock runs first).
+- `"timeup"` by the shell when the level's clock ends (120 s on level 1): bags still on the belts do not score. Also ranked. No `"win"`. A strike on the time-up frame is a time-up (the clock runs first).
 
 ## Scene and camera
 
 - **Fixed isometric, pitch 50°**: every junction is on screen and the camera never moves. `useFittedView({ area, pitch: 50°, margin, padding: 8, shift: true, maxDistance: 90 })` with no `minDistance` (45 m had pinned every viewport). `area` is the belts, x 0.4–8.2, y 0–1.6, z −0.6–14.8 (the floor and handler past x 8.2 stay drawn, outside the fit). Portrait yaw is 0 so the spine (world +z) runs with the screen's vertical. Desktop landscape stays yaw 0.55. A short wide phone (width / height > 1.9, such as 844×390) uses yaw π/2 so the spine runs across the width and the diverters stay apart. The rig follows that box's centre (`followFraction` 1) so ShellStage's own CameraRig cannot leave `definition.camera` in place. Spine x is 3.4 and the overflow runs toward −x (ends at x 0.6). Lengths are unchanged.
-- **Hall:** floor `#cbd5e1`, belts `#334155`, one window bay on the north wall. Lighting `indoor` only.
+- **Hall:** floor `#cbd5e1`, belts `#334155`, one window bay on the north wall. Lighting `indoor` on level 1; levels 2–5 swap the core preset (Levels).
 - **Handler** (decor): `SHARED_ASSETS.runner` at the same 0.825 scale as the other games (1.556 m), `useHumanoidPose`, `applyLift={false}`, group raised by `bodyLift × 0.825`. `idlePose` with a `reachPose` wave on one arm (the core pose that reads as a wave). Feet on the floor. Hidden when `useQuality().decor` is the low tier.
 - Diverter arrows are a yaw, not a colour. Each on-screen hit box is at least 64 × 64 px; if two would overlap, the nearest diverter wins and the boxes are clipped apart.
 
@@ -82,7 +104,7 @@ No new generation. Suitcase and plane are already in `core/modelManifest.ts` (`E
 
 ## Files
 
-`meta.ts` (data, scoring; strings as Controls) · `index.tsx` (`GameDefinition`) · `rules.ts` (graph, spawn, phases, junction choice, queue, scoring; pure, seeded) · `rules.test.ts` · `assets.ts` + `assets.test.ts` · `Scene.tsx` (one `useRunFrame`, fit, input pick, fx, audio) · `Hall.tsx` (floor, window, plane, boards, handler) · `Belts.tsx` (conveyors, arrows, chutes) · `Bags.tsx` (pool, tags, tumble) · `Primitives.tsx` (stand-ins) · `assets.spec.json` · `README.md` · `public/images/3d/luggage-rush.webp` · `tools/thumbs/inputs/luggage-rush.mjs`.
+`meta.ts` (data, scoring, five `levels`) · `index.tsx` (`GameDefinition` plus one `LevelSpec` per level) · `levels.ts` (the five configs) · `levels.test.ts` · `useLuggageLevel.ts` · `rules.ts` (graph, spawn, phases, junction choice, queue, scoring; pure, seeded; `createRun(seed, level)`) · `rules.test.ts` · `assets.ts` + `assets.test.ts` · `Scene.tsx` (one `useRunFrame`, fit, input pick, fx, audio) · `Hall.tsx` (floor, window, plane, boards, handler) · `Belts.tsx` (conveyors, arrows, chutes) · `Bags.tsx` (pool, tags, tumble) · `Primitives.tsx` (stand-ins) · `assets.spec.json` · `README.md` · `public/images/3d/luggage-rush.webp` · `tools/thumbs/inputs/luggage-rush.mjs`.
 
 ## Test plan
 
