@@ -6,7 +6,8 @@ import { BufferAttribute, BufferGeometry, Color, Matrix4, Quaternion, Vector3, t
 import { DynamicInstancedModel } from "@/arcade3d/core/assets";
 import { scaledCount, useQuality } from "@/arcade3d/core/quality";
 import { DynamicInstanced, useCanvasTexture } from "@/arcade3d/core/render";
-import { ASSETS, ICE_ARCH_LATERAL } from "./assets";
+import type { LevelId } from "@/arcade3d/types";
+import { ASSETS, AURORA_CRYSTAL_LOCAL, AURORA_CRYSTAL_LATERAL, GLACIER_CHUNK_LOCAL, GLACIER_CHUNK_LATERAL, ICE_ARCH_LATERAL } from "./assets";
 import { COLORS } from "./looks";
 import { usePropParts } from "./Primitives";
 import { CLOCK, corridorAt, chunkAt, safeCentre, sampleTrack, widthAt, worldAt, type Chunk, type Run } from "./rules";
@@ -121,7 +122,7 @@ function fillTrack(g: BufferGeometry, c: Chunk, p: Vector3, t: Vector3, columns:
    pos.needsUpdate = normal.needsUpdate = color.needsUpdate = true;
 }
 
-export default function Track({ run }: { run: Run }) {
+export default function Track({ run, level }: { run: Run; level: LevelId }) {
    const root = useRef<Group>(null);
    const texture = useCanvasTexture(256, 256, drawIce);
    const { decor } = useQuality();
@@ -210,6 +211,22 @@ export default function Track({ run }: { run: Run }) {
       place(c.index * 60 + local, corridorAt(c, local) + side * ICE_ARCH_LATERAL, m, 0, 1);
    };
 
+   // Levels 4-5 (Aurora Run, Glacier Sprint) only: one crystal and one glacier chunk per chunk,
+   // alternating sides of the corridor, both strictly outside the play bounds (see assets.ts).
+   const showAuroraDecor = level >= 4;
+   const crystal = (i: number, m: Matrix4) => {
+      const c = run.chunks[i];
+      if (!c) return false;
+      const side = c.index % 2 ? 1 : -1;
+      place(c.index * 60 + AURORA_CRYSTAL_LOCAL, corridorAt(c, AURORA_CRYSTAL_LOCAL) + side * AURORA_CRYSTAL_LATERAL, m, 0, 1);
+   };
+   const glacier = (i: number, m: Matrix4) => {
+      const c = run.chunks[i];
+      if (!c) return false;
+      const side = c.index % 2 ? -1 : 1;
+      place(c.index * 60 + GLACIER_CHUNK_LOCAL, corridorAt(c, GLACIER_CHUNK_LOCAL) + side * GLACIER_CHUNK_LATERAL, m, 0, 1);
+   };
+
    const obstacle = (kind: "ice" | "snowman" | "crack", i: number, m: Matrix4) => {
       const o = run.chunks[Math.floor(i / 5)].obstacles[i % 5];
       if (!o || o.kind !== kind || o.s < run.s - 5) return false;
@@ -259,6 +276,12 @@ export default function Track({ run }: { run: Run }) {
          <DynamicInstancedModel name="fish-trails" asset={ASSETS.fish} count={36} update={fish} fallbackParts={fishParts} />
          <DynamicInstancedModel name="pine-banks" asset={ASSETS.pine} count={30} update={tree} fallbackParts={pineParts} />
          <DynamicInstancedModel name="ice-arches" asset={ASSETS.iceArch} count={6} update={arch} />
+         {showAuroraDecor && (
+            <>
+               <DynamicInstancedModel name="aurora-crystals" asset={ASSETS.auroraCrystal} count={3} update={crystal} />
+               <DynamicInstancedModel name="glacier-chunks" asset={ASSETS.glacierChunk} count={3} update={glacier} />
+            </>
+         )}
          <DynamicInstancedModel name="time-flags" asset={ASSETS.flag} count={12} update={flag} fallbackParts={flagParts} />
          <DynamicInstanced count={15} update={(i, m) => obstacle("ice", i, m)} parts={iceParts} name="ice-blocks" />
          <DynamicInstancedModel asset={ASSETS.snowman} count={15} update={(i, m) => obstacle("snowman", i, m)} fallbackParts={snowmanParts} name="snowmen" />
