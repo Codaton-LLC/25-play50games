@@ -142,6 +142,49 @@ Shopping list on HUD shows product icons and checkmarks; target items glow with 
 - **Shopper landmark measurement:** when Claude imports `shopperA|B|C.glb`, landmarks will be verified in `assets.test.ts`; until then, capsule primitives stand in cleanly.
 - **Open questions:** None; all design questions resolved.
 
+## Levels (five per game, 2026-10-25)
+
+Five levels through the core level system (`core/README.md` "Levels"): `levels.ts` holds the pure `ShoppingCartLevel` configs, `createRun(seed, level)` / `stepRun` play one, `index.tsx` declares the five `LevelSpec`s (description, config, instructions, `durationMs`, and `hudStats` with the level's item count), `meta.ts` the titles and limits. **Level 1 is today's game unchanged** (6 items, 75 s clock, 40 s Shopper D, proven 2030 ceiling). A level clears on a **win** or reaching `clearScore`.
+
+| Level | Title | Items | Clock | Shopper D | Shopper speed / wait | clearScore |
+|---|---|---:|---:|---:|---:|---:|
+| 1 | Mini Market | 6 | 75 s | 40 s | 1.8 m/s (0.6 s wait) | 1200 |
+| 2 | Fresh Food | 7 | 100 s | 30 s | 1.9 m/s (0.5 s wait) | 1400 |
+| 3 | Household Aisles | 9 | 150 s | 20 s | 2.0 m/s (0.4 s wait) | 1600 |
+| 4 | Superstore | 12 | 150 s | 15 s | 2.1 m/s (0.3 s wait) | 1800 |
+| 5 | Closing-Time Rush | 15 | 180 s | 0 s (start) | 2.2 m/s (0.2 s wait) | - |
+
+Plan adaptation (GAME 16): 1 base store environment + 5 level configurations; indoor lighting is kept throughout. Item counts scale 6 -> 7 -> 9 -> 12 -> 15. The 4th shopper (`shopperD`) activates progressively earlier (40 s down to 0 s at rush hour), and shoppers move faster with shorter waypoint pauses. The 52 m tour gate holds across all levels.
+
+### Server limits per level (the proof)
+
+The score formula is identical across all levels:
+`runScore(items, comboPoints, listComplete, won, timeLeftMs) = 100 · items + comboPoints + (listComplete ? 300 : 0) + (won ? 10 · floor(timeLeftMs / 1000) : 0)`
+where perfect combo awards $10 \cdot K(K + 1)$ points for $K$ items.
+
+1. **Kinematic floor (3500 ms):** In any frame starting at play time $t$ (dt $\le 0.05$ s), $|v| \le \min(9, 12t + 0.6)$, so at most 28.56 m in 3.5 s. A win on a $K$-item list visits the $K$ reach discs and then the finish box, so it is at least as long as the shortest start → (its first 6 discs) → finish path. Over **every** 6-slot set, gated or not (`fix3-bound2.mjs 0.05 30 all`, the level-1 proof's config-space script, 134,596 sets), that path is $\ge 29.42$ m (sound bound, sampling allowance subtracted). $29.42 > 28.56$, so no win can occur before 3.5 s on any level (`minDurationMs: 3500`), whatever the list length and whether or not the 52 m gate held. (Level 1 keeps its own, larger 30.91 m gated bound.)
+2. **Earliest win & score ceiling:** At $t = 3.5$ s, $\text{timeLeftMs} = \text{durationMs} - 3500$, giving maximum time bonus $10 \cdot \lfloor (\text{durationMs} - 3500) / 1000 \rfloor$.
+3. **Linear envelope:** $S(t) \le \text{base} + \text{maxPointsPerSec} \times t$ holds for all $t \ge 3.5$ s with $\text{pps} = 100$.
+4. **Order of magnitude:** Level 5 `maxScore` (5960) is $2.94\times$ Level 1's (2030), satisfying the $\le \sim 3\times$ guard.
+
+| Level | Title | Items ($K$) | Clock | Items + Combo + Complete | Earliest Win Bonus ($t = 3.5$ s) | `maxScore` | `minDurationMs` | `maxDurationMs` | `base` / `maxPointsPerSec` |
+|---|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| 1 | Mini Market | 6 | 75 s | $600 + 420 + 300 = 1320$ | $10 \times 71 = 710$ | **2030** | 3500 | 77000 | 1700 / 100 |
+| 2 | Fresh Food | 7 | 100 s | $700 + 560 + 300 = 1560$ | $10 \times 96 = 960$ | **2520** | 3500 | 102000 | 2200 / 100 |
+| 3 | Household Aisles | 9 | 150 s | $900 + 900 + 300 = 2100$ | $10 \times 146 = 1460$ | **3560** | 3500 | 152000 | 3250 / 100 |
+| 4 | Superstore | 12 | 150 s | $1200 + 1560 + 300 = 3060$ | $10 \times 146 = 1460$ | **4520** | 3500 | 152000 | 4200 / 100 |
+| 5 | Closing-Time Rush | 15 | 180 s | $1500 + 2400 + 300 = 4200$ | $10 \times 176 = 1760$ | **5960** | 3500 | 182000 | 5650 / 100 |
+
+### Bot clear rates (`levels.test.ts`)
+
+| Level | Path-following bot wins / 40 | Win rate | Walking bot wins / 50 | Walking win rate | Idle score |
+|---|---:|---:|---:|---:|---:|
+| 1 | 40 / 40 | 100% | 50 / 50 | 100% | 0 (never clears) |
+| 2 | 40 / 40 | 100% | 50 / 50 | 100% | 0 (never clears) |
+| 3 | 40 / 40 | 100% | 50 / 50 | 100% | 0 (never clears) |
+| 4 | 40 / 40 | 100% | 50 / 50 | 100% | 0 (never clears) |
+| 5 | 40 / 40 | 100% | 50 / 50 | 100% | 0 (never clears) |
+
 ## Status
 
 ```

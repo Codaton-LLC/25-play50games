@@ -27,6 +27,13 @@ export const spaceRepairMeta: ArcadeGameMeta = {
       unitLabel: "pts",
       display: "int",
    },
+   levels: [
+      { id: 1, title: "Docking Bay", scoring: { kind: "points", maxScore: 4700, minDurationMs: 37000, maxDurationMs: 122000, base: 400, maxPointsPerSec: 40, unitLabel: "pts", display: "int" }, clearScore: 2400 },
+      { id: 2, title: "Power Wing", scoring: { kind: "points", maxScore: 4700, minDurationMs: 37000, maxDurationMs: 122000, base: 400, maxPointsPerSec: 40, unitLabel: "pts", display: "int" }, clearScore: 2400 },
+      { id: 3, title: "Comms Wing", scoring: { kind: "points", maxScore: 4700, minDurationMs: 37000, maxDurationMs: 122000, base: 400, maxPointsPerSec: 40, unitLabel: "pts", display: "int" }, clearScore: 2400 },
+      { id: 4, title: "External Platform", scoring: { kind: "points", maxScore: 4700, minDurationMs: 37000, maxDurationMs: 122000, base: 400, maxPointsPerSec: 40, unitLabel: "pts", display: "int" }, clearScore: 2400 },
+      { id: 5, title: "Station Emergency", scoring: { kind: "points", maxScore: 4700, minDurationMs: 37000, maxDurationMs: 122000, base: 400, maxPointsPerSec: 40, unitLabel: "pts", display: "int" }, clearScore: 2400 },
+   ],
    thumbnail: "/images/3d/space-repair.webp",
    accent: "#818cf8",
    owner: "codex",

@@ -3,14 +3,17 @@
 // 0.30 s and picks it (perfect near the peak), up to four crops ride in the basket, and walking into
 // the saucer's moving beam unloads them all for 25 x n^2. A pure 100 s score attack: the shell's
 // timer (durationMs) ends the run with "timeup" (README "Decisions (user, 2026-10-24)").
-import type { ScoringRules } from "@/arcade3d/types";
+import type { LevelId, ScoringRules } from "@/arcade3d/types";
 import { clampToBounds, type AABB } from "@/arcade3d/core/collision";
 import { substep } from "@/arcade3d/core/kinematics";
 import { capScore, withinServerLimits } from "@/arcade3d/core/limits";
 import { createRng, turnTowards } from "@/arcade3d/core/math";
 import { createPath, pointAt, tangentAt } from "@/arcade3d/core/path";
 
+import { BASE_PLOTS, LEVELS, type AlienFarmLevel, type PlotConfig } from "./levels";
+
 export { capScore, withinServerLimits };
+export type { AlienFarmLevel, PlotConfig };
 
 export const DURATION_MS = 100_000;
 export const DURATION_S = DURATION_MS / 1000;
@@ -41,27 +44,8 @@ export const FARMER = {
    speeds: [4.5, 4.14, 3.78, 3.42, 3.06] as readonly number[],
 } as const;
 
-export interface PlotConfig {
-   readonly id: number;
-   readonly x: number;
-   readonly z: number;
-   readonly activateAt: number;
-   readonly cycleS: number;
-   readonly kind: CropKind;
-}
-
-/** Row-major, x = -5 / 0 / 5, z = -4 / 0 / 4. Gourds (8 s) arrive on the beds that open at 40 s. */
-export const PLOTS: readonly PlotConfig[] = [
-   { id: 0, x: -5, z: -4, activateAt: 0, cycleS: 6, kind: "glowPod" },
-   { id: 1, x: 0, z: -4, activateAt: 20, cycleS: 6, kind: "glowPod" },
-   { id: 2, x: 5, z: -4, activateAt: 0, cycleS: 6, kind: "glowPod" },
-   { id: 3, x: -5, z: 0, activateAt: 40, cycleS: 8, kind: "gourd" },
-   { id: 4, x: 0, z: 0, activateAt: 0, cycleS: 6, kind: "glowPod" },
-   { id: 5, x: 5, z: 0, activateAt: 40, cycleS: 8, kind: "gourd" },
-   { id: 6, x: -5, z: 4, activateAt: 0, cycleS: 6, kind: "glowPod" },
-   { id: 7, x: 0, z: 4, activateAt: 20, cycleS: 6, kind: "glowPod" },
-   { id: 8, x: 5, z: 4, activateAt: 0, cycleS: 6, kind: "glowPod" },
-];
+/** Row-major, x = -5 / 0 / 5, z = -4 / 0 / 4. Level 1's plot layout. */
+export const PLOTS: readonly PlotConfig[] = BASE_PLOTS;
 export const PLOT_COUNT = 9;
 
 /** Offset ticks T[t][i] = (t + 5 i + 3 floor(i / 3)) mod 16, frozen; delta = T / 8 s. */
@@ -152,19 +136,69 @@ export const PROPOSED_LIMITS: ScoringRules = {
    display: "int",
 };
 
+/**
+ * Proposed server limits per level (README "Server limits and why they hold", arcade-score-limits skill).
+ * Copied into meta.levels and arcade-games.json. Level 1 equals PROPOSED_LIMITS byte-for-byte.
+ */
+export const PROPOSED_LEVEL_LIMITS: Record<LevelId, ScoringRules> = {
+   1: PROPOSED_LIMITS,
+   2: {
+      kind: "points",
+      maxScore: 20600,
+      minDurationMs: 148_000,
+      maxDurationMs: 153_000,
+      base: 200,
+      maxPointsPerSec: 250,
+      unitLabel: "pts",
+      display: "int",
+   },
+   3: {
+      kind: "points",
+      maxScore: 26900,
+      minDurationMs: 178_000,
+      maxDurationMs: 183_000,
+      base: 200,
+      maxPointsPerSec: 260,
+      unitLabel: "pts",
+      display: "int",
+   },
+   4: {
+      kind: "points",
+      maxScore: 22100,
+      minDurationMs: 178_000,
+      maxDurationMs: 183_000,
+      base: 200,
+      maxPointsPerSec: 260,
+      unitLabel: "pts",
+      display: "int",
+   },
+   5: {
+      kind: "points",
+      maxScore: 30500,
+      minDurationMs: 208_000,
+      maxDurationMs: 213_000,
+      base: 200,
+      maxPointsPerSec: 260,
+      unitLabel: "pts",
+      display: "int",
+   },
+};
+
 // ---------- cycles ----------
 
-export const halfWindow = (peak: number): number => (peak < CYCLE.midAt ? CYCLE.halfEarly : peak < CYCLE.lateAt ? CYCLE.halfMid : CYCLE.halfLate);
+export const halfWindow = (peak: number, halfLate: number = CYCLE.halfLate): number =>
+   peak < CYCLE.midAt ? CYCLE.halfEarly : peak < CYCLE.lateAt ? CYCLE.halfMid : halfLate;
 
 /** The ship's speed at play time t. */
-export const shipSpeed = (t: number): number => (t < CYCLE.midAt ? SHIP.speeds[0] : t < CYCLE.lateAt ? SHIP.speeds[1] : SHIP.speeds[2]);
+export const shipSpeed = (t: number, speeds: readonly number[] = SHIP.speeds): number =>
+   t < CYCLE.midAt ? speeds[0] : t < CYCLE.lateAt ? speeds[1] : speeds[2];
 
 /** Distance the ship has travelled by play time t (the exact integral of shipSpeed). */
-export function shipDistance(t: number): number {
+export function shipDistance(t: number, speeds: readonly number[] = SHIP.speeds): number {
    const a = Math.min(t, CYCLE.midAt);
    const b = Math.min(Math.max(t - CYCLE.midAt, 0), CYCLE.lateAt - CYCLE.midAt);
    const c = Math.max(t - CYCLE.lateAt, 0);
-   return SHIP.speeds[0] * a + SHIP.speeds[1] * b + SHIP.speeds[2] * c;
+   return speeds[0] * a + speeds[1] * b + speeds[2] * c;
 }
 
 export type Stage = "locked" | "waiting" | "sprout" | "growing" | "ripe" | "overripe" | "spent";
@@ -196,7 +230,7 @@ export function stageAt(plot: Plot, t: number): Stage {
    const k = cycleIndex(plot, t);
    if (k < 0) return "waiting";
    if (plot.picked === k || plot.missed === k) return "spent";
-   const b = cycleStart(plot, k), p = cyclePeak(plot, k), w = halfWindow(p);
+   const b = cycleStart(plot, k), p = cyclePeak(plot, k), w = halfWindow(p, plot.halfLate);
    if (t < b + plot.cycleS * CYCLE.growFrac) return "sprout";
    if (t < p - w) return "growing";
    if (t <= p + w) return "ripe";
@@ -288,6 +322,7 @@ export interface StepEvents {
 
 export interface RunState {
    seed: number;
+   level: AlienFarmLevel;
    table: number;
    time: number;
    plots: Plot[];
@@ -316,8 +351,8 @@ export interface RunState {
 const SHIP_TANGENT = { x: 0, y: 0, z: 0 };
 
 /** Places the ship for play time t (exact, independent of the frame split). */
-export function placeShip(ship: Ship, t: number): Ship {
-   const s = ship.s0 + ship.dir * shipDistance(t);
+export function placeShip(ship: Ship, t: number, speeds: readonly number[] = SHIP.speeds): Ship {
+   const s = ship.s0 + ship.dir * shipDistance(t, speeds);
    pointAt(SHIP_PATH, s, ship);
    tangentAt(SHIP_PATH, s, SHIP_TANGENT);
    ship.yaw = Math.atan2(SHIP_TANGENT.x * ship.dir, SHIP_TANGENT.z * ship.dir);
@@ -325,12 +360,13 @@ export function placeShip(ship: Ship, t: number): Ship {
 }
 
 /** Seed order: table index, then direction, then the ship's start distance (README "Seed"). */
-export function createRun(seed: number): RunState {
+export function createRun(seed: number, level?: AlienFarmLevel | LevelId): RunState {
+   const lvl: AlienFarmLevel = typeof level === "object" ? level : level !== undefined ? LEVELS[level] : LEVELS[1];
    const rng = createRng(seed);
    const table = Math.floor(16 * rng());
    const dir: 1 | -1 = rng() < 0.5 ? 1 : -1;
    const s0 = SHIP.length * rng();
-   const plots: Plot[] = PLOTS.map((c, i) => ({
+   const plots: Plot[] = lvl.plots.map((c, i) => ({
       ...c,
       b0: c.activateAt + OFFSET_TABLES[table][i] * CYCLE.tickS,
       picked: -1,
@@ -341,15 +377,16 @@ export function createRun(seed: number): RunState {
       sporeTo: -1,
    }));
    const ship: Ship = { s0, dir, x: 0, y: 0, z: 0, yaw: 0 };
-   placeShip(ship, 0);
+   placeShip(ship, 0, lvl.shipSpeeds);
    return {
       seed,
+      level: lvl,
       table,
       time: 0,
       plots,
       farmer: { x: FARMER.startX, y: 0, z: FARMER.startZ, vx: 0, vz: 0, yaw: FARMER.startYaw, inSpore: false },
       ship,
-      cargo: Array.from({ length: HARVEST.capacity }, () => ({ plot: -1, cycle: -1, perfect: false, kind: "glowPod" as CropKind })),
+      cargo: Array.from({ length: lvl.capacity }, () => ({ plot: -1, cycle: -1, perfect: false, kind: "glowPod" as CropKind })),
       cargoCount: 0,
       channel: { active: false, plot: -1, cycle: -1, perfect: false, start: 0, end: 0 },
       cooldownUntil: 0,
@@ -400,7 +437,7 @@ function press(run: RunState, t: number): void {
       return;
    }
    // full hands never harm a crop: nothing in reach or a full basket only cools the tool
-   const id = run.cargoCount < HARVEST.capacity ? targetPlot(run, t) : -1;
+   const id = run.cargoCount < (run.level?.capacity ?? HARVEST.capacity) ? targetPlot(run, t) : -1;
    const stage = id >= 0 ? stageAt(run.plots[id], t) : "spent";
    if (id < 0) {
       run.cooldownUntil = t + HARVEST.cooldownS;
@@ -415,7 +452,7 @@ function press(run: RunState, t: number): void {
       plot.missed = k;
       plot.burst = k;
       plot.sporeFrom = t;
-      plot.sporeTo = t + SPORES.lifeS;
+      plot.sporeTo = t + (run.level?.sporesLifeS ?? SPORES.lifeS);
       run.streak = 0;
       run.cooldownUntil = t + HARVEST.cooldownS;
       run.stunUntil = t + HARVEST.burstStunS;
@@ -501,9 +538,9 @@ function updateBursts(run: RunState, t: number): void {
       if (kb <= plot.burst) continue;
       plot.burst = kb;
       if (plot.picked === kb || plot.reserved) continue;
-      // one zone per plot is enough: C >= 6 > the 5 s life
+      // one zone per plot: when a level's spore life outlasts the cycle, the next burst's zone (same spot) takes over the rest of it
       plot.sporeFrom = cycleBurst(plot, kb);
-      plot.sporeTo = plot.sporeFrom + SPORES.lifeS;
+      plot.sporeTo = plot.sporeFrom + (run.level?.sporesLifeS ?? SPORES.lifeS);
       if (t < plot.sporeTo) run.events.bursts |= 1 << plot.id;
    }
 }
@@ -571,7 +608,7 @@ function subStep(run: RunState, h: number): void {
       completeChannel(run);
    }
    moveFarmer(run, move, t1);
-   placeShip(run.ship, t1);
+   placeShip(run.ship, t1, run.level?.shipSpeeds ?? SHIP.speeds);
    updateBursts(run, t1);
    const f = run.farmer;
    if (run.cargoCount > 0 && distXZ(f.x, f.z, run.ship.x, run.ship.z) <= SHIP.beamRadius) unload(run);
@@ -639,18 +676,18 @@ export function feedStore(run: RunState, ev: StepEvents, store: StoreSink): void
 // ---------- what the screen and the sound point at ----------
 
 /** The next opening of a pickable ripe window for a plot at or after t: [open, close, peak, cycle] or null. */
-export function nextWindow(plot: Plot, t: number, out: { open: number; close: number; peak: number; cycle: number }): boolean {
-   if (t >= DURATION_S) return false;
+export function nextWindow(plot: Plot, t: number, out: { open: number; close: number; peak: number; cycle: number }, deadline = DURATION_S): boolean {
+   if (t >= deadline) return false;
    let k = Math.max(0, cycleIndex(plot, Math.max(t, plot.b0)));
    for (let n = 0; n < 3; n++, k++) {
       if (plot.picked === k || plot.missed === k) continue;
-      const p = cyclePeak(plot, k), w = halfWindow(p);
+      const p = cyclePeak(plot, k), w = halfWindow(p, plot.halfLate);
       if (p + w < t) continue;
       out.open = p - w;
       out.close = p + w;
       out.peak = p;
       out.cycle = k;
-      return out.open < DURATION_S;
+      return out.open < deadline;
    }
    return false;
 }
@@ -663,9 +700,10 @@ const WIN = { open: 0, close: 0, peak: 0, cycle: 0 };
  */
 export function guidePlot(run: RunState): number {
    const t = run.time, f = run.farmer;
+   const deadline = (run.level?.durationMs ?? DURATION_MS) / 1000;
    let ripe = -1, ripeD = Infinity, next = -1, nextOpen = Infinity, nextD = Infinity;
    for (const plot of run.plots) {
-      if (plot.reserved || !nextWindow(plot, t, WIN)) continue;
+      if (plot.reserved || !nextWindow(plot, t, WIN, deadline)) continue;
       const d = distXZ(f.x, f.z, plot.x, plot.z);
       if (WIN.open <= t) {
          if (d < ripeD) {

@@ -212,7 +212,14 @@
       "max_duration_ms": 182000,
       "base": 300,
       "max_pps": 75,
-      "enabled": false
+      "enabled": false,
+      "levels": [
+        { "title": "Training Rooftop", "max_score": 3600, "min_duration_ms": 20000, "max_duration_ms": 182000, "base": 300, "max_pps": 75 },
+        { "title": "Residential Blocks", "max_score": 3900, "min_duration_ms": 20000, "max_duration_ms": 202000, "base": 300, "max_pps": 75 },
+        { "title": "Downtown", "max_score": 4200, "min_duration_ms": 20000, "max_duration_ms": 222000, "base": 300, "max_pps": 75 },
+        { "title": "Windy Towers", "max_score": 4500, "min_duration_ms": 20000, "max_duration_ms": 242000, "base": 300, "max_pps": 75 },
+        { "title": "Night Delivery", "max_score": 4800, "min_duration_ms": 20000, "max_duration_ms": 272000, "base": 300, "max_pps": 75 }
+      ]
     },
     "shopping-cart": {
       "title": "Crazy Shopping Cart",
@@ -222,7 +229,14 @@
       "max_duration_ms": 77000,
       "base": 1700,
       "max_pps": 100,
-      "enabled": false
+      "enabled": false,
+      "levels": [
+        { "title": "Mini Market", "max_score": 2030, "min_duration_ms": 3500, "max_duration_ms": 77000, "base": 1700, "max_pps": 100 },
+        { "title": "Fresh Food", "max_score": 2520, "min_duration_ms": 3500, "max_duration_ms": 102000, "base": 2200, "max_pps": 100 },
+        { "title": "Household Aisles", "max_score": 3560, "min_duration_ms": 3500, "max_duration_ms": 152000, "base": 3250, "max_pps": 100 },
+        { "title": "Superstore", "max_score": 4520, "min_duration_ms": 3500, "max_duration_ms": 152000, "base": 4200, "max_pps": 100 },
+        { "title": "Closing-Time Rush", "max_score": 5960, "min_duration_ms": 3500, "max_duration_ms": 182000, "base": 5650, "max_pps": 100 }
+      ]
     },
     "snowball-battle": {
       "title": "Snowball Battle",
@@ -283,7 +297,14 @@
       "max_duration_ms": 102000,
       "base": 200,
       "max_pps": 250,
-      "enabled": false
+      "enabled": false,
+      "levels": [
+        { "title": "Starter Plot", "max_score": 12900, "min_duration_ms": 99000, "max_duration_ms": 102000, "base": 200, "max_pps": 250 },
+        { "title": "Crystal Farm", "max_score": 20600, "min_duration_ms": 148000, "max_duration_ms": 153000, "base": 200, "max_pps": 250 },
+        { "title": "Glow Marsh", "max_score": 26900, "min_duration_ms": 178000, "max_duration_ms": 183000, "base": 200, "max_pps": 260 },
+        { "title": "Meteor Field", "max_score": 22100, "min_duration_ms": 178000, "max_duration_ms": 183000, "base": 200, "max_pps": 260 },
+        { "title": "Grand Alien Harvest", "max_score": 30500, "min_duration_ms": 208000, "max_duration_ms": 213000, "base": 200, "max_pps": 260 }
+      ]
     },
     "mini-golf": {
       "title": "Mini Golf 3D",
@@ -371,7 +392,14 @@
       "max_duration_ms": 122000,
       "base": 400,
       "max_pps": 40,
-      "enabled": false
+      "enabled": false,
+      "levels": [
+        { "title": "Docking Bay", "max_score": 4700, "min_duration_ms": 37000, "max_duration_ms": 122000, "base": 400, "max_pps": 40 },
+        { "title": "Power Wing", "max_score": 4700, "min_duration_ms": 37000, "max_duration_ms": 122000, "base": 400, "max_pps": 40 },
+        { "title": "Comms Wing", "max_score": 4700, "min_duration_ms": 37000, "max_duration_ms": 122000, "base": 400, "max_pps": 40 },
+        { "title": "External Platform", "max_score": 4700, "min_duration_ms": 37000, "max_duration_ms": 122000, "base": 400, "max_pps": 40 },
+        { "title": "Station Emergency", "max_score": 4700, "min_duration_ms": 37000, "max_duration_ms": 122000, "base": 400, "max_pps": 40 }
+      ]
     },
     "monster-kitchen": {
       "title": "Monster Kitchen",

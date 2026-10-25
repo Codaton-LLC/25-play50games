@@ -120,6 +120,13 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/ghost-vacuum/hunter.glb",
    "/models/3d/ghost-vacuum/candelabra.glb",
    "/models/3d/rocket-landing/landingPad.glb",
+   // zoo-escape props (2026-10-25): batch 5 part A adoptions, Gen-2.5-Medium, 1500-3000 tris,
+   // optimized with tools/hyper3d (kiosk and tower bake in their canopy / platform railing)
+   "/models/3d/zoo-escape/zooKiosk.glb",
+   "/models/3d/zoo-escape/leafyBush.glb",
+   "/models/3d/zoo-escape/woodenFootbridge.glb",
+   "/models/3d/zoo-escape/searchlightTower.glb",
+   "/models/3d/zoo-escape/bambooSnack.glb",
 ];
 
 const LISTED: ReadonlySet<string> = new Set(MODEL_MANIFEST);
