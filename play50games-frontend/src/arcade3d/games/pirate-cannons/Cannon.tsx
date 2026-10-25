@@ -87,7 +87,7 @@ export function Cannon({ run, aim, look }: { run: RunState; aim: AimState; look:
          {/* the turntable ring on the platform, the reload arc around it */}
          <mesh position={[CANNON.x, CANNON.platformY + 0.02, CANNON.z]} rotation={[-Math.PI / 2, 0, 0]}>
             <ringGeometry args={[0.95, 1.2, 40]} />
-            <meshStandardMaterial color="#57534e" roughness={0.7} metalness={0.2} />
+            <meshStandardMaterial color={COLORS.bronze} roughness={0.4} metalness={0.6} />
          </mesh>
          <mesh position={[CANNON.x, CANNON.platformY + 0.03, CANNON.z]} rotation={[-Math.PI / 2, 0, 0]} geometry={ringGeometry} material={ringMaterial} />
          <group ref={body} matrixAutoUpdate={false}>

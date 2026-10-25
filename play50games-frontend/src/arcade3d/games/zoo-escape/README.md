@@ -38,6 +38,24 @@ A cheeky panda breaks out of the zoo through three connected stages (enclosure �
 5. **Durations**: the earliest end is a lose: 3 catches each after ≥ 1.0 s of play, two 1.2 s cards between = 5.4 s → 5000 ms. The clock empties by 180 s of play → 182000 ms.
 6. **Bots** (`rules.test.ts`, real store through `simulateRun`, 30 / 60 / 144 Hz and random 4–50 ms frames, every run `withinServerLimits` with `capScore` a no-op): the **oracle** (earliest-arrival grid plan with walk hops and the best of the 24 orders of each stage's snacks, `testkit.oraclePlan`) wins seed 65 with all 12 snacks in 35.7 s = **3040 = 92.4 % of maxScore**; idle (0, time-up, never caught), toss spammer (0), bush camper (no win, 0), catch farmer (0, lose, ≥ 5 s), rusher (5 / 40 wins = 12.5 %).
 
+## Levels
+
+One zoo, five configurations of the same three-stage, 180 s escape (`levels.ts`, read through `useZooLevel`; `createRun(seed, layout?, level)`). **Level 1 is today's game exactly** (levels.test.ts replays 8 seeds of random input against today's `createRun`). The level brief proposed a two-stage 90 s level 1 with today's campaign at levels 3-4; level 1 must stay today's game, so that re-ordering was not used. Only what the keepers do once they notice the panda changes: the map, the routes and cycles, the vision and hearing ranges and the searchlight are the same on every level, so `fairness.test.ts` (a safe route at every phase of every offset) holds on every level. Not built: per-level lighting (stage 3's dusk stays), a night-on-every-stage look.
+
+| Level | Title | Catch after (s of sight) | Meter decay /s | Keepers investigate at | Bamboo per stage | A catch costs | Clear |
+|---|---|---|---|---|---|---|---|
+| 1 | Small Enclosure | 1.35 | 0.5 | 2.0 m/s | 2 | 5 s | escape or 1500 |
+| 2 | Safari Zone | 1.25 | 0.45 | 2.2 m/s | 2 | 6 s | escape or 1600 |
+| 3 | Bird Garden | 1.15 | 0.4 | 2.4 m/s | 1 | 7 s | escape or 1700 |
+| 4 | Central Zoo | 1.05 | 0.35 | 2.6 m/s | 1 | 8 s | escape or 1800 |
+| 5 | Night Escape | 0.95 | 0.3 | 2.8 m/s | 1 | 10 s | — |
+
+The catch time is the same for every device (user decision 2026-10-24); the searchlight uses it too.
+
+**Limits.** The proof above uses only the route floor `L(k)`, the walk speed, the snacks, the win bonus and the 180 s clock (`B = 3190`, 158 pts/s), and for the earliest end three bump catches after the 1 s grace with two 1.2 s cards (5.4 s). A level changes none of these: a quicker catch, a slower decay and faster keepers only make catches likelier, a catch only takes points and clock away, and fewer bundles only remove a lure. So every level keeps **PROPOSED_LIMITS (3290 / 5000–182000 ms / base 0 / 163 pts/s)** (`PROPOSED_LEVEL_LIMITS`), and every level offers level 1's points. `meta.ts` and `arcade-games.json` still serve the provisional block (4500 / 20000–200000 / 4500 / 4500) on all five levels (`rules.test.ts` pins it); the go-live PR switches all five to PROPOSED_LIMITS together.
+
+**Bots** (rules.test.ts's oracle: the earliest-arrival grid plan with all 12 snacks, through the real store): escapes 12 of 12 seeds on every level with no catch (it is never seen, so the level settings do not touch it), 2660–2970 points, inside PROPOSED_LIMITS; idle times out at 0, the toss spammer scores 0, neither clears. levels.test.ts checks every level setting in the simulation (the stare-to-catch time for keepers and the searchlight, both meters' decay, the investigate speed, the bundles at the start, after a catch and at a gate, the catch penalty).
+
 ## Fairness (`fairness.test.ts`, core periodic solver C5)
 
 Grid 0.4 m, step 0.25 s, sneak moves; per keeper a mask from its undisturbed patrol with margins (8 + 1 sub-samples per step, hearing 1.2 + 0.75 m, cone + 3° and + 0.5 m, 5 sample points per cell, bush search + 0.4 m). For every offset combination (6 / 36 / 216) and every phase, every start cell and gate-entry band cell is winning; every snack candidate is winning at some phase; every start and entry band is outside every cone and ≥ 4 / 3.75 m from every keeper at every moment (0.05 s). The **solver bot** replays `planPeriodic` routes through the real rules: 24 / 24 seeds won, 0 catches. The **novice proxy** (no plan: waits when the way ahead is watched, hides in bushes within 4.5 m, decides every 0.3 s, gives up waiting after 10 s): **24 / 40 wins (60 %)**.

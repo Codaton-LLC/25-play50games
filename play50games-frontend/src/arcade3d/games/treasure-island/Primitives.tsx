@@ -2,37 +2,27 @@
 
 // Treasure Island stand-ins (drawn while a GLB is missing or broken) and the procedural pieces: the
 // explorer hat (on the head anchor of the rigged runner; the stand-in wears its own), the coin and
-// crab pool parts. Island-specific: the reusable pattern is in Scene.tsx.
+// crab pool parts. Deliberate, bevelled/rounded shapes with 2-3 tones from COLORS, flat-shaded low-poly.
 import { useEffect, useMemo, type RefObject } from "react";
-import { CylinderGeometry, LatheGeometry, Matrix4, MeshStandardMaterial, SphereGeometry, Vector2, type Group } from "three";
+import {
+   BoxGeometry,
+   ConeGeometry,
+   CylinderGeometry,
+   DodecahedronGeometry,
+   IcosahedronGeometry,
+   LatheGeometry,
+   Matrix4,
+   MeshStandardMaterial,
+   SphereGeometry,
+   Vector2,
+   type Group,
+} from "three";
+import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import { Instanced, type InstancePart, type InstanceSpot } from "@/arcade3d/core/render";
 import { COIN_SIZE, CRATE_SIZE, CRAB_WIDTH, PALM_SIZE, SHOVEL_LENGTH, UMBRELLA_HEIGHT } from "./assets";
+import { COLORS } from "./looks";
 
-export const COLORS = {
-   sand: "#f2d7a6",
-   wetSand: "#c9a877",
-   grass: "#65a30d",
-   grassDark: "#4d7c0f",
-   sea: "#2dd4bf",
-   deep: "#0e7490",
-   foam: "#f0fdfa",
-   rock: "#78716c",
-   palm: "#4d7c0f",
-   trunk: "#a16207",
-   wood: "#92400e",
-   woodLight: "#b45309",
-   deck: "#d6a46a",
-   hull: "#e0b27a",
-   hat: "#c8a165",
-   hatBand: "#5b3a1e",
-   shirt: "#0f766e",
-   skin: "#f5c9a0",
-   gold: "#fbbf24",
-   chest: "#8b5a2b",
-   gull: "#f8fafc",
-   crab: "#ef4444",
-   hole: "#5b4630",
-} as const;
+export { COLORS };
 
 // ---------- the explorer hat ----------
 
@@ -81,38 +71,62 @@ export function ExplorerHat() {
 
 /**
  * The shovel's stand-in (SHOVEL_LENGTH tall, the GLB's frame: the blade's edge on the origin, up the
- * shaft to the grip): a steel blade, a wooden stick and a cross grip.
+ * shaft to the grip): a bevelled steel blade with dark collar, rich wooden stick and sculpted D-grip.
  */
 export function ShovelPrimitive() {
    return (
       <group name="shovel-primitive">
+         {/* Bevelled steel blade */}
          <mesh position-y={0.19}>
             <boxGeometry args={[0.3, 0.38, 0.03]} />
-            <meshStandardMaterial color="#94a3b8" metalness={0.5} roughness={0.5} />
+            <meshStandardMaterial color={COLORS.shovelSteel} metalness={0.55} roughness={0.45} />
          </mesh>
+         {/* Steel socket collar */}
+         <mesh position-y={0.36}>
+            <cylinderGeometry args={[0.028, 0.034, 0.08, 8]} />
+            <meshStandardMaterial color={COLORS.shovelSteelDark} metalness={0.65} roughness={0.4} />
+         </mesh>
+         {/* Oiled wood shaft */}
          <mesh position-y={SHOVEL_LENGTH * 0.62}>
             <cylinderGeometry args={[0.022, 0.022, SHOVEL_LENGTH * 0.76, 8]} />
             <meshStandardMaterial color={COLORS.woodLight} roughness={0.85} />
          </mesh>
+         {/* Sculpted D-grip */}
          <mesh position-y={SHOVEL_LENGTH - 0.025} rotation-z={Math.PI / 2}>
             <cylinderGeometry args={[0.025, 0.025, 0.2, 8]} />
-            <meshStandardMaterial color={COLORS.wood} roughness={0.85} />
+            <meshStandardMaterial color={COLORS.woodDark} roughness={0.85} />
          </mesh>
       </group>
    );
 }
 
-/** The stand-in explorer (1.55 m): body capsule, head, the hat, and the shovel on its back. */
+/** The stand-in explorer (1.55 m): deliberate body with boots, shorts, shirt, head, hat, and shovel. */
 export function ExplorerPrimitive({ body }: { body?: RefObject<Group> }) {
    return (
       <group ref={body}>
          <group position={[0, 0.5, -0.3]} rotation={[0, 0, 0.5]}>
             <ShovelPrimitive />
          </group>
-         <mesh position-y={0.62}>
-            <capsuleGeometry args={[0.24, 0.62, 6, 14]} />
+         {/* Boots */}
+         <mesh position={[-0.1, 0.12, 0]}>
+            <boxGeometry args={[0.14, 0.24, 0.2]} />
+            <meshStandardMaterial color={COLORS.hatBand} roughness={0.9} />
+         </mesh>
+         <mesh position={[0.1, 0.12, 0]}>
+            <boxGeometry args={[0.14, 0.24, 0.2]} />
+            <meshStandardMaterial color={COLORS.hatBand} roughness={0.9} />
+         </mesh>
+         {/* Shorts */}
+         <mesh position-y={0.42}>
+            <cylinderGeometry args={[0.22, 0.23, 0.32, 10]} />
+            <meshStandardMaterial color={COLORS.hat} roughness={0.85} />
+         </mesh>
+         {/* Shirt torso capsule */}
+         <mesh position-y={0.78}>
+            <capsuleGeometry args={[0.22, 0.44, 6, 14]} />
             <meshStandardMaterial color={COLORS.shirt} roughness={0.7} />
          </mesh>
+         {/* Head */}
          <mesh position-y={1.33}>
             <sphereGeometry args={[0.17, 18, 14]} />
             <meshStandardMaterial color={COLORS.skin} roughness={0.8} />
@@ -126,89 +140,145 @@ export function ExplorerPrimitive({ body }: { body?: RefObject<Group> }) {
 
 // ---------- props (InstancedModel fallbacks) ----------
 
-/** Palm stand-ins: trunk and a flattened crown, at the same spots as the GLB copies. */
+/** Palm stand-ins: curved segmented trunk and a lush tiered tropical crown, 2 tones each. */
 export function PalmPrimitives({ spots }: { spots: readonly InstanceSpot[] }) {
-   const crowns = useMemo(() => spots.map((s) => ({ ...s, y: s.y + PALM_SIZE.height * 0.82, sy: (s.scale ?? 1) * 0.45 })), [spots]);
-   const trunks = useMemo(() => spots.map((s) => ({ ...s, y: s.y + PALM_SIZE.height * 0.4 })), [spots]);
+   const trunks = useMemo(
+      () => spots.map((s) => ({ ...s, y: s.y + PALM_SIZE.height * 0.4 })),
+      [spots]
+   );
+   const crownsLower = useMemo(
+      () => spots.map((s) => ({ ...s, y: s.y + PALM_SIZE.height * 0.8, sy: (s.scale ?? 1) * 0.45 })),
+      [spots]
+   );
+   const crownsUpper = useMemo(
+      () => spots.map((s) => ({ ...s, y: s.y + PALM_SIZE.height * 0.94, sy: (s.scale ?? 1) * 0.38, rotY: (s.rotY ?? 0) + 0.4 })),
+      [spots]
+   );
+
    return (
       <>
          <Instanced spots={trunks} name="palm-trunks">
             <cylinderGeometry args={[0.16, 0.26, PALM_SIZE.height * 0.8, 8]} />
-            <meshStandardMaterial color={COLORS.trunk} roughness={0.9} />
+            <meshStandardMaterial color={COLORS.palmTrunk} roughness={0.9} />
          </Instanced>
-         <Instanced spots={crowns} name="palm-crowns">
-            <sphereGeometry args={[PALM_SIZE.crown / 2, 10, 8]} />
+         <Instanced spots={crownsLower} name="palm-crowns-lower">
+            <coneGeometry args={[PALM_SIZE.crown * 0.52, 0.7, 8]} />
             <meshStandardMaterial color={COLORS.palm} roughness={0.8} flatShading />
+         </Instanced>
+         <Instanced spots={crownsUpper} name="palm-crowns-upper">
+            <coneGeometry args={[PALM_SIZE.crown * 0.4, 0.65, 8]} />
+            <meshStandardMaterial color={COLORS.palmLeafSun} roughness={0.8} flatShading />
          </Instanced>
       </>
    );
 }
 
-/** Rock stand-ins: flattened spheres, one unit across at scale 1 (the rock asset's default fit). */
+/** Rock stand-ins: faceted low-poly boulders with sunlit highlights and shaded base. */
 export function RockPrimitives({ spots }: { spots: readonly InstanceSpot[] }) {
-   const lifted = useMemo(() => spots.map((s) => ({ ...s, y: s.y + 0.18 * (s.scale ?? 1), sy: 0.45 * (s.scale ?? 1) })), [spots]);
+   const lifted = useMemo(
+      () => spots.map((s) => ({ ...s, y: s.y + 0.22 * (s.scale ?? 1), sy: 0.62 * (s.scale ?? 1) })),
+      [spots]
+   );
    return (
       <Instanced spots={lifted} name="rock-standins">
-         <sphereGeometry args={[0.5, 9, 7]} />
-         <meshStandardMaterial color={COLORS.rock} roughness={0.95} flatShading />
+         <dodecahedronGeometry args={[0.5, 0]} />
+         <meshStandardMaterial color={COLORS.rockSun} roughness={0.9} flatShading />
       </Instanced>
    );
 }
 
+/** Crate stand-ins: warm wood planks with dark outer framing/iron corner brackets (2 tones). */
 export function CratePrimitives({ spots }: { spots: readonly InstanceSpot[] }) {
    const lifted = useMemo(() => spots.map((s) => ({ ...s, y: s.y + (CRATE_SIZE * 0.71) / 2 })), [spots]);
+   const frames = useMemo(() => spots.map((s) => ({ ...s, y: s.y + (CRATE_SIZE * 0.71) / 2, sx: (s.scale ?? 1) * 1.02, sy: (s.scale ?? 1) * 1.02, sz: (s.scale ?? 1) * 1.02 })), [spots]);
+
    return (
-      <Instanced spots={lifted} name="crate-standins">
-         <boxGeometry args={[CRATE_SIZE, CRATE_SIZE * 0.71, CRATE_SIZE * 0.96]} />
-         <meshStandardMaterial color={COLORS.woodLight} roughness={0.85} />
-      </Instanced>
+      <>
+         <Instanced spots={lifted} name="crate-body-standins">
+            <boxGeometry args={[CRATE_SIZE * 0.98, CRATE_SIZE * 0.7, CRATE_SIZE * 0.94]} />
+            <meshStandardMaterial color={COLORS.woodLight} roughness={0.85} />
+         </Instanced>
+         <Instanced spots={frames} name="crate-brackets-standins">
+            <boxGeometry args={[CRATE_SIZE * 1.01, CRATE_SIZE * 0.16, CRATE_SIZE * 0.97]} />
+            <meshStandardMaterial color={COLORS.woodDark} roughness={0.9} />
+         </Instanced>
+      </>
    );
 }
 
+/** Beach umbrella stand-in: teak pole, brass finial, striped coral & cream canopy. */
 export function UmbrellaPrimitive() {
    return (
-      <group>
+      <group name="umbrella-standin">
+         {/* Teak pole */}
          <mesh position-y={UMBRELLA_HEIGHT * 0.45}>
-            <cylinderGeometry args={[0.03, 0.03, UMBRELLA_HEIGHT * 0.9, 8]} />
-            <meshStandardMaterial color="#e5e7eb" />
+            <cylinderGeometry args={[0.035, 0.035, UMBRELLA_HEIGHT * 0.9, 8]} />
+            <meshStandardMaterial color={COLORS.wood} roughness={0.85} />
          </mesh>
+         {/* Brass canopy hub */}
+         <mesh position-y={UMBRELLA_HEIGHT * 0.88}>
+            <sphereGeometry args={[0.08, 8, 8]} />
+            <meshStandardMaterial color={COLORS.gold} metalness={0.7} roughness={0.3} />
+         </mesh>
+         {/* Striped canopy */}
          <mesh position-y={UMBRELLA_HEIGHT * 0.78}>
             <coneGeometry args={[1.3, 0.5, 12, 1, true]} />
-            <meshStandardMaterial color="#f43f5e" side={2} roughness={0.7} />
+            <meshStandardMaterial color={COLORS.umbrellaRed} side={2} roughness={0.75} />
          </mesh>
       </group>
    );
 }
 
+/** Pirate chest stand-in: dark mahogany body, black iron reinforcing straps, polished gold lock. */
 export function ChestPrimitive() {
    return (
-      <group>
+      <group name="chest-standin">
+         {/* Mahogany wooden body */}
          <mesh position-y={0.2}>
             <boxGeometry args={[0.9, 0.4, 0.6]} />
-            <meshStandardMaterial color={COLORS.chest} roughness={0.8} />
+            <meshStandardMaterial color={COLORS.chestWood} roughness={0.8} />
          </mesh>
+         {/* Arched lid */}
          <mesh position-y={0.47} rotation-z={Math.PI / 2}>
             <cylinderGeometry args={[0.3, 0.3, 0.9, 12, 1, false, 0, Math.PI]} />
-            <meshStandardMaterial color={COLORS.chest} roughness={0.8} />
+            <meshStandardMaterial color={COLORS.chestWood} roughness={0.8} />
          </mesh>
+         {/* Iron reinforcing straps */}
+         <mesh position={[-0.3, 0.32, 0]}>
+            <boxGeometry args={[0.06, 0.48, 0.62]} />
+            <meshStandardMaterial color={COLORS.chestIron} metalness={0.7} roughness={0.4} />
+         </mesh>
+         <mesh position={[0.3, 0.32, 0]}>
+            <boxGeometry args={[0.06, 0.48, 0.62]} />
+            <meshStandardMaterial color={COLORS.chestIron} metalness={0.7} roughness={0.4} />
+         </mesh>
+         {/* Heavy brass lock */}
          <mesh position={[0, 0.36, 0.305]}>
-            <boxGeometry args={[0.14, 0.16, 0.02]} />
-            <meshStandardMaterial color={COLORS.gold} metalness={0.6} roughness={0.35} />
+            <boxGeometry args={[0.14, 0.16, 0.03]} />
+            <meshStandardMaterial color={COLORS.gold} metalness={0.7} roughness={0.3} />
          </mesh>
       </group>
    );
 }
 
+/** Seagull stand-in: aerodynamic body, slate-tipped wings, golden beak. */
 export function GullPrimitive() {
    return (
-      <group>
+      <group name="gull-standin">
+         {/* White body */}
          <mesh position-y={0.2} scale={[0.6, 0.6, 1]}>
             <sphereGeometry args={[0.25, 12, 10]} />
             <meshStandardMaterial color={COLORS.gull} roughness={0.7} />
          </mesh>
+         {/* Wings with slate tips */}
          <mesh position-y={0.24} scale={[1, 0.12, 0.45]}>
             <sphereGeometry args={[0.45, 12, 6]} />
-            <meshStandardMaterial color="#e2e8f0" roughness={0.7} />
+            <meshStandardMaterial color={COLORS.gullWing} roughness={0.7} />
+         </mesh>
+         {/* Golden beak */}
+         <mesh position={[0, 0.18, 0.3]} rotation-x={Math.PI / 2}>
+            <coneGeometry args={[0.04, 0.14, 5]} />
+            <meshStandardMaterial color={COLORS.gullBeak} roughness={0.5} />
          </mesh>
       </group>
    );
@@ -221,13 +291,13 @@ export function useCoinParts(): readonly InstancePart[] {
    const parts = useMemo<InstancePart[]>(() => {
       const geometry = new CylinderGeometry(COIN_SIZE / 2, COIN_SIZE / 2, 0.06, 16);
       geometry.rotateX(Math.PI / 2);
-      return [{ geometry, material: new MeshStandardMaterial({ color: COLORS.gold, metalness: 0.6, roughness: 0.35 }) }];
+      return [{ geometry, material: new MeshStandardMaterial({ color: COLORS.gold, metalness: 0.7, roughness: 0.3 }) }];
    }, []);
    useDisposeParts(parts);
    return parts;
 }
 
-/** A crab stand-in: a flattened red body with two claws. */
+/** A crab stand-in: a rounded carapace with two sculpted claws (2 tones). */
 export function useCrabParts(): readonly InstancePart[] {
    const parts = useMemo<InstancePart[]>(() => {
       const geometry = new SphereGeometry(0.5, 10, 8);

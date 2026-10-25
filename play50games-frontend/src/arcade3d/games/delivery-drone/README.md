@@ -169,3 +169,48 @@ Safety: no production calls, network, Hyper3D credits, generated assets, depende
 - Named cap dimensions derive all rooftop overlays; clearance test added. Pickup tests cover the 7/8 boundary. Same-seed pickup runs compare steady swing. Actual landing fixtures distinguish pickup/release clocks in both directions; reverse fixture deliberately separates timestamps beyond chronological play to catch the wrong clock.
 - Standalone Node assertions passed pickup, steady and both express fixtures. Late swing peaks: normal 0.0491414 rad, steady 0.0264285 rad. Local TypeScript check passed. Build/Vitest/screenshots deferred to Claude.
 - Portrait estimates exceed drone 24 px and outlined parcel 12 px under stated bands. Actual banner/HUD/control rectangles require Claude measurement.
+
+## Look (2026-10-24)
+
+Visual-only modern-look pass (TASK P-83-look-drone) for a polished, premium mobile-game aesthetic:
+1. **Palette (`looks.ts`):** Unified `COLORS` palette covering sky, ground, park lawn, river water, multi-tone building facades, textured rooftops, hazards, delivery pads and vehicles.
+2. **Surroundings & Decor (`Decor.tsx`):**
+   - 280m x 280m ground plane so no void or sky ever shows below the scene at any viewport size or camera angle.
+   - West river running outside play bounds with core `<Water>`, quayside stone embankment and promenade trees.
+   - Distant skyline towers (north, east, west) instanced via `<Instanced>` with 3 architectural tone tiers.
+   - Low-poly cumulus clouds (`<DynamicInstanced>`) placed far outside the play area (z <= -55 or |x| >= 60) so they never cover or occlude the play area at any drift phase.
+   - All decor spots proven strictly outside `PLAY_BOUNDS` ([-30, 30] x [-30, 30]) and non-occluding via `visuals.test.ts`.
+3. **Architectural Buildings & Rooftops (`City.tsx`):**
+   - Multi-tone facades with dark street-level plinths, pilasters, and multi-pane illuminated windows.
+   - Textured rooftops with raised parapet trims, recessed roof deck membrane, stairwell bulkheads, AC compressor units, solar panel arrays, and ducts. Target roofs preserve clean flat landing clearance (r = 1.5m).
+   - Skyscraper towers with stepped crowns, high-contrast hazard warning stripes (coral/amber), and aviation beacons.
+   - Pedestrian sidewalk blocks with curbs around every cell block, and avenue street markings.
+   - Central depot park with lush grass lawn, paved apron plaza, and radial approach paths.
+4. **Deliberate Code Stand-Ins (`Primitives.tsx`):**
+   - `DronePrimitive`: modern aerodynamic quadcopter hull, cyan visor dome, carbon-fiber diagonal arms, motor pods, rotor cowlings, and landing skids.
+   - Multi-part vehicle fallbacks for cars, taxis, vans, and pigeons sharing 1 draw call per pool via `useMergedPart`.
+5. **Lighting & Juicy Feedback (`Scene.tsx`):**
+   - Core daylight lighting preset with sky dome (`#0284c7` to `#bae6fd`) and distance-fitted linear fog (`#dbeafe`).
+   - Rotor downwash air puffs (`fx.burst("puff")`, max 5 bursts/sec) when hovering low or reloading at depot.
+   - Juicy delivery feedback: sparkle + confetti + score text popup + subtle camera shake.
+   - Grounding blob shadows under both the parcel and the drone for height and position readability.
+
+### Draw-call estimate (Total <= 60 budget)
+
+| Component | Draw calls | Notes |
+|---|---:|---|
+| Sky dome | 1 | `<SkyDome>` gradient dome |
+| Ground & River | 3 | 280m ground plane (1), street markings (1), river `<Water>` (1) |
+| Central Park | 2 | Park lawn (1), depot plaza apron (1) |
+| River Quayside | 1 | Stone embankment mesh |
+| Playable City Chunks | 6–10 (max 16) | 16 pre-merged chunks, frustum culled; 1 shared material |
+| Outer Skyline & Blocks | 3 | `<Instanced>` in 3 tone tiers outside play bounds |
+| Outer Trees | 3 | `<Instanced>` trunks (1), foliage crowns in 2 tones (2) |
+| Outer Clouds | 1 | `<DynamicInstanced>` distant clouds |
+| Traffic & Hazards | 5 | Cars (1), taxis (1), vans (1), pigeons (1), wind streaks (1) |
+| Depot Props | 2 | Crates (1), park trees (1) via `<InstancedModel>` |
+| Delivery Pads & Beacons | 5 | 12 pad rings (1), active disc (1), beacon pillar (1), depot ring (1), loading disc (1) |
+| Drone & Parcel | 7 | Drone model (1), rotors (1), parcel (1), silhouette (1), cable/outline (1), cross (1), blob shadows (2) |
+| Core FX (active bursts) | 1–3 | Sparkle / puff / confetti pools (1-2) + score sprite (1) |
+| **Total typical frame** | **~38–46** | **Well within <= 60 budget** |
+| **Total worst-case frame** | **~52–56** | All chunks visible + active delivery bursts + score popup |

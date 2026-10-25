@@ -195,7 +195,14 @@
       "max_duration_ms": 92000,
       "base": 0,
       "max_pps": 70,
-      "enabled": false
+      "enabled": false,
+      "levels": [
+        { "title": "Green Valley", "max_score": 6000, "min_duration_ms": 88000, "max_duration_ms": 92000, "base": 0, "max_pps": 70 },
+        { "title": "Fern Forest", "max_score": 6100, "min_duration_ms": 118000, "max_duration_ms": 122000, "base": 0, "max_pps": 52 },
+        { "title": "Riverbank", "max_score": 6100, "min_duration_ms": 118000, "max_duration_ms": 122000, "base": 0, "max_pps": 52 },
+        { "title": "Volcanic Pass", "max_score": 6100, "min_duration_ms": 118000, "max_duration_ms": 122000, "base": 0, "max_pps": 52 },
+        { "title": "Dino Sanctuary", "max_score": 7300, "min_duration_ms": 118000, "max_duration_ms": 122000, "base": 0, "max_pps": 62 }
+      ]
     },
     "delivery-drone": {
       "title": "Delivery Drone",
@@ -225,7 +232,14 @@
       "max_duration_ms": 92000,
       "base": 600,
       "max_pps": 190,
-      "enabled": false
+      "enabled": false,
+      "levels": [
+        { "title": "Snow Yard", "max_score": 2550, "min_duration_ms": 10000, "max_duration_ms": 92000, "base": 600, "max_pps": 190 },
+        { "title": "Frozen Park", "max_score": 2550, "min_duration_ms": 10000, "max_duration_ms": 92000, "base": 600, "max_pps": 190 },
+        { "title": "Snow Fort", "max_score": 2550, "min_duration_ms": 8000, "max_duration_ms": 92000, "base": 600, "max_pps": 230 },
+        { "title": "Ice Village", "max_score": 2550, "min_duration_ms": 8000, "max_duration_ms": 92000, "base": 600, "max_pps": 230 },
+        { "title": "Championship Arena", "max_score": 2550, "min_duration_ms": 5000, "max_duration_ms": 92000, "base": 600, "max_pps": 348 }
+      ]
     },
     "ghost-vacuum": {
       "title": "Ghost Vacuum",
@@ -235,7 +249,14 @@
       "max_duration_ms": 122000,
       "base": 1720,
       "max_pps": 10,
-      "enabled": false
+      "enabled": false,
+      "levels": [
+        { "title": "Living Room", "max_score": 2630, "min_duration_ms": 91000, "max_duration_ms": 122000, "base": 1720, "max_pps": 10 },
+        { "title": "Library", "max_score": 2830, "min_duration_ms": 91000, "max_duration_ms": 122000, "base": 1920, "max_pps": 10 },
+        { "title": "Kitchen", "max_score": 3030, "min_duration_ms": 91000, "max_duration_ms": 122000, "base": 2120, "max_pps": 10 },
+        { "title": "Attic", "max_score": 3230, "min_duration_ms": 91000, "max_duration_ms": 122000, "base": 2320, "max_pps": 10 },
+        { "title": "Whole Mansion", "max_score": 3430, "min_duration_ms": 91000, "max_duration_ms": 122000, "base": 2520, "max_pps": 10 }
+      ]
     },
     "construction-worker": {
       "title": "Construction Worker",
@@ -245,7 +266,14 @@
       "max_duration_ms": 242000,
       "base": 0,
       "max_pps": 150,
-      "enabled": false
+      "enabled": false,
+      "levels": [
+        { "title": "Garden Shed", "max_score": 6100, "min_duration_ms": 9000, "max_duration_ms": 242000, "base": 0, "max_pps": 150 },
+        { "title": "Tiny House", "max_score": 6100, "min_duration_ms": 9000, "max_duration_ms": 242000, "base": 0, "max_pps": 150 },
+        { "title": "Garage", "max_score": 6100, "min_duration_ms": 9000, "max_duration_ms": 242000, "base": 0, "max_pps": 150 },
+        { "title": "Shop Front", "max_score": 6100, "min_duration_ms": 9000, "max_duration_ms": 242000, "base": 0, "max_pps": 150 },
+        { "title": "Mini Tower", "max_score": 6100, "min_duration_ms": 9000, "max_duration_ms": 242000, "base": 0, "max_pps": 150 }
+      ]
     },
     "alien-farm": {
       "title": "Alien Farm",
@@ -275,7 +303,14 @@
       "max_duration_ms": 92000,
       "base": 6000,
       "max_pps": 6000,
-      "enabled": false
+      "enabled": false,
+      "levels": [
+        { "title": "Basic Sort", "max_score": 6000, "min_duration_ms": 10000, "max_duration_ms": 92000, "base": 6000, "max_pps": 6000 },
+        { "title": "Shape Sort", "max_score": 6370, "min_duration_ms": 10000, "max_duration_ms": 122000, "base": 300, "max_pps": 52 },
+        { "title": "Color + Shape", "max_score": 6370, "min_duration_ms": 10000, "max_duration_ms": 122000, "base": 300, "max_pps": 52 },
+        { "title": "Fast Factory", "max_score": 5640, "min_duration_ms": 13300, "max_duration_ms": 122000, "base": 120, "max_pps": 62 },
+        { "title": "Overdrive", "max_score": 6310, "min_duration_ms": 11800, "max_duration_ms": 122000, "base": 120, "max_pps": 70 }
+      ]
     },
     "pirate-cannons": {
       "title": "Pirate Cannon Battle",
@@ -285,7 +320,14 @@
       "max_duration_ms": 92000,
       "base": 1500,
       "max_pps": 110,
-      "enabled": false
+      "enabled": false,
+      "levels": [
+        { "title": "Training Deck", "max_score": 10500, "min_duration_ms": 19000, "max_duration_ms": 92000, "base": 1500, "max_pps": 110 },
+        { "title": "Harbor Targets", "max_score": 13125, "min_duration_ms": 16500, "max_duration_ms": 92000, "base": 1900, "max_pps": 140 },
+        { "title": "Moving Boats", "max_score": 13125, "min_duration_ms": 15500, "max_duration_ms": 92000, "base": 1900, "max_pps": 140 },
+        { "title": "Storm Battle", "max_score": 14250, "min_duration_ms": 13500, "max_duration_ms": 92000, "base": 2000, "max_pps": 150 },
+        { "title": "Captain Challenge", "max_score": 15000, "min_duration_ms": 13500, "max_duration_ms": 92000, "base": 2100, "max_pps": 155 }
+      ]
     },
     "castle-defender": {
       "title": "Castle Defender",
@@ -312,7 +354,14 @@
       "max_duration_ms": 182000,
       "base": 440,
       "max_pps": 104,
-      "enabled": false
+      "enabled": false,
+      "levels": [
+        { "title": "Snow Hill", "max_score": 18700, "min_duration_ms": 9000, "max_duration_ms": 182000, "base": 440, "max_pps": 104 },
+        { "title": "Ice Cave", "max_score": 18700, "min_duration_ms": 9000, "max_duration_ms": 182000, "base": 440, "max_pps": 104 },
+        { "title": "Frozen Lake", "max_score": 18700, "min_duration_ms": 9000, "max_duration_ms": 182000, "base": 440, "max_pps": 104 },
+        { "title": "Aurora Run", "max_score": 18700, "min_duration_ms": 9000, "max_duration_ms": 182000, "base": 440, "max_pps": 104 },
+        { "title": "Glacier Sprint", "max_score": 18700, "min_duration_ms": 9000, "max_duration_ms": 182000, "base": 440, "max_pps": 104 }
+      ]
     },
     "space-repair": {
       "title": "Space Repair Mission",
@@ -332,7 +381,14 @@
       "max_duration_ms": 92000,
       "base": 240,
       "max_pps": 60,
-      "enabled": false
+      "enabled": false,
+      "levels": [
+        { "title": "Snack Bar", "max_score": 4830, "min_duration_ms": 12000, "max_duration_ms": 92000, "base": 240, "max_pps": 60 },
+        { "title": "Monster Caf\u00e9", "max_score": 6300, "min_duration_ms": 12000, "max_duration_ms": 102000, "base": 240, "max_pps": 62 },
+        { "title": "Busy Kitchen", "max_score": 7640, "min_duration_ms": 12000, "max_duration_ms": 110000, "base": 240, "max_pps": 70 },
+        { "title": "Dinner Rush", "max_score": 8470, "min_duration_ms": 11000, "max_duration_ms": 116000, "base": 240, "max_pps": 74 },
+        { "title": "Grand Feast", "max_score": 9600, "min_duration_ms": 11000, "max_duration_ms": 122000, "base": 240, "max_pps": 79 }
+      ]
     },
     "knight-arena": {
       "title": "Knight Training Arena",
@@ -352,7 +408,14 @@
       "max_duration_ms": 200000,
       "base": 4500,
       "max_pps": 4500,
-      "enabled": false
+      "enabled": false,
+      "levels": [
+        { "title": "Small Enclosure", "max_score": 4500, "min_duration_ms": 20000, "max_duration_ms": 200000, "base": 4500, "max_pps": 4500 },
+        { "title": "Safari Zone", "max_score": 4500, "min_duration_ms": 20000, "max_duration_ms": 200000, "base": 4500, "max_pps": 4500 },
+        { "title": "Bird Garden", "max_score": 4500, "min_duration_ms": 20000, "max_duration_ms": 200000, "base": 4500, "max_pps": 4500 },
+        { "title": "Central Zoo", "max_score": 4500, "min_duration_ms": 20000, "max_duration_ms": 200000, "base": 4500, "max_pps": 4500 },
+        { "title": "Night Escape", "max_score": 4500, "min_duration_ms": 20000, "max_duration_ms": 200000, "base": 4500, "max_pps": 4500 }
+      ]
     },
     "rocket-landing": {
       "title": "Rocket Landing Challenge",

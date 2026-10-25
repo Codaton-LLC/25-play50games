@@ -15,6 +15,7 @@ import CameraRig from "@/arcade3d/core/CameraRig";
 import { playSfx, startLoop, useMuted } from "@/arcade3d/core/audio";
 import { useFx } from "@/arcade3d/core/fx";
 import { useInput } from "@/arcade3d/core/input";
+import { useStageLighting } from "@/arcade3d/core/lighting";
 import { randomSeed } from "@/arcade3d/core/math";
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { useFittedView } from "@/arcade3d/core/useFittedView";
@@ -22,8 +23,9 @@ import { useRunFrame } from "@/arcade3d/core/useRunFrame";
 import { createAim, stepAim } from "./aim";
 import { Bay } from "./Bay";
 import { Cannon, createCannonLook, kickCannon } from "./Cannon";
-import { SEA_FOCUS, viewFor } from "./looks";
+import { COLORS, SEA_FOCUS, viewFor } from "./looks";
 import { advanceRun, createRun, muzzleAt, type RunState } from "./rules";
+import { usePirateLevel } from "./usePirateLevel";
 import { Floaters, Ships, createShipLooks } from "./Ships";
 
 /** Stereo position of a sound at world x (the bay spans about x ±20). */
@@ -39,7 +41,8 @@ function showWind(run: RunState) {
    store.setStat("wind10", Math.round(Math.hypot(x, z) * 10));
 }
 
-export default function Scene() {
+function LevelScene() {
+   const { config } = usePirateLevel();
    const width = useThree((s) => s.size.width);
    const height = useThree((s) => s.size.height);
    const view = useFittedView(viewFor(width, height));
@@ -49,13 +52,14 @@ export default function Scene() {
    const input = useInput();
    const fx = useFx();
    // a new plan every run: GameShell remounts the Scene (and its game time) on start and retry
-   const [run] = useState(() => createRun(randomSeed()));
+   const [run] = useState(() => createRun(randomSeed(), config));
    const [aim] = useState(createAim);
    const [cannon] = useState(createCannonLook);
    const [ships] = useState(createShipLooks);
    const [at] = useState(() => ({ x: 0, y: 0, z: 0 }));
 
-   useEffect(() => fx.warm("smoke", "splash", "debris", "puff", "sparkle", "score"), [fx]);
+   useStageLighting("day", 0, COLORS.sky, COLORS.fog);
+   useEffect(() => fx.warm("smoke", "splash", "debris", "puff", "sparkle", "sparks", "score"), [fx]);
    // the surf under the fort while the run is live; the shell stops every loop on pause, the end and
    // mute, so it starts again on resume and unmute
    const live = useArcadeStore((s) => s.phase === "countdown" || s.phase === "playing");
@@ -85,7 +89,8 @@ export default function Scene() {
       if (ev.fired > 0) {
          kickCannon(cannon);
          muzzleAt(aim.yaw, aim.elevation, at);
-         fx.burst("smoke", at, 10);
+         fx.burst("smoke", at, 14);
+         fx.burst("sparks", at, 8);
          fx.shake(0.12);
          const pan = panAt(at.x);
          playSfx("boom", { volume: 0.9, pan });
@@ -95,7 +100,8 @@ export default function Scene() {
       }
       for (let i = 0; i < ev.hitCount; i++) {
          const h = ev.hits[i];
-         fx.burst("debris", h, h.sunk ? 16 : 9);
+         fx.burst("debris", h, h.sunk ? 22 : 12);
+         fx.burst("sparks", h, 6);
          const pan = panAt(h.x);
          playSfx("thud", { pan });
          playSfx("pop", { pitch: 0.8, volume: 0.6, pan }); // the wood cracks
@@ -107,14 +113,15 @@ export default function Scene() {
       for (let i = 0; i < ev.splashCount; i++) {
          const p = ev.splashes[i];
          const island = ev.islandFlags[i];
-         fx.burst(island ? "puff" : "splash", p, 12);
+         fx.burst(island ? "puff" : "splash", p, 16);
          if (island) playSfx("thud", { pitch: 1.4, volume: 0.5, pan: panAt(p.x) });
          else playSfx("splash", { pan: panAt(p.x) });
       }
       for (let i = 0; i < ev.blastCount; i++) {
          const p = ev.blasts[i];
-         fx.burst("smoke", p, 22);
-         fx.burst("debris", p, 14);
+         fx.burst("smoke", p, 26);
+         fx.burst("sparks", p, 18);
+         fx.burst("debris", p, 16);
          fx.shake(0.28);
          playSfx("boom", { pitch: 0.7, pan: panAt(p.x) });
       }
@@ -146,4 +153,10 @@ export default function Scene() {
          <Cannon run={run} aim={aim} look={cannon} />
       </>
    );
+}
+
+/** Remounts when another level is picked, so the waves are that level's. */
+export default function Scene() {
+   const { id } = usePirateLevel();
+   return <LevelScene key={id} />;
 }

@@ -147,7 +147,7 @@ export function fighter(opts: BrainOpts): (run: Run) => StepInput {
          const see = lineOfSight(run.forts, player.x, player.z, kid.x, kid.z);
          if (!see) { seen[i] = 0; continue; }
          if (seen[i] <= 0) seen[i] = run.time;
-         const age = kid.state === "windup" ? AI.windup - kid.timer : opts.reaction;
+         const age = kid.state === "windup" ? run.level.windup - kid.timer : opts.reaction;
          const dist = Math.hypot(kid.x - player.x, kid.z - player.z);
          if (run.time - seen[i] >= opts.reaction - 1e-4 && age <= opts.window + 1e-4 && dist <= opts.range && player.ammo > 0 && run.throwCd <= 0 && !run.scooping) {
             throwId = i;
