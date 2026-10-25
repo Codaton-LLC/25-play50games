@@ -25,6 +25,7 @@ import { Bay } from "./Bay";
 import { Cannon, createCannonLook, kickCannon } from "./Cannon";
 import { COLORS, SEA_FOCUS, viewFor } from "./looks";
 import { advanceRun, createRun, muzzleAt, type RunState } from "./rules";
+import { usePirateLevel } from "./usePirateLevel";
 import { Floaters, Ships, createShipLooks } from "./Ships";
 
 /** Stereo position of a sound at world x (the bay spans about x ±20). */
@@ -40,7 +41,8 @@ function showWind(run: RunState) {
    store.setStat("wind10", Math.round(Math.hypot(x, z) * 10));
 }
 
-export default function Scene() {
+function LevelScene() {
+   const { config } = usePirateLevel();
    const width = useThree((s) => s.size.width);
    const height = useThree((s) => s.size.height);
    const view = useFittedView(viewFor(width, height));
@@ -50,7 +52,7 @@ export default function Scene() {
    const input = useInput();
    const fx = useFx();
    // a new plan every run: GameShell remounts the Scene (and its game time) on start and retry
-   const [run] = useState(() => createRun(randomSeed()));
+   const [run] = useState(() => createRun(randomSeed(), config));
    const [aim] = useState(createAim);
    const [cannon] = useState(createCannonLook);
    const [ships] = useState(createShipLooks);
@@ -151,4 +153,10 @@ export default function Scene() {
          <Cannon run={run} aim={aim} look={cannon} />
       </>
    );
+}
+
+/** Remounts when another level is picked, so the waves are that level's. */
+export default function Scene() {
+   const { id } = usePirateLevel();
+   return <LevelScene key={id} />;
 }
