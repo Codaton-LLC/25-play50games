@@ -153,6 +153,19 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/hotel-bellboy-rush/lobbyPlanterR.glb",
    "/models/3d/shared/sofa.glb",
    "/models/3d/shared/travellerNpc.glb",
+   // toy-store-night-shift (2026-10-25): menu1 ready set, optimized, characters 18k tris
+   "/models/3d/toy-store-night-shift/charNightGuard.glb",
+   "/models/3d/toy-store-night-shift/toyShelfSolidT.glb",
+   "/models/3d/toy-store-night-shift/teddyBear.glb",
+   "/models/3d/toy-store-night-shift/toyCar.glb",
+   "/models/3d/toy-store-night-shift/toyAirplane.glb",
+   "/models/3d/toy-store-night-shift/toyBall.glb",
+   "/models/3d/toy-store-night-shift/toyBlocksPlainT.glb",
+   "/models/3d/toy-store-night-shift/toyTrain.glb",
+   "/models/3d/toy-store-night-shift/toyRobotProp.glb",
+   "/models/3d/toy-store-night-shift/toyRobot.glb",
+   "/models/3d/toy-store-night-shift/toyBin.glb",
+   "/models/3d/toy-store-night-shift/toyBinPlush.glb",
 ];
 
 const LISTED: ReadonlySet<string> = new Set(MODEL_MANIFEST);
