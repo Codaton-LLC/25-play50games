@@ -255,6 +255,23 @@ export function decorOf(kind: DecorSpot["kind"]): DecorSpot[] {
    return DECOR.filter((s) => s.kind === kind);
 }
 
+export interface CakeSpot {
+   x: number;
+   z: number;
+   rotY: number;
+}
+
+/**
+ * Slime-cake display copies (the slimeCake GLB), drawn only on levels 4 and 5 (Dinner Rush /
+ * Grand Feast). Floor spots strictly outside PLAY_BOUNDS, among the other floor decor.
+ */
+export const SLIME_CAKE_SPOTS: readonly CakeSpot[] = [
+   { x: -3.6, z: -2.2, rotY: 0.35 },
+   { x: -4.15, z: -2.35, rotY: -0.8 },
+   { x: 2.7, z: -1.65, rotY: 1.2 },
+   { x: 3.6, z: 1.7, rotY: 2.4 },
+];
+
 // ---------- WCAG Contrast Ratio ----------
 
 function channel(c: number): number {

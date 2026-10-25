@@ -246,7 +246,7 @@ export default function Scene() {
          <CameraRig camera={camera} shift={view.shift} />
          <SkyDome top={levelLook.skyTop} bottom={levelLook.skyBottom} />
          <Kitchen />
-         <Decor />
+         <Decor levelId={levelId} />
          <Wheel run={run} look={look} />
          <Cauldron look={look} />
          <Monsters run={run} windows={windows} />

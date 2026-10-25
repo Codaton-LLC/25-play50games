@@ -10,8 +10,11 @@ import {
 } from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import { scaledCount, useQuality } from "@/arcade3d/core/quality";
+import { Model } from "@/arcade3d/core/assets";
 import { Instanced, type InstanceSpot } from "@/arcade3d/core/render";
-import { COLORS, decorOf, type DecorSpot } from "./looks";
+import type { LevelId } from "@/arcade3d/types";
+import { ASSETS } from "./assets";
+import { COLORS, SLIME_CAKE_SPOTS, decorOf, type DecorSpot } from "./looks";
 
 function asSpots(list: readonly DecorSpot[]): InstanceSpot[] {
    return list.map((s) => ({
@@ -28,10 +31,12 @@ function asSpots(list: readonly DecorSpot[]): InstanceSpot[] {
 /**
  * Instanced kitchen surroundings strictly outside the play area:
  * wooden crates, hanging copper pans, copper cooking pots, potion jars,
- * cellar barrels, monster pumpkins, and braided garlic.
+ * cellar barrels, monster pumpkins, and braided garlic. On levels 4 and 5
+ * (Dinner Rush / Grand Feast) the slime-cake GLB joins the floor decor.
  */
-export function Decor() {
+export function Decor({ levelId }: { levelId: LevelId }) {
    const quality = useQuality();
+   const feast = levelId === 4 || levelId === 5;
 
    const geo = useMemo(() => {
       // --- Crate: body + top/bottom edge slats ---
@@ -210,6 +215,16 @@ export function Decor() {
                <meshStandardMaterial color={COLORS.garlic} roughness={0.6} />
             </Instanced>
          )}
+         {feast &&
+            SLIME_CAKE_SPOTS.map((s, i) => (
+               <Model
+                  key={i}
+                  asset={ASSETS.slimeCake}
+                  position={[s.x, 0, s.z]}
+                  rotation-y={s.rotY}
+                  name={`decor-slime-cake-${i}`}
+               />
+            ))}
       </group>
    );
 }
