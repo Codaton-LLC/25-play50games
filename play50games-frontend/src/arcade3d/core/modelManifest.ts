@@ -167,6 +167,11 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/hotel-bellboy-rush/lobbyPlanterR.glb",
    "/models/3d/shared/sofa.glb",
    "/models/3d/shared/travellerNpc.glb",
+   // pigeon-crossing night decor (2026-10-25): batch 5 street props (Gen-2.5-Medium, 1500 / 3000
+   // tris), optimized GLBs copied in; dressing for levels 4 (Night Traffic) and 5 (Rush Hour) only,
+   // fitted and placed in games/pigeon-crossing (assets.ts, Decor.tsx)
+   "/models/3d/pigeon-crossing/streetLampNight.glb",
+   "/models/3d/pigeon-crossing/rushTaxi.glb",
 ];
 
 const LISTED: ReadonlySet<string> = new Set(MODEL_MANIFEST);
