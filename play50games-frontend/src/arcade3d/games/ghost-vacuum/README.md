@@ -41,6 +41,24 @@ Limits **maxScore 2630, minDurationMs 91000, maxDurationMs 122000, base 1720 (=2
 
 HUD: Ghosts x/12, shell time, ghost progress rings and capture base/combo popup. Before90 show "Last ghost in N s" (ceil(max(0,90-elapsed))); after90 if pending cap-blocked show "Last ghost waiting".
 
+## Levels
+
+One mansion, five configurations (`levels.ts`, read through `useGhostLevel`; `createRun(seed, level)`). **Level 1 is today's game exactly** (12 ghosts, 120 s; levels.test.ts replays 12 seeds against today's `createRun`). The level brief's re-ordering (a 4-ghost level 1, today's game as level 5) was not used: level 1 must stay today's game. Every level keeps the twelve ghosts, the release schedule (ghost 11 at 90 s), the 120 s clock and the night look; a harder level offers more points (more gold ghosts) and is harder to catch. Not built: the plan's blocked/locked paths (fixed walls, no doors), per-level lighting, more than twelve ghosts.
+
+| Level | Title | Gold ids | Big ids | Speed | Exposure (big) | Stun | Early cap | Late speed-up | Clear | Limits (max / base) |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 1 | Living Room | 5, 8, 11 | 9, 10 | ×1 | 0.4 (0.8) s | 2 s | 3 until 40 s | 60 s | win or 1500 | 2630 / 1720 |
+| 2 | Library | 2, 5, 8, 11 | 9, 10 | ×1.1 | 0.45 (0.9) s | 1.8 s | 3 until 35 s | 50 s | win or 1600 | 2830 / 1920 |
+| 3 | Kitchen | 2, 5, 7, 8, 11 | 9, 10 | ×1.2 | 0.5 (1.0) s | 1.7 s | 4 until 30 s | 45 s | win or 1700 | 3030 / 2120 |
+| 4 | Attic | 2, 4, 5, 7, 8, 11 | 6, 9, 10 | ×1.3 | 0.5 (1.0) s | 1.6 s | 4 until 25 s | 40 s | win or 1800 | 3230 / 2320 |
+| 5 | Whole Mansion | 1, 2, 4, 5, 7, 8, 11 | 3, 6, 9, 10 | ×1.4 | 0.55 (1.1) s | 1.5 s | 4 until 20 s | 30 s | — | 3430 / 2520 |
+
+All levels: minDurationMs 91000, maxDurationMs 122000, 10 pts/s. Level 5's cap is 1.3× level 1's.
+
+**Proof per level** (level 1's steps, with G gold ghosts). (1) Twelve captures, G gold and at most 11 session extras pay at most 1200 + 200 G + 550 at every prefix. (2) Ghost 11 is gold on every level and released at 90 s; a win needs its exposure (≥ 0.4 s) and the 1 s pull, so tWin ≥ 90 + exposure + 1 ≥ 91.4 s, and minDurationMs 91000 holds; a slower stun or faster ghosts only delay. (3) The time bonus is ≤ 10·floor(120 − 91.4) = 280, so maxScore = 2030 + 200 G. base = maxScore − 910 puts the envelope base + 10 t at maxScore at 91 s. Before 90 s at most the eleven released ghosts pay, ≤ 1100 + 200 (G − 1) + 500 = 1400 + 200 G ≤ base + 10 t for t ≥ 28 s; before 30 s at most five ghosts (ids 0-4, at most three of them gold) pay ≤ 1300 < base. A time-up pays ≤ 1750 + 200 G < base + 1200. Wins ≥ 91.4 s fit maxScore. The early cap, speeds, exposure and stun change no release time and no payment, so they cannot raise a prefix. levels.test.ts checks the prefix bound every 0.01 s and every win time per level.
+
+**Bots** (the rules.test.ts honest bot, copied into levels.test.ts, through the real store at 60 Hz, 20 Hz and random frames, keyboard and coarse): wins 60 of 60 seeds on every level (earliest 95.4-95.5 s), scores 2020-2040 / 2220-2240 / 2420-2440 / 2620-2640 / 2820-2840 (77-83 % of each cap, as on level 1); spam stays legal; idle times out at 0 and never clears.
+
 ## Scene, camera and readability
 
 - Follow pitch62 degrees/yaw0/fov45, shift true, padding8 CSS px/margin0.04; `CameraRig` full follow damping4, origin-local `useFittedView`, no partial follow/followFocus. Separate portrait area x/z+/-4.5, landscape x+/-5,z+/-4.5; gameplay hull y[0,1.56]. Never shrink either axis below suction4+big radius0.5. Walls outside gameplay hull may crop. Ordinary/gold visual height1.0 m and diameter>=1.0 m; big height/diameter1.2 m; rules radii unchanged0.4/0.5.

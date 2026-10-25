@@ -30,6 +30,7 @@ import { hunterPose } from "./poses";
 import { HunterPrimitive } from "./Primitives";
 import Vacuum, { type VacuumHandle } from "./Vacuum";
 import { pickGhost, type AimRay } from "./aim";
+import { useGhostLevel } from "./useGhostLevel";
 import { active, createRun, LIGHT, PULL, ROOMS, stepRun, type Run, type StepInput } from "./rules";
 import { createSuckShared, type SuckShared } from "./suck";
 
@@ -115,11 +116,12 @@ function Hunter({ run, shared }: { run: Run; shared: SuckShared }) {
    </>;
 }
 
-export default function Scene() {
+function LevelScene() {
+   const { config } = useGhostLevel();
    const width = useThree((s) => s.size.width), height = useThree((s) => s.size.height);
    const view = useFittedView(viewFor(width, height)), input = useInput(), fx = useFx();
    const safe = useSafeArea();
-   const [run] = useState(() => createRun(randomSeed()));
+   const [run] = useState(() => createRun(randomSeed(), config));
    const [shared] = useState(createSuckShared);
    const [scratch] = useState(() => ({
       step: { dirX: 0, dirZ: 0, held: false, aim: false, aimYaw: Math.PI, coarse: typeof window !== "undefined" && window.matchMedia("(pointer: coarse)").matches } as StepInput,
@@ -230,4 +232,10 @@ export default function Scene() {
       <Mansion run={run} /><Ghosts run={run} shared={shared} /><Hunter run={run} shared={shared} />
       <TargetMarkers targets={scratch.targets} size={24} color={COLORS.hunterAccent} />
    </>;
+}
+
+/** Remounts when another level is picked, so the ghosts are that level's. */
+export default function Scene() {
+   const { id } = useGhostLevel();
+   return <LevelScene key={id} />;
 }
