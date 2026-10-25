@@ -1,7 +1,7 @@
 "use client";
 
 import { useFrame } from "@react-three/fiber";
-import React, { useCallback, useLayoutEffect, useMemo, useRef } from "react";
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef } from "react";
 import {
    BufferGeometry,
    Color,
@@ -11,6 +11,7 @@ import {
    Matrix4,
    MeshBasicMaterial,
    MeshStandardMaterial,
+   type Material,
    OctahedronGeometry,
    Quaternion,
    RingGeometry,
@@ -58,6 +59,14 @@ const scratchScale = new Vector3();
 const scratchEuler = new Euler();
 const scratchMat = new Matrix4();
 const HIDDEN_MATRIX = new Matrix4().makeScale(0, 0, 0);
+
+function disposeMaterial(material: Material | Material[]): void {
+   if (Array.isArray(material)) {
+      for (let i = 0; i < material.length; i++) material[i].dispose();
+      return;
+   }
+   material.dispose();
+}
 
 function directionArrowRoll(dir: StrikeDir): number {
    switch (dir) {
@@ -169,6 +178,25 @@ export function Dummies({ runRef }: DummiesProps): React.ReactElement {
          tomato: new MeshStandardMaterial({ color: COLORS.tomato, roughness: 0.35 }),
       };
    }, []);
+
+   // The playable dummies are instanced. These stand-in parts and the disc / ring / icon meshes
+   // are created once per mount; free them on unmount so Retry does not keep the GPU buffers.
+   useEffect(() => () => {
+      for (let i = 0; i < fallbackParts.length; i++) {
+         fallbackParts[i].geometry.dispose();
+         disposeMaterial(fallbackParts[i].material);
+      }
+      geometries.disc.dispose();
+      geometries.ring.dispose();
+      geometries.arrow.dispose();
+      geometries.shield.dispose();
+      geometries.tomato.dispose();
+      materials.disc.dispose();
+      materials.ring.dispose();
+      materials.arrow.dispose();
+      materials.shield.dispose();
+      materials.tomato.dispose();
+   }, [fallbackParts, geometries, materials]);
 
    useLayoutEffect(() => {
       const meshes = [discRef.current, ringRef.current, arrowIconRef.current, shieldIconRef.current, tomatoIconRef.current];

@@ -5,7 +5,7 @@
 // sconces and picture lights (fixtures + additive wall washes), brass-and-velvet barrier.
 // Every texture is drawn once on a canvas (core useCanvasTexture); static pieces are merged or
 // instanced, so the room is 12 draw calls (README "Performance").
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { useFrame } from "@react-three/fiber";
 import {
    AdditiveBlending,
@@ -474,22 +474,51 @@ function paint(geo: BufferGeometry, hex: string): BufferGeometry {
    return geo;
 }
 
+/** Copies `parts` into one geometry and disposes the inputs (and any indexed originals already swapped). */
+function mergeOwned(parts: BufferGeometry[], fallback: () => BufferGeometry): BufferGeometry {
+   const merged = mergeGeometries(parts);
+   for (let i = 0; i < parts.length; i++) parts[i].dispose();
+   return merged ?? fallback();
+}
+
+/** Drops the index (merge wants one kind) and disposes the indexed original. */
+function flatten(parts: BufferGeometry[]): BufferGeometry[] {
+   const flat: BufferGeometry[] = [];
+   for (let i = 0; i < parts.length; i++) {
+      const part = parts[i];
+      const next = part.toNonIndexed();
+      if (next !== part) part.dispose();
+      flat.push(next);
+   }
+   return flat;
+}
+
+/** A geometry this mount owns. Disposed on unmount, so Retry does not keep the GPU buffer. */
+export function useOwnedGeometry<T extends { dispose(): void }>(factory: () => T): T {
+   const geometry = useMemo(factory, [factory]);
+   useEffect(() => () => geometry.dispose(), [geometry]);
+   return geometry;
+}
+
 function pedestalGeometry(): BufferGeometry {
    const top = PEDESTAL_TOP(RING.pedestalTop);
-   const base = paint(new BoxGeometry(0.92, 0.1, 0.92).translate(0, 0.05, 0), COLORS.plinth);
-   const column = paint(new BoxGeometry(0.52, top - 0.22, 0.52).translate(0, 0.1 + (top - 0.22) / 2, 0), COLORS.column);
-   const band = paint(new BoxGeometry(0.56, 0.03, 0.56).translate(0, 0.16, 0), COLORS.trim);
-   const cap = paint(new BoxGeometry(0.8, 0.12, 0.8).translate(0, top - 0.06, 0), COLORS.cap);
-   return mergeGeometries([base, column, band, cap]) ?? cap;
+   const parts = [
+      paint(new BoxGeometry(0.92, 0.1, 0.92).translate(0, 0.05, 0), COLORS.plinth),
+      paint(new BoxGeometry(0.52, top - 0.22, 0.52).translate(0, 0.1 + (top - 0.22) / 2, 0), COLORS.column),
+      paint(new BoxGeometry(0.56, 0.03, 0.56).translate(0, 0.16, 0), COLORS.trim),
+      paint(new BoxGeometry(0.8, 0.12, 0.8).translate(0, top - 0.06, 0), COLORS.cap),
+   ];
+   return mergeOwned(parts, () => new BoxGeometry(0.8, 0.12, 0.8));
 }
 
 function vaseGeometry(): BufferGeometry {
-   return (
-      mergeGeometries([
+   return mergeOwned(
+      [
          new CylinderGeometry(0.1, 0.13, 0.08, 10).translate(0, 0.04, 0),
          new SphereGeometry(0.16, 12, 10).translate(0, 0.26, 0),
          new CylinderGeometry(0.05, 0.08, 0.14, 8).translate(0, 0.46, 0),
-      ]) ?? new SphereGeometry(0.16, 10, 8)
+      ],
+      () => new SphereGeometry(0.16, 10, 8),
    );
 }
 
@@ -518,7 +547,7 @@ function paintingsGeometry(): BufferGeometry {
       setUv(frame, GOLD_U, GOLD_V);
       parts.push(onWall(frame, angle, PAINT_R, PAINT_Y));
    });
-   return mergeGeometries(parts.map((g) => g.toNonIndexed())) ?? new PlaneGeometry(1, 1);
+   return mergeOwned(flatten(parts), () => new PlaneGeometry(1, 1));
 }
 
 function fixturesGeometry(): BufferGeometry {
@@ -531,23 +560,24 @@ function fixturesGeometry(): BufferGeometry {
       parts.push(onWall(new BoxGeometry(0.1, 0.22, 0.02).translate(0, 0, 0.01), angle, 7.84, SCONCE_Y));
       parts.push(onWall(new CylinderGeometry(0.08, 0.045, 0.14, 12, 1, true).translate(0, 0.04, 0.09), angle, 7.84, SCONCE_Y));
    }
-   return mergeGeometries(parts.map((g) => g.toNonIndexed())) ?? new BoxGeometry(0.1, 0.1, 0.1);
+   return mergeOwned(flatten(parts), () => new BoxGeometry(0.1, 0.1, 0.1));
 }
 
 function washGeometry(): BufferGeometry {
    const parts: BufferGeometry[] = [];
    for (const angle of PAINT_ANGLES) parts.push(onWall(new PlaneGeometry(1.7, 1.5), angle, PAINT_R - 0.02, PAINT_Y + 0.12));
    for (const angle of SCONCE_ANGLES) parts.push(onWall(new PlaneGeometry(1.3, 2.4), angle, 7.83, SCONCE_Y + 0.1));
-   return mergeGeometries(parts) ?? new PlaneGeometry(1, 1);
+   return mergeOwned(parts, () => new PlaneGeometry(1, 1));
 }
 
 function postGeometry(): BufferGeometry {
-   return (
-      mergeGeometries([
+   return mergeOwned(
+      [
          new CylinderGeometry(0.11, 0.13, 0.05, 16).translate(0, 0.025, 0),
          new CylinderGeometry(BARRIER.postRadius, BARRIER.postRadius, BARRIER.post, 10).translate(0, BARRIER.post / 2, 0),
          new SphereGeometry(BARRIER.ball, 14, 10).translate(0, BARRIER.post + BARRIER.ball, 0),
-      ]) ?? new SphereGeometry(0.05)
+      ],
+      () => new SphereGeometry(0.05),
    );
 }
 
@@ -556,6 +586,13 @@ function ropeGeometry(): BufferGeometry {
    pts.pop();
    const curve = new CatmullRomCurve3(pts, true, "centripetal");
    return new TubeGeometry(curve, pts.length * 2, BARRIER.rope, 6, true);
+}
+
+function moteGeometry(): BufferGeometry {
+   const geo = new BufferGeometry();
+   geo.setAttribute("position", new BufferAttribute(motePositions(), 3));
+   geo.setAttribute("color", new BufferAttribute(new Float32Array(MOTES * 3), 3));
+   return geo;
 }
 
 function motePositions(): Float32Array {
@@ -582,7 +619,7 @@ function useRepeat(texture: CanvasTexture, repeat: number, offset: number) {
 // ---------- pieces ----------
 
 function Pedestals() {
-   const geometry = useMemo(pedestalGeometry, []);
+   const geometry = useOwnedGeometry(pedestalGeometry);
    return (
       <Instanced spots={PEDESTAL_SPOTS} name="pedestals">
          <primitive object={geometry} attach="geometry" />
@@ -592,7 +629,7 @@ function Pedestals() {
 }
 
 function Vases() {
-   const geometry = useMemo(vaseGeometry, []);
+   const geometry = useOwnedGeometry(vaseGeometry);
    return (
       <Instanced spots={VASES} name="vases">
          <primitive object={geometry} attach="geometry" />
@@ -603,7 +640,7 @@ function Vases() {
 
 function Paintings() {
    const atlas = useCanvasTexture(ATLAS_W, ATLAS_H, drawPaintings);
-   const geometry = useMemo(paintingsGeometry, []);
+   const geometry = useOwnedGeometry(paintingsGeometry);
    return (
       <mesh geometry={geometry} name="paintings">
          <meshStandardMaterial map={atlas} emissiveMap={atlas} emissive="#ffffff" emissiveIntensity={0.55} roughness={0.5} metalness={0.15} />
@@ -613,8 +650,8 @@ function Paintings() {
 
 function Lamps() {
    const glow = useCanvasTexture(128, 128, drawGlow);
-   const fixtures = useMemo(fixturesGeometry, []);
-   const wash = useMemo(washGeometry, []);
+   const fixtures = useOwnedGeometry(fixturesGeometry);
+   const wash = useOwnedGeometry(washGeometry);
    return (
       <>
          <mesh geometry={fixtures} name="sconces">
@@ -628,8 +665,8 @@ function Lamps() {
 }
 
 function Barrier() {
-   const post = useMemo(postGeometry, []);
-   const rope = useMemo(ropeGeometry, []);
+   const post = useOwnedGeometry(postGeometry);
+   const rope = useOwnedGeometry(ropeGeometry);
    return (
       <group name="barrier">
          <Instanced spots={POST_SPOTS} name="barrier-posts">
@@ -645,12 +682,7 @@ function Barrier() {
 
 /** Dust motes; the ones inside the live beam light up (no allocation per frame). */
 function Motes({ yaw }: { yaw: { current: number } }) {
-   const geometry = useMemo(() => {
-      const geo = new BufferGeometry();
-      geo.setAttribute("position", new BufferAttribute(motePositions(), 3));
-      geo.setAttribute("color", new BufferAttribute(new Float32Array(MOTES * 3), 3));
-      return geo;
-   }, []);
+   const geometry = useOwnedGeometry(moteGeometry);
    const time = useGameTime();
    useFrame(() => {
       const pos = geometry.getAttribute("position");

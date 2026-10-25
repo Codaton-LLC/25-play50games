@@ -10,9 +10,9 @@
 // into the run in its spine, a reach up on a catch). ChefPrimitive stays as the fallback.
 import { memo, useMemo, useRef, useState } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
-import { Raycaster, Vector2, type Camera, type Group } from "three";
+import { Euler, Matrix4, Quaternion, Raycaster, Vector2, Vector3, type Camera, type Group } from "three";
 import CameraRig from "@/arcade3d/core/CameraRig";
-import { Model } from "@/arcade3d/core/assets";
+import { DynamicInstancedModel } from "@/arcade3d/core/assets";
 import { playSfx } from "@/arcade3d/core/audio";
 import type { AABB } from "@/arcade3d/core/collision";
 import { useGameTime } from "@/arcade3d/core/gameTime";
@@ -26,17 +26,7 @@ import { useRunFrame } from "@/arcade3d/core/useRunFrame";
 import { ASSETS } from "./assets";
 import type { FoodCatcherLevel } from "./levels";
 import { chefPose, chefRootRoll, createChefGait, stepChefGait } from "./poses";
-import {
-   ApplePrimitive,
-   BadRing,
-   BananaPrimitive,
-   BurgerPrimitive,
-   ChefPrimitive,
-   Kitchen,
-   SockPrimitive,
-   TinPrimitive,
-   WORKTOP_TOP_Y,
-} from "./Primitives";
+import { BadRing, ChefPrimitive, Kitchen, WORKTOP_TOP_Y } from "./Primitives";
 import {
    CHEF,
    MAX_ALIVE,
@@ -67,6 +57,31 @@ const VIEW: FittedViewOptions = {
 const ITEM_Z = 0.2;
 const CHEF_Z = 0.55;
 const KINDS: readonly ItemKind[] = ["apple", "banana", "burger", "sock", "tinCan"];
+const foodPos = new Vector3();
+const foodQuat = new Quaternion();
+const foodEuler = new Euler();
+const foodScale = new Vector3(1, 1, 1);
+
+/** The old slot group's roll (useFrame on the item root). */
+function itemRoll(now: number, index: number): number {
+   return Math.sin(now * 1.4 + index) * 0.15;
+}
+
+/**
+ * Where one copy of `kind` stands this frame. The matrix is the old slot group (position and
+ * roll). DynamicInstancedModel applies the asset's scale, rotationY and yOffset inside it, the
+ * same way <Model> did. A slot of another kind, or an empty slot, is hidden.
+ */
+export function placeFood(kind: ItemKind, run: RunState, now: number, index: number, matrix: Matrix4): boolean {
+   const item = run.items[index];
+   if (!item || !item.active || item.kind !== kind) return false;
+   foodEuler.set(0, 0, itemRoll(now, index));
+   foodQuat.setFromEuler(foodEuler);
+   foodPos.set(item.x, itemY(item.bornMs, run.elapsedMs, item.speed), ITEM_Z);
+   foodScale.set(1, 1, 1);
+   matrix.compose(foodPos, foodQuat, foodScale);
+   return true;
+}
 
 interface Scratch {
    ray: Raycaster;
@@ -185,10 +200,27 @@ const Chef = memo(function Chef({ run }: { run: ViewRun }) {
    );
 });
 
+/** One instanced pool per kind (16 slots). Hidden copies are not drawn, so a slot does not keep the other four models. */
+export const FoodModels = memo(function FoodModels({ run }: { run: RunState }) {
+   const time = useGameTime();
+   return (
+      <>
+         {KINDS.map((kind) => (
+            <DynamicInstancedModel
+               key={kind}
+               asset={ASSETS[kind]}
+               count={MAX_ALIVE}
+               name={`food-${kind}`}
+               update={(index, matrix) => placeFood(kind, run, time.now, index, matrix)}
+            />
+         ))}
+      </>
+   );
+});
+
 const FallingItem = memo(function FallingItem({ index, run }: { index: number; run: RunState }) {
    const time = useGameTime();
    const root = useRef<Group>(null);
-   const shown = useRef<Array<Group | null>>([]);
    const ring = useRef<Group>(null);
    const bonusRing = useRef<Group>(null);
 
@@ -203,43 +235,13 @@ const FallingItem = memo(function FallingItem({ index, run }: { index: number; r
       g.visible = true;
       const y = itemY(item.bornMs, run.elapsedMs, item.speed);
       g.position.set(item.x, y, ITEM_Z);
-      g.rotation.z = Math.sin(time.now * 1.4 + index) * 0.15;
-      for (let k = 0; k < KINDS.length; k++) {
-         const child = shown.current[k];
-         if (child) child.visible = KINDS[k] === item.kind;
-      }
+      g.rotation.z = itemRoll(time.now, index);
       if (ring.current) ring.current.visible = item.bad;
       if (bonusRing.current) bonusRing.current.visible = item.bonus && !item.bad;
    });
 
    return (
       <group ref={root} visible={false} name={`item-${index}`}>
-         {KINDS.map((kind, k) => (
-            <group
-               key={kind}
-               ref={(el) => {
-                  shown.current[k] = el;
-               }}
-               visible={false}
-            >
-               <Model
-                  asset={ASSETS[kind]}
-                  fallback={
-                     kind === "apple" ? (
-                        <ApplePrimitive />
-                     ) : kind === "banana" ? (
-                        <BananaPrimitive />
-                     ) : kind === "burger" ? (
-                        <BurgerPrimitive />
-                     ) : kind === "sock" ? (
-                        <SockPrimitive />
-                     ) : (
-                        <TinPrimitive />
-                     )
-                  }
-               />
-            </group>
-         ))}
          <group ref={ring} visible={false}>
             <BadRing />
          </group>
@@ -310,6 +312,7 @@ function LevelScene() {
          <FittedCamera />
          <Kitchen />
          <Chef run={run} />
+         <FoodModels run={run} />
          {slots.map((index) => (
             <FallingItem key={index} index={index} run={run} />
          ))}

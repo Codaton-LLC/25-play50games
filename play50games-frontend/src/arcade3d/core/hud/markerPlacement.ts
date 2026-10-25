@@ -17,24 +17,53 @@ export const MARKER_MARGIN = 28;
  * below every HUD rect in the top half and above every HUD rect, touch control and obstruction in
  * the bottom half. Rects in the middle of the screen (a side panel) are ignored. Falls back to the
  * plain inset when the bands leave no room.
+ *
+ * Pass `out` to write the rect in place (a frame callback can reuse one rect; nothing is allocated).
+ * Without it, a new rect is returned, as before.
  */
-export function markerBounds(area: Pick<SafeArea, "width" | "height" | "hud" | "controls" | "obstructions">, margin = MARKER_MARGIN): ScreenRect {
+const bandScratch = { top: 0, bottom: 0 };
+
+function absorbBands(list: readonly ScreenRect[], width: number, height: number, half: number): void {
+   for (let i = 0; i < list.length; i++) {
+      const r = list[i];
+      if (r.right <= 0 || r.left >= width || r.bottom <= r.top) continue;
+      if (r.bottom <= half) {
+         if (r.bottom > bandScratch.top) bandScratch.top = r.bottom;
+      } else if (r.top >= half) {
+         const cover = height - r.top;
+         if (cover > bandScratch.bottom) bandScratch.bottom = cover;
+      }
+   }
+}
+
+export function markerBounds(
+   area: Pick<SafeArea, "width" | "height" | "hud" | "controls" | "obstructions">,
+   margin = MARKER_MARGIN,
+   out?: ScreenRect,
+): ScreenRect {
    const { width, height } = area;
-   let topBand = 0;
-   let bottomBand = 0;
+   bandScratch.top = 0;
+   bandScratch.bottom = 0;
    const half = height / 2;
-   const take = (r: ScreenRect) => {
-      if (r.right <= 0 || r.left >= width || r.bottom <= r.top) return;
-      if (r.bottom <= half) topBand = Math.max(topBand, r.bottom);
-      else if (r.top >= half) bottomBand = Math.max(bottomBand, height - r.top);
-   };
-   area.hud.forEach(take);
-   area.controls.forEach(take);
-   area.obstructions.forEach(take);
-   const plain = { left: margin, top: margin, right: width - margin, bottom: height - margin };
-   const bounds = { left: margin, top: topBand + margin, right: width - margin, bottom: height - bottomBand - margin };
-   if (bounds.right - bounds.left < 2 || bounds.bottom - bounds.top < 2) return plain;
-   return bounds;
+   absorbBands(area.hud, width, height, half);
+   absorbBands(area.controls, width, height, half);
+   absorbBands(area.obstructions, width, height, half);
+   const left = margin;
+   const right = width - margin;
+   let top = margin;
+   let bottom = height - margin;
+   const bandedTop = bandScratch.top + margin;
+   const bandedBottom = height - bandScratch.bottom - margin;
+   if (right - left >= 2 && bandedBottom - bandedTop >= 2) {
+      top = bandedTop;
+      bottom = bandedBottom;
+   }
+   const rect = out ?? { left: 0, top: 0, right: 0, bottom: 0 };
+   rect.left = left;
+   rect.top = top;
+   rect.right = right;
+   rect.bottom = bottom;
+   return rect;
 }
 
 export interface MarkerPlacement {

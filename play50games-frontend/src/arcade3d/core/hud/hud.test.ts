@@ -31,6 +31,28 @@ describe("markerBounds", () => {
       const area = { ...EMPTY, hud: [{ left: 0, top: 0, right: W, bottom: 420 }], obstructions: [{ left: 0, top: 425, right: W, bottom: H }] };
       expect(markerBounds(area, 10)).toEqual({ left: 10, top: 10, right: W - 10, bottom: H - 10 });
    });
+
+   it("writes into a caller-owned rect and does not replace it", () => {
+      const rect = { left: 0, top: 0, right: 0, bottom: 0 };
+      const area = {
+         ...EMPTY,
+         hud: [
+            { left: 8, top: 8, right: 120, bottom: 52 },
+            { left: 300, top: 8, right: 382, bottom: 60 },
+         ],
+         controls: [{ left: 16, top: 640, right: 156, bottom: 780 }],
+         obstructions: [{ left: 0, top: 700, right: W, bottom: H }],
+      };
+      const tight = { ...EMPTY, hud: [{ left: 0, top: 0, right: W, bottom: 420 }], obstructions: [{ left: 0, top: 425, right: W, bottom: H }] };
+      expect(markerBounds(EMPTY, undefined, rect)).toBe(rect);
+      expect(rect).toEqual(markerBounds(EMPTY));
+      for (let i = 0; i < 40; i++) {
+         const next = i % 2 === 0 ? area : tight;
+         const margin = i % 2 === 0 ? 10 : 12;
+         expect(markerBounds(next, margin, rect)).toBe(rect);
+         expect(rect).toEqual(markerBounds(next, margin));
+      }
+   });
 });
 
 describe("placeMarker", () => {
