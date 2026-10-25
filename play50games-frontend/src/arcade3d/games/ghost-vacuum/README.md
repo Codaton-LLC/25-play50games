@@ -75,7 +75,8 @@ No generation/credits. Existing recipe only; manifest tier Gen-2.5-Medium (actua
 |desk/chair|SHARED_ASSETS.desk/chair,1.6/0.6 m wide|boxes/legs|
 |book/door|REUSED_ASSETS.book/door,0.25 m book length lying flat/2.2 m door height|book box/open frame,2 m clearance|
 |ghosts|procedural lathe/wobble/fresnel,1.0/1.2 m,<500 tris,6 visible max|no wobble low tier|
-|rooms/nozzle/decor|procedural; nozzle0.25,candelabra0.6,clock0.4,painting0.8x0.6|same code|
+|candelabra|own `candelabra.glb` (Hyper3D batch 5,1500 tris,110 KB),0.68 m tall x 0.54 w,candles+flame shapes baked in|merged brass stand-in (`fallbackParts`)|
+|rooms/nozzle/decor|procedural; nozzle0.25,clock0.4,painting0.8x0.6|same code|
 
 Game-local files: meta/index/rules/rules.test/assets/assets.test/Scene/Mansion/Ghosts/poses/poses.test/Vacuum/Hud/Hud.module.css; thumbnail paths `public/images/3d/ghost-vacuum.webp` and `tools/thumbs/inputs/ghost-vacuum.mjs`. This revision edits game implementation/tests/README and the requested handoff; assets.spec.json unchanged.
 
@@ -143,7 +144,7 @@ Visual-only modern-look pass giving Ghost Vacuum a polished, premium mobile-game
   - Polished chestnut floorboards with a grand burgundy carpet runner and gold borders running through the central hall.
   - Ornate Victorian rugs under the desks in all four rooms.
   - Warm lamp light pools on the floor beneath each room's candelabra (`DynamicInstanced`), providing cosy warm pools that contrast with the cool moonlit night.
-  - Ornate brass candelabras with ivory candle wax and gently flickering warm flames.
+  - Ornate three-armed candelabra GLB on each desk (Hyper3D, candles and flame tips baked into the model; the procedural wax stalks and flickering flames were dropped when the GLB was adopted, the warm floor pools stay).
   - Victorian wall clock with bevelled brass casing, ivory dial, and black hands.
   - Baroque gilded oil painting frame on the library wall with atmospheric canvas artwork.
   - Deliberate 2-3 tone stand-in fallbacks: panelled wooden door with brass hardware, leather-bound books with parchment pages, and mahogany armchairs with velvet cushions.
@@ -169,7 +170,7 @@ Visual-only modern-look pass giving Ghost Vacuum a polished, premium mobile-game
   - Sparkle burst on ghost stun.
 - **Draw-call Estimate (Peak <= 46, Budget <= 60)**:
   - Mansion architecture (floor, hall runner, room rugs, solid/faded walls, warm light pools): ~7
-  - Interior props (desks, chairs, books, doors, candelabras, clock, painting, icons): ~9
+  - Interior props (desks, chairs, books, doors, candelabra GLB, clock, painting, icons): ~7
   - Hunter & equipment (humanoid model / primitive, pack, nozzle, flashlight & suction cones, suction stream): ~5
   - Ghost pool (ghost bodies, crown/outlines, ground shadows, pull rings): ~4
   - Surroundings decor (hedges, gravestones, bare trees, hills, moon, lawn, path): ~8
