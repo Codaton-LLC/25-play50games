@@ -16,14 +16,17 @@ import {
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import { useGameTime } from "@/arcade3d/core/gameTime";
 import { DynamicInstanced, Instanced } from "@/arcade3d/core/render";
+import { Model } from "@/arcade3d/core/assets";
+import { ASSETS, HABITAT_DOME_LEVELS, HABITAT_DOME_SPOTS } from "./assets";
 import { PLANET_DECOR, PLANET_LOOKS } from "./looks";
 
 interface DecorProps {
    planet: number;
+   level?: number;
    reducedMotion?: boolean;
 }
 
-export function Decor({ planet, reducedMotion = false }: DecorProps) {
+export function Decor({ planet, level = 1, reducedMotion = false }: DecorProps) {
    const time = useGameTime();
    const look = PLANET_LOOKS[planet] ?? PLANET_LOOKS[0];
    const spots = PLANET_DECOR[planet] ?? PLANET_DECOR[0];
@@ -122,8 +125,22 @@ export function Decor({ planet, reducedMotion = false }: DecorProps) {
 
    const isEmissive = planet === 2 || planet === 4;
 
+   // Habitat dome outposts only on the cavern / precision-themed levels (levels 4-5)
+   const showDomes = (HABITAT_DOME_LEVELS as readonly number[]).includes(level);
+
    return (
       <group name="rocket-decor">
+         {showDomes && HABITAT_DOME_SPOTS.map((spot, i) => (
+            <group
+               key={i}
+               position={[spot.x, spot.y, spot.z]}
+               rotation={[0, spot.rotY, 0]}
+               scale={spot.scale}
+               name={`habitat-dome-${i}`}
+            >
+               <Model asset={ASSETS.habitatDome} />
+            </group>
+         ))}
          {/* Distant mountain peaks / crater ridges */}
          <Instanced spots={spots.peaks} name="decor-peaks">
             <primitive object={geo.peak} attach="geometry" />

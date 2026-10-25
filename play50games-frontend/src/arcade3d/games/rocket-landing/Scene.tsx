@@ -179,7 +179,7 @@ export default function Scene() {
       {/* Rim light catching rocket and stage silhouette from behind */}
       <directionalLight position={[-4, 8, -6]} intensity={0.85} color="#e0f2fe" />
       {/* Instanced scenery outside the play area: distant peaks, rocks, thematic props, moon */}
-      <Decor planet={run.planet} reducedMotion={reducedMotion} />
+      <Decor planet={run.planet} level={run.level?.id ?? 1} reducedMotion={reducedMotion} />
       {/* Ground terrain, pad, cavern roof, lighting */}
       <PlanetLighting run={run} />
       <Planet run={run} />
