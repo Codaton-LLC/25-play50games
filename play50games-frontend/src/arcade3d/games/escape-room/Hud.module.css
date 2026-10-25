@@ -39,3 +39,14 @@
 .got::before {
    content: "✓ ";
 }
+
+.expanded {
+   width: min(260px, calc(100vw - 40px));
+   height: 76px;
+}
+.expanded .pill {
+   flex-wrap: wrap;
+   white-space: normal;
+   line-height: 1.25;
+   border-radius: 16px;
+}
