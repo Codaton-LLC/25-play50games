@@ -140,6 +140,21 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/treasure-island/beachRocks.glb",
    "/models/3d/penguin-slide/iceArch.glb",
    "/models/3d/mini-golf/golfCastle.glb",
+   // Menu 1 pizza-kitchen-3d (2026-10-25): the ready menu1-pizza-kitchen-3d GLBs (mushroomBowlR, prepCounterR,
+   // pizzaPeelClean, pizzaBoxClosed; not mushroomBowl / prepCounter / pizzaPeel / pizzaBox / pizzaBoxV2),
+   // copied as optimized; fits measured in games/pizza-kitchen-3d/assets.ts
+   "/models/3d/pizza-kitchen-3d/pizzaBase.glb",
+   "/models/3d/pizza-kitchen-3d/sauceBowl.glb",
+   "/models/3d/pizza-kitchen-3d/cheeseBowl.glb",
+   "/models/3d/pizza-kitchen-3d/mushroomBowlR.glb",
+   "/models/3d/pizza-kitchen-3d/oliveBowl.glb",
+   "/models/3d/pizza-kitchen-3d/pepperoni.glb",
+   "/models/3d/pizza-kitchen-3d/tomato.glb",
+   "/models/3d/pizza-kitchen-3d/onion.glb",
+   "/models/3d/pizza-kitchen-3d/pizzaOven.glb",
+   "/models/3d/pizza-kitchen-3d/pizzaPeelClean.glb",
+   "/models/3d/pizza-kitchen-3d/prepCounterR.glb",
+   "/models/3d/pizza-kitchen-3d/pizzaBoxClosed.glb",
 ];
 
 const LISTED: ReadonlySet<string> = new Set(MODEL_MANIFEST);
