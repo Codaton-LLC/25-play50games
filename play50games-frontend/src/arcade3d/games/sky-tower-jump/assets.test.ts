@@ -9,7 +9,8 @@ import { hasModel } from "@/arcade3d/core/modelManifest";
 import { readCharacterGlb } from "@/arcade3d/core/rig/robotGlb";
 import { definitionLevelProblems } from "@/arcade3d/core/levels";
 import { ASSETS, GLB_SIZE } from "./assets";
-import { ARMADILLO } from "./Armadillo";
+import { BufferGeometry } from "three";
+import { ARMADILLO, buildArmadilloShapes } from "./Armadillo";
 import { skyTowerJumpMeta } from "./meta";
 import definition from "./index";
 import { cameraGoal, introKeyframes, playCamera } from "./camera";
@@ -66,9 +67,32 @@ describe("sky-tower-jump models", () => {
       });
    }
 
+   it("bakes the armadillo stand-in into a few merged meshes, 1.45 m tall with its feet on the floor", () => {
+      const shapes = buildArmadilloShapes();
+      const geos: BufferGeometry[] = [];
+      const walk = (v: unknown) => {
+         if (v instanceof BufferGeometry) geos.push(v);
+         else if (v && typeof v === "object") Object.values(v).forEach(walk);
+      };
+      walk(shapes);
+      // one mesh per joint and material (the legs share theirs): about 20 draw calls for the whole hero
+      expect(geos.length).toBeLessThanOrEqual(22);
+      for (const g of geos) {
+         g.computeBoundingBox();
+         expect(g.getAttribute("position").count).toBeGreaterThan(0);
+      }
+      const box = (g: BufferGeometry) => g.boundingBox!;
+      const feet = ARMADILLO.hipY + box(shapes.leg.body).min.y;
+      const top = ARMADILLO.headY + Math.max(box(shapes.head.shell).max.y, box(shapes.head.body).max.y);
+      expect(feet).toBeGreaterThan(-0.02);
+      expect(feet).toBeLessThan(0.02);
+      expect(top).toBeGreaterThan(ARMADILLO.height - 0.06);
+      expect(top).toBeLessThan(ARMADILLO.height + 0.06);
+   });
+
    it("keeps the hero slot empty until the armadillo GLB exists (never fetched; the stand-in draws)", () => {
       expect(hasModel(ASSETS.hero.url)).toBe(false);
-      expect(ASSETS.hero.url).toBe("/models/3d/menu2/armadilloHero.glb");
+      expect(ASSETS.hero.url).toBe("/models/3d/menu2/m2ArmadilloHero.glb");
       expect(ARMADILLO.height).toBeCloseTo(1.45, 6);
    });
 });

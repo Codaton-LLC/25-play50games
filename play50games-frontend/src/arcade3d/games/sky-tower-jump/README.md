@@ -1,7 +1,8 @@
 # Sky Tower Jump (Menu 2, game 01): the vertical slice
 
 Owner: Claude. Status: **dev** (preview builds only, `enabled: false` in `arcade-games.json`). This is the
-one level the user signs off before the 50 Color Shell Ninjas games are built
+one level the user signs off before the 50 Color Roll Heroes games are built (menu name
+"Color Roll Heroes", pending the DPMA/EUIPO check)
 (CLAUDE.md "Menu 2 quality bar"; spec: `docs/master-plan/PLAY50_MENU_2_50_COLOR_SHELL_NINJAS_FULL.md`
 GAME 01; target: `docs/master-plan/menu2-targets/sky-tower-jump.webp`).
 
@@ -11,7 +12,7 @@ hazards (wind, storms, the infinite tower) and looks come after the sign-off.
 
 ## Concept and controls
 
-Climb a sky tower of floating islands as Riko, the red Color Shell Ninja: jump from island to island,
+Climb a sky tower of floating islands as Riko, the red armoured hero who rolls into a ball: jump from island to island,
 ride moving stone blocks, cross plank bridges, launch off blue bounce pads, light the checkpoint
 beacons and reach the sky gate at the top (60 m). Golden orbs take 0.4 s off your time each. A fall
 costs time and sends you back to the last beacon.
@@ -25,20 +26,20 @@ costs time and sends you back to the last beacon.
 
 | File | What |
 |---|---|
-| `meta.ts` | plain data: time game, five levels, collection `ninjas`, status `dev` |
+| `meta.ts` | plain data: time game, five levels, collection `rollheroes`, status `dev` |
 | `index.tsx` | the GameDefinition: `intro: true`, `clockChip: false`, `finalScore`, five LevelSpecs |
 | `levels.ts` | the five level configs (L2-5 placeholders) |
 | `rules.ts` | pure rules: the course, the ms clock, movement, collisions, movers, pads, checkpoints, falls, orbs, the finish, the lower bound and `PROPOSED_LEVEL_LIMITS` |
 | `bot.ts` | the honest bot (tests, and `?autoplay=1` on preview builds for screenshots) |
 | `camera.ts` | the follow camera goal, the play pose, the intro keyframes (pure) |
-| `mask.ts` | the eye mask fitted to the hero mesh in code (pure) |
-| `look.ts` | palette, canvas textures (clouds, glows, mask fabric, waterfall, pad arrow), the billboard shader |
+| `Armadillo.tsx` | the hero's code stand-in (armadillo/pangolin, Riko red plates, glowing lines, helmet + visor) behind the `ASSETS.hero` slot |
+| `look.ts` | palette, canvas textures (clouds, glows, waterfall, pad arrow), the billboard shader |
 | `World.tsx` | sky, cloud sea and banks, background islands and castles, waterfalls, motes, rock roots |
 | `Course.tsx` | the playable course drawn from the rules' data: islands, checkpoints + beacons + beams, movers, bridges, pads + glows, gate + portal, orbs + halos, ladders |
-| `Hero.tsx` | the ninja: GLB + mask + tails, whole-body animation, blob shadow |
+| `Hero.tsx` | the hero: the `ASSETS.hero` slot (stand-in until the Hyper3D GLB exists), its pose per frame, blob shadow |
 | `Scene.tsx` | simulation (useRunFrame), juice, follow camera, the intro camera and the hero's drop |
 | `Hud.tsx` / `Hud.module.css` | the concept-style HUD: orbs, height, title banner, run clock |
-| `rules.test.ts`, `assets.test.ts` | rules, proof, bots, models, mask, definition, camera |
+| `rules.test.ts`, `assets.test.ts` | rules, proof, bots, models, definition, camera |
 
 ## Rules
 
@@ -142,7 +143,7 @@ proven the same way (step 6) and identical. Clear: a win (time game).
 
 - **Layered world:** the playable route (Hyper3D islandA grass islands, skyPlatform checkpoint
   plazas, movingBlock stone blocks, plankBridge bridges, bouncePad pads, checkpointBeacon beacons,
-  skyFortressGate at the top, scoreOrb orbs, woodenLadder decor) plus non-colliding background
+  skyFortressGate at the top, the shared gold star coin (`SHARED_ASSETS.coin`) as the orbs, woodenLadder decor) plus non-colliding background
   islands (islandB/C/D, about 30, instanced), stoneTower castles on some of them and the big Sky
   Tower castle behind the gate, all fitted from measured GLB bounds (`GLB_SIZE`, tested).
 - **Sky:** a three-stop gradient dome (not tone-mapped, so the blue stays vivid), a sea of soft
@@ -167,16 +168,23 @@ proven the same way (step 6) and identical. Clear: a win (time game).
 
 ### Hero
 
-The shared Menu 2 hero `menu2/m2Hero.glb` (the approved Hyper3D turtle, green, brown shell), drawn
-1.45 m tall (a little taller than its 1.2 m collider so it reads at play size). QA: it had no mask, so
-**the red eye mask is made in code** (`mask.ts`): a band fitted to the real head (for every height
-row and angle the outermost head vertex + 1.6 cm), with the eye holes cut in its texture at the eyes
-(±0.8 rad, tested against the mesh), a knot and two fluttering tails that stream back with speed.
-The colour is one constant (`COLORS.mask`), so the five heroes are a colour change.
+CLAUDE.md decision 5 (redesigned 2026-10-25): an original armadillo/pangolin hero, **no eye mask, no
+turtle, nothing TMNT-like**. The hero colour is on the shell plates, the armour and the glowing lines.
+`ASSETS.hero` is the slot for the Hyper3D hero GLB (`armadilloHero`, being generated); its url is
+not in the model manifest yet, so nothing is fetched and `Hero.tsx` draws the **code stand-in**
+`Armadillo.tsx`, modelled on the user's approved concept (`%USERPROFILE%\.play50\concepts\groupB\B01-armadillo-hero.png`,
+never committed): Riko red overlapping plates from the crown down the back to a plated tail, glowing
+orange seams between them, red shoulder and knee pads with glowing edges, an open red helmet with a
+clear brim visor and headphones, tan skin and muzzle, a charcoal suit, a leather belt with a metal
+buckle. 1.45 m tall (a little taller than the 1.2 m collider so it reads at play size). The old
+turtle GLBs (`m2Hero*`, `turtleNinja`) are not used.
 
-The GLB stands with its arms down (an A-pose), not in the T-pose the core auto-rig needs, so it is
-**animated as a whole body**: run bob and lean, stretch into a jump, tuck at the apex, a front flip off
-pads, landing squash, a tumble when falling, a pop-in on respawn, a hop and spin at the gate.
+It is jointed in code (hips, legs, shoulders, arms, head, tail groups) and posed every frame
+(`stepHeroPose`, pure): run stride with arm swing, bob and lean, a tuck at the jump apex, **curled
+into its ball of plates** on bounce pads, in the intro drop and when falling (spinning with its
+speed), landing squash, a pop-in on respawn, arms up with a hop and a spin at the gate. When the
+Hyper3D GLB lands: add its url to the manifest, set `scale` = 1.45 / its height, and drive it through
+the core auto-rig if it is a clean T-pose (the ball curl then stays a code part).
 
 ## Intro (core/intro, opted in)
 
@@ -185,33 +193,40 @@ pads, landing squash, a tumble when falling, a pop-in on respawn, a hop and spin
 `GameShell`): Play on the start card mounts the intro instead of calling `start()`; the run stays in
 "ready" (no clock, `elapsedMs` 0) until the intro is done, then the 3-2-1 countdown starts. The game
 supplies the shots (`camera.ts introKeyframes`: an establishing shot of the gate and the Sky Tower,
-then down past the checkpoints to the start) and drops the ninja from 24 m onto the start platform
+then down past the checkpoints to the start) and drops the hero (curled into its ball) from 24 m onto the start platform
 with a puff, sparkles, shake and a thud during the landing phase. Title "Sky Tower Jump" and
 "Level 1 — Training Sky" in a navy banner; Skip button, any key or a tap skips; 7 s the first time per
 level, 1.5 s afterwards (`localStorage play50games_3d_intro:sky-tower-jump:<level>`). Retry and Next
 level start at once.
 
-## Performance (production build, headless Chrome, 2026-10-25, `?autoplay=1&perf=1`)
+## Performance (production build, headless Chrome, 2026-10-25, `?autoplay=1&perf=1`, whole run incl. intro)
 
 | | draw calls (last / max) | triangles | frame p50 / p95 / max (ms) |
 |---|---|---|---|
-| desktop 1280 x 800 | 38 / 49 | 255k | 16.4 / 19.0 / 217 (the 217 is the intro → run remount) |
-| phone 390 x 844, 4x CPU throttle | 25 / 43 | 202k | 16.7 / 25.2 / 60 |
+| desktop 1280 x 800 | 39 / 68 | 218k | 16.7 / 16.8 / 33.5 |
+| phone 390 x 844, 4x CPU throttle | 38 / 59 | 197k | 16.7 / 27.4 / 182 (the max is the intro -> run remount) |
+| landscape phone 844 x 390 | 38 / 60 | 197k | 16.7 / 16.8 / 30.7 |
 
-These runs include the autoplay bot's look-ahead (a 2 s simulation copy per grounded frame), which a
-real player does not pay. No per-frame allocation in the scene's frame loops (scratch objects only).
+The hero stand-in is baked into about 20 merged meshes (`buildArmadilloShapes`, tested); every
+repeated prop is instanced (`InstancedModel`, `DynamicInstancedModel` for movers and coins, one
+billboard field per cloud layer). These runs include the autoplay bot's look-ahead (a 2 s simulation
+copy per grounded frame), which a real player does not pay. No per-frame allocation in the frame loops
+(scratch objects only).
 
 ## Known gaps vs the concept (for the sign-off)
 
-1. **No skeletal animation:** the hero GLB is A-pose (arms down), so the auto-rig cannot skin it;
-   whole-body animation only (no running legs, no arm swing). Needs a T-pose regeneration or a rigged
-   GLB.
+1. **The hero is a code stand-in** (rounded shapes, jointed in code) until the Hyper3D armadillo
+   GLB exists; it reads as the concept's silhouette at play size but not its sculpted detail.
 2. **No hero choice and no abilities** (Dash, Double Jump, Shield, Magnet, Phase): only Riko (red).
 3. **Rock roots** under the islands are low-poly code rock, flatter than the concept's sculpted cliffs.
 4. **No real shadows** (blob shadow only); the concept's soft contact shadows are not there.
 5. **Clouds are billboards** (soft but flat when the camera passes close); no volumetric clouds.
 6. Levels 2-5 are placeholders on the level 1 course.
 7. The HUD has no ability buttons (concept: Dash / Jump buttons); the touch Jump is the core button.
+8. **No hero select screen** (the concept board's "choose your hero" row); the five colours are a
+   material change (`HERO_COLORS.plate` / `plateDark`) once abilities exist.
+9. The shared `menu2/scoreOrb.glb` is no longer drawn here (the gold star coin matches the concept's
+   coins); it stays in the manifest for the other Menu 2 games.
 
 ## Test plan
 
@@ -219,6 +234,7 @@ real player does not pay. No per-frame allocation in the scene's frame loops (sc
 buffer, the per-ms speed bound on every level, movers, falls/respawn timing, finalScore, the lower
 bound pieces, the limits per level, the honest bot on every level at 30/60/144 fps, the idle bot,
 200 spam bots, the honest bot through the real store with ragged frames.
-`assets.test.ts` (34): every GLB listed, on disk, in budget, `GLB_SIZE` equal to the real meshes and
-their walkable tops, the hero's drawn height, the mask outside every head vertex of its band and the
-eye holes on the eyes, the definition's levels and intro, the intro ending on the follow camera's pose.
+`assets.test.ts` (29): every GLB listed, on disk, in budget (the shared coin included), `GLB_SIZE`
+equal to the real meshes and their walkable tops, the empty hero slot (`m2ArmadilloHero`, never
+fetched until it exists), the baked stand-in (at most 22 meshes, feet on 0, 1.45 m tall), the
+definition's levels and intro, the intro ending on the follow camera's pose.

@@ -202,7 +202,7 @@ export function Course({ run, clock, won }: { run: SkyRun; clock: VisualClock; w
       if (run.collected[i]) return false;
       const o = orbs[i];
       const t = time.now;
-      m.makeRotationY(t * 2.2 + i);
+      m.makeRotationY(t * 2.6 + i);
       m.scale(SCRATCH_SCALE.set(orbScale, orbScale, orbScale));
       m.setPosition(o.x, o.y + Math.sin(t * 2 + i * 0.7) * 0.12, o.z);
    };
@@ -231,7 +231,7 @@ export function Course({ run, clock, won }: { run: SkyRun; clock: VisualClock; w
          <InstancedModel asset={ASSETS.woodenLadder} spots={spots.ladders} fallback={null} />
          <InstancedModel asset={ASSETS.skyFortressGate} spots={spots.gate} fallback={null} />
          <DynamicInstancedModel asset={ASSETS.movingBlock} count={movers.length} update={moverUpdate} name="movers" />
-         <DynamicInstancedModel asset={ASSETS.scoreOrb} count={orbs.length} update={orbUpdate} name="orbs" />
+         <DynamicInstancedModel asset={ASSETS.coin} count={orbs.length} update={orbUpdate} name="orbs" />
          <BillboardField spots={halos} map={glow} additive aspect={1} opacity={0.85} live={hideCollected} renderOrder={5} />
          <BeaconBeams course={course} run={run} />
          <PadGlows course={course} />

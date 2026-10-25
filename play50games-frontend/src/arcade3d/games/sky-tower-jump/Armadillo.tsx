@@ -1,26 +1,41 @@
 "use client";
 
 // The Menu 2 hero's stand-in (CLAUDE.md decision 5, redesigned 2026-10-25): an original armadillo /
-// pangolin-style hero with an armoured shell of overlapping plates in Riko red, glowing lines between
-// the plates, an open helmet with a clear visor, a charcoal suit, and a plated tail (CLAUDE.md decision 5:
-// no TMNT-like elements). Built from rounded shapes and rigged the simplest way: one group per joint (hips, legs,
-// shoulders, arms, head, tail) turned by a pose the Scene writes every frame, plus a ball of plates the
-// hero rolls into (bounce pads, falls). It stands in the asset slot ASSETS.hero (assets.ts): when the
-// Hyper3D armadillo GLB exists, its url joins the manifest and replaces this.
+// pangolin-style hero after the user's approved concept (B01-armadillo-hero, not committed): Riko red
+// overlapping plates from the crown down the back to a plated tail, glowing seams between them, red
+// shoulder and knee pads with glowing edges, an open helmet with a clear brim visor and headphones,
+// tan skin, a charcoal suit and a leather belt (no eye mask, nothing TMNT-like). It stands in the asset
+// slot ASSETS.hero (assets.ts): when the Hyper3D armadillo GLB exists, its url joins the manifest and
+// replaces this.
+//
+// Rigged the simplest way: one group per joint (hips, legs, shoulders, arms, head, tail) turned by a pose
+// the Scene writes every frame, plus a ball of plates the hero rolls into (bounce pads, falls, the intro
+// drop). Every joint's parts are baked once into merged, vertex-coloured meshes (one per material), so
+// the whole hero costs about 20 draw calls, not one per shape.
 //
 // Size: 1.45 m tall (ARMADILLO.height), feet on y = 0, facing +z (like a Rodin character).
 import { useEffect, useMemo, useRef, type MutableRefObject } from "react";
 import { useFrame } from "@react-three/fiber";
 import {
+   BoxGeometry,
+   BufferAttribute,
+   BufferGeometry,
    CapsuleGeometry,
    Color,
+   CylinderGeometry,
    DoubleSide,
+   Euler,
+   Matrix4,
    MeshStandardMaterial,
+   Quaternion,
+   RepeatWrapping,
    SphereGeometry,
    TorusGeometry,
+   Vector3,
    type Group,
-   type Mesh,
 } from "three";
+import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
+import { useCanvasTexture } from "@/arcade3d/core/render/useCanvasTexture";
 
 export const ARMADILLO = {
    height: 1.45,
@@ -52,70 +67,271 @@ export function createArmadilloPose(): ArmadilloPose {
    return { run: 0, phase: 0, tuck: 0, roll: 0, spin: 0, time: 0, cheer: 0 };
 }
 
+/** Riko's colours: the plates are the hero colour (a recolour makes Nami, Kiro, Zuno, Vexa). */
 export const HERO_COLORS = {
    plate: "#ef4444",
-   plateDark: "#a51d1d",
-   glow: "#ff8a4c",
+   plateDark: "#b42323",
+   glow: "#ff7a3c",
    suit: "#2b2f3a",
-   skin: "#d9b48a",
-   skinLight: "#f0d6b2",
+   skin: "#c8834a",
+   skinLight: "#e8b884",
+   leather: "#7a4a2a",
+   metal: "#a7afb8",
    boot: "#1f232c",
    visor: "#9be7ff",
    eye: "#ffffff",
    pupil: "#1b1b24",
 } as const;
 
+type Vec3 = readonly [number, number, number];
+/** One shape baked into a joint's mesh: geometry, position, scale, rotation (xyz), colour, uv tiling + u shift. */
+interface Part {
+   geo: BufferGeometry;
+   at: Vec3;
+   scale?: number | Vec3;
+   rot?: Vec3;
+   color?: string;
+   uv?: readonly [number, number, number?];
+}
+
+const M = new Matrix4();
+const Q = new Quaternion();
+const E = new Euler();
+const P = new Vector3();
+const S = new Vector3();
+const C = new Color();
+
+/** Bakes parts into one indexed geometry with a colour attribute (built once per mount, never per frame). */
+function bake(parts: Part[]): BufferGeometry {
+   const list = parts.map(({ geo, at, scale = 1, rot = [0, 0, 0], color = "#ffffff", uv }) => {
+      const g = geo.clone();
+      const s = typeof scale === "number" ? [scale, scale, scale] : scale;
+      M.compose(P.set(at[0], at[1], at[2]), Q.setFromEuler(E.set(rot[0], rot[1], rot[2])), S.set(s[0], s[1], s[2]));
+      g.applyMatrix4(M);
+      C.set(color);
+      const n = g.getAttribute("position").count;
+      const colors = new Float32Array(n * 3);
+      for (let i = 0; i < n; i++) {
+         colors[i * 3] = C.r;
+         colors[i * 3 + 1] = C.g;
+         colors[i * 3 + 2] = C.b;
+      }
+      g.setAttribute("color", new BufferAttribute(colors, 3));
+      const uvs = g.getAttribute("uv");
+      if (uv && uvs) {
+         for (let i = 0; i < uvs.count; i++) uvs.setXY(i, uvs.getX(i) * uv[0] + (uv[2] ?? 0), uvs.getY(i) * uv[1]);
+      }
+      return g;
+   });
+   const merged = mergeGeometries(list);
+   list.forEach((g) => g.dispose());
+   if (!merged) throw new Error("armadillo: parts did not merge");
+   return merged;
+}
+
+const SCALES_ACROSS = 8;
+
+/** One row of overlapping scale plates (light grey: the vertex colour tints it). */
+function drawScales(ctx: CanvasRenderingContext2D, w: number, h: number) {
+   ctx.fillStyle = "#8d8d8d";
+   ctx.fillRect(0, 0, w, h);
+   const sw = w / SCALES_ACROSS;
+   const grad = ctx.createLinearGradient(0, 0, 0, h);
+   grad.addColorStop(0, "#b9b9b9");
+   grad.addColorStop(0.45, "#ffffff");
+   grad.addColorStop(0.85, "#d6d6d6");
+   grad.addColorStop(1, "#8a8a8a");
+   ctx.fillStyle = grad;
+   ctx.strokeStyle = "#5b5b5b";
+   ctx.lineWidth = 3;
+   for (let k = 0; k < SCALES_ACROSS; k++) {
+      const x0 = k * sw;
+      ctx.beginPath();
+      ctx.moveTo(x0 + 2, 0);
+      ctx.lineTo(x0 + 2, h * 0.5);
+      ctx.quadraticCurveTo(x0 + sw / 2, h * 1.12, x0 + sw - 2, h * 0.5);
+      ctx.lineTo(x0 + sw - 2, 0);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+   }
+}
+
+/** The glowing seams around the same plates (the emissive map). */
+function drawSeams(ctx: CanvasRenderingContext2D, w: number, h: number) {
+   ctx.fillStyle = "#000000";
+   ctx.fillRect(0, 0, w, h);
+   const sw = w / SCALES_ACROSS;
+   ctx.strokeStyle = "#ffffff";
+   ctx.lineWidth = 2.5;
+   for (let k = 0; k < SCALES_ACROSS; k++) {
+      const x0 = k * sw;
+      ctx.beginPath();
+      ctx.moveTo(x0 + 2, h * 0.5);
+      ctx.quadraticCurveTo(x0 + sw / 2, h * 1.12, x0 + sw - 2, h * 0.5);
+      ctx.stroke();
+   }
+}
+
 function useLooks() {
-   const looks = useMemo(
-      () => ({
-         plate: new MeshStandardMaterial({ color: HERO_COLORS.plate, roughness: 0.38, metalness: 0.15 }),
-         plateDark: new MeshStandardMaterial({ color: HERO_COLORS.plateDark, roughness: 0.45, metalness: 0.1 }),
+   const scales = useCanvasTexture(512, 128, drawScales);
+   const seams = useCanvasTexture(512, 128, drawSeams);
+   const looks = useMemo(() => {
+      for (const t of [scales, seams]) {
+         t.wrapS = RepeatWrapping;
+         t.wrapT = RepeatWrapping;
+         t.needsUpdate = true;
+      }
+      return {
+         // every opaque, untextured part (suit, skin, belt, pads...) in one vertex-coloured material
+         body: new MeshStandardMaterial({ vertexColors: true, roughness: 0.55, metalness: 0.08 }),
+         // the plates: the scale texture tinted by the vertex colour, the seams glowing
+         shell: new MeshStandardMaterial({
+            vertexColors: true,
+            map: scales,
+            emissiveMap: seams,
+            emissive: new Color(HERO_COLORS.glow),
+            emissiveIntensity: 1.1,
+            roughness: 0.36,
+            metalness: 0.15,
+         }),
          glow: new MeshStandardMaterial({ color: HERO_COLORS.glow, emissive: new Color(HERO_COLORS.glow), emissiveIntensity: 1.8, roughness: 0.4 }),
-         suit: new MeshStandardMaterial({ color: HERO_COLORS.suit, roughness: 0.75 }),
-         skin: new MeshStandardMaterial({ color: HERO_COLORS.skin, roughness: 0.65 }),
-         skinLight: new MeshStandardMaterial({ color: HERO_COLORS.skinLight, roughness: 0.6 }),
-         boot: new MeshStandardMaterial({ color: HERO_COLORS.boot, roughness: 0.55 }),
+         ballGlow: new MeshStandardMaterial({ color: HERO_COLORS.glow, emissive: new Color(HERO_COLORS.glow), emissiveIntensity: 1.8, roughness: 0.4 }),
          visor: new MeshStandardMaterial({ color: HERO_COLORS.visor, transparent: true, opacity: 0.35, roughness: 0.05, metalness: 0.3, side: DoubleSide, depthWrite: false }),
-         eye: new MeshStandardMaterial({ color: HERO_COLORS.eye, roughness: 0.3 }),
-         pupil: new MeshStandardMaterial({ color: HERO_COLORS.pupil, roughness: 0.2 }),
-      }),
-      [],
-   );
+      };
+   }, [scales, seams]);
    useEffect(() => () => Object.values(looks).forEach((m) => m.dispose()), [looks]);
    return looks;
 }
 
+const H = HERO_COLORS;
+
+/** The stand-in's baked meshes, per joint (exported for assets.test.ts). */
+export function buildArmadilloShapes() {
+   const ball = new SphereGeometry(1, 18, 12);
+   const ballFine = new SphereGeometry(1, 24, 16);
+   const leg = new CapsuleGeometry(0.088, 0.3, 6, 12);
+   const limb = new CapsuleGeometry(0.075, 0.26, 6, 12);
+   const torso = new CapsuleGeometry(0.25, 0.2, 8, 18);
+   const belt = new TorusGeometry(0.255, 0.032, 8, 28);
+   const box = new BoxGeometry(0.13, 0.08, 0.03);
+   const earCup = new CylinderGeometry(0.065, 0.065, 0.05, 16);
+   const rim = new TorusGeometry(0.236, 0.026, 8, 30);
+   const cap = new SphereGeometry(0.235, 24, 10, 0, Math.PI * 2, 0, 1.05);
+   const band = new TorusGeometry(1, 0.06, 6, 30);
+   // three's sphere: phi = π/2 faces +z (the front), so 0.85π .. 2.15π wraps the back and a little past
+   // the sides; theta runs down from the crown. Five overlapping bands, glowing lines between them.
+   const back = (r: number, t0: number, t1: number) => new SphereGeometry(r, 28, 6, Math.PI * 0.85, Math.PI * 1.3, t0, t1 - t0);
+   const bands = [0, 1, 2, 3, 4].map((i) => back(0.36 + i * 0.012, 0.35 + i * 0.36, 0.35 + (i + 1) * 0.36 + 0.06));
+   const lines = [1, 2, 3, 4].map((i) => back(0.372 + i * 0.012, 0.35 + i * 0.36 - 0.012, 0.35 + i * 0.36 + 0.018));
+   const shellAt: Vec3 = [0, 0.86, -0.02];
+   const shellScale: Vec3 = [1.02, 1.12, 0.9];
+
+   const torsoParts = {
+      body: bake([
+         { geo: torso, at: [0, 0.84, 0], color: H.suit },
+         { geo: ball, at: [0, 0.82, 0.12], scale: [0.19, 0.24, 0.12], color: H.skinLight },
+         { geo: belt, at: [0, 0.63, 0], rot: [Math.PI / 2, 0, 0], color: H.leather },
+         { geo: box, at: [0, 0.63, 0.275], color: H.metal },
+         { geo: ball, at: [0.2, 0.63, 0.19], scale: [0.035, 0.03, 0.02], color: H.plate },
+         { geo: ball, at: [-0.2, 0.63, 0.19], scale: [0.035, 0.03, 0.02], color: H.plate },
+         // harness straps over the chest
+         { geo: box, at: [0.12, 0.92, 0.2], scale: [0.35, 4.2, 1], rot: [-0.25, 0, 0.12], color: H.leather },
+         { geo: box, at: [-0.12, 0.92, 0.2], scale: [0.35, 4.2, 1], rot: [-0.25, 0, -0.12], color: H.leather },
+      ]),
+      shell: bake(bands.map((geo, i) => ({ geo, at: shellAt, scale: shellScale, color: i % 2 ? H.plateDark : H.plate, uv: [1, 1, i % 2 ? 1 / 16 : 0] as const }))),
+      glow: bake(lines.map((geo) => ({ geo, at: shellAt, scale: shellScale }))),
+   };
+
+   const legParts = {
+      body: bake([
+         { geo: leg, at: [0, -0.24, 0], color: H.suit },
+         { geo: ball, at: [0, -0.43, 0], scale: [0.1, 0.04, 0.1], color: H.leather },
+         { geo: ball, at: [0, -0.5, 0.05], scale: [0.11, 0.07, 0.16], color: H.skin },
+         { geo: ball, at: [0, -0.46, 0.02], scale: [0.105, 0.06, 0.12], color: H.boot },
+         { geo: ball, at: [0, -0.23, 0.07], scale: [0.105, 0.1, 0.07], color: H.plate },
+      ]),
+      glow: bake([{ geo: ball, at: [0, -0.23, 0.072], scale: [0.108, 0.014, 0.072] }]),
+   };
+
+   const arm = (side: number) => ({
+      body: bake([
+         { geo: ball, at: [0.03 * side, 0.04, 0], scale: [0.16, 0.1, 0.15], color: H.plate },
+         { geo: ball, at: [0.05 * side, -0.05, 0], scale: [0.13, 0.07, 0.13], color: H.plateDark },
+         { geo: limb, at: [0, -0.2, 0], color: H.suit },
+         { geo: ball, at: [0, -0.33, 0], scale: [0.085, 0.045, 0.085], color: H.leather },
+         { geo: ball, at: [0, -0.42, 0.01], scale: 0.08, color: H.skin },
+      ]),
+      glow: bake([{ geo: ball, at: [0.03 * side, 0, 0], scale: [0.162, 0.016, 0.152] }]),
+   });
+
+   const headParts: Part[] = [
+      { geo: ballFine, at: [0, 0, 0], scale: [0.22, 0.21, 0.22], color: H.skin },
+      { geo: ball, at: [0, -0.06, 0.19], scale: [0.11, 0.09, 0.14], color: H.skinLight },
+      { geo: ball, at: [0, -0.04, 0.32], scale: [0.035, 0.028, 0.025], color: H.pupil },
+      { geo: rim, at: [0, 0.06, -0.01], rot: [Math.PI / 2 - 0.35, 0, 0], color: H.boot },
+   ];
+   const headGlow: Part[] = [];
+   for (const side of [1, -1]) {
+      headParts.push(
+         { geo: ball, at: [0.085 * side, 0.03, 0.18], scale: 0.048, color: H.eye },
+         { geo: ball, at: [0.09 * side, 0.032, 0.222], scale: 0.024, color: H.pupil },
+         { geo: earCup, at: [0.215 * side, 0, -0.01], rot: [0, 0, Math.PI / 2], color: H.boot },
+      );
+      headGlow.push({ geo: earCup, at: [0.243 * side, 0, -0.01], rot: [0, 0, Math.PI / 2], scale: [0.75, 0.2, 0.75] });
+   }
+   const head = {
+      body: bake(headParts),
+      shell: bake([
+         { geo: cap, at: [0, 0, 0], rot: [-0.35, 0, 0], color: H.plate, uv: [3, 3] },
+         // plates from the crown down the back of the head to the shell
+         ...[0, 1, 2].map(
+            (i): Part => ({
+               geo: ball,
+               at: [0, 0.16 - i * 0.1, -0.12 - i * 0.06],
+               rot: [0.5 + i * 0.35, 0, 0],
+               scale: [0.17 - i * 0.015, 0.05, 0.12],
+               color: i % 2 ? H.plateDark : H.plate,
+               uv: [2, 2],
+            }),
+         ),
+      ]),
+      glow: bake(headGlow),
+      // the clear visor: a brim over the forehead, down to the brows (the eyes stay visible under it)
+      visor: new SphereGeometry(0.285, 24, 8, Math.PI / 2 - 1.15, 2.3, 0.62, 0.55),
+   };
+
+   // the tail: five overlapping segments curving down, red plates on top, leather underneath
+   const tailBody: Part[] = [];
+   const tailShell: Part[] = [];
+   for (let i = 0; i < 5; i++) {
+      // a thick tail: each segment overlaps the next by about half, curving down then out behind
+      const y = -0.05 * i - 0.006 * i * i;
+      const z = -0.06 - 0.085 * i;
+      const rot: Vec3 = [0.35 + i * 0.08, 0, 0];
+      tailBody.push({ geo: ball, at: [0, y - 0.025, z], rot, scale: [0.13 - i * 0.017, 0.09 - i * 0.011, 0.13 - i * 0.012], color: H.leather });
+      tailShell.push({ geo: ball, at: [0, y + 0.015, z], rot, scale: [0.15 - i * 0.02, 0.1 - i * 0.012, 0.135 - i * 0.012], color: i % 2 ? H.plateDark : H.plate, uv: [2, 2] });
+   }
+   const tail = { body: bake(tailBody), shell: bake(tailShell) };
+
+   const roll = {
+      shell: bake([{ geo: ballFine, at: [0, 0, 0], scale: ARMADILLO.ballRadius, color: H.plate, uv: [3, 4] }]),
+      body: bake([-1, 1].map((k): Part => ({ geo: band, at: [0, 0, 0], rot: [k * 0.6, Math.PI / 2, 0], scale: ARMADILLO.ballRadius * 0.96, color: H.plateDark }))),
+      glow: bake([{ geo: band, at: [0, 0, 0], rot: [0, Math.PI / 2, 0], scale: ARMADILLO.ballRadius }]),
+   };
+
+   for (const g of [ball, ballFine, leg, limb, torso, belt, box, earCup, rim, cap, band, ...bands, ...lines]) g.dispose();
+   return { torso: torsoParts, leg: legParts, armL: arm(1), armR: arm(-1), head, tail, roll };
+}
+
+function disposeAll(v: unknown) {
+   if (v instanceof BufferGeometry) v.dispose();
+   else if (v && typeof v === "object") Object.values(v).forEach(disposeAll);
+}
+
 function useShapes() {
-   const shapes = useMemo(() => {
-      // three's sphere: phi = π/2 faces +z (the front), π..2π is the back (z < 0); the shell wraps a little past the sides
-      const back = (r: number, t0: number, t1: number) => new SphereGeometry(r, 28, 6, Math.PI * 0.85, Math.PI * 1.3, t0, t1 - t0);
-      return {
-         torso: new CapsuleGeometry(0.25, 0.2, 8, 18),
-         belly: new SphereGeometry(0.2, 18, 12),
-         limb: new CapsuleGeometry(0.075, 0.26, 6, 12),
-         leg: new CapsuleGeometry(0.088, 0.3, 6, 12),
-         ball: new SphereGeometry(1, 20, 14),
-         belt: new TorusGeometry(0.255, 0.032, 8, 28),
-         // the back shell: five overlapping bands, each a slice of a sphere around the back
-         bands: [0, 1, 2, 3, 4].map((i) => back(0.36 + i * 0.012, 0.35 + i * 0.36, 0.35 + (i + 1) * 0.36 + 0.06)),
-         // glowing lines between the bands
-         lines: [1, 2, 3, 4].map((i) => back(0.372 + i * 0.012, 0.35 + i * 0.36 - 0.012, 0.35 + i * 0.36 + 0.018)),
-         headCap: new SphereGeometry(0.235, 24, 10, 0, Math.PI * 2, 0, 1.05),
-         helmetRim: new TorusGeometry(0.236, 0.026, 8, 30),
-         visor: new SphereGeometry(0.27, 24, 8, Math.PI / 2 - 1.05, 2.1, 1.12, 0.5),
-         tailSeg: new SphereGeometry(1, 14, 10),
-         ballBand: new TorusGeometry(1, 0.06, 6, 30),
-      };
-   }, []);
-   useEffect(
-      () => () => {
-         for (const v of Object.values(shapes)) {
-            if (Array.isArray(v)) v.forEach((g) => g.dispose());
-            else v.dispose();
-         }
-      },
-      [shapes],
-   );
+   const shapes = useMemo(buildArmadilloShapes, []);
+   useEffect(() => () => disposeAll(shapes), [shapes]);
    return shapes;
 }
 
@@ -130,7 +346,6 @@ export function ArmadilloStandIn({ pose }: { pose: MutableRefObject<ArmadilloPos
    const head = useRef<Group>(null);
    const tail = useRef<Group>(null);
    const ball = useRef<Group>(null);
-   const ballGlow = useRef<Mesh>(null);
 
    useFrame(() => {
       const p = pose.current;
@@ -156,94 +371,56 @@ export function ArmadilloStandIn({ pose }: { pose: MutableRefObject<ArmadilloPos
       // the curl: the body shrinks into the ball of plates
       const r = p.roll;
       if (body.current) {
-         const k = Math.max(0.001, 1 - r);
-         body.current.scale.setScalar(k);
+         body.current.scale.setScalar(Math.max(0.001, 1 - r));
          body.current.position.y = ARMADILLO.ballRadius * r;
          body.current.visible = r < 0.98;
       }
       if (ball.current) {
-         const k = Math.max(0.001, r);
-         ball.current.scale.setScalar(k);
+         ball.current.scale.setScalar(Math.max(0.001, r));
          ball.current.visible = r > 0.02;
          ball.current.rotation.x = p.spin;
+         m.ballGlow.emissiveIntensity = 1.4 + Math.sin(p.time * 10) * 0.5;
       }
-      if (ballGlow.current) (ballGlow.current.material as MeshStandardMaterial).emissiveIntensity = 1.4 + Math.sin(p.time * 10) * 0.5;
    });
 
-   const shellCentre: [number, number, number] = [0, 0.86, -0.02];
    return (
       <group>
          <group ref={body}>
-            {/* legs: hip joints, the suit leg, the boot with a red toe plate */}
-            {[
-               [legL, 1],
-               [legR, -1],
-            ].map(([ref, side]) => (
-               <group key={side as number} ref={ref as MutableRefObject<Group>} position={[0.15 * (side as number), ARMADILLO.hipY, 0]}>
-                  <mesh geometry={g.leg} material={m.suit} position={[0, -0.24, 0]} />
-                  <mesh geometry={g.ball} material={m.boot} position={[0, -0.5, 0.04]} scale={[0.11, 0.07, 0.16]} />
-                  <mesh geometry={g.ball} material={m.plate} position={[0, -0.47, 0.11]} scale={[0.09, 0.05, 0.07]} />
-               </group>
-            ))}
-            {/* torso, belly scales, belt */}
-            <mesh geometry={g.torso} material={m.suit} position={[0, 0.84, 0]} />
-            <mesh geometry={g.belly} material={m.skinLight} position={[0, 0.82, 0.12]} scale={[0.95, 1.2, 0.6]} />
-            <mesh geometry={g.belt} material={m.plateDark} position={[0, 0.63, 0]} rotation-x={Math.PI / 2} />
-            {/* the back shell: overlapping red bands and glowing lines */}
-            {g.bands.map((geo, i) => (
-               <mesh key={`b${i}`} geometry={geo} material={i % 2 ? m.plateDark : m.plate} position={shellCentre} scale={[1.02, 1.12, 0.9]} />
-            ))}
-            {g.lines.map((geo, i) => (
-               <mesh key={`l${i}`} geometry={geo} material={m.glow} position={shellCentre} scale={[1.02, 1.12, 0.9]} />
-            ))}
-            {/* arms: a red shoulder plate, the sleeve, the hand */}
-            {[
-               [armL, 1],
-               [armR, -1],
-            ].map(([ref, side]) => (
-               <group key={side as number} ref={ref as MutableRefObject<Group>} position={[0.32 * (side as number), ARMADILLO.shoulderY, 0]}>
-                  <mesh geometry={g.ball} material={m.plate} position={[0.02 * (side as number), 0.02, 0]} scale={[0.12, 0.09, 0.12]} />
-                  <mesh geometry={g.limb} material={m.suit} position={[0, -0.2, 0]} />
-                  <mesh geometry={g.ball} material={m.skin} position={[0, -0.42, 0.01]} scale={0.08} />
-               </group>
-            ))}
-            {/* head: skull, snout and nose, ears, eyes, the red head plates, the open helmet and its visor */}
-            <group ref={head} position={[0, ARMADILLO.headY, 0.03]}>
-               <mesh geometry={g.ball} material={m.skin} scale={[0.22, 0.21, 0.22]} />
-               <mesh geometry={g.ball} material={m.skinLight} position={[0, -0.06, 0.19]} scale={[0.11, 0.09, 0.14]} />
-               <mesh geometry={g.ball} material={m.pupil} position={[0, -0.04, 0.32]} scale={[0.035, 0.028, 0.025]} />
-               {[1, -1].map((side) => (
-                  <group key={side}>
-                     <mesh geometry={g.ball} material={m.skin} position={[0.15 * side, 0.15, -0.04]} scale={[0.06, 0.09, 0.03]} rotation-z={-0.4 * side} />
-                     <mesh geometry={g.ball} material={m.eye} position={[0.085 * side, 0.03, 0.18]} scale={0.048} />
-                     <mesh geometry={g.ball} material={m.pupil} position={[0.09 * side, 0.032, 0.222]} scale={0.024} />
-                  </group>
-               ))}
-               <mesh geometry={g.headCap} material={m.plate} rotation-x={-0.35} />
-               <mesh geometry={g.helmetRim} material={m.plateDark} position={[0, 0.06, -0.01]} rotation-x={Math.PI / 2 - 0.35} />
-               <mesh geometry={g.visor} material={m.visor} position={[0, -0.02, 0]} />
+            <group ref={legL} position={[0.15, ARMADILLO.hipY, 0]}>
+               <mesh geometry={g.leg.body} material={m.body} />
+               <mesh geometry={g.leg.glow} material={m.glow} />
             </group>
-            {/* the plated tail */}
+            <group ref={legR} position={[-0.15, ARMADILLO.hipY, 0]}>
+               <mesh geometry={g.leg.body} material={m.body} />
+               <mesh geometry={g.leg.glow} material={m.glow} />
+            </group>
+            <mesh geometry={g.torso.body} material={m.body} />
+            <mesh geometry={g.torso.shell} material={m.shell} />
+            <mesh geometry={g.torso.glow} material={m.glow} />
+            <group ref={armL} position={[0.32, ARMADILLO.shoulderY, 0]}>
+               <mesh geometry={g.armL.body} material={m.body} />
+               <mesh geometry={g.armL.glow} material={m.glow} />
+            </group>
+            <group ref={armR} position={[-0.32, ARMADILLO.shoulderY, 0]}>
+               <mesh geometry={g.armR.body} material={m.body} />
+               <mesh geometry={g.armR.glow} material={m.glow} />
+            </group>
+            <group ref={head} position={[0, ARMADILLO.headY, 0.03]}>
+               <mesh geometry={g.head.body} material={m.body} />
+               <mesh geometry={g.head.shell} material={m.shell} />
+               <mesh geometry={g.head.glow} material={m.glow} />
+               <mesh geometry={g.head.visor} material={m.visor} position={[0, 0, 0.02]} rotation-x={-0.12} />
+            </group>
             <group ref={tail} position={[0, 0.56, -0.26]}>
-               {[0, 1, 2].map((i) => (
-                  <mesh key={i} geometry={g.tailSeg} material={i % 2 ? m.plateDark : m.plate} position={[0, -0.05 * i, -0.1 - 0.12 * i]} scale={[0.09 - i * 0.022, 0.08 - i * 0.018, 0.1 - i * 0.015]} />
-               ))}
+               <mesh geometry={g.tail.body} material={m.body} />
+               <mesh geometry={g.tail.shell} material={m.shell} />
             </group>
          </group>
          {/* the ball of plates (curled up), centred above the feet */}
          <group ref={ball} position={[0, ARMADILLO.ballRadius, 0]}>
-            <mesh geometry={g.ball} material={m.plate} scale={ARMADILLO.ballRadius} />
-            {[0, 1, 2].map((i) => (
-               <mesh
-                  key={i}
-                  ref={i === 1 ? ballGlow : undefined}
-                  geometry={g.ballBand}
-                  material={i === 1 ? m.glow : m.plateDark}
-                  rotation-y={Math.PI / 2}
-                  scale={ARMADILLO.ballRadius * (i === 1 ? 1.0 : 0.94)}
-                  rotation-x={(i - 1) * 0.6}
-               />
-            ))}
+            <mesh geometry={g.roll.shell} material={m.shell} />
+            <mesh geometry={g.roll.body} material={m.body} />
+            <mesh geometry={g.roll.glow} material={m.ballGlow} />
          </group>
       </group>
    );
