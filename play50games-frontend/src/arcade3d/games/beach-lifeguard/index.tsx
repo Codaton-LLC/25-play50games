@@ -6,7 +6,7 @@ import type { GameDefinition, LevelSpec } from "@/arcade3d/core/types";
 import { LEVEL_IDS, type LevelId } from "@/arcade3d/types";
 import { ASSETS } from "./assets";
 import { LEVELS, LEVEL_LINES, type BeachLevel } from "./levels";
-import { FOV } from "./looks";
+import { FOG_NEAR, FOV } from "./looks";
 import { LIVES } from "./rules";
 import Scene from "./Scene";
 
@@ -30,7 +30,7 @@ function stats(level: BeachLevel): GameDefinition["hudStats"] {
 
 const environmentFor = (level: BeachLevel, id: LevelId) => ({
    background: level.background,
-   fog: [level.background, id === 5 ? 12 : 22, level.fogFar] as [string, number, number],
+   fog: [level.background, FOG_NEAR, level.fogFar] as [string, number, number],
    lighting: level.lighting,
 });
 

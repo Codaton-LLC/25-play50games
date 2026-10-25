@@ -2,8 +2,8 @@
 
 // One useRunFrame steps rules.ts (step + syncStore); visuals read the run and animate on useGameTime.
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useFrame } from "@react-three/fiber";
-import { Euler, Matrix4, Quaternion, Vector3, type Group } from "three";
+import { useFrame, useThree } from "@react-three/fiber";
+import { Euler, Fog, Matrix4, Quaternion, RepeatWrapping, Vector3, type Group } from "three";
 import CameraRig from "@/arcade3d/core/CameraRig";
 import { DynamicInstancedModel, InstancedModel, Model } from "@/arcade3d/core/assets";
 import { playSfx } from "@/arcade3d/core/audio";
@@ -18,7 +18,7 @@ import { useLevel } from "@/arcade3d/core/level";
 import { randomSeed } from "@/arcade3d/core/math";
 import { hover, type BodyOffset } from "@/arcade3d/core/motion";
 import { scaledCount, useQuality } from "@/arcade3d/core/quality";
-import { Instanced, type InstanceSpot } from "@/arcade3d/core/render";
+import { Instanced, useCanvasTexture, type InstanceSpot } from "@/arcade3d/core/render";
 import { HumanoidModel, cheerPose, gaitPhaseStep, idlePose, useHumanoidPose, walkPose, wrapPhase } from "@/arcade3d/core/rig";
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { useFittedView } from "@/arcade3d/core/useFittedView";
@@ -26,7 +26,7 @@ import { useRunFrame } from "@/arcade3d/core/useRunFrame";
 import { ASSETS, LIFEGUARD_LANDMARKS, LIFEGUARD_SCALE } from "./assets";
 import type { LevelId } from "@/arcade3d/types";
 import type { BeachLevel } from "./levels";
-import { COLORS, DAMPING, FOV, LOOK_AHEAD, aimBounds, decorSpots, viewFor } from "./looks";
+import { COLORS, DAMPING, FOV, LOOK_AHEAD, aimBounds, decorSpots, fogFor, viewFor } from "./looks";
 import {
    AlertTorusMarker,
    BeachChairPrimitive,
@@ -45,6 +45,43 @@ const E = new Euler();
 const S = new Vector3(1, 1, 1);
 const AT = { x: 0, y: 0, z: 0 };
 const BOB: BodyOffset = { y: 0, roll: 0, yaw: 0, squash: 1 };
+
+/**
+ * The beach sand, drawn once: the top of the canvas is the waterline (the plane lies with +v towards -z).
+ * Wet sand from the water to the safe line at z = 2 (darker, with a faint tide line where it ends), then
+ * dry sand in soft tone bands with grain and wind ripples.
+ */
+const SAND_TEX_H = 512;
+function drawSand(ctx: CanvasRenderingContext2D, w: number, h: number) {
+   const wetEnd = (SAFE_SAND_Z / SAND_DEPTH) * h;
+   const grad = ctx.createLinearGradient(0, 0, 0, h);
+   grad.addColorStop(0, "#c9a86a");
+   grad.addColorStop((wetEnd * 0.85) / h, "#dcbc80");
+   grad.addColorStop(wetEnd / h, COLORS.wetSand);
+   grad.addColorStop((wetEnd * 1.4) / h, COLORS.sand);
+   grad.addColorStop(0.6, "#f5dcae");
+   grad.addColorStop(1, "#ecd09a");
+   ctx.fillStyle = grad;
+   ctx.fillRect(0, 0, w, h);
+   // tide line: a thin broken band of lighter shell grit where the wet sand ends
+   ctx.fillStyle = "rgba(255, 250, 235, 0.35)";
+   for (let x = 0; x < w; x += 6) ctx.fillRect(x, wetEnd - 2 + Math.sin(x * 0.07) * 2, 4, 2);
+   // wind ripples on the dry sand
+   ctx.strokeStyle = "rgba(160, 120, 60, 0.10)";
+   ctx.lineWidth = 2;
+   for (let y = wetEnd * 1.6; y < h; y += 14) {
+      ctx.beginPath();
+      for (let x = 0; x <= w; x += 16) ctx.lineTo(x, y + Math.sin(x * 0.05 + y) * 3);
+      ctx.stroke();
+   }
+   // grain
+   let seed = 7;
+   const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+   for (let i = 0; i < 2600; i++) {
+      ctx.fillStyle = rnd() < 0.5 ? "rgba(120, 90, 40, 0.12)" : "rgba(255, 255, 255, 0.16)";
+      ctx.fillRect(rnd() * w, rnd() * h, 2, 2);
+   }
+}
 
 const PROP_FALLBACK: Record<PropKind, () => JSX.Element> = {
    chair: () => <BeachChairPrimitive />,
@@ -88,7 +125,7 @@ function Decor({ id }: { id: LevelId }) {
    const quality = useQuality();
    const decor = useMemo(() => {
       const d = decorSpots(id);
-      return { palms: d.palms.slice(0, scaledCount(d.palms.length, quality.decor)), huts: d.huts };
+      return { palms: d.palms.slice(0, scaledCount(d.palms.length, quality.decor)), huts: d.huts, castles: d.castles, coolers: d.coolers };
    }, [id, quality.decor]);
    return (
       <>
@@ -99,6 +136,26 @@ function Decor({ id }: { id: LevelId }) {
                <Instanced spots={decor.palms} name="palm-stand-in">
                   <coneGeometry args={[0.3, 1, 8]} />
                   <meshStandardMaterial color="#4d7c0f" roughness={0.8} />
+               </Instanced>
+            }
+         />
+         <InstancedModel
+            asset={ASSETS.decorCastle}
+            spots={decor.castles}
+            fallback={
+               <Instanced spots={decor.castles} name="castle-stand-in">
+                  <cylinderGeometry args={[0.5, 0.6, 1, 8]} />
+                  <meshStandardMaterial color={COLORS.sandcastle} roughness={0.9} />
+               </Instanced>
+            }
+         />
+         <InstancedModel
+            asset={ASSETS.decorCooler}
+            spots={decor.coolers}
+            fallback={
+               <Instanced spots={decor.coolers} name="cooler-stand-in">
+                  <boxGeometry args={[1, 1, 0.75]} />
+                  <meshStandardMaterial color={COLORS.coolerBlue} roughness={0.5} />
                </Instanced>
             }
          />
@@ -118,7 +175,9 @@ function Decor({ id }: { id: LevelId }) {
 
 export default function Scene() {
    const { id, config } = useLevel<BeachLevel>();
-   const view = useFittedView(viewFor(id));
+   const portrait = useThree((state) => state.size.width < state.size.height);
+   const view = useFittedView(viewFor(id, portrait));
+   const scene = useThree((state) => state.scene);
    const input = useInput();
    const fx = useFx();
    const time = useGameTime();
@@ -130,7 +189,26 @@ export default function Scene() {
    const ski = useRef<Group>(null);
    const gait = useRef({ phase: 0 }).current;
    const aim = useRef({ x: run.hero.x, y: 0.8, z: run.hero.z - LOOK_AHEAD }).current;
-   const bounds = useMemo(() => aimBounds(config), [config]);
+   const bounds = useMemo(() => aimBounds(config, portrait), [config, portrait]);
+   // the fog starts past the aim at whatever distance the camera was fitted to (looks.ts fogFor)
+   useEffect(() => {
+      const fog = scene.fog;
+      if (!(fog instanceof Fog)) return;
+      const before = { near: fog.near, far: fog.far };
+      const next = fogFor(config, view.distance, portrait);
+      fog.near = next.near;
+      fog.far = next.far;
+      return () => {
+         fog.near = before.near;
+         fog.far = before.far;
+      };
+   }, [scene, config, view.distance, portrait]);
+   const sand = useCanvasTexture(256, SAND_TEX_H, drawSand);
+   useMemo(() => {
+      sand.wrapS = RepeatWrapping;
+      sand.repeat.set((config.width + 200) / 16, 1);
+      sand.needsUpdate = true;
+   }, [sand, config.width]);
    const markers = useRef<MarkerTarget[]>([{ x: 0, y: 0.4, z: 0, hidden: true, color: COLORS.accent }]).current;
 
    useEffect(() => {
@@ -232,21 +310,13 @@ export default function Scene() {
          <TargetMarkers targets={markers} />
 
          {/* sand to the horizon behind the beach and past both ends, wet sand along the shore, the safe line */}
-         <mesh rotation-x={-Math.PI / 2} position={[0, -0.02, 60]}>
+         <mesh rotation-x={-Math.PI / 2} position={[0, -0.02, SAND_DEPTH + 60]}>
             <planeGeometry args={[sandW + 120, 120]} />
             <meshStandardMaterial color={COLORS.sandFar} roughness={0.95} />
          </mesh>
          <mesh rotation-x={-Math.PI / 2} position={[0, -0.01, SAND_DEPTH / 2]}>
-            <planeGeometry args={[config.width + 12, SAND_DEPTH]} />
-            <meshStandardMaterial color={COLORS.sand} roughness={0.92} />
-         </mesh>
-         <mesh rotation-x={-Math.PI / 2} position={[0, 0.0, SAFE_SAND_Z / 2]}>
-            <planeGeometry args={[sandW, SAFE_SAND_Z]} />
-            <meshStandardMaterial color={COLORS.wetSand} roughness={0.7} />
-         </mesh>
-         <mesh rotation-x={-Math.PI / 2} position={[0, 0.012, SAFE_SAND_Z]}>
-            <planeGeometry args={[config.width, 0.08]} />
-            <meshBasicMaterial color={COLORS.safeLine} transparent opacity={0.55} depthWrite={false} />
+            <planeGeometry args={[config.width + 200, SAND_DEPTH]} />
+            <meshStandardMaterial map={sand} roughness={0.92} />
          </mesh>
          <Water
             size={[sandW + 120, config.water + 90]}

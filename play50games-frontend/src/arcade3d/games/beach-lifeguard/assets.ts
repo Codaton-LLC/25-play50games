@@ -102,6 +102,8 @@ export const ASSETS = {
    sandcastle: local("sandcastle", FIT.sandcastleWidth / GLB_SIZE.sandcastle.width, "cylinder", "#eab308"),
    umbrella: { ...REUSED_ASSETS.umbrella, scale: FIT.umbrellaHeight / GLB_SIZE.umbrella.height },
    // decor, 1 m tall: the spot's scale is the height
+   decorCastle: { ...local("sandcastle", 1 / GLB_SIZE.sandcastle.height, "cylinder", "#eab308"), id: "decorCastle" },
+   decorCooler: { ...local("beachCooler", 1 / GLB_SIZE.beachCooler.height, "box", "#0284c7"), id: "decorCooler" },
    hut: local("beachHut", 1 / GLB_SIZE.beachHut.height, "box", "#78350f"),
    palm: { ...REUSED_ASSETS.palm, scale: 1 / REUSED_GLB_SIZE.palm.height },
 } satisfies Record<string, ModelAsset>;

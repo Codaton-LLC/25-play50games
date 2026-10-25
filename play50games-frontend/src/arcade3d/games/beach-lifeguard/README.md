@@ -10,7 +10,7 @@ A sand strip and a flat swim zone. An alert rings and a pink ring marks a swimme
 |---|---|
 | `rules.ts` | Pure rules: `createRun(seed, level, levelId)`, `step(run, input, dt, timeLeftMs)` (returns a shared event), `syncStore(run, ev, store)` (exactly the Scene's store calls), `stepZ` (the water split), `PROPOSED_LEVEL_LIMITS`, `PROOF_MIN_WIN_S`. |
 | `levels.ts` | The five `BeachLevel` configs, titles, tile lines. |
-| `looks.ts` | Palette, the follow view (a 18 x 15 m window round the aim), aim bounds, decor spots. |
+| `looks.ts` | Palette, the follow view (an 18 x 15 m window round the aim, 9 x 12 m in portrait), aim bounds, the fog from the fitted distance, decor spots. |
 | `assets.ts` | The ready Hyper3D GLBs with their measured raw bounds, fits in metres, `LIFEGUARD_LANDMARKS`. |
 | `Scene.tsx` | One `useRunFrame` (step + syncStore), the rigged lifeguard, instanced swimmers / props / decor, `<Water>`, the code torus, `TargetMarkers`. |
 | `testing/bots.ts`, `testing/limitProof.ts` | Test-only bots (oracle, greedy, idle, spam) through the real store (`playBot`) and a pure twin (`playPure`) for the 200-seed sweeps. |
@@ -58,9 +58,15 @@ Ready GLBs from `menu1-beach-lifeguard` (copied as optimized, listed in `core/mo
 - Swimmer x's are sorted draws in the slack left after the 6 m spacing (the helper's first-come rejection got stuck on 23 of 200 L4 seeds and fell back to fixed even slots); the alert order is shuffled.
 - `createRun` guessed the level id from the config; it takes it. Held Action no longer re-triggers grab / mount every frame (one press = one Grab).
 - The lifeguard was a static `<Model>`: now `<HumanoidModel>` with walk (gait phase from `gaitPhaseStep`), idle on the jet ski and a cheer on the win, and the float attached to the right hand.
-- Ground and water reach past the fog (no void at the edges); the camera follows a window instead of fitting the whole 48 m beach; props, swimmers and decor are instanced; decor is fitted to 1 m and scaled once by its spot; tall decor stands behind the sand or past the ends, never between the camera and the lifeguard.
+- Ground and water reach past the fog (no void at the edges); the camera follows a window instead of fitting the whole 48 m beach; props, swimmers and decor are instanced; decor is fitted to 1 m and scaled once by its spot; tall decor stands past the beach ends and only low clutter on the camera side (see Playtest fixes).
 - The custom HUD duplicated the shell's Saved / Alert chips: removed.
 - Limits re-proven per level (the helper's L1 maxScore 1020 was below a 1060 bot run).
+
+## Playtest fixes (2026-10-25, after the first flagged-build playtest)
+
+- Portrait (390 x 844) was washed out and the lifeguard tiny: portrait now follows a 9 x 12 m window (landscape 18 x 15 m), and the fog is set from the fitted camera distance (`fogFor`: it starts half a window past the aim, keeps the level's own depth, never nearer than the desk 22 m), restored on unmount. `looks.test.ts` fits both windows at 390 x 844 and 1280 x 800 with the pure `fitView`.
+- Palms and huts stood between the camera and the beach (the camera looks north from the south, so "behind the sand" was the camera side): tall decor now lines both ends of the beach only (>= 2 m past the play rectangle), and the camera side has only low clutter (sandcastles and coolers under 0.7 m, decor-fitted to 1 m). Tested in `looks.test.ts`.
+- The sand was one flat plane with a hard white line: one canvas texture now runs the whole beach width, wet sand from the water to the safe line at z = 2 with a soft tide line where it ends, dry sand in tone bands with ripples and grain.
 
 ## Known issues / for the playtest
 
