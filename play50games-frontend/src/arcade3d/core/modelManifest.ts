@@ -119,6 +119,11 @@ export const MODEL_MANIFEST: readonly string[] = [
    // Gen-2.5-Medium, 18k tris, static T-pose for the core auto-rig
    "/models/3d/ghost-vacuum/hunter.glb",
    "/models/3d/ghost-vacuum/candelabra.glb",
+   // tower-climb props (2026-10-25): batch 5 part A adoptions, Gen-2.5-Medium, optimized with
+   // tools/hyper3d (rocket pickup, spring pad, checkpoint ledge)
+   "/models/3d/tower-climb/rocketBooster.glb",
+   "/models/3d/tower-climb/springPad.glb",
+   "/models/3d/tower-climb/towerLedge.glb",
 ];
 
 const LISTED: ReadonlySet<string> = new Set(MODEL_MANIFEST);

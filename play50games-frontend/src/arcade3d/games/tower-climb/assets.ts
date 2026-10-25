@@ -22,21 +22,74 @@ const primitive = (id: string, color: string): ModelAsset => ({
    id, url: `/models/3d/tower-climb/${id}.glb`, fallback: "box", fallbackColor: color, budget: PROP_BUDGET,
 });
 
+/**
+ * towerLedge.glb raw bounds, measured on the mesh (assets.test.ts): a ledge chunk, feet on y = 0,
+ * centred on x/z. The checkpoint pool draws it at the slab slot's matrix (writeSlab: the slab's
+ * top). It takes the stand-in's 4.4 x 0.6 footprint and 0.16 body thickness, sunk yOffset so its
+ * top lands exactly on the slab top (slot.y): the same stand-on surface the rules measure.
+ */
+export const LEDGE_GLB = { width: 1.88069, height: 0.82993, depth: 1.89599 } as const;
+export const LEDGE_SCALE = 0.16 / LEDGE_GLB.height;
+export const LEDGE_STRETCH = [
+   4.4 / (LEDGE_GLB.width * LEDGE_SCALE), 1, 0.6 / (LEDGE_GLB.depth * LEDGE_SCALE),
+] as const;
+export const LEDGE_Y_OFFSET = -0.16;
+
+/**
+ * springPad.glb raw bounds, measured on the mesh (assets.test.ts): a flat disc on a stem, feet on
+ * y = 0. writeSpring places the matrix at the parent slab's top and squashes y on launch, so the
+ * pad is fitted to the stand-in's footprint and top: 0.51 across (the disc's 0.6 x 0.85, the rules'
+ * SPRING trigger half-width 0.26 + the runner) and 0.24 tall, the primitive arrow tips' top that
+ * stays under the 0.29 m clearance to the next slab. Feet at y = 0 keep it planted while it squishes.
+ */
+export const SPRING_GLB = { width: 1.8904, height: 0.77344, depth: 1.90084 } as const;
+export const SPRING_DRAWN = { diameter: 0.51, height: 0.24 } as const;
+export const SPRING_SCALE = SPRING_DRAWN.height / SPRING_GLB.height;
+export const SPRING_STRETCH = [
+   SPRING_DRAWN.diameter / (SPRING_GLB.width * SPRING_SCALE), 1,
+   SPRING_DRAWN.diameter / (SPRING_GLB.depth * SPRING_SCALE),
+] as const;
+
+/**
+ * rocketBooster.glb raw bounds, measured on the mesh (assets.test.ts): an egg-shaped pod with fins,
+ * feet on y = 0. The world pickup spins at writeRocket's 1.8 matrix scale, so the asset is fitted to
+ * the primitive's matrix-local size: 0.28 tall (x1.8 = 0.50 m on screen, the README's "about
+ * 0.5 m"), its footprint the body's 0.14 x 0.17 including the fin's reach. The feet stay on y = 0,
+ * so ROCKET.lift keeps floating the origin the same 0.7 m above the slab.
+ */
+export const ROCKET_GLB = { width: 1.3042, height: 1.89886, depth: 1.54154 } as const;
+export const ROCKET_DRAWN = { width: 0.14, depth: 0.17, height: 0.28 } as const;
+export const ROCKET_SCALE = ROCKET_DRAWN.height / ROCKET_GLB.height;
+export const ROCKET_STRETCH = [
+   ROCKET_DRAWN.width / (ROCKET_GLB.width * ROCKET_SCALE), 1,
+   ROCKET_DRAWN.depth / (ROCKET_GLB.depth * ROCKET_SCALE),
+] as const;
+
 export const ASSETS: Record<string, ModelAsset> = {
    runner: { ...SHARED_ASSETS.runner, scale: RUNNER_SCALE },
    slab: primitive("slab", "#38c9df"),
    movingSlab: primitive("moving-slab", "#a58bec"),
-   ledge: primitive("ledge", "#32aeac"),
+   // The GLB urls for slab / movingSlab / spur are absent from the model manifest, so nothing is
+   // fetched: those platforms keep their box stand-ins until their own GLBs land.
+   ledge: {
+      id: "ledge", url: "/models/3d/tower-climb/towerLedge.glb",
+      scale: LEDGE_SCALE, stretch: LEDGE_STRETCH, yOffset: LEDGE_Y_OFFSET,
+      fallback: "box", fallbackColor: "#32aeac", budget: PROP_BUDGET,
+   },
    spur: primitive("spur", "#ffa862"),
    coin: { ...SHARED_ASSETS.coin, scale: COIN_SCALE, stretch: [1, 1, 0.7], yOffset: (-COIN_SCALE * COIN_GLB_SIZE.height) / 2 },
    flag: {
       id: "checkpoint-flag", url: "/models/3d/tower-climb/checkpoint-flag.glb",
       scale: 0.8 / 1.9, fallback: "box", fallbackColor: "#ffd35d", budget: PROP_BUDGET,
    },
-   // No GLB yet: the url is absent from the model manifest, so nothing is fetched.
-   // The world pickup uses this asset with the bevelled fallback parts; Claude swaps the file in later.
+   spring: {
+      id: "spring", url: "/models/3d/tower-climb/springPad.glb",
+      scale: SPRING_SCALE, stretch: SPRING_STRETCH,
+      fallback: "box", fallbackColor: "#c6f54a", budget: PROP_BUDGET,
+   },
    rocket: {
-      id: "rocket", url: "/models/3d/tower-climb/rocket.glb", scale: 1,
+      id: "rocket", url: "/models/3d/tower-climb/rocketBooster.glb",
+      scale: ROCKET_SCALE, stretch: ROCKET_STRETCH,
       fallback: "box", fallbackColor: "#e8eef2", budget: PROP_BUDGET,
    },
 };

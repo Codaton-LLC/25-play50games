@@ -132,7 +132,7 @@ const SpringPads = memo(function SpringPads({ run, parts }: { run: TowerRun; par
       const age = run.springPad === parent && run.springMs >= 0 ? run.timeMs - run.springMs : -1;
       writeSpring(matrix, run.tower.xs[parent] / 1000, y, age);
    }, [run]);
-   return <DynamicInstanced count={SPRING_CAP} update={update} parts={parts.spring} name="spring-pads" />;
+   return <DynamicInstancedModel asset={ASSETS.spring} count={SPRING_CAP} update={update} fallbackParts={parts.spring} name="spring-pads" />;
 });
 
 const Rockets = memo(function Rockets({ run, parts }: { run: TowerRun; parts: TowerParts }) {
