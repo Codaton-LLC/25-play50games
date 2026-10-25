@@ -6,6 +6,8 @@
 
 import { capScore as capToLimits, withinServerLimits as fitsLimits } from "@/arcade3d/core/limits";
 import { createRng } from "@/arcade3d/core/math";
+import type { LevelId, ScoringRules } from "@/arcade3d/types";
+import { LEVELS, type PenaltyLevel } from "./levels";
 import { penaltyHeroMeta } from "./meta";
 
 export { createRng };
@@ -25,11 +27,32 @@ export const NEXT_GOAL_POINTS = 150;
 export const MAX_SCORE = penaltyHeroMeta.scoring.maxScore;
 export const MAX_POINTS_PER_SEC = penaltyHeroMeta.scoring.maxPointsPerSec;
 
+/**
+ * Per-level server limits (README "Levels" and "Server limits and why they hold"). Level 1 is
+ * the live meta.scoring, byte-for-byte in value. For every level maxScore = 100 + (shots - 1) *
+ * nextGoalPoints; B(t) peaks when that perfect run's last goal resolves, before its final hold.
+ * Claude copies levels 2-5 into arcade-games.json at merge; meta.levels holds the same values.
+ */
+export const PROPOSED_LEVEL_LIMITS: Record<LevelId, ScoringRules> = {
+   /** L1: today's 1450 / 15.5-225 s / base 0 / 95 pts per second, unchanged. */
+   1: penaltyHeroMeta.scoring,
+   /** L2: B = 100 + 11 * 150 = 1750; fastest 19.2 s; last goal 18.8 s; idle 235.2 s. */
+   2: { ...penaltyHeroMeta.scoring, maxScore: 1750, minDurationMs: 18_400, maxDurationMs: 245_000, maxPointsPerSec: 97 },
+   /** L3: B = 100 + 13 * 175 = 2375; fastest 22.4 s; last goal 22.0 s; idle 246.4 s. */
+   3: { ...penaltyHeroMeta.scoring, maxScore: 2375, minDurationMs: 21_500, maxDurationMs: 257_000, maxPointsPerSec: 113 },
+   /** L4: B = 100 + 15 * 175 = 2725; fastest 25.6 s; last goal 25.2 s; idle 249.6 s. */
+   4: { ...penaltyHeroMeta.scoring, maxScore: 2725, minDurationMs: 24_600, maxDurationMs: 260_000, maxPointsPerSec: 113 },
+   /** L5: B = 100 + 17 * 200 = 3500; fastest 28.8 s; last goal 28.4 s; idle 244.8 s. */
+   5: { ...penaltyHeroMeta.scoring, maxScore: 3500, minDurationMs: 27_600, maxDurationMs: 255_000, maxPointsPerSec: 129 },
+};
+
 export const RETICLE_PERIOD_S = 1.2;
 export const RETICLE_AMPLITUDE = 0.6;
 export const RETICLE_BAND = 0.25;
+export const WIND_PERIOD_S = 0.83;
 /** Mixes the run seed into the reticle stream so those draws cannot move the keeper stream. */
 export const RETICLE_SEED_MIX = 0x9e3779b9;
+export const READ_SEED_MIX = 0x85ebca6b;
 
 export const INITIAL_WEIGHT = 2;
 export const WIDE_X = 4.16;
@@ -96,13 +119,40 @@ export function zoneAt(x: number, y: number): ZoneId | null {
    return ZONES[zoneIndex(col, row)];
 }
 
+/** Horizontal drift of a target centre. Its tile always stays inside the original static zone. */
+export function targetDrift(aimMs: number, zone: number, shotsDone: number, level: PenaltyLevel): number {
+   if (level.movePeriodMs <= 0) return 0;
+   const amplitude = ((ZONE_WIDTH * (1 - level.targetScale)) / 2) * 0.8;
+   return amplitude * Math.sin((2 * Math.PI * aimMs) / level.movePeriodMs + zone * 1.37 + shotsDone * 0.73);
+}
+
+/** Goal-plane point to the level's visible target. Level 1 delegates to today's zoneAt unchanged. */
+export function levelZoneAt(x: number, y: number, aimMs: number, shotsDone: number, level: PenaltyLevel): ZoneId | null {
+   const id = zoneAt(x, y);
+   if (!id || level.targetScale === 1) return id;
+   const zone = indexOfZone(id);
+   const col = zone % 3, row = zone < 3 ? 1 : 0;
+   const centreX = ZONE_CENTRE_X[col] + targetDrift(aimMs, zone, shotsDone, level);
+   const halfW = Math.max(0, ZONE_WIDTH * level.targetScale - 0.08) / 2;
+   const halfH = Math.max(0, (GOAL_HEIGHT / 2) * level.targetScale - 0.08) / 2;
+   return Math.abs(x - centreX) <= halfW && Math.abs(y - ZONE_CENTRE_Y[row]) <= halfH ? id : null;
+}
+
 export function reticleOffset(aimMs: number, phase: number): number {
    const aimSeconds = aimMs / 1000;
    return RETICLE_AMPLITUDE * Math.sin((2 * Math.PI * aimSeconds) / RETICLE_PERIOD_S + phase);
 }
 
-export function isAccurate(offset: number): boolean {
-   return Math.abs(offset) <= RETICLE_BAND;
+/** The level's visible timing ring. Wind is a second deterministic gust, never wall-clock random. */
+export function levelReticleOffset(aimMs: number, phase: number, level: PenaltyLevel): number {
+   const aimSeconds = aimMs / 1000;
+   const offset = RETICLE_AMPLITUDE * Math.sin((2 * Math.PI * aimSeconds) / level.reticlePeriodS + phase);
+   if (level.wind === 0) return offset;
+   return offset + level.wind * Math.sin((2 * Math.PI * aimSeconds) / WIND_PERIOD_S + phase * 1.3);
+}
+
+export function isAccurate(offset: number, band: number = RETICLE_BAND): boolean {
+   return Math.abs(offset) <= band;
 }
 
 /**
@@ -123,26 +173,23 @@ export function drawWeightedIndex(weights: readonly number[], unit: number): num
 }
 
 /** Points for a goal struck while the streak (goals since the last miss) is `streakBefore`. */
-export function pointsForGoal(streakBefore: number): number {
-   return streakBefore > 0 ? NEXT_GOAL_POINTS : FIRST_GOAL_POINTS;
+export function pointsForGoal(streakBefore: number, nextPoints: number = NEXT_GOAL_POINTS): number {
+   return streakBefore > 0 ? nextPoints : FIRST_GOAL_POINTS;
 }
 
-/** The server's check (core/limits.ts) with this game's limits from meta.ts. */
-export function withinServerLimits(score: number, durationMs: number): boolean {
-   return fitsLimits(score, durationMs, penaltyHeroMeta.scoring);
+/** The server's check (core/limits.ts), defaulting to Level 1's live limits. */
+export function withinServerLimits(score: number, durationMs: number, limits: ScoringRules = penaltyHeroMeta.scoring): boolean {
+   return fitsLimits(score, durationMs, limits);
 }
 
-/**
- * Safety net only (core/limits.ts). Rounds elapsed the way GameShell does, then
- * min(score, 1450, floor(95 * roundedSeconds)). Reachable finished runs never hit it.
- */
-export function capScore(score: number, elapsedMs: number): number {
-   return capToLimits(score, elapsedMs, penaltyHeroMeta.scoring);
+/** Safety net only (core/limits.ts), with the picked level's limits. Real runs never need it. */
+export function capScore(score: number, elapsedMs: number, limits: ScoringRules = penaltyHeroMeta.scoring): number {
+   return capToLimits(score, elapsedMs, limits);
 }
 
 /** Same clamp as capScore, with the caller's duration kept beside the trimmed score. */
-export function finalScore(score: number, durationMs: number): { score: number; durationMs: number } {
-   return { score: capScore(score, durationMs), durationMs };
+export function finalScore(score: number, durationMs: number, limits: ScoringRules = penaltyHeroMeta.scoring): { score: number; durationMs: number } {
+   return { score: capScore(score, durationMs, limits), durationMs };
 }
 
 // ---------- run ----------
@@ -154,7 +201,7 @@ export interface StepEvents {
    saved: boolean;
    wide: boolean;
    timeout: boolean;
-   ended: "win" | null;
+   ended: "win" | "lose" | null;
 }
 
 /** One-frame direction presses, like core `InputState.pressed`. Each moves the highlight one zone. */
@@ -187,6 +234,7 @@ interface Pending {
 
 export interface RunState {
    seed: number;
+   config: PenaltyLevel;
    elapsedMs: number;
    phase: Phase;
    /** Time already spent in run-up, flight or hold. */
@@ -201,7 +249,7 @@ export interface RunState {
    goals: number;
    streak: number;
    score: number;
-   ended: "win" | null;
+   ended: "win" | "lose" | null;
    reticlePhase: number;
    /** Reticle offset sampled when the current shot locked. */
    reticle: number;
@@ -213,6 +261,7 @@ export interface RunState {
    events: StepEvents;
    keeperRng: () => number;
    reticleRng: () => number;
+   readRng: () => number;
 }
 
 function makeEvents(): StepEvents {
@@ -236,11 +285,12 @@ function indexOfZone(id: string): number {
    return -1;
 }
 
-export function createRun(seed: number): RunState {
+export function createRun(seed: number, level: PenaltyLevel = LEVELS[1]): RunState {
    const weights = [INITIAL_WEIGHT, INITIAL_WEIGHT, INITIAL_WEIGHT, INITIAL_WEIGHT, INITIAL_WEIGHT, INITIAL_WEIGHT];
    const reticleRng = createRng(reticleSeed(seed));
    const state: RunState = {
       seed,
+      config: level,
       elapsedMs: 0,
       phase: "aim",
       phaseMs: 0,
@@ -263,6 +313,7 @@ export function createRun(seed: number): RunState {
       events: makeEvents(),
       keeperRng: createRng(seed),
       reticleRng,
+      readRng: createRng((seed ^ READ_SEED_MIX) >>> 0),
    };
    state.reticlePhase = reticleRng() * Math.PI * 2;
    return state;
@@ -286,16 +337,22 @@ function aimHighlight(state: RunState, pressed: AimPresses | null | undefined): 
 
 function placeTarget(state: RunState, accurate: boolean, offset: number): void {
    state.targetY = ZONE_CENTRE_Y[state.row];
-   if (accurate) state.targetX = ZONE_CENTRE_X[state.col];
-   else state.targetX = Math.sign(offset) * WIDE_X;
+   if (accurate) {
+      const zone = zoneIndex(state.col, state.row);
+      state.targetX = ZONE_CENTRE_X[state.col] + targetDrift(state.aimMs, zone, state.shotsDone, state.config);
+   } else state.targetX = Math.sign(offset) * WIDE_X;
 }
 
 /** Draw the keeper from weights only, then reinforce the aimed zone. Timeouts never call this. */
 function lockShot(state: RunState): void {
    const zone = zoneIndex(state.col, state.row);
-   const offset = reticleOffset(state.aimMs, state.reticlePhase);
-   const accurate = isAccurate(offset);
-   const keeper = drawWeightedIndex(state.weights, state.keeperRng());
+   const offset = levelReticleOffset(state.aimMs, state.reticlePhase, state.config);
+   const accurate = isAccurate(offset, state.config.reticleBand);
+   let keeper = drawWeightedIndex(state.weights, state.keeperRng());
+   if (state.config.keeperRead > 0) {
+      const read = state.readRng();
+      if (keeper !== zone && read < state.config.keeperRead) keeper = zone;
+   }
    state.weights[zone] += 1;
    state.reticle = offset;
    state.keeperIndex = keeper;
@@ -319,7 +376,7 @@ function lockTimeout(state: RunState): void {
    pending.keeper = -1;
    pending.committed = false;
    state.keeperIndex = -1;
-   state.reticle = reticleOffset(state.aimMs, state.reticlePhase);
+   state.reticle = levelReticleOffset(state.aimMs, state.reticlePhase, state.config);
    state.targetX = BALL_SPOT.x;
    state.targetY = BALL_SPOT.y;
    state.phase = "runup";
@@ -347,7 +404,7 @@ function commit(state: RunState): void {
       state.lastResult = "saved";
       return;
    }
-   state.score += pointsForGoal(state.streak);
+   state.score += pointsForGoal(state.streak, state.config.nextGoalPoints);
    state.streak += 1;
    state.goals += 1;
    state.events.goal = true;
@@ -367,9 +424,10 @@ function finishPhase(state: RunState): void {
       return;
    }
    state.shotsDone += 1;
-   if (state.shotsDone >= SHOTS) {
-      state.ended = "win";
-      state.events.ended = "win";
+   if (state.shotsDone >= state.config.shots) {
+      const won = state.config.goalsToWin === 0 || state.goals >= state.config.goalsToWin;
+      state.ended = won ? "win" : "lose";
+      state.events.ended = state.ended;
       return;
    }
    state.phase = "aim";
@@ -384,20 +442,20 @@ function consume(state: RunState, dtMs: number): void {
    let left = dtMs;
    let guard = 0;
    while (left > 1e-6 && !state.ended && guard++ < 80) {
-      if (state.phase === "aim") {
-         const room = AIM_TIMEOUT_MS - state.aimMs;
-         if (room <= 1e-6) {
-            lockTimeout(state);
-            continue;
-         }
-         if (left < room) {
-            state.aimMs += left;
-            left = 0;
-         } else {
-            left -= room;
-            state.aimMs = AIM_TIMEOUT_MS;
-            lockTimeout(state);
-         }
+       if (state.phase === "aim") {
+          const room = state.config.aimTimeoutMs - state.aimMs;
+          if (room <= 1e-6) {
+             lockTimeout(state);
+             continue;
+          }
+          if (left < room) {
+             state.aimMs += left;
+             left = 0;
+          } else {
+             left -= room;
+             state.aimMs = state.config.aimTimeoutMs;
+             lockTimeout(state);
+          }
          continue;
       }
       const limit = ZONE_LIMIT_MS[state.phase];
@@ -431,7 +489,7 @@ export function step(state: RunState, dtMs: number, input: StepInput = {}): Step
 
    aimHighlight(state, input.pressed);
 
-   if (state.phase === "aim" && state.aimMs + dtMs < AIM_TIMEOUT_MS) {
+   if (state.phase === "aim" && state.aimMs + dtMs < state.config.aimTimeoutMs) {
       const tapIndex = typeof input.zoneId === "string" ? indexOfZone(input.zoneId) : -1;
       const tapped = tapIndex >= 0;
       if (tapped) {

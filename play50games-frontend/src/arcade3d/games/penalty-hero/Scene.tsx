@@ -20,6 +20,7 @@ import {
    Vector3,
    type Camera,
    type Group,
+   type Mesh,
    type MeshBasicMaterial,
 } from "three";
 import CameraRig from "@/arcade3d/core/CameraRig";
@@ -36,6 +37,7 @@ import { ASSETS } from "./assets";
 import { CAMERA_FOV, CAMERA_LOOK_AT, PENALTY_VIEW } from "./camera";
 import { FEEDBACK } from "./Hud";
 import { KEEPER_BOUNCE, KEEPER_HIP, KEEPER_ROOT, SPOT_Z, STRIKER_ROOT, keeperDip, keeperDivePlacement, keeperSway } from "./layout";
+import { usePenaltyLevel } from "./level";
 import { keeperDivePose, keeperReadyPose } from "./poses";
 import { BallPrimitive, Goal, KeeperPrimitive, Stadium, StrikerPrimitive } from "./Primitives";
 import { KICK_LEAN, RUNUP_LEAN, createStrikerFrame, drawStrikerPose, strikerFrame, strikerPose } from "./strikerMotion";

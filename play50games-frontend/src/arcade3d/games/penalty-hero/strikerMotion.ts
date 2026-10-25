@@ -17,7 +17,7 @@ import { BONE, POSE_MASK, blendPoses, createPose, footPoint, idlePose, levelFoot
 import { ASSETS, STRIKER_LANDMARKS } from "./assets";
 import { BACKSWING_FROM, strikerPlacement } from "./layout";
 import { KICK_CONTACT, KICK_SIDE, kickPose, plantLeg } from "./poses";
-import { HOLD_MS, RUNUP_MS, SHOTS, type RunState } from "./rules";
+import { HOLD_MS, RUNUP_MS, type RunState } from "./rules";
 
 /** The striker's lean into the run-up (rad): the stand-in's whole body, the GLB's spine. */
 export const RUNUP_LEAN = 0.22;
@@ -132,7 +132,7 @@ export function strikerFrame(run: RunState, out: StrikerFrame): StrikerFrame {
       if (shot && run.phase === "hold") {
          tau = run.phaseMs;
          // the hold of the last shot (rules.ts counts it done as the hold ends): the run ends there
-         out.stay = run.shotsDone >= SHOTS - 1;
+         out.stay = run.shotsDone >= run.config.shots - 1;
       } else if (run.phase === "aim") tau = previousReturnMs(run);
       if (tau >= 0 && tau < returnEndMs(out.stay)) {
          out.mode = "return";
