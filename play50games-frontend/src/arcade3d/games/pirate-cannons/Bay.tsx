@@ -16,12 +16,12 @@ import {
    type Mesh,
 } from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
-import { InstancedModel } from "@/arcade3d/core/assets";
+import { InstancedModel, Model } from "@/arcade3d/core/assets";
 import { SkyDome, Water } from "@/arcade3d/core/env";
 import { useGameTime } from "@/arcade3d/core/gameTime";
 import { Instanced, type InstanceSpot } from "@/arcade3d/core/render";
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
-import { ASSETS, PALM_BASE_Z } from "./assets";
+import { ASSETS, LIGHTHOUSE_AT, PALM_BASE_Z } from "./assets";
 import { Decor } from "./Decor";
 import { COLORS, FORT } from "./looks";
 import { PalmPrimitives } from "./Primitives";
@@ -152,16 +152,6 @@ export function Bay({ run }: { run: RunState }) {
       return m;
    }, []);
 
-   // Lighthouse composite geometry
-   const lighthouseGeo = useMemo(() => {
-      const base = new CylinderGeometry(1.2, 1.45, 1.8, 12).translate(0, 0.9, 0);
-      const shaft = new CylinderGeometry(0.72, 1.15, 4.4, 12).translate(0, 4.0, 0);
-      const gallery = new CylinderGeometry(0.95, 0.95, 0.22, 12).translate(0, 6.3, 0);
-      const lantern = new CylinderGeometry(0.65, 0.65, 0.9, 10).translate(0, 6.85, 0);
-      const dome = new CylinderGeometry(0.01, 0.85, 0.95, 12).translate(0, 7.8, 0);
-      return { base, shaft, gallery, lantern, dome };
-   }, []);
-
    // Buoy geometry: tapered conical body + cage top
    const buoyGeo = useMemo(() => {
       const body = new CylinderGeometry(0.32, 0.48, 1.1, 10).translate(0, 0.55, 0);
@@ -179,9 +169,8 @@ export function Bay({ run }: { run: RunState }) {
       () => () => {
          merlonGeo.dispose();
          buoyGeo.dispose();
-         for (const g of Object.values(lighthouseGeo)) g.dispose();
       },
-      [merlonGeo, buoyGeo, lighthouseGeo]
+      [merlonGeo, buoyGeo]
    );
 
    return (
@@ -286,22 +275,35 @@ export function Bay({ run }: { run: RunState }) {
             <meshStandardMaterial color={COLORS.stoneTrim} roughness={0.85} />
          </mesh>
 
-         {/* Banded Caribbean lighthouse with beacon */}
-         <mesh position={[SEA.harbourX + 4, 0, -61]} geometry={lighthouseGeo.base}>
-            <meshStandardMaterial color={COLORS.stone} roughness={0.9} />
-         </mesh>
-         <mesh position={[SEA.harbourX + 4, 0, -61]} geometry={lighthouseGeo.shaft}>
-            <meshStandardMaterial color="#f8fafc" roughness={0.5} />
-         </mesh>
-         <mesh position={[SEA.harbourX + 4, 0, -61]} geometry={lighthouseGeo.gallery}>
-            <meshStandardMaterial color={COLORS.bronze} roughness={0.4} metalness={0.5} />
-         </mesh>
-         <mesh position={[SEA.harbourX + 4, 0, -61]} geometry={lighthouseGeo.lantern}>
-            <meshStandardMaterial color={COLORS.beacon} emissive={COLORS.beacon} emissiveIntensity={0.65} roughness={0.2} />
-         </mesh>
-         <mesh position={[SEA.harbourX + 4, 0, -61]} geometry={lighthouseGeo.dome}>
-            <meshStandardMaterial color={COLORS.accent} roughness={0.5} />
-         </mesh>
+         {/* Banded lighthouse. Feet on the mole, south of the play sea. */}
+         <Model
+            asset={ASSETS.lighthouse}
+            position={[SEA.harbourX + LIGHTHOUSE_AT.dx, 0, LIGHTHOUSE_AT.z]}
+            fallback={
+               <group>
+                  <mesh position={[0, 0.9, 0]} castShadow>
+                     <cylinderGeometry args={[1.2, 1.45, 1.8, 12]} />
+                     <meshStandardMaterial color={COLORS.stone} roughness={0.9} />
+                  </mesh>
+                  <mesh position={[0, 4, 0]}>
+                     <cylinderGeometry args={[0.72, 1.15, 4.4, 12]} />
+                     <meshStandardMaterial color="#f8fafc" roughness={0.5} />
+                  </mesh>
+                  <mesh position={[0, 6.3, 0]}>
+                     <cylinderGeometry args={[0.95, 0.95, 0.22, 12]} />
+                     <meshStandardMaterial color={COLORS.bronze} roughness={0.4} metalness={0.5} />
+                  </mesh>
+                  <mesh position={[0, 6.85, 0]}>
+                     <cylinderGeometry args={[0.65, 0.65, 0.9, 10]} />
+                     <meshStandardMaterial color={COLORS.beacon} emissive={COLORS.beacon} emissiveIntensity={0.65} roughness={0.2} />
+                  </mesh>
+                  <mesh position={[0, 7.8, 0]}>
+                     <cylinderGeometry args={[0.01, 0.85, 0.95, 12]} />
+                     <meshStandardMaterial color={COLORS.accent} roughness={0.5} />
+                  </mesh>
+               </group>
+            }
+         />
       </group>
    );
 }

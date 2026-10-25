@@ -1,11 +1,12 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { Box3, BufferGeometry, Float32BufferAttribute, Group, Matrix4, Mesh, Quaternion, Vector3 } from "three";
 import { describe, expect, it } from "vitest";
 import { modelParts } from "@/arcade3d/core/assets";
 import { readCharacterGlb } from "@/arcade3d/core/rig/robotGlb";
 import { EXPANSION_GLB_SIZE } from "@/arcade3d/core/sharedAssets";
-import { ASSETS, BELLY_LIFT, BELLY_ROTATION_Y, FLAG_BOUNDS, PENGUIN_SCALE, SNOWMAN_GLB, SNOWMAN_SCALE, bellyClearance } from "./assets";
+import { ASSETS, BELLY_LIFT, BELLY_ROTATION_Y, FLAG_BOUNDS, ICE_ARCH_GLB, ICE_ARCH_LATERAL, ICE_ARCH_WIDTH, PENGUIN_SCALE, SNOWMAN_GLB, SNOWMAN_SCALE, bellyClearance } from "./assets";
+import { COURSE } from "./rules";
 
 interface Glb {
    accessors: Array<{ min: number[]; max: number[] }>;
@@ -113,5 +114,26 @@ describe("penguin-slide real GLB fits", () => {
       let nose: Vector3 | null = null;
       for (const p of points) if (p.y > 0.9 && (!nose || p.z > nose.z)) nose = p;
       expect(nose!.z).toBeGreaterThan(0.4);
+   });
+
+   it("fits the ice arch beside the course, clear of the widest half-width", async () => {
+      expect(existsSync(resolve("public", ASSETS.iceArch.url.slice(1)))).toBe(true);
+      const { local, node } = await readCharacterGlb(ASSETS.iceArch.url);
+      const geometry = new BufferGeometry();
+      geometry.setAttribute("position", new Float32BufferAttribute(local, 3));
+      const mesh = new Mesh(geometry);
+      mesh.position.fromArray(node);
+      const root = new Group();
+      root.add(mesh);
+      const parts = modelParts(root, ASSETS.iceArch);
+      expect(parts).toHaveLength(1);
+      const box = new Box3();
+      const v = new Vector3();
+      for (let i = 0; i < local.length; i += 3) box.expandByPoint(v.set(local[i], local[i + 1], local[i + 2]).applyMatrix4(parts[0].matrix));
+      geometry.dispose();
+      expect(box.min.y).toBeCloseTo(0, 2);
+      expect(box.max.x - box.min.x).toBeCloseTo(ICE_ARCH_WIDTH, 2);
+      expect(box.max.y - box.min.y).toBeCloseTo(ICE_ARCH_GLB.height * (ICE_ARCH_WIDTH / ICE_ARCH_GLB.width), 2);
+      expect(ICE_ARCH_LATERAL - ICE_ARCH_WIDTH / 2).toBeGreaterThan(COURSE.width + 1);
    });
 });

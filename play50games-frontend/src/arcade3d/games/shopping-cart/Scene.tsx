@@ -6,7 +6,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import { DoubleSide, Group, Matrix4, MeshStandardMaterial, RepeatWrapping } from "three";
 import CameraRig from "@/arcade3d/core/CameraRig";
-import { Model } from "@/arcade3d/core/assets";
+import { InstancedModel, Model } from "@/arcade3d/core/assets";
 import { playSfx, startLoop, type LoopHandle } from "@/arcade3d/core/audio";
 import { SkyDome } from "@/arcade3d/core/env";
 import { useFx } from "@/arcade3d/core/fx";
@@ -18,7 +18,7 @@ import { HumanoidModel, createPose, useHumanoidPose } from "@/arcade3d/core/rig"
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { useFittedView } from "@/arcade3d/core/useFittedView";
 import { useRunFrame } from "@/arcade3d/core/useRunFrame";
-import { ASSETS } from "./assets";
+import { ASSETS, BAKERY_DRAWN, BAKERY_FALLBACK_SPOTS, BAKERY_HEIGHT, BAKERY_SPOTS, SHELF_BAYS } from "./assets";
 import { STORE_BOUNDS, viewFor } from "./camera";
 import { Decor } from "./Decor";
 import { COLORS, FLOOR } from "./looks";
@@ -762,26 +762,45 @@ function StoreEnvironment({ run }: { run: RunState }) {
             />
          </mesh>
 
-         {/* Instanced 4 Aisle Shelf Blocks: 4 draw calls total */}
-         <Instanced spots={SHELF_SPOTS} name="shelves-body">
-            <boxGeometry args={[1.2, 1.8, 12.0]} />
-            <meshStandardMaterial color={COLORS.shelfBody} roughness={0.4} metalness={0.15} />
-         </Instanced>
+         {/* Aisle shelves: one instanced GLB bay, six copies along each of the four islands. */}
+         <InstancedModel
+            asset={ASSETS.shelf}
+            spots={SHELF_BAYS}
+            fallback={
+               <>
+                  <Instanced spots={SHELF_SPOTS} name="shelves-body">
+                     <boxGeometry args={[1.2, 1.8, 12.0]} />
+                     <meshStandardMaterial color={COLORS.shelfBody} roughness={0.4} metalness={0.15} />
+                  </Instanced>
+                  <Instanced spots={SHELF_TRIM_SPOTS} name="shelves-base">
+                     <boxGeometry args={[1.25, 0.2, 12.05]} />
+                     <meshStandardMaterial color={COLORS.shelfBase} roughness={0.7} />
+                  </Instanced>
+               </>
+            }
+         />
 
-         <Instanced spots={SHELF_TRIM_SPOTS} name="shelves-base">
-            <boxGeometry args={[1.25, 0.2, 12.05]} />
-            <meshStandardMaterial color={COLORS.shelfBase} roughness={0.7} />
-         </Instanced>
-
+         {/* The aisle banners and blue category signs stay on top of the GLB bays (the look pass's readable signs). */}
          <Instanced spots={SHELF_BANNER_SPOTS} name="shelves-banner">
             <boxGeometry args={[1.22, 0.12, 12.0]} />
             <meshStandardMaterial color={COLORS.shelfBanner} roughness={0.35} />
          </Instanced>
-
          <Instanced spots={SHELF_SIGN_SPOTS} name="shelves-signs">
             <boxGeometry args={[1.15, 0.25, 2.4]} />
             <meshStandardMaterial color={COLORS.categoryBlue} emissive={COLORS.categoryBlue} emissiveIntensity={0.25} roughness={0.4} />
          </Instanced>
+
+         {/* Bakery stalls on the north apron, outside the play box. */}
+         <InstancedModel
+            asset={ASSETS.bakery}
+            spots={BAKERY_SPOTS}
+            fallback={
+               <Instanced spots={BAKERY_FALLBACK_SPOTS} name="bakery-fallback">
+                  <boxGeometry args={[BAKERY_DRAWN.width, BAKERY_HEIGHT, BAKERY_DRAWN.depth]} />
+                  <meshStandardMaterial color="#fde68a" roughness={0.6} />
+               </Instanced>
+            }
+         />
 
          {/* Fruit Island Produce Display */}
          <group
