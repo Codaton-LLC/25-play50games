@@ -1,0 +1,142 @@
+{
+   "slug": "burger-delivery-scooter",
+   "universe": "premium toy city",
+   "seed": 505033,
+   "assets": [
+      {
+         "id": "charScooterRider",
+         "kind": "character",
+         "mode": "text",
+         "prompt": "Rounded premium toy-city charScooterRider, clean two-tone materials, isolated game-ready model, no text.",
+         "tier": "Gen-2.5-Low",
+         "qualityOverride": 18000,
+         "attempts": 1,
+         "target": "burger-delivery-scooter",
+         "budget": {
+            "tris": 20000,
+            "bytes": 600000
+         },
+         "textureSize": 512
+      },
+      {
+         "id": "deliveryScooter",
+         "kind": "prop",
+         "mode": "text",
+         "prompt": "Rounded premium toy-city deliveryScooter, clean two-tone materials, isolated game-ready model, no text.",
+         "tier": "Gen-2.5-Low",
+         "qualityOverride": 5000,
+         "attempts": 1,
+         "target": "burger-delivery-scooter",
+         "budget": {
+            "tris": 20000,
+            "bytes": 600000
+         },
+         "textureSize": 512
+      },
+      {
+         "id": "deliveryBoxV2",
+         "kind": "prop",
+         "mode": "text",
+         "prompt": "Rounded premium toy-city deliveryBoxV2, clean two-tone materials, isolated game-ready model, no text.",
+         "tier": "Gen-2.5-Low",
+         "qualityOverride": 5000,
+         "attempts": 1,
+         "target": "burger-delivery-scooter",
+         "budget": {
+            "tris": 20000,
+            "bytes": 600000
+         },
+         "textureSize": 512
+      },
+      {
+         "id": "burgerBag",
+         "kind": "prop",
+         "mode": "text",
+         "prompt": "Rounded premium toy-city burgerBag, clean two-tone materials, isolated game-ready model, no text.",
+         "tier": "Gen-2.5-Low",
+         "qualityOverride": 5000,
+         "attempts": 1,
+         "target": "burger-delivery-scooter",
+         "budget": {
+            "tris": 20000,
+            "bytes": 600000
+         },
+         "textureSize": 512
+      },
+      {
+         "id": "foodBoxV2",
+         "kind": "prop",
+         "mode": "text",
+         "prompt": "Rounded premium toy-city foodBoxV2, clean two-tone materials, isolated game-ready model, no text.",
+         "tier": "Gen-2.5-Low",
+         "qualityOverride": 5000,
+         "attempts": 1,
+         "target": "burger-delivery-scooter",
+         "budget": {
+            "tris": 20000,
+            "bytes": 600000
+         },
+         "textureSize": 512
+      },
+      {
+         "id": "restaurantCounter",
+         "kind": "prop",
+         "mode": "text",
+         "prompt": "Rounded premium toy-city restaurantCounter, clean two-tone materials, isolated game-ready model, no text.",
+         "tier": "Gen-2.5-Low",
+         "qualityOverride": 5000,
+         "attempts": 1,
+         "target": "burger-delivery-scooter",
+         "budget": {
+            "tris": 20000,
+            "bytes": 600000
+         },
+         "textureSize": 512
+      },
+      {
+         "id": "burgerShop",
+         "kind": "prop",
+         "mode": "text",
+         "prompt": "Rounded premium toy-city burgerShop, clean two-tone materials, isolated game-ready model, no text.",
+         "tier": "Gen-2.5-Low",
+         "qualityOverride": 5000,
+         "attempts": 1,
+         "target": "burger-delivery-scooter",
+         "budget": {
+            "tris": 20000,
+            "bytes": 600000
+         },
+         "textureSize": 512
+      },
+      {
+         "id": "roadBarrier",
+         "kind": "prop",
+         "mode": "text",
+         "prompt": "Rounded premium toy-city roadBarrier, clean two-tone materials, isolated game-ready model, no text.",
+         "tier": "Gen-2.5-Low",
+         "qualityOverride": 5000,
+         "attempts": 1,
+         "target": "burger-delivery-scooter",
+         "budget": {
+            "tris": 20000,
+            "bytes": 600000
+         },
+         "textureSize": 512
+      },
+      {
+         "id": "trafficCone",
+         "kind": "prop",
+         "mode": "text",
+         "prompt": "Rounded premium toy-city trafficCone, clean two-tone materials, isolated game-ready model, no text.",
+         "tier": "Gen-2.5-Low",
+         "qualityOverride": 5000,
+         "attempts": 1,
+         "target": "burger-delivery-scooter",
+         "budget": {
+            "tris": 20000,
+            "bytes": 600000
+         },
+         "textureSize": 512
+      }
+   ]
+}
