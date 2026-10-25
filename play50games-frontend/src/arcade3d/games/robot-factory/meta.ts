@@ -27,15 +27,15 @@ const LEVELS: readonly LevelMeta[] = [
    { id: 1, title: "Basic Sort", scoring: SCORING },
    { id: 2, title: "Shape Sort", scoring: levelScoring(6370, 10000, 122000, 300, 52) },
    { id: 3, title: "Color + Shape", scoring: levelScoring(6370, 10000, 122000, 300, 52) },
-   { id: 4, title: "Fast Factory", scoring: levelScoring(6370, 8500, 122000, 300, 52) },
-   { id: 5, title: "Overdrive", scoring: levelScoring(7260, 8500, 122000, 300, 60) },
+   { id: 4, title: "Fast Factory", scoring: levelScoring(5640, 13300, 122000, 120, 62) },
+   { id: 5, title: "Overdrive", scoring: levelScoring(6310, 11800, 122000, 120, 70) },
 ];
 
 export const robotFactoryMeta: ArcadeGameMeta = {
    slug: "robot-factory",
    title: "Robot Factory Sorter",
    tagline: "Right part, right order.",
-   description: "Build robots on a humming assembly line: grab the right parts off the conveyor in the order the blueprint asks, and scrap the faulty ones.",
+   description: "Build robots from the blueprint, then on the fast shifts sort each part into the bin with the same colour and icon while the belt speeds up.",
    order: 22,
    status: "dev",
    collection: "skill",
@@ -43,8 +43,8 @@ export const robotFactoryMeta: ArcadeGameMeta = {
    orientation: "any",
    controls: {
       scheme: "tap-target",
-      keyboard: "Space to grab, S / Down to scrap, or click a part",
-      touch: "Tap a part to grab, swipe down to scrap",
+      keyboard: "Space to grab, S / Down to scrap, or click a part. On the fast shifts, keys 1-4 drop into that bin",
+      touch: "Tap a part to grab, swipe down to scrap. On the fast shifts, tap the bin with the same colour and icon",
    },
    scoring: SCORING,
    levels: LEVELS,

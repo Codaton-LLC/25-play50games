@@ -30,10 +30,16 @@ import {
    NO_INPUT,
    perfectScore,
    robotsFor,
+   SORTER,
+   SORT_BINS,
+   sorterBeltDistance,
+   sorterMaxSorts,
+   sorterTimeToCover,
    stepRun,
    syncStore,
    withinServerLimits,
    type FrameInput,
+   type Part,
    type Run,
 } from "./rules";
 
@@ -44,6 +50,10 @@ const prev = (id: LevelId): FactoryLevel => LEVELS[(id - 1) as LevelId];
 
 /** Installs, robots and points at the end of the shift if every needed part is taken at the top combo. */
 function ceiling(level: FactoryLevel): { installs: number; robots: number; score: number } {
+   if (level.sorter) {
+      const installs = sorterMaxSorts(level.duration, level);
+      return { installs, robots: 0, score: perfectScore(installs, 0) };
+   }
    const installs = maxInstalls(level.duration, level);
    const robots = robotsFor(installs);
    return { installs, robots, score: perfectScore(installs, robots) };
@@ -51,6 +61,40 @@ function ceiling(level: FactoryLevel): { installs: number; robots: number; score
 
 /** Longest a missed needed part can take to re-enter the grab zone, at the slowest belt. */
 const fairnessWait = (level: FactoryLevel) => level.period + BELT.GRAB_MIN / level.v0;
+
+/** Drops the grab-zone part into its own bin. One part is in the zone, so nearest-the-exit is that part. */
+const sorterOracle = (run: Run): FrameInput => {
+   if (run.lockout > 0) return NO_INPUT;
+   let best: Part | null = null;
+   for (const p of run.parts) {
+      if (!inZone(p)) continue;
+      if (!best || p.sEq > best.sEq) best = p;
+   }
+   if (!best) return NO_INPUT;
+   return { grab: false, scrap: false, target: -1, bin: best.step };
+};
+
+/** 150-250 ms, then the matching bin; 3 % of the time the next bin along. The same window on every device. */
+function honestSorter(seed: number): (run: Run, seen: Map<number, number>) => FrameInput {
+   const rng: RngState = { s: seed * 7919 + 13 };
+   const delay = new Map<number, number>();
+   return (run, seen) => {
+      for (const p of run.parts) {
+         if (!inZone(p) || delay.has(p.uid)) continue;
+         delay.set(p.uid, 0.15 + 0.1 * rngNext(rng));
+      }
+      if (run.lockout > 0) return NO_INPUT;
+      for (const p of run.parts) {
+         if (!inZone(p) || run.t - (seen.get(p.uid) ?? run.t) < (delay.get(p.uid) ?? 1)) continue;
+         const bin = rngNext(rng) < 0.03 ? (p.step + 1) % SORTER.BINS : p.step;
+         return { grab: false, scrap: false, target: -1, bin };
+      }
+      return NO_INPUT;
+   };
+}
+
+const blindSorter = (run: Run): FrameInput => ({ grab: false, scrap: false, target: -1, bin: Math.floor(run.t * 5) % SORTER.BINS });
+const spamSorter = (): FrameInput => ({ grab: false, scrap: false, target: -1, bin: 0 });
 
 const perfectBot = (run: Run): FrameInput => {
    let grab = -1;
@@ -179,16 +223,23 @@ describe("robot-factory levels: declarations", () => {
       for (const id of LEVEL_IDS) {
          expect(levelRunConfig(definition, id)).toEqual(levelRunConfig(definition, 1));
          expect(levelEnvironment(definition, id)!.lighting).toBe("indoor");
+      }
+      for (const id of [1, 2, 3] as const) {
          expect(levelHudStats(definition, id)!.map((stat) => stat.key)).toEqual(["robots", "combo", "time"]);
       }
-      for (const id of LEVEL_IDS.slice(1)) {
+      for (const id of [2, 3] as const) {
          expect(levelHudStats(definition, id)![0].max).toBe(LEVELS[id].winQuota);
          expect(levelInstructions(definition, id).at(-1)).toBe(
             `Build ${LEVELS[id].winQuota} robots in the ${LEVELS[id].duration} s shift. Clean grabs build a combo.`,
          );
       }
-      expect(levelInstructions(definition, 4).some((line) => line.includes("sorting"))).toBe(true);
-      expect(levelInstructions(definition, 5).some((line) => line.includes("sorting"))).toBe(true);
+      for (const id of [4, 5] as const) {
+         expect(levelHudStats(definition, id)!.map((stat) => stat.key)).toEqual(["sorted", "combo", "time"]);
+         expect(levelHudStats(definition, id)![0].max).toBe(LEVELS[id].sortQuota);
+         expect(levelInstructions(definition, id).some((line) => line.includes("sorting"))).toBe(true);
+         expect(levelInstructions(definition, id).some((line) => line.includes("1 to 4"))).toBe(true);
+         expect(levelInstructions(definition, id).at(-1)).toContain(`Sort ${LEVELS[id].sortQuota} parts`);
+      }
    });
 });
 
@@ -215,6 +266,13 @@ describe("robot-factory levels: difficulty", () => {
       expect(LEVEL_IDS.map((id) => LEVELS[id].winQuota)).toEqual([5, 6, 7, 9, 11]);
       expect(LEVELS[4].sorter).toBe(true);
       expect(LEVELS[5].sorter).toBe(true);
+      expect(LEVELS[4].sortQuota).toBe(38);
+      expect(LEVELS[5].sortQuota).toBe(50);
+      expect(LEVELS[5].sortV1).toBeGreaterThan(LEVELS[4].sortV1);
+      expect(LEVELS[5].sortV0).toBeGreaterThan(LEVELS[4].sortV0);
+      // four bins, each a different colour and a different silhouette
+      expect(new Set(SORT_BINS.map((bin) => bin.colour)).size).toBe(4);
+      expect(new Set(SORT_BINS.map((bin) => bin.shape)).size).toBe(4);
    });
 
    it("keeps the lattice fair: half a period clears the gap, and a miss is replaced inside 4 s", () => {
@@ -224,6 +282,12 @@ describe("robot-factory levels: difficulty", () => {
          expect(fairnessWait(level)).toBeLessThan(4);
          // a wrong grab's 1.0 s lockout still outlasts a part's time in the 1.8 m grab zone
          expect((BELT.GRAB_MAX - BELT.GRAB_MIN) / level.vMax).toBeLessThan(1);
+         if (level.sorter) {
+            const dwell = (BELT.GRAB_MAX - BELT.GRAB_MIN) / level.sortV1;
+            expect(dwell).toBeGreaterThan(0.5);
+            expect(dwell).toBeLessThan(1);
+            expect(SORTER.GAP).toBeGreaterThan(BELT.GRAB_MAX - BELT.GRAB_MIN);
+         }
       }
    });
 });
@@ -240,13 +304,23 @@ describe("robot-factory levels: limit proof per level (README)", () => {
       expect(top.score).toBeLessThanOrEqual(3 * ceiling(LEVELS[1]).score);
       expect(limits.minDurationMs).toBeLessThanOrEqual(earliest * 1000);
       expect(limits.minDurationMs).toBeGreaterThan(earliest * 1000 * 0.95);
-      expect(limits.maxDurationMs).toBeGreaterThanOrEqual(level.duration * 1000 + 2000);
-      expect(limits.maxDurationMs).toBeLessThanOrEqual(level.duration * 1000 + 2000);
-      for (let t = 0; t <= level.duration + 1e-9; t += 0.01) {
-         const m = maxInstalls(t, level);
-         const bound = perfectScore(m, robotsFor(m));
-         expect(bound).toBeLessThanOrEqual(limits.base! + limits.maxPointsPerSec! * t);
-         expect(5 * robotsFor(m)).toBeLessThanOrEqual(m + 7);
+      expect(limits.maxDurationMs).toBe(level.duration * 1000 + 2000);
+      if (level.sorter) {
+         for (const distance of [0.5, 1.9, 40, 200]) {
+            const at = sorterTimeToCover(distance, level);
+            expect(sorterBeltDistance(0, at, level)).toBeCloseTo(distance, 5);
+         }
+         for (let t = 0; t <= level.duration + 1e-9; t += 0.01) {
+            const bound = perfectScore(sorterMaxSorts(t, level), 0);
+            expect(bound).toBeLessThanOrEqual(limits.base! + limits.maxPointsPerSec! * t);
+         }
+      } else {
+         for (let t = 0; t <= level.duration + 1e-9; t += 0.01) {
+            const m = maxInstalls(t, level);
+            const bound = perfectScore(m, robotsFor(m));
+            expect(bound).toBeLessThanOrEqual(limits.base! + limits.maxPointsPerSec! * t);
+            expect(5 * robotsFor(m)).toBeLessThanOrEqual(m + 7);
+         }
       }
       expect(withinServerLimits(top.score, level.duration * 1000, limits)).toBe(true);
       expect(capScore(top.score, level.duration * 1000, limits)).toBe(top.score);
@@ -275,7 +349,7 @@ describe("robot-factory levels: lattice and bots", () => {
          const limits = PROPOSED_LEVEL_LIMITS[id];
          for (let seed = 1; seed <= 30; seed++) {
             const frame = seed % 3 === 0 ? () => 1 / 30 : seed % 3 === 1 ? () => 1 / 60 : () => 1 / 144;
-            const { run } = play(level, seed, perfectBot, frame);
+            const { run } = play(level, seed, level.sorter ? sorterOracle : perfectBot, frame);
             expect(run.outcome, `L${id} seed ${seed}`).toBe("win");
             expect(run.partsInstalled, `L${id} seed ${seed}`).toBe(top.installs);
             expect(run.robot, `L${id} seed ${seed}`).toBe(top.robots);
@@ -294,7 +368,7 @@ describe("robot-factory levels: lattice and bots", () => {
          let total = 0;
          for (let seed = 1; seed <= 200; seed++) {
             const frame = randomFrames(seed + 500, 0.012, 0.05);
-            const { run } = play(level, seed, humanBot(seed), frame);
+            const { run } = play(level, seed, level.sorter ? honestSorter(seed) : humanBot(seed), frame);
             if (run.outcome === "win") wins++;
             total += run.score;
             expect(run.t).toBeGreaterThanOrEqual(earliestLossS(level) - 1e-6);
@@ -302,7 +376,7 @@ describe("robot-factory levels: lattice and bots", () => {
             expect(capScore(run.score, run.t * 1000, PROPOSED_LEVEL_LIMITS[id])).toBe(run.score);
          }
          rates[id] = { wins, mean: Math.round(total / 200) };
-         expect(wins, `L${id}`).toBeGreaterThanOrEqual(180);
+         expect(wins, `L${id}`).toBeGreaterThanOrEqual(level.sorter ? 190 : 180);
          let idleWins = 0;
          for (let seed = 1; seed <= 20; seed++) {
             const { run } = play(level, seed, () => NO_INPUT, () => 1 / 30);
@@ -339,7 +413,7 @@ describe("robot-factory levels: lattice and bots", () => {
                resultDelayMs: SHIFT.RESULT_DELAY_MS,
                frame: fixedFrames(1000 / hz),
                step: (dt) => {
-                  stepRun(run, perfectBot(run), dt);
+                  stepRun(run, (level.sorter ? sorterOracle : perfectBot)(run), dt);
                   syncStore(run, store.getState(), shown);
                },
             });
@@ -349,7 +423,73 @@ describe("robot-factory levels: lattice and bots", () => {
             expect(withinServerLimits(end.score, end.elapsedMs, limits)).toBe(true);
             expect(capScore(end.score, end.elapsedMs, limits)).toBe(end.score);
             expect(isLevelCleared(end.endReason, end.score, meta.levels![id - 1])).toBe(true);
+            if (level.sorter) expect(end.stats.sorted).toBe(ceiling(level).installs);
          }
       }
    }, 120000);
+});
+
+describe("robot-factory sorter rules", () => {
+   function untilZone(level: FactoryLevel, seed = 1): Run {
+      const run = createRun(seed, level);
+      for (let i = 0; i < 400 && !run.parts.some(inZone); i++) stepRun(run, NO_INPUT, 1 / 60);
+      return run;
+   }
+
+   it("a correct bin scores, a wrong bin costs 10 and locks for 1 s, a fall-off is a miss", () => {
+      const run = untilZone(LEVELS[4], 2);
+      const part = run.parts.find(inZone)!;
+      expect(part.step).toBeGreaterThanOrEqual(0);
+      expect(SORT_BINS[part.step].kind).toBe(part.kind);
+      expect(SORT_BINS[part.step].colour).toBe(part.colour);
+      stepRun(run, { grab: false, scrap: false, target: -1, bin: (part.step + 1) % 4 }, 1 / 60);
+      expect(run.wrongGrabs).toBe(1);
+      expect(run.score).toBe(0);
+      expect(run.lockout).toBeCloseTo(1, 5);
+      expect(run.partsInstalled).toBe(0);
+      // the lockout blocks the next drop; after it, a correct drop scores and a later mistake costs 10
+      for (let i = 0; i < 90 && run.lockout > 0; i++) stepRun(run, NO_INPUT, 1 / 60);
+      expect(run.lockout).toBe(0);
+      const again = untilZone(LEVELS[4], 3);
+      const good = again.parts.find(inZone)!;
+      stepRun(again, { grab: false, scrap: false, target: -1, bin: good.step }, 1 / 60);
+      expect(again.partsInstalled).toBe(1);
+      expect(again.score).toBe(20);
+      expect(again.lockout).toBe(0);
+      const next = createRun(4, LEVELS[5]);
+      while (!next.over && next.partsInstalled < 1) {
+         const zoned = next.parts.find(inZone);
+         stepRun(next, zoned ? { grab: false, scrap: false, target: -1, bin: zoned.step } : NO_INPUT, 1 / 60);
+      }
+      const before = next.score;
+      while (!next.over && !next.parts.some(inZone)) stepRun(next, NO_INPUT, 1 / 60);
+      const bad = next.parts.find(inZone)!;
+      stepRun(next, { grab: false, scrap: false, target: -1, bin: (bad.step + 2) % 4 }, 1 / 60);
+      expect(next.score).toBe(before - SORTER.WRONG_COST);
+      const missed = createRun(6, LEVELS[4]);
+      while (!missed.over && missed.neededMissed < 1) stepRun(missed, NO_INPUT, 1 / 30);
+      expect(missed.neededMissed).toBeGreaterThan(0);
+      expect(missed.score).toBe(0);
+      expect(missed.combo).toBe(0);
+   });
+
+   it("spam and blind bins stay far below the quota and never clear (200 seeds)", () => {
+      for (const id of [4, 5] as const) {
+         const level = LEVELS[id];
+         const top = ceiling(level);
+         for (const decide of [spamSorter, blindSorter]) {
+            let wins = 0;
+            let peak = 0;
+            for (let seed = 1; seed <= 200; seed++) {
+               const { run } = play(level, seed, decide, () => 1 / 30);
+               if (run.outcome === "win") wins++;
+               peak = Math.max(peak, run.score);
+               expect(run.partsInstalled).toBeLessThan(level.sortQuota);
+               expect(withinServerLimits(run.score, run.t * 1000, PROPOSED_LEVEL_LIMITS[id])).toBe(true);
+            }
+            expect(wins).toBe(0);
+            expect(peak).toBeLessThan(0.35 * top.score);
+         }
+      }
+   }, 180000);
 });

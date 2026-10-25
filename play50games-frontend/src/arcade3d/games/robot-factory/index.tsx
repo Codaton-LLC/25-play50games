@@ -21,10 +21,14 @@ const BASE_LINES = [
 
 /** Start-card lines for levels 2-5. Level 1 keeps definition.instructions. */
 function instructionsFor(level: FactoryLevel): string[] {
-   const lines = [...BASE_LINES];
    if (level.sorter) {
-      lines.push("The line is sorting flat out: match the blueprint into the cradle, scrap every spark into the bin.");
+      return [
+         "The line is sorting by colour and icon. Keys 1 to 4, or tap that bin — both act on the same moment.",
+         "A correct drop scores. A wrong bin costs 10 and locks the claw for 1 second. A part that falls off is a miss.",
+         `Sort ${level.sortQuota} parts in the ${level.duration} s shift. The belt speeds up, and so do the parts.`,
+      ];
    }
+   const lines = [...BASE_LINES];
    lines.push(`Build ${level.winQuota} robots in the ${level.duration} s shift. Clean grabs build a combo.`);
    return lines;
 }
@@ -34,15 +38,21 @@ const DESCRIPTIONS: Record<LevelId, string> = {
    1: "Build 5 robots in 90 seconds. Grab the blueprint part, scrap the sparks.",
    2: "120 seconds, a faster belt, the feeder joins sooner. Build 6 robots.",
    3: "The feeder joins early and more parts are faulty. Build 7 robots in 120 seconds.",
-   4: "Fast sort: top belt speed and faults packed closer. Build 9 robots on the same bay.",
-   5: "Overdrive: a part every 1.4 seconds, one in four faulty. Build 11 robots.",
+   4: "Fast Factory: sort 38 parts into the matching bins while the belt speeds up.",
+   5: "Overdrive: the belt is faster. Sort 50 parts before they fall off the end.",
 };
 
-const hudFor = (level: FactoryLevel): LevelSpec<FactoryLevel>["hudStats"] => [
-   { key: "robots", label: "Robots", max: level.winQuota },
-   { key: "combo", label: "Combo", max: SCORING.COMBO_MAX },
-   { key: "time", label: "Time" },
-];
+const hudFor = (level: FactoryLevel): LevelSpec<FactoryLevel>["hudStats"] => level.sorter
+   ? [
+      { key: "sorted", label: "Sorted", max: level.sortQuota },
+      { key: "combo", label: "Combo", max: SCORING.COMBO_MAX },
+      { key: "time", label: "Time" },
+   ]
+   : [
+      { key: "robots", label: "Robots", max: level.winQuota },
+      { key: "combo", label: "Combo", max: SCORING.COMBO_MAX },
+      { key: "time", label: "Time" },
+   ];
 
 const definition: GameDefinition<FactoryLevel> = {
    slug: "robot-factory",

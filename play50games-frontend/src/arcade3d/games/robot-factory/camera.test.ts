@@ -12,7 +12,7 @@ import {
    LANDSCAPE_AREA,
    DESKTOP_AREA,
 } from "./camera";
-import { BOARD } from "./rules";
+import { BOARD, SORTER, sortBinCenter, sorterLabelEnds } from "./rules";
 
 function safeArea(width: number, height: number, bannerHeight: number): SafeArea {
    return {
@@ -61,6 +61,21 @@ describe("robot-factory camera fits and sizes (>= 24 CSS px)", () => {
          expect(partPx, `390x844 banner ${banner} part px`).toBeGreaterThanOrEqual(24);
          expect(clawPx, `390x844 banner ${banner} claw px`).toBeGreaterThanOrEqual(24);
          expect(cardPx, `390x844 banner ${banner} card px`).toBeGreaterThanOrEqual(24);
+
+         const bottom = { x: 0, y: 0, z: 0 };
+         const top = { x: 0, y: 0, z: 0 };
+         for (let i = 0; i < SORTER.BINS; i++) {
+            const bin = sortBinCenter(i);
+            const foot = new Vector3(bin.x, 0, SORTER.BIN_Z).project(cam);
+            const lip = new Vector3(bin.x, SORTER.BIN_H, SORTER.BIN_Z).project(cam);
+            const binPx = Math.abs((lip.y - foot.y) * 0.5 * height);
+            sorterLabelEnds(i, bottom, top);
+            const low = new Vector3(bottom.x, bottom.y, bottom.z).project(cam);
+            const high = new Vector3(top.x, top.y, top.z).project(cam);
+            const labelPx = Math.hypot((high.x - low.x) * 0.5 * width, (high.y - low.y) * 0.5 * height);
+            expect(binPx, `390x844 banner ${banner} bin ${i}`).toBeGreaterThanOrEqual(24);
+            expect(labelPx, `390x844 banner ${banner} label ${i}`).toBeGreaterThanOrEqual(24);
+         }
       }
    });
 
