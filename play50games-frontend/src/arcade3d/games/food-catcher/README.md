@@ -268,6 +268,53 @@ Scene writes the combo with `setStat("combo", combo)`. The small `Hud` draws a 2
 - The 16-item cap skips a refused spawn and does not release it later.
 - Two `end` paths in one run (lives and the clock on the same tick) produce one result.
 
+## Look (2026-10-25)
+
+A visual-only modern-look pass giving Food Catcher a polished, premium mobile-game look (CLAUDE.md Decision 4). Gameplay, rules, hitboxes, scoring, camera fit and all existing tests remain strictly unchanged.
+
+### What changed
+
+1. **Modern restaurant kitchen aesthetic:**
+   - Back wall: clean subway ceramic tiles (running-bond pattern with bevel highlights and slate grout lines via `useCanvasTexture`).
+   - Counter & worktop: brushed stainless steel counter body with bevelled edge trim, plus rich warm oak butcher-block worktop (`WORKTOP_TOP_Y = 0.05` preserved).
+   - Base cabinetry & floor: continuous dark slate cabinetry and terracotta quarry tiled floor spanning across `x in [-25, 25]` and `y` down to `-14`, ensuring no void or gap shows below the scene at any of the three fitted screen sizes (1280x800, 390x844, 844x390).
+2. **Central `COLORS` palette in `looks.ts`:**
+   - Unifies all scene components, materials, kitchen surfaces, decor, food, junk items, and chef into one cohesive, modern color scheme.
+3. **Lighting & atmosphere:**
+   - ShellStage lighting preset integration via `useStageLighting` crossfading ambient, hemisphere and overhead sun lights per level (Indoor for L1, Day for L2, Sunset for L3, Night for L4, Sunset for L5), with scene fog and core `<SkyDome>`.
+4. **Surroundings outside the play area (`Decor.tsx`):**
+   - Left side (`x <= -4.8`): industrial steel shelving rack with instanced glass spice jars, olive oil/vinegar bottles, ceramic bowls, and canisters.
+   - Right side (`x >= 4.8`): stainless utensil rail with hanging ladles and spatulas, plus an arched window overlooking an outdoor street with low-poly city buildings and a glowing street lamp.
+   - Overhead (`y >= 7.3`): commercial stainless exhaust hood, overhead pan rack with gently swaying copper sauté pans (`<DynamicInstanced>`), and brass pendant lamps with warm glowing shades.
+   - All decor spots are verified outside `PLAY_AREA` and tested against camera rays in `decor.test.ts` to ensure zero occlusion of falling food or the chef from the fitted camera at 1280x800, 390x844, and 844x390.
+5. **Polished stand-ins (`Primitives.tsx`):**
+   - Deliberate 2-3 tone shapes with rounded and bevelled profiles:
+     - **Apple:** tapered body with highlight cheek, indented stem cavity, brown stem, and glossy green leaf.
+     - **Burger:** brioche buns with toasted sesame seeds, grilled patty, melted draped cheese slice, wavy crisp lettuce, and tomato slice.
+     - **Banana:** curved faceted peel, green tip, and brown cut stem.
+     - **Sock:** knitted heather-grey tube sock, ribbed cuff, contrast toe cap, stitched burlap patch, and heel hole.
+     - **Tin can:** corrugated body, printed graphic label band, rolled rims, and recessed lid with pull-tab ring.
+     - **Chef:** double-breasted coat with 6 black buttons, cravat, rosy cheeks, and pleated toque blanche with headband.
+     - **Junk tell:** crisp two-tone unlit warning disc and rim.
+6. **Juicy feedback (`core/fx`):**
+   - Core `useFx()` sparkles and floating score popups on good catches, debris bursts and camera shake on bad catches or dropped food life loss.
+   - Warmed on mount (`fx.warm("sparkle", "debris", "score")`) for zero hitching.
+
+### Draw-call estimate (budget <= 60)
+
+| Component | Draw calls | Notes |
+|---|---:|---|
+| Kitchen background | 6 | Subway wall, cabinetry, toe-kick, counter, worktop, terracotta floor |
+| WallDecor | 3 | Chalkboard menu, wood frame/shelf, metal pots/brackets |
+| Instanced decor (`Decor.tsx`) | 11 | Posts, planks, jars, bottles, bowls, canisters, rail, utensils, window, buildings, street lamp, exhaust hood |
+| Dynamic decor (`Decor.tsx`) | 2 | Swaying overhead pans, pendant lamps |
+| SkyDome | 1 | Background gradient dome |
+| Chef | 1–4 | 1 for rigged HumanoidModel GLB; 3-4 for fallback primitive |
+| Falling items pool | 8–12 | Up to 16 slots, avg 3-4 active (GLB/primitive + bad/bonus rings) |
+| Catch flash | 1 | Ring flash on catch |
+| Core FX layer | 3–5 | Sparkle/debris instanced mesh pools, score sprites |
+| **Total estimated** | **36–45** | **Well within <= 60 budget; no per-frame allocations, all geometries disposed on unmount** |
+
 ## Known issues / open questions
 
 - The chef GLB (v2, 2026-10-07) is drawn through the core auto-rig (Assets). Its feet slide in a dash above about 5 m/s (the cadence cap; more than the v1 chef's, its legs are shorter), it runs sideways to the camera (it turns to face the way it runs, from 0.5 m/s all the way), below about 1 m/s the swinging foot lifts at most 2 mm (6 mm at 1.2 m/s; core `walkPose`'s clearance at small amounts: a slow walk is a shuffle, one foot planted and the other gliding forward just over the board; more lift would be a core/rig change), and at a run the forward thigh pulls the tunic's front hem into a point (the core's skirt-weighting limit; under 5 cm of poke-through and under 2x stretch over a walk cycle, `chef.test.ts`). The mesh's right sole sits 9 mm above the left one, so a planted right foot hovers up to 9 mm over the worktop.

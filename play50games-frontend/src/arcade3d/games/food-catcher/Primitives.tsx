@@ -1,8 +1,8 @@
 "use client";
 
-// Kitchen, chef and food stand-ins. Drawn until the GLBs are in core/modelManifest.ts.
-// The chef stand-in stands on its group's origin and is about 1.8 tall (Scene.tsx puts that origin on
-// the worktop, WORKTOP_TOP_Y). Food is centred on the group origin, ~0.9 across.
+// Kitchen, chef and food stand-ins for Food Catcher.
+// Deliberate 2-3 tone shapes with rounded/bevelled features from COLORS in looks.ts.
+// The chef stand-in stands on WORKTOP_TOP_Y = 0.05 (Scene.tsx root position).
 import { memo, useEffect, useMemo } from "react";
 import {
    BoxGeometry,
@@ -12,55 +12,15 @@ import {
    Float32BufferAttribute,
    Matrix4,
    Quaternion,
+   RepeatWrapping,
    Vector3,
    type BufferGeometry,
 } from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import { useCanvasTexture, type CanvasDraw } from "@/arcade3d/core/render";
+import { COLORS } from "./looks";
 
-export const COLORS = {
-   hat: "#f8fafc",
-   apron: "#f1f5f9",
-   skin: "#f6c7a1",
-   scarf: "#ef4444",
-   apple: "#ef4444",
-   leaf: "#4ade80",
-   bun: "#f6d7a8",
-   patty: "#7c4a2d",
-   lettuce: "#86efac",
-   sock: "#d1d5db",
-   patch: "#92400e",
-   banana: "#facc15",
-   tin: "#cbd5e1",
-   tinBand: "#94a3b8",
-   ring: "#9f1239",
-   ringRim: "#f43f5e",
-   counter: "#c4a574",
-   counterEdge: "#a16207",
-   cabinet: "#6b4a2b",
-   wall: "#3b2418",
-   floor: "#1c1410",
-} as const;
-
-/**
- * The wall decor's colours. Muted and darker than anything that falls (the wall is lit dimly, so
- * these render at about half their value): no red, no bright yellow or white, no round fruit-like
- * blobs, so the food and the red junk tell always read first.
- */
-const DECOR = {
-   slate: "#27302b",
-   chalk: "rgba(222, 216, 206, 0.92)",
-   chalkFaint: "rgba(222, 216, 206, 0.42)",
-   frame: "#7a5636",
-   plank: "#86613f",
-   stick: "#b9b2a6",
-   iron: "#57524d",
-   copper: "#a8693f",
-   copperDark: "#7c4a2c",
-   steel: "#8d9297",
-   steelDark: "#5c6166",
-   knob: "#36312d",
-} as const;
+export { COLORS };
 
 /** The counter box (centre y, height): its top face is the rules' floor, y 0. */
 export const COUNTER = { y: -0.28, h: 0.56 } as const;
@@ -74,32 +34,40 @@ export const WORKTOP_TOP_Y = WORKTOP.y + WORKTOP.h / 2;
 
 /** The wall's front face (the wall box is centred on z = -0.85, 0.18 deep). */
 const WALL_FRONT = -0.76;
-/** The chalkboard's slate (the frame is 0.07 wider on every side), where the old grey box hung. */
+/** The chalkboard's slate (the frame is 0.07 wider on every side). */
 const BOARD = { x: -2.2, y: 4.65, w: 1.12, h: 0.72, border: 0.07 } as const;
-/** The pot shelf: the plank's top centre, its width and depth, where the old dark box hung. */
+/** The pot shelf: the plank's top centre, its width and depth. */
 const SHELF = { x: 1.6, top: 4.78, w: 1.64, depth: 0.36, thick: 0.07 } as const;
 const MENU_TEX = { w: 448, h: 288 } as const;
 
 /** The chalkboard: "MENU" and three faint dish lines with a price dash, on dark slate. */
 const drawMenuBoard: CanvasDraw = (ctx, w, h) => {
-   ctx.fillStyle = DECOR.slate;
+   ctx.fillStyle = COLORS.slate;
    ctx.fillRect(0, 0, w, h);
-   // old chalk wiped off: a few faint smears, fixed so every run draws the same board
-   ctx.fillStyle = "rgba(222, 216, 206, 0.05)";
-   for (const [x, y, rx, ry] of [[0.3, 0.62, 0.22, 0.1], [0.72, 0.4, 0.18, 0.08], [0.55, 0.85, 0.3, 0.07]]) {
+   // subtle chalk dusting
+   ctx.fillStyle = "rgba(241, 245, 249, 0.05)";
+   for (const [x, y, rx, ry] of [
+      [0.3, 0.62, 0.22, 0.1],
+      [0.72, 0.4, 0.18, 0.08],
+      [0.55, 0.85, 0.3, 0.07],
+   ]) {
       ctx.beginPath();
       ctx.ellipse(x * w, y * h, rx * w, ry * h, -0.12, 0, Math.PI * 2);
       ctx.fill();
    }
-   ctx.fillStyle = DECOR.chalk;
+   ctx.fillStyle = COLORS.chalk;
    ctx.textAlign = "center";
    ctx.textBaseline = "middle";
    ctx.font = `700 ${Math.round(h * 0.32)}px "Trebuchet MS", "Segoe UI", Arial, sans-serif`;
    ctx.fillText("MENU", w / 2, h * 0.26);
-   ctx.strokeStyle = DECOR.chalkFaint;
+   ctx.strokeStyle = COLORS.chalkFaint;
    ctx.lineCap = "round";
    ctx.lineWidth = h * 0.035;
-   for (const [y, end] of [[0.56, 0.6], [0.71, 0.52], [0.86, 0.64]]) {
+   for (const [y, end] of [
+      [0.56, 0.6],
+      [0.71, 0.52],
+      [0.86, 0.64],
+   ]) {
       ctx.beginPath();
       ctx.moveTo(w * 0.13, h * y);
       ctx.lineTo(w * end, h * y);
@@ -109,9 +77,69 @@ const drawMenuBoard: CanvasDraw = (ctx, w, h) => {
    }
 };
 
-type AddPiece = (geometry: BufferGeometry, color: string, x: number, y: number, z: number, rotX?: number, rotZ?: number) => void;
+/** Crisp running-bond subway tile pattern with bevelled highlights and clean grout lines. */
+const drawSubwayTiles: CanvasDraw = (ctx, w, h) => {
+   ctx.fillStyle = COLORS.wallGrout;
+   ctx.fillRect(0, 0, w, h);
+   const tileW = 64;
+   const tileH = 32;
+   const grout = 3;
+   const rows = Math.ceil(h / tileH);
+   const cols = Math.ceil(w / tileW) + 1;
+   for (let r = 0; r < rows; r++) {
+      const offsetX = (r % 2) * (tileW / 2);
+      for (let c = -1; c < cols; c++) {
+         const x = c * tileW + offsetX + grout;
+         const y = r * tileH + grout;
+         const bw = tileW - grout * 2;
+         const bh = tileH - grout * 2;
+         ctx.fillStyle = COLORS.wallTile;
+         ctx.fillRect(x, y, bw, bh);
+         // Subtle top/left bevel highlight
+         ctx.fillStyle = "rgba(255, 255, 255, 0.85)";
+         ctx.fillRect(x, y, bw, 2);
+         ctx.fillRect(x, y, 2, bh);
+         // Subtle bottom/right bevel shadow
+         ctx.fillStyle = "rgba(148, 163, 184, 0.35)";
+         ctx.fillRect(x, y + bh - 2, bw, 2);
+         ctx.fillRect(x + bw - 2, y, 2, bh);
+      }
+   }
+};
 
-/** Vertex-coloured pieces merged into one geometry, so they cost one draw call together. */
+/** Terracotta restaurant kitchen quarry floor tiles. */
+const drawFloorTiles: CanvasDraw = (ctx, w, h) => {
+   ctx.fillStyle = COLORS.floorGrout;
+   ctx.fillRect(0, 0, w, h);
+   const tileS = 64;
+   const grout = 4;
+   const rows = Math.ceil(h / tileS);
+   const cols = Math.ceil(w / tileS);
+   for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+         const x = c * tileS + grout;
+         const y = r * tileS + grout;
+         const s = tileS - grout * 2;
+         ctx.fillStyle = (r + c) % 2 === 0 ? COLORS.floor : COLORS.floorTileAlt;
+         ctx.fillRect(x, y, s, s);
+         ctx.fillStyle = "rgba(255, 255, 255, 0.15)";
+         ctx.fillRect(x, y, s, 2);
+         ctx.fillRect(x, y, 2, s);
+      }
+   }
+};
+
+type AddPiece = (
+   geometry: BufferGeometry,
+   color: string,
+   x: number,
+   y: number,
+   z: number,
+   rotX?: number,
+   rotZ?: number
+) => void;
+
+/** Vertex-coloured pieces merged into one geometry, costing one draw call together. */
 function mergedPieces(build: (add: AddPiece) => void): BufferGeometry {
    const pieces: BufferGeometry[] = [];
    const matrix = new Matrix4();
@@ -138,7 +166,7 @@ function mergedPieces(build: (add: AddPiece) => void): BufferGeometry {
    return merged;
 }
 
-/** A pot on the shelf: a body, a rolled rim, and its handles or lid, standing on the plank. */
+/** A pot on the shelf: a body, rolled rim, handles or lid. */
 function addPot(
    add: AddPiece,
    x: number,
@@ -153,14 +181,12 @@ function addPot(
    add(new CylinderGeometry(radius, radius * 0.94, height, 22), color, x, base + height / 2, z);
    add(new CylinderGeometry(radius * 1.07, radius * 1.07, 0.028, 22), color, x, base + height - 0.014, z);
    if (kind === "stockpot") {
-      // a low lid with a dark knob, and an ear handle on each side
       add(new CylinderGeometry(radius * 0.4, radius * 1.02, 0.06, 22), color, x, base + height + 0.03, z);
-      add(new CylinderGeometry(0.03, 0.04, 0.045, 10), DECOR.knob, x, base + height + 0.08, z);
+      add(new CylinderGeometry(0.03, 0.04, 0.045, 10), COLORS.potKnob, x, base + height + 0.08, z);
       add(new BoxGeometry(0.08, 0.035, 0.05), trim, x - radius - 0.035, base + height * 0.8, z);
       add(new BoxGeometry(0.08, 0.035, 0.05), trim, x + radius + 0.035, base + height * 0.8, z);
       return;
    }
-   // one long handle under the rim, its far end tilted up, pointing away from the shelf's middle
    const side = kind === "saucepan" ? -1 : 1;
    const length = radius * 1.7;
    add(
@@ -174,18 +200,18 @@ function addPot(
    );
 }
 
-/** The wooden parts: the chalkboard frame, its chalk ledge with a stick of chalk, the shelf plank. */
+/** Wooden parts: chalkboard frame, chalk ledge, shelf plank. */
 function buildWood(): BufferGeometry {
    return mergedPieces((add) => {
       const frameW = BOARD.w + BOARD.border * 2;
       const frameH = BOARD.h + BOARD.border * 2;
-      add(new BoxGeometry(frameW, frameH, 0.05), DECOR.frame, BOARD.x, BOARD.y, WALL_FRONT + 0.025);
+      add(new BoxGeometry(frameW, frameH, 0.05), COLORS.frame, BOARD.x, BOARD.y, WALL_FRONT + 0.025);
       const ledgeY = BOARD.y - frameH / 2 - 0.02;
-      add(new BoxGeometry(frameW * 0.82, 0.04, 0.1), DECOR.frame, BOARD.x, ledgeY, WALL_FRONT + 0.05);
-      add(new CylinderGeometry(0.018, 0.018, 0.14, 8), DECOR.stick, BOARD.x + 0.3, ledgeY + 0.038, WALL_FRONT + 0.06, 0, Math.PI / 2);
+      add(new BoxGeometry(frameW * 0.82, 0.04, 0.1), COLORS.frame, BOARD.x, ledgeY, WALL_FRONT + 0.05);
+      add(new CylinderGeometry(0.018, 0.018, 0.14, 8), COLORS.chalk, BOARD.x + 0.3, ledgeY + 0.038, WALL_FRONT + 0.06, 0, Math.PI / 2);
       add(
          new BoxGeometry(SHELF.w, SHELF.thick, SHELF.depth),
-         DECOR.plank,
+         COLORS.shelfWood,
          SHELF.x,
          SHELF.top - SHELF.thick / 2,
          WALL_FRONT + SHELF.depth / 2
@@ -193,35 +219,31 @@ function buildWood(): BufferGeometry {
    });
 }
 
-/** The metal parts: the shelf's two iron brackets, a copper saucepan, a steel stock pot, a pan. */
+/** Metal parts: shelf brackets, copper saucepan, steel stockpot, steel pan. */
 function buildMetal(): BufferGeometry {
    return mergedPieces((add) => {
       const under = SHELF.top - SHELF.thick;
-      // each bracket: an upright on the wall and a brace out to the plank's front edge
       const drop = 0.24;
       const reach = SHELF.depth - 0.06;
       const brace = Math.hypot(drop, reach);
       for (const dx of [-0.6, 0.6]) {
-         add(new BoxGeometry(0.045, drop, 0.04), DECOR.iron, SHELF.x + dx, under - drop / 2, WALL_FRONT + 0.02);
+         add(new BoxGeometry(0.045, drop, 0.04), COLORS.ironBracket, SHELF.x + dx, under - drop / 2, WALL_FRONT + 0.02);
          add(
             new BoxGeometry(0.045, brace, 0.035),
-            DECOR.iron,
+            COLORS.ironBracket,
             SHELF.x + dx,
             under - drop / 2,
             WALL_FRONT + reach / 2,
             Math.atan2(reach, drop)
          );
       }
-      addPot(add, SHELF.x - 0.6, 0.2, 0.25, DECOR.copper, DECOR.copperDark, "saucepan");
-      addPot(add, SHELF.x, 0.26, 0.34, DECOR.steel, DECOR.steelDark, "stockpot");
-      addPot(add, SHELF.x + 0.6, 0.21, 0.1, DECOR.steel, DECOR.knob, "pan");
+      addPot(add, SHELF.x - 0.6, 0.2, 0.25, COLORS.copperPot, COLORS.copperDark, "saucepan");
+      addPot(add, SHELF.x, 0.26, 0.34, COLORS.steelPot, COLORS.steelDark, "stockpot");
+      addPot(add, SHELF.x + 0.6, 0.21, 0.1, COLORS.steelPot, COLORS.potKnob, "pan");
    });
 }
 
-/**
- * The menu board and the pot shelf on the wall behind the falling food: three draw calls
- * (the slate, the wood, the metal), built once per mount and freed with it.
- */
+/** WallDecor: chalkboard and shelf of pots behind the falling food (3 draw calls). */
 const WallDecor = memo(function WallDecor() {
    const menu = useCanvasTexture(MENU_TEX.w, MENU_TEX.h, drawMenuBoard);
    const parts = useMemo(() => ({ wood: buildWood(), metal: buildMetal() }), []);
@@ -242,95 +264,103 @@ const WallDecor = memo(function WallDecor() {
             <meshStandardMaterial vertexColors roughness={0.8} />
          </mesh>
          <mesh geometry={parts.metal} name="decor-metal">
-            <meshStandardMaterial vertexColors roughness={0.42} metalness={0.3} />
+            <meshStandardMaterial vertexColors roughness={0.42} metalness={0.4} />
          </mesh>
       </group>
    );
 });
 
 /**
- * The back wall reaches far above and below the play rectangle (y [-9, 16], 24 wide) and a
- * cabinet hangs under the counter, so the extra height a portrait phone shows (y -6.2 to 12.7 at 375×812)
- * and the extra width of an ultra-wide screen are kitchen, not empty background. A chalk menu board
- * and a shelf of pots hang on the wall behind the play area (WallDecor).
+ * Modern restaurant kitchen: clean subway tiled walls, extended cabinetry,
+ * butcher block worktop and terracotta quarry floor covering all screen sizes.
  */
 export const Kitchen = memo(function Kitchen() {
+   const subwayTiles = useCanvasTexture(512, 512, drawSubwayTiles);
+   const floorTiles = useCanvasTexture(512, 512, drawFloorTiles);
+
+   useEffect(() => {
+      subwayTiles.wrapS = subwayTiles.wrapT = RepeatWrapping;
+      subwayTiles.repeat.set(12, 9);
+      subwayTiles.needsUpdate = true;
+      floorTiles.wrapS = floorTiles.wrapT = RepeatWrapping;
+      floorTiles.repeat.set(10, 5);
+      floorTiles.needsUpdate = true;
+   }, [subwayTiles, floorTiles]);
+
    return (
       <group name="kitchen">
-         <mesh position={[0, 3.5, -0.85]} receiveShadow={false}>
-            <boxGeometry args={[24, 25, 0.18]} />
-            <meshStandardMaterial color={COLORS.wall} />
+         {/* Subway-tiled back wall: spans wide and tall to fill portrait and ultra-wide */}
+         <mesh position={[0, 4.0, -0.85]} receiveShadow={false} name="kitchen-wall">
+            <planeGeometry args={[50, 36]} />
+            <meshStandardMaterial map={subwayTiles} color={COLORS.wall} roughness={0.45} />
          </mesh>
-         <mesh position={[0, -4.8, 0.1]}>
-            <boxGeometry args={[9.2, 8.5, 1.5]} />
-            <meshStandardMaterial color={COLORS.cabinet} />
+
+         {/* Terracotta tiled floor plane: covers any downward view angle at 390x844 */}
+         <mesh position={[0, -10.0, 5.0]} rotation={[-Math.PI / 2, 0, 0]} name="kitchen-floor">
+            <planeGeometry args={[60, 30]} />
+            <meshStandardMaterial map={floorTiles} roughness={0.7} />
          </mesh>
-         <WallDecor />
-         <mesh position={[0, COUNTER.y, 0.15]}>
+
+         {/* Extended base cabinetry spanning across screen */}
+         <mesh position={[0, -5.8, 0.1]} name="kitchen-cabinet">
+            <boxGeometry args={[48, 10.5, 1.5]} />
+            <meshStandardMaterial color={COLORS.cabinet} roughness={0.75} />
+         </mesh>
+
+         {/* Base cabinet stainless toe-kick plate */}
+         <mesh position={[0, -10.5, 0.82]} name="kitchen-toekick">
+            <boxGeometry args={[48, 1.0, 0.1]} />
+            <meshStandardMaterial color={COLORS.cabinetTrim} roughness={0.5} metalness={0.5} />
+         </mesh>
+
+         {/* Stainless steel counter body */}
+         <mesh position={[0, COUNTER.y, 0.15]} name="counter-body">
             <boxGeometry args={[9.4, COUNTER.h, 1.7]} />
-            <meshStandardMaterial color={COLORS.counter} />
+            <meshStandardMaterial color={COLORS.counter} roughness={0.4} metalness={0.4} />
          </mesh>
+
+         {/* Butcher block worktop: oak wood grain tone, WORKTOP_TOP_Y = 0.05 */}
          <mesh position={[0, WORKTOP.y, 0.15]} name="worktop">
             <boxGeometry args={[9.2, WORKTOP.h, 1.55]} />
-            <meshStandardMaterial color="#e7c99a" />
+            <meshStandardMaterial color={COLORS.worktop} roughness={0.65} />
          </mesh>
-         <mesh position={[0, -0.02, 0.95]}>
+
+         {/* Stainless steel counter front bevel lip */}
+         <mesh position={[0, -0.02, 0.95]} name="counter-edge">
             <boxGeometry args={[9.4, 0.1, 0.08]} />
-            <meshStandardMaterial color={COLORS.counterEdge} />
+            <meshStandardMaterial color={COLORS.counterEdge} roughness={0.35} metalness={0.6} />
          </mesh>
+
+         {/* Wall-mounted menu board and pot shelf */}
+         <WallDecor />
       </group>
    );
 });
 
-export function ChefPrimitive() {
-   return (
-      <group name="chef-primitive">
-         <mesh position={[0, 0.62, 0]}>
-            <capsuleGeometry args={[0.38, 0.55, 6, 12]} />
-            <meshStandardMaterial color={COLORS.apron} />
-         </mesh>
-         <mesh position={[0, 0.72, 0.28]}>
-            <boxGeometry args={[0.55, 0.42, 0.08]} />
-            <meshStandardMaterial color={COLORS.apron} />
-         </mesh>
-         <mesh position={[0, 1.05, 0.22]}>
-            <boxGeometry args={[0.28, 0.16, 0.08]} />
-            <meshStandardMaterial color={COLORS.scarf} />
-         </mesh>
-         <mesh position={[0, 1.22, 0]}>
-            <sphereGeometry args={[0.28, 18, 14]} />
-            <meshStandardMaterial color={COLORS.skin} />
-         </mesh>
-         <mesh position={[-0.1, 1.28, 0.22]}>
-            <sphereGeometry args={[0.045, 10, 8]} />
-            <meshStandardMaterial color="#1c1917" />
-         </mesh>
-         <mesh position={[0.1, 1.28, 0.22]}>
-            <sphereGeometry args={[0.045, 10, 8]} />
-            <meshStandardMaterial color="#1c1917" />
-         </mesh>
-         <mesh position={[0, 1.62, 0]}>
-            <cylinderGeometry args={[0.34, 0.3, 0.42, 16]} />
-            <meshStandardMaterial color={COLORS.hat} />
-         </mesh>
-         <mesh position={[0, 1.4, 0]}>
-            <cylinderGeometry args={[0.48, 0.48, 0.08, 18]} />
-            <meshStandardMaterial color={COLORS.hat} />
-         </mesh>
-      </group>
-   );
-}
+/** Deliberate, rounded food & junk stand-ins */
 
 export function ApplePrimitive() {
    return (
-      <group>
-         <mesh>
+      <group name="apple-primitive">
+         <mesh position={[0, -0.04, 0]} scale={[1.05, 0.96, 1.05]}>
             <sphereGeometry args={[0.42, 18, 14]} />
-            <meshStandardMaterial color={COLORS.apple} />
+            <meshStandardMaterial color={COLORS.apple} roughness={0.35} />
          </mesh>
-         <mesh position={[0.08, 0.36, 0]} rotation={[0.4, 0, 0.6]}>
-            <sphereGeometry args={[0.12, 8, 6]} />
-            <meshStandardMaterial color={COLORS.leaf} />
+         <mesh position={[0.1, 0.1, 0.1]} scale={[0.65, 0.65, 0.65]}>
+            <sphereGeometry args={[0.22, 12, 10]} />
+            <meshStandardMaterial color={COLORS.appleHighlight} roughness={0.3} />
+         </mesh>
+         <mesh position={[0, 0.32, 0]} scale={[1, 0.3, 1]}>
+            <cylinderGeometry args={[0.1, 0.02, 0.08, 12]} />
+            <meshStandardMaterial color={COLORS.appleShade} roughness={0.7} />
+         </mesh>
+         <mesh position={[0.02, 0.42, 0]} rotation={[0, 0, -0.2]}>
+            <cylinderGeometry args={[0.025, 0.035, 0.22, 8]} />
+            <meshStandardMaterial color={COLORS.stem} roughness={0.8} />
+         </mesh>
+         <mesh position={[0.12, 0.38, 0.06]} rotation={[0.4, 0.3, 0.6]} scale={[1.4, 0.5, 0.8]}>
+            <sphereGeometry args={[0.14, 10, 8]} />
+            <meshStandardMaterial color={COLORS.leaf} roughness={0.4} />
          </mesh>
       </group>
    );
@@ -338,37 +368,49 @@ export function ApplePrimitive() {
 
 export function BurgerPrimitive() {
    return (
-      <group>
-         <mesh position={[0, -0.22, 0]}>
-            <sphereGeometry args={[0.38, 16, 10]} />
-            <meshStandardMaterial color={COLORS.bun} />
+      <group name="burger-primitive">
+         {/* Bottom toasted bun */}
+         <mesh position={[0, -0.22, 0]} scale={[1, 0.55, 1]}>
+            <sphereGeometry args={[0.38, 18, 12]} />
+            <meshStandardMaterial color={COLORS.bun} roughness={0.7} />
          </mesh>
-         <mesh position={[0, 0, 0]} scale={[1, 0.35, 1]}>
-            <sphereGeometry args={[0.36, 16, 10]} />
-            <meshStandardMaterial color={COLORS.patty} />
+         {/* Grilled burger patty */}
+         <mesh position={[0, -0.06, 0]}>
+            <cylinderGeometry args={[0.39, 0.39, 0.14, 18]} />
+            <meshStandardMaterial color={COLORS.patty} roughness={0.85} />
          </mesh>
-         <mesh position={[0, 0.16, 0]} scale={[1.05, 0.22, 1.05]}>
-            <sphereGeometry args={[0.34, 14, 8]} />
-            <meshStandardMaterial color={COLORS.lettuce} />
+         {/* Melted cheese slice draped over patty */}
+         <mesh position={[0, 0.03, 0]} rotation={[0, Math.PI / 4, 0]}>
+            <boxGeometry args={[0.56, 0.035, 0.56]} />
+            <meshStandardMaterial color={COLORS.cheese} roughness={0.4} />
          </mesh>
-         <mesh position={[0, 0.28, 0]} scale={[1, 0.55, 1]}>
-            <sphereGeometry args={[0.38, 16, 10]} />
-            <meshStandardMaterial color={COLORS.bun} />
+         {/* Crisp lettuce */}
+         <mesh position={[0, 0.08, 0]} scale={[1.08, 0.2, 1.08]}>
+            <cylinderGeometry args={[0.42, 0.38, 0.08, 10]} />
+            <meshStandardMaterial color={COLORS.lettuce} roughness={0.5} flatShading />
          </mesh>
-      </group>
-   );
-}
-
-export function SockPrimitive() {
-   return (
-      <group rotation={[0, 0, 0.4]}>
-         <mesh>
-            <capsuleGeometry args={[0.22, 0.42, 4, 10]} />
-            <meshStandardMaterial color={COLORS.sock} />
+         {/* Juicy tomato slice */}
+         <mesh position={[0, 0.14, 0]}>
+            <cylinderGeometry args={[0.36, 0.36, 0.06, 16]} />
+            <meshStandardMaterial color={COLORS.tomato} roughness={0.35} />
          </mesh>
-         <mesh position={[0.12, -0.16, 0.12]}>
-            <sphereGeometry args={[0.12, 10, 8]} />
-            <meshStandardMaterial color={COLORS.patch} />
+         {/* Golden brioche crown */}
+         <mesh position={[0, 0.28, 0]} scale={[1, 0.65, 1]}>
+            <sphereGeometry args={[0.4, 18, 12]} />
+            <meshStandardMaterial color={COLORS.bunTop} roughness={0.6} />
+         </mesh>
+         {/* Toasted sesame seeds */}
+         <mesh position={[0.08, 0.49, 0.08]} rotation={[0.2, 0.4, 0.2]}>
+            <boxGeometry args={[0.04, 0.02, 0.06]} />
+            <meshStandardMaterial color={COLORS.sesame} roughness={0.5} />
+         </mesh>
+         <mesh position={[-0.1, 0.48, 0.05]} rotation={[-0.1, -0.3, 0.4]}>
+            <boxGeometry args={[0.04, 0.02, 0.06]} />
+            <meshStandardMaterial color={COLORS.sesame} roughness={0.5} />
+         </mesh>
+         <mesh position={[0.04, 0.47, -0.12]} rotation={[0.3, 0.1, -0.2]}>
+            <boxGeometry args={[0.04, 0.02, 0.06]} />
+            <meshStandardMaterial color={COLORS.sesame} roughness={0.5} />
          </mesh>
       </group>
    );
@@ -376,32 +418,161 @@ export function SockPrimitive() {
 
 export function BananaPrimitive() {
    return (
-      <mesh rotation={[0, 0, 0.7]}>
-         <capsuleGeometry args={[0.16, 0.55, 4, 10]} />
-         <meshStandardMaterial color={COLORS.banana} />
-      </mesh>
+      <group name="banana-primitive" rotation={[0, 0, 0.7]}>
+         {/* Curved peel body */}
+         <mesh position={[0, 0, 0]}>
+            <capsuleGeometry args={[0.16, 0.52, 6, 12]} />
+            <meshStandardMaterial color={COLORS.banana} roughness={0.45} />
+         </mesh>
+         {/* Green tip */}
+         <mesh position={[0, -0.32, 0]}>
+            <coneGeometry args={[0.13, 0.16, 6]} />
+            <meshStandardMaterial color={COLORS.bananaTip} roughness={0.5} />
+         </mesh>
+         {/* Brown stem cut */}
+         <mesh position={[0, 0.34, 0]}>
+            <cylinderGeometry args={[0.06, 0.09, 0.14, 6]} />
+            <meshStandardMaterial color={COLORS.bananaStem} roughness={0.8} />
+         </mesh>
+      </group>
+   );
+}
+
+export function SockPrimitive() {
+   return (
+      <group name="sock-primitive" rotation={[0, 0, 0.4]}>
+         {/* Heather grey sock body */}
+         <mesh>
+            <capsuleGeometry args={[0.22, 0.42, 6, 12]} />
+            <meshStandardMaterial color={COLORS.sock} roughness={0.8} />
+         </mesh>
+         {/* Ribbed cuff */}
+         <mesh position={[0, 0.24, 0]}>
+            <cylinderGeometry args={[0.23, 0.23, 0.12, 14]} />
+            <meshStandardMaterial color={COLORS.sockStripe} roughness={0.85} />
+         </mesh>
+         {/* Contrast toe cap */}
+         <mesh position={[0, -0.24, 0]} scale={[1.02, 0.5, 1.02]}>
+            <sphereGeometry args={[0.22, 12, 8]} />
+            <meshStandardMaterial color={COLORS.sockStripe} roughness={0.85} />
+         </mesh>
+         {/* Stitched burlap patch */}
+         <mesh position={[0.14, -0.1, 0.12]} rotation={[0.2, 0.4, 0.1]}>
+            <boxGeometry args={[0.16, 0.16, 0.04]} />
+            <meshStandardMaterial color={COLORS.sockPatch} roughness={0.9} />
+         </mesh>
+         {/* Little hole in the heel */}
+         <mesh position={[-0.12, -0.08, 0]}>
+            <sphereGeometry args={[0.07, 8, 6]} />
+            <meshStandardMaterial color={COLORS.sockHole} roughness={1.0} />
+         </mesh>
+      </group>
    );
 }
 
 export function TinPrimitive() {
    return (
-      <group>
+      <group name="tin-primitive">
+         {/* Corrugated metal body */}
          <mesh>
-            <cylinderGeometry args={[0.28, 0.28, 0.62, 16]} />
-            <meshStandardMaterial color={COLORS.tin} metalness={0.35} roughness={0.4} />
+            <cylinderGeometry args={[0.28, 0.28, 0.62, 20]} />
+            <meshStandardMaterial color={COLORS.tin} metalness={0.6} roughness={0.3} />
          </mesh>
-         <mesh position={[0, 0.05, 0]}>
-            <cylinderGeometry args={[0.29, 0.29, 0.12, 16]} />
-            <meshStandardMaterial color={COLORS.tinBand} />
+         {/* Printed graphic label band */}
+         <mesh position={[0, 0.02, 0]}>
+            <cylinderGeometry args={[0.285, 0.285, 0.36, 20]} />
+            <meshStandardMaterial color={COLORS.tinBand} roughness={0.4} />
+         </mesh>
+         {/* Rolled top rim */}
+         <mesh position={[0, 0.31, 0]}>
+            <cylinderGeometry args={[0.295, 0.295, 0.03, 20]} />
+            <meshStandardMaterial color={COLORS.tinRim} metalness={0.7} roughness={0.2} />
+         </mesh>
+         {/* Rolled bottom rim */}
+         <mesh position={[0, -0.31, 0]}>
+            <cylinderGeometry args={[0.295, 0.295, 0.03, 20]} />
+            <meshStandardMaterial color={COLORS.tinRim} metalness={0.7} roughness={0.2} />
+         </mesh>
+         {/* Recessed lid with pull-tab ring */}
+         <mesh position={[0, 0.315, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+            <circleGeometry args={[0.26, 16]} />
+            <meshStandardMaterial color={COLORS.tinLid} metalness={0.65} roughness={0.35} />
+         </mesh>
+         <mesh position={[0.06, 0.33, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+            <ringGeometry args={[0.04, 0.07, 12]} />
+            <meshStandardMaterial color={COLORS.tinRim} metalness={0.8} roughness={0.2} />
+         </mesh>
+      </group>
+   );
+}
+
+export function ChefPrimitive() {
+   return (
+      <group name="chef-primitive">
+         {/* Double-breasted chef tunic */}
+         <mesh position={[0, 0.62, 0]}>
+            <capsuleGeometry args={[0.38, 0.55, 6, 14]} />
+            <meshStandardMaterial color={COLORS.apron} roughness={0.7} />
+         </mesh>
+         {/* Double-breasted coat flap */}
+         <mesh position={[0, 0.72, 0.28]}>
+            <boxGeometry args={[0.55, 0.42, 0.08]} />
+            <meshStandardMaterial color={COLORS.apron} roughness={0.7} />
+         </mesh>
+         {/* Double-breasted buttons (2 columns of 3) */}
+         {[-0.12, 0.12].map((bx) =>
+            [0.6, 0.74, 0.88].map((by) => (
+               <mesh key={`${bx}-${by}`} position={[bx, by, 0.33]}>
+                  <cylinderGeometry args={[0.025, 0.025, 0.02, 10]} />
+                  <meshStandardMaterial color={COLORS.buttons} roughness={0.5} />
+               </mesh>
+            ))
+         )}
+         {/* Folded red cravat / scarf */}
+         <mesh position={[0, 1.05, 0.22]}>
+            <boxGeometry args={[0.28, 0.16, 0.08]} />
+            <meshStandardMaterial color={COLORS.scarf} roughness={0.6} />
+         </mesh>
+         {/* Friendly round head */}
+         <mesh position={[0, 1.22, 0]}>
+            <sphereGeometry args={[0.28, 18, 14]} />
+            <meshStandardMaterial color={COLORS.skin} roughness={0.6} />
+         </mesh>
+         {/* Rosy cheeks */}
+         <mesh position={[-0.16, 1.18, 0.18]}>
+            <sphereGeometry args={[0.06, 10, 8]} />
+            <meshStandardMaterial color={COLORS.skinCheek} roughness={0.6} />
+         </mesh>
+         <mesh position={[0.16, 1.18, 0.18]}>
+            <sphereGeometry args={[0.06, 10, 8]} />
+            <meshStandardMaterial color={COLORS.skinCheek} roughness={0.6} />
+         </mesh>
+         {/* Eyes */}
+         <mesh position={[-0.1, 1.28, 0.22]}>
+            <sphereGeometry args={[0.045, 10, 8]} />
+            <meshStandardMaterial color={COLORS.buttons} roughness={0.3} />
+         </mesh>
+         <mesh position={[0.1, 1.28, 0.22]}>
+            <sphereGeometry args={[0.045, 10, 8]} />
+            <meshStandardMaterial color={COLORS.buttons} roughness={0.3} />
+         </mesh>
+         {/* Crisp pleated toque blanche crown */}
+         <mesh position={[0, 1.64, 0]}>
+            <cylinderGeometry args={[0.36, 0.32, 0.44, 18]} />
+            <meshStandardMaterial color={COLORS.hat} roughness={0.5} />
+         </mesh>
+         {/* Toque headband */}
+         <mesh position={[0, 1.4, 0]}>
+            <cylinderGeometry args={[0.42, 0.42, 0.1, 18]} />
+            <meshStandardMaterial color={COLORS.hatBand} roughness={0.6} />
          </mesh>
       </group>
    );
 }
 
 /**
- * The junk tell. The camera looks straight down -z (pitch 0), so both parts are flat in the XY
- * plane facing it: a dark red disc behind the item and a bright red rim around it. Unlit and not
- * tone mapped, so the red reads the same under any light. Two opaque draw calls per junk item.
+ * The junk tell: unlit two-tone warning disc and rim.
+ * Flat in the XY plane facing the camera.
  */
 export function BadRing() {
    return (

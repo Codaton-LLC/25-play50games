@@ -8,23 +8,28 @@
 // The chef GLB is a static T-pose: <HumanoidModel> (core/rig) rigs it in code and useHumanoidPose
 // drives its limbs (poses.ts: the idle, a walk by its speed with the feet on the ground, the lean
 // into the run in its spine, a reach up on a catch). ChefPrimitive stays as the fallback.
-import { memo, useMemo, useRef, useState } from "react";
+import { memo, useEffect, useMemo, useRef, useState } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import { Raycaster, Vector2, type Camera, type Group } from "three";
 import CameraRig from "@/arcade3d/core/CameraRig";
 import { Model } from "@/arcade3d/core/assets";
 import { playSfx } from "@/arcade3d/core/audio";
 import type { AABB } from "@/arcade3d/core/collision";
+import { SkyDome } from "@/arcade3d/core/env";
+import { useFx } from "@/arcade3d/core/fx";
 import { useGameTime } from "@/arcade3d/core/gameTime";
 import { useInput } from "@/arcade3d/core/input";
 import { useLevel } from "@/arcade3d/core/level";
+import { useStageLighting } from "@/arcade3d/core/lighting";
 import { randomSeed } from "@/arcade3d/core/math";
 import { HumanoidModel, createPose, useHumanoidPose } from "@/arcade3d/core/rig";
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { useFittedView, type FittedViewOptions } from "@/arcade3d/core/useFittedView";
 import { useRunFrame } from "@/arcade3d/core/useRunFrame";
 import { ASSETS } from "./assets";
+import { Decor } from "./Decor";
 import type { FoodCatcherLevel } from "./levels";
+import { LEVEL_LOOKS } from "./looks";
 import { chefPose, chefRootRoll, createChefGait, stepChefGait } from "./poses";
 import {
    ApplePrimitive,
@@ -94,6 +99,11 @@ const Simulation = memo(function Simulation({ run, scratch }: { run: ViewRun; sc
    const input = useInput();
    const camera = useThree((state) => state.camera);
    const time = useGameTime();
+   const fx = useFx();
+
+   useEffect(() => {
+      fx.warm("sparkle", "debris", "score");
+   }, [fx]);
 
    useRunFrame((_state, dt) => {
       const pointer = input.current.pointer;
@@ -113,11 +123,18 @@ const Simulation = memo(function Simulation({ run, scratch }: { run: ViewRun; sc
          run.flashAt = time.now;
          run.flashX = run.chefX;
          playSfx("pickup");
+         fx.burst("sparkle", { x: run.chefX, y: 1.6, z: ITEM_Z }, 14);
+         const doubled = run.combo >= 5;
+         fx.score({ x: run.chefX, y: 2.1, z: ITEM_Z }, doubled ? "+20" : "+10", {
+            color: doubled ? "#fde047" : "#86efac",
+         });
       }
       if (ev.badCaught > 0 || ev.dropLives > 0) {
          run.flashAt = time.now;
          run.flashX = run.chefX;
          playSfx("hit");
+         fx.burst("debris", { x: run.chefX, y: 1.6, z: ITEM_Z }, 16);
+         fx.shake(0.22);
       }
       for (let i = 0; i < ev.badCaught + ev.dropLives; i++) store.loseLife();
       if (ev.ended) store.end(ev.ended);
@@ -296,7 +313,10 @@ function FittedCamera() {
 }
 
 function LevelScene() {
-   const { config } = useFoodCatcherLevel();
+   const { id, config } = useFoodCatcherLevel();
+   const look = LEVEL_LOOKS[id ?? 1];
+   useStageLighting(look.lighting, 1.2, look.background, look.fog);
+
    const [run] = useState<ViewRun>(() => Object.assign(createRun(randomSeed(), config), { flashAt: -10, flashX: 0 }));
    const scratch = useMemo<Scratch>(
       () => ({ ray: new Raycaster(), ndc: new Vector2(), input: { targetX: null, dir: 0 } }),
@@ -308,7 +328,9 @@ function LevelScene() {
       <>
          <Simulation run={run} scratch={scratch} />
          <FittedCamera />
+         <SkyDome top={look.skyTop} bottom={look.skyBottom} />
          <Kitchen />
+         <Decor />
          <Chef run={run} />
          {slots.map((index) => (
             <FallingItem key={index} index={index} run={run} />

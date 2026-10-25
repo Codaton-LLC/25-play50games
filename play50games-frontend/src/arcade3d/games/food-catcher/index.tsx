@@ -49,7 +49,7 @@ const definition: GameDefinition = {
    // only the first frame uses this: Scene's CameraRig (core useFittedView) fits the play rectangle
    // to the screen, clear of the HUD and the 2x badge
    camera: { position: [0, 3.25, 12], fov: 40, lookAt: [0, 3.25, 0] },
-   environment: { background: "#1c1410", lighting: "indoor" },
+   environment: { background: "#1c1410", lighting: "indoor", fog: ["#1c1410", 30, 80] },
    touchControls: [],
    hudStats: [{ key: "combo", label: "Combo" }],
    instructions: instructionsFor(LEVELS[1]),
