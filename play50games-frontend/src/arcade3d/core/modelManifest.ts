@@ -153,6 +153,14 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/hotel-bellboy-rush/lobbyPlanterR.glb",
    "/models/3d/shared/sofa.glb",
    "/models/3d/shared/travellerNpc.glb",
+   // Menu 1 taxi-rush-3d (2026-10-25): the ready menu1-taxi-rush-3d GLBs and the shared traffic light and
+   // cone, copied as optimized; fits measured in games/taxi-rush-3d/assets.ts.
+   "/models/3d/taxi-rush-3d/taxiCab.glb",
+   "/models/3d/taxi-rush-3d/townhouseBlock.glb",
+   "/models/3d/taxi-rush-3d/cornerShop.glb",
+   "/models/3d/taxi-rush-3d/busStop.glb",
+   "/models/3d/shared/trafficLight.glb",
+   "/models/3d/shared/trafficCone.glb",
 ];
 
 const LISTED: ReadonlySet<string> = new Set(MODEL_MANIFEST);
