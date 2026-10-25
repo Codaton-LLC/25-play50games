@@ -5,6 +5,7 @@
 // the store's hole stats; from 9:00 a "Time left" pill. The shell HUD shows Hole, Par and Strokes.
 import { useEffect, useRef } from "react";
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
+import { useMiniGolfLevel } from "./level";
 import { PARS } from "./course";
 import { HUD_FEED } from "./hudFeed";
 import styles from "./Hud.module.css";
@@ -12,9 +13,11 @@ import styles from "./Hud.module.css";
 function Card() {
    const stats = useArcadeStore((s) => s.stats);
    const hole = stats.hole ?? 1;
+   const { config } = useMiniGolfLevel();
+   const pars = config.holes === 9 ? [...PARS, 3, 3, 3] : PARS;
    return (
-      <div className={styles.card} aria-label="Scorecard">
-         {PARS.map((par, i) => {
+      <div className={styles.card} style={config.holes === 9 ? { gridTemplateColumns: "repeat(9, 1fr)" } : undefined} aria-label="Scorecard">
+         {pars.map((par, i) => {
             const strokes = stats[`h${i + 1}`];
             const tone = strokes === undefined ? "" : strokes < par ? styles.under : strokes > par ? styles.over : "";
             return (

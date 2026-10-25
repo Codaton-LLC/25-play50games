@@ -314,7 +314,49 @@
       "max_duration_ms": 602000,
       "base": 1200,
       "max_pps": 200,
-      "enabled": false
+      "enabled": false,
+      "levels": [
+        {
+          "title": "Garden Course",
+          "max_score": 4100,
+          "min_duration_ms": 15000,
+          "max_duration_ms": 602000,
+          "base": 1200,
+          "max_pps": 200
+        },
+        {
+          "title": "Ramp Course",
+          "max_score": 4100,
+          "min_duration_ms": 15000,
+          "max_duration_ms": 482000,
+          "base": 1200,
+          "max_pps": 200
+        },
+        {
+          "title": "Windmill Course",
+          "max_score": 4100,
+          "min_duration_ms": 15000,
+          "max_duration_ms": 482000,
+          "base": 1200,
+          "max_pps": 200
+        },
+        {
+          "title": "Neon Course",
+          "max_score": 4100,
+          "min_duration_ms": 15000,
+          "max_duration_ms": 482000,
+          "base": 1200,
+          "max_pps": 200
+        },
+        {
+          "title": "Master Course",
+          "max_score": 6200,
+          "min_duration_ms": 24000,
+          "max_duration_ms": 602000,
+          "base": 1200,
+          "max_pps": 210
+        }
+      ]
     },
     "robot-factory": {
       "title": "Robot Factory Sorter",

@@ -165,3 +165,122 @@ HANDOFF (build, 2026-10-09, branch `claude/game-mini-golf`, status `dev`):
 - **Changed from design:** the gentle follow (fraction 0.6, a window of 40 % of the hole) runs wherever the fixed view breaks the size rule at runtime: holes 2, 4, 5, 6 in landscape and 5–6 on a portrait phone (the design expected hole 4 only). A follow hole opens on an establishing shot of the whole hole, and an edge arrow points at the cup while it is off screen.
 - **Known issues:** hole 1's thumbnail shot is plain (the quick capture reaches hole 1 only); sloped rails are drawn as short stepped boards; a first headless desktop run showed p50 33 ms on holes 4–6, not reproduced in the final run (p95 16.8 ms).
 - **Unverified:** real phones; `node tools/gamecheck` (not in this repo); a novice playtest of the tunnel mouth and hole 3's 81 % power.
+
+
+## Levels (P-72)
+
+The core owns selection, unlocking and the sum of level bests. `levels.ts` is the pure configuration;
+`createRun(seed, level)` captures it once. The original `createRun(seed, course)` test seam remains.
+Level 1 keeps the original six-hole course, par 17, physics, scoring, timing, pick-ups and win behavior.
+The frozen pre-level rules fixture is replayed against L1 with identical frames and inputs.
+
+| Level | Course | Full putt | Pick-up | Cap | Moving obstacles | Cup radius / capture speed | Lighting | Clear score |
+|---|---|---|---|---|---|---|---|---|
+| 1 Garden Course | Original 6, par 17 | 4.5 m/s | par + 4 | 600 s | bar 1.2 rad/s, windmill 6 s/turn | 0.10 m / 1.2 m/s | day | 2000 or win |
+| 2 Ramp Course | Same 6, par 17 | 5 m/s | par + 3 | 480 s | unchanged | 0.10 / 1.2 | day | 2000 or win |
+| 3 Windmill Course | Same 6, par 17 | 5 | par + 3 | 480 s | bar 1.6, windmill 5 s/turn | 0.10 / 1.2 | sunset | 2000 or win |
+| 4 Neon Course | Same 6, par 17 | 5 | par + 3 | 480 s | retain L3 | 0.08 / 1.0 | night | 2000 or win |
+| 5 Master Course | 9, par 26 | 5 | par + 2 | 600 s | retain L3 | 0.08 / 1.0 | sunset | win |
+
+The master course adds Split Fairway (a central dividing board), Twin Banks (two staggered angled
+boards) and Final Needle (a narrow gate), all par 3 on the same felt/rail system. Each has an
+independently found robust ace; the live beam search still uses 0.5-degree aim, 0.01 power and
+0.1-second wait steps, retaining six safe rests. Both mirrors and nine consecutive start ticks
+are checked. No solver resolution or robustness requirement was relaxed. Only three felt mappings
+were appended to `looks.ts`; the original six entries and palette are untouched.
+
+Levels 2-5 win after finishing all cups without a pick-up; a completed course containing a pick-up
+ends with `lose`, keeping the earned points. A score of 2000 also clears L1-L4 through the core;
+L5 requires a win. Idle play has zero points and never clears. L1 preserves today's win on any
+completed six-hole card, including pick-ups. L2-L5's par bot uses two strokes on each original hole,
+with a full second after the lag stops before the finish; it needs no frame-perfect release.
+Every human-paced first shot waits at least one second to read and aim. Windmill waits include a
+whole turn; the rounded original-bar period is independently verified over all nine start ticks.
+Touch and keyboard feed the same putt queue, 0.5-second ready gap and obstacle clock on every level.
+The plan's combo scoring is deliberately omitted: `holeScore` remains unchanged.
+
+### Server limits and why they hold: one proof per level
+
+`PROPOSED_LEVEL_LIMITS` is exported from `rules.ts`; its pure data lives in `levels.ts` so server-safe
+metadata never imports the simulation. These values also populate the game's backend `levels` array.
+
+| Level | maxScore | minDurationMs | maxDurationMs | base | maxPointsPerSec | Analytic earliest end |
+|---|---:|---:|---:|---:|---:|---:|
+| 1 | 4100 | 15000 | 602000 | 1200 | 200 | 15.751 s |
+| 2 | 4100 | 15000 | 482000 | 1200 | 200 | 15.294 s |
+| 3 | 4100 | 15000 | 482000 | 1200 | 200 | 15.294 s |
+| 4 | 4100 | 15000 | 482000 | 1200 | 200 | 15.310 s |
+| 5 | 6200 | 24000 | 602000 | 1200 | 210 | 24.847 s |
+
+The only score source is `holeScore`: at most `100 * (par + 2) + 200` once per hole, since a
+capture requires at least one stroke. There is no time, completion or combo bonus. Thus the
+six-hole ceiling is `100 * 17 + 6 * 400 = 4100`; nine holes give `100 * 26 + 9 * 400 = 6200`.
+Each added hole contributes 700. Every level offers at least L1's ceiling; L5 is 1.5122 times L1.
+The committed ace witnesses demonstrate that the ceilings can actually be achieved.
+
+The unchanged `BALL.vCap = 6` bounds rolling, air and post-collision speed, even at the faster bar.
+L2-L5's launch speed 5 stays below it. A bar hit can add at most `(1 + MOVING.barE) * omega * half`,
+now `1.75 * 1.6 * 0.85 = 2.38 m/s` before the same clamp. Blades reverse the normal velocity at
+restitution 0.75. Pipe length divided by `max(entrySpeed, 0.6)` bounds transport at 6 m/s too.
+Water/guard placements return to the last rest point; the windmill placement returns towards the tee.
+For static holes a capture therefore takes at least
+`(distance(tee, cup) - level.cupRadius) / 6` seconds. For L2-L5's turntable hole, conservatively
+subtract another `2 * (bar.half + BALL.radius) = 1.82 m` before dividing by 6: grant all travel
+inside the bar-contact disk for free between first entry and last exit. That covers even moving-wall
+positional overlap corrections, without relying on their speed. Outside that disk the original
+static-wall bound applies. This stronger conservative proof also remains valid on L2's original-speed bar.
+
+Pick-ups need `par + pickUpOver` counted strokes. A putt can count at most two (one putt plus one
+water penalty), and successive putts have `TICK.ready = 0.5` seconds between them. Conservatively,
+a water-capable hole needs at least `(ceil((par + pickUpOver) / 2) - 1) * 0.5` seconds in ready gaps;
+on a dry hole the bound is `(par + pickUpOver - 1) * 0.5`. Taking the minimum of that bound and
+the capture-distance bound for each hole, then adding `(holes - 1) * TICK.holeOut` (2 s), bounds
+every completed course, including a losing card with pick-ups. The three new holes are dry.
+
+1. **L1:** The original capture bounds are 0.917, 0.807, 0.868, 0.718, 1.154, 1.287 s. All pick-up
+   bounds exceed them. Sum plus 10 s transitions = 15.751 s; 15000 ms retains the original margin.
+   `1200 + 200 * 15 = 4200 >= 4100`. The original 600 s cap plus at most one 50 ms frame fits 602000 ms.
+2. **L2:** A par-3 water hole can now be picked up after three splashes (1 s ready gaps). The
+   pipe hole's bound drops to 1 s. Granting the bar disk's 1.82 m as free travel reduces the hill
+   bound by another 0.303 s: total 15.294 s including transitions.
+   The 15000 ms minimum is below it, and the same 4200-point envelope covers the entire 4100 ceiling.
+   The 480 s cap plus a 50 ms frame fits 482000 ms. Higher launch speed cannot evade the 6 m/s clamp.
+3. **L3:** Faster obstacles cannot evade that clamp, the fixed ready gap, or the 2 s transitions.
+   Identical geometry, cup and pick-up allowance give the same 15.294 s lower bound and 4100 ceiling.
+   So L2's limits apply unchanged. Robust lines independently verify the narrower timing windows.
+4. **L4:** Radius 0.08 increases the dry capture bounds to 0.920, 0.810, 0.871, 0.721 s; pipe is still
+   conservatively 1 s and hill 0.987 s after the bar disk allowance. Total 15.310 s. A lower capture-speed threshold cannot make
+   capture earlier. The 15000 ms / 4200 envelope and 482000 ms cap still bound every ranked ending.
+5. **L5:** With par + 2, pipe and hill have 1 s pick-up bounds; the hill capture bound of 0.987 s is lower. The new dry-hole
+   capture bounds are 1.138, 1.176, 1.223 s, below their 2 s pick-up gaps. Sum with 16 s transitions
+   is 24.847 s. Minimum 24000 ms leaves 0.847 s; `1200 + 210 * 24 = 6240 >= 6200`. The 600 s cap
+   plus one frame fits 602000 ms. The final hole and scorecard sizes come from the captured course.
+
+For a level, let M be the ceiling and E the earliest-end bound above. A final submission ends at
+E or later, or at its much later cap. Thus `B(t) <= M <= base + pps * minDurationSeconds` for every
+possible submitted duration; the line grows afterwards. Score prefixes before the run ends are
+not submitted. No result delay or paused time is added to the submitted run clock.
+
+`levels.test.ts` checks these bounds independently, the small-cup lip-outs, launch speed, pick-up
+caps, ready gap, cap clock and final-hole progression. `rules.levels.test.ts` drives the real store
+with human-paced par, ace oracle, input-spam and idle bots on 200 seeds per level and bot, including
+30/60/144 Hz, variable frames and pauses; it checks `withinServerLimits`, `capScore` as a no-op,
+clearing and speed bounds. The old `rules.test.ts`, `course.test.ts` and asset tests are unchanged.
+
+
+Measured level proof (200 seeds per cell, mixed frames and store pauses):
+
+| Level | Human clears / best | Ace oracle clears / best | Spam clears / best | Idle clears / best |
+|---|---|---|---|---|
+| 1 | 200/200 / 2300 | 200/200 / 4100 | 200/200 / 700 (original pick-up win behavior) | 0/200 / 0 |
+| 2 | 200/200 / 2300 | 200/200 / 4100 | 0/200 / 700 | 0/200 / 0 |
+| 3 | 200/200 / 2300 | 200/200 / 4100 | 0/200 / 800 | 0/200 / 0 |
+| 4 | 200/200 / 2300 | 200/200 / 4100 | 0/200 / 800 | 0/200 / 0 |
+| 5 | 200/200 / 4400 | 200/200 / 6200 | 0/200 / 1500 | 0/200 / 0 |
+
+Every measured run passed the server limits; `capScore` was a no-op and peak speed stayed <=6 m/s.
+The human figures include the final stricter rerun with >=1 s before each first putt. Oracle bests
+reach 100% of all five ceilings. Full four-bot matrix: 4000 runs, 1518.91 s wall time on this machine;
+stricter human rerun: another 1000 runs, 158.82 s. Idle cohorts dominate runtime. Game tests total
+150, plus 62 registry-sync tests; all pass across the recorded runs. Four source mutation probes
+(ignored speed, cup radius, course length and cap) all fail the new assertions as intended.
