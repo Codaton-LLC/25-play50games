@@ -7,6 +7,10 @@ import { LEVEL_IDS, type LevelId } from "@/arcade3d/types";
 import { LEVELS } from "./levels";
 import {
    CAULDRON_BODY,
+   CLEAN_POINTS,
+   MAX_SPEED,
+   RECIPE_POINTS,
+   WANDER_LEN,
    POT_STAND,
    RADIUS,
    STUN_S,
@@ -455,4 +459,40 @@ describe("wizard score limits", () => {
          expect(best).toBeGreaterThanOrEqual(0.9 * limits.maxScore);
       }
    }, 180_000);
+});
+
+describe("wizard clearing", () => {
+   it("a level clears only on a win: a paced player wins at least 99% of 100 seeds, the oracle stays inside the limits on 60 more, an idle one never wins", () => {
+      for (const id of LEVEL_IDS) {
+         const limits = PROPOSED_LEVEL_LIMITS[id];
+         let won = 0;
+         for (let seed = 0; seed < 100; seed++) {
+            const human = play(id, seed + 1000, 30, "human");
+            expect(withinServerLimits(human.score, human.ms, limits)).toBe(true);
+            if (human.reason === "win") won += 1;
+         }
+         expect(won / 100, `level ${id}`).toBeGreaterThanOrEqual(0.99);
+         for (let seed = 0; seed < 60; seed++) {
+            const oracle = play(id, seed + 2000, seed % 2 ? 60 : 144, "oracle");
+            expect(withinServerLimits(oracle.score, oracle.ms, limits)).toBe(true);
+         }
+         const idle = play(id, 3, 20, "idle");
+         expect(idle.reason).not.toBe("win");
+         expect(idle.score).toBe(0);
+      }
+   }, 900_000);
+});
+
+describe("wizard spec literals", () => {
+   it("keeps the spec's numbers: radius 0.36, top speed 4.4, use range 1.2, stun 0.60, +300 / +80 / +4 per second, a 3 m wander", () => {
+      expect(RADIUS).toBe(0.36);
+      expect(MAX_SPEED).toBe(4.4);
+      expect(USE_RANGE).toBe(1.2);
+      expect(STUN_S).toBe(0.6);
+      expect(RECIPE_POINTS).toBe(300);
+      expect(CLEAN_POINTS).toBe(80);
+      expect(TIME_BONUS_PER_SECOND).toBe(4);
+      expect(WANDER_LEN).toBe(3);
+      expect(timeBonus(10_999)).toBe(40);
+   });
 });

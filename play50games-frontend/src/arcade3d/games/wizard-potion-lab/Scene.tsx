@@ -30,12 +30,12 @@ import { useLevel } from "@/arcade3d/core/level";
 import { randomSeed } from "@/arcade3d/core/math";
 import { useQuality } from "@/arcade3d/core/quality";
 import { Instanced, type InstancePart } from "@/arcade3d/core/render";
-import { HumanoidModel, aimArm, cheerPose, idlePose, useHumanoidPose, walkPose, wrapPhase } from "@/arcade3d/core/rig";
+import { HumanoidModel, aimArm, cheerPose, gaitPhaseStep, idlePose, useHumanoidPose, walkPose, wrapPhase } from "@/arcade3d/core/rig";
 import { CAULDRON_INNER_RADIUS_GLB, EXPANSION_GLB_POINTS } from "@/arcade3d/core/sharedAssets";
 import { useFittedView } from "@/arcade3d/core/useFittedView";
 import { useRunFrame } from "@/arcade3d/core/useRunFrame";
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
-import { ASSETS } from "./assets";
+import { ASSETS, WIZARD_LANDMARKS, WIZARD_SCALE } from "./assets";
 import { publishLab } from "./Hud";
 import { LEVELS, type WizardLevel } from "./levels";
 import { COLORS, DAMPING, FOLLOW, FOV, INGREDIENT_LOOK, candleSpots, labBox, lookAtFor, runeSpots, viewFor, wallCapSpots, wallSpots } from "./looks";
@@ -248,7 +248,7 @@ function LevelScene() {
    const pose = useHumanoidPose((p) => {
       const speed = Math.hypot(run.hero.vx, run.hero.vz);
       const amount = Math.min(1, speed / MAX_SPEED);
-      gait.current.phase = wrapPhase(gait.current.phase + (speed / 0.68) * Math.PI * 2 * time.delta);
+      gait.current.phase = wrapPhase(gait.current.phase + gaitPhaseStep(Math.max(0.35, amount), WIZARD_LANDMARKS, WIZARD_SCALE, speed, time.delta, 4));
       if (run.over === "win") cheerPose(time.now, p);
       else if (amount > 0.08 && run.hero.stun <= 0) walkPose(gait.current.phase, Math.max(0.35, amount), p);
       else idlePose(time.now, p);
