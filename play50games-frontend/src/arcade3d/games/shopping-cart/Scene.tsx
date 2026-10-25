@@ -776,17 +776,19 @@ function StoreEnvironment({ run }: { run: RunState }) {
                      <boxGeometry args={[1.25, 0.2, 12.05]} />
                      <meshStandardMaterial color={COLORS.shelfBase} roughness={0.7} />
                   </Instanced>
-                  <Instanced spots={SHELF_BANNER_SPOTS} name="shelves-banner">
-                     <boxGeometry args={[1.22, 0.12, 12.0]} />
-                     <meshStandardMaterial color={COLORS.shelfBanner} roughness={0.35} />
-                  </Instanced>
-                  <Instanced spots={SHELF_SIGN_SPOTS} name="shelves-signs">
-                     <boxGeometry args={[1.15, 0.25, 2.4]} />
-                     <meshStandardMaterial color={COLORS.categoryBlue} emissive={COLORS.categoryBlue} emissiveIntensity={0.25} roughness={0.4} />
-                  </Instanced>
                </>
             }
          />
+
+         {/* The aisle banners and blue category signs stay on top of the GLB bays (the look pass's readable signs). */}
+         <Instanced spots={SHELF_BANNER_SPOTS} name="shelves-banner">
+            <boxGeometry args={[1.22, 0.12, 12.0]} />
+            <meshStandardMaterial color={COLORS.shelfBanner} roughness={0.35} />
+         </Instanced>
+         <Instanced spots={SHELF_SIGN_SPOTS} name="shelves-signs">
+            <boxGeometry args={[1.15, 0.25, 2.4]} />
+            <meshStandardMaterial color={COLORS.categoryBlue} emissive={COLORS.categoryBlue} emissiveIntensity={0.25} roughness={0.4} />
+         </Instanced>
 
          {/* Bakery stalls on the north apron, outside the play box. */}
          <InstancedModel
