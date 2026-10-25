@@ -34,7 +34,7 @@ import { useMiniGolfLevel } from "./level";
 import { heightAt, type Hole } from "./course";
 import { Decor, Island, Sea } from "./Islands";
 import { HUD_FEED } from "./hudFeed";
-import { COLORS, ESTABLISH_S, FOLLOW_FRACTION, FOV, PITCH, establishView, fixedView, followViews, holeFocus, holeZ, minPxPerMetre, pickCamera } from "./looks";
+import { COLORS, ESTABLISH_S, FOLLOW_FRACTION, FOV, LIGHTING_THEMES, PITCH, establishView, fixedView, followViews, holeFocus, holeZ, minPxPerMetre, pickCamera } from "./looks";
 import { BALL, CUP, previewLength } from "./physics";
 import { TICK, advanceRun, createRun, currentHole, readiness, syncStore, type RunState } from "./rules";
 
@@ -120,7 +120,9 @@ export default function Scene() {
    const input = useInput();
    const fx = useFx();
    // a new course every run: GameShell remounts the Scene (and its game time) on start and retry
-   const { config } = useMiniGolfLevel();
+   const { id, spec, config } = useMiniGolfLevel();
+   const lighting = spec?.environment?.lighting ?? (id === 4 ? "night" : id === 3 || id === 5 ? "sunset" : "day");
+   const theme = LIGHTING_THEMES[lighting] ?? LIGHTING_THEMES.day;
    const [run] = useState(() => createRun(randomSeed(), config));
    const [aim] = useState(createPuttAim);
    const [preview] = useState<AimView>(() => ({ on: false, dx: 0, dz: -1, length: 0, power: 0.5 }));
@@ -305,7 +307,7 @@ export default function Scene() {
    }
    return (
       <>
-         <SkyDome top={COLORS.skyTop} bottom={COLORS.skyBottom} offset={0.12} exponent={0.85} />
+         <SkyDome top={theme.skyTop} bottom={theme.skyBottom} offset={0.12} exponent={0.85} />
          <HoleFit key={camHole} hole={shown} onFit={onFit} />
          {fit && (
             <CameraRig
@@ -317,11 +319,11 @@ export default function Scene() {
                damping={3}
             />
          )}
-         <Sea />
+         <Sea theme={theme} />
          {holes.map((h) => (
             <Island key={h.index} hole={h} run={run} />
          ))}
-         <Decor holes={holes} yaws={holeYaws} />
+         <Decor holes={holes} yaws={holeYaws} theme={theme} />
          <GolfBall run={run} aim={preview} />
          <TargetMarkers targets={cup} color={COLORS.accent} />
          {debug && <Probe run={run} scratch={scratch} />}

@@ -305,3 +305,57 @@ export function ClubhouseSilhouette({ spots }: { spots: readonly InstanceSpot[] 
       </Instanced>
    );
 }
+
+/** Low-poly fluffy cumulus clouds floating low in the horizon sky (Fix 1). */
+export function CloudPrimitives({ spots, color = "#ffffff" }: { spots: readonly InstanceSpot[]; color?: string }) {
+   const geo = useMemo(() => {
+      const parts: BufferGeometry[] = [];
+      const cCenter = new IcosahedronGeometry(0.85, 1);
+      const cLeft = new IcosahedronGeometry(0.65, 1).translate(-0.8, -0.15, 0.1);
+      const cRight = new IcosahedronGeometry(0.7, 1).translate(0.85, -0.1, -0.05);
+      const cTop = new IcosahedronGeometry(0.6, 1).translate(0.15, 0.45, 0);
+      parts.push(cCenter, cLeft, cRight, cTop);
+      const merged = mergeGeometries(parts);
+      parts.forEach((p) => p.dispose());
+      return merged ?? new BoxGeometry(2, 1, 1);
+   }, []);
+   useEffect(() => () => geo.dispose(), [geo]);
+   return (
+      <Instanced spots={spots} name="clouds">
+         <primitive object={geo} attach="geometry" />
+         <meshStandardMaterial color={color} roughness={0.9} flatShading />
+      </Instanced>
+   );
+}
+
+/** Distant non-colliding backdrop coastal islands / hills outside the play area (Fix 1). */
+export function BackdropIslandPrimitives({ spots }: { spots: readonly InstanceSpot[] }) {
+   const geo = useMemo(() => {
+      const parts: BufferGeometry[] = [];
+      const base = paintGeometry(new CylinderGeometry(1.0, 1.25, 0.5, 10).translate(0, 0.25, 0), COLORS.sandRim);
+      const hill = paintGeometry(new ConeGeometry(0.95, 0.7, 9).translate(0, 0.85, 0), COLORS.feltDark);
+      parts.push(base, hill);
+      const merged = mergeGeometries(parts);
+      parts.forEach((p) => p.dispose());
+      return merged ?? new BoxGeometry(2, 1, 2);
+   }, []);
+   useEffect(() => () => geo.dispose(), [geo]);
+   return (
+      <Instanced spots={spots} name="backdrop-islands">
+         <primitive object={geo} attach="geometry" />
+         <meshStandardMaterial vertexColors flatShading roughness={0.95} />
+      </Instanced>
+   );
+}
+
+/** Visible ocean horizon line defining the sea boundary against the backdrop (Fix 1). */
+export function HorizonLinePrimitive({ spots, color = "#bae6fd" }: { spots: readonly InstanceSpot[]; color?: string }) {
+   const geo = useMemo(() => new BoxGeometry(120, 0.05, 0.6), []);
+   useEffect(() => () => geo.dispose(), [geo]);
+   return (
+      <Instanced spots={spots} name="horizon-line">
+         <primitive object={geo} attach="geometry" />
+         <meshBasicMaterial color={color} opacity={0.65} transparent />
+      </Instanced>
+   );
+}

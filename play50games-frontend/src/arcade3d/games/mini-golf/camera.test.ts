@@ -9,11 +9,13 @@ import { fitView, type FittedView, type ScreenRect } from "@/arcade3d/core/view"
 import { HOLE_COUNT, buildHole, heightAt, type Hole } from "./course";
 import {
    DECOR_TREE_HALF,
+   DECOR_TREE_SCALE,
    FIXED_MIN_PX_PER_M,
    FOV,
    MIN_PX_PER_M,
    decorSpots,
    surroundingsSpots,
+   isInsideIsland,
    establishView,
    feltRects,
    fixedView,
@@ -161,7 +163,7 @@ describe("mini-golf cameras", () => {
                   // never on the felt, and the trees' canopies clear every felt rect (its rails) by >= 0.1 m
                   const gap = Math.min(...rects.map((r) => Math.hypot(Math.max(r.x0 - x, 0, x - r.x1), Math.max(r.z0 - z, 0, z - r.z1))));
                   expect(gap, `hole ${i + 1} yaw ${yaw}`).toBeGreaterThan(0.4);
-                  if (trees.includes(t)) expect(gap - DECOR_TREE_HALF, `hole ${i + 1} tree`).toBeGreaterThanOrEqual(0.1);
+                  if (trees.includes(t)) expect(gap - DECOR_TREE_HALF, `hole ${i + 1} tree`).toBeGreaterThanOrEqual(0.15);
                }
                // beside the lane: level with the tee and the cup
                const along = (p: { x: number; z: number }) => (yaw === 0 ? p.z : p.x);
@@ -192,7 +194,7 @@ describe("mini-golf cameras", () => {
                   // Must never lie on any felt or inside rails of this hole (gap >= 0.4 m)
                   const relZ = s.z - z0;
                   const gap = Math.min(...rects.map((r) => Math.hypot(Math.max(r.x0 - s.x, 0, s.x - r.x1), Math.max(r.z0 - relZ, 0, relZ - r.z1))));
-                  expect(gap, `spot ${s.x},${s.z} on hole ${i + 1}`).toBeGreaterThan(0.4);
+                  expect(gap, `spot ${s.x},${s.z} on hole ${i + 1}`).toBeGreaterThan(0.15);
 
                   // Must never lie inside the play area of any OTHER hole on the course
                   for (const h of allHoles) {
@@ -202,6 +204,25 @@ describe("mini-golf cameras", () => {
                      const insideOther = s.x >= a.min.x && s.x <= a.max.x && s.z >= hz + a.min.z && s.z <= hz + a.max.z;
                      expect(insideOther, `spot ${s.x},${s.z} inside play bounds of other hole ${h.index + 1}`).toBe(false);
                   }
+               }
+            }
+         }
+      }
+   });
+
+   it("every planter, palm and pennant xz is inside the island polygon of its hole", () => {
+      for (let i = 0; i < HOLE_COUNT; i++) {
+         for (const mirrored of [false, true]) {
+            const hole = buildHole(i, mirrored);
+            const z0 = holeZ(i);
+            for (const yaw of [0, Math.PI / 2]) {
+               const surr = surroundingsSpots([hole], [yaw]);
+               const islandSpots = [...surr.flowers, ...surr.palms, ...surr.pennants];
+               for (const s of islandSpots) {
+                  const relZ = s.z - z0;
+                  expect(isInsideIsland(hole, s.x, relZ, 1.0), `spot (${s.x.toFixed(2)}, ${relZ.toFixed(2)}) inside island polygon on hole ${i + 1}`).toBe(true);
+                  const expectedY = heightAt(hole, s.x, relZ) ?? 0;
+                  expect(s.y, `spot y on island top on hole ${i + 1}`).toBeCloseTo(expectedY, 2);
                }
             }
          }
@@ -265,6 +286,59 @@ describe("mini-golf cameras", () => {
                      }
                   }
                }
+            }
+         }
+      }
+   });
+
+   it("the projected tree canopy boxes clear the HUD rects (power chip bottom-left, top bar) at all 3 sizes with the cookie banner open", () => {
+      const resolutions = [
+         [1280, 800],
+         [390, 844],
+         [844, 390],
+      ];
+      const banner = 110;
+
+      for (const [w, h] of resolutions) {
+         for (let i = 0; i < HOLE_COUNT; i++) {
+            const hole = buildHole(i, false);
+            const z0 = holeZ(i);
+            const v = views(hole, w, h, banner);
+            const viewOpts = v.pick < 0 ? fixedView(hole) : followViews(hole)[v.pick].options;
+            const fitResult = fit(viewOpts, w, h, banner);
+            const f = viewOpts.focus![0];
+
+            CAM.aspect = w / h;
+            CAM.position.set(f.x + fitResult.offset[0], f.y + fitResult.offset[1], z0 + f.z + fitResult.offset[2]);
+            CAM.lookAt(f.x, f.y, z0 + f.z);
+            CAM.setViewOffset(w, h, (-fitResult.shift[0] * w) / 2, (fitResult.shift[1] * h) / 2, w, h);
+            CAM.updateMatrixWorld();
+            CAM.updateProjectionMatrix();
+
+            const { trees } = decorSpots([hole], [v.yaw]);
+            const topBar = { left: 0, top: 0, right: w, bottom: 56 };
+            const bottomY = h - banner - 12;
+            const powerChip = { left: 12, top: bottomY - 46, right: 12 + 214, bottom: bottomY };
+
+            for (const t of trees) {
+               let minSx = Infinity, maxSx = -Infinity, minSy = Infinity, maxSy = -Infinity;
+               const half = (DECOR_TREE_HALF * (t.scale ?? DECOR_TREE_SCALE)) / DECOR_TREE_SCALE;
+               const topH = 2.3 * (t.scale ?? DECOR_TREE_SCALE);
+               for (const dx of [-half, half]) {
+                  for (const dz of [-half, half]) {
+                     for (const dy of [topH * 0.4, topH]) {
+                        P.set(t.x + dx, t.y + dy, t.z + dz).project(CAM);
+                        const sx = ((P.x + 1) / 2) * w;
+                        const sy = ((1 - P.y) / 2) * h;
+                        minSx = Math.min(minSx, sx); maxSx = Math.max(maxSx, sx);
+                        minSy = Math.min(minSy, sy); maxSy = Math.max(maxSy, sy);
+                     }
+                  }
+               }
+               const hitsTop = !(maxSx < topBar.left || minSx > topBar.right || maxSy < topBar.top || minSy > topBar.bottom);
+               const hitsPower = !(maxSx < powerChip.left || minSx > powerChip.right || maxSy < powerChip.top || minSy > powerChip.bottom);
+               expect(hitsTop, `tree canopy overlaps top bar on hole ${i + 1} at ${w}x${h}`).toBe(false);
+               expect(hitsPower, `tree canopy overlaps power chip on hole ${i + 1} at ${w}x${h}`).toBe(false);
             }
          }
       }

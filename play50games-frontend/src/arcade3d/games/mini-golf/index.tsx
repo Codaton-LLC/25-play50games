@@ -11,7 +11,7 @@ import Hud from "./Hud";
 import Scene from "./Scene";
 import { ASSETS } from "./assets";
 import { HOLE_COUNT } from "./course";
-import { COLORS, FOV } from "./looks";
+import { COLORS, FOV, LIGHTING_THEMES } from "./looks";
 
 const definition: GameDefinition<MiniGolfLevel> = {
    slug: "mini-golf",
@@ -31,9 +31,9 @@ const definition: GameDefinition<MiniGolfLevel> = {
    levels: LEVEL_IDS.map(id => ({
       id, description: DESCRIPTIONS[id], config: LEVELS[id],
       hudStats: [{ key: "hole", label: "Hole", max: LEVELS[id].holes }, { key: "par", label: "Par" }, { key: "strokes", label: "Strokes" }],
-      ...(id === 3 ? { environment: { lighting: "sunset" as const } } : {}),
-      ...(id === 4 ? { environment: { lighting: "night" as const } } : {}),
-      ...(id === 5 ? { environment: { lighting: "sunset" as const } } : {}),
+      ...(id === 3 ? { environment: { background: LIGHTING_THEMES.sunset.skyTop, fog: [LIGHTING_THEMES.sunset.fog, 40, 130], lighting: "sunset" as const } } : {}),
+      ...(id === 4 ? { environment: { background: LIGHTING_THEMES.night.skyTop, fog: [LIGHTING_THEMES.night.fog, 40, 130], lighting: "night" as const } } : {}),
+      ...(id === 5 ? { environment: { background: LIGHTING_THEMES.sunset.skyTop, fog: [LIGHTING_THEMES.sunset.fog, 40, 130], lighting: "sunset" as const } } : {}),
    })),
    // the drop, the flag and (birdie or better) the confetti are seen before the result
    resultDelayMs: 1800,

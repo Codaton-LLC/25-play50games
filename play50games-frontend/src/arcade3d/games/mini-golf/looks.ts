@@ -5,7 +5,7 @@ import { PerspectiveCamera, Vector3 } from "three";
 import type { AABB } from "@/arcade3d/core/collision";
 import type { FittedViewOptions } from "@/arcade3d/core/useFittedView";
 import type { FittedView } from "@/arcade3d/core/view";
-import { HILL, HOLE_SPACING, RAMP, TIER_WALL_Z, type Hole } from "./course";
+import { HILL, HOLE_SPACING, RAMP, TIER_WALL_Z, heightAt, type Hole } from "./course";
 import { BALL, CUP } from "./physics";
 
 const DEG = Math.PI / 180;
@@ -196,8 +196,8 @@ export interface DecorSpot {
 /** The trees' spot scale (x TREE_HEIGHT 2.3 m = 0.92 m tall) and their canopy's half width at it (leafyTree 1.804 wide at 1.9133 tall). */
 export const DECOR_TREE_SCALE = 0.4;
 export const DECOR_TREE_HALF = ((1.804 / 1.9133) * 2.3 * DECOR_TREE_SCALE) / 2;
-/** Trees stand this far outside the rail box (on the island's rim), so the canopy clears the rails by >= 0.13 m. */
-export const DECOR_TREE_OUT = 0.58;
+/** Trees stand this far outside the rail box (on the island's rim), so the canopy clears the rails by >= 0.15 m. */
+export const DECOR_TREE_OUT = 0.68;
 
 /**
  * Trees and rocks on each island's two lateral sides as its camera sees it (yaw 0: the camera at
@@ -231,8 +231,10 @@ export function decorSpots(holes: readonly Hole[], yaws: readonly number[] = [])
       const teeSide = lateralX ? -1 : 1;
       const tee = pick(hole.tee, teeSide, DECOR_TREE_OUT);
       const cup = pick(hole.cup, -teeSide, DECOR_TREE_OUT);
-      trees.push({ ...tee, y: -0.28, rotY: k, scale: DECOR_TREE_SCALE });
-      trees.push({ ...cup, y: -0.28, rotY: k + 2, scale: DECOR_TREE_SCALE });
+      const treeScale = hole.windmill ? 0.3 : DECOR_TREE_SCALE;
+      const cupTreeY = hole.windmill ? -0.45 : -0.28;
+      trees.push({ ...tee, y: -0.28, rotY: k, scale: treeScale });
+      trees.push({ ...cup, y: cupTreeY, rotY: k + 2, scale: treeScale });
       rocks.push({ ...tee, y: -0.62, rotY: k, scale: 0.7 });
       rocks.push({ ...cup, y: -0.62, rotY: k + 1, scale: 0.7 });
       rocks.push({ ...pick(hole.tee, -teeSide, 0.45), y: -0.35, rotY: k + 3, scale: 0.45 });
@@ -325,6 +327,58 @@ export const COLORS = {
    accent: "#86efac",
 } as const;
 
+/** Is (x, z) in hole-local coordinates strictly inside the island outline? */
+export function isInsideIsland(hole: Hole, x: number, z: number, margin = 0.9): boolean {
+   const b = hole.box;
+   const sx = (b.x1 - b.x0) / 2 + 0.6;
+   const sz = (b.z1 - b.z0) / 2 + 0.6;
+   const cx = (b.x0 + b.x1) / 2;
+   const cz = (b.z0 + b.z1) / 2;
+   const dx = (x - cx) / sx;
+   const dz = (z - cz) / sz;
+   return dx * dx + dz * dz <= margin * margin;
+}
+
+export interface LightingTheme {
+   skyTop: string;
+   skyBottom: string;
+   water: string;
+   deep: string;
+   foam: string;
+   cloud: string;
+   fog: string;
+}
+
+export const LIGHTING_THEMES: Record<string, LightingTheme> = {
+   day: {
+      skyTop: "#0284c7",
+      skyBottom: "#fed7aa",
+      water: "#0ea5e9",
+      deep: "#0369a1",
+      foam: "#f0fdf4",
+      cloud: "#ffffff",
+      fog: "#bae6fd",
+   },
+   sunset: {
+      skyTop: "#312e81",
+      skyBottom: "#fed7aa",
+      water: "#0284c7",
+      deep: "#1e1b4b",
+      foam: "#fef08a",
+      cloud: "#fed7aa",
+      fog: "#fed7aa",
+   },
+   night: {
+      skyTop: "#020617",
+      skyBottom: "#0f172a",
+      water: "#0f172a",
+      deep: "#020617",
+      foam: "#38bdf8",
+      cloud: "#1e293b",
+      fog: "#0f172a",
+   },
+};
+
 /** Surrounding decor outside the play area: flower beds, palms, pennants, distant hills, clubhouse silhouette. */
 export interface Surroundings {
    flowers: DecorSpot[];
@@ -332,6 +386,9 @@ export interface Surroundings {
    pennants: DecorSpot[];
    hills: DecorSpot[];
    clubhouse: DecorSpot[];
+   clouds: DecorSpot[];
+   backdropIslands: DecorSpot[];
+   horizonLine: DecorSpot[];
 }
 
 export const DISTANT_HILLS: readonly DecorSpot[] = [
@@ -354,29 +411,63 @@ export function surroundingsSpots(holes: readonly Hole[], yaws: readonly number[
    const flowers: DecorSpot[] = [];
    const palms: DecorSpot[] = [];
    const pennants: DecorSpot[] = [];
+   const clouds: DecorSpot[] = [];
+   const backdropIslands: DecorSpot[] = [];
+   const horizonLine: DecorSpot[] = [];
+
    holes.forEach((hole, i) => {
       const rects = feltRects(hole);
       const z0 = holeZ(hole.index);
       const k = hole.index * 2.3;
-      const lateralX = Math.abs(Math.cos(yaws[i] ?? 0)) > 0.5;
-      const rectAt = (p: { x: number; z: number }) => rects.find((r) => onFelt([r], p.x, p.z)) ?? rects[0];
-      const beside = (p: { x: number; z: number }, s: number, out: number) => {
-         const r = rectAt(p);
-         return lateralX ? { x: s < 0 ? r.x0 - out : r.x1 + out, z: z0 + p.z } : { x: p.x, z: z0 + (s < 0 ? r.z0 - out : r.z1 + out) };
-      };
-      const gap = (q: { x: number; z: number }) => Math.min(...rects.map((r) => Math.hypot(Math.max(r.x0 - q.x, 0, q.x - r.x1), Math.max(r.z0 - (q.z - z0), 0, q.z - z0 - r.z1))));
-      const pick = (p: { x: number; z: number }, s: number, out: number) => {
-         const a = beside(p, s, out);
-         return gap(a) >= out - 1e-9 ? a : beside(p, -s, out);
-      };
-      const teeSide = lateralX ? -1 : 1;
-      // Palms on island rock fringe (lateral side, well outside rails)
-      palms.push({ ...pick(hole.cup, -teeSide, DECOR_TREE_OUT + 0.38), y: -0.32, rotY: k + 1.2, scale: 0.45 });
-      // Low flower beds outside rails near tee and cup
-      flowers.push({ ...pick(hole.tee, -teeSide, 0.52), y: -0.08, rotY: k + 0.5, scale: 0.55 });
-      flowers.push({ ...pick(hole.cup, teeSide, 0.52), y: -0.08, rotY: k + 1.8, scale: 0.55 });
-      // Pennant marker on outer rock ledge
-      pennants.push({ ...pick(hole.tee, teeSide, DECOR_TREE_OUT + 0.25), y: -0.15, rotY: k + 2.5, scale: 0.5 });
+      const b = hole.box;
+      const sx = (b.x1 - b.x0) / 2 + 0.6;
+      const sz = (b.z1 - b.z0) / 2 + 0.6;
+      const cx = (b.x0 + b.x1) / 2;
+      const cz = (b.z0 + b.z1) / 2;
+      const rect = rects[0];
+
+      // Decor on the island top must sit solidly inside the island outline and on the ground (Fix 3).
+      // On portrait (yaw 0) never place decor on the right edge (Fix 6).
+      // Always place planters, palms and pennants on the left side (-x) between felt and island rim.
+      const xAt = (z: number) => (rects.find((r) => z >= r.z0 - 0.1 && z <= r.z1 + 0.1) ?? rects[0]).x0 - 0.22;
+
+      // 1. Planter 1 near tee (on island top, inside outline)
+      const zTee = 2.0;
+      const xTee = xAt(zTee);
+      const yTee = heightAt(hole, xTee, zTee) ?? 0;
+      flowers.push({ x: xTee, y: yTee, z: z0 + zTee, rotY: k + 0.5, scale: 0.45 });
+
+      // 2. Planter 2 (on island top, inside outline)
+      const zCup = 0.3;
+      const xCup = xAt(zCup);
+      const yCup = heightAt(hole, xCup, zCup) ?? 0;
+      flowers.push({ x: xCup, y: yCup, z: z0 + zCup, rotY: k + 1.8, scale: 0.45 });
+
+      // 3. Palm on island rock ledge (on island top, inside outline)
+      const zPalm = 1.2;
+      const xPalm = xAt(zPalm);
+      const yPalm = heightAt(hole, xPalm, zPalm) ?? 0;
+      palms.push({ x: xPalm, y: yPalm, z: z0 + zPalm, rotY: k + 1.2, scale: 0.42 });
+
+      // 4. Pennant on island ledge (on island top, strictly inside view to prevent clipping - Fix 5)
+      const zPennant = 0.7;
+      const xPennant = xAt(zPennant);
+      const yPennant = heightAt(hole, xPennant, zPennant) ?? 0;
+      pennants.push({ x: xPennant, y: yPennant, z: z0 + zPennant, rotY: k + 2.5, scale: 0.45 });
+
+      // 5. Real Backdrop (Fix 1): 2-3 distant islands/hills, horizon line, and low clouds outside the play area
+      backdropIslands.push(
+         { x: -10.5, y: -1.25, z: z0 - 14, rotY: 0.4, scale: 4.2 },
+         { x: 11.5, y: -1.25, z: z0 - 15, rotY: -0.3, scale: 4.5 },
+         { x: -4.0, y: -1.25, z: z0 - 20, rotY: 0.8, scale: 5.5 }
+      );
+      horizonLine.push({ x: 0, y: -1.25, z: z0 - 22, rotY: 0, scale: 1 });
+      clouds.push(
+         { x: -12, y: 2.3, z: z0 - 17, rotY: 0.1, scale: 1.8 },
+         { x: 4, y: 2.8, z: z0 - 21, rotY: -0.2, scale: 2.2 },
+         { x: 14, y: 2.4, z: z0 - 19, rotY: 0.3, scale: 1.9 }
+      );
    });
-   return { flowers, palms, pennants, hills: [...DISTANT_HILLS], clubhouse: [CLUBHOUSE] };
+
+   return { flowers, palms, pennants, hills: [...DISTANT_HILLS], clubhouse: [CLUBHOUSE], clouds, backdropIslands, horizonLine };
 }

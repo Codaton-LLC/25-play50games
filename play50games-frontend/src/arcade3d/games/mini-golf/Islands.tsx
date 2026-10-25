@@ -31,15 +31,19 @@ import { HILL_GRADE, RAMP, TIER_WALL_Z, TIER_Y, TURNTABLE, heightAt, type Hole }
 import { COLORS, decorSpots, surroundingsSpots, feltRects, holeZ, onFelt, type FeltRect } from "./looks";
 import { CUP } from "./physics";
 import {
+   BackdropIslandPrimitives,
+   CloudPrimitives,
    ClubhouseSilhouette,
    DistantHills,
    FlagPrimitive,
    FlowerBedPrimitives,
+   HorizonLinePrimitive,
    PalmPrimitives,
    PennantPrimitives,
    RockPrimitives,
    TreePrimitives,
 } from "./Primitives";
+import { type LightingTheme } from "./looks";
 import { TICK_S, type RunState } from "./rules";
 import { Windmill } from "./Windmill";
 
@@ -48,16 +52,16 @@ import { Windmill } from "./Windmill";
 const CELL = 0.25;
 const SKIRT = -0.3;
 
-/** One merged felt mesh: rich putting-green turf with subtle mow pattern and bevelled curb skirts. */
+/** One merged felt mesh: rich putting-green turf with 8-10% mowing stripe contrast and retaining curb skirts (Fix 7). */
 export function buildFelt(hole: Hole, rects: readonly FeltRect[]): BufferGeometry {
    const pos: number[] = [];
    const col: number[] = [];
    const idx: number[] = [];
-   const hi = new Color(COLORS.feltLight);
-   const lo = new Color(COLORS.feltDark);
+   // Clear contrast between two greens: 8-10% apart in lightness (Fix 7)
+   const hi = new Color("#22c55e");
+   const lo = new Color("#15803d");
    const sideTop = new Color(COLORS.curb);
    const side = new Color(COLORS.feltSide);
-   const c = new Color();
    const h = (r: FeltRect, x: number, z: number) => heightAt(hole, x, z, r.upper) ?? 0;
 
    for (const r of rects) {
@@ -72,11 +76,10 @@ export function buildFelt(hole: Hole, rects: readonly FeltRect[]): BufferGeometr
             const y = h(r, x, z);
             pos.push(x, y, z);
 
-            // Alternating mowing stripes with subtle checkerboard texture
-            const stripeZ = Math.floor((z + 20) / 0.5) % 2 === 0 ? 0.35 : 0.0;
-            const crossX = Math.floor((x + 20) / 0.5) % 2 === 0 ? 0.1 : 0.0;
-            const mow = Math.min(1, 0.45 + stripeZ + crossX + y * 0.4);
-            c.copy(lo).lerp(hi, mow);
+            // Alternating mowing stripes along Z with clear 8-10% contrast
+            const stripeZ = Math.floor((z + 100) / 0.5) % 2 === 0;
+            const c = (stripeZ ? hi : lo).clone();
+            c.multiplyScalar(Math.min(1.15, 0.95 + y * 0.25));
             col.push(c.r, c.g, c.b);
          }
       }
@@ -157,37 +160,36 @@ function Felt({ hole, rects }: { hole: Hole; rects: readonly FeltRect[] }) {
    );
 }
 
-/** The island's rock base: a multi-tier faceted coastal cliff with retaining curb and sandy terrace. */
+/** The island's rock base: a solid 3-tone faceted coastal cliff (dark waterline, warm rock, sandy ledge) with DoubleSide (Fix 2). */
 function IslandBase({ hole }: { hole: Hole }) {
    const geometry = useMemo(() => {
-      // Sculpted profile: top curb (0), sandy ledge (-0.4), rock cliff tiers down to water (-2.5)
+      // Solid profile with shelf closing under felt skirt
       const pts = [
-         new Vector2(0, -2.6),
-         new Vector2(0.48, -2.3),
-         new Vector2(0.82, -1.5),
-         new Vector2(0.96, -0.65),
-         new Vector2(1.02, -0.34),
-         new Vector2(1.01, -0.26),
-         new Vector2(0.98, -0.22),
+         new Vector2(0, -2.5),
+         new Vector2(0.55, -2.2),
+         new Vector2(0.85, -1.3),
+         new Vector2(0.98, -0.6),
+         new Vector2(1.02, -0.2),
+         new Vector2(1.0, 0.0),
+         new Vector2(0.6, 0.0),
       ];
-      const lathe = new LatheGeometry(pts, 16);
+      const lathe = new LatheGeometry(pts, 18);
       const pos = lathe.getAttribute("position");
       const colors = new Float32Array(pos.count * 3);
-      const cCurb = new Color(COLORS.curb);
-      const cSand = new Color(COLORS.sand);
-      const cRock = new Color(COLORS.rock);
-      const cDark = new Color(COLORS.rockDark);
-      const c = new Color();
+      const cWaterline = new Color("#334155"); // Dark waterline
+      const cRock = new Color("#78716c");      // Warm rock cliff
+      const cSand = new Color("#d97706");      // Sandy ledge / warm stone top
 
       for (let i = 0; i < pos.count; i++) {
          const y = pos.getY(i);
-         if (y > -0.32) c.copy(cCurb);
-         else if (y > -0.7) c.copy(cSand);
-         else if (y > -1.8) c.copy(cRock);
-         else c.copy(cDark);
+         let c: Color;
+         if (y < -1.1) c = cWaterline;
+         else if (y < -0.22) c = cRock;
+         else c = cSand;
          colors.set([c.r, c.g, c.b], i * 3);
       }
       lathe.setAttribute("color", new Float32BufferAttribute(colors, 3));
+      lathe.computeVertexNormals();
       return lathe;
    }, []);
 
@@ -197,30 +199,39 @@ function IslandBase({ hole }: { hole: Hole }) {
    const sz = (b.z1 - b.z0) / 2 + 0.6;
    return (
       <mesh geometry={geometry} position={[(b.x0 + b.x1) / 2, 0, (b.z0 + b.z1) / 2]} scale={[sx, 1, sz]} name="island-base">
-         <meshStandardMaterial vertexColors roughness={0.95} flatShading />
+         <meshStandardMaterial vertexColors roughness={0.95} flatShading side={DoubleSide} />
       </mesh>
    );
 }
 
-/** Bevelled wooden rails with warm golden teak caps and rich mahogany bumper sides. */
+/** Bevelled wooden rails with warm mahogany timber body and a darker bevelled top cap (Fix 7). */
 function Rails({ hole, rects }: { hole: Hole; rects: readonly FeltRect[] }) {
    const spots = useMemo(() => railSpots(hole, rects), [hole, rects]);
    const geo = useMemo(() => {
-      const g = new BoxGeometry(1, 1, 1, 1, 2, 1);
+      const g = new BoxGeometry(1, 1, 1, 2, 2, 1);
       const pos = g.getAttribute("position");
       const colors = new Float32Array(pos.count * 3);
-      const cTop = new Color(COLORS.railTop);
-      const cMid = new Color(COLORS.rail);
-      const cBot = new Color(COLORS.railTrim);
+      const cTop = new Color("#451a03"); // Darker timber cap
+      const cMid = new Color("#92400e"); // Warm mahogany timber body
+      const cBot = new Color("#78350f"); // Shadow underside trim
       const c = new Color();
       for (let i = 0; i < pos.count; i++) {
          const y = pos.getY(i);
-         if (y > 0.2) c.copy(cTop);
-         else if (y < -0.2) c.copy(cBot);
-         else c.copy(cMid);
+         // Bevel the top face vertices inward
+         if (y > 0.4) {
+            pos.setX(i, pos.getX(i) * 0.72);
+            c.copy(cTop);
+         } else if (y > 0.15) {
+            c.copy(cTop);
+         } else if (y < -0.3) {
+            c.copy(cBot);
+         } else {
+            c.copy(cMid);
+         }
          colors.set([c.r, c.g, c.b], i * 3);
       }
       g.setAttribute("color", new Float32BufferAttribute(colors, 3));
+      g.computeVertexNormals();
       return g;
    }, []);
 
@@ -234,17 +245,17 @@ function Rails({ hole, rects }: { hole: Hole; rects: readonly FeltRect[] }) {
    );
 }
 
-/** Regulation golf cup: recessed dark interior cylinder, clean metallic lip rim, red flag. */
+/** Regulation golf cup: recessed dark interior cylinder, white lip rim, upright flag in cup centre (Fix 7 & 8). */
 function Cup({ hole }: { hole: Hole }) {
    const y = (heightAt(hole, hole.cup.x, hole.cup.z) ?? 0) + 0.004;
    return (
       <group position={[hole.cup.x, y, hole.cup.z]} name="cup">
-         {/* Metallic cup lip ring */}
-         <mesh rotation-x={-Math.PI / 2}>
-            <ringGeometry args={[CUP.drawnRadius - 0.005, CUP.drawnRadius + 0.03, 32]} />
-            <meshStandardMaterial color={COLORS.rim} roughness={0.3} metalness={0.2} />
+         {/* White cup lip ring - 1-2 px at desk (Fix 7) */}
+         <mesh rotation-x={-Math.PI / 2} position-y={0.006}>
+            <ringGeometry args={[CUP.drawnRadius - 0.005, CUP.drawnRadius + 0.045, 32]} />
+            <meshBasicMaterial color="#ffffff" side={DoubleSide} />
          </mesh>
-         {/* the hole as seen from above: the felt is not cut, so the dark disc sits on it (as before the look pass) */}
+         {/* the hole as seen from above: the dark disc */}
          <mesh rotation-x={-Math.PI / 2} position-y={0.002}>
             <circleGeometry args={[CUP.drawnRadius, 24]} />
             <meshBasicMaterial color={COLORS.cup} />
@@ -259,8 +270,9 @@ function Cup({ hole }: { hole: Hole }) {
             <circleGeometry args={[CUP.drawnRadius - 0.004, 24]} />
             <meshBasicMaterial color={COLORS.cup} />
          </mesh>
-         <group position-z={-CUP.flagBack} name="flag">
-            <Model asset={ASSETS.flag} fallback={<FlagPrimitive />} />
+         {/* Flag planted upright in cup centre, no base disc beside cup (Fix 8) */}
+         <group position={[0, 0, 0]} name="flag">
+            <FlagPrimitive />
          </group>
       </group>
    );
@@ -483,8 +495,8 @@ export function Island({ hole, run }: { hole: Hole; run: RunState }) {
 
 // ---------- decor ----------
 
-/** The mounted holes' trees, rocks, palms, flower beds and surrounding resort scenery. */
-export function Decor({ holes, yaws }: { holes: readonly Hole[]; yaws: readonly number[] }) {
+/** The mounted holes' trees, rocks, palms, flower beds and surrounding resort scenery & real backdrop (Fix 1). */
+export function Decor({ holes, yaws, theme }: { holes: readonly Hole[]; yaws: readonly number[]; theme?: LightingTheme }) {
    const { decor } = useQuality();
    const spots = useMemo(() => {
       const all = decorSpots(holes, yaws);
@@ -497,6 +509,9 @@ export function Decor({ holes, yaws }: { holes: readonly Hole[]; yaws: readonly 
          pennants: surroundings.pennants.slice(0, scaledCount(surroundings.pennants.length, decor)),
          hills: surroundings.hills,
          clubhouse: surroundings.clubhouse,
+         clouds: surroundings.clouds,
+         backdropIslands: surroundings.backdropIslands,
+         horizonLine: surroundings.horizonLine,
       };
    }, [holes, yaws, decor]);
 
@@ -511,6 +526,9 @@ export function Decor({ holes, yaws }: { holes: readonly Hole[]; yaws: readonly 
          {spots.pennants.length > 0 && <PennantPrimitives spots={spots.pennants} />}
          <DistantHills spots={spots.hills} />
          <ClubhouseSilhouette spots={spots.clubhouse} />
+         <BackdropIslandPrimitives spots={spots.backdropIslands} />
+         <CloudPrimitives spots={spots.clouds} color={theme?.cloud} />
+         <HorizonLinePrimitive spots={spots.horizonLine} color={theme?.foam} />
          <InstancedModel
             asset={ASSETS.castle}
             spots={castles}
@@ -525,18 +543,18 @@ export function Decor({ holes, yaws }: { holes: readonly Hole[]; yaws: readonly 
    );
 }
 
-/** The calm crystal sea under all six islands, expanded to cover all screens with zero gap/void. */
-export function Sea() {
+/** The calm crystal sea under all six islands, following level lighting (Fix 1 & lighting). */
+export function Sea({ theme }: { theme?: LightingTheme }) {
    return (
       <Water
          size={[260, 320]}
          position={[0, -1.3, -50]}
-         color={COLORS.water}
-         deep={COLORS.deep}
-         foam={COLORS.foam}
-         amplitude={0.08}
-         wavelength={5}
-         opacity={0.94}
+         color={theme?.water ?? COLORS.water}
+         deep={theme?.deep ?? COLORS.deep}
+         foam={theme?.foam ?? COLORS.foam}
+         amplitude={0.06}
+         wavelength={4.5}
+         opacity={0.93}
       />
    );
 }
