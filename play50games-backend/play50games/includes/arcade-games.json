@@ -266,7 +266,14 @@
       "max_duration_ms": 242000,
       "base": 0,
       "max_pps": 150,
-      "enabled": false
+      "enabled": false,
+      "levels": [
+        { "title": "Garden Shed", "max_score": 6100, "min_duration_ms": 9000, "max_duration_ms": 242000, "base": 0, "max_pps": 150 },
+        { "title": "Tiny House", "max_score": 6100, "min_duration_ms": 9000, "max_duration_ms": 242000, "base": 0, "max_pps": 150 },
+        { "title": "Garage", "max_score": 6100, "min_duration_ms": 9000, "max_duration_ms": 242000, "base": 0, "max_pps": 150 },
+        { "title": "Shop Front", "max_score": 6100, "min_duration_ms": 9000, "max_duration_ms": 242000, "base": 0, "max_pps": 150 },
+        { "title": "Mini Tower", "max_score": 6100, "min_duration_ms": 9000, "max_duration_ms": 242000, "base": 0, "max_pps": 150 }
+      ]
     },
     "alien-farm": {
       "title": "Alien Farm",
