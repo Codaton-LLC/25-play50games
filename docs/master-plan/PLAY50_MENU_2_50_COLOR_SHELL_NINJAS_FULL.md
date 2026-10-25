@@ -5,6 +5,11 @@
 
 The menu uses one original character family, one shared rig and a strong five-color ability system.
 
+> **REDESIGN 2026-10-25 (user decision, overrides everything below):** to lower the trademark-resemblance risk before anything of Menu 2 is built or published:
+> - **Hero = an original armadillo/pangolin-style hero**, NOT a turtle. A natural armoured shell of overlapping plates that can roll into a ball (dash/bounce moves). **No eye masks.** The hero colour (Riko red, Nami blue, Kiro green, Zuno yellow, Vexa purple) is carried by the **shell plates and armour** plus glowing lines on the shell; the face shows through an open **helmet with a visor** (or headphones/ear guards), never a cloth mask. One base mesh + rig, colour by material, as before.
+> - **No TMNT-like elements:** no turtles, no green-skinned turtle look, no eye masks, no katanas/sai/nunchaku/bo staff, no pizza, no sewers, no rats, no "sensei" mentor. Game 03 "Flooded Ruins Escape" becomes **Flooded Ruins Escape** (ancient stone water channels, levers, rising water; assets: stone channel, brick ledge, lever, stone platform, water hazard) and game 12 "Mine Tunnel Run" becomes **Mine Tunnel Run** (mine tunnels, rails, carts; level 5 "Deep Mine Sprint" becomes "Deep Mine Sprint"). The Hyper3D props m2SewerPipe and m2SewerRat are dropped and replaced (stone water channel, cave beetle/mole). Any "turtle-shell" wording below means the hero's armadillo shell.
+> - **Name:** "Color Shell Ninjas" is a placeholder only and will be replaced (not "Ninja" + "Shell" together). Before Menu 2 is published: check the final name in DPMA (dpma.de) and EUIPO/TMview, confirm the Hyper3D plan allows commercial use of the models, and a short consult with an IP lawyer (Fachanwalt für Urheber- und Medienrecht / IT-Recht).
+
 # Character family
 
 | Hero | Color | Ability | Suggested cooldown |
@@ -19,9 +24,9 @@ Use **one base mesh + one skeleton + material/color variants** wherever possible
 
 ## Hyper3D master character prompt
 ```text
-Original stylized 3D anthropomorphic turtle ninja hero for a premium mobile and browser game, completely original character design and not based on or resembling any existing franchise character.
+Original stylized 3D anthropomorphic armadillo hero (pangolin-like armoured shell of overlapping plates) for a premium mobile and browser game, completely original character design and not based on or resembling any existing franchise character.
 
-Full body, compact athletic proportions, slightly oversized head, expressive friendly face, rounded turtle shell on the back, strong hands and feet, clean ninja outfit, dark charcoal fabric clothing, simple belt, wrist wraps and ankle wraps.
+Full body, compact athletic proportions, slightly oversized head, expressive friendly face, armoured shell of overlapping plates over the back and head that can curl into a ball, strong hands and feet, clean ninja outfit, dark charcoal fabric clothing, simple belt, wrist wraps and ankle wraps.
 
 No weapons, no logos, no text, no cape.
 
@@ -31,7 +36,7 @@ Premium stylized game art, soft bevelled shapes, medium-low polygon count, clean
 
 Neutral studio lighting, plain light grey background.
 
-Color accent: RED #EF4444 on eye mask, belt details and wrist wraps.
+Color accent: RED #EF4444 on the shell plates, armour pads and glowing shell lines; an open helmet with a clear visor; no eye mask.
 ```
 
 Create Blue, Green, Yellow and Purple variants by changing only the accent material.
@@ -282,17 +287,17 @@ Stylized compact rooftop air-conditioning unit, dark grey metal, rounded edges, 
 
 ---
 
-# GAME 03 — Turtle Sewer Escape
+# GAME 03 — Flooded Ruins Escape (was Flooded Ruins Escape)
 
 **Game type:** Vertical escape
 **Core objective:** Climb pipes and ledges while rising water chases the player.
 **Playable characters:** Riko, Nami, Kiro, Zuno or Vexa.
 **Controls:** Keyboard: WASD/Arrows to move, Space to jump; Mobile: virtual stick + jump button.
-**Required 3D assets:** Sewer pipe, brick ledge, valve, metal platform, water hazard
+**Required 3D assets:** Stone water channel, brick ledge, stone lever, stone platform, water hazard
 
 ### Hyper3D — primary level asset prompt
 ```text
-Large stylized sewer pipe section, dark grey metal, modular shape, subtle green water stains, premium low-poly game-ready prop.
+Large stylized ancient stone water channel section, weathered sandstone, modular shape, subtle moss and water stains, premium low-poly game-ready prop.
 ```
 
 ### Character use
@@ -306,12 +311,12 @@ Large stylized sewer pipe section, dark grey metal, modular shape, subtle green 
 ### Level 1 — Drain Entry
 
 - **Difficulty:** Tutorial / Easy
-- **Environment / visual:** **Drain Entry** using the same art direction as Turtle Sewer Escape; color-coded gameplay elements must be readable at a glance.
+- **Environment / visual:** **Drain Entry** using the same art direction as Flooded Ruins Escape; color-coded gameplay elements must be readable at a glance.
 - **Map size:** Compact
 - **Layout:** Compact vertical route in **Drain Entry** with 10 primary landing surfaces and increasing moving/failing platform density.
 - **Player start:** Safe start platform/zone with the first route or color objective visible.
 - **Main objective:** Reach the exit before the rising water catches the player; pass 3 vertical sections.
-- **Required 3D assets:** Sewer pipe, brick ledge, valve, metal platform, water hazard. Recolor neutral assets at runtime whenever possible.
+- **Required 3D assets:** Stone water channel, brick ledge, stone lever, stone platform, water hazard. Recolor neutral assets at runtime whenever possible.
 - **Hazards / pressure:** Wide safe platforms
 - **Timer / target:** 90 sec
 - **Hero abilities:** Red Dash, Blue Double Jump, Green Shield, Yellow Magnet, Purple Phase; tune or temporarily restrict any ability that would trivialize this level.
@@ -325,12 +330,12 @@ Large stylized sewer pipe section, dark grey metal, modular shape, subtle green 
 ### Level 2 — Pipe Maze
 
 - **Difficulty:** Easy
-- **Environment / visual:** **Pipe Maze** using the same art direction as Turtle Sewer Escape; color-coded gameplay elements must be readable at a glance.
+- **Environment / visual:** **Pipe Maze** using the same art direction as Flooded Ruins Escape; color-coded gameplay elements must be readable at a glance.
 - **Map size:** Small–Medium
 - **Layout:** Small–Medium vertical route in **Pipe Maze** with 14 primary landing surfaces and increasing moving/failing platform density.
 - **Player start:** Safe start platform/zone with the first route or color objective visible.
 - **Main objective:** Reach the exit before the rising water catches the player; pass 4 vertical sections.
-- **Required 3D assets:** Sewer pipe, brick ledge, valve, metal platform, water hazard. Recolor neutral assets at runtime whenever possible.
+- **Required 3D assets:** Stone water channel, brick ledge, stone lever, stone platform, water hazard. Recolor neutral assets at runtime whenever possible.
 - **Hazards / pressure:** Moving platforms
 - **Timer / target:** 120 sec
 - **Hero abilities:** Red Dash, Blue Double Jump, Green Shield, Yellow Magnet, Purple Phase; tune or temporarily restrict any ability that would trivialize this level.
@@ -344,12 +349,12 @@ Large stylized sewer pipe section, dark grey metal, modular shape, subtle green 
 ### Level 3 — Valve Shaft
 
 - **Difficulty:** Medium
-- **Environment / visual:** **Valve Shaft** using the same art direction as Turtle Sewer Escape; color-coded gameplay elements must be readable at a glance.
+- **Environment / visual:** **Valve Shaft** using the same art direction as Flooded Ruins Escape; color-coded gameplay elements must be readable at a glance.
 - **Map size:** Medium
 - **Layout:** Medium vertical route in **Valve Shaft** with 18 primary landing surfaces and increasing moving/failing platform density.
 - **Player start:** Safe start platform/zone with the first route or color objective visible.
 - **Main objective:** Reach the exit before the rising water catches the player; pass 5 vertical sections.
-- **Required 3D assets:** Sewer pipe, brick ledge, valve, metal platform, water hazard. Recolor neutral assets at runtime whenever possible.
+- **Required 3D assets:** Stone water channel, brick ledge, stone lever, stone platform, water hazard. Recolor neutral assets at runtime whenever possible.
 - **Hazards / pressure:** Moving + disappearing/slippery surfaces
 - **Timer / target:** 150 sec
 - **Hero abilities:** Red Dash, Blue Double Jump, Green Shield, Yellow Magnet, Purple Phase; tune or temporarily restrict any ability that would trivialize this level.
@@ -363,12 +368,12 @@ Large stylized sewer pipe section, dark grey metal, modular shape, subtle green 
 ### Level 4 — Flood Rise
 
 - **Difficulty:** Hard
-- **Environment / visual:** **Flood Rise** using the same art direction as Turtle Sewer Escape; color-coded gameplay elements must be readable at a glance.
+- **Environment / visual:** **Flood Rise** using the same art direction as Flooded Ruins Escape; color-coded gameplay elements must be readable at a glance.
 - **Map size:** Large
 - **Layout:** Large vertical route in **Flood Rise** with 22 primary landing surfaces and increasing moving/failing platform density.
 - **Player start:** Safe start platform/zone with the first route or color objective visible.
 - **Main objective:** Reach the exit before the rising water catches the player; pass 6 vertical sections.
-- **Required 3D assets:** Sewer pipe, brick ledge, valve, metal platform, water hazard. Recolor neutral assets at runtime whenever possible.
+- **Required 3D assets:** Stone water channel, brick ledge, stone lever, stone platform, water hazard. Recolor neutral assets at runtime whenever possible.
 - **Hazards / pressure:** Faster hazards and tighter gaps
 - **Timer / target:** 180 sec
 - **Hero abilities:** Red Dash, Blue Double Jump, Green Shield, Yellow Magnet, Purple Phase; tune or temporarily restrict any ability that would trivialize this level.
@@ -382,12 +387,12 @@ Large stylized sewer pipe section, dark grey metal, modular shape, subtle green 
 ### Level 5 — Final Escape
 
 - **Difficulty:** Challenge
-- **Environment / visual:** **Final Escape** using the same art direction as Turtle Sewer Escape; color-coded gameplay elements must be readable at a glance.
+- **Environment / visual:** **Final Escape** using the same art direction as Flooded Ruins Escape; color-coded gameplay elements must be readable at a glance.
 - **Map size:** Large / Dense
 - **Layout:** Large / Dense vertical route in **Final Escape** with 28 primary landing surfaces and increasing moving/failing platform density.
 - **Player start:** Safe start platform/zone with the first route or color objective visible.
 - **Main objective:** Reach the exit before the rising water catches the player; pass 8 vertical sections.
-- **Required 3D assets:** Sewer pipe, brick ledge, valve, metal platform, water hazard. Recolor neutral assets at runtime whenever possible.
+- **Required 3D assets:** Stone water channel, brick ledge, stone lever, stone platform, water hazard. Recolor neutral assets at runtime whenever possible.
 - **Hazards / pressure:** All platform hazards combined
 - **Timer / target:** Best-time / survival challenge
 - **Hero abilities:** Red Dash, Blue Double Jump, Green Shield, Yellow Magnet, Purple Phase; tune or temporarily restrict any ability that would trivialize this level.
@@ -1344,7 +1349,7 @@ Stylized wooden street-market crate, warm brown wood, rounded edges, premium low
 
 ---
 
-# GAME 12 — Turtle Tunnel Run
+# GAME 12 — Mine Tunnel Run (was Mine Tunnel Run)
 
 **Game type:** Tunnel runner
 **Core objective:** Run through tunnels with barrels, pipes and water gaps.
@@ -1368,7 +1373,7 @@ Stylized rusty metal barrel, cylindrical shape, dark steel with subtle wear, rou
 ### Level 1 — Dry Tunnel
 
 - **Difficulty:** Tutorial / Easy
-- **Environment / visual:** **Dry Tunnel** using the same art direction as Turtle Tunnel Run; color-coded gameplay elements must be readable at a glance.
+- **Environment / visual:** **Dry Tunnel** using the same art direction as Mine Tunnel Run; color-coded gameplay elements must be readable at a glance.
 - **Map size:** Compact
 - **Layout:** Compact forward course in **Dry Tunnel** split into 3 obstacle segments, collectible lines and safe recovery pockets.
 - **Player start:** Safe start platform/zone with the first route or color objective visible.
@@ -1387,7 +1392,7 @@ Stylized rusty metal barrel, cylindrical shape, dark steel with subtle wear, rou
 ### Level 2 — Pipe Zone
 
 - **Difficulty:** Easy
-- **Environment / visual:** **Pipe Zone** using the same art direction as Turtle Tunnel Run; color-coded gameplay elements must be readable at a glance.
+- **Environment / visual:** **Pipe Zone** using the same art direction as Mine Tunnel Run; color-coded gameplay elements must be readable at a glance.
 - **Map size:** Small–Medium
 - **Layout:** Small–Medium forward course in **Pipe Zone** split into 4 obstacle segments, collectible lines and safe recovery pockets.
 - **Player start:** Safe start platform/zone with the first route or color objective visible.
@@ -1406,7 +1411,7 @@ Stylized rusty metal barrel, cylindrical shape, dark steel with subtle wear, rou
 ### Level 3 — Water Gaps
 
 - **Difficulty:** Medium
-- **Environment / visual:** **Water Gaps** using the same art direction as Turtle Tunnel Run; color-coded gameplay elements must be readable at a glance.
+- **Environment / visual:** **Water Gaps** using the same art direction as Mine Tunnel Run; color-coded gameplay elements must be readable at a glance.
 - **Map size:** Medium
 - **Layout:** Medium forward course in **Water Gaps** split into 5 obstacle segments, collectible lines and safe recovery pockets.
 - **Player start:** Safe start platform/zone with the first route or color objective visible.
@@ -1425,7 +1430,7 @@ Stylized rusty metal barrel, cylindrical shape, dark steel with subtle wear, rou
 ### Level 4 — Fast Tunnel
 
 - **Difficulty:** Hard
-- **Environment / visual:** **Fast Tunnel** using the same art direction as Turtle Tunnel Run; color-coded gameplay elements must be readable at a glance.
+- **Environment / visual:** **Fast Tunnel** using the same art direction as Mine Tunnel Run; color-coded gameplay elements must be readable at a glance.
 - **Map size:** Large
 - **Layout:** Large forward course in **Fast Tunnel** split into 6 obstacle segments, collectible lines and safe recovery pockets.
 - **Player start:** Safe start platform/zone with the first route or color objective visible.
@@ -1441,12 +1446,12 @@ Stylized rusty metal barrel, cylindrical shape, dark steel with subtle wear, rou
 - **Progression:** Increase speed and reduce recovery space.
 - **Replay goal:** Beat personal best time/height/score and improve collectible or combo performance.
 
-### Level 5 — Sewer Sprint
+### Level 5 — Deep Mine Sprint
 
 - **Difficulty:** Challenge
-- **Environment / visual:** **Sewer Sprint** using the same art direction as Turtle Tunnel Run; color-coded gameplay elements must be readable at a glance.
+- **Environment / visual:** **Deep Mine Sprint** using the same art direction as Mine Tunnel Run; color-coded gameplay elements must be readable at a glance.
 - **Map size:** Large / Dense
-- **Layout:** Large / Dense forward course in **Sewer Sprint** split into 8 obstacle segments, collectible lines and safe recovery pockets.
+- **Layout:** Large / Dense forward course in **Deep Mine Sprint** split into 8 obstacle segments, collectible lines and safe recovery pockets.
 - **Player start:** Safe start platform/zone with the first route or color objective visible.
 - **Main objective:** Complete 9 tunnel segments with jumps/slides and collectible streaks.
 - **Required 3D assets:** Barrel, pipe, maintenance cart, puddle hazard. Recolor neutral assets at runtime whenever possible.
@@ -4275,7 +4280,7 @@ Stylized fantasy temple gong on a simple wooden frame, large round bronze disc, 
 
 ### Hyper3D — primary asset prompt
 ```text
-Stylized turtle-shell-inspired surf board for an original arcade game, rounded aerodynamic shape, neutral premium material, no franchise references, low-poly game-ready geometry.
+Stylized armadillo-shell-inspired surf board for an original arcade game, rounded aerodynamic shape, neutral premium material, no franchise references, low-poly game-ready geometry.
 ```
 
 ### Character use
