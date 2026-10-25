@@ -12,9 +12,11 @@ import { useThree, type RootState } from "@react-three/fiber";
 import { Vector3 } from "three";
 import CameraRig from "@/arcade3d/core/CameraRig";
 import { playSfx, startLoop, type LoopHandle } from "@/arcade3d/core/audio";
+import { SkyDome } from "@/arcade3d/core/env";
 import { useFx } from "@/arcade3d/core/fx";
 import { useGameTime } from "@/arcade3d/core/gameTime";
 import { useInput } from "@/arcade3d/core/input";
+import { useStageLighting } from "@/arcade3d/core/lighting";
 import { randomSeed } from "@/arcade3d/core/math";
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { useFittedView } from "@/arcade3d/core/useFittedView";
@@ -22,8 +24,10 @@ import { useRunFrame } from "@/arcade3d/core/useRunFrame";
 import { useKitchenLevel } from "./useKitchenLevel";
 import { Cauldron } from "./Cauldron";
 import { Chef } from "./Chef";
+import { Decor } from "./Decor";
 import { hudButtons, hudOrders, publishHand } from "./Hud";
 import { HATCH_X, HATCH_Z, Kitchen } from "./Kitchen";
+import { LEVEL_LOOKS } from "./looks";
 import { Monsters, type WindowLook } from "./Monsters";
 import { Wheel } from "./Wheel";
 import {
@@ -60,6 +64,9 @@ interface Look {
 
 export default function Scene() {
    const { config } = useKitchenLevel();
+   const levelLook = LEVEL_LOOKS[config.id];
+   useStageLighting(levelLook.lighting, 1.2, levelLook.background, levelLook.fog);
+
    const width = useThree((s) => s.size.width);
    const height = useThree((s) => s.size.height);
    const view = useFittedView({
@@ -196,13 +203,14 @@ export default function Scene() {
       }
       if (ev.landed === "right") {
          fx.burst("splash", at, 10);
+         fx.burst("sparkle", at, 8);
          playSfx("pop", { pitch: 0.9 });
          playSfx("splash", { volume: 0.3 });
       }
       if (ev.burped) {
          look.burpAt = now;
          fx.burst("smoke", at, 14);
-         fx.shake(0.1);
+         fx.shake(0.12);
          playSfx("buzz", { pitch: 0.5 });
          playSfx("thud", { pitch: 0.6 });
       }
@@ -221,7 +229,7 @@ export default function Scene() {
          at.x = 0;
          at.y = 1.55;
          at.z = -0.1;
-         fx.burst("sparkle", at, 12);
+         fx.burst("sparkle", at, 14);
          playSfx("chime");
          playSfx("chime", { pitch: 1.5 });
       }
@@ -236,7 +244,9 @@ export default function Scene() {
    return (
       <>
          <CameraRig camera={camera} shift={view.shift} />
+         <SkyDome top={levelLook.skyTop} bottom={levelLook.skyBottom} />
          <Kitchen />
+         <Decor />
          <Wheel run={run} look={look} />
          <Cauldron look={look} />
          <Monsters run={run} windows={windows} />
