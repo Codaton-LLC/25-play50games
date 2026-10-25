@@ -65,7 +65,7 @@ const definition: GameDefinition<PenaltyLevel> = {
          hudStats: [{ key: "shots", label: "Shots", max: level.shots }],
       };
    }),
-   finalScore: (state) => finalScore(state.score, state.elapsedMs, PROPOSED_LEVEL_LIMITS[state.levelId]),
+   finalScore: (state) => finalScore(state.score, state.elapsedMs, PROPOSED_LEVEL_LIMITS[(state as typeof state & { levelId?: LevelId }).levelId ?? 1]),
 };
 
 export default definition;
