@@ -242,7 +242,14 @@
       "max_duration_ms": 122000,
       "base": 1720,
       "max_pps": 10,
-      "enabled": false
+      "enabled": false,
+      "levels": [
+        { "title": "Living Room", "max_score": 2630, "min_duration_ms": 91000, "max_duration_ms": 122000, "base": 1720, "max_pps": 10 },
+        { "title": "Library", "max_score": 2830, "min_duration_ms": 91000, "max_duration_ms": 122000, "base": 1920, "max_pps": 10 },
+        { "title": "Kitchen", "max_score": 3030, "min_duration_ms": 91000, "max_duration_ms": 122000, "base": 2120, "max_pps": 10 },
+        { "title": "Attic", "max_score": 3230, "min_duration_ms": 91000, "max_duration_ms": 122000, "base": 2320, "max_pps": 10 },
+        { "title": "Whole Mansion", "max_score": 3430, "min_duration_ms": 91000, "max_duration_ms": 122000, "base": 2520, "max_pps": 10 }
+      ]
     },
     "construction-worker": {
       "title": "Construction Worker",
