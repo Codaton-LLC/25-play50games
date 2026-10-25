@@ -28,7 +28,11 @@ function paint(geo: BufferGeometry, hex: string): BufferGeometry {
 }
 
 function merged(parts: BufferGeometry[]): BufferGeometry {
-   const geo = mergeGeometries(parts, false);
+   // Review fix: Icosahedron parts are non-indexed while boxes and cones are indexed; mergeGeometries
+   // refuses the mix (the scene crashed on load), so merge everything non-indexed.
+   const flat = parts.map((p) => (p.index ? p.toNonIndexed() : p));
+   const geo = mergeGeometries(flat, false);
+   for (const p of flat) if (!parts.includes(p)) p.dispose();
    for (const part of parts) part.dispose();
    if (!geo) throw new Error("knight-arena look: merge");
    geo.computeVertexNormals();

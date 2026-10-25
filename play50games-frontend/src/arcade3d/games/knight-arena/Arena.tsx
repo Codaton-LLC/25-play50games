@@ -211,25 +211,27 @@ export function Arena(): React.ReactElement {
       <group>
          <SkyDome top={look.skyTop} bottom={look.sky} radius={180} />
 
-         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, GROUND.y, 0]} name="knight-meadow">
+         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, GROUND.y - 0.05, 0]} name="knight-meadow">
             <planeGeometry args={[GROUND.half * 2, GROUND.half * 2]} />
             <meshStandardMaterial map={meadow} roughness={1} polygonOffset polygonOffsetFactor={1} polygonOffsetUnits={1} />
          </mesh>
 
-         <mesh position={[0, 0.012, 0]} rotation={[0, Math.PI / 8, 0]} name="knight-curb">
+         {/* Review fix: the whole floor stack sits below y = 0 (as on main) so the beat discs and cue rings
+             (Dummies, y 0.01-0.02) draw on top of the sand instead of under it */}
+         <mesh position={[0, -0.032, 0]} rotation={[0, Math.PI / 8, 0]} name="knight-curb">
             <cylinderGeometry args={[ARENA.RADIUS_M + 0.22, ARENA.RADIUS_M + 0.36, 0.028, ARENA.SIDES]} />
             <meshStandardMaterial color={COLORS.stone} flatShading roughness={0.9} />
          </mesh>
 
-         <mesh geometry={sand} dispose={null} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.028, 0]} name="knight-sand">
+         <mesh geometry={sand} dispose={null} rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.012, 0]} name="knight-sand">
             <meshStandardMaterial map={sandMap} roughness={0.95} polygonOffset polygonOffsetFactor={-1} polygonOffsetUnits={-1} />
          </mesh>
 
-         <mesh position={[0, 0.036, 0]} rotation={[-Math.PI / 2, 0, 0]} name="knight-ring-near">
+         <mesh position={[0, -0.006, 0]} rotation={[-Math.PI / 2, 0, 0]} name="knight-ring-near">
             <ringGeometry args={[TARGETS.NEAR_RADIUS_M - 0.035, TARGETS.NEAR_RADIUS_M + 0.035, 48]} />
             <meshStandardMaterial color={COLORS.rake} roughness={1} />
          </mesh>
-         <mesh position={[0, 0.036, 0]} rotation={[-Math.PI / 2, 0, 0]} name="knight-ring-far">
+         <mesh position={[0, -0.006, 0]} rotation={[-Math.PI / 2, 0, 0]} name="knight-ring-far">
             <ringGeometry args={[TARGETS.FAR_RADIUS_M - 0.035, TARGETS.FAR_RADIUS_M + 0.035, 64]} />
             <meshStandardMaterial color={COLORS.sandDark} roughness={1} />
          </mesh>
