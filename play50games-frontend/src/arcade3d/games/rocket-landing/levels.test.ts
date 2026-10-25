@@ -2,6 +2,8 @@
 // Verifies declarations, level 1 replay fidelity vs today's game, monotone difficulty,
 // per-level limits & closed-form proofs, honest pilot clearance rates, idle bot failure,
 // and mutation probes on each level knob.
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { createHash } from "node:crypto";
 import { describe, expect, it, vi } from "vitest";
 import { LEVEL_IDS, type LevelId } from "@/arcade3d/types";
 import { levelMetaProblems, scoringFor } from "@/arcade3d/levelMeta";
@@ -29,6 +31,7 @@ import {
    type Run,
    type Controls,
 } from "./rules";
+import * as rules from "./rules";
 
 vi.mock("./Scene", () => ({ default: () => null }));
 vi.mock("./Hud", () => ({ default: () => null }));
@@ -142,31 +145,35 @@ describe("rocket-landing levels: declarations and contracts", () => {
    });
 });
 
-describe("rocket-landing levels: replay fidelity vs today's game", () => {
-   it("level 1 createRun matches today's createRun over 25 seeds with identical states and scores", () => {
-      for (let seed = 0; seed < 25; seed++) {
-         const today = createRun(seed, false);
-         const l1 = createRun(seed, false, LEVELS[1]);
-         expect(l1.level.planets).toBe(5);
-         expect(today.level.planets).toBe(5);
-         expect(l1.layouts).toEqual(today.layouts);
-         expect(l1.body).toEqual(today.body);
-         expect(l1.fuel).toBe(today.fuel);
+const L1_TODAY = [
+   "lose:1105:3:3:9327:285b2c5e9a78af51",
+   "lose:1133:3:3:8484:bb21baa03d77d95c",
+   "lose:1067:3:3:9353:4b9dfef19cd95d7c",
+   "lose:1160:3:3:8881:63409a8f8505a220",
+   "win:1809:4:1:5593:bdbd8be6b0ec0aaf",
+   "win:2235:4:0:4011:4f29bf1515eba79b",
+   "win:1768:4:1:5756:5da407c05453f307",
+   "win:1814:4:1:6637:439d741dbba33c3b",
+   "lose:1051:3:3:9192:5fbe4dd00c0c6b25",
+   "win:2137:4:0:4468:4c71de40e69c8cfd",
+   "lose:1048:3:3:9349:381ab9e88df31464",
+   "lose:1111:3:3:8683:8f3cd17fcaa933cd",
+   "lose:1091:3:3:9441:19cc26abb6a3f988",
+   "lose:1116:3:3:8695:bd4cab2c94242147",
+   "lose:1075:3:3:9519:1bb1c69936a076ad",
+   "win:2173:4:0:3864:04dd52d476f7daaa",
+];
 
-         // Step 50 frames with thruster and rotation active and verify byte-identical state
-         const ctrl: Controls = { rotate: 0.2, thrust: true };
-         for (let f = 0; f < 50; f++) {
-            stepRun(today, ctrl, 1 / 60);
-            stepRun(l1, ctrl, 1 / 60);
-            expect(l1.body.x).toBeCloseTo(today.body.x, 10);
-            expect(l1.body.y).toBeCloseTo(today.body.y, 10);
-            expect(l1.body.vx).toBeCloseTo(today.body.vx, 10);
-            expect(l1.body.vy).toBeCloseTo(today.body.vy, 10);
-            expect(l1.fuel).toBeCloseTo(today.fuel, 10);
-            expect(l1.score).toBe(today.score);
-         }
+describe("rocket-landing levels: level 1 is today's game", () => {
+   it("replays bit-exact against today's createRun (8 seeds x assist on/off, wins and losses)", () => {
+      let i = 0;
+      for (let seed = 0; seed < 8; seed++) for (const assist of [false, true]) {
+         expect(l1Trace(rules as any, seed, assist), `seed ${seed} assist ${assist}`).toBe(L1_TODAY[i]);
+         expect(l1Trace(rules as any, seed, assist, (s, x) => createRun(s, x, LEVELS[1])), `seed ${seed} L1`).toBe(L1_TODAY[i]);
+         i++;
       }
-   });
+      expect(L1_TODAY.some((t) => t.startsWith("win")) && L1_TODAY.some((t) => t.startsWith("lose"))).toBe(true);
+   }, 60000);
 
    it("all five planets share identical terrain layouts across seeds", () => {
       for (let seed = 0; seed < 20; seed++) {
@@ -178,6 +185,43 @@ describe("rocket-landing levels: replay fidelity vs today's game", () => {
       }
    });
 });
+
+/** Hashes every frame's full serialized run (the level config and the new padAmplitude field
+ * excluded) while a feedback pilot flies level 1 on ragged frames. Shape-agnostic, so the same
+ * code ran on today's rules.ts (origin/main before levels) to record L1_TODAY. */
+interface RocketRules { createRun(seed: number, assist: boolean): any; stepRun(r: any, c: Controls, dt: number): void; padX(l: any, p: number, t: number): number; padVx(l: any, p: number, t: number): number }
+function l1Trace(m: RocketRules, seed: number, assist: boolean, make: (seed: number, assist: boolean) => any = m.createRun): string {
+   const r = make(seed, assist);
+   const hash = createHash("sha256");
+   const controls: Controls = { rotate: 0, thrust: false };
+   let stage = 0, planet = -1, crashes = -1, pulse = 0, frames = 0, rnd = seed * 7919 + 1;
+   while (!r.terminal && r.simTime < 240 && frames++ < 40000) {
+      rnd = (Math.imul(rnd, 1664525) + 1013904223) >>> 0;
+      const dt = [1 / 60, 1 / 30, 1 / 144, (rnd / 4294967296) * 0.05][frames % 4];
+      if (planet !== r.planet || crashes !== r.crashes) { planet = r.planet; crashes = r.crashes; stage = 0; pulse = 0; }
+      const b = r.body, l = r.layouts[r.planet], g = PLANETS[r.planet].gravity;
+      const px = m.padX(l, r.planet, r.attemptTime), pv = m.padVx(l, r.planet, r.attemptTime);
+      if (r.planet === 4 && stage === 0 && b.y < 7.4 && Math.abs(b.vy) < 1.5) stage = 1;
+      const crossing = r.planet !== 4 || Math.abs(m.padX(l, 4, r.attemptTime + 3.5)) < 0.25;
+      if ((r.planet !== 4 || stage === 1) && crossing && Math.abs(b.x - (r.planet === 4 ? 0 : px)) < 0.3
+         && Math.abs(b.vx - (r.planet === 4 ? 0 : pv)) < 0.25 && Math.abs(b.angle) < 0.08) stage = 2;
+      const tx = r.planet === 4 ? (stage === 0 ? (l.spawnX < 0 ? -5.3 : 5.3) : 0) : px;
+      const tv = r.planet === 4 ? (stage === 2 ? pv * 0.5 : 0) : pv;
+      const targetY = stage === 2 ? 3.1 : r.planet === 4 ? (stage === 0 ? 7.2 : 5.8) : 8;
+      const targetVy = stage === 2 ? -Math.min(1, 0.4 + Math.max(0, b.y - 3.1) * 0.5) : clamp((targetY - b.y) * 0.8, -3, 2);
+      const ay = clamp(g + 3 * (targetVy - b.vy), 0, 12);
+      const ax = 0.8 * (tx - b.x) + 1.8 * (tv - b.vx);
+      const maxAngle = stage === 2 && b.y < 4.5 ? 0.08 : 0.45;
+      const desired = clamp(-Math.atan2(ax, Math.max(g, ay)), -maxAngle, maxAngle);
+      controls.rotate = clamp(-(8 * wrap(desired - b.angle) - 4 * b.omega) / 3, -1, 1);
+      pulse += clamp(ay / (12 * Math.max(0.8, Math.cos(b.angle))), 0, 1);
+      controls.thrust = pulse >= 1;
+      if (controls.thrust) pulse -= 1;
+      m.stepRun(r, controls, dt);
+      hash.update(JSON.stringify(r, (key, value) => key === "level" || key === "padAmplitude" ? undefined : value));
+   }
+   return `${r.terminal}:${r.score}:${r.planet}:${r.crashes}:${frames}:${hash.digest("hex").slice(0, 16)}`;
+}
 
 describe("rocket-landing levels: monotone difficulty and score bounds", () => {
    it("scores are strictly monotonic across levels and all levels have 5 planets", () => {

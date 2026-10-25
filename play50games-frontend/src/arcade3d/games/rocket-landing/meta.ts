@@ -33,5 +33,5 @@ export const rocketLandingMeta: ArcadeGameMeta = {
    levels: LEVELS,
    thumbnail: "/images/3d/rocket-landing.webp",
    accent: "#fda4af",
-   owner: "claude",
+   owner: "codex",
 };

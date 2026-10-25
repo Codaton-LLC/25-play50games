@@ -1,6 +1,6 @@
 # Rocket Landing Challenge
 
-Owner: Codex. Slug: `rocket-landing`. Skill game 20, wave 2, complexity 3. P-15 implementation; runtime measurements pending Claude verification. Spec: `docs/arcade-expansion/04-game-specs-skill.md` Â§20; asset ids: 05 Â§E.4. Units: metres, seconds, radians; x right, y up, z=0 gameplay plane. Positive theta tilts thrust toward -x, matching core kinematics.
+Owner: Codex. Slug: `rocket-landing`. Skill game 20, wave 2, complexity 3. P-15 implementation; runtime measurements pending Claude verification. Spec: `docs/arcade-expansion/04-game-specs-skill.md` §20; asset ids: 05 §E.4. Units: metres, seconds, radians; x right, y up, z=0 gameplay plane. Positive theta tilts thrust toward -x, matching core kinematics.
 
 ## Concept
 
@@ -36,25 +36,23 @@ For each level with N=5 planets, landing award per planet is at most 500 (200 so
    - L5: 5 * 500 + 1100 = 3600 (strictly monotonic, 3600 <= 3 * 2800 = 8400)
 2. **Min Duration**: Spawn centre 14 to upright contact centre 3.1 drops 10.9 m; rotated hull radius 1.35 m requires centre drop >= 10.65 m. With max downward acceleration g + 12 <= 17 m/s², minimum flight time per planet is sqrt(2 * 10.65 / 17) >= 1.119 s. Between planets, transition hold is 1.2 s.
    - For N=5 planets, unconstrained freefall drop + hold time is t_min >= 5 * 1.119 + 4 * 1.2 = 10.395 s.
-   - With the Asteroid cavern obstruction requiring horizontal detour under the roof slab, actual minimum win time is t_win >= 14.0 s.
-   - Conservative safety threshold minDurationMs = 5000 ms for all levels.
-3. **Max Points Per Second**: With base = 800 and maxPointsPerSec = 200:
-   maxScore <= base + maxPointsPerSec * t_win.
-   - At t_win = 14.0 s: 800 + 200 * 14.0 = 3600 pts.
-   - L1: 2800 <= 3600 (holds)
-   - L2: 3000 <= 3600 (holds)
-   - L3: 3200 <= 3600 (holds)
-   - L4: 3400 <= 3600 (holds)
-   - L5: 3600 <= 3600 (holds)
+   - Conservative safety threshold minDurationMs = 5000 ms for all levels (no run ends earlier with a score).
+3. **Max Points Per Second**: maxPointsPerSec = 200 on every level; `base` grows with the clean bonus,
+   base_L = 800 + (cleanBonus_L - 300) = 800 / 1000 / 1200 / 1400 / 1600.
+   - Prefix k < 5 landings: 500 k <= 800 + 200 t_k holds exactly as on level 1 (each landing needs at
+     least one flight; a larger base only loosens the bound).
+   - The win: 2500 + cleanBonus_L <= base_L + 200 T  <=>  2800 <= 800 + 200 T  <=>  T >= 10 s, the
+     same condition as level 1, and T >= 10.395 s (five falls of >= 1.119 s plus four 1.2 s holds).
+   - So every level holds with the level-1 margin; no unproven minimum campaign time is needed.
 4. **Max Duration**: durationMs (240000 ms) + 2000 ms margin = 242000 ms for all levels.
 
 | Level | maxScore | minDurationMs | maxDurationMs | base | maxPointsPerSec | clearScore |
 |---|---:|---:|---:|---:|---:|---:|
 | 1 | 2800 | 5000 | 242000 | 800 | 200 | 2000 |
-| 2 | 3000 | 5000 | 242000 | 800 | 200 | 2050 |
-| 3 | 3200 | 5000 | 242000 | 800 | 200 | 2100 |
-| 4 | 3400 | 5000 | 242000 | 800 | 200 | 2150 |
-| 5 | 3600 | 5000 | 242000 | 800 | 200 | 2200 |
+| 2 | 3000 | 5000 | 242000 | 1000 | 200 | 2050 |
+| 3 | 3200 | 5000 | 242000 | 1200 | 200 | 2100 |
+| 4 | 3400 | 5000 | 242000 | 1400 | 200 | 2150 |
+| 5 | 3600 | 5000 | 242000 | 1600 | 200 | 2200 |
 
 ### Honest bot vs idle bot results (levels.test.ts)
 
@@ -142,7 +140,7 @@ Use **maxScore2800; minDurationMs5000; maxDurationMs242000; base800; maxPointsPe
 
 No generation: rocket already imported. `assets.spec.json` records only the owned rocket's catalog recipe, never authorizes another Hyper3D call; shared battery is excluded.
 
-| id (05 Â§E.4) | class / source | target / budget | fallback |
+| id (05 §E.4) | class / source | target / budget | fallback |
 |---|---|---|---|
 | rocket | A, `EXPANSION_ASSETS.rocket`, rocket-landing/rocket.glb | 2.2 m tall from measured size; <=5k tris,512 texture,300k bytes target | rounded cylinder/nose, red band, porthole, fins/feet; same fitted bell and support points |
 | fuel cells | D, `SHARED_ASSETS.battery` | optional catalog asset; not mounted, no pickups | none needed |
@@ -152,7 +150,7 @@ No generation: rocket already imported. `assets.spec.json` records only the owne
 
 ## Files
 
-`meta.ts` (exact controls/limits, dev status) Â· `index.tsx` (definition, coarse-pointer assist fixed per run) Â· `rules.ts` (planets, fuel, integration, swept polygon/contact, attempts/score; pure) Â· `rules.test.ts` Â· `assets.ts` + `assets.test.ts` (measured GLB/bell/feet fits) Â· `Scene.tsx` (one run callback, fitted follow, model/fx/audio) Â· `Planet.tsx` (one terrain/pad/cavern, shared buffers) Â· `Primitives.tsx` (fallback rocket, engine cone) Â· `Hud.tsx` + `Hud.module.css` (gauges, safe-area registration, existing CSS vars) Â· `assets.spec.json` Â· `README.md` Â· `public/images/3d/rocket-landing.webp` Â· `tools/thumbs/inputs/rocket-landing.mjs`. P-15 implements the approved build in these files. No classic GameEngine/progressStorage imports.
+`meta.ts` (exact controls/limits, dev status) · `index.tsx` (definition, coarse-pointer assist fixed per run) · `rules.ts` (planets, fuel, integration, swept polygon/contact, attempts/score; pure) · `rules.test.ts` · `assets.ts` + `assets.test.ts` (measured GLB/bell/feet fits) · `Scene.tsx` (one run callback, fitted follow, model/fx/audio) · `Planet.tsx` (one terrain/pad/cavern, shared buffers) · `Primitives.tsx` (fallback rocket, engine cone) · `Hud.tsx` + `Hud.module.css` (gauges, safe-area registration, existing CSS vars) · `assets.spec.json` · `README.md` · `public/images/3d/rocket-landing.webp` · `tools/thumbs/inputs/rocket-landing.mjs`. P-15 implements the approved build in these files. No classic GameEngine/progressStorage imports.
 
 ## Test plan
 
@@ -197,17 +195,17 @@ P-15-fix1: hull and feedback pilot fixes written; Claude build/Vitest acceptance
 - The asteroid timeout was a pilot fault: low-gravity moving-target pursuit saturated steering and oscillated under the roof; assist also overrides small commands in its neutral zone. The revised test pilot enters below the roof through the side shaft, brakes at x=0 using lower gains, and descends for a predicted pad crossing. Deliberate asteroid steering stays outside the assist neutral zone. No level, physics, fuel, clock or scoring numbers changed.
 - Campaigns assert completion for every named planet. Asteroid crashes fail immediately; each asteroid witness requires <40 seconds and >50 fuel left. The test prints per-planet time/fuel ranges.
 
-Direct controller replay (temporary Node/TypeScript diagnostic, **not Vitest**): 16 seeds x both assist modes = 32 wins using the real simulateRun/store clock and fixed/random frame schedules. Campaign duration 77.717â€“132.088 s; highest score 2314; every campaign passed unchanged score/rate checks. Replay took about 4 s including diagnostics; the whole Vitest file's <60 s requirement remains for Claude to verify. No asteroid crashes.
+Direct controller replay (temporary Node/TypeScript diagnostic, **not Vitest**): 16 seeds x both assist modes = 32 wins using the real simulateRun/store clock and fixed/random frame schedules. Campaign duration 77.717–132.088 s; highest score 2314; every campaign passed unchanged score/rate checks. Replay took about 4 s including diagnostics; the whole Vitest file's <60 s requirement remains for Claude to verify. No asteroid crashes.
 
 These ranges are **successful-attempt time**, excluding transition holds and earlier retries; fuel is remaining units at impact, not percent. Direct replay measurements await independent Vitest confirmation.
 
 | Planet | Successful attempt (s) | Fuel left (units) |
 |---|---:|---:|
-| Moon | 13.891â€“22.360 | 69.231â€“81.333 |
-| Desert | 8.930â€“17.318 | 45.817â€“72.500 |
-| Ice | 8.324â€“17.644 | 20.911â€“60.492 |
-| Gas moon | 8.732â€“41.458 | 0.087â€“72.000 |
-| Asteroid | 31.501â€“31.978 | 58.579â€“59.048 |
+| Moon | 13.891–22.360 | 69.231–81.333 |
+| Desert | 8.930–17.318 | 45.817–72.500 |
+| Ice | 8.324–17.644 | 20.911–60.492 |
+| Gas moon | 8.732–41.458 | 0.087–72.000 |
+| Asteroid | 31.501–31.978 | 58.579–59.048 |
 
 Checks: direct mesh envelope/radius/support-gap assertions and controller replay passed. TypeScript --noEmit --incremental false passed. Build and Vitest intentionally not run under this task's sandbox instruction. P-15 browser/layout/performance acceptance remains pending Claude; this fix adds no rendering path.
 
