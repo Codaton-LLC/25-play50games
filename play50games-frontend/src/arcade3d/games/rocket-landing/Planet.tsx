@@ -6,7 +6,7 @@ import { BufferGeometry, type Group, type Mesh } from "three";
 import { useStageLighting } from "@/arcade3d/core/lighting";
 import { ModelErrorBoundary, assetScale, useModel } from "@/arcade3d/core/assets";
 import { PLANETS, WORLD, padX, type Run } from "./rules";
-import { ASSETS, BEACON_LIGHTS, flattenLandingPadCone } from "./assets";
+import { ASSETS, BEACON_LIGHTS, BEACON_SIZE, beaconScaleX, flattenLandingPadCone } from "./assets";
 import { COLORS, PLANET_LOOKS, buildCavernRoofGeometry, buildTerrainMesh } from "./looks";
 
 function FallbackPad() {
@@ -67,14 +67,20 @@ function LandingPadModel() {
    );
 }
 
+/** The planet's lighting preset, background and fog, crossfaded over 1 s on a planet change (Scene,
+ *  inside GameShell: Planet itself stays renderable on its own for beacons.test.ts). */
+export function PlanetLighting({ run }: { run: Run }) {
+   const look = PLANET_LOOKS[run.planet] ?? PLANET_LOOKS[0];
+   useStageLighting(look.lighting, 1.0, look.skyBottom, look.fog);
+   return null;
+}
+
 export default function Planet({ run }: { run: Run }) {
    const pad = useRef<Group>(null);
    const roof = useRef<Mesh>(null);
+   const beacons = useRef<(Mesh | null)[]>([]);
    const ground = useRef<Mesh>(null);
 
-   const look = PLANET_LOOKS[run.planet] ?? PLANET_LOOKS[0];
-   // Crossfade lighting preset, background and fog smoothly over 1 s on planet change
-   useStageLighting(look.lighting, 1.0, look.skyBottom, look.fog);
 
    const [data] = useState(() => ({
       geometry: new BufferGeometry(),
@@ -95,6 +101,8 @@ export default function Planet({ run }: { run: Run }) {
             run.level?.padAmplitude
          );
          pad.current.scale.x = PLANETS[run.planet].width;
+         // the rim beacons cancel the pad's width stretch (beacons.test.ts)
+         for (const b of beacons.current) if (b) b.scale.x = beaconScaleX(PLANETS[run.planet].width);
       }
       if (roof.current) {
          roof.current.visible = run.planet === 4;
@@ -130,8 +138,8 @@ export default function Planet({ run }: { run: Run }) {
             {/* Pad landing illumination */}
             <pointLight position={[0, 0.45, 0]} color={COLORS.padBeacon} intensity={1.5} distance={7} />
             {BEACON_LIGHTS.map((b, i) => (
-               <mesh key={i} position={[b.x, b.y, b.z]}>
-                  <cylinderGeometry args={[0.025, 0.03, 0.04, 8]} />
+               <mesh key={i} ref={(m) => { beacons.current[i] = m; }} position={[b.x, b.y, b.z]} scale-x={beaconScaleX(PLANETS[run.planet].width)}>
+                  <cylinderGeometry args={[BEACON_SIZE.top, BEACON_SIZE.bottom, BEACON_SIZE.height, 12]} />
                   <meshStandardMaterial color="#34d399" emissive="#34d399" emissiveIntensity={0.8} />
                </mesh>
             ))}

@@ -28,7 +28,7 @@ import { ASSETS, BELL, SUPPORT } from "./assets";
 import RocketCamera from "./camera";
 import { Decor } from "./Decor";
 import { COLORS, PLANET_LOOKS } from "./looks";
-import Planet from "./Planet";
+import Planet, { PlanetLighting } from "./Planet";
 import { RocketPrimitive } from "./Primitives";
 import { BODY, PLANETS, createRun, crashContact, landingSafe, padVx, padX, stepRun } from "./rules";
 import { useRocketLevel } from "./useRocketLevel";
@@ -181,6 +181,7 @@ export default function Scene() {
       {/* Instanced scenery outside the play area: distant peaks, rocks, thematic props, moon */}
       <Decor planet={run.planet} reducedMotion={reducedMotion} />
       {/* Ground terrain, pad, cavern roof, lighting */}
+      <PlanetLighting run={run} />
       <Planet run={run} />
 
       <group ref={root} position={[run.body.x, run.body.y, 0]}>
