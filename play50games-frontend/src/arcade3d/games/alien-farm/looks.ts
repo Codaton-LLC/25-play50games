@@ -1,7 +1,6 @@
 // Alien Farm looks: the palette, the follow camera's window, overlay heights,
 // decor positions, distant hills geometry and crop growth / ring math. Pure: no React.
 import { BufferAttribute, BufferGeometry } from "three";
-import { rngNext } from "@/arcade3d/core/math";
 import type { FittedViewOptions } from "@/arcade3d/core/useFittedView";
 import { FARM, PLOTS } from "./rules";
 
@@ -9,15 +8,15 @@ import { FARM, PLOTS } from "./rules";
 export const COLORS = {
    background: "#120a2e",
    skyTop: "#09041e",
-   skyBottom: "#4c1d95",
-   fog: "#1c0d3f",
-   soil: "#260742",
-   soilDark: "#18032b",
-   bed: "#3b0764",
+   skyBottom: "#5b21b6",
+   fog: "#1e1045",
+   soil: "#3b0764",
+   soilDark: "#2e1065",
+   bed: "#4c1d95",
    bedBorder: "#581c87",
-   bedSoil: "#1e1b4b",
-   furrowRidge: "#0d9488",
-   furrowValley: "#134e4a",
+   bedSoil: "#2e1065",
+   furrowRidge: "#0e4b56",
+   furrowValley: "#082f35",
    channel: "#22d3ee",
    channelGlow: "#06b6d4",
    rim: "#4c1d95",
@@ -68,24 +67,17 @@ export const FOV = 45;
 export const FOG = { near: 32, far: 85 } as const;
 
 /**
- * Play area bounds (m): the farm ground area.
- * Walkable farmer area is ±10.1 x ±8.1; farm boundary is ±10.5 x ±8.5.
- * All decor instances stay strictly outside this box.
+ * Active play area where crops grow: the 9 crop beds.
+ * Decor instances stay clear of these beds so crops and harvesting are unobstructed.
  */
-export const PLAY_BOUNDS = {
-   xMin: -10.5,
-   xMax: 10.5,
-   zMin: -8.5,
-   zMax: 8.5,
-} as const;
-
-export function inPlayArea(x: number, z: number): boolean {
-   return (
-      x >= PLAY_BOUNDS.xMin &&
-      x <= PLAY_BOUNDS.xMax &&
-      z >= PLAY_BOUNDS.zMin &&
-      z <= PLAY_BOUNDS.zMax
-   );
+export function inPlayArea(x: number, z: number, margin = 0.15): boolean {
+   const half = FARM.bedHalf + margin;
+   for (const p of PLOTS) {
+      if (Math.abs(x - p.x) <= half && Math.abs(z - p.z) <= half) {
+         return true;
+      }
+   }
+   return false;
 }
 
 /**
@@ -131,7 +123,7 @@ export function groundAt(x: number, z: number): number {
    return 0;
 }
 
-// ---------- Decor spots outside play bounds ----------
+// ---------- Decor spots around beds and paths in camera view ----------
 
 export interface DecorSpot {
    kind: "spire" | "plant" | "silo" | "rock" | "crate";
@@ -145,99 +137,92 @@ export interface DecorSpot {
    sz: number;
 }
 
-function tooClose(spots: readonly DecorSpot[], x: number, z: number, minDist: number): boolean {
-   const minSq = minDist * minDist;
-   for (const s of spots) {
-      const dx = s.x - x;
-      const dz = s.z - z;
-      if (dx * dx + dz * dz < minSq) return true;
-   }
-   return false;
-}
-
 function buildDecor(): DecorSpot[] {
-   const rng = { s: 0x411e4 };
    const spots: DecorSpot[] = [];
-   const rand = () => rngNext(rng);
 
-   const scatter = (
-      kind: DecorSpot["kind"],
-      count: number,
-      box: { x0: number; x1: number; z0: number; z1: number },
-      scaleRange: [number, number],
-      minGap: number,
-      toneOf: (i: number) => number,
-      squashY = 1
-   ) => {
-      let placed = 0;
-      for (let attempt = 0; placed < count && attempt < 3000; attempt++) {
-         const x = box.x0 + rand() * (box.x1 - box.x0);
-         const z = box.z0 + rand() * (box.z1 - box.z0);
-         if (inPlayArea(x, z) || tooClose(spots, x, z, minGap)) continue;
-         const s = scaleRange[0] + rand() * (scaleRange[1] - scaleRange[0]);
-         spots.push({
-            kind,
-            tone: toneOf(placed),
-            x,
-            y: 0,
-            z,
-            rotY: rand() * Math.PI * 2,
-            sx: s,
-            sy: s * squashY,
-            sz: s,
-         });
-         placed++;
-      }
-      if (placed < count) {
-         throw new Error(`alien-farm look: placed ${placed}/${count} ${kind}`);
-      }
-   };
-
-   // Silo: placed in the northwest background (behind the farm, clear of all camera rays)
+   // Silo: placed northwest just north of bed 0 in full view of the camera
    spots.push({
       kind: "silo",
       tone: 0,
-      x: -14.0,
+      x: -6.5,
       y: 0,
-      z: -12.5,
+      z: -5.4,
       rotY: 0.35,
       sx: 1.0,
       sy: 1.0,
       sz: 1.0,
    });
 
-   // Strange rock spires: north background and flanks (never south)
-   scatter("spire", 6, { x0: -18, x1: 18, z0: -24, z1: -12.5 }, [1.4, 2.5], 3.0, (i) => i % 2, 1.2);
-   scatter("spire", 2, { x0: 13.8, x1: 22, z0: -8, z1: 4 }, [1.3, 2.0], 3.0, (i) => i % 2, 1.1);
-   scatter("spire", 2, { x0: -22, x1: -13.8, z0: -8, z1: 4 }, [1.3, 2.0], 3.0, (i) => i % 2, 1.1);
+   // Strange rock spires: north perimeter background and flank paths
+   const spires = [
+      { x: -4.5, z: -5.8, s: 1.3, sy: 1.1 },
+      { x: -1.8, z: -5.6, s: 1.4, sy: 1.2 },
+      { x: 1.8, z: -5.6, s: 1.4, sy: 1.2 },
+      { x: 4.5, z: -5.8, s: 1.3, sy: 1.1 },
+      { x: -6.8, z: -0.5, s: 1.2, sy: 1.0 },
+      { x: 6.8, z: -0.5, s: 1.2, sy: 1.0 },
+      { x: -6.8, z: 3.5, s: 1.2, sy: 1.0 },
+      { x: 6.8, z: -2.5, s: 1.2, sy: 1.0 },
+   ];
+   spires.forEach((sp, i) => {
+      spots.push({
+         kind: "spire",
+         tone: i % 2,
+         x: sp.x,
+         y: 0,
+         z: sp.z,
+         rotY: i * 0.8,
+         sx: sp.s,
+         sy: sp.s * sp.sy,
+         sz: sp.s,
+      });
+   });
 
-   // Glowing alien plants: north perimeter and flanks
-   scatter("plant", 8, { x0: -17, x1: 17, z0: -20, z1: -11.0 }, [0.8, 1.4], 1.8, (i) => i % 2);
-   scatter("plant", 3, { x0: 12.8, x1: 19, z0: -7, z1: 5 }, [0.75, 1.25], 1.8, (i) => i % 2);
-   scatter("plant", 3, { x0: -19, x1: -12.8, z0: -7, z1: 5 }, [0.75, 1.25], 1.8, (i) => i % 2);
+   // Glowing alien plants: distributed along paths and around the beds
+   const plantPositions = [
+      [-3.2, -5.2], [-0.5, -5.4], [0.5, -5.4], [3.2, -5.2],
+      [-2.5, -2.0], [2.5, -2.0], [-2.5, 2.0], [2.5, 2.0],
+      [-2.5, -0.2], [2.5, -0.2], [-2.5, 0.2], [2.5, 0.2],
+      [-6.5, -1.8], [-6.5, 1.8], [6.5, -1.8], [6.5, 1.8],
+      [-3.0, 5.5], [0.0, 5.5], [3.0, 5.5],
+   ];
+   plantPositions.forEach(([x, z], i) => {
+      spots.push({
+         kind: "plant",
+         tone: i % 2,
+         x,
+         y: 0,
+         z,
+         rotY: i * 0.5,
+         sx: 0.9,
+         sy: 0.9,
+         sz: 0.9,
+      });
+   });
 
-   // Rocks: flank positions outside play area
-   for (const z of [-7, 0, 7]) {
-      for (const x of [-12.5, 12.5]) {
-         spots.push({
-            kind: "rock",
-            tone: 0,
-            x,
-            y: 0,
-            z,
-            rotY: rand() * Math.PI * 2,
-            sx: 1.0,
-            sy: 0.85,
-            sz: 1.0,
-         });
-      }
-   }
+   // Rocks: perimeter path margins
+   const rocks = [
+      [-6.8, -3.5], [6.8, -4.5], [-6.8, 1.5], [6.8, 2.2], [-4.5, 5.8], [4.5, 5.8],
+   ];
+   rocks.forEach(([x, z], i) => {
+      spots.push({
+         kind: "rock",
+         tone: 0,
+         x,
+         y: 0,
+         z,
+         rotY: i * 1.1,
+         sx: 1.0,
+         sy: 0.85,
+         sz: 1.0,
+      });
+   });
 
-   // Crates: clustered near southwest storage area
+   // Crates: clustered near southwest path
    spots.push(
-      { kind: "crate", tone: 0, x: -11.8, y: 0, z: 8.8, rotY: 0.2, sx: 1, sy: 1, sz: 1 },
-      { kind: "crate", tone: 0, x: -11.2, y: 0, z: 9.2, rotY: -0.4, sx: 1, sy: 1, sz: 1 },
-      { kind: "crate", tone: 0, x: -11.8, y: 0, z: 7.8, rotY: 0.9, sx: 1, sy: 1, sz: 1 }
+      { kind: "crate", tone: 0, x: -6.5, y: 0, z: 4.8, rotY: 0.2, sx: 1, sy: 1, sz: 1 },
+      { kind: "crate", tone: 0, x: -6.0, y: 0, z: 5.2, rotY: -0.4, sx: 1, sy: 1, sz: 1 },
+      { kind: "crate", tone: 0, x: -6.8, y: 0, z: 5.4, rotY: 0.9, sx: 1, sy: 1, sz: 1 }
    );
 
    return spots;
@@ -265,7 +250,7 @@ function rgbOf(hex: string): [number, number, number] {
 const HILL_TONES = [
    rgbOf(COLORS.soil),
    rgbOf(COLORS.soilDark),
-   rgbOf(COLORS.rim),
+   rgbOf(COLORS.soilDark),
    rgbOf(COLORS.rockDark),
 ];
 
@@ -273,21 +258,23 @@ function flatZone(x: number, z: number): boolean {
    return Math.abs(x) <= 12.0 && z >= -10.0 && z <= 10.0;
 }
 
-/** 0 on the farm; rises outside it into low-poly alien ridges. */
+/** 0 on the farm; rises north and along distant flanks, completely flat in south foreground. */
 export function hillHeight(x: number, z: number): number {
-   if (flatZone(x, z)) return 0;
+   if (z >= 7.0 || flatZone(x, z)) return 0;
    const dx = Math.max(0, Math.abs(x) - 12.0);
-   const dz = Math.max(0, -10.0 - z, z - 10.0);
+   const dz = Math.max(0, -10.0 - z);
    const dist = Math.hypot(dx, dz);
+   if (dist <= 0) return 0;
    const roll = 0.4 + 0.6 * (0.5 + 0.5 * Math.sin(x * 0.24) * Math.cos(z * 0.2));
    const rise = Math.min(1, dist / 8);
-   return Math.min(5.2, rise * rise * (0.8 + 4.4 * roll));
+   const southTaper = z > 0 ? Math.max(0, (7.0 - z) / 7.0) : 1;
+   return Math.min(5.2, rise * rise * (0.8 + 4.4 * roll) * southTaper);
 }
 
 function hillFaceColor(x: number, z: number, y: number): [number, number, number] {
    const i = Math.abs(Math.floor(x * 1.5) + Math.floor(z * 2.1) * 3) % 4;
    if (y > 2.5) return HILL_TONES[3];
-   if (y > 1.2) return HILL_TONES[2];
+   if (y > 1.2) return HILL_TONES[1];
    return HILL_TONES[i % 2];
 }
 
@@ -297,7 +284,7 @@ export function hillMesh(): ColoredMesh {
    const x0 = -44;
    const x1 = 44;
    const z0 = -46;
-   const z1 = 30;
+   const z1 = 8;
    const step = 2.4;
 
    const push = (

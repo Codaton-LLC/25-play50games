@@ -1,16 +1,17 @@
 "use client";
 
 // The moonlit crater farm: dusk sky, starry field, two moons, low-poly distant hills,
-// flat soil disc out to the horizon, purple-teal beds with soft furrows, and surroundings decor.
-import { useEffect, useMemo } from "react";
+// flat plum soil disc out to the horizon, purple beds with dark teal furrows, and surroundings decor.
+import { useEffect, useMemo, useRef } from "react";
 import {
    CylinderGeometry,
-   LatheGeometry,
-   Vector2,
+   Group,
 } from "three";
 import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
+import { useFrame, useThree } from "@react-three/fiber";
 import { SkyDome, Starfield } from "@/arcade3d/core/env";
+import { FRAME_PRIORITY } from "@/arcade3d/core/frameLoop";
 import { scaledCount, useQuality } from "@/arcade3d/core/quality";
 import { Instanced, type InstanceSpot } from "@/arcade3d/core/render";
 import { Decor } from "./Decor";
@@ -88,13 +89,13 @@ function Beds() {
             <meshStandardMaterial color={COLORS.bed} roughness={0.85} />
          </Instanced>
 
-         {/* Soil bed base in purple-teal soil */}
+         {/* Soil bed base in rich plum soil */}
          <Instanced spots={BED_SPOTS} name="bed-soil-base">
             <primitive object={geo.soil} attach="geometry" />
             <meshStandardMaterial color={COLORS.bedSoil} roughness={0.95} />
          </Instanced>
 
-         {/* Soft furrow ridges in vibrant alien teal */}
+         {/* Soft furrow ridges in deep dark teal for strong crop contrast */}
          <Instanced spots={BED_SPOTS} name="bed-furrows">
             <primitive object={geo.furrows} attach="geometry" />
             <meshStandardMaterial color={COLORS.furrowRidge} roughness={0.8} />
@@ -115,33 +116,16 @@ function Beds() {
 }
 
 function Ground() {
-   // A low crater rim (lathe) around the 26 x 20 farm; the soil disc runs to the fogged horizon
-   const rim = useMemo(
-      () =>
-         new LatheGeometry(
-            [
-               new Vector2(15.5, -0.01),
-               new Vector2(16.5, 0.45),
-               new Vector2(17.4, 0.7),
-               new Vector2(18.6, 0.4),
-               new Vector2(20.5, -0.01),
-            ],
-            64
-         ),
-      []
-   );
-
-   // Distant hills mesh: low-poly rolling terrain outside the farm
+   // Distant hills mesh: low-poly rolling terrain outside the farm (north and flanks)
    const hills = useMemo(() => coloredGeometry(hillMesh()), []);
 
    useEffect(() => () => {
-      rim.dispose();
       hills.dispose();
-   }, [rim, hills]);
+   }, [hills]);
 
    return (
       <group name="ground">
-         {/* Wide ground soil disc extending out to radius 90 to prevent any void below the scene */}
+         {/* Wide ground soil disc extending out to radius 90 in plum to prevent any void below the scene */}
          <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]} name="soil-plane">
             <circleGeometry args={[90, 48]} />
             <meshStandardMaterial color={COLORS.soil} roughness={1} />
@@ -151,10 +135,33 @@ function Ground() {
          <mesh geometry={hills} name="distant-hills">
             <meshStandardMaterial vertexColors flatShading roughness={0.95} />
          </mesh>
+      </group>
+   );
+}
 
-         {/* Low crater rim encircling the farm */}
-         <mesh geometry={rim} scale={[1, 1, 0.82]} name="crater-rim">
-            <meshStandardMaterial color={COLORS.rim} roughness={0.95} />
+function Moons() {
+   const group = useRef<Group>(null);
+   const camera = useThree((s) => s.camera);
+
+   useFrame(() => {
+      if (group.current) {
+         group.current.position.copy(camera.position);
+         group.current.quaternion.copy(camera.quaternion);
+      }
+   }, FRAME_PRIORITY.visuals);
+
+   return (
+      <group ref={group} name="moons">
+         {/* Primary Moon: large lavender/violet sister world in upper sky */}
+         <mesh position={[-2.2, 5.5, -20]} name="moon-primary">
+            <sphereGeometry args={[1.5, 32, 20]} />
+            <meshBasicMaterial color={COLORS.moon} fog={false} />
+         </mesh>
+
+         {/* Secondary Moon: glowing cyan/teal minor moon in upper sky */}
+         <mesh position={[2.4, 6.2, -20]} name="moon-minor">
+            <sphereGeometry args={[0.7, 24, 16]} />
+            <meshBasicMaterial color={COLORS.moonMinor} fog={false} />
          </mesh>
       </group>
    );
@@ -168,20 +175,7 @@ export function FarmScene() {
          {/* Whimsical sunset sky dome */}
          <SkyDome top={COLORS.skyTop} bottom={COLORS.skyBottom} offset={-0.02} exponent={0.7} />
          <Starfield count={scaledCount(700, particles)} seed={21} upperOnly size={2} />
-
-         {/* Two moons glowing against the dusk sky */}
-         {/* Primary Moon: large lavender/violet sister world */}
-         <mesh position={[-20, 18, -35]} name="moon-primary">
-            <sphereGeometry args={[6.2, 32, 20]} />
-            <meshBasicMaterial color={COLORS.moon} fog={false} />
-         </mesh>
-
-         {/* Secondary Moon: glowing cyan/teal minor moon */}
-         <mesh position={[18, 14, -34]} name="moon-minor">
-            <sphereGeometry args={[2.4, 24, 16]} />
-            <meshBasicMaterial color={COLORS.moonMinor} fog={false} />
-         </mesh>
-
+         <Moons />
          <Ground />
          <Beds />
          <Decor />

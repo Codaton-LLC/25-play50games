@@ -12,7 +12,6 @@ import { playSfx, startLoop, useMuted, type LoopHandle } from "@/arcade3d/core/a
 import { useFx } from "@/arcade3d/core/fx";
 import { TargetMarkers, type MarkerTarget } from "@/arcade3d/core/hud";
 import { useInput } from "@/arcade3d/core/input";
-import { useStageLighting } from "@/arcade3d/core/lighting";
 import { inputToWorld, randomSeed } from "@/arcade3d/core/math";
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { useFittedView } from "@/arcade3d/core/useFittedView";
@@ -110,7 +109,6 @@ export default function Scene() {
    const view = useFittedView(VIEW);
    const input = useInput();
    const fx = useFx();
-   useStageLighting("sunset", 1);
 
    // a fresh seed per run: GameShell remounts the Scene on start and retry
    const [run] = useState(() => createRun(randomSeed()));
@@ -168,7 +166,7 @@ export default function Scene() {
          playSfx("pickup", { volume: ev.pickedPerfect ? 0.75 : 0.6 });
          if (ev.pickedPerfect) {
             playSfx("chime", { volume: 0.55, pitch: 1 + 0.08 * Math.min(6, run.streak) });
-            fx.shake(0.06);
+            if (run.streak >= 3) fx.shake(0.06);
          }
       }
       if (ev.missed >= 0) {
