@@ -181,7 +181,7 @@ export function greedyBot(opts: { lookahead?: boolean } = {}): Bot {
       steerTo(run, goal.x, goal.z, input);
       const inReach = Math.hypot(plot.x - f.x, plot.z - f.z) <= HARVEST.reach - 0.02;
       const k = cycleIndex(plot, t);
-      const peak = cyclePeak(plot, k), w = halfWindow(peak, run.level?.halfLate);
+      const peak = cyclePeak(plot, k), w = halfWindow(peak, plot.halfLate);
       if (inReach && k === plan.cycle && t >= plan.press && t >= peak - w && t <= peak + w && t >= run.cooldownUntil) {
          input.press = true;
          plan = null;

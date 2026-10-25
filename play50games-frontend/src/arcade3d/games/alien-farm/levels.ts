@@ -44,9 +44,9 @@ export const BASE_PLOTS: readonly PlotConfig[] = [
 
 export const DESCRIPTIONS: Record<LevelId, string> = {
    1: "Starter plot: 9 beds, pulse harvesting and beam delivery across 100 s.",
-   2: "Crystal farm: all 9 beds live from the start, slower saucer haul, 150 s.",
+   2: "Crystal farm: all 9 beds live from the start, 150 s.",
    3: "Glow marsh: 5 s rapid pulse cycles, 7 s lingering spores, 180 s.",
-   4: "Meteor field: all beds live, swift saucer and tighter late harvest windows, 180 s.",
+   4: "Meteor field: all beds live, swift saucer, 7 s spores and tighter late harvest windows, 180 s.",
    5: "Grand harvest: all beds open, 5 s pods, 7 s gourds, persistent spores, 210 s.",
 };
 
@@ -62,7 +62,7 @@ export const LEVELS: Record<LevelId, AlienFarmLevel> = {
    2: {
       durationMs: 150_000,
       plots: BASE_PLOTS.map((p) => ({ ...p, activateAt: 0 })),
-      shipSpeeds: [1.7, 2.1, 2.5],
+      shipSpeeds: [2, 2.5, 3],
       sporesLifeS: 5,
       cycleHalfLate: 0.6,
       capacity: 4,
@@ -79,7 +79,7 @@ export const LEVELS: Record<LevelId, AlienFarmLevel> = {
       durationMs: 180_000,
       plots: BASE_PLOTS.map((p) => ({ ...p, activateAt: 0, halfLate: 0.5 })),
       shipSpeeds: [2.5, 3, 3.5],
-      sporesLifeS: 5,
+      sporesLifeS: 7,
       cycleHalfLate: 0.5,
       capacity: 4,
    },

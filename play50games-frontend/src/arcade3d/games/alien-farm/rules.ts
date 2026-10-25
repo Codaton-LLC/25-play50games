@@ -190,11 +190,11 @@ export const halfWindow = (peak: number, halfLate: number = CYCLE.halfLate): num
    peak < CYCLE.midAt ? CYCLE.halfEarly : peak < CYCLE.lateAt ? CYCLE.halfMid : halfLate;
 
 /** The ship's speed at play time t. */
-export const shipSpeed = (t: number, speeds: readonly [number, number, number] = SHIP.speeds): number =>
+export const shipSpeed = (t: number, speeds: readonly number[] = SHIP.speeds): number =>
    t < CYCLE.midAt ? speeds[0] : t < CYCLE.lateAt ? speeds[1] : speeds[2];
 
 /** Distance the ship has travelled by play time t (the exact integral of shipSpeed). */
-export function shipDistance(t: number, speeds: readonly [number, number, number] = SHIP.speeds): number {
+export function shipDistance(t: number, speeds: readonly number[] = SHIP.speeds): number {
    const a = Math.min(t, CYCLE.midAt);
    const b = Math.min(Math.max(t - CYCLE.midAt, 0), CYCLE.lateAt - CYCLE.midAt);
    const c = Math.max(t - CYCLE.lateAt, 0);
@@ -351,7 +351,7 @@ export interface RunState {
 const SHIP_TANGENT = { x: 0, y: 0, z: 0 };
 
 /** Places the ship for play time t (exact, independent of the frame split). */
-export function placeShip(ship: Ship, t: number, speeds: readonly [number, number, number] = SHIP.speeds): Ship {
+export function placeShip(ship: Ship, t: number, speeds: readonly number[] = SHIP.speeds): Ship {
    const s = ship.s0 + ship.dir * shipDistance(t, speeds);
    pointAt(SHIP_PATH, s, ship);
    tangentAt(SHIP_PATH, s, SHIP_TANGENT);
@@ -538,7 +538,7 @@ function updateBursts(run: RunState, t: number): void {
       if (kb <= plot.burst) continue;
       plot.burst = kb;
       if (plot.picked === kb || plot.reserved) continue;
-      // one zone per plot is enough: C >= 6 > the 5 s life
+      // one zone per plot: when a level's spore life outlasts the cycle, the next burst's zone (same spot) takes over the rest of it
       plot.sporeFrom = cycleBurst(plot, kb);
       plot.sporeTo = plot.sporeFrom + (run.level?.sporesLifeS ?? SPORES.lifeS);
       if (t < plot.sporeTo) run.events.bursts |= 1 << plot.id;

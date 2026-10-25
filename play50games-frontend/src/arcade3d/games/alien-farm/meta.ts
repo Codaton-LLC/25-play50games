@@ -34,7 +34,7 @@ export const alienFarmMeta: ArcadeGameMeta = {
       { id: 1, title: "Starter Plot", scoring: SCORING_L1, clearScore: 2000 },
       { id: 2, title: "Crystal Farm", scoring: { ...SCORING_L1, maxScore: 20600, minDurationMs: 148000, maxDurationMs: 153000 }, clearScore: 3000 },
       { id: 3, title: "Glow Marsh", scoring: { ...SCORING_L1, maxScore: 26900, minDurationMs: 178000, maxDurationMs: 183000, maxPointsPerSec: 260 }, clearScore: 3500 },
-      { id: 4, title: "Meteor Field", scoring: { ...SCORING_L1, maxScore: 22100, minDurationMs: 178000, maxDurationMs: 183000, maxPointsPerSec: 260 }, clearScore: 1700 },
+      { id: 4, title: "Meteor Field", scoring: { ...SCORING_L1, maxScore: 22100, minDurationMs: 178000, maxDurationMs: 183000, maxPointsPerSec: 260 }, clearScore: 1600 },
       { id: 5, title: "Grand Alien Harvest", scoring: { ...SCORING_L1, maxScore: 30500, minDurationMs: 208000, maxDurationMs: 213000, maxPointsPerSec: 260 } },
    ],
    thumbnail: "/images/3d/alien-farm.webp",

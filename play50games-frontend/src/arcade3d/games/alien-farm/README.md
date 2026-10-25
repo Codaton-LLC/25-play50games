@@ -33,35 +33,46 @@ Groups: `FARM`, `FARMER`, `PLOTS`, `OFFSET_TABLES`, `CYCLE`, `HARVEST`, `SHIP`, 
 
 `runScore = 50 harvested + 50 perfect + 25 Σ(load size²)`. Points arrive live: 50/100 at each pick, 25 n² at each unload. No streak, time or end bonus, no deductions, no `finalScore`. The store score equals `run.score` on every bot run (tested).
 
-## Levels
-
-Alien Farm features 5 level configurations (following `docs/arcade-levels.md` and the master plan). Level 1 is the certified baseline game; levels 2–5 progressively scale plot activation, pulse periods, spore hazards, saucer speeds, and harvest window tolerances.
-
-| Level | Title | Clock | Beds & Activation | Ship Speeds | Spores | Half-Window Late | S\* (H\*) | Limits (maxScore / base / pps / minMs / maxMs) | Clear Target |
-|:---:|---|:---:|---|:---:|:---:|:---:|:---:|:---:|:---:|
-| 1 | Starter Plot | 100 s | 9 beds (0 s: 5, 20 s: 2, 40 s: 2; 6/8 s) | [2, 2.5, 3] | 5 s | 0.6 s | 12400 (71) | 12900 / 200 / 250 / 99000 / 102000 | 2000 pts |
-| 2 | Crystal Farm | 150 s | 9 beds (all active at 0 s; 6/8 s) | [1.7, 2.1, 2.5] | 5 s | 0.6 s | 19750 (112) | 20600 / 200 / 250 / 148000 / 153000 | 3000 pts |
-| 3 | Glow Marsh | 180 s | 9 beds (5 s pods, 8 s gourds) | [2, 2.5, 3] | 7 s | 0.6 s | 25850 (146) | 26900 / 200 / 260 / 178000 / 183000 | 3500 pts |
-| 4 | Meteor Field | 180 s | 9 beds (all active at 0 s; 6/8 s) | [2.5, 3, 3.5] | 5 s | 0.5 s | 21250 (127) | 22100 / 200 / 260 / 178000 / 183000 | 1700 pts |
-| 5 | Grand Alien Harvest | 210 s | 9 beds (all active at 0 s; 5 s pods, 7 s gourds) | [2.5, 3, 3.5] | 7 s | 0.5 s | 29250 (163) | 30500 / 200 / 260 / 208000 / 213000 | None (final) |
-
 ### Server limits and why they hold (the proof)
 
-`PROPOSED_LEVEL_LIMITS` in `rules.ts`: copied into `meta.levels` and `arcade-games.json`.
+`PROPOSED_LIMITS` in `rules.ts`: **maxScore 12900, minDurationMs 99000, maxDurationMs 102000, base 200, maxPointsPerSec 250**, copied into `meta.scoring` and `arcade-games.json` (2026-10-24, re-verified after the burst rule: a burst and the daze only remove picks or add time, so the relaxation below still bounds every run; the bots below re-ran through the real rules).
 
-1. **Per-crop ceiling.** A crop pays ≤ 100 at its pick (50 standard + 50 perfect) and its load pays 25 n² = 25 n per crop ≤ 100 (capacity n ≤ 4). Total yield per crop ≤ 200.
-2. **Relaxation (`bound.ts`).** Solved as a Pareto DAG search over (plot, cycle) ripe windows:
-   - Walk time between plot i and j bounded by `max(0, d(i,j) - 1.8) / 4.5`.
-   - Pick duration fixed at 0.30 s.
-   - All physical impediments (acceleration ramp, basket weight, spore slowdown, burst stun, delivery travel) relaxed away.
-3. **Certificates per level:**
-   - **Level 1 (100 s):** S\* = 12400, H\* = 71. `maxScore` = 12900 (4.0% margin). Rate bound: `200 + 250 * tH >= 200 H` for all H up to 62.
-   - **Level 2 (150 s):** S\* = 19750, H\* = 112. `maxScore` = 20600 (4.3% margin). Rate bound: `200 + 250 * tH >= 200 H` for all H up to 99.
-   - **Level 3 (180 s):** S\* = 25850, H\* = 146. `maxScore` = 26900 (4.1% margin). Rate bound: `200 + 260 * tH >= 200 H` for all H up to 130.
-   - **Level 4 (180 s):** S\* = 21250, H\* = 127. `maxScore` = 22100 (4.0% margin). Rate bound: `200 + 260 * tH >= 200 H` for all H up to 107.
-   - **Level 5 (210 s):** S\* = 29250, H\* = 163. `maxScore` = 30500 (4.3% margin). Rate bound: `200 + 260 * tH >= 200 H` for all H up to 147.
-4. **Decision 3 headroom:** L5 maxScore / L1 maxScore = 30500 / 12900 = 2.364 ≤ 3.0.
-5. **Clear target reachability:** Honest human-paced bot clears levels 1–4 on ≥ 99% of seeds (100% in test verification). Idle bot scores 0 and never clears. Degenerate camping and spinning bots score ≤ 400, well below all clear thresholds.
+1. **Per-crop ceiling.** A crop pays ≤ 100 at its pick and its load pays 25 n² = 25 n per crop ≤ 100 (n ≤ 4). So score ≤ Σ(150 + 50 [perfect]) over the picks.
+2. **Relaxation (`bound.ts`).** Nodes = (plot, cycle) ripe windows inside the run (a pick must complete by 100 s). From a press at t on plot i the next press on j is ≥ max(open_j, t + 0.30 + max(0, d(i,j) − 1.8)/4.5) (planted 0.30 s, then from within 0.90 m of i to within 0.90 m of j at ≤ 4.5 m/s); the first press ≥ max(open_j, max(0, d(start, j) − 0.9)/4.5). Relaxed away (each can only add time): acceleration, carry and spore slowdowns, the 2 s burst daze, deliveries and the ship, frame quantisation. Exact for the relaxation and independent of s0 and direction.
+3. **Exhaustive label search** (earliest time per (last node, previous node) state, Pareto on score; the previous node is kept only while it could be reached again inside its window: a → b → a needs two gaps ≥ 71/90 s, possible only in a 1.8 s window; three gaps never fit). Outward-safe: every gap is rounded down by 1e-9 and windows widened by 1e-9. Cross-checked by brute force over all chains on 16 s horizons (4 tables, both weightings).
+4. **Certificate:** per table S = 12250, 12100, 11950, 11950, 12050, 12050, 11700, 12050, 12050, 12400, 12400, 10800, 11350, 11350, 11800, 11800, so **S\* = 12400** (the harvest count alone: H\* = 71, which 200 H\* = 14200 would over-cover). maxScore = 100 ceil(1.04 S\* / 100) = 12900 (4.0 % margin).
+5. **Rate:** first pick completes ≥ 2.40 s (earliest window opens at 2.1); different-plot presses ≥ 71/90 s apart (closest beds 4 m); same plot ≥ 4.2 s. Every prefix with H picks scores ≤ 200 H ≤ 200 + 250 (2.40 + (H − 1) 71/90) for H = 1..124 (smallest margin 258.33); 125 picks need more than 100 s. The run lasts exactly 100000 ms of play (shell timer), inside 99000..102000.
+6. **Tightness (Decision D, a documented looser limit):** the best legal oracle reaches **7275 = 56.4 %** of maxScore, below the 90 % gate. Reason: the relaxation pays every crop as a delivered full load but charges nothing for the beam trips; the real ship (2–3 m/s on a 64 m loop) costs about 2–4 s per load and the clustered offset tables (all nine deltas within 1.9 s) leave a dead stretch in every cycle. A delivery-aware certificate needs an enclosure of the ship's position over continuous s0 and both directions; not attempted. Open question 2.
+
+## Levels (five per game)
+
+Five levels through the core level system (`core/README.md` "Levels"): `levels.ts` holds the pure configs, `createRun(seed, level)` plays one, Scene reads it with `useLevel`, `index.tsx` declares the five specs (clock, Basket chip) and `meta.ts` the titles, limits and clear targets. **Level 1 is today's game** (replayed bit-exact against today's `createRun` in `levels.test.ts`). The same nine beds, assets and controls on every level; a level clears at its `clearScore` (score attack, no win); level 5 has none.
+
+| Level | Title | Clock | Beds | Saucer m/s (<40 / 40-70 / >70 s) | Spores | Late window | Clear |
+|---|---|---:|---|---|---:|---:|---:|
+| 1 | Starter Plot | 100 s | 5 at 0 s, 2 at 20 s, gourds at 40 s; 6 / 8 s | 2 / 2.5 / 3 | 5 s | ±0.6 s | 2000 |
+| 2 | Crystal Farm | 150 s | all 9 at 0 s; 6 / 8 s | 2 / 2.5 / 3 | 5 s | ±0.6 s | 3000 |
+| 3 | Glow Marsh | 180 s | staggered as L1; 5 s pods, 8 s gourds | 2 / 2.5 / 3 | 7 s | ±0.6 s | 3500 |
+| 4 | Meteor Field | 180 s | all 9 at 0 s; 6 / 8 s | 2.5 / 3 / 3.5 | 7 s | ±0.5 s | 1600 |
+| 5 | Grand Alien Harvest | 210 s | all 9 at 0 s; 5 s pods, 7 s gourds | 2.5 / 3 / 3.5 | 7 s | ±0.5 s | - |
+
+Hazards never ease: clock, saucer speed and spore life never fall, the late window never widens. From L4 the saucer outruns a loaded farmer (3.06 m/s with four crops) after 70 s, so a delivery has to cut it off; that is why the human-paced bot (which chases the beam without leading it) scores less on L4-L5 and L4's clear target is lower.
+
+### Per-level limits and why they hold
+
+The level-1 proof above carries over unchanged per level (`bound.ts` takes each level's beds, windows and deadline; certificates in `levels.test.ts` L1-L3 and `levels.certificate.test.ts` L4-L5):
+
+| Level | S\* (max over 16 tables) | maxScore = 100 ceil(1.04 S\* / 100) | min / max ms | base / pps |
+|---|---:|---:|---|---|
+| 1 | 12400 | 12900 | 99000 / 102000 | 200 / 250 |
+| 2 | 19750 | 20600 | 148000 / 153000 | 200 / 250 |
+| 3 | 25850 | 26900 | 178000 / 183000 | 200 / 260 |
+| 4 | 21250 | 22100 | 178000 / 183000 | 200 / 260 |
+| 5 | 29250 | 30500 | 208000 / 213000 | 200 / 260 |
+
+Rate, per level: each harvest pays at most 200; presses on different beds are at least 71/90 s apart (bed positions are the same on every level) and a bed repeats only a cycle later (at least C - 1.8 s > 71/90 s); the first press is at least f = the level's earliest (window open, walk from the start) over all 16 tables. So the H-th press is at or after f + (H - 1) 71/90 and `base + pps t >= 200 H` is checked for every H up to the last press the clock allows. On the longer levels 250 pts/s would run out (slope 250 x 71/90 < 200), hence 260 on L3-L5. L5 maxScore is 2.36 x L1's.
+
+Bots through the real store (30 Hz, `levels.test.ts`): the human-paced bot clears 30/30 seeds on L1-L4 (worst 2825 / 4500 / 4625 / 1700), greedy 4/4; idle scores 0 and a camping bot at most 400, so neither clears; every run passes `withinServerLimits` with `capScore` a no-op.
 
 ## Run end
 
