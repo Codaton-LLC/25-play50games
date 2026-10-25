@@ -18,7 +18,8 @@ import { launchForTime, landingPoint, type BallisticParams, type Projectile } fr
 import { arrive, flee, separate, type Agent } from "@/arcade3d/core/ai/steering";
 import { hasLineOfSightXZ, inViewCone } from "@/arcade3d/core/ai/vision";
 import { inputToWorld, rngNext, turnTowards, type RngState } from "@/arcade3d/core/math";
-import type { ScoringRules } from "@/arcade3d/types";
+import type { LevelId, ScoringRules } from "@/arcade3d/types";
+import { LEVELS, type SnowLevel } from "./levels";
 
 export const POCKET_OUT = 0.45;
 export const SCOOP_S = 0.5;
@@ -92,6 +93,25 @@ export const PROPOSED_LIMITS: ScoringRules = {
 };
 
 /**
+ * Per-level limits (README "Levels"). The hit cap is 2550 on every level (9×100 + 3×300 + 500 + 250),
+ * so none offers fewer points than level 1, and level 5 stays under 3×. The clock stays 90 s, so
+ * maxDurationMs stays 92000. pps covers B(t) = earliestRows; minDurationMs sits under the faster of
+ * the perfect clear and the loss chain.
+ */
+export const PROPOSED_LEVEL_LIMITS: Record<LevelId, ScoringRules> = {
+   /** L1: today's limits. Clear 10.9 s, loss 10.65 s. */
+   1: PROPOSED_LIMITS,
+   /** L2: same B(t) as level 1. Flight past 14 m is longer; flight at ≤ 14 m is the same line, so the 0.5k+0.65 scoop bound does not move. */
+   2: PROPOSED_LIMITS,
+   /** L3: sneaker at 8 s, clear 8.9 s. (2550−600)/8.9 = 219.1; 230 pps is 4.97 % over and rejects 2550 at 8.45 s. Loss stays 10.65 s (the two-peek slot opens at 30 s). */
+   3: { ...PROPOSED_LIMITS, minDurationMs: 8000, maxPointsPerSec: 230 },
+   /** L4: same score schedule as L3 (sneaker still 8 s). Wind-up 1.0 brings the one-slot loss to 9.65 s, still after the 8.9 s clear, so the same window holds. */
+   4: { ...PROPOSED_LIMITS, minDurationMs: 8000, maxPointsPerSec: 230 },
+   /** L5: sneaker at 5 s, clear 5.9 s. (2550−600)/5.9 = 330.5; 348 pps is ceil(×1.05) and rejects 2550 at 5.45 s. Two slots from the start: loss 6.25 s. */
+   5: { ...PROPOSED_LIMITS, minDurationMs: 5000, maxPointsPerSec: 348 },
+};
+
+/**
  * Upper bound B(t) after Q1 (any hit scores). A scoop-throw cycle is one ball per 0.50 s,
  * first arrival at 0.50 + 0.65 = 1.15, same-rival hits at least STAGGER apart (the cycle is
  * slower). Two rivals exist from 0 (6 hits, 2 outs) and the sneaker from 10.00 (3 more, the
@@ -115,19 +135,49 @@ export function earliestScore(t: number): number {
    return score;
 }
 
-export function flightTime(distance: number): number {
+export function flightTime(distance: number, level: SnowLevel = LEVELS[1]): number {
    if (distance <= THROW.distNear) return THROW.flightNear;
-   if (distance >= THROW.distFar) return THROW.flightFar;
-   const k = (distance - THROW.distNear) / (THROW.distFar - THROW.distNear);
-   return THROW.flightNear + (THROW.flightFar - THROW.flightNear) * k;
+   if (distance >= level.distFar) return level.flightFar;
+   const k = (distance - THROW.distNear) / (level.distFar - THROW.distNear);
+   return THROW.flightNear + (level.flightFar - THROW.flightNear) * k;
 }
 
-export function dodgeDelay(t: number): number {
-   const [a, b, c] = AI.dodgeAt;
+export function dodgeDelay(t: number, level: SnowLevel = LEVELS[1]): number {
+   const [a, b, c] = level.dodgeAt;
    if (t <= 0) return a;
    if (t >= 60) return c;
    if (t <= 30) return a + (b - a) * (t / 30);
    return b + (c - b) * ((t - 30) / 30);
+}
+
+/**
+ * Fifth tag on the player when rivals chain releases as fast as the slot allows.
+ * One slot: five beats of recover+peek+windup. Two slots from the start (slotAt 0):
+ * two rivals can release on one beat, so the fifth tag is the third beat.
+ * Flight is the minimum, THROW.flightNear. Level 1 is 10.65 s.
+ */
+export function lossChainS(level: SnowLevel): number {
+   const first = AI.cover + AI.peek + level.windup;
+   const gap = AI.recover + AI.peek + level.windup;
+   const beats = level.slotAt <= 0 ? 2 : 4;
+   return first + THROW.flightNear + beats * gap;
+}
+
+/** Earliest perfect clear in the any-hit model: the sneaker's third tag, on the stagger. Level 1 is 10.9 s. */
+export function earliestClearS(level: SnowLevel): number {
+   return level.sneakerAt + AI.stagger * 2;
+}
+
+/** B(t) rows for one level. Sneaker at 10 s is today's EARLIEST (levels 1 and 2). */
+export function earliestRows(level: SnowLevel): readonly { t: number; score: number }[] {
+   if (level.sneakerAt === AI.sneakerAt) return EARLIEST;
+   const t = level.sneakerAt;
+   return [
+      EARLIEST[0], EARLIEST[1], EARLIEST[2], EARLIEST[3], EARLIEST[4], EARLIEST[5],
+      { t, score: 1300 },
+      { t: t + AI.stagger, score: 1400 },
+      { t: t + AI.stagger * 2, score: 2550 },
+   ];
 }
 
 export function runScore(hits: number, outs: number, won: boolean, playerTags: number): number {
@@ -201,6 +251,8 @@ export interface StepInput {
 export interface Run {
    seed: number;
    coarse: boolean;
+   /** the level this run was built from; level 1 matches the module constants */
+   level: SnowLevel;
    fallback: boolean;
    time: number;
    forts: FortState[];
@@ -504,19 +556,19 @@ function peekPocketsCovered(yard: Yard): boolean {
    return true;
 }
 
-function baseYard(): Yard {
+function baseYard(hp: number = FORT.hp): Yard {
    return {
-      forts: BASE_FORTS.map(([x, z]) => ({ x, z, hp: FORT.hp })),
+      forts: BASE_FORTS.map(([x, z]) => ({ x, z, hp })),
       pines: BASE_PINES.map(([x, z], i) => ({ x, z, scale: 0.9 + (i % 3) * 0.15, rotY: i * 0.7 })),
    };
 }
 
-function jitterYard(rng: RngState): Yard {
+function jitterYard(rng: RngState, hp: number): Yard {
    return {
       forts: BASE_FORTS.map(([x, z]) => ({
          x: x + (rngNext(rng) * 2 - 1) * 0.22,
          z: z + (rngNext(rng) * 2 - 1) * 0.22,
-         hp: FORT.hp,
+         hp,
       })),
       pines: BASE_PINES.map(([x, z]) => ({
          x: x + (rngNext(rng) * 2 - 1) * 0.28,
@@ -527,13 +579,13 @@ function jitterYard(rng: RngState): Yard {
    };
 }
 
-export function generateYard(seed: number): { yard: Yard; fallback: boolean } {
+export function generateYard(seed: number, hp: number = FORT.hp): { yard: Yard; fallback: boolean } {
    const rng: RngState = { s: seed >>> 0 };
    for (let attempt = 0; attempt < 40; attempt++) {
-      const yard = jitterYard(rng);
+      const yard = jitterYard(rng, hp);
       if (checkYard(yard) === null) return { yard, fallback: false };
    }
-   return { yard: baseYard(), fallback: true };
+   return { yard: baseYard(hp), fallback: true };
 }
 
 export function fallbackYard(): Yard {
@@ -601,8 +653,8 @@ function northernFort(yard: Yard): number {
    return best;
 }
 
-export function createRun(seed: number, coarse: boolean): Run {
-   const generated = generateYard(seed);
+export function createRun(seed: number, coarse: boolean, level: SnowLevel = LEVELS[1]): Run {
+   const generated = generateYard(seed, level.fortHp);
    const yard = generated.yard;
    const kids = [kid(0), kid(1), kid(2), kid(3)];
    const player = kids[0];
@@ -627,7 +679,7 @@ export function createRun(seed: number, coarse: boolean): Run {
    const balls = Array.from({ length: BALLS }, emptyBall);
    const events = Array.from({ length: EVENTS }, () => ({ kind: "splat" as FxKind, x: 0, y: 0, z: 0, n: 0 }));
    return {
-      seed, coarse, fallback: generated.fallback, time: 0,
+      seed, coarse, level, fallback: generated.fallback, time: 0,
       forts: yard.forts, pines: yard.pines, kids, balls,
       hits: 0, outs: 0, playerTags: 0, bank: 0, score: 0, scoreDelta: 0, endReason: null,
       scooping: false, scoopT: 0, scoopLock: false, throwCd: 0, campFort: -1, campT: 0,
@@ -707,12 +759,16 @@ function face(kid: Kid, x: number, z: number, dt: number): void {
    kid.yaw = turnTowards(kid.yaw, yaw, turnFrac(kid.yaw, yaw, KID.turn, dt));
 }
 
-function accelerate(kid: Kid, desX: number, desZ: number, dt: number): void {
+function topSpeed(run: Run): number {
+   return run.level.speed;
+}
+
+function accelerate(kid: Kid, desX: number, desZ: number, dt: number, speed: number): void {
    const desLen = Math.hypot(desX, desZ);
    let tx = 0;
    let tz = 0;
    if (desLen > 1e-6) {
-      const s = Math.min(KID.speed, desLen) / desLen;
+      const s = Math.min(speed, desLen) / desLen;
       tx = desX * s;
       tz = desZ * s;
    }
@@ -726,9 +782,9 @@ function accelerate(kid: Kid, desX: number, desZ: number, dt: number): void {
    kid.vx += (dx / err) * step;
    kid.vz += (dz / err) * step;
    const sp = Math.hypot(kid.vx, kid.vz);
-   if (sp > KID.speed) {
-      kid.vx = (kid.vx / sp) * KID.speed;
-      kid.vz = (kid.vz / sp) * KID.speed;
+   if (sp > speed) {
+      kid.vx = (kid.vx / sp) * speed;
+      kid.vz = (kid.vz / sp) * speed;
    }
 }
 
@@ -738,12 +794,13 @@ function fillSep(run: Run): void {
 }
 
 function steerToward(run: Run, kid: Kid, x: number, z: number, slow: number, dt: number, fleeFrom: boolean): void {
+   const speed = topSpeed(run);
    TARGET.x = x; TARGET.y = 0; TARGET.z = z;
-   if (fleeFrom) flee(kid, TARGET, KID.speed, STEER);
-   else arrive(kid, TARGET, KID.speed, slow, STEER);
+   if (fleeFrom) flee(kid, TARGET, speed, STEER);
+   else arrive(kid, TARGET, speed, slow, STEER);
    fillSep(run);
    separate(kid, SEP, AI.separateRadius, AI.separateSpeed, SEP_OUT);
-   accelerate(kid, STEER.x + kid.vx + SEP_OUT.x, STEER.z + kid.vz + SEP_OUT.z, dt);
+   accelerate(kid, STEER.x + kid.vx + SEP_OUT.x, STEER.z + kid.vz + SEP_OUT.z, dt, speed);
    const sp = Math.hypot(kid.vx, kid.vz);
    if (sp > 0.15) face(kid, kid.x + kid.vx, kid.z + kid.vz, dt);
 }
@@ -846,14 +903,15 @@ function separateCircles(run: Run): void {
 
 function integrate(run: Run, kid: Kid, h: number): void {
    if (!living(kid)) return;
+   const cap = topSpeed(run);
    const sp = Math.hypot(kid.vx, kid.vz);
-   if (sp > KID.speed) {
-      kid.vx = (kid.vx / sp) * KID.speed;
-      kid.vz = (kid.vz / sp) * KID.speed;
+   if (sp > cap) {
+      kid.vx = (kid.vx / sp) * cap;
+      kid.vz = (kid.vz / sp) * cap;
    }
    const dx = kid.vx * h;
    const dz = kid.vz * h;
-   const max = KID.speed * h + 1e-9;
+   const max = cap * h + 1e-9;
    const moved = Math.hypot(dx, dz);
    const scale = moved > max ? max / moved : 1;
    const hit = staticHit(run, kid, dx * scale, dz * scale);
@@ -934,7 +992,7 @@ function launchOrigin(kid: Kid): void {
 
 function launchLob(run: Run, owner: Kid, tx: number, tz: number, targetVx: number, targetVz: number, radius: number): Ball | null {
    const dist = Math.hypot(tx - owner.x, tz - owner.z);
-   const ft = flightTime(dist);
+   const ft = flightTime(dist, run.level);
    let lx = tx + targetVx * ft;
    let lz = tz + targetVz * ft;
    CLAMP.x = lx; CLAMP.y = 0; CLAMP.z = lz;
@@ -1225,7 +1283,7 @@ function resolveOwned(run: Run, h: number, player: boolean): void {
 
 function considerDodge(run: Run, kid: Kid): void {
    if (!living(kid) || rooted(kid) || kid.dodge > 0) return;
-   const delay = dodgeDelay(run.time);
+   const delay = dodgeDelay(run.time, run.level);
    let best: number = AI.dodgeRange;
    let bx = 0;
    let bz = 0;
@@ -1472,7 +1530,7 @@ function aiKid(run: Run, kid: Kid, h: number): void {
          if (kid.timer <= 0 && arrived) {
             if (kid.ammo > 0 && lineOfSight(run.forts, kid.x, kid.z, run.kids[0].x, run.kids[0].z)) {
                kid.state = "windup";
-               kid.timer = AI.windup;
+               kid.timer = run.level.windup;
                kid.vx = 0; kid.vz = 0;
             } else kid.state = "ready";
          }
@@ -1496,7 +1554,7 @@ function aiKid(run: Run, kid: Kid, h: number): void {
 
 function fillSlot(run: Run): void {
    if (run.endReason) return;
-   const cap = run.time >= AI.slotAt ? 2 : 1;
+   const cap = run.time >= run.level.slotAt ? 2 : 1;
    let used = 0;
    for (let i = 1; i < run.kids.length; i++) if (living(run.kids[i]) && inSlot(run.kids[i])) used++;
    if (used >= cap) return;
@@ -1594,7 +1652,8 @@ function movePlayer(run: Run, input: StepInput, h: number): void {
    let mz = DIR.z;
    const mag = Math.hypot(mx, mz);
    if (mag > 1) { mx /= mag; mz /= mag; }
-   accelerate(player, mx * KID.speed, mz * KID.speed, h);
+   const speed = topSpeed(run);
+   accelerate(player, mx * speed, mz * speed, h, speed);
    if (mag > 0.2) {
       const yaw = Math.atan2(mx, mz);
       player.yaw = turnTowards(player.yaw, yaw, turnFrac(player.yaw, yaw, KID.turn, h));
@@ -1611,7 +1670,7 @@ function onSub(h: number): void {
    if (!run) return;
    run.time += h;
    if (run.endReason) return;
-   if (run.time >= AI.sneakerAt) spawnSneaker(run);
+   if (run.time >= run.level.sneakerAt) spawnSneaker(run);
    if (run.throwCd > 0) run.throwCd = Math.max(0, run.throwCd - h);
    inputScoop(run, INPUT, h);
    updateCamp(run, h);
@@ -1637,7 +1696,7 @@ export function stepRun(run: Run, dt: number, input: StepInput): void {
    INPUT = input;
    SHOT = false;
    substep(dt, SUBSTEP_S, onSub);
-   if (!run.endReason && run.time >= SCORE.duration) finish(run, "timeup");
+   if (!run.endReason && run.time >= run.level.duration) finish(run, "timeup");
    run.highlight = run.coarse ? highlightOf(run, run.kids[0].yaw) : highlightOf(run, input.aimYaw);
    ACTIVE = null;
 }
