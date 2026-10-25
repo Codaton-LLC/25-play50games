@@ -3,7 +3,7 @@
 // Sky Tower Jump's look: one palette, the drawn textures (clouds, glows, the mask fabric, the
 // waterfall, the pad arrow) and the billboard shader shared by clouds and glows. Textures are drawn
 // once per mount on a canvas (no image files) and disposed with their component.
-import { CanvasTexture, Color, ShaderMaterial, AdditiveBlending, NormalBlending, SRGBColorSpace, type Texture } from "three";
+import { CanvasTexture, Color, ShaderMaterial, AdditiveBlending, NormalBlending, RepeatWrapping, SRGBColorSpace, type Texture } from "three";
 import { EYES, MASK } from "./mask";
 
 export const COLORS = {
@@ -23,9 +23,9 @@ export const COLORS = {
    beaconIdle: "#5ad1ff",
    beaconLit: "#ffd257",
    portal: "#8fe3ff",
-   rockTop: "#a88b66",
-   rockMid: "#c9b08a",
-   rockBottom: "#7d6a55",
+   rockTop: "#e8d8c0",
+   rockMid: "#ffffff",
+   rockBottom: "#b8a894",
    water: "#bfe9ff",
 } as const;
 
@@ -142,6 +142,37 @@ export function maskTexture(): CanvasTexture {
    }
    g.globalCompositeOperation = "source-over";
    return finish(c);
+}
+
+/** Cliff rock: horizontal strata of blocky stones with dark joints (tiled around the rock roots). */
+export function rockTexture(): CanvasTexture {
+   const [c, g] = canvas(256, 256);
+   let s = 4242;
+   const rnd = () => ((s = (s * 16807) % 2147483647) / 2147483647);
+   g.fillStyle = "#6b5a48";
+   g.fillRect(0, 0, 256, 256);
+   let y = 0;
+   while (y < 256) {
+      const h = 18 + rnd() * 26;
+      let x = -rnd() * 30;
+      while (x < 256) {
+         const w = 28 + rnd() * 50;
+         const l = 150 + rnd() * 70;
+         g.fillStyle = `rgb(${l}, ${l * 0.86}, ${l * 0.7})`;
+         g.fillRect(x + 2, y + 2, w - 3, h - 3);
+         // a lit top edge and a darker bottom on each stone
+         g.fillStyle = "rgba(255,245,225,0.25)";
+         g.fillRect(x + 2, y + 2, w - 3, 3);
+         g.fillStyle = "rgba(40,28,18,0.25)";
+         g.fillRect(x + 2, y + h - 5, w - 3, 3);
+         x += w;
+      }
+      y += h;
+   }
+   const t = finish(c);
+   t.wrapS = t.wrapT = RepeatWrapping;
+   t.repeat.set(3, 1.5);
+   return t;
 }
 
 /** Falling water: soft vertical streaks, tiled down the strip (scrolled in the shader). */

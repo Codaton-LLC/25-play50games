@@ -169,13 +169,13 @@ describe("HUD chips", () => {
       expect(labels(chips({ clock: true }))).toEqual(["Score", "Time", "Found"]);
    });
 
-   it("decides by meta.scoring.kind: escape-room and obstacle-race hide it, every points game keeps it", () => {
+   it("decides by meta.scoring.kind: the time games (escape-room, obstacle-race, sky-tower-jump) hide it, every points game keeps it", () => {
       expect(hudShowsScore(escapeRoomMeta.scoring.kind)).toBe(false);
       expect(hudShowsScore(obstacleRaceMeta.scoring.kind)).toBe(false);
       expect(hudShowsScore(robotCollectorMeta.scoring.kind)).toBe(true);
-      expect(ARCADE_GAMES).toHaveLength(30);
+      expect(ARCADE_GAMES).toHaveLength(31);
       const hidden = ARCADE_GAMES.filter((meta) => !hudShowsScore(meta.scoring.kind)).map((meta) => meta.slug);
-      expect(hidden.sort()).toEqual(["escape-room", "obstacle-race"]);
+      expect(hidden.sort()).toEqual(["escape-room", "obstacle-race", "sky-tower-jump"]);
    });
 
    it("GameShell hands the game's own meta.scoring to the HUD, which hands it on to HudChips untouched", () => {

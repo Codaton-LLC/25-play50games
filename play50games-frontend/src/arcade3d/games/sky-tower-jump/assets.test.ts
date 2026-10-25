@@ -155,5 +155,9 @@ describe("definition and camera", () => {
       // the camera stays behind the hero at the same distance whatever the look-ahead
       const far = cameraGoal(0, 10, -20, 6, 14, -30, 1.6, { px: 0, py: 0, pz: 0, lx: 0, ly: 0, lz: 0 });
       expect(far.pz).toBeCloseTo(-20 + 5.6, 6);
+      // a target behind the hero (a fall back, a jump from the last island) never turns the view round
+      const back = cameraGoal(0, 58, -115, 1, 40, -84, 1.6, { px: 0, py: 0, pz: 0, lx: 0, ly: 0, lz: 0 });
+      expect(back.lz).toBeLessThanOrEqual(-115 - 4.5 + 1e-9);
+      expect(back.pz).toBeGreaterThan(back.lz);
    });
 });

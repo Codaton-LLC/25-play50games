@@ -4,7 +4,7 @@
 // hero, the follow camera, the intro's camera (core/intro, opted in by index.tsx `intro: true`), and
 // the juice: bursts, floating time bonuses, shake and sounds on jumps, bounces, orbs, checkpoints,
 // falls and the finish. Remounted for every run (runId).
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import type { PerspectiveCamera } from "three";
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
@@ -16,6 +16,8 @@ import { useFx } from "@/arcade3d/core/fx";
 import { playSfx } from "@/arcade3d/core/audio";
 import { randomSeed } from "@/arcade3d/core/math";
 import { FRAME_PRIORITY } from "@/arcade3d/core/frameLoop";
+import { useSafeArea } from "@/arcade3d/core/safeArea";
+import { clearLensShift, stepLensShift, type LensState } from "@/arcade3d/core/view";
 import { GameIntro, useShellIntro } from "@/arcade3d/core/intro";
 import { ARCADE_PREVIEW } from "@/arcade3d/flags";
 import type { LevelId } from "@/arcade3d/types";
@@ -145,16 +147,29 @@ function FollowCamera({ run }: { run: SkyRun }) {
    const goal = useMemo<CameraGoal>(() => ({ px: 0, py: 0, pz: 0, lx: 0, ly: 0, lz: 0 }), []);
    const look = useMemo(() => ({ x: 0, y: 0, z: 0 }), []);
    const placed = useRef(false);
+   const lastSupport = useRef(run.course.checkpoints[0]);
    const aspect = size.width / Math.max(1, size.height);
    useEffect(() => {
       camera.fov = aspect < 1 ? FOV_PORTRAIT : FOV;
       camera.updateProjectionMatrix();
    }, [camera, aspect]);
-   useFrame((_s, delta) => {
+   // the cookie banner (or the home indicator) covers the bottom: move the picture up by half of it
+   // with a lens shift (the camera does not turn), so the hero stays in the free area
+   const cover = useSafeArea((a) => {
+      let c = 0;
+      for (const r of a.obstructions) c = Math.max(c, a.height - r.top);
+      return Math.round(Math.max(0, Math.min(a.height * 0.5, c)));
+   });
+   const lens = useMemo<LensState>(() => ({ x: 0, y: 0, set: false }), []);
+   useLayoutEffect(() => () => clearLensShift(camera, lens), [camera, lens]);
+   useFrame((state, delta) => {
+      stepLensShift(camera, lens, 0, cover / Math.max(1, state.size.height), state.size.width, state.size.height, 1 - Math.exp(-6 * Math.min(0.1, delta)));
       const h = run.hero;
       const supports = run.course.supports;
-      // the next platform after the one stood on (or the last landed), for the look-ahead
-      const here = h.support >= 0 ? h.support : run.course.checkpoints[run.checkpoint];
+      // the next platform after the one last stood on (kept through jumps and bounces), for the look-ahead
+      if (h.grounded && h.support >= 0) lastSupport.current = h.support;
+      else if (h.state !== "play") lastSupport.current = run.course.checkpoints[run.checkpoint];
+      const here = lastSupport.current;
       const next = supports[Math.min(supports.length - 1, here + 1)];
       const falling = h.state === "lost" || (!h.grounded && h.y < h.lastTop - 3);
       if (!falling) cameraGoal(h.x, h.state === "lost" ? h.lastTop : Math.max(h.y, h.lastTop - 1), h.z, next.cx, next.top, next.cz, aspect, goal);

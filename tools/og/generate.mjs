@@ -52,6 +52,7 @@ const TITLES = {
    "knight-arena": "Knight Training Arena",
    "zoo-escape": "Zoo Escape",
    "rocket-landing": "Rocket Landing Challenge",
+   "sky-tower-jump": "Sky Tower Jump",
 };
 
 /** One entry per thumbnail in public/images/3d, in filename order. */

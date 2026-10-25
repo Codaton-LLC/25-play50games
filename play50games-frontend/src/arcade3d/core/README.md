@@ -65,6 +65,10 @@ const intro = useGameIntro({
 
 Pure, for tests: `createIntro`, `advanceIntro`, `requestIntroSkip`, `introDurations`, `sampleIntroCamera`, `loadIntroVariant`, `stepGatedClock`, `gatedRunDt` (`introMachine.ts`, `introMachine.test.ts`). `stepGatedClock` moves the intro until `done` and only then adds to a run clock. The frame that finishes the intro is intro time.
 
+### Shell wiring (`GameDefinition.intro`, `intro/ShellIntro.tsx`)
+
+A game opts in with `intro: true`. Play on the start card then mounts `<ShellIntroDriver>` (the hook, the overlay, the published state) instead of calling `start()`; the start card hides, the run stays in `"ready"` and the driver's `onDone` calls `start()` (the 3-2-1 countdown follows). An intro never outlives the start card (any phase change unmounts it). The state goes to the Scene through `IntroContext` (the Canvas bridges it): `const intro = useShellIntro()` → `{ session, ready, hero }` or null, so the Scene renders `<GameIntro session={intro.session} keyframes playCamera hero={intro.hero}>` while `intro.session && !intro.ready`. The level line is `introLevelName(meta, level)` ("Level 1 — Training Sky"). Retry and Next level start at once (no intro). First adopter: `games/sky-tower-jump`.
+
 ## After the run: the result delay
 
 - When a run ends (`end("win" | "lose")` or `"timeup"`), GameShell submits the score **at once**, but the scene keeps rendering (and the HUD stays up) for `GameDefinition.resultDelayMs` before the result panel appears, so the crash or the win animation is seen. Default **800 ms** (`DEFAULT_RESULT_DELAY_MS`), `0` = the panel on the frame the run ends, at most 5000 (`RESULT_DELAY_MAX_MS`). `end("quit")` never waits.

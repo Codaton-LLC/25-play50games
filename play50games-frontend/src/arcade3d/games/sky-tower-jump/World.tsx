@@ -35,7 +35,7 @@ import { useGameTime } from "@/arcade3d/core/gameTime";
 import { FRAME_PRIORITY } from "@/arcade3d/core/frameLoop";
 import type { InstanceSpot } from "@/arcade3d/core/render";
 import { ASSETS, GLB_SIZE } from "./assets";
-import { COLORS, billboardMaterial, cloudTexture, glowTexture, waterfallTexture } from "./look";
+import { COLORS, billboardMaterial, cloudTexture, glowTexture, rockTexture, waterfallTexture } from "./look";
 import type { Course } from "./rules";
 
 export const FOG = { color: COLORS.fog, near: 80, far: 300 } as const;
@@ -351,7 +351,8 @@ function rockRootGeometry(): BufferGeometry {
 function RockRoots({ course }: { course: Course }) {
    const mesh = useRef<InstancedMesh>(null);
    const geometry = useMemo(rockRootGeometry, []);
-   const material = useMemo(() => new MeshStandardMaterial({ vertexColors: true, roughness: 0.95, flatShading: true }), []);
+   const map = useMemo(() => rockTexture(), []);
+   const material = useMemo(() => new MeshStandardMaterial({ map, vertexColors: true, roughness: 0.95, flatShading: true }), [map]);
    const spots = useMemo(
       () =>
          course.supports
@@ -379,8 +380,9 @@ function RockRoots({ course }: { course: Course }) {
       () => () => {
          geometry.dispose();
          material.dispose();
+         map.dispose();
       },
-      [geometry, material],
+      [geometry, material, map],
    );
    return <instancedMesh ref={mesh} args={[geometry, material, spots.length]} />;
 }
