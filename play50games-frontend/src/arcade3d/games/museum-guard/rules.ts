@@ -4,6 +4,8 @@
 import { inViewCone } from "@/arcade3d/core/ai";
 import type { RunState } from "@/arcade3d/core/types";
 import { rngNext, type RngState } from "@/arcade3d/core/math";
+import type { LevelId, ScoringRules } from "@/arcade3d/types";
+import { LEVELS, type MuseumLevel } from "./levels";
 
 export const RING = {
    count: 8,
@@ -117,6 +119,8 @@ export const liveRun: { current: Run | null } = { current: null };
 
 export interface Run {
    seed: number;
+   /** the level this run was dealt; level 1 is today's PHASES / BEAM / roster */
+   level: MuseumLevel;
    yaw: number;
    coarse: boolean;
    phase: 0 | 1 | 2;
@@ -166,14 +170,23 @@ export interface StoreSink {
 export const wrapAngle = (a: number): number => Math.atan2(Math.sin(a), Math.cos(a));
 
 export function phaseIndex(t: number): 0 | 1 | 2 {
-   if (t < PHASES.ends[0]) return 0;
-   if (t < PHASES.ends[1]) return 1;
+   return phaseAt(t, PHASES.ends);
+}
+
+function phaseAt(t: number, ends: readonly [number, number, number]): 0 | 1 | 2 {
+   if (t < ends[0]) return 0;
+   if (t < ends[1]) return 1;
    return 2;
 }
 
-export function beamHalf(phase: 0 | 1 | 2, coarse: boolean): number {
-   const deg = BEAM.halfDeg[phase] * (coarse ? BEAM.coarse : 1);
+/** Half-angle of a beam table. Coarse pointers are wider, clamped at 17°. */
+export function beamHalfFor(halfDeg: readonly [number, number, number], phase: 0 | 1 | 2, coarse: boolean): number {
+   const deg = halfDeg[phase] * (coarse ? BEAM.coarse : 1);
    return (Math.min(deg, BEAM.coarseCapDeg) * Math.PI) / 180;
+}
+
+export function beamHalf(phase: 0 | 1 | 2, coarse: boolean): number {
+   return beamHalfFor(BEAM.halfDeg, phase, coarse);
 }
 
 export function pedestalAngle(index: number): number {
@@ -227,21 +240,86 @@ export function footHeight(s: number): number {
    return RING.pedestalTop * (1 - s / RING.stepDrop);
 }
 
-export function runScore(seconds: number, returns: number, alarms: number, survived: boolean): number {
-   const whole = Math.min(PHASES.dawn, Math.max(0, Math.floor(seconds)));
+export function runScore(seconds: number, returns: number, alarms: number, survived: boolean, dawn: number = PHASES.dawn): number {
+   const whole = Math.min(dawn, Math.max(0, Math.floor(seconds)));
    return SCORE.perSecond * whole + SCORE.returnBonus * returns + (survived ? SCORE.dawn * alarms : 0);
 }
 
 export function finalScore(state: RunState): { score: number; durationMs: number } {
-   const seconds = Math.min(PHASES.dawn, Math.floor(state.elapsedMs / 1000));
+   const dawn = typeof state.stats.dawnCap === "number" ? state.stats.dawnCap : PHASES.dawn;
+   const seconds = Math.min(dawn, Math.floor(state.elapsedMs / 1000));
    return {
-      score: runScore(seconds, state.stats.returns ?? 0, state.stats.alarms ?? 0, state.endReason === "win"),
+      score: runScore(seconds, state.stats.returns ?? 0, state.stats.alarms ?? 0, state.endReason === "win", dawn),
       durationMs: state.elapsedMs,
    };
 }
 
-function shuffleKinds(seed: number): ExhibitKind[] {
-   const kinds = KINDS.slice() as ExhibitKind[];
+/** Departures a level allows (the +50 returns, if each is caught with more than 2 m left). */
+export function levelStarts(level: MuseumLevel): number {
+   return level.starts[0] + level.starts[1] + level.starts[2];
+}
+
+/** 5·dawn + 50·departures + 150·3. Reachable when every departure is caught off the pedestal before dawn. */
+export function levelCeiling(level: MuseumLevel): number {
+   return SCORE.perSecond * level.dawn + SCORE.returnBonus * levelStarts(level) + SCORE.dawn * 3;
+}
+
+/**
+ * Earliest third alarm: three short penguins, one at a time, phase-0 speed, no turning.
+ * The gap binds when it is longer than the walk to the alarm radius; otherwise the walk does.
+ */
+export function earliestLoseS(level: MuseumLevel): number {
+   const path = RING.inward + RING.laneR * (Math.PI / 8);
+   const travel = (path - BEAM.alarm) / (TYPES.penguin.speed * level.speed[0]);
+   let start = level.first;
+   start = Math.max(start + level.gap[0], start + travel);
+   start = Math.max(start + level.gap[0], start + travel);
+   return start + travel;
+}
+
+/** Score if every earliest departure pays +50 the moment its 0.7 s hold finishes, and a survival pays the dawn bonus. */
+export function boundScore(level: MuseumLevel, t: number, starts: readonly number[]): number {
+   const dawn = level.dawn;
+   let returns = 0;
+   const paidUntil = t < dawn ? t : dawn;
+   for (let i = 0; i < starts.length; i++) {
+      if (starts[i] + BEAM.hold <= paidUntil + 1e-9) returns += 1;
+   }
+   const survived = t >= dawn - 1e-9;
+   return runScore(survived ? dawn : t, returns, survived ? 3 : 0, survived, dawn);
+}
+
+/** Earliest departure clock, one per allowed start, if the beam never blocks one and the cap never does. */
+export function earliestStartTimes(level: MuseumLevel): number[] {
+   const times: number[] = [];
+   let last = -1;
+   for (let phase = 0; phase < 3; phase++) {
+      const open = phase === 0 ? level.first : level.ends[phase - 1];
+      let cursor = last < 0 ? level.first : Math.max(open, last + level.gap[phase]);
+      let n = 0;
+      while (n < level.starts[phase] && cursor <= level.ends[phase] + 1e-9) {
+         times.push(cursor);
+         last = cursor;
+         n += 1;
+         cursor = last + level.gap[phase];
+      }
+   }
+   return times;
+}
+
+const ROSTER_NAMES: readonly ExhibitKind[] = ["knight", "robot", "penguin", "dino"];
+
+function rosterOf(level: MuseumLevel): readonly ExhibitKind[] {
+   if (level.roster[0] === 2 && level.roster[1] === 2 && level.roster[2] === 2 && level.roster[3] === 2) return KINDS;
+   const kinds: ExhibitKind[] = [];
+   for (let k = 0; k < ROSTER_NAMES.length; k++) {
+      for (let n = 0; n < level.roster[k]; n++) kinds.push(ROSTER_NAMES[k]);
+   }
+   return kinds;
+}
+
+function shuffleKinds(seed: number, source: readonly ExhibitKind[]): ExhibitKind[] {
+   const kinds = source.slice() as ExhibitKind[];
    const rng: RngState = { s: seed };
    for (let i = kinds.length - 1; i > 0; i--) {
       const j = Math.floor(rngNext(rng) * (i + 1));
@@ -273,15 +351,16 @@ function makeExhibit(kind: ExhibitKind, pedestal: number, ped: Pedestal): Exhibi
    };
 }
 
-export function createRun(seed: number): Run {
+export function createRun(seed: number, level: MuseumLevel = LEVELS[1]): Run {
    const pedestals = Array.from({ length: RING.count }, (_, i) => makePedestal(i));
-   const kinds = shuffleKinds(seed);
+   const kinds = shuffleKinds(seed, rosterOf(level));
    return {
       seed,
+      level,
       yaw: 0,
       coarse: false,
       phase: 0,
-      half: beamHalf(0, false),
+      half: beamHalfFor(level.beam, 0, false),
       exhibits: kinds.map((kind, i) => makeExhibit(kind, i, pedestals[i])),
       pedestals,
       alarms: 3,
@@ -345,8 +424,8 @@ function seenAt(run: Run, x: number, z: number): boolean {
    return false;
 }
 
-function sneakSpeed(kind: ExhibitKind, phase: 0 | 1 | 2): number {
-   return TYPES[kind].speed * PHASES.speed[phase];
+function sneakSpeed(kind: ExhibitKind, phase: 0 | 1 | 2, level: MuseumLevel): number {
+   return TYPES[kind].speed * level.speed[phase];
 }
 
 function beginReturn(ex: Exhibit, ped: Pedestal): void {
@@ -419,10 +498,10 @@ function moveExhibit(run: Run, index: number, h: number, t1: number): void {
       ex.wasSeen = false;
    }
 
-   const phase = phaseIndex(t0);
+   const phase = phaseAt(t0, run.level.ends);
    if (ex.kind === "penguin" && seen && !ex.wasSeen) {
       ex.coast = COAST;
-      ex.coastSpeed = sneakSpeed(ex.kind, phase);
+      ex.coastSpeed = sneakSpeed(ex.kind, phase, run.level);
    }
    if (ex.kind !== "penguin" && seen) {
       ex.mode = "frozen";
@@ -433,7 +512,7 @@ function moveExhibit(run: Run, index: number, h: number, t1: number): void {
       return;
    }
 
-   const speed = ex.coast > 0 ? ex.coastSpeed : sneakSpeed(ex.kind, phaseIndex(t0));
+   const speed = ex.coast > 0 ? ex.coastSpeed : sneakSpeed(ex.kind, phaseAt(t0, run.level.ends), run.level);
    const sBefore = ex.s;
    const dBefore = distanceToExit(ex, ped);
    ex.s = Math.min(ped.length, ex.s + speed * h);
@@ -511,7 +590,7 @@ function legal(run: Run, index: number, t: number, shortSneaking: number): boole
    const ex = run.exhibits[index];
    if (ex.mode !== "still") return false;
    const ped = run.pedestals[ex.pedestal];
-   if (ex.kind === "dino" && (t < PHASES.ends[0] || ped.length < 4)) return false;
+   if (ex.kind === "dino" && (t < run.level.ends[0] || ped.length < 4)) return false;
    if (ped.length < 5 && shortSneaking >= 1) return false;
    if (seenAt(run, ped.x, ped.z)) return false;
    return true;
@@ -519,10 +598,10 @@ function legal(run: Run, index: number, t: number, shortSneaking: number): boole
 
 function tryStart(run: Run, t: number): void {
    const phase = run.phase;
-   if (run.starts[phase] >= PHASES.starts[phase]) return;
-   const gate = run.lastStart < 0 ? PHASES.first : run.lastStart + PHASES.gap[phase];
+   if (run.starts[phase] >= run.level.starts[phase]) return;
+   const gate = run.lastStart < 0 ? run.level.first : run.lastStart + run.level.gap[phase];
    if (t < gate) return;
-   if (sneakingCount(run, false) >= PHASES.cap[phase]) return;
+   if (sneakingCount(run, false) >= run.level.cap[phase]) return;
    const shortSneaking = sneakingCount(run, true);
    let best = -1;
    const live = liveCount(run);
@@ -577,7 +656,7 @@ function applyFlash(run: Run, input: GuardInput, dt: number): void {
 }
 
 function award(run: Run, t: number): number {
-   const whole = Math.min(PHASES.dawn, Math.max(0, Math.floor(t + 1e-9)));
+   const whole = Math.min(run.level.dawn, Math.max(0, Math.floor(t + 1e-9)));
    const gained = whole > run.seconds ? whole - run.seconds : 0;
    run.seconds = whole;
    run.gainedSeconds = gained;
@@ -611,11 +690,11 @@ export function stepGame(run: Run, input: GuardInput, dt: number, elapsedS: numb
    run.gainedReturns = 0;
    run.dawnBonus = 0;
    run.coarse = input.coarse;
-   run.phase = phaseIndex(Math.min(elapsedS, PHASES.dawn));
-   run.half = beamHalf(run.phase, run.coarse);
+   run.phase = phaseAt(Math.min(elapsedS, run.level.dawn), run.level.ends);
+   run.half = beamHalfFor(run.level.beam, run.phase, run.coarse);
 
-   if (elapsedS >= PHASES.dawn) {
-      award(run, PHASES.dawn);
+   if (elapsedS >= run.level.dawn) {
+      award(run, run.level.dawn);
       run.dawnBonus = SCORE.dawn * run.alarms;
       run.outcome = "win";
       pushScore(run, store);
@@ -624,6 +703,7 @@ export function stepGame(run: Run, input: GuardInput, dt: number, elapsedS: numb
          run.score += run.dawnBonus;
       }
       store.setStat("dawn", 0);
+      store.setStat("dawnCap", run.level.dawn);
       store.setStat("flash", 0);
       store.end("win");
       return;
@@ -658,7 +738,8 @@ export function stepGame(run: Run, input: GuardInput, dt: number, elapsedS: numb
    // Whole seconds follow the clock the server sees (elapsed), matching finalScore.
    award(run, elapsedS);
    pushScore(run, store);
-   store.setStat("dawn", Math.max(0, Math.ceil(PHASES.dawn - elapsedS - 1e-9)));
+   store.setStat("dawn", Math.max(0, Math.ceil(run.level.dawn - elapsedS - 1e-9)));
+   store.setStat("dawnCap", run.level.dawn);
    store.setStat("flash", Math.max(0, Math.round(run.cooldown * 10) / 10));
    if (run.outcome === "lose") store.end("lose");
 }
@@ -682,3 +763,28 @@ export function bothExitsInCone(yaw: number, half: number): boolean {
    const b = { x: Math.sin(EXITS.neg) * RING.laneR, y: 0, z: Math.cos(EXITS.neg) * RING.laneR };
    return inViewCone(ORIGIN, yaw, half, BEAM.range, a) && inViewCone(ORIGIN, yaw, half, BEAM.range, b);
 }
+
+/** Level 1 is today's proven limits (meta.scoring). Levels 2-5 are proposed; Claude copies them into arcade-games.json. */
+export const PROPOSED_LIMITS: ScoringRules = {
+   kind: "points",
+   maxScore: 2050,
+   minDurationMs: 12000,
+   maxDurationMs: 92000,
+   base: 0,
+   maxPointsPerSec: 25,
+   unitLabel: "pts",
+   display: "int",
+};
+
+export const PROPOSED_LEVEL_LIMITS: Record<LevelId, ScoringRules> = {
+   /** L1: ceiling 5·90 + 50·21 + 150·3 = 1950. Earliest lose 13.79 s. Prefix stays ≤ 25 pts/s. */
+   1: PROPOSED_LIMITS,
+   /** L2: ceiling 5·105 + 50·24 + 450 = 2175. Same phase-0 chain, lose at 13.79 s. Dawn 105 s + 2 s. */
+   2: { ...PROPOSED_LIMITS, maxScore: 2290, maxDurationMs: 107000 },
+   /** L3: ceiling 5·120 + 50·27 + 450 = 2400. Same phase-0 chain. Dawn 120 s + 2 s. */
+   3: { ...PROPOSED_LIMITS, maxScore: 2520, maxDurationMs: 122000 },
+   /** L4: ceiling 5·120 + 50·29 + 450 = 2500. Gap 4.0 s, third alarm at 13.39 s, still above 12 s. */
+   4: { ...PROPOSED_LIMITS, maxScore: 2630, maxDurationMs: 122000 },
+   /** L5: ceiling 5·135 + 50·32 + 450 = 2725 (≤ 3× L1). Gap 3.8 s, third alarm at 12.99 s, so the floor is 11 s. */
+   5: { ...PROPOSED_LIMITS, maxScore: 2870, minDurationMs: 11000, maxDurationMs: 137000 },
+};

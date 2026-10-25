@@ -30,7 +30,8 @@ import { useRunFrame } from "@/arcade3d/core/useRunFrame";
 import type { FittedView } from "@/arcade3d/core/view";
 import { createPuttAim, headingTo, resetPuttAim, stepPuttAim, worldHeading } from "./aim";
 import { GolfBall, type AimView } from "./Ball";
-import { HOLE_COUNT, heightAt, type Hole } from "./course";
+import { useMiniGolfLevel } from "./level";
+import { heightAt, type Hole } from "./course";
 import { Decor, Island, Sea } from "./Islands";
 import { HUD_FEED } from "./hudFeed";
 import { COLORS, ESTABLISH_S, FOLLOW_FRACTION, FOV, PITCH, establishView, fixedView, followViews, holeFocus, holeZ, minPxPerMetre, pickCamera } from "./looks";
@@ -42,7 +43,7 @@ const DROP_TICKS = TICK.drop * TICK.hz;
 const ESTABLISH_TICKS = Math.round(ESTABLISH_S * TICK.hz);
 
 /** The hole the camera shows: the next one once the ball has dropped (the fly-over starts). */
-const shownHole = (run: RunState) => (run.phase === "holeOut" && run.outTicks >= DROP_TICKS ? Math.min(HOLE_COUNT - 1, run.hole + 1) : run.hole);
+const shownHole = (run: RunState) => (run.phase === "holeOut" && run.outTicks >= DROP_TICKS ? Math.min(run.course.length - 1, run.hole + 1) : run.hole);
 
 function holeName(par: number, strokes: number, pickedUp: boolean): string {
    if (pickedUp) return "Picked up";
@@ -119,7 +120,8 @@ export default function Scene() {
    const input = useInput();
    const fx = useFx();
    // a new course every run: GameShell remounts the Scene (and its game time) on start and retry
-   const [run] = useState(() => createRun(randomSeed()));
+   const { config } = useMiniGolfLevel();
+   const [run] = useState(() => createRun(randomSeed(), config));
    const [aim] = useState(createPuttAim);
    const [preview] = useState<AimView>(() => ({ on: false, dx: 0, dz: -1, length: 0, power: 0.5 }));
    const [scratch] = useState(() => ({
@@ -196,7 +198,7 @@ export default function Scene() {
       preview.dx = Math.sin(psi);
       preview.dz = -Math.cos(psi);
       preview.power = aim.shown;
-      preview.length = preview.on ? previewLength(currentHole(run), run.ball, preview.dx, preview.dz, BALL.vMax * aim.shown) : 0;
+      preview.length = preview.on ? previewLength(currentHole(run), run.ball, preview.dx, preview.dz, run.config.vMax * aim.shown) : 0;
       HUD_FEED.power = aim.shown;
       HUD_FEED.ready = ready;
 
@@ -290,7 +292,7 @@ export default function Scene() {
    const shown = run.course[camHole] ?? run.course[0];
    const holes = useMemo(() => run.course.slice(hole, hole + 2), [run, hole]);
    // each hole's camera yaw (its decor keeps off the far side); a hole not fitted yet keeps 0
-   const [yaws] = useState(() => new Array<number>(HOLE_COUNT).fill(0));
+   const [yaws] = useState(() => new Array<number>(run.course.length).fill(0));
    if (fit) yaws[fit.hole] = fit.view.yaw;
    const yawKey = `${yaws[hole] ?? 0},${yaws[hole + 1] ?? 0}`;
    const holeYaws = useMemo(() => yawKey.split(",").map(Number), [yawKey]);
