@@ -1,5 +1,6 @@
 import type { ModelAsset } from "@/arcade3d/core/types";
 import { COIN_GLB_SIZE, SHARED_ASSETS, PROP_BUDGET } from "@/arcade3d/core/sharedAssets";
+import { COLORS } from "./looks";
 
 /**
  * The shared runner GLB (v2) is 1.886 tall (T-pose and arms down alike): 0.2916 draws it 0.55 m,
@@ -24,19 +25,19 @@ const primitive = (id: string, color: string): ModelAsset => ({
 
 export const ASSETS: Record<string, ModelAsset> = {
    runner: { ...SHARED_ASSETS.runner, scale: RUNNER_SCALE },
-   slab: primitive("slab", "#38c9df"),
-   movingSlab: primitive("moving-slab", "#a58bec"),
-   ledge: primitive("ledge", "#32aeac"),
-   spur: primitive("spur", "#ffa862"),
+   slab: primitive("slab", COLORS.slab),
+   movingSlab: primitive("moving-slab", COLORS.moving),
+   ledge: primitive("ledge", COLORS.ledge),
+   spur: primitive("spur", COLORS.spur),
    coin: { ...SHARED_ASSETS.coin, scale: COIN_SCALE, stretch: [1, 1, 0.7], yOffset: (-COIN_SCALE * COIN_GLB_SIZE.height) / 2 },
    flag: {
       id: "checkpoint-flag", url: "/models/3d/tower-climb/checkpoint-flag.glb",
-      scale: 0.8 / 1.9, fallback: "box", fallbackColor: "#ffd35d", budget: PROP_BUDGET,
+      scale: 0.8 / 1.9, fallback: "box", fallbackColor: COLORS.gold, budget: PROP_BUDGET,
    },
    // No GLB yet: the url is absent from the model manifest, so nothing is fetched.
    // The world pickup uses this asset with the bevelled fallback parts; Claude swaps the file in later.
    rocket: {
       id: "rocket", url: "/models/3d/tower-climb/rocket.glb", scale: 1,
-      fallback: "box", fallbackColor: "#e8eef2", budget: PROP_BUDGET,
+      fallback: "box", fallbackColor: COLORS.rocketBody, budget: PROP_BUDGET,
    },
 };

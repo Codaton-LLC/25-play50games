@@ -23,6 +23,8 @@ import { useFittedView } from "@/arcade3d/core/useFittedView";
 import { useRunFrame } from "@/arcade3d/core/useRunFrame";
 import { ASSETS, RUNNER_SCALE } from "./assets";
 import { AREA, FOLLOW_DAMPING, FOV, LOOK_AT, VIEW } from "./camera";
+import { Decor } from "./Decor";
+import { COLORS } from "./looks";
 import type { TowerLevel } from "./levels";
 import { RUNNER_ORDER, RunnerPrimitive, useTowerParts, type TowerParts } from "./Primitives";
 import { CHECKPOINT, MOVING, NONE, POOLS, ROCKET, ROCKET_CAP, RUNNER, SPRING_CAP, STATIC, WIND, WIND_CAP, createRun, createStepInput, readStepInput, step, type TowerRun } from "./rules";
@@ -44,14 +46,22 @@ const Simulation = memo(function Simulation({ run, visual }: { run: TowerRun; vi
    const fx = useFx();
    const [controls] = useState(createStepInput);
    const [fxPos] = useState(() => new Vector3());
-   useEffect(() => { fx.warm("puff", "sparks", "confetti"); }, [fx]);
+   useEffect(() => { fx.warm("puff", "sparks", "confetti", "sparkle"); }, [fx]);
    useRunFrame((_state, dt) => {
       const events = step(run, dt * 1000, readStepInput(input.current, controls));
       const store = useArcadeStore.getState();
       if (events.delta) store.addScore(events.delta);
       if (events.height !== NONE) store.setStat("height", events.height);
       if (events.jumped) playSfx("jump");
-      if (events.coin !== NONE) playSfx("pickup");
+      if (events.coin !== NONE) {
+         playSfx("pickup");
+         fxPos.set(run.player.x, run.player.y + 0.4, 0);
+         for (let i = 0; i < run.coins.length; i++) {
+            const coin = run.coins[i];
+            if (coin.id === events.coin) { fxPos.set(coin.x, coin.y, 0); break; }
+         }
+         fx.burst("sparkle", fxPos, 12);
+      }
       if (events.checkpoint !== NONE) {
          visual.checkpointMs = run.timeMs;
          store.setStat("checkpoint", events.checkpoint);
@@ -76,7 +86,7 @@ const Simulation = memo(function Simulation({ run, visual }: { run: TowerRun; vi
          fxPos.set(run.player.x, run.player.y + 0.2, -0.12);
          fx.burst("sparks", fxPos, 5);
       }
-      if (events.hit) { store.setStat("fallen", 1); playSfx("hit"); }
+      if (events.hit) { store.setStat("fallen", 1); playSfx("hit"); fx.shake(0.16); }
       if (events.ended) store.end(events.ended);
    });
    return null;
@@ -241,7 +251,7 @@ const Runner = memo(function Runner({ run, visual, parts }: { run: TowerRun; vis
                {/* the flame under the nozzle; its length flickers while the rocket burns */}
                <mesh ref={flame} position={[0, -0.07, 0]} rotation={[Math.PI, 0, 0]}>
                   <coneGeometry args={[0.045, 0.16, 10]} />
-                  <meshBasicMaterial color="#fdba74" toneMapped={false} />
+                  <meshBasicMaterial color={COLORS.nozzle} toneMapped={false} />
                </mesh>
             </group>}
          </group></group>
@@ -258,7 +268,7 @@ const DangerStrip = memo(function DangerStrip({ run }: { run: TowerRun }) {
    const mesh = useRef<Mesh>(null);
    useFrame(() => { if (mesh.current) mesh.current.position.y = run.viewBottomY; });
    return <mesh ref={mesh} position-z={0.32}><boxGeometry args={[4.6, 0.035, 0.03]} />
-      <meshBasicMaterial color="#ec725d" transparent opacity={0.55} depthWrite={false} /></mesh>;
+      <meshBasicMaterial color={COLORS.hazard} transparent opacity={0.55} depthWrite={false} /></mesh>;
 });
 
 const selectControls = (area: SafeArea) => area.controls;
@@ -321,6 +331,7 @@ function LevelScene() {
    }, [gl, scene, camera]);
    return (
       <>
+         <Decor run={run} reduced={reduced} />
          <Simulation run={run} visual={visual} />
          <TowerCamera run={run} />
          <Tower run={run} parts={parts} />

@@ -1,7 +1,8 @@
 "use client";
 
 // Tower Climb: one LevelSpec per meta.ts level, built from levels.ts (core/README.md "Levels").
-// Level 1 keeps today's instructions, environment and clock. Later levels only add what they introduce.
+// Level 1 keeps today's instructions and clock. The environment is the bright day look; later levels
+// only override the sky, the fog colour and the lighting preset.
 import type { GameDefinition, LevelSpec } from "@/arcade3d/core/types";
 import { LEVEL_IDS, type LevelId } from "@/arcade3d/types";
 import Scene from "./Scene";
@@ -9,7 +10,7 @@ import Hud from "./Hud";
 import { ASSETS } from "./assets";
 import { FOV, LOOK_AT } from "./camera";
 import { LEVELS, type TowerLevel } from "./levels";
-import { COLORS } from "./Primitives";
+import { FOG, LEVEL_LOOKS } from "./looks";
 import { DURATION_MS } from "./rules";
 
 const BASE_INSTRUCTIONS = [
@@ -38,13 +39,11 @@ const DESCRIPTIONS: Record<LevelId, string> = {
    5: "Wind pushes you off the sides. Springs and rockets stay.",
 };
 
-const ENVIRONMENTS: Record<LevelId, LevelSpec<TowerLevel>["environment"]> = {
-   1: undefined,
-   2: { background: "#1c3344", lighting: "day" },
-   3: { background: "#241808", lighting: "sunset" },
-   4: { background: "#070b14", lighting: "night" },
-   5: { background: "#1b1030", lighting: "sunset" },
-};
+function environmentFor(id: LevelId): NonNullable<GameDefinition["environment"]> {
+   const look = LEVEL_LOOKS[id];
+   const fog: [string, number, number] = [look.fog, FOG.near, FOG.far];
+   return { background: look.background, fog, lighting: look.lighting };
+}
 
 const definition: GameDefinition<TowerLevel> = {
    slug: "tower-climb",
@@ -53,7 +52,7 @@ const definition: GameDefinition<TowerLevel> = {
    assets: ASSETS,
    durationMs: DURATION_MS,
    camera: { position: [3, 3, 12], fov: FOV, lookAt: LOOK_AT },
-   environment: { background: COLORS.background, lighting: "day" },
+   environment: environmentFor(1),
    touchControls: ["joystick", "jump"],
    hudStats: [{ key: "height", label: "Height" }],
    instructions: BASE_INSTRUCTIONS,
@@ -65,7 +64,7 @@ const definition: GameDefinition<TowerLevel> = {
          description: DESCRIPTIONS[id],
          config: level,
          instructions: instructionsFor(level),
-         environment: ENVIRONMENTS[id],
+         environment: environmentFor(id),
       };
    }),
 };

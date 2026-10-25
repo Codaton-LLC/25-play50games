@@ -14,6 +14,7 @@ Owner: Codex. Slug: `tower-climb`. Game 7 of the 3D Arcade. Accent `#06b6d4`. **
 | `camera.ts` | `AREA`, `VIEW` (the `useFittedView` options), `LOOK_AT`, `FOV`, `FOLLOW_DAMPING`. |
 | `hint.ts` / `Hud.tsx` / `Hud.module.css` | The one transient HUD message (`towerHint`) and its fixed, marked slot (`HINT_SLOT`, "HUD"). |
 | `Primitives.tsx` | `fallbackParts` for every pool (built once, disposed on unmount), the clipping planes, the runner stand-in and the runner's depth reset. |
+| `looks.ts` / `Decor.tsx` | The palette, sky, fog and the scenery behind the column (mountains, clouds, rocks, birds). |
 | `assets.ts` / `assets.spec.json` | The shared runner at `RUNNER_SCALE` 0.2916 (0.55 m), the flag and primitive-only pool `ModelAsset`s / one flag generation request. |
 | Scene tests | `visuals.test.ts`, `camera.test.ts`, `hint.test.ts`, `runnerGait.test.ts`, `runner.test.ts` (the real runner.glb), `flag.test.ts` (the real checkpoint-flag.glb), `Primitives.test.ts`, `Scene.test.ts` ("Test plan"). |
 
@@ -318,6 +319,28 @@ Scene tests (implemented; Vitest):
 - Pause 2.5 s mid-ascent, near coyote/buffer expiry, while riding a moving slab and during crumble warning; tab-hide/blur and long raw frames. State/clip pose/remaining ms are unchanged on resume, with no catch-up or duplicate event.
 - Observe monotone camera follow at fixed fit and an unchanged world loss line through falls/resizes. Check raw score against mock-submitted rounded duration and the integer server inequality on early loss, long climb and time-up. Unlisted GLBs generate no network requests; listed load failures use custom fallbacks. Reduced motion and context recovery remain playable.
 - Confirm constant mesh/instance counts after many recycled blocks (every pool's `count` fixed, hidden copies packed), no remount spikes, 13–19 draw calls (measured, "Rendering") and ≤150 in any case, 60 fps target, control focus and no horizontal overflow. Real-phone screenshots/performance measurements remain pending.
+
+## Look (2026-10-25)
+
+Visual only. Slab tops, the column, the runner, the five levels and the hit boxes are unchanged.
+
+- One palette in `looks.ts`. Static slabs are cyan, moving slabs violet, spurs orange, the checkpoint ledge and the shaft are coursed sandstone. Each stand-in is a bevelled plank (body, cap, rounded lip) or a rounded runner piece, two or three tones, flat-shaded. No raw grey box.
+- Core `day` / `sunset` / `night` presets stay on the level environments (the level table). Fog starts past the fitted column (`FOG.near` 32). A core sky dome (blue over a light horizon on level 1; each later level has its own sky).
+- Scenery follows the climb anchor and sits entirely behind the play column (`z <= -8`, spots further back): a mountain wall fills the bottom and the side edges at 1280×800, 390×844 and 844×390, including both follow lags and an open cookie banner; the top of the frame stays sky. Clouds drift only in x, birds circle, floating rocks sit beside the shaft. `looks.test.ts` checks every spot, every drift, and the mountain mesh against the fitted cameras.
+- A coin pickup bursts core `sparkle`; a fall shakes the camera a little (`fx.shake(0.16)`). Pools are warmed on mount.
+
+Draw calls, level 1, on top of the measured 13–17 (GLB runner) / 19 (stand-in):
+
+| Piece | Calls |
+|---|---|
+| Sky dome | 1 |
+| Mountain wall | 1 |
+| Clouds | 1 |
+| Rocks, two tones | 2 |
+| Birds | 1 |
+| Slab, spur, coin, flag, shaft, runner, danger strip | unchanged (the lip is merged into the body) |
+
+About 19–23 with the GLB runner, about 25 with the stand-in. Levels 3–5 add the spring, rocket and wind pools already in the rendering table. Stays under 40, budget 60.
 
 ## Known issues and core gaps
 

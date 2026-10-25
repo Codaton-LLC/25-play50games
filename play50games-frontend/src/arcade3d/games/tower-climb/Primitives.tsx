@@ -9,12 +9,10 @@ import {
 } from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import type { InstancePart } from "@/arcade3d/core/render";
+import { COLORS } from "./looks";
 import type { RunnerGait } from "./runnerGait";
 
-export const COLORS = {
-   background: "#122536", slab: "#39cadd", moving: "#a890e5", ledge: "#36aead",
-   spur: "#ffa862", cracked: "#ec725d", coin: "#ffd35d", tower: "#213c50",
-} as const;
+export { COLORS } from "./looks";
 
 /**
  * The runner draws after every other opaque object (three's group order: the runner's groups carry
@@ -65,26 +63,49 @@ function merged(build: (add: (geometry: BufferGeometry, x: number, y: number, z:
    return geometry;
 }
 
-const HOODIE = "#ef995c", SKIN = "#f3d5b6", VISOR = "#19364b", CAP = "#ffd35d", PANTS = "#283951", SHOE = "#ecf1ef";
+/** A slab with a rounded front lip: body, lighter cap, darker edge. Top sits at y = 0. */
+function plank(w: number, h: number, d: number, body: string, cap: string, edge: string): BufferGeometry {
+   const c = 0.028;
+   return merged((add) => {
+      add(new BoxGeometry(w, h - c, d), 0, -(h + c) / 2, 0, body);
+      add(new BoxGeometry(w - c * 2, c, d - c * 2), 0, -c / 2, 0, cap);
+      const nose = new CylinderGeometry(c * 0.45, c * 0.45, Math.max(0.2, w - c * 4), 6);
+      nose.rotateZ(Math.PI / 2);
+      add(nose, 0, -c, d / 2 - c * 0.35, edge);
+   });
+}
 
-/** The runner stand-in: a hoodie, head, cap and sneakers in three rigid pieces, 0.55 m tall. */
+/** Coursed sandstone behind the route, spanning one 8 m section (y 0..8). */
+function stoneWall(): BufferGeometry {
+   return merged((add) => {
+      const courses = 10;
+      const h = 8 / courses;
+      for (let i = 0; i < courses; i++) {
+         add(new BoxGeometry(4.48, h * 0.9, 0.08), 0, i * h + h / 2, 0, i % 2 ? COLORS.shaft : COLORS.shaftDark);
+      }
+      add(new BoxGeometry(0.16, 8, 0.1), -2.22, 4, 0.015, COLORS.shaftMortar);
+      add(new BoxGeometry(0.16, 8, 0.1), 2.22, 4, 0.015, COLORS.shaftMortar);
+   });
+}
+
+/** The runner stand-in: a rounded hoodie, head, cap and sneakers in three rigid pieces, 0.55 m tall. */
 function runnerPieces(): { trunk: BufferGeometry; leg: BufferGeometry; arm: BufferGeometry } {
    const { hipY } = STAND_IN;
    const trunk = merged(add => {
-      add(new BoxGeometry(0.22, 0.18, 0.12), 0, 0.28, 0, HOODIE);
-      add(new SphereGeometry(1, 20, 14).scale(0.115, 0.083, 0.094), 0, 0.465, 0, SKIN);
-      add(new BoxGeometry(0.154, 0.033, 0.014), 0, 0.47, 0.09, VISOR);
-      add(new BoxGeometry(0.165, 0.025, 0.105), 0, 0.537, -0.008, CAP);
+      add(new SphereGeometry(0.5, 10, 8).scale(0.22, 0.18, 0.12), 0, 0.28, 0, COLORS.hoodie);
+      add(new SphereGeometry(1, 16, 12).scale(0.115, 0.083, 0.094), 0, 0.465, 0, COLORS.skin);
+      add(new BoxGeometry(0.15, 0.026, 0.012), 0, 0.47, 0.092, COLORS.visor);
+      add(new SphereGeometry(0.5, 10, 8).scale(0.165, 0.025, 0.105), 0, 0.537, -0.008, COLORS.cap);
    });
    // pivot-local: the hip at the origin, the sole at y = -hipY
    const leg = merged(add => {
-      add(new BoxGeometry(0.066, hipY - 0.045, 0.07), 0, -(hipY - 0.045) / 2, 0, PANTS);
-      add(new BoxGeometry(0.094, 0.055, 0.12), 0, -hipY + 0.0275, 0.011, SHOE);
+      add(new CylinderGeometry(0.033, 0.036, hipY - 0.045, 7), 0, -(hipY - 0.045) / 2, 0, COLORS.pants);
+      add(new SphereGeometry(0.5, 8, 6).scale(0.094, 0.055, 0.12), 0, -hipY + 0.0275, 0.011, COLORS.shoe);
    });
    // pivot-local: the shoulder at the origin, the arm hanging down
    const arm = merged(add => {
-      add(new BoxGeometry(0.05, 0.15, 0.055), 0, -0.075, 0, HOODIE);
-      add(new BoxGeometry(0.055, 0.045, 0.055), 0, -0.172, 0, SKIN);
+      add(new CylinderGeometry(0.025, 0.028, 0.15, 6), 0, -0.075, 0, COLORS.hoodie);
+      add(new SphereGeometry(0.5, 8, 6).scale(0.055, 0.045, 0.055), 0, -0.172, 0, COLORS.skin);
    });
    return { trunk, leg, arm };
 }
@@ -94,35 +115,60 @@ function clearDepth(renderer: WebGLRenderer): void {
    renderer.clearDepth();
 }
 
+function paintDisc(geo: CylinderGeometry): CylinderGeometry {
+   const pos = geo.getAttribute("position");
+   const colors = new Float32Array(pos.count * 3);
+   const face = new Color(COLORS.gold), rim = new Color(COLORS.goldDeep);
+   for (let i = 0; i < pos.count; i++) {
+      const tint = Math.abs(pos.getY(i)) > 0.03 ? face : rim;
+      colors[i * 3] = tint.r; colors[i * 3 + 1] = tint.g; colors[i * 3 + 2] = tint.b;
+   }
+   geo.setAttribute("color", new Float32BufferAttribute(colors, 3));
+   return geo;
+}
+
 export function createTowerParts(): TowerParts {
-   const box = new BoxGeometry(1, 1, 1), disc = new CylinderGeometry(0.3, 0.3, 0.08, 20);
+   const box = new BoxGeometry(1, 1, 1), disc = paintDisc(new CylinderGeometry(0.3, 0.3, 0.08, 20));
    const pole = new CylinderGeometry(0.025, 0.025, 0.8, 8);
-   const material = (color: string) => new MeshStandardMaterial({ color, roughness: 0.82 });
-   const slabMat = material(COLORS.slab), trimMat = material("#e6f1ed"), movingMat = material(COLORS.moving);
-   const arrowMat = material("#fff3b0");
-   const ledgeMat = material(COLORS.ledge), intactMat = material(COLORS.spur), crackedMat = material(COLORS.cracked);
-   const crackMat = material("#542a32"), goldMat = material(COLORS.coin), poleMat = material("#c6d6df");
-   const panelMat = material(COLORS.tower), ribMat = material("#41677a");
+   const accent = (color: string, glow = 0) => new MeshStandardMaterial({
+      color, roughness: 0.46, metalness: 0.04, flatShading: true,
+      emissive: glow > 0 ? color : "#000000", emissiveIntensity: glow,
+   });
+   const bodyMat = new MeshStandardMaterial({ vertexColors: true, roughness: 0.76, flatShading: true });
+   const capMat = accent(COLORS.slabCap, 0.12);
+   const arrowMat = accent(COLORS.movingCap, 0.16);
+   const goldMat = accent(COLORS.gold, 0.14);
+   const rimMat = accent(COLORS.spurCap);
+   const crackMat = accent(COLORS.crack);
+   const poleMat = accent(COLORS.shaftDark);
+   const ribMat = accent(COLORS.shaftMortar);
    const planes = [new Plane(new Vector3(0, 1, 0), 2), new Plane(new Vector3(0, -1, 0), 4)];
    // Slabs and spurs are drawn while their top is in the column (visuals.ts): their bodies stop at the
-   // danger line. Coins and flags are drawn only whole inside it, so clipping the shared gold/trim is moot.
-   const limeMat = material("#c6f54a"), coilMat = material("#facc15"), springArrow = material("#f8fafc");
-   const rocketBody = material("#e8eef2"), rocketFin = material("#fb7185");
-   const nozzleMat = new MeshBasicMaterial({ color: "#fb923c" });
-   const windMat = material("#bae6fd");
+   // danger line. Coins and flags are drawn only whole inside it, so clipping the shared gold is moot.
+   const limeMat = accent(COLORS.spring, 0.12), coilMat = accent(COLORS.coil, 0.1), springArrow = accent(COLORS.springArrow);
+   const rocketBody = accent(COLORS.rocketBody), rocketFin = accent(COLORS.rocketFin, 0.08);
+   const nozzleMat = new MeshBasicMaterial({ color: COLORS.nozzle });
+   const windMat = accent(COLORS.wind);
+   const coinMat = new MeshStandardMaterial({ vertexColors: true, roughness: 0.38, metalness: 0.42 });
+   const slabGeo = plank(1.4, 0.16, 0.6, COLORS.slab, COLORS.slabCap, COLORS.slabDeep);
+   const movingGeo = plank(1.4, 0.16, 0.6, COLORS.moving, COLORS.movingCap, COLORS.movingDeep);
+   const ledgeGeo = plank(4.4, 0.16, 0.6, COLORS.ledge, COLORS.stoneCap, COLORS.stoneDark);
+   const intactGeo = plank(0.8, 0.16, 0.6, COLORS.spur, COLORS.spurCap, COLORS.spurDeep);
+   const crackedGeo = plank(0.8, 0.16, 0.6, COLORS.cracked, COLORS.crackedDeep, COLORS.crack);
+   const wallGeo = stoneWall();
    const pack = merged(add => {
-      add(new BoxGeometry(0.09, 0.06, 0.09), 0, 0.03, 0, "#d7dee6");
+      add(new BoxGeometry(0.09, 0.06, 0.09), 0, 0.03, 0, COLORS.rocketBody);
       add(new BoxGeometry(0.11, 0.1, 0.11), 0, 0.1, 0, "#f4f7fb");
       add(new BoxGeometry(0.07, 0.05, 0.07), 0, 0.17, 0, "#c5d0da");
-      add(new BoxGeometry(0.15, 0.035, 0.04), 0, 0.08, -0.07, "#fb7185");
-      add(new BoxGeometry(0.045, 0.03, 0.045), 0, 0.0, 0, "#fb923c");
+      add(new BoxGeometry(0.15, 0.035, 0.04), 0, 0.08, -0.07, COLORS.rocketFin);
+      add(new BoxGeometry(0.045, 0.03, 0.045), 0, 0.0, 0, COLORS.nozzle);
    });
-   for (const clipped of [panelMat, ribMat, slabMat, movingMat, ledgeMat, intactMat, crackedMat, trimMat, goldMat, crackMat,
-      arrowMat, limeMat, coilMat, springArrow, rocketBody, rocketFin, nozzleMat, windMat]) {
+   for (const clipped of [bodyMat, ribMat, capMat, goldMat, rimMat, crackMat, arrowMat, poleMat,
+      limeMat, coilMat, springArrow, rocketBody, rocketFin, nozzleMat, windMat]) {
       clipped.clippingPlanes = planes;
    }
    const part = (mat: Material, locals: Matrix4[]): InstancePart => ({ geometry: box, material: mat, locals });
-   const body = (width: number) => [local(0, -0.08, 0, width, 0.16, 0.6)];
+   const shaped = (geometry: BufferGeometry): InstancePart => ({ geometry, material: bodyMat });
    const runner = runnerPieces();
    const runnerMaterial = new MeshStandardMaterial({ vertexColors: true, roughness: 0.8 });
    const resetGeometry = new BufferGeometry();
@@ -134,28 +180,30 @@ export function createTowerParts(): TowerParts {
    depthReset.renderOrder = -1;
    depthReset.onBeforeRender = clearDepth;
    const coinLocal = new Matrix4().makeRotationX(Math.PI / 2);
+   // accents sit just proud of the rounded lip (z ≈ 0.30)
+   const faceZ = 0.34;
    return {
-      slab: [part(slabMat, body(1.4)), part(trimMat, [local(0, -0.018, 0.305, 1.25, 0.028, 0.012)])],
-      moving: [part(movingMat, body(1.4)), part(arrowMat, [
+      slab: [shaped(slabGeo), part(capMat, [local(0, -0.02, faceZ, 1.22, 0.03, 0.014)])],
+      moving: [shaped(movingGeo), part(arrowMat, [
          // left arrow
-         local(-0.38, -0.02, 0.312, 0.26, 0.02, 0.02),
-         tilted(-0.54, 0.02, 0.312, 0.14, 0.018, 0.016, 0.7),
-         tilted(-0.54, -0.06, 0.312, 0.14, 0.018, 0.016, -0.7),
+         local(-0.38, -0.02, faceZ, 0.26, 0.02, 0.02),
+         tilted(-0.54, 0.02, faceZ, 0.14, 0.018, 0.016, 0.7),
+         tilted(-0.54, -0.06, faceZ, 0.14, 0.018, 0.016, -0.7),
          // right arrow
-         local(0.38, -0.02, 0.312, 0.26, 0.02, 0.02),
-         tilted(0.54, 0.02, 0.312, 0.14, 0.018, 0.016, -0.7),
-         tilted(0.54, -0.06, 0.312, 0.14, 0.018, 0.016, 0.7),
+         local(0.38, -0.02, faceZ, 0.26, 0.02, 0.02),
+         tilted(0.54, 0.02, faceZ, 0.14, 0.018, 0.016, -0.7),
+         tilted(0.54, -0.06, faceZ, 0.14, 0.018, 0.016, 0.7),
       ])],
-      ledge: [part(ledgeMat, body(4.4)), part(goldMat, [local(0, -0.02, 0.306, 4.2, 0.028, 0.012)])],
-      intact: [part(intactMat, body(0.8)), part(trimMat, [local(0, -0.022, 0.306, 0.7, 0.022, 0.012)])],
-      cracked: [part(crackedMat, body(0.8)), part(crackMat, [
-         tilted(-0.16, -0.08, 0.306, 0.045, 0.14, 0.012, 0.35),
-         tilted(0.13, -0.08, 0.306, 0.045, 0.14, 0.012, -0.3),
+      ledge: [shaped(ledgeGeo), part(goldMat, [local(0, -0.02, faceZ, 4.15, 0.03, 0.014)])],
+      intact: [shaped(intactGeo), part(rimMat, [local(0, -0.022, faceZ, 0.66, 0.024, 0.014)])],
+      cracked: [shaped(crackedGeo), part(crackMat, [
+         tilted(-0.16, -0.08, faceZ, 0.045, 0.14, 0.012, 0.35),
+         tilted(0.13, -0.08, faceZ, 0.045, 0.14, 0.012, -0.3),
       ])],
-      coin: [{ geometry: disc, material: goldMat, locals: [coinLocal] }],
+      coin: [{ geometry: disc, material: coinMat, locals: [coinLocal] }],
       flag: [{ geometry: pole, material: poleMat, locals: [new Matrix4().makeTranslation(0, 0.4, 0)] },
          part(goldMat, [local(0.04, 0.66, 0, 0.3, 0.24, 0.045)])],
-      tower: [part(panelMat, [local(0, 4, 0, 4.6, 8, 0.08)]),
+      tower: [shaped(wallGeo),
          part(ribMat, [local(-2.24, 4, 0.065, 0.1, 8, 0.05), local(2.24, 4, 0.065, 0.1, 8, 0.05),
             local(0, 2, 0.065, 4.5, 0.045, 0.05), local(0, 6, 0.065, 4.5, 0.045, 0.05)])],
       spring: [
@@ -192,8 +240,8 @@ export function createTowerParts(): TowerParts {
       rocketPack: pack,
       planes,
       runnerTrunk: runner.trunk, runnerLeg: runner.leg, runnerArm: runner.arm, runnerMaterial, depthReset,
-      geometries: [box, disc, pole, runner.trunk, runner.leg, runner.arm, resetGeometry, pack],
-      materials: [slabMat, trimMat, movingMat, arrowMat, ledgeMat, intactMat, crackedMat, crackMat, goldMat, poleMat, panelMat, ribMat,
+      geometries: [box, disc, pole, slabGeo, movingGeo, ledgeGeo, intactGeo, crackedGeo, wallGeo, runner.trunk, runner.leg, runner.arm, resetGeometry, pack],
+      materials: [bodyMat, capMat, arrowMat, goldMat, rimMat, crackMat, poleMat, ribMat, coinMat,
          limeMat, coilMat, springArrow, rocketBody, rocketFin, nozzleMat, windMat, runnerMaterial, resetMaterial],
    };
 }
