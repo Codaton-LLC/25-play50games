@@ -1,3 +1,5 @@
+import { LEVEL_LIMITS, TITLES } from "./levels";
+import { LEVEL_IDS } from "../../types";
 import type { ArcadeGameMeta } from "@/arcade3d/types";
 
 // Plain data only (server-safe). scoring must match WP includes/arcade-games.json.
@@ -28,6 +30,7 @@ export const miniGolfMeta: ArcadeGameMeta = {
       unitLabel: "pts",
       display: "int",
    },
+   levels: LEVEL_IDS.map(id => ({ id, title: TITLES[id - 1], scoring: LEVEL_LIMITS[id], ...(id < 5 ? { clearScore: 2000 } : {}) })),
    thumbnail: "/images/3d/mini-golf.webp",
    accent: "#86efac",
    owner: "claude",
