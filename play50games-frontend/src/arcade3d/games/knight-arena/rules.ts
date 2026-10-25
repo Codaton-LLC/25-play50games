@@ -1,6 +1,10 @@
 // Pure deterministic state & rules for knight-arena. No React, no Three.js.
+// Level 1 is today's game: createBeatMap(seed) / createRun(seed) keep the frozen grid and the
+// same RNG order. Levels 2-5 go through createRun(seed, level) (levels.ts).
 import { rngNext, type RngState, turnTowards } from "../../core/math";
 import { spring, type SpringState } from "../../core/motion";
+import type { LevelId, ScoringRules } from "../../types";
+import { LEVELS, type KnightLevel } from "./levels";
 import type { StrikeDir } from "./poses";
 
 function rngInt(rng: RngState, min: number, max: number): number {
@@ -109,9 +113,9 @@ export function dirToIndex(dir: StrikeDir): number {
    return 3;
 }
 
-export function comboForStreak(streak: number): number {
+export function comboForStreak(streak: number, stepHits: number = COMBO.STEP_HITS): number {
    if (streak <= 0) return 1;
-   return Math.min(COMBO.MAX_MULTIPLIER, 1 + Math.floor((streak - 1) / COMBO.STEP_HITS));
+   return Math.min(COMBO.MAX_MULTIPLIER, 1 + Math.floor((streak - 1) / stepHits));
 }
 
 export function stageAtTimeMs(timeMs: number): StageSpec {
@@ -126,12 +130,16 @@ export interface TargetCue {
    postIndex: number; direction: StrikeDir; ring: PostRing;
    beatTimeMs: number; spawnTimeMs: number; expireTimeMs: number;
    shieldHitIndex: 1 | 2; shieldGroupId: number; doublePairId: number;
+   /** Near post the marker slides from, or -1 when it stays on its post (every level-1 cue). */
+   originPostIndex: number;
    status: "pending" | "hit" | "expired"; hitGrade: "none" | "onBeat" | "offBeat" | "spin";
 }
 
 export interface BeatMap {
    seed: number; cues: TargetCue[];
    realSlotCount: number; shieldCount: number; doubleCount: number; tomatoCount: number;
+   beatCount: number; comboStep: number;
+   stages: readonly StageSpec[]; beatTimesMs: readonly number[];
 }
 
 function pickFrom<T>(rng: RngState, items: readonly T[]): T {
@@ -142,7 +150,8 @@ function pickFrom<T>(rng: RngState, items: readonly T[]): T {
  * Deterministically builds the 111-beat schedule for `seed`:
  * 140 real hit slots (12 two-hit shields, 29 same-direction doubles, 58 singles) + 18 tomatoes.
  */
-export function createBeatMap(seed: number): BeatMap {
+export function createBeatMap(seed: number, level: KnightLevel = LEVELS[1]): BeatMap {
+   if (level.id !== 1) return createVariantBeatMap(seed, level);
    const rng: RngState = { s: (seed | 0) || 101 };
    const beatKind: Array<"single" | "shield1" | "shield2" | "double"> = new Array(BEAT.BEAT_COUNT).fill("single");
 
@@ -255,7 +264,7 @@ export function createBeatMap(seed: number): BeatMap {
          postIndex: post.index, direction: post.direction, ring: post.ring, beatTimeMs,
          spawnTimeMs: Math.max(0, beatTimeMs - TIMING.LEAD_BEATS * stageSpec.periodMs),
          expireTimeMs: beatTimeMs + TIMING.ACTIVE_WINDOW_MS,
-         shieldHitIndex, shieldGroupId, doublePairId, status: "pending", hitGrade: "none",
+         shieldHitIndex, shieldGroupId, doublePairId, originPostIndex: -1, status: "pending", hitGrade: "none",
       });
    };
 
@@ -335,7 +344,255 @@ export function createBeatMap(seed: number): BeatMap {
       seed, cues,
       realSlotCount: cues.filter((c) => c.kind !== "tomato").length,
       shieldCount: shieldGroupCount, doubleCount: doublePairCount, tomatoCount,
+      beatCount: BEAT.BEAT_COUNT, comboStep: COMBO.STEP_HITS, stages: STAGES, beatTimesMs: BEAT_TIMES_MS,
    };
+}
+
+/** Beats stay at least this far from a 15 s stage boundary, so a ±200 ms window never crosses it. */
+export const BOUNDARY_GAP_MS = 280;
+const FIRST_BEAT_MS = 1500;
+const LAST_BEAT_MS = 59_600;
+
+/**
+ * Levels 2-5: four 15 s stages, each beat on that stage's BPM, first beat at 1.5 s, last ≤ 59.6 s.
+ * Level 1 does not use this (its grid is the frozen STAGES).
+ */
+export function buildVariantSchedule(bpm: readonly [number, number, number, number]): { stages: StageSpec[]; beatTimesMs: number[] } {
+   const stages: StageSpec[] = [];
+   const beatTimesMs: number[] = [];
+   let last: number | null = null;
+   let beatIndex = 0;
+   for (let i = 0; i < 4; i++) {
+      const periodMs = 60_000 / bpm[i];
+      const startMs = i * 15_000;
+      const endMs = (i + 1) * 15_000;
+      let t = last === null ? FIRST_BEAT_MS : last + periodMs;
+      const minT = i === 0 ? FIRST_BEAT_MS : startMs + BOUNDARY_GAP_MS;
+      while (t < minT) t += periodMs;
+      const firstBeatMs = t;
+      const startBeatIndex = beatIndex;
+      let count = 0;
+      while (t <= endMs - BOUNDARY_GAP_MS && t <= LAST_BEAT_MS) {
+         beatTimesMs.push(t);
+         count++;
+         t += periodMs;
+      }
+      last = beatTimesMs[beatTimesMs.length - 1];
+      stages.push({
+         stage: (i + 1) as 1 | 2 | 3 | 4,
+         startMs, endMs, bpm: bpm[i], periodMs, beatCount: count, startBeatIndex, firstBeatMs,
+      });
+      beatIndex += count;
+   }
+   return { stages, beatTimesMs };
+}
+
+function stageSpecAtBeat(stages: readonly StageSpec[], beatIndex: number): StageSpec {
+   for (let i = stages.length - 1; i >= 0; i--) {
+      if (beatIndex >= stages[i].startBeatIndex) return stages[i];
+   }
+   return stages[0];
+}
+
+/** Levels 2-5. Same placer as level 1, with the level's grid and caps. */
+function createVariantBeatMap(seed: number, level: KnightLevel): BeatMap {
+   const rng: RngState = { s: (seed | 0) || 101 };
+   const { stages, beatTimesMs } = buildVariantSchedule(level.bpm);
+   const beatCount = beatTimesMs.length;
+   const beatKind: Array<"single" | "shield1" | "shield2" | "double"> = new Array(beatCount).fill("single");
+   const stageStart = stages.map((s) => s.startBeatIndex);
+   const stageEnd = stages.map((s) => s.startBeatIndex + s.beatCount);
+
+   for (let i = 1; i <= 3; i++) {
+      const count = level.shields[i - 1];
+      if (count <= 0) continue;
+      const start = stageStart[i];
+      const end = stageEnd[i] - 1;
+      let placed = 0;
+      const offset = rngInt(rng, 0, 2);
+      for (let attempt = 0; attempt < 200 && placed < count; attempt++) {
+         const b = attempt < 16 ? start + offset + attempt * 6 : rngInt(rng, start, end - 2);
+         if (b + 1 >= end) continue;
+         let ok = true;
+         for (let k = Math.max(start, b - 2); k <= Math.min(end - 1, b + 3); k++) {
+            if (beatKind[k] !== "single") {
+               ok = false;
+               break;
+            }
+         }
+         if (ok) {
+            beatKind[b] = "shield1";
+            beatKind[b + 1] = "shield2";
+            placed++;
+         }
+      }
+   }
+
+   for (let i = 1; i <= 3; i++) {
+      const count = level.doubles[i - 1];
+      if (count <= 0) continue;
+      const candidates: number[] = [];
+      for (let b = stageStart[i]; b < stageEnd[i]; b++) {
+         if (beatKind[b] === "single") candidates.push(b);
+      }
+      for (let n = candidates.length - 1; n > 0; n--) {
+         const j = rngInt(rng, 0, n);
+         const tmp = candidates[n];
+         candidates[n] = candidates[j];
+         candidates[j] = tmp;
+      }
+      for (let n = 0; n < count && n < candidates.length; n++) beatKind[candidates[n]] = "double";
+   }
+
+   const beatPost: number[] = new Array(beatCount).fill(0);
+   const beatDir: StrikeDir[] = new Array(beatCount).fill("up");
+   const beatOrigin: number[] = new Array(beatCount).fill(-1);
+   const lastUsedBeatForPost = new Array(8).fill(-10);
+
+   for (let b = 0; b < beatCount; b++) {
+      const kind = beatKind[b];
+      if (kind === "shield2") {
+         const p = beatPost[b - 1];
+         beatPost[b] = p;
+         beatDir[b] = POSTS[p].direction;
+         lastUsedBeatForPost[p] = b;
+         continue;
+      }
+      if (kind === "double") {
+         const validDirs = DIRECTIONS.filter((d) => {
+            const di = dirToIndex(d);
+            return b - lastUsedBeatForPost[di] >= 3 && b - lastUsedBeatForPost[di + 4] >= 3;
+         });
+         const fallbackDirs = validDirs.length > 0 ? validDirs : DIRECTIONS.filter((d) => {
+            const di = dirToIndex(d);
+            return b - lastUsedBeatForPost[di] >= 2 && b - lastUsedBeatForPost[di + 4] >= 2;
+         });
+         const chosenDir = pickFrom(rng, fallbackDirs.length > 0 ? fallbackDirs : DIRECTIONS);
+         const di = dirToIndex(chosenDir);
+         beatPost[b] = di;
+         beatDir[b] = chosenDir;
+         lastUsedBeatForPost[di] = b;
+         lastUsedBeatForPost[di + 4] = b;
+         continue;
+      }
+      const maxPost = b >= level.farFromBeat ? 8 : 4;
+      const validPosts: number[] = [];
+      for (let p = 0; p < maxPost; p++) {
+         if (b - lastUsedBeatForPost[p] >= 3) validPosts.push(p);
+      }
+      const fallbackPosts = validPosts.length > 0
+         ? validPosts
+         : Array.from({ length: maxPost }, (_, p) => p).filter((p) => b - lastUsedBeatForPost[p] >= 2);
+      const chosenPost = pickFrom(rng, fallbackPosts.length > 0 ? fallbackPosts : [0]);
+      beatPost[b] = chosenPost;
+      beatDir[b] = POSTS[chosenPost].direction;
+      if (level.moving && chosenPost >= 4) beatOrigin[b] = chosenPost - 4;
+      lastUsedBeatForPost[chosenPost] = b;
+   }
+
+   const cues: TargetCue[] = [];
+   let nextId = 0;
+   let shieldGroupCount = 0;
+   let doublePairCount = 0;
+
+   const pushCue = (
+      b: number, kind: TargetKind, post: PostSpec,
+      shieldHitIndex: 1 | 2, shieldGroupId: number, doublePairId: number, originPostIndex: number,
+   ) => {
+      const stageSpec = stageSpecAtBeat(stages, b);
+      const beatTimeMs = beatTimesMs[b];
+      cues.push({
+         id: nextId++, beatIndex: b, stage: stageSpec.stage, kind,
+         postIndex: post.index, direction: post.direction, ring: post.ring, beatTimeMs,
+         spawnTimeMs: Math.max(0, beatTimeMs - TIMING.LEAD_BEATS * stageSpec.periodMs),
+         expireTimeMs: beatTimeMs + TIMING.ACTIVE_WINDOW_MS,
+         shieldHitIndex, shieldGroupId, doublePairId, originPostIndex, status: "pending", hitGrade: "none",
+      });
+   };
+
+   for (let b = 0; b < beatCount; b++) {
+      const kind = beatKind[b];
+      if (kind === "double") {
+         const pairId = doublePairCount++;
+         const di = dirToIndex(beatDir[b]);
+         pushCue(b, "regular", POSTS[di], 1, -1, pairId, -1);
+         pushCue(b, "regular", POSTS[di + 4], 1, -1, pairId, -1);
+      } else if (kind === "shield1" || kind === "shield2") {
+         const groupId = kind === "shield1" ? shieldGroupCount++ : shieldGroupCount - 1;
+         pushCue(b, "shield", POSTS[beatPost[b]], kind === "shield1" ? 1 : 2, groupId, -1, -1);
+      } else {
+         pushCue(b, "regular", POSTS[beatPost[b]], 1, -1, -1, beatOrigin[b]);
+      }
+   }
+
+   const tomatoBeatUsed = new Set<number>();
+   let tomatoCount = 0;
+   for (let i = 1; i <= 3; i++) {
+      const count = level.tomatoes[i - 1];
+      if (count <= 0) continue;
+      const beatOrder: number[] = [];
+      for (let b = stageStart[i]; b < stageEnd[i]; b++) beatOrder.push(b);
+      for (let n = beatOrder.length - 1; n > 0; n--) {
+         const j = rngInt(rng, 0, n);
+         const tmp = beatOrder[n];
+         beatOrder[n] = beatOrder[j];
+         beatOrder[j] = tmp;
+      }
+      let placedInStage = 0;
+      for (const b of beatOrder) {
+         if (placedInStage >= count) break;
+         if (tomatoBeatUsed.has(b)) continue;
+         const beatTimeMs = beatTimesMs[b];
+         const findSafePosts = (postBeatGap: number): number[] => {
+            const safe: number[] = [];
+            for (let p = 0; p < 8; p++) {
+               const dir = POSTS[p].direction;
+               let dirSafe = true;
+               let postSafe = true;
+               for (const c of cues) {
+                  if (c.kind !== "tomato" && c.direction === dir && Math.abs(c.beatTimeMs - beatTimeMs) <= TIMING.TOMATO_CLEARANCE_MS) {
+                     dirSafe = false;
+                     break;
+                  }
+                  if (c.postIndex === p && Math.abs(c.beatIndex - b) <= postBeatGap) postSafe = false;
+               }
+               if (dirSafe && postSafe) safe.push(p);
+            }
+            return safe;
+         };
+         const safePosts = findSafePosts(2).length > 0 ? findSafePosts(2) : findSafePosts(1);
+         if (safePosts.length > 0) {
+            const p = pickFrom(rng, safePosts);
+            tomatoBeatUsed.add(b);
+            placedInStage++;
+            tomatoCount++;
+            pushCue(b, "tomato", POSTS[p], 1, -1, -1, -1);
+         }
+      }
+   }
+
+   cues.sort((a, b) => a.beatTimeMs - b.beatTimeMs || a.id - b.id);
+   return {
+      seed, cues,
+      realSlotCount: cues.filter((c) => c.kind !== "tomato").length,
+      shieldCount: shieldGroupCount, doubleCount: doublePairCount, tomatoCount,
+      beatCount, comboStep: level.comboStep, stages, beatTimesMs,
+   };
+}
+
+/** Where a cue's marker is drawn at `nowMs` (level 1: the post itself). `out` is reused. */
+export function travelXZ(cue: TargetCue, nowMs: number, out: { x: number; z: number }): void {
+   const post = POSTS[cue.postIndex];
+   if (cue.originPostIndex < 0) {
+      out.x = post.x;
+      out.z = post.z;
+      return;
+   }
+   const origin = POSTS[cue.originPostIndex];
+   const lead = Math.max(1, cue.beatTimeMs - cue.spawnTimeMs);
+   const u = Math.max(0, Math.min(1, (nowMs - cue.spawnTimeMs) / lead));
+   out.x = origin.x + (post.x - origin.x) * u;
+   out.z = origin.z + (post.z - origin.z) * u;
 }
 
 /**
@@ -343,17 +600,17 @@ export function createBeatMap(seed: number): BeatMap {
  * optimal spin activations via dynamic programming over the 111 beats).
  */
 export function solveOptimalSpinSchedule(map: BeatMap): { maxScore: number; spinBeats: Set<number> } {
-   const slotsOnBeat = new Int32Array(BEAT.BEAT_COUNT);
+   const B = map.beatCount;
+   const slotsOnBeat = new Int32Array(B);
    for (const c of map.cues) {
       if (c.kind !== "tomato") slotsOnBeat[c.beatIndex]++;
    }
 
    let baseHitScore = 0;
    for (let s = 1; s <= map.realSlotCount; s++) {
-      baseHitScore += SCORING.ON_BEAT_PTS * comboForStreak(s);
+      baseHitScore += SCORING.ON_BEAT_PTS * comboForStreak(s, map.comboStep);
    }
 
-   const B = BEAT.BEAT_COUNT;
    const dp = Array.from({ length: B + 1 }, () => new Int32Array(101).fill(-1));
    const choice = Array.from({ length: B }, () => new Uint8Array(101));
    for (let m = 0; m <= 100; m++) dp[B][m] = 0;
@@ -396,16 +653,53 @@ export function perfectScore(map: BeatMap): number {
 }
 
 /**
- * Map-independent score ceiling (README "Server limits and why they hold"): every one of the
- * MAX_HIT_SLOTS real slots on-beat at the best combo, plus SPIN_BONUS_PTS for each spin a run can
- * charge (a spin needs ceil(100 / 15) = 7 charging hits and clears at least 1 slot that charges nothing).
+ * Map-independent score ceiling: every real slot on-beat in one streak, plus SPIN_BONUS_PTS for
+ * each spin a run can charge (ceil(100 / 15) = 7 charging hits, plus ≥ 1 cleared slot that charges
+ * nothing, so 8 slots per paid spin). Level 1 is scoreCeiling() (140 slots, step 8) = 11090.
  */
-export function scoreCeiling(): number {
+export function scoreCeilingFor(slots: number, comboStep: number = COMBO.STEP_HITS): number {
    let hits = 0;
-   for (let s = 1; s <= BEAT.MAX_HIT_SLOTS; s++) hits += SCORING.ON_BEAT_PTS * comboForStreak(s);
+   for (let s = 1; s <= slots; s++) hits += SCORING.ON_BEAT_PTS * comboForStreak(s, comboStep);
    const perSpin = Math.ceil(SPIN.MAX_METER / SPIN.ON_BEAT_CHARGE) + 1;
-   return hits + Math.floor(BEAT.MAX_HIT_SLOTS / perSpin) * SCORING.SPIN_BONUS_PTS;
+   return hits + Math.floor(slots / perSpin) * SCORING.SPIN_BONUS_PTS;
 }
+
+export function scoreCeiling(): number {
+   return scoreCeilingFor(BEAT.MAX_HIT_SLOTS, COMBO.STEP_HITS);
+}
+
+/**
+ * Proposed server limits, one set per level (README "Levels"). Level 1 is meta.scoring.
+ * maxScore = ceil(ceiling * 1.04 / 100) * 100. pps = ceil(maxScore / 58) so the rate line
+ * never binds inside 58-62 s (base 0). Claude copies levels 2-5 into arcade-games.json.
+ */
+export const PROPOSED_LEVEL_LIMITS: Record<LevelId, ScoringRules> = {
+   /** L1: ceiling 11090. Today's limits, unchanged. */
+   1: {
+      kind: "points", maxScore: 11600, minDurationMs: 58000, maxDurationMs: 62000,
+      base: 0, maxPointsPerSec: 200, unitLabel: "pts", display: "int",
+   },
+   /** L2: 145 slots, step 8. Hits 10640 + spins 900 = 11540. */
+   2: {
+      kind: "points", maxScore: 12100, minDurationMs: 58000, maxDurationMs: 62000,
+      base: 0, maxPointsPerSec: 209, unitLabel: "pts", display: "int",
+   },
+   /** L3: 156 slots, step 8. Hits 11520 + spins 950 = 12470. */
+   3: {
+      kind: "points", maxScore: 13000, minDurationMs: 58000, maxDurationMs: 62000,
+      base: 0, maxPointsPerSec: 225, unitLabel: "pts", display: "int",
+   },
+   /** L4: 163 slots, step 6. Hits 12320 + spins 1000 = 13320. Recomputed if the slot count moves. */
+   4: {
+      kind: "points", maxScore: 13900, minDurationMs: 58000, maxDurationMs: 62000,
+      base: 0, maxPointsPerSec: 240, unitLabel: "pts", display: "int",
+   },
+   /** L5: 176 slots, step 6. Hits 13360 + spins 1100 = 14460. */
+   5: {
+      kind: "points", maxScore: 15100, minDurationMs: 58000, maxDurationMs: 62000,
+      base: 0, maxPointsPerSec: 261, unitLabel: "pts", display: "int",
+   },
+};
 
 export interface RunInput { strikeDir: StrikeDir | null; spin: boolean; }
 
@@ -415,7 +709,10 @@ export interface RunEvent {
 }
 
 export interface RunState {
-   seed: number; map: BeatMap; timeMs: number; score: number;
+   seed: number; map: BeatMap; level: KnightLevel;
+   stages: readonly StageSpec[]; beatTimesMs: readonly number[];
+   durationMs: number; onBeatWindowMs: number; comboStep: number;
+   timeMs: number; score: number;
    streak: number; combo: number; maxCombo: number; spinMeter: number;
    stage: 1 | 2 | 3 | 4; bpm: number; knightYaw: number; targetYaw: number;
    swingDir: StrikeDir; swingTimerS: number; swingIsFar: boolean; swingPostYaw: number;
@@ -425,17 +722,31 @@ export interface RunState {
    tomatoesHit: number; spinsUsed: number; finished: boolean; events: RunEvent[];
 }
 
-export function createRunState(seed: number = BEAT.MAP_SEEDS[0]): RunState {
-   const map = createBeatMap(seed);
+export function createRun(seed: number = BEAT.MAP_SEEDS[0], level: KnightLevel = LEVELS[1]): RunState {
+   const map = createBeatMap(seed, level);
    return {
-      seed, map, timeMs: 0, score: 0, streak: 0, combo: 1, maxCombo: 1, spinMeter: 0,
-      stage: 1, bpm: 100, knightYaw: Math.PI, targetYaw: Math.PI,
+      seed, map, level, stages: map.stages, beatTimesMs: map.beatTimesMs,
+      durationMs: level.durationMs, onBeatWindowMs: level.onBeatWindowMs, comboStep: level.comboStep,
+      timeMs: 0, score: 0, streak: 0, combo: 1, maxCombo: 1, spinMeter: 0,
+      stage: 1, bpm: level.bpm[0], knightYaw: Math.PI, targetYaw: Math.PI,
       swingDir: "up", swingTimerS: 0, swingIsFar: false, swingPostYaw: Math.PI, spinTimerS: 0,
       postWobble: Array.from({ length: 8 }, () => ({ x: 0, v: 0 })),
       shieldCrackedGroups: new Set<number>(), shieldExpiredGroups: new Set<number>(),
       hitsOnBeat: 0, hitsOffBeat: 0, misses: 0, whiffs: 0, tomatoesHit: 0, spinsUsed: 0,
       finished: false, events: [],
    };
+}
+
+export function createRunState(seed: number = BEAT.MAP_SEEDS[0], level: KnightLevel = LEVELS[1]): RunState {
+   return createRun(seed, level);
+}
+
+function stageOf(run: RunState, timeMs: number): StageSpec {
+   const stages = run.stages;
+   if (timeMs < stages[1].startMs) return stages[0];
+   if (timeMs < stages[2].startMs) return stages[1];
+   if (timeMs < stages[3].startMs) return stages[2];
+   return stages[3];
 }
 
 function isCueUnlocked(run: RunState, cue: TargetCue): boolean {
@@ -462,7 +773,7 @@ export function stepRun(run: RunState, input: RunInput, dt: number, time: number
    const judgeMs = Math.max(0, (time - dt * 0.5) * 1000);
    run.timeMs = nowMs;
 
-   const stageSpec = stageAtTimeMs(nowMs);
+   const stageSpec = stageOf(run, nowMs);
    run.stage = stageSpec.stage;
    run.bpm = stageSpec.bpm;
 
@@ -484,7 +795,7 @@ export function stepRun(run: RunState, input: RunInput, dt: number, time: number
          cue.hitGrade = "spin";
          if (cue.kind === "shield" && cue.shieldHitIndex === 1) run.shieldCrackedGroups.add(cue.shieldGroupId);
          run.streak += 1;
-         run.combo = comboForStreak(run.streak);
+         run.combo = comboForStreak(run.streak, run.comboStep);
          if (run.combo > run.maxCombo) run.maxCombo = run.combo;
          run.hitsOnBeat += 1;
          spinPoints += SCORING.SPIN_HIT_PTS * run.combo;
@@ -517,7 +828,7 @@ export function stepRun(run: RunState, input: RunInput, dt: number, time: number
          candidates.sort((a, b) => a.beatTimeMs - b.beatTimeMs || a.id - b.id);
          const primary = candidates[0];
          const targetsToHit = primary.doublePairId >= 0 ? candidates.filter((c) => c.doublePairId === primary.doublePairId) : [primary];
-         const onBeat = Math.abs(judgeMs - primary.beatTimeMs) <= TIMING.ON_BEAT_WINDOW_MS;
+         const onBeat = Math.abs(judgeMs - primary.beatTimeMs) <= run.onBeatWindowMs;
          const aimPost = POSTS[targetsToHit[targetsToHit.length - 1].postIndex];
          run.targetYaw = aimPost.rayYaw;
          run.swingPostYaw = aimPost.rayYaw;
@@ -538,7 +849,7 @@ export function stepRun(run: RunState, input: RunInput, dt: number, time: number
                cue.hitGrade = onBeat ? "onBeat" : "offBeat";
                if (cue.kind === "shield" && cue.shieldHitIndex === 1) run.shieldCrackedGroups.add(cue.shieldGroupId);
                run.streak += 1;
-               run.combo = comboForStreak(run.streak);
+               run.combo = comboForStreak(run.streak, run.comboStep);
                if (run.combo > run.maxCombo) run.maxCombo = run.combo;
                if (onBeat) run.hitsOnBeat += 1;
                else run.hitsOffBeat += 1;
@@ -568,5 +879,5 @@ export function stepRun(run: RunState, input: RunInput, dt: number, time: number
          run.events.push({ kind: "miss", postIndex: cue.postIndex, direction: cue.direction, points: 0, onBeat: false });
       }
    }
-   if (nowMs >= BEAT.DURATION_MS) run.finished = true;
+   if (nowMs >= run.durationMs) run.finished = true;
 }

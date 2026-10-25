@@ -3,6 +3,7 @@
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import { PerspectiveCamera, Vector3, type Group, type Matrix4, type Mesh } from "three";
+import { usePigeonLevel } from "./level";
 import CameraRig from "@/arcade3d/core/CameraRig";
 import { DynamicInstancedModel, Model, useModel } from "@/arcade3d/core/assets";
 import { playSfx } from "@/arcade3d/core/audio";
@@ -140,7 +141,7 @@ const Rows = memo(function Rows({ run, parts }: { run: PigeonRun; parts: StreetP
    const road = useCallback((i: number, matrix: Matrix4) => { const lane = run.lanes[i]; if (lane.row === NONE || !lane.road) return false; matrix.makeTranslation(0, 0, -lane.row * ROW_PITCH); }, [run]);
    const grass = useCallback((i: number, matrix: Matrix4) => { const lane = run.lanes[i]; if (lane.row === NONE || lane.road) return false; matrix.makeTranslation(0, 0, -lane.row * ROW_PITCH); }, [run]);
    const row = useCallback((i: number, matrix: Matrix4) => { const lane = run.lanes[i]; if (lane.row === NONE) return false; matrix.makeTranslation(0, 0, -lane.row * ROW_PITCH); }, [run]);
-   const dashed = useCallback((i: number, matrix: Matrix4) => { const lane = run.lanes[i]; if (lane.row === NONE || !lane.road || lane.localRow % 3 !== 1 || lane.localRow === 19) return false; matrix.makeTranslation(0, 0, -lane.row * ROW_PITCH); }, [run]);
+   const dashed = useCallback((i: number, matrix: Matrix4) => { const lane = run.lanes[i]; if (lane.row === NONE || !lane.road || lane.localRow % run.config.grassEvery !== 1 || lane.localRow === 19) return false; matrix.makeTranslation(0, 0, -lane.row * ROW_PITCH); }, [run]);
    return (
       <group name="street-rows">
          <DynamicInstanced count={LANE_SLOTS} update={road} parts={parts.road} name="roads" />
@@ -199,7 +200,8 @@ const Pigeon = memo(function Pigeon({ run, layout }: { run: PigeonRun; layout: L
 });
 
 export default function Scene() {
-   const [run] = useState(() => createRun(randomSeed()));
+   const { config } = usePigeonLevel();
+   const [run] = useState(() => createRun(randomSeed(), config));
    const [layout] = useState(createLayout);
    const parts = useStreetParts();
    const reported = useRef(false);

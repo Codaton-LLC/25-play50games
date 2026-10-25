@@ -33,6 +33,9 @@ const RECTS: [number, number, number, number, boolean?][][] = [
    [[-0.8, 0.8, -3.0, 3.0]],
    [[-1.5, 1.5, TIER_WALL_Z, 4.5, true], [-1.5, 1.5, -4.5, TIER_WALL_Z]],
    [[-0.8, 0.8, HILL.z0, 5.0], [-1.0, 1.0, HILL.z1, HILL.z0], [-1.5, 1.5, -4.2, HILL.z1]],
+   [[-1.5, 1.5, -4.2, 4.2]],
+   [[-1.5, 1.5, -4.2, 4.2]],
+   [[-1.5, 1.5, -4.2, 4.2]],
 ];
 
 /** The hole's felt regions (mirrored with the hole). */
