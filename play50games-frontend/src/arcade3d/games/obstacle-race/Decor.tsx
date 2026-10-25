@@ -3,6 +3,7 @@
 import { useEffect, useMemo } from "react";
 import {
    BoxGeometry,
+   type BufferGeometry,
    ConeGeometry,
    CylinderGeometry,
    IcosahedronGeometry,
@@ -23,6 +24,20 @@ import {
    TREE_SPOTS,
    type DecorSpot,
 } from "./looks";
+
+/**
+ * Review fix: the stand, crowd, flag and cloud geometries are built at their real size and the spots
+ * scale them again by sx/sy/sz (the decor's size), so a stand came out ~47 x 14 x 144 m and covered
+ * the whole 390x844 view in grey. Scale those geometries to a unit box (placement kept) so the spot's
+ * scale is the drawn size.
+ */
+function unitScale<T extends BufferGeometry>(g: T): T {
+   g.computeBoundingBox();
+   const size = g.boundingBox!.getSize(new Vector3());
+   g.scale(1 / (size.x || 1), 1 / (size.y || 1), 1 / (size.z || 1));
+   g.computeBoundingBox();
+   return g;
+}
 
 function asSpots(list: readonly DecorSpot[]): InstanceSpot[] {
    return list.map((spot) => ({
@@ -79,14 +94,14 @@ export function Decor({ reduced = false }: { reduced?: boolean }) {
       const cloudPuff = new IcosahedronGeometry(1.0, 1);
 
       return {
-         stand,
-         crowdBody,
-         flagPole,
-         flagPennant,
+         stand: unitScale(stand),
+         crowdBody: unitScale(crowdBody),
+         flagPole: unitScale(flagPole),
+         flagPennant: unitScale(flagPennant),
          trunk,
          pineCrown,
          roundCrown,
-         cloudPuff,
+         cloudPuff: unitScale(cloudPuff),
       };
    }, []);
 
