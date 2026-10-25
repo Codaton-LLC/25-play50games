@@ -69,6 +69,10 @@ export type TerrainKind = "tilt" | "flat" | "ramp" | "tiers" | "hill";
 
 export interface Hole {
    index: number;
+   /** Captured level physics; omitted on the original course. */
+   vMax?: number;
+   cupRadius?: number;
+   captureSpeed?: number;
    name: string;
    par: number;
    mirrored: boolean;
@@ -252,10 +256,25 @@ const SPECS: HoleSpec[] = [
       terrain: "hill",
       top: 0.8 + HILL.top,
    },
+   {
+      name: "Split Fairway", par: 3, tee: p(-0.6, 3.4), cup: p(0.6, -3.4),
+      rails: [...loop([p(-1.5, 4.2), p(-1.5, -4.2), p(1.5, -4.2), p(1.5, 4.2)]), rail(p(-0.2, 1.4), p(-0.2, -1.2))],
+      terrain: "flat", top: 0.8,
+   },
+   {
+      name: "Twin Banks", par: 3, tee: p(0.7, 3.5), cup: p(-0.7, -3.5),
+      rails: [...loop([p(-1.5, 4.2), p(-1.5, -4.2), p(1.5, -4.2), p(1.5, 4.2)]), rail(p(-1.5, 1), p(-0.3, 0.5)), rail(p(0.3, -0.5), p(1.5, -1))],
+      terrain: "flat", top: 0.8,
+   },
+   {
+      name: "Final Needle", par: 3, tee: p(0, 3.8), cup: p(0.5, -3.6),
+      rails: [...loop([p(-1.5, 4.2), p(-1.5, -4.2), p(1.5, -4.2), p(1.5, 4.2)]), rail(p(-1.5, 0), p(-0.15, 0)), rail(p(0.45, 0), p(1.5, 0))],
+      terrain: "flat", top: 0.8,
+   },
 ];
 
-export const PARS = SPECS.map((s) => s.par);
-export const NAMES = SPECS.map((s) => s.name);
+export const PARS = SPECS.slice(0, HOLE_COUNT).map((s) => s.par);
+export const NAMES = SPECS.slice(0, HOLE_COUNT).map((s) => s.name);
 export const PAR_TOTAL = PARS.reduce((a, b) => a + b, 0);
 
 // ---------- build and mirror ----------
@@ -297,9 +316,9 @@ export function buildHole(index: number, mirrored: boolean): Hole {
 }
 
 /** The run's course: the six holes in order, each mirrored on a seeded bit (64 variants). */
-export function generateCourse(seed: number): Hole[] {
+export function generateCourse(seed: number, count = HOLE_COUNT): Hole[] {
    const rng = createRng(seed);
-   return SPECS.map((_s, i) => buildHole(i, rng() < 0.5));
+   return SPECS.slice(0, count).map((_s, i) => buildHole(i, rng() < 0.5));
 }
 
 // ---------- the felt ----------
