@@ -338,3 +338,65 @@ Every win of every bot lies inside its level's window and under its cap (checked
 time: L1 the frame-end elapsed time, L2-L5 `finishMs`). Each level's clock (600 / 210 / 240 / 240 /
 300 s) leaves the slowest blind run with at least 3.5x headroom. Only a win clears (no `clearScore`),
 so idle play never clears.
+
+
+## Look (2026-10-25)
+
+A visual-only modern-look pass giving escape-room a polished, warm, premium mobile-game aesthetic (CLAUDE.md Decision 4) while keeping gameplay, hitboxes, reach, scoring and rules 100 % unchanged:
+
+1. **Deliberate stand-ins & cohesive palette (`looks.ts`):**
+   - Single unified `COLORS` palette defining warm oak floorboards, rich walnut/mahogany woodwork, warm wainscoting, gem-toned books, and bright high-contrast accents.
+   - Replaced raw grey boxes with deliberate, bevelled, multi-tone pieces:
+     - Cupboard (`cupboard.ts`): Rich walnut body (`COLORS.cupboardBody`), warm honey-oak interior (`COLORS.cupboardInner`), mahogany door (`COLORS.cupboardDoor`) and a bevelled brass pull handle (`COLORS.cupboardHandle`).
+     - Desk drawer (`Primitives.tsx`): Warm oak drawer body (`COLORS.drawerBody`), contrasting mahogany face plate (`COLORS.drawerFace`), and brass cup-pull handle (`COLORS.drawerPull`).
+     - Under-desk archive trunk (`Primitives.tsx`): Sturdy archive chest (`COLORS.boxBody`), corner reinforcement bands (`COLORS.boxStrap`), and hinged lid with brass latch hasp (`COLORS.boxLock`).
+     - Fallback desks and chairs: Polished desk top and frame (`COLORS.deskBody`), warm wooden armchair frame (`COLORS.chairWood`).
+     - Exit door: Dark polished frame posts (`COLORS.doorFrame`), glowing golden inner arch trim (`COLORS.doorGlow`), and an emissive scanner display that brightens upon unlocking.
+     - Runner stand-in (`PrimitiveRunner`): Stylized adventurer outfit with jacket, collar, tactical trousers, boots, skin and headband.
+
+2. **Cosy lighting, fog & sky dome:**
+   - Soft gradient sky dome (`<SkyDome top bottom>`) from `core/env`.
+   - Linear fog configured in `environment.fog` (`near: 56, far: 95`) such that the entire playable room is crisp and 100 % unfogged, while outer boundaries gently fade.
+   - Stage lighting crossfade (`useStageLighting`) transitioning shell stage lights across the 5 levels (indoor, indoor, sunset, night, space).
+   - High contrast ratios (badge > 2.5:1, key > 3.0:1, door frame glow > 7.0:1) ensuring clear readability at every screen size.
+
+3. **Surroundings outside the play area (`Decor.tsx`):**
+   - Instanced decor positioned strictly OUTSIDE the play area bounds (`|x| > 6.0 || |z| > 5.0`):
+     - Mahogany bookshelves against the back wall with multi-colored book rows.
+     - Framed wall art and panelling.
+     - Large multi-pane office windows with soft daylight view.
+     - Potted indoor plants in ceramic planters outside corners.
+     - Warm brass banker's lamps with green glass shades.
+   - An extended 90 × 90 m foundation floor at `y = -0.005` in dark slate (`COLORS.floorSub`) ensuring zero sky/void shows below the scene at any of the three target screen sizes (1280x800, 390x844, 844x390).
+   - All decor verified in tests (`look.test.ts`) never to occlude any container, loot, door, or runner from the fitted camera at 1280x800, 390x844, and 844x390.
+
+4. **Juicy feedback (`core/fx`):**
+   - Core particle sparkle burst (`fx.burst("sparkle", ...)`) on collecting loot.
+   - Subtle camera shake (`fx.shake(0.12)`) on locked container inspection attempt.
+   - Confetti burst on exit door win.
+   - Pre-warmed pools on mount (`fx.warm("sparkle", "confetti")`).
+
+5. **Draw-call budget estimate (<= 60 calls):**
+   | Component / Element | Draw calls |
+   |---|---|
+   | Extended foundation floor | 1 |
+   | Parquet office floor (canvas texture) | 1 |
+   | Sky dome | 1 |
+   | Anchor rings (`<Instanced>`) | 1 |
+   | Lower wainscot & skirting (`<Instanced>`) | 1 |
+   | Upper wall surface (`<Instanced>`) | 1 |
+   | Architectural trim (`<Instanced>`) | 1 |
+   | Desks (`<InstancedModel>`) | 1 |
+   | Chairs (`<InstancedModel>`) | 1 |
+   | Cupboards (2 stations, body + door + handle) | 4-6 |
+   | Drawer (body + face + handle) | 3 |
+   | Under-desk box (body + straps + lid + latch) | 4 |
+   | Loot items when revealed (Key, Book, Battery) | 1-3 |
+   | Door (frame + glowing trim + scanner + leaf) | 4 |
+   | Runner (BlobShadow + HumanoidModel + marker) | 3 |
+   | Inspect badge (plane + ring) | 2 |
+   | Decor (shelves, books, pictures, window, plants, lamps) | 10 |
+   | FX burst particles (when active) | 1 |
+   | **Total estimated draw calls** | **~40–46** (well under 60 budget) |
+
+   - Zero per-frame allocations; all geometries and materials created once in `useMemo` and cleanly disposed on unmount without `dispose={null}` on primitives.

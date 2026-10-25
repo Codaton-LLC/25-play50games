@@ -11,6 +11,7 @@ import {
    MeshStandardMaterial,
    PerspectiveCamera,
    Raycaster,
+   Vector2,
    Vector3,
 } from "three";
 import { fitView, setLensShift, type ScreenRect } from "@/arcade3d/core/view";
@@ -29,6 +30,7 @@ import {
 import { MARKER_RADIUS, groundRingScale } from "./marker";
 import { MARKER_PX, screenSpriteSize } from "./picker";
 import { DOOR_POSITION, STATION_ANCHORS, STATION_BODY, START } from "./rules";
+import { COLORS, DECOR_SPOTS, FOG, PLAY_BOUNDS, contrastRatio, farRoomDistance, inPlayArea } from "./looks";
 
 const PITCH = (55 * Math.PI) / 180;
 const YAW = (30 * Math.PI) / 180;
@@ -374,5 +376,141 @@ describe("escape-room runner marker", () => {
          const oldPx = minorDiameter(camera, view.at[0], y, view.at[1], oldScale, view.width, view.height);
          expect(oldPx, `old ${view.width}x${view.height}`).toBeLessThan(22);
       }
+   });
+});
+
+
+describe("escape-room decor spots and play bounds", () => {
+   it("every decor spot is strictly outside the playable area bounds", () => {
+      expect(DECOR_SPOTS.length).toBeGreaterThan(10);
+      for (const spot of DECOR_SPOTS) {
+         expect(inPlayArea(spot.x, spot.z), `decor ${spot.kind} at ${spot.x},${spot.z}`).toBe(false);
+      }
+   });
+
+   it("tall decor sits behind the back wall or beside the room, never in the foreground", () => {
+      for (const spot of DECOR_SPOTS) {
+         if ((spot.sy ?? 1) > 0.3 || spot.y > 0.5) {
+            const behindOrLeft = spot.z <= -5.15 || spot.x <= -6.15;
+            expect(behindOrLeft, `tall decor ${spot.kind} at ${spot.x},${spot.z}`).toBe(true);
+         }
+      }
+   });
+});
+
+describe("escape-room decor non-occlusion (1280x800, 390x844, 844x390)", () => {
+   const cameras = [
+      ["1280x800", fittedCamera(1280, 800)],
+      ["390x844", fittedCamera(390, 844)],
+      ["844x390", fittedCamera(844, 390)],
+   ] as const;
+
+   function buildDecorGroup(): Group {
+      const group = new Group();
+      for (const spot of DECOR_SPOTS) {
+         const mesh = new Mesh(
+            new BoxGeometry(spot.sx ?? 1, spot.sy ?? 1, spot.sz ?? 1),
+            new MeshStandardMaterial(),
+         );
+         mesh.position.set(spot.x, spot.y, spot.z);
+         if (spot.rotY) mesh.rotation.y = spot.rotY;
+         group.add(mesh);
+      }
+      group.updateMatrixWorld(true);
+      return group;
+   }
+
+   it("decor never occludes any container, loot, door or runner from the fitted camera at all three sizes", () => {
+      const decor = buildDecorGroup();
+      const targets: Array<{ name: string; pos: Vector3 }> = [
+         { name: "door", pos: new Vector3(0, 1.0, -4.9) },
+         { name: "start-runner", pos: new Vector3(START.x, 0.7, START.z) },
+         { name: "center-runner", pos: new Vector3(0, 0.7, 0) },
+         { name: "corner-NW", pos: new Vector3(-5.0, 0.7, -4.0) },
+         { name: "corner-NE", pos: new Vector3(5.0, 0.7, -4.0) },
+         { name: "corner-SW", pos: new Vector3(-5.0, 0.7, 4.0) },
+         { name: "corner-SE", pos: new Vector3(5.0, 0.7, 4.0) },
+      ];
+
+      // Add station anchors and loot targets
+      for (let id = 0; id < 4; id++) {
+         for (const dx of JITTER) {
+            for (const dz of JITTER) {
+               const x = STATION_ANCHORS[id].x + dx;
+               const z = STATION_ANCHORS[id].z + dz;
+               targets.push({ name: `station-${id}@${x},${z}`, pos: new Vector3(x, 0.5, z) });
+               const toward = x < 0 ? 1 : -1;
+               const cx = x + Math.sign(x) * STATION_BODY.offset;
+               if (id === 0) {
+                  // Open drawer loot
+                  targets.push({ name: `drawer-loot@${x},${z}`, pos: new Vector3(cx + toward * drawerX(1), DRAWER.y + DRAWER.lootY, z) });
+               } else if (id === 2) {
+                  // Open under-desk loot
+                  targets.push({ name: `underdesk-loot@${x},${z}`, pos: new Vector3(cx + toward * underDeskX(1), UNDER_DESK.y + UNDER_DESK.lootY, z) });
+               } else {
+                  // Cupboard loot
+                  targets.push({ name: `cupboard-loot@${x},${z}`, pos: new Vector3(cx, LOOT_AT[1], z) });
+               }
+            }
+         }
+      }
+
+      for (const [label, camera] of cameras) {
+         for (const target of targets) {
+            const dist = camera.position.distanceTo(target.pos);
+            DIR.copy(target.pos).sub(camera.position).normalize();
+            RAY.set(camera.position, DIR);
+            const hits = RAY.intersectObject(decor, true);
+            const occluding = hits.filter((h) => h.distance < dist - 0.05);
+            expect(occluding.length, `${label} occluding ${target.name}`).toBe(0);
+         }
+      }
+
+      disposeTree(decor);
+   });
+});
+
+describe("escape-room ground coverage and lighting contrast", () => {
+   const cameras = [
+      ["1280x800", fittedCamera(1280, 800)],
+      ["390x844", fittedCamera(390, 844)],
+      ["844x390", fittedCamera(844, 390)],
+   ] as const;
+
+   it("linear fog near is past the furthest room distance at all three sizes, so the room stays crisp", () => {
+      for (const [label, camera] of cameras) {
+         const maxDist = farRoomDistance(camera.position);
+         expect(FOG.near, `${label} fog near (${FOG.near}) vs room dist (${maxDist.toFixed(1)})`).toBeGreaterThan(maxDist);
+      }
+   });
+
+   it("the 90x90 ground plane completely covers the bottom of the screen at all three sizes", () => {
+      // Rays through the bottom of the screen (NDC y = -0.98) hit the ground plane (y = -0.005)
+      for (const [label, camera] of cameras) {
+         for (const ndcX of [-0.9, 0, 0.9]) {
+            RAY.setFromCamera(new Vector2(ndcX, -0.98), camera);
+            // Intersection with horizontal plane y = -0.005
+            // ray: origin + t * dir => origin.y + t * dir.y = -0.005 => t = (-0.005 - origin.y) / dir.y
+            expect(RAY.ray.direction.y, `${label} dir.y at ndcX ${ndcX}`).toBeLessThan(0);
+            const t = (-0.005 - RAY.ray.origin.y) / RAY.ray.direction.y;
+            expect(t, `${label} t at ndcX ${ndcX}`).toBeGreaterThan(0);
+            const hitX = RAY.ray.origin.x + t * RAY.ray.direction.x;
+            const hitZ = RAY.ray.origin.z + t * RAY.ray.direction.z;
+            // 90x90 ground plane spans x: [-45, 45], z: [-45, 45]
+            expect(Math.abs(hitX), `${label} hitX ${hitX.toFixed(1)}`).toBeLessThan(45);
+            expect(Math.abs(hitZ), `${label} hitZ ${hitZ.toFixed(1)}`).toBeLessThan(45);
+         }
+      }
+   });
+
+   it("key visual elements have strong contrast against the floor and surrounds", () => {
+      // Badge / marker against floor
+      expect(contrastRatio(COLORS.accentYellow, COLORS.floorWood)).toBeGreaterThan(2.5);
+      // Key against drawer/cupboard body
+      expect(contrastRatio(COLORS.doorKnob, COLORS.drawerBody)).toBeGreaterThan(3.0);
+      // Book against cupboard interior
+      expect(contrastRatio(COLORS.bookRed, COLORS.cupboardInner)).toBeGreaterThan(1.8);
+      // Glowing door frame against dark frame
+      expect(contrastRatio(COLORS.doorGlow, COLORS.doorFrame)).toBeGreaterThan(7.0);
    });
 });

@@ -10,8 +10,11 @@ import { Raycaster, Vector2, Vector3, type Group, type MeshBasicMaterial, type P
 import CameraRig from "@/arcade3d/core/CameraRig";
 import { playSfx } from "@/arcade3d/core/audio";
 import type { AABB } from "@/arcade3d/core/collision";
+import { SkyDome } from "@/arcade3d/core/env";
+import { useFx } from "@/arcade3d/core/fx";
 import { useGameTime } from "@/arcade3d/core/gameTime";
 import { useInput } from "@/arcade3d/core/input";
+import { useStageLighting } from "@/arcade3d/core/lighting";
 import { inputToWorld, randomSeed } from "@/arcade3d/core/math";
 import { BlobShadow } from "@/arcade3d/core/render";
 import {
@@ -35,6 +38,8 @@ import { useRunFrame } from "@/arcade3d/core/useRunFrame";
 import { useLevel } from "@/arcade3d/core/level";
 import type { EscapeLevel } from "./levels";
 import { RUNNER_ASSET, RUNNER_SCALE } from "./assets";
+import { Decor } from "./Decor";
+import { COLORS, LEVEL_LOOKS } from "./looks";
 import { PrimitiveRunner, Room, createMoving, type RunnerLimbs } from "./Primitives";
 import { gaitFrameDt, stepRunnerGait } from "./gait";
 import { groundRingScale } from "./marker";
@@ -106,11 +111,13 @@ function placeBadge(camera: PerspectiveCamera, canvasHeight: number, x: number, 
 
 const Simulation = memo(function Simulation({ run, yaw }: { run: EscapeRun; yaw: number }) {
    const input = useInput();
+   const fx = useFx();
    const camera = useThree((s) => s.camera) as PerspectiveCamera;
    const height = useThree((s) => s.size.height);
    const [scratch] = useState(() => ({ dir: { x: 0, z: 0 }, input: createStepInput(), hint: -1, mask: -1, found: -1 }));
 
    useLayoutEffect(() => {
+      fx.warm("sparkle", "confetti");
       const store = useArcadeStore.getState();
       store.setStat("found", 0);
       store.setStat("searched", 0);
@@ -118,7 +125,7 @@ const Simulation = memo(function Simulation({ run, yaw }: { run: EscapeRun; yaw:
       store.setStat("hint", 0);
       store.setStat("nextItem", run.order[0]);
       store.setStat("exitReady", run.exitReady ? 1 : 0);
-   }, []);
+   }, [fx, run]);
 
    useRunFrame((_state, dt) => {
       const now = input.current;
@@ -156,6 +163,7 @@ const Simulation = memo(function Simulation({ run, yaw }: { run: EscapeRun; yaw:
          store.setStat("found", run.found);
          store.setStat("mask", run.foundMask);
          playSfx("pickup");
+         fx.burst("sparkle", { x: run.player.x, y: 0.8, z: run.player.z }, 16);
       }
       if (ev.opened !== NONE || ev.found !== NONE) {
          let searched = 0;
@@ -173,8 +181,12 @@ const Simulation = memo(function Simulation({ run, yaw }: { run: EscapeRun; yaw:
       if (hint !== scratch.hint) {
          scratch.hint = hint;
          store.setStat("hint", hint);
+         if (hint === 1) {
+            fx.shake(0.12);
+         }
       }
       if (ev.ended === "win") {
+         fx.burst("confetti", { x: 0, y: 1.8, z: -4.5 }, 24);
          if (run.level.id !== 1) store.setStat("finishMs", run.finishMs);
          store.end("win");
       }
@@ -210,7 +222,7 @@ function Badge({ run }: { run: EscapeRun }) {
       <group ref={mesh} name="inspect-badge">
          <mesh>
             <planeGeometry args={[1, 1]} />
-            <meshBasicMaterial ref={fill} color="#eab308" transparent opacity={BADGE_LOOK.fill} depthWrite={false} />
+            <meshBasicMaterial ref={fill} color={COLORS.accentYellow} transparent opacity={BADGE_LOOK.fill} depthWrite={false} />
          </mesh>
          <mesh position={[0, 0, 0.01]}>
             <ringGeometry args={[0.28, 0.42, 20]} />
@@ -315,7 +327,7 @@ function Runner({ run }: { run: EscapeRun }) {
          <group ref={marker} rotation-x={-Math.PI / 2} name="runner-marker">
             <mesh>
                <ringGeometry args={[0.35, 0.5, 20]} />
-               <meshBasicMaterial color="#eab308" transparent opacity={0.9} depthWrite={false} />
+               <meshBasicMaterial color={COLORS.accentYellow} transparent opacity={0.9} depthWrite={false} />
             </mesh>
          </group>
          <group ref={root} name="runner">
@@ -334,7 +346,10 @@ function Runner({ run }: { run: EscapeRun }) {
 }
 
 export default function Scene() {
-   const { config } = useLevel<EscapeLevel>();
+   const { config, id } = useLevel<EscapeLevel>();
+   const look = LEVEL_LOOKS[id] ?? LEVEL_LOOKS[1];
+   useStageLighting(look.lighting, 1.2, look.bg, look.fog);
+
    const view = useFittedView(VIEW);
    const [run] = useState(() => createRun(randomSeed(), config));
    const [moving] = useState(() => ({ current: createMoving(run.stations.length, run.items.length) }));
@@ -346,6 +361,7 @@ export default function Scene() {
 
    return (
       <>
+         <SkyDome top={look.skyTop} bottom={look.skyBottom} />
          <Simulation run={run} yaw={view.yaw} />
          <CameraRig
             camera={{ position, fov: 45, lookAt: ROOM_FOCUS }}
@@ -353,6 +369,7 @@ export default function Scene() {
             shift={view.shift}
          />
          <Room run={run} moving={moving} />
+         <Decor />
          <Badge run={run} />
          <Runner run={run} />
       </>
