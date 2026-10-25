@@ -129,7 +129,8 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/zoo-escape/bambooSnack.glb",
    // Menu 2 vertical slice (2026-10-25, Sky Tower Jump L1): text-to-3D props (1500-3000 tris, 512 px webp)
    // from ~/.play50/hyper3d/ready/menu2, already optimized by tools/hyper3d. menu2/ = shared by the
-   // Menu 2 games. (The hero is a code stand-in until the armadillo hero GLB exists: no hero GLB here.)
+   // Menu 2 games. m2HeroRiko is the Color Roll Heroes hero (static T-pose, no skeleton, auto-rigged).
+   "/models/3d/menu2/m2HeroRiko.glb",
    "/models/3d/menu2/islandA.glb",
    "/models/3d/menu2/islandB.glb",
    "/models/3d/menu2/islandC.glb",
@@ -143,6 +144,19 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/menu2/woodenLadder.glb",
    "/models/3d/menu2/scoreOrb.glb",
    "/models/3d/sky-tower-jump/skyPlatform.glb",
+   // P-121 dev adoptions (2026-10-25): V2 replacements and Group D variety whose QA verdict
+   // starts with OK. Optimized GLBs copied in; not re-optimized. Live games are untouched.
+   "/models/3d/shopping-cart/supermarketShelfV2.glb",
+   "/models/3d/shopping-cart/bakeryStand.glb",
+   "/models/3d/pirate-cannons/lighthouseV2.glb",
+   "/models/3d/delivery-drone/cityBrickApartment.glb",
+   "/models/3d/delivery-drone/cityGlassOffice.glb",
+   "/models/3d/luggage-rush/duffelBag.glb",
+   "/models/3d/luggage-rush/hardCaseTeal.glb",
+   "/models/3d/zoo-escape/zooRocks.glb",
+   "/models/3d/treasure-island/beachRocks.glb",
+   "/models/3d/penguin-slide/iceArch.glb",
+   "/models/3d/mini-golf/golfCastle.glb",
 ];
 
 const LISTED: ReadonlySet<string> = new Set(MODEL_MANIFEST);

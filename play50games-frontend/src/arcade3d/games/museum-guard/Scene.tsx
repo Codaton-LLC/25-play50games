@@ -22,6 +22,7 @@ import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { useEyeShift } from "@/arcade3d/core/useEyeShift";
 import { useRunFrame } from "@/arcade3d/core/useRunFrame";
 import { EXHIBIT_LOOK, statueAsset } from "./assets";
+import { useMuseumLevel } from "./useMuseumLevel";
 import { SoftBeam } from "./Beam";
 import Gallery from "./Gallery";
 import { BAND, COLORS, EYE, EYE_Y, FOV, MARGIN, PADDING, radarRect } from "./looks";
@@ -31,11 +32,10 @@ import {
    DRAG_PX_PER_TURN,
    FLASH,
    liveRun,
-   PHASES,
    RING,
    TURN_RATE,
    TYPES,
-   beamHalf,
+   beamHalfFor,
    createRun,
    stepGame,
    wrapAngle,
@@ -73,7 +73,7 @@ function secondsLeft(run: Run, index: number): number {
    const ex = run.exhibits[index];
    const ped = run.pedestals[ex.pedestal];
    const dist = Math.hypot(ex.x - ped.exitX, ex.z - ped.exitZ);
-   const speed = ex.coast > 0 ? ex.coastSpeed : TYPES[ex.kind].speed * PHASES.speed[run.phase];
+   const speed = ex.coast > 0 ? ex.coastSpeed : TYPES[ex.kind].speed * run.level.speed[run.phase];
    return (dist - BEAM.alarm) / Math.max(0.05, speed);
 }
 
@@ -154,9 +154,10 @@ function FloorMarks({ run }: { run: Run }) {
 }
 
 export default function Scene() {
+   const { config } = useMuseumLevel();
    const runId = useArcadeStore((s) => s.runId);
    const phase = useArcadeStore((s) => s.phase);
-   const run = useMemo(() => createRun(randomSeed()), [runId]);
+   const run = useMemo(() => createRun(randomSeed(), config), [runId, config]);
    const statues = useMemo(() => INDEXES.map((i) => statueAsset(run.exhibits[i].kind, i)), [run]);
    const input = useInput();
    const fx = useFx();
@@ -204,7 +205,8 @@ export default function Scene() {
       store.setStat("alarms", run.alarms);
       store.setStat("returns", 0);
       store.setStat("flash", 0);
-      store.setStat("dawn", PHASES.dawn);
+      store.setStat("dawn", run.level.dawn);
+      store.setStat("dawnCap", run.level.dawn);
       return () => {
          if (liveRun.current === run) liveRun.current = null;
       };
@@ -320,7 +322,7 @@ export default function Scene() {
             <StatueView key={`${run.seed}-${i}`} index={i} run={run} asset={statues[i]} />
          ))}
          <FloorMarks run={run} />
-         <SoftBeam ref={beamRef} halfAngle={beamHalf(beamPhase, coarse)} range={BEAM.range} height={1.55} color={COLORS.beam} opacity={0.3} light intensity={24} />
+         <SoftBeam ref={beamRef} halfAngle={beamHalfFor(config.beam, beamPhase, coarse)} range={BEAM.range} height={1.55} color={COLORS.beam} opacity={0.3} light intensity={24} />
          <group ref={flashRef}>
             <SoftBeam halfAngle={FLASH.half} range={BEAM.range} height={1.55} color={COLORS.flash} opacity={0.22} />
          </group>

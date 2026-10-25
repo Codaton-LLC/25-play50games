@@ -119,6 +119,36 @@ Existing GLBs only, no Hyper3D credits. Fits from measured bounds, checked on th
 | 0.61 s metronome | 32 | 50–1500 (mean 703) | max < human min; mean < 0.3 x human mean |
 | arrive and press once, pulse-blind | 32 | 150–2100 (mean 1286) | max < human min; mean < 0.45 x human mean (3391); max < 0.35 x oracle |
 
+## Look (2026-10-24, revised P-90)
+
+Modern-look pass (Task P-86 & P-90): polished whimsical alien farm aesthetic, visual-only.
+- **Lighting & Atmosphere:** core `"sunset"` lighting preset configured via GameDefinition environment in `index.tsx`, linear purple dusk fog (`FOG.near = 32`, `FOG.far = 85`), gradient `SkyDome` (`#09041e` overhead to `#5b21b6` at sunset horizon), and `Starfield` (700 stars).
+- **Two Celestial Moons:** large cratered lavender primary moon and glowing cyan/teal minor moon positioned in the upper camera sky view (`Moons` following camera orientation), both `fog={false}`.
+- **Plum Ground & Beds with Dark Teal Furrows:** wide soil plane in rich alien plum (`COLORS.soil` `#3b0764`), purple planter frames (`COLORS.bed` `#4c1d95`), plum bed soil base (`COLORS.bedSoil` `#2e1065`), and 3 parallel dark teal furrow ridges (`COLORS.furrowRidge` `#0e4b56`) for high contrast against green mint crops (`#4ade80`), linked by glowing cyan irrigation channels (`COLORS.channel` `#22d3ee`).
+- **Surroundings & Decor in Camera Window (`Decor.tsx`):**
+  - Strange rock spires: tapering hexagonal crystal/rock columns with faceted crystal tips (`COLORS.spire` `#581c87` / `COLORS.spireTip` `#c084fc`), instanced along north perimeter and flank pathways.
+  - Glowing alien plants: curved stalks with bioluminescent bulbous caps (`COLORS.plantCap` `#2dd4bf` / `plantGlow` `#a7f3d0`), instanced along pathways and bed borders.
+  - Silo: futuristic storage silo with rounded dome cap, hopper ring and glowing conduit pipe (`COLORS.siloBody` `#cbd5e1` / `siloGlow` `#38bdf8`) northwest of Bed 0 (`[-6.5, 0, -5.4]`) in full camera view.
+  - Distant hills: procedurally triangulated low-poly rolling ridge mesh outside the farm (`hillMesh()`), rising to the north and distant flanks, and flat in the south foreground (`z >= 7.0`) to avoid any rim band under the joystick.
+  - Camera window framing: all decor instances fall inside the camera-visible farm area (`[-7, 7] x [-5.8, 5.8]`), clear of the crop beds, and never occlude plot targets at 1280x800, 390x844, and 844x390 (`looks.test.ts`).
+  - Seamless ground: wide plum soil plane extends to radius 90, guaranteeing no sky/void shows below the scene.
+- **Code-made stand-ins:**
+  - Alien farmer: bevelled boots with sole trim (`RoundedBoxGeometry`), blue overalls with bib and strap buttons, cream shirt collar and cuffs, large glossy eyes, and cute glowing mint antennae.
+  - Woven basket: dual-tone with darker rim trim (`COLORS.basketDark`).
+  - Saucer: multi-tone lathe hull with dark undercarriage rim, glowing beam emitter, and glowing canopy dome.
+  - Crops: fluted glowing bulbs and spiral gourds over styled leaves with dark undersides.
+  - Rocks & crates: faceted alien crystal clusters (flat-shaded low-poly) and reinforced banded crates.
+- **Juicy feedback:** 26-particle glow sparkle burst on perfect pick with rising chime, gold score popups, camera shake only on streaks of 3 or more; existing burst puffs/thuds and delivery bursts preserved.
+- **Draw-call budget estimate (<= 60):**
+  - Farm & sky: 8 (SkyDome 1, Starfield 1, primary moon 1, minor moon 1, soil plane 1, distant hills 1, bed frames 1, bed soil & furrows 2, channels 1)
+  - Decor: 5 (rock spires 1, plant stalks 1, plant caps 1, silo structure 1, silo conduit 1; rocks & crates via InstancedModel 2)
+  - Crops: 7 (glowPod pool 2, gourd pool 2, timing rings 1, timing fills 1, seed mounds 1, spore discs 1, cooldown ring 1)
+  - Saucer: 3 (model 1, beam cone 1, beam ring 1)
+  - Farmer: 3 (alien humanoid model 1, basket 1, shadow 1)
+  - Target markers: 0 (pure DOM)
+  - Active FX & score popups: ~4-6 when active
+  - Total estimated draw calls: ~32-36 (comfortably below the 60 budget limit). All geometries and materials created once and disposed on unmount; no `dispose={null}` on primitives.
+
 ## Performance
 
 Target ≤ 45 draw calls. Estimate: farm 10 (sky, stars, moon, ground, rim, bed bodies, bed soil, channels, rocks, crates), crops 7 (two pools, rings, fills, seeds, spores, cooldown), saucer 3 (GLB, beam, ring), farmer 3 (skinned GLB, shadow, basket), fx ≤ 7 (sparkle, puff, confetti, ≤ 4 score sprites): about 30, peak ≈ 33. No extra lights; pools fixed; no allocation, `setState` or `Color.set` in frame callbacks (one cached `Color` set per pool); geometry built once per mount and disposed. Not measured in a browser yet.
@@ -164,7 +194,7 @@ TASK P-18-alien-farm | build alien-farm | branch claude/game-alien-farm | allowe
 
 **Proposed limits:** maxScore 12900, minDurationMs 99000, maxDurationMs 102000, base 200, maxPointsPerSec 250. Proof: every crop ≤ 150 + 50 perfect (a 25 n² load is ≤ 100 per crop); an exhaustive label search (`bound.ts`, brute-force cross-checked) over all 16 offset tables, relaxing acceleration, carry/spore slowdown, deliveries and the ship (so it holds for every s0 and direction), certifies S\* = 12400 (H\* = 71 picks); maxScore = 100 ceil(1.04 S\*/100). Rate: 200 H ≤ 200 + 250 (2.40 + (H − 1) 71/90) for H ≤ 124 (margin 258.3); a run is exactly 100000 ms.
 
-**Bot results** (32 seeds = every table x both routes, frames cycling 30/60/144 Hz + random; every run: store = rules score, within limits, prefix ≤ min(maxScore, 200 + 250 t), capScore no-op): oracle 5450–7275 (best 56.4 % of maxScore); human-paced 2575–4375; slower human 2500–3875; idle 0; hold 0; camp ≤ 400; spin ≤ 400; 5 Hz spam 0; 0.61 s metronome 800–2200; arrive-and-press 1950–3400.
+**Bot results** (32 seeds = every table x both routes, frames cycling 30/60/144 Hz + random; every run: store = rules score, within limits, prefix ≤ min(maxScore, 200 + 250 t), `withinServerLimits`, `capScore` a no-op): oracle 5450–7275 (best 56.4 % of maxScore); human-paced 2575–4375; slower human 2500–3875; idle 0; hold 0; camp ≤ 400; spin ≤ 400; 5 Hz spam 0; 0.61 s metronome 800–2200; arrive-and-press 1950–3400.
 
 **Draw calls (estimate):** about 30, peak ≈ 33 (target 45, cap 150). No extra lights.
 

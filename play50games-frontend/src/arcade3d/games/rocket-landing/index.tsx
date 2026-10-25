@@ -36,7 +36,7 @@ const definition: GameDefinition<RocketLevel> = {
    durationMs: DURATION_MS,
    lives: 3,
    camera: { position: [0, 8, 40], fov: 35, lookAt: [0, 8, 0] },
-   environment: { background: "#020617", lighting: "space" },
+   environment: { background: "#020617", lighting: "space", fog: ["#020617", 45, 120] },
    touchControls: ["joystick", "jump"],
    touchLabels: { jump: "Thrust" },
    hudStats: [],

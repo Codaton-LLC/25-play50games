@@ -32,11 +32,11 @@ costs time and sends you back to the last beacon.
 | `rules.ts` | pure rules: the course, the ms clock, movement, collisions, movers, pads, checkpoints, falls, orbs, the finish, the lower bound and `PROPOSED_LEVEL_LIMITS` |
 | `bot.ts` | the honest bot (tests, and `?autoplay=1` on preview builds for screenshots) |
 | `camera.ts` | the follow camera goal, the play pose, the intro keyframes (pure) |
-| `Armadillo.tsx` | the hero's code stand-in (armadillo/pangolin, Riko red plates, glowing lines, helmet + visor) behind the `ASSETS.hero` slot |
+| `Armadillo.tsx` | the hero's code stand-in (fallback) and the ball of plates it curls into |
 | `look.ts` | palette, canvas textures (clouds, glows, waterfall, pad arrow), the billboard shader |
 | `World.tsx` | sky, cloud sea and banks, background islands and castles, waterfalls, motes, rock roots |
 | `Course.tsx` | the playable course drawn from the rules' data: islands, checkpoints + beacons + beams, movers, bridges, pads + glows, gate + portal, orbs + halos, ladders |
-| `Hero.tsx` | the hero: the `ASSETS.hero` slot (stand-in until the Hyper3D GLB exists), its pose per frame, blob shadow |
+| `Hero.tsx` | the hero: `m2HeroRiko.glb` on the auto-rig (stand-in fallback), its pose per frame, the curl ball, blob shadow |
 | `Scene.tsx` | simulation (useRunFrame), juice, follow camera, the intro camera and the hero's drop |
 | `Hud.tsx` / `Hud.module.css` | the concept-style HUD: orbs, height, title banner, run clock |
 | `rules.test.ts`, `assets.test.ts` | rules, proof, bots, models, definition, camera |
@@ -170,21 +170,24 @@ proven the same way (step 6) and identical. Clear: a win (time game).
 
 CLAUDE.md decision 5 (redesigned 2026-10-25): an original armadillo/pangolin hero, **no eye mask, no
 turtle, nothing TMNT-like**. The hero colour is on the shell plates, the armour and the glowing lines.
-`ASSETS.hero` is the slot for the Hyper3D hero GLB (`armadilloHero`, being generated); its url is
-not in the model manifest yet, so nothing is fetched and `Hero.tsx` draws the **code stand-in**
-`Armadillo.tsx`, modelled on the user's approved concept (`%USERPROFILE%\.play50\concepts\groupB\B01-armadillo-hero.png`,
-never committed): Riko red overlapping plates from the crown down the back to a plated tail, glowing
-orange seams between them, red shoulder and knee pads with glowing edges, an open red helmet with a
-clear brim visor and headphones, tan skin and muzzle, a charcoal suit, a leather belt with a metal
-buckle. 1.45 m tall (a little taller than the 1.2 m collider so it reads at play size). The old
-turtle GLBs (`m2Hero*`, `turtleNinja`) are not used.
+`ASSETS.hero` is **m2HeroRiko.glb** (the red Color Roll Heroes hero; static T-pose, no skeleton),
+drawn through `<HumanoidModel>` with `RIKO_LANDMARKS` (`assets.ts`, measured 2026-10-25). Scale is
+1.45 / its height (1.9035), so it stands **1.45 m** tall, feet on the ground (`bodyLift`). The mesh
+is centred on its bounds (snout +z, tail −z), so the soles sit forward of the origin; Hero shifts
+the rig back by the sole centre. The tail is not a limb: `hemY` sits under it and `legDepth` is the
+shins only, so the tail tip is skirt-weighted to the hips and the spine (`hero.test.ts`).
 
-It is jointed in code (hips, legs, shoulders, arms, head, tail groups) and posed every frame
-(`stepHeroPose`, pure): run stride with arm swing, bob and lean, a tuck at the jump apex, **curled
-into its ball of plates** on bounce pads, in the intro drop and when falling (spinning with its
-speed), landing squash, a pop-in on respawn, arms up with a hop and a spin at the gate. When the
-Hyper3D GLB lands: add its url to the manifest, set `scale` = 1.45 / its height, and drive it through
-the core auto-rig if it is a clean T-pose (the ball curl then stays a code part).
+The **code stand-in** `Armadillo.tsx` stays the fallback (Riko red plates, glowing seams, open
+helmet and visor, tan muzzle, charcoal suit). The **ball of plates** is still that stand-in's
+mesh (`ArmadilloBall`): bounce pads, the intro drop and a fall curl into it and spin with the
+speed. No hero selection yet (Nami, Kiro, Zuno and Vexa are not loaded). The old turtle GLBs
+(`m2Hero1/2/3`, `turtleNinja`) are not used.
+
+Posed every frame (`stepHeroPose`, then the rig): `walkPose` on the rig's own stride (capped at
+5 strides a second: at 6.5 m/s the own stride is 0.83 m, so the cap stretches it and the planted
+foot slides about a third of the step), `jumpPose` in the air, `cheerPose` at the gate, bob and
+lean, landing squash, a pop-in on respawn. The stand-in, while it is showing, still swings its
+own joints from the same pose.
 
 ## Intro (core/intro, opted in)
 
@@ -207,7 +210,7 @@ level start at once.
 | phone 390 x 844, 4x CPU throttle | 38 / 59 | 197k | 16.7 / 27.4 / 182 (the max is the intro -> run remount) |
 | landscape phone 844 x 390 | 38 / 60 | 197k | 16.7 / 16.8 / 30.7 |
 
-The hero stand-in is baked into about 20 merged meshes (`buildArmadilloShapes`, tested); every
+Those runs drew the code stand-in (about 20 merged meshes). With `m2HeroRiko.glb` the hero is one skinned mesh, plus the ball of plates while it is curled. The stand-in is baked into about 20 merged meshes (`buildArmadilloShapes`, tested) and is only the fallback; every
 repeated prop is instanced (`InstancedModel`, `DynamicInstancedModel` for movers and coins, one
 billboard field per cloud layer). These runs include the autoplay bot's look-ahead (a 2 s simulation
 copy per grounded frame), which a real player does not pay. No per-frame allocation in the frame loops
@@ -215,8 +218,8 @@ copy per grounded frame), which a real player does not pay. No per-frame allocat
 
 ## Known gaps vs the concept (for the sign-off)
 
-1. **The hero is a code stand-in** (rounded shapes, jointed in code) until the Hyper3D armadillo
-   GLB exists; it reads as the concept's silhouette at play size but not its sculpted detail.
+1. **The curl is still the code ball** (the GLB has no roll pose). The sculpted hero shows while
+   it runs and jumps; bounce pads, falls and the intro drop swap in the ball of plates.
 2. **No hero choice and no abilities** (Dash, Double Jump, Shield, Magnet, Phase): only Riko (red).
 3. **Rock roots** under the islands are low-poly code rock, flatter than the concept's sculpted cliffs.
 4. **No real shadows** (blob shadow only); the concept's soft contact shadows are not there.
@@ -234,7 +237,8 @@ copy per grounded frame), which a real player does not pay. No per-frame allocat
 buffer, the per-ms speed bound on every level, movers, falls/respawn timing, finalScore, the lower
 bound pieces, the limits per level, the honest bot on every level at 30/60/144 fps, the idle bot,
 200 spam bots, the honest bot through the real store with ragged frames.
-`assets.test.ts` (29): every GLB listed, on disk, in budget (the shared coin included), `GLB_SIZE`
-equal to the real meshes and their walkable tops, the empty hero slot (`m2ArmadilloHero`, never
-fetched until it exists), the baked stand-in (at most 22 meshes, feet on 0, 1.45 m tall), the
-definition's levels and intro, the intro ending on the follow camera's pose.
+`assets.test.ts`: every GLB listed, on disk, in budget (the hero and the shared coin included),
+`GLB_SIZE` equal to the real meshes and their walkable tops, the baked stand-in (at most 22
+meshes, feet on 0, 1.45 m tall), the definition's levels and intro, the intro ending on the
+follow camera's pose. `hero.test.ts`: Riko's landmarks, 1.45 m with feet on 0, the tail tip on
+the hips and the spine.

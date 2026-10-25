@@ -1,6 +1,6 @@
 // The Menu 2 GLBs as Sky Tower Jump draws them: listed in the manifest, within budget, GLB_SIZE equal
 // to the real (meshopt-decoded) meshes, the platform tops where the Scene puts the rules' tops, the
-// the empty hero slot (the stand-in draws), and the definition's levels.
+// baked hero stand-in, and the definition's levels. The hero GLB's rig is hero.test.ts.
 import { statSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -39,7 +39,6 @@ function topAt(cloud: Float32Array, x: number, z: number, r = 0.12): number {
 
 describe("sky-tower-jump models", () => {
    for (const [key, asset] of Object.entries(ASSETS)) {
-      if (key === "hero") continue;
       it(`${key}: listed, on disk, within its byte budget`, () => {
          expect(hasModel(asset.url), asset.url).toBe(true);
          const bytes = statSync(path.join(PUBLIC, asset.url)).size;
@@ -90,9 +89,7 @@ describe("sky-tower-jump models", () => {
       expect(top).toBeLessThan(ARMADILLO.height + 0.06);
    });
 
-   it("keeps the hero slot empty until the armadillo GLB exists (never fetched; the stand-in draws)", () => {
-      expect(hasModel(ASSETS.hero.url)).toBe(false);
-      expect(ASSETS.hero.url).toBe("/models/3d/menu2/m2ArmadilloHero.glb");
+   it("keeps the stand-in at the hero's drawn height", () => {
       expect(ARMADILLO.height).toBeCloseTo(1.45, 6);
    });
 });

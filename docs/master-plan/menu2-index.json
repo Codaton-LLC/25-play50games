@@ -14,8 +14,8 @@
   },
   {
     "n": 2,
-    "slug": "ninja-rooftop-climb",
-    "title": "Ninja Rooftop Climb",
+    "slug": "rooftop-roll-climb",
+    "title": "Rooftop Roll Climb",
     "genre": "Vertical rooftop climb",
     "levels": [
       "Low Roofs",
@@ -131,8 +131,8 @@
   },
   {
     "n": 11,
-    "slug": "ninja-dash",
-    "title": "Ninja Dash",
+    "slug": "roll-dash",
+    "title": "Roll Dash",
     "genre": "3-lane endless runner",
     "levels": [
       "Training Street",
@@ -404,8 +404,8 @@
   },
   {
     "n": 32,
-    "slug": "shell-bounce-arena",
-    "title": "Shell Bounce Arena",
+    "slug": "plate-bounce-arena",
+    "title": "Plate Bounce Arena",
     "genre": "Physics bounce arena",
     "levels": [
       "Single Bounce",
@@ -417,8 +417,8 @@
   },
   {
     "n": 33,
-    "slug": "shadow-clone-dash",
-    "title": "Shadow Clone Dash",
+    "slug": "mirror-dash",
+    "title": "Mirror Dash",
     "genre": "Runner memory challenge",
     "levels": [
       "3-Step Route",
@@ -469,8 +469,8 @@
   },
   {
     "n": 37,
-    "slug": "shell-surf",
-    "title": "Shell Surf",
+    "slug": "plate-surf",
+    "title": "Plate Surf",
     "genre": "Downhill board/shell surf",
     "levels": [
       "Training Slope",
@@ -482,8 +482,8 @@
   },
   {
     "n": 38,
-    "slug": "laser-maze-ninja",
-    "title": "Laser Maze Ninja",
+    "slug": "laser-maze-run",
+    "title": "Laser Maze Run",
     "genre": "Precision maze challenge",
     "levels": [
       "Static Lasers",
@@ -508,8 +508,8 @@
   },
   {
     "n": 40,
-    "slug": "ninja-target-throw",
-    "title": "Ninja Target Throw",
+    "slug": "disc-target-throw",
+    "title": "Disc Target Throw",
     "genre": "Arcade target challenge",
     "levels": [
       "Static Targets",
@@ -547,8 +547,8 @@
   },
   {
     "n": 43,
-    "slug": "shell-cannon-jump",
-    "title": "Shell Cannon Jump",
+    "slug": "roll-cannon-jump",
+    "title": "Roll Cannon Jump",
     "genre": "Launch trajectory platformer",
     "levels": [
       "Short Launch",
@@ -599,8 +599,8 @@
   },
   {
     "n": 47,
-    "slug": "ninja-balance-path",
-    "title": "Ninja Balance Path",
+    "slug": "tightrope-path",
+    "title": "Tightrope Path",
     "genre": "Balance obstacle course",
     "levels": [
       "Wide Beams",
@@ -625,8 +625,8 @@
   },
   {
     "n": 49,
-    "slug": "ninja-zipline-rush",
-    "title": "Ninja Zipline Rush",
+    "slug": "zipline-rush",
+    "title": "Zipline Rush",
     "genre": "Zipline traversal game",
     "levels": [
       "Training Line",
@@ -646,7 +646,7 @@
       "Runner Trial",
       "Color Trial",
       "Mixed Trial",
-      "Grand Ninja Trial"
+      "Grand Hero Trial"
     ]
   }
 ]

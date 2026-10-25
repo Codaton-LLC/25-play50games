@@ -4,13 +4,23 @@
 // The shell owns the screens, the HUD chips, the 240 s clock, pause and the score submit.
 // The game owns Scene.tsx (one step per frame, then the draw), rules.ts (already built) and
 // Primitives.tsx (the three maps). Status stays "soon"; scoring is meta.ts (README "Server limits").
+import { LEVEL_IDS, type LevelId } from "../../types";
+import { LEVELS, type CleanLevel } from "./levels";
+import { LEVEL_LOOKS } from "./looks";
 import type { GameDefinition } from "@/arcade3d/core/types";
 import Scene from "./Scene";
 import MapHud from "./Hud";
 import { ASSETS } from "./assets";
 import { DURATION_MS, ITEMS_PER_MAP, MAP_COUNT } from "./rules";
 
-const definition: GameDefinition = {
+const DESCRIPTIONS: Record<LevelId, string> = {
+   1: "The original park, city and beach: 60 pieces in four minutes.",
+   2: "72 pieces and extra bins. Return to the white pad after clearing each map.",
+   3: "84 pieces. Moving amber maintenance zones slow you down.",
+   4: "96 pieces at night. Sort the highlighted batch before the next batch opens.",
+   5: "108 pieces, every hazard, and +10 for pickups less than four seconds apart.",
+};
+const definition: GameDefinition<CleanLevel> = {
    slug: "clean-city",
    Scene,
    Hud: MapHud,
@@ -20,6 +30,21 @@ const definition: GameDefinition = {
    // the HUD, the map pill, the joystick and the cookie banner, and follows the runner
    camera: { position: [0, 18.2, 12.3], fov: 45, lookAt: [0, 0, 0] },
    environment: { background: "#8ec5f0", lighting: "day" },
+   levels: LEVEL_IDS.map((id) => ({
+      id, description: DESCRIPTIONS[id], config: LEVELS[id],
+      durationMs: LEVELS[id].durationMs, environment: LEVEL_LOOKS[id],
+      hudStats: [
+         { key: "items", label: "Litter", max: LEVELS[id].items },
+         { key: "map", label: "Map", max: MAP_COUNT },
+      ],
+      ...(id === 1 ? {} : { instructions: [
+         `Collect ${LEVELS[id].items} pieces on each of the three maps. +75 a piece; +5 per second left on a win.`,
+         "Return to the white start ring after collecting each map's litter.",
+         ...(id >= 3 ? ["Avoid the amber rings around moving maintenance bins: they slow you down."] : []),
+         ...(id >= 4 ? ["Sort bottles and bags first, then cans and bananas. The current batch has bright rings."] : []),
+         ...(id === 5 ? ["Keep pickups less than four seconds apart for +10 each."] : []),
+      ] }),
+   })),
    touchControls: ["joystick"],
    hudStats: [
       { key: "items", label: "Litter", max: ITEMS_PER_MAP },

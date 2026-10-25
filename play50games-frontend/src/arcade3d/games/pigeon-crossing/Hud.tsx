@@ -3,6 +3,7 @@
 import { create } from "zustand";
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import type { GateReason } from "./camera";
+import { usePigeonLevel } from "./level";
 import { PREVIEW_MS } from "./rules";
 import styles from "./Hud.module.css";
 
@@ -13,13 +14,14 @@ export const useStreetGate = create<{ reason: GateReason; setReason(reason: Gate
 }));
 
 export default function Hud() {
+   const { config } = usePigeonLevel();
    const preview = useArcadeStore((state) => state.phase === "playing" && state.elapsedMs < PREVIEW_MS);
    const reason = useStreetGate((state) => state.reason);
    if (!preview && !reason) return null;
    return (
       <div className={styles.root}>
          <div className={styles.hint} role="status" aria-live="polite">
-            {reason ? <><strong>{reason === "size" ? "Make the window larger" : "Make the window wider"}</strong><span>Then press Resume to keep crossing.</span></> : <><strong>Watch the gaps</strong><span>Get ready to hop. Grass is safe.</span></>}
+            {reason ? <><strong>{reason === "size" ? "Make the window larger" : "Make the window wider"}</strong><span>Then press Resume to keep crossing.</span></> : <><strong>Watch the gaps</strong><span>{config.id === 1 ? "Get ready to hop. Grass is safe." : "Parked vans block outer grass. Wait in the centre."}</span></>}
          </div>
       </div>
    );

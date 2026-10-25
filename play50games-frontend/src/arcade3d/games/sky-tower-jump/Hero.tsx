@@ -1,18 +1,30 @@
 "use client";
 
-// The Menu 2 hero on the course: the asset slot ASSETS.hero (the Hyper3D armadillo hero GLB once it
-// exists; until then the code stand-in, Armadillo.tsx), placed and posed from the run every frame.
-// It runs with a stride, a bob and a lean, tucks into a jump, curls into its ball of plates on a
-// bounce pad and when it falls (spinning), squashes on landing, pops back in on its checkpoint and
-// cheers with a hop and a spin at the gate. A blob shadow sits on the platform under it.
+// The Menu 2 hero on the course: m2HeroRiko.glb through the core auto-rig (HumanoidModel), with the
+// code stand-in (Armadillo.tsx) as the fallback. Placed and posed from the run every frame. It runs
+// with a stride, a bob and a lean, tucks into a jump, curls into its ball of plates on a bounce pad
+// and when it falls (spinning), squashes on landing, pops back in on its checkpoint and cheers with
+// a hop and a spin at the gate. A blob shadow sits on the platform under it.
 import { useMemo, useRef, type MutableRefObject } from "react";
 import { useFrame } from "@react-three/fiber";
 import { type Group, type Mesh, type MeshBasicMaterial } from "three";
-import { Model } from "@/arcade3d/core/assets";
 import { useGameTime } from "@/arcade3d/core/gameTime";
 import { turnTowards } from "@/arcade3d/core/math";
-import { ASSETS } from "./assets";
-import { ARMADILLO, ArmadilloStandIn, createArmadilloPose, type ArmadilloPose } from "./Armadillo";
+import {
+   HumanoidModel,
+   POSE_MASK,
+   blendPoses,
+   cheerPose,
+   createPose,
+   gaitPhaseStep,
+   idlePose,
+   jumpPose,
+   useHumanoidPose,
+   walkPose,
+   type HumanoidPose,
+} from "@/arcade3d/core/rig";
+import { ASSETS, RIKO_LANDMARKS, RIKO_SCALE, RIKO_SOLE_Z } from "./assets";
+import { ARMADILLO, ArmadilloBall, ArmadilloStandIn, createArmadilloPose, type ArmadilloPose } from "./Armadillo";
 import { V_BOUNCE, V_JUMP, V_RUN, arcVy, supportX, supportZ, type SkyRun } from "./rules";
 
 /** Moments the Scene stamps (useGameTime().now) for the animation. */
@@ -36,6 +48,14 @@ export const INTRO_DROP = 24;
 
 const approach = (from: number, to: number, rate: number, dt: number) => from + (to - from) * (1 - Math.exp(-rate * dt));
 
+/**
+ * Strides a second at the fastest. A full run is 6.5 m/s on this hero's own 0.83 m stride, which
+ * would be 8 strides a second. The cap holds it at 5: the stride stretches to 1.30 m and the planted
+ * foot slides about a third of the step. The short legs would cycle even faster at a jog, so the cap
+ * bites there too.
+ */
+export const HERO_CADENCE = 5;
+
 /** The pose for one frame (pure apart from the eased fields it keeps in `pose`). */
 export function stepHeroPose(pose: ArmadilloPose, run: SkyRun, anim: HeroAnim, now: number, dt: number): void {
    const h = run.hero;
@@ -57,33 +77,74 @@ export function stepHeroPose(pose: ArmadilloPose, run: SkyRun, anim: HeroAnim, n
    pose.run = approach(pose.run, runAmount, 14, dt);
    pose.tuck = approach(pose.tuck, tuck, 16, dt);
    pose.roll = approach(pose.roll, roll, roll > pose.roll ? 18 : 12, dt);
-   pose.phase += speed * dt * 2.6;
+   // the rig's own stride, capped so a full run does not buzz (bodyLift keeps the sole on the floor)
+   pose.phase += gaitPhaseStep(pose.run, RIKO_LANDMARKS, RIKO_SCALE, speed, dt, HERO_CADENCE);
    // the ball spins forward with the speed it travels (vertical included)
    pose.spin += (Math.sqrt(speed * speed + vy * vy) / ARMADILLO.ballRadius) * dt * (pose.roll > 0.05 ? 1 : 0);
    const tw = now - anim.winAt;
    pose.cheer = approach(pose.cheer, tw >= 0 && tw < 3 ? 1 : 0, 10, dt);
 }
 
+const JUMP = createPose();
+const IDLE = createPose();
+const CHEER = createPose();
+
+/** Run, jump and cheer on the auto-rig. The curl is the ball, not a bone pose. */
+function driveRig(arm: ArmadilloPose, out: HumanoidPose): void {
+   walkPose(arm.phase, arm.run, out);
+   const idle = (1 - arm.run) * (1 - arm.tuck) * (1 - arm.cheer);
+   if (idle > 0) blendPoses(out, idlePose(arm.time, IDLE), idle, out, POSE_MASK.upper);
+   if (arm.tuck > 0) blendPoses(out, jumpPose(1, JUMP), arm.tuck, out);
+   if (arm.cheer > 0) blendPoses(out, cheerPose(arm.time, CHEER), arm.cheer, out, POSE_MASK.upper);
+}
+
 export function Hero({ run, anim, ground }: { run: SkyRun; anim: HeroAnim; ground: MutableRefObject<number> }) {
    const time = useGameTime();
    const root = useRef<Group>(null);
    const pivot = useRef<Group>(null);
-   const body = useRef<Group>(null);
+   const rigWrap = useRef<Group>(null);
+   const shift = useRef<Group>(null);
    const shadow = useRef<Mesh>(null);
    const pose = useRef<ArmadilloPose>(createArmadilloPose());
    const state = useRef({ yaw: Math.PI, bob: 0 });
-   const standIn = useMemo(() => <ArmadilloStandIn pose={pose} />, []);
+   // non-null only while the stand-in is mounted (the GLB failed or is still unlisted)
+   const standInMount = useRef<Group>(null);
+   const standIn = useMemo(
+      () => (
+         <group ref={standInMount}>
+            <ArmadilloStandIn pose={pose} />
+         </group>
+      ),
+      [],
+   );
+   const rigPose = useHumanoidPose((p) => {
+      stepHeroPose(pose.current, run, anim, time.now, time.delta);
+      driveRig(pose.current, p);
+   });
 
    useFrame(() => {
       const g = root.current;
       const p = pivot.current;
-      const b = body.current;
-      if (!g || !p || !b) return;
+      const rig = rigWrap.current;
+      if (!g || !p || !rig) return;
       const h = run.hero;
       const now = time.now;
       const dt = time.delta;
       const speed = Math.sqrt(h.vx * h.vx + h.vz * h.vz);
-      stepHeroPose(pose.current, run, anim, now, dt);
+      const arm = pose.current;
+      const glb = standInMount.current == null;
+      // the GLB's soles sit forward of its origin; the stand-in's feet are already on z = 0
+      if (shift.current) shift.current.position.z = glb ? -RIKO_SOLE_Z * RIKO_SCALE : 0;
+      if (glb) {
+         const r = arm.roll;
+         rig.scale.setScalar(Math.max(0.001, 1 - r));
+         rig.position.y = ARMADILLO.ballRadius * r;
+         rig.visible = r < 0.98;
+      } else {
+         rig.scale.setScalar(1);
+         rig.position.y = 0;
+         rig.visible = true;
+      }
 
       let y = h.y;
       let visible = true;
@@ -141,9 +202,12 @@ export function Hero({ run, anim, ground }: { run: SkyRun; anim: HeroAnim; groun
       <>
          <group ref={root} rotation-y={Math.PI}>
             <group ref={pivot}>
-               <group ref={body}>
-                  <Model asset={ASSETS.hero} fallback={standIn} />
+               <group ref={rigWrap}>
+                  <group ref={shift}>
+                     <HumanoidModel asset={ASSETS.hero} pose={rigPose} fallback={standIn} />
+                  </group>
                </group>
+               <ArmadilloBall pose={pose} />
             </group>
          </group>
          <mesh ref={shadow} rotation-x={-Math.PI / 2} renderOrder={1}>

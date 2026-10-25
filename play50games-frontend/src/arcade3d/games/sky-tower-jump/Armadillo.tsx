@@ -5,8 +5,8 @@
 // overlapping plates from the crown down the back to a plated tail, glowing seams between them, red
 // shoulder and knee pads with glowing edges, an open helmet with a clear brim visor and headphones,
 // tan skin, a charcoal suit and a leather belt (no eye mask, nothing TMNT-like). It stands in the asset
-// slot ASSETS.hero (assets.ts): when the Hyper3D armadillo GLB exists, its url joins the manifest and
-// replaces this.
+// slot ASSETS.hero (assets.ts): the fallback while m2HeroRiko.glb is missing or broken. The curled
+// ball of plates is ArmadilloBall, drawn for the GLB and the stand-in alike.
 //
 // Rigged the simplest way: one group per joint (hips, legs, shoulders, arms, head, tail) turned by a pose
 // the Scene writes every frame, plus a ball of plates the hero rolls into (bounce pads, falls, the intro
@@ -345,7 +345,6 @@ export function ArmadilloStandIn({ pose }: { pose: MutableRefObject<ArmadilloPos
    const armR = useRef<Group>(null);
    const head = useRef<Group>(null);
    const tail = useRef<Group>(null);
-   const ball = useRef<Group>(null);
 
    useFrame(() => {
       const p = pose.current;
@@ -368,18 +367,12 @@ export function ArmadilloStandIn({ pose }: { pose: MutableRefObject<ArmadilloPos
          head.current.position.y = ARMADILLO.headY + Math.sin(p.time * 2.4) * 0.006;
       }
       if (tail.current) tail.current.rotation.y = Math.sin(p.phase * 0.5 + p.time) * 0.25 * (0.3 + p.run);
-      // the curl: the body shrinks into the ball of plates
+      // the curl: the body shrinks; ArmadilloBall (Hero.tsx) grows in its place
       const r = p.roll;
       if (body.current) {
          body.current.scale.setScalar(Math.max(0.001, 1 - r));
          body.current.position.y = ARMADILLO.ballRadius * r;
          body.current.visible = r < 0.98;
-      }
-      if (ball.current) {
-         ball.current.scale.setScalar(Math.max(0.001, r));
-         ball.current.visible = r > 0.02;
-         ball.current.rotation.x = p.spin;
-         m.ballGlow.emissiveIntensity = 1.4 + Math.sin(p.time * 10) * 0.5;
       }
    });
 
@@ -416,12 +409,32 @@ export function ArmadilloStandIn({ pose }: { pose: MutableRefObject<ArmadilloPos
                <mesh geometry={g.tail.shell} material={m.shell} />
             </group>
          </group>
-         {/* the ball of plates (curled up), centred above the feet */}
-         <group ref={ball} position={[0, ARMADILLO.ballRadius, 0]}>
-            <mesh geometry={g.roll.shell} material={m.shell} />
-            <mesh geometry={g.roll.body} material={m.body} />
-            <mesh geometry={g.roll.glow} material={m.ballGlow} />
-         </group>
+      </group>
+   );
+}
+
+/** The ball of plates the hero curls into. One for the GLB and the stand-in (Hero draws it). */
+export function ArmadilloBall({ pose }: { pose: MutableRefObject<ArmadilloPose> }) {
+   const m = useLooks();
+   const g = useShapes();
+   const ball = useRef<Group>(null);
+
+   useFrame(() => {
+      const p = pose.current;
+      const r = p.roll;
+      const node = ball.current;
+      if (!node) return;
+      node.scale.setScalar(Math.max(0.001, r));
+      node.visible = r > 0.02;
+      node.rotation.x = p.spin;
+      m.ballGlow.emissiveIntensity = 1.4 + Math.sin(p.time * 10) * 0.5;
+   });
+
+   return (
+      <group ref={ball} position={[0, ARMADILLO.ballRadius, 0]}>
+         <mesh geometry={g.roll.shell} material={m.shell} />
+         <mesh geometry={g.roll.body} material={m.body} />
+         <mesh geometry={g.roll.glow} material={m.ballGlow} />
       </group>
    );
 }
