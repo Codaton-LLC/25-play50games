@@ -1,9 +1,15 @@
-import { readFileSync } from "node:fs";
+import { readFileSync, existsSync } from "node:fs";
 import { resolve } from "node:path";
 import { Box3, Matrix4, Quaternion, Vector3 } from "three";
 import { describe, expect, it } from "vitest";
+import { hasModel } from "@/arcade3d/core/modelManifest";
 import { EXPANSION_CHARACTER_HEIGHT, EXPANSION_GLB_SIZE } from "@/arcade3d/core/sharedAssets";
-import { ASSETS, KID_SCALE, PINE_HEIGHT, SNOWMAN_GLB, SNOWMAN_HEIGHT, SNOWMAN_RADIUS, SNOWMAN_SCALE, SNOWMAN_STRETCH_XZ } from "./assets";
+import {
+   ASSETS, IGLOO_DRAWN, IGLOO_GLB, IGLOO_SCALE, IGLOO_SPOTS, IGLOO_WIDTH, KID_SCALE, PINE_HEIGHT,
+   SNOWMAN_BIG_DRAWN, SNOWMAN_BIG_GLB, SNOWMAN_BIG_HEIGHT, SNOWMAN_BIG_SCALE, SNOWMAN_BIG_SPOTS,
+   SNOWMAN_GLB, SNOWMAN_HEIGHT, SNOWMAN_RADIUS, SNOWMAN_SCALE, SNOWMAN_STRETCH_XZ, VILLAGE_LEVEL_IDS,
+} from "./assets";
+import { YARD } from "./rules";
 
 interface Glb {
    accessors: Array<{ min: number[]; max: number[] }>;
@@ -38,6 +44,13 @@ function bounds(url: string): Box3 {
 }
 
 describe("snowball-battle model fits", () => {
+   it("lists every asset url in the manifest with its GLB on disk", () => {
+      for (const asset of Object.values(ASSETS)) {
+         expect(hasModel(asset.url), asset.url).toBe(true);
+         expect(existsSync(resolve("public", asset.url.slice(1))), asset.url).toBe(true);
+      }
+   });
+
    it("draws the snow kid at 1.30 m", () => {
       const box = bounds(ASSETS.kid.url);
       expect(box.getSize(new Vector3()).y * KID_SCALE).toBeCloseTo(EXPANSION_CHARACTER_HEIGHT.snowKid, 2);
@@ -59,5 +72,40 @@ describe("snowball-battle model fits", () => {
       expect(size.y * SNOWMAN_SCALE).toBeCloseTo(SNOWMAN_HEIGHT, 2);
       expect(radius * SNOWMAN_SCALE * SNOWMAN_STRETCH_XZ).toBeCloseTo(SNOWMAN_RADIUS, 2);
       expect(box.min.y).toBeCloseTo(0, 2);
+   });
+
+   it("draws the igloo 2.6 m across, sitting on the snow", () => {
+      const box = bounds(ASSETS.igloo.url);
+      const size = box.getSize(new Vector3());
+      expect(size.x).toBeCloseTo(IGLOO_GLB.width, 3);
+      expect(size.y).toBeCloseTo(IGLOO_GLB.height, 3);
+      expect(size.z).toBeCloseTo(IGLOO_GLB.depth, 3);
+      expect(box.min.y).toBeCloseTo(0, 3);
+      expect(size.x * IGLOO_SCALE).toBeCloseTo(IGLOO_WIDTH, 3);
+      expect(IGLOO_DRAWN.height).toBeCloseTo(1.46, 2);
+   });
+
+   it("draws the big snowman 2.2 m tall, topping the yard's own snowman", () => {
+      const box = bounds(ASSETS.snowmanBig.url);
+      const size = box.getSize(new Vector3());
+      expect(size.y).toBeCloseTo(SNOWMAN_BIG_GLB.height, 3);
+      expect(size.x).toBeCloseTo(SNOWMAN_BIG_GLB.width, 3);
+      expect(box.min.y).toBeCloseTo(0, 3);
+      expect(size.y * SNOWMAN_BIG_SCALE).toBeCloseTo(SNOWMAN_BIG_HEIGHT, 3);
+      expect(SNOWMAN_BIG_HEIGHT).toBeGreaterThan(SNOWMAN_HEIGHT);
+   });
+
+   it("places every village decor spot outside the play area", () => {
+      expect(VILLAGE_LEVEL_IDS).toEqual([4, 5]);
+      const iglooR = Math.max(IGLOO_DRAWN.width, IGLOO_DRAWN.depth) / 2;
+      for (const spot of IGLOO_SPOTS) {
+         expect(Math.abs(spot.x) + iglooR).toBeLessThan(YARD.maxX);
+         expect(spot.z + iglooR).toBeLessThan(YARD.minZ);
+      }
+      const snowmanR = Math.max(SNOWMAN_BIG_DRAWN.width, SNOWMAN_BIG_DRAWN.depth) / 2;
+      for (const spot of SNOWMAN_BIG_SPOTS) {
+         expect(Math.abs(spot.x) + snowmanR).toBeLessThan(YARD.maxX);
+         expect(spot.z + snowmanR).toBeLessThan(YARD.minZ);
+      }
    });
 });
