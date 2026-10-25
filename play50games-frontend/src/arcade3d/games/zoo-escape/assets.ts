@@ -56,6 +56,24 @@ export const SNACK_GLB = { width: 1.84126, height: 0.54056, depth: 1.7951 } as c
 export const SNACK_DRAWN_WIDTH = 1.0;
 export const SNACK_UNIT = SNACK_DRAWN_WIDTH / 1.6 / SNACK_GLB.width;
 
+/** zooRocks.glb (Group D, QA "OK"): five boulders. 2.2 m across, outside the three stages. */
+export const ZOO_ROCKS_GLB = { width: 1.9048, height: 0.9073, depth: 1.8028 } as const;
+export const ZOO_ROCKS_WIDTH = 2.2;
+const ZOO_ROCKS_SCALE = ZOO_ROCKS_WIDTH / ZOO_ROCKS_GLB.width;
+export const ZOO_ROCKS_DRAWN = {
+   width: ZOO_ROCKS_WIDTH,
+   height: ZOO_ROCKS_GLB.height * ZOO_ROCKS_SCALE,
+   depth: ZOO_ROCKS_GLB.depth * ZOO_ROCKS_SCALE,
+} as const;
+/** East of the tree row (x ~14-18) and west of it, in the z gaps so the clusters don't sit on a tree. */
+export const ZOO_ROCK_SPOTS = [
+   { x: 19.5, y: 0, z: 4, rotY: 0.4 },
+   { x: 19.5, y: 0, z: -21, rotY: 1.3 },
+   { x: 19.5, y: 0, z: -27, rotY: 2.2 },
+   { x: -18.5, y: 0, z: 12, rotY: 0.8 },
+] as const;
+export const ZOO_ROCK_FALLBACK = ZOO_ROCK_SPOTS.map((s) => ({ ...s, y: ZOO_ROCKS_DRAWN.height / 2 }));
+
 const R = REUSED_GLB_SIZE;
 
 export const ASSETS = {
@@ -74,4 +92,5 @@ export const ASSETS = {
    bridge: { id: "bridge", url: "/models/3d/zoo-escape/woodenFootbridge.glb", scale: BRIDGE_SCALE, yOffset: BRIDGE_Y_OFFSET, fallback: "box", fallbackColor: COLORS.wood, budget: { ...PROP_BUDGET } },
    tower: { id: "tower", url: "/models/3d/zoo-escape/searchlightTower.glb", scale: TOWER_SCALE, stretch: TOWER_STRETCH, fallback: "cylinder", fallbackColor: COLORS.metalDark, budget: { ...PROP_BUDGET } },
    snack: { id: "snack", url: "/models/3d/zoo-escape/bambooSnack.glb", scale: SNACK_UNIT, fallback: "cylinder", fallbackColor: COLORS.bamboo, budget: { ...PROP_BUDGET } },
+   zooRocks: { id: "zooRocks", url: "/models/3d/zoo-escape/zooRocks.glb", scale: ZOO_ROCKS_SCALE, fallback: "sphere", fallbackColor: COLORS.rock, budget: { ...PROP_BUDGET } },
 } satisfies Record<string, ModelAsset>;

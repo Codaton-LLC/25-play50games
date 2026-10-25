@@ -24,7 +24,7 @@ import { useGameTime } from "@/arcade3d/core/gameTime";
 import { fenceSpots } from "@/arcade3d/core/kit";
 import { createPath } from "@/arcade3d/core/path";
 import { DynamicInstanced, Instanced, useInstanceMatrices, type InstanceSpot } from "@/arcade3d/core/render";
-import { ASSETS, BAMBOO_CLUMP, BAMBOO_GLB, BAMBOO_THICKET, BAMBOO_UNIT } from "./assets";
+import { ASSETS, BAMBOO_CLUMP, BAMBOO_GLB, BAMBOO_THICKET, BAMBOO_UNIT, ZOO_ROCK_FALLBACK, ZOO_ROCK_SPOTS, ZOO_ROCKS_DRAWN } from "./assets";
 import { BUSHES, FENCES, LAMPS, PROPS, STAGES, STAGE_KEEPERS, TOWER } from "./level";
 import { COLORS } from "./looks";
 import {
@@ -410,6 +410,16 @@ export default function Stage({ run, dusk, reduced = false }: { run: RunState; d
          <Fences />
          <DropBars run={run} />
 
+         <InstancedModel
+            asset={ASSETS.zooRocks}
+            spots={ZOO_ROCK_SPOTS}
+            fallback={
+               <Instanced spots={ZOO_ROCK_FALLBACK}>
+                  <sphereGeometry args={[ZOO_ROCKS_DRAWN.width / 2, 8, 6]} />
+                  <meshStandardMaterial color={COLORS.rock} roughness={0.9} />
+               </Instanced>
+            }
+         />
          <InstancedModel
             asset={ASSETS.rock}
             spots={SPOTS.rock}

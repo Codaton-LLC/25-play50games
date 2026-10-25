@@ -12,7 +12,7 @@ import { InstancedModel, Model } from "@/arcade3d/core/assets";
 import { Water } from "@/arcade3d/core/env";
 import { scaledCount, useQuality } from "@/arcade3d/core/quality";
 import { Instanced, type InstanceSpot } from "@/arcade3d/core/render";
-import { ASSETS } from "./assets";
+import { ASSETS, CASTLE_DRAWN, CASTLE_HEIGHT, CASTLE_Y, castleSpots } from "./assets";
 import { HILL_GRADE, RAMP, TIER_WALL_Z, TIER_Y, TURNTABLE, heightAt, type Hole } from "./course";
 import { COLORS, decorSpots, feltRects, holeZ, onFelt, type FeltRect } from "./looks";
 import { CUP } from "./physics";
@@ -282,10 +282,22 @@ export function Decor({ holes, yaws }: { holes: readonly Hole[]; yaws: readonly 
       const all = decorSpots(holes, yaws);
       return { trees: all.trees.slice(0, scaledCount(all.trees.length, decor)), rocks: all.rocks.slice(0, scaledCount(all.rocks.length, decor)) };
    }, [holes, yaws, decor]);
+   const castles = useMemo(() => castleSpots(holes), [holes]);
+   const castleFallback = useMemo(() => castles.map((s) => ({ ...s, y: s.y + CASTLE_HEIGHT / 2 })), [castles]);
    return (
       <group name="decor">
          <InstancedModel asset={ASSETS.tree} spots={spots.trees} fallback={<TreePrimitives spots={spots.trees} />} />
          <InstancedModel asset={ASSETS.rock} spots={spots.rocks} fallback={<RockPrimitives spots={spots.rocks} />} />
+         <InstancedModel
+            asset={ASSETS.castle}
+            spots={castles}
+            fallback={
+               <Instanced spots={castleFallback} name="castle-fallback">
+                  <boxGeometry args={[CASTLE_DRAWN.width, CASTLE_HEIGHT, CASTLE_DRAWN.depth]} />
+                  <meshStandardMaterial color="#d6d3d1" roughness={0.85} />
+               </Instanced>
+            }
+         />
       </group>
    );
 }
