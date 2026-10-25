@@ -8,6 +8,7 @@
 import { memo, useEffect, useMemo } from "react";
 import {
    BoxGeometry,
+   type BufferGeometry,
    ConeGeometry,
    CylinderGeometry,
    Matrix4,
@@ -35,6 +36,23 @@ import {
    UTENSIL_SPOTS,
    WINDOW_SPOT,
 } from "./looks";
+
+/**
+ * Review fix: each decor geometry is built at its real size, but the spots scale it again by
+ * sx/sy/sz (the decor's size), so jars came out 5x too small and the window frame and exhaust hood
+ * huge (dark boxes over a third of the view). Normalise every geometry to a centred unit box so the
+ * spot's scale is the drawn size.
+ */
+function unit<T extends BufferGeometry>(g: T): T {
+   g.computeBoundingBox();
+   const box = g.boundingBox!;
+   const size = box.getSize(new Vector3());
+   const centre = box.getCenter(new Vector3());
+   g.translate(-centre.x, -centre.y, -centre.z);
+   g.scale(1 / (size.x || 1), 1 / (size.y || 1), 1 / (size.z || 1));
+   g.computeBoundingBox();
+   return g;
+}
 
 function toSpots(list: readonly DecorSpot[]): InstanceSpot[] {
    return list.map((s) => ({
@@ -134,20 +152,20 @@ export const Decor = memo(function Decor({ reduced = false }: { reduced?: boolea
       bulb.dispose();
 
       return {
-         post,
-         plank,
-         jar,
-         bottle,
-         bowl,
-         canister,
-         rail,
-         utensil,
-         windowFrame,
-         building,
-         streetLamp,
-         exhaustHood,
-         pan,
-         lamp,
+         post: unit(post),
+         plank: unit(plank),
+         jar: unit(jar),
+         bottle: unit(bottle),
+         bowl: unit(bowl),
+         canister: unit(canister),
+         rail: unit(rail),
+         utensil: unit(utensil),
+         windowFrame: unit(windowFrame),
+         building: unit(building),
+         streetLamp: unit(streetLamp),
+         exhaustHood: unit(exhaustHood),
+         pan: unit(pan),
+         lamp: unit(lamp),
       };
    }, []);
 
@@ -284,7 +302,7 @@ export const Decor = memo(function Decor({ reduced = false }: { reduced?: boolea
          {windowSpots.length > 0 && (
             <Instanced spots={windowSpots} name="decor-window">
                <primitive object={geo.windowFrame} attach="geometry" />
-               <meshStandardMaterial color={COLORS.windowFrame} roughness={0.6} metalness={0.3} />
+               <meshStandardMaterial color={COLORS.windowFrame} roughness={0.6} metalness={0.1} />
             </Instanced>
          )}
          {buildingSpots.length > 0 && (
@@ -304,7 +322,7 @@ export const Decor = memo(function Decor({ reduced = false }: { reduced?: boolea
          {hoodSpots.length > 0 && (
             <Instanced spots={hoodSpots} name="decor-exhaust-hood">
                <primitive object={geo.exhaustHood} attach="geometry" />
-               <meshStandardMaterial color={COLORS.exhaustHood} roughness={0.38} metalness={0.65} />
+               <meshStandardMaterial color={COLORS.exhaustHood} roughness={0.38} metalness={0.2} />
             </Instanced>
          )}
 
