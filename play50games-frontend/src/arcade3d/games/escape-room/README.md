@@ -232,3 +232,31 @@ Allocate run state, four station/box records, three loot records, fixed wall/cha
 - Still open in the core: the cookie banner is found by a 1 s poll, and `env(safe-area-inset-bottom)` is not reported. The live fit uses `useSafeArea`, so a banner or inset change can lag; that measurement stays in `core/`.
 - Every model is a GLB scaled in `assets.ts` (desk, chair, battery, runner, key, book, door). Mesh size never changes reach or collisions. Measured draw calls (`renderer.info.render.calls`): 36 in the furnished room and 39 with a container open before the runner GLB; 30 in the closed room with every GLB (2026-10-07, desktop and phone).
 - The catalogue's older escape-room row calls the universe `office` and proposes a console. This requested spec uses `shared-cast` seed 5050 and omits the console for the single office. Claude can reconcile the owned catalogue during the asset review; this branch does not edit `skills.md`, the scoring metadata, API rules or core files (`meta.ts` only gets its control texts and thumbnail).
+
+## Status
+
+TASK P-68-levels-escape | 5 levels for escape-room | branch codex/levels-escape-room | allowed: play50games-frontend/src/arcade3d/games/escape-room/**
+
+Status: BLOCKED before implementation.
+
+Branch verified: codex/levels-escape-room. Initial git status --porcelain was empty.
+
+Blocker: docs/levels-backlog.md does not exist in this worktree. Both the repository filename search and a recursive docs directory search found no backlog file. The task explicitly requires reading its escape-room section first: it maps the master plan to the built mechanics and names the proof risk. AGENTS.md says "Unsure? Stop and ask; do not guess." CLI mode supplies no respondent, so no puzzle adaptation or limit was invented.
+
+Files changed:
+- .handoff/P-68-levels-escape/HANDOFF.md (explicitly requested handoff artifact).
+- play50games-frontend/src/arcade3d/games/escape-room/README.md (this handoff in Status).
+
+| Level | Implementation | Limits / proof | Bot clear rate |
+| --- | --- | --- | --- |
+| 1 | Existing live game preserved, including 2.6 m/s runner | Existing maxScore 58634; minDurationMs 13654; maxDurationMs 600000; timeBaseMs 600000. Existing proof unchanged, not reverified in this run. | Not run |
+| 2 | Pending required backlog | No proposed limits or proof | Not run |
+| 3 | Pending required backlog | No proposed limits or proof | Not run |
+| 4 | Pending required backlog | No proposed limits or proof | Not run |
+| 5 | Pending required backlog | No proposed limits or proof | Not run |
+
+Time-game contract retained: leaderboard ranks the sum of best finishing times across all five levels, only after all five finish. maxScore is a safety cap; the >=90% maxScore oracle is inapplicable. Future implementation must prove all bots respect limits, honest bots clear targets, monotone difficulty, and at least level-1 score potential, with level-5 cap <= approximately 3x level 1.
+
+Tests: 0 executed; runtime not measured. No tsc, Vitest, mutation probe, build, server or headless playtest was run because implementation stopped at the required source-document blocker. Existing rules.test.ts remains byte-identical. No gameplay files changed. No commit, push, branch switch, reset, clean, deletion, backend edit or production access.
+
+Open question for Claude: restore/provide docs/levels-backlog.md with the approved escape-room mapping and proof-risk notes, then resume this task. Five-level implementation and its verification remain outstanding.
