@@ -16,12 +16,14 @@ import { BlobShadow } from "../../core/render";
 import { HumanoidModel } from "../../core/rig/HumanoidModel";
 import { createPose } from "../../core/rig/poses";
 import { arcadeStore, useArcadeStore } from "../../core/useArcadeStore";
+import { useLevel } from "../../core/level";
 import { useFittedView } from "../../core/useFittedView";
 import { useRunFrame } from "../../core/useRunFrame";
 import { Arena } from "./Arena";
 import { ASSETS } from "./assets";
 import { Dummies } from "./Dummies";
 import styles from "./Hud.module.css";
+import type { KnightLevel } from "./levels";
 import {
    guardPose,
    lungeStepOffset,
@@ -35,9 +37,8 @@ import {
 import { KnightPrimitive, ShieldPrimitive, SwordPrimitive } from "./Primitives";
 import {
    BEAT,
-   BEAT_TIMES_MS,
    COLORS,
-   createRunState,
+   createRun,
    KNIGHT,
    POSTS,
    SPIN,
@@ -111,7 +112,10 @@ function ShieldAttachment(): React.ReactElement {
    );
 }
 
-export function KnightArenaScene(): React.ReactElement {
+export const useKnightLevel = () => useLevel<KnightLevel>();
+
+function ArenaPlay(): React.ReactElement {
+   const { config } = useKnightLevel();
    const phase = useArcadeStore((s) => s.phase);
    const muted = useMuted();
    const input = useInput();
@@ -128,7 +132,7 @@ export function KnightArenaScene(): React.ReactElement {
       shift: true,
    });
 
-   const runRef = useRef(createRunState(nextRotationalSeed()));
+   const runRef = useRef(createRun(nextRotationalSeed(), config));
    const poseRef = useRef(createPose());
    const knightGroupRef = useRef<Group>(null);
    const swordTipRef = useRef<Object3D>(null!);
@@ -139,10 +143,11 @@ export function KnightArenaScene(): React.ReactElement {
    useEffect(() => {
       fx.warm("sparks", "confetti", "puff", "score");
       const store = arcadeStore.getState();
+      const run = runRef.current;
       store.setStat("combo", 1);
       store.setStat("spin", 0);
-      store.setStat("bpm", 100);
-      hudStore.setState({ spinMeter: 0, spinReady: false, bpm: 100, stage: 1 });
+      store.setStat("bpm", run.bpm);
+      hudStore.setState({ spinMeter: 0, spinReady: false, bpm: run.bpm, stage: 1 });
    }, [fx]);
 
    // Ambient loop during active play
@@ -183,7 +188,8 @@ export function KnightArenaScene(): React.ReactElement {
       // Optional Metronome click on each beat
       if (hudStore.getState().metronome) {
          const nextIdx = lastMetronomeBeatRef.current + 1;
-         if (nextIdx < BEAT_TIMES_MS.length && run.timeMs >= BEAT_TIMES_MS[nextIdx]) {
+         const times = run.beatTimesMs;
+         if (nextIdx < times.length && run.timeMs >= times[nextIdx]) {
             lastMetronomeBeatRef.current = nextIdx;
             playSfx("click", { pitch: 1.35, volume: 0.45 });
          }
@@ -317,6 +323,11 @@ export function KnightArenaScene(): React.ReactElement {
          <Trail target={swordTipRef} width={0.22} length={10} color={COLORS.gold} />
       </group>
    );
+}
+
+export function KnightArenaScene(): React.ReactElement {
+   const { id } = useKnightLevel();
+   return <ArenaPlay key={id} />;
 }
 
 export function KnightArenaHud(): React.ReactElement {
