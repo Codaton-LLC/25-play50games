@@ -234,28 +234,6 @@ describe("alien-farm look and decor bounds", () => {
       expect(contrastRatio(COLORS.mint, COLORS.furrowRidge)).toBeGreaterThanOrEqual(4.5);
    });
 
-   it("ensures both moons project inside the camera frustum at all three screen sizes", () => {
-      const sizes = [
-         { name: "desktop", width: 1280, height: 800 },
-         { name: "portrait", width: 390, height: 844 },
-         { name: "landscape", width: 844, height: 390 },
-      ];
-      // Moons in camera local coordinates: primary at [-2.2, 5.5, -20], minor at [2.4, 6.2, -20]
-      const moons = [
-         { name: "primary", pos: new Vector3(-2.2, 5.5, -20) },
-         { name: "minor", pos: new Vector3(2.4, 6.2, -20) },
-      ];
-      for (const s of sizes) {
-         const cam = new PerspectiveCamera(VIEW.fov, s.width / s.height, 0.1, 100);
-         for (const m of moons) {
-            const v = m.pos.clone().project(cam);
-            expect(Math.abs(v.x), `${m.name} moon x at ${s.name}`).toBeLessThan(1.0);
-            expect(Math.abs(v.y), `${m.name} moon y at ${s.name}`).toBeLessThan(1.0);
-            expect(v.y, `${m.name} moon y at ${s.name} in sky`).toBeGreaterThan(0.3);
-         }
-      }
-   });
-
    it("places fog past the camera follow distance", () => {
       expect(FOG.near).toBeGreaterThan(25);
       expect(FOG.far).toBeGreaterThan(FOG.near);

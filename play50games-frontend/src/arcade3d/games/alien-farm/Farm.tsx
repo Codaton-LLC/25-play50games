@@ -1,17 +1,12 @@
 "use client";
 
-// The moonlit crater farm: dusk sky, starry field, two moons, low-poly distant hills,
+// The crater farm: dusk sky, starry field, low-poly distant hills,
 // flat plum soil disc out to the horizon, purple beds with dark teal furrows, and surroundings decor.
-import { useEffect, useMemo, useRef } from "react";
-import {
-   CylinderGeometry,
-   Group,
-} from "three";
+import { useEffect, useMemo } from "react";
+import { CylinderGeometry } from "three";
 import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
-import { useFrame, useThree } from "@react-three/fiber";
 import { SkyDome, Starfield } from "@/arcade3d/core/env";
-import { FRAME_PRIORITY } from "@/arcade3d/core/frameLoop";
 import { scaledCount, useQuality } from "@/arcade3d/core/quality";
 import { Instanced, type InstanceSpot } from "@/arcade3d/core/render";
 import { Decor } from "./Decor";
@@ -139,34 +134,6 @@ function Ground() {
    );
 }
 
-function Moons() {
-   const group = useRef<Group>(null);
-   const camera = useThree((s) => s.camera);
-
-   useFrame(() => {
-      if (group.current) {
-         group.current.position.copy(camera.position);
-         group.current.quaternion.copy(camera.quaternion);
-      }
-   }, FRAME_PRIORITY.visuals);
-
-   return (
-      <group ref={group} name="moons">
-         {/* Primary Moon: large lavender/violet sister world in upper sky */}
-         <mesh position={[-2.2, 5.5, -20]} name="moon-primary">
-            <sphereGeometry args={[1.5, 32, 20]} />
-            <meshBasicMaterial color={COLORS.moon} fog={false} />
-         </mesh>
-
-         {/* Secondary Moon: glowing cyan/teal minor moon in upper sky */}
-         <mesh position={[2.4, 6.2, -20]} name="moon-minor">
-            <sphereGeometry args={[0.7, 24, 16]} />
-            <meshBasicMaterial color={COLORS.moonMinor} fog={false} />
-         </mesh>
-      </group>
-   );
-}
-
 export function FarmScene() {
    const { particles } = useQuality();
 
@@ -175,7 +142,6 @@ export function FarmScene() {
          {/* Whimsical sunset sky dome */}
          <SkyDome top={COLORS.skyTop} bottom={COLORS.skyBottom} offset={-0.02} exponent={0.7} />
          <Starfield count={scaledCount(700, particles)} seed={21} upperOnly size={2} />
-         <Moons />
          <Ground />
          <Beds />
          <Decor />
