@@ -29,15 +29,15 @@ export const GROUND_BOUNDS = {
  * near is past the far supermarket wall (z = -12) from the fitted camera,
  * so the entire play area stays crisp and bright while distant concourse fades.
  */
-export const FOG = { near: 48, far: 96 } as const;
+export const FOG = { near: 18, far: 38 } as const;
 
 /** Unified color palette for Crazy Shopping Cart. */
 export const COLORS = {
    // Environment & Atmosphere
-   bg: "#0f172a",
+   bg: "#0b1220",
    skyTop: "#0f172a",
    skyBottom: "#1e293b",
-   fog: "#0f172a",
+   fog: "#0b1220",
 
    // Floor & Ground
    floorTile: "#f8fafc",
@@ -62,8 +62,8 @@ export const COLORS = {
    lightPole: "#475569",
 
    // Walls & Supermarket Structure
-   wall: "#1e293b",
-   wallTrim: "#334155",
+   wall: "#cbd5e1",
+   wallTrim: "#94a3b8",
    wallFascia: "#0f172a",
    wallBanner: "#fb923c",
    ceilingPanel: "#fef08a",
@@ -96,7 +96,7 @@ export const COLORS = {
    freezerBase: "#1e293b",
 
    // Checkout & Finish Zone
-   checkoutBody: "#1e293b",
+   checkoutBody: "#475569",
    checkoutTop: "#334155",
    checkoutBelt: "#0f172a",
    registerScreen: "#22c55e",

@@ -744,11 +744,11 @@ function StoreEnvironment({ run }: { run: RunState }) {
             {/* Canopy support pillars */}
             <mesh position={[-8.5, -1.9, 0.9]}>
                <cylinderGeometry args={[0.12, 0.12, 3.8, 8]} />
-               <meshStandardMaterial color={COLORS.wallTrim} roughness={0.5} metalness={0.4} />
+               <meshStandardMaterial color={COLORS.wallTrim} roughness={0.5} metalness={0.1} />
             </mesh>
             <mesh position={[8.5, -1.9, 0.9]}>
                <cylinderGeometry args={[0.12, 0.12, 3.8, 8]} />
-               <meshStandardMaterial color={COLORS.wallTrim} roughness={0.5} metalness={0.4} />
+               <meshStandardMaterial color={COLORS.wallTrim} roughness={0.5} metalness={0.1} />
             </mesh>
          </group>
 
@@ -780,7 +780,7 @@ function StoreEnvironment({ run }: { run: RunState }) {
 
          <Instanced spots={SHELF_SIGN_SPOTS} name="shelves-signs">
             <boxGeometry args={[1.15, 0.25, 2.4]} />
-            <meshStandardMaterial color={COLORS.wallFascia} roughness={0.4} />
+            <meshStandardMaterial color={COLORS.categoryBlue} emissive={COLORS.categoryBlue} emissiveIntensity={0.25} roughness={0.4} />
          </Instanced>
 
          {/* Fruit Island Produce Display */}

@@ -202,7 +202,7 @@ export function Decor() {
          {doorSpots.length > 0 && (
             <Instanced spots={doorSpots} name="decor-doors">
                <primitive object={geo.door} attach="geometry" />
-               <meshStandardMaterial color={COLORS.doorGlass} transparent opacity={0.8} roughness={0.2} metalness={0.4} />
+               <meshStandardMaterial color={COLORS.doorGlass} transparent opacity={0.8} roughness={0.2} metalness={0.1} />
             </Instanced>
          )}
 
@@ -224,7 +224,7 @@ export function Decor() {
          {corralSpots.length > 0 && (
             <Instanced spots={corralSpots} name="decor-corrals">
                <primitive object={geo.corral} attach="geometry" />
-               <meshStandardMaterial color={COLORS.cartChrome} roughness={0.3} metalness={0.7} />
+               <meshStandardMaterial color={COLORS.cartChrome} roughness={0.3} metalness={0.1} />
             </Instanced>
          )}
 
@@ -253,13 +253,13 @@ export function Decor() {
          {carSpots0.length > 0 && (
             <Instanced spots={carSpots0} name="decor-cars-red">
                <primitive object={geo.car} attach="geometry" />
-               <meshStandardMaterial color={COLORS.carRed} roughness={0.3} metalness={0.25} />
+               <meshStandardMaterial color={COLORS.carRed} roughness={0.3} metalness={0.1} />
             </Instanced>
          )}
          {carSpots1.length > 0 && (
             <Instanced spots={carSpots1} name="decor-cars-blue">
                <primitive object={geo.car} attach="geometry" />
-               <meshStandardMaterial color={COLORS.carBlue} roughness={0.3} metalness={0.25} />
+               <meshStandardMaterial color={COLORS.carBlue} roughness={0.3} metalness={0.1} />
             </Instanced>
          )}
          {carSpots2.length > 0 && (
@@ -271,7 +271,7 @@ export function Decor() {
          {carSpots3.length > 0 && (
             <Instanced spots={carSpots3} name="decor-cars-silver">
                <primitive object={geo.car} attach="geometry" />
-               <meshStandardMaterial color={COLORS.carSilver} roughness={0.25} metalness={0.6} />
+               <meshStandardMaterial color={COLORS.carSilver} roughness={0.25} metalness={0.1} />
             </Instanced>
          )}
       </group>
