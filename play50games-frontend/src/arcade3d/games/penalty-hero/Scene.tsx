@@ -24,6 +24,8 @@ import {
 } from "three";
 import CameraRig from "@/arcade3d/core/CameraRig";
 import { playSfx } from "@/arcade3d/core/audio";
+import { SkyDome } from "@/arcade3d/core/env";
+import { useFx } from "@/arcade3d/core/fx";
 import { useGameTime } from "@/arcade3d/core/gameTime";
 import { useInput } from "@/arcade3d/core/input";
 import { randomSeed } from "@/arcade3d/core/math";
@@ -36,6 +38,7 @@ import { ASSETS } from "./assets";
 import { CAMERA_FOV, CAMERA_LOOK_AT, PENALTY_VIEW } from "./camera";
 import { FEEDBACK } from "./Hud";
 import { KEEPER_BOUNCE, KEEPER_HIP, KEEPER_ROOT, SPOT_Z, STRIKER_ROOT, keeperDip, keeperDivePlacement, keeperSway } from "./layout";
+import { COLORS } from "./looks";
 import { keeperDivePose, keeperReadyPose } from "./poses";
 import { BallPrimitive, Goal, KeeperPrimitive, Stadium, StrikerPrimitive } from "./Primitives";
 import { KICK_LEAN, RUNUP_LEAN, createStrikerFrame, drawStrikerPose, strikerFrame, strikerPose } from "./strikerMotion";
@@ -96,6 +99,11 @@ const smooth = (v: number) => {
 function Simulation({ run, scratch }: { run: ViewRun; scratch: Scratch }) {
    const input = useInput();
    const camera = useThree((state) => state.camera);
+   const fx = useFx();
+
+   useEffect(() => {
+      fx.warm("confetti");
+   }, [fx]);
 
    useRunFrame((_state, dt) => {
       const inp = input.current;
@@ -117,9 +125,11 @@ function Simulation({ run, scratch }: { run: ViewRun; scratch: Scratch }) {
          store.setStat("goalMask", run.goalMask);
          store.setStat("feedback", FEEDBACK.goal);
          playSfx("pickup");
+         fx.burst("confetti", { x: run.targetX, y: run.targetY, z: 0 }, 28);
       } else if (ev.saved || ev.wide || ev.timeout) {
          store.setStat("feedback", ev.timeout ? FEEDBACK.timeout : ev.wide ? FEEDBACK.wide : FEEDBACK.saved);
          playSfx("hit");
+         fx.shake(ev.timeout ? 0.06 : 0.12);
       }
       if (ev.goal || ev.saved || ev.wide || ev.timeout) {
          store.setStat("goals", run.goals);
@@ -450,6 +460,7 @@ export default function Scene() {
             shift={view.shift}
             damping={6}
          />
+         <SkyDome top={COLORS.skyTop} bottom={COLORS.skyBottom} offset={-0.05} />
          <Stadium />
          <Goal />
          <Zones run={run} />

@@ -6,6 +6,7 @@
 import type { GameDefinition } from "@/arcade3d/core/types";
 import { ASSETS } from "./assets";
 import PenaltyHud from "./Hud";
+import { COLORS, FOG } from "./looks";
 import Scene from "./Scene";
 import { SHOTS, finalScore } from "./rules";
 
@@ -15,7 +16,7 @@ const definition: GameDefinition = {
    Hud: PenaltyHud,
    assets: ASSETS,
    camera: { position: [0, 4, 20], fov: 40, lookAt: [0, 1.22, 0] },
-   environment: { background: "#0b1226", fog: ["#0b1226", 40, 90], lighting: "day" },
+   environment: { background: COLORS.skyTop, fog: [COLORS.fog, FOG.near, FOG.far], lighting: "sunset" },
    touchControls: ["tap"],
    hudStats: [{ key: "shots", label: "Shots", max: SHOTS }],
    instructions: [

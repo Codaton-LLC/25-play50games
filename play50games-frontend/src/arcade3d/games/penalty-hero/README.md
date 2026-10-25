@@ -223,3 +223,37 @@ Planned `rules.test.ts` (Vitest, pure state/fake input, no wall-clock sleeps):
 - Core open items that touch this game: the bottom safe-area inset is not reported to the fit, and the cookie banner is found by a 1 s poll, so the dots panel's lift can trail the banner by up to a second.
 - Resolved (2026-10-08): the ball GLB had no black panels. The user approved option (a), one regeneration with a stronger prompt; it came out white to grey as well (Models, "The ball GLBs"), so option (b2) followed: `ball.glb`, its manifest line, `ASSETS.ball` and `BALL_GLB_SIZE` are gone and the scene draws `BallPrimitive` again. `ball.test.ts` now pins the primitive in the spin group, the review gap the GLB's adoption left open (nothing checked that `Scene.tsx` drew the ball inside the spin group), and the football look (the ball drawn, its texture handed over, the black panels painted, the mesh visible and opaque, the spin about x).
 - Resolved (2026-10-08): after a goal the ball in the net looked pink, because the highlighted zone tile stayed lit through the flight and the hold and the ball behind it was seen through it. The highlight now fades over the end of the flight and stays at the idle 0.1 through the hold (`zones.ts`, "How the build maps to this design").
+
+## Look (2026-10-25)
+
+Visual-only modern-look pass giving Penalty Hero a polished premium stadium atmosphere at golden hour without changing gameplay, timing, scoring or hitboxes:
+
+- **Atmosphere & Lighting:** Golden hour environment with core `sunset` lighting preset, soft warm horizon fog (`#f59e0b`, starting at 45 m so the 12 m play area stays 100% crisp and un-fogged), and a two-tone `<SkyDome>` gradient from deep twilight navy (`#1e1b4b`) to warm sunset amber (`#fb923c`).
+- **Pitch & Ground:** Lush alternating emerald mower stripes with regulation touchlines, 6-yard box, 18-yard box, penalty arc and penalty spot. Deep 160 × 160 m ground plane ensures 100% viewport coverage with zero void or sky showing below the scene at 1280 × 800, 390 × 844 and 844 × 390.
+- **Tournament Goal:** Polished white round posts and crossbar with rounded elbow corner joints, post base ground anchor sockets, angled galvanized metal rear net stanchions/struts, and clean white net lines.
+- **Surroundings (Instanced Decor):** All decor sits strictly outside the play bounds (`looks.test.ts` pins clearance and non-occlusion):
+  - Modern digital LED advertising boards with glowing cyan and amber edge trims (no text).
+  - Multi-tier concrete stadium stands behind the goal and along the flanks.
+  - Packed crowd spectators across five team tones instanced via `<Instanced>`.
+  - Dynamic cheering supporter flags along the north stand via `<DynamicInstanced>`.
+  - Four corner floodlight towers with warm emissive lamp banks.
+- **Juicy Feedback:** Confetti bursts on goals via core `useFx().burst("confetti", ...)` and subtle camera shake on saves/misses via `useFx().shake(...)`.
+- **Budgets & Performance:** Total draw calls ~36 (well within the <= 60 budget), no per-frame allocations, geometries and materials created once and cleanly disposed on unmount.
+
+### Draw-Call Estimate
+
+| Component | Draw calls | Notes |
+|---|---|---|
+| `SkyDome` | 1 | ShaderMaterial sphere following camera |
+| `Terrain` (pitch + ground) | 2 | 1 striped pitch + 1 deep ground surround |
+| `Goal` | 4 | Posts/crossbar, elbow joints/anchors, rear struts, net lines |
+| `Zones` & `Reticle` | 8 | 6 zone tiles + dividers + reticle ring/band |
+| Footballers & ball | 6 | Skinned striker, keeper, BallPrimitive + 3 blob shadows |
+| Advertising boards | 4 | Instanced board bases + glowing LED screens (blue/amber) |
+| Stadium stands | 1 | Instanced tiered concrete bleachers |
+| Crowd spectators | 5 | Instanced fans across 5 jersey tones |
+| Cheering flags | 1 | DynamicInstanced waving flags |
+| Floodlight towers | 3 | Instanced masts, head brackets, emissive lamp arrays |
+| Core FxLayer (when active) | 1 | Confetti particle pool on goal |
+| **Total** | **~36** | **Budget: <= 60** |
+
