@@ -231,7 +231,7 @@ export default function Scene() {
          <ChaseCamera run={run} reduced={reduced} view={view} />
          <SkyDome top={COLORS.skyTop} bottom={COLORS.skyBottom} />
          <SnowFall count={reduced ? 60 : 300} area={[28, 16, 70]} />
-         <Terrain reduced={reduced} />
+         <Terrain run={run} reduced={reduced} />
          <Decor reduced={reduced} />
          <Track run={run} />
          <Penguin run={run} reduced={reduced} />
