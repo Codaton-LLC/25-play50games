@@ -18,6 +18,7 @@ import RocketCamera from "./camera";
 import Planet from "./Planet";
 import { RocketPrimitive } from "./Primitives";
 import { BODY, PLANETS, createRun, crashContact, landingSafe, padVx, padX, stepRun } from "./rules";
+import { useRocketLevel } from "./useRocketLevel";
 
 /** seconds the crash flash takes to grow and fade */
 const FLASH_SECONDS = 0.5;
@@ -25,8 +26,9 @@ const GOOD = new Color("#6ee7b7"), BAD = new Color("#fda4af");
 export default function Scene() {
    const input = useInput(), time = useGameTime(), fx = useFx(), quality = useQuality();
    const phase = useArcadeStore((s) => s.phase), muted = useMuted();
+   const { config } = useRocketLevel();
    const loop = useRef<LoopHandle | null>(null), root = useRef<Group>(null), flame = useRef<Mesh>(null), flash = useRef<Mesh>(null);
-   const [run] = useState(() => createRun(randomSeed(), typeof window !== "undefined" && window.matchMedia("(pointer: coarse)").matches));
+   const [run] = useState(() => createRun(randomSeed(), typeof window !== "undefined" && window.matchMedia("(pointer: coarse)").matches, config));
    const [reducedMotion] = useState(() => typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
    const [scratch] = useState(() => ({ controls: { rotate: 0, thrust: false }, at: { x: 0, y: 0, z: 0 }, boom: { x: 0, y: 0, z: 0.5 }, loopOptions: { volume: 0 }, lastSmoke: -1, lastWhoosh: -1, turning: false, impactNow: 0 }));
    const [markers] = useState(() => [{ x: 0, y: 2.08, z: 0 }]);
@@ -84,7 +86,7 @@ export default function Scene() {
       const stats = store.stats;
       const safe = landingSafe(run, run.attemptTime) ? 1 : 0;
       if (stats.landingSafe !== safe) store.setStat("landingSafe", safe);
-      const fuel = Math.floor(100 * run.fuel / PLANETS[run.planet].fuel), vx = Math.round(10 * (b.vx - padVx(run.layouts[run.planet], run.planet, run.attemptTime))), vy = Math.round(10 * b.vy), tilt = Math.round(b.angle * 180 / Math.PI);
+      const fuel = Math.floor(100 * run.fuel / PLANETS[run.planet].fuel), vx = Math.round(10 * (b.vx - padVx(run.layouts[run.planet], run.planet, run.attemptTime, run.level?.padAmplitude))), vy = Math.round(10 * b.vy), tilt = Math.round(b.angle * 180 / Math.PI);
       if (stats.fuel !== fuel) store.setStat("fuel", fuel);
       if (stats.vx !== vx) store.setStat("vx", vx);
       if (stats.vy !== vy) store.setStat("vy", vy);
@@ -129,7 +131,7 @@ export default function Scene() {
       position.setXYZ(0, b.x, b.y - BODY.centre, 1.1); position.setXYZ(1, b.x, 2.08, 1.1); position.needsUpdate = true;
       distances.setX(1, Math.abs(b.y - BODY.centre - 2.08)); distances.needsUpdate = true;
       guide.material.color.copy(useArcadeStore.getState().stats.landingSafe === 1 ? GOOD : BAD); guide.visible = run.mode === "flight";
-      markers[0].x = padX(run.layouts[run.planet], run.planet, run.attemptTime);
+      markers[0].x = padX(run.layouts[run.planet], run.planet, run.attemptTime, run.level?.padAmplitude);
    });
    return <>
       <RocketCamera run={run} />

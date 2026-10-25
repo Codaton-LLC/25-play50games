@@ -3,7 +3,21 @@ import { BufferGeometry, Float32BufferAttribute, Group, Mesh, Vector3, Box3 } fr
 import { modelParts } from "@/arcade3d/core/assets";
 import { readCharacterGlb } from "@/arcade3d/core/rig/robotGlb";
 import { hasModel } from "@/arcade3d/core/modelManifest";
-import { ASSETS, BELL, FEET_3D, HULL, HULL_SKIN, MESH_HULL, ROCKET_SCALE, SUPPORT } from "./assets";
+import { WORLD } from "./rules";
+import {
+   ASSETS,
+   BEACON_LIGHTS,
+   BELL,
+   FEET_3D,
+   flattenLandingPadCone,
+   HULL,
+   HULL_SKIN,
+   LANDING_PAD_GLB,
+   MESH_HULL,
+   PAD_DECK_FOOTPRINT,
+   ROCKET_SCALE,
+   SUPPORT,
+} from "./assets";
 
 describe("measured rocket fit", () => {
    it("pins measured data, fit, bell and support extremes", () => {
@@ -51,5 +65,77 @@ describe("measured rocket fit", () => {
          expect(Math.abs(supportMax - 0.6602)).toBeLessThan(0.01);
          expect(radius).toBeLessThanOrEqual(1.35);
       } finally { geometry.dispose(); }
+   });
+});
+
+describe("measured landing pad fit", () => {
+   it("pins measured data and the asset fit", () => {
+      expect(hasModel(ASSETS.landingPad.url)).toBe(true);
+      expect(LANDING_PAD_GLB.width).toBeCloseTo(1.8948084, 6);
+      expect(LANDING_PAD_GLB.deckTop).toBeCloseTo(0.2786218, 6);
+      expect(LANDING_PAD_GLB.height).toBeCloseTo(0.8244281, 6);
+      expect(LANDING_PAD_GLB.depth).toBeCloseTo(1.9048288, 6);
+      expect(ASSETS.landingPad.scale).toBeCloseTo(1.4356379, 6);
+      expect(ASSETS.landingPad.stretch?.[0]).toBeCloseTo(0.3676121, 6);
+      expect(ASSETS.landingPad.stretch?.[1]).toBe(1);
+      expect(ASSETS.landingPad.stretch?.[2]).toBeCloseTo(0.7313565, 6);
+      expect(ASSETS.landingPad.yOffset).toBe(-0.2);
+   });
+   it("draws the pad slab 1 x 0.4 x 2 with the deck top at +0.2 on the real mesh", async () => {
+      // decode the real meshopt-decoded mesh and draw it through core modelParts (what <Model> draws)
+      const { local, node } = await readCharacterGlb(ASSETS.landingPad.url);
+      const geometry = new BufferGeometry();
+      geometry.setAttribute("position", new Float32BufferAttribute(local, 3));
+      flattenLandingPadCone(geometry, node[1]);
+      const mesh = new Mesh(geometry);
+      mesh.position.fromArray(node);
+      const root = new Group();
+      root.add(mesh);
+      const parts = modelParts(root, ASSETS.landingPad);
+      const box = new Box3(), point = new Vector3();
+      const pos = geometry.getAttribute("position");
+      let deck = -Infinity, count = 0;
+      try {
+         for (let i = 0; i < pos.count; i++) {
+            const px = pos.getX(i), py = pos.getY(i), pz = pos.getZ(i);
+            const cx = px + node[0], cz = pz + node[2];
+            point.set(px, py, pz).applyMatrix4(parts[0].matrix);
+            box.expandByPoint(point);
+            count++;
+            if (Math.hypot(cx, cz) > 0.3) deck = Math.max(deck, point.y);
+         }
+         expect(count).toBe(4065);
+         // slab footprint: exactly the old stand-in's 1 x 2 (the runtime group scale.x = planet width still applies)
+         expect(box.max.x - box.min.x).toBeCloseTo(1, 5);
+         expect(box.max.z - box.min.z).toBeCloseTo(2, 5);
+         // slab base at -0.2 and deck top at +0.2 above the group origin (the physics surface)
+         expect(box.min.y).toBeCloseTo(-0.2, 5);
+         expect(deck).toBeCloseTo(0.2, 5);
+         // the beacon cone is flattened down to deckTop so it does not poke above +0.2
+         expect(box.max.y).toBeCloseTo(0.2, 5);
+         // Planet.tsx stands the pad group at WORLD.padY - padThickness / 2, so the drawn deck is the
+         // physics landing surface WORLD.padY (rules' pad rectangle tops out there)
+         expect(WORLD.padY - WORLD.padThickness / 2 + deck).toBeCloseTo(WORLD.padY, 5);
+      } finally { geometry.dispose(); }
+   });
+   it("beacon geometry on the rim does not intersect the pad's top surface footprint", () => {
+      // The beacon lights sit strictly on the rim of the pad, outside the touchdown footprint
+      // where the rocket lands, keeping the landing surface clear.
+      expect(BEACON_LIGHTS.length).toBeGreaterThan(0);
+      for (const beacon of BEACON_LIGHTS) {
+         const insideFootprint =
+            beacon.x > PAD_DECK_FOOTPRINT.minX &&
+            beacon.x < PAD_DECK_FOOTPRINT.maxX &&
+            beacon.z > PAD_DECK_FOOTPRINT.minZ &&
+            beacon.z < PAD_DECK_FOOTPRINT.maxZ;
+         expect(insideFootprint).toBe(false);
+
+         // Each beacon sits along the outer rim edges
+         const onRim = Math.abs(beacon.x) >= 0.45 || Math.abs(beacon.z) >= 0.9;
+         expect(onRim).toBe(true);
+
+         // And sits at or above the landing deck surface
+         expect(beacon.y).toBeGreaterThanOrEqual(PAD_DECK_FOOTPRINT.y);
+      }
    });
 });

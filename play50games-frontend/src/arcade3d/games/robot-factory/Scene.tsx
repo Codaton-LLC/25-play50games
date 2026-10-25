@@ -4,6 +4,7 @@
 // then the store, fx and sound. Everything else only reads the run (Bay, Parts, Robot, board).
 import { useEffect, useMemo, useState } from "react";
 import { useFrame, useThree, type RootState } from "@react-three/fiber";
+import { useLevel } from "@/arcade3d/core/level";
 import { Vector3 } from "three";
 import CameraRig from "@/arcade3d/core/CameraRig";
 import { playSfx, startLoop, useMuted, type LoopHandle } from "@/arcade3d/core/audio";
@@ -22,7 +23,11 @@ import { createLook, noteEvent, stepLook, CRADLE_TOP } from "./look";
 import { COLORS } from "./palette";
 import { Parts } from "./Parts";
 import { Robot } from "./Robot";
-import { BELT, CRADLE, SCRAP_BIN, beltSpeed, createRun, createShown, inZone, stepRun, syncStore, type FrameInput, type Run } from "./rules";
+import { SortBins } from "./SortBins";
+import type { FactoryLevel } from "./levels";
+import { CRADLE, SCRAP_BIN, SORTER, beltSpeed, createRun, createShown, inZone, sortBinCenter, sorterSpeed, stepRun, syncStore, type FrameInput, type Run } from "./rules";
+
+export const useFactoryLevel = () => useLevel<FactoryLevel>();
 
 export { CAMERA } from "./camera";
 
@@ -30,6 +35,43 @@ export { CAMERA } from "./camera";
 export const TAP_HIT_RADIUS_PX = 28;
 /** The part's centre above its feet, for the press projection. */
 const PART_CENTRE = 0.23;
+
+const binAt = { x: 0, y: 0, z: 0 };
+const binScreen = [0, 0, 0, 0];
+
+/**
+ * The bin whose label is nearest the press, or -1 when the press is closer to neither
+ * (further than the gap between two bins). Touch and keys then share the rules' one bin field.
+ */
+function lockBin(state: RootState, press: { x: number; y: number }, v: Vector3): number {
+   const w = state.size.width;
+   const h = state.size.height;
+   const px = (press.x * 0.5 + 0.5) * w;
+   const py = (-press.y * 0.5 + 0.5) * h;
+   let best = -1;
+   let bestD = Infinity;
+   for (let i = 0; i < SORTER.BINS; i++) {
+      sortBinCenter(i, binAt);
+      v.set(binAt.x, binAt.y, binAt.z).project(state.camera);
+      if (!(v.z >= -1 && v.z <= 1)) {
+         binScreen[i] = Number.NaN;
+         continue;
+      }
+      const sx = (v.x * 0.5 + 0.5) * w;
+      const sy = (-v.y * 0.5 + 0.5) * h;
+      binScreen[i] = sx;
+      const d = (sx - px) * (sx - px) + (sy - py) * (sy - py);
+      if (d < bestD) {
+         best = i;
+         bestD = d;
+      }
+   }
+   if (best < 0) return -1;
+   const neighbour = best === 0 ? 1 : best - 1;
+   const gap = Math.abs(binScreen[best] - binScreen[neighbour]);
+   if (!(gap > 0) || bestD > (gap * 0.55) * (gap * 0.55)) return -1;
+   return best;
+}
 
 /** The grab-zone part nearest the press within TAP_HIT_RADIUS_PX, or -1. */
 function lockPart(state: RootState, run: Run, press: { x: number; y: number }, v: Vector3): number {
@@ -65,16 +107,16 @@ function FittedCamera() {
    return <CameraRig camera={{ position, fov: CAMERA.fov, lookAt: CAMERA.lookAt }} offset={view.offset} shift={view.shift} damping={5} />;
 }
 
-export default function Scene() {
-   const [run] = useState(() => createRun(randomSeed()));
+function LevelScene({ config }: { config: FactoryLevel }) {
+   const [run] = useState(() => createRun(randomSeed(), config));
    const [look] = useState(createLook);
    const [scratch] = useState(() => ({
       v: new Vector3(),
       at: new Vector3(),
-      input: { grab: false, scrap: false, target: -1 } as FrameInput,
+      input: { grab: false, scrap: false, target: -1, bin: -1 } as FrameInput,
       locked: -1,
       shown: createShown(),
-      speed: beltSpeed(0),
+      speed: config.sorter ? sorterSpeed(0, config) : beltSpeed(0, config),
       sparkClock: 0,
       cheered: false,
    }));
@@ -91,7 +133,8 @@ export default function Scene() {
    useEffect(() => {
       if (phase !== "playing" || muted) return;
       const belt = startLoop("belt", { volume: 0.22 });
-      belt.set({ pitch: 0.95 + (0.15 * (beltSpeed(run.robot) - BELT.V0)) / (BELT.V_MAX - BELT.V0) });
+      const speed = run.level.sorter ? sorterSpeed(0, run.level) : beltSpeed(run.robot, run.level);
+      belt.set({ pitch: beltPitch(speed, run.level) });
       loop.current = belt;
       return () => {
          belt.stop();
@@ -102,12 +145,23 @@ export default function Scene() {
    useRunFrame((state, dt) => {
       const live = input.current;
       const cmd = scratch.input;
-      if (live.tapDown) scratch.locked = lockPart(state, run, live.tapDown, scratch.v);
-      cmd.grab = live.jumpPressed || live.actionPressed || live.tap !== null;
-      cmd.scrap = live.pressed.down;
-      // the tap and the swipe act on the part their press locked; keys on the part nearest the claw
-      cmd.target = live.tap !== null || live.swipe === "down" ? scratch.locked : -1;
-      if (live.tap !== null || live.swipe === "down") scratch.locked = -1;
+      cmd.bin = -1;
+      if (run.level.sorter) {
+         // one action, the frame it arrives: digit 1-4 or a tap on that bin. No second step, so the dwell is the same.
+         cmd.grab = false;
+         cmd.scrap = false;
+         cmd.target = -1;
+         const digit = live.digit;
+         if (digit !== null && digit >= 1 && digit <= SORTER.BINS) cmd.bin = digit - 1;
+         else if (live.tap) cmd.bin = lockBin(state, live.tap, scratch.v);
+      } else {
+         if (live.tapDown) scratch.locked = lockPart(state, run, live.tapDown, scratch.v);
+         cmd.grab = live.jumpPressed || live.actionPressed || live.tap !== null;
+         cmd.scrap = live.pressed.down;
+         // the tap and the swipe act on the part their press locked; keys on the part nearest the claw
+         cmd.target = live.tap !== null || live.swipe === "down" ? scratch.locked : -1;
+         if (live.tap !== null || live.swipe === "down") scratch.locked = -1;
+      }
 
       stepRun(run, cmd, dt);
       const store = useArcadeStore.getState();
@@ -117,10 +171,16 @@ export default function Scene() {
          const e = run.events[i];
          noteEvent(look, e, e.part);
          const at = scratch.at.set(e.x, e.y + 0.45, e.z);
-         if (e.kind === "install") {
+         if (e.kind === "install" || e.kind === "sort") {
             fx.burst("sparkle", at, 10);
             fx.score(at, `+${e.points}`, { color: COLORS.parts[e.colour] });
             playSfx("pickup", { pitch: 1 + 0.06 * run.combo });
+         } else if (e.kind === "misbin") {
+            fx.burst("puff", at, 6);
+            fx.shake(0.1);
+            if (e.points < 0) fx.score(at, `${e.points}`, { color: COLORS.bad });
+            playSfx("buzz");
+            playSfx("thud", { volume: 0.45 });
          } else if (e.kind === "robot") {
             at.set(CRADLE.x, CRADLE_TOP + 0.8, CRADLE.z);
             fx.burst("confetti", at, 42);
@@ -151,10 +211,10 @@ export default function Scene() {
             playSfx("thud", { volume: 0.25, pitch: 0.7 });
          }
       }
-      const v = beltSpeed(run.robot);
+      const v = run.level.sorter ? sorterSpeed(run.t, run.level) : beltSpeed(run.robot, run.level);
       if (v !== scratch.speed) {
          scratch.speed = v;
-         loop.current?.set({ pitch: 0.95 + (0.15 * (v - BELT.V0)) / (BELT.V_MAX - BELT.V0) });
+         loop.current?.set({ pitch: beltPitch(v, run.level) });
       }
       if (run.over && run.outcome === "win" && !scratch.cheered) {
          scratch.cheered = true;
@@ -171,7 +231,10 @@ export default function Scene() {
          fx.burst("sparks", scratch.at.set(CRADLE.x, CRADLE_TOP + 0.3 + 0.12 * look.landedNow, CRADLE.z), 9);
          playSfx("click", { volume: 0.6 });
       }
-      if (look.binnedNow) fx.burst("puff", scratch.at.set(SCRAP_BIN.x, SCRAP_BIN.y + 0.25, SCRAP_BIN.z), 8);
+      if (look.binnedNow) {
+         const drop = run.level.sorter ? look.claw.drop : SCRAP_BIN;
+         fx.burst("puff", scratch.at.set(drop.x, drop.y + 0.25, drop.z), 8);
+      }
       scratch.sparkClock += dt;
       const every = quality.tier === "low" ? 0.36 : 0.18;
       if (scratch.sparkClock >= every && phase === "playing") {
@@ -188,9 +251,21 @@ export default function Scene() {
          <FittedCamera />
          <pointLight position={[0, 2.6, 1.6]} color={COLORS.rim} intensity={6} distance={7} decay={1.6} />
          <Bay run={run} look={look} />
-         <BlueprintBoard run={run} />
+         {run.level.sorter ? <SortBins /> : <BlueprintBoard run={run} />}
          <Parts run={run} look={look} />
          <Robot run={run} />
       </>
    );
+}
+
+/** Belt-loop pitch from the level's own speed range (level 1: 1.45 → 2.60, the old formula). */
+function beltPitch(speed: number, level: FactoryLevel): number {
+   const from = level.sorter ? level.sortV0 : level.v0;
+   const to = level.sorter ? level.sortV1 : level.vMax;
+   return 0.95 + (0.15 * (speed - from)) / (to - from);
+}
+
+export default function Scene() {
+   const { id, config } = useFactoryLevel();
+   return <LevelScene key={id} config={config} />;
 }

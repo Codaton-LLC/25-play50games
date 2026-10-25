@@ -116,7 +116,7 @@ export function waterLevel(shore: number): number {
 }
 
 /** Where a thing standing at (x, z) is drawn: on the sand, or on the sea floor under the water. */
-export const groundAt = (x: number, z: number) => groundHeight(rho(x, z));
+export const groundAt = (x: number, z: number, shape: { rx: number; rz: number } = ISLAND) => groundHeight(rho(x, z, shape));
 
 // ---------- the follow camera ----------
 
@@ -173,11 +173,11 @@ const CRAB_ANGLES = [3.6, 5.6, 0.9, 2.5, 4.6, 0.2, 1.9, 5.1];
 export const CRAB_INSET = 0.06;
 
 /** Up to three crab spots (an angle on the ellipse each), clear of every footprint by 1.5 m at full tide. */
-export function crabAngles(island: Pick<Island, "circles" | "boxes">): number[] {
+export function crabAngles(island: Pick<Island, "circles" | "boxes">, shape: { rx: number; rz: number } = ISLAND): number[] {
    const out: number[] = [];
    for (const a of CRAB_ANGLES) {
       const r = 1 - CRAB_INSET;
-      if (clearance(island, ISLAND.rx * r * Math.cos(a), ISLAND.rz * r * Math.sin(a)) >= 1.5) out.push(a);
+      if (clearance(island, shape.rx * r * Math.cos(a), shape.rz * r * Math.sin(a)) >= 1.5) out.push(a);
       if (out.length === 3) break;
    }
    return out;

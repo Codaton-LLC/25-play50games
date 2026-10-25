@@ -3,6 +3,8 @@ import { resolveSphereAabb, type AABB } from "@/arcade3d/core/collision";
 import { substep } from "@/arcade3d/core/kinematics";
 import { createRng, turnTowards } from "@/arcade3d/core/math";
 import { capScore as limitScore, withinServerLimits } from "@/arcade3d/core/limits";
+import type { LevelId, ScoringRules } from "@/arcade3d/types";
+import { LEVELS, type GhostLevel } from "./levels";
 import { ghostVacuumMeta } from "./meta";
 
 export const DURATION_MS = 120000;
@@ -15,6 +17,24 @@ export const PULL = { angle: 12 * Math.PI / 180, range: 4, seconds: 1, grace: 0.
 export const SCORE = { capture: 100, gold: 200, combo: 50, second: 10 } as const;
 export const SCHEDULE = [0, 0, 0, 20, 20, 30, 40, 40, 60, 60, 60, 90] as const;
 export const MAX_STEP = 1 / 120;
+/**
+ * Per-level limits (README "Levels"). Level 1 is the proven 2630 / 91000-122000 / base 1720 / 10 pps.
+ * A level only changes which ghosts are gold or big and how hard they are to catch; the schedule, the
+ * count, the 120 s clock and gold ghost 11 (released at 90 s) stay. With G gold ghosts:
+ * maxScore = 1200 + 200 G + 550 (11 combo extras) + 280 (time bonus, the win is no earlier than
+ * 90 + exposure + 1 >= 91.4 s), base = maxScore - 910, 10 pts/s, so the envelope reaches maxScore at 91 s.
+ */
+const levelLimits = (gold: number): ScoringRules => ({
+   kind: "points", maxScore: 2030 + 200 * gold, minDurationMs: 91000, maxDurationMs: 122000,
+   base: 2030 + 200 * gold - 910, maxPointsPerSec: 10, unitLabel: "pts", display: "int",
+});
+export const PROPOSED_LEVEL_LIMITS: Record<LevelId, ScoringRules> = {
+   1: levelLimits(LEVELS[1].gold.length),
+   2: levelLimits(LEVELS[2].gold.length),
+   3: levelLimits(LEVELS[3].gold.length),
+   4: levelLimits(LEVELS[4].gold.length),
+   5: levelLimits(LEVELS[5].gold.length),
+};
 const EPS = 1e-10;
 const TAU = Math.PI * 2;
 const box = (x: number, z: number, hx: number, hz: number): AABB => ({ min: { x: x - hx, y: -1, z: z - hz }, max: { x: x + hx, y: 3, z: z + hz } });
@@ -41,12 +61,14 @@ export interface Ghost extends Body {
 }
 export interface StepInput { dirX: number; dirZ: number; held: boolean; aim: boolean; aimYaw: number; coarse: boolean }
 export interface Run {
+   /** the level this run was built from; level 1 is the module constants */
+   level: GhostLevel;
    hunter: Body; ghosts: Ghost[]; rng: () => number; elapsed: number; caught: number; gold: number;
    extras: number; session: number; score: number; won: boolean; ended: boolean;
    events: { captures: number[]; count: number; points: number; stun: number; pop: number; breaks: number; win: boolean };
    scratch: { logical: { x: number; y: number; z: number }; force: { x: number; y: number; z: number }; input: StepInput; tick: (dt: number) => void };
 }
-export function createRun(seed: number): Run {
+export function createRun(seed: number, level: GhostLevel = LEVELS[1]): Run {
    const rng = createRng(seed);
    const order = [0, 1, 2, 3];
    for (let i = 3; i > 0; i--) { const j = Math.floor(rng() * (i + 1)); const a = order[i]; order[i] = order[j]; order[j] = a; }
@@ -54,12 +76,12 @@ export function createRun(seed: number): Run {
    for (let id = 0; id < COUNT; id++) {
       const room = order[id % 4], r = ROOMS[room], ordinal = Math.floor(id / 4);
       const x = r.x - r.side * 2, z = r.z + [0, -1, 1][ordinal];
-      ghosts.push({ id, room, ordinal, kind: id === 5 || id === 8 || id === 11 ? "gold" : id === 9 || id === 10 ? "big" : "normal",
+      ghosts.push({ id, room, ordinal, kind: level.gold.includes(id) ? "gold" : level.big.includes(id) ? "big" : "normal",
          x, y: 0, z, vx: 0, vy: 0, vz: 0, yaw: 0, angle: rng() * TAU, mode: "pending", exposure: 0, stun: 0, lit: false,
          progress: 0, grace: 0, baseX: x, baseZ: z, ax: x, az: z, hx: 0, hz: 0, p0: 0, homeX: x, homeZ: z,
          returnStage: 0, returnRoom: room, admittedAt: -1, caughtAt: -1 });
    }
-   const run: Run = { hunter: { x: 0, y: 0, z: 8, vx: 0, vy: 0, vz: 0, yaw: Math.PI }, ghosts, rng, elapsed: 0,
+   const run: Run = { level, hunter: { x: 0, y: 0, z: 8, vx: 0, vy: 0, vz: 0, yaw: Math.PI }, ghosts, rng, elapsed: 0,
       caught: 0, gold: 0, extras: 0, session: 0, score: 0, won: false, ended: false,
       events: { captures: new Array(COUNT).fill(-1), count: 0, points: 0, stun: 0, pop: 0, breaks: 0, win: false },
       scratch: { logical: { x: 0, y: 0, z: 0 }, force: { x: 0, y: 0, z: 0 }, input: { dirX: 0, dirZ: 0, held: false, aim: false, aimYaw: Math.PI, coarse: false }, tick: () => {} } };
@@ -76,7 +98,7 @@ export function createRun(seed: number): Run {
 }
 export const active = (g: Ghost) => g.mode !== "pending" && g.mode !== "caught";
 export const radius = (g: Ghost) => g.kind === "big" ? GHOST.bigRadius : GHOST.radius;
-export const exposureTime = (g: Ghost) => g.kind === "big" ? LIGHT.bigExposure : LIGHT.exposure;
+export const exposureTime = (g: Ghost, level: GhostLevel = LEVELS[1]) => g.kind === "big" ? level.bigExposure : level.exposure;
 export function illuminated(run: Run, g: Ghost): boolean {
    return inViewCone(run.hunter, run.hunter.yaw, LIGHT.angle, LIGHT.range, g) && hasLineOfSightXZ(run.hunter, g, WALLS);
 }
@@ -96,7 +118,7 @@ export function pullValid(run: Run, g: Ghost): boolean {
 function admit(run: Run): void {
    let n = 0;
    for (const g of run.ghosts) if (active(g)) n++;
-   const cap = run.elapsed < 40 - EPS ? 3 : 6;
+   const cap = run.elapsed < run.level.capAt - EPS ? run.level.earlyCap : 6;
    for (const g of run.ghosts) {
       if (g.mode !== "pending" || SCHEDULE[g.id] > run.elapsed + EPS || n >= cap) continue;
       let occupied = false;
@@ -156,7 +178,7 @@ function speed(g: Ghost, late: boolean, lit: boolean): number {
    return g.kind === "gold" ? lit ? GHOST.goldFlee : GHOST.goldWander : g.kind === "big" ? lit ? GHOST.bigFlee : GHOST.bigWander : late ? lit ? GHOST.lateFlee : GHOST.lateWander : lit ? GHOST.flee : GHOST.wander;
 }
 function moveGhost(run: Run, g: Ghost, dt: number): void {
-   const r = ROOMS[g.room], rad = radius(g), max = speed(g, run.elapsed >= 60, g.lit), f = run.scratch.force;
+   const r = ROOMS[g.room], rad = radius(g), max = speed(g, run.elapsed >= run.level.lateAt, g.lit) * run.level.speed, f = run.scratch.force;
    if (g.returnStage) {
       // Leave the current room before travelling along the unobstructed hall.
       const via = g.returnStage <= 2 ? ROOMS[g.returnRoom] : r;
@@ -230,12 +252,12 @@ function tick(run: Run, dt: number): void {
       if (g.mode === "wandering" || g.mode === "fleeing") {
          g.mode = g.lit ? "fleeing" : "wandering";
          if (!g.lit) g.exposure = 0;
-         const needed = exposureTime(g) - g.exposure;
+         const needed = exposureTime(g, run.level) - g.exposure;
          const travel = g.lit ? Math.min(remaining, needed) : remaining;
          moveGhost(run, g, travel);
          if (g.lit) g.exposure += travel;
          remaining -= travel;
-         if (g.exposure >= exposureTime(g) - EPS) { g.mode = "stunned"; g.stun = LIGHT.stun; g.vx = 0; g.vz = 0; run.events.stun++; }
+         if (g.exposure >= exposureTime(g, run.level) - EPS) { g.mode = "stunned"; g.stun = run.level.stun; g.vx = 0; g.vz = 0; run.events.stun++; }
          else continue;
       }
       if (g.mode === "stunned") {
