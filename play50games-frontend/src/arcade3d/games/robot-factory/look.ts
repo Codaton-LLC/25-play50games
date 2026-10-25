@@ -1,7 +1,7 @@
 // What the bay shows between rule events (looks only, never read by rules.ts): parts flying to the
 // cradle or the bin, the claw's dip and carry, the sweeper's swing, status flashes, the cradle's
 // build-up. Pure and allocation-free after createLook(); Scene.tsx feeds it events and advances it.
-import { BELT, CRADLE, KIND, SCRAP_BIN, SHAPE_OF, type RunEvent } from "./rules";
+import { BELT, CRADLE, KIND, SCRAP_BIN, SHAPE_OF, sortBinCenter, type RunEvent } from "./rules";
 
 export const CLAW_REST = { x: 0, y: 1.42, z: BELT.Z } as const;
 /** The claw head's underside sits this far above what it holds. */
@@ -85,6 +85,7 @@ export function cradleSlot(kind: number, slot: number, torsoShape: number, out: 
 }
 
 const slot = { x: 0, y: 0, z: 0, s: 1 };
+const binAt = { x: 0, y: 0, z: 0 };
 
 function launch(look: Look, e: RunEvent, toCradle: boolean): Flyer | null {
    const f = look.flyers.find((q) => !q.on) ?? null;
@@ -109,6 +110,26 @@ function launch(look: Look, e: RunEvent, toCradle: boolean): Flyer | null {
 /** One rule event into the looks. `kind` is the installed part's kind (the blueprint step). */
 export function noteEvent(look: Look, e: RunEvent, kind: number): void {
    const claw = look.claw;
+   if (e.kind === "sort" || e.kind === "misbin") {
+      sortBinCenter(e.slot, binAt);
+      const f = launch(look, e, false);
+      if (f) {
+         f.to.x = binAt.x;
+         f.to.y = binAt.y;
+         f.to.z = binAt.z;
+      }
+      claw.mode = e.kind === "sort" ? "install" : "wrong";
+      claw.t = 0;
+      claw.part.x = e.x;
+      claw.part.y = e.y;
+      claw.part.z = e.z;
+      claw.drop.x = binAt.x;
+      claw.drop.y = binAt.y;
+      claw.drop.z = binAt.z;
+      if (e.kind === "sort") look.good = 0;
+      else look.bad = 0;
+      return;
+   }
    if (e.kind === "install") {
       const f = launch(look, e, true);
       const torso = e.slot === 0 ? e.shape : look.cradleShape[0];

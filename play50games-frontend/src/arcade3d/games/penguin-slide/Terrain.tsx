@@ -1,16 +1,11 @@
 "use client";
 
 import { useEffect, useMemo, useRef } from "react";
-import { BufferAttribute, BufferGeometry } from "three";
+import { BufferAttribute, BufferGeometry, type Group } from "three";
 import { useFrame } from "@react-three/fiber";
+import { createStripScratch, createTrackFrame, fillStrip, stripFloats, trackFrame } from "./ground";
 import { COLORS } from "./looks";
 import { chunkAt, createRun, sampleTrack, type Run } from "./rules";
-
-export interface TerrainMesh {
-   positions: Float32Array;
-   colors: Float32Array;
-   triangles: number;
-}
 
 interface Vec3Point {
    x: number;
@@ -29,6 +24,10 @@ const TONES = [
    hexToRgb(COLORS.terrainShade),
    hexToRgb(COLORS.terrainIce),
 ];
+
+// The view-space helpers below (sampleWorldAt, createTrackPathSampler, createTerrainSampler) describe
+// the ground surface around the penguin for the decor tests. The drawn ground is ground.ts
+// fillStrip: the same surface, built once per chunk in track world coordinates.
 
 /**
  * Samples the world position of track at distance s and lateral offset d.
@@ -153,131 +152,84 @@ export function createTerrainSampler(run?: Run): (x: number, z: number) => numbe
    };
 }
 
-const X_MIN = -140;
-const X_MAX = 140;
-const Z_MIN = -240;
-const Z_MAX = 80;
-const STEP_X = 7;
-const STEP_Z = 8;
+/** Height of the backing plane in the view (the penguin's track point is y 0). */
+export const BASE_PLANE_Y = -40;
 
-export function buildTerrainData(run?: Run, targetMesh?: TerrainMesh): TerrainMesh {
-   const r = run ?? createRun(0);
-   const heightAt = createTerrainSampler(r);
-   const pathSampler = createTrackPathSampler(r);
-
-   const numX = Math.round((X_MAX - X_MIN) / STEP_X);
-   const numZ = Math.round((Z_MAX - Z_MIN) / STEP_Z);
-   const numTriangles = numX * numZ * 2;
-   const numFloats = numTriangles * 9;
-
-   const pos = targetMesh ? targetMesh.positions : new Float32Array(numFloats);
-   const col = targetMesh ? targetMesh.colors : new Float32Array(numFloats);
-
-   let pIdx = 0;
-   let cIdx = 0;
-
-   const colorAt = (x: number, z: number, y: number): [number, number, number] => {
-      const { x: trackX, y: trackY } = pathSampler(z);
-      const absDist = Math.abs(x - trackX);
-      if (absDist <= 5.2) return TONES[1]; // soft snow under track
-      const drop = (trackY - 0.35) - y;
-      if (drop < 0.8) return TONES[1]; // soft snow
-      if (drop < 2.0) return TONES[2]; // shaded snow
-      return TONES[3]; // icy hollow
-   };
-
-   for (let z = Z_MIN; z < Z_MAX; z += STEP_Z) {
-      for (let x = X_MIN; x < X_MAX; x += STEP_X) {
-         const x2 = Math.min(X_MAX, x + STEP_X);
-         const z2 = Math.min(Z_MAX, z + STEP_Z);
-
-         const h00 = heightAt(x, z);
-         const h10 = heightAt(x2, z);
-         const h01 = heightAt(x, z2);
-         const h11 = heightAt(x2, z2);
-
-         // Triangle 1: (x, h00, z) -> (x, h01, z2) -> (x2, h10, z)
-         pos[pIdx++] = x;   pos[pIdx++] = h00; pos[pIdx++] = z;
-         pos[pIdx++] = x;   pos[pIdx++] = h01; pos[pIdx++] = z2;
-         pos[pIdx++] = x2;  pos[pIdx++] = h10; pos[pIdx++] = z;
-
-         const midX1 = (x + x + x2) / 3;
-         const midZ1 = (z + z2 + z) / 3;
-         const midY1 = (h00 + h01 + h10) / 3;
-         const tone1 = colorAt(midX1, midZ1, midY1);
-         for (let k = 0; k < 3; k++) {
-            col[cIdx++] = tone1[0];
-            col[cIdx++] = tone1[1];
-            col[cIdx++] = tone1[2];
-         }
-
-         // Triangle 2: (x2, h10, z) -> (x, h01, z2) -> (x2, h11, z2)
-         pos[pIdx++] = x2;  pos[pIdx++] = h10; pos[pIdx++] = z;
-         pos[pIdx++] = x;   pos[pIdx++] = h01; pos[pIdx++] = z2;
-         pos[pIdx++] = x2;  pos[pIdx++] = h11; pos[pIdx++] = z2;
-
-         const midX2 = (x2 + x + x2) / 3;
-         const midZ2 = (z + z2 + z2) / 3;
-         const midY2 = (h10 + h01 + h11) / 3;
-         const tone2 = colorAt(midX2, midZ2, midY2);
-         for (let k = 0; k < 3; k++) {
-            col[cIdx++] = tone2[0];
-            col[cIdx++] = tone2[1];
-            col[cIdx++] = tone2[2];
-         }
-      }
-   }
-
-   return {
-      positions: pos,
-      colors: col,
-      triangles: numTriangles,
-   };
+/** One chunk strip: fixed buffers, refilled in place only when its chunk is generated. */
+function stripGeometry(): BufferGeometry {
+   const g = new BufferGeometry();
+   const floats = stripFloats();
+   g.setAttribute("position", new BufferAttribute(new Float32Array(floats), 3));
+   g.setAttribute("color", new BufferAttribute(new Float32Array(floats), 3));
+   // flatShading derives face normals in the shader; one fixed up normal keeps the attribute set complete
+   const normal = new Float32Array(floats);
+   for (let i = 1; i < floats; i += 3) normal[i] = 1;
+   g.setAttribute("normal", new BufferAttribute(normal, 3));
+   return g;
 }
 
-export function coloredGeometry(data: TerrainMesh): BufferGeometry {
-   const geom = new BufferGeometry();
-   geom.setAttribute("position", new BufferAttribute(data.positions, 3));
-   geom.setAttribute("color", new BufferAttribute(data.colors, 3));
-   geom.computeVertexNormals();
-   return geom;
-}
-
-export function Terrain({ run, reduced: _reduced }: { run?: Run; reduced: boolean }) {
-   const meshData = useMemo(() => buildTerrainData(run), []);
-   const terrainGeo = useMemo(() => coloredGeometry(meshData), [meshData]);
-   const lastSRef = useRef(-999);
+/**
+ * The snow field: three chunk strips in track world coordinates under the same transform as the
+ * track (ground.ts trackFrame), so it scrolls with the track. A strip is rebuilt only when the run
+ * generates a new chunk (every 60 m); a frame only moves one group. No allocation per frame.
+ */
+export function Terrain({ run, reduced: _reduced }: { run: Run; reduced: boolean }) {
+   const root = useRef<Group>(null);
+   const state = useMemo(() => {
+      const scratch = createStripScratch();
+      const geometries = [stripGeometry(), stripGeometry(), stripGeometry()];
+      const indices = [-1, -1, -1];
+      const frame = createTrackFrame();
+      const fill = () => {
+         for (let i = 0; i < 3; i++) {
+            const chunk = run.chunks[i];
+            if (indices[i] === chunk.index) continue;
+            const g = geometries[i];
+            const pos = g.getAttribute("position") as BufferAttribute;
+            const col = g.getAttribute("color") as BufferAttribute;
+            fillStrip(chunk, pos.array as Float32Array, col.array as Float32Array, TONES, scratch);
+            pos.needsUpdate = true;
+            col.needsUpdate = true;
+            g.computeBoundingSphere();
+            indices[i] = chunk.index;
+         }
+      };
+      fill();
+      return { scratch, geometries, frame, fill, p: { x: 0, y: 0, z: 0 }, t: { x: 0, y: 0, z: 0 } };
+   }, [run]);
 
    useEffect(() => () => {
-      terrainGeo.dispose();
-   }, [terrainGeo]);
+      for (const g of state.geometries) g.dispose();
+   }, [state]);
 
    useFrame(() => {
-      if (!run) return;
-      if (Math.abs(run.s - lastSRef.current) >= 0.4) {
-         buildTerrainData(run, meshData);
-         (terrainGeo.getAttribute("position") as BufferAttribute).needsUpdate = true;
-         (terrainGeo.getAttribute("color") as BufferAttribute).needsUpdate = true;
-         terrainGeo.computeVertexNormals();
-         lastSRef.current = run.s;
-      }
+      state.fill();
+      const f = trackFrame(run, state.frame, state.p, state.t);
+      const g = root.current;
+      if (!g) return;
+      g.rotation.y = f.yaw;
+      g.position.set(-f.cos * f.x + f.sin * f.z, -f.y, f.sin * f.x + f.cos * f.z);
    });
 
    return (
       <group name="arctic-terrain">
-         {/* Expansive rolling low-poly terrain with vertex-colored snow shading */}
-         <mesh geometry={terrainGeo} name="rolling-snow-terrain">
-            <meshStandardMaterial vertexColors flatShading roughness={0.92} metalness={0.02} />
-         </mesh>
+         <group ref={root} name="snow-strips">
+            {state.geometries.map((geometry, i) => (
+               <mesh key={i} geometry={geometry} frustumCulled={false} name="rolling-snow-terrain">
+                  <meshStandardMaterial vertexColors flatShading roughness={0.92} metalness={0.02} />
+               </mesh>
+            ))}
+         </group>
 
-         {/* Deep continuous backing ground plane ensuring no sky/void shows at any camera angle or ratio */}
-         <mesh
-            name="arctic-ground-base"
-            rotation={[-Math.PI / 2 + Math.atan(0.06), 0, 0]}
-            position={[0, -8.0, -60]}
-         >
-            <planeGeometry args={[600, 600]} />
-            <meshStandardMaterial color={COLORS.fog} roughness={1.0} />
+         {/*
+            Backing plane, a safety net only (the strips reach ±160 m, past the fog): flat and 40 m down,
+            under every strip in view, unlit in the fog colour, so it never cuts through the snow. The
+            tilted plane it replaces rose 0.06 m per metre ahead while the glacier falls, poked out of
+            the far snow and drew a grey line on the horizon.
+         */}
+         <mesh name="arctic-ground-base" rotation={[-Math.PI / 2, 0, 0]} position={[0, BASE_PLANE_Y, -60]}>
+            <planeGeometry args={[1200, 1200]} />
+            <meshBasicMaterial color={COLORS.fog} />
          </mesh>
       </group>
    );
