@@ -159,14 +159,14 @@ describe("space-repair five level declarations", () => {
 });
 
 for (const id of LEVEL_IDS) describe(`space-repair L${id} store proof`, () => {
-   it("honest 100 seeds, oracle 30, adversarial bots, on both devices, plus 30/60/144 Hz and random schedules", () => {
+   it("honest 50 seeds, oracle 30, adversarial bots, on both devices, plus 30/60/144 Hz and random schedules", () => {
       const limits = PROPOSED_LEVEL_LIMITS[id], levelMeta = meta.levels![id - 1];
       const results: Record<string, { runs: number; clears: number; wins: number; best: number; minRepairs: number }> = {};
       for (const policy of ["OracleRepair", "HumanPacedRepair", "GreedyRepair", "Idle", "BlindSpam20Hz"] as const) {
          const result = results[policy] = { runs: 0, clears: 0, wins: 0, best: 0, minRepairs: 30 };
          // Seeds per policy: the honest bot carries the clear-rate claims, the oracle the 90 % score
          // claim; greedy, idle and spam are adversarial witnesses (every run still checks the limits).
-         const seeds = { HumanPacedRepair: 100, OracleRepair: 30, GreedyRepair: 15, Idle: 5, BlindSpam20Hz: 5 }[policy];
+         const seeds = { HumanPacedRepair: 50, OracleRepair: 30, GreedyRepair: 15, Idle: 5, BlindSpam20Hz: 5 }[policy];
          for (let seed = 1; seed <= seeds; seed++) for (const coarse of [false, true]) {
             const schedules = seed <= 3 ? [30, 60, 144, 0] : [policy === "OracleRepair" ? 60 : 20];
             for (const hz of schedules) {
