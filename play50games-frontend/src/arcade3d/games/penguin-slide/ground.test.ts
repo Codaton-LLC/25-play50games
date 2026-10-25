@@ -1,5 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { Matrix4, Quaternion, Vector3 } from "three";
+import { fitView } from "@/arcade3d/core/view";
+import { VIEW } from "./camera";
 import { GROUND, SCENERY, createStripScratch, createTrackFrame, fillStrip, groundY, sceneryS, stripFloats, toView, trackEnd, trackFrame } from "./ground";
 import { decorOf } from "./looks";
 import { COURSE, chunkAt, corridorAt, createRun, sampleTrack, stepRun, worldAt, type Run } from "./rules";
@@ -9,6 +11,7 @@ vi.mock("@/arcade3d/core/gameTime", () => ({ useGameTime: () => ({ now: 0, delta
 vi.mock("@/arcade3d/core/quality", () => ({ scaledCount: (n: number) => n, useQuality: () => ({ decor: 1 }) }));
 
 const { placeScenery } = await import("./Decor");
+const { BASE_PLANE_Y } = await import("./Terrain");
 
 const TONES = [[1, 1, 1], [0.9, 0.9, 0.9], [0.8, 0.8, 0.8], [0.7, 0.7, 0.7]] as const;
 const DRIVE_INPUT = { steer: 0, left: false, right: false, jump: false };
@@ -172,5 +175,59 @@ describe("penguin-slide ground strips", () => {
       // the frame is cached: asking again without moving returns the same numbers
       const again = trackFrame(run, frame, { x: 0, y: 0, z: 0 }, { x: 0, y: 0, z: 0 });
       expect(again.yaw).toBe(frame.yaw);
+   });
+
+   it("reach sideways past the end of the fog at every screen shape, so no edge line shows on the horizon", () => {
+      const outer = Math.min(-GROUND.cols[0], GROUND.cols[GROUND.cols.length - 1]);
+      for (const [width, height] of [[1280, 800], [1920, 1080], [390, 844], [360, 740], [844, 390], [932, 430]]) {
+         const fitted = fitView({ ...VIEW, width, height });
+         for (const factor of [1, 1.2]) {
+            // camera.tsx: the camera sits at offset x factor from the focus (0, 0, -10); fog far = penguin depth + 46
+            const cam = new Vector3(fitted.offset[0] * factor, fitted.offset[1] * factor, -10 + fitted.offset[2] * factor);
+            const forward = new Vector3(0, 0, -10).sub(cam).normalize();
+            const far = -cam.dot(forward) + 46;
+            const halfWide = Math.tan((VIEW.fov * Math.PI) / 360) * (width / height);
+            // a lateral edge is unfogged only if it is in view at a depth under `far`; keep a 25 % margin for lens shift and banking
+            expect(outer, `${width}x${height}`).toBeGreaterThan(far * halfWide * 1.25);
+         }
+      }
+   });
+
+   it("keeps the backing plane under every ground vertex in view, so it never cuts through the snow", () => {
+      for (const seed of [42, 101, 777]) {
+         const run = createRun(seed);
+         slide(run, 30);
+         const frame = trackFrame(run, createTrackFrame(), { x: 0, y: 0, z: 0 }, { x: 0, y: 0, z: 0 });
+         const k = createStripScratch();
+         const view = { x: 0, y: 0, z: 0 };
+         let lowest = Infinity;
+         for (const c of run.chunks) {
+            for (let row = 0; row < GROUND.rows; row++) {
+               const s = (COURSE.chunk * row) / (GROUND.rows - 1);
+               for (const offset of GROUND.cols) {
+                  const y = groundY(c, s, corridorAt(c, s) + offset, k.p, k.t, k.q);
+                  toView(frame, k.p.x, y, k.p.z, view);
+                  lowest = Math.min(lowest, view.y);
+               }
+            }
+         }
+         expect(lowest).toBeGreaterThan(BASE_PLANE_Y + 5);
+      }
+   });
+
+   it("draws each grid quad in one tone, so no diagonal tone line crosses the snow", () => {
+      const run = createRun(9999);
+      const k = createStripScratch();
+      const positions = new Float32Array(stripFloats());
+      const colors = new Float32Array(stripFloats());
+      for (const c of run.chunks) {
+         fillStrip(c, positions, colors, TONES, k);
+         for (let q = 0; q < colors.length; q += 18) {
+            for (let v = 3; v < 18; v += 3) {
+               expect(colors[q + v]).toBe(colors[q]);
+               expect(colors[q + v + 2]).toBe(colors[q + 2]);
+            }
+         }
+      }
    });
 });
