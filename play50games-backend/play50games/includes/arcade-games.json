@@ -225,7 +225,14 @@
       "max_duration_ms": 92000,
       "base": 600,
       "max_pps": 190,
-      "enabled": false
+      "enabled": false,
+      "levels": [
+        { "title": "Snow Yard", "max_score": 2550, "min_duration_ms": 10000, "max_duration_ms": 92000, "base": 600, "max_pps": 190 },
+        { "title": "Frozen Park", "max_score": 2550, "min_duration_ms": 10000, "max_duration_ms": 92000, "base": 600, "max_pps": 190 },
+        { "title": "Snow Fort", "max_score": 2550, "min_duration_ms": 8000, "max_duration_ms": 92000, "base": 600, "max_pps": 230 },
+        { "title": "Ice Village", "max_score": 2550, "min_duration_ms": 8000, "max_duration_ms": 92000, "base": 600, "max_pps": 230 },
+        { "title": "Championship Arena", "max_score": 2550, "min_duration_ms": 5000, "max_duration_ms": 92000, "base": 600, "max_pps": 348 }
+      ]
     },
     "ghost-vacuum": {
       "title": "Ghost Vacuum",

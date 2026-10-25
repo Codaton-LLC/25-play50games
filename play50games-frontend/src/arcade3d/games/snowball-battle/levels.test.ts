@@ -9,7 +9,7 @@ import { fixedFrames, simulateRun } from "@/arcade3d/core/testing/botHarness";
 import { createArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { levelMetaProblems, scoringFor } from "@/arcade3d/levelMeta";
 import { LEVEL_IDS, type LevelId } from "@/arcade3d/types";
-import { idleInput, oracle, spammerInput, witness } from "./bots";
+import { exposePlayer, idleInput, oracle, spammerInput, witness } from "./bots";
 import { LEVELS } from "./levels";
 import { snowballBattleMeta as meta } from "./meta";
 import definition from "./index";
@@ -315,4 +315,124 @@ describe("snowball-battle levels: bots", () => {
          }
       }, 60000);
    }
+});
+
+// Review (Claude): the knobs above are only data until the simulation reads them. Each test below
+// fails if one call site in rules.ts falls back to the level-1 constant (mutation-probed).
+const IDLE: StepInput = { moveX: 0, moveY: 0, camYaw: 0, scoop: false, fire: false, tapId: -1, aimYaw: Math.PI };
+const ROOTED_SLOT = new Set(["peek", "windup", "recover"]);
+
+describe("snowball-battle levels: the simulation reads the level", () => {
+   it("the third rival joins at the level's sneakerAt", () => {
+      for (const id of [1, 3, 5] as const) {
+         const run = createRun(9, false, LEVELS[id]);
+         stepRun(run, LEVELS[id].sneakerAt - 0.01, IDLE);
+         expect(run.kids[3].present, `L${id} before`).toBe(false);
+         stepRun(run, 0.02, IDLE);
+         expect(run.kids[3].present, `L${id} after`).toBe(true);
+      }
+   });
+
+   it("a rival's wind-up lasts the level's wind-up", () => {
+      for (const id of [1, 4] as const) {
+         const run = createRun(11, false, LEVELS[id]);
+         exposePlayer(run);
+         let start = -1;
+         let length = -1;
+         while (run.time < 20 && length < 0) {
+            const was = run.kids[1].state;
+            stepRun(run, 1 / 120, IDLE);
+            const now = run.kids[1].state;
+            if (now === "windup" && was !== "windup") start = run.time;
+            if (start >= 0 && was === "windup" && now !== "windup") length = run.time - start;
+         }
+         expect(length, `L${id}`).toBeGreaterThan(0);
+         expect(Math.abs(length - LEVELS[id].windup), `L${id} ${length}`).toBeLessThan(0.02);
+      }
+   });
+
+   it("two rivals share the attack slot only from the level's slotAt", () => {
+      const twoBefore = (id: LevelId, until: number) => {
+         let seen = false;
+         for (let seed = 1; seed <= 6 && !seen; seed++) {
+            const run = createRun(seed, false, LEVELS[id]);
+            exposePlayer(run);
+            while (!run.endReason && run.time < until) {
+               stepRun(run, 1 / 60, IDLE);
+               let busy = 0;
+               for (let i = 1; i < 4; i++) if (run.kids[i].present && run.kids[i].alive && ROOTED_SLOT.has(run.kids[i].state)) busy++;
+               if (busy >= 2) seen = true;
+            }
+         }
+         return seen;
+      };
+      expect(twoBefore(1, 30)).toBe(false);
+      expect(twoBefore(3, 29.9)).toBe(false);
+      expect(twoBefore(5, 29.9)).toBe(true);
+   });
+
+   it("an incoming ball triggers the dodge after the level's delay", () => {
+      const dodgedBy = (id: LevelId, t: number) => {
+         const run = createRun(6, false, LEVELS[id]);
+         const kid = run.kids[1];
+         const ball = run.balls[0];
+         ball.alive = true; ball.owner = 0; ball.roller = false; ball.r = 0.25;
+         ball.x0 = -11; ball.y0 = 30; ball.z0 = 8; ball.vx = 0; ball.vy = 0; ball.vz = 0;
+         ball.age = 0; ball.flight = 5; ball.x = -11; ball.y = 30; ball.z = 8;
+         ball.ix = kid.x; ball.iz = kid.z;
+         stepRun(run, t, IDLE);
+         return kid.dodge > 0;
+      };
+      // level 1 waits 0.35 s at t = 0, level 5 0.20 s
+      expect(dodgedBy(1, 0.27)).toBe(false);
+      expect(dodgedBy(5, 0.27)).toBe(true);
+   });
+
+   it("top speed is the level's speed for the player", () => {
+      for (const id of [1, 2] as const) {
+         const run = createRun(3, false, LEVELS[id]);
+         for (let n = 0; n < 60; n++) stepRun(run, 1 / 60, { ...IDLE, moveX: 1 });
+         const p = run.kids[0];
+         expect(Math.hypot(p.vx, p.vz), `L${id}`).toBeCloseTo(LEVELS[id].speed, 3);
+      }
+   });
+
+   it("a rival's long throw takes the level's flight time", () => {
+      for (const id of [1, 2] as const) {
+         const run = createRun(6, false, LEVELS[id]);
+         for (let i = 0; i < run.forts.length; i++) run.forts[i].hp = 0;
+         const rival = run.kids[1];
+         const p = run.kids[0];
+         rival.x = -8; rival.z = 5; rival.vx = 0; rival.vz = 0;
+         p.x = 8; p.z = 5; p.vx = 0; p.vz = 0;
+         rival.state = "windup"; rival.timer = 1 / 120; rival.ammo = 1;
+         stepRun(run, 1 / 60, IDLE);
+         const ball = run.balls.find((b) => b.alive && b.owner === 1);
+         expect(ball, `L${id}`).toBeDefined();
+         expect(ball!.flight, `L${id}`).toBeCloseTo(flightTime(16, LEVELS[id]), 6);
+      }
+   });
+
+   for (const id of LEVEL_IDS) it(`L${id}: an exposed idle player is not tagged out before the level's loss chain`, () => {
+      for (let seed = 1; seed <= 12; seed++) {
+         const run = createRun(seed, false, LEVELS[id]);
+         exposePlayer(run);
+         while (!run.endReason && run.time < 40) stepRun(run, 1 / 60, IDLE);
+         if (run.endReason === "lose") expect(run.time, `seed ${seed}`).toBeGreaterThanOrEqual(lossChainS(LEVELS[id]) - 1e-6);
+         expect(run.time * 1000).toBeGreaterThanOrEqual(PROPOSED_LEVEL_LIMITS[id].minDurationMs);
+      }
+   });
+
+   for (const id of LEVEL_IDS) it(`L${id}: the oracle's running score never crosses the line on any frame`, () => {
+      const limits = PROPOSED_LEVEL_LIMITS[id];
+      for (let seed = 1; seed <= 20; seed++) {
+         const run = createRun(seed, false, LEVELS[id]);
+         const brain = oracle();
+         while (!run.endReason && run.time < LEVELS[id].duration + 1) {
+            stepRun(run, 1 / 60, brain(run));
+            const shown = run.endReason ? run.score : run.bank;
+            expect(shown * 1000).toBeLessThanOrEqual(limits.base! * 1000 + limits.maxPointsPerSec! * Math.round(run.time * 1000));
+         }
+      }
+   }, 60000);
 });

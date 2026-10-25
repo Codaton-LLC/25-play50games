@@ -83,7 +83,9 @@ The hit cap is 2550 on every level (9×100 + 3×300 + 500 + 250), so a harder le
 
 **Level 5.** Sneaker at 5 s: hits at 5.00 / 5.45 / 5.90, `B(5.9) = 2550`. (2550−600)/5.9 = 330.5; 348 pps is `ceil` of 5 % over that slope. 600000 + 348·5900 = 2,653,200 ≥ 2,550,000. A forged 2550 at 5.45 s fails (allowed 2496). Two peek slots from the start put the fifth tag on the third beat of the slot clock: 2.20 + 0.65 + 2×1.70 = **6.25 s**. That is the lower bound (it ignores the walk between forts). minDuration 5000 sits 0.9 s under the 5.9 s clear, which is earlier than that bound.
 
-`PROPOSED_LEVEL_LIMITS` in `rules.ts` is what Claude copies into `arcade-games.json`. Until that copy, `registry.sync.test.ts` fails for this slug.
+`PROPOSED_LEVEL_LIMITS` in `rules.ts` is copied into `arcade-games.json` (`levels`, review 2026-10-25); `registry.sync.test.ts` checks the two agree.
+
+**Review tests (levels.test.ts "the simulation reads the level").** Each level knob is checked in the running simulation, not only as data: the sneaker joins at `sneakerAt`, a wind-up lasts `windup`, two rivals share the slot only from `slotAt`, the dodge waits `dodgeAt`, the player's top speed is `speed`, a 16 m rival throw flies `flightTime(16, level)`, an exposed idle player is never tagged out before `lossChainS(level)` (12 seeds per level), and the oracle's running score stays under each level's line on every frame (20 seeds). Reverting any one call site in `rules.ts` to the level-1 constant fails a test. Note: the bots barely feel levels 1-4 (witness and oracle win 60/60 with 0 tags); level 5 is the first where they take tags (59/60).
 
 ## Run end
 
