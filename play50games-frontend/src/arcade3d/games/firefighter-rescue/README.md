@@ -70,12 +70,11 @@ The firefighter is a `HumanoidModel` stand-in (`FirefighterFigure`, 1.82 m, coat
 - The camera frames the whole building. On the warehouse the firefighter reads smaller than on level 1.
 - Spray is not a simulated hose. Smoke is a disc plus `fx.smoke`.
 - One of 24 warehouse oracle seeds still walks into debris and loses. The limit uses the winning runs. A player who clips a parked box spends a life; the hop is the dodge.
-- No thumbnail yet (`/images/3d/firefighter-rescue.webp`).
-- `slug` is cast to `ArcadeSlug`. It is not in `ARCADE_SLUGS` yet, so `tsc` does not report the missing slug.
+- No thumbnail yet: `meta.thumbnail` is `null` until `/images/3d/firefighter-rescue.webp` lands (with its OG card).
 
 ## What Claude registers
 
-Do not enable the game. Status stays `dev`, `enabled: false`.
+Steps 1–4 are done (`claude/menu1-scaffold`, 2026-10-25: slug in `ARCADE_SLUGS`, registry, loader, the five limits in `arcade-games.json`, casts removed). Step 5 is open. Do not enable the game. Status stays `dev`, `enabled: false`.
 
 1. `src/arcade3d/types.ts` — add `"firefighter-rescue"` to `ARCADE_SLUGS` (after `rocket-landing`). Drop the `as ArcadeSlug` casts in `meta.ts` and `index.tsx`.
 2. `src/arcade3d/registry.ts` — `import { firefighterRescueMeta } from "./games/firefighter-rescue/meta"` and append it to `ARCADE_GAMES`.

@@ -1,7 +1,10 @@
 // Server-safe contracts for the 3D Arcade.
 // Do NOT import three, @react-three/*, React components or "use client" files here.
 
-/** All 30 games: the 10 originals in rollout order, then the expansion (docs/arcade-expansion/02 §C.1). */
+/**
+ * All 50 Menu 1 games: the 10 originals in rollout order, the expansion (docs/arcade-expansion/02 §C.1),
+ * then the 20 new Menu 1 games 31-50 (docs/menu1-new/specs-31-40.md, specs-41-50.md).
+ */
 export const ARCADE_SLUGS = [
    "robot-collector",
    "food-catcher",
@@ -33,6 +36,26 @@ export const ARCADE_SLUGS = [
    "knight-arena",
    "zoo-escape",
    "rocket-landing",
+   "firefighter-rescue",
+   "taxi-rush-3d",
+   "burger-delivery-scooter",
+   "beach-lifeguard",
+   "farm-tractor-challenge",
+   "cat-vs-robot-vacuum",
+   "hotel-bellboy-rush",
+   "wizard-potion-lab",
+   "haunted-mansion-keys",
+   "bee-garden",
+   "dog-park-fetch",
+   "submarine-treasure-dive",
+   "mars-rover-mission",
+   "train-station-rush",
+   "pizza-kitchen-3d",
+   "jungle-bridge-run",
+   "magic-carpet-ride",
+   "toy-store-night-shift",
+   "aquarium-cleaner",
+   "postman-3d",
 ] as const;
 
 export type ArcadeSlug = (typeof ARCADE_SLUGS)[number];

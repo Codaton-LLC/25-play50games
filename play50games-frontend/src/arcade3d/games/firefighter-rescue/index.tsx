@@ -3,7 +3,7 @@
 // Firefighter Rescue. GameShell owns the clock, the lives, pause and the result.
 // Level 1 is the definition; levels 2-5 swap counts, clock and lighting (levels.ts).
 import type { GameDefinition, LevelSpec } from "@/arcade3d/core/types";
-import { LEVEL_IDS, type ArcadeSlug, type LevelId } from "@/arcade3d/types";
+import { LEVEL_IDS, type LevelId } from "@/arcade3d/types";
 import { ASSETS } from "./assets";
 import Hud from "./Hud";
 import { LEVELS, LEVEL_LINES, type FireLevel } from "./levels";
@@ -34,7 +34,7 @@ function instructionsFor(id: LevelId): string[] {
 const look = lookAtFor(LEVELS[1]);
 
 const definition: GameDefinition<FireLevel> = {
-   slug: "firefighter-rescue" as ArcadeSlug,
+   slug: "firefighter-rescue",
    Scene,
    Hud,
    assets: ASSETS,

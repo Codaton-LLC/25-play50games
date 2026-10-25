@@ -1,8 +1,8 @@
-import type { ArcadeGameMeta, ArcadeSlug, LevelMeta, ScoringRules } from "@/arcade3d/types";
+import type { ArcadeGameMeta, LevelMeta, ScoringRules } from "@/arcade3d/types";
 import { LEVEL_TITLES } from "./levels";
 
-// Plain data. Numbers match rules.ts PROPOSED_LEVEL_LIMITS (levels.test.ts). Claude copies
-// them into arcade-games.json. A level clears only on a win (every fire out, every neighbour out).
+// Plain data. Numbers match rules.ts PROPOSED_LEVEL_LIMITS (levels.test.ts), and
+// arcade-games.json carries the same five. A level clears only on a win (every fire out, every neighbour out).
 const PTS = { kind: "points", unitLabel: "pts", display: "int" } as const;
 
 const SCORING: ScoringRules = { ...PTS, maxScore: 1100, minDurationMs: 4000, maxDurationMs: 120_000, base: 400, maxPointsPerSec: 96 };
@@ -16,8 +16,7 @@ const LEVELS: readonly LevelMeta[] = [
 ];
 
 export const firefighterRescueMeta: ArcadeGameMeta = {
-   // Claude adds this slug to ARCADE_SLUGS, loaders.ts and arcade-games.json.
-   slug: "firefighter-rescue" as ArcadeSlug,
+   slug: "firefighter-rescue",
    title: "Firefighter Rescue",
    tagline: "Put the fires out. Walk the neighbours clear.",
    description: "Enter one floor, hold a spray on each fire, and walk one neighbour at a time out to the exit sign.",
@@ -33,7 +32,7 @@ export const firefighterRescueMeta: ArcadeGameMeta = {
    },
    scoring: SCORING,
    levels: LEVELS,
-   thumbnail: "/images/3d/firefighter-rescue.webp",
+   thumbnail: null,
    accent: "#f97316",
    owner: "cursor",
 };
