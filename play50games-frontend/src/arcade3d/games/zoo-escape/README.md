@@ -65,8 +65,8 @@ Grid 0.4 m, step 0.25 s, sneak moves; per keeper a mask from its undisturbed pat
 - Follow camera, pitch 62°, one yaw, `useFittedView` window (phone portrait 8.5 × 12 m, phone landscape 16 × 7.5, larger 16 × 14; `camera.ts`), `CameraRig` on a live aim (panda + 1.5 m north) clamped to the stage (south / sides inside, ≤ 3 m past the north gate).
 - Panda `<Model>` 1.15 m (Decision Q1) with `waddle`, sneak crouch (`squashStretch` 0.82), `hop` on a toss and out through the exit; merged vertex-coloured stand-in.
 - Keepers: 3 skinned slots (`<HumanoidModel>` + torch on `handR`, `keeperPose`: walk, idle, torch arm via `aimArm`, the look-around on chest 0.4 / head 0.6) filled with the current stage's keepers, then next-stage keepers inside the window + 1 m; each slot has a 7 m and a 9 m `<Flashlight blockers>` (C1) placed at `FRAME_PRIORITY.pose`, coral while suspicious. Instanced khaki ground rings, meter rings + fills, "?" / "!" billboards. Searchlight = the one SpotLight. `TargetMarkers` arrows: the exit (mint), each keeper and the searchlight (amber, coral while suspicious).
-- Look: day preset, sky `#bae6fd` fog; stage 3 fades to `sunset` with `#f4a582` (C2 `useStageLighting`) and the lamp heads / halos glow in. Bamboo GLB (`/models/3d/zoo-escape/bamboo.glb`) for the solid clumps and stage 1's hiding thickets; leafy blobs for the plaza / parking planters; striped kiosk awnings; drop bars swing down; mint hide outline (pulses coral with a keeper within 1.5 m); exit beacon; `core/fx` sparkle, puff, confetti, score popups, shake; sfx click steps, whoosh rustle, pop, alarm, thud, pickup, hit, chime; ambient loop restarted on [phase, muted].
-- Draw calls (estimate, not measured): ground 5, moat / banks / bridge 3, fences + gates + bars 4, GLB props 8, kiosks / awnings / bushes / tower 4, lamp glows 2, outline + beacon 2, snacks + glows + bundles 3, keepers 3 + torches 3 + cones 6 + searchlight 2, overlays 5, panda 2, fx ≤ 5 → **≈ 57 worst case** (target 55, cap 65).
+- Look: day preset, sky `#bae6fd` fog; stage 3 fades to `sunset` with `#f4a582` (C2 `useStageLighting`) and the lamp heads / halos glow in. Bamboo GLB (`/models/3d/zoo-escape/bamboo.glb`) for the solid clumps and stage 1's hiding thickets; leafy blobs for the plaza / parking planters; kiosk GLB (`zooKiosk.glb`, striped canopy baked in) on the three kiosk footprints; drop bars swing down; mint hide outline (pulses coral with a keeper within 1.5 m); exit beacon; `core/fx` sparkle, puff, confetti, score popups, shake; sfx click steps, whoosh rustle, pop, alarm, thud, pickup, hit, chime; ambient loop restarted on [phase, muted].
+- Draw calls (estimate, not measured): ground 5, moat / banks / bridge 3, fences + gates + bars 4, GLB props 8, kiosks / bushes / tower 3, lamp glows 2, outline + beacon 2, snacks + glows + bundles 3, keepers 3 + torches 3 + cones 6 + searchlight 2, overlays 5, panda 2, fx ≤ 5 → **≈ 56 worst case** (target 55, cap 65).
 
 ## Files
 
@@ -85,7 +85,7 @@ Modern-look pass (TASK P-36-look-zoo):
   - SkyDome: 1
   - Terrain (ground planes 4, paths 1, curbs 1, lines 1, crosswalk 1, moat 1, banks 1, bridge 1): 11
   - Fences & gates (posts 1, rails 1, gates 1, drop bars 1): 4
-  - GLB props / stand-ins (rocks 1, bamboo 1, benches 1, bins 1, lamps 1, palms 1, cars 1, trees 1, kiosks 1, awnings 1, bushes 1, tower 1): 12
+  - GLB props / stand-ins (rocks 1, bamboo 1, benches 1, bins 1, lamps 1, palms 1, cars 1, trees 1, kiosks 1, bushes 1, tower 1): 11
   - Decor outside (hedges 1, trees 1, pines 1, signposts 1, hills 1, clouds 1): 6
   - Keepers & searchlight (3 keepers + 3 torches + 3 cones + searchlight): 10
   - Overlays (discs 1, meter rings 1, meter fills 1, bubbles 2): 5
@@ -100,6 +100,7 @@ Modern-look pass (TASK P-36-look-zoo):
 - Keepers never "fly" at 2 m/s (`ground` 1): the core walk's run flight lifted the soles 2.4 cm.
 - Snack risk = the largest single watcher's share on the margin mask (union over combinations depends on the seed).
 - The bamboo GLB also draws stage 1's four hiding bushes (Decisions: "bamboo GLB as the hiding clumps").
+- Adopted Hyper3D prop GLBs (2026-10-25, batch 5 part A): `zooKiosk` (striped canopy baked in — the separate instanced awnings are gone), `leafyBush`, `woodenFootbridge` (sunk so its deck top lands on the old 0.165), `searchlightTower` (drawn 4.4 m, no lamp head baked — the beam apex at 4.5 starts just above its railing) and `bambooSnack` (a flat spread pile, fitted to the 0.42 m unit height). All keep their merged stand-ins as fallbacks; sizes pinned in `assets.test.ts`.
 
 ## Decisions (user, 2026-10-24)
 
@@ -130,7 +131,7 @@ Branch checked: `git branch --show-current` = claude/game-zoo-escape (on top of 
 
 **Bots** (real store, 30 / 60 / 144 Hz + random frames, every run withinServerLimits, capScore no-op): oracle 3040 on seeds 65 / 46 (35.7 / 35.9 s, all 12 snacks, 0 catches, every frame rate) = **92.4 %** of 3290; seed 43 3000. Solver bot (planPeriodic, sneak only) 24 / 24 wins, 0 catches. Novice proxy **24 / 40 = 60 %** wins. Rusher 5 / 40 = 12.5 % wins. Idle 0 (time-up, never caught), toss spammer 0, bush camper 0 (no win), catch farmer 0 (lose, ≥ 5 s). Seed counts reduced to keep the suite ≈ 30 s: oracle 3 seeds × 4 frame modes, idle / spam / camp 12 seeds, farmer 8, rusher 40, solver 24, novice 40 (skill asks 200+; the fairness proof itself covers every offset combination exhaustively).
 
-**Draw calls (estimate, not measured)** ≈ 57 worst case (target 55, cap 65): ground 5, moat/banks/bridge 3, fences/gates/bars 4, GLB props 8 (one per GLB mesh), kiosks/awnings/bushes/tower 4, lamp glows 2 (dusk), outline + exit beacon 2, snacks/glows/bundles 3, 3 keepers + 3 torches + 3 visible cones (6) + searchlight (2), overlays 5, panda 2, fx ≤ 5. 1 dynamic light (the searchlight SpotLight, mounted all run, skipped on "low").
+**Draw calls (estimate, not measured)** ≈ 56 worst case (target 55, cap 65): ground 5, moat/banks/bridge 3, fences/gates/bars 4, GLB props 8 (one per GLB mesh), kiosks/bushes/tower 3 (the kiosk GLB's striped canopy replaces the separate awnings), lamp glows 2 (dusk), outline + exit beacon 2, snacks/glows/bundles 3, 3 keepers + 3 torches + 3 visible cones (6) + searchlight (2), overlays 5, panda 2, fx ≤ 5. 1 dynamic light (the searchlight SpotLight, mounted all run, skipped on "low").
 
 **Open questions**
 1. Bamboo GLB: used for the 3 solid bamboo clumps AND stage 1's four hiding bushes (read "the bamboo GLB as the hiding clumps" literally); the plaza / parking hiding spots stay leafy planters. Keep, or bamboo for the solids only?
