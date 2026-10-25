@@ -167,6 +167,9 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/hotel-bellboy-rush/lobbyPlanterR.glb",
    "/models/3d/shared/sofa.glb",
    "/models/3d/shared/travellerNpc.glb",
+   // robot-collector hazard beacon (2026-10-25): Hyper3D prop copied in by Claude; decor on the
+   // wall trim of levels 4-5 (Dark Storage / Mega Warehouse), adopted in games/robot-collector
+   "/models/3d/robot-collector/hazardBeacon.glb",
 ];
 
 const LISTED: ReadonlySet<string> = new Set(MODEL_MANIFEST);
