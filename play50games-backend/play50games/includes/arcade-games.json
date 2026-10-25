@@ -229,7 +229,14 @@
       "max_duration_ms": 77000,
       "base": 1700,
       "max_pps": 100,
-      "enabled": false
+      "enabled": false,
+      "levels": [
+        { "title": "Mini Market", "max_score": 2030, "min_duration_ms": 3500, "max_duration_ms": 77000, "base": 1700, "max_pps": 100 },
+        { "title": "Fresh Food", "max_score": 2520, "min_duration_ms": 3500, "max_duration_ms": 102000, "base": 2200, "max_pps": 100 },
+        { "title": "Household Aisles", "max_score": 3560, "min_duration_ms": 3500, "max_duration_ms": 152000, "base": 3250, "max_pps": 100 },
+        { "title": "Superstore", "max_score": 4520, "min_duration_ms": 3500, "max_duration_ms": 152000, "base": 4200, "max_pps": 100 },
+        { "title": "Closing-Time Rush", "max_score": 5960, "min_duration_ms": 3500, "max_duration_ms": 182000, "base": 5650, "max_pps": 100 }
+      ]
     },
     "snowball-battle": {
       "title": "Snowball Battle",
