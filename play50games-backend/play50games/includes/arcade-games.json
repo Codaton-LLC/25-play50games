@@ -109,14 +109,7 @@
       "min_duration_ms": 13654,
       "max_duration_ms": 600000,
       "time_base_ms": 600000,
-      "enabled": true,
-      "levels": [
-        { "title": "Office", "max_score": 58634, "min_duration_ms": 13654, "max_duration_ms": 600000, "time_base_ms": 600000 },
-        { "title": "Workshop", "max_score": 60775, "min_duration_ms": 12250, "max_duration_ms": 210000, "time_base_ms": 620000 },
-        { "title": "Laboratory", "max_score": 62585, "min_duration_ms": 14150, "max_duration_ms": 240000, "time_base_ms": 640000 },
-        { "title": "Cabin", "max_score": 64480, "min_duration_ms": 15200, "max_duration_ms": 240000, "time_base_ms": 660000 },
-        { "title": "Mini Spaceship", "max_score": 67180, "min_duration_ms": 18200, "max_duration_ms": 300000, "time_base_ms": 690000 }
-      ]
+      "enabled": true
     },
     "obstacle-race": {
       "title": "Obstacle Race",
