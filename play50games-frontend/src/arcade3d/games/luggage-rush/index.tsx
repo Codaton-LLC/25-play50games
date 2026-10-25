@@ -5,6 +5,7 @@
 import type { GameDefinition } from "@/arcade3d/core/types";
 import Scene from "./Scene";
 import { ASSETS } from "./assets";
+import { COLORS, FOG_RANGE } from "./looks";
 import { DURATION_MS, RESULT_DELAY_MS, STRIKE_LIMIT } from "./rules";
 
 const definition: GameDefinition = {
@@ -14,7 +15,11 @@ const definition: GameDefinition = {
    durationMs: DURATION_MS,
    resultDelayMs: RESULT_DELAY_MS,
    camera: { position: [6, 16, 22], fov: 50, lookAt: [5.5, 0, 7] },
-   environment: { background: "#e2e8f0", lighting: "indoor" },
+   environment: {
+      background: COLORS.skyBottom,
+      fog: [COLORS.fog, FOG_RANGE.near, FOG_RANGE.far],
+      lighting: "indoor",
+   },
    touchControls: ["tap"],
    hudStats: [
       { key: "strikes", label: "Strikes", max: STRIKE_LIMIT },

@@ -6,6 +6,7 @@ import { useThree, type RootState } from "@react-three/fiber";
 import { Vector3 } from "three";
 import CameraRig from "@/arcade3d/core/CameraRig";
 import { playSfx, startLoop } from "@/arcade3d/core/audio";
+import { SkyDome } from "@/arcade3d/core/env";
 import { useFx } from "@/arcade3d/core/fx";
 import { useInput } from "@/arcade3d/core/input";
 import { randomSeed } from "@/arcade3d/core/math";
@@ -15,6 +16,7 @@ import { useRunFrame } from "@/arcade3d/core/useRunFrame";
 import { Bags } from "./Bags";
 import { Belts } from "./Belts";
 import { Hall } from "./Hall";
+import { COLORS } from "./looks";
 import {
    DIVERTER_AT,
    comboMult,
@@ -134,14 +136,15 @@ export default function Scene() {
          scratch.v.set(event.x, event.y + 0.4, event.z);
          if (event.kind === "deliver") {
             store.addScore(event.points);
-            fx.burst("sparkle", scratch.v, 12);
+            fx.burst("sparkle", scratch.v, 14);
             fx.score(scratch.v, `+${event.points}`);
             const mult = comboMult(run.streak < 1 ? 1 : run.streak);
             playSfx(run.streak > 1 ? "combo" : "chime", { pitch: 0.9 + 0.15 * (mult - 1) });
          } else if (event.kind === "strike") {
             fx.burst("puff", scratch.v, 14);
             playSfx(event.overflow ? "thud" : "buzz");
-            if (event.overflow) fx.shake(0.35);
+            // small shake on wrong chute, larger shake on overflow
+            fx.shake(event.overflow ? 0.35 : 0.15);
          } else if (event.kind === "flip") {
             playSfx("click");
          }
@@ -153,6 +156,7 @@ export default function Scene() {
 
    return (
       <>
+         <SkyDome top={COLORS.skyTop} bottom={COLORS.skyBottom} />
          <FittedCamera />
          <Hall />
          <Belts run={run} />
