@@ -1,0 +1,148 @@
+// One palette, the follow camera, and the lab ring. Pure: no React, no three.js.
+import type { AABB } from "@/arcade3d/core/collision";
+import type { InstanceSpot } from "@/arcade3d/core/render";
+import type { FittedViewOptions } from "@/arcade3d/core/useFittedView";
+import { followFocus } from "@/arcade3d/core/view";
+import type { LevelId } from "@/arcade3d/types";
+import { LEVELS, type WizardLevel } from "./levels";
+import type { Ingredient } from "./rules";
+
+export const COLORS = {
+   floor: "#312e81",
+   floorIn: "#3730a3",
+   apron: "#1e1b4b",
+   wall: "#44403c",
+   wallTrim: "#57534e",
+   shelf: "#44403c",
+   shelfTrim: "#78716c",
+   glow: "#a78bfa",
+   accent: "#c4b5fd",
+   pot: "#334155",
+   potDark: "#1e293b",
+   potRim: "#64748b",
+   robe: "#5b21b6",
+   robeDark: "#3b0764",
+   hat: "#312e81",
+   skin: "#f1d0b4",
+   beard: "#44403c",
+   boot: "#1e1b4b",
+   table: "#44403c",
+   tableTop: "#57534e",
+   book: "#7c3aed",
+   bookPage: "#e7e5e4",
+   candle: "#f5f5f4",
+   candleWax: "#fde68a",
+   rune: "#c4b5fd",
+   brewIdle: "#4c1d95",
+} as const;
+
+/** HUD shape and stand-in, one per shelf mesh, in TYPES order. */
+export const INGREDIENT_LOOK: Record<Ingredient, { shape: "circle" | "square" | "triangle" | "diamond" | "star" | "drop"; color: string }> = {
+   mushroom: { shape: "circle", color: "#fb923c" },
+   crystal: { shape: "square", color: "#67e8f9" },
+   berry: { shape: "triangle", color: "#fb7185" },
+   flower: { shape: "diamond", color: "#f0abfc" },
+   herb: { shape: "star", color: "#86efac" },
+   bottle: { shape: "drop", color: "#c4b5fd" },
+};
+
+export const PITCH = (52 * Math.PI) / 180;
+export const YAWS = [0, Math.PI / 2] as const;
+export const FOV = 46;
+export const FOLLOW = 0.42;
+export const DAMPING = 4;
+
+export function fogFor(level: WizardLevel): [string, number, number] {
+   return [level.background, level.radius * 1.7, level.radius * 4.4];
+}
+
+export function labBox(level: WizardLevel): AABB {
+   const s = level.radius + 0.9;
+   return { min: { x: -s, y: 0, z: -s }, max: { x: s, y: 2.6, z: s } };
+}
+
+export function lookAtFor(): [number, number, number] {
+   return [0, 0.45, 0];
+}
+
+const VIEWS = new Map<LevelId, FittedViewOptions>();
+
+/** The whole lab stays in frame. The look point is the cauldron, biased a little toward the wizard. */
+export function viewFor(id: LevelId): FittedViewOptions {
+   let view = VIEWS.get(id);
+   if (!view) {
+      const level = LEVELS[id];
+      const area = labBox(level);
+      const look = lookAtFor();
+      view = {
+         area,
+         pitch: PITCH,
+         yaws: YAWS,
+         focus: followFocus({ lookAt: look, reach: area, fraction: FOLLOW, bounds: area }),
+         margin: { top: 0.06, right: 0.03, bottom: 0.07, left: 0.03 },
+         padding: 8,
+         shift: true,
+         fov: FOV,
+      };
+      VIEWS.set(id, view);
+   }
+   return view;
+}
+
+/** Ring of wall slabs. Unit boxes; the spot scale is the size. */
+export function wallSpots(level: WizardLevel): InstanceSpot[] {
+   const n = 18;
+   const t = 0.26;
+   const h = 2.35;
+   const spots: InstanceSpot[] = [];
+   for (let i = 0; i < n; i++) {
+      const a = (i / n) * Math.PI * 2;
+      const len = 2 * level.radius * Math.sin(Math.PI / n) * 1.04;
+      spots.push({
+         x: Math.sin(a) * (level.radius + t * 0.2),
+         y: h / 2,
+         z: Math.cos(a) * (level.radius + t * 0.2),
+         rotY: a,
+         sx: len,
+         sy: h,
+         sz: t,
+      });
+   }
+   return spots;
+}
+
+export function wallCapSpots(walls: readonly InstanceSpot[]): InstanceSpot[] {
+   return walls.map((spot) => ({ ...spot, y: 2.35, sy: 0.1 }));
+}
+
+/** Short candles against the wall. Count follows the quality tier. */
+export function candleSpots(level: WizardLevel, decor: number): InstanceSpot[] {
+   const n = Math.max(4, Math.round(10 * decor));
+   const spots: InstanceSpot[] = [];
+   const orbit = level.radius - 0.42;
+   for (let i = 0; i < n; i++) {
+      const a = (i / n) * Math.PI * 2 + 0.17;
+      spots.push({ x: Math.sin(a) * orbit, y: 0, z: Math.cos(a) * orbit, rotY: a });
+   }
+   return spots;
+}
+
+/** Flat runes on the floor, inside the walk. Never between the camera and the wizard's torso. */
+export function runeSpots(level: WizardLevel, decor: number): InstanceSpot[] {
+   const n = Math.max(0, Math.round(8 * decor));
+   const spots: InstanceSpot[] = [];
+   const orbit = level.radius * 0.55;
+   for (let i = 0; i < n; i++) {
+      const a = (i / n) * Math.PI * 2;
+      spots.push({
+         x: Math.sin(a) * orbit,
+         y: 0.02,
+         z: Math.cos(a) * orbit,
+         rotY: a,
+         sx: 0.34,
+         sy: 0.02,
+         sz: 0.34,
+      });
+   }
+   return spots;
+}

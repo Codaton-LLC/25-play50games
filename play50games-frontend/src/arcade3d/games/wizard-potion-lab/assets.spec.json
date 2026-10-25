@@ -1,0 +1,18 @@
+{
+   "slug": "wizard-potion-lab",
+   "universe": "play50-toy-world-premium",
+   "notes": "GLBs are generated already (menu1-wizard-potion-lab/). This file names the ids the game loads from /models/3d/wizard-potion-lab/. Claude copies them and adds the manifest lines. Leave wizard-potion-lab/hero.glb. The cauldron is EXPANSION_ASSETS.cauldron (monster-kitchen). The mushroom is EXPANSION_ASSETS.mushroom until shared/gardenMushroom.glb lands. The shelf source is shared/bookshelf.glb.",
+   "assets": [
+      { "id": "charWizard", "kind": "character", "file": "menu1-wizard-potion-lab/charWizard.glb", "budget": { "tris": 20000, "bytes": 1500000 } },
+      { "id": "alchemyTable", "kind": "prop", "file": "menu1-wizard-potion-lab/alchemyTable.glb", "budget": { "tris": 5000, "bytes": 300000 } },
+      { "id": "magicCrystal", "kind": "prop", "file": "menu1-wizard-potion-lab/magicCrystal.glb", "budget": { "tris": 5000, "bytes": 300000 } },
+      { "id": "berryBunch", "kind": "prop", "file": "menu1-wizard-potion-lab/berryBunch.glb", "budget": { "tris": 5000, "bytes": 300000 } },
+      { "id": "magicFlower", "kind": "prop", "file": "menu1-wizard-potion-lab/magicFlower.glb", "budget": { "tris": 5000, "bytes": 300000 } },
+      { "id": "herbBundle", "kind": "prop", "file": "menu1-wizard-potion-lab/herbBundle.glb", "budget": { "tris": 5000, "bytes": 300000 } },
+      { "id": "potionBottle", "kind": "prop", "file": "menu1-wizard-potion-lab/potionBottle.glb", "budget": { "tris": 5000, "bytes": 300000 } },
+      { "id": "spellBook", "kind": "prop", "file": "menu1-wizard-potion-lab/spellBook.glb", "budget": { "tris": 5000, "bytes": 300000 } },
+      { "id": "candle", "kind": "prop", "file": "menu1-wizard-potion-lab/candle.glb", "budget": { "tris": 5000, "bytes": 300000 } },
+      { "id": "crystalBall", "kind": "prop", "file": "menu1-wizard-potion-lab/crystalBall.glb", "budget": { "tris": 5000, "bytes": 300000 } },
+      { "id": "bookshelf", "kind": "prop", "file": "shared/bookshelf.glb", "budget": { "tris": 5000, "bytes": 300000 } }
+   ]
+}
