@@ -42,25 +42,8 @@ import {
 
 // ---------- palette ----------
 
-export const COLORS = {
-   floor: "#8a8379",
-   floorJoint: "rgba(20, 16, 12, 0.16)",
-   lane: "#facc15",
-   bay: "rgba(241, 245, 249, 0.75)",
-   plinth: "#1b2538",
-   wall: "#a8a29e",
-   trim: "#44403c",
-   rackUpright: "#fb923c",
-   rackShelf: "#94a3b8",
-   carton: "#b07a4a",
-   palletTop: "#d6a46b",
-   palletRunner: "#a8743f",
-   robot: "#2dd4bf",
-   robotHead: "#f1f5f9",
-   robotDark: "#0f172a",
-   robotEye: "#67e8f9",
-   hazard: "#111827",
-} as const;
+import { COLORS } from "./looks";
+export { COLORS };
 
 // ---------- the warehouse (static) ----------
 
@@ -167,6 +150,9 @@ const RACK_SHELF_SPOTS = spotsOf(RACK_SPOTS, () => RACK_SHELVES);
 const RACK_CARTON_SPOTS = spotsOf(RACK_SPOTS, (k) => rackPieces(CARTONS, k === 1, 31 + k * 17));
 
 /** Stand-in racks: orange uprights, grey shelves, brown cartons (three InstancedMeshes for both racks). */
+const RACK_CARTON_SPOTS_A = RACK_CARTON_SPOTS.filter((_, i) => i % 2 === 0);
+const RACK_CARTON_SPOTS_B = RACK_CARTON_SPOTS.filter((_, i) => i % 2 !== 0);
+
 function RackStandIns() {
    return (
       <>
@@ -178,9 +164,13 @@ function RackStandIns() {
             <boxGeometry />
             <meshStandardMaterial color={COLORS.rackShelf} roughness={0.5} metalness={0.25} />
          </Instanced>
-         <Instanced spots={RACK_CARTON_SPOTS} name="rack-cartons">
+         <Instanced spots={RACK_CARTON_SPOTS_A} name="rack-cartons-a">
             <boxGeometry />
             <meshStandardMaterial color={COLORS.carton} roughness={0.85} />
+         </Instanced>
+         <Instanced spots={RACK_CARTON_SPOTS_B} name="rack-cartons-b">
+            <boxGeometry />
+            <meshStandardMaterial color={COLORS.cartonDark} roughness={0.85} />
          </Instanced>
       </>
    );
@@ -498,22 +488,50 @@ function ExtraShelves({ count }: { count: number }) {
 function ForkliftBody() {
    return (
       <group>
-         <mesh position={[0, 0.22, 0]} castShadow={false}>
-            <boxGeometry args={[1.2, 0.32, 0.64]} />
-            <meshStandardMaterial color="#ea580c" roughness={0.42} />
+         {/* Lower chassis & counterweight */}
+         <mesh position={[-0.05, 0.14, 0]} castShadow={false}>
+            <boxGeometry args={[1.1, 0.18, 0.62]} />
+            <meshStandardMaterial color={COLORS.forkliftCab} roughness={0.6} />
          </mesh>
-         <mesh position={[-0.12, 0.52, 0]}>
-            <boxGeometry args={[0.52, 0.36, 0.52]} />
-            <meshStandardMaterial color="#0f172a" roughness={0.35} />
+         <mesh position={[0, 0.26, 0]} castShadow={false}>
+            <boxGeometry args={[1.18, 0.28, 0.64]} />
+            <meshStandardMaterial color={COLORS.forkliftBody} roughness={0.42} />
          </mesh>
-         <mesh position={[-0.12, 0.74, 0]}>
-            <boxGeometry args={[0.1, 0.08, 0.1]} />
-            <meshStandardMaterial color="#facc15" emissive="#facc15" emissiveIntensity={0.8} />
+         {/* Wheels */}
+         {[-0.34, 0.34].flatMap((x) =>
+            [-0.32, 0.32].map((z) => (
+               <group key={`${x}_${z}`} position={[x, 0.14, z]} rotation-x={Math.PI / 2}>
+                  <mesh>
+                     <cylinderGeometry args={[0.14, 0.14, 0.1, 14]} />
+                     <meshStandardMaterial color={COLORS.forkliftWheel} roughness={0.8} />
+                  </mesh>
+                  <mesh>
+                     <cylinderGeometry args={[0.07, 0.07, 0.11, 10]} />
+                     <meshStandardMaterial color={COLORS.forkliftHub} roughness={0.5} />
+                  </mesh>
+               </group>
+            ))
+         )}
+         {/* Mast */}
+         <mesh position={[0.48, 0.46, 0]}>
+            <boxGeometry args={[0.08, 0.68, 0.42]} />
+            <meshStandardMaterial color={COLORS.forkliftMast} roughness={0.5} metalness={0.3} />
          </mesh>
+         {/* Protective roll cage / cab */}
+         <mesh position={[-0.12, 0.54, 0]}>
+            <boxGeometry args={[0.54, 0.4, 0.52]} />
+            <meshStandardMaterial color={COLORS.forkliftCab} roughness={0.35} />
+         </mesh>
+         {/* Flashing beacon */}
+         <mesh position={[-0.12, 0.78, 0]}>
+            <cylinderGeometry args={[0.05, 0.05, 0.08, 12]} />
+            <meshStandardMaterial color={COLORS.beacon} emissive={COLORS.beacon} emissiveIntensity={1.2} />
+         </mesh>
+         {/* Forks */}
          {[-0.16, 0.16].map((z) => (
-            <mesh key={z} position={[0.72, 0.1, z]}>
-               <boxGeometry args={[0.55, 0.05, 0.07]} />
-               <meshStandardMaterial color="#cbd5e1" metalness={0.45} roughness={0.32} />
+            <mesh key={z} position={[0.72, 0.08, z]}>
+               <boxGeometry args={[0.55, 0.04, 0.08]} />
+               <meshStandardMaterial color={COLORS.forkliftForks} metalness={0.45} roughness={0.32} />
             </mesh>
          ))}
       </group>

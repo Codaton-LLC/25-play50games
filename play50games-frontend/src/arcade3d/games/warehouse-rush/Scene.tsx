@@ -28,7 +28,12 @@ import { playSfx } from "@/arcade3d/core/audio";
 import { useGameTime } from "@/arcade3d/core/gameTime";
 import { useInput } from "@/arcade3d/core/input";
 import { inputToWorld, randomSeed, turnTowards } from "@/arcade3d/core/math";
+import { SkyDome } from "@/arcade3d/core/env";
+import { useFx, type FxApi } from "@/arcade3d/core/fx";
+import { useStageLighting } from "@/arcade3d/core/lighting";
 import { BlobShadow, DynamicInstanced, useCanvasTexture, type InstancePart } from "@/arcade3d/core/render";
+import { Decor } from "./Decor";
+import { FOG, LEVEL_LOOKS } from "./looks";
 import {
    HumanoidModel,
    POSE_MASK,
@@ -241,7 +246,7 @@ function publish(run: WarehouseRun, pub: Published): void {
 // ---------- the game ----------
 
 /** Feeds dt and the mapped input into rules.step() and reports what happened. Renders nothing. */
-const Simulation = memo(function Simulation({ run, fx, pub, yaw }: { run: WarehouseRun; fx: Fx; pub: Published; yaw: number }) {
+const Simulation = memo(function Simulation({ run, fx, pub, yaw, coreFx }: { run: WarehouseRun; fx: Fx; pub: Published; yaw: number; coreFx: FxApi }) {
    const input = useInput();
    const time = useGameTime();
    const [scratch] = useState(() => ({ dir: { x: 0, z: 0 }, input: createStepInput() }));
@@ -282,8 +287,18 @@ const Simulation = memo(function Simulation({ run, fx, pub, yaw }: { run: Wareho
          fx.popupAt = t;
          fx.popupKind = popupKind(ev.delta);
          fx.popupZone = ev.zone;
-         playSfx(ev.delivered ? "pickup" : "hit");
-      } else if (run.misses !== misses) playSfx("hit");
+         if (ev.delivered) {
+            coreFx.burst("sparkle", { x: run.robot.x, y: 1.2, z: run.robot.z }, 16);
+            coreFx.shake(0.06);
+            playSfx("pickup");
+         } else {
+            coreFx.shake(0.14);
+            playSfx("hit");
+         }
+      } else if (run.misses !== misses) {
+         coreFx.shake(0.1);
+         playSfx("hit");
+      }
 
       publish(run, pub);
       // never reached in the game (the store's clock ends the run first), harmless if it is
@@ -813,7 +828,14 @@ export default function Scene() {
 /** One level's scene. Remounts when the start card picks another level, and on every run. */
 function LevelScene() {
    const view = useFittedView(VIEW);
-   const { config } = useWarehouseLevel();
+   const { id, config } = useWarehouseLevel();
+   const levelLook = LEVEL_LOOKS[id] ?? LEVEL_LOOKS[1];
+   useStageLighting(levelLook.lighting, 1.2, levelLook.sky, levelLook.fog);
+   const coreFx = useFx();
+   useEffect(() => {
+      coreFx.warm("sparkle");
+   }, [coreFx]);
+
    // GameShell remounts the Scene (and its game time) on start, retry and restart
    const [run] = useState(() => {
       const r = takeRun(config);
@@ -839,7 +861,10 @@ function LevelScene() {
 
    return (
       <>
-         <Simulation run={run} fx={fx} pub={pub} yaw={view.yaw} />
+         <fog attach="fog" args={[levelLook.fog, FOG.near, FOG.far]} />
+         <SkyDome top={levelLook.skyTop} bottom={levelLook.sky} />
+         <Decor ground={levelLook.ground} />
+         <Simulation run={run} fx={fx} pub={pub} yaw={view.yaw} coreFx={coreFx} />
          <CameraRig camera={{ position: view.offset, lookAt: LOOK_AT }} offset={view.offset} shift={view.shift} />
          <Warehouse layout={run.layout} yaw={view.yaw} level={config} run={run} />
          <Robot run={run} fx={fx} lamp={config.lamp} />

@@ -28,6 +28,46 @@ Open: registry sync fails until Claude copies the new limits into `arcade-games.
 
 | File | What it owns |
 |---|---|
+## Look (2026-10-25)
+
+TASK P-122-look-warehouse | modern-look pass warehouse-rush | branch antigravity/look-warehouse-rush | allowed: play50games-frontend/src/arcade3d/games/warehouse-rush/**
+
+A visual-only modern-look pass giving warehouse-rush a polished premium mobile-game look (CLAUDE.md Decision 4). Gameplay, rules.ts, scoring, timing, camera fit, robot rig/poses and hitboxes are 100% unchanged; all 103 vitest tests pass.
+
+### What changed:
+1. **Surroundings & Decor outside the play area (`Decor.tsx`, `looks.ts`):**
+   - Continuous polished logistics concrete ground plane ($92 \times 72$ m) covering 100% of the screen under the scene at all three resolutions (1280x800, 390x844, 844x390), eliminating all empty voids or visible sky below the play area.
+   - Instanced industrial corrugated warehouse walls with large roller shutter doors, caution headers, and steel structural I-beam columns along the north and west perimeters.
+   - High-bay storage racking along the north staging aisle with multi-tiered beams loaded with cardboard cartons and shrink-wrapped pallets.
+   - Staged pallets of wrapped cargo outside the play area.
+   - Dedicated battery charging bays with parked low-poly forklifts along the west wall.
+   - Yellow safety bollards guarding the sorting arena corners and loading doors.
+   - Overhead steel trusses along the high wall.
+   - Strict clearance: every decor spot sits strictly outside `PLAY_BOUNDS` ($|x| > 10.4$ or $|z| > 6.4$) with $\ge 0.4$ m margin. Mathematical occlusion tests verify that no decor mesh intercepts any camera line of sight to the play area at 1280x800, 390x844, or 844x390.
+2. **Unified `COLORS` palette & Code stand-in upgrades (`looks.ts`, `Primitives.tsx`):**
+   - Single source of truth palette in `looks.ts`.
+   - Active patrol forklift upgraded from raw rectangular blocks to a deliberate 2-3 tone vehicle with rubber wheels, yellow rims, mast, roll cage cab, and amber strobe beacon.
+   - Rack stand-in cartons upgraded to 2 alternating tones (`COLORS.carton` and `COLORS.cartonDark`).
+   - Clean industrial safety styling for arena boundaries and floor markings.
+3. **Lighting, Fog & Sky Dome (`Scene.tsx`, `looks.ts`):**
+   - Core `<SkyDome>` with atmospheric ceiling/sky gradient per level.
+   - Linear fog (`near: 58, far: 110`) mounted on Scene: camera-to-arena distance is strictly $< 58$ m on all viewports, ensuring 0% fog inside the active play area (100% crisp and readable), while distant walls fade into ambient atmosphere.
+   - `useStageLighting` crossfading lighting presets (`indoor`, `day`, `sunset`, `night`) smoothly across levels.
+4. **Juicy Feedback (`Scene.tsx`):**
+   - Core `useFx` sparkles (`coreFx.burst("sparkle", ...)` on delivery) and subtle camera shakes (`coreFx.shake(0.06)` on score, `0.14` on miss/penalty). Warmed on mount. Zero generic code in the game folder.
+5. **Draw Call Estimate (<= 60 budget):**
+   - SkyDome: 1
+   - Decor surroundings (ground + walls + trim + doors + headers + columns + high racks + beams + cartons A/B + shrinkwrap + pallets + forklift body/cab/wheels + bollards + trusses): 17
+   - Arena (floor + plinth + walls + trim + centre racks + pallets + hazards): 8–12
+   - Robot (HumanoidModel / BlobShadow / ring): 3
+   - Boxes (pallets + carry + sink + decals): 8–12
+   - Order markers (arrows + rings): 2
+   - Target zone & score popup: 2
+   - Core FX particle pool: 1
+   - **Total draw calls: ~42–48** (well within budget of $\le 60$). Geometries created once in `useMemo` and disposed on unmount; no `dispose={null}` on primitives with `attach="geometry"`.
+
+| `looks.ts` / `looks.test.ts` | Unified `COLORS` palette, decor definitions, level looks, bounds and contrast / test for play bounds clearance, ground coverage, line-of-sight occlusion and fog. |
+| `Decor.tsx` | Instanced surroundings outside the play area (walls, roller doors, columns, high-bay racks, pallets, forklifts, bollards, trusses, ground). |
 | `meta.ts` | Card data and `scoring` (must equal `arcade-games.json`). Plain data, server-safe. Only `thumbnail` changed with the build. |
 | `index.tsx` | The `GameDefinition` GameShell runs: Scene, `Hud`, assets, `durationMs: 60000`, camera, environment, `touchControls: ["joystick", "action"]`, `hudStats`, instructions, `finalScore` (safety net). |
 | `rules.ts` | Everything that decides the outcome: the warehouse map, the seeded layout and streams, robot movement with the carry speed, pallets and refills, orders, Action handling, scoring, the proof constants, and the per-level ceilings (`PROPOSED_LEVEL_LIMITS`). Pure: no three.js, React, DOM, `Math.random` or `Date.now`. |
