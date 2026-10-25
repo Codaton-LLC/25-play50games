@@ -319,7 +319,14 @@
       "max_duration_ms": 182000,
       "base": 440,
       "max_pps": 104,
-      "enabled": false
+      "enabled": false,
+      "levels": [
+        { "title": "Snow Hill", "max_score": 18700, "min_duration_ms": 9000, "max_duration_ms": 182000, "base": 440, "max_pps": 104 },
+        { "title": "Ice Cave", "max_score": 18700, "min_duration_ms": 9000, "max_duration_ms": 182000, "base": 440, "max_pps": 104 },
+        { "title": "Frozen Lake", "max_score": 18700, "min_duration_ms": 9000, "max_duration_ms": 182000, "base": 440, "max_pps": 104 },
+        { "title": "Aurora Run", "max_score": 18700, "min_duration_ms": 9000, "max_duration_ms": 182000, "base": 440, "max_pps": 104 },
+        { "title": "Glacier Sprint", "max_score": 18700, "min_duration_ms": 9000, "max_duration_ms": 182000, "base": 440, "max_pps": 104 }
+      ]
     },
     "space-repair": {
       "title": "Space Repair Mission",
