@@ -10,7 +10,7 @@ import { useGameTime } from "@/arcade3d/core/gameTime";
 import { hover, type BodyOffset } from "@/arcade3d/core/motion";
 import { advance, createPath, tangentAt } from "@/arcade3d/core/path";
 import { ASSETS } from "./assets";
-import { CITY, PIGEON, ROUTE, WIND, type Run, type City } from "./rules";
+import { CITY, ROUTE, type Run, type City } from "./rules";
 import { mergedBoxes, useMergedPart } from "./Primitives";
 import { COLORS, GROUND_PLANE, PARK } from "./looks";
 import { ROOF_CAP, ROOFTOP_OVERLAY_Y } from "./visuals";
@@ -316,16 +316,17 @@ function Birds({ run, reduced }: { run: Run; reduced: boolean }) {
    return (
       <DynamicInstancedModel
          asset={ASSETS.pigeon}
-         count={PIGEON.count}
+         count={run.city.birds.length}
          fallbackParts={pigeonParts}
          update={(i, m) => {
+            const level = run.level;
             if (
                i >=
-               (run.time < PIGEON.middleFrom
-                  ? PIGEON.initialCount
-                  : run.time < PIGEON.finalFrom
-                  ? PIGEON.middleCount
-                  : PIGEON.count)
+               (run.time < level.pigeonMiddleFrom
+                  ? level.pigeonInitial
+                  : run.time < level.pigeonFinalFrom
+                  ? level.pigeonMiddle
+                  : level.pigeons)
             )
                return false;
             const b = run.birds[i];
@@ -347,17 +348,21 @@ function Pads({ run }: { run: Run }) {
 
    const [mint] = useState(() => new Color(COLORS.padCompleted));
    const [blue] = useState(() => new Color(COLORS.padActive));
+   const [padScale] = useState(() => new Vector3(1, 1, 1));
 
    useFrame(() => {
-      const b = run.city.buildings[run.city.targets[Math.min(run.completed, 11)]];
+      const last = run.city.targets.length - 1;
+      const b = run.city.buildings[run.city.targets[Math.min(run.completed, last)]];
+      const s = run.level.padRadius / ROUTE.padRadius;
       if (active.current) {
          active.current.position.set(b.x, b.height + ROOFTOP_OVERLAY_Y, b.z);
-         active.current.visible = run.completed < 12;
+         active.current.scale.set(s, s, s);
+         active.current.visible = run.completed < run.level.count;
       }
       if (beacon.current) {
          beacon.current.position.set(b.x, b.height + 1.4, b.z);
          beacon.current.scale.y = 1 + Math.sin(time.now * 3) * 0.08;
-         beacon.current.visible = run.completed < 12;
+         beacon.current.visible = run.completed < run.level.count;
       }
       if (loading.current) {
          loading.current.scale.setScalar(0.1 + (run.loading / ROUTE.loading) * 0.9);
@@ -367,13 +372,16 @@ function Pads({ run }: { run: Run }) {
 
    return (
       <group name="delivery-pads">
-         {/* 12 Target Pad rings */}
+         {/* one ring per route pad; scaled so the rim matches this level's pad radius */}
          <DynamicInstanced
-            count={12}
+            count={run.city.targets.length}
             tinted
             update={(i, m, color) => {
                const b = run.city.buildings[run.city.targets[i]];
-               m.makeRotationX(-Math.PI / 2).setPosition(b.x, b.height + ROOFTOP_OVERLAY_Y, b.z);
+               const s = run.level.padRadius / ROUTE.padRadius;
+               m.makeRotationX(-Math.PI / 2);
+               m.scale(padScale.set(s, s, s));
+               m.setPosition(b.x, b.height + ROOFTOP_OVERLAY_Y, b.z);
                color.copy(i < run.completed ? mint : blue);
             }}
          >
@@ -417,7 +425,7 @@ function Wind({ run, reduced }: { run: Run; reduced: boolean }) {
    const count = scaledCount(32, decor);
 
    useFrame(() => {
-      if (root.current) root.current.visible = run.time >= WIND.from;
+      if (root.current) root.current.visible = run.time >= run.level.windFrom;
    });
 
    return (

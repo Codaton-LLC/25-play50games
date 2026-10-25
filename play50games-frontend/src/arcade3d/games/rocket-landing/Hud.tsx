@@ -1,8 +1,10 @@
 "use client";
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { PLANETS } from "./rules";
+import { useRocketLevel } from "./useRocketLevel";
 import styles from "./Hud.module.css";
 export default function Hud() {
+   const { config } = useRocketLevel();
    const planet = useArcadeStore((s) => s.level);
    const fuel = useArcadeStore((s) => s.stats.fuel ?? 100);
    const vx = useArcadeStore((s) => s.stats.vx ?? 0);
@@ -14,7 +16,7 @@ export default function Hud() {
    const safe = useArcadeStore((s) => s.stats.landingSafe === 1);
    return <div className={styles.wrap}>
       <div className={styles.flight} data-arcade-safe-area>
-         <span>{PLANETS[Math.max(0, Math.min(4, planet - 1))].name} {planet || 1}/5</span>
+         <span>{PLANETS[Math.max(0, Math.min(4, planet - 1))].name} {planet || 1}/{config?.planets ?? 5}</span>
          <span className={styles.fuel}>Fuel {fuel}<meter min={0} max={100} value={fuel} aria-label="Fuel remaining percent" /></span>
          <span title="Pad-relative horizontal speed: below 1 m/s">↔ {(vx / 10).toFixed(1)}</span>
          <span title="Descending speed: below 2 m/s">↕ {(vy / 10).toFixed(1)}</span>

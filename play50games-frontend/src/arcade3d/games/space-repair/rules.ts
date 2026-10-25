@@ -1,3 +1,5 @@
+import type { LevelId, ScoringRules } from "@/arcade3d/types";
+import { LEVELS, type SpaceRepairLevel } from "./levels";
 import { rngNext, turnTowards } from "@/arcade3d/core/math";
 import { circlesOverlapXZ } from "@/arcade3d/core/collision";
 import { circleSegmentXZ, resolveCircleSegmentXZ, substep, type CircleBodyXZ, type SegmentContact, type SegmentXZ } from "@/arcade3d/core/kinematics";
@@ -13,6 +15,14 @@ export const CELL = { milestones: [4, 12, 20], offset: 1.3, delay: 0.35, lifetim
 export const SCORE = { repair: 100, perfect: 50, power: 2 } as const;
 export const CLOCK = { duration: 120, stage: 40, slice: 1 / 120, resultDelayMs: 1200, low: 25, rearm: 30 } as const;
 export const PROPOSED_LIMITS = { kind: "points", maxScore: 4700, minDurationMs: 37000, maxDurationMs: 122000, base: 400, maxPointsPerSec: 40, unitLabel: "pts", display: "int" } as const;
+/** Each level: 30 * (100 + 50) + 2 * 100 = 4700; same ticket-prefix envelope and loss bound. */
+export const PROPOSED_LEVEL_LIMITS: Record<LevelId, ScoringRules> = {
+   1: PROPOSED_LIMITS,
+   2: { ...PROPOSED_LIMITS },
+   3: { ...PROPOSED_LIMITS },
+   4: { ...PROPOSED_LIMITS },
+   5: { ...PROPOSED_LIMITS },
+};
 const EPS = 1e-9, TAU = Math.PI * 2;
 
 export const MODULES = Array.from({ length: 8 }, (_, id) => {
@@ -38,6 +48,7 @@ export interface Controls { x: number; z: number; repair: boolean }
 export interface ModuleState { broken: boolean; hits: number; perfect: boolean; centre: number; period: number; zones: TimingZone[]; lockUntil: number; issued: number; generation: number; fixedAt: number }
 export interface CellState { active: boolean; used: boolean; born: number; x: number; y: number; z: number }
 export interface Run {
+   level: SpaceRepairLevel;
    time: number; power: number; score: number; repairs: number; perfectRepairs: number; bonus: number;
    coarse: boolean; direction: number; ticket: number; terminal: "win" | "lose" | null;
    body: CircleBodyXZ & { y: number }; yaw: number; docked: number; needleAge: number; wobbleUntil: number;
@@ -47,15 +58,18 @@ export interface Run {
    controls: Controls; contact: SegmentContact; integrate: (dt: number) => void;
 }
 export function stageAt(t: number): number { return Math.min(2, Math.floor(t / CLOCK.stage)); }
-export function createRun(seed: number, coarse = false): Run {
+// Boolean second argument is the original API, retained for the unchanged L1 suite.
+export function createRun(seed: number, levelOrCoarse: SpaceRepairLevel | boolean = LEVELS[1], coarse = false): Run {
+   const level = typeof levelOrCoarse === "boolean" ? LEVELS[1] : levelOrCoarse;
+   if (typeof levelOrCoarse === "boolean") coarse = levelOrCoarse;
    const rng = { s: (seed >>> 0) || 1 }, direction = rngNext(rng) < 0.5 ? -1 : 1;
-   const modules = MODULES.map((): ModuleState => ({ broken: false, hits: 0, perfect: true, centre: REPAIR.centre + REPAIR.jitter * (2 * rngNext(rng) - 1), period: REPAIR.periods[0], zones: [{ start: 0, end: 0 }], lockUntil: 0, issued: -1, generation: 0, fixedAt: -10 }));
+   const modules = MODULES.map((): ModuleState => ({ broken: false, hits: 0, perfect: true, centre: REPAIR.centre + REPAIR.jitter * (2 * rngNext(rng) - 1), period: level.periods[0], zones: [{ start: 0, end: 0 }], lockUntil: 0, issued: -1, generation: 0, fixedAt: -10 }));
    const debris = Array.from({ length: DEBRIS.count }, (_, i) => {
       const rider = { path: DEBRIS_PATH, s: (i / DEBRIS.count + DEBRIS.jitter * (2 * rngNext(rng) - 1)) * DEBRIS_PATH.total, position: { x: 0, y: 0.95, z: 0 } };
       advance(rider, 0); return rider;
    });
    const run: Run = {
-      time: 0, power: 100, score: 0, repairs: 0, perfectRepairs: 0, bonus: 0, coarse, direction, ticket: 0, terminal: null,
+      level, time: 0, power: 100, score: 0, repairs: 0, perfectRepairs: 0, bonus: 0, coarse, direction, ticket: 0, terminal: null,
       body: { x: 0, y: 1.1, z: 6, vx: 0, vz: 0, radius: SUIT.radius }, yaw: Math.PI, docked: -1, needleAge: 0, wobbleUntil: 0,
       contactArmed: true, debrisUntil: 0, lowArmed: true, thrusting: false, modules, debris,
       cells: CELL.milestones.map(() => ({ active: false, used: false, born: -10, x: 0, y: 1.1, z: 0 })),
@@ -181,7 +195,7 @@ function integrate(r: Run, dt: number): void {
    if (touched && r.contactArmed) { wobble(r); r.contactArmed = false; }
    if (!r.contactArmed && clearance(b.x, b.z) >= b.radius + SUIT.rearm) r.contactArmed = true;
    for (let i = 0; i < DEBRIS.count; i++) {
-      const d = r.debris[i]; advance(d, DEBRIS.speeds[stage] * dt);
+      const d = r.debris[i]; advance(d, r.level.speeds[stage] * dt);
       if (i >= stage + 2 || r.time < r.debrisUntil) continue;
       if (circlesOverlapXZ(b, b.radius, d.position, DEBRIS.bodyRadius)) {
          let nx = b.x - d.position.x, nz = b.z - d.position.z, len = Math.hypot(nx, nz);
@@ -199,11 +213,11 @@ function integrate(r: Run, dt: number): void {
    collectCells(r);
 }
 function issue(r: Run): void {
-   while (r.ticket < BREAKS.times.length && BREAKS.times[r.ticket] <= r.time + EPS) {
+   while (r.ticket < r.level.times.length && r.level.times[r.ticket] <= r.time + EPS) {
       const k = r.ticket++, id = ((r.direction * k) % 8 + 8) % 8, m = r.modules[id];
       if (m.broken) continue;
-      const stage = stageAt(r.time), width = (r.coarse ? REPAIR.coarse[stage] : REPAIR.fine[stage]) / 360;
-      m.broken = true; m.hits = 0; m.perfect = true; m.period = REPAIR.periods[stage];
+      const stage = stageAt(r.time), width = r.level.arcs[stage] / 360;
+      m.broken = true; m.hits = 0; m.perfect = true; m.period = r.level.periods[stage];
       m.zones[0].start = m.centre - width / 2; m.zones[0].end = m.centre + width / 2;
       m.issued = k; m.generation++; m.lockUntil = 0;
    }
@@ -215,7 +229,7 @@ function attempt(r: Run): void {
    if (r.time + EPS < m.lockUntil) return;
    const grade = judgeTiming(needle(r), m.zones, REPAIR.perfectShare);
    r.needleAge = 0;
-   if (grade === "miss") { m.perfect = false; m.lockUntil = r.time + REPAIR.lock; r.events.miss = true; return; }
+   if (grade === "miss") { m.perfect = false; m.lockUntil = r.time + r.level.lock; r.events.miss = true; return; }
    r.events.hit = true; m.hits++; m.perfect = m.perfect && grade === "perfect";
    if (m.hits < REPAIR.hits[id]) return;
    m.broken = false; m.fixedAt = r.time; r.repairs++;
@@ -237,10 +251,10 @@ export function stepRun(r: Run, controls: Controls, dt: number): void {
    r.controls.x = controls.x * scale; r.controls.z = controls.z * scale;
    r.thrusting = mag > SUIT.deadZone;
    if (r.thrusting) { r.docked = -1; r.needleAge = 0; }
-   const sample = r.time + dt, end = Math.min(CLOCK.duration, sample);
+   const sample = r.time + dt, end = Math.min(r.level.duration, sample);
    while (r.time < end - EPS && !r.terminal) {
       issue(r);
-      let boundary = Math.min(end, BREAKS.times[r.ticket] ?? CLOCK.duration);
+      let boundary = Math.min(end, r.level.times[r.ticket] ?? r.level.duration);
       if (r.docked >= 0) {
          const lock = r.modules[r.docked].lockUntil;
          if (lock > r.time + EPS) boundary = Math.min(boundary, lock);
@@ -257,10 +271,10 @@ export function stepRun(r: Run, controls: Controls, dt: number): void {
    }
    if (r.terminal) return;
    r.time = end; issue(r);
-   if (controls.repair && sample <= CLOCK.duration + EPS) attempt(r);
+   if (controls.repair && sample <= r.level.duration + EPS) attempt(r);
    collectCells(r);
-   if (r.time >= CLOCK.duration - EPS) {
-      r.time = CLOCK.duration; r.bonus = SCORE.power * Math.floor(r.power);
+   if (r.time >= r.level.duration - EPS) {
+      r.time = r.level.duration; r.bonus = SCORE.power * Math.floor(r.power);
       r.score += r.bonus; r.terminal = "win";
    }
 }

@@ -8927,7 +8927,7 @@ export default function GameEngine({
                                           }}
                                        />
                                     ),
-                                    text: "You'll face 4 unique mini-games: Code Breaker (Logic), Flash Sequence (Memory), Color Switch (Speed), and Precision Tap (Skill)",
+                                    text: "You'll face 4 unique mini-games: Code Breaker (Logic), Flash Sequence (Memory), Opposite Colors (Speed), and Precision Tap (Skill)",
                                  },
                                  {
                                     step: 2,

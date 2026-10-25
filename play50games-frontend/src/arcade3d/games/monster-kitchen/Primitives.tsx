@@ -1,10 +1,18 @@
 // Stand-ins (drawn only while a GLB is missing) and the procedural pieces: the eyeball and slime
 // ingredient pools (one InstancedMesh per part), the monsters' headgear, and the DOM order icons.
-// Palette notes: the cave is dark (environment #3f3f46), so surfaces lean warm and props carry the
-// accent #f472b6 (grumpy) against jolly lilac and greedy green.
+// All visible pieces are crafted with 2-3 deliberate tones from the single COLORS palette in looks.ts.
 import { useEffect, useMemo } from "react";
-import { BoxGeometry, Color, Matrix4, MeshStandardMaterial, SphereGeometry } from "three";
+import {
+   BoxGeometry,
+   Color,
+   CylinderGeometry,
+   Matrix4,
+   MeshStandardMaterial,
+   SphereGeometry,
+   TorusGeometry,
+} from "three";
 import type { InstancePart } from "@/arcade3d/core/render";
+import { COLORS } from "./looks";
 import type { IngredientKind, MonsterType } from "./rules";
 
 export const TYPE_TINT: Record<MonsterType, string> = {
@@ -24,73 +32,141 @@ export const KIND_COLOR: Record<IngredientKind, string> = {
    slime: "#22c55e",
 };
 
-/** The chef's stand-in: a white-uniformed cook. */
+/** The chef's stand-in: a deliberate cartoon cook with uniform, apron, buttons and toque. */
 export function ChefPrimitive() {
    return (
       <group name="chef-standin">
+         {/* Tunic body */}
          <mesh position-y={0.55}>
             <capsuleGeometry args={[0.3, 0.5, 6, 12]} />
-            <meshStandardMaterial color="#f8fafc" roughness={0.6} />
+            <meshStandardMaterial color={COLORS.chefTunic} roughness={0.6} />
          </mesh>
-         <mesh position-y={1.25}>
-            <sphereGeometry args={[0.21, 16, 12]} />
-            <meshStandardMaterial color="#f1c27d" roughness={0.6} />
+         {/* Apron front */}
+         <mesh position={[0, 0.48, 0.22]}>
+            <boxGeometry args={[0.38, 0.46, 0.04]} />
+            <meshStandardMaterial color={COLORS.chefApron} roughness={0.7} />
          </mesh>
-         <mesh position-y={1.44}>
-            <cylinderGeometry args={[0.16, 0.16, 0.18, 16]} />
-            <meshStandardMaterial color="#f8fafc" roughness={0.6} />
+         {/* Brass tunic buttons */}
+         <mesh position={[-0.08, 0.65, 0.26]}>
+            <sphereGeometry args={[0.022, 8, 8]} />
+            <meshStandardMaterial color={COLORS.brass} metalness={0.8} roughness={0.25} />
+         </mesh>
+         <mesh position={[0.08, 0.65, 0.26]}>
+            <sphereGeometry args={[0.022, 8, 8]} />
+            <meshStandardMaterial color={COLORS.brass} metalness={0.8} roughness={0.25} />
+         </mesh>
+         {/* Head */}
+         <mesh position-y={1.22}>
+            <sphereGeometry args={[0.2, 16, 12]} />
+            <meshStandardMaterial color={COLORS.chefSkin} roughness={0.6} />
+         </mesh>
+         {/* Chef toque: band + puffed crown */}
+         <mesh position-y={1.42}>
+            <cylinderGeometry args={[0.17, 0.17, 0.08, 16]} />
+            <meshStandardMaterial color={COLORS.chefHatBand} roughness={0.55} />
+         </mesh>
+         <mesh position-y={1.54}>
+            <sphereGeometry args={[0.22, 16, 12]} />
+            <meshStandardMaterial color={COLORS.chefHat} roughness={0.6} />
          </mesh>
       </group>
    );
 }
 
-/** A monster's stand-in: a tinted blob with eyes. */
+/** A monster's stand-in: a friendly cartoon blob with belly patch and expressive eyes. */
 export function MonsterPrimitive({ tint }: { tint: string }) {
    return (
       <group name="monster-standin">
+         {/* Body */}
          <mesh position-y={0.62}>
             <capsuleGeometry args={[0.55, 0.35, 8, 16]} />
             <meshStandardMaterial color={tint} roughness={0.55} />
          </mesh>
-         <mesh position={[-0.18, 0.85, 0.42]}>
-            <sphereGeometry args={[0.09, 10, 8]} />
-            <meshStandardMaterial color="#fefce8" roughness={0.4} />
+         {/* Lighter belly oval */}
+         <mesh position={[0, 0.52, 0.38]}>
+            <sphereGeometry args={[0.28, 12, 10]} />
+            <meshStandardMaterial color={COLORS.monsterBelly} roughness={0.6} />
          </mesh>
+         {/* Left eye: white + pupil */}
+         <mesh position={[-0.18, 0.85, 0.42]}>
+            <sphereGeometry args={[0.09, 12, 10]} />
+            <meshStandardMaterial color={COLORS.eyeballWhite} roughness={0.3} />
+         </mesh>
+         <mesh position={[-0.18, 0.85, 0.5]}>
+            <sphereGeometry args={[0.04, 10, 8]} />
+            <meshStandardMaterial color={COLORS.eyeballPupil} roughness={0.2} />
+         </mesh>
+         {/* Right eye: white + pupil */}
          <mesh position={[0.18, 0.85, 0.42]}>
-            <sphereGeometry args={[0.09, 10, 8]} />
-            <meshStandardMaterial color="#fefce8" roughness={0.4} />
+            <sphereGeometry args={[0.09, 12, 10]} />
+            <meshStandardMaterial color={COLORS.eyeballWhite} roughness={0.3} />
+         </mesh>
+         <mesh position={[0.18, 0.85, 0.5]}>
+            <sphereGeometry args={[0.04, 10, 8]} />
+            <meshStandardMaterial color={COLORS.eyeballPupil} roughness={0.2} />
          </mesh>
       </group>
    );
 }
 
-/** The cauldron's stand-in. */
+/** The cauldron's stand-in: rounded iron pot with copper rolled lip and tripod feet. */
 export function CauldronPrimitive() {
    return (
-      <mesh position-y={0.3} name="cauldron-standin">
-         <cylinderGeometry args={[0.42, 0.34, 0.6, 20]} />
-         <meshStandardMaterial color="#334155" roughness={0.7} />
-      </mesh>
+      <group name="cauldron-standin">
+         <mesh position-y={0.32}>
+            <sphereGeometry args={[0.42, 16, 14]} />
+            <meshStandardMaterial color={COLORS.cauldronIron} roughness={0.7} />
+         </mesh>
+         <mesh position-y={0.52} rotation-x={Math.PI / 2}>
+            <torusGeometry args={[0.38, 0.032, 10, 24]} />
+            <meshStandardMaterial color={COLORS.copperHighlight} metalness={0.75} roughness={0.3} />
+         </mesh>
+      </group>
    );
 }
 
-/** The eyeball pool's parts: the white (0.36 m across, >= 24 CSS px on a 390x844 phone) and the iris. */
+/**
+ * The eyeball pool's parts: smooth pearly white (0.36 m across, >= 24 CSS px on phone),
+ * vibrant cyan iris disc, midnight pupil, and glossy highlight dot.
+ */
 export function useEyeballParts(): readonly InstancePart[] {
    const parts = useMemo<InstancePart[]>(() => {
-      const irisLocal = new Matrix4().makeTranslation(0, 0.18, 0.13);
+      const irisLocal = new Matrix4().makeTranslation(0, 0.18, 0.14);
+      irisLocal.multiply(new Matrix4().makeRotationX(Math.PI / 2));
+
+      const pupilLocal = new Matrix4().makeTranslation(0, 0.18, 0.155);
+      pupilLocal.multiply(new Matrix4().makeRotationX(Math.PI / 2));
+
+      const shineLocal = new Matrix4().makeTranslation(0.04, 0.22, 0.155);
+
       return [
+         // Sclera: white eyeball sphere
          {
-            geometry: new SphereGeometry(0.18, 16, 12),
-            material: new MeshStandardMaterial({ color: "#f8fafc", roughness: 0.35 }),
+            geometry: new SphereGeometry(0.18, 18, 14),
+            material: new MeshStandardMaterial({ color: COLORS.eyeballWhite, roughness: 0.28 }),
             locals: [new Matrix4().makeTranslation(0, 0.18, 0)],
          },
+         // Iris: striking cyan disc
          {
-            geometry: new SphereGeometry(0.072, 10, 8),
-            material: new MeshStandardMaterial({ color: "#0f172a", roughness: 0.3 }),
+            geometry: new CylinderGeometry(0.078, 0.078, 0.012, 16),
+            material: new MeshStandardMaterial({ color: COLORS.eyeballIris, roughness: 0.35 }),
             locals: [irisLocal],
+         },
+         // Pupil: midnight pupil cylinder
+         {
+            geometry: new CylinderGeometry(0.042, 0.042, 0.016, 14),
+            material: new MeshStandardMaterial({ color: COLORS.eyeballPupil, roughness: 0.2 }),
+            locals: [pupilLocal],
+         },
+         // Specular highlight: glossy cartoon gleam
+         {
+            geometry: new SphereGeometry(0.022, 8, 8),
+            material: new MeshStandardMaterial({ color: "#ffffff", roughness: 0.1 }),
+            locals: [shineLocal],
          },
       ];
    }, []);
+
    useEffect(
       () => () => {
          for (const p of parts) {
@@ -103,18 +179,38 @@ export function useEyeballParts(): readonly InstancePart[] {
    return parts;
 }
 
-/** The slime cube pool's part: one wobbly green block (0.34 m wide, >= 24 CSS px on a phone) for all copies. */
+/**
+ * The slime cube pool's parts: translucent wobbly jelly cube (0.34 m wide, >= 24 CSS px on phone)
+ * with a glowing inner nucleus for a deliberate, appetizing cartoon jelly look.
+ */
 export function useSlimeParts(): readonly InstancePart[] {
-   const parts = useMemo<InstancePart[]>(
-      () => [
+   const parts = useMemo<InstancePart[]>(() => {
+      return [
+         // Outer translucent jelly cube
          {
             geometry: new BoxGeometry(0.34, 0.3, 0.34),
-            material: new MeshStandardMaterial({ color: "#22c55e", roughness: 0.25 }),
+            material: new MeshStandardMaterial({
+               color: COLORS.slimeBase,
+               roughness: 0.18,
+               transparent: true,
+               opacity: 0.84,
+            }),
             locals: [new Matrix4().makeTranslation(0, 0.15, 0)],
          },
-      ],
-      [],
-   );
+         // Inner glowing core
+         {
+            geometry: new BoxGeometry(0.16, 0.14, 0.16),
+            material: new MeshStandardMaterial({
+               color: COLORS.slimeCore,
+               emissive: "#16a34a",
+               emissiveIntensity: 0.7,
+               roughness: 0.3,
+            }),
+            locals: [new Matrix4().makeTranslation(0, 0.15, 0)],
+         },
+      ];
+   }, []);
+
    useEffect(
       () => () => {
          for (const p of parts) {
@@ -128,29 +224,62 @@ export function useSlimeParts(): readonly InstancePart[] {
 }
 
 /** One warm Colour per burst/prop use, built once (no per-frame Color.set in the Scene). */
-export const WARM_GLOW = new Color("#fb923c");
+export const WARM_GLOW = new Color(COLORS.fireGlow);
 
-// ---------- the monsters' headgear (children at the measured head anchor) ----------
+// ---------- Monster Headgear (children at the measured head anchor) ----------
 
 export function PartyHat() {
    return (
-      <mesh position-y={0.09}>
-         <coneGeometry args={[0.12, 0.26, 14]} />
-         <meshStandardMaterial color="#f472b6" roughness={0.5} />
-      </mesh>
+      <group position-y={0.09}>
+         {/* Main festive cone */}
+         <mesh>
+            <coneGeometry args={[0.12, 0.26, 14]} />
+            <meshStandardMaterial color={COLORS.partyHat} roughness={0.45} />
+         </mesh>
+         {/* Gold rim trim */}
+         <mesh position-y={-0.11} rotation-x={Math.PI / 2}>
+            <torusGeometry args={[0.115, 0.016, 8, 16]} />
+            <meshStandardMaterial
+               color={COLORS.partyHatTrim}
+               metalness={0.7}
+               roughness={0.3}
+            />
+         </mesh>
+         {/* Fluffy cyan pom-pom sphere on top */}
+         <mesh position-y={0.14}>
+            <sphereGeometry args={[0.038, 10, 8]} />
+            <meshStandardMaterial color={COLORS.partyHatBall} roughness={0.6} />
+         </mesh>
+      </group>
    );
 }
 
 export function TopHat() {
    return (
       <group position-y={0.03}>
+         {/* Crown cylinder */}
          <mesh position-y={0.12}>
-            <cylinderGeometry args={[0.1, 0.1, 0.22, 14]} />
-            <meshStandardMaterial color="#1f2937" roughness={0.5} />
+            <cylinderGeometry args={[0.1, 0.1, 0.22, 16]} />
+            <meshStandardMaterial color={COLORS.topHat} roughness={0.5} />
          </mesh>
+         {/* Brim disc */}
          <mesh position-y={0.02}>
-            <cylinderGeometry args={[0.17, 0.17, 0.03, 14]} />
-            <meshStandardMaterial color="#1f2937" roughness={0.5} />
+            <cylinderGeometry args={[0.18, 0.18, 0.025, 16]} />
+            <meshStandardMaterial color={COLORS.topHat} roughness={0.5} />
+         </mesh>
+         {/* Crimson ribbon band */}
+         <mesh position-y={0.055}>
+            <cylinderGeometry args={[0.104, 0.104, 0.045, 16]} />
+            <meshStandardMaterial color={COLORS.topHatBand} roughness={0.4} />
+         </mesh>
+         {/* Gold buckle */}
+         <mesh position={[0, 0.055, 0.108]}>
+            <boxGeometry args={[0.042, 0.038, 0.012]} />
+            <meshStandardMaterial
+               color={COLORS.topHatBuckle}
+               metalness={0.8}
+               roughness={0.25}
+            />
          </mesh>
       </group>
    );
@@ -159,14 +288,37 @@ export function TopHat() {
 export function Horns() {
    return (
       <group position-y={0.04}>
-         <mesh position={[-0.14, 0.08, 0]} rotation-z={0.5}>
-            <coneGeometry args={[0.05, 0.2, 10]} />
-            <meshStandardMaterial color="#fef3c7" roughness={0.5} />
-         </mesh>
-         <mesh position={[0.14, 0.08, 0]} rotation-z={-0.5}>
-            <coneGeometry args={[0.05, 0.2, 10]} />
-            <meshStandardMaterial color="#fef3c7" roughness={0.5} />
-         </mesh>
+         {/* Left horn: ivory body + golden tip + bronze base ridge */}
+         <group position={[-0.14, 0.08, 0]} rotation-z={0.5}>
+            <mesh>
+               <coneGeometry args={[0.05, 0.2, 10]} />
+               <meshStandardMaterial color={COLORS.hornBase} roughness={0.5} />
+            </mesh>
+            <mesh position-y={0.07}>
+               <coneGeometry args={[0.026, 0.07, 10]} />
+               <meshStandardMaterial color={COLORS.hornTip} roughness={0.4} />
+            </mesh>
+            <mesh position-y={-0.08} rotation-x={Math.PI / 2}>
+               <torusGeometry args={[0.048, 0.01, 6, 12]} />
+               <meshStandardMaterial color={COLORS.hornRing} roughness={0.6} />
+            </mesh>
+         </group>
+
+         {/* Right horn */}
+         <group position={[0.14, 0.08, 0]} rotation-z={-0.5}>
+            <mesh>
+               <coneGeometry args={[0.05, 0.2, 10]} />
+               <meshStandardMaterial color={COLORS.hornBase} roughness={0.5} />
+            </mesh>
+            <mesh position-y={0.07}>
+               <coneGeometry args={[0.026, 0.07, 10]} />
+               <meshStandardMaterial color={COLORS.hornTip} roughness={0.4} />
+            </mesh>
+            <mesh position-y={-0.08} rotation-x={Math.PI / 2}>
+               <torusGeometry args={[0.048, 0.01, 6, 12]} />
+               <meshStandardMaterial color={COLORS.hornRing} roughness={0.6} />
+            </mesh>
+         </group>
       </group>
    );
 }
@@ -177,7 +329,7 @@ export function Headgear({ type }: { type: MonsterType }) {
    return <Horns />;
 }
 
-// ---------- the DOM order icons: colour + silhouette + an outline ring ----------
+// ---------- DOM Order Icons (colour + silhouette + outline ring) ----------
 
 /** The ingredient names on the HUD hand card. */
 export const KIND_LABEL: Record<IngredientKind, string> = {
@@ -221,7 +373,12 @@ function iconShape(kind: IngredientKind) {
             </g>
          );
       case "sock":
-         return <path d="M9 5 h4.5 v7 l3.5 3.5 q1.4 1.4 0 2.8 l-1.2 1.2 q-1.4 1.4 -2.8 0 l-4 -4 z" fill={KIND_COLOR.sock} />;
+         return (
+            <path
+               d="M9 5 h4.5 v7 l3.5 3.5 q1.4 1.4 0 2.8 l-1.2 1.2 q-1.4 1.4 -2.8 0 l-4 -4 z"
+               fill={KIND_COLOR.sock}
+            />
+         );
       case "tinCan":
          return (
             <g>
@@ -248,9 +405,8 @@ function iconShape(kind: IngredientKind) {
       case "slime":
          return (
             <g>
-               <rect x="6.5" y="8" width="11" height="8.5" rx="3" fill={KIND_COLOR.slime} />
-               <circle cx="9.5" cy="17" r="1.3" fill={KIND_COLOR.slime} />
-               <circle cx="13.5" cy="17.6" r="1" fill={KIND_COLOR.slime} />
+               <rect x="6.5" y="6.5" width="11" height="11" rx="2.5" fill={KIND_COLOR.slime} />
+               <circle cx="10" cy="10" r="1.4" fill="#86efac" />
             </g>
          );
    }

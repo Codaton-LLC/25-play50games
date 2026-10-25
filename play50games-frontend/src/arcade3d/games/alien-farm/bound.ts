@@ -10,7 +10,7 @@
 // (press + 0.30) by the 100 s timer. Every crop pays at most 50 (+50 perfect) + 100 (its share of
 // a 25 x 4^2 load), so a label search that maximises sum(150 + 50 [perfect]) over these chains is
 // an upper bound on every real run's score, whatever the ship's seeded start and direction.
-import { CYCLE, DURATION_S, FARMER, HARVEST, OFFSET_TABLES, PLOTS, halfWindow } from "./rules";
+import { CYCLE, DURATION_S, FARMER, HARVEST, OFFSET_TABLES, PLOTS, halfWindow, type PlotConfig } from "./rules";
 
 export interface BoundOptions {
    /** the deadline (s): a harvest completes by it */
@@ -19,6 +19,8 @@ export interface BoundOptions {
    normal?: number;
    perfect?: number;
    perfectHalf?: number;
+   plots?: readonly PlotConfig[];
+   halfLate?: number;
 }
 
 export interface BoundNode {
@@ -40,13 +42,18 @@ export interface BoundResult {
 const EPS = 1e-9;
 const SPEED = FARMER.speeds[0];
 
-export function boundNodes(table: number, deadline: number): BoundNode[] {
+export function boundNodes(
+   table: number,
+   deadline: number,
+   plots: readonly PlotConfig[] = PLOTS,
+   halfLate: number = CYCLE.halfLate,
+): BoundNode[] {
    const nodes: BoundNode[] = [];
-   for (const plot of PLOTS) {
+   for (const plot of plots) {
       const b0 = plot.activateAt + OFFSET_TABLES[table][plot.id] * CYCLE.tickS;
       for (let k = 0; ; k++) {
          const peak = b0 + k * plot.cycleS + plot.cycleS * CYCLE.peakFrac;
-         const w = halfWindow(peak);
+         const w = halfWindow(peak, plot.halfLate ?? halfLate);
          const open = peak - w - EPS;
          const close = Math.min(peak + w, deadline - HARVEST.channelS) + EPS;
          if (open > close) break;
@@ -72,8 +79,10 @@ export function firstPress(j: number): number {
 /** Exhaustive label search (Pareto on time / score per (last, previous) node). */
 export function harvestBound(table: number, options: BoundOptions = {}): BoundResult {
    const deadline = options.deadline ?? DURATION_S;
+   const plots = options.plots ?? PLOTS;
+   const halfLate = options.halfLate ?? CYCLE.halfLate;
    const wN = options.normal ?? 150, wP = options.perfect ?? 200, ph = (options.perfectHalf ?? HARVEST.perfectHalf) + EPS;
-   const nodes = boundNodes(table, deadline);
+   const nodes = boundNodes(table, deadline, plots, halfLate);
    const n = nodes.length;
    const gap = new Float64Array(PLOTS.length * PLOTS.length);
    for (let a = 0; a < PLOTS.length; a++) for (let b = 0; b < PLOTS.length; b++) gap[a * PLOTS.length + b] = pressGap(a, b);
@@ -180,8 +189,10 @@ export function harvestBound(table: number, options: BoundOptions = {}): BoundRe
 /** Brute force over every chain (small deadlines only): cross-checks harvestBound. */
 export function bruteBound(table: number, options: BoundOptions = {}): number {
    const deadline = options.deadline ?? DURATION_S;
+   const plots = options.plots ?? PLOTS;
+   const halfLate = options.halfLate ?? CYCLE.halfLate;
    const wN = options.normal ?? 150, wP = options.perfect ?? 200, ph = (options.perfectHalf ?? HARVEST.perfectHalf) + EPS;
-   const nodes = boundNodes(table, deadline);
+   const nodes = boundNodes(table, deadline, plots, halfLate);
    const used = new Uint8Array(nodes.length);
    const dfs = (plot: number, t: number): number => {
       let best = 0;
