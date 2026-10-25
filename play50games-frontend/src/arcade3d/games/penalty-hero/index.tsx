@@ -11,11 +11,11 @@ import { LEVELS, type PenaltyLevel } from "./levels";
 import { PROPOSED_LEVEL_LIMITS, SHOTS, finalScore } from "./rules";
 
 const DESCRIPTIONS: Record<LevelId, string> = {
-   1: "Ten shots on the training pitch.",
-   2: "12 shots, 7 goals to win; moving targets and a reading keeper.",
-   3: "14 shots, 9 goals; faster targets and 175-point streaks.",
-   4: "16 shots, 10 goals; night gusts and smaller targets.",
-   5: "18 shots, 12 goals; every hazard and 200-point streaks.",
+    1: "Ten shots on the training pitch.",
+    2: "12 shots, 6 goals to win; moving targets and a reading keeper.",
+    3: "14 shots, 7 goals; faster targets and 175-point streaks.",
+    4: "16 shots, 8 goals; night gusts and smaller targets.",
+    5: "18 shots, 9 goals; every hazard and 200-point streaks.",
 };
 
 const ENVIRONMENTS: Record<LevelId, LevelSpec["environment"]> = {

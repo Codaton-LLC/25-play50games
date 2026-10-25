@@ -42,12 +42,10 @@ import { keeperDivePose, keeperReadyPose } from "./poses";
 import { BallPrimitive, Goal, KeeperPrimitive, Stadium, StrikerPrimitive } from "./Primitives";
 import { KICK_LEAN, RUNUP_LEAN, createStrikerFrame, drawStrikerPose, strikerFrame, strikerPose } from "./strikerMotion";
 import {
-   AIM_TIMEOUT_MS,
    BALL_SPOT,
    FLIGHT_MS,
    HOLD_MS,
    RETICLE_AMPLITUDE,
-   RETICLE_BAND,
    ZONES,
    ZONE_CENTRE_X,
    ZONE_CENTRE_Y,
@@ -55,15 +53,17 @@ import {
    aimPresses,
    createRun,
    isAccurate,
-   reticleOffset,
+   levelReticleOffset,
+   levelZoneAt,
    step,
-   zoneAt,
+   targetDrift,
    zoneIndex,
    type AimPresses,
    type RunState,
    type StepInput,
    type ZoneId,
 } from "./rules";
+import type { PenaltyLevel } from "./levels";
 import { ZONE_IDLE_OPACITY, ZONE_PLANE_Z, zoneOpacity } from "./zones";
 
 const ZONE_H = 1.22;
@@ -81,12 +81,13 @@ interface Scratch {
 
 type ViewRun = RunState & { lastShots: number; aimLeft: number; goalMask: number };
 
-/** Canvas press (pointer coords) -> zone of the goal plane z = 0. Meshes are never hit-tested. */
-function tapZone(x: number, y: number, camera: Camera, scratch: Scratch): ZoneId | null {
-   scratch.ndc.set(x, y);
-   scratch.ray.setFromCamera(scratch.ndc, camera);
-   const hit = scratch.ray.ray.intersectPlane(scratch.plane, scratch.point);
-   return hit ? zoneAt(hit.x, hit.y) : null;
+/** Canvas press (pointer coords) -> zone of the goal plane z = 0, judged on the level's tile at
+ *  this frame's aim time (the drift and scale the tile is drawn with). Meshes are never hit-tested. */
+function tapZone(x: number, y: number, camera: Camera, run: RunState, scratch: Scratch): ZoneId | null {
+    scratch.ndc.set(x, y);
+    scratch.ray.setFromCamera(scratch.ndc, camera);
+    const hit = scratch.ray.ray.intersectPlane(scratch.plane, scratch.point);
+    return hit ? levelZoneAt(hit.x, hit.y, run.aimMs, run.shotsDone, run.config) : null;
 }
 
 const clamp01 = (v: number) => (v < 0 ? 0 : v > 1 ? 1 : v);
@@ -108,8 +109,8 @@ function Simulation({ run, scratch }: { run: ViewRun; scratch: Scratch }) {
       frame.actionPressed = inp.actionPressed;
       // Touch / click shoots on the press (tapDown), with the reticle that was on screen then.
       // `tap` would wait for the release and judge the shot 100-350 ms late.
-      const down = inp.tapDown;
-      frame.zoneId = down && run.phase === "aim" ? tapZone(down.x, down.y, camera, scratch) : null;
+       const down = inp.tapDown;
+       frame.zoneId = down && run.phase === "aim" ? tapZone(down.x, down.y, camera, run, scratch) : null;
       const shotIndex = run.shotsDone;
       const ev = step(run, dt * 1000, frame);
       const store = useArcadeStore.getState();
@@ -132,12 +133,13 @@ function Simulation({ run, scratch }: { run: ViewRun; scratch: Scratch }) {
          store.setStat("shots", run.shotsDone);
          if (!ev.ended) store.setStat("feedback", FEEDBACK.none);
       }
-      const aimLeft = run.phase === "aim" ? Math.ceil((AIM_TIMEOUT_MS - run.aimMs) / 1000) : 0;
-      if (aimLeft !== run.aimLeft) {
-         run.aimLeft = aimLeft;
-         store.setStat("aimLeft", aimLeft);
-      }
-      if (ev.ended) store.end("win");
+       const aimLeft = run.phase === "aim" ? Math.ceil((run.config.aimTimeoutMs - run.aimMs) / 1000) : 0;
+       if (aimLeft !== run.aimLeft) {
+          run.aimLeft = aimLeft;
+          store.setStat("aimLeft", aimLeft);
+       }
+       // Level 1 always ends "win" (today's game); levels 2-5 end "lose" below their goal target.
+       if (ev.ended) store.end(ev.ended);
    });
 
    return null;
@@ -148,94 +150,110 @@ function Simulation({ run, scratch }: { run: ViewRun; scratch: Scratch }) {
  * seen through them, so the highlight fades to faint over the end of the flight (zones.ts).
  */
 function Zones({ run }: { run: RunState }) {
-   const time = useGameTime();
-   const mats = useRef<Array<MeshBasicMaterial | null>>([]);
-   const dividers = useMemo(() => {
-      const half = ZONE_WIDTH / 2;
-      const g = new BufferGeometry();
-      g.setAttribute(
-         "position",
-         new Float32BufferAttribute([-half, 0, 0, -half, 2 * ZONE_H, 0, half, 0, 0, half, 2 * ZONE_H, 0, -3 * half, ZONE_H, 0, 3 * half, ZONE_H, 0], 3)
-      );
-      return g;
-   }, []);
-   useEffect(() => () => dividers.dispose(), [dividers]);
+    const time = useGameTime();
+    const mats = useRef<Array<MeshBasicMaterial | null>>([]);
+    const tiles = useRef<Array<Mesh | null>>([]);
+    const scale = run.config.targetScale;
+    const dividers = useMemo(() => {
+       const half = ZONE_WIDTH / 2;
+       const g = new BufferGeometry();
+       g.setAttribute(
+          "position",
+          new Float32BufferAttribute([-half, 0, 0, -half, 2 * ZONE_H, 0, half, 0, 0, half, 2 * ZONE_H, 0, -3 * half, ZONE_H, 0, 3 * half, ZONE_H, 0], 3)
+       );
+       return g;
+    }, []);
+    useEffect(() => () => dividers.dispose(), [dividers]);
 
-   useFrame(() => {
-      const selected = zoneIndex(run.col, run.row);
-      const pulse = run.phase === "aim" ? 0.06 * Math.sin(time.now * 5) : 0;
-      for (let i = 0; i < ZONES.length; i++) {
-         const mat = mats.current[i];
-         if (!mat) continue;
-         mat.opacity = zoneOpacity(run.phase, run.phaseMs, i === selected, pulse);
-      }
-   });
+    useFrame(() => {
+       const selected = zoneIndex(run.col, run.row);
+       const pulse = run.phase === "aim" ? 0.06 * Math.sin(time.now * 5) : 0;
+       for (let i = 0; i < ZONES.length; i++) {
+          const mat = mats.current[i];
+          if (!mat) continue;
+          mat.opacity = zoneOpacity(run.phase, run.phaseMs, i === selected, pulse);
+          // the tile sits where the rules judge the shot: drifted by the same targetDrift (0 on level 1)
+          const tile = tiles.current[i];
+          if (tile) tile.position.x = ZONE_CENTRE_X[i % 3] + targetDrift(run.aimMs, i, run.shotsDone, run.config);
+       }
+    });
 
-   return (
-      <group name="zones" position={[0, 0, ZONE_PLANE_Z]}>
-         <lineSegments geometry={dividers}>
-            <lineBasicMaterial color="#f8fafc" transparent opacity={0.55} depthWrite={false} />
-         </lineSegments>
-         {ZONES.map((id, i) => {
-            const col = i % 3;
-            const row = i < 3 ? 1 : 0;
-            return (
-               <mesh key={id} position={[ZONE_CENTRE_X[col], ZONE_CENTRE_Y[row], 0]}>
-                  <planeGeometry args={[ZONE_WIDTH - 0.08, ZONE_H - 0.08]} />
-                  <meshBasicMaterial
-                     ref={(m) => {
-                        mats.current[i] = m;
-                     }}
-                     color="#f472b6"
-                     transparent
-                     opacity={ZONE_IDLE_OPACITY}
-                     depthWrite={false}
-                  />
-               </mesh>
-            );
-         })}
-      </group>
-   );
+    return (
+       <group name="zones" position={[0, 0, ZONE_PLANE_Z]}>
+          <lineSegments geometry={dividers}>
+             <lineBasicMaterial color="#f8fafc" transparent opacity={0.55} depthWrite={false} />
+          </lineSegments>
+          {ZONES.map((id, i) => {
+             const col = i % 3;
+             const row = i < 3 ? 1 : 0;
+             return (
+                <mesh
+                   key={id}
+                   ref={(m) => {
+                      tiles.current[i] = m;
+                   }}
+                   position={[ZONE_CENTRE_X[col], ZONE_CENTRE_Y[row], 0]}
+                >
+                   <planeGeometry args={[ZONE_WIDTH * scale - 0.08, ZONE_H * scale - 0.08]} />
+                   <meshBasicMaterial
+                      ref={(m) => {
+                         mats.current[i] = m;
+                      }}
+                      color="#f472b6"
+                      transparent
+                      opacity={ZONE_IDLE_OPACITY}
+                      depthWrite={false}
+                   />
+                </mesh>
+             );
+          })}
+       </group>
+    );
 }
 
-/** Wobbling ring over the highlighted zone, with the white accuracy band at the zone centre. */
+/** Wobbling ring over the highlighted zone, with the white accuracy band at the zone centre. The
+ *  ring is the judged offset of the run's level: its period, band and (from level 4) the gust; it
+ *  follows the drifting tile and maps the offset onto the tile's own width. */
 function Reticle({ run }: { run: RunState }) {
-   const time = useGameTime();
-   const root = useRef<Group>(null);
-   const ring = useRef<Group>(null);
-   const ringMat = useRef<MeshBasicMaterial>(null);
-   const halfZone = ZONE_WIDTH / 2;
+    const time = useGameTime();
+    const root = useRef<Group>(null);
+    const ring = useRef<Group>(null);
+    const ringMat = useRef<MeshBasicMaterial>(null);
+    // level 1: span = RETICLE_AMPLITUDE, travel = (ZONE_WIDTH / 2) * 0.85 - today's mapping
+    const span = RETICLE_AMPLITUDE + run.config.wind;
+    const travel = ((ZONE_WIDTH * run.config.targetScale) / 2) * 0.85;
 
-   useFrame(() => {
-      const g = root.current;
-      const r = ring.current;
-      const mat = ringMat.current;
-      if (!g || !r || !mat) return;
-      g.visible = run.phase === "aim" && !run.ended;
-      if (!g.visible) return;
-      g.position.set(ZONE_CENTRE_X[run.col], ZONE_CENTRE_Y[run.row], 0.06);
-      const offset = reticleOffset(run.aimMs, run.reticlePhase);
-      r.position.x = (offset / RETICLE_AMPLITUDE) * halfZone * 0.85;
-      const accurate = isAccurate(offset);
-      mat.color.copy(accurate ? RING_ON : RING_OFF);
-      r.scale.setScalar(1 + 0.05 * Math.sin(time.now * 9));
-   });
+    useFrame(() => {
+       const g = root.current;
+       const r = ring.current;
+       const mat = ringMat.current;
+       if (!g || !r || !mat) return;
+       g.visible = run.phase === "aim" && !run.ended;
+       if (!g.visible) return;
+       const drift = targetDrift(run.aimMs, zoneIndex(run.col, run.row), run.shotsDone, run.config);
+       g.position.set(ZONE_CENTRE_X[run.col] + drift, ZONE_CENTRE_Y[run.row], 0.06);
+       const offset = levelReticleOffset(run.aimMs, run.reticlePhase, run.config);
+       r.position.x = (offset / span) * travel;
+       const accurate = isAccurate(offset, run.config.reticleBand);
+       mat.color.copy(accurate ? RING_ON : RING_OFF);
+       r.scale.setScalar(1 + 0.05 * Math.sin(time.now * 9));
+    });
 
-   const band = (RETICLE_BAND / RETICLE_AMPLITUDE) * halfZone * 0.85 * 2;
-   return (
-      <group ref={root} name="reticle">
-         <mesh>
-            <planeGeometry args={[band, ZONE_H - 0.2]} />
-            <meshBasicMaterial color="#f8fafc" transparent opacity={0.4} depthWrite={false} />
-         </mesh>
-         <group ref={ring}>
-            <mesh>
-               <ringGeometry args={[0.2, 0.28, 32]} />
-               <meshBasicMaterial ref={ringMat} color="#fbbf24" depthWrite={false} transparent opacity={0.95} />
-            </mesh>
-         </group>
-      </group>
-   );
+    const band = (run.config.reticleBand / span) * travel * 2;
+    return (
+       <group ref={root} name="reticle">
+          <mesh>
+             <planeGeometry args={[band, ZONE_H - 0.2]} />
+             <meshBasicMaterial color="#f8fafc" transparent opacity={0.4} depthWrite={false} />
+          </mesh>
+          <group ref={ring}>
+             <mesh>
+                <ringGeometry args={[0.2, 0.28, 32]} />
+                <meshBasicMaterial ref={ringMat} color="#fbbf24" depthWrite={false} transparent opacity={0.95} />
+             </mesh>
+          </group>
+       </group>
+    );
 }
 
 function Ball({ run }: { run: RunState }) {
@@ -422,11 +440,12 @@ function Keeper({ run }: { run: RunState }) {
    );
 }
 
-export default function Scene() {
-   const view = useFittedView(PENALTY_VIEW);
-   const [run] = useState<ViewRun>(() =>
-      Object.assign(createRun(randomSeed()), { lastShots: 0, aimLeft: 0, goalMask: 0 })
-   );
+/** One run of one level: the config is read once per mount (the shell remounts the Scene per run). */
+function Scene({ config }: { config: PenaltyLevel }) {
+    const view = useFittedView(PENALTY_VIEW);
+    const [run] = useState<ViewRun>(() =>
+       Object.assign(createRun(randomSeed(), config), { lastShots: 0, aimLeft: 0, goalMask: 0 })
+    );
    const scratch = useMemo<Scratch>(
       () => ({
          ray: new Raycaster(),
@@ -457,8 +476,14 @@ export default function Scene() {
          <Zones run={run} />
          <Reticle run={run} />
          <Keeper run={run} />
-         <Striker run={run} />
-         <Ball run={run} />
-      </>
-   );
+          <Striker run={run} />
+          <Ball run={run} />
+       </>
+    );
+}
+
+/** The picked level's scene (core/level.tsx: the shell remounts it per run, keyed by the level). */
+export default function PenaltyHeroScene() {
+    const { id, config } = usePenaltyLevel();
+    return <Scene key={id} config={config} />;
 }
