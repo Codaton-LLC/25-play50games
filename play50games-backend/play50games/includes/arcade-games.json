@@ -165,7 +165,14 @@
       "max_duration_ms": 92000,
       "base": 1250,
       "max_pps": 100,
-      "enabled": false
+      "enabled": false,
+      "levels": [
+        { "title": "Starter Beach", "max_score": 2060, "min_duration_ms": 8500, "max_duration_ms": 92000, "base": 1250, "max_pps": 100 },
+        { "title": "Palm Grove", "max_score": 2060, "min_duration_ms": 8500, "max_duration_ms": 92000, "base": 1250, "max_pps": 100 },
+        { "title": "Rocky Cove", "max_score": 2300, "min_duration_ms": 9100, "max_duration_ms": 92000, "base": 1500, "max_pps": 100 },
+        { "title": "Jungle Interior", "max_score": 2300, "min_duration_ms": 9100, "max_duration_ms": 92000, "base": 1500, "max_pps": 100 },
+        { "title": "Pirate Peak", "max_score": 2300, "min_duration_ms": 8500, "max_duration_ms": 92000, "base": 1500, "max_pps": 100 }
+      ]
     },
     "museum-guard": {
       "title": "Museum Guard",

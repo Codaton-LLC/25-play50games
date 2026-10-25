@@ -1,6 +1,6 @@
 import { describe } from "vitest";
 import { levelRows } from "./testing/levelBot";
 
-// Bot proofs for levels 1-3. Levels 4 and 5 run in rules.levels-late.test.ts.
+// Bot proofs for level 1. One file per level (rules.levels-2/-3/-4/-5) so vitest runs them in parallel.
 
-describe("delivery-drone levels: bots", () => levelRows([1, 2, 3]));
+describe("delivery-drone levels: bots", () => levelRows([1]));
