@@ -371,7 +371,7 @@ function Sudoku4x4({
    return (
       <div className="sudoku-game-modern">
          <div className="sudoku-header">
-            <h3>Sudoku 4x4</h3>
+            <h3>Number Grid 4x4</h3>
             {feedback && (
                <div
                   className={`sudoku-feedback ${

@@ -1,5 +1,5 @@
 # PLAY50 — MENU 2
-## FULL PRODUCTION SPEC — Color Shell Ninjas — 30 3D Games
+## FULL PRODUCTION SPEC — Color Roll Heroes — 30 3D Games
 
 **Scope:** this is a completely separate arcade menu from Menu 1.
 
@@ -8,6 +8,7 @@ The menu uses one original character family, one shared rig and a strong five-co
 > **REDESIGN 2026-10-25 (user decision, overrides everything below):** to lower the trademark-resemblance risk before anything of Menu 2 is built or published:
 > - **Hero = an original armadillo/pangolin-style hero**, NOT a turtle. A natural armoured shell of overlapping plates that can roll into a ball (dash/bounce moves). **No eye masks.** The hero colour (Riko red, Nami blue, Kiro green, Zuno yellow, Vexa purple) is carried by the **shell plates and armour** plus glowing lines on the shell; the face shows through an open **helmet with a visor** (or headphones/ear guards), never a cloth mask. One base mesh + rig, colour by material, as before.
 > - **No TMNT-like elements:** no turtles, no green-skinned turtle look, no eye masks, no katanas/sai/nunchaku/bo staff, no pizza, no sewers, no rats, no "sensei" mentor. Game 03 "Flooded Ruins Escape" becomes **Flooded Ruins Escape** (ancient stone water channels, levers, rising water; assets: stone channel, brick ledge, lever, stone platform, water hazard) and game 12 "Mine Tunnel Run" becomes **Mine Tunnel Run** (mine tunnels, rails, carts; level 5 "Deep Mine Sprint" becomes "Deep Mine Sprint"). The Hyper3D props m2SewerPipe and m2SewerRat are dropped and replaced (stone water channel, cave beetle/mole). Any "turtle-shell" wording below means the hero's armadillo shell.
+> - **Game titles (2026-10-25):** no "Ninja"/"Shell"/"Shadow Clone" in titles or visible text (renamed: Rooftop Roll Climb, Roll Dash, Mirror Dash, Plate Bounce Arena, Plate Surf, Laser Maze Run, Disc Target Throw (discs, never throwing stars), Roll Cannon Jump, Tightrope Path, Zipline Rush); temples/gongs use a generic ancient-ruins style (stone, jungle), not a Japanese ninja-dojo look; the signature move is rolling into a ball.
 > - **Name:** the menu is now called **"Color Roll Heroes"** (user, 2026-10-25); "Color Shell Ninjas" is retired. Before Menu 2 is published: check the final name in DPMA (dpma.de) and EUIPO/TMview, confirm the Hyper3D plan allows commercial use of the models, and a short consult with an IP lawyer (Fachanwalt für Urheber- und Medienrecht / IT-Recht).
 
 # Character family
@@ -26,7 +27,7 @@ Use **one base mesh + one skeleton + material/color variants** wherever possible
 ```text
 Original stylized 3D anthropomorphic armadillo hero (pangolin-like armoured shell of overlapping plates) for a premium mobile and browser game, completely original character design and not based on or resembling any existing franchise character.
 
-Full body, compact athletic proportions, slightly oversized head, expressive friendly face, armoured shell of overlapping plates over the back and head that can curl into a ball, strong hands and feet, clean ninja outfit, dark charcoal fabric clothing, simple belt, wrist wraps and ankle wraps.
+Full body, compact athletic proportions, slightly oversized head, expressive friendly face, armoured shell of overlapping plates over the back and head that can curl into a ball, strong hands and feet, clean hero outfit, dark charcoal fabric clothing, simple belt, wrist wraps and ankle wraps.
 
 No weapons, no logos, no text, no cape.
 
@@ -65,7 +66,7 @@ Stylized floating stone platform for a premium mobile/browser arcade game, round
 ```
 
 ### Character use
-- Same Color Shell Ninja mesh and rig.
+- Same Color Shell Hero mesh and rig.
 - Accent color changes by selected hero.
 - Hero ability is available where it does not bypass the entire level mechanic.
 - Ability cooldown resets at level start unless a game mode explicitly says otherwise.
@@ -169,7 +170,7 @@ Stylized floating stone platform for a premium mobile/browser arcade game, round
 
 ---
 
-# GAME 02 — Ninja Rooftop Climb
+# GAME 02 — Rooftop Roll Climb
 
 **Game type:** Vertical rooftop climb
 **Core objective:** Jump between rooftops and climb as high as possible.
@@ -183,7 +184,7 @@ Stylized compact rooftop air-conditioning unit, dark grey metal, rounded edges, 
 ```
 
 ### Character use
-- Same Color Shell Ninja mesh and rig.
+- Same Color Shell Hero mesh and rig.
 - Accent color changes by selected hero.
 - Hero ability is available where it does not bypass the entire level mechanic.
 - Ability cooldown resets at level start unless a game mode explicitly says otherwise.
@@ -193,7 +194,7 @@ Stylized compact rooftop air-conditioning unit, dark grey metal, rounded edges, 
 ### Level 1 — Low Roofs
 
 - **Difficulty:** Tutorial / Easy
-- **Environment / visual:** **Low Roofs** using the same art direction as Ninja Rooftop Climb; color-coded gameplay elements must be readable at a glance.
+- **Environment / visual:** **Low Roofs** using the same art direction as Rooftop Roll Climb; color-coded gameplay elements must be readable at a glance.
 - **Map size:** Compact
 - **Layout:** Compact vertical route in **Low Roofs** with 10 primary landing surfaces and increasing moving/failing platform density.
 - **Player start:** Safe start platform/zone with the first route or color objective visible.
@@ -212,7 +213,7 @@ Stylized compact rooftop air-conditioning unit, dark grey metal, rounded edges, 
 ### Level 2 — Office Roofs
 
 - **Difficulty:** Easy
-- **Environment / visual:** **Office Roofs** using the same art direction as Ninja Rooftop Climb; color-coded gameplay elements must be readable at a glance.
+- **Environment / visual:** **Office Roofs** using the same art direction as Rooftop Roll Climb; color-coded gameplay elements must be readable at a glance.
 - **Map size:** Small–Medium
 - **Layout:** Small–Medium vertical route in **Office Roofs** with 14 primary landing surfaces and increasing moving/failing platform density.
 - **Player start:** Safe start platform/zone with the first route or color objective visible.
@@ -231,7 +232,7 @@ Stylized compact rooftop air-conditioning unit, dark grey metal, rounded edges, 
 ### Level 3 — Moving Rooftops
 
 - **Difficulty:** Medium
-- **Environment / visual:** **Moving Rooftops** using the same art direction as Ninja Rooftop Climb; color-coded gameplay elements must be readable at a glance.
+- **Environment / visual:** **Moving Rooftops** using the same art direction as Rooftop Roll Climb; color-coded gameplay elements must be readable at a glance.
 - **Map size:** Medium
 - **Layout:** Medium vertical route in **Moving Rooftops** with 18 primary landing surfaces and increasing moving/failing platform density.
 - **Player start:** Safe start platform/zone with the first route or color objective visible.
@@ -250,7 +251,7 @@ Stylized compact rooftop air-conditioning unit, dark grey metal, rounded edges, 
 ### Level 4 — Night Skyline
 
 - **Difficulty:** Hard
-- **Environment / visual:** **Night Skyline** using the same art direction as Ninja Rooftop Climb; color-coded gameplay elements must be readable at a glance.
+- **Environment / visual:** **Night Skyline** using the same art direction as Rooftop Roll Climb; color-coded gameplay elements must be readable at a glance.
 - **Map size:** Large
 - **Layout:** Large vertical route in **Night Skyline** with 22 primary landing surfaces and increasing moving/failing platform density.
 - **Player start:** Safe start platform/zone with the first route or color objective visible.
@@ -269,7 +270,7 @@ Stylized compact rooftop air-conditioning unit, dark grey metal, rounded edges, 
 ### Level 5 — High-Rise Climb
 
 - **Difficulty:** Challenge
-- **Environment / visual:** **High-Rise Climb** using the same art direction as Ninja Rooftop Climb; color-coded gameplay elements must be readable at a glance.
+- **Environment / visual:** **High-Rise Climb** using the same art direction as Rooftop Roll Climb; color-coded gameplay elements must be readable at a glance.
 - **Map size:** Large / Dense
 - **Layout:** Large / Dense vertical route in **High-Rise Climb** with 28 primary landing surfaces and increasing moving/failing platform density.
 - **Player start:** Safe start platform/zone with the first route or color objective visible.
@@ -301,7 +302,7 @@ Large stylized ancient stone water channel section, weathered sandstone, modular
 ```
 
 ### Character use
-- Same Color Shell Ninja mesh and rig.
+- Same Color Shell Hero mesh and rig.
 - Accent color changes by selected hero.
 - Hero ability is available where it does not bypass the entire level mechanic.
 - Ability cooldown resets at level start unless a game mode explicitly says otherwise.
@@ -419,7 +420,7 @@ Stylized volcanic stone pillar platform, dark basalt with subtle glowing orange 
 ```
 
 ### Character use
-- Same Color Shell Ninja mesh and rig.
+- Same Color Shell Hero mesh and rig.
 - Accent color changes by selected hero.
 - Hero ability is available where it does not bypass the entire level mechanic.
 - Ability cooldown resets at level start unless a game mode explicitly says otherwise.
@@ -537,7 +538,7 @@ Cute stylized solid cloud platform, soft rounded silhouette, white matte materia
 ```
 
 ### Character use
-- Same Color Shell Ninja mesh and rig.
+- Same Color Shell Hero mesh and rig.
 - Accent color changes by selected hero.
 - Hero ability is available where it does not bypass the entire level mechanic.
 - Ability cooldown resets at level start unless a game mode explicitly says otherwise.
@@ -655,7 +656,7 @@ Stylized fantasy temple lantern, warm glowing paper lantern in a dark wooden fra
 ```
 
 ### Character use
-- Same Color Shell Ninja mesh and rig.
+- Same Color Shell Hero mesh and rig.
 - Accent color changes by selected hero.
 - Hero ability is available where it does not bypass the entire level mechanic.
 - Ability cooldown resets at level start unless a game mode explicitly says otherwise.
@@ -773,7 +774,7 @@ Futuristic floating cube platform, dark graphite surface with cyan edge strips, 
 ```
 
 ### Character use
-- Same Color Shell Ninja mesh and rig.
+- Same Color Shell Hero mesh and rig.
 - Accent color changes by selected hero.
 - Hero ability is available where it does not bypass the entire level mechanic.
 - Ability cooldown resets at level start unless a game mode explicitly says otherwise.
@@ -891,7 +892,7 @@ Stylized thick jungle vine suitable as a swinging game platform, twisted green v
 ```
 
 ### Character use
-- Same Color Shell Ninja mesh and rig.
+- Same Color Shell Hero mesh and rig.
 - Accent color changes by selected hero.
 - Hero ability is available where it does not bypass the entire level mechanic.
 - Ability cooldown resets at level start unless a game mode explicitly says otherwise.
@@ -1009,7 +1010,7 @@ Stylized floating ice platform, pale blue ice with snowy top, angular rounded ed
 ```
 
 ### Character use
-- Same Color Shell Ninja mesh and rig.
+- Same Color Shell Hero mesh and rig.
 - Accent color changes by selected hero.
 - Hero ability is available where it does not bypass the entire level mechanic.
 - Ability cooldown resets at level start unless a game mode explicitly says otherwise.
@@ -1127,7 +1128,7 @@ Small futuristic space-station platform module, white/dark grey panels, blue glo
 ```
 
 ### Character use
-- Same Color Shell Ninja mesh and rig.
+- Same Color Shell Hero mesh and rig.
 - Accent color changes by selected hero.
 - Hero ability is available where it does not bypass the entire level mechanic.
 - Ability cooldown resets at level start unless a game mode explicitly says otherwise.
@@ -1231,7 +1232,7 @@ Small futuristic space-station platform module, white/dark grey panels, blue glo
 
 ---
 
-# GAME 11 — Ninja Dash
+# GAME 11 — Roll Dash
 
 **Game type:** 3-lane endless runner
 **Core objective:** Dodge, jump and slide through a stylized city.
@@ -1245,7 +1246,7 @@ Stylized wooden street-market crate, warm brown wood, rounded edges, premium low
 ```
 
 ### Character use
-- Same Color Shell Ninja mesh and rig.
+- Same Color Shell Hero mesh and rig.
 - Accent color changes by selected hero.
 - Hero ability is available where it does not bypass the entire level mechanic.
 - Ability cooldown resets at level start unless a game mode explicitly says otherwise.
@@ -1255,7 +1256,7 @@ Stylized wooden street-market crate, warm brown wood, rounded edges, premium low
 ### Level 1 — Training Street
 
 - **Difficulty:** Tutorial / Easy
-- **Environment / visual:** **Training Street** using the same art direction as Ninja Dash; color-coded gameplay elements must be readable at a glance.
+- **Environment / visual:** **Training Street** using the same art direction as Roll Dash; color-coded gameplay elements must be readable at a glance.
 - **Map size:** Compact
 - **Layout:** Compact forward course in **Training Street** split into 3 obstacle segments, collectible lines and safe recovery pockets.
 - **Player start:** Safe start platform/zone with the first route or color objective visible.
@@ -1274,7 +1275,7 @@ Stylized wooden street-market crate, warm brown wood, rounded edges, premium low
 ### Level 2 — Market Lane
 
 - **Difficulty:** Easy
-- **Environment / visual:** **Market Lane** using the same art direction as Ninja Dash; color-coded gameplay elements must be readable at a glance.
+- **Environment / visual:** **Market Lane** using the same art direction as Roll Dash; color-coded gameplay elements must be readable at a glance.
 - **Map size:** Small–Medium
 - **Layout:** Small–Medium forward course in **Market Lane** split into 4 obstacle segments, collectible lines and safe recovery pockets.
 - **Player start:** Safe start platform/zone with the first route or color objective visible.
@@ -1293,7 +1294,7 @@ Stylized wooden street-market crate, warm brown wood, rounded edges, premium low
 ### Level 3 — Old Town
 
 - **Difficulty:** Medium
-- **Environment / visual:** **Old Town** using the same art direction as Ninja Dash; color-coded gameplay elements must be readable at a glance.
+- **Environment / visual:** **Old Town** using the same art direction as Roll Dash; color-coded gameplay elements must be readable at a glance.
 - **Map size:** Medium
 - **Layout:** Medium forward course in **Old Town** split into 5 obstacle segments, collectible lines and safe recovery pockets.
 - **Player start:** Safe start platform/zone with the first route or color objective visible.
@@ -1312,7 +1313,7 @@ Stylized wooden street-market crate, warm brown wood, rounded edges, premium low
 ### Level 4 — Night Street
 
 - **Difficulty:** Hard
-- **Environment / visual:** **Night Street** using the same art direction as Ninja Dash; color-coded gameplay elements must be readable at a glance.
+- **Environment / visual:** **Night Street** using the same art direction as Roll Dash; color-coded gameplay elements must be readable at a glance.
 - **Map size:** Large
 - **Layout:** Large forward course in **Night Street** split into 6 obstacle segments, collectible lines and safe recovery pockets.
 - **Player start:** Safe start platform/zone with the first route or color objective visible.
@@ -1331,7 +1332,7 @@ Stylized wooden street-market crate, warm brown wood, rounded edges, premium low
 ### Level 5 — Endless Dash
 
 - **Difficulty:** Challenge
-- **Environment / visual:** **Endless Dash** using the same art direction as Ninja Dash; color-coded gameplay elements must be readable at a glance.
+- **Environment / visual:** **Endless Dash** using the same art direction as Roll Dash; color-coded gameplay elements must be readable at a glance.
 - **Map size:** Large / Dense
 - **Layout:** Large / Dense forward course in **Endless Dash** split into 8 obstacle segments, collectible lines and safe recovery pockets.
 - **Player start:** Safe start platform/zone with the first route or color objective visible.
@@ -1363,7 +1364,7 @@ Stylized rusty metal barrel, cylindrical shape, dark steel with subtle wear, rou
 ```
 
 ### Character use
-- Same Color Shell Ninja mesh and rig.
+- Same Color Shell Hero mesh and rig.
 - Accent color changes by selected hero.
 - Hero ability is available where it does not bypass the entire level mechanic.
 - Ability cooldown resets at level start unless a game mode explicitly says otherwise.
@@ -1481,7 +1482,7 @@ Stylized industrial robotic arm, compact mechanical design, orange and dark grey
 ```
 
 ### Character use
-- Same Color Shell Ninja mesh and rig.
+- Same Color Shell Hero mesh and rig.
 - Accent color changes by selected hero.
 - Hero ability is available where it does not bypass the entire level mechanic.
 - Ability cooldown resets at level start unless a game mode explicitly says otherwise.
@@ -1599,7 +1600,7 @@ Large stylized fantasy crystal cluster, faceted translucent blue crystals on a r
 ```
 
 ### Character use
-- Same Color Shell Ninja mesh and rig.
+- Same Color Shell Hero mesh and rig.
 - Accent color changes by selected hero.
 - Hero ability is available where it does not bypass the entire level mechanic.
 - Ability cooldown resets at level start unless a game mode explicitly says otherwise.
@@ -1717,7 +1718,7 @@ Floating faceted energy gem collectible, clean stylized crystal shape, premium a
 ```
 
 ### Character use
-- Same Color Shell Ninja mesh and rig.
+- Same Color Shell Hero mesh and rig.
 - Accent color changes by selected hero.
 - Hero ability is available where it does not bypass the entire level mechanic.
 - Ability cooldown resets at level start unless a game mode explicitly says otherwise.
@@ -1835,7 +1836,7 @@ Ancient fantasy temple stone gate, original design, weathered sandstone, simple 
 ```
 
 ### Character use
-- Same Color Shell Ninja mesh and rig.
+- Same Color Shell Hero mesh and rig.
 - Accent color changes by selected hero.
 - Hero ability is available where it does not bypass the entire level mechanic.
 - Ability cooldown resets at level start unless a game mode explicitly says otherwise.
@@ -1953,7 +1954,7 @@ Original alien plant obstacle, twisting purple stem, cyan leaves, whimsical sci-
 ```
 
 ### Character use
-- Same Color Shell Ninja mesh and rig.
+- Same Color Shell Hero mesh and rig.
 - Accent color changes by selected hero.
 - Hero ability is available where it does not bypass the entire level mechanic.
 - Ability cooldown resets at level start unless a game mode explicitly says otherwise.
@@ -2071,7 +2072,7 @@ Set of oversized stylized toy building blocks, rounded cube shapes, bright surfa
 ```
 
 ### Character use
-- Same Color Shell Ninja mesh and rig.
+- Same Color Shell Hero mesh and rig.
 - Accent color changes by selected hero.
 - Hero ability is available where it does not bypass the entire level mechanic.
 - Ability cooldown resets at level start unless a game mode explicitly says otherwise.
@@ -2189,7 +2190,7 @@ Large stylized spiral lollipop obstacle, oversized candy proportions, rounded gl
 ```
 
 ### Character use
-- Same Color Shell Ninja mesh and rig.
+- Same Color Shell Hero mesh and rig.
 - Accent color changes by selected hero.
 - Hero ability is available where it does not bypass the entire level mechanic.
 - Ability cooldown resets at level start unless a game mode explicitly says otherwise.
@@ -2307,7 +2308,7 @@ Stylized snow-covered pine-tree obstacle, compact triangular silhouette, layered
 ```
 
 ### Character use
-- Same Color Shell Ninja mesh and rig.
+- Same Color Shell Hero mesh and rig.
 - Accent color changes by selected hero.
 - Hero ability is available where it does not bypass the entire level mechanic.
 - Ability cooldown resets at level start unless a game mode explicitly says otherwise.
@@ -2425,7 +2426,7 @@ Simple floating hexagonal game platform, beveled edges, neutral white material f
 ```
 
 ### Character use
-- Same Color Shell Ninja mesh and rig.
+- Same Color Shell Hero mesh and rig.
 - Accent color changes by selected hero.
 - Hero ability is available where it does not bypass the entire level mechanic.
 - Ability cooldown resets at level start unless a game mode explicitly says otherwise.
@@ -2543,7 +2544,7 @@ Futuristic color gate, rounded rectangular arch, dark neutral frame, glowing ene
 ```
 
 ### Character use
-- Same Color Shell Ninja mesh and rig.
+- Same Color Shell Hero mesh and rig.
 - Accent color changes by selected hero.
 - Hero ability is available where it does not bypass the entire level mechanic.
 - Ability cooldown resets at level start unless a game mode explicitly says otherwise.
@@ -2661,7 +2662,7 @@ Floating faceted energy gem collectible, neutral material suitable for runtime r
 ```
 
 ### Character use
-- Same Color Shell Ninja mesh and rig.
+- Same Color Shell Hero mesh and rig.
 - Accent color changes by selected hero.
 - Hero ability is available where it does not bypass the entire level mechanic.
 - Ability cooldown resets at level start unless a game mode explicitly says otherwise.
@@ -2779,7 +2780,7 @@ Stylized circular sci-fi portal frame, chunky rounded geometry, dark stone/metal
 ```
 
 ### Character use
-- Same Color Shell Ninja mesh and rig.
+- Same Color Shell Hero mesh and rig.
 - Accent color changes by selected hero.
 - Hero ability is available where it does not bypass the entire level mechanic.
 - Ability cooldown resets at level start unless a game mode explicitly says otherwise.
@@ -2897,7 +2898,7 @@ Square modular arena floor tile with softly beveled edges, neutral pale-grey mat
 ```
 
 ### Character use
-- Same Color Shell Ninja mesh and rig.
+- Same Color Shell Hero mesh and rig.
 - Accent color changes by selected hero.
 - Hero ability is available where it does not bypass the entire level mechanic.
 - Ability cooldown resets at level start unless a game mode explicitly says otherwise.
@@ -3015,7 +3016,7 @@ Square modular arena tile, beveled edges, neutral material designed for runtime 
 ```
 
 ### Character use
-- Same Color Shell Ninja mesh and rig.
+- Same Color Shell Hero mesh and rig.
 - Accent color changes by selected hero.
 - Hero ability is available where it does not bypass the entire level mechanic.
 - Ability cooldown resets at level start unless a game mode explicitly says otherwise.
@@ -3133,7 +3134,7 @@ Large floating circular checkpoint ring, thick rounded tube geometry, neutral wh
 ```
 
 ### Character use
-- Same Color Shell Ninja mesh and rig.
+- Same Color Shell Hero mesh and rig.
 - Accent color changes by selected hero.
 - Hero ability is available where it does not bypass the entire level mechanic.
 - Ability cooldown resets at level start unless a game mode explicitly says otherwise.
@@ -3251,7 +3252,7 @@ Stylized faceted crystal collectible, neutral base material suitable for runtime
 ```
 
 ### Character use
-- Same Color Shell Ninja mesh and rig.
+- Same Color Shell Hero mesh and rig.
 - Accent color changes by selected hero.
 - Hero ability is available where it does not bypass the entire level mechanic.
 - Ability cooldown resets at level start unless a game mode explicitly says otherwise.
@@ -3369,7 +3370,7 @@ Small futuristic energy-core collectible, glowing spherical center inside curved
 ```
 
 ### Character use
-- Same Color Shell Ninja mesh and rig.
+- Same Color Shell Hero mesh and rig.
 - Accent color changes by selected hero.
 - Hero ability is available where it does not bypass the entire level mechanic.
 - Ability cooldown resets at level start unless a game mode explicitly says otherwise.
@@ -3487,7 +3488,7 @@ Original giant stone training guardian, broad stylized silhouette, rounded stone
 ```
 
 ### Character use
-- Same Color Shell Ninja mesh and rig.
+- Same Color Shell Hero mesh and rig.
 - Accent color changes by selected hero.
 - Hero ability is available where it does not bypass the entire level mechanic.
 - Ability cooldown resets at level start unless a game mode explicitly says otherwise.
@@ -3596,7 +3597,7 @@ Original giant stone training guardian, broad stylized silhouette, rounded stone
 # ADDITIONAL 20 COLOR SHELL NINJA GAMES
 ## Games 31–50
 
-These 20 games use the same Color Shell Ninja characters, rig, animations, five-color abilities and shared arcade systems.
+These 20 games use the same Color Shell Hero characters, rig, animations, five-color abilities and shared arcade systems.
 
 # GAME 31 — Wall Run Temple
 
@@ -3612,7 +3613,7 @@ Stylized fantasy temple wall module designed for wall-running gameplay, clean st
 ```
 
 ### Character use
-- Same Color Shell Ninja base mesh and shared skeleton.
+- Same Color Shell Hero base mesh and shared skeleton.
 - Runtime accent color selects Red / Blue / Green / Yellow / Purple hero.
 - Red Dash, Blue Double Jump, Green Shield, Yellow Magnet and Purple Phase remain available unless a level temporarily restricts one to preserve the core mechanic.
 
@@ -3710,7 +3711,7 @@ Stylized fantasy temple wall module designed for wall-running gameplay, clean st
 
 ---
 
-# GAME 32 — Shell Bounce Arena
+# GAME 32 — Plate Bounce Arena
 
 **Game type:** Physics bounce arena
 **Core objective:** Use shell-bounce pads to chain jumps and reach score zones.
@@ -3724,7 +3725,7 @@ Stylized circular bounce pad for a premium arcade platformer, soft rubber-like s
 ```
 
 ### Character use
-- Same Color Shell Ninja base mesh and shared skeleton.
+- Same Color Shell Hero base mesh and shared skeleton.
 - Runtime accent color selects Red / Blue / Green / Yellow / Purple hero.
 - Red Dash, Blue Double Jump, Green Shield, Yellow Magnet and Purple Phase remain available unless a level temporarily restricts one to preserve the core mechanic.
 
@@ -3822,13 +3823,13 @@ Stylized circular bounce pad for a premium arcade platformer, soft rubber-like s
 
 ---
 
-# GAME 33 — Shadow Clone Dash
+# GAME 33 — Mirror Dash
 
 **Game type:** Runner memory challenge
 **Core objective:** Follow a short route preview and then repeat it correctly at speed.
 **Playable characters:** Riko, Nami, Kiro, Zuno or Vexa.
 **Controls:** A/D or Left/Right to steer; Space/Up for jump/action where applicable; mobile uses swipe or virtual left/right + action.
-**Required 3D assets:** Memory gate, arrow tile, route marker, shadow clone marker, obstacle block
+**Required 3D assets:** Memory gate, arrow tile, route marker, mirror copy marker, obstacle block
 
 ### Hyper3D — primary asset prompt
 ```text
@@ -3836,7 +3837,7 @@ Stylized glowing route marker tile for a memory-based arcade runner, clear direc
 ```
 
 ### Character use
-- Same Color Shell Ninja base mesh and shared skeleton.
+- Same Color Shell Hero base mesh and shared skeleton.
 - Runtime accent color selects Red / Blue / Green / Yellow / Purple hero.
 - Red Dash, Blue Double Jump, Green Shield, Yellow Magnet and Purple Phase remain available unless a level temporarily restricts one to preserve the core mechanic.
 
@@ -3850,7 +3851,7 @@ Stylized glowing route marker tile for a memory-based arcade runner, clear direc
 - **Layout:** Compact forward route themed as **3-Step Route**, with 3 mechanic segments and short recovery areas.
 - **Player start:** Safe intro zone with the first mechanic visible before movement begins.
 - **Main objective:** Repeat 3 memorized route actions correctly.
-- **3D objects used:** Memory gate, arrow tile, route marker, shadow clone marker, obstacle block. Reuse neutral recolorable versions when possible.
+- **3D objects used:** Memory gate, arrow tile, route marker, mirror copy marker, obstacle block. Reuse neutral recolorable versions when possible.
 - **Hazards / pressure:** Low speed / wide margins
 - **Timer / target:** 75 sec target window, unless score-attack/endless mode is more appropriate.
 - **Camera:** Third-person arcade follow camera tuned to keep the next interaction visible.
@@ -3868,7 +3869,7 @@ Stylized glowing route marker tile for a memory-based arcade runner, clear direc
 - **Layout:** Small–Medium forward route themed as **5-Step Route**, with 4 mechanic segments and short recovery areas.
 - **Player start:** Safe intro zone with the first mechanic visible before movement begins.
 - **Main objective:** Repeat 5 memorized route actions correctly.
-- **3D objects used:** Memory gate, arrow tile, route marker, shadow clone marker, obstacle block. Reuse neutral recolorable versions when possible.
+- **3D objects used:** Memory gate, arrow tile, route marker, mirror copy marker, obstacle block. Reuse neutral recolorable versions when possible.
 - **Hazards / pressure:** Moderate speed
 - **Timer / target:** 90 sec target window, unless score-attack/endless mode is more appropriate.
 - **Camera:** Third-person arcade follow camera tuned to keep the next interaction visible.
@@ -3886,7 +3887,7 @@ Stylized glowing route marker tile for a memory-based arcade runner, clear direc
 - **Layout:** Medium forward route themed as **Split Path**, with 5 mechanic segments and short recovery areas.
 - **Player start:** Safe intro zone with the first mechanic visible before movement begins.
 - **Main objective:** Repeat 7 memorized route actions correctly.
-- **3D objects used:** Memory gate, arrow tile, route marker, shadow clone marker, obstacle block. Reuse neutral recolorable versions when possible.
+- **3D objects used:** Memory gate, arrow tile, route marker, mirror copy marker, obstacle block. Reuse neutral recolorable versions when possible.
 - **Hazards / pressure:** Moving hazards
 - **Timer / target:** 105 sec target window, unless score-attack/endless mode is more appropriate.
 - **Camera:** Third-person arcade follow camera tuned to keep the next interaction visible.
@@ -3904,7 +3905,7 @@ Stylized glowing route marker tile for a memory-based arcade runner, clear direc
 - **Layout:** Large forward route themed as **Fast Memory**, with 6 mechanic segments and short recovery areas.
 - **Player start:** Safe intro zone with the first mechanic visible before movement begins.
 - **Main objective:** Repeat 9 memorized route actions correctly.
-- **3D objects used:** Memory gate, arrow tile, route marker, shadow clone marker, obstacle block. Reuse neutral recolorable versions when possible.
+- **3D objects used:** Memory gate, arrow tile, route marker, mirror copy marker, obstacle block. Reuse neutral recolorable versions when possible.
 - **Hazards / pressure:** High speed + tighter timing
 - **Timer / target:** 120 sec target window, unless score-attack/endless mode is more appropriate.
 - **Camera:** Third-person arcade follow camera tuned to keep the next interaction visible.
@@ -3922,7 +3923,7 @@ Stylized glowing route marker tile for a memory-based arcade runner, clear direc
 - **Layout:** Large / Dense forward route themed as **Clone Master**, with 8 mechanic segments and short recovery areas.
 - **Player start:** Safe intro zone with the first mechanic visible before movement begins.
 - **Main objective:** Repeat 12 memorized route actions correctly.
-- **3D objects used:** Memory gate, arrow tile, route marker, shadow clone marker, obstacle block. Reuse neutral recolorable versions when possible.
+- **3D objects used:** Memory gate, arrow tile, route marker, mirror copy marker, obstacle block. Reuse neutral recolorable versions when possible.
 - **Hazards / pressure:** Maximum speed + mixed hazards
 - **Timer / target:** 150 sec target window, unless score-attack/endless mode is more appropriate.
 - **Camera:** Third-person arcade follow camera tuned to keep the next interaction visible.
@@ -3948,7 +3949,7 @@ Stylized vertical rotating pole obstacle with rounded ends and simple mounting h
 ```
 
 ### Character use
-- Same Color Shell Ninja base mesh and shared skeleton.
+- Same Color Shell Hero base mesh and shared skeleton.
 - Runtime accent color selects Red / Blue / Green / Yellow / Purple hero.
 - Red Dash, Blue Double Jump, Green Shield, Yellow Magnet and Purple Phase remain available unless a level temporarily restricts one to preserve the core mechanic.
 
@@ -4060,7 +4061,7 @@ Stylized arcade grind rail segment, thick rounded metal rail on simple supports,
 ```
 
 ### Character use
-- Same Color Shell Ninja base mesh and shared skeleton.
+- Same Color Shell Hero base mesh and shared skeleton.
 - Runtime accent color selects Red / Blue / Green / Yellow / Purple hero.
 - Red Dash, Blue Double Jump, Green Shield, Yellow Magnet and Purple Phase remain available unless a level temporarily restricts one to preserve the core mechanic.
 
@@ -4172,7 +4173,7 @@ Stylized fantasy temple gong on a simple wooden frame, large round bronze disc, 
 ```
 
 ### Character use
-- Same Color Shell Ninja base mesh and shared skeleton.
+- Same Color Shell Hero base mesh and shared skeleton.
 - Runtime accent color selects Red / Blue / Green / Yellow / Purple hero.
 - Red Dash, Blue Double Jump, Green Shield, Yellow Magnet and Purple Phase remain available unless a level temporarily restricts one to preserve the core mechanic.
 
@@ -4270,7 +4271,7 @@ Stylized fantasy temple gong on a simple wooden frame, large round bronze disc, 
 
 ---
 
-# GAME 37 — Shell Surf
+# GAME 37 — Plate Surf
 
 **Game type:** Downhill board/shell surf
 **Core objective:** Surf downhill, collect energy and pass through gates.
@@ -4284,7 +4285,7 @@ Stylized armadillo-shell-inspired surf board for an original arcade game, rounde
 ```
 
 ### Character use
-- Same Color Shell Ninja base mesh and shared skeleton.
+- Same Color Shell Hero base mesh and shared skeleton.
 - Runtime accent color selects Red / Blue / Green / Yellow / Purple hero.
 - Red Dash, Blue Double Jump, Green Shield, Yellow Magnet and Purple Phase remain available unless a level temporarily restricts one to preserve the core mechanic.
 
@@ -4362,12 +4363,12 @@ Stylized armadillo-shell-inspired surf board for an original arcade game, rounde
 - **Progression:** Level 4 increases mechanic density, timing pressure and route complexity.
 - **Replay goal:** Improve personal best time, score, combo, accuracy or collectible count.
 
-### Level 5 — Shell Surf Master
+### Level 5 — Plate Surf Master
 
 - **Difficulty:** Master Challenge
-- **Environment / look:** **Shell Surf Master** in the same premium stylized arcade art direction; gameplay colors must remain instantly readable.
+- **Environment / look:** **Plate Surf Master** in the same premium stylized arcade art direction; gameplay colors must remain instantly readable.
 - **Map size:** Large / Dense
-- **Layout:** Large / Dense forward route themed as **Shell Surf Master**, with 8 mechanic segments and short recovery areas.
+- **Layout:** Large / Dense forward route themed as **Plate Surf Master**, with 8 mechanic segments and short recovery areas.
 - **Player start:** Safe intro zone with the first mechanic visible before movement begins.
 - **Main objective:** Finish the downhill course and collect 30 energy orbs.
 - **3D objects used:** Surf shell board, slope gate, energy orb, ramp, rock obstacle. Reuse neutral recolorable versions when possible.
@@ -4382,7 +4383,7 @@ Stylized armadillo-shell-inspired surf board for an original arcade game, rounde
 
 ---
 
-# GAME 38 — Laser Maze Ninja
+# GAME 38 — Laser Maze Run
 
 **Game type:** Precision maze challenge
 **Core objective:** Navigate through a laser maze using timing, jumps and phase ability windows.
@@ -4396,7 +4397,7 @@ Compact futuristic laser emitter device for a stylized arcade game, dark graphit
 ```
 
 ### Character use
-- Same Color Shell Ninja base mesh and shared skeleton.
+- Same Color Shell Hero base mesh and shared skeleton.
 - Runtime accent color selects Red / Blue / Green / Yellow / Purple hero.
 - Red Dash, Blue Double Jump, Green Shield, Yellow Magnet and Purple Phase remain available unless a level temporarily restricts one to preserve the core mechanic.
 
@@ -4508,7 +4509,7 @@ Modular floating bridge tile for a color puzzle game, beveled square platform, n
 ```
 
 ### Character use
-- Same Color Shell Ninja base mesh and shared skeleton.
+- Same Color Shell Hero base mesh and shared skeleton.
 - Runtime accent color selects Red / Blue / Green / Yellow / Purple hero.
 - Red Dash, Blue Double Jump, Green Shield, Yellow Magnet and Purple Phase remain available unless a level temporarily restricts one to preserve the core mechanic.
 
@@ -4606,7 +4607,7 @@ Modular floating bridge tile for a color puzzle game, beveled square platform, n
 
 ---
 
-# GAME 40 — Ninja Target Throw
+# GAME 40 — Disc Target Throw
 
 **Game type:** Arcade target challenge
 **Core objective:** Throw harmless training discs at targets to build accuracy combos.
@@ -4620,7 +4621,7 @@ Stylized harmless training throwing disc and circular practice target for a prem
 ```
 
 ### Character use
-- Same Color Shell Ninja base mesh and shared skeleton.
+- Same Color Shell Hero base mesh and shared skeleton.
 - Runtime accent color selects Red / Blue / Green / Yellow / Purple hero.
 - Red Dash, Blue Double Jump, Green Shield, Yellow Magnet and Purple Phase remain available unless a level temporarily restricts one to preserve the core mechanic.
 
@@ -4732,7 +4733,7 @@ Stylized oversized air fan device for an arcade platform game, rounded protectiv
 ```
 
 ### Character use
-- Same Color Shell Ninja base mesh and shared skeleton.
+- Same Color Shell Hero base mesh and shared skeleton.
 - Runtime accent color selects Red / Blue / Green / Yellow / Purple hero.
 - Red Dash, Blue Double Jump, Green Shield, Yellow Magnet and Purple Phase remain available unless a level temporarily restricts one to preserve the core mechanic.
 
@@ -4844,7 +4845,7 @@ Stylized futuristic magnet pad, circular floor device with clean segmented rings
 ```
 
 ### Character use
-- Same Color Shell Ninja base mesh and shared skeleton.
+- Same Color Shell Hero base mesh and shared skeleton.
 - Runtime accent color selects Red / Blue / Green / Yellow / Purple hero.
 - Red Dash, Blue Double Jump, Green Shield, Yellow Magnet and Purple Phase remain available unless a level temporarily restricts one to preserve the core mechanic.
 
@@ -4942,7 +4943,7 @@ Stylized futuristic magnet pad, circular floor device with clean segmented rings
 
 ---
 
-# GAME 43 — Shell Cannon Jump
+# GAME 43 — Roll Cannon Jump
 
 **Game type:** Launch trajectory platformer
 **Core objective:** Launch the hero from safe arcade cannons between platforms and land accurately.
@@ -4956,7 +4957,7 @@ Stylized non-realistic arcade launch cannon for character launching, oversized r
 ```
 
 ### Character use
-- Same Color Shell Ninja base mesh and shared skeleton.
+- Same Color Shell Hero base mesh and shared skeleton.
 - Runtime accent color selects Red / Blue / Green / Yellow / Purple hero.
 - Red Dash, Blue Double Jump, Green Shield, Yellow Magnet and Purple Phase remain available unless a level temporarily restricts one to preserve the core mechanic.
 
@@ -5068,7 +5069,7 @@ Stylized crystal switch pedestal for a fantasy cave puzzle, faceted crystal moun
 ```
 
 ### Character use
-- Same Color Shell Ninja base mesh and shared skeleton.
+- Same Color Shell Hero base mesh and shared skeleton.
 - Runtime accent color selects Red / Blue / Green / Yellow / Purple hero.
 - Red Dash, Blue Double Jump, Green Shield, Yellow Magnet and Purple Phase remain available unless a level temporarily restricts one to preserve the core mechanic.
 
@@ -5180,7 +5181,7 @@ Stylized floating swing anchor point for a fantasy arcade platformer, rounded me
 ```
 
 ### Character use
-- Same Color Shell Ninja base mesh and shared skeleton.
+- Same Color Shell Hero base mesh and shared skeleton.
 - Runtime accent color selects Red / Blue / Green / Yellow / Purple hero.
 - Red Dash, Blue Double Jump, Green Shield, Yellow Magnet and Purple Phase remain available unless a level temporarily restricts one to preserve the core mechanic.
 
@@ -5292,7 +5293,7 @@ Stylized arcade doorway module with thick rounded frame, neutral surface suitabl
 ```
 
 ### Character use
-- Same Color Shell Ninja base mesh and shared skeleton.
+- Same Color Shell Hero base mesh and shared skeleton.
 - Runtime accent color selects Red / Blue / Green / Yellow / Purple hero.
 - Red Dash, Blue Double Jump, Green Shield, Yellow Magnet and Purple Phase remain available unless a level temporarily restricts one to preserve the core mechanic.
 
@@ -5390,7 +5391,7 @@ Stylized arcade doorway module with thick rounded frame, neutral surface suitabl
 
 ---
 
-# GAME 47 — Ninja Balance Path
+# GAME 47 — Tightrope Path
 
 **Game type:** Balance obstacle course
 **Core objective:** Cross narrow beams and moving balance platforms without falling.
@@ -5404,7 +5405,7 @@ Stylized narrow balance beam obstacle with rounded edges and clear top surface, 
 ```
 
 ### Character use
-- Same Color Shell Ninja base mesh and shared skeleton.
+- Same Color Shell Hero base mesh and shared skeleton.
 - Runtime accent color selects Red / Blue / Green / Yellow / Purple hero.
 - Red Dash, Blue Double Jump, Green Shield, Yellow Magnet and Purple Phase remain available unless a level temporarily restricts one to preserve the core mechanic.
 
@@ -5516,7 +5517,7 @@ Stylized glowing energy orb collectible/projectile for a colorful arcade defense
 ```
 
 ### Character use
-- Same Color Shell Ninja base mesh and shared skeleton.
+- Same Color Shell Hero base mesh and shared skeleton.
 - Runtime accent color selects Red / Blue / Green / Yellow / Purple hero.
 - Red Dash, Blue Double Jump, Green Shield, Yellow Magnet and Purple Phase remain available unless a level temporarily restricts one to preserve the core mechanic.
 
@@ -5614,7 +5615,7 @@ Stylized glowing energy orb collectible/projectile for a colorful arcade defense
 
 ---
 
-# GAME 49 — Ninja Zipline Rush
+# GAME 49 — Zipline Rush
 
 **Game type:** Zipline traversal game
 **Core objective:** Ride ziplines between rooftops and jump off at the correct timing.
@@ -5628,7 +5629,7 @@ Stylized arcade zipline handle and anchor system, chunky rounded grip, simple me
 ```
 
 ### Character use
-- Same Color Shell Ninja base mesh and shared skeleton.
+- Same Color Shell Hero base mesh and shared skeleton.
 - Runtime accent color selects Red / Blue / Green / Yellow / Purple hero.
 - Red Dash, Blue Double Jump, Green Shield, Yellow Magnet and Purple Phase remain available unless a level temporarily restricts one to preserve the core mechanic.
 
@@ -5740,7 +5741,7 @@ Premium modular arcade challenge asset pack with neutral recolorable gate, ring,
 ```
 
 ### Character use
-- Same Color Shell Ninja base mesh and shared skeleton.
+- Same Color Shell Hero base mesh and shared skeleton.
 - Runtime accent color selects Red / Blue / Green / Yellow / Purple hero.
 - Red Dash, Blue Double Jump, Green Shield, Yellow Magnet and Purple Phase remain available unless a level temporarily restricts one to preserve the core mechanic.
 
@@ -5818,12 +5819,12 @@ Premium modular arcade challenge asset pack with neutral recolorable gate, ring,
 - **Progression:** Level 4 increases mechanic density, timing pressure and route complexity.
 - **Replay goal:** Improve personal best time, score, combo, accuracy or collectible count.
 
-### Level 5 — Grand Ninja Trial
+### Level 5 — Grand Hero Trial
 
 - **Difficulty:** Master Challenge
-- **Environment / look:** **Grand Ninja Trial** in the same premium stylized arcade art direction; gameplay colors must remain instantly readable.
+- **Environment / look:** **Grand Hero Trial** in the same premium stylized arcade art direction; gameplay colors must remain instantly readable.
 - **Map size:** Large / Dense
-- **Layout:** Large / Dense arcade arena/course themed as **Grand Ninja Trial**, with clear start, challenge zones and finish/result area.
+- **Layout:** Large / Dense arcade arena/course themed as **Grand Hero Trial**, with clear start, challenge zones and finish/result area.
 - **Player start:** Safe intro zone with the first mechanic visible before movement begins.
 - **Main objective:** Complete 7 mixed mechanic sections without exhausting lives.
 - **3D objects used:** Recolorable gate, platform, ring, energy core, checkpoint, boss beacon. Reuse neutral recolorable versions when possible.
@@ -5839,7 +5840,7 @@ Premium modular arcade challenge asset pack with neutral recolorable gate, ring,
 ---
 
 
-# Shared Color Shell Ninja 3D asset library
+# Shared Color Shell Hero 3D asset library
 
 Generate/reuse:
 
@@ -5894,7 +5895,7 @@ Each game should be configuration-driven. Each level config should define:
 - **50 games**
 - **5 levels per game**
 - **250 complete level specifications**
-- 1 Color Shell Ninja base mesh
+- 1 Color Shell Hero base mesh
 - 5 color variants
 - 1 shared rig
 - 12 shared animations
@@ -5905,7 +5906,7 @@ Each game should be configuration-driven. Each level config should define:
 # Recommended build order
 
 1. Sky Tower Jump — vertical/platformer template
-2. Ninja Dash — runner template
+2. Roll Dash — runner template
 3. Color Arena Survival — color/round template
 4. Wall Run Temple — advanced traversal template
 5. Color Bridge Builder — puzzle template

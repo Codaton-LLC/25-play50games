@@ -1,5 +1,7 @@
 # Pigeon Crossing
 
+Five levels are implemented; the historical design sections below describe protected Level 1 unless stated otherwise. Current configurations, proofs and verification are in Status.
+
 Owner: **Codex**. Slug: `pigeon-crossing`, game 4. Accent `#a78bfa`. Scene implementation on `codex/game-pigeon-crossing-scene`; **status stays `"soon"`**. The pure rules from step 1 are unchanged. Play and Retry remount cleanly (the core's instanced-mesh cleanup is fixed; Retry no longer opens Paused, see Known issues). Camera, stand-ins, HUD and the thumbnail are implemented; generated-model availability remains owned by the core manifest.
 
 | File | What it owns |
@@ -291,3 +293,87 @@ Game `Hud` (`Hud.tsx`, CSS Module, existing vars, `pointer-events: none`, not ma
 - Pure tests now cover fitted measurements, the full-frustum horizon, steady 40-row following, eased refit unions, coarse/fine gates, real vertex/hull parity, folded width, every vehicle piece under side cover and crash grounding. In-place generator/pool tests remain from step 1. Live popping checks during crossings/resize and eventual GLB animation still need the browser flow after core cleanup is fixed.
 - **Retry after a long run started paused (fixed 2026-10-07, `claude/flag-and-retry-fix`).** Found in the group C playtest, the same with the stand-in vehicles. Cause, traced in headless Chrome: CameraRig places a follow camera at its target in its mount effect, a passive effect, and after the Retry remount R3F drew one frame before passive effects flushed. In that frame `StreetCamera`'s clock-priority check measured the shared camera still at the last run's pigeon (z -80 after row 49) for the new run on row 0: rows 0..62 do not fit the 40-slot ring, so it set reason `"pool"` and paused the countdown. The rig snapped the camera right after, so Resume played normally. Any Retry after row 28 (1280 × 800) or 22 (375 × 812) did it. Fix in `Scene.tsx`: `StreetCamera` sets `placed` in its own passive mount effect, which React runs after the rig's (children first), and both frame checks leave the pools alone until then. The fitted-view gate (`gate.reason`, from the target camera) still pauses at once, and the Simulation's pre-step fill check is unchanged. `step()` cannot move the pigeon meanwhile: the countdown is running and the ring stays blocked. `retry.test.ts` covers it (mutation-probed). Headless Chrome: Retry after levels 3 and 4 goes countdown → playing at level 1 at 1280 × 800 (GLBs and stand-ins) and 375 × 812 touch, and the next hop moves. A 700 × 340 fine-pointer window still pauses with "Make the window larger", and Resume works at 1280 × 800. 812 × 375 now passes the size gate live (the table above was measured on the fallback with the banner). The core rig's passive placement is generic: every follow-camera game draws that first Retry frame from the old camera. Only this game paused on it.
 - Fairness windows and tier saturation are intentional. Faster/denser progression stops at tier 10; raising limits, shortening hops, changing row count/bonus or removing preview invalidates the proof and needs fresh review.
+
+## Status
+
+TASK P-51-levels-pigeon | 5 levels for pigeon-crossing | branch codex/levels-pigeon-crossing | allowed: play50games-frontend/src/arcade3d/games/pigeon-crossing/**
+
+Status: IMPLEMENTED; local TypeScript and all pigeon tests pass. Awaiting Claude's backend limits copy, flagged build and desktop/phone headless review. No commit or push.
+
+Branch verification: `git branch --show-current` returned `codex/levels-pigeon-crossing`. Scope checked with `git status --porcelain` only. No branch changes, reset/clean, file deletions, build, server, production requests or asset generation.
+
+### Files
+
+- Added `levels.ts`: pure typed five-level configs, section counts and clear targets.
+- Added `level.ts`: the single typed `useLevel` hook used by Scene and HUD.
+- Added `looks.ts`: core environment presets, including night L4 and sunset L5.
+- Added `levels.test.ts`: declarations, compatibility, difficulty, theoretical prefix proofs, seeded fairness, parking collision, input parity, real-store bots and full-duration score potential.
+- Updated `rules.ts`: captured level config, traffic parameters, longer road groups, parked vans in the existing pools, score multipliers and `PROPOSED_LEVEL_LIMITS`.
+- Updated `Scene.tsx`, `Hud.tsx`, `index.tsx`, `meta.ts`: core level integration, matching road markings, hints, per-level specs/hudStats, titles and clears.
+- Updated `README.md` Status with this handoff; wrote `.handoff/P-51-levels-pigeon/HANDOFF.md` (explicit task exception).
+- Existing `rules.test.ts`, `assets.test.ts`, `camera.test.ts`, `retry.test.ts` and all assets were never edited. `meta.scoring` remains 50000/3000/1800000/0/28.
+
+### Levels
+
+| L | Plan title | Clear objective / score | Traffic / new mechanic | Roads per 20 rows | Lighting | Row / street bonus |
+|---|---|---|---|---:|---|---|
+| 1 | Quiet Street | 3 sections / 90 | Today's live traffic, layout, timing and controls | 13 | Existing day | 10 / 100 |
+| 2 | Main Road | 4 sections / 180 | Parked van on left grass; extra convoy member, tier +1, speed x1.05 | 13 | Day | 15 / 150 |
+| 3 | City Crossing | 5 sections / 300 | Parked vans on both sides; mixed opposing convoys, tier +2, speed x1.10 | 13 | Sunset | 20 / 200 |
+| 4 | Night Traffic | 6 sections / 850 | Grass every 4 rows: longer crossings and less recovery; tier +3, speed x1.15 | 15 | Night | 25 / 250 |
+| 5 | Rush Hour | 8 sections / 1800 | Grass every 5 rows, all hazards together; tier +4, speed x1.20 | 16 | Dramatic sunset | 30 / 300 |
+
+Content adaptation: a section is one grass-to-grass crossing, including the shortened final crossing of a street. The configured target is sections x grassEvery forward rows, converted by the normal street/row scoring formula. Reaching that score clears through the existing shell; the run continues until collision or timeup. The plan's collectible line becomes forward-row rewards; its static obstacles reuse parked van GLBs, with no new assets. The plan's short target times are guidance for clearing, not shortened scoring rounds. All five retain the 30-minute endless cap, so higher levels retain the full scoring opportunity and summed bests are not penalized by shorter rounds.
+
+Difficulty increases through nondecreasing road count, starting tier, speed multiplier, pack size, parked-edge hazard set and section target. Pack size stays within four existing slots. Traffic uses the same seeded draw order for L1; numeric horizon and forceFallback callers remain compatible. L1 keeps the original HUD label, instructions and look. L2-L5 name the internal stage chip Street to distinguish it from selected levelId.
+
+### Server limits and why they hold (one proof per level)
+
+Score sources are only first surviving forward landings (ROW_POINTS=10) and a once-only LEVEL_BONUS=100 every ROWS_PER_LEVEL=20, multiplied by f. No points for parking, waiting, revisiting or lateral/backward hops. HOP_MS=550 and PREVIEW_MS=3050 are identical for all levels/devices. At n=20k+r new rows, raw S=f(300k+10r), with elapsed t>=3050+550n. Therefore the raw prefix bound is:
+
+`B_f(t) = f * (300 * floor(n/20) + 10 * (n % 20)), n=floor(max(0,t-3050)/550)`.
+
+For pps=28f and base=0, integer slack is `pps*(3050+550n)-1000*S = f*(85400+8000k+5400r) > 0`. This proves every prefix before safety clamping, independent of seed, traffic, input spam, frame splits, pauses or backtracking. At 1800000 ms, n<=3267 and raw S<=48970f. capScore remains a no-op. These are safety caps, not attainment targets: Claude's binding endless-game exception removes the >=90%-of-maxScore oracle requirement.
+
+All limits below have kind points, unitLabel pts, display int, minDurationMs 3000, maxDurationMs 1800000 and base 0:
+
+| L | f | maxScore | maxPointsPerSec | Analytic raw ceiling | Per-level proof |
+|---|---:|---:|---:|---:|---|
+| 1 | 1 | 50000 | 28 | 48970 | S=300k+10r; original live proof/limits unchanged |
+| 2 | 1.5 | 75000 | 42 | 73455 | S=450k+15r; multiply L1 prefix slack by 1.5 |
+| 3 | 2 | 100000 | 56 | 97940 | S=600k+20r; multiply L1 prefix slack by 2 |
+| 4 | 2.5 | 125000 | 70 | 122425 | S=750k+25r; multiply L1 prefix slack by 2.5 |
+| 5 | 3 | 150000 | 84 | 146910 | S=900k+30r; multiply L1 prefix slack by 3 |
+
+The inherited live safety margins scale exactly: maxScore is about 2.10% above the no-traffic ceiling, and integer pps is about 2.67% above the asymptotic 300/11 rate. L5 max is exactly 3x L1. Initial row zero has no parked hazard, and no hop can begin before 3050 ms, so no legal loss precedes the 3000 ms minimum. The timer cuts off awards at 1800000 ms; result delay adds no submitted time. `rules.ts` exports all five PROPOSED_LEVEL_LIMITS and tests require equality with meta; Claude must copy them to arcade-games.json.
+
+Traffic fairness: L1-L3 retain a common [9000,12000) clear window within each road group. L4-L5 use [8000,12000) for their longer groups. Generated last-vehicle exit deadlines and headways are validated; fallback uses one deterministic car. With 350 ms reaction plus 50 ms per-hop slack, the longest L5 crossing needs 350+5*600=3350 ms <4000 ms. Centre grass remains safe despite parked vans. Fixed 40-lane/160-vehicle records and existing fitted GLBs are reused; new frame-loop code creates no arrays, objects or closures.
+
+### Bot clear rates and score potential
+
+The honest predictive bot reads the complete crossing, waits 350 ms after a fresh grass landing, queues at most one press after 350 ms in flight, and never changes hop/collision rules. Every measured frame goes through createArcadeStore, advanceRunClock and playedFrameDt. Raw score is compared with the unmodified scoring formula, both server bounds and capScore; the store's score must match.
+
+| L | Honest clears (seeds 0-199) | Latest clear at 20 Hz | 30-minute honest score (seed 7, 30 Hz) |
+|---|---|---:|---:|
+| 1 | 200/200 (100%) | 13250 ms | 31940 |
+| 2 | 200/200 (100%) | 20950 ms | 47910 |
+| 3 | 200/200 (100%) | 20750 ms | 64360 |
+| 4 | 200/200 (100%) | 35500 ms | 81100 |
+| 5 | 200/200 (100%) | 48800 ms | 101850 |
+
+For each level, honest, greedy forward, idle and random input-spam bots cover 200 seeds at 20 Hz. Seed 7 additionally covers all four bots at 30/60/144 Hz. Honest bots run until clearing (240 s guard); greedy/spam cover up to 20 s or collision; idle covers 4 s and never scores. Full-duration honest runs exercise all five caps separately. These simulations are finite coverage, supported by the all-prefix analytic proof above. The theoretical source ceiling grows with f; the demonstrated full-duration score of every higher level also exceeds L1's under the same bot/seed. Generator fairness and pool identity checks cover 200 seeds at stages 1-11 on all five levels. Existing L1 tests additionally retain their 1000-seed path/fallback checks.
+
+### Verification
+
+- `npx tsc --noEmit`: PASS, exit 0, no diagnostics (final code).
+- `npx vitest run src/arcade3d/games/pigeon-crossing`: CLI config startup fails in this sandbox: esbuild reports access denied resolving parent directories / vitest.config.mts. No claim that this CLI invocation passed.
+- Equivalent Vitest 2.1.9 in-memory config: PASS, 5 files / 53 tests, 51.45 s wall time (45.97 s tests), below 60 s. Includes all 39 unchanged existing tests and 14 new cases.
+- In-memory runner uses startVitest from vitest/node, filter `src/arcade3d/games/pigeon-crossing`, config:false, watch:false, maxWorkers/minWorkers:1, alias @ to process.cwd()+"/src", esbuild jsx automatic. It bypasses only config bundling; it runs the installed Vitest and real source/tests, not a custom assertion runner.
+- TDD: initial five-level declaration test failed before implementation (meta.levels absent), then passed.
+- Mutation probe: temporarily disabled the parked-van collision loop; the new full-footprint collision test failed (`Infinity` instead of contact at 3050). Restored in finally; the full 53-test run above passed afterward.
+- A diagnostic full-duration test initially caught floating-point store-clock drift: rules 486500 ms vs store 486499.99999989994 ms, identical scores. Harness tolerance is now 0.00001 ms, far below the submitted integer millisecond; no production timing change was made.
+- No full-project Vitest, build, server or browser playtest run. Build and desktop/phone playtests belong to Claude under the task's CLI instructions.
+
+### Open questions / Claude actions
+
+No unresolved game-design blocker. Before merge, Claude must copy the proposed five limits into the backend JSON, run the normal config/full-project checks, flagged build and headless playtest of all five levels on desktop and phone (especially parked-van readability and night lighting). Registry/backend parity is intentionally pending that Claude-owned JSON edit. Do not commit this handoff automatically; Claude reviews and commits.
