@@ -205,7 +205,14 @@
       "max_duration_ms": 182000,
       "base": 300,
       "max_pps": 75,
-      "enabled": false
+      "enabled": false,
+      "levels": [
+        { "title": "Training Rooftop", "max_score": 3600, "min_duration_ms": 20000, "max_duration_ms": 182000, "base": 300, "max_pps": 75 },
+        { "title": "Residential Blocks", "max_score": 3900, "min_duration_ms": 20000, "max_duration_ms": 202000, "base": 300, "max_pps": 75 },
+        { "title": "Downtown", "max_score": 4200, "min_duration_ms": 20000, "max_duration_ms": 222000, "base": 300, "max_pps": 75 },
+        { "title": "Windy Towers", "max_score": 4500, "min_duration_ms": 20000, "max_duration_ms": 242000, "base": 300, "max_pps": 75 },
+        { "title": "Night Delivery", "max_score": 4800, "min_duration_ms": 20000, "max_duration_ms": 272000, "base": 300, "max_pps": 75 }
+      ]
     },
     "shopping-cart": {
       "title": "Crazy Shopping Cart",
