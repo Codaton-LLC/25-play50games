@@ -20,6 +20,51 @@ Owned by Claude. Games import from here and never edit it. If a game needs somet
 - `useRunFrame(cb, { priority })` can change its place. The priority must lie in `(FRAME_PRIORITY.gameTime, 0]`, that is `(-0.75, 0]`. At -0.75 or below, the callback would read the previous frame's game time. A positive priority turns off R3F's automatic rendering. Above -0.25 it runs after the camera has moved. An out-of-range priority throws in development (`runFramePriority`).
 - Pure versions for tests: `advanceRunClock(store, delta)` + `playedFrameDt(state)` drive `createArcadeStore()` exactly like the canvas does (`robot-collector/rules.test.ts`).
 
+## Game intro (opt-in): `core/intro`
+
+Menu 2 games open on an intro before the run. Nothing here turns one on: the shell (later) or a game opts in by rendering it. It never counts toward the run clock. The run stays in `"ready"` and `elapsedMs` stays 0 until the intro is `done`; `onDone` / `ready` is when the shell calls `start()`.
+
+Phases, in order: `fly-through`, `hero-landing`, `title`, `done`. The full intro is **7 s** (`FULL_INTRO`: 4.0 s fly, 1.6 s landing, 1.4 s title), inside the 5–8 s bar. The first view of a slug and level plays in full. After it finishes (a skip counts), and whenever `prefers-reduced-motion: reduce` matches, the short intro plays (**1.5 s**, `SHORT_INTRO`): the title is up the whole time and the camera only settles onto the play camera. The landing phase is skipped and the hero timeline is already 1. Memory is `localStorage` `play50games_3d_intro:<slug>:<level>` (`"1"`). A throw from storage, or no `window`, falls back to the full intro. The hook reads that in an effect, so the first render has `session: null` and a server render matches the client. Mount it from the Play handler.
+
+Skip is the button, any key, or a tap on the intro. The listener is on `window` in the capture phase and stops the event, including the key's repeat and keyup, so it does not also jump, move or tap in the game. A ctrl/meta/alt chord, and a button outside the intro (the cookie banner), are left alone. The Skip button's own click is the button path.
+
+The fly-through is an eased Catmull-Rom through the game's keyframes and finishes on `playCamera`: at the end of the fly, and on skip, position and lookAt are that pose's own numbers. The landing phase only publishes a 0..1 timeline (`hero` ref and/or `onHero`); the game moves its own character. Read `hero.current` from a pose driver (`FRAME_PRIORITY.pose`), which runs after the intro writes it. Phone and `low` use the same phases and durations (`introDurations(variant, tier)`): no postprocessing, and the frame loop writes into vectors allocated once. A long frame is capped at 50 ms (`clampFrameDt`), same as the run clock, so a hitch cannot skip the intro. The camera is written at `FRAME_PRIORITY.camera + 0.02` (after `CameraRig`, before the shake pass) and only while the intro is still running. The frame that reaches `done` places the play camera; a skip places it in that same turn, before paint, so unmounting `<GameIntro>` when `ready` becomes true leaves the play pose in place. Later frames leave the camera to the rig. Mount a follow `CameraRig` once `intro.ready` is true.
+
+```tsx
+import { GameIntro, GameIntroOverlay, useGameIntro } from "@/arcade3d/core/intro";
+
+const intro = useGameIntro({
+   slug: meta.slug,
+   level: levelId,                 // a game without levels passes 1
+   title: meta.title,
+   levelName: "First Landing",
+   onDone: () => arcadeStore.getState().start(),
+});
+
+// in the shell frame, over the canvas (a sibling of the canvas, not inside it):
+{intro.session && !intro.ready && (
+   <GameIntroOverlay
+      title={intro.title}
+      levelName={intro.levelName}
+      showsTitle={intro.showsTitle}
+      onSkip={intro.skip}
+   />
+)}
+
+// inside Scene. Keep the keyframe array stable across renders.
+{intro.session && !intro.ready && (
+   <GameIntro
+      session={intro.session}
+      keyframes={INTRO_KEYS}       // { position: [x, y, z], lookAt: [x, y, z] }[]
+      playCamera={PLAY_CAMERA}     // the pose the play camera has on the first play frame
+      hero={heroProgress}          // MutableRefObject<number>, 0..1
+   />
+)}
+{intro.ready && <CameraRig camera={definition.camera} follow={ninjaRef} />}
+```
+
+Pure, for tests: `createIntro`, `advanceIntro`, `requestIntroSkip`, `introDurations`, `sampleIntroCamera`, `loadIntroVariant`, `stepGatedClock`, `gatedRunDt` (`introMachine.ts`, `introMachine.test.ts`). `stepGatedClock` moves the intro until `done` and only then adds to a run clock. The frame that finishes the intro is intro time.
+
 ## After the run: the result delay
 
 - When a run ends (`end("win" | "lose")` or `"timeup"`), GameShell submits the score **at once**, but the scene keeps rendering (and the HUD stays up) for `GameDefinition.resultDelayMs` before the result panel appears, so the crash or the win animation is seen. Default **800 ms** (`DEFAULT_RESULT_DELAY_MS`), `0` = the panel on the frame the run ends, at most 5000 (`RESULT_DELAY_MAX_MS`). `end("quit")` never waits.
