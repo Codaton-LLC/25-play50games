@@ -1,53 +1,69 @@
 # Arcade 3D — Levels Tracker
 
-> Generated 2026-10-25 from `origin/main` + remote branches. Docs only; no code changes.
+> Updated 2026-10-25. Docs only; no code changes.
 
 ## Summary
 
-- Levels live on origin/main (meta.ts `levels` + 5-level JSON in `arcade-games.json`): **5 games** — castle-defender, food-catcher, obstacle-race, robot-collector, tower-climb.
-- Waiting for JSON upload (levels on main, JSON missing): **0 games**.
-- Levels built on branches, awaiting merge/review: **6 games** — clean-city, knight-arena, museum-guard, office-escape, pigeon-crossing, warehouse-rush.
-- Not started: **19 games** — 17 have a ready brief (brief ready), 2 have no brief and no branch (needs builder: escape-room, penalty-hero).
+- Games with `levels.ts` on main: **14 of 30** — castle-defender, construction-worker, dino-egg-rescue, food-catcher, ghost-vacuum, monster-kitchen, obstacle-race, penguin-slide, pirate-cannons, robot-collector, robot-factory, snowball-battle, tower-climb, zoo-escape.
+- Games without levels on main: **16 of 30**.
+- Open level branches (not merged yet): **16** — see Open level branches table.
 
 ## Status table
 
-| game | live/dev | 5 levels on origin/main? | levels branch(es) + latest commit (origin) | JSON levels in arcade-games.json (origin/main)? | brief in docs/level-briefs/? | next step |
-|---|---|---|---|---|---|---|
-| alien-farm | dev | no | — | no | yes | brief ready |
-| castle-defender | live | yes | claude/levels-castle-defender (2026-10-24, merged), codex/levels-castle-defender (2026-10-24, merged) | yes (5) | no | done |
-| clean-city | live | no | codex/levels-clean-city (2026-10-24, not merged) | no | no | review |
-| construction-worker | dev | no | — | no | yes | brief ready |
-| delivery-drone | dev | no | — | no | yes | brief ready |
-| dino-egg-rescue | dev | no | — | no | yes | brief ready |
-| escape-room | live | no | — | no | no | needs builder |
-| food-catcher | live | yes | claude/levels-food-catcher (2026-10-24, merged), opencode/levels-food-catcher (2026-10-24, merged) | yes (5) | no | done |
-| ghost-vacuum | dev | no | — | no | yes | brief ready |
-| knight-arena | live | no | cursor/levels-knight-arena (2026-10-24, not merged) | no | yes | review |
-| luggage-rush | dev | no | — | no | yes | brief ready |
-| mini-golf | dev | no | — | no | yes | brief ready |
-| monster-kitchen | dev | no | — | no | yes | brief ready |
-| museum-guard | live | no | cursor/levels-museum-guard (2026-10-25, not merged) | no | yes | review |
-| obstacle-race | live | yes | claude/levels-obstacle-race (2026-10-24, merged), kimi/levels-obstacle-race (2026-10-24, merged) | yes (5) | no | done |
-| office-escape | live | no | claude/levels-office-escape (2026-10-24, not merged), codex/levels-office-escape (2026-10-24, not merged) | no | no | review |
-| penalty-hero | live | no | — | no | no | needs builder |
-| penguin-slide | dev | no | — | no | yes | brief ready |
-| pigeon-crossing | live | no | claude/levels-pigeon-crossing (2026-10-24, not merged), codex/levels-pigeon-crossing (2026-10-24, not merged) | no | no | review |
-| pirate-cannons | dev | no | — | no | yes | brief ready |
-| robot-collector | live | yes | antigravity/levels-robot-collector (2026-10-24, merged), claude/levels-robot-collector (2026-10-24, merged) | yes (5) | no | done |
-| robot-factory | dev | no | — | no | yes | brief ready |
-| rocket-landing | dev | no | — | no | yes | brief ready |
-| shopping-cart | dev | no | — | no | yes | brief ready |
-| snowball-battle | dev | no | — | no | yes | brief ready |
-| space-repair | dev | no | — | no | yes | brief ready |
-| tower-climb | live | yes | claude/levels-tower-climb (2026-10-24, merged), cursor/levels-tower-climb (2026-10-24, merged) | yes (5) | no | done |
-| treasure-island | dev | no | — | no | yes | brief ready |
-| warehouse-rush | live | no | claude/levels-warehouse-rush (2026-10-24, not merged), cursor/levels-warehouse-rush (2026-10-24, not merged) | no | no | review |
-| zoo-escape | dev | no | — | no | yes | brief ready |
+"5 levels on main" = `play50games-frontend/src/arcade3d/games/<slug>/levels.ts` exists in this checkout.
 
-## Notes
+| game | live/dev | 5 levels on main? |
+|---|---|---|
+| alien-farm | dev | no |
+| castle-defender | live | yes |
+| clean-city | live | no |
+| construction-worker | dev | yes |
+| delivery-drone | dev | no |
+| dino-egg-rescue | dev | yes |
+| escape-room | live | no |
+| food-catcher | live | yes |
+| ghost-vacuum | dev | yes |
+| knight-arena | live | no |
+| luggage-rush | dev | no |
+| mini-golf | dev | no |
+| monster-kitchen | dev | yes |
+| museum-guard | live | no |
+| obstacle-race | live | yes |
+| office-escape | live | no |
+| penalty-hero | live | no |
+| penguin-slide | dev | yes |
+| pigeon-crossing | live | no |
+| pirate-cannons | dev | yes |
+| robot-collector | live | yes |
+| robot-factory | dev | yes |
+| rocket-landing | dev | no |
+| shopping-cart | dev | no |
+| snowball-battle | dev | yes |
+| space-repair | dev | no |
+| tower-climb | live | yes |
+| treasure-island | dev | no |
+| warehouse-rush | live | no |
+| zoo-escape | dev | yes |
 
-- "merged" = branch tip is an ancestor of `origin/main`; "not merged" = levels work exists on the branch but is not on main.
-- office-escape branch levels live in `levels.ts` (5 levels keyed 1–5), not yet wired into `meta.ts` — still counted as built, pending review/merge.
-- Non-game levels branches also on origin: `claude/levels-backend`, `claude/levels-core`, `claude/levels-design`, `kimi/levels-backlog` (all 2026-10-24) — infrastructure/branches, not tied to one game.
-- Source for "5 levels on origin/main": `meta.ts` in `play50games-frontend/src/arcade3d/games/<slug>/` on `origin/main` exports `levels`.
-- Source for JSON: `play50games-backend/play50games/includes/arcade-games.json` on `origin/main` — exactly the 5 done games have a `levels` array with 5 entries.
+## Open level branches
+
+Branches with levels work that is not merged yet.
+
+| game | status | branch |
+|---|---|---|
+| escape-room | live — waiting for server JSON upload | claude/levels-escape-room-gate |
+| office-escape | live — waiting for server JSON upload | claude/levels-office-escape |
+| pigeon-crossing | live — waiting for server JSON upload | claude/levels-pigeon-crossing |
+| warehouse-rush | live — waiting for server JSON upload | claude/levels-warehouse-rush |
+| clean-city | live — waiting for server JSON upload | claude/levels-clean-city |
+| museum-guard | live — waiting for server JSON upload | claude/levels-museum-guard |
+| knight-arena | live — waiting for server JSON upload | claude/levels-knight-arena |
+| penalty-hero | live — waiting for server JSON upload | opencode/levels-penalty-hero (in progress) |
+| rocket-landing | dev — in review | antigravity/levels-rocket-landing |
+| shopping-cart | dev — in review | antigravity/levels-shopping-cart |
+| alien-farm | dev — in review | antigravity/levels-alien-farm |
+| space-repair | dev — in review | codex/levels-space-repair |
+| delivery-drone | dev — in review | cursor/levels-delivery-drone |
+| treasure-island | dev — in review | cursor/levels-treasure-island |
+| luggage-rush | dev — in review | cursor/levels-luggage-rush |
+| mini-golf | dev — in review | codex/levels-mini-golf (in progress) |
