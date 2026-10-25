@@ -30,6 +30,7 @@ import { VALLEY_BOUNDS, viewFor } from "./camera";
 import { Decor } from "./Decor";
 import { COLORS } from "./looks";
 import { DinoPrimitive, useBoulderParts } from "./Primitives";
+import { useDinoLevel } from "./useDinoLevel";
 import {
    BOULDERS,
    DINO,
@@ -66,14 +67,16 @@ export default function Scene() {
    const time = useGameTime();
    const muted = useMuted();
    const phase = useArcadeStore((s) => s.phase);
+   const { config } = useDinoLevel();
 
    const [preferences] = useState(() => ({
       coarse: typeof window !== "undefined" && window.matchMedia("(pointer: coarse)").matches,
       reduced: typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches,
    }));
 
-   // Pure deterministic run state, a fresh seed per run (the Scene remounts per run)
-   const [run] = useState<DinoRunState>(() => createDinoRun(randomSeed()));
+   // Pure deterministic run state, a fresh seed per run (the Scene remounts per runId, so the
+   // level config captured here is the one the player picked).
+   const [run] = useState<DinoRunState>(() => createDinoRun(randomSeed(), config));
 
    // Hoisted scratch state for frame inputs & spring oscillation
    const [scratch] = useState(() => ({
@@ -149,6 +152,7 @@ export default function Scene() {
    const carriedEgg1Ref = useRef<Mesh>(null);
    const carriedEgg2Ref = useRef<Mesh>(null);
    const carriedEgg3Ref = useRef<Mesh>(null);
+   const carriedEgg4Ref = useRef<Mesh>(null);
    const carriedGoldenRef = useRef<Group>(null);
 
    // Fixed pool of ground egg groups
@@ -301,6 +305,7 @@ export default function Scene() {
          if (carriedEgg1Ref.current) carriedEgg1Ref.current.visible = carriedCount >= 1;
          if (carriedEgg2Ref.current) carriedEgg2Ref.current.visible = carriedCount >= 2;
          if (carriedEgg3Ref.current) carriedEgg3Ref.current.visible = carriedCount >= 3;
+         if (carriedEgg4Ref.current) carriedEgg4Ref.current.visible = carriedCount >= 4;
       }
 
       // Carried golden egg in mouth
@@ -360,7 +365,7 @@ export default function Scene() {
       let nearestEggX = 0;
       let nearestEggZ = 0;
       let foundEgg = false;
-      if (dino.carriedEggs.length < 3) {
+      if (dino.carriedEggs.length < run.level.maxStack) {
          for (let i = 0; i < run.groundEggs.length; i++) {
             const e = run.groundEggs[i];
             if (!e.active || e.isGolden) continue;
@@ -508,6 +513,20 @@ export default function Scene() {
                   visible={false}
                >
                   <sphereGeometry args={[0.13, 14, 14]} />
+                  <meshStandardMaterial
+                     map={eggTexture}
+                     color="#ffffff"
+                     roughness={0.5}
+                  />
+               </mesh>
+               {/* Egg 4 — level 5 only; hidden while the stack is 3 or less */}
+               <mesh
+                  ref={carriedEgg4Ref}
+                  position={[0.1, 0.54, 0.02]}
+                  scale={[1, 1.33, 1]}
+                  visible={false}
+               >
+                  <sphereGeometry args={[0.12, 14, 14]} />
                   <meshStandardMaterial
                      map={eggTexture}
                      color="#ffffff"

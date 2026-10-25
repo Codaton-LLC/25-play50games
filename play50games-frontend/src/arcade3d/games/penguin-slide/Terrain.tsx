@@ -152,6 +152,9 @@ export function createTerrainSampler(run?: Run): (x: number, z: number) => numbe
    };
 }
 
+/** Height of the backing plane in the view (the penguin's track point is y 0). */
+export const BASE_PLANE_Y = -40;
+
 /** One chunk strip: fixed buffers, refilled in place only when its chunk is generated. */
 function stripGeometry(): BufferGeometry {
    const g = new BufferGeometry();
@@ -218,14 +221,15 @@ export function Terrain({ run, reduced: _reduced }: { run: Run; reduced: boolean
             ))}
          </group>
 
-         {/* Deep continuous backing ground plane ensuring no sky/void shows at any camera angle or ratio */}
-         <mesh
-            name="arctic-ground-base"
-            rotation={[-Math.PI / 2 + Math.atan(0.06), 0, 0]}
-            position={[0, -8.0, -60]}
-         >
-            <planeGeometry args={[600, 600]} />
-            <meshStandardMaterial color={COLORS.fog} roughness={1.0} />
+         {/*
+            Backing plane, a safety net only (the strips reach ±160 m, past the fog): flat and 40 m down,
+            under every strip in view, unlit in the fog colour, so it never cuts through the snow. The
+            tilted plane it replaces rose 0.06 m per metre ahead while the glacier falls, poked out of
+            the far snow and drew a grey line on the horizon.
+         */}
+         <mesh name="arctic-ground-base" rotation={[-Math.PI / 2, 0, 0]} position={[0, BASE_PLANE_Y, -60]}>
+            <planeGeometry args={[1200, 1200]} />
+            <meshBasicMaterial color={COLORS.fog} />
          </mesh>
       </group>
    );
