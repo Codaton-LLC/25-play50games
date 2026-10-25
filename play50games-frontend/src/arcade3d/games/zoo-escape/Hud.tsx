@@ -5,6 +5,7 @@
 // marked data-arcade-safe-area (the camera fit ignores them).
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { CATCH, STATS } from "./rules";
+import { useZooLevel } from "./useZooLevel";
 import styles from "./Hud.module.css";
 
 const REASONS = ["", "Spotted by a keeper!", "Caught in the searchlight!", "Found in the bush!", "Bumped into a keeper!"];
@@ -16,6 +17,7 @@ export default function Hud() {
    const level = useArcadeStore((s) => s.level);
    const phase = useArcadeStore((s) => s.phase);
    const live = phase === "playing" || phase === "paused";
+   const { config } = useZooLevel();
    return (
       <>
          {live && level >= 2 && level <= 3 && (
@@ -29,7 +31,7 @@ export default function Hud() {
                   <div className={styles.bang} aria-hidden="true">!</div>
                   <div className={styles.reason}>{REASONS[card]}</div>
                   <div className={styles.sub}>
-                     -{CATCH.penalty} s · back to the stage start · {CATCH.max - catches} {CATCH.max - catches === 1 ? "chance" : "chances"} left
+                     -{config.penalty} s · back to the stage start · {CATCH.max - catches} {CATCH.max - catches === 1 ? "chance" : "chances"} left
                   </div>
                </div>
             </div>
