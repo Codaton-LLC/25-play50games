@@ -1,0 +1,65 @@
+.card {
+   position: absolute;
+   top: 74px;
+   right: 12px;
+   display: flex;
+   flex-direction: column;
+   gap: 5px;
+   min-width: 148px;
+   padding: 8px 10px;
+   border: 1px solid rgba(212, 165, 116, 0.55);
+   border-radius: 12px;
+   background: rgba(12, 10, 9, 0.9);
+   color: #fafaf9;
+   font-size: 13px;
+   line-height: 1.2;
+   pointer-events: none;
+}
+
+.top {
+   display: flex;
+   align-items: center;
+   gap: 8px;
+}
+
+.band {
+   width: 10px;
+   height: 26px;
+   border-radius: 4px;
+}
+
+.label {
+   font-size: 11px;
+   letter-spacing: 0.06em;
+   text-transform: uppercase;
+   color: #d6d3d1;
+}
+
+.room {
+   margin-left: auto;
+   font-size: 24px;
+   font-weight: 800;
+   font-variant-numeric: tabular-nums;
+}
+
+.hint {
+   color: #e7e5e4;
+}
+
+.track {
+   height: 6px;
+   border-radius: 999px;
+   background: #292524;
+   overflow: hidden;
+}
+
+.fill,
+.fillQuick {
+   height: 100%;
+   border-radius: inherit;
+   background: #a8a29e;
+}
+
+.fillQuick {
+   background: #fbbf24;
+}
