@@ -1,0 +1,18 @@
+{
+   "slug": "firefighter-rescue",
+   "universe": "play50-toy-world-premium",
+   "notes": "GLBs are generated already (menu1-firefighter-rescue/ and the shared ready set). This file names the ids the game loads from /models/3d/firefighter-rescue/. Claude copies them and adds the manifest lines. Leave firefighter-rescue/hero.glb and exitSign.glb.",
+   "assets": [
+      { "id": "charFirefighter", "kind": "character", "file": "menu1-firefighter-rescue/charFirefighter.glb", "budget": { "tris": 20000, "bytes": 1500000 } },
+      { "id": "fireExtinguisher", "kind": "prop", "file": "menu1-firefighter-rescue/fireExtinguisher.glb", "budget": { "tris": 5000, "bytes": 300000 } },
+      { "id": "fireHydrant", "kind": "prop", "file": "menu1-firefighter-rescue/fireHydrant.glb", "budget": { "tris": 5000, "bytes": 300000 } },
+      { "id": "hoseReel", "kind": "prop", "file": "menu1-firefighter-rescue/hoseReel.glb", "budget": { "tris": 5000, "bytes": 300000 } },
+      { "id": "fireTruck", "kind": "prop", "file": "menu1-firefighter-rescue/fireTruck.glb", "budget": { "tris": 5000, "bytes": 300000 } },
+      { "id": "exitSignV2", "kind": "prop", "file": "menu1-firefighter-rescue/exitSignV2.glb", "budget": { "tris": 5000, "bytes": 300000 } },
+      { "id": "sofa", "kind": "prop", "file": "sofa.glb", "budget": { "tris": 5000, "bytes": 300000 } },
+      { "id": "bed", "kind": "prop", "file": "bed.glb", "budget": { "tris": 5000, "bytes": 300000 } },
+      { "id": "cabinet", "kind": "prop", "file": "cabinet.glb", "budget": { "tris": 5000, "bytes": 300000 } },
+      { "id": "woodenChair", "kind": "prop", "file": "woodenChair.glb", "budget": { "tris": 5000, "bytes": 300000 } },
+      { "id": "civilianNpc", "kind": "character", "file": "civilianNpc.glb", "budget": { "tris": 20000, "bytes": 1500000 } }
+   ]
+}
