@@ -4,13 +4,24 @@
 
 export const PLAY_BOUNDS = { x0: -16, x1: 16, z0: -12, z1: 12 } as const;
 
-/** Extended concourse floor size (covers full viewport at all screen sizes; no voids). */
+/** Extended concourse & parking lot floor size (covers full viewport at all screen sizes; no voids). */
 export const FLOOR = {
    storeWidth: 32,
    storeDepth: 24,
-   concourseWidth: 120,
-   concourseDepth: 120,
+   concourseWidth: 140,
+   concourseDepth: 140,
    concourseY: -0.02,
+   pavementWidth: 38,
+   pavementDepth: 30,
+   pavementY: -0.01,
+} as const;
+
+/** Exterior ground boundaries covered by the parking lot plane. */
+export const GROUND_BOUNDS = {
+   x0: -FLOOR.concourseWidth / 2,
+   x1: FLOOR.concourseWidth / 2,
+   z0: -FLOOR.concourseDepth / 2,
+   z1: FLOOR.concourseDepth / 2,
 } as const;
 
 /**
@@ -23,16 +34,32 @@ export const FOG = { near: 48, far: 96 } as const;
 /** Unified color palette for Crazy Shopping Cart. */
 export const COLORS = {
    // Environment & Atmosphere
-   bg: "#0b1220",
-   skyTop: "#0b1220",
+   bg: "#0f172a",
+   skyTop: "#0f172a",
    skyBottom: "#1e293b",
-   fog: "#0b1220",
+   fog: "#0f172a",
 
    // Floor & Ground
    floorTile: "#f8fafc",
    floorGrout: "#e2e8f0",
    floorAccent: "#f1f5f9",
-   concourseFloor: "#070b14",
+   concourseFloor: "#1c2637", // Slate asphalt tarmac (>6.4 contrast with finishGreen)
+
+   // Parking Lot & Exterior Ground
+   parkingAsphalt: "#1c2637",
+   parkingLine: "#f8fafc",
+   parkingLineYellow: "#facc15",
+   pavementConcrete: "#94a3b8",
+   kerbStone: "#475569",
+   kerbAccent: "#cbd5e1",
+   carBlue: "#2563eb",
+   carRed: "#dc2626",
+   carWhite: "#f1f5f9",
+   carSilver: "#94a3b8",
+   carBlack: "#1e293b",
+   carWindow: "#0f172a",
+   carWheel: "#0f172a",
+   lightPole: "#475569",
 
    // Walls & Supermarket Structure
    wall: "#1e293b",
@@ -137,7 +164,14 @@ export function inPlayArea(x: number, z: number, margin = 0): boolean {
 // ---------- Decor Outside Play Area ----------
 
 export interface DecorSpot {
-   kind: "wall_shelving" | "entrance_door" | "promo_sign" | "cart_corral" | "checkout_decor" | "ceiling_light";
+   kind:
+      | "wall_shelving"
+      | "entrance_door"
+      | "promo_sign"
+      | "cart_corral"
+      | "checkout_decor"
+      | "ceiling_light"
+      | "parked_car";
    tone: number;
    x: number;
    y: number;
@@ -150,7 +184,8 @@ export interface DecorSpot {
 
 /**
  * Builds the instanced decor instances surrounding the supermarket.
- * Every spot is strictly OUTSIDE PLAY_BOUNDS (tested in looks.test.ts).
+ * Every spot is strictly OUTSIDE PLAY_BOUNDS (tested in looks.test.ts),
+ * and every spot stands directly on the ground (y - sy/2 === 0).
  */
 function buildDecor(): DecorSpot[] {
    const spots: DecorSpot[] = [];
@@ -245,10 +280,12 @@ function buildDecor(): DecorSpot[] {
       { kind: "promo_sign", tone: 1, x: -19.5, y: 1.0, z: 4, rotY: Math.PI / 2, sx: 1.0, sy: 2.0, sz: 0.3 }
    );
 
-   // 4. Shopping Cart Return Corrals (outside South entrance at z = 16.5)
+   // 4. Shopping Cart Return Corrals / Trolley Bays (outside South entrance and in parking lot)
    spots.push(
       { kind: "cart_corral", tone: 0, x: -9.5, y: 0.45, z: 16.5, rotY: 0, sx: 1.6, sy: 0.9, sz: 3.0 },
-      { kind: "cart_corral", tone: 1, x: 9.5, y: 0.45, z: 16.5, rotY: 0, sx: 1.6, sy: 0.9, sz: 3.0 }
+      { kind: "cart_corral", tone: 1, x: 9.5, y: 0.45, z: 16.5, rotY: 0, sx: 1.6, sy: 0.9, sz: 3.0 },
+      { kind: "cart_corral", tone: 0, x: -15.5, y: 0.45, z: 21.0, rotY: 0, sx: 1.6, sy: 0.9, sz: 3.0 },
+      { kind: "cart_corral", tone: 1, x: 15.5, y: 0.45, z: 21.0, rotY: 0, sx: 1.6, sy: 0.9, sz: 3.0 }
    );
 
    // 5. Exterior Checkout Decor / Kiosks (South lobby at z = 17.5)
@@ -257,28 +294,47 @@ function buildDecor(): DecorSpot[] {
       { kind: "checkout_decor", tone: 1, x: 4.5, y: 0.5, z: 17.5, rotY: 0, sx: 1.8, sy: 1.0, sz: 0.8 }
    );
 
-   // 6. Warm Ceiling Light Panels (mounted high along outer perimeter at y = 4.4m)
+   // 6. Perimeter Light Poles standing on the ground (sy = 4.4, y = 2.2 -> rests on y = 0)
    // North perimeter
    for (const x of [-10, -3, 4, 11]) {
       spots.push({
          kind: "ceiling_light",
          tone: 0,
          x,
-         y: 4.4,
+         y: 2.2,
          z: -14.5,
          rotY: 0,
-         sx: 2.4,
-         sy: 0.15,
-         sz: 1.2,
+         sx: 0.8,
+         sy: 4.4,
+         sz: 0.8,
       });
    }
    // East & West perimeter
    for (const z of [-7, 0, 7]) {
       spots.push(
-         { kind: "ceiling_light", tone: 0, x: 18.5, y: 4.4, z, rotY: 0, sx: 1.2, sy: 0.15, sz: 2.4 },
-         { kind: "ceiling_light", tone: 0, x: -18.5, y: 4.4, z, rotY: 0, sx: 1.2, sy: 0.15, sz: 2.4 }
+         { kind: "ceiling_light", tone: 0, x: 18.5, y: 2.2, z, rotY: 0, sx: 0.8, sy: 4.4, sz: 0.8 },
+         { kind: "ceiling_light", tone: 0, x: -18.5, y: 2.2, z, rotY: 0, sx: 0.8, sy: 4.4, sz: 0.8 }
       );
    }
+
+   // 7. Parked Cars in Parking Lot (all rest on ground y = 0, y: 0.75, sy: 1.5)
+   // South parking lot row (z = 24.5)
+   spots.push(
+      { kind: "parked_car", tone: 0, x: -12, y: 0.75, z: 24.5, rotY: 0, sx: 2.2, sy: 1.5, sz: 4.4 },
+      { kind: "parked_car", tone: 1, x: -6, y: 0.75, z: 24.5, rotY: 0, sx: 2.2, sy: 1.5, sz: 4.4 },
+      { kind: "parked_car", tone: 2, x: 6, y: 0.75, z: 24.5, rotY: 0, sx: 2.2, sy: 1.5, sz: 4.4 },
+      { kind: "parked_car", tone: 3, x: 12, y: 0.75, z: 24.5, rotY: 0, sx: 2.2, sy: 1.5, sz: 4.4 }
+   );
+   // East customer parking row (x = 23.5)
+   spots.push(
+      { kind: "parked_car", tone: 0, x: 23.5, y: 0.75, z: -4, rotY: Math.PI / 2, sx: 2.2, sy: 1.5, sz: 4.4 },
+      { kind: "parked_car", tone: 1, x: 23.5, y: 0.75, z: 4, rotY: Math.PI / 2, sx: 2.2, sy: 1.5, sz: 4.4 }
+   );
+   // West customer parking row (x = -23.5)
+   spots.push(
+      { kind: "parked_car", tone: 2, x: -23.5, y: 0.75, z: -4, rotY: -Math.PI / 2, sx: 2.2, sy: 1.5, sz: 4.4 },
+      { kind: "parked_car", tone: 3, x: -23.5, y: 0.75, z: 4, rotY: -Math.PI / 2, sx: 2.2, sy: 1.5, sz: 4.4 }
+   );
 
    return spots;
 }

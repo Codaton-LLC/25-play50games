@@ -22,7 +22,8 @@ function asSpots(list: readonly DecorSpot[]): InstanceSpot[] {
 /**
  * Instanced surroundings strictly OUTSIDE the play area:
  * wall shelving, sliding entrance doors, promo sign boards, shopping cart return corrals,
- * and high warm ceiling light panels.
+ * exterior checkout kiosks, perimeter light poles, and parked cars in the parking lot.
+ * All decor stands firmly on the ground.
  */
 export function Decor() {
    const quality = useQuality();
@@ -76,7 +77,7 @@ export function Decor() {
       signHeader.dispose();
       if (!sign) throw new Error("shopping look: sign geometry merge failed");
 
-      // 4. Cart Corral: tubular guide rails + standby cart silhouettes
+      // 4. Cart Corral / Trolley Bay: tubular guide rails + standby cart silhouettes
       const railL = new BoxGeometry(0.06, 0.8, 1.0).translate(-0.45, 0, 0);
       const railR = new BoxGeometry(0.06, 0.8, 1.0).translate(0.45, 0, 0);
       const railEnd = new BoxGeometry(0.96, 0.8, 0.06).translate(0, 0, -0.45);
@@ -96,13 +97,34 @@ export function Decor() {
       counterTop.dispose();
       if (!kiosk) throw new Error("shopping look: kiosk geometry merge failed");
 
-      // 6. Ceiling Light Panel: frame + glowing diffuser face
-      const lightFrame = new BoxGeometry(1.0, 0.1, 1.0);
-      const lightDiffuser = new BoxGeometry(0.9, 0.06, 0.9).translate(0, -0.03, 0);
-      const ceilingLight = mergeGeometries([lightFrame, lightDiffuser]);
-      lightFrame.dispose();
-      lightDiffuser.dispose();
-      if (!ceilingLight) throw new Error("shopping look: ceiling light geometry merge failed");
+      // 6. Perimeter Light Pole: base plate + vertical pole + cantilever lamp arm + luminaire head
+      // Grounded at y = 0 with spot.y = 2.2, spot.sy = 4.4
+      const poleBase = new BoxGeometry(0.5, 0.06, 0.5).translate(0, -0.47, 0);
+      const pole = new CylinderGeometry(0.04, 0.05, 0.94, 8).translate(0, 0, 0);
+      const arm = new BoxGeometry(0.05, 0.04, 0.4).translate(0, 0.46, 0.18);
+      const lampHead = new BoxGeometry(0.24, 0.06, 0.35).translate(0, 0.48, 0.36);
+      const ceilingLight = mergeGeometries([poleBase, pole, arm, lampHead]);
+      poleBase.dispose();
+      pole.dispose();
+      arm.dispose();
+      lampHead.dispose();
+      if (!ceilingLight) throw new Error("shopping look: light pole geometry merge failed");
+
+      // 7. Parked Car: body chassis + cabin roof + 4 wheels (grounded at y = 0 with spot.y = 0.75, spot.sy = 1.5)
+      const chassis = new BoxGeometry(0.96, 0.45, 0.96).translate(0, -0.15, 0);
+      const cabin = new BoxGeometry(0.82, 0.4, 0.55).translate(0, 0.22, -0.05);
+      const wFL = new CylinderGeometry(0.18, 0.18, 0.08, 8).rotateZ(Math.PI / 2).translate(-0.48, -0.22, 0.3);
+      const wFR = new CylinderGeometry(0.18, 0.18, 0.08, 8).rotateZ(Math.PI / 2).translate(0.48, -0.22, 0.3);
+      const wRL = new CylinderGeometry(0.18, 0.18, 0.08, 8).rotateZ(Math.PI / 2).translate(-0.48, -0.22, -0.3);
+      const wRR = new CylinderGeometry(0.18, 0.18, 0.08, 8).rotateZ(Math.PI / 2).translate(0.48, -0.22, -0.3);
+      const car = mergeGeometries([chassis, cabin, wFL, wFR, wRL, wRR]);
+      chassis.dispose();
+      cabin.dispose();
+      wFL.dispose();
+      wFR.dispose();
+      wRL.dispose();
+      wRR.dispose();
+      if (!car) throw new Error("shopping look: car geometry merge failed");
 
       return {
          rack,
@@ -111,6 +133,7 @@ export function Decor() {
          corral,
          kiosk,
          ceilingLight,
+         car,
       };
    }, []);
 
@@ -153,6 +176,12 @@ export function Decor() {
       [quality.decor]
    );
 
+   // Parked Cars (tone 0: red, tone 1: blue, tone 2: white, tone 3: silver)
+   const carSpots0 = useMemo(() => asSpots(decorOf("parked_car", 0)), []);
+   const carSpots1 = useMemo(() => asSpots(decorOf("parked_car", 1)), []);
+   const carSpots2 = useMemo(() => asSpots(decorOf("parked_car", 2)), []);
+   const carSpots3 = useMemo(() => asSpots(decorOf("parked_car", 3)), []);
+
    return (
       <group name="supermarket-exterior-decor">
          {/* Wall Shelving / Pallet Racks (Tone 0: warm boxes; Tone 1: cool boxes) */}
@@ -191,7 +220,7 @@ export function Decor() {
             </Instanced>
          )}
 
-         {/* Cart Corrals */}
+         {/* Cart Corrals / Trolley Bays */}
          {corralSpots.length > 0 && (
             <Instanced spots={corralSpots} name="decor-corrals">
                <primitive object={geo.corral} attach="geometry" />
@@ -207,16 +236,42 @@ export function Decor() {
             </Instanced>
          )}
 
-         {/* High Warm Ceiling Light Panels */}
+         {/* Perimeter Light Poles with Luminaire Diffuser Glow */}
          {lightSpots.length > 0 && (
             <Instanced spots={lightSpots} name="decor-ceiling-lights">
                <primitive object={geo.ceilingLight} attach="geometry" />
                <meshStandardMaterial
                   color={COLORS.ceilingPanel}
                   emissive={COLORS.ceilingPanelGlow}
-                  emissiveIntensity={0.8}
-                  roughness={0.3}
+                  emissiveIntensity={0.6}
+                  roughness={0.4}
                />
+            </Instanced>
+         )}
+
+         {/* Parked Cars in Parking Lot Stalls */}
+         {carSpots0.length > 0 && (
+            <Instanced spots={carSpots0} name="decor-cars-red">
+               <primitive object={geo.car} attach="geometry" />
+               <meshStandardMaterial color={COLORS.carRed} roughness={0.3} metalness={0.25} />
+            </Instanced>
+         )}
+         {carSpots1.length > 0 && (
+            <Instanced spots={carSpots1} name="decor-cars-blue">
+               <primitive object={geo.car} attach="geometry" />
+               <meshStandardMaterial color={COLORS.carBlue} roughness={0.3} metalness={0.25} />
+            </Instanced>
+         )}
+         {carSpots2.length > 0 && (
+            <Instanced spots={carSpots2} name="decor-cars-white">
+               <primitive object={geo.car} attach="geometry" />
+               <meshStandardMaterial color={COLORS.carWhite} roughness={0.35} metalness={0.1} />
+            </Instanced>
+         )}
+         {carSpots3.length > 0 && (
+            <Instanced spots={carSpots3} name="decor-cars-silver">
+               <primitive object={geo.car} attach="geometry" />
+               <meshStandardMaterial color={COLORS.carSilver} roughness={0.25} metalness={0.6} />
             </Instanced>
          )}
       </group>

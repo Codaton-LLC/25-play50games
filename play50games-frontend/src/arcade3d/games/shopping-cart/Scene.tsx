@@ -191,10 +191,10 @@ export default function Scene() {
          {/* Sky Dome from core env */}
          <SkyDome top={COLORS.skyTop} bottom={COLORS.skyBottom} />
 
-         {/* Instanced Decor strictly outside play area */}
+         {/* Instanced Decor strictly outside play area standing on the ground */}
          <Decor />
 
-         {/* Supermarket Interior Environment (floor, walls, shelves, fixtures) */}
+         {/* Supermarket Interior & Parking Lot Exterior Environment */}
          <StoreEnvironment run={run} />
 
          {/* Cart + Pusher Runner Coupled Group */}
@@ -216,6 +216,8 @@ export default function Scene() {
       </group>
    );
 }
+
+
 
 // ---------- Cart & Runner Coupled Component ----------
 
@@ -533,6 +535,61 @@ const drawSupermarketFloor: CanvasDraw = (ctx, width, height) => {
    }
 };
 
+const drawParkingLot: CanvasDraw = (ctx, width, height) => {
+   // Asphalt base
+   ctx.fillStyle = COLORS.parkingAsphalt;
+   ctx.fillRect(0, 0, width, height);
+
+   // Tarmac grain texture
+   ctx.fillStyle = "rgba(255, 255, 255, 0.05)";
+   for (let i = 0; i < 400; i++) {
+      const rx = (i * 97) % width;
+      const ry = (i * 131) % height;
+      ctx.fillRect(rx, ry, 2, 2);
+   }
+
+   // Painted white parking stall lines
+   ctx.strokeStyle = COLORS.parkingLine;
+   ctx.lineWidth = 4;
+
+   const row1Y = height * 0.25;
+   const row2Y = height * 0.75;
+   const stallWidth = width / 4;
+
+   for (let i = 0; i <= 4; i++) {
+      const x = i * stallWidth;
+      // Stall dividers
+      ctx.beginPath();
+      ctx.moveTo(x, row1Y - 45);
+      ctx.lineTo(x, row1Y + 45);
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.moveTo(x, row2Y - 45);
+      ctx.lineTo(x, row2Y + 45);
+      ctx.stroke();
+   }
+
+   // Stall back lines
+   ctx.beginPath();
+   ctx.moveTo(0, row1Y + 45);
+   ctx.lineTo(width, row1Y + 45);
+   ctx.stroke();
+
+   ctx.beginPath();
+   ctx.moveTo(0, row2Y - 45);
+   ctx.lineTo(width, row2Y - 45);
+   ctx.stroke();
+
+   // Accent yellow stall marking
+   ctx.strokeStyle = COLORS.parkingLineYellow;
+   ctx.lineWidth = 3;
+   ctx.beginPath();
+   ctx.moveTo(stallWidth, row1Y - 40);
+   ctx.lineTo(stallWidth * 2, row1Y - 40);
+   ctx.stroke();
+};
+
 const SHELF_SPOTS = SHELVES.map((s) => ({
    x: (s.min.x + s.max.x) / 2,
    y: 1.0,
@@ -611,6 +668,7 @@ function FinishMat({ run }: { run: RunState }) {
 
 function StoreEnvironment({ run }: { run: RunState }) {
    const floorTexture = useCanvasTexture(512, 512, drawSupermarketFloor);
+   const parkingTexture = useCanvasTexture(512, 512, drawParkingLot);
 
    useEffect(() => {
       floorTexture.wrapS = floorTexture.wrapT = RepeatWrapping;
@@ -618,13 +676,78 @@ function StoreEnvironment({ run }: { run: RunState }) {
       floorTexture.needsUpdate = true;
    }, [floorTexture]);
 
+   useEffect(() => {
+      parkingTexture.wrapS = parkingTexture.wrapT = RepeatWrapping;
+      parkingTexture.repeat.set(14, 14);
+      parkingTexture.needsUpdate = true;
+   }, [parkingTexture]);
+
    return (
       <group name="supermarket-environment">
-         {/* Extended dark concourse floor to prevent any void/sky at edge of view */}
+         {/* Extended asphalt parking lot plane covering full viewport at all screen sizes */}
          <mesh position={[0, FLOOR.concourseY, 0]} rotation={[-Math.PI / 2, 0, 0]}>
             <planeGeometry args={[FLOOR.concourseWidth, FLOOR.concourseDepth]} />
-            <meshStandardMaterial color={COLORS.concourseFloor} roughness={0.9} />
+            <meshStandardMaterial
+               map={parkingTexture}
+               roughness={0.88}
+               metalness={0.08}
+            />
          </mesh>
+
+         {/* Exterior concrete sidewalk / pavement apron surrounding the store building */}
+         <mesh position={[0, FLOOR.pavementY, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+            <planeGeometry args={[FLOOR.pavementWidth, FLOOR.pavementDepth]} />
+            <meshStandardMaterial color={COLORS.pavementConcrete} roughness={0.7} />
+         </mesh>
+
+         {/* Raised kerbs around the perimeter of the sidewalk apron */}
+         <mesh position={[0, 0.04, -FLOOR.pavementDepth / 2]}>
+            <boxGeometry args={[FLOOR.pavementWidth + 0.3, 0.1, 0.3]} />
+            <meshStandardMaterial color={COLORS.kerbStone} roughness={0.8} />
+         </mesh>
+         <mesh position={[0, 0.04, FLOOR.pavementDepth / 2]}>
+            <boxGeometry args={[FLOOR.pavementWidth + 0.3, 0.1, 0.3]} />
+            <meshStandardMaterial color={COLORS.kerbStone} roughness={0.8} />
+         </mesh>
+         <mesh position={[-FLOOR.pavementWidth / 2, 0.04, 0]}>
+            <boxGeometry args={[0.3, 0.1, FLOOR.pavementDepth]} />
+            <meshStandardMaterial color={COLORS.kerbStone} roughness={0.8} />
+         </mesh>
+         <mesh position={[FLOOR.pavementWidth / 2, 0.04, 0]}>
+            <boxGeometry args={[0.3, 0.1, FLOOR.pavementDepth]} />
+            <meshStandardMaterial color={COLORS.kerbStone} roughness={0.8} />
+         </mesh>
+
+         {/* Pedestrian Zebra Crossing in front of South Entrance */}
+         <group position={[0, 0.005, 17.5]} rotation={[-Math.PI / 2, 0, 0]}>
+            {[-3.0, -1.5, 0, 1.5, 3.0].map((zx, idx) => (
+               <mesh key={idx} position={[zx, 0, 0]}>
+                  <planeGeometry args={[0.8, 3.6]} />
+                  <meshStandardMaterial color={COLORS.parkingLine} roughness={0.4} />
+               </mesh>
+            ))}
+         </group>
+
+         {/* Exterior Store Entrance Canopy Overhang */}
+         <group position={[0, 3.85, 13.0]}>
+            <mesh>
+               <boxGeometry args={[18.0, 0.25, 2.4]} />
+               <meshStandardMaterial color={COLORS.wall} roughness={0.5} />
+            </mesh>
+            <mesh position={[0, 0, 1.22]}>
+               <boxGeometry args={[18.05, 0.3, 0.06]} />
+               <meshStandardMaterial color={COLORS.wallBanner} roughness={0.4} />
+            </mesh>
+            {/* Canopy support pillars */}
+            <mesh position={[-8.5, -1.9, 0.9]}>
+               <cylinderGeometry args={[0.12, 0.12, 3.8, 8]} />
+               <meshStandardMaterial color={COLORS.wallTrim} roughness={0.5} metalness={0.4} />
+            </mesh>
+            <mesh position={[8.5, -1.9, 0.9]}>
+               <cylinderGeometry args={[0.12, 0.12, 3.8, 8]} />
+               <meshStandardMaterial color={COLORS.wallTrim} roughness={0.5} metalness={0.4} />
+            </mesh>
+         </group>
 
          {/* Supermarket glossy tiled floor plane */}
          <mesh position={[0, 0, 0]} rotation={[-Math.PI / 2, 0, 0]}>
