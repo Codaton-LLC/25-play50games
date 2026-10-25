@@ -306,7 +306,14 @@
       "max_duration_ms": 92000,
       "base": 1500,
       "max_pps": 110,
-      "enabled": false
+      "enabled": false,
+      "levels": [
+        { "title": "Training Deck", "max_score": 10500, "min_duration_ms": 19000, "max_duration_ms": 92000, "base": 1500, "max_pps": 110 },
+        { "title": "Harbor Targets", "max_score": 13125, "min_duration_ms": 16500, "max_duration_ms": 92000, "base": 1900, "max_pps": 140 },
+        { "title": "Moving Boats", "max_score": 13125, "min_duration_ms": 15500, "max_duration_ms": 92000, "base": 1900, "max_pps": 140 },
+        { "title": "Storm Battle", "max_score": 14250, "min_duration_ms": 13500, "max_duration_ms": 92000, "base": 2000, "max_pps": 150 },
+        { "title": "Captain Challenge", "max_score": 15000, "min_duration_ms": 13500, "max_duration_ms": 92000, "base": 2100, "max_pps": 155 }
+      ]
     },
     "castle-defender": {
       "title": "Castle Defender",
