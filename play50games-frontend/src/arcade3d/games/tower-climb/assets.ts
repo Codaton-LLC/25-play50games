@@ -43,7 +43,9 @@ export const LEDGE_Y_OFFSET = -0.16;
  * stays under the 0.29 m clearance to the next slab. Feet at y = 0 keep it planted while it squishes.
  */
 export const SPRING_GLB = { width: 1.8904, height: 0.77344, depth: 1.90084 } as const;
-export const SPRING_DRAWN = { diameter: 0.51, height: 0.24 } as const;
+// Review: the pad is drawn 0.12 tall (not 0.24) so the stand-in's double up-chevron, kept on its own
+// pool over the GLB (Scene.tsx SpringPads), still reads "up" above it; both stay under the 0.29 m clearance.
+export const SPRING_DRAWN = { diameter: 0.51, height: 0.12 } as const;
 export const SPRING_SCALE = SPRING_DRAWN.height / SPRING_GLB.height;
 export const SPRING_STRETCH = [
    SPRING_DRAWN.diameter / (SPRING_GLB.width * SPRING_SCALE), 1,
@@ -74,6 +76,9 @@ export const ASSETS: Record<string, ModelAsset> = {
    ledge: {
       id: "ledge", url: "/models/3d/tower-climb/towerLedge.glb",
       scale: LEDGE_SCALE, stretch: LEDGE_STRETCH, yOffset: LEDGE_Y_OFFSET,
+      // Review: the mossy stone texture stretched 12x along the ledge read as dark debris at night
+      // (L4/L5); the tower's checkpoint teal with a faint glow keeps "safe ledge" readable.
+      material: { color: "#3fbfbc", roughness: 0.85, emissive: "#0c3534" },
       fallback: "box", fallbackColor: "#32aeac", budget: PROP_BUDGET,
    },
    spur: primitive("spur", "#ffa862"),

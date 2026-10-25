@@ -5,6 +5,7 @@ import { useFrame, useThree } from "@react-three/fiber";
 import { PerspectiveCamera, Vector3, type Group, type Matrix4, type Mesh } from "three";
 import CameraRig from "@/arcade3d/core/CameraRig";
 import { DynamicInstancedModel } from "@/arcade3d/core/assets";
+import { hasModel } from "@/arcade3d/core/modelManifest";
 import { playSfx } from "@/arcade3d/core/audio";
 import { FRAME_PRIORITY } from "@/arcade3d/core/frameLoop";
 import { useFx } from "@/arcade3d/core/fx/FxLayer";
@@ -132,7 +133,15 @@ const SpringPads = memo(function SpringPads({ run, parts }: { run: TowerRun; par
       const age = run.springPad === parent && run.springMs >= 0 ? run.timeMs - run.springMs : -1;
       writeSpring(matrix, run.tower.xs[parent] / 1000, y, age);
    }, [run]);
-   return <DynamicInstancedModel asset={ASSETS.spring} count={SPRING_CAP} update={update} fallbackParts={parts.spring} name="spring-pads" />;
+   // The GLB pad has no "up" sign: the stand-in's double chevron (parts.spring[2], the readable-boost
+   // request) keeps its own pool over it. Without the GLB the fallback parts already include it.
+   const arrows = useMemo(() => [parts.spring[2]], [parts]);
+   return (
+      <>
+         <DynamicInstancedModel asset={ASSETS.spring} count={SPRING_CAP} update={update} fallbackParts={parts.spring} name="spring-pads" />
+         {hasModel(ASSETS.spring.url) && <DynamicInstanced count={SPRING_CAP} update={update} parts={arrows} name="spring-arrows" />}
+      </>
+   );
 });
 
 const Rockets = memo(function Rockets({ run, parts }: { run: TowerRun; parts: TowerParts }) {
