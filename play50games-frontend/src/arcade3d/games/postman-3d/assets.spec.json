@@ -1,0 +1,143 @@
+{
+   "slug": "postman-3d",
+   "universe": "play50-toy-world-premium",
+   "seed": 5050,
+   "notes": "Ready models only; no generation. Claude copies these into /models/3d/postman-3d/ and measures scale/rotation at the gate. holidayTree is ready. Leave postman-3d/hero.glb untouched. door, bench and car reuse core assets. Character fallback is 1.78 m; set charPostman scale from measured mesh height and landmarks at import.",
+   "assets": [
+      {
+         "id": "charPostman",
+         "kind": "character",
+         "file": "menu1-postman-3d/charPostman.glb",
+         "budget": {
+            "tris": 20000,
+            "bytes": 1500000
+         }
+      },
+      {
+         "id": "letter",
+         "kind": "prop",
+         "file": "menu1-postman-3d/letter.glb",
+         "budget": {
+            "tris": 5000,
+            "bytes": 300000
+         }
+      },
+      {
+         "id": "mailbag",
+         "kind": "prop",
+         "file": "menu1-postman-3d/mailbag.glb",
+         "budget": {
+            "tris": 5000,
+            "bytes": 300000
+         }
+      },
+      {
+         "id": "mailbox",
+         "kind": "prop",
+         "file": "menu1-postman-3d/mailbox.glb",
+         "budget": {
+            "tris": 5000,
+            "bytes": 300000
+         }
+      },
+      {
+         "id": "houseA",
+         "kind": "prop",
+         "file": "menu1-postman-3d/houseA.glb",
+         "budget": {
+            "tris": 5000,
+            "bytes": 300000
+         }
+      },
+      {
+         "id": "houseB",
+         "kind": "prop",
+         "file": "menu1-postman-3d/houseB.glb",
+         "budget": {
+            "tris": 5000,
+            "bytes": 300000
+         }
+      },
+      {
+         "id": "houseC",
+         "kind": "prop",
+         "file": "menu1-postman-3d/houseC.glb",
+         "budget": {
+            "tris": 5000,
+            "bytes": 300000
+         }
+      },
+      {
+         "id": "postOffice",
+         "kind": "prop",
+         "file": "menu1-postman-3d/postOffice.glb",
+         "budget": {
+            "tris": 5000,
+            "bytes": 300000
+         }
+      },
+      {
+         "id": "postVan",
+         "kind": "prop",
+         "file": "menu1-postman-3d/postVan.glb",
+         "budget": {
+            "tris": 5000,
+            "bytes": 300000
+         }
+      },
+      {
+         "id": "streetLampVictorian",
+         "kind": "prop",
+         "file": "menu1-postman-3d/streetLampVictorian.glb",
+         "budget": {
+            "tris": 5000,
+            "bytes": 300000
+         }
+      },
+      {
+         "id": "bicycle",
+         "kind": "prop",
+         "file": "menu1-postman-3d/bicycle.glb",
+         "budget": {
+            "tris": 5000,
+            "bytes": 300000
+         }
+      },
+      {
+         "id": "holidayTree",
+         "kind": "prop",
+         "file": "menu1-postman-3d/holidayTree.glb",
+         "budget": {
+            "tris": 5000,
+            "bytes": 300000
+         }
+      },
+      {
+         "id": "dog",
+         "kind": "character",
+         "file": "menu1-dog-park-fetch/dog.glb",
+         "budget": {
+            "tris": 20000,
+            "bytes": 1500000
+         }
+      },
+      {
+         "id": "picketFence",
+         "kind": "prop",
+         "file": "picketFence.glb",
+         "budget": {
+            "tris": 5000,
+            "bytes": 300000
+         }
+      },
+      {
+         "id": "trafficLight",
+         "kind": "prop",
+         "file": "trafficLight.glb",
+         "budget": {
+            "tris": 5000,
+            "bytes": 300000
+         }
+      }
+   ]
+}
