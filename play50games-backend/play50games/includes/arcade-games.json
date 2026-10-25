@@ -273,7 +273,14 @@
       "max_duration_ms": 242000,
       "base": 0,
       "max_pps": 150,
-      "enabled": false
+      "enabled": false,
+      "levels": [
+        { "title": "Garden Shed", "max_score": 6100, "min_duration_ms": 9000, "max_duration_ms": 242000, "base": 0, "max_pps": 150 },
+        { "title": "Tiny House", "max_score": 6100, "min_duration_ms": 9000, "max_duration_ms": 242000, "base": 0, "max_pps": 150 },
+        { "title": "Garage", "max_score": 6100, "min_duration_ms": 9000, "max_duration_ms": 242000, "base": 0, "max_pps": 150 },
+        { "title": "Shop Front", "max_score": 6100, "min_duration_ms": 9000, "max_duration_ms": 242000, "base": 0, "max_pps": 150 },
+        { "title": "Mini Tower", "max_score": 6100, "min_duration_ms": 9000, "max_duration_ms": 242000, "base": 0, "max_pps": 150 }
+      ]
     },
     "alien-farm": {
       "title": "Alien Farm",
@@ -320,7 +327,14 @@
       "max_duration_ms": 92000,
       "base": 1500,
       "max_pps": 110,
-      "enabled": false
+      "enabled": false,
+      "levels": [
+        { "title": "Training Deck", "max_score": 10500, "min_duration_ms": 19000, "max_duration_ms": 92000, "base": 1500, "max_pps": 110 },
+        { "title": "Harbor Targets", "max_score": 13125, "min_duration_ms": 16500, "max_duration_ms": 92000, "base": 1900, "max_pps": 140 },
+        { "title": "Moving Boats", "max_score": 13125, "min_duration_ms": 15500, "max_duration_ms": 92000, "base": 1900, "max_pps": 140 },
+        { "title": "Storm Battle", "max_score": 14250, "min_duration_ms": 13500, "max_duration_ms": 92000, "base": 2000, "max_pps": 150 },
+        { "title": "Captain Challenge", "max_score": 15000, "min_duration_ms": 13500, "max_duration_ms": 92000, "base": 2100, "max_pps": 155 }
+      ]
     },
     "castle-defender": {
       "title": "Castle Defender",
@@ -401,7 +415,14 @@
       "max_duration_ms": 200000,
       "base": 4500,
       "max_pps": 4500,
-      "enabled": false
+      "enabled": false,
+      "levels": [
+        { "title": "Small Enclosure", "max_score": 4500, "min_duration_ms": 20000, "max_duration_ms": 200000, "base": 4500, "max_pps": 4500 },
+        { "title": "Safari Zone", "max_score": 4500, "min_duration_ms": 20000, "max_duration_ms": 200000, "base": 4500, "max_pps": 4500 },
+        { "title": "Bird Garden", "max_score": 4500, "min_duration_ms": 20000, "max_duration_ms": 200000, "base": 4500, "max_pps": 4500 },
+        { "title": "Central Zoo", "max_score": 4500, "min_duration_ms": 20000, "max_duration_ms": 200000, "base": 4500, "max_pps": 4500 },
+        { "title": "Night Escape", "max_score": 4500, "min_duration_ms": 20000, "max_duration_ms": 200000, "base": 4500, "max_pps": 4500 }
+      ]
     },
     "rocket-landing": {
       "title": "Rocket Landing Challenge",
