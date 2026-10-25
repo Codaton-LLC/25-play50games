@@ -140,6 +140,19 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/treasure-island/beachRocks.glb",
    "/models/3d/penguin-slide/iceArch.glb",
    "/models/3d/mini-golf/golfCastle.glb",
+   // hotel-bellboy-rush (2026-10-25): the Hyper3D ready set (menu1-hotel-bellboy-rush/, ledger OK or
+   // adopted as the spec says), optimized GLBs copied in, not re-optimized; the bellboy is a static
+   // T-pose for the core auto-rig. sofa and travellerNpc are the shared ready set (also for 31 / 44).
+   "/models/3d/hotel-bellboy-rush/charBellboy.glb",
+   "/models/3d/hotel-bellboy-rush/bellboyTrolley.glb",
+   "/models/3d/hotel-bellboy-rush/elevatorDoorV2.glb",
+   "/models/3d/hotel-bellboy-rush/hotelRoomDoor.glb",
+   "/models/3d/hotel-bellboy-rush/keyCard.glb",
+   "/models/3d/hotel-bellboy-rush/receptionDesk.glb",
+   "/models/3d/hotel-bellboy-rush/serviceBellV2.glb",
+   "/models/3d/hotel-bellboy-rush/lobbyPlanterR.glb",
+   "/models/3d/shared/sofa.glb",
+   "/models/3d/shared/travellerNpc.glb",
 ];
 
 const LISTED: ReadonlySet<string> = new Set(MODEL_MANIFEST);
