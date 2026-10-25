@@ -3,7 +3,7 @@
 // One useRunFrame steps rules.ts (frame); visuals read the run. The static kitchen renders once per
 // run; only <Live> (the pizzas, the oven glow, the station ring) re-renders, at 12 Hz.
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useFrame } from "@react-three/fiber";
+import { useFrame, useThree } from "@react-three/fiber";
 import { RepeatWrapping, type Group } from "three";
 import { InstancedModel, Model } from "@/arcade3d/core/assets";
 import CameraRig from "@/arcade3d/core/CameraRig";
@@ -20,16 +20,18 @@ import { HumanoidModel, carryPose, cheerPose, idlePose, reachPose, useHumanoidPo
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { useFittedView } from "@/arcade3d/core/useFittedView";
 import { useRunFrame } from "@/arcade3d/core/useRunFrame";
-import { ASSETS, FIT } from "./assets";
+import { ASSETS, FIT, GLB_SIZE } from "./assets";
+import { SHARED_GLB_SIZE } from "@/arcade3d/core/sharedAssets";
 import { useKitchenHud } from "./hudStore";
 import { LEVELS, type PizzaLevel } from "./levels";
-import { COLORS, FOV, viewFor } from "./looks";
+import { AIM_Z, COLORS, FOV, panHalf, viewFor } from "./looks";
 import { TUNING, createRun, frame, kitchenHalf, nearestStation, type Pizza as PizzaState, type Run } from "./rules";
 
 const COUNTER_Z = -2.05;
 const TOP = FIT.counterTop;
 const AT = { x: 0, y: 0, z: 0 };
 const CHEF_SCALE = ASSETS.chef.scale;
+const BOX_H = GLB_SIZE.pizzaBoxClosed.height * (ASSETS.box.scale ?? 1);
 
 function drawTiles(ctx: CanvasRenderingContext2D, w: number, h: number) {
    ctx.fillStyle = COLORS.grout;
@@ -180,12 +182,18 @@ function Live({ run }: { run: Run }) {
 function LevelScene() {
    const { id, config } = useLevel<PizzaLevel>();
    const level = config ?? LEVELS[1];
-   const view = useFittedView(viewFor(id));
+   const portrait = useThree((s) => s.size.width < s.size.height);
+   const view = useFittedView(viewFor(id, portrait));
+   const pan = panHalf(level, portrait);
+   const aimBounds = useMemo(() => ({ min: { x: -pan, y: 0, z: AIM_Z }, max: { x: pan, y: 0, z: AIM_Z } }), [pan]);
    const input = useInput();
    const fx = useFx();
    const [run] = useState<Run>(() => createRun(randomSeed(), level));
    const dir = useRef({ x: 0, z: 0 }).current;
+   // the camera pans along the row with the cook (L3-L5 on narrow screens), never past its ends
+   const aim = useRef({ x: Math.max(-pan, Math.min(pan, run.player.x)), y: 0, z: AIM_Z }).current;
    const half = kitchenHalf(level);
+   const crateTop = SHARED_GLB_SIZE.crate.height * (ASSETS.crate.scale ?? 1);
 
    const counters = useMemo(() => run.stations.filter((s) => !s.id.startsWith("oven")).map((s): InstanceSpot => ({ x: s.x, y: 0, z: COUNTER_Z })), [run]);
    const ovens = useMemo(() => run.stations.filter((s) => s.id.startsWith("oven")).map((s): InstanceSpot => ({ x: s.x, y: 0, z: COUNTER_Z - 0.05 })), [run]);
@@ -211,6 +219,7 @@ function LevelScene() {
       const { moveX, moveY, actionPressed } = input.current;
       inputToWorld(moveX, moveY, view.yaw, dir);
       frame(run, dt, dir.x, dir.z, actionPressed, useArcadeStore);
+      aim.x = Math.max(-pan, Math.min(pan, run.player.x));
       for (const ev of run.events) {
          AT.x = run.player.x;
          AT.y = 1.4;
@@ -236,7 +245,7 @@ function LevelScene() {
 
    return (
       <>
-         <CameraRig camera={{ position: view.offset, fov: FOV, lookAt: [0, 0, 0.5] }} offset={view.offset} shift={view.shift} />
+         <CameraRig camera={{ position: view.offset, fov: FOV, lookAt: [aim.x, 0, AIM_Z] }} follow={aim} bounds={aimBounds} offset={view.offset} shift={view.shift} damping={5} />
          {/* tiled floor and a long back wall reach past the view on every screen */}
          <mesh rotation-x={-Math.PI / 2} position={[0, 0, 6]}>
             <planeGeometry args={[60, 40]} />
@@ -298,7 +307,7 @@ function LevelScene() {
                return (
                   <group key={s.id} position={at}>
                      {[0, 1, 2].map((k) => (
-                        <Model key={k} asset={ASSETS.box} position={[0, k * 0.18, 0]} rotation-y={k * 0.2} fallback={<Disc radius={0.3} color={COLORS.tile} height={0.16} />} />
+                        <Model key={k} asset={ASSETS.box} position={[0, k * BOX_H, 0]} rotation-y={k * 0.2} fallback={<Disc radius={0.3} color={COLORS.tile} height={0.16} />} />
                      ))}
                   </group>
                );
@@ -311,8 +320,14 @@ function LevelScene() {
                );
             return null;
          })}
-         <Model asset={ASSETS.bin} position={[-half + 0.5, 0, 3]} fallback={<Disc radius={0.3} color={COLORS.steelDark} y={0.4} height={0.8} />} />
-         <Model asset={ASSETS.crate} position={[half - 0.6, 0, 3]} fallback={<Disc radius={0.3} color={COLORS.wood} y={0.3} height={0.6} />} />
+         {/* the row's two ends: the spoil bin left of the dough, a flour crate with spare boxes right of the hatch */}
+         <Model asset={ASSETS.bin} position={[-half + 0.02, 0, COUNTER_Z + 0.15]} fallback={<Disc radius={0.2} color={COLORS.steelDark} y={0.4} height={0.8} />} />
+         <group position={[half - 0.02, 0, COUNTER_Z]}>
+            <Model asset={ASSETS.crate} fallback={<Disc radius={0.35} color={COLORS.wood} y={crateTop / 2} height={crateTop} />} />
+            {[0, 1].map((k) => (
+               <Model key={k} asset={ASSETS.box} position={[0, crateTop + k * BOX_H, 0]} rotation-y={k * 0.3} fallback={<Disc radius={0.3} color={COLORS.tile} y={0.08} height={0.16} />} />
+            ))}
+         </group>
          <Live run={run} />
          <Chef run={run} />
       </>

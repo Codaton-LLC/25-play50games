@@ -2,7 +2,7 @@
 // versions), fitted from their measured bounds (assets.test.ts checks every fit on the real mesh).
 // The chef is the shared food-catcher chef through the core auto-rig (CHEF_LANDMARKS, 1.82 m).
 import type { ModelAsset } from "@/arcade3d/core/types";
-import { PROP_BUDGET, REUSED_ASSETS, REUSED_GLB_SIZE, SHARED_ASSETS } from "@/arcade3d/core/sharedAssets";
+import { PROP_BUDGET, REUSED_ASSETS, REUSED_GLB_SIZE, SHARED_ASSETS, SHARED_GLB_SIZE } from "@/arcade3d/core/sharedAssets";
 
 /** Raw GLB bounds (Rodin units, pivot on the floor centre), measured 2026-10-25. */
 export const GLB_SIZE = {
@@ -36,6 +36,7 @@ export const FIT = {
    peel: 0.95,
    box: 0.62,
    bin: 0.8,
+   crate: 0.7,
    /** a topping pile in its station's steel bowl */
    pile: 0.28,
 } as const;
@@ -56,7 +57,8 @@ const local = (id: keyof typeof GLB_SIZE, size: number, fallback: ModelAsset["fa
 export const ASSETS = {
    chef: { ...REUSED_ASSETS.chef, scale: 0.975 },
    bin: { ...REUSED_ASSETS.bin, scale: FIT.bin / REUSED_GLB_SIZE.bin.height },
-   crate: SHARED_ASSETS.crate,
+   crate: { ...SHARED_ASSETS.crate, scale: FIT.crate / SHARED_GLB_SIZE.crate.width },
+   // flour crate at the hatch end of the row: 0.7 m across, a stack of boxes on it
    pizzaBase: local("pizzaBase", FIT.base, "cylinder", "#e7b76f"),
    sauceBowl: local("sauceBowl", FIT.bowl, "cylinder", "#dc2626"),
    cheeseBowl: local("cheeseBowl", FIT.bowl, "cylinder", "#facc15"),

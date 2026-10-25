@@ -35,32 +35,48 @@ export const COLORS = {
 export const FOV = 42;
 export const PITCH = (60 * Math.PI) / 180;
 
-/** The kitchen floor in front of the counter plus the counter line (the fixed camera keeps it all on screen). */
+/** The kitchen: the counter line and the cook's working strip in front of it. */
 export function kitchenBox(l: PizzaLevel): AABB {
    const half = kitchenHalf(l);
-   return { min: { x: -half, y: 0, z: TUNING.counterZ - 0.9 }, max: { x: half, y: 1.7, z: TUNING.maxZ + 0.4 } };
+   return { min: { x: -half, y: 0, z: TUNING.counterZ - 0.9 }, max: { x: half, y: 1.7, z: TUNING.maxZ + 0.3 } };
 }
 
-const VIEWS = new Map<LevelId, FittedViewOptions>();
+/** Half width of the window the camera keeps on screen: about 6.5 stations wide, 4 on a portrait screen. */
+export const windowHalf = (l: PizzaLevel, portrait: boolean) => Math.min(kitchenHalf(l), portrait ? 3.4 : 5.4);
 
-export function viewFor(id: LevelId): FittedViewOptions {
-   let view = VIEWS.get(id);
+/** The camera aims at (x, 0, AIM_Z): the window's floor centre, so the fitted offset holds while it pans. */
+export const AIM_Z = (TUNING.counterZ - 0.9 + TUNING.maxZ + 0.3) / 2;
+
+/** How far the aim may pan along the row (0 when the whole row fits the window). */
+export function panHalf(l: PizzaLevel, portrait: boolean): number {
+   return Math.max(0, kitchenHalf(l) - windowHalf(l, portrait));
+}
+
+const VIEWS = new Map<string, FittedViewOptions>();
+
+/** A window of the kitchen around the cook (the whole row on L1-L2 and on wide screens where it fits). */
+export function viewFor(id: LevelId, portrait: boolean): FittedViewOptions {
+   const key = `${id}:${portrait}`;
+   let view = VIEWS.get(key);
    if (!view) {
+      const box = kitchenBox(LEVELS[id]);
+      const w = windowHalf(LEVELS[id], portrait);
       view = {
-         area: kitchenBox(LEVELS[id]),
+         area: { min: { ...box.min, x: -w }, max: { ...box.max, x: w } },
          pitch: PITCH,
          yaws: [0],
          fov: FOV,
-         margin: { top: 0.03, right: 0.02, bottom: 0.03, left: 0.02 },
+         margin: { top: 0.02, right: 0.01, bottom: 0.02, left: 0.01 },
          padding: 6,
          shift: true,
       };
-      VIEWS.set(id, view);
+      VIEWS.set(key, view);
    }
    return view;
 }
 
 /** L1-L2 indoor, L3 indoor and warmer, L4 sunset through the window, L5 night with the oven glow as the key. */
 export function environment(l: PizzaLevel) {
-   return { background: l.background, lighting: l.lighting, fog: [l.background, 26, 70] as [string, number, number] };
+   // fog only far past the kitchen: a phone's fitted camera stands 20-40 m back and must stay clear of it
+   return { background: l.background, lighting: l.lighting, fog: [l.background, 90, 220] as [string, number, number] };
 }

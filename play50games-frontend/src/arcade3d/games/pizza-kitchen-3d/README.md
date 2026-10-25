@@ -6,7 +6,8 @@ One open kitchen. A ticket shows the pizza: Use the dough, then sauce, cheese an
 
 ## Controls and rules
 
-- On-foot mover (robot-collector): top speed 4.2 m/s, accel 22, brake 28, radius 0.36 (`rules.ts` `TUNING`).
+- On-foot mover (robot-collector): top speed 4.2 m/s, accel 22, brake 28, radius 0.36, on a 2 m working strip in front of the counter (`rules.ts` `TUNING`).
+- Camera (`looks.ts`): pitch 60°, fitted to a window of the kitchen strip (6.75 stations wide, 4.25 on a portrait screen) that pans along the row with the cook and never past its ends; L1-L2 fit whole on wide screens. Fog starts 90 m out, behind any fitted camera (`camera.test.ts`).
 - `actionPressed` (E / Enter / touch Use) works the nearest station within 1.2 m of the cook. 0.22 s between Uses and a 0.50 s stun for a wrong ingredient, the same on every device (the rules count play time only).
 - A wrong or out-of-order ingredient spoils the pizza (start again from the dough). Bake `bakeS`, then a golden window `goldenS`; the first 1.5 s of it is a perfect bake; after it the pizza is burnt (binned, the ticket stays open).
 - Score: +150 served, +50 perfect bake, +30 fresh (served before half the ticket's patience; tickets without patience are always fresh), on win +4 per full second left. A ticket pays once.
@@ -46,6 +47,8 @@ Score sources (constants in `rules.ts`): 230 per ticket at most (150 + 50 + 30),
 Ready Hyper3D GLBs in `public/models/3d/pizza-kitchen-3d/` (fits in `assets.ts`, checked on the real meshes in `assets.test.ts`): `prepCounterR` (worktop 0.95 m, one per station, stretched to meet at 1.6 m), `pizzaOven` (1.5 m wide on the floor, one per oven), `sauceBowl`, `cheeseBowl`, `mushroomBowlR`, `oliveBowl` (0.5 m), `pepperoni`, `tomato`, `onion` (on the pizza, and as piles in steel bowls), `pizzaBase` (0.6 m), `pizzaPeelClean`, `pizzaBoxClosed`. Left out: `mushroomBowl`, `prepCounter`, `pizzaPeel`, `pizzaBox`, `pizzaBoxV2`. Core: the food-catcher chef (`REUSED_ASSETS.chef`, 1.82 m, auto-rig: walk by `walkStride`, reach on Use, carry with the peel, cheer on a win), the clean-city bin (0.8 m), the shared crate.
 
 ## Known issues
+
+- Playtest 2026-10-25 fixes: the shared crate (drawn unscaled, 1.9 m, on the open floor) is now a 0.7 m flour crate with two pizza boxes at the hatch end of the row; the bin stands at the dough end; the empty floor in front is gone (2 m strip); the L5 fog no longer washes a phone's view.
 
 - The counter GLB has a thin shelf frame above the worktop; check in play that it does not hide a bowl from the fixed camera.
 - The oven GLB's mouth direction is assumed to face the cook (+z); the code glow disc sits in front of it.

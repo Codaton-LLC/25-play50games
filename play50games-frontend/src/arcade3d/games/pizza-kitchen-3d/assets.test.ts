@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { hasModel } from "@/arcade3d/core/modelManifest";
 import { readCharacterGlb } from "@/arcade3d/core/rig/robotGlb";
 import { assetScale } from "@/arcade3d/core/assets";
-import { REUSED_GLB_SIZE } from "@/arcade3d/core/sharedAssets";
+import { REUSED_GLB_SIZE, SHARED_GLB_SIZE } from "@/arcade3d/core/sharedAssets";
 import { ASSETS, COUNTER_TOP_GLB, FIT, GLB_SIZE } from "./assets";
 
 async function bounds(url: string) {
@@ -55,6 +55,11 @@ describe("pizza-kitchen-3d models (real GLBs)", () => {
       expect(Math.max(size(ASSETS.pepperoni, GLB_SIZE.pepperoni).w, size(ASSETS.pepperoni, GLB_SIZE.pepperoni).d)).toBeCloseTo(FIT.pepperoni, 3);
       expect(Math.max(size(ASSETS.pepperoniPile, GLB_SIZE.pepperoni).w, size(ASSETS.pepperoniPile, GLB_SIZE.pepperoni).d)).toBeCloseTo(FIT.pile, 3);
       expect(REUSED_GLB_SIZE.bin.height * (ASSETS.bin.scale ?? 1)).toBeCloseTo(FIT.bin, 6);
+      expect(SHARED_GLB_SIZE.crate.width * (ASSETS.crate.scale ?? 1)).toBeCloseTo(FIT.crate, 6);
+      // crate plus two boxes: a counter-high stack (about 0.9 m)
+      const stack = SHARED_GLB_SIZE.crate.height * ASSETS.crate.scale! + 2 * GLB_SIZE.pizzaBoxClosed.height * ASSETS.box.scale!;
+      expect(stack).toBeGreaterThan(0.75);
+      expect(stack).toBeLessThan(1.0);
    });
 
    it("the worktop height is where the counter's dense band ends", async () => {

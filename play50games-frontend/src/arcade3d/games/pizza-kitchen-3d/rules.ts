@@ -29,7 +29,8 @@ export const TUNING = {
    counterZ: -1.6,
    /** the walkable floor in front of the counter */
    minZ: -0.64,
-   maxZ: 3.64,
+   /** the working strip in front of the counter (2 m deep): the camera frames it, no empty floor */
+   maxZ: 1.4,
    served: 150,
    perfect: 50,
    fresh: 30,
