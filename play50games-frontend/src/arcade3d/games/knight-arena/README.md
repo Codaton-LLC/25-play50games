@@ -120,7 +120,20 @@ All numbers live in `rules.ts` (`ARENA`, `KNIGHT`, `TARGETS`, `BEAT`, `TIMING`, 
 ## Assets & Performance
 
 - Assets (`assets.ts`): `knight` (`EXPANSION_CHARACTERS.knight`, 1.75 m), `dummy` (`EXPANSION_ASSETS.dummy`, 1.5 m), `castleTower` (`EXPANSION_ASSETS.castleTower`, 6.0 m), `leafyTree` (`EXPANSION_ASSETS.leafyTree`, 3.5 m), `sword` (`/models/3d/knight-arena/sword.glb`, 0.85 m), `shield` (`/models/3d/knight-arena/shield.glb`, 0.55 m).
-- Draw-call count: $\le 28$ draw calls (target $\le 30$, cap 45), zero per-frame allocations.
+- Draw-call count: see "Look (2026-10-25)". The old stand-in yard was about 28 draws; the dressed yard stays under 60, with nothing allocated per frame.
+
+## Look (2026-10-25)
+
+Visual only. `rules.ts`, scoring, timing, the posts, the hit radii and the fitted camera box are unchanged (`PLAY_BOUNDS` is the same ±3.5 m × 2.2 m box, pitch 60°, yaw 0, fov 45, lens shift). `definition.environment` is unchanged, including fog near/far, because `levels.test.ts` locks it. The scene calls `useStageLighting` with the same preset and a lighter fog colour, so a tall phone no longer fades the yard into the old dark violet. The sun intensity is the core sunset / day / night preset.
+
+What changed:
+
+- One palette in `looks.ts`. Sand floor (octagon, raked canvas), stone curb, wood palisade (`<Fence>`, closer posts), forked banners with a gold band, gold finials. Stand-ins are faceted plate, cones and cylinders from that palette (heater shield is an extruded face). The dummy fallback uses three wood tones.
+- Sky dome and meadow. The meadow is 520 m across so the ground still fills 1280×800, 390×844 and 844×390 when the cookie banner pulls the camera back (ShellStage far plane is 400; the look test checks the hit stays inside it).
+- Decor only outside the play square: curtain wall with a gate, tents, weapon racks, a village, hills, tufts and rocks. Instanced. Nothing drifts. `looks.test.ts` checks every spot's bounds against the play square and against the sight lines to the knight, the eight posts and the play corners.
+- A hit and a shield crack burst core `sparkle` and a small `shake(0.1)`, on top of the sparks that were already there.
+
+Draw calls, GLBs present, before effects: sky 1, meadow 1, curb 1, sand 1, two rake rings 2, fence 2, banners 1, finials 1, towers ~2, trees ~2, knight ~2, sword 1, shield 1, shadow 1, trail 1, dummies ~2, disc / approach ring / arrow / shield icon / tomato 5, decor 8 (wall, tent, rack, house, two hill tones, tuft, rock). About 36. Bursts add one draw per kind (sparkle, sparks, puff, confetti) and score sprites add up to 8 while they show. A busy frame stays under 50, cap 60. Fallback towers and the knight are not in that count; the live scene uses the GLBs.
 
 ## Decisions (user, 2026-10-24)
 

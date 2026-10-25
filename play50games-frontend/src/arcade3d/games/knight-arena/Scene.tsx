@@ -34,6 +34,7 @@ import {
    SWORD_MOUNT,
    victoryPose,
 } from "./poses";
+import { FIT, PLAY_BOUNDS } from "./looks";
 import { KnightPrimitive, ShieldPrimitive, SwordPrimitive } from "./Primitives";
 import {
    BEAT,
@@ -49,17 +50,17 @@ import {
 export const CAMERA_CONFIG = {
    position: [0, 7.8, 6.2] as [number, number, number],
    lookAt: [0, 0.5, 0] as [number, number, number],
-   fov: 45,
+   fov: FIT.fov,
 };
 
 const ARENA_BOX: AABB = {
-   min: { x: -3.5, y: 0, z: -3.5 },
-   max: { x: 3.5, y: 2.2, z: 3.5 },
+   min: { x: PLAY_BOUNDS.x0, y: PLAY_BOUNDS.y0, z: PLAY_BOUNDS.z0 },
+   max: { x: PLAY_BOUNDS.x1, y: PLAY_BOUNDS.y1, z: PLAY_BOUNDS.z1 },
 };
 
-const FOCUS: readonly Vec3Like[] = [{ x: 0, y: 0.5, z: 0 }];
-const YAWS: readonly number[] = [0];
-const PITCH = (60 * Math.PI) / 180;
+const FOCUS: readonly Vec3Like[] = FIT.focus;
+const YAWS: readonly number[] = FIT.yaws;
+const PITCH = FIT.pitch;
 
 interface HudSnapshot {
    spinMeter: number;
@@ -128,8 +129,8 @@ function ArenaPlay(): React.ReactElement {
       yaws: YAWS,
       focus: FOCUS,
       fov: CAMERA_CONFIG.fov,
-      padding: 12,
-      shift: true,
+      padding: FIT.padding,
+      shift: FIT.shift,
    });
 
    const runRef = useRef(createRun(nextRotationalSeed(), config));
@@ -141,7 +142,7 @@ function ArenaPlay(): React.ReactElement {
 
    // Warm particle pools and initialize HUD stats on mount
    useEffect(() => {
-      fx.warm("sparks", "confetti", "puff", "score");
+      fx.warm("sparks", "sparkle", "confetti", "puff", "score");
       const store = arcadeStore.getState();
       const run = runRef.current;
       store.setStat("combo", 1);
@@ -230,7 +231,9 @@ function ArenaPlay(): React.ReactElement {
          const scorePos = { x: post.x, y: 1.65, z: post.z };
          if (ev.kind === "hit") {
             const color = ev.onBeat ? COLORS.activeRing : COLORS.regular;
+            fx.burst("sparkle", hitPos, ev.onBeat ? 12 : 6);
             fx.burst("sparks", hitPos, ev.onBeat ? 14 : 8);
+            fx.shake(0.1);
             fx.score(scorePos, `+${ev.points}`, { color });
             playSfx(ev.onBeat ? "pickup" : "hit", { pitch: ev.onBeat ? 1.15 : 0.95 });
             if (
@@ -241,7 +244,9 @@ function ArenaPlay(): React.ReactElement {
                playSfx("combo");
             }
          } else if (ev.kind === "shieldCrack") {
+            fx.burst("sparkle", hitPos, 8);
             fx.burst("sparks", hitPos, 12);
+            fx.shake(0.1);
             fx.score(scorePos, `+${ev.points}`, { color: COLORS.shield });
             playSfx("thud", { pitch: 1.25 });
          } else if (ev.kind === "spinSweep") {

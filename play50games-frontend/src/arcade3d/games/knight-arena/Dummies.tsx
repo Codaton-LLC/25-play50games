@@ -1,7 +1,7 @@
 "use client";
 
 import { useFrame } from "@react-three/fiber";
-import React, { useCallback, useLayoutEffect, useMemo, useRef } from "react";
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef } from "react";
 import {
    BufferGeometry,
    Color,
@@ -23,6 +23,7 @@ import { DynamicInstancedModel } from "../../core/assets";
 import { FRAME_PRIORITY } from "../../core/frameLoop";
 import type { InstancePart, InstanceUpdate } from "../../core/render";
 import { ASSETS, DUMMY_HEIGHT } from "./assets";
+import { COLORS as LOOK } from "./looks";
 import {
    COLORS,
    POSTS,
@@ -138,18 +139,27 @@ export function Dummies({ runRef }: DummiesProps): React.ReactElement {
       return [
          {
             geometry: postGeom,
-            material: new MeshStandardMaterial({ color: COLORS.wood, roughness: 0.85 }),
+            material: new MeshStandardMaterial({ color: LOOK.woodDark, roughness: 0.85, flatShading: true }),
          },
          {
             geometry: bodyGeom,
-            material: new MeshStandardMaterial({ color: COLORS.woodLight, roughness: 0.75 }),
+            material: new MeshStandardMaterial({ color: LOOK.woodMid, roughness: 0.75, flatShading: true }),
          },
          {
             geometry: headGeom,
-            material: new MeshStandardMaterial({ color: COLORS.woodLight, roughness: 0.75 }),
+            material: new MeshStandardMaterial({ color: LOOK.woodLight, roughness: 0.72, flatShading: true }),
          },
       ];
    }, []);
+
+   useEffect(() => () => {
+      for (const part of fallbackParts) {
+         part.geometry.dispose();
+         const material = part.material;
+         if (Array.isArray(material)) for (const item of material) item.dispose();
+         else material.dispose();
+      }
+   }, [fallbackParts]);
 
    const geometries = useMemo(() => {
       const disc = new CylinderGeometry(TARGETS.DISC_RADIUS_M, TARGETS.DISC_RADIUS_M, 0.02, 24);

@@ -1,22 +1,37 @@
 "use client";
 
-import React, { useLayoutEffect, useRef } from "react";
-import { type InstancedMesh, Matrix4, Quaternion, Vector3 } from "three";
+import { useEffect, useLayoutEffect, useMemo, useRef } from "react";
+import {
+   BoxGeometry,
+   BufferAttribute,
+   BufferGeometry,
+   DoubleSide,
+   type InstancedMesh,
+   Matrix4,
+   Quaternion,
+   RepeatWrapping,
+   Shape,
+   ShapeGeometry,
+   Vector3,
+} from "three";
+import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import { InstancedModel } from "../../core/assets";
 import { SkyDome } from "../../core/env";
 import { Fence } from "../../core/kit/Fence";
+import { useLevel } from "../../core/level";
+import { useStageLighting } from "../../core/lighting";
 import { createPath } from "../../core/path";
-import type { InstanceSpot } from "../../core/render";
+import { useCanvasTexture, type CanvasDraw, type InstanceSpot } from "../../core/render";
 import { ASSETS } from "./assets";
+import { Decor } from "./Decor";
+import type { KnightLevel } from "./levels";
+import { COLORS, GROUND, LEVEL_LOOKS } from "./looks";
 import { TowerPrimitive, TreePrimitive } from "./Primitives";
-import { ARENA, COLORS, TARGETS } from "./rules";
+import { ARENA, TARGETS } from "./rules";
 
 const RING_VERTICES: ReadonlyArray<readonly [number, number]> = Array.from({ length: ARENA.SIDES }, (_, i) => {
    const angle = (i / ARENA.SIDES) * Math.PI * 2 + Math.PI / 8;
-   return [
-      Math.cos(angle) * ARENA.RADIUS_M,
-      Math.sin(angle) * ARENA.RADIUS_M,
-   ] as const;
+   return [Math.cos(angle) * ARENA.RADIUS_M, Math.sin(angle) * ARENA.RADIUS_M] as const;
 });
 
 const RING_PATH = createPath(
@@ -45,9 +60,97 @@ const scratchQuat = new Quaternion();
 const scratchScale = new Vector3(1, 1, 1);
 const UP = new Vector3(0, 1, 0);
 
+const drawMeadow: CanvasDraw = (ctx, width, height) => {
+   ctx.fillStyle = COLORS.grass;
+   ctx.fillRect(0, 0, width, height);
+   const blobs = [COLORS.grassSun, COLORS.grassShade, COLORS.grass];
+   for (let i = 0; i < 48; i++) {
+      ctx.fillStyle = blobs[i % blobs.length];
+      ctx.globalAlpha = 0.22 + (i % 4) * 0.08;
+      ctx.beginPath();
+      ctx.ellipse((i * 97) % width, (i * 53) % height, 26 + (i * 17) % 64, 14 + (i * 13) % 32, ((i * 19) % 40) * 0.03, 0, Math.PI * 2);
+      ctx.fill();
+   }
+   ctx.globalAlpha = 1;
+};
+
+const drawSand: CanvasDraw = (ctx, width, height) => {
+   ctx.fillStyle = COLORS.sand;
+   ctx.fillRect(0, 0, width, height);
+   const tones = [COLORS.sandMid, COLORS.sandDark, COLORS.sand];
+   for (let i = 0; i < 36; i++) {
+      ctx.fillStyle = tones[i % tones.length];
+      ctx.globalAlpha = 0.18 + (i % 5) * 0.06;
+      ctx.beginPath();
+      ctx.ellipse((i * 73) % width, (i * 41) % height, 18 + (i * 11) % 40, 10 + (i * 7) % 22, ((i * 13) % 30) * 0.04, 0, Math.PI * 2);
+      ctx.fill();
+   }
+   ctx.globalAlpha = 0.35;
+   ctx.strokeStyle = COLORS.sandDark;
+   ctx.lineWidth = 3;
+   const cx = width / 2;
+   const cy = height / 2;
+   for (let ring = 1; ring <= 4; ring++) {
+      ctx.beginPath();
+      ctx.arc(cx, cy, (ring / 5) * width * 0.46, 0, Math.PI * 2);
+      ctx.stroke();
+   }
+   ctx.globalAlpha = 1;
+};
+
+function octagonShape(radius: number): Shape {
+   const shape = new Shape();
+   for (let i = 0; i < ARENA.SIDES; i++) {
+      const angle = (i / ARENA.SIDES) * Math.PI * 2 + Math.PI / 8;
+      const x = Math.cos(angle) * radius;
+      const y = Math.sin(angle) * radius;
+      if (i === 0) shape.moveTo(x, y);
+      else shape.lineTo(x, y);
+   }
+   shape.closePath();
+   return shape;
+}
+
+function paintSolid(geo: BufferGeometry, hex: string): BufferGeometry {
+   const count = geo.getAttribute("position").count;
+   const color = new Float32Array(count * 3);
+   const n = Number.parseInt(hex.slice(1), 16);
+   const r = ((n >> 16) & 255) / 255;
+   const g = ((n >> 8) & 255) / 255;
+   const b = (n & 255) / 255;
+   for (let i = 0; i < count; i++) {
+      color[i * 3] = r;
+      color[i * 3 + 1] = g;
+      color[i * 3 + 2] = b;
+   }
+   geo.setAttribute("color", new BufferAttribute(color, 3));
+   return geo;
+}
+
+/** Forked pennant plus a gold band. One geometry, so the eight banners are one draw. */
+function bannerGeometry(): BufferGeometry {
+   const cloth = new Shape();
+   cloth.moveTo(-0.16, 0.26);
+   cloth.lineTo(0.16, 0.26);
+   cloth.lineTo(0.16, -0.02);
+   cloth.lineTo(0, -0.28);
+   cloth.lineTo(-0.16, -0.02);
+   cloth.closePath();
+   const clothGeo = paintSolid(new ShapeGeometry(cloth), COLORS.banner);
+   const stripe = paintSolid(new BoxGeometry(0.28, 0.055, 0.012).translate(0, 0.12, 0.006), COLORS.gold);
+   const geo = mergeGeometries([clothGeo, stripe], false);
+   clothGeo.dispose();
+   stripe.dispose();
+   if (!geo) throw new Error("knight-arena look: banner");
+   geo.computeVertexNormals();
+   return geo;
+}
+
 function ArenaBanners(): React.ReactElement {
    const clothRef = useRef<InstancedMesh>(null);
    const goldRef = useRef<InstancedMesh>(null);
+   const clothGeo = useMemo(() => bannerGeometry(), []);
+   useEffect(() => () => clothGeo.dispose(), [clothGeo]);
 
    useLayoutEffect(() => {
       const cloth = clothRef.current;
@@ -59,15 +162,13 @@ function ArenaBanners(): React.ReactElement {
          const yaw = Math.atan2(-vx, -vz);
          scratchQuat.setFromAxisAngle(UP, yaw);
 
-         // Banner cloth hanging on the post facing inward
-         scratchPos.set(vx * 0.985, ARENA.FENCE_HEIGHT_M * 0.58, vz * 0.985);
-         scratchScale.set(0.32, 0.52, 0.04);
+         scratchPos.set(vx * 0.97, 0.56, vz * 0.97);
+         scratchScale.set(1, 1, 1);
          scratchMatrix.compose(scratchPos, scratchQuat, scratchScale);
          cloth.setMatrixAt(i, scratchMatrix);
 
-         // Gold finial cap on top of each fence post
          scratchPos.set(vx, ARENA.FENCE_HEIGHT_M + 0.08, vz);
-         scratchScale.set(0.11, 0.14, 0.11);
+         scratchScale.set(0.1, 0.16, 0.1);
          scratchMatrix.compose(scratchPos, scratchQuat, scratchScale);
          gold.setMatrixAt(i, scratchMatrix);
       }
@@ -76,62 +177,74 @@ function ArenaBanners(): React.ReactElement {
    }, []);
 
    return (
-      <group>
-         <instancedMesh ref={clothRef} args={[undefined, undefined, RING_VERTICES.length]} castShadow>
-            <boxGeometry args={[1, 1, 1]} />
-            <meshStandardMaterial color={COLORS.royalBlue} roughness={0.65} />
+      <group name="knight-banners">
+         <instancedMesh ref={clothRef} args={[undefined, undefined, RING_VERTICES.length]}>
+            <primitive object={clothGeo} attach="geometry" />
+            <meshStandardMaterial vertexColors side={DoubleSide} roughness={0.72} />
          </instancedMesh>
          <instancedMesh ref={goldRef} args={[undefined, undefined, RING_VERTICES.length]}>
             <octahedronGeometry args={[1, 0]} />
-            <meshStandardMaterial color={COLORS.gold} roughness={0.35} metalness={0.55} />
+            <meshStandardMaterial color={COLORS.gold} flatShading roughness={0.35} metalness={0.55} />
          </instancedMesh>
       </group>
    );
 }
 
 export function Arena(): React.ReactElement {
+   const { id } = useLevel<KnightLevel>();
+   const look = LEVEL_LOOKS[id];
+   // Snap. The definition's preset is the same, so the sun stays; only the fog colour moves,
+   // and near/far stay whatever the level already declared.
+   useStageLighting(look.lighting, 0, look.background, look.fog);
+
+   const meadow = useCanvasTexture(512, 512, drawMeadow);
+   const sandMap = useCanvasTexture(512, 512, drawSand);
+   const sand = useMemo(() => new ShapeGeometry(octagonShape(ARENA.RADIUS_M)), []);
+   useEffect(() => {
+      meadow.wrapS = meadow.wrapT = RepeatWrapping;
+      meadow.repeat.set(26, 26);
+      meadow.needsUpdate = true;
+   }, [meadow]);
+   useEffect(() => () => sand.dispose(), [sand]);
+
    return (
       <group>
-         <SkyDome top="#1e1b4b" bottom="#fdba74" radius={42} />
+         <SkyDome top={look.skyTop} bottom={look.sky} radius={180} />
 
-         {/* Outer meadow ground */}
-         <mesh position={[0, -0.04, 0]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
-            <planeGeometry args={[32, 32]} />
-            <meshStandardMaterial color={COLORS.grass} roughness={0.95} />
+         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, GROUND.y, 0]} name="knight-meadow">
+            <planeGeometry args={[GROUND.half * 2, GROUND.half * 2]} />
+            <meshStandardMaterial map={meadow} roughness={1} polygonOffset polygonOffsetFactor={1} polygonOffsetUnits={1} />
          </mesh>
 
-         {/* Octagonal stone curb */}
-         <mesh position={[0, -0.015, 0]} rotation={[0, Math.PI / 8, 0]} receiveShadow>
-            <cylinderGeometry args={[ARENA.RADIUS_M + 0.18, ARENA.RADIUS_M + 0.24, 0.03, ARENA.SIDES]} />
-            <meshStandardMaterial color={COLORS.stone} roughness={0.85} />
+         <mesh position={[0, 0.012, 0]} rotation={[0, Math.PI / 8, 0]} name="knight-curb">
+            <cylinderGeometry args={[ARENA.RADIUS_M + 0.22, ARENA.RADIUS_M + 0.36, 0.028, ARENA.SIDES]} />
+            <meshStandardMaterial color={COLORS.stone} flatShading roughness={0.9} />
          </mesh>
 
-         {/* Compacted sand arena floor */}
-         <mesh position={[0, -0.005, 0]} rotation={[0, Math.PI / 8, 0]} receiveShadow>
-            <cylinderGeometry args={[ARENA.RADIUS_M, ARENA.RADIUS_M, 0.01, ARENA.SIDES]} />
-            <meshStandardMaterial color={COLORS.arenaFloor} roughness={0.9} />
+         <mesh geometry={sand} dispose={null} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.028, 0]} name="knight-sand">
+            <meshStandardMaterial map={sandMap} roughness={0.95} polygonOffset polygonOffsetFactor={-1} polygonOffsetUnits={-1} />
          </mesh>
 
-         {/* Subtle inner ring markers at Near (1.60 m) and Far (2.60 m) radii */}
-         <mesh position={[0, 0.002, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-            <ringGeometry args={[TARGETS.NEAR_RADIUS_M - 0.03, TARGETS.NEAR_RADIUS_M + 0.03, 48]} />
-            <meshBasicMaterial color={COLORS.arenaRing} transparent opacity={0.35} />
+         <mesh position={[0, 0.036, 0]} rotation={[-Math.PI / 2, 0, 0]} name="knight-ring-near">
+            <ringGeometry args={[TARGETS.NEAR_RADIUS_M - 0.035, TARGETS.NEAR_RADIUS_M + 0.035, 48]} />
+            <meshStandardMaterial color={COLORS.rake} roughness={1} />
          </mesh>
-         <mesh position={[0, 0.002, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-            <ringGeometry args={[TARGETS.FAR_RADIUS_M - 0.03, TARGETS.FAR_RADIUS_M + 0.03, 64]} />
-            <meshBasicMaterial color={COLORS.arenaRing} transparent opacity={0.28} />
+         <mesh position={[0, 0.036, 0]} rotation={[-Math.PI / 2, 0, 0]} name="knight-ring-far">
+            <ringGeometry args={[TARGETS.FAR_RADIUS_M - 0.035, TARGETS.FAR_RADIUS_M + 0.035, 64]} />
+            <meshStandardMaterial color={COLORS.sandDark} roughness={1} />
          </mesh>
 
-         {/* Octagonal timber & stone perimeter fence + royal banners */}
          <Fence
             path={RING_PATH}
+            spacing={1.2}
             height={ARENA.FENCE_HEIGHT_M}
-            color={COLORS.stoneDark}
+            postSize={0.16}
+            railSize={0.07}
+            color={COLORS.woodDark}
             railColor={COLORS.wood}
          />
          <ArenaBanners />
 
-         {/* Background Castle Towers (2 instances) */}
          <InstancedModel
             asset={ASSETS.castleTower}
             spots={TOWER_SPOTS}
@@ -146,7 +259,6 @@ export function Arena(): React.ReactElement {
             }
          />
 
-         {/* Background Leafy Trees (4 instances) */}
          <InstancedModel
             asset={ASSETS.leafyTree}
             spots={TREE_SPOTS}
@@ -160,6 +272,8 @@ export function Arena(): React.ReactElement {
                </group>
             }
          />
+
+         <Decor />
       </group>
    );
 }
