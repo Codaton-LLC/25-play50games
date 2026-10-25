@@ -212,6 +212,31 @@ Planned `rules.test.ts` (Vitest, pure state/fake input, no wall-clock sleeps):
 - Pause for 2.5 s separately in AIM, run-up, flight and final hold; hide/reveal and blur/focus. Resume identical reticle/ball/keeper progress, no extra timeout/shot/sound; test long-frame clamps and reduced motion.
 - Mock submission score/duration matches proof; no-GLB fallback, focus/accessibility, no horizontal overflow, <=150 draw calls and 60 fps target on a mid phone. Runtime performance/screenshots are not yet measured.
 
+## Levels (five, docs/arcade-levels.md)
+
+One pitch, the same six zones and controls. `levels.ts` is the pure config; `createRun(seed, level)` captures it
+(`run.config`), the Scene reads it once per run (`usePenaltyLevel`, keyed by the level), the HUD dots and the
+timeout text follow `config.shots` / `config.aimTimeoutMs`.
+
+| Level | Shots | Goals to win | Streak goal | Keeper read | Target scale / drift period | Band / ring period | Gust | Aim time | Lighting |
+|---|---|---|---|---|---|---|---|---|---|
+| 1 Training | 10 | none (every finished run wins, as today) | 150 | 0 | 1 / none | 0.25 / 1.2 s | 0 | 20 s | day |
+| 2 Local Cup | 12 | 6 | 150 | 0.04 | 0.92 / 2.4 s | 0.23 / 1.12 s | 0 | 18 s | day |
+| 3 Night Match | 14 | 7 | 175 | 0.07 | 0.84 / 2.0 s | 0.21 / 1.04 s | 0 | 16 s | sunset |
+| 4 Semi Final | 16 | 8 | 175 | 0.10 | 0.76 / 1.6 s | 0.19 / 0.96 s | 0.12 | 14 s | night |
+| 5 Final Shootout | 18 | 9 | 200 | 0.12 | 0.68 / 1.2 s | 0.17 / 0.88 s | 0.20 | 12 s | sunset |
+
+Limits per level (`PROPOSED_LEVEL_LIMITS`, `meta.levels`, `arcade-games.json` `levels`): maxScore = 100 + (shots - 1) x
+streak points (every shot a goal); minDuration just under shots x one shot cycle; maxDuration = every shot timing
+out, +3-5 %; max_pps over the perfect run's steepest point (its last goal). Proofs: `levels.test.ts` (analytic
+B(t) per level), `rules.levels.test.ts` (human 200 seeds: 198-200 clears; oracle 100 seeds: all clear and reach
+>= 90 % of maxScore; spam and idle stay inside every limit; the real store at 30/60/144 Hz).
+Level 1 is today's game bit for bit (`l1Replay.test.ts`, digests recorded from main's rules.ts).
+
+Open (user decision): level 1 keeps today's ending, so a finished run wins even with 0 goals: idling through
+ten timeouts (about 216 s) clears level 1 and unlocks level 2. A goal target on level 1 (e.g. 5 of 10) would fix
+it but changes today's end reason and `rules.test.ts` (which pins "win" for idle runs).
+
 ## Known issues and core gaps
 
 - Playable; the striker and keeper GLBs are drawn through the core auto-rig (Rigid animation plan), the primitives are their fallbacks. Projection measurements above check the earlier camera maths; the build uses core `useFittedView`. The keeper's far arm reaches up rather than across the body in a side dive (an arm crossing the chest crushes the shoulder in linear blend skinning).

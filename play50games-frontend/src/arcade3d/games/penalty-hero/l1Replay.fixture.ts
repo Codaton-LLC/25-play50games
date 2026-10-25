@@ -1,7 +1,6 @@
 // Level 1 replay driver (tests only): plays one seed with seeded inputs through a rules module and
 // hashes every frame's exact float bits. The digests pinned in l1Replay.test.ts were recorded from
-// main's rules.ts before levels (2026-10-25). The end reason is kept out of the hash on purpose:
-// level 1 now ends "lose" under 5 goals (README "Levels"); everything else is today's game.
+// main's rules.ts before levels (2026-10-25). Level 1 still ends every finished run in a win.
 import { createRng } from "@/arcade3d/core/math";
 
 interface ReplayRun {

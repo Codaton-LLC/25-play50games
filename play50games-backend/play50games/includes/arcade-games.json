@@ -77,7 +77,14 @@
       "max_duration_ms": 225000,
       "base": 0,
       "max_pps": 95,
-      "enabled": true
+      "enabled": true,
+      "levels": [
+        { "title": "Training", "max_score": 1450, "min_duration_ms": 15500, "max_duration_ms": 225000, "base": 0, "max_pps": 95 },
+        { "title": "Local Cup", "max_score": 1750, "min_duration_ms": 18400, "max_duration_ms": 245000, "base": 0, "max_pps": 97 },
+        { "title": "Night Match", "max_score": 2375, "min_duration_ms": 21500, "max_duration_ms": 257000, "base": 0, "max_pps": 113 },
+        { "title": "Semi Final", "max_score": 2725, "min_duration_ms": 24600, "max_duration_ms": 260000, "base": 0, "max_pps": 113 },
+        { "title": "Final Shootout", "max_score": 3500, "min_duration_ms": 27600, "max_duration_ms": 255000, "base": 0, "max_pps": 129 }
+      ]
     },
     "warehouse-rush": {
       "title": "Warehouse Rush",

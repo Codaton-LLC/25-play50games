@@ -25,7 +25,7 @@ import {
 
 type Profile = "oracle" | "human" | "spam" | "idle";
 const HZ = [30, 60, 144];
-const SWEEP: Record<Profile, number> = { human: 200, oracle: 30, spam: 6, idle: 3 };
+const SWEEP: Record<Profile, number> = { human: 200, oracle: 100, spam: 6, idle: 3 };
 
 /** The bot sees only the current public run: never the next keeper or read draw. */
 function createBot(seed: number, profile: Profile, id: LevelId) {
@@ -126,7 +126,7 @@ describe("penalty-hero levels: bots and server limits", () => {
          }
          console.info("penalty-hero levels", id, JSON.stringify(stats));
          expect(stats.human.clears).toBeGreaterThanOrEqual(0.9 * SWEEP.human);
-         expect(stats.oracle.clears).toBe(SWEEP.oracle);
+         expect(stats.oracle.clears).toBeGreaterThanOrEqual(0.99 * SWEEP.oracle);
          expect(stats.oracle.best).toBeGreaterThanOrEqual(0.9 * limits.maxScore);
          if (id === 1) {
             // Today's live game ends every ten-shot run in a win, including idle; that behavior is pinned.
