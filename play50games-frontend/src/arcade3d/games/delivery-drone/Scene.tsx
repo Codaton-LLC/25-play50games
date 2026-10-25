@@ -17,6 +17,7 @@ import City from "./City";
 import Drone from "./Drone";
 import { FittedFog, viewFor } from "./camera";
 import { COLORS } from "./looks";
+import { useDeliveryLevel } from "./useDeliveryLevel";
 
 function stat(store: ArcadeStore, key: string, value: number): void {
    if (store.stats[key] !== value) store.setStat(key, value);
@@ -32,8 +33,9 @@ export default function Scene() {
    const view = useFittedView(fit);
    const input = useInput();
    const fx = useFx();
+   const { config } = useDeliveryLevel();
    const [run] = useState(() =>
-      createRun(randomSeed(), typeof window !== "undefined" && window.matchMedia("(pointer: coarse)").matches)
+      createRun(randomSeed(), typeof window !== "undefined" && window.matchMedia("(pointer: coarse)").matches, config)
    );
    const [reduced] = useState(
       () => typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches
@@ -78,7 +80,7 @@ export default function Scene() {
 
       const target =
          run.attached || run.falling
-            ? run.city.buildings[run.city.targets[Math.min(run.completed, 11)]]
+            ? run.city.buildings[run.city.targets[Math.min(run.completed, run.city.targets.length - 1)]]
             : null;
       scratch.markers[0].x = target?.x ?? 0;
       scratch.markers[0].y = target ? target.height + 0.5 : 0.5;
