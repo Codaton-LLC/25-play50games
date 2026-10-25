@@ -13,7 +13,7 @@
 //   <DynamicInstancedModel> with this game's primitives as fallbacks.
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
-import { CircleGeometry, Matrix4, MeshStandardMaterial, Quaternion, Vector3, type Group } from "three";
+import { CircleGeometry, Matrix4, MeshStandardMaterial, Quaternion, RingGeometry, Vector3, type Group } from "three";
 import CameraRig from "@/arcade3d/core/CameraRig";
 import { DynamicInstancedModel, Model } from "@/arcade3d/core/assets";
 import { playSfx } from "@/arcade3d/core/audio";
@@ -27,20 +27,22 @@ import { hover, type BodyOffset } from "@/arcade3d/core/motion";
 import { BlobShadow, DynamicInstanced, type InstancePart } from "@/arcade3d/core/render";
 import { HumanoidModel, bodyLift, createPose, useHumanoidPose } from "@/arcade3d/core/rig";
 import { RUNNER_LANDMARKS } from "@/arcade3d/core/sharedAssets";
+import { useLevel } from "@/arcade3d/core/level";
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { useFittedView } from "@/arcade3d/core/useFittedView";
 import { useRunFrame } from "@/arcade3d/core/useRunFrame";
 import { ASSETS, EXPLORER_SCALE } from "./assets";
 import { DetectorRing } from "./Detector";
 import { IslandScene } from "./Island";
-import { PITCH, groundAt, viewFor } from "./looks";
+import type { IslandLevel } from "./levels";
+import { COLORS, PITCH, groundAt, viewFor } from "./looks";
 import { advancePhase, explorerPhaseStep, explorerPose, gaitAmount, type ExplorerLook } from "./poses";
-import { COLORS, ChestPrimitive, ExplorerHat, ExplorerPrimitive, GullPrimitive, useCoinParts } from "./Primitives";
+import { ChestPrimitive, ExplorerHat, ExplorerPrimitive, GullPrimitive, useCoinParts } from "./Primitives";
 import { ExplorerShovel } from "./Shovel";
 import {
    HINT,
    POINTS,
-   TREASURE_COUNT,
+   PROPOSED_LEVEL_LIMITS,
    capScore,
    createRun,
    generateIsland,
@@ -61,6 +63,9 @@ interface Reveals {
    coins: number;
    gems: number;
 }
+
+/** The picked level (level 1 when the levels flag is off). Scene reads it once per run. */
+export const useIslandLevel = () => useLevel<IslandLevel>();
 
 const won = () => {
    const { phase, endReason } = useArcadeStore.getState();
@@ -98,7 +103,7 @@ function Explorer({ run }: { run: RunState }) {
       const lift = body.current;
       if (!g || !lift) return;
       const e = run.explorer;
-      g.position.set(e.x, groundAt(e.x, e.z), e.z);
+      g.position.set(e.x, groundAt(e.x, e.z, run.shape), e.z);
       // on the win it turns to the camera for the cheer
       g.rotation.y = won() ? turnTowards(g.rotation.y, 0, 1 - Math.exp(-5 * time.delta)) : e.heading;
       if (standIn.current) {
@@ -142,8 +147,9 @@ const RISE_S = 0.55;
 const clamp01 = (v: number) => (v < 0 ? 0 : v > 1 ? 1 : v);
 /** Overshoots a little, then settles: the pop of a find. */
 const easeOutBack = (k: number) => 1 + 2.70158 * (k - 1) ** 3 + 1.70158 * (k - 1) ** 2;
-const GEM_COLORS = ["#34d399", "#f43f5e"];
-const COIN_POOL = 10;
+const GEM_COLORS = [COLORS.gemEmerald, COLORS.gemRuby];
+/** Three coin piles (level 5) × five coins. Level 1 uses two piles; the rest of the pool stays hidden. */
+const COIN_POOL = 15;
 const COINS_PER_PILE = 5;
 /** Coins in a pile: x, z offsets (m), the level in the stack and the yaw: four stacked, one beside. */
 const PILE = [
@@ -166,10 +172,17 @@ const UP = new Vector3(0, 1, 0);
 function useHoleParts(): readonly InstancePart[] {
    const parts = useMemo<InstancePart[]>(() => {
       const disc = new Matrix4().makeRotationX(-Math.PI / 2);
+      const inner = new CircleGeometry(0.38, 20);
+      const outer = new RingGeometry(0.36, 0.54, 24);
       return [
          {
-            geometry: new CircleGeometry(0.42, 20),
+            geometry: inner,
             material: new MeshStandardMaterial({ color: COLORS.hole, roughness: 1 }),
+            locals: [disc],
+         },
+         {
+            geometry: outer,
+            material: new MeshStandardMaterial({ color: COLORS.wetSand, roughness: 0.95 }),
             locals: [disc],
          },
       ];
@@ -217,7 +230,8 @@ function Treasures({ run, island, reveals }: { run: RunState; island: Island; re
    };
 
    useFrame(() => {
-      for (let i = 0; i < TREASURE_COUNT; i++) {
+      const n = island.treasures.length;
+      for (let i = 0; i < n; i++) {
          const kind = reveals.kind[i];
          if (kind === "gem") {
             const g = gems.current[reveals.slot[i]];
@@ -237,7 +251,7 @@ function Treasures({ run, island, reveals }: { run: RunState; island: Island; re
 
    return (
       <group name="treasures">
-         <DynamicInstanced count={TREASURE_COUNT} update={placeHole} parts={holeParts} name="holes" />
+         <DynamicInstanced count={island.treasures.length} update={placeHole} parts={holeParts} name="holes" />
          <DynamicInstancedModel asset={ASSETS.coin} count={COIN_POOL} update={placeCoin} fallbackParts={coinParts} name="coins" />
          {GEM_COLORS.map((color, k) => (
             <group
@@ -259,7 +273,7 @@ function Treasures({ run, island, reveals }: { run: RunState; island: Island; re
 
 /** The treasure index of the p-th coin pile, or -1 while it is still buried. */
 function coinPileTreasure(reveals: Reveals, pile: number): number {
-   for (let i = 0; i < TREASURE_COUNT; i++) if (reveals.kind[i] === "coins" && reveals.slot[i] === pile) return i;
+   for (let i = 0; i < reveals.kind.length; i++) if (reveals.kind[i] === "coins" && reveals.slot[i] === pile) return i;
    return -1;
 }
 
@@ -313,23 +327,28 @@ export default function Scene() {
    const input = useInput();
    const fx = useFx();
    // a new island every run: GameShell remounts the Scene (and its game time) on start and retry
-   const [island] = useState(() => generateIsland(randomSeed()));
-   const [run] = useState(() => createRun(island));
+   const { id, config } = useIslandLevel();
+   const [island] = useState(() => generateIsland(randomSeed(), config));
+   const [run] = useState(() => createRun(island, config));
    const [scratch] = useState(() => ({
       step: { dirX: 0, dirZ: 0, digHeld: false, digPressed: false } as StepInput,
       dir: { x: 0, z: 0 },
       at: { x: 0, y: 0, z: 0 },
+      lastDigPuff: 0,
    }));
-   const [reveals] = useState<Reveals>(() => ({
-      at: new Array<number>(TREASURE_COUNT).fill(-1),
-      kind: new Array<TreasureType | null>(TREASURE_COUNT).fill(null),
-      slot: new Array<number>(TREASURE_COUNT).fill(0),
-      coins: 0,
-      gems: 0,
-   }));
+   const [reveals] = useState<Reveals>(() => {
+      const n = island.treasures.length;
+      return {
+         at: new Array<number>(n).fill(-1),
+         kind: new Array<TreasureType | null>(n).fill(null),
+         slot: new Array<number>(n).fill(0),
+         coins: 0,
+         gems: 0,
+      };
+   });
    const [marker] = useState<MarkerTarget[]>(() => [{ x: 0, y: 0.3, z: 0, hidden: true }]);
 
-   useEffect(() => fx.warm("sparkle", "puff", "confetti", "score"), [fx]);
+   useEffect(() => fx.warm("sparkle", "puff", "confetti", "debris", "sparks", "score"), [fx]);
 
    // the game: move or dig, detector, tide, hint, score, end. Only while "playing", before every visual.
    useRunFrame((_state, dt, time) => {
@@ -345,13 +364,20 @@ export default function Scene() {
       const ev = run.events;
       const e = run.explorer;
       at.x = e.x;
-      at.y = groundAt(e.x, e.z) + 0.1;
+      at.y = groundAt(e.x, e.z, run.shape) + 0.1;
       at.z = e.z;
       // TODO(P-06): one detector beep per pulse: if (ev.beep) playSfx("click", { pitch: 0.8 + 0.8 * s, volume: 0.3 + 0.4 * s })
       // TODO(P-06): a "thud" every 0.2 s of a held dig; ev.tide: playSfx("whoosh") and the surf loop to 0.5
-      if (ev.digStarted) fx.burst("puff", at, 5);
+      if (ev.digStarted) {
+         fx.burst("puff", at, 6);
+         scratch.lastDigPuff = time;
+      } else if (run.dig.active && time - scratch.lastDigPuff >= 0.22) {
+         fx.burst("puff", at, 3);
+         scratch.lastDigPuff = time;
+      }
       if (ev.falseDig) {
-         fx.burst("puff", at, 14);
+         fx.burst("puff", at, 16);
+         fx.burst("debris", at, 8);
          playSfx("hit"); // TODO(P-06): at a low volume
       }
       if (ev.found < 0) return;
@@ -364,10 +390,11 @@ export default function Scene() {
       at.x = t.x;
       at.y = 0.4;
       at.z = t.z;
-      fx.burst("sparkle", at, ev.foundType === "chest" ? 30 : 18);
+      fx.burst("sparkle", at, ev.foundType === "chest" ? 36 : 22);
+      if (ev.foundClean) fx.burst("sparks", at, 10);
       at.y = 1.3;
       fx.score(at, ev.foundClean ? `+${POINTS.find + POINTS.clean} clean` : `+${POINTS.find}`, { color: ev.foundClean ? "#fde68a" : "#fff7d6" });
-      if (ev.foundType === "chest") fx.shake(0.18);
+      fx.shake(ev.foundType === "chest" ? 0.22 : 0.08);
       playSfx("pickup"); // TODO(P-06): + "chime" when clean
       const store = useArcadeStore.getState();
       store.addScore(POINTS.find + (ev.foundClean ? POINTS.clean : 0));
@@ -375,9 +402,11 @@ export default function Scene() {
       if (isWon(run)) {
          // the run clock ticked before this callback: timeLeftMs / elapsedMs are this frame's
          const { timeLeftMs, elapsedMs } = useArcadeStore.getState();
-         store.setScore(capScore(runScore(run.found, run.cleanFinds, true, timeLeftMs ?? 0), elapsedMs));
+         store.setScore(capScore(runScore(run.found, run.cleanFinds, true, timeLeftMs ?? 0), elapsedMs, PROPOSED_LEVEL_LIMITS[id]));
          at.y = 1;
-         fx.burst("confetti", at, 40);
+         fx.burst("confetti", at, 45);
+         fx.burst("sparkle", at, 30);
+         fx.shake(0.24);
          store.end("win");
       }
    });

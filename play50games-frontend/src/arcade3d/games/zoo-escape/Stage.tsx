@@ -12,17 +12,18 @@ import {
    Color,
    Matrix4,
    MeshBasicMaterial,
+   MeshStandardMaterial,
    Quaternion,
    Vector3,
    type InstancedMesh,
    type Mesh,
 } from "three";
-import { InstancedModel } from "@/arcade3d/core/assets";
+import { DynamicInstancedModel, InstancedModel, Model, type InstancePart } from "@/arcade3d/core/assets";
 import { SkyDome } from "@/arcade3d/core/env";
 import { useGameTime } from "@/arcade3d/core/gameTime";
 import { fenceSpots } from "@/arcade3d/core/kit";
 import { createPath } from "@/arcade3d/core/path";
-import { DynamicInstanced, Instanced, useCanvasTexture, useInstanceMatrices, type InstanceSpot } from "@/arcade3d/core/render";
+import { DynamicInstanced, Instanced, useInstanceMatrices, type InstanceSpot } from "@/arcade3d/core/render";
 import { ASSETS, BAMBOO_CLUMP, BAMBOO_GLB, BAMBOO_THICKET, BAMBOO_UNIT } from "./assets";
 import { BUSHES, FENCES, LAMPS, PROPS, STAGES, STAGE_KEEPERS, TOWER } from "./level";
 import { COLORS } from "./looks";
@@ -89,13 +90,6 @@ const SPOTS = {
       sx: p.box.max.x - p.box.min.x,
       sy: 2.6,
       sz: p.box.max.z - p.box.min.z,
-   })),
-   awning: spotsOf("kiosk", (p) => ({
-      ...centre(p),
-      y: 2.62,
-      sx: p.box.max.x - p.box.min.x + 0.5,
-      sy: 0.12,
-      sz: p.box.max.z - p.box.min.z + 0.5,
    })),
    bush: BUSHES.filter((b) => b.stage > 0).map((b, i) => ({
       x: (b.box.min.x + b.box.max.x) / 2,
@@ -171,22 +165,6 @@ function Fences() {
       </group>
    );
 }
-
-function Awnings() {
-   const map = useCanvasTexture(128, 32, AWNING);
-   return (
-      <Instanced spots={SPOTS.awning} name="awnings">
-         <boxGeometry args={[1, 1, 1]} />
-         <meshStandardMaterial map={map} roughness={0.7} />
-      </Instanced>
-   );
-}
-const AWNING = (ctx: CanvasRenderingContext2D, w: number, h: number) => {
-   for (let i = 0; i < 8; i++) {
-      ctx.fillStyle = i % 2 ? COLORS.white : COLORS.kioskTrim;
-      ctx.fillRect((i * w) / 8, 0, w / 8, h);
-   }
-};
 
 function glow(m: InstancedMesh | null, opacity: number) {
    if (!m) return;
@@ -341,6 +319,19 @@ function Pickups({ run }: { run: RunState }) {
    const time = useGameTime();
    const snack = useMerged(snackPieces);
    const bundle = useMerged(bundlePieces);
+   // The old merged stand-in rides the same pool update as the GLB (fallbackParts are not scaled by asset.scale).
+   const snackParts = useMemo<readonly InstancePart[]>(
+      () => [
+         {
+            geometry: snack,
+            material: new MeshStandardMaterial({ vertexColors: true, roughness: 0.5, emissive: COLORS.bamboo, emissiveIntensity: 0.25 }),
+         },
+      ],
+      [snack]
+   );
+   useEffect(() => () => {
+      for (const part of snackParts) (part.material as MeshStandardMaterial).dispose();
+   }, [snackParts]);
    const placeSnack = (i: number, m: Matrix4) => {
       const s = run.snacks[i];
       if (!s || s.eaten || s.stage < run.stage) return false;
@@ -377,10 +368,7 @@ function Pickups({ run }: { run: RunState }) {
    };
    return (
       <group name="pickups">
-         <DynamicInstanced count={run.snacks.length} update={placeSnack} name="snacks">
-            <primitive object={snack} attach="geometry" />
-            <meshStandardMaterial vertexColors roughness={0.5} emissive={COLORS.bamboo} emissiveIntensity={0.25} />
-         </DynamicInstanced>
+         <DynamicInstancedModel asset={ASSETS.snack} count={run.snacks.length} update={placeSnack} fallbackParts={snackParts} name="snacks" />
          <DynamicInstanced count={run.snacks.length} update={placeGlow} name="snack-glows">
             <circleGeometry args={[1, 24]} />
             <meshBasicMaterial
@@ -463,13 +451,28 @@ export default function Stage({ run, dusk, reduced = false }: { run: RunState; d
             fallback={<Merged spots={SPOTS.tree} build={treePieces} name="trees" />}
          />
 
-         <Merged spots={SPOTS.kiosk} build={kioskPieces} name="kiosks" />
-         <Awnings />
-         <Merged spots={SPOTS.bush} build={bushPieces} name="bushes" />
+         <InstancedModel
+            asset={ASSETS.kiosk}
+            spots={SPOTS.kiosk}
+            fallback={<Merged spots={SPOTS.kiosk} build={kioskPieces} name="kiosks" />}
+         />
+         <InstancedModel
+            asset={ASSETS.bush}
+            spots={SPOTS.bush}
+            fallback={<Merged spots={SPOTS.bush} build={bushPieces} name="bushes" />}
+         />
 
-         <mesh geometry={tower} position={[TOWER.x, 0, TOWER.z]} rotation-y={-Math.PI / 2} name="tower">
-            <meshStandardMaterial vertexColors roughness={0.6} />
-         </mesh>
+         <Model
+            asset={ASSETS.tower}
+            position={[TOWER.x, 0, TOWER.z]}
+            rotation-y={-Math.PI / 2}
+            name="tower"
+            fallback={
+               <mesh geometry={tower} name="tower">
+                  <meshStandardMaterial vertexColors roughness={0.6} />
+               </mesh>
+            }
+         />
 
          <LampGlows dusk={dusk} />
          <HideOutline run={run} />

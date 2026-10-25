@@ -28,7 +28,8 @@ import Keepers, { SLOTS, assignSlots } from "./Keepers";
 import { STAGES, STAGE_KEEPERS } from "./level";
 import { COLORS, pandaPieces, useMerged } from "./Primitives";
 import Stage from "./Stage";
-import { CLOCK, STATS, TOSS, applyToStore, createRun, stepRun, type RunState, type StepInput } from "./rules";
+import { CLOCK, STATS, applyToStore, createRun, stepRun, type RunState, type StepInput } from "./rules";
+import { useZooLevel } from "./useZooLevel";
 
 /** The panda's waddle: one swing per 0.55 m. */
 const STEP_M = 0.55;
@@ -93,7 +94,8 @@ function Panda({ run }: { run: RunState }) {
    );
 }
 
-export default function Scene() {
+function LevelScene() {
+   const { config } = useZooLevel();
    const width = useThree((s) => s.size.width);
    const height = useThree((s) => s.size.height);
    const view = useFittedView(viewFor(width, height));
@@ -104,7 +106,7 @@ export default function Scene() {
    const level = useArcadeStore((s) => s.level);
    const muted = useMuted();
    const [reduced] = useState(() => typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
-   const [run] = useState(() => createRun(randomSeed()));
+   const [run] = useState(() => createRun(randomSeed(), undefined, config));
    const [scratch] = useState(() => ({
       step: { dirX: 0, dirZ: 0, sneak: false, toss: false } as StepInput,
       dir: { x: 0, z: 0 },
@@ -130,7 +132,7 @@ export default function Scene() {
       store.setStat(STATS.time, CLOCK.startS);
       store.setStat(STATS.snacks, 0);
       store.setStat(STATS.catches, 0);
-      store.setStat(STATS.bamboo, TOSS.perStage);
+      store.setStat(STATS.bamboo, run.level.bundles);
       store.setStat(STATS.card, 0);
    }, [fx]);
    useEffect(() => {
@@ -224,4 +226,10 @@ export default function Scene() {
          <TargetMarkers targets={markers} size={26} />
       </>
    );
+}
+
+/** Remounts when another level is picked, so the keepers are that level's. */
+export default function Scene() {
+   const { id } = useZooLevel();
+   return <LevelScene key={id} />;
 }

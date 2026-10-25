@@ -5,13 +5,26 @@
 // owns Scene.tsx (the frame loop and what moves), rules.ts (the logic), aim.ts (the lob aim) and
 // assets.ts (the models).
 import type { GameDefinition } from "@/arcade3d/core/types";
+import { LEVEL_IDS, type LevelId } from "@/arcade3d/types";
 import Hud from "./Hud";
 import Scene from "./Scene";
 import { ASSETS } from "./assets";
 import { COLORS, FOV, SEA_FOCUS } from "./looks";
+import { LEVELS, type PirateLevel } from "./levels";
 import { DURATION_MS, LIVES, WAVES } from "./rules";
 
-const definition: GameDefinition = {
+const HUD: NonNullable<GameDefinition["hudStats"]> = [{ key: "wave", label: "Wave", max: WAVES.length }];
+
+/** One line under the level tiles. */
+const DESCRIPTIONS: Record<LevelId, string> = {
+   1: "Five waves of pirate ships in 90 seconds. Score 3000 to clear.",
+   2: "Every ship sails a lane farther out, and one more each wave. Score 3500.",
+   3: "Sloops zig-zag from the first wave and every ship is faster. Score 4000.",
+   4: "Two more dinghies a wave, faster again, a stronger wind. Score 4500.",
+   5: "A dinghy and a sloop more each wave, the fastest ships, the strongest wind.",
+};
+
+const definition: GameDefinition<PirateLevel> = {
    slug: "pirate-cannons",
    Scene,
    Hud,
@@ -24,9 +37,10 @@ const definition: GameDefinition = {
    environment: { background: COLORS.sky, fog: [COLORS.sky, 140, 380], lighting: "day" },
    input: { drag: true },
    touchControls: [],
-   hudStats: [{ key: "wave", label: "Wave", max: WAVES.length }],
+   hudStats: HUD,
    // the ship sailing into the harbour and the fort's flag coming down are seen before the result
    resultDelayMs: 1400,
+   levels: LEVEL_IDS.map((id) => ({ id, description: DESCRIPTIONS[id], config: LEVELS[id], hudStats: HUD })),
    instructions: [
       "Drag sideways to turn, pull down to shoot farther.",
       "Release to fire. Tap fires the same aim again.",

@@ -17,7 +17,7 @@ const REACH_IN = HARVEST.reach - 0.04;
 const BEAM = 1.45;
 const DT = 0.05;
 const HORIZON = 10;
-const END = DURATION_S - 0.3;
+const runEnd = (run: RunState) => ((run.level?.durationMs ?? 100_000) / 1000) - 0.3;
 const sp = (n: number) => FARMER.speeds[n] * SLACK;
 const leg = (d: number, n: number) => (d <= 0 ? 0 : LEG_S + d / sp(n));
 
@@ -38,9 +38,11 @@ interface Plan {
 
 /** The ship's XZ every 0.05 s of the run (one table per run). */
 function shipTrack(run: RunState): Float64Array {
-   const n = Math.ceil(DURATION_S / DT) + 2, out = new Float64Array(2 * n), p = { x: 0, y: 0, z: 0 };
+   const dur = (run.level?.durationMs ?? 100_000) / 1000;
+   const n = Math.ceil(dur / DT) + 2, out = new Float64Array(2 * n), p = { x: 0, y: 0, z: 0 };
+   const speeds = run.level?.shipSpeeds;
    for (let i = 0; i < n; i++) {
-      pointAt(SHIP_PATH, run.ship.s0 + run.ship.dir * shipDistance(i * DT), p);
+      pointAt(SHIP_PATH, run.ship.s0 + run.ship.dir * shipDistance(i * DT, speeds), p);
       out[2 * i] = p.x;
       out[2 * i + 1] = p.z;
    }
@@ -48,22 +50,22 @@ function shipTrack(run: RunState): Float64Array {
 }
 
 /** Earliest beam meeting from (x, z) at t0 at speed v: index into the track, or -1. */
-function meet(track: Float64Array, x: number, z: number, t0: number, v: number): number {
+function meet(track: Float64Array, x: number, z: number, t0: number, v: number, end: number): number {
    const n = track.length / 2;
-   for (let i = Math.ceil(t0 / DT) + 1; i < n && i * DT < END; i++) {
+   for (let i = Math.ceil(t0 / DT) + 1; i < n && i * DT < end; i++) {
       if (Math.hypot(track[2 * i] - x, track[2 * i + 1] - z) - BEAM <= v * Math.max(0, i * DT - t0 - LEG_S)) return i;
    }
    return -1;
 }
 
-function candidates(run: RunState, t0: number): Cand[] {
+function candidates(run: RunState, t0: number, end: number): Cand[] {
    const out: Cand[] = [];
    for (const p of run.plots) {
       let k = Math.max(0, cycleIndex(p, Math.max(t0, p.b0)));
       for (let n = 0; n < 2; n++, k++) {
          if (p.picked === k || p.missed === k || p.reserved) continue;
-         const peak = cyclePeak(p, k), w = halfWindow(peak);
-         const open = peak - w + 0.04, close = Math.min(peak + w - 0.05, END - HARVEST.channelS - 0.05);
+         const peak = cyclePeak(p, k), w = halfWindow(peak, p.halfLate);
+         const open = peak - w + 0.04, close = Math.min(peak + w - 0.05, end - HARVEST.channelS - 0.05);
          if (open > t0 + HORIZON) break;
          if (close < t0 || open > close) continue;
          out.push({ plot: p.id, cycle: k, open, close, peak, x: p.x, z: p.z });
@@ -73,7 +75,9 @@ function candidates(run: RunState, t0: number): Cand[] {
 }
 
 export function planLoad(run: RunState, track: Float64Array, fx: number, fz: number, t0: number, cargo: number): Plan {
-   const cands = candidates(run, t0);
+   const end = runEnd(run);
+   const cap = run.level?.capacity ?? HARVEST.capacity;
+   const cands = candidates(run, t0, end);
    const used = new Uint8Array(cands.length);
    const chain: number[] = [], times: number[] = [], perf: boolean[] = [];
    let bestRate = 0, best: Plan = { picks: [], deliver: false };
@@ -85,12 +89,12 @@ export function planLoad(run: RunState, track: Float64Array, fx: number, fz: num
    };
    const dfs = (x: number, z: number, t: number, c: number, pts: number) => {
       if (c > 0) {
-         const i = meet(track, x, z, t, sp(c));
+         const i = meet(track, x, z, t, sp(c), end);
          if (i >= 0) record(pts + SCORE.loadUnit * c * c, i * DT + 0.6, true);
       }
       // a basket the timer will end with still pays its harvests
-      if (c > 0 && chain.length > 0) record(pts, END + 3, false);
-      if (c >= HARVEST.capacity) return;
+      if (c > 0 && chain.length > 0) record(pts, end + 3, false);
+      if (c >= cap) return;
       for (let m = 0; m < cands.length; m++) {
          if (used[m]) continue;
          const cd = cands[m];
@@ -144,7 +148,7 @@ export function oracleBot(): Bot {
       const next = plan.picks[0];
       if (!next) {
          if (plan.deliver && run.cargoCount > 0) {
-            const i = meet(track, f.x, f.z, t, FARMER.speeds[run.cargoCount]);
+            const i = meet(track, f.x, f.z, t, FARMER.speeds[run.cargoCount], runEnd(run));
             if (i >= 0) {
                const dx = track[2 * i] - f.x, dz = track[2 * i + 1] - f.z, d = Math.hypot(dx, dz) || 1;
                input.dirX = dx / d;
@@ -155,7 +159,7 @@ export function oracleBot(): Bot {
       }
       const plot = run.plots[next.plot];
       const dx = f.x - plot.x, dz = f.z - plot.z, d = Math.hypot(dx, dz);
-      const peak = cyclePeak(plot, next.cycle), w = halfWindow(peak);
+      const peak = cyclePeak(plot, next.cycle), w = halfWindow(peak, plot.halfLate);
       const aim = next.perfect ? Math.max(next.press, peak - 0.02) : next.press;
       // full speed at the crop when the press is due on arrival; otherwise wait just inside reach
       const due = t + (d - REACH_IN) / FARMER.speeds[run.cargoCount] >= aim - 0.05;

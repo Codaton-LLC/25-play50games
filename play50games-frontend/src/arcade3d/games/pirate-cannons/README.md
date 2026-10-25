@@ -85,6 +85,26 @@ The provisional 9000 is below what an excellent run can reach (every ship sunk m
 
 **Measured** (`rules.test.ts`, bots on core `simulateRun` with the real store): the oracle bot (lead by `solveLaunch` iterated on the predicted ship, island avoided, a barrel pair when its two blasts would reach 2+ ships, the chest, never two balls on a ship that one more hit sinks) at 60 fps and 20 fps (100 seeds each), 144 Hz (30), random 4–50 ms frames (60) and random frames with random pauses (40): best **8150** (77.6 % of 10500; seed 142553, time-up, 42 shots) at every frame rate, worst 7325–7525; a fire-every-frame spam bot (100 seeds; its buffered press keeps a stale aim) best 1400; a store-driven idle bot (100) scores 0 and loses at ≥ 20.55 s. Every run within the proposed limits, `capScore` a no-op, barrel blasts always in pairs. The store costs ≈ 20 µs a frame, so the 144 Hz, random-frame and pause bots run fewer seeds to keep the file near 45 s. Margins: 2350 under 10500 (the chain bonus needs 2+ ships within a pair's reach: the oracle sets off a few pairs per 100 runs, none yet with 2+ ships); the earliest loss 20.54 s is 1.54 s over 19000 ms. Over 70 %, so 10500 stands (README risk "loose by design"); a tighter limit is possible (Status).
 
+## Levels
+
+One bay, five configurations of the same five waves (`levels.ts`, read through `usePirateLevel`; `createRun(seed, level)`, `generatePlan(seed, level)`). **Level 1 is today's game exactly**: its waves are `WAVES`, sloops zig-zag from wave 4 (levels.test.ts replays 8 seeds of random aims and fire against today's `createRun`). The plan's attempt-limited target gallery (shot limit, win state) is not built; every level is the 90 s / 3-lives wave fight and clears at a score target. Lighting stays `day`; no new models. The ship pools hold the most ships any level sails (`SHIP_POOL`, 32).
+
+A harder level adds ships to every wave, sails every ship one lane farther out (longer shots, a bigger lane bonus), speeds the ships up and strengthens the wind, and zig-zags the sloops from the first wave:
+
+| Level | Title | Extra ships per wave | Lanes | Ship speed | Wind | Sloops zig-zag from | Ships / HP | Clear | Limits (max / min ms / base / pps) |
+|---|---|---|---|---|---|---|---|---|---|
+| 1 | Training Deck | — | today | ×1 | ×1 | wave 4 | 22 / 41 | 3000 | 10500 / 19000 / 1500 / 110 |
+| 2 | Harbor Targets | dinghy | +1 out | ×1 | ×1.2 | wave 4 | 27 / 46 | 3500 | 13125 / 16500 / 1900 / 140 |
+| 3 | Moving Boats | dinghy | +1 out | ×1.1 | ×1.3 | wave 1 | 27 / 46 | 4000 | 13125 / 15500 / 1900 / 140 |
+| 4 | Storm Battle | 2 dinghies | +1 out | ×1.15 | ×1.4 | wave 1 | 32 / 51 | 4500 | 14250 / 13500 / 2000 / 150 |
+| 5 | Captain Challenge | dinghy + sloop | +1 out | ×1.2 | ×1.5 | wave 1 | 32 / 56 | — | 15000 / 13500 / 2100 / 155 |
+
+maxDurationMs is 92000 on every level (the 90 s clock). Level 5's cap is 1.43× level 1's.
+
+**Proof per level** (the steps of "Server limits and why they hold", computed by the same code per level). (1) **Ceiling:** `ceilingAt(Infinity, level)` sums every ship at `1.5 · (100 · HP + lane bonus)`, one barrel pair per wave at `1.5 · 300` and the chest at `1.5 · 300`, seed-independent (fixed multisets): the maxScore column. (2) **Points by time:** `ceilingAt(t, level)` counts each object from its earliest spawn time, worst order; base and pps are chosen so it stays under `base + pps · t` at every spawn time (C(t) only steps there), about 4 % over the tightest step (84–87 s on every level). (3) **Clock:** unchanged. (4) **Earliest loss:** `earliestLoss(level)` gives every spawn slot (no jitter) the fastest straight crossing of any ship in its wave (`harbourRun / (speed · wave speed)`; zig-zags, the gap rule and slot waits only delay), and takes the third: 20.54 / 17.88 / 16.98 / 14.99 / 14.63 s; minDurationMs is 92.5 % of it rounded down to 500 ms (level 1: 19000, as before). 300 idle seeds per level never lose earlier. (5) The generator only permutes each wave's fixed multisets, so all of this holds for every seed.
+
+**Bots** (rules.test.ts's oracle, copied into levels.test.ts with a level and an aim-noise knob, through the real store): the oracle reaches 73–81 % of every level's cap (level 1 77.6 %, as before) at 60 and 20 fps; a human-paced variant (±0.6° aim noise, random 4–50 ms frames) scores 7525–11600 and clears every seed on every level; spam stays legal; idle scores 0 and never clears.
+
 ## Run end
 
 - `"lose"` when the third ship reaches the harbour (`loseLife()` to 0, the store ends the run). `resultDelayMs: 1400`: the ship sailing in and the fort's flag dropping are seen.
@@ -160,6 +180,32 @@ Wind as an arrow plus a number (m/s², one decimal) in the HUD and a streaming f
 - 2026-10-09: the 36° landscape camera is approved (replaces the 14° of the design); the limits stay at max 10500, 19000–92000 ms, base 1500 + 110/s (no tightening to ~9.7k); applied to meta.ts and arcade-games.json (enabled false).
 1. **Aim: relative drag**, as designed: a drag adjusts the cannon from where it is, a tap fires the same aim again. Mini-golf keeps the slingshot.
 2. **Portrait camera: the steeper 30° view of the whole bay**, as designed; revisited after the first phone measurement (see "Small far ships in portrait").
+
+## Look (2026-10-24)
+
+Modern-look pass (CLAUDE.md decision 4):
+- **Lighting & Atmosphere**: core `day` preset crossfade (`useStageLighting`), `<SkyDome>` with Caribbean azure top (`#0284c7`) fading into horizon sky (`#bae6fd`), fog matched to horizon. Luminous turquoise water with vertex waves, white foam crests, and shoreline surf.
+- **Stand-ins & Procedural Props**: Every code-made object is multi-toned from the unified `COLORS` palette, bevelled/rounded:
+  - Fort: stone seawall foundation, limestone ramparts, bevelled coping merlons (`FORT.parapetTop` 2.55 preserved), wooden gun deck, bronze turntable ring, and swallowtail wind flag.
+  - Harbour: stone mole with coping and wooden pilings, banded lighthouse with glowing beacon room, alternating red/white channel buoys.
+  - Island: rules lathe mound with wet-sand rim and breaking surf ring.
+  - Stand-in ship: crafted wooden hull with prow wedge, gunwales, yardarms, crow's nest, and billowing sails.
+  - Stand-in props: coopered powder barrels with black iron hoops, arched wooden treasure chest with gold hasp, cast-iron cannonballs, jewel crest HP pips, segmented palms.
+- **Surroundings outside the play area (`Decor.tsx`)**:
+  - Distant faceted headland cliffs with green turf tops ($z \le -75$), distant cliffside citadel ($z = -92$).
+  - Outer sandy islets with palm groves, reef boulders, and breaking surf rings flanking the bay ($x \le -28$ and $x \ge +28$).
+  - Circling seagulls in the distance ($z = -78$, paused on reduced motion).
+  - High-altitude drifting cumulus clouds ($y \ge 34, z \le -85$, paused on reduced motion).
+  - No gap or void at any screen size; 100% clear of all rays between camera and play area (`decor.test.ts` checks every spot against `PLAY_BOUNDS`).
+- **Juicy feedback**: rich muzzle smoke + sparks on firing, wood-splinter bursts (`debris`) + sparks on hits, foam splashes on water misses, sand puffs on island hits, multi-effect barrel explosions (smoke, sparks, debris).
+- **Draw calls**: Budget $\le 60$. Estimated baseline **39 - 43**, peak with active fx bursts **45 - 50** calls:
+  - Environment (SkyDome 1, Water 1, far sea 1): 3
+  - Fort & Platform (base/ramparts 1, moulding 1, gun deck 1, merlons 1, flagpole/flag 2, turntable/reload rings 2): 8
+  - Cannon & Projectiles (cannon 1, dots 1, landing ring 1, cannonballs 1): 4
+  - Bay rules props (island mound 1, wet sand/surf rings 2, island palms 2, buoys 2, mole & lighthouse 5): 12
+  - Ships & Floaters (ships 1, pennants 1, sails 1, pips 1, barrels 1, chest 1, flotsam 1): 7
+  - Surroundings / Decor (cliffs 2, citadel 1, islets 1, surf rings 1, reef rocks 1, palm trunks/crowns 2, clouds 1, gulls 1): 10
+  - FX pools (when active): ~5-7
 
 ## Status
 

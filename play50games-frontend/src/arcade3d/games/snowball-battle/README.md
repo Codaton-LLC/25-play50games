@@ -59,6 +59,34 @@ A scoop-throw cycle pockets one ball per 0.50 s, and flight is at least 0.65 s, 
 
 At 10.9 s, 2,550,000 ≤ 600,000 + 190·10900 = 2,671,000. A forged 2550 at 10.00 s fails (allowed 2500). `capScore` changes none of these rows. minDuration 10000 sits under the 10.65 s loss chain, so the idle bot (score 0 at ~10.65 s) passes. maxDuration 92000 sits 2 s over the 90 s clock.
 
+## Levels
+
+One yard, five configurations (`levels.ts`). Level 1 is the fight above: same rivals, same 90 s clock, same limits. A level clears on a win (all three rivals knocked out). There is no `clearScore`, no shot counter and no combo: a hit stays 100, and a run still ends on a win, a loss or the clock. Lighting stays `snow` on every level. Each later level keeps every harder knob from the level before it.
+
+The plan's stationary gallery, attempt limit and combo scoring have no supporting code. "More stations" is the AI and the forts already in the yard, not new geometry. "Faster targets" (level 4) is a shorter wind-up and a sooner dodge; the hit spheres stay the sizes the pose tests pin. "Strict attempt limit" (level 5) is not built.
+
+| Level | Title | What changes from the level before | Clear | Limits |
+|---|---|---|---|---|
+| 1 | Snow Yard | today's game | win | 2550 / 10000–92000 / base 600 / 190 pps |
+| 2 | Frozen Park | speed 4.5→4, dodge `[0.30, 0.25, 0.20]`, throw cap 14 m / 0.85 s → 18 m / 0.95 s | win | same as level 1 |
+| 3 | Snow Fort | sneaker 10→8 s, two-peek slot 60→30 s | win | 2550 / 8000–92000 / 600 / 230 |
+| 4 | Ice Village | wind-up 1.2→1.0 s, dodge `[0.25, 0.20, 0.15]`, fort HP 3→2 | win | 2550 / 8000–92000 / 600 / 230 |
+| 5 | Championship Arena | two-peek slot from 0 s, sneaker 8→5 s, dodge `[0.20, 0.17, 0.14]` | win | 2550 / 5000–92000 / 600 / 348 |
+
+The hit cap is 2550 on every level (9×100 + 3×300 + 500 + 250), so a harder level never offers fewer points than level 1, and level 5 is under 3×. The clock stays 90 s, so `maxDurationMs` stays 92000.
+
+**Level 2.** `flightFar` 0.95 at `distFar` 18 has the same lerp slope as level 1: (0.85−0.65)/(14−6) = (0.95−0.65)/(18−6) = 0.025 s/m. Flight at 14 m and under is unchanged, and the minimum flight is still 0.65, so the scoop bound `0.5k + 0.65` and `EARLIEST` do not move. Speed and dodge do not add a score source. The level 1 proof is the level 2 proof.
+
+**Level 3.** The third rival can be hit at 8.00 / 8.45 / 8.90 s in the same stagger model (ammo already packed). `B(8.9) = 2550`. (2550−600)/8.9 = 219.1, and 230 pps is 4.97 % over that slope: 600000 + 230·8900 = 2,647,000 ≥ 2,550,000. A forged 2550 at 8.45 s fails (allowed 2543). The two-peek slot opens at 30 s, after the one-slot loss at 10.65 s, so the loss chain does not move. minDuration 8000 sits 0.9 s under the 8.9 s clear.
+
+**Level 4.** The score schedule is level 3's (the sneaker is still at 8 s). Wind-up 1.0 s shortens the one-slot loss to cover 0.80 + peek 0.40 + wind-up 1.00 = 2.20 s, then four gaps of recover 0.30 + peek 0.40 + wind-up 1.00 = 1.70 s, plus flight 0.65: **9.65 s**. That is still after the 8.9 s clear, so the same 230 pps / 8000 ms window holds. The punish window the witness uses is reaction 0.20 s inside a 1.00 s wind-up, then recover 0.30 s of root: a ball thrown at 0.20 s still lands during the root at the witness's 12 m range (flight 0.80 s on the level 2 line, arrival at 1.00 s). Fort HP does not pay points.
+
+**Level 5.** Sneaker at 5 s: hits at 5.00 / 5.45 / 5.90, `B(5.9) = 2550`. (2550−600)/5.9 = 330.5; 348 pps is `ceil` of 5 % over that slope. 600000 + 348·5900 = 2,653,200 ≥ 2,550,000. A forged 2550 at 5.45 s fails (allowed 2496). Two peek slots from the start put the fifth tag on the third beat of the slot clock: 2.20 + 0.65 + 2×1.70 = **6.25 s**. That is the lower bound (it ignores the walk between forts). minDuration 5000 sits 0.9 s under the 5.9 s clear, which is earlier than that bound.
+
+`PROPOSED_LEVEL_LIMITS` in `rules.ts` is copied into `arcade-games.json` (`levels`, review 2026-10-25); `registry.sync.test.ts` checks the two agree.
+
+**Review tests (levels.test.ts "the simulation reads the level").** Each level knob is checked in the running simulation, not only as data: the sneaker joins at `sneakerAt`, a wind-up lasts `windup`, two rivals share the slot only from `slotAt`, the dodge waits `dodgeAt`, the player's top speed is `speed`, a 16 m rival throw flies `flightTime(16, level)`, an exposed idle player is never tagged out before `lossChainS(level)` (12 seeds per level), and the oracle's running score stays under each level's line on every frame (20 seeds). Reverting any one call site in `rules.ts` to the level-1 constant fails a test. Note: the bots barely feel levels 1-4 (witness and oracle win 60/60 with 0 tags); level 5 is the first where they take tags (59/60).
+
 ## Run end
 
 - `end("win")` on the frame the ninth tag lands, after `setScore` of the full formula. `resultDelayMs: 1200` (cheer, confetti).
@@ -98,7 +126,7 @@ The kid GLB is not tinted. Team colour is the attachment mesh's own material. `a
 
 ## Files
 
-`meta.ts` · `index.tsx` · `rules.ts` · `rules.test.ts` · `poses.ts` · `poses.test.ts` · `assets.ts` · `assets.test.ts` · `Scene.tsx` · `Yard.tsx` · `Kids.tsx` · `Balls.tsx` · `Hud.tsx` · `Hud.module.css` · `Primitives.tsx` · `assets.spec.json` · `README.md`. Thumbnail and `tools/thumbs/inputs/snowball-battle.mjs` come with the build, not this design.
+`meta.ts` · `index.tsx` · `rules.ts` · `rules.test.ts` · `levels.ts` · `levels.test.ts` · `useSnowLevel.ts` · `poses.ts` · `poses.test.ts` · `assets.ts` · `assets.test.ts` · `Scene.tsx` · `Yard.tsx` · `Kids.tsx` · `Balls.tsx` · `Hud.tsx` · `Hud.module.css` · `Primitives.tsx` · `assets.spec.json` · `README.md`. Thumbnail and `tools/thumbs/inputs/snowball-battle.mjs` come with the build, not this design.
 
 ## Test plan
 

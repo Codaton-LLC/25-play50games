@@ -2,6 +2,8 @@
 // Crane and pendulum advance only inside fixedStep (1/120 s).
 import { createFixedStep, fixedStep, stepPendulum2D, type FixedStepState, type Pendulum2D } from "@/arcade3d/core/kinematics";
 import { rngNext, type RngState } from "@/arcade3d/core/math";
+import type { LevelId, ScoringRules } from "@/arcade3d/types";
+import { LEVELS, type CraneLevel } from "./levels";
 
 export const CLOCK_S = 240;
 export const JIB_Y = 10;
@@ -40,6 +42,15 @@ export const PILE_R = 7;
 export const SLOT_R = 9.5;
 export const BUILDING_BONUS = 500;
 export const TIME_BONUS = 5;
+
+/**
+ * Per-level limits (README "Levels"): every level builds the same 36 pieces in the same 240 s, and the
+ * proof uses only the 7.8 / 8.9 radius gates, the 0.25 s dwell, the piece points and the bonuses, none
+ * of which a level changes, so every level keeps 6100 / 9000-242000 ms / base 0 / 150 pts/s. A miss
+ * still costs 12 stability on every level, so a collapse still needs 9 drops (t(9) = 11.05 s).
+ */
+const SHIFT_LIMITS: ScoringRules = { kind: "points", maxScore: 6100, minDurationMs: 9000, maxDurationMs: 242000, base: 0, maxPointsPerSec: 150, unitLabel: "pts", display: "int" };
+export const PROPOSED_LEVEL_LIMITS: Record<LevelId, ScoringRules> = { 1: SHIFT_LIMITS, 2: SHIFT_LIMITS, 3: SHIFT_LIMITS, 4: SHIFT_LIMITS, 5: SHIFT_LIMITS };
 
 export const PILE_A = [-0.45, -0.15, 0, 0.15, 0.45] as const;
 export const SLOT_A = [-0.45, -0.15, 0.15, 0.45] as const;
@@ -81,6 +92,8 @@ export interface Placed {
 }
 
 export interface Run {
+   /** the level this run was built from; level 1 is the module constants */
+   level: CraneLevel;
    windowStyle: 0 | 1;
    roofStyle: 0 | 1;
    angle: number;
@@ -215,8 +228,8 @@ export function clampSwing(swing: Pendulum2D): void {
    }
 }
 
-export function rateLanding(dist: number, tower: boolean): number {
-   const scale = tower ? TOWER_BAND : 1;
+export function rateLanding(dist: number, tower: boolean, band = 1): number {
+   const scale = (tower ? TOWER_BAND : 1) * band;
    if (dist < PERFECT * scale) return 0;
    if (dist < GOOD * scale) return 1;
    if (dist < OK_BAND * scale) return 2;
@@ -307,15 +320,16 @@ function refreshGuide(run: Run): void {
       return;
    }
    const dist = predict(run, step);
-   const rating = rateLanding(dist, step.building === 2);
+   const rating = rateLanding(dist, step.building === 2, run.level.band);
    run.guide = rating === 0 ? 2 : rating < 3 ? 1 : 0;
 }
 
-export function createRun(seed: number): Run {
+export function createRun(seed: number, level: CraneLevel = LEVELS[1]): Run {
    const rng: RngState = { s: seed >>> 0 };
    const pieces: Placed[] = [];
    for (let i = 0; i < 16; i++) pieces.push({ on: 0, kind: 0, slot: 0, floor: 0 });
    const run: Run = {
+      level,
       windowStyle: rngNext(rng) < 0.5 ? 0 : 1,
       roofStyle: rngNext(rng) < 0.5 ? 0 : 1,
       angle: 0,
@@ -374,7 +388,7 @@ function integrate(run: Run, rot: number, radial: number, gust: number, dt: numb
    if (run.radius <= RADIUS_MIN && run.vr < 0) run.vr = 0;
    const angAcc = (run.omega - prevW) / dt;
    const radAcc = (run.vr - prevVr) / dt;
-   const wind = gust ? WIND : 0;
+   const wind = gust ? run.level.wind : 0;
    pivotAccel(run.angle, run.radius, run.omega, angAcc, radAcc, wind, scratch);
    run.rawAccel = Math.max(run.rawAccel, scratch.raw);
    run.cappedAccel = Math.max(run.cappedAccel, Math.hypot(scratch.x, scratch.z));
@@ -423,7 +437,8 @@ function onPlaced(run: Run, step: PlanStep, rating: number): void {
       piece.slot = step.slot;
       piece.floor = step.floor;
    }
-   run.stability += STAB_HIT[rating];
+   // good and ok landings cost the level's share; a perfect costs 0 and a miss stays 12 (README "Levels")
+   run.stability += rating === 3 ? STAB_HIT[3] : STAB_HIT[rating] * run.level.stab;
    const points = POINTS[rating];
    run.score += points;
    run.gained += points;
@@ -458,7 +473,7 @@ function tryDrop(run: Run): void {
    if (!step) return;
    if (run.radius < dropRadius(step.building)) return;
    const dist = predict(run, step);
-   const rating = rateLanding(dist, step.building === 2);
+   const rating = rateLanding(dist, step.building === 2, run.level.band);
    run.dropRating = rating;
    if (rating === 3) {
       run.carried = -1;
@@ -490,12 +505,13 @@ export function stepRun(run: Run, input: CraneInput, dt: number): void {
       return;
    }
    if (run.lock > 0) run.lock = Math.max(0, run.lock - dt);
-   const tower = run.cheer <= 0 && buildingNow(run) === 2;
+   // towerTime is the windy building time: from the level's gustFrom building on (level 1: the tower)
+   const tower = run.cheer <= 0 && buildingNow(run) >= run.level.gustFrom;
    if (tower) {
       if (run.towerTime < 0) run.towerTime = 0;
       run.towerTime += dt;
    }
-   const gust = run.towerTime >= 0 && tower && run.towerTime % 7 < 1;
+   const gust = run.towerTime >= 0 && tower && run.towerTime % run.level.gustPeriod < 1;
    tick.run = run;
    tick.rot = input.rot;
    tick.radial = input.radial;

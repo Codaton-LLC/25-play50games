@@ -2,6 +2,8 @@ import { circlesOverlapXZ } from "@/arcade3d/core/collision";
 import { substep } from "@/arcade3d/core/kinematics";
 import { createRng } from "@/arcade3d/core/math";
 import { createPath, createPathGraph, pointAt, tangentAt, type Path, type PathGraph } from "@/arcade3d/core/path";
+import type { LevelId, ScoringRules } from "@/arcade3d/types";
+import { LEVELS, formIndex, slotsAt, type SlideLevel } from "./levels";
 
 export const COURSE = { chunk: 60, radius: 0.35, width: 3.5, narrow: 2.25, split: 1.25, corridor: 0.6, taper: 20, preview: 20, separation: 12, attempts: 16 } as const;
 export const DRIVE = { initial: 8, max: 22, lateral: 4, smoothing: 4, impulse: 0.1, carve: 0.02, crashSpeed: 0.6, tumble: 1, step: 1 / 120 } as const;
@@ -9,6 +11,20 @@ export const AIR = { hopTime: 0.6, hopHeight: 0.5, rampHeight: 1.2, rate: 600, t
 export const CLOCK = { initial: 30, gate: 8, ceiling: 180, firstGate: 120, gateSpacing: 120, gateGrowth: 60, gateGrowthCount: 10 } as const;
 export const POINTS = { fish: 10, spin: 50, fishBudget: 12, fishSpacing: 3, fishReach: 0.55, fishHeight: 0.6 } as const;
 export const PROPOSED_LIMITS = { kind: "points", maxScore: 18700, minDurationMs: 9000, maxDurationMs: 182000, base: 440, maxPointsPerSec: 104, unitLabel: "pts", display: "int" } as const;
+/**
+ * Per-level limits (README "Levels"). Every level keeps level 1's proof: the bound uses only the 22 m/s
+ * cap, the 180 s ceiling, the per-chunk fish budget (12) and ramp award (<= 100), and the 12 m first
+ * obstacle and spacing, none of which a level changes. A level changes the obstacle count, the form
+ * mix and the starting clock (>= 30 s), so the same 18700 / 9000-182000 ms / 440 + 104 t window holds,
+ * and no level offers fewer points than level 1.
+ */
+export const PROPOSED_LEVEL_LIMITS: Record<LevelId, ScoringRules> = {
+   1: PROPOSED_LIMITS,
+   2: PROPOSED_LIMITS,
+   3: PROPOSED_LIMITS,
+   4: PROPOSED_LIMITS,
+   5: PROPOSED_LIMITS,
+};
 const DEG = Math.PI / 180;
 const FORMS = ["straight", "curve", "s-bend", "ramp", "narrow", "split"] as const;
 export type Form = typeof FORMS[number];
@@ -29,6 +45,8 @@ export interface Run {
    gateIndex: number; gateS: number; assist: boolean; end: "lose" | "timeup" | null; chunks: Chunk[];
    events: { score: number; fish: number; spins: number; crash: boolean; gate: boolean; hop: boolean };
    target: number; step: (dt: number) => void;
+   /** the level this run was built from; level 1 is the module constants */
+   level: SlideLevel;
    scratch: { a: Point; b: Point; closest: Point; obstacle: Point; tangent: Point };
 }
 
@@ -110,9 +128,9 @@ function splitPaths(entry: Entry, grade: number): [Path, Path] {
    return [make(length, -1), make(length, 1)];
 }
 
-export function generateChunk(seed: number, index: number, entry: Entry, elapsed: number, attempt = 0, accept: (chunk: Chunk) => boolean = validChunk): Chunk {
+export function generateChunk(seed: number, index: number, entry: Entry, elapsed: number, attempt = 0, accept: (chunk: Chunk) => boolean = validChunk, level: SlideLevel = LEVELS[1]): Chunk {
    const rng = createRng((seed ^ Math.imul(index + 1, 0x9e3779b1) ^ Math.imul(attempt, 0x85ebca6b)) >>> 0);
-   const form: Form = index <= 0 ? "straight" : FORMS[Math.floor(rng() * FORMS.length)];
+   const form: Form = index <= 0 ? "straight" : FORMS[formIndex(level, rng())];
    const grade = index <= 0 ? entry.grade : 0.03 + rng() * 0.05;
    const branches = form === "split" ? splitPaths(entry, grade) : null;
    const path = branches ? branches[0] : pathFor(entry, grade, form, rng() * 2 - 1);
@@ -123,7 +141,7 @@ export function generateChunk(seed: number, index: number, entry: Entry, elapsed
    const c: Chunk = { index, entry: { ...entry }, exit, grade, form, path, branches, graph, fish: [], obstacles: [], ramp: null, attempts: attempt + 1, fallback: false };
    if (index <= 0) return c;
    const start = index * COURSE.chunk;
-   const count = 2 + Math.floor(3 * Math.min(elapsed / 120, 1));
+   const count = slotsAt(level, elapsed);
    for (let i = 0; i < count; i++) {
       const s = start + 3 + i * COURSE.separation;
       const kind = (["ice", "snowman", "crack"] as const)[Math.floor(rng() * 3)];
@@ -143,7 +161,7 @@ export function generateChunk(seed: number, index: number, entry: Entry, elapsed
    }
    if (form === "ramp") c.ramp = { id: `${seed}:${index}:r`, s: start + 24, d: safeCentre(c, 24) + 1.5, branch: 0, used: false };
    if (!accept(c)) {
-      if (attempt + 1 < COURSE.attempts) return generateChunk(seed, index, entry, elapsed, attempt + 1, accept);
+      if (attempt + 1 < COURSE.attempts) return generateChunk(seed, index, entry, elapsed, attempt + 1, accept, level);
       c.form = "straight";
       c.path = pathFor(entry, grade, "straight", 0);
       c.branches = null;
@@ -180,14 +198,14 @@ export function validChunk(c: Chunk): boolean {
    return true;
 }
 
-export function createRun(seed: number, assist = false): Run {
+export function createRun(seed: number, assist = false, level: SlideLevel = LEVELS[1]): Run {
    const entry: Entry = { x: 0, y: 0, z: 0, heading: 0, grade: 0.08 };
-   const current = generateChunk(seed, 0, entry, 0);
+   const current = generateChunk(seed, 0, entry, 0, 0, validChunk, level);
    const preceding = COURSE.chunk / Math.sqrt(1 + entry.grade * entry.grade);
-   const previous = generateChunk(seed, -1, { ...entry, y: preceding * entry.grade, z: -preceding }, 0);
-   const next = generateChunk(seed, 1, current.exit, 0);
+   const previous = generateChunk(seed, -1, { ...entry, y: preceding * entry.grade, z: -preceding }, 0, 0, validChunk, level);
+   const next = generateChunk(seed, 1, current.exit, 0, 0, validChunk, level);
    const run: Run = {
-      seed, s: 0, d: 0, speed: DRIVE.initial, steer: 0, impulse: 0, impulseTime: 0, elapsed: 0, remaining: CLOCK.initial,
+      seed, s: 0, d: 0, speed: DRIVE.initial, steer: 0, impulse: 0, impulseTime: 0, elapsed: 0, remaining: level.clock, level,
       crashes: 0, tumble: 0, air: 0, airDuration: 0, rampAir: false, yaw: 0, branch: 0, fishCollected: 0, trickPoints: 0,
       gates: 0, gateIndex: 0, gateS: CLOCK.firstGate, assist, end: null, chunks: [previous, current, next], target: 0,
       events: { score: 0, fish: 0, spins: 0, crash: false, gate: false, hop: false }, step: () => {},
@@ -234,7 +252,7 @@ function recycle(r: Run): void {
    if (r.s < (r.chunks[1].index + 1) * COURSE.chunk) return;
    r.chunks[0] = r.chunks[1];
    r.chunks[1] = r.chunks[2];
-   r.chunks[2] = generateChunk(r.seed, r.chunks[1].index + 1, r.chunks[1].exit, r.elapsed);
+   r.chunks[2] = generateChunk(r.seed, r.chunks[1].index + 1, r.chunks[1].exit, r.elapsed, 0, validChunk, r.level);
    r.branch = 0;
 }
 

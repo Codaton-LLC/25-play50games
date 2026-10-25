@@ -9,7 +9,7 @@ import { rngNext } from "@/arcade3d/core/math";
 export const DURATION_MS = 600000;
 export const MAX_STEP_MS = 50;
 export const ARENA = { halfX: 6, halfZ: 5 } as const;
-export const RUNNER = { radius: 0.35, speed: 1.8, accel: 6, brake: 8 } as const;
+export const RUNNER = { radius: 0.35, speed: 2.6, accel: 8.5, brake: 11 } as const;
 export const START = { x: 0, z: 4 } as const;
 export const INSPECT_REACH = 1;
 export const OPEN_MS = 1100;
@@ -27,7 +27,8 @@ export const DOOR_POSITION = { x: 0, z: -4.2 } as const;
 /**
  * README proof: the shortest route over every layout and visit order (start, the three item stations'
  * reach circles, the door's), 15.48396 m, rounded down. With the speed cap and the 7800 ms of actions
- * a win needs at least 16400 ms (the start from rest after each action, left out here, adds ~0.6 s).
+ * a win needs at least 13754 ms (acceleration and obstacles only add time); meta.scoring's
+ * minDurationMs (13654) is 100 ms below it.
  */
 export const MIN_ROUTE = 15.48;
 export const MIN_FINISH_MS = Math.ceil(MIN_ROUTE / RUNNER.speed * 1000) + 3 * (OPEN_MS + RETRIEVE_MS) + UNLOCK_MS + DOOR_OPEN_MS;

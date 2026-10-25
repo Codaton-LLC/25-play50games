@@ -136,8 +136,8 @@ Edited only by Claude ("assets + limits" PR). Must match each game's `meta.scori
     "escape-room": {
       "title": "Tiny Escape Room",
       "kind": "time",
-      "max_score": 58370,
-      "min_duration_ms": 16300,
+      "max_score": 58634,
+      "min_duration_ms": 13654,
       "max_duration_ms": 600000,
       "time_base_ms": 600000,
       "enabled": false
