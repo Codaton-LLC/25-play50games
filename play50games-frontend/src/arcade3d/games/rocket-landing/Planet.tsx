@@ -3,7 +3,7 @@ import { useEffect, useState, useRef, useMemo } from "react";
 import { useFrame } from "@react-three/fiber";
 import { BufferGeometry, BufferAttribute, Color, type Group, type Mesh, type MeshStandardMaterial } from "three";
 import { PLANETS, WORLD, padX, type Run } from "./rules";
-import { ASSETS, BEACON_LIGHTS, flattenLandingPadCone } from "./assets";
+import { ASSETS, BEACON_LIGHTS, BEACON_SIZE, beaconScaleX, flattenLandingPadCone } from "./assets";
 import { ModelErrorBoundary, assetScale, useModel } from "@/arcade3d/core/assets";
 const COLORS = PLANETS.map((p) => new Color(p.color));
 
@@ -42,7 +42,7 @@ function LandingPadModel() {
 }
 
 export default function Planet({ run }: { run: Run }) {
-   const pad = useRef<Group>(null), roof = useRef<Mesh>(null), ground = useRef<Mesh>(null);
+   const pad = useRef<Group>(null), beacons = useRef<(Mesh | null)[]>([]), roof = useRef<Mesh>(null), ground = useRef<Mesh>(null);
    const [data] = useState(() => {
       const geometry = new BufferGeometry(), position = new BufferAttribute(new Float32Array(12 * 18 * 3), 3), normal = new BufferAttribute(new Float32Array(12 * 18 * 3), 3);
       geometry.setAttribute("position", position);
@@ -51,7 +51,7 @@ export default function Planet({ run }: { run: Run }) {
    });
    useEffect(() => () => data.geometry.dispose(), [data]);
    useFrame(() => {
-      if (pad.current) { pad.current.position.x = padX(run.layouts[run.planet], run.planet, run.attemptTime); pad.current.scale.x = PLANETS[run.planet].width; }
+      if (pad.current) { pad.current.position.x = padX(run.layouts[run.planet], run.planet, run.attemptTime); pad.current.scale.x = PLANETS[run.planet].width; for (const b of beacons.current) if (b) b.scale.x = beaconScaleX(PLANETS[run.planet].width); }
       if (roof.current) roof.current.visible = run.planet === 4;
       if (data.planet === run.planet) return;
       data.planet = run.planet;
@@ -77,8 +77,8 @@ export default function Planet({ run }: { run: Run }) {
             <LandingPadModel />
          </ModelErrorBoundary>
          {BEACON_LIGHTS.map((b, i) => (
-            <mesh key={i} position={[b.x, b.y, b.z]}>
-               <cylinderGeometry args={[0.025, 0.03, 0.04, 8]} />
+            <mesh key={i} ref={(m) => { beacons.current[i] = m; }} position={[b.x, b.y, b.z]} scale-x={beaconScaleX(PLANETS[run.planet].width)}>
+               <cylinderGeometry args={[BEACON_SIZE.top, BEACON_SIZE.bottom, BEACON_SIZE.height, 12]} />
                <meshStandardMaterial color="#34d399" emissive="#34d399" emissiveIntensity={0.8} />
             </mesh>
          ))}
