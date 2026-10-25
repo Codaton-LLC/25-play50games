@@ -2,7 +2,7 @@
 import { useEffect, useState, useRef, useMemo } from "react";
 import { useFrame } from "@react-three/fiber";
 import { BufferGeometry, BufferAttribute, Color, type Group, type Mesh, type MeshStandardMaterial } from "three";
-import { PLANETS, padX, type Run } from "./rules";
+import { PLANETS, WORLD, padX, type Run } from "./rules";
 import { ASSETS, BEACON_LIGHTS, flattenLandingPadCone } from "./assets";
 import { ModelErrorBoundary, assetScale, useModel } from "@/arcade3d/core/assets";
 const COLORS = PLANETS.map((p) => new Color(p.color));
@@ -72,7 +72,7 @@ export default function Planet({ run }: { run: Run }) {
    });
    return <group>
       <mesh ref={ground} geometry={data.geometry} frustumCulled={false}><meshStandardMaterial color={PLANETS[0].color} roughness={1} /></mesh>
-      <group ref={pad} position={[0, 1.8, 0]}>
+      <group ref={pad} position={[0, WORLD.padY - WORLD.padThickness / 2, 0]}>
          <ModelErrorBoundary fallback={<FallbackPad />}>
             <LandingPadModel />
          </ModelErrorBoundary>

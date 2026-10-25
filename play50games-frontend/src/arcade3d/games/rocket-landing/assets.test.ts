@@ -3,6 +3,7 @@ import { BufferGeometry, Float32BufferAttribute, Group, Mesh, Vector3, Box3 } fr
 import { modelParts } from "@/arcade3d/core/assets";
 import { readCharacterGlb } from "@/arcade3d/core/rig/robotGlb";
 import { hasModel } from "@/arcade3d/core/modelManifest";
+import { WORLD } from "./rules";
 import {
    ASSETS,
    BEACON_LIGHTS,
@@ -112,6 +113,9 @@ describe("measured landing pad fit", () => {
          expect(deck).toBeCloseTo(0.2, 5);
          // the beacon cone is flattened down to deckTop so it does not poke above +0.2
          expect(box.max.y).toBeCloseTo(0.2, 5);
+         // Planet.tsx stands the pad group at WORLD.padY - padThickness / 2, so the drawn deck is the
+         // physics landing surface WORLD.padY (rules' pad rectangle tops out there)
+         expect(WORLD.padY - WORLD.padThickness / 2 + deck).toBeCloseTo(WORLD.padY, 5);
       } finally { geometry.dispose(); }
    });
    it("beacon geometry on the rim does not intersect the pad's top surface footprint", () => {
