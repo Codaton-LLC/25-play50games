@@ -415,7 +415,14 @@
       "max_duration_ms": 200000,
       "base": 4500,
       "max_pps": 4500,
-      "enabled": false
+      "enabled": false,
+      "levels": [
+        { "title": "Small Enclosure", "max_score": 4500, "min_duration_ms": 20000, "max_duration_ms": 200000, "base": 4500, "max_pps": 4500 },
+        { "title": "Safari Zone", "max_score": 4500, "min_duration_ms": 20000, "max_duration_ms": 200000, "base": 4500, "max_pps": 4500 },
+        { "title": "Bird Garden", "max_score": 4500, "min_duration_ms": 20000, "max_duration_ms": 200000, "base": 4500, "max_pps": 4500 },
+        { "title": "Central Zoo", "max_score": 4500, "min_duration_ms": 20000, "max_duration_ms": 200000, "base": 4500, "max_pps": 4500 },
+        { "title": "Night Escape", "max_score": 4500, "min_duration_ms": 20000, "max_duration_ms": 200000, "base": 4500, "max_pps": 4500 }
+      ]
     },
     "rocket-landing": {
       "title": "Rocket Landing Challenge",

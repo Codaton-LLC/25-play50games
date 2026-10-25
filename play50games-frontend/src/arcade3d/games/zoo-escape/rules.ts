@@ -6,7 +6,8 @@ import { hasLineOfSightXZ, inViewCone, investigate, stepPatrol, type Agent, type
 import { createPath, type Path } from "@/arcade3d/core/path";
 import { launchForTime } from "@/arcade3d/core/ballistics";
 import { rngNext, turnTowards } from "@/arcade3d/core/math";
-import type { ScoringRules } from "@/arcade3d/types";
+import type { LevelId, ScoringRules } from "@/arcade3d/types";
+import { LEVELS, type ZooLevel } from "./levels";
 import {
    BARS, BAR_DROP, BLOCKERS, BUSHES, CORNER_WAIT, CYCLES, KEEPERS, MAP, ROUTE_SPEED, SNACK_CANDIDATES, SOLIDS, STAGES, STAGE_KEEPERS, TOWER, stageAt, type StageIndex,
 } from "./level";
@@ -53,6 +54,16 @@ export const PROPOSED_LIMITS: ScoringRules = {
    display: "int",
 };
 
+/**
+ * Per-level proven limits (README "Levels"): a level changes only the catch time, the meter decay, the
+ * keepers' investigate speed, the bundles and the catch penalty. The bound B(k) uses only the route
+ * floor, the walk speed, the snacks, the win bonus and the clock; catches only take points and time
+ * away, and the earliest end is still three bump catches after 1 s grace with two 1.2 s cards (5.4 s).
+ * So every level keeps PROPOSED_LIMITS. meta.ts still serves the provisional block on every level
+ * until Claude's go-live PR switches all five together.
+ */
+export const PROPOSED_LEVEL_LIMITS: Record<LevelId, ScoringRules> = { 1: PROPOSED_LIMITS, 2: PROPOSED_LIMITS, 3: PROPOSED_LIMITS, 4: PROPOSED_LIMITS, 5: PROPOSED_LIMITS };
+
 export type Kind = "seen" | "heard" | "bamboo" | "radio";
 const PRIORITY: Record<Kind, number> = { bamboo: 1, heard: 2, radio: 2, seen: 3 };
 export type CatchReason = "seen" | "light" | "found" | "bump";
@@ -69,6 +80,8 @@ const INVESTIGATE: Record<Kind, PatrolOptions> = {
 };
 
 export interface Keeper {
+   /** the run's investigate options (the level's investigate speed) */
+   inv: Record<Kind, PatrolOptions>;
    index: number;
    stage: StageIndex;
    agent: Agent;
@@ -114,6 +127,8 @@ export interface RunEvents {
 }
 
 export interface RunState {
+   /** the level this run was built from; level 1 is the module constants */
+   level: ZooLevel;
    seed: number;
    time: number;
    timeLeft: number;
@@ -169,7 +184,7 @@ function newKeeper(index: number, offset: number): Keeper {
    const agent: Agent = { x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, yaw: 0 };
    const patrol: PatrolState = { index: 1, wait: 0, mode: "patrol", target: { x: 0, y: 0, z: 0 } };
    placeOnSchedule(agent, patrol, index, offset);
-   return { index, stage: KEEPERS[index].stage, agent, patrol, offset, meter: 0, seeing: false, lastSeen: { x: 0, y: 0, z: 0 }, kind: null, hearCooldown: 0 };
+   return { inv: INVESTIGATE, index, stage: KEEPERS[index].stage, agent, patrol, offset, meter: 0, seeing: false, lastSeen: { x: 0, y: 0, z: 0 }, kind: null, hearCooldown: 0 };
 }
 
 const SCRATCH = { p: { x: 0, y: 0, z: 0 }, one: [null as unknown as Box], o: { x: 0, y: 0, z: 0 }, d: { x: 0, y: 0, z: 0 } };
@@ -187,7 +202,7 @@ export function sendKeeper(k: Keeper, point: { x: number; z: number }, kind: Kin
 }
 
 function stepKeeper(k: Keeper, dt: number): void {
-   stepPatrol(k.agent, k.patrol, ROUTES[k.index], dt, k.patrol.mode === "investigate" && k.kind ? INVESTIGATE[k.kind] : PATROL);
+   stepPatrol(k.agent, k.patrol, ROUTES[k.index], dt, k.patrol.mode === "investigate" && k.kind ? k.inv[k.kind] : PATROL);
    if (k.patrol.mode !== "investigate") k.kind = null;
    if (k.hearCooldown > 0) k.hearCooldown = Math.max(0, k.hearCooldown - dt);
 }
@@ -247,8 +262,21 @@ export function seedLayout(seed: number): { offsets: number[]; snacks: number[][
    return { offsets, snacks };
 }
 
-export function createRun(seed: number, layout = seedLayout(seed)): RunState {
+/** The investigate options of a level (level 1: INVESTIGATE itself). */
+export function investigateFor(level: ZooLevel): Record<Kind, PatrolOptions> {
+   if (level.investigate === KEEPER.investigateSpeed) return INVESTIGATE;
+   return {
+      seen: { ...INVESTIGATE.seen, speed: level.investigate },
+      heard: { ...INVESTIGATE.heard, speed: level.investigate },
+      bamboo: { ...INVESTIGATE.bamboo, speed: level.investigate },
+      radio: { ...INVESTIGATE.radio, speed: level.investigate },
+   };
+}
+
+export function createRun(seed: number, layout = seedLayout(seed), level: ZooLevel = LEVELS[1]): RunState {
    const keepers = KEEPERS.map((def, i) => newKeeper(i, (CYCLES[def.stage] * layout.offsets[i]) / KEEPER.offsets));
+   const inv = investigateFor(level);
+   for (const k of keepers) k.inv = inv;
    const snacks: Snack[] = [];
    layout.snacks.forEach((picks, s) => {
       for (const i of picks) snacks.push({ x: SNACK_CANDIDATES[s][i].x, z: SNACK_CANDIDATES[s][i].z, stage: s as StageIndex, eaten: false });
@@ -256,6 +284,7 @@ export function createRun(seed: number, layout = seedLayout(seed)): RunState {
    const lightKeeper = STAGE_KEEPERS[2][0];
    const start = STAGES[0].start;
    return {
+      level,
       seed,
       time: 0,
       timeLeft: CLOCK.startS,
@@ -268,7 +297,7 @@ export function createRun(seed: number, layout = seedLayout(seed)): RunState {
       snacks,
       eaten: 0,
       catches: 0,
-      bundlesLeft: TOSS.perStage,
+      bundlesLeft: level.bundles,
       toss: { active: false, t: 0, from: { x: 0, y: 0, z: 0 }, to: { x: 0, y: 0, z: 0 }, v: { x: 0, y: 0, z: 0 } },
       bundles: [{ shown: false, x: 0, z: 0 }, { shown: false, x: 0, z: 0 }],
       card: 0,
@@ -425,11 +454,11 @@ function detect(run: RunState, dt: number): void {
       const sees = active && pd.hidden < 0 && keeperSees(a, a.yaw, run.stage, pd);
       const was = k.meter;
       if (sees) {
-         k.meter = Math.min(1, k.meter + dt / SUSPICION.catchS);
+         k.meter = Math.min(1, k.meter + dt / run.level.catchS);
          k.lastSeen.x = pd.x; k.lastSeen.z = pd.z;
          if (k.meter >= 1 && !e.caught) { e.caught = "seen"; e.catcher = i; }
       } else {
-         k.meter = Math.max(0, k.meter - SUSPICION.decay * dt);
+         k.meter = Math.max(0, k.meter - run.level.decay * dt);
          if (k.seeing && k.meter > 0 && k.meter < 1) sendKeeper(k, k.lastSeen, "seen");
       }
       if (was === 0 && k.meter > 0) e.alerts++;
@@ -443,7 +472,7 @@ function detect(run: RunState, dt: number): void {
       const l = run.light;
       const sees = active && pd.hidden < 0 && searchlightSees(l.yaw, pd);
       if (sees) {
-         l.meter = Math.min(1, l.meter + dt / SUSPICION.catchS);
+         l.meter = Math.min(1, l.meter + dt / run.level.catchS);
          l.lastSeen.x = pd.x; l.lastSeen.z = pd.z;
          if (l.meter >= 1 && !e.caught) { e.caught = "light"; e.catcher = -1; }
       } else {
@@ -456,7 +485,7 @@ function detect(run: RunState, dt: number): void {
             }
             if (best >= 0) sendKeeper(run.keepers[best], l.lastSeen, "radio");
          }
-         l.meter = Math.max(0, l.meter - SUSPICION.decay * dt);
+         l.meter = Math.max(0, l.meter - run.level.decay * dt);
       }
       l.seeing = sees;
    }
@@ -474,7 +503,7 @@ function resetStage(run: RunState): void {
       k.meter = 0; k.seeing = false; k.kind = null; k.hearCooldown = 0;
    }
    run.light.meter = 0; run.light.seeing = false;
-   run.bundlesLeft = TOSS.perStage;
+   run.bundlesLeft = run.level.bundles;
    run.toss.active = false;
    for (const b of run.bundles) b.shown = false;
 }
@@ -484,7 +513,7 @@ function caught(run: RunState): void {
    run.catches++;
    run.lastCatch = e.caught;
    run.lastCatcher = e.catcher;
-   run.timeLeft -= CATCH.penalty;
+   run.timeLeft -= run.level.penalty;
    if (run.catches >= CATCH.max) { run.over = "lose"; e.end = "lose"; return; }
    if (run.timeLeft <= 0) { run.timeLeft = 0; run.over = "timeup"; e.end = "timeup"; return; }
    resetStage(run);
@@ -525,7 +554,7 @@ export function stepRun(run: RunState, input: StepInput, dt: number): void {
    }
    if (stage > run.reached) {
       run.reached = stage;
-      run.bundlesLeft = TOSS.perStage;
+      run.bundlesLeft = run.level.bundles;
       e.stage = stage;
    }
    for (let g = 0; g < STAGES.length; g++) {
