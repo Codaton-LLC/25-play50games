@@ -196,7 +196,7 @@ The user approved this design and asked Claude to settle every open question wit
 - Open (Codex): in 844 x 390 a TargetMarkers arrow can sit on the suit.
 
 
-## Five levels (P-59)
+## Five levels
 
 The core level selector, unlocks and sum-of-level-bests leaderboard are used directly.
 All eight modules and the same assets remain present. The plan's named wings describe
