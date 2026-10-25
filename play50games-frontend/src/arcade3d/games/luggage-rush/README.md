@@ -70,6 +70,8 @@ The earliest legal lose is still three wrong bags striking at the chute end. A f
 
 Honest bot (set each diverter for the nearest bag, at most one flip per diverter every 0.25 s), 200 seeds at 30/60/144 Hz, through `stepRun`: every seed survived the clock. Worst scores 4140 / 6300 / 9120 / 9600 / 11400, all above the clear targets. Means 4498 / 6780 / 9695 / 10244 / 12161. The forced-VIP oracle on those frames scored 7500 / 11580 / 16920 / 17640 / 21120, each at least 90% of that level's `maxScore` and never over it. Idle and a flip-every-frame mash died on three strikes and never cleared. The same bots through `createArcadeStore` at 30, 60 and 144 Hz stayed inside the limits, and `capScore` was a no-op.
 
+Gate review (Claude, 2026-10-25): `l1Replay.test.ts` pins level 1 bit-exact against digests recorded from main's pre-level `rules.ts` (the old replay only compared `createRun(seed)` with `createRun(seed, LEVELS[1])`, the new code with itself). The bots run one file per level (`rules.levels-<n>.test.ts`, `testing/levelBot.ts`) so the suite takes about 40 s instead of 3 min. `levels.gate.test.ts` pins the knobs mutation probes found unread by the suite: the routing at the level's D3/D4 times, yellow bags from D4, the heavy share, the spawn interval and ramp, the belt beat. The belts' scroll now follows the level's belt speed (visual only).
+
 ## Run end
 
 - `end("lose")` on the frame the third strike resolves. `resultDelayMs: 900` so the tumble is seen. Points game: the score so far is ranked.
