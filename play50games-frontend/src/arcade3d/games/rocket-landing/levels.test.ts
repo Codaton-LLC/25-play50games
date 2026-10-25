@@ -69,20 +69,21 @@ function runPilot(level: RocketLevel, seed: number, assist: boolean = false): {
          const pv = padVx(l, r.planet, r.attemptTime, level.padAmplitude);
          if (r.planet === 4 && stage === 0 && b.y < 7.4 && Math.abs(b.vy) < 1.5) stage = 1;
          const crossing = r.planet !== 4 || Math.abs(padX(l, 4, r.attemptTime + 3.5, level.padAmplitude)) < 0.25;
-         const p3Aligned = r.planet !== 3 || (Math.abs(b.x - px) < 0.5 && Math.abs(b.vx - pv) < 0.35 && Math.abs(b.angle) < Math.min(0.12, level.contactAngle * 0.75));
+         const p3WindLow = r.planet !== 3 || Math.abs(Math.sin(2 * Math.PI * r.attemptTime / 8 + l.wind)) < 0.45;
+         const p3Aligned = r.planet !== 3 || (p3WindLow && Math.abs(b.x - px) < 0.6 && Math.abs(b.vx - pv) < 0.35 && Math.abs(b.angle) < Math.min(0.12, level.contactAngle * 0.75));
          if ((r.planet !== 4 || stage === 1) && crossing && p3Aligned &&
             Math.abs(b.x - (r.planet === 4 ? 0 : px)) < (r.planet === 3 ? 0.8 : 0.3) &&
             Math.abs(b.vx - (r.planet === 4 ? 0 : pv)) < (r.planet === 3 ? 0.5 : 0.25) &&
-            Math.abs(b.angle) < (r.planet === 3 ? Math.min(0.15, level.contactAngle * 0.9) : 0.08)) stage = 2;
+            Math.abs(b.angle) < (r.planet === 3 ? Math.min(0.12, level.contactAngle * 0.85) : 0.08)) stage = 2;
          const shaft = l.spawnX < 0 ? -5.3 : 5.3;
          const tx = r.planet === 4 ? (stage === 0 ? shaft : 0) : px;
-         const tv = r.planet === 4 ? 0 : pv;
+         const tv = r.planet === 4 ? (stage === 2 ? pv * 0.5 : 0) : pv;
          const targetY = stage === 2 ? 3.1 : r.planet === 4 ? (stage === 0 ? 7.2 : 5.8) : 8;
-         const targetVy = stage === 2 ? -Math.min(2, 0.4 + Math.max(0, b.y - 3.1) * 0.5) : clamp((targetY - b.y) * 0.8, -3, 2);
+         const targetVy = stage === 2 ? -Math.min(level.contactVy * 0.5, 0.4 + Math.max(0, b.y - 3.1) * 0.5) : clamp((targetY - b.y) * 0.8, -3, 2);
          const ay = clamp(g + 3 * (targetVy - b.vy), 0, 12);
          const wind = r.planet === 3 ? level.windAmplitude * Math.sin(2 * Math.PI * r.attemptTime / 8 + l.wind) : 0;
          const ax = (r.planet === 4 ? 0.15 : r.planet === 3 ? 0.5 : 0.8) * (tx - b.x) + (r.planet === 4 ? 1 : r.planet === 3 ? 2.0 : 1.8) * (tv - b.vx) - (r.planet === 3 ? 1.15 : 1) * wind;
-         const maxAngle = stage === 2 && b.y < 4.5 ? Math.min(level.contactAngle * 0.72, r.planet === 3 ? 0.125 : 0.08) : 0.45;
+         const maxAngle = stage === 2 && b.y < 4.5 ? Math.min(level.contactAngle * 0.70, r.planet === 3 ? 0.125 : 0.08) : 0.45;
          const desiredAngle = clamp(-Math.atan2(ax, Math.max(g, ay)), -maxAngle, maxAngle);
          controls.rotate = clamp(-(8 * wrap(desiredAngle - b.angle) - 4 * b.omega) / 3, -1, 1);
          if (r.planet === 4 && r.assist && Math.abs(controls.rotate) <= ENGINE.neutral) controls.rotate = (controls.rotate < 0 ? -1 : 1) * (ENGINE.neutral + 0.001);
@@ -136,60 +137,64 @@ describe("rocket-landing levels: declarations and contracts", () => {
       for (const id of LEVEL_IDS) {
          const lines = levelInstructions(definition, id);
          expect(lines.length).toBeGreaterThanOrEqual(3);
-         expect(lines[1]).toContain(LEVELS[id].planets === 2 ? "both" : `${LEVELS[id].planets}`);
+         expect(lines[1]).toContain(`all ${LEVELS[id].planets}`);
       }
    });
 });
 
 describe("rocket-landing levels: replay fidelity vs today's game", () => {
-   it("default createRun(seed) runs the full 5-planet campaign identically to level 4", () => {
-      for (let seed = 0; seed < 10; seed++) {
-         const legacy = createRun(seed, false);
-         const l4 = createRun(seed, false, LEVELS[4]);
-         expect(legacy.level.planets).toBe(5);
-         expect(l4.level.planets).toBe(5);
-         expect(legacy.layouts).toEqual(l4.layouts);
-         expect(legacy.body).toEqual(l4.body);
-         expect(legacy.fuel).toBe(l4.fuel);
+   it("level 1 createRun matches today's createRun over 25 seeds with identical states and scores", () => {
+      for (let seed = 0; seed < 25; seed++) {
+         const today = createRun(seed, false);
+         const l1 = createRun(seed, false, LEVELS[1]);
+         expect(l1.level.planets).toBe(5);
+         expect(today.level.planets).toBe(5);
+         expect(l1.layouts).toEqual(today.layouts);
+         expect(l1.body).toEqual(today.body);
+         expect(l1.fuel).toBe(today.fuel);
 
-         // Step 50 frames with thruster active and verify byte-identical state
+         // Step 50 frames with thruster and rotation active and verify byte-identical state
          const ctrl: Controls = { rotate: 0.2, thrust: true };
          for (let f = 0; f < 50; f++) {
-            stepRun(legacy, ctrl, 1 / 60);
-            stepRun(l4, ctrl, 1 / 60);
-            expect(legacy.body.x).toBeCloseTo(l4.body.x, 10);
-            expect(legacy.body.y).toBeCloseTo(l4.body.y, 10);
-            expect(legacy.body.vx).toBeCloseTo(l4.body.vx, 10);
-            expect(legacy.body.vy).toBeCloseTo(l4.body.vy, 10);
-            expect(legacy.fuel).toBeCloseTo(l4.fuel, 10);
-            expect(legacy.score).toBe(l4.score);
+            stepRun(today, ctrl, 1 / 60);
+            stepRun(l1, ctrl, 1 / 60);
+            expect(l1.body.x).toBeCloseTo(today.body.x, 10);
+            expect(l1.body.y).toBeCloseTo(today.body.y, 10);
+            expect(l1.body.vx).toBeCloseTo(today.body.vx, 10);
+            expect(l1.body.vy).toBeCloseTo(today.body.vy, 10);
+            expect(l1.fuel).toBeCloseTo(today.fuel, 10);
+            expect(l1.score).toBe(today.score);
          }
       }
    });
 
-   it("planets 0 and 1 share identical terrain layouts across all levels", () => {
-      for (let seed = 0; seed < 10; seed++) {
+   it("all five planets share identical terrain layouts across seeds", () => {
+      for (let seed = 0; seed < 20; seed++) {
          const campL1 = createRun(seed, false, LEVELS[1]).layouts;
-         const campL4 = createRun(seed, false, LEVELS[4]).layouts;
-         expect(campL1[0]).toEqual(campL4[0]);
-         expect(campL1[1]).toEqual(campL4[1]);
+         const campToday = createRun(seed, false).layouts;
+         for (let p = 0; p < 5; p++) {
+            expect(campL1[p]).toEqual(campToday[p]);
+         }
       }
    });
 });
 
 describe("rocket-landing levels: monotone difficulty and score bounds", () => {
-   it("scores and planets are strictly monotonic across levels", () => {
+   it("scores are strictly monotonic across levels and all levels have 5 planets", () => {
       const maxScores = LEVEL_IDS.map((id) => PROPOSED_LEVEL_LIMITS[id].maxScore);
-      expect(maxScores).toEqual([1300, 1800, 2300, 2800, 2950]);
+      expect(maxScores).toEqual([2800, 3000, 3200, 3400, 3600]);
       for (let i = 1; i < maxScores.length; i++) {
          expect(maxScores[i]).toBeGreaterThan(maxScores[i - 1]);
       }
 
       const planets = LEVEL_IDS.map((id) => LEVELS[id].planets);
-      expect(planets).toEqual([2, 3, 4, 5, 5]);
+      expect(planets).toEqual([5, 5, 5, 5, 5]);
 
       const clearScores = LEVEL_IDS.map((id) => LEVELS[id].clearScore);
-      expect(clearScores).toEqual([800, 1200, 1600, 2000, 2000]);
+      expect(clearScores).toEqual([2000, 2050, 2100, 2150, 2200]);
+      for (let i = 1; i < clearScores.length; i++) {
+         expect(clearScores[i]).toBeGreaterThan(clearScores[i - 1]);
+      }
    });
 
    it("analytic limits proof holds for every level", () => {
@@ -207,8 +212,8 @@ describe("rocket-landing levels: monotone difficulty and score bounds", () => {
          expect(limits.maxDurationMs).toBe(level.durationMs + 2000);
 
          // Score rate bound: theoreticalMax <= base + maxPointsPerSec * t_win
-         // Note: on 5-planet campaigns with Asteroid cavern, t_win is >= 14s > 10.75s
-         const effectiveWinTime = n === 5 ? 14.0 : minFlightTime;
+         // On 5-planet campaigns with Asteroid cavern, t_win is >= 14s > 10.75s
+         const effectiveWinTime = 14.0;
          expect(theoreticalMax).toBeLessThanOrEqual(limits.base + limits.maxPointsPerSec * effectiveWinTime);
       }
    });
@@ -217,7 +222,7 @@ describe("rocket-landing levels: monotone difficulty and score bounds", () => {
 describe("rocket-landing levels: honest pilot vs idle bot", () => {
    for (const id of LEVEL_IDS) {
       const level = LEVELS[id];
-      it(`level ${id} (${level.title}): honest feedback pilot clears >= 90% of seeds and hits clearScore >= 99%`, () => {
+      it(`level ${id} (${level.title}): honest feedback pilot clears >= 99% of seeds and hits clearScore >= 99%`, () => {
          let clears = 0;
          let reachedClearScore = 0;
          const seedsToTest = 16;
@@ -230,7 +235,7 @@ describe("rocket-landing levels: honest pilot vs idle bot", () => {
          }
          const clearRate = clears / seedsToTest;
          const targetRate = reachedClearScore / seedsToTest;
-         expect(clearRate).toBeGreaterThanOrEqual(0.9);
+         expect(clearRate).toBeGreaterThanOrEqual(0.99);
          expect(targetRate).toBeGreaterThanOrEqual(0.99);
       }, 40000);
 
@@ -263,87 +268,74 @@ describe("rocket-landing levels: honest pilot vs idle bot", () => {
 });
 
 describe("rocket-landing levels: mutation probes on level knobs", () => {
-   it("mutation probe: changing level.planets terminates at different planet count", () => {
-      const l1 = LEVELS[1]; // 2 planets
-      const r = createRun(0, false, l1);
-      // touchdown planet 0 and planet 1
-      r.planet = 0; r.body.y = 2.0; r.body.vy = -0.5;
-      r.completed = 1;
-      expect(r.terminal).toBe(null);
-      r.completed = 2; // matches l1.planets
-      // Simulate impact check
-      if (r.completed === l1.planets) r.terminal = "win";
-      expect(r.terminal).toBe("win");
-   });
-
    it("mutation probe: changing level.cleanBonus alters win score", () => {
-      const l4 = LEVELS[4]; // cleanBonus: 300
-      const l5 = LEVELS[5]; // cleanBonus: 450
-      expect(l4.cleanBonus).toBe(300);
-      expect(l5.cleanBonus).toBe(450);
-      expect(l5.cleanBonus).not.toBe(l4.cleanBonus);
+      const l1 = LEVELS[1]; // cleanBonus: 300
+      const l5 = LEVELS[5]; // cleanBonus: 1100
+      expect(l1.cleanBonus).toBe(300);
+      expect(l5.cleanBonus).toBe(1100);
+      expect(l5.cleanBonus).not.toBe(l1.cleanBonus);
    });
 
    it("mutation probe: level.contactVy gate strictly enforced", () => {
-      const l4 = LEVELS[4]; // contactVy: 2.0
+      const l1 = LEVELS[1]; // contactVy: 2.0
       const l5 = LEVELS[5]; // contactVy: 1.5
-      const r4 = createRun(0, false, l4);
+      const r1 = createRun(0, false, l1);
       const r5 = createRun(0, false, l5);
 
-      r4.body.x = r5.body.x = padX(r4.layouts[0], 0, 0);
-      r4.body.angle = r5.body.angle = 0;
-      r4.body.vx = r5.body.vx = 0;
+      r1.body.x = r5.body.x = padX(r1.layouts[0], 0, 0);
+      r1.body.angle = r5.body.angle = 0;
+      r1.body.vx = r5.body.vx = 0;
 
-      // vy = -1.7 m/s: safe in Level 4 (< 2.0), unsafe in Level 5 (>= 1.5)
-      r4.body.vy = r5.body.vy = -1.7;
-      expect(landingSafe(r4, 0)).toBe(true);
+      // vy = -1.7 m/s: safe in Level 1 (< 2.0), unsafe in Level 5 (>= 1.5)
+      r1.body.vy = r5.body.vy = -1.7;
+      expect(landingSafe(r1, 0)).toBe(true);
       expect(landingSafe(r5, 0)).toBe(false);
    });
 
    it("mutation probe: level.contactAngle gate strictly enforced", () => {
-      const l4 = LEVELS[4]; // contactAngle: Math.PI / 18 (~10 deg)
+      const l1 = LEVELS[1]; // contactAngle: Math.PI / 18 (~10 deg)
       const l5 = LEVELS[5]; // contactAngle: Math.PI / 24 (~7.5 deg)
-      const r4 = createRun(0, false, l4);
+      const r1 = createRun(0, false, l1);
       const r5 = createRun(0, false, l5);
 
-      r4.body.x = r5.body.x = padX(r4.layouts[0], 0, 0);
-      r4.body.vy = r5.body.vy = -0.5;
-      r4.body.vx = r5.body.vx = 0;
+      r1.body.x = r5.body.x = padX(r1.layouts[0], 0, 0);
+      r1.body.vy = r5.body.vy = -0.5;
+      r1.body.vx = r5.body.vx = 0;
 
-      // angle = 8.5 degrees (~0.148 rad): safe in L4 (< 10 deg), unsafe in L5 (>= 7.5 deg)
+      // angle = 8.5 degrees (~0.148 rad): safe in L1 (< 10 deg), unsafe in L5 (>= 7.5 deg)
       const angle = (8.5 * Math.PI) / 180;
-      r4.body.angle = r5.body.angle = angle;
-      expect(landingSafe(r4, 0)).toBe(true);
+      r1.body.angle = r5.body.angle = angle;
+      expect(landingSafe(r1, 0)).toBe(true);
       expect(landingSafe(r5, 0)).toBe(false);
    });
 
    it("mutation probe: level.windAmplitude drives horizontal gas moon deflection", () => {
-      const l2 = LEVELS[2]; // windAmplitude: 0.4
-      const l3 = LEVELS[3]; // windAmplitude: 0.6
-      const r2 = createRun(0, false, l2);
-      const r3 = createRun(0, false, l3);
+      const l1 = LEVELS[1]; // windAmplitude: 0.4
+      const l5 = LEVELS[5]; // windAmplitude: 0.8
+      const r1 = createRun(0, false, l1);
+      const r5 = createRun(0, false, l5);
 
-      r2.planet = r3.planet = 3; // Gas moon
-      r2.attemptTime = r3.attemptTime = 2.0; // non-zero wind phase
+      r1.planet = r5.planet = 3; // Gas moon
+      r1.attemptTime = r5.attemptTime = 2.0; // non-zero wind phase
       const idle: Controls = { rotate: 0, thrust: false };
 
-      stepRun(r2, idle, 0.05);
-      stepRun(r3, idle, 0.05);
+      stepRun(r1, idle, 0.05);
+      stepRun(r5, idle, 0.05);
 
-      // Higher wind in L3 creates stronger horizontal displacement
-      expect(Math.abs(r3.body.vx)).toBeGreaterThan(Math.abs(r2.body.vx));
+      // Higher wind in L5 creates stronger horizontal displacement
+      expect(Math.abs(r5.body.vx)).toBeGreaterThan(Math.abs(r1.body.vx));
    });
 
    it("mutation probe: level.padAmplitude drives asteroid pad sweep", () => {
-      const l2 = LEVELS[2]; // padAmplitude: 2.0
-      const l3 = LEVELS[3]; // padAmplitude: 3.0
-      const l2Layout = generateCampaign(0, l2.padAmplitude)[4];
-      const l3Layout = generateCampaign(0, l3.padAmplitude)[4];
+      const l1 = LEVELS[1]; // padAmplitude: 2.0
+      const l5 = LEVELS[5]; // padAmplitude: 2.4
+      const l1Layout = generateCampaign(0, l1.padAmplitude)[4];
+      const l5Layout = generateCampaign(0, l5.padAmplitude)[4];
 
       // At t = 4 s (quarter period of 16 s sine cycle):
-      const x2 = padX(l2Layout, 4, 4, l2.padAmplitude);
-      const x3 = padX(l3Layout, 4, 4, l3.padAmplitude);
-      expect(Math.abs(x2)).toBeCloseTo(2.0, 5);
-      expect(Math.abs(x3)).toBeCloseTo(3.0, 5);
+      const x1 = padX(l1Layout, 4, 4, l1.padAmplitude);
+      const x5 = padX(l5Layout, 4, 4, l5.padAmplitude);
+      expect(Math.abs(x1)).toBeCloseTo(2.0, 5);
+      expect(Math.abs(x5)).toBeCloseTo(2.4, 5);
    });
 });

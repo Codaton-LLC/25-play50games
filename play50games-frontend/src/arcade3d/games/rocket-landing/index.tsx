@@ -9,11 +9,11 @@ import { LEVELS, type RocketLevel } from "./levels";
 import { DURATION_MS } from "./rules";
 
 const DESCRIPTIONS: Record<LevelId, string> = {
-   1: "Moon & Desert: two controlled landings, open corridors.",
-   2: "Three worlds: introduces high-gravity Ice.",
-   3: "Four worlds: gusting winds on Gas Moon and wider pad swing.",
-   4: "Five worlds: today's full campaign with Asteroid cave approach.",
-   5: "Precision landing: tighter contact gates and +450 clean bonus.",
+   1: "Five worlds: today's full campaign across Moon, Desert, Ice, Gas Moon and Asteroid.",
+   2: "Breezy approach: gustier winds on Gas Moon, wider Asteroid pad swing, +500 clean bonus.",
+   3: "Turbulent orbit: stronger wind gusts, wider pad swing, tighter landing gate, +700 clean bonus.",
+   4: "High winds & cavern: heavy wind shear, wide pad oscillation, tighter speed gate, +900 clean bonus.",
+   5: "Precision landing: high winds, widest pad swing, precision contact speed and tilt, +1100 clean bonus.",
 };
 
 function instructionsFor(level: RocketLevel): string[] {
@@ -23,8 +23,8 @@ function instructionsFor(level: RocketLevel): string[] {
    const bonus = level.cleanBonus;
    return [
       "A/D or ←/→ rotate; hold Space, W or ↑ to thrust. Touch: joystick rotates, Thrust fires; release to auto-level.",
-      `Land on ${count === 2 ? "both" : `all ${count}`} pads: descend at <${vy} m/s, drift at <1 m/s relative to the pad, tilt <${tilt}°. Three lives.`,
-      `Soft + centre + fuel reserve: up to 500 per planet; crash-free finish +${bonus}.${count === 5 ? " Enter the asteroid cave from either side." : ""}`,
+      `Land on all ${count} pads: descend at <${vy} m/s, drift at <1 m/s relative to the pad, tilt <${tilt}°. Three lives.`,
+      `Soft + centre + fuel reserve: up to 500 per planet; crash-free finish +${bonus}. Enter the asteroid cave from either side.`,
    ];
 }
 

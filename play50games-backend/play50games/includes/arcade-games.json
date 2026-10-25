@@ -623,50 +623,50 @@
     "rocket-landing": {
       "title": "Rocket Landing Challenge",
       "kind": "points",
-      "max_score": 1300,
-      "min_duration_ms": 2200,
-      "max_duration_ms": 122000,
+      "max_score": 2800,
+      "min_duration_ms": 5000,
+      "max_duration_ms": 242000,
       "base": 800,
       "max_pps": 200,
       "enabled": false,
       "levels": [
         {
-          "title": "Moon Pad",
-          "max_score": 1300,
-          "min_duration_ms": 2200,
-          "max_duration_ms": 122000,
-          "base": 800,
-          "max_pps": 200
-        },
-        {
-          "title": "Wide Crater",
-          "max_score": 1800,
-          "min_duration_ms": 3400,
-          "max_duration_ms": 152000,
-          "base": 800,
-          "max_pps": 200
-        },
-        {
-          "title": "Mars Ridge",
-          "max_score": 2300,
-          "min_duration_ms": 4600,
-          "max_duration_ms": 182000,
-          "base": 800,
-          "max_pps": 200
-        },
-        {
-          "title": "Asteroid Base",
+          "title": "Five Worlds",
           "max_score": 2800,
           "min_duration_ms": 5000,
-          "max_duration_ms": 182000,
+          "max_duration_ms": 242000,
+          "base": 800,
+          "max_pps": 200
+        },
+        {
+          "title": "Breezy Approach",
+          "max_score": 3000,
+          "min_duration_ms": 5000,
+          "max_duration_ms": 242000,
+          "base": 800,
+          "max_pps": 200
+        },
+        {
+          "title": "Turbulent Orbit",
+          "max_score": 3200,
+          "min_duration_ms": 5000,
+          "max_duration_ms": 242000,
+          "base": 800,
+          "max_pps": 200
+        },
+        {
+          "title": "High Winds & Cavern",
+          "max_score": 3400,
+          "min_duration_ms": 5000,
+          "max_duration_ms": 242000,
           "base": 800,
           "max_pps": 200
         },
         {
           "title": "Precision Landing",
-          "max_score": 2950,
+          "max_score": 3600,
           "min_duration_ms": 5000,
-          "max_duration_ms": 182000,
+          "max_duration_ms": 242000,
           "base": 800,
           "max_pps": 200
         }

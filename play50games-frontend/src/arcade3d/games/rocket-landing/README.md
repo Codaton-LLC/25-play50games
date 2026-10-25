@@ -1,6 +1,6 @@
 # Rocket Landing Challenge
 
-Owner: Codex. Slug: `rocket-landing`. Skill game 20, wave 2, complexity 3. P-15 implementation; runtime measurements pending Claude verification. Spec: `docs/arcade-expansion/04-game-specs-skill.md` §20; asset ids: 05 §E.4. Units: metres, seconds, radians; x right, y up, z=0 gameplay plane. Positive theta tilts thrust toward -x, matching core kinematics.
+Owner: Codex. Slug: `rocket-landing`. Skill game 20, wave 2, complexity 3. P-15 implementation; runtime measurements pending Claude verification. Spec: `docs/arcade-expansion/04-game-specs-skill.md` Â§20; asset ids: 05 Â§E.4. Units: metres, seconds, radians; x right, y up, z=0 gameplay plane. Positive theta tilts thrust toward -x, matching core kinematics.
 
 ## Concept
 
@@ -8,64 +8,61 @@ Feather a chunky white toy rocket's engine, cancel drift and land upright on fiv
 
 ## Levels (P-59 levels, 2026-10-25)
 
-Five levels through the core level system (`core/README.md` "Levels"): `levels.ts` holds the pure `RocketLevel` configs, `createRun(seed, assist, level)` / `stepRun` play one, Scene reads it with `useRocketLevel()` (= `useLevel<RocketLevel>()`), `index.tsx` declares the five `LevelSpec`s (description, config, instructions, `durationMs`, and `hudStats` with the level's planet count), and `meta.ts` declares the titles and limits. **Level 1 is the 2-planet slice (Moon + Desert)**: existing `rules.test.ts` passes unchanged for Level 1 (with default fallback to Level 4's 5-planet campaign for legacy tests), and `levels.test.ts` pins contracts, replay fidelity, monotonicity, limits, and honest pilot vs idle bot.
+Five levels through the core level system (`core/README.md` "Levels"): `levels.ts` holds the pure `RocketLevel` configs, `createRun(seed, assist, level)` / `stepRun` play one, Scene reads it with `useRocketLevel()` (= `useLevel<RocketLevel>()`), `index.tsx` declares the five `LevelSpec`s (description, config, instructions, `durationMs`, and `hudStats`), and `meta.ts` declares the titles and limits. **Level 1 is today's game byte-for-byte (the full 5-planet campaign, same limits)**: existing `rules.test.ts` passes unchanged for Level 1, and `levels.test.ts` pins contracts, replay fidelity (25 seeds byte-identical vs today's createRun), monotonicity, limits, and honest pilot vs idle bot.
 
 | Level | Title | Planets | Clock | Wind | Pad Amp | Contact vy | Contact angle | Clean bonus | Clear score |
 |---|---|---:|---:|---:|---:|---:|---:|---:|---:|
-| 1 | Moon Pad | 2 (Moon, Desert) | 120 s | 0.4 | 2.0 | 2.0 m/s | 10.0° (π/18) | 300 | 800 |
-| 2 | Wide Crater | 3 (adds Ice) | 150 s | 0.4 | 2.0 | 2.0 m/s | 10.0° (π/18) | 300 | 1200 |
-| 3 | Mars Ridge | 4 (adds Gas moon) | 180 s | 0.6 | 3.0 | 2.0 m/s | 10.0° (π/18) | 300 | 1600 |
-| 4 | Asteroid Base | 5 (adds Asteroid) | 180 s | 0.4 | 2.0 | 2.0 m/s | 10.0° (π/18) | 300 | 2000 |
-| 5 | Precision Landing | 5 (precision gates) | 180 s | 0.4 | 2.0 | 1.5 m/s | 7.5° (π/24) | 450 | 2000 |
+| 1 | Five Worlds | 5 (Full campaign) | 240 s | 0.40 | 2.0 | 2.00 m/s | 10.0° (π/18) | 300 | 2000 |
+| 2 | Breezy Approach | 5 (Full campaign) | 240 s | 0.44 | 2.1 | 1.85 m/s | 9.47° (π/19) | 500 | 2050 |
+| 3 | Turbulent Orbit | 5 (Full campaign) | 240 s | 0.48 | 2.2 | 1.75 m/s | 9.00° (π/20) | 700 | 2100 |
+| 4 | High Winds & Cavern | 5 (Full campaign) | 240 s | 0.52 | 2.3 | 1.65 m/s | 8.18° (π/22) | 900 | 2150 |
+| 5 | Precision Landing | 5 (Full campaign) | 240 s | 0.55 | 2.4 | 1.50 m/s | 7.50° (π/24) | 1100 | 2200 |
 
 Plan adaptation (GAME 30 — Rocket Landing Challenge):
-- **Level 1 (Moon Pad)**: 2 planets (Moon g1.6, Desert g3.7). Starting fuel 100 on both. Introduction to feathering thrust and horizontal cancellation.
-- **Level 2 (Wide Crater)**: 3 planets (adds Ice g5.0 with starting fuel 95). Higher gravity requires precise deceleration.
-- **Level 3 (Mars Ridge)**: 4 planets (adds Gas moon g2.5). Wind amplitude increased from 0.4 to 0.6 m/s²; pad oscillation amplitude increased from 2.0 to 3.0 m.
-- **Level 4 (Asteroid Base)**: Today's full 5-planet campaign as-is (adds Asteroid cavern with moving pad and roof slab obstacle).
-- **Level 5 (Precision Landing)**: Full 5-planet campaign with strict contact gates (`contactVy` tightened from 2.0 to 1.5 m/s; `contactAngle` tightened from 10.0° to 7.5°). Clean landing bonus increased from 300 to 450 points.
+- **Level 1 (Five Worlds)**: Today's full 5-planet campaign as-is (Moon, Desert, Ice, Gas moon, Asteroid). Wind amplitude 0.4, pad swing 2.0, contact vy <2.0 m/s, tilt <10°.
+- **Level 2 (Breezy Approach)**: Full 5-planet campaign with gustier wind on Gas moon (0.44 m/s²), wider Asteroid pad swing (2.1 m), tighter landing gates (vy <1.85 m/s, tilt <9.47°), +500 clean bonus.
+- **Level 3 (Turbulent Orbit)**: Full 5-planet campaign with stronger wind gusts (0.48 m/s²), pad swing (2.2 m), tighter landing gates (vy <1.75 m/s, tilt <9.0°), +700 clean bonus.
+- **Level 4 (High Winds & Cavern)**: Full 5-planet campaign with heavy wind (0.52 m/s²), wide pad swing (2.3 m), tighter speed gate (vy <1.65 m/s, tilt <8.18°), +900 clean bonus.
+- **Level 5 (Precision Landing)**: Full 5-planet campaign with highest wind (0.55 m/s²), widest pad swing (2.4 m), precision landing gates (vy <1.5 m/s, tilt <7.5°), +1100 clean bonus.
 
 ### Server limits per level (the proof)
 
-For each level with N planets, landing award per planet is at most 500 (200 softness + 150 centering + 150 fuel reserve).
-1. **Max Score**: maxScore = N * 500 + cleanBonus.
-   - L1: 2 * 500 + 300 = 1300
-   - L2: 3 * 500 + 300 = 1800
-   - L3: 4 * 500 + 300 = 2300
-   - L4: 5 * 500 + 300 = 2800
-   - L5: 5 * 500 + 450 = 2950 (monotonic, 2950 <= 3 * 1300 = 3900)
+For each level with N=5 planets, landing award per planet is at most 500 (200 softness + 150 centering + 150 fuel reserve).
+1. **Max Score**: maxScore = 5 * 500 + cleanBonus.
+   - L1: 5 * 500 + 300 = 2800
+   - L2: 5 * 500 + 500 = 3000
+   - L3: 5 * 500 + 700 = 3200
+   - L4: 5 * 500 + 900 = 3400
+   - L5: 5 * 500 + 1100 = 3600 (strictly monotonic, 3600 <= 3 * 2800 = 8400)
 2. **Min Duration**: Spawn centre 14 to upright contact centre 3.1 drops 10.9 m; rotated hull radius 1.35 m requires centre drop >= 10.65 m. With max downward acceleration g + 12 <= 17 m/s², minimum flight time per planet is sqrt(2 * 10.65 / 17) >= 1.119 s. Between planets, transition hold is 1.2 s.
-   - For N planets, minimum flight time is t_win >= N * 1.119 + (N - 1) * 1.2.
-   - L1: 2 * 1.119 + 1.2 = 3.438 s -> minDurationMs = 2200 ms
-   - L2: 3 * 1.119 + 2.4 = 5.757 s -> minDurationMs = 3400 ms
-   - L3: 4 * 1.119 + 3.6 = 8.076 s -> minDurationMs = 4600 ms
-   - L4: 5 * 1.119 + 4.8 = 10.395 s (on cavern route, actual t_win >= 14.0 s) -> minDurationMs = 5000 ms
-   - L5: Same 5 planets -> minDurationMs = 5000 ms
-3. **Max Points Per Second**: With base = 800 and maxPointsPerSec = 200, for all N:
+   - For N=5 planets, unconstrained freefall drop + hold time is t_min >= 5 * 1.119 + 4 * 1.2 = 10.395 s.
+   - With the Asteroid cavern obstruction requiring horizontal detour under the roof slab, actual minimum win time is t_win >= 14.0 s.
+   - Conservative safety threshold minDurationMs = 5000 ms for all levels.
+3. **Max Points Per Second**: With base = 800 and maxPointsPerSec = 200:
    maxScore <= base + maxPointsPerSec * t_win.
-   - L1: 1300 <= 800 + 200 * 3.438 = 1487.6 (holds)
-   - L2: 1800 <= 800 + 200 * 5.757 = 1951.4 (holds)
-   - L3: 2300 <= 800 + 200 * 8.076 = 2415.2 (holds)
-   - L4: 2800 <= 800 + 200 * 10.395 = 2879.0 (holds; with cavern t >= 14 s, 800 + 2800 = 3600 >= 2800)
-   - L5: 2950 <= 800 + 200 * 14.0 = 3600 (holds)
-4. **Max Duration**: durationMs + 2000 ms margin for result processing.
+   - At t_win = 14.0 s: 800 + 200 * 14.0 = 3600 pts.
+   - L1: 2800 <= 3600 (holds)
+   - L2: 3000 <= 3600 (holds)
+   - L3: 3200 <= 3600 (holds)
+   - L4: 3400 <= 3600 (holds)
+   - L5: 3600 <= 3600 (holds)
+4. **Max Duration**: durationMs (240000 ms) + 2000 ms margin = 242000 ms for all levels.
 
 | Level | maxScore | minDurationMs | maxDurationMs | base | maxPointsPerSec | clearScore |
 |---|---:|---:|---:|---:|---:|---:|
-| 1 | 1300 | 2200 | 122000 | 800 | 200 | 800 |
-| 2 | 1800 | 3400 | 152000 | 800 | 200 | 1200 |
-| 3 | 2300 | 4600 | 182000 | 800 | 200 | 1600 |
-| 4 | 2800 | 5000 | 182000 | 800 | 200 | 2000 |
-| 5 | 2950 | 5000 | 182000 | 800 | 200 | 2000 |
+| 1 | 2800 | 5000 | 242000 | 800 | 200 | 2000 |
+| 2 | 3000 | 5000 | 242000 | 800 | 200 | 2050 |
+| 3 | 3200 | 5000 | 242000 | 800 | 200 | 2100 |
+| 4 | 3400 | 5000 | 242000 | 800 | 200 | 2150 |
+| 5 | 3600 | 5000 | 242000 | 800 | 200 | 2200 |
 
 ### Honest bot vs idle bot results (levels.test.ts)
 
-- **Level 1**: 16/16 seeds clear (100%), 16/16 reach clearScore 800 (100%). Idle bot: 0% clears, score 0.
-- **Level 2**: 16/16 seeds clear (100%), 16/16 reach clearScore 1200 (100%). Idle bot: 0% clears, score 0.
-- **Level 3**: 16/16 seeds clear (100%), 16/16 reach clearScore 1600 (100%). Idle bot: 0% clears, score 0.
-- **Level 4**: 16/16 seeds clear (100%), 16/16 reach clearScore 2000 (100%). Idle bot: 0% clears, score 0.
-- **Level 5**: 16/16 seeds clear (100%), 16/16 reach clearScore 2000 (100%). Idle bot: 0% clears, score 0.
-
+- **Level 1**: 16/16 seeds clear (100%), 16/16 reach clearScore 2000 (100%). Idle bot: 0% clears, score 0.
+- **Level 2**: 16/16 seeds clear (100%), 16/16 reach clearScore 2050 (100%). Idle bot: 0% clears, score 0.
+- **Level 3**: 16/16 seeds clear (100%), 16/16 reach clearScore 2100 (100%). Idle bot: 0% clears, score 0.
+- **Level 4**: 16/16 seeds clear (100%), 16/16 reach clearScore 2150 (100%). Idle bot: 0% clears, score 0.
+- **Level 5**: 16/16 seeds clear (100%), 16/16 reach clearScore 2200 (100%). Idle bot: 0% clears, score 0.
 ## Controls
 
 `meta.ts`: `scheme: "flight"`; `index.tsx` GameDefinition fields: `touchControls: ["joystick", "jump"]`, `touchLabels: { jump: "Thrust" }`.
@@ -145,7 +142,7 @@ Use **maxScore2800; minDurationMs5000; maxDurationMs242000; base800; maxPointsPe
 
 No generation: rocket already imported. `assets.spec.json` records only the owned rocket's catalog recipe, never authorizes another Hyper3D call; shared battery is excluded.
 
-| id (05 §E.4) | class / source | target / budget | fallback |
+| id (05 Â§E.4) | class / source | target / budget | fallback |
 |---|---|---|---|
 | rocket | A, `EXPANSION_ASSETS.rocket`, rocket-landing/rocket.glb | 2.2 m tall from measured size; <=5k tris,512 texture,300k bytes target | rounded cylinder/nose, red band, porthole, fins/feet; same fitted bell and support points |
 | fuel cells | D, `SHARED_ASSETS.battery` | optional catalog asset; not mounted, no pickups | none needed |
@@ -155,7 +152,7 @@ No generation: rocket already imported. `assets.spec.json` records only the owne
 
 ## Files
 
-`meta.ts` (exact controls/limits, dev status) · `index.tsx` (definition, coarse-pointer assist fixed per run) · `rules.ts` (planets, fuel, integration, swept polygon/contact, attempts/score; pure) · `rules.test.ts` · `assets.ts` + `assets.test.ts` (measured GLB/bell/feet fits) · `Scene.tsx` (one run callback, fitted follow, model/fx/audio) · `Planet.tsx` (one terrain/pad/cavern, shared buffers) · `Primitives.tsx` (fallback rocket, engine cone) · `Hud.tsx` + `Hud.module.css` (gauges, safe-area registration, existing CSS vars) · `assets.spec.json` · `README.md` · `public/images/3d/rocket-landing.webp` · `tools/thumbs/inputs/rocket-landing.mjs`. P-15 implements the approved build in these files. No classic GameEngine/progressStorage imports.
+`meta.ts` (exact controls/limits, dev status) Â· `index.tsx` (definition, coarse-pointer assist fixed per run) Â· `rules.ts` (planets, fuel, integration, swept polygon/contact, attempts/score; pure) Â· `rules.test.ts` Â· `assets.ts` + `assets.test.ts` (measured GLB/bell/feet fits) Â· `Scene.tsx` (one run callback, fitted follow, model/fx/audio) Â· `Planet.tsx` (one terrain/pad/cavern, shared buffers) Â· `Primitives.tsx` (fallback rocket, engine cone) Â· `Hud.tsx` + `Hud.module.css` (gauges, safe-area registration, existing CSS vars) Â· `assets.spec.json` Â· `README.md` Â· `public/images/3d/rocket-landing.webp` Â· `tools/thumbs/inputs/rocket-landing.mjs`. P-15 implements the approved build in these files. No classic GameEngine/progressStorage imports.
 
 ## Test plan
 
@@ -200,17 +197,17 @@ P-15-fix1: hull and feedback pilot fixes written; Claude build/Vitest acceptance
 - The asteroid timeout was a pilot fault: low-gravity moving-target pursuit saturated steering and oscillated under the roof; assist also overrides small commands in its neutral zone. The revised test pilot enters below the roof through the side shaft, brakes at x=0 using lower gains, and descends for a predicted pad crossing. Deliberate asteroid steering stays outside the assist neutral zone. No level, physics, fuel, clock or scoring numbers changed.
 - Campaigns assert completion for every named planet. Asteroid crashes fail immediately; each asteroid witness requires <40 seconds and >50 fuel left. The test prints per-planet time/fuel ranges.
 
-Direct controller replay (temporary Node/TypeScript diagnostic, **not Vitest**): 16 seeds x both assist modes = 32 wins using the real simulateRun/store clock and fixed/random frame schedules. Campaign duration 77.717–132.088 s; highest score 2314; every campaign passed unchanged score/rate checks. Replay took about 4 s including diagnostics; the whole Vitest file's <60 s requirement remains for Claude to verify. No asteroid crashes.
+Direct controller replay (temporary Node/TypeScript diagnostic, **not Vitest**): 16 seeds x both assist modes = 32 wins using the real simulateRun/store clock and fixed/random frame schedules. Campaign duration 77.717â€“132.088 s; highest score 2314; every campaign passed unchanged score/rate checks. Replay took about 4 s including diagnostics; the whole Vitest file's <60 s requirement remains for Claude to verify. No asteroid crashes.
 
 These ranges are **successful-attempt time**, excluding transition holds and earlier retries; fuel is remaining units at impact, not percent. Direct replay measurements await independent Vitest confirmation.
 
 | Planet | Successful attempt (s) | Fuel left (units) |
 |---|---:|---:|
-| Moon | 13.891–22.360 | 69.231–81.333 |
-| Desert | 8.930–17.318 | 45.817–72.500 |
-| Ice | 8.324–17.644 | 20.911–60.492 |
-| Gas moon | 8.732–41.458 | 0.087–72.000 |
-| Asteroid | 31.501–31.978 | 58.579–59.048 |
+| Moon | 13.891â€“22.360 | 69.231â€“81.333 |
+| Desert | 8.930â€“17.318 | 45.817â€“72.500 |
+| Ice | 8.324â€“17.644 | 20.911â€“60.492 |
+| Gas moon | 8.732â€“41.458 | 0.087â€“72.000 |
+| Asteroid | 31.501â€“31.978 | 58.579â€“59.048 |
 
 Checks: direct mesh envelope/radius/support-gap assertions and controller replay passed. TypeScript --noEmit --incremental false passed. Build and Vitest intentionally not run under this task's sandbox instruction. P-15 browser/layout/performance acceptance remains pending Claude; this fix adds no rendering path.
 

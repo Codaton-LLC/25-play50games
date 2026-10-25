@@ -7,9 +7,9 @@ import { LEVELS, type RocketLevel } from "./levels";
 export const PROPOSED_LEVEL_LIMITS: Record<LevelId, ScoringRules> = {
    1: {
       kind: "points",
-      maxScore: 1300,
-      minDurationMs: 2200,
-      maxDurationMs: 122000,
+      maxScore: 2800,
+      minDurationMs: 5000,
+      maxDurationMs: 242000,
       base: 800,
       maxPointsPerSec: 200,
       unitLabel: "pts",
@@ -17,9 +17,9 @@ export const PROPOSED_LEVEL_LIMITS: Record<LevelId, ScoringRules> = {
    },
    2: {
       kind: "points",
-      maxScore: 1800,
-      minDurationMs: 3400,
-      maxDurationMs: 152000,
+      maxScore: 3000,
+      minDurationMs: 5000,
+      maxDurationMs: 242000,
       base: 800,
       maxPointsPerSec: 200,
       unitLabel: "pts",
@@ -27,9 +27,9 @@ export const PROPOSED_LEVEL_LIMITS: Record<LevelId, ScoringRules> = {
    },
    3: {
       kind: "points",
-      maxScore: 2300,
-      minDurationMs: 4600,
-      maxDurationMs: 182000,
+      maxScore: 3200,
+      minDurationMs: 5000,
+      maxDurationMs: 242000,
       base: 800,
       maxPointsPerSec: 200,
       unitLabel: "pts",
@@ -37,9 +37,9 @@ export const PROPOSED_LEVEL_LIMITS: Record<LevelId, ScoringRules> = {
    },
    4: {
       kind: "points",
-      maxScore: 2800,
+      maxScore: 3400,
       minDurationMs: 5000,
-      maxDurationMs: 182000,
+      maxDurationMs: 242000,
       base: 800,
       maxPointsPerSec: 200,
       unitLabel: "pts",
@@ -47,9 +47,9 @@ export const PROPOSED_LEVEL_LIMITS: Record<LevelId, ScoringRules> = {
    },
    5: {
       kind: "points",
-      maxScore: 2950,
+      maxScore: 3600,
       minDurationMs: 5000,
-      maxDurationMs: 182000,
+      maxDurationMs: 242000,
       base: 800,
       maxPointsPerSec: 200,
       unitLabel: "pts",
@@ -130,7 +130,7 @@ function movePad(r: Run, t: number): void {
    r.pad.points[0].x = r.pad.points[3].x = x - w;
    r.pad.points[1].x = r.pad.points[2].x = x + w;
 }
-export function createRun(seed: number, assist: boolean = false, level: RocketLevel = LEVELS[4]): Run {
+export function createRun(seed: number, assist: boolean = false, level: RocketLevel = LEVELS[1]): Run {
    const layouts = generateCampaign(seed, level.padAmplitude);
    const r: Run = {
       layouts, body: body(), previous: body(), next: body(), probe: body(), clock: createFixedStep(STEP), tick: () => {},
