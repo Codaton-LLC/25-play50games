@@ -195,7 +195,14 @@
       "max_duration_ms": 92000,
       "base": 0,
       "max_pps": 70,
-      "enabled": false
+      "enabled": false,
+      "levels": [
+        { "title": "Green Valley", "max_score": 6000, "min_duration_ms": 88000, "max_duration_ms": 92000, "base": 0, "max_pps": 70 },
+        { "title": "Fern Forest", "max_score": 6100, "min_duration_ms": 118000, "max_duration_ms": 122000, "base": 0, "max_pps": 52 },
+        { "title": "Riverbank", "max_score": 6100, "min_duration_ms": 118000, "max_duration_ms": 122000, "base": 0, "max_pps": 52 },
+        { "title": "Volcanic Pass", "max_score": 6100, "min_duration_ms": 118000, "max_duration_ms": 122000, "base": 0, "max_pps": 52 },
+        { "title": "Dino Sanctuary", "max_score": 7300, "min_duration_ms": 118000, "max_duration_ms": 122000, "base": 0, "max_pps": 62 }
+      ]
     },
     "delivery-drone": {
       "title": "Delivery Drone",
