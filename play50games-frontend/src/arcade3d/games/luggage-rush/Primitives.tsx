@@ -1,9 +1,26 @@
+"use client";
+
 // Stand-ins while a GLB is missing, and the chute-mouth shapes.
 // Every code-made stand-in is deliberate: bevelled shapes, 2-3 tones from COLORS,
 // merged into single geometries with vertex colours (1 draw call each, zero per-frame allocation).
-import { BufferAttribute, BufferGeometry, DoubleSide } from "three";
-import { COLORS } from "./looks";
-import { DIVERTER_AT, FLIGHTS, MOUTH_M } from "./rules";
+// Chute mouths include the stainless-steel collection cowl hoods at the wall and the
+// large, bright destination markers facing the camera on each chute belt.
+import { useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useFrame, useThree } from "@react-three/fiber";
+import {
+   BufferAttribute,
+   BufferGeometry,
+   DoubleSide,
+   InstancedBufferAttribute,
+   InstancedMesh,
+   Matrix4,
+   MeshBasicMaterial,
+   Quaternion,
+   Vector3,
+} from "three";
+import { useCanvasTexture, type CanvasDraw } from "@/arcade3d/core/render";
+import { BELT_MARKERS, BELT_MARKER_SIZE, COLORS } from "./looks";
+import { DIVERTER_AT, FLIGHTS } from "./rules";
 
 function rgbOf(hex: string): [number, number, number] {
    const n = parseInt(hex.slice(1), 16);
@@ -173,7 +190,7 @@ export function HandlerPrimitive() {
    );
 }
 
-// ---------------- Chute Mouths & Hoppers ----------------
+// ---------------- Chute Mouths, Stanchions & Destination Belt Markers ----------------
 const GATES = DIVERTER_AT.map((at) => ({ x: at.x + 4, y: at.y, z: at.z }));
 
 function createChuteMouthsGeometry(gates: ReadonlyArray<{ x: number; y: number; z: number }>): BufferGeometry {
@@ -181,68 +198,19 @@ function createChuteMouthsGeometry(gates: ReadonlyArray<{ x: number; y: number; 
 
    gates.forEach((gate, flight) => {
       const color = FLIGHTS[flight].color;
-      const r = MOUTH_M / 2;
-      const cx = gate.x - 0.2;
-      const cy = gate.y + 0.06;
-      const cz = gate.z;
 
-      // 1. Stainless-steel chute hood / entry cowl at the wall (x = 7.4):
+      // 1. Stainless-steel chute collection hood / cowl at the wall (x = 7.4):
       pushBox(b, gate.x + 0.1, gate.y + 0.38, gate.z, 0.45, 0.72, 1.15, COLORS.chuteMetal);
       pushBox(b, gate.x - 0.08, gate.y + 0.38, gate.z, 0.08, 0.76, 1.2, COLORS.chuteTrim);
       // Chute hood top sign plate:
-      pushBox(b, gate.x - 0.02, gate.y + 0.78, gate.z, 0.12, 0.18, 0.85, COLORS.signBg);
+      pushBox(b, gate.x - 0.02, gate.y + 0.78, gate.z, 0.12, 0.18, 0.85, COLORS.steelDark);
       // Gate accent indicator matching flight colour:
-      pushBox(b, gate.x - 0.09, gate.y + 0.78, gate.z, 0.04, 0.12, 0.75, color);
+      pushBox(b, gate.x - 0.09, gate.y + 0.78, gate.z, 0.04, 0.14, 0.78, color);
 
-      // 2. Crisp flight symbols on the chute belt floor:
-      const ring = (count: number, radius: number, turn = 0) => {
-         const norm: [number, number, number] = [0, 1, 0];
-         const col = rgbOf(color);
-         for (let i = 0; i < count; i++) {
-            const a0 = turn + (i / count) * Math.PI * 2;
-            const a1 = turn + ((i + 1) / count) * Math.PI * 2;
-            b.positions.push(cx, cy, cz);
-            b.positions.push(cx + Math.cos(a0) * radius, cy, cz + Math.sin(a0) * radius);
-            b.positions.push(cx + Math.cos(a1) * radius, cy, cz + Math.sin(a1) * radius);
-            b.normals.push(...norm, ...norm, ...norm);
-            b.colors.push(...col, ...col, ...col);
-         }
-      };
-
-      if (flight === 0) {
-         ring(16, r);
-      } else if (flight === 1) {
-         const s = r * 0.85;
-         const corners: [number, number][] = [
-            [-s, -s],
-            [s, -s],
-            [s, s],
-            [-s, s],
-         ];
-         const norm: [number, number, number] = [0, 1, 0];
-         const col = rgbOf(color);
-         for (let i = 0; i < 4; i++) {
-            const [x0, z0] = corners[i];
-            const [x1, z1] = corners[(i + 1) % 4];
-            b.positions.push(cx, cy, cz);
-            b.positions.push(cx + x0, cy, cz + z0);
-            b.positions.push(cx + x1, cy, cz + z1);
-            b.normals.push(...norm, ...norm, ...norm);
-            b.colors.push(...col, ...col, ...col);
-         }
-      } else if (flight === 2) {
-         const tip = r;
-         const base = r * 0.86;
-         const norm: [number, number, number] = [0, 1, 0];
-         const col = rgbOf(color);
-         b.positions.push(cx - tip, cy, cz);
-         b.positions.push(cx + r * 0.55, cy, cz - base);
-         b.positions.push(cx + r * 0.55, cy, cz + base);
-         b.normals.push(...norm, ...norm, ...norm);
-         b.colors.push(...col, ...col, ...col);
-      } else {
-         ring(5, r, -Math.PI / 2);
-      }
+      // 2. Heavy-duty support stanchion post anchoring the destination belt marker:
+      const marker = BELT_MARKERS[flight];
+      pushBox(b, marker.x, (gate.y + marker.y) / 2, marker.z, 0.06, marker.y - gate.y, 0.06, COLORS.steelFrame);
+      pushBox(b, marker.x, gate.y + 0.02, marker.z, 0.18, 0.04, 0.18, COLORS.steelDark);
    });
 
    return buildGeometry(b);
@@ -250,10 +218,144 @@ function createChuteMouthsGeometry(gates: ReadonlyArray<{ x: number; y: number; 
 
 const CHUTE_MOUTHS_GEO = createChuteMouthsGeometry(GATES);
 
+const ATLAS_MAP = /* glsl */ `
+#ifdef USE_MAP
+   float cell = floor(vCell + 0.5);
+   vec4 sampledDiffuseColor = texture2D(map, vec2((vMapUv.x + cell) * 0.25, vMapUv.y));
+   diffuseColor *= sampledDiffuseColor;
+#endif
+`;
+
+function bindMarkerAtlas(material: MeshBasicMaterial | null) {
+   if (!material || material.userData.cellAtlas) return;
+   material.userData.cellAtlas = 1;
+   material.customProgramCacheKey = () => "luggage-belt-marker-atlas";
+   material.onBeforeCompile = (shader) => {
+      shader.vertexShader = shader.vertexShader
+         .replace("#include <common>", "#include <common>\nattribute float cell;\nvarying float vCell;")
+         .replace("#include <uv_vertex>", "#include <uv_vertex>\nvCell = cell;");
+      shader.fragmentShader = shader.fragmentShader
+         .replace("#include <common>", "#include <common>\nvarying float vCell;")
+         .replace("#include <map_fragment>", ATLAS_MAP);
+   };
+   material.needsUpdate = true;
+}
+
+/**
+ * Large, luminous circular destination badge with glowing white border,
+ * vibrant destination flight background, and centered black destination symbol.
+ * High contrast against dark belts and crystal-clear at 390x844.
+ */
+const drawMarkerAtlas: CanvasDraw = (ctx, width, height) => {
+   const cell = width / 4;
+   FLIGHTS.forEach((flight, i) => {
+      const cx = i * cell + cell / 2;
+      const cy = height / 2;
+      const outerR = cell * 0.46;
+      const innerR = cell * 0.38;
+      const symR = cell * 0.22;
+
+      // 1. Glowing pure-white outer border disc (10.4:1 contrast against belt):
+      ctx.beginPath();
+      ctx.arc(cx, cy, outerR, 0, Math.PI * 2);
+      ctx.fillStyle = "#ffffff";
+      ctx.fill();
+
+      // 2. High-vibrancy destination flight color inner badge:
+      ctx.beginPath();
+      ctx.arc(cx, cy, innerR, 0, Math.PI * 2);
+      ctx.fillStyle = flight.color;
+      ctx.fill();
+
+      // 3. Crisp dark destination symbol matching bag tags:
+      ctx.fillStyle = "#0f172a";
+      ctx.beginPath();
+      if (flight.symbol === "circle") {
+         ctx.arc(cx, cy, symR, 0, Math.PI * 2);
+      } else if (flight.symbol === "square") {
+         ctx.rect(cx - symR, cy - symR, symR * 2, symR * 2);
+      } else if (flight.symbol === "triangle") {
+         ctx.moveTo(cx, cy - symR * 1.1);
+         ctx.lineTo(cx - symR * 1.0, cy + symR * 0.85);
+         ctx.lineTo(cx + symR * 1.0, cy + symR * 0.85);
+      } else {
+         for (let p = 0; p < 10; p++) {
+            const rad = p % 2 === 0 ? symR : symR * 0.42;
+            const a = -Math.PI / 2 + (p * Math.PI) / 5;
+            const x = cx + Math.cos(a) * rad;
+            const y = cy + Math.sin(a) * rad;
+            if (p === 0) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
+         }
+      }
+      ctx.closePath();
+      ctx.fill();
+   });
+};
+
+/**
+ * 4 destination markers on the chute belts facing the camera.
+ * Emissive / light material (MeshBasicMaterial) ensures 100% luminous visibility
+ * without shadowing or darkening.
+ */
+export function BeltMarkers() {
+   const camera = useThree((state) => state.camera);
+   const mesh = useRef<InstancedMesh>(null);
+   const atlas = useCanvasTexture(512, 128, drawMarkerAtlas);
+   const [scratch] = useState(() => ({
+      m: new Matrix4(),
+      q: new Quaternion(),
+      p: new Vector3(),
+      s: new Vector3(BELT_MARKER_SIZE, BELT_MARKER_SIZE, 1),
+   }));
+
+   const cell = useMemo(() => {
+      const attr = new InstancedBufferAttribute(new Float32Array(4), 1);
+      for (let i = 0; i < 4; i++) attr.setX(i, i);
+      return attr;
+   }, []);
+
+   useLayoutEffect(() => {
+      const inst = mesh.current;
+      if (!inst) return;
+      inst.geometry.setAttribute("cell", cell);
+      cell.needsUpdate = true;
+   }, [cell]);
+
+   useFrame(() => {
+      const inst = mesh.current;
+      if (!inst) return;
+      const { m, q, p, s } = scratch;
+      q.copy(camera.quaternion);
+      for (let i = 0; i < 4; i++) {
+         const marker = BELT_MARKERS[i];
+         p.set(marker.x, marker.y, marker.z);
+         m.compose(p, q, s);
+         inst.setMatrixAt(i, m);
+      }
+      inst.instanceMatrix.needsUpdate = true;
+   });
+
+   return (
+      <instancedMesh ref={mesh} args={[undefined, undefined, 4]} frustumCulled={false} name="belt-markers">
+         <planeGeometry args={[1, 1]} />
+         <meshBasicMaterial
+            ref={bindMarkerAtlas}
+            map={atlas}
+            transparent
+            depthWrite={false}
+         />
+      </instancedMesh>
+   );
+}
+
 export function ChuteMouths() {
    return (
-      <mesh geometry={CHUTE_MOUTHS_GEO} dispose={null} name="chute-mouths">
-         <meshStandardMaterial vertexColors side={DoubleSide} roughness={0.45} metalness={0.15} />
-      </mesh>
+      <group name="chute-mouths">
+         <mesh geometry={CHUTE_MOUTHS_GEO} dispose={null} name="chute-hoods">
+            <meshStandardMaterial vertexColors side={DoubleSide} roughness={0.4} metalness={0.2} />
+         </mesh>
+         <BeltMarkers />
+      </group>
    );
 }

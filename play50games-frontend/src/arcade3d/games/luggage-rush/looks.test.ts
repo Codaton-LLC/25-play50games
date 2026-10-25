@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { PerspectiveCamera, Raycaster, Vector2, Vector3 } from "three";
 import { fitView } from "@/arcade3d/core/view";
 import {
+   BELT_MARKERS,
    COLORS,
    DECOR_SPOTS,
    FLOOR,
@@ -10,7 +11,7 @@ import {
    PLAY_AREA,
    inPlayArea,
 } from "./looks";
-import { DIVERTER_AT } from "./rules";
+import { DIVERTER_AT, FLIGHTS } from "./rules";
 
 const AREA = {
    min: { x: PLAY_AREA.minX, y: PLAY_AREA.minY, z: PLAY_AREA.minZ },
@@ -186,5 +187,61 @@ describe("luggage-rush look", () => {
          const ratio = contrastRatio(color, COLORS.beltSlat);
          expect(ratio, `flight ${name} (${color}) against belt (${COLORS.beltSlat})`).toBeGreaterThanOrEqual(2.5);
       }
+   });
+
+   it("ensures each belt marker is at least a minimum on-screen size and its colour matches its destination", () => {
+      expect(BELT_MARKERS).toHaveLength(4);
+
+      for (let i = 0; i < BELT_MARKERS.length; i++) {
+         const marker = BELT_MARKERS[i];
+         const flight = FLIGHTS[i];
+
+         // 1. Colour and symbol match the destination flight exactly:
+         expect(marker.flight).toBe(i);
+         expect(marker.color.toLowerCase()).toBe(flight.color.toLowerCase());
+         expect(marker.symbol).toBe(flight.symbol);
+
+         // 2. High contrast against the dark belt slat:
+         const contrast = contrastRatio(marker.color, COLORS.beltSlat);
+         expect(contrast, `marker ${i} (${marker.color}) against belt (${COLORS.beltSlat})`).toBeGreaterThanOrEqual(2.5);
+
+         // 3. On-screen projected size across all three viewports:
+         for (const vp of VIEWPORTS) {
+            const { cam } = getCamera(vp);
+
+            // Center of the marker
+            const center = new Vector3(marker.x, marker.y, marker.z);
+
+            // Two points spanning the marker height facing the camera
+            const camUp = new Vector3(0, 1, 0).applyQuaternion(cam.quaternion);
+            const top = center.clone().addScaledVector(camUp, marker.size / 2).project(cam);
+            const bot = center.clone().addScaledVector(camUp, -marker.size / 2).project(cam);
+
+            // Screen pixel height
+            const screenH = Math.abs((top.y - bot.y) * 0.5 * vp.h);
+
+            // Must be at least 32 px on-screen for instant mobile readability
+            expect(
+               screenH,
+               `${vp.name}: marker ${i} size (${screenH.toFixed(1)} px) must be >= 32 px`
+            ).toBeGreaterThanOrEqual(32);
+
+            // Center must be within visible viewport bounds
+            const proj = center.clone().project(cam);
+            expect(proj.x, `${vp.name} marker ${i} NDC x`).toBeGreaterThan(-1);
+            expect(proj.x, `${vp.name} marker ${i} NDC x`).toBeLessThan(1);
+            expect(proj.y, `${vp.name} marker ${i} NDC y`).toBeGreaterThan(-1);
+            expect(proj.y, `${vp.name} marker ${i} NDC y`).toBeLessThan(1);
+         }
+      }
+   });
+
+   it("ensures scene elements against the dark belt are not near-black", () => {
+      // Diverter base & puck on the belt slat:
+      expect(contrastRatio(COLORS.diverterBase, COLORS.beltSlat)).toBeGreaterThanOrEqual(2.0);
+      expect(contrastRatio(COLORS.diverterPuck, COLORS.beltSlat)).toBeGreaterThanOrEqual(3.0);
+
+      // Rubber bumper trim next to the belt is not near-black:
+      expect(contrastRatio(COLORS.rubberBumper, "#000000")).toBeGreaterThanOrEqual(2.0);
    });
 });

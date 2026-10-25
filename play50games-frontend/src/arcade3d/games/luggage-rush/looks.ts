@@ -25,14 +25,14 @@ export const COLORS = {
    steelFrame: "#64748b",
    steelLeg: "#475569",
    steelDark: "#334155",
-   rubberBumper: "#1e293b",
+   rubberBumper: "#475569", // Lighter slate rubber (not near-black against beltSlat #334155)
    beltSlat: "#334155",
    chuteMetal: "#475569",
    chuteTrim: "#94a3b8",
 
    // Diverter switches
-   diverterBase: "#334155",
-   diverterPuck: "#475569",
+   diverterBase: "#64748b", // Distinct steel tone with high contrast against #334155 belt
+   diverterPuck: "#94a3b8", // Light metallic accent
    diverterArrow: "#f8fafc",
    diverterGlow: "#38bdf8",
 
@@ -84,6 +84,33 @@ export const COLORS = {
       vipRim: "#fde68a",
    },
 } as const;
+
+export interface BeltMarker {
+   flight: number;
+   color: string;
+   symbol: "circle" | "square" | "triangle" | "star";
+   x: number;
+   y: number;
+   z: number;
+   size: number;
+}
+
+/**
+ * World size of destination markers on chute belts.
+ * Projects to >= 40 px across 390x844, 844x390, and 1280x800.
+ */
+export const BELT_MARKER_SIZE = 1.35;
+
+/**
+ * Bright, high-contrast destination markers positioned on the chute belts facing the camera.
+ * Each marker matches its destination flight color and tag symbol.
+ */
+export const BELT_MARKERS: readonly BeltMarker[] = [
+   { flight: 0, color: COLORS.flights.red, symbol: "circle", x: 6.4, y: 0.82, z: 4.4, size: BELT_MARKER_SIZE },
+   { flight: 1, color: COLORS.flights.blue, symbol: "square", x: 6.4, y: 0.82, z: 8.0, size: BELT_MARKER_SIZE },
+   { flight: 2, color: COLORS.flights.green, symbol: "triangle", x: 6.4, y: 0.82, z: 11.2, size: BELT_MARKER_SIZE },
+   { flight: 3, color: COLORS.flights.yellow, symbol: "star", x: 6.4, y: 0.82, z: 14.2, size: BELT_MARKER_SIZE },
+] as const;
 
 /**
  * Playable area bounding box: belts, diverters, chutes, and bags move here.

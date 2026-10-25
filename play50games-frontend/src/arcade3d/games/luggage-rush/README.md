@@ -106,8 +106,9 @@ Modern-look visual pass on Airport Luggage Rush (P-85). Zero gameplay, timing, s
   - `SuitcasePrimitive`: Bevelled shell (`#f8fafc`), dark bumper guards and corner caps (`#334155`), and metallic top handle/latches (`#cbd5e1`).
   - `PlanePrimitive`: Sleek low-poly airliner with fuselage, swept wings, winglets, twin jet engines, cockpit window band, and airline blue tail fin stripe.
   - `HandlerPrimitive`: Ground crew operator with hi-vis orange safety vest (`#f97316`), reflective silver stripe (`#f8fafc`), work pants, safety boots, and cap/headset.
-  - `ChuteMouths`: Industrial stainless steel collection cowl hoods with gate signage and vibrant flight symbols.
-  - Diverters: Circular steel turntable bases with illuminated LED direction arrows.
+  - `ChuteMouths` & `BeltMarkers`: Large, bright circular destination markers (1.35 m world size, >= 40 px on all viewports, facing the camera via billboard quaternion) in emissive/light `MeshBasicMaterial` with glowing white borders, destination flight colours, and bold matching symbols. Industrial stainless steel collection cowl hoods at the wall.
+  - Diverters: Circular steel turntable bases (`#64748b` steel base, `#94a3b8` puck) with high contrast against the belt, and illuminated direction arrows.
+  - Non-Black Scene Contrast: Diverter base and rubber bumper guards lightened to `#64748b` and `#475569`, ensuring no near-black elements blend into the dark conveyor belt.
 - **Steel Conveyor Chassis:** Merged static steel guide channels, rubber bumper guards, and support stanchion legs along the conveyor spine, chutes, and overflow belt (1 draw call).
 - **Instanced Surroundings (`Decor.tsx`):** Instanced luggage carts, LD3 air cargo containers, runway edge lights, and architectural terminal columns strictly outside the play area. Checked against camera occlusion across all three viewports in `looks.test.ts`.
 - **Juicy Feedback:** Added subtle camera shake (`fx.shake(0.15)`) on wrong chute strikes in addition to the `0.35` overflow shake; enhanced particle sparkle and score popups on correct deliveries.
