@@ -323,3 +323,52 @@ describe("treasure-island levels: bots", () => {
       expect(idle.score).toBeLessThan(clearAt);
    }, 120_000);
 });
+
+// Gate review: the layout, tide and shape knobs must reach the generator and the run, not only
+// the declarations (rules.ts call sites mutation-probed).
+describe("treasure-island levels: the simulation reads every level knob", () => {
+   const SEEDS = 30;
+   const pairMin = (t: ReadonlyArray<{ x: number; z: number }>) => {
+      let best = Infinity;
+      for (let i = 0; i < t.length; i++) for (let j = i + 1; j < t.length; j++) best = Math.min(best, Math.hypot(t[i].x - t[j].x, t[i].z - t[j].z));
+      return best;
+   };
+
+   it("the generator uses each level's ellipse, spacing and route band", () => {
+      let outsideToday = 0;
+      let closerThanToday = 0;
+      for (let seed = 0; seed < SEEDS; seed++) {
+         const five = generateIsland(seed, LEVELS[5]);
+         const shape = { rx: LEVELS[5].rx, rz: LEVELS[5].rz };
+         for (const t of five.treasures) expect(rho(t.x, t.z, shape)).toBeLessThanOrEqual(0.72 + 1e-9);
+         if (five.treasures.some((t) => rho(t.x, t.z) > 0.72 + 1e-9)) outsideToday++;
+         const gap = pairMin(five.treasures);
+         expect(gap).toBeGreaterThanOrEqual(LEVELS[5].spacing - 1e-9);
+         if (gap < LEVELS[1].spacing) closerThanToday++;
+         for (const id of LEVEL_IDS) {
+            const island = generateIsland(seed, LEVELS[id]);
+            expect(island.treasures.length).toBe(LEVELS[id].treasures);
+            const route = shortestRoute(island.treasures);
+            expect(route, `L${id} seed ${seed}`).toBeGreaterThanOrEqual(LEVELS[id].routeMin - 1e-9);
+            expect(route, `L${id} seed ${seed}`).toBeLessThanOrEqual(LEVELS[id].routeMax + 1e-9);
+         }
+      }
+      // level 5's wider ellipse and 5 m spacing are used, not level 1's
+      expect(outsideToday).toBeGreaterThan(0);
+      expect(closerThanToday).toBeGreaterThan(0);
+   });
+
+   it("a run takes the level's tide clock and island shape", () => {
+      const island = generateIsland(4, LEVELS[5]);
+      for (const id of LEVEL_IDS) {
+         const run = createRun(island, LEVELS[id]);
+         expect(run.tide.startS).toBe(LEVELS[id].tideStartS);
+         expect(run.tide.endS).toBe(LEVELS[id].tideEndS);
+         expect(run.tide.finalShore).toBe(LEVELS[id].finalShore);
+         expect(shoreAt(LEVELS[id].tideEndS, run.tide)).toBeCloseTo(LEVELS[id].finalShore, 9);
+         expect(shoreAt(LEVELS[id].tideEndS - 1, run.tide)).toBeGreaterThan(LEVELS[id].finalShore);
+         expect(run.shape.rx).toBe(LEVELS[id].rx);
+         expect(run.shape.rz).toBe(LEVELS[id].rz);
+      }
+   });
+});
