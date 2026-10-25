@@ -1,6 +1,7 @@
 // The reused clean-city cleaner (orange hi-vis vest) as the worker, reused pallet and van, shared crate,
 // and one GLB of its own: the cement mixer (batch 5, already in the manifest), site decor.
 import type { ModelAsset } from "@/arcade3d/core/types";
+import type { InstanceSpot } from "@/arcade3d/core/render";
 import { CLEANER_LANDMARKS, PROP_BUDGET, REUSED_ASSETS, SHARED_ASSETS } from "@/arcade3d/core/sharedAssets";
 
 /**
@@ -22,14 +23,29 @@ export const WORKER_SCALE = WORKER_HEIGHT / WORKER_GLB_HEIGHT;
 export const WORKER_HAT = { scale: 1.15, y: -0.11, z: 0 } as const;
 
 /**
- * cementMixer.glb (batch 5, Hyper3D, 1500 tris) 1.285 x 1.910 x 1.420, floor pivot, centred on x / z: an
- * orange drum on a yellow frame. Drawn 1.5 m tall (1.01 x 1.12 m on the ground), turned by MIXER.yaw.
+ * cementMixer.glb (batch 5, Hyper3D, 1500 tris) 1.660 x 1.854 x 1.896, floor pivot, centred on x / z.
+ * Drawn 1.25 m tall (1.12 x 1.28 m on the ground), turned by MIXER.yaw.
  */
-export const MIXER_GLB = { width: 1.285, height: 1.9095, depth: 1.4202 } as const;
-export const MIXER_HEIGHT = 1.5;
+export const MIXER_GLB = { width: 1.6604, height: 1.8541, depth: 1.8964 } as const;
+export const MIXER_HEIGHT = 1.25;
 const MIXER_SCALE = MIXER_HEIGHT / MIXER_GLB.height;
 /** Where it stands on the site (m): beside the work zone on the -x side, outside the crane's wedge. */
-export const MIXER = { x: -6.6, z: 6.0, yaw: 0.9 } as const;
+export const MIXER = { x: -6.6, z: 6.05, yaw: 0.9 } as const;
+
+/**
+ * Decor spots for cement mixers outside the play area on levels 4 & 5 (Shop Front & Mini Tower).
+ * 2-4 copies placed beside the site perimeter where other decor already sits.
+ */
+export const MIXER_SPOTS: readonly InstanceSpot[] = [
+   // Beside the work zone on the -x side (matches MIXER from mixer.test.ts)
+   { x: MIXER.x, y: 0, z: MIXER.z, rotY: MIXER.yaw },
+   // Northwest perimeter near the corner fence and barriers
+   { x: -6.6, y: 0, z: 9.8, rotY: 0.3 },
+   // East perimeter outside the worker and building area
+   { x: 6.6, y: 0, z: 5.8, rotY: -1.2 },
+   // Northeast perimeter near the corner fence
+   { x: 6.6, y: 0, z: 9.8, rotY: -0.5 },
+];
 
 export const ASSETS = {
    worker: { ...REUSED_ASSETS.cleaner, scale: WORKER_SCALE },
@@ -42,6 +58,8 @@ export const ASSETS = {
       id: "cementMixer",
       url: "/models/3d/construction-worker/cementMixer.glb",
       scale: MIXER_SCALE,
+      rotationY: 0,
+      yOffset: 0,
       fallback: "cylinder",
       fallbackColor: "#f97316",
       budget: { ...PROP_BUDGET },
