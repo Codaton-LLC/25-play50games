@@ -3,7 +3,7 @@
 // Alien Farm scene: one useRunFrame feeds the input, dt and the run into rules.stepRun, then the
 // store (rules.feedStore: live points and HUD stats) and the feedback (core/fx bursts, floating
 // scores, shake; playSfx) from the step's events. Everything else only reads the run state:
-// Farm (static set), Crops (pools), Saucer, Farmer, the arrows and the hum loop. The shell's 100 s
+// Farm (static set + decor), Crops (pools), Saucer, Farmer, the arrows and the hum loop. The shell's 100 s
 // timer ends the run ("timeup"); afterwards the farmer cheers (or shrugs on 0) for resultDelayMs.
 import { useEffect, useRef, useState } from "react";
 import { useFrame } from "@react-three/fiber";
@@ -17,7 +17,9 @@ import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { useFittedView } from "@/arcade3d/core/useFittedView";
 import { useRunFrame } from "@/arcade3d/core/useRunFrame";
 import { Crops } from "./Crops";
+import { useLevel } from "@/arcade3d/core/level";
 import { FarmScene } from "./Farm";
+import type { AlienFarmLevel } from "./levels";
 import { Farmer } from "./Farmer";
 import { COLORS, VIEW } from "./looks";
 import { Saucer } from "./Saucer";
@@ -53,6 +55,7 @@ function useFarmSound(run: RunState) {
    const phase = useArcadeStore((s) => s.phase);
    const hum = useRef<LoopHandle | null>(null);
    const [state] = useState(() => ({ set: { pitch: 1, volume: 0, pan: 0 }, pitch: -1, volume: -1, pan: -9, chimed: -1 }));
+
    useEffect(() => {
       if (phase !== "playing" || muted) return;
       const ambient = startLoop("ambient", { volume: 0.08 });
@@ -70,8 +73,6 @@ function useFarmSound(run: RunState) {
       const h = hum.current;
       if (!h) return;
       const t = run.time, f = run.farmer;
-      // the crop in reach wins (no competing hums while picking); otherwise the nearest growing or
-      // ripe crop within 6 m
       let best = -1, bestD = Infinity;
       for (const plot of run.plots) {
          const st = stageAt(plot, t);
@@ -85,7 +86,7 @@ function useFarmSound(run: RunState) {
       let pitch = 0.6, volume = 0, pan = 0;
       if (best >= 0) {
          const plot = run.plots[best];
-         const k = cycleIndex(plot, t), p = cyclePeak(plot, k), w = halfWindow(p);
+         const k = cycleIndex(plot, t), p = cyclePeak(plot, k), w = halfWindow(p, plot.halfLate);
          const q = Math.min(1, Math.max(0, (t - (p - 1.5)) / 1.5));
          if (t >= p - 1.5 && t <= p + w) {
             pitch = 0.6 + 1.2 * q;
@@ -110,8 +111,10 @@ export default function Scene() {
    const view = useFittedView(VIEW);
    const input = useInput();
    const fx = useFx();
+
    // a fresh seed per run: GameShell remounts the Scene on start and retry
-   const [run] = useState(() => createRun(randomSeed()));
+   const { config } = useLevel<AlienFarmLevel>();
+   const [run] = useState(() => createRun(randomSeed(), config));
    const [reducedMotion] = useState(prefersReducedMotion);
    const [scratch] = useState(() => ({
       step: { dirX: 0, dirZ: 0, press: false } as StepInput,
@@ -154,13 +157,18 @@ export default function Scene() {
          at.x = plot.x;
          at.y = 0.6;
          at.z = plot.z;
-         fx.burst("sparkle", at, ev.pickedPerfect ? 22 : 14);
+         // Juicy glow sparkle feedback on perfect pick
+         fx.burst("sparkle", at, ev.pickedPerfect ? 26 : 14);
          at.y = 1.5;
-         fx.score(at, ev.pickedPerfect ? `+${SCORE.perfect} perfect` : `+${SCORE.harvest}`, { color: ev.pickedPerfect ? COLORS.gold : "#dcfce7" });
+         fx.score(
+            at,
+            ev.pickedPerfect ? `+${SCORE.perfect} perfect` : `+${SCORE.harvest}`,
+            { color: ev.pickedPerfect ? COLORS.gold : "#dcfce7", size: ev.pickedPerfect ? 0.08 : 0.065 }
+         );
          playSfx("pop", { pitch: ev.pickedPerfect ? 1.5 : 1 });
-         playSfx("pickup", { volume: 0.7 });
+         playSfx("pickup", { volume: ev.pickedPerfect ? 0.75 : 0.6 });
          if (ev.pickedPerfect) {
-            playSfx("chime", { volume: 0.5, pitch: 1 + 0.08 * Math.min(6, run.streak) });
+            playSfx("chime", { volume: 0.55, pitch: 1 + 0.08 * Math.min(6, run.streak) });
             if (run.streak >= 3) fx.shake(0.06);
          }
       }
@@ -169,10 +177,14 @@ export default function Scene() {
          at.x = plot.x;
          at.y = 0.5;
          at.z = plot.z;
-         // the mistimed press bursts the crop (rules.press): a coral pop, the spores land, a short daze
+         // the mistimed press bursts the crop (rules.press): a coral puff, spores land, a short daze
          fx.burst("puff", at, 18);
          at.y = 1.4;
-         fx.score(at, run.time < cyclePeak(plot, cycleIndex(plot, run.time)) ? "burst! too early" : "burst! too late", { color: COLORS.coral });
+         fx.score(
+            at,
+            run.time < cyclePeak(plot, cycleIndex(plot, run.time)) ? "burst! too early" : "burst! too late",
+            { color: COLORS.coral }
+         );
          playSfx("hit", { volume: 0.25 });
          playSfx("thud", { volume: 0.2, pitch: 0.8 });
          fx.shake(0.05);
@@ -233,7 +245,14 @@ export default function Scene() {
    return (
       <>
          {/* the camera reads run.farmer, which useRunFrame already moved this frame */}
-         <CameraRig camera={{ position: view.offset, lookAt: [0, 0, 0], fov: VIEW.fov }} follow={run.farmer} followFraction={1} damping={5} offset={view.offset} shift={view.shift} />
+         <CameraRig
+            camera={{ position: view.offset, lookAt: [0, 0, 0], fov: VIEW.fov }}
+            follow={run.farmer}
+            followFraction={1}
+            damping={5}
+            offset={view.offset}
+            shift={view.shift}
+         />
          <FarmScene />
          <Crops run={run} reducedMotion={reducedMotion} />
          <Saucer run={run} reducedMotion={reducedMotion} />

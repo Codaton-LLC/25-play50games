@@ -1,4 +1,6 @@
 "use client";
+import { useLevel } from "@/arcade3d/core/level";
+import type { SpaceRepairLevel } from "./levels";
 import type { CSSProperties } from "react";
 import { TimingRing } from "@/arcade3d/core/hud";
 import { useSafeArea } from "@/arcade3d/core/safeArea";
@@ -9,7 +11,8 @@ import styles from "./Hud.module.css";
 
 const NO_ZONES = [{ start: 0.42, end: 0.58 }];
 export default function Hud() {
-   const power = useArcadeStore((s) => s.stats.power ?? 100), remaining = useArcadeStore((s) => s.stats.remaining ?? 120);
+   const { config } = useLevel<SpaceRepairLevel>();
+   const power = useArcadeStore((s) => s.stats.power ?? 100), remaining = useArcadeStore((s) => s.stats.remaining ?? config.duration);
    const repairs = useArcadeStore((s) => s.stats.repairs ?? 0), docked = useArcadeStore((s) => s.stats.docked ?? -1);
    const waiting = useArcadeStore((s) => s.stats.waiting ?? 0), feedback = useArcadeStore((s) => s.stats.feedback ?? 0);
    const hits = useArcadeStore((s) => s.stats.hits ?? 0), required = useArcadeStore((s) => s.stats.required ?? 0);

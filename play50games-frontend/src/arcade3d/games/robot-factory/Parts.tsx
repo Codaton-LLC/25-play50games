@@ -25,7 +25,7 @@ import { useGameTime } from "@/arcade3d/core/gameTime";
 import { DynamicInstanced, useCanvasTexture, type InstancePart, type InstanceUpdate } from "@/arcade3d/core/render";
 import { ASSETS } from "./assets";
 import { cradleSlot, flyerAt, type Look } from "./look";
-import { COLORS } from "./palette";
+import { COLORS } from "./looks";
 import { buildShape } from "./partShapes";
 import { CLAW, SHAPES, STREAM, inZone, isWanted, type Run } from "./rules";
 

@@ -44,6 +44,36 @@ Groups: `FARM`, `FARMER`, `PLOTS`, `OFFSET_TABLES`, `CYCLE`, `HARVEST`, `SHIP`, 
 5. **Rate:** first pick completes ≥ 2.40 s (earliest window opens at 2.1); different-plot presses ≥ 71/90 s apart (closest beds 4 m); same plot ≥ 4.2 s. Every prefix with H picks scores ≤ 200 H ≤ 200 + 250 (2.40 + (H − 1) 71/90) for H = 1..124 (smallest margin 258.33); 125 picks need more than 100 s. The run lasts exactly 100000 ms of play (shell timer), inside 99000..102000.
 6. **Tightness (Decision D, a documented looser limit):** the best legal oracle reaches **7275 = 56.4 %** of maxScore, below the 90 % gate. Reason: the relaxation pays every crop as a delivered full load but charges nothing for the beam trips; the real ship (2–3 m/s on a 64 m loop) costs about 2–4 s per load and the clustered offset tables (all nine deltas within 1.9 s) leave a dead stretch in every cycle. A delivery-aware certificate needs an enclosure of the ship's position over continuous s0 and both directions; not attempted. Open question 2.
 
+## Levels (five per game)
+
+Five levels through the core level system (`core/README.md` "Levels"): `levels.ts` holds the pure configs, `createRun(seed, level)` plays one, Scene reads it with `useLevel`, `index.tsx` declares the five specs (clock, Basket chip) and `meta.ts` the titles, limits and clear targets. **Level 1 is today's game** (replayed bit-exact against today's `createRun` in `levels.test.ts`). The same nine beds, assets and controls on every level; a level clears at its `clearScore` (score attack, no win); level 5 has none.
+
+| Level | Title | Clock | Beds | Saucer m/s (<40 / 40-70 / >70 s) | Spores | Late window | Clear |
+|---|---|---:|---|---|---:|---:|---:|
+| 1 | Starter Plot | 100 s | 5 at 0 s, 2 at 20 s, gourds at 40 s; 6 / 8 s | 2 / 2.5 / 3 | 5 s | ±0.6 s | 2000 |
+| 2 | Crystal Farm | 150 s | all 9 at 0 s; 6 / 8 s | 2 / 2.5 / 3 | 5 s | ±0.6 s | 3000 |
+| 3 | Glow Marsh | 180 s | staggered as L1; 5 s pods, 8 s gourds | 2 / 2.5 / 3 | 7 s | ±0.6 s | 3500 |
+| 4 | Meteor Field | 180 s | all 9 at 0 s; 6 / 8 s | 2.5 / 3 / 3.5 | 7 s | ±0.5 s | 1600 |
+| 5 | Grand Alien Harvest | 210 s | all 9 at 0 s; 5 s pods, 7 s gourds | 2.5 / 3 / 3.5 | 7 s | ±0.5 s | - |
+
+Hazards never ease: clock, saucer speed and spore life never fall, the late window never widens. From L4 the saucer outruns a loaded farmer (3.06 m/s with four crops) after 70 s, so a delivery has to cut it off; that is why the human-paced bot (which chases the beam without leading it) scores less on L4-L5 and L4's clear target is lower.
+
+### Per-level limits and why they hold
+
+The level-1 proof above carries over unchanged per level (`bound.ts` takes each level's beds, windows and deadline; certificates in `levels.test.ts` L1-L3 and `levels.certificate.test.ts` L4-L5):
+
+| Level | S\* (max over 16 tables) | maxScore = 100 ceil(1.04 S\* / 100) | min / max ms | base / pps |
+|---|---:|---:|---|---|
+| 1 | 12400 | 12900 | 99000 / 102000 | 200 / 250 |
+| 2 | 19750 | 20600 | 148000 / 153000 | 200 / 250 |
+| 3 | 25850 | 26900 | 178000 / 183000 | 200 / 260 |
+| 4 | 21250 | 22100 | 178000 / 183000 | 200 / 260 |
+| 5 | 29250 | 30500 | 208000 / 213000 | 200 / 260 |
+
+Rate, per level: each harvest pays at most 200; presses on different beds are at least 71/90 s apart (bed positions are the same on every level) and a bed repeats only a cycle later (at least C - 1.8 s > 71/90 s); the first press is at least f = the level's earliest (window open, walk from the start) over all 16 tables. So the H-th press is at or after f + (H - 1) 71/90 and `base + pps t >= 200 H` is checked for every H up to the last press the clock allows. On the longer levels 250 pts/s would run out (slope 250 x 71/90 < 200), hence 260 on L3-L5. L5 maxScore is 2.36 x L1's.
+
+Bots through the real store (30 Hz, `levels.test.ts`): the human-paced bot clears 30/30 seeds on L1-L4 (worst 2825 / 4500 / 4625 / 1700), greedy 4/4; idle scores 0 and a camping bot at most 400, so neither clears; every run passes `withinServerLimits` with `capScore` a no-op.
+
 ## Run end
 
 The shell's 100 s timer ends the run (`"timeup"`); core `endCue` plays the finish ("win") cue when the score is above 0. `resultDelayMs: 1600`: the farmer turns to the camera and cheers with confetti (score > 0) or slumps (0). The shell's Time chip is the clock (`clockChip` default). Nothing scores during the delay.
@@ -88,6 +118,36 @@ Existing GLBs only, no Hyper3D credits. Fits from measured bounds, checked on th
 | 5 Hz orbit spam | 16 | 0 | ≤ 125 |
 | 0.61 s metronome | 32 | 50–1500 (mean 703) | max < human min; mean < 0.3 x human mean |
 | arrive and press once, pulse-blind | 32 | 150–2100 (mean 1286) | max < human min; mean < 0.45 x human mean (3391); max < 0.35 x oracle |
+
+## Look (2026-10-24, revised P-90)
+
+Modern-look pass (Task P-86 & P-90): polished whimsical alien farm aesthetic, visual-only.
+- **Lighting & Atmosphere:** core `"sunset"` lighting preset configured via GameDefinition environment in `index.tsx`, linear purple dusk fog (`FOG.near = 32`, `FOG.far = 85`), gradient `SkyDome` (`#09041e` overhead to `#5b21b6` at sunset horizon), and `Starfield` (700 stars).
+- **Two Celestial Moons:** large cratered lavender primary moon and glowing cyan/teal minor moon positioned in the upper camera sky view (`Moons` following camera orientation), both `fog={false}`.
+- **Plum Ground & Beds with Dark Teal Furrows:** wide soil plane in rich alien plum (`COLORS.soil` `#3b0764`), purple planter frames (`COLORS.bed` `#4c1d95`), plum bed soil base (`COLORS.bedSoil` `#2e1065`), and 3 parallel dark teal furrow ridges (`COLORS.furrowRidge` `#0e4b56`) for high contrast against green mint crops (`#4ade80`), linked by glowing cyan irrigation channels (`COLORS.channel` `#22d3ee`).
+- **Surroundings & Decor in Camera Window (`Decor.tsx`):**
+  - Strange rock spires: tapering hexagonal crystal/rock columns with faceted crystal tips (`COLORS.spire` `#581c87` / `COLORS.spireTip` `#c084fc`), instanced along north perimeter and flank pathways.
+  - Glowing alien plants: curved stalks with bioluminescent bulbous caps (`COLORS.plantCap` `#2dd4bf` / `plantGlow` `#a7f3d0`), instanced along pathways and bed borders.
+  - Silo: futuristic storage silo with rounded dome cap, hopper ring and glowing conduit pipe (`COLORS.siloBody` `#cbd5e1` / `siloGlow` `#38bdf8`) northwest of Bed 0 (`[-6.5, 0, -5.4]`) in full camera view.
+  - Distant hills: procedurally triangulated low-poly rolling ridge mesh outside the farm (`hillMesh()`), rising to the north and distant flanks, and flat in the south foreground (`z >= 7.0`) to avoid any rim band under the joystick.
+  - Camera window framing: all decor instances fall inside the camera-visible farm area (`[-7, 7] x [-5.8, 5.8]`), clear of the crop beds, and never occlude plot targets at 1280x800, 390x844, and 844x390 (`looks.test.ts`).
+  - Seamless ground: wide plum soil plane extends to radius 90, guaranteeing no sky/void shows below the scene.
+- **Code-made stand-ins:**
+  - Alien farmer: bevelled boots with sole trim (`RoundedBoxGeometry`), blue overalls with bib and strap buttons, cream shirt collar and cuffs, large glossy eyes, and cute glowing mint antennae.
+  - Woven basket: dual-tone with darker rim trim (`COLORS.basketDark`).
+  - Saucer: multi-tone lathe hull with dark undercarriage rim, glowing beam emitter, and glowing canopy dome.
+  - Crops: fluted glowing bulbs and spiral gourds over styled leaves with dark undersides.
+  - Rocks & crates: faceted alien crystal clusters (flat-shaded low-poly) and reinforced banded crates.
+- **Juicy feedback:** 26-particle glow sparkle burst on perfect pick with rising chime, gold score popups, camera shake only on streaks of 3 or more; existing burst puffs/thuds and delivery bursts preserved.
+- **Draw-call budget estimate (<= 60):**
+  - Farm & sky: 8 (SkyDome 1, Starfield 1, primary moon 1, minor moon 1, soil plane 1, distant hills 1, bed frames 1, bed soil & furrows 2, channels 1)
+  - Decor: 5 (rock spires 1, plant stalks 1, plant caps 1, silo structure 1, silo conduit 1; rocks & crates via InstancedModel 2)
+  - Crops: 7 (glowPod pool 2, gourd pool 2, timing rings 1, timing fills 1, seed mounds 1, spore discs 1, cooldown ring 1)
+  - Saucer: 3 (model 1, beam cone 1, beam ring 1)
+  - Farmer: 3 (alien humanoid model 1, basket 1, shadow 1)
+  - Target markers: 0 (pure DOM)
+  - Active FX & score popups: ~4-6 when active
+  - Total estimated draw calls: ~32-36 (comfortably below the 60 budget limit). All geometries and materials created once and disposed on unmount; no `dispose={null}` on primitives.
 
 ## Performance
 
@@ -134,7 +194,7 @@ TASK P-18-alien-farm | build alien-farm | branch claude/game-alien-farm | allowe
 
 **Proposed limits:** maxScore 12900, minDurationMs 99000, maxDurationMs 102000, base 200, maxPointsPerSec 250. Proof: every crop ≤ 150 + 50 perfect (a 25 n² load is ≤ 100 per crop); an exhaustive label search (`bound.ts`, brute-force cross-checked) over all 16 offset tables, relaxing acceleration, carry/spore slowdown, deliveries and the ship (so it holds for every s0 and direction), certifies S\* = 12400 (H\* = 71 picks); maxScore = 100 ceil(1.04 S\*/100). Rate: 200 H ≤ 200 + 250 (2.40 + (H − 1) 71/90) for H ≤ 124 (margin 258.3); a run is exactly 100000 ms.
 
-**Bot results** (32 seeds = every table x both routes, frames cycling 30/60/144 Hz + random; every run: store = rules score, within limits, prefix ≤ min(maxScore, 200 + 250 t), capScore no-op): oracle 5450–7275 (best 56.4 % of maxScore); human-paced 2575–4375; slower human 2500–3875; idle 0; hold 0; camp ≤ 400; spin ≤ 400; 5 Hz spam 0; 0.61 s metronome 800–2200; arrive-and-press 1950–3400.
+**Bot results** (32 seeds = every table x both routes, frames cycling 30/60/144 Hz + random; every run: store = rules score, within limits, prefix ≤ min(maxScore, 200 + 250 t), `withinServerLimits`, `capScore` a no-op): oracle 5450–7275 (best 56.4 % of maxScore); human-paced 2575–4375; slower human 2500–3875; idle 0; hold 0; camp ≤ 400; spin ≤ 400; 5 Hz spam 0; 0.61 s metronome 800–2200; arrive-and-press 1950–3400.
 
 **Draw calls (estimate):** about 30, peak ≈ 33 (target 45, cap 150). No extra lights.
 

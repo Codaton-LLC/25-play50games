@@ -5,8 +5,10 @@
 // The outer terrain extends far beyond the camera frustum so no void is ever seen.
 import { useEffect, useMemo } from "react";
 import { BoxGeometry, RepeatWrapping, type BufferGeometry } from "three";
+import { Model } from "@/arcade3d/core/assets";
 import { Water } from "@/arcade3d/core/env";
 import { Instanced, useCanvasTexture, type CanvasDraw, type InstanceSpot } from "@/arcade3d/core/render";
+import { ASSETS } from "./assets";
 import { COLORS } from "./looks";
 import { BRIDGE, MOAT, PROPS } from "./level";
 import { bridgePieces, useMerged } from "./Primitives";
@@ -213,10 +215,17 @@ export function Terrain({ reduced }: { reduced: boolean }) {
             <meshStandardMaterial color={COLORS.rock} roughness={0.9} />
          </Instanced>
 
-         {/* Wooden bridge crossing the moat */}
-         <mesh geometry={bridge} position={[(BRIDGE.x0 + BRIDGE.x1) / 2, 0, (BRIDGE.z0 + BRIDGE.z1) / 2]} name="bridge">
-            <meshStandardMaterial vertexColors roughness={0.75} />
-         </mesh>
+         {/* Wooden bridge crossing the moat (GLB; sunk so its deck top lands on the old stand-in's 0.165) */}
+         <Model
+            asset={ASSETS.bridge}
+            position={[(BRIDGE.x0 + BRIDGE.x1) / 2, 0, (BRIDGE.z0 + BRIDGE.z1) / 2]}
+            name="bridge"
+            fallback={
+               <mesh geometry={bridge} name="bridge">
+                  <meshStandardMaterial vertexColors roughness={0.75} />
+               </mesh>
+            }
+         />
       </group>
    );
 }

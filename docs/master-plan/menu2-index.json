@@ -1,0 +1,652 @@
+[
+  {
+    "n": 1,
+    "slug": "sky-tower-jump",
+    "title": "Sky Tower Jump",
+    "genre": "Vertical infinite jump",
+    "levels": [
+      "Training Sky",
+      "Cloud Steps",
+      "Moving Platforms",
+      "Storm Heights",
+      "Infinite Tower"
+    ]
+  },
+  {
+    "n": 2,
+    "slug": "rooftop-roll-climb",
+    "title": "Rooftop Roll Climb",
+    "genre": "Vertical rooftop climb",
+    "levels": [
+      "Low Roofs",
+      "Office Roofs",
+      "Moving Rooftops",
+      "Night Skyline",
+      "High-Rise Climb"
+    ]
+  },
+  {
+    "n": 3,
+    "slug": "flooded-ruins-escape",
+    "title": "Flooded Ruins Escape",
+    "genre": "Vertical escape",
+    "levels": [
+      "Drain Entry",
+      "Pipe Maze",
+      "Valve Shaft",
+      "Flood Rise",
+      "Final Escape"
+    ]
+  },
+  {
+    "n": 4,
+    "slug": "lava-pillar-jump",
+    "title": "Lava Pillar Jump",
+    "genre": "Rising hazard platformer",
+    "levels": [
+      "Warm Cavern",
+      "Pillar Field",
+      "Falling Rocks",
+      "Fast Lava",
+      "Volcano Core"
+    ]
+  },
+  {
+    "n": 5,
+    "slug": "cloud-hopper",
+    "title": "Cloud Hopper",
+    "genre": "Soft vertical jumper",
+    "levels": [
+      "Soft Clouds",
+      "Moving Clouds",
+      "Wind Zone",
+      "Fading Clouds",
+      "Sky Sprint"
+    ]
+  },
+  {
+    "n": 6,
+    "slug": "temple-lantern-jump",
+    "title": "Temple Lantern Jump",
+    "genre": "Temple vertical platformer",
+    "levels": [
+      "Temple Gate",
+      "Lantern Hall",
+      "Balcony Climb",
+      "Night Temple",
+      "Golden Roof"
+    ]
+  },
+  {
+    "n": 7,
+    "slug": "neon-cube-jump",
+    "title": "Neon Cube Jump",
+    "genre": "Reactive platformer",
+    "levels": [
+      "Static Grid",
+      "Moving Cubes",
+      "Blink Grid",
+      "Laser Grid",
+      "Neon Overdrive"
+    ]
+  },
+  {
+    "n": 8,
+    "slug": "jungle-vine-jump",
+    "title": "Jungle Vine Jump",
+    "genre": "Vertical jungle climb",
+    "levels": [
+      "Green Start",
+      "Branch Climb",
+      "Swinging Vines",
+      "Ruins",
+      "Canopy Peak"
+    ]
+  },
+  {
+    "n": 9,
+    "slug": "ice-peak-jumper",
+    "title": "Ice Peak Jumper",
+    "genre": "Slippery platformer",
+    "levels": [
+      "Snow Base",
+      "Ice Steps",
+      "Cracking Ice",
+      "Snowfall",
+      "Frozen Summit"
+    ]
+  },
+  {
+    "n": 10,
+    "slug": "space-pod-jump",
+    "title": "Space Pod Jump",
+    "genre": "Low-gravity vertical jumper",
+    "levels": [
+      "Dock",
+      "Pod Line",
+      "Satellite Field",
+      "Zero-G Gap",
+      "Orbital Peak"
+    ]
+  },
+  {
+    "n": 11,
+    "slug": "roll-dash",
+    "title": "Roll Dash",
+    "genre": "3-lane endless runner",
+    "levels": [
+      "Training Street",
+      "Market Lane",
+      "Old Town",
+      "Night Street",
+      "Endless Dash"
+    ]
+  },
+  {
+    "n": 12,
+    "slug": "mine-tunnel-run",
+    "title": "Mine Tunnel Run",
+    "genre": "Tunnel runner",
+    "levels": [
+      "Dry Tunnel",
+      "Pipe Zone",
+      "Water Gaps",
+      "Fast Tunnel",
+      "Deep Mine Sprint"
+    ]
+  },
+  {
+    "n": 13,
+    "slug": "robot-factory-run",
+    "title": "Robot Factory Run",
+    "genre": "Factory endless runner",
+    "levels": [
+      "Assembly Start",
+      "Conveyor Hall",
+      "Robot Arms",
+      "Laser Line",
+      "Factory Overdrive"
+    ]
+  },
+  {
+    "n": 14,
+    "slug": "dragon-cave-rush",
+    "title": "Dragon Cave Rush",
+    "genre": "Cave runner",
+    "levels": [
+      "Crystal Entry",
+      "Rockfall",
+      "Glow Tunnel",
+      "Deep Cave",
+      "Crystal Rush"
+    ]
+  },
+  {
+    "n": 15,
+    "slug": "color-city-sprint",
+    "title": "Color City Sprint",
+    "genre": "Color-aware runner",
+    "levels": [
+      "Red/Blue",
+      "Three Colors",
+      "Fast Switch",
+      "Night Colors",
+      "Rainbow Rush"
+    ]
+  },
+  {
+    "n": 16,
+    "slug": "temple-coin-rush",
+    "title": "Temple Coin Rush",
+    "genre": "Temple runner",
+    "levels": [
+      "Temple Entry",
+      "Coin Hall",
+      "Broken Floors",
+      "Rolling Hazards",
+      "Temple Sprint"
+    ]
+  },
+  {
+    "n": 17,
+    "slug": "alien-lane-escape",
+    "title": "Alien Lane Escape",
+    "genre": "Alien-planet runner",
+    "levels": [
+      "Alien Meadow",
+      "Crystal Route",
+      "Meteor Zone",
+      "Glow Plants",
+      "Planet Escape"
+    ]
+  },
+  {
+    "n": 18,
+    "slug": "toy-room-run",
+    "title": "Toy Room Run",
+    "genre": "Tiny-character runner",
+    "levels": [
+      "Desk Start",
+      "Book Bridge",
+      "Keyboard Run",
+      "Toy Zone",
+      "Whole Room Sprint"
+    ]
+  },
+  {
+    "n": 19,
+    "slug": "candy-world-runner",
+    "title": "Candy World Runner",
+    "genre": "Candy runner",
+    "levels": [
+      "Candy Lane",
+      "Cookie Road",
+      "Jelly Jump",
+      "Lollipop Forest",
+      "Sugar Rush"
+    ]
+  },
+  {
+    "n": 20,
+    "slug": "snow-slide-dash",
+    "title": "Snow Slide Dash",
+    "genre": "Downhill slide runner",
+    "levels": [
+      "Snow Hill",
+      "Pine Run",
+      "Ice Gates",
+      "Night Snow",
+      "Glacier Dash"
+    ]
+  },
+  {
+    "n": 21,
+    "slug": "color-match-jump",
+    "title": "Color Match Jump",
+    "genre": "Color survival platformer",
+    "levels": [
+      "Two Colors",
+      "Three Colors",
+      "Five Colors",
+      "Fast Countdown",
+      "Color Master"
+    ]
+  },
+  {
+    "n": 22,
+    "slug": "switch-color-hero",
+    "title": "Switch Color Hero",
+    "genre": "Color-gate runner",
+    "levels": [
+      "Two Gates",
+      "Three Colors",
+      "Fast Switching",
+      "Mixed Obstacles",
+      "Color Overdrive"
+    ]
+  },
+  {
+    "n": 23,
+    "slug": "gem-collector-3d",
+    "title": "Gem Collector 3D",
+    "genre": "Color collection arena",
+    "levels": [
+      "Small Arena",
+      "Moving Gems",
+      "Wrong-Gem Penalty",
+      "Fast Spawn",
+      "Gem Master"
+    ]
+  },
+  {
+    "n": 24,
+    "slug": "portal-hop",
+    "title": "Portal Hop",
+    "genre": "Portal-selection arena",
+    "levels": [
+      "Two Portals",
+      "Three Portals",
+      "Moving Portals",
+      "Fast Countdown",
+      "Portal Master"
+    ]
+  },
+  {
+    "n": 25,
+    "slug": "paint-the-platforms",
+    "title": "Paint the Platforms",
+    "genre": "Area-painting challenge",
+    "levels": [
+      "25% Goal",
+      "40% Goal",
+      "Moving Tiles",
+      "Time Attack",
+      "80% Master"
+    ]
+  },
+  {
+    "n": 26,
+    "slug": "color-arena-survival",
+    "title": "Color Arena Survival",
+    "genre": "Round-based survival",
+    "levels": [
+      "Slow Rounds",
+      "Three Colors",
+      "Five Colors",
+      "Fast Rounds",
+      "Survival Master"
+    ]
+  },
+  {
+    "n": 27,
+    "slug": "ring-jump-challenge",
+    "title": "Ring Jump Challenge",
+    "genre": "Forward ring-run",
+    "levels": [
+      "Wide Rings",
+      "Moving Rings",
+      "Color Rings",
+      "Fast Route",
+      "Perfect Streak"
+    ]
+  },
+  {
+    "n": 28,
+    "slug": "crystal-tower",
+    "title": "Crystal Tower",
+    "genre": "Memory + vertical climb",
+    "levels": [
+      "3-Color Sequence",
+      "4 Colors",
+      "5 Colors",
+      "Moving Crystals",
+      "Memory Tower"
+    ]
+  },
+  {
+    "n": 29,
+    "slug": "energy-core-hunt",
+    "title": "Energy Core Hunt",
+    "genre": "Third-person mission arena",
+    "levels": [
+      "Simple Hunt",
+      "Mixed Colors",
+      "Larger Arena",
+      "Moving Cores",
+      "Core Master"
+    ]
+  },
+  {
+    "n": 30,
+    "slug": "color-boss-tower",
+    "title": "Color Boss Tower",
+    "genre": "Boss challenge",
+    "levels": [
+      "Training Guardian",
+      "Two Colors",
+      "Three Colors",
+      "Fast Switch Boss",
+      "Grand Color Guardian"
+    ]
+  },
+  {
+    "n": 31,
+    "slug": "wall-run-temple",
+    "title": "Wall Run Temple",
+    "genre": "Wall-run platformer",
+    "levels": [
+      "Training Wall",
+      "Double Wall",
+      "Column Hall",
+      "Broken Temple",
+      "Master Wall Run"
+    ]
+  },
+  {
+    "n": 32,
+    "slug": "plate-bounce-arena",
+    "title": "Plate Bounce Arena",
+    "genre": "Physics bounce arena",
+    "levels": [
+      "Single Bounce",
+      "Combo Pads",
+      "Moving Pads",
+      "Vertical Bounce",
+      "Infinite Bounce"
+    ]
+  },
+  {
+    "n": 33,
+    "slug": "mirror-dash",
+    "title": "Mirror Dash",
+    "genre": "Runner memory challenge",
+    "levels": [
+      "3-Step Route",
+      "5-Step Route",
+      "Split Path",
+      "Fast Memory",
+      "Clone Master"
+    ]
+  },
+  {
+    "n": 34,
+    "slug": "spin-pole-climb",
+    "title": "Spin Pole Climb",
+    "genre": "Vertical rotating-platform game",
+    "levels": [
+      "Slow Poles",
+      "Twin Poles",
+      "Mixed Rotation",
+      "Fast Tower",
+      "Spin Master"
+    ]
+  },
+  {
+    "n": 35,
+    "slug": "color-rail-grind",
+    "title": "Color Rail Grind",
+    "genre": "Rail-grind runner",
+    "levels": [
+      "Two Rails",
+      "Three Colors",
+      "Rail Crossings",
+      "Fast Switches",
+      "Rainbow Grind"
+    ]
+  },
+  {
+    "n": 36,
+    "slug": "temple-gong-timing",
+    "title": "Temple Gong Timing",
+    "genre": "Rhythm timing challenge",
+    "levels": [
+      "Slow Beat",
+      "Alternating Gongs",
+      "Moving Targets",
+      "Fast Rhythm",
+      "Perfect Timing"
+    ]
+  },
+  {
+    "n": 37,
+    "slug": "plate-surf",
+    "title": "Plate Surf",
+    "genre": "Downhill board/shell surf",
+    "levels": [
+      "Training Slope",
+      "Rocky Path",
+      "Jump Gates",
+      "Speed Canyon",
+      "Shell Surf Master"
+    ]
+  },
+  {
+    "n": 38,
+    "slug": "laser-maze-run",
+    "title": "Laser Maze Run",
+    "genre": "Precision maze challenge",
+    "levels": [
+      "Static Lasers",
+      "Moving Lasers",
+      "Cross Grid",
+      "Fast Maze",
+      "Laser Master"
+    ]
+  },
+  {
+    "n": 39,
+    "slug": "color-bridge-builder",
+    "title": "Color Bridge Builder",
+    "genre": "Light puzzle platformer",
+    "levels": [
+      "Two Switches",
+      "Three Colors",
+      "Split Bridge",
+      "Timed Bridge",
+      "Bridge Master"
+    ]
+  },
+  {
+    "n": 40,
+    "slug": "disc-target-throw",
+    "title": "Disc Target Throw",
+    "genre": "Arcade target challenge",
+    "levels": [
+      "Static Targets",
+      "Moving Targets",
+      "Color Targets",
+      "Fast Combo",
+      "Accuracy Master"
+    ]
+  },
+  {
+    "n": 41,
+    "slug": "wind-tunnel-escape",
+    "title": "Wind Tunnel Escape",
+    "genre": "Air-current platformer",
+    "levels": [
+      "Gentle Wind",
+      "Cross Wind",
+      "Vertical Lift",
+      "Moving Fans",
+      "Storm Tunnel"
+    ]
+  },
+  {
+    "n": 42,
+    "slug": "magnet-coin-lab",
+    "title": "Magnet Coin Lab",
+    "genre": "Collectible puzzle",
+    "levels": [
+      "Basic Magnet",
+      "Two Poles",
+      "Moving Blocks",
+      "Color Polarity",
+      "Magnet Master"
+    ]
+  },
+  {
+    "n": 43,
+    "slug": "roll-cannon-jump",
+    "title": "Roll Cannon Jump",
+    "genre": "Launch trajectory platformer",
+    "levels": [
+      "Short Launch",
+      "Angle Practice",
+      "Moving Pads",
+      "Long Distance",
+      "Precision Cannon"
+    ]
+  },
+  {
+    "n": 44,
+    "slug": "crystal-cave-switch",
+    "title": "Crystal Cave Switch",
+    "genre": "Color-switch puzzle",
+    "levels": [
+      "Two Crystals",
+      "Three Sequence",
+      "Hidden Crystal",
+      "Timed Sequence",
+      "Crystal Master"
+    ]
+  },
+  {
+    "n": 45,
+    "slug": "sky-hook-swing",
+    "title": "Sky Hook Swing",
+    "genre": "Swing platformer",
+    "levels": [
+      "Single Swing",
+      "Double Swing",
+      "Moving Anchors",
+      "Long Gaps",
+      "Sky Swing Master"
+    ]
+  },
+  {
+    "n": 46,
+    "slug": "color-door-sprint",
+    "title": "Color Door Sprint",
+    "genre": "Reaction runner",
+    "levels": [
+      "Two Doors",
+      "Three Doors",
+      "Fake Door",
+      "Fast Gates",
+      "Door Sprint Master"
+    ]
+  },
+  {
+    "n": 47,
+    "slug": "tightrope-path",
+    "title": "Tightrope Path",
+    "genre": "Balance obstacle course",
+    "levels": [
+      "Wide Beams",
+      "Narrow Beams",
+      "Moving Beams",
+      "Rotating Path",
+      "Balance Master"
+    ]
+  },
+  {
+    "n": 48,
+    "slug": "color-orb-defense",
+    "title": "Color Orb Defense",
+    "genre": "Color defense arena",
+    "levels": [
+      "Two Colors",
+      "Three Colors",
+      "Four Colors",
+      "Fast Waves",
+      "Orb Defense Master"
+    ]
+  },
+  {
+    "n": 49,
+    "slug": "zipline-rush",
+    "title": "Zipline Rush",
+    "genre": "Zipline traversal game",
+    "levels": [
+      "Training Line",
+      "Twin Lines",
+      "Moving Landing",
+      "Night Skyline",
+      "Zipline Master"
+    ]
+  },
+  {
+    "n": 50,
+    "slug": "ultimate-color-trial",
+    "title": "Ultimate Color Trial",
+    "genre": "Mixed-mechanic finale",
+    "levels": [
+      "Jump Trial",
+      "Runner Trial",
+      "Color Trial",
+      "Mixed Trial",
+      "Grand Hero Trial"
+    ]
+  }
+]
