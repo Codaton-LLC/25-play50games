@@ -132,7 +132,7 @@ function Prop({ asset, spots, fallback }: { asset: ModelAsset; spots: readonly I
  * per loaded GLB, before the first render (no needsUpdate, nothing per frame), and disposed of here;
  * the geometry and textures stay the loader cache's. The primitive while the GLB is missing or broken.
  */
-function BinProp({ spots, fallback }: { spots: readonly InstanceSpot[]; fallback: ReactNode }) {
+export function BinProp({ spots, fallback = <BinParts spots={spots} /> }: { spots: readonly InstanceSpot[]; fallback?: ReactNode }) {
    const asset = ASSETS.bin;
    const { scene } = useModel(asset);
    const parts = useMemo(

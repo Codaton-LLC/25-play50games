@@ -5,13 +5,15 @@
 // their GLBs exist), the robot stand-in, the box materials (the shared crate recoloured per colour)
 // and the small drawn textures (lid letters, score popups). Decoration for this game only: a new
 // game copies the patterns from Scene.tsx, not these shapes.
-import { memo, useEffect, useMemo } from "react";
+import { memo, useEffect, useMemo, useRef } from "react";
+import { useFrame } from "@react-three/fiber";
 import {
    BoxGeometry,
    MeshBasicMaterial,
    MeshStandardMaterial,
    PlaneGeometry,
    type CanvasTexture,
+   type Group,
    type Material,
    type Mesh,
    type Object3D,
@@ -19,6 +21,7 @@ import {
 import { InstancedModel, useModel } from "@/arcade3d/core/assets";
 import { Instanced, useCanvasTexture, type CanvasDraw, type InstanceSpot } from "@/arcade3d/core/render";
 import { ASSETS, BOX, LID_LETTER } from "./assets";
+import { EXTRA_RACKS, SLOW_ZONES, type WarehouseLevel } from "./levels";
 import { ARROW, ARROW_SHAPE, RING } from "./marker";
 import {
    ARENA,
@@ -34,6 +37,7 @@ import {
    cornerSignX,
    cornerSignZ,
    type Layout,
+   type WarehouseRun,
 } from "./rules";
 
 // ---------- palette ----------
@@ -401,8 +405,8 @@ export function floorDrawer(layout: Layout, yaw: number): CanvasDraw {
    };
 }
 
-/** Floor, slab, walls, racks and this run's pallets: everything that never moves during a run. */
-export const Warehouse = memo(function Warehouse({ layout, yaw }: { layout: Layout; yaw: number }) {
+/** Floor, slab, walls, racks and this run's pallets. Level 2–5 add lanes, shelves and forklifts. */
+export const Warehouse = memo(function Warehouse({ layout, yaw, level, run }: { layout: Layout; yaw: number; level: WarehouseLevel; run: WarehouseRun }) {
    const draw = useMemo(() => floorDrawer(layout, yaw), [layout, yaw]);
    const floor = useCanvasTexture(FLOOR_TEXTURE.width, FLOOR_TEXTURE.height, draw);
    const pallets = useMemo(() => palletSpots(layout), [layout]);
@@ -428,9 +432,121 @@ export const Warehouse = memo(function Warehouse({ layout, yaw }: { layout: Layo
          </Instanced>
          <InstancedModel asset={ASSETS.shelfRack} spots={RACK_MODEL_SPOTS} fallback={<RackStandIns />} />
          <InstancedModel asset={ASSETS.pallet} spots={pallets} fallback={<PalletStandIns spots={pallets} />} />
+         {level.slowZones > 0 ? <SlowLanes count={level.slowZones} /> : null}
+         {level.extraRacks > 0 ? <ExtraShelves count={level.extraRacks} /> : null}
+         {run.forklifts.length > 0 ? <Forklifts run={run} /> : null}
       </group>
    );
 });
+
+const LANE_COLOUR = ["#3b82f6", "#ef4444", "#60a5fa"];
+
+/** Painted caution lanes. Not solid: the rules slow the robot, the mesh is only the paint. */
+function SlowLanes({ count }: { count: number }) {
+   return (
+      <group name="slow-lanes">
+         {SLOW_ZONES.slice(0, count).map((lane, i) => (
+            <mesh key={i} position={[lane.x, 0.021, lane.z]} rotation-x={-Math.PI / 2}>
+               <planeGeometry args={[lane.hx * 2, lane.hz * 2]} />
+               <meshBasicMaterial color={LANE_COLOUR[i] ?? LANE_COLOUR[0]} transparent opacity={0.32} depthWrite={false} />
+            </mesh>
+         ))}
+      </group>
+   );
+}
+
+/** One shelfRack GLB is 1.8 × 0.9 on the floor (two of them make a centre rack). Scale a single copy to the rect. */
+function extraShelfSpots(count: number): InstanceSpot[] {
+   return EXTRA_RACKS.slice(0, count).map((rect) => ({
+      x: rect.x,
+      y: 0,
+      z: rect.z,
+      sx: (rect.hx * 2) / 1.8,
+      sz: (rect.hz * 2) / 0.9,
+   }));
+}
+
+function ExtraRackStandIn({ spots }: { spots: readonly InstanceSpot[] }) {
+   return (
+      <group name="extra-rack-stand-in">
+         {spots.map((spot, i) => (
+            <group key={i} position={[spot.x, 0, spot.z]}>
+               <mesh position={[0, 0.55, 0]}>
+                  <boxGeometry args={[1.4, 1.05, 0.86]} />
+                  <meshStandardMaterial color={COLORS.rackUpright} roughness={0.55} />
+               </mesh>
+               <mesh position={[0, 0.28, 0]}>
+                  <boxGeometry args={[1.28, 0.08, 0.78]} />
+                  <meshStandardMaterial color={COLORS.rackShelf} roughness={0.5} metalness={0.25} />
+               </mesh>
+               <mesh position={[0, 0.82, 0]}>
+                  <boxGeometry args={[1.1, 0.28, 0.6]} />
+                  <meshStandardMaterial color={COLORS.carton} roughness={0.85} />
+               </mesh>
+            </group>
+         ))}
+      </group>
+   );
+}
+
+function ExtraShelves({ count }: { count: number }) {
+   const spots = useMemo(() => extraShelfSpots(count), [count]);
+   return <InstancedModel asset={ASSETS.shelfRack} spots={spots} fallback={<ExtraRackStandIn spots={spots} />} />;
+}
+
+/** Code forklift: there is no forklift GLB. Orange body, dark cab, a beacon and two forks. */
+function ForkliftBody() {
+   return (
+      <group>
+         <mesh position={[0, 0.22, 0]} castShadow={false}>
+            <boxGeometry args={[1.2, 0.32, 0.64]} />
+            <meshStandardMaterial color="#ea580c" roughness={0.42} />
+         </mesh>
+         <mesh position={[-0.12, 0.52, 0]}>
+            <boxGeometry args={[0.52, 0.36, 0.52]} />
+            <meshStandardMaterial color="#0f172a" roughness={0.35} />
+         </mesh>
+         <mesh position={[-0.12, 0.74, 0]}>
+            <boxGeometry args={[0.1, 0.08, 0.1]} />
+            <meshStandardMaterial color="#facc15" emissive="#facc15" emissiveIntensity={0.8} />
+         </mesh>
+         {[-0.16, 0.16].map((z) => (
+            <mesh key={z} position={[0.72, 0.1, z]}>
+               <boxGeometry args={[0.55, 0.05, 0.07]} />
+               <meshStandardMaterial color="#cbd5e1" metalness={0.45} roughness={0.32} />
+            </mesh>
+         ))}
+      </group>
+   );
+}
+
+function Forklifts({ run }: { run: WarehouseRun }) {
+   const refs = useRef<Array<Group | null>>([]);
+   useFrame(() => {
+      const list = run.forklifts;
+      for (let i = 0; i < list.length; i++) {
+         const g = refs.current[i];
+         if (!g) continue;
+         const f = list[i];
+         g.position.set(f.x, 0, f.z);
+         g.rotation.y = f.dir > 0 ? 0 : Math.PI;
+      }
+   });
+   return (
+      <group name="forklifts">
+         {run.forklifts.map((_, i) => (
+            <group
+               key={i}
+               ref={(el) => {
+                  refs.current[i] = el;
+               }}
+            >
+               <ForkliftBody />
+            </group>
+         ))}
+      </group>
+   );
+}
 
 // ---------- the robot ----------
 
