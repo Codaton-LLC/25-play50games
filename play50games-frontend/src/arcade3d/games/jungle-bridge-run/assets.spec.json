@@ -1,0 +1,19 @@
+{
+   "slug": "jungle-bridge-run",
+   "universe": "play50-toy-world-premium",
+   "notes": "GLBs are generated in menu1-jungle-bridge-run/. URLs /models/3d/jungle-bridge-run/<id>.glb draw fallbacks until Claude lists them in modelManifest.",
+   "assets": [
+      { "id": "charExplorer", "kind": "character", "file": "menu1-jungle-bridge-run/charExplorer.glb", "budget": { "tris": 20000, "bytes": 1500000 } },
+      { "id": "woodenBridge", "kind": "prop", "file": "menu1-jungle-bridge-run/woodenBridge.glb", "budget": { "tris": 5000, "bytes": 300000 } },
+      { "id": "ropeBridge", "kind": "prop", "file": "menu1-jungle-bridge-run/ropeBridge.glb", "budget": { "tris": 5000, "bytes": 300000 } },
+      { "id": "jungleRock", "kind": "prop", "file": "menu1-jungle-bridge-run/jungleRock.glb", "budget": { "tris": 5000, "bytes": 300000 } },
+      { "id": "templePillarV2", "kind": "prop", "file": "menu1-jungle-bridge-run/templePillarV2.glb", "budget": { "tris": 5000, "bytes": 300000 } },
+      { "id": "waterfallCliff", "kind": "prop", "file": "menu1-jungle-bridge-run/waterfallCliff.glb", "budget": { "tris": 5000, "bytes": 300000 } },
+      { "id": "ruinGateR", "kind": "prop", "file": "menu1-jungle-bridge-run/ruinGateR.glb", "budget": { "tris": 5000, "bytes": 300000 } },
+      { "id": "jungleLogSingle", "kind": "prop", "file": "menu1-jungle-bridge-run/jungleLogSingle.glb", "budget": { "tris": 5000, "bytes": 300000 } },
+      { "id": "jungleLog", "kind": "prop", "file": "menu1-jungle-bridge-run/jungleLog.glb", "budget": { "tris": 5000, "bytes": 300000 } },
+      { "id": "hangingVine", "kind": "prop", "file": "menu1-jungle-bridge-run/hangingVine.glb", "budget": { "tris": 5000, "bytes": 300000 } },
+      { "id": "jungleFern", "kind": "prop", "file": "menu1-jungle-bridge-run/jungleFern.glb", "budget": { "tris": 5000, "bytes": 300000 } },
+      { "id": "volcanoBackdrop", "kind": "prop", "file": "menu1-jungle-bridge-run/volcanoBackdrop.glb", "budget": { "tris": 5000, "bytes": 300000 } }
+   ]
+}

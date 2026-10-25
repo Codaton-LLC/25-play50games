@@ -167,6 +167,21 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/hotel-bellboy-rush/lobbyPlanterR.glb",
    "/models/3d/shared/sofa.glb",
    "/models/3d/shared/travellerNpc.glb",
+   // Menu 1 jungle-bridge-run (2026-10-25): the ready menu1-jungle-bridge-run GLBs (templePillarV2 and
+   // ruinGateR, not the V1s; jungleLogSingle, jungleFern and volcanoBackdrop from the still-needed list are
+   // in the ready folder now), copied as optimized; fits in games/jungle-bridge-run/assets.ts. The explorer
+   // is a static T-pose for the core auto-rig. jungleLog (two logs) and junglePlant (potted) are not used.
+   "/models/3d/jungle-bridge-run/charExplorer.glb",
+   "/models/3d/jungle-bridge-run/woodenBridge.glb",
+   "/models/3d/jungle-bridge-run/ropeBridge.glb",
+   "/models/3d/jungle-bridge-run/jungleRock.glb",
+   "/models/3d/jungle-bridge-run/templePillarV2.glb",
+   "/models/3d/jungle-bridge-run/waterfallCliff.glb",
+   "/models/3d/jungle-bridge-run/ruinGateR.glb",
+   "/models/3d/jungle-bridge-run/jungleLogSingle.glb",
+   "/models/3d/jungle-bridge-run/jungleFern.glb",
+   "/models/3d/jungle-bridge-run/volcanoBackdrop.glb",
+   "/models/3d/jungle-bridge-run/hangingVine.glb",
 ];
 
 const LISTED: ReadonlySet<string> = new Set(MODEL_MANIFEST);
