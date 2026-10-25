@@ -8,7 +8,7 @@ import { BufferAttribute, BufferGeometry, Color, DoubleSide, Float32BufferAttrib
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
 import { useCanvasTexture } from "@/arcade3d/core/render";
-import { COLORS } from "./palette";
+import { COLORS } from "./looks";
 import { SORTER, SORT_BINS, sortBinCenter, sorterLabelEnds } from "./rules";
 
 function tone(geometry: BufferGeometry, color: string): BufferGeometry {
