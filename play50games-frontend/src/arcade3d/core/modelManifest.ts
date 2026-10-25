@@ -153,6 +153,18 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/hotel-bellboy-rush/lobbyPlanterR.glb",
    "/models/3d/shared/sofa.glb",
    "/models/3d/shared/travellerNpc.glb",
+   // train-station-rush (2026-10-25): the Hyper3D ready set (menu1-train-station-rush/, the V2
+   // carriage), optimized GLBs copied in, not re-optimized; the worker is a static T-pose for the core
+   // auto-rig. Left out: trainCar.glb (tram proportions), locomotive.glb (a whole train set).
+   "/models/3d/train-station-rush/charStationWorker.glb",
+   "/models/3d/train-station-rush/trainCarV2.glb",
+   "/models/3d/train-station-rush/platformCanopy.glb",
+   "/models/3d/train-station-rush/platformSign.glb",
+   "/models/3d/train-station-rush/stationBench.glb",
+   "/models/3d/train-station-rush/stationClock.glb",
+   "/models/3d/train-station-rush/stationTrolley.glb",
+   "/models/3d/train-station-rush/backpack.glb",
+   "/models/3d/train-station-rush/ticketMachine.glb",
 ];
 
 const LISTED: ReadonlySet<string> = new Set(MODEL_MANIFEST);

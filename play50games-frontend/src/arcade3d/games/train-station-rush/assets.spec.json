@@ -1,0 +1,17 @@
+{
+   "slug": "train-station-rush",
+   "universe": "play50-toy-world-premium",
+   "notes": "Ready Hyper3D GLBs adopted 2026-10-25 from the local ready folder (menu1-train-station-rush/ and shared/). trainCarV2 (not trainCar: tram proportions). Left out: locomotive.glb (a whole multi-car set; the engine is a code stand-in) and train-station-rush/hero.glb. Core reuse: EXPANSION_ASSETS.suitcase, REUSED_ASSETS.lamp. Still wanted (docs/menu1-new/hyper3d-needed.md): locomotiveFront, passengerNpc, ticketMachineClean.",
+   "assets": [
+      { "id": "charStationWorker", "kind": "character", "file": "menu1-train-station-rush/charStationWorker.glb", "budget": { "tris": 20000, "bytes": 1500000 } },
+      { "id": "trainCarV2", "kind": "prop", "file": "menu1-train-station-rush/trainCarV2.glb", "budget": { "tris": 5000, "bytes": 300000 } },
+      { "id": "platformCanopy", "kind": "prop", "file": "menu1-train-station-rush/platformCanopy.glb", "budget": { "tris": 5000, "bytes": 300000 } },
+      { "id": "platformSign", "kind": "prop", "file": "menu1-train-station-rush/platformSign.glb", "budget": { "tris": 5000, "bytes": 300000 } },
+      { "id": "stationBench", "kind": "prop", "file": "menu1-train-station-rush/stationBench.glb", "budget": { "tris": 5000, "bytes": 300000 } },
+      { "id": "stationClock", "kind": "prop", "file": "menu1-train-station-rush/stationClock.glb", "budget": { "tris": 5000, "bytes": 300000 } },
+      { "id": "stationTrolley", "kind": "prop", "file": "menu1-train-station-rush/stationTrolley.glb", "budget": { "tris": 5000, "bytes": 300000 } },
+      { "id": "backpack", "kind": "prop", "file": "menu1-train-station-rush/backpack.glb", "budget": { "tris": 5000, "bytes": 300000 } },
+      { "id": "ticketMachine", "kind": "prop", "file": "menu1-train-station-rush/ticketMachine.glb", "budget": { "tris": 5000, "bytes": 300000 } },
+      { "id": "travellerNpc", "kind": "character", "file": "shared/travellerNpc.glb", "budget": { "tris": 20000, "bytes": 1500000 } }
+   ]
+}
