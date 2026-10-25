@@ -63,7 +63,7 @@ One perfect drop is `DELIVERY_CAP` = 150 + 100 + 50 = 300 (`ROUTE.base`, `ROUTE.
 | 4 | Windy Towers | 15 | 240 s | 10 | 1.00 | 2.5 from 30 s | 3 / 6 / 8 at 30 / 70 s | from drop 6, precision 50 | 1.25, battery 160 | 4500 | 1200 |
 | 5 | Night Delivery | 16 | 270 s | 11 | 1.00 | 2.5 from 20 s | 4 / 6 / 8 at 20 / 60 s | from drop 5, precision 50 | 1.5, battery 230 | 4800 | 1400 |
 
-Level 1's loss bound is 24.25 s, the same `97 − 4t` proof as above. Level 4's bound is 157 / 4.25 = 36.94 s. Level 5's bound is 227 / 4.5 = 50.44 s. Level 5's maxScore 4800 is 1.33 × level 1, inside the 3× guard. `clearScore` sits under the worst score the cautious route bot posted on seeds 0–99 of that level (1334, 2140, 2131, 1340, 1592), so a bad city still unlocks the next one. It does not rise with the level: wind and a faster drain make the worst city score less, and the unlock has to stay reachable. The human route bot is what `rules.levels.test.ts` measures; those clear rates are the ones in the handoff.
+Level 1's loss bound is 24.25 s, the same `97 − 4t` proof as above. Level 4's bound is 157 / 4.25 = 36.94 s. Level 5's bound is 227 / 4.5 = 50.44 s. Level 5's maxScore 4800 is 1.33 × level 1, inside the 3× guard. `clearScore` sits under the worst score the cautious route bot posted on seeds 0–99 of that level (1334, 2140, 2131, 1340, 1592), so a bad city still unlocks the next one. It does not rise with the level: wind and a faster drain make the worst city score less, and the unlock has to stay reachable. The human route bot is what `rules.levels*.test.ts` (one file per level) measures; those clear rates are the ones in the handoff.
 
 ## Run end
 

@@ -55,13 +55,13 @@ function rulesRun(seed: number, cautious: boolean, hz: number, id: LevelId) {
    const limits = PROPOSED_LEVEL_LIMITS[id];
    const dt = 1 / hz;
    let steps = 0;
-   const started = Date.now();
    while (!run.reason) {
       drive(input);
       stepRun(run, input, dt);
       steps++;
       if (run.score > limits.base! + limits.maxPointsPerSec! * run.time + 1e-6) throw new Error(`L${id} seed ${seed} broke the rate`);
-      if (steps > 40000 || Date.now() - started > 15000) {
+      // a step cap, never wall-clock time: the result must not depend on the machine's load
+      if (steps > 40000) {
          throw new Error(`stuck L${id} seed ${seed} steps ${steps} t ${run.time.toFixed(2)} score ${run.score} done ${run.completed} battery ${run.battery.toFixed(1)} reason ${run.reason}`);
       }
    }
@@ -106,7 +106,7 @@ export function levelRows(ids: readonly LevelId[]): void {
          }
          console.info("delivery-drone level human", id, JSON.stringify({ clears, wins, best, worst, missed }));
          expect(clears).toBeGreaterThanOrEqual(99);
-      }, 180000);
+      }, 600000);
 
       it(`L${id}: oracle reaches 90% of maxScore; idle never clears; store runs stay legal`, () => {
          let best = 0, wins = 0;
@@ -125,6 +125,6 @@ export function levelRows(ids: readonly LevelId[]): void {
          for (let seed = 0; seed < 2; seed++) storeRun(seed, false, id);
          console.info("delivery-drone level oracle", id, JSON.stringify({ best, wins, parked: parked.score, parkedReason: parked.reason }));
          expect(best).toBeGreaterThanOrEqual(0.9 * limits.maxScore);
-      }, 180000);
+      }, 600000);
    }
 }
