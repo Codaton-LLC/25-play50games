@@ -284,3 +284,11 @@ reach 100% of all five ceilings. Full four-bot matrix: 4000 runs, 1518.91 s wall
 stricter human rerun: another 1000 runs, 158.82 s. Idle cohorts dominate runtime. Game tests total
 150, plus 62 registry-sync tests; all pass across the recorded runs. Four source mutation probes
 (ignored speed, cup radius, course length and cap) all fail the new assertions as intended.
+
+Gate review (Claude, 2026-10-25): `l1Replay.test.ts` pins level 1 bit-exact against digests recorded from
+main's pre-level `rules.ts` / `physics.ts` / `course.ts` (the legacy fixture shares today's physics, so it
+could not catch a physics change). The level bots run one file per level (`rules.levels-<n>.test.ts`,
+`testing/levelBot.ts`: human 100 seeds, oracle 30, spam 20, idle 4; was 200 x 4 per level, about 25 min).
+`levels.gate.test.ts` pins the time-left pill, the lip-out turn and rest-in-cup at the level's cup radius,
+and each level's lighting. One mutation survives by design: `min(|cross|, radius)` in `judgeCup` is
+redundant (|cross| <= d <= radius there).
