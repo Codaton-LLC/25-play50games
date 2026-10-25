@@ -1,0 +1,17 @@
+{
+   "slug": "beach-lifeguard",
+   "universe": "play50-toy-world-premium",
+   "notes": "GLBs generated in menu1-beach-lifeguard/. Referenced at /models/3d/beach-lifeguard/<id>.glb. Core: REUSED_ASSETS.umbrella, palm.",
+   "assets": [
+      { "id": "charLifeguard", "kind": "character", "file": "menu1-beach-lifeguard/charLifeguard.glb", "budget": { "tris": 20000, "bytes": 1500000 } },
+      { "id": "lifeguardTower", "kind": "prop", "file": "menu1-beach-lifeguard/lifeguardTower.glb", "budget": { "tris": 5000, "bytes": 300000 } },
+      { "id": "rescueFloat", "kind": "prop", "file": "menu1-beach-lifeguard/rescueFloat.glb", "budget": { "tris": 5000, "bytes": 300000 } },
+      { "id": "beachChair", "kind": "prop", "file": "menu1-beach-lifeguard/beachChair.glb", "budget": { "tris": 5000, "bytes": 300000 } },
+      { "id": "beachCooler", "kind": "prop", "file": "menu1-beach-lifeguard/beachCooler.glb", "budget": { "tris": 5000, "bytes": 300000 } },
+      { "id": "beachgoerNpc", "kind": "character", "file": "menu1-beach-lifeguard/beachgoerNpc.glb", "budget": { "tris": 20000, "bytes": 1500000 } },
+      { "id": "beachHut", "kind": "prop", "file": "menu1-beach-lifeguard/beachHut.glb", "budget": { "tris": 5000, "bytes": 300000 } },
+      { "id": "sandcastle", "kind": "prop", "file": "menu1-beach-lifeguard/sandcastle.glb", "budget": { "tris": 5000, "bytes": 300000 } },
+      { "id": "surfboardV2", "kind": "prop", "file": "menu1-beach-lifeguard/surfboardV2.glb", "budget": { "tris": 5000, "bytes": 300000 } },
+      { "id": "rescueJetSki", "kind": "prop", "file": "menu1-beach-lifeguard/rescueJetSki.glb", "budget": { "tris": 5000, "bytes": 300000 } }
+   ]
+}
