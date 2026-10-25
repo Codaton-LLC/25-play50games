@@ -442,20 +442,20 @@ function consume(state: RunState, dtMs: number): void {
    let left = dtMs;
    let guard = 0;
    while (left > 1e-6 && !state.ended && guard++ < 80) {
-       if (state.phase === "aim") {
-          const room = state.config.aimTimeoutMs - state.aimMs;
-          if (room <= 1e-6) {
-             lockTimeout(state);
-             continue;
-          }
-          if (left < room) {
-             state.aimMs += left;
-             left = 0;
-          } else {
-             left -= room;
-             state.aimMs = state.config.aimTimeoutMs;
-             lockTimeout(state);
-          }
+      if (state.phase === "aim") {
+         const room = state.config.aimTimeoutMs - state.aimMs;
+         if (room <= 1e-6) {
+            lockTimeout(state);
+            continue;
+         }
+         if (left < room) {
+            state.aimMs += left;
+            left = 0;
+         } else {
+            left -= room;
+            state.aimMs = state.config.aimTimeoutMs;
+            lockTimeout(state);
+         }
          continue;
       }
       const limit = ZONE_LIMIT_MS[state.phase];

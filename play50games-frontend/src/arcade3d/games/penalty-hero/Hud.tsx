@@ -1,9 +1,9 @@
 "use client";
 
-// The shell shows score and the Shots count. This Hud adds goals, streak, the ten shot dots, the
+// The shell shows score and the Shots count. This Hud adds goals, streak, the shot dots (one per level shot), the
 // aim deadline and the GOAL / SAVED feedback. Scene.tsx writes every value as a store stat.
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
-import { SHOTS } from "./rules";
+import { usePenaltyLevel } from "./level";
 import styles from "./Hud.module.css";
 
 /** Values of the "feedback" stat. */
@@ -13,11 +13,10 @@ const FEEDBACK_TEXT: Record<number, { title: string; detail: string } | undefine
    [FEEDBACK.goal]: { title: "GOAL!", detail: "" },
    [FEEDBACK.saved]: { title: "SAVED", detail: "The keeper guessed right" },
    [FEEDBACK.wide]: { title: "SAVED", detail: "Wide – shoot inside the band" },
-   [FEEDBACK.timeout]: { title: "SAVED", detail: "Too slow – 20 s per shot" },
 };
+const timeoutText = (seconds: number) => ({ title: "SAVED", detail: `Too slow – ${seconds} s per shot` });
 
-const DOTS = Array.from({ length: SHOTS }, (_v, i) => i);
-/** The aim deadline shows for the last seconds of the 20 s per shot. */
+/** The aim deadline shows for the last seconds of the level's time per shot (20 s on level 1). */
 const DEADLINE_FROM_S = 5;
 
 export default function PenaltyHud() {
@@ -27,7 +26,10 @@ export default function PenaltyHud() {
    const goalMask = useArcadeStore((s) => s.stats.goalMask ?? 0);
    const feedback = useArcadeStore((s) => s.stats.feedback ?? 0);
    const aimLeft = useArcadeStore((s) => s.stats.aimLeft ?? 0);
-   const shown = FEEDBACK_TEXT[feedback];
+   const { config } = usePenaltyLevel();
+   const total = config.shots;
+   const dots = Array.from({ length: total }, (_v, i) => i);
+   const shown = feedback === FEEDBACK.timeout ? timeoutText(Math.round(config.aimTimeoutMs / 1000)) : FEEDBACK_TEXT[feedback];
 
    return (
       <>
@@ -60,8 +62,8 @@ export default function PenaltyHud() {
          </div>
 
          <div className={styles.bottom} data-arcade-safe-area>
-            <ol className={styles.dots} aria-label={`Shots: ${shots} of ${SHOTS}, ${goals} goals`}>
-               {DOTS.map((i) => {
+            <ol className={styles.dots} aria-label={`Shots: ${shots} of ${total}, ${goals} goals`}>
+               {dots.map((i) => {
                   const done = i < shots;
                   const scored = done && (goalMask & (1 << i)) !== 0;
                   const state = !done ? "pending" : scored ? "goal" : "miss";
