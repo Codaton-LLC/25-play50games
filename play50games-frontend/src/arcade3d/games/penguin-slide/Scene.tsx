@@ -232,7 +232,7 @@ export default function Scene() {
          <SkyDome top={COLORS.skyTop} bottom={COLORS.skyBottom} />
          <SnowFall count={reduced ? 60 : 300} area={[28, 16, 70]} />
          <Terrain run={run} reduced={reduced} />
-         <Decor reduced={reduced} />
+         <Decor run={run} reduced={reduced} />
          <Track run={run} />
          <Penguin run={run} reduced={reduced} />
          <TargetMarkers targets={marker} color={COLORS.gateRing} />
