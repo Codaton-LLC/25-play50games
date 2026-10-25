@@ -1,6 +1,6 @@
 # Office Escape
 
-Owner: Claude. Slug: `office-escape`. Game 3 of the 3D Arcade: the first lane runner and the first game with the shared Play50 Runner. **The game is built and playable** (rules, scene, camera, HUD notice, primitives for every model; browser results under "Test plan"). Status stays `"soon"` until it is reviewed. No GLB is generated yet, so every model is drawn by its primitive. The limits in `meta.ts` were tightened on 2026-10-07 to the proven maximum plus about 3% (proof below).
+Owner: Claude. Slug: `office-escape`. Game 3 of the 3D Arcade: the first lane runner and the first game with the shared Play50 Runner. **Level 1 is live.** P-55 adds five configurations through the existing core level system; see "Levels" and "Status" below. Historical gameplay and test-plan sections describe level 1. Existing GLBs and their stand-in fallbacks are reused throughout. The live level-1 scoring limits remain unchanged.
 
 | File | What it owns |
 |---|---|
@@ -23,6 +23,73 @@ Owner: Claude. Slug: `office-escape`. Game 3 of the 3D Arcade: the first lane ru
   3. **Rows placed by time.** Each obstacle row is placed by the time the runner reaches it, through the exact distance function. The fairness gap therefore holds across speed changes.
   4. **Fixed pools, instanced props.** Rows and coins live in fixed slots that are rewritten in place. Every prop type is one or two `InstancedMesh`es whose matrices and `count` the frame loop rewrites (`PropSlot` in `Primitives.tsx`). Nothing mounts, unmounts or allocates after the first frame.
 - **Do not copy:** the office primitives, the coin spin and the stand-in runner. They are decoration for this game.
+
+## Levels
+
+P-55 uses the shipped core level system and the robot-collector/castle-defender shape:
+pure `levels.ts`, `createRun(seed, level)`, `useOfficeLevel`, definition specs including
+`hudStats`, and metadata clear targets. Level 1 keeps the live layout, RNG streams,
+score formula, inputs, jump/steer timing and scoring limits. `rules.test.ts` is unchanged.
+The legacy test-only `createRun(seed, coinSeed)` call also remains supported.
+
+| Level | Plan title | Speed start/cap (m/s) | Rows / new mechanic | Coin | Clear |
+|---|---|---|---|---|---|
+| 1 | Open Office | 8 / 16 | Original seeded rows | 50 | 760 pts |
+| 2 | Meeting Floor | 8.5 / 16.5 | At least 2 obstacles; extra gaps reduced 100 ms | 55 | 1,000 pts |
+| 3 | Copy Room | 9 / 17 | Moving chairs/carts; every fifth row a printer line; extras -200 ms | 60 | 1,330 pts |
+| 4 | Executive Floor | 9.5 / 17.5 | Three obstacles, printer line every fourth row; faster motion; extras -350 ms | 65 | 1,575 pts |
+| 5 | After-Hours Office | 10 / 18 | Combined patterns, printer line every third row; fastest motion; extras -500 ms | 70 | 1,870 pts |
+
+All runs remain score attacks with the original 29:55 safety horizon. Reaching the target
+clears/unlocks through the shell; it does not stop the run. This adapts the plan's
+5/7/9/11/14 clusters and 60-75/75-90/90-110/100-120/120-second guidance to the already-live
+endless corridor: escalating targets and recurring clusters replace new finite maps.
+Lighting is indoor/day/indoor/night/sunset (the core dramatic preset), with the original
+level-1 environment untouched. No assets or controls were added.
+
+Moving hazards use a seeded-row-phase triangle wave, +/-150 mm sideways, with periods
+2.4/1.8/1.2 seconds in levels 3/4/5. Rendering and collision call the same `obstacleOffset`.
+The motion is real but remains within its lane: neighbouring-lane clearance is at least
+800 mm. It does not change jump lead times. Printer lines are all jumpable; random
+three-obstacle rows retain at least one jumpable lane. The 950 ms recovery minimum,
+700 ms jump, 135 ms buffer and 10 m/s lateral speed stay identical for touch and keyboard.
+Maximum travel per frame is 18 x .05 = .9 m, below the shortest 1 m obstacle overlap.
+Even L5's shortest centre spacing is at least 10 x 1.05 + 1 = 11.5 m. The 87.8 m row
+window holds at most eight rows, so the unchanged eight-slot pool suffices. Coin spacing
+and the coin pool are unchanged. No frame-loop arrays or objects are allocated.
+
+### Server limits and why they hold: one proof per level
+
+These are proposals for Claude to copy into `arcade-games.json`; backend files were not
+edited. Level 1's top-level `meta.scoring` remains exactly the production contract.
+
+For level l let b be its speed bonus and c its coin value. The exact distance is
+`D_l(t) = D_1(t) + b*t` in mm (t in ms). Score sources are one point per full metre
+and c per coin; there are no completion bonuses. At distance D, at most
+`n = max(0, ceil((D + 600 - 20000)/10000))` slots can have been touched. Runs of at most
+six coins followed by at least one empty slot give at most `n-floor(n/7)` coins.
+Thus `B_l(t) = floor(D_l(t)/1000) + c*(n-floor(n/7))`. Removing or missing coins only
+lowers B. The new test checks `B_l(d+50) <= pps*d/1000` for EVERY whole millisecond
+d from 4800 through 1795050, allowing an extra 50 ms over the real store clock.
+
+| Level | D at 1795049 ms (m) | Reached slots | Coin ceiling | Distance pts + coin pts ceiling | maxScore | base | max pps |
+|---|---|---|---|---|---|---|---|
+| 1 | 28000.784 | 2799 | 2400 | 28000 + 120000 = 148000 | 152500 | 0 | 85 |
+| 2 | 28898.309 | 2888 | 2476 | 28898 + 136180 = 165078 | 170500 | 0 | 95 |
+| 3 | 29795.833 | 2978 | 2553 | 29795 + 153180 = 182975 | 189000 | 0 | 106 |
+| 4 | 30693.357 | 3068 | 2630 | 30693 + 170950 = 201643 | 208000 | 0 | 116 |
+| 5 | 31590.882 | 3158 | 2707 | 31590 + 189490 = 221080 | 228000 | 0 | 128 |
+
+Each row is a separate level proof: substitute that row's D and c into B. The chosen
+maximum is 3.0-3.3% above its ceiling. Approximate whole-run rate ceilings are
+82.455/91.966/101.937/112.340/123.168 pts/s; the chosen pps adds about 3-4%.
+All five duration windows are 4800..1800000 ms. The first row is still entered at
+5000 ms, leaving the original 200 ms lower margin. The run stops before 1795050 ms,
+leaving 4950 ms under the upper bound. Pause advances neither game clock nor motion.
+Higher levels keep the full time horizon, increase distance, increase coin value and
+increase both the attainable-source envelope and accepted maximum. L5's 228000 cap is
+1.50x L1's 152500 cap. As an endless runner, the >=90%-of-cap oracle check is inapplicable:
+the cap is a safety envelope, not an objective (Claude's task clarification).
 
 ## Concept
 
@@ -318,3 +385,94 @@ Browser (production build, flags on with the API mock, headless Chrome over CDP)
 - **Runner rig: decided** (2026-10-06). The shared runner is a static T-pose GLB on the core auto-rig (Assets, Runner animation); no clips, no `useAnimations`. Its feet slide at speed (the stand-in's 2.4 m stride phase is kept for both; the v2 GLB's own run stride is 1.26 m at scale 0.825, so the planted foot slides 47–55 % of the ground's travel, 43–52 % with the v1 runner's 1.36 m); the leap's tuck and the crash flail are blends over the run cycle. Follow-up (not in the v2 assets PR): drive the rigged model's phase with core `gaitPhaseStep(amount, RUNNER_LANDMARKS, SCALE, speed, dt, 7)` and keep the stand-in on its 2.4 m cycle (about 6 % slide at the 8 m/s start, 45 % at 16 m/s, where the cap of 7 strides a second binds). Setting `STRIDE_MM` to the own stride instead would beat the legs 12.7 times a second at 16 m/s, a blur at 60 fps. The slide left at top speed needs a longer run stride in core `walkPose`.
 - **Desk monitor.** The shared desk was prompted with a monitor (up to about 0.95 m). The hitbox is the desktop, and a late or early jump can visibly skim the monitor. If players read it as unjumpable, use the primitive desk (a closed laptop, nothing above 0.7 m) or a monitor-free desk in a later shared-spec pass.
 - **Catalog drift.** `skills.md` (models row) still says universe `office` for this game, and plan §4 lists desk and chair under this game's generations. This spec uses `shared-cast` 5050 and generates only the printer, the coffee cart and the water cooler, because the desk and chair are in `shared.spec.json`. Update the catalog in the next pass.
+
+
+## Status
+
+TASK P-55-levels-office | 5 levels for office-escape | branch codex/levels-office-escape | allowed: play50games-frontend/src/arcade3d/games/office-escape/**
+
+Implementation delivered for Claude review; acceptance is incomplete: the <60 s whole-suite requirement and exhaustive real-store seed matrix were not met. No commit, push, branch switch, build, server or production access occurred.
+
+Branch checked before edits: `codex/levels-office-escape`, exact match. Scope checked with `git status --porcelain`: only office-escape changes (plus this explicitly requested, ignored handoff artifact).
+
+### Files
+
+All game files below are under `play50games-frontend/src/arcade3d/games/office-escape/`:
+
+- Added `levels.ts`, `levels.test.ts`, `looks.ts`, `useOfficeLevel.ts`.
+- Changed `rules.ts`, `meta.ts`, `index.tsx`, `Scene.tsx`, `Hud.tsx`, `README.md`.
+- `rules.test.ts`, all other existing tests, assets and shared/backend files remain unchanged.
+- `looks.ts` did not previously exist in this folder; the new file only declares per-level core environments.
+
+Used the pilots' pure configuration / createRun / useLevel / definition specs (including hudStats) / meta.levels shape. The original test-only `createRun(seed, coinSeed)` call remains supported alongside `createRun(seed, level)`.
+
+### Five levels
+
+| Level | Title | Speed start/cap | Obstacles and progression | Lighting | Coin pts | Clear score |
+|---|---|---|---|---|---|---|
+| 1 | Open Office | 8/16 m/s | Original layout, RNG, scoring and timing | indoor (unchanged) | 50 | 760 |
+| 2 | Meeting Floor | 8.5/16.5 m/s | At least two static obstacles; extra gaps -100 ms | day | 55 | 1000 |
+| 3 | Copy Room | 9/17 m/s | Moving chairs/carts; every fifth row all printers; extras -200 ms | indoor | 60 | 1330 |
+| 4 | Executive Floor | 9.5/17.5 m/s | Three obstacles, printer line every fourth row; faster movement; extras -350 ms | night | 65 | 1575 |
+| 5 | After-Hours Office | 10/18 m/s | All patterns, printer line every third row; fastest movement; extras -500 ms | sunset (dramatic) | 70 | 1870 |
+
+Plan adaptation: the live endless corridor stays intact. Its recurring clusters and escalating clear scores adapt the plan's cluster counts and target durations; reaching a target unlocks through the existing shell but does not end the run. All five retain the original 1795000 ms safety horizon and existing assets. Higher levels have more distance/coin slots in the same time and higher coin rewards, rather than shorter scoring windows.
+
+Movement is a deterministic simulation-clock triangle wave within +/-150 mm of the hazard's lane, periods 2400/1800/1200 ms for L3/L4/L5. Drawing and collision share the same function. Recovery remains at least 950 ms; jump 700 ms, buffer 135 ms and lateral speed 10 m/s remain device-independent. Neighbouring-lane clearance stays >=800 mm; maximum travel/frame .9 m stays below the shortest 1 m collision overlap. Eight row slots still suffice: centre spacing >=11.5 m across an 87.8 m window. Frame-loop data stays pooled.
+
+### Proposed per-level limits and proofs
+
+`PROPOSED_LEVEL_LIMITS` is exported from rules.ts and agrees with meta.levels. Claude must copy it into backend JSON. Top-level meta.scoring is unchanged: 152500 / 4800 / 1800000 / 0 / 85.
+
+All levels: kind points, unit pts, display int, minDurationMs 4800, maxDurationMs 1800000, base 0.
+
+| Level | maxScore | maxPointsPerSec | Max distance (m) | Slots / coin ceiling | Proven total ceiling |
+|---|---|---|---|---|---|
+| 1 | 152500 | 85 | 28000.784 | 2799 / 2400 | 28000 + 50*2400 = 148000 |
+| 2 | 170500 | 95 | 28898.309 | 2888 / 2476 | 28898 + 55*2476 = 165078 |
+| 3 | 189000 | 106 | 29795.833 | 2978 / 2553 | 29795 + 60*2553 = 182975 |
+| 4 | 208000 | 116 | 30693.357 | 3068 / 2630 | 30693 + 65*2630 = 201643 |
+| 5 | 228000 | 128 | 31590.882 | 3158 / 2707 | 31590 + 70*2707 = 221080 |
+
+Each row is its own proof using its speed bonus b and coin value c:
+
+`D_l(t) = D_1(t) + b*t` in mm, t in ms.
+`n(D) = max(0, ceil((D+600-20000)/10000))` from 10 m coin spacing and the strict pickup overlap.
+Six-coin runs followed by at least one empty slot imply `coins <= n-floor(n/7)`.
+`B_l(t) = floor(D_l(t)/1000) + c*(n-floor(n/7))` bounds every scoring source; there are no bonuses.
+
+The tests evaluate `B_l(d+50) <= pps*d/1000` at EVERY whole millisecond from 4800 through 1795050 for EACH level, and the absolute ceilings at 1795049 ms. Maximum-score margins are 3.0-3.3%; rate margins about 3-4%. The first row is still entered at 5000 ms and a run stops before 1795050 ms, inside the unchanged duration window. At every bot score event capScore is a no-op; between events score is constant and the rate allowance grows. Terminal submissions fit all limits. Pause cannot advance the simulation clock or moving hazards.
+
+L5 maxScore is 1.495x L1, below the 3x guard. The higher-level distance/reward envelopes are monotone; the same full-horizon oracle also earned monotonically higher sampled bests: 60000 / 62337 / 65435 / 69042 / 74220. The >=90%-of-max oracle assertion is omitted as explicitly instructed for this endless runner's safety cap.
+
+### Bots and verification
+
+| Level | Oracle clear | Human-paced clear | Greedy clear | Idle clear |
+|---|---|---|---|---|
+| 1 | 200/200 | 200/200 | 200/200 | 0/200 |
+| 2 | 200/200 | 200/200 | 200/200 | 0/200 |
+| 3 | 200/200 | 200/200 | 200/200 | 0/200 |
+| 4 | 200/200 | 200/200 | 200/200 | 0/200 |
+| 5 | 200/200 | 200/200 | 200/200 | 0/200 |
+
+Human/greedy/idle/spam each use 200 seeds per level, distributed across 30/60/144 Hz (67/67/66 seeds). Oracle uses 200 seeds at 20 Hz; seeds 0..2 run to the full 29:55 horizon on each level, the rest through clear. Human lane actions have a 120 ms cooldown. Human and greedy clear rates are 100% at each tested rate. No bot broke the rate/absolute caps, pools or score formula. Added minimum-gap recovery tests cover all five levels x nine speed stages x three airborne/buffer states x 20/30/144 Hz. Added track determinism, touch/keyboard timing, core declaration/overrides, monotone difficulty and observed score-potential tests.
+
+Coverage deviation: bulk seed sweeps use pure rules. One human/greedy/idle/spam seed per rate per level runs frame by frame through createArcadeStore + advanceRunClock + playedFrameDt. L5 oracle seed 0 also runs the full horizon through the store. The unchanged L1 suite retains its extensive full-run and store-clock checks. This is NOT the requested full Cartesian matrix of every bot x 200 seeds x every rate through the real store; earlier exhaustive attempts exceeded the runtime budget and were stopped. No claim of that stronger coverage is made.
+
+- `npx tsc --noEmit`: PASS, exit 0 after the final implementation/test changes.
+- `npx vitest run src/arcade3d/games/office-escape/levels.test.ts`: config cannot load in this sandbox: esbuild reports `Cannot read directory "../../../..": Access is denied` / cannot resolve vitest.config.mts.
+- Equivalent programmatic Vitest run: PASS, 5 files / 91 tests, 73.21 s wall time. Counts: rules 54, levels 20, crash 6, camera 7, coin 4. New levels file: 21.96 s; unchanged rules file: 69.99 s during that concurrent run. Earlier legacy-suite-only run: 55.61 s. The whole-suite <60 s acceptance requirement remains unmet here.
+- Mutation probe: changed the third-obstacle guard to allow three dodges; new `L2: oracle` test FAILED with `no passable lane` in 88 ms; finally restored rules.ts, then the full suite passed.
+- Existing rules.test.ts SHA-256 before and after: `156292831046BDDC2F2BC512F5F459C60AC5D74AE7EE11CB2629D8DFD76D5810`.
+- Build and browser/headless playtest deliberately not run: assigned to Claude by CLI instructions. No network or production requests.
+
+Reproduce the successful sandbox test route from play50games-frontend:
+
+```powershell
+node --input-type=module -e "import { startVitest } from 'vitest/node'; import path from 'node:path'; const ctx = await startVitest('test', ['src/arcade3d/games/office-escape/'], { config: false, watch: false, maxWorkers: 2, minWorkers: 1 }, { resolve: { alias: { '@': path.resolve('src') } }, esbuild: { jsx: 'automatic' } }); await ctx?.close();"
+```
+
+### Remaining work / open questions for Claude
+
+No product decisions were reopened. Before acceptance/merge, address the <60 s whole-suite runtime and the exhaustive real-store matrix deviation above; both remain unfulfilled rather than silently waived. Then copy proposed limits to arcade-games.json, run the flagged build and all-five-level desktop/phone headless playtests, verify registry/backend parity, and commit after review. No shared/core/backend changes were made to resolve these validation constraints.
+
