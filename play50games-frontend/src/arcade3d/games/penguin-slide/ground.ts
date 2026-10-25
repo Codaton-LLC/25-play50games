@@ -32,10 +32,16 @@ export const GROUND = {
    slope: 0.05,
    /** world-anchored roll amplitude (only ever lowers the snow) */
    roll: 0.15,
+   /** the roll fades to nothing this far outside the flat corridor */
+   rollFade: 25,
    /** rows per chunk strip (2.5 m apart over the 60 m chunk) */
    rows: 25,
-   /** lateral offsets from the corridor, metres (the fog ends at 56 m) */
-   cols: [-58, -42, -30, -21, -14, -9, -5.2, 0, 5.2, 9, 14, 21, 30, 42, 58] as const,
+   /**
+    * lateral offsets from the corridor, metres. The outer edge must stay outside the view until the
+    * fog is full: camera.tsx sets the fog's far end to the penguin's depth + 46 m (about 80 m), and a
+    * wide screen sees about as far sideways as ahead, so the snow runs to ±160 m (ground.test.ts).
+    */
+   cols: [-160, -100, -58, -42, -30, -21, -14, -9, -5.2, 0, 5.2, 9, 14, 21, 30, 42, 58, 100, 160] as const,
 } as const;
 
 export const SCENERY = {
@@ -109,7 +115,9 @@ export function groundY(c: Chunk, s: number, d: number, p: Point3, t: Point3, q:
    }
    const dist = Math.abs(d - corridorAt(c, s));
    if (dist <= GROUND.flat) return top - GROUND.sink;
-   const roll = Math.sin(p.x * 0.08) * Math.cos(p.z * 0.06) * GROUND.roll;
+   // the roll fades out by `rollFade` m, so the wide outer quads stay flat (a bent quad draws a crease line)
+   const fade = Math.max(0, 1 - (dist - GROUND.flat) / GROUND.rollFade);
+   const roll = Math.sin(p.x * 0.08) * Math.cos(p.z * 0.06) * GROUND.roll * fade;
    return top - GROUND.sink - (dist - GROUND.flat) * GROUND.slope + Math.min(0, roll);
 }
 
@@ -182,14 +190,14 @@ export function fillStrip(
    const dropOf = (row: number, col: number) => grid[(row * cols + col) * 4 + 3];
    for (let row = 0; row < GROUND.rows - 1; row++) {
       for (let col = 0; col < cols - 1; col++) {
-         const a = tones[toneOf((dropOf(row, col) + dropOf(row + 1, col) + dropOf(row, col + 1)) / 3)];
-         put(row, col, a);
-         put(row + 1, col, a);
-         put(row, col + 1, a);
-         const b = tones[toneOf((dropOf(row, col + 1) + dropOf(row + 1, col) + dropOf(row + 1, col + 1)) / 3)];
-         put(row, col + 1, b);
-         put(row + 1, col, b);
-         put(row + 1, col + 1, b);
+         // one tone per quad: two tones on one quad drew a diagonal line across the snow
+         const tone = tones[toneOf((dropOf(row, col) + dropOf(row + 1, col) + dropOf(row, col + 1) + dropOf(row + 1, col + 1)) / 4)];
+         put(row, col, tone);
+         put(row + 1, col, tone);
+         put(row, col + 1, tone);
+         put(row, col + 1, tone);
+         put(row + 1, col, tone);
+         put(row + 1, col + 1, tone);
       }
    }
 }

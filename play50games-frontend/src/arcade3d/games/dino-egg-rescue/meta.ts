@@ -1,7 +1,39 @@
-import type { ArcadeGameMeta } from "@/arcade3d/types";
+import type { ArcadeGameMeta, LevelMeta, ScoringRules } from "@/arcade3d/types";
 
 // Plain data only (server-safe). scoring must match WP includes/arcade-games.json.
-// Limits proven in README "Scoring" (design approved 2026-10-09).
+// Limits proven in README "Scoring" (level 1) and "Levels" (one proof per level).
+// They equal rules.ts PROPOSED_LEVEL_LIMITS (levels.test.ts) and arcade-games.json levels.
+
+/** Level 1 = today's game. These duration bounds are pinned to the 90 s clock. */
+const SCORING_L1: ScoringRules = {
+   kind: "points",
+   maxScore: 6000,
+   minDurationMs: 88000,
+   maxDurationMs: 92000,
+   base: 0,
+   maxPointsPerSec: 70,
+   unitLabel: "pts",
+   display: "int",
+};
+
+// Levels 2-5 run 120 s. Clear by score: the run never wins, it ends on timeup.
+// clearScore is what an honest run reaches; level 5 included so the tile can show cleared.
+const levelScoring = (maxScore: number, maxPointsPerSec: number): ScoringRules => ({
+   ...SCORING_L1,
+   maxScore,
+   minDurationMs: 118000,
+   maxDurationMs: 122000,
+   maxPointsPerSec,
+});
+
+const LEVELS: readonly LevelMeta[] = [
+   { id: 1, title: "Green Valley", scoring: SCORING_L1, clearScore: 1500 },
+   { id: 2, title: "Fern Forest", scoring: levelScoring(6100, 52), clearScore: 2000 },
+   { id: 3, title: "Riverbank", scoring: levelScoring(6100, 52), clearScore: 2000 },
+   { id: 4, title: "Volcanic Pass", scoring: levelScoring(6100, 52), clearScore: 2000 },
+   { id: 5, title: "Dino Sanctuary", scoring: levelScoring(7300, 62), clearScore: 2500 },
+];
+
 export const dinoEggRescueMeta: ArcadeGameMeta = {
    slug: "dino-egg-rescue",
    title: "Dino Egg Rescue",
@@ -17,16 +49,8 @@ export const dinoEggRescueMeta: ArcadeGameMeta = {
       keyboard: "WASD / arrows to move, Space or E to dash",
       touch: "Joystick to move, tap Dash to dash",
    },
-   scoring: {
-      kind: "points",
-      maxScore: 6000,
-      minDurationMs: 88000,
-      maxDurationMs: 92000,
-      base: 0,
-      maxPointsPerSec: 70,
-      unitLabel: "pts",
-      display: "int",
-   },
+   scoring: SCORING_L1,
+   levels: LEVELS,
    thumbnail: "/images/3d/dino-egg-rescue.webp",
    accent: "#a3e635",
    owner: "antigravity",

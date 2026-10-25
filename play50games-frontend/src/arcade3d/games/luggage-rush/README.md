@@ -95,6 +95,35 @@ No new generation. Suitcase and plane are already in `core/modelManifest.ts` (`E
 - `assets.test.ts`: suitcase shell 0.70 × 0.50 × 0.25 lying down; plane 3.2 long in this game's fit; handler height 1.556 and soles within 1 cm; tag quad ≥ 0.45 m.
 - Browser (headless CDP, flags + mock): the common criteria (03), banner open, Retry keeps `geometries` flat; on 390×844 the tag is about 13 px and the chute mouth about 26 px; a grey-scale shot still separates flights by symbol; diverter centres are at least 64 px apart on a 390-wide screen and 44 px on 844×390; a swipe that starts on a diverter flips only that one.
 
+## Look (2026-10-24)
+
+Modern-look visual pass on Airport Luggage Rush (P-85). Zero gameplay, timing, scoring, hit box or rules changes; all existing tests pass unchanged.
+
+### What changed:
+- **Palette & Lighting:** Unified `COLORS` palette in `looks.ts`. Core `indoor` lighting preset with linear fog (`near: 36, far: 75`) and `<SkyDome>` (`top: #38bdf8, bottom: #e0f2fe`). Fog begins beyond the furthest play corner (30.8 m max distance across all three viewports), keeping conveyors, chutes, tags and bags 100% crisp while distant airfield fades into the horizon.
+- **Polished Floor & Tarmac:** A 70×70 m floor plane covering the view frustum at all three fitted viewports (1280×800, 390×844, 844×390) so no sky or void ever shows below the scene. Polished baggage hall tiles with grout lines (`roughness: 0.35, metalness: 0.05`), plus an outdoor asphalt tarmac plane with painted yellow taxiway lines and white markers visible through the north windows.
+- **Deliberate Code Stand-ins:**
+  - `SuitcasePrimitive`: Bevelled shell (`#f8fafc`), dark bumper guards and corner caps (`#334155`), and metallic top handle/latches (`#cbd5e1`).
+  - `PlanePrimitive`: Sleek low-poly airliner with fuselage, swept wings, winglets, twin jet engines, cockpit window band, and airline blue tail fin stripe.
+  - `HandlerPrimitive`: Ground crew operator with hi-vis orange safety vest (`#f97316`), reflective silver stripe (`#f8fafc`), work pants, safety boots, and cap/headset.
+  - `ChuteMouths` & `BeltMarkers`: Large, bright circular destination markers (1.35 m world size, >= 40 px on all viewports, facing the camera via billboard quaternion) in emissive/light `MeshBasicMaterial` with glowing white borders, destination flight colours, and bold matching symbols. Industrial stainless steel collection cowl hoods at the wall.
+  - Diverters: Circular steel turntable bases (`#64748b` steel base, `#94a3b8` puck) with high contrast against the belt, and illuminated direction arrows.
+  - Non-Black Scene Contrast: Diverter base and rubber bumper guards lightened to `#64748b` and `#475569`, ensuring no near-black elements blend into the dark conveyor belt.
+- **Steel Conveyor Chassis:** Merged static steel guide channels, rubber bumper guards, and support stanchion legs along the conveyor spine, chutes, and overflow belt (1 draw call).
+- **Instanced Surroundings (`Decor.tsx`):** Instanced luggage carts, LD3 air cargo containers, runway edge lights, and architectural terminal columns strictly outside the play area. Checked against camera occlusion across all three viewports in `looks.test.ts`.
+- **Juicy Feedback:** Added subtle camera shake (`fx.shake(0.15)`) on wrong chute strikes in addition to the `0.35` overflow shake; enhanced particle sparkle and score popups on correct deliveries.
+- **Disposal & Safety:** Geometries and materials created once and disposed on unmount; no `dispose={null}` on `<primitive ... attach="geometry">`.
+
+### Draw-Call Estimate (<= 60 budget):
+- Sky & Atmosphere: `<SkyDome>` = 1
+- Floor & Tarmac: Polished tile floor 1, outdoor tarmac 1 = 2
+- Hall Architecture: North window wall + West wall + portals + signage (merged) 1, window glass 1 = 2
+- Belts & Chutes: Spine belt 2, chutes 4 × 2 = 8, overflow belt 2, conveyor steel frame & legs 1, chute mouth hoods 1, diverter arrows 1 = 15
+- Decor: Instanced carts 1, cargo containers 1, runway lights 1, columns 1, taxiing plane 1, handler 1 = 6
+- Bags: Suitcase pool 1, VIP rim 1, tag atlas 1 = 3
+- FX & Overlays: Bursts / score popups (while active) ~3
+- **Total:** ~32 draw calls (well within the <= 60 budget).
+
 ## Performance
 
 Target **30** draw calls (the spec's estimate), cap **40** (the spec's "≤ 40 with 40 bags"), and under the 150 hard cap. Each `<Conveyor>` is 2 calls. The spine is **one** path (entry + mid + toD3 + hold) = 2, not a conveyor per segment and not a second strip on toD3. Four chutes = 8, overflow = 2, so the belts are 12. Plus suitcase 1–2, tag atlas 1, VIP rim 1, arrows 1, mouths 1, boards 1, hall 2, window 1, plane 1, handler 1, one fx burst 1. A score sprite stays inside the cap of 40. No separate roller pass (the chevron is the belt). Lights: the `indoor` preset only. Pool 40 warmed with `fx.warm("sparkle", "puff", "score")`. Plane and handler drop out on the low tier. The chute-mouth geometry is module-level (`dispose={null}`), so Retry does not allocate another. Measured with `?perf=1` and written in Status.
