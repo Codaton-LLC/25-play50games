@@ -1,8 +1,17 @@
-import type { ArcadeGameMeta } from "@/arcade3d/types";
+import type { ArcadeGameMeta, LevelMeta } from "@/arcade3d/types";
 
-// Plain data only (server-safe). scoring must match WP includes/arcade-games.json.
-// Stub (Menu 1 game 40, docs/menu1-new/specs-31-40.md): placeholder limits; the build replaces them
-// with the proven per-level limits (PROPOSED_LEVEL_LIMITS) and adds meta.levels.
+// Plain data only (server-safe). scoring and levels match rules.ts PROPOSED_LEVEL_LIMITS (levels.test.ts)
+// and WP includes/arcade-games.json (registry.sync.test.ts). A level clears only on a win (every nectar banked).
+import { PROPOSED_LEVEL_LIMITS } from "./rules";
+
+const LEVELS: readonly LevelMeta[] = [
+   { id: 1, title: "Flower Garden", scoring: PROPOSED_LEVEL_LIMITS[1] },
+   { id: 2, title: "Vegetable Garden", scoring: PROPOSED_LEVEL_LIMITS[2] },
+   { id: 3, title: "Greenhouse", scoring: PROPOSED_LEVEL_LIMITS[3] },
+   { id: 4, title: "Forest Flowers", scoring: PROPOSED_LEVEL_LIMITS[4] },
+   { id: 5, title: "Giant Garden", scoring: PROPOSED_LEVEL_LIMITS[5] },
+];
+
 export const beeGardenMeta: ArcadeGameMeta = {
    slug: "bee-garden",
    title: "Bee Garden",
@@ -18,16 +27,8 @@ export const beeGardenMeta: ArcadeGameMeta = {
       keyboard: "WASD / arrows to fly, hold Space to boost",
       touch: "Joystick to fly + hold Boost",
    },
-   scoring: {
-      kind: "points",
-      maxScore: 3000,
-      minDurationMs: 10_000,
-      maxDurationMs: 300_000,
-      base: 3000,
-      maxPointsPerSec: 3000,
-      unitLabel: "pts",
-      display: "int",
-   },
+   scoring: PROPOSED_LEVEL_LIMITS[1],
+   levels: LEVELS,
    thumbnail: null,
    accent: "#fbbf24",
    owner: "antigravity",

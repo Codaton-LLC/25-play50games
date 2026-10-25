@@ -673,12 +673,19 @@
     "bee-garden": {
       "title": "Bee Garden",
       "kind": "points",
-      "max_score": 3000,
-      "min_duration_ms": 10000,
-      "max_duration_ms": 300000,
-      "base": 3000,
-      "max_pps": 3000,
-      "enabled": false
+      "max_score": 705,
+      "min_duration_ms": 4000,
+      "max_duration_ms": 120000,
+      "base": 245,
+      "max_pps": 42,
+      "enabled": false,
+      "levels": [
+        { "title": "Flower Garden", "max_score": 705, "min_duration_ms": 4000, "max_duration_ms": 120000, "base": 245, "max_pps": 42 },
+        { "title": "Vegetable Garden", "max_score": 930, "min_duration_ms": 4000, "max_duration_ms": 150000, "base": 375, "max_pps": 31 },
+        { "title": "Greenhouse", "max_score": 1140, "min_duration_ms": 4000, "max_duration_ms": 180000, "base": 490, "max_pps": 25 },
+        { "title": "Forest Flowers", "max_score": 1225, "min_duration_ms": 4000, "max_duration_ms": 180000, "base": 620, "max_pps": 16 },
+        { "title": "Giant Garden", "max_score": 1440, "min_duration_ms": 4000, "max_duration_ms": 210000, "base": 750, "max_pps": 15 }
+      ]
     },
     "dog-park-fetch": {
       "title": "Dog Park Fetch",
