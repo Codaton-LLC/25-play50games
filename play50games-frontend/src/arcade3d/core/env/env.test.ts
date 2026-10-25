@@ -59,4 +59,21 @@ describe("water detail", () => {
       expect(full.segments[0]).toBeGreaterThan(reduced.segments[0]);
       expect(waterDetail("full", 0.2, [400, 2]).segments).toEqual([96, 4]);
    });
+   it("caps a long sea by tier and leaves the desktop grid unchanged", () => {
+      // pirate bay 500 x 360 and the treasure sea 180 x 180 both hit the old shared cap of 96
+      for (const size of [[500, 360], [180, 180]] as const) {
+         expect(waterDetail("full", 0.18, size).segments).toEqual([96, 96]);
+         expect(waterDetail("reduced", 0.18, size).segments).toEqual([48, 48]);
+         expect(waterDetail("flat", 0.18, size).segments).toEqual([1, 1]);
+      }
+      // under the reduced cap the 1.2 m step is the same as before (a 40 m pond, a 14 m river)
+      expect(waterDetail("full", 0.2, [40, 40]).segments).toEqual([67, 67]);
+      expect(waterDetail("reduced", 0.2, [40, 40]).segments).toEqual([33, 33]);
+      expect(waterDetail("reduced", 0.2, [14, 220]).segments).toEqual([12, 48]);
+      expect(waterDetail("full", 0.2, [14, 220]).segments).toEqual([23, 96]);
+      expect(waterDetail("reduced", 0.2, [400, 2]).segments).toEqual([48, 4]);
+      // full amplitude and the 0.6 m step still produce the previous desktop grid
+      expect(waterDetail("full", 0.2, [60, 60]).segments).toEqual([96, 96]);
+      expect(waterDetail("full", 0.2, [60, 60]).amplitude).toBe(0.2);
+   });
 });

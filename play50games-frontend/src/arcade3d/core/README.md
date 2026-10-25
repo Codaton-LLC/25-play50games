@@ -453,7 +453,7 @@ useRunFrame(() => {
 
 ## Quality tiers: `core/quality.ts`
 
-`useQuality()` → `{ tier, particles, decor, water, maxDpr }`. The tier comes from drei `PerformanceMonitor` declines (counted by ShellStage, never forgotten during a visit) and the pointer: `high` = desktop, no declines (particles 1, decor 1, water "full"); `mid` = a coarse pointer or 1 decline (0.7, 0.8, "reduced"); `low` = 2+ declines (0.4, 0.5, "flat"). Pure: `tierFor({ declines, coarsePointer })`, `qualityFor`, `scaledCount(count, factor)`. ShellStage's resolution is unchanged (1.75, 1 after a slow period); `maxDpr` (1.75 / 1.5 / 1) is the plan's cap and informational for now. Outside the canvas (a DOM Hud) it reads `high`. Cosmetic counts only, never in `rules.ts`.
+`useQuality()` → `{ tier, particles, decor, water, maxDpr }`. The tier comes from drei `PerformanceMonitor` declines (counted by ShellStage, never forgotten during a visit) and the pointer: `high` = desktop, no declines (particles 1, decor 1, water "full"); `mid` = a coarse pointer or 1 decline (0.7, 0.8, "reduced"); `low` = 2+ declines (0.4, 0.5, "flat"). Pure: `tierFor({ declines, coarsePointer })`, `qualityFor`, `scaledCount(count, factor)`, and `canvasDprCap` / `nextMonitorDpr` (`shellDpr.ts`). ShellStage passes `maxDpr` (1.75 / 1.5 / 1) to the canvas from the first frame, so a coarse pointer (mid) never starts at 1.75. A PerformanceMonitor decline still drops the canvas to 1; an incline restores the tier cap while fewer than three declines have been seen, and the third locks it at 1. Desktop with no declines stays at 1.75. Outside the canvas (a DOM Hud) it reads `high`. Cosmetic counts only, never in `rules.ts`.
 
 ```tsx
 import { scaledCount, useQuality } from "../../core/quality";
@@ -475,7 +475,7 @@ console.log(p.calls, p.maxCalls, p.triangles, p.geometries, p.p95);
 
 ## Environment: `core/env`
 
-Small, disposable pieces, one draw call each, no per-frame allocation. `<SkyDome top bottom offset exponent>`: a gradient sphere, never fogged, following the camera. `<Starfield count seed size upperOnly>`: one seeded `THREE.Points`. `<SnowFall count area center speed size>`: falling `Points`, the drawn count scaled by `useQuality().particles`. `<Water size position color deep foam amplitude wavelength speed foamEdge opacity>`: vertex waves, a fresnel-ish colour, foam on the crests and an optional edge band (a shoreline); the waves follow `useQuality().water` (full; reduced = fewer vertices and 60 % height; flat = one quad), fog works, visual only (rules keep their own flat water height). Render them inside the Scene (SnowFall and Water use the game clock).
+Small, disposable pieces, one draw call each, no per-frame allocation. `<SkyDome top bottom offset exponent>`: a gradient sphere, never fogged, following the camera. `<Starfield count seed size upperOnly>`: one seeded `THREE.Points`. `<SnowFall count area center speed size>`: falling `Points`, the drawn count scaled by `useQuality().particles`. `<Water size position color deep foam amplitude wavelength speed foamEdge opacity>`: vertex waves, a fresnel-ish colour, foam on the crests and an optional edge band (a shoreline); the waves follow `useQuality().water` (full = 0.6 m step, cap 96 segments a side; reduced = 1.2 m step, 60 % height, cap 48 so a long sea is not the desktop grid; flat = one quad), fog works, visual only (rules keep their own flat water height). Render them inside the Scene (SnowFall and Water use the game clock).
 
 ```tsx
 import { SkyDome, SnowFall, Starfield, Water } from "../../core/env";

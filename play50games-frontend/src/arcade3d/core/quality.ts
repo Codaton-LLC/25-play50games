@@ -24,8 +24,9 @@ export interface Quality {
    /** <Water> detail */
    water: WaterQuality;
    /**
-    * The tier's device-pixel-ratio cap (06 §10.4). Informational: ShellStage keeps its own adaptive
-    * resolution (1.75, 1 after a slow period), which already stays within it for "high" and "low".
+    * Canvas device-pixel-ratio cap (06 §10.4). ShellStage passes it to `<Canvas dpr>` from the first
+    * frame (high 1.75, mid 1.5, low 1). A PerformanceMonitor decline still drops the canvas to 1;
+    * an incline restores this cap, never a higher one, until three declines lock it at 1.
     */
    maxDpr: number;
 }

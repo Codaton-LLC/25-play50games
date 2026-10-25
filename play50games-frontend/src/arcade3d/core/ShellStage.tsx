@@ -17,6 +17,7 @@ import { GameTimeProvider } from "./gameTime";
 import { InputLatch } from "./input";
 import CameraRig from "./CameraRig";
 import { QualityProvider, qualityFor } from "./quality";
+import { canvasDprCap, nextMonitorDpr, SHELL_MONITOR_DPR } from "./shellDpr";
 import { useCoarsePointer } from "./TouchControls";
 import { FxLayer } from "./fx/FxLayer";
 import PerfProbe, { perfProbeRequested } from "./perfProbe";
@@ -24,15 +25,6 @@ import { StageLightingContext, createStageLighting, lightingSpec, setStageEnviro
 
 /** Rapier (and its WASM) is a separate chunk, fetched only by games with `physics: true`. */
 const RapierPhysics = lazy(() => import("@react-three/rapier").then((mod) => ({ default: mod.Physics })));
-
-const MAX_DPR = 1.75;
-const LOW_DPR = 1;
-/**
- * After this many slow periods the device stays at LOW_DPR (no more resizes back and forth).
- * Counted here because drei's own `flipflops` also counts inclines, so a steady 60/120 fps device
- * would hit its fallback after ~11 s and be locked to the low resolution.
- */
-const MAX_DECLINES = 3;
 
 type Environment = NonNullable<GameDefinition["environment"]>;
 const DEFAULT_ENVIRONMENT: Environment = { background: "#0b1020", lighting: "day" };
@@ -115,23 +107,30 @@ export interface ShellStageProps {
 export default function ShellStage({ definition, environment = definition.environment, frameloop, onContextLost, label }: ShellStageProps) {
    const { Scene, camera, physics } = definition;
    const runId = useArcadeStore((state) => state.runId);
-   const [maxDpr, setMaxDpr] = useState(MAX_DPR);
+   // PerformanceMonitor's step (shellDpr.ts). The canvas cap is min(this, quality.maxDpr), so a
+   // coarse pointer is 1.5 from the first frame and an incline cannot climb past the tier.
+   // Declines are counted here, not via drei's flipflops (those also count inclines, so a steady
+   // 60/120 fps device would lock to the low resolution after ~11 s).
+   const [monitorDpr, setMonitorDpr] = useState(SHELL_MONITOR_DPR);
    const declinesRef = useRef(0);
    // the quality tier only goes down: every decline counts, inclines do not undo it
    const [declines, setDeclines] = useState(0);
    const coarsePointer = useCoarsePointer();
    const quality = useMemo(() => qualityFor({ declines, coarsePointer }), [declines, coarsePointer]);
+   const maxDpr = canvasDprCap(quality.maxDpr, monitorDpr);
    // ?perf=1, read once (ShellStage mounts on the client only)
    const [perf] = useState(perfProbeRequested);
    const [lighting] = useState(createStageLighting);
    const onDecline = useCallback(() => {
       declinesRef.current += 1;
-      setMaxDpr(LOW_DPR);
+      const next = nextMonitorDpr(declinesRef.current, "decline");
+      if (next !== null) setMonitorDpr(next);
       // the tier saturates at 2 declines: stop re-rendering the Scene on every later decline
       setDeclines(Math.min(declinesRef.current, 2));
    }, []);
    const onIncline = useCallback(() => {
-      if (declinesRef.current < MAX_DECLINES) setMaxDpr(MAX_DPR);
+      const next = nextMonitorDpr(declinesRef.current, "incline");
+      if (next !== null) setMonitorDpr(next);
    }, []);
 
    const lostRef = useRef(onContextLost);

@@ -3,8 +3,8 @@
 // A stylised water surface: a flat plane whose vertices ride three sine waves in the vertex shader,
 // shaded deep-to-shallow by the view angle (fresnel-ish) with foam on the crests and an optional
 // foam band along its edges (a shoreline). One draw call; fog works. Waves follow the quality tier
-// (useQuality().water: "full", "reduced" = fewer vertices and 60 % of the height, "flat" = one quad,
-// no waves). Moves with the run's pause-safe clock: render it inside the Scene.
+// (useQuality().water: "full" caps the grid at 96 segments a side, "reduced" at 48 with 60 % of the
+// height, "flat" = one quad, no waves). Moves with the run's pause-safe clock: render it inside the Scene.
 //
 //    <Water size={[60, 60]} position={[0, -0.2, 0]} color="#0e7490" amplitude={0.2} />
 //
@@ -37,12 +37,19 @@ export interface WaterProps {
    opacity?: number;
 }
 
+/**
+ * Segments per side. "full" keeps the desktop grid (96). "reduced" (a phone, or one slow period)
+ * halves that cap so a long sea is not shaded at desktop density. "flat" is one quad.
+ */
+const SEGMENT_CAP: Record<Exclude<WaterQuality, "flat">, number> = { full: 96, reduced: 48 };
+
 /** Grid segments per side and wave height for a quality tier. Pure. */
 export function waterDetail(quality: WaterQuality, amplitude: number, size: readonly [number, number]): { segments: [number, number]; amplitude: number } {
    if (quality === "flat") return { segments: [1, 1], amplitude: 0 };
-   // about one vertex per 0.6 m ("full") or 1.2 m ("reduced"), at most 96 per side
+   // about one vertex per 0.6 m ("full") or 1.2 m ("reduced"), then the tier cap
    const step = quality === "full" ? 0.6 : 1.2;
-   const seg = (len: number) => Math.max(4, Math.min(96, Math.round(len / step)));
+   const cap = SEGMENT_CAP[quality];
+   const seg = (len: number) => Math.max(4, Math.min(cap, Math.round(len / step)));
    return { segments: [seg(size[0]), seg(size[1])], amplitude: quality === "full" ? amplitude : amplitude * 0.6 };
 }
 
