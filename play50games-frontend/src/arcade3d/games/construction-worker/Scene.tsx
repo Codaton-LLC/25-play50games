@@ -1,5 +1,6 @@
 "use client";
 
+import { useCraneLevel } from "./useCraneLevel";
 import { useEffect, useRef, useState } from "react";
 import { useThree } from "@react-three/fiber";
 import { Plane, Raycaster, Vector2, Vector3, type Camera } from "three";
@@ -62,8 +63,9 @@ function pileFromPointer(camera: Camera, pointer: { x: number; y: number }): num
    return best;
 }
 
-export default function Scene() {
-   const [run] = useState(() => createRun(randomSeed()));
+function LevelScene() {
+   const { config } = useCraneLevel();
+   const [run] = useState(() => createRun(randomSeed(), config));
    const width = useThree((s) => s.size.width);
    const height = useThree((s) => s.size.height);
    const camera = useThree((s) => s.camera);
@@ -172,4 +174,10 @@ export default function Scene() {
          <Pieces run={run} />
       </>
    );
+}
+
+/** Remounts when another level is picked, so the wind and the marks are that level's. */
+export default function Scene() {
+   const { id } = useCraneLevel();
+   return <LevelScene key={id} />;
 }

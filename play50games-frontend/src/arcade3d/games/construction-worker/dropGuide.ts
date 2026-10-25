@@ -14,7 +14,7 @@ export function landingMarker(run: Readonly<Run>, out: { x: number; y: number; z
    if (!step) return 3;
    const distance = predictLanding(run, step, out);
    out.y = step.floor * FLOOR + 0.09;
-   return rateLanding(distance, step.building === 2);
+   return rateLanding(distance, step.building === 2, run.level.band);
 }
 
 /** Highest placed floor directly below the hook, otherwise the ground. */
