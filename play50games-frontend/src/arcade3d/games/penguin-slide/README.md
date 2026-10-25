@@ -203,3 +203,56 @@ Implemented for Claude validation; build, Vitest, browser and headless results a
 - Runtime budget: 40 normal + 20 forced-speed survival runs; 32/8/8 limits runs across 60-fps/20-fps/random frames; 256 deterministic seeds across six forms. Existing 1,000-seed boundary/reachability checks remain, plus 1,000-seed ramp coverage. Under-60-second timing needs Claude measurement.
 
 Validation: TypeScript no-emit check passed during this round; final result is in the handoff. No Vitest/build/browser command, thumbnail capture, production access, commit/push or branch change.
+
+## Look (2026-10-24)
+
+Modern-look visual polish pass following CLAUDE.md Decision 4:
+- **Palette & Lighting:** Unified `COLORS` palette in `looks.ts` providing 2-3 deliberate tones for every visual element. Core lighting preset `"snow"` with seamless fog blending into the sky horizon (`#e0f2fe`) and a vibrant daylight arctic gradient `SkyDome` (`#38bdf8` to `#e0f2fe`).
+- **Glossy Arctic Ice Track:** Refreshed canvas ice texture with caustic gradients, crystalline fracture lines, and fine specular micro-cracks. Track material updated with glossy sheen (`roughness={0.22}`, `metalness={0.06}`) and high-contrast vertex-colored snow banks.
+- **Expansive Arctic Terrain:** Replaced the flat plain quad with `<Terrain>`: an expansive rolling low-poly snowfield (`360 m x 400 m`) with vertex-colored snow shading (sunlit crests, soft snow, cool shadow depressions) flanking the track corridor, backed by a deep continuous ground plane (`600 m x 600 m`). Tested and guaranteed to eliminate any horizon gaps or voids across all screen aspect ratios (1280x800, 390x844, 844x390).
+- **Instanced Surroundings (`<Decor>`):** Scenic arctic landscape outside the active play bounds:
+  - Faceted ice spires (`<Instanced>`, `COLORS.spireBody`)
+  - Soft rolling snow drifts (`<Instanced>`, `COLORS.snowSoft`)
+  - Arctic slate rocks with snowy caps (`<Instanced>`, 2 tones: `COLORS.rockFace` + `COLORS.rockSnow`)
+  - Distant majestic glacier ridges (`<Instanced>`, `COLORS.glacierIce`)
+  - Horizon mountain peaks with snow caps (`<Instanced>`, 2 tones: `COLORS.mountainRock` + `COLORS.mountainPeak`)
+  - Drifting high arctic clouds (`<DynamicInstanced>`, `COLORS.cloud`, animated on pause-safe game clock)
+  - All decor spots mathematically verified in `decor.test.ts` to lie strictly outside `PLAY_BOUNDS` and never occlude the play area from the fitted camera at 1280x800, 390x844, and 844x390.
+- **Code-Made Stand-in Polish:**
+  - Faceted crystalline ice block obstacle with deep internal refraction and vivid coral warning spurs (`COLORS.iceBlock`, `COLORS.iceBlockShade`, `COLORS.iceBlockCoral`) for immediate hazard readability.
+  - 3-tone crevasse crack: deep black void abyss, sharp cyan ice lip, and coral hazard rim (`COLORS.crackAbyss`, `COLORS.crackIceLip`, `COLORS.crackCoralRim`).
+  - Bevelled kicker launch ramp with directional chevrons on runway and frosted side rails.
+  - Pylon gate posts with glowing mint indicator rings and snow-capped footings.
+  - Refined penguin, fish, pine, and flag fallbacks with 2-3 harmonious tones.
+- **Juicy Feedback (Core FX only):**
+  - Continuous snow spray behind the sliding penguin belly when cruising at speed.
+  - Responsive carving spray when steering sharply.
+  - Sparkling pickup bursts on fish collection.
+  - Launch puff bursts on ramp launches and confetti celebration on spin trick landings.
+  - Splash burst and camera shake on obstacle collision.
+
+### Draw-Call Estimate
+
+| Component | Draw Calls | Notes |
+|---|---|---|
+| `SkyDome` | 1 | Single background sphere |
+| `SnowFall` | 1 | Point particle system |
+| `Terrain` (rolling snowfield + ground base) | 2 | Low-poly vertex-colored mesh + backing plane |
+| Track glacier (3 chunk meshes) | 3 | Static mesh per resident chunk slot |
+| Fish trails pool (`<DynamicInstancedModel>`) | 1 | Shared GLB or multi-piece fallback |
+| Pine banks pool (`<DynamicInstancedModel>`) | 2 | Shared GLB or 2-draw-call primitive fallback |
+| Time flags pool (`<DynamicInstancedModel>`) | 1 | Shared GLB |
+| Ice blocks obstacle pool (`<DynamicInstanced>`) | 2 | Faceted body + coral warning facets |
+| Snowmen obstacle pool (`<DynamicInstancedModel>`) | 1 | Shared snowman GLB |
+| Crevasse cracks pool (`<DynamicInstanced>`) | 2 | Deep abyss + ice lip / coral rim |
+| Spin kicker ramps pool (`<DynamicInstanced>`) | 2 | Runway wedge + frosted guide rails |
+| Gate posts pool (`<DynamicInstanced>`) | 2 | Pylon body + glowing mint indicator ring |
+| Penguin model / fallback + `BlobShadow` | 2–4 | Model GLB / multi-part primitive + shadow |
+| Decor ice spires (`<Instanced>`) | 1 | Faceted crystalline obelisks |
+| Decor snow drifts (`<Instanced>`) | 1 | Soft rolling snow mounds |
+| Decor arctic rocks (`<Instanced>`) | 2 | Slate base + snow cap |
+| Decor distant glaciers (`<Instanced>`) | 1 | Far-distance glacier ridges |
+| Decor horizon mountains (`<Instanced>`) | 2 | Distant alpine rock + snow peaks |
+| Decor drifting clouds (`<DynamicInstanced>`) | 1 | High arctic clouds |
+| Active FX pools & score sprites | 4–6 | Sparkle, snow, puff, confetti, splash, score |
+| **Total Estimated Draw Calls** | **34–40** | **Well below 60 cap (and 50 target)** |

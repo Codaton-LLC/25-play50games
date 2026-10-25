@@ -21,6 +21,7 @@ import Balls from "./Balls";
 import { AIM_CLAMP, FIT, FOLLOW_Y, LOOK_AT, areaFor } from "./camera";
 import Kids from "./Kids";
 import { createRun, pickTap, stepRun, type Run, type SimEvent, type StepInput } from "./rules";
+import { useSnowLevel } from "./useSnowLevel";
 import Yard from "./Yard";
 
 const RAY = new Raycaster();
@@ -95,7 +96,8 @@ function playEvent(fx: FxApi, e: SimEvent): void {
    }
 }
 
-export default function Scene() {
+function LevelScene() {
+   const { config } = useSnowLevel();
    const width = useThree((state) => state.size.width);
    const height = useThree((state) => state.size.height);
    const fit = useMemo(() => ({ ...FIT, area: areaFor(width, height) }), [width, height]);
@@ -106,7 +108,7 @@ export default function Scene() {
    const areaRef = useRef(area);
    areaRef.current = area;
    const coarse = useState(coarsePointer)[0];
-   const run = useState(() => createRun(randomSeed(), coarse))[0];
+   const run = useState(() => createRun(randomSeed(), coarse, config))[0];
    const step = useRef<StepInput>({ moveX: 0, moveY: 0, camYaw: 0, scoop: false, fire: false, tapId: -1, aimYaw: Math.PI }).current;
    const aim = useRef({ moved: false, px: 0, py: 0 }).current;
    const follow = useRef({ x: 0, y: FOLLOW_Y, z: 6.2 }).current;
@@ -161,7 +163,7 @@ export default function Scene() {
          store.addScore(run.scoreDelta);
          run.scoreDelta = 0;
       }
-      store.setStat("time", Math.ceil(Math.max(0, 90 - run.time)));
+      store.setStat("time", Math.ceil(Math.max(0, run.level.duration - run.time)));
       store.setStat("ammo", player.ammo);
       let rivals = 0;
       for (let i = 1; i < 4; i++) if (run.kids[i].present && run.kids[i].alive) rivals += 1;
@@ -217,4 +219,10 @@ export default function Scene() {
          <TargetMarkers targets={markers} />
       </>
    );
+}
+
+/** Remounts when another level is picked, so the yard and the rivals are that level's. */
+export default function Scene() {
+   const { id } = useSnowLevel();
+   return <LevelScene key={id} />;
 }
