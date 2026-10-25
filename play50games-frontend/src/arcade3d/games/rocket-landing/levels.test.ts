@@ -145,6 +145,29 @@ describe("rocket-landing levels: declarations and contracts", () => {
    });
 });
 
+
+describe("rocket-landing levels: every setting reaches the simulation", () => {
+   it("index.tsx hands each level its config and clock", () => {
+      for (const id of LEVEL_IDS) {
+         expect(definition.levels![id - 1].config).toBe(LEVELS[id]);
+         expect(levelRunConfig(definition, id).durationMs).toBe(LEVELS[id].durationMs);
+      }
+   });
+   it("the asteroid pad swings with the level's amplitude: layout, collider and swept skin", () => {
+      for (const id of LEVEL_IDS) {
+         const level = LEVELS[id], r = createRun(3, false, level);
+         expect(r.layouts[4].padAmplitude).toBe(level.padAmplitude);
+         r.planet = 4;
+         r.body.omega = 0;
+         stepRun(r, { rotate: 0, thrust: false }, 1 / 60);
+         const centre = (r.pad.minX + r.pad.maxX) / 2;
+         expect(centre).toBeCloseTo(padX(r.layouts[4], 4, r.attemptTime, level.padAmplitude), 9);
+         // no rotation: the skin is the pad's arc over one 1/120 s step (+1e-8)
+         expect(r.sweepSkin).toBeCloseTo(level.padAmplitude * (1 - Math.cos(Math.PI * (1 / 120) / 16)) + 1e-8, 12);
+      }
+   });
+});
+
 const L1_TODAY = [
    "lose:1105:3:3:9327:285b2c5e9a78af51",
    "lose:1133:3:3:8484:bb21baa03d77d95c",
@@ -255,10 +278,12 @@ describe("rocket-landing levels: monotone difficulty and score bounds", () => {
          expect(limits.minDurationMs).toBeLessThan(limits.maxDurationMs);
          expect(limits.maxDurationMs).toBe(level.durationMs + 2000);
 
-         // Score rate bound: theoreticalMax <= base + maxPointsPerSec * t_win
-         // On 5-planet campaigns with Asteroid cavern, t_win is >= 14s > 10.75s
-         const effectiveWinTime = 14.0;
-         expect(theoreticalMax).toBeLessThanOrEqual(limits.base + limits.maxPointsPerSec * effectiveWinTime);
+         // Score rate bound at the earliest possible win (the proven flight + hold floor, no
+         // assumed campaign time): base grows with the clean bonus, so every level keeps L1's margin.
+         expect(limits.base).toBe(800 + level.cleanBonus - 300);
+         expect(theoreticalMax).toBeLessThanOrEqual(limits.base + limits.maxPointsPerSec * minFlightTime);
+         // every landing prefix: k landings need k flights and k - 1 holds
+         for (let k = 1; k < n; k++) expect(500 * k).toBeLessThanOrEqual(limits.base + limits.maxPointsPerSec * (k * 1.119 + (k - 1) * 1.2));
       }
    });
 });
