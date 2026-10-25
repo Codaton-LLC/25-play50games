@@ -59,6 +59,11 @@ export function Decor() {
       torso.dispose();
       head.dispose();
       if (!fan) throw new Error("penalty look: fan geometry");
+      // Review fix: the crowd spots give each fan's size (sx 0.44-0.52, sy 0.65-0.75 m), so the merged
+      // figure (0.44 x 0.68 m) is scaled to a unit box; before, the spots scaled it again (0.2 x 0.45 m fans).
+      fan.computeBoundingBox();
+      const fanSize = fan.boundingBox!.getSize(new Vector3());
+      fan.scale(1 / fanSize.x, 1 / fanSize.y, 1 / fanSize.z);
 
       // 4. Floodlight tower mast and lamp fixtures
       const mastLower = new CylinderGeometry(0.28, 0.48, 17, 8).translate(0, 8.5, 0);
