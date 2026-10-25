@@ -5,6 +5,7 @@ import type { GameDefinition, LevelSpec } from "@/arcade3d/core/types";
 import { LEVEL_IDS, type LevelId } from "@/arcade3d/types";
 import Scene from "./Scene";
 import { ASSETS } from "./assets";
+import { COLORS, FOG } from "./looks";
 import { LEVELS, type ShoppingCartLevel } from "./levels";
 import { DURATION_MS, LIST_COUNT } from "./rules";
 
@@ -30,7 +31,7 @@ const definition: GameDefinition<ShoppingCartLevel> = {
    assets: ASSETS,
    durationMs: DURATION_MS,
    camera: { position: [0, 16, 18], fov: 45, lookAt: [0, 0, 0] },
-   environment: { background: "#0b1220", fog: ["#0b1220", 18, 38], lighting: "indoor" },
+   environment: { background: COLORS.bg, fog: [COLORS.fog, FOG.near, FOG.far], lighting: "indoor" },
    touchControls: ["joystick", "jump"],
    touchLabels: { jump: "Ride" },
    hudStats: [{ key: "items", label: "Items", max: LIST_COUNT }],

@@ -4,6 +4,8 @@
 // owns the screens, the HUD chips, pause and the score submit; the game owns Scene.tsx (the frame
 // loop and what moves), rules.ts / physics.ts / course.ts (the logic), aim.ts (the putt aim) and
 // assets.ts (the models). No durationMs: the rules end the run at 600 s of play themselves.
+import { LEVEL_IDS } from "../../types";
+import { LEVELS, DESCRIPTIONS, type MiniGolfLevel } from "./levels";
 import type { GameDefinition } from "@/arcade3d/core/types";
 import Hud from "./Hud";
 import Scene from "./Scene";
@@ -11,7 +13,7 @@ import { ASSETS } from "./assets";
 import { HOLE_COUNT } from "./course";
 import { COLORS, FOV } from "./looks";
 
-const definition: GameDefinition = {
+const definition: GameDefinition<MiniGolfLevel> = {
    slug: "mini-golf",
    Scene,
    Hud,
@@ -26,6 +28,13 @@ const definition: GameDefinition = {
       { key: "par", label: "Par" },
       { key: "strokes", label: "Strokes" },
    ],
+   levels: LEVEL_IDS.map(id => ({
+      id, description: DESCRIPTIONS[id], config: LEVELS[id],
+      hudStats: [{ key: "hole", label: "Hole", max: LEVELS[id].holes }, { key: "par", label: "Par" }, { key: "strokes", label: "Strokes" }],
+      ...(id === 3 ? { environment: { lighting: "sunset" as const } } : {}),
+      ...(id === 4 ? { environment: { lighting: "night" as const } } : {}),
+      ...(id === 5 ? { environment: { lighting: "sunset" as const } } : {}),
+   })),
    // the drop, the flag and (birdie or better) the confetti are seen before the result
    resultDelayMs: 1800,
    instructions: [

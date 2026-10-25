@@ -10,6 +10,8 @@
 import { capScore as capToLimits, withinServerLimits as fitsLimits } from "@/arcade3d/core/limits";
 import { createRng } from "@/arcade3d/core/math";
 import type { InputState } from "@/arcade3d/core/types";
+import type { LevelId, ScoringRules } from "@/arcade3d/types";
+import { LEVELS, type OfficeLevel } from "./levels";
 import { officeEscapeMeta } from "./meta";
 
 // ---------- tuning (README "Constants") ----------
@@ -132,28 +134,28 @@ export function stageAt(ms: number): number {
 }
 
 /** Speed at simulation time `ms`, mm/ms (= m/s). */
-export function speedAt(ms: number): number {
-   return SPEED.start + stageAt(ms);
+export function speedAt(ms: number, level: OfficeLevel = LEVELS[1]): number {
+   return SPEED.start + stageAt(ms) + level.speedBonus;
 }
 
 /** Distance (mm) at the start of stage k. */
-export function stageStartDistance(k: number): number {
-   return SPEED.stageMs * (SPEED.start * k + (k * (k - 1)) / 2);
+export function stageStartDistance(k: number, level: OfficeLevel = LEVELS[1]): number {
+   return SPEED.stageMs * ((SPEED.start + level.speedBonus) * k + (k * (k - 1)) / 2);
 }
 
 /** Distance in mm after `ms` whole ms of simulation time. Closed form, exact, never drifts. */
-export function distanceAt(ms: number): number {
+export function distanceAt(ms: number, level: OfficeLevel = LEVELS[1]): number {
    if (!(ms > 0)) return 0;
    const k = stageAt(ms);
-   return stageStartDistance(k) + (ms - k * SPEED.stageMs) * (SPEED.start + k);
+   return stageStartDistance(k, level) + (ms - k * SPEED.stageMs) * (SPEED.start + k + level.speedBonus);
 }
 
 /** The first whole ms at which distanceAt reaches `mm`: distanceAt(t) ≥ mm > distanceAt(t − 1). */
-export function timeAt(mm: number): number {
+export function timeAt(mm: number, level: OfficeLevel = LEVELS[1]): number {
    if (!(mm > 0)) return 0;
    let k = SPEED.maxStage;
-   while (k > 0 && stageStartDistance(k) >= mm) k--;
-   return k * SPEED.stageMs + Math.ceil((mm - stageStartDistance(k)) / (SPEED.start + k));
+   while (k > 0 && stageStartDistance(k, level) >= mm) k--;
+   return k * SPEED.stageMs + Math.ceil((mm - stageStartDistance(k, level)) / (SPEED.start + k + level.speedBonus));
 }
 
 /** Feet height (mm) `j` ms after take-off: a parabola, 0 at 0 and JUMP_MS, JUMP_APEX at the middle. */
@@ -288,6 +290,7 @@ export interface RunEvents {
 }
 
 export interface OfficeRun {
+   level: OfficeLevel;
    seed: number;
    coinSeed: number;
 
@@ -396,8 +399,12 @@ export const coinSeedFor = (seed: number): number => ((seed >>> 0) ^ COIN_SEED_M
  * the corridor the way every step does (rows up to 74 m, then coins up to 72 m), so the track is
  * there during the countdown. `coinSeed` is for tests only (changing it must leave the rows alone).
  */
-export function createRun(seed: number, coinSeed: number = coinSeedFor(seed)): OfficeRun {
+export function createRun(seed: number, levelOrCoinSeed: OfficeLevel | number = LEVELS[1], coinSeedOverride?: number): OfficeRun {
+   // Preserve the original test-only createRun(seed, coinSeed) call.
+   const level = typeof levelOrCoinSeed === "number" ? LEVELS[1] : levelOrCoinSeed;
+   const coinSeed = typeof levelOrCoinSeed === "number" ? levelOrCoinSeed : coinSeedOverride ?? coinSeedFor(seed);
    const run: OfficeRun = {
+      level,
       seed: seed >>> 0,
       coinSeed: coinSeed >>> 0,
       carry: 0,
@@ -443,7 +450,7 @@ function drawRow(run: OfficeRun, row: Row, index: number, inMs: number): void {
    const rng = run.rowRng;
    const mix = STAGES[stageAt(inMs)].mix;
    const roll = rng() * 100;
-   const count = roll < mix[0] ? 1 : roll < mix[0] + mix[1] ? 2 : 3;
+   const count = Math.max(run.level.minObstacles, roll < mix[0] ? 1 : roll < mix[0] + mix[1] ? 2 : 3);
 
    const order = run.shuffle;
    order[0] = 0;
@@ -473,20 +480,25 @@ function drawRow(run: OfficeRun, row: Row, index: number, inMs: number): void {
       hd = Math.max(hd, OBSTACLE_TYPES[type].depth / 2);
    }
 
+   const printerLine = run.level.printerEvery > 0 && index % run.level.printerEvery === 0;
+   if (printerLine) {
+      lanes[0] = lanes[1] = lanes[2] = OBSTACLE.printer;
+      hd = OBSTACLE_TYPES[OBSTACLE.printer].depth / 2;
+   }
    row.alive = false;
    row.index = index;
-   row.count = count;
+   row.count = printerLine ? 3 : count;
    row.hd = hd;
    row.inMs = inMs;
-   row.s = distanceAt(inMs) + ROW_MARGIN + hd;
-   row.outMs = timeAt(row.s + hd + ROW_MARGIN);
+   row.s = distanceAt(inMs, run.level) + ROW_MARGIN + hd;
+   row.outMs = timeAt(row.s + hd + ROW_MARGIN, run.level);
 }
 
 /** The seeded extra gap (ms) after a row the runner leaves at `outMs`. */
 function drawExtra(run: OfficeRun, outMs: number): number {
    const rule = STAGES[stageAt(outMs)];
    const steps = (rule.extraMaxMs - rule.extraMinMs) / EXTRA_STEP_MS + 1;
-   return rule.extraMinMs + EXTRA_STEP_MS * Math.floor(run.rowRng() * steps);
+   return Math.max(0, rule.extraMinMs + EXTRA_STEP_MS * Math.floor(run.rowRng() * steps) - run.level.extraReductionMs);
 }
 
 /** Next lane of the coin stream for the next slot (-1 = empty slot). One call per slot, in order. */
@@ -626,8 +638,8 @@ export function touchesCoin(lane: number, s: number, kind: CoinKind, distance: n
 // ---------- scoring ----------
 
 /** 1 point per full metre run plus 50 per coin. */
-export function scoreFor(distanceMm: number, coins: number): number {
-   return Math.floor(distanceMm / 1000) + COIN.points * coins;
+export function scoreFor(distanceMm: number, coins: number, level: OfficeLevel = LEVELS[1]): number {
+   return Math.floor(distanceMm / 1000) + level.coinPoints * coins;
 }
 
 /** The server's check (core/limits.ts) with this game's limits from meta.ts. */
@@ -681,7 +693,7 @@ export function advanceClock(run: OfficeRun, dtMs: number): number {
    run.carry -= stepMs;
    run.stepMs = stepMs;
    run.simMs += stepMs;
-   run.distance = distanceAt(run.simMs);
+   run.distance = distanceAt(run.simMs, run.level);
    const stage = stageAt(run.simMs);
    if (stage !== run.stage) {
       run.stage = stage;
@@ -722,7 +734,7 @@ function hitObstacle(run: OfficeRun): boolean {
       for (let lane = 0; lane < LANE_COUNT; lane++) {
          const type = row.lanes[lane];
          if (type === NO_OBSTACLE) continue;
-         if (overlapsObstacle(type, lane, row.s, d, run.x, run.feet)) {
+         if (overlapsObstacle(type, lane, row.s, d, run.x - obstacleOffset(run, row, type), run.feet)) {
             run.events.hit = true;
             run.events.hitRow = row.index;
             run.events.hitLane = lane;
@@ -747,7 +759,7 @@ function collectCoins(run: OfficeRun): void {
 }
 
 function updateScore(run: OfficeRun): void {
-   const score = scoreFor(run.distance, run.coins);
+   const score = scoreFor(run.distance, run.coins, run.level);
    if (score !== run.score) {
       run.score = score;
       run.events.scoreChanged = true;
@@ -790,3 +802,26 @@ export function step(run: OfficeRun, dtMs: number, input: StepInput): RunEvents 
    if (run.simMs >= RUN_LIMIT_MS) finish(run, "win");
    return ev;
 }
+
+/** Moving chairs/carts stay within 150 mm of their lane centre. Drawing and collision share
+ * this simulation-clock triangle wave. Adjacent-lane clearance remains at least 800 mm.
+ */
+export function obstacleOffset(run: OfficeRun, row: Row, type: number): number {
+   if (type !== OBSTACLE.chair && type !== OBSTACLE.coffeeCart) return 0;
+   const phase = ((run.simMs + row.index * 317) % run.level.motionPeriodMs) / run.level.motionPeriodMs;
+   return run.level.movingMm * (1 - 4 * Math.abs(phase - 0.5));
+}
+
+/** One proposal per level; proof and rate envelope in README. Claude copies these into JSON. */
+export const PROPOSED_LEVEL_LIMITS: Record<LevelId, ScoringRules> = {
+   /** L1: D <= 28000.784 m, coins <= 2400 x 50; B <= 148000. Live limits unchanged. */
+   1: { ...officeEscapeMeta.scoring },
+   /** L2: D <= 28898.309 m; coins <= 2476 x 55; B <= 165078 (+3.3%). */
+   2: { ...officeEscapeMeta.scoring, maxScore: 170500, maxPointsPerSec: 95 },
+   /** L3: D <= 29795.833 m; coins <= 2553 x 60; B <= 182975 (+3.3%). */
+   3: { ...officeEscapeMeta.scoring, maxScore: 189000, maxPointsPerSec: 106 },
+   /** L4: D <= 30693.357 m; coins <= 2630 x 65; B <= 201643 (+3.2%). */
+   4: { ...officeEscapeMeta.scoring, maxScore: 208000, maxPointsPerSec: 116 },
+   /** L5: D <= 31590.882 m; coins <= 2707 x 70; B <= 221080 (+3.1%). */
+   5: { ...officeEscapeMeta.scoring, maxScore: 228000, maxPointsPerSec: 128 },
+};
