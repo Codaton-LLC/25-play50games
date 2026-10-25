@@ -16,6 +16,7 @@ import { useRunFrame } from "@/arcade3d/core/useRunFrame";
 import { Bags } from "./Bags";
 import { Belts } from "./Belts";
 import { Hall } from "./Hall";
+import type { LuggageLevel } from "./levels";
 import { COLORS } from "./looks";
 import {
    DIVERTER_AT,
@@ -25,6 +26,7 @@ import {
    stepRun,
    type StepInput,
 } from "./rules";
+import { useLuggageLevel } from "./useLuggageLevel";
 
 /** Belts only. The floor and handler past x 8.2 are outside the fit, so the camera can come in. */
 const AREA = {
@@ -74,7 +76,7 @@ function FittedCamera() {
 }
 
 /** Nearest unlocked diverter whose 64 px box contains the pointer. -1 if none. */
-function pickDiverter(state: RootState, tap: { x: number; y: number }, time: number, v: Vector3): number {
+function pickDiverter(state: RootState, tap: { x: number; y: number }, time: number, v: Vector3, level: LuggageLevel): number {
    const w = state.size.width;
    const h = state.size.height;
    const tx = (tap.x * 0.5 + 0.5) * w;
@@ -82,7 +84,7 @@ function pickDiverter(state: RootState, tap: { x: number; y: number }, time: num
    let best = -1;
    let bestD = Infinity;
    for (let i = 0; i < 4; i++) {
-      if (diverterLocked(i, time)) continue;
+      if (diverterLocked(i, time, level)) continue;
       const at = DIVERTER_AT[i];
       v.set(at.x, at.y + 0.55, at.z).project(state.camera);
       if (!(v.z >= -1 && v.z <= 1)) continue;
@@ -98,7 +100,8 @@ function pickDiverter(state: RootState, tap: { x: number; y: number }, time: num
 }
 
 export default function Scene() {
-   const [run] = useState(() => createRun(randomSeed()));
+   const { config } = useLuggageLevel();
+   const [run] = useState(() => createRun(randomSeed(), config));
    const input = useInput();
    const fx = useFx();
    const phase = useArcadeStore((state) => state.phase);
@@ -126,7 +129,7 @@ export default function Scene() {
          if (pressed.up) flip[3] = true;
       }
       if (tapDown) {
-         const hit = pickDiverter(state, tapDown, time, scratch.v);
+         const hit = pickDiverter(state, tapDown, time, scratch.v, config);
          if (hit >= 0) flip[hit] = true;
       }
       stepRun(run, scratch.flip, dt, time);
