@@ -8,7 +8,7 @@ import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import { MeshBasicMaterial, PlaneGeometry, type CanvasTexture } from "three";
 import { useCanvasTexture } from "@/arcade3d/core/render";
-import { COLORS } from "./palette";
+import { COLORS } from "./looks";
 import { BOARD, SHAPE_OF, SHIFT, blueprintSize, type Run } from "./rules";
 import { getSlotX } from "./camera";
 
