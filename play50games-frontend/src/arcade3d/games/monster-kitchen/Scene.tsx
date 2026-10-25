@@ -63,8 +63,8 @@ interface Look {
 }
 
 export default function Scene() {
-   const { config } = useKitchenLevel();
-   const levelLook = LEVEL_LOOKS[config.id];
+   const { id: levelId, config } = useKitchenLevel();
+   const levelLook = LEVEL_LOOKS[levelId];
    useStageLighting(levelLook.lighting, 1.2, levelLook.background, levelLook.fog);
 
    const width = useThree((s) => s.size.width);
