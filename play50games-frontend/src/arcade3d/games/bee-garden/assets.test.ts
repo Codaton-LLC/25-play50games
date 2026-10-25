@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { hasModel } from "@/arcade3d/core/modelManifest";
+import type { ModelAsset } from "@/arcade3d/core/types";
 import { readCharacterGlb } from "@/arcade3d/core/rig/robotGlb";
 import { EXPANSION_GLB_SIZE } from "@/arcade3d/core/sharedAssets";
 import { LEVEL_IDS } from "@/arcade3d/types";
@@ -92,7 +93,7 @@ describe("bee-garden GLB fits (real meshes)", () => {
       expect(GLB_SIZE.wateringCan.height * ASSETS.wateringCan.scale!).toBeCloseTo(1, 6);
       expect(GLB_SIZE.gardenMushroom.height * ASSETS.mushroom.scale!).toBeCloseTo(1, 6);
       expect(EXPANSION_GLB_SIZE.leafyTree.height * ASSETS.leafyTree.scale!).toBeCloseTo(1, 6);
-      for (const a of [ASSETS.bigLeaf, ASSETS.planter, ASSETS.wateringCan, ASSETS.mushroom, ASSETS.leafyTree]) expect(a.stretch).toBeUndefined();
+      for (const a of [ASSETS.bigLeaf, ASSETS.planter, ASSETS.wateringCan, ASSETS.mushroom, ASSETS.leafyTree] as ModelAsset[]) expect(a.stretch).toBeUndefined();
    });
 });
 
