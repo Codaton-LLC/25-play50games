@@ -2,6 +2,40 @@
 
 Owner: Antigravity. Slug: `knight-arena`. Skill game 8 (order 28 in catalog, game 18 in expansion), complexity 3. Spec: `docs/arcade-expansion/04-game-specs-skill.md` §18. Gate G0 (game design); the build fills `Status`. Units: metres, seconds; x east (+x = right), z south (+z = front/camera), y up. Every "Changed from spec" line says what and why.
 
+## Levels (P-61, 2026-10-24)
+
+Five levels through the core level system (`core/README.md` "Levels"): `levels.ts` holds the pure `KnightLevel` configs, `createRun(seed, level)` / `createBeatMap(seed, level)` take one, the scene reads it with `useKnightLevel()` (`useLevel<KnightLevel>()`), `index.tsx` declares the five `LevelSpec`s, and `meta.ts` the titles, limits and clear scores. Level 1 is today's game: the frozen 111-beat grid, the same caps, the 110 ms on-beat window, combo step 8, and `meta.scoring` 11600 / 58000–62000 / base 0 / pps 200. `rules.test.ts` is unchanged. Every level is the same octagon, the same eight posts and the same assets. The run always ends on the 60 s shell clock (`timeup`); a level clears when the score reaches `clearScore`. Level 5 has nothing to unlock, so it has no `clearScore`.
+
+| Level | Title | Beats / slots | BPM | On-beat | Combo step | What changes | Lighting | clearScore |
+|---|---|---:|---|---:|---:|---|---|---:|
+| 1 | Basic Training | 111 / 140 | 100 / 110 / 120 / 130 | 110 ms | 8 | today's game | sunset, today's sky | 4400 |
+| 2 | Moving Targets | 113 / 145 | 104 / 114 / 124 / 136 | 110 ms | 8 | far posts from beat 0; the marker slides from the near post to the far post | day | 4500 |
+| 3 | Timed Course | 118 / 156 | 108 / 118 / 128 / 142 | 100 ms | 8 | tighter on-beat window; doubles from stage 2 | sunset, deeper sky | 5100 |
+| 4 | Combo Arena | 122 / 163 | 112 / 122 / 134 / 148 | 100 ms | 6 | combo climbs every 6 hits; more shields and tomatoes | night | 6000 |
+| 5 | Royal Trial | 128 / 176 | 116 / 128 / 140 / 156 | 90 ms | 6 | fastest grid and the tightest on-beat window | sunset, darker sky | — |
+
+Plan adaptation (GAME 28): "moving targets" is the approach marker sliding along the same strike direction (no new dummy locomotion, no new GLB). "Tighter timing" shrinks only the on-beat bonus window; the miss window stays ±200 ms, and touch and keyboard share that window. The plan's attempt limit is not built: a miss that ended the run would fall inside the 58–62 s window this proof is built on (`docs/levels-backlog.md`). Difficulty is monotone (beats, slots and the ceiling rise; the on-beat window and the combo step never get easier: `levels.test.ts`).
+
+### Server limits, one proof per level
+
+Same sources as level 1. A real slot pays 20 × combo once (a spin-cleared slot pays the same 20 × combo). Combo is 1 / 2 / 3 / 4. Step 8: hits 1–8 / 9–16 / 17–24 / 25+. Step 6: hits 1–6 / 7–12 / 13–18 / 19+. A paid spin needs ⌈100 / 15⌉ + 1 = 8 slots and then pays 50, so at most ⌊slots / 8⌋ spins. Tomatoes only subtract. The run cannot end before the shell clock, so the server sees ~60 s on every level: `minDurationMs` 58000 and `maxDurationMs` 62000 stay, with the same one-frame overshoot. `base` 0. `pps` = ⌈maxScore / 58⌉, so 58 s × pps ≥ maxScore and the rate line never binds inside the window. `maxScore` = ⌈ceiling × 1.04 / 100⌉ × 100.
+
+Hit points are 80 × slots − 960 at step 8, and 80 × slots − 720 at step 6. Slots = beats + double pairs (a shield is two beats, already inside the beat count; a double adds one extra slot).
+
+| Level | slots, step | hits | spins × 50 | ceiling B | maxScore | pps | B / maxScore |
+|---|---|---:|---:|---:|---:|---:|---:|
+| 1 | 140, 8 | 10240 | 17 × 50 = 850 | 11090 | 11600 | 200 | 95.6 % |
+| 2 | 145, 8 | 10640 | 18 × 50 = 900 | 11540 | 12100 | 209 | 95.4 % |
+| 3 | 156, 8 | 11520 | 19 × 50 = 950 | 12470 | 13000 | 225 | 95.9 % |
+| 4 | 163, 6 | 12320 | 20 × 50 = 1000 | 13320 | 13900 | 240 | 95.8 % |
+| 5 | 176, 6 | 13360 | 22 × 50 = 1100 | 14460 | 15100 | 261 | 95.8 % |
+
+Level 5's maxScore is 15100 / 11600 = 1.30× level 1 (decision 3: ≤ ~3×). Each level's slot count and ceiling are strictly above the previous, so a harder level offers more points. The numbers are `PROPOSED_LEVEL_LIMITS` in `rules.ts` and `meta.levels`. Claude copies levels 2–5 into `arcade-games.json` at merge. `levels.test.ts` checks the formula, that the DP optimum on 80 seeds per level is ≤ B and ≥ 90 % of maxScore, and that the store oracle on seeds 101 / 202 / 303 at 60 Hz reaches ≥ 97 % of that map's optimum inside `withinServerLimits` with `capScore` a no-op.
+
+Clear scores sit under the human bot's lowest run on these seeds and far above a direction mash (see Status). Level 5's winnability check uses 6400 inside the test only.
+
+The section "Server limits and why they hold" below is the level-1 proof and is unchanged.
+
 ## Concept
 
 A young knight trains on the castle green at sunset. The knight stands at the centre of an octagonal wooden training ring surrounded by 8 wooden training dummies (4 near on the cardinal rays + 4 far rotated $22.5^\circ$ off the cardinal rays). Targets pop up on the beat showing directional arrows; the knight strikes in rhythm with a sword to build combo multipliers up to ×4. Shield dummies require two strikes, and tomato decoys must be avoided. A full spin meter unleashes a 360° sweeping spin attack hitting all active real targets. Accent `#facc15`.
@@ -37,7 +71,7 @@ All numbers live in `rules.ts` (`ARENA`, `KNIGHT`, `TARGETS`, `BEAT`, `TIMING`, 
   - **Lead time**: every target becomes visible **2 beats before** its beat time $t_b$, with a $0.60\text{ m}$ overhead billboard icon (centred at $y = 1.85\text{ m}$) and a 3D approach ring shrinking onto the $r = 0.50\text{ m}$ ground disc.
   - **Hittable window**: a target is live/active **only within $\pm 200\text{ ms}$** of $t_b$.
   - **Mid-frame timing fairness**: `rules.ts` judges timing at $t_{\text{judge}} = \text{time} - dt / 2$.
-  - **On-beat vs off-beat**: $|t_{\text{judge}} - t_b| \le 110\text{ ms}$ (`TIMING.ON_BEAT_WINDOW_MS = 110`, Q3 Decision: one window for every device) is **on-beat** ($20 \times \text{combo}$); $110\text{–}200\text{ ms}$ is **off-beat** ($10 \times \text{combo}$).
+  - **On-beat vs off-beat**: $|t_{\text{judge}} - t_b| \le 110\text{ ms}$ (`TIMING.ON_BEAT_WINDOW_MS = 110`, Q3 Decision: one window for every device) is **on-beat** ($20 \times \text{combo}$); $110\text{–}200\text{ ms}$ is **off-beat** ($10 \times \text{combo}$). Level 1 uses 110 ms. Levels 3–5 tighten only this bonus window (100 / 100 / 90 ms); the ±200 ms miss window stays, and touch and keyboard still share it.
 - **Strike arbitration, whiffs, expiry & target types**:
   - **(a) Unhit expiry**: any real target still unhit past $t_b + 200\text{ ms}$ expires as a **miss** and resets combo to $\times 1$. An expired tomato decoy disappears with 0 penalty and no combo change.
   - **(b) Whiff (empty direction)**: pressing a direction that has **no live target** within $\pm 200\text{ ms}$ is a **whiff**: resets combo to $\times 1$, awards 0 points, and adds 0% spin meter.
@@ -45,11 +79,11 @@ All numbers live in `rules.ts` (`ARENA`, `KNIGHT`, `TARGETS`, `BEAT`, `TIMING`, 
   - **(d) Near vs far same-direction & tomato separation**: when both near and far targets in the pressed direction are within $\pm 200\text{ ms}$, the strike hits the earliest beat $t_b$; if they form a same-direction near + far double pair at $t_b$, **one strike in that direction clears both** (Q5 Decision). The generator never schedules a tomato decoy in the same direction within $\pm 400\text{ ms}$ of a real target.
   - **(e) Shield dummy (2 hits)**: Hit 1 at $t_{b1} \pm 200\text{ ms}$ cracks the shield; Hit 2 is on the next beat $t_{b2}$ on the same post. Missing Hit 1 expires both Hit 1 and Hit 2 and resets combo.
   - **(f) Spin attack** (`SPIN`): real-target hits charge the meter by $+15\%$ on-beat ($+10\%$ off-beat), clamped to $100\%$. At $100\%$, Space/Action consumes the meter (`0%`) and sweeps $360^\circ$: it clears all active real targets ($20 \times \text{combo}$ each), skips tomato decoys, adds $+1$ combo hit per cleared target, does not charge the spin meter during the sweep, and awards $+50\text{ pts}$ spin bonus when $\ge 1$ active real target is cleared.
-- **Combo** (`COMBO`): multiplier on the $k$-th consecutive real hit (`1 + Math.min(3, Math.floor((k - 1) / 8))`) starts at $\times 1$ for hits 1–8, **$\times 2$ on the 9th hit** (hits 9–16), **$\times 3$ on the 17th hit** (hits 17–24), and **$\times 4$ on the 25th hit** (hits $25+$).
+- **Combo** (`COMBO`): multiplier on the $k$-th consecutive real hit (`1 + Math.min(3, Math.floor((k - 1) / 8))`) starts at $\times 1$ for hits 1–8, **$\times 2$ on the 9th hit** (hits 9–16), **$\times 3$ on the 17th hit** (hits 17–24), and **$\times 4$ on the 25th hit** (hits $25+$). Level 1's step is 8. Levels 4 and 5 step every 6 hits (×2 on the 7th, ×3 on the 13th, ×4 on the 19th).
 
 ## Scoring
 
-- Real target hit: $20 \times \text{combo}$ on-beat ($\le 110\text{ ms}$), $10 \times \text{combo}$ off-beat ($110\text{–}200\text{ ms}$).
+- Real target hit: $20 \times \text{combo}$ on-beat (level 1: $\le 110\text{ ms}$; levels 3–5: 100 / 100 / 90 ms), $10 \times \text{combo}$ off-beat (out to $200\text{ ms}$).
 - Tomato decoy struck: $-50\text{ pts}$ (`run.score = Math.max(0, run.score - 50)`), resets combo to $\times 1$.
 - Spin attack: $20 \times \text{combo}$ per cleared active real target $+ 50\text{ pts}$ spin bonus (when $\ge 1$ target cleared).
 
@@ -100,11 +134,61 @@ All numbers live in `rules.ts` (`ARENA`, `KNIGHT`, `TARGETS`, `BEAT`, `TIMING`, 
 ## Status
 
 ```
-TASK P-18-knight-arena | build knight-arena | branch antigravity/game-knight-arena | allowed: play50games-frontend/src/arcade3d/games/knight-arena/**, play50games-frontend/public/images/3d/knight-arena.webp, tools/thumbs/inputs/knight-arena.mjs
+TASK P-61-levels-knight | 5 levels for knight-arena | branch cursor/levels-knight-arena | allowed: play50games-frontend/src/arcade3d/games/knight-arena/**
 
 STATUS: DONE
-FILES: play50games-frontend/src/arcade3d/games/knight-arena/{README.md,index.tsx,assets.ts,assets.test.ts,poses.ts,poses.test.ts,rules.ts,rules.test.ts,Primitives.tsx,Arena.tsx,Dummies.tsx,Scene.tsx}, tools/thumbs/inputs/knight-arena.mjs, .handoff/P-18-knight-arena/HANDOFF.md
-TESTS: 11 passed / 0 failed (assets.test.ts: 3, poses.test.ts: 4, rules.test.ts: 4 covering 1,000-seed schedule invariants, timing/combo/shield/double/tomato/spin rules, and 200-seed real-store oracle/human/random/adversarial bots across 20/30/60/144 Hz)
-LIMITS (in meta.ts + arcade-games.json): maxScore=11600, minDurationMs=58000, maxDurationMs=62000, base=0, maxPointsPerSec=200 (oracle=11090, human=8450, random=310)
-BLOCKERS: none
+
+FILES:
+- play50games-frontend/src/arcade3d/games/knight-arena/levels.ts (new)
+- play50games-frontend/src/arcade3d/games/knight-arena/levels.test.ts (new)
+- play50games-frontend/src/arcade3d/games/knight-arena/rules.ts
+- play50games-frontend/src/arcade3d/games/knight-arena/index.tsx
+- play50games-frontend/src/arcade3d/games/knight-arena/meta.ts
+- play50games-frontend/src/arcade3d/games/knight-arena/Scene.tsx
+- play50games-frontend/src/arcade3d/games/knight-arena/Dummies.tsx
+- play50games-frontend/src/arcade3d/games/knight-arena/README.md
+- .handoff/P-61-levels-knight/HANDOFF.md
+rules.test.ts was not edited. meta.scoring of level 1 is still 11600 / 58000 / 62000 / 0 / 200. arcade-games.json was not edited.
+
+FIVE LEVELS:
+| Level | Title | Beats | Slots | BPM | On-beat | Step | Mechanic | Lighting | clear | maxScore | pps | ceiling |
+| 1 | Basic Training | 111 | 140 | 100/110/120/130 | 110 | 8 | today's game | sunset (unchanged) | 4400 | 11600 | 200 | 11090 |
+| 2 | Moving Targets | 113 | 145 | 104/114/124/136 | 110 | 8 | far from beat 0; marker slides near to far | day | 4500 | 12100 | 209 | 11540 |
+| 3 | Timed Course | 118 | 156 | 108/118/128/142 | 100 | 8 | tighter window; doubles from stage 2 | sunset, deeper | 5100 | 13000 | 225 | 12470 |
+| 4 | Combo Arena | 122 | 163 | 112/122/134/148 | 100 | 6 | combo every 6 hits; more shields and tomatoes | night | 6000 | 13900 | 240 | 13320 |
+| 5 | Royal Trial | 128 | 176 | 116/128/140/156 | 90 | 6 | fastest grid, tightest window | sunset, darker | none | 15100 | 261 | 14460 |
+Duration 60000 ms on every level. Miss window ±200 ms. Touch and keyboard share the on-beat window. No new GLBs.
+Shields (stages 2/3/4): 4+4+4, 4+4+4, 4+5+5, 5+5+5, 5+6+6.
+Doubles: 0+13+16, 0+14+18, 6+14+18, 8+15+18, 10+16+22.
+Tomatoes: 0+9+9, 0+9+9, 3+9+10, 4+10+11, 5+11+13.
+Slots = beats + doubles.
+
+LIMITS AND PROOFS (rules.ts PROPOSED_LEVEL_LIMITS; README "Levels"):
+The run always ends on the shell clock, so every level keeps 58000–62000 ms. base 0. pps = ceil(maxScore / 58), so 58 s × pps >= maxScore and the rate line never binds. Ceiling B: every real slot on-beat in one streak (20 × combo) plus 50 × floor(slots / 8) spins. Step 8 hit points = 80×slots − 960. Step 6 hit points = 80×slots − 720. maxScore = ceil(B × 1.04 / 100) × 100.
+L1: 10240 + 850 = 11090 → 11600 / pps 200 (today's limits).
+L2: 10640 + 900 = 11540 → 12100 / pps 209.
+L3: 11520 + 950 = 12470 → 13000 / pps 225.
+L4: 12320 + 1000 = 13320 → 13900 / pps 240.
+L5: 13360 + 1100 = 14460 → 15100 / pps 261.
+L5 maxScore is 1.30× level 1 (<= ~3×). Each level's slots and ceiling are strictly above the previous. DP optimum on 80 seeds per level is <= B and >= 90% of maxScore.
+
+BOT CLEAR RATES (human model from rules.test.ts: reaction 150–250 ms, N(0, 50 ms) jitter clamped ±160, 92% hits, 4% tomato mistakes, spin when full). Seeds 4, 11, 18, 27, 36, 42, 55, 63, 71, 88. Level 5's play target is 6400 (test only; no clearScore).
+| Level | cleared | min | mean | mash seed 11 at 30 Hz | idle |
+| 1 | 10/10 | 5280 | 6906 | 340 | 0 |
+| 2 | 10/10 | 5280 | 6719 | 660 | 0 |
+| 3 | 10/10 | 5930 | 8012 | 290 | 0 |
+| 4 | 10/10 | 7140 | 8869 | 610 | 0 |
+| 5 | 10/10 | 8120 | 9462 | 600 | 0 |
+Store oracle, seeds 101 / 202 / 303 at 60 Hz, every level: score >= 97% of that map's DP optimum, endReason timeup, withinServerLimits, capScore a no-op.
+
+TESTS: npx tsc --noEmit exit 0. npx vitest run src/arcade3d/games/knight-arena: 31 passed (poses 4, assets 3, rules 5, levels 19), wall 42.16 s, summed test time 55.21 s. Suite under 60 s.
+Mutation probe: stepRun graded on-beat with TIMING.ON_BEAT_WINDOW_MS (110) instead of run.onBeatWindowMs. "L5: a strike at the on-beat edge" failed (91 ms off the beat graded onBeat). Restored before the suite above.
+
+OPEN QUESTIONS:
+- registry.sync.test.ts fails until Claude copies PROPOSED_LEVEL_LIMITS for levels 2-5 into arcade-games.json. This task does not edit backend files.
+- No flagged build and no headless playtest here. Claude does those.
+- The plan's attempt limit was not built (a miss that ended the run would break the 58–62 s proof). Moving targets are a marker slide, not new locomotion.
+- Core lighting has no dusk preset. Level 4 uses night. Levels 3 and 5 use sunset; level 5's background is darker than level 1.
+- Level 5 has no clearScore. 6400 is only the test's winnability target.
+- The human rate is 10/10 on these 10 seeds, not a 200-seed sweep. The 200-seed level-1 store proof stays in rules.test.ts.
 ```

@@ -39,6 +39,8 @@ import {
    type RunState,
    type StepInput,
 } from "./rules";
+import { useLevel } from "@/arcade3d/core/level";
+import type { ShoppingCartLevel } from "./levels";
 
 export default function Scene() {
    const width = useThree((s) => s.size.width);
@@ -49,7 +51,8 @@ export default function Scene() {
    const fx = useFx();
 
    // Seeded run state created once per run
-   const [run] = useState<RunState>(() => createRun(randomSeed()));
+   const { config } = useLevel<ShoppingCartLevel>();
+   const [run] = useState<RunState>(() => createRun(randomSeed(), config));
 
    // Live point for camera look-ahead
    const followTarget = useRef<{ x: number; y: number; z: number }>({

@@ -20,8 +20,7 @@
          "note": "Already generated (expansion batch 3) and imported into core/modelManifest.ts; solid creature (not humanoid), drawn with <Model> + core/motion. No generation requested: the prompt/tier/attempts fields are the historical record (05 §E.5). The game refits it to 1.15 m long from EXPANSION_GLB_SIZE.panda (README Assets)."
       },
       {
-         "id": "keeper",
-         "kind": "character",
+         "id": "keeper",         "kind": "character",
          "mode": "image",
          "prompt": "Friendly zookeeper with the stylised face from the concept image, a khaki short-sleeved shirt with two chest pockets, khaki shorts, a short green neck scarf, a wide-brim safari hat and brown boots, full body, clean T-pose with arms straight out level, legs slightly apart, facing forward, empty hands. Premium stylised mobile-game look, friendly rounded proportions, soft shapes, matte fabric materials. Single character, centred. No flashlight, no keys, no backpack, no animals, no base, no ground, no text. Clean game-ready topology, clean PBR textures without baked shadows.",
          "tier": "Gen-2.5-Medium",
@@ -34,6 +33,66 @@
          "source": "EXPANSION_CHARACTERS.keeper",
          "glb": "/models/3d/zoo-escape/keeper.glb",
          "note": "Already generated (expansion batch 3) and imported into core/modelManifest.ts; auto-rigged with ZOO_KEEPER_LANDMARKS (core/sharedAssets.ts), default 1.75 m. No generation requested. The concept shows the user's face (D8) and is never committed to tools/hyper3d/concepts/."
+      },
+      {
+         "id": "zooKiosk",
+         "kind": "prop",
+         "mode": "text",
+         "prompt": "A small zoo snack kiosk, wooden counter booth with a serving window, a striped mint-and-cream canopy awning on four thick posts, a few cups and a popcorn box on the counter, stylised premium mobile game asset, clean PBR materials, no baked shadows, single solid object, chunky solid shapes, no thin wires or strands, centred on a plain background",
+         "tier": "Gen-2.5-Medium",
+         "qualityOverride": 3000,
+         "attempts": 1,
+         "target": "zoo-escape",
+         "budget": { "tris": 5000, "bytes": 300000 },
+         "textureSize": 512
+      },
+      {
+         "id": "leafyBush",
+         "kind": "prop",
+         "mode": "text",
+         "prompt": "A round leafy garden bush, dense clustered rounded leaf clumps in two shades of fresh green, soft low silhouette, no visible stems, stylised premium mobile game asset, clean PBR materials, no baked shadows, single solid object, chunky solid shapes, no thin wires or strands, centred on a plain background",
+         "tier": "Gen-2.5-Medium",
+         "qualityOverride": 1500,
+         "attempts": 1,
+         "target": "zoo-escape",
+         "budget": { "tris": 5000, "bytes": 300000 },
+         "textureSize": 512
+      },
+      {
+         "id": "woodenFootbridge",
+         "kind": "prop",
+         "mode": "text",
+         "prompt": "A short wooden footbridge, planked deck with two simple handrails on thick square posts, warm brown wood, sturdy chunky build, stylised premium mobile game asset, clean PBR materials, no baked shadows, single solid object, chunky solid shapes, no thin wires or strands, centred on a plain background",
+         "tier": "Gen-2.5-Medium",
+         "qualityOverride": 3000,
+         "attempts": 1,
+         "target": "zoo-escape",
+         "budget": { "tris": 5000, "bytes": 300000 },
+         "textureSize": 512
+      },
+      {
+         "id": "searchlightTower",
+         "kind": "prop",
+         "mode": "text",
+         "prompt": "A small metal guard tower, four thick steel legs with cross braces as solid bars, a square platform with a low railing wall on top, painted slate grey with mint trim, no lamp on top, stylised premium mobile game asset, clean PBR materials, no baked shadows, single solid object, chunky solid shapes, no thin wires or strands, centred on a plain background",
+         "tier": "Gen-2.5-Medium",
+         "qualityOverride": 3000,
+         "attempts": 1,
+         "target": "zoo-escape",
+         "budget": { "tris": 5000, "bytes": 300000 },
+         "textureSize": 512
+      },
+      {
+         "id": "bambooSnack",
+         "kind": "prop",
+         "mode": "text",
+         "prompt": "A small tied bundle of three fresh bamboo shoots with a couple of leaves, tied with a red ribbon band, chunky stylised stalks, stylised premium mobile game asset, clean PBR materials, no baked shadows, single solid object, chunky solid shapes, no thin wires or strands, centred on a plain background",
+         "tier": "Gen-2.5-Medium",
+         "qualityOverride": 1500,
+         "attempts": 1,
+         "target": "zoo-escape",
+         "budget": { "tris": 5000, "bytes": 300000 },
+         "textureSize": 512
       }
    ]
 }

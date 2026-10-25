@@ -47,6 +47,24 @@ Pickup only at r ≤ 7.8, drop only at r ≥ 8.9. The gap is 1.1 m. At 2.5 m/s a
 
 The proof uses only the radius gates (7.8 / 8.9) and the 0.25 s dwell, never the damping or the pickup speed test, so the 2026-10-09 damping and swing-relative pickup leave it unchanged. Two store-backed bots (`simulateRun`, seed 7, 60 fps, one physics) win. Damped driver: 207.2 s, score 4300. Stop-curve driver: 204.0 s, score 3355. Both are past the 41.56 s floor and under 6090. The house is still ≥ 9.9 s and ≤ 1300. `withinServerLimits` passes and `capScore` is a no-op. An idle crane scores 0 at 240 s. 20 fps and 4–50 ms jitter stay inside the same cap. The honest win is slower than 90% of 6100: that bar needs a finish by about 162 s, and a bot's round trip is about 5.7 s a piece.
 
+## Levels
+
+One building site, five configurations of the same shift (`levels.ts`, read through `useCraneLevel`; `createRun(seed, level)`). **Level 1 is today's game exactly**: house, shop and tower (36 pieces) in 240 s, gusts of 3 m/s² for 1 s in every 7 only on the tower, today's landing bands and stability costs (levels.test.ts replays the damped driver against today's `createRun` at 60 fps and random frames). The level brief proposed a 3-piece level 1 with today's shift as level 5; level 1 must stay today's game, so that re-ordering was not used, and every level is the full shift made harder. Not built: the plan's walking fetch-and-place loop, parallel objectives, work zones, per-level lighting. The hook shadow, landing guide (`dropGuide.ts`, now rated in the level's bands) and the worker hero are unchanged.
+
+| Level | Title | Gusts from | Wind | Gust every | Landing bands | Good / ok stability cost | Clear |
+|---|---|---|---|---|---|---|---|
+| 1 | Garden Shed | tower | 3 m/s² | 7 s | ×1 | 3 / 6 | finish or 2500 |
+| 2 | Tiny House | shop | 3 m/s² | 7 s | ×0.97 | ×1.05 | finish or 2600 |
+| 3 | Garage | shop | 3.25 m/s² | 7 s | ×0.95 | ×1.1 | finish or 2700 |
+| 4 | Shop Front | house (first piece) | 3.25 m/s² | 7 s | ×0.93 | ×1.1 | finish or 2800 |
+| 5 | Mini Tower | house | 3.5 m/s² | 6 s | ×0.92 | ×1.15 | — |
+
+A gust blows for the first second of each period of windy building time. A miss costs 12 stability on every level.
+
+**Limits: 6100 / 9000–242000 ms / base 0 / 150 pts/s on every level** (`PROPOSED_LEVEL_LIMITS`). The proof above uses only the 7.8 / 8.9 radius gates, the 0.25 s dwell (`t(k) = 0.88 + 1.13 k`), the piece points, the building and time bonuses and the 240 s clock; a level changes none of them. Wind only slows the crane, smaller bands only lower a landing's rating (fewer points), and a miss still costs 12, so a collapse still needs 9 drops (`t(9) = 11.05 s` ≥ 9000 ms). So every level has the same ceiling (6090 ≤ 6100), the same rate bound and the same duration window; a harder level offers the same points as level 1 (1× at level 5).
+
+**Bots** (rules.test.ts's damped and stop-curve drivers, copied into levels.test.ts; the stop-curve driver leans into the level's gusts): the damped driver finishes the shift on 12 of 12 runs (60 fps, 20 fps, 10 random-frame runs) on every level, scoring 4235–4575 / 4000–4400 / 4100–4375 / 3825–4365 / 3435–4505, every run inside the limits; the stop-curve driver stays legal; an idle crane scores 0 and never clears. A harsher first draft (gusts up to 3.75 m/s² every 5 s, bands ×0.88, stability ×1.4) made the drivers collapse on levels 3-5, so the knobs stay moderate.
+
 ## Run end
 
 - `end("win")` when the tower's last placed piece leaves stability > 0, time bonus included. `resultDelayMs: 1100`.

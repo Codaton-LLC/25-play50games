@@ -14,6 +14,8 @@
 import { clampToBounds, distanceToBoxXZ, resolveSphereAabb, type AABB, type Vec3Like } from "@/arcade3d/core/collision";
 import { capScore as capToLimits, withinServerLimits as fitsLimits } from "@/arcade3d/core/limits";
 import { rngNext, turnTowards, type RngState } from "@/arcade3d/core/math";
+import type { LevelId, ScoringRules } from "@/arcade3d/types";
+import { EXTRA_RACKS, FORKLIFT_PATHS, LEVELS, SLOW_FACTOR, SLOW_ZONES, type ForkliftPath, type WarehouseLevel } from "./levels";
 import { warehouseRushMeta } from "./meta";
 
 // ---------- tuning (README "Constants") ----------
@@ -128,6 +130,11 @@ export const RACKS: readonly AABB[] = [
    groundBox(RACK.innerX, RACK.outerX, -RACK.halfZ, RACK.halfZ),
 ];
 
+/** Solid shelves for levels 3–5 (the first `extraRacks` of them). Built once, never mutated. */
+export const EXTRA_RACK_AABBS: readonly AABB[] = EXTRA_RACKS.map((rect) =>
+   groundBox(rect.x - rect.hx, rect.x + rect.hx, rect.z - rect.hz, rect.z + rect.hz)
+);
+
 /** Collision footprint of the pallet on `slot`. */
 export function palletBounds(slot: number): AABB {
    const { x, z } = PALLET_SLOTS[slot];
@@ -218,9 +225,9 @@ export const PALLET_SETS: ReadonlyArray<readonly number[]> = [0, 1, 2].flatMap((
  * delivery in between. Colours, racks, acceleration and every other refill are left out, which can only
  * make the times earlier, so each entry is a lower bound for real play. The last entry is past the clock.
  */
-function earliestDeliveries(): number[] {
-   // enough entries to pass DURATION_MS: every delivery after the first takes at least CYCLE_MIN_MS
-   const count = 2 + Math.ceil((DURATION_MS - FIRST_DELIVERY_MIN_MS) / CYCLE_MIN_MS);
+function earliestDeliveries(durationMs: number): number[] {
+   // enough entries to pass the clock: every delivery after the first takes at least CYCLE_MIN_MS
+   const count = 2 + Math.ceil((durationMs - FIRST_DELIVERY_MIN_MS) / CYCLE_MIN_MS);
    const best = new Array<number>(count).fill(Infinity);
    const emptyMs = (slot: number, corner: number) => (reachToZone(slot, corner) / ROBOT.speed) * 1000;
    const carryMs = (slot: number, corner: number) => (reachToZone(slot, corner) / ROBOT.carrySpeed) * 1000;
@@ -259,11 +266,22 @@ function earliestDeliveries(): number[] {
  * Proof step 8 (README table): EARLIEST_DELIVERY_MS[k - 1] is the earliest ms of play of the k-th
  * delivery: 1151.3, 2873.3, 4666.9, then 1793.6 ms more each; the 33rd at 58474.5, the 34th at 60268.1.
  */
-export const EARLIEST_DELIVERY_MS: readonly number[] = earliestDeliveries();
+export const EARLIEST_DELIVERY_MS: readonly number[] = earliestDeliveries(DURATION_MS);
+
+/** The tight earliest-time table for a clock (level 1's table is the exported one, unchanged). */
+const boundTables = new Map<number, readonly number[]>();
+export function earliestFor(durationMs: number): readonly number[] {
+   if (durationMs === DURATION_MS) return EARLIEST_DELIVERY_MS;
+   let table = boundTables.get(durationMs);
+   if (!table) {
+      table = earliestDeliveries(durationMs);
+      boundTables.set(durationMs, table);
+   }
+   return table;
+}
 
 /** The most deliveries (right or wrong) any play can make by `ms` of play. */
-export function maxDeliveriesBy(ms: number): number {
-   const table = EARLIEST_DELIVERY_MS;
+export function maxDeliveriesBy(ms: number, table: readonly number[] = EARLIEST_DELIVERY_MS): number {
    if (!(ms >= table[0])) return 0;
    const last = table.length - 1;
    // past the table (never in a 60 s run): every further delivery takes at least CYCLE_MIN_MS
@@ -280,10 +298,18 @@ export function maxDeliveriesBy(ms: number): number {
 }
 
 /** The highest score any play can have by `ms` of play: 50 per possible delivery. */
-export const scoreBoundAt = (ms: number): number => POINTS.right * maxDeliveriesBy(ms);
+export const scoreBoundAt = (ms: number, table?: readonly number[]): number => POINTS.right * maxDeliveriesBy(ms, table);
 
 /** The highest score any 60 s run can reach: 33 deliveries, 1650 (under maxScore 1700). */
 export const SCORE_BOUND = scoreBoundAt(DURATION_MS);
+
+/**
+ * The straight-line ceiling for a whole clock, using that clock's own tight table (not the loose
+ * CYCLE_MIN_MS tail). Hazards only lengthen real paths, so this is also every later level's ceiling.
+ */
+export function scoreBoundFor(durationMs: number): number {
+   return scoreBoundAt(durationMs, earliestFor(durationMs));
+}
 
 // ---------- layouts ----------
 
@@ -364,13 +390,22 @@ export function createRobot(): RobotState {
  * wanted world direction (length <= 1, analog; longer is normalised, so diagonals are not faster),
  * `dt` in seconds. Racks and pallets (`obstacles`) push the robot out, the walls keep it in, then the
  * speed guard scales the step back. Mutates `robot`, allocates nothing.
- * Guarantee used by the scoring proof: one step never moves more than (carrying ? 5 : 6) · dt,
- * whatever the input, the pushes or the walls do.
+ * Guarantee used by the scoring proof: one step never moves more than (carrying ? 5 : 6) · dt
+ * times `speedScale` (1 on open floor, SLOW_FACTOR inside a level's lane), whatever the input,
+ * the pushes or the walls do. A scale of 1 is today's game.
  */
-export function stepRobot(robot: RobotState, dirX: number, dirZ: number, dt: number, carrying: boolean, obstacles: readonly AABB[]): void {
+export function stepRobot(
+   robot: RobotState,
+   dirX: number,
+   dirZ: number,
+   dt: number,
+   carrying: boolean,
+   obstacles: readonly AABB[],
+   speedScale = 1
+): void {
    if (!(dt > 0)) return;
    const { accel, brake, radius, turnRate } = ROBOT;
-   const maxSpeed = carrying ? ROBOT.carrySpeed : ROBOT.speed;
+   const maxSpeed = (carrying ? ROBOT.carrySpeed : ROBOT.speed) * speedScale;
 
    let len = Math.hypot(dirX, dirZ);
    if (len > 1) {
@@ -469,7 +504,7 @@ export interface StepEvents {
    newOrder: boolean;
    /** bit i set: pallet i received a new box (a refill landed) */
    refilled: number;
-   /** the run ended: the clock reached DURATION_MS */
+   /** the run ended: the clock reached the level's duration */
    ended: "timeup" | null;
 }
 
@@ -523,9 +558,33 @@ export interface WarehouseRun {
    /** the change of the score at the latest delivery, and its zone corner (NONE before the first) */
    lastDelta: number;
    lastZone: number;
+   /** orders that expired on the deadline */
+   misses: number;
+   /** empty-handed play since the current order was drawn (the deadline). Level 1 leaves it at 0. */
+   orderIdleMs: number;
+
+   /** the level this run was built for. Level 1 is today's game. */
+   config: WarehouseLevel;
+   /** simMs stops here. Level 1 is DURATION_MS. */
+   durationMs: number;
+   /** moving obstacles; empty on levels 1–3. Their bounds also sit in `obstacles`. */
+   forklifts: ForkliftState[];
 
    ended: "timeup" | null;
    events: StepEvents;
+}
+
+/** One forklift. `bounds` is mutated in place and shared with `obstacles` (no per-frame allocation). */
+export interface ForkliftState {
+   x: number;
+   z: number;
+   dir: number;
+   axis: "x" | "z";
+   min: number;
+   max: number;
+   hx: number;
+   hz: number;
+   bounds: AABB;
 }
 
 function createEvents(): StepEvents {
@@ -555,15 +614,20 @@ export interface RunOptions {
  * A new run, standing on the start spot: the layout, the 4 starting boxes (pallets in index order)
  * and the first order are drawn here, so Scene can publish the order before the countdown.
  * Allocates everything the run will ever use.
+ * `createRun(seed)` and `createRun(seed, { layout })` stay level 1 (today's game). Pass a
+ * WarehouseLevel to play another level.
  */
-export function createRun(seed: number, options: RunOptions = {}): WarehouseRun {
+export function createRun(seed: number, levelOrOptions?: WarehouseLevel | RunOptions, options: RunOptions = {}): WarehouseRun {
+   const secondIsLevel = levelOrOptions !== undefined && isWarehouseLevel(levelOrOptions);
+   const level = secondIsLevel ? levelOrOptions : LEVELS[1];
+   const opts = secondIsLevel ? options : levelOrOptions ?? {};
    const s = seed >>> 0;
    const rng = {
       layout: { s },
       boxes: { s: boxSeedFor(s) },
-      orders: { s: options.orderSeed === undefined ? orderSeedFor(s) : options.orderSeed >>> 0 },
+      orders: { s: opts.orderSeed === undefined ? orderSeedFor(s) : opts.orderSeed >>> 0 },
    };
-   const layout = options.layout ?? drawLayout(s, rng.layout);
+   const layout = opts.layout ?? drawLayout(s, rng.layout);
    const pallets: Pallet[] = layout.slots.map((slot) => ({
       slot,
       x: PALLET_SLOTS[slot].x,
@@ -572,6 +636,10 @@ export function createRun(seed: number, options: RunOptions = {}): WarehouseRun 
       emptiedAt: 0,
       bounds: palletBounds(slot),
    }));
+   const forklifts = createForklifts(level);
+   const obstacles: AABB[] = [...RACKS, ...pallets.map((p) => p.bounds)];
+   for (let i = 0; i < level.extraRacks; i++) obstacles.push(EXTRA_RACK_AABBS[i]);
+   for (let i = 0; i < forklifts.length; i++) obstacles.push(forklifts[i].bounds);
    const run: WarehouseRun = {
       seed: s,
       layout,
@@ -585,7 +653,7 @@ export function createRun(seed: number, options: RunOptions = {}): WarehouseRun 
       carrying: NONE,
       lockMs: 0,
       pallets,
-      obstacles: [...RACKS, ...pallets.map((p) => p.bounds)],
+      obstacles,
       refillDue: new Array<number>(PALLET_COUNT).fill(0),
       refillHead: 0,
       refillCount: 0,
@@ -599,12 +667,56 @@ export function createRun(seed: number, options: RunOptions = {}): WarehouseRun 
       refusals: 0,
       lastDelta: 0,
       lastZone: NONE,
+      misses: 0,
+      orderIdleMs: 0,
+      config: level,
+      durationMs: level.durationMs,
+      forklifts,
       ended: null,
       events: createEvents(),
    };
    drawOrder(run);
    resetEvents(run.events);
    return run;
+}
+
+function isWarehouseLevel(value: WarehouseLevel | RunOptions): value is WarehouseLevel {
+   return "forklifts" in value && "durationMs" in value;
+}
+
+const NO_FORKLIFTS: ForkliftState[] = [];
+
+function createForklifts(level: WarehouseLevel): ForkliftState[] {
+   if (level.forklifts === 0) return NO_FORKLIFTS;
+   const list: ForkliftState[] = [];
+   for (let i = 0; i < level.forklifts; i++) list.push(forkliftFrom(FORKLIFT_PATHS[i]));
+   return list;
+}
+
+function forkliftFrom(path: ForkliftPath): ForkliftState {
+   const bounds = groundBox(0, 0, 0, 0);
+   const f: ForkliftState = {
+      x: path.x,
+      z: path.z,
+      dir: path.dir,
+      axis: path.axis,
+      min: path.min,
+      max: path.max,
+      hx: path.hx,
+      hz: path.hz,
+      bounds,
+   };
+   placeForklift(f, path.x, path.z);
+   return f;
+}
+
+function placeForklift(f: ForkliftState, x: number, z: number): void {
+   f.bounds.min.x = x - f.hx;
+   f.bounds.max.x = x + f.hx;
+   f.bounds.min.z = z - f.hz;
+   f.bounds.max.z = z + f.hz;
+   f.bounds.min.y = -10;
+   f.bounds.max.y = 10;
 }
 
 /** Occupied pallets right now. */
@@ -639,6 +751,7 @@ function drawOrder(run: WarehouseRun): void {
       k -= 1;
    }
    run.orders += 1;
+   run.orderIdleMs = 0;
    run.events.newOrder = true;
 }
 
@@ -737,8 +850,8 @@ export function advanceClock(run: WarehouseRun, dtMs: number): number {
    run.carry += Math.min(dtMs, MAX_STEP_MS);
    let stepMs = Math.floor(run.carry);
    run.carry -= stepMs;
-   if (run.simMs + stepMs >= DURATION_MS) {
-      stepMs = DURATION_MS - run.simMs;
+   if (run.simMs + stepMs >= run.durationMs) {
+      stepMs = run.durationMs - run.simMs;
       run.carry = 0;
    }
    run.stepMs = stepMs;
@@ -766,13 +879,15 @@ export function step(run: WarehouseRun, dtMs: number, input: StepInput): StepEve
    if (run.ended !== null || !(dtMs > 0)) return ev;
 
    const stepMs = advanceClock(run, dtMs);
-   if (run.simMs >= DURATION_MS) {
+   if (run.simMs >= run.durationMs) {
       run.ended = "timeup";
       ev.ended = "timeup";
       return ev;
    }
 
    landRefills(run);
+   if (run.config.orderMs > 0) tickOrder(run, stepMs);
+   moveForklifts(run, stepMs / 1000);
 
    const robot = run.robot;
    if (run.lockMs > 0) {
@@ -784,22 +899,113 @@ export function step(run: WarehouseRun, dtMs: number, input: StepInput): StepEve
    }
 
    run.movedMs += stepMs;
-   stepRobot(robot, finite(input.moveX), finite(input.moveY), stepMs / 1000, run.carrying !== NONE, run.obstacles);
+   stepRobot(robot, finite(input.moveX), finite(input.moveY), stepMs / 1000, run.carrying !== NONE, run.obstacles, slowScale(run));
    if (input.actionPressed) act(run);
    return ev;
 }
 
+/** 1 on open floor and on level 1; SLOW_FACTOR while the centre is inside one of the level's lanes. */
+function slowScale(run: WarehouseRun): number {
+   const n = run.config.slowZones;
+   if (n === 0) return 1;
+   const x = run.robot.x;
+   const z = run.robot.z;
+   for (let i = 0; i < n; i++) {
+      const lane = SLOW_ZONES[i];
+      if (Math.abs(x - lane.x) <= lane.hx && Math.abs(z - lane.z) <= lane.hz) return SLOW_FACTOR;
+   }
+   return 1;
+}
+
+/** Empty-handed time on the order deadline. A miss costs the wrong-zone penalty and draws again. */
+function tickOrder(run: WarehouseRun, stepMs: number): void {
+   if (run.carrying !== NONE) return;
+   run.orderIdleMs += stepMs;
+   if (run.orderIdleMs < run.config.orderMs) return;
+   const before = run.score;
+   run.score = scoreAfter(before, false);
+   run.lastDelta = run.score - before;
+   run.misses += 1;
+   const ev = run.events;
+   ev.delta = run.lastDelta;
+   run.orderIdleMs = 0;
+   drawOrder(run);
+}
+
+function forkliftHits(run: WarehouseRun, f: ForkliftState): boolean {
+   if (distanceToBoxXZ(run.robot.x, run.robot.z, f.bounds) < ROBOT.radius) return true;
+   const obstacles = run.obstacles;
+   const box = f.bounds;
+   for (let i = 0; i < obstacles.length; i++) {
+      const other = obstacles[i];
+      if (other === box) continue;
+      if (box.min.x < other.max.x && box.max.x > other.min.x && box.min.z < other.max.z && box.max.z > other.min.z) return true;
+   }
+   return false;
+}
+
+/** Patrol. A forklift that would touch the robot or another solid reverses instead of pushing. */
+function moveForklifts(run: WarehouseRun, dt: number): void {
+   const list = run.forklifts;
+   if (list.length === 0 || !(dt > 0)) return;
+   const speed = run.config.forkliftSpeed;
+   for (let i = 0; i < list.length; i++) {
+      const f = list[i];
+      const minX = f.bounds.min.x;
+      const maxX = f.bounds.max.x;
+      const minZ = f.bounds.min.z;
+      const maxZ = f.bounds.max.z;
+      const delta = speed * dt * f.dir;
+      const nx = f.axis === "x" ? f.x + delta : f.x;
+      const nz = f.axis === "z" ? f.z + delta : f.z;
+      const past = f.axis === "x" ? nx < f.min || nx > f.max : nz < f.min || nz > f.max;
+      if (past) {
+         f.dir = -f.dir;
+         continue;
+      }
+      placeForklift(f, nx, nz);
+      if (forkliftHits(run, f)) {
+         f.dir = -f.dir;
+         f.bounds.min.x = minX;
+         f.bounds.max.x = maxX;
+         f.bounds.min.z = minZ;
+         f.bounds.max.z = maxZ;
+         continue;
+      }
+      f.x = nx;
+      f.z = nz;
+   }
+}
+
 // ---------- server limits ----------
 
-/** The server's check (core/limits.ts) with this game's limits from meta.ts. */
-export function withinServerLimits(score: number, durationMs: number): boolean {
-   return fitsLimits(score, durationMs, warehouseRushMeta.scoring);
+/** The server's check (core/limits.ts) with one level's limits (default: level 1, meta.ts). */
+export function withinServerLimits(score: number, durationMs: number, limits: ScoringRules = warehouseRushMeta.scoring): boolean {
+   return fitsLimits(score, durationMs, limits);
 }
 
 /**
- * Safety net only (index.tsx finalScore, core/limits.ts capScore with meta.ts limits): the proof in
- * README.md shows real runs never reach the cap, and rules.test.ts checks it stays a no-op.
+ * Safety net only (index.tsx finalScore, core/limits.ts capScore with the level's limits): the proof
+ * shows a real run never reaches the cap. Level 1's limits are meta.scoring.
  */
-export function capScore(score: number, durationMs: number): number {
-   return capToLimits(score, durationMs, warehouseRushMeta.scoring);
+export function capScore(score: number, durationMs: number, limits: ScoringRules = warehouseRushMeta.scoring): number {
+   return capToLimits(score, durationMs, limits);
 }
+
+/**
+ * Limits proposed per level (README "Levels"). Level 1 is the live game's meta.scoring.
+ * Levels 2–5: the straight-line ceiling for that clock (`scoreBoundFor`) plus one delivery (50),
+ * the same +3% shape as level 1's 1650 → 1700. base 0 and 29 pts/s everywhere: at every t inside
+ * the ±5% duration window the ceiling stays under 29 · t. Claude copies 2–5 into arcade-games.json.
+ */
+export const PROPOSED_LEVEL_LIMITS: Record<LevelId, ScoringRules> = {
+   1: warehouseRushMeta.scoring,
+   /** L2: 75 s. Ceiling 42 deliveries = 2100; maxScore 2150. Window 71.25–78.75 s. */
+   2: { ...warehouseRushMeta.scoring, maxScore: 2150, minDurationMs: 71_250, maxDurationMs: 78_750 },
+   /** L3: 90 s. Ceiling 50 deliveries = 2500; maxScore 2550. Window 85.5–94.5 s. */
+   3: { ...warehouseRushMeta.scoring, maxScore: 2550, minDurationMs: 85_500, maxDurationMs: 94_500 },
+   /** L4: 105 s. Ceiling 58 deliveries = 2900; maxScore 2950. Window 99.75–110.25 s. */
+   4: { ...warehouseRushMeta.scoring, maxScore: 2950, minDurationMs: 99_750, maxDurationMs: 110_250 },
+   /** L5: 120 s. Ceiling 67 deliveries = 3350; maxScore 3400 (2.0× level 1, under the 3× guard). */
+   5: { ...warehouseRushMeta.scoring, maxScore: 3400, minDurationMs: 114_000, maxDurationMs: 126_000 },
+};

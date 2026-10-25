@@ -9,9 +9,11 @@
 // chase camera's fit (camera.ts) on phones for a notice that is gone again in a moment.
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { SPEED } from "./rules";
+import { useOfficeLevel } from "./useOfficeLevel";
 import styles from "./Hud.module.css";
 
 export default function OfficeHud() {
+   const { config } = useOfficeLevel();
    const stage = useArcadeStore((s) => Math.max(0, s.level - 1));
    const paused = useArcadeStore((s) => s.phase === "paused");
    return (
@@ -19,7 +21,7 @@ export default function OfficeHud() {
          {stage > 0 && (
             // keyed by the stage: every speed-up restarts the animation
             <span key={stage} className={`${styles.toast} ${paused ? styles.paused : ""}`}>
-               Faster! <strong>{SPEED.start + stage} m/s</strong>
+               Faster! <strong>{SPEED.start + stage + config.speedBonus} m/s</strong>
             </span>
          )}
       </div>

@@ -47,24 +47,25 @@ import {
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { useFittedView } from "@/arcade3d/core/useFittedView";
 import { useRunFrame } from "@/arcade3d/core/useRunFrame";
+import { useCleanLevel } from "./useCleanLevel";
+import { EXTRA_BINS, HAZARDS, HAZARD_RADIUS } from "./levels";
 import { ASSETS, CLEANER_LANDMARKS } from "./assets";
 import { DAMPING, FOLLOW, FOV, LOOK_AT, REACH, VIEW } from "./camera";
 import { CityDecor, ParkDecor } from "./Decor";
 import { CLEANER_SCALE, createCleanerGait, gaitFrameDt, stepCleanerGait } from "./gait";
 import { createPickupMark, localOffset, notePickup, pickupPose, type LocalOffset, type PickupMark } from "./pickup";
 import { cheerWeight, reachWeight } from "./poseWeights";
-import { Beach, City, Park, PrimitiveRunner, RUNNER_RING, useLitterStandIns, type RunnerLimbs } from "./Primitives";
+import { Beach, BinProp, City, Park, PrimitiveRunner, RUNNER_RING, useLitterStandIns, type RunnerLimbs } from "./Primitives";
 import {
-   ITEMS_PER_MAP,
    LITTER_KINDS,
-   LITTER_POINTS,
    NONE,
-   PER_KIND,
    START_PAD,
    capScore,
    createRun,
    createStepInput,
-   runScore,
+   finalRunScore,
+   hazardX,
+   matchesKind,
    step,
    type CleanRun,
 } from "./rules";
@@ -87,12 +88,12 @@ interface LitterFx {
    burstZ: number;
 }
 
-function createFx(): LitterFx {
+function createFx(count: number): LitterFx {
    return {
-      slot: new Int32Array(LITTER_KINDS.length * PER_KIND).fill(-1),
-      appeared: new Float64Array(ITEMS_PER_MAP),
-      goneAt: new Float64Array(ITEMS_PER_MAP).fill(-10),
-      was: new Uint8Array(ITEMS_PER_MAP).fill(1),
+      slot: new Int32Array(count).fill(-1),
+      appeared: new Float64Array(count),
+      goneAt: new Float64Array(count).fill(-10),
+      was: new Uint8Array(count).fill(1),
       map: 0,
       burstAt: -10,
       burstX: 0,
@@ -144,7 +145,7 @@ const Simulation = memo(function Simulation({ run, fx, yaw }: { run: CleanRun; f
       const ev = step(run, dt * 1000, scratch.input);
       const store = useArcadeStore.getState();
       if (ev.collected !== NONE) {
-         store.addScore(LITTER_POINTS);
+         store.setScore(run.score);
          if (ev.nextMap === NONE) store.setStat("items", run.items);
          fx.burstAt = time.now;
          fx.burstX = atX;
@@ -155,9 +156,11 @@ const Simulation = memo(function Simulation({ run, fx, yaw }: { run: CleanRun; f
          store.setStat("map", ev.nextMap + 1);
          store.setStat("items", 0);
       }
+      if (run.level.delivery) store.setStat("delivering", run.delivering ? 1 : 0);
+      if (run.level.matching) store.setStat("kind", run.targetKind);
       if (ev.ended === "win") {
          const { timeLeftMs, elapsedMs } = useArcadeStore.getState();
-         store.setScore(capScore(runScore(run.collected, true, timeLeftMs ?? 0), elapsedMs));
+         store.setScore(capScore(finalRunScore(run, timeLeftMs ?? 0), elapsedMs, run.limits));
          playSfx("win");
          store.end("win");
       } else if (ev.ended === "timeup") {
@@ -181,7 +184,7 @@ function Litter({ run, fx }: { run: CleanRun; fx: LitterFx }) {
       const now = time.now;
       if (fx.map !== run.map) {
          fx.map = run.map;
-         for (let s = 0; s < ITEMS_PER_MAP; s++) {
+         for (let s = 0; s < run.level.items; s++) {
             fx.appeared[s] = now;
             fx.goneAt[s] = -10;
             fx.was[s] = 1;
@@ -191,14 +194,14 @@ function Litter({ run, fx }: { run: CleanRun; fx: LitterFx }) {
       KIND_COUNT[1] = 0;
       KIND_COUNT[2] = 0;
       KIND_COUNT[3] = 0;
-      for (let s = 0; s < ITEMS_PER_MAP; s++) {
+      for (let s = 0; s < run.level.items; s++) {
          const slot = run.litter[s];
          if (fx.was[s] && !slot.active) {
             fx.was[s] = 0;
             fx.goneAt[s] = now;
          } else if (slot.active) fx.was[s] = 1;
          const n = KIND_COUNT[slot.kind];
-         if (n < PER_KIND) fx.slot[slot.kind * PER_KIND + n] = s;
+         if (n < run.level.items / 4) fx.slot[slot.kind * (run.level.items / 4) + n] = s;
          KIND_COUNT[slot.kind] = n + 1;
       }
       if (glow.current) glow.current.opacity = 0.28 + Math.sin(now * 4) * 0.1;
@@ -216,7 +219,7 @@ function Litter({ run, fx }: { run: CleanRun; fx: LitterFx }) {
    }, -0.2);
 
    const placeKind = (kind: number) => (i: number, m: Matrix4) => {
-      const slot = fx.slot[kind * PER_KIND + i];
+      const slot = fx.slot[kind * (run.level.items / 4) + i];
       if (slot < 0) return false;
       const sc = litterScale(run, fx, slot, time.now);
       if (sc <= 0) return false;
@@ -232,7 +235,8 @@ function Litter({ run, fx }: { run: CleanRun; fx: LitterFx }) {
       const piece = run.litter[i];
       P.set(piece.x, y, piece.z);
       Q.copy(FLAT);
-      S.set(sc, sc, sc);
+      const highlighted = !run.level.matching || matchesKind(run, piece.kind);
+      S.set(sc * (highlighted ? 1 : 0.35), sc * (highlighted ? 1 : 0.35), sc);
       m.compose(P, Q, S);
    };
 
@@ -242,17 +246,17 @@ function Litter({ run, fx }: { run: CleanRun; fx: LitterFx }) {
             <DynamicInstancedModel
                key={kind}
                asset={LITTER_ASSET[k]}
-               count={PER_KIND}
+               count={run.level.items / 4}
                update={placeKind(k)}
                fallbackParts={standIns[k]}
                name={`litter-${kind}`}
             />
          ))}
-         <DynamicInstanced count={ITEMS_PER_MAP} name="litter-rings" update={placeFlat(0.04)}>
+         <DynamicInstanced count={run.level.items} name="litter-rings" update={placeFlat(0.04)}>
             <ringGeometry args={[0.42, 0.62, 20]} />
             <meshBasicMaterial color={RUNNER_RING} transparent opacity={0.9} depthWrite={false} />
          </DynamicInstanced>
-         <DynamicInstanced count={ITEMS_PER_MAP} name="litter-glow" update={placeFlat(0.025)}>
+         <DynamicInstanced count={run.level.items} name="litter-glow" update={placeFlat(0.025)}>
             <circleGeometry args={[0.72, 18]} />
             <meshBasicMaterial ref={glow} color="#bbf7d0" transparent opacity={0.3} depthWrite={false} />
          </DynamicInstanced>
@@ -425,8 +429,9 @@ function Worlds({ run }: { run: CleanRun }) {
 
 export default function Scene() {
    const view = useFittedView(VIEW);
-   const [run] = useState(() => createRun(randomSeed()));
-   const [fx] = useState(createFx);
+   const { config } = useCleanLevel();
+   const [run] = useState(() => createRun(randomSeed(), config));
+   const [fx] = useState(() => createFx(run.level.items));
 
    return (
       <>
@@ -445,8 +450,32 @@ export default function Scene() {
             <meshBasicMaterial color="#ffffff" transparent opacity={0.95} />
          </mesh>
          <Worlds run={run} />
+         <LevelProps run={run} />
          <Litter run={run} fx={fx} />
          <Cleaner run={run} />
       </>
    );
+}
+
+function LevelProps({ run }: { run: CleanRun }) {
+   const [spots] = useState(() => EXTRA_BINS.slice(0, run.level.extraBins).map((p) => ({ ...p, y: 0 })));
+   const moving = useRef<Group>(null);
+   useFrame(() => {
+      const g = moving.current;
+      if (!g) return;
+      for (let i = 0; i < g.children.length; i++) g.children[i].position.x = hazardX(i, run.simMs);
+   }, -0.2);
+   return <>
+      {spots.length > 0 && <BinProp spots={spots} />}
+      <group ref={moving} name="maintenance-bins">
+         {HAZARDS.slice(0, run.level.hazards).map((p, i) => <group key={i} position={[p.x, 0, p.z]}>
+            <BinProp spots={[{ x: 0, y: 0, z: 0 }]} />
+            <mesh rotation-x={-Math.PI / 2} position-y={0.05}>
+               <ringGeometry args={[HAZARD_RADIUS - 0.12, HAZARD_RADIUS, 32]} />
+               <meshBasicMaterial color="#fbbf24" transparent opacity={0.9} depthWrite={false} />
+            </mesh>
+         </group>)}
+      </group>
+      {run.level.matching && <pointLight position={[0, 8, 0]} intensity={25} distance={35} color="#dbeafe" />}
+   </>;
 }
