@@ -36,7 +36,7 @@ export default function Scene() {
    const muted = useMuted();
    const loop = useRef<LoopHandle | null>(null);
    const stars = useRef<Group>(null);
-   const { config } = useLevel<SpaceRepairLevel>();
+   const { id: levelId, config } = useLevel<SpaceRepairLevel>();
    const [run] = useState(() =>
       createRun(
          randomSeed(),
@@ -256,7 +256,7 @@ export default function Scene() {
          <group ref={stars}>
             <Starfield count={quality.tier === "high" ? 600 : quality.tier === "mid" ? 220 : 120} seed={1818} />
          </group>
-         <Decor reduced={reduced} />
+         <Decor reduced={reduced} levelId={levelId} />
          <Station run={run} reduced={reduced} />
          <Astronaut run={run} reduced={reduced} />
          <TargetMarkers targets={markers} size={MARKER_SIZE} color={COLORS.accent} />
