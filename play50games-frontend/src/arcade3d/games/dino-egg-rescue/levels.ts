@@ -38,6 +38,8 @@ export interface DinoLevel {
    mudPatches: 3 | 5;
    goldenSpawnTimes: readonly number[];
    initialSupply: number;
+   /** a spawn tick is skipped while this many regular eggs lie on the ground (level 1: 4, rules EGGS.maxGroundEggs) */
+   maxGroundEggs: number;
    totalSpawnTicks: number;
    maxStack: number;
    /** speed factor for 0..maxStack carried eggs */
@@ -61,6 +63,7 @@ export const LEVELS: Record<LevelId, DinoLevel> = {
       mudPatches: 3,
       goldenSpawnTimes: [25, 50, 75],
       initialSupply: 4,
+      maxGroundEggs: 4,
       totalSpawnTicks: 29,
       maxStack: 3,
       stackMultipliers: MULT_L1,
@@ -75,6 +78,7 @@ export const LEVELS: Record<LevelId, DinoLevel> = {
       mudPatches: 3,
       goldenSpawnTimes: [25, 50, 75],
       initialSupply: 4,
+      maxGroundEggs: 4,
       totalSpawnTicks: 29,
       maxStack: 3,
       stackMultipliers: MULT_L1,
@@ -89,6 +93,7 @@ export const LEVELS: Record<LevelId, DinoLevel> = {
       mudPatches: 5,
       goldenSpawnTimes: [25, 50, 75],
       initialSupply: 4,
+      maxGroundEggs: 4,
       totalSpawnTicks: 29,
       maxStack: 3,
       stackMultipliers: MULT_L1,
@@ -103,6 +108,7 @@ export const LEVELS: Record<LevelId, DinoLevel> = {
       mudPatches: 5,
       goldenSpawnTimes: [20, 40, 60],
       initialSupply: 4,
+      maxGroundEggs: 4,
       totalSpawnTicks: 29,
       maxStack: 3,
       stackMultipliers: MULT_L1,
@@ -117,6 +123,7 @@ export const LEVELS: Record<LevelId, DinoLevel> = {
       mudPatches: 5,
       goldenSpawnTimes: [20, 40, 60],
       initialSupply: 6,
+      maxGroundEggs: 6,
       totalSpawnTicks: 35,
       maxStack: 4,
       stackMultipliers: [1.0, 0.85, 0.72, 0.60, 0.50],

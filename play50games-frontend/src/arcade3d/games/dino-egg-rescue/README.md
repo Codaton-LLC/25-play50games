@@ -85,7 +85,7 @@ Plan timers of 120–210 s are compressed to 120 s on levels 2–5. Each of thos
 | 2 | Fern Forest | unlocks 0/15/30/45, boulder ramp reaches 1.2 s at 60 s, clock 120 s | 2000 | 6100 / 118000–122000 / 0 / 52 |
 | 3 | Riverbank | two more mud pits, every lane +0.5 m/s | 2000 | 6100 / 118000–122000 / 0 / 52 |
 | 4 | Volcanic Pass | unlocks 0/0/0/15, goldens at 20/40/60 | 2000 | 6100 / 118000–122000 / 0 / 52 |
-| 5 | Dino Sanctuary | supply 6+35, stack 4 at ×0.50, a 4-egg delivery pays 600 | 2500 | 7300 / 118000–122000 / 0 / 62 |
+| 5 | Dino Sanctuary | supply 6+35, up to 6 eggs on the ground (levels 1–4: 4, so the bigger start pile no longer swallows the early spawn ticks), stack 4 at ×0.50, a 4-egg delivery pays 600 | 2500 | 7300 / 118000–122000 / 0 / 62 |
 
 Open time of each lane `(clock − unlock)` never falls, and lane speeds never fall. Level 2's second lane unlocks later than level 1's (15 s vs 0 s) but the longer clock keeps it open longer (105 s vs 90 s).
 

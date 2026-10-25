@@ -563,7 +563,7 @@ export function stepDinoRun(
             const e = run.groundEggs[i];
             if (e.active && !e.isGolden) groundRegularCount++;
          }
-         if (groundRegularCount < EGGS.maxGroundEggs) {
+         if (groundRegularCount < run.level.maxGroundEggs) {
             const spot = sampleEggSpot(rng, tickTime, run.mud);
             run.groundEggs.push({
                id: run.nextEggId++,
@@ -573,7 +573,7 @@ export function stepDinoRun(
                active: true,
             });
          }
-         // If >= 4 eggs on ground, tick is skipped and lost forever!
+         // with the ground full (level 1: 4 eggs) the tick is skipped and lost for good
          run.nextEggSpawnTick++;
       } else {
          break;

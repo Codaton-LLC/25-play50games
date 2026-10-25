@@ -23,6 +23,7 @@ import {
    boulderIntervalAt,
    createDinoRun,
    laneEdgeClearance,
+   maxPointsPerEgg,
    mudFor,
    regularSupply,
    scoreCeiling,
@@ -282,6 +283,26 @@ describe("dino-egg-rescue levels: difficulty", () => {
       expect(run.score).toBe(600);
    });
 
+   it("the ground cap is the level's: level 5 keeps spawning while fewer than 6 eggs lie out, level 1 stops at 4", () => {
+      expect(LEVELS[1].maxGroundEggs).toBe(EGGS.maxGroundEggs);
+      for (const id of LEVEL_IDS) expect(LEVELS[id].maxGroundEggs).toBeGreaterThanOrEqual(LEVELS[id].initialSupply);
+      const ticksSpawned = (id: LevelId, onGround: number) => {
+         const run = createDinoRun(9, LEVELS[id]);
+         silence(run);
+         run.nextEggSpawnTick = 1;
+         run.dino.x = NEST.x;
+         run.dino.z = NEST.z;
+         for (let i = 0; i < onGround; i++) run.groundEggs.push({ id: 200 + i, x: -12, z: -8 + i, isGolden: false, active: true });
+         while (run.timeS < 3.05) stepDinoRun(run, ZERO, 1 / 60);
+         return run.groundEggs.filter((egg) => egg.active && !egg.isGolden).length - onGround;
+      };
+      // five eggs out: level 5 (cap 6) adds the tick's egg, level 1 (cap 4) skips it
+      expect(ticksSpawned(5, 5)).toBe(1);
+      expect(ticksSpawned(1, 5)).toBe(0);
+      expect(ticksSpawned(1, 3)).toBe(1);
+      expect(ticksSpawned(5, 6)).toBe(0);
+   });
+
    it("the boulder gap follows the level's ramp, not a hardcoded 90 s", () => {
       expect(boulderIntervalAt(60, 90)).toBeCloseTo(1.8, 8);
       expect(boulderIntervalAt(60, 60)).toBeCloseTo(1.2, 8);
@@ -377,7 +398,8 @@ describe("dino-egg-rescue levels: bots", () => {
             stats[profile] = { clears, best, worst, runs };
          }
          console.info("dino-egg-rescue levels", id, JSON.stringify(stats));
-         expect(stats.human.clears).toBeGreaterThanOrEqual(0.9 * SWEEP.human);
+         // clearScore is reachable on >= 99 % of honest seeds (gate rule)
+         expect(stats.human.clears).toBeGreaterThanOrEqual(0.99 * SWEEP.human);
          expect(Math.max(stats.human.best, stats.oracle.best)).toBeGreaterThanOrEqual(0.9 * limits.maxScore);
          expect(stats.idle.clears).toBe(0);
          expect(stats.idle.best).toBe(0);
@@ -404,4 +426,49 @@ describe("dino-egg-rescue levels: bots", () => {
          }
       }, 180000);
    }
+});
+
+// Gate review: knobs the declarations and bots did not pin (call sites mutation-probed).
+describe("dino-egg-rescue levels: the simulation reads every level knob", () => {
+   it("boulders roll at the level's lane speed", () => {
+      for (const id of LEVEL_IDS) {
+         const run = createDinoRun(5, LEVELS[id]);
+         const seen = new Set<number>();
+         for (let i = 0; i < 30 * 60 && seen.size < 4; i++) {
+            stepDinoRun(run, ZERO, 1 / 30);
+            for (const boulder of run.boulders) {
+               if (!boulder.active) continue;
+               expect(boulder.speed, `L${id} lane ${boulder.laneId}`).toBeCloseTo(LEVELS[id].speeds[boulder.laneId - 1], 9);
+               seen.add(boulder.laneId);
+            }
+         }
+         expect(seen.size).toBeGreaterThan(0);
+      }
+   });
+
+   it("egg ids stay unique when the start pile is bigger than level 1's", () => {
+      const run = createDinoRun(3, LEVELS[5]);
+      // every egg ever laid, by id: an id must never be reused for a different egg
+      const laid = new Map<number, string>();
+      const record = () => {
+         for (const egg of run.groundEggs) {
+            const where = `${egg.x},${egg.z}`;
+            expect(laid.get(egg.id) ?? where, `egg id ${egg.id}`).toBe(where);
+            laid.set(egg.id, where);
+         }
+      };
+      record();
+      for (let i = 0; i < 30 * 20; i++) {
+         run.groundEggs.forEach((egg, k) => { if (k < 3) egg.active = false; });
+         stepDinoRun(run, ZERO, 1 / 30);
+         record();
+      }
+      expect(laid.size).toBeGreaterThan(LEVELS[5].initialSupply + 3);
+   });
+
+   it("the ceiling reads the level's delivery table and golden schedule", () => {
+      const knobs: DinoLevel = { ...LEVELS[1], deliveryPoints: [0, 100, 240, 450, 1000], goldenSpawnTimes: [20] };
+      expect(maxPointsPerEgg(knobs)).toBe(250);
+      expect(scoreCeiling(knobs)).toBe(regularSupply(knobs) * 250 + EGGS.points.golden);
+   });
 });
