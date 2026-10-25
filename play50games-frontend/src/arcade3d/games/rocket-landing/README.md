@@ -6,6 +6,61 @@ Owner: Codex. Slug: `rocket-landing`. Skill game 20, wave 2, complexity 3. P-15 
 
 Feather a chunky white toy rocket's engine, cancel drift and land upright on five alien worlds. Three lives cover the whole campaign; a crash repeats the current planet. Different gravity, narrowing pads, wind and a moving pad make each landing a new control problem. Accent `#fda4af`.
 
+## Levels (P-59 levels, 2026-10-25)
+
+Five levels through the core level system (`core/README.md` "Levels"): `levels.ts` holds the pure `RocketLevel` configs, `createRun(seed, assist, level)` / `stepRun` play one, Scene reads it with `useRocketLevel()` (= `useLevel<RocketLevel>()`), `index.tsx` declares the five `LevelSpec`s (description, config, instructions, `durationMs`, and `hudStats`), and `meta.ts` declares the titles and limits. **Level 1 is today's game byte-for-byte (the full 5-planet campaign, same limits)**: existing `rules.test.ts` passes unchanged for Level 1, and `levels.test.ts` pins contracts, replay fidelity (25 seeds byte-identical vs today's createRun), monotonicity, limits, and honest pilot vs idle bot.
+
+| Level | Title | Planets | Clock | Wind | Pad Amp | Contact vy | Contact angle | Clean bonus | Clear score |
+|---|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| 1 | Five Worlds | 5 (Full campaign) | 240 s | 0.40 | 2.0 | 2.00 m/s | 10.0° (π/18) | 300 | 2000 |
+| 2 | Breezy Approach | 5 (Full campaign) | 240 s | 0.44 | 2.1 | 1.85 m/s | 9.47° (π/19) | 500 | 2050 |
+| 3 | Turbulent Orbit | 5 (Full campaign) | 240 s | 0.48 | 2.2 | 1.75 m/s | 9.00° (π/20) | 700 | 2100 |
+| 4 | High Winds & Cavern | 5 (Full campaign) | 240 s | 0.52 | 2.3 | 1.65 m/s | 8.18° (π/22) | 900 | 2150 |
+| 5 | Precision Landing | 5 (Full campaign) | 240 s | 0.55 | 2.4 | 1.50 m/s | 7.50° (π/24) | 1100 | 2200 |
+
+Plan adaptation (GAME 30 — Rocket Landing Challenge):
+- **Level 1 (Five Worlds)**: Today's full 5-planet campaign as-is (Moon, Desert, Ice, Gas moon, Asteroid). Wind amplitude 0.4, pad swing 2.0, contact vy <2.0 m/s, tilt <10°.
+- **Level 2 (Breezy Approach)**: Full 5-planet campaign with gustier wind on Gas moon (0.44 m/s²), wider Asteroid pad swing (2.1 m), tighter landing gates (vy <1.85 m/s, tilt <9.47°), +500 clean bonus.
+- **Level 3 (Turbulent Orbit)**: Full 5-planet campaign with stronger wind gusts (0.48 m/s²), pad swing (2.2 m), tighter landing gates (vy <1.75 m/s, tilt <9.0°), +700 clean bonus.
+- **Level 4 (High Winds & Cavern)**: Full 5-planet campaign with heavy wind (0.52 m/s²), wide pad swing (2.3 m), tighter speed gate (vy <1.65 m/s, tilt <8.18°), +900 clean bonus.
+- **Level 5 (Precision Landing)**: Full 5-planet campaign with highest wind (0.55 m/s²), widest pad swing (2.4 m), precision landing gates (vy <1.5 m/s, tilt <7.5°), +1100 clean bonus.
+
+### Server limits per level (the proof)
+
+For each level with N=5 planets, landing award per planet is at most 500 (200 softness + 150 centering + 150 fuel reserve).
+1. **Max Score**: maxScore = 5 * 500 + cleanBonus.
+   - L1: 5 * 500 + 300 = 2800
+   - L2: 5 * 500 + 500 = 3000
+   - L3: 5 * 500 + 700 = 3200
+   - L4: 5 * 500 + 900 = 3400
+   - L5: 5 * 500 + 1100 = 3600 (strictly monotonic, 3600 <= 3 * 2800 = 8400)
+2. **Min Duration**: Spawn centre 14 to upright contact centre 3.1 drops 10.9 m; rotated hull radius 1.35 m requires centre drop >= 10.65 m. With max downward acceleration g + 12 <= 17 m/s², minimum flight time per planet is sqrt(2 * 10.65 / 17) >= 1.119 s. Between planets, transition hold is 1.2 s.
+   - For N=5 planets, unconstrained freefall drop + hold time is t_min >= 5 * 1.119 + 4 * 1.2 = 10.395 s.
+   - Conservative safety threshold minDurationMs = 5000 ms for all levels (no run ends earlier with a score).
+3. **Max Points Per Second**: maxPointsPerSec = 200 on every level; `base` grows with the clean bonus,
+   base_L = 800 + (cleanBonus_L - 300) = 800 / 1000 / 1200 / 1400 / 1600.
+   - Prefix k < 5 landings: 500 k <= 800 + 200 t_k holds exactly as on level 1 (each landing needs at
+     least one flight; a larger base only loosens the bound).
+   - The win: 2500 + cleanBonus_L <= base_L + 200 T  <=>  2800 <= 800 + 200 T  <=>  T >= 10 s, the
+     same condition as level 1, and T >= 10.395 s (five falls of >= 1.119 s plus four 1.2 s holds).
+   - So every level holds with the level-1 margin; no unproven minimum campaign time is needed.
+4. **Max Duration**: durationMs (240000 ms) + 2000 ms margin = 242000 ms for all levels.
+
+| Level | maxScore | minDurationMs | maxDurationMs | base | maxPointsPerSec | clearScore |
+|---|---:|---:|---:|---:|---:|---:|
+| 1 | 2800 | 5000 | 242000 | 800 | 200 | 2000 |
+| 2 | 3000 | 5000 | 242000 | 1000 | 200 | 2050 |
+| 3 | 3200 | 5000 | 242000 | 1200 | 200 | 2100 |
+| 4 | 3400 | 5000 | 242000 | 1400 | 200 | 2150 |
+| 5 | 3600 | 5000 | 242000 | 1600 | 200 | 2200 |
+
+### Honest bot vs idle bot results (levels.test.ts)
+
+- **Level 1**: 16/16 seeds clear (100%), 16/16 reach clearScore 2000 (100%). Idle bot: 0% clears, score 0.
+- **Level 2**: 16/16 seeds clear (100%), 16/16 reach clearScore 2050 (100%). Idle bot: 0% clears, score 0.
+- **Level 3**: 16/16 seeds clear (100%), 16/16 reach clearScore 2100 (100%). Idle bot: 0% clears, score 0.
+- **Level 4**: 16/16 seeds clear (100%), 16/16 reach clearScore 2150 (100%). Idle bot: 0% clears, score 0.
+- **Level 5**: 16/16 seeds clear (100%), 16/16 reach clearScore 2200 (100%). Idle bot: 0% clears, score 0.
 ## Controls
 
 `meta.ts`: `scheme: "flight"`; `index.tsx` GameDefinition fields: `touchControls: ["joystick", "jump"]`, `touchLabels: { jump: "Thrust" }`.
