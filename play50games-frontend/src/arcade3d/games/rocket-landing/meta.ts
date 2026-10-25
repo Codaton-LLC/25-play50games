@@ -1,7 +1,19 @@
-import type { ArcadeGameMeta } from "@/arcade3d/types";
+import type { ArcadeGameMeta, LevelMeta, ScoringRules } from "@/arcade3d/types";
+import { PROPOSED_LEVEL_LIMITS } from "./rules";
 
 // Plain data only (server-safe). scoring must match WP includes/arcade-games.json.
 // Limits proven in README "Scoring" (design approved 2026-10-09).
+
+const SCORING_L1: ScoringRules = PROPOSED_LEVEL_LIMITS[1];
+
+export const LEVELS: readonly LevelMeta[] = [
+   { id: 1, title: "Five Worlds", scoring: PROPOSED_LEVEL_LIMITS[1], clearScore: 2000 },
+   { id: 2, title: "Breezy Approach", scoring: PROPOSED_LEVEL_LIMITS[2], clearScore: 2050 },
+   { id: 3, title: "Turbulent Orbit", scoring: PROPOSED_LEVEL_LIMITS[3], clearScore: 2100 },
+   { id: 4, title: "High Winds & Cavern", scoring: PROPOSED_LEVEL_LIMITS[4], clearScore: 2150 },
+   { id: 5, title: "Precision Landing", scoring: PROPOSED_LEVEL_LIMITS[5], clearScore: 2200 },
+];
+
 export const rocketLandingMeta: ArcadeGameMeta = {
    slug: "rocket-landing",
    title: "Rocket Landing Challenge",
@@ -17,16 +29,8 @@ export const rocketLandingMeta: ArcadeGameMeta = {
       keyboard: "A / D or left / right to rotate; hold Space, W or up to thrust",
       touch: "Joystick left / right to rotate; hold Thrust to fire; release joystick to auto-level",
    },
-   scoring: {
-      kind: "points",
-      maxScore: 2800,
-      minDurationMs: 5000,
-      maxDurationMs: 242000,
-      base: 800,
-      maxPointsPerSec: 200,
-      unitLabel: "pts",
-      display: "int",
-   },
+   scoring: SCORING_L1,
+   levels: LEVELS,
    thumbnail: "/images/3d/rocket-landing.webp",
    accent: "#fda4af",
    owner: "codex",

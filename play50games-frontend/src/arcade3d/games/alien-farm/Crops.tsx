@@ -157,7 +157,7 @@ export function Crops({ run, reducedMotion }: { run: RunState; reducedMotion: bo
    const placeSpore = (i: number, m: Matrix4, color: Color) => {
       const plot = run.plots[i], t = run.time;
       if (!(t >= plot.sporeFrom && t < plot.sporeTo)) return false;
-      const age = (t - plot.sporeFrom) / SPORES.lifeS;
+      const age = (t - plot.sporeFrom) / (plot.sporeTo - plot.sporeFrom); // the level's spore life
       const fade = age > 0.8 ? (1 - age) / 0.2 : 1;
       const grow = Math.min(1, age * 8);
       color.copy(SCRATCH.copy(TINT.spore)).multiplyScalar(0.5 + 0.5 * fade);

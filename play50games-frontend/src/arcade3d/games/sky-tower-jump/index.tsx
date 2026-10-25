@@ -41,7 +41,7 @@ const definition: GameDefinition<SkyLevel> = {
       "Blue pads bounce you high. Moving blocks carry you. Beacons are checkpoints.",
       "Each orb takes 0.4 s off your time. A fall costs time and sends you back to the last beacon.",
    ],
-   // the ninja hops and spins at the gate before the result panel
+   // the hero hops and spins at the gate before the result panel
    resultDelayMs: 1600,
    finalScore,
    levels: LEVEL_IDS.map(

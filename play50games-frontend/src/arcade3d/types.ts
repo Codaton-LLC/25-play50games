@@ -33,7 +33,7 @@ export const ARCADE_SLUGS = [
    "knight-arena",
    "zoo-escape",
    "rocket-landing",
-   // Menu 2 (Color Shell Ninjas): the vertical slice, docs/master-plan/PLAY50_MENU_2_50_COLOR_SHELL_NINJAS_FULL.md
+   // Menu 2 (Color Roll Heroes): the vertical slice, docs/master-plan/PLAY50_MENU_2_50_COLOR_SHELL_NINJAS_FULL.md
    "sky-tower-jump",
 ] as const;
 
@@ -49,14 +49,14 @@ export type AgentOwner = "claude" | "cursor" | "codex" | "antigravity" | "kimi";
 export type ArcadeStatus = "live" | "soon" | "dev";
 
 /** Sections of /3d. Omitted on the first ten = "originals". */
-export type ArcadeCollection = "originals" | "adventure" | "skill" | "ninjas";
+export type ArcadeCollection = "originals" | "adventure" | "skill" | "rollheroes";
 
 export const ARCADE_COLLECTIONS: ReadonlyArray<{ id: ArcadeCollection; title: string }> = [
    { id: "originals", title: "Originals" },
    { id: "adventure", title: "Adventure" },
    { id: "skill", title: "Skill" },
    // Menu 2: every game here is "dev" until the user signs off, so the section shows only on preview builds
-   { id: "ninjas", title: "Color Shell Ninjas" },
+   { id: "rollheroes", title: "Color Roll Heroes" },
 ];
 
 export type ScoreKind = "points" | "time";

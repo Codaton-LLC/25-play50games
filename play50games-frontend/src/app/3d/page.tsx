@@ -70,7 +70,7 @@ const COLLECTION_INFO = [
    { id: "originals", title: "Originals", blurb: "The first ten games. Each one keeps its own best score." },
    { id: "adventure", title: "Adventure", blurb: "Explore, collect and escape in little toy worlds." },
    { id: "skill", title: "Skill", blurb: "Aim, time and steer: short runs that reward a steady hand." },
-   { id: "ninjas", title: "Color Shell Ninjas", blurb: "Five coloured turtle ninjas, one sky-high adventure." },
+   { id: "rollheroes", title: "Color Roll Heroes", blurb: "Five armoured heroes who roll into a ball: sky towers, caves and races." },
 ] as const satisfies ReadonlyArray<{ id: ArcadeCollection; title: string; blurb: string }>;
 
 // One grid with sections and filter chips; while only one collection shows (production today: the

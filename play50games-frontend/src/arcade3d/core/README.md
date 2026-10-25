@@ -60,7 +60,7 @@ const intro = useGameIntro({
       hero={heroProgress}          // MutableRefObject<number>, 0..1
    />
 )}
-{intro.ready && <CameraRig camera={definition.camera} follow={ninjaRef} />}
+{intro.ready && <CameraRig camera={definition.camera} follow={heroRef} />}
 ```
 
 Pure, for tests: `createIntro`, `advanceIntro`, `requestIntroSkip`, `introDurations`, `sampleIntroCamera`, `loadIntroVariant`, `stepGatedClock`, `gatedRunDt` (`introMachine.ts`, `introMachine.test.ts`). `stepGatedClock` moves the intro until `done` and only then adds to a run clock. The frame that finishes the intro is intro time.

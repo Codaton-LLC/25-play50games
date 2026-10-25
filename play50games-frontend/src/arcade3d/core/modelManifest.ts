@@ -119,10 +119,17 @@ export const MODEL_MANIFEST: readonly string[] = [
    // Gen-2.5-Medium, 18k tris, static T-pose for the core auto-rig
    "/models/3d/ghost-vacuum/hunter.glb",
    "/models/3d/ghost-vacuum/candelabra.glb",
+   "/models/3d/rocket-landing/landingPad.glb",
+   // zoo-escape props (2026-10-25): batch 5 part A adoptions, Gen-2.5-Medium, 1500-3000 tris,
+   // optimized with tools/hyper3d (kiosk and tower bake in their canopy / platform railing)
+   "/models/3d/zoo-escape/zooKiosk.glb",
+   "/models/3d/zoo-escape/leafyBush.glb",
+   "/models/3d/zoo-escape/woodenFootbridge.glb",
+   "/models/3d/zoo-escape/searchlightTower.glb",
+   "/models/3d/zoo-escape/bambooSnack.glb",
    // Menu 2 vertical slice (2026-10-25, Sky Tower Jump L1): text-to-3D props (1500-3000 tris, 512 px webp)
-   // and the hero (image-to-3D, 18k tris, 1024 px) from ~/.play50/hyper3d/ready/menu2, already
-   // optimized by tools/hyper3d. menu2/ = shared by the Color Shell Ninjas games.
-   "/models/3d/menu2/m2Hero.glb",
+   // from ~/.play50/hyper3d/ready/menu2, already optimized by tools/hyper3d. menu2/ = shared by the
+   // Menu 2 games. (The hero is a code stand-in until the armadillo hero GLB exists: no hero GLB here.)
    "/models/3d/menu2/islandA.glb",
    "/models/3d/menu2/islandB.glb",
    "/models/3d/menu2/islandC.glb",

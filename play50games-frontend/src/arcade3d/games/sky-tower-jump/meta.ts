@@ -2,7 +2,7 @@ import { LEVEL_IDS, type ArcadeGameMeta, type LevelId, type ScoringRules } from 
 import { PROPOSED_LEVEL_LIMITS } from "./rules";
 
 // Plain data only (server-safe). scoring must match WP includes/arcade-games.json (registry.sync.test.ts).
-// Menu 2 game 01, the vertical slice: status "dev" (preview builds only) until the user signs it off.
+// Menu 2 (Color Roll Heroes) game 01, the vertical slice: status "dev" (preview builds only) until the user signs it off.
 // A time game: the finish time minus the orb bonus is the score (README "Scoring"). Level 1 is the
 // slice; levels 2-5 are placeholders on the same course (README "Levels").
 const LEVEL_TITLES: Record<LevelId, string> = {
@@ -25,10 +25,10 @@ export const skyTowerJumpMeta: ArcadeGameMeta = {
    slug: "sky-tower-jump",
    title: "Sky Tower Jump",
    tagline: "Jump the floating islands to the top of the sky.",
-   description: "Climb a tower of floating islands, moving blocks and bounce pads as a Color Shell Ninja. Grab orbs to cut your time and reach the sky gate.",
+   description: "Climb a tower of floating islands, moving blocks and bounce pads as Riko, the armoured red hero who rolls into a ball. Grab orbs to cut your time and reach the sky gate.",
    order: 31,
    status: "dev",
-   collection: "ninjas",
+   collection: "rollheroes",
    difficulty: 1,
    orientation: "any",
    controls: {

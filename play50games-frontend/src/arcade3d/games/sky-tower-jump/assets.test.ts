@@ -1,6 +1,6 @@
 // The Menu 2 GLBs as Sky Tower Jump draws them: listed in the manifest, within budget, GLB_SIZE equal
 // to the real (meshopt-decoded) meshes, the platform tops where the Scene puts the rules' tops, the
-// hero's drawn height, the in-engine mask fitted to the real head, and the definition's levels.
+// the empty hero slot (the stand-in draws), and the definition's levels.
 import { statSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -8,8 +8,8 @@ import { describe, expect, it } from "vitest";
 import { hasModel } from "@/arcade3d/core/modelManifest";
 import { readCharacterGlb } from "@/arcade3d/core/rig/robotGlb";
 import { definitionLevelProblems } from "@/arcade3d/core/levels";
-import { ASSETS, GLB_SIZE, HERO_DRAWN_HEIGHT, HERO_SCALE } from "./assets";
-import { EYES, MASK, fitMaskBand, headAngle, knotPoint, maskBandMesh } from "./mask";
+import { ASSETS, GLB_SIZE } from "./assets";
+import { ARMADILLO } from "./Armadillo";
 import { skyTowerJumpMeta } from "./meta";
 import definition from "./index";
 import { cameraGoal, introKeyframes, playCamera } from "./camera";
@@ -38,6 +38,7 @@ function topAt(cloud: Float32Array, x: number, z: number, r = 0.12): number {
 
 describe("sky-tower-jump models", () => {
    for (const [key, asset] of Object.entries(ASSETS)) {
+      if (key === "hero") continue;
       it(`${key}: listed, on disk, within its byte budget`, () => {
          expect(hasModel(asset.url), asset.url).toBe(true);
          const bytes = statSync(path.join(PUBLIC, asset.url)).size;
@@ -65,73 +66,10 @@ describe("sky-tower-jump models", () => {
       });
    }
 
-   it("draws the hero 1.45 m tall", () => {
-      expect(GLB_SIZE.hero.y * HERO_SCALE).toBeCloseTo(HERO_DRAWN_HEIGHT, 6);
-      expect(ASSETS.hero.scale).toBe(HERO_SCALE);
-   });
-});
-
-describe("the in-engine mask (QA: the hero GLB has none)", () => {
-   it("hugs the real head: outside every head vertex of its band, within 6 cm of the head all round", async () => {
-      const { cloud } = await readCharacterGlb(ASSETS.hero.url);
-      const radii = fitMaskBand(cloud);
-      expect(radii).toHaveLength(MASK.rows * MASK.segments);
-      const step = (Math.PI * 2) / MASK.segments;
-      const rowH = (MASK.yTop - MASK.yBottom) / (MASK.rows - 1);
-      let inside = 0;
-      let checked = 0;
-      for (let i = 0; i < cloud.length; i += 3) {
-         const x = cloud[i];
-         const y = cloud[i + 1];
-         const z = cloud[i + 2];
-         if (y < MASK.yBottom || y > MASK.yTop) continue;
-         const r = Math.hypot(x, z - MASK.cz);
-         if (r > MASK.maxR) continue;
-         const row = Math.round((y - MASK.yBottom) / rowH);
-         const seg = Math.round(headAngle(x, z, MASK.cz) / step) % MASK.segments;
-         checked++;
-         if (r > radii[row * MASK.segments + seg] + 1e-6) inside++;
-      }
-      expect(checked).toBeGreaterThan(200);
-      // no head vertex pokes through the band (the band is drawn at the cell radius)
-      expect(inside).toBe(0);
-      for (const r of radii) {
-         expect(r).toBeGreaterThan(0.15);
-         expect(r).toBeLessThan(MASK.maxR + MASK.gap + 0.01);
-      }
-   });
-
-   it("cuts the eye holes where the eyes bulge (about ±45° from the front)", async () => {
-      const { cloud } = await readCharacterGlb(ASSETS.hero.url);
-      // the eyes are the head's outermost bulges at eye height on each side of the front
-      let best = [0, 0];
-      let angle = [0, 0];
-      for (let i = 0; i < cloud.length; i += 3) {
-         const x = cloud[i];
-         const y = cloud[i + 1];
-         const z = cloud[i + 2];
-         if (Math.abs(y - EYES.y) > 0.04 || z < MASK.cz) continue;
-         const r = Math.hypot(x, z - MASK.cz);
-         if (r > MASK.maxR) continue;
-         const side = x > 0 ? 0 : 1;
-         if (r > best[side]) {
-            best[side] = r;
-            angle[side] = Math.abs(Math.atan2(x, z - MASK.cz));
-         }
-      }
-      expect(Math.abs(angle[0] - EYES.angle)).toBeLessThan(0.35);
-      expect(Math.abs(angle[1] - EYES.angle)).toBeLessThan(0.35);
-   });
-
-   it("builds a closed band and puts the knot at the back", async () => {
-      const { cloud } = await readCharacterGlb(ASSETS.hero.url);
-      const radii = fitMaskBand(cloud);
-      const m = maskBandMesh(radii);
-      expect(m.positions.length).toBe(MASK.rows * (MASK.segments + 1) * 3);
-      expect(m.indices.length).toBe((MASK.rows - 1) * MASK.segments * 6);
-      const k = knotPoint(radii);
-      expect(k.z).toBeLessThan(MASK.cz - 0.15);
-      expect(k.y).toBeGreaterThan(MASK.yBottom);
+   it("keeps the hero slot empty until the armadillo GLB exists (never fetched; the stand-in draws)", () => {
+      expect(hasModel(ASSETS.hero.url)).toBe(false);
+      expect(ASSETS.hero.url).toBe("/models/3d/menu2/armadilloHero.glb");
+      expect(ARMADILLO.height).toBeCloseTo(1.45, 6);
    });
 });
 

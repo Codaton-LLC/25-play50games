@@ -52,12 +52,12 @@ describe("registry for 31 games", () => {
 });
 
 describe("Menu 2", () => {
-   it("keeps its games last, in dev, in the ninjas collection, owned by Claude", () => {
+   it("keeps its games last, in dev, in the rollheroes collection, owned by Claude", () => {
       const menu2 = ARCADE_GAMES.slice(30);
       expect(menu2.map((g) => g.slug)).toEqual(MENU2);
       for (const g of menu2) {
          expect(g.status).toBe("dev");
-         expect(g.collection).toBe("ninjas");
+         expect(g.collection).toBe("rollheroes");
          expect(g.owner).toBe("claude");
          expect(isGameVisible(g, false)).toBe(false);
          expect(isGameVisible(g, true)).toBe(true);
@@ -86,7 +86,7 @@ describe("visibility of dev games", () => {
          ["originals", 10],
          ["adventure", 10],
          ["skill", 10],
-         ["ninjas", MENU2.length],
+         ["rollheroes", MENU2.length],
       ]);
    });
 });

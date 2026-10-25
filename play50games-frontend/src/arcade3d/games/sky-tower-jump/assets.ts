@@ -1,5 +1,5 @@
-// Sky Tower Jump's models: the Menu 2 Hyper3D GLBs (public/models/3d/menu2, shared by the Color
-// Shell Ninjas games) and this game's own sky platform. Every GLB is one mesh with one material,
+// Sky Tower Jump's models: the Menu 2 Hyper3D GLBs (public/models/3d/menu2, shared by the Color Roll
+// Heroes games) and this game's own sky platform. Every GLB is one mesh with one material,
 // feet on y = 0, centred on x and z (tools/hyper3d optimize). GLB_SIZE holds the raw bounds and the
 // top surfaces measured on the meshes (assets.test.ts checks them against the real files); the Scene
 // fits each model to the rules' rectangles from these numbers, so a model never decides gameplay.
@@ -8,7 +8,6 @@ import { CHARACTER_BUDGET, PROP_BUDGET } from "@/arcade3d/core/sharedAssets";
 
 /** Raw GLB bounds (x, y, z) and, for platforms, the height of the walkable top inside y. */
 export const GLB_SIZE = {
-   hero: { x: 1.417, y: 1.899, z: 0.964 },
    islandA: { x: 1.892, y: 0.51, z: 1.9, top: 0.46 },
    islandB: { x: 1.918, y: 1.439, z: 1.816 },
    islandC: { x: 1.498, y: 1.849, z: 1.666 },
@@ -24,12 +23,6 @@ export const GLB_SIZE = {
    scoreOrb: { x: 1.767, y: 1.901, z: 1.77 },
 } as const;
 
-/**
- * The hero GLB drawn 1.45 m tall: a little taller than its 1.2 m collision cylinder (HERO.height) so
- * it reads at play size against 4 m islands, as on the concept board; the feet stay on the rules' y.
- */
-export const HERO_DRAWN_HEIGHT = 1.45;
-export const HERO_SCALE = HERO_DRAWN_HEIGHT / GLB_SIZE.hero.y;
 /** An orb 0.7 m across, its centre on the rules' orb point. */
 export const ORB_SIZE = 0.7;
 export const ORB_SCALE = ORB_SIZE / GLB_SIZE.scoreOrb.y;
@@ -44,8 +37,10 @@ const menu2 = (id: string, extra: Partial<ModelAsset> = {}): ModelAsset => ({
 });
 
 export const ASSETS: Record<string, ModelAsset> = {
-   // the Color Shell Ninja base mesh (static, arms slightly down: not a T-pose, so no auto-rig; README "Hero")
-   hero: menu2("m2Hero", { scale: HERO_SCALE, fallback: "capsule", fallbackColor: "#4ade80", budget: CHARACTER_BUDGET }),
+   // The Menu 2 hero slot (CLAUDE.md decision 5: the armadillo hero). No GLB yet: the url is not in the
+   // model manifest, so nothing is fetched and Hero.tsx draws the code stand-in (Armadillo.tsx). When the
+   // Hyper3D hero exists, its url joins the manifest (scale it to ARMADILLO.height, 1.45 m).
+   hero: menu2("armadilloHero", { fallback: "capsule", fallbackColor: "#ef4444", budget: CHARACTER_BUDGET }),
    islandA: menu2("islandA", { fallbackColor: "#65a30d" }),
    islandB: menu2("islandB", { fallbackColor: "#65a30d" }),
    islandC: menu2("islandC", { fallbackColor: "#65a30d" }),

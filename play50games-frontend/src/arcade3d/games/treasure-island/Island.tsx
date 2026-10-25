@@ -32,7 +32,7 @@ const speckle = (i: number, j: number) => {
    return v - Math.floor(v);
 };
 
-function buildGround(): BufferGeometry {
+function buildGround(rx: number, rz: number): BufferGeometry {
    const positions: number[] = [];
    const colors: number[] = [];
    const index: number[] = [];
@@ -54,7 +54,7 @@ function buildGround(): BufferGeometry {
          const a = (j / SEGMENTS) * Math.PI * 2;
          // subtle wobble on outer rings only (walkable band keeps the exact ellipse)
          const wob = r > 1.05 ? 1 + 0.03 * Math.sin(a * 5 + 1) : 1;
-         positions.push(ISLAND.rx * r * wob * Math.cos(a), groundHeight(r), ISLAND.rz * r * wob * Math.sin(a));
+         positions.push(rx * r * wob * Math.cos(a), groundHeight(r), rz * r * wob * Math.sin(a));
          const n = speckle(i, j);
 
          // Organic jungle edge scalloping around ISLAND.grass (0.78)
@@ -107,8 +107,8 @@ function buildGround(): BufferGeometry {
    return g;
 }
 
-function Ground() {
-   const geometry = useMemo(buildGround, []);
+function Ground({ shape }: { shape: { rx: number; rz: number } }) {
+   const geometry = useMemo(() => buildGround(shape.rx, shape.rz), [shape.rx, shape.rz]);
    useEffect(() => () => geometry.dispose(), [geometry]);
    return (
       <mesh geometry={geometry} name="island-ground">
@@ -126,10 +126,10 @@ function Sea({ run }: { run: RunState }) {
    const innerFoam = useRef<Mesh>(null);
 
    useFrame(() => {
-      const shore = shoreAt(run.time);
+      const shore = shoreAt(run.time, run.tide);
       if (sea.current) sea.current.position.y = waterLevel(shore);
-      const rx = ISLAND.rx * shore;
-      const rz = ISLAND.rz * shore;
+      const rx = run.shape.rx * shore;
+      const rz = run.shape.rz * shore;
       foam.current?.scale.set(rx, rz, 1);
       innerFoam.current?.scale.set(rx * 0.992, rz * 0.992, 1);
    });
@@ -169,12 +169,12 @@ function drawTowel(ctx: CanvasRenderingContext2D, w: number, h: number) {
    }
 }
 
-function Towel() {
+function Towel({ shape }: { shape: { rx: number; rz: number } }) {
    const map = useCanvasTexture(64, 32, drawTowel);
    const x = FIXED.umbrella.x - 0.9;
    const z = FIXED.umbrella.z + 0.6;
    return (
-      <group position={[x, groundAt(x, z) + 0.02, z]} rotation={[-Math.PI / 2, 0, 0.5]} name="towel">
+      <group position={[x, groundAt(x, z, shape) + 0.02, z]} rotation={[-Math.PI / 2, 0, 0.5]} name="towel">
          <mesh>
             <planeGeometry args={[1.8, 0.9]} />
             <meshStandardMaterial map={map} roughness={0.9} />
@@ -193,11 +193,11 @@ function Towel() {
 }
 
 /** The wrecked rowboat on the rules' box (2.6 x 1.1), lying a little on its side with two-tone hull. */
-function Rowboat() {
+function Rowboat({ shape }: { shape: { rx: number; rz: number } }) {
    const { x, z } = FIXED.rowboat;
    const seats = useMemo<InstanceSpot[]>(() => [{ x: -0.45, y: 0.22, z: 0 }, { x: 0.45, y: 0.22, z: 0 }], []);
    return (
-      <group position={[x, groundAt(x, z) - 0.04, z]} rotation={[0.18, 0.12, 0]} name="rowboat">
+      <group position={[x, groundAt(x, z, shape) - 0.04, z]} rotation={[0.18, 0.12, 0]} name="rowboat">
          {/* Caribbean teal lower hull */}
          <mesh scale={[1.3, 0.42, 0.52]} position-y={0.42} rotation-x={Math.PI}>
             <sphereGeometry args={[1, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2]} />
@@ -254,13 +254,6 @@ function Dock() {
    );
 }
 
-/** The crate stack on the rules' box: two side by side and one on top. */
-const CRATE_SPOTS: InstanceSpot[] = [
-   { x: FIXED.crates.x - 0.42, y: groundAt(FIXED.crates.x, FIXED.crates.z), z: FIXED.crates.z, rotY: 0.05 },
-   { x: FIXED.crates.x + 0.42, y: groundAt(FIXED.crates.x, FIXED.crates.z), z: FIXED.crates.z, rotY: -0.08 },
-   { x: FIXED.crates.x + 0.05, y: groundAt(FIXED.crates.x, FIXED.crates.z) + 0.565, z: FIXED.crates.z, rotY: 0.4 },
-];
-
 // ---------- crabs ----------
 
 const CRAB_POOL = 3;
@@ -269,7 +262,7 @@ function Crabs({ island, run }: { island: IslandData; run: RunState }) {
    const time = useGameTime();
    const { tier, decor } = useQuality();
    const shown = tier === "low" ? 0 : scaledCount(CRAB_POOL, decor);
-   const angles = useMemo(() => crabAngles(island), [island]);
+   const angles = useMemo(() => crabAngles(island, run.shape), [island, run.shape]);
    const parts = useCrabParts();
    const offset = useMemo<BodyOffset>(() => ({ y: 0, roll: 0, yaw: 0, squash: 1 }), []);
    const update = (i: number, m: Matrix4) => {
@@ -277,13 +270,14 @@ function Crabs({ island, run }: { island: IslandData; run: RunState }) {
       const a = angles[i];
       const t = time.now;
       // scuttle sideways along the waterline (which moves in with the tide)
-      const r = shoreAt(run.time) - CRAB_INSET;
+      const shape = run.shape;
+      const r = shoreAt(run.time, run.tide) - CRAB_INSET;
       const along = Math.sin(t * 0.7 + i * 2.1) * 0.08;
-      const x = ISLAND.rx * r * Math.cos(a + along);
-      const z = ISLAND.rz * r * Math.sin(a + along);
+      const x = shape.rx * r * Math.cos(a + along);
+      const z = shape.rz * r * Math.sin(a + along);
       waddle(t * 9 + i, 0.22, offset);
       // facing the sea (claws +z towards the camera's side when on the south beach)
-      const yaw = Math.atan2(x / ISLAND.rx, z / ISLAND.rz) + offset.yaw;
+      const yaw = Math.atan2(x / shape.rx, z / shape.rz) + offset.yaw;
       CRAB_M.makeRotationY(yaw);
       CRAB_R.makeRotationZ(offset.roll);
       m.multiplyMatrices(CRAB_M, CRAB_R).setPosition(x, groundHeight(r) + offset.y * 0.3, z);
@@ -302,28 +296,33 @@ export function IslandScene({ island, run }: { island: IslandData; run: RunState
       () =>
          island.palms.map((p) => {
             const o = palmBaseOffset(p.yaw, p.size);
-            return { x: p.x - o.x, y: groundAt(p.x, p.z) - 0.05, z: p.z - o.z, rotY: p.yaw, scale: p.size };
+            return { x: p.x - o.x, y: groundAt(p.x, p.z, run.shape) - 0.05, z: p.z - o.z, rotY: p.yaw, scale: p.size };
          }),
-      [island]
+      [island, run.shape]
    );
    const rockSpots = useMemo<InstanceSpot[]>(
-      () => island.rocks.map((r) => ({ x: r.x, y: groundAt(r.x, r.z) - 0.06 * r.size, z: r.z, rotY: r.yaw, scale: r.size })),
-      [island]
+      () => island.rocks.map((r) => ({ x: r.x, y: groundAt(r.x, r.z, run.shape) - 0.06 * r.size, z: r.z, rotY: r.yaw, scale: r.size })),
+      [island, run.shape]
    );
-   const umbrellaY = groundAt(FIXED.umbrella.x, FIXED.umbrella.z);
+   const crates = useMemo<InstanceSpot[]>(() => [
+      { x: FIXED.crates.x - 0.42, y: groundAt(FIXED.crates.x, FIXED.crates.z, run.shape), z: FIXED.crates.z, rotY: 0.05 },
+      { x: FIXED.crates.x + 0.42, y: groundAt(FIXED.crates.x, FIXED.crates.z, run.shape), z: FIXED.crates.z, rotY: -0.08 },
+      { x: FIXED.crates.x + 0.05, y: groundAt(FIXED.crates.x, FIXED.crates.z, run.shape) + 0.565, z: FIXED.crates.z, rotY: 0.4 },
+   ], [run.shape]);
+   const umbrellaY = groundAt(FIXED.umbrella.x, FIXED.umbrella.z, run.shape);
    return (
       <group name="island">
          <SkyDome top={COLORS.skyTop} bottom={COLORS.skyBottom} offset={0.06} exponent={0.72} />
-         <Ground />
+         <Ground shape={run.shape} />
          <Sea run={run} />
          <InstancedModel asset={ASSETS.palm} spots={palmSpots} fallback={<PalmPrimitives spots={palmSpots} />} />
          <InstancedModel asset={ASSETS.rock} spots={rockSpots} fallback={<RockPrimitives spots={rockSpots} />} />
-         <InstancedModel asset={ASSETS.crate} spots={CRATE_SPOTS} fallback={<CratePrimitives spots={CRATE_SPOTS} />} />
+         <InstancedModel asset={ASSETS.crate} spots={crates} fallback={<CratePrimitives spots={crates} />} />
          <group position={[FIXED.umbrella.x, umbrellaY - 0.05, FIXED.umbrella.z]} rotation-y={0.6}>
             <Model asset={ASSETS.umbrella} fallback={<UmbrellaPrimitive />} />
          </group>
-         <Towel />
-         <Rowboat />
+         <Towel shape={run.shape} />
+         <Rowboat shape={run.shape} />
          <Dock />
          <Crabs island={island} run={run} />
          {/* Surroundings decor outside the play area: outer rocks with surf, palms, shipwreck, gulls */}

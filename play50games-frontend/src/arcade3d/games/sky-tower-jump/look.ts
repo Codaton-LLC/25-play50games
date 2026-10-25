@@ -1,10 +1,9 @@
 "use client";
 
-// Sky Tower Jump's look: one palette, the drawn textures (clouds, glows, the mask fabric, the
+// Sky Tower Jump's look: one palette, the drawn textures (clouds, glows, the rock, the
 // waterfall, the pad arrow) and the billboard shader shared by clouds and glows. Textures are drawn
 // once per mount on a canvas (no image files) and disposed with their component.
 import { CanvasTexture, Color, ShaderMaterial, AdditiveBlending, NormalBlending, RepeatWrapping, SRGBColorSpace, type Texture } from "three";
-import { EYES, MASK } from "./mask";
 
 export const COLORS = {
    skyTop: "#1658c9",
@@ -16,8 +15,6 @@ export const COLORS = {
    rim: "#cfe8ff",
    cloud: "#ffffff",
    cloudShade: "#b9cde6",
-   mask: "#ef4444",
-   maskDark: "#b91c1c",
    orbGlow: "#ffd76a",
    padGlow: "#4cc9ff",
    beaconIdle: "#5ad1ff",
@@ -107,41 +104,6 @@ export function arrowTexture(): CanvasTexture {
    g.closePath();
    g.fill();
    return finish(c, false);
-}
-
-/**
- * The mask fabric: red with a darker hem and a faint weave, the two eye holes transparent (alphaTest).
- * u = angle / 2π around the head (0 = front), v = 0 bottom .. 1 top of the band.
- */
-export function maskTexture(): CanvasTexture {
-   const W = 512;
-   const H = 64;
-   const [c, g] = canvas(W, H);
-   const grad = g.createLinearGradient(0, 0, 0, H);
-   grad.addColorStop(0, COLORS.maskDark);
-   grad.addColorStop(0.18, COLORS.mask);
-   grad.addColorStop(0.82, COLORS.mask);
-   grad.addColorStop(1, COLORS.maskDark);
-   g.fillStyle = grad;
-   g.fillRect(0, 0, W, H);
-   g.globalAlpha = 0.08;
-   g.fillStyle = "#000";
-   for (let x = 0; x < W; x += 4) g.fillRect(x, 0, 1, H);
-   g.globalAlpha = 1;
-   // eye holes: an ellipse at ±EYES.angle, EYES.y (canvas y grows downwards = v from the top)
-   const band = MASK.yTop - MASK.yBottom;
-   const v = (EYES.y - MASK.yBottom) / band;
-   const ry = (EYES.radius / band) * H;
-   const rx = (EYES.radius / (2 * Math.PI * 0.24)) * W * 1.15;
-   g.globalCompositeOperation = "destination-out";
-   for (const a of [EYES.angle, Math.PI * 2 - EYES.angle]) {
-      const u = a / (Math.PI * 2);
-      g.beginPath();
-      g.ellipse(u * W, (1 - v) * H, rx, ry, 0, 0, Math.PI * 2);
-      g.fill();
-   }
-   g.globalCompositeOperation = "source-over";
-   return finish(c);
 }
 
 /** Cliff rock: horizontal strata of blocky stones with dark joints (tiled around the rock roots). */

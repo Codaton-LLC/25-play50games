@@ -1,6 +1,6 @@
 import type { ArcadeCollection, ArcadeGameMeta } from "../types";
 
-export const COLLECTION_FILTERS = ["all", "originals", "adventure", "skill", "ninjas"] as const;
+export const COLLECTION_FILTERS = ["all", "originals", "adventure", "skill", "rollheroes"] as const;
 
 export type CollectionFilter = (typeof COLLECTION_FILTERS)[number];
 
