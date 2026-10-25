@@ -1,11 +1,13 @@
 // Fits on the real meshes: the suitcase's shell, the 3.2 m plane, the 1.556 m handler.
+import { existsSync } from "node:fs";
+import { resolve } from "node:path";
+import { Box3, BufferGeometry, Float32BufferAttribute, Group, Mesh, Vector3 } from "three";
 import { describe, expect, it } from "vitest";
-import { Box3, Vector3 } from "three";
 import { hasModel } from "@/arcade3d/core/modelManifest";
 import { readCharacterGlb } from "@/arcade3d/core/rig/robotGlb";
 import { modelParts } from "@/arcade3d/core/assets";
-import { BufferGeometry, Float32BufferAttribute, Group, Mesh } from "three";
-import { ASSETS, HANDLER_SCALE, PLANE_LENGTH } from "./assets";
+import { ASSETS, CASE_DRAWN, CASE_GLB, CASE_HEIGHT, CASE_SPOTS, DUFFEL_DRAWN, DUFFEL_GLB, DUFFEL_LENGTH, DUFFEL_SPOTS, HANDLER_SCALE, PLANE_LENGTH } from "./assets";
+import { PLAY_AREA } from "./looks";
 import { TAG_M } from "./rules";
 
 async function sizeOf(url: string, asset: (typeof ASSETS)[keyof typeof ASSETS]): Promise<Vector3> {
@@ -49,5 +51,38 @@ describe("luggage-rush models", () => {
       expect(size.z).toBeCloseTo(0.25, 1);
       expect(size.y).toBeGreaterThan(0.7);
       expect(size.y).toBeLessThan(1.05);
+   });
+});
+
+describe("luggage-rush apron bags", () => {
+   it("fits the duffel and the hard case and keeps both outside the belts", async () => {
+      expect(existsSync(resolve("public", ASSETS.duffel.url.slice(1)))).toBe(true);
+      expect(existsSync(resolve("public", ASSETS.hardCase.url.slice(1)))).toBe(true);
+      expect(hasModel(ASSETS.duffel.url)).toBe(true);
+      expect(hasModel(ASSETS.hardCase.url)).toBe(true);
+      const duffel = await sizeOf(ASSETS.duffel.url, ASSETS.duffel);
+      const hard = await sizeOf(ASSETS.hardCase.url, ASSETS.hardCase);
+      expect(duffel.z).toBeCloseTo(DUFFEL_LENGTH, 2);
+      expect(duffel.x).toBeCloseTo(DUFFEL_DRAWN.depth, 2);
+      expect(duffel.y).toBeCloseTo(DUFFEL_DRAWN.height, 2);
+      expect(hard.y).toBeCloseTo(CASE_HEIGHT, 2);
+      expect(hard.x).toBeCloseTo(CASE_DRAWN.width, 2);
+      expect(hard.z).toBeCloseTo(CASE_DRAWN.depth, 2);
+      const rawDuffel = await sizeOf(ASSETS.duffel.url, { ...ASSETS.duffel, scale: 1, rotationY: 0 });
+      const rawCase = await sizeOf(ASSETS.hardCase.url, { ...ASSETS.hardCase, scale: 1 });
+      expect(rawDuffel.x).toBeCloseTo(DUFFEL_GLB.width, 2);
+      expect(rawCase.y).toBeCloseTo(CASE_GLB.height, 2);
+      const bags = [
+         ...DUFFEL_SPOTS.map((s) => ({ ...s, r: Math.hypot(duffel.x, duffel.z) / 2 })),
+         ...CASE_SPOTS.map((s) => ({ ...s, r: Math.hypot(hard.x, hard.z) / 2 })),
+      ];
+      for (const bag of bags) {
+         const inside = bag.x + bag.r > PLAY_AREA.minX && bag.x - bag.r < PLAY_AREA.maxX && bag.z + bag.r > PLAY_AREA.minZ && bag.z - bag.r < PLAY_AREA.maxZ;
+         expect(inside, `${bag.x},${bag.z}`).toBe(false);
+      }
+      for (let i = 0; i < bags.length; i++) for (let j = i + 1; j < bags.length; j++) {
+         const gap = Math.hypot(bags[i].x - bags[j].x, bags[i].z - bags[j].z) - bags[i].r - bags[j].r;
+         expect(gap).toBeGreaterThan(0.2);
+      }
    });
 });
