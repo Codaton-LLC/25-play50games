@@ -32,8 +32,7 @@ const definition: GameDefinition<MiniGolfLevel> = {
       id, description: DESCRIPTIONS[id], config: LEVELS[id],
       hudStats: [{ key: "hole", label: "Hole", max: LEVELS[id].holes }, { key: "par", label: "Par" }, { key: "strokes", label: "Strokes" }],
       ...(id === 3 ? { environment: { lighting: "sunset" as const } } : {}),
-      // a night sky behind the Neon Course (the day sky stayed light blue under the night preset)
-      ...(id === 4 ? { environment: { lighting: "night" as const, background: "#0b1a2e", fog: ["#0b1a2e", 30, 90] as [string, number, number] } } : {}),
+      ...(id === 4 ? { environment: { lighting: "night" as const } } : {}),
       ...(id === 5 ? { environment: { lighting: "sunset" as const } } : {}),
    })),
    // the drop, the flag and (birdie or better) the confetti are seen before the result
