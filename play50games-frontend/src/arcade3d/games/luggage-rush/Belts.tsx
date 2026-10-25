@@ -7,7 +7,7 @@ import { BufferAttribute, BufferGeometry, InstancedMesh, Matrix4, Quaternion, Ve
 import { Conveyor } from "@/arcade3d/core/kit";
 import { ChuteMouths } from "./Primitives";
 import { COLORS } from "./looks";
-import { BELT, CHUTE_PATHS, DIVERTER_AT, OVERFLOW_PATH, SPINE_PATH, type RunState } from "./rules";
+import { CHUTE_PATHS, DIVERTER_AT, OVERFLOW_PATH, SPINE_PATH, type RunState } from "./rules";
 
 function rgbOf(hex: string): [number, number, number] {
    const n = parseInt(hex.slice(1), 16);
@@ -129,11 +129,11 @@ export function Belts({ run }: { run: RunState }) {
    return (
       <group name="belts">
          {/* Moving conveyor belts with chevron slats */}
-         <Conveyor path={SPINE_PATH} width={0.92} speed={BELT.base} color={COLORS.beltSlat} stripe="#94a3b8" />
+         <Conveyor path={SPINE_PATH} width={0.92} speed={run.config.beltBase} color={COLORS.beltSlat} stripe="#94a3b8" />
          {CHUTE_PATHS.map((path, i) => (
-            <Conveyor key={i} path={path} width={0.92} speed={BELT.base} color={COLORS.beltSlat} stripe="#94a3b8" />
+            <Conveyor key={i} path={path} width={0.92} speed={run.config.beltBase} color={COLORS.beltSlat} stripe="#94a3b8" />
          ))}
-         <Conveyor path={OVERFLOW_PATH} width={0.92} speed={BELT.base} color="#7f1d1d" stripe="#fecaca" />
+         <Conveyor path={OVERFLOW_PATH} width={0.92} speed={run.config.beltBase} color="#7f1d1d" stripe="#fecaca" />
 
          {/* Static steel frames, guide rails & support legs (1 draw call) */}
          <mesh geometry={FRAMES_GEO} dispose={null} name="conveyor-frames">

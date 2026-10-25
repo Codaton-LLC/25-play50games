@@ -20,7 +20,7 @@ import { Bay } from "./Bay";
 import { BlueprintBoard } from "./BlueprintBoard";
 import { CAMERA, FOCUS, viewFor } from "./camera";
 import { createLook, noteEvent, stepLook, CRADLE_TOP } from "./look";
-import { COLORS } from "./palette";
+import { COLORS } from "./looks";
 import { Parts } from "./Parts";
 import { Robot } from "./Robot";
 import { SortBins } from "./SortBins";
@@ -249,7 +249,12 @@ function LevelScene({ config }: { config: FactoryLevel }) {
    return (
       <>
          <FittedCamera />
-         <pointLight position={[0, 2.6, 1.6]} color={COLORS.rim} intensity={6} distance={7} decay={1.6} />
+         {/* Cool blue key light over the grab zone & belt */}
+         <pointLight position={[0, 3.2, 1.8]} color={COLORS.rim} intensity={5.5} distance={8} decay={1.5} />
+         {/* Warm amber accent light highlighting the cradle, robot, and exit door */}
+         <pointLight position={[2.6, 2.8, -0.2]} color={COLORS.warn} intensity={3.5} distance={7.5} decay={1.6} />
+         {/* Cool accent light over the feeder conveyor and parts stream */}
+         <pointLight position={[-2.6, 2.6, 0.4]} color={COLORS.rim} intensity={2.8} distance={7} decay={1.6} />
          <Bay run={run} look={look} />
          {run.level.sorter ? <SortBins /> : <BlueprintBoard run={run} />}
          <Parts run={run} look={look} />

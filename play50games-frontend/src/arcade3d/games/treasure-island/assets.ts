@@ -51,6 +51,14 @@ const SHOVEL_SCALE = SHOVEL_LENGTH / SHOVEL_GLB.height;
 /** Where the hand closes on the shaft, up from the blade's edge (m): just under the D-grip. */
 export const SHOVEL_GRASP = SHOVEL_GLB.grasp * SHOVEL_SCALE;
 
+/**
+ * beachRocks.glb (Group D, QA "OK"): a low cluster. The unit is 1.4 m across, the same diameter
+ * as the outer-reef icosahedron, so each OUTER_ROCKS spot scale keeps its old footprint.
+ */
+export const BEACH_ROCKS_GLB = { width: 1.8817, height: 0.4562, depth: 1.7992 } as const;
+export const BEACH_ROCKS_WIDTH = 1.4;
+const BEACH_ROCKS_SCALE = BEACH_ROCKS_WIDTH / BEACH_ROCKS_GLB.width;
+
 export const ASSETS = {
    explorer: { ...SHARED_ASSETS.runner, scale: EXPLORER_SCALE, humanoid: { landmarks: RUNNER_LANDMARKS } },
    chest: EXPANSION_ASSETS.chest,
@@ -67,6 +75,14 @@ export const ASSETS = {
       scale: SHOVEL_SCALE,
       fallback: "cylinder",
       fallbackColor: "#94a3b8",
+      budget: { ...PROP_BUDGET },
+   },
+   beachRocks: {
+      id: "beachRocks",
+      url: "/models/3d/treasure-island/beachRocks.glb",
+      scale: BEACH_ROCKS_SCALE,
+      fallback: "sphere",
+      fallbackColor: "#78716c",
       budget: { ...PROP_BUDGET },
    },
 } satisfies Record<string, ModelAsset>;

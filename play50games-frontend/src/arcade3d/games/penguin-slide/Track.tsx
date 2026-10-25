@@ -6,7 +6,7 @@ import { BufferAttribute, BufferGeometry, Color, Matrix4, Quaternion, Vector3, t
 import { DynamicInstancedModel } from "@/arcade3d/core/assets";
 import { scaledCount, useQuality } from "@/arcade3d/core/quality";
 import { DynamicInstanced, useCanvasTexture } from "@/arcade3d/core/render";
-import { ASSETS } from "./assets";
+import { ASSETS, ICE_ARCH_LATERAL } from "./assets";
 import { COLORS } from "./looks";
 import { usePropParts } from "./Primitives";
 import { CLOCK, corridorAt, chunkAt, safeCentre, sampleTrack, widthAt, worldAt, type Chunk, type Run } from "./rules";
@@ -202,6 +202,14 @@ export default function Track({ run }: { run: Run }) {
       place(s, corridorAt(c, s - c.index * 60) + (slot % 2 ? 1 : -1) * 5.2, m, 0, 0.8 + (slot % 3) * 0.2);
    };
 
+   const arch = (i: number, m: Matrix4) => {
+      const c = run.chunks[Math.floor(i / 2)];
+      if (!c) return false;
+      const side = i % 2 ? 1 : -1;
+      const local = 9;
+      place(c.index * 60 + local, corridorAt(c, local) + side * ICE_ARCH_LATERAL, m, 0, 1);
+   };
+
    const obstacle = (kind: "ice" | "snowman" | "crack", i: number, m: Matrix4) => {
       const o = run.chunks[Math.floor(i / 5)].obstacles[i % 5];
       if (!o || o.kind !== kind || o.s < run.s - 5) return false;
@@ -250,6 +258,7 @@ export default function Track({ run }: { run: Run }) {
          </group>
          <DynamicInstancedModel name="fish-trails" asset={ASSETS.fish} count={36} update={fish} fallbackParts={fishParts} />
          <DynamicInstancedModel name="pine-banks" asset={ASSETS.pine} count={30} update={tree} fallbackParts={pineParts} />
+         <DynamicInstancedModel name="ice-arches" asset={ASSETS.iceArch} count={6} update={arch} />
          <DynamicInstancedModel name="time-flags" asset={ASSETS.flag} count={12} update={flag} fallbackParts={flagParts} />
          <DynamicInstanced count={15} update={(i, m) => obstacle("ice", i, m)} parts={iceParts} name="ice-blocks" />
          <DynamicInstancedModel asset={ASSETS.snowman} count={15} update={(i, m) => obstacle("snowman", i, m)} fallbackParts={snowmanParts} name="snowmen" />
