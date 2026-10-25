@@ -3,6 +3,8 @@
 // drawn at the README's size; the ship's waterline sits on the water; the drawn muzzle is the rules'
 // muzzle at every aim; the parapet stays under the lowest shot.
 import { describe, expect, it } from "vitest";
+import { existsSync } from "node:fs";
+import { resolve } from "node:path";
 import { Box3, BufferGeometry, Float32BufferAttribute, Group, Matrix4, Mesh, Vector3 } from "three";
 import { modelParts } from "@/arcade3d/core/assets";
 import { hasModel } from "@/arcade3d/core/modelManifest";
@@ -10,10 +12,10 @@ import { readCharacterGlb } from "@/arcade3d/core/rig/robotGlb";
 import { EXPANSION_GLB_POINTS } from "@/arcade3d/core/sharedAssets";
 import type { ModelAsset } from "@/arcade3d/core/types";
 import { AIM } from "./aim";
-import { ASSETS, BARREL_HEIGHT, CRATE_SIZE, PALM_SIZE, SHIP_WATERLINE } from "./assets";
+import { ASSETS, BARREL_HEIGHT, CRATE_SIZE, LIGHTHOUSE_AT, LIGHTHOUSE_FOOTPRINT, LIGHTHOUSE_GLB, LIGHTHOUSE_HEIGHT, PALM_SIZE, SHIP_WATERLINE } from "./assets";
 import { cannonMatrix } from "./cannonPose";
-import { FORT } from "./looks";
-import { CANNON, SHIPS, SHIP_TYPES, WORLD, ballAt, launchState, muzzleAt } from "./rules";
+import { FORT, SEA_BOX } from "./looks";
+import { CANNON, SEA, SHIPS, SHIP_TYPES, WORLD, ballAt, launchState, muzzleAt } from "./rules";
 
 /** The GLB's vertices as the asset's fit draws them (metres, model origin), optionally placed by `spot`. */
 async function drawn(asset: ModelAsset, spot = new Matrix4()): Promise<Vector3[]> {
@@ -100,5 +102,29 @@ describe("pirate-cannons models", () => {
             if (overWall) expect(p.y - WORLD.ballRadius).toBeGreaterThan(FORT.parapetTop);
          }
       }
+   });
+});
+
+describe("pirate-cannons lighthouse", () => {
+   it("fits the tower onto the mole, south of the play sea", async () => {
+      expect(existsSync(resolve("public", ASSETS.lighthouse.url.slice(1)))).toBe(true);
+      expect(hasModel(ASSETS.lighthouse.url)).toBe(true);
+      const points = await drawn(ASSETS.lighthouse);
+      const size = sizeOf(points);
+      expect(size.x).toBeCloseTo(LIGHTHOUSE_FOOTPRINT, 2);
+      expect(size.z).toBeCloseTo(LIGHTHOUSE_FOOTPRINT, 2);
+      expect(size.y).toBeCloseTo(LIGHTHOUSE_HEIGHT, 2);
+      expect(Math.min(...points.map((p) => p.y))).toBeCloseTo(0, 2);
+      const raw = sizeOf(await drawn({ ...ASSETS.lighthouse, scale: 1, stretch: undefined, rotationY: 0 }));
+      expect(raw.y).toBeCloseTo(LIGHTHOUSE_GLB.height, 2);
+      const x = SEA.harbourX + LIGHTHOUSE_AT.dx;
+      const half = LIGHTHOUSE_FOOTPRINT / 2;
+      expect(x - half).toBeGreaterThan(SEA_BOX.max.x);
+      expect(LIGHTHOUSE_AT.z + half).toBeLessThan(SEA_BOX.min.z);
+      const moleX = SEA.harbourX + 6;
+      expect(x - half).toBeGreaterThan(moleX - 4.5);
+      expect(x + half).toBeLessThan(moleX + 4.5);
+      expect(LIGHTHOUSE_AT.z - half).toBeGreaterThan(-63);
+      expect(LIGHTHOUSE_AT.z + half).toBeLessThan(-59);
    });
 });
