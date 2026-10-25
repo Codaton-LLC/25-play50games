@@ -18,11 +18,13 @@ import { createRng, rngNext, turnTowards } from "@/arcade3d/core/math";
 import { createPath, type Path } from "@/arcade3d/core/path";
 import { stepPatrol, type PatrolOptions, type PatrolState } from "@/arcade3d/core/ai/patrol";
 import type { Agent } from "@/arcade3d/core/ai/steering";
+import type { LevelId } from "@/arcade3d/types";
 import { PRODUCT_KINDS, type ProductKind } from "./assets";
-import { PROPOSED_LIMITS, shoppingCartMeta } from "./meta";
+import { LEVELS, type ShoppingCartLevel } from "./levels";
+import { PROPOSED_LEVEL_LIMITS, PROPOSED_LIMITS, shoppingCartMeta } from "./meta";
 
-export const DURATION_MS = 75_000;
-export const LIST_COUNT = 6;
+export const DURATION_MS = LEVELS[1].durationMs;
+export const LIST_COUNT = LEVELS[1].listCount;
 export const STEER_ASSIST_RATE = 1.5; // rad/s on coarse pointers
 
 export const STORE = {
@@ -165,7 +167,7 @@ export const CRASH_NORMAL_SPEED = 3.0;
  */
 export const MIN_WIN_ROUTE_M = 30.91;
 
-export { PROPOSED_LIMITS };
+export { PROPOSED_LEVEL_LIMITS, PROPOSED_LIMITS };
 
 /** Turns angle `from` towards `to` (radians) the short way round, clamped to maxRadians. */
 export function stepAngleTowards(from: number, to: number, maxRadians: number): number {
@@ -229,6 +231,7 @@ export interface StepEvents {
 
 export interface RunState {
    seed: number;
+   level: ShoppingCartLevel;
    cart: CartState;
    list: ListItem[];
    pyramids: CanPyramid[];
@@ -249,7 +252,7 @@ export interface StepInput {
 }
 
 // ---------- Aisle Routing & Tour Distance ----------
- 
+
 export function shelvesBetween(x1: number, x2: number): boolean {
    const minX = Math.min(x1, x2);
    const maxX = Math.max(x1, x2);
@@ -278,38 +281,91 @@ export function storeDistance(a: { x: number; z: number }, b: { x: number; z: nu
    return Math.min(northWay, southWay);
 }
 
-/** Calculates the shortest route visiting all items from start to checkout via brute force. */
+/** Minimum spanning tree (Prim, storeDistance) over start, the items and checkout: a lower bound on shortestPickTour. */
+export function spanningTreeLength(items: readonly { x: number; z: number }[]): number {
+   const pts = [{ x: START_POS.x, z: START_POS.z }, ...items, { x: 0, z: 10.5 }];
+   const best = pts.map(() => Infinity), used = pts.map(() => false);
+   best[0] = 0;
+   let total = 0;
+   for (let k = 0; k < pts.length; k++) {
+      let u = -1;
+      for (let i = 0; i < pts.length; i++) if (!used[i] && (u < 0 || best[i] < best[u])) u = i;
+      used[u] = true; total += best[u];
+      for (let i = 0; i < pts.length; i++) if (!used[i]) best[i] = Math.min(best[i], storeDistance(pts[u], pts[i]));
+   }
+   return total;
+}
+
+/** Calculates the shortest route visiting all items from start to checkout. */
 export function shortestPickTour(items: readonly { x: number; z: number }[]): number {
    const start = { x: START_POS.x, z: START_POS.z };
    const checkout = { x: 0, z: 10.5 };
    const n = items.length;
    if (n === 0) return storeDistance(start, checkout);
 
-   let minTour = Infinity;
-   const perm = Array.from({ length: n }, (_, i) => i);
+   // Branch-and-bound for n <= 8 (byte-identical behavior for Level 1's 6 items)
+   if (n <= 8) {
+      let minTour = Infinity;
+      const perm = Array.from({ length: n }, (_, i) => i);
 
-   function search(k: number, currentLen: number, lastPoint: { x: number; z: number }) {
-      if (currentLen >= minTour) return;
-      if (k === n) {
-         const total = currentLen + storeDistance(lastPoint, checkout);
-         if (total < minTour) minTour = total;
-         return;
+      function search(k: number, currentLen: number, lastPoint: { x: number; z: number }) {
+         if (currentLen >= minTour) return;
+         if (k === n) {
+            const total = currentLen + storeDistance(lastPoint, checkout);
+            if (total < minTour) minTour = total;
+            return;
+         }
+         for (let i = k; i < n; i++) {
+            const tmp = perm[k];
+            perm[k] = perm[i];
+            perm[i] = tmp;
+
+            const pt = items[perm[k]];
+            const d = storeDistance(lastPoint, pt);
+            search(k + 1, currentLen + d, pt);
+
+            perm[i] = perm[k];
+            perm[k] = tmp;
+         }
       }
-      for (let i = k; i < n; i++) {
-         const tmp = perm[k];
-         perm[k] = perm[i];
-         perm[i] = tmp;
 
-         const pt = items[perm[k]];
-         const d = storeDistance(lastPoint, pt);
-         search(k + 1, currentLen + d, pt);
+      search(0, 0, start);
+      return minTour;
+   }
 
-         perm[i] = perm[k];
-         perm[k] = tmp;
+   // Held-Karp dynamic programming for n > 8
+   const numStates = 1 << n;
+   const dp = new Float64Array(numStates * n);
+   dp.fill(Infinity);
+
+   for (let i = 0; i < n; i++) {
+      dp[(1 << i) * n + i] = storeDistance(start, items[i]);
+   }
+
+   for (let mask = 1; mask < numStates; mask++) {
+      for (let i = 0; i < n; i++) {
+         const currentDist = dp[mask * n + i];
+         if (currentDist === Infinity) continue;
+
+         for (let j = 0; j < n; j++) {
+            if ((mask & (1 << j)) === 0) {
+               const nextMask = mask | (1 << j);
+               const nextDist = currentDist + storeDistance(items[i], items[j]);
+               const idx = nextMask * n + j;
+               if (nextDist < dp[idx]) {
+                  dp[idx] = nextDist;
+               }
+            }
+         }
       }
    }
 
-   search(0, 0, start);
+   const fullMask = numStates - 1;
+   let minTour = Infinity;
+   for (let i = 0; i < n; i++) {
+      const total = dp[fullMask * n + i] + storeDistance(items[i], checkout);
+      if (total < minTour) minTour = total;
+   }
    return minTour;
 }
 
@@ -323,23 +379,30 @@ export const FALLBACK_LIST: ListItem[] = [
    { kind: "bag", slotIndex: 21, x: 6.9, y: 0.8, z: -5.0, collected: false },
 ];
 
-/** Deterministically generates 6 distinct list items with minimum tour length >= 52.0 m. */
-export function generateList(seed: number): ListItem[] {
+/** Deterministically generates list items with minimum tour length >= minTourDistance. */
+export function generateList(
+   seed: number,
+   count: number = LIST_COUNT,
+   minTourDistance: number = MIN_TOUR_DISTANCE,
+): ListItem[] {
    const rng = { s: seed };
    for (let attempt = 0; attempt < 40; attempt++) {
-      // Pick 6 distinct products
+      // Pick distinct or replenished products
       const availableProducts = [...PRODUCT_KINDS];
       const pickedProducts: ProductKind[] = [];
-      for (let i = 0; i < LIST_COUNT; i++) {
+      for (let i = 0; i < count; i++) {
+         if (availableProducts.length === 0) {
+            availableProducts.push(...PRODUCT_KINDS);
+         }
          const idx = Math.floor(rngNext(rng) * availableProducts.length);
          pickedProducts.push(availableProducts[idx]);
          availableProducts.splice(idx, 1);
       }
 
-      // Pick 6 distinct slots from the 24 slots
+      // Pick distinct slots from the 24 slots
       const slotIndices: number[] = [];
       const allSlots = Array.from({ length: SHELF_SLOTS.length }, (_, i) => i);
-      for (let i = 0; i < LIST_COUNT; i++) {
+      for (let i = 0; i < count; i++) {
          const idx = Math.floor(rngNext(rng) * allSlots.length);
          slotIndices.push(allSlots[idx]);
          allSlots.splice(idx, 1);
@@ -354,12 +417,17 @@ export function generateList(seed: number): ListItem[] {
          collected: false,
       }));
 
-      const tourLen = shortestPickTour(items);
-      if (tourLen >= MIN_TOUR_DISTANCE) {
+      // Long lists (levels 4-5): the start -> items -> checkout path is a spanning tree, so its length
+      // is at least the minimum spanning tree's; when that already clears the gate the exact
+      // Held-Karp tour (2^n states) is skipped. Same accept decision, far less work at run start.
+      if ((count > 8 && spanningTreeLength(items) >= minTourDistance) || shortestPickTour(items) >= minTourDistance) {
          return items;
       }
    }
-   return JSON.parse(JSON.stringify(FALLBACK_LIST));
+   if (count === LIST_COUNT && minTourDistance === MIN_TOUR_DISTANCE) {
+      return JSON.parse(JSON.stringify(FALLBACK_LIST));
+   }
+   return generateList(seed + 1, count, 0);
 }
 
 // ---------- Shopper Routes ----------
@@ -387,7 +455,7 @@ export function createShopperRoutes(): Record<string, Path> {
    };
 }
 
-export function createShoppers(routes: Record<string, Path>): ShopperNPC[] {
+export function createShoppers(routes: Record<string, Path>, shopperDActiveS = 40.0): ShopperNPC[] {
    return [
       {
          id: "shopperA",
@@ -419,17 +487,19 @@ export function createShoppers(routes: Record<string, Path>): ShopperNPC[] {
          patrolState: { index: 0, wait: 0.5, mode: "patrol", target: { x: 10.0, y: 0, z: 5.0 } },
          route: routes.shopperD,
          graceTimer: 0,
-         active: false, // activates at 40s
+         active: shopperDActiveS <= 0,
       },
    ];
 }
 
 // ---------- Run Creation & Simulation ----------
 
-export function createRun(seed: number): RunState {
+/** Pure: the Scene passes the picked level's config (useLevel); omitted = level 1 (today's game). */
+export function createRun(seed: number, activeLevel: ShoppingCartLevel = LEVELS[1]): RunState {
    const routes = createShopperRoutes();
    return {
       seed,
+      level: activeLevel,
       cart: {
          x: START_POS.x,
          y: 0,
@@ -443,9 +513,9 @@ export function createRun(seed: number): RunState {
          stunTimer: 0,
          slowTimer: 0,
       },
-      list: generateList(seed),
+      list: generateList(seed, activeLevel.listCount, activeLevel.minTourDistance),
       pyramids: PYRAMID_POSITIONS.map((p) => ({ x: p.x, y: 0, z: p.z, toppled: false })),
-      shoppers: createShoppers(routes),
+      shoppers: createShoppers(routes, activeLevel.shopperDActiveS),
       combo: 0,
       score: 0,
       collectedCount: 0,
@@ -487,9 +557,10 @@ export function stepRun(
    if (run.won || run.timedOut) return STEP_EVENTS;
 
    run.playTimeS = playTimeS;
+   const level = run.level ?? LEVELS[1];
 
    // Check timeout
-   if (playTimeS >= DURATION_MS / 1000) {
+   if (playTimeS >= level.durationMs / 1000) {
       run.timedOut = true;
       STEP_EVENTS.timeup = true;
       return STEP_EVENTS;
@@ -543,7 +614,7 @@ export function stepRun(
       let targetHeading = Math.atan2(input.moveX, input.moveY);
 
       // Auto-steer assist on coarse pointers
-      if (!cart.riding && run.collectedCount < LIST_COUNT) {
+      if (!cart.riding && run.collectedCount < level.listCount) {
          let nearestDist = 8.0;
          let nearestTarget: ListItem | null = null;
          for (const item of run.list) {
@@ -729,7 +800,7 @@ export function stepRun(
    // 5. Shoppers Step & Collision
    for (let i = 0; i < run.shoppers.length; i++) {
       const shopper = run.shoppers[i];
-      if (shopper.id === "shopperD" && !shopper.active && playTimeS >= 40.0) {
+      if (shopper.id === "shopperD" && !shopper.active && playTimeS >= level.shopperDActiveS) {
          shopper.active = true;
       }
       if (!shopper.active) continue;
@@ -738,7 +809,7 @@ export function stepRun(
          shopper.graceTimer = Math.max(0, shopper.graceTimer - dt);
       }
 
-      stepPatrol(shopper.agent, shopper.patrolState, shopper.route, dt, { speed: 1.8, wait: 0.6 });
+      stepPatrol(shopper.agent, shopper.patrolState, shopper.route, dt, { speed: level.shopperSpeed, wait: level.shopperWait });
 
       if (shopper.graceTimer <= 0 && circlesOverlapXZ(cart, CART.radius, shopper.agent, 0.4)) {
          cart.stunTimer = 1.0;
@@ -784,7 +855,7 @@ export function stepRun(
                z: item.z,
             });
 
-            if (run.collectedCount === LIST_COUNT && !run.listComplete) {
+            if (run.collectedCount === level.listCount && !run.listComplete) {
                run.listComplete = true;
                run.score += POINTS.listComplete;
                STEP_EVENTS.listCompleted = true;
@@ -797,7 +868,7 @@ export function stepRun(
    if (run.listComplete && pointInAabb(cart, FINISH_ZONE)) {
       run.won = true;
       STEP_EVENTS.won = true;
-      const timeLeftMs = Math.max(0, DURATION_MS - playTimeS * 1000);
+      const timeLeftMs = Math.max(0, level.durationMs - playTimeS * 1000);
       const timeBonus = POINTS.perSecond * Math.floor(timeLeftMs / 1000);
       run.score += timeBonus;
    }
@@ -820,14 +891,14 @@ export function runScore(
    return s;
 }
 
-export function capScore(score: number, durationMs: number): number {
-   return capToLimits(score, durationMs, shoppingCartMeta.scoring);
+export function capScore(score: number, durationMs: number, levelId: LevelId = 1): number {
+   return capToLimits(score, durationMs, PROPOSED_LEVEL_LIMITS[levelId]);
 }
 
-export function withinServerLimits(score: number, durationMs: number): boolean {
-   return fitsLimits(score, durationMs, shoppingCartMeta.scoring);
+export function withinServerLimits(score: number, durationMs: number, levelId: LevelId = 1): boolean {
+   return fitsLimits(score, durationMs, PROPOSED_LEVEL_LIMITS[levelId]);
 }
 
-export function withinProposedLimits(score: number, durationMs: number): boolean {
-   return fitsLimits(score, durationMs, PROPOSED_LIMITS);
+export function withinProposedLimits(score: number, durationMs: number, levelId: LevelId = 1): boolean {
+   return fitsLimits(score, durationMs, PROPOSED_LEVEL_LIMITS[levelId]);
 }

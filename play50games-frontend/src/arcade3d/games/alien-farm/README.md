@@ -44,6 +44,36 @@ Groups: `FARM`, `FARMER`, `PLOTS`, `OFFSET_TABLES`, `CYCLE`, `HARVEST`, `SHIP`, 
 5. **Rate:** first pick completes ≥ 2.40 s (earliest window opens at 2.1); different-plot presses ≥ 71/90 s apart (closest beds 4 m); same plot ≥ 4.2 s. Every prefix with H picks scores ≤ 200 H ≤ 200 + 250 (2.40 + (H − 1) 71/90) for H = 1..124 (smallest margin 258.33); 125 picks need more than 100 s. The run lasts exactly 100000 ms of play (shell timer), inside 99000..102000.
 6. **Tightness (Decision D, a documented looser limit):** the best legal oracle reaches **7275 = 56.4 %** of maxScore, below the 90 % gate. Reason: the relaxation pays every crop as a delivered full load but charges nothing for the beam trips; the real ship (2–3 m/s on a 64 m loop) costs about 2–4 s per load and the clustered offset tables (all nine deltas within 1.9 s) leave a dead stretch in every cycle. A delivery-aware certificate needs an enclosure of the ship's position over continuous s0 and both directions; not attempted. Open question 2.
 
+## Levels (five per game)
+
+Five levels through the core level system (`core/README.md` "Levels"): `levels.ts` holds the pure configs, `createRun(seed, level)` plays one, Scene reads it with `useLevel`, `index.tsx` declares the five specs (clock, Basket chip) and `meta.ts` the titles, limits and clear targets. **Level 1 is today's game** (replayed bit-exact against today's `createRun` in `levels.test.ts`). The same nine beds, assets and controls on every level; a level clears at its `clearScore` (score attack, no win); level 5 has none.
+
+| Level | Title | Clock | Beds | Saucer m/s (<40 / 40-70 / >70 s) | Spores | Late window | Clear |
+|---|---|---:|---|---|---:|---:|---:|
+| 1 | Starter Plot | 100 s | 5 at 0 s, 2 at 20 s, gourds at 40 s; 6 / 8 s | 2 / 2.5 / 3 | 5 s | ±0.6 s | 2000 |
+| 2 | Crystal Farm | 150 s | all 9 at 0 s; 6 / 8 s | 2 / 2.5 / 3 | 5 s | ±0.6 s | 3000 |
+| 3 | Glow Marsh | 180 s | staggered as L1; 5 s pods, 8 s gourds | 2 / 2.5 / 3 | 7 s | ±0.6 s | 3500 |
+| 4 | Meteor Field | 180 s | all 9 at 0 s; 6 / 8 s | 2.5 / 3 / 3.5 | 7 s | ±0.5 s | 1600 |
+| 5 | Grand Alien Harvest | 210 s | all 9 at 0 s; 5 s pods, 7 s gourds | 2.5 / 3 / 3.5 | 7 s | ±0.5 s | - |
+
+Hazards never ease: clock, saucer speed and spore life never fall, the late window never widens. From L4 the saucer outruns a loaded farmer (3.06 m/s with four crops) after 70 s, so a delivery has to cut it off; that is why the human-paced bot (which chases the beam without leading it) scores less on L4-L5 and L4's clear target is lower.
+
+### Per-level limits and why they hold
+
+The level-1 proof above carries over unchanged per level (`bound.ts` takes each level's beds, windows and deadline; certificates in `levels.test.ts` L1-L3 and `levels.certificate.test.ts` L4-L5):
+
+| Level | S\* (max over 16 tables) | maxScore = 100 ceil(1.04 S\* / 100) | min / max ms | base / pps |
+|---|---:|---:|---|---|
+| 1 | 12400 | 12900 | 99000 / 102000 | 200 / 250 |
+| 2 | 19750 | 20600 | 148000 / 153000 | 200 / 250 |
+| 3 | 25850 | 26900 | 178000 / 183000 | 200 / 260 |
+| 4 | 21250 | 22100 | 178000 / 183000 | 200 / 260 |
+| 5 | 29250 | 30500 | 208000 / 213000 | 200 / 260 |
+
+Rate, per level: each harvest pays at most 200; presses on different beds are at least 71/90 s apart (bed positions are the same on every level) and a bed repeats only a cycle later (at least C - 1.8 s > 71/90 s); the first press is at least f = the level's earliest (window open, walk from the start) over all 16 tables. So the H-th press is at or after f + (H - 1) 71/90 and `base + pps t >= 200 H` is checked for every H up to the last press the clock allows. On the longer levels 250 pts/s would run out (slope 250 x 71/90 < 200), hence 260 on L3-L5. L5 maxScore is 2.36 x L1's.
+
+Bots through the real store (30 Hz, `levels.test.ts`): the human-paced bot clears 30/30 seeds on L1-L4 (worst 2825 / 4500 / 4625 / 1700), greedy 4/4; idle scores 0 and a camping bot at most 400, so neither clears; every run passes `withinServerLimits` with `capScore` a no-op.
+
 ## Run end
 
 The shell's 100 s timer ends the run (`"timeup"`); core `endCue` plays the finish ("win") cue when the score is above 0. `resultDelayMs: 1600`: the farmer turns to the camera and cheers with confetti (score > 0) or slumps (0). The shell's Time chip is the clock (`clockChip` default). Nothing scores during the delay.
