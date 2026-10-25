@@ -20,7 +20,6 @@ import { useGameTime } from "@/arcade3d/core/gameTime";
 import { ASSETS, fitStationScene } from "./assets";
 import { COLORS } from "./looks";
 import { MODULES, REPAIR, stageAt, type Run } from "./rules";
-import { StationHull } from "./StationHull";
 
 const SPOTS = MODULES.map((m) => ({ x: m.x, y: 0, z: m.z, rotY: m.angle }));
 const BASES = SPOTS.map((p) => ({ ...p, y: 0.48 }));
@@ -40,7 +39,8 @@ const PANEL_GRIDS = [-1, 1].flatMap((side) =>
 const GOOD = new Color(COLORS.mint);
 const BAD = new Color(COLORS.warning);
 const ACCENT = new Color(COLORS.accent);
-const DARK = new Color(COLORS.shadow);
+const DOCK_LIVE = new Color(COLORS.dockLive);
+const DOCK_IDLE = new Color(COLORS.dockIdle);
 
 function drawLabels(ctx: CanvasRenderingContext2D, w: number, h: number) {
    ctx.clearRect(0, 0, w, h);
@@ -196,7 +196,7 @@ export default function Station({ run, reduced }: { run: Run; reduced: boolean }
       const p = MODULES[i];
       m.makeRotationX(-Math.PI / 2);
       m.setPosition(p.dx, 0.06, p.dz);
-      c.copy(run.modules[i].broken ? (run.docked === i ? GOOD : ACCENT) : DARK);
+      c.copy(run.modules[i].broken ? (run.docked === i ? GOOD : DOCK_LIVE) : DOCK_IDLE);
    };
 
    const pip = (i: number, m: Matrix4, c: Color) => {
@@ -223,16 +223,14 @@ export default function Station({ run, reduced }: { run: Run; reduced: boolean }
 
    return (
       <>
-         {/* Sleek orbital station hull deck ground structure */}
-         <StationHull />
-
-         {/* Station modules (GLB with deliberate code fallback) */}
+         {/* Station modules (GLB with deliberate code fallback). No full-screen deck:
+             Earth and the starfield stay visible around this core. */}
          <Modules />
 
          {/* Radial structural struts: truss body, blue light strip, and docking collars */}
          <Instanced spots={STRUTS} name="struts-body">
             <boxGeometry args={[0.3, 0.16, 4.2]} />
-            <meshStandardMaterial color={COLORS.shadow} metalness={0.5} roughness={0.4} />
+            <meshStandardMaterial color={COLORS.hullDeck} metalness={0.5} roughness={0.4} />
          </Instanced>
          <Instanced spots={STRUT_LIGHTS} name="struts-light">
             <boxGeometry args={[0.08, 0.03, 3.9]} />
@@ -249,7 +247,7 @@ export default function Station({ run, reduced }: { run: Run; reduced: boolean }
 
          {/* Deliberate multi-tone Central Docking Hub */}
          <mesh geometry={hubGeometries.hubHull} name="hub-hull">
-            <meshStandardMaterial color={COLORS.hull} metalness={0.45} roughness={0.35} />
+            <meshStandardMaterial color={COLORS.hullDeck} metalness={0.55} roughness={0.4} />
          </mesh>
          <mesh geometry={hubGeometries.hubTrim} name="hub-trim">
             <meshStandardMaterial color={COLORS.panel} metalness={0.55} roughness={0.3} emissive={COLORS.panel} emissiveIntensity={0.2} />
@@ -282,7 +280,7 @@ export default function Station({ run, reduced }: { run: Run; reduced: boolean }
          </DynamicInstanced>
          <DynamicInstanced count={8} update={dock} tinted>
             <ringGeometry args={[0.5, 0.6, 32, 1, 0, Math.PI * 1.8]} />
-            <meshBasicMaterial transparent opacity={0.8} depthWrite={false} toneMapped={false} />
+            <meshBasicMaterial transparent opacity={1} depthWrite={false} toneMapped={false} />
          </DynamicInstanced>
          <DynamicInstanced count={24} update={pip} tinted>
             <circleGeometry args={[0.055, 8]} />
@@ -301,11 +299,11 @@ export default function Station({ run, reduced }: { run: Run; reduced: boolean }
          {/* Planet Earth backdrop with clouds and atmospheric rim glow */}
          <mesh ref={earth} position={[0, -25, -12]} name="planet-earth">
             <sphereGeometry args={[12, 48, 32]} />
-            <meshStandardMaterial map={earthMap} roughness={0.9} emissive={COLORS.earth} emissiveIntensity={0.25} />
+            <meshStandardMaterial map={earthMap} roughness={0.95} emissive={COLORS.earth} emissiveIntensity={0.25} />
          </mesh>
          <mesh position={[0, -25, -12]} name="planet-earth-rim">
-            <sphereGeometry args={[12.18, 32, 24]} />
-            <meshBasicMaterial color={COLORS.rim} transparent opacity={0.12} blending={AdditiveBlending} depthWrite={false} />
+            <sphereGeometry args={[12.15, 32, 24]} />
+            <meshBasicMaterial color={COLORS.rim} transparent opacity={0.065} blending={AdditiveBlending} depthWrite={false} />
          </mesh>
       </>
    );

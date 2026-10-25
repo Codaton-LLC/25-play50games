@@ -15,7 +15,13 @@ export const COLORS = {
    hullMid: "#cbd5e1",
    hullDark: "#94a3b8",
    hullTrim: "#64748b",
+   // Core and truss metal under the astronaut. #1e293b is the lightest this surface may be.
+   hullDeck: "#1e293b",
    shadow: "#334155",
+   // Intact dock "C". Light grey stays ≥3:1 on space, Earth ocean and hullDeck.
+   dockIdle: "#e2e8f0",
+   // Broken dock "C". Lighter indigo than accent so it stays ≥3:1 on Earth ocean.
+   dockLive: "#a5b4fc",
    panel: "#1e3a8a",
    panelDark: "#172554",
    accent: "#818cf8",
@@ -45,6 +51,8 @@ export const PLAY_BOUNDS = {
    maxY: 2.2,
 } as const;
 
+// Coverage envelope for the camera test only. It is not a floor: a deck this size
+// filled every viewport and hid Earth and the stars (visual gate, 2026-10-25).
 export const HULL_GROUND = {
    minX: -36,
    maxX: 36,

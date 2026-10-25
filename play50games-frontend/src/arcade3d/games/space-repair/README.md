@@ -199,8 +199,8 @@ The user approved this design and asked Claude to settle every open question wit
 
 Visual-only modern-look pass for P-113:
 - **Palette and tones:** unified into `looks.ts` `COLORS` with deliberate multi-tone sci-fi styling across all visible code-made stand-ins (central docking hub, pressurized struts, solar wings, battery cells, wrench tool, fallback module and astronaut). No raw grey boxes.
-- **Lighting and environment:** core `space` lighting preset with deep space fog `[COLORS.fog, 55, 140]` and `<SkyDome top bottom offset exponent>` from `core/env`. Earth backdrop enhanced with swirling cloud layer, high-res continents and a crisp cyan atmospheric rim light shell with `AdditiveBlending`.
-- **Orbital station hull ground:** procedural brushed white/grey hull platform (`StationHull.tsx`) with cyan/neon runway light strips and outer perimeter gantry ring, extending across x: [-36, 36], z: [-28, 28] at y = -0.28. Proven in `look.test.ts` to cover the bottom view across all 3 viewports (1280x800, 390x844, 844x390) with zero sky/void showing below the scene.
+- **Lighting and environment:** core `space` lighting preset with deep space fog `[COLORS.fog, 55, 140]` (Earth sits inside the near distance, so the fog does not grey it out) and `<SkyDome>` from `core/env`. Earth is main's planet: sphere radius 12 at `[0, −25, −12]`, rim radius 12.15 at opacity 0.065. The canvas map keeps the cloud bands.
+- **Station, not a floor:** core plus truss arms and dock ports only. The full-screen light deck and the navy perimeter ring (cyan blocks) were removed in the 2026-10-25 visual gate: they hid Earth and the stars and read as a warehouse floor. Hub and truss metal is `#1e293b`. Earth is main's planet (sphere r12 at [0, −25, −12]). Stars stay 600 / 220 / 120 by quality tier. `HULL_GROUND` in `looks.ts` is only the camera-test envelope; it is not drawn.
 - **Surroundings outside play area:** `Decor.tsx` with instanced low-poly asteroid belt (tones A/B), distant station modules and solar wings, orbital communication satellites, and deep cosmic nebula clouds. All decor strictly outside the play arena bounds `[-10, 10]`, with zero line-of-sight occlusion to modules, service discs, or the player from the fitted camera.
 - **Juicy feedback:** camera shake on a miss (`fx.shake(0.12)`), spark bursts and sparkles on hits and awards (scaled up for perfect repairs: 24 sparks, 16 sparkles, shake 0.12), and light starfield counts on phones (`600` on high tier, reduced to `220` on mid tier and `120` on low tier).
 - **Resource discipline:** all geometries and materials allocated once and disposed on unmount. No `dispose={null}` on any `<primitive attach="geometry">` (preserving R3F v8 disposal). Zero per-frame allocations.
@@ -211,11 +211,10 @@ Visual-only modern-look pass for P-113:
 |---|---:|---|
 | Astronaut | 5–7 | HumanoidModel suit, jet nozzles & flame instances, wrench, x-ray outline |
 | Station | 15–18 | Instanced modules, multi-tone hub & struts, solar wings, labels decal, dynamic rings/docks/pips/debris, battery cell, Earth & rim |
-| StationHull | 3 | Hull deck plane, perimeter structural ring, runway beacons |
 | Decor | 6–7 | Asteroid field (tones A & B), distant modules & solar wings, satellites, nebula dust |
 | Sky & Environment | 2 | SkyDome, Starfield |
 | FX & Popups | 6–8 | Warmed particle pools (puff, sparks, sparkle, confetti) and score sprites |
-| **Total** | **37–45** | **Well below 60 draw-call cap** (hard platform limit 150) |
+| **Total** | **≤33** | The visual gate measured 36 with the deck. Removing the deck, perimeter ring and beacons drops 3 calls. Cap 40 |
 
 
 ## Five levels
