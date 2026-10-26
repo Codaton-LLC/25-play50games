@@ -1,8 +1,8 @@
-import type { ArcadeGameMeta } from "@/arcade3d/types";
+import { LEVEL_IDS, type ArcadeGameMeta } from "@/arcade3d/types";
+import { LEVEL_TITLES } from "./levels";
+import { PROPOSED_LEVEL_LIMITS } from "./scoring";
 
-// Plain data only (server-safe). scoring must match WP includes/arcade-games.json.
-// Stub (Menu 1 game 50, docs/menu1-new/specs-41-50.md): placeholder limits; the build replaces them
-// with the proven per-level limits (PROPOSED_LEVEL_LIMITS) and adds meta.levels.
+// Plain server-safe metadata. Claude aligns backend limits at the integration gate.
 export const postman3dMeta: ArcadeGameMeta = {
    slug: "postman-3d",
    title: "Postman 3D",
@@ -18,16 +18,8 @@ export const postman3dMeta: ArcadeGameMeta = {
       keyboard: "WASD / arrows to move, E or Enter to deliver",
       touch: "Joystick to move + Deliver",
    },
-   scoring: {
-      kind: "points",
-      maxScore: 3000,
-      minDurationMs: 10_000,
-      maxDurationMs: 300_000,
-      base: 3000,
-      maxPointsPerSec: 3000,
-      unitLabel: "pts",
-      display: "int",
-   },
+   scoring: PROPOSED_LEVEL_LIMITS[1],
+   levels: LEVEL_IDS.map((id) => ({ id, title: LEVEL_TITLES[id], scoring: PROPOSED_LEVEL_LIMITS[id] })),
    thumbnail: null,
    accent: "#ef4444",
    owner: "claude",

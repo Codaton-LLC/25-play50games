@@ -787,12 +787,19 @@
     "postman-3d": {
       "title": "Postman 3D",
       "kind": "points",
-      "max_score": 3000,
-      "min_duration_ms": 10000,
-      "max_duration_ms": 300000,
-      "base": 3000,
-      "max_pps": 3000,
-      "enabled": false
+      "max_score": 1165,
+      "min_duration_ms": 4000,
+      "max_duration_ms": 120000,
+      "base": 560,
+      "max_pps": 115,
+      "enabled": false,
+      "levels": [
+        { "title": "Small Street", "max_score": 1165, "min_duration_ms": 4000, "max_duration_ms": 120000, "base": 560, "max_pps": 115 },
+        { "title": "Neighborhood", "max_score": 1545, "min_duration_ms": 4000, "max_duration_ms": 150000, "base": 840, "max_pps": 38 },
+        { "title": "Village", "max_score": 1965, "min_duration_ms": 4000, "max_duration_ms": 180000, "base": 1120, "max_pps": 36 },
+        { "title": "City District", "max_score": 2105, "min_duration_ms": 4000, "max_duration_ms": 180000, "base": 1400, "max_pps": 13 },
+        { "title": "Holiday Rush", "max_score": 2655, "min_duration_ms": 4000, "max_duration_ms": 210000, "base": 1960, "max_pps": 8 }
+      ]
     }
   }
 }
