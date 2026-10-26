@@ -823,12 +823,19 @@
     "toy-store-night-shift": {
       "title": "Toy Store Night Shift",
       "kind": "points",
-      "max_score": 3000,
-      "min_duration_ms": 10000,
-      "max_duration_ms": 300000,
-      "base": 3000,
-      "max_pps": 3000,
-      "enabled": false
+      "max_score": 990,
+      "min_duration_ms": 4000,
+      "max_duration_ms": 120000,
+      "base": 500,
+      "max_pps": 93,
+      "enabled": false,
+      "levels": [
+        { "title": "Toy Shelf", "max_score": 990, "min_duration_ms": 4000, "max_duration_ms": 120000, "base": 500, "max_pps": 93 },
+        { "title": "Store Floor", "max_score": 1405, "min_duration_ms": 4000, "max_duration_ms": 150000, "base": 800, "max_pps": 57 },
+        { "title": "Warehouse", "max_score": 1715, "min_duration_ms": 4000, "max_duration_ms": 180000, "base": 1000, "max_pps": 48 },
+        { "title": "Mega Toy Store", "max_score": 2110, "min_duration_ms": 4000, "max_duration_ms": 180000, "base": 1400, "max_pps": 36 },
+        { "title": "Toy Chaos", "max_score": 2610, "min_duration_ms": 4000, "max_duration_ms": 210000, "base": 1800, "max_pps": 28 }
+      ]
     },
     "aquarium-cleaner": {
       "title": "Aquarium Cleaner",
