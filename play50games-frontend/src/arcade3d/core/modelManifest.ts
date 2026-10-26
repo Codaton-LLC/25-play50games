@@ -338,6 +338,18 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/magic-carpet-ride/floatingPalaceR.glb",
    "/models/3d/magic-carpet-ride/floatingRockV3.glb",
    "/models/3d/magic-carpet-ride/star.glb",
+   // farm-tractor-challenge (gate, 2026-10-25): menu1 ready set, optimized
+   "/models/3d/farm-tractor-challenge/charFarmer.glb",
+   "/models/3d/farm-tractor-challenge/tractor.glb",
+   "/models/3d/farm-tractor-challenge/farmTrailer.glb",
+   "/models/3d/farm-tractor-challenge/hayBaleBound.glb",
+   "/models/3d/farm-tractor-challenge/appleCrate.glb",
+   "/models/3d/farm-tractor-challenge/barn.glb",
+   "/models/3d/farm-tractor-challenge/farmFence.glb",
+   "/models/3d/farm-tractor-challenge/farmGate.glb",
+   "/models/3d/farm-tractor-challenge/scarecrowPost.glb",
+   "/models/3d/farm-tractor-challenge/grainSiloGroundT.glb",
+   "/models/3d/farm-tractor-challenge/waterTrough.glb",
    // Menu 1 jungle-bridge-run (2026-10-25): the ready menu1-jungle-bridge-run GLBs (templePillarV2 and
    // ruinGateR, not the V1s; jungleLogSingle, jungleFern and volcanoBackdrop from the still-needed list are
    // in the ready folder now), copied as optimized; fits in games/jungle-bridge-run/assets.ts. The explorer

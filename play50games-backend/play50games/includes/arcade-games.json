@@ -638,12 +638,19 @@
     "farm-tractor-challenge": {
       "title": "Farm Tractor Challenge",
       "kind": "points",
-      "max_score": 3000,
-      "min_duration_ms": 10000,
-      "max_duration_ms": 300000,
-      "base": 3000,
-      "max_pps": 3000,
-      "enabled": false
+      "max_score": 1000,
+      "min_duration_ms": 4000,
+      "max_duration_ms": 120000,
+      "base": 600,
+      "max_pps": 22,
+      "enabled": false,
+      "levels": [
+        { "title": "Farm Yard", "max_score": 1000, "min_duration_ms": 4000, "max_duration_ms": 120000, "base": 600, "max_pps": 22 },
+        { "title": "Wheat Field", "max_score": 1340, "min_duration_ms": 4000, "max_duration_ms": 150000, "base": 900, "max_pps": 13 },
+        { "title": "Orchard", "max_score": 1740, "min_duration_ms": 4000, "max_duration_ms": 180000, "base": 1200, "max_pps": 12 },
+        { "title": "Mud Farm", "max_score": 1960, "min_duration_ms": 4000, "max_duration_ms": 180000, "base": 1500, "max_pps": 9 },
+        { "title": "Mega Farm", "max_score": 2280, "min_duration_ms": 4000, "max_duration_ms": 210000, "base": 1800, "max_pps": 8 }
+      ]
     },
     "cat-vs-robot-vacuum": {
       "title": "Cat vs Robot Vacuum",
