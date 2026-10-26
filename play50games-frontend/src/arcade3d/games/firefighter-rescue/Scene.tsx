@@ -295,6 +295,9 @@ function LevelScene() {
             shift={view.shift}
             damping={DAMPING}
          />
+         {/* extra fill so the rooms and the firefighter read clearly (the core indoor/night light is dim; the fire glow keeps the mood) */}
+         <hemisphereLight args={["#ffe9cf", "#7a6d62", config.lighting === "night" ? 1.5 : 1.1]} />
+         <ambientLight intensity={config.lighting === "night" ? 0.7 : 0.45} />
          <mesh rotation-x={-Math.PI / 2} position={[0, 0, (zEnd - 5.2) / 2]}>
             <planeGeometry args={[16, zEnd + 8]} />
             <meshStandardMaterial color={COLORS.floor} roughness={0.92} />
