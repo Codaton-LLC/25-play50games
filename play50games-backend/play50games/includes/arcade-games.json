@@ -739,12 +739,19 @@
     "dog-park-fetch": {
       "title": "Dog Park Fetch",
       "kind": "points",
-      "max_score": 3000,
-      "min_duration_ms": 10000,
-      "max_duration_ms": 300000,
-      "base": 3000,
-      "max_pps": 3000,
-      "enabled": false
+      "max_score": 1030,
+      "min_duration_ms": 4000,
+      "max_duration_ms": 90000,
+      "base": 680,
+      "max_pps": 33,
+      "enabled": false,
+      "levels": [
+        { "title": "Small Park", "max_score": 1030, "min_duration_ms": 4000, "max_duration_ms": 90000, "base": 680, "max_pps": 33 },
+        { "title": "City Park", "max_score": 1410, "min_duration_ms": 4000, "max_duration_ms": 120000, "base": 960, "max_pps": 24 },
+        { "title": "Forest Park", "max_score": 1850, "min_duration_ms": 4000, "max_duration_ms": 150000, "base": 1300, "max_pps": 20 },
+        { "title": "Beach Park", "max_score": 2165, "min_duration_ms": 4000, "max_duration_ms": 150000, "base": 1640, "max_pps": 14 },
+        { "title": "Dog Festival", "max_score": 2525, "min_duration_ms": 4000, "max_duration_ms": 180000, "base": 1920, "max_pps": 12 }
+      ]
     },
     "submarine-treasure-dive": {
       "title": "Submarine Treasure Dive",
