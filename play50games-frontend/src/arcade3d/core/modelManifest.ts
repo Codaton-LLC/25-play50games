@@ -323,6 +323,9 @@ export const MODEL_MANIFEST: readonly string[] = [
    // dino-egg-rescue lava rock (2026-10-25): batch-5 companion decor (Hyper3D), drawn only on
    // the volcanic levels 4-5 (Volcanic Pass / Dino Sanctuary) outside the play bounds
    "/models/3d/dino-egg-rescue/lavaRock.glb",
+   // rocket-landing habitat dome (2026-10-25): batch 5 adoption, Gen-2.5-Medium, ~5.8k tris;
+   // outpost decor drawn only on levels 4-5 (rocket-landing HABITAT_DOME_SPOTS)
+   "/models/3d/rocket-landing/habitatDome.glb",
 ];
 
 const LISTED: ReadonlySet<string> = new Set(MODEL_MANIFEST);
