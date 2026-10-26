@@ -154,6 +154,15 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/rooftop-roll-climb/m2RoofSolarRack.glb",
    "/models/3d/rooftop-roll-climb/m2RooftopBlock.glb",
    "/models/3d/rooftop-roll-climb/m2SkylineTower.glb",
+   // Menu 2 game 04 (Lava Pillar Jump): cavern props from ~/.play50/hyper3d/ready/menu2/lava-pillar-jump
+   "/models/3d/lava-pillar-jump/m2BasaltBridge.glb",
+   "/models/3d/lava-pillar-jump/m2BasaltPillar.glb",
+   "/models/3d/lava-pillar-jump/m2CollapsePlatform.glb",
+   "/models/3d/lava-pillar-jump/m2Ember.glb",
+   "/models/3d/lava-pillar-jump/m2LavaGeyserVent.glb",
+   "/models/3d/lava-pillar-jump/m2LavaRock.glb",
+   "/models/3d/lava-pillar-jump/m2MagmaSlug.glb",
+   "/models/3d/lava-pillar-jump/m2VolcanoBg.glb",
    // P-121 dev adoptions (2026-10-25): V2 replacements and Group D variety whose QA verdict
    // starts with OK. Optimized GLBs copied in; not re-optimized. Live games are untouched.
    "/models/3d/shopping-cart/supermarketShelfV2.glb",
