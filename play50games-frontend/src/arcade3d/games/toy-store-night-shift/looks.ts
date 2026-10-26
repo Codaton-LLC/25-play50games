@@ -13,7 +13,9 @@ export const COLORS = {
    floorEdge: "#94a3b8",
    /** the ground round the store, past the walls and the fog: dark, never a pale void */
    outside: "#1f2937",
-   outsideNight: "#0b1120",
+   outsideNight: "#1a2742",
+   /** night: a dim street glow (emissive) so the ground outside never goes black under the unlit sky */
+   outsideGlow: "#2f4266",
    lantern: "#fde68a",
    wall: "#fbcfe8",
    wallTrim: "#f472b6",
