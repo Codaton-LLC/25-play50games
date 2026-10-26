@@ -81,6 +81,8 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/ghost-vacuum/vacuum.glb",
    "/models/3d/knight-arena/dummy.glb",
    "/models/3d/castle-defender/goblin.glb",
+   "/models/3d/castle-defender/royalThrone.glb",
+   "/models/3d/castle-defender/siegeCatapultT.glb",
    "/models/3d/alien-farm/glowPod.glb",
    "/models/3d/zoo-escape/panda.glb",
    // expansion tier 3 (2026-10-08): class E decor, Rodin Gen-2.5-Medium text-to-3D, 1500-3000 tris, 512 px
