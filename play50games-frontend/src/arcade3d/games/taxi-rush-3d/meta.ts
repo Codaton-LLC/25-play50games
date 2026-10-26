@@ -1,13 +1,17 @@
-import type { ArcadeGameMeta } from "@/arcade3d/types";
+import { LEVEL_IDS, type ArcadeGameMeta, type LevelMeta } from "@/arcade3d/types";
+import { LEVEL_TITLES } from "./levels";
+import { PROPOSED_LEVEL_LIMITS } from "./rules";
 
-// Plain data only (server-safe). scoring must match WP includes/arcade-games.json.
-// Stub (Menu 1 game 32, docs/menu1-new/specs-31-40.md): placeholder limits; the build replaces them
-// with the proven per-level limits (PROPOSED_LEVEL_LIMITS) and adds meta.levels.
+// Plain data (server-safe; rules.ts imports no three.js or React). scoring and levels are
+// PROPOSED_LEVEL_LIMITS (README proof) and equal arcade-games.json (registry.sync.test.ts).
+// A level clears only on a win (every fare dropped off).
+const LEVELS: readonly LevelMeta[] = LEVEL_IDS.map((id) => ({ id, title: LEVEL_TITLES[id], scoring: PROPOSED_LEVEL_LIMITS[id] }));
+
 export const taxiRush3dMeta: ArcadeGameMeta = {
    slug: "taxi-rush-3d",
    title: "Taxi Rush 3D",
-   tagline: "Pick up. Drop off. Mind the lights.",
-   description: "Drive a yellow cab around a small street grid, stop on the pickup pad, then stop on the destination pad before your rider runs out of patience.",
+   tagline: "Stop for the fare. Stop for the drop.",
+   description: "Drive a cab on a small street grid. Stop in the gold pad to pick up, then stop in the destination pad to drop off.",
    order: 32,
    status: "dev",
    collection: "skill",
@@ -15,19 +19,11 @@ export const taxiRush3dMeta: ArcadeGameMeta = {
    orientation: "any",
    controls: {
       scheme: "steer",
-      keyboard: "WASD / arrows to drive",
-      touch: "Joystick to drive",
+      keyboard: "WASD / arrows drive. Stop in a pad to pick up or drop off",
+      touch: "Joystick drives. Stop in a pad to pick up or drop off",
    },
-   scoring: {
-      kind: "points",
-      maxScore: 3000,
-      minDurationMs: 10_000,
-      maxDurationMs: 300_000,
-      base: 3000,
-      maxPointsPerSec: 3000,
-      unitLabel: "pts",
-      display: "int",
-   },
+   scoring: PROPOSED_LEVEL_LIMITS[1],
+   levels: LEVELS,
    thumbnail: null,
    accent: "#facc15",
    owner: "cursor",
