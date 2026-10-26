@@ -6,7 +6,7 @@ import type { ModelAsset } from "@/arcade3d/core/types";
 import { LEVEL_IDS } from "@/arcade3d/types";
 import { ASSETS, FIT, GLB_SIZE } from "./assets";
 import { LEVELS } from "./levels";
-import { DECOR_CLEAR_X, TRACK_AFTER, TRACK_BEFORE, WATER_Y, backdropFor, decorSpots, gateSpots, trackSpots } from "./looks";
+import { DECOR_CLEAR_X, DECOR_PERIOD, TILE, TRACK_AFTER, TRACK_BEFORE, VISIBLE_BACK, WATER_Y, backdropFor, decorSpots, decorZ, gateSpots, trackSpots, visibleAhead } from "./looks";
 import { LANE_X, LOG_HALF_X, LOG_HALF_Z, PILLAR_HALF, STAND_HEIGHT, createRun, finishZ, hits } from "./rules";
 
 async function bounds(url: string) {
@@ -120,15 +120,27 @@ describe("jungle-bridge-run track and decor spots", () => {
                   else if (!sec || !sec.obstacles.some((o) => (o.kind === "gap" || o.kind === "bridge") && z >= o.z - 0.05 && z <= o.z + o.length + 0.05)) expect(covered(lane, z)).toBe(true);
                }
             }
-            for (const s of [...deck, ...rope]) expect(s.sz!).toBeLessThanOrEqual(2.4 + 1e-9);
+            for (const s of [...deck, ...rope]) expect(s.sz!).toBeLessThanOrEqual(TILE + 1e-9);
+            for (let i = 1; i < deck.length; i++) expect(deck[i].z).toBeGreaterThanOrEqual(deck[i - 1].z);
             expect(gateSpots(run).length).toBe(3 * (level.sections + 1));
          }
          const d = decorSpots(id, level);
          expect(JSON.stringify(decorSpots(id, level))).toBe(JSON.stringify(d));
-         // the canyon and the stilts run the level's whole track, start to past the finish
-         expect(Math.min(...d.rocks.map((r) => r.z))).toBeLessThanOrEqual(-TRACK_BEFORE);
-         expect(Math.max(...d.rocks.map((r) => r.z))).toBeGreaterThanOrEqual(finishZ(level) + TRACK_AFTER);
-         expect(Math.max(...d.stilts.map((r) => r.z))).toBeGreaterThanOrEqual(finishZ(level) + TRACK_AFTER - 6);
+         // the canyon is one band DECOR_PERIOD long, wrapped into the visible stretch (longer than any level's)
+         for (const list of Object.values(d)) for (const spot of list) {
+            expect(spot.z).toBeGreaterThanOrEqual(0);
+            expect(spot.z).toBeLessThan(DECOR_PERIOD);
+         }
+         expect(DECOR_PERIOD).toBeGreaterThanOrEqual(VISIBLE_BACK + 6 + visibleAhead(level));
+         expect(Math.max(...d.rocks.map((r) => r.z)) - Math.min(...d.rocks.map((r) => r.z))).toBeGreaterThan(DECOR_PERIOD - 14);
+         for (const runnerZ of [0, 37.5, 200]) {
+            for (const r of d.rocks) {
+               const z = decorZ(r.z, runnerZ);
+               expect(z).toBeGreaterThanOrEqual(runnerZ - VISIBLE_BACK - 6);
+               expect(z).toBeLessThan(runnerZ - VISIBLE_BACK - 6 + DECOR_PERIOD);
+               expect(((z - r.z) / DECOR_PERIOD) % 1).toBeCloseTo(0, 9);
+            }
+         }
          // nothing decorative above the deck within DECOR_CLEAR_X: the camera (x = 0) can never see it in front of the runner
          for (const r of d.rocks) {
             const halfW = (GLB_SIZE.jungleRock.width / GLB_SIZE.jungleRock.height) * (r.sx ?? r.scale ?? 1) / 2;

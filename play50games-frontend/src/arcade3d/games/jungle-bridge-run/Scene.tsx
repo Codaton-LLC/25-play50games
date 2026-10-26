@@ -3,9 +3,9 @@
 // One useRunFrame steps rules.ts (and syncs the store); visuals read the run and animate on useGameTime.
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
-import { Euler, Matrix4, Quaternion, Vector3, type Group } from "three";
+import { Euler, Matrix4, Quaternion, Vector3, type Group, type Material, type Mesh } from "three";
 import CameraRig from "@/arcade3d/core/CameraRig";
-import { DynamicInstancedModel, InstancedModel, Model } from "@/arcade3d/core/assets";
+import { DynamicInstancedModel, Model } from "@/arcade3d/core/assets";
 import { playSfx } from "@/arcade3d/core/audio";
 import { SkyDome, Water } from "@/arcade3d/core/env";
 import { FRAME_PRIORITY } from "@/arcade3d/core/frameLoop";
@@ -15,14 +15,14 @@ import { useInput } from "@/arcade3d/core/input";
 import { useLevel } from "@/arcade3d/core/level";
 import { randomSeed } from "@/arcade3d/core/math";
 import { scaledCount, useQuality } from "@/arcade3d/core/quality";
-import { BlobShadow, DynamicInstanced } from "@/arcade3d/core/render";
+import { BlobShadow, DynamicInstanced, type InstanceSpot } from "@/arcade3d/core/render";
 import { BONE, HumanoidModel, cheerPose, flailPose, gaitPhaseStep, jumpPose, turnBone, useHumanoidPose, walkPose, wrapPhase } from "@/arcade3d/core/rig";
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { useFittedView } from "@/arcade3d/core/useFittedView";
 import { useRunFrame } from "@/arcade3d/core/useRunFrame";
 import { ASSETS, EXPLORER_LANDMARKS, EXPLORER_SCALE, FIT } from "./assets";
 import { LEVELS, type JungleLevel } from "./levels";
-import { COLORS, FOV, LOOK_AHEAD_Z, VIEW_CONFIG, WATER_Y, backdropFor, decorSpots, gateSpots, lavaSpots, pillarSpots, trackSpots, vineSpots } from "./looks";
+import { COLORS, FOV, LOOK_AHEAD_Z, TILE, VIEW_CONFIG, VISIBLE_BACK, WATER_Y, backdropFor, decorSpots, decorZ, firstAtOrAfter, gateOpacity, gateSpots, lavaSpots, pillarSpots, poolSize, trackSpots, vineSpots, visibleAhead } from "./looks";
 import {
    ExplorerPrimitive,
    PartsInstanced,
@@ -42,7 +42,7 @@ import {
    useParts,
    vineBarParts,
 } from "./Primitives";
-import { LAVA_ON, LAVA_PERIOD, createRun, finishZ, isLavaActive, logXAt, step, syncStore, type LogObstacle, type Run, type RunnerInput } from "./rules";
+import { LANE_X, LAVA_ON, LAVA_PERIOD, createRun, finishZ, isLavaActive, logXAt, step, syncStore, type LogObstacle, type Run, type RunnerInput } from "./rules";
 
 const V = new Vector3();
 const Q = new Quaternion();
@@ -50,6 +50,81 @@ const E = new Euler();
 const S = new Vector3();
 const M1 = new Matrix4();
 const AT = { x: 0, y: 0, z: 0 };
+
+/** A spot's matrix (translate, turn about y, per-axis scale), written into m. */
+function spotInto(m: Matrix4, spot: InstanceSpot, z = spot.z): void {
+   E.set(0, spot.rotY ?? 0, 0);
+   Q.setFromEuler(E);
+   V.set(spot.x, spot.y, z);
+   const k = spot.scale ?? 1;
+   S.set(spot.sx ?? k, spot.sy ?? k, spot.sz ?? k);
+   m.compose(V, Q, S);
+}
+
+/**
+ * A pool that draws only the spots of a z-sorted list inside the visible stretch around the runner:
+ * copy i is spot first + i, where first is found once per frame (copy 0). `skip` hides a spot.
+ */
+function windowPool(sorted: readonly InstanceSpot[], run: Run, back: number, ahead: number, reach: number, skip?: (spot: InstanceSpot) => boolean) {
+   let first = 0;
+   return (i: number, m: Matrix4) => {
+      if (i === 0) first = firstAtOrAfter(sorted, run.z - back - reach);
+      const spot = sorted[first + i];
+      if (!spot || spot.z > run.z + ahead + reach) return false;
+      if (skip && skip(spot)) return false;
+      spotInto(m, spot);
+   };
+}
+
+/** The gate row the runner is passing, drawn on its own with its materials faded: it never hides the runner. */
+function FadingGateRow({ run, rows }: { run: Run; rows: readonly number[] }) {
+   const group = useRef<Group>(null);
+   const faded = useRef<Material[]>([]);
+   useEffect(
+      () => () => {
+         for (const m of faded.current) m.dispose();
+         faded.current = [];
+      },
+      []
+   );
+   useFrame(() => {
+      const g = group.current;
+      if (!g) return;
+      let row = -1;
+      let alpha = 1;
+      for (const z of rows) {
+         const a = gateOpacity(z, run.z);
+         if (a < 1) {
+            row = z;
+            alpha = a;
+            break;
+         }
+      }
+      g.visible = row >= 0;
+      if (row < 0) return;
+      g.position.z = row;
+      g.traverse((o) => {
+         const mesh = o as Mesh;
+         if (!mesh.isMesh) return;
+         if (!mesh.userData.faded) {
+            const mat = (mesh.material as Material).clone();
+            mat.transparent = true;
+            mat.depthWrite = false;
+            mesh.material = mat;
+            mesh.userData.faded = true;
+            faded.current.push(mat);
+         }
+         (mesh.material as Material).opacity = alpha;
+      });
+   }, FRAME_PRIORITY.visuals);
+   return (
+      <group ref={group} visible={false}>
+         {[0, 1, 2].map((lane) => (
+            <Model key={lane} asset={ASSETS.gate} position={[LANE_X[lane], 0, 0]} />
+         ))}
+      </group>
+   );
+}
 
 function LevelScene() {
    const { id, config } = useLevel<JungleLevel>();
@@ -76,9 +151,28 @@ function LevelScene() {
    const decor = useMemo(() => {
       const d = decorSpots(id, level);
       const keep = <T,>(a: T[]) => a.slice(0, scaledCount(a.length, quality.decor));
-      return { ...d, trees: keep(d.trees), ferns: keep(d.ferns), vines: keep(d.vines) };
+      return { ...d, rocks: keep(d.rocks), trees: keep(d.trees), ferns: keep(d.ferns), vines: keep(d.vines) };
    }, [id, level, quality.decor]);
    const backdrop = useMemo(() => backdropFor(level), [level]);
+   const ahead = visibleAhead(level);
+   const pools = useMemo(() => {
+      const fadingRow = (spot: InstanceSpot) => gateOpacity(spot.z, run.z) < 1;
+      return {
+         deck: { count: poolSize(track.deck, VISIBLE_BACK, ahead, TILE / 2), update: windowPool(track.deck, run, VISIBLE_BACK, ahead, TILE / 2) },
+         rope: { count: poolSize(track.rope, VISIBLE_BACK, ahead, 1.5), update: windowPool(track.rope, run, VISIBLE_BACK, ahead, 1.5) },
+         gate: { count: poolSize(gates, VISIBLE_BACK, ahead, 0.5), update: windowPool(gates, run, VISIBLE_BACK, ahead, 0.5, fadingRow) },
+         pillar: { count: poolSize(pillars, VISIBLE_BACK, ahead, 0.6), update: windowPool(pillars, run, VISIBLE_BACK, ahead, 0.6) },
+         gateRows: Array.from(new Set(gates.map((g) => g.z))),
+      };
+   }, [track, gates, pillars, run, ahead]);
+   const decorUpdate = useMemo(() => {
+      const wrap = (list: readonly InstanceSpot[]) => (i: number, m: Matrix4) => {
+         const spot = list[i];
+         if (!spot) return false;
+         spotInto(m, spot, decorZ(spot.z, run.z));
+      };
+      return { rocks: wrap(decor.rocks), trees: wrap(decor.trees), ferns: wrap(decor.ferns), vines: wrap(decor.vines), stilts: wrap(decor.stilts) };
+   }, [decor, run]);
    const trackEnd = finishZ(level);
 
    const parts = {
@@ -212,14 +306,15 @@ function LevelScene() {
          <SkyDome top={level.lighting === "sunset" ? "#7c2d12" : "#0ea5e9"} bottom={level.background} />
          <Water position={[0, WATER_Y, trackEnd / 2]} size={[160, trackEnd + 160]} color={COLORS.water} deep={COLORS.waterDeep} />
 
-         {/* the track: plank lanes, rope bridges, gates */}
-         <InstancedModel asset={ASSETS.deck} spots={track.deck} fallback={<PartsInstanced spots={track.deck} parts={parts.deck} name="deck" />} />
-         {track.rope.length > 0 && <InstancedModel asset={ASSETS.ropeBridge} spots={track.rope} fallback={<PartsInstanced spots={track.rope} parts={parts.rope} name="rope" />} />}
-         <InstancedModel asset={ASSETS.gate} spots={gates} fallback={<PartsInstanced spots={gates} parts={parts.gate} name="gate" />} />
-         <PartsInstanced spots={decor.stilts} parts={parts.stilt} name="stilts" />
+         {/* the track: only the visible stretch, pooled and recycled along z */}
+         <DynamicInstancedModel asset={ASSETS.deck} count={pools.deck.count} update={pools.deck.update} fallbackParts={parts.deck} name="deck" />
+         {pools.rope.count > 0 && <DynamicInstancedModel asset={ASSETS.ropeBridge} count={pools.rope.count} update={pools.rope.update} fallbackParts={parts.rope} name="rope" />}
+         <DynamicInstancedModel asset={ASSETS.gate} count={pools.gate.count} update={pools.gate.update} fallbackParts={parts.gate} name="gates" />
+         <FadingGateRow run={run} rows={pools.gateRows} />
+         <DynamicInstanced count={decor.stilts.length} update={decorUpdate.stilts} parts={parts.stilt} name="stilts" />
 
          {/* obstacles */}
-         {pillars.length > 0 && <InstancedModel asset={ASSETS.pillar} spots={pillars} fallback={<PartsInstanced spots={pillars} parts={parts.pillar} name="pillar" />} />}
+         {pools.pillar.count > 0 && <DynamicInstancedModel asset={ASSETS.pillar} count={pools.pillar.count} update={pools.pillar.update} fallbackParts={parts.pillar} name="pillars" />}
          {logs.length > 0 && <DynamicInstancedModel asset={ASSETS.log} count={logs.length} update={placeLog} fallbackParts={parts.log} name="logs" />}
          <PartsInstanced spots={vines} parts={parts.vine} name="vine" />
          {lavas.length > 0 && (
@@ -230,11 +325,11 @@ function LevelScene() {
          )}
          <DynamicInstanced count={run.gems.length} update={placeGem} parts={parts.gem} name="gems" />
 
-         {/* the canyon */}
-         <InstancedModel asset={ASSETS.rock} spots={decor.rocks} fallback={<PartsInstanced spots={decor.rocks} parts={parts.rock} name="rock" />} />
-         <InstancedModel asset={ASSETS.tree} spots={decor.trees} fallback={<PartsInstanced spots={decor.trees} parts={parts.tree} name="tree" />} />
-         <InstancedModel asset={ASSETS.fern} spots={decor.ferns} fallback={<PartsInstanced spots={decor.ferns} parts={parts.fern} name="fern" />} />
-         {decor.vines.length > 0 && <InstancedModel asset={ASSETS.hangingVine} spots={decor.vines} fallback={<PartsInstanced spots={decor.vines} parts={parts.hanging} name="hanging" />} />}
+         {/* the canyon: one seeded band, wrapped into the visible stretch */}
+         {decor.rocks.length > 0 && <DynamicInstancedModel asset={ASSETS.rock} count={decor.rocks.length} update={decorUpdate.rocks} fallbackParts={parts.rock} name="rocks" />}
+         {decor.trees.length > 0 && <DynamicInstancedModel asset={ASSETS.tree} count={decor.trees.length} update={decorUpdate.trees} fallbackParts={parts.tree} name="trees" />}
+         {decor.ferns.length > 0 && <DynamicInstancedModel asset={ASSETS.fern} count={decor.ferns.length} update={decorUpdate.ferns} fallbackParts={parts.fern} name="ferns" />}
+         {decor.vines.length > 0 && <DynamicInstancedModel asset={ASSETS.hangingVine} count={decor.vines.length} update={decorUpdate.vines} fallbackParts={parts.hanging} name="hanging" />}
          {backdrop && (
             <group ref={backdropRef} rotation-y={backdrop.rotY} scale={backdrop.scale}>
                <Model asset={backdrop.kind === "volcano" ? ASSETS.volcano : ASSETS.waterfall} />
