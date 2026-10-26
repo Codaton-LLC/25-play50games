@@ -231,6 +231,28 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/toy-store-night-shift/toyRobot.glb",
    "/models/3d/toy-store-night-shift/toyBin.glb",
    "/models/3d/toy-store-night-shift/toyBinPlush.glb",
+   // Menu 1 jungle-bridge-run (2026-10-25): the ready menu1-jungle-bridge-run GLBs (templePillarV2 and
+   // ruinGateR, not the V1s; jungleLogSingle, jungleFern and volcanoBackdrop from the still-needed list are
+   // in the ready folder now), copied as optimized; fits in games/jungle-bridge-run/assets.ts. The explorer
+   // is a static T-pose for the core auto-rig. jungleLog (two logs) and junglePlant (potted) are not used.
+   "/models/3d/jungle-bridge-run/charExplorer.glb",
+   "/models/3d/jungle-bridge-run/woodenBridge.glb",
+   "/models/3d/jungle-bridge-run/ropeBridge.glb",
+   "/models/3d/jungle-bridge-run/jungleRock.glb",
+   "/models/3d/jungle-bridge-run/templePillarV2.glb",
+   "/models/3d/jungle-bridge-run/waterfallCliff.glb",
+   "/models/3d/jungle-bridge-run/ruinGateR.glb",
+   "/models/3d/jungle-bridge-run/jungleLogSingle.glb",
+   "/models/3d/jungle-bridge-run/jungleFern.glb",
+   "/models/3d/jungle-bridge-run/volcanoBackdrop.glb",
+   "/models/3d/jungle-bridge-run/hangingVine.glb",
+   // Menu 1 taxi-rush-3d (2026-10-25): the ready menu1-taxi-rush-3d GLBs and the shared traffic light and
+   // cone, copied as optimized; fits measured in games/taxi-rush-3d/assets.ts.
+   "/models/3d/taxi-rush-3d/taxiCab.glb",
+   "/models/3d/taxi-rush-3d/townhouseBlock.glb",
+   "/models/3d/taxi-rush-3d/cornerShop.glb",
+   "/models/3d/taxi-rush-3d/busStop.glb",
+   "/models/3d/shared/trafficLight.glb",
 ];
 
 const LISTED: ReadonlySet<string> = new Set(MODEL_MANIFEST);
