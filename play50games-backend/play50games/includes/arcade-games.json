@@ -775,12 +775,19 @@
     "jungle-bridge-run": {
       "title": "Jungle Bridge Run",
       "kind": "points",
-      "max_score": 3000,
-      "min_duration_ms": 10000,
-      "max_duration_ms": 300000,
-      "base": 3000,
-      "max_pps": 3000,
-      "enabled": false
+      "max_score": 880,
+      "min_duration_ms": 5500,
+      "max_duration_ms": 75000,
+      "base": 480,
+      "max_pps": 30,
+      "enabled": false,
+      "levels": [
+        { "title": "Jungle Path", "max_score": 880, "min_duration_ms": 5500, "max_duration_ms": 75000, "base": 480, "max_pps": 30 },
+        { "title": "Rope Bridges", "max_score": 1260, "min_duration_ms": 5200, "max_duration_ms": 90000, "base": 800, "max_pps": 23 },
+        { "title": "Waterfall", "max_score": 1680, "min_duration_ms": 4900, "max_duration_ms": 110000, "base": 1120, "max_pps": 22 },
+        { "title": "Ancient Temple", "max_score": 2050, "min_duration_ms": 3300, "max_duration_ms": 120000, "base": 1440, "max_pps": 20 },
+        { "title": "Volcano Jungle", "max_score": 2505, "min_duration_ms": 3200, "max_duration_ms": 120000, "base": 1920, "max_pps": 15 }
+      ]
     },
     "magic-carpet-ride": {
       "title": "Magic Carpet Ride",
