@@ -1,8 +1,19 @@
-import type { ArcadeGameMeta } from "@/arcade3d/types";
+import type { ArcadeGameMeta, LevelMeta, ScoringRules } from "@/arcade3d/types";
 
-// Plain data only (server-safe). scoring must match WP includes/arcade-games.json.
-// Stub (Menu 1 game 45, docs/menu1-new/specs-41-50.md): placeholder limits; the build replaces them
-// with the proven per-level limits (PROPOSED_LEVEL_LIMITS) and adds meta.levels.
+// Plain data only (server-safe). The numbers equal rules.ts PROPOSED_LEVEL_LIMITS (levels.test.ts) and WP
+// includes/arcade-games.json (registry.sync.test.ts). A level clears only on a win (every ticket served;
+// on L4-L5 one expired ticket is allowed).
+const PTS = { kind: "points", unitLabel: "pts", display: "int" } as const;
+const SCORING: ScoringRules = { ...PTS, maxScore: 1130, minDurationMs: 4000, maxDurationMs: 120_000, base: 690, maxPointsPerSec: 22 };
+
+const LEVELS: readonly LevelMeta[] = [
+   { id: 1, title: "Cheese Pizza", scoring: SCORING },
+   { id: 2, title: "Two Toppings", scoring: { ...PTS, maxScore: 1440, minDurationMs: 4000, maxDurationMs: 150_000, base: 920, maxPointsPerSec: 16 } },
+   { id: 3, title: "Restaurant Rush", scoring: { ...PTS, maxScore: 2000, minDurationMs: 4000, maxDurationMs: 180_000, base: 1380, maxPointsPerSec: 15 } },
+   { id: 4, title: "Multiple Orders", scoring: { ...PTS, maxScore: 2420, minDurationMs: 4000, maxDurationMs: 180_000, base: 1840, maxPointsPerSec: 10 } },
+   { id: 5, title: "Master Pizza Night", scoring: { ...PTS, maxScore: 2900, minDurationMs: 4000, maxDurationMs: 210_000, base: 2300, maxPointsPerSec: 7 } },
+];
+
 export const pizzaKitchen3dMeta: ArcadeGameMeta = {
    slug: "pizza-kitchen-3d",
    title: "Pizza Kitchen 3D",
@@ -18,16 +29,8 @@ export const pizzaKitchen3dMeta: ArcadeGameMeta = {
       keyboard: "WASD / arrows to move, E or Enter to use",
       touch: "Joystick to move + Use",
    },
-   scoring: {
-      kind: "points",
-      maxScore: 3000,
-      minDurationMs: 10_000,
-      maxDurationMs: 300_000,
-      base: 3000,
-      maxPointsPerSec: 3000,
-      unitLabel: "pts",
-      display: "int",
-   },
+   scoring: SCORING,
+   levels: LEVELS,
    thumbnail: null,
    accent: "#ef4444",
    owner: "claude",
