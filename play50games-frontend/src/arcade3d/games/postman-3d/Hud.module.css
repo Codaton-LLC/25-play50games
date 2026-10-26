@@ -1,0 +1,36 @@
+.route {
+   position: absolute;
+   top: calc(env(safe-area-inset-top, 0px) + 112px);
+   left: 12px;
+   width: min(344px, calc(100% - 24px));
+   padding: 12px;
+   border: 1px solid var(--stroke, #334155);
+   border-radius: 16px;
+   background: var(--card, #0f172a);
+   color: var(--text, #f8fafc);
+   pointer-events: none;
+   font-size: 12px;
+}
+.heading { display: flex; justify-content: space-between; gap: 8px; font-size: 10px; letter-spacing: 0.08em; }
+.heading span { color: var(--accent, #7dd3fc); letter-spacing: 0; }
+.items { display: flex; gap: 8px; margin-top: 10px; }
+.item { flex: 1; display: flex; flex-wrap: wrap; align-items: center; gap: 4px; min-width: 0; }
+.item strong { font-size: 21px; font-variant-numeric: tabular-nums; }
+.item > span:last-child { width: 100%; opacity: 0.8; }
+.swatch { width: 10px; height: 10px; border-radius: 50%; border: 1px solid #fff8; }
+.hint { margin-top: 10px; font-size: 10px; opacity: 0.8; }
+@media (max-height: 520px) and (min-width: 560px) {
+   .route { top: 62px; padding: 8px; width: 300px; }
+   .hint { display: none; }
+   .items { margin-top: 4px; }
+}
+/* Narrow phones: one compact row of chips (number + colour + icon), no heading or hint, so the map keeps its room. */
+@media (max-width: 480px) {
+   .route { top: calc(env(safe-area-inset-top, 0px) + 108px); left: 8px; width: auto; max-width: calc(100% - 16px); padding: 5px 8px; border-radius: 12px; font-size: 11px; }
+   .heading, .hint { display: none; }
+   .items { margin-top: 0; gap: 10px; }
+   .item { flex: 0 0 auto; flex-wrap: nowrap; gap: 3px; }
+   .item strong { font-size: 15px; }
+   .item > span:last-child { width: auto; }
+   .colorName { display: none; }
+}
