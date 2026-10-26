@@ -3,7 +3,7 @@
 // One useRunFrame steps rules.ts. Visuals read the run and animate with useGameTime.
 import { useEffect, useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
-import { Color, Euler, Matrix4, MeshStandardMaterial, Quaternion, SphereGeometry, Vector3, type Group, type Mesh } from "three";
+import { Color, Euler, RepeatWrapping, Matrix4, MeshStandardMaterial, Quaternion, SphereGeometry, Vector3, type Group, type Mesh } from "three";
 import { DynamicInstancedModel, InstancedModel, Model } from "@/arcade3d/core/assets";
 import { playSfx, startLoop, type LoopHandle } from "@/arcade3d/core/audio";
 import CameraRig from "@/arcade3d/core/CameraRig";
@@ -17,13 +17,13 @@ import { useLevel } from "@/arcade3d/core/level";
 import { randomSeed } from "@/arcade3d/core/math";
 import { hop, type BodyOffset } from "@/arcade3d/core/motion";
 import { scaledCount, useQuality } from "@/arcade3d/core/quality";
-import { BlobShadow, DynamicInstanced, Instanced, type InstancePart } from "@/arcade3d/core/render";
+import { BlobShadow, DynamicInstanced, Instanced, useCanvasTexture, type InstancePart } from "@/arcade3d/core/render";
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { useFittedView } from "@/arcade3d/core/useFittedView";
 import { useRunFrame } from "@/arcade3d/core/useRunFrame";
 import { ASSETS, FIT } from "./assets";
 import type { TaxiLevel } from "./levels";
-import { COLORS, DAMPING, FOV, LOOK_AHEAD, citySpots, cityBox, coneSpots, lightPoles, lookAtFor, skyFor, viewFor } from "./looks";
+import { COLORS, DAMPING, FOV, LOOK_AHEAD, citySpots, cityBox, coneSpots, drawAsphalt, drawFacade, lightPoles, lookAtFor, skyFor, stopBars, viewFor } from "./looks";
 import { PartsInstanced, RiderPrimitive, TaxiPrimitive, useCityParts } from "./Primitives";
 import { CALM_POINTS, CLOSE_POINTS, DROP_POINTS, HALF_STREET, PAD_R, createRun, signalRed, step, type Run } from "./rules";
 
@@ -58,6 +58,17 @@ function LevelScene() {
    const trees = useMemo(() => city.trees.slice(0, scaledCount(city.trees.length, quality.decor)), [city, quality.decor]);
    const lamps = useMemo(() => city.lamps.slice(0, scaledCount(city.lamps.length, quality.decor)), [city, quality.decor]);
    const poles = useMemo(() => lightPoles(run), [run]);
+   const bars = useMemo(() => stopBars(run), [run]);
+   const asphalt = useCanvasTexture(256, 256, drawAsphalt);
+   const facade = useCanvasTexture(128, 128, drawFacade);
+   useMemo(() => {
+      asphalt.wrapS = RepeatWrapping;
+      asphalt.wrapT = RepeatWrapping;
+      asphalt.repeat.set(90, 90);
+      asphalt.needsUpdate = true;
+   }, [asphalt]);
+   // the night level keeps a lighter asphalt so the streets never read as a void under its dim light
+   const roadTint = config.lighting === "night" ? "#9aa3b2" : "#ffffff";
    const cones = useMemo(() => coneSpots(run), [run]);
    const markers = useMemo(() => [run.marker], [run]);
    const parts = useCityParts();
@@ -187,10 +198,10 @@ function LevelScene() {
       <>
          <CameraRig camera={{ position: view.offset, fov: FOV, lookAt: look }} follow={aim} bounds={bounds} offset={view.offset} shift={view.shift} damping={DAMPING} />
          <SkyDome top={sky.top} bottom={sky.bottom} />
-         {/* asphalt to the fog, pavements, courtyards, dashes */}
+         {/* asphalt to the fog (dark grey with grain), pavements, courtyards, road paint */}
          <mesh rotation-x={-Math.PI / 2} position={[run.width / 2, -0.01, run.depth / 2]}>
-            <circleGeometry args={[220, 48]} />
-            <meshStandardMaterial color={COLORS.road} roughness={0.92} />
+            <planeGeometry args={[440, 440]} />
+            <meshStandardMaterial map={asphalt} color={roadTint} roughness={0.95} />
          </mesh>
          <Instanced spots={city.slabs} name="pavements">
             <boxGeometry args={[1, 1, 1]} />
@@ -203,6 +214,27 @@ function LevelScene() {
          <Instanced spots={city.dashes} name="dashes">
             <boxGeometry args={[1, 1, 1]} />
             <meshStandardMaterial color={COLORS.roadLine} roughness={0.5} />
+         </Instanced>
+         <Instanced spots={city.zebras} name="zebras">
+            <boxGeometry args={[1, 1, 1]} />
+            <meshStandardMaterial color={COLORS.roadLine} roughness={0.55} />
+         </Instanced>
+         {bars.length > 0 && (
+            <Instanced spots={bars} name="stop-bars">
+               <boxGeometry args={[1, 1, 1]} />
+               <meshStandardMaterial color={COLORS.roadLine} roughness={0.5} />
+            </Instanced>
+         )}
+         {/* code buildings: three facade tones (one window texture), slate roof caps */}
+         {([COLORS.facadeA, COLORS.facadeB, COLORS.facadeC] as const).map((tone, k) => (
+            <Instanced key={tone} spots={city.boxes[k]} name={`facade-${k}`}>
+               <boxGeometry args={[1, 1, 1]} />
+               <meshStandardMaterial map={facade} color={tone} roughness={0.8} />
+            </Instanced>
+         ))}
+         <Instanced spots={city.roofs} name="roofs">
+            <boxGeometry args={[1, 1, 1]} />
+            <meshStandardMaterial color={COLORS.roof} roughness={0.7} />
          </Instanced>
          <InstancedModel asset={ASSETS.townhouseBlock} spots={city.houses} fallback={<PartsInstanced spots={city.houses} parts={parts.house} name="house" />} />
          <InstancedModel asset={ASSETS.cornerShop} spots={city.shops} fallback={<PartsInstanced spots={city.shops} parts={parts.shop} name="shop" />} />

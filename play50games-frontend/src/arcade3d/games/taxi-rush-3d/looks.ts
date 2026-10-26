@@ -9,8 +9,12 @@ import { BLOCK, HALF_STREET, INSET, PITCH as GRID, STREET, citySize, streetX, st
 import { FIT } from "./assets";
 
 export const COLORS = {
-   road: "#334155",
-   roadLine: "#cbd5e1",
+   road: "#3a3f47",
+   roadLine: "#e2e8f0",
+   facadeA: "#e7dccb",
+   facadeB: "#c9d3dd",
+   facadeC: "#d6a58a",
+   roof: "#475569",
    sidewalk: "#94a3b8",
    sidewalkTrim: "#64748b",
    building: "#e7e5e4",
@@ -99,86 +103,120 @@ export function fogFor(level: TaxiLevel): [string, number, number] {
 }
 
 // ---------- the city around the streets (visual only; the rules' building boxes are the solids) ----------
+//
+// Triangle budget (assets.test.ts pins it at <= 250k per frame on every level): the Hyper3D GLBs are
+// 1.5-3k triangles each, so they dress the playable blocks only, two per block (a corner shop and a
+// townhouse, a bus stop once per level), and every other building cell is a code box (12 triangles,
+// two tones and a window texture). The ring of blocks round the grid is code boxes only.
 
 export interface CitySpots {
+   /** GLB pieces (playable blocks) */
    houses: InstanceSpot[];
    shops: InstanceSpot[];
    busStops: InstanceSpot[];
    lamps: InstanceSpot[];
    trees: InstanceSpot[];
-   /** the raised pavement slab of each block (x, z, size in sx / sz) */
+   /** code buildings in three facade colours (bodies sized by sx / sy / sz) and their roof caps */
+   boxes: [InstanceSpot[], InstanceSpot[], InstanceSpot[]];
+   roofs: InstanceSpot[];
+   /** the raised pavement slab of each block, the courtyards */
    slabs: InstanceSpot[];
    courts: InstanceSpot[];
-   /** road centre dashes */
+   /** road paint: centre dashes, zebra crossings at the playable junctions */
    dashes: InstanceSpot[];
+   zebras: InstanceSpot[];
 }
 
-/** The four sides of a block: the outward normal's yaw (a model's front is +z), the edge start and the along direction. */
+/** The four sides of a block: the outward normal's yaw (a model's front is +z), the edge start, the along direction, the inward normal. */
 const SIDES = [
-   { rotY: Math.PI, ox: 0, oz: 0, ax: 1, az: 0, nx: 0, nz: 1 }, // south edge (z = z0), facing -z, depth into +z
-   { rotY: Math.PI / 2, ox: 1, oz: 0, ax: 0, az: 1, nx: -1, nz: 0 }, // east edge (x = x1), facing +x
-   { rotY: 0, ox: 1, oz: 1, ax: -1, az: 0, nx: 0, nz: -1 }, // north edge (z = z1), facing +z
-   { rotY: -Math.PI / 2, ox: 0, oz: 1, ax: 0, az: -1, nx: 1, nz: 0 }, // west edge (x = x0), facing -x
+   { rotY: Math.PI, ox: 0, oz: 0, ax: 1, az: 0, nx: 0, nz: 1 },
+   { rotY: Math.PI / 2, ox: 1, oz: 0, ax: 0, az: 1, nx: -1, nz: 0 },
+   { rotY: 0, ox: 1, oz: 1, ax: -1, az: 0, nx: 0, nz: -1 },
+   { rotY: -Math.PI / 2, ox: 0, oz: 1, ax: 0, az: -1, nx: 1, nz: 0 },
 ] as const;
 
+const SHOP_W = FIT.shopHeight * (1.9053 / 1.2808);
+const HOUSE_W = FIT.houseHeight * (1.5529 / 1.8983);
+const HOUSE_D = FIT.houseHeight * (1.6696 / 1.8983);
+const BUS_D = FIT.busStopHeight * (1.0217 / 1.239);
+
 /**
- * One block's buildings, flush with its building box (the rules' AABB): a corner shop on each corner, two
- * townhouses (or a house and a bus stop) along the middle of each side, a lamp between them on the
- * pavement edge, and a courtyard with a tree. Every spot's scale is the piece's height (1 m fits).
+ * One block: 12 building cells flush with its building box (4 corners, 2 along the middle of each side).
+ * `glb`: a corner shop and a townhouse (or the level's bus stop) are GLBs, the other 10 cells are code
+ * boxes; a ring block is 12 code boxes. A lamp and a courtyard tree on playable blocks only.
  */
-function dressBlock(out: CitySpots, x0: number, z0: number, size: number, rng: () => number): void {
-   const shopW = FIT.shopHeight * (1.9053 / 1.2808);
-   const houseW = FIT.houseHeight * (1.5529 / 1.8983);
-   const houseD = FIT.houseHeight * (1.6696 / 1.8983);
-   const busD = FIT.busStopHeight * (1.0217 / 1.239);
+function dressBlock(out: CitySpots, x0: number, z0: number, size: number, rng: () => number, glb: boolean, bus: boolean): void {
    out.slabs.push({ x: x0 + size / 2, y: 0.06, z: z0 + size / 2, sx: size + 0.3, sy: 0.12, sz: size + 0.3 });
-   out.courts.push({ x: x0 + size / 2, y: 0.125, z: z0 + size / 2, sx: size - 2 * shopW + 0.4, sy: 0.01, sz: size - 2 * shopW + 0.4 });
-   out.trees.push({ x: x0 + size / 2 + (rng() - 0.5), y: 0.12, z: z0 + size / 2 + (rng() - 0.5), rotY: rng() * Math.PI * 2, scale: FIT.treeHeight * (0.85 + rng() * 0.3) });
-   const busSide = Math.floor(rng() * 4);
+   out.courts.push({ x: x0 + size / 2, y: 0.125, z: z0 + size / 2, sx: size - 2 * SHOP_W + 0.4, sy: 0.01, sz: size - 2 * SHOP_W + 0.4 });
+   const shopCorner = Math.floor(rng() * 4);
+   const houseCell = Math.floor(rng() * 8);
+   const box = (cx: number, cz: number, w: number, d: number, h: number, quarter: boolean) => {
+      const tone = Math.floor(rng() * 3);
+      const sx = quarter ? d : w;
+      const sz = quarter ? w : d;
+      out.boxes[tone].push({ x: cx, y: 0.12 + h / 2, z: cz, sx, sy: h, sz });
+      out.roofs.push({ x: cx, y: 0.12 + h + 0.06, z: cz, sx: sx + 0.12, sy: 0.12, sz: sz + 0.12 });
+   };
    SIDES.forEach((side, k) => {
       const ex = x0 + side.ox * size;
       const ez = z0 + side.oz * size;
-      // corner shop at the start of this side, its front on this side
-      out.shops.push({ x: ex + side.ax * (shopW / 2) + side.nx * (shopW / 2), y: 0.12, z: ez + side.az * (shopW / 2) + side.nz * (shopW / 2), rotY: side.rotY, scale: FIT.shopHeight });
-      const mid = [size / 2 - houseW / 2 - 0.1, size / 2 + houseW / 2 + 0.1];
-      mid.forEach((along, m) => {
-         const bus = k === busSide && m === 1;
-         // a house is 0.92-1.0 of the nominal height, so it never grows past its slot
-         const scale = bus ? FIT.busStopHeight : FIT.houseHeight * (0.92 + rng() * 0.08);
-         const depth = bus ? busD : houseD * (scale / FIT.houseHeight);
-         out[bus ? "busStops" : "houses"].push({
-            x: ex + side.ax * along + side.nx * (depth / 2),
-            y: 0.12,
-            z: ez + side.az * along + side.nz * (depth / 2),
-            rotY: side.rotY,
-            scale,
-         });
+      const quarter = side.ax === 0;
+      // the corner cell at the start of this side
+      const cx = ex + side.ax * (SHOP_W / 2) + side.nx * (SHOP_W / 2);
+      const cz = ez + side.az * (SHOP_W / 2) + side.nz * (SHOP_W / 2);
+      if (glb && k === shopCorner) out.shops.push({ x: cx, y: 0.12, z: cz, rotY: side.rotY, scale: FIT.shopHeight });
+      else box(cx, cz, SHOP_W - 0.1, SHOP_W - 0.1, 2.2 + rng() * 0.9, quarter);
+      [size / 2 - HOUSE_W / 2 - 0.1, size / 2 + HOUSE_W / 2 + 0.1].forEach((along, m) => {
+         const cell = k * 2 + m;
+         const isGlb = glb && cell === houseCell;
+         const isBus = isGlb && bus;
+         const depth = isBus ? BUS_D : HOUSE_D;
+         const x = ex + side.ax * along + side.nx * (depth / 2);
+         const z = ez + side.az * along + side.nz * (depth / 2);
+         if (isBus) out.busStops.push({ x, y: 0.12, z, rotY: side.rotY, scale: FIT.busStopHeight });
+         else if (isGlb) out.houses.push({ x, y: 0.12, z, rotY: side.rotY, scale: FIT.houseHeight });
+         else box(ex + side.ax * along + side.nx * (HOUSE_D / 2), ez + side.az * along + side.nz * (HOUSE_D / 2), HOUSE_W - 0.08, HOUSE_D, 2.4 + rng() * 0.8, quarter);
       });
-      out.lamps.push({ x: ex + side.ax * (size / 2) - side.nx * 0.15, y: 0, z: ez + side.az * (size / 2) - side.nz * 0.15, rotY: side.rotY, scale: FIT.lampHeight });
+      if (glb && k === (shopCorner + 2) % 4) out.lamps.push({ x: ex + side.ax * (size / 2) - side.nx * 0.15, y: 0, z: ez + side.az * (size / 2) - side.nz * 0.15, rotY: side.rotY, scale: FIT.lampHeight });
    });
+   if (glb) out.trees.push({ x: x0 + size / 2 + (rng() - 0.5), y: 0.12, z: z0 + size / 2 + (rng() - 0.5), rotY: rng() * Math.PI * 2, scale: FIT.treeHeight * (0.85 + rng() * 0.3) });
 }
 
 const CITY = new Map<LevelId, CitySpots>();
 
-/** The playable blocks plus a ring of blocks round the grid (so the streets never end in a void). */
+/** The playable blocks (GLB-dressed) plus a ring of code-box blocks round the grid (no void at the edges). */
 export function citySpots(id: LevelId): CitySpots {
    let city = CITY.get(id);
    if (city) return city;
    const level = LEVELS[id];
    const rng = createRng(9100 + id);
-   city = { houses: [], shops: [], busStops: [], lamps: [], trees: [], slabs: [], courts: [], dashes: [] };
+   city = { houses: [], shops: [], busStops: [], lamps: [], trees: [], boxes: [[], [], []], roofs: [], slabs: [], courts: [], dashes: [], zebras: [] };
    const size = BLOCK - INSET * 2;
    for (let r = -1; r <= level.blocksZ; r++) {
       for (let c = -1; c <= level.blocksX; c++) {
-         dressBlock(city, STREET + c * GRID + INSET, STREET + r * GRID + INSET, size, rng);
+         const playable = r >= 0 && c >= 0 && r < level.blocksZ && c < level.blocksX;
+         dressBlock(city, STREET + c * GRID + INSET, STREET + r * GRID + INSET, size, rng, playable, playable && r === 0 && c === 0);
       }
    }
-   // dashes along every street, the ring's streets included
+   // centre dashes along every street segment (the ring's streets included): three 1.6 m dashes per block
    for (let i = -1; i <= level.blocksX + 1; i++) {
-      for (let r = -1; r <= level.blocksZ; r++) city.dashes.push({ x: i * GRID + HALF_STREET, y: 0.015, z: STREET + r * GRID + BLOCK / 2, sx: 0.14, sy: 0.02, sz: 2.2 });
+      for (let r = -1; r <= level.blocksZ; r++) for (const t of [-4.5, 0, 4.5]) city.dashes.push({ x: i * GRID + HALF_STREET, y: 0.015, z: STREET + r * GRID + BLOCK / 2 + t, sx: 0.16, sy: 0.02, sz: 1.6 });
    }
    for (let j = -1; j <= level.blocksZ + 1; j++) {
-      for (let c = -1; c <= level.blocksX; c++) city.dashes.push({ x: STREET + c * GRID + BLOCK / 2, y: 0.015, z: j * GRID + HALF_STREET, sx: 2.2, sy: 0.02, sz: 0.14 });
+      for (let c = -1; c <= level.blocksX; c++) for (const t of [-4.5, 0, 4.5]) city.dashes.push({ x: STREET + c * GRID + BLOCK / 2 + t, y: 0.015, z: j * GRID + HALF_STREET, sx: 1.6, sy: 0.02, sz: 0.16 });
+   }
+   // zebra crossings on the four approaches of every playable junction, just outside the junction square
+   for (let j = 0; j <= level.blocksZ; j++) {
+      for (let i = 0; i <= level.blocksX; i++) {
+         const cx = i * GRID + HALF_STREET;
+         const cz = j * GRID + HALF_STREET;
+         for (const dir of [-1, 1]) {
+            for (let k = -2; k <= 2; k++) {
+               city.zebras.push({ x: cx + k * 1.1, y: 0.016, z: cz + dir * (HALF_STREET + 1.1), sx: 0.55, sy: 0.02, sz: 1.6 });
+               city.zebras.push({ x: cx + dir * (HALF_STREET + 1.1), y: 0.016, z: cz + k * 1.1, sx: 1.6, sy: 0.02, sz: 0.55 });
+            }
+         }
+      }
    }
    CITY.set(id, city);
    return city;
@@ -197,13 +235,47 @@ export function lightPoles(run: Run): InstanceSpot[] {
    return spots;
 }
 
-/** Cones at both ends of every stop line, on the road's edge. */
+/** Two cones per lit junction, on the corners the poles leave free. */
 export function coneSpots(run: Run): InstanceSpot[] {
    const spots: InstanceSpot[] = [];
-   for (const stop of run.stops) {
-      for (const end of [stop.span0 + 0.3, stop.span1 - 0.3]) {
-         spots.push({ x: stop.axis === 0 ? stop.coord : end, y: 0, z: stop.axis === 0 ? end : stop.coord, scale: FIT.coneHeight });
-      }
+   for (const light of run.lights) {
+      const cx = streetX(light.i);
+      const cz = streetZ(light.j);
+      const d = HALF_STREET + 0.2;
+      spots.push({ x: cx + d, y: 0, z: cz + d, scale: FIT.coneHeight });
+      spots.push({ x: cx - d, y: 0, z: cz - d, scale: FIT.coneHeight });
    }
    return spots;
+}
+
+/** A white stop bar on the road at every stop line of a lit junction. */
+export function stopBars(run: Run): InstanceSpot[] {
+   return run.stops.map((stop) => {
+      const mid = (stop.span0 + stop.span1) / 2;
+      const along = stop.coord - stop.into * 0.2;
+      return stop.axis === 0
+         ? { x: along, y: 0.017, z: mid, sx: 0.35, sy: 0.02, sz: stop.span1 - stop.span0 - 0.4 }
+         : { x: mid, y: 0.017, z: along, sx: stop.span1 - stop.span0 - 0.4, sy: 0.02, sz: 0.35 };
+   });
+}
+
+/** Asphalt: a dark grey with a fine grain (never black), drawn once. */
+export function drawAsphalt(ctx: CanvasRenderingContext2D, w: number, h: number): void {
+   ctx.fillStyle = COLORS.road;
+   ctx.fillRect(0, 0, w, h);
+   for (let i = 0; i < 2200; i++) {
+      const v = Math.imul(i + 1, 2654435761) >>> 0;
+      ctx.fillStyle = v % 3 === 0 ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.12)";
+      ctx.fillRect(v % w, (v >>> 8) % h, 1 + (v % 2), 1 + ((v >>> 4) % 2));
+   }
+}
+
+/** A facade: a light wall with two floors of dark windows and a base band, drawn once (code buildings). */
+export function drawFacade(ctx: CanvasRenderingContext2D, w: number, h: number): void {
+   ctx.fillStyle = "#ffffff";
+   ctx.fillRect(0, 0, w, h);
+   ctx.fillStyle = "rgba(15,23,42,0.18)";
+   ctx.fillRect(0, h * 0.86, w, h * 0.14);
+   ctx.fillStyle = "rgba(30,41,59,0.78)";
+   for (const fy of [0.16, 0.5]) for (let k = 0; k < 3; k++) ctx.fillRect(w * (0.12 + k * 0.29), h * fy, w * 0.18, h * 0.22);
 }

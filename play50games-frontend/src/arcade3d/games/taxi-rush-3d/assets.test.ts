@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { hasModel } from "@/arcade3d/core/modelManifest";
 import { readCharacterGlb } from "@/arcade3d/core/rig/robotGlb";
@@ -6,7 +8,7 @@ import type { ModelAsset } from "@/arcade3d/core/types";
 import { LEVEL_IDS } from "@/arcade3d/types";
 import { ASSETS, FIT, GLB_SIZE } from "./assets";
 import { LEVELS } from "./levels";
-import { citySpots, coneSpots, lightPoles } from "./looks";
+import { citySpots, coneSpots, lightPoles, stopBars } from "./looks";
 import { BLOCK, CAR_L, CAR_W, HALF_STREET, INSET, PAD_R, PITCH, RADIUS, STREET, createRun } from "./rules";
 
 async function bounds(url: string) {
@@ -70,6 +72,41 @@ describe("taxi GLB fits (real meshes)", () => {
    });
 });
 
+/** Triangles of a GLB: every primitive's index count / 3 (read from the GLB's JSON). */
+function glbTris(url: string): number {
+   const glb = readFileSync(path.join(process.cwd(), "public", url));
+   const json = JSON.parse(glb.subarray(20, 20 + glb.readUInt32LE(12)).toString("utf8")) as { meshes: { primitives: { indices: number }[] }[]; accessors: { count: number }[] };
+   return json.meshes.reduce((sum, m) => sum + m.primitives.reduce((t, p) => t + json.accessors[p.indices].count / 3, 0), 0);
+}
+
+describe("taxi triangle budget (<= 250k per frame on every level, every decor copy drawn)", () => {
+   for (const id of LEVEL_IDS) {
+      it(`L${id}`, () => {
+         const level = LEVELS[id];
+         const city = citySpots(id);
+         const run = createRun(3, level);
+         const tri = (a: ModelAsset) => glbTris(a.url);
+         const glb =
+            tri(ASSETS.taxiCab) +
+            tri(ASSETS.travellerNpc) +
+            level.traffic * tri(ASSETS.car) +
+            city.houses.length * tri(ASSETS.townhouseBlock) +
+            city.shops.length * tri(ASSETS.cornerShop) +
+            city.busStops.length * tri(ASSETS.busStop) +
+            city.lamps.length * tri(ASSETS.lamp) +
+            city.trees.length * tri(ASSETS.tree) +
+            lightPoles(run).length * tri(ASSETS.trafficLight) +
+            coneSpots(run).length * tri(ASSETS.trafficCone);
+         // code geometry: 12 triangles a box, the bulbs' spheres (12 x 10), the pad ring, the ground, the sky dome (generous)
+         const boxes = city.boxes[0].length + city.boxes[1].length + city.boxes[2].length + city.roofs.length + city.slabs.length + city.courts.length + city.dashes.length + city.zebras.length + stopBars(run).length;
+         const code = 12 * boxes + lightPoles(run).length * 240 + 160 + 2 + 8000;
+         expect(glb + code).toBeLessThanOrEqual(250_000);
+         // the heavy pieces are GLBs on the playable blocks only
+         expect(tri(ASSETS.townhouseBlock)).toBeLessThanOrEqual(3000);
+      });
+   }
+});
+
 describe("taxi city layout", () => {
    const footprint = (w: number, d: number, s: { x: number; z: number; rotY?: number; scale?: number }) => {
       const k = s.scale ?? 1;
@@ -97,9 +134,18 @@ describe("taxi city layout", () => {
          }
          for (const s of city.shops) expect(insideABlock(footprint(GLB_SIZE.cornerShop.width / GLB_SIZE.cornerShop.height, GLB_SIZE.cornerShop.depth / GLB_SIZE.cornerShop.height, s))).toBe(true);
          for (const s of city.busStops) expect(insideABlock(footprint(GLB_SIZE.busStop.width / GLB_SIZE.busStop.height, GLB_SIZE.busStop.depth / GLB_SIZE.busStop.height, s))).toBe(true);
-         // the playable blocks plus the ring: (bx + 2) x (bz + 2) blocks, 4 shops each
-         expect(city.shops.length).toBe(4 * (level.blocksX + 2) * (level.blocksZ + 2));
-         expect(city.slabs.length).toBe((level.blocksX + 2) * (level.blocksZ + 2));
+         for (const k of [0, 1, 2] as const) for (const s of city.boxes[k]) expect(insideABlock({ minX: s.x - s.sx! / 2, maxX: s.x + s.sx! / 2, minZ: s.z - s.sz! / 2, maxZ: s.z + s.sz! / 2 })).toBe(true);
+         // the playable blocks plus the ring: (bx + 2) x (bz + 2) blocks of 12 cells; GLBs only on the playable ones
+         const blocks = (level.blocksX + 2) * (level.blocksZ + 2);
+         const playable = level.blocksX * level.blocksZ;
+         expect(city.slabs.length).toBe(blocks);
+         expect(city.shops.length).toBe(playable);
+         expect(city.houses.length + city.busStops.length).toBe(playable);
+         expect(city.busStops.length).toBe(1);
+         expect(city.boxes[0].length + city.boxes[1].length + city.boxes[2].length).toBe(12 * blocks - 2 * playable);
+         expect(city.roofs.length).toBe(12 * blocks - 2 * playable);
+         expect(city.lamps.length).toBe(playable);
+         expect(city.trees.length).toBe(playable);
          // buildings stay low enough that a 48° camera never loses a street behind them for more than 3 m
          expect(Math.max(FIT.houseHeight, FIT.shopHeight, FIT.busStopHeight) / Math.tan((48 * Math.PI) / 180)).toBeLessThan(3.2);
       });
