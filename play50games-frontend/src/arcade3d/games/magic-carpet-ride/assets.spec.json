@@ -1,0 +1,18 @@
+{
+   "slug": "magic-carpet-ride",
+   "universe": "play50-toy-world-premium",
+   "notes": "GLBs are generated already (menu1-magic-carpet-ride/ and shared/star.glb). This file names the ids the game loads from /models/3d/magic-carpet-ride/. Claude copies them and adds the manifest lines. Leave desertRooftop.glb, floatingPalace.glb, floatingRock.glb, floatingRockV2.glb and magic-carpet-ride/hero.glb. floatingRockV3.glb is the flat-topped rock with a pointed underside; until it is in the manifest the bevelled stand-in draws.",
+   "assets": [
+      { "id": "charCarpetRider", "kind": "character", "file": "menu1-magic-carpet-ride/charCarpetRider.glb", "budget": { "tris": 20000, "bytes": 1500000 } },
+      { "id": "magicCarpet", "kind": "prop", "file": "menu1-magic-carpet-ride/magicCarpet.glb", "budget": { "tris": 5000, "bytes": 300000 } },
+      { "id": "flyingRing", "kind": "prop", "file": "menu1-magic-carpet-ride/flyingRing.glb", "budget": { "tris": 5000, "bytes": 300000 } },
+      { "id": "palaceTower", "kind": "prop", "file": "menu1-magic-carpet-ride/palaceTower.glb", "budget": { "tris": 5000, "bytes": 300000 } },
+      { "id": "desertRooftopV2", "kind": "prop", "file": "menu1-magic-carpet-ride/desertRooftopV2.glb", "budget": { "tris": 5000, "bytes": 300000 } },
+      { "id": "cloud", "kind": "prop", "file": "menu1-magic-carpet-ride/cloud.glb", "budget": { "tris": 5000, "bytes": 300000 } },
+      { "id": "hangingLantern", "kind": "prop", "file": "menu1-magic-carpet-ride/hangingLantern.glb", "budget": { "tris": 5000, "bytes": 300000 } },
+      { "id": "canyonMesa", "kind": "prop", "file": "menu1-magic-carpet-ride/canyonMesa.glb", "budget": { "tris": 5000, "bytes": 300000 } },
+      { "id": "floatingPalaceR", "kind": "prop", "file": "menu1-magic-carpet-ride/floatingPalaceR.glb", "budget": { "tris": 5000, "bytes": 300000 } },
+      { "id": "floatingRockV3", "kind": "prop", "file": "menu1-magic-carpet-ride/floatingRockV3.glb", "budget": { "tris": 5000, "bytes": 300000 } },
+      { "id": "star", "kind": "prop", "file": "shared/star.glb", "budget": { "tris": 5000, "bytes": 300000 } }
+   ]
+}

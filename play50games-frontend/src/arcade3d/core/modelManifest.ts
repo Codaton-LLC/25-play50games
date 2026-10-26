@@ -257,6 +257,18 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/aquarium-cleaner/shark.glb",
    "/models/3d/aquarium-cleaner/trashBasket.glb",
    "/models/3d/aquarium-cleaner/coralI.glb",
+   // train-station-rush (2026-10-25): the Hyper3D ready set (menu1-train-station-rush/, the V2
+   // carriage), optimized GLBs copied in, not re-optimized; the worker is a static T-pose for the core
+   // auto-rig. Left out: trainCar.glb (tram proportions), locomotive.glb (a whole train set).
+   "/models/3d/train-station-rush/charStationWorker.glb",
+   "/models/3d/train-station-rush/trainCarV2.glb",
+   "/models/3d/train-station-rush/platformCanopy.glb",
+   "/models/3d/train-station-rush/platformSign.glb",
+   "/models/3d/train-station-rush/stationBench.glb",
+   "/models/3d/train-station-rush/stationClock.glb",
+   "/models/3d/train-station-rush/stationTrolley.glb",
+   "/models/3d/train-station-rush/backpack.glb",
+   "/models/3d/train-station-rush/ticketMachine.glb",
    // toy-store-night-shift (2026-10-25): menu1 ready set, optimized, characters 18k tris
    "/models/3d/toy-store-night-shift/charNightGuard.glb",
    "/models/3d/toy-store-night-shift/toyShelfSolidT.glb",
@@ -324,6 +336,30 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/wizard-potion-lab/candle.glb",
    "/models/3d/wizard-potion-lab/crystalBall.glb",
    "/models/3d/wizard-potion-lab/bookshelfFull.glb",
+   // magic-carpet-ride (gate, 2026-10-25): menu1 ready set, optimized
+   "/models/3d/magic-carpet-ride/charCarpetRider.glb",
+   "/models/3d/magic-carpet-ride/magicCarpet.glb",
+   "/models/3d/magic-carpet-ride/flyingRing.glb",
+   "/models/3d/magic-carpet-ride/palaceTower.glb",
+   "/models/3d/magic-carpet-ride/desertRooftopV2.glb",
+   "/models/3d/magic-carpet-ride/cloud.glb",
+   "/models/3d/magic-carpet-ride/hangingLantern.glb",
+   "/models/3d/magic-carpet-ride/canyonMesa.glb",
+   "/models/3d/magic-carpet-ride/floatingPalaceR.glb",
+   "/models/3d/magic-carpet-ride/floatingRockV3.glb",
+   "/models/3d/magic-carpet-ride/star.glb",
+   // farm-tractor-challenge (gate, 2026-10-25): menu1 ready set, optimized
+   "/models/3d/farm-tractor-challenge/charFarmer.glb",
+   "/models/3d/farm-tractor-challenge/tractor.glb",
+   "/models/3d/farm-tractor-challenge/farmTrailer.glb",
+   "/models/3d/farm-tractor-challenge/hayBaleBound.glb",
+   "/models/3d/farm-tractor-challenge/appleCrate.glb",
+   "/models/3d/farm-tractor-challenge/barn.glb",
+   "/models/3d/farm-tractor-challenge/farmFence.glb",
+   "/models/3d/farm-tractor-challenge/farmGate.glb",
+   "/models/3d/farm-tractor-challenge/scarecrowPost.glb",
+   "/models/3d/farm-tractor-challenge/grainSiloGroundT.glb",
+   "/models/3d/farm-tractor-challenge/waterTrough.glb",
    // Menu 1 jungle-bridge-run (2026-10-25): the ready menu1-jungle-bridge-run GLBs (templePillarV2 and
    // ruinGateR, not the V1s; jungleLogSingle, jungleFern and volcanoBackdrop from the still-needed list are
    // in the ready folder now), copied as optimized; fits in games/jungle-bridge-run/assets.ts. The explorer

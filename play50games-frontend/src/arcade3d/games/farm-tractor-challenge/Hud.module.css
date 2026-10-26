@@ -1,0 +1,21 @@
+.load {
+   position: absolute;
+   top: 74px;
+   left: 12px;
+   display: flex;
+   align-items: baseline;
+   gap: 8px;
+   padding: 8px 12px;
+   border: 1px solid var(--stroke);
+   border-radius: 12px;
+   background: var(--card);
+   color: #f5f5f4;
+   font-size: 13px;
+   line-height: 1.2;
+   pointer-events: none;
+}
+
+.load strong {
+   color: #eab308;
+   font-size: 16px;
+}
