@@ -75,6 +75,7 @@ const TITLES = {
    "sky-tower-jump": "Sky Tower Jump",
    "rooftop-roll-climb": "Rooftop Roll Climb",
    "flooded-ruins-escape": "Flooded Ruins Escape",
+   "lava-pillar-jump": "Lava Pillar Jump",
 };
 
 /** One entry per thumbnail in public/images/3d, in filename order. */

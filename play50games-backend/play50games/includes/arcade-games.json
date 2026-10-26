@@ -855,6 +855,22 @@
         { "title": "Rising Water", "max_score": 16760, "min_duration_ms": 12400, "max_duration_ms": 180000, "time_base_ms": 180000 },
         { "title": "Temple Escape", "max_score": 19460, "min_duration_ms": 15400, "max_duration_ms": 210000, "time_base_ms": 210000 }
       ]
+    },
+    "lava-pillar-jump": {
+      "title": "Lava Pillar Jump",
+      "kind": "time",
+      "max_score": 8590,
+      "min_duration_ms": 4100,
+      "max_duration_ms": 90000,
+      "time_base_ms": 90000,
+      "enabled": false,
+      "levels": [
+        { "title": "Warm Cavern", "max_score": 8590, "min_duration_ms": 4100, "max_duration_ms": 90000, "time_base_ms": 90000 },
+        { "title": "Pillar Field", "max_score": 11370, "min_duration_ms": 6300, "max_duration_ms": 120000, "time_base_ms": 120000 },
+        { "title": "Falling Rocks", "max_score": 14050, "min_duration_ms": 9500, "max_duration_ms": 150000, "time_base_ms": 150000 },
+        { "title": "Fast Lava", "max_score": 16850, "min_duration_ms": 11500, "max_duration_ms": 180000, "time_base_ms": 180000 },
+        { "title": "Volcano Core", "max_score": 19550, "min_duration_ms": 14500, "max_duration_ms": 210000, "time_base_ms": 210000 }
+      ]
     }
   }
 }
