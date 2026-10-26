@@ -329,6 +329,9 @@ export const MODEL_MANIFEST: readonly string[] = [
    // shopping-cart props (2026-10-25): batch 5 part A adoptions, Gen-2.5-Medium, 1500-3000 tris,
    // optimized GLBs copied in, not re-optimized; the floor scrubber is level 4-5 decor only
    "/models/3d/shopping-cart/floorScrubber.glb",
+   // monster-kitchen slimeCake (2026-10-25): extra floor decor drawn only on levels 4 and 5
+   // (Dinner Rush / Grand Feast), Gen-2.5-Medium, optimized with tools/hyper3d
+   "/models/3d/monster-kitchen/slimeCake.glb",
 ];
 
 const LISTED: ReadonlySet<string> = new Set(MODEL_MANIFEST);
