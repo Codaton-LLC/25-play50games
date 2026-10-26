@@ -871,6 +871,22 @@
         { "title": "Fast Lava", "max_score": 16940, "min_duration_ms": 10600, "max_duration_ms": 180000, "time_base_ms": 180000 },
         { "title": "Volcano Core", "max_score": 19840, "min_duration_ms": 11600, "max_duration_ms": 210000, "time_base_ms": 210000 }
       ]
+    },
+    "cloud-hopper": {
+      "title": "Cloud Hopper",
+      "kind": "time",
+      "max_score": 8290,
+      "min_duration_ms": 7100,
+      "max_duration_ms": 90000,
+      "time_base_ms": 90000,
+      "enabled": false,
+      "levels": [
+        { "title": "Soft Clouds", "max_score": 8290, "min_duration_ms": 7100, "max_duration_ms": 90000, "time_base_ms": 90000 },
+        { "title": "Moving Clouds", "max_score": 11030, "min_duration_ms": 9700, "max_duration_ms": 120000, "time_base_ms": 120000 },
+        { "title": "Wind Zone", "max_score": 13710, "min_duration_ms": 12900, "max_duration_ms": 150000, "time_base_ms": 150000 },
+        { "title": "Fading Clouds", "max_score": 16440, "min_duration_ms": 15600, "max_duration_ms": 180000, "time_base_ms": 180000 },
+        { "title": "Sky Sprint", "max_score": 18930, "min_duration_ms": 20700, "max_duration_ms": 210000, "time_base_ms": 210000 }
+      ]
     }
   }
 }
