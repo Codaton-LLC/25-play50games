@@ -33,6 +33,26 @@ import { monsterKitchenMeta } from "./games/monster-kitchen/meta";
 import { knightArenaMeta } from "./games/knight-arena/meta";
 import { zooEscapeMeta } from "./games/zoo-escape/meta";
 import { rocketLandingMeta } from "./games/rocket-landing/meta";
+import { firefighterRescueMeta } from "./games/firefighter-rescue/meta";
+import { taxiRush3dMeta } from "./games/taxi-rush-3d/meta";
+import { burgerDeliveryScooterMeta } from "./games/burger-delivery-scooter/meta";
+import { beachLifeguardMeta } from "./games/beach-lifeguard/meta";
+import { farmTractorChallengeMeta } from "./games/farm-tractor-challenge/meta";
+import { catVsRobotVacuumMeta } from "./games/cat-vs-robot-vacuum/meta";
+import { hotelBellboyRushMeta } from "./games/hotel-bellboy-rush/meta";
+import { wizardPotionLabMeta } from "./games/wizard-potion-lab/meta";
+import { hauntedMansionKeysMeta } from "./games/haunted-mansion-keys/meta";
+import { beeGardenMeta } from "./games/bee-garden/meta";
+import { dogParkFetchMeta } from "./games/dog-park-fetch/meta";
+import { submarineTreasureDiveMeta } from "./games/submarine-treasure-dive/meta";
+import { marsRoverMissionMeta } from "./games/mars-rover-mission/meta";
+import { trainStationRushMeta } from "./games/train-station-rush/meta";
+import { pizzaKitchen3dMeta } from "./games/pizza-kitchen-3d/meta";
+import { jungleBridgeRunMeta } from "./games/jungle-bridge-run/meta";
+import { magicCarpetRideMeta } from "./games/magic-carpet-ride/meta";
+import { toyStoreNightShiftMeta } from "./games/toy-store-night-shift/meta";
+import { aquariumCleanerMeta } from "./games/aquarium-cleaner/meta";
+import { postman3dMeta } from "./games/postman-3d/meta";
 import { skyTowerJumpMeta } from "./games/sky-tower-jump/meta";
 
 export const ARCADE_GAMES: ArcadeGameMeta[] = [
@@ -66,6 +86,26 @@ export const ARCADE_GAMES: ArcadeGameMeta[] = [
    knightArenaMeta,
    zooEscapeMeta,
    rocketLandingMeta,
+   firefighterRescueMeta,
+   taxiRush3dMeta,
+   burgerDeliveryScooterMeta,
+   beachLifeguardMeta,
+   farmTractorChallengeMeta,
+   catVsRobotVacuumMeta,
+   hotelBellboyRushMeta,
+   wizardPotionLabMeta,
+   hauntedMansionKeysMeta,
+   beeGardenMeta,
+   dogParkFetchMeta,
+   submarineTreasureDiveMeta,
+   marsRoverMissionMeta,
+   trainStationRushMeta,
+   pizzaKitchen3dMeta,
+   jungleBridgeRunMeta,
+   magicCarpetRideMeta,
+   toyStoreNightShiftMeta,
+   aquariumCleanerMeta,
+   postman3dMeta,
    skyTowerJumpMeta,
 ].sort((a, b) => a.order - b.order);
 

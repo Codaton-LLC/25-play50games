@@ -6,7 +6,7 @@ import { TimingRing } from "@/arcade3d/core/hud";
 import { useSafeArea } from "@/arcade3d/core/safeArea";
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { liveHud, readNeedle } from "./liveHud";
-import { COLORS } from "./palette";
+import { COLORS } from "./looks";
 import styles from "./Hud.module.css";
 
 const NO_ZONES = [{ start: 0.42, end: 0.58 }];

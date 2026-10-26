@@ -1,22 +1,49 @@
 "use client";
 
 // The course's look: the sea, one floating island per hole (only the current and the next are
-// mounted), the felt (one merged mesh per hole, drawn from the rules' height functions), the
-// wooden rails (instanced boards on the rules' segments), the cup and the flag, the ponds and the
-// gap, hole 5's pipes, hole 6's turntable, and the decor. Static except the bar (rules time).
+// mounted), rich putting green felt with subtle mowing stripes, wooden rails with golden top caps,
+// regulation cups with metallic rims, sand hazard bunkers, gap trestle beams, two-tone pipes,
+// bevelled turntable obstacles, and surrounding resort decor (palms, flower beds, flags, hills, clubhouse).
 import { useEffect, useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
-import { BufferGeometry, CatmullRomCurve3, Color, Float32BufferAttribute, LatheGeometry, TubeGeometry, Vector2, Vector3, type Group } from "three";
+import {
+   BoxGeometry,
+   BufferGeometry,
+   CatmullRomCurve3,
+   Color,
+   CylinderGeometry,
+   DoubleSide,
+   Float32BufferAttribute,
+   LatheGeometry,
+   RingGeometry,
+   TubeGeometry,
+   Vector2,
+   Vector3,
+   type Group,
+} from "three";
 import { InstancedModel, Model } from "@/arcade3d/core/assets";
 import { Water } from "@/arcade3d/core/env";
 import { scaledCount, useQuality } from "@/arcade3d/core/quality";
 import { Instanced, type InstanceSpot } from "@/arcade3d/core/render";
 import { ASSETS, CASTLE_DRAWN, CASTLE_HEIGHT, CASTLE_Y, castleSpots } from "./assets";
 import { HILL_GRADE, RAMP, TIER_WALL_Z, TIER_Y, TURNTABLE, heightAt, type Hole } from "./course";
-import { COLORS, decorSpots, feltRects, holeZ, onFelt, type FeltRect } from "./looks";
+import { COLORS, decorSpots, surroundingsSpots, feltRects, holeZ, onFelt, type FeltRect } from "./looks";
 import { CUP } from "./physics";
-import { FlagPrimitive, RockPrimitives, TreePrimitives } from "./Primitives";
+import {
+   BackdropIslandPrimitives,
+   CloudPrimitives,
+   ClubhouseSilhouette,
+   DistantHills,
+   FlagPrimitive,
+   FlowerBedPrimitives,
+   HorizonLinePrimitive,
+   PalmPrimitives,
+   PennantPrimitives,
+   RockPrimitives,
+   TreePrimitives,
+} from "./Primitives";
+import { type LightingTheme } from "./looks";
 import { TICK_S, type RunState } from "./rules";
 import { Windmill } from "./Windmill";
 
@@ -25,39 +52,52 @@ import { Windmill } from "./Windmill";
 const CELL = 0.25;
 const SKIRT = -0.3;
 
-/** One merged felt mesh: every region's top (mowing stripes, darker low) plus its side skirts. */
+/** One merged felt mesh: rich putting-green turf with 8-10% mowing stripe contrast and retaining curb skirts (Fix 7). */
 export function buildFelt(hole: Hole, rects: readonly FeltRect[]): BufferGeometry {
    const pos: number[] = [];
    const col: number[] = [];
    const idx: number[] = [];
-   const hi = new Color(COLORS.felt);
-   const lo = new Color(COLORS.feltLow);
+   // Clear contrast between two greens: 8-10% apart in lightness (Fix 7)
+   const hi = new Color("#22c55e");
+   const lo = new Color("#15803d");
+   const sideTop = new Color(COLORS.curb);
    const side = new Color(COLORS.feltSide);
-   const c = new Color();
    const h = (r: FeltRect, x: number, z: number) => heightAt(hole, x, z, r.upper) ?? 0;
+
    for (const r of rects) {
       const nx = Math.max(1, Math.ceil((r.x1 - r.x0) / CELL));
       const nz = Math.max(1, Math.ceil((r.z1 - r.z0) / CELL));
       const base = pos.length / 3;
+
       for (let i = 0; i <= nx; i++) {
          for (let j = 0; j <= nz; j++) {
             const x = r.x0 + ((r.x1 - r.x0) * i) / nx;
             const z = r.z0 + ((r.z1 - r.z0) * j) / nz;
             const y = h(r, x, z);
             pos.push(x, y, z);
-            const stripe = Math.floor((z + 20) / 0.5) % 2 === 0 ? 0.25 : 0.4;
-            c.copy(lo).lerp(hi, Math.min(1, stripe + y * 0.6));
+
+            // Alternating mowing stripes along Z with clear 8-10% contrast
+            const stripeZ = Math.floor((z + 100) / 0.5) % 2 === 0;
+            const c = (stripeZ ? hi : lo).clone();
+            c.multiplyScalar(Math.min(1.15, 0.95 + y * 0.25));
             col.push(c.r, c.g, c.b);
          }
       }
+
       for (let i = 0; i < nx; i++) {
          for (let j = 0; j < nz; j++) {
             const a = base + i * (nz + 1) + j;
             idx.push(a, a + 1, a + nz + 1, a + 1, a + nz + 2, a + nz + 1);
          }
       }
-      // skirts: the region's four edges down to below the island's top
-      const edges: [number, number, number, number][] = [[r.x0, r.z0, r.x1, r.z0], [r.x1, r.z0, r.x1, r.z1], [r.x1, r.z1, r.x0, r.z1], [r.x0, r.z1, r.x0, r.z0]];
+
+      // skirts: retaining curb down to below the island's top
+      const edges: [number, number, number, number][] = [
+         [r.x0, r.z0, r.x1, r.z0],
+         [r.x1, r.z0, r.x1, r.z1],
+         [r.x1, r.z1, r.x0, r.z1],
+         [r.x0, r.z1, r.x0, r.z0],
+      ];
       for (const [ax, az, bx, bz] of edges) {
          const n = Math.max(1, Math.ceil(Math.hypot(bx - ax, bz - az) / CELL));
          const s = pos.length / 3;
@@ -65,11 +105,14 @@ export function buildFelt(hole: Hole, rects: readonly FeltRect[]): BufferGeometr
             const x = ax + ((bx - ax) * k) / n;
             const z = az + ((bz - az) * k) / n;
             pos.push(x, h(r, x, z) - 0.002, z, x, SKIRT, z);
-            col.push(side.r, side.g, side.b, side.r * 0.7, side.g * 0.7, side.b * 0.7);
+            col.push(sideTop.r, sideTop.g, sideTop.b, side.r * 0.7, side.g * 0.7, side.b * 0.7);
          }
-         for (let k = 0; k < n; k++) idx.push(s + 2 * k, s + 2 * k + 1, s + 2 * k + 2, s + 2 * k + 1, s + 2 * k + 3, s + 2 * k + 2);
+         for (let k = 0; k < n; k++) {
+            idx.push(s + 2 * k, s + 2 * k + 1, s + 2 * k + 2, s + 2 * k + 1, s + 2 * k + 3, s + 2 * k + 2);
+         }
       }
    }
+
    const g = new BufferGeometry();
    g.setAttribute("position", new Float32BufferAttribute(pos, 3));
    g.setAttribute("color", new Float32BufferAttribute(col, 3));
@@ -78,7 +121,7 @@ export function buildFelt(hole: Hole, rects: readonly FeltRect[]): BufferGeometr
    return g;
 }
 
-/** The rail boards: each drawn rail (split where the felt under it changes height), its inner face on the rules' line. */
+/** The rail boards: each drawn rail with its inner face on the rules' line. */
 export function railSpots(hole: Hole, rects: readonly FeltRect[]): InstanceSpot[] {
    const out: InstanceSpot[] = [];
    const T = 0.06;
@@ -93,7 +136,6 @@ export function railSpots(hole: Hole, rects: readonly FeltRect[]): InstanceSpot[
       const mz = (r.a.z + r.b.z) / 2;
       const inA = onFelt(rects, mx + nx * 0.08, mz + nz * 0.08);
       const inB = onFelt(rects, mx - nx * 0.08, mz - nz * 0.08);
-      // out of the felt by half a board, plus the drawn ball's extra 3 cm, when only one side is felt
       const shift = inA === inB ? 0 : (inA ? -1 : 1) * (T / 2 + 0.03);
       const sloped = heightAt(hole, r.a.x, r.a.z, r.zone === 1) !== heightAt(hole, r.b.x, r.b.z, r.zone === 1);
       const pieces = sloped ? Math.ceil(len / 0.25) : 1;
@@ -113,73 +155,196 @@ function Felt({ hole, rects }: { hole: Hole; rects: readonly FeltRect[] }) {
    useEffect(() => () => geometry.dispose(), [geometry]);
    return (
       <mesh geometry={geometry} name="felt">
-         <meshStandardMaterial vertexColors roughness={0.95} side={2} />
+         <meshStandardMaterial vertexColors roughness={0.9} side={DoubleSide} />
       </mesh>
    );
 }
 
-/** The island's rock base: a lathe stretched under the hole's box. */
+/** The island's rock base: a solid 3-tone faceted coastal cliff (dark waterline, warm rock, sandy ledge) with DoubleSide (Fix 2). */
 function IslandBase({ hole }: { hole: Hole }) {
    const geometry = useMemo(() => {
-      const pts = [[0, -2.6], [0.45, -2.3], [0.8, -1.4], [0.97, -0.6], [1, -0.32], [0.98, -0.25]].map(([r, y]) => new Vector2(r, y));
-      return new LatheGeometry(pts, 14);
+      // Solid profile with shelf closing under felt skirt
+      const pts = [
+         new Vector2(0, -2.5),
+         new Vector2(0.55, -2.2),
+         new Vector2(0.85, -1.3),
+         new Vector2(0.98, -0.6),
+         new Vector2(1.02, -0.2),
+         new Vector2(1.0, 0.0),
+         new Vector2(0.6, 0.0),
+      ];
+      const lathe = new LatheGeometry(pts, 18);
+      const pos = lathe.getAttribute("position");
+      const colors = new Float32Array(pos.count * 3);
+      const cWaterline = new Color("#334155"); // Dark waterline
+      const cRock = new Color("#78716c");      // Warm rock cliff
+      const cSand = new Color("#d97706");      // Sandy ledge / warm stone top
+
+      for (let i = 0; i < pos.count; i++) {
+         const y = pos.getY(i);
+         let c: Color;
+         if (y < -1.1) c = cWaterline;
+         else if (y < -0.22) c = cRock;
+         else c = cSand;
+         colors.set([c.r, c.g, c.b], i * 3);
+      }
+      lathe.setAttribute("color", new Float32BufferAttribute(colors, 3));
+      lathe.computeVertexNormals();
+      return lathe;
    }, []);
+
    useEffect(() => () => geometry.dispose(), [geometry]);
    const b = hole.box;
    const sx = (b.x1 - b.x0) / 2 + 0.6;
    const sz = (b.z1 - b.z0) / 2 + 0.6;
    return (
       <mesh geometry={geometry} position={[(b.x0 + b.x1) / 2, 0, (b.z0 + b.z1) / 2]} scale={[sx, 1, sz]} name="island-base">
-         <meshStandardMaterial color={COLORS.rock} roughness={1} flatShading />
+         <meshStandardMaterial vertexColors roughness={0.95} flatShading side={DoubleSide} />
       </mesh>
    );
 }
 
+/** Bevelled wooden rails with warm mahogany timber body and a darker bevelled top cap (Fix 7). */
 function Rails({ hole, rects }: { hole: Hole; rects: readonly FeltRect[] }) {
    const spots = useMemo(() => railSpots(hole, rects), [hole, rects]);
+   const geo = useMemo(() => {
+      const g = new BoxGeometry(1, 1, 1, 2, 2, 1);
+      const pos = g.getAttribute("position");
+      const colors = new Float32Array(pos.count * 3);
+      const cTop = new Color("#451a03"); // Darker timber cap
+      const cMid = new Color("#92400e"); // Warm mahogany timber body
+      const cBot = new Color("#78350f"); // Shadow underside trim
+      const c = new Color();
+      for (let i = 0; i < pos.count; i++) {
+         const y = pos.getY(i);
+         // Bevel the top face vertices inward
+         if (y > 0.4) {
+            pos.setX(i, pos.getX(i) * 0.72);
+            c.copy(cTop);
+         } else if (y > 0.15) {
+            c.copy(cTop);
+         } else if (y < -0.3) {
+            c.copy(cBot);
+         } else {
+            c.copy(cMid);
+         }
+         colors.set([c.r, c.g, c.b], i * 3);
+      }
+      g.setAttribute("color", new Float32BufferAttribute(colors, 3));
+      g.computeVertexNormals();
+      return g;
+   }, []);
+
+   useEffect(() => () => geo.dispose(), [geo]);
+
    return (
       <Instanced spots={spots} name="rails">
-         <boxGeometry args={[1, 1, 1]} />
-         <meshStandardMaterial color={COLORS.rail} roughness={0.8} />
+         <primitive object={geo} attach="geometry" />
+         <meshStandardMaterial vertexColors roughness={0.7} />
       </Instanced>
    );
 }
 
+/** Regulation golf cup: recessed dark interior cylinder, white lip rim, upright flag in cup centre (Fix 7 & 8). */
 function Cup({ hole }: { hole: Hole }) {
    const y = (heightAt(hole, hole.cup.x, hole.cup.z) ?? 0) + 0.004;
    return (
       <group position={[hole.cup.x, y, hole.cup.z]} name="cup">
-         <mesh rotation-x={-Math.PI / 2}>
-            <ringGeometry args={[0, CUP.drawnRadius + 0.025, 24]} />
-            <meshBasicMaterial color={COLORS.rim} />
+         {/* White cup lip ring - 1-2 px at desk (Fix 7) */}
+         <mesh rotation-x={-Math.PI / 2} position-y={0.006}>
+            <ringGeometry args={[CUP.drawnRadius - 0.005, CUP.drawnRadius + 0.045, 32]} />
+            <meshBasicMaterial color="#ffffff" side={DoubleSide} />
          </mesh>
+         {/* the hole as seen from above: the dark disc */}
          <mesh rotation-x={-Math.PI / 2} position-y={0.002}>
             <circleGeometry args={[CUP.drawnRadius, 24]} />
             <meshBasicMaterial color={COLORS.cup} />
          </mesh>
-         <group position-z={-CUP.flagBack} name="flag">
-            <Model asset={ASSETS.flag} fallback={<FlagPrimitive />} />
+         {/* Recessed dark interior cup liner */}
+         <mesh position-y={-0.03}>
+            <cylinderGeometry args={[CUP.drawnRadius - 0.004, CUP.drawnRadius - 0.004, 0.06, 24, 1, true]} />
+            <meshBasicMaterial color={COLORS.cup} side={DoubleSide} />
+         </mesh>
+         {/* Cup floor */}
+         <mesh rotation-x={-Math.PI / 2} position-y={-0.06}>
+            <circleGeometry args={[CUP.drawnRadius - 0.004, 24]} />
+            <meshBasicMaterial color={COLORS.cup} />
+         </mesh>
+         {/* Flag planted upright in cup centre, no base disc beside cup (Fix 8) */}
+         <group position={[0, 0, 0]} name="flag">
+            <FlagPrimitive />
          </group>
       </group>
    );
 }
 
+/** Ponds: realistic water framed by warm golden sand bunker rims. */
 function Ponds({ hole }: { hole: Hole }) {
    return (
-      <>
-         {hole.ponds.map((p, i) => (
-            <Water key={i} size={[p.x1 - p.x0, p.z1 - p.z0]} position={[(p.x0 + p.x1) / 2, 0.012, (p.z0 + p.z1) / 2]} color={COLORS.water} deep={COLORS.deep} amplitude={0.004} wavelength={0.6} opacity={0.95} foamEdge={0.12} />
-         ))}
-      </>
+      <group name="ponds">
+         {hole.ponds.map((p, i) => {
+            const cx = (p.x0 + p.x1) / 2;
+            const cz = (p.z0 + p.z1) / 2;
+            const w = p.x1 - p.x0;
+            const d = p.z1 - p.z0;
+            return (
+               <group key={i}>
+                  {/* Decorative sand bunker framing */}
+                  <mesh position={[cx, 0.008, cz]} rotation-x={-Math.PI / 2}>
+                     <planeGeometry args={[w + 0.22, d + 0.22]} />
+                     <meshStandardMaterial color={COLORS.sand} roughness={1} />
+                  </mesh>
+                  {/* Clear water */}
+                  <Water
+                     size={[w, d]}
+                     position={[cx, 0.014, cz]}
+                     color={COLORS.water}
+                     deep={COLORS.deep}
+                     foam={COLORS.foam}
+                     amplitude={0.004}
+                     wavelength={0.6}
+                     opacity={0.95}
+                     foamEdge={0.12}
+                  />
+               </group>
+            );
+         })}
+      </group>
    );
 }
 
-/** Hole 3: the water in the gap and the dashed ring of the shortest carry. */
+/** Hole 3: the water gap with rustic wooden trestle support beams and carry marker line. */
 function Gap({ hole }: { hole: Hole }) {
-   const spots = useMemo<InstanceSpot[]>(() => Array.from({ length: 10 }, (_v, i) => ({ x: hole.cup.x * 0 + (i - 4.5) * 0.11, y: 0.006, z: RAMP.gapEnd - 0.12 })), [hole]);
+   const spots = useMemo<InstanceSpot[]>(
+      () => Array.from({ length: 10 }, (_v, i) => ({ x: hole.cup.x * 0 + (i - 4.5) * 0.11, y: 0.006, z: RAMP.gapEnd - 0.12 })),
+      [hole]
+   );
+   const beams = useMemo<InstanceSpot[]>(
+      () => [
+         { x: -0.62, y: 0.05, z: (RAMP.lip + RAMP.gapEnd) / 2, sx: 0.06, sy: 0.14, sz: Math.abs(RAMP.gapEnd - RAMP.lip) },
+         { x: 0.62, y: 0.05, z: (RAMP.lip + RAMP.gapEnd) / 2, sx: 0.06, sy: 0.14, sz: Math.abs(RAMP.gapEnd - RAMP.lip) },
+         { x: -0.62, y: -0.08, z: RAMP.lip, sx: 0.08, sy: 0.36, sz: 0.08 },
+         { x: 0.62, y: -0.08, z: RAMP.lip, sx: 0.08, sy: 0.36, sz: 0.08 },
+      ],
+      []
+   );
+
    return (
       <group name="gap">
-         <Water size={[1.4, 1.2]} position={[0, RAMP.waterY, (RAMP.lip + RAMP.gapEnd) / 2]} color={COLORS.water} deep={COLORS.deep} amplitude={0.01} wavelength={0.8} opacity={0.95} />
+         <Water
+            size={[1.6, 1.4]}
+            position={[0, RAMP.waterY, (RAMP.lip + RAMP.gapEnd) / 2]}
+            color={COLORS.water}
+            deep={COLORS.deep}
+            foam={COLORS.foam}
+            amplitude={0.01}
+            wavelength={0.8}
+            opacity={0.95}
+         />
+         <Instanced spots={beams} name="gap-trestle">
+            <boxGeometry args={[1, 1, 1]} />
+            <meshStandardMaterial color={COLORS.spar} roughness={0.85} />
+         </Instanced>
          <Instanced spots={spots} name="carry-line">
             <boxGeometry args={[0.07, 0.004, 0.03]} />
             <meshBasicMaterial color="#f8fafc" />
@@ -188,7 +353,7 @@ function Gap({ hole }: { hole: Hole }) {
    );
 }
 
-/** Hole 5: three blue pipes bridging from the tier's mouths, outside the rails, to their portals. */
+/** Hole 5: three royal blue pipes bridging from tier mouths to portals with two-tone brass collars. */
 function Pipes({ hole }: { hole: Hole }) {
    const parts = useMemo(() => {
       const s = hole.sx;
@@ -201,29 +366,40 @@ function Pipes({ hole }: { hole: Hole }) {
       const tubes = routes.map((pts) => new TubeGeometry(new CatmullRomCurve3(pts, false, "catmullrom", 0.2), 40, 0.075, 8));
       const geometry = mergeGeometries(tubes)!;
       tubes.forEach((t) => t.dispose());
-      const portals: InstanceSpot[] = hole.pipes.map((p) => ({ x: p.exit.x - p.dir.x * 0.02, y: 0.1, z: p.exit.z - p.dir.z * 0.02, rotY: Math.atan2(p.dir.x, p.dir.z) }));
-      const mouths: InstanceSpot[] = hole.pipes.map((p) => ({ x: p.mouth.x, y: TIER_Y + 0.003, z: TIER_WALL_Z + 0.06 }));
+      const portals: InstanceSpot[] = hole.pipes.map((p) => ({
+         x: p.exit.x - p.dir.x * 0.02,
+         y: 0.1,
+         z: p.exit.z - p.dir.z * 0.02,
+         rotY: Math.atan2(p.dir.x, p.dir.z),
+      }));
+      const mouths: InstanceSpot[] = hole.pipes.map((p) => ({
+         x: p.mouth.x,
+         y: TIER_Y + 0.003,
+         z: TIER_WALL_Z + 0.06,
+      }));
       return { geometry, portals, mouths };
    }, [hole]);
+
    useEffect(() => () => parts.geometry.dispose(), [parts]);
+
    return (
       <group name="pipes">
          <mesh geometry={parts.geometry}>
-            <meshStandardMaterial color={COLORS.pipe} roughness={0.4} metalness={0.1} />
+            <meshStandardMaterial color={COLORS.pipe} roughness={0.35} metalness={0.2} />
          </mesh>
          <Instanced spots={parts.portals}>
             <torusGeometry args={[0.1, 0.035, 8, 16]} />
-            <meshStandardMaterial color={COLORS.pipeDark} roughness={0.5} />
+            <meshStandardMaterial color={COLORS.pipeFlange} roughness={0.4} metalness={0.5} />
          </Instanced>
          <Instanced spots={parts.mouths}>
-            <boxGeometry args={[0.36, 0.006, 0.12]} />
-            <meshBasicMaterial color={COLORS.cup} />
+            <boxGeometry args={[0.36, 0.008, 0.12]} />
+            <meshStandardMaterial color={COLORS.pipeDark} roughness={0.6} />
          </Instanced>
       </group>
    );
 }
 
-/** Hole 6: the fixed plate on the slope and the bar spinning at the rules' angle. */
+/** Hole 6: the bevelled brass plate on the slope and spinning obstacle bar with white rubber bumper caps. */
 function Turntable({ hole, run }: { hole: Hole; run: RunState }) {
    const bar = useRef<Group>(null);
    const tt = hole.turntable!;
@@ -234,20 +410,64 @@ function Turntable({ hole, run }: { hole: Hole; run: RunState }) {
       const t = live ? run.holeTicks * TICK_S + run.clock.acc : 0;
       bar.current.rotation.y = tt.phase + tt.omega * t;
    });
+
+   const barGeo = useMemo(() => {
+      const parts: BufferGeometry[] = [];
+      const half = tt.half;
+      // Main vibrant orange obstacle bar
+      const body = new BoxGeometry(half * 2 - 0.12, 0.09, 0.07);
+      const cBar = new Color(COLORS.bar);
+      const countB = body.getAttribute("position").count;
+      const colB = new Float32Array(countB * 3);
+      for (let i = 0; i < countB; i++) colB.set([cBar.r, cBar.g, cBar.b], i * 3);
+      body.setAttribute("color", new Float32BufferAttribute(colB, 3));
+      parts.push(body);
+
+      // White protective rubber bumper caps on both ends
+      const cCap = new Color(COLORS.barCap);
+      for (const side of [-1, 1]) {
+         const cap = new BoxGeometry(0.06, 0.094, 0.074).translate(side * (half - 0.03), 0, 0);
+         const countC = cap.getAttribute("position").count;
+         const colC = new Float32Array(countC * 3);
+         for (let i = 0; i < countC; i++) colC.set([cCap.r, cCap.g, cCap.b], i * 3);
+         cap.setAttribute("color", new Float32BufferAttribute(colC, 3));
+         parts.push(cap);
+      }
+
+      // Center pivot cap
+      const pivot = new CylinderGeometry(0.08, 0.08, 0.11, 16);
+      const cPiv = new Color(COLORS.gold);
+      const countP = pivot.getAttribute("position").count;
+      const colP = new Float32Array(countP * 3);
+      for (let i = 0; i < countP; i++) colP.set([cPiv.r, cPiv.g, cPiv.b], i * 3);
+      pivot.setAttribute("color", new Float32BufferAttribute(colP, 3));
+      parts.push(pivot);
+
+      const merged = mergeGeometries(parts)!;
+      parts.forEach((p) => p.dispose());
+      return merged;
+   }, [tt.half]);
+
+   useEffect(() => () => barGeo.dispose(), [barGeo]);
+
    return (
       <group position={[tt.centre.x, y, tt.centre.z]} name="turntable">
          <group rotation-x={-Math.atan(HILL_GRADE)}>
-            <mesh position-y={0.006}>
+            {/* Outer brass bevel rim */}
+            <mesh position-y={0.005}>
+               <cylinderGeometry args={[TURNTABLE.plateRadius + 0.02, TURNTABLE.plateRadius + 0.02, 0.01, 32]} />
+               <meshStandardMaterial color={COLORS.plateRim} roughness={0.4} metalness={0.6} />
+            </mesh>
+            {/* Inner brushed gold disc */}
+            <mesh position-y={0.008}>
                <cylinderGeometry args={[TURNTABLE.plateRadius, TURNTABLE.plateRadius, 0.012, 32]} />
-               <meshStandardMaterial color={COLORS.plate} roughness={0.7} />
+               <meshStandardMaterial color={COLORS.plate} roughness={0.5} metalness={0.4} />
             </mesh>
          </group>
-         {/* on the slope's plane: its top view turns as the rules' bar (within the slope's 1 % foreshortening) */}
          <group rotation-x={-Math.atan(HILL_GRADE)}>
             <group ref={bar} position-y={0.07}>
-               <mesh>
-                  <boxGeometry args={[tt.half * 2, 0.09, 0.07]} />
-                  <meshStandardMaterial color={COLORS.bar} roughness={0.5} />
+               <mesh geometry={barGeo}>
+                  <meshStandardMaterial vertexColors roughness={0.6} />
                </mesh>
             </group>
          </group>
@@ -275,19 +495,40 @@ export function Island({ hole, run }: { hole: Hole; run: RunState }) {
 
 // ---------- decor ----------
 
-/** The mounted holes' trees and rocks, beside each hole as its camera sees it (`yaws[i]` for `holes[i]`). */
-export function Decor({ holes, yaws }: { holes: readonly Hole[]; yaws: readonly number[] }) {
+/** The mounted holes' trees, rocks, palms, flower beds and surrounding resort scenery & real backdrop (Fix 1). */
+export function Decor({ holes, yaws, theme }: { holes: readonly Hole[]; yaws: readonly number[]; theme?: LightingTheme }) {
    const { decor } = useQuality();
    const spots = useMemo(() => {
       const all = decorSpots(holes, yaws);
-      return { trees: all.trees.slice(0, scaledCount(all.trees.length, decor)), rocks: all.rocks.slice(0, scaledCount(all.rocks.length, decor)) };
+      const surroundings = surroundingsSpots(holes, yaws);
+      return {
+         trees: all.trees.slice(0, scaledCount(all.trees.length, decor)),
+         rocks: all.rocks.slice(0, scaledCount(all.rocks.length, decor)),
+         palms: surroundings.palms.slice(0, scaledCount(surroundings.palms.length, decor)),
+         flowers: surroundings.flowers.slice(0, scaledCount(surroundings.flowers.length, decor)),
+         pennants: surroundings.pennants.slice(0, scaledCount(surroundings.pennants.length, decor)),
+         hills: surroundings.hills,
+         clubhouse: surroundings.clubhouse,
+         clouds: surroundings.clouds,
+         backdropIslands: surroundings.backdropIslands,
+         horizonLine: surroundings.horizonLine,
+      };
    }, [holes, yaws, decor]);
+
    const castles = useMemo(() => castleSpots(holes), [holes]);
    const castleFallback = useMemo(() => castles.map((s) => ({ ...s, y: s.y + CASTLE_HEIGHT / 2 })), [castles]);
    return (
       <group name="decor">
          <InstancedModel asset={ASSETS.tree} spots={spots.trees} fallback={<TreePrimitives spots={spots.trees} />} />
          <InstancedModel asset={ASSETS.rock} spots={spots.rocks} fallback={<RockPrimitives spots={spots.rocks} />} />
+         {spots.palms.length > 0 && <PalmPrimitives spots={spots.palms} />}
+         {spots.flowers.length > 0 && <FlowerBedPrimitives spots={spots.flowers} />}
+         {spots.pennants.length > 0 && <PennantPrimitives spots={spots.pennants} />}
+         <DistantHills spots={spots.hills} />
+         <ClubhouseSilhouette spots={spots.clubhouse} />
+         <BackdropIslandPrimitives spots={spots.backdropIslands} />
+         <CloudPrimitives spots={spots.clouds} color={theme?.cloud} />
+         <HorizonLinePrimitive spots={spots.horizonLine} color={theme?.foam} />
          <InstancedModel
             asset={ASSETS.castle}
             spots={castles}
@@ -302,7 +543,18 @@ export function Decor({ holes, yaws }: { holes: readonly Hole[]; yaws: readonly 
    );
 }
 
-/** The calm sea under all six islands. */
-export function Sea() {
-   return <Water size={[70, 150]} position={[0, -1.3, -40]} color={COLORS.water} deep={COLORS.deep} amplitude={0.08} wavelength={5} opacity={0.92} />;
+/** The calm crystal sea under all six islands, following level lighting (Fix 1 & lighting). */
+export function Sea({ theme }: { theme?: LightingTheme }) {
+   return (
+      <Water
+         size={[260, 320]}
+         position={[0, -1.3, -50]}
+         color={theme?.water ?? COLORS.water}
+         deep={theme?.deep ?? COLORS.deep}
+         foam={theme?.foam ?? COLORS.foam}
+         amplitude={0.06}
+         wavelength={4.5}
+         opacity={0.93}
+      />
+   );
 }

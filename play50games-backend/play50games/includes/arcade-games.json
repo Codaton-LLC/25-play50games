@@ -567,6 +567,247 @@
         { "title": "Precision Landing", "max_score": 3600, "min_duration_ms": 5000, "max_duration_ms": 242000, "base": 1600, "max_pps": 200 }
       ]
     },
+    "firefighter-rescue": {
+      "title": "Firefighter Rescue",
+      "kind": "points",
+      "max_score": 1100,
+      "min_duration_ms": 4000,
+      "max_duration_ms": 120000,
+      "base": 400,
+      "max_pps": 96,
+      "enabled": false,
+      "levels": [
+        { "title": "Small Apartment", "max_score": 1100, "min_duration_ms": 4000, "max_duration_ms": 120000, "base": 400, "max_pps": 96 },
+        { "title": "Family House", "max_score": 1650, "min_duration_ms": 4000, "max_duration_ms": 150000, "base": 800, "max_pps": 40 },
+        { "title": "Office", "max_score": 2200, "min_duration_ms": 4000, "max_duration_ms": 180000, "base": 1200, "max_pps": 32 },
+        { "title": "Hotel", "max_score": 2550, "min_duration_ms": 4000, "max_duration_ms": 180000, "base": 1600, "max_pps": 24 },
+        { "title": "Warehouse", "max_score": 3050, "min_duration_ms": 4000, "max_duration_ms": 210000, "base": 2000, "max_pps": 20 }
+      ]
+    },
+    "taxi-rush-3d": {
+      "title": "Taxi Rush 3D",
+      "kind": "points",
+      "max_score": 3000,
+      "min_duration_ms": 10000,
+      "max_duration_ms": 300000,
+      "base": 3000,
+      "max_pps": 3000,
+      "enabled": false
+    },
+    "burger-delivery-scooter": {
+      "title": "Burger Delivery Scooter",
+      "kind": "points",
+      "max_score": 810,
+      "min_duration_ms": 4000,
+      "max_duration_ms": 120000,
+      "base": 420,
+      "max_pps": 15,
+      "enabled": false,
+      "levels": [
+        { "title": "Neighborhood", "max_score": 810, "min_duration_ms": 4000, "max_duration_ms": 120000, "base": 420, "max_pps": 15 },
+        { "title": "City Center", "max_score": 1000, "min_duration_ms": 4000, "max_duration_ms": 150000, "base": 560, "max_pps": 10 },
+        { "title": "Park District", "max_score": 1230, "min_duration_ms": 4000, "max_duration_ms": 180000, "base": 700, "max_pps": 10 },
+        { "title": "Rainy City", "max_score": 1270, "min_duration_ms": 4000, "max_duration_ms": 180000, "base": 840, "max_pps": 6 },
+        { "title": "Night Delivery", "max_score": 1580, "min_duration_ms": 4000, "max_duration_ms": 210000, "base": 1120, "max_pps": 5 }
+      ]
+    },
+    "beach-lifeguard": {
+      "title": "Beach Lifeguard",
+      "kind": "points",
+      "max_score": 1110,
+      "min_duration_ms": 4000,
+      "max_duration_ms": 120000,
+      "base": 500,
+      "max_pps": 107,
+      "enabled": false,
+      "levels": [
+        { "title": "Small Beach", "max_score": 1110, "min_duration_ms": 4000, "max_duration_ms": 120000, "base": 500, "max_pps": 107 },
+        { "title": "Busy Beach", "max_score": 1490, "min_duration_ms": 4000, "max_duration_ms": 150000, "base": 750, "max_pps": 64 },
+        { "title": "Resort", "max_score": 1860, "min_duration_ms": 4000, "max_duration_ms": 180000, "base": 1000, "max_pps": 46 },
+        { "title": "Waterpark", "max_score": 2130, "min_duration_ms": 4000, "max_duration_ms": 180000, "base": 1250, "max_pps": 50 },
+        { "title": "Stormy Beach", "max_score": 2510, "min_duration_ms": 4000, "max_duration_ms": 210000, "base": 1500, "max_pps": 44 }
+      ]
+    },
+    "farm-tractor-challenge": {
+      "title": "Farm Tractor Challenge",
+      "kind": "points",
+      "max_score": 3000,
+      "min_duration_ms": 10000,
+      "max_duration_ms": 300000,
+      "base": 3000,
+      "max_pps": 3000,
+      "enabled": false
+    },
+    "cat-vs-robot-vacuum": {
+      "title": "Cat vs Robot Vacuum",
+      "kind": "points",
+      "max_score": 3000,
+      "min_duration_ms": 10000,
+      "max_duration_ms": 300000,
+      "base": 3000,
+      "max_pps": 3000,
+      "enabled": false
+    },
+    "hotel-bellboy-rush": {
+      "title": "Hotel Bellboy Rush",
+      "kind": "points",
+      "max_score": 910,
+      "min_duration_ms": 2000,
+      "max_duration_ms": 122000,
+      "base": 360,
+      "max_pps": 58,
+      "enabled": false,
+      "levels": [
+        { "title": "Lobby Floor", "max_score": 910, "min_duration_ms": 2000, "max_duration_ms": 122000, "base": 360, "max_pps": 58 },
+        { "title": "3-Floor Hotel", "max_score": 1250, "min_duration_ms": 2000, "max_duration_ms": 152000, "base": 600, "max_pps": 33 },
+        { "title": "Luxury Hotel", "max_score": 1575, "min_duration_ms": 2000, "max_duration_ms": 182000, "base": 840, "max_pps": 23 },
+        { "title": "Business Hotel", "max_score": 1745, "min_duration_ms": 2000, "max_duration_ms": 182000, "base": 1080, "max_pps": 15 },
+        { "title": "Grand Hotel", "max_score": 2100, "min_duration_ms": 2000, "max_duration_ms": 212000, "base": 1440, "max_pps": 9 }
+      ]
+    },
+    "wizard-potion-lab": {
+      "title": "Wizard Potion Lab",
+      "kind": "points",
+      "max_score": 3000,
+      "min_duration_ms": 10000,
+      "max_duration_ms": 300000,
+      "base": 3000,
+      "max_pps": 3000,
+      "enabled": false
+    },
+    "haunted-mansion-keys": {
+      "title": "Haunted Mansion Keys",
+      "kind": "time",
+      "max_score": 29200,
+      "min_duration_ms": 8000,
+      "max_duration_ms": 300000,
+      "time_base_ms": 300000,
+      "enabled": false
+    },
+    "bee-garden": {
+      "title": "Bee Garden",
+      "kind": "points",
+      "max_score": 705,
+      "min_duration_ms": 4000,
+      "max_duration_ms": 120000,
+      "base": 245,
+      "max_pps": 42,
+      "enabled": false,
+      "levels": [
+        { "title": "Flower Garden", "max_score": 705, "min_duration_ms": 4000, "max_duration_ms": 120000, "base": 245, "max_pps": 42 },
+        { "title": "Vegetable Garden", "max_score": 930, "min_duration_ms": 4000, "max_duration_ms": 150000, "base": 375, "max_pps": 31 },
+        { "title": "Greenhouse", "max_score": 1140, "min_duration_ms": 4000, "max_duration_ms": 180000, "base": 490, "max_pps": 25 },
+        { "title": "Forest Flowers", "max_score": 1225, "min_duration_ms": 4000, "max_duration_ms": 180000, "base": 620, "max_pps": 16 },
+        { "title": "Giant Garden", "max_score": 1440, "min_duration_ms": 4000, "max_duration_ms": 210000, "base": 750, "max_pps": 15 }
+      ]
+    },
+    "dog-park-fetch": {
+      "title": "Dog Park Fetch",
+      "kind": "points",
+      "max_score": 3000,
+      "min_duration_ms": 10000,
+      "max_duration_ms": 300000,
+      "base": 3000,
+      "max_pps": 3000,
+      "enabled": false
+    },
+    "submarine-treasure-dive": {
+      "title": "Submarine Treasure Dive",
+      "kind": "points",
+      "max_score": 3000,
+      "min_duration_ms": 10000,
+      "max_duration_ms": 300000,
+      "base": 3000,
+      "max_pps": 3000,
+      "enabled": false
+    },
+    "mars-rover-mission": {
+      "title": "Mars Rover Mission",
+      "kind": "points",
+      "max_score": 3000,
+      "min_duration_ms": 10000,
+      "max_duration_ms": 300000,
+      "base": 3000,
+      "max_pps": 3000,
+      "enabled": false
+    },
+    "train-station-rush": {
+      "title": "Train Station Rush",
+      "kind": "points",
+      "max_score": 3000,
+      "min_duration_ms": 10000,
+      "max_duration_ms": 300000,
+      "base": 3000,
+      "max_pps": 3000,
+      "enabled": false
+    },
+    "pizza-kitchen-3d": {
+      "title": "Pizza Kitchen 3D",
+      "kind": "points",
+      "max_score": 1130,
+      "min_duration_ms": 4000,
+      "max_duration_ms": 120000,
+      "base": 690,
+      "max_pps": 22,
+      "enabled": false,
+      "levels": [
+        { "title": "Cheese Pizza", "max_score": 1130, "min_duration_ms": 4000, "max_duration_ms": 120000, "base": 690, "max_pps": 22 },
+        { "title": "Two Toppings", "max_score": 1440, "min_duration_ms": 4000, "max_duration_ms": 150000, "base": 920, "max_pps": 16 },
+        { "title": "Restaurant Rush", "max_score": 2000, "min_duration_ms": 4000, "max_duration_ms": 180000, "base": 1380, "max_pps": 15 },
+        { "title": "Multiple Orders", "max_score": 2420, "min_duration_ms": 4000, "max_duration_ms": 180000, "base": 1840, "max_pps": 10 },
+        { "title": "Master Pizza Night", "max_score": 2900, "min_duration_ms": 4000, "max_duration_ms": 210000, "base": 2300, "max_pps": 7 }
+      ]
+    },
+    "jungle-bridge-run": {
+      "title": "Jungle Bridge Run",
+      "kind": "points",
+      "max_score": 3000,
+      "min_duration_ms": 10000,
+      "max_duration_ms": 300000,
+      "base": 3000,
+      "max_pps": 3000,
+      "enabled": false
+    },
+    "magic-carpet-ride": {
+      "title": "Magic Carpet Ride",
+      "kind": "points",
+      "max_score": 3000,
+      "min_duration_ms": 10000,
+      "max_duration_ms": 300000,
+      "base": 3000,
+      "max_pps": 3000,
+      "enabled": false
+    },
+    "toy-store-night-shift": {
+      "title": "Toy Store Night Shift",
+      "kind": "points",
+      "max_score": 3000,
+      "min_duration_ms": 10000,
+      "max_duration_ms": 300000,
+      "base": 3000,
+      "max_pps": 3000,
+      "enabled": false
+    },
+    "aquarium-cleaner": {
+      "title": "Aquarium Cleaner",
+      "kind": "points",
+      "max_score": 3000,
+      "min_duration_ms": 10000,
+      "max_duration_ms": 300000,
+      "base": 3000,
+      "max_pps": 3000,
+      "enabled": false
+    },
+    "postman-3d": {
+      "title": "Postman 3D",
+      "kind": "points",
+      "max_score": 3000,
+      "min_duration_ms": 10000,
+      "max_duration_ms": 300000,
+      "base": 3000,
+      "max_pps": 3000,
+      "enabled": false
+    },
     "sky-tower-jump": {
       "title": "Sky Tower Jump",
       "kind": "time",

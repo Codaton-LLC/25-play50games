@@ -1,7 +1,10 @@
 // Server-safe contracts for the 3D Arcade.
 // Do NOT import three, @react-three/*, React components or "use client" files here.
 
-/** The 10 originals in rollout order, the 20 expansion games (docs/arcade-expansion/02 §C.1), then Menu 2. */
+/**
+ * All 50 Menu 1 games: the 10 originals in rollout order, the expansion (docs/arcade-expansion/02 §C.1),
+ * then the 20 new Menu 1 games 31-50 (docs/menu1-new/specs-31-40.md, specs-41-50.md), then Menu 2 (Color Roll Heroes).
+ */
 export const ARCADE_SLUGS = [
    "robot-collector",
    "food-catcher",
@@ -33,7 +36,27 @@ export const ARCADE_SLUGS = [
    "knight-arena",
    "zoo-escape",
    "rocket-landing",
-   // Menu 2 (Color Roll Heroes): the vertical slice, docs/master-plan/PLAY50_MENU_2_50_COLOR_SHELL_NINJAS_FULL.md
+   "firefighter-rescue",
+   "taxi-rush-3d",
+   "burger-delivery-scooter",
+   "beach-lifeguard",
+   "farm-tractor-challenge",
+   "cat-vs-robot-vacuum",
+   "hotel-bellboy-rush",
+   "wizard-potion-lab",
+   "haunted-mansion-keys",
+   "bee-garden",
+   "dog-park-fetch",
+   "submarine-treasure-dive",
+   "mars-rover-mission",
+   "train-station-rush",
+   "pizza-kitchen-3d",
+   "jungle-bridge-run",
+   "magic-carpet-ride",
+   "toy-store-night-shift",
+   "aquarium-cleaner",
+   "postman-3d",
+   // Menu 2 (Color Roll Heroes): the vertical slice, docs/master-plan/PLAY50_MENU_2_50_COLOR_ROLL_HEROES_FULL.md
    "sky-tower-jump",
 ] as const;
 

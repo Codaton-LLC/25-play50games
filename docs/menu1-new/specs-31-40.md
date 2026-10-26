@@ -4,7 +4,7 @@ Status: 2026-10-25. Branch `cursor/specs-menu1-31-40`. Spec only: no game code i
 
 Source: `docs/master-plan/PLAY50_ALL_100_GAMES_500_LEVELS_FULL.md` games 31–40, the spec shape in `docs/arcade-expansion/03-game-specs-adventure.md`, the level contract in `docs/arcade-levels.md`, and `play50games-frontend/src/arcade3d/core/README.md`. Every tuning number is a starting point. The score-limit proof (arcade-score-limits skill, once per level) replaces the assumed earliest win with the oracle bot's best time and retunes `base`, `maxPointsPerSec` and `maxScore` by about 3–5 %. Keep level 5 `maxScore` ≤ 3 × level 1.
 
-These are new games (master-plan 31–40). The 30 games already in `arcade3d/games/` stay as they are. `meta.order` is 31–40. `status: "dev"`. `orientation: "any"`. `difficulty` is in each section. `owner` is set when a build is assigned.
+These are new games (master-plan 31–40). The 30 games already in `arcade3d/games/` stay as they are. `meta.order` is 31–40. `status: "dev"`. `orientation: "any"`. `difficulty` is in each section. `owner` is in the owner table in `specs-41-50.md` (2026-10-25).
 
 ## How to build one
 
@@ -40,7 +40,7 @@ Tests every game already owes, plus the ones under the game: same seed and input
 
 ### Claude gate before the folder compiles
 
-`ARCADE_SLUGS` in `arcade3d/types.ts` lists 30 games, and `GAME_LOADERS` matches it. `ArcadeCollection` is `originals | adventure | skill`. Claude adds each slug (`status: "dev"`, `enabled: false`) to the slug list, `loaders.ts` and `arcade-games.json`, and decides the collection id. The build agent does not edit those files. Until the slug exists, the game's own vitest file imports the folder by path.
+Done 2026-10-25 (`claude/menu1-scaffold`): all twenty Menu 1 slugs (31–50) are in `ARCADE_SLUGS`, `GAME_LOADERS`, the registry and `arcade-games.json` (`status: "dev"`, `enabled: false`, placeholder limits), each with a stub folder (`meta.ts` + `index.tsx` with `PlaceholderScene`) that the build replaces. The paragraph below is the original gate, kept for the record. Then: `ArcadeCollection` is `originals | adventure | skill`. Claude adds each slug (`status: "dev"`, `enabled: false`) to the slug list, `loaders.ts` and `arcade-games.json`, and decides the collection id. The build agent does not edit those files. Until the slug exists, the game's own vitest file imports the folder by path.
 
 ### Core gaps (all ten)
 
@@ -81,6 +81,8 @@ Shared ready files used below (one assets PR can land the set): `sofa.glb`, `bed
 **Look.** Interior walls `#44403c`, floor `#292524`, ember `#f97316` on the active fire only. Lighting and background come from the level const. Firefighter 1.82 m, `charFirefighter.glb`, extinguisher on `handR` via `attach`, spray is `aimArm` forward plus `fx.smoke`. Cheer on win. Civilians: `civilianNpc.glb`, `waddle`, one `<DynamicInstancedModel>` if the mesh is one draw, otherwise five `<Model>`s (five is inside the budget).
 
 **Hyper3D.** From `menu1-firefighter-rescue/`: `charFirefighter.glb`, `fireExtinguisher.glb`, `fireHydrant.glb`, `hoseReel.glb`, `fireTruck.glb` (parked outside the entrance on every level), `exitSignV2.glb` (leave `exitSign.glb`). Leave `firefighter-rescue/hero.glb`. Shared ready: `sofa.glb`, `bed.glb`, `cabinet.glb`, `woodenChair.glb`, `civilianNpc.glb`. Interior doors: `REUSED_ASSETS.door`. Fire and smoke are `fx`, not meshes.
+
+**Hyper3D still needed.** `exitSignFigure` (regen: both exit signs show a glyph, not a running figure; `exitSignV2.glb` is also a thin slab), `fallingDebris` (the sliding debris box). Full list with prompt ideas: `hyper3d-needed.md`.
 
 **Draw calls.** About 45. Instanced furniture, one door mesh instanced, one character, civilian pool, truck and hydrant and hose as single models. Cap the proof at 70.
 
@@ -151,6 +153,8 @@ Check: `base + pps * M ≥ peak`, and 3050 / 1100 ≤ 3. The proof replaces M wi
 
 **Hyper3D.** `menu1-taxi-rush-3d/`: `taxiCab.glb` (player), `townhouseBlock.glb`, `cornerShop.glb`, `busStop.glb`. No character file, and none is required. Shared ready: `trafficLight.glb`, `trafficCone.glb`, `travellerNpc.glb`. Core: `REUSED_ASSETS.car` for the traffic pool (one `<DynamicInstancedModel>`, per-copy tint, `tinted`), `REUSED_ASSETS.lamp`, `REUSED_ASSETS.bench`. Cones mark the stop line.
 
+**Hyper3D still needed.** `passengerNpc` (stylised rider; `travellerNpc.glb` is photoreal with hands in pockets; shared with 37 and 44). Full list with prompt ideas: `hyper3d-needed.md`.
+
 **Draw calls.** About 40. Buildings instanced (two meshes), one car pool, one cab, instanced lamps and benches and cones, a handful of lights. Cap 65.
 
 **Levels.**
@@ -219,6 +223,8 @@ Tile lines: 1 Quiet Neighborhood, "Three fares, two lights." 2 Downtown, "Longer
 **Look.** Road `#475569`, shop trim `#fb7185`, bag `#fbbf24`. L1–L3 `day` / `sunset`, L4 wet streets and closer fog, L5 `night`. Rider: `charScooterRider.glb`, 1.70 m standing height, parented to `deliveryScooter.glb`, game-local seated pose (`turnBone` on hips and knees, hands on the bars with `aimArm`). The scooter is the collision body. Box: `deliveryBoxV2.glb` on the rear rack. A hop uses a 0.15 m visual lift; the rider pose stays seated.
 
 **Hyper3D.** `menu1-burger-delivery-scooter/`: `charScooterRider.glb`, `deliveryScooter.glb`, `deliveryBoxV2.glb` (leave `deliveryBox.glb`), `burgerBag.glb`, `foodBoxV2.glb` (leave `foodBox.glb`), `restaurantCounter.glb`, `burgerShop.glb`, `roadBarrier.glb`. Leave `burger-delivery-scooter/hero.glb`. Shared ready: `trafficCone.glb`. Core: `REUSED_ASSETS.car` (parked, instanced, tinted), `lamp`, `bench`. Bags and food boxes are the counter dressing, instanced.
+
+**Hyper3D still needed.** `scooterDeliveryBox` (regen: `deliveryBox.glb` is a gift box, `deliveryBoxV2.glb` a rolling cooler), `foodBoxClosed` (regen: both food boxes are open), `burgerShopPlain` (regen: `burgerShop.glb` and `burgerShopR.glb` carry lettering), `restaurantCounterPlain` (regen: "FASST" on its sign). Full list with prompt ideas: `hyper3d-needed.md`.
 
 **Draw calls.** About 40. Cap 60.
 
@@ -290,6 +296,8 @@ Tile lines: 1 Neighborhood, "Three drops, wide streets, keep quality at 80." 2 C
 
 **Hyper3D.** `menu1-beach-lifeguard/`: `charLifeguard.glb`, `lifeguardTower.glb`, `rescueFloat.glb`, `beachChair.glb`, `beachCooler.glb`, `beachgoerNpc.glb`, `beachHut.glb`, `sandcastle.glb`, `surfboardV2.glb` (leave `surfboard.glb`), `rescueJetSki.glb`. Leave `beach-lifeguard/hero.glb`. Core: `REUSED_ASSETS.umbrella`, `palm`. Chairs, boards, huts and umbrellas are instanced on the sand, outside the spawn x of every swimmer path (a straight line in z from the swimmer to the tower). The alert marker is a code torus, two-tone `#fb7185` / `#f8fafc`. No buoy file on disk.
 
+**Hyper3D still needed.** `surfboardLong` (regen: `surfboard.glb` is a disc, `surfboardV2.glb` is broken), `alertBuoy` (the alert marker; a code torus until then). Full list with prompt ideas: `hyper3d-needed.md`.
+
 **Draw calls.** About 35 plus one water. Cap 55.
 
 **Levels.**
@@ -357,6 +365,8 @@ Tile lines: 1 Small Beach, "Two swimmers, a short swim." 2 Busy Beach, "Farther 
 **Look.** Grass `#84cc16`, soil `#a16207`, mud `#57534e`, barn `#b45309`, accent `#eab308`. L1–L2 `day`, L3 `sunset`, L4 `day` with grey fog, L5 `sunset`. Farmer: `charFarmer.glb`, 1.78 m, seated on `tractor.glb` with the same game-local sit as the scooter. The tractor is the collision. Trailer: `farmTrailer.glb` at the spring point. Scarecrow and trough and silo are decor outside the drivable soil. L3 swaps the hitch mesh to `appleCrate.glb` (same radius). Trees: `EXPANSION_ASSETS.leafyTree`, instanced, and they are solid AABBs.
 
 **Hyper3D.** `menu1-farm-tractor-challenge/`: `charFarmer.glb`, `tractor.glb`, `farmTrailer.glb`, `hayBale.glb`, `appleCrate.glb`, `barn.glb`, `farmFence.glb`, `farmGate.glb`, `scarecrow.glb`, `grainSilo.glb`, `waterTrough.glb`. Leave `farm-tractor-challenge/hero.glb`. Fence pieces are `<InstancedModel>` along the boundary. Core crate is an extra prop by the barn, not the hitch object.
+
+**Hyper3D still needed.** `hayBaleBound` (regen: crumpled facets, no twine), `grainSiloGround` (regen: both silos stand on legs; `grainSiloR.glb` is the closer one meanwhile), `scarecrowPost` (regen: arms down, on legs). Full list with prompt ideas: `hyper3d-needed.md`.
 
 **Draw calls.** About 30. Cap 50. Hay is one dynamic pool (hidden once slotted, then shown on the trailer by the same pool).
 
@@ -427,6 +437,8 @@ Tile lines: 1 Farm Yard, "Two bales, a wide yard." 2 Wheat Field, "Two bales on 
 **Look.** Floor `#e7e5e4`, wall `#d6d3d1`, accent `#fb923c`. One cat tint per level (the mesh is a creature): L1 `#fb923c`, L2 `#9ca3af`, L3 `#57534e`, L4 `#fde68a`, L5 `#c4b5fd`. `<Model tint>`. Vacuum `#94a3b8` with a small emissive strip so it reads at a glance. L1 `day`, L2 `indoor`, L3 `indoor`, L4 `day`, L5 `night`. Vacuum loop: `startLoop("vacuum")`, pitch with its speed.
 
 **Hyper3D.** `menu1-cat-vs-robot-vacuum/`: `cat.glb`, `robotVacuum.glb`, `catTreat.glb`, `catToy.glb`, `catBox.glb`, `catTree.glb`. No `hero.glb`. Shared ready: `sofa.glb`, `bed.glb`, `table.glb`, `woodenChair.glb`, `bookshelf.glb` (the shelf). Do not use `EXPANSION_ASSETS.vacuum` (that is a backpack). Treats are one dynamic pool. Furniture is instanced.
+
+**Hyper3D still needed.** `catTreatFish` (regen: a flat blob), `catToyPlush` (regen: a cartoon mouse with a face), `bookshelfFull` (shared, regen: shelves mostly empty). Adopt `catTreeR.glb` (no cats baked in), not `catTree.glb`. Full list with prompt ideas: `hyper3d-needed.md`.
 
 **Draw calls.** About 25. Cap 45. The cat is one unskinned model with `hop` / `waddle` from `core/motion`. It does not go through the auto-rig.
 
@@ -499,6 +511,8 @@ Tile lines: 1 Living Room, "Eight treats, one vacuum on a path." 2 Kitchen, "It 
 
 **Hyper3D.** `menu1-hotel-bellboy-rush/`: `charBellboy.glb`, `bellboyTrolley.glb`, `elevatorDoorV2.glb` (leave `elevatorDoor.glb`), `hotelRoomDoor.glb`, `keyCard.glb`, `receptionDesk.glb`, `serviceBellV2.glb` (leave `serviceBell.glb`), `lobbyPlanter.glb`. Leave `hotel-bellboy-rush/hero.glb`. Core: `EXPANSION_ASSETS.suitcase` on the trolley. Shared ready: `sofa.glb`, `travellerNpc.glb`. Doors are one `<InstancedModel>` (the label plane is a second instanced card).
 
+**Hyper3D still needed.** `elevatorDoorsSliding` (regen: `elevatorDoor.glb` and `elevatorDoorV2.glb` are single hinged doors), `keyCardPlain` (regen: pseudo-text on the face), `bellboyTrolleyV2` (regen: wiry, distorted arch), `passengerNpc` (shared with 32). Adopt `lobbyPlanterR.glb`, not `lobbyPlanter.glb` (a faceted wedge pot). Full list with prompt ideas: `hyper3d-needed.md`.
+
 **Draw calls.** About 30. Cap 45.
 
 **Levels.**
@@ -563,6 +577,8 @@ Tile lines: 1 Lobby Floor, "Three bags, the doors you can already see." 2 3-Floo
 **Look.** Floor `#312e81`, shelves `#44403c`, cauldron glow `#a78bfa`, accent `#c4b5fd`. L1 `indoor`, L2 `indoor`, L3 `night`, L4 `sunset`, L5 `night`. Wizard 1.70 m, `charWizard.glb`, untinted, `reachPose` replaced by a forward `aimArm` while adding to the pot. Cauldron: `EXPANSION_ASSETS.cauldron` (already measured, `CAULDRON_INNER_RADIUS_GLB`). A flat disc at the inner floor changes colour to the last accepted ingredient. `startLoop("bubbling")` while a recipe is open.
 
 **Hyper3D.** `menu1-wizard-potion-lab/`: `charWizard.glb`, `alchemyTable.glb` (against the wall), `magicCrystal.glb`, `berryBunch.glb`, `magicFlower.glb`, `herbBundle.glb`, `potionBottle.glb`, `spellBook.glb` (on the table, decor), `candle.glb` (instanced), `crystalBall.glb` (decor on the table). Leave `wizard-potion-lab/hero.glb`. Mushroom: adopt `shared/gardenMushroom.glb`; until that PR, `EXPANSION_ASSETS.mushroom` is the fallback already in the manifest. Shelf: `shared/bookshelf.glb`, instanced. There is no cauldron in the wizard ready folder; use the core cauldron.
+
+**Hyper3D still needed.** `bookshelfFull` (shared with 36 and 39, regen: shelves mostly empty). Full list with prompt ideas: `hyper3d-needed.md`.
 
 **Draw calls.** About 30. Cap 45. Ingredient types are six models, a few copies each, instanced per type.
 
@@ -632,6 +648,8 @@ Step counts follow the plan (2, 3, 4, 5, 5). Six shelf types, and a recipe may r
 **Look.** Walls `#292524`, floor `#1c1917`, moonlight accent `#c4b5fd`, door plaque in the key's tint plus the shape. L1 `indoor` and brighter (`#44403c` background) so the first grid reads. L2 `indoor`, L3 `night`, L4 `night` with closer fog, L5 `night`. Detective 1.80 m, `charDetective.glb`, untinted, cheer on the exit. Keys: one `skeletonKey.glb` pool, per-copy tint, and a tiny shape plate parented in code (a flat triangle / square / circle) so colour is never the only channel. Armour: `<Model>` of `armourStand.glb` slid along the path with a bob, not the auto-rig.
 
 **Hyper3D.** `menu1-haunted-mansion-keys/`: `charDetective.glb`, `skeletonKey.glb`, `mansionDoor.glb`, `wallLeverV2.glb` (leave `wallLever.glb`), `grandfatherClock.glb` (decor), `paintingFrame.glb` (instanced), `armourStand.glb`. Leave `haunted-mansion-keys/hero.glb`. Shared ready: `woodenChair.glb`, `table.glb`, `bookshelf.glb`. Core: `EXPANSION_ASSETS.chest` as the prop a key sits on in one room. Clocks do not score.
+
+**Hyper3D still needed.** `wallLeverArm` (regen: `wallLever.glb` and `wallLeverV2.glb` are a knob on a plate, no lever arm), `bookshelfFull` (shared). Full list with prompt ideas: `hyper3d-needed.md`.
 
 **Draw calls.** About 40. Instanced doors, paintings, chairs. One key pool. One detective. Cap 60.
 
@@ -703,6 +721,8 @@ Room counts: 3, 6, 8, 10, 12. The plan's 3 / 5 / 7 / 9 / 12 is matched at the en
 **Look.** Lawn `#65a30d`, soil beds `#a16207`, nectar `#fbbf24`, hive `#f59e0b`, accent `#fbbf24`. Bee tints (creature mesh): L1 `#fbbf24`, L2 `#93c5fd`, L3 `#f8fafc`, L4 `#a3e635`, L5 `#fcd34d`. `hover` + `bank` from `core/motion`. Wings stay as the GLB modelled them (one mesh, no cut-apart flap). L1–L3 `day`, L4 `sunset`, L5 `day` with fog. `startLoop("hum")`, pitch up while boosting. Sky dome.
 
 **Hyper3D.** `menu1-bee-garden/`: `bee.glb`, `beehive.glb`, `flowerA.glb`, `flowerB.glb`, `flowerC.glb`, `nectarOrb.glb`, `bigLeaf.glb`, `branchV2.glb` (leave `branch.glb`), `spiderWeb.glb`, `vegetablePlanter.glb`, `wateringCan.glb`. No hero file. Mushroom obstacle: `shared/gardenMushroom.glb`, with `EXPANSION_ASSETS.mushroom` as the in-manifest fallback. L4–L5 may instance `EXPANSION_ASSETS.leafyTree` at half scale as decor outside the fly rect, `useQuality().decor`. Flowers and orbs are instanced per type. Webs are one instanced mesh.
+
+**Hyper3D still needed.** `spiderWebFrame` (regen: `spiderWeb.glb` has broken, patchy strands). Full list with prompt ideas: `hyper3d-needed.md`.
 
 **Draw calls.** About 25 plus the sky. Cap 40.
 

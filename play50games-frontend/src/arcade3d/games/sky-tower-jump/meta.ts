@@ -26,7 +26,7 @@ export const skyTowerJumpMeta: ArcadeGameMeta = {
    title: "Sky Tower Jump",
    tagline: "Jump the floating islands to the top of the sky.",
    description: "Climb a tower of floating islands, moving blocks and bounce pads as Riko, the armoured red hero who rolls into a ball. Grab orbs to cut your time and reach the sky gate.",
-   order: 31,
+   order: 51,
    status: "dev",
    collection: "rollheroes",
    difficulty: 1,
