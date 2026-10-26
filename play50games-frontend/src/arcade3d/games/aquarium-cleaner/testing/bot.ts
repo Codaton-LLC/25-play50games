@@ -9,7 +9,7 @@ import { createArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import type { LevelId } from "@/arcade3d/types";
 import { LEVELS } from "../levels";
 import {
-   AIR_BONUS_ABOVE, CARRY_MAX, HIGH_MIN_Y, LIVES, RADIUS,
+   AIR_BONUS_ABOVE, CARRY_MAX, CURRENT_ACCEL, CURRENT_SETTLE_S, HIGH_MIN_Y, LIVES, MAX_SPEED, RADIUS,
    createRun, idleInput, standable, step, type AquariumInput, type Run,
 } from "../rules";
 
@@ -130,15 +130,33 @@ export function createBot(run: Run, style: Style, seed: number): Bot {
                hx = fl.x + ux * 1.06 - h.x;
                hz = fl.z + uz * 1.06 - h.z;
             }
-            input.moveX = Math.max(-1, Math.min(1, hx * 2)) * 0.6;
-            input.moveY = Math.max(-1, Math.min(1, hz * 2)) * 0.6;
+            // hold the work point: a wanted velocity toward it (at most 1.5 m/s), minus the L5 current's drift
+            const drift = r.level.current ? CURRENT_ACCEL * CURRENT_SETTLE_S : 0;
+            const wvx = Math.max(-1.5, Math.min(1.5, hx * 3));
+            const wvz = Math.max(-1.5, Math.min(1.5, hz * 3));
+            input.moveX = Math.max(-1, Math.min(1, (wvx - drift) / MAX_SPEED));
+            input.moveY = Math.max(-1, Math.min(1, wvz / MAX_SPEED));
             return;
          }
          if (goal.kind === "column" && d < 0.5) return;
          if (!follower) follower = followPath(grid, free, h.x, h.z, goal.x, goal.z);
          steer(grid, follower, h.x, h.z, dir);
-         input.moveX = dir.dirX * stick;
-         input.moveY = dir.dirZ * stick;
+         // keep clear of a shark (a player sees it coming): bend away from any shark within 3 m
+         let ax = dir.dirX;
+         let az = dir.dirZ;
+         for (const sh of r.sharks) {
+            const sx = h.x - sh.x;
+            const sz = h.z - sh.z;
+            const sd = Math.hypot(sx, sz);
+            if (sd < 3 && sd > 1e-6) {
+               const w = ((3 - sd) / 3) * 2.2;
+               ax += (sx / sd) * w;
+               az += (sz / sd) * w;
+            }
+         }
+         const al = Math.hypot(ax, az) || 1;
+         input.moveX = (ax / al) * stick;
+         input.moveY = (az / al) * stick;
          if (d < 1.2) {
             const k = Math.max(0.6, Math.min(1, d / 0.8)) * stick;
             input.moveX = (dx / (d || 1)) * k;

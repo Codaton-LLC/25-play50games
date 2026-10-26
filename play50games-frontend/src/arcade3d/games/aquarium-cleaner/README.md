@@ -21,7 +21,7 @@ Tasks, `tasks = algae + trash + filters` (3, 4, 5, 6, 8):
 
 Score, all integers: +120 per task, +30 more if the air at that moment is above 50, and on a win +4 per full second left. Each task pays once. `Bobj = 150 x tasks`.
 
-A level is cleared by a win or by every task done (`clearScore = 120 x tasks`, levels 1-4; level 5 has none).
+A level is cleared only by a win (no `clearScore`: with the +30 air bonus, `120 x tasks` was reached before the list was done, e.g. 5 of 6 tasks on L4).
 
 Keyboard and touch run the same `step()`: only the stick axes, `action` and `jumpPressed` matter, for the same 1.00 s, 1.50 s and 0.9 s on both devices (`rules.test.ts`).
 
@@ -35,7 +35,7 @@ Keyboard and touch run the same `step()`: only the stick axes, `action` and `jum
 | 4 | Giant Aquarium | 26 x 18 | 2 (1) | 2 | 2 | 6 | 1.5 | 1 at 1.9 | no | 180 s | day `#0d9488` |
 | 5 | Deep Sea Exhibit | 30 x 20 | 3 (2) | 3 | 2 | 8 | 1.5 | 2 at 2.0 | yes | 210 s | night `#042f2e` |
 
-Fog is `[background, 16, 44]`. The layout is seeded (`createRun(seed, level)`): the castle, rocks, filters, patches and trash are placed by rejection sampling and a flood fill proves every patch (a stand point within 1.0 m), filter, item, the basket, the column and the hatch reachable from the entry. 200 seeds x 5 levels in `rules.test.ts`.
+Fog is `[background, 42, 120]`: it starts past the whole camera window on a 390 × 844 phone, a 1280 × 800 desktop and an 844 × 390 landscape phone (`look.test.ts`). The layout is seeded (`createRun(seed, level)`): the castle, rocks, filters, patches and trash are placed by rejection sampling and a flood fill proves every patch (a stand point within 1.0 m), filter, item, the basket, the column and the hatch reachable from the entry. 200 seeds x 5 levels in `rules.test.ts`.
 
 ## Server limits
 
@@ -51,11 +51,11 @@ Fog is `[background, 16, 44]`. The layout is seeded (`createRun(seed, level)`): 
 
 Level 5 `maxScore` 1990 is under `3 x 925`. The score without a win never passes `Bobj`, which `base` already covers. A level with every task done but no stand on the hatch scores at most `Bobj` and clears.
 
-Proof (`rules.test.ts`, through `createArcadeStore` + `advanceRunClock` + `withinServerLimits` + `capScore`): per level, 60 oracle seeds (30, 60 and 144 Hz mixed), 30 human-paced seeds (stick 0.9, 0.18 s before each hold or float, 30 Hz), 30 spam seeds, 10 idle seeds. Idle scores 0 and never wins, spam stays inside the limits, `capScore` is a no-op, the best oracle win is at least 90% of `maxScore`. The table above is from a one-off run of 200 oracle seeds per level (wins 200/200, 200/200, 200/200, 200/200, 199/200; the one level 5 miss is the bot, not the layout).
+Proof (`proof.level-N.test.ts`, one level per file, `testing/proof.ts`; bots in `testing/bot.ts`, all through `createArcadeStore` + `advanceRunClock`): the arithmetic above (every win at or after 0.85 e fits `base + pps x t` and `maxScore`, `maxScore` within 5 % of that peak); the honest (human-paced: stick 0.9, 0.18 s reactions) bot wins at least 99 % of 200 seeds at 30 / 60 / 144 Hz, inside the limits, `capScore` a no-op; the oracle inside the limits on 200 seeds, never faster than 0.85 e, best at least 90 % of `maxScore`; idle never wins and scores 0 (200 seeds through the rules, 10 through the store); spam inside the limits. Measured at the gate (2026-10-26, 200 seeds per bot and level): oracle 200/200 on every level, honest bot 200/200 on every level, best scores 886 / 1136 / 1398 / 1520 / 1908, earliest wins 10.18 / 15.98 / 17.40 / 24.07 / 32.27 s (`EARLIEST_WIN_MS` keeps the lower of two measurements). Both bots bend away from a shark within 3 m (a player sees it coming) and hold their work point against the L5 current; before those two fixes the honest bot lost 4 of 200 L5 seeds to bites and drift, never to the rules.
 
 ## Look
 
-One palette (`COLORS`) in `looks.ts`: sand `#f5deb3`, glass edge `#99f6e4` as a thin emissive frame, algae `#4d7c0f` decals that fade as the hold fills, accent `#2dd4bf`. Lighting and background come from the level (core presets + fog). Camera: follow, pitch 50 deg, yaws `[0, pi/2]`, fov 48, `followFocus`, `shift: true`. The sand plane is 60 m bigger than the tank, so no screen edge shows void.
+One palette (`COLORS`) in `looks.ts`: sand `#f5deb3`, glass edge `#99f6e4` as a thin emissive frame, algae `#4d7c0f` decals that fade as the hold fills, accent `#2dd4bf`. Lighting and background come from the level (core presets + fog). Camera: follow, pitch 50 deg, one yaw (0: the tank's open front always faces the camera; a portrait phone no longer turns it to look through the side glass), fov 48, an 8 × 11 m window round the diver (the portrait camera sits at about 25 m instead of 34 m), `shift: true`. The sand plane is 300 m bigger than the tank, so no screen edge shows void.
 
 Models are Hyper3D GLBs through the core: the diver (`charDiver`, 1.78 m, auto-rig with committed `DIVER_LANDMARKS`, slow `walkPose` 0.4 with a stride from `gaitPhaseStep` at 0.6 x speed, spine pitched 10 deg, `jumpPose` on a float, an arm aimed at the patch while scrubbing, the scrubber in `handR` and the tank on the chest by `attach`), castle (2.5 m wide, y x0.8), rocks (instanced), filter machine V3 (1.3 m wide), trash basket, bottle pool, fish schools (decor, high in the back half), shark pool, coral (instanced decor on the back glass). The bubble column is code (a ring, a faint tube and 26 rising bubbles): the `bubbleStation` GLBs are glass domes and are not used. `coral`, `seaweed` and the V2 / V3 variants are broken shard meshes and are not used either. Every GLB has a bevelled 2-3 tone stand-in (`Primitives.tsx`). Decor is authored at the drawn size of spot scale 1 and scaled by the spot only; coral stays against the back glass and fish above 2.4 m behind the diver's half of the tank, so nothing sits between the camera and him. About 35 draw calls by count (cap 60); not measured on a device.
 

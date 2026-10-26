@@ -61,7 +61,13 @@ export const CASTLE_R = 1.25;
 export const ROCK_R = 0.8;
 export const FILTER_R = 0.65;
 
-/** Sketch limits from the spec. The proof in README retunes these to the oracle. */
+/**
+ * The earliest win measured per level (ms): the fastest of the oracle and the honest bot over 200 seeds
+ * each at 30 / 60 / 144 Hz (two measurements, the lower kept). The proof allows a win at 0.85 x this.
+ */
+export const EARLIEST_WIN_MS: Record<LevelId, number> = { 1: 10_180, 2: 15_980, 3: 17_270, 4: 23_950, 5: 32_200 };
+
+/** Per-level limits (README "Server limits"): base = 150 x tasks, peak at 0.85 x EARLIEST_WIN_MS, +3 %. */
 export const PROPOSED_LEVEL_LIMITS: Record<LevelId, ScoringRules> = {
    1: { kind: "points", maxScore: 925, minDurationMs: 4000, maxDurationMs: 120_000, base: 450, maxPointsPerSec: 52, unitLabel: "pts", display: "int" },
    2: { kind: "points", maxScore: 1180, minDurationMs: 4000, maxDurationMs: 150_000, base: 600, maxPointsPerSec: 41, unitLabel: "pts", display: "int" },

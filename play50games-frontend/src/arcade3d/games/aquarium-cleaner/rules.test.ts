@@ -1,5 +1,4 @@
 import { describe, expect, it } from "vitest";
-import { withinServerLimits, capScore } from "@/arcade3d/core/limits";
 import { LEVEL_IDS } from "@/arcade3d/types";
 import { LEVELS, tasksOf } from "./levels";
 import {
@@ -7,7 +6,6 @@ import {
    PROPOSED_LEVEL_LIMITS, RADIUS, SHARK_AIR, SHARK_MERCY_S, SHARK_PUSH, TASK_POINTS, TIME_BONUS_PER_SECOND, createRun, distanceToLoop, idleInput,
    loopPoints, objectivesReachable, objectiveCeiling, step, timeBonus, type AquariumInput, type Run,
 } from "./rules";
-import { play } from "./testing/bot";
 
 const DT = 1 / 60;
 
@@ -334,52 +332,32 @@ describe("aquarium score limits", () => {
       for (const id of LEVEL_IDS) expect(objectiveCeiling(LEVELS[id])).toBe(150 * tasksOf(LEVELS[id]));
    });
 
-   it("an honest bot, a human-paced bot, an idle bot and a spam bot stay inside each level's limits", () => {
-      for (const id of LEVEL_IDS) {
-         const limits = PROPOSED_LEVEL_LIMITS[id];
-         let best = 0;
-         let wins = 0;
-         let runs = 0;
-         for (let seed = 0; seed < 60; seed++) {
-            const oracle = play(id, seed, seed % 3 === 0 ? 144 : seed % 3 === 1 ? 60 : 30, "oracle");
-            runs += 1;
-            expect(withinServerLimits(oracle.score, oracle.ms, limits)).toBe(true);
-            expect(oracle.score).toBe(oracle.run.score);
-            expect(capScore(oracle.score, oracle.ms, limits)).toBe(oracle.score);
-            if (oracle.reason === "win") {
-               wins += 1;
-               best = Math.max(best, oracle.score);
-            }
-         }
-         for (let seed = 0; seed < 30; seed++) {
-            const human = play(id, seed, 30, "human");
-            expect(withinServerLimits(human.score, human.ms, limits)).toBe(true);
-            const spam = play(id, seed, 30, "spam");
-            expect(spam.score).toBe(spam.run.score);
-            expect(withinServerLimits(spam.score, spam.ms, limits)).toBe(true);
-            expect(capScore(spam.score, spam.ms, limits)).toBe(spam.score);
-         }
-         for (let seed = 0; seed < 10; seed++) {
-            const idle = play(id, seed, 20, "idle");
-            expect(idle.score).toBe(0);
-            expect(idle.reason).not.toBe("win");
-            expect(withinServerLimits(idle.score, idle.ms, limits)).toBe(true);
-         }
-         console.log(`L${id} oracle wins ${wins}/${runs}, best ${best} (max ${limits.maxScore})`);
-         expect(wins / runs).toBeGreaterThanOrEqual(0.98);
-         expect(best).toBeGreaterThanOrEqual(0.9 * limits.maxScore);
-      }
-   }, 900_000);
+   // the bots and the per-level proof: proof.level-N.test.ts (testing/proof.ts)
+});
 
-   it("a hypothetical win at 85% of the fastest measured time is still inside the limits", () => {
-      const earliestMs: Record<number, number> = { 1: 10_200, 2: 15_980, 3: 17_270, 4: 23_950, 5: 32_200 };
+describe("aquarium per-level reads", () => {
+   it("the tank, the air drain and the shark speed come from the level being played", () => {
       for (const id of LEVEL_IDS) {
-         const limits = PROPOSED_LEVEL_LIMITS[id];
-         const ms = Math.round(earliestMs[id] * 0.85);
-         const score = objectiveCeiling(LEVELS[id]) + timeBonus(LEVELS[id].durationMs - ms);
-         expect(withinServerLimits(score, ms, limits)).toBe(true);
-         expect(score).toBeLessThanOrEqual(limits.maxScore);
+         const level = LEVELS[id];
+         const run = createRun(7, level);
+         expect([run.hx * 2, run.hz * 2]).toEqual([level.width, level.depth]);
+         // air: 2 s of standing still at the entry (away from the column) drains airDrain per second
+         const air = run.hero.air;
+         for (let i = 0; i < 120; i++) step(run, idleInput(), DT, 100_000);
+         expect(air - run.hero.air).toBeCloseTo(level.airDrain * 2, 6);
+         // sharks: the path travelled in 0.5 s is sharkSpeed x 0.5
+         const sharks = createRun(7, level);
+         expect(sharks.sharks.length).toBe(level.sharks);
+         if (level.sharks > 0) {
+            let travelled = 0;
+            for (let i = 0; i < 30; i++) {
+               const x = sharks.sharks[0].x;
+               const z = sharks.sharks[0].z;
+               step(sharks, idleInput(), DT, 100_000);
+               travelled += Math.hypot(sharks.sharks[0].x - x, sharks.sharks[0].z - z);
+            }
+            expect(travelled).toBeCloseTo(level.sharkSpeed * 0.5, 1);
+         }
       }
-      void BASKET_R;
    });
 });

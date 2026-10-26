@@ -46,12 +46,12 @@ export const COLORS = {
 } as const;
 
 export const PITCH = (50 * Math.PI) / 180;
-export const YAWS = [0, Math.PI / 2] as const;
+export const YAWS = [0] as const;
 export const FOV = 48;
 export const FOLLOW = 1;
 export const LOOK_AHEAD = 0.6;
 /** What must stay on screen around the diver (m): a bigger tank scrolls under the camera. */
-export const WINDOW = { w: 17, d: 11 } as const;
+export const WINDOW = { w: 8, d: 11 } as const;
 export const DAMPING = 4;
 /** Glass height and the frame's thickness. */
 export const GLASS_H = 3.2;

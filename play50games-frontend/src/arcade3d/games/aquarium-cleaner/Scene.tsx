@@ -231,6 +231,7 @@ function LevelScene() {
    }, [trashParts, fishP, sharkP, rockP, coralP]);
 
    const sharkYaw = useRef<number[]>(run.sharks.map((s) => s.yaw)).current;
+   const synced = useRef({ tasks: -1, air: -1, algae: -1, trash: -1, filters: -1 }).current;
 
    const pose = useHumanoidPose((p) => {
       const speed = Math.hypot(run.hero.vx, run.hero.vz);
@@ -262,11 +263,13 @@ function LevelScene() {
       const store = useArcadeStore.getState();
       const ev = step(run, { moveX, moveY, action, jumpPressed, yaw: view.yaw }, dt, store.timeLeftMs ?? 0);
       if (ev.score) store.addScore(ev.score);
-      store.setStat("tasks", run.done);
-      store.setStat("air", Math.round(Math.max(0, run.hero.air)));
-      store.setStat("algae", run.algaeDone);
-      store.setStat("trash", run.trashDone);
-      store.setStat("filters", run.filtersDone);
+      // the HUD re-renders only when a value changes
+      const air = Math.round(Math.max(0, run.hero.air));
+      if (synced.tasks !== run.done) store.setStat("tasks", (synced.tasks = run.done));
+      if (synced.air !== air) store.setStat("air", (synced.air = air));
+      if (synced.algae !== run.algaeDone) store.setStat("algae", (synced.algae = run.algaeDone));
+      if (synced.trash !== run.trashDone) store.setStat("trash", (synced.trash = run.trashDone));
+      if (synced.filters !== run.filtersDone) store.setStat("filters", (synced.filters = run.filtersDone));
       const t = nextTarget(run);
       marker[0].hidden = !t;
       if (t) {
@@ -383,7 +386,7 @@ function LevelScene() {
             damping={DAMPING}
          />
          <mesh rotation-x={-Math.PI / 2} position={[0, 0, 0]}>
-            <planeGeometry args={[config.width + 60, config.depth + 60]} />
+            <planeGeometry args={[config.width + 300, config.depth + 300]} />
             <meshStandardMaterial color={COLORS.sand} emissive="#0c4a6e" emissiveIntensity={config.lighting === "night" ? 0.7 : 0} roughness={0.95} />
          </mesh>
          <Instanced spots={tiles} name="sand-tiles">
