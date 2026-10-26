@@ -326,6 +326,9 @@ export const MODEL_MANIFEST: readonly string[] = [
    // rocket-landing habitat dome (2026-10-25): batch 5 adoption, Gen-2.5-Medium, ~5.8k tris;
    // outpost decor drawn only on levels 4-5 (rocket-landing HABITAT_DOME_SPOTS)
    "/models/3d/rocket-landing/habitatDome.glb",
+   // shopping-cart props (2026-10-25): batch 5 part A adoptions, Gen-2.5-Medium, 1500-3000 tris,
+   // optimized GLBs copied in, not re-optimized; the floor scrubber is level 4-5 decor only
+   "/models/3d/shopping-cart/floorScrubber.glb",
 ];
 
 const LISTED: ReadonlySet<string> = new Set(MODEL_MANIFEST);
