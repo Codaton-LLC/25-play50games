@@ -2,8 +2,7 @@
 
 // Night/rush-hour street dressing, drawn only on run levels 4 and 5 (Night Traffic / Rush Hour):
 // a street-lamp line and a parked rush-taxi line, strictly OUTSIDE the play bounds. Every copy
-// stands at |x| = decorX(horizon.coverX), just beyond the side cover's outer edge (where the
-// cover blocks already sit), world-anchored to an absolute street row; decorRow recycles a copy
+// stands at |x| = decorX(horizon.coverX), on the side cover's top just past its inner edge (see assets.ts), world-anchored to an absolute street row; decorRow recycles a copy
 // to the far end of its line once it is DECOR_RECYCLE_ROWS behind the pigeon, off the camera's
 // rear ground envelope. On every other level the pools' update returns false and nothing draws.
 import { memo, useCallback, useEffect, useMemo } from "react";
@@ -11,7 +10,7 @@ import { BoxGeometry, CylinderGeometry, Matrix4, MeshStandardMaterial, type Mate
 import { DynamicInstancedModel } from "@/arcade3d/core/assets";
 import type { InstancePart } from "@/arcade3d/core/render";
 import {
-   ASSETS, createLampSpots, createTaxiSpots, decorRow, decorX,
+   ASSETS, createLampSpots, createTaxiSpots, decorRow, decorX, DECOR_Y,
    isDecorLevel, LAMP_COUNT, LAMP_HEIGHT, LAMP_SPACING,
    RUSH_TAXI_COUNT, RUSH_TAXI_SPACING, type StreetDecorSpot,
 } from "./assets";
@@ -63,7 +62,7 @@ function useDecorPool(
          if (!isDecorLevel(run.level)) return false;
          const spot = spots[i];
          const row = decorRow(spot, run.player.row, spacing, spots.length);
-         matrix.copy(bases[i]).setPosition(spot.side * decorX(horizon.coverX), 0, -row * ROW_PITCH);
+         matrix.copy(bases[i]).setPosition(spot.side * decorX(horizon.coverX), DECOR_Y, -row * ROW_PITCH);
       },
       [run, horizon, spots, spacing, bases]
    );
