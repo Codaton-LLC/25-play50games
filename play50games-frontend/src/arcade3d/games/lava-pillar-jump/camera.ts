@@ -77,13 +77,13 @@ export function introKeyframes(course: Course): IntroKeyframe[] {
    const midY = Math.max(goal.top + 6, (goal.top + 16 + high) / 2);
    const shots: IntroKeyframe[] = [
       // establishing: the helipad from out in the sky, then down along the roofs
-      { position: [goal.cx + 34, goal.top + 16, goal.cz + 26], lookAt: [goal.cx, goal.top + 4, goal.cz - 4] },
+      { position: [goal.cx + 15, goal.top + 16, goal.cz + 26], lookAt: [goal.cx, goal.top + 4, goal.cz - 4] },
       { position: [goal.cx + 12, midY, goal.cz + 14], lookAt: [goal.cx, goal.top + 2, goal.cz - 3] },
    ];
    let side = -1;
    for (let i = cps.length - 1; i >= 0; i--) {
       const c = cps[i];
-      shots.push({ position: [c.cx + side * 22, c.top + 11, c.cz + 12], lookAt: [c.cx, c.top + 1, c.cz - 3] });
+      shots.push({ position: [c.cx + side * 13, c.top + 11, c.cz + 12], lookAt: [c.cx, c.top + 1, c.cz - 3] });
       side = -side;
    }
    return shots;

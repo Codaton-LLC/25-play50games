@@ -29,6 +29,7 @@ import {
    V_RUN,
    courseFor,
    createRun,
+   lavaY,
    createStepInput,
    edgeMinMs,
    finalScore,
@@ -86,7 +87,7 @@ describe("the pillars", () => {
       expect(COURSE.strikes).toHaveLength(0);
       expect(COURSE.durationMs).toBe(90_000);
       expect(s[0].hw).toBeGreaterThanOrEqual(3);
-      expect(COURSE.lava0).toBe(-8);
+      expect(COURSE.lava0).toBe(-4.5);
       expect(COURSE.lavaRate).toBeGreaterThan(0);
       expect(s.every((x) => !x.collapse)).toBe(true);
    });
@@ -126,7 +127,7 @@ describe("the pillars", () => {
          expect(c.wind).toBe(spec.wind);
          expect(c.strikes.length > 0).toBe(spec.sparks);
          expect(c.supports.some((s) => s.collapse), `L${id} collapse`).toBe(spec.collapse);
-         expect(c.lava0).toBe(-8);
+         expect(c.lava0).toBe(-4.5);
          expect(c.lavaRate).toBe(LEVELS[id].spec.lavaRate);
          expect(createRun(1, id).course).toBe(createRun(99, id).course);
       }
@@ -232,7 +233,8 @@ describe("falls, respawns, orbs, the finish", () => {
          const ev = step(run, 1, input);
          if (ev.lost) {
             lostAt = run.simMs;
-            expect(run.hero.y).toBeLessThan(0 - FALL_DEPTH);
+            // lost at the fall line, or sooner where the rising lava is higher than it (lava0 is only 4.5 m under the start)
+            expect(run.hero.y).toBeLessThanOrEqual(Math.max(0 - FALL_DEPTH, lavaY(COURSE, run.simMs)) + 0.05);
          }
          if (ev.respawned) backAt = run.simMs;
          if (backAt > 0 && run.hero.state === "play") break;
@@ -329,10 +331,10 @@ describe("the lower bound (README proof)", () => {
       });
       expect(rows).toEqual([
          [4100, 90000, 90000, 8590],
-         [6300, 120000, 120000, 11370],
-         [9500, 150000, 150000, 14050],
-         [11500, 180000, 180000, 16850],
-         [14500, 210000, 210000, 19550],
+         [4800, 120000, 120000, 11520],
+         [8500, 150000, 150000, 14150],
+         [10600, 180000, 180000, 16940],
+         [11600, 210000, 210000, 19840],
       ]);
    });
 
@@ -354,8 +356,8 @@ describe("bots (README 'What the bots reached')", () => {
             const d = submitted(run);
             expect(d).toBeGreaterThanOrEqual(lim.minDurationMs);
             expect(d).toBeLessThanOrEqual(lim.maxDurationMs);
-            // the limit is not loose: the bot's time is within 1.6x of the floor
-            expect(d, `${fps} fps submitted ${d} vs 1.6x ${lim.minDurationMs}`).toBeLessThan(lim.minDurationMs * 1.6);
+            // the limit is not loose: the bot's time is within 2.2x of the floor (a sweeping route costs more than a straight climb)
+            expect(d, `${fps} fps submitted ${d} vs 2.2x ${lim.minDurationMs}`).toBeLessThan(lim.minDurationMs * 2.2);
          }
       });
    }

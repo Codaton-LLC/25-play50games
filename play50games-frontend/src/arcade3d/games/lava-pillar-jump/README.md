@@ -34,7 +34,7 @@ Units: 1 = 1 m; forward is -z, up is +y. The clock is whole ms. A jump arc depen
 
 - **Hero:** cylinder radius 0.32, height 1.2. Run 6.5 m/s. Gravity 30. Jump 14 m/s (apex 3.27 m). No bounce pads.
 - **Pillars:** rectangles. Landing crosses a top downwards, centre over it (grown by 0.15 m).
-- **Lava:** starts at y = -8 and rises (0.16 / 0.18 / 0.20 / 0.42 / 0.36 m/s). Feet in the lava respawn on the last crystal if it is still above the lava, otherwise the run ends `"lose"` (unranked). Standing still on the start shelf is swallowed before the clock.
+- **Lava:** starts at y = -4.5, just under the start shelf, and rises (0.18 / 0.28 / 0.42 / 0.60 / 0.80 m/s). Feet in the lava respawn on the last crystal if it is still above the lava, otherwise the run ends `"lose"` (unranked). Standing still on the start shelf is swallowed before the clock.
 - **Collapse:** after 3.6 s standing on a sinking shelf it drops. Checkpoints, the start, the goal, movers, blinking shelves and glassy shelves do not sink. The height bound uses the original tops.
 - **Rocks:** on some rims. The centre is outside the radius. Shield and phase ignore them. A dash is horizontal and cannot add reach. Nami's second jump cannot pass the flight's existing apex.
 - **Finish:** stand on the goal. The level timer ends the run `"timeup"` (unranked). Only `end("win")` is ranked.
@@ -46,22 +46,24 @@ A **time game**. The server computes `score = floor((timeBaseMs − duration_ms)
 | Level | minDurationMs | maxDurationMs | timeBaseMs | maxScore |
 |---|---:|---:|---:|---:|
 | 1 Warm Cavern | 4 100 | 90 000 | 90 000 | 8 590 |
-| 2 Pillar Field | 6 300 | 120 000 | 120 000 | 11 370 |
-| 3 Falling Rocks | 9 500 | 150 000 | 150 000 | 14 050 |
-| 4 Fast Lava | 11 500 | 180 000 | 180 000 | 16 850 |
-| 5 Volcano Core | 14 500 | 210 000 | 210 000 | 19 550 |
+| 2 Pillar Field | 4 800 | 120 000 | 120 000 | 11 520 |
+| 3 Falling Rocks | 8 500 | 150 000 | 150 000 | 14 150 |
+| 4 Fast Lava | 10 600 | 180 000 | 180 000 | 16 940 |
+| 5 Volcano Core | 11 600 | 210 000 | 210 000 | 19 840 |
 
-Every level's maxScore is at least level 1's 8 590. Level 5's 19 550 is 2.28× that (the cap is 3×). `rules.test.ts` and `proof.test.ts` run the honest bot at 30, 60 and 144 fps: each clear is at least 90% of that level's maxScore, every level scores at least level 1, idle never wins, and a dash cannot beat the floor.
+Every level's maxScore is at least level 1's 8 590. Level 5's 19 840 is 2.31× that (the cap is 3×). `rules.test.ts` and `proof.test.ts` run the honest bot at 30, 60 and 144 fps: each clear is at least 90% of that level's maxScore, every level scores at least level 1, idle never wins, and a dash cannot beat the floor.
 
 ## Levels
 
-| Level | Title | Timer | What it adds |
+| Level | Title | Timer | Course |
 |---|---|---|---|
-| 1 | Warm Cavern | 90 s | 10 pillars, 8 rises, goal at 16 m, wide and still, slow lava |
-| 2 | Pillar Field | 120 s | 14 pillars, 12 rises, goal at 22 m, sliding pillars |
-| 3 | Falling Rocks | 150 s | 18 pillars, movers, blinking shelves, glassy tops, sinking shelves, rocks |
-| 4 | Fast Lava | 180 s | 22 pillars, tighter tops, faster lava, heat gusts, rocks |
-| 5 | Volcano Core | 210 s | 28 pillars, goal at 46 m, every hazard |
+| 1 | Warm Cavern | 90 s | 10 uneven basalt pillars on a wide S-sweep, 8 rises to 16 m, wide and still; lava 0.18 m/s |
+| 2 | Pillar Field | 120 s | 14 pillars, a wider sweep, 12 rises to 22 m, sliding pillars; lava 0.28 m/s |
+| 3 | Falling Rocks | 150 s | 18 pillars, a second faster swing on the sweep, blinking, glassy and sinking tops, falling rocks; lava 0.42 m/s |
+| 4 | Fast Lava | 180 s | 22 narrower pillars, heat gusts, rocks, movers; lava 0.60 m/s |
+| 5 | Volcano Core | 210 s | 28 pillars to 46 m, every hazard; lava 0.80 m/s |
+
+The route is generated in `pillars.ts` (`pillarXZ`): a sweep of ±4 to ±6.5 m across the cavern at 0.5 to 0.6 rad per pillar, with a faster swing riding on it from level 3, and every rise 0.7x to 1.3x the even share (`layouts.test.ts`). It is not Rooftop Roll Climb's zigzag.
 
 ## Models
 

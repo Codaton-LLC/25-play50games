@@ -88,14 +88,14 @@ describe("mutation probes: the limits tests read the level they claim to", () =>
    });
 
    for (const level of LEVEL_IDS) {
-      it(`level ${level}: a mutated level (a 15 % lower goal roof, or three fewer climbs) falls outside the limits window, so the "limits sit under the bound" test would fail on a misread`, () => {
+      it(`level ${level}: a mutated level (a 15 % lower goal roof, or five fewer pillars) falls outside the limits window, so the "limits sit under the bound" test would fail on a misread`, () => {
          const spec = LEVELS[level].spec;
          const lim = PROPOSED_LEVEL_LIMITS[level];
          // rules.test.ts accepts a floor lb when lim.min <= lb and lim.min >= 0.9 lb: a misread level must fall outside that window
          const accepts = (lb: number) => lim.minDurationMs <= lb && lim.minDurationMs >= lb * 0.9;
          expect(accepts(minDurationMsOf(courseFor(level)))).toBe(true);
          const lower = buildCourse({ ...LEVELS[level], spec: { ...spec, goalTop: spec.goalTop * 0.85 } });
-         const fewer = buildCourse({ ...LEVELS[level], spec: { ...spec, rises: Math.max(2, spec.rises - 3) } });
+         const fewer = buildCourse({ ...LEVELS[level], spec: { ...spec, surfaces: spec.surfaces - 5, rises: Math.max(2, spec.rises - 5) } });
          expect(accepts(minDurationMsOf(lower)), "goalTop read").toBe(false);
          expect(accepts(minDurationMsOf(fewer)), "rises read").toBe(false);
          // and the real course still sits over it

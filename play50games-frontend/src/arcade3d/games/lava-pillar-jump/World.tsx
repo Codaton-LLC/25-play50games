@@ -150,7 +150,7 @@ function useWalls(course: Course, seed: number): InstanceSpot[] {
       for (let i = 0; i < 10; i++) {
          const side = i % 2 === 0 ? -1 : 1;
          spots.push({
-            x: side * (22 + rnd() * 10),
+            x: side * (38 + rnd() * 10),
             y: -2,
             z: (i / 9) * goalZ - 4,
             scale: wallH / GLB_SIZE.volcano.y,
@@ -221,8 +221,8 @@ export default function World({ course, seed, levelId = 1 }: { course: Course; s
          <InstancedModel asset={ASSETS.volcano} spots={walls} fallback={null} />
          <InstancedModel asset={ASSETS.geyser} spots={vents} fallback={null} />
          <Crystals seed={seed} />
-         {core ? <hemisphereLight args={["#ffb48a", "#3f1d12", STORM.hemi]} /> : null}
-         {core ? <ambientLight intensity={STORM.ambient} /> : null}
+         {core ? <hemisphereLight args={["#ffb48a", "#3f1d12", STORM.hemi]} /> : <hemisphereLight args={["#ffd0a8", "#6b3a22", 1.5]} />}
+         {core ? <ambientLight intensity={STORM.ambient} /> : <ambientLight intensity={0.55} />}
          {core ? <pointLight position={[0, goal.top + 8, goal.cz]} intensity={22} distance={80} color="#fb923c" /> : null}
       </>
    );

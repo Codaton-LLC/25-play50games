@@ -195,7 +195,7 @@ function Lava({ course, clock }: { course: CourseData; clock: VisualClock }) {
    return (
       <mesh ref={mesh} rotation-x={-Math.PI / 2} position={[0, course.lava0, midZ]}>
          <circleGeometry args={[90, 40]} />
-         <meshStandardMaterial color={COLORS.water} emissive="#ff3d00" emissiveIntensity={1.15} roughness={0.45} metalness={0.05} />
+         <meshStandardMaterial color={COLORS.water} emissive="#ff4a00" emissiveIntensity={0.85} roughness={0.45} metalness={0.05} />
       </mesh>
    );
 }

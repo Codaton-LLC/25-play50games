@@ -1,5 +1,5 @@
 // Lava Pillar Jump's five levels: pure data (no React, no three.js). core/README.md "Levels".
-// One volcanic cavern (pillars.ts) and five configurations: layout, movers, sinking tops,
+// One volcanic cavern (pillars.ts): a sweeping route of uneven basalt pillars, five configurations: movers, sinking tops,
 // ice, heat gusts, falling rocks, and how fast the lava rises.
 // A rising step stays under the jump apex. A flat step is a same-height landing between rises.
 import type { LevelId } from "@/arcade3d/types";
@@ -13,8 +13,13 @@ export interface LavaSpec {
    goalTop: number;
    /** centre-to-centre step toward -z (m) */
    gap: number;
-   /** zigzag half-width (m): odd steps sit at -side, even steps at +side */
+   /** the sweep's amplitude (m): the route swings +/-side across the cavern in long arcs (pillars.ts pillarXZ) */
    side: number;
+   /** radians of the sweep per pillar, and the strength (0..1) of a second, faster swing riding on it */
+   wave: number;
+   harm: number;
+   /** uneven basalt: each step up is 0.7x to 1.3x the even share, pillar tops vary in size */
+   uneven: boolean;
    /** pillar top width (x) and depth (z), metres */
    width: number;
    depth: number;
@@ -55,9 +60,12 @@ const low: LavaSpec = {
    surfaces: 10,
    rises: 8,
    goalTop: 16,
-   gap: 5.5,
-   side: 1.05,
-   width: 6.2,
+   gap: 5.6,
+   side: 4.0,
+   wave: 0.5,
+   harm: 0.0,
+   uneven: true,
+   width: 6.0,
    depth: 4.6,
    moverEvery: 0,
    moverTravel: 1.2,
@@ -69,16 +77,19 @@ const low: LavaSpec = {
    orbEvery: 2,
    wind: false,
    sparks: false,
-   lava0: -8,
-   lavaRate: 0.16,
+   lava0: -4.5,
+   lavaRate: 0.18,
 };
 
 const field: LavaSpec = {
    surfaces: 14,
    rises: 12,
    goalTop: 22,
-   gap: 5.35,
-   side: 1.45,
+   gap: 5.5,
+   side: 5.2,
+   wave: 0.55,
+   harm: 0.0,
+   uneven: true,
    width: 5.4,
    depth: 4.2,
    moverEvery: 5,
@@ -91,17 +102,20 @@ const field: LavaSpec = {
    orbEvery: 2,
    wind: false,
    sparks: false,
-   lava0: -8,
-   lavaRate: 0.18,
+   lava0: -4.5,
+   lavaRate: 0.28,
 };
 
 const rocks: LavaSpec = {
    surfaces: 18,
    rises: 16,
    goalTop: 30,
-   gap: 5.25,
-   side: 1.6,
-   width: 5.2,
+   gap: 5.4,
+   side: 6.0,
+   wave: 0.58,
+   harm: 0.25,
+   uneven: true,
+   width: 5.0,
    depth: 4.1,
    moverEvery: 3,
    moverTravel: 1.35,
@@ -113,18 +127,21 @@ const rocks: LavaSpec = {
    orbEvery: 3,
    wind: false,
    sparks: true,
-   lava0: -8,
-   lavaRate: 0.2,
+   lava0: -4.5,
+   lavaRate: 0.42,
 };
 
 const fast: LavaSpec = {
    surfaces: 22,
    rises: 20,
    goalTop: 38,
-   gap: 5.15,
-   side: 1.9,
-   width: 4.5,
-   depth: 3.8,
+   gap: 5.3,
+   side: 6.3,
+   wave: 0.6,
+   harm: 0.28,
+   uneven: true,
+   width: 4.6,
+   depth: 3.9,
    moverEvery: 3,
    moverTravel: 1.55,
    moverPeriod: 3000,
@@ -135,16 +152,19 @@ const fast: LavaSpec = {
    orbEvery: 3,
    wind: true,
    sparks: true,
-   lava0: -8,
-   lavaRate: 0.42,
+   lava0: -4.5,
+   lavaRate: 0.6,
 };
 
 const core: LavaSpec = {
    surfaces: 28,
    rises: 25,
    goalTop: 46,
-   gap: 5.1,
-   side: 2.0,
+   gap: 5.3,
+   side: 6.0,
+   wave: 0.6,
+   harm: 0.3,
+   uneven: true,
    width: 4.6,
    depth: 4.0,
    moverEvery: 3,
@@ -157,8 +177,8 @@ const core: LavaSpec = {
    orbEvery: 3,
    wind: true,
    sparks: true,
-   lava0: -8,
-   lavaRate: 0.36,
+   lava0: -4.5,
+   lavaRate: 0.8,
 };
 
 export const LEVELS: Record<LevelId, LavaLevel> = {
