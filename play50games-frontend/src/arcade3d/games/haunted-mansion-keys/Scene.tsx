@@ -2,8 +2,8 @@
 
 // One useRunFrame steps rules.ts. Visuals read the run and animate with useGameTime.
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useFrame } from "@react-three/fiber";
-import { BoxGeometry, Color, Euler, Matrix4, MeshStandardMaterial, Quaternion, RepeatWrapping, Vector3, type Group, type MeshStandardMaterial as Mat } from "three";
+import { useFrame, useThree } from "@react-three/fiber";
+import { BoxGeometry, Color, Euler, Fog, Matrix4, MeshStandardMaterial, Quaternion, RepeatWrapping, Vector3, type Group, type MeshStandardMaterial as Mat } from "three";
 import { DynamicInstancedModel, InstancedModel, Model } from "@/arcade3d/core/assets";
 import CameraRig from "@/arcade3d/core/CameraRig";
 import { playSfx } from "@/arcade3d/core/audio";
@@ -20,7 +20,7 @@ import { useFittedView } from "@/arcade3d/core/useFittedView";
 import { useRunFrame } from "@/arcade3d/core/useRunFrame";
 import { ASSETS, DETECTIVE_LANDMARKS, DETECTIVE_SCALE, FIT } from "./assets";
 import type { MansionLevel } from "./levels";
-import { COLORS, DAMPING, FOV, LOOK_AHEAD, aimBounds, capSpots, paintingSpots, propSpots, viewFor, wallSpots } from "./looks";
+import { COLORS, DAMPING, FOV, LOOK_AHEAD, aimBounds, capSpots, fogFor, groundsSpots, paintingSpots, propSpots, viewFor, wallSpots } from "./looks";
 import {
    ArmourStandPrimitive,
    BookshelfPrimitive,
@@ -65,7 +65,9 @@ const DOOR_PARTS: InstancePart[] = [
 
 function LevelScene() {
    const { id, config } = useLevel<MansionLevel>();
-   const view = useFittedView(viewFor(id));
+   const portrait = useThree((state) => state.size.width < state.size.height);
+   const view = useFittedView(viewFor(id, portrait));
+   const scene = useThree((state) => state.scene);
    const fx = useFx();
    const time = useGameTime();
    const input = useInput();
@@ -80,7 +82,23 @@ function LevelScene() {
    const [scratch] = useState(createPose);
    const synced = useRef({ keys: -1, mask: -1 }).current;
 
-   const bounds = useMemo(() => aimBounds(config), [config]);
+   const bounds = useMemo(() => aimBounds(config, portrait), [config, portrait]);
+   // the fog starts past the aim at whatever distance the camera was fitted to (looks.ts fogFor)
+   useEffect(() => {
+      const fog = scene.fog;
+      if (!(fog instanceof Fog)) return;
+      const before = { near: fog.near, far: fog.far };
+      const next = fogFor(config, view.distance, portrait);
+      fog.near = next.near;
+      fog.far = next.far;
+      return () => {
+         fog.near = before.near;
+         fog.far = before.far;
+      };
+   }, [scene, config, view.distance, portrait]);
+   const grounds = useMemo(() => groundsSpots(id), [id]);
+   const hedgeTops = useMemo(() => grounds.hedges.map((h) => ({ ...h, y: (h.sy ?? 1) + 0.04, sy: 0.08, sx: (h.sx ?? 1) + 0.06, sz: (h.sz ?? 1) + 0.06 })), [grounds]);
+   const lantern = useRef<Group>(null);
    const walls = useMemo(() => wallSpots(run.walls), [run]);
    const caps = useMemo(() => capSpots(run.walls), [run]);
    const pedestals = useMemo(() => propSpots(run.props, "pedestal").map((p) => ({ ...p, y: PEDESTAL_TOP * 0.45 })), [run]);
@@ -201,6 +219,7 @@ function LevelScene() {
          if (g) g.visible = !lockedDoors[i].open;
       }
       if (leverHandle.current && run.lever) leverHandle.current.rotation.x = run.lever.pulled ? 0.7 : -0.7;
+      if (lantern.current) lantern.current.position.set(run.hero.x, 2.4, run.hero.z + 0.6);
       if (exitGlow.current) exitGlow.current.emissiveIntensity = run.exitDoorOpen ? 0.9 + Math.sin(time.now * 4) * 0.3 : 0.15;
    }, FRAME_PRIORITY.visuals);
 
@@ -229,6 +248,11 @@ function LevelScene() {
       <>
          <CameraRig camera={{ position: view.offset, fov: FOV, lookAt: [aim.x, aim.y, aim.z] }} follow={aim} bounds={bounds} offset={view.offset} shift={view.shift} damping={DAMPING} />
 
+         {/* moonlight fill and the detective's warm lantern, so the night levels stay readable */}
+         <ambientLight intensity={0.35} color={COLORS.moon} />
+         <group ref={lantern}>
+            <pointLight intensity={6} distance={9} decay={1.6} color={COLORS.lantern} />
+         </group>
          {/* the grounds round the house reach past the fog; a gravel apron; the oak floor */}
          <mesh rotation-x={-Math.PI / 2} position={[totalW / 2, -0.02, totalD / 2]}>
             <circleGeometry args={[140, 40]} />
@@ -243,6 +267,15 @@ function LevelScene() {
             <meshStandardMaterial map={planks} roughness={0.85} />
          </mesh>
 
+         <Instanced spots={grounds.hedges} name="hedge">
+            <boxGeometry args={[1, 1, 1]} />
+            <meshStandardMaterial color={COLORS.hedge} roughness={0.95} />
+         </Instanced>
+         <Instanced spots={hedgeTops} name="hedge-top">
+            <boxGeometry args={[1, 1, 1]} />
+            <meshStandardMaterial color={COLORS.hedgeTop} roughness={0.9} />
+         </Instanced>
+         <InstancedModel asset={ASSETS.tree} spots={grounds.trees} fallback={<>{grounds.trees.map((t, i) => (<mesh key={i} position={[t.x, (t.scale ?? 1) / 2, t.z]}><coneGeometry args={[(t.scale ?? 1) * 0.3, t.scale ?? 1, 8]} /><meshStandardMaterial color={COLORS.hedge} /></mesh>))}</>} />
          <Instanced spots={walls} name="walls">
             <boxGeometry args={[1, 1, 1]} />
             <meshStandardMaterial color={COLORS.wall} roughness={0.88} />

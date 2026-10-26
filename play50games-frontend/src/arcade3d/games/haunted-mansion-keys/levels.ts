@@ -20,9 +20,9 @@ export interface MansionLevel {
 export const LEVELS: Record<LevelId, MansionLevel> = {
    1: { cols: 3, rows: 1, keys: 2, lever: false, armour: false, armourSpeed: 0, durationMs: 180_000, timeBaseMs: 180_000, lighting: "indoor", background: "#44403c", fogFar: 40 },
    2: { cols: 3, rows: 2, keys: 3, lever: false, armour: false, armourSpeed: 0, durationMs: 210_000, timeBaseMs: 210_000, lighting: "indoor", background: "#3f3f46", fogFar: 36 },
-   3: { cols: 4, rows: 2, keys: 3, lever: true, armour: false, armourSpeed: 0, durationMs: 240_000, timeBaseMs: 240_000, lighting: "night", background: "#1c1917", fogFar: 30 },
-   4: { cols: 5, rows: 2, keys: 4, lever: true, armour: true, armourSpeed: 1.6, durationMs: 240_000, timeBaseMs: 240_000, lives: 3, lighting: "night", background: "#0c0a09", fogFar: 22 },
-   5: { cols: 4, rows: 3, keys: 5, lever: true, armour: true, armourSpeed: 1.9, durationMs: 300_000, timeBaseMs: 300_000, lives: 3, lighting: "night", background: "#0c0a09", fogFar: 24 },
+   3: { cols: 4, rows: 2, keys: 3, lever: true, armour: false, armourSpeed: 0, durationMs: 240_000, timeBaseMs: 240_000, lighting: "night", background: "#1e1b2e", fogFar: 30 },
+   4: { cols: 5, rows: 2, keys: 4, lever: true, armour: true, armourSpeed: 1.6, durationMs: 240_000, timeBaseMs: 240_000, lives: 3, lighting: "night", background: "#151325", fogFar: 22 },
+   5: { cols: 4, rows: 3, keys: 5, lever: true, armour: true, armourSpeed: 1.9, durationMs: 300_000, timeBaseMs: 300_000, lives: 3, lighting: "night", background: "#181530", fogFar: 24 },
 };
 
 export const LEVEL_TITLES: Record<LevelId, string> = {

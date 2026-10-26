@@ -62,8 +62,18 @@ score from the duration, so the only bound to prove per level is **minDurationMs
 
 - Cutaway walls: the back (z = 0) exterior wall is full height (paintings, clocks and shelves stand against
   it), every other wall is 1.0 m, and doors are drawn 1.5 m tall, so the camera (north, pitch 58°) always sees
-  the 1.80 m detective. Oak plank floor, gravel apron and dark grounds past the fog (no void at the edges).
-- Close follow camera: a 10.4 × 8.8 m window round the aim (a room and a half), clamped to the house.
+  the 1.80 m detective.
+- Close follow camera: a window round the aim, 10.4 × 8.8 m in landscape (a room and a half) and 7.2 × 10 m on
+  a portrait phone (a little more than a room wide), clamped to the house. Portrait playtest fix (2026-10-26):
+  the wide window put a 390 × 844 camera far back into the fog (L1 washed brown and small, L5 black).
+- Fog is measured from the fitted camera (`fogFor`): it starts half a window past the aim and keeps the
+  level's own depth, so the detective and the window are never fogged on any screen (`looks.test.ts`: every
+  level at 390 × 844 and 1280 × 800).
+- Night readability: a moonlight ambient fill and a warm lantern (one point light) over the detective, lighter
+  oak floor and walls; night backgrounds and fog are deep moonlit blues instead of black.
+- The grounds: dark lawn far past the fog, a gravel apron, a clipped hedge round the grounds (0.6 m, a gap at
+  the south "gate"), and moonlit trees (the shared leafy tree fitted to 1 m, sized once by its spot, 3.2–4.8 m)
+  on the north, west and east sides, never on the camera side.
 - Key: one tinted `skeletonKey` pool plus a floating shape plate per key; each locked door carries its key's
   shape plate on both faces. The exit ring glows once the exit door is open.
 

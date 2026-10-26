@@ -7,7 +7,7 @@ import { LEVEL_IDS, type LevelId } from "@/arcade3d/types";
 import { ASSETS } from "./assets";
 import Hud from "./Hud";
 import { LEVELS, LEVEL_LINES, type MansionLevel } from "./levels";
-import { FOV, lookAtFor } from "./looks";
+import { FOG_NEAR, FOV, lookAtFor } from "./looks";
 import Scene from "./Scene";
 
 const LINES = [
@@ -39,7 +39,7 @@ const definition: GameDefinition<MansionLevel> = {
    camera: { position: [9, 14, 16], fov: FOV, lookAt: look },
    environment: {
       background: LEVELS[1].background,
-      fog: [LEVELS[1].background, 10, LEVELS[1].fogFar],
+      fog: [LEVELS[1].background, FOG_NEAR, LEVELS[1].fogFar],
       lighting: LEVELS[1].lighting,
    },
    touchControls: ["joystick", "action"],
@@ -55,7 +55,7 @@ const definition: GameDefinition<MansionLevel> = {
          durationMs: level.durationMs,
          environment: {
             background: level.background,
-            fog: [level.background, 10, level.fogFar],
+            fog: [level.background, FOG_NEAR, level.fogFar],
             lighting: level.lighting,
          },
       };

@@ -113,5 +113,7 @@ export const ASSETS = {
    chair: local("woodenChair", { scale: chairScale }, "box", "#92400e", "shared"),
    table: local("table", { scale: tableScale, stretch: [1, 1, PROP_SIZE.table.d / (GLB_SIZE.table.depth * tableScale)] }, "box", "#78350f", "shared"),
    bookshelf: local("bookshelf", { scale: shelfScale }, "box", "#57534e", "shared"),
+   /** grounds decor, fitted to 1 m tall: the spot's scale is its height (looks.ts groundsSpots) */
+   tree: { ...EXPANSION_ASSETS.leafyTree, scale: 1 / EXPANSION_GLB_SIZE.leafyTree.height },
    chest: { ...EXPANSION_ASSETS.chest, scale: chestScale, stretch: [1, CHEST_TOP / (EXPANSION_GLB_SIZE.chest.height * chestScale), PROP_SIZE.chest.d / (EXPANSION_GLB_SIZE.chest.depth * chestScale)] },
 } satisfies Record<string, ModelAsset>;

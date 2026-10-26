@@ -3,18 +3,23 @@ import type { AABB } from "@/arcade3d/core/collision";
 import type { InstanceSpot } from "@/arcade3d/core/render";
 import type { FittedViewOptions } from "@/arcade3d/core/useFittedView";
 import type { LevelId } from "@/arcade3d/types";
+import { createRng } from "@/arcade3d/core/math";
 import { LEVELS, type MansionLevel } from "./levels";
 import { ROOM_D, ROOM_W, WALL_H, type Prop, type PropKind, type Run } from "./rules";
 
 export const COLORS = {
-   wall: "#292524",
-   wallTrim: "#57534e",
-   wallBack: "#3b302a",
-   floor: "#3f2d22",
-   floorPlank: "#4a3628",
-   floorSeam: "#2a1d15",
-   grounds: "#1a2419",
-   gravel: "#44403c",
+   wall: "#4b423c",
+   wallTrim: "#a8a29e",
+   wallBack: "#5b4a3f",
+   floor: "#6b4a33",
+   floorPlank: "#7a573c",
+   floorSeam: "#3f2a1c",
+   grounds: "#2a3b2a",
+   gravel: "#6b6560",
+   hedge: "#2f5130",
+   hedgeTop: "#3f6b3f",
+   lantern: "#fbbf24",
+   moon: "#c7d2fe",
    accent: "#c4b5fd",
    door: "#451a03",
    doorTrim: "#78350f",
@@ -59,20 +64,26 @@ export function lookAtFor(level: MansionLevel): [number, number, number] {
    return [(level.cols * ROOM_W) / 2, 0.9, (level.rows * ROOM_D) / 2];
 }
 
-/** Half size of the window kept on screen round the aim: one room and a half, so a room fills the view. */
-export const VIEW_WINDOW = { x: 5.2, z: 4.4 } as const;
+/**
+ * Half size of the window kept on screen round the aim. Landscape: a room and a half. Portrait (a phone held
+ * upright): a narrow window a little more than one room wide, so the camera comes in close and the detective
+ * reads clearly (the wide window put a 390 x 844 camera 2.5x further back, into the fog).
+ */
+export function viewWindow(level: MansionLevel, portrait = false): { x: number; z: number } {
+   const w = portrait ? { x: 3.6, z: 5.0 } : { x: 5.2, z: 4.4 };
+   return { x: Math.min(w.x, (level.cols * ROOM_W) / 2 + 0.5), z: Math.min(w.z, (level.rows * ROOM_D) / 2 + 0.5) };
+}
 
-const VIEWS = new Map<LevelId, FittedViewOptions>();
+const VIEWS = new Map<string, FittedViewOptions>();
 
 /** The close follow view: a window round the aim point, clear of the HUD, the key ring and the controls. */
-export function viewFor(id: LevelId): FittedViewOptions {
-   let view = VIEWS.get(id);
+export function viewFor(id: LevelId, portrait = false): FittedViewOptions {
+   const key = `${id}${portrait ? "p" : "l"}`;
+   let view = VIEWS.get(key);
    if (!view) {
-      const level = LEVELS[id];
-      const wx = Math.min(VIEW_WINDOW.x, (level.cols * ROOM_W) / 2 + 0.5);
-      const wz = Math.min(VIEW_WINDOW.z, (level.rows * ROOM_D) / 2 + 0.5);
+      const w = viewWindow(LEVELS[id], portrait);
       view = {
-         area: { min: { x: -wx, y: 0, z: -wz }, max: { x: wx, y: 1.8, z: wz } },
+         area: { min: { x: -w.x, y: 0, z: -w.z }, max: { x: w.x, y: 1.8, z: w.z } },
          pitch: PITCH,
          yaws: [0],
          margin: { top: 0.04, right: 0.03, bottom: 0.05, left: 0.03 },
@@ -80,20 +91,80 @@ export function viewFor(id: LevelId): FittedViewOptions {
          shift: true,
          fov: FOV,
       };
-      VIEWS.set(id, view);
+      VIEWS.set(key, view);
    }
    return view;
 }
 
-/** Where the camera may aim: the building shrunk by the window (the view never drifts off the house). */
-export function aimBounds(level: MansionLevel): AABB {
+/** Where the camera may aim: the building shrunk by the window (the view never drifts far off the house). */
+export function aimBounds(level: MansionLevel, portrait = false): AABB {
+   const win = viewWindow(level, portrait);
    const w = level.cols * ROOM_W;
    const d = level.rows * ROOM_D;
-   const cx = w / 2;
-   const cz = d / 2;
-   const hx = Math.max(0, w / 2 - VIEW_WINDOW.x + 1);
-   const hz = Math.max(0, d / 2 - VIEW_WINDOW.z + 1);
-   return { min: { x: cx - hx, y: 0.9, z: cz - hz }, max: { x: cx + hx, y: 0.9, z: cz + hz } };
+   const hx = Math.max(0, w / 2 - win.x + 1);
+   const hz = Math.max(0, d / 2 - win.z + 1);
+   return { min: { x: w / 2 - hx, y: 0.9, z: d / 2 - hz }, max: { x: w / 2 + hx, y: 0.9, z: d / 2 + hz } };
+}
+
+/** The environment's fog start (index.tsx: FOG_NEAR to the level's fogFar). */
+export const FOG_NEAR = 10;
+
+/**
+ * Fog measured from the fitted camera: it starts past the aim (camera distance + half the window), so the
+ * detective and the near half of the window are never fogged on any screen, and keeps the level's own depth
+ * (fogFar - FOG_NEAR: L4 stays the closest). Never nearer than the environment's values.
+ */
+export function fogFor(level: MansionLevel, distance: number, portrait = false): { near: number; far: number } {
+   const near = Math.max(FOG_NEAR, distance + viewWindow(level, portrait).z * 0.5);
+   return { near, far: near + (level.fogFar - FOG_NEAR) };
+}
+
+// ---------- the grounds: never between the camera and the house ----------
+// The camera looks north (-z) from the south (+z): south of the house only the low hedge stands; the trees
+// line the north, west and east sides beyond the gravel apron.
+
+/** Camera-side (south) decor stays below this height (m). */
+export const SOUTH_DECOR_MAX_H = 0.7;
+/** The hedge runs this far outside the walls (past the 1.5 m gravel apron). */
+export const HEDGE_GAP = 2.2;
+/** Trees stand at least this far outside the walls. */
+export const TREE_GAP = 4;
+
+export interface GroundsSpots {
+   /** hedge blocks, a unit cube scaled per spot (sx / sy / sz) */
+   hedges: InstanceSpot[];
+   /** trees fitted to 1 m in assets.ts: the spot's scale is the height */
+   trees: InstanceSpot[];
+}
+
+/** Seeded per level: a clipped hedge round the grounds and a ring of trees on three sides. */
+export function groundsSpots(id: LevelId): GroundsSpots {
+   const level = LEVELS[id];
+   const rng = createRng(3900 + id);
+   const w = level.cols * ROOM_W;
+   const d = level.rows * ROOM_D;
+   const hedges: InstanceSpot[] = [];
+   const h = 0.6;
+   const t = 0.5;
+   const x0 = -HEDGE_GAP, x1 = w + HEDGE_GAP, z0 = -HEDGE_GAP, z1 = d + HEDGE_GAP;
+   // four sides, the south (camera) side with a gap at the middle like a garden gate
+   hedges.push({ x: (x0 + x1) / 2, y: h / 2, z: z0, sx: x1 - x0 + t, sy: h, sz: t });
+   hedges.push({ x: x0, y: h / 2, z: (z0 + z1) / 2, sx: t, sy: h, sz: z1 - z0 + t });
+   hedges.push({ x: x1, y: h / 2, z: (z0 + z1) / 2, sx: t, sy: h, sz: z1 - z0 + t });
+   const gate = 1.6;
+   hedges.push({ x: (x0 + w / 2 - gate) / 2, y: h / 2, z: z1, sx: w / 2 - gate - x0, sy: h, sz: t });
+   hedges.push({ x: (w / 2 + gate + x1) / 2, y: h / 2, z: z1, sx: x1 - (w / 2 + gate), sy: h, sz: t });
+   const trees: InstanceSpot[] = [];
+   const add = (x: number, z: number) => trees.push({ x, y: 0, z, rotY: rng() * Math.PI * 2, scale: 3.2 + rng() * 1.6 });
+   // north row and a second row behind it
+   for (let x = x0 - 2; x <= x1 + 2; x += 3.2 + rng() * 1.2) add(x, -TREE_GAP - rng() * 2.5);
+   for (let x = x0; x <= x1; x += 4.5 + rng() * 2) add(x, -TREE_GAP - 4 - rng() * 3);
+   // west and east sides, down to the house's south wall (never on the camera side)
+   for (let z = z0; z <= d; z += 3.4 + rng() * 1.4) {
+      add(-TREE_GAP - rng() * 2.5, z);
+      add(w + TREE_GAP + rng() * 2.5, z);
+   }
+   return { hedges, trees };
 }
 
 /** Is this wall the back (north, z <= 0) exterior wall? */
