@@ -149,6 +149,14 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/rooftop-roll-climb/m2RoofSolarRack.glb",
    "/models/3d/rooftop-roll-climb/m2RooftopBlock.glb",
    "/models/3d/rooftop-roll-climb/m2SkylineTower.glb",
+   // Menu 2 game 03 (Flooded Ruins Escape): ruin props from ~/.play50/hyper3d/ready/menu2/flooded-ruins-escape
+   "/models/3d/flooded-ruins-escape/m2RuinBrickLedge.glb",
+   "/models/3d/flooded-ruins-escape/m2RuinChannel.glb",
+   "/models/3d/flooded-ruins-escape/m2RuinFloodGate.glb",
+   "/models/3d/flooded-ruins-escape/m2RuinPlatform.glb",
+   "/models/3d/flooded-ruins-escape/m2RuinWaterSpout.glb",
+   "/models/3d/flooded-ruins-escape/m2StoneLever.glb",
+   "/models/3d/flooded-ruins-escape/m2SunkenTempleBg.glb",
    // P-121 dev adoptions (2026-10-25): V2 replacements and Group D variety whose QA verdict
    // starts with OK. Optimized GLBs copied in; not re-optimized. Live games are untouched.
    "/models/3d/shopping-cart/supermarketShelfV2.glb",
