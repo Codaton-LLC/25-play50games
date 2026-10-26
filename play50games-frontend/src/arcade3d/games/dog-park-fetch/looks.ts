@@ -127,7 +127,8 @@ export function decorSpots(id: LevelId): DecorSpots {
       out.trees.push({ x: hw + 3.2 + rng() * 1.5, y: 0, z: z + rng(), rotY: rng() * 6.28, scale: 3 + rng() * 1.2 });
    }
    // low bushes along the outside of the fence, the south row included (they stay under 0.7 m)
-   for (let x = -hw + 1; x <= hw - 1; x += 3) out.bushes.push({ x: x + rng() * 0.6, y: 0, z: hd + 1.4, rotY: rng() * 6.28, scale: 1.1 + rng() * 0.3 });
+   // (not on the beach park, whose south side is sand and then water)
+   if (id !== 4) for (let x = -hw + 1; x <= hw - 1; x += 3) out.bushes.push({ x: x + rng() * 0.6, y: 0, z: hd + 1.4, rotY: rng() * 6.28, scale: 1.1 + rng() * 0.3 });
    for (let z = -hd + 2; z <= hd - 2; z += 4) {
       out.bushes.push({ x: -hw - 1.3, y: 0, z, rotY: rng() * 6.28, scale: 1.4 + rng() * 0.4 });
       out.bushes.push({ x: hw + 1.3, y: 0, z, rotY: rng() * 6.28, scale: 1.4 + rng() * 0.4 });
@@ -186,7 +187,11 @@ export function stripeSpots(level: DogLevel): InstanceSpot[] {
 
 /** The sand strip along the south edge on the beach park (L4). */
 export function sandSpots(level: DogLevel): InstanceSpot[] {
-   return [{ x: 0, y: 0.006, z: level.depth / 2 - 0.9, sx: level.width, sy: 0.012, sz: 1.8 }];
+   // inside the fence, and a beach outside it that runs down to the water
+   return [
+      { x: 0, y: 0.006, z: level.depth / 2 - 0.9, sx: level.width, sy: 0.012, sz: 1.8 },
+      { x: 0, y: 0.006, z: level.depth / 2 + 0.5, sx: level.width + 8, sy: 0.012, sz: 1.0 },
+   ];
 }
 
 /** A flat blanket disc at the south centre, drawn as a unit cylinder scaled to the pad. */
