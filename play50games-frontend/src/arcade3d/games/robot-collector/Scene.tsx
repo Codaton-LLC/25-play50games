@@ -52,7 +52,7 @@ import { followFocus } from "@/arcade3d/core/view";
 import { ASSETS } from "./assets";
 import { ROBOT_SCALE, robotPhaseStep } from "./gait";
 import type { RobotLevel } from "./levels";
-import { BatteryPrimitive, COLORS, HazardMarks, RobotPrimitive, WALL, Warehouse, useBatteryParts } from "./Primitives";
+import { BatteryPrimitive, COLORS, HazardBeacons, HazardMarks, RobotPrimitive, WALL, Warehouse, useBatteryParts } from "./Primitives";
 import {
    ARENA,
    BATTERY_POINTS,
@@ -287,7 +287,7 @@ function Batteries({ run }: { run: Run }) {
 function LevelScene() {
    const view = useFittedView(VIEW);
    const input = useInput();
-   const { config, meta } = useRobotLevel();
+   const { id, config, meta } = useRobotLevel();
    // a new seed every run: GameShell remounts the Scene (and its game time) on start and retry
    const [dir] = useState({ x: 0, z: 0 });
    const [run] = useState<Run>(() => {
@@ -328,6 +328,8 @@ function LevelScene() {
          />
          <Warehouse props={run.world.props} />
          <HazardMarks level={config} />
+         {/* levels 4-5 only (Dark Storage, Mega Warehouse): warning beacons on the wall trim, outside the play area */}
+         {id === 4 || id === 5 ? <HazardBeacons /> : null}
          <Robot run={run} lamp={config.lamp} />
          <Batteries run={run} />
       </>
