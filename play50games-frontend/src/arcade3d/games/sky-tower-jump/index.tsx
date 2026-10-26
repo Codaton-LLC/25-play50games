@@ -10,7 +10,7 @@ import { LEVEL_IDS, type LevelId } from "../../types";
 import { ASSETS } from "./assets";
 import { FOV } from "./camera";
 import { LEVELS, type SkyLevel } from "./levels";
-import { COLORS } from "./look";
+import { COLORS, levelEnvironment } from "./look";
 import { FOG } from "./World";
 import { finalScore } from "./rules";
 import Scene from "./Scene";
@@ -46,18 +46,15 @@ const definition: GameDefinition<SkyLevel> = {
    // the hero hops and spins at the gate before the result panel
    resultDelayMs: 1600,
    finalScore,
-   levels: LEVEL_IDS.map(
-      (id): LevelSpec<SkyLevel> => ({
+   levels: LEVEL_IDS.map((id): LevelSpec<SkyLevel> => {
+      const storm = levelEnvironment(id);
+      return {
          id,
          description: DESCRIPTIONS[id],
          config: LEVELS[id],
-         ...(id === 4
-            ? { environment: { background: "#7f9bbd", fog: ["#9eb4cc", 50, 240] as [string, number, number], lighting: "day" as const } }
-            : id === 5
-              ? { environment: { background: "#6d88b0", fog: ["#8ea6c4", 45, 220] as [string, number, number], lighting: "sunset" as const } }
-              : {}),
-      }),
-   ),
+         ...(storm ? { environment: storm } : {}),
+      };
+   }),
 };
 
 export default definition;

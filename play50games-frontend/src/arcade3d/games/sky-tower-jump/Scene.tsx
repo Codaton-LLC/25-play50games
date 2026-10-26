@@ -246,7 +246,7 @@ export default function Scene() {
    const ground = useRef(0);
    return (
       <>
-         <World course={run.course} seed={decorSeed} />
+         <World course={run.course} seed={decorSeed} levelId={levelId} />
          <Course run={run} clock={clock} won={won} />
          <Hero run={run} anim={anim} ground={ground} />
          <Simulation run={run} anim={anim} clock={clock} won={won} />

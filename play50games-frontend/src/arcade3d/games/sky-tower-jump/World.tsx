@@ -5,7 +5,7 @@
 // instanced), waterfalls off the big islands, drifting motes, and the rocky roots under the playable
 // islands. Nothing here collides; everything is placed once from the course and the seed. Counts
 // follow useQuality().decor / particles (phones get fewer clouds and motes, never another world).
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import {
    BufferAttribute,
@@ -20,6 +20,7 @@ import {
    AdditiveBlending,
    BackSide,
    Matrix4,
+   type DirectionalLight,
    type Mesh,
    RepeatWrapping,
    type InstancedMesh,
@@ -35,10 +36,12 @@ import { useGameTime } from "@/arcade3d/core/gameTime";
 import { FRAME_PRIORITY } from "@/arcade3d/core/frameLoop";
 import type { InstanceSpot } from "@/arcade3d/core/render";
 import { ASSETS, GLB_SIZE } from "./assets";
-import { COLORS, billboardMaterial, cloudTexture, glowTexture, rockTexture, waterfallTexture } from "./look";
+import { COLORS, STORM, STORM_FOG, billboardMaterial, cloudTexture, glowTexture, isStormLevel, lightningFlash, rockTexture, waterfallTexture } from "./look";
 import type { Course } from "./rules";
 
 export const FOG = { color: COLORS.fog, near: 80, far: 300 } as const;
+
+type FogBand = { color: string; near: number; far: number };
 
 // ---------- billboards (clouds, glows) ----------
 
@@ -62,6 +65,8 @@ export function BillboardField({
    aspect = 1.6,
    renderOrder = 0,
    live,
+   fog = FOG,
+   tint = "#ffffff",
 }: {
    spots: readonly Billboard[];
    map: Texture;
@@ -71,6 +76,9 @@ export function BillboardField({
    renderOrder?: number;
    /** called every frame with the spot attribute (x, y, z, size per instance) to rewrite in place */
    live?: (data: Float32Array) => boolean;
+   fog?: FogBand;
+   /** multiplies the texture colour; white leaves the clear sky unchanged */
+   tint?: string;
 }) {
    const geometry = useMemo(() => {
       const base = new PlaneGeometry(1, 1);
@@ -89,7 +97,11 @@ export function BillboardField({
       g.instanceCount = spots.length;
       return g;
    }, [spots]);
-   const material = useMemo(() => billboardMaterial(map, additive, FOG, opacity), [map, additive, opacity]);
+   const material = useMemo(() => {
+      const m = billboardMaterial(map, additive, fog, opacity);
+      (m.uniforms.uTint.value as Color).set(tint);
+      return m;
+   }, [map, additive, opacity, fog, tint]);
    material.uniforms.uAspect.value = aspect;
    useEffect(
       () => () => {
@@ -142,7 +154,7 @@ function useCloudSpots(course: Course, seed: number, factor: number) {
  * The far clouds ring the camera (they are inside the sky dome, so they follow it like the dome);
  * the sea and the banks stay in the world.
  */
-function Clouds({ course, seed }: { course: Course; seed: number }) {
+function Clouds({ course, seed, fog, tint }: { course: Course; seed: number; fog: FogBand; tint: string }) {
    const { decor } = useQuality();
    const spots = useCloudSpots(course, seed, decor);
    const maps = useMemo(() => [cloudTexture(1), cloudTexture(2), cloudTexture(3)], []);
@@ -162,10 +174,10 @@ function Clouds({ course, seed }: { course: Course; seed: number }) {
    const seaB = useMemo(() => spots.sea.slice(half), [spots, half]);
    return (
       <>
-         <BillboardField spots={spots.far} map={maps[2]} live={far} renderOrder={-10} />
-         <BillboardField spots={seaA} map={maps[0]} renderOrder={-5} />
-         <BillboardField spots={seaB} map={maps[1]} renderOrder={-5} />
-         <BillboardField spots={spots.banks} map={maps[1]} renderOrder={-4} />
+         <BillboardField spots={spots.far} map={maps[2]} live={far} renderOrder={-10} fog={fog} tint={tint} />
+         <BillboardField spots={seaA} map={maps[0]} renderOrder={-5} fog={fog} tint={tint} />
+         <BillboardField spots={seaB} map={maps[1]} renderOrder={-5} fog={fog} tint={tint} />
+         <BillboardField spots={spots.banks} map={maps[1]} renderOrder={-4} fog={fog} tint={tint} />
       </>
    );
 }
@@ -249,7 +261,7 @@ const FALL_FRAGMENT = /* glsl */ `
    }
 `;
 
-function Waterfalls({ falls }: { falls: Backdrop["falls"] }) {
+function Waterfalls({ falls, fog }: { falls: Backdrop["falls"]; fog: FogBand }) {
    const time = useGameTime();
    const map = useMemo(() => {
       const t = waterfallTexture();
@@ -283,6 +295,11 @@ function Waterfalls({ falls }: { falls: Backdrop["falls"] }) {
       },
       [map, material, glow],
    );
+   useLayoutEffect(() => {
+      (material.uniforms.uFogColor.value as Color).set(fog.color);
+      material.uniforms.uFogNear.value = fog.near;
+      material.uniforms.uFogFar.value = fog.far;
+   }, [material, fog]);
    useFrame(() => {
       material.uniforms.uTime.value = time.now;
    });
@@ -294,12 +311,12 @@ function Waterfalls({ falls }: { falls: Backdrop["falls"] }) {
                <planeGeometry args={[f.width, f.length, 1, 12]} />
             </mesh>
          ))}
-         <BillboardField spots={mist} map={glow} opacity={0.5} aspect={1} renderOrder={-2} />
+         <BillboardField spots={mist} map={glow} opacity={0.5} aspect={1} renderOrder={-2} fog={fog} />
       </>
    );
 }
 
-function BackgroundIslands({ course, seed }: { course: Course; seed: number }) {
+function BackgroundIslands({ course, seed, fog }: { course: Course; seed: number; fog: FogBand }) {
    const { decor } = useQuality();
    const backdrop = useBackdrop(course, seed, decor);
    return (
@@ -308,7 +325,7 @@ function BackgroundIslands({ course, seed }: { course: Course; seed: number }) {
          <InstancedModel asset={ASSETS.islandC} spots={backdrop.islands.islandC} fallback={null} />
          <InstancedModel asset={ASSETS.islandD} spots={backdrop.islands.islandD} fallback={null} />
          <InstancedModel asset={ASSETS.stoneTower} spots={backdrop.towers} fallback={null} />
-         <Waterfalls falls={backdrop.falls} />
+         <Waterfalls falls={backdrop.falls} fog={fog} />
       </>
    );
 }
@@ -455,13 +472,19 @@ function Motes() {
 
 // ---------- the sky: three stops, not tone-mapped (the blue stays vivid), following the camera ----------
 
-function SkyGradient() {
+function SkyGradient({ storm }: { storm: boolean }) {
    const ref = useRef<Mesh>(null);
    const camera = useThree((s) => s.camera);
+   const time = useGameTime();
    const material = useMemo(
       () =>
          new ShaderMaterial({
-            uniforms: { uTop: { value: new Color(COLORS.skyTop) }, uMid: { value: new Color(COLORS.skyMid) }, uBottom: { value: new Color(COLORS.skyBottom) } },
+            uniforms: {
+               uTop: { value: new Color(COLORS.skyTop) },
+               uMid: { value: new Color(COLORS.skyMid) },
+               uBottom: { value: new Color(COLORS.skyBottom) },
+               uFlash: { value: 0 },
+            },
             vertexShader: /* glsl */ `
                varying vec3 vDir;
                void main() {
@@ -473,10 +496,12 @@ function SkyGradient() {
                uniform vec3 uTop;
                uniform vec3 uMid;
                uniform vec3 uBottom;
+               uniform float uFlash;
                varying vec3 vDir;
                void main() {
                   float h = vDir.y;
                   vec3 col = h > 0.12 ? mix(uMid, uTop, smoothstep(0.12, 0.75, h)) : mix(uBottom, uMid, smoothstep(-0.25, 0.12, h));
+                  col = mix(col, vec3(0.82, 0.88, 0.95), clamp(uFlash, 0.0, 1.0) * 0.92);
                   gl_FragColor = vec4(col, 1.0);
                   #include <colorspace_fragment>
                }
@@ -487,9 +512,20 @@ function SkyGradient() {
          }),
       [],
    );
+   useLayoutEffect(() => {
+      const top = storm ? STORM.skyTop : COLORS.skyTop;
+      const mid = storm ? STORM.skyMid : COLORS.skyMid;
+      const bottom = storm ? STORM.skyBottom : COLORS.skyBottom;
+      (material.uniforms.uTop.value as Color).set(top);
+      (material.uniforms.uMid.value as Color).set(mid);
+      (material.uniforms.uBottom.value as Color).set(bottom);
+      if (!storm) material.uniforms.uFlash.value = 0;
+   }, [material, storm]);
    useEffect(() => () => material.dispose(), [material]);
    useFrame(() => {
       ref.current?.position.copy(camera.position);
+      const k = storm ? lightningFlash(time.now) : 0;
+      if (material.uniforms.uFlash.value !== k) material.uniforms.uFlash.value = k;
    }, FRAME_PRIORITY.visuals);
    return (
       <mesh ref={ref} material={material} renderOrder={-1000} frustumCulled={false}>
@@ -498,17 +534,36 @@ function SkyGradient() {
    );
 }
 
+/** A cool flash on the islands. Mounted only in a storm, so levels 1-3 keep their light count. */
+function Lightning({ storm }: { storm: boolean }) {
+   const ref = useRef<DirectionalLight>(null);
+   const time = useGameTime();
+   useFrame(() => {
+      const light = ref.current;
+      if (!light) return;
+      light.intensity = storm ? lightningFlash(time.now) * 5.5 : 0;
+   }, FRAME_PRIORITY.visuals);
+   if (!storm) return null;
+   return <directionalLight ref={ref} position={[12, 48, 18]} color="#d5e6ff" intensity={0} />;
+}
+
 // ---------- the world ----------
 
-export default function World({ course, seed }: { course: Course; seed: number }) {
+export default function World({ course, seed, levelId = 1 }: { course: Course; seed: number; levelId?: number }) {
+   const storm = isStormLevel(levelId);
+   const fog: FogBand = isStormLevel(levelId) ? STORM_FOG[levelId] : FOG;
+   const tint = storm ? STORM.cloud : "#ffffff";
+   const fill = storm ? STORM.fill : 1;
    return (
       <>
-         <SkyGradient />
-         {/* a warm low key from the front right (on top of the "day" preset's sun), a cool rim from behind */}
-         <directionalLight position={[50, 30, 40]} intensity={0.9} color="#ffd29a" />
-         <directionalLight position={[-30, 25, -60]} intensity={1.3} color={COLORS.rim} />
-         <Clouds course={course} seed={seed} />
-         <BackgroundIslands course={course} seed={seed} />
+         <SkyGradient storm={storm} />
+         <Lightning storm={storm} />
+         {/* a warm low key from the front right (on top of the preset's sun), a cool rim from behind.
+             Storm levels keep the same lights, dimmer and cooler. */}
+         <directionalLight position={[50, 30, 40]} intensity={0.9 * fill} color={storm ? "#d5dee8" : "#ffd29a"} />
+         <directionalLight position={[-30, 25, -60]} intensity={1.3 * fill} color={storm ? "#9eb4c8" : COLORS.rim} />
+         <Clouds course={course} seed={seed} fog={fog} tint={tint} />
+         <BackgroundIslands course={course} seed={seed} fog={fog} />
          <RockRoots course={course} />
          <Motes />
       </>

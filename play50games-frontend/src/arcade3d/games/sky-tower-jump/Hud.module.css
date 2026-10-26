@@ -99,17 +99,24 @@
    box-shadow: inset 0 -2px 3px rgba(0, 0, 0, 0.35), 0 0 8px rgba(255, 255, 255, 0.35);
 }
 
-/* the hero row, portaled onto the page so it sits above the start card, before the run */
+/* the hero row, portaled onto the page so it sits above the start card, before the run.
+   Top-right, never a centred bar: the start card's "← 3D Arcade" link is the top-left of that
+   card (the left of the screen on a phone, inset once the card is centred). The max-width keeps
+   the row's left edge past that link. */
 .pick {
    position: fixed;
    z-index: 40;
    top: max(8px, env(safe-area-inset-top, 0px));
-   left: 50%;
-   transform: translateX(-50%);
+   right: max(8px, env(safe-area-inset-right, 0px));
+   left: auto;
+   width: max-content;
+   max-width: min(480px, calc(100vw - 200px - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px)));
+   box-sizing: border-box;
    display: flex;
    align-items: center;
+   justify-content: flex-end;
    gap: 6px;
-   max-width: calc(100vw - 16px);
+   overflow: hidden;
    padding: 4px 8px 4px 12px;
    border: 2px solid rgba(255, 255, 255, 0.2);
    border-radius: 999px;
@@ -159,6 +166,31 @@
    font-weight: 700;
    line-height: 1.1;
    opacity: 0.8;
+}
+
+/* phones and narrow windows: names and swatches only, so the row stays in the top-right
+   and the back link (top-left of the card) stays clear */
+@media (max-width: 700px) {
+   .pickLabel,
+   .pickPower {
+      display: none;
+   }
+   .pick {
+      gap: 1px;
+      padding: 2px 3px;
+   }
+   .pickBtn,
+   .pickOn {
+      min-width: 0;
+      padding: 2px 3px;
+   }
+   .pick .swatch {
+      width: 14px;
+      height: 14px;
+   }
+   .pickName {
+      font-size: 0.6rem;
+   }
 }
 
 /* narrow phones: a smaller banner between the left pills and the shell's buttons */

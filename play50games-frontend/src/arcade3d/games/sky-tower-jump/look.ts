@@ -26,6 +26,66 @@ export const COLORS = {
    water: "#bfe9ff",
 } as const;
 
+/**
+ * Storm Heights (4) and Infinite Tower (5). Darker cloudy sky, denser grey-blue fog, the dimmer
+ * "night" lighting preset, and a lower fill on the world's own lights. Levels 1-3 stay on COLORS.
+ * `fill` scales those extra lights (1 is the clear sky). The flash is visual only.
+ */
+export const STORM = {
+   skyTop: "#1a2330",
+   skyMid: "#3c4d61",
+   skyBottom: "#7e909f",
+   background: "#4e5d6c",
+   fog: "#8497aa",
+   levels: {
+      4: { near: 34, far: 128 },
+      5: { near: 26, far: 102 },
+   },
+   lighting: "night" as const,
+   fill: 0.32,
+   cloud: "#b7c3cf",
+} as const;
+
+export function isStormLevel(id: number): id is 4 | 5 {
+   return id === 4 || id === 5;
+}
+
+/** Stable fog bands for the storm levels (the clear sky keeps World's FOG). */
+export const STORM_FOG: Record<4 | 5, { color: string; near: number; far: number }> = {
+   4: { color: STORM.fog, near: STORM.levels[4].near, far: STORM.levels[4].far },
+   5: { color: STORM.fog, near: STORM.levels[5].near, far: STORM.levels[5].far },
+};
+
+/** The level's environment override, or null when the level keeps the clear day sky. */
+export function levelEnvironment(id: number): {
+   background: string;
+   fog: [string, number, number];
+   lighting: "night";
+} | null {
+   if (!isStormLevel(id)) return null;
+   const fog = STORM_FOG[id];
+   return { background: STORM.background, fog: [fog.color, fog.near, fog.far], lighting: STORM.lighting };
+}
+
+/**
+ * Occasional sky flash, 0..1. Quiet most of the time: a double flicker near the start of a 6.2 s
+ * cycle, and every third cycle skipped. Visual only. Nothing in the run reads it.
+ */
+export function lightningFlash(timeS: number): number {
+   if (!(timeS > 0)) return 0;
+   const period = 6.2;
+   const n = Math.floor(timeS / period);
+   if (n % 3 === 2) return 0;
+   const t = timeS - n * period;
+   const spike = (at: number, half: number) => {
+      const d = Math.abs(t - at);
+      if (d >= half) return 0;
+      const u = 1 - d / half;
+      return u * u;
+   };
+   return Math.min(1, spike(0.12, 0.09) + spike(0.32, 0.055) * 0.55);
+}
+
 function canvas(w: number, h: number): [HTMLCanvasElement, CanvasRenderingContext2D] {
    const c = document.createElement("canvas");
    c.width = w;
@@ -189,6 +249,7 @@ export function billboardMaterial(map: Texture, additive: boolean, fog: { color:
       fragmentShader: /* glsl */ `
          uniform sampler2D uMap;
          uniform float uOpacity;
+         uniform vec3 uTint;
          uniform vec3 uFogColor;
          uniform float uFogNear;
          uniform float uFogFar;
@@ -198,7 +259,7 @@ export function billboardMaterial(map: Texture, additive: boolean, fog: { color:
          void main() {
             vec4 tex = texture2D(uMap, vUv);
             float fog = smoothstep(uFogNear, uFogFar, vFogDepth);
-            vec3 col = mix(tex.rgb * vTint, uFogColor, fog * ${additive ? "0.0" : "0.45"});
+            vec3 col = mix(tex.rgb * vTint * uTint, uFogColor, fog * ${additive ? "0.0" : "0.45"});
             // feather the quad's border so no cloud ever shows a straight edge
             float edge = smoothstep(0.0, 0.18, vUv.x) * smoothstep(1.0, 0.82, vUv.x) * smoothstep(0.0, 0.2, vUv.y) * smoothstep(1.0, 0.8, vUv.y);
             float a = tex.a * edge * uOpacity * ${additive ? "(1.0 - fog)" : "1.0"};

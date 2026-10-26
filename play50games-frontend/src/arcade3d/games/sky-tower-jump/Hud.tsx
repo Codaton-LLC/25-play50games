@@ -33,6 +33,7 @@ function HeroPick() {
                key={h.id}
                type="button"
                className={hero === h.id ? styles.pickOn : styles.pickBtn}
+               aria-label={`${h.name}, ${h.powerLabel}`}
                aria-pressed={hero === h.id}
                onClick={() => {
                   selectHero(h.id);
