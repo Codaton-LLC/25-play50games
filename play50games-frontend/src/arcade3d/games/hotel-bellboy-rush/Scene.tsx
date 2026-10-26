@@ -581,6 +581,8 @@ function LevelScene() {
    );
 }
 
+/** Keyed by the level: the start card's backdrop rebuilds its run when another level is picked. */
 export default function Scene() {
-   return <LevelScene />;
+   const { id } = useHotelLevel();
+   return <LevelScene key={id} />;
 }
