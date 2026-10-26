@@ -54,6 +54,7 @@ function LevelScene() {
    const dogGroup = useRef<Group>(null);
    const dogBody = useRef<Group>(null);
    const owner = useRef<Group>(null);
+   const toyShadow = useRef<Group>(null);
    const toys = useRef<Record<string, Group | null>>({ ball: null, stick: null, frisbee: null });
    const mowerRefs = useRef<(Group | null)[]>([]);
    const gait = useRef({ phase: 0 });
@@ -198,6 +199,16 @@ function LevelScene() {
          }
          g.rotation.set(0, th.index * 0.7 + time.now * 2, 0);
       }
+      // a shadow on the grass under a toy in the air: where it will come down, and when
+      const shadow = toyShadow.current;
+      if (shadow) {
+         shadow.visible = !!th && th.state === "flying";
+         if (shadow.visible && th) {
+            const xz = toyXZ(th, TOY);
+            shadow.position.set(xz.x, 0.02, xz.z);
+            shadow.scale.setScalar(0.6 + 0.5 * Math.min(1, th.t / th.flight));
+         }
+      }
       for (let i = 0; i < run.mowers.length; i++) {
          const g = mowerRefs.current[i];
          const m = run.mowers[i];
@@ -253,7 +264,7 @@ function LevelScene() {
                   <primitive object={sandMat} attach="material" />
                </Instanced>
                {/* the beach park: water beyond the south fence, visual only, flat and low */}
-               <Water size={[config.width + 60, 40]} position={[0, -0.05, config.depth / 2 + 22]} amplitude={0.05} foamEdge={0.03} />
+               <Water size={[config.width + 60, 40]} position={[0, -0.05, config.depth / 2 + 21]} amplitude={0.05} foamEdge={0.03} />
             </>
          )}
          <Instanced spots={fence} name="fence">
@@ -330,6 +341,12 @@ function LevelScene() {
                <Model asset={ASSETS.mower} fallback={<MowerPrimitive />} />
             </group>
          ))}
+         <group ref={toyShadow} visible={false}>
+            <mesh rotation-x={-Math.PI / 2}>
+               <circleGeometry args={[0.45, 20]} />
+               <meshBasicMaterial color="#000000" transparent opacity={0.3} depthWrite={false} />
+            </mesh>
+         </group>
          <TargetMarkers targets={targets} color={COLORS.target} />
       </>
    );
