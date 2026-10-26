@@ -15,7 +15,7 @@ import { useGameTime } from "@/arcade3d/core/gameTime";
 import { ASSETS, GLB_SIZE, ORB_SIZE } from "./assets";
 import { COLORS, arrowTexture, glowTexture } from "./look";
 import { BillboardField, type Billboard } from "./World";
-import { PAD_HALF, supportX, supportZ, type Course as CourseData, type SkyRun } from "./rules";
+import { PAD_HALF, strikeLive, supportX, supportZ, type Course as CourseData, type SkyRun } from "./rules";
 
 /** The visual clock (ms of rules time to draw the movers at), written by Scene every frame. */
 export interface VisualClock {
@@ -182,6 +182,33 @@ function Portal({ course, won }: { course: CourseData; won: MutableRefObject<boo
    );
 }
 
+/** One bolt, moved onto whichever rim strike is live. Nothing on levels without lightning. */
+function Lightning({ run, clock }: { run: SkyRun; clock: VisualClock }) {
+   const strikes = run.course.strikes;
+   const mesh = useRef<Mesh>(null);
+   useFrame(() => {
+      const m = mesh.current;
+      if (!m) return;
+      let show = false;
+      for (let i = 0; i < strikes.length; i++) {
+         const st = strikes[i];
+         if (!strikeLive(st, clock.ms < 0 ? 0 : clock.ms)) continue;
+         const s = run.course.supports[st.support];
+         m.position.set(supportX(s, clock.ms) + st.ox, s.top + 6, supportZ(s, clock.ms) + st.oz);
+         show = true;
+         break;
+      }
+      m.visible = show;
+   });
+   if (strikes.length === 0) return null;
+   return (
+      <mesh ref={mesh} visible={false} renderOrder={4}>
+         <cylinderGeometry args={[0.08, 0.4, 14, 8, 1, true]} />
+         <meshBasicMaterial color="#f8f4c8" transparent opacity={0.9} blending={AdditiveBlending} depthWrite={false} side={DoubleSide} />
+      </mesh>
+   );
+}
+
 export function Course({ run, clock, won }: { run: SkyRun; clock: VisualClock; won: MutableRefObject<boolean> }) {
    const course = run.course;
    const spots = useStaticSpots(course);
@@ -236,6 +263,7 @@ export function Course({ run, clock, won }: { run: SkyRun; clock: VisualClock; w
          <BeaconBeams course={course} run={run} />
          <PadGlows course={course} />
          <Portal course={course} won={won} />
+         <Lightning run={run} clock={clock} />
       </>
    );
 }

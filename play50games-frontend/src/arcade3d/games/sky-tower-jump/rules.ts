@@ -12,7 +12,9 @@
 import { resolveSphereAabb, type AABB, type Vec3Like } from "@/arcade3d/core/collision";
 import type { RunState } from "@/arcade3d/core/types";
 import type { LevelId } from "@/arcade3d/types";
+import { MAGNET_REACH, POWER_MS, V_DASH, heroById, type HeroId } from "./heroes";
 import { LEVELS, type SkyLevel } from "./levels";
+import { buildTower, type TowerStrike } from "./tower";
 
 // ---------- tuning (1 unit = 1 m, forward is -z, up is +y) ----------
 
@@ -94,7 +96,13 @@ export interface Course {
    durationMs: number;
    /** the fastest any platform moves (m/s): the carry bound of the proof */
    maxCarry: number;
+   /** sideways gusts while airborne (Storm Heights, Infinite Tower) */
+   wind: boolean;
+   /** lightning on island rims; the centre of each island is outside the strike */
+   strikes: TowerStrike[];
 }
+
+export type { TowerStrike };
 
 /** Top speed of a mover (m/s): smoothstep's slope peaks at 1.5. */
 export function moverTopSpeed(m: Mover): number {
@@ -166,19 +174,38 @@ const BRIDGE_ORBS: ReadonlyArray<[number, number, number]> = [
    [8, -1.6, 0], [8, 1.6, 0], [18, 0, -1.6], [18, 0, 1.6],
 ];
 
-export function buildCourse(level: SkyLevel = LEVELS[1]): Course {
-   const besideBridge = (i: number) => COURSE_ROWS[i - 1]?.[0] === "bridge" || COURSE_ROWS[i + 1]?.[0] === "bridge";
-   const supports: Support[] = COURSE_ROWS.map(([kind, cx, cz, top, w, d, extra], i) => {
-      // a placeholder level's narrower landings; the islands a bridge joins keep their size (the bridge must reach them)
-      const shrink = (kind === "island" && !besideBridge(i)) || kind === "moving" ? level.platformScale : 1;
-      const m = extra && extra !== "pad" ? { ...extra, travel: extra.travel * level.travelScale, periodMs: Math.round(extra.periodMs * level.periodScale) } : null;
-      return { kind, cx, cz, hw: (w * shrink) / 2, hd: (d * shrink) / 2, top, bottom: top - THICKNESS, mover: m, pad: extra === "pad" };
-   });
+function finishCourse(supports: Support[], level: SkyLevel, orbs: Orb[], strikes: TowerStrike[], wind: boolean): Course {
    const checkpoints = [0];
    supports.forEach((s, i) => {
       if (s.kind === "checkpoint") checkpoints.push(i);
    });
    const goal = supports.findIndex((s) => s.kind === "goal");
+   let maxCarry = 0;
+   for (const s of supports) if (s.mover) maxCarry = Math.max(maxCarry, moverTopSpeed(s.mover));
+   return { supports, checkpoints, goal, orbs, durationMs: level.durationMs, maxCarry, strikes, wind };
+}
+
+/** Level 1, unchanged: the hand-built rows. Levels 2-5: buildTower. */
+export function buildCourse(level: SkyLevel = LEVELS[1]): Course {
+   if (level.tower) {
+      const draft = buildTower(level);
+      const supports: Support[] = draft.supports.map((s) => ({
+         kind: s.kind,
+         cx: s.cx,
+         cz: s.cz,
+         hw: s.hw,
+         hd: s.hd,
+         top: s.top,
+         bottom: s.top - THICKNESS,
+         mover: s.mover ? { ...s.mover } : null,
+         pad: s.pad,
+      }));
+      return finishCourse(supports, level, draft.orbs, draft.strikes, draft.wind);
+   }
+   const supports: Support[] = COURSE_ROWS.map(([kind, cx, cz, top, w, d, extra]) => {
+      const m = extra && extra !== "pad" ? { ...extra } : null;
+      return { kind, cx, cz, hw: w / 2, hd: d / 2, top, bottom: top - THICKNESS, mover: m, pad: extra === "pad" };
+   });
    const orbs: Orb[] = [];
    for (const [a, b] of ORB_GAPS) {
       const sa = supports[a];
@@ -189,9 +216,30 @@ export function buildCourse(level: SkyLevel = LEVELS[1]): Course {
       const s = supports[i];
       orbs.push({ x: s.cx + dx, y: s.top + 0.9, z: s.cz + dz });
    }
-   let maxCarry = 0;
-   for (const s of supports) if (s.mover) maxCarry = Math.max(maxCarry, moverTopSpeed(s.mover));
-   return { supports, checkpoints, goal, orbs, durationMs: level.durationMs, maxCarry };
+   return finishCourse(supports, level, orbs, [], false);
+}
+
+/** A strike is live this ms (the same fraction on every device). */
+export function strikeLive(st: TowerStrike, ms: number): boolean {
+   const t = ms / st.periodMs + st.phase;
+   const frac = t - Math.floor(t);
+   return frac < st.duty;
+}
+
+/**
+ * Sideways gust (m/s²) at rules ms. Peaks at WIND_PEAK, flips each period, polynomials only.
+ * Applied in the air and then clamped to V_RUN, so a gust never outruns the proof's speed bound.
+ */
+export const WIND_PEAK = 3.5;
+export const WIND_PERIOD_MS = 2800;
+
+export function windAccelX(ms: number): number {
+   const cyc = ms / WIND_PERIOD_MS;
+   const t = cyc - Math.floor(cyc);
+   const tri = t < 0.5 ? 2 * t : 2 - 2 * t;
+   const s = tri * tri * (3 - 2 * tri);
+   const sign = Math.floor(cyc) % 2 === 0 ? 1 : -1;
+   return sign * WIND_PEAK * (2 * s - 1);
 }
 
 export const COURSE: Course = buildCourse(LEVELS[1]);
@@ -235,10 +283,10 @@ export function riseLandS(v: number, dy: number): number {
  * The least time (ms) from one support to another: max(the vertical bound, the horizontal bound).
  * Infinity when no launch reaches. Ground time is taken as 0.
  */
-export function edgeMinMs(course: Course, from: number, to: number): number {
+export function edgeMinMs(course: Course, from: number, to: number, vRun = V_RUN): number {
    const a = course.supports[from];
    const b = course.supports[to];
-   const vh = V_RUN + course.maxCarry;
+   const vh = vRun + course.maxCarry;
    const flat = (1000 * standGap(a, b)) / vh;
    const dy = b.top - a.top;
    if (dy <= 0) return flat;
@@ -248,8 +296,8 @@ export function edgeMinMs(course: Course, from: number, to: number): number {
    return Math.max(flat, 1000 * vertical);
 }
 
-/** Dijkstra over the supports with edgeMinMs: the least ms to stand on each one (Infinity = never). */
-export function minArrivalMs(course: Course): number[] {
+/** Dijkstra over the supports with edgeMinMs: the least ms to stand on each one (Infinity = never). `vRun` is the horizontal cap (V_DASH to ask what a dash could save). */
+export function minArrivalMs(course: Course, vRun = V_RUN): number[] {
    const n = course.supports.length;
    const best = new Array<number>(n).fill(Infinity);
    const done = new Array<boolean>(n).fill(false);
@@ -261,7 +309,7 @@ export function minArrivalMs(course: Course): number[] {
       done[u] = true;
       for (let v = 0; v < n; v++) {
          if (done[v] || v === u) continue;
-         const t = best[u] + edgeMinMs(course, u, v);
+         const t = best[u] + edgeMinMs(course, u, v, vRun);
          if (t < best[v]) best[v] = t;
       }
    }
@@ -269,8 +317,8 @@ export function minArrivalMs(course: Course): number[] {
 }
 
 /** The proven least finish ms of a course (README proof step 4). */
-export function minFinishMs(course: Course): number {
-   return minArrivalMs(course)[course.goal];
+export function minFinishMs(course: Course, vRun = V_RUN): number {
+   return minArrivalMs(course, vRun)[course.goal];
 }
 
 /** The least submitted duration: the least finish minus every orb's bonus (README proof step 5). */
@@ -289,17 +337,22 @@ export interface LevelLimits {
 }
 
 /**
- * Proposed server limits: minDurationMs = the proven least duration (minDurationMsOf) less about 4 %,
- * rounded down to 100 ms; maxScore = floor((timeBase - minDuration) / 10). rules.test.ts recomputes
- * the bound and checks the margin; meta.ts and arcade-games.json repeat these numbers.
+ * Level 1's limits, unchanged. Levels 2-5 are filled in after courseFor (the bound needs the course).
+ * meta.ts keeps level 1's numbers on every row until Claude copies PROPOSED_LEVEL_LIMITS into
+ * meta.ts and arcade-games.json together (registry.sync.test.ts).
  */
-export const PROPOSED_LEVEL_LIMITS: Record<LevelId, LevelLimits> = {
-   1: { kind: "time", maxScore: 7850, minDurationMs: 11500, maxDurationMs: 90000, timeBaseMs: 90000 },
-   2: { kind: "time", maxScore: 7850, minDurationMs: 11500, maxDurationMs: 90000, timeBaseMs: 90000 },
-   3: { kind: "time", maxScore: 7850, minDurationMs: 11500, maxDurationMs: 90000, timeBaseMs: 90000 },
-   4: { kind: "time", maxScore: 7850, minDurationMs: 11500, maxDurationMs: 90000, timeBaseMs: 90000 },
-   5: { kind: "time", maxScore: 7850, minDurationMs: 11500, maxDurationMs: 90000, timeBaseMs: 90000 },
-};
+export const LEVEL1_LIMITS: LevelLimits = { kind: "time", maxScore: 7850, minDurationMs: 11500, maxDurationMs: 90000, timeBaseMs: 90000 };
+
+/** minDurationMs = the bound less about 4.5 %, rounded down to 100 ms, still inside 94-100 % of the bound. */
+export function proposeLimits(id: LevelId, course: Course): LevelLimits {
+   if (id === 1) return LEVEL1_LIMITS;
+   const lb = minDurationMsOf(course);
+   let minDurationMs = Math.floor((lb * 0.955) / 100) * 100;
+   if (minDurationMs < lb * 0.94) minDurationMs = Math.ceil((lb * 0.94) / 100) * 100;
+   if (minDurationMs > lb) minDurationMs = Math.floor(lb);
+   const timeBaseMs = course.durationMs;
+   return { kind: "time", maxScore: Math.floor((timeBaseMs - minDurationMs) / 10), minDurationMs, maxDurationMs: course.durationMs, timeBaseMs };
+}
 
 // ---------- the run ----------
 
@@ -330,6 +383,18 @@ export interface Hero extends Vec3Like {
    lastTop: number;
    /** ms left in "lost" or "spawn" */
    timerMs: number;
+   /** dash is on through this rules ms (NONE = off); dashX/Z is a unit vector */
+   dashUntil: number;
+   dashX: number;
+   dashZ: number;
+   /** Nami's extra jump is still available this flight */
+   airJump: boolean;
+   /** feet may not go above this on the current flight (a double jump cannot add reach) */
+   apexCap: number;
+   /** Kiro / Zuno / Vexa: the power is on through this rules ms (NONE = off) */
+   shieldUntil: number;
+   magnetUntil: number;
+   phaseUntil: number;
 }
 
 /** One frame of input. Scene fills one object per run and passes it every step. */
@@ -339,10 +404,15 @@ export interface StepInput {
    moveZ: number;
    /** a jump press this frame (the core's jumpPressed: keyboard and touch alike), latched at the frame's first ms */
    jumpPressed: boolean;
+   /**
+    * The hero power (keyboard E/Enter and the touch Power button both set the core's actionPressed).
+    * One press, latched at the frame's first ms. No separate touch timing.
+    */
+   actionPressed: boolean;
 }
 
 export function createStepInput(): StepInput {
-   return { moveX: 0, moveZ: 0, jumpPressed: false };
+   return { moveX: 0, moveZ: 0, jumpPressed: false, actionPressed: false };
 }
 
 /** What happened in one step. The same object every step, reset at its start. */
@@ -361,11 +431,15 @@ export interface StepEvents {
    respawned: boolean;
    finished: boolean;
    timeup: boolean;
+   /** a hero power actually fired this step (a press on cooldown does not) */
+   powered: boolean;
 }
 
 export interface SkyRun {
    course: Course;
    level: LevelId;
+   /** which Color Roll Hero this run plays (Riko unless createRun was given another) */
+   heroId: HeroId;
    /** the seed: the course is fixed (a time leaderboard must be the same race for everyone); the Scene's decor uses it */
    seed: number;
    /** whole ms of play since "Go" */
@@ -375,6 +449,10 @@ export interface SkyRun {
    hero: Hero;
    /** the first ms of the frame with the latest jump press (the buffer runs from it), NONE */
    pressMs: number;
+   /** the ms a power press is applied, NONE if this frame had none. Cooldown is powerReadyAt. */
+   actionMs: number;
+   /** the power can fire again at this rules ms (0 = ready at the start) */
+   powerReadyAt: number;
    /** the active checkpoint: 0 (the start) and up; respawns go to its support */
    checkpoint: number;
    respawns: number;
@@ -389,7 +467,9 @@ export interface SkyRun {
 }
 
 function createEvents(): StepEvents {
-   return { jumped: false, bounced: false, landed: false, landedOn: NONE, checkpoint: NONE, orbCount: 0, orbList: [0, 0, 0, 0, 0, 0, 0, 0], lost: false, respawned: false, finished: false, timeup: false };
+   const orbList = new Array<number>(32);
+   for (let i = 0; i < orbList.length; i++) orbList[i] = 0;
+   return { jumped: false, bounced: false, landed: false, landedOn: NONE, checkpoint: NONE, orbCount: 0, orbList, lost: false, respawned: false, finished: false, timeup: false, powered: false };
 }
 
 function resetEvents(ev: StepEvents): void {
@@ -403,6 +483,7 @@ function resetEvents(ev: StepEvents): void {
    ev.respawned = false;
    ev.finished = false;
    ev.timeup = false;
+   ev.powered = false;
 }
 
 const COURSES: Partial<Record<LevelId, Course>> = { 1: COURSE };
@@ -412,39 +493,64 @@ export function courseFor(level: LevelId): Course {
    return (COURSES[level] ??= buildCourse(LEVELS[level]));
 }
 
+/** Proposed server limits. Level 1 is the shipped row; 2-5 follow proposeLimits on that level's course. */
+export const PROPOSED_LEVEL_LIMITS: Record<LevelId, LevelLimits> = {
+   1: LEVEL1_LIMITS,
+   2: proposeLimits(2, courseFor(2)),
+   3: proposeLimits(3, courseFor(3)),
+   4: proposeLimits(4, courseFor(4)),
+   5: proposeLimits(5, courseFor(5)),
+};
+
+function freshHero(x: number, y: number, z: number, support: number): Hero {
+   return {
+      x,
+      y,
+      z,
+      vx: 0,
+      vz: 0,
+      state: "play",
+      grounded: true,
+      support,
+      arcStart: 0,
+      arcY0: y,
+      arcV: 0,
+      coyoteFrom: NONE,
+      carryX: 0,
+      carryZ: 0,
+      lastTop: y,
+      timerMs: 0,
+      dashUntil: NONE,
+      dashX: 0,
+      dashZ: -1,
+      airJump: true,
+      apexCap: y + H_JUMP,
+      shieldUntil: NONE,
+      magnetUntil: NONE,
+      phaseUntil: NONE,
+   };
+}
+
 /**
  * A new run on the start platform: at rest, grounded (the countdown is the start freeze).
- * Allocates everything the run will ever use.
+ * Allocates everything the run will ever use. `heroId` defaults to Riko; the Scene passes the
+ * overlay's pick (pickedHero). The power is ready at the start and its cooldown resets each run.
  */
-export function createRun(seed: number, level: LevelId = 1): SkyRun {
+export function createRun(seed: number, level: LevelId = 1, heroId: HeroId = "riko"): SkyRun {
    const course = courseFor(level);
    const start = course.supports[course.checkpoints[0]];
    return {
       course,
       level,
+      heroId,
       seed,
       simMs: 0,
       remainder: 0,
       stepMs: 0,
-      hero: {
-         x: start.cx,
-         y: start.top,
-         z: start.cz + 1.5,
-         vx: 0,
-         vz: 0,
-         state: "play",
-         grounded: true,
-         support: course.checkpoints[0],
-         arcStart: 0,
-         arcY0: start.top,
-         arcV: 0,
-         coyoteFrom: NONE,
-         carryX: 0,
-         carryZ: 0,
-         lastTop: start.top,
-         timerMs: 0,
-      },
+      hero: freshHero(start.cx, start.top, start.cz + 1.5, course.checkpoints[0]),
       pressMs: NONE,
+      actionMs: NONE,
+      powerReadyAt: 0,
       checkpoint: 0,
       respawns: 0,
       collected: new Uint8Array(course.orbs.length),
@@ -468,12 +574,95 @@ export function arcVy(h: Hero, ms: number): number {
 }
 
 function startArc(h: Hero, ms: number, y0: number, v: number): void {
+   const keep = h.apexCap;
    h.arcStart = ms;
    h.arcY0 = y0;
    h.arcV = v;
    h.y = y0;
    h.grounded = false;
    h.support = NONE;
+   if (v >= V_BOUNCE - 1e-6) h.apexCap = y0 + H_BOUNCE;
+   else if (v > 0) h.apexCap = y0 + (v * v) / (2 * G);
+   else h.apexCap = keep;
+}
+
+/** Shield or phase is up: gusts and lightning do not touch the hero. */
+function hazardImmune(h: Hero, ms: number): boolean {
+   return ms <= h.shieldUntil || ms <= h.phaseUntil;
+}
+
+/**
+ * Nami's second jump. The new apex is capped at the flight's existing apexCap, so it cannot
+ * reach a platform a single jump (or the bounce that started the flight) could not already reach.
+ */
+function tryDoubleJump(run: SkyRun, ms: number): boolean {
+   const h = run.hero;
+   if (h.grounded || !h.airJump) return false;
+   const y = h.y;
+   const cap = h.apexCap;
+   if (!(y < cap - 0.04)) return false;
+   const v = Math.min(V_JUMP, Math.sqrt(Math.max(0, 2 * G * (cap - y))));
+   if (!(v >= 1)) return false;
+   startArc(h, ms, y, v);
+   h.apexCap = cap;
+   h.airJump = false;
+   return true;
+}
+
+/** Fire the run's hero power if it is off cooldown. A press that cannot fire (Nami on the ground) does not start the cooldown. */
+function tryPower(run: SkyRun, ms: number, mx: number, mz: number): void {
+   if (ms < run.powerReadyAt) return;
+   const def = heroById(run.heroId);
+   const h = run.hero;
+   if (def.power === "dash") {
+      let dx = mx;
+      let dz = mz;
+      let len = Math.sqrt(dx * dx + dz * dz);
+      if (len < 0.25) {
+         dx = h.vx;
+         dz = h.vz;
+         len = Math.sqrt(dx * dx + dz * dz);
+      }
+      if (len < 0.25) {
+         dx = 0;
+         dz = -1;
+         len = 1;
+      }
+      h.dashX = dx / len;
+      h.dashZ = dz / len;
+      h.dashUntil = ms + POWER_MS.dash;
+      run.powerReadyAt = ms + def.cooldownMs;
+      run.events.powered = true;
+      return;
+   }
+   if (def.power === "doubleJump") {
+      if (!tryDoubleJump(run, ms)) return;
+      run.powerReadyAt = ms + def.cooldownMs;
+      run.events.powered = true;
+      run.events.jumped = true;
+      return;
+   }
+   if (def.power === "shield") h.shieldUntil = ms + POWER_MS.shield;
+   else if (def.power === "magnet") h.magnetUntil = ms + POWER_MS.magnet;
+   else h.phaseUntil = ms + POWER_MS.phase;
+   run.powerReadyAt = ms + def.cooldownMs;
+   run.events.powered = true;
+}
+
+function lightningHit(run: SkyRun, ms: number): boolean {
+   const strikes = run.course.strikes;
+   if (strikes.length === 0) return false;
+   const h = run.hero;
+   if (!h.grounded || h.support === NONE || hazardImmune(h, ms)) return false;
+   const s = run.course.supports[h.support];
+   for (let i = 0; i < strikes.length; i++) {
+      const st = strikes[i];
+      if (st.support !== h.support || !strikeLive(st, ms)) continue;
+      const dx = h.x - (supportX(s, ms) + st.ox);
+      const dz = h.z - (supportZ(s, ms) + st.oz);
+      if (dx * dx + dz * dz <= st.radius * st.radius) return true;
+   }
+   return false;
 }
 
 /** The whole ms to simulate for a frame of `dtMs` (clamped to MAX_STEP_MS), the fraction carried. */
@@ -499,6 +688,7 @@ export function step(run: SkyRun, dtMs: number, input: StepInput): StepEvents {
    if (run.ended !== null || !(dtMs > 0)) return ev;
    const whole = advanceClock(run, dtMs);
    if (input.jumpPressed) run.pressMs = run.simMs + 1;
+   if (input.actionPressed) run.actionMs = run.simMs + 1;
    let mx = finite(input.moveX);
    let mz = finite(input.moveZ);
    const len = Math.sqrt(mx * mx + mz * mz);
@@ -524,6 +714,7 @@ function tick(run: SkyRun, mx: number, mz: number): void {
    const h = run.hero;
    if (h.state === "lost") {
       run.pressMs = NONE;
+      run.actionMs = NONE;
       h.timerMs -= 1;
       // keep falling out of view (looks only: nothing collides)
       h.y = arcY(h, run.simMs);
@@ -532,6 +723,7 @@ function tick(run: SkyRun, mx: number, mz: number): void {
    }
    if (h.state === "spawn") {
       run.pressMs = NONE;
+      run.actionMs = NONE;
       h.timerMs -= 1;
       if (h.timerMs <= 0) h.state = "play";
       return;
@@ -614,8 +806,6 @@ function supportUnder(course: Course, h: Hero, ms: number): number {
    return NONE;
 }
 
-const MAX_MOVE = V_RUN / 1000;
-
 function playMs(run: SkyRun, mx: number, mz: number): void {
    const course = run.course;
    const h = run.hero;
@@ -648,21 +838,37 @@ function playMs(run: SkyRun, mx: number, mz: number): void {
       }
    }
 
-   // 3. ease the stick velocity towards V_RUN · stick, capped at V_RUN
-   const rate = (h.grounded ? ACCEL.ground : ACCEL.air) / 1000;
-   let dvx = V_RUN * mx - h.vx;
-   let dvz = V_RUN * mz - h.vz;
-   const dv = Math.sqrt(dvx * dvx + dvz * dvz);
-   if (dv > rate) {
-      dvx *= rate / dv;
-      dvz *= rate / dv;
+   // 2b. hero power: the same action press on keyboard and touch, applied on one ms. A double jump
+   // on the same ms as a ground jump would only replace that jump, so it waits for a later press.
+   if (run.actionMs === ms) {
+      run.actionMs = NONE;
+      if (!(heroById(run.heroId).power === "doubleJump" && ev.jumped)) tryPower(run, ms, mx, mz);
    }
-   h.vx += dvx;
-   h.vz += dvz;
+
+   // 3. ease the stick velocity towards V_RUN · stick, or snap to the dash. Wind is sideways, in the
+   // air only, and the cap below keeps the step inside the proof (a dash uses V_DASH for that ms).
+   const dashing = h.dashUntil >= ms;
+   if (dashing) {
+      h.vx = h.dashX * V_DASH;
+      h.vz = h.dashZ * V_DASH;
+   } else {
+      const rate = (h.grounded ? ACCEL.ground : ACCEL.air) / 1000;
+      let dvx = V_RUN * mx - h.vx;
+      let dvz = V_RUN * mz - h.vz;
+      const dv = Math.sqrt(dvx * dvx + dvz * dvz);
+      if (dv > rate) {
+         dvx *= rate / dv;
+         dvz *= rate / dv;
+      }
+      h.vx += dvx;
+      h.vz += dvz;
+      if (!h.grounded && course.wind && !hazardImmune(h, ms)) h.vx += windAccelX(ms) / 1000;
+   }
+   const speedCap = dashing ? V_DASH : V_RUN;
    const speed = Math.sqrt(h.vx * h.vx + h.vz * h.vz);
-   if (speed > V_RUN) {
-      h.vx *= V_RUN / speed;
-      h.vz *= V_RUN / speed;
+   if (speed > speedCap) {
+      h.vx *= speedCap / speed;
+      h.vz *= speedCap / speed;
    }
 
    // 4. move by the stick velocity plus the carry
@@ -677,6 +883,8 @@ function playMs(run: SkyRun, mx: number, mz: number): void {
          h.coyoteFrom = ms;
       } else {
          h.support = s;
+         h.airJump = true;
+         h.apexCap = h.y + H_JUMP;
       }
    } else {
       const yOld = h.y;
@@ -700,6 +908,8 @@ function playMs(run: SkyRun, mx: number, mz: number): void {
             h.support = s;
             h.coyoteFrom = NONE;
             h.lastTop = top;
+            h.airJump = true;
+            h.apexCap = top + H_JUMP;
             if (top > run.bestTop) run.bestTop = top;
             ev.landed = true;
             ev.landedOn = s;
@@ -710,12 +920,13 @@ function playMs(run: SkyRun, mx: number, mz: number): void {
    // 6. side collisions
    sideCollisions(course, h, ms);
 
-   // 7. progress guard: the non-carry step (stick + push-outs) is at most MAX_MOVE
+   // 7. progress guard: the non-carry step (stick + push-outs + wind) is at most the speed cap
+   const maxMove = (h.dashUntil >= ms ? V_DASH : V_RUN) / 1000;
    const dx = h.x - x0 - cx;
    const dz = h.z - z0 - cz;
    const moved = Math.sqrt(dx * dx + dz * dz);
-   if (moved > MAX_MOVE) {
-      const k = MAX_MOVE / moved;
+   if (moved > maxMove) {
+      const k = maxMove / moved;
       h.x = x0 + cx + dx * k;
       h.z = z0 + cz + dz * k;
       if (insideSolid(course, h.x, h.z, h.y, ms)) {
@@ -727,13 +938,14 @@ function playMs(run: SkyRun, mx: number, mz: number): void {
    // 8. orbs
    const orbs = course.orbs;
    const my = h.y + ORB.centerY;
+   const reach = h.magnetUntil >= ms ? MAGNET_REACH : ORB.pickup;
    for (let i = 0; i < orbs.length; i++) {
       if (run.collected[i]) continue;
       const o = orbs[i];
       const ox = o.x - h.x;
       const oy = o.y - my;
       const oz = o.z - h.z;
-      if (ox * ox + oy * oy + oz * oz <= ORB.pickup * ORB.pickup) {
+      if (ox * ox + oy * oy + oz * oz <= reach * reach) {
          run.collected[i] = 1;
          run.orbs += 1;
          if (ev.orbCount < ev.orbList.length) ev.orbList[ev.orbCount++] = i;
@@ -747,7 +959,13 @@ function playMs(run: SkyRun, mx: number, mz: number): void {
    }
    if (!h.grounded) return;
 
-   // 10. a bounce pad under the feet launches at once (walking onto it too)
+   // 10. lightning on the rim (shield and phase ignore it)
+   if (lightningHit(run, ms)) {
+      lose(run);
+      return;
+   }
+
+   // 11. a bounce pad under the feet launches at once (walking onto it too)
    const s = course.supports[h.support];
    if (s.pad && Math.abs(h.x - s.cx) <= PAD_HALF && Math.abs(h.z - s.cz) <= PAD_HALF) {
       startArc(h, ms, h.y, V_BOUNCE);
@@ -759,7 +977,7 @@ function playMs(run: SkyRun, mx: number, mz: number): void {
       return;
    }
 
-   // 11. checkpoints, forward only
+   // 12. checkpoints, forward only
    for (let k = run.checkpoint + 1; k < course.checkpoints.length; k++) {
       if (course.checkpoints[k] === h.support) {
          run.checkpoint = k;
@@ -768,7 +986,7 @@ function playMs(run: SkyRun, mx: number, mz: number): void {
       }
    }
 
-   // 12. the goal
+   // 13. the goal
    if (h.support === course.goal) {
       run.finishMs = ms;
       run.ended = "win";
@@ -785,6 +1003,7 @@ function lose(run: SkyRun): void {
    h.carryX = 0;
    h.carryZ = 0;
    h.coyoteFrom = NONE;
+   h.dashUntil = NONE;
    run.events.lost = true;
 }
 
@@ -807,6 +1026,9 @@ function respawn(run: SkyRun): void {
    h.carryX = 0;
    h.carryZ = 0;
    h.lastTop = s.top;
+   h.dashUntil = NONE;
+   h.airJump = true;
+   h.apexCap = s.top + H_JUMP;
    h.state = "spawn";
    h.timerMs = SPAWN_MS;
    run.respawns += 1;
@@ -816,7 +1038,7 @@ function respawn(run: SkyRun): void {
 // ---------- the store hand-off (README "Scoring") ----------
 
 /** HUD and hand-off stats. */
-export const STAT = { orbs: "orbs", height: "height", checkpoint: "checkpoint", finishMs: "finishMs", falls: "falls" } as const;
+export const STAT = { orbs: "orbs", height: "height", checkpoint: "checkpoint", finishMs: "finishMs", falls: "falls", hero: "hero", power: "power" } as const;
 
 /** The run time a player sees and submits: play ms minus the orb bonus, never below 0. */
 export function runTimeMs(playMs: number, orbs: number): number {

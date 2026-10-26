@@ -19,7 +19,7 @@ export interface Bot {
 }
 
 export function createBot(run: SkyRun, frameMs = 1000 / 60): Bot {
-   return { frameMs, reached: 0, scratch: createRun(run.seed, run.level), scratchInput: { moveX: 0, moveZ: 0, jumpPressed: false } };
+   return { frameMs, reached: 0, scratch: createRun(run.seed, run.level, run.heroId), scratchInput: { moveX: 0, moveZ: 0, jumpPressed: false, actionPressed: false } };
 }
 
 /** Copies the mutable run state (not the course or the events) from `src` into `dst`. */
@@ -27,8 +27,11 @@ export function copyRun(src: SkyRun, dst: SkyRun): void {
    dst.simMs = src.simMs;
    dst.remainder = src.remainder;
    dst.stepMs = src.stepMs;
+   dst.heroId = src.heroId;
    Object.assign(dst.hero, src.hero);
    dst.pressMs = src.pressMs;
+   dst.actionMs = src.actionMs;
+   dst.powerReadyAt = src.powerReadyAt;
    dst.checkpoint = src.checkpoint;
    dst.respawns = src.respawns;
    dst.collected.set(src.collected);
@@ -56,6 +59,7 @@ function targetOf(bot: Bot, run: SkyRun): number {
 function steer(bot: Bot, run: SkyRun, input: StepInput): void {
    const h = run.hero;
    input.jumpPressed = false;
+   input.actionPressed = false;
    const supports = run.course.supports;
    if (h.grounded && supports[h.support].pad) {
       const s = supports[h.support];
@@ -108,7 +112,11 @@ function runsOff(bot: Bot, run: SkyRun, frames: number): boolean {
 /** Fills `input` for this frame. */
 export function botInput(bot: Bot, run: SkyRun, input: StepInput): void {
    const h = run.hero;
-   if (h.grounded && h.support !== NONE && h.support > bot.reached) bot.reached = h.support;
+   if (h.grounded && h.support !== NONE && h.state === "play") {
+      // a missed jump that lands on a lower step: climb again from there (the route is still in order)
+      if (h.support < bot.reached && run.course.supports[h.support].top < run.course.supports[bot.reached].top - 1) bot.reached = h.support;
+      else if (h.support > bot.reached) bot.reached = h.support;
+   }
    if (run.events.landedOn > bot.reached) bot.reached = run.events.landedOn;
    // after a fall: carry on from the checkpoint
    if (run.events.respawned) bot.reached = run.course.checkpoints[run.checkpoint];
