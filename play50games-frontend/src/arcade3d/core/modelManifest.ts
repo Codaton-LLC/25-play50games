@@ -228,6 +228,9 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/hotel-bellboy-rush/lobbyPlanterR.glb",
    "/models/3d/shared/sofa.glb",
    "/models/3d/shared/travellerNpc.glb",
+   // office-escape exec decor (2026-10-25): batch 5 extra GLB, adopted as corridor decor drawn only
+   // on levels 4-5 (games/office-escape/assets.ts, Scene.tsx)
+   "/models/3d/office-escape/execDesk.glb",
    // postman-3d (2026-10-26): the ready menu1-postman-3d set (holidayTree included, now ready), copied as
    // optimized; the postman is a static T-pose for the core auto-rig. trafficLight is the
    // shared ready set, the dog is menu1-dog-park-fetch's (shared with dog-park-fetch).
