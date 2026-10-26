@@ -288,11 +288,27 @@ export function minDurationMsOf(course: Course): number {
  * phase do not hold it back: the flood is the level.
  */
 export const WATER_Y0 = -3.4;
-export const WATER_MPS: Record<LevelId, number> = { 1: 0.16, 2: 0.18, 3: 0.2, 4: 0.22, 5: 0.24 };
+export const WATER_MPS: Record<LevelId, number> = { 1: 0.12, 2: 0.2, 3: 0.4, 4: 0.6, 5: 0.8 };
 
-/** The water surface (m) at rules time `ms`. */
+/**
+ * A stone lever (every checkpoint) opens a flood gate: the water sinks LEVER_DROP m the moment it is thrown
+ * and climbs back to the rising line over LEVER_MS. Only the first throw of each lever counts (forward-only
+ * checkpoints), so a lever never helps twice. The flood only ever ends a run, so no finish gets faster.
+ */
+export const LEVER_DROP = 2.4;
+export const LEVER_MS = 9000;
+
+/** The rising line of the water (m) at rules time `ms`, before any lever. */
 export function waterY(level: LevelId, ms: number): number {
    return WATER_Y0 + WATER_MPS[level] * (Math.max(0, ms) / 1000);
+}
+
+/** The water surface (m) for this run: the rising line, lowered while the last lever's gate is open. */
+export function waterAt(run: { level: LevelId; leverAt: number }, ms: number): number {
+   const base = waterY(run.level, ms);
+   if (run.leverAt < 0 || ms < run.leverAt) return base;
+   const left = 1 - (ms - run.leverAt) / LEVER_MS;
+   return left > 0 ? base - LEVER_DROP * left : base;
 }
 
 // ---------- limits per level (README "Server limits"; meta.ts and arcade-games.json copy these) ----------
@@ -424,6 +440,8 @@ export interface RoofRun {
    powerReadyAt: number;
    /** the active checkpoint: 0 (the start) and up; respawns go to its support */
    checkpoint: number;
+   /** rules ms the last lever was thrown (NONE before the first) */
+   leverAt: number;
    respawns: number;
    /** 1 = collected, per course.orbs */
    collected: Uint8Array;
@@ -526,6 +544,7 @@ export function createRun(seed: number, level: LevelId = 1, heroId: HeroId = "ri
       actionMs: NONE,
       powerReadyAt: 0,
       checkpoint: 0,
+      leverAt: NONE,
       respawns: 0,
       collected: new Uint8Array(course.orbs.length),
       orbs: 0,
@@ -939,7 +958,7 @@ function playMs(run: RoofRun, mx: number, mz: number): void {
    }
 
    // 9. the flood, then the fall line. Water ends the run; a dry fall still respawns.
-   if (h.y <= waterY(run.level, ms)) {
+   if (h.y <= waterAt(run, ms)) {
       run.ended = "flood";
       ev.flooded = true;
       return;
@@ -972,6 +991,7 @@ function playMs(run: RoofRun, mx: number, mz: number): void {
    for (let k = run.checkpoint + 1; k < course.checkpoints.length; k++) {
       if (course.checkpoints[k] === h.support) {
          run.checkpoint = k;
+         run.leverAt = ms;
          ev.checkpoint = k;
          break;
       }

@@ -74,42 +74,44 @@ The submitted duration is `finishMs − 400 · coins` (`runTimeMs`). Only a win 
 
    | Level | Least finish | Coins | Least duration |
    |---|---:|---:|---:|
-   | 1 Ruined Gate | 6 089 ms | 4 | 4 489 ms |
-   | 2 Flooded Hall | 9 309 ms | 6 | 6 909 ms |
-   | 3 Sunken Stairs | 12 340 ms | 5 | 10 340 ms |
-   | 4 Rising Water | 15 370 ms | 7 | 12 570 ms |
-   | 5 Temple Escape | 19 377 ms | 9 | 15 777 ms |
+   | 1 Ruined Gate | 6 058 ms | 4 | 4 458 ms |
+   | 2 Flooded Hall | 9 309 ms | 7 | 6 509 ms |
+   | 3 Sunken Stairs | 12 340 ms | 6 | 9 940 ms |
+   | 4 Rising Water | 16 345 ms | 7 | 13 545 ms |
+   | 5 Temple Escape | 20 348 ms | 9 | 16 748 ms |
 
 7. **Limits.** `proposeLimits` takes 92 % of the least duration, rounded down to 100 ms, and never under 90 % of it (a dash saves about 260 ms, which is more than 4.5 % of these short courses). `timeBaseMs` and `maxDurationMs` are the level timer. `maxScore = floor((timeBaseMs − minDurationMs) / 10)`.
 
    | Level | minDurationMs | maxDurationMs | timeBaseMs | maxScore |
    |---|---:|---:|---:|---:|
    | 1 | 4 100 | 90 000 | 90 000 | 8 590 |
-   | 2 | 6 300 | 120 000 | 120 000 | 11 370 |
-   | 3 | 9 500 | 150 000 | 150 000 | 14 050 |
-   | 4 | 11 500 | 180 000 | 180 000 | 16 850 |
-   | 5 | 14 500 | 210 000 | 210 000 | 19 550 |
+   | 2 | 5 900 | 120 000 | 120 000 | 11 410 |
+   | 3 | 9 100 | 150 000 | 150 000 | 14 090 |
+   | 4 | 12 400 | 180 000 | 180 000 | 16 760 |
+   | 5 | 15 400 | 210 000 | 210 000 | 19 460 |
 
-   Every level's maxScore is at least level 1's 8 590, and level 5's 19 550 is 2.28× that (the cap is 3×). `meta.ts` and `arcade-games.json` ship this table. `rules.test.ts` pins it and checks the dash floor. `registry.sync.test.ts` checks the JSON against meta.
+   Every level's maxScore is at least level 1's 8 590, and level 5's 19 460 is 2.27× that (the cap is 3×). `meta.ts` and `arcade-games.json` ship this table. `rules.test.ts` pins it and checks the dash floor. `registry.sync.test.ts` checks the JSON against meta.
 
 ### What the bots reached
 
 | Bot | Result |
 |---|---|
-| Honest bot (`bot.ts`: jumps at the first frame that lands, waits for movers and sinking ledges, walks only when two ledges actually overlap; it does not use the hero power) | Wins on every level at 30, 60 and 144 fps, staying above the water. Submitted times (30 / 60 / 144) and best score: level 1 **5.959 / 5.959 / 5.950 s**, 4 coins, score 8 405 (98 % of 8 590). Level 2 **8.711 / 8.628 / 8.607 s**, 6 coins, 11 139 (98 % of 11 370). Level 3 **13.439 / 12.939 / 12.895 s**, 13 710 (98 % of 14 050). Level 4 **16.736 / 16.770 / 17.160 s**, 16 326 (97 % of 16 850). Level 5 **21.943 / 22.260 / 22.232 s**, 18 805 (96 % of 19 550). Every clear is at least 90 % of that level's maxScore. At 60 fps each level's score is above level 1's, and level 5 is 2.2× level 1 |
+| Honest bot (`bot.ts`: jumps at the first frame that lands, waits for movers and crumbling stones; it does not use the hero power) | Wins on every level at 30, 60 and 144 fps. Points at 60 fps: level 1 **8 310** (97 % of 8 590), level 2 **11 035** (97 %), level 3 **13 357** (95 %), level 4 **15 925** (95 %), level 5 **17 701** (91 %; the water gets within 2.7 m on that run). Every clear is at least 90 % of that level's maxScore. `proof.test.ts` also runs every hero with its power mashed |
 | Honest bot through the real store, ragged frames | a ranked win inside the limits, the score recomputed from the time |
 | Idle bot | caught by the water on level 1 before 90 s, `end("lose")`, unranked, nothing sent |
 | 200 spam bots (random stick, jump mashing, 4-50 ms frames) | no win under 4 100 ms on level 1 |
 
 ## Levels
 
-| Level | Title | Timer | What it adds |
+| Level | Title | Timer | Course |
 |---|---|---|---|
-| 1 | Ruined Gate | 90 s | 10 ledges, 8 rises, goal at 16 m, wide and still |
-| 2 | Flooded Hall | 120 s | 14 ledges, 12 rises, goal at 22 m, sliding ledges |
-| 3 | Sunken Stairs | 150 s | 18 ledges, 16 rises, goal at 30 m, more movers, sinking ledges, slick stone |
-| 4 | Rising Water | 180 s | 22 ledges, 20 rises, goal at 38 m, faster movers, a shaft current, water jets |
-| 5 | Temple Escape | 210 s | 28 ledges, 25 rises, goal at 46 m, every hazard |
+| 1 | Ruined Gate | 90 s | switchback: 10 ledges in three rows that double back, 8 rises to 16 m, wide and still; water 0.12 m/s |
+| 2 | Flooded Hall | 120 s | switchback: 15 ledges, 12 rises to 22 m, sliding stones; water 0.2 m/s |
+| 3 | Sunken Stairs | 150 s | spiral round the flooded shaft: 19 ledges, 16 rises to 30 m, crumbling and slick stone, water jets; water 0.4 m/s |
+| 4 | Rising Water | 180 s | tighter spiral: 24 ledges, 21 rises to 38 m, sliding and crumbling stones, jets; water 0.6 m/s |
+| 5 | Temple Escape | 210 s | narrowing spiral: 30 ledges, 26 rises to 46 m, every hazard; water 0.8 m/s |
+
+Each stone lever (the checkpoints) opens a flood gate: the water sinks 2.4 m and climbs back over 9 s (`LEVER_DROP`, `LEVER_MS`). The layouts are generated in `roofs.ts` (`ledgeXZ`); `layouts.test.ts` checks the shapes and that the game differs from Rooftop Roll Climb.
 
 Clear: a win (time game). Level 5's timer is 210 s (the plan's best-time climb needs a cap).
 

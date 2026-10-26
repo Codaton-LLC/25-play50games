@@ -33,6 +33,7 @@ export function copyRun(src: RoofRun, dst: RoofRun): void {
    dst.actionMs = src.actionMs;
    dst.powerReadyAt = src.powerReadyAt;
    dst.checkpoint = src.checkpoint;
+   dst.leverAt = src.leverAt;
    dst.respawns = src.respawns;
    dst.collected.set(src.collected);
    dst.orbs = src.orbs;

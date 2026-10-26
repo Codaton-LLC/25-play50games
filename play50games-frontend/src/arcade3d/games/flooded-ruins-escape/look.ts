@@ -33,16 +33,19 @@ export const COLORS = {
  */
 export const STORM = {
    skyTop: "#061018",
-   skyMid: "#123044",
-   skyBottom: "#1e4a58",
-   background: "#0e242c",
-   fog: "#1a3844",
+   skyMid: "#1f4d66",
+   skyBottom: "#33707f",
+   background: "#1a3f4c",
+   fog: "#2a5566",
    levels: {
-      4: { near: 28, far: 110 },
-      5: { near: 18, far: 82 },
+      4: { near: 36, far: 140 },
+      5: { near: 30, far: 120 },
    },
    lighting: "night" as const,
    fill: 0.28,
+   /** the moonlit fill the night levels add to the core night preset, so the ledges, the hero and the start card read well */
+   hemi: 1.9,
+   ambient: 0.65,
    cloud: "#8ea0b8",
 } as const;
 

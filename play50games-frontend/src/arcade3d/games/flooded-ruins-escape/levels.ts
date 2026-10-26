@@ -4,6 +4,10 @@
 import type { LevelId } from "@/arcade3d/types";
 
 export interface RoofSpec {
+   /** the shape of the course: doubling-back rows, or a spiral round the flooded shaft */
+   layout: "switchback" | "spiral";
+   /** spiral: how much the ring narrows per lap (m); 0 for a switchback */
+   shrink: number;
    /** platforms including the start roof and the goal roof */
    surfaces: number;
    /** how many of the steps between them gain height (the plan's "climb N sections") */
@@ -29,9 +33,9 @@ export interface RoofSpec {
    checkpointEvery: number;
    /** a coin on every Nth gap */
    orbEvery: number;
-   /** sideways gusts between towers, while airborne */
+   /** sideways gusts while airborne (none in the ruins) */
    wind: boolean;
-   /** antenna arcs on the rim of some roofs */
+   /** water jets on the rim of some ledges (shield and phase get through them) */
    sparks: boolean;
 }
 
@@ -44,105 +48,114 @@ export interface RoofLevel {
    spec: RoofSpec;
 }
 
+// Ruins layouts (roofs.ts): "switchback" rows of ledges that double back on each other (gentle levels), and a
+// "spiral" of ledges that winds round the central flooded shaft and narrows as it climbs. `gap` is the
+// centre-to-centre step along the path, `side` the switchback's half-length or the spiral's first half-size.
+// Crumbling stones are the vanishing ledges, levers are the checkpoints (each lowers the water for a while).
+const base = { moverTravel: 1.2, moverPeriod: 4400, wind: false, sparks: false } as const;
+
 const low: RoofSpec = {
+   ...base,
+   layout: "switchback",
    surfaces: 10,
    rises: 8,
    goalTop: 16,
-   gap: 5.5,
-   side: 1.05,
-   width: 6.2,
-   depth: 4.6,
+   gap: 6.6,
+   side: 9.9,
+   width: 5.8,
+   depth: 5.0,
+   shrink: 0,
    moverEvery: 0,
-   moverTravel: 1.2,
-   moverPeriod: 4400,
    vanishEvery: 0,
    slipEvery: 0,
    checkpointEvery: 4,
    orbEvery: 2,
-   wind: false,
-   sparks: false,
 };
 
-const office: RoofSpec = {
-   surfaces: 14,
+const hall: RoofSpec = {
+   ...base,
+   layout: "switchback",
+   surfaces: 15,
    rises: 12,
    goalTop: 22,
-   gap: 5.35,
-   side: 1.45,
+   gap: 6.4,
+   side: 9.6,
    width: 5.4,
-   depth: 4.2,
+   depth: 4.6,
+   shrink: 0,
    moverEvery: 5,
-   moverTravel: 1.25,
-   moverPeriod: 4400,
+   moverTravel: 1.3,
    vanishEvery: 0,
    slipEvery: 0,
    checkpointEvery: 6,
    orbEvery: 2,
-   wind: false,
-   sparks: false,
 };
 
-const moving: RoofSpec = {
-   surfaces: 18,
+const stairs: RoofSpec = {
+   ...base,
+   layout: "spiral",
+   surfaces: 19,
    rises: 16,
    goalTop: 30,
-   gap: 5.25,
-   side: 1.6,
-   width: 5.2,
-   depth: 4.1,
-   moverEvery: 3,
-   moverTravel: 1.35,
-   moverPeriod: 3800,
-   vanishEvery: 4,
+   gap: 6.2,
+   side: 9.3,
+   width: 5.0,
+   depth: 4.4,
+   shrink: 1.4,
+   moverEvery: 0,
+   vanishEvery: 3,
    slipEvery: 5,
    checkpointEvery: 6,
+   sparks: true,
    orbEvery: 3,
-   wind: false,
-   sparks: false,
 };
 
-const night: RoofSpec = {
-   surfaces: 22,
-   rises: 20,
+const rising: RoofSpec = {
+   ...base,
+   layout: "spiral",
+   surfaces: 24,
+   rises: 21,
    goalTop: 38,
-   gap: 5.15,
-   side: 1.9,
-   width: 4.5,
-   depth: 3.8,
-   moverEvery: 3,
-   moverTravel: 1.55,
-   moverPeriod: 3000,
-   vanishEvery: 4,
+   gap: 6.0,
+   side: 9.0,
+   width: 4.6,
+   depth: 4.1,
+   shrink: 1.5,
+   moverEvery: 4,
+   moverTravel: 1.5,
+   moverPeriod: 3200,
+   vanishEvery: 3,
    slipEvery: 0,
    checkpointEvery: 7,
-   orbEvery: 3,
-   wind: true,
    sparks: true,
+   orbEvery: 3,
 };
 
-const high: RoofSpec = {
-   surfaces: 28,
-   rises: 25,
+const temple: RoofSpec = {
+   ...base,
+   layout: "spiral",
+   surfaces: 30,
+   rises: 26,
    goalTop: 46,
-   gap: 5.1,
-   side: 2.0,
-   width: 4.6,
+   gap: 5.9,
+   side: 9.0,
+   width: 4.5,
    depth: 4.0,
-   moverEvery: 3,
-   moverTravel: 1.45,
-   moverPeriod: 3200,
-   vanishEvery: 4,
+   shrink: 1.7,
+   moverEvery: 4,
+   moverTravel: 1.5,
+   moverPeriod: 3000,
+   vanishEvery: 3,
    slipEvery: 5,
    checkpointEvery: 7,
-   orbEvery: 3,
-   wind: true,
    sparks: true,
+   orbEvery: 3,
 };
 
 export const LEVELS: Record<LevelId, RoofLevel> = {
    1: { id: 1, name: "Ruined Gate", durationMs: 90_000, spec: low },
-   2: { id: 2, name: "Flooded Hall", durationMs: 120_000, spec: office },
-   3: { id: 3, name: "Sunken Stairs", durationMs: 150_000, spec: moving },
-   4: { id: 4, name: "Rising Water", durationMs: 180_000, spec: night },
-   5: { id: 5, name: "Temple Escape", durationMs: 210_000, spec: high },
+   2: { id: 2, name: "Flooded Hall", durationMs: 120_000, spec: hall },
+   3: { id: 3, name: "Sunken Stairs", durationMs: 150_000, spec: stairs },
+   4: { id: 4, name: "Rising Water", durationMs: 180_000, spec: rising },
+   5: { id: 5, name: "Temple Escape", durationMs: 210_000, spec: temple },
 };

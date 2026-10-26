@@ -140,24 +140,39 @@ function SkyDome({ night }: { night: boolean }) {
    );
 }
 
-/** Stone channels along the shaft, off the ledges. */
+/** The footprint of the ledges (x0..x1, z0..z1), and the points of a ring `margin` m outside it. */
+function footprint(course: Course) {
+   let x0 = Infinity;
+   let x1 = -Infinity;
+   let z0 = Infinity;
+   let z1 = -Infinity;
+   for (const s of course.supports) {
+      x0 = Math.min(x0, s.cx - s.hw);
+      x1 = Math.max(x1, s.cx + s.hw);
+      z0 = Math.min(z0, s.cz - s.hd);
+      z1 = Math.max(z1, s.cz + s.hd);
+   }
+   return { x0, x1, z0, z1, cx: (x0 + x1) / 2, cz: (z0 + z1) / 2 };
+}
+
+/** n points round the footprint, `margin` m outside it (an ellipse through the corners' reach). */
+function ringAround(course: Course, n: number, margin: number): { x: number; z: number; angle: number }[] {
+   const f = footprint(course);
+   const rx = (f.x1 - f.x0) / 2 + margin;
+   const rz = (f.z1 - f.z0) / 2 + margin;
+   const out: { x: number; z: number; angle: number }[] = [];
+   for (let i = 0; i < n; i++) {
+      const a = (i / n) * Math.PI * 2 + 0.3;
+      out.push({ x: f.cx + Math.sin(a) * rx * 1.15, z: f.cz + Math.cos(a) * rz * 1.15, angle: a });
+   }
+   return out;
+}
+
+/** Stone channels round the shaft, off the ledges. */
 function useChannels(course: Course): InstanceSpot[] {
    return useMemo(() => {
-      const goalZ = course.supports[course.goal].cz;
-      const spots: InstanceSpot[] = [];
       const scale = 3.2 / GLB_SIZE.channel.y;
-      const n = 8;
-      for (let i = 0; i < n; i++) {
-         const side = i % 2 === 0 ? -1 : 1;
-         spots.push({
-            x: side * 9.5,
-            y: -2.2,
-            z: (i / (n - 1)) * goalZ,
-            scale,
-            rotY: side > 0 ? 0.15 : -0.15,
-         });
-      }
-      return spots;
+      return ringAround(course, 8, 7).map((p, i) => ({ x: p.x, y: -2.2, z: p.z, scale, rotY: p.angle + (i % 2 ? 0.15 : -0.15) }));
    }, [course]);
 }
 
@@ -165,17 +180,8 @@ function useChannels(course: Course): InstanceSpot[] {
 function Pillars({ course, seed }: { course: Course; seed: number }) {
    const pillars = useMemo(() => {
       const rnd = createRng(seed ^ 0x70f);
-      const goalZ = course.supports[course.goal].cz;
       const out: { x: number; z: number; h: number; r: number }[] = [];
-      for (let i = 0; i < 10; i++) {
-         const side = i % 2 === 0 ? -1 : 1;
-         out.push({
-            x: side * (7.2 + rnd() * 2.4),
-            z: (i / 9) * goalZ - 2,
-            h: 4.5 + rnd() * 7,
-            r: 0.38 + rnd() * 0.22,
-         });
-      }
+      for (const p of ringAround(course, 12, 4.2)) out.push({ x: p.x, z: p.z, h: 4.5 + rnd() * 7, r: 0.38 + rnd() * 0.22 });
       return out;
    }, [course, seed]);
    return (
@@ -206,10 +212,12 @@ export default function World({ course, seed, levelId = 1 }: { course: Course; s
          <SkyDome night={night} />
          <Pillars course={course} seed={seed} />
          <InstancedModel asset={ASSETS.channel} spots={channels} fallback={null} />
-         <group position={[0, goal.top + 2, goal.cz - 10]} scale={templeScale}>
+         <group position={[footprint(course).cx, goal.top + 2, footprint(course).z0 - 16]} scale={templeScale}>
             <InstancedModel asset={ASSETS.temple} spots={[{ x: 0, y: 0, z: 0, scale: 1 }]} fallback={null} />
          </group>
-         {night ? <pointLight position={[0, goal.top + 8, goal.cz]} intensity={16} distance={80} color="#5eead4" /> : null}
+         {night ? <hemisphereLight args={["#bfe3ee", "#3f5f6c", STORM.hemi]} /> : null}
+         {night ? <ambientLight intensity={STORM.ambient} /> : null}
+         {night ? <pointLight position={[goal.cx, goal.top + 8, goal.cz]} intensity={16} distance={80} color="#5eead4" /> : null}
       </>
    );
 }

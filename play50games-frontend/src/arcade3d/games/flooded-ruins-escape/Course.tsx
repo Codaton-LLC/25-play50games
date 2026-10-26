@@ -12,7 +12,7 @@ import { useGameTime } from "@/arcade3d/core/gameTime";
 import { ASSETS, GLB_SIZE, ORB_SIZE } from "./assets";
 import { COLORS, glowTexture } from "./look";
 import { BillboardField, type Billboard } from "./World";
-import { roofGone, strikeLive, supportX, supportZ, waterY, type Course as CourseData, type RoofRun, type Support } from "./rules";
+import { roofGone, strikeLive, supportX, supportZ, waterAt, type Course as CourseData, type RoofRun, type Support } from "./rules";
 
 /** The visual clock (ms of rules time), written by Scene every frame. */
 export interface VisualClock {
@@ -88,20 +88,33 @@ function useSpots(course: CourseData) {
 /** The rising flood. A translucent sheet plus a darker body under it. Visual only. */
 function Flood({ run, clock }: { run: RoofRun; clock: VisualClock }) {
    const group = useRef<Group>(null);
-   const goal = run.course.supports[run.course.goal];
-   const depth = Math.abs(goal.cz) + 28;
+   // the flood fills the whole shaft: the course's footprint plus a wide margin
+   const box = useMemo(() => {
+      let x0 = Infinity;
+      let x1 = -Infinity;
+      let z0 = Infinity;
+      let z1 = -Infinity;
+      for (const s of run.course.supports) {
+         x0 = Math.min(x0, s.cx - s.hw);
+         x1 = Math.max(x1, s.cx + s.hw);
+         z0 = Math.min(z0, s.cz - s.hd);
+         z1 = Math.max(z1, s.cz + s.hd);
+      }
+      return { w: x1 - x0 + 50, d: z1 - z0 + 50, cx: (x0 + x1) / 2, cz: (z0 + z1) / 2 };
+   }, [run]);
+   const depth = box.d;
    useFrame(() => {
       const ms = clock.ms < 0 ? 0 : clock.ms;
-      if (group.current) group.current.position.y = waterY(run.level, ms);
+      if (group.current) group.current.position.y = waterAt(run, ms);
    });
    return (
-      <group ref={group} position={[0, -3.4, goal.cz / 2]}>
+      <group ref={group} position={[box.cx, -3.4, box.cz]}>
          <mesh position={[0, -5, 0]}>
-            <boxGeometry args={[34, 10, depth]} />
+            <boxGeometry args={[box.w, 10, depth]} />
             <meshStandardMaterial color="#0c4a5a" transparent opacity={0.5} roughness={0.25} metalness={0.04} />
          </mesh>
          <mesh rotation-x={-Math.PI / 2} position={[0, 0.04, 0]}>
-            <planeGeometry args={[34, depth]} />
+            <planeGeometry args={[box.w, depth]} />
             <meshStandardMaterial color={COLORS.water} transparent opacity={0.78} roughness={0.08} metalness={0.12} />
          </mesh>
       </group>

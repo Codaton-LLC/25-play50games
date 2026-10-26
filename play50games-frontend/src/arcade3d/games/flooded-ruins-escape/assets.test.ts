@@ -110,7 +110,7 @@ describe("definition and camera", () => {
 
    it("the intro ends on the follow camera's start pose, and flies from the gate down", () => {
       const play = playCamera(COURSE, 1.6);
-      const g = cameraGoal(0, 0, 1.5, COURSE.supports[1].cx, COURSE.supports[1].top, COURSE.supports[1].cz, 1.6, { px: 0, py: 0, pz: 0, lx: 0, ly: 0, lz: 0 });
+      const g = cameraGoal(COURSE.supports[0].cx, 0, COURSE.supports[0].cz + 1.5, COURSE.supports[1].cx, COURSE.supports[1].top, COURSE.supports[1].cz, 1.6, { px: 0, py: 0, pz: 0, lx: 0, ly: 0, lz: 0 });
       expect(play.position).toEqual([g.px, g.py, g.pz]);
       const keys = introKeyframes(COURSE);
       expect(keys[0].position[1]).toBeGreaterThan(COURSE.supports[COURSE.goal].top);

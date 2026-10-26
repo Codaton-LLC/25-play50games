@@ -102,7 +102,8 @@ describe("hero powers", () => {
    it("Double Jump (Nami) lifts a falling hero and stays under the single-jump apex", () => {
       const run = createRun(1, 1, "nami");
       const input = createStepInput();
-      input.moveX = 1;
+      // off the start ledge's open end (the course runs the other way): a fall to double-jump out of
+      input.moveX = -1;
       hold(run, 900, input);
       expect(run.hero.grounded).toBe(false);
       const before = run.hero.y;

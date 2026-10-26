@@ -1,4 +1,5 @@
-// Generated rooftop courses for all five levels. Pure, no Math.random: the same level is the
+// Generated ruin courses for all five levels: switchback rows on the first two, a spiral round the flooded
+// shaft on the other three. Pure, no Math.random: the same level is the
 // same race for every seed (a time leaderboard). A rising step stays under the jump apex.
 // Flat steps are same-height landings (the plan's extra surfaces beyond the climb count).
 import type { RoofLevel, RoofSpec } from "./levels";
@@ -76,6 +77,56 @@ export function riseMask(steps: number, rises: number): boolean[] {
    return mask;
 }
 
+
+/** The spiral never narrows past this half-size (m): the flooded shaft in the middle stays open. */
+export const RING_MIN = 4.4;
+
+/**
+ * Where ledge `i` stands (x, z). Switchback: rows along x that double back, one row gap apart toward -z.
+ * Spiral: a square ring round the central shaft (centre (0, -h)), walked clockwise from the near edge's
+ * middle, narrowing by `shrink` m per lap; each step is `gap` along the ring (a corner cuts the chord).
+ */
+export function ledgeXZ(spec: RoofSpec, count: number): { x: number; z: number }[] {
+   const out: { x: number; z: number }[] = [];
+   if (spec.layout === "switchback") {
+      const perRow = Math.max(2, Math.round((2 * spec.side) / spec.gap) + 1);
+      for (let i = 0; i < count; i++) {
+         const row = Math.floor(i / perRow);
+         const k = i % perRow;
+         const x = round2(-spec.side + (row % 2 === 0 ? k : perRow - 1 - k) * ((2 * spec.side) / (perRow - 1)));
+         out.push({ x, z: round2(-row * spec.gap) });
+      }
+      return out;
+   }
+   let lap = 0;
+   for (let i = 0; i < count; i++) {
+      const h = Math.max(RING_MIN, spec.side - spec.shrink * lap);
+      const s = ((lap % 1) + 1) % 1 * 8 * h;
+      let x: number;
+      let z: number;
+      if (s < h) {
+         x = s;
+         z = h;
+      } else if (s < 3 * h) {
+         x = h;
+         z = h - (s - h);
+      } else if (s < 5 * h) {
+         x = h - (s - 3 * h);
+         z = -h;
+      } else if (s < 7 * h) {
+         x = -h;
+         z = -h + (s - 5 * h);
+      } else {
+         x = -h + (s - 7 * h);
+         z = h;
+      }
+      // the ring's centre is (0, -h): the first ledge is the near edge's middle, at z = 0
+      out.push({ x: round2(x), z: round2(z - h) });
+      lap += spec.gap / (8 * h);
+   }
+   return out;
+}
+
 function sizeOf(spec: RoofSpec, kind: RoofKind, slippery: boolean): { w: number; d: number } {
    if (kind === "goal") return { w: 8, d: 7 };
    if (kind === "checkpoint") return { w: 5.6, d: 5.4 };
@@ -89,7 +140,8 @@ export function buildRoofs(level: RoofLevel): RoofDraft {
    const mask = riseMask(steps, spec.rises);
    const riseCount = mask.filter(Boolean).length;
    const each = spec.goalTop / riseCount;
-   const supports: RoofSupport[] = [{ kind: "start", cx: 0, cz: 0, hw: 3.6, hd: 3.4, top: 0, mover: null, pad: false, vanish: null, slippery: false }];
+   const xz = ledgeXZ(spec, steps + 1);
+   const supports: RoofSupport[] = [{ kind: "start", cx: xz[0].x, cz: xz[0].z, hw: 3.6, hd: 3.4, top: 0, mover: null, pad: false, vanish: null, slippery: false }];
    const orbs: RoofOrb[] = [];
    const strikes: RoofStrike[] = [];
    let y = 0;
@@ -107,8 +159,8 @@ export function buildRoofs(level: RoofLevel): RoofDraft {
       const slippery = !goal && !checkpoint && !moving && !vanish && spec.slipEvery > 0 && i % spec.slipEvery === 0;
       const kind: RoofKind = goal ? "goal" : checkpoint ? "checkpoint" : moving ? "moving" : "roof";
       const { w, d } = sizeOf(spec, kind, slippery);
-      const cx = i % 2 === 0 ? spec.side : -spec.side;
-      const cz = round2(-i * spec.gap);
+      const cx = xz[i].x;
+      const cz = xz[i].z;
       const mover: RoofMover | null = moving
          ? { axis: i % 6 === 0 ? "z" : "x", travel: spec.moverTravel, periodMs: spec.moverPeriod, phase: round2((i % 5) * 0.17) }
          : null;
