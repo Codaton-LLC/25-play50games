@@ -1,8 +1,21 @@
-import type { ArcadeGameMeta } from "@/arcade3d/types";
+import type { ArcadeGameMeta, LevelMeta, ScoringRules } from "@/arcade3d/types";
+import { LEVEL_TITLES } from "./levels";
 
-// Plain data only (server-safe). scoring must match WP includes/arcade-games.json.
-// Stub (Menu 1 game 48, docs/menu1-new/specs-41-50.md): placeholder limits; the build replaces them
-// with the proven per-level limits (PROPOSED_LEVEL_LIMITS) and adds meta.levels.
+// Plain data (server-safe). Numbers match rules.ts PROPOSED_LEVEL_LIMITS (levels.test.ts), and
+// arcade-games.json carries the same five (registry.sync.test.ts). A level clears only on a win
+// (every toy on its shelf): there is no clearScore.
+const PTS = { kind: "points", unitLabel: "pts", display: "int" } as const;
+
+const SCORING: ScoringRules = { ...PTS, maxScore: 990, minDurationMs: 4000, maxDurationMs: 120_000, base: 500, maxPointsPerSec: 93 };
+
+const LEVELS: readonly LevelMeta[] = [
+   { id: 1, title: LEVEL_TITLES[1], scoring: SCORING },
+   { id: 2, title: LEVEL_TITLES[2], scoring: { ...PTS, maxScore: 1405, minDurationMs: 4000, maxDurationMs: 150_000, base: 800, maxPointsPerSec: 57 } },
+   { id: 3, title: LEVEL_TITLES[3], scoring: { ...PTS, maxScore: 1715, minDurationMs: 4000, maxDurationMs: 180_000, base: 1000, maxPointsPerSec: 48 } },
+   { id: 4, title: LEVEL_TITLES[4], scoring: { ...PTS, maxScore: 2110, minDurationMs: 4000, maxDurationMs: 180_000, base: 1400, maxPointsPerSec: 36 } },
+   { id: 5, title: LEVEL_TITLES[5], scoring: { ...PTS, maxScore: 2610, minDurationMs: 4000, maxDurationMs: 210_000, base: 1800, maxPointsPerSec: 28 } },
+];
+
 export const toyStoreNightShiftMeta: ArcadeGameMeta = {
    slug: "toy-store-night-shift",
    title: "Toy Store Night Shift",
@@ -18,16 +31,8 @@ export const toyStoreNightShiftMeta: ArcadeGameMeta = {
       keyboard: "WASD / arrows to move, E or Enter to pick up / drop",
       touch: "Joystick to move + Use",
    },
-   scoring: {
-      kind: "points",
-      maxScore: 3000,
-      minDurationMs: 10_000,
-      maxDurationMs: 300_000,
-      base: 3000,
-      maxPointsPerSec: 3000,
-      unitLabel: "pts",
-      display: "int",
-   },
+   scoring: SCORING,
+   levels: LEVELS,
    thumbnail: null,
    accent: "#f472b6",
    owner: "kimi",
