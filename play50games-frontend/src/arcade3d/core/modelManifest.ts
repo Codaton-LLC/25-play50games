@@ -229,6 +229,36 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/cat-vs-robot-vacuum/catTreeR.glb",
    "/models/3d/shared/bed.glb",
    "/models/3d/shared/bookshelfFull.glb",
+   // submarine-treasure-dive (gate, 2026-10-25): menu1 ready set, optimized
+   "/models/3d/submarine-treasure-dive/miniSubmarine.glb",
+   "/models/3d/submarine-treasure-dive/amphora.glb",
+   "/models/3d/submarine-treasure-dive/anchor.glb",
+   "/models/3d/submarine-treasure-dive/pearlShellV2.glb",
+   "/models/3d/submarine-treasure-dive/rockArch.glb",
+   "/models/3d/submarine-treasure-dive/ruinColumn.glb",
+   "/models/3d/submarine-treasure-dive/shipwreckI.glb",
+   "/models/3d/submarine-treasure-dive/jellyfish.glb",
+   "/models/3d/submarine-treasure-dive/subDock.glb",
+   "/models/3d/submarine-treasure-dive/coralI.glb",
+   "/models/3d/submarine-treasure-dive/coralBranch.glb",
+   "/models/3d/submarine-treasure-dive/seaweedKelp.glb",
+   "/models/3d/submarine-treasure-dive/tropicalFish.glb",
+   "/models/3d/submarine-treasure-dive/aquariumRock.glb",
+   // Menu 1 jungle-bridge-run (2026-10-25): the ready menu1-jungle-bridge-run GLBs (templePillarV2 and
+   // ruinGateR, not the V1s; jungleLogSingle, jungleFern and volcanoBackdrop from the still-needed list are
+   // in the ready folder now), copied as optimized; fits in games/jungle-bridge-run/assets.ts. The explorer
+   // is a static T-pose for the core auto-rig. jungleLog (two logs) and junglePlant (potted) are not used.
+   "/models/3d/jungle-bridge-run/charExplorer.glb",
+   "/models/3d/jungle-bridge-run/woodenBridge.glb",
+   "/models/3d/jungle-bridge-run/ropeBridge.glb",
+   "/models/3d/jungle-bridge-run/jungleRock.glb",
+   "/models/3d/jungle-bridge-run/templePillarV2.glb",
+   "/models/3d/jungle-bridge-run/waterfallCliff.glb",
+   "/models/3d/jungle-bridge-run/ruinGateR.glb",
+   "/models/3d/jungle-bridge-run/jungleLogSingle.glb",
+   "/models/3d/jungle-bridge-run/jungleFern.glb",
+   "/models/3d/jungle-bridge-run/volcanoBackdrop.glb",
+   "/models/3d/jungle-bridge-run/hangingVine.glb",
    // Menu 1 taxi-rush-3d (2026-10-25): the ready menu1-taxi-rush-3d GLBs and the shared traffic light and
    // cone, copied as optimized; fits measured in games/taxi-rush-3d/assets.ts.
    "/models/3d/taxi-rush-3d/taxiCab.glb",
