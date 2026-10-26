@@ -185,11 +185,11 @@ export default function World({ course, seed, levelId = 1 }: { course: Course; s
    return (
       <>
          <SkyDome night={night} />
-         <InstancedModel asset={ASSETS.storm} spots={puffs} fallback={null} />
+         <InstancedModel asset={ASSETS.cloud} spots={puffs} fallback={null} />
          <group position={[foot.cx + 18, goal.top * 0.45, foot.cz - 22]} scale={castleScale}>
             <InstancedModel asset={ASSETS.castle} spots={[{ x: 0, y: 0, z: 0, scale: 1 }]} fallback={null} />
          </group>
-         <hemisphereLight args={[night ? "#c9d7ee" : "#fff4ea", night ? "#35597a" : "#fbcfe8", night ? STORM.hemi : 0.85]} />
+         <hemisphereLight args={[night ? "#fff1f6" : "#fff4ea", night ? "#f2b0d2" : "#fbcfe8", night ? STORM.hemi : 0.85]} />
          {night ? <ambientLight intensity={STORM.ambient} /> : <ambientLight intensity={0.35} />}
          <directionalLight position={[12, 28, 10]} intensity={night ? 0.7 : 1.15} color={night ? "#dbe7ff" : "#fff7ee"} />
       </>

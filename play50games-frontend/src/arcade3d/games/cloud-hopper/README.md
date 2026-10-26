@@ -27,8 +27,8 @@ The course is generated in `clouds.ts` (a breathing helix). It is not the sky-to
 | `bot.ts` | the honest bot (tests, and `?autoplay=1` on preview builds) |
 | `camera.ts` | the follow camera goal, the play pose, the intro keyframes (pure) |
 | `Armadillo.tsx` | the hero's code stand-in and the ball of plates it curls into |
-| `look.ts` | pastel day palette and the dusk storm look (levels 4 and 5) |
-| `World.tsx` | sky, fog, distant storm clouds, the cloud castle |
+| `look.ts` | pastel day palette and the pastel sunset look (levels 4 and 5) |
+| `World.tsx` | sky, fog, distant puff clouds, the cloud castle |
 | `Course.tsx` | clouds, feathers, rainbow arches, wind rings, stars |
 | `Hero.tsx` | the shared hero GLB on the auto-rig, pose, curl ball, blob shadow |
 | `Scene.tsx` | simulation, juice, follow camera, intro |
@@ -101,4 +101,4 @@ Clear: a win (time game). Level 5's timer is 210 s (the plan's best-time climb n
 
 ## Models
 
-Hyper3D props in `public/models/3d/cloud-hopper/`: `m2CloudPlatformV2` (the walkable cloud), `m2Feather` (bounce marker), `m2SkyStar`, `m2WindRing`, `m2RainbowBridge` (checkpoint and goal arches), `m2StormCloud` and `m2CloudCastleBg` (background only, off the climb). The heroes reuse `/models/3d/menu2/m2Hero{Riko,Nami,Kiro,Zuno,Vexa}.glb` through `heroModelAsset` (`hero.test.ts`). `assets.test.ts` fits every GLB to the real mesh bounds. `core/modelManifest.ts` lists the seven prop urls.
+Hyper3D props in `public/models/3d/cloud-hopper/`: `m2CloudPlatformV2` (the walkable cloud), `m2Feather` (bounce marker), `m2SkyStar`, `m2WindRing`, `m2RainbowBridge` (checkpoint and goal arches), `m2CloudCastleBg` (background only, off the climb; `m2StormCloud` is not drawn any more, its tan texture was not pastel). The heroes reuse `/models/3d/menu2/m2Hero{Riko,Nami,Kiro,Zuno,Vexa}.glb` through `heroModelAsset` (`hero.test.ts`). `assets.test.ts` fits every GLB to the real mesh bounds. `core/modelManifest.ts` lists the seven prop urls.

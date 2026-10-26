@@ -1,4 +1,4 @@
-// Rising Water and Temple Escape use the deep-shaft look. Levels 1-3 keep the misty ruin daylight.
+// Levels 4 and 5 use a brighter pastel sunset; levels 1-3 keep the pastel day sky. Neither is dark.
 import { describe, expect, it } from "vitest";
 import definition from "./index";
 import { FOG } from "./World";
@@ -13,7 +13,7 @@ function lum(hex: string): number {
 }
 
 describe("cloud-hopper dusk look", () => {
-   it("levels 4 and 5 use the deep-shaft preset; levels 1-3 keep the misty daylight", () => {
+   it("levels 4 and 5 use the sunset look; levels 1-3 keep the day sky", () => {
       expect(definition.environment).toMatchObject({
          background: COLORS.background,
          lighting: "day",
@@ -28,7 +28,7 @@ describe("cloud-hopper dusk look", () => {
          const env = levelEnvironment(id);
          expect(env).not.toBeNull();
          expect(definition.levels![id - 1].environment).toEqual(env);
-         expect(env!.lighting).toBe("night");
+         expect(env!.lighting).toBe("day");
          expect(env!.background).toBe(STORM.background);
          expect(env!.fog[0]).toBe(STORM.fog);
          expect(env!.fog[1]).toBeLessThan(FOG.near);
@@ -38,17 +38,13 @@ describe("cloud-hopper dusk look", () => {
       expect(levelEnvironment(5)!.fog[2]).toBeLessThan(levelEnvironment(4)!.fog[2]);
    });
 
-   it("the deep shaft is darker, and bluer than it is warm", () => {
-      expect(lum(STORM.skyTop)).toBeLessThan(lum(COLORS.skyTop));
-      expect(lum(STORM.skyMid)).toBeLessThan(lum(COLORS.skyMid));
-      expect(lum(STORM.skyBottom)).toBeLessThan(lum(COLORS.skyBottom));
-      expect(lum(STORM.fog)).toBeLessThan(lum(COLORS.fog));
-      expect(lum(STORM.background)).toBeLessThan(lum(COLORS.background));
+   it("the sunset is pastel and bright: never darker than half the day sky, warm rose or lilac rather than blue-black", () => {
       for (const hex of [STORM.skyTop, STORM.skyMid, STORM.skyBottom, STORM.fog, STORM.background]) {
-         expect(channel(hex, 2)).toBeGreaterThan(channel(hex, 0));
+         expect(lum(hex), hex).toBeGreaterThan(110);
+         expect(channel(hex, 0), hex).toBeGreaterThanOrEqual(channel(hex, 1) - 10);
       }
-      expect(STORM.fill).toBeLessThan(1);
-      expect(STORM.lighting).toBe("night");
+      expect(lum(STORM.skyBottom)).toBeGreaterThan(lum(STORM.skyTop));
+      expect(STORM.lighting).toBe("day");
    });
 
    it("lightning flashes are occasional and do not stay on", () => {

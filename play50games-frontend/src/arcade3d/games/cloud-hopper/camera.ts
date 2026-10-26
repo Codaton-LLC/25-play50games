@@ -43,11 +43,10 @@ export function cameraGoal(
    // only ever ahead (-z) of the hero, never behind it
    const fz = hz + Math.min(0, Math.max(-6, (nz - hz) * k));
    const { up, back } = cameraOffset(aspect);
-   const portrait = Math.max(0, Math.min(1, (1.2 - aspect) / 0.7));
    // look past the hero and a little up, so the hero sits in the lower third with the next jump above
    // it (on a portrait phone less high: the touch controls and the cookie banner take the bottom)
    out.lx = fx;
-   out.ly = fy + 0.9 - 0.8 * portrait;
+   out.ly = fy + 0.1;
    out.lz = fz - 4.5;
    // the camera keeps its distance to the hero (not to the look-ahead point), rising with the next top
    out.px = hx * 0.6 + fx * 0.25;

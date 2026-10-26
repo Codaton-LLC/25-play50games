@@ -32,20 +32,20 @@ export const COLORS = {
  * lighting preset. Levels 1-3 stay on the daytime city palette. `fill` scales the world's extra lights.
  */
 export const STORM = {
-   skyTop: "#14243f",
-   skyMid: "#2a4d78",
-   skyBottom: "#4e79a8",
-   background: "#1c3554",
-   fog: "#35597a",
+   skyTop: "#9d8cdc",
+   skyMid: "#f2b0d2",
+   skyBottom: "#ffe2c4",
+   background: "#e3bfe0",
+   fog: "#ecc9e0",
    levels: {
       4: { near: 36, far: 140 },
       5: { near: 30, far: 120 },
    },
-   lighting: "night" as const,
-   fill: 0.28,
-   /** the dusk fill on the fading levels, so the clouds, the hero and the start card still read */
-   hemi: 1.9,
-   ambient: 0.65,
+   lighting: "day" as const,
+   fill: 0.5,
+   /** the sunset fill on the fading levels, so the clouds, the hero and the start card read */
+   hemi: 1.0,
+   ambient: 0.4,
    cloud: "#dbe7f5",
 } as const;
 
@@ -63,7 +63,7 @@ export const STORM_FOG: Record<4 | 5, { color: string; near: number; far: number
 export function levelEnvironment(id: number): {
    background: string;
    fog: [string, number, number];
-   lighting: "night";
+   lighting: "day";
 } | null {
    if (!isStormLevel(id)) return null;
    const fog = STORM_FOG[id];
