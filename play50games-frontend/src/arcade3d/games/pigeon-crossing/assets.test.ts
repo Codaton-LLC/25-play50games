@@ -188,8 +188,9 @@ describe("pigeon-crossing night street decor (levels 4-5)", () => {
       expect([1, 2, 3, 4, 5, 6].map((level) => isDecorLevel(level))).toEqual([false, false, false, true, true, false]);
       const scene = readFileSync(new URL("./Scene.tsx", import.meta.url), "utf8");
       expect(scene).toContain("<StreetDecor");
+      expect(scene).toContain("level={config.id}"); // the arcade level, not run.level (the street number)
       const decor = readFileSync(new URL("./Decor.tsx", import.meta.url), "utf8");
-      expect(decor).toContain("isDecorLevel(run.level)");
+      expect(decor).toContain("isDecorLevel(level)");
    });
 
    it("keeps every copy outside the play bounds at every cover width, however far the pigeon advances", () => {

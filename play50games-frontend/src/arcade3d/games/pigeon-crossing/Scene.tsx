@@ -219,7 +219,7 @@ export default function Scene() {
          <VehiclePool run={run} kind={1} parts={parts} />
          <VehiclePool run={run} kind={2} parts={parts} />
          <SideCover layout={layout} />
-         <StreetDecor run={run} horizon={layout.horizon} parts={parts} />
+         <StreetDecor run={run} horizon={layout.horizon} parts={parts} level={config.id} />
          <Pigeon run={run} layout={layout} />
       </>
    );
