@@ -228,9 +228,7 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/cat-vs-robot-vacuum/catBox.glb",
    "/models/3d/cat-vs-robot-vacuum/catTreeR.glb",
    "/models/3d/shared/bed.glb",
-   "/models/3d/shared/table.glb",
    "/models/3d/shared/bookshelfFull.glb",
-   "/models/3d/shared/woodenChair.glb",
 ];
 
 const LISTED: ReadonlySet<string> = new Set(MODEL_MANIFEST);
