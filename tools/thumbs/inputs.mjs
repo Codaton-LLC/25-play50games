@@ -13,7 +13,7 @@
 //   { click: [0.5, 0.4] }            mouse tap on the canvas, x/y as fractions of canvas size
 //   { zoom: 1.8, at: [0.5, 0.4] }    frame for the shot, not an action: a canvas-shaped window
 //                                    1/zoom of the canvas around `at` (fractions, kept inside the
-//                                    canvas), zoom 1..2. The desktop camera of a top-down game
+//                                    canvas), zoom 1..2; add brighten: 1..3 to lift a dark scene (dim floors). The desktop camera of a top-down game
 //                                    shows the whole board, so its hero is only 10-25 px tall
 //                                    without it. The hero must end the script inside the window.
 
