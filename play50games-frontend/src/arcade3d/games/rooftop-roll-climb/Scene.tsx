@@ -4,7 +4,7 @@
 // hero, the follow camera, the intro's camera (core/intro, opted in by index.tsx `intro: true`), and
 // the juice: bursts, floating time bonuses, shake and sounds on jumps, coins, checkpoints,
 // falls and the finish. Remounted for every run (runId).
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import type { PerspectiveCamera } from "three";
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
@@ -26,7 +26,7 @@ import { Course, type VisualClock } from "./Course";
 import { Hero, createHeroAnim, groundUnder, type HeroAnim } from "./Hero";
 import { FOV, FOV_PORTRAIT, cameraGoal, introKeyframes, playCamera, type CameraGoal } from "./camera";
 import { ORB, STAT, createRun, createStepInput, step, type RoofRun } from "./rules";
-import { pickedHero } from "./heroes";
+import { pickedHero, subscribeHero } from "./heroes";
 import { createBot, botInput } from "./bot";
 import type { RoofLevel } from "./levels";
 
@@ -238,7 +238,9 @@ export default function Scene() {
    const { config } = useLevel<RoofLevel>();
    const levelId: LevelId = config?.id ?? 1;
    // runId remounts the Scene; the seed only places decor (the course is the same race for everyone)
-   const run = useMemo(() => createRun(randomSeed(), levelId, pickedHero()), [runId, levelId]);
+   // the picker changes the hero live: the start card and the intro show the picked hero before Play
+   const hero = useSyncExternalStore(subscribeHero, pickedHero, pickedHero);
+   const run = useMemo(() => createRun(randomSeed(), levelId, hero), [runId, levelId, hero]);
    const decorSeed = 20261025;
    const anim = useMemo(createHeroAnim, [run]);
    const clock = useMemo<VisualClock>(() => ({ ms: 0 }), [run]);

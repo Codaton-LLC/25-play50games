@@ -51,6 +51,18 @@ export function pickedHero(): HeroId {
    return picked;
 }
 
+const listeners = new Set<() => void>();
+
+/** Calls `fn` whenever the pick changes (the Scene re-makes its run, so the intro shows the picked hero). */
+export function subscribeHero(fn: () => void): () => void {
+   listeners.add(fn);
+   return () => {
+      listeners.delete(fn);
+   };
+}
+
 export function selectHero(id: HeroId): void {
+   if (picked === id) return;
    picked = id;
+   for (const fn of listeners) fn();
 }
