@@ -315,6 +315,9 @@ export const MODEL_MANIFEST: readonly string[] = [
    // (Ice Village, Championship Arena), behind the yard's far fence
    "/models/3d/snowball-battle/igloo.glb",
    "/models/3d/snowball-battle/snowmanBig.glb",
+   // dino-egg-rescue lava rock (2026-10-25): batch-5 companion decor (Hyper3D), drawn only on
+   // the volcanic levels 4-5 (Volcanic Pass / Dino Sanctuary) outside the play bounds
+   "/models/3d/dino-egg-rescue/lavaRock.glb",
 ];
 
 const LISTED: ReadonlySet<string> = new Set(MODEL_MANIFEST);
