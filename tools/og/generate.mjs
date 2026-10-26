@@ -73,6 +73,7 @@ const TITLES = {
    "aquarium-cleaner": "Aquarium Cleaner",
    "postman-3d": "Postman 3D",
    "sky-tower-jump": "Sky Tower Jump",
+   "rooftop-roll-climb": "Rooftop Roll Climb",
 };
 
 /** One entry per thumbnail in public/images/3d, in filename order. */

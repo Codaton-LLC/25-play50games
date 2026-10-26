@@ -823,6 +823,22 @@
         { "title": "Storm Heights", "max_score": 14110, "min_duration_ms": 38900, "max_duration_ms": 180000, "time_base_ms": 180000 },
         { "title": "Infinite Tower", "max_score": 18170, "min_duration_ms": 58300, "max_duration_ms": 240000, "time_base_ms": 240000 }
       ]
+    },
+    "rooftop-roll-climb": {
+      "title": "Rooftop Roll Climb",
+      "kind": "time",
+      "max_score": 8590,
+      "min_duration_ms": 4100,
+      "max_duration_ms": 90000,
+      "time_base_ms": 90000,
+      "enabled": false,
+      "levels": [
+        { "title": "Low Roofs", "max_score": 8590, "min_duration_ms": 4100, "max_duration_ms": 90000, "time_base_ms": 90000 },
+        { "title": "Office Roofs", "max_score": 11370, "min_duration_ms": 6300, "max_duration_ms": 120000, "time_base_ms": 120000 },
+        { "title": "Moving Rooftops", "max_score": 14050, "min_duration_ms": 9500, "max_duration_ms": 150000, "time_base_ms": 150000 },
+        { "title": "Night Skyline", "max_score": 16850, "min_duration_ms": 11500, "max_duration_ms": 180000, "time_base_ms": 180000 },
+        { "title": "High-Rise Climb", "max_score": 19550, "min_duration_ms": 14500, "max_duration_ms": 210000, "time_base_ms": 210000 }
+      ]
     }
   }
 }

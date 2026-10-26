@@ -54,6 +54,7 @@ import { toyStoreNightShiftMeta } from "./games/toy-store-night-shift/meta";
 import { aquariumCleanerMeta } from "./games/aquarium-cleaner/meta";
 import { postman3dMeta } from "./games/postman-3d/meta";
 import { skyTowerJumpMeta } from "./games/sky-tower-jump/meta";
+import { rooftopRollClimbMeta } from "./games/rooftop-roll-climb/meta";
 
 export const ARCADE_GAMES: ArcadeGameMeta[] = [
    robotCollectorMeta,
@@ -107,6 +108,7 @@ export const ARCADE_GAMES: ArcadeGameMeta[] = [
    aquariumCleanerMeta,
    postman3dMeta,
    skyTowerJumpMeta,
+   rooftopRollClimbMeta,
 ].sort((a, b) => a.order - b.order);
 
 export function getGameMeta(slug: string): ArcadeGameMeta | undefined {

@@ -59,4 +59,5 @@ export const GAME_LOADERS: Record<ArcadeSlug, () => Promise<GameModule>> = {
    "aquarium-cleaner": () => import("./games/aquarium-cleaner"),
    "postman-3d": () => import("./games/postman-3d"),
    "sky-tower-jump": () => import("./games/sky-tower-jump"),
+   "rooftop-roll-climb": () => import("./games/rooftop-roll-climb"),
 };

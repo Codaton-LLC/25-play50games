@@ -58,6 +58,7 @@ export const ARCADE_SLUGS = [
    "postman-3d",
    // Menu 2 (Color Roll Heroes): the vertical slice, docs/master-plan/PLAY50_MENU_2_50_COLOR_ROLL_HEROES_FULL.md
    "sky-tower-jump",
+   "rooftop-roll-climb",
 ] as const;
 
 export type ArcadeSlug = (typeof ARCADE_SLUGS)[number];
