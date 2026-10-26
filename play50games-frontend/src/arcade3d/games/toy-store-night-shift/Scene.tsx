@@ -302,7 +302,7 @@ function LevelScene() {
          {/* the dark ground round the store reaches past the fog; the store floor is its own lighter slab */}
          <mesh rotation-x={-Math.PI / 2} position={[0, -0.01, 0]}>
             <planeGeometry args={[400, 400]} />
-            <meshStandardMaterial color={config.lighting === "night" ? COLORS.outsideNight : COLORS.outside} roughness={0.95} />
+            <meshStandardMaterial color={config.lighting === "night" ? COLORS.outsideNight : COLORS.outside} roughness={0.95} emissive={config.lighting === "night" ? COLORS.outsideGlow : "#000000"} emissiveIntensity={config.lighting === "night" ? 0.8 : 0} />
          </mesh>
          <mesh rotation-x={-Math.PI / 2} position={[0, 0, -BACK / 2]}>
             <planeGeometry args={[run.hx * 2, run.hz * 2 + BACK]} />
