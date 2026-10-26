@@ -3,7 +3,7 @@
 // One useRunFrame steps rules.ts. Visuals read the run and animate with useGameTime.
 import { useEffect, useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
-import { Color, Euler, RepeatWrapping, Matrix4, MeshStandardMaterial, Quaternion, SphereGeometry, Vector3, type Group, type Mesh } from "three";
+import { AdditiveBlending, Color, Euler, RepeatWrapping, Matrix4, MeshStandardMaterial, Quaternion, SphereGeometry, Vector3, type Group, type Mesh } from "three";
 import { DynamicInstancedModel, InstancedModel, Model } from "@/arcade3d/core/assets";
 import { playSfx, startLoop, type LoopHandle } from "@/arcade3d/core/audio";
 import CameraRig from "@/arcade3d/core/CameraRig";
@@ -17,7 +17,7 @@ import { useLevel } from "@/arcade3d/core/level";
 import { randomSeed } from "@/arcade3d/core/math";
 import { hop, type BodyOffset } from "@/arcade3d/core/motion";
 import { scaledCount, useQuality } from "@/arcade3d/core/quality";
-import { BlobShadow, DynamicInstanced, Instanced, useCanvasTexture, type InstancePart } from "@/arcade3d/core/render";
+import { BlobShadow, DynamicInstanced, Instanced, useCanvasTexture, type InstancePart, type InstanceSpot } from "@/arcade3d/core/render";
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { useFittedView } from "@/arcade3d/core/useFittedView";
 import { useRunFrame } from "@/arcade3d/core/useRunFrame";
@@ -68,7 +68,14 @@ function LevelScene() {
       asphalt.needsUpdate = true;
    }, [asphalt]);
    // the night level keeps a lighter asphalt so the streets never read as a void under its dim light
-   const roadTint = config.lighting === "night" ? "#9aa3b2" : "#ffffff";
+   const night = config.lighting === "night";
+   const roadTint = "#ffffff";
+   // night only: warm pools of light on the road under every street lamp and signal pole
+   const pools = useMemo<InstanceSpot[]>(() => {
+      if (!night) return [];
+      const at = [...city.lamps, ...poles];
+      return at.map((p) => ({ x: p.x, y: 0.03, z: p.z, sx: 9, sy: 1, sz: 9 }));
+   }, [night, city.lamps, poles]);
    const cones = useMemo(() => coneSpots(run), [run]);
    const markers = useMemo(() => [run.marker], [run]);
    const parts = useCityParts();
@@ -201,8 +208,17 @@ function LevelScene() {
          {/* asphalt to the fog (dark grey with grain), pavements, courtyards, road paint */}
          <mesh rotation-x={-Math.PI / 2} position={[run.width / 2, -0.01, run.depth / 2]}>
             <planeGeometry args={[440, 440]} />
-            <meshStandardMaterial map={asphalt} color={roadTint} roughness={0.95} />
+            <meshStandardMaterial map={asphalt} color={roadTint} roughness={0.95} emissiveMap={night ? asphalt : null} emissive={night ? "#8b97b0" : "#000000"} emissiveIntensity={night ? 0.55 : 0} />
          </mesh>
+         {night && (
+            <>
+               <hemisphereLight args={["#a5b4fc", "#475569", 0.85]} />
+               <Instanced spots={pools} name="lamp-pools">
+                  <cylinderGeometry args={[0.5, 0.5, 0.01, 28]} />
+                  <meshBasicMaterial color="#fde68a" transparent opacity={0.3} depthWrite={false} blending={AdditiveBlending} />
+               </Instanced>
+            </>
+         )}
          <Instanced spots={city.slabs} name="pavements">
             <boxGeometry args={[1, 1, 1]} />
             <meshStandardMaterial color={COLORS.sidewalk} roughness={0.86} />
