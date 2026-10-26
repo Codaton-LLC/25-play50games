@@ -95,7 +95,7 @@ function Panda({ run }: { run: RunState }) {
 }
 
 function LevelScene() {
-   const { config } = useZooLevel();
+   const { id, config } = useZooLevel();
    const width = useThree((s) => s.size.width);
    const height = useThree((s) => s.size.height);
    const view = useFittedView(viewFor(width, height));
@@ -220,7 +220,7 @@ function LevelScene() {
    return (
       <>
          <CameraRig camera={{ position: view.offset, lookAt: [0, 0, 0] }} follow={scratch.aim} followFraction={1} bounds={bounds} offset={view.offset} shift={view.shift} damping={5} />
-         <Stage run={run} dusk={dusk} reduced={reduced} />
+         <Stage run={run} dusk={dusk} reduced={reduced} levelId={id} />
          <Panda run={run} />
          <Keepers run={run} slots={scratch.slots} />
          <TargetMarkers targets={markers} size={26} />
