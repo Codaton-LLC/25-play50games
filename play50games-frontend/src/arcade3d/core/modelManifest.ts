@@ -140,6 +140,32 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/treasure-island/beachRocks.glb",
    "/models/3d/penguin-slide/iceArch.glb",
    "/models/3d/mini-golf/golfCastle.glb",
+   // Menu 1 pizza-kitchen-3d (2026-10-25): the ready menu1-pizza-kitchen-3d GLBs (mushroomBowlR, prepCounterR,
+   // pizzaPeelClean, pizzaBoxClosed; not mushroomBowl / prepCounter / pizzaPeel / pizzaBox / pizzaBoxV2),
+   // copied as optimized; fits measured in games/pizza-kitchen-3d/assets.ts
+   "/models/3d/pizza-kitchen-3d/pizzaBase.glb",
+   "/models/3d/pizza-kitchen-3d/sauceBowl.glb",
+   "/models/3d/pizza-kitchen-3d/cheeseBowl.glb",
+   "/models/3d/pizza-kitchen-3d/mushroomBowlR.glb",
+   "/models/3d/pizza-kitchen-3d/oliveBowl.glb",
+   "/models/3d/pizza-kitchen-3d/pepperoni.glb",
+   "/models/3d/pizza-kitchen-3d/tomato.glb",
+   "/models/3d/pizza-kitchen-3d/onion.glb",
+   "/models/3d/pizza-kitchen-3d/pizzaOven.glb",
+   "/models/3d/pizza-kitchen-3d/pizzaPeelClean.glb",
+   "/models/3d/pizza-kitchen-3d/prepCounterR.glb",
+   "/models/3d/pizza-kitchen-3d/pizzaBoxClosed.glb",
+   // Menu 1 burger-delivery-scooter (2026-10-25): the ready menu1-burger-delivery-scooter GLBs (V2 box and
+   // food; burgerShopI = the text-free shop), copied as optimized; fits in games/burger-delivery-scooter/assets.ts.
+   "/models/3d/burger-delivery-scooter/charScooterRider.glb",
+   "/models/3d/burger-delivery-scooter/deliveryScooter.glb",
+   "/models/3d/burger-delivery-scooter/deliveryBoxV2.glb",
+   "/models/3d/burger-delivery-scooter/burgerBag.glb",
+   "/models/3d/burger-delivery-scooter/foodBoxV2.glb",
+   "/models/3d/burger-delivery-scooter/restaurantCounter.glb",
+   "/models/3d/burger-delivery-scooter/burgerShopI.glb",
+   "/models/3d/burger-delivery-scooter/roadBarrier.glb",
+   "/models/3d/shared/trafficCone.glb",
    // Menu 1 bee-garden (2026-10-25): the ready menu1-bee-garden GLBs (branchV2, not branch), copied as
    // optimized; fits measured in games/bee-garden/assets.ts. The garden mushroom is shared decor.
    "/models/3d/bee-garden/bee.glb",
