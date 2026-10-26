@@ -7,6 +7,13 @@ import { LEVEL_IDS, type LevelId } from "@/arcade3d/types";
 import { LEVELS } from "./levels";
 import {
    BOOST_LOCK,
+   BOOST_MUL,
+   OFFSET_SPEED,
+   RING_POINTS,
+   STAMINA_DRAIN,
+   STAMINA_MAX,
+   STAMINA_REFILL,
+   STAR_POINTS,
    HIT_R,
    LIVES,
    MERCY,
@@ -373,4 +380,34 @@ describe("magic carpet score limits", () => {
          expect(best).toBeGreaterThanOrEqual(0.9 * limits.maxScore);
       }
    }, 180_000);
+});
+
+describe("magic carpet clearing", () => {
+   it("a level clears only on a win: a paced pilot wins at least 99% of 100 seeds, the oracle stays inside the limits on 40 more, an idle one never wins", () => {
+      for (const id of LEVEL_IDS) {
+         const limits = PROPOSED_LEVEL_LIMITS[id];
+         let won = 0;
+         for (let seed = 0; seed < 100; seed++) {
+            const human = play(id, seed + 1000, 30, "human");
+            expect(withinServerLimits(human.score, human.ms, limits)).toBe(true);
+            if (human.reason === "win") won += 1;
+         }
+         expect(won / 100, `level ${id}`).toBeGreaterThanOrEqual(0.99);
+         for (let seed = 0; seed < 40; seed++) {
+            const oracle = play(id, seed + 2000, seed % 2 ? 60 : 144, "oracle");
+            expect(withinServerLimits(oracle.score, oracle.ms, limits)).toBe(true);
+         }
+         const idle = play(id, 3, 20, "idle");
+         expect(idle.reason).not.toBe("win");
+         expect(idle.score).toBe(0);
+      }
+   }, 1_200_000);
+});
+
+describe("magic carpet spec literals", () => {
+   it("keeps the spec's numbers: a +-4 m / +-2.5 m window at 5 m/s, boost x1.5 for 30 stamina a second (refill 12, lock 1.00 s), +50 / +30 / +4, three lives", () => {
+      expect([SIDE, VERT, OFFSET_SPEED, BOOST_MUL, STAMINA_DRAIN, STAMINA_REFILL, BOOST_LOCK, STAMINA_MAX]).toEqual([4, 2.5, 5, 1.5, 30, 12, 1, 100]);
+      expect([RING_POINTS, STAR_POINTS, TIME_BONUS_PER_SECOND, LIVES, MERCY]).toEqual([50, 30, 4, 3, 1]);
+      expect([LEVELS[1].rings, LEVELS[2].rings, LEVELS[3].rings, LEVELS[4].rings, LEVELS[5].rings]).toEqual([8, 12, 16, 20, 25]);
+   });
 });

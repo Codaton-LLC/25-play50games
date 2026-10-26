@@ -27,11 +27,11 @@ import { randomSeed } from "@/arcade3d/core/math";
 import { hover, type BodyOffset } from "@/arcade3d/core/motion";
 import { useQuality } from "@/arcade3d/core/quality";
 import { Instanced, type InstancePart, type InstanceSpot } from "@/arcade3d/core/render";
-import { BONE, HumanoidModel, aimArm, armsDownPose, turnBone, useHumanoidPose } from "@/arcade3d/core/rig";
+import { HumanoidModel, aimArm, sitPose, useHumanoidPose } from "@/arcade3d/core/rig";
 import { useEyeShift } from "@/arcade3d/core/useEyeShift";
 import { useRunFrame } from "@/arcade3d/core/useRunFrame";
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
-import { ASSETS } from "./assets";
+import { ASSETS, SEAT_Y, SEAT_Z } from "./assets";
 import type { CarpetLevel } from "./levels";
 import { BAND, COLORS, EYE_Y, FOV, PITCH, groundColor } from "./looks";
 import { CarpetPrimitive, FinishArch, RiderFigure } from "./Primitives";
@@ -44,6 +44,8 @@ const Z = new Vector3();
 const GOLD = new Color(COLORS.ring);
 const DIM = new Color("#44403c");
 const GLOW = new Color(COLORS.ringHot);
+/** Half a turn about z: the rock (point up, cap down as authored) hangs point down, cap up. */
+const FLIP = new Matrix4().makeRotationZ(Math.PI);
 const HOVER: BodyOffset = { y: 0, roll: 0, yaw: 0, squash: 1 };
 
 const RING_PARTS: InstancePart[] = [{
@@ -57,10 +59,9 @@ const STAR_PARTS: InstancePart[] = [{
 }];
 
 const ROCK_POINT = new ConeGeometry(0.72, 0.95, 7);
-ROCK_POINT.rotateX(Math.PI);
-ROCK_POINT.translate(0, -0.12, 0);
+ROCK_POINT.translate(0, 0.12, 0);
 const ROCK_CAP = new BoxGeometry(1.38, 0.22, 1.38);
-ROCK_CAP.translate(0, 0.3, 0);
+ROCK_CAP.translate(0, -0.3, 0);
 const ROCK_PARTS: InstancePart[] = [
    { geometry: ROCK_POINT, material: new MeshStandardMaterial({ color: COLORS.rockDark, roughness: 0.72 }) },
    { geometry: ROCK_CAP, material: new MeshStandardMaterial({ color: COLORS.rockTop, roughness: 0.48 }) },
@@ -101,19 +102,12 @@ function capsOf(spots: readonly InstanceSpot[], lift: number, shrink: number): I
    }));
 }
 
-function sit(pose: Parameters<typeof turnBone>[0], win: boolean): void {
-   armsDownPose(pose);
-   turnBone(pose, BONE.upperLegL, -1.15, 0.3, 0.5);
-   turnBone(pose, BONE.lowerLegL, 1.4, 0, 0.15);
-   turnBone(pose, BONE.upperLegR, -1.15, -0.3, -0.5);
-   turnBone(pose, BONE.lowerLegR, 1.4, 0, -0.15);
-   turnBone(pose, BONE.spine, 0.12, 0, 0);
+/** The core seated pose, both hands forward on the carpet's edge; both arms up on a win. */
+function sit(pose: Parameters<typeof sitPose>[1], win: boolean): void {
+   sitPose(1, pose);
    if (win) {
       aimArm(pose, 1, 0.15, 0.9, 0.25, 0.05, 0.65, 0.45);
       aimArm(pose, -1, -0.15, 0.9, 0.25, -0.05, 0.65, 0.45);
-   } else {
-      aimArm(pose, 1, 0.2, -0.05, 0.9, 0.08, -0.28, 0.72);
-      aimArm(pose, -1, -0.2, -0.05, 0.9, -0.08, -0.28, 0.72);
    }
 }
 
@@ -177,10 +171,12 @@ function LevelScene() {
       matrix.makeRotationY(run.time * 1.7 + index);
       matrix.setPosition(star.x, star.y, star.z);
    };
+   const flipRock = obstacle === ASSETS.rock;
    const placeRock = (index: number, matrix: Matrix4) => {
       const rock = run.rocks[index];
       if (!rock) return false;
       matrix.makeRotationY(rock.rotY);
+      if (flipRock) matrix.multiply(FLIP);
       matrix.setPosition(rock.x, rock.y, rock.z);
    };
 
@@ -346,7 +342,7 @@ function LevelScene() {
             <group ref={ripple}>
                <Model asset={ASSETS.carpet} fallback={<CarpetPrimitive />} />
             </group>
-            <group position={[0, 0.12, 0.05]}>
+            <group position={[0, SEAT_Y, SEAT_Z]}>
                <HumanoidModel asset={ASSETS.rider} pose={pose} applyLift={false} fallback={<RiderFigure />} />
             </group>
          </group>

@@ -764,12 +764,19 @@
     "magic-carpet-ride": {
       "title": "Magic Carpet Ride",
       "kind": "points",
-      "max_score": 3000,
-      "min_duration_ms": 10000,
-      "max_duration_ms": 300000,
-      "base": 3000,
-      "max_pps": 3000,
-      "enabled": false
+      "max_score": 1000,
+      "min_duration_ms": 4000,
+      "max_duration_ms": 120000,
+      "base": 640,
+      "max_pps": 9,
+      "enabled": false,
+      "levels": [
+        { "title": "Desert Village", "max_score": 1000, "min_duration_ms": 4000, "max_duration_ms": 120000, "base": 640, "max_pps": 9 },
+        { "title": "Canyon", "max_score": 1420, "min_duration_ms": 4000, "max_duration_ms": 150000, "base": 960, "max_pps": 8 },
+        { "title": "Cloud Kingdom", "max_score": 1780, "min_duration_ms": 4000, "max_duration_ms": 180000, "base": 1250, "max_pps": 8 },
+        { "title": "Night City", "max_score": 2060, "min_duration_ms": 4000, "max_duration_ms": 180000, "base": 1540, "max_pps": 8 },
+        { "title": "Floating Palace", "max_score": 2650, "min_duration_ms": 4000, "max_duration_ms": 240000, "base": 1910, "max_pps": 9 }
+      ]
     },
     "toy-store-night-shift": {
       "title": "Toy Store Night Shift",

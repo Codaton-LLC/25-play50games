@@ -193,6 +193,18 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/hotel-bellboy-rush/lobbyPlanterR.glb",
    "/models/3d/shared/sofa.glb",
    "/models/3d/shared/travellerNpc.glb",
+   // magic-carpet-ride (gate, 2026-10-25): menu1 ready set, optimized
+   "/models/3d/magic-carpet-ride/charCarpetRider.glb",
+   "/models/3d/magic-carpet-ride/magicCarpet.glb",
+   "/models/3d/magic-carpet-ride/flyingRing.glb",
+   "/models/3d/magic-carpet-ride/palaceTower.glb",
+   "/models/3d/magic-carpet-ride/desertRooftopV2.glb",
+   "/models/3d/magic-carpet-ride/cloud.glb",
+   "/models/3d/magic-carpet-ride/hangingLantern.glb",
+   "/models/3d/magic-carpet-ride/canyonMesa.glb",
+   "/models/3d/magic-carpet-ride/floatingPalaceR.glb",
+   "/models/3d/magic-carpet-ride/floatingRockV3.glb",
+   "/models/3d/magic-carpet-ride/star.glb",
 ];
 
 const LISTED: ReadonlySet<string> = new Set(MODEL_MANIFEST);
