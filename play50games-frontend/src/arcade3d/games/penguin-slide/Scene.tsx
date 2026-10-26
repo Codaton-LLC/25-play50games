@@ -97,7 +97,7 @@ function Penguin({ run, reduced }: { run: Run; reduced: boolean }) {
 }
 
 function LevelScene() {
-   const { config } = useSlideLevel();
+   const { config, id } = useSlideLevel();
    const input = useInput();
    const fx = useFx();
    const time = useGameTime();
@@ -235,7 +235,7 @@ function LevelScene() {
          <SnowFall count={reduced ? 60 : 300} area={[28, 16, 70]} />
          <Terrain run={run} reduced={reduced} />
          <Decor run={run} reduced={reduced} />
-         <Track run={run} />
+         <Track run={run} level={id} />
          <Penguin run={run} reduced={reduced} />
          <TargetMarkers targets={marker} color={COLORS.gateRing} />
       </>

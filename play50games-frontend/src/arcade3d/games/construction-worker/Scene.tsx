@@ -64,7 +64,7 @@ function pileFromPointer(camera: Camera, pointer: { x: number; y: number }): num
 }
 
 function LevelScene() {
-   const { config } = useCraneLevel();
+   const { id, config } = useCraneLevel();
    const [run] = useState(() => createRun(randomSeed(), config));
    const width = useThree((s) => s.size.width);
    const height = useThree((s) => s.size.height);
@@ -169,7 +169,7 @@ function LevelScene() {
             damping={6}
          />
          <SkyDome top={COLORS.skyTop} bottom={COLORS.skyBottom} />
-         <Site run={run} />
+         <Site run={run} levelId={id} />
          <Crane run={run} />
          <Pieces run={run} />
       </>

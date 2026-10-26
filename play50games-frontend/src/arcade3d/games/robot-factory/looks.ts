@@ -142,3 +142,13 @@ export const DECOR_SPOTS: readonly DecorSpot[] = [
 export function decorOf(kind: DecorSpot["kind"]): DecorSpot[] {
    return DECOR_SPOTS.filter((s) => s.kind === kind);
 }
+
+/** Is this position (with optional bounding radius) inside the play area envelope? */
+export function inPlayBounds(x: number, z: number, radius = 0): boolean {
+   return (
+      x + radius >= PLAY_BOUNDS.xMin &&
+      x - radius <= PLAY_BOUNDS.xMax &&
+      z + radius >= PLAY_BOUNDS.zMin &&
+      z - radius <= PLAY_BOUNDS.zMax
+   );
+}

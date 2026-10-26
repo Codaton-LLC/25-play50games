@@ -1,8 +1,11 @@
 import { describe, expect, it } from "vitest";
+import { existsSync } from "node:fs";
+import { resolve } from "node:path";
 import { readCharacterGlb } from "@/arcade3d/core/rig/robotGlb";
 import { EXPANSION_GLB_POINTS, EXPANSION_GLB_SIZE } from "@/arcade3d/core/sharedAssets";
 import { hasModel } from "@/arcade3d/core/modelManifest";
-import { ASSETS, BACK_CLEARANCE, HUNTER_SCALE, PACK_OFFSET, VACUUM_SCALE } from "./assets";
+import { ASSETS, BACK_CLEARANCE, HUNTER_SCALE, PACK_OFFSET, TRUNK_DRAWN, TRUNK_GLB, TRUNK_SCALE, TRUNK_SPOTS, VACUUM_SCALE } from "./assets";
+import { inMansion, MANSION_BOUNDS } from "./looks";
 import { FLOAT, SUCK } from "./suck";
 
 async function bounds(url: string) {
@@ -47,6 +50,32 @@ describe("real GLB fits (run by Claude outside the meshopt-restricted sandbox)",
       expect(candelabra.height * k).toBeCloseTo(0.68, 2);
       expect(candelabra.width * k).toBeCloseTo(0.54, 2);
       expect(hasModel(ASSETS.candelabra.url)).toBe(true);
+   });
+   it("fits the Hyper3D attic trunk to a 1.0 m steamer trunk standing on the ground", async () => {
+      const trunk = await bounds(ASSETS.trunk.url), k = ASSETS.trunk.scale ?? 1;
+      // Measured GLB bounds (root space): base at y = 0, centred in x/z.
+      expect(trunk.width).toBeCloseTo(TRUNK_GLB.width, 4);
+      expect(trunk.height).toBeCloseTo(TRUNK_GLB.height, 4);
+      expect(trunk.depth).toBeCloseTo(TRUNK_GLB.depth, 4);
+      expect(trunk.min[1]).toBeCloseTo(0, 4); // sits on the ground
+      expect(trunk.width * k).toBeCloseTo(TRUNK_DRAWN.width, 3);
+      expect(trunk.height * k).toBeCloseTo(TRUNK_DRAWN.height, 3);
+      expect(trunk.depth * k).toBeCloseTo(TRUNK_DRAWN.depth, 3);
+      // A sensible real steamer trunk: wider than tall, roughly as deep as tall.
+      expect(TRUNK_DRAWN.height).toBeGreaterThan(0.5);
+      expect(TRUNK_DRAWN.height).toBeLessThan(TRUNK_DRAWN.width);
+      expect(hasModel(ASSETS.trunk.url)).toBe(true);
+      expect(existsSync(resolve("public", ASSETS.trunk.url.slice(1)))).toBe(true);
+   });
+   it("keeps every attic trunk spot strictly outside the mansion play bounds", () => {
+      // Worst-case footprint radius (a spot may rotate): half the w/d diagonal.
+      const r = Math.hypot(TRUNK_DRAWN.width, TRUNK_DRAWN.depth) / 2;
+      for (const spot of TRUNK_SPOTS) {
+         expect(inMansion(spot.x, spot.z, r), `trunk at (${spot.x}, ${spot.z}) inside mansion`).toBe(false);
+         const insideX = spot.x + r > MANSION_BOUNDS.x0 + 0.1 && spot.x - r < MANSION_BOUNDS.x1 - 0.1;
+         const insideZ = spot.z + r > MANSION_BOUNDS.z0 + 0.1 && spot.z - r < MANSION_BOUNDS.z1 - 0.1;
+         expect(insideX && insideZ, `trunk footprint at (${spot.x}, ${spot.z}) touches mansion interior`).toBe(false);
+      }
    });
    it("fits the Hyper3D ghost to the approved 1.35 m sheet, centred on the body centre, floating", async () => {
       const ghost = await bounds(ASSETS.ghost.url), k = ASSETS.ghost.scale;

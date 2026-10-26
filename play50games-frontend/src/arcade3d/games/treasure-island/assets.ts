@@ -5,6 +5,7 @@
 // from measured GLB bounds (GLB units, w x h x d, the optimize step centres x and z, feet on y = 0)
 // and checked on the real meshes in assets.test.ts.
 import type { ModelAsset } from "@/arcade3d/core/types";
+import type { InstanceSpot } from "@/arcade3d/core/render";
 import { COIN_GLB_SIZE, EXPANSION_ASSETS, EXPANSION_GLB_SIZE, PROP_BUDGET, REUSED_ASSETS, RUNNER_LANDMARKS, SHARED_ASSETS } from "@/arcade3d/core/sharedAssets";
 
 /** The runner is 1.886 tall (T-pose): 0.825 draws it 1.556 m, office-escape's explorer height. */
@@ -59,6 +60,25 @@ export const BEACH_ROCKS_GLB = { width: 1.8817, height: 0.4562, depth: 1.7992 } 
 export const BEACH_ROCKS_WIDTH = 1.4;
 const BEACH_ROCKS_SCALE = BEACH_ROCKS_WIDTH / BEACH_ROCKS_GLB.width;
 
+/**
+ * jungleTotem.glb (batch 5 / extra decor, Hyper3D) 0.688 x 1.888 x 0.706, floor pivot at y 0,
+ * centred on x / z. Drawn 2.2 m tall (footprint ~0.8 x 0.8 m) on distant atolls in levels 4 & 5.
+ */
+export const JUNGLE_TOTEM_GLB = { width: 0.6879, height: 1.8884, depth: 0.7061 } as const;
+export const JUNGLE_TOTEM_HEIGHT = 2.2;
+const JUNGLE_TOTEM_SCALE = JUNGLE_TOTEM_HEIGHT / JUNGLE_TOTEM_GLB.height;
+
+/** Decor spots for jungle totems outside the play area on levels 4 & 5 (Jungle Interior & Pirate Peak). */
+export const TOTEM_SPOTS: readonly InstanceSpot[] = [
+   // Northwest atoll (near outer palms, facing towards the island)
+   { x: -23, y: 0.05, z: -17, rotY: 0.5 },
+   // Northeast atoll (near outer palms, facing towards the island)
+   { x: 23, y: 0.05, z: -17, rotY: -0.5 },
+   // Far North islet twin totems (flanking the islet, facing south towards the camera)
+   { x: -2.5, y: 0.05, z: -28, rotY: 0.2 },
+   { x: 2.5, y: 0.05, z: -28, rotY: -0.2 },
+];
+
 export const ASSETS = {
    explorer: { ...SHARED_ASSETS.runner, scale: EXPLORER_SCALE, humanoid: { landmarks: RUNNER_LANDMARKS } },
    chest: EXPANSION_ASSETS.chest,
@@ -83,6 +103,16 @@ export const ASSETS = {
       scale: BEACH_ROCKS_SCALE,
       fallback: "sphere",
       fallbackColor: "#78716c",
+      budget: { ...PROP_BUDGET },
+   },
+   jungleTotem: {
+      id: "jungleTotem",
+      url: "/models/3d/treasure-island/jungleTotem.glb",
+      scale: JUNGLE_TOTEM_SCALE,
+      rotationY: 0,
+      yOffset: 0,
+      fallback: "cylinder",
+      fallbackColor: "#78350f",
       budget: { ...PROP_BUDGET },
    },
 } satisfies Record<string, ModelAsset>;

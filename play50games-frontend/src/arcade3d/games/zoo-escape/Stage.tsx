@@ -24,7 +24,7 @@ import { useGameTime } from "@/arcade3d/core/gameTime";
 import { fenceSpots } from "@/arcade3d/core/kit";
 import { createPath } from "@/arcade3d/core/path";
 import { DynamicInstanced, Instanced, useInstanceMatrices, type InstanceSpot } from "@/arcade3d/core/render";
-import { ASSETS, BAMBOO_CLUMP, BAMBOO_GLB, BAMBOO_THICKET, BAMBOO_UNIT, ZOO_ROCK_FALLBACK, ZOO_ROCK_SPOTS, ZOO_ROCKS_DRAWN } from "./assets";
+import { ASSETS, BAMBOO_CLUMP, BAMBOO_GLB, BAMBOO_THICKET, BAMBOO_UNIT, ZOO_FOUNTAIN_FALLBACK, ZOO_FOUNTAIN_SPOTS, ZOO_FOUNTAIN_DRAWN, ZOO_ROCK_FALLBACK, ZOO_ROCK_SPOTS, ZOO_ROCKS_DRAWN } from "./assets";
 import { BUSHES, FENCES, LAMPS, PROPS, STAGES, STAGE_KEEPERS, TOWER } from "./level";
 import { COLORS } from "./looks";
 import {
@@ -388,7 +388,17 @@ function Pickups({ run }: { run: RunState }) {
    );
 }
 
-export default function Stage({ run, dusk, reduced = false }: { run: RunState; dusk: boolean; reduced?: boolean }) {
+export default function Stage({
+   run,
+   dusk,
+   reduced = false,
+   levelId = 1,
+}: {
+   run: RunState;
+   dusk: boolean;
+   reduced?: boolean;
+   levelId?: number;
+}) {
    const tower = useMerged(towerPieces);
 
    return (
@@ -420,6 +430,18 @@ export default function Stage({ run, dusk, reduced = false }: { run: RunState; d
                </Instanced>
             }
          />
+         {(levelId === 4 || levelId === 5) && (
+            <InstancedModel
+               asset={ASSETS.zooFountain}
+               spots={ZOO_FOUNTAIN_SPOTS}
+               fallback={
+                  <Instanced spots={ZOO_FOUNTAIN_FALLBACK}>
+                     <cylinderGeometry args={[ZOO_FOUNTAIN_DRAWN.width / 2, ZOO_FOUNTAIN_DRAWN.width / 2, ZOO_FOUNTAIN_DRAWN.height, 16]} />
+                     <meshStandardMaterial color={COLORS.rock} roughness={0.8} />
+                  </Instanced>
+               }
+            />
+         )}
          <InstancedModel
             asset={ASSETS.rock}
             spots={SPOTS.rock}

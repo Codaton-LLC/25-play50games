@@ -1,4 +1,5 @@
-// Monster Kitchen's models: the two GLBs this slug generated (monster, cauldron), the shared fish,
+// Monster Kitchen's models: the two GLBs this slug generated (monster, cauldron), the slimeCake
+// decor GLB (levels 4 and 5 only), the shared fish,
 // food-catcher's apple/burger/sock/chef and the shared banana/tinCan, plus the shared mushroom for
 // decor. Every fit derives from the measured GLB bounds below (readCharacterGlb, 2026-10-09; checked
 // on the real meshes in assets.test.ts). Plain data, no three.js: index.tsx hands ASSETS to GameShell,
@@ -8,6 +9,7 @@ import {
    CAULDRON_INNER_RADIUS_GLB,
    EXPANSION_ASSETS,
    EXPANSION_GLB_POINTS,
+   PROP_BUDGET,
    REUSED_ASSETS,
    SHARED_ASSETS,
    expansionPoint,
@@ -20,6 +22,12 @@ export const SOCK_GLB_LONGEST = 1.8985;
 export const BANANA_GLB_LONGEST = 1.896;
 export const TIN_CAN_GLB_LONGEST = 1.8993;
 export const CHEF_GLB_HEIGHT = 1.8693;
+
+/** slimeCake.glb raw bounds, measured on the mesh (assets.test.ts): a round cake, feet at y = 0. */
+export const SLIME_CAKE_GLB = { width: 1.9061, height: 1.7924, depth: 1.9079 };
+/** Drawn diameter (m): a 0.6 m display cake on the floor, drawn only on levels 4 and 5. */
+export const SLIME_CAKE_DIAMETER = 0.6;
+export const SLIME_CAKE_SCALE = SLIME_CAKE_DIAMETER / SLIME_CAKE_GLB.depth;
 
 /** The longest side of a GLB ingredient on the wheel (m): with the fish's 0.35 m, the 0.36 m eyeball and
  *  the 0.34 m slime cube, nothing on the wheel reads under ~24 CSS px on a 390x844 phone. */
@@ -55,4 +63,15 @@ export const ASSETS = {
    fish: EXPANSION_ASSETS.fish,
    // 0.5 m shelf/floor decor, instanced
    mushroom: EXPANSION_ASSETS.mushroom,
+   // 0.6 m display cake on the floor (levels 4 and 5 only, Decor reads the level); feet (GLB y 0) on the ground
+   slimeCake: {
+      id: "slimeCake",
+      url: "/models/3d/monster-kitchen/slimeCake.glb",
+      scale: SLIME_CAKE_SCALE,
+      rotationY: 0,
+      yOffset: 0,
+      fallback: "cylinder",
+      fallbackColor: "#4ade80",
+      budget: { ...PROP_BUDGET },
+   },
 } satisfies Record<string, ModelAsset>;
