@@ -33,6 +33,13 @@ export const HOUSE_HX = 2.5;
 export const HOUSE_HZ = 1.5;
 export const HOUSE_BACK = 1.9;
 export const MAIL_OFFSET = 4;
+/** the picket fences either side of a front path are solid: each runs FENCE_LEN along the street */
+export const FENCE_LEN = 1.6;
+/** distance from the house's centre line to the near end of a fence (the gate gap is twice this) */
+export const FENCE_NEAR = 1.3;
+/** a fence stands this far from the mailbox line, toward the house, and is this thin (half) */
+export const FENCE_Z = 0.6;
+export const FENCE_HT = 0.06;
 export const DOOR_OFFSET = 3;
 /** road half-width (the kerb), car lanes at ±LANE, the zebra crossing at x = ZEBRA_X */
 export const ROAD_HALF = 2.8;
@@ -197,12 +204,17 @@ export function carrying(run: Run) {
    return run.carrying;
 }
 
+/** The centre x offset of a house's fences (one each side of the path). */
+export const FENCE_CENTER = FENCE_NEAR + FENCE_LEN / 2;
+
 /** Is (x, z) inside a solid (a house, the office, the van) for the postman's radius? */
 export function solid(run: Run, x: number, z: number): boolean {
    if (Math.abs(x - OFFICE_BOX.x) < OFFICE_BOX.hx + RADIUS && Math.abs(z - OFFICE_BOX.z) < OFFICE_BOX.hz + RADIUS) return true;
    if (x > VAN_BOX.minX - RADIUS && x < VAN_BOX.maxX + RADIUS && z > VAN_BOX.minZ - RADIUS && z < VAN_BOX.maxZ + RADIUS) return true;
    for (const h of run.houses) {
       if (Math.abs(x - h.x) < HOUSE_HX + RADIUS && Math.abs(z - h.z) < HOUSE_HZ + RADIUS) return true;
+      // the two fences (the path between them stays open)
+      if (Math.abs(z - (h.mailZ + h.side * FENCE_Z)) < FENCE_HT + RADIUS && Math.abs(Math.abs(x - h.x) - FENCE_CENTER) < FENCE_LEN / 2 + RADIUS) return true;
    }
    return false;
 }

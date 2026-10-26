@@ -7,6 +7,9 @@ import { PITCH } from "./looks";
 import {
    ACCEL,
    DOOR_OFFSET,
+   FENCE_CENTER,
+   FENCE_LEN,
+   FENCE_Z,
    HOUSE_BACK,
    HOUSE_HZ,
    MAIL_OFFSET,
@@ -258,6 +261,25 @@ describe("postman rules: movement and fairness", () => {
       put(run, h.x, h.doorZ - h.side * 0.2);
       for (let i = 0; i < 60; i++) step(run, { moveX: 0, moveY: h.side, yaw: 0, actionPressed: false }, DT);
       expect(Math.abs(run.hero.z - h.z)).toBeGreaterThanOrEqual(HOUSE_HZ + RADIUS - 1e-6);
+   });
+   it("the picket fences are solid: a postman walking at one stops at it, and the gate gap stays open to the door", () => {
+      const run = createRun(1, LEVELS[1]);
+      const h = run.houses[1];
+      const fenceZ = h.mailZ + h.side * FENCE_Z;
+      const fx = h.x + FENCE_CENTER;
+      expect(solid(run, fx, fenceZ)).toBe(true);
+      expect(solid(run, h.x + FENCE_CENTER - FENCE_LEN / 2 + 0.01, fenceZ)).toBe(true);
+      expect(solid(run, h.x, fenceZ)).toBe(false);
+      expect(solid(run, h.x - FENCE_CENTER, fenceZ)).toBe(true);
+      // walk toward the house, one metre inside the fence's span
+      put(run, fx, h.mailZ - h.side * 0.5);
+      for (let i = 0; i < 90; i++) step(run, { moveX: 0, moveY: h.side, yaw: 0, actionPressed: false }, DT);
+      expect(Math.abs(run.hero.z - fenceZ)).toBeGreaterThanOrEqual(RADIUS - 1e-6);
+      expect(h.side * (run.hero.z - fenceZ)).toBeLessThan(0);
+      // and through the gate to the door
+      put(run, h.x, h.mailZ - h.side * 0.5);
+      for (let i = 0; i < 120; i++) step(run, { moveX: 0, moveY: h.side, yaw: 0, actionPressed: false }, DT);
+      expect(h.side * (run.hero.z - fenceZ)).toBeGreaterThan(1);
    });
    it("keyboard and touch: one rule, one set of constants (a full stick equals a held key)", () => {
       const a = createRun(3, LEVELS[2]);

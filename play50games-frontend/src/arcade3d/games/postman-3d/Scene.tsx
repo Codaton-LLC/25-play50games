@@ -27,7 +27,7 @@ import { useRunFrame } from "@/arcade3d/core/useRunFrame";
 import { ASSETS, FIT, POSTMAN_LANDMARKS, POSTMAN_SCALE } from "./assets";
 import type { PostLevel } from "./levels";
 import { CAMERA, COLORS, FOV, HOUSE_COLORS, LOOK_AHEAD, PITCH, VIEW, decorSpots, fogFor, lampSpots } from "./looks";
-import { OFFICE, OFFICE_BOX, ROAD_HALF, SPEED, STREET_GAP, VAN_BOX, ZEBRA_X, createRun, nextItem, step, syncStore, targetFor, type Run } from "./rules";
+import { FENCE_CENTER, FENCE_LEN, OFFICE, OFFICE_BOX, ROAD_HALF, SPEED, STREET_GAP, VAN_BOX, ZEBRA_X, createRun, nextItem, step, syncStore, targetFor, type Run } from "./rules";
 
 /** Unit boxes (12 triangles; `rounded` = bevelled, for the bigger fallback pieces), sized only by their spots. */
 function Boxes({ spots, color, emissive, rounded }: { spots: InstanceSpot[]; color: string; emissive?: number; rounded?: boolean }) {
@@ -139,10 +139,10 @@ function Neighborhood({ run, id }: { run: Run; id: Parameters<typeof decorSpots>
          boxes.push({ x: h.x + 0.62, y: 0, z: h.mailZ, rotY: h.side > 0 ? Math.PI : 0 });
          // a low code picket fence either side of the front path: two rails and a post every 0.33 m
          for (const side of [-1, 1]) {
-            const cx = h.x + side * 2.0;
+            const cx = h.x + side * FENCE_CENTER;
             const z = h.mailZ + h.side * 0.6;
-            for (const y of [0.22, 0.46]) fences.push({ x: cx, y, z, sx: FIT.fenceLength, sy: 0.06, sz: 0.05 });
-            for (let i = 0; i <= 8; i++) posts.push({ x: cx - FIT.fenceLength / 2 + (i * FIT.fenceLength) / 8, y: FIT.fenceHeight / 2, z, sx: 0.07, sy: FIT.fenceHeight, sz: 0.07 });
+            for (const y of [0.22, 0.46]) fences.push({ x: cx, y, z, sx: FENCE_LEN, sy: 0.06, sz: 0.05 });
+            for (let i = 0; i <= 8; i++) posts.push({ x: cx - FENCE_LEN / 2 + (i * FENCE_LEN) / 8, y: FIT.fenceHeight / 2, z, sx: 0.07, sy: FIT.fenceHeight, sz: 0.07 });
          }
       }
       return { roads, lines, paving, kerbs, paths, zebra, fences, posts, doors, frames, boxes };
