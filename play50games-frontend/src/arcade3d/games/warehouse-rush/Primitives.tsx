@@ -20,7 +20,7 @@ import {
 } from "three";
 import { InstancedModel, useModel } from "@/arcade3d/core/assets";
 import { Instanced, useCanvasTexture, type CanvasDraw, type InstanceSpot } from "@/arcade3d/core/render";
-import { ASSETS, BOX, LID_LETTER } from "./assets";
+import { ASSETS, BOX, FORKLIFT_DRAWN, FORKLIFT_SPOTS, LID_LETTER, YARD, YARD_TOP } from "./assets";
 import { EXTRA_RACKS, SLOW_ZONES, type WarehouseLevel } from "./levels";
 import { ARROW, ARROW_SHAPE, RING } from "./marker";
 import {
@@ -405,7 +405,7 @@ export function floorDrawer(layout: Layout, yaw: number): CanvasDraw {
    };
 }
 
-/** Floor, slab, walls, racks and this run's pallets. Level 2–5 add lanes, shelves and forklifts. */
+/** Floor, slab, walls, racks and this run's pallets. Level 2–5 add lanes, shelves and forklifts; levels 4–5 add the night yard with parked trucks outside the walls. */
 export const Warehouse = memo(function Warehouse({ layout, yaw, level, run }: { layout: Layout; yaw: number; level: WarehouseLevel; run: WarehouseRun }) {
    const draw = useMemo(() => floorDrawer(layout, yaw), [layout, yaw]);
    const floor = useCanvasTexture(FLOOR_TEXTURE.width, FLOOR_TEXTURE.height, draw);
@@ -432,6 +432,7 @@ export const Warehouse = memo(function Warehouse({ layout, yaw, level, run }: { 
          </Instanced>
          <InstancedModel asset={ASSETS.shelfRack} spots={RACK_MODEL_SPOTS} fallback={<RackStandIns />} />
          <InstancedModel asset={ASSETS.pallet} spots={pallets} fallback={<PalletStandIns spots={pallets} />} />
+         {level.id >= 4 ? <NightYard /> : null}
          {level.slowZones > 0 ? <SlowLanes count={level.slowZones} /> : null}
          {level.extraRacks > 0 ? <ExtraShelves count={level.extraRacks} /> : null}
          {run.forklifts.length > 0 ? <Forklifts run={run} /> : null}
@@ -494,7 +495,45 @@ function ExtraShelves({ count }: { count: number }) {
    return <InstancedModel asset={ASSETS.shelfRack} spots={spots} fallback={<ExtraRackStandIn spots={spots} />} />;
 }
 
-/** Code forklift: there is no forklift GLB. Orange body, dark cab, a beacon and two forks. */
+// ---------- the night yard (levels 4-5) ----------
+
+/**
+ * Levels 4-5 only ("Rush Shift" / "Night Logistics"): a dark apron slab around the diorama and the
+ * parked forklift trucks standing on it, outside the walls. Looks only — the trucks never enter
+ * `obstacles` and their spots clear the arena (assets.test.ts). The slab's top sits a hair below
+ * the plinth's, so the two never z-fight where they overlap.
+ */
+function NightYard() {
+   return (
+      <group name="night-yard">
+         <mesh position-y={YARD_TOP - 0.25} name="yard-slab">
+            <boxGeometry args={[YARD.halfX * 2, 0.5, YARD.halfZ * 2]} />
+            <meshStandardMaterial color={COLORS.plinth} roughness={0.9} />
+         </mesh>
+         <InstancedModel asset={ASSETS.forkliftTruck} spots={FORKLIFT_SPOTS} fallback={<ParkedForkliftStandIns />} />
+      </group>
+   );
+}
+
+/**
+ * The parked trucks while the GLB loads or if it fails: one scaled code forklift per spot, stretched
+ * from the patrol stand-in's 1.595 x 0.78 x 0.64 to the GLB's drawn FORKLIFT_DRAWN size (the asset's
+ * rotationY already aims the GLB's length along x, the stand-in's own long axis, so spot rotY fits both).
+ */
+function ParkedForkliftStandIns() {
+   const k = [FORKLIFT_DRAWN.length / 1.595, FORKLIFT_DRAWN.height / 0.78, FORKLIFT_DRAWN.width / 0.64] as const;
+   return (
+      <group name="parked-forklift-stand-ins">
+         {FORKLIFT_SPOTS.map((spot, i) => (
+            <group key={i} position={[spot.x, spot.y, spot.z]} rotation-y={spot.rotY ?? 0} scale={k}>
+               <ForkliftBody />
+            </group>
+         ))}
+      </group>
+   );
+}
+
+/** Code forklift: the patrol obstacle (no GLB: it must stay exactly this size) and the parked trucks' fallback. */
 function ForkliftBody() {
    return (
       <group>

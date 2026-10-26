@@ -228,6 +228,9 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/hotel-bellboy-rush/lobbyPlanterR.glb",
    "/models/3d/shared/sofa.glb",
    "/models/3d/shared/travellerNpc.glb",
+   // warehouse-rush forkliftTruck (2026-10-25): parked-yard decor for levels 4-5 only (drawn there
+   // only); the fit lives in games/warehouse-rush/assets.ts
+   "/models/3d/warehouse-rush/forkliftTruck.glb",
    // penalty-hero finalTrophy (2026-10-25): the final's presentation cup (text-to-3D batch, optimized);
    // level 4-5 decor behind the goal, placed in games/penalty-hero/assets.ts
    "/models/3d/penalty-hero/finalTrophy.glb",
