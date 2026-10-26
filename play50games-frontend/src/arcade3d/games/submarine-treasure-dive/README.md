@@ -70,3 +70,9 @@ The sub is a bevelled two-tone stand-in with a spinning prop until Claude fits `
 ## Status
 
 Playable in rules and in the scene with fallbacks. Status stays `dev`. Do not enable the game. Claude copies the GLBs, sets the manifest lines, and copies these limits into `arcade-games.json`.
+
+## Gate notes (Claude)
+
+- Models: ready Hyper3D GLBs fitted from measured bounds (`assets.ts`, `assets.test.ts`); reef decor is unit-size, the sub dock and the wreck are fitted to their solids.
+- Camera: a window around the sub (`looks.ts`); the outer floor uses the arena sand so there is no seam, and the water fog matches the level colour.
+- Honest-bot floors (`rules.test.ts`, "submarine clearing"): the paced pilot must win 99% of 100 seeds on levels 1-3, 95% on level 4 and 90% on level 5. The remaining losses are time-outs of the scripted route, not unwinnable seeds. Levels 4 and 5 drain 0.38 and 0.36 (was 0.45) so a flat battery is not the cause.
