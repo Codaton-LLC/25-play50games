@@ -185,7 +185,6 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/taxi-rush-3d/cornerShop.glb",
    "/models/3d/taxi-rush-3d/busStop.glb",
    "/models/3d/shared/trafficLight.glb",
-   "/models/3d/shared/trafficCone.glb",
 ];
 
 const LISTED: ReadonlySet<string> = new Set(MODEL_MANIFEST);
