@@ -162,3 +162,62 @@ export function runeSpots(level: WizardLevel, decor: number): InstanceSpot[] {
    }
    return spots;
 }
+
+/** A flagstone floor drawn once: grey-violet slabs with mortar lines and a little grain (one tile = one metre). */
+export function drawFlagstones(ctx: CanvasRenderingContext2D, w: number, h: number): void {
+   ctx.fillStyle = "#8d86c9";
+   ctx.fillRect(0, 0, w, h);
+   const n = 2;
+   const cw = w / n;
+   const ch = h / n;
+   for (let r = 0; r < n; r++) {
+      for (let c = 0; c < n; c++) {
+         const v = Math.imul(r * 7 + c + 3, 2654435761) >>> 0;
+         const shade = 150 + (v % 40);
+         ctx.fillStyle = `rgb(${shade - 12}, ${shade - 16}, ${shade + 38})`;
+         ctx.fillRect(c * cw + 4, r * ch + 4, cw - 8, ch - 8);
+      }
+   }
+   for (let i = 0; i < 900; i++) {
+      const v = Math.imul(i + 1, 2246822519) >>> 0;
+      ctx.fillStyle = v % 3 === 0 ? "rgba(255,255,255,0.07)" : "rgba(30,20,80,0.10)";
+      ctx.fillRect(v % w, (v >>> 9) % h, 1 + (v % 2), 1 + ((v >>> 4) % 2));
+   }
+   ctx.strokeStyle = "rgba(30,20,80,0.55)";
+   ctx.lineWidth = 6;
+   ctx.strokeRect(0, 0, w, h);
+   ctx.beginPath();
+   ctx.moveTo(cw, 0);
+   ctx.lineTo(cw, h);
+   ctx.moveTo(0, ch);
+   ctx.lineTo(w, ch);
+   ctx.stroke();
+}
+
+export interface LabDecor {
+   shelves: InstanceSpot[];
+   cauldrons: InstanceSpot[];
+   candles: InstanceSpot[];
+}
+
+/** Lab dressing beyond the wall ring (never inside the play area): bookshelves, cauldrons and tall candles. */
+export function labDecor(level: WizardLevel): LabDecor {
+   const out: LabDecor = { shelves: [], cauldrons: [], candles: [] };
+   const nShelves = Math.round(level.radius * 1.7);
+   for (let i = 0; i < nShelves; i++) {
+      const a = (i / nShelves) * Math.PI * 2 + 0.1;
+      const r = level.radius + 1.5;
+      out.shelves.push({ x: Math.sin(a) * r, y: 0, z: Math.cos(a) * r, rotY: a + Math.PI, scale: 1.5 });
+   }
+   for (let i = 0; i < 4; i++) {
+      const a = (i / 4) * Math.PI * 2 + Math.PI / 4;
+      const r = level.radius + 3.2;
+      out.cauldrons.push({ x: Math.sin(a) * r, y: 0, z: Math.cos(a) * r, rotY: a, scale: 1.6 });
+   }
+   for (let i = 0; i < 8; i++) {
+      const a = (i / 8) * Math.PI * 2 + Math.PI / 8;
+      const r = level.radius + 2.4;
+      out.candles.push({ x: Math.sin(a) * r, y: 0, z: Math.cos(a) * r, rotY: a, scale: 3 });
+   }
+   return out;
+}

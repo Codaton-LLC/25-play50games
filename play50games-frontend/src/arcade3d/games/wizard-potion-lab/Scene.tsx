@@ -13,6 +13,7 @@ import {
    LatheGeometry,
    MeshStandardMaterial,
    OctahedronGeometry,
+   RepeatWrapping,
    Quaternion,
    SphereGeometry,
    Vector2,
@@ -29,7 +30,7 @@ import { useInput } from "@/arcade3d/core/input";
 import { useLevel } from "@/arcade3d/core/level";
 import { randomSeed } from "@/arcade3d/core/math";
 import { useQuality } from "@/arcade3d/core/quality";
-import { Instanced, type InstancePart } from "@/arcade3d/core/render";
+import { Instanced, useCanvasTexture, type InstancePart } from "@/arcade3d/core/render";
 import { HumanoidModel, aimArm, cheerPose, gaitPhaseStep, idlePose, useHumanoidPose, walkPose, wrapPhase } from "@/arcade3d/core/rig";
 import { CAULDRON_INNER_RADIUS_GLB, EXPANSION_GLB_POINTS } from "@/arcade3d/core/sharedAssets";
 import { useFittedView } from "@/arcade3d/core/useFittedView";
@@ -38,7 +39,7 @@ import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { ASSETS, WIZARD_LANDMARKS, WIZARD_SCALE } from "./assets";
 import { publishLab } from "./Hud";
 import { LEVELS, type WizardLevel } from "./levels";
-import { COLORS, DAMPING, FOLLOW, FOV, INGREDIENT_LOOK, candleSpots, aimBounds, lookAtFor, runeSpots, viewFor, wallCapSpots, wallSpots } from "./looks";
+import { COLORS, DAMPING, FOLLOW, FOV, INGREDIENT_LOOK, candleSpots, aimBounds, drawFlagstones, labDecor, lookAtFor, runeSpots, viewFor, wallCapSpots, wallSpots } from "./looks";
 import { BallPrimitive, BookPrimitive, CauldronPrimitive, TablePrimitive, WizardFigure } from "./Primitives";
 import {
    MAX_SPEED,
@@ -214,6 +215,14 @@ function LevelScene() {
       () => run.shelves.map((shelf) => ({ x: shelf.x, y: 0, z: shelf.z, rotY: shelf.angle + Math.PI })),
       [run],
    );
+   const decor = useMemo(() => labDecor(level), [level]);
+   const flagstones = useCanvasTexture(256, 256, drawFlagstones);
+   useMemo(() => {
+      flagstones.wrapS = RepeatWrapping;
+      flagstones.wrapT = RepeatWrapping;
+      flagstones.repeat.set(level.radius, level.radius);
+      flagstones.needsUpdate = true;
+   }, [flagstones, level.radius]);
    const parts = useMemo(() => ingredientParts(), []);
    const brewMat = useMemo(() => new MeshStandardMaterial({
       color: COLORS.brewIdle,
@@ -333,7 +342,7 @@ function LevelScene() {
          </mesh>
          <mesh rotation-x={-Math.PI / 2} position={[0, 0.012, 0]}>
             <circleGeometry args={[level.radius - 0.05, 48]} />
-            <meshStandardMaterial color={COLORS.floor} emissive={COLORS.floor} emissiveIntensity={level.lighting === "night" ? 0.7 : 0.3} roughness={0.88} />
+            <meshStandardMaterial map={flagstones} color="#ffffff" emissive={COLORS.floor} emissiveMap={flagstones} emissiveIntensity={level.lighting === "night" ? 0.7 : 0.35} roughness={0.88} />
          </mesh>
          <mesh rotation-x={-Math.PI / 2} position={[0, 0.02, 0]}>
             <ringGeometry args={[level.radius - 0.55, level.radius - 0.2, 48]} />
@@ -385,6 +394,10 @@ function LevelScene() {
                </>
             }
          />
+         {/* lab dressing beyond the wall ring: shelves, cauldrons, tall candles (outside the play area) */}
+         <InstancedModel asset={ASSETS.shelf} spots={decor.shelves} fallback={null} />
+         <InstancedModel asset={ASSETS.cauldron} spots={decor.cauldrons} fallback={null} />
+         <InstancedModel asset={ASSETS.candle} spots={decor.candles} fallback={null} />
          <pointLight position={[0, 1.7, 0]} intensity={level.lighting === "night" ? 12 : level.lighting === "sunset" ? 4 : 0} distance={9} decay={1.5} color={COLORS.glow} />
          <Model asset={ASSETS.cauldron} fallback={<CauldronPrimitive />} />
          <mesh position={[0, DISC_Y, 0]} rotation-x={-Math.PI / 2}>
