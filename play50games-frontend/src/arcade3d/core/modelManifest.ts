@@ -193,6 +193,18 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/hotel-bellboy-rush/lobbyPlanterR.glb",
    "/models/3d/shared/sofa.glb",
    "/models/3d/shared/travellerNpc.glb",
+   // farm-tractor-challenge (gate, 2026-10-25): menu1 ready set, optimized
+   "/models/3d/farm-tractor-challenge/charFarmer.glb",
+   "/models/3d/farm-tractor-challenge/tractor.glb",
+   "/models/3d/farm-tractor-challenge/farmTrailer.glb",
+   "/models/3d/farm-tractor-challenge/hayBaleBound.glb",
+   "/models/3d/farm-tractor-challenge/appleCrate.glb",
+   "/models/3d/farm-tractor-challenge/barn.glb",
+   "/models/3d/farm-tractor-challenge/farmFence.glb",
+   "/models/3d/farm-tractor-challenge/farmGate.glb",
+   "/models/3d/farm-tractor-challenge/scarecrowPost.glb",
+   "/models/3d/farm-tractor-challenge/grainSiloGroundT.glb",
+   "/models/3d/farm-tractor-challenge/waterTrough.glb",
 ];
 
 const LISTED: ReadonlySet<string> = new Set(MODEL_MANIFEST);

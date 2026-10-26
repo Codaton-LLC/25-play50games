@@ -385,3 +385,32 @@ describe("farm tractor score limits", () => {
       }
    }, 180_000);
 });
+
+describe("farm tractor clearing", () => {
+   it("a level clears only on a win: a paced driver wins at least 99% of 100 seeds, the oracle stays inside the limits on 40 more, an idle one never wins", () => {
+      for (const id of LEVEL_IDS) {
+         const limits = PROPOSED_LEVEL_LIMITS[id];
+         let won = 0;
+         for (let seed = 0; seed < 100; seed++) {
+            const human = play(id, seed + 1000, 30, "human");
+            expect(withinServerLimits(human.score, human.ms, limits)).toBe(true);
+            if (human.reason === "win") won += 1;
+         }
+         expect(won / 100, `level ${id}`).toBeGreaterThanOrEqual(0.99);
+         for (let seed = 0; seed < 40; seed++) {
+            const oracle = play(id, seed + 2000, seed % 2 ? 60 : 144, "oracle");
+            expect(withinServerLimits(oracle.score, oracle.ms, limits)).toBe(true);
+         }
+         const idle = play(id, 3, 20, "idle");
+         expect(idle.reason).not.toBe("win");
+         expect(idle.score).toBe(0);
+      }
+   }, 1_200_000);
+});
+
+describe("farm tractor spec literals", () => {
+   it("keeps the spec's numbers: top 6, accel 6, brake 10, reverse 2, steer 1.4, radius 1.35, drag 0.8, hitch under 2 m/s, fence bump above 0.8, park under 0.4 for 0.60 s", () => {
+      expect(TRACTOR).toEqual({ top: 6, accel: 6, brake: 10, reverse: 2, steer: 1.4, radius: 1.35, drag: 0.8 });
+      expect([HITCH_SPEED, FENCE_BUMP_SPEED, PARK_SPEED, PARK_HOLD, TIME_BONUS_PER_SECOND]).toEqual([2, 0.8, 0.4, 0.6, 4]);
+   });
+});

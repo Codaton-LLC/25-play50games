@@ -14,11 +14,11 @@ import { useInput } from "@/arcade3d/core/input";
 import { useLevel } from "@/arcade3d/core/level";
 import { randomSeed } from "@/arcade3d/core/math";
 import { DynamicInstanced, Instanced, type InstancePart } from "@/arcade3d/core/render";
-import { BONE, HumanoidModel, armsDownPose, cheerPose, levelFoot, setBoneEuler, useHumanoidPose, type HumanoidPose } from "@/arcade3d/core/rig";
+import { HumanoidModel, cheerPose, sitPose, useHumanoidPose } from "@/arcade3d/core/rig";
 import { useFittedView } from "@/arcade3d/core/useFittedView";
 import { useRunFrame } from "@/arcade3d/core/useRunFrame";
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
-import { ASSETS } from "./assets";
+import { ASSETS, GATE_SCALE, SEAT_Y, SEAT_Z } from "./assets";
 import type { FarmLevel } from "./levels";
 import {
    COLORS,
@@ -29,7 +29,7 @@ import {
    decorAt,
    fenceDraw,
    fenceGlbSpots,
-   fieldBox,
+   aimBounds,
    groundSpan,
    lookAtFor,
    viewFor,
@@ -42,24 +42,8 @@ const V = new Vector3();
 const S = new Vector3();
 const UP = new Vector3(0, 1, 0);
 const AT = { x: 0, y: 0.8, z: 0 };
-
-function sitPose(out: HumanoidPose): HumanoidPose {
-   armsDownPose(out);
-   out.ground = 0;
-   out.lift = 0;
-   setBoneEuler(out.q, BONE.upperLegL, -1.2, 0.05, 0.14);
-   setBoneEuler(out.q, BONE.upperLegR, -1.2, -0.05, -0.14);
-   setBoneEuler(out.q, BONE.lowerLegL, 1.3, 0, 0);
-   setBoneEuler(out.q, BONE.lowerLegR, 1.3, 0, 0);
-   setBoneEuler(out.q, BONE.upperArmL, -0.95, 0.1, 0.4);
-   setBoneEuler(out.q, BONE.upperArmR, -0.95, -0.1, -0.4);
-   setBoneEuler(out.q, BONE.lowerArmL, 0, 1.05, 0);
-   setBoneEuler(out.q, BONE.lowerArmR, 0, -1.05, 0);
-   setBoneEuler(out.q, BONE.spine, 0.08, 0, 0);
-   levelFoot(out, 1, 0.35);
-   levelFoot(out, -1, 0.35);
-   return out;
-}
+/** The gate leaf stands beside its post, along the fence, so the opening stays 2 x GATE_HALF wide. */
+const GATE_LEAF_OUT = 0.95 * GATE_SCALE + 0.15;
 
 function disposeParts(parts: InstancePart[]) {
    for (const part of parts) {
@@ -80,7 +64,7 @@ function LevelScene() {
    const aim = useRef({ x: run.tractor.x, y: 0.8, z: run.tractor.z + LOOK_AHEAD }).current;
    const body = useRef<import("three").Group>(null);
    const trailer = useRef<import("three").Group>(null);
-   const bounds = useMemo(() => fieldBox(config), [config]);
+   const bounds = useMemo(() => aimBounds(config), [config]);
    const look = useMemo(() => lookAtFor(config), [config]);
    const decor = useMemo(() => decorAt(config), [config]);
    const span = groundSpan(config);
@@ -135,7 +119,7 @@ function LevelScene() {
 
    const pose = useHumanoidPose((p) => {
       if (run.over === "win") cheerPose(time.now, p);
-      else sitPose(p);
+      else sitPose(1, p);
    });
 
    useEffect(() => {
@@ -264,7 +248,7 @@ function LevelScene() {
             fallback={<FenceFallback posts={fence.posts} rails={fence.rails} />}
          />
          {run.posts.map((post, index) => (
-            <Model key={index} asset={ASSETS.gate} position={[post.x, 0, post.z]} fallback={<GatePostPrimitive />} />
+            <Model key={index} asset={ASSETS.gate} position={[post.x + Math.sign(post.x) * GATE_LEAF_OUT, 0, post.z + 0.2]} fallback={<GatePostPrimitive />} />
          ))}
          {treeGlb.length > 0 && (
             <InstancedModel
@@ -296,7 +280,7 @@ function LevelScene() {
          </group>
          <group ref={body}>
             <Model asset={ASSETS.tractor} fallback={<TractorPrimitive />} />
-            <group position={[0, 0.78, -0.08]}>
+            <group position={[0, SEAT_Y, SEAT_Z]}>
                <HumanoidModel asset={ASSETS.farmer} pose={pose} applyLift={false} fallback={<FarmerFigure />} />
             </group>
          </group>

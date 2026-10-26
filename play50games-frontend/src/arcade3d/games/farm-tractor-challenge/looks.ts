@@ -2,7 +2,6 @@
 import type { AABB } from "@/arcade3d/core/collision";
 import type { InstanceSpot } from "@/arcade3d/core/render";
 import type { FittedViewOptions } from "@/arcade3d/core/useFittedView";
-import { followFocus } from "@/arcade3d/core/view";
 import type { LevelId } from "@/arcade3d/types";
 import { LEVELS, type FarmLevel } from "./levels";
 import { BAY_DEPTH, GATE_HALF } from "./rules";
@@ -52,7 +51,9 @@ export const COLORS = {
 export const PITCH = (46 * Math.PI) / 180;
 export const YAWS = [Math.PI, Math.PI / 2] as const;
 export const FOV = 46;
-export const FOLLOW = 0.2;
+export const FOLLOW = 1;
+/** What must stay on screen around the tractor (m): the yard scrolls under the camera. */
+export const WINDOW = { w: 20, d: 14 } as const;
 export const LOOK_AHEAD = 3.5;
 export const DAMPING = 4.5;
 
@@ -63,6 +64,24 @@ export function fieldBox(level: FarmLevel): AABB {
       min: { x: -halfW - 0.6, y: 0, z: -halfD - 0.6 },
       max: { x: halfW + 0.6, y: 3.2, z: halfD + 0.6 },
    };
+}
+
+/** The window round the camera aim that the fit keeps on screen. */
+export function windowBox(level: FarmLevel): AABB {
+   const halfW = level.width / 2 + 0.6;
+   const halfD = level.depth / 2 + 0.6;
+   const w = Math.min(halfW, WINDOW.w / 2);
+   const d = Math.min(halfD, WINDOW.d / 2);
+   return { min: { x: -w, y: 0, z: -d }, max: { x: w, y: 3.2, z: d } };
+}
+
+/** Where the camera aim may go: the yard shrunk by half the window, so the fence never leaves the frame. */
+export function aimBounds(level: FarmLevel): AABB {
+   const halfW = level.width / 2 + 0.6;
+   const halfD = level.depth / 2 + 0.6;
+   const w = Math.min(halfW, WINDOW.w / 2);
+   const d = Math.min(halfD, WINDOW.d / 2);
+   return { min: { x: -(halfW - w), y: 0, z: -(halfD - d) }, max: { x: halfW - w, y: 3.2, z: halfD - d } };
 }
 
 export function lookAtFor(level: FarmLevel): [number, number, number] {
@@ -80,17 +99,17 @@ export function gateZOf(level: FarmLevel): number {
 
 const VIEWS = new Map<LevelId, FittedViewOptions>();
 
-/** The whole yard stays on screen. Portrait may pick the side yaw. Chase follows inside it. */
+/** A window round the tractor stays on screen; portrait may pick the side yaw. The chase camera follows it. */
 export function viewFor(id: LevelId): FittedViewOptions {
    let view = VIEWS.get(id);
    if (!view) {
       const level = LEVELS[id];
-      const area = fieldBox(level);
+      const area = windowBox(level);
       view = {
          area,
          pitch: PITCH,
          yaws: YAWS,
-         focus: followFocus({ lookAt: lookAtFor(level), reach: area, fraction: FOLLOW, bounds: area }),
+         focus: [{ x: 0, y: 0.7, z: 0 }],
          margin: { top: 0.06, right: 0.03, bottom: 0.1, left: 0.03 },
          padding: 8,
          shift: true,
@@ -104,8 +123,8 @@ export function viewFor(id: LevelId): FittedViewOptions {
 /** Grey weather on the mud farm. Other levels fog toward their own sky. */
 export function fogFor(level: FarmLevel): [string, number, number] {
    const reach = Math.max(level.width, level.depth);
-   if (level.background === "#a8a29e") return ["#a8a29e", 9, reach * 0.7];
-   return [level.background, reach * 0.38, reach * 1.2];
+   if (level.background === "#a8a29e") return ["#a8a29e", 22, 58];
+   return [level.background, 48, 120 + reach];
 }
 
 /** Decor sits outside the fence, on the barn side, so it does not cover the tractor. */
@@ -165,7 +184,17 @@ export function fenceDraw(id: LevelId): FenceDraw {
    return draw;
 }
 
-/** GLB copies stand on the ground. No extra scale: Claude fits farmFence.glb. */
+/**
+ * One GLB segment per span between two posts, standing on the ground. The asset is a unit model
+ * (its length 1 m along the fence), so the spot's scale is the span in metres. The rails come in
+ * pairs (top, bottom) per span: every second one is a span.
+ */
 export function fenceGlbSpots(id: LevelId): InstanceSpot[] {
-   return fenceDraw(id).posts.map((post) => ({ x: post.x, y: 0, z: post.z, rotY: post.rotY }));
+   const rails = fenceDraw(id).rails;
+   const spots: InstanceSpot[] = [];
+   for (let i = 0; i < rails.length; i += 2) {
+      const rail = rails[i];
+      spots.push({ x: rail.x, y: 0, z: rail.z, rotY: rail.rotY, scale: rail.sz });
+   }
+   return spots;
 }
