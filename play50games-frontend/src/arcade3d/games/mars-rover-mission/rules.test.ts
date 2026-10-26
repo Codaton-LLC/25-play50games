@@ -144,6 +144,18 @@ describe("mars-rover-mission rules: the generator (300 seeds per level)", () => 
    }
 });
 
+describe("mars-rover-mission rules: the generator uses the whole plain", () => {
+   it("sites reach out to each level's own side walls; the energy reach is each level's own", () => {
+      for (const id of LEVEL_IDS) {
+         let far = 0;
+         for (let seed = 1; seed <= 150; seed++) for (const s of createRun(seed, LEVELS[id], id).sites) far = Math.max(far, Math.abs(s.x));
+         expect(far).toBeGreaterThan(0.9 * (LEVELS[id].width / 2 - GEN.wallMargin - 0.5));
+         const perMetre = DRIVE_DRAIN * LEVELS[id].drainScale + IDLE_DRAIN / 3.5;
+         expect(energyReach(LEVELS[id])).toBeCloseTo(85 / (2 * 1.35 * perMetre), 9);
+      }
+   });
+});
+
 describe("mars-rover-mission rules: driving", () => {
    it("the stick has a 0.2 dead zone; a held key equals a full stick", () => {
       expect(axis(0.2)).toBe(0);
@@ -214,14 +226,16 @@ describe("mars-rover-mission rules: driving", () => {
       for (let i = 0; i < 20 && !run.ev.boulderHit; i++) step(run, { moveX: 0, moveY: -1 }, 1 / 30);
       expect(run.lives).toBe(LIVES - 1);
    });
-   it("the walls stop the rover without a hit", () => {
-      const run = createRun(1, LEVELS[1], 1);
-      open(run);
-      place(run, run.level.width / 2 - ROVER.radius - 0.05, 0, 7, Math.PI / 2);
-      step(run, HOLD, DT);
-      expect(run.rover.x).toBe(run.level.width / 2 - ROVER.radius);
-      expect(run.rover.speed).toBe(0);
-      expect(run.lives).toBe(LIVES);
+   it("each level's walls stop the rover without a hit", () => {
+      for (const id of LEVEL_IDS) {
+         const run = createRun(1, LEVELS[id], id);
+         open(run);
+         place(run, LEVELS[id].width / 2 - ROVER.radius - 0.05, 0, 7, Math.PI / 2);
+         step(run, HOLD, DT);
+         expect(run.rover.x).toBe(LEVELS[id].width / 2 - ROVER.radius);
+         expect(run.rover.speed).toBe(0);
+         expect(run.lives).toBe(LIVES);
+      }
    });
 });
 
