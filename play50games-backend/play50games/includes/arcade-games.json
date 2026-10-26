@@ -621,12 +621,19 @@
     "beach-lifeguard": {
       "title": "Beach Lifeguard",
       "kind": "points",
-      "max_score": 3000,
-      "min_duration_ms": 10000,
-      "max_duration_ms": 300000,
-      "base": 3000,
-      "max_pps": 3000,
-      "enabled": false
+      "max_score": 1110,
+      "min_duration_ms": 4000,
+      "max_duration_ms": 120000,
+      "base": 500,
+      "max_pps": 107,
+      "enabled": false,
+      "levels": [
+        { "title": "Small Beach", "max_score": 1110, "min_duration_ms": 4000, "max_duration_ms": 120000, "base": 500, "max_pps": 107 },
+        { "title": "Busy Beach", "max_score": 1490, "min_duration_ms": 4000, "max_duration_ms": 150000, "base": 750, "max_pps": 64 },
+        { "title": "Resort", "max_score": 1860, "min_duration_ms": 4000, "max_duration_ms": 180000, "base": 1000, "max_pps": 46 },
+        { "title": "Waterpark", "max_score": 2130, "min_duration_ms": 4000, "max_duration_ms": 180000, "base": 1250, "max_pps": 50 },
+        { "title": "Stormy Beach", "max_score": 2510, "min_duration_ms": 4000, "max_duration_ms": 210000, "base": 1500, "max_pps": 44 }
+      ]
     },
     "farm-tractor-challenge": {
       "title": "Farm Tractor Challenge",
@@ -744,12 +751,19 @@
     "pizza-kitchen-3d": {
       "title": "Pizza Kitchen 3D",
       "kind": "points",
-      "max_score": 3000,
-      "min_duration_ms": 10000,
-      "max_duration_ms": 300000,
-      "base": 3000,
-      "max_pps": 3000,
-      "enabled": false
+      "max_score": 1130,
+      "min_duration_ms": 4000,
+      "max_duration_ms": 120000,
+      "base": 690,
+      "max_pps": 22,
+      "enabled": false,
+      "levels": [
+        { "title": "Cheese Pizza", "max_score": 1130, "min_duration_ms": 4000, "max_duration_ms": 120000, "base": 690, "max_pps": 22 },
+        { "title": "Two Toppings", "max_score": 1440, "min_duration_ms": 4000, "max_duration_ms": 150000, "base": 920, "max_pps": 16 },
+        { "title": "Restaurant Rush", "max_score": 2000, "min_duration_ms": 4000, "max_duration_ms": 180000, "base": 1380, "max_pps": 15 },
+        { "title": "Multiple Orders", "max_score": 2420, "min_duration_ms": 4000, "max_duration_ms": 180000, "base": 1840, "max_pps": 10 },
+        { "title": "Master Pizza Night", "max_score": 2900, "min_duration_ms": 4000, "max_duration_ms": 210000, "base": 2300, "max_pps": 7 }
+      ]
     },
     "jungle-bridge-run": {
       "title": "Jungle Bridge Run",
