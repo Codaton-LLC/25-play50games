@@ -627,12 +627,19 @@
     "cat-vs-robot-vacuum": {
       "title": "Cat vs Robot Vacuum",
       "kind": "points",
-      "max_score": 3000,
-      "min_duration_ms": 10000,
-      "max_duration_ms": 300000,
-      "base": 3000,
-      "max_pps": 3000,
-      "enabled": false
+      "max_score": 745,
+      "min_duration_ms": 4000,
+      "max_duration_ms": 90000,
+      "base": 380,
+      "max_pps": 81,
+      "enabled": false,
+      "levels": [
+        { "title": "Living Room", "max_score": 745, "min_duration_ms": 4000, "max_duration_ms": 90000, "base": 380, "max_pps": 81 },
+        { "title": "Kitchen", "max_score": 1020, "min_duration_ms": 4000, "max_duration_ms": 120000, "base": 560, "max_pps": 35 },
+        { "title": "Bedroom", "max_score": 1355, "min_duration_ms": 4000, "max_duration_ms": 150000, "base": 760, "max_pps": 51 },
+        { "title": "Kids Room", "max_score": 1520, "min_duration_ms": 4000, "max_duration_ms": 150000, "base": 940, "max_pps": 34 },
+        { "title": "Whole House", "max_score": 1875, "min_duration_ms": 4000, "max_duration_ms": 180000, "base": 1185, "max_pps": 30 }
+      ]
     },
     "hotel-bellboy-rush": {
       "title": "Hotel Bellboy Rush",
