@@ -24,7 +24,7 @@ Same reef, centered on the origin. The dock is south. Counts, drain, clock, curr
 | 4 | Deep Cave | 44×36 | 6 | 8 | 10 | 4 | 1.4 | 0.5 | 0.45 | 180 s | night |
 | 5 | Ancient Ruins | 48×40 | 8 | 10 | 12 | 6 | 1.6 | 0.6 | 0.45 | 240 s | night |
 
-Level 4 drain is 0.45. The spec table says 0.6. Drain is the tuning knob: at 0.6 two fair seeds finished under 15% battery (9.4 and 14.6). At 0.45 every winning oracle, including 144 Hz, keeps at least 15%.
+Level 4 drain is 0.38 and level 5 0.36 (the spec says 0.6). Gate review: at 0.45 the paced pilot lost 4% of level 4 and 9% of level 5 seeds to a flat battery. Drain is the tuning knob: at 0.6 two fair seeds finished under 15% battery (9.4 and 14.6). At 0.45 every winning oracle, including 144 Hz, keeps at least 15%.
 
 ## Controls
 

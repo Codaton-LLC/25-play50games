@@ -1,7 +1,6 @@
 // One palette and the chase camera. Pure: no React. Fog colour is the water; the level sets how far it reaches.
 import type { AABB } from "@/arcade3d/core/collision";
 import type { FittedViewOptions } from "@/arcade3d/core/useFittedView";
-import { followFocus } from "@/arcade3d/core/view";
 import type { LevelId } from "@/arcade3d/types";
 import { LEVELS, type SubLevel } from "./levels";
 
@@ -64,6 +63,14 @@ export function lookAtFor(level: SubLevel): [number, number, number] {
    return [0, 0.6, 0];
 }
 
+/**
+ * The water: the level's background colour (so the floor's far edge melts into it, no horizon line),
+ * clear for the camera's reach (about 14 m on a desktop, 25 m on a phone) and murky beyond it.
+ */
+export function fogOf(level: SubLevel): [string, number, number] {
+   return [level.background, 14, level.fogFar * 1.15];
+}
+
 const VIEWS = new Map<LevelId, FittedViewOptions>();
 
 /** A window around the sub, not the whole reef. Portrait uses the same yaw; shift clears the HUD. */
@@ -71,13 +78,13 @@ export function viewFor(id: LevelId): FittedViewOptions {
    let view = VIEWS.get(id);
    if (!view) {
       const level = LEVELS[id];
-      const bounds = seaBounds(level);
-      const area = { min: { x: -6.2, y: 0, z: -5.2 }, max: { x: 6.2, y: 3.4, z: 5.2 } };
+      const area = { min: { x: -5, y: 0, z: -5.2 }, max: { x: 5, y: 3.4, z: 5.2 } };
       view = {
          area,
          pitch: PITCH,
          yaws: [0],
-         focus: followFocus({ lookAt: lookAtFor(level), reach: bounds, fraction: FOLLOW, bounds }),
+         // the area is the window round the camera aim, which follows the sub: one focus, the rest position
+         focus: [{ x: 0, y: 0.6, z: 0 }],
          margin: { top: 0.08, right: 0.03, bottom: 0.1, left: 0.03 },
          padding: 6,
          shift: true,

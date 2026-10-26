@@ -7,7 +7,7 @@ import { LEVEL_IDS, type LevelId } from "@/arcade3d/types";
 import { ASSETS } from "./assets";
 import Hud from "./Hud";
 import { LEVELS, LEVEL_LINES, type SubLevel } from "./levels";
-import { FOV, lookAtFor } from "./looks";
+import { FOV, fogOf, lookAtFor } from "./looks";
 import Scene from "./Scene";
 
 const LINES = [
@@ -44,7 +44,7 @@ const definition: GameDefinition<SubLevel> = {
    camera: { position: [0, 12, 14], fov: FOV, lookAt: look },
    environment: {
       background: level.background,
-      fog: ["#0e7490", 8, level.fogFar],
+      fog: fogOf(level),
       lighting: level.lighting,
    },
    touchControls: ["joystick", "action"],
@@ -60,7 +60,7 @@ const definition: GameDefinition<SubLevel> = {
          durationMs: config.durationMs,
          environment: {
             background: config.background,
-            fog: ["#0e7490", 8, config.fogFar],
+            fog: fogOf(config),
             lighting: config.lighting,
          },
       };

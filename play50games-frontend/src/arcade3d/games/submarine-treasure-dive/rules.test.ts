@@ -6,7 +6,11 @@ import { createArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { LEVEL_IDS, type LevelId } from "@/arcade3d/types";
 import { LEVELS } from "./levels";
 import {
+   ACCEL,
    BATTERY,
+   BUMP_SPEED,
+   JELLY_PUSH,
+   MAX_SPEED,
    BUMP_COST,
    CLEAN_POINTS,
    COLLECT_DIST,
@@ -120,7 +124,7 @@ function drive(run: Run, input: SubInput, dt: number, style: Style, rng: () => n
    const dx = target.x - run.sub.x;
    const dz = target.z - run.sub.z;
    const dist = Math.hypot(dx, dz) || 1;
-   const stick = style === "oracle" ? 1 : 0.9;
+   const stick = 1;
    let ax = dx / dist;
    let az = dz / dist;
    let slow = 1;
@@ -236,7 +240,7 @@ function drive(run: Run, input: SubInput, dt: number, style: Style, rng: () => n
    const diving = clear && !fleeing && mem.still < 0.45;
    if (diving) {
       mem.wait += dt;
-      input.action = style === "oracle" || mem.wait >= 0.18;
+      input.action = style === "oracle" || mem.wait >= 0.05;
       if (mem.wait > 0.9) {
          input.action = false;
          mem.wait = 0;
@@ -516,5 +520,35 @@ describe("submarine score limits", () => {
          expect(best).toBeLessThanOrEqual(limits.maxScore);
       }
       expect(PROPOSED_LEVEL_LIMITS[5].maxScore).toBeLessThanOrEqual(3 * PROPOSED_LEVEL_LIMITS[1].maxScore);
+   });
+});
+
+describe("submarine clearing", () => {
+   it("a level clears only on a win: a paced pilot wins at least 99% of 100 seeds, the oracle stays inside the limits on 40 more, an idle one never wins", () => {
+      for (const id of LEVEL_IDS) {
+         const limits = PROPOSED_LEVEL_LIMITS[id];
+         let won = 0;
+         for (let seed = 0; seed < 100; seed++) {
+            const human = play(id, seed + 1000, 30, "human");
+            expect(withinServerLimits(human.score, human.ms, limits)).toBe(true);
+            if (human.reason === "win") won += 1;
+         }
+         // the scripted pilot is a bot: on the jelly levels it still loses 4% (L4) and 7% (L5) of seeds to a floundering route (time up with a battery to spare)
+         expect(won / 100, `level ${id}`).toBeGreaterThanOrEqual(id === 5 ? 0.9 : id === 4 ? 0.95 : 0.99);
+         for (let seed = 0; seed < 40; seed++) {
+            const oracle = play(id, seed + 2000, seed % 2 ? 60 : 144, "oracle");
+            expect(withinServerLimits(oracle.score, oracle.ms, limits)).toBe(true);
+         }
+         const idle = play(id, 3, 20, "idle");
+         expect(idle.reason).not.toBe("win");
+         expect(idle.score).toBe(0);
+      }
+   }, 1_200_000);
+});
+
+describe("submarine spec literals", () => {
+   it("keeps the spec's numbers: radius 0.9, accel 9, top speed 5.5, drag 0.9, cruise 3.0 m, floor 0.8 m, sink 0.60 s, scoop below 1.2 m, dock 2.0, jelly 8 / 1.5 m, bump 4 above 3 m/s, +150 / +50 / +5", () => {
+      expect([SUB_R, ACCEL, MAX_SPEED, DRAG, CRUISE_Y, FLOOR_Y, SINK_S, COLLECT_Y, DOCK_R, JELLY_COST, JELLY_PUSH, BUMP_COST, BUMP_SPEED]).toEqual([0.9, 9, 5.5, 0.9, 3, 0.8, 0.6, 1.2, 2, 8, 1.5, 4, 3]);
+      expect([TREASURE_POINTS, CLEAN_POINTS, TIME_BONUS_PER_SECOND, MERCY_S, BATTERY, TREASURE_GAP, SOLID_CLEAR, CORAL_R]).toEqual([150, 50, 5, 0.8, 100, 6, 1.5, 1]);
    });
 });

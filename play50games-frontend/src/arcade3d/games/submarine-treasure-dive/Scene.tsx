@@ -34,7 +34,7 @@ import { BlobShadow, DynamicInstanced, Instanced, type InstancePart, type Instan
 import { useFittedView } from "@/arcade3d/core/useFittedView";
 import { useRunFrame } from "@/arcade3d/core/useRunFrame";
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
-import { ASSETS } from "./assets";
+import { ASSETS, WRECK_SQUASH } from "./assets";
 import type { SubLevel } from "./levels";
 import { COLORS, DAMPING, FLOOR_PAD, FOLLOW, FOV, LOOK_AHEAD, lookAtFor, seaBounds, viewFor } from "./looks";
 import { ColumnPrimitive, DockPrimitive, SubModel } from "./Primitives";
@@ -115,11 +115,31 @@ function LevelScene() {
       return kept.map((k) => ({ x: k.x, y: k.height / 2, z: k.z, rotY: k.rotY, sx: 0.34, sy: k.height, sz: 0.34 }));
    }, [run, quality.decor]);
    const wreckSpots = useMemo(
-      () => wrecks.map((b) => ({ x: b.x, y: 0.55, z: b.z, rotY: b.rotY, sx: b.hx * 2, sy: 1.1, sz: b.hz * 2 })),
+      () => wrecks.map((b) => ({ x: b.x, y: 0.55, z: b.z, rotY: b.rotY, sx: Math.max(b.hx, b.hz) * 2, sy: 1.1, sz: Math.min(b.hx, b.hz) * 2 })),
       [wrecks],
    );
    const wreckTrim = useMemo(
-      () => wrecks.map((b) => ({ x: b.x, y: 0.95, z: b.z, rotY: b.rotY, sx: b.hx * 1.2, sy: 0.28, sz: b.hz * 1.15 })),
+      () => wrecks.map((b) => ({ x: b.x, y: 0.95, z: b.z, rotY: b.rotY, sx: Math.max(b.hx, b.hz) * 1.2, sy: 0.28, sz: Math.min(b.hx, b.hz) * 1.15 })),
+      [wrecks],
+   );
+
+
+   // The GLBs are unit models standing on y = 0: their spots carry the size in metres. The stand-ins
+   // above keep their own spots (they are centred, so their y differs).
+   const glbRocksA = useMemo(() => rocksA.map((c) => ({ x: c.x, y: 0, z: c.z, rotY: c.x * 1.7, scale: c.r * 2 })), [rocksA]);
+   const glbRocksB = useMemo(() => rocksB.map((c) => ({ x: c.x, y: 0, z: c.z, rotY: c.z * 1.3, scale: c.r * 2 })), [rocksB]);
+   const glbCoral = useMemo(() => coral.map((c) => ({ x: c.x, y: 0, z: c.z, rotY: c.x * 2.1, scale: c.r * 2 })), [coral]);
+   const glbArches = useMemo(() => arches.map((c) => ({ x: c.x, y: 0, z: c.z, rotY: c.z * 0.9, scale: c.r * 2 })), [arches]);
+   const glbAnchors = useMemo(() => anchors.map((c) => ({ x: c.x, y: 0, z: c.z, rotY: c.x * 1.1, scale: 1.5 })), [anchors]);
+   const glbKelp = useMemo(() => {
+      const kept = run.kelp.slice(0, Math.max(0, Math.round(run.kelp.length * quality.decor)));
+      return kept.map((k) => ({ x: k.x, y: 0, z: k.z, rotY: k.rotY, scale: k.height * 0.9 }));
+   }, [run, quality.decor]);
+   const glbWrecks = useMemo(
+      () => wrecks.map((b) => {
+         const length = Math.max(b.hx, b.hz) * 2;
+         return { x: b.x, y: 0, z: b.z, rotY: b.rotY, sx: length, sy: length * WRECK_SQUASH, sz: length };
+      }),
       [wrecks],
    );
 
@@ -348,7 +368,7 @@ function LevelScene() {
          />
          <mesh rotation-x={-Math.PI / 2} position={[0, 0, 0]}>
             <planeGeometry args={[config.width + FLOOR_PAD * 2, config.depth + FLOOR_PAD * 2]} />
-            <meshStandardMaterial color={COLORS.sand} roughness={0.94} />
+            <meshStandardMaterial color={COLORS.sandDeep} roughness={0.94} />
          </mesh>
          <mesh rotation-x={-Math.PI / 2} position={[0, 0.01, 0]}>
             <planeGeometry args={[config.width - 1.2, config.depth - 1.2]} />
@@ -360,7 +380,7 @@ function LevelScene() {
          {aquaSpots.length > 0 && (
             <InstancedModel
                asset={ASSETS.aquariumRock}
-               spots={aquaSpots}
+               spots={glbRocksA}
                fallback={
                   <Instanced spots={aquaSpots} name="reef-rocks">
                      <sphereGeometry args={[0.5, 10, 8]} />
@@ -372,7 +392,7 @@ function LevelScene() {
          {boulderSpots.length > 0 && (
             <InstancedModel
                asset={ASSETS.rock}
-               spots={boulderSpots}
+               spots={glbRocksB}
                fallback={
                   <Instanced spots={boulderSpots} name="boulders">
                      <sphereGeometry args={[0.5, 10, 8]} />
@@ -384,7 +404,7 @@ function LevelScene() {
          {coralSpots.length > 0 && (
             <InstancedModel
                asset={ASSETS.coral}
-               spots={coralSpots}
+               spots={glbCoral}
                fallback={
                   <>
                      <Instanced spots={coralSpots} name="coral">
@@ -402,7 +422,7 @@ function LevelScene() {
          {archSpots.length > 0 && (
             <InstancedModel
                asset={ASSETS.rockArch}
-               spots={archSpots}
+               spots={glbArches}
                fallback={
                   <>
                      <Instanced spots={archSpots} name="arches">
@@ -420,7 +440,7 @@ function LevelScene() {
          {anchorSpots.length > 0 && (
             <InstancedModel
                asset={ASSETS.anchor}
-               spots={anchorSpots}
+               spots={glbAnchors}
                fallback={
                   <Instanced spots={anchorSpots} name="anchors">
                      <boxGeometry args={[1, 1, 1]} />
@@ -432,7 +452,7 @@ function LevelScene() {
          {kelpSpots.length > 0 && (
             <InstancedModel
                asset={ASSETS.seaweed}
-               spots={kelpSpots}
+               spots={glbKelp}
                fallback={
                   <Instanced spots={kelpSpots} name="kelp">
                      <cylinderGeometry args={[0.5, 0.35, 1, 6]} />
@@ -444,7 +464,7 @@ function LevelScene() {
          {wreckSpots.length > 0 && (
             <InstancedModel
                asset={ASSETS.wreck}
-               spots={wreckSpots}
+               spots={glbWrecks}
                fallback={
                   <>
                      <Instanced spots={wreckSpots} name="wrecks">

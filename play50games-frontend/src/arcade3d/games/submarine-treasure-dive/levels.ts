@@ -23,8 +23,8 @@ export const LEVELS: Record<LevelId, SubLevel> = {
    1: { width: 30, depth: 26, treasures: 3, rocks: 4, coral: 4, jellies: 0, jellySpeed: 0, current: 0, drain: 0.55, durationMs: 120_000, lighting: "day", background: "#0891b2", fogFar: 40 },
    2: { width: 36, depth: 30, treasures: 4, rocks: 6, coral: 8, jellies: 0, jellySpeed: 0, current: 0, drain: 0.55, durationMs: 150_000, lighting: "day", background: "#0e7490", fogFar: 36 },
    3: { width: 40, depth: 34, treasures: 5, rocks: 6, coral: 8, jellies: 3, jellySpeed: 1.2, current: 0, drain: 0.5, durationMs: 180_000, lighting: "sunset", background: "#155e75", fogFar: 32 },
-   4: { width: 44, depth: 36, treasures: 6, rocks: 8, coral: 10, jellies: 4, jellySpeed: 1.4, current: 0.5, drain: 0.45, durationMs: 180_000, lighting: "night", background: "#164e63", fogFar: 26 },
-   5: { width: 48, depth: 40, treasures: 8, rocks: 10, coral: 12, jellies: 6, jellySpeed: 1.6, current: 0.6, drain: 0.45, durationMs: 240_000, lighting: "night", background: "#083344", fogFar: 24 },
+   4: { width: 44, depth: 36, treasures: 6, rocks: 8, coral: 10, jellies: 4, jellySpeed: 1.4, current: 0.5, drain: 0.38, durationMs: 180_000, lighting: "night", background: "#164e63", fogFar: 26 },
+   5: { width: 48, depth: 40, treasures: 8, rocks: 10, coral: 12, jellies: 6, jellySpeed: 1.6, current: 0.6, drain: 0.36, durationMs: 240_000, lighting: "night", background: "#083344", fogFar: 24 },
 };
 
 export const LEVEL_TITLES: Record<LevelId, string> = {

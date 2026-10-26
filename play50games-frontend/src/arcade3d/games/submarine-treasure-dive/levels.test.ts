@@ -4,6 +4,7 @@ import { levelMetaProblems } from "@/arcade3d/levelMeta";
 import { LEVEL_IDS } from "@/arcade3d/types";
 import definition from "./index";
 import { LEVELS, LEVEL_LINES, LEVEL_TITLES } from "./levels";
+import { fogOf } from "./looks";
 import { submarineTreasureDiveMeta } from "./meta";
 import { PROPOSED_LEVEL_LIMITS } from "./rules";
 
@@ -31,7 +32,7 @@ describe("submarine levels", () => {
          expect(levelRunConfig(definition, id).durationMs).toBe(level.durationMs);
          expect(levelEnvironment(definition, id)?.lighting).toBe(level.lighting);
          expect(levelEnvironment(definition, id)?.background).toBe(level.background);
-         expect(levelEnvironment(definition, id)?.fog).toEqual(["#0e7490", 8, level.fogFar]);
+         expect(levelEnvironment(definition, id)?.fog).toEqual(fogOf(level));
          expect(levelInstructions(definition, id).length).toBeGreaterThan(0);
          expect(definition.levels?.[id - 1].description).toBe(LEVEL_LINES[id]);
          const stats = levelHudStats(definition, id);

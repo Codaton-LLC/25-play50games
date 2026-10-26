@@ -178,6 +178,21 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/hotel-bellboy-rush/lobbyPlanterR.glb",
    "/models/3d/shared/sofa.glb",
    "/models/3d/shared/travellerNpc.glb",
+   // submarine-treasure-dive (gate, 2026-10-25): menu1 ready set, optimized
+   "/models/3d/submarine-treasure-dive/miniSubmarine.glb",
+   "/models/3d/submarine-treasure-dive/amphora.glb",
+   "/models/3d/submarine-treasure-dive/anchor.glb",
+   "/models/3d/submarine-treasure-dive/pearlShellV2.glb",
+   "/models/3d/submarine-treasure-dive/rockArch.glb",
+   "/models/3d/submarine-treasure-dive/ruinColumn.glb",
+   "/models/3d/submarine-treasure-dive/shipwreckI.glb",
+   "/models/3d/submarine-treasure-dive/jellyfish.glb",
+   "/models/3d/submarine-treasure-dive/subDock.glb",
+   "/models/3d/submarine-treasure-dive/coralI.glb",
+   "/models/3d/submarine-treasure-dive/coralBranch.glb",
+   "/models/3d/submarine-treasure-dive/seaweedKelp.glb",
+   "/models/3d/submarine-treasure-dive/tropicalFish.glb",
+   "/models/3d/submarine-treasure-dive/aquariumRock.glb",
 ];
 
 const LISTED: ReadonlySet<string> = new Set(MODEL_MANIFEST);
