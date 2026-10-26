@@ -34,6 +34,8 @@ export {
    resolvePose,
    restPose,
    setBoneEuler,
+   sitPose,
+   swimPose,
    turnBone,
    walkPose,
    wrapPhase,

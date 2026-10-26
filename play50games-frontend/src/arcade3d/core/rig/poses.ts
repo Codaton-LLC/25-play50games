@@ -4,6 +4,8 @@
 //
 //    const pose = createPose();
 //    walkPose(phase, amount, pose);                 // legs, arms and torso of one stride
+//    sitPose(1, pose);                              // seated, hands forward on the bars
+//    swimPose(phase, 1, pose);                      // a diver's glide, flutter kick on `phase`
 //    carryPose(1, scratch);                         // both arms up, holding something overhead
 //    blendPoses(pose, scratch, k, pose, POSE_MASK.arms);
 //
@@ -534,6 +536,94 @@ export function cheerPose(t: number, out: HumanoidPose): HumanoidPose {
    }
    setTrunk(out, BONE.spine, -0.06);
    setTrunk(out, BONE.head, -0.15);
+   return out;
+}
+
+/** Seated hip flexion (rad): the thigh forward to level, a right angle from standing. */
+const SIT_HIP = Math.PI / 2;
+/** Seated knee bend (rad): the shin hangs straight down from that thigh, the foot forward. */
+const SIT_KNEE = Math.PI / 2;
+/** How far the spine tips forward when fully seated (rad): a rider looking along the bars. */
+const SIT_LEAN = 0.18;
+/** Knees a little apart when fully seated, so they clear the vehicle and each other. */
+const SIT_KNEE_OUT = 0.08;
+
+/**
+ * Seated on a vehicle (a scooter, a carpet, a rover). `amount` 0..1: 0 = armsDownPose exactly
+ * (standing idle), 1 = hips and knees bent a right angle, feet forward and flat, the spine tipped
+ * a little forward, both arms forward as if on handlebars. In between it bends down into the seat.
+ *
+ * The seat holds the hips at their standing height. `ground` fades from 1 to 0 with the amount (a
+ * full sit is not standing on its feet: ground contact would drop the hips until the soles hit the
+ * floor, and the seat would sink to about knee height) and `lift` stays 0, so bodyLift is 0 when
+ * fully seated and the hip joint stays at hipY. Parent the model to the vehicle; the feet hang at
+ * about knee height, where the pegs are.
+ */
+export function sitPose(amount: number, out: HumanoidPose): HumanoidPose {
+   armsDownPose(out);
+   const k = clamp01(amount);
+   if (k === 0) return out;
+   out.ground = 1 - k;
+   out.lift = 0;
+   for (let side = 1; side >= -1; side -= 2) {
+      setLeg(out, side, SIT_HIP * k, SIT_KNEE_OUT * k);
+      setKnee(out, side, SIT_KNEE * k);
+      levelFoot(out, side);
+      // from the hanging arm: forward and a little out, a short elbow bend so the hand
+      // stays at the bar (a deep bend folds the forearm up past the shoulder)
+      setArm(out, side, 1.2 * k, 0.28 * k);
+      setElbow(out, side, ARMS_DOWN_ELBOW + 0.4 * k);
+   }
+   setTrunk(out, BONE.spine, SIT_LEAN * k);
+   setTrunk(out, BONE.chest, 0.08 * k);
+   setTrunk(out, BONE.head, -0.1 * k);
+   return out;
+}
+
+/** Idle-float hip pitch (rad): a relaxed lean, legs still nearly under the body. */
+const SWIM_PITCH_IDLE = 0.22;
+/** Hip pitch at a full glide (rad), so the legs trail and the body leads. */
+const SWIM_PITCH_SWIM = 0.62;
+/** Extra spine pitch on top of the hips at a full glide. */
+const SWIM_SPINE = 0.28;
+/** Flutter-kick thigh swing (rad) at amount 1. Phase + π swaps the legs. */
+const SWIM_KICK = 0.34;
+/** A flutter keeps the knee nearly straight; this is the most it bends (rad). */
+const SWIM_KNEE = 0.16;
+
+/**
+ * A diver gliding forward. `phase` (rad) drives a flutter kick: the left leg leads at π/2, and
+ * phase + π is the mirror image, as in the walk. `amount` 0..1: 0 = an idle float (a gentle
+ * forward pitch, legs straight, arms along the body), 1 = the full glide (hips and spine pitched
+ * further forward, a stronger flutter, the arms a little more forward along the body).
+ *
+ * `ground` is 0: the water carries the diver, and planting the soles would stand them up.
+ * `lift` stays 0. The soles stay flat (levelFoot), so a float just above the floor does not clip;
+ * a deep glide is the model's position in the water, not a lift.
+ */
+export function swimPose(phase: number, amount: number, out: HumanoidPose): HumanoidPose {
+   armsDownPose(out);
+   const a = clamp01(amount);
+   out.ground = 0;
+   out.lift = 0;
+   const pitch = lerp(SWIM_PITCH_IDLE, SWIM_PITCH_SWIM, a);
+   setTrunk(out, BONE.hips, pitch);
+   setTrunk(out, BONE.spine, SWIM_SPINE * a + 0.08);
+   setTrunk(out, BONE.chest, 0.1 * a);
+   // the head looks along the glide, not straight at the floor
+   setTrunk(out, BONE.neck, -0.35 * pitch);
+   setTrunk(out, BONE.head, -0.25 * pitch);
+   const s = Math.sin(phase);
+   for (let i = 0; i < 2; i++) {
+      const side = i === 0 ? 1 : -1;
+      const ls = side * s;
+      setLeg(out, side, SWIM_KICK * a * ls, 0.04);
+      setKnee(out, side, 0.04 + SWIM_KNEE * a * Math.max(0, ls));
+      levelFoot(out, side);
+      // along the body, slightly forward; a small pull opposite the leg on that side
+      setArm(out, side, 0.18 + 0.32 * a - 0.12 * a * ls, 0.05);
+      setElbow(out, side, ARMS_DOWN_ELBOW + 0.2 * a);
+   }
    return out;
 }
 
