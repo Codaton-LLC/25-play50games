@@ -332,6 +332,8 @@ export const MODEL_MANIFEST: readonly string[] = [
    // monster-kitchen slimeCake (2026-10-25): extra floor decor drawn only on levels 4 and 5
    // (Dinner Rush / Grand Feast), Gen-2.5-Medium, optimized with tools/hyper3d
    "/models/3d/monster-kitchen/slimeCake.glb",
+   // robot-factory (2026-10-25): powerCore decor on levels 4 and 5
+   "/models/3d/robot-factory/powerCore.glb",
 ];
 
 const LISTED: ReadonlySet<string> = new Set(MODEL_MANIFEST);

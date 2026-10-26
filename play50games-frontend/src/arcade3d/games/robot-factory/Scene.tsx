@@ -7,15 +7,18 @@ import { useFrame, useThree, type RootState } from "@react-three/fiber";
 import { useLevel } from "@/arcade3d/core/level";
 import { Vector3 } from "three";
 import CameraRig from "@/arcade3d/core/CameraRig";
+import { InstancedModel } from "@/arcade3d/core/assets";
 import { playSfx, startLoop, useMuted, type LoopHandle } from "@/arcade3d/core/audio";
 import { useFx } from "@/arcade3d/core/fx";
 import { useGameTime } from "@/arcade3d/core/gameTime";
 import { useInput } from "@/arcade3d/core/input";
 import { randomSeed } from "@/arcade3d/core/math";
 import { useQuality } from "@/arcade3d/core/quality";
+import { Instanced } from "@/arcade3d/core/render";
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { useFittedView } from "@/arcade3d/core/useFittedView";
 import { useRunFrame } from "@/arcade3d/core/useRunFrame";
+import { ASSETS, POWER_CORE_DRAWN, POWER_CORE_FALLBACK, POWER_CORE_SPOTS } from "./assets";
 import { Bay } from "./Bay";
 import { BlueprintBoard } from "./BlueprintBoard";
 import { CAMERA, FOCUS, viewFor } from "./camera";
@@ -105,6 +108,21 @@ function FittedCamera() {
       [view.offset]
    );
    return <CameraRig camera={{ position, fov: CAMERA.fov, lookAt: CAMERA.lookAt }} offset={view.offset} shift={view.shift} damping={5} />;
+}
+
+function PowerCores() {
+   return (
+      <InstancedModel
+         asset={ASSETS.powerCore}
+         spots={POWER_CORE_SPOTS}
+         fallback={
+            <Instanced spots={POWER_CORE_FALLBACK} name="power-cores-fallback">
+               <cylinderGeometry args={[POWER_CORE_DRAWN.width / 2, POWER_CORE_DRAWN.width / 2, POWER_CORE_DRAWN.height, 16]} />
+               <meshStandardMaterial color={COLORS.rim} roughness={0.4} metalness={0.5} />
+            </Instanced>
+         }
+      />
+   );
 }
 
 function LevelScene({ config }: { config: FactoryLevel }) {
@@ -259,6 +277,7 @@ function LevelScene({ config }: { config: FactoryLevel }) {
          {run.level.sorter ? <SortBins /> : <BlueprintBoard run={run} />}
          <Parts run={run} look={look} />
          <Robot run={run} />
+         {run.level.sorter && <PowerCores />}
       </>
    );
 }
