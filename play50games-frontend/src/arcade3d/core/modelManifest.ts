@@ -234,6 +234,21 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/mars-rover-mission/marsMesaRock.glb",
    "/models/3d/mars-rover-mission/marsBoulder.glb",
    "/models/3d/mars-rover-mission/marsMesaTall.glb",
+   // submarine-treasure-dive (gate, 2026-10-25): menu1 ready set, optimized
+   "/models/3d/submarine-treasure-dive/miniSubmarine.glb",
+   "/models/3d/submarine-treasure-dive/amphora.glb",
+   "/models/3d/submarine-treasure-dive/anchor.glb",
+   "/models/3d/submarine-treasure-dive/pearlShellV2.glb",
+   "/models/3d/submarine-treasure-dive/rockArch.glb",
+   "/models/3d/submarine-treasure-dive/ruinColumn.glb",
+   "/models/3d/submarine-treasure-dive/shipwreckI.glb",
+   "/models/3d/submarine-treasure-dive/jellyfish.glb",
+   "/models/3d/submarine-treasure-dive/subDock.glb",
+   "/models/3d/submarine-treasure-dive/coralI.glb",
+   "/models/3d/submarine-treasure-dive/coralBranch.glb",
+   "/models/3d/submarine-treasure-dive/seaweedKelp.glb",
+   "/models/3d/submarine-treasure-dive/tropicalFish.glb",
+   "/models/3d/submarine-treasure-dive/aquariumRock.glb",
    // Menu 1 jungle-bridge-run (2026-10-25): the ready menu1-jungle-bridge-run GLBs (templePillarV2 and
    // ruinGateR, not the V1s; jungleLogSingle, jungleFern and volcanoBackdrop from the still-needed list are
    // in the ready folder now), copied as optimized; fits in games/jungle-bridge-run/assets.ts. The explorer

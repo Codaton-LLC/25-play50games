@@ -728,12 +728,19 @@
     "submarine-treasure-dive": {
       "title": "Submarine Treasure Dive",
       "kind": "points",
-      "max_score": 3000,
-      "min_duration_ms": 10000,
-      "max_duration_ms": 300000,
-      "base": 3000,
-      "max_pps": 3000,
-      "enabled": false
+      "max_score": 1180,
+      "min_duration_ms": 4000,
+      "max_duration_ms": 120000,
+      "base": 600,
+      "max_pps": 42,
+      "enabled": false,
+      "levels": [
+        { "title": "Shallow Reef", "max_score": 1180, "min_duration_ms": 4000, "max_duration_ms": 120000, "base": 600, "max_pps": 42 },
+        { "title": "Coral Reef", "max_score": 1520, "min_duration_ms": 4000, "max_duration_ms": 150000, "base": 800, "max_pps": 40 },
+        { "title": "Sunken Ship", "max_score": 1880, "min_duration_ms": 4000, "max_duration_ms": 180000, "base": 1000, "max_pps": 38 },
+        { "title": "Deep Cave", "max_score": 1960, "min_duration_ms": 4000, "max_duration_ms": 180000, "base": 1200, "max_pps": 32 },
+        { "title": "Ancient Ruins", "max_score": 2780, "min_duration_ms": 4000, "max_duration_ms": 240000, "base": 1600, "max_pps": 32 }
+      ]
     },
     "mars-rover-mission": {
       "title": "Mars Rover Mission",
