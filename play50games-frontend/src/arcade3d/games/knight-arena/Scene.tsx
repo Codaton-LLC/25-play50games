@@ -303,7 +303,7 @@ function ArenaPlay(): React.ReactElement {
             offset={view.offset}
             shift={view.shift}
          />
-         <Arena />
+         <Arena level={config.id} />
          <Dummies runRef={runRef} />
 
          <group ref={knightGroupRef}>
