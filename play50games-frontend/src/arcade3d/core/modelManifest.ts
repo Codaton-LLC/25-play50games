@@ -162,6 +162,14 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/flooded-ruins-escape/m2RuinWaterSpout.glb",
    "/models/3d/flooded-ruins-escape/m2StoneLever.glb",
    "/models/3d/flooded-ruins-escape/m2SunkenTempleBg.glb",
+   // Menu 2 game 05 (Cloud Hopper): cloud props from ~/.play50/hyper3d/ready/menu2/cloud-hopper
+   "/models/3d/cloud-hopper/m2CloudCastleBg.glb",
+   "/models/3d/cloud-hopper/m2CloudPlatformV2.glb",
+   "/models/3d/cloud-hopper/m2Feather.glb",
+   "/models/3d/cloud-hopper/m2RainbowBridge.glb",
+   "/models/3d/cloud-hopper/m2SkyStar.glb",
+   "/models/3d/cloud-hopper/m2StormCloud.glb",
+   "/models/3d/cloud-hopper/m2WindRing.glb",
    // P-121 dev adoptions (2026-10-25): V2 replacements and Group D variety whose QA verdict
    // starts with OK. Optimized GLBs copied in; not re-optimized. Live games are untouched.
    "/models/3d/shopping-cart/supermarketShelfV2.glb",

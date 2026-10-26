@@ -17,7 +17,10 @@ const wp = JSON.parse(fs.readFileSync(WP_JSON, "utf8")) as {
 describe("arcade registry", () => {
    it("has every slug exactly once, in order", () => {
       expect(ARCADE_GAMES.map((g) => g.slug)).toEqual([...ARCADE_SLUGS]);
-      expect(ARCADE_GAMES.map((g) => g.order)).toEqual(ARCADE_SLUGS.map((_s, i) => i + 1));
+      const orders = ARCADE_GAMES.map((g) => g.order);
+      expect(orders.slice(0, 50)).toEqual(ARCADE_SLUGS.slice(0, 50).map((_s, i) => i + 1));
+      // Menu 2 leaves 54 free for lava-pillar-jump (another branch)
+      expect(orders.slice(50)).toEqual([51, 52, 53, 55]);
    });
 
    it("WordPress arcade-games.json has the same games", () => {
