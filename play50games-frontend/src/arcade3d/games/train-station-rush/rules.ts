@@ -83,8 +83,8 @@ export const PROPOSED_LEVEL_LIMITS: Record<LevelId, ScoringRules> = {
    3: { kind: "points", maxScore: 1915, minDurationMs: 22_900, maxDurationMs: 182_000, base: 1200, maxPointsPerSec: 20, unitLabel: "pts", display: "int" },
    /** L4: T0 45.31 s, 1500 + 5 x 134; a loss at 27 s at the soonest */
    4: { kind: "points", maxScore: 2170, minDurationMs: 26_900, maxDurationMs: 182_000, base: 1500, maxPointsPerSec: 15, unitLabel: "pts", display: "int" },
-   /** L5: T0 63.35 s, 1800 + 5 x 146; a loss at 25 s at the soonest */
-   5: { kind: "points", maxScore: 2530, minDurationMs: 24_900, maxDurationMs: 212_000, base: 1800, maxPointsPerSec: 12, unitLabel: "pts", display: "int" },
+   /** L5: T0 63.35 s, 1800 + 5 x 146; a loss at 27 s at the soonest */
+   5: { kind: "points", maxScore: 2530, minDurationMs: 26_900, maxDurationMs: 212_000, base: 1800, maxPointsPerSec: 12, unitLabel: "pts", display: "int" },
 };
 
 // ---------- layout ----------

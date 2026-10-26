@@ -11,7 +11,7 @@ const LEVELS: readonly LevelMeta[] = [
    { id: 2, title: LEVEL_TITLES[2], scoring: { ...PTS, maxScore: 1520, minDurationMs: 25_900, maxDurationMs: 152_000, base: 900, maxPointsPerSec: 24 } },
    { id: 3, title: LEVEL_TITLES[3], scoring: { ...PTS, maxScore: 1915, minDurationMs: 22_900, maxDurationMs: 182_000, base: 1200, maxPointsPerSec: 20 } },
    { id: 4, title: LEVEL_TITLES[4], scoring: { ...PTS, maxScore: 2170, minDurationMs: 26_900, maxDurationMs: 182_000, base: 1500, maxPointsPerSec: 15 } },
-   { id: 5, title: LEVEL_TITLES[5], scoring: { ...PTS, maxScore: 2530, minDurationMs: 24_900, maxDurationMs: 212_000, base: 1800, maxPointsPerSec: 12 } },
+   { id: 5, title: LEVEL_TITLES[5], scoring: { ...PTS, maxScore: 2530, minDurationMs: 26_900, maxDurationMs: 212_000, base: 1800, maxPointsPerSec: 12 } },
 ];
 
 export const trainStationRushMeta: ArcadeGameMeta = {

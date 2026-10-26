@@ -27,7 +27,7 @@ export const LEVELS: Record<LevelId, StationLevel> = {
    2: { platforms: 4, tasks: 6, passengerShare: 0.34, parallel: 1, arriveS: 4, dwellS: 22, crowd: 0, durationMs: 150_000, lighting: "day", background: "#7dd3fc" },
    3: { platforms: 4, tasks: 8, passengerShare: 0.4, parallel: 1, arriveS: 3, dwellS: 20, crowd: 6, durationMs: 180_000, lighting: "indoor", background: "#475569" },
    4: { platforms: 4, tasks: 10, passengerShare: 0.4, parallel: 2, arriveS: 3, dwellS: 24, crowd: 8, durationMs: 180_000, lighting: "sunset", background: "#fdba74" },
-   5: { platforms: 6, tasks: 12, passengerShare: 0.5, parallel: 2, arriveS: 3, dwellS: 22, crowd: 10, durationMs: 210_000, lighting: "night", background: "#0f172a" },
+   5: { platforms: 6, tasks: 12, passengerShare: 0.5, parallel: 2, arriveS: 3, dwellS: 24, crowd: 10, durationMs: 210_000, lighting: "night", background: "#0f172a" },
 };
 
 export const LEVEL_TITLES: Record<LevelId, string> = {

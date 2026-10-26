@@ -738,7 +738,7 @@
         { "title": "4 Platforms", "max_score": 1520, "min_duration_ms": 25900, "max_duration_ms": 152000, "base": 900, "max_pps": 24 },
         { "title": "Central Station", "max_score": 1915, "min_duration_ms": 22900, "max_duration_ms": 182000, "base": 1200, "max_pps": 20 },
         { "title": "Rush Hour", "max_score": 2170, "min_duration_ms": 26900, "max_duration_ms": 182000, "base": 1500, "max_pps": 15 },
-        { "title": "Mega Station", "max_score": 2530, "min_duration_ms": 24900, "max_duration_ms": 212000, "base": 1800, "max_pps": 12 }
+        { "title": "Mega Station", "max_score": 2530, "min_duration_ms": 26900, "max_duration_ms": 212000, "base": 1800, "max_pps": 12 }
       ]
     },
     "pizza-kitchen-3d": {

@@ -151,10 +151,11 @@ describe("station levels: the simulation reads every level knob (mutation probes
             expect(trainIn(task, arriveS - 0.01)).toBe(false);
             expect(trainIn(task, arriveS + 0.01)).toBe(true);
             const input = idleInput();
-            let missedAt = -1;
-            while (missedAt < 0 && run.time < 60) {
-               if (step(run, input, 1 / 60, 100_000).missed === i) missedAt = run.time;
-            }
+            // two open tasks can leave in the same frame (ev.missed names one): read the task itself,
+            // and stop once the run is over (step no longer advances time then)
+            while (task.state !== "missed" && !run.over && run.time < 60) step(run, input, 1 / 60, 100_000);
+            expect(task.state).toBe("missed");
+            const missedAt = task.doneAt;
             expect(missedAt).toBeGreaterThanOrEqual(arriveS + dwellS - 1e-9);
             expect(missedAt).toBeLessThan(arriveS + dwellS + 1 / 60 + 1e-9);
          }

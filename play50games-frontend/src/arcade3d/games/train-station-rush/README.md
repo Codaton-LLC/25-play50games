@@ -57,7 +57,7 @@ number). Carry the bag, or walk the passenger, to that platform's boarding pad w
 | 2 | 4 Platforms | 4 | 6 | 2 | 1 | 4 / 22 s | 0 | 150 s | day |
 | 3 | Central Station | 4 | 8 | 3 | 1 | 3 / 20 s | 6 | 180 s | indoor |
 | 4 | Rush Hour | 4 | 10 | 4 | 2 | 3 / 24 s | 8 | 180 s | sunset |
-| 5 | Mega Station | 6 | 12 | 6 | 2 | 3 / 22 s | 10 | 210 s | night |
+| 5 | Mega Station | 6 | 12 | 6 | 2 | 3 / 24 s | 10 | 210 s | night |
 
 Level 1 is the spec's base game. Difficulty is monotone (platforms, tasks, passengers, tasks open at once and the crowd
 never drop; the clock per task shrinks 30 → 25 → 22.5 → 18 → 17.5 s). Only a win clears a level (`clearScore` omitted).
@@ -86,7 +86,7 @@ of any run, less 0.1 s: a loss needs a train to leave (`arriveS + dwellS`), a wi
 | 2 | 26.00 | 26.00 | 900 | 24 | 1520 | 25 900 / 152 000 |
 | 3 | 36.30 | 23.00 | 1200 | 20 | 1915 | 22 900 / 182 000 |
 | 4 | 45.31 | 27.00 | 1500 | 15 | 2170 | 26 900 / 182 000 |
-| 5 | 63.35 | 25.00 | 1800 | 12 | 2530 | 24 900 / 212 000 |
+| 5 | 63.35 | 27.00 | 1800 | 12 | 2530 | 26 900 / 212 000 |
 
 L5 / L1 = 2.28 (≤ 3). Every level offers more than the one before.
 
@@ -105,7 +105,7 @@ Bot runs (40 seeds, 60 Hz; the 200-seed clear rate is asserted in `levels.test.t
 | 2 | 40/40, 1405, 48.5 s | 1465 (96.4 %), 36.5 s |
 | 3 | 40/40, 1760, 67.5 s | 1845 (96.3 %), 50.8 s |
 | 4 | 40/40, 1510, 90.2 s | 2060 (94.9 %), 66.8 s |
-| 5 | 40/40, 1695, 120.2 s | 2035 (80.4 %), 90.7 s |
+| 5 | 40/40, 1695, 120.2 s (at dwell 22 s) | 2035 (80.4 %), 90.7 s |
 
 ## Look
 
@@ -154,5 +154,6 @@ the forearms-forward `carryPose(0)` with a bag (the bag between the forearms), `
   multi-car set and is not used.
 - `travellerNpc.glb` is photoreal with hands in pockets (not a T-pose): unrigged, it waddles; still wanted
   `passengerNpc`. `ticketMachine.glb` has text-like marks (kept at the back wall); still wanted `ticketMachineClean`.
-- Spec deviations (to keep L5 clearable on 99 % of seeds and walks honest): the concourse is 8 m deep (spec 10),
+- Spec deviations (to keep L5 clearable on 99 % of seeds and walks honest): L5's dwell is 24 s (spec 22: with six far
+  platforms and passengers at 3 m/s the honest bot lost 4 of 200 seeds, 200/200 at 24 s); the concourse is 8 m deep (spec 10),
   platforms 2.8 m wide (spec 3) with 2.4 m track beds, every platform has its own track (back-to-back pairs).
