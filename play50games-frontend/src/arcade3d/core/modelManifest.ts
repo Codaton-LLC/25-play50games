@@ -235,6 +235,18 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/postman-3d/holidayTree.glb",
    "/models/3d/shared/trafficLight.glb",
    "/models/3d/shared/dog.glb",
+   // aquarium-cleaner (2026-10-25): menu1 ready set + shared coralI, optimized, character 18k tris
+   "/models/3d/aquarium-cleaner/charDiver.glb",
+   "/models/3d/aquarium-cleaner/aquariumScrubber.glb",
+   "/models/3d/aquarium-cleaner/plasticBottle.glb",
+   "/models/3d/aquarium-cleaner/tropicalFish.glb",
+   "/models/3d/aquarium-cleaner/aquariumCastle.glb",
+   "/models/3d/aquarium-cleaner/aquariumRock.glb",
+   "/models/3d/aquarium-cleaner/filterMachineV3.glb",
+   "/models/3d/aquarium-cleaner/scubaTank.glb",
+   "/models/3d/aquarium-cleaner/shark.glb",
+   "/models/3d/aquarium-cleaner/trashBasket.glb",
+   "/models/3d/aquarium-cleaner/coralI.glb",
    // toy-store-night-shift (2026-10-25): menu1 ready set, optimized, characters 18k tris
    "/models/3d/toy-store-night-shift/charNightGuard.glb",
    "/models/3d/toy-store-night-shift/toyShelfSolidT.glb",

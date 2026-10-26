@@ -847,12 +847,19 @@
     "aquarium-cleaner": {
       "title": "Aquarium Cleaner",
       "kind": "points",
-      "max_score": 3000,
-      "min_duration_ms": 10000,
-      "max_duration_ms": 300000,
-      "base": 3000,
-      "max_pps": 3000,
-      "enabled": false
+      "max_score": 925,
+      "min_duration_ms": 4000,
+      "max_duration_ms": 120000,
+      "base": 450,
+      "max_pps": 52,
+      "enabled": false,
+      "levels": [
+        { "title": "Small Tank", "max_score": 925, "min_duration_ms": 4000, "max_duration_ms": 120000, "base": 450, "max_pps": 52 },
+        { "title": "Tropical Tank", "max_score": 1180, "min_duration_ms": 4000, "max_duration_ms": 150000, "base": 600, "max_pps": 41 },
+        { "title": "Shark Tunnel", "max_score": 1450, "min_duration_ms": 4000, "max_duration_ms": 180000, "base": 750, "max_pps": 46 },
+        { "title": "Giant Aquarium", "max_score": 1580, "min_duration_ms": 4000, "max_duration_ms": 180000, "base": 900, "max_pps": 32 },
+        { "title": "Deep Sea Exhibit", "max_score": 1990, "min_duration_ms": 4000, "max_duration_ms": 210000, "base": 1200, "max_pps": 27 }
+      ]
     },
     "postman-3d": {
       "title": "Postman 3D",
