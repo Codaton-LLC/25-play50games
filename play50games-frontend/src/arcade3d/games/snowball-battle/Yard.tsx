@@ -14,8 +14,9 @@ import { Instanced } from "@/arcade3d/core/render/Instanced";
 import type { InstanceSpot } from "@/arcade3d/core/render/useInstanceMatrices";
 import { BlobShadow } from "@/arcade3d/core/render/BlobShadow";
 import { useCanvasTexture } from "@/arcade3d/core/render/useCanvasTexture";
-import { ASSETS } from "./assets";
+import { ASSETS, IGLOO_DRAWN, IGLOO_SPOTS, SNOWMAN_BIG_DRAWN, SNOWMAN_BIG_SPOTS, VILLAGE_LEVEL_IDS } from "./assets";
 import { COLORS, SnowmanStandIn, drawSnow } from "./Primitives";
+import { useSnowLevel } from "./useSnowLevel";
 import {
    FORT_BLOCKS,
    FORT_CONTACT,
@@ -171,10 +172,56 @@ function Snowman({ run, view }: { run: Run; view: FittedView }) {
    );
 }
 
+/** Igloo stand-in: a half-buried hemisphere at the drawn footprint, used until the GLB is fetched. */
+const IGLOO_FALLBACK_SPOTS = IGLOO_SPOTS.map((s) => ({
+   ...s,
+   sx: IGLOO_DRAWN.width / 2,
+   sy: IGLOO_DRAWN.height,
+   sz: IGLOO_DRAWN.depth / 2,
+}));
+
+function IglooFallback() {
+   return (
+      <Instanced spots={IGLOO_FALLBACK_SPOTS}>
+         <sphereGeometry args={[1, 14, 9, 0, Math.PI * 2, 0, Math.PI / 2]} />
+         <meshStandardMaterial color="#e2e8f0" roughness={0.9} />
+      </Instanced>
+   );
+}
+
+/** Big-snowman stand-in: one stacked sphere lump centred on the drawn height. */
+const SNOWMAN_BIG_FALLBACK_SPOTS = SNOWMAN_BIG_SPOTS.map((s) => ({
+   ...s,
+   y: s.y + SNOWMAN_BIG_DRAWN.height / 2,
+   sx: SNOWMAN_BIG_DRAWN.width / 2,
+   sy: SNOWMAN_BIG_DRAWN.height / 2,
+   sz: SNOWMAN_BIG_DRAWN.depth / 2,
+}));
+
+function SnowmanBigFallback() {
+   return (
+      <Instanced spots={SNOWMAN_BIG_FALLBACK_SPOTS}>
+         <sphereGeometry args={[1, 10, 8]} />
+         <meshStandardMaterial color="#f8fafc" roughness={0.85} />
+      </Instanced>
+   );
+}
+
+/** Levels 4-5 only: igloos and big snowmen behind the far fence, framing the village theme. */
+function Village() {
+   return (
+      <group>
+         <InstancedModel asset={ASSETS.igloo} spots={[...IGLOO_SPOTS]} fallback={<IglooFallback />} />
+         <InstancedModel asset={ASSETS.snowmanBig} spots={[...SNOWMAN_BIG_SPOTS]} fallback={<SnowmanBigFallback />} />
+      </group>
+   );
+}
+
 export default function Yard({ run, view }: { run: Run; view: FittedView }) {
    const snow = useCanvasTexture(512, 512, drawSnow);
    const pines = useMemo(() => pineSpots(run.pines), [run]);
    const banks = useMemo(() => bankSpots(run.pines), [run]);
+   const { id } = useSnowLevel();
    return (
       <group>
          <SkyDome top={COLORS.skyTop} bottom={COLORS.skyBottom} />
@@ -197,6 +244,7 @@ export default function Yard({ run, view }: { run: Run; view: FittedView }) {
          )}
          <InstancedModel asset={ASSETS.pine} spots={pines} fallback={<PineFallback spots={pines} />} />
          <Snowman run={run} view={view} />
+         {VILLAGE_LEVEL_IDS.includes(id) && <Village />}
       </group>
    );
 }

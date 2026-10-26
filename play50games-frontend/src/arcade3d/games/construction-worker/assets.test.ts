@@ -2,12 +2,20 @@
 // and the yellow hard hat on his head: on the head bone through every pose, its dome over the crown.
 // The rig here is in GLB units (rigCharacter draws no scale), so metres are / WORKER_SCALE.
 import { beforeAll, describe, expect, it } from "vitest";
-import { Group, Vector3 } from "three";
+import { existsSync } from "node:fs";
+import { resolve } from "node:path";
+import { Box3, BufferGeometry, Float32BufferAttribute, Group, Mesh, Vector3 } from "three";
+import { modelParts } from "@/arcade3d/core/assets";
+import { hasModel } from "@/arcade3d/core/modelManifest";
 import { bodyLift, createAnchorGroup, createPose } from "@/arcade3d/core/rig";
 import { rigCharacter, type RiggedCharacter } from "@/arcade3d/core/rig/characterChecks";
+import { readCharacterGlb } from "@/arcade3d/core/rig/robotGlb";
+import type { ModelAsset } from "@/arcade3d/core/types";
 import { CLEANER_LANDMARKS, REUSED_ASSETS } from "@/arcade3d/core/sharedAssets";
-import { ASSETS, WORKER_GLB_HEIGHT, WORKER_HAT, WORKER_HEIGHT, WORKER_LANDMARKS, WORKER_SCALE } from "./assets";
+import { ASSETS, MIXER_GLB, MIXER_HEIGHT, MIXER_SPOTS, WORKER_GLB_HEIGHT, WORKER_HAT, WORKER_HEIGHT, WORKER_LANDMARKS, WORKER_SCALE } from "./assets";
+import { inWorkArea } from "./looks";
 import { workerPose } from "./poses";
+import { PILE_A, PILE_R, SLOT_A, SLOT_R } from "./rules";
 
 const CM = 0.01 / WORKER_SCALE;
 /** Primitives' hard hat (createHardHat, metres at scale 1): the dome's centre height and radius. */
@@ -111,6 +119,69 @@ describe("construction-worker character", () => {
          expect(clearance, name).toBeLessThan(0.06);
          // centred on the head, not hanging off the front or the back
          expect(Math.abs(c.z - worker.rig.anchors.head.z) * WORKER_SCALE, name).toBeLessThan(0.03);
+      }
+   });
+});
+
+async function drawnBox(asset: ModelAsset): Promise<Box3> {
+   const { local, node } = await readCharacterGlb(asset.url);
+   const geometry = new BufferGeometry();
+   geometry.setAttribute("position", new Float32BufferAttribute(local, 3));
+   const mesh = new Mesh(geometry);
+   mesh.position.fromArray(node);
+   const root = new Group();
+   root.add(mesh);
+   const parts = modelParts(root, asset);
+   expect(parts).toHaveLength(1);
+   const box = new Box3();
+   const v = new Vector3();
+   for (let i = 0; i < local.length; i += 3) box.expandByPoint(v.set(local[i], local[i + 1], local[i + 2]).applyMatrix4(parts[0].matrix));
+   geometry.dispose();
+   return box;
+}
+
+const rawBox = (asset: ModelAsset) => drawnBox({ ...asset, scale: 1, stretch: undefined, rotationY: 0, yOffset: 0 });
+
+describe("construction-worker models", () => {
+   it("are all in the manifest", () => {
+      for (const asset of Object.values(ASSETS)) expect(hasModel(asset.url), asset.url).toBe(true);
+      expect(ASSETS.cementMixer.url).toBe("/models/3d/construction-worker/cementMixer.glb");
+   });
+
+   it("each asset file exists on disk", () => {
+      for (const asset of Object.values(ASSETS)) {
+         expect(existsSync(resolve("public", asset.url.slice(1))), asset.url).toBe(true);
+      }
+   });
+
+   it("fits the cement mixer to a 1.25 m unit sitting flat on the ground", async () => {
+      expect(existsSync(resolve("public", ASSETS.cementMixer.url.slice(1)))).toBe(true);
+      expect(hasModel(ASSETS.cementMixer.url)).toBe(true);
+      const raw = await rawBox(ASSETS.cementMixer);
+      expect(raw.min.y).toBeCloseTo(0, 2);
+      expect(raw.max.x - raw.min.x).toBeCloseTo(MIXER_GLB.width, 2);
+      expect(raw.max.y - raw.min.y).toBeCloseTo(MIXER_GLB.height, 2);
+      expect(raw.max.z - raw.min.z).toBeCloseTo(MIXER_GLB.depth, 2);
+      const drawn = await drawnBox(ASSETS.cementMixer);
+      expect(drawn.min.y).toBeCloseTo(0, 2);
+      expect(drawn.max.y - drawn.min.y).toBeCloseTo(MIXER_HEIGHT, 2);
+      expect(drawn.max.x - drawn.min.x).toBeCloseTo(MIXER_GLB.width * (MIXER_HEIGHT / MIXER_GLB.height), 2);
+      expect(drawn.max.z - drawn.min.z).toBeCloseTo(MIXER_GLB.depth * (MIXER_HEIGHT / MIXER_GLB.height), 2);
+   });
+
+   it("places cement mixer decor spots strictly outside the play bounds", () => {
+      expect(MIXER_SPOTS.length).toBeGreaterThanOrEqual(2);
+      expect(MIXER_SPOTS.length).toBeLessThanOrEqual(4);
+      for (const spot of MIXER_SPOTS) {
+         expect(inWorkArea(spot.x, spot.z, 0.5), `mixer at (${spot.x}, ${spot.z}) must be outside play area`).toBe(false);
+         expect(Math.hypot(spot.x, spot.z), "clear of crane mast").toBeGreaterThan(4);
+         for (const a of PILE_A) {
+            expect(Math.hypot(spot.x - PILE_R * Math.sin(a), spot.z - PILE_R * Math.cos(a)), "clear of pile").toBeGreaterThan(1);
+         }
+         for (const a of SLOT_A) {
+            expect(Math.hypot(spot.x - SLOT_R * Math.sin(a), spot.z - SLOT_R * Math.cos(a)), "clear of slot").toBeGreaterThan(1.5);
+         }
+         expect(Math.hypot(spot.x - 2.6, spot.z - 5.35), "clear of worker").toBeGreaterThan(1);
       }
    });
 });

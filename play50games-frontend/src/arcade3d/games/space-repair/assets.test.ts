@@ -1,10 +1,13 @@
 import { describe, expect, it } from "vitest";
+import { existsSync } from "node:fs";
+import { resolve } from "node:path";
 import { Box3, BufferGeometry, Float32BufferAttribute, Group, Mesh, Vector3 } from "three";
 import { modelParts } from "@/arcade3d/core/assets";
 import { hasModel } from "@/arcade3d/core/modelManifest";
 import { readCharacterGlb } from "@/arcade3d/core/rig/robotGlb";
 import { ASTRONAUT_LANDMARKS, SHARED_GLB_SIZE } from "@/arcade3d/core/sharedAssets";
-import { ASSETS, fitStationScene, SUIT_HEIGHT, SUIT_SCALE } from "./assets";
+import { ASSETS, DISH_DRAWN, DISH_GLB, DISH_HEIGHT, DISH_LEVELS, DISH_SCALE, DISH_SPOTS, fitStationScene, SUIT_HEIGHT, SUIT_SCALE } from "./assets";
+import { PLAY_BOUNDS } from "./looks";
 
 async function meshFixture(url: string) {
    const glb = await readCharacterGlb(url), geometry = new BufferGeometry();
@@ -62,5 +65,45 @@ describe("real mesh fitting", () => {
          const raw = fittedBounds(root, ASSETS.station).box;
          console.info("Space Repair station raw bounds for shared constants", { min: raw.min.toArray(), max: raw.max.toArray(), scale: fitted.scale });
       } finally { geometry.dispose(); }
+   });
+});
+
+describe("adopted satelliteDish decor (levels 4-5 only)", () => {
+   it("is in the manifest and the GLB file exists", () => {
+      expect(hasModel(ASSETS.dish.url)).toBe(true);
+      expect(ASSETS.dish.url).toBe("/models/3d/space-repair/satelliteDish.glb");
+      expect(existsSync(resolve("public", ASSETS.dish.url.slice(1)))).toBe(true);
+   });
+
+   it("measures the dish GLB and draws it 2.2 m tall with its feet on the deck", async () => {
+      const { root, geometry } = await meshFixture(ASSETS.dish.url);
+      try {
+         const raw = fittedBounds(root, { ...ASSETS.dish, scale: 1 }).box;
+         expect(raw.min.y).toBeCloseTo(0, 2);
+         expect(raw.max.x - raw.min.x).toBeCloseTo(DISH_GLB.width, 2);
+         expect(raw.max.y - raw.min.y).toBeCloseTo(DISH_GLB.height, 2);
+         expect(raw.max.z - raw.min.z).toBeCloseTo(DISH_GLB.depth, 2);
+         const drawn = fittedBounds(root, ASSETS.dish).box;
+         expect(drawn.min.y).toBeCloseTo(0, 3);
+         expect(drawn.max.y - drawn.min.y).toBeCloseTo(DISH_HEIGHT, 3);
+         expect(drawn.max.x - drawn.min.x).toBeCloseTo(DISH_DRAWN.width, 3);
+         expect(drawn.max.z - drawn.min.z).toBeCloseTo(DISH_DRAWN.depth, 3);
+         expect(ASSETS.dish.scale).toBeCloseTo(DISH_SCALE, 6);
+      } finally { geometry.dispose(); }
+   });
+
+   it("gates the dishes to levels 4 and 5 and keeps every spot outside the play bounds", () => {
+      expect([...DISH_LEVELS]).toEqual([4, 5]);
+      expect(DISH_SPOTS.length).toBeGreaterThanOrEqual(2);
+      expect(DISH_SPOTS.length).toBeLessThanOrEqual(4);
+      const radius = Math.max(DISH_DRAWN.width, DISH_DRAWN.depth) / 2;
+      for (const spot of DISH_SPOTS) {
+         // The spot's footprint circle must clear the ±STATION.edge arena square.
+         const dx = Math.max(PLAY_BOUNDS.minX - spot.x, 0, spot.x - PLAY_BOUNDS.maxX);
+         const dz = Math.max(PLAY_BOUNDS.minZ - spot.z, 0, spot.z - PLAY_BOUNDS.maxZ);
+         expect(Math.hypot(dx, dz), `dish spot (${spot.x}, ${spot.z})`).toBeGreaterThan(radius);
+         // Grounded on the deck, feet at y = 0.
+         expect(spot.y).toBe(0);
+      }
    });
 });

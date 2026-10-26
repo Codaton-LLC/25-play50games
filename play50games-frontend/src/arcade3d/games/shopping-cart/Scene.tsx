@@ -18,7 +18,7 @@ import { HumanoidModel, createPose, useHumanoidPose } from "@/arcade3d/core/rig"
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { useFittedView } from "@/arcade3d/core/useFittedView";
 import { useRunFrame } from "@/arcade3d/core/useRunFrame";
-import { ASSETS, BAKERY_DRAWN, BAKERY_FALLBACK_SPOTS, BAKERY_HEIGHT, BAKERY_SPOTS, SHELF_BAYS } from "./assets";
+import { ASSETS, BAKERY_DRAWN, BAKERY_FALLBACK_SPOTS, BAKERY_HEIGHT, BAKERY_SPOTS, SCRUBBER_DRAWN, SCRUBBER_FALLBACK_SPOTS, SCRUBBER_HEIGHT, SCRUBBER_SPOTS, SHELF_BAYS } from "./assets";
 import { STORE_BOUNDS, viewFor } from "./camera";
 import { Decor } from "./Decor";
 import { COLORS, FLOOR } from "./looks";
@@ -53,7 +53,7 @@ export default function Scene() {
    const fx = useFx();
 
    // Seeded run state created once per run
-   const { config } = useLevel<ShoppingCartLevel>();
+   const { config, id: levelId } = useLevel<ShoppingCartLevel>();
    const [run] = useState<RunState>(() => createRun(randomSeed(), config));
 
    // Live point for camera look-ahead
@@ -199,6 +199,21 @@ export default function Scene() {
 
          {/* Supermarket Interior & Parking Lot Exterior Environment */}
          <StoreEnvironment run={run} />
+
+         {/* Floor scrubbers parked on the north apron: the after-hours cleaning crew,
+             drawn only on levels 4 (Superstore) and 5 (Closing-Time Rush). */}
+         {(levelId === 4 || levelId === 5) && (
+            <InstancedModel
+               asset={ASSETS.scrubber}
+               spots={SCRUBBER_SPOTS}
+               fallback={
+                  <Instanced spots={SCRUBBER_FALLBACK_SPOTS} name="scrubber-fallback">
+                     <boxGeometry args={[SCRUBBER_DRAWN.width, SCRUBBER_HEIGHT, SCRUBBER_DRAWN.depth]} />
+                     <meshStandardMaterial color="#14b8a6" roughness={0.5} />
+                  </Instanced>
+               }
+            />
+         )}
 
          {/* Cart + Pusher Runner Coupled Group */}
          <CartRunner run={run} />

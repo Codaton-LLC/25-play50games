@@ -11,8 +11,11 @@ import {
 } from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import { scaledCount, useQuality } from "@/arcade3d/core/quality";
+import { InstancedModel } from "@/arcade3d/core/assets";
 import { Instanced, type InstanceSpot } from "@/arcade3d/core/render";
+import { ASSETS, TRUNK_DRAWN, TRUNK_SPOTS } from "./assets";
 import { COLORS, decorOf, type DecorSpot } from "./looks";
+import { useGhostLevel } from "./useGhostLevel";
 
 function asSpots(list: readonly DecorSpot[]): InstanceSpot[] {
    return list.map((s) => ({
@@ -33,6 +36,24 @@ function asSpots(list: readonly DecorSpot[]): InstanceSpot[] {
  */
 export default function Decor() {
    const quality = useQuality();
+   const { id } = useGhostLevel();
+   // The attic trunk is the Attic (4) and Whole Mansion (5) grounds decor; other levels keep the old look.
+   const atticTrunks = id === 4 || id === 5;
+
+   const trunkFallbackSpots = useMemo<InstanceSpot[]>(
+      () =>
+         TRUNK_SPOTS.map((s) => ({
+            // The unit fallback box is centred; lift it so it sits on the ground like the GLB (base at y = 0).
+            x: s.x,
+            y: s.y + TRUNK_DRAWN.height / 2,
+            z: s.z,
+            rotY: s.rotY,
+            sx: TRUNK_DRAWN.width,
+            sy: TRUNK_DRAWN.height,
+            sz: TRUNK_DRAWN.depth,
+         })),
+      []
+   );
 
    const geo = useMemo(() => {
       // 1. Spooky bare tree with twisted trunk and crooked branches
@@ -164,6 +185,20 @@ export default function Decor() {
                <primitive object={geo.hill} attach="geometry" />
                <meshStandardMaterial color={COLORS.hillNear} roughness={1} flatShading />
             </Instanced>
+         )}
+
+         {/* Attic trunks on the grounds, levels 4-5 only (Attic / Whole Mansion) */}
+         {atticTrunks && (
+            <InstancedModel
+               asset={ASSETS.trunk}
+               spots={TRUNK_SPOTS}
+               fallback={
+                  <Instanced spots={trunkFallbackSpots} name="attic-trunks">
+                     <boxGeometry args={[1, 1, 1]} />
+                     <meshStandardMaterial color={COLORS.woodDesk} roughness={0.85} />
+                  </Instanced>
+               }
+            />
          )}
 
          {/* The Moon */}

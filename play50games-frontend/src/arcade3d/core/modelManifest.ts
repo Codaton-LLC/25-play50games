@@ -110,6 +110,9 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/knight-arena/shield.glb",
    "/models/3d/alien-farm/ufo.glb",
    "/models/3d/space-repair/stationModule.glb",
+   // space-repair decor (2026-10-25): comms dish prop for levels 4-5 (External Platform /
+   // Station Emergency), drawn by games/space-repair only there; 1500 tris
+   "/models/3d/space-repair/satelliteDish.glb",
    "/models/3d/shared/snowman.glb",
    "/models/3d/dino-egg-rescue/volcano.glb",
    "/models/3d/treasure-island/shovel.glb",
@@ -119,6 +122,8 @@ export const MODEL_MANIFEST: readonly string[] = [
    // Gen-2.5-Medium, 18k tris, static T-pose for the core auto-rig
    "/models/3d/ghost-vacuum/hunter.glb",
    "/models/3d/ghost-vacuum/candelabra.glb",
+   // ghost-vacuum attic trunk (2026-10-25): K-g2 decor for levels 4-5 (Attic / Whole Mansion)
+   "/models/3d/ghost-vacuum/atticTrunk.glb",
    "/models/3d/rocket-landing/landingPad.glb",
    // zoo-escape props (2026-10-25): batch 5 part A adoptions, Gen-2.5-Medium, 1500-3000 tris,
    // optimized with tools/hyper3d (kiosk and tower bake in their canopy / platform railing)
@@ -138,7 +143,12 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/luggage-rush/hardCaseTeal.glb",
    "/models/3d/zoo-escape/zooRocks.glb",
    "/models/3d/treasure-island/beachRocks.glb",
+   "/models/3d/treasure-island/jungleTotem.glb",
    "/models/3d/penguin-slide/iceArch.glb",
+   // penguin-slide level 4-5 decor (2026-10-25): Group D adoptions, Gen-2.5-Medium, 1500-3000 tris,
+   // optimized with tools/hyper3d; drawn only on Aurora Run (4) and Glacier Sprint (5)
+   "/models/3d/penguin-slide/auroraCrystal.glb",
+   "/models/3d/penguin-slide/glacierChunk.glb",
    "/models/3d/mini-golf/golfCastle.glb",
    // Menu 1 haunted-mansion-keys (2026-10-25): the ready menu1-haunted-mansion-keys GLBs (wallLeverV2,
    // not wallLever), plus the shared ready furniture; fits measured in
@@ -371,6 +381,26 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/taxi-rush-3d/townhouseBlock.glb",
    "/models/3d/taxi-rush-3d/cornerShop.glb",
    "/models/3d/taxi-rush-3d/busStop.glb",
+   // snowball-battle village decor (2026-10-25): extra Hyper3D props drawn only on levels 4-5
+   // (Ice Village, Championship Arena), behind the yard's far fence
+   "/models/3d/snowball-battle/igloo.glb",
+   "/models/3d/snowball-battle/snowmanBig.glb",
+   // dino-egg-rescue lava rock (2026-10-25): batch-5 companion decor (Hyper3D), drawn only on
+   // the volcanic levels 4-5 (Volcanic Pass / Dino Sanctuary) outside the play bounds
+   "/models/3d/dino-egg-rescue/lavaRock.glb",
+   // rocket-landing habitat dome (2026-10-25): batch 5 adoption, Gen-2.5-Medium, ~5.8k tris;
+   // outpost decor drawn only on levels 4-5 (rocket-landing HABITAT_DOME_SPOTS)
+   "/models/3d/rocket-landing/habitatDome.glb",
+   // shopping-cart props (2026-10-25): batch 5 part A adoptions, Gen-2.5-Medium, 1500-3000 tris,
+   // optimized GLBs copied in, not re-optimized; the floor scrubber is level 4-5 decor only
+   "/models/3d/shopping-cart/floorScrubber.glb",
+   // monster-kitchen slimeCake (2026-10-25): extra floor decor drawn only on levels 4 and 5
+   // (Dinner Rush / Grand Feast), Gen-2.5-Medium, optimized with tools/hyper3d
+   "/models/3d/monster-kitchen/slimeCake.glb",
+   // robot-factory (2026-10-25): powerCore decor on levels 4 and 5
+   "/models/3d/robot-factory/powerCore.glb",
+   // zoo-escape extra decor (levels 4-5)
+   "/models/3d/zoo-escape/zooFountain.glb",
 ];
 
 const LISTED: ReadonlySet<string> = new Set(MODEL_MANIFEST);

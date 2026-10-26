@@ -15,6 +15,8 @@ import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js
 import { useGameTime } from "@/arcade3d/core/gameTime";
 import { scaledCount, useQuality } from "@/arcade3d/core/quality";
 import { DynamicInstanced, Instanced, type InstanceSpot } from "@/arcade3d/core/render";
+import { Model } from "@/arcade3d/core/assets";
+import { ASSETS, LAVA_ROCK_SPOTS } from "./assets";
 import {
    CLOUD_DRIFT,
    COLORS,
@@ -23,6 +25,7 @@ import {
    pterosaurPosition,
    type DecorSpot,
 } from "./looks";
+import { useDinoLevel } from "./useDinoLevel";
 
 function asSpots(list: readonly DecorSpot[]): InstanceSpot[] {
    return list.map((spot) => ({
@@ -37,12 +40,24 @@ function asSpots(list: readonly DecorSpot[]): InstanceSpot[] {
 }
 
 /**
+ * Fallback for the lava rock GLB: a squashed faceted boulder matching the fitted footprint
+ * (1.76 x 0.70 x 1.8 m), like the instanced volcanic rocks above.
+ */
+const lavaRockFallback = (
+   <mesh position={[0, 0.35, 0]} scale={[0.98, 0.39, 1]}>
+      <icosahedronGeometry args={[0.9, 0]} />
+      <meshStandardMaterial color={COLORS.volcanoRock} flatShading roughness={0.9} />
+   </mesh>
+);
+
+/**
  * Prehistoric jungle surroundings outside the play area:
  * palms, ferns, volcanic rocks, distant volcano silhouettes, clouds, and soaring pterosaurs.
  */
 export function Decor({ reduced }: { reduced: boolean }) {
    const quality = useQuality();
    const time = useGameTime();
+   const { id: levelId } = useDinoLevel();
 
    const geo = useMemo(() => {
       // 1. Fern cluster (5 arched fronds)
@@ -241,6 +256,19 @@ export function Decor({ reduced }: { reduced: boolean }) {
                <meshStandardMaterial color={COLORS.volcanoRock} flatShading roughness={0.9} />
             </Instanced>
          )}
+
+         {/* Lava rock boulders: levels 4 (Volcanic Pass) and 5 (Dino Sanctuary) only */}
+         {levelId >= 4 &&
+            LAVA_ROCK_SPOTS.map((spot, i) => (
+               <group
+                  key={i}
+                  position={[spot.x, 0, spot.z]}
+                  rotation={[0, spot.rotY, 0]}
+                  scale={spot.scale}
+               >
+                  <Model asset={ASSETS.lavaRock} fallback={lavaRockFallback} />
+               </group>
+            ))}
 
          {/* Distant Volcano Silhouettes in horizon */}
          {volcanoes.length > 0 && (

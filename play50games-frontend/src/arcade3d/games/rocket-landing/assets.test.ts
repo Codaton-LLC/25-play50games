@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import { existsSync } from "node:fs";
+import { resolve } from "node:path";
 import { BufferGeometry, Float32BufferAttribute, Group, Mesh, Vector3, Box3 } from "three";
 import { modelParts } from "@/arcade3d/core/assets";
 import { readCharacterGlb } from "@/arcade3d/core/rig/robotGlb";
@@ -10,6 +12,10 @@ import {
    BELL,
    FEET_3D,
    flattenLandingPadCone,
+   HABITAT_DOME_GLB,
+   HABITAT_DOME_LEVELS,
+   HABITAT_DOME_SCALE,
+   HABITAT_DOME_SPOTS,
    HULL,
    HULL_SKIN,
    LANDING_PAD_GLB,
@@ -18,6 +24,7 @@ import {
    ROCKET_SCALE,
    SUPPORT,
 } from "./assets";
+import { PLAY_AREA, inPlayArea } from "./looks";
 
 describe("measured rocket fit", () => {
    it("pins measured data, fit, bell and support extremes", () => {
@@ -136,6 +143,64 @@ describe("measured landing pad fit", () => {
 
          // And sits at or above the landing deck surface
          expect(beacon.y).toBeGreaterThanOrEqual(PAD_DECK_FOOTPRINT.y);
+      }
+   });
+});
+
+describe("habitat dome outpost decor (levels 4-5)", () => {
+   it("is in the manifest and the GLB file exists", () => {
+      expect(hasModel(ASSETS.habitatDome.url)).toBe(true);
+      expect(existsSync(resolve("public", ASSETS.habitatDome.url.slice(1)))).toBe(true);
+      expect(HABITAT_DOME_LEVELS).toEqual([4, 5]);
+   });
+
+   it("measures the GLB and draws it 3 m wide, 2 m tall, standing on the ground", async () => {
+      const { local, node } = await readCharacterGlb(ASSETS.habitatDome.url);
+      const geometry = new BufferGeometry();
+      geometry.setAttribute("position", new Float32BufferAttribute(local, 3));
+      const mesh = new Mesh(geometry);
+      mesh.position.fromArray(node);
+      const root = new Group();
+      root.add(mesh);
+      // raw GLB bounds (scale 1) pinned to the measured fit
+      const raw = modelParts(root, { ...ASSETS.habitatDome, scale: 1, stretch: undefined, rotationY: 0, yOffset: 0 });
+      expect(raw).toHaveLength(1);
+      const rawBox = new Box3(), point = new Vector3();
+      for (let i = 0; i < local.length; i += 3) {
+         rawBox.expandByPoint(point.set(local[i], local[i + 1], local[i + 2]).applyMatrix4(raw[0].matrix));
+      }
+      expect(rawBox.min.y).toBeCloseTo(0, 3);
+      expect(rawBox.max.x - rawBox.min.x).toBeCloseTo(HABITAT_DOME_GLB.width, 3);
+      expect(rawBox.max.y - rawBox.min.y).toBeCloseTo(HABITAT_DOME_GLB.height, 3);
+      expect(rawBox.max.z - rawBox.min.z).toBeCloseTo(HABITAT_DOME_GLB.depth, 3);
+      // drawn fit through the real asset: 3 m wide, ~2 m tall, base on y = 0
+      const parts = modelParts(root, ASSETS.habitatDome);
+      const box = new Box3();
+      try {
+         for (let i = 0; i < local.length; i += 3) {
+            box.expandByPoint(point.set(local[i], local[i + 1], local[i + 2]).applyMatrix4(parts[0].matrix));
+         }
+         // drawn fit: 3 m wide, ~2 m tall, base on y = 0
+         expect(box.min.y).toBeCloseTo(0, 3);
+         expect(ASSETS.habitatDome.scale).toBeCloseTo(HABITAT_DOME_SCALE, 6);
+         expect(box.max.x - box.min.x).toBeCloseTo(3, 3);
+         expect(box.max.y - box.min.y).toBeCloseTo(2, 2);
+         expect(ASSETS.habitatDome.yOffset).toBe(0);
+      } finally { geometry.dispose(); }
+   });
+
+   it("places 2-4 domes per spot list, every footprint fully outside the play area", () => {
+      expect(HABITAT_DOME_SPOTS.length).toBeGreaterThanOrEqual(2);
+      expect(HABITAT_DOME_SPOTS.length).toBeLessThanOrEqual(4);
+      const drawnRadius = (Math.max(HABITAT_DOME_GLB.width, HABITAT_DOME_GLB.depth) / 2) * HABITAT_DOME_SCALE;
+      for (const spot of HABITAT_DOME_SPOTS) {
+         const r = drawnRadius * spot.scale;
+         // the centre and the whole ground footprint stay out of the padded play volume
+         expect(inPlayArea(spot.x, spot.y, spot.z)).toBe(false);
+         const clear =
+            spot.x + r < PLAY_AREA.x0 || spot.x - r > PLAY_AREA.x1 ||
+            spot.z + r < PLAY_AREA.z0 || spot.z - r > PLAY_AREA.z1;
+         expect(clear, `dome at ${spot.x},${spot.z} r=${r.toFixed(2)}`).toBe(true);
       }
    });
 });

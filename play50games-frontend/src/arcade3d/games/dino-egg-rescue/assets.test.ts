@@ -1,10 +1,23 @@
 import { describe, expect, it } from "vitest";
+import { existsSync } from "node:fs";
+import { resolve } from "node:path";
 import { Box3, BufferGeometry, Float32BufferAttribute, Group, Mesh, Vector3 } from "three";
 import { modelParts } from "@/arcade3d/core/assets";
 import { hasModel } from "@/arcade3d/core/modelManifest";
 import { readCharacterGlb } from "@/arcade3d/core/rig/robotGlb";
 import { EXPANSION_GLB_SIZE } from "@/arcade3d/core/sharedAssets";
-import { ASSETS, DINO_BACK_TOP_ANCHOR, TREE_TRUNK_RADIUS, VOLCANO_HEIGHT, VOLCANO_RADIUS } from "./assets";
+import {
+   ASSETS,
+   DINO_BACK_TOP_ANCHOR,
+   LAVA_ROCK_DRAWN,
+   LAVA_ROCK_GLB,
+   LAVA_ROCK_SPOTS,
+   LAVA_ROCK_WIDTH,
+   TREE_TRUNK_RADIUS,
+   VOLCANO_HEIGHT,
+   VOLCANO_RADIUS,
+} from "./assets";
+import { inValley, nearMainVolcano } from "./looks";
 
 describe("dino-egg-rescue model assets", () => {
    it("all shared models exist in the model manifest", () => {
@@ -63,5 +76,60 @@ describe("dino-egg-rescue model assets", () => {
       for (const p of points) footprint = Math.max(footprint, Math.hypot(p.x, p.z));
       expect(footprint).toBeCloseTo(VOLCANO_RADIUS, 1);
       expect(box.min.y).toBeCloseTo(0, 3);
+   });
+});
+
+describe("dino-egg-rescue lava rock decor (levels 4-5 only)", () => {
+   it("is listed in the manifest and the GLB file exists", () => {
+      expect(ASSETS.lavaRock.url).toBe("/models/3d/dino-egg-rescue/lavaRock.glb");
+      expect(hasModel(ASSETS.lavaRock.url)).toBe(true);
+      expect(existsSync(resolve("public", ASSETS.lavaRock.url.slice(1)))).toBe(true);
+   });
+
+   it("measures the lavaRock GLB and draws it 1.8 m across, sitting on the ground", async () => {
+      // decode the real meshopt-decoded mesh and draw it through core modelParts (what <Model> draws)
+      const { local, node } = await readCharacterGlb(ASSETS.lavaRock.url);
+      const geometry = new BufferGeometry();
+      geometry.setAttribute("position", new Float32BufferAttribute(local, 3));
+      const mesh = new Mesh(geometry);
+      mesh.position.fromArray(node);
+      const root = new Group();
+      root.add(mesh);
+
+      const raw = modelParts(root, {
+         ...ASSETS.lavaRock,
+         scale: 1,
+         stretch: undefined,
+         rotationY: 0,
+         yOffset: 0,
+      });
+      expect(raw).toHaveLength(1);
+      const rawBox = new Box3();
+      const v = new Vector3();
+      for (let i = 0; i < local.length; i += 3)
+         rawBox.expandByPoint(v.set(local[i], local[i + 1], local[i + 2]).applyMatrix4(raw[0].matrix));
+      expect(rawBox.min.y).toBeCloseTo(0, 3);
+      expect(rawBox.max.x - rawBox.min.x).toBeCloseTo(LAVA_ROCK_GLB.width, 3);
+      expect(rawBox.max.y - rawBox.min.y).toBeCloseTo(LAVA_ROCK_GLB.height, 3);
+      expect(rawBox.max.z - rawBox.min.z).toBeCloseTo(LAVA_ROCK_GLB.depth, 3);
+
+      const drawn = modelParts(root, ASSETS.lavaRock);
+      expect(drawn).toHaveLength(1);
+      const box = new Box3();
+      for (let i = 0; i < local.length; i += 3)
+         box.expandByPoint(v.set(local[i], local[i + 1], local[i + 2]).applyMatrix4(drawn[0].matrix));
+      geometry.dispose();
+      expect(box.min.y).toBeCloseTo(0, 3);
+      expect(box.max.z - box.min.z).toBeCloseTo(LAVA_ROCK_WIDTH, 3);
+      expect(box.max.x - box.min.x).toBeCloseTo(LAVA_ROCK_DRAWN.width, 2);
+      expect(box.max.y - box.min.y).toBeCloseTo(LAVA_ROCK_DRAWN.height, 2);
+   });
+
+   it("places every lava rock outside the play bounds, clear of the main volcano", () => {
+      const radius = Math.max(LAVA_ROCK_DRAWN.width, LAVA_ROCK_DRAWN.depth) / 2;
+      for (const spot of LAVA_ROCK_SPOTS) {
+         expect(inValley(spot.x, spot.z, radius), `spot ${spot.x},${spot.z}`).toBe(false);
+         expect(nearMainVolcano(spot.x, spot.z, radius), `spot ${spot.x},${spot.z}`).toBe(false);
+      }
    });
 });

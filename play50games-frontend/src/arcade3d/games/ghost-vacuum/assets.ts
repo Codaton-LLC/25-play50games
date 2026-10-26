@@ -65,6 +65,29 @@ export const VACUUM_SCALE = 0.55 / EXPANSION_GLB_SIZE.vacuum.height;
  * flickering flames were dropped with the swap.
  */
 export const CANDELABRA_SCALE = 0.68 / 1.89846;
+
+/**
+ * atticTrunk.glb measured bounds (GLB units, root space, 2026-10-25, the assets.test.ts recipe):
+ * 1.90058 w x 1.20405 h x 1.22258 d, base at y = 0, centred in x/z. Drawn 1.0 m wide on the
+ * estate grounds (a steamer trunk ~0.63 tall, ~0.64 deep): extra decor for the Attic (4) and
+ * Whole Mansion (5) levels, strictly outside the mansion play bounds (Decor.tsx, trunk spots below).
+ */
+export const TRUNK_GLB = { width: 1.90058, height: 1.20405, depth: 1.22258 } as const;
+export const TRUNK_SCALE = 1.0 / TRUNK_GLB.width;
+export const TRUNK_DRAWN = {
+   width: 1.0,
+   height: TRUNK_GLB.height * TRUNK_SCALE,
+   depth: TRUNK_GLB.depth * TRUNK_SCALE,
+} as const;
+/**
+ * The three attic trunks on the grounds, levels 4-5 only: the west and east flanks among the bare
+ * trees and one in the south garden band between the hedge rows, where the other decor sits.
+ */
+export const TRUNK_SPOTS = [
+   { x: -20.5, y: 0, z: -5.5, rotY: 0.5 },
+   { x: 20.5, y: 0, z: 2.0, rotY: -0.6 },
+   { x: 10.8, y: 0, z: 12.7, rotY: 1.2 },
+] as const;
 /**
  * The hunter's back is flat from the waist to the shoulders (the chest anchor's strip, z -0.204 GLB), but
  * the belt pouches behind the hips (y 0.90-1.03 GLB, x +-0.11) stick out 3.2 cm (drawn) behind it, inside
@@ -85,4 +108,6 @@ export const ASSETS = {
    ghost: { id: "ghost", url: "/models/3d/ghost-vacuum/ghost.glb", scale: GHOST_GLB_SCALE, yOffset: GHOST_GLB_Y_OFFSET, fallback: "sphere", fallbackColor: "#e0e7ff", budget: { tris: 5000, bytes: 300000 } },
    /** Hyper3D three-armed candelabra (1500 tris, 110 KB), candles and flame shapes baked in; 0.68 m tall on the desks. */
    candelabra: { id: "candelabra", url: "/models/3d/ghost-vacuum/candelabra.glb", scale: CANDELABRA_SCALE, fallback: "cylinder", fallbackColor: COLORS.brass, budget: { tris: 5000, bytes: 300000 } },
+   /** Hyper3D steamer trunk (2500 tris, 250 KB): drawn 1.0 m wide, base at y = 0; levels 4-5 grounds decor only. */
+   trunk: { id: "trunk", url: "/models/3d/ghost-vacuum/atticTrunk.glb", scale: TRUNK_SCALE, rotationY: 0, yOffset: 0, fallback: "box", fallbackColor: COLORS.woodDesk, budget: { tris: 5000, bytes: 300000 } },
 } satisfies Record<string, ModelAsset>;

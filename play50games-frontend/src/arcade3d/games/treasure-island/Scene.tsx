@@ -422,7 +422,7 @@ export default function Scene() {
             shift={view.shift}
             damping={4}
          />
-         <IslandScene island={island} run={run} />
+         <IslandScene island={island} run={run} levelId={id} />
          <Treasures run={run} island={island} reveals={reveals} />
          <Explorer run={run} />
          <DetectorRing run={run} />
