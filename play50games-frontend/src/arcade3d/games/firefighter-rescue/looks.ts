@@ -8,11 +8,11 @@ import { LEVELS, type FireLevel } from "./levels";
 import { DOOR_HALF, HALL_HALF, PORCH_Z, ROOM_DEEP, ROOM_LEN, doorMidZ } from "./rules";
 
 export const COLORS = {
-   wall: "#44403c",
-   wallTrim: "#57534e",
-   floor: "#292524",
-   floorLine: "#44403c",
-   street: "#1c1917",
+   wall: "#78716c",
+   wallTrim: "#a8a29e",
+   floor: "#6b6258",
+   floorLine: "#857a6d",
+   street: "#4b4540",
    ember: "#f97316",
    emberCore: "#fdba74",
    smoke: "#78716c",
@@ -81,6 +81,12 @@ export function viewFor(id: LevelId): FittedViewOptions {
          padding: 8,
          shift: true,
          fov: FOV,
+         // the building is long and narrow: on a phone no distance keeps it clear of the HUD, the stick and the cookie
+         // banner (the fit gave up at its 500 m cap and drew nothing), so it frames the whole building and the
+         // HUD overlays it, as the follow camera keeps the firefighter in the open middle
+         avoidHud: false,
+         avoidControls: false,
+         avoidObstructions: false,
       };
       VIEWS.set(id, view);
    }

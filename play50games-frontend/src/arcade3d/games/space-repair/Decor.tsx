@@ -3,9 +3,11 @@
 import { useEffect, useMemo } from "react";
 import { BoxGeometry, ConeGeometry, CylinderGeometry, IcosahedronGeometry, Matrix4, Quaternion, Vector3 } from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
+import { InstancedModel } from "@/arcade3d/core/assets";
 import { useGameTime } from "@/arcade3d/core/gameTime";
 import { scaledCount, useQuality } from "@/arcade3d/core/quality";
 import { DynamicInstanced, Instanced, type InstanceSpot } from "@/arcade3d/core/render";
+import { ASSETS, DISH_LEVELS, DISH_SPOTS } from "./assets";
 import { COLORS, decorOf, type DecorSpot } from "./looks";
 
 function asSpots(list: readonly DecorSpot[]): InstanceSpot[] {
@@ -25,8 +27,10 @@ function asSpots(list: readonly DecorSpot[]): InstanceSpot[] {
 /**
  * Procedural sci-fi decor strictly outside the play arena:
  * Distant asteroid field, orbital modules, solar wings, satellites and deep nebula clouds.
+ * `levelId` is the level the player picked (Scene's useLevel): levels 4-5 add the satellite
+ * dish props on the external platform deck.
  */
-export function Decor({ reduced }: { reduced: boolean }) {
+export function Decor({ reduced, levelId }: { reduced: boolean; levelId: number }) {
    const quality = useQuality();
    const time = useGameTime();
 
@@ -62,12 +66,23 @@ export function Decor({ reduced }: { reduced: boolean }) {
       // 5. Deep space nebula cosmic dust cloud
       const nebula = new IcosahedronGeometry(1, 1);
 
+      // 6. Grounded comms dish stand-in (base + mast + tilted bowl), feet at y = 0
+      const dishBase = new CylinderGeometry(0.5, 0.6, 0.22, 10).translate(0, 0.11, 0);
+      const dishMast = new CylinderGeometry(0.09, 0.12, 1.0, 8).translate(0, 0.72, 0);
+      const dishBowl = new ConeGeometry(0.95, 0.55, 12).rotateX(Math.PI + 0.35).translate(0, 1.8, 0.12);
+      const dish = mergeGeometries([dishBase, dishMast, dishBowl]);
+      dishBase.dispose();
+      dishMast.dispose();
+      dishBowl.dispose();
+      if (!dish) throw new Error("space look: dish");
+
       return {
          asteroid,
          distantModule,
          wing,
          satellite,
          nebula,
+         dish,
       };
    }, []);
 
@@ -92,6 +107,8 @@ export function Decor({ reduced }: { reduced: boolean }) {
    const distantWings = useMemo(() => asSpots(decorOf("distantSolarWing")), []);
    const satellites = useMemo(() => asSpots(decorOf("satellite")), []);
    const nebulaClouds = useMemo(() => decorOf("nebula"), []);
+
+   const showDishes = (DISH_LEVELS as readonly number[]).includes(levelId);
 
    const scratch = useMemo(() => ({
       p: new Vector3(),
@@ -145,6 +162,18 @@ export function Decor({ reduced }: { reduced: boolean }) {
             <primitive object={geo.nebula} attach="geometry" />
             <meshBasicMaterial color={COLORS.nebulaGlow} transparent opacity={0.14} depthWrite={false} />
          </DynamicInstanced>
+         {showDishes && (
+            <InstancedModel
+               asset={ASSETS.dish}
+               spots={DISH_SPOTS}
+               fallback={
+                  <Instanced spots={DISH_SPOTS} name="space-dishes">
+                     <primitive object={geo.dish} attach="geometry" />
+                     <meshStandardMaterial color={COLORS.hullBright} roughness={0.35} metalness={0.5} />
+                  </Instanced>
+               }
+            />
+         )}
       </group>
    );
 }

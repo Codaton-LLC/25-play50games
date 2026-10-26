@@ -20,7 +20,7 @@ import { createPath } from "@/arcade3d/core/path";
 import { bodyLift, HumanoidModel, useHumanoidPose } from "@/arcade3d/core/rig";
 import { useGameTime } from "@/arcade3d/core/gameTime";
 import { useQuality } from "@/arcade3d/core/quality";
-import { ASSETS, MIXER, MIXER_HEIGHT, WORKER_HAT, WORKER_LANDMARKS, WORKER_SCALE } from "./assets";
+import { ASSETS, MIXER, MIXER_HEIGHT, MIXER_SPOTS, WORKER_HAT, WORKER_LANDMARKS, WORKER_SCALE } from "./assets";
 import { COLORS } from "./looks";
 import { workerPose } from "./poses";
 import { PILE_A, PILE_R, type Run } from "./rules";
@@ -32,6 +32,7 @@ import {
    pileGeos,
    pileMats,
 } from "./Primitives";
+import { useCraneLevel } from "./useCraneLevel";
 import { Decor } from "./Decor";
 
 const FENCE = createPath(
@@ -158,7 +159,10 @@ function MixerFallback() {
 }
 
 /** Ground, fence, 5 material piles, worker, props, and surroundings decor. */
-export function Site({ run }: { run: Run }) {
+export function Site({ run, levelId }: { run: Run; levelId?: number }) {
+   const { id: contextLevelId } = useCraneLevel();
+   const effectiveLevel = levelId ?? contextLevelId;
+   const isCommercial = effectiveLevel === 4 || effectiveLevel === 5;
    const pad = useCanvasTexture(512, 512, drawPad);
    const decor = useQuality().tier !== "low";
 
@@ -181,16 +185,27 @@ export function Site({ run }: { run: Run }) {
          <Worker run={run} />
          {/* Instanced surroundings decor outside the play area */}
          <Decor />
-         {/* beside the work zone: outside work area, crane wedge and every camera-to-target line (mixer.test.ts) */}
+         {/* The cement mixer beside the work zone on every level; levels 4-5 (Shop Front, Mini Tower) add three more, all outside the play area */}
          {decor && (
-            <group position={[MIXER.x, 0, MIXER.z]} rotation={[0, MIXER.yaw, 0]} name="cement-mixer-group">
-               <Model asset={ASSETS.cementMixer} fallback={<MixerFallback />} />
-            </group>
+            <InstancedModel
+               asset={ASSETS.cementMixer}
+               spots={isCommercial ? MIXER_SPOTS : MIXER_SPOTS.slice(0, 1)}
+               fallback={
+                  <>
+                     {(isCommercial ? MIXER_SPOTS : MIXER_SPOTS.slice(0, 1)).map((s, i) => (
+                        <group key={i} position={[s.x, 0, s.z]} rotation-y={s.rotY ?? 0}>
+                           <MixerFallback />
+                        </group>
+                     ))}
+                  </>
+               }
+            />
          )}
          {decor && (
             <group position={[-5.4, 0, 1]} rotation={[0, Math.PI / 2, 0]} name="van-group">
                <Model asset={ASSETS.van} fallback={<VanFallback />} />
             </group>
+
          )}
          <InstancedModel
             asset={ASSETS.pallet}

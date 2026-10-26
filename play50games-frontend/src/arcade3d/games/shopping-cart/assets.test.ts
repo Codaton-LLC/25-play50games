@@ -6,7 +6,7 @@ import { modelParts } from "@/arcade3d/core/assets";
 import { hasModel } from "@/arcade3d/core/modelManifest";
 import { readCharacterGlb } from "@/arcade3d/core/rig/robotGlb";
 import type { ModelAsset } from "@/arcade3d/core/types";
-import { ASSETS, BAKERY_DRAWN, BAKERY_HEIGHT, BAKERY_SPOTS, PRODUCT_KINDS, RUNNER_SCALE, SHELF_BAY, SHELF_BAYS, SHELF_GLB } from "./assets";
+import { ASSETS, BAKERY_DRAWN, BAKERY_HEIGHT, BAKERY_SPOTS, PRODUCT_KINDS, RUNNER_SCALE, SCRUBBER_DRAWN, SCRUBBER_GLB, SCRUBBER_HEIGHT, SCRUBBER_SPOTS, SHELF_BAY, SHELF_BAYS, SHELF_GLB } from "./assets";
 import { PLAY_BOUNDS } from "./looks";
 import { SHELVES } from "./rules";
 
@@ -93,6 +93,33 @@ describe("shopping-cart adopted shelves and bakery stalls", () => {
       expect(box.max.z - box.min.z).toBeCloseTo(BAKERY_DRAWN.depth, 2);
       const reach = Math.hypot(BAKERY_DRAWN.width, BAKERY_DRAWN.depth) / 2;
       for (const spot of BAKERY_SPOTS) {
+         const outside = spot.x - reach > PLAY_BOUNDS.x1 || spot.x + reach < PLAY_BOUNDS.x0 || spot.z + reach < PLAY_BOUNDS.z0 || spot.z - reach > PLAY_BOUNDS.z1;
+         expect(outside, `${spot.x},${spot.z}`).toBe(true);
+      }
+   });
+});
+
+describe("shopping-cart level 4-5 floor scrubbers", () => {
+   it("keeps the scrubber GLB on disk, in the manifest, and fitted to a real machine size", async () => {
+      expect(existsSync(resolve("public", ASSETS.scrubber.url.slice(1)))).toBe(true);
+      expect(hasModel(ASSETS.scrubber.url)).toBe(true);
+      const box = await fitted(ASSETS.scrubber);
+      expect(box.min.y).toBeCloseTo(0, 2);
+      expect(box.max.y - box.min.y).toBeCloseTo(SCRUBBER_HEIGHT, 2);
+      expect(box.max.x - box.min.x).toBeCloseTo(SCRUBBER_DRAWN.width, 2);
+      expect(box.max.z - box.min.z).toBeCloseTo(SCRUBBER_DRAWN.depth, 2);
+      const raw = await fitted({ ...ASSETS.scrubber, scale: 1 });
+      expect(raw.max.x - raw.min.x).toBeCloseTo(SCRUBBER_GLB.width, 2);
+      expect(raw.max.y - raw.min.y).toBeCloseTo(SCRUBBER_GLB.height, 2);
+      expect(raw.max.z - raw.min.z).toBeCloseTo(SCRUBBER_GLB.depth, 2);
+   });
+
+   it("parks 2-4 scrubbers outside the play box", () => {
+      expect(SCRUBBER_SPOTS.length).toBeGreaterThanOrEqual(2);
+      expect(SCRUBBER_SPOTS.length).toBeLessThanOrEqual(4);
+      const reach = Math.hypot(SCRUBBER_DRAWN.width, SCRUBBER_DRAWN.depth) / 2;
+      for (const spot of SCRUBBER_SPOTS) {
+         expect(spot.y).toBe(0);
          const outside = spot.x - reach > PLAY_BOUNDS.x1 || spot.x + reach < PLAY_BOUNDS.x0 || spot.z + reach < PLAY_BOUNDS.z0 || spot.z - reach > PLAY_BOUNDS.z1;
          expect(outside, `${spot.x},${spot.z}`).toBe(true);
       }

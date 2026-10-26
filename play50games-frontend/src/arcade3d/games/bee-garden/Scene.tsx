@@ -22,6 +22,7 @@ import { Instanced, useCanvasTexture, type InstanceSpot } from "@/arcade3d/core/
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { useFittedView } from "@/arcade3d/core/useFittedView";
 import { useRunFrame } from "@/arcade3d/core/useRunFrame";
+import { FLAP_TIME, patchWings } from "./wings";
 import { ASSETS, BRANCH_UPRIGHT, FIT } from "./assets";
 import { LEVELS, type BeeLevel } from "./levels";
 import { COLORS, DAMPING, FOV, LEVEL_LOOKS, LOOK_AHEAD, aimBounds, decorSpots, soilSpots, viewFor } from "./looks";
@@ -163,7 +164,9 @@ function LevelScene() {
    // bee body: hover bob, bank on turns, a quick spin while stunned; markers
    useFrame(() => {
       const g = bee.current;
+      FLAP_TIME.value = time.now;
       if (g) {
+         patchWings(g);
          hover(time.now * 3.2, 0.06, body);
          const stun = run.stunTimer > 0 ? Math.sin(time.now * 40) * 0.25 : 0;
          const roll = bank(-run.bee.lateralAccel * 2.5, 0.4);

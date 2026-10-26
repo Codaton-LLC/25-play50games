@@ -291,7 +291,7 @@ const CRAB_R = new Matrix4();
 
 // ---------- the island ----------
 
-export function IslandScene({ island, run }: { island: IslandData; run: RunState }) {
+export function IslandScene({ island, run, levelId }: { island: IslandData; run: RunState; levelId?: number }) {
    const palmSpots = useMemo<InstanceSpot[]>(
       () =>
          island.palms.map((p) => {
@@ -326,7 +326,7 @@ export function IslandScene({ island, run }: { island: IslandData; run: RunState
          <Dock />
          <Crabs island={island} run={run} />
          {/* Surroundings decor outside the play area: outer rocks with surf, palms, shipwreck, gulls */}
-         <Decor />
+         <Decor levelId={levelId} />
       </group>
    );
 }

@@ -74,6 +74,24 @@ export const ZOO_ROCK_SPOTS = [
 ] as const;
 export const ZOO_ROCK_FALLBACK = ZOO_ROCK_SPOTS.map((s) => ({ ...s, y: ZOO_ROCKS_DRAWN.height / 2 }));
 
+/** zooFountain.glb (levels 4-5 decor): ornamental stone fountain. 2.2 m across, outside the stages. */
+export const ZOO_FOUNTAIN_GLB = { width: 1.8791, height: 1.3998, depth: 1.8916 } as const;
+export const ZOO_FOUNTAIN_WIDTH = 2.2;
+const ZOO_FOUNTAIN_SCALE = ZOO_FOUNTAIN_WIDTH / ZOO_FOUNTAIN_GLB.width;
+export const ZOO_FOUNTAIN_DRAWN = {
+   width: ZOO_FOUNTAIN_WIDTH,
+   height: ZOO_FOUNTAIN_GLB.height * ZOO_FOUNTAIN_SCALE,
+   depth: ZOO_FOUNTAIN_GLB.depth * ZOO_FOUNTAIN_SCALE,
+} as const;
+/** Outside the stages in the parkland (levels 4 and 5: Central Zoo and Night Escape decor). */
+export const ZOO_FOUNTAIN_SPOTS = [
+   { x: 19.5, y: 0, z: -7, rotY: 0 },
+   { x: -19.5, y: 0, z: -8, rotY: 1.2 },
+   { x: -19.5, y: 0, z: -27, rotY: 2.1 },
+   { x: 19.5, y: 0, z: -35, rotY: 0.8 },
+] as const;
+export const ZOO_FOUNTAIN_FALLBACK = ZOO_FOUNTAIN_SPOTS.map((s) => ({ ...s, y: ZOO_FOUNTAIN_DRAWN.height / 2 }));
+
 const R = REUSED_GLB_SIZE;
 
 export const ASSETS = {
@@ -93,4 +111,5 @@ export const ASSETS = {
    tower: { id: "tower", url: "/models/3d/zoo-escape/searchlightTower.glb", scale: TOWER_SCALE, stretch: TOWER_STRETCH, fallback: "cylinder", fallbackColor: COLORS.metalDark, budget: { ...PROP_BUDGET } },
    snack: { id: "snack", url: "/models/3d/zoo-escape/bambooSnack.glb", scale: SNACK_UNIT, fallback: "cylinder", fallbackColor: COLORS.bamboo, budget: { ...PROP_BUDGET } },
    zooRocks: { id: "zooRocks", url: "/models/3d/zoo-escape/zooRocks.glb", scale: ZOO_ROCKS_SCALE, fallback: "sphere", fallbackColor: COLORS.rock, budget: { ...PROP_BUDGET } },
+   zooFountain: { id: "zooFountain", url: "/models/3d/zoo-escape/zooFountain.glb", scale: ZOO_FOUNTAIN_SCALE, rotationY: 0, yOffset: 0, fallback: "cylinder", fallbackColor: COLORS.rock, budget: { ...PROP_BUDGET } },
 } satisfies Record<string, ModelAsset>;

@@ -7,9 +7,9 @@ The menu uses one original character family, one shared rig and a strong five-co
 
 > **REDESIGN 2026-10-25 (user decision, overrides everything below):** to lower the trademark-resemblance risk before anything of Menu 2 is built or published:
 > - **Hero = an original armadillo/pangolin-style hero**, NOT a turtle. A natural armoured shell of overlapping plates that can roll into a ball (dash/bounce moves). **No eye masks.** The hero colour (Riko red, Nami blue, Kiro green, Zuno yellow, Vexa purple) is carried by the **shell plates and armour** plus glowing lines on the shell; the face shows through an open **helmet with a visor** (or headphones/ear guards), never a cloth mask. One base mesh + rig, colour by material, as before.
-> - **No TMNT-like elements:** no turtles, no green-skinned turtle look, no eye masks, no katanas/sai/nunchaku/bo staff, no pizza, no sewers, no rats, no "sensei" mentor. Game 03 "Flooded Ruins Escape" becomes **Flooded Ruins Escape** (ancient stone water channels, levers, rising water; assets: stone channel, brick ledge, lever, stone platform, water hazard) and game 12 "Mine Tunnel Run" becomes **Mine Tunnel Run** (mine tunnels, rails, carts; level 5 "Deep Mine Sprint" becomes "Deep Mine Sprint"). The Hyper3D props m2SewerPipe and m2SewerRat are dropped and replaced (stone water channel, cave beetle/mole). Any "turtle-shell" wording below means the hero's armadillo shell.
+> - **No TMNT-like elements:** no turtles, no green-skinned turtle look, no eye masks, no katanas/sai/nunchaku/bo staff, no pizza, no sewers, no rats, no "sensei" mentor. Game 03 "Flooded Ruins Escape" becomes **Flooded Ruins Escape** (ancient stone water channels, levers, rising water; assets: stone channel, brick ledge, lever, stone platform, water hazard) and game 12 "Mine Tunnel Run" becomes **Mine Tunnel Run** (mine tunnels, rails, carts; level 5 "Deep Mine Sprint" becomes "Deep Mine Sprint"). The Hyper3D props m2RuinPipe and m2RuinRat are dropped and replaced (stone water channel, cave beetle/mole). Any "turtle-shell" wording below means the hero's armadillo shell.
 > - **Game titles (2026-10-25):** no "Ninja"/"Shell"/"Shadow Clone" in titles or visible text (renamed: Rooftop Roll Climb, Roll Dash, Mirror Dash, Plate Bounce Arena, Plate Surf, Laser Maze Run, Disc Target Throw (discs, never throwing stars), Roll Cannon Jump, Tightrope Path, Zipline Rush); temples/gongs use a generic ancient-ruins style (stone, jungle), not a Japanese ninja-dojo look; the signature move is rolling into a ball.
-> - **Name:** the menu is now called **"Color Roll Heroes"** (user, 2026-10-25); "Color Shell Ninjas" is retired. Before Menu 2 is published: check the final name in DPMA (dpma.de) and EUIPO/TMview, confirm the Hyper3D plan allows commercial use of the models, and a short consult with an IP lawyer (Fachanwalt für Urheber- und Medienrecht / IT-Recht).
+> - **Name:** the menu is now called **"Color Roll Heroes"** (user, 2026-10-25); the earlier working name is retired. Before Menu 2 is published: check the final name in DPMA (dpma.de) and EUIPO/TMview, confirm the Hyper3D plan allows commercial use of the models, and a short consult with an IP lawyer (Fachanwalt für Urheber- und Medienrecht / IT-Recht).
 
 # Character family
 
@@ -288,7 +288,7 @@ Stylized compact rooftop air-conditioning unit, dark grey metal, rounded edges, 
 
 ---
 
-# GAME 03 — Flooded Ruins Escape (was Flooded Ruins Escape)
+# GAME 03 — Flooded Ruins Escape
 
 **Game type:** Vertical escape
 **Core objective:** Climb pipes and ledges while rising water chases the player.
@@ -1360,7 +1360,7 @@ Stylized wooden street-market crate, warm brown wood, rounded edges, premium low
 
 ---
 
-# GAME 12 — Mine Tunnel Run (was Mine Tunnel Run)
+# GAME 12 — Mine Tunnel Run
 
 **Game type:** Tunnel runner
 **Core objective:** Run through tunnels with barrels, pipes and water gaps.
@@ -3604,7 +3604,7 @@ Original giant stone training guardian, broad stylized silhouette, rounded stone
 
 ---
 
-# ADDITIONAL 20 COLOR SHELL NINJA GAMES
+# ADDITIONAL 20 COLOR ROLL HEROES GAMES
 ## Games 31–50
 
 These 20 games use the same Color Shell Hero characters, rig, animations, five-color abilities and shared arcade systems.
@@ -4283,7 +4283,7 @@ Stylized fantasy temple gong on a simple wooden frame, large round bronze disc, 
 
 # GAME 37 — Plate Surf
 
-**Game type:** Downhill board/shell surf
+**Game type:** Downhill board/plate surf
 **Core objective:** Surf downhill, collect energy and pass through gates.
 **Playable characters:** Riko, Nami, Kiro, Zuno or Vexa.
 **Controls:** A/D or Left/Right to steer; Space/Up for jump/action where applicable; mobile uses swipe or virtual left/right + action.

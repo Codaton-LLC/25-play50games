@@ -33,6 +33,30 @@ export const ICE_ARCH_WIDTH = 2.2;
 export const ICE_ARCH_LATERAL = 8;
 const ICE_ARCH_SCALE = ICE_ARCH_WIDTH / ICE_ARCH_GLB.width;
 
+/**
+ * auroraCrystal.glb (Group D, QA "OK"), decor for levels 4-5 (Aurora Run, Glacier Sprint) only.
+ * Measured on the real mesh in assets.test.ts: floor pivot at y = 0, 1.62 m across, 1.9114 m tall.
+ * Fitted to a 2.4 m crystal spire and placed AURORA_CRYSTAL_LATERAL metres off the corridor centre.
+ */
+export const AURORA_CRYSTAL_GLB = { width: 1.62, height: 1.9114, depth: 1.6161 } as const;
+export const AURORA_CRYSTAL_HEIGHT = 2.4;
+export const AURORA_CRYSTAL_LATERAL = 10.5;
+const AURORA_CRYSTAL_SCALE = AURORA_CRYSTAL_HEIGHT / AURORA_CRYSTAL_GLB.height;
+
+/**
+ * glacierChunk.glb (Group D, QA "OK"), decor for levels 4-5 only. Measured below: floor pivot at
+ * y = 0, 1.8965 m across, 1.3888 m tall. Fitted 2.8 m across (a 2.05 m tall beached ice boulder)
+ * and placed GLACIER_CHUNK_LATERAL metres off the corridor centre, past the ice arches at 8 m.
+ */
+export const GLACIER_CHUNK_GLB = { width: 1.8965, height: 1.3888, depth: 1.4132 } as const;
+export const GLACIER_CHUNK_WIDTH = 2.8;
+export const GLACIER_CHUNK_LATERAL = 11.5;
+const GLACIER_CHUNK_SCALE = GLACIER_CHUNK_WIDTH / GLACIER_CHUNK_GLB.width;
+
+/** Track-local distance (m into a 60 m chunk) of the levels 4-5 crystal and glacier decor. */
+export const AURORA_CRYSTAL_LOCAL = 26;
+export const GLACIER_CHUNK_LOCAL = 44;
+
 export const ASSETS = {
    penguin: { ...EXPANSION_ASSETS.penguin, scale: PENGUIN_SCALE },
    fish: { ...EXPANSION_ASSETS.fish, scale: 0.6 / EXPANSION_GLB_SIZE.fish.depth },
@@ -52,6 +76,22 @@ export const ASSETS = {
       scale: ICE_ARCH_SCALE,
       fallback: "box",
       fallbackColor: "#e0f2fe",
+      budget: { ...PROP_BUDGET },
+   },
+   auroraCrystal: {
+      id: "auroraCrystal",
+      url: "/models/3d/penguin-slide/auroraCrystal.glb",
+      scale: AURORA_CRYSTAL_SCALE,
+      fallback: "cylinder",
+      fallbackColor: "#a5f3fc",
+      budget: { ...PROP_BUDGET },
+   },
+   glacierChunk: {
+      id: "glacierChunk",
+      url: "/models/3d/penguin-slide/glacierChunk.glb",
+      scale: GLACIER_CHUNK_SCALE,
+      fallback: "box",
+      fallbackColor: "#7dd3fc",
       budget: { ...PROP_BUDGET },
    },
 } satisfies Record<string, ModelAsset>;

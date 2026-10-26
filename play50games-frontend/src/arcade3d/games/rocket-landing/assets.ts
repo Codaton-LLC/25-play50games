@@ -51,6 +51,30 @@ export const BEACON_LIGHTS = [
 export const BEACON_SIZE = { top: 0.025, bottom: 0.03, height: 0.04 } as const;
 
 /**
+ * The habitat dome GLB measured on the real mesh (assets.test.ts decodes it): a squat half-dome
+ * standing on y = 0, roughly 1.9 m across in GLB units (Rodin's normalisation). Drawn 3 m wide
+ * (a one-room surface outpost, ~2 m tall) with its base on the ground, so yOffset stays 0.
+ */
+export const HABITAT_DOME_GLB = { width: 1.9013298, height: 1.2673738, depth: 1.9060559 };
+export const HABITAT_DOME_SCALE = 3 / HABITAT_DOME_GLB.width;
+
+/** The campaign levels whose theme hosts the dome outposts (levels.ts: "High Winds & Cavern", "Precision Landing"). */
+export const HABITAT_DOME_LEVELS = [4, 5] as const;
+
+/**
+ * Outpost spots for the habitat dome, all outside the play area (PLAY_AREA in looks.ts):
+ * two in the deep midground behind z0 = -2.6, one far out on the right flank past x1 = 10.5.
+ * Each spot's scale multiplies the asset's 3 m fit, and the drawn footprint radius
+ * (max GLB width/depth * HABITAT_DOME_SCALE * spot scale / 2) stays clear of the play bounds
+ * (checked in assets.test.ts).
+ */
+export const HABITAT_DOME_SPOTS = [
+   { x: -15.0, y: 0, z: -4.8, rotY: 0.5, scale: 1.0 },
+   { x: 16.4, y: 0, z: -5.6, rotY: 2.3, scale: 0.9 },
+   { x: 23.5, y: 0, z: 1.8, rotY: 4.0, scale: 1.1 },
+] as const;
+
+/**
  * The beacons ride in the pad group, whose scale.x is the planet's pad width (4-6), so they would
  * be drawn 4-6 times wider than deep: thin floating bars. Each beacon cancels that stretch with
  * this x scale, so it stays a small round light; its position still follows the rim.
@@ -86,6 +110,15 @@ export const ASSETS = {
       yOffset: -0.2,
       fallback: "box",
       fallbackColor: "#334155",
+      budget: { ...PROP_BUDGET },
+   },
+   habitatDome: {
+      id: "habitatDome",
+      url: "/models/3d/rocket-landing/habitatDome.glb",
+      scale: HABITAT_DOME_SCALE,
+      yOffset: 0,
+      fallback: "sphere",
+      fallbackColor: "#94a3b8",
       budget: { ...PROP_BUDGET },
    },
 } satisfies Record<string, ModelAsset>;
