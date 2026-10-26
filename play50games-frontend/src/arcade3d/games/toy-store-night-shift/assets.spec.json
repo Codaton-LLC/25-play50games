@@ -1,0 +1,19 @@
+{
+   "slug": "toy-store-night-shift",
+   "universe": "play50-toy-world-premium",
+   "notes": "Adopted from menu1-toy-store-night-shift/ and shared/ (2026-10-25). Not used: toyShelf (small toys are baked onto its shelves), toyShelfEmpty (a paper-thin panel), toyBlocks (letters A / B on its faces). The shelf is toyShelfSolidT, the blocks are toyBlocksPlainT. The shared crate is the warehouse decor.",
+   "assets": [
+      { "id": "charNightGuard", "kind": "character", "file": "menu1-toy-store-night-shift/charNightGuard.glb", "budget": { "tris": 20000, "bytes": 1500000 } },
+      { "id": "toyShelfSolidT", "kind": "prop", "file": "menu1-toy-store-night-shift/toyShelfSolidT.glb", "budget": { "tris": 5000, "bytes": 300000 } },
+      { "id": "teddyBear", "kind": "prop", "file": "menu1-toy-store-night-shift/teddyBear.glb", "budget": { "tris": 5000, "bytes": 300000 } },
+      { "id": "toyCar", "kind": "prop", "file": "menu1-toy-store-night-shift/toyCar.glb", "budget": { "tris": 5000, "bytes": 300000 } },
+      { "id": "toyAirplane", "kind": "prop", "file": "menu1-toy-store-night-shift/toyAirplane.glb", "budget": { "tris": 5000, "bytes": 300000 } },
+      { "id": "toyBall", "kind": "prop", "file": "menu1-toy-store-night-shift/toyBall.glb", "budget": { "tris": 5000, "bytes": 300000 } },
+      { "id": "toyBlocksPlainT", "kind": "prop", "file": "menu1-toy-store-night-shift/toyBlocksPlainT.glb", "budget": { "tris": 5000, "bytes": 300000 } },
+      { "id": "toyTrain", "kind": "prop", "file": "menu1-toy-store-night-shift/toyTrain.glb", "budget": { "tris": 5000, "bytes": 300000 } },
+      { "id": "toyRobotProp", "kind": "prop", "file": "menu1-toy-store-night-shift/toyRobotProp.glb", "budget": { "tris": 5000, "bytes": 300000 } },
+      { "id": "toyRobot", "kind": "character", "file": "menu1-toy-store-night-shift/toyRobot.glb", "budget": { "tris": 20000, "bytes": 1500000 } },
+      { "id": "toyBin", "kind": "prop", "file": "menu1-toy-store-night-shift/toyBin.glb", "budget": { "tris": 5000, "bytes": 300000 } },
+      { "id": "toyBinPlush", "kind": "prop", "file": "menu1-toy-store-night-shift/toyBinPlush.glb", "budget": { "tris": 5000, "bytes": 300000 } }
+   ]
+}

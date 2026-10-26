@@ -1,0 +1,20 @@
+{
+   "slug": "submarine-treasure-dive",
+   "universe": "play50-toy-world-premium",
+   "notes": "GLBs are generated already. This file names the ids the game loads from /models/3d/submarine-treasure-dive/. Claude copies them and adds the manifest lines. Leave pearlShell.glb (use pearlShellV2), the upright shipwreckHull and shipwreckHullR, and the broken coral.glb / coralV2.glb / seaweed.glb shards. Chest, coin, rock and fish come from shared assets already in the manifest.",
+   "assets": [
+      { "id": "miniSubmarine", "kind": "prop", "file": "menu1-submarine-treasure-dive/miniSubmarine.glb", "budget": { "tris": 5000, "bytes": 300000 } },
+      { "id": "amphora", "kind": "prop", "file": "menu1-submarine-treasure-dive/amphora.glb", "budget": { "tris": 5000, "bytes": 300000 } },
+      { "id": "anchor", "kind": "prop", "file": "menu1-submarine-treasure-dive/anchor.glb", "budget": { "tris": 5000, "bytes": 300000 } },
+      { "id": "pearlShellV2", "kind": "prop", "file": "menu1-submarine-treasure-dive/pearlShellV2.glb", "budget": { "tris": 5000, "bytes": 300000 } },
+      { "id": "rockArch", "kind": "prop", "file": "menu1-submarine-treasure-dive/rockArch.glb", "budget": { "tris": 5000, "bytes": 300000 } },
+      { "id": "ruinColumn", "kind": "prop", "file": "menu1-submarine-treasure-dive/ruinColumn.glb", "budget": { "tris": 5000, "bytes": 300000 } },
+      { "id": "shipwreckSidewaysT", "kind": "prop", "file": "menu1-submarine-treasure-dive/shipwreckSidewaysT.glb", "budget": { "tris": 5000, "bytes": 300000 } },
+      { "id": "jellyfish", "kind": "prop", "file": "menu1-submarine-treasure-dive/jellyfish.glb", "budget": { "tris": 5000, "bytes": 300000 } },
+      { "id": "subDock", "kind": "prop", "file": "menu1-submarine-treasure-dive/subDock.glb", "budget": { "tris": 5000, "bytes": 300000 } },
+      { "id": "coralBranch", "kind": "prop", "file": "coralBranch.glb", "budget": { "tris": 5000, "bytes": 300000 } },
+      { "id": "seaweedKelp", "kind": "prop", "file": "seaweedKelp.glb", "budget": { "tris": 5000, "bytes": 300000 } },
+      { "id": "tropicalFish", "kind": "prop", "file": "menu1-aquarium-cleaner/tropicalFish.glb", "budget": { "tris": 5000, "bytes": 300000 } },
+      { "id": "aquariumRock", "kind": "prop", "file": "menu1-aquarium-cleaner/aquariumRock.glb", "budget": { "tris": 5000, "bytes": 300000 } }
+   ]
+}
