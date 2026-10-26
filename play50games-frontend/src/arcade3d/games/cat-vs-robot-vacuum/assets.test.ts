@@ -5,7 +5,7 @@ import type { ModelAsset } from "@/arcade3d/core/types";
 import { LEVEL_IDS } from "@/arcade3d/types";
 import { ASSETS, FIT, GLB_SIZE } from "./assets";
 import { LEVELS } from "./levels";
-import { SOUTH_DECOR_MAX_H, decorSpots } from "./looks";
+import { OUTER_GAP, SOUTH_DECOR_MAX_H, decorSpots, floorSpots, outerWallSpots, roomFloor, rugSpots, wallSpots } from "./looks";
 import { CLUTTER_H, CLUTTER_HALF, FURN_SIZE, HALL_HALF, RADIUS, ROOM_LEN, VAC_R } from "./rules";
 
 async function bounds(url: string) {
@@ -45,7 +45,8 @@ describe("cat-vs-robot-vacuum GLB fits (real meshes)", () => {
       }
       // the flagged originals stay out (spec: catTreeR, the regenerated treat / toy / full shelf)
       for (const old of ["catTree", "catTreat", "catToy"]) expect(hasModel(`/models/3d/cat-vs-robot-vacuum/${old}.glb`)).toBe(false);
-      expect(hasModel("/models/3d/shared/bookshelf.glb")).toBe(false);
+      // the shelf is the full-shelves regeneration (another game may list the old shared shelf)
+      expect(ASSETS.bookshelf.url).toBe("/models/3d/shared/bookshelfFull.glb");
    });
 
    it("the cat, the vacuum and the pickups at their play sizes", () => {
@@ -96,6 +97,34 @@ describe("cat-vs-robot-vacuum decor spots", () => {
             expect(s.sx ?? s.sy ?? s.sz).toBeUndefined();
          }
          expect(d.catTrees.length).toBeGreaterThan(0);
+      });
+   }
+
+   for (const id of LEVEL_IDS) {
+      it(`L${id}: the house: one floor per room, rugs in the lane, low hall walls, outer walls only on the far and side edges`, () => {
+         const level = LEVELS[id];
+         const zEnd = level.rooms * ROOM_LEN;
+         const floors = floorSpots(id);
+         const all = [...floors.woodLight, ...floors.woodWarm, ...floors.tile];
+         expect(all.length).toBe(level.rooms);
+         expect(all.map((f) => f.z).sort((a, b) => a - b)).toEqual(Array.from({ length: level.rooms }, (_, i) => i * ROOM_LEN + ROOM_LEN / 2));
+         // neighbouring rooms differ, so each room reads as its own
+         for (let i = 1; i < level.rooms; i++) expect(roomFloor(id, i)).not.toBe(roomFloor(id, i - 1));
+         for (const r of rugSpots(level)) expect(Math.abs(r.x) + (r.sx ?? 1) / 2).toBeLessThanOrEqual(1.0);
+         const walls = wallSpots(level);
+         for (const w of [...walls.body, ...walls.cap]) expect(w.y + (w.sy ?? 1) / 2).toBeLessThanOrEqual(0.6 + 1e-9);
+         const outer = outerWallSpots(level);
+         for (const w of outer.body) {
+            const south = w.z - (w.sz ?? 1) / 2;
+            const isSide = Math.abs(w.x) >= HALL_HALF + OUTER_GAP;
+            // a side wall is beyond the decor strip; the end wall is north of the hall: none crosses the camera side
+            if (isSide) expect(Math.abs(w.x) - (w.sx ?? 1) / 2).toBeGreaterThanOrEqual(HALL_HALF + OUTER_GAP - 1e-9);
+            else expect(w.z + (w.sz ?? 1) / 2).toBeLessThan(-OUTER_GAP);
+            void south;
+         }
+         const d = decorSpots(id);
+         for (const s of [...d.catTrees, ...d.chairs]) expect(Math.abs(s.x)).toBeLessThan(HALL_HALF + OUTER_GAP - 0.4);
+         void zEnd;
       });
    }
 });

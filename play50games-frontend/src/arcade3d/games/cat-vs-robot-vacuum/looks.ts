@@ -9,13 +9,29 @@ import { HALL_HALF, ROOM_LEN } from "./rules";
 
 export const COLORS = {
    wall: "#d6d3d1",
-   wallCap: "#e7e5e4",
+   wallCap: "#fafaf9",
    floor: "#e7e5e4",
    outerFloor: "#a8a29e",
+   woodLight: "#d6b48a",
+   woodLightAlt: "#ceaa7f",
+   woodSeam: "#9a7350",
+   woodWarm: "#b07a4f",
+   woodWarmAlt: "#a87249",
+   woodWarmSeam: "#6f4426",
+   parquet: "#6b4f3a",
+   parquetAlt: "#634835",
+   parquetSeam: "#3f2c1f",
+   outerTint: "#d6d3d1",
+   tileA: "#f1f5f9",
+   tileB: "#cbd5e1",
+   grout: "#94a3b8",
+   rugField: "#fef3c7",
+   baseboard: "#78716c",
+   outerWall: "#e7e5e4",
    glow: "#38bdf8",
    bay: "#d6cfc4",
    rug: "#fb923c",
-   rugEdge: "#f97316",
+   rugEdge: "#c2410c",
    cat: "#fb923c",
    catDark: "#c2410c",
    catInner: "#fecdd3",
@@ -62,11 +78,13 @@ export function lookAtFor(level: CatLevel): [number, number, number] {
    return [0, 0.4, (level.rooms * ROOM_LEN) / 2];
 }
 
-/** Where the camera may aim: along the hall's centre line, so the window never shows much past the end walls. */
+/** Where the camera may aim: along the hall's centre line, from near one end wall to near the other. */
 export function aimBounds(level: CatLevel): AABB {
    const zEnd = level.rooms * ROOM_LEN;
-   const lo = Math.min(VIEW_WINDOW.z - 1, zEnd / 2);
-   const hi = Math.max(zEnd - VIEW_WINDOW.z + 1, zEnd / 2);
+   // the aim may come as close as 1.2 m to either end wall, so the cat at the start (z 0.8) sits near the
+   // middle of the picture, not at its far edge
+   const lo = Math.min(1.2, zEnd / 2);
+   const hi = Math.max(zEnd - 1.2, zEnd / 2);
    return { min: { x: 0, y: 0, z: lo }, max: { x: 0, y: 1, z: hi } };
 }
 
@@ -121,32 +139,64 @@ export function decorSpots(id: LevelId): DecorSpots {
 }
 
 /** Low perimeter walls, just outside the walkable hall. One instanced box. */
-export function wallSpots(level: CatLevel): InstanceSpot[] {
-   const h = 0.55;
-   const t = 0.2;
-   const zEnd = level.rooms * ROOM_LEN;
-   const span = (x: number, z: number, sx: number, sz: number): InstanceSpot => ({ x, y: h / 2, z, sx, sy: h, sz });
-   return [
-      span(-HALL_HALF - t / 2, zEnd / 2, t, zEnd),
-      span(HALL_HALF + t / 2, zEnd / 2, t, zEnd),
-      span(0, -t / 2, HALL_HALF * 2 + t, t),
-      span(0, zEnd + t / 2, HALL_HALF * 2 + t, t),
-   ];
+/** The rest of the house: outer walls this far beyond the hall's side walls, and beyond its far end. */
+export const OUTER_GAP = 2.2;
+export const OUTER_WALL_H = 1.4;
+
+export type FloorKind = "woodLight" | "woodWarm" | "tile";
+
+/** The floor of room i on a level: the kitchen level starts on tiles; rooms alternate so each reads as its own room. */
+export function roomFloor(id: LevelId, room: number): FloorKind {
+   const cycle: readonly FloorKind[] = id === 2 ? ["tile", "woodLight", "tile"] : id === 3 ? ["woodWarm", "woodLight", "tile"] : ["woodLight", "tile", "woodWarm"];
+   return cycle[room % cycle.length];
 }
 
-/** Flat tone strips: one per bay per room, so each room reads as a room from above. */
-export function baySpots(level: CatLevel): InstanceSpot[] {
+/** One thin box per room floor (4.8 x 6 m), grouped by floor kind (one draw call per kind). */
+export function floorSpots(id: LevelId): Record<FloorKind, InstanceSpot[]> {
+   const level = LEVELS[id];
+   const out: Record<FloorKind, InstanceSpot[]> = { woodLight: [], woodWarm: [], tile: [] };
+   for (let i = 0; i < level.rooms; i++) out[roomFloor(id, i)].push({ x: 0, y: -0.004, z: i * ROOM_LEN + ROOM_LEN / 2, sx: HALL_HALF * 2, sy: 0.01, sz: ROOM_LEN });
+   return out;
+}
+
+/** A patterned rug in the lane of every room (under the vacuums' loop, flat: nothing collides with it). */
+export function rugSpots(level: CatLevel): InstanceSpot[] {
    const spots: InstanceSpot[] = [];
-   for (let i = 0; i < level.rooms; i++) {
-      const z = i * ROOM_LEN + ROOM_LEN / 2;
-      for (const side of [-1, 1]) {
-         spots.push({ x: side * 1.8, y: 0.005, z, sx: 1.2, sy: 0.01, sz: ROOM_LEN - 0.2 });
-      }
-   }
+   for (let i = 0; i < level.rooms; i++) spots.push({ x: 0, y: 0.006, z: i * ROOM_LEN + ROOM_LEN / 2, sx: 1.7, sy: 0.008, sz: ROOM_LEN - 1.6 });
    return spots;
 }
 
-/** The lane rug under the vacuum's loop. */
-export function rugSpot(level: CatLevel): InstanceSpot {
-   return { x: 0, y: 0.008, z: (level.rooms * ROOM_LEN) / 2, sx: 1.9, sy: 0.012, sz: level.rooms * ROOM_LEN - 2.4 };
+/** The hall's low walls (0.55 m, under the cat's sight line), each with a dark baseboard and a light cap. */
+export function wallSpots(level: CatLevel): { body: InstanceSpot[]; base: InstanceSpot[]; cap: InstanceSpot[] } {
+   const h = 0.55;
+   const t = 0.2;
+   const zEnd = level.rooms * ROOM_LEN;
+   const runs = [
+      { x: -HALL_HALF - t / 2, z: zEnd / 2, sx: t, sz: zEnd + 2 * t },
+      { x: HALL_HALF + t / 2, z: zEnd / 2, sx: t, sz: zEnd + 2 * t },
+      { x: 0, z: -t / 2, sx: HALL_HALF * 2, sz: t },
+      { x: 0, z: zEnd + t / 2, sx: HALL_HALF * 2, sz: t },
+   ];
+   return {
+      body: runs.map((r) => ({ x: r.x, y: h / 2, z: r.z, sx: r.sx, sy: h, sz: r.sz })),
+      base: runs.map((r) => ({ x: r.x, y: 0.05, z: r.z, sx: r.sx + 0.04, sy: 0.1, sz: r.sz + 0.04 })),
+      cap: runs.map((r) => ({ x: r.x, y: h + 0.025, z: r.z, sx: r.sx + 0.06, sy: 0.05, sz: r.sz + 0.06 })),
+   };
+}
+
+/** The outer house walls: both sides and the far end (north), never the camera side (south). */
+export function outerWallSpots(level: CatLevel): { body: InstanceSpot[]; trim: InstanceSpot[] } {
+   const zEnd = level.rooms * ROOM_LEN;
+   const x = HALL_HALF + OUTER_GAP;
+   const z0 = -OUTER_GAP - 1;
+   const len = zEnd + 40;
+   const runs = [
+      { x: -x - 0.15, z: z0 + len / 2, sx: 0.3, sz: len },
+      { x: x + 0.15, z: z0 + len / 2, sx: 0.3, sz: len },
+      { x: 0, z: z0 - 0.15, sx: 2 * x + 0.6, sz: 0.3 },
+   ];
+   return {
+      body: runs.map((r) => ({ x: r.x, y: OUTER_WALL_H / 2, z: r.z, sx: r.sx, sy: OUTER_WALL_H, sz: r.sz })),
+      trim: runs.map((r) => ({ x: r.x, y: 0.06, z: r.z, sx: r.sx + 0.06, sy: 0.12, sz: r.sz + 0.06 })),
+   };
 }

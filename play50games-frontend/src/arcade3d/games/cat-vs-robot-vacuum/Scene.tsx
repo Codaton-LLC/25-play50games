@@ -21,13 +21,13 @@ import { useRunFrame } from "@/arcade3d/core/useRunFrame";
 import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { ASSETS } from "./assets";
 import type { CatLevel } from "./levels";
-import { COLORS, DAMPING, FOV, LOOK_AHEAD, aimBounds, baySpots, decorSpots, lookAtFor, rugSpot, viewFor, wallSpots } from "./looks";
+import { COLORS, DAMPING, FOV, LOOK_AHEAD, aimBounds, decorSpots, lookAtFor, viewFor } from "./looks";
+import { House } from "./House";
 import { CatFigure, disposeParts, toyParts, treatParts, vacuumParts } from "./Primitives";
 import {
    CLUTTER_H,
    CLUTTER_HALF,
    FURN_SIZE,
-   HALL_HALF,
    HOME_R,
    HOP_H,
    HOP_S,
@@ -100,9 +100,6 @@ function LevelScene() {
    const decor = useMemo(() => decorSpots(id), [id]);
    const phase = useArcadeStore((s) => s.phase);
    const look = useMemo(() => lookAtFor(config), [config]);
-   const walls = useMemo(() => wallSpots(config), [config]);
-   const bays = useMemo(() => baySpots(config), [config]);
-   const rug = useMemo(() => [rugSpot(config)], [config]);
    const clutter = useMemo(() => run.clutter.map((box) => ({
       x: (box.min.x + box.max.x) / 2,
       y: CLUTTER_H / 2,
@@ -257,29 +254,10 @@ function LevelScene() {
             shift={view.shift}
             damping={DAMPING}
          />
-         {/* the rest of the house floor reaches past the fog: no void at any edge */}
-         <mesh rotation-x={-Math.PI / 2} position={[0, -0.01, zEnd / 2]}>
-            <circleGeometry args={[120, 48]} />
-            <meshStandardMaterial color={COLORS.outerFloor} roughness={0.95} />
-         </mesh>
-         <mesh rotation-x={-Math.PI / 2} position={[0, 0, zEnd / 2]}>
-            <planeGeometry args={[HALL_HALF * 2 + 0.4, zEnd + 0.4]} />
-            <meshStandardMaterial color={COLORS.floor} roughness={0.9} />
-         </mesh>
+         {/* room floors, rugs, the hall's walls and the rest of the house (House.tsx): no void at any edge */}
+         <House id={id} />
          <InstancedModel asset={ASSETS.catTree} spots={decor.catTrees} fallback={null} />
          <InstancedModel asset={ASSETS.chair} spots={decor.chairs} fallback={null} />
-         <Instanced spots={bays} name="bays">
-            <boxGeometry args={[1, 1, 1]} />
-            <meshStandardMaterial color={COLORS.bay} roughness={0.85} />
-         </Instanced>
-         <Instanced spots={rug} name="rug">
-            <boxGeometry args={[1, 1, 1]} />
-            <meshStandardMaterial color={COLORS.rug} roughness={0.95} />
-         </Instanced>
-         <Instanced spots={walls} name="walls">
-            <boxGeometry args={[1, 1, 1]} />
-            <meshStandardMaterial color={COLORS.wall} roughness={0.85} />
-         </Instanced>
          <mesh rotation-x={-Math.PI / 2} position={[run.home.x, 0.02, run.home.z]}>
             <primitive object={padGeometry} attach="geometry" />
             <primitive object={padMaterial} attach="material" />

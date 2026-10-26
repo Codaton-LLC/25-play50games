@@ -49,7 +49,9 @@ Adopted (copied into `public/models/3d`, listed in `modelManifest.ts`, fits in `
 
 - `cat-vs-robot-vacuum/`: `cat` (0.70 m nose to tail, faces +z, a creature: `<Model tint>` per level + `hop` / `waddle`, not the auto-rig), `robotVacuum` (0.72 m across, plus a code glow ring that pulses while chasing and is off while it returns), `catTreatFish` and `catToyPlush` (the regenerations the spec's still-needed list asked for, now in the ready folder, instead of the flagged `catTreat` / `catToy`), `catBox` (clutter), `catTreeR` (decor; not `catTree`).
 - `shared/`: `bed`, `table`, `bookshelfFull` (the full-shelves regeneration, instead of `bookshelf`), `woodenChair` (decor); `sofa` was already shared.
-- Decor (cat trees, chairs) is fitted to 1 m and placed by spot scale, outside the side walls and beyond the far end wall, never on the camera side. A 120 m house floor under the hall and fog from 22 m: no void at the edges.
+- The house (`House.tsx`, after the first playtest): every room has its own floor, drawn once on a canvas and shared (light or warm wood planks, or kitchen tiles; neighbouring rooms always differ; the kitchen level starts on tiles), a patterned rug in the lane, and the hall's low walls (0.55 m, under the cat's sight line) carry a dark baseboard and a light cap. Outside the hall: a darker parquet to the fog and the outer house walls (1.4 m) on both sides and beyond the far end, never on the camera side. About ten draw calls for all of it.
+- Decor (cat trees, chairs) is fitted to 1 m and placed by spot scale in the strip between the hall and the outer walls and beyond the far end wall, never on the camera side.
+- Camera: the aim may come within 1.2 m of either end wall, so the cat starts near the middle of the picture (it sat at the top edge with the aim held 3.5 m in).
 
 ## Known issues
 
