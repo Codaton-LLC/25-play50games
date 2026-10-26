@@ -1,0 +1,71 @@
+.legend {
+   position: absolute;
+   top: 74px;
+   left: 12px;
+   display: flex;
+   flex-direction: column;
+   gap: 4px;
+   padding: 8px 10px;
+   border: 1px solid var(--stroke);
+   border-radius: 12px;
+   background: var(--card);
+   color: #fdf2f8;
+   font-size: 13px;
+   line-height: 1.2;
+   pointer-events: none;
+}
+
+.row {
+   display: flex;
+   align-items: center;
+   gap: 8px;
+}
+
+.chip {
+   display: grid;
+   place-items: center;
+   width: 24px;
+   height: 24px;
+   border-radius: 7px;
+   flex: none;
+}
+
+.chip svg {
+   width: 18px;
+   height: 18px;
+   fill: #fff;
+   stroke: none;
+}
+
+.name {
+   min-width: 46px;
+}
+
+.count {
+   margin-left: auto;
+   font-variant-numeric: tabular-nums;
+}
+
+.done {
+   opacity: 0.55;
+}
+
+.done .count::after {
+   content: " \2713";
+   color: #4ade80;
+}
+
+/* two rows of stat chips on a phone: sit below them */
+@media (max-width: 520px) {
+   .legend {
+      top: 128px;
+      left: 8px;
+      padding: 6px 8px;
+      font-size: 12px;
+      gap: 3px;
+   }
+
+   .name {
+      display: none;
+   }
+}

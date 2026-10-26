@@ -2,7 +2,9 @@
 // checked as pure rotations.
 import { describe, expect, it } from "vitest";
 import { Quaternion, Vector3 } from "three";
-import { BONE, BONE_COUNT } from "./humanoid";
+import { ROBOT_LANDMARKS } from "../sharedAssets";
+import { bodyLift, footPoint, soleHeight } from "./gait";
+import { BONE, BONE_COUNT, estimateHumanoidLandmarks, type HumanoidLandmarks } from "./humanoid";
 import {
    CLAVICLE_SHARE,
    POSE_MASK,
@@ -24,11 +26,14 @@ import {
    resolvePose,
    restPose,
    setBoneEuler,
+   sitPose,
+   swimPose,
    turnBone,
    walkPose,
    wrapPhase,
    type HumanoidPose,
 } from "./poses";
+import { HUMAN_FEET, HUMAN_PARTS, buildShape } from "./testShapes";
 
 const SPREAD = 0.25;
 const PHASES = [0, 0.4, Math.PI / 2, 2, Math.PI, 4.1, (3 * Math.PI) / 2, 5.9];
@@ -85,6 +90,8 @@ describe("basics", () => {
          () => reachPose(-1, 0.4, out),
          () => cheerPose(2, out),
          () => jumpPose(0.5, out),
+         () => sitPose(0.7, out),
+         () => swimPose(1.2, 0.8, out),
          () => flailPose(0.4, out),
          () => turnBone(out, BONE.spine, 0.1, 0, 0),
          () => mirrorPose(out, out),
@@ -116,10 +123,14 @@ describe("basics", () => {
          check();
          jumpPose(k, p);
          check();
+         sitPose(k, p);
+         check();
          reachPose(1, k, p);
          check();
          for (const phase of PHASES) {
             walkPose(phase, k, p);
+            check();
+            swimPose(phase, k, p);
             check();
          }
       }
@@ -432,6 +443,179 @@ describe("other poses", () => {
       const a = flailPose(0, createPose());
       const b = flailPose(0.1, createPose());
       expect(Math.abs(quat(a.q, BONE.upperArmL).dot(quat(b.q, BONE.upperArmL)))).toBeLessThan(0.999);
+   });
+});
+
+const human = estimateHumanoidLandmarks(buildShape([...HUMAN_PARTS, HUMAN_FEET]));
+const BODIES: Array<[string, HumanoidLandmarks]> = [
+   ["robot", ROBOT_LANDMARKS],
+   ["human", human],
+];
+const UP = new Vector3(0, 1, 0);
+
+/** Every component finite, and ground / lift inside the range bodyLift expects. */
+function expectFinitePose(p: HumanoidPose): void {
+   for (let i = 0; i < p.q.length; i++) expect(Number.isFinite(p.q[i]), `q[${i}]`).toBe(true);
+   expect(Number.isFinite(p.dropL)).toBe(true);
+   expect(Number.isFinite(p.dropR)).toBe(true);
+   expect(Number.isFinite(p.lift)).toBe(true);
+   expect(Number.isFinite(p.ground)).toBe(true);
+   expect(p.lift).toBeGreaterThanOrEqual(0);
+   expect(p.ground).toBeGreaterThanOrEqual(0);
+   expect(p.ground).toBeLessThanOrEqual(1);
+}
+
+/** Forward pitch (rad) of a bone chain's down axis: 0 = straight down, + = toward +z. */
+function forwardPitch(q: Float32Array, bones: number[]): number {
+   const d = chainDir(q, bones, DOWN);
+   return Math.atan2(d.z, -d.y);
+}
+
+/** Angle (rad) between two bone-chain directions. */
+function angleBetween(q: Float32Array, a: number[], b: number[]): number {
+   return chainDir(q, a, DOWN).angleTo(chainDir(q, b, DOWN));
+}
+
+describe("sitPose", () => {
+   const RIGHT = Math.PI / 2;
+
+   it("amount 0 is the standing idle (armsDownPose), and out-of-range amounts clamp", () => {
+      const down = armsDownPose(createPose());
+      expect(sitPose(0, createPose())).toEqual(down);
+      expect(sitPose(-1, createPose())).toEqual(down);
+      expectSamePose(sitPose(2, createPose()), sitPose(1, createPose()));
+   });
+
+   it("a full sit bends hips and knees about a right angle, feet forward and flat, spine tipped forward, hands on the bars", () => {
+      const sit = sitPose(1, createPose());
+      expectFinitePose(sit);
+      expect(sit.ground).toBe(0);
+      expect(sit.lift).toBe(0);
+      for (const [thigh, shin, foot] of [
+         [BONE.upperLegL, BONE.lowerLegL, BONE.footL],
+         [BONE.upperLegR, BONE.lowerLegR, BONE.footR],
+      ]) {
+         const hip = forwardPitch(sit.q, [BONE.hips, thigh]);
+         const knee = angleBetween(sit.q, [BONE.hips, thigh], [BONE.hips, thigh, shin]);
+         expect(hip).toBeCloseTo(RIGHT, 2);
+         expect(knee).toBeCloseTo(RIGHT, 2);
+         // the sole stays flat and the toes point forward with the hips
+         const sole = chainDir(sit.q, [BONE.hips, thigh, shin, foot], UP);
+         expect(sole.y).toBeCloseTo(1, 5);
+         const toes = chainDir(sit.q, [BONE.hips, thigh, shin, foot], Z);
+         expect(toes.z).toBeGreaterThan(0.7);
+      }
+      // the spine's top tips forward; the head does not drop onto the bars
+      expect(chainDir(sit.q, [BONE.spine], UP).z).toBeGreaterThan(0.1);
+      expect(chainDir(sit.q, [BONE.hips, BONE.spine, BONE.chest, BONE.neck, BONE.head], UP).y).toBeGreaterThan(0.7);
+      const r = resolved(sit);
+      for (const [fore, out] of [
+         [FORE_L, X],
+         [FORE_R, NX],
+      ] as const) {
+         const hand = chainDir(r, fore, out);
+         // on the bars: in front of the shoulder, not up beside the head and not hanging
+         expect(hand.z).toBeGreaterThan(0.55);
+         expect(hand.y).toBeLessThan(0.15);
+         expect(hand.y).toBeGreaterThan(-0.7);
+      }
+      expectSamePose(sit, mirrorPose(copyPose(sit, createPose()), createPose()));
+   });
+
+   it("bodyLift keeps the seat at standing hip height and the feet above the floor, on both bodies", () => {
+      for (const [, l] of BODIES) {
+         const sit = sitPose(1, createPose());
+         expect(bodyLift(sit, l)).toBeCloseTo(0, 8);
+         expect(l.hipY + bodyLift(sit, l)).toBeCloseTo(l.hipY, 8);
+         for (const side of [1, -1] as const) {
+            const foot = footPoint(sit, l, side);
+            expect(foot[3]).toBeGreaterThan(0.05);
+            expect(foot[3]).toBeLessThan(l.kneeY + 0.08);
+            expect(foot[2]).toBeGreaterThan(l.hipZ + (l.hipY - l.kneeY) * 0.6);
+            expect(soleHeight(sit, l, side)).toBeCloseTo(foot[3], 8);
+         }
+         for (const amount of [0, 0.4, 1]) {
+            const p = sitPose(amount, createPose());
+            expectFinitePose(p);
+            expect(Number.isFinite(bodyLift(p, l))).toBe(true);
+            expect(soleHeight(p, l, 1)).toBeGreaterThan(-0.01);
+            expect(soleHeight(p, l, -1)).toBeGreaterThan(-0.01);
+         }
+      }
+   });
+});
+
+describe("swimPose", () => {
+   it("every phase and amount stays finite, and amount 0 is one idle float", () => {
+      const idle = swimPose(0.3, 0, createPose());
+      expectFinitePose(idle);
+      expect(idle.ground).toBe(0);
+      expect(idle.lift).toBe(0);
+      for (const phase of [...PHASES, -2, 20]) {
+         expectSamePose(swimPose(phase, 0, createPose()), idle);
+         for (const amount of [-1, 0.5, 1, 3]) expectFinitePose(swimPose(phase, amount, createPose()));
+      }
+      expect(swimPose(4, 2, createPose()).ground).toBe(0);
+   });
+
+   it("phase + π is the mirror image, and the flutter actually swaps the legs", () => {
+      for (const amount of [0, 0.45, 1]) {
+         for (const phase of PHASES) {
+            const later = swimPose(phase + Math.PI, amount, createPose());
+            const mirrored = mirrorPose(swimPose(phase, amount, createPose()), createPose());
+            expectSamePose(later, mirrored);
+         }
+      }
+      const lead = swimPose(Math.PI / 2, 1, createPose());
+      const left = forwardPitch(lead.q, [BONE.hips, BONE.upperLegL]);
+      const right = forwardPitch(lead.q, [BONE.hips, BONE.upperLegR]);
+      expect(left).toBeGreaterThan(right + 0.2);
+      // legs stay nearly straight through the kick
+      for (const phase of PHASES) {
+         const p = swimPose(phase, 1, createPose());
+         for (const [thigh, shin] of [
+            [BONE.upperLegL, BONE.lowerLegL],
+            [BONE.upperLegR, BONE.lowerLegR],
+         ]) {
+            expect(angleBetween(p.q, [BONE.hips, thigh], [BONE.hips, thigh, shin])).toBeLessThan(0.45);
+         }
+      }
+   });
+
+   it("a full glide pitches further forward than the float, with the arms still along the body", () => {
+      // the trunk's up axis tips toward +z; a forward pitch sends the legs' down axis backward
+      const lean = (amount: number) => chainDir(swimPose(0, amount, createPose()).q, [BONE.hips, BONE.spine], UP).z;
+      expect(lean(1)).toBeGreaterThan(lean(0) + 0.25);
+      expect(lean(1)).toBeGreaterThan(0.5);
+      const glide = swimPose(0.4, 1, createPose());
+      expect(chainDir(glide.q, [BONE.hips], UP).z).toBeGreaterThan(0.35);
+      expect(chainDir(glide.q, [BONE.hips, BONE.upperLegL], DOWN).z).toBeLessThan(-0.15);
+      const r = resolved(glide);
+      for (const [clavicle, arm, out] of [
+         [BONE.clavicleL, BONE.upperArmL, X],
+         [BONE.clavicleR, BONE.upperArmR, NX],
+      ] as const) {
+         // in the chest's frame: still below the shoulder, and forward of the side, not swept back
+         const upper = chainDir(r, [clavicle, arm], out);
+         expect(upper.y).toBeLessThan(-0.45);
+         expect(upper.z).toBeGreaterThan(0.1);
+      }
+   });
+
+   it("bodyLift stays a float: off the floor, not a jump, on both bodies", () => {
+      for (const [, l] of BODIES) {
+         for (const amount of [0, 0.5, 1]) {
+            for (const phase of PHASES) {
+               const p = swimPose(phase, amount, createPose());
+               const lift = bodyLift(p, l);
+               expect(Number.isFinite(lift)).toBe(true);
+               expect(lift).toBeGreaterThanOrEqual(0);
+               expect(lift).toBeLessThan(l.hipY * 0.25);
+               expect(soleHeight(p, l, 1)).toBeGreaterThan(-0.02);
+               expect(soleHeight(p, l, -1)).toBeGreaterThan(-0.02);
+            }
+         }
+      }
    });
 });
 
