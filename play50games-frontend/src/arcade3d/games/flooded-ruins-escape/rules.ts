@@ -106,7 +106,7 @@ export interface Course {
    durationMs: number;
    /** the fastest any platform moves (m/s): the carry bound of the proof */
    maxCarry: number;
-   /** sideways gusts while airborne (Flood Rise, Final Escape) */
+   /** sideways gusts while airborne (Rising Water, Temple Escape) */
    wind: boolean;
    /** antenna arcs on roof rims; the centre of each roof is outside the strike */
    strikes: RoofStrike[];
@@ -156,7 +156,7 @@ function finishCourse(supports: Support[], level: RoofLevel, orbs: Orb[], strike
    return { supports, checkpoints, goal, orbs, durationMs: level.durationMs, maxCarry, strikes, wind };
 }
 
-/** Every level, including Drain Entry: buildRoofs. The course does not depend on the run seed. */
+/** Every level, including Ruined Gate: buildRoofs. The course does not depend on the run seed. */
 export function buildCourse(level: RoofLevel = LEVELS[1]): Course {
    const draft = buildRoofs(level);
    const supports: Support[] = draft.supports.map((s) => ({

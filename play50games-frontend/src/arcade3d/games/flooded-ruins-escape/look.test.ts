@@ -1,4 +1,4 @@
-// Flood Rise and Final Escape use the deep-shaft look. Levels 1-3 keep the misty ruin daylight.
+// Rising Water and Temple Escape use the deep-shaft look. Levels 1-3 keep the misty ruin daylight.
 import { describe, expect, it } from "vitest";
 import definition from "./index";
 import { FOG } from "./World";

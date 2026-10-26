@@ -6,11 +6,11 @@ import { PROPOSED_LEVEL_LIMITS } from "./rules";
 // A time game: the finish time minus the coin bonus is the score (README "Scoring").
 // Each level row carries its own proven limits (PROPOSED_LEVEL_LIMITS in rules.ts).
 const LEVEL_TITLES: Record<LevelId, string> = {
-   1: "Drain Entry",
-   2: "Pipe Maze",
-   3: "Valve Shaft",
-   4: "Flood Rise",
-   5: "Final Escape",
+   1: "Ruined Gate",
+   2: "Flooded Hall",
+   3: "Sunken Stairs",
+   4: "Rising Water",
+   5: "Temple Escape",
 };
 
 const scoring = (id: LevelId): ScoringRules => ({

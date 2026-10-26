@@ -105,7 +105,7 @@ describe("definition and camera", () => {
       expect(floodedRuinsEscapeMeta.collection).toBe("rollheroes");
       expect(floodedRuinsEscapeMeta.order).toBe(53);
       expect(floodedRuinsEscapeMeta.owner).toBe("cursor");
-      expect(floodedRuinsEscapeMeta.levels!.map((l) => l.title)).toEqual(["Drain Entry", "Pipe Maze", "Valve Shaft", "Flood Rise", "Final Escape"]);
+      expect(floodedRuinsEscapeMeta.levels!.map((l) => l.title)).toEqual(["Ruined Gate", "Flooded Hall", "Sunken Stairs", "Rising Water", "Temple Escape"]);
    });
 
    it("the intro ends on the follow camera's start pose, and flies from the gate down", () => {

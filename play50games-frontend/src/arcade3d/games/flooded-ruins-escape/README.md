@@ -74,11 +74,11 @@ The submitted duration is `finishMs − 400 · coins` (`runTimeMs`). Only a win 
 
    | Level | Least finish | Coins | Least duration |
    |---|---:|---:|---:|
-   | 1 Drain Entry | 6 089 ms | 4 | 4 489 ms |
-   | 2 Pipe Maze | 9 309 ms | 6 | 6 909 ms |
-   | 3 Valve Shaft | 12 340 ms | 5 | 10 340 ms |
-   | 4 Flood Rise | 15 370 ms | 7 | 12 570 ms |
-   | 5 Final Escape | 19 377 ms | 9 | 15 777 ms |
+   | 1 Ruined Gate | 6 089 ms | 4 | 4 489 ms |
+   | 2 Flooded Hall | 9 309 ms | 6 | 6 909 ms |
+   | 3 Sunken Stairs | 12 340 ms | 5 | 10 340 ms |
+   | 4 Rising Water | 15 370 ms | 7 | 12 570 ms |
+   | 5 Temple Escape | 19 377 ms | 9 | 15 777 ms |
 
 7. **Limits.** `proposeLimits` takes 92 % of the least duration, rounded down to 100 ms, and never under 90 % of it (a dash saves about 260 ms, which is more than 4.5 % of these short courses). `timeBaseMs` and `maxDurationMs` are the level timer. `maxScore = floor((timeBaseMs − minDurationMs) / 10)`.
 
@@ -105,11 +105,11 @@ The submitted duration is `finishMs − 400 · coins` (`runTimeMs`). Only a win 
 
 | Level | Title | Timer | What it adds |
 |---|---|---|---|
-| 1 | Drain Entry | 90 s | 10 ledges, 8 rises, goal at 16 m, wide and still |
-| 2 | Pipe Maze | 120 s | 14 ledges, 12 rises, goal at 22 m, sliding ledges |
-| 3 | Valve Shaft | 150 s | 18 ledges, 16 rises, goal at 30 m, more movers, sinking ledges, slick stone |
-| 4 | Flood Rise | 180 s | 22 ledges, 20 rises, goal at 38 m, faster movers, a shaft current, water jets |
-| 5 | Final Escape | 210 s | 28 ledges, 25 rises, goal at 46 m, every hazard |
+| 1 | Ruined Gate | 90 s | 10 ledges, 8 rises, goal at 16 m, wide and still |
+| 2 | Flooded Hall | 120 s | 14 ledges, 12 rises, goal at 22 m, sliding ledges |
+| 3 | Sunken Stairs | 150 s | 18 ledges, 16 rises, goal at 30 m, more movers, sinking ledges, slick stone |
+| 4 | Rising Water | 180 s | 22 ledges, 20 rises, goal at 38 m, faster movers, a shaft current, water jets |
+| 5 | Temple Escape | 210 s | 28 ledges, 25 rises, goal at 46 m, every hazard |
 
 Clear: a win (time game). Level 5's timer is 210 s (the plan's best-time climb needs a cap).
 

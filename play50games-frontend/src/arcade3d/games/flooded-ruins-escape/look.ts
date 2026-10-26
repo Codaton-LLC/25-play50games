@@ -28,7 +28,7 @@ export const COLORS = {
 } as const;
 
 /**
- * Flood Rise (4) and Final Escape (5). A dark blue night sky, denser fog, the "night"
+ * Rising Water (4) and Temple Escape (5). A dark blue night sky, denser fog, the "night"
  * lighting preset. Levels 1-3 stay on the daytime city palette. `fill` scales the world's extra lights.
  */
 export const STORM = {

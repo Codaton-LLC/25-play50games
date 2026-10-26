@@ -16,11 +16,11 @@ import Scene from "./Scene";
 import Hud from "./Hud";
 
 const DESCRIPTIONS: Record<LevelId, string> = {
-   1: "Drain Entry: ten wide stone ledges. Climb eight sections before the water. 90 seconds.",
-   2: "Pipe Maze: fourteen ledges, some of them sliding along the channel. Climb twelve sections. 120 seconds.",
-   3: "Valve Shaft: sliding ledges, ledges that sink, and slick stone. Climb sixteen sections. 150 seconds.",
-   4: "Flood Rise: tighter gaps, a shaft current, and water jets. Climb twenty sections.",
-   5: "Final Escape: every hazard on the way to the flood gate. Climb twenty-five sections. 210 seconds.",
+   1: "Ruined Gate: ten wide stone ledges. Climb eight sections before the water. 90 seconds.",
+   2: "Flooded Hall: fourteen ledges, some of them sliding along the channel. Climb twelve sections. 120 seconds.",
+   3: "Sunken Stairs: sliding ledges, ledges that sink, and slick stone. Climb sixteen sections. 150 seconds.",
+   4: "Rising Water: tighter gaps, a shaft current, and water jets. Climb twenty sections.",
+   5: "Temple Escape: every hazard on the way to the flood gate. Climb twenty-five sections. 210 seconds.",
 };
 
 const definition: GameDefinition<RoofLevel> = {

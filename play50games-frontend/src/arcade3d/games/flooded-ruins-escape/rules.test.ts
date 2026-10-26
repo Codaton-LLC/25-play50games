@@ -73,7 +73,7 @@ function botRun(level: LevelId, fps: number, seed = 1): RoofRun {
 const submitted = (run: RoofRun) => runTimeMs(run.finishMs, run.orbs);
 
 describe("the roofs", () => {
-   it("level 1 is Drain Entry: 10 landings, 8 rising sections, no movers, wide and safe", () => {
+   it("level 1 is Ruined Gate: 10 landings, 8 rising sections, no movers, wide and safe", () => {
       const s = COURSE.supports;
       expect(s).toHaveLength(10);
       expect(s[0].kind).toBe("start");

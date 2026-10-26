@@ -140,9 +140,9 @@ const high: RoofSpec = {
 };
 
 export const LEVELS: Record<LevelId, RoofLevel> = {
-   1: { id: 1, name: "Drain Entry", durationMs: 90_000, spec: low },
-   2: { id: 2, name: "Pipe Maze", durationMs: 120_000, spec: office },
-   3: { id: 3, name: "Valve Shaft", durationMs: 150_000, spec: moving },
-   4: { id: 4, name: "Flood Rise", durationMs: 180_000, spec: night },
-   5: { id: 5, name: "Final Escape", durationMs: 210_000, spec: high },
+   1: { id: 1, name: "Ruined Gate", durationMs: 90_000, spec: low },
+   2: { id: 2, name: "Flooded Hall", durationMs: 120_000, spec: office },
+   3: { id: 3, name: "Sunken Stairs", durationMs: 150_000, spec: moving },
+   4: { id: 4, name: "Rising Water", durationMs: 180_000, spec: night },
+   5: { id: 5, name: "Temple Escape", durationMs: 210_000, spec: high },
 };
