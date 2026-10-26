@@ -24,7 +24,7 @@ export const GLB_SIZE = {
 export const WIZARD_HEIGHT = 1.7;
 export const WIZARD_SCALE = WIZARD_HEIGHT / GLB_SIZE.wizard.y;
 /** Drawn size of each ingredient: its biggest side in metres. */
-export const INGREDIENT_SIZE = { mushroom: 0.44, crystal: 0.42, berry: 0.42, flower: 0.5, herb: 0.45, bottle: 0.5 } as const;
+export const INGREDIENT_SIZE = { mushroom: 0.7, crystal: 0.62, berry: 0.62, flower: 0.78, herb: 0.68, bottle: 0.78 } as const;
 export const SHELF_WIDTH = 1.2;
 export const TABLE_WIDTH = 1.1;
 /** The table top, where the book and the ball stand (Scene places them at 0.78). */

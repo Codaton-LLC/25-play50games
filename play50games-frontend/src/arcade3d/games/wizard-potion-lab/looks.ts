@@ -2,18 +2,17 @@
 import type { AABB } from "@/arcade3d/core/collision";
 import type { InstanceSpot } from "@/arcade3d/core/render";
 import type { FittedViewOptions } from "@/arcade3d/core/useFittedView";
-import { followFocus } from "@/arcade3d/core/view";
 import type { LevelId } from "@/arcade3d/types";
 import { LEVELS, type WizardLevel } from "./levels";
 import type { Ingredient } from "./rules";
 
 export const COLORS = {
-   floor: "#312e81",
-   floorIn: "#3730a3",
+   floor: "#4b46a8",
+   floorIn: "#5b55c4",
    apron: "#1e1b4b",
-   wall: "#44403c",
-   wallTrim: "#57534e",
-   shelf: "#44403c",
+   wall: "#6b5f57",
+   wallTrim: "#8a7d72",
+   shelf: "#6b5f57",
    shelfTrim: "#78716c",
    glow: "#a78bfa",
    accent: "#c4b5fd",
@@ -49,16 +48,34 @@ export const INGREDIENT_LOOK: Record<Ingredient, { shape: "circle" | "square" | 
 export const PITCH = (52 * Math.PI) / 180;
 export const YAWS = [0, Math.PI / 2] as const;
 export const FOV = 46;
-export const FOLLOW = 0.42;
+export const FOLLOW = 1;
+/** What must stay on screen around the wizard (m): a big lab scrolls under the camera. */
+export const WINDOW = { w: 13, d: 9 } as const;
 export const DAMPING = 4;
 
 export function fogFor(level: WizardLevel): [string, number, number] {
-   return [level.background, level.radius * 1.7, level.radius * 4.4];
+   return [level.background, level.radius * 3.4, level.radius * 8];
 }
 
 export function labBox(level: WizardLevel): AABB {
    const s = level.radius + 0.9;
    return { min: { x: -s, y: 0, z: -s }, max: { x: s, y: 2.6, z: s } };
+}
+
+/** The window round the camera aim that the fit keeps on screen. */
+export function windowBox(level: WizardLevel): AABB {
+   const s = level.radius + 0.9;
+   const w = Math.min(s, WINDOW.w / 2);
+   const d = Math.min(s, WINDOW.d / 2);
+   return { min: { x: -w, y: 0, z: -d }, max: { x: w, y: 2.6, z: d } };
+}
+
+/** Where the camera aim may go: the lab shrunk by half the window, so the lab edge never leaves the frame. */
+export function aimBounds(level: WizardLevel): AABB {
+   const s = level.radius + 0.9;
+   const w = Math.min(s, WINDOW.w / 2);
+   const d = Math.min(s, WINDOW.d / 2);
+   return { min: { x: -(s - w), y: 0, z: -(s - d) }, max: { x: s - w, y: 2.6, z: s - d } };
 }
 
 export function lookAtFor(): [number, number, number] {
@@ -72,13 +89,12 @@ export function viewFor(id: LevelId): FittedViewOptions {
    let view = VIEWS.get(id);
    if (!view) {
       const level = LEVELS[id];
-      const area = labBox(level);
-      const look = lookAtFor();
+      const area = windowBox(level);
       view = {
          area,
          pitch: PITCH,
          yaws: YAWS,
-         focus: followFocus({ lookAt: look, reach: area, fraction: FOLLOW, bounds: area }),
+         focus: [{ x: 0, y: 0.45, z: 0 }],
          margin: { top: 0.06, right: 0.03, bottom: 0.07, left: 0.03 },
          padding: 8,
          shift: true,

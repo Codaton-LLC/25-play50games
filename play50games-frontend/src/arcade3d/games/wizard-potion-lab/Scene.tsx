@@ -38,7 +38,7 @@ import { useArcadeStore } from "@/arcade3d/core/useArcadeStore";
 import { ASSETS, WIZARD_LANDMARKS, WIZARD_SCALE } from "./assets";
 import { publishLab } from "./Hud";
 import { LEVELS, type WizardLevel } from "./levels";
-import { COLORS, DAMPING, FOLLOW, FOV, INGREDIENT_LOOK, candleSpots, labBox, lookAtFor, runeSpots, viewFor, wallCapSpots, wallSpots } from "./looks";
+import { COLORS, DAMPING, FOLLOW, FOV, INGREDIENT_LOOK, candleSpots, aimBounds, lookAtFor, runeSpots, viewFor, wallCapSpots, wallSpots } from "./looks";
 import { BallPrimitive, BookPrimitive, CauldronPrimitive, TablePrimitive, WizardFigure } from "./Primitives";
 import {
    MAX_SPEED,
@@ -201,10 +201,10 @@ function LevelScene() {
    const time = useGameTime();
    const quality = useQuality();
    const [run] = useState<Run>(() => createRun(randomSeed(), level));
-   const aim = useRef({ x: run.hero.x * 0.36, y: 0.6, z: run.hero.z * 0.36 }).current;
+   const aim = useRef({ x: run.hero.x, y: 0.6, z: run.hero.z }).current;
    const body = useRef<Group>(null);
    const gait = useRef({ phase: 0 });
-   const bounds = useMemo(() => labBox(level), [level]);
+   const bounds = useMemo(() => aimBounds(level), [level]);
    const look = useMemo(() => lookAtFor(), []);
    const walls = useMemo(() => wallSpots(level), [level]);
    const caps = useMemo(() => wallCapSpots(walls), [walls]);
@@ -271,8 +271,8 @@ function LevelScene() {
       const store = useArcadeStore.getState();
       const ev = step(run, { moveX, moveY, actionPressed, yaw: view.yaw }, dt, store.timeLeftMs ?? 0);
       if (ev.score) store.addScore(ev.score);
-      aim.x = run.hero.x * 0.36;
-      aim.z = run.hero.z * 0.36;
+      aim.x = run.hero.x;
+      aim.z = run.hero.z;
       aim.y = 0.6;
       aim.x = Math.min(bounds.max.x, Math.max(bounds.min.x, aim.x));
       aim.z = Math.min(bounds.max.z, Math.max(bounds.min.z, aim.z));
@@ -333,7 +333,7 @@ function LevelScene() {
          </mesh>
          <mesh rotation-x={-Math.PI / 2} position={[0, 0.012, 0]}>
             <circleGeometry args={[level.radius - 0.05, 48]} />
-            <meshStandardMaterial color={COLORS.floor} roughness={0.88} />
+            <meshStandardMaterial color={COLORS.floor} emissive={COLORS.floor} emissiveIntensity={level.lighting === "night" ? 0.7 : 0.3} roughness={0.88} />
          </mesh>
          <mesh rotation-x={-Math.PI / 2} position={[0, 0.02, 0]}>
             <ringGeometry args={[level.radius - 0.55, level.radius - 0.2, 48]} />
@@ -341,7 +341,7 @@ function LevelScene() {
          </mesh>
          <Instanced spots={walls} name="walls">
             <boxGeometry args={[1, 1, 1]} />
-            <meshStandardMaterial color={COLORS.wall} roughness={0.86} />
+            <meshStandardMaterial color={COLORS.wall} emissive={COLORS.wall} emissiveIntensity={level.lighting === "night" ? 0.4 : 0.15} roughness={0.86} />
          </Instanced>
          <Instanced spots={caps} name="wall-caps">
             <boxGeometry args={[1, 1, 1]} />
@@ -385,6 +385,7 @@ function LevelScene() {
                </>
             }
          />
+         <pointLight position={[0, 1.7, 0]} intensity={level.lighting === "night" ? 12 : level.lighting === "sunset" ? 4 : 0} distance={9} decay={1.5} color={COLORS.glow} />
          <Model asset={ASSETS.cauldron} fallback={<CauldronPrimitive />} />
          <mesh position={[0, DISC_Y, 0]} rotation-x={-Math.PI / 2}>
             <circleGeometry args={[DISC_R, 20]} />
@@ -401,6 +402,7 @@ function LevelScene() {
          </group>
          <IngredientPools run={run} parts={parts} />
          <group ref={body}>
+            <pointLight position={[0, 2.4, 0.8]} intensity={level.lighting === "night" ? 9 : level.lighting === "sunset" ? 3 : 0} distance={7} decay={1.6} color="#ddd6fe" />
             <HumanoidModel asset={ASSETS.wizard} pose={pose} fallback={<WizardFigure />} />
          </group>
       </>
