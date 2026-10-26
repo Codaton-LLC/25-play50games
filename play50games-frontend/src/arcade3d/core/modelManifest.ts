@@ -229,6 +229,22 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/cat-vs-robot-vacuum/catTreeR.glb",
    "/models/3d/shared/bed.glb",
    "/models/3d/shared/bookshelfFull.glb",
+   // Menu 1 mars-rover-mission (2026-10-25): the ready menu1-mars-rover-mission GLBs (ledger OK; not marsRoverV2,
+   // groundSolarPanel or the broken ancientMarsRuin), copied as optimized; fits measured in its assets.ts.
+   // The astronaut is a static T-pose for the core auto-rig (ASTRONAUT_LANDMARKS).
+   "/models/3d/mars-rover-mission/marsRover.glb",
+   "/models/3d/mars-rover-mission/marsBase.glb",
+   "/models/3d/mars-rover-mission/commsAntenna.glb",
+   "/models/3d/mars-rover-mission/groundSolarPanelV2.glb",
+   "/models/3d/mars-rover-mission/chargingStation.glb",
+   "/models/3d/mars-rover-mission/sampleRock.glb",
+   "/models/3d/mars-rover-mission/beaconLight.glb",
+   "/models/3d/mars-rover-mission/researchCrate.glb",
+   "/models/3d/mars-rover-mission/landingCapsule.glb",
+   "/models/3d/mars-rover-mission/charAstronaut.glb",
+   "/models/3d/mars-rover-mission/marsMesaRock.glb",
+   "/models/3d/mars-rover-mission/marsBoulder.glb",
+   "/models/3d/mars-rover-mission/marsMesaTall.glb",
    // submarine-treasure-dive (gate, 2026-10-25): menu1 ready set, optimized
    "/models/3d/submarine-treasure-dive/miniSubmarine.glb",
    "/models/3d/submarine-treasure-dive/amphora.glb",
