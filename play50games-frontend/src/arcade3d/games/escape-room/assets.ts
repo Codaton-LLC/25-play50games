@@ -66,7 +66,23 @@ export const ASSETS = {
    book: { ...local("book", "box", "#b91c1c"), scale: 0.1583, stretch: [0.726, 1, 1.071], rotationY: -Math.PI / 2, yOffset: -0.15 },
    // the 1.4 x 2.0 x 0.12 leaf, turned round so the knob is at the free (+x) edge
    door: { ...local("door", "box", "#b45309"), scale: 1.0566, stretch: [1.113, 1, 0.424], rotationY: Math.PI },
+   // level 4 decor (Hyper3D). Measured GLB 1.118 x 1.897 x 0.967, min y = 0; 0.65 draws it 0.73 x 1.23 x 0.63.
+   stoveT: { ...local("stoveT", "box", "#44403c"), scale: 0.65, rotationY: 0, yOffset: 0 },
+   // level 5 decor (Hyper3D). Measured GLB 1.889 x 1.035 x 1.186, min y = 0; 0.9 draws it 1.70 x 0.93 x 1.07.
+   shipConsole: { ...local("shipConsole", "box", "#475569"), scale: 0.9, rotationY: 0, yOffset: 0 },
 } satisfies Record<string, ModelAsset>;
+
+/** Level 4 / 5 decor, all beyond the walls (z < -5.2, |x| > 6.2): the play area is the 12 x 10 floor. */
+export const STOVE_SPOTS = [
+   { x: -3, y: 0, z: -6.2, rotY: 0 },
+   { x: 3, y: 0, z: -6.2, rotY: 0 },
+] as const;
+export const SHIP_CONSOLE_SPOTS = [
+   { x: -7.2, y: 0, z: -2, rotY: Math.PI / 2 },
+   { x: -7.2, y: 0, z: 2, rotY: Math.PI / 2 },
+   { x: 7.2, y: 0, z: -2, rotY: -Math.PI / 2 },
+   { x: 7.2, y: 0, z: 2, rotY: -Math.PI / 2 },
+] as const;
 
 /** The character Scene.tsx draws (<HumanoidModel asset={RUNNER_ASSET}>): runner.glb 1.40 m tall. */
 export const RUNNER_ASSET: ModelAsset = ASSETS.runner;
