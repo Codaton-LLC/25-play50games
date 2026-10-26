@@ -675,12 +675,19 @@
     "wizard-potion-lab": {
       "title": "Wizard Potion Lab",
       "kind": "points",
-      "max_score": 3000,
-      "min_duration_ms": 10000,
-      "max_duration_ms": 300000,
-      "base": 3000,
-      "max_pps": 3000,
-      "enabled": false
+      "max_score": 1260,
+      "min_duration_ms": 4000,
+      "max_duration_ms": 120000,
+      "base": 760,
+      "max_pps": 64,
+      "enabled": false,
+      "levels": [
+        { "title": "Beginner Lab", "max_score": 1260, "min_duration_ms": 4000, "max_duration_ms": 120000, "base": 760, "max_pps": 64 },
+        { "title": "Mushroom Lab", "max_score": 1710, "min_duration_ms": 4000, "max_duration_ms": 150000, "base": 1140, "max_pps": 28 },
+        { "title": "Crystal Lab", "max_score": 2110, "min_duration_ms": 4000, "max_duration_ms": 180000, "base": 1520, "max_pps": 12 },
+        { "title": "Forest Lab", "max_score": 2350, "min_duration_ms": 4000, "max_duration_ms": 180000, "base": 1900, "max_pps": 8 },
+        { "title": "Master Wizard Lab", "max_score": 2760, "min_duration_ms": 4000, "max_duration_ms": 210000, "base": 2280, "max_pps": 8 }
+      ]
     },
     "haunted-mansion-keys": {
       "title": "Haunted Mansion Keys",
