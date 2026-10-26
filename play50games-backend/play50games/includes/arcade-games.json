@@ -678,11 +678,18 @@
     "haunted-mansion-keys": {
       "title": "Haunted Mansion Keys",
       "kind": "time",
-      "max_score": 29200,
-      "min_duration_ms": 8000,
-      "max_duration_ms": 300000,
-      "time_base_ms": 300000,
-      "enabled": false
+      "max_score": 17860,
+      "min_duration_ms": 1400,
+      "max_duration_ms": 180000,
+      "time_base_ms": 180000,
+      "enabled": false,
+      "levels": [
+        { "title": "Entrance Hall", "max_score": 17860, "min_duration_ms": 1400, "max_duration_ms": 180000, "time_base_ms": 180000 },
+        { "title": "Library", "max_score": 20590, "min_duration_ms": 4100, "max_duration_ms": 210000, "time_base_ms": 210000 },
+        { "title": "Bedrooms", "max_score": 23700, "min_duration_ms": 3000, "max_duration_ms": 240000, "time_base_ms": 240000 },
+        { "title": "Basement", "max_score": 23500, "min_duration_ms": 5000, "max_duration_ms": 240000, "time_base_ms": 240000 },
+        { "title": "Grand Mansion Escape", "max_score": 29320, "min_duration_ms": 6800, "max_duration_ms": 300000, "time_base_ms": 300000 }
+      ]
     },
     "bee-garden": {
       "title": "Bee Garden",
