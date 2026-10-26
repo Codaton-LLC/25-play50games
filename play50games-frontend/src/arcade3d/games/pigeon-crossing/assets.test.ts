@@ -10,12 +10,13 @@ import { hasModel } from "@/arcade3d/core/modelManifest";
 import { readCharacterGlb } from "@/arcade3d/core/rig/robotGlb";
 import type { ModelAsset } from "@/arcade3d/core/types";
 import {
-   ASSETS, createLampSpots, createTaxiSpots, decorRow, decorX, isDecorLevel,
+   ASSETS, createLampSpots, createTaxiSpots, decorRow, decorX, DECOR_Y, isDecorLevel,
    LAMP_COUNT, LAMP_GLB, LAMP_HEIGHT, LAMP_SCALE, LAMP_SPACING,
    RUSH_TAXI_COUNT, RUSH_TAXI_GLB, RUSH_TAXI_LENGTH, RUSH_TAXI_SCALE, RUSH_TAXI_SPACING,
    DECOR_RECYCLE_ROWS,
 } from "./assets";
 import { createStreetParts, disposeStreetParts } from "./Primitives";
+import { COVER_HEIGHT } from "./camera";
 import { COVER_INNER_X, PLAY_HALF_WIDTH, VEHICLE_TYPES } from "./rules";
 import { FACE_LEFT, FACE_RIGHT, VEHICLE_ASSETS, vehicleFacing } from "./traffic";
 
@@ -198,6 +199,9 @@ describe("pigeon-crossing night street decor (levels 4-5)", () => {
       for (const coverX of [COVER_INNER_X, 8.3, 12.073, 21.614, 27.4]) {
          const x = decorX(coverX);
          expect(x - widest, `cover ${coverX}`).toBeGreaterThan(PLAY_HALF_WIDTH);
+         expect(x - widest, `visible traffic lanes, cover ${coverX}`).toBeGreaterThan(COVER_INNER_X);
+         expect(DECOR_Y).toBe(COVER_HEIGHT);
+         if (coverX > COVER_INNER_X) expect(x + widest, `on the cover, ${coverX}`).toBeLessThanOrEqual(coverX);
          for (const { spots, count, spacing } of DECOR_ASSETS) {
             const line = spots();
             const initialRows = line.map((spot) => spot.row);

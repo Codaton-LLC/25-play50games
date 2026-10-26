@@ -1,4 +1,5 @@
 import type { ModelAsset } from "@/arcade3d/core/types";
+import { COVER_INNER_X } from "./rules";
 
 const PROP_BUDGET = { tris: 5000, bytes: 300000 };
 
@@ -45,7 +46,7 @@ export const ASSETS = {
    },
    // Night/rush-hour street decor, levels 4-5 only (meta.ts: Night Traffic, Rush Hour). Fitted from
    // the measured bounds below (assets.test.ts re-measures them on the real meshes). Decor.tsx
-   // places the copies at |x| = decorX(horizon.coverX), beyond the side cover's outer edge, so they
+   // places the copies at |x| = decorX(...), on the side cover's top just past its inner edge, so they
    // never enter the play bounds (±PLAY_HALF_WIDTH) or overlap traffic's spawn extent.
    streetLampNight: {
       id: "streetLampNight", url: "/models/3d/pigeon-crossing/streetLampNight.glb", scale: LAMP_SCALE,
@@ -66,14 +67,18 @@ export function isDecorLevel(level: number): boolean {
 }
 
 /**
- * Copies stand this far beyond the side cover's outer edge. The filled cover never sits inside
- * ±(COVER_INNER_X + 2.3) and traffic's farthest spawn extent is COVER_INNER_X + 3.8, so with this
- * margin a copy's inner edge stays clear of both at every cover width.
+ * The copies stand ON the opaque side cover, just inside its inner edge: |x| = COVER_INNER_X + DECOR_INSET,
+ * on the cover's top plane (y = DECOR_Y = COVER_HEIGHT). The camera's whole visible ground beyond the
+ * street is that cover top, so this is the nearest spot that shows at desktop and portrait widths.
+ * It stays off the walk lane (|x| <= PLAY_HALF_WIDTH), off the visible traffic lanes (|x| <= COVER_INNER_X)
+ * and above the vehicles hidden under the cover (they are <= 1.3 m tall, the cover is 1.8 m).
  */
-export const DECOR_COVER_MARGIN = 2.5;
-/** |x| of a decor copy when the side cover's outer edge is at `coverX` (the cover only grows). */
-export function decorX(coverX: number): number {
-   return coverX + DECOR_COVER_MARGIN;
+export const DECOR_INSET = 1.4;
+/** camera.ts COVER_HEIGHT (assets.test.ts pins the match; camera.ts imports this file, so no import here). */
+export const DECOR_Y = 1.8;
+/** |x| of a decor copy; the cover is at least 2.3 m wide so every copy stays on it at any cover width. */
+export function decorX(_coverX: number): number {
+   return COVER_INNER_X + DECOR_INSET;
 }
 
 /**
