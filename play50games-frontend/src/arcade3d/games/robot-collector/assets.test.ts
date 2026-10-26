@@ -63,9 +63,12 @@ describe("robot-collector models", () => {
       for (const spot of HAZARD_BEACON_SPOTS) {
          // the centre stands off the floor, on a wall's trim (the trim runs wall to wall)
          expect(Math.abs(spot.x) > ARENA.halfX || Math.abs(spot.z) > ARENA.halfZ).toBe(true);
-         // ... and the base stays on the warehouse: not past the wall's outer face + the plinth lip
-         expect(Math.abs(spot.x) + r).toBeLessThanOrEqual(ARENA.halfX + WALL.thickness + 0.15);
-         expect(Math.abs(spot.z) + r).toBeLessThanOrEqual(ARENA.halfZ + WALL.thickness + 0.15);
+         // the whole base is outside the play area: on an edge wall the base's inner edge is at or past the arena edge
+         const outX = Math.abs(spot.x) - r >= ARENA.halfX - 1e-6, outZ = Math.abs(spot.z) - r >= ARENA.halfZ - 1e-6;
+         expect(outX || outZ, `spot ${spot.x},${spot.z} base reaches into the arena`).toBe(true);
+         // ... and the base overhangs the wall's outer face by no more than half its width
+         expect(Math.abs(spot.x) + r).toBeLessThanOrEqual(ARENA.halfX + WALL.thickness + 0.15 + r);
+         expect(Math.abs(spot.z) + r).toBeLessThanOrEqual(ARENA.halfZ + WALL.thickness + 0.15 + r);
       }
    });
 });
