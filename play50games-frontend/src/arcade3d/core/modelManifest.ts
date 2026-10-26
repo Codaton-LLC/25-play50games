@@ -401,6 +401,20 @@ export const MODEL_MANIFEST: readonly string[] = [
    "/models/3d/robot-factory/powerCore.glb",
    // zoo-escape extra decor (levels 4-5)
    "/models/3d/zoo-escape/zooFountain.glb",
+   // Menu 1 dog-park-fetch (2026-10-26): the ready menu1-dog-park-fetch GLBs the gate adopts (dogHouse*,
+   // dogBone*, agilityHurdle and dogOwnerNpc left out: a dog is baked into each), plus shared civilianNpc
+   // as the owner; fits in games/dog-park-fetch/assets.ts.
+   "/models/3d/dog-park-fetch/dog.glb",
+   "/models/3d/dog-park-fetch/tennisBall.glb",
+   "/models/3d/dog-park-fetch/frisbee.glb",
+   "/models/3d/dog-park-fetch/fetchStick.glb",
+   "/models/3d/dog-park-fetch/parkFountain.glb",
+   "/models/3d/dog-park-fetch/agilityTunnel.glb",
+   "/models/3d/dog-park-fetch/agilityHurdleR.glb",
+   "/models/3d/dog-park-fetch/lawnMower.glb",
+   "/models/3d/dog-park-fetch/parkBush.glb",
+   "/models/3d/dog-park-fetch/festivalTent.glb",
+   "/models/3d/shared/civilianNpc.glb",
 ];
 
 const LISTED: ReadonlySet<string> = new Set(MODEL_MANIFEST);
