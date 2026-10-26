@@ -20,6 +20,8 @@ import { ROW_PITCH, type PigeonRun } from "./rules";
 
 interface DecorProps {
    run: PigeonRun;
+   /** The arcade level (1-5) the Scene reads from usePigeonLevel; run.level is the street number, not this. */
+   level: number;
    horizon: Horizon;
    parts: StreetParts;
 }
@@ -54,39 +56,40 @@ function useDecorPool(
    spots: StreetDecorSpot[],
    spacing: number,
    run: PigeonRun,
-   horizon: Horizon
+   horizon: Horizon,
+   level: number
 ) {
    const bases = useMemo(() => spots.map((spot) => new Matrix4().makeRotationY(spot.rotY)), [spots]);
    return useCallback(
       (i: number, matrix: Matrix4) => {
-         if (!isDecorLevel(run.level)) return false;
+         if (!isDecorLevel(level)) return false;
          const spot = spots[i];
          const row = decorRow(spot, run.player.row, spacing, spots.length);
          matrix.copy(bases[i]).setPosition(spot.side * decorX(horizon.coverX), DECOR_Y, -row * ROW_PITCH);
       },
-      [run, horizon, spots, spacing, bases]
+      [run, horizon, level, spots, spacing, bases]
    );
 }
 
-const StreetLamps = memo(function StreetLamps({ run, horizon }: DecorProps) {
+const StreetLamps = memo(function StreetLamps({ run, horizon, level }: DecorProps) {
    const spots = useMemo(createLampSpots, []);
-   const update = useDecorPool(spots, LAMP_SPACING, run, horizon);
+   const update = useDecorPool(spots, LAMP_SPACING, run, horizon, level);
    const fallbackParts = useLampParts();
    return <DynamicInstancedModel asset={ASSETS.streetLampNight} count={LAMP_COUNT} update={update} fallbackParts={fallbackParts} name="street-lamps" />;
 });
 
-const ParkedTaxis = memo(function ParkedTaxis({ run, horizon, parts }: DecorProps) {
+const ParkedTaxis = memo(function ParkedTaxis({ run, horizon, parts, level }: DecorProps) {
    const spots = useMemo(createTaxiSpots, []);
-   const update = useDecorPool(spots, RUSH_TAXI_SPACING, run, horizon);
+   const update = useDecorPool(spots, RUSH_TAXI_SPACING, run, horizon, level);
    // The live taxi fleet's stand-in parts: same drawn size as the fitted rushTaxi GLB.
    return <DynamicInstancedModel asset={ASSETS.rushTaxi} count={RUSH_TAXI_COUNT} update={update} fallbackParts={parts.vehicles[1]} name="parked-taxis" />;
 });
 
-export const StreetDecor = memo(function StreetDecor({ run, horizon, parts }: DecorProps) {
+export const StreetDecor = memo(function StreetDecor({ run, horizon, parts, level }: DecorProps) {
    return (
       <group name="night-street-decor">
-         <StreetLamps run={run} horizon={horizon} parts={parts} />
-         <ParkedTaxis run={run} horizon={horizon} parts={parts} />
+         <StreetLamps run={run} horizon={horizon} parts={parts} level={level} />
+         <ParkedTaxis run={run} horizon={horizon} parts={parts} level={level} />
       </group>
    );
 });
