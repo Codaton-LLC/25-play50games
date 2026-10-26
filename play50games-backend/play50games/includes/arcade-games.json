@@ -745,12 +745,19 @@
     "mars-rover-mission": {
       "title": "Mars Rover Mission",
       "kind": "points",
-      "max_score": 3000,
-      "min_duration_ms": 10000,
-      "max_duration_ms": 300000,
-      "base": 3000,
-      "max_pps": 3000,
-      "enabled": false
+      "max_score": 1115,
+      "min_duration_ms": 4000,
+      "max_duration_ms": 120000,
+      "base": 540,
+      "max_pps": 49,
+      "enabled": false,
+      "levels": [
+        { "title": "Landing Zone", "max_score": 1115, "min_duration_ms": 4000, "max_duration_ms": 120000, "base": 540, "max_pps": 49 },
+        { "title": "Rocky Plains", "max_score": 1440, "min_duration_ms": 4000, "max_duration_ms": 150000, "base": 720, "max_pps": 48 },
+        { "title": "Mars Canyon", "max_score": 1765, "min_duration_ms": 4000, "max_duration_ms": 180000, "base": 900, "max_pps": 47 },
+        { "title": "Crater", "max_score": 1905, "min_duration_ms": 4000, "max_duration_ms": 180000, "base": 1080, "max_pps": 31 },
+        { "title": "Ancient Mars Site", "max_score": 2365, "min_duration_ms": 4000, "max_duration_ms": 240000, "base": 1260, "max_pps": 33 }
+      ]
     },
     "train-station-rush": {
       "title": "Train Station Rush",
