@@ -119,6 +119,8 @@ export const MODEL_MANIFEST: readonly string[] = [
    // Gen-2.5-Medium, 18k tris, static T-pose for the core auto-rig
    "/models/3d/ghost-vacuum/hunter.glb",
    "/models/3d/ghost-vacuum/candelabra.glb",
+   // ghost-vacuum attic trunk (2026-10-25): K-g2 decor for levels 4-5 (Attic / Whole Mansion)
+   "/models/3d/ghost-vacuum/atticTrunk.glb",
    "/models/3d/rocket-landing/landingPad.glb",
    // zoo-escape props (2026-10-25): batch 5 part A adoptions, Gen-2.5-Medium, 1500-3000 tris,
    // optimized with tools/hyper3d (kiosk and tower bake in their canopy / platform railing)
