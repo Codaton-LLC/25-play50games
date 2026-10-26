@@ -38,6 +38,29 @@ describe("mars-rover-mission GLB fits (real meshes)", () => {
       for (const skip of ["marsRoverV2", "groundSolarPanel", "ancientMarsRuin"]) expect(hasModel(`/models/3d/mars-rover-mission/${skip}.glb`)).toBe(false);
    });
 
+   it("the rover's long axis is the GLB's z, the axis it drives along (yaw 0 = +z); the nose (the dense instrument end) at +z, the mast aft of centre", async () => {
+      expect(GLB_SIZE.marsRover.depth).toBeGreaterThan(GLB_SIZE.marsRover.width);
+      const { cloud } = await readCharacterGlb(ASSETS.rover.url);
+      let mast = 0;
+      let mastN = 0;
+      let front = 0;
+      let back = 0;
+      for (let i = 0; i < cloud.length; i += 3) {
+         const y = cloud[i + 1];
+         const z = cloud[i + 2];
+         if (y > 1.0) {
+            mast += z;
+            mastN++;
+         } else if (y > 0.6) {
+            if (z > 0) front++;
+            else back++;
+         }
+      }
+      expect(mast / mastN).toBeLessThan(0);
+      expect(front).toBeGreaterThan(back);
+      expect(ASSETS.rover.rotationY).toBeUndefined();
+   });
+
    it("gameplay sizes match the rules: the rover in its circle, rocks and boulders as wide as theirs", () => {
       expect(GLB_SIZE.marsRover.depth * S(ASSETS.rover)).toBeCloseTo(FIT.roverLength, 6);
       // the rover's body fits its 1.1 m collision circle within 10 %

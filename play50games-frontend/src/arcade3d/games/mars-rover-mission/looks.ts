@@ -8,9 +8,11 @@ import { GLB_SIZE } from "./assets";
 import { LEVELS, type MarsLevel } from "./levels";
 
 export const COLORS = {
-   ground: "#c2410c",
-   groundDark: "#9a3412",
-   groundLight: "#ea580c",
+   /** rust / ochre regolith, not a saturated red */
+   ground: "#b4532a",
+   groundDark: "#8a3b1e",
+   groundLight: "#c2703d",
+   groundDust: "#d08a55",
    tracks: "#7c2d12",
    accent: "#f97316",
    skyTop: "#7c2d12",
@@ -24,7 +26,7 @@ export const COLORS = {
    siteRingScanned: "#22c55e",
    chargerPad: "#22c55e",
    chargerPadActive: "#86efac",
-   lane: "#7c2d12",
+   lane: "#8a3b1e",
    rock: "#b45309",
    boulder: "#7c2d12",
    mesa: "#9a3412",
@@ -72,11 +74,25 @@ export function aimBounds(level: MarsLevel): AABB {
    return { min: { x: -hx, y: 0, z: -hz }, max: { x: hx, y: 2, z: hz } };
 }
 
-/** Fog per level: L4's dust storm is the spec's 6 / 28; the rest start past the follow camera. */
-export function fogFor(level: MarsLevel, id: LevelId): [string, number, number] {
-   if (id === 4) return ["#c2410c", 6, 28];
-   if (id === 5) return [level.background, 30, level.fogFar];
-   return [level.background, 26, level.fogFar];
+/** Dust-coloured fog per level (the level's spec background stays behind the sky dome). */
+export const FOG_COLOR: Record<LevelId, string> = { 1: "#e0a173", 2: "#d68f5c", 3: "#b8693a", 4: "#b8693a", 5: "#1e1b4b" };
+/** Where the fog may start at the nearest (m) and how deep it is: L4's dust storm is the shortest. */
+export const FOG_NEAR_MIN: Record<LevelId, number> = { 1: 26, 2: 26, 3: 24, 4: 12, 5: 30 };
+export const FOG_SPAN: Record<LevelId, number> = { 1: 54, 2: 54, 3: 40, 4: 18, 5: 60 };
+
+/**
+ * Fog from the fitted camera: it starts past the aim (camera distance + half the window), so the rover and
+ * the near half of the view are never fogged on any screen (a portrait phone fits from farther back), and
+ * keeps the level's depth: L4's dust storm thickens quickest.
+ */
+export function fogRange(id: LevelId, distance: number): { near: number; far: number } {
+   const near = Math.max(FOG_NEAR_MIN[id], distance + VIEW_WINDOW.z * 0.5);
+   return { near, far: near + FOG_SPAN[id] };
+}
+
+/** The environment's fog (before the camera is fitted; the Scene moves it with fogRange). */
+export function fogFor(_level: MarsLevel, id: LevelId): [string, number, number] {
+   return [FOG_COLOR[id], FOG_NEAR_MIN[id], FOG_NEAR_MIN[id] + FOG_SPAN[id]];
 }
 
 export const SKY: Record<LevelId, { top: string; bottom: string }> = {
@@ -149,7 +165,8 @@ export function campSpots(level: MarsLevel) {
    };
 }
 
-/** A faint track down each boulder lane, so the danger reads before a boulder comes. */
+/** A faint, narrow dust trail down each boulder lane (16 % opacity), so the danger reads before a boulder comes. */
 export function laneSpots(level: MarsLevel, lanes: readonly { x: number }[]): InstanceSpot[] {
-   return lanes.map((l) => ({ x: l.x, y: 0.012, z: 0, sx: 1.7, sy: 1, sz: level.depth - 1 }));
+   // a faint, narrow dust trail (the boulder's own width is 1.7 m)
+   return lanes.map((l) => ({ x: l.x, y: 0.012, z: 0, sx: 1.1, sy: 1, sz: level.depth - 1 }));
 }

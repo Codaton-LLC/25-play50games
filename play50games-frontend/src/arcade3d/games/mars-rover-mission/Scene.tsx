@@ -2,8 +2,8 @@
 
 // Mars Rover Mission. One useRunFrame runs rules.frame(); visuals read the run and animate on useGameTime.
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useFrame } from "@react-three/fiber";
-import { Color, Euler, Matrix4, Quaternion, RepeatWrapping, Vector3, type Group } from "three";
+import { useFrame, useThree } from "@react-three/fiber";
+import { Color, Euler, Fog, Matrix4, Quaternion, RepeatWrapping, Vector3, type Group } from "three";
 import { DynamicInstancedModel, InstancedModel, Model } from "@/arcade3d/core/assets";
 import { playSfx, startLoop, useMuted, type LoopHandle } from "@/arcade3d/core/audio";
 import CameraRig from "@/arcade3d/core/CameraRig";
@@ -24,7 +24,7 @@ import { useFittedView } from "@/arcade3d/core/useFittedView";
 import { useRunFrame } from "@/arcade3d/core/useRunFrame";
 import { ASSETS, BOULDER_HALF_H } from "./assets";
 import { LEVELS, type MarsLevel } from "./levels";
-import { COLORS, DAMPING, FOV, LOOK_AHEAD, SKY, aimBounds, campSpots, laneSpots, mesaSpots, viewFor, wallSpots } from "./looks";
+import { COLORS, DAMPING, FOV, LOOK_AHEAD, SKY, aimBounds, campSpots, fogRange, laneSpots, mesaSpots, viewFor, wallSpots } from "./looks";
 import { AstronautFigure, BeaconPrimitive, ChargerPrimitive, PartsInstanced, RoverPrimitive, SampleRockPrimitive, boulderParts, mesaParts, rockParts, sampleParts, useParts, wallParts, CampPrimitive } from "./Primitives";
 import { BASE_PAD_RADIUS, CHARGER_PAD_RADIUS, SITE_RING_RADIUS, BOULDER_RADIUS, createRun, createStoreSync, frame, type Run } from "./rules";
 
@@ -42,26 +42,57 @@ const PAD_ON = new Color(COLORS.chargerPadActive);
 const BEACON_OFFSET = SITE_RING_RADIUS + 0.7;
 const STATION_OFFSET = CHARGER_PAD_RADIUS + 0.7;
 
-/** Regolith: the ground colour with darker and lighter speckles and a few faint craters. */
+/** Regolith: a rust / ochre ground with soft dunes, dust grain, pebbles and a few small rimmed craters. */
 function drawRegolith(ctx: CanvasRenderingContext2D, w: number, h: number) {
+   let seed = 7;
+   const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
    ctx.fillStyle = COLORS.ground;
    ctx.fillRect(0, 0, w, h);
-   let s = 7;
-   const rnd = () => ((s = (s * 16807) % 2147483647) / 2147483647);
-   for (let i = 0; i < 900; i++) {
-      ctx.fillStyle = i % 3 === 0 ? COLORS.groundLight : COLORS.groundDark;
-      ctx.globalAlpha = 0.12 + rnd() * 0.12;
-      const r = 1 + rnd() * 3;
+   // soft dunes: wide, faint light and dark swells (tiled: drawn with wrap-around copies)
+   for (let i = 0; i < 26; i++) {
+      const x = rnd() * w;
+      const y = rnd() * h;
+      const r = 60 + rnd() * 140;
+      const light = i % 2 === 0;
+      for (const dx of [-w, 0, w]) {
+         for (const dy of [-h, 0, h]) {
+            const g = ctx.createRadialGradient(x + dx, y + dy, 0, x + dx, y + dy, r);
+            g.addColorStop(0, light ? "rgba(208, 138, 85, 0.22)" : "rgba(138, 59, 30, 0.18)");
+            g.addColorStop(1, "rgba(0, 0, 0, 0)");
+            ctx.fillStyle = g;
+            ctx.fillRect(x + dx - r, y + dy - r, 2 * r, 2 * r);
+         }
+      }
+   }
+   // dust grain
+   for (let i = 0; i < 9000; i++) {
+      ctx.globalAlpha = 0.06 + rnd() * 0.1;
+      ctx.fillStyle = rnd() < 0.5 ? COLORS.groundLight : COLORS.groundDark;
+      ctx.fillRect(rnd() * w, rnd() * h, 1 + rnd() * 1.5, 1 + rnd() * 1.5);
+   }
+   // pebbles
+   for (let i = 0; i < 260; i++) {
+      ctx.globalAlpha = 0.35;
+      ctx.fillStyle = COLORS.groundDark;
       ctx.beginPath();
-      ctx.arc(rnd() * w, rnd() * h, r, 0, Math.PI * 2);
+      ctx.arc(rnd() * w, rnd() * h, 1.2 + rnd() * 2.2, 0, Math.PI * 2);
       ctx.fill();
    }
-   ctx.globalAlpha = 0.18;
-   ctx.strokeStyle = COLORS.groundDark;
-   ctx.lineWidth = 3;
-   for (let i = 0; i < 6; i++) {
+   // small craters: a shaded bowl with a lit rim on the sun side
+   for (let i = 0; i < 9; i++) {
+      const x = 40 + rnd() * (w - 80);
+      const y = 40 + rnd() * (h - 80);
+      const r = 8 + rnd() * 22;
+      ctx.globalAlpha = 0.28;
+      ctx.fillStyle = COLORS.groundDark;
       ctx.beginPath();
-      ctx.arc(rnd() * w, rnd() * h, 14 + rnd() * 30, 0, Math.PI * 2);
+      ctx.arc(x, y, r, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalAlpha = 0.35;
+      ctx.strokeStyle = COLORS.groundDust;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(x, y, r, Math.PI * 0.9, Math.PI * 1.9);
       ctx.stroke();
    }
    ctx.globalAlpha = 1;
@@ -87,6 +118,20 @@ function LevelScene() {
    const engine = useRef<LoopHandle | null>(null);
    const puffAt = useRef(0);
    const bounds = useMemo(() => aimBounds(level), [level]);
+   const scene = useThree((state) => state.scene);
+   // the fog starts past the aim at whatever distance the camera was fitted to (looks.ts fogRange)
+   useEffect(() => {
+      const fog = scene.fog;
+      if (!(fog instanceof Fog)) return;
+      const before = { near: fog.near, far: fog.far };
+      const next = fogRange(id, view.distance);
+      fog.near = next.near;
+      fog.far = next.far;
+      return () => {
+         fog.near = before.near;
+         fog.far = before.far;
+      };
+   }, [scene, id, view.distance]);
    const markers = useRef<MarkerTarget[]>([
       { x: 0, y: 1.5, z: 0, color: COLORS.accent },
       { x: 0, y: 1.5, z: 0, color: COLORS.chargerPad, hidden: true },
@@ -110,11 +155,11 @@ function LevelScene() {
    const wallFallback = useParts(wallParts);
    const mesaFallback = useParts(mesaParts);
 
-   const regolith = useCanvasTexture(512, 512, drawRegolith);
+   const regolith = useCanvasTexture(1024, 1024, drawRegolith);
    useMemo(() => {
       regolith.wrapS = RepeatWrapping;
       regolith.wrapT = RepeatWrapping;
-      regolith.repeat.set(40, 40);
+      regolith.repeat.set(25, 25); // a 16 m tile
       regolith.needsUpdate = true;
    }, [regolith]);
 
@@ -275,7 +320,7 @@ function LevelScene() {
          {lanes.length > 0 && (
             <Instanced spots={lanes} name="lanes">
                <boxGeometry args={[1, 0.01, 1]} />
-               <meshStandardMaterial color={COLORS.lane} roughness={1} transparent opacity={0.45} depthWrite={false} />
+               <meshStandardMaterial color={COLORS.lane} roughness={1} transparent opacity={0.16} depthWrite={false} />
             </Instanced>
          )}
 

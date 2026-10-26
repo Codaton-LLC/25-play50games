@@ -19,7 +19,7 @@ Drive a rover across one red plain: stop inside each beacon ring to scan a sampl
 | 1 | Landing Zone | 40 × 32 | 3 | 1 | 6 | – | 0.8 | 120 s | day, landing capsule | 1115 / 540 / 49 |
 | 2 | Rocky Plains | 46 × 36 | 4 | 1 | 12 | – | 0.9 | 150 s | day | 1440 / 720 / 48 |
 | 3 | Mars Canyon | 50 × 40 | 5 | 2 | 12 | 2 (3.5) | 1.0 | 180 s | sunset | 1765 / 900 / 47 |
-| 4 | Crater | 50 × 40 | 6 | 2 | 14 | 3 (4.0) | 1.15 | 180 s | sunset, dust storm fog 6 / 28 | 1905 / 1080 / 31 |
+| 4 | Crater | 50 × 40 | 6 | 2 | 14 | 3 (4.0) | 1.15 | 180 s | sunset, dust storm (the shortest fog, 18 m deep) | 1905 / 1080 / 31 |
 | 5 | Ancient Mars Site | 56 × 44 | 7 | 2 | 16 | 4 (4.5) | 1.1 | 240 s | space, stars | 2365 / 1260 / 33 |
 
 `minDurationMs` 4000 on every level, `maxDurationMs` = the clock. Only a win clears a level (no `clearScore`).
@@ -52,13 +52,15 @@ Bots (`testing/bots.ts`, through `createArcadeStore` + `simulateRun` + the same 
 
 The ready `menu1-mars-rover-mission` GLBs (ledger OK) are adopted under `public/models/3d/mars-rover-mission/`, fitted from their measured bounds (`assets.ts` `GLB_SIZE`, `assets.test.ts` on the real meshes): the rover 2.4 m long (inside its 1.1 m circle; the body bobs on a `spring`, the wheels are not split), solid rocks (`sampleRock`, as wide as their 0.95 m circle), the sample (0.45 m: waiting in each ring, lifting while it scans, then in the tray), boulders (`marsBoulder`, centred so the pool spins them, rising out of the ground at a lane's north end), beacons 3 m tall at each ring's north edge, the charging station and a solar panel at each pad's north edge, the boundary of low `marsMesaRock` slabs (the south one 0.5 m high, on the camera's side), distant `marsMesaTall` mesas north, east and west, and a base camp south of the south wall (habitat, antenna, crates, the L1 landing capsule) where the astronaut stands — auto-rigged with measured `ASTRONAUT_LANDMARKS` (`astronaut.test.ts`), idle, cheering on a win. Decor is fitted to 1 m and placed by its spot's scale. Skipped: `marsRoverV2` (thin mast parts), `groundSolarPanel` (V2 used), `ancientMarsRuin` (ledger: nine free-standing pillars with no base), `canyonMesa` (the new `marsMesaTall` is the skyline).
 
-Ground: a 400 m regolith plane (canvas speckles and faint craters) under the fog, darker tracks down the boulder lanes. Sky dome per level; L5 a dark sky with stars. Rings and pads are one tinted pool each (scan rings orange → yellow while holding → green; pads light while charging); the base pad's rim lights once every site is scanned.
+Ground: a 400 m rust / ochre regolith plane (`#b4532a` / `#c2703d` / `#8a3b1e`; a 1024 px canvas tile of 16 m: soft dunes, dust grain, pebbles, small rimmed craters) under the fog, and a faint, narrow dust trail (1.1 m, 16 %) down each boulder lane.
+
+Fog follows the fitted camera (`fogRange`, playtest fix: the spec's L4 6 / 28 fog turned a portrait phone flat orange): it starts past the aim (camera distance + half the window, never nearer than the level's minimum) and keeps the level's depth, L4's dust storm the shortest (18 m against 40–60). Dust-coloured fog per level (`FOG_COLOR`). `looks.test.ts` checks every level at 390 × 844 and 1280 × 800. Sky dome per level; L5 a dark sky with stars. Rings and pads are one tinted pool each (scan rings orange → yellow while holding → green; pads light while charging); the base pad's rim lights once every site is scanned.
 
 Camera: a follow camera (pitch 46°, yaw 0, 3.5 m look-ahead along the velocity) keeping a 13 × 12 m window clear of the HUD and the joystick (`useFittedView`, `shift`), aimed inside the plain. `<TargetMarkers>`: the next site, then the base; a green arrow to the nearest charger while the battery is under 30. HUD: the shell's chips (score, time, lives, Samples x/sites, Battery). The helper's custom battery panel was removed (it repeated the Battery chip).
 
 ## Known issues / for the playtest
 
-- Facing: the rover GLB is assumed to face +z (yaw 0) with its tray at the back; the astronaut faces +z (the camera). Not seen in a browser yet.
+- Facing: the rover drives along its GLB z (its long axis) with the nose at +z: the mesh's dense instrument end is +z and the mast stands aft of centre (`assets.test.ts`); its footprint is nearly square (1.97 × 2.4 m), so it can read square-on mid-turn. The astronaut faces +z (the camera).
 - The beacons and the station/panel at each ring's and pad's north edge are not solid: the rover can drive through their thin legs.
 - The astronaut's landmarks are the core estimate with the hem and the head joint set from the height profile; check the helmet and arms in the cheer.
 - `ancientMarsRuin` is broken in the ledger: L5 has no "ancient site" landmark yet.

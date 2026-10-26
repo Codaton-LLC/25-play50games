@@ -46,9 +46,12 @@ describe("mars-rover-mission levels", () => {
       expect(PROPOSED_LEVEL_LIMITS[5].maxScore).toBeLessThanOrEqual(3 * PROPOSED_LEVEL_LIMITS[1].maxScore);
    });
 
-   it("level 1 is the spec's landing zone; L4's dust storm is fog 6 / 28; L5 is space", () => {
+   it("level 1 is the spec's landing zone; L4's dust storm is the thickest fog; L5 is space", () => {
       expect(LEVELS[1]).toMatchObject({ width: 40, depth: 32, sites: 3, chargers: 1, rocks: 6, boulders: 0, drainScale: 0.8, durationMs: 120_000 });
-      expect(fogFor(LEVELS[4], 4).slice(1)).toEqual([6, 28]);
+      for (const id of [1, 2, 3, 5] as LevelId[]) {
+         const [, n, f] = fogFor(LEVELS[id], id);
+         expect(f - n).toBeGreaterThan(fogFor(LEVELS[4], 4)[2] - fogFor(LEVELS[4], 4)[1]);
+      }
       expect(LEVELS[5].lighting).toBe("space");
    });
 

@@ -102,7 +102,11 @@ export const ASTRONAUT_LANDMARKS: HumanoidLandmarks = {
 };
 
 export const ASSETS = {
-   /** the player: 2.4 m long, its own four wheels (the body bobs on a spring; the wheels are not split) */
+   /**
+    * the player: 2.4 m long along its GLB z (the axis it drives along: yaw 0 = +z, no rotationY), its nose (the
+    * dense instrument end) at +z and the mast aft of centre (assets.test.ts); four wheels in the mesh (the body
+    * bobs on a spring; the wheels are not split)
+    */
    rover: local("marsRover", { scale: ROVER_SCALE, budget: { tris: 5000, bytes: 300_000 } }, "box", "#ea580c"),
    /** solid rocks, as wide as their collision circle */
    rock: local("sampleRock", { scale: k(FIT.rockWidth, GLB_SIZE.sampleRock.width) }, "sphere", "#b45309"),
