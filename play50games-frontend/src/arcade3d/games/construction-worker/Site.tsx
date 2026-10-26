@@ -185,9 +185,21 @@ export function Site({ run, levelId }: { run: Run; levelId?: number }) {
          <Worker run={run} />
          {/* Instanced surroundings decor outside the play area */}
          <Decor />
-         {/* Cement mixers outside the play area (levels 4 & 5 only: Shop Front & Mini Tower) */}
-         {decor && isCommercial && (
-            <InstancedModel asset={ASSETS.cementMixer} spots={MIXER_SPOTS} fallback={<MixerFallback />} />
+         {/* The cement mixer beside the work zone on every level; levels 4-5 (Shop Front, Mini Tower) add three more, all outside the play area */}
+         {decor && (
+            <InstancedModel
+               asset={ASSETS.cementMixer}
+               spots={isCommercial ? MIXER_SPOTS : MIXER_SPOTS.slice(0, 1)}
+               fallback={
+                  <>
+                     {(isCommercial ? MIXER_SPOTS : MIXER_SPOTS.slice(0, 1)).map((s, i) => (
+                        <group key={i} position={[s.x, 0, s.z]} rotation-y={s.rotY ?? 0}>
+                           <MixerFallback />
+                        </group>
+                     ))}
+                  </>
+               }
+            />
          )}
          {decor && (
             <group position={[-5.4, 0, 1]} rotation={[0, Math.PI / 2, 0]} name="van-group">
